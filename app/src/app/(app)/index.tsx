@@ -22,6 +22,7 @@ const MENU: MenuItem[] = [
   { key: 'today', labelKey: 'menu.today', image: require('../../../assets/icons/today.png'), route: '/today', ready: true },
   { key: 'premium', labelKey: 'menu.premium', image: require('../../../assets/icons/premium.png'), route: '/register', ready: true, premium: true },
   { key: 'compat', labelKey: 'menu.compat', image: require('../../../assets/icons/compat.png'), route: '/compat', ready: true, premium: true },
+  { key: 'ziwei', labelKey: 'menu.ziwei', image: require('../../../assets/icons/premium.png'), route: '/ziwei', ready: true, premium: true },
 ];
 
 export default function Home() {

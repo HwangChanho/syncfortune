@@ -14,6 +14,7 @@ const ko = {
   menu: {
     myeongsik: '명식 등록', myeongsikDesc: '생년월일로 내 명식 등록·관리',
     manse: '만세력', manseDesc: '날짜별 사주·차트 관리',
+    ziwei: '자미두수', ziweiDesc: '명반·12궁 성요 풀이',
     taro: '타로', taroDesc: '카드로 보는 오늘',
     today: '오늘의 운세', todayDesc: '매일 바뀌는 일운',
     compat: '궁합', compatDesc: '관계역학 딥 분석',
@@ -87,6 +88,7 @@ const en = {
   menu: {
     myeongsik: 'Register Chart', myeongsikDesc: 'Add & manage your chart',
     manse: 'Manseryeok', manseDesc: 'Calendar charts & management',
+    ziwei: 'Zi Wei Dou Shu', ziweiDesc: 'Palaces & stars reading',
     taro: 'Tarot', taroDesc: "Today's card",
     today: 'Daily Fortune', todayDesc: 'Changes every day',
     compat: 'Compatibility', compatDesc: 'Deep relationship analysis',
@@ -160,6 +162,7 @@ const ja = {
   menu: {
     myeongsik: '命式登録', myeongsikDesc: '命式の登録·管理',
     manse: '万歳暦', manseDesc: '日付別四柱·チャート管理',
+    ziwei: '紫微斗数', ziweiDesc: '命盤·12宮の星',
     taro: 'タロット', taroDesc: '今日のカード',
     today: '今日の運勢', todayDesc: '毎日変わる日運',
     compat: '相性', compatDesc: '関係力学の深い分析',
