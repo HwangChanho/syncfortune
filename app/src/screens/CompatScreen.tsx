@@ -24,6 +24,16 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
   const [oPlace, setOPlace] = useState(''); // 상대 출생지(도시 검색 — 명식폼과 통일, 진태양시 무관해 좌표는 생략)
   const [dx, setDx] = useState<ReturnType<typeof analyzeCompatibility> | null>(null);
   const [pair, setPair] = useState<{ me: any; other: any } | null>(null); // 두 명식(원국+대운+세운) 교차 작용용
+  const [active, setActive] = useState<Set<string>>(new Set()); // 탭한 교차작용(on/off) — 미니명식 글자 강조
+
+  // 작용 행 on/off 토글 (중복 선택 가능 — 명식 화면 패턴과 동일).
+  function toggleActive(key: string) {
+    setActive((prev) => {
+      const next = new Set(prev);
+      next.has(key) ? next.delete(key) : next.add(key);
+      return next;
+    });
+  }
 
   function analyze() {
     if (!me) return;
@@ -32,6 +42,7 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
     const otherChart = computeChart(other).saju;
     setDx(analyzeCompatibility(meChart, otherChart));
     setPair({ me: meChart, other: otherChart });
+    setActive(new Set()); // 재분석 시 강조 초기화
   }
 
   return (
@@ -70,17 +81,30 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
           .filter((it) => String(it.members[0]).startsWith('나') !== String(it.members[1]).startsWith('나'));
         const findP = (pos: string) => all.find((x) => x.pos === pos);
         const typeColor = (ty: string) => (ty === '합' ? colors.ju : (ty === '충' || ty === '극') ? '#C0392B' : '#9A8CC0');
+        // 교차작용 1건의 안정적 key (탭 토글·강조 매칭용)
+        const rowKey = (it: any) => `${it.type}:${it.level}:${it.members[0]}:${it.members[1]}`;
+        // 활성(탭된) 작용들이 가리키는 글자 셀 집합 = `${pos}|stem|branch`. 미니명식 셀이 멤버십으로 강조.
+        const hlCells = new Set<string>();
+        cross.forEach((it) => {
+          if (!active.has(rowKey(it))) return;
+          const side = it.level === '천간' ? 'stem' : 'branch';
+          hlCells.add(`${it.members[0]}|${side}`);
+          hlCells.add(`${it.members[1]}|${side}`);
+        });
         const miniChart = (pillars: any[], title: string) => (
           <View>
             <Text style={styles.cmTitle}>{title}</Text>
             <View style={styles.cmRow}>
-              {pillars.map((x, i) => (
-                <View key={i} style={[styles.cmCol, (x.label === '대운' || x.label === '세운') && styles.cmColLuck]}>
-                  <Text style={styles.cmLabel}>{x.label}</Text>
-                  <View style={[styles.cmCell, { backgroundColor: elementColor[stemElement(x.stem)] }]}><Text style={[styles.cmTx, { color: elementText[stemElement(x.stem)] }]}>{x.stem}</Text></View>
-                  <View style={[styles.cmCell, { backgroundColor: elementColor[branchElement(x.branch)] }]}><Text style={[styles.cmTx, { color: elementText[branchElement(x.branch)] }]}>{x.branch}</Text></View>
-                </View>
-              ))}
+              {pillars.map((x, i) => {
+                const stemOn = hlCells.has(`${x.pos}|stem`), branchOn = hlCells.has(`${x.pos}|branch`);
+                return (
+                  <View key={i} style={[styles.cmCol, (x.label === '대운' || x.label === '세운') && styles.cmColLuck]}>
+                    <Text style={styles.cmLabel}>{x.label}</Text>
+                    <View style={[styles.cmCell, { backgroundColor: elementColor[stemElement(x.stem)] }, stemOn && styles.cmCellHL]}><Text style={[styles.cmTx, { color: elementText[stemElement(x.stem)] }]}>{x.stem}</Text></View>
+                    <View style={[styles.cmCell, { backgroundColor: elementColor[branchElement(x.branch)] }, branchOn && styles.cmCellHL]}><Text style={[styles.cmTx, { color: elementText[branchElement(x.branch)] }]}>{x.branch}</Text></View>
+                  </View>
+                );
+              })}
             </View>
           </View>
         );
@@ -89,6 +113,7 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
             <Text style={styles.h}>글자 작용 비교 (나 ↔ 상대) — 원국·대운·세운</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: space(2) }}>{miniChart(mineP, '나')}</ScrollView>
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>{miniChart(othersP, '상대')}</ScrollView>
+            {cross.length > 0 && <Text style={styles.cmHint}>작용을 탭하면 위 두 명식에서 해당 글자가 강조됩니다 (다시 탭하면 해제).</Text>}
             <View style={styles.crossList}>
               {cross.length === 0 ? <Text style={styles.note}>두 명식 간 직접 합충형해가 없습니다.</Text> :
                 ['합', '충', '형', '해', '파', '극'].map((ty) => {
@@ -103,13 +128,17 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
                         const pa = findP(String(it.members[0])), pb = findP(String(it.members[1]));
                         if (!pa || !pb) return null;
                         const ca = isGan ? pa.stem : pa.branch, cb = isGan ? pb.stem : pb.branch;
+                        const key = rowKey(it), on = active.has(key);
                         return (
-                          <Text key={i} style={styles.cmLink}>
-                            {pa.who}·{pa.label} <Text style={{ color: elementColor[isGan ? stemElement(ca) : branchElement(ca)], fontWeight: '800' }}>{ca}</Text>
-                            {'  ⟷  '}
-                            {pb.who}·{pb.label} <Text style={{ color: elementColor[isGan ? stemElement(cb) : branchElement(cb)], fontWeight: '800' }}>{cb}</Text>
-                            {'   '}<Text style={{ color: col, fontWeight: '800' }}>{it.type}{it.transformsTo ? ` ${it.transformsTo}` : ''}</Text>
-                          </Text>
+                          <Pressable key={i} onPress={() => toggleActive(key)} style={[styles.cmLinkRow, on && { borderLeftColor: col, backgroundColor: colors.sunk }]}>
+                            <Text style={styles.cmLink}>
+                              {on ? '◉ ' : '○ '}
+                              {pa.who}·{pa.label} <Text style={{ color: elementColor[isGan ? stemElement(ca) : branchElement(ca)], fontWeight: '800' }}>{ca}</Text>
+                              {'  ⟷  '}
+                              {pb.who}·{pb.label} <Text style={{ color: elementColor[isGan ? stemElement(cb) : branchElement(cb)], fontWeight: '800' }}>{cb}</Text>
+                              {'   '}<Text style={{ color: col, fontWeight: '800' }}>{it.type}{it.transformsTo ? ` ${it.transformsTo}` : ''}</Text>
+                            </Text>
+                          </Pressable>
                         );
                       })}
                     </View>
@@ -148,8 +177,11 @@ const styles = StyleSheet.create({
   cmColLuck: { backgroundColor: colors.juSoft, borderRadius: radius.sm },
   cmLabel: { fontSize: 9, color: colors.inkFaint, marginBottom: 2 },
   cmCell: { width: 30, height: 30, borderRadius: 5, alignItems: 'center', justifyContent: 'center', marginVertical: 1 },
+  cmCellHL: { borderWidth: 2.5, borderColor: colors.ju }, // 탭된 작용의 글자 강조(골드 테두리)
   cmTx: { fontSize: 17, fontWeight: '800' },
-  crossList: { marginTop: space(3), padding: space(3), borderRadius: radius.sm, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line },
+  cmHint: { ...font.caption, color: colors.inkFaint, marginTop: space(1), marginBottom: space(1) },
+  crossList: { marginTop: space(2), padding: space(3), borderRadius: radius.sm, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line },
   cmGroupHead: { ...font.caption, fontWeight: '800', marginBottom: space(1) },
+  cmLinkRow: { borderLeftWidth: 3, borderLeftColor: 'transparent', borderRadius: radius.sm, paddingLeft: space(2) }, // 활성 시 좌측 색띠
   cmLink: { ...font.body, color: colors.ink, paddingVertical: space(1) },
 });
