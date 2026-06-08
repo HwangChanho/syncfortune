@@ -15,9 +15,15 @@ const SAMHAP: Record<Branch, '水' | '火' | '金' | '木'> = {
   申: '水', 子: '水', 辰: '水', 寅: '火', 午: '火', 戌: '火',
   巳: '金', 酉: '金', 丑: '金', 亥: '木', 卯: '木', 未: '木',
 };
-const DOHWA: Record<string, Branch> = { 水: '酉', 火: '卯', 金: '午', 木: '子' };   // 도화(목욕·왕지 다음)
-const YEOKMA: Record<string, Branch> = { 水: '寅', 火: '申', 金: '亥', 木: '巳' };  // 역마(생지 충)
-const HWAGAE: Record<string, Branch> = { 水: '辰', 火: '戌', 金: '丑', 木: '未' };  // 화개(묘지)
+// 12신살(十二神煞) — 삼합국 생지(=지살)에서 −3 위치가 겁살, 거기부터 12지지 순환 배속.
+//   도화(=년살)·역마·화개 포함. 기준지: 년지·일지 둘 다 산출(daniel stance 2026-06-08 "전부 산출").
+const SINSAL12: string[] = ['겁살', '재살', '천살', '지살', '년살', '월살', '망신', '장성', '반안', '역마', '육해', '화개'];
+const SAMHAP_SAENGJI: Record<'水' | '火' | '金' | '木', Branch> = { 水: '申', 火: '寅', 金: '巳', 木: '亥' };
+/** 기준지(년지·일지)의 삼합국 기준, target 지지의 12신살 이름. */
+function twelveSinsalAt(base: Branch, target: Branch): string {
+  const start = (BR.indexOf(SAMHAP_SAENGJI[SAMHAP[base]]) - 3 + 12) % 12; // 겁살 = 생지 − 3
+  return SINSAL12[(BR.indexOf(target) - start + 12) % 12];
+}
 
 // 일간 기준 천을귀인·문창
 const CHEONEUL: Record<Stem, Branch[]> = {
@@ -40,7 +46,8 @@ export interface SinsalHit { name: string; branch: Branch; hits: PillarPos[]; no
 export interface SinsalResult {
   gongmang: [Branch, Branch];   // 공망 2지지
   gongmangHits: PillarPos[];    // 원국에서 공망 맞은 자리
-  sinsal: SinsalHit[];          // 도화·역마·화개·천을귀인·문창·양인 (branch + 원국 hit 자리)
+  sinsal: SinsalHit[];          // 길신·기타(천을귀인·문창·양인·홍염) — 도화·역마·화개는 12신살로 통일
+  twelve: Record<PillarPos, { byYear: string; byDay: string }>; // 12신살 (각 기둥 지지를 년지·일지 기준 둘 다)
   goegang: boolean;             // 괴강 일주(庚辰·庚戌·壬辰·戊戌)
   baekhoHits: PillarPos[];      // 백호살 간지 자리
 }
@@ -56,14 +63,19 @@ export function gongmang(stem: Stem, branch: Branch): [Branch, Branch] {
 export function analyzeSinsal(saju: SajuChart): SinsalResult {
   const dayStem = saju.pillars['일'].stem;
   const dayBranch = saju.pillars['일'].branch;
-  const elem = SAMHAP[dayBranch];                          // 일지 삼합국
+  const yearBranch = saju.pillars['년'].branch;
   const gm = gongmang(dayStem, dayBranch);
   const branchAt = (b: Branch) => POS.filter((p) => saju.pillars[p].branch === b);
 
+  // 12신살 — 각 기둥 지지를 년지·일지 기준 둘 다 산출(daniel "전부 산출")
+  const twelve = {} as Record<PillarPos, { byYear: string; byDay: string }>;
+  POS.forEach((p) => {
+    const tb = saju.pillars[p].branch;
+    twelve[p] = { byYear: twelveSinsalAt(yearBranch, tb), byDay: twelveSinsalAt(dayBranch, tb) };
+  });
+
+  // 길신·기타 신살(천을귀인·문창·양인·홍염) — 도화·역마·화개는 12신살로 통일
   const sinsal: SinsalHit[] = [
-    { name: '도화', branch: DOHWA[elem], hits: branchAt(DOHWA[elem]), note: '매력·이성·끼(일지 삼합 기준)' },
-    { name: '역마', branch: YEOKMA[elem], hits: branchAt(YEOKMA[elem]), note: '이동·변동(R4)' },
-    { name: '화개', branch: HWAGAE[elem], hits: branchAt(HWAGAE[elem]), note: '고독·예술·종교·총명' },
     ...CHEONEUL[dayStem].map((b): SinsalHit => ({ name: '천을귀인', branch: b, hits: branchAt(b), note: '최고 길신·귀인 조력' })),
     { name: '문창', branch: MUNCHANG[dayStem], hits: branchAt(MUNCHANG[dayStem]), note: '학문·총명·표현' },
   ];
@@ -73,5 +85,5 @@ export function analyzeSinsal(saju: SajuChart): SinsalResult {
   const goegang = GOEGANG.has(`${dayStem}${dayBranch}`);
   const baekhoHits = POS.filter((p) => BAEKHO.has(`${saju.pillars[p].stem}${saju.pillars[p].branch}`));
 
-  return { gongmang: gm, gongmangHits: POS.filter((p) => gm.includes(saju.pillars[p].branch)), sinsal, goegang, baekhoHits };
+  return { gongmang: gm, gongmangHits: POS.filter((p) => gm.includes(saju.pillars[p].branch)), sinsal, twelve, goegang, baekhoHits };
 }

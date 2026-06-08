@@ -398,7 +398,7 @@ export function MyeongsikScreen({ input, onReading }: { input: ChartInput | null
       <Text style={styles.hint}>{t('myeongsik.sinsalHint')}</Text>
       {/* 자리(기둥)별 신살 표 — 행=천간/지지, 열=시·일·월·년 (카톡 만세력 표 형식) */}
       {(() => {
-        // 지지 신살(도화·역마·화개·천을·문창·양인·홍염)은 지지 행, 간지 신살(백호·괴강)은 천간 행에 배치.
+        // 길신·기타 신살(천을·문창·양인·홍염)은 지지 행, 간지 신살(백호·괴강)은 천간 행, 12신살은 별도 행.
         const branchTags = (p: PillarPos) =>
           c.sinsal.sinsal.filter((s2) => s2.hits.includes(p)).map((s2) => ({ name: s2.name, label: t(`sinsal.${s2.name}`) }));
         const stemTags = (p: PillarPos) => {
@@ -445,6 +445,25 @@ export function MyeongsikScreen({ input, onReading }: { input: ChartInput | null
               </View>
               {renderRow('천간', 'stem')}
               {renderRow('지지', 'branch')}
+              {/* 12신살 — 년지·일지 기준 둘 다 산출(탭 → 의미) */}
+              <View style={styles.ssTableRow}>
+                <Text style={styles.ssRowLabel}>12{'\n'}신살</Text>
+                {visiblePos.map((p) => {
+                  const tw = c.sinsal.twelve[p];
+                  return (
+                    <View key={p} style={styles.ssCell}>
+                      <Pressable onPress={() => setGlossary({ kind: 'sinsal', key: tw.byYear })}>
+                        <Text style={styles.ss12Tag}>{tw.byYear}<Text style={styles.ss12Base}> 년</Text></Text>
+                      </Pressable>
+                      {tw.byDay !== tw.byYear && (
+                        <Pressable onPress={() => setGlossary({ kind: 'sinsal', key: tw.byDay })}>
+                          <Text style={styles.ss12Tag}>{tw.byDay}<Text style={styles.ss12Base}> 일</Text></Text>
+                        </Pressable>
+                      )}
+                    </View>
+                  );
+                })}
+              </View>
             </View>
             {/* 공망: 기준 2지지(오행색) + 원국 적중 자리 */}
             <View style={styles.ssGmRow}>
@@ -530,6 +549,8 @@ const styles = StyleSheet.create({
   ssTag: { fontSize: 10, color: colors.ju, fontWeight: '600', textAlign: 'center' },
   ssGmRow: { flexDirection: 'row', alignItems: 'center', gap: space(2), marginTop: space(2.5) },
   ssLuckLine: { ...font.caption, color: colors.inkFaint, marginTop: space(2), lineHeight: 18 },
+  ss12Tag: { fontSize: 11, color: colors.ink, fontWeight: '700', textAlign: 'center', textDecorationLine: 'underline', textDecorationStyle: 'dotted' },
+  ss12Base: { fontSize: 8, color: colors.inkFaint, fontWeight: '400' },
   rootBadgeRow: { flexDirection: 'row', alignItems: 'center', marginTop: 2, flexWrap: 'wrap', justifyContent: 'center' },
   rootStem: { fontSize: 10, fontWeight: '800' },
   rootSuffix: { fontSize: 9, color: colors.inkFaint, marginLeft: 1 },
