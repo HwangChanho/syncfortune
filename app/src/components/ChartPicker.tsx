@@ -8,19 +8,23 @@ import { useState, useCallback } from 'react';
 import { View, Text, Pressable, Modal, ScrollView, StyleSheet } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { listCharts, setRepresentative, getRepresentativeId, type SavedChart } from '../lib/myChart';
+import { listCharts, setRepresentative, getRepresentativeId, getChartUsage, type SavedChart } from '../lib/myChart';
+import { useSubscription } from '../lib/subscription';
 import { colors, radius, space, shadow, font } from '../lib/theme';
 
 export function ChartPicker() {
   const { t } = useTranslation();
   const router = useRouter();
+  const { isPremium } = useSubscription(); // 프로 = 무제한(사용량 배지 숨김)
   const [charts, setCharts] = useState<SavedChart[]>([]);
   const [repId, setRepId] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
+  const [usage, setUsage] = useState<{ count: number; limit: number } | null>(null);
 
   const reload = useCallback(async () => {
     setCharts(await listCharts());
     setRepId(await getRepresentativeId());
+    setUsage(await getChartUsage());
   }, []);
   // 화면 복귀(등록 후 등) 때마다 갱신
   useFocusEffect(useCallback(() => { reload(); }, [reload]));
@@ -54,7 +58,15 @@ export function ChartPicker() {
         <Pressable style={styles.backdrop} onPress={() => setOpen(false)}>
           <Pressable style={styles.sheet} onPress={() => {}}>
             <View style={styles.handle} />
-            <Text style={styles.sheetTitle}>{t('manse.myChart')}</Text>
+            <View style={styles.sheetHead}>
+              <Text style={styles.sheetTitle}>{t('manse.myChart')}</Text>
+              {/* 무료 사용량 배지 (프로는 무제한 → 숨김). 한도 도달 시 주색 강조. */}
+              {!isPremium && usage && (
+                <Text style={[styles.usage, usage.count >= usage.limit && styles.usageMax]}>
+                  {t('register.usage', { count: usage.count, limit: usage.limit })}
+                </Text>
+              )}
+            </View>
             <ScrollView style={styles.list} showsVerticalScrollIndicator={false}>
               {charts.map((c) => {
                 const on = c.id === repId;
@@ -95,7 +107,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: space(5), paddingTop: space(2.5), paddingBottom: space(6), maxHeight: '70%',
   },
   handle: { width: 40, height: 4, borderRadius: 2, backgroundColor: colors.line, alignSelf: 'center', marginBottom: space(3) },
-  sheetTitle: { ...font.heading, marginBottom: space(2) },
+  sheetHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: space(2) },
+  sheetTitle: { ...font.heading },
+  usage: { ...font.caption, color: colors.inkSoft, fontWeight: '700' },
+  usageMax: { color: colors.ju }, // 한도 도달 = 주색(업그레이드 신호)
+
   list: { flexGrow: 0 },
   row: { flexDirection: 'row', alignItems: 'center', paddingVertical: space(3.5), borderBottomWidth: 1, borderBottomColor: colors.line, gap: space(2) },
   rowName: { ...font.body, fontWeight: '600', color: colors.ink },

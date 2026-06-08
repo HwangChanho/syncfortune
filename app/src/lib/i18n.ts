@@ -42,6 +42,8 @@ const ko = {
     birthTimeSijin: '태어난 시각 (시진)', timeUnknown: '모름', selfLabel: '본인',
     relationCustom: '직접 입력', relationCustomPh: '관계를 직접 입력 (예: 직장 상사)',
     birthPlaceSearch: '도시·지역 검색', birthPlaceSearchPh: '예: 서울, 부산, Tokyo', useAsIs: "'{{q}}' 그대로 사용",
+    limitTitle: '무료 등록 한도', limitMsg: '무료 플랜은 명식을 {{limit}}개까지 등록할 수 있어요.\n프로로 업그레이드하면 무제한으로 등록할 수 있습니다.',
+    upgrade: '프로 업그레이드', usage: '명식 {{count}}/{{limit}}',
   },
   myeongsik: {
     palja: '팔자', dayMaster: '일간', strength: '신강약 지표', pattern: '격국후보',
@@ -117,6 +119,8 @@ const en = {
     birthTimeSijin: 'Birth time (Sijin)', timeUnknown: 'Unknown', selfLabel: 'Self',
     relationCustom: 'Custom', relationCustomPh: 'Enter relation (e.g. my boss)',
     birthPlaceSearch: 'Search city/region', birthPlaceSearchPh: 'e.g. Seoul, Tokyo', useAsIs: "Use '{{q}}'",
+    limitTitle: 'Free registration limit', limitMsg: 'The free plan lets you register up to {{limit}} charts.\nUpgrade to Pro for unlimited registrations.',
+    upgrade: 'Upgrade to Pro', usage: 'Charts {{count}}/{{limit}}',
   },
   myeongsik: {
     palja: 'Four Pillars', dayMaster: 'Day Master', strength: 'Strength index', pattern: 'Pattern',
@@ -192,6 +196,8 @@ const ja = {
     birthTimeSijin: '出生時刻（時辰）', timeUnknown: '不明', selfLabel: '本人',
     relationCustom: '直接入力', relationCustomPh: '関係を入力（例：上司）',
     birthPlaceSearch: '都市·地域を検索', birthPlaceSearchPh: '例：ソウル、東京', useAsIs: "'{{q}}' をそのまま使用",
+    limitTitle: '無料登録の上限', limitMsg: '無料プランは命式を{{limit}}件まで登録できます。\nプロにアップグレードすると無制限に登録できます。',
+    upgrade: 'プロにアップグレード', usage: '命式 {{count}}/{{limit}}',
   },
   myeongsik: {
     palja: '八字', dayMaster: '日干', strength: '身強弱指標', pattern: '格局候補',
