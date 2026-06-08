@@ -5,12 +5,15 @@
 // 실행: npm run verify:engine
 // ─────────────────────────────────────────────────────────────────────────
 import { twelveStage } from './twelve';
-import { gongmang } from './sinsal';
+import { gongmang, analyzeSinsal } from './sinsal';
 import { detectInteractions } from './structure';
-import type { Stem, Branch, PillarPos, SajuChart } from '../spec/chart';
+import { buildSajuChart } from './saju';
+import { trueSolarOffsetMin } from './solartime';
+import type { Stem, Branch, PillarPos, SajuChart, ChartInput } from '../spec/chart';
 
 let ok = true;
 const mark = (p: boolean) => (p ? '✅' : '❌');
+const check = (desc: string, p: boolean) => { if (!p) ok = false; console.log(`  ${mark(p)} ${desc}`); };
 
 // ── 12운성 (천간 × 지지 → 운성) 알려진 정답 ──
 // 양간 순행/음간 역행이 핵심 — 장생지·왕지(건록·제왕) 위주로 검증.
@@ -34,7 +37,7 @@ const GM_CASES: [Stem, Branch, Branch, Branch][] = [
   ['甲', '戌', '申', '酉'],  // 甲戌순
   ['甲', '申', '午', '未'],  // 甲申순
   ['甲', '午', '辰', '巳'],  // 甲午순
-  ['辛', '丑', '辰', '巳'],  // 辛丑(甲午순) — 본인
+  ['辛', '丑', '辰', '巳'],  // 辛丑(甲午순)
   ['庚', '申', '子', '丑'],  // 庚申(甲寅순)
   ['癸', '亥', '子', '丑'],  // 癸亥 = 甲寅순 → 공망 子丑
   ['壬', '戌', '子', '丑'],  // 壬戌 = 甲寅순 → 공망 子丑
@@ -70,5 +73,37 @@ for (const [desc, br, must] of INT_CASES) {
   console.log(`  ${mark(p)} ${desc}${p ? ` → ${must} ✓` : ` → ${got.join(', ') || '(없음)'} (기대 ${must})`}`);
 }
 
+// ── 신살 일반화 (타 일간 차트 — 자기차트 n=1 넘어 규칙이 임의 차트에 일반 적용되는지) ──
+function mkSaju(st: [Stem, Stem, Stem, Stem], br: [Branch, Branch, Branch, Branch]): SajuChart {
+  const P: PillarPos[] = ['년', '월', '일', '시'];
+  const pillars = {} as Record<PillarPos, any>;
+  P.forEach((p, i) => { pillars[p] = { position: p, stem: st[i], branch: br[i], stemTenGod: '비견', branchMainTenGod: '비견', hiddenStems: [], isRoot: false }; });
+  return { pillars, dayMaster: { stem: st[2], element: '木' }, interactions: [], luckCycles: [], currentLuck: {} as any, annual: {} as any } as SajuChart;
+}
+console.log('=== 신살 일반화 (타 일간 차트 — n=1 넘어 규칙 일반화) ===');
+{
+  const rA = analyzeSinsal(mkSaju(['庚', '丙', '甲', '壬'], ['子', '午', '寅', '戌'])); // 일간 甲, 년지 子·일지 寅
+  const rok = rA.sinsal.find((s) => s.name === '정록');
+  check('甲 일간 정록=寅 (일지 적중)', rok?.glyphs[0] === '寅' && !!rok.hits.some((h) => h.pos === '일'));
+  check('일지 寅 → 지살(일지 기준)', rA.twelve['일'].byDay === '지살');
+  check('일지 寅 → 역마(년지 子 기준 ≠ 일지기준 = 전부 산출)', rA.twelve['일'].byYear === '역마');
+
+  const rB = analyzeSinsal(mkSaju(['丙', '戊', '庚', '甲'], ['申', '子', '辰', '未'])); // 일간 庚
+  const rokB = rB.sinsal.find((s) => s.name === '정록');
+  check('庚 일간 정록=申 (년지 적중)', rokB?.glyphs[0] === '申' && !!rokB.hits.some((h) => h.pos === '년'));
+  check('庚 천을귀인 未 적중(시지)', !!rB.sinsal.find((s) => s.name === '천을귀인')?.hits.some((h) => h.pos === '시'));
+  check('일지 辰 → 화개(일지 기준)', rB.twelve['일'].byDay === '화개');
+}
+
+// ── 진태양시 보정 (경도차 + 균시차) — 시주가 보정으로 바뀌는지 ──
+console.log('=== 진태양시 보정 (시계시 → 출생지 태양시) ===');
+{
+  const yeosu = (h: number, mi: number): ChartInput => ({ birthDateTime: `2001-06-15 ${h}:${mi}`, calendar: '양', timeAccuracy: '정확', sex: '남', birthPlace: '여수', birthLon: 127.66 });
+  const off = trueSolarOffsetMin(yeosu(17, 30), 2001, 6, 15);
+  check(`여수 2001-06-15 보정 ≈ -39분 (실측 ${off.toFixed(1)}분, 17:30→17:06)`, off < -36 && off > -42);
+  check('17:30 여수 → 시지 酉 (보정 17:06, 酉시 유지)', buildSajuChart(yeosu(17, 30)).pillars['시'].branch === '酉');
+  check('17:05 여수 → 시지 申 (보정 16:26 — 미보정이면 酉)', buildSajuChart(yeosu(17, 5)).pillars['시'].branch === '申');
+}
+
 if (!ok) { console.log('\n❌ 정확도 게이트 실패 — 공식/테이블 점검'); process.exitCode = 1; }
-else console.log('\n🎯 결정론 정확도 통과 — 12운성·공망·합충형해가 명리 표준과 일치');
+else console.log('\n🎯 결정론 정확도 통과 — 12운성·공망·합충·신살·진태양시 일반화 확인');

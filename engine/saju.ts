@@ -9,6 +9,7 @@ import _lunar from 'lunar-javascript';
 import type {
   ChartInput, SajuChart, PillarData, PillarPos, Stem, Branch, TenGod, HiddenStem, Element, LuckCycle, AnnualPillar, MonthPillar,
 } from '../spec/chart';
+import { trueSolarOffsetMin } from './solartime';
 
 const Lunar: any = _lunar;
 const Solar = Lunar.Solar;
@@ -83,7 +84,15 @@ export function buildSajuChart(input: ChartInput, nowYear = 2026): SajuChart {
   const [datePart, timePart = '0:0'] = input.birthDateTime.split(' ');
   const [y, mo, d] = datePart.split('-').map(Number);
   const [h, mi = 0] = timePart.split(':').map(Number);
-  const ec = Solar.fromYmdHms(y, mo, d, h, mi, 0).getLunar().getEightChar();
+  // 진태양시 보정 — 시계시(KST) → 출생지 실제 태양시(경도차+균시차)로 시각 이동 후 팔자 산출.
+  //   시각 미상은 시주가 어차피 마스킹되고 자정 경계 오류(일주 변동) 위험이 있어 보정 생략.
+  let cy = y, cmo = mo, cd = d, ch = h, cmi = mi;
+  if (input.timeAccuracy !== '미상') {
+    const corr = new Date(y, mo - 1, d, h, mi, 0);
+    corr.setMinutes(corr.getMinutes() + Math.round(trueSolarOffsetMin(input, y, mo, d)));
+    cy = corr.getFullYear(); cmo = corr.getMonth() + 1; cd = corr.getDate(); ch = corr.getHours(); cmi = corr.getMinutes();
+  }
+  const ec = Solar.fromYmdHms(cy, cmo, cd, ch, cmi, 0).getLunar().getEightChar();
   const dayStem = ec.getDayGan() as Stem;
 
   const pillars = {

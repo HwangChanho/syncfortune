@@ -184,7 +184,8 @@ export interface ChartInput {
   calendar: '양' | '음';
   timeAccuracy: '정확' | '추정' | '미상';
   sex: '남' | '여';
-  birthPlace: string;                 // 진태양시 보정
+  birthPlace: string;                 // 진태양시 보정(도시명)
+  birthLon?: number;                  // 출생지 경도(°E) — 진태양시 보정용. 없으면 도시명 lookup/기본값(engine/solartime)
 }
 
 // [ADR-005] 서버 전송 가능 — PII(ChartInput) 없음. 신원 없는 '구조' 데이터만(§6.1).

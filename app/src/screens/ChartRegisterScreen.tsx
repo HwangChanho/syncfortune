@@ -40,7 +40,7 @@ export function ChartRegisterScreen({ onSubmit }: { onSubmit: (input: any) => vo
     const input = {
       label: label.trim() || (relation === 'self' ? t('register.selfLabel') : relation),
       birthDateTime: `${birthDate} ${sj ? sj.hm : '0:0'}`, // 시진 대표 시각 주입(모름=0:0)
-      calendar, sex, birthPlace, birthPlaceLon,
+      calendar, sex, birthPlace, birthLon: birthPlaceLon ?? undefined, // 진태양시 보정 경도(엔진 ChartInput.birthLon)
       relation,
       timeAccuracy: sj ? '정확' : '미상', // 시진 알면 시주 확정 → 정확
     };
