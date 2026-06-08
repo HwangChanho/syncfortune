@@ -8,7 +8,7 @@
 // 일주(日柱) = '나'(일간) → 골드 강조. 용신·통변은 별도(하단 "풀이 보기").
 // ─────────────────────────────────────────────────────────────────────────
 import { useMemo, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, Pressable } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Pressable, Modal } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { computeChart } from '../lib/engine';
 import type { ChartInput, PillarPos } from '@spec/chart';
@@ -16,6 +16,7 @@ import { colors, radius, space, shadow, font } from '../lib/theme';
 import { stemElement, branchElement, elementColor, elementText, stemReading, branchReading } from '../lib/ohaeng';
 import { HIDDEN, computeMonthDays, branchTenGod } from '@engine/saju'; // 지장간 표 + 일운(流日) + 지지십신
 import { twelveStage } from '@engine/twelve';                          // 임의 지지 12운성(타임라인용)
+import { lookupGlossary, GLOSSARY_KIND_LABEL, type GlossaryKind } from '../lib/myeongriGlossary'; // 클릭 설명
 import Svg, { Path, Rect, Circle, Text as SvgText, G } from 'react-native-svg';
 
 // 전통 표기 — 오른쪽이 년주: 시(왼) ← 일 ← 월 ← 년(오른쪽)
@@ -60,6 +61,7 @@ export function MyeongsikScreen({ input, onReading }: { input: ChartInput | null
   const [selLuck, setSelLuck] = useState(curLuckIdx);                  // 선택된 대운 → 세운 드릴다운
   const [selSeun, setSelSeun] = useState(0);                          // 선택된 세운 → 원국 확장 명식
   const [selMonth, setSelMonth] = useState(0);                        // 선택된 월운 → 확장 명식
+  const [glossary, setGlossary] = useState<{ kind: GlossaryKind; key?: string } | null>(null); // 클릭 설명 바텀시트
   const posIndex: Record<string, number> = { 시: 0, 일: 1, 월: 2, 년: 3 };
   const allLinks = (c.saju.interactions as any[]).filter(
     (it) => it.members?.length === 2 && it.members.every((m: string) => posIndex[m] != null && visiblePos.includes(m as any))
@@ -73,6 +75,7 @@ export function MyeongsikScreen({ input, onReading }: { input: ChartInput | null
     : (it.type === '충' || it.type === '극') ? '#C0392B' : '#9A8CC0';
 
   return (
+    <>
     <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>
       {/* 팔자 4기둥 (오른쪽=년주) */}
       <Text style={styles.h}>{t('myeongsik.palja')}</Text>
@@ -122,14 +125,14 @@ export function MyeongsikScreen({ input, onReading }: { input: ChartInput | null
                 <><Text style={styles.gzMasked}>✕</Text><Text style={styles.maskedLabel}>{t('register.timeUnknown')}</Text></>
               ) : (
                 <>
-                  <Text style={styles.tgSmall}>{d.stemTenGod}</Text>
+                  <Pressable onPress={() => setGlossary({ kind: 'tengod', key: d.stemTenGod })}><Text style={styles.tgSmallLink}>{d.stemTenGod}</Text></Pressable>
                   <View style={[styles.gzCell, { backgroundColor: elementColor[stemElement(d.stem)] }]}>
                     <Text style={[styles.gzText, { color: elementText[stemElement(d.stem)] }]}>{d.stem}</Text>
                   </View>
                   <View style={[styles.gzCell, { backgroundColor: elementColor[branchElement(d.branch)] }]}>
                     <Text style={[styles.gzText, { color: elementText[branchElement(d.branch)] }]}>{d.branch}</Text>
                   </View>
-                  <Text style={styles.tgSmall}>{d.branchMainTenGod}</Text>
+                  <Pressable onPress={() => setGlossary({ kind: 'tengod', key: d.branchMainTenGod })}><Text style={styles.tgSmallLink}>{d.branchMainTenGod}</Text></Pressable>
                   <View style={styles.pillarDivider} />
                   <Text style={styles.stage}>{c.stages[p]}</Text>
                   <Text style={styles.hidden}>{d.hiddenStems.map((h) => h.stem).join(' ')}</Text>
@@ -397,11 +400,11 @@ export function MyeongsikScreen({ input, onReading }: { input: ChartInput | null
       {(() => {
         // 지지 신살(도화·역마·화개·천을·문창·양인·홍염)은 지지 행, 간지 신살(백호·괴강)은 천간 행에 배치.
         const branchTags = (p: PillarPos) =>
-          c.sinsal.sinsal.filter((s2) => s2.hits.includes(p)).map((s2) => t(`sinsal.${s2.name}`));
+          c.sinsal.sinsal.filter((s2) => s2.hits.includes(p)).map((s2) => ({ name: s2.name, label: t(`sinsal.${s2.name}`) }));
         const stemTags = (p: PillarPos) => {
-          const tags: string[] = [];
-          if (c.sinsal.baekhoHits.includes(p)) tags.push(t('sinsal.백호'));
-          if (c.sinsal.goegang && p === '일') tags.push(t('sinsal.괴강'));
+          const tags: { name: string; label: string }[] = [];
+          if (c.sinsal.baekhoHits.includes(p)) tags.push({ name: '백호', label: t('sinsal.백호') });
+          if (c.sinsal.goegang && p === '일') tags.push({ name: '괴강', label: t('sinsal.괴강') });
           return tags;
         };
         // 원국에 적중하지 못한 신살(운에서 작동) — 표에 안 뜨므로 하단에 보존
@@ -422,7 +425,11 @@ export function MyeongsikScreen({ input, onReading }: { input: ChartInput | null
                 <View key={p} style={styles.ssCell}>
                   <Text style={[styles.ssCellGz, { color: elementColor[el] }]}>{ch}</Text>
                   {tags.length
-                    ? tags.map((tg, i) => <Text key={i} style={styles.ssTag}>{tg}</Text>)
+                    ? tags.map((tg, i) => (
+                        <Pressable key={i} onPress={() => setGlossary({ kind: 'sinsal', key: tg.name })}>
+                          <Text style={styles.ssTagLink}>{tg.label}</Text>
+                        </Pressable>
+                      ))
                     : <Text style={styles.ssDim}>—</Text>}
                 </View>
               );
@@ -441,7 +448,7 @@ export function MyeongsikScreen({ input, onReading }: { input: ChartInput | null
             </View>
             {/* 공망: 기준 2지지(오행색) + 원국 적중 자리 */}
             <View style={styles.ssGmRow}>
-              <Text style={styles.ssName}>{t('myeongsik.gongmang')}</Text>
+              <Pressable onPress={() => setGlossary({ kind: 'gongmang' })}><Text style={[styles.ssName, styles.linkText]}>{t('myeongsik.gongmang')}</Text></Pressable>
               <View style={styles.ssBranches}>
                 {c.sinsal.gongmang.map((b) => (
                   <Text key={b} style={[styles.ssBranch, { color: elementColor[branchElement(b)] }]}>{b}</Text>
@@ -471,6 +478,33 @@ export function MyeongsikScreen({ input, onReading }: { input: ChartInput | null
         </Pressable>
       )}
     </ScrollView>
+
+    {/* 클릭 설명 바텀시트 — 십신·신살·공망 의미 (탭한 항목) */}
+    <Modal visible={!!glossary} transparent animationType="slide" onRequestClose={() => setGlossary(null)}>
+      <Pressable style={styles.sheetOverlay} onPress={() => setGlossary(null)}>
+        <Pressable style={styles.sheet} onPress={() => {}}>
+          {glossary && (() => {
+            const e = lookupGlossary(glossary.kind, glossary.key);
+            if (!e) return <Text style={styles.sheetMeaning}>{glossary.key}</Text>;
+            return (
+              <>
+                <View style={styles.sheetHandle} />
+                <Text style={styles.sheetKind}>{GLOSSARY_KIND_LABEL[glossary.kind]}</Text>
+                <Text style={styles.sheetTitle}>{e.ko}{e.hanja ? `   ${e.hanja}` : ''}</Text>
+                <Text style={styles.sheetMeaning}>{e.meaning}</Text>
+                <View style={styles.sheetChips}>
+                  {e.keywords.map((k, i) => <Text key={i} style={styles.sheetChip}>{k}</Text>)}
+                </View>
+                <Pressable style={styles.sheetClose} onPress={() => setGlossary(null)}>
+                  <Text style={styles.sheetCloseText}>닫기</Text>
+                </Pressable>
+              </>
+            );
+          })()}
+        </Pressable>
+      </Pressable>
+    </Modal>
+    </>
   );
 }
 
@@ -578,4 +612,18 @@ const styles = StyleSheet.create({
     alignItems: 'center', marginTop: space(5), ...shadow.card,
   },
   readingBtnText: { color: colors.bg, fontSize: 15, fontWeight: '700' },
+  // 클릭 설명 — 탭 가능 힌트(점선 밑줄) + 바텀시트
+  tgSmallLink: { fontSize: 10, color: colors.inkSoft, marginVertical: space(0.5), textDecorationLine: 'underline', textDecorationStyle: 'dotted' },
+  ssTagLink: { fontSize: 10, color: colors.ju, fontWeight: '600', textAlign: 'center', textDecorationLine: 'underline', textDecorationStyle: 'dotted' },
+  linkText: { textDecorationLine: 'underline', textDecorationStyle: 'dotted' },
+  sheetOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'flex-end' },
+  sheet: { backgroundColor: colors.card, borderTopLeftRadius: radius.md, borderTopRightRadius: radius.md, padding: space(5), paddingBottom: space(9) },
+  sheetHandle: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: colors.line, marginBottom: space(3) },
+  sheetKind: { ...font.caption, color: colors.ju, fontWeight: '700', marginBottom: space(1) },
+  sheetTitle: { ...font.heading, color: colors.ink, marginBottom: space(2.5) },
+  sheetMeaning: { ...font.body, color: colors.ink, lineHeight: 24 },
+  sheetChips: { flexDirection: 'row', flexWrap: 'wrap', gap: space(1.5), marginTop: space(3.5) },
+  sheetChip: { ...font.caption, color: colors.ink, backgroundColor: colors.sunk, paddingHorizontal: space(2.5), paddingVertical: space(1), borderRadius: radius.pill, overflow: 'hidden' },
+  sheetClose: { marginTop: space(4), alignItems: 'center', paddingVertical: space(2.5), borderRadius: radius.sm, backgroundColor: colors.sunk },
+  sheetCloseText: { ...font.body, color: colors.inkSoft, fontWeight: '700' },
 });
