@@ -17,7 +17,7 @@ import { stemElement, branchElement, elementColor, elementText, stemReading, bra
 import { HIDDEN, computeMonthDays, branchTenGod } from '@engine/saju'; // 지장간 표 + 일운(流日) + 지지십신
 import { twelveStage } from '@engine/twelve';                          // 임의 지지 12운성(타임라인용)
 import { detectInteractionsAmong } from '@engine/structure';           // 시간층(원국×대운×세운) 합충 검출
-import { lookupGlossary, GLOSSARY_KIND_LABEL, type GlossaryKind } from '../lib/myeongriGlossary'; // 클릭 설명
+import { lookupGlossary, GLOSSARY_KIND_LABEL, SINSAL_GLOSSARY, type GlossaryKind } from '../lib/myeongriGlossary'; // 클릭 설명
 import Svg, { Path, Rect, Circle, Text as SvgText, G } from 'react-native-svg';
 
 // 전통 표기 — 오른쪽이 년주: 시(왼) ← 일 ← 월 ← 년(오른쪽)
@@ -592,78 +592,53 @@ export function MyeongsikScreen({ input, onReading }: { input: ChartInput | null
         );
       })()}
 
-      {/* 신살·공망 — 기준글자가 원국에 있으면 ✓(자리), 없으면 운에서 작동 */}
+      {/* 신살·공망 — 상세 (길신/흉살/기타/공망 분류 + 명칭·한자·기준글자·적중·키워드, 탭→의미) */}
       <Text style={styles.h}>{t('myeongsik.sinsal')}</Text>
       <Text style={styles.hint}>{t('myeongsik.sinsalHint')}</Text>
-      {/* 자리(기둥)별 신살 표 — 행=천간/지지, 열=시·일·월·년 (카톡 만세력 표 형식) */}
       {(() => {
-        // 길신·기타 신살(천을·문창·양인·홍염)은 지지 행, 간지 신살(백호·괴강)은 천간 행, 12신살은 별도 행.
-        const sideTags = (p: PillarPos, side: 'stem' | 'branch') =>
-          c.sinsal.sinsal
-            .filter((s2) => s2.hits.some((h) => h.pos === p && h.side === side))
-            .map((s2) => ({ name: s2.name, label: t(`sinsal.${s2.name}`, { defaultValue: s2.name }) }));
-        const branchTags = (p: PillarPos) => sideTags(p, 'branch');
-        const stemTags = (p: PillarPos) => {
-          const tags = sideTags(p, 'stem');
-          if (c.sinsal.baekhoHits.includes(p)) tags.push({ name: '백호', label: t('sinsal.백호', { defaultValue: '백호' }) });
-          if (c.sinsal.goegang && p === '일') tags.push({ name: '괴강', label: t('sinsal.괴강', { defaultValue: '괴강' }) });
-          return tags;
-        };
-        // 원국에 적중하지 못한 신살(운에서 작동) — 표에 안 뜨므로 하단에 보존
-        const hitNames = new Set(
-          c.sinsal.sinsal.filter((s2) => s2.hits.some((h) => visiblePos.includes(h.pos))).map((s2) => s2.name),
-        );
-        const luckOnly = c.sinsal.sinsal
-          .filter((s2) => !hitNames.has(s2.name))
-          .map((s2) => `${t(`sinsal.${s2.name}`, { defaultValue: s2.name })}(${s2.glyphs.join('')})`);
-        const renderRow = (label: string, kind: 'stem' | 'branch') => (
-          <View style={styles.ssTableRow}>
-            <Text style={styles.ssRowLabel}>{label}</Text>
-            {visiblePos.map((p) => {
-              const ch = kind === 'stem' ? P[p].stem : P[p].branch;
-              const el = kind === 'stem' ? stemElement(ch) : branchElement(ch);
-              const tags = kind === 'stem' ? stemTags(p) : branchTags(p);
-              return (
-                <View key={p} style={styles.ssCell}>
-                  <Text style={[styles.ssCellGz, { color: elementColor[el] }]}>{ch}</Text>
-                  {tags.length
-                    ? tags.map((tg, i) => (
-                        <Pressable key={i} onPress={() => setGlossary({ kind: 'sinsal', key: tg.name })}>
-                          <Text style={styles.ssTagLink}>{tg.label}</Text>
-                        </Pressable>
-                      ))
-                    : <Text style={styles.ssDim}>—</Text>}
-                </View>
-              );
-            })}
-          </View>
+        const GILSIN = new Set(['천을귀인', '천덕귀인', '월덕귀인', '문창', '학당귀인', '정록', '암록', '금여', '황은대사', '천문성']);
+        const HYUNG = new Set(['양인', '백호', '괴강', '현침살']);
+        const catOf = (name: string) => (GILSIN.has(name) ? '길신' : HYUNG.has(name) ? '흉살' : '기타');
+        // 같은 이름 병합(천을귀인 등 다중 기준글자)
+        const byName = new Map<string, { name: string; glyphs: string[]; hits: any[] }>();
+        c.sinsal.sinsal.forEach((s) => {
+          if (!byName.has(s.name)) byName.set(s.name, { name: s.name, glyphs: [], hits: [] });
+          const e = byName.get(s.name)!;
+          s.glyphs.forEach((g) => { if (!e.glyphs.includes(g)) e.glyphs.push(g); });
+          e.hits.push(...s.hits);
+        });
+        if (c.sinsal.goegang) byName.set('괴강', { name: '괴강', glyphs: [`${P['일'].stem}${P['일'].branch}`], hits: [{ pos: '일', side: 'stem' }] });
+        if (c.sinsal.baekhoHits.length) byName.set('백호', { name: '백호', glyphs: ['白虎'], hits: c.sinsal.baekhoHits.map((p) => ({ pos: p, side: 'stem' })) });
+        const cats = [{ key: '길신', label: '길신 (吉神)' }, { key: '흉살', label: '흉살 (凶殺)' }, { key: '기타', label: '기타' }];
+        const detailRow = (name: string, glyphs: string, hitPos: string[], hanja: string, kw: string, onPress: () => void) => (
+          <Pressable onPress={onPress} style={styles.ssDRow}>
+            <Text style={styles.ssDName} numberOfLines={1}>{name}<Text style={styles.ssDHanja}>{hanja ? ` ${hanja}` : ''}</Text></Text>
+            <Text style={styles.ssDGlyph}>{glyphs}</Text>
+            <Text style={hitPos.length ? styles.ssDHit : styles.ssDDim}>{hitPos.length ? `${hitPos.map((p) => `${p}주`).join('·')} ✓` : '운에서'}</Text>
+            <Text style={styles.ssDKw} numberOfLines={1}>{kw}</Text>
+          </Pressable>
         );
         return (
           <>
-            <View style={styles.ssTable}>
-              <View style={styles.ssTableRow}>
-                <Text style={styles.ssRowLabel} />
-                {visiblePos.map((p) => <Text key={p} style={styles.ssColHead}>{p}주</Text>)}
-              </View>
-              {renderRow('천간', 'stem')}
-              {renderRow('지지', 'branch')}
+            {cats.map((cat) => {
+              const items = [...byName.values()].filter((s) => catOf(s.name) === cat.key);
+              if (!items.length) return null;
+              return (
+                <View key={cat.key} style={styles.ssCatBlock}>
+                  <Text style={styles.ssCatHead}>{cat.label}</Text>
+                  {items.map((s, idx) => {
+                    const g = (SINSAL_GLOSSARY as any)[s.name];
+                    const hitPos = [...new Set(s.hits.filter((h) => visiblePos.includes(h.pos)).map((h) => h.pos))] as string[];
+                    return <View key={idx}>{detailRow(g?.ko ?? s.name, s.glyphs.join(''), hitPos, g?.hanja ?? '', g?.keywords?.join('·') ?? '', () => setGlossary({ kind: 'sinsal', key: s.name }))}</View>;
+                  })}
+                </View>
+              );
+            })}
+            <View style={styles.ssCatBlock}>
+              <Text style={styles.ssCatHead}>공망 (空亡)</Text>
+              {detailRow('공망', c.sinsal.gongmang.join(''), c.sinsal.gongmangHits.filter((p) => visiblePos.includes(p)) as string[], '空亡', '비움·정신·종교', () => setGlossary({ kind: 'gongmang' }))}
             </View>
-            {/* 공망: 기준 2지지(오행색) + 원국 적중 자리 */}
-            <View style={styles.ssGmRow}>
-              <Pressable onPress={() => setGlossary({ kind: 'gongmang' })}><Text style={[styles.ssName, styles.linkText]}>{t('myeongsik.gongmang')}</Text></Pressable>
-              <View style={styles.ssBranches}>
-                {c.sinsal.gongmang.map((b) => (
-                  <Text key={b} style={[styles.ssBranch, { color: elementColor[branchElement(b)] }]}>{b}</Text>
-                ))}
-              </View>
-              {(() => {
-                const gh = c.sinsal.gongmangHits.filter((p) => visiblePos.includes(p));
-                return <Text style={gh.length ? styles.ssHit : styles.ssDim}>{gh.length ? `${gh.map((p) => `${p}주`).join('·')} ✓` : t('myeongsik.ssLuck')}</Text>;
-              })()}
-            </View>
-            {luckOnly.length > 0 && (
-              <Text style={styles.ssLuckLine}>{t('myeongsik.ssLuck')}: {luckOnly.join(' · ')}</Text>
-            )}
+            {!byName.has('양인') && <Text style={styles.ssLuckLine}>양인(羊刃): 음간 일간({P['일'].stem}) — 표준 양인 없음(이설).</Text>}
           </>
         );
       })()}
@@ -787,6 +762,16 @@ const styles = StyleSheet.create({
   ssTag: { fontSize: 10, color: colors.ju, fontWeight: '600', textAlign: 'center' },
   ssGmRow: { flexDirection: 'row', alignItems: 'center', gap: space(2), marginTop: space(2.5) },
   ssLuckLine: { ...font.caption, color: colors.inkFaint, marginTop: space(2), lineHeight: 18 },
+  // 신살·공망 상세 (길신/흉살/기타/공망)
+  ssCatBlock: { marginTop: space(3) },
+  ssCatHead: { ...font.caption, color: colors.ju, fontWeight: '800', marginBottom: space(1) },
+  ssDRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: space(1.5), borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.line, gap: space(1.5) },
+  ssDName: { ...font.body, color: colors.ink, width: 96, fontWeight: '700' },
+  ssDHanja: { fontSize: 11, color: colors.inkFaint, fontWeight: '400' },
+  ssDGlyph: { fontSize: 14, fontWeight: '800', color: colors.inkSoft, width: 52 },
+  ssDHit: { ...font.caption, color: colors.ju, fontWeight: '700', width: 58 },
+  ssDDim: { ...font.caption, color: colors.inkFaint, width: 58 },
+  ssDKw: { ...font.caption, color: colors.inkSoft, flex: 1 },
   ss12Tag: { fontSize: 11, color: colors.ink, fontWeight: '700', textAlign: 'center', textDecorationLine: 'underline', textDecorationStyle: 'dotted' },
   ss12Base: { fontSize: 8, color: colors.inkFaint, fontWeight: '400' },
   rootBadgeRow: { flexDirection: 'row', alignItems: 'center', marginTop: 2, flexWrap: 'wrap', justifyContent: 'center' },
