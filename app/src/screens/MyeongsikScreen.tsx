@@ -7,8 +7,8 @@
 // 시각 미상(timeAccuracy '미상') = 시주 ✕ + 시주 의존 항목 제외(시각 모르면 시주 불가).
 // 일주(日柱) = '나'(일간) → 골드 강조. 용신·통변은 별도(하단 "풀이 보기").
 // ─────────────────────────────────────────────────────────────────────────
-import { useMemo, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, Pressable, Modal } from 'react-native';
+import { useMemo, useState, useEffect, useRef } from 'react';
+import { View, Text, ScrollView, StyleSheet, Pressable, Modal, Animated } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { computeChart } from '../lib/engine';
 import type { ChartInput, PillarPos } from '@spec/chart';
@@ -41,6 +41,18 @@ function GzCell({ char, kind, size, onPress }: { char: string; kind: 'stem' | 'b
 export function MyeongsikScreen({ input, onReading }: { input: ChartInput | null; onReading?: () => void }) {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<'natal' | 'luck' | 'stars'>('natal');
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(10)).current;
+
+  useEffect(() => {
+    fadeAnim.setValue(0);
+    slideAnim.setValue(10);
+    Animated.parallel([
+      Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
+      Animated.timing(slideAnim, { toValue: 0, duration: 400, useNativeDriver: true }),
+    ]).start();
+  }, [activeTab]);
+
   const c = useMemo(() => (input ? computeChart(input) : null), [input]);
   if (!c) return <View style={styles.center}><Text style={font.body}>{t('myeongsik.noChart')}</Text></View>;
 
@@ -201,7 +213,8 @@ export function MyeongsikScreen({ input, onReading }: { input: ChartInput | null
     </View>
 
     <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>
-      {activeTab === 'natal' && (
+      <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
+        {activeTab === 'natal' && (
         <>
           {/* 팔자 — 표 형식 (행: 십성·천간·지지·십성·지장간·12운성·12신살·통근 × 열: 시일월년). 각 칸 탭→의미 */}
           <Text style={styles.h}>{t('myeongsik.palja')}</Text>
