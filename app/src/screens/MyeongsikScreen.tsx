@@ -688,16 +688,24 @@ export function MyeongsikScreen({ input, onReading }: { input: ChartInput | null
                   return (
                     <View key={ci} style={styles.ziCell}>
                       <View style={styles.ziTop}>
-                        <Text style={styles.ziName}>{pl ? pl.name : ''}</Text>
+                        {pl ? (
+                          <Pressable onPress={() => setGlossary({ kind: 'palace', key: pl.name })}><Text style={[styles.ziName, styles.ziLink]}>{pl.name}</Text></Pressable>
+                        ) : <Text style={styles.ziName} />}
                         <Text style={[styles.ziBr, { color: elementColor[branchElement(cell)] }]}>{cell}</Text>
                       </View>
                       {pl?.majorStars?.map((st: any, i: number) => (
-                        <Text key={i} style={styles.ziMajor}>
-                          {st.name}<Text style={styles.ziBright}>{brSym[st.brightness] ?? ''}</Text>
-                          {(st.transforms ?? []).map((tr: string, j: number) => <Text key={j} style={[styles.ziSihwa, { color: sihwaCol[tr] ?? colors.ink }]}> {tr.slice(-1)}</Text>)}
-                        </Text>
+                        <Pressable key={i} onPress={() => setGlossary({ kind: 'star', key: st.name })}>
+                          <Text style={[styles.ziMajor, styles.ziLink]}>
+                            {st.name}<Text style={styles.ziBright}>{brSym[st.brightness] ?? ''}</Text>
+                            {(st.transforms ?? []).map((tr: string, j: number) => <Text key={j} style={[styles.ziSihwa, { color: sihwaCol[tr] ?? colors.ink }]}> {tr.slice(-1)}</Text>)}
+                          </Text>
+                        </Pressable>
                       ))}
-                      {pl?.minorStars?.length > 0 && <Text style={styles.ziMinor}>{pl.minorStars.map((s: any) => s.name).join(' ')}</Text>}
+                      {pl?.minorStars?.map((s: any, k: number) => (
+                        <Pressable key={`m${k}`} onPress={() => setGlossary({ kind: 'star', key: s.name })}>
+                          <Text style={[styles.ziMinor, styles.ziLink]}>{s.name}</Text>
+                        </Pressable>
+                      ))}
                     </View>
                   );
                 })}
@@ -895,7 +903,8 @@ const styles = StyleSheet.create({
   ziMajor: { fontSize: 11, color: colors.ink, fontWeight: '700', marginTop: 1, lineHeight: 14 },
   ziBright: { fontSize: 8, color: colors.inkFaint, fontWeight: '400' },
   ziSihwa: { fontSize: 9, fontWeight: '800' },
-  ziMinor: { fontSize: 8, color: colors.inkSoft, marginTop: 1, lineHeight: 11 },
+  ziMinor: { fontSize: 8, color: colors.inkSoft, marginTop: 1, lineHeight: 12 },
+  ziLink: { textDecorationLine: 'underline', textDecorationStyle: 'dotted' }, // 탭 힌트
   // 합충형해 토글 카드 (기본 숨김 → 선 + 글자작용)
   linksToggle: { marginTop: space(2), paddingVertical: space(2.5), paddingHorizontal: space(3), borderRadius: radius.sm, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.card, alignItems: 'center' },
   linksToggleTx: { ...font.body, color: colors.ju, fontWeight: '700' },

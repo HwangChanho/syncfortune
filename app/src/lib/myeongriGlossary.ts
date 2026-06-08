@@ -122,10 +122,63 @@ export const STAGE_GLOSSARY: Record<string, GlossaryEntry> = {
   양: { ko: '양', hanja: '養', keywords: ['양육', '준비', '수용'], meaning: '길러지는 단계 — 양육·준비·수용. 받아들이며 자라나는 대기의 기운이다.' },
 };
 
-export type GlossaryKind = 'tengod' | 'sinsal' | 'gongmang' | 'stage';
+// ── 자미두수 12궁(十二宮) ──
+export const PALACE_GLOSSARY: Record<string, GlossaryEntry> = {
+  명궁: { ko: '명궁', hanja: '命宮', keywords: ['성격', '기질', '핵심'], meaning: '타고난 성격·기질과 인생의 큰 줄기. 나 자신의 핵심을 보는 자리.' },
+  형제궁: { ko: '형제궁', hanja: '兄弟宮', keywords: ['형제', '동료', '협력'], meaning: '형제·가까운 동료와의 인연·협력 양상을 보는 자리.' },
+  부처궁: { ko: '부처궁', hanja: '夫妻宮', keywords: ['배우자', '연애', '결혼'], meaning: '배우자·연애·결혼 인연과 관계의 결을 보는 자리.' },
+  자녀궁: { ko: '자녀궁', hanja: '子女宮', keywords: ['자녀', '후배', '창작'], meaning: '자녀·후배·창작물 등 아랫사람·결실과의 인연.' },
+  재백궁: { ko: '재백궁', hanja: '財帛宮', keywords: ['재물', '금전감각'], meaning: '재물의 흐름·돈 버는 방식·금전 감각을 보는 자리.' },
+  질액궁: { ko: '질액궁', hanja: '疾厄宮', keywords: ['건강', '체질', '관리'], meaning: '체질·몸의 약한 곳을 살피는 관리축(의료 진단 아님).' },
+  천이궁: { ko: '천이궁', hanja: '遷移宮', keywords: ['이동', '바깥활동', '사회'], meaning: '바깥 활동·이동·사회에서 비치는 모습을 보는 자리.' },
+  노복궁: { ko: '노복궁', hanja: '奴僕宮', keywords: ['친구', '동료', '인간관계'], meaning: '친구·동료·아랫사람 등 넓은 인간관계의 자리.' },
+  관록궁: { ko: '관록궁', hanja: '官祿宮', keywords: ['직업', '성취', '일'], meaning: '직업·사회적 성취·일의 무대를 보는 자리.' },
+  전택궁: { ko: '전택궁', hanja: '田宅宮', keywords: ['집', '부동산', '터전'], meaning: '집·부동산·가정 환경 등 삶의 터전을 보는 자리.' },
+  복덕궁: { ko: '복덕궁', hanja: '福德宮', keywords: ['정신', '취미', '복'], meaning: '정신세계·취미·내면의 즐거움과 복을 보는 자리.' },
+  부모궁: { ko: '부모궁', hanja: '父母宮', keywords: ['부모', '윗사람', '상사'], meaning: '부모·윗사람·상사와의 인연을 보는 자리.' },
+};
+
+// ── 자미두수 성요(星曜) — 14 주성 + 보좌·살성 + 사화 ──
+export const STAR_GLOSSARY: Record<string, GlossaryEntry> = {
+  자미: { ko: '자미', hanja: '紫微', keywords: ['리더십', '존귀', '중심'], meaning: '제왕의 별 — 존귀·리더십·중심. 주변을 이끄는 기질.' },
+  천기: { ko: '천기', hanja: '天機', keywords: ['지혜', '기획', '변화'], meaning: '지혜·기획·변화·총명. 머리 회전이 빠르고 아이디어가 많다.' },
+  태양: { ko: '태양', hanja: '太陽', keywords: ['명예', '베풂', '활동'], meaning: '빛·명예·베풂·활동. 드러나고 비추는 양(陽)의 기질.' },
+  무곡: { ko: '무곡', hanja: '武曲', keywords: ['재물', '결단', '실행'], meaning: '재물·결단·실행력. 강직하고 추진력 있는 재성(財星).' },
+  천동: { ko: '천동', hanja: '天同', keywords: ['복', '온화', '향유'], meaning: '복·온화·향유·인정. 부드럽고 즐길 줄 아는 기질.' },
+  염정: { ko: '염정', hanja: '廉貞', keywords: ['집념', '절제', '예술'], meaning: '절제·집념·변화·예술. 강렬하고 복합적인 기질.' },
+  천부: { ko: '천부', hanja: '天府', keywords: ['안정', '포용', '재물관리'], meaning: '창고의 별 — 안정·포용·재물 관리. 너그럽고 안정적.' },
+  태음: { ko: '태음', hanja: '太陰', keywords: ['섬세', '재물', '내면'], meaning: '달의 별 — 섬세·감성·재물·내면. 부드럽고 깊다.' },
+  탐랑: { ko: '탐랑', hanja: '貪狼', keywords: ['욕망', '다재', '사교'], meaning: '욕망·다재다능·사교·끼. 욕심과 매력의 별.' },
+  거문: { ko: '거문', hanja: '巨門', keywords: ['언변', '탐구', '논리'], meaning: '말·논리·탐구. 분석과 언변이 강하나 시비를 조심.' },
+  천상: { ko: '천상', hanja: '天相', keywords: ['보좌', '중재', '품위'], meaning: '보좌·중재·품위·신뢰. 돕고 조율하는 기질.' },
+  천량: { ko: '천량', hanja: '天梁', keywords: ['원칙', '보호', '노련'], meaning: '어른의 별 — 원칙·보호·해액. 든든하고 노련하다.' },
+  칠살: { ko: '칠살', hanja: '七殺', keywords: ['결단', '개척', '강렬'], meaning: '칼의 별 — 결단·개척·강렬. 밀어붙이는 힘.' },
+  파군: { ko: '파군', hanja: '破軍', keywords: ['개혁', '변동', '도전'], meaning: '파괴와 개혁·변동·도전. 판을 새로 짜는 기질.' },
+  좌보: { ko: '좌보', hanja: '左輔', keywords: ['보좌', '조력', '귀인'], meaning: '곁에서 돕는 보좌·조력의 귀인 별.' },
+  우필: { ko: '우필', hanja: '右弼', keywords: ['보좌', '조력', '귀인'], meaning: '곁에서 돕는 보좌·조력의 귀인 별(좌보와 짝).' },
+  천괴: { ko: '천괴', hanja: '天魁', keywords: ['귀인', '기회', '윗사람'], meaning: '윗사람·기회의 귀인 별. 결정적일 때 도움.' },
+  천월: { ko: '천월', hanja: '天鉞', keywords: ['귀인', '기회', '인덕'], meaning: '귀인·기회의 별(천괴와 짝). 인덕이 따른다.' },
+  문창: { ko: '문창', hanja: '文昌', keywords: ['학문', '문예', '총명'], meaning: '학문·문장·총명의 별. 글·시험과 인연.' },
+  문곡: { ko: '문곡', hanja: '文曲', keywords: ['재능', '예술', '말'], meaning: '재능·예술·언변의 별(문창과 짝).' },
+  녹존: { ko: '녹존', hanja: '祿存', keywords: ['재물', '복록', '안정'], meaning: '재물·복록·안정의 길성.' },
+  천마: { ko: '천마', hanja: '天馬', keywords: ['이동', '활동', '역동'], meaning: '이동·활동·역동의 별. 움직임이 기회.' },
+  경양: { ko: '경양', hanja: '擎羊', keywords: ['날카로움', '인내', '단련'], meaning: '날카로운 칼날의 살성 — 단련·결단. 과하면 충돌, 전문성으로 쓴다.' },
+  타라: { ko: '타라', hanja: '陀羅', keywords: ['지체', '인내', '끈기'], meaning: '맴도는 살성 — 지체·인내·끈기. 더디지만 끝까지 가는 힘.' },
+  화성: { ko: '화성', hanja: '火星', keywords: ['급발', '돌발', '추진'], meaning: '급한 불의 살성 — 돌발·추진. 강렬한 변동.' },
+  영성: { ko: '영성', hanja: '鈴星', keywords: ['은근', '집요', '변동'], meaning: '은근한 불의 살성 — 집요·변동. 속으로 타는 기운.' },
+  지공: { ko: '지공', hanja: '地空', keywords: ['비움', '공상', '정신'], meaning: '비움의 살성 — 손실·공상. 물질보다 정신·종교에 유리하기도.' },
+  지겁: { ko: '지겁', hanja: '地劫', keywords: ['손실', '돌변', '비움'], meaning: '겁탈의 살성 — 손실·돌변. 집착을 비울 때 가벼워진다.' },
+  化祿: { ko: '화록', hanja: '化祿', keywords: ['복', '재물', '길'], meaning: '그 별에 복·재물이 붙어 길하게 발현되는 사화.' },
+  化權: { ko: '화권', hanja: '化權', keywords: ['권력', '주도', '성취'], meaning: '그 별에 권력·주도권이 붙는 사화.' },
+  化科: { ko: '화과', hanja: '化科', keywords: ['명예', '시험', '인정'], meaning: '그 별에 명예·시험운·인정이 붙는 사화.' },
+  化忌: { ko: '화기', hanja: '化忌', keywords: ['집착', '장애', '관리'], meaning: '그 별에 집착·과함·장애가 붙는 사화(관리·완화의 대상).' },
+};
+
+export type GlossaryKind = 'tengod' | 'sinsal' | 'gongmang' | 'stage' | 'palace' | 'star';
 
 export const GLOSSARY_KIND_LABEL: Record<GlossaryKind, string> = {
   tengod: '십신 (十神)', sinsal: '신살 (神煞)', gongmang: '공망 (空亡)', stage: '12운성 (十二運星)',
+  palace: '자미두수 궁 (宮)', star: '자미두수 성요 (星曜)',
 };
 
 /** 종류+키로 글로서리 엔트리 조회. 없으면 null. */
@@ -134,5 +187,7 @@ export function lookupGlossary(kind: GlossaryKind, key?: string): GlossaryEntry 
   if (kind === 'tengod') return (key && TENGOD_GLOSSARY[key]) || null;
   if (kind === 'sinsal') return (key && SINSAL_GLOSSARY[key]) || null;
   if (kind === 'stage') return (key && STAGE_GLOSSARY[key]) || null;
+  if (kind === 'palace') return (key && PALACE_GLOSSARY[key]) || null;
+  if (kind === 'star') return (key && STAR_GLOSSARY[key]) || null;
   return null;
 }
