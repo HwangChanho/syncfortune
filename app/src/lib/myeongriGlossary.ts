@@ -106,10 +106,26 @@ export const GONGMANG_GLOSSARY: GlossaryEntry = {
   meaning: '비어 있는 자리 — 그 영역의 힘이 흩어지거나 채워지지 않은 느낌으로 본다. 물질적 집착보다 정신·종교·전문 분야에선 오히려 유리하게 쓰이기도 하니, 채우기보다 비움을 활용하는 축으로 이해한다.',
 };
 
-export type GlossaryKind = 'tengod' | 'sinsal' | 'gongmang';
+// ── 12운성(十二運星) — 일간이 각 지지에서 갖는 기운의 강약·단계 ──
+export const STAGE_GLOSSARY: Record<string, GlossaryEntry> = {
+  장생: { ko: '장생', hanja: '長生', keywords: ['시작', '성장', '순수'], meaning: '갓 태어난 기운 — 시작·성장·순수함·인덕. 새로 출발하는 자리에서 힘이 살아난다.' },
+  목욕: { ko: '목욕', hanja: '沐浴', keywords: ['변화', '기복', '멋'], meaning: '씻기는 단계 — 변화·기복·감각·멋. 도화의 기운이 함께해 부침이 있을 수 있다.' },
+  관대: { ko: '관대', hanja: '冠帶', keywords: ['독립', '사회진출', '성장통'], meaning: '관을 쓰는 단계 — 독립·사회 진출·자기 확립. 성장통을 거치며 모양을 갖춘다.' },
+  건록: { ko: '건록', hanja: '建祿', keywords: ['자립', '실력', '안정'], meaning: '녹(祿)을 받는 단계 — 자립·실력·안정된 힘. 스스로 서는 기운이 강하다.' },
+  제왕: { ko: '제왕', hanja: '帝旺', keywords: ['정점', '추진', '자신감'], meaning: '가장 왕성한 단계 — 정점·자신감·강한 추진력. 과하면 독선이 되니 조율이 관건.' },
+  쇠: { ko: '쇠', hanja: '衰', keywords: ['안정', '내실', '노련'], meaning: '기운이 한풀 꺾인 단계 — 안정·내실·노련함. 무리보다 다지기에 어울린다.' },
+  병: { ko: '병', hanja: '病', keywords: ['예민', '공감', '돌봄'], meaning: '병드는 단계 — 예민함·공감·돌봄. 사람을 살피는 감수성이 강하고 휴식이 필요하다.' },
+  사: { ko: '사', hanja: '死', keywords: ['사색', '정리', '전문'], meaning: '멈춤의 단계 — 사색·정리·전문성. 깊이 파고드는 학문·연구에 어울린다.' },
+  묘: { ko: '묘', hanja: '墓', keywords: ['저장', '축적', '마무리'], meaning: '갈무리·창고의 단계 — 저장·축적·마무리. 모으고 지키는 힘이 강하다.' },
+  절: { ko: '절', hanja: '絶', keywords: ['전환', '단절', '새인연'], meaning: '끊기는 단계 — 단절·전환·새 인연. 불안정하나 새로 시작하는 계기가 된다.' },
+  태: { ko: '태', hanja: '胎', keywords: ['잉태', '구상', '가능성'], meaning: '잉태의 단계 — 새 가능성·구상·준비. 아직 드러나지 않은 씨앗의 기운이다.' },
+  양: { ko: '양', hanja: '養', keywords: ['양육', '준비', '수용'], meaning: '길러지는 단계 — 양육·준비·수용. 받아들이며 자라나는 대기의 기운이다.' },
+};
+
+export type GlossaryKind = 'tengod' | 'sinsal' | 'gongmang' | 'stage';
 
 export const GLOSSARY_KIND_LABEL: Record<GlossaryKind, string> = {
-  tengod: '십신 (十神)', sinsal: '신살 (神煞)', gongmang: '공망 (空亡)',
+  tengod: '십신 (十神)', sinsal: '신살 (神煞)', gongmang: '공망 (空亡)', stage: '12운성 (十二運星)',
 };
 
 /** 종류+키로 글로서리 엔트리 조회. 없으면 null. */
@@ -117,5 +133,6 @@ export function lookupGlossary(kind: GlossaryKind, key?: string): GlossaryEntry 
   if (kind === 'gongmang') return GONGMANG_GLOSSARY;
   if (kind === 'tengod') return (key && TENGOD_GLOSSARY[key]) || null;
   if (kind === 'sinsal') return (key && SINSAL_GLOSSARY[key]) || null;
+  if (kind === 'stage') return (key && STAGE_GLOSSARY[key]) || null;
   return null;
 }

@@ -134,8 +134,29 @@ export function MyeongsikScreen({ input, onReading }: { input: ChartInput | null
                   </View>
                   <Pressable onPress={() => setGlossary({ kind: 'tengod', key: d.branchMainTenGod })}><Text style={styles.tgSmallLink}>{d.branchMainTenGod}</Text></Pressable>
                   <View style={styles.pillarDivider} />
-                  <Text style={styles.stage}>{c.stages[p]}</Text>
-                  <Text style={styles.hidden}>{d.hiddenStems.map((h) => h.stem).join(' ')}</Text>
+                  {/* 12운성 (탭→의미) */}
+                  <Pressable onPress={() => setGlossary({ kind: 'stage', key: c.stages[p] })}>
+                    <Text style={styles.stageLink}>{c.stages[p]}</Text>
+                  </Pressable>
+                  {/* 지장간 (각 글자 탭→그 십신 의미, 오행색) */}
+                  <View style={styles.hiddenRow}>
+                    {d.hiddenStems.map((h, i) => (
+                      <Pressable key={i} onPress={() => setGlossary({ kind: 'tengod', key: h.tenGod })}>
+                        <Text style={[styles.hiddenG, { color: elementColor[stemElement(h.stem)] }]}>{h.stem}</Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                  {/* 12신살 (4기준 전부, 각 탭→의미) */}
+                  <View style={styles.pillarSinsal}>
+                    {c.sinsal.twelve[p]
+                      .map((tw) => ({ name: tw.name, bases: tw.bases.filter((b) => visiblePos.includes(b)) }))
+                      .filter((tw) => tw.bases.length > 0)
+                      .map((tw, i) => (
+                        <Pressable key={i} onPress={() => setGlossary({ kind: 'sinsal', key: tw.name })}>
+                          <Text style={styles.pillarSsTx}>{tw.name}<Text style={styles.pillarSsBase}> {tw.bases.join('')}</Text></Text>
+                        </Pressable>
+                      ))}
+                  </View>
                   {(() => {
                     const r = rootsOf(p); // 이 지지에 통근한 천간 (일간=골드 강조, 투간=오행색)
                     if (!r.length) return null;
@@ -448,22 +469,6 @@ export function MyeongsikScreen({ input, onReading }: { input: ChartInput | null
               </View>
               {renderRow('천간', 'stem')}
               {renderRow('지지', 'branch')}
-              {/* 12신살 — 년지·일지 기준 둘 다 산출(탭 → 의미) */}
-              <View style={styles.ssTableRow}>
-                <Text style={styles.ssRowLabel}>12{'\n'}신살</Text>
-                {visiblePos.map((p) => (
-                  <View key={p} style={styles.ssCell}>
-                    {c.sinsal.twelve[p]
-                      .map((tw) => ({ name: tw.name, bases: tw.bases.filter((b) => visiblePos.includes(b)) }))
-                      .filter((tw) => tw.bases.length > 0)
-                      .map((tw, i) => (
-                        <Pressable key={i} onPress={() => setGlossary({ kind: 'sinsal', key: tw.name })}>
-                          <Text style={styles.ss12Tag}>{tw.name}<Text style={styles.ss12Base}> {tw.bases.join('')}</Text></Text>
-                        </Pressable>
-                      ))}
-                  </View>
-                ))}
-              </View>
             </View>
             {/* 공망: 기준 2지지(오행색) + 원국 적중 자리 */}
             <View style={styles.ssGmRow}>
@@ -637,6 +642,13 @@ const styles = StyleSheet.create({
   tgSmallLink: { fontSize: 10, color: colors.inkSoft, marginVertical: space(0.5), textDecorationLine: 'underline', textDecorationStyle: 'dotted' },
   ssTagLink: { fontSize: 10, color: colors.ju, fontWeight: '600', textAlign: 'center', textDecorationLine: 'underline', textDecorationStyle: 'dotted' },
   linkText: { textDecorationLine: 'underline', textDecorationStyle: 'dotted' },
+  // 팔자 카드 — 12운성·지장간·12신살 (각 탭 가능, 점선밑줄 힌트)
+  stageLink: { fontSize: 10, color: colors.inkSoft, fontWeight: '600', textDecorationLine: 'underline', textDecorationStyle: 'dotted', marginTop: space(0.5) },
+  hiddenRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 3, marginTop: space(0.5) },
+  hiddenG: { fontSize: 11, fontWeight: '700', textDecorationLine: 'underline', textDecorationStyle: 'dotted' },
+  pillarSinsal: { alignItems: 'center', marginTop: space(1) },
+  pillarSsTx: { fontSize: 9, color: colors.ju, fontWeight: '600', lineHeight: 13, textAlign: 'center', textDecorationLine: 'underline', textDecorationStyle: 'dotted' },
+  pillarSsBase: { fontSize: 7, color: colors.inkFaint, fontWeight: '400', textDecorationLine: 'none' },
   sheetOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'flex-end' },
   sheet: { backgroundColor: colors.card, borderTopLeftRadius: radius.md, borderTopRightRadius: radius.md, padding: space(5), paddingBottom: space(9) },
   sheetHandle: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: colors.line, marginBottom: space(3) },
