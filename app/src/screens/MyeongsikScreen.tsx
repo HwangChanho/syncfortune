@@ -291,7 +291,7 @@ export function MyeongsikScreen({ input, onReading }: { input: ChartInput | null
               <View key={p} style={[styles.ptCell, p === '일' && styles.ptCellDay]}>
                 <View style={styles.ptHidWrap}>
                   {r.length ? r.map((sg, i) => (
-                    <Text key={i} style={[styles.ptRoot, { color: sg === P['일'].stem ? colors.ju : elementColor[stemElement(sg)] }]}>{sg}</Text>
+                    <Text key={i} style={[styles.ptRoot, { color: sg === P['일'].stem ? colors.ju : elementColor[stemElement(sg)] }]}>{sg}根</Text>
                   )) : <Text style={styles.ssDim}>—</Text>}
                 </View>
               </View>
@@ -634,6 +634,26 @@ export function MyeongsikScreen({ input, onReading }: { input: ChartInput | null
                 </View>
               );
             })}
+            {(() => {
+              const twelve12 = new Map<string, Set<string>>();
+              (['년', '월', '일', '시'] as const).forEach((p) => (c.sinsal.twelve[p] ?? []).forEach((tw: any) => {
+                if (tw.bases.some((b: string) => (visiblePos as string[]).includes(b))) {
+                  if (!twelve12.has(tw.name)) twelve12.set(tw.name, new Set());
+                  twelve12.get(tw.name)!.add(p);
+                }
+              }));
+              if (!twelve12.size) return null;
+              return (
+                <View style={styles.ssCatBlock}>
+                  <Text style={styles.ssCatHead}>12신살 (十二神煞) — 도화·역마·화개 등</Text>
+                  {[...twelve12.entries()].map(([name, posSet], idx) => {
+                    const positions = ([...posSet].filter((p) => (visiblePos as string[]).includes(p))) as string[];
+                    const g = (SINSAL_GLOSSARY as any)[name];
+                    return <View key={idx}>{detailRow(g?.ko ?? name, positions.map((p) => P[p as PillarPos].branch).join(''), positions, g?.hanja ?? '', g?.keywords?.join('·') ?? '', () => setGlossary({ kind: 'sinsal', key: name }))}</View>;
+                  })}
+                </View>
+              );
+            })()}
             <View style={styles.ssCatBlock}>
               <Text style={styles.ssCatHead}>공망 (空亡)</Text>
               {detailRow('공망', c.sinsal.gongmang.join(''), c.sinsal.gongmangHits.filter((p) => visiblePos.includes(p)) as string[], '空亡', '비움·정신·종교', () => setGlossary({ kind: 'gongmang' }))}
