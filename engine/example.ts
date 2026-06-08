@@ -32,7 +32,7 @@ console.log(`12운성: ${pos.map((p) => `${p}${stages[p]}`).join(' · ')}`);
 
 const sin = analyzeSinsal(saju);
 console.log(`공망  : ${sin.gongmang.join('·')}${sin.gongmangHits.length ? ` (원국 ${sin.gongmangHits.join(',')})` : ''}`);
-const natalSin = sin.sinsal.filter((s) => s.hits.length).map((s) => `${s.name}(${s.hits.join('')})`);
+const natalSin = sin.sinsal.filter((s) => s.hits.length).map((s) => `${s.name}(${s.hits.map((h) => h.pos).join('')})`);
 console.log(`신살  : ${natalSin.join(', ') || '(원국 직접 hit 없음 — 운에서 작동)'}${sin.goegang ? ' · 괴강일주' : ''}${sin.baekhoHits.length ? ` · 백호(${sin.baekhoHits.join(',')})` : ''}`);
 
 console.log('\n※ 용신·통변 등 해석(P2~P5)은 LLM 파이프(ANTHROPIC_API_KEY 필요). 이 데모는 결정론 산출까지만.');

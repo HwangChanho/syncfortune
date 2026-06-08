@@ -399,21 +399,24 @@ export function MyeongsikScreen({ input, onReading }: { input: ChartInput | null
       {/* 자리(기둥)별 신살 표 — 행=천간/지지, 열=시·일·월·년 (카톡 만세력 표 형식) */}
       {(() => {
         // 길신·기타 신살(천을·문창·양인·홍염)은 지지 행, 간지 신살(백호·괴강)은 천간 행, 12신살은 별도 행.
-        const branchTags = (p: PillarPos) =>
-          c.sinsal.sinsal.filter((s2) => s2.hits.includes(p)).map((s2) => ({ name: s2.name, label: t(`sinsal.${s2.name}`) }));
+        const sideTags = (p: PillarPos, side: 'stem' | 'branch') =>
+          c.sinsal.sinsal
+            .filter((s2) => s2.hits.some((h) => h.pos === p && h.side === side))
+            .map((s2) => ({ name: s2.name, label: t(`sinsal.${s2.name}`, { defaultValue: s2.name }) }));
+        const branchTags = (p: PillarPos) => sideTags(p, 'branch');
         const stemTags = (p: PillarPos) => {
-          const tags: { name: string; label: string }[] = [];
-          if (c.sinsal.baekhoHits.includes(p)) tags.push({ name: '백호', label: t('sinsal.백호') });
-          if (c.sinsal.goegang && p === '일') tags.push({ name: '괴강', label: t('sinsal.괴강') });
+          const tags = sideTags(p, 'stem');
+          if (c.sinsal.baekhoHits.includes(p)) tags.push({ name: '백호', label: t('sinsal.백호', { defaultValue: '백호' }) });
+          if (c.sinsal.goegang && p === '일') tags.push({ name: '괴강', label: t('sinsal.괴강', { defaultValue: '괴강' }) });
           return tags;
         };
         // 원국에 적중하지 못한 신살(운에서 작동) — 표에 안 뜨므로 하단에 보존
         const hitNames = new Set(
-          c.sinsal.sinsal.filter((s2) => s2.hits.some((p) => visiblePos.includes(p))).map((s2) => s2.name),
+          c.sinsal.sinsal.filter((s2) => s2.hits.some((h) => visiblePos.includes(h.pos))).map((s2) => s2.name),
         );
         const luckOnly = c.sinsal.sinsal
           .filter((s2) => !hitNames.has(s2.name))
-          .map((s2) => `${t(`sinsal.${s2.name}`)}(${s2.branch})`);
+          .map((s2) => `${t(`sinsal.${s2.name}`, { defaultValue: s2.name })}(${s2.glyphs.join('')})`);
         const renderRow = (label: string, kind: 'stem' | 'branch') => (
           <View style={styles.ssTableRow}>
             <Text style={styles.ssRowLabel}>{label}</Text>
