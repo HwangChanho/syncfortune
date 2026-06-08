@@ -184,11 +184,20 @@ export const INTERACTION_GLOSSARY: Record<string, GlossaryEntry> = {
   극: { ko: '극', hanja: '剋', keywords: ['통제', '압박', '칠살'], meaning: '한 오행이 다른 오행을 억누름(천간) — 압박·통제. 칠살이면 권력·전문성과 스트레스의 양면.' },
 };
 
-export type GlossaryKind = 'tengod' | 'sinsal' | 'gongmang' | 'stage' | 'palace' | 'star' | 'interaction';
+// ── 오행(五行) ──
+export const OHAENG_GLOSSARY: Record<string, GlossaryEntry> = {
+  木: { ko: '목', hanja: '木', keywords: ['인(仁)', '성장', '기획'], meaning: '나무의 기운 — 인(仁)·성장·뻗어나감·기획. 위로 자라고 새로 시작하는 힘.' },
+  火: { ko: '화', hanja: '火', keywords: ['예(禮)', '표현', '열정'], meaning: '불의 기운 — 예(禮)·표현·열정·확산. 밝히고 퍼뜨리는 힘.' },
+  土: { ko: '토', hanja: '土', keywords: ['신(信)', '중재', '안정'], meaning: '흙의 기운 — 신(信)·포용·중재·안정. 품고 매개하는 힘.' },
+  金: { ko: '금', hanja: '金', keywords: ['의(義)', '결단', '완성'], meaning: '쇠의 기운 — 의(義)·결단·정리·완성. 단단히 맺고 마무리하는 힘.' },
+  水: { ko: '수', hanja: '水', keywords: ['지(智)', '유연', '지혜'], meaning: '물의 기운 — 지(智)·유연·지혜·흐름. 적시고 스며 통하는 힘.' },
+};
+
+export type GlossaryKind = 'tengod' | 'sinsal' | 'gongmang' | 'stage' | 'palace' | 'star' | 'interaction' | 'element';
 
 export const GLOSSARY_KIND_LABEL: Record<GlossaryKind, string> = {
   tengod: '십신 (十神)', sinsal: '신살 (神煞)', gongmang: '공망 (空亡)', stage: '12운성 (十二運星)',
-  palace: '자미두수 궁 (宮)', star: '자미두수 성요 (星曜)', interaction: '합충형해 (合冲刑害)',
+  palace: '자미두수 궁 (宮)', star: '자미두수 성요 (星曜)', interaction: '합충형해 (合冲刑害)', element: '오행 (五行)',
 };
 
 /** 종류+키로 글로서리 엔트리 조회. 없으면 null. */
@@ -200,5 +209,6 @@ export function lookupGlossary(kind: GlossaryKind, key?: string): GlossaryEntry 
   if (kind === 'palace') return (key && PALACE_GLOSSARY[key]) || null;
   if (kind === 'star') return (key && STAR_GLOSSARY[key]) || null;
   if (kind === 'interaction') return (key && INTERACTION_GLOSSARY[key]) || null;
+  if (kind === 'element') return (key && OHAENG_GLOSSARY[key]) || null;
   return null;
 }

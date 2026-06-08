@@ -65,6 +65,8 @@ export function MyeongsikScreen({ input, onReading }: { input: ChartInput | null
   const [glossary, setGlossary] = useState<{ kind: GlossaryKind; key?: string } | null>(null); // 클릭 설명 바텀시트
   const [showLinks, setShowLinks] = useState(false); // 팔자 합충형해 카드 펼침(기본 숨김)
   const [showExpandLinks, setShowExpandLinks] = useState(false); // 대운/세운 합충 펼침(기본 숨김)
+  const [activePalja, setActivePalja] = useState<Set<string>>(() => new Set());   // 클릭으로 켠 팔자 합충(명식 강조용)
+  const [activeExpand, setActiveExpand] = useState<Set<string>>(() => new Set());  // 클릭으로 켠 대운/세운 합충
   const posIndex: Record<string, number> = { 시: 0, 일: 1, 월: 2, 년: 3 };
   const allLinks = (c.saju.interactions as any[]).filter(
     (it) => it.members?.length === 2 && it.members.every((m: string) => posIndex[m] != null && visiblePos.includes(m as any))
@@ -111,45 +113,57 @@ export function MyeongsikScreen({ input, onReading }: { input: ChartInput | null
 
   // 합충형해 종류별 그룹 렌더 (선 클러터 대신 합/충/형/해/파/극 묶음 + 글자쌍, 탭→의미)
   const typeColor = (ty: string) => (ty === '합' ? colors.ju : (ty === '충' || ty === '극') ? '#C0392B' : '#9A8CC0');
-  const renderGroups = (items: any[]) => ['합', '충', '형', '해', '파', '극'].map((ty) => {
+  const renderGroups = (items: any[], active: Set<string>, onToggle: (k: string) => void) => ['합', '충', '형', '해', '파', '극'].map((ty) => {
     const grp = items.filter((x) => x.type === ty);
     if (!grp.length) return null;
     const col = typeColor(ty);
     return (
       <View key={ty} style={styles.linkGroup}>
-        <Text style={[styles.linkGroupHead, { color: col }]}>● {ty} {grp.length}</Text>
-        {grp.map((x: any, i: number) => (
-          <Pressable key={i} onPress={() => setGlossary({ kind: 'interaction', key: ty })} style={styles.linkGRow}>
-            <Text style={styles.linkGTx}>
-              {x.a.label} <Text style={{ color: elementColor[x.a.el], fontWeight: '800' }}>{x.a.char}</Text>
-              {'  ·  '}
-              {x.b.label} <Text style={{ color: elementColor[x.b.el], fontWeight: '800' }}>{x.b.char}</Text>
-              {ty === '합' && x.transformsTo ? <Text style={{ color: col, fontWeight: '800' }}>{`  → ${x.transformsTo}`}</Text> : null}
-              {x.isGan ? <Text style={styles.linkLevel}>  천간</Text> : null}
-            </Text>
-          </Pressable>
-        ))}
+        <Pressable onPress={() => setGlossary({ kind: 'interaction', key: ty })}><Text style={[styles.linkGroupHead, { color: col }]}>● {ty} {grp.length}  ⓘ</Text></Pressable>
+        {grp.map((x: any, i: number) => {
+          const on = active.has(x.key);
+          return (
+            <Pressable key={i} onPress={() => onToggle(x.key)} style={[styles.linkGRow, on && styles.linkGRowOn]}>
+              <Text style={styles.linkGTx}>
+                <Text style={{ color: on ? col : colors.inkFaint }}>{on ? '◉ ' : '○ '}</Text>
+                {x.a.label} <Text style={{ color: elementColor[x.a.el], fontWeight: '800' }}>{x.a.char}</Text>
+                {'  ·  '}
+                {x.b.label} <Text style={{ color: elementColor[x.b.el], fontWeight: '800' }}>{x.b.char}</Text>
+                {ty === '합' && x.transformsTo ? <Text style={{ color: col, fontWeight: '800' }}>{`  → ${x.transformsTo}`}</Text> : null}
+                {x.isGan ? <Text style={styles.linkLevel}>  천간</Text> : null}
+              </Text>
+            </Pressable>
+          );
+        })}
       </View>
     );
   });
-  const normPalja = [...ganLinks, ...jiLinks].map((it: any) => {
+  const toggleKey = (setFn: any, k: string) => setFn((prev: Set<string>) => { const n = new Set(prev); n.has(k) ? n.delete(k) : n.add(k); return n; });
+  const combinedPalja = [...ganLinks, ...jiLinks];
+  const normPalja = combinedPalja.map((it: any) => {
     const isGan = it.level === '천간';
     const m1 = it.members[0] as PillarPos, m2 = it.members[1] as PillarPos;
     return {
-      type: it.type, transformsTo: it.transformsTo, isGan,
+      key: it.detail as string, type: it.type, transformsTo: it.transformsTo, isGan,
       a: { label: `${m1}`, char: isGan ? P[m1].stem : P[m1].branch, el: isGan ? stemElement(P[m1].stem) : branchElement(P[m1].branch) },
       b: { label: `${m2}`, char: isGan ? P[m2].stem : P[m2].branch, el: isGan ? stemElement(P[m2].stem) : branchElement(P[m2].branch) },
     };
   });
+  // 클릭으로 켠 팔자 합충 → 명식 강조(arc + 셀 하이라이트)
+  const activeGanP = combinedPalja.filter((it: any) => it.level === '천간' && activePalja.has(it.detail));
+  const activeJiP = combinedPalja.filter((it: any) => it.level !== '천간' && activePalja.has(it.detail));
+  const hlStem = new Set<string>(); activeGanP.forEach((it: any) => it.members.forEach((m: string) => hlStem.add(m)));
+  const hlBranch = new Set<string>(); activeJiP.forEach((it: any) => it.members.forEach((m: string) => hlBranch.add(m)));
   // 강도 순 — 대운/세운 작용을 강한 순으로 강조(daniel). 충·합=강 / 형·극=중 / 해·파=약.
   const STRENGTH: Record<string, number> = { 충: 5, 합: 4, 형: 3, 극: 3, 해: 2, 파: 1 };
-  const renderByStrength = (items: any[]) => [...items].sort((a, b) => (STRENGTH[b.type] || 0) - (STRENGTH[a.type] || 0)).map((x: any, i: number) => {
+  const renderByStrength = (items: any[], active: Set<string>, onToggle: (k: string) => void) => [...items].sort((a, b) => (STRENGTH[b.type] || 0) - (STRENGTH[a.type] || 0)).map((x: any, i: number) => {
     const s = STRENGTH[x.type] || 0;
     const tier = s >= 4 ? '강' : s >= 3 ? '중' : '약';
     const col = typeColor(x.type);
+    const on = active.has(x.key);
     return (
-      <Pressable key={i} onPress={() => setGlossary({ kind: 'interaction', key: x.type })} style={[styles.strRow, tier === '강' && styles.strRowTop]}>
-        <Text style={[styles.strBadge, { color: col, borderColor: col }]}>{tier}</Text>
+      <Pressable key={i} onPress={() => onToggle(x.key)} style={[styles.strRow, tier === '강' && styles.strRowTop, on && styles.linkGRowOn]}>
+        <Text style={[styles.strBadge, { color: col, borderColor: col }]}>{on ? '◉' : tier}</Text>
         <Text style={styles.linkGTx}>
           {x.a.label} <Text style={{ color: elementColor[x.a.el], fontWeight: '800' }}>{x.a.char}</Text>
           {'  ⟷  '}
@@ -185,13 +199,14 @@ export function MyeongsikScreen({ input, onReading }: { input: ChartInput | null
             </Pressable>
           ))}
         </View>
+        {renderArcs(activeGanP, 'above')}
         {/* 천간 (오행색) */}
         <View style={styles.ptRow}>
           <Text style={styles.ptLabel}>천간</Text>
           {visiblePos.map((p) => {
             const el = stemElement(P[p].stem);
             return (
-              <View key={p} style={[styles.ptCell, p === '일' && styles.ptCellDay]}>
+              <View key={p} style={[styles.ptCell, p === '일' && styles.ptCellDay, hlStem.has(p) && styles.ptCellHL]}>
                 <View style={[styles.ptGz, { backgroundColor: elementColor[el] }]}>
                   <Text style={[styles.ptGzTx, { color: elementText[el] }]}>{P[p].stem}</Text>
                   <Text style={[styles.ptGzKo, { color: elementText[el] }]}>{stemReading(P[p].stem)}</Text>
@@ -206,7 +221,7 @@ export function MyeongsikScreen({ input, onReading }: { input: ChartInput | null
           {visiblePos.map((p) => {
             const el = branchElement(P[p].branch);
             return (
-              <View key={p} style={[styles.ptCell, p === '일' && styles.ptCellDay]}>
+              <View key={p} style={[styles.ptCell, p === '일' && styles.ptCellDay, hlBranch.has(p) && styles.ptCellHL]}>
                 <View style={[styles.ptGz, { backgroundColor: elementColor[el] }]}>
                   <Text style={[styles.ptGzTx, { color: elementText[el] }]}>{P[p].branch}</Text>
                   <Text style={[styles.ptGzKo, { color: elementText[el] }]}>{branchReading(P[p].branch)}</Text>
@@ -215,6 +230,7 @@ export function MyeongsikScreen({ input, onReading }: { input: ChartInput | null
             );
           })}
         </View>
+        {renderArcs(activeJiP, 'below')}
         {/* 지지십신 */}
         <View style={styles.ptRow}>
           <Text style={styles.ptLabel}>십성</Text>
@@ -289,13 +305,30 @@ export function MyeongsikScreen({ input, onReading }: { input: ChartInput | null
         </Pressable>
       )}
       {showLinks && normPalja.length > 0 && (
-        <View style={styles.linksCard}>{renderGroups(normPalja)}</View>
+        <View style={styles.linksCard}>{renderGroups(normPalja, activePalja, (k) => toggleKey(setActivePalja, k))}</View>
       )}
 
       {/* 일간·신강약·격국 */}
       <Text style={styles.kv}>{t('myeongsik.dayMaster')}: <Text style={styles.kvAccent}>{c.saju.dayMaster.stem}({c.saju.dayMaster.element})</Text></Text>
       <Text style={styles.kv}>{t('myeongsik.dayMaster')} {c.saju.dayMaster.stem}  ·  {t('myeongsik.pattern')}: {c.pattern.candidates.join(', ')}</Text>
       {timeUnknown && <Text style={styles.warn}>{t('myeongsik.timeUnknownNote')}</Text>}
+
+      {/* 대표 오행(일간)·대표 십성(격국) — 탭→설명 */}
+      <View style={styles.repRow}>
+        <Pressable style={styles.repChip} onPress={() => setGlossary({ kind: 'element', key: c.saju.dayMaster.element })}>
+          <Text style={styles.repLabel}>대표 오행</Text>
+          <Text style={[styles.repVal, { color: elementColor[c.saju.dayMaster.element] }]}>{c.saju.dayMaster.stem} · {c.saju.dayMaster.element}</Text>
+        </Pressable>
+        {(() => {
+          const repTg = (c.pattern.candidates[0] || '').replace('격', '') || c.saju.pillars['월'].branchMainTenGod;
+          return (
+            <Pressable style={styles.repChip} onPress={() => setGlossary({ kind: 'tengod', key: repTg })}>
+              <Text style={styles.repLabel}>대표 십성(격)</Text>
+              <Text style={styles.repValTg}>{c.pattern.candidates.join(' · ') || repTg}</Text>
+            </Pressable>
+          );
+        })()}
+      </View>
 
       {/* 신강약 — 게이지(중화=50% 기준, 신약←→신강) + 신왕/신강 분류(강함의 동력) */}
       <Text style={styles.h}>{t('myeongsik.strength')}</Text>
@@ -406,8 +439,10 @@ export function MyeongsikScreen({ input, onReading }: { input: ChartInput | null
           if (!pa || !pb) return null;
           const ch = (cc: any) => (isGan ? cc.stem : cc.branch);
           const el = (cc: any) => (isGan ? stemElement(cc.stem) : branchElement(cc.branch));
-          return { type: it.type, transformsTo: it.transformsTo, isGan, a: { label: pa.label, char: ch(pa), el: el(pa) }, b: { label: pb.label, char: ch(pb), el: el(pb) } };
+          return { key: it.detail as string, type: it.type, transformsTo: it.transformsTo, isGan, a: { label: pa.label, char: ch(pa), el: el(pa) }, b: { label: pb.label, char: ch(pb), el: el(pb) } };
         }).filter(Boolean);
+        const hlExpand = new Set<string>();
+        [...ganEx, ...jiEx].forEach((it: any) => { if (activeExpand.has(it.detail)) it.members.forEach((m: string) => hlExpand.add(m)); });
         const xOfCol = (label: string) => expandCols.findIndex((c2) => c2.label === label) * COLW + COLW / 2;
         const expandArcs = (links: any[], dir: 'above' | 'below') => {
           if (!links.length) return null;
@@ -445,7 +480,7 @@ export function MyeongsikScreen({ input, onReading }: { input: ChartInput | null
             <View>
               <View style={{ flexDirection: 'row' }}>
                 {expandCols.map((col, i) => (
-                  <View key={i} style={[styles.expCol2, col.luck && styles.expColLuck]}>
+                  <View key={i} style={[styles.expCol2, col.luck && styles.expColLuck, hlExpand.has(col.label) && styles.expCol2On]}>
                     <Text style={styles.expLabel}>{col.label}</Text>
                     <Text style={styles.expTg}>{col.tg}</Text>
                     <GzCell char={col.stem} kind="stem" size="sm" />
@@ -470,7 +505,7 @@ export function MyeongsikScreen({ input, onReading }: { input: ChartInput | null
           {showExpandLinks && normEx.length > 0 && (
             <View style={styles.linksCard}>
               <Text style={styles.strHint}>작용이 강한 순 — 충·합 강 / 형·극 중 / 해·파 약</Text>
-              {renderByStrength(normEx as any[])}
+              {renderByStrength(normEx as any[], activeExpand, (k) => toggleKey(setActiveExpand, k))}
             </View>
           )}
           {/* 대운 타임라인 (천간/지지 분리, 탭 → 확장 명식·세운 갱신) */}
@@ -547,14 +582,6 @@ export function MyeongsikScreen({ input, onReading }: { input: ChartInput | null
         </>
         );
       })()}
-
-      {/* 12운성 (전 기둥) */}
-      <Text style={styles.h}>{t('myeongsik.stages')}</Text>
-      <Text style={styles.kv}>{visiblePos.map((p) => `${p}${c.stages[p]}`).join('  ·  ')}</Text>
-
-      {/* 합충형해 */}
-      <Text style={styles.h}>{t('myeongsik.interactions')}</Text>
-      <Text style={styles.kv}>{c.saju.interactions.map((i) => i.detail).join(', ') || t('common.none')}</Text>
 
       {/* 신살·공망 — 기준글자가 원국에 있으면 ✓(자리), 없으면 운에서 작동 */}
       <Text style={styles.h}>{t('myeongsik.sinsal')}</Text>
@@ -902,6 +929,15 @@ const styles = StyleSheet.create({
   strRow: { flexDirection: 'row', alignItems: 'center', gap: space(2), paddingVertical: space(1.5), paddingHorizontal: space(2), borderRadius: radius.sm },
   strRowTop: { backgroundColor: colors.sunk },
   strBadge: { fontSize: 11, fontWeight: '800', width: 22, height: 20, lineHeight: 18, textAlign: 'center', borderWidth: 1, borderRadius: 4 },
+  linkGRowOn: { backgroundColor: colors.juSoft, borderRadius: radius.sm },          // 켜진 합충 행
+  ptCellHL: { backgroundColor: 'rgba(201,161,74,0.30)' },                            // 명식 강조 셀
+  expCol2On: { backgroundColor: 'rgba(201,161,74,0.30)', borderRadius: radius.sm },  // 확장명식 강조 컬럼
+  // 대표 오행·십성 칩
+  repRow: { flexDirection: 'row', gap: space(2), marginTop: space(3) },
+  repChip: { flex: 1, paddingVertical: space(2.5), paddingHorizontal: space(2), borderRadius: radius.sm, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.card, alignItems: 'center' },
+  repLabel: { ...font.caption, color: colors.inkFaint },
+  repVal: { fontSize: 18, fontWeight: '800', marginTop: 2, textDecorationLine: 'underline', textDecorationStyle: 'dotted' },
+  repValTg: { fontSize: 15, fontWeight: '800', color: colors.ju, marginTop: 2, textDecorationLine: 'underline', textDecorationStyle: 'dotted' },
   sheetOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'flex-end' },
   sheet: { backgroundColor: colors.card, borderTopLeftRadius: radius.md, borderTopRightRadius: radius.md, padding: space(5), paddingBottom: space(9) },
   sheetHandle: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: colors.line, marginBottom: space(3) },
