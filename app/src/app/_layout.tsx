@@ -1,0 +1,41 @@
+// src/app/_layout.tsx — Expo Router 루트 레이아웃 (멀티플랫폼 엔트리, ADR-036)
+// ─────────────────────────────────────────────────────────────────────────
+// 파일기반 라우팅의 최상위. 인증 세션을 복원하는 동안 스플래시를 띄우고,
+// 실제 세션 가드는 (app)/_layout 에서 처리한다(미인증 시 /login 리다이렉트).
+// native = 스택 내비 / web = URL 라우팅 으로 같은 트리가 양쪽에서 동작한다.
+// ─────────────────────────────────────────────────────────────────────────
+import 'intl-pluralrules'; // Intl.PluralRules polyfill (Hermes) — iztro i18next 보조(ERROR 폴백, 무해)
+import '../lib/i18n'; // 다국어(한·영·일) init
+import { Stack } from 'expo-router';
+import { View, ActivityIndicator, StyleSheet, LogBox } from 'react-native';
+import { useAuth } from '../lib/useAuth';
+import { colors } from '../lib/theme';
+
+// i18next 26.x가 Hermes에서 Intl.PluralRules 를 인식 못 해 내는 dev 경고(동작은 v3 fallback 정상,
+//   한·영·일 복수형 단순해 영향 0) 억제. 프로덕션 빌드엔 LogBox 자체가 없어 무영향.
+LogBox.ignoreLogs([/i18next::pluralResolver/]);
+
+export default function RootLayout() {
+  const { loading } = useAuth();
+
+  // 저장된 세션 복원 중 — 스플래시(라우트 깜빡임 방지)
+  if (loading) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator size="large" color={colors.ju} />
+      </View>
+    );
+  }
+
+  // 최상위 두 영역: login(미인증) · (app)(인증). 헤더는 각 하위에서 제어.
+  return (
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="login" />
+      <Stack.Screen name="(app)" />
+    </Stack>
+  );
+}
+
+const styles = StyleSheet.create({
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.bg },
+});

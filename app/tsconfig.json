@@ -1,0 +1,12 @@
+{
+  // app/ — RN/Expo 타입체크 (코어 루트 tsconfig와 분리). expo 설치 후 base 상속.
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "paths": {
+      "@engine/*": ["../engine/*"],
+      "@spec/*": ["../spec/*"]
+    }
+  },
+  "include": ["**/*.ts", "**/*.tsx"]
+}

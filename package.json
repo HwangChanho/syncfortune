@@ -1,0 +1,46 @@
+{
+  "name": "syncfortune",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "typecheck": "tsc --noEmit",
+    "verify": "tsx engine/verify-fixture.ts",
+    "p2": "tsx --env-file-if-exists=.env interpretation/run-p2.ts",
+    "p3": "tsx --env-file-if-exists=.env interpretation/run-p3.ts",
+    "p3all": "tsx --env-file-if-exists=.env interpretation/run-p3-all.ts",
+    "p4": "tsx --env-file-if-exists=.env interpretation/run-p4.ts",
+    "p5": "tsx --env-file-if-exists=.env interpretation/run-p5.ts",
+    "p1": "tsx --env-file-if-exists=.env interpretation/run-p1.ts",
+    "guards": "tsx engine/run-guards.ts",
+    "diagram": "npx -y @mermaid-js/mermaid-cli -i docs/ARCHITECTURE-DIAGRAM.md -o docs/img/arch.png -t default -b white -p docs/.puppeteer.json",
+    "compat": "tsx engine/run-compat.ts",
+    "tri": "tsx engine/run-tri.ts",
+    "compatllm": "tsx --env-file-if-exists=.env interpretation/run-compat-llm.ts",
+    "twelve": "tsx engine/run-twelve.ts",
+    "sinsal": "tsx engine/run-sinsal.ts",
+    "verify:engine": "tsx engine/verify-engine.ts",
+    "trillm": "tsx --env-file-if-exists=.env interpretation/run-tri-llm.ts",
+    "example": "tsx engine/example.ts",
+    "ziwei": "tsx engine/run-ziwei.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "private": "true",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.100.1",
+    "iztro": "^2.5.8",
+    "lunar-javascript": "^1.7.7"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.1",
+    "tsx": "^4.22.4",
+    "typescript": "^6.0.3"
+  }
+}

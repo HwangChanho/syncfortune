@@ -1,0 +1,18 @@
+{
+  // SyncFortune — TypeScript 설정 (L1 엔진·해석·픽스처 타입체크용)
+  // 실행은 tsx, 빌드 산출은 없음(noEmit). RN/Expo 앱 빌드 설정은 ui/ 도입 시 별도.
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "ESNext",
+    "moduleResolution": "bundler",   // 확장자 없는 import 허용 (spec/chart 등)
+    "strict": true,                  // 골든 픽스처 정합을 엄격 검증
+    "esModuleInterop": true,
+    "skipLibCheck": true,            // 외부(만세력/iztro) 타입 정의 이슈 무시
+    "resolveJsonModule": true,
+    "forceConsistentCasingInFileNames": true,
+    "types": ["node"],
+    "noEmit": true
+  },
+  "include": ["engine/**/*", "interpretation/**/*", "security/**/*", "spec/**/*"],
+  "exclude": ["node_modules"]
+}

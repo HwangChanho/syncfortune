@@ -1,0 +1,31 @@
+{
+  "expo": {
+    "name": "SyncFortune",
+    "slug": "syncfortune",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "syncfortune",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.syncfortune.app"
+    },
+    "android": {
+      "package": "com.syncfortune.app"
+    },
+    "plugins": [
+      "expo-secure-store",
+      "expo-asset",
+      "expo-router",
+      "expo-localization"
+    ],
+    "web": {
+      "bundler": "metro",
+      "output": "single"
+    },
+    "extra": {
+      "supabaseUrl": "https://YOUR_PROJECT_REF.supabase.co",
+      "supabaseAnonKey": "YOUR_SUPABASE_ANON_KEY"
+    }
+  }
+}

@@ -1,0 +1,67 @@
+# ── 의존성 ──
+node_modules/
+
+# ── 환경변수 / 시크릿 (절대 커밋 금지) ──
+# .env (루트=엔진/CLI, app/.env=앱) 는 어느 위치든 무시. .env.example 만 예외.
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# ── OS / 에디터 ──
+.DS_Store
+*.log
+
+# ── 빌드 산출 ──
+dist/
+*.tsbuildinfo
+
+# ── Expo / RN 앱 빌드 산출물 (CNG 로 재생성) ──
+.expo/
+web-build/
+app/ios/
+app/android/
+# 서명·프로비저닝 키
+*.jks
+*.p8
+*.p12
+*.key
+*.keystore
+*.mobileprovision
+
+# ─────────────────────────────────────────────────────────────────────────
+# ⚠️ PII / 민감 데이터 — 퍼블릭 노출 금지 (CLAUDE.md 규칙8·§6.1)
+#   골든 엔트리·L0 픽스처에 생년월일시·이름·출생지·건강·재물 이력 등 개인정보 포함.
+# ─────────────────────────────────────────────────────────────────────────
+golden/
+engine/fixtures/
+
+# ─────────────────────────────────────────────────────────────────────────
+# 🔒 비공개 — 명리 IP(해자)·전략·내부 문서
+#   공개 범위(daniel 결정 2026-06-08): "엔진/앱 코드 + README" 만 퍼블릭(포트폴리오).
+#   아래는 전부 로컬에만 보관(레포에 안 올림).
+# ─────────────────────────────────────────────────────────────────────────
+# 전략·설계 문서 (spec/chart.ts 타입 계약만 공개)
+spec/*
+!spec/chart.ts
+# 살아있는 문서·ADR·아키텍처 다이어그램
+docs/
+# 명리 지식 레이어·물상 (moat 콘텐츠)
+knowledge/
+# L2 해석 오케스트레이터 + 시스템 프롬프트 (LLM/RAG 레이어 — moat)
+interpretation/
+# 백엔드 (Edge 함수·프롬프트·마이그레이션·CLI 시크릿·.temp)
+supabase/
+# 디자인 소스·레퍼런스 캡처 (타사 UI·PII 가능)
+design/
+# 골든 픽스처에 의존하는 검증 하니스 (실 데이터 참조 → 비공개)
+#   ※ engine/example.ts·verify-engine.ts 는 비PII → 공개 유지
+engine/run-*.ts
+engine/verify-fixture.ts
+# 내부 운영 매뉴얼·전략·로드맵
+CLAUDE.md
+SyncFortune_*.md
+
+# ── 참고 스크린샷·루트 스트레이 이미지 (앱 에셋 app/assets/*.png 는 보존) ──
+KakaoTalk_*.png
+/*.png
