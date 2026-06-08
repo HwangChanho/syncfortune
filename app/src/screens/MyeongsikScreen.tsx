@@ -451,21 +451,18 @@ export function MyeongsikScreen({ input, onReading }: { input: ChartInput | null
               {/* 12신살 — 년지·일지 기준 둘 다 산출(탭 → 의미) */}
               <View style={styles.ssTableRow}>
                 <Text style={styles.ssRowLabel}>12{'\n'}신살</Text>
-                {visiblePos.map((p) => {
-                  const tw = c.sinsal.twelve[p];
-                  return (
-                    <View key={p} style={styles.ssCell}>
-                      <Pressable onPress={() => setGlossary({ kind: 'sinsal', key: tw.byYear })}>
-                        <Text style={styles.ss12Tag}>{tw.byYear}<Text style={styles.ss12Base}> 년</Text></Text>
-                      </Pressable>
-                      {tw.byDay !== tw.byYear && (
-                        <Pressable onPress={() => setGlossary({ kind: 'sinsal', key: tw.byDay })}>
-                          <Text style={styles.ss12Tag}>{tw.byDay}<Text style={styles.ss12Base}> 일</Text></Text>
+                {visiblePos.map((p) => (
+                  <View key={p} style={styles.ssCell}>
+                    {c.sinsal.twelve[p]
+                      .map((tw) => ({ name: tw.name, bases: tw.bases.filter((b) => visiblePos.includes(b)) }))
+                      .filter((tw) => tw.bases.length > 0)
+                      .map((tw, i) => (
+                        <Pressable key={i} onPress={() => setGlossary({ kind: 'sinsal', key: tw.name })}>
+                          <Text style={styles.ss12Tag}>{tw.name}<Text style={styles.ss12Base}> {tw.bases.join('')}</Text></Text>
                         </Pressable>
-                      )}
-                    </View>
-                  );
-                })}
+                      ))}
+                  </View>
+                ))}
               </View>
             </View>
             {/* 공망: 기준 2지지(오행색) + 원국 적중 자리 */}

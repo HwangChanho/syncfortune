@@ -69,7 +69,7 @@ export interface SinsalResult {
   gongmang: [Branch, Branch];   // 공망 2지지
   gongmangHits: PillarPos[];    // 원국에서 공망 맞은 자리
   sinsal: SinsalHit[];          // 길신·기타(천을귀인·문창·양인·홍염) — 도화·역마·화개는 12신살로 통일
-  twelve: Record<PillarPos, { byYear: string; byDay: string }>; // 12신살 (각 기둥 지지를 년지·일지 기준 둘 다)
+  twelve: Record<PillarPos, { name: string; bases: PillarPos[] }[]>; // 12신살 — 각 기둥 지지를 4개 기준지(년·월·일·시) 전부로 + 어느 기준에서 나왔는지(bases)
   goegang: boolean;             // 괴강 일주(庚辰·庚戌·壬辰·戊戌)
   baekhoHits: PillarPos[];      // 백호살 간지 자리
 }
@@ -85,15 +85,21 @@ export function gongmang(stem: Stem, branch: Branch): [Branch, Branch] {
 export function analyzeSinsal(saju: SajuChart): SinsalResult {
   const dayStem = saju.pillars['일'].stem;
   const dayBranch = saju.pillars['일'].branch;
-  const yearBranch = saju.pillars['년'].branch;
   const monthBranch = saju.pillars['월'].branch;
   const gm = gongmang(dayStem, dayBranch);
 
-  // 12신살 — 각 기둥 지지를 년지·일지 기준 둘 다 산출(daniel "전부 산출")
-  const twelve = {} as Record<PillarPos, { byYear: string; byDay: string }>;
+  // 12신살 — 각 기둥 지지를 4개 기준지(년·월·일·시) 전부로 산출(daniel "전부 산출 — 일지·년지만 X").
+  //   같은 신살이 여러 기준에서 나오면 bases로 묶음(예: 도화 bases=['년'], 재살 bases=['일','시']).
+  const twelve = {} as Record<PillarPos, { name: string; bases: PillarPos[] }[]>;
   POS.forEach((p) => {
     const tb = saju.pillars[p].branch;
-    twelve[p] = { byYear: twelveSinsalAt(yearBranch, tb), byDay: twelveSinsalAt(dayBranch, tb) };
+    const grouped = new Map<string, PillarPos[]>();
+    POS.forEach((bp) => {
+      const name = twelveSinsalAt(saju.pillars[bp].branch, tb);
+      if (!grouped.has(name)) grouped.set(name, []);
+      grouped.get(name)!.push(bp);
+    });
+    twelve[p] = Array.from(grouped, ([name, bases]) => ({ name, bases }));
   });
 
   // 길신·기타 신살 — 각 신살의 기준 글자(천간/지지)를 모든 기둥의 천간·지지와 대조(전부 산출).
