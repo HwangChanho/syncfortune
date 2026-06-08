@@ -16,6 +16,7 @@ import { colors, radius, space, shadow, font } from '../lib/theme';
 import { stemElement, branchElement, elementColor, elementText, stemReading, branchReading } from '../lib/ohaeng';
 import { HIDDEN, computeMonthDays, branchTenGod } from '@engine/saju'; // 지장간 표 + 일운(流日) + 지지십신
 import { twelveStage } from '@engine/twelve';                          // 임의 지지 12운성(타임라인용)
+import { detectInteractionsAmong } from '@engine/structure';           // 시간층(원국×대운×세운) 합충 검출
 import { lookupGlossary, GLOSSARY_KIND_LABEL, type GlossaryKind } from '../lib/myeongriGlossary'; // 클릭 설명
 import Svg, { Path, Rect, Circle, Text as SvgText, G } from 'react-native-svg';
 
@@ -331,26 +332,68 @@ export function MyeongsikScreen({ input, onReading }: { input: ChartInput | null
           ...(an ? [{ label: '세운', stem: an.stem, branch: an.branch, tg: an.stemTenGod, luck: true, hidden: HIDDEN[an.branch as keyof typeof HIDDEN] ?? [] }] : []),
           ...(mo ? [{ label: `${selMonth + 1}월`, stem: mo.stem, branch: mo.branch, tg: mo.stemTenGod, luck: true, hidden: HIDDEN[mo.branch as keyof typeof HIDDEN] ?? [] }] : []),
         ];
+        // 시간층 합충 — 확장명식 컬럼(원국+운) 간 작용. 운(대운/세운/월운) 연루된 것만(원국끼리는 팔자 표에).
+        const COLW = 50;
+        const expandLinks = detectInteractionsAmong(expandCols.map((c2) => ({ pos: c2.label as any, stem: c2.stem, branch: c2.branch })))
+          .filter((it) => it.members.length === 2 && it.members.some((m) => expandCols.find((c2) => c2.label === m)?.luck));
+        const ganEx = expandLinks.filter((it) => it.level === '천간');
+        const jiEx = expandLinks.filter((it) => it.level !== '천간');
+        const xOfCol = (label: string) => expandCols.findIndex((c2) => c2.label === label) * COLW + COLW / 2;
+        const expandArcs = (links: any[], dir: 'above' | 'below') => {
+          if (!links.length) return null;
+          const STEP = 16, H = links.length * STEP + 14, reach = dir === 'above' ? H : 0;
+          const dash = dir === 'above' ? '3 2' : undefined;
+          const items = links.map((it, i) => {
+            const off = (i - (links.length - 1) / 2) * 4;
+            const xa = xOfCol(it.members[0]) + off, xb = xOfCol(it.members[1]) + off;
+            const legY = dir === 'above' ? 6 + i * STEP : H - (6 + i * STEP);
+            const lbl = linkLabel(it);
+            return { xa, xb, mid: (xa + xb) / 2, legY, col: linkColor(it), lbl, lw: lbl.length * 11 + 6 };
+          });
+          return (
+            <Svg width={expandCols.length * COLW} height={H}>
+              {items.map((o, i) => (
+                <G key={`p${i}`}>
+                  <Path d={`M ${o.xa} ${reach} L ${o.xa} ${o.legY} L ${o.mid - o.lw / 2} ${o.legY}`} stroke={o.col} strokeWidth={1.5} fill="none" strokeDasharray={dash} />
+                  <Path d={`M ${o.mid + o.lw / 2} ${o.legY} L ${o.xb} ${o.legY} L ${o.xb} ${reach}`} stroke={o.col} strokeWidth={1.5} fill="none" strokeDasharray={dash} />
+                </G>
+              ))}
+              {items.map((o, i) => (
+                <G key={`l${i}`}>
+                  <Rect x={o.mid - o.lw / 2} y={o.legY - 7} width={o.lw} height={14} fill={colors.bg} rx={2} />
+                  <SvgText x={o.mid} y={o.legY + 3} fill={o.col} fontSize={9} fontWeight="700" textAnchor="middle">{o.lbl}</SvgText>
+                </G>
+              ))}
+            </Svg>
+          );
+        };
         return (
         <>
           <Text style={styles.h}>{t('myeongsik.luck')}</Text>
-          {/* 원국 + 대운·세운 확장 명식 (천간/지지 분리, 나란히) */}
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.luckScroll} contentContainerStyle={styles.luckScrollC}>
-            {expandCols.map((col, i) => (
-              <View key={i} style={[styles.expCol, col.luck && styles.expColLuck]}>
-                <Text style={styles.expLabel}>{col.label}</Text>
-                <Text style={styles.expTg}>{col.tg}</Text>
-                <GzCell char={col.stem} kind="stem" size="sm" />
-                <GzCell char={col.branch} kind="branch" size="sm" />
-                <Text style={styles.expTg}>{branchTenGod(dm, col.branch)}</Text>
-                <Text style={styles.expStage}>{twelveStage(dm, col.branch)}</Text>
-                <View style={styles.expHidden}>
-                  {col.hidden.map((h: any, k: number) => (
-                    <Text key={k} style={[styles.expHiddenTx, { color: elementColor[stemElement(h.stem)] }]}>{h.stem}</Text>
-                  ))}
-                </View>
+          {/* 원국 + 대운·세운 확장 명식 + 시간층 합충선(천간=위 점선·지지=아래 실선) */}
+          <Text style={styles.luckSub}>원국 × 대운/세운/월운 작용 (합충형해 선)</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.luckScroll}>
+            <View>
+              {expandArcs(ganEx, 'above')}
+              <View style={{ flexDirection: 'row' }}>
+                {expandCols.map((col, i) => (
+                  <View key={i} style={[styles.expCol2, col.luck && styles.expColLuck]}>
+                    <Text style={styles.expLabel}>{col.label}</Text>
+                    <Text style={styles.expTg}>{col.tg}</Text>
+                    <GzCell char={col.stem} kind="stem" size="sm" />
+                    <GzCell char={col.branch} kind="branch" size="sm" />
+                    <Text style={styles.expTg}>{branchTenGod(dm, col.branch)}</Text>
+                    <Text style={styles.expStage}>{twelveStage(dm, col.branch)}</Text>
+                    <View style={styles.expHidden}>
+                      {col.hidden.map((h: any, k: number) => (
+                        <Text key={k} style={[styles.expHiddenTx, { color: elementColor[stemElement(h.stem)] }]}>{h.stem}</Text>
+                      ))}
+                    </View>
+                  </View>
+                ))}
               </View>
-            ))}
+              {expandArcs(jiEx, 'below')}
+            </View>
           </ScrollView>
           {/* 대운 타임라인 (천간/지지 분리, 탭 → 확장 명식·세운 갱신) */}
           <Text style={styles.luckSub}>대운 (탭하면 그 대운의 세운 펼침)</Text>
@@ -649,6 +692,7 @@ const styles = StyleSheet.create({
   gzTextXs: { fontSize: 16, fontWeight: '700', lineHeight: 19 },
   gzKo: { fontSize: 9, fontWeight: '700', lineHeight: 11, opacity: 0.85 },   // 한자 아래 한글음
   expCol: { alignItems: 'center', paddingHorizontal: space(0.75), paddingVertical: space(0.5) },
+  expCol2: { width: 50, alignItems: 'center', paddingVertical: space(0.5) },   // 고정폭(합충 호 좌표용)
   expColLuck: { backgroundColor: colors.juSoft, borderRadius: radius.sm },
   expLabel: { fontSize: 11, color: colors.inkFaint, marginBottom: 2, fontWeight: '600' },
   expTg: { fontSize: 11, color: colors.inkSoft, marginBottom: 2, fontWeight: '600' },

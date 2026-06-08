@@ -28,19 +28,18 @@ const pairMatch = (list: [Branch, Branch][], a: Branch, b: Branch) =>
   list.some(([x, y]) => (x === a && y === b) || (x === b && y === a));
 
 /**
- * 원국 지지 간 합충형해 검출 (결정론).
- * - 육합: 화(化) 오행 + R1 화성립 1차판정(화기 오행이 천간에 투출했는가).
- * - 충·해·파·형(상형·삼형·자형)·반합(왕지 포함 삼합 2글자).
- * @returns Interaction[] — *검출*만. '핵심 vs 부가' 선별은 stance(daniel).
+ * 임의 기둥 집합(원국 + 시간층 대운·세운·월운…) 간 합충형해 검출 (결정론).
+ * - 지지: 육합(化 + R1 화성립)·충·해·파·상형·삼형·자형·반합.
+ * - 천간: 합(化)·충(=상극)·극(오행극). level 로 천간/지지 구분.
+ * @param items {pos, stem, branch}[] — pos 는 원국('년·월·일·시') 또는 시간층('대운·세운·월운·일운').
  */
-export function detectInteractions(saju: SajuChart): Interaction[] {
-  const slots = POS.map((p) => ({ pos: p as ChartPosition, branch: saju.pillars[p].branch }));
-  const stemElems = new Set(POS.map((p) => STEM_ELEM[saju.pillars[p].stem])); // 화성립 판정용
+export function detectInteractionsAmong(items: { pos: ChartPosition; stem: Stem; branch: Branch }[]): Interaction[] {
+  const stemElems = new Set(items.map((s) => STEM_ELEM[s.stem])); // 화성립 판정용
   const out: Interaction[] = [];
 
-  // 쌍 관계 (합·충·해·파·상형·반합)
-  for (let i = 0; i < slots.length; i++) for (let j = i + 1; j < slots.length; j++) {
-    const A = slots[i], B = slots[j];
+  // 쌍 관계 (지지: 합·충·해·파·상형·반합)
+  for (let i = 0; i < items.length; i++) for (let j = i + 1; j < items.length; j++) {
+    const A = items[i], B = items[j];
     const he = SIXHE.find(([x, y]) => (x === A.branch && y === B.branch) || (x === B.branch && y === A.branch));
     if (he) out.push({ type: '합', members: [A.pos, B.pos], detail: `${he[0]}${he[1]}合化${he[2]}`, transformsTo: he[2], transformSupported: stemElems.has(he[2]) });
     if (pairMatch(CHONG, A.branch, B.branch)) out.push({ type: '충', members: [A.pos, B.pos], detail: `${A.branch}${B.branch}冲` });
@@ -55,26 +54,23 @@ export function detectInteractions(saju: SajuChart): Interaction[] {
 
   // 삼형 (그룹 내 2글자 이상 → 쌍별)
   for (const grp of SANXING) {
-    const present = slots.filter((s) => grp.includes(s.branch));
+    const present = items.filter((s) => grp.includes(s.branch));
     for (let i = 0; i < present.length; i++) for (let j = i + 1; j < present.length; j++)
       out.push({ type: '형', members: [present[i].pos, present[j].pos], detail: `${present[i].branch}${present[j].branch}刑` });
   }
-  // 자형 (같은 글자 2개)
+  // 자형 (같은 글자 2개 이상)
   const byBranch: Partial<Record<Branch, ChartPosition[]>> = {};
-  slots.forEach((s) => { (byBranch[s.branch] ??= []).push(s.pos); });
+  items.forEach((s) => { (byBranch[s.branch] ??= []).push(s.pos); });
   for (const b of ZIXING) { const ps = byBranch[b]; if (ps && ps.length >= 2) out.push({ type: '형', members: ps, detail: `${b}${b}自刑` }); }
 
-  // 천간 합·충(극) — 천간끼리도 합(化)·충(冲=상극). level:'천간'으로 표시·해석 분리.
-  // 합화 성립(transformSupported)은 월령·세력 stance라 여기선 미판정(transformsTo만 = 어떤 기운으로 化하는지).
-  const gslots = POS.map((p) => ({ pos: p as ChartPosition, stem: saju.pillars[p].stem }));
-  for (let i = 0; i < gslots.length; i++) for (let j = i + 1; j < gslots.length; j++) {
-    const A = gslots[i], B = gslots[j];
+  // 천간 합·충(극)
+  for (let i = 0; i < items.length; i++) for (let j = i + 1; j < items.length; j++) {
+    const A = items[i], B = items[j];
     const gh = TIANHE.find(([x, y]) => (x === A.stem && y === B.stem) || (x === B.stem && y === A.stem));
     const isChong = TIANCHONG.some(([x, y]) => (x === A.stem && y === B.stem) || (x === B.stem && y === A.stem));
     if (gh) out.push({ type: '합', level: '천간', members: [A.pos, B.pos], detail: `${A.stem}${B.stem}合化${gh[2]}`, transformsTo: gh[2] });
     if (isChong) out.push({ type: '충', level: '천간', members: [A.pos, B.pos], detail: `${A.stem}${B.stem}冲` });
-    // 천간 상극(剋) — 합·충 외의 오행극(예 丁克辛=火克金=칠살). 방향(from克to)을 detail에 보존.
-    if (!gh && !isChong) {
+    if (!gh && !isChong) { // 천간 상극(剋) — 합·충 외 오행극(예 丁克辛). 방향 보존.
       const ea = STEM_ELEM[A.stem], eb = STEM_ELEM[B.stem];
       const aKeB = STEM_KE[ea] === eb, bKeA = STEM_KE[eb] === ea;
       if (aKeB || bKeA) {
@@ -83,9 +79,15 @@ export function detectInteractions(saju: SajuChart): Interaction[] {
       }
     }
   }
-
-  // level 미지정(지지 관계)은 '지지' 기본 — 천간 push는 자체 level('천간') 유지.
   return out.map((it) => ({ ...it, level: it.level ?? '지지' as const }));
+}
+
+/**
+ * 원국 4기둥 합충형해 검출 (결정론). = detectInteractionsAmong(원국).
+ * @returns Interaction[] — *검출*만. '핵심 vs 부가' 선별은 stance(daniel).
+ */
+export function detectInteractions(saju: SajuChart): Interaction[] {
+  return detectInteractionsAmong(POS.map((p) => ({ pos: p as ChartPosition, stem: saju.pillars[p].stem, branch: saju.pillars[p].branch })));
 }
 
 // ─────────────────────────────────────────────────────────────────────────
