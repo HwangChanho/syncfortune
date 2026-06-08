@@ -53,6 +53,11 @@ function tenGod(day: Stem, other: Stem): TenGod {
   }
 }
 
+/** 일간 기준, 임의 지지의 *지지십신*(본기 기준). 대운·세운·월운 등 시간층 지지의 십신 산출용(UI 타임라인). */
+export function branchTenGod(day: Stem, branch: Branch): TenGod {
+  return tenGod(day, BRANCH_MAIN[branch]);
+}
+
 /** 간지 문자열(예 "甲戌") → 한 기둥(PillarData). 지장간·십신·통근은 우리 로직. */
 function buildPillar(position: PillarPos, ganZhi: string, dayStem: Stem): PillarData {
   const stem = ganZhi[0] as Stem;

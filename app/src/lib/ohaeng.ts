@@ -30,3 +30,15 @@ export const elementColor: Record<string, string> = {
 export const elementText: Record<string, string> = {
   木: '#FFFFFF', 火: '#FFFFFF', 土: '#15132E', 金: '#15132E', 水: '#FFFFFF',
 };
+
+// ── 간지 한글음 (만세력 표기 — 한자 옆 작은 한글 독음. 카톡 포스텔러 참고) ──
+const STEM_KO: Record<string, string> = {
+  甲: '갑', 乙: '을', 丙: '병', 丁: '정', 戊: '무',
+  己: '기', 庚: '경', 辛: '신', 壬: '임', 癸: '계',
+};
+const BRANCH_KO: Record<string, string> = {
+  子: '자', 丑: '축', 寅: '인', 卯: '묘', 辰: '진', 巳: '사',
+  午: '오', 未: '미', 申: '신', 酉: '유', 戌: '술', 亥: '해',
+};
+export function stemReading(stem: string): string { return STEM_KO[stem] ?? ''; }
+export function branchReading(branch: string): string { return BRANCH_KO[branch] ?? ''; }

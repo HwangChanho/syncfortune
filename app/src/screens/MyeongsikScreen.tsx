@@ -13,12 +13,26 @@ import { useTranslation } from 'react-i18next';
 import { computeChart } from '../lib/engine';
 import type { ChartInput, PillarPos } from '@spec/chart';
 import { colors, radius, space, shadow, font } from '../lib/theme';
-import { stemElement, branchElement, elementColor, elementText } from '../lib/ohaeng';
-import { HIDDEN, computeMonthDays } from '@engine/saju';   // 지장간 표 + 일운(流日) 생성
+import { stemElement, branchElement, elementColor, elementText, stemReading, branchReading } from '../lib/ohaeng';
+import { HIDDEN, computeMonthDays, branchTenGod } from '@engine/saju'; // 지장간 표 + 일운(流日) + 지지십신
+import { twelveStage } from '@engine/twelve';                          // 임의 지지 12운성(타임라인용)
 import Svg, { Path, Rect, Circle, Text as SvgText, G } from 'react-native-svg';
 
 // 전통 표기 — 오른쪽이 년주: 시(왼) ← 일 ← 월 ← 년(오른쪽)
 const POS: PillarPos[] = ['시', '일', '월', '년'];
+
+// 간지 한 칸(오행색 배경 + 한자 + 한글음) — 대운·세운·월운 타임라인/확장명식 공용. sm=대운/원국, xs=세운/월운.
+function GzCell({ char, kind, size }: { char: string; kind: 'stem' | 'branch'; size: 'sm' | 'xs' }) {
+  const el = kind === 'stem' ? stemElement(char) : branchElement(char);
+  const ko = kind === 'stem' ? stemReading(char) : branchReading(char);
+  const txt = { color: elementText[el] };
+  return (
+    <View style={[size === 'sm' ? styles.gzCellSm : styles.gzCellXs, { backgroundColor: elementColor[el] }]}>
+      <Text style={[size === 'sm' ? styles.gzTextSm : styles.gzTextXs, txt]}>{char}</Text>
+      <Text style={[styles.gzKo, txt]}>{ko}</Text>
+    </View>
+  );
+}
 
 export function MyeongsikScreen({ input, onReading }: { input: ChartInput | null; onReading?: () => void }) {
   const { t } = useTranslation();
@@ -27,6 +41,7 @@ export function MyeongsikScreen({ input, onReading }: { input: ChartInput | null
 
   const timeUnknown = input?.timeAccuracy === '미상'; // 시각 모름 → 시주 마스킹
   const P = c.saju.pillars;
+  const dm = c.saju.dayMaster.stem;   // 일간 — 시간층(대운·세운·월운) 지지십신·12운성 산출 기준
   const s = c.saju as any; // currentLuck/annual 옵셔널 접근
   const visiblePos = POS.filter((p) => !(p === '시' && timeUnknown)); // 시각 미상 시 시주 제외
   // 통근(通根): 투출 천간(일간 포함)이 어느 지지 지장간에 같은 오행으로 뿌리내렸나 (일간뿐 아니라 재관도)
@@ -253,8 +268,10 @@ export function MyeongsikScreen({ input, onReading }: { input: ChartInput | null
               <View key={i} style={[styles.expCol, col.luck && styles.expColLuck]}>
                 <Text style={styles.expLabel}>{col.label}</Text>
                 <Text style={styles.expTg}>{col.tg}</Text>
-                <View style={[styles.gzCellSm, { backgroundColor: elementColor[stemElement(col.stem)] }]}><Text style={[styles.gzTextSm, { color: elementText[stemElement(col.stem)] }]}>{col.stem}</Text></View>
-                <View style={[styles.gzCellSm, { backgroundColor: elementColor[branchElement(col.branch)] }]}><Text style={[styles.gzTextSm, { color: elementText[branchElement(col.branch)] }]}>{col.branch}</Text></View>
+                <GzCell char={col.stem} kind="stem" size="sm" />
+                <GzCell char={col.branch} kind="branch" size="sm" />
+                <Text style={styles.expTg}>{branchTenGod(dm, col.branch)}</Text>
+                <Text style={styles.expStage}>{twelveStage(dm, col.branch)}</Text>
                 <View style={styles.expHidden}>
                   {col.hidden.map((h: any, k: number) => (
                     <Text key={k} style={[styles.expHiddenTx, { color: elementColor[stemElement(h.stem)] }]}>{h.stem}</Text>
@@ -269,9 +286,11 @@ export function MyeongsikScreen({ input, onReading }: { input: ChartInput | null
             {luckCycles.map((l, i) => (
               <Pressable key={i} onPress={() => { setSelLuck(i); setSelSeun(0); }} style={[styles.luckCard, l.isCurrent && styles.luckCardCur, selLuck === i && styles.luckCardSel]}>
                 <Text style={styles.luckAge}>{l.startAge}세</Text>
-                <View style={[styles.gzCellSm, { backgroundColor: elementColor[stemElement(l.stem)] }]}><Text style={[styles.gzTextSm, { color: elementText[stemElement(l.stem)] }]}>{l.stem}</Text></View>
-                <View style={[styles.gzCellSm, { backgroundColor: elementColor[branchElement(l.branch)] }]}><Text style={[styles.gzTextSm, { color: elementText[branchElement(l.branch)] }]}>{l.branch}</Text></View>
                 <Text style={styles.luckTg}>{l.stemTenGod}</Text>
+                <GzCell char={l.stem} kind="stem" size="sm" />
+                <GzCell char={l.branch} kind="branch" size="sm" />
+                <Text style={styles.luckTg}>{branchTenGod(dm, l.branch)}</Text>
+                <Text style={styles.luckStage}>{twelveStage(dm, l.branch)}</Text>
               </Pressable>
             ))}
           </ScrollView>
@@ -283,9 +302,11 @@ export function MyeongsikScreen({ input, onReading }: { input: ChartInput | null
                 {lc.annuals.map((a: any, j: number) => (
                   <Pressable key={j} onPress={() => { setSelSeun(j); setSelMonth(0); }} style={[styles.seunCard, selSeun === j && styles.luckCardSel, a.year === s.annual?.year && styles.seunCur]}>
                     <Text style={styles.seunYear}>{a.year}</Text>
-                    <View style={[styles.gzCellXs, { backgroundColor: elementColor[stemElement(a.stem)] }]}><Text style={[styles.gzTextXs, { color: elementText[stemElement(a.stem)] }]}>{a.stem}</Text></View>
-                    <View style={[styles.gzCellXs, { backgroundColor: elementColor[branchElement(a.branch)] }]}><Text style={[styles.gzTextXs, { color: elementText[branchElement(a.branch)] }]}>{a.branch}</Text></View>
                     <Text style={styles.seunTg}>{a.stemTenGod}</Text>
+                    <GzCell char={a.stem} kind="stem" size="xs" />
+                    <GzCell char={a.branch} kind="branch" size="xs" />
+                    <Text style={styles.seunTg}>{branchTenGod(dm, a.branch)}</Text>
+                    <Text style={styles.seunStage}>{twelveStage(dm, a.branch)}</Text>
                   </Pressable>
                 ))}
               </ScrollView>
@@ -298,9 +319,11 @@ export function MyeongsikScreen({ input, onReading }: { input: ChartInput | null
                 {an.months.map((m: any, k: number) => (
                   <Pressable key={k} onPress={() => setSelMonth(k)} style={[styles.seunCard, selMonth === k && styles.luckCardSel]}>
                     <Text style={styles.seunYear}>{k + 1}월</Text>
-                    <View style={[styles.gzCellXs, { backgroundColor: elementColor[stemElement(m.stem)] }]}><Text style={[styles.gzTextXs, { color: elementText[stemElement(m.stem)] }]}>{m.stem}</Text></View>
-                    <View style={[styles.gzCellXs, { backgroundColor: elementColor[branchElement(m.branch)] }]}><Text style={[styles.gzTextXs, { color: elementText[branchElement(m.branch)] }]}>{m.branch}</Text></View>
                     <Text style={styles.seunTg}>{m.stemTenGod}</Text>
+                    <GzCell char={m.stem} kind="stem" size="xs" />
+                    <GzCell char={m.branch} kind="branch" size="xs" />
+                    <Text style={styles.seunTg}>{branchTenGod(dm, m.branch)}</Text>
+                    <Text style={styles.seunStage}>{twelveStage(dm, m.branch)}</Text>
                   </Pressable>
                 ))}
               </ScrollView>
@@ -423,20 +446,24 @@ const styles = StyleSheet.create({
   luckGz: { flexDirection: 'row', gap: 1, marginVertical: 2 },
   luckStem: { fontSize: 17, fontWeight: '800' },
   luckTg: { fontSize: 9, color: colors.inkSoft },
+  luckStage: { fontSize: 9, color: colors.inkFaint, fontWeight: '600' },   // 12운성
   luckSub: { ...font.caption, color: colors.ju, marginTop: space(3), marginBottom: space(1) },
   seunCard: { alignItems: 'center', paddingVertical: space(1.5), paddingHorizontal: space(2), borderRadius: radius.sm, backgroundColor: colors.sunk, minWidth: 52 },
   seunCur: { borderWidth: 1.5, borderColor: colors.ju },
   seunYear: { fontSize: 9, color: colors.inkFaint },
   seunGz: { fontSize: 14, fontWeight: '700' },
   seunTg: { fontSize: 8, color: colors.inkSoft },
-  gzCellSm: { width: 34, height: 34, borderRadius: 6, alignItems: 'center', justifyContent: 'center', marginVertical: 1.5 },
-  gzTextSm: { fontSize: 20, fontWeight: '800' },
-  gzCellXs: { width: 30, height: 30, borderRadius: 6, alignItems: 'center', justifyContent: 'center', marginVertical: 1.5 },
-  gzTextXs: { fontSize: 17, fontWeight: '700' },
+  seunStage: { fontSize: 8, color: colors.inkFaint, fontWeight: '600' },   // 12운성
+  gzCellSm: { width: 38, borderRadius: 6, alignItems: 'center', justifyContent: 'center', paddingVertical: 3, marginVertical: 1.5 },
+  gzTextSm: { fontSize: 19, fontWeight: '800', lineHeight: 22 },
+  gzCellXs: { width: 34, borderRadius: 6, alignItems: 'center', justifyContent: 'center', paddingVertical: 2, marginVertical: 1.5 },
+  gzTextXs: { fontSize: 16, fontWeight: '700', lineHeight: 19 },
+  gzKo: { fontSize: 9, fontWeight: '700', lineHeight: 11, opacity: 0.85 },   // 한자 아래 한글음
   expCol: { alignItems: 'center', paddingHorizontal: space(0.75), paddingVertical: space(0.5) },
   expColLuck: { backgroundColor: colors.juSoft, borderRadius: radius.sm },
   expLabel: { fontSize: 11, color: colors.inkFaint, marginBottom: 2, fontWeight: '600' },
   expTg: { fontSize: 11, color: colors.inkSoft, marginBottom: 2, fontWeight: '600' },
+  expStage: { fontSize: 10, color: colors.inkFaint, fontWeight: '600', marginTop: 1 },   // 12운성
   expHidden: { alignItems: 'center', marginTop: 4 },
   expHiddenTx: { fontSize: 12, fontWeight: '700', lineHeight: 15 },
   calGrid: { flexDirection: 'row', flexWrap: 'wrap', marginTop: space(2) },
