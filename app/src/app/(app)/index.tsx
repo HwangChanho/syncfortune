@@ -16,7 +16,7 @@ import { colors, radius, space, shadow, font } from '../../lib/theme';
 type MenuItem = { key: string; labelKey: string; image: any; route: string; ready: boolean; premium?: boolean };
 
 const MENU: MenuItem[] = [
-  { key: 'myeongsik', labelKey: 'menu.myeongsik', image: require('../../../assets/icons/myeongsik.png'), route: '/traits', ready: true },
+  { key: 'myeongsik', labelKey: 'menu.myeongsik', image: require('../../../assets/icons/myeongsik.png'), route: '/register', ready: true },
   { key: 'manse', labelKey: 'menu.manse', image: require('../../../assets/icons/manse.png'), route: '/charts', ready: true },
   { key: 'taro', labelKey: 'menu.taro', image: require('../../../assets/icons/taro.png'), route: '/taro', ready: true },
   { key: 'today', labelKey: 'menu.today', image: require('../../../assets/icons/today.png'), route: '/today', ready: true },

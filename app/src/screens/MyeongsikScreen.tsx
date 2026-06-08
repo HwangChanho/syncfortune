@@ -443,6 +443,8 @@ export function MyeongsikScreen({ input, onReading }: { input: ChartInput | null
         }).filter(Boolean);
         const hlExpand = new Set<string>();
         [...ganEx, ...jiEx].forEach((it: any) => { if (activeExpand.has(it.detail)) it.members.forEach((m: string) => hlExpand.add(m)); });
+        const activeGanEx = ganEx.filter((it: any) => activeExpand.has(it.detail));   // 켠 천간 작용 → 호
+        const activeJiEx = jiEx.filter((it: any) => activeExpand.has(it.detail));     // 켠 지지 작용 → 호
         const xOfCol = (label: string) => expandCols.findIndex((c2) => c2.label === label) * COLW + COLW / 2;
         const expandArcs = (links: any[], dir: 'above' | 'below') => {
           if (!links.length) return null;
@@ -478,6 +480,7 @@ export function MyeongsikScreen({ input, onReading }: { input: ChartInput | null
           {/* 원국 + 대운·세운 확장 명식 (합충선은 아래 토글로 펼침) */}
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.luckScroll}>
             <View>
+              {expandArcs(activeGanEx, 'above')}
               <View style={{ flexDirection: 'row' }}>
                 {expandCols.map((col, i) => (
                   <View key={i} style={[styles.expCol2, col.luck && styles.expColLuck, hlExpand.has(col.label) && styles.expCol2On]}>
@@ -495,6 +498,7 @@ export function MyeongsikScreen({ input, onReading }: { input: ChartInput | null
                   </View>
                 ))}
               </View>
+              {expandArcs(activeJiEx, 'below')}
             </View>
           </ScrollView>
           {(ganEx.length + jiEx.length) > 0 && (

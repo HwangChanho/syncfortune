@@ -12,7 +12,7 @@ const ko = {
   appName: 'SyncFortune',
   tagline: '운명의 방향을 알려주는 나침반',
   menu: {
-    myeongsik: '나의 특징', myeongsikDesc: '일간 성향·격국·오행 강약',
+    myeongsik: '명식 등록', myeongsikDesc: '생년월일로 내 명식 등록·관리',
     manse: '만세력', manseDesc: '날짜별 사주·차트 관리',
     taro: '타로', taroDesc: '카드로 보는 오늘',
     today: '오늘의 운세', todayDesc: '매일 바뀌는 일운',
@@ -85,7 +85,7 @@ const en = {
   appName: 'SyncFortune',
   tagline: 'Your compass to destiny',
   menu: {
-    myeongsik: 'My Traits', myeongsikDesc: 'Day-master · pattern · elements',
+    myeongsik: 'Register Chart', myeongsikDesc: 'Add & manage your chart',
     manse: 'Manseryeok', manseDesc: 'Calendar charts & management',
     taro: 'Tarot', taroDesc: "Today's card",
     today: 'Daily Fortune', todayDesc: 'Changes every day',
@@ -158,7 +158,7 @@ const ja = {
   appName: 'SyncFortune',
   tagline: '運命の方向を示す羅針盤',
   menu: {
-    myeongsik: '私の特徴', myeongsikDesc: '日干·格局·五行',
+    myeongsik: '命式登録', myeongsikDesc: '命式の登録·管理',
     manse: '万歳暦', manseDesc: '日付別四柱·チャート管理',
     taro: 'タロット', taroDesc: '今日のカード',
     today: '今日の運勢', todayDesc: '毎日変わる日運',
