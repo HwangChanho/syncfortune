@@ -53,6 +53,9 @@ const HWANGEUN: Record<Branch, Branch> = {                                      
 };
 const HYEONCHIM: string[] = ['甲', '辛', '卯', '午', '申'];  // 현침살=획이 바늘 같은 글자(천간 甲辛 + 지지 卯午申). 문파차 → daniel 검수
 const CHEONMUN: Branch[] = ['戌', '亥'];                     // 천문성=술해천문(지지 戌亥) — 영성·의약·역학
+const AMROK: Record<Stem, Branch> = { 甲: '亥', 乙: '戌', 丙: '申', 丁: '未', 戊: '申', 己: '未', 庚: '巳', 辛: '辰', 壬: '寅', 癸: '丑' };   // 암록=일간 건록의 육합
+const GEUMYEO: Record<Stem, Branch> = { 甲: '辰', 乙: '巳', 丙: '未', 丁: '申', 戊: '未', 己: '申', 庚: '戌', 辛: '亥', 壬: '丑', 癸: '寅' };  // 금여=건록 +2지지
+const HAKDANG: Record<Stem, Branch> = { 甲: '亥', 乙: '午', 丙: '寅', 丁: '酉', 戊: '寅', 己: '酉', 庚: '巳', 辛: '子', 壬: '申', 癸: '卯' };   // 학당귀인=일간 장생지
 const STEMS_SET = new Set<string>(STEMS);
 
 export type SinsalSide = 'stem' | 'branch';
@@ -107,6 +110,9 @@ export function analyzeSinsal(saju: SajuChart): SinsalResult {
     { name: '천을귀인', glyphs: CHEONEUL[dayStem], note: '최고 길신 — 위기에 귀인·조력' },
     { name: '문창', glyphs: [MUNCHANG[dayStem]], note: '학문·총명·표현' },
     { name: '정록', glyphs: [ROK[dayStem]], note: '일간 건록 — 자기 힘의 뿌리·안정' },
+    { name: '암록', glyphs: [AMROK[dayStem]], note: '숨은 복록 — 위기에 드러나는 도움·재물' },
+    { name: '금여', glyphs: [GEUMYEO[dayStem]], note: '금 수레 — 안락·품위·배우자덕' },
+    { name: '학당귀인', glyphs: [HAKDANG[dayStem]], note: '학문의 자리(일간 장생) — 총명·교육·학습' },
     { name: '월덕귀인', glyphs: [WOLDEOK[SAMHAP[monthBranch]]], note: '달의 덕 — 음덕·보호·해액' },
     { name: '천덕귀인', glyphs: [CHEONDEOK[monthBranch]], note: '하늘의 덕 — 음덕·보호·해액' },
     { name: '황은대사', glyphs: [HWANGEUN[monthBranch]], note: '사면·은사 — 어려움이 풀림' },
