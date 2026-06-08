@@ -24,20 +24,23 @@ import Svg, { Path, Rect, Circle, Text as SvgText, G } from 'react-native-svg';
 const POS: PillarPos[] = ['시', '일', '월', '년'];
 
 // 간지 한 칸(오행색 배경 + 한자 + 한글음) — 대운·세운·월운 타임라인/확장명식 공용. sm=대운/원국, xs=세운/월운.
-function GzCell({ char, kind, size }: { char: string; kind: 'stem' | 'branch'; size: 'sm' | 'xs' }) {
+//   onPress 주면 글자 탭 = 물상 설명(확장명식용). 타임라인 카드(선택 기능)에는 onPress 미전달(카드 탭=드릴다운 유지).
+function GzCell({ char, kind, size, onPress }: { char: string; kind: 'stem' | 'branch'; size: 'sm' | 'xs'; onPress?: () => void }) {
   const el = kind === 'stem' ? stemElement(char) : branchElement(char);
   const ko = kind === 'stem' ? stemReading(char) : branchReading(char);
   const txt = { color: elementText[el] };
-  return (
+  const inner = (
     <View style={[size === 'sm' ? styles.gzCellSm : styles.gzCellXs, { backgroundColor: elementColor[el] }]}>
       <Text style={[size === 'sm' ? styles.gzTextSm : styles.gzTextXs, txt]}>{char}</Text>
       <Text style={[styles.gzKo, txt]}>{ko}</Text>
     </View>
   );
+  return onPress ? <Pressable onPress={onPress}>{inner}</Pressable> : inner;
 }
 
 export function MyeongsikScreen({ input, onReading }: { input: ChartInput | null; onReading?: () => void }) {
   const { t } = useTranslation();
+  const [activeTab, setActiveTab] = useState<'natal' | 'luck' | 'stars'>('natal');
   const c = useMemo(() => (input ? computeChart(input) : null), [input]);
   if (!c) return <View style={styles.center}><Text style={font.body}>{t('myeongsik.noChart')}</Text></View>;
 
@@ -64,6 +67,7 @@ export function MyeongsikScreen({ input, onReading }: { input: ChartInput | null
   const [selLuck, setSelLuck] = useState(curLuckIdx);                  // 선택된 대운 → 세운 드릴다운(기본=현재 대운)
   const [selSeun, setSelSeun] = useState(curSeunIdx);                 // 선택된 세운(기본=올해)
   const [selMonth, setSelMonth] = useState(now.getMonth());           // 선택된 월운(기본=이번 달)
+  const [selDay, setSelDay] = useState(now.getDate());                // 선택된 일운(기본=오늘) — 일진 달력 탭으로 변경
   const [glossary, setGlossary] = useState<{ kind: GlossaryKind; key?: string } | null>(null); // 클릭 설명 바텀시트
   const [showLinks, setShowLinks] = useState(false); // 팔자 합충형해 카드 펼침(기본 숨김)
   const [showExpandLinks, setShowExpandLinks] = useState(false); // 대운/세운 합충 펼침(기본 숨김)
@@ -180,11 +184,29 @@ export function MyeongsikScreen({ input, onReading }: { input: ChartInput | null
 
   return (
     <>
+    <View style={styles.tabBar}>
+      {[
+        { id: 'natal', label: '분석' },
+        { id: 'luck', label: '운세' },
+        { id: 'stars', label: '특이사항' },
+      ].map((t2) => (
+        <Pressable
+          key={t2.id}
+          style={[styles.tabBtn, activeTab === t2.id && styles.tabBtnOn]}
+          onPress={() => setActiveTab(t2.id as any)}
+        >
+          <Text style={[styles.tabLabel, activeTab === t2.id && styles.tabLabelOn]}>{t2.label}</Text>
+        </Pressable>
+      ))}
+    </View>
+
     <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>
-      {/* 팔자 — 표 형식 (행: 십성·천간·지지·십성·지장간·12운성·12신살·통근 × 열: 시일월년). 각 칸 탭→의미 */}
-      <Text style={styles.h}>{t('myeongsik.palja')}</Text>
-      <Text style={styles.hint}>{t('myeongsik.paljaHint')}</Text>
-      <View style={styles.ptable} onLayout={(e) => setRowW(e.nativeEvent.layout.width)}>
+      {activeTab === 'natal' && (
+        <>
+          {/* 팔자 — 표 형식 (행: 십성·천간·지지·십성·지장간·12운성·12신살·통근 × 열: 시일월년). 각 칸 탭→의미 */}
+          <Text style={styles.h}>{t('myeongsik.palja')}</Text>
+          <Text style={styles.hint}>{t('myeongsik.paljaHint')}</Text>
+          <View style={styles.ptable} onLayout={(e) => setRowW(e.nativeEvent.layout.width)}>
         {/* 헤더 */}
         <View style={styles.ptRow}>
           <Text style={styles.ptLabel} />
@@ -202,33 +224,33 @@ export function MyeongsikScreen({ input, onReading }: { input: ChartInput | null
           ))}
         </View>
         {renderArcs(activeGanP, 'above')}
-        {/* 천간 (오행색) */}
+        {/* 천간 (오행색) — 글자 탭 → 그 천간의 물상·설명 */}
         <View style={styles.ptRow}>
           <Text style={styles.ptLabel}>천간</Text>
           {visiblePos.map((p) => {
             const el = stemElement(P[p].stem);
             return (
-              <View key={p} style={[styles.ptCell, p === '일' && styles.ptCellDay, hlStem.has(p) && styles.ptCellHL]}>
+              <Pressable key={p} style={[styles.ptCell, p === '일' && styles.ptCellDay, hlStem.has(p) && styles.ptCellHL]} onPress={() => setGlossary({ kind: 'stem', key: P[p].stem })}>
                 <View style={[styles.ptGz, { backgroundColor: elementColor[el] }]}>
                   <Text style={[styles.ptGzTx, { color: elementText[el] }]}>{P[p].stem}</Text>
                   <Text style={[styles.ptGzKo, { color: elementText[el] }]}>{stemReading(P[p].stem)}</Text>
                 </View>
-              </View>
+              </Pressable>
             );
           })}
         </View>
-        {/* 지지 (오행색) */}
+        {/* 지지 (오행색) — 글자 탭 → 그 지지의 물상·설명 */}
         <View style={styles.ptRow}>
           <Text style={styles.ptLabel}>지지</Text>
           {visiblePos.map((p) => {
             const el = branchElement(P[p].branch);
             return (
-              <View key={p} style={[styles.ptCell, p === '일' && styles.ptCellDay, hlBranch.has(p) && styles.ptCellHL]}>
+              <Pressable key={p} style={[styles.ptCell, p === '일' && styles.ptCellDay, hlBranch.has(p) && styles.ptCellHL]} onPress={() => setGlossary({ kind: 'branch', key: P[p].branch })}>
                 <View style={[styles.ptGz, { backgroundColor: elementColor[el] }]}>
                   <Text style={[styles.ptGzTx, { color: elementText[el] }]}>{P[p].branch}</Text>
                   <Text style={[styles.ptGzKo, { color: elementText[el] }]}>{branchReading(P[p].branch)}</Text>
                 </View>
-              </View>
+              </Pressable>
             );
           })}
         </View>
@@ -416,17 +438,26 @@ export function MyeongsikScreen({ input, onReading }: { input: ChartInput | null
         );
       })}
 
-      {/* 대운·세운 타임라인 (원국·지장간 바로 아래) — 대운 탭 → 세운(과거~100세) → 월운 드릴다운 */}
-      {luckCycles.length > 0 && (() => {
+        </>
+      )}
+
+      {activeTab === 'luck' && (
+        <>
+          {/* 대운·세운 타임라인 (원국·지장간 바로 아래) — 대운 탭 → 세운(과거~100세) → 월운 드릴다운 */}
+          {luckCycles.length > 0 && (() => {
         const lc = luckCycles[selLuck];
         const an = lc?.annuals?.[selSeun];
         const mo = an?.months?.[selMonth];
-        // 원국(시일월년) + 선택 대운 + 선택 세운 + 선택 월운 = 확장 명식 컬럼
+        // 일진(流日) — 선택 세운·월운의 날짜별 간지. 선택 일운(selDay)이 없으면 그 달 1일로 폴백.
+        const days = (input && an) ? computeMonthDays(input, an.year, selMonth + 1) : [];
+        const dayItem = days.find((d) => d.day === selDay) ?? days[0] ?? null;
+        // 원국(시일월년) + 선택 대운 + 선택 세운 + 선택 월운 + 선택 일운 = 확장 명식 컬럼
         const expandCols = [
           ...visiblePos.map((p) => ({ label: `${p}주`, stem: P[p].stem, branch: P[p].branch, tg: P[p].stemTenGod, luck: false, hidden: HIDDEN[P[p].branch] ?? [] })),
           ...(lc ? [{ label: '대운', stem: lc.stem, branch: lc.branch, tg: lc.stemTenGod, luck: true, hidden: HIDDEN[lc.branch as keyof typeof HIDDEN] ?? [] }] : []),
           ...(an ? [{ label: '세운', stem: an.stem, branch: an.branch, tg: an.stemTenGod, luck: true, hidden: HIDDEN[an.branch as keyof typeof HIDDEN] ?? [] }] : []),
           ...(mo ? [{ label: `${selMonth + 1}월`, stem: mo.stem, branch: mo.branch, tg: mo.stemTenGod, luck: true, hidden: HIDDEN[mo.branch as keyof typeof HIDDEN] ?? [] }] : []),
+          ...(dayItem ? [{ label: '일운', stem: dayItem.stem, branch: dayItem.branch, tg: dayItem.stemTenGod, luck: true, hidden: HIDDEN[dayItem.branch as keyof typeof HIDDEN] ?? [] }] : []),
         ];
         // 시간층 합충 — 확장명식 컬럼(원국+운) 간 작용. 운(대운/세운/월운) 연루된 것만(원국끼리는 팔자 표에).
         const COLW = 50;
@@ -488,8 +519,8 @@ export function MyeongsikScreen({ input, onReading }: { input: ChartInput | null
                   <View key={i} style={[styles.expCol2, col.luck && styles.expColLuck, hlExpand.has(col.label) && styles.expCol2On]}>
                     <Text style={styles.expLabel}>{col.label}</Text>
                     <Text style={styles.expTg}>{col.tg}</Text>
-                    <GzCell char={col.stem} kind="stem" size="sm" />
-                    <GzCell char={col.branch} kind="branch" size="sm" />
+                    <GzCell char={col.stem} kind="stem" size="sm" onPress={() => setGlossary({ kind: 'stem', key: col.stem })} />
+                    <GzCell char={col.branch} kind="branch" size="sm" onPress={() => setGlossary({ kind: 'branch', key: col.branch })} />
                     <Text style={styles.expTg}>{branchTenGod(dm, col.branch)}</Text>
                     <Text style={styles.expStage}>{twelveStage(dm, col.branch)}</Text>
                     <View style={styles.expHidden}>
@@ -563,13 +594,12 @@ export function MyeongsikScreen({ input, onReading }: { input: ChartInput | null
               </ScrollView>
             </>
           )}
-          {/* 월운 탭 → 그 달 일진(日辰) 달력 — 날짜별 일운 간지 */}
-          {input && an?.months?.[selMonth] && (() => {
-            const days = computeMonthDays(input, an.year, selMonth + 1);
+          {/* 월운 탭 → 그 달 일진(日辰) 달력 — 날짜 탭하면 위 명식 '일운'에 반영 */}
+          {input && an?.months?.[selMonth] && days.length > 0 && (() => {
             const firstDow = new Date(an.year, selMonth, 1).getDay(); // 1일 요일(0=일)
             return (
               <>
-                <Text style={styles.luckSub}>{an.year}년 {selMonth + 1}월 일진 달력</Text>
+                <Text style={styles.luckSub}>{an.year}년 {selMonth + 1}월 일진 달력 (탭하면 위 명식에 일운 반영)</Text>
                 <View style={styles.calGrid}>
                   {['일', '월', '화', '수', '목', '금', '토'].map((w) => (
                     <Text key={w} style={styles.calHead}>{w}</Text>
@@ -577,11 +607,12 @@ export function MyeongsikScreen({ input, onReading }: { input: ChartInput | null
                   {Array.from({ length: firstDow }).map((_, i) => <View key={`e${i}`} style={styles.calCell} />)}
                   {days.map((dd) => {
                     const isToday = an.year === now.getFullYear() && selMonth === now.getMonth() && dd.day === now.getDate();
+                    const isSel = dayItem?.day === dd.day; // 선택된 일운 강조
                     return (
-                      <View key={dd.day} style={[styles.calCell, isToday && styles.calCellToday]}>
+                      <Pressable key={dd.day} onPress={() => setSelDay(dd.day)} style={[styles.calCell, isToday && styles.calCellToday, isSel && styles.calCellSel]}>
                         <Text style={[styles.calDay, isToday && styles.calDayToday]}>{dd.day}{isToday ? ' ·오늘' : ''}</Text>
                         <Text style={[styles.calGz, { color: elementColor[stemElement(dd.stem)] }]}>{dd.stem}{dd.branch}</Text>
-                      </View>
+                      </Pressable>
                     );
                   })}
                 </View>
@@ -589,11 +620,12 @@ export function MyeongsikScreen({ input, onReading }: { input: ChartInput | null
             );
           })()}
         </>
-        );
-      })()}
+      )}
 
-      {/* 신살·공망 — 원국 적중은 자리별 표(팔자처럼 칸), 운에서 오는 건 별도 분리 */}
-      <Text style={styles.h}>{t('myeongsik.sinsal')}</Text>
+      {activeTab === 'stars' && (
+        <>
+          {/* 신살·공망 — 원국 적중은 자리별 표(팔자처럼 칸), 운에서 오는 건 별도 분리 */}
+          <Text style={styles.h}>{t('myeongsik.sinsal')}</Text>
       <Text style={styles.hint}>{t('myeongsik.sinsalHint')}</Text>
       {(() => {
         // 적중(원국) 길신·흉살 병합(천을귀인 등 다중) + 괴강·백호
@@ -703,8 +735,8 @@ export function MyeongsikScreen({ input, onReading }: { input: ChartInput | null
               </View>
             ))}
           </View>
-        );
-      })()}
+        </>
+      )}
 
       <Text style={styles.note}>{t('myeongsik.note')}</Text>
 
@@ -747,6 +779,11 @@ export function MyeongsikScreen({ input, onReading }: { input: ChartInput | null
 const styles = StyleSheet.create({
   screen: { backgroundColor: colors.bg },
   wrap: { padding: space(5), paddingBottom: space(10) },
+  tabBar: { flexDirection: 'row', backgroundColor: colors.card, borderBottomWidth: 1, borderBottomColor: colors.line },
+  tabBtn: { flex: 1, paddingVertical: space(3.5), alignItems: 'center', borderBottomWidth: 2, borderBottomColor: 'transparent' },
+  tabBtnOn: { borderBottomColor: colors.ju },
+  tabLabel: { ...font.body, color: colors.inkFaint, fontWeight: '700' },
+  tabLabelOn: { color: colors.ju },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.bg },
   h: { ...font.heading, marginTop: space(5), marginBottom: space(2) },
   hint: { ...font.caption, marginBottom: space(2) },
@@ -817,6 +854,7 @@ const styles = StyleSheet.create({
   calCell: { width: '14.28%', alignItems: 'center', paddingVertical: space(1) },
   calDay: { fontSize: 10, color: colors.inkSoft },
   calCellToday: { backgroundColor: colors.juSoft, borderRadius: radius.sm },
+  calCellSel: { borderWidth: 1.5, borderColor: colors.ju, borderRadius: radius.sm }, // 선택된 일운(달력 탭)
   calDayToday: { color: colors.ju, fontWeight: '800' },
   calGz: { fontSize: 13, fontWeight: '700', marginTop: 1 },
   row: { flexDirection: 'row', gap: space(2) },

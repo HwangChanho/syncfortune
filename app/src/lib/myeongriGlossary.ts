@@ -193,11 +193,66 @@ export const OHAENG_GLOSSARY: Record<string, GlossaryEntry> = {
   水: { ko: '수', hanja: '水', keywords: ['지(智)', '유연', '지혜'], meaning: '물의 기운 — 지(智)·유연·지혜·흐름. 적시고 스며 통하는 힘.' },
 };
 
-export type GlossaryKind = 'tengod' | 'sinsal' | 'gongmang' | 'stage' | 'palace' | 'star' | 'interaction' | 'element';
+// ── 천간(天干) 10간 — 글자별 물상(物象)·기질 ──
+// 물상 = 글자를 자연물에 빗댄 상(가설·앵커 아님, CLAUDE.md §1-4). 길흉 단정 없이 기질·강점 중심.
+export const STEM_GLOSSARY: Record<string, GlossaryEntry> = {
+  甲: { ko: '갑목', hanja: '甲', keywords: ['큰나무', '시작', '곧음', '리더'],
+    meaning: '큰 나무·기둥감(棟梁)의 양(陽) 목. 곧게 위로 뻗는 진취·시작의 기운 — 솔직하고 우두머리 기질. 새로 일으키고 밀고 나가는 추진력이 강점.' },
+  乙: { ko: '을목', hanja: '乙', keywords: ['화초', '유연', '적응', '끈기'],
+    meaning: '풀·화초·덩굴의 음(陰) 목. 부드럽고 유연해 어디든 뿌리내리는 생명력 — 휘어도 꺾이지 않는 끈기. 섬세함과 친화력이 강점.' },
+  丙: { ko: '병화', hanja: '丙', keywords: ['태양', '발산', '열정', '표현'],
+    meaning: '태양 같은 양(陽) 화. 밝고 뜨겁게 두루 비추는 기운 — 명랑·열정·표현. 숨기지 않는 개방성과 추진이 강점.' },
+  丁: { ko: '정화', hanja: '丁', keywords: ['등불', '집중', '따뜻함', '헌신'],
+    meaning: '등불·촛불·달빛 같은 음(陰) 화. 은은하고 따뜻하게 한곳을 밝히는 집중의 불 — 헌신·세심·예의. 가까이 데우는 정이 강점.' },
+  戊: { ko: '무토', hanja: '戊', keywords: ['큰산', '중심', '신뢰', '포용'],
+    meaning: '큰 산·제방·대지 같은 양(陽) 토. 두텁고 듬직하게 중심을 잡는 기운 — 신뢰·포용·끈기. 흔들리지 않는 안정감이 강점.' },
+  己: { ko: '기토', hanja: '己', keywords: ['옥토', '양육', '실속', '세심'],
+    meaning: '기름진 논밭·정원 흙 같은 음(陰) 토. 길러내고 보듬는 옥토의 기운 — 양육·실속·세심. 받아들여 키우는 살림솜씨가 강점.' },
+  庚: { ko: '경금', hanja: '庚', keywords: ['무쇠', '결단', '의리', '강직'],
+    meaning: '무쇠·바위·원석 같은 양(陽) 금. 단단하고 강직한 기운 — 결단·의리·개혁. 맺고 끊는 추진과 의기가 강점.' },
+  辛: { ko: '신금', hanja: '辛', keywords: ['보석', '정교', '섬세', '자존'],
+    meaning: '잘 다듬은 보석·주옥 같은 음(陰) 금. 예리하고 정교한 기운 — 섬세·자존·완성미. 빛나는 마무리와 감각이 강점.' },
+  壬: { ko: '임수', hanja: '壬', keywords: ['바다', '지혜', '흐름', '포용'],
+    meaning: '바다·큰 강 같은 양(陽) 수. 넓고 깊게 흐르는 기운 — 지혜·포용·역동. 큰 흐름을 만드는 스케일이 강점.' },
+  癸: { ko: '계수', hanja: '癸', keywords: ['빗물', '총명', '섬세', '스며듦'],
+    meaning: '비·이슬·샘물 같은 음(陰) 수. 작지만 맑게 스며드는 기운 — 총명·섬세·궁리. 촉촉이 적시는 세밀함이 강점.' },
+};
+
+// ── 지지(地支) 12지 — 글자별 물상(동물·계절)·기질 ──
+// 절기 기준 월건(寅=입춘≈양력 2월). 도화/역마/천문 등 자리 성질도 함께 표기.
+export const BRANCH_GLOSSARY: Record<string, GlossaryEntry> = {
+  子: { ko: '자(쥐)', hanja: '子', keywords: ['쥐', '한겨울물', '지혜', '시작'],
+    meaning: '쥐 — 자월(≈12월), 한밤·한겨울의 수(水). 씨앗처럼 안에 감춘 시작·번식의 기운 — 지혜·민첩·은밀함. 도화(桃花)의 자리.' },
+  丑: { ko: '축(소)', hanja: '丑', keywords: ['소', '언땅', '인내', '축적'],
+    meaning: '소 — 축월(≈1월), 얼었다 풀리는 습토(濕土). 묵묵히 쌓는 인내·축적의 기운 — 우직·성실. 금(金)을 갈무리한 창고.' },
+  寅: { ko: '인(호랑이)', hanja: '寅', keywords: ['호랑이', '초봄', '추진', '시작'],
+    meaning: '호랑이 — 인월(≈2월), 초봄에 솟는 양(陽) 목. 힘차게 시작하는 기상·추진의 기운 — 진취·적극. 역마(驛馬)의 자리.' },
+  卯: { ko: '묘(토끼)', hanja: '卯', keywords: ['토끼', '봄초목', '생장', '온화'],
+    meaning: '토끼 — 묘월(≈3월), 한창 자라는 음(陰) 목. 부드럽게 뻗는 생장의 기운 — 온화·예민·감각. 도화의 자리.' },
+  辰: { ko: '진(용)', hanja: '辰', keywords: ['용', '수고(水庫)', '포부', '변화'],
+    meaning: '용 — 진월(≈4월), 물기 머금은 양(陽) 토(水庫). 포부·변화·상상력의 기운 — 스케일·재능. 화려한 변신의 자리.' },
+  巳: { ko: '사(뱀)', hanja: '巳', keywords: ['뱀', '초여름불', '직관', '집념'],
+    meaning: '뱀 — 사월(≈5월), 초여름에 타오르는 음(陰) 화. 예리한 직관·집념의 기운 — 총명·치밀. 역마의 자리.' },
+  午: { ko: '오(말)', hanja: '午', keywords: ['말', '한여름불', '열정', '활동'],
+    meaning: '말 — 오월(≈6월), 한여름 정오의 양(陽) 화. 활달하게 발산하는 기운 — 열정·표현·활동. 도화의 자리.' },
+  未: { ko: '미(양)', hanja: '未', keywords: ['양', '목고(木庫)', '온순', '예술'],
+    meaning: '양 — 미월(≈7월), 마른 양토(木庫). 온순·예술·정(情)의 기운 — 인내·미적 감각. 나무를 갈무리한 창고.' },
+  申: { ko: '신(원숭이)', hanja: '申', keywords: ['원숭이', '초가을금', '재주', '민첩'],
+    meaning: '원숭이 — 신월(≈8월), 초가을의 양(陽) 금. 재주·민첩·응용의 기운 — 기지·실행력. 역마의 자리.' },
+  酉: { ko: '유(닭)', hanja: '酉', keywords: ['닭', '가을금', '정교', '결실'],
+    meaning: '닭 — 유월(≈9월), 결실의 음(陰) 금. 예리·정교·결실의 기운 — 깔끔함·완성. 도화의 자리.' },
+  戌: { ko: '술(개)', hanja: '戌', keywords: ['개', '화고(火庫)', '충직', '신의'],
+    meaning: '개 — 술월(≈10월), 마른 양토(火庫). 충직·신의·마무리의 기운 — 책임감·종교성. 불을 갈무리한 창고이자 천문(天門).' },
+  亥: { ko: '해(돼지)', hanja: '亥', keywords: ['돼지', '초겨울물', '순수', '포용'],
+    meaning: '돼지 — 해월(≈11월), 초겨울의 수(水). 순수·포용·지혜의 기운 — 너그러움·끈기. 역마이자 천문(天門)의 자리.' },
+};
+
+export type GlossaryKind = 'tengod' | 'sinsal' | 'gongmang' | 'stage' | 'palace' | 'star' | 'interaction' | 'element' | 'stem' | 'branch';
 
 export const GLOSSARY_KIND_LABEL: Record<GlossaryKind, string> = {
   tengod: '십신 (十神)', sinsal: '신살 (神煞)', gongmang: '공망 (空亡)', stage: '12운성 (十二運星)',
   palace: '자미두수 궁 (宮)', star: '자미두수 성요 (星曜)', interaction: '합충형해 (合冲刑害)', element: '오행 (五行)',
+  stem: '천간 물상 (天干)', branch: '지지 물상 (地支)',
 };
 
 /** 종류+키로 글로서리 엔트리 조회. 없으면 null. */
@@ -210,5 +265,7 @@ export function lookupGlossary(kind: GlossaryKind, key?: string): GlossaryEntry 
   if (kind === 'star') return (key && STAR_GLOSSARY[key]) || null;
   if (kind === 'interaction') return (key && INTERACTION_GLOSSARY[key]) || null;
   if (kind === 'element') return (key && OHAENG_GLOSSARY[key]) || null;
+  if (kind === 'stem') return (key && STEM_GLOSSARY[key]) || null;
+  if (kind === 'branch') return (key && BRANCH_GLOSSARY[key]) || null;
   return null;
 }
