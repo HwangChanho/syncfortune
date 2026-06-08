@@ -174,11 +174,21 @@ export const STAR_GLOSSARY: Record<string, GlossaryEntry> = {
   化忌: { ko: '화기', hanja: '化忌', keywords: ['집착', '장애', '관리'], meaning: '그 별에 집착·과함·장애가 붙는 사화(관리·완화의 대상).' },
 };
 
-export type GlossaryKind = 'tengod' | 'sinsal' | 'gongmang' | 'stage' | 'palace' | 'star';
+// ── 합충형해(合冲刑害破剋) 작용 ──
+export const INTERACTION_GLOSSARY: Record<string, GlossaryEntry> = {
+  합: { ko: '합', hanja: '合', keywords: ['결합', '화합', '이탈'], meaning: '두 글자가 묶여 새 기운으로 — 화합·협력. 합화가 성립하면 그 오행이 강해지고, 때로 본분에서 벗어나기도(합거).' },
+  충: { ko: '충', hanja: '冲', keywords: ['충돌', '이동', '변화'], meaning: '정면으로 부딪힘 — 이동·변화·자극·깨짐. 묵은 것을 흔들어 바꾸는 힘.' },
+  형: { ko: '형', hanja: '刑', keywords: ['갈등', '조정', '단련'], meaning: '서로 다듬고 부딪는 작용 — 갈등·조정·송사. 거치며 단단해지기도 한다.' },
+  해: { ko: '해', hanja: '害', keywords: ['손상', '방해', '서운함'], meaning: '은근한 손상·방해·서운함. 드러나지 않게 깎이는 작용.' },
+  파: { ko: '파', hanja: '破', keywords: ['깨짐', '균열', '분산'], meaning: '깨지고 흩어지는 작용 — 관계·계획의 균열.' },
+  극: { ko: '극', hanja: '剋', keywords: ['통제', '압박', '칠살'], meaning: '한 오행이 다른 오행을 억누름(천간) — 압박·통제. 칠살이면 권력·전문성과 스트레스의 양면.' },
+};
+
+export type GlossaryKind = 'tengod' | 'sinsal' | 'gongmang' | 'stage' | 'palace' | 'star' | 'interaction';
 
 export const GLOSSARY_KIND_LABEL: Record<GlossaryKind, string> = {
   tengod: '십신 (十神)', sinsal: '신살 (神煞)', gongmang: '공망 (空亡)', stage: '12운성 (十二運星)',
-  palace: '자미두수 궁 (宮)', star: '자미두수 성요 (星曜)',
+  palace: '자미두수 궁 (宮)', star: '자미두수 성요 (星曜)', interaction: '합충형해 (合冲刑害)',
 };
 
 /** 종류+키로 글로서리 엔트리 조회. 없으면 null. */
@@ -189,5 +199,6 @@ export function lookupGlossary(kind: GlossaryKind, key?: string): GlossaryEntry 
   if (kind === 'stage') return (key && STAGE_GLOSSARY[key]) || null;
   if (kind === 'palace') return (key && PALACE_GLOSSARY[key]) || null;
   if (kind === 'star') return (key && STAR_GLOSSARY[key]) || null;
+  if (kind === 'interaction') return (key && INTERACTION_GLOSSARY[key]) || null;
   return null;
 }
