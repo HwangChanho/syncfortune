@@ -53,7 +53,6 @@ export function MyeongsikScreen({ input, onReading }: { input: ChartInput | null
   // 오행 분포 (천간+지지 카운트)
   const elem: Record<string, number> = { 木: 0, 火: 0, 土: 0, 金: 0, 水: 0 };
   visiblePos.forEach((p) => { elem[stemElement(P[p].stem)]++; elem[branchElement(P[p].branch)]++; });
-  const maxElem = Math.max(...Object.values(elem), 1);
   // 합충형해 선 (원국 — members 2개 기둥, 둘 다 표시 중)
   const [rowW, setRowW] = useState(0);
   const luckCycles: any[] = (c.saju as any).luckCycles ?? [];          // 전체 대운(과거~미래)
@@ -224,17 +223,45 @@ export function MyeongsikScreen({ input, onReading }: { input: ChartInput | null
       })()}
       <Text style={styles.hint}>{c.strengthClass.reason}</Text>
 
-      {/* 오행 분포 (오행색 막대) */}
+      {/* 오행 분포 (오행색 도넛 + %·개수 범례) */}
       <Text style={styles.h}>{t('myeongsik.elements')}</Text>
-      {(['木', '火', '土', '金', '水'] as const).map((el) => (
-        <View key={el} style={styles.elemRow}>
-          <Text style={[styles.elemLabel, { color: elementColor[el] }]}>{el}</Text>
-          <View style={styles.elemTrack}>
-            <View style={[styles.elemFill, { width: `${(elem[el] / maxElem) * 100}%`, backgroundColor: elementColor[el] }]} />
+      {(() => {
+        const order = ['木', '火', '土', '金', '水'] as const;
+        const total = order.reduce((a, el) => a + elem[el], 0) || 1;
+        const R = 40, CX = 50, CY = 50, SW = 13, circ = 2 * Math.PI * R;
+        // 누적 오프셋으로 세그먼트 배치(12시 시작). 강한 오행 순이 아니라 상생순(목화토금수) 고정.
+        let acc = 0;
+        const segs = order.filter((el) => elem[el] > 0).map((el) => {
+          const frac = elem[el] / total;
+          const seg = { el, len: circ * frac, offset: acc };
+          acc += frac;
+          return seg;
+        });
+        const top = order.reduce((m, el) => (elem[el] > elem[m] ? el : m), '木' as typeof order[number]);
+        return (
+          <View style={styles.strengthRow}>
+            <Svg width={100} height={100}>
+              <Circle cx={CX} cy={CY} r={R} stroke={colors.sunk} strokeWidth={SW} fill="none" />
+              {segs.map((sg, i) => (
+                <Circle key={i} cx={CX} cy={CY} r={R} stroke={elementColor[sg.el]} strokeWidth={SW} fill="none"
+                  strokeDasharray={`${sg.len} ${circ}`} strokeDashoffset={-circ * sg.offset}
+                  transform={`rotate(-90 ${CX} ${CY})`} />
+              ))}
+              <SvgText x={CX} y={CY - 1} fill={elementColor[top]} fontSize={21} fontWeight="800" textAnchor="middle">{top}</SvgText>
+              <SvgText x={CX} y={CY + 15} fill={colors.inkSoft} fontSize={9} textAnchor="middle">최강</SvgText>
+            </Svg>
+            <View style={styles.elemLegend}>
+              {order.map((el) => (
+                <View key={el} style={styles.elemLegendRow}>
+                  <View style={[styles.elemDot, { backgroundColor: elementColor[el] }]} />
+                  <Text style={[styles.elemLegendEl, { color: elementColor[el] }]}>{el}</Text>
+                  <Text style={styles.elemLegendVal}>{elem[el]}  ·  {Math.round((elem[el] / total) * 100)}%</Text>
+                </View>
+              ))}
+            </View>
           </View>
-          <Text style={styles.elemCount}>{elem[el]}</Text>
-        </View>
-      ))}
+        );
+      })()}
 
       {/* 지장간 상세 (각 주 stem + 십신) */}
       <Text style={styles.h}>{t('myeongsik.hidden')}</Text>
@@ -366,46 +393,71 @@ export function MyeongsikScreen({ input, onReading }: { input: ChartInput | null
       {/* 신살·공망 — 기준글자가 원국에 있으면 ✓(자리), 없으면 운에서 작동 */}
       <Text style={styles.h}>{t('myeongsik.sinsal')}</Text>
       <Text style={styles.hint}>{t('myeongsik.sinsalHint')}</Text>
-      {/* 공망: 기준 2지지(오행색) + 원국 적중 자리 */}
-      <View style={styles.ssRow}>
-        <Text style={styles.ssName}>{t('myeongsik.gongmang')}</Text>
-        <View style={styles.ssBranches}>
-          {c.sinsal.gongmang.map((b) => (
-            <Text key={b} style={[styles.ssBranch, { color: elementColor[branchElement(b)] }]}>{b}</Text>
-          ))}
-        </View>
-        {(() => {
-          const gh = c.sinsal.gongmangHits.filter((p) => visiblePos.includes(p));
-          return <Text style={gh.length ? styles.ssHit : styles.ssDim}>{gh.length ? `${gh.map((p) => `${p}주`).join('·')} ✓` : t('myeongsik.ssLuck')}</Text>;
-        })()}
-      </View>
-      {/* 신살 리스트: 신살명 + 기준글자(오행색) + 적중 ✓ / 운 */}
-      {c.sinsal.sinsal.map((s2, i) => {
-        const hits = s2.hits.filter((p) => visiblePos.includes(p));
-        const on = hits.length > 0;
-        return (
-          <View key={`${s2.name}-${s2.branch}-${i}`} style={styles.ssRow}>
-            <Text style={styles.ssName}>{t(`sinsal.${s2.name}`)}</Text>
-            <Text style={[styles.ssBranch, { color: elementColor[branchElement(s2.branch)] }]}>{s2.branch}</Text>
-            <Text style={on ? styles.ssHit : styles.ssDim}>
-              {on ? `${hits.map((p) => `${p}주`).join('·')} ✓` : t('myeongsik.ssLuck')}
-            </Text>
+      {/* 자리(기둥)별 신살 표 — 행=천간/지지, 열=시·일·월·년 (카톡 만세력 표 형식) */}
+      {(() => {
+        // 지지 신살(도화·역마·화개·천을·문창·양인·홍염)은 지지 행, 간지 신살(백호·괴강)은 천간 행에 배치.
+        const branchTags = (p: PillarPos) =>
+          c.sinsal.sinsal.filter((s2) => s2.hits.includes(p)).map((s2) => t(`sinsal.${s2.name}`));
+        const stemTags = (p: PillarPos) => {
+          const tags: string[] = [];
+          if (c.sinsal.baekhoHits.includes(p)) tags.push(t('sinsal.백호'));
+          if (c.sinsal.goegang && p === '일') tags.push(t('sinsal.괴강'));
+          return tags;
+        };
+        // 원국에 적중하지 못한 신살(운에서 작동) — 표에 안 뜨므로 하단에 보존
+        const hitNames = new Set(
+          c.sinsal.sinsal.filter((s2) => s2.hits.some((p) => visiblePos.includes(p))).map((s2) => s2.name),
+        );
+        const luckOnly = c.sinsal.sinsal
+          .filter((s2) => !hitNames.has(s2.name))
+          .map((s2) => `${t(`sinsal.${s2.name}`)}(${s2.branch})`);
+        const renderRow = (label: string, kind: 'stem' | 'branch') => (
+          <View style={styles.ssTableRow}>
+            <Text style={styles.ssRowLabel}>{label}</Text>
+            {visiblePos.map((p) => {
+              const ch = kind === 'stem' ? P[p].stem : P[p].branch;
+              const el = kind === 'stem' ? stemElement(ch) : branchElement(ch);
+              const tags = kind === 'stem' ? stemTags(p) : branchTags(p);
+              return (
+                <View key={p} style={styles.ssCell}>
+                  <Text style={[styles.ssCellGz, { color: elementColor[el] }]}>{ch}</Text>
+                  {tags.length
+                    ? tags.map((tg, i) => <Text key={i} style={styles.ssTag}>{tg}</Text>)
+                    : <Text style={styles.ssDim}>—</Text>}
+                </View>
+              );
+            })}
           </View>
         );
-      })}
-      {/* 괴강·백호 — 해당 시만 */}
-      {c.sinsal.goegang && (
-        <View style={styles.ssRow}>
-          <Text style={styles.ssName}>{t('sinsal.괴강')}</Text>
-          <Text style={styles.ssHit}>{t('myeongsik.dayPillar')} ✓</Text>
-        </View>
-      )}
-      {c.sinsal.baekhoHits.filter((p) => visiblePos.includes(p)).length > 0 && (
-        <View style={styles.ssRow}>
-          <Text style={styles.ssName}>{t('sinsal.백호')}</Text>
-          <Text style={styles.ssHit}>{c.sinsal.baekhoHits.filter((p) => visiblePos.includes(p)).map((p) => `${p}주`).join('·')} ✓</Text>
-        </View>
-      )}
+        return (
+          <>
+            <View style={styles.ssTable}>
+              <View style={styles.ssTableRow}>
+                <Text style={styles.ssRowLabel} />
+                {visiblePos.map((p) => <Text key={p} style={styles.ssColHead}>{p}주</Text>)}
+              </View>
+              {renderRow('천간', 'stem')}
+              {renderRow('지지', 'branch')}
+            </View>
+            {/* 공망: 기준 2지지(오행색) + 원국 적중 자리 */}
+            <View style={styles.ssGmRow}>
+              <Text style={styles.ssName}>{t('myeongsik.gongmang')}</Text>
+              <View style={styles.ssBranches}>
+                {c.sinsal.gongmang.map((b) => (
+                  <Text key={b} style={[styles.ssBranch, { color: elementColor[branchElement(b)] }]}>{b}</Text>
+                ))}
+              </View>
+              {(() => {
+                const gh = c.sinsal.gongmangHits.filter((p) => visiblePos.includes(p));
+                return <Text style={gh.length ? styles.ssHit : styles.ssDim}>{gh.length ? `${gh.map((p) => `${p}주`).join('·')} ✓` : t('myeongsik.ssLuck')}</Text>;
+              })()}
+            </View>
+            {luckOnly.length > 0 && (
+              <Text style={styles.ssLuckLine}>{t('myeongsik.ssLuck')}: {luckOnly.join(' · ')}</Text>
+            )}
+          </>
+        );
+      })()}
 
       {/* 자미두수(보조) */}
       <Text style={styles.h}>{t('myeongsik.ziwei')}</Text>
@@ -434,6 +486,16 @@ const styles = StyleSheet.create({
   ssBranch: { fontSize: 16, fontWeight: '800', minWidth: 22, textAlign: 'center' },
   ssHit: { ...font.caption, color: colors.ju, fontWeight: '700' },
   ssDim: { ...font.caption, color: colors.inkFaint },
+  // 자리별 신살 표 (천간/지지 × 시·일·월·년)
+  ssTable: { marginTop: space(2), borderWidth: 1, borderColor: colors.line, borderRadius: radius.sm, overflow: 'hidden' },
+  ssTableRow: { flexDirection: 'row', borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.line },
+  ssRowLabel: { width: 36, alignSelf: 'center', textAlign: 'center', ...font.caption, color: colors.inkSoft, fontWeight: '700' },
+  ssColHead: { flex: 1, textAlign: 'center', paddingVertical: space(1.5), ...font.caption, color: colors.inkFaint, fontWeight: '700' },
+  ssCell: { flex: 1, alignItems: 'center', paddingVertical: space(1.5), paddingHorizontal: 2, gap: 2, borderLeftWidth: StyleSheet.hairlineWidth, borderLeftColor: colors.line },
+  ssCellGz: { fontSize: 20, fontWeight: '800' },
+  ssTag: { fontSize: 10, color: colors.ju, fontWeight: '600', textAlign: 'center' },
+  ssGmRow: { flexDirection: 'row', alignItems: 'center', gap: space(2), marginTop: space(2.5) },
+  ssLuckLine: { ...font.caption, color: colors.inkFaint, marginTop: space(2), lineHeight: 18 },
   rootBadgeRow: { flexDirection: 'row', alignItems: 'center', marginTop: 2, flexWrap: 'wrap', justifyContent: 'center' },
   rootStem: { fontSize: 10, fontWeight: '800' },
   rootSuffix: { fontSize: 9, color: colors.inkFaint, marginLeft: 1 },
@@ -505,11 +567,11 @@ const styles = StyleSheet.create({
   gaugeText: { ...font.caption, color: colors.ink },
   strengthRow: { flexDirection: 'row', alignItems: 'center', gap: space(4), marginTop: space(2) },
   strengthInfo: { flex: 1, gap: space(1.5) },
-  elemRow: { flexDirection: 'row', alignItems: 'center', gap: space(2), marginTop: space(1.5) },
-  elemLabel: { fontSize: 15, fontWeight: '800', width: 20 },
-  elemTrack: { flex: 1, height: 12, borderRadius: 6, backgroundColor: colors.sunk, overflow: 'hidden' },
-  elemFill: { height: '100%', borderRadius: 6 },
-  elemCount: { ...font.caption, color: colors.inkSoft, width: 16, textAlign: 'right' },
+  elemLegend: { flex: 1, gap: space(1) },
+  elemLegendRow: { flexDirection: 'row', alignItems: 'center', gap: space(2) },
+  elemDot: { width: 10, height: 10, borderRadius: 5 },
+  elemLegendEl: { fontSize: 15, fontWeight: '800', width: 20 },
+  elemLegendVal: { ...font.caption, color: colors.inkSoft },
   note: { ...font.caption, marginTop: space(6) },
   readingBtn: {
     backgroundColor: colors.ju, borderRadius: radius.md, paddingVertical: space(3.5),
