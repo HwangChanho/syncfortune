@@ -76,14 +76,15 @@ export function MyeongsikScreen({ input, onReading }: { input: ChartInput | null
   // 합충 호 — 표의 천간 행 위(above·점선) / 지지 행 아래(below·실선). 라벨열(34) 오프셋 반영.
   const renderArcs = (links: any[], dir: 'above' | 'below') => {
     if (!(rowW > 0) || links.length === 0) return null;
-    const L = 34, colW = (rowW - L) / visiblePos.length, STEP = 18;
-    const H = links.length * STEP + 12, yEnd = dir === 'above' ? H : 0;
-    const dash = dir === 'above' ? '3 2' : undefined;
+    const L = 34, colW = (rowW - L) / visiblePos.length, STEP = 16;
+    const H = links.length * STEP + 14;
+    const reach = dir === 'above' ? H : 0;                 // 인접 천간/지지 행에 닿는 끝
+    const dash = dir === 'above' ? '3 2' : undefined;       // 천간=점선 / 지지=실선
     const items = links.map((it, i) => {
       const off = (i - (links.length - 1) / 2) * 5;
       const xa = L + colW * (visiblePos.indexOf(it.members[0]) + 0.5) + off;
       const xb = L + colW * (visiblePos.indexOf(it.members[1]) + 0.5) + off;
-      const legY = dir === 'above' ? H - (6 + i * STEP) : 6 + i * STEP;
+      const legY = dir === 'above' ? 6 + i * STEP : H - (6 + i * STEP); // 수평선 위치(다리는 reach까지 길게)
       const lbl = linkLabel(it);
       return { xa, xb, mid: (xa + xb) / 2, legY, col: linkColor(it), lbl, lw: lbl.length * 11 + 6 };
     });
@@ -91,8 +92,8 @@ export function MyeongsikScreen({ input, onReading }: { input: ChartInput | null
       <Svg width={rowW} height={H}>
         {items.map((o, i) => (
           <G key={`p${i}`}>
-            <Path d={`M ${o.xa} ${yEnd} L ${o.xa} ${o.legY} L ${o.mid - o.lw / 2} ${o.legY}`} stroke={o.col} strokeWidth={1.5} fill="none" strokeDasharray={dash} />
-            <Path d={`M ${o.mid + o.lw / 2} ${o.legY} L ${o.xb} ${o.legY} L ${o.xb} ${yEnd}`} stroke={o.col} strokeWidth={1.5} fill="none" strokeDasharray={dash} />
+            <Path d={`M ${o.xa} ${reach} L ${o.xa} ${o.legY} L ${o.mid - o.lw / 2} ${o.legY}`} stroke={o.col} strokeWidth={1.5} fill="none" strokeDasharray={dash} />
+            <Path d={`M ${o.mid + o.lw / 2} ${o.legY} L ${o.xb} ${o.legY} L ${o.xb} ${reach}`} stroke={o.col} strokeWidth={1.5} fill="none" strokeDasharray={dash} />
           </G>
         ))}
         {items.map((o, i) => (
@@ -513,6 +514,52 @@ export function MyeongsikScreen({ input, onReading }: { input: ChartInput | null
       {/* 자미두수(보조) */}
       <Text style={styles.h}>{t('myeongsik.ziwei')}</Text>
       <Text style={styles.kv}>{c.ziwei.bureau} · {t('myeongsik.lifePalace')} {c.ziwei.lifePalaceBranch}</Text>
+      {/* 자미두수 명반 (12궁 4×4, 중앙=일간·명궁·국) */}
+      {(() => {
+        const byBr: Record<string, any> = {};
+        (c.ziwei.palaces as any[]).forEach((pl) => { byBr[pl.branch] = pl; });
+        const LAYOUT = [['巳', '午', '未', '申'], ['辰', 'C', 'C', '酉'], ['卯', 'C', 'C', '戌'], ['寅', '丑', '子', '亥']];
+        const sihwaCol: Record<string, string> = { '化祿': '#3E8E5A', '化權': '#C0392B', '化科': '#3A6EA5', '化忌': '#7A7A7A' };
+        const dm = c.saju.dayMaster;
+        return (
+          <View style={styles.ziGrid}>
+            {LAYOUT.map((row, r) => (
+              <View key={r} style={styles.ziRow}>
+                {row.map((cell, ci) => {
+                  if (cell === 'C') {
+                    const info = r === 1 && ci === 1 ? { t: '일간', v: dm.stem }
+                      : r === 1 && ci === 2 ? { t: '명궁', v: c.ziwei.lifePalaceBranch }
+                      : r === 2 && ci === 1 ? { t: '국', v: c.ziwei.bureau.replace('五局', '') }
+                      : { t: '오행', v: dm.element };
+                    return (
+                      <View key={ci} style={styles.ziCenterCell}>
+                        <Text style={styles.ziCenterT}>{info.t}</Text>
+                        <Text style={styles.ziCenterV}>{info.v}</Text>
+                      </View>
+                    );
+                  }
+                  const pl = byBr[cell];
+                  return (
+                    <View key={ci} style={styles.ziCell}>
+                      <View style={styles.ziTop}>
+                        <Text style={styles.ziName}>{pl ? pl.name : ''}</Text>
+                        <Text style={[styles.ziBr, { color: elementColor[branchElement(cell)] }]}>{cell}</Text>
+                      </View>
+                      {pl?.majorStars?.map((st: any, i: number) => (
+                        <Text key={i} style={styles.ziMajor}>
+                          {st.name}<Text style={styles.ziBright}>{st.brightness}</Text>
+                          {(st.transforms ?? []).map((tr: string, j: number) => <Text key={j} style={[styles.ziSihwa, { color: sihwaCol[tr] ?? colors.ink }]}> {tr.slice(-1)}</Text>)}
+                        </Text>
+                      ))}
+                      {pl?.minorStars?.length > 0 && <Text style={styles.ziMinor}>{pl.minorStars.map((s: any) => s.name).join(' ')}</Text>}
+                    </View>
+                  );
+                })}
+              </View>
+            ))}
+          </View>
+        );
+      })()}
 
       <Text style={styles.note}>{t('myeongsik.note')}</Text>
 
@@ -670,7 +717,7 @@ const styles = StyleSheet.create({
   pillarSsTx: { fontSize: 9, color: colors.ju, fontWeight: '600', lineHeight: 13, textAlign: 'center', textDecorationLine: 'underline', textDecorationStyle: 'dotted' },
   pillarSsBase: { fontSize: 7, color: colors.inkFaint, fontWeight: '400', textDecorationLine: 'none' },
   // 팔자 표 (행 라벨 + 칸 구분선 + 일주 강조)
-  ptable: { marginTop: space(2), borderWidth: 1, borderColor: colors.line, borderRadius: radius.sm, overflow: 'hidden' },
+  ptable: { marginTop: space(2), borderWidth: 1, borderColor: colors.line, borderRadius: radius.sm },
   ptRow: { flexDirection: 'row', borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.line, alignItems: 'stretch' },
   ptRowLast: { borderBottomWidth: 0 },
   ptLabel: { width: 34, ...font.caption, color: colors.inkSoft, fontWeight: '700', textAlign: 'center', alignSelf: 'center', paddingVertical: space(1) },
@@ -688,6 +735,20 @@ const styles = StyleSheet.create({
   ptSsLink: { fontSize: 9, color: colors.ju, fontWeight: '600', lineHeight: 13, textAlign: 'center', textDecorationLine: 'underline', textDecorationStyle: 'dotted' },
   ptSsBase: { fontSize: 7, color: colors.inkFaint, fontWeight: '400', textDecorationLine: 'none' },
   ptRoot: { fontSize: 11, fontWeight: '800' },
+  // 자미두수 명반 (12궁 4×4)
+  ziGrid: { marginTop: space(2), borderWidth: 1, borderColor: colors.line, borderRadius: radius.sm },
+  ziRow: { flexDirection: 'row' },
+  ziCell: { flex: 1, minHeight: 76, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.line, padding: 3 },
+  ziCenterCell: { flex: 1, minHeight: 76, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.line, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.sunk },
+  ziCenterT: { fontSize: 9, color: colors.inkFaint },
+  ziCenterV: { fontSize: 15, color: colors.ju, fontWeight: '800' },
+  ziTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  ziName: { fontSize: 8, color: colors.inkFaint, fontWeight: '600' },
+  ziBr: { fontSize: 13, fontWeight: '800' },
+  ziMajor: { fontSize: 11, color: colors.ink, fontWeight: '700', marginTop: 1, lineHeight: 14 },
+  ziBright: { fontSize: 8, color: colors.inkFaint, fontWeight: '400' },
+  ziSihwa: { fontSize: 9, fontWeight: '800' },
+  ziMinor: { fontSize: 8, color: colors.inkSoft, marginTop: 1, lineHeight: 11 },
   sheetOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'flex-end' },
   sheet: { backgroundColor: colors.card, borderTopLeftRadius: radius.md, borderTopRightRadius: radius.md, padding: space(5), paddingBottom: space(9) },
   sheetHandle: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: colors.line, marginBottom: space(3) },
