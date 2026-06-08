@@ -592,14 +592,11 @@ export function MyeongsikScreen({ input, onReading }: { input: ChartInput | null
         );
       })()}
 
-      {/* 신살·공망 — 상세 (길신/흉살/기타/공망 분류 + 명칭·한자·기준글자·적중·키워드, 탭→의미) */}
+      {/* 신살·공망 — 원국 적중은 자리별 표(팔자처럼 칸), 운에서 오는 건 별도 분리 */}
       <Text style={styles.h}>{t('myeongsik.sinsal')}</Text>
       <Text style={styles.hint}>{t('myeongsik.sinsalHint')}</Text>
       {(() => {
-        const GILSIN = new Set(['천을귀인', '천덕귀인', '월덕귀인', '문창', '학당귀인', '정록', '암록', '금여', '황은대사', '천문성']);
-        const HYUNG = new Set(['양인', '백호', '괴강', '현침살']);
-        const catOf = (name: string) => (GILSIN.has(name) ? '길신' : HYUNG.has(name) ? '흉살' : '기타');
-        // 같은 이름 병합(천을귀인 등 다중 기준글자)
+        // 적중(원국) 길신·흉살 병합(천을귀인 등 다중) + 괴강·백호
         const byName = new Map<string, { name: string; glyphs: string[]; hits: any[] }>();
         c.sinsal.sinsal.forEach((s) => {
           if (!byName.has(s.name)) byName.set(s.name, { name: s.name, glyphs: [], hits: [] });
@@ -609,55 +606,42 @@ export function MyeongsikScreen({ input, onReading }: { input: ChartInput | null
         });
         if (c.sinsal.goegang) byName.set('괴강', { name: '괴강', glyphs: [`${P['일'].stem}${P['일'].branch}`], hits: [{ pos: '일', side: 'stem' }] });
         if (c.sinsal.baekhoHits.length) byName.set('백호', { name: '백호', glyphs: ['白虎'], hits: c.sinsal.baekhoHits.map((p) => ({ pos: p, side: 'stem' })) });
-        const cats = [{ key: '길신', label: '길신 (吉神)' }, { key: '흉살', label: '흉살 (凶殺)' }, { key: '기타', label: '기타' }];
-        const detailRow = (name: string, glyphs: string, hitPos: string[], hanja: string, kw: string, onPress: () => void) => (
+        const atSide = (p: PillarPos, side: string) => [...byName.values()].filter((s) => s.hits.some((h) => h.pos === p && h.side === side)).map((s) => s.name);
+        const luckOnly = [...byName.values()].filter((s) => !s.hits.some((h) => (visiblePos as string[]).includes(h.pos)));
+        const noGm = c.sinsal.gongmangHits.filter((p) => (visiblePos as string[]).includes(p)).length === 0;
+        const tag = (name: string, onPress: () => void, key: any) => {
+          const g = (SINSAL_GLOSSARY as any)[name];
+          return <Pressable key={key} onPress={onPress}><Text style={styles.ssTagLink}>{g?.ko ?? name}</Text></Pressable>;
+        };
+        const cellTags = (names: string[]) => names.length ? names.map((n, i) => tag(n, () => setGlossary({ kind: 'sinsal', key: n }), i)) : <Text style={styles.ssDim}>—</Text>;
+        const detailRow = (name: string, glyphs: string, hanja: string, kw: string, onPress: () => void) => (
           <Pressable onPress={onPress} style={styles.ssDRow}>
             <Text style={styles.ssDName} numberOfLines={1}>{name}<Text style={styles.ssDHanja}>{hanja ? ` ${hanja}` : ''}</Text></Text>
             <Text style={styles.ssDGlyph}>{glyphs}</Text>
-            <Text style={hitPos.length ? styles.ssDHit : styles.ssDDim}>{hitPos.length ? `${hitPos.map((p) => `${p}주`).join('·')} ✓` : '운에서'}</Text>
+            <Text style={styles.ssDDim}>운에서</Text>
             <Text style={styles.ssDKw} numberOfLines={1}>{kw}</Text>
           </Pressable>
         );
         return (
           <>
-            {cats.map((cat) => {
-              const items = [...byName.values()].filter((s) => catOf(s.name) === cat.key);
-              if (!items.length) return null;
-              return (
-                <View key={cat.key} style={styles.ssCatBlock}>
-                  <Text style={styles.ssCatHead}>{cat.label}</Text>
-                  {items.map((s, idx) => {
-                    const g = (SINSAL_GLOSSARY as any)[s.name];
-                    const hitPos = [...new Set(s.hits.filter((h) => visiblePos.includes(h.pos)).map((h) => h.pos))] as string[];
-                    return <View key={idx}>{detailRow(g?.ko ?? s.name, s.glyphs.join(''), hitPos, g?.hanja ?? '', g?.keywords?.join('·') ?? '', () => setGlossary({ kind: 'sinsal', key: s.name }))}</View>;
-                  })}
-                </View>
-              );
-            })}
-            {(() => {
-              const twelve12 = new Map<string, Set<string>>();
-              (['년', '월', '일', '시'] as const).forEach((p) => (c.sinsal.twelve[p] ?? []).forEach((tw: any) => {
-                if (tw.bases.some((b: string) => (visiblePos as string[]).includes(b))) {
-                  if (!twelve12.has(tw.name)) twelve12.set(tw.name, new Set());
-                  twelve12.get(tw.name)!.add(p);
-                }
-              }));
-              if (!twelve12.size) return null;
-              return (
-                <View style={styles.ssCatBlock}>
-                  <Text style={styles.ssCatHead}>12신살 (十二神煞) — 도화·역마·화개 등</Text>
-                  {[...twelve12.entries()].map(([name, posSet], idx) => {
-                    const positions = ([...posSet].filter((p) => (visiblePos as string[]).includes(p))) as string[];
-                    const g = (SINSAL_GLOSSARY as any)[name];
-                    return <View key={idx}>{detailRow(g?.ko ?? name, positions.map((p) => P[p as PillarPos].branch).join(''), positions, g?.hanja ?? '', g?.keywords?.join('·') ?? '', () => setGlossary({ kind: 'sinsal', key: name }))}</View>;
-                  })}
-                </View>
-              );
-            })()}
-            <View style={styles.ssCatBlock}>
-              <Text style={styles.ssCatHead}>공망 (空亡)</Text>
-              {detailRow('공망', c.sinsal.gongmang.join(''), c.sinsal.gongmangHits.filter((p) => visiblePos.includes(p)) as string[], '空亡', '비움·정신·종교', () => setGlossary({ kind: 'gongmang' }))}
+            <Text style={styles.ssSubHead}>원국 (자리별 적중)</Text>
+            <View style={styles.ssTable}>
+              <View style={styles.ssTableRow}><Text style={styles.ssRowLabel} />{visiblePos.map((p) => <Text key={p} style={styles.ssColHead}>{p}주</Text>)}</View>
+              <View style={styles.ssTableRow}><Text style={styles.ssRowLabel}>천간</Text>{visiblePos.map((p) => <View key={p} style={styles.ssCell}>{cellTags(atSide(p, 'stem'))}</View>)}</View>
+              <View style={styles.ssTableRow}><Text style={styles.ssRowLabel}>지지</Text>{visiblePos.map((p) => <View key={p} style={styles.ssCell}>{cellTags(atSide(p, 'branch'))}</View>)}</View>
+              <View style={styles.ssTableRow}><Text style={styles.ssRowLabel}>12신살</Text>{visiblePos.map((p) => <View key={p} style={styles.ssCell}>{(c.sinsal.twelve[p] ?? []).filter((tw: any) => tw.bases.some((b: string) => (visiblePos as string[]).includes(b))).map((tw: any, i: number) => tag(tw.name, () => setGlossary({ kind: 'sinsal', key: tw.name }), i))}</View>)}</View>
+              <View style={styles.ssTableRow}><Text style={styles.ssRowLabel}>공망</Text>{visiblePos.map((p) => <View key={p} style={styles.ssCell}>{c.sinsal.gongmangHits.includes(p) ? tag('공망', () => setGlossary({ kind: 'gongmang' }), 'gm') : <Text style={styles.ssDim}>—</Text>}</View>)}</View>
             </View>
+            {(luckOnly.length > 0 || noGm) && (
+              <>
+                <Text style={styles.ssSubHead}>운에서 오는 신살 (원국 미적중 — 대운·세운에서 작동)</Text>
+                {luckOnly.map((s, idx) => {
+                  const g = (SINSAL_GLOSSARY as any)[s.name];
+                  return <View key={idx}>{detailRow(g?.ko ?? s.name, s.glyphs.join(''), g?.hanja ?? '', g?.keywords?.join('·') ?? '', () => setGlossary({ kind: 'sinsal', key: s.name }))}</View>;
+                })}
+                {noGm && <View>{detailRow('공망', c.sinsal.gongmang.join(''), '空亡', '비움·정신·종교', () => setGlossary({ kind: 'gongmang' }))}</View>}
+              </>
+            )}
             {!byName.has('양인') && <Text style={styles.ssLuckLine}>양인(羊刃): 음간 일간({P['일'].stem}) — 표준 양인 없음(이설).</Text>}
           </>
         );
@@ -792,6 +776,7 @@ const styles = StyleSheet.create({
   ssDHit: { ...font.caption, color: colors.ju, fontWeight: '700', width: 58 },
   ssDDim: { ...font.caption, color: colors.inkFaint, width: 58 },
   ssDKw: { ...font.caption, color: colors.inkSoft, flex: 1 },
+  ssSubHead: { ...font.caption, color: colors.inkSoft, fontWeight: '700', marginTop: space(3), marginBottom: space(1) },
   ss12Tag: { fontSize: 11, color: colors.ink, fontWeight: '700', textAlign: 'center', textDecorationLine: 'underline', textDecorationStyle: 'dotted' },
   ss12Base: { fontSize: 8, color: colors.inkFaint, fontWeight: '400' },
   rootBadgeRow: { flexDirection: 'row', alignItems: 'center', marginTop: 2, flexWrap: 'wrap', justifyContent: 'center' },
