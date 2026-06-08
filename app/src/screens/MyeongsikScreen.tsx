@@ -59,9 +59,11 @@ export function MyeongsikScreen({ input, onReading }: { input: ChartInput | null
   const [rowW, setRowW] = useState(0);
   const luckCycles: any[] = (c.saju as any).luckCycles ?? [];          // 전체 대운(과거~미래)
   const curLuckIdx = Math.max(0, luckCycles.findIndex((l) => l.isCurrent));
-  const [selLuck, setSelLuck] = useState(curLuckIdx);                  // 선택된 대운 → 세운 드릴다운
-  const [selSeun, setSelSeun] = useState(0);                          // 선택된 세운 → 원국 확장 명식
-  const [selMonth, setSelMonth] = useState(0);                        // 선택된 월운 → 확장 명식
+  const now = new Date();                                              // 대운/세운/월운/일운 기본 = 오늘
+  const curSeunIdx = Math.max(0, ((luckCycles[curLuckIdx]?.annuals ?? []) as any[]).findIndex((a) => a.year === now.getFullYear()));
+  const [selLuck, setSelLuck] = useState(curLuckIdx);                  // 선택된 대운 → 세운 드릴다운(기본=현재 대운)
+  const [selSeun, setSelSeun] = useState(curSeunIdx);                 // 선택된 세운(기본=올해)
+  const [selMonth, setSelMonth] = useState(now.getMonth());           // 선택된 월운(기본=이번 달)
   const [glossary, setGlossary] = useState<{ kind: GlossaryKind; key?: string } | null>(null); // 클릭 설명 바텀시트
   const [showLinks, setShowLinks] = useState(false); // 팔자 합충형해 카드 펼침(기본 숨김)
   const [showExpandLinks, setShowExpandLinks] = useState(false); // 대운/세운 합충 펼침(기본 숨김)
@@ -573,12 +575,15 @@ export function MyeongsikScreen({ input, onReading }: { input: ChartInput | null
                     <Text key={w} style={styles.calHead}>{w}</Text>
                   ))}
                   {Array.from({ length: firstDow }).map((_, i) => <View key={`e${i}`} style={styles.calCell} />)}
-                  {days.map((dd) => (
-                    <View key={dd.day} style={styles.calCell}>
-                      <Text style={styles.calDay}>{dd.day}</Text>
-                      <Text style={[styles.calGz, { color: elementColor[stemElement(dd.stem)] }]}>{dd.stem}{dd.branch}</Text>
-                    </View>
-                  ))}
+                  {days.map((dd) => {
+                    const isToday = an.year === now.getFullYear() && selMonth === now.getMonth() && dd.day === now.getDate();
+                    return (
+                      <View key={dd.day} style={[styles.calCell, isToday && styles.calCellToday]}>
+                        <Text style={[styles.calDay, isToday && styles.calDayToday]}>{dd.day}{isToday ? ' ·오늘' : ''}</Text>
+                        <Text style={[styles.calGz, { color: elementColor[stemElement(dd.stem)] }]}>{dd.stem}{dd.branch}</Text>
+                      </View>
+                    );
+                  })}
                 </View>
               </>
             );
@@ -821,6 +826,8 @@ const styles = StyleSheet.create({
   calHead: { width: '14.28%', textAlign: 'center', fontSize: 10, color: colors.inkFaint, paddingVertical: 3 },
   calCell: { width: '14.28%', alignItems: 'center', paddingVertical: space(1) },
   calDay: { fontSize: 10, color: colors.inkSoft },
+  calCellToday: { backgroundColor: colors.juSoft, borderRadius: radius.sm },
+  calDayToday: { color: colors.ju, fontWeight: '800' },
   calGz: { fontSize: 13, fontWeight: '700', marginTop: 1 },
   row: { flexDirection: 'row', gap: space(2) },
   pillar: {

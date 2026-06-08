@@ -13,7 +13,7 @@ import type { ChartInput, NormalizedChart } from '@spec/chart';
 
 /** 점신식 입력 → 결정론 명식 전체 (팔자·합충·신강약지표·격국후보·12운성·신살·자미). */
 export function computeChart(input: ChartInput) {
-  const saju = buildSajuChart(input);
+  const saju = buildSajuChart(input, new Date().getFullYear()); // 세운·현재 대운 = 오늘 기준
   saju.interactions = detectInteractions(saju);
   return {
     saju,
