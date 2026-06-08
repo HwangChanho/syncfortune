@@ -29,6 +29,7 @@ const ko = {
     signin: '로그인', signupTitle: '회원가입', email: '이메일', password: '비밀번호 (6자 이상)',
     toSignup: '계정이 없으신가요?  회원가입', toSignin: '이미 계정이 있으신가요?  로그인',
     needInput: '이메일과 비밀번호를 입력하세요.', signupDone: '확인 메일이 발송됐습니다. 메일 인증 후 로그인하세요.',
+    or: '또는', google: 'Google로 계속하기',
   },
   register: {
     name: '이름·별칭', namePh: '예: 김OO / 본인',
@@ -103,6 +104,7 @@ const en = {
     signin: 'Log in', signupTitle: 'Sign up', email: 'Email', password: 'Password (6+ chars)',
     toSignup: "Don't have an account?  Sign up", toSignin: 'Already have an account?  Log in',
     needInput: 'Enter your email and password.', signupDone: 'Verification email sent. Verify, then log in.',
+    or: 'or', google: 'Continue with Google',
   },
   register: {
     name: 'Name / Alias', namePh: 'e.g. John / Me',
@@ -177,6 +179,7 @@ const ja = {
     signin: 'ログイン', signupTitle: '新規登録', email: 'メール', password: 'パスワード（6文字以上）',
     toSignup: 'アカウントがありませんか？  新規登録', toSignin: 'すでにアカウントをお持ちですか？  ログイン',
     needInput: 'メールとパスワードを入力してください。', signupDone: '確認メールを送信しました。認証後にログインしてください。',
+    or: 'または', google: 'Googleで続ける',
   },
   register: {
     name: '名前·愛称', namePh: '例：キムOO / 本人',

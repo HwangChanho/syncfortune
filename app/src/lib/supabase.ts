@@ -40,5 +40,6 @@ export const supabase = createClient(url, anonKey, {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false,
+    flowType: 'pkce', // OAuth(구글) — 리다이렉트 ?code= → exchangeCodeForSession (모바일 권장)
   },
 });
