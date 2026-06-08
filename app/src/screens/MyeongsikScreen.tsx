@@ -63,6 +63,8 @@ export function MyeongsikScreen({ input, onReading }: { input: ChartInput | null
   const [selSeun, setSelSeun] = useState(0);                          // 선택된 세운 → 원국 확장 명식
   const [selMonth, setSelMonth] = useState(0);                        // 선택된 월운 → 확장 명식
   const [glossary, setGlossary] = useState<{ kind: GlossaryKind; key?: string } | null>(null); // 클릭 설명 바텀시트
+  const [showLinks, setShowLinks] = useState(false); // 팔자 합충형해 카드 펼침(기본 숨김)
+  const [showExpandLinks, setShowExpandLinks] = useState(false); // 대운/세운 합충 펼침(기본 숨김)
   const posIndex: Record<string, number> = { 시: 0, 일: 1, 월: 2, 년: 3 };
   const allLinks = (c.saju.interactions as any[]).filter(
     (it) => it.members?.length === 2 && it.members.every((m: string) => posIndex[m] != null && visiblePos.includes(m as any))
@@ -130,8 +132,6 @@ export function MyeongsikScreen({ input, onReading }: { input: ChartInput | null
             </Pressable>
           ))}
         </View>
-        {/* 천간 합충 호 (위·점선) */}
-        {renderArcs(ganLinks, 'above')}
         {/* 천간 (오행색) */}
         <View style={styles.ptRow}>
           <Text style={styles.ptLabel}>천간</Text>
@@ -162,8 +162,6 @@ export function MyeongsikScreen({ input, onReading }: { input: ChartInput | null
             );
           })}
         </View>
-        {/* 지지 합충 호 (아래·실선) */}
-        {renderArcs(jiLinks, 'below')}
         {/* 지지십신 */}
         <View style={styles.ptRow}>
           <Text style={styles.ptLabel}>십성</Text>
@@ -230,6 +228,81 @@ export function MyeongsikScreen({ input, onReading }: { input: ChartInput | null
           })}
         </View>
       </View>
+
+      {/* 합충형해 — 기본 숨김, 탭하면 선 + 글자별 작용 카드 */}
+      {(ganLinks.length + jiLinks.length) > 0 && (
+        <Pressable style={styles.linksToggle} onPress={() => setShowLinks((v) => !v)}>
+          <Text style={styles.linksToggleTx}>합충형해 {ganLinks.length + jiLinks.length}개  {showLinks ? '▲ 접기' : '▼ 펼쳐 보기'}</Text>
+        </Pressable>
+      )}
+      {showLinks && (() => {
+        const COLW = 56;
+        const miniArcs = (links: any[], dir: 'above' | 'below') => {
+          if (!links.length) return null;
+          const STEP = 16, H = links.length * STEP + 14, reach = dir === 'above' ? H : 0;
+          const dash = dir === 'above' ? '3 2' : undefined;
+          const items = links.map((it, i) => {
+            const off = (i - (links.length - 1) / 2) * 4;
+            const xa = visiblePos.indexOf(it.members[0]) * COLW + COLW / 2 + off;
+            const xb = visiblePos.indexOf(it.members[1]) * COLW + COLW / 2 + off;
+            const legY = dir === 'above' ? 6 + i * STEP : H - (6 + i * STEP);
+            const lbl = linkLabel(it);
+            return { xa, xb, mid: (xa + xb) / 2, legY, col: linkColor(it), lbl, lw: lbl.length * 11 + 6 };
+          });
+          return (
+            <Svg width={visiblePos.length * COLW} height={H}>
+              {items.map((o, i) => (
+                <G key={`p${i}`}>
+                  <Path d={`M ${o.xa} ${reach} L ${o.xa} ${o.legY} L ${o.mid - o.lw / 2} ${o.legY}`} stroke={o.col} strokeWidth={2} fill="none" strokeDasharray={dash} />
+                  <Path d={`M ${o.mid + o.lw / 2} ${o.legY} L ${o.xb} ${o.legY} L ${o.xb} ${reach}`} stroke={o.col} strokeWidth={2} fill="none" strokeDasharray={dash} />
+                </G>
+              ))}
+              {items.map((o, i) => (
+                <G key={`l${i}`}>
+                  <Rect x={o.mid - o.lw / 2} y={o.legY - 7} width={o.lw} height={14} fill={colors.card} rx={2} />
+                  <SvgText x={o.mid} y={o.legY + 3} fill={o.col} fontSize={9} fontWeight="700" textAnchor="middle">{o.lbl}</SvgText>
+                </G>
+              ))}
+            </Svg>
+          );
+        };
+        return (
+          <View style={styles.linksCard}>
+            <View style={styles.linkMini}>
+              {miniArcs(ganLinks, 'above')}
+              <View style={styles.linkMiniRow}>
+                {visiblePos.map((p) => <View key={p} style={styles.linkMiniCol}><GzCell char={P[p].stem} kind="stem" size="sm" /></View>)}
+              </View>
+              <View style={styles.linkMiniRow}>
+                {visiblePos.map((p) => <View key={p} style={styles.linkMiniCol}><GzCell char={P[p].branch} kind="branch" size="sm" /></View>)}
+              </View>
+              {miniArcs(jiLinks, 'below')}
+            </View>
+            <View style={styles.linkList}>
+              {[...ganLinks, ...jiLinks].map((it, i) => {
+                const isGan = it.level === '천간';
+                const a = it.members[0] as PillarPos, b = it.members[1] as PillarPos;
+                const ca = isGan ? P[a].stem : P[a].branch, cb = isGan ? P[b].stem : P[b].branch;
+                const colA = isGan ? stemElement(ca) : branchElement(ca);
+                const colB = isGan ? stemElement(cb) : branchElement(cb);
+                return (
+                  <View key={i} style={styles.linkRow}>
+                    <Text style={[styles.linkDot, { color: linkColor(it) }]}>●</Text>
+                    <Text style={styles.linkRowTx}>
+                      {a}주 <Text style={{ color: elementColor[colA], fontWeight: '800' }}>{ca}</Text>
+                      {'  ⟷  '}
+                      {b}주 <Text style={{ color: elementColor[colB], fontWeight: '800' }}>{cb}</Text>
+                      {'   '}
+                      <Text style={{ color: linkColor(it), fontWeight: '800' }}>{linkLabel(it)}</Text>
+                      <Text style={styles.linkLevel}>{isGan ? ' 천간' : ' 지지'}</Text>
+                    </Text>
+                  </View>
+                );
+              })}
+            </View>
+          </View>
+        );
+      })()}
 
       {/* 일간·신강약·격국 */}
       <Text style={styles.kv}>{t('myeongsik.dayMaster')}: <Text style={styles.kvAccent}>{c.saju.dayMaster.stem}({c.saju.dayMaster.element})</Text></Text>
@@ -370,11 +443,10 @@ export function MyeongsikScreen({ input, onReading }: { input: ChartInput | null
         return (
         <>
           <Text style={styles.h}>{t('myeongsik.luck')}</Text>
-          {/* 원국 + 대운·세운 확장 명식 + 시간층 합충선(천간=위 점선·지지=아래 실선) */}
-          <Text style={styles.luckSub}>원국 × 대운/세운/월운 작용 (합충형해 선)</Text>
+          {/* 원국 + 대운·세운 확장 명식 (합충선은 아래 토글로 펼침) */}
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.luckScroll}>
             <View>
-              {expandArcs(ganEx, 'above')}
+              {showExpandLinks && expandArcs(ganEx, 'above')}
               <View style={{ flexDirection: 'row' }}>
                 {expandCols.map((col, i) => (
                   <View key={i} style={[styles.expCol2, col.luck && styles.expColLuck]}>
@@ -392,9 +464,39 @@ export function MyeongsikScreen({ input, onReading }: { input: ChartInput | null
                   </View>
                 ))}
               </View>
-              {expandArcs(jiEx, 'below')}
+              {showExpandLinks && expandArcs(jiEx, 'below')}
             </View>
           </ScrollView>
+          {(ganEx.length + jiEx.length) > 0 && (
+            <Pressable style={styles.linksToggle} onPress={() => setShowExpandLinks((v) => !v)}>
+              <Text style={styles.linksToggleTx}>운 합충형해 {ganEx.length + jiEx.length}개  {showExpandLinks ? '▲ 접기' : '▼ 펼쳐 보기'}</Text>
+            </Pressable>
+          )}
+          {showExpandLinks && (ganEx.length + jiEx.length) > 0 && (
+            <View style={styles.linksCard}>
+              <View style={styles.linkList}>
+                {[...ganEx, ...jiEx].map((it, i) => {
+                  const isGan = it.level === '천간';
+                  const ca = expandCols.find((c2) => c2.label === it.members[0]);
+                  const cb = expandCols.find((c2) => c2.label === it.members[1]);
+                  if (!ca || !cb) return null;
+                  const g1 = isGan ? ca.stem : ca.branch, g2 = isGan ? cb.stem : cb.branch;
+                  return (
+                    <View key={i} style={styles.linkRow}>
+                      <Text style={[styles.linkDot, { color: linkColor(it) }]}>●</Text>
+                      <Text style={styles.linkRowTx}>
+                        {ca.label} <Text style={{ color: elementColor[isGan ? stemElement(g1) : branchElement(g1)], fontWeight: '800' }}>{g1}</Text>
+                        {'  ⟷  '}
+                        {cb.label} <Text style={{ color: elementColor[isGan ? stemElement(g2) : branchElement(g2)], fontWeight: '800' }}>{g2}</Text>
+                        {'   '}
+                        <Text style={{ color: linkColor(it), fontWeight: '800' }}>{linkLabel(it)}</Text>
+                      </Text>
+                    </View>
+                  );
+                })}
+              </View>
+            </View>
+          )}
           {/* 대운 타임라인 (천간/지지 분리, 탭 → 확장 명식·세운 갱신) */}
           <Text style={styles.luckSub}>대운 (탭하면 그 대운의 세운 펼침)</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.luckScroll} contentContainerStyle={styles.luckScrollC}>
@@ -563,6 +665,7 @@ export function MyeongsikScreen({ input, onReading }: { input: ChartInput | null
         (c.ziwei.palaces as any[]).forEach((pl) => { byBr[pl.branch] = pl; });
         const LAYOUT = [['巳', '午', '未', '申'], ['辰', 'C', 'C', '酉'], ['卯', 'C', 'C', '戌'], ['寅', '丑', '子', '亥']];
         const sihwaCol: Record<string, string> = { '化祿': '#3E8E5A', '化權': '#C0392B', '化科': '#3A6EA5', '化忌': '#7A7A7A' };
+        const brSym: Record<string, string> = { '廟': '◎', '旺': '○', '得地': '△', '利': '△', '平': '△', '不得地': 'x', '陷': 'x' }; // 밝기 기호(daniel 참고 양식)
         const dm = c.saju.dayMaster;
         return (
           <View style={styles.ziGrid}>
@@ -590,7 +693,7 @@ export function MyeongsikScreen({ input, onReading }: { input: ChartInput | null
                       </View>
                       {pl?.majorStars?.map((st: any, i: number) => (
                         <Text key={i} style={styles.ziMajor}>
-                          {st.name}<Text style={styles.ziBright}>{st.brightness}</Text>
+                          {st.name}<Text style={styles.ziBright}>{brSym[st.brightness] ?? ''}</Text>
                           {(st.transforms ?? []).map((tr: string, j: number) => <Text key={j} style={[styles.ziSihwa, { color: sihwaCol[tr] ?? colors.ink }]}> {tr.slice(-1)}</Text>)}
                         </Text>
                       ))}
@@ -793,6 +896,18 @@ const styles = StyleSheet.create({
   ziBright: { fontSize: 8, color: colors.inkFaint, fontWeight: '400' },
   ziSihwa: { fontSize: 9, fontWeight: '800' },
   ziMinor: { fontSize: 8, color: colors.inkSoft, marginTop: 1, lineHeight: 11 },
+  // 합충형해 토글 카드 (기본 숨김 → 선 + 글자작용)
+  linksToggle: { marginTop: space(2), paddingVertical: space(2.5), paddingHorizontal: space(3), borderRadius: radius.sm, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.card, alignItems: 'center' },
+  linksToggleTx: { ...font.body, color: colors.ju, fontWeight: '700' },
+  linksCard: { marginTop: space(1.5), padding: space(3), borderRadius: radius.sm, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line },
+  linkMini: { alignSelf: 'center', marginBottom: space(2) },
+  linkMiniRow: { flexDirection: 'row' },
+  linkMiniCol: { width: 56, alignItems: 'center' },
+  linkList: { gap: space(1.5), borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.line, paddingTop: space(2.5) },
+  linkRow: { flexDirection: 'row', alignItems: 'center', gap: space(2) },
+  linkDot: { fontSize: 10 },
+  linkRowTx: { ...font.body, color: colors.ink, flex: 1 },
+  linkLevel: { fontSize: 10, color: colors.inkFaint },
   sheetOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'flex-end' },
   sheet: { backgroundColor: colors.card, borderTopLeftRadius: radius.md, borderTopRightRadius: radius.md, padding: space(5), paddingBottom: space(9) },
   sheetHandle: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: colors.line, marginBottom: space(3) },
