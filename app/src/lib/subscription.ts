@@ -1,11 +1,13 @@
 // app/src/lib/subscription.ts — 구독 상태 (유료 게이트, S6 결제)
 // ─────────────────────────────────────────────────────────────────────────
-// 프리미엄 구독 여부 = 유료 통변·저장의 게이트. 진실원천 = 스토어 결제(RevenueCat).
-// P0 골격: 인터페이스만 — RevenueCat SDK(react-native-purchases) 연동은 daniel(스토어 계정·상품·API키) 후.
-//   isPremium 미러는 Supabase profiles(RevenueCat webhook) 또는 Purchases.getCustomerInfo 로 채운다(TODO).
+// 프리미엄 구독 여부 = 광고 제거·명식 무제한 등록(ADR-051)의 게이트. 진실원천 = Supabase profiles.is_premium.
+//   결제(RevenueCat) 성공 → 웹훅이 profiles.is_premium 갱신(추후) → 이 훅이 재조회. 수동 부여(오너·체험)도 같은 컬럼.
+//   ※ isPremium 은 Edge LLM 호출을 *유발하지 않는다*(유료 통변은 useEntitlement 별도) → 절대0 정합 유지.
+//   미로그인 = 항상 false(엔타이틀먼트는 계정 귀속). RLS "own profile"(id=auth.uid())로 본인 행만 읽음.
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useEffect } from 'react';
 import { useAuth } from './useAuth';
+import { supabase } from './supabase';
 
 export function useSubscription() {
   const { session } = useAuth();
@@ -13,11 +15,26 @@ export function useSubscription() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // TODO(daniel 연동): RevenueCat Purchases.getCustomerInfo() → entitlements.active['premium'] 여부
-    //   또는 Supabase profiles.is_premium(웹훅 미러) 조회. P0 = 미구독 기본
-    //   (개발 중 유료경로 차단 = Edge LLM 호출 안 됨 = 절대0 정합).
-    setIsPremium(false);
-    setLoading(false);
+    let alive = true;
+    setLoading(true);
+    // 미로그인 → 무료(엔타이틀먼트=계정 귀속). 로그인 → 본인 profiles.is_premium 조회.
+    if (!session?.user) {
+      setIsPremium(false);
+      setLoading(false);
+      return;
+    }
+    supabase
+      .from('profiles')
+      .select('is_premium')
+      .eq('id', session.user.id)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (!alive) return;
+        // 조회 실패(네트워크·행없음)는 보수적으로 무료 처리.
+        setIsPremium(!error && !!data?.is_premium);
+        setLoading(false);
+      });
+    return () => { alive = false; };
   }, [session]);
 
   return { isPremium, loading, purchasePremium };
