@@ -201,7 +201,7 @@ const SUIT_ENERGY: Record<Suit, string> = {
  * 룰: 핵심 포지션(현재→결과) + 메이저 비중(운명성) + 우세 수트(에너지) + 정/역 비율(순조/장애).
  * 온디바이스(LLM 0) — 통계+템플릿. 깊은 서사 통변은 추후 프리미엄(LLM) 여지.
  */
-export function combineReading(cards: SpreadCard[]): string[] {
+export function combineReading(cards: SpreadCard[], topicKo: string): string[] {
   if (!cards.length) return [];
   const majors = cards.filter((c) => c.suit === 'major').length;
   const rev = cards.filter((c) => c.reversed).length;
@@ -220,7 +220,7 @@ export function combineReading(cards: SpreadCard[]): string[] {
   const root = cards[2] ?? cur;
   const adv = cards[3] ?? out;
   return [
-    `지금 당신은 '${k(cur)}'의 자리에서 시작해요. 마주한 과제는 '${k(ch)}', 그 뿌리는 '${k(root)}'. 카드가 권하는 방향은 '${k(adv)}', 그 끝에 기다리는 건 '${k(out)}'입니다.`,
+    `${topicKo} 측면에서 보면, 지금 당신은 '${k(cur)}'에서 출발해요. 여기서 마주한 과제는 '${k(ch)}', 그 바탕엔 '${k(root)}'이 자리합니다. 카드가 권하는 방향은 '${k(adv)}', 그 끝에 기다리는 건 '${k(out)}'입니다.`,
     `${majors >= 3 ? '인생의 큰 전환점이 움직이는 시기' : '당신이 직접 풀어갈 현실적인 일들이 중심인 때'}예요. ${cnt[dom] >= 2 ? `${SUIT_META[dom].ko}(${SUIT_ENERGY[dom]})의 기운이 흐름을 이끌고, ` : ''}${rev >= 4 ? '서두르기보다 차분히 안을 정리하면 좋아요.' : rev <= 1 ? '큰 막힘 없이 순조롭게 풀려갑니다.' : '잘 풀리는 부분과 점검할 부분이 함께 있어요.'}`,
   ];
 }
