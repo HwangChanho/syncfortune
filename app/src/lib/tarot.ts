@@ -149,10 +149,9 @@ export const DECK: TarotCard[] = [
   { id: 'p14', name: 'King of Pentacles', ko: '펜타클 왕', suit: 'pentacles', up: '성공·안정·풍요', rev: '물질주의·완고·탐욕' },
 ];
 
-// 켈틱 크로스 10 포지션 (한국어 의미)
-export const CELTIC_POSITIONS: string[] = [
-  '현재 상황', '당면 과제', '내면·기반', '지나온 과거', '지향·목표',
-  '다가올 흐름', '나의 태도', '주변 영향', '희망과 두려움', '최종 결과',
+// 5장 스프레드 포지션 (한국어 의미) — 현재→도전→뿌리→조언→결과
+export const SPREAD_POSITIONS: string[] = [
+  '현재 상황', '도전·장애', '뿌리·원인', '조언·방향', '결과·흐름',
 ];
 
 // 질문 카테고리 (스프레드 주제)
@@ -214,20 +213,20 @@ export function combineReading(cards: SpreadCard[]): string[] {
   const kw = (c: SpreadCard) => (c.reversed ? c.rev : c.up);
 
   const lines: string[] = [];
-  // 흐름의 양 끝(현재 → 결과)
-  lines.push(`흐름의 시작점인 '${cur.position}'에는 ${cur.ko}${cur.reversed ? '(역)' : ''}가 놓여 ${kw(cur)}의 기류로 출발합니다.`);
-  lines.push(`그 흐름이 향하는 '${out.position}'은 ${out.ko}${out.reversed ? '(역)' : ''} — ${kw(out)}로 귀결됩니다.`);
-  // 메이저 비중 = 운명성
-  lines.push(majors >= 4
-    ? `메이저 아르카나가 ${majors}장으로 많습니다. 지금은 사소한 일상이 아니라 인생의 큰 전환·운명적 흐름이 작동하는 국면입니다.`
-    : `메이저 ${majors}장으로, 거창한 운명보다 당신이 직접 다루는 실질적·일상적 사안이 중심입니다.`);
-  // 우세 수트 = 에너지 색채
-  if (cnt[dom] >= 3) lines.push(`${SUIT_META[dom].ko}(${SUIT_META[dom].element})가 ${cnt[dom]}장으로 두드러져, ${SUIT_ENERGY[dom]}의 에너지가 이번 사안 전체를 이끕니다.`);
-  // 정/역 비율 = 순조 vs 장애
-  lines.push(rev >= 6
-    ? `역방향이 ${rev}장으로 많습니다 — 밖으로 뻗기보다 안에서 점검·정리하고 속도를 늦춰야 할 시기입니다.`
-    : rev <= 2
-      ? `${cards.length}장 중 역방향이 ${rev}장뿐 — 막힘이 적고 흐름이 비교적 순조롭게 전개됩니다.`
-      : `정·역이 고루 섞여(역 ${rev}장), 진전과 조정이 번갈아 오는 시기입니다.`);
+  // 일반인이 편히 읽도록 구어체·쉬운 말로. 흐름의 양 끝(지금 → 결과)부터 짚는다.
+  lines.push(`지금 '${cur.position}' 자리엔 ${cur.ko}${cur.reversed ? '(뒤집힘)' : ''} 카드가 나왔어요. ${kw(cur)} — 여기서 이야기가 시작됩니다.`);
+  lines.push(`이 흐름이 향하는 '${out.position}'은 ${out.ko}${out.reversed ? '(뒤집힘)' : ''}예요. ${kw(out)}의 모습으로 마무리될 가능성이 큽니다.`);
+  // 메이저 비중 = 얼마나 '큰 일'인지
+  lines.push(majors >= 3
+    ? `메이저 카드가 ${majors}장이나 나왔어요. 사소한 일상이 아니라 인생의 큰 전환점이 움직이는 시기라는 뜻이에요.`
+    : `메이저 카드는 ${majors}장이에요. 거창한 운명보다, 당신이 직접 풀어갈 수 있는 현실적인 일들이 중심입니다.`);
+  // 우세 수트 = 어떤 에너지가 주인공인지
+  if (cnt[dom] >= 2) lines.push(`${SUIT_META[dom].ko} 카드가 ${cnt[dom]}장으로 가장 많아요. ${SUIT_ENERGY[dom]}의 기운이 이번 질문 전체를 이끌고 있습니다.`);
+  // 정/역 비율 = 순조 vs 점검
+  lines.push(rev >= 4
+    ? `뒤집힌 카드가 ${rev}장으로 많은 편이에요. 지금은 밀어붙이기보다, 잠시 멈춰 안을 정리하는 게 더 좋은 때입니다.`
+    : rev <= 1
+      ? `대부분 바로 선 카드예요(뒤집힘 ${rev}장). 큰 막힘 없이 흐름이 비교적 순조롭게 풀립니다.`
+      : `바로 선 카드와 뒤집힌 카드가 고루 섞였어요(뒤집힘 ${rev}장). 잘 풀리는 부분과 점검할 부분이 함께 있습니다.`);
   return lines;
 }

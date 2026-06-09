@@ -1,15 +1,15 @@
-// src/app/(app)/taro.tsx — 타로 78장(RWS) 카테고리별 켈틱크로스: 부채꼴 덱 + 탭 확대 + 전체 조합 풀이
+// src/app/(app)/taro.tsx — 타로 78장(RWS): 주제 선택 → 덱에서 한 장씩 직접 뽑기 → 전체 조합 풀이
 // ─────────────────────────────────────────────────────────────────────────
-// 주제 선택 → 10장 뽑기 → ① 반원 부채꼴로 겹쳐 표시 ② 카드 탭=확대 모달(그 카드 설명)
-//   ③ 빈 곳 탭=덱으로 복귀 ④ 아래 '풀이'는 카드 하나하나가 아니라 *전체 조합*(combineReading).
-//   카드 이미지=RWS 퍼블릭도메인. 룰·온디바이스(LLM·서버 0). 역방향=이미지 180° 회전.
+// ① 주제 선택 → 10장을 미리 섞어두고(숨김) ② 사용자가 뒷면 덱을 탭해 한 장씩 공개(포지션 순서)
+//   ③ 공개 카드는 부채꼴로 쌓이고 탭하면 떠올라 확대(설명)·빈곳 탭=내려감 ④ 10장 다 뽑으면 전체 조합 풀이.
+//   카드 이미지=RWS 퍼블릭도메인. 룰·온디바이스(LLM·서버 0, 무제한 무료). 역방향=180° 회전.
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useEffect, useRef } from 'react';
 import { View, Text, Pressable, ScrollView, Image, StyleSheet, ImageBackground, Modal, Animated } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import {
-  drawSpread, cardImage, combineReading, CELTIC_POSITIONS, TARO_CATEGORIES, type SpreadCard,
+  drawSpread, cardImage, combineReading, SPREAD_POSITIONS, TARO_CATEGORIES, type SpreadCard,
 } from '../../lib/tarot';
 import { playSound } from '../../lib/sounds';
 import { colors, radius, space, shadow, font } from '../../lib/theme';
@@ -18,13 +18,24 @@ type Category = (typeof TARO_CATEGORIES)[number];
 
 export default function TaroScreen() {
   const { t } = useTranslation();
-  const { cat } = useLocalSearchParams<{ cat?: string }>(); // 딥링크 ?cat=love 등 → 해당 주제 자동 스프레드
+  const { cat } = useLocalSearchParams<{ cat?: string }>();
   const [category, setCategory] = useState<Category | null>(null);
-  const [spread, setSpread] = useState<SpreadCard[] | null>(null);
-  const [sel, setSel] = useState<number | null>(null); // 펼쳐 본 카드 인덱스(모달)
-  const lift = useRef(new Animated.Value(0)).current;  // 0=덱 안 / 1=떠오름
+  const [spread, setSpread] = useState<SpreadCard[] | null>(null); // 미리 섞인 10장(숨김 순서)
+  const [drawn, setDrawn] = useState(0);                            // 지금까지 뽑은 장수
+  const [sel, setSel] = useState<number | null>(null);             // 펼쳐 본 카드(모달)
+  const lift = useRef(new Animated.Value(0)).current;
 
-  // 카드 탭 → 아래에서 위로 떠오름(spring). 닫기 → 내려간 뒤 모달 해제.
+  function start(c: Category) {
+    playSound('flip');
+    setCategory(c);
+    setSpread(drawSpread(SPREAD_POSITIONS)); // 결과는 미리 정해지되, 공개는 사용자가 한 장씩
+    setDrawn(0);
+    setSel(null);
+  }
+  function reset() { playSound('flip'); setCategory(null); setSpread(null); setDrawn(0); setSel(null); }
+  function drawNext() {
+    if (spread && drawn < spread.length) { playSound('flip'); setDrawn((n) => n + 1); }
+  }
   function openCard(i: number) {
     playSound('flip');
     setSel(i);
@@ -35,25 +46,16 @@ export default function TaroScreen() {
     Animated.timing(lift, { toValue: 0, duration: 200, useNativeDriver: true }).start(() => setSel(null));
   }
 
-  // 딥링크로 주제가 지정되면 자동으로 펼친다(없으면 사용자가 카테고리 선택).
+  // 딥링크 ?cat= → 해당 주제로 시작(뽑기는 직접)
   useEffect(() => {
     if (!cat) return;
     const c = TARO_CATEGORIES.find((x) => x.key === cat);
-    if (c) { setCategory(c); setSpread(drawSpread(CELTIC_POSITIONS)); }
+    if (c) { setCategory(c); setSpread(drawSpread(SPREAD_POSITIONS)); setDrawn(0); }
   }, [cat]);
 
-  function onPick(cat: Category) {
-    playSound('flip');
-    setCategory(cat);
-    setSpread(drawSpread(CELTIC_POSITIONS));
-    setSel(null);
-  }
-  function reset() {
-    playSound('flip');
-    setSpread(null); setCategory(null); setSel(null);
-  }
-
-  const mid = spread ? (spread.length - 1) / 2 : 0;
+  const cards = spread ? spread.slice(0, drawn) : []; // 공개된 카드
+  const done = !!spread && drawn >= spread.length;
+  const nextPos = spread && drawn < spread.length ? spread[drawn].position : '';
 
   return (
     <ImageBackground source={require('../../../assets/icons/bg-night.png')} style={styles.bg} resizeMode="cover">
@@ -61,12 +63,12 @@ export default function TaroScreen() {
         <Text style={styles.title}>{t('menu.taro')}</Text>
 
         {!spread ? (
-          // ── 카테고리 선택 ──
+          // ── 주제 선택 ──
           <>
-            <Text style={styles.sub}>질문 주제를 고르면 10장(켈틱 크로스)으로 펼칩니다.</Text>
+            <Text style={styles.sub}>질문 주제를 고른 뒤, 덱에서 카드를 한 장씩 직접 뽑아 보세요.</Text>
             <View style={styles.cats}>
               {TARO_CATEGORIES.map((c) => (
-                <Pressable key={c.key} style={styles.catBtn} onPress={() => onPick(c)}>
+                <Pressable key={c.key} style={styles.catBtn} onPress={() => start(c)}>
                   <Text style={styles.catEmoji}>{c.emoji}</Text>
                   <Text style={styles.catKo}>{c.ko}</Text>
                 </Pressable>
@@ -76,39 +78,53 @@ export default function TaroScreen() {
         ) : (
           <>
             <View style={styles.spreadHead}>
-              <Text style={styles.spreadCat}>{category?.emoji} {category?.ko}</Text>
-              <Pressable style={styles.resetBtn} onPress={reset}><Text style={styles.resetTx}>다시 뽑기</Text></Pressable>
+              <Text style={styles.spreadCat}>{category?.emoji} {category?.ko} · {drawn}/{spread.length}</Text>
+              <Pressable style={styles.resetBtn} onPress={reset}><Text style={styles.resetTx}>다시</Text></Pressable>
             </View>
 
-            {/* ① 부채꼴 카드 덱 (반원 겹침) — 카드 탭 = 펼쳐 봄 */}
-            <View style={styles.fan}>
-              {spread.map((card, i) => {
-                const angle = (i - mid) * 7;          // -31.5°~+31.5° 부채꼴
-                const offsetX = (i - mid) * 24;       // 옆으로 퍼뜨려 탭 영역 확보
-                return (
-                  <Pressable
-                    key={i}
-                    style={[styles.fanCard, { zIndex: i, transform: [{ translateX: offsetX }, { rotate: `${angle}deg` }] }]}
-                    onPress={() => openCard(i)}
-                  >
-                    <Image source={cardImage(card.id)} style={[styles.fanImg, card.reversed && styles.revImg]} resizeMode="contain" />
-                  </Pressable>
-                );
-              })}
-            </View>
-            <Text style={styles.fanHint}>카드를 탭하면 펼쳐지고, 빈 곳을 탭하면 덱으로 돌아갑니다.</Text>
+            {/* 공개된 카드 — 부채꼴로 쌓임(탭하면 떠올라 설명) */}
+            {cards.length > 0 && (
+              <View style={styles.fan}>
+                {cards.map((card, i) => {
+                  const mid = (cards.length - 1) / 2;
+                  const angle = (i - mid) * 7;
+                  const offsetX = (i - mid) * 24;
+                  return (
+                    <Pressable
+                      key={i}
+                      style={[styles.fanCard, { zIndex: i, transform: [{ translateX: offsetX }, { rotate: `${angle}deg` }] }]}
+                      onPress={() => openCard(i)}
+                    >
+                      <Image source={cardImage(card.id)} style={[styles.fanImg, card.reversed && styles.revImg]} resizeMode="contain" />
+                    </Pressable>
+                  );
+                })}
+              </View>
+            )}
 
-            {/* ④ 풀이 — 카드 하나하나가 아니라 전체 조합(흐름) */}
-            <Text style={styles.readingH}>풀이 · 전체 흐름</Text>
-            {combineReading(spread).map((line, i) => (
-              <Text key={i} style={styles.combineLine}>· {line}</Text>
-            ))}
-            <Text style={styles.note}>※ 재미·자기성찰용. 카드는 무작위로 뽑혀요.</Text>
+            {/* 아직 다 안 뽑았으면: 뒷면 덱(탭해서 한 장 뽑기) */}
+            {!done ? (
+              <View style={styles.drawArea}>
+                <Pressable style={styles.deckBack} onPress={drawNext}>
+                  <Text style={styles.deckGlyph}>🔮</Text>
+                </Pressable>
+                <Text style={styles.drawHint}>덱을 탭해 ‘{nextPos}’ 카드를 뽑으세요 ({drawn}/{spread.length})</Text>
+              </View>
+            ) : (
+              // 다 뽑음 → 전체 조합 풀이
+              <>
+                <Text style={styles.readingH}>풀이 · 전체 흐름</Text>
+                {combineReading(spread).map((line, i) => (
+                  <Text key={i} style={styles.combineLine}>· {line}</Text>
+                ))}
+                <Text style={styles.note}>※ 재미·자기성찰용. 카드는 무작위로 섞여요. 카드를 탭하면 자세히 볼 수 있어요.</Text>
+              </>
+            )}
           </>
         )}
       </ScrollView>
 
-      {/* ②③ 선택 카드 확대 모달 — 빈 곳(backdrop) 탭 시 덱으로 복귀 */}
+      {/* 선택 카드 확대 — 탭 시 아래에서 떠오르고, 빈 곳 탭=내려가며 닫힘 */}
       <Modal visible={sel != null} transparent animationType="none" onRequestClose={closeCard}>
         <Pressable style={styles.backdrop} onPress={closeCard}>
           {sel != null && spread && (
@@ -116,22 +132,17 @@ export default function TaroScreen() {
               style={[styles.bigWrap, {
                 opacity: lift,
                 transform: [
-                  { translateY: lift.interpolate({ inputRange: [0, 1], outputRange: [320, 0] }) }, // 아래→중앙
+                  { translateY: lift.interpolate({ inputRange: [0, 1], outputRange: [320, 0] }) },
                   { scale: lift.interpolate({ inputRange: [0, 1], outputRange: [0.7, 1] }) },
                 ],
               }]}
             >
-              {/* 카드 영역 탭은 닫기 전파 차단(빈 곳=backdrop만 닫힘) */}
               <Pressable onPress={() => {}}>
-                <Image
-                  source={cardImage(spread[sel].id)}
-                  style={[styles.bigImg, spread[sel].reversed && styles.revImg]}
-                  resizeMode="contain"
-                />
+                <Image source={cardImage(spread[sel].id)} style={[styles.bigImg, spread[sel].reversed && styles.revImg]} resizeMode="contain" />
                 <Text style={styles.bigPos}>{sel + 1}. {spread[sel].position}</Text>
-                <Text style={styles.bigName}>{spread[sel].ko}{spread[sel].reversed ? ' (역)' : ''}</Text>
+                <Text style={styles.bigName}>{spread[sel].ko}{spread[sel].reversed ? ' (뒤집힘)' : ''}</Text>
                 <Text style={styles.bigKw}>{spread[sel].reversed ? spread[sel].rev : spread[sel].up}</Text>
-                <Text style={styles.bigClose}>빈 곳을 탭하면 닫힙니다</Text>
+                <Text style={styles.bigClose}>빈 곳을 탭하면 닫혀요</Text>
               </Pressable>
             </Animated.View>
           )}
@@ -147,27 +158,29 @@ const styles = StyleSheet.create({
   wrap: { padding: space(5), paddingTop: space(8), paddingBottom: space(10) },
   title: { ...font.title, color: colors.ink, marginBottom: space(2) },
   sub: { ...font.body, color: colors.inkSoft, marginBottom: space(6) },
-  // 카테고리
   cats: { flexDirection: 'row', flexWrap: 'wrap', gap: space(3) },
   catBtn: { width: '47%', alignItems: 'center', paddingVertical: space(6), backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.juLine, ...shadow.card },
   catEmoji: { fontSize: 34, marginBottom: space(2) },
   catKo: { ...font.body, color: colors.ink, fontWeight: '700' },
-  // 헤더
   spreadHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: space(2) },
   spreadCat: { ...font.heading, color: colors.ju },
   resetBtn: { paddingVertical: space(2), paddingHorizontal: space(4), borderRadius: radius.pill, backgroundColor: colors.ju },
   resetTx: { color: colors.bg, fontSize: 13, fontWeight: '700' },
-  // ① 부채꼴
-  fan: { height: 280, alignItems: 'center', justifyContent: 'flex-end', marginTop: space(4) },
+  // 공개 카드 부채꼴
+  fan: { height: 250, alignItems: 'center', justifyContent: 'flex-end', marginTop: space(4) },
   fanCard: { position: 'absolute', bottom: space(2), transformOrigin: 'center bottom' },
-  fanImg: { width: 104, height: 178, borderRadius: radius.sm, borderWidth: 1, borderColor: colors.juLine, backgroundColor: colors.card },
-  revImg: { transform: [{ rotate: '180deg' }] }, // 역방향 = 이미지 180° 뒤집힘
-  fanHint: { ...font.caption, color: colors.inkFaint, textAlign: 'center', marginTop: space(4) },
-  // ④ 종합 풀이
+  fanImg: { width: 100, height: 171, borderRadius: radius.sm, borderWidth: 1, borderColor: colors.juLine, backgroundColor: colors.card },
+  revImg: { transform: [{ rotate: '180deg' }] },
+  // 뒷면 덱(뽑기)
+  drawArea: { alignItems: 'center', marginTop: space(6) },
+  deckBack: { width: 120, height: 205, borderRadius: radius.md, backgroundColor: colors.card, borderWidth: 2, borderColor: colors.ju, alignItems: 'center', justifyContent: 'center', ...shadow.card },
+  deckGlyph: { fontSize: 54, opacity: 0.85 },
+  drawHint: { ...font.body, color: colors.inkSoft, marginTop: space(4), textAlign: 'center' },
+  // 풀이
   readingH: { ...font.heading, color: colors.ink, marginTop: space(7), marginBottom: space(3) },
-  combineLine: { ...font.body, color: colors.inkSoft, lineHeight: 23, marginBottom: space(2.5) },
-  note: { ...font.caption, color: colors.inkFaint, marginTop: space(3), textAlign: 'center' },
-  // ②③ 확대 모달
+  combineLine: { ...font.body, color: colors.inkSoft, lineHeight: 24, marginBottom: space(2.5) },
+  note: { ...font.caption, color: colors.inkFaint, marginTop: space(3), textAlign: 'center', lineHeight: 18 },
+  // 확대 모달
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.82)', justifyContent: 'center', alignItems: 'center', padding: space(6) },
   bigWrap: { alignItems: 'center', backgroundColor: colors.card, borderRadius: radius.lg, padding: space(6), borderWidth: 1, borderColor: colors.juLine, ...shadow.card },
   bigImg: { width: 200, height: 343, borderRadius: radius.md, marginBottom: space(4) },
