@@ -6,6 +6,21 @@ import { getDailyFortune } from '../../lib/dailyFortune';
 import { colors, radius, space, shadow, font } from '../../lib/theme';
 import { stemElement, branchElement, elementColor, elementText, stemReading, branchReading } from '../../lib/ohaeng';
 
+function CornerPattern({ position }: { position: 'tl' | 'tr' | 'bl' | 'br' }) {
+  const isTop = position.startsWith('t');
+  const isLeft = position.endsWith('l');
+  return (
+    <View style={[
+      styles.corner,
+      isTop ? { top: 10 } : { bottom: 10 },
+      isLeft ? { left: 10 } : { right: 10 },
+      { transform: [{ rotate: isTop ? (isLeft ? '0deg' : '90deg') : (isLeft ? '270deg' : '180deg') }] }
+    ]}>
+      <Text style={styles.cornerText}>﹃</Text>
+    </View>
+  );
+}
+
 export default function TodayScreen() {
   const { t } = useTranslation();
   const f = useMemo(() => getDailyFortune(), []);
@@ -20,6 +35,11 @@ export default function TodayScreen() {
     <ImageBackground source={require('../../../assets/icons/bg-night.png')} style={styles.bgImage} resizeMode="cover">
       <View style={styles.overlay}>
         <View style={styles.card}>
+          <CornerPattern position="tl" />
+          <CornerPattern position="tr" />
+          <CornerPattern position="bl" />
+          <CornerPattern position="br" />
+          
           <Text style={styles.date}>{f.date}</Text>
           <Text style={styles.title}>{t('today.dayPillar')}</Text>
           
@@ -61,6 +81,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.line,
   },
+  corner: { position: 'absolute' },
+  cornerText: { color: colors.ju, fontSize: 24, fontWeight: '300', opacity: 0.6 },
   date: { ...font.caption, color: colors.ju, marginBottom: space(1), fontWeight: '700' },
   title: { ...font.title, marginBottom: space(8) },
   pillarContainer: { flexDirection: 'row', gap: space(4), marginBottom: space(8) },

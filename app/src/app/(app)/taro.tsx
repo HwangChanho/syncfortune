@@ -4,6 +4,7 @@ import { View, Text, Pressable, StyleSheet, ImageBackground, Animated } from 're
 import { useTranslation } from 'react-i18next';
 import { drawCard, type TarotCard } from '../../lib/tarot';
 import { colors, radius, space, shadow, font } from '../../lib/theme';
+import { playSound } from '../../lib/sounds';
 
 export default function TaroScreen() {
   const { t } = useTranslation();
@@ -12,6 +13,7 @@ export default function TaroScreen() {
   const flipAnim = useRef(new Animated.Value(0)).current;
 
   function handleDraw() {
+    playSound('flip');
     if (isFlipped) {
       // 리셔플: 다시 뒷면으로
       Animated.timing(flipAnim, { toValue: 0, duration: 300, useNativeDriver: true }).start(() => {

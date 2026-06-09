@@ -18,6 +18,7 @@ import { HIDDEN, computeMonthDays, branchTenGod } from '@engine/saju'; // 지장
 import { twelveStage } from '@engine/twelve';                          // 임의 지지 12운성(타임라인용)
 import { detectInteractionsAmong } from '@engine/structure';           // 시간층(원국×대운×세운) 합충 검출
 import { lookupGlossary, GLOSSARY_KIND_LABEL, SINSAL_GLOSSARY, type GlossaryKind } from '../lib/myeongriGlossary'; // 클릭 설명
+import { playSound } from '../lib/sounds';
 import Svg, { Path, Rect, Circle, Text as SvgText, G } from 'react-native-svg';
 
 // 전통 표기 — 오른쪽이 년주: 시(왼) ← 일 ← 월 ← 년(오른쪽)
@@ -45,6 +46,7 @@ export function MyeongsikScreen({ input, onReading }: { input: ChartInput | null
   const slideAnim = useRef(new Animated.Value(10)).current;
 
   useEffect(() => {
+    playSound('transition');
     fadeAnim.setValue(0);
     slideAnim.setValue(10);
     Animated.parallel([
@@ -632,6 +634,9 @@ export function MyeongsikScreen({ input, onReading }: { input: ChartInput | null
               </>
             );
           })()}
+              </>
+            );
+          })()}
         </>
       )}
 
@@ -748,6 +753,8 @@ export function MyeongsikScreen({ input, onReading }: { input: ChartInput | null
               </View>
             ))}
           </View>
+        );
+      })()}
         </>
       )}
 
@@ -758,6 +765,7 @@ export function MyeongsikScreen({ input, onReading }: { input: ChartInput | null
           <Text style={styles.readingBtnText}>{t('myeongsik.readingBtn')}</Text>
         </Pressable>
       )}
+      </Animated.View>
     </ScrollView>
 
     {/* 클릭 설명 바텀시트 — 십신·신살·공망 의미 (탭한 항목) */}

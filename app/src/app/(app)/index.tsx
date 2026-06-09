@@ -14,6 +14,7 @@ import { showInterstitialAd } from '../../lib/ads';
 import { ChartPicker } from '../../components/ChartPicker';
 import { getDailyFortune } from '../../lib/dailyFortune';
 import { colors, radius, space, shadow, font } from '../../lib/theme';
+import { playSound } from '../../lib/sounds';
 
 type MenuItem = { key: string; labelKey: string; image: any; route: string; ready: boolean; premium?: boolean };
 
@@ -29,8 +30,10 @@ const MENU: MenuItem[] = [
 
 function TwinklingStars() {
   const starAnims = useRef([new Animated.Value(0.3), new Animated.Value(0.5), new Animated.Value(0.2)]).current;
+  const shootingAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
+    // 반짝이는 별들
     starAnims.forEach((anim, i) => {
       const duration = 1500 + i * 800;
       Animated.loop(
@@ -40,7 +43,27 @@ function TwinklingStars() {
         ])
       ).start();
     });
+
+    // 유성 애니메이션 (8초마다 한 번씩)
+    const runShootingStar = () => {
+      shootingAnim.setValue(0);
+      Animated.timing(shootingAnim, {
+        toValue: 1,
+        duration: 1000,
+        useNativeDriver: true,
+      }).start(() => {
+        setTimeout(runShootingStar, 7000 + Math.random() * 3000);
+      });
+    };
+    runShootingStar();
   }, []);
+
+  const shootX = shootingAnim.interpolate({ inputRange: [0, 1], outputRange: [400, -100] });
+  const shootY = shootingAnim.interpolate({ inputRange: [0, 1], outputRange: [-100, 400] });
+  const shootOpacity = shootingAnim.interpolate({
+    inputRange: [0, 0.2, 0.8, 1],
+    outputRange: [0, 1, 1, 0],
+  });
 
   return (
     <View style={StyleSheet.absoluteFill}>
@@ -48,6 +71,17 @@ function TwinklingStars() {
       <Animated.Text style={[styles.star, { top: '40%', right: '15%', opacity: starAnims[1] }]}>✧</Animated.Text>
       <Animated.Text style={[styles.star, { top: '75%', left: '35%', opacity: starAnims[2] }]}>✦</Animated.Text>
       <Animated.Text style={[styles.star, { top: '25%', right: '30%', opacity: starAnims[0], transform: [{ scale: 0.7 }] }]}>✧</Animated.Text>
+      
+      {/* 유성 */}
+      <Animated.View
+        style={[
+          styles.shootingStar,
+          {
+            transform: [{ translateX: shootX }, { translateY: shootY }, { rotate: '-45deg' }],
+            opacity: shootOpacity,
+          },
+        ]}
+      />
     </View>
   );
 }
@@ -64,6 +98,7 @@ export default function Home() {
   }, []);
 
   async function onPress(m: MenuItem) {
+    playSound('click');
     if (!m.ready) { Alert.alert(t(m.labelKey), t('common.comingSoon')); return; }
     // 무료 메뉴 = 진입 시 전면광고(ADR-043). 프리미엄은 광고 없이(해당 화면에서 구독 게이트).
     if (!m.premium) await showInterstitialAd();
@@ -141,7 +176,13 @@ export default function Home() {
 const styles = StyleSheet.create({
   bgImage: { flex: 1, backgroundColor: colors.bg },
   star: { position: 'absolute', color: colors.ju, fontSize: 16 },
-  screen: { backgroundColor: 'rgba(21,19,46,0.3)' }, // 별밤 배경 위 반투명 남색 — 카드·텍스트 가독
+  shootingStar: {
+    position: 'absolute', width: 100, height: 2,
+    backgroundColor: colors.ju, borderRadius: radius.pill,
+    shadowColor: colors.ju, shadowOpacity: 0.8, shadowRadius: 4, elevation: 5,
+  },
+  screen: { backgroundColor: 'rgba(21,19,46,0.3)' },
+ // 별밤 배경 위 반투명 남색 — 카드·텍스트 가독
   wrap: { padding: space(5), paddingTop: space(12), paddingBottom: space(10) }, // 헤더 숨김 → status bar 여백 확보
   langRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: space(3), marginBottom: space(2) },
   langBtn: { fontSize: 13, color: colors.inkFaint, fontWeight: '600' },
