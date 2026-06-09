@@ -85,7 +85,8 @@ export default function ZiweiRoute() {
         <View style={styles.premCard}>
           <Text style={styles.premTitle}>자미두수 상세 풀이 (프리미엄)</Text>
           <Text style={styles.premDesc}>12궁 통합 해석과 운한(대한) 흐름 풀이는 프리미엄에서 제공됩니다.</Text>
-          <Pressable style={styles.btn} onPress={() => router.push('/register')}><Text style={styles.btnText}>프리미엄 풀이 보기</Text></Pressable>
+          {/* 대표 명식(me, 위에서 null 가드됨)으로 딥 통변 진입 — '다시 등록' 아님 */}
+          <Pressable style={styles.btn} onPress={() => router.push({ pathname: '/reading', params: { input: JSON.stringify(me) } })}><Text style={styles.btnText}>프리미엄 풀이 보기</Text></Pressable>
         </View>
       </ScrollView>
 

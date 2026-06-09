@@ -23,7 +23,9 @@ const MENU: MenuItem[] = [
   { key: 'manse', labelKey: 'menu.manse', image: require('../../../assets/icons/manse.png'), route: '/charts', ready: true },
   { key: 'taro', labelKey: 'menu.taro', image: require('../../../assets/icons/taro.png'), route: '/taro', ready: true },
   { key: 'today', labelKey: 'menu.today', image: require('../../../assets/icons/today.png'), route: '/today', ready: true },
-  { key: 'premium', labelKey: 'menu.premium', image: require('../../../assets/icons/premium.png'), route: '/register', ready: true, premium: true },
+  // '프리미엄 풀이' = 대표 명식의 딥 통변(/reading). 명식 없을 때만 reading 라우트가 등록 유도.
+  //   (과거 '/register' 고정 → 이미 등록한 사용자도 매번 등록 폼이 떠 '다시 등록' 혼란 — 수정)
+  { key: 'premium', labelKey: 'menu.premium', image: require('../../../assets/icons/premium.png'), route: '/reading', ready: true, premium: true },
   { key: 'compat', labelKey: 'menu.compat', image: require('../../../assets/icons/compat.png'), route: '/compat', ready: true, premium: true },
   { key: 'ziwei', labelKey: 'menu.ziwei', image: require('../../../assets/icons/ziwei.png'), route: '/ziwei', ready: true, premium: true },
 ];
