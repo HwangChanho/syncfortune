@@ -58,7 +58,8 @@ const ko = {
     sinsalHint: '기준 글자가 원국에 있으면 ✓(자리), 없으면 대운·세운에서 작동', ssLuck: '운에서', dayPillar: '일주',
   },
   reading: {
-    title: '영역별 풀이 · 프리미엄', sub: '영역을 선택하면 딥·정밀 통변을 드립니다. (명식은 무료)',
+    title: '전 영역 풀이 · 프리미엄', sub: '16개 전 영역을 한 번에 딥·정밀 통변해 드립니다. (명식은 무료)',
+    runAll: '전체 풀이 보기 (16개 영역)', progress: '{{done}}/{{total}} 영역 생성 중…',
     bannerPremium: '구독 중 — 무제한 통변', bannerTrial: '🎁 첫 통변 1회 무료 체험!',
     bannerGated: '영역 선택 시 광고 또는 구독으로 통변이 열립니다',
     base: '결', overlay: '지금', remedy: '처방',
@@ -135,7 +136,8 @@ const en = {
     sinsalHint: '✓ (pillar) if the branch is in the natal chart; otherwise it activates in luck cycles', ssLuck: 'in luck', dayPillar: 'Day pillar',
   },
   reading: {
-    title: 'Area Readings · Premium', sub: 'Pick an area for a deep, precise reading. (Chart is free)',
+    title: 'Full Reading · Premium', sub: 'All 16 areas in one deep, precise reading. (Chart is free)',
+    runAll: 'See full reading (16 areas)', progress: 'Generating {{done}}/{{total}}…',
     bannerPremium: 'Subscribed — unlimited readings', bannerTrial: '🎁 First reading free!',
     bannerGated: 'Pick an area to unlock via ad or subscription',
     base: 'Core', overlay: 'Now', remedy: 'Advice',
@@ -212,7 +214,8 @@ const ja = {
     sinsalHint: '基準の地支が原局にあれば✓(柱)、なければ大運·歳運で作動', ssLuck: '運で', dayPillar: '日柱',
   },
   reading: {
-    title: '領域別鑑定 · プレミアム', sub: '領域を選ぶと深く精密な通変を提供します。（命式は無料）',
+    title: '全領域鑑定 · プレミアム', sub: '16領域すべてを一度に深く精密な通変。（命式は無料）',
+    runAll: '全領域の鑑定を見る（16領域）', progress: '{{done}}/{{total}} 領域を生成中…',
     bannerPremium: '購読中 — 無制限通変', bannerTrial: '🎁 初回鑑定が無料！',
     bannerGated: '領域選択で広告または購読により通変が開きます',
     base: '本質', overlay: '現在', remedy: '処方',
