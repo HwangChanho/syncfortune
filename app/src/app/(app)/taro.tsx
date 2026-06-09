@@ -1,8 +1,8 @@
-// src/app/(app)/taro.tsx — 타로 78장(RWS): 주제 선택 → 덱에서 한 장씩 직접 뽑기 → 전체 조합 풀이
+// src/app/(app)/taro.tsx — 타로 78장(RWS): 하루 1회, 덱에서 5장 직접 뽑기 → 하나의 흐름 풀이(고정)
 // ─────────────────────────────────────────────────────────────────────────
-// ① 주제 선택 → 10장을 미리 섞어두고(숨김) ② 사용자가 뒷면 덱을 탭해 한 장씩 공개(포지션 순서)
-//   ③ 공개 카드는 부채꼴로 쌓이고 탭하면 떠올라 확대(설명)·빈곳 탭=내려감 ④ 10장 다 뽑으면 전체 조합 풀이.
-//   카드 이미지=RWS 퍼블릭도메인. 룰·온디바이스(LLM·서버 0, 무제한 무료). 역방향=180° 회전.
+// ① 하루 1회만 가능 — 뽑은 결과는 당일 고정(재진입 시 같은 카드·풀이, tarotStore). 날짜 바뀌면 새로.
+// ② 주제 선택 → 뒷면 덱을 탭해 5장 한 장씩 직접 공개(고민을 떠올리며) ③ 공개 카드 부채꼴+탭 확대
+// ④ 5장 다 뽑으면 전체를 '하나의 흐름'으로 풀이. 룰·온디바이스(LLM·서버 0, 무제한 무료).
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useEffect, useRef } from 'react';
 import { View, Text, Pressable, ScrollView, Image, StyleSheet, ImageBackground, Modal, Animated } from 'react-native';
@@ -11,31 +11,68 @@ import { useTranslation } from 'react-i18next';
 import {
   drawSpread, cardImage, combineReading, SPREAD_POSITIONS, TARO_CATEGORIES, type SpreadCard,
 } from '../../lib/tarot';
+import { loadTodayTaro, saveTodayTaro } from '../../lib/tarotStore';
 import { playSound } from '../../lib/sounds';
 import { colors, radius, space, shadow, font } from '../../lib/theme';
 
 type Category = (typeof TARO_CATEGORIES)[number];
 
+// 로컬 날짜 키 'YYYY-M-D' (자정 지나면 바뀜 → 새 타로 가능)
+function todayStr(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+}
+
 export default function TaroScreen() {
   const { t } = useTranslation();
   const { cat } = useLocalSearchParams<{ cat?: string }>();
   const [category, setCategory] = useState<Category | null>(null);
-  const [spread, setSpread] = useState<SpreadCard[] | null>(null); // 미리 섞인 10장(숨김 순서)
-  const [drawn, setDrawn] = useState(0);                            // 지금까지 뽑은 장수
-  const [sel, setSel] = useState<number | null>(null);             // 펼쳐 본 카드(모달)
+  const [spread, setSpread] = useState<SpreadCard[] | null>(null);
+  const [drawn, setDrawn] = useState(0);
+  const [sel, setSel] = useState<number | null>(null);
+  const [locked, setLocked] = useState(false); // 오늘 이미 완료 → 고정
+  const [loaded, setLoaded] = useState(false);  // 오늘 저장분 로드 완료
   const lift = useRef(new Animated.Value(0)).current;
+  const today = todayStr();
+
+  // 진입: 오늘 이미 뽑은 결과가 있으면 그대로 복원(고정)
+  useEffect(() => {
+    loadTodayTaro(today).then((saved) => {
+      if (saved) {
+        setCategory(TARO_CATEGORIES.find((x) => x.key === saved.categoryKey) ?? null);
+        setSpread(saved.cards);
+        setDrawn(saved.cards.length);
+        setLocked(true);
+      }
+      setLoaded(true);
+    });
+  }, [today]);
+
+  // 5장 다 뽑으면 오늘 결과로 저장(고정). 이후 재진입 시 위 복원으로 같은 결과.
+  useEffect(() => {
+    if (spread && !locked && category && drawn >= spread.length) {
+      saveTodayTaro({ date: today, categoryKey: category.key, cards: spread });
+      setLocked(true);
+    }
+  }, [drawn, spread, locked, category, today]);
 
   function start(c: Category) {
     playSound('flip');
     setCategory(c);
-    setSpread(drawSpread(SPREAD_POSITIONS)); // 결과는 미리 정해지되, 공개는 사용자가 한 장씩
+    setSpread(drawSpread(SPREAD_POSITIONS));
     setDrawn(0);
     setSel(null);
   }
-  function reset() { playSound('flip'); setCategory(null); setSpread(null); setDrawn(0); setSel(null); }
-  function drawNext() {
-    if (spread && drawn < spread.length) { playSound('flip'); setDrawn((n) => n + 1); }
-  }
+  // 딥링크 ?cat= → 오늘 안 뽑았을 때만 시작
+  useEffect(() => {
+    if (!cat || !loaded || spread) return;
+    const c = TARO_CATEGORIES.find((x) => x.key === cat);
+    if (c) start(c);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cat, loaded, spread]);
+
+  function cancel() { playSound('flip'); setCategory(null); setSpread(null); setDrawn(0); setSel(null); } // 뽑는 중 취소(미완=미저장)
+  function drawNext() { if (spread && drawn < spread.length) { playSound('flip'); setDrawn((n) => n + 1); } }
   function openCard(i: number) {
     playSound('flip');
     setSel(i);
@@ -46,16 +83,12 @@ export default function TaroScreen() {
     Animated.timing(lift, { toValue: 0, duration: 200, useNativeDriver: true }).start(() => setSel(null));
   }
 
-  // 딥링크 ?cat= → 해당 주제로 시작(뽑기는 직접)
-  useEffect(() => {
-    if (!cat) return;
-    const c = TARO_CATEGORIES.find((x) => x.key === cat);
-    if (c) { setCategory(c); setSpread(drawSpread(SPREAD_POSITIONS)); setDrawn(0); }
-  }, [cat]);
-
-  const cards = spread ? spread.slice(0, drawn) : []; // 공개된 카드
+  const cards = spread ? spread.slice(0, drawn) : [];
   const done = !!spread && drawn >= spread.length;
-  const nextPos = spread && drawn < spread.length ? spread[drawn].position : '';
+
+  if (!loaded) {
+    return <ImageBackground source={require('../../../assets/icons/bg-night.png')} style={styles.bg} resizeMode="cover"><View /></ImageBackground>;
+  }
 
   return (
     <ImageBackground source={require('../../../assets/icons/bg-night.png')} style={styles.bg} resizeMode="cover">
@@ -63,9 +96,9 @@ export default function TaroScreen() {
         <Text style={styles.title}>{t('menu.taro')}</Text>
 
         {!spread ? (
-          // ── 주제 선택 ──
+          // ── 주제 선택 (오늘 아직 안 뽑음) ──
           <>
-            <Text style={styles.sub}>질문 주제를 고른 뒤, 덱에서 카드를 한 장씩 직접 뽑아 보세요.</Text>
+            <Text style={styles.sub}>오늘의 타로는 하루 한 번. 주제를 고른 뒤 카드를 직접 뽑아 보세요.</Text>
             <View style={styles.cats}>
               {TARO_CATEGORIES.map((c) => (
                 <Pressable key={c.key} style={styles.catBtn} onPress={() => start(c)}>
@@ -79,16 +112,16 @@ export default function TaroScreen() {
           <>
             <View style={styles.spreadHead}>
               <Text style={styles.spreadCat}>{category?.emoji} {category?.ko} · {drawn}/{spread.length}</Text>
-              <Pressable style={styles.resetBtn} onPress={reset}><Text style={styles.resetTx}>다시</Text></Pressable>
+              {!locked && <Pressable style={styles.resetBtn} onPress={cancel}><Text style={styles.resetTx}>취소</Text></Pressable>}
             </View>
 
-            {/* 공개된 카드 — 부채꼴로 쌓임(탭하면 떠올라 설명) */}
+            {/* 공개된 카드 — 부채꼴(탭하면 떠올라 설명) */}
             {cards.length > 0 && (
               <View style={styles.fan}>
                 {cards.map((card, i) => {
                   const mid = (cards.length - 1) / 2;
                   const angle = (i - mid) * 7;
-                  const offsetX = (i - mid) * 24;
+                  const offsetX = (i - mid) * 26;
                   return (
                     <Pressable
                       key={i}
@@ -102,29 +135,30 @@ export default function TaroScreen() {
               </View>
             )}
 
-            {/* 아직 다 안 뽑았으면: 뒷면 덱(탭해서 한 장 뽑기) */}
             {!done ? (
+              // 뒷면 덱(탭해서 한 장씩)
               <View style={styles.drawArea}>
                 <Pressable style={styles.deckBack} onPress={drawNext}>
                   <Text style={styles.deckGlyph}>🔮</Text>
                 </Pressable>
-                <Text style={styles.drawHint}>덱을 탭해 ‘{nextPos}’ 카드를 뽑으세요 ({drawn}/{spread.length})</Text>
+                <Text style={styles.drawHint}>지금 고민 중인 문제를 떠올리며, 카드를 한 장씩 탭해 주세요 ({drawn}/{spread.length})</Text>
               </View>
             ) : (
-              // 다 뽑음 → 전체 조합 풀이
+              // 완료 → 하나의 흐름 풀이 (+ 오늘 고정 안내)
               <>
-                <Text style={styles.readingH}>풀이 · 전체 흐름</Text>
+                <Text style={styles.readingH}>풀이 · 하나의 흐름</Text>
                 {combineReading(spread).map((line, i) => (
                   <Text key={i} style={styles.combineLine}>{line}</Text>
                 ))}
-                <Text style={styles.note}>※ 재미·자기성찰용. 카드는 무작위로 섞여요. 카드를 탭하면 자세히 볼 수 있어요.</Text>
+                {locked && <Text style={styles.lockNote}>🌙 오늘의 카드예요. 내일 다시 만나요.</Text>}
+                <Text style={styles.note}>※ 재미·자기성찰용. 카드를 탭하면 자세히 볼 수 있어요.</Text>
               </>
             )}
           </>
         )}
       </ScrollView>
 
-      {/* 선택 카드 확대 — 탭 시 아래에서 떠오르고, 빈 곳 탭=내려가며 닫힘 */}
+      {/* 선택 카드 확대 — 탭 시 떠오르고, 빈 곳 탭=내려가며 닫힘 */}
       <Modal visible={sel != null} transparent animationType="none" onRequestClose={closeCard}>
         <Pressable style={styles.backdrop} onPress={closeCard}>
           {sel != null && spread && (
@@ -164,23 +198,20 @@ const styles = StyleSheet.create({
   catKo: { ...font.body, color: colors.ink, fontWeight: '700' },
   spreadHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: space(2) },
   spreadCat: { ...font.heading, color: colors.ju },
-  resetBtn: { paddingVertical: space(2), paddingHorizontal: space(4), borderRadius: radius.pill, backgroundColor: colors.ju },
-  resetTx: { color: colors.bg, fontSize: 13, fontWeight: '700' },
-  // 공개 카드 부채꼴
+  resetBtn: { paddingVertical: space(2), paddingHorizontal: space(4), borderRadius: radius.pill, backgroundColor: colors.line },
+  resetTx: { color: colors.ink, fontSize: 13, fontWeight: '700' },
   fan: { height: 250, alignItems: 'center', justifyContent: 'flex-end', marginTop: space(4) },
   fanCard: { position: 'absolute', bottom: space(2), transformOrigin: 'center bottom' },
   fanImg: { width: 100, height: 171, borderRadius: radius.sm, borderWidth: 1, borderColor: colors.juLine, backgroundColor: colors.card },
   revImg: { transform: [{ rotate: '180deg' }] },
-  // 뒷면 덱(뽑기)
   drawArea: { alignItems: 'center', marginTop: space(6) },
   deckBack: { width: 120, height: 205, borderRadius: radius.md, backgroundColor: colors.card, borderWidth: 2, borderColor: colors.ju, alignItems: 'center', justifyContent: 'center', ...shadow.card },
   deckGlyph: { fontSize: 54, opacity: 0.85 },
-  drawHint: { ...font.body, color: colors.inkSoft, marginTop: space(4), textAlign: 'center' },
-  // 풀이
+  drawHint: { ...font.body, color: colors.inkSoft, marginTop: space(4), textAlign: 'center', lineHeight: 22 },
   readingH: { ...font.heading, color: colors.ink, marginTop: space(7), marginBottom: space(3) },
-  combineLine: { ...font.body, color: colors.inkSoft, lineHeight: 24, marginBottom: space(2.5) },
+  combineLine: { ...font.body, color: colors.inkSoft, lineHeight: 24, marginBottom: space(3) },
+  lockNote: { ...font.body, color: colors.ju, textAlign: 'center', marginTop: space(2), fontWeight: '700' },
   note: { ...font.caption, color: colors.inkFaint, marginTop: space(3), textAlign: 'center', lineHeight: 18 },
-  // 확대 모달
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.82)', justifyContent: 'center', alignItems: 'center', padding: space(6) },
   bigWrap: { alignItems: 'center', backgroundColor: colors.card, borderRadius: radius.lg, padding: space(6), borderWidth: 1, borderColor: colors.juLine, ...shadow.card },
   bigImg: { width: 200, height: 343, borderRadius: radius.md, marginBottom: space(4) },

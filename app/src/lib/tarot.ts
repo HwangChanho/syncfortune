@@ -212,15 +212,15 @@ export function combineReading(cards: SpreadCard[]): string[] {
   const out = cards[cards.length - 1];  // 최종 결과
   const kw = (c: SpreadCard) => (c.reversed ? c.rev : c.up);
 
-  // 5장을 따로따로가 아니라 '하나의 흐름'으로 엮는다: 현재→도전→뿌리→조언→결과를 접속해 서사로,
-  //   마지막에 전체 톤(메이저 비중·우세 수트·정/역)을 한 문단으로 종합한다.
-  const nm = (c: SpreadCard) => `${c.ko}${c.reversed ? '(뒤집힘)' : ''}`;
-  const ch = cards[1] ?? cur;   // 도전·장애
-  const root = cards[2] ?? cur; // 뿌리·원인
-  const adv = cards[3] ?? out;  // 조언·방향
+  // 5장을 '하나의 이야기'로: 각 카드의 핵심 키워드 1개만 뽑아 현재→도전→뿌리→조언→결과를
+  //   한 문장 흐름으로 잇고(따옴표+안전 조사로 받침 문제 회피), 전체 톤을 한 문단으로 종합.
+  //   카드별 상세 의미는 카드 탭(모달)에서 본다.
+  const k = (c: SpreadCard) => kw(c).split('·')[0]; // 핵심 키워드 1개
+  const ch = cards[1] ?? cur;
+  const root = cards[2] ?? cur;
+  const adv = cards[3] ?? out;
   return [
-    `지금 당신은 ${nm(cur)} 자리에서 출발해요 — ${kw(cur)}. 그 안에서 ${nm(ch)}의 도전을 마주하고(${kw(ch)}), 이 모든 것의 바탕엔 ${nm(root)}가 깔려 있습니다(${kw(root)}).`,
-    `그래서 카드가 건네는 조언은 ${nm(adv)} — ${kw(adv)}. 이 방향으로 움직이면, 흐름은 자연스럽게 ${nm(out)}로 향합니다(${kw(out)}).`,
-    `전체적으로 보면 ${majors >= 3 ? '인생의 큰 전환점이 움직이는' : '당신이 직접 풀어갈 현실적인 일들이 중심인'} 시기예요.${cnt[dom] >= 2 ? ` ${SUIT_META[dom].ko}(${SUIT_ENERGY[dom]})의 기운이 흐름을 이끌고,` : ''} ${rev >= 4 ? '지금은 밀어붙이기보다 잠시 멈춰 안을 정리하는 게 좋습니다.' : rev <= 1 ? '큰 막힘 없이 비교적 순조롭게 풀려갑니다.' : '잘 풀리는 부분과 점검할 부분이 함께 있어요.'}`,
+    `지금 당신은 '${k(cur)}'의 자리에서 시작해요. 마주한 과제는 '${k(ch)}', 그 뿌리는 '${k(root)}'. 카드가 권하는 방향은 '${k(adv)}', 그 끝에 기다리는 건 '${k(out)}'입니다.`,
+    `${majors >= 3 ? '인생의 큰 전환점이 움직이는 시기' : '당신이 직접 풀어갈 현실적인 일들이 중심인 때'}예요. ${cnt[dom] >= 2 ? `${SUIT_META[dom].ko}(${SUIT_ENERGY[dom]})의 기운이 흐름을 이끌고, ` : ''}${rev >= 4 ? '서두르기보다 차분히 안을 정리하면 좋아요.' : rev <= 1 ? '큰 막힘 없이 순조롭게 풀려갑니다.' : '잘 풀리는 부분과 점검할 부분이 함께 있어요.'}`,
   ];
 }
