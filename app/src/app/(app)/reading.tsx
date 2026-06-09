@@ -17,7 +17,7 @@ import type { ChartInput } from '@spec/chart';
 export default function ReadingRoute() {
   const router = useRouter();
   const { t } = useTranslation();
-  const { input } = useLocalSearchParams<{ input?: string }>();
+  const { input, kind } = useLocalSearchParams<{ input?: string; kind?: string }>();
   const [me, setMe] = useState<ChartInput | null>(null);
   const [savedChart, setSavedChart] = useState<SavedChart | null>(null);
   const [loading, setLoading] = useState(true);
@@ -49,7 +49,17 @@ export default function ReadingRoute() {
     );
   }
 
-  return <ReadingScreen input={me} savedChart={savedChart} />;
+  // kind=ziwei → 자미두수 12궁 풀이(별도 제목/항목). 기본 = 사주 16영역.
+  const isZiwei = kind === 'ziwei';
+  return (
+    <ReadingScreen
+      input={me}
+      savedChart={savedChart}
+      kind={kind ?? 'saju'}
+      titleKey={isZiwei ? 'reading.ziweiTitle' : 'reading.title'}
+      subKey={isZiwei ? 'reading.ziweiSub' : 'reading.sub'}
+    />
+  );
 }
 
 const styles = StyleSheet.create({
