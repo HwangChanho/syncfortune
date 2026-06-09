@@ -1,18 +1,16 @@
-// src/app/(app)/reading.tsx — 풀이 라우트 (명식 게이트 + params→props 어댑터)
+// src/app/(app)/reading.tsx — 풀이 라우트 (명식 게이트 + 대표 SavedChart 연결)
 // ─────────────────────────────────────────────────────────────────────────
 // '프리미엄 풀이'(딥 통변) 진입점. 풀이할 명식을 2경로로 결정한다:
-//   ① input param 전달(만세력·특징·자미두수의 '풀이 보기') → 그 명식으로 풀이
-//   ② param 없이 직접 진입(홈 '프리미엄 풀이' 타일) → 대표 명식(loadMyChart) 사용
-// 대표 명식조차 없을 때만 등록을 유도한다 — 이미 등록한 사용자에게 '다시 등록'을
-//   요구하지 않기 위함(과거: route='/register' 고정이라 명식이 있어도 등록 폼이 떴음).
-// 무료=온디바이스 구조 / 유료=LLM 통변(로그인 게이트 → Edge, 프로덕션). 차트는 화면 내 computeChart.
+//   ① input param 전달(만세력·특징·자미두수의 '풀이 보기') → 그 명식(캐시 매핑 없음 — 1회용)
+//   ② param 없이 직접 진입(홈 '프리미엄 풀이' 타일) → 대표 SavedChart 로드 → serverChartId 캐시 연결(ADR-052)
+// 대표 명식조차 없을 때만 등록을 유도(이미 등록한 사용자에게 '다시 등록' 요구 안 함).
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useState } from 'react';
 import { View, Text, Pressable, ActivityIndicator, StyleSheet } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { ReadingScreen } from '../../screens/ReadingScreen';
-import { loadMyChart } from '../../lib/myChart';
+import { loadRepChart, type SavedChart } from '../../lib/myChart';
 import { colors, radius, space, font } from '../../lib/theme';
 import type { ChartInput } from '@spec/chart';
 
@@ -21,14 +19,19 @@ export default function ReadingRoute() {
   const { t } = useTranslation();
   const { input } = useLocalSearchParams<{ input?: string }>();
   const [me, setMe] = useState<ChartInput | null>(null);
+  const [savedChart, setSavedChart] = useState<SavedChart | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // input param 우선(특정 명식 지정 경로). 없으면 대표 명식으로 폴백(직접 진입).
-    //   JSON.parse('null')=null 도 안전(자미두수에서 me 미로드 시) → 아래 등록 유도로 분기.
-    if (input) { setMe(JSON.parse(input)); setLoading(false); return; }
-    let alive = true; // 언마운트 후 setState 방지(traits.tsx 패턴과 일관)
-    loadMyChart().then((c) => { if (alive) { setMe(c); setLoading(false); } });
+    // input param(특정 명식 지정 경로) 우선 → 캐시 매핑 없는 1회용. 없으면 대표 SavedChart(캐시 연결).
+    if (input) { setMe(JSON.parse(input)); setSavedChart(null); setLoading(false); return; }
+    let alive = true;
+    loadRepChart().then((ch) => {
+      if (!alive) return;
+      setSavedChart(ch);
+      setMe(ch?.input ?? null);
+      setLoading(false);
+    });
     return () => { alive = false; };
   }, [input]);
 
@@ -46,7 +49,7 @@ export default function ReadingRoute() {
     );
   }
 
-  return <ReadingScreen input={me} />;
+  return <ReadingScreen input={me} savedChart={savedChart} />;
 }
 
 const styles = StyleSheet.create({

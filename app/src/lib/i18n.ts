@@ -59,7 +59,7 @@ const ko = {
   },
   reading: {
     title: '전 영역 풀이 · 프리미엄', sub: '16개 전 영역을 한 번에 딥·정밀 통변해 드립니다. (명식은 무료)',
-    runAll: '전체 풀이 보기 (16개 영역)', progress: '{{done}}/{{total}} 영역 생성 중…',
+    runAll: '전체 풀이 보기 (16개 영역)', progress: '{{done}}/{{total}} 영역 생성 중…', saveFail: '명식 저장에 실패했어요. 잠시 후 다시 시도해 주세요.',
     bannerPremium: '구독 중 — 무제한 통변', bannerTrial: '🎁 첫 통변 1회 무료 체험!',
     bannerGated: '영역 선택 시 광고 또는 구독으로 통변이 열립니다',
     base: '결', overlay: '지금', remedy: '처방',
@@ -137,7 +137,7 @@ const en = {
   },
   reading: {
     title: 'Full Reading · Premium', sub: 'All 16 areas in one deep, precise reading. (Chart is free)',
-    runAll: 'See full reading (16 areas)', progress: 'Generating {{done}}/{{total}}…',
+    runAll: 'See full reading (16 areas)', progress: 'Generating {{done}}/{{total}}…', saveFail: 'Failed to save chart. Please try again.',
     bannerPremium: 'Subscribed — unlimited readings', bannerTrial: '🎁 First reading free!',
     bannerGated: 'Pick an area to unlock via ad or subscription',
     base: 'Core', overlay: 'Now', remedy: 'Advice',
@@ -215,7 +215,7 @@ const ja = {
   },
   reading: {
     title: '全領域鑑定 · プレミアム', sub: '16領域すべてを一度に深く精密な通変。（命式は無料）',
-    runAll: '全領域の鑑定を見る（16領域）', progress: '{{done}}/{{total}} 領域を生成中…',
+    runAll: '全領域の鑑定を見る（16領域）', progress: '{{done}}/{{total}} 領域を生成中…', saveFail: 'チャートの保存に失敗しました。',
     bannerPremium: '購読中 — 無制限通変', bannerTrial: '🎁 初回鑑定が無料！',
     bannerGated: '領域選択で広告または購読により通変が開きます',
     base: '本質', overlay: '現在', remedy: '処方',

@@ -29,7 +29,9 @@ export class ChartLimitError extends Error {
 }
 
 // label/relation 은 ChartInput PII 계약 외 메타 → 함께 보관
-export type SavedChart = { id: string; label: string; relation: string; input: ChartInput };
+// serverChartId = 이 명식에 대응하는 서버 charts.id (풀이 캐시 chart_id 안정화 — 재방문 시 재사용).
+//   온디바이스에만 매핑 보관(서버 PII 무전송 원칙 유지). 첫 풀이 때 1회 발급·저장(setServerChartId).
+export type SavedChart = { id: string; label: string; relation: string; input: ChartInput; serverChartId?: string };
 
 /** 사용자가 직접 등록한 명식 수(데모 샘플 시드는 한도에서 제외). */
 function countReal(charts: SavedChart[]): number {
@@ -112,6 +114,30 @@ export async function loadMyChart(): Promise<ChartInput | null> {
   const repId = await getRaw(REP_KEY);
   const rep = charts.find((c) => c.id === repId) ?? charts[0];
   return rep.input;
+}
+
+/**
+ * 대표 명식을 SavedChart 통째로 반환(id·serverChartId 포함). 없으면 null.
+ * 풀이 화면이 serverChartId(캐시 chart_id)를 연결하려면 input 만으론 부족 → 이 함수로 SavedChart 를 받는다.
+ */
+export async function loadRepChart(): Promise<SavedChart | null> {
+  const charts = await listCharts();
+  if (!charts.length) return null;
+  const repId = await getRaw(REP_KEY);
+  return charts.find((c) => c.id === repId) ?? charts[0];
+}
+
+/**
+ * 명식 ↔ 서버 charts.id 매핑 저장 (풀이 캐시 chart_id 안정화).
+ * 첫 풀이 때 서버 charts insert 로 받은 id 를 해당 SavedChart 에 1회 기록 → 재방문 시 같은 chart_id 재사용.
+ * @param localId 온디바이스 SavedChart.id / @param serverId 서버 charts.id
+ */
+export async function setServerChartId(localId: string, serverId: string): Promise<void> {
+  const charts = await listCharts();
+  const idx = charts.findIndex((c) => c.id === localId);
+  if (idx < 0) return;                                   // 이미 삭제된 명식이면 무시
+  charts[idx] = { ...charts[idx], serverChartId: serverId };
+  await setRaw(KEY, JSON.stringify(charts));
 }
 
 /** 명식 등록 (호환 — register 에서 호출). 추가 + (첫이면)대표. 무료 한도는 addChart 가 강제. */
