@@ -9,7 +9,8 @@ import type { SpreadCard } from './tarot';
 
 const KEY = 'taro_daily_v1';
 
-export type DailyTaro = { date: string; categoryKey: string; cards: SpreadCard[] };
+// drawn = 지금까지 공개한 장수(첫 카드부터 저장 → 뽑다 나가도 이어서 같은 카드로 복원)
+export type DailyTaro = { date: string; categoryKey: string; cards: SpreadCard[]; drawn: number };
 
 async function getRaw(): Promise<string | null> {
   if (Platform.OS === 'web') return (globalThis as any).localStorage?.getItem(KEY) ?? null;

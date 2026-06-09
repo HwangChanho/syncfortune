@@ -1,6 +1,7 @@
-// src/app/(app)/taro.tsx — 타로 78장(RWS): 하루 1회, 덱에서 5장 직접 뽑기 → 하나의 흐름 풀이(고정)
+// src/app/(app)/taro.tsx — 타로 78장(RWS): 하루 1회, 첫 카드부터 고정, 5장 직접 뽑기 → 하나의 흐름 풀이
 // ─────────────────────────────────────────────────────────────────────────
-// ① 하루 1회만 가능 — 뽑은 결과는 당일 고정(재진입 시 같은 카드·풀이, tarotStore). 날짜 바뀌면 새로.
+// ① 하루 1회 — 첫 카드를 뽑는 순간부터 그날 결과 고정(뽑다 나가도 이어서 같은 카드, tarotStore).
+//    날짜(로컬 'YYYY-M-D')가 자정에 바뀌면 새로 뽑을 수 있다.
 // ② 주제 선택 → 뒷면 덱을 탭해 5장 한 장씩 직접 공개(고민을 떠올리며) ③ 공개 카드 부채꼴+탭 확대
 // ④ 5장 다 뽑으면 전체를 '하나의 흐름'으로 풀이. 룰·온디바이스(LLM·서버 0, 무제한 무료).
 // ─────────────────────────────────────────────────────────────────────────
@@ -30,49 +31,38 @@ export default function TaroScreen() {
   const [spread, setSpread] = useState<SpreadCard[] | null>(null);
   const [drawn, setDrawn] = useState(0);
   const [sel, setSel] = useState<number | null>(null);
-  const [locked, setLocked] = useState(false); // 오늘 이미 완료 → 고정
-  const [loaded, setLoaded] = useState(false);  // 오늘 저장분 로드 완료
+  const [loaded, setLoaded] = useState(false); // 오늘 저장분 로드 완료
   const lift = useRef(new Animated.Value(0)).current;
   const today = todayStr();
 
-  // 진입: 오늘 이미 뽑은 결과가 있으면 그대로 복원(고정)
+  // 진입: 오늘 진행/완료분이 있으면 그대로 복원(첫 카드부터 저장되므로 이어서 같은 카드)
   useEffect(() => {
     loadTodayTaro(today).then((saved) => {
       if (saved) {
         setCategory(TARO_CATEGORIES.find((x) => x.key === saved.categoryKey) ?? null);
         setSpread(saved.cards);
-        setDrawn(saved.cards.length);
-        setLocked(true);
+        setDrawn(saved.drawn);
       }
       setLoaded(true);
     });
   }, [today]);
 
-  // 5장 다 뽑으면 오늘 결과로 저장(고정). 이후 재진입 시 위 복원으로 같은 결과.
-  useEffect(() => {
-    if (spread && !locked && category && drawn >= spread.length) {
-      saveTodayTaro({ date: today, categoryKey: category.key, cards: spread });
-      setLocked(true);
-    }
-  }, [drawn, spread, locked, category, today]);
-
   function start(c: Category) {
     playSound('flip');
     setCategory(c);
-    setSpread(drawSpread(SPREAD_POSITIONS));
+    setSpread(drawSpread(SPREAD_POSITIONS)); // 5장 미리 섞되, 공개는 한 장씩
     setDrawn(0);
     setSel(null);
   }
-  // 딥링크 ?cat= → 오늘 안 뽑았을 때만 시작
-  useEffect(() => {
-    if (!cat || !loaded || spread) return;
-    const c = TARO_CATEGORIES.find((x) => x.key === cat);
-    if (c) start(c);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cat, loaded, spread]);
-
-  function cancel() { playSound('flip'); setCategory(null); setSpread(null); setDrawn(0); setSel(null); } // 뽑는 중 취소(미완=미저장)
-  function drawNext() { if (spread && drawn < spread.length) { playSound('flip'); setDrawn((n) => n + 1); } }
+  // 첫 카드를 뽑는 순간부터 저장(고정) → 뽑다 나가도 이어서 같은 카드로 복원
+  function drawNext() {
+    if (!spread || !category || drawn >= spread.length) return;
+    playSound('flip');
+    const nd = drawn + 1;
+    setDrawn(nd);
+    saveTodayTaro({ date: today, categoryKey: category.key, cards: spread, drawn: nd });
+  }
+  function cancel() { playSound('flip'); setCategory(null); setSpread(null); setDrawn(0); setSel(null); } // 첫 카드 전에만(미저장)
   function openCard(i: number) {
     playSound('flip');
     setSel(i);
@@ -82,6 +72,14 @@ export default function TaroScreen() {
   function closeCard() {
     Animated.timing(lift, { toValue: 0, duration: 200, useNativeDriver: true }).start(() => setSel(null));
   }
+
+  // 딥링크 ?cat= → 오늘 아직 시작 안 했을 때만
+  useEffect(() => {
+    if (!cat || !loaded || spread) return;
+    const c = TARO_CATEGORIES.find((x) => x.key === cat);
+    if (c) start(c);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cat, loaded, spread]);
 
   const cards = spread ? spread.slice(0, drawn) : [];
   const done = !!spread && drawn >= spread.length;
@@ -112,7 +110,7 @@ export default function TaroScreen() {
           <>
             <View style={styles.spreadHead}>
               <Text style={styles.spreadCat}>{category?.emoji} {category?.ko} · {drawn}/{spread.length}</Text>
-              {!locked && <Pressable style={styles.resetBtn} onPress={cancel}><Text style={styles.resetTx}>취소</Text></Pressable>}
+              {drawn === 0 && <Pressable style={styles.resetBtn} onPress={cancel}><Text style={styles.resetTx}>취소</Text></Pressable>}
             </View>
 
             {/* 공개된 카드 — 부채꼴(탭하면 떠올라 설명) */}
@@ -144,13 +142,13 @@ export default function TaroScreen() {
                 <Text style={styles.drawHint}>지금 고민 중인 문제를 떠올리며, 카드를 한 장씩 탭해 주세요 ({drawn}/{spread.length})</Text>
               </View>
             ) : (
-              // 완료 → 하나의 흐름 풀이 (+ 오늘 고정 안내)
+              // 완료 → 하나의 흐름 풀이 (오늘 고정)
               <>
                 <Text style={styles.readingH}>풀이 · 하나의 흐름</Text>
                 {combineReading(spread).map((line, i) => (
                   <Text key={i} style={styles.combineLine}>{line}</Text>
                 ))}
-                {locked && <Text style={styles.lockNote}>🌙 오늘의 카드예요. 내일 다시 만나요.</Text>}
+                <Text style={styles.lockNote}>🌙 오늘의 카드예요. 자정이 지나면 다시 뽑을 수 있어요.</Text>
                 <Text style={styles.note}>※ 재미·자기성찰용. 카드를 탭하면 자세히 볼 수 있어요.</Text>
               </>
             )}
