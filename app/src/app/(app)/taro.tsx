@@ -115,7 +115,7 @@ export default function TaroScreen() {
               <>
                 <Text style={styles.readingH}>풀이 · 전체 흐름</Text>
                 {combineReading(spread).map((line, i) => (
-                  <Text key={i} style={styles.combineLine}>· {line}</Text>
+                  <Text key={i} style={styles.combineLine}>{line}</Text>
                 ))}
                 <Text style={styles.note}>※ 재미·자기성찰용. 카드는 무작위로 섞여요. 카드를 탭하면 자세히 볼 수 있어요.</Text>
               </>

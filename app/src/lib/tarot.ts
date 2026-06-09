@@ -212,21 +212,15 @@ export function combineReading(cards: SpreadCard[]): string[] {
   const out = cards[cards.length - 1];  // 최종 결과
   const kw = (c: SpreadCard) => (c.reversed ? c.rev : c.up);
 
-  const lines: string[] = [];
-  // 일반인이 편히 읽도록 구어체·쉬운 말로. 흐름의 양 끝(지금 → 결과)부터 짚는다.
-  lines.push(`지금 '${cur.position}' 자리엔 ${cur.ko}${cur.reversed ? '(뒤집힘)' : ''} 카드가 나왔어요. ${kw(cur)} — 여기서 이야기가 시작됩니다.`);
-  lines.push(`이 흐름이 향하는 '${out.position}'은 ${out.ko}${out.reversed ? '(뒤집힘)' : ''}예요. ${kw(out)}의 모습으로 마무리될 가능성이 큽니다.`);
-  // 메이저 비중 = 얼마나 '큰 일'인지
-  lines.push(majors >= 3
-    ? `메이저 카드가 ${majors}장이나 나왔어요. 사소한 일상이 아니라 인생의 큰 전환점이 움직이는 시기라는 뜻이에요.`
-    : `메이저 카드는 ${majors}장이에요. 거창한 운명보다, 당신이 직접 풀어갈 수 있는 현실적인 일들이 중심입니다.`);
-  // 우세 수트 = 어떤 에너지가 주인공인지
-  if (cnt[dom] >= 2) lines.push(`${SUIT_META[dom].ko} 카드가 ${cnt[dom]}장으로 가장 많아요. ${SUIT_ENERGY[dom]}의 기운이 이번 질문 전체를 이끌고 있습니다.`);
-  // 정/역 비율 = 순조 vs 점검
-  lines.push(rev >= 4
-    ? `뒤집힌 카드가 ${rev}장으로 많은 편이에요. 지금은 밀어붙이기보다, 잠시 멈춰 안을 정리하는 게 더 좋은 때입니다.`
-    : rev <= 1
-      ? `대부분 바로 선 카드예요(뒤집힘 ${rev}장). 큰 막힘 없이 흐름이 비교적 순조롭게 풀립니다.`
-      : `바로 선 카드와 뒤집힌 카드가 고루 섞였어요(뒤집힘 ${rev}장). 잘 풀리는 부분과 점검할 부분이 함께 있습니다.`);
-  return lines;
+  // 5장을 따로따로가 아니라 '하나의 흐름'으로 엮는다: 현재→도전→뿌리→조언→결과를 접속해 서사로,
+  //   마지막에 전체 톤(메이저 비중·우세 수트·정/역)을 한 문단으로 종합한다.
+  const nm = (c: SpreadCard) => `${c.ko}${c.reversed ? '(뒤집힘)' : ''}`;
+  const ch = cards[1] ?? cur;   // 도전·장애
+  const root = cards[2] ?? cur; // 뿌리·원인
+  const adv = cards[3] ?? out;  // 조언·방향
+  return [
+    `지금 당신은 ${nm(cur)} 자리에서 출발해요 — ${kw(cur)}. 그 안에서 ${nm(ch)}의 도전을 마주하고(${kw(ch)}), 이 모든 것의 바탕엔 ${nm(root)}가 깔려 있습니다(${kw(root)}).`,
+    `그래서 카드가 건네는 조언은 ${nm(adv)} — ${kw(adv)}. 이 방향으로 움직이면, 흐름은 자연스럽게 ${nm(out)}로 향합니다(${kw(out)}).`,
+    `전체적으로 보면 ${majors >= 3 ? '인생의 큰 전환점이 움직이는' : '당신이 직접 풀어갈 현실적인 일들이 중심인'} 시기예요.${cnt[dom] >= 2 ? ` ${SUIT_META[dom].ko}(${SUIT_ENERGY[dom]})의 기운이 흐름을 이끌고,` : ''} ${rev >= 4 ? '지금은 밀어붙이기보다 잠시 멈춰 안을 정리하는 게 좋습니다.' : rev <= 1 ? '큰 막힘 없이 비교적 순조롭게 풀려갑니다.' : '잘 풀리는 부분과 점검할 부분이 함께 있어요.'}`,
+  ];
 }
