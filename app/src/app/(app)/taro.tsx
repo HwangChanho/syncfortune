@@ -4,8 +4,8 @@
 //   ③ 빈 곳 탭=덱으로 복귀 ④ 아래 '풀이'는 카드 하나하나가 아니라 *전체 조합*(combineReading).
 //   카드 이미지=RWS 퍼블릭도메인. 룰·온디바이스(LLM·서버 0). 역방향=이미지 180° 회전.
 // ─────────────────────────────────────────────────────────────────────────
-import { useState, useEffect } from 'react';
-import { View, Text, Pressable, ScrollView, Image, StyleSheet, ImageBackground, Modal } from 'react-native';
+import { useState, useEffect, useRef } from 'react';
+import { View, Text, Pressable, ScrollView, Image, StyleSheet, ImageBackground, Modal, Animated } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import {
@@ -22,6 +22,18 @@ export default function TaroScreen() {
   const [category, setCategory] = useState<Category | null>(null);
   const [spread, setSpread] = useState<SpreadCard[] | null>(null);
   const [sel, setSel] = useState<number | null>(null); // 펼쳐 본 카드 인덱스(모달)
+  const lift = useRef(new Animated.Value(0)).current;  // 0=덱 안 / 1=떠오름
+
+  // 카드 탭 → 아래에서 위로 떠오름(spring). 닫기 → 내려간 뒤 모달 해제.
+  function openCard(i: number) {
+    playSound('flip');
+    setSel(i);
+    lift.setValue(0);
+    Animated.spring(lift, { toValue: 1, useNativeDriver: true, friction: 7, tension: 50 }).start();
+  }
+  function closeCard() {
+    Animated.timing(lift, { toValue: 0, duration: 200, useNativeDriver: true }).start(() => setSel(null));
+  }
 
   // 딥링크로 주제가 지정되면 자동으로 펼친다(없으면 사용자가 카테고리 선택).
   useEffect(() => {
@@ -77,7 +89,7 @@ export default function TaroScreen() {
                   <Pressable
                     key={i}
                     style={[styles.fanCard, { zIndex: i, transform: [{ translateX: offsetX }, { rotate: `${angle}deg` }] }]}
-                    onPress={() => { playSound('flip'); setSel(i); }}
+                    onPress={() => openCard(i)}
                   >
                     <Image source={cardImage(card.id)} style={[styles.fanImg, card.reversed && styles.revImg]} resizeMode="contain" />
                   </Pressable>
@@ -97,20 +109,31 @@ export default function TaroScreen() {
       </ScrollView>
 
       {/* ②③ 선택 카드 확대 모달 — 빈 곳(backdrop) 탭 시 덱으로 복귀 */}
-      <Modal visible={sel != null} transparent animationType="fade" onRequestClose={() => setSel(null)}>
-        <Pressable style={styles.backdrop} onPress={() => setSel(null)}>
+      <Modal visible={sel != null} transparent animationType="none" onRequestClose={closeCard}>
+        <Pressable style={styles.backdrop} onPress={closeCard}>
           {sel != null && spread && (
-            <Pressable style={styles.bigWrap} onPress={() => {}}>
-              <Image
-                source={cardImage(spread[sel].id)}
-                style={[styles.bigImg, spread[sel].reversed && styles.revImg]}
-                resizeMode="contain"
-              />
-              <Text style={styles.bigPos}>{sel + 1}. {spread[sel].position}</Text>
-              <Text style={styles.bigName}>{spread[sel].ko}{spread[sel].reversed ? ' (역)' : ''}</Text>
-              <Text style={styles.bigKw}>{spread[sel].reversed ? spread[sel].rev : spread[sel].up}</Text>
-              <Text style={styles.bigClose}>빈 곳을 탭하면 닫힙니다</Text>
-            </Pressable>
+            <Animated.View
+              style={[styles.bigWrap, {
+                opacity: lift,
+                transform: [
+                  { translateY: lift.interpolate({ inputRange: [0, 1], outputRange: [320, 0] }) }, // 아래→중앙
+                  { scale: lift.interpolate({ inputRange: [0, 1], outputRange: [0.7, 1] }) },
+                ],
+              }]}
+            >
+              {/* 카드 영역 탭은 닫기 전파 차단(빈 곳=backdrop만 닫힘) */}
+              <Pressable onPress={() => {}}>
+                <Image
+                  source={cardImage(spread[sel].id)}
+                  style={[styles.bigImg, spread[sel].reversed && styles.revImg]}
+                  resizeMode="contain"
+                />
+                <Text style={styles.bigPos}>{sel + 1}. {spread[sel].position}</Text>
+                <Text style={styles.bigName}>{spread[sel].ko}{spread[sel].reversed ? ' (역)' : ''}</Text>
+                <Text style={styles.bigKw}>{spread[sel].reversed ? spread[sel].rev : spread[sel].up}</Text>
+                <Text style={styles.bigClose}>빈 곳을 탭하면 닫힙니다</Text>
+              </Pressable>
+            </Animated.View>
           )}
         </Pressable>
       </Modal>
