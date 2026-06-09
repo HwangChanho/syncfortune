@@ -58,22 +58,30 @@ export default function TaroScreen() {
                 <Text style={styles.resetTx}>다시 뽑기</Text>
               </Pressable>
             </View>
-            {spread.map((card, i) => (
-              <View key={i} style={styles.row}>
-                <Image
-                  source={cardImage(card.id)}
-                  style={[styles.cardImg, card.reversed && styles.reversedImg]}
-                  resizeMode="contain"
-                />
-                <View style={styles.info}>
-                  <Text style={styles.pos}>{i + 1}. {card.position}</Text>
-                  <Text style={styles.cardName}>
-                    <Text style={{ color: SUIT_META[card.suit].color }}>● </Text>
-                    {card.ko}
-                    {card.reversed && <Text style={styles.revLabel}>  역(逆)</Text>}
-                  </Text>
-                  <Text style={styles.kw}>{card.reversed ? card.rev : card.up}</Text>
+            {/* ① 카드 나열 (가로 스크롤 — 번호순) */}
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.strip}>
+              {spread.map((card, i) => (
+                <View key={i} style={styles.cardCol}>
+                  <Image
+                    source={cardImage(card.id)}
+                    style={[styles.cardImg, card.reversed && styles.reversedImg]}
+                    resizeMode="contain"
+                  />
+                  <Text style={styles.cardNum}>{i + 1}</Text>
                 </View>
+              ))}
+            </ScrollView>
+
+            {/* ② 풀이 (카드 나열 밑 — 포지션별) */}
+            <Text style={styles.readingH}>풀이</Text>
+            {spread.map((card, i) => (
+              <View key={i} style={styles.readRow}>
+                <Text style={styles.pos}>{i + 1}. {card.position}</Text>
+                <Text style={styles.cardName}>
+                  <Text style={{ color: SUIT_META[card.suit].color }}>● </Text>{card.ko}
+                  {card.reversed && <Text style={styles.revLabel}>  역(逆)</Text>}
+                </Text>
+                <Text style={styles.kw}>{card.reversed ? card.rev : card.up}</Text>
               </View>
             ))}
             <Text style={styles.note}>※ 재미·자기성찰용. 카드는 무작위로 뽑혀요.</Text>
@@ -103,16 +111,18 @@ const styles = StyleSheet.create({
   spreadCat: { ...font.heading, color: colors.ju },
   resetBtn: { paddingVertical: space(2), paddingHorizontal: space(4), borderRadius: radius.pill, backgroundColor: colors.ju },
   resetTx: { color: colors.bg, fontSize: 13, fontWeight: '700' },
-  row: {
-    flexDirection: 'row', gap: space(4), marginBottom: space(4), padding: space(3),
-    backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.line, ...shadow.card,
-  },
-  cardImg: { width: 76, height: 130, borderRadius: radius.sm },
-  reversedImg: { transform: [{ rotate: '180deg' }] }, // 역방향 = 카드 뒤집힘
-  info: { flex: 1, justifyContent: 'center' },
+  // ① 카드 나열(가로 스트립)
+  strip: { gap: space(3), paddingVertical: space(2), paddingRight: space(4) },
+  cardCol: { alignItems: 'center', gap: space(1) },
+  cardImg: { width: 96, height: 165, borderRadius: radius.sm, borderWidth: 1, borderColor: colors.juLine, backgroundColor: colors.card },
+  reversedImg: { transform: [{ rotate: '180deg' }] }, // 역방향 = 카드 180° 뒤집힘
+  cardNum: { ...font.caption, color: colors.ju, fontWeight: '800' },
+  // ② 풀이(세로 리스트)
+  readingH: { ...font.heading, color: colors.ink, marginTop: space(6), marginBottom: space(3) },
+  readRow: { marginBottom: space(3.5), paddingBottom: space(3), borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.line },
   pos: { ...font.caption, color: colors.ju, fontWeight: '700' },
   cardName: { ...font.body, color: colors.ink, fontWeight: '700', marginTop: space(1) },
   revLabel: { ...font.caption, color: colors.juDeep },
-  kw: { ...font.body, color: colors.inkSoft, marginTop: space(1.5), lineHeight: 20 },
+  kw: { ...font.body, color: colors.inkSoft, marginTop: space(1), lineHeight: 20 },
   note: { ...font.caption, color: colors.inkFaint, marginTop: space(3), textAlign: 'center' },
 });
