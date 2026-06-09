@@ -99,7 +99,7 @@ const styles = StyleSheet.create({
     marginBottom: space(5), ...shadow.soft,
   },
   barLabel: { ...font.caption, color: colors.inkSoft },
-  barName: { ...font.heading, color: colors.ju },
+  barName: { fontSize: 15, fontWeight: '700', color: colors.ju }, // heading(17)→15: 라벨과 균형(이름 과대 방지)
   barAdd: { ...font.body, color: colors.ju, fontWeight: '700' },
   backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' },
   sheet: {

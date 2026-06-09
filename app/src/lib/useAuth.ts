@@ -9,6 +9,18 @@ import * as Linking from 'expo-linking';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from './supabase';
 
+// dev 전용 자동 로그인(시뮬 편의) — __DEV__ + app/.env(gitignore) 자격증명이 있을 때만 1회 시도.
+//   프로덕션 빌드는 __DEV__=false + .env 에 키 없음 → 절대 동작하지 않는다. 자격증명은 코드가 아닌 env 에만 둔다.
+let devAutoLoginTried = false;
+async function tryDevAutoLogin() {
+  if (!__DEV__ || devAutoLoginTried) return;
+  const email = process.env.EXPO_PUBLIC_DEV_AUTOLOGIN_EMAIL;
+  const password = process.env.EXPO_PUBLIC_DEV_AUTOLOGIN_PASSWORD;
+  if (!email || !password) return;
+  devAutoLoginTried = true;
+  await supabase.auth.signInWithPassword({ email, password }).catch(() => {});
+}
+
 /**
  * 현재 로그인 세션과 초기 로딩 상태를 반환.
  * - session: null = 미로그인 / Session = 로그인됨
@@ -24,6 +36,7 @@ export function useAuth() {
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
       setLoading(false);
+      if (!data.session) tryDevAutoLogin(); // dev: 세션 없으면 테스트계정 자동 로그인(시뮬 편의)
     });
     // 2) 이후 세션 변화 구독 — 로그인/로그아웃/토큰 자동 갱신 시 즉시 반영
     const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {

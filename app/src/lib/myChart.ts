@@ -49,30 +49,22 @@ async function delRaw(key: string): Promise<void> {
   else await SecureStore.deleteItemAsync(key);
 }
 
-// 개발/데모 편의: 명식이 비어 있으면 자동 시드할 *익명* 샘플(실존 인물 아님 — PII 아님).
-// 재빌드·SecureStore 초기화로 명식이 날아가도 항상 대표 명식이 존재하게 한다(엔진 데모용).
+// 샘플 자동 시드 폐지(daniel 요청): 빈 목록은 빈 채로 둔다(앱이 '등록 유도'로 분기).
+//   과거 버전이 시드해 SecureStore 에 남은 샘플('sample-self')은 읽을 때 1회 정리(아래 listCharts).
 //   ※ 실제 사용자 명식은 앱에서 직접 등록 — 온디바이스 SecureStore 에만 잔류(ADR-005).
-const SAMPLE_CHART: SavedChart = {
-  id: SAMPLE_ID,
-  label: '샘플 (예시)',
-  relation: '본인',
-  input: {
-    birthDateTime: '2000-01-01 12:00',
-    calendar: '양',
-    timeAccuracy: '정확',
-    sex: '남',
-    birthPlace: '서울',
-  } as ChartInput,
-};
 
-/** 저장된 전체 명식 목록. 비어 있으면 본인 샘플을 자동 시드(+대표)한다. */
+/** 저장된 전체 명식 목록(비어 있으면 빈 배열 — 시드하지 않음). 레거시 자동시드 샘플은 1회 제거. */
 export async function listCharts(): Promise<SavedChart[]> {
   const json = await getRaw(KEY);
-  const charts = json ? (JSON.parse(json) as SavedChart[]) : [];
-  if (charts.length === 0) {
-    await setRaw(KEY, JSON.stringify([SAMPLE_CHART]));
-    if (!(await getRaw(REP_KEY))) await setRaw(REP_KEY, SAMPLE_CHART.id);
-    return [SAMPLE_CHART];
+  const all = json ? (JSON.parse(json) as SavedChart[]) : [];
+  // 레거시 정리: 과거 자동 시드된 샘플('sample-self')이 저장돼 있으면 제거한다.
+  const charts = all.filter((c) => c.id !== SAMPLE_ID);
+  if (charts.length !== all.length) {
+    await setRaw(KEY, JSON.stringify(charts));        // 정리 결과 저장(1회 마이그레이션)
+    if ((await getRaw(REP_KEY)) === SAMPLE_ID) {      // 대표가 샘플이었으면 재지정/해제
+      if (charts.length) await setRaw(REP_KEY, charts[0].id);
+      else await delRaw(REP_KEY);
+    }
   }
   return charts;
 }
