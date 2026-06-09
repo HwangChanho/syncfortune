@@ -187,3 +187,47 @@ export function drawCard(): TarotCard & { reversed: boolean } {
   const card = DECK[Math.floor(Math.random() * DECK.length)];
   return { ...card, reversed: Math.random() < 0.5 };
 }
+
+// 수트별 에너지(종합 풀이 서술용)
+const SUIT_ENERGY: Record<Suit, string> = {
+  major: '운명·전환',
+  wands: '열정·행동·추진',
+  cups: '감정·관계·교감',
+  swords: '사고·판단·갈등',
+  pentacles: '현실·물질·안정',
+};
+
+/**
+ * 전체 스프레드의 *조합* 종합 풀이(카드 하나하나가 아니라 흐름 전체).
+ * 룰: 핵심 포지션(현재→결과) + 메이저 비중(운명성) + 우세 수트(에너지) + 정/역 비율(순조/장애).
+ * 온디바이스(LLM 0) — 통계+템플릿. 깊은 서사 통변은 추후 프리미엄(LLM) 여지.
+ */
+export function combineReading(cards: SpreadCard[]): string[] {
+  if (!cards.length) return [];
+  const majors = cards.filter((c) => c.suit === 'major').length;
+  const rev = cards.filter((c) => c.reversed).length;
+  const cnt: Record<string, number> = { wands: 0, cups: 0, swords: 0, pentacles: 0 };
+  cards.forEach((c) => { if (c.suit !== 'major') cnt[c.suit] += 1; });
+  const dom = (Object.keys(cnt) as Suit[]).sort((a, b) => cnt[b] - cnt[a])[0];
+  const cur = cards[0];                 // 현재 상황
+  const out = cards[cards.length - 1];  // 최종 결과
+  const kw = (c: SpreadCard) => (c.reversed ? c.rev : c.up);
+
+  const lines: string[] = [];
+  // 흐름의 양 끝(현재 → 결과)
+  lines.push(`흐름의 시작점인 '${cur.position}'에는 ${cur.ko}${cur.reversed ? '(역)' : ''}가 놓여 ${kw(cur)}의 기류로 출발합니다.`);
+  lines.push(`그 흐름이 향하는 '${out.position}'은 ${out.ko}${out.reversed ? '(역)' : ''} — ${kw(out)}로 귀결됩니다.`);
+  // 메이저 비중 = 운명성
+  lines.push(majors >= 4
+    ? `메이저 아르카나가 ${majors}장으로 많습니다. 지금은 사소한 일상이 아니라 인생의 큰 전환·운명적 흐름이 작동하는 국면입니다.`
+    : `메이저 ${majors}장으로, 거창한 운명보다 당신이 직접 다루는 실질적·일상적 사안이 중심입니다.`);
+  // 우세 수트 = 에너지 색채
+  if (cnt[dom] >= 3) lines.push(`${SUIT_META[dom].ko}(${SUIT_META[dom].element})가 ${cnt[dom]}장으로 두드러져, ${SUIT_ENERGY[dom]}의 에너지가 이번 사안 전체를 이끕니다.`);
+  // 정/역 비율 = 순조 vs 장애
+  lines.push(rev >= 6
+    ? `역방향이 ${rev}장으로 많습니다 — 밖으로 뻗기보다 안에서 점검·정리하고 속도를 늦춰야 할 시기입니다.`
+    : rev <= 2
+      ? `${cards.length}장 중 역방향이 ${rev}장뿐 — 막힘이 적고 흐름이 비교적 순조롭게 전개됩니다.`
+      : `정·역이 고루 섞여(역 ${rev}장), 진전과 조정이 번갈아 오는 시기입니다.`);
+  return lines;
+}
