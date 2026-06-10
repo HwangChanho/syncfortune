@@ -56,6 +56,7 @@ const ko = {
     luck: '대운·세운', daewoon: '대운', sewoon: '세운', elements: '오행 분포',
     합: '합', 충: '충', 형: '형', 해: '해', 파: '파', 극: '극',
     sinsalHint: '기준 글자가 원국에 있으면 ✓(자리), 없으면 대운·세운에서 작동', ssLuck: '운에서', dayPillar: '일주',
+    sinsalDetail: '신살·공망 자세히 보기 →',
   },
   reading: {
     title: '전 영역 풀이 · 프리미엄', sub: '16개 전 영역을 한 번에 딥·정밀 통변해 드립니다. (명식은 무료)',
@@ -135,6 +136,7 @@ const en = {
     luck: 'Luck cycles', daewoon: 'Decade', sewoon: 'Year', elements: 'Five elements',
     합: 'Combine', 충: 'Clash', 형: 'Punish', 해: 'Harm', 파: 'Break', 극: 'Control',
     sinsalHint: '✓ (pillar) if the branch is in the natal chart; otherwise it activates in luck cycles', ssLuck: 'in luck', dayPillar: 'Day pillar',
+    sinsalDetail: 'Sinsal & Void in detail →',
   },
   reading: {
     title: 'Full Reading · Premium', sub: 'All 16 areas in one deep, precise reading. (Chart is free)',
@@ -214,6 +216,7 @@ const ja = {
     luck: '大運·歳運', daewoon: '大運', sewoon: '歳運', elements: '五行分布',
     합: '合', 충: '冲', 형: '刑', 해: '害', 파: '破', 극: '剋',
     sinsalHint: '基準の地支が原局にあれば✓(柱)、なければ大運·歳運で作動', ssLuck: '運で', dayPillar: '日柱',
+    sinsalDetail: '神殺·空亡をくわしく →',
   },
   reading: {
     title: '全領域鑑定 · プレミアム', sub: '16領域すべてを一度に深く精密な通変。（命式は無料）',

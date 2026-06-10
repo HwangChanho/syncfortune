@@ -39,7 +39,7 @@ function GzCell({ char, kind, size, onPress }: { char: string; kind: 'stem' | 'b
   return onPress ? <Pressable onPress={onPress}>{inner}</Pressable> : inner;
 }
 
-export function MyeongsikScreen({ input, onReading }: { input: ChartInput | null; onReading?: () => void }) {
+export function MyeongsikScreen({ input, onReading, onSinsal }: { input: ChartInput | null; onReading?: () => void; onSinsal?: () => void }) {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<'natal' | 'luck' | 'stars'>('natal');
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -645,6 +645,12 @@ export function MyeongsikScreen({ input, onReading }: { input: ChartInput | null
           {/* 신살·공망 — 원국 적중은 자리별 표(팔자처럼 칸), 운에서 오는 건 별도 분리 */}
           <Text style={styles.h}>{t('myeongsik.sinsal')}</Text>
       <Text style={styles.hint}>{t('myeongsik.sinsalHint')}</Text>
+      {/* 전용 상세 화면(분류·의미·활용)으로 — 명식 표는 요약, 깊은 디테일은 따로 */}
+      {onSinsal && (
+        <Pressable style={styles.sinsalDetailBtn} onPress={onSinsal}>
+          <Text style={styles.sinsalDetailTx}>{t('myeongsik.sinsalDetail')}</Text>
+        </Pressable>
+      )}
       {(() => {
         // 적중(원국) 길신·흉살 병합(천을귀인 등 다중) + 괴강·백호
         const byName = new Map<string, { name: string; glyphs: string[]; hits: any[] }>();
@@ -824,6 +830,9 @@ const styles = StyleSheet.create({
   ssTag: { fontSize: 10, color: colors.ju, fontWeight: '600', textAlign: 'center' },
   ssGmRow: { flexDirection: 'row', alignItems: 'center', gap: space(2), marginTop: space(2.5) },
   ssLuckLine: { ...font.caption, color: colors.inkFaint, marginTop: space(2), lineHeight: 18 },
+  // 신살·공망 전용 상세 화면 진입 버튼(골드 아웃라인)
+  sinsalDetailBtn: { alignSelf: 'flex-start', borderWidth: 1, borderColor: colors.ju, borderRadius: radius.pill, paddingHorizontal: space(3.5), paddingVertical: space(1.75), marginTop: space(1), marginBottom: space(3) },
+  sinsalDetailTx: { color: colors.ju, fontSize: 13, fontWeight: '700' },
   // 신살·공망 상세 (길신/흉살/기타/공망)
   ssCatBlock: { marginTop: space(3) },
   ssCatHead: { ...font.caption, color: colors.ju, fontWeight: '800', marginBottom: space(1) },

@@ -26,6 +26,7 @@ export default function AppLayout() {
         <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="register" options={{ title: '차트 등록' }} />
         <Stack.Screen name="myeongsik" options={{ title: '명식' }} />
+        <Stack.Screen name="sinsal" options={{ title: '신살·공망' }} />
         <Stack.Screen name="reading" options={{ title: '풀이' }} />
         <Stack.Screen name="compat" options={{ title: '1:1 궁합' }} />
         <Stack.Screen name="taro" options={{ title: '타로' }} />

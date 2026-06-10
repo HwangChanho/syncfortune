@@ -11,11 +11,12 @@ export default function MyeongsikRoute() {
   const router = useRouter();
   const { input } = useLocalSearchParams<{ input?: string }>();
   const parsed: ChartInput | null = input ? JSON.parse(input) : null;
-  // 명식 → 영역별 풀이 진입(같은 input 전달)
+  // 명식 → 영역별 풀이 / 신살·공망 전용 화면 진입(같은 input 전달)
   return (
     <MyeongsikScreen
       input={parsed}
       onReading={() => router.push({ pathname: '/reading', params: { input: input ?? '' } })}
+      onSinsal={() => router.push({ pathname: '/sinsal', params: { input: input ?? '' } })}
     />
   );
 }
