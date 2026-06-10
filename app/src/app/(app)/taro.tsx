@@ -107,7 +107,11 @@ export default function TaroScreen() {
         ) : (
           <>
             <View style={styles.spreadHead}>
-              <Text style={styles.spreadCat}>{category?.ko} · {drawn}/{spread.length}</Text>
+              {/* 주제 썸네일 + 이름 — 선택 화면 카드와 같은 이미지(주제 정체성 일관) */}
+              <View style={styles.spreadTitle}>
+                <Image source={TARO_IMAGES[category?.key ?? 'general']} style={styles.spreadThumb} />
+                <Text style={styles.spreadCat}>{category?.ko} · {drawn}/{spread.length}</Text>
+              </View>
               <Pressable style={styles.resetBtn} onPress={changeTopic}><Text style={styles.resetTx}>주제 변경</Text></Pressable>
             </View>
 
@@ -132,10 +136,12 @@ export default function TaroScreen() {
             )}
 
             {!done ? (
-              // 뒷면 덱(탭해서 한 장씩)
+              // 뒷면 덱(탭해서 한 장씩) — 뒷면 = 주제 이미지(이모지 🔮 대체, 선택 카드와 동일 그림)
               <View style={styles.drawArea}>
                 <Pressable style={styles.deckBack} onPress={drawNext}>
-                  <Text style={styles.deckGlyph}>🔮</Text>
+                  <ImageBackground source={TARO_IMAGES[category?.key ?? 'general']} style={styles.deckImg} resizeMode="cover">
+                    <View style={styles.deckTapBar}><Text style={styles.deckTapTx}>탭해서 뽑기</Text></View>
+                  </ImageBackground>
                 </Pressable>
                 <Text style={styles.drawHint}>지금 고민 중인 문제를 떠올리며, 카드를 한 장씩 탭해 주세요 ({drawn}/{spread.length})</Text>
               </View>
@@ -194,6 +200,8 @@ const styles = StyleSheet.create({
   catLabel: { backgroundColor: 'rgba(21,19,46,0.72)', paddingVertical: space(2.5), alignItems: 'center' }, // 하단 반투명 바
   catKo: { ...font.body, color: colors.ink, fontWeight: '700' },
   spreadHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: space(2) },
+  spreadTitle: { flexDirection: 'row', alignItems: 'center', gap: space(2.5), flexShrink: 1 },
+  spreadThumb: { width: 36, height: 36, borderRadius: radius.sm, borderWidth: 1, borderColor: colors.juLine },
   spreadCat: { ...font.heading, color: colors.ju },
   resetBtn: { paddingVertical: space(2), paddingHorizontal: space(4), borderRadius: radius.pill, backgroundColor: colors.line },
   resetTx: { color: colors.ink, fontSize: 13, fontWeight: '700' },
@@ -202,8 +210,10 @@ const styles = StyleSheet.create({
   fanImg: { width: 100, height: 171, borderRadius: radius.sm, borderWidth: 1, borderColor: colors.juLine, backgroundColor: colors.card },
   revImg: { transform: [{ rotate: '180deg' }] },
   drawArea: { alignItems: 'center', marginTop: space(6) },
-  deckBack: { width: 120, height: 205, borderRadius: radius.md, backgroundColor: colors.card, borderWidth: 2, borderColor: colors.ju, alignItems: 'center', justifyContent: 'center', ...shadow.card },
-  deckGlyph: { fontSize: 54, opacity: 0.85 },
+  deckBack: { width: 120, height: 205, borderRadius: radius.md, backgroundColor: colors.card, borderWidth: 2, borderColor: colors.ju, overflow: 'hidden', ...shadow.card },
+  deckImg: { flex: 1, justifyContent: 'flex-end' },                                       // 주제 이미지 꽉 채움
+  deckTapBar: { backgroundColor: 'rgba(21,19,46,0.72)', paddingVertical: space(1.75), alignItems: 'center' },
+  deckTapTx: { color: colors.ink, fontSize: 12, fontWeight: '700' },
   drawHint: { ...font.body, color: colors.inkSoft, marginTop: space(4), textAlign: 'center', lineHeight: 22 },
   readingH: { ...font.heading, color: colors.ink, marginTop: space(7), marginBottom: space(3) },
   combineLine: { ...font.body, color: colors.inkSoft, lineHeight: 24, marginBottom: space(3) },
