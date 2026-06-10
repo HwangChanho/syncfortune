@@ -10,7 +10,7 @@
 //   ⚠️ Edge invoke=프로덕션(개발 미배포=호출 실패=비용0·절대0). charts insert/readings select 는 직접 호출이라 개발에서도 동작.
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useMemo, useEffect } from 'react';
-import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator, Alert, Modal } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { computeChart } from '../lib/engine';
@@ -69,6 +69,7 @@ export function ReadingScreen({
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [globalError, setGlobalError] = useState<string | null>(null);
   const [chartId, setChartId] = useState<string | null>(savedChart?.serverChartId ?? null);
+  const [detail, setDetail] = useState<string | null>(null); // 상세로 펼친 항목 key
   const c = useMemo(() => (input ? computeChart(input) : null), [input]);
   // 항목 집합: 주입된 categories 우선, 없으면 사주 16영역(i18n 라벨)
   const cats = useMemo<ReadingCategory[]>(() => {
@@ -166,7 +167,38 @@ export function ReadingScreen({
   const haveAll = cats.every((cat) => readings[cat.key]);
   const showStart = !haveAll && progress === null;         // 캐시 다 있으면 버튼 숨김(바로 표시)
 
+  // 항목 상세 섹션(🌱🌊💡) 렌더 — 리스트 상세 모달에서 재사용
+  const renderSections = (key: string) => {
+    const r = normalizeReading(readings[key]);
+    const base = asText(r.base), overlay = asText(r.overlay), remedy = asText(r.remedy);
+    if (r.error) return <Text style={styles.err}>{r.error}</Text>;
+    return (
+      <>
+        {base ? (
+          <View style={styles.section}>
+            <Text style={styles.secLabel}>🌱 {t('reading.base')}</Text>
+            <Text style={styles.secBody}>{base}</Text>
+          </View>
+        ) : null}
+        {overlay ? (
+          <View style={styles.section}>
+            <Text style={styles.secLabel}>🌊 {t('reading.overlay')}</Text>
+            <Text style={styles.secBody}>{overlay}</Text>
+          </View>
+        ) : null}
+        {remedy ? (
+          <View style={[styles.section, styles.remedySection]}>
+            <Text style={styles.secLabel}>💡 {t('reading.remedy')}</Text>
+            <Text style={styles.secBody}>{remedy}</Text>
+          </View>
+        ) : null}
+        {!base && !overlay && !remedy && <Text style={styles.secBody}>{asText(r)}</Text>}
+      </>
+    );
+  };
+
   return (
+    <>
     <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>
       <Text style={styles.h}>{t(titleKey)}</Text>
       <Text style={styles.sub}>{t(subKey)}</Text>
@@ -192,44 +224,39 @@ export function ReadingScreen({
       {/* 차트 저장 실패(전역) */}
       {globalError && <View style={styles.card}><Text style={styles.err}>{globalError}</Text></View>}
 
-      {/* 항목별 결과 카드 — 캐시·생성된 순서대로 누적(전 항목) */}
+      {/* 항목 리스트 — 영역명 + 미리보기. 탭하면 상세 페이지(모달)로 이동 */}
       {cats.map((cat) => {
         const raw = readings[cat.key];
         if (!raw) return null;
         const r = normalizeReading(raw);
-        const base = asText(r.base), overlay = asText(r.overlay), remedy = asText(r.remedy);
+        const preview = r.error ? '생성 실패 — 다시 시도해 주세요' : asText(r.base);
         return (
-          <View key={cat.key} style={styles.card}>
-            <Text style={styles.cardTitle}>{cat.label}</Text>
-            {r.error ? (
-              <Text style={styles.err}>{r.error}</Text>
-            ) : (
-              <>
-                {base ? (
-                  <View style={styles.section}>
-                    <Text style={styles.secLabel}>🌱 {t('reading.base')}</Text>
-                    <Text style={styles.secBody}>{base}</Text>
-                  </View>
-                ) : null}
-                {overlay ? (
-                  <View style={styles.section}>
-                    <Text style={styles.secLabel}>🌊 {t('reading.overlay')}</Text>
-                    <Text style={styles.secBody}>{overlay}</Text>
-                  </View>
-                ) : null}
-                {remedy ? (
-                  <View style={[styles.section, styles.remedySection]}>
-                    <Text style={styles.secLabel}>💡 {t('reading.remedy')}</Text>
-                    <Text style={styles.secBody}>{remedy}</Text>
-                  </View>
-                ) : null}
-                {!base && !overlay && !remedy && <Text style={styles.secBody}>{asText(r)}</Text>}
-              </>
-            )}
-          </View>
+          <Pressable key={cat.key} style={styles.listItem} onPress={() => setDetail(cat.key)}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.listLabel}>{cat.label}</Text>
+              <Text style={styles.listPreview} numberOfLines={1}>{preview}</Text>
+            </View>
+            <Text style={styles.listArrow}>›</Text>
+          </Pressable>
         );
       })}
     </ScrollView>
+
+    {/* 항목 상세 — 탭한 영역의 섹션을 별도 페이지처럼 슬라이드 */}
+    <Modal visible={!!detail} animationType="slide" onRequestClose={() => setDetail(null)}>
+      <View style={styles.detailScreen}>
+        <Pressable style={styles.detailBack} onPress={() => setDetail(null)}>
+          <Text style={styles.detailBackTx}>‹ 목록으로</Text>
+        </Pressable>
+        {detail && (
+          <ScrollView contentContainerStyle={styles.detailWrap}>
+            <Text style={styles.detailTitle}>{cats.find((x) => x.key === detail)?.label}</Text>
+            {renderSections(detail)}
+          </ScrollView>
+        )}
+      </View>
+    </Modal>
+    </>
   );
 }
 
@@ -253,5 +280,16 @@ const styles = StyleSheet.create({
   secLabel: { ...font.caption, color: colors.ju, fontWeight: '800', marginBottom: space(1.5), letterSpacing: 0.3 },
   secBody: { ...font.body, color: colors.ink, lineHeight: 25 },
   remedySection: { marginTop: space(4), paddingTop: space(4), borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.line },
+  // 항목 리스트(구역)
+  listItem: { flexDirection: 'row', alignItems: 'center', gap: space(3), marginTop: space(3), padding: space(4), backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.line, ...shadow.card },
+  listLabel: { ...font.heading, color: colors.ju },
+  listPreview: { ...font.caption, color: colors.inkSoft, marginTop: space(1) },
+  listArrow: { fontSize: 24, color: colors.inkFaint, fontWeight: '300' },
+  // 상세 페이지(모달)
+  detailScreen: { flex: 1, backgroundColor: colors.bg },
+  detailBack: { paddingTop: space(12), paddingHorizontal: space(5), paddingBottom: space(2) },
+  detailBackTx: { ...font.body, color: colors.ju, fontWeight: '700' },
+  detailWrap: { padding: space(5), paddingTop: space(2), paddingBottom: space(10) },
+  detailTitle: { ...font.title, color: colors.ink, marginBottom: space(2) },
   err: { fontSize: 13, color: colors.ju },
 });
