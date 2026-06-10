@@ -16,6 +16,15 @@ import { loadTodayTaro, saveTodayTaro } from '../../lib/tarotStore';
 import { playSound } from '../../lib/sounds';
 import { colors, radius, space, shadow, font } from '../../lib/theme';
 
+// 주제별 생성 이미지(이모지 대체) — key→png. 미드나잇·골드 테마 통일(Recraft 생성).
+const TARO_IMAGES: Record<string, any> = {
+  love: require('../../../assets/icons/taro-love.png'),
+  work: require('../../../assets/icons/taro-work.png'),
+  money: require('../../../assets/icons/taro-money.png'),
+  health: require('../../../assets/icons/taro-health.png'),
+  general: require('../../../assets/icons/taro-general.png'),
+};
+
 type Category = (typeof TARO_CATEGORIES)[number];
 
 // 로컬 날짜 키 'YYYY-M-D' (자정 지나면 바뀜 → 새 타로 가능)
@@ -86,8 +95,11 @@ export default function TaroScreen() {
             <View style={styles.cats}>
               {TARO_CATEGORIES.map((c) => (
                 <Pressable key={c.key} style={styles.catBtn} onPress={() => start(c)}>
-                  <Text style={styles.catEmoji}>{c.emoji}</Text>
-                  <Text style={styles.catKo}>{c.ko}</Text>
+                  <ImageBackground source={TARO_IMAGES[c.key]} style={styles.catImg} resizeMode="cover">
+                    <View style={styles.catLabel}>
+                      <Text style={styles.catKo}>{c.ko}</Text>
+                    </View>
+                  </ImageBackground>
                 </Pressable>
               ))}
             </View>
@@ -95,7 +107,7 @@ export default function TaroScreen() {
         ) : (
           <>
             <View style={styles.spreadHead}>
-              <Text style={styles.spreadCat}>{category?.emoji} {category?.ko} · {drawn}/{spread.length}</Text>
+              <Text style={styles.spreadCat}>{category?.ko} · {drawn}/{spread.length}</Text>
               <Pressable style={styles.resetBtn} onPress={changeTopic}><Text style={styles.resetTx}>주제 변경</Text></Pressable>
             </View>
 
@@ -177,8 +189,9 @@ const styles = StyleSheet.create({
   title: { ...font.title, color: colors.ink, marginBottom: space(2) },
   sub: { ...font.body, color: colors.inkSoft, marginBottom: space(6) },
   cats: { flexDirection: 'row', flexWrap: 'wrap', gap: space(3) },
-  catBtn: { width: '47%', alignItems: 'center', paddingVertical: space(6), backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.juLine, ...shadow.card },
-  catEmoji: { fontSize: 34, marginBottom: space(2) },
+  catBtn: { width: '47%', aspectRatio: 1, borderRadius: radius.md, borderWidth: 1, borderColor: colors.juLine, overflow: 'hidden', ...shadow.card },
+  catImg: { flex: 1, justifyContent: 'flex-end' },                                      // 이미지 꽉 채우고 라벨 하단
+  catLabel: { backgroundColor: 'rgba(21,19,46,0.72)', paddingVertical: space(2.5), alignItems: 'center' }, // 하단 반투명 바
   catKo: { ...font.body, color: colors.ink, fontWeight: '700' },
   spreadHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: space(2) },
   spreadCat: { ...font.heading, color: colors.ju },
