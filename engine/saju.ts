@@ -42,7 +42,7 @@ const ELEM_ORDER: Element[] = ['木','火','土','金','水']; // 상생 순
  * 오행 관계(상생순): 0 동일(비겁) / 1 일간이 생(식상) / 2 일간이 극(재) / 3 극일간(관) / 4 생일간(인).
  * 정/편: 비겁·식상은 같은 음양=비견/식신, 재·관·인은 다른 음양=정(正).
  */
-function tenGod(day: Stem, other: Stem): TenGod {
+export function tenGod(day: Stem, other: Stem): TenGod {
   const rel = (ELEM_ORDER.indexOf(STEM_ELEM[other]) - ELEM_ORDER.indexOf(STEM_ELEM[day]) + 5) % 5;
   const same = STEM_YANG[day] === STEM_YANG[other];
   switch (rel) {
