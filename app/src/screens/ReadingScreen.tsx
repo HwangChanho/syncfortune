@@ -205,10 +205,25 @@ export function ReadingScreen({
               <Text style={styles.err}>{r.error}</Text>
             ) : (
               <>
-                {base ? <Text style={styles.rk}>{t('reading.base')}: {base}</Text> : null}
-                {overlay ? <Text style={styles.rk}>{t('reading.overlay')}: {overlay}</Text> : null}
-                {remedy ? <Text style={styles.rk}>{t('reading.remedy')}: {remedy}</Text> : null}
-                {!base && !overlay && !remedy && <Text style={styles.rk}>{asText(r)}</Text>}
+                {base ? (
+                  <View style={styles.section}>
+                    <Text style={styles.secLabel}>🌱 {t('reading.base')}</Text>
+                    <Text style={styles.secBody}>{base}</Text>
+                  </View>
+                ) : null}
+                {overlay ? (
+                  <View style={styles.section}>
+                    <Text style={styles.secLabel}>🌊 {t('reading.overlay')}</Text>
+                    <Text style={styles.secBody}>{overlay}</Text>
+                  </View>
+                ) : null}
+                {remedy ? (
+                  <View style={[styles.section, styles.remedySection]}>
+                    <Text style={styles.secLabel}>💡 {t('reading.remedy')}</Text>
+                    <Text style={styles.secBody}>{remedy}</Text>
+                  </View>
+                ) : null}
+                {!base && !overlay && !remedy && <Text style={styles.secBody}>{asText(r)}</Text>}
               </>
             )}
           </View>
@@ -234,6 +249,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, ...shadow.card,
   },
   cardTitle: { ...font.heading, color: colors.ju, marginBottom: space(2) },
-  rk: { ...font.body, marginTop: space(2), lineHeight: 21 },
+  section: { marginTop: space(4) },
+  secLabel: { ...font.caption, color: colors.ju, fontWeight: '800', marginBottom: space(1.5), letterSpacing: 0.3 },
+  secBody: { ...font.body, color: colors.ink, lineHeight: 25 },
+  remedySection: { marginTop: space(4), paddingTop: space(4), borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.line },
   err: { fontSize: 13, color: colors.ju },
 });

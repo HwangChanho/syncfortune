@@ -63,7 +63,7 @@ const ko = {
     ziweiTitle: '자미두수 12궁 풀이 · 프리미엄', ziweiSub: '명반 12궁을 한 번에 통합 통변해 드립니다. (명반은 무료)',
     bannerPremium: '구독 중 — 무제한 통변', bannerTrial: '🎁 첫 통변 1회 무료 체험!',
     bannerGated: '영역 선택 시 광고 또는 구독으로 통변이 열립니다',
-    base: '결', overlay: '지금', remedy: '처방',
+    base: '타고난 바탕', overlay: '지금의 흐름', remedy: '이렇게 해보세요',
     premiumAlert: '프리미엄 통변', premiumAlertMsg: '광고를 보거나 건당 ₩2,500 결제로 깊은 통변을 봅니다.',
     watchAd: '광고 보고 1회', payPerUse: '₩2,500 결제', bannerPerUse: '건당 ₩2,500 또는 광고 시청으로 통변',
   },
