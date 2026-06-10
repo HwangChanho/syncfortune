@@ -4,7 +4,7 @@
 // 통변(관계 조언)은 유료(Edge) / 개발은 Claude 직접(절대0). 규칙2: 사주 단독.
 // 상대 = 타인 PII → 동의(consent) 필수(규칙8). P0는 직접 입력, 추후 저장된 N명 선택.
 // ─────────────────────────────────────────────────────────────────────────
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { View, Text, TextInput, Pressable, ScrollView, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { computeChart } from '../lib/engine';
@@ -14,6 +14,7 @@ import { stemElement, branchElement, elementColor, elementText } from '../lib/oh
 import { colors, radius, space, shadow, font } from '../lib/theme';
 import { formatBirthDate } from '../lib/sijin';
 import { BirthPlacePicker } from '../components/BirthPlacePicker';
+import { listCharts, type SavedChart } from '../lib/myChart';
 import type { ChartInput } from '@spec/chart';
 
 export function CompatScreen({ me }: { me: ChartInput | null }) {
@@ -25,6 +26,10 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
   const [dx, setDx] = useState<ReturnType<typeof analyzeCompatibility> | null>(null);
   const [pair, setPair] = useState<{ me: any; other: any } | null>(null); // 두 명식(원국+대운+세운) 교차 작용용
   const [active, setActive] = useState<Set<string>>(new Set()); // 탭한 교차작용(on/off) — 미니명식 글자 강조
+  const [saved, setSaved] = useState<SavedChart[]>([]);              // 저장한 명식(상대로도 선택 가능)
+  const [otherSel, setOtherSel] = useState<SavedChart | null>(null); // 저장 명식에서 고른 상대(없으면 직접 입력)
+
+  useEffect(() => { listCharts().then(setSaved); }, []);
 
   // 작용 행 on/off 토글 (중복 선택 가능 — 명식 화면 패턴과 동일).
   function toggleActive(key: string) {
@@ -37,7 +42,10 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
 
   function analyze() {
     if (!me) return;
-    const other: ChartInput = { birthDateTime: `${oDate} ${oTime || '0:0'}`, calendar: '양', timeAccuracy: oTime ? '정확' : '미상', sex: oSex, birthPlace: oPlace };
+    // 저장 명식에서 고른 상대 우선, 없으면 직접 입력값으로
+    const other: ChartInput = otherSel
+      ? otherSel.input
+      : { birthDateTime: `${oDate} ${oTime || '0:0'}`, calendar: '양', timeAccuracy: oTime ? '정확' : '미상', sex: oSex, birthPlace: oPlace };
     const meChart = computeChart(me).saju;
     const otherChart = computeChart(other).saju;
     setDx(analyzeCompatibility(meChart, otherChart));
@@ -48,11 +56,30 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>
       <Text style={styles.h}>{t('compat.otherInfo')}</Text>
-      <TextInput style={styles.input} value={oDate} onChangeText={(v) => setODate(formatBirthDate(v))}
+
+      {/* 저장한 명식에서 상대 선택 (없으면 아래 직접 입력) */}
+      {saved.length > 0 && (
+        <View style={styles.savedBox}>
+          <Text style={styles.savedHint}>저장한 명식에서 선택</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: space(2) }}>
+            {saved.map((s) => {
+              const on = otherSel?.id === s.id;
+              return (
+                <Pressable key={s.id} style={[styles.savedChip, on && styles.savedChipOn]} onPress={() => setOtherSel(on ? null : s)}>
+                  <Text style={[styles.savedChipTx, on && styles.savedChipTxOn]}>{s.label}</Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+          <Text style={styles.savedHint}>또는 아래에 직접 입력</Text>
+        </View>
+      )}
+
+      <TextInput style={[styles.input, otherSel && styles.inputDim]} editable={!otherSel} value={oDate} onChangeText={(v) => setODate(formatBirthDate(v))}
         placeholder={t('compat.otherDatePh')} placeholderTextColor={colors.inkFaint} keyboardType="number-pad" maxLength={10} />
-      <TextInput style={styles.input} value={oTime} onChangeText={setOTime}
+      <TextInput style={[styles.input, otherSel && styles.inputDim]} editable={!otherSel} value={oTime} onChangeText={setOTime}
         placeholder={t('compat.otherTimePh')} placeholderTextColor={colors.inkFaint} />
-      <View style={styles.placeField}>
+      <View style={[styles.placeField, otherSel && styles.inputDim]} pointerEvents={otherSel ? 'none' : 'auto'}>
         <BirthPlacePicker value={oPlace} onSelect={(p) => setOPlace(p.name)} />
       </View>
       <Pressable style={styles.btn} onPress={analyze}><Text style={styles.btnText}>{t('compat.analyze')}</Text></Pressable>
@@ -184,4 +211,12 @@ const styles = StyleSheet.create({
   cmGroupHead: { ...font.caption, fontWeight: '800', marginBottom: space(1) },
   cmLinkRow: { borderLeftWidth: 3, borderLeftColor: 'transparent', borderRadius: radius.sm, paddingLeft: space(2) }, // 활성 시 좌측 색띠
   cmLink: { ...font.body, color: colors.ink, paddingVertical: space(1) },
+  // 저장 명식에서 상대 선택
+  savedBox: { marginTop: space(3) },
+  savedHint: { ...font.caption, color: colors.inkSoft, marginBottom: space(2) },
+  savedChip: { paddingVertical: space(2), paddingHorizontal: space(4), borderRadius: radius.pill, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, marginBottom: space(2) },
+  savedChipOn: { backgroundColor: colors.ju, borderColor: colors.ju },
+  savedChipTx: { ...font.body, color: colors.ink, fontWeight: '700' },
+  savedChipTxOn: { color: colors.bg },
+  inputDim: { opacity: 0.4 },
 });
