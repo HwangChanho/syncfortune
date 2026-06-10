@@ -19,8 +19,8 @@ const SAMHAP: Record<Branch, '水' | '火' | '金' | '木'> = {
 //   도화(=년살)·역마·화개 포함. 기준지: 년지·일지 둘 다 산출(daniel stance 2026-06-08 "전부 산출").
 const SINSAL12: string[] = ['겁살', '재살', '천살', '지살', '도화', '월살', '망신', '장성', '반안', '역마', '육해', '화개']; // 년살=도화(익숙한 명칭 채택)
 const SAMHAP_SAENGJI: Record<'水' | '火' | '金' | '木', Branch> = { 水: '申', 火: '寅', 金: '巳', 木: '亥' };
-/** 기준지(년지·일지)의 삼합국 기준, target 지지의 12신살 이름. */
-function twelveSinsalAt(base: Branch, target: Branch): string {
+/** 기준지(년지·일지)의 삼합국 기준, target 지지의 12신살 이름. (오늘의 운세 등 시간층 '운에서 들어옴' 판정에도 재사용) */
+export function twelveSinsalAt(base: Branch, target: Branch): string {
   const start = (BR.indexOf(SAMHAP_SAENGJI[SAMHAP[base]]) - 3 + 12) % 12; // 겁살 = 생지 − 3
   return SINSAL12[(BR.indexOf(target) - start + 12) % 12];
 }
