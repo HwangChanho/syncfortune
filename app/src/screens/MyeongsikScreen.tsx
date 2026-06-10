@@ -72,7 +72,7 @@ export function MyeongsikScreen({ input, onReading, onSinsal }: { input: ChartIn
   // 오행 분포 (천간+지지 카운트)
   const elem: Record<string, number> = { 木: 0, 火: 0, 土: 0, 金: 0, 水: 0 };
   visiblePos.forEach((p) => { elem[stemElement(P[p].stem)]++; elem[branchElement(P[p].branch)]++; });
-  // 합충형해 선 (원국 — members 2개 기둥, 둘 다 표시 중)
+  // 합충형해 선 (원국 — 쌍(2자)·삼합국/방합국(3자) 모두, 전 멤버가 표시 중일 때만)
   const [rowW, setRowW] = useState(0);
   const luckCycles: any[] = (c.saju as any).luckCycles ?? [];          // 전체 대운(과거~미래)
   const curLuckIdx = Math.max(0, luckCycles.findIndex((l) => l.isCurrent));
@@ -89,7 +89,7 @@ export function MyeongsikScreen({ input, onReading, onSinsal }: { input: ChartIn
   const [activeExpand, setActiveExpand] = useState<Set<string>>(() => new Set());  // 클릭으로 켠 대운/세운 합충
   const posIndex: Record<string, number> = { 시: 0, 일: 1, 월: 2, 년: 3 };
   const allLinks = (c.saju.interactions as any[]).filter(
-    (it) => it.members?.length === 2 && it.members.every((m: string) => posIndex[m] != null && visiblePos.includes(m as any))
+    (it) => (it.members?.length ?? 0) >= 2 && it.members.every((m: string) => posIndex[m] != null && visiblePos.includes(m as any))
   );
   const ganLinks = allLinks.filter((it: any) => it.level === '천간'); // 천간 합·충(극) — 팔자 위(점선)
   const jiLinks = allLinks.filter((it: any) => it.level !== '천간');  // 지지 합·충·형·해·파 — 팔자 아래(실선)
@@ -107,11 +107,12 @@ export function MyeongsikScreen({ input, onReading, onSinsal }: { input: ChartIn
     const dash = dir === 'above' ? '3 2' : undefined;       // 천간=점선 / 지지=실선
     const items = links.map((it, i) => {
       const off = (i - (links.length - 1) / 2) * 5;
-      const xa = L + colW * (visiblePos.indexOf(it.members[0]) + 0.5) + off;
-      const xb = L + colW * (visiblePos.indexOf(it.members[1]) + 0.5) + off;
+      // 멤버 전체 x좌표(3자 국 포함) — 양끝은 ㄷ자 다리, 중간 글자는 가로대에 다리만 추가
+      const xs = (it.members as string[]).map((m) => L + colW * (visiblePos.indexOf(m as any) + 0.5) + off).sort((a, b) => a - b);
+      const xa = xs[0], xb = xs[xs.length - 1];
       const legY = dir === 'above' ? 6 + i * STEP : H - (6 + i * STEP); // 수평선 위치(다리는 reach까지 길게)
       const lbl = linkLabel(it);
-      return { xa, xb, mid: (xa + xb) / 2, legY, col: linkColor(it), lbl, lw: lbl.length * 11 + 6 };
+      return { xa, xb, mids: xs.slice(1, -1), mid: (xa + xb) / 2, legY, col: linkColor(it), lbl, lw: lbl.length * 11 + 6 };
     });
     return (
       <Svg width={rowW} height={H}>
@@ -119,6 +120,9 @@ export function MyeongsikScreen({ input, onReading, onSinsal }: { input: ChartIn
           <G key={`p${i}`}>
             <Path d={`M ${o.xa} ${reach} L ${o.xa} ${o.legY} L ${o.mid - o.lw / 2} ${o.legY}`} stroke={o.col} strokeWidth={1.5} fill="none" strokeDasharray={dash} />
             <Path d={`M ${o.mid + o.lw / 2} ${o.legY} L ${o.xb} ${o.legY} L ${o.xb} ${reach}`} stroke={o.col} strokeWidth={1.5} fill="none" strokeDasharray={dash} />
+            {o.mids.map((mx, k) => (
+              <Path key={k} d={`M ${mx} ${reach} L ${mx} ${o.legY}`} stroke={o.col} strokeWidth={1.5} fill="none" strokeDasharray={dash} />
+            ))}
           </G>
         ))}
         {items.map((o, i) => (
@@ -146,9 +150,11 @@ export function MyeongsikScreen({ input, onReading, onSinsal }: { input: ChartIn
             <Pressable key={i} onPress={() => onToggle(x.key)} style={[styles.linkGRow, on && styles.linkGRowOn]}>
               <Text style={styles.linkGTx}>
                 <Text style={{ color: on ? col : colors.inkFaint }}>{on ? '◉ ' : '○ '}</Text>
-                {x.a.label} <Text style={{ color: elementColor[x.a.el], fontWeight: '800' }}>{x.a.char}</Text>
-                {'  ·  '}
-                {x.b.label} <Text style={{ color: elementColor[x.b.el], fontWeight: '800' }}>{x.b.char}</Text>
+                {x.mem.map((mm: any, k: number) => (
+                  <Text key={k}>
+                    {k > 0 ? '  ·  ' : ''}{mm.label} <Text style={{ color: elementColor[mm.el], fontWeight: '800' }}>{mm.char}</Text>
+                  </Text>
+                ))}
                 {ty === '합' && x.transformsTo ? <Text style={{ color: col, fontWeight: '800' }}>{`  → ${x.transformsTo}`}</Text> : null}
                 {x.isGan ? <Text style={styles.linkLevel}>  천간</Text> : null}
               </Text>
@@ -162,12 +168,11 @@ export function MyeongsikScreen({ input, onReading, onSinsal }: { input: ChartIn
   const combinedPalja = [...ganLinks, ...jiLinks];
   const normPalja = combinedPalja.map((it: any) => {
     const isGan = it.level === '천간';
-    const m1 = it.members[0] as PillarPos, m2 = it.members[1] as PillarPos;
-    return {
-      key: it.detail as string, type: it.type, transformsTo: it.transformsTo, isGan,
-      a: { label: `${m1}`, char: isGan ? P[m1].stem : P[m1].branch, el: isGan ? stemElement(P[m1].stem) : branchElement(P[m1].branch) },
-      b: { label: `${m2}`, char: isGan ? P[m2].stem : P[m2].branch, el: isGan ? stemElement(P[m2].stem) : branchElement(P[m2].branch) },
-    };
+    // members 전체(쌍=2 · 삼합국/방합국=3)를 글자 배열로 정규화 — 렌더는 mem 순회
+    const mem = (it.members as PillarPos[]).map((m) => ({
+      label: `${m}`, char: isGan ? P[m].stem : P[m].branch, el: isGan ? stemElement(P[m].stem) : branchElement(P[m].branch),
+    }));
+    return { key: it.detail as string, type: it.type, transformsTo: it.transformsTo, isGan, mem };
   });
   // 클릭으로 켠 팔자 합충 → 명식 강조(arc + 셀 하이라이트)
   const activeGanP = combinedPalja.filter((it: any) => it.level === '천간' && activePalja.has(it.detail));
@@ -185,9 +190,11 @@ export function MyeongsikScreen({ input, onReading, onSinsal }: { input: ChartIn
       <Pressable key={i} onPress={() => onToggle(x.key)} style={[styles.strRow, tier === '강' && styles.strRowTop, on && styles.linkGRowOn]}>
         <Text style={[styles.strBadge, { color: col, borderColor: col }]}>{on ? '◉' : tier}</Text>
         <Text style={styles.linkGTx}>
-          {x.a.label} <Text style={{ color: elementColor[x.a.el], fontWeight: '800' }}>{x.a.char}</Text>
-          {'  ⟷  '}
-          {x.b.label} <Text style={{ color: elementColor[x.b.el], fontWeight: '800' }}>{x.b.char}</Text>
+          {x.mem.map((mm: any, k: number) => (
+            <Text key={k}>
+              {k > 0 ? '  ⟷  ' : ''}{mm.label} <Text style={{ color: elementColor[mm.el], fontWeight: '800' }}>{mm.char}</Text>
+            </Text>
+          ))}
           {'   '}
           <Text style={{ color: col, fontWeight: '800' }}>{x.type}{x.type === '합' && x.transformsTo ? ` ${x.transformsTo}` : ''}</Text>
           {x.isGan ? <Text style={styles.linkLevel}>  천간</Text> : null}
@@ -477,17 +484,16 @@ export function MyeongsikScreen({ input, onReading, onSinsal }: { input: ChartIn
         // 시간층 합충 — 확장명식 컬럼(원국+운) 간 작용. 운(대운/세운/월운) 연루된 것만(원국끼리는 팔자 표에).
         const COLW = 50;
         const expandLinks = detectInteractionsAmong(expandCols.map((c2) => ({ pos: c2.label as any, stem: c2.stem, branch: c2.branch })))
-          .filter((it) => it.members.length === 2 && it.members.some((m) => expandCols.find((c2) => c2.label === m)?.luck));
+          .filter((it) => it.members.length >= 2 && it.members.some((m) => expandCols.find((c2) => c2.label === m)?.luck)); // 3자 국(원국+운 완성) 포함
         const ganEx = expandLinks.filter((it) => it.level === '천간');
         const jiEx = expandLinks.filter((it) => it.level !== '천간');
         const normEx = [...ganEx, ...jiEx].map((it: any) => {
           const isGan = it.level === '천간';
-          const pa = expandCols.find((cc) => cc.label === it.members[0]);
-          const pb = expandCols.find((cc) => cc.label === it.members[1]);
-          if (!pa || !pb) return null;
-          const ch = (cc: any) => (isGan ? cc.stem : cc.branch);
-          const el = (cc: any) => (isGan ? stemElement(cc.stem) : branchElement(cc.branch));
-          return { key: it.detail as string, type: it.type, transformsTo: it.transformsTo, isGan, a: { label: pa.label, char: ch(pa), el: el(pa) }, b: { label: pb.label, char: ch(pb), el: el(pb) } };
+          // members 전체(쌍·3자 국) → 확장 컬럼 매칭. 하나라도 못 찾으면 표시 제외(방어).
+          const cols = (it.members as string[]).map((m) => expandCols.find((cc) => cc.label === m));
+          if (cols.some((cc) => !cc)) return null;
+          const mem = cols.map((cc: any) => ({ label: cc.label, char: isGan ? cc.stem : cc.branch, el: isGan ? stemElement(cc.stem) : branchElement(cc.branch) }));
+          return { key: it.detail as string, type: it.type, transformsTo: it.transformsTo, isGan, mem };
         }).filter(Boolean);
         const hlExpand = new Set<string>();
         [...ganEx, ...jiEx].forEach((it: any) => { if (activeExpand.has(it.detail)) it.members.forEach((m: string) => hlExpand.add(m)); });
@@ -500,10 +506,11 @@ export function MyeongsikScreen({ input, onReading, onSinsal }: { input: ChartIn
           const dash = dir === 'above' ? '3 2' : undefined;
           const items = links.map((it, i) => {
             const off = (i - (links.length - 1) / 2) * 4;
-            const xa = xOfCol(it.members[0]) + off, xb = xOfCol(it.members[1]) + off;
+            const xs = (it.members as string[]).map((m) => xOfCol(m) + off).sort((a, b) => a - b); // 3자 국 포함 전 멤버
+            const xa = xs[0], xb = xs[xs.length - 1];
             const legY = dir === 'above' ? 6 + i * STEP : H - (6 + i * STEP);
             const lbl = linkLabel(it);
-            return { xa, xb, mid: (xa + xb) / 2, legY, col: linkColor(it), lbl, lw: lbl.length * 11 + 6 };
+            return { xa, xb, mids: xs.slice(1, -1), mid: (xa + xb) / 2, legY, col: linkColor(it), lbl, lw: lbl.length * 11 + 6 };
           });
           return (
             <Svg width={expandCols.length * COLW} height={H}>
@@ -511,6 +518,9 @@ export function MyeongsikScreen({ input, onReading, onSinsal }: { input: ChartIn
                 <G key={`p${i}`}>
                   <Path d={`M ${o.xa} ${reach} L ${o.xa} ${o.legY} L ${o.mid - o.lw / 2} ${o.legY}`} stroke={o.col} strokeWidth={1.5} fill="none" strokeDasharray={dash} />
                   <Path d={`M ${o.mid + o.lw / 2} ${o.legY} L ${o.xb} ${o.legY} L ${o.xb} ${reach}`} stroke={o.col} strokeWidth={1.5} fill="none" strokeDasharray={dash} />
+                  {o.mids.map((mx, k) => (
+                    <Path key={k} d={`M ${mx} ${reach} L ${mx} ${o.legY}`} stroke={o.col} strokeWidth={1.5} fill="none" strokeDasharray={dash} />
+                  ))}
                 </G>
               ))}
               {items.map((o, i) => (

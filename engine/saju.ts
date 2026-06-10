@@ -77,19 +77,19 @@ function buildPillar(position: PillarPos, ganZhi: string, dayStem: Stem): Pillar
 
 /**
  * ChartInput → SajuChart (결정론).
- * @param input  엔진 입력(PII). birthDateTime "YYYY-MM-DD HH:mm" (진태양시 보정은 호출측 책임 — ADR-008 미해결).
+ * @param input  엔진 입력(PII). birthDateTime "YYYY-MM-DD HH:mm" 시계시 — 진태양시 보정(서머타임·시대별 자오선·균시차)은 내부 적용(ADR-008 해소).
  * @param nowYear 세운 기준 연도(기본 2026).
  */
 export function buildSajuChart(input: ChartInput, nowYear = 2026): SajuChart {
   const [datePart, timePart = '0:0'] = input.birthDateTime.split(' ');
   const [y, mo, d] = datePart.split('-').map(Number);
   const [h, mi = 0] = timePart.split(':').map(Number);
-  // 진태양시 보정 — 시계시(KST) → 출생지 실제 태양시(경도차+균시차)로 시각 이동 후 팔자 산출.
+  // 진태양시 보정 — 시계시 → 출생지 실제 태양시(서머타임 환원+시대별 경도차+균시차)로 이동 후 팔자 산출.
   //   시각 미상은 시주가 어차피 마스킹되고 자정 경계 오류(일주 변동) 위험이 있어 보정 생략.
   let cy = y, cmo = mo, cd = d, ch = h, cmi = mi;
   if (input.timeAccuracy !== '미상') {
     const corr = new Date(y, mo - 1, d, h, mi, 0);
-    corr.setMinutes(corr.getMinutes() + Math.round(trueSolarOffsetMin(input, y, mo, d)));
+    corr.setMinutes(corr.getMinutes() + Math.round(trueSolarOffsetMin(input, y, mo, d, h, mi)));
     cy = corr.getFullYear(); cmo = corr.getMonth() + 1; cd = corr.getDate(); ch = corr.getHours(); cmi = corr.getMinutes();
   }
   const ec = Solar.fromYmdHms(cy, cmo, cd, ch, cmi, 0).getLunar().getEightChar();

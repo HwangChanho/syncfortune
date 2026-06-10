@@ -8,7 +8,7 @@ import { twelveStage } from './twelve';
 import { gongmang, analyzeSinsal } from './sinsal';
 import { detectInteractions } from './structure';
 import { buildSajuChart } from './saju';
-import { trueSolarOffsetMin } from './solartime';
+import { trueSolarOffsetMin, kstMeridianAt, dstOffsetMin } from './solartime';
 import type { Stem, Branch, PillarPos, SajuChart, ChartInput } from '../spec/chart';
 
 let ok = true;
@@ -65,12 +65,23 @@ const INT_CASES: [string, [Branch, Branch, Branch, Branch], string][] = [
   ['申子 반합水', ['申', '子', '巳', '巳'], '申子半合水'],
   ['丑戌 형', ['丑', '戌', '寅', '卯'], '丑戌刑'],
   ['午午 자형(반합 아님)', ['午', '午', '寅', '卯'], '午午自刑'], // 같은 글자=자형, 半合 오검출 회귀 방지
+  ['寅午戌 삼합국火 (3자 완전체)', ['寅', '午', '戌', '子'], '寅午戌三合火'],
+  ['申子辰 삼합국水', ['申', '子', '辰', '酉'], '申子辰三合水'],
+  ['寅卯辰 방합木 (3자 성립)', ['寅', '卯', '辰', '子'], '寅卯辰方合木'],
+  ['亥子丑 방합水', ['亥', '子', '丑', '卯'], '亥子丑方合水'],
 ];
 console.log('=== 합충형해 정확도 (detectInteractions 로직) ===');
 for (const [desc, br, must] of INT_CASES) {
   const got = detectInteractions(mk(br)).map((i) => i.detail);
   const p = got.some((d) => d.includes(must)); if (!p) ok = false;
   console.log(`  ${mark(p)} ${desc}${p ? ` → ${must} ✓` : ` → ${got.join(', ') || '(없음)'} (기대 ${must})`}`);
+}
+// 국(局) 회귀 방지 — 부정 케이스(없어야 할 출력)
+{
+  const guk = detectInteractions(mk(['寅', '午', '戌', '子'])).map((i) => i.detail);
+  check('삼합국 성립 시 부분 반합은 국으로 통합(寅午半合 미출력)', !guk.some((d) => d.includes('半合')));
+  const two = detectInteractions(mk(['申', '酉', '子', '子'])).map((i) => i.detail);
+  check('방합은 2자(申酉)만으론 미성립(3자 전부 필요·통설)', !two.some((d) => d.includes('方合')));
 }
 
 // ── 신살 일반화 (타 일간 차트 — 자기차트 n=1 넘어 규칙이 임의 차트에 일반 적용되는지) ──
@@ -103,6 +114,27 @@ console.log('=== 진태양시 보정 (시계시 → 출생지 태양시) ===');
   check(`여수 2001-06-15 보정 ≈ -39분 (실측 ${off.toFixed(1)}분, 17:30→17:06)`, off < -36 && off > -42);
   check('17:30 여수 → 시지 酉 (보정 17:06, 酉시 유지)', buildSajuChart(yeosu(17, 30)).pillars['시'].branch === '酉');
   check('17:05 여수 → 시지 申 (보정 16:26 — 미보정이면 酉)', buildSajuChart(yeosu(17, 5)).pillars['시'].branch === '申');
+}
+
+// ── 표준자오선 시대보정 + 서머타임 (한국 표준시 변천 — 국가기록원·위키·IANA tzdata 교차확인) ──
+console.log('=== 표준자오선 시대보정 · 서머타임 ===');
+{
+  check('자오선: 1954-03-20=135° → 03-21=127.5° (복귀일)', kstMeridianAt(1954, 3, 20) === 135 && kstMeridianAt(1954, 3, 21) === 127.5);
+  check('자오선: 1961-08-09=127.5° → 08-10=135° (재변경일)', kstMeridianAt(1961, 8, 9) === 127.5 && kstMeridianAt(1961, 8, 10) === 135);
+  check('자오선: 1908-04-01~1911=127.5° → 1912-01-01=135°', kstMeridianAt(1910, 6, 1) === 127.5 && kstMeridianAt(1912, 1, 1) === 135);
+  check('DST 시각경계(1987): 5/10 01:59 OFF→02:00 ON / 10/11 02:59 ON→03:00 OFF',
+    dstOffsetMin(1987, 5, 10, 1, 59) === 0 && dstOffsetMin(1987, 5, 10, 2, 0) === -60
+    && dstOffsetMin(1987, 10, 11, 2, 59) === -60 && dstOffsetMin(1987, 10, 11, 3, 0) === 0);
+  check('DST 자정경계(1955): 5/4 OFF→5/5 ON / 9/8 ON→9/9 OFF',
+    dstOffsetMin(1955, 5, 4, 23, 59) === 0 && dstOffsetMin(1955, 5, 5, 0, 0) === -60
+    && dstOffsetMin(1955, 9, 8, 23, 59) === -60 && dstOffsetMin(1955, 9, 9, 0, 0) === 0);
+  const seoul = (dt: string): ChartInput => ({ birthDateTime: dt, calendar: '양', timeAccuracy: '정확', sex: '남', birthPlace: '서울', birthLon: 126.98 });
+  // 같은 날짜(균시차 동일)의 1955 vs 1994 보정 차 = 자오선 30분 차이가 그대로 드러나야
+  const off55 = trueSolarOffsetMin(seoul('1955-01-20 12:00'), 1955, 1, 20, 12, 0);
+  const off94 = trueSolarOffsetMin(seoul('1994-01-20 12:00'), 1994, 1, 20, 12, 0);
+  check(`127.5° 시대(1955) 서울 보정 ${off55.toFixed(1)}분 ↔ 135° 시대(1994) ${off94.toFixed(1)}분 = 정확히 30분 차`, Math.abs(off94 + 30 - off55) < 0.001);
+  // 시주 영향: 1987-07-15 13:20 서울(DST 중) → −60(DST) −32(경도) −6(균시차) ≈ 11:42 → 午시
+  check('1987-07-15 13:20 서울(DST) → 시지 午 (보정 ≈11:42 — DST 미반영이면 未)', buildSajuChart(seoul('1987-07-15 13:20')).pillars['시'].branch === '午');
 }
 
 if (!ok) { console.log('\n❌ 정확도 게이트 실패 — 공식/테이블 점검'); process.exitCode = 1; }

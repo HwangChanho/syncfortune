@@ -1,6 +1,6 @@
 // engine/structure.ts — WS3(Encoded Expert Layer) 1단계: 합충형해 검출 (결정론 룰)
 // ─────────────────────────────────────────────────────────────────────────
-// 결정론으로 가능한 것만: 합·충·형·해·파·반합 검출 + R1 화성립 1차판정(화기 천간 투출).
+// 결정론으로 가능한 것만: 합·충·형·해·파·반합·삼합국·방합국 검출 + R1 화성립 1차판정(화기 천간 투출).
 // 신강약 점수·격국·용신 판정 = 명리 stance → daniel ground truth 필요(미착수, 검토1 점수체계).
 // ─────────────────────────────────────────────────────────────────────────
 import type { SajuChart, Interaction, ChartPosition, Branch, Element, Stem, PillarPos, StructureDx } from '../spec/chart';
@@ -17,6 +17,9 @@ const XING_PAIR: [Branch, Branch][] = [['子','卯']];                 // 상형
 const SANXING: Branch[][] = [['寅','巳','申'], ['丑','戌','未']];      // 삼형
 const ZIXING: Branch[] = ['辰','午','酉','亥'];                       // 자형
 const SANHE: [Branch, Branch, Branch, Element][] = [['申','子','辰','水'],['寅','午','戌','火'],['巳','酉','丑','金'],['亥','卯','未','木']];
+// 방합(方合, 계절합) — 같은 방위·계절 3지지. 통설상 *3자 전부* 모여야 국(局) 성립(삼합보다 성립 엄격).
+//   ※ 2자 부분 방합 인정 여부는 이설(왕지 포함 2자 인정설 등) → daniel 문파 확정 전 미검출(보수).
+const FANGHE: [Branch, Branch, Branch, Element][] = [['寅','卯','辰','木'],['巳','午','未','火'],['申','酉','戌','金'],['亥','子','丑','水']];
 const WANGZHI: Branch[] = ['子','午','卯','酉'];                      // 왕지(반합 성립 핵심)
 // 천간 관계표 (자평진전: 천간끼리도 합·충=극) — daniel 검수 대상이나 합/충은 통설
 const TIANHE: [Stem, Stem, Element][] = [['甲','己','土'],['乙','庚','金'],['丙','辛','水'],['丁','壬','木'],['戊','癸','火']]; // 천간 오합
@@ -29,13 +32,20 @@ const pairMatch = (list: [Branch, Branch][], a: Branch, b: Branch) =>
 
 /**
  * 임의 기둥 집합(원국 + 시간층 대운·세운·월운…) 간 합충형해 검출 (결정론).
- * - 지지: 육합(化 + R1 화성립)·충·해·파·상형·삼형·자형·반합.
+ * - 지지: 육합(化 + R1 화성립)·충·해·파·상형·삼형·자형·반합·삼합국·방합국(3자).
  * - 천간: 합(化)·충(=상극)·극(오행극). level 로 천간/지지 구분.
  * @param items {pos, stem, branch}[] — pos 는 원국('년·월·일·시') 또는 시간층('대운·세운·월운·일운').
  */
 export function detectInteractionsAmong(items: { pos: ChartPosition; stem: Stem; branch: Branch }[]): Interaction[] {
   const stemElems = new Set(items.map((s) => STEM_ELEM[s.stem])); // 화성립 판정용
   const out: Interaction[] = [];
+
+  // 3자 완전국(삼합국·방합국) 선판정 — 그룹 3글자가 전부 모이면 국(局) 성립.
+  //   삼합국이 성립하면 그 부분 반합은 *국으로 통합*해 중복 출력하지 않는다(통설: 국 성립 시 반합이라 따로 안 봄).
+  const branches = new Set(items.map((s) => s.branch));
+  const fullSanhe = SANHE.filter(([a, b, c]) => branches.has(a) && branches.has(b) && branches.has(c));
+  const fullSanheSet = new Set(fullSanhe);                        // 반합 중복 억제용 (그룹 참조 동일성)
+  const fullFanghe = FANGHE.filter(([a, b, c]) => branches.has(a) && branches.has(b) && branches.has(c));
 
   // 쌍 관계 (지지: 합·충·해·파·상형·반합)
   for (let i = 0; i < items.length; i++) for (let j = i + 1; j < items.length; j++) {
@@ -47,10 +57,20 @@ export function detectInteractionsAmong(items: { pos: ChartPosition; stem: Stem;
     if (pairMatch(PO, A.branch, B.branch)) out.push({ type: '파', members: [A.pos, B.pos], detail: `${A.branch}${B.branch}破` });
     if (pairMatch(XING_PAIR, A.branch, B.branch)) out.push({ type: '형', members: [A.pos, B.pos], detail: `${A.branch}${B.branch}刑` });
     const ban = A.branch !== B.branch // 반합은 삼합 중 *서로 다른* 두 글자 (같은 글자=자형, 반합 아님)
-      ? SANHE.find(([a, b, c]) => { const s = [a, b, c]; return s.includes(A.branch) && s.includes(B.branch) && (WANGZHI.includes(A.branch) || WANGZHI.includes(B.branch)); })
+      ? SANHE.find((grp) => { const s = grp.slice(0, 3) as Branch[]; return !fullSanheSet.has(grp) && s.includes(A.branch) && s.includes(B.branch) && (WANGZHI.includes(A.branch) || WANGZHI.includes(B.branch)); })
       : undefined;
     if (ban) out.push({ type: '합', members: [A.pos, B.pos], detail: `${A.branch}${B.branch}半合${ban[3]}`, transformsTo: ban[3] });
   }
+
+  // 삼합국·방합국 (3자 완전체 — members 는 해당 글자의 *모든* 자리, 중복 글자 포함)
+  //   化성립은 육합과 동일하게 R1 1차판정(화기 천간 투출)만. ※'국은 투출 없어도 자체 세력 성립' 이설 → daniel stance 슬롯.
+  const pushGuk = (grp: [Branch, Branch, Branch, Element], label: '三合' | '方合') => {
+    const s = grp.slice(0, 3) as Branch[];
+    const members = items.filter((it) => s.includes(it.branch)).map((it) => it.pos);
+    out.push({ type: '합', members, detail: `${s.join('')}${label}${grp[3]}`, transformsTo: grp[3], transformSupported: stemElems.has(grp[3]) });
+  };
+  fullSanhe.forEach((g) => pushGuk(g, '三合'));
+  fullFanghe.forEach((g) => pushGuk(g, '方合'));
 
   // 삼형 (그룹 내 2글자 이상 → 쌍별)
   for (const grp of SANXING) {
