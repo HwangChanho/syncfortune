@@ -66,7 +66,7 @@ export function ReadingScreen({
   const { mode, consumeTrial, watchAdForReading, purchaseReading } = useEntitlement();
   const { isPremium } = useSubscription();
   const [readings, setReadings] = useState<Record<string, any>>({});
-  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
+  const [progress, setProgress] = useState<{ done: number; total: number; current?: string } | null>(null);
   const [globalError, setGlobalError] = useState<string | null>(null);
   const [chartId, setChartId] = useState<string | null>(savedChart?.serverChartId ?? null);
   const [detail, setDetail] = useState<string | null>(null); // 상세로 펼친 항목 key
@@ -134,15 +134,16 @@ export function ReadingScreen({
     }
     const todo = cats.filter((cat) => !readings[cat.key]);
     if (!todo.length) return;                              // 전부 캐시됨 → 생성 불필요
-    setProgress({ done: cats.length - todo.length, total: cats.length });
+    setProgress({ done: cats.length - todo.length, total: cats.length, current: todo[0].label });
     for (const cat of todo) {
+      setProgress((p) => (p ? { ...p, current: cat.label } : null)); // 지금 풀이 중인 영역
       try {
         const { data, error } = await supabase.functions.invoke('interpret', { body: { chartId: id, category: cat.key, kind, tier: 'paid' } });
         setReadings((prev) => ({ ...prev, [cat.key]: error ? { error: error.message } : data?.reading }));
       } catch (err) {
         setReadings((prev) => ({ ...prev, [cat.key]: { error: (err as Error).message } }));
       }
-      setProgress((p) => (p ? { done: p.done + 1, total: p.total } : null));
+      setProgress((p) => (p ? { done: p.done + 1, total: p.total, current: p.current } : null));
     }
     setProgress(null);
     if (isTrial) await consumeTrial();                     // 무료 체험 소진(전 항목 1세트 = 1회)
@@ -217,7 +218,7 @@ export function ReadingScreen({
       {progress && (
         <View style={styles.progressRow}>
           <ActivityIndicator color={colors.ju} />
-          <Text style={styles.progressText}>{t('reading.progress', { done: progress.done, total: progress.total })}</Text>
+          <Text style={styles.progressText}>{t('reading.progress', { current: progress.current ?? '', done: progress.done, total: progress.total })}</Text>
         </View>
       )}
 

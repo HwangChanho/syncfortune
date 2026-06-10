@@ -59,7 +59,7 @@ const ko = {
   },
   reading: {
     title: '전 영역 풀이 · 프리미엄', sub: '16개 전 영역을 한 번에 딥·정밀 통변해 드립니다. (명식은 무료)',
-    runAll: '전체 풀이 보기 ({{count}}개)', progress: '{{done}}/{{total}} 생성 중…', saveFail: '명식 저장에 실패했어요. 잠시 후 다시 시도해 주세요.',
+    runAll: '전체 풀이 보기 ({{count}}개)', progress: '‘{{current}}’ 풀이 중… ({{done}}/{{total}})', saveFail: '명식 저장에 실패했어요. 잠시 후 다시 시도해 주세요.',
     ziweiTitle: '자미두수 12궁 풀이 · 프리미엄', ziweiSub: '명반 12궁을 한 번에 통합 통변해 드립니다. (명반은 무료)',
     bannerPremium: '구독 중 — 무제한 통변', bannerTrial: '🎁 첫 통변 1회 무료 체험!',
     bannerGated: '영역 선택 시 광고 또는 구독으로 통변이 열립니다',
@@ -138,7 +138,7 @@ const en = {
   },
   reading: {
     title: 'Full Reading · Premium', sub: 'All 16 areas in one deep, precise reading. (Chart is free)',
-    runAll: 'See full reading ({{count}})', progress: 'Generating {{done}}/{{total}}…', saveFail: 'Failed to save chart. Please try again.',
+    runAll: 'See full reading ({{count}})', progress: 'Reading ‘{{current}}’… ({{done}}/{{total}})', saveFail: 'Failed to save chart. Please try again.',
     ziweiTitle: 'Zi Wei · 12 Palaces · Premium', ziweiSub: 'All 12 palaces interpreted together. (Chart is free)',
     bannerPremium: 'Subscribed — unlimited readings', bannerTrial: '🎁 First reading free!',
     bannerGated: 'Pick an area to unlock via ad or subscription',
@@ -217,7 +217,7 @@ const ja = {
   },
   reading: {
     title: '全領域鑑定 · プレミアム', sub: '16領域すべてを一度に深く精密な通変。（命式は無料）',
-    runAll: '全体を見る（{{count}}件）', progress: '{{done}}/{{total}} 生成中…', saveFail: 'チャートの保存に失敗しました。',
+    runAll: '全体を見る（{{count}}件）', progress: '‘{{current}}’ 鑑定中… ({{done}}/{{total}})', saveFail: 'チャートの保存に失敗しました。',
     ziweiTitle: '紫微斗数 十二宮 · プレミアム', ziweiSub: '十二宮を一度に統合通変。（命盤は無料）',
     bannerPremium: '購読中 — 無制限通変', bannerTrial: '🎁 初回鑑定が無料！',
     bannerGated: '領域選択で広告または購読により通変が開きます',
