@@ -25,6 +25,25 @@ import type { ChartInput, CategoryKey } from '@spec/chart';
 // 풀이 항목 = { key(=캐시 category·Edge 요청 키), label(표시명) }
 export type ReadingCategory = { key: string; label: string };
 
+// opus 응답 정규화: ```json 코드펜스로 감싸졌거나(가드 폴백) base 등이 객체일 때 안전 처리.
+function normalizeReading(r: any): any {
+  if (!r || typeof r !== 'object' || r.error) return r;
+  if (typeof r.base === 'string' && r.base.includes('```')) {
+    const m = r.base.match(/```(?:json)?\s*([\s\S]*?)```/);
+    const raw = (m ? m[1] : r.base.replace(/```json?|```/g, '')).trim();
+    try { return JSON.parse(raw); } catch { /* 파싱 실패 시 원본 유지 */ }
+  }
+  return r;
+}
+// 값이 객체/배열이어도 문자열로 평탄화(중첩 {summary,detail…} → 합침)
+function asText(v: any): string {
+  if (v == null) return '';
+  if (typeof v === 'string') return v;
+  if (Array.isArray(v)) return v.map(asText).filter(Boolean).join(' · ');
+  if (typeof v === 'object') return Object.values(v).map(asText).filter(Boolean).join('\n');
+  return String(v);
+}
+
 // 사주 16영역(기본). 자미두수는 호출처가 12궁을 categories 로 주입.
 const SAJU_CATEGORIES: CategoryKey[] = [
   '성격내면', '취업운', '직장운', '사업운', '금전소득운', '투자편재운', '재물손재', '연애운',
@@ -175,8 +194,10 @@ export function ReadingScreen({
 
       {/* 항목별 결과 카드 — 캐시·생성된 순서대로 누적(전 항목) */}
       {cats.map((cat) => {
-        const r = readings[cat.key];
-        if (!r) return null;
+        const raw = readings[cat.key];
+        if (!raw) return null;
+        const r = normalizeReading(raw);
+        const base = asText(r.base), overlay = asText(r.overlay), remedy = asText(r.remedy);
         return (
           <View key={cat.key} style={styles.card}>
             <Text style={styles.cardTitle}>{cat.label}</Text>
@@ -184,10 +205,10 @@ export function ReadingScreen({
               <Text style={styles.err}>{r.error}</Text>
             ) : (
               <>
-                {r.base && <Text style={styles.rk}>{t('reading.base')}: {r.base}</Text>}
-                {r.overlay && <Text style={styles.rk}>{t('reading.overlay')}: {r.overlay}</Text>}
-                {r.remedy && <Text style={styles.rk}>{t('reading.remedy')}: {r.remedy}</Text>}
-                {!r.base && !r.overlay && !r.remedy && <Text style={styles.rk}>{JSON.stringify(r, null, 2)}</Text>}
+                {base ? <Text style={styles.rk}>{t('reading.base')}: {base}</Text> : null}
+                {overlay ? <Text style={styles.rk}>{t('reading.overlay')}: {overlay}</Text> : null}
+                {remedy ? <Text style={styles.rk}>{t('reading.remedy')}: {remedy}</Text> : null}
+                {!base && !overlay && !remedy && <Text style={styles.rk}>{asText(r)}</Text>}
               </>
             )}
           </View>
