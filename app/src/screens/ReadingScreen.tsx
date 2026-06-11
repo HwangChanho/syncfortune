@@ -265,7 +265,7 @@ const styles = StyleSheet.create({
   screen: { backgroundColor: colors.bg },
   wrap: { padding: space(5), paddingBottom: space(10) },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.bg },
-  h: { ...font.heading, fontSize: 18 },
+  h: { ...font.heading, fontSize: 21 },
   sub: { ...font.caption, marginTop: space(1.5), marginBottom: space(4) },
   startBtn: { backgroundColor: colors.ju, borderRadius: radius.md, paddingVertical: space(4), alignItems: 'center', marginTop: space(2), ...shadow.card },
   startBtnText: { color: colors.bg, fontSize: 16, fontWeight: '800' },
@@ -283,7 +283,7 @@ const styles = StyleSheet.create({
   remedySection: { marginTop: space(4), paddingTop: space(4), borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.line },
   // 항목 리스트(구역)
   listItem: { flexDirection: 'row', alignItems: 'center', gap: space(3), marginTop: space(3), padding: space(4), backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.line, ...shadow.card },
-  listLabel: { ...font.heading, color: colors.ju },
+  listLabel: { ...font.heading, fontSize: 19, color: colors.ju },
   listPreview: { ...font.caption, color: colors.inkSoft, marginTop: space(1) },
   listArrow: { fontSize: 24, color: colors.inkFaint, fontWeight: '300' },
   // 상세 페이지(모달)
@@ -291,6 +291,6 @@ const styles = StyleSheet.create({
   detailBack: { paddingTop: space(12), paddingHorizontal: space(5), paddingBottom: space(2) },
   detailBackTx: { ...font.body, color: colors.ju, fontWeight: '700' },
   detailWrap: { padding: space(5), paddingTop: space(2), paddingBottom: space(10) },
-  detailTitle: { ...font.title, color: colors.ink, marginBottom: space(2) },
+  detailTitle: { ...font.title, fontSize: 26, color: colors.ink, marginBottom: space(2) },
   err: { fontSize: 13, color: colors.ju },
 });
