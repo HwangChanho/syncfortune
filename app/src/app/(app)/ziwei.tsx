@@ -10,27 +10,13 @@ import { computeChart } from '../../lib/engine';
 import { loadMyChart } from '../../lib/myChart';
 import { branchElement, elementColor } from '../../lib/ohaeng';
 import { lookupGlossary, GLOSSARY_KIND_LABEL, type GlossaryKind } from '../../lib/myeongriGlossary';
+import { PALACE_DESC } from '../../lib/palaceDesc'; // 12궁 짧은 설명(공용 — 풀이 화면과 공유)
 import { colors, radius, space, shadow, font } from '../../lib/theme';
 import type { ChartInput } from '@spec/chart';
 
 const LAYOUT = [['巳', '午', '未', '申'], ['辰', 'C', 'C', '酉'], ['卯', 'C', 'C', '戌'], ['寅', '丑', '子', '亥']];
 const SIHWA_COL: Record<string, string> = { '化祿': '#3E8E5A', '化權': '#C0392B', '化科': '#3A6EA5', '化忌': '#7A7A7A' };
 const BR_SYM: Record<string, string> = { '廟': '◎', '旺': '○', '得地': '△', '利': '△', '平': '△', '不得地': 'x', '陷': 'x' };
-// 12궁이 무엇을 보는지 — 궁명 옆 작은 설명(iztro 궁명 한글 기준)
-const PALACE_DESC: Record<string, string> = {
-  '命宮': '나·기질', '명궁': '나·기질',
-  '兄弟': '형제·동료', '형제궁': '형제·동료',
-  '夫妻': '배우자·연애', '부처궁': '배우자·연애',
-  '子女': '자녀·창작', '자녀궁': '자녀·창작',
-  '財帛': '재물·돈', '재백궁': '재물·돈',
-  '疾厄': '건강·몸', '질액궁': '건강·몸',
-  '遷移': '이동·대외', '천이궁': '이동·대외',
-  '僕役': '친구·아랫사람', '交友': '친구·아랫사람', '노복궁': '친구·아랫사람', '교우궁': '친구·아랫사람',
-  '官祿': '직업·명예', '관록궁': '직업·명예', '事業': '직업·명예',
-  '田宅': '집·부동산', '전택궁': '집·부동산',
-  '福德': '복·정신', '복덕궁': '복·정신',
-  '父母': '부모·윗사람', '부모궁': '부모·윗사람',
-};
 
 export default function ZiweiRoute() {
   const router = useRouter();

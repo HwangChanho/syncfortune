@@ -21,11 +21,12 @@ import { useSubscription } from '../lib/subscription';
 import { setServerChartId, type SavedChart } from '../lib/myChart';
 import { loadFollowups, askFollowup, type Followup } from '../lib/followups';
 import { useFontScale } from '../lib/fontScale';
+import { PALACE_DESC } from '../lib/palaceDesc'; // 자미두수 궁 설명(궁 옆 표시)
 import { colors, radius, space, shadow, font } from '../lib/theme';
 import type { ChartInput, CategoryKey } from '@spec/chart';
 
-// 풀이 항목 = { key(=캐시 category·Edge 요청 키), label(표시명) }
-export type ReadingCategory = { key: string; label: string };
+// 풀이 항목 = { key(=캐시 category·Edge 요청 키), label(표시명), desc(부가 설명 — 자미두수 궁이 뭘 보는지) }
+export type ReadingCategory = { key: string; label: string; desc?: string };
 
 // opus 응답 정규화: ```json 코드펜스로 감싸졌거나(가드 폴백) base 등이 객체일 때 안전 처리.
 function normalizeReading(r: any): any {
@@ -80,8 +81,8 @@ export function ReadingScreen({
   // 항목 집합: 주입된 categories 우선, 없으면 사주 16영역(i18n 라벨)
   const cats = useMemo<ReadingCategory[]>(() => {
     if (categories) return categories;
-    // 자미두수: 명반 12궁을 항목으로(궁명 = 캐시 category·표시 라벨). iztro 결정론 명반에 기반.
-    if (kind === 'ziwei') return ((c?.ziwei?.palaces as any[]) ?? []).map((p) => ({ key: p.name, label: p.name }));
+    // 자미두수: 명반 12궁을 항목으로(궁명 = 캐시 category·표시 라벨) + 이 궁이 뭘 보는지 설명(daniel).
+    if (kind === 'ziwei') return ((c?.ziwei?.palaces as any[]) ?? []).map((p) => ({ key: p.name, label: p.name, desc: PALACE_DESC[p.name] }));
     return SAJU_CATEGORIES.map((k) => ({ key: k, label: t(`category.${k}`) }));
   }, [categories, kind, c, t]);
 
@@ -326,7 +327,10 @@ export function ReadingScreen({
         return (
           <Pressable key={cat.key} style={styles.listItem} onPress={() => setDetail(cat.key)}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.listLabel}>{cat.label}</Text>
+              <View style={styles.listLabelRow}>
+                <Text style={styles.listLabel}>{cat.label}</Text>
+                {cat.desc ? <Text style={styles.listDesc}>{cat.desc}</Text> : null}
+              </View>
               <Text style={styles.listPreview} numberOfLines={1}>{preview}</Text>
             </View>
             <Text style={styles.listArrow}>›</Text>
@@ -344,6 +348,8 @@ export function ReadingScreen({
         {detail && (
           <ScrollView contentContainerStyle={styles.detailWrap}>
             <Text style={styles.detailTitle}>{cats.find((x) => x.key === detail)?.label}</Text>
+            {/* 자미두수 등 — 이 항목(궁)이 뭘 보는지 설명 */}
+            {cats.find((x) => x.key === detail)?.desc ? <Text style={styles.detailDesc}>{cats.find((x) => x.key === detail)?.desc}</Text> : null}
             {renderSections(detail)}
             {renderFollowups(detail)}
           </ScrollView>
@@ -377,7 +383,9 @@ const styles = StyleSheet.create({
   remedySection: { marginTop: space(6), paddingTop: space(5), borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.line },
   // 항목 리스트(구역)
   listItem: { flexDirection: 'row', alignItems: 'center', gap: space(3), marginTop: space(3), padding: space(4), backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.line, ...shadow.card },
+  listLabelRow: { flexDirection: 'row', alignItems: 'baseline', flexWrap: 'wrap', gap: space(2) },
   listLabel: { ...font.heading, fontSize: 19, color: colors.ju },
+  listDesc: { ...font.caption, color: colors.inkSoft },
   listPreview: { ...font.caption, color: colors.inkSoft, marginTop: space(1) },
   listArrow: { fontSize: 24, color: colors.inkFaint, fontWeight: '300' },
   // 상세 페이지(모달)
@@ -385,7 +393,8 @@ const styles = StyleSheet.create({
   detailBack: { paddingTop: space(12), paddingHorizontal: space(5), paddingBottom: space(2) },
   detailBackTx: { ...font.body, color: colors.ju, fontWeight: '700' },
   detailWrap: { padding: space(5), paddingTop: space(2), paddingBottom: space(10) },
-  detailTitle: { ...font.title, fontSize: 26, color: colors.ink, marginBottom: space(2) },
+  detailTitle: { ...font.title, fontSize: 26, color: colors.ink, marginBottom: space(1) },
+  detailDesc: { ...font.body, color: colors.inkSoft, marginBottom: space(3) },
   err: { fontSize: 13, color: colors.ju },
   // 추가 질문(Q&A)
   askWrap: { marginTop: space(7), paddingTop: space(5), borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.line },

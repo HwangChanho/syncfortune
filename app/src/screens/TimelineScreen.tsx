@@ -4,7 +4,7 @@
 //   선택 항목(life_{startAge} / year_{YYYY}) 통변을 Edge(kind='timeline')로 생성·캐시. 현재 대운·올해 기본.
 //   캐시(readings chart_id×category)로 재생성 0. 프리미엄 메뉴(비프리미엄=유도).
 // ─────────────────────────────────────────────────────────────────────────
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator, Modal, Alert } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { computeChart } from '../lib/engine';
@@ -53,8 +53,20 @@ export function TimelineScreen({ input, savedChart }: { input: ChartInput | null
   const [chartId, setChartId] = useState<string | null>(savedChart?.serverChartId ?? null);
   const [busy, setBusy] = useState<string | null>(null);      // 생성 중인 category
   const [picker, setPicker] = useState<'decade' | 'year' | null>(null);
+  const listRef = useRef<ScrollView>(null);                   // picker 목록 스크롤(선택 위치로 이동)
+  const ROW_H = 48;                                           // 목록 행 고정 높이(스크롤 오프셋 계산용)
 
   useEffect(() => { if (curDecadeKey && !selDecade) setSelDecade(curDecadeKey); }, [curDecadeKey, selDecade]);
+
+  // picker 열릴 때 선택 항목(연도=올해·대운=현재)으로 스크롤 위치를 맞춘다(맨 위 아닌 현재로, daniel).
+  useEffect(() => {
+    if (!picker) return;
+    const items = picker === 'decade' ? decades : years;
+    const selKey = picker === 'decade' ? selDecade : selYear;
+    const idx = items.findIndex((x) => x.key === selKey);
+    if (idx > 1) setTimeout(() => listRef.current?.scrollTo({ y: (idx - 1) * ROW_H, animated: false }), 60);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [picker]);
 
   // 진입 시 서버차트 + 캐시 로드 → 현재 대운·올해 자동 생성(둘 다 보이게)
   useEffect(() => {
@@ -155,7 +167,7 @@ export function TimelineScreen({ input, savedChart }: { input: ChartInput | null
         <Pressable style={styles.backdrop} onPress={() => setPicker(null)}>
           <Pressable style={styles.sheet} onPress={() => {}}>
             <Text style={styles.sheetH}>{picker === 'decade' ? t('timeline.pickDecade') : t('timeline.pickYear')}</Text>
-            <ScrollView style={{ maxHeight: 440 }}>
+            <ScrollView ref={listRef} style={{ maxHeight: 440 }}>
               {picker === 'decade' && decades.map((d) => {
                 const on = selDecade === d.key, isCur = d.key === curDecadeKey;
                 return (
@@ -206,7 +218,7 @@ const styles = StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   sheet: { backgroundColor: colors.bg, borderTopLeftRadius: radius.lg, borderTopRightRadius: radius.lg, padding: space(5), paddingBottom: space(9) },
   sheetH: { ...font.heading, color: colors.ink, marginBottom: space(3) },
-  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: space(3), paddingHorizontal: space(2), borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.line },
+  row: { height: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: space(2), borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.line },
   rowOn: { backgroundColor: colors.juSoft, borderRadius: radius.sm },
   rowTx: { ...font.body, color: colors.ink },
 });
