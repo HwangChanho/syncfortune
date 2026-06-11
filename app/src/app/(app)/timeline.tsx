@@ -36,13 +36,26 @@ export default function TimelineRoute() {
     return () => { alive = false; };
   }, [input]);
 
-  // 대운 → ReadingScreen 항목(key=life_{startAge}, label='{startAge}~{endAge}세 간지')
+  // 타임라인 항목 = ① 올해+근래 1년 단위(year_{YYYY}, '올해 운세'가 제일 중요 → 맨 앞) ② 10년 단위(life_{startAge}).
+  //   Edge는 category 접두사(year_/life_)로 연운/대운을 분기. 캐시 키도 접두사로 구분.
   const cats = useMemo<ReadingCategory[] | undefined>(() => {
     if (!me) return undefined;
-    const luck: any[] = (buildSajuChart(me).luckCycles ?? []);
-    return luck
+    const saju = buildSajuChart(me);
+    const luck: any[] = saju.luckCycles ?? [];
+    const now = new Date().getFullYear();
+    // ① 올해 ~ +4년: 각 대운의 세운(流年)에서 해당 연도를 찾아 1년 단위 항목으로(중복 제거)
+    const yearMap = new Map<number, any>();
+    luck.forEach((l) => (l.annuals ?? []).forEach((a: any) => {
+      if (a.year >= now && a.year <= now + 4 && !yearMap.has(a.year)) yearMap.set(a.year, a);
+    }));
+    const yearCats: ReadingCategory[] = Array.from(yearMap.values())
+      .sort((a, b) => a.year - b.year)
+      .map((a) => ({ key: `year_${a.year}`, label: `${a.year === now ? '🎯 올해 · ' : ''}${a.year}년 · ${a.stem}${a.branch}` }));
+    // ② 10년 단위 대운(10~100세)
+    const decadeCats: ReadingCategory[] = luck
       .filter((l) => l.startAge + 9 >= AGE_MIN && l.startAge <= AGE_MAX)
       .map((l) => ({ key: `life_${l.startAge}`, label: `${l.startAge}~${l.startAge + 9}세 · ${l.stem}${l.branch}` }));
+    return [...yearCats, ...decadeCats]; // 올해(1년) 먼저, 그다음 장기(10년)
   }, [me]);
 
   if (loading) return <View style={styles.center}><ActivityIndicator color={colors.ju} /></View>;

@@ -42,7 +42,9 @@ export default function RegisterRoute() {
           if (e instanceof ChartLimitError) { showLimit(e.limit); return; } // 저장·네비 중단
           throw e;
         }
-        router.push({ pathname: '/myeongsik', params: { input: JSON.stringify(input) } });
+        // replace(push 아님): 등록 폼을 스택에서 빼 명식·만세력에서 뒤로가기 시 홈으로(daniel).
+        //   등록 직후 '다시 등록 폼' 으로 돌아가는 혼란 제거 — 스택 = [홈, 명식].
+        router.replace({ pathname: '/myeongsik', params: { input: JSON.stringify(input) } });
       }}
     />
   );
