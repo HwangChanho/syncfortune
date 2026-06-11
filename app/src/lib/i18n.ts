@@ -19,6 +19,7 @@ const ko = {
     today: '오늘의 운세', todayDesc: '매일 바뀌는 일운',
     compat: '궁합', compatDesc: '관계역학 딥 분석',
     premium: '프리미엄 풀이', premiumDesc: '딥 통변·전 영역', premiumTag: '프리미엄',
+    timeline: '인생 타임라인', timelineDesc: '10~100세 시기별 흐름',
   },
   common: {
     back: '← 뒤로', login: '로그인', signup: '회원가입', logout: '로그아웃',
@@ -62,6 +63,7 @@ const ko = {
     title: '전 영역 풀이 · 프리미엄', sub: '16개 전 영역을 한 번에 딥·정밀 통변해 드립니다. (명식은 무료)',
     runAll: '전체 풀이 보기 ({{count}}개)', progress: '‘{{current}}’ 풀이 중… ({{done}}/{{total}})', saveFail: '명식 저장에 실패했어요. 잠시 후 다시 시도해 주세요.',
     ziweiTitle: '자미두수 12궁 풀이 · 프리미엄', ziweiSub: '명반 12궁을 한 번에 통합 통변해 드립니다. (명반은 무료)',
+    timelineTitle: '인생 타임라인 · 프리미엄', timelineSub: '10~100세를 10년 단위로, 시기마다 어떤 흐름인지 풀어 드립니다.',
     bannerPremium: '구독 중 — 무제한 통변', bannerTrial: '🎁 첫 통변 1회 무료 체험!',
     bannerGated: '영역 선택 시 광고 또는 구독으로 통변이 열립니다',
     base: '타고난 바탕', past: '지나온 흐름', overlay: '지금의 흐름', remedy: '이렇게 해보세요',
@@ -79,7 +81,7 @@ const ko = {
     dayRelation: '일간 관계', harmonyTension: '조화 {{h}} · 긴장 {{t}}',
     usefulGod: '용신 상보', crossInter: '교차 합충',
     note: '※ 결정론까지. 관계 통변·조언은 별도(유료). 규칙2: 사주 단독, 자미·MBTI는 수렴.',
-    needChart: '궁합을 보려면 먼저 내 명식을 등록하세요.', registerMyChart: '내 명식 등록',
+    needChart: '궁합을 보려면 먼저 내 명식을 등록하세요.', registerMyChart: '명식 등록',
   },
   category: {
     성격내면: '성격·내면', 취업운: '취업운', 직장운: '직장운', 사업운: '사업운',
@@ -93,7 +95,7 @@ const ko = {
     needChart: '내 명식을 등록하면 오늘의 흐름을 나에게 맞춰 분야별로 풀어 드려요.', registerBtn: '명식 등록하기',
   },
   taro: { draw: '카드 뽑기', reshuffle: '다시 뽑기', reversed: '역방향' },
-  manse: { empty: '등록된 명식이 없습니다.', myChart: '내 명식' },
+  manse: { empty: '등록된 명식이 없습니다.', myChart: '명식' },
   sinsal: { 도화: '도화', 역마: '역마', 화개: '화개', 천을귀인: '천을귀인', 문창: '문창', 양인: '양인', 홍염: '홍염', 괴강: '괴강', 백호: '백호' },
 };
 
@@ -108,6 +110,7 @@ const en = {
     today: 'Daily Fortune', todayDesc: 'Changes every day',
     compat: 'Compatibility', compatDesc: 'Deep relationship analysis',
     premium: 'Premium Reading', premiumDesc: 'Deep reading · all areas', premiumTag: 'Premium',
+    timeline: 'Life Timeline', timelineDesc: 'Decade-by-decade, age 10–100',
   },
   common: {
     back: '← Back', login: 'Log in', signup: 'Sign up', logout: 'Log out',
@@ -151,6 +154,7 @@ const en = {
     title: 'Full Reading · Premium', sub: 'All 16 areas in one deep, precise reading. (Chart is free)',
     runAll: 'See full reading ({{count}})', progress: 'Reading ‘{{current}}’… ({{done}}/{{total}})', saveFail: 'Failed to save chart. Please try again.',
     ziweiTitle: 'Zi Wei · 12 Palaces · Premium', ziweiSub: 'All 12 palaces interpreted together. (Chart is free)',
+    timelineTitle: 'Life Timeline · Premium', timelineSub: 'Age 10–100, one decade at a time — what each phase holds.',
     bannerPremium: 'Subscribed — unlimited readings', bannerTrial: '🎁 First reading free!',
     bannerGated: 'Pick an area to unlock via ad or subscription',
     base: 'Core', past: 'The road so far', overlay: 'Now', remedy: 'Advice',
@@ -168,7 +172,7 @@ const en = {
     dayRelation: 'Day-master relation', harmonyTension: 'Harmony {{h}} · Tension {{t}}',
     usefulGod: 'Useful-god support', crossInter: 'Cross combos/clashes',
     note: '※ Deterministic only. Relationship reading is separate (paid).',
-    needChart: 'Register your chart first to see compatibility.', registerMyChart: 'Register my chart',
+    needChart: 'Register your chart first to see compatibility.', registerMyChart: 'Register chart',
   },
   category: {
     성격내면: 'Personality', 취업운: 'Job-seeking', 직장운: 'Career', 사업운: 'Business',
@@ -182,7 +186,7 @@ const en = {
     needChart: 'Register your chart to get today personalized for you, area by area.', registerBtn: 'Register chart',
   },
   taro: { draw: 'Draw a card', reshuffle: 'Reshuffle', reversed: 'Reversed' },
-  manse: { empty: 'No saved chart.', myChart: 'My Chart' },
+  manse: { empty: 'No saved chart.', myChart: 'Chart' },
   sinsal: { 도화: 'Peach Blossom', 역마: 'Travel Horse', 화개: 'Canopy', 천을귀인: 'Nobleman', 문창: 'Academic', 양인: 'Blade', 홍염: 'Romance', 괴강: 'Goegang', 백호: 'White Tiger' },
 };
 
@@ -197,6 +201,7 @@ const ja = {
     today: '今日の運勢', todayDesc: '毎日変わる日運',
     compat: '相性', compatDesc: '関係力学の深い分析',
     premium: 'プレミアム鑑定', premiumDesc: '深い通変·全領域', premiumTag: 'プレミアム',
+    timeline: '人生タイムライン', timelineDesc: '10〜100歳の時期別の流れ',
   },
   common: {
     back: '← 戻る', login: 'ログイン', signup: '新規登録', logout: 'ログアウト',
@@ -240,6 +245,7 @@ const ja = {
     title: '全領域鑑定 · プレミアム', sub: '16領域すべてを一度に深く精密な通変。（命式は無料）',
     runAll: '全体を見る（{{count}}件）', progress: '‘{{current}}’ 鑑定中… ({{done}}/{{total}})', saveFail: 'チャートの保存に失敗しました。',
     ziweiTitle: '紫微斗数 十二宮 · プレミアム', ziweiSub: '十二宮を一度に統合通変。（命盤は無料）',
+    timelineTitle: '人生タイムライン · プレミアム', timelineSub: '10〜100歳を10年ごとに、各時期の流れを読み解きます。',
     bannerPremium: '購読中 — 無制限通変', bannerTrial: '🎁 初回鑑定が無料！',
     bannerGated: '領域選択で広告または購読により通変が開きます',
     base: '本質', past: 'これまで', overlay: '現在', remedy: '処方',
@@ -271,7 +277,7 @@ const ja = {
     needChart: '命式を登録すると、今日の流れをあなたに合わせて分野別に読み解きます。', registerBtn: '命式を登録',
   },
   taro: { draw: 'カードを引く', reshuffle: '引き直す', reversed: '逆位置' },
-  manse: { empty: '登録された命式がありません。', myChart: '私の命式' },
+  manse: { empty: '登録された命式がありません。', myChart: '命式' },
   sinsal: { 도화: '桃花', 역마: '駅馬', 화개: '華蓋', 천을귀인: '天乙貴人', 문창: '文昌', 양인: '羊刃', 홍염: '紅艶', 괴강: '魁罡', 백호: '白虎' },
 };
 

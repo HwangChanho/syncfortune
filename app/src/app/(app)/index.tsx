@@ -31,6 +31,8 @@ const MENU: MenuItem[] = [
   { key: 'premium', labelKey: 'menu.premium', image: require('../../../assets/icons/premium.png'), route: '/reading', ready: true, premium: true },
   { key: 'compat', labelKey: 'menu.compat', image: require('../../../assets/icons/compat.png'), route: '/compat', ready: true, premium: true },
   { key: 'ziwei', labelKey: 'menu.ziwei', image: require('../../../assets/icons/ziwei.png'), route: '/ziwei', ready: true, premium: true },
+  // 인생 타임라인 = 대운(10년 단위) 시기별 풀이(10~100세). 이미지=daniel Recraft 생성(미생성 시 premium.png 임시).
+  { key: 'timeline', labelKey: 'menu.timeline', image: require('../../../assets/icons/premium.png'), route: '/timeline', ready: true, premium: true },
 ];
 
 function TwinklingStars() {
