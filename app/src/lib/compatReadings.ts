@@ -17,6 +17,13 @@ export const COMPAT_RELS: { key: string; ko: string }[] = [
 
 export type CompatReading = { core?: string; base?: string; overlay?: string; remedy?: string; error?: string };
 
+// Edge 궁합 응답: 통변 or 게이트(프리미엄 유도·건당 결제 필요)
+export type CompatResult =
+  | { kind: 'answer'; reading: CompatReading }
+  | { kind: 'needPremium' }
+  | { kind: 'needPayment'; used: number; freeLimit: number }
+  | { kind: 'error' };
+
 /** 상대 차트 서명(캐시 키 일부) — 4기둥 간지 결합. 같은 상대 = 같은 서명 → 캐시 적중. */
 export function otherSig(otherSaju: any): string {
   const p = otherSaju?.pillars ?? {};
@@ -34,13 +41,19 @@ export async function loadCompatReadings(chartId: string, sig: string): Promise<
   return out;
 }
 
-/** 한 관계 유형 통변 생성(Edge kind='compat', 캐시 적중 시 재생성 0). cross/dayRel = 온디바이스 계산값. */
+/**
+ * 한 관계 유형 통변 생성(Edge kind='compat', 캐시 적중 시 재생성 0). cross/dayRel = 온디바이스 계산값.
+ * 게이트: 비프리미엄=needPremium / 무료 5쌍 초과=needPayment(paid 로 우회). 서버가 판정.
+ */
 export async function genCompatReading(
-  chartId: string, rel: string, sig: string, otherSaju: any, cross: string[], dayRel: string,
-): Promise<CompatReading | null> {
+  chartId: string, rel: string, sig: string, otherSaju: any, cross: string[], dayRel: string, paid = false,
+): Promise<CompatResult> {
   const { data, error } = await supabase.functions.invoke('interpret', {
-    body: { chartId, category: `compat_${rel}_${sig}`, kind: 'compat', tier: 'paid', otherSaju, cross, dayRel },
+    body: { chartId, category: `compat_${rel}_${sig}`, kind: 'compat', tier: 'paid', otherSaju, cross, dayRel, paid },
   });
-  if (error || !data?.reading) return null;
-  return data.reading as CompatReading;
+  if (error) return { kind: 'error' };
+  if (data?.needPremium) return { kind: 'needPremium' };
+  if (data?.needPayment) return { kind: 'needPayment', used: data.used, freeLimit: data.freeLimit };
+  if (data?.reading) return { kind: 'answer', reading: data.reading as CompatReading };
+  return { kind: 'error' };
 }

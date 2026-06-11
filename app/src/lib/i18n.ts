@@ -86,6 +86,8 @@ const ko = {
     analyze: '궁합 풀이 보기', generating: '두 분의 궁합을 풀이하는 중…', noReading: '풀이를 생성하지 못했어요. 다시 시도해 주세요.',
     secBase: '두 사람의 기본 결', secDynamic: '잘 맞는 점 · 부딪히는 점', secAdvice: '이렇게 가꿔 보세요',
     detailToggle: '글자 작용 자세히 보기',
+    premiumTitle: '프리미엄 전용', premiumMsg: '궁합 풀이는 프리미엄에서 5명까지 무료로 볼 수 있어요.',
+    payTitle: '궁합 추가', payMsg: '무료 5명을 다 보셨어요. 이 분과의 궁합을 건당 ₩2,500으로 보시겠어요?', payBtn: '₩2,500 결제',
   },
   category: {
     성격내면: '성격·내면', 취업운: '취업운', 직장운: '직장운', 사업운: '사업운',
@@ -181,6 +183,8 @@ const en = {
     analyze: 'See compatibility', generating: 'Reading your compatibility…', noReading: "Couldn't generate. Please try again.",
     secBase: 'How you two mesh', secDynamic: 'Where you click · where you clash', secAdvice: 'How to nurture it',
     detailToggle: 'Show character interactions',
+    premiumTitle: 'Premium only', premiumMsg: 'Premium gives you 5 free compatibility readings.',
+    payTitle: 'Another reading', payMsg: "You've used your 5 free readings. See this one for ₩2,500?", payBtn: 'Pay ₩2,500',
   },
   category: {
     성격내면: 'Personality', 취업운: 'Job-seeking', 직장운: 'Career', 사업운: 'Business',
@@ -276,6 +280,8 @@ const ja = {
     analyze: '相性を見る', generating: 'お二人の相性を読み解き中…', noReading: '生成できませんでした。もう一度お試しください。',
     secBase: '二人の基本的な噛み合い', secDynamic: '合うところ · ぶつかるところ', secAdvice: 'こう育てましょう',
     detailToggle: '文字の作用をくわしく',
+    premiumTitle: 'プレミアム限定', premiumMsg: '相性鑑定はプレミアムで5名まで無料です。',
+    payTitle: '相性を追加', payMsg: '無料5名を使い切りました。この方との相性を1回₩2,500で見ますか？', payBtn: '₩2,500 決済',
   },
   category: {
     성격내면: '性格·内面', 취업운: '就職運', 직장운: '職場運', 사업운: '事業運',

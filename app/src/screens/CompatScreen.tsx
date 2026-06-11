@@ -6,7 +6,7 @@
 // 결정론(일간관계·교차합충)은 온디바이스 → 통변의 근거로 Edge에 전달(규칙2 사주 단독). 상대 PII=동의(규칙8).
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useEffect, useMemo } from 'react';
-import { View, Text, TextInput, Pressable, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, Pressable, ScrollView, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { computeChart } from '../lib/engine';
 import { analyzeCompatibility } from '@engine/compatibility';
@@ -17,7 +17,8 @@ import { formatBirthDate } from '../lib/sijin';
 import { BirthPlacePicker } from '../components/BirthPlacePicker';
 import { listCharts, getRepresentativeId, type SavedChart } from '../lib/myChart';
 import { useAuth } from '../lib/useAuth';
-import { useSubscription } from '../lib/subscription';
+import { useSubscription, purchasePremium } from '../lib/subscription';
+import { useEntitlement } from '../lib/entitlement';
 import { ensureServerChartId } from '../lib/prewarmReadings';
 import { COMPAT_RELS, otherSig, loadCompatReadings, genCompatReading, type CompatReading } from '../lib/compatReadings';
 import type { ChartInput } from '@spec/chart';
@@ -26,6 +27,7 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
   const { t } = useTranslation();
   const { session } = useAuth();
   const { isPremium } = useSubscription();
+  const { purchaseReading } = useEntitlement(); // 궁합 건당 결제(무료 5쌍 초과 시)
   const [saved, setSaved] = useState<SavedChart[]>([]);
   const [meSel, setMeSel] = useState<SavedChart | null>(null);   // '내 명식' 슬롯(기본=대표). 저장 명식에서 변경 가능.
   const [mePick, setMePick] = useState(false);                    // 내 명식 변경 피커 펼침
@@ -61,7 +63,8 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
     setActive((prev) => { const n = new Set(prev); n.has(key) ? n.delete(key) : n.add(key); return n; });
   }
 
-  // 궁합 풀이 — 두 명식 결정론 계산(근거) → 서버차트 확보 → 관계 유형별 통변 로드/생성
+  // 궁합 풀이 — 두 명식 결정론 계산(근거) → 서버차트 확보 → 관계 유형별 통변 로드/생성.
+  //   게이트(서버 판정): 비프리미엄=프리미엄 유도 / 무료 5쌍 초과=건당 결제(paid 재시도). daniel.
   async function analyze() {
     if (!meInput || !otherInput || !session) return;
     const meC = computeChart(meInput), otherC = computeChart(otherInput);
@@ -70,19 +73,35 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
     const chartId = await ensureServerChartId(meC, meInput, session, meSel);
     if (!chartId) return;
     const sig = otherSig(otherC.saju);
-    // 교차작용(나↔상대) + 일간관계 = 통변 근거(쉬운 말로 번역하도록 Edge에 전달)
-    const dx = analyzeCompatibility(meC.saju, otherC.saju);
-    const cross = crossDetails(meC.saju, otherC.saju);
+    const dx = analyzeCompatibility(meC.saju, otherC.saju);     // 일간관계(통변 근거)
+    const cross = crossDetails(meC.saju, otherC.saju);          // 교차작용(통변 근거 — 쉬운 말로 번역)
     const cached = await loadCompatReadings(chartId, sig);
     setReadings(cached);
-    // 선택 관계가 없으면 생성(프리미엄은 즉시, 비프리미엄은 게이트 — 여기선 프리미엄 가정·메뉴가 프리미엄)
-    for (const r of COMPAT_RELS) {
-      if (cached[r.key]) continue;
-      setBusy(r.key);
-      const res = await genCompatReading(chartId, r.key, sig, otherC.saju, cross, dx.dayMasterRelation.detail);
-      if (res) setReadings((prev) => ({ ...prev, [r.key]: res }));
+
+    // 관계 5종 순차 생성(캐시된 건 skip). 첫 미생성에서 게이트가 걸리면 전체 중단(쌍 단위 과금).
+    async function genAll(paid: boolean) {
+      for (const r of COMPAT_RELS) {
+        if (cached[r.key] || readings[r.key]) continue;
+        setBusy(r.key);
+        const res = await genCompatReading(chartId!, r.key, sig, otherC.saju, cross, dx.dayMasterRelation.detail, paid);
+        if (res.kind === 'answer') { setReadings((prev) => ({ ...prev, [r.key]: res.reading })); continue; }
+        setBusy(null);
+        if (res.kind === 'needPremium') { Alert.alert(t('compat.premiumTitle'), t('compat.premiumMsg')); return; }
+        if (res.kind === 'needPayment') {
+          Alert.alert(t('compat.payTitle'), t('compat.payMsg'), [
+            { text: t('common.cancel'), style: 'cancel' },
+            { text: t('compat.payBtn'), onPress: async () => {
+              try { await purchaseReading(); await genAll(true); }
+              catch (e) { Alert.alert(t('reading.payPending'), (e as Error).message); }
+            } },
+          ]);
+          return;
+        }
+        return; // error
+      }
+      setBusy(null);
     }
-    setBusy(null);
+    await genAll(false);
   }
 
   // 나↔상대 교차 합충(detail 문자열 배열) — Edge 통변 근거(원국+대운+세운)

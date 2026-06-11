@@ -65,3 +65,6 @@ SyncFortune_*.md
 # ── 참고 스크린샷·루트 스트레이 이미지 (앱 에셋 app/assets/*.png 는 보존) ──
 KakaoTalk_*.png
 /*.png
+
+# Claude Code 로컬 설정(개인 — 공개 레포 미커밋)
+.claude/settings.local.json
