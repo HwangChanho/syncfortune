@@ -107,9 +107,9 @@ const ko = {
     language: '언어', note: '※ 글자 크기는 읽는 본문(통변)에 적용됩니다.',
   },
   timeline: {
-    decades: '10년 단위 (대운)', years: '연도별', pickYear: '연도 선택', thisYear: '올해',
+    decades: '10년 단위 (대운)', years: '연도별', pickDecade: '시기 선택', pickYear: '연도 선택', thisYear: '올해', now: '지금',
     flow: '이 시기의 흐름', peak: '특히 두드러지는 때', advice: '이 시기 이렇게',
-    generating: '이 시기를 풀이하는 중…', tapToRead: '대운이나 연도를 선택하면 그 시기의 흐름을 풀어 드려요.',
+    generating: '이 시기를 풀이하는 중…', tapToRead: '시기나 연도를 선택하면 그 흐름을 풀어 드려요.',
     premiumTitle: '프리미엄 전용', premiumMsg: '인생 타임라인은 프리미엄에서 시기별로 풀어 드려요.',
   },
   taro: { draw: '카드 뽑기', reshuffle: '다시 뽑기', reversed: '역방향' },
