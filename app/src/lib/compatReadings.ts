@@ -5,6 +5,7 @@
 //   교차작용(cross)·일간관계(dayRel)는 온디바이스(engine)에서 계산해 body로 전달(Edge는 engine 미보유).
 // ─────────────────────────────────────────────────────────────────────────
 import { supabase } from './supabase';
+import { appLang } from './i18n'; // 궁합 통변 언어(앱 언어)
 
 // 관계 유형(궁합 카테고리, daniel) — key=Edge 분기·캐시 / ko=표시
 export const COMPAT_RELS: { key: string; ko: string }[] = [
@@ -32,7 +33,7 @@ export function otherSig(otherSaju: any): string {
 
 /** 이 상대(sig)에 대해 이미 생성된 관계별 통변 로드 → rel 별 맵. */
 export async function loadCompatReadings(chartId: string, sig: string): Promise<Record<string, CompatReading>> {
-  const { data } = await supabase.from('readings').select('category, content').eq('chart_id', chartId).like('category', 'compat_%');
+  const { data } = await supabase.from('readings').select('category, content').eq('chart_id', chartId).like('category', 'compat_%').eq('lang', appLang());
   const out: Record<string, CompatReading> = {};
   (data ?? []).forEach((r: any) => {
     if (!String(r.category).endsWith(`_${sig}`)) return;       // 이 상대 것만(category=compat_{rel}_{sig})
@@ -49,7 +50,7 @@ export async function genCompatReading(
   chartId: string, rel: string, sig: string, otherSaju: any, cross: string[], dayRel: string, paid = false,
 ): Promise<CompatResult> {
   const { data, error } = await supabase.functions.invoke('interpret', {
-    body: { chartId, category: `compat_${rel}_${sig}`, kind: 'compat', tier: 'paid', otherSaju, cross, dayRel, paid },
+    body: { chartId, category: `compat_${rel}_${sig}`, kind: 'compat', tier: 'paid', otherSaju, cross, dayRel, paid, lang: appLang() },
   });
   if (error) return { kind: 'error' };
   if (data?.needPremium) return { kind: 'needPremium' };

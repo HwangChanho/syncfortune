@@ -14,6 +14,7 @@ import { useFontScale } from '../lib/fontScale';
 import { supabase } from '../lib/supabase';
 import { ensureServerChartId } from '../lib/prewarmReadings';
 import { useCredit } from '../lib/coupons'; // 무료 이용권(타임라인 1세트)
+import { appLang } from '../lib/i18n'; // 통변 출력 언어(앱 언어)
 import { stemElement, elementColor, elementText } from '../lib/ohaeng';
 import { colors, radius, space, shadow, font } from '../lib/theme';
 import type { ChartInput } from '@spec/chart';
@@ -78,7 +79,7 @@ export function TimelineScreen({ input, savedChart }: { input: ChartInput | null
       const id = await ensureServerChartId(c, input, session, savedChart);
       if (!alive || !id) return;
       setChartId(id);
-      const { data } = await supabase.from('readings').select('category, content').eq('chart_id', id);
+      const { data } = await supabase.from('readings').select('category, content').eq('chart_id', id).eq('lang', appLang());
       if (!alive) return;
       const loaded: Record<string, any> = {};
       (data ?? []).forEach((r: any) => { if (/^(life|year)_/.test(r.category)) loaded[r.category] = r.content; });
@@ -103,7 +104,7 @@ export function TimelineScreen({ input, savedChart }: { input: ChartInput | null
     }
     setBusy(key);
     try {
-      const { data, error } = await supabase.functions.invoke('interpret', { body: { chartId: cid, category: key, kind: 'timeline', tier: 'paid' } });
+      const { data, error } = await supabase.functions.invoke('interpret', { body: { chartId: cid, category: key, kind: 'timeline', tier: 'paid', lang: appLang() } });
       setReadings((prev) => ({ ...prev, [key]: error ? { error: error.message } : data?.reading }));
     } catch (e) { setReadings((prev) => ({ ...prev, [key]: { error: (e as Error).message } })); }
     setBusy(null);

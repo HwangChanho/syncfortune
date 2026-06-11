@@ -21,6 +21,7 @@ import { useSubscription } from '../lib/subscription';
 import { setServerChartId, type SavedChart } from '../lib/myChart';
 import { loadFollowups, askFollowup, type Followup } from '../lib/followups';
 import { useFontScale } from '../lib/fontScale';
+import { appLang } from '../lib/i18n'; // 통변 출력 언어(앱 언어)
 import { PALACE_DESC } from '../lib/palaceDesc'; // 자미두수 궁 설명(궁 옆 표시)
 import { useCredit } from '../lib/coupons'; // 무료 이용권 크레딧(결제 전 우선 소비)
 import { colors, radius, space, shadow, font } from '../lib/theme';
@@ -96,7 +97,7 @@ export function ReadingScreen({
       const id = await ensureServerChart();
       if (!alive || !id) { if (alive) setCacheLoaded(true); return; }
       setChartId(id);
-      const { data } = await supabase.from('readings').select('category, content').eq('chart_id', id);
+      const { data } = await supabase.from('readings').select('category, content').eq('chart_id', id).eq('lang', appLang());
       if (!alive) return;
       const keys = new Set(cats.map((x) => x.key));   // 이 화면 항목(사주/자미)만 반영
       const loaded: Record<string, any> = {};
@@ -142,7 +143,7 @@ export function ReadingScreen({
     for (const cat of todo) {
       setProgress((p) => (p ? { ...p, current: cat.label } : null)); // 지금 풀이 중인 영역
       try {
-        const { data, error } = await supabase.functions.invoke('interpret', { body: { chartId: id, category: cat.key, kind, tier: 'paid' } });
+        const { data, error } = await supabase.functions.invoke('interpret', { body: { chartId: id, category: cat.key, kind, tier: 'paid', lang: appLang() } });
         setReadings((prev) => ({ ...prev, [cat.key]: error ? { error: error.message } : data?.reading }));
       } catch (err) {
         setReadings((prev) => ({ ...prev, [cat.key]: { error: (err as Error).message } }));

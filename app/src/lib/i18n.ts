@@ -358,4 +358,10 @@ i18n.use(initReactI18next).init({
   interpolation: { escapeValue: false },
 });
 
+// 현재 앱 언어(ko/en/ja) — 통변 생성/캐시를 언어별로 분기할 때 사용(Edge body.lang).
+export function appLang(): 'ko' | 'en' | 'ja' {
+  const l = (i18n.language || 'ko').slice(0, 2);
+  return l === 'en' || l === 'ja' ? l : 'ko';
+}
+
 export default i18n;

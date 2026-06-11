@@ -12,6 +12,7 @@ import type { Session } from '@supabase/supabase-js';
 import { supabase } from './supabase';
 import { computeChart } from './engine';
 import { setServerChartId, type SavedChart } from './myChart';
+import { appLang } from './i18n'; // 통변 출력 언어(앱 언어)
 import type { ChartInput, CategoryKey } from '@spec/chart';
 
 // 사주 16영역 — 풀이 캐시 category 키(단일 출처: ReadingScreen·프리워밍 공용)
@@ -56,7 +57,7 @@ export async function prewarmReadings(savedChart: SavedChart, session: Session):
       ...((c.ziwei?.palaces as any[]) ?? []).map((p) => ({ key: p.name as string, kind: 'ziwei' as const })),
     ];
     // 이미 캐시된 영역 제외(멱등 — 비용 방어. Edge 도 요청마다 캐시 선확인 = 이중 생성 없음)
-    const { data } = await supabase.from('readings').select('category').eq('chart_id', id);
+    const { data } = await supabase.from('readings').select('category').eq('chart_id', id).eq('lang', appLang());
     const have = new Set((data ?? []).map((r: any) => r.category));
     const missing = all.filter((x) => !have.has(x.key));
     // 사주·자미 *병렬* 두 체인(각 체인은 순차) — 자미가 사주 16개 뒤로 밀려 한쪽 화면이
@@ -64,7 +65,7 @@ export async function prewarmReadings(savedChart: SavedChart, session: Session):
     const runChain = async (items: typeof missing) => {
       for (const m of items) {
         try {
-          await supabase.functions.invoke('interpret', { body: { chartId: id, category: m.key, kind: m.kind, tier: 'paid' } });
+          await supabase.functions.invoke('interpret', { body: { chartId: id, category: m.key, kind: m.kind, tier: 'paid', lang: appLang() } });
         } catch { /* 개별 실패 무시 — 풀이 화면 생성 버튼이 폴백 */ }
       }
     };
