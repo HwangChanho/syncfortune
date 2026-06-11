@@ -22,6 +22,7 @@ import { setServerChartId, type SavedChart } from '../lib/myChart';
 import { loadFollowups, askFollowup, type Followup } from '../lib/followups';
 import { useFontScale } from '../lib/fontScale';
 import { PALACE_DESC } from '../lib/palaceDesc'; // 자미두수 궁 설명(궁 옆 표시)
+import { useCredit } from '../lib/coupons'; // 무료 이용권 크레딧(결제 전 우선 소비)
 import { colors, radius, space, shadow, font } from '../lib/theme';
 import type { ChartInput, CategoryKey } from '@spec/chart';
 
@@ -152,10 +153,12 @@ export function ReadingScreen({
     if (isTrial) await consumeTrial();                     // 무료 체험 소진(전 항목 1세트 = 1회)
   }
 
-  // 생성 트리거: 프리미엄(구독)=게이트 우회 / 비프리미엄=trial·perUse 게이트.
+  // 생성 트리거: 프리미엄 > 무료이용권(쿠폰) > trial·perUse 순.
   async function onStart() {
     if (!session) { router.push('/login'); return; }
     if (isPremium) { await runAll(false); return; }        // 구독 = 무게이트(캐시로 비용 방어)
+    // ★무료 이용권: 이 화면 종류(사주=reading/자미=ziwei) 크레딧 있으면 차감하고 무료 생성
+    if (await useCredit(kind === 'ziwei' ? 'ziwei' : 'reading')) { await runAll(false); return; }
     if (mode === 'perUse') {
       Alert.alert(t('reading.premiumAlert'), t('reading.premiumAlertMsg'), [
         { text: t('reading.watchAd'), onPress: async () => { try { await watchAdForReading(); await runAll(false); } catch (e) { Alert.alert('!', (e as Error).message); } } },

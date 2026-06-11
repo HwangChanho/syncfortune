@@ -13,6 +13,7 @@ import { useSubscription } from '../lib/subscription';
 import { useFontScale } from '../lib/fontScale';
 import { supabase } from '../lib/supabase';
 import { ensureServerChartId } from '../lib/prewarmReadings';
+import { useCredit } from '../lib/coupons'; // 무료 이용권(타임라인 1세트)
 import { stemElement, elementColor, elementText } from '../lib/ohaeng';
 import { colors, radius, space, shadow, font } from '../lib/theme';
 import type { ChartInput } from '@spec/chart';
@@ -55,6 +56,7 @@ export function TimelineScreen({ input, savedChart }: { input: ChartInput | null
   const [picker, setPicker] = useState<'decade' | 'year' | null>(null);
   const listRef = useRef<ScrollView>(null);                   // picker 목록 스크롤(선택 위치로 이동)
   const ROW_H = 48;                                           // 목록 행 고정 높이(스크롤 오프셋 계산용)
+  const creditUnlocked = useRef(false);                       // 무료 이용권(타임라인) 1회 차감 = 이 세션 잠금 해제
 
   useEffect(() => { if (curDecadeKey && !selDecade) setSelDecade(curDecadeKey); }, [curDecadeKey, selDecade]);
 
@@ -94,7 +96,11 @@ export function TimelineScreen({ input, savedChart }: { input: ChartInput | null
   async function gen(key: string, id?: string | null) {
     const cid = id ?? chartId;
     if (!cid || readings[key] || busy === key) return;
-    if (!isPremium) { Alert.alert(t('timeline.premiumTitle'), t('timeline.premiumMsg')); return; }
+    // 프리미엄 > 무료 이용권(타임라인 1세트 = 세션당 1회 차감, 이후 이 화면 내 항목 무료) > 유도
+    if (!isPremium && !creditUnlocked.current) {
+      if (await useCredit('timeline')) creditUnlocked.current = true;
+      else { Alert.alert(t('timeline.premiumTitle'), t('timeline.premiumMsg')); return; }
+    }
     setBusy(key);
     try {
       const { data, error } = await supabase.functions.invoke('interpret', { body: { chartId: cid, category: key, kind: 'timeline', tier: 'paid' } });
