@@ -13,6 +13,9 @@ import { supabase } from '../../lib/supabase';
 import { showInterstitialAd } from '../../lib/ads';
 import { ChartPicker } from '../../components/ChartPicker';
 import { getDailyFortune } from '../../lib/dailyFortune';
+import { useSubscription } from '../../lib/subscription';
+import { loadRepChart } from '../../lib/myChart';
+import { prewarmReadings } from '../../lib/prewarmReadings';
 import { colors, radius, space, shadow, font } from '../../lib/theme';
 import { playSound } from '../../lib/sounds';
 
@@ -92,12 +95,23 @@ export default function Home() {
   const router = useRouter();
   const { t, i18n } = useTranslation();
   const { session } = useAuth();
+  const { isPremium } = useSubscription();
   const fortune = useMemo(() => getDailyFortune(), []);
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     Animated.timing(fadeAnim, { toValue: 1, duration: 1000, useNativeDriver: true }).start();
   }, []);
+
+  // 프로 구독자 풀이 선생성(daniel: "구독하면 통변 1회는 미리 돌아가게") — 홈 진입 시
+  //   대표 명식의 전 영역(사주16+자미12)을 백그라운드 생성. 멱등(캐시된 영역 skip = 재과금 0).
+  useEffect(() => {
+    if (!session || !isPremium) return;
+    (async () => {
+      const rep = await loadRepChart();
+      if (rep) prewarmReadings(rep, session); // fire-and-forget — 실패해도 앱 흐름 무관
+    })();
+  }, [session, isPremium]);
 
   async function onPress(m: MenuItem) {
     playSound('click');

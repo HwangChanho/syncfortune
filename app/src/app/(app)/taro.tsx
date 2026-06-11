@@ -149,7 +149,7 @@ export default function TaroScreen() {
               // 완료 → 그 주제에 연관된 하나의 흐름 풀이 (오늘 고정)
               <>
                 <Text style={styles.readingH}>풀이 · {category?.ko}의 흐름</Text>
-                {combineReading(spread, category?.ko ?? '').map((line, i) => (
+                {combineReading(spread, category ?? { key: 'general', ko: '종합 운세' }).map((line, i) => (
                   <Text key={i} style={styles.combineLine}>{line}</Text>
                 ))}
                 <Text style={styles.lockNote}>🌙 오늘의 {category?.ko} 카드예요. 자정이 지나면 다시 뽑을 수 있어요.</Text>

@@ -44,11 +44,8 @@ function asText(v: any): string {
   return String(v);
 }
 
-// 사주 16영역(기본). 자미두수는 호출처가 12궁을 categories 로 주입.
-const SAJU_CATEGORIES: CategoryKey[] = [
-  '성격내면', '취업운', '직장운', '사업운', '금전소득운', '투자편재운', '재물손재', '연애운',
-  '결혼배우자운', '대인사회성', '부모운', '형제운', '자식운', '건강', '학업자기계발', '이동환경',
-];
+// 사주 16영역 = lib/prewarmReadings 와 단일 출처 공유(프리워밍·화면이 같은 캐시 키를 쓴다).
+import { SAJU_READING_CATEGORIES as SAJU_CATEGORIES, ensureServerChartId } from '../lib/prewarmReadings';
 
 export function ReadingScreen({
   input, savedChart, categories, kind = 'saju', titleKey = 'reading.title', subKey = 'reading.sub',
@@ -101,16 +98,10 @@ export function ReadingScreen({
 
   if (!c) return <View style={styles.center}><Text style={font.body}>{t('myeongsik.noChart')}</Text></View>;
 
-  // 서버 charts row 확보: savedChart.serverChartId 있으면 재사용, 없으면 insert 후 매핑 저장(1회).
+  // 서버 charts row 확보 — 단일 구현(lib/prewarmReadings.ensureServerChartId) 공유.
   async function ensureServerChart(): Promise<string | null> {
-    if (!c || !session || !savedChart) return null;
-    if (savedChart.serverChartId) return savedChart.serverChartId;
-    const { data, error } = await supabase.from('charts')
-      .insert({ owner_id: session.user.id, relation: 'self', saju: { ...c.saju, timeUnknown: input?.timeAccuracy === '미상' }, ziwei: c.ziwei, consent: true })
-      .select('id').single();
-    if (error || !data) return null;
-    await setServerChartId(savedChart.id, data.id); // 온디바이스 매핑 저장 → 다음부터 재사용
-    return data.id;
+    if (!c || !session || !savedChart || !input) return null;
+    return ensureServerChartId(c, input, session, savedChart);
   }
 
   // savedChart 없는 폴백(input-param 경로): 캐시 매핑 없이 1회용 charts insert.
@@ -171,7 +162,7 @@ export function ReadingScreen({
   // 항목 상세 섹션(🌱🌊💡) 렌더 — 리스트 상세 모달에서 재사용
   const renderSections = (key: string) => {
     const r = normalizeReading(readings[key]);
-    const base = asText(r.base), overlay = asText(r.overlay), remedy = asText(r.remedy);
+    const base = asText(r.base), past = asText(r.past), overlay = asText(r.overlay), remedy = asText(r.remedy);
     if (r.error) return <Text style={styles.err}>{r.error}</Text>;
     return (
       <>
@@ -179,6 +170,12 @@ export function ReadingScreen({
           <View style={styles.section}>
             <Text style={styles.secLabel}>🌱 {t('reading.base')}</Text>
             <Text style={styles.secBody}>{base}</Text>
+          </View>
+        ) : null}
+        {past ? (
+          <View style={styles.section}>
+            <Text style={styles.secLabel}>🕰 {t('reading.past')}</Text>
+            <Text style={styles.secBody}>{past}</Text>
           </View>
         ) : null}
         {overlay ? (

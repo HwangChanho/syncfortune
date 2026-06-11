@@ -187,40 +187,86 @@ export function drawCard(): TarotCard & { reversed: boolean } {
   return { ...card, reversed: Math.random() < 0.5 };
 }
 
-// 수트별 에너지(종합 풀이 서술용)
-const SUIT_ENERGY: Record<Suit, string> = {
-  major: '운명·전환',
-  wands: '열정·행동·추진',
-  cups: '감정·관계·교감',
-  swords: '사고·판단·갈등',
-  pentacles: '현실·물질·안정',
+// ── 주제별 풀이 룰 (카테고리 정합 — 같은 카드라도 그 주제의 언어로 읽는다) ──
+type TopicKey = 'love' | 'work' | 'money' | 'health' | 'general';
+// 주제 도메인 명사(메이저 비중 문장용)
+const TOPIC_NOUN: Record<TopicKey, string> = {
+  love: '관계', work: '일과 진로', money: '재물', health: '몸과 마음', general: '삶 전반',
+};
+// 주제 × 포지션 서사 프레임 — {현재/도전/뿌리/조언/결과} 키워드를 주제의 맥락에 끼워 읽는다.
+const TOPIC_FRAME: Record<TopicKey, (k: { cur: string; ch: string; root: string; adv: string; out: string }) => string> = {
+  love: (k) => `지금 마음과 관계에는 '${k.cur}'의 기류가 흐릅니다. 두 사람(혹은 다가올 인연) 사이의 과제는 '${k.ch}'이고, 그 밑바닥에는 '${k.root}'이 깔려 있어요. 관계를 위해서는 '${k.adv}' 쪽으로 움직여 보세요 — 이 흐름의 끝에는 '${k.out}'이 기다립니다.`,
+  work: (k) => `일과 진로에서 지금 당신의 자리는 '${k.cur}'입니다. 눈앞의 벽은 '${k.ch}', 그 뿌리는 '${k.root}'에 닿아 있어요. 카드는 '${k.adv}'의 방향을 권합니다 — 그 길을 따르면 일의 흐름은 '${k.out}'으로 향해요.`,
+  money: (k) => `돈의 흐름은 지금 '${k.cur}' 상태예요. 재물에서 부딪히는 과제는 '${k.ch}', 그 원인은 '${k.root}'과 얽혀 있습니다. '${k.adv}'를 지침 삼아 움직이면, 금전의 향방은 '${k.out}'으로 흘러갑니다.`,
+  health: (k) => `몸과 마음의 컨디션은 지금 '${k.cur}'에 가깝습니다. 돌봐야 할 지점은 '${k.ch}'이고, 그 배경에는 '${k.root}'이 있어요. '${k.adv}'를 처방처럼 챙기면, 컨디션의 흐름은 '${k.out}' 쪽으로 향합니다.`,
+  general: (k) => `지금 당신은 '${k.cur}'에서 출발해요. 여기서 마주한 과제는 '${k.ch}', 그 바탕엔 '${k.root}'이 자리합니다. 카드가 권하는 방향은 '${k.adv}', 그 끝에 기다리는 건 '${k.out}'입니다.`,
+};
+// 우세 수트 × 주제 — 그 기운이 '이 주제에서' 무슨 뜻인지 번역(일반론 금지).
+const SUIT_TOPIC: Record<TopicKey, Record<Exclude<Suit, 'major'>, string>> = {
+  love: {
+    wands: '열정이 관계를 끌고 가는 모양새라, 적극적인 표현이 통하는 때예요.',
+    cups: '감정의 교류가 핵심이에요 — 마음을 나누는 만큼 깊어집니다.',
+    swords: '말과 판단이 관계를 좌우해요 — 오해가 생기면 바로 대화로 푸세요.',
+    pentacles: '시간·돈·거리 같은 현실 조건이 관계에 크게 작용하는 때예요.',
+  },
+  work: {
+    wands: '추진력에 힘이 실리는 시기 — 먼저 움직이는 사람이 기회를 가져갑니다.',
+    cups: '사람과 팀워크가 일의 성패를 가릅니다 — 관계를 챙기는 게 곧 일이에요.',
+    swords: '판단과 전략이 관건이에요 — 감이 아니라 근거로 결정하세요.',
+    pentacles: '꾸준함과 실무 완성도가 그대로 평가로 이어지는 흐름이에요.',
+  },
+  money: {
+    wands: '버는 기회가 활동량에 비례하는 흐름이에요 — 움직인 만큼 들어옵니다.',
+    cups: '돈이 감정·관계와 얽혀 움직여요 — 기분에 따른 지출만 조심하세요.',
+    swords: '숫자를 차갑게 따져보는 냉정함이 필요한 때예요.',
+    pentacles: '재물 기운이 제 영역에 들어와 있어요 — 관리한 만큼 차곡차곡 쌓입니다.',
+  },
+  health: {
+    wands: '에너지는 충분해요 — 과열과 무리만 조심하면 됩니다.',
+    cups: '마음 상태가 몸으로 이어지는 때예요 — 감정을 돌보는 게 곧 건강 관리입니다.',
+    swords: '신경이 곤두서기 쉬워요 — 머리를 쉬게 하는 것이 우선이에요.',
+    pentacles: '잠·식사·운동 같은 생활 리듬이 컨디션을 결정합니다.',
+  },
+  general: {
+    wands: '열정과 행동의 기운이 전반을 이끌어요 — 움직이며 풀리는 때입니다.',
+    cups: '감정과 관계의 기운이 중심이에요 — 사람 속에서 답을 찾게 됩니다.',
+    swords: '생각과 판단의 기운이 강해요 — 결정할 일들이 앞에 놓입니다.',
+    pentacles: '현실과 안정의 기운이 깔려 있어요 — 기반을 다지기 좋은 때입니다.',
+  },
 };
 
 /**
- * 전체 스프레드의 *조합* 종합 풀이(카드 하나하나가 아니라 흐름 전체).
- * 룰: 핵심 포지션(현재→결과) + 메이저 비중(운명성) + 우세 수트(에너지) + 정/역 비율(순조/장애).
- * 온디바이스(LLM 0) — 통계+템플릿. 깊은 서사 통변은 추후 프리미엄(LLM) 여지.
+ * 전체 스프레드의 *조합* 종합 풀이 — 주제(topic)의 언어로 읽는다(카테고리 정합).
+ * 룰: 주제별 서사 프레임(현재→도전→뿌리→조언→결과) + 메이저 비중(주제 도메인에 전환 기류)
+ *     + 우세 수트의 주제 번역 + 정/역 비율(순조/점검) 톤. 온디바이스(LLM 0) — 통계+템플릿.
+ * @param topic TARO_CATEGORIES 항목({key, ko}) — key 로 주제 프레임 선택(미지정/미지원 키는 general).
+ * ★문구 stance 검수 = daniel 슬롯(통설 기반 초안).
  */
-export function combineReading(cards: SpreadCard[], topicKo: string): string[] {
+export function combineReading(cards: SpreadCard[], topic: { key: string; ko: string }): string[] {
   if (!cards.length) return [];
+  const tk: TopicKey = (['love', 'work', 'money', 'health', 'general'] as TopicKey[]).includes(topic.key as TopicKey)
+    ? (topic.key as TopicKey) : 'general';
   const majors = cards.filter((c) => c.suit === 'major').length;
   const rev = cards.filter((c) => c.reversed).length;
   const cnt: Record<string, number> = { wands: 0, cups: 0, swords: 0, pentacles: 0 };
   cards.forEach((c) => { if (c.suit !== 'major') cnt[c.suit] += 1; });
-  const dom = (Object.keys(cnt) as Suit[]).sort((a, b) => cnt[b] - cnt[a])[0];
-  const cur = cards[0];                 // 현재 상황
-  const out = cards[cards.length - 1];  // 최종 결과
+  const dom = (Object.keys(cnt) as Exclude<Suit, 'major'>[]).sort((a, b) => cnt[b] - cnt[a])[0];
   const kw = (c: SpreadCard) => (c.reversed ? c.rev : c.up);
-
-  // 5장을 '하나의 이야기'로: 각 카드의 핵심 키워드 1개만 뽑아 현재→도전→뿌리→조언→결과를
-  //   한 문장 흐름으로 잇고(따옴표+안전 조사로 받침 문제 회피), 전체 톤을 한 문단으로 종합.
-  //   카드별 상세 의미는 카드 탭(모달)에서 본다.
   const k = (c: SpreadCard) => kw(c).split('·')[0]; // 핵심 키워드 1개
-  const ch = cards[1] ?? cur;
-  const root = cards[2] ?? cur;
-  const adv = cards[3] ?? out;
-  return [
-    `${topicKo} 측면에서 보면, 지금 당신은 '${k(cur)}'에서 출발해요. 여기서 마주한 과제는 '${k(ch)}', 그 바탕엔 '${k(root)}'이 자리합니다. 카드가 권하는 방향은 '${k(adv)}', 그 끝에 기다리는 건 '${k(out)}'입니다.`,
-    `${majors >= 3 ? '인생의 큰 전환점이 움직이는 시기' : '당신이 직접 풀어갈 현실적인 일들이 중심인 때'}예요. ${cnt[dom] >= 2 ? `${SUIT_META[dom].ko}(${SUIT_ENERGY[dom]})의 기운이 흐름을 이끌고, ` : ''}${rev >= 4 ? '서두르기보다 차분히 안을 정리하면 좋아요.' : rev <= 1 ? '큰 막힘 없이 순조롭게 풀려갑니다.' : '잘 풀리는 부분과 점검할 부분이 함께 있어요.'}`,
-  ];
+  const cur = cards[0], out = cards[cards.length - 1];
+  const ch = cards[1] ?? cur, root = cards[2] ?? cur, adv = cards[3] ?? out;
+
+  // ① 주제 서사: 5장 흐름을 그 주제의 맥락 문장으로
+  const story = TOPIC_FRAME[tk]({ cur: k(cur), ch: k(ch), root: k(root), adv: k(adv), out: k(out) });
+  // ② 기운 풀이: 메이저 비중(주제에 큰 전환 기류) + 우세 수트의 주제 번역 + 정/역 톤
+  const tone = [
+    majors >= 3
+      ? `${TOPIC_NOUN[tk]}에 큰 전환의 기류가 움직이고 있어요 — 흐름을 거스르기보다 올라타는 때입니다.`
+      : `${TOPIC_NOUN[tk]}은 당신이 직접 풀어갈 수 있는 현실적인 국면이에요.`,
+    cnt[dom] >= 2 ? SUIT_TOPIC[tk][dom] : '',
+    rev >= 4 ? '뒤집힌 카드가 많아요 — 서두르기보다 차분히 안을 정리하고 가면 좋아요.'
+      : rev <= 1 ? '카드의 결이 순조로워요 — 큰 막힘 없이 풀려가는 흐름입니다.'
+      : '잘 풀리는 부분과 점검할 부분이 함께 있어요 — 조언 카드를 기준 삼으세요.',
+  ].filter(Boolean).join(' ');
+  return [story, tone];
 }
