@@ -9,7 +9,7 @@
 //   ⚠️ '1회 트리거=전 항목 1세트' 게이트. 세트 단가 정책은 daniel 검수.
 //   ⚠️ Edge invoke=프로덕션(개발 미배포=호출 실패=비용0·절대0). charts insert/readings select 는 직접 호출이라 개발에서도 동작.
 // ─────────────────────────────────────────────────────────────────────────
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator, Alert, Modal, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -74,6 +74,8 @@ export function ReadingScreen({
   const [followups, setFollowups] = useState<Record<string, Followup[]>>({});
   const [askInput, setAskInput] = useState('');
   const [asking, setAsking] = useState(false);
+  const [cacheLoaded, setCacheLoaded] = useState(false);  // 캐시 로드 완료(자동 생성 판단 기준)
+  const autoRan = useRef(false);                          // 프리미엄 진입 시 자동 생성 1회 가드
   const c = useMemo(() => (input ? computeChart(input) : null), [input]);
   // 항목 집합: 주입된 categories 우선, 없으면 사주 16영역(i18n 라벨)
   const cats = useMemo<ReadingCategory[]>(() => {
@@ -88,18 +90,19 @@ export function ReadingScreen({
   useEffect(() => {
     let alive = true;
     (async () => {
-      if (!c || !session || !savedChart) return;
+      if (!c || !session || !savedChart) { if (alive) setCacheLoaded(true); return; } // 저장명식 없으면 캐시 없음
       const id = await ensureServerChart();
-      if (!alive || !id) return;
+      if (!alive || !id) { if (alive) setCacheLoaded(true); return; }
       setChartId(id);
       const { data } = await supabase.from('readings').select('category, content').eq('chart_id', id);
-      if (!alive || !data) return;
+      if (!alive) return;
       const keys = new Set(cats.map((x) => x.key));   // 이 화면 항목(사주/자미)만 반영
       const loaded: Record<string, any> = {};
-      data.forEach((r: any) => { if (keys.has(r.category)) loaded[r.category] = r.content; });
+      (data ?? []).forEach((r: any) => { if (keys.has(r.category)) loaded[r.category] = r.content; });
       setReadings(loaded);
+      setCacheLoaded(true);
       loadFollowups(id).then((f) => { if (alive) setFollowups(f); }).catch(() => {}); // 추가 질문 누적 로드
-    })().catch(() => { /* 캐시 로드 실패는 조용히 — 생성 버튼으로 폴백 */ });
+    })().catch(() => { if (alive) setCacheLoaded(true); /* 실패해도 자동 생성 판단은 진행 */ });
     return () => { alive = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [input, session, savedChart, cats]);
@@ -165,7 +168,16 @@ export function ReadingScreen({
 
   const banner = isPremium ? t('reading.bannerPremium') : (mode === 'trial' ? t('reading.bannerTrial') : t('reading.bannerPerUse'));
   const haveAll = cats.every((cat) => readings[cat.key]);
-  const showStart = !haveAll && progress === null;         // 캐시 다 있으면 버튼 숨김(바로 표시)
+  // '전체 풀이 보기' 버튼 = 비프리미엄만(게이트). 프리미엄은 진입 시 자동 생성(daniel — 버튼 불필요).
+  const showStart = !haveAll && progress === null && !isPremium;
+
+  // 프리미엄 자동 생성 — 캐시 로드 후 미생성 영역이 있으면 1회 자동 runAll(버튼 없이).
+  //   (프리워밍이 대부분 채워두지만, 미완·input-param 경로 대비). 캐시·Edge가 중복 생성 방지.
+  useEffect(() => {
+    if (!isPremium || !cacheLoaded || progress || autoRan.current || !session) return;
+    if (cats.some((cat) => !readings[cat.key])) { autoRan.current = true; runAll(false); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isPremium, cacheLoaded, readings, cats, progress, session]);
 
   // 추가 질문 전송 — 프리미엄 무료 2회 + 초과 시 건당 결제 후 재시도(paid). Edge가 게이트 판정.
   async function submitFollowup(retryPaid = false) {

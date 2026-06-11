@@ -1,22 +1,16 @@
-// src/app/(app)/timeline.tsx — 인생 타임라인(대운별 시기 풀이) 라우트 (프리미엄)
+// src/app/(app)/timeline.tsx — 인생 타임라인 라우트 (대운 카테고리 + 연도 picker)
 // ─────────────────────────────────────────────────────────────────────────
-// 대표 명식의 대운(10년 단위 시기, 10~100세)을 항목으로 ReadingScreen 재사용 —
-//   캐시(chart_id×category=life_{startAge})·프리미엄 게이트·추가 질문이 전부 그대로 동작.
-//   각 시기 = 한 인생 국면. Edge kind='timeline' 이 그 대운의 간지·세운 흐름을 통변(쉬운 말).
-// 명식 결정: input param(특정 명식) 우선 → 없으면 대표 SavedChart(캐시 연결, ADR-052).
+// 대표 명식(또는 input param)을 TimelineScreen 에 주입. 대운(10년)·연도(1년) 선택형 통변.
+//   캐시 연결을 위해 대표 SavedChart(serverChartId)도 전달(ADR-052).
 // ─────────────────────────────────────────────────────────────────────────
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { View, Text, Pressable, ActivityIndicator, StyleSheet } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { ReadingScreen, type ReadingCategory } from '../../screens/ReadingScreen';
+import { TimelineScreen } from '../../screens/TimelineScreen';
 import { loadRepChart, type SavedChart } from '../../lib/myChart';
-import { buildSajuChart } from '@engine/saju';
 import { colors, radius, space, font } from '../../lib/theme';
 import type { ChartInput } from '@spec/chart';
-
-// 10~100세 범위와 겹치는 대운만 항목으로(보통 7·17·…·97세 시작 = 약 10개).
-const AGE_MIN = 10, AGE_MAX = 100;
 
 export default function TimelineRoute() {
   const router = useRouter();
@@ -36,30 +30,8 @@ export default function TimelineRoute() {
     return () => { alive = false; };
   }, [input]);
 
-  // 타임라인 항목 = ① 올해+근래 1년 단위(year_{YYYY}, '올해 운세'가 제일 중요 → 맨 앞) ② 10년 단위(life_{startAge}).
-  //   Edge는 category 접두사(year_/life_)로 연운/대운을 분기. 캐시 키도 접두사로 구분.
-  const cats = useMemo<ReadingCategory[] | undefined>(() => {
-    if (!me) return undefined;
-    const saju = buildSajuChart(me);
-    const luck: any[] = saju.luckCycles ?? [];
-    const now = new Date().getFullYear();
-    // ① 올해 ~ +4년: 각 대운의 세운(流年)에서 해당 연도를 찾아 1년 단위 항목으로(중복 제거)
-    const yearMap = new Map<number, any>();
-    luck.forEach((l) => (l.annuals ?? []).forEach((a: any) => {
-      if (a.year >= now && a.year <= now + 4 && !yearMap.has(a.year)) yearMap.set(a.year, a);
-    }));
-    const yearCats: ReadingCategory[] = Array.from(yearMap.values())
-      .sort((a, b) => a.year - b.year)
-      .map((a) => ({ key: `year_${a.year}`, label: `${a.year === now ? '올해 · ' : ''}${a.year}년 · ${a.stem}${a.branch}` }));
-    // ② 10년 단위 대운(10~100세)
-    const decadeCats: ReadingCategory[] = luck
-      .filter((l) => l.startAge + 9 >= AGE_MIN && l.startAge <= AGE_MAX)
-      .map((l) => ({ key: `life_${l.startAge}`, label: `${l.startAge}~${l.startAge + 9}세 · ${l.stem}${l.branch}` }));
-    return [...yearCats, ...decadeCats]; // 올해(1년) 먼저, 그다음 장기(10년)
-  }, [me]);
-
   if (loading) return <View style={styles.center}><ActivityIndicator color={colors.ju} /></View>;
-  if (!me || !cats?.length) {
+  if (!me) {
     return (
       <View style={styles.center}>
         <Text style={styles.msg}>{t('manse.empty')}</Text>
@@ -69,17 +41,7 @@ export default function TimelineRoute() {
       </View>
     );
   }
-
-  return (
-    <ReadingScreen
-      input={me}
-      savedChart={savedChart}
-      categories={cats}
-      kind="timeline"
-      titleKey="reading.timelineTitle"
-      subKey="reading.timelineSub"
-    />
-  );
+  return <TimelineScreen input={me} savedChart={savedChart} />;
 }
 
 const styles = StyleSheet.create({
