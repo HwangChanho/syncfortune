@@ -22,7 +22,7 @@ const ko = {
   },
   common: {
     back: '← 뒤로', login: '로그인', signup: '회원가입', logout: '로그아웃',
-    comingSoon: '준비 중입니다.', loginOptional: '로그인 / 회원가입 (유료·저장 기능용 — 선택)',
+    comingSoon: '준비 중입니다.', error: '오류', loginOptional: '로그인 / 회원가입 (유료·저장 기능용 — 선택)',
     cancel: '취소', none: '없음',
   },
   auth: {
@@ -67,6 +67,11 @@ const ko = {
     base: '타고난 바탕', past: '지나온 흐름', overlay: '지금의 흐름', remedy: '이렇게 해보세요',
     premiumAlert: '프리미엄 통변', premiumAlertMsg: '광고를 보거나 건당 ₩2,500 결제로 깊은 통변을 봅니다.',
     watchAd: '광고 보고 1회', payPerUse: '₩2,500 결제', bannerPerUse: '건당 ₩2,500 또는 광고 시청으로 통변',
+    askTitle: '더 궁금한 점 물어보기', askPh: '이 풀이에서 더 궁금한 점을 물어보세요',
+    askSend: '질문', askFree: '무료 질문 {{n}}회 남음', askPaid: '무료 질문을 다 썼어요 — 추가 질문은 건당 ₩2,500',
+    askPremiumTitle: '프리미엄 전용', askPremiumMsg: '추가 질문은 프리미엄 구독 시 영역마다 2회 무료로 물어볼 수 있어요.',
+    askPremiumCta: '프리미엄으로 더 물어보기', askPayTitle: '추가 질문', askPayMsg: '무료 2회를 다 쓰셨어요. 건당 ₩2,500으로 더 물어보시겠어요?',
+    askPayBtn: '₩2,500 결제', payPending: '준비 중',
   },
   compat: {
     otherInfo: '상대 정보 (동의 필요 — 규칙8)', otherDatePh: '상대 생년월일 1992-07-03',
@@ -106,7 +111,7 @@ const en = {
   },
   common: {
     back: '← Back', login: 'Log in', signup: 'Sign up', logout: 'Log out',
-    comingSoon: 'Coming soon.', loginOptional: 'Log in / Sign up (for paid & saving — optional)',
+    comingSoon: 'Coming soon.', error: 'Error', loginOptional: 'Log in / Sign up (for paid & saving — optional)',
     cancel: 'Cancel', none: 'None',
   },
   auth: {
@@ -151,6 +156,11 @@ const en = {
     base: 'Core', past: 'The road so far', overlay: 'Now', remedy: 'Advice',
     premiumAlert: 'Premium Reading', premiumAlertMsg: 'Watch an ad or pay ₩2,500 for the deep reading.',
     watchAd: 'Watch ad (1x)', payPerUse: 'Pay ₩2,500', bannerPerUse: '₩2,500 per reading or watch an ad',
+    askTitle: 'Ask a follow-up', askPh: 'Ask anything more about this reading',
+    askSend: 'Ask', askFree: '{{n}} free question(s) left', askPaid: "Free questions used up — ₩2,500 per extra question",
+    askPremiumTitle: 'Premium only', askPremiumMsg: 'With Premium you get 2 free follow-up questions per area.',
+    askPremiumCta: 'Ask more with Premium', askPayTitle: 'Follow-up', askPayMsg: "You've used your 2 free questions. Ask one more for ₩2,500?",
+    askPayBtn: 'Pay ₩2,500', payPending: 'Coming soon',
   },
   compat: {
     otherInfo: "Partner info (consent required)", otherDatePh: "Partner birth date 1992-07-03",
@@ -190,7 +200,7 @@ const ja = {
   },
   common: {
     back: '← 戻る', login: 'ログイン', signup: '新規登録', logout: 'ログアウト',
-    comingSoon: '準備中です。', loginOptional: 'ログイン / 新規登録（有料·保存機能用 — 任意）',
+    comingSoon: '準備中です。', error: 'エラー', loginOptional: 'ログイン / 新規登録（有料·保存機能用 — 任意）',
     cancel: 'キャンセル', none: 'なし',
   },
   auth: {
@@ -235,6 +245,11 @@ const ja = {
     base: '本質', past: 'これまで', overlay: '現在', remedy: '処方',
     premiumAlert: 'プレミアム通変', premiumAlertMsg: '広告視聴または₩2,500決済で深い通変を見られます。',
     watchAd: '広告を見る（1回）', payPerUse: '₩2,500 決済', bannerPerUse: '1回 ₩2,500 または広告視聴',
+    askTitle: 'もっと質問する', askPh: 'この鑑定についてもっと聞いてみましょう',
+    askSend: '質問', askFree: '無料質問あと{{n}}回', askPaid: '無料質問を使い切りました — 追加は1回₩2,500',
+    askPremiumTitle: 'プレミアム限定', askPremiumMsg: 'プレミアムなら領域ごとに2回まで無料で追加質問できます。',
+    askPremiumCta: 'プレミアムでもっと聞く', askPayTitle: '追加質問', askPayMsg: '無料2回を使い切りました。1回₩2,500で追加しますか？',
+    askPayBtn: '₩2,500 決済', payPending: '準備中',
   },
   compat: {
     otherInfo: '相手情報（同意が必要）', otherDatePh: '相手の生年月日 1992-07-03',

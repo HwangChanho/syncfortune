@@ -10,7 +10,7 @@
 //   ⚠️ Edge invoke=프로덕션(개발 미배포=호출 실패=비용0·절대0). charts insert/readings select 는 직접 호출이라 개발에서도 동작.
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useMemo, useEffect } from 'react';
-import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator, Alert, Modal } from 'react-native';
+import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator, Alert, Modal, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { computeChart } from '../lib/engine';
@@ -19,6 +19,7 @@ import { supabase } from '../lib/supabase';
 import { useEntitlement } from '../lib/entitlement';
 import { useSubscription } from '../lib/subscription';
 import { setServerChartId, type SavedChart } from '../lib/myChart';
+import { loadFollowups, askFollowup, type Followup } from '../lib/followups';
 import { colors, radius, space, shadow, font } from '../lib/theme';
 import type { ChartInput, CategoryKey } from '@spec/chart';
 
@@ -67,6 +68,10 @@ export function ReadingScreen({
   const [globalError, setGlobalError] = useState<string | null>(null);
   const [chartId, setChartId] = useState<string | null>(savedChart?.serverChartId ?? null);
   const [detail, setDetail] = useState<string | null>(null); // 상세로 펼친 항목 key
+  // 추가 질문(Q&A) — 영역별 누적 + 입력/전송 상태(프리미엄 2회 무료 + 건당)
+  const [followups, setFollowups] = useState<Record<string, Followup[]>>({});
+  const [askInput, setAskInput] = useState('');
+  const [asking, setAsking] = useState(false);
   const c = useMemo(() => (input ? computeChart(input) : null), [input]);
   // 항목 집합: 주입된 categories 우선, 없으면 사주 16영역(i18n 라벨)
   const cats = useMemo<ReadingCategory[]>(() => {
@@ -91,6 +96,7 @@ export function ReadingScreen({
       const loaded: Record<string, any> = {};
       data.forEach((r: any) => { if (keys.has(r.category)) loaded[r.category] = r.content; });
       setReadings(loaded);
+      loadFollowups(id).then((f) => { if (alive) setFollowups(f); }).catch(() => {}); // 추가 질문 누적 로드
     })().catch(() => { /* 캐시 로드 실패는 조용히 — 생성 버튼으로 폴백 */ });
     return () => { alive = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -158,6 +164,80 @@ export function ReadingScreen({
   const banner = isPremium ? t('reading.bannerPremium') : (mode === 'trial' ? t('reading.bannerTrial') : t('reading.bannerPerUse'));
   const haveAll = cats.every((cat) => readings[cat.key]);
   const showStart = !haveAll && progress === null;         // 캐시 다 있으면 버튼 숨김(바로 표시)
+
+  // 추가 질문 전송 — 프리미엄 무료 2회 + 초과 시 건당 결제 후 재시도(paid). Edge가 게이트 판정.
+  async function submitFollowup(retryPaid = false) {
+    if (!detail || !chartId || !askInput.trim() || asking) return;
+    const q = askInput.trim();
+    setAsking(true);
+    const res = await askFollowup(chartId, detail, kind, q, retryPaid);
+    setAsking(false);
+    if (res.kind === 'answer') {
+      setFollowups((prev) => ({ ...prev, [detail!]: [...(prev[detail!] ?? []), { question: q, answer: res.answer }] }));
+      setAskInput('');
+    } else if (res.kind === 'needPremium') {
+      Alert.alert(t('reading.askPremiumTitle'), t('reading.askPremiumMsg'));
+    } else if (res.kind === 'needPayment') {
+      // 무료 한도 소진 → 건당 결제 안내 → 결제 성공 시 paid 로 재시도(RevenueCat 미연동 시 '준비 중')
+      Alert.alert(t('reading.askPayTitle'), t('reading.askPayMsg'), [
+        { text: t('common.cancel'), style: 'cancel' },
+        { text: t('reading.askPayBtn'), onPress: async () => {
+          try { await purchaseReading(); await submitFollowup(true); }
+          catch (e) { Alert.alert(t('reading.payPending'), (e as Error).message); }
+        } },
+      ]);
+    } else {
+      Alert.alert(t('common.error'), res.message);
+    }
+  }
+
+  // 추가 질문(Q&A) 영역 — 상세 모달 하단. 프리미엄 = 무료 2회+건당 / 비프리미엄 = 프리미엄 유도.
+  const renderFollowups = (key: string) => {
+    const list = followups[key] ?? [];
+    const used = list.length;
+    const freeLeft = Math.max(0, 2 - used);
+    return (
+      <View style={styles.askWrap}>
+        <Text style={styles.askH}>{t('reading.askTitle')}</Text>
+        {/* 지난 질문·답변 */}
+        {list.map((f, i) => (
+          <View key={i} style={styles.qaItem}>
+            <Text style={styles.qaQ}>Q. {f.question}</Text>
+            <Text style={styles.qaA}>{f.answer}</Text>
+          </View>
+        ))}
+        {isPremium ? (
+          <>
+            <Text style={styles.askQuota}>
+              {freeLeft > 0 ? t('reading.askFree', { n: freeLeft }) : t('reading.askPaid')}
+            </Text>
+            <View style={styles.askRow}>
+              <TextInput
+                style={styles.askInput}
+                value={askInput}
+                onChangeText={setAskInput}
+                placeholder={t('reading.askPh')}
+                placeholderTextColor={colors.inkFaint}
+                multiline
+                editable={!asking}
+              />
+              <Pressable
+                style={[styles.askSend, (!askInput.trim() || asking) && styles.askSendOff]}
+                onPress={() => submitFollowup(false)}
+                disabled={!askInput.trim() || asking}
+              >
+                {asking ? <ActivityIndicator color={colors.bg} size="small" /> : <Text style={styles.askSendTx}>{t('reading.askSend')}</Text>}
+              </Pressable>
+            </View>
+          </>
+        ) : (
+          <Pressable style={styles.askLock} onPress={() => Alert.alert(t('reading.askPremiumTitle'), t('reading.askPremiumMsg'))}>
+            <Text style={styles.askLockTx}>🔒 {t('reading.askPremiumCta')}</Text>
+          </Pressable>
+        )}
+      </View>
+    );
+  };
 
   // 항목 상세 섹션(🌱🌊💡) 렌더 — 리스트 상세 모달에서 재사용
   const renderSections = (key: string) => {
@@ -250,6 +330,7 @@ export function ReadingScreen({
           <ScrollView contentContainerStyle={styles.detailWrap}>
             <Text style={styles.detailTitle}>{cats.find((x) => x.key === detail)?.label}</Text>
             {renderSections(detail)}
+            {renderFollowups(detail)}
           </ScrollView>
         )}
       </View>
@@ -291,4 +372,18 @@ const styles = StyleSheet.create({
   detailWrap: { padding: space(5), paddingTop: space(2), paddingBottom: space(10) },
   detailTitle: { ...font.title, fontSize: 26, color: colors.ink, marginBottom: space(2) },
   err: { fontSize: 13, color: colors.ju },
+  // 추가 질문(Q&A)
+  askWrap: { marginTop: space(7), paddingTop: space(5), borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.line },
+  askH: { fontSize: 17, fontWeight: '800', color: colors.ink, marginBottom: space(3) },
+  qaItem: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.juLine, padding: space(4), marginBottom: space(3) },
+  qaQ: { ...font.body, fontWeight: '800', color: colors.ju, marginBottom: space(2) },
+  qaA: { ...font.body, color: colors.ink, lineHeight: 24 },
+  askQuota: { ...font.caption, color: colors.inkFaint, marginBottom: space(2) },
+  askRow: { flexDirection: 'row', alignItems: 'flex-end', gap: space(2) },
+  askInput: { ...font.body, flex: 1, minHeight: 44, maxHeight: 120, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, borderRadius: radius.md, paddingHorizontal: space(3), paddingVertical: space(2.5), color: colors.ink },
+  askSend: { backgroundColor: colors.ju, borderRadius: radius.md, paddingHorizontal: space(4), height: 44, alignItems: 'center', justifyContent: 'center' },
+  askSendOff: { opacity: 0.4 },
+  askSendTx: { color: colors.bg, fontWeight: '800', fontSize: 14 },
+  askLock: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.ju, borderRadius: radius.md, paddingVertical: space(4), alignItems: 'center' },
+  askLockTx: { color: colors.ju, fontWeight: '700', fontSize: 14 },
 });
