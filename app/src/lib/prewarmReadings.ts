@@ -55,16 +55,23 @@ export async function prewarmReadings(savedChart: SavedChart, session: Session):
       ...SAJU_READING_CATEGORIES.map((k) => ({ key: k as string, kind: 'saju' as const })),
       ...((c.ziwei?.palaces as any[]) ?? []).map((p) => ({ key: p.name as string, kind: 'ziwei' as const })),
     ];
-    // 이미 캐시된 영역 제외(멱등 — 비용 방어)
+    // 이미 캐시된 영역 제외(멱등 — 비용 방어. Edge 도 요청마다 캐시 선확인 = 이중 생성 없음)
     const { data } = await supabase.from('readings').select('category').eq('chart_id', id);
     const have = new Set((data ?? []).map((r: any) => r.category));
     const missing = all.filter((x) => !have.has(x.key));
-    // 순차 생성 — Edge 가 영역당 1콜(LLM). 실패는 조용히 다음 영역으로.
-    for (const m of missing) {
-      try {
-        await supabase.functions.invoke('interpret', { body: { chartId: id, category: m.key, kind: m.kind, tier: 'paid' } });
-      } catch { /* 개별 실패 무시 — 풀이 화면 생성 버튼이 폴백 */ }
-    }
+    // 사주·자미 *병렬* 두 체인(각 체인은 순차) — 자미가 사주 16개 뒤로 밀려 한쪽 화면이
+    //   통째로 미생성 상태가 되는 것 방지(daniel: 자미 화면 열었더니 그제야 풀고 있음).
+    const runChain = async (items: typeof missing) => {
+      for (const m of items) {
+        try {
+          await supabase.functions.invoke('interpret', { body: { chartId: id, category: m.key, kind: m.kind, tier: 'paid' } });
+        } catch { /* 개별 실패 무시 — 풀이 화면 생성 버튼이 폴백 */ }
+      }
+    };
+    await Promise.all([
+      runChain(missing.filter((m) => m.kind === 'saju')),
+      runChain(missing.filter((m) => m.kind === 'ziwei')),
+    ]);
   } catch { /* 프리워밍은 보조 — 어떤 실패도 앱 흐름을 막지 않는다 */ }
   finally { running = false; }
 }

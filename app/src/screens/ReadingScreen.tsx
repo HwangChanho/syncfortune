@@ -274,10 +274,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, ...shadow.card,
   },
   cardTitle: { ...font.heading, color: colors.ju, marginBottom: space(2) },
-  section: { marginTop: space(4) },
-  secLabel: { ...font.caption, color: colors.ju, fontWeight: '800', marginBottom: space(1.5), letterSpacing: 0.3 },
-  secBody: { ...font.body, color: colors.ink, lineHeight: 25 },
-  remedySection: { marginTop: space(4), paddingTop: space(4), borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.line },
+  // 가독성(daniel): 소제목 더 크게 + 섹션(문단) 사이 간격 넉넉히
+  section: { marginTop: space(6) },
+  secLabel: { fontSize: 16, color: colors.ju, fontWeight: '800', marginBottom: space(2.5), letterSpacing: 0.3 },
+  secBody: { ...font.body, color: colors.ink, fontSize: 15, lineHeight: 26 },
+  remedySection: { marginTop: space(6), paddingTop: space(5), borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.line },
   // 항목 리스트(구역)
   listItem: { flexDirection: 'row', alignItems: 'center', gap: space(3), marginTop: space(3), padding: space(4), backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.line, ...shadow.card },
   listLabel: { ...font.heading, fontSize: 19, color: colors.ju },
