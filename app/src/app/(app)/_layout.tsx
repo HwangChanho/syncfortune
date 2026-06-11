@@ -29,6 +29,7 @@ export default function AppLayout() {
         <Stack.Screen name="sinsal" options={{ title: '신살·공망' }} />
         <Stack.Screen name="reading" options={{ title: '풀이' }} />
         <Stack.Screen name="timeline" options={{ title: '인생 타임라인' }} />
+        <Stack.Screen name="settings" options={{ title: '설정' }} />
         <Stack.Screen name="compat" options={{ title: '1:1 궁합' }} />
         <Stack.Screen name="taro" options={{ title: '타로' }} />
         <Stack.Screen name="today" options={{ title: '오늘의 운세' }} />

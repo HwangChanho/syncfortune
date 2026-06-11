@@ -20,6 +20,7 @@ import { useAuth } from '../lib/useAuth';
 import { useSubscription, purchasePremium } from '../lib/subscription';
 import { useEntitlement } from '../lib/entitlement';
 import { ensureServerChartId } from '../lib/prewarmReadings';
+import { useFontScale } from '../lib/fontScale';
 import { COMPAT_RELS, otherSig, loadCompatReadings, genCompatReading, type CompatReading } from '../lib/compatReadings';
 import type { ChartInput } from '@spec/chart';
 
@@ -28,6 +29,7 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
   const { session } = useAuth();
   const { isPremium } = useSubscription();
   const { purchaseReading } = useEntitlement(); // 궁합 건당 결제(무료 5쌍 초과 시)
+  const { fs } = useFontScale(); // 통변 본문 글자 크기(설정에서 조절)
   const [saved, setSaved] = useState<SavedChart[]>([]);
   const [meSel, setMeSel] = useState<SavedChart | null>(null);   // '내 명식' 슬롯(기본=대표). 저장 명식에서 변경 가능.
   const [mePick, setMePick] = useState(false);                    // 내 명식 변경 피커 펼침
@@ -180,10 +182,10 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
             <View style={styles.readCard}><ActivityIndicator color={colors.ju} /><Text style={styles.busyTx}>{t('compat.generating')}</Text></View>
           ) : cur ? (
             <View style={styles.readCard}>
-              {cur.core ? <Text style={styles.coreTx}>✦ {cur.core}</Text> : null}
-              {cur.base ? <View style={styles.sec}><Text style={styles.secLabel}>🤝 {t('compat.secBase')}</Text><Text style={styles.secBody}>{cur.base}</Text></View> : null}
-              {cur.overlay ? <View style={styles.sec}><Text style={styles.secLabel}>⚖️ {t('compat.secDynamic')}</Text><Text style={styles.secBody}>{cur.overlay}</Text></View> : null}
-              {cur.remedy ? <View style={[styles.sec, styles.remedySec]}><Text style={styles.secLabel}>💡 {t('compat.secAdvice')}</Text><Text style={styles.secBody}>{cur.remedy}</Text></View> : null}
+              {cur.core ? <Text style={[styles.coreTx, { fontSize: fs(16), lineHeight: fs(24) }]}>{cur.core}</Text> : null}
+              {cur.base ? <View style={styles.sec}><Text style={styles.secLabel}>{t('compat.secBase')}</Text><Text style={[styles.secBody, { fontSize: fs(15), lineHeight: fs(25) }]}>{cur.base}</Text></View> : null}
+              {cur.overlay ? <View style={styles.sec}><Text style={styles.secLabel}>{t('compat.secDynamic')}</Text><Text style={[styles.secBody, { fontSize: fs(15), lineHeight: fs(25) }]}>{cur.overlay}</Text></View> : null}
+              {cur.remedy ? <View style={[styles.sec, styles.remedySec]}><Text style={styles.secLabel}>{t('compat.secAdvice')}</Text><Text style={[styles.secBody, { fontSize: fs(15), lineHeight: fs(25) }]}>{cur.remedy}</Text></View> : null}
             </View>
           ) : (
             <Text style={styles.note}>{t('compat.noReading')}</Text>
@@ -237,8 +239,9 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
     );
     return (
       <View style={styles.crossWrap}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: space(2) }}>{miniChart(mineP, '나')}</ScrollView>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>{miniChart(othersP, '상대')}</ScrollView>
+        {/* 가로 ScrollView 제거 — 6칸이 화면에 들어가므로 전체 폭에 고르게 분배(나↔상대 세로 정렬) */}
+        <View style={{ marginBottom: space(2) }}>{miniChart(mineP, '나')}</View>
+        <View>{miniChart(othersP, '상대')}</View>
         {cross.length > 0 && <Text style={styles.cmHint}>작용을 탭하면 위 두 명식에서 해당 글자가 강조됩니다.</Text>}
         <View style={styles.crossList}>
           {cross.length === 0 ? <Text style={styles.note}>두 명식 간 직접 합충형해가 없습니다.</Text> :
@@ -310,12 +313,14 @@ const styles = StyleSheet.create({
   // 글자 작용 비교
   crossWrap: { marginTop: space(2) },
   cmTitle: { ...font.caption, color: colors.ju, fontWeight: '700', marginBottom: space(1) },
-  cmRow: { flexDirection: 'row', gap: space(1) },
-  cmCol: { alignItems: 'center', width: 36 },
+  // 전체 폭에 칸을 고르게 분배(space-between) + 양끝 패딩 → 나/상대 칸이 화면 양끝에 맞춰 정렬
+  cmRow: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: space(1) },
+  cmCol: { alignItems: 'center', width: 38 },
   cmColLuck: { backgroundColor: colors.juSoft, borderRadius: radius.sm },
   cmLabel: { fontSize: 9, color: colors.inkFaint, marginBottom: 2 },
   cmCell: { width: 30, height: 30, borderRadius: 5, alignItems: 'center', justifyContent: 'center', marginVertical: 1 },
-  cmCellHL: { borderWidth: 2.5, borderColor: colors.ju },
+  // 강조 테두리 = 밝은 청록(오행 5색에 없는 색) — 土(골드 #C9A14A)·金 배경에서도 또렷이 보이게(daniel)
+  cmCellHL: { borderWidth: 3, borderColor: '#19E3E3' },
   cmTx: { fontSize: 17, fontWeight: '800' },
   cmHint: { ...font.caption, color: colors.inkFaint, marginTop: space(1), marginBottom: space(1) },
   crossList: { marginTop: space(2), padding: space(3), borderRadius: radius.sm, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line },

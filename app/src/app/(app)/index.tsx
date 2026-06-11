@@ -8,14 +8,16 @@ import { View, Text, Pressable, ScrollView, StyleSheet, Alert, ImageBackground, 
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../lib/useAuth';
-import { useEffect, useRef, useMemo } from 'react';
+import { useEffect, useRef, useMemo, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { showInterstitialAd } from '../../lib/ads';
 import { ChartPicker } from '../../components/ChartPicker';
-import { getDailyFortune } from '../../lib/dailyFortune';
+import { getDailyFortune, dailyChartReadings } from '../../lib/dailyFortune';
 import { useSubscription } from '../../lib/subscription';
 import { loadRepChart } from '../../lib/myChart';
 import { prewarmReadings } from '../../lib/prewarmReadings';
+import { buildSajuChart } from '@engine/saju';
+import type { Stem, Branch } from '@spec/chart';
 import { colors, radius, space, shadow, font } from '../../lib/theme';
 import { playSound } from '../../lib/sounds';
 
@@ -100,6 +102,18 @@ export default function Home() {
   const { isPremium } = useSubscription();
   const fortune = useMemo(() => getDailyFortune(), []);
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  // 오늘의 기운 한 줄 풀이(글) — 대표 명식 일간 × 오늘 일진(온디바이스, 무료). 탭 → 오늘의 운세 상세.
+  const [todayProse, setTodayProse] = useState<string | null>(null);
+  useEffect(() => {
+    (async () => {
+      const rep = await loadRepChart();
+      if (!rep) return;
+      const saju = buildSajuChart(rep.input);
+      const r = dailyChartReadings(saju, fortune.dayGanZhi[0] as Stem, fortune.dayGanZhi[1] as Branch);
+      const general = r.find((x) => x.key === 'general')?.paragraphs ?? [];
+      if (general[0]) setTodayProse(general[0]); // 통합 기조 첫 문단
+    })();
+  }, [fortune]);
 
   useEffect(() => {
     Animated.timing(fadeAnim, { toValue: 1, duration: 1000, useNativeDriver: true }).start();
@@ -127,13 +141,18 @@ export default function Home() {
     <ImageBackground source={require('../../../assets/icons/bg-night.png')} style={styles.bgImage} resizeMode="cover">
     <TwinklingStars />
     <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>
-      {/* 언어 토글 (한·영·일) */}
-      <View style={styles.langRow}>
-        {(['ko', 'en', 'ja'] as const).map((lng) => (
-          <Pressable key={lng} onPress={() => i18n.changeLanguage(lng)} hitSlop={6}>
-            <Text style={[styles.langBtn, i18n.language === lng && styles.langOn]}>{lng.toUpperCase()}</Text>
-          </Pressable>
-        ))}
+      {/* 상단 바 — 언어 토글(한·영·일) + 설정(글자 크기 등) */}
+      <View style={styles.topBar}>
+        <View style={styles.langRow}>
+          {(['ko', 'en', 'ja'] as const).map((lng) => (
+            <Pressable key={lng} onPress={() => i18n.changeLanguage(lng)} hitSlop={6}>
+              <Text style={[styles.langBtn, i18n.language === lng && styles.langOn]}>{lng.toUpperCase()}</Text>
+            </Pressable>
+          ))}
+        </View>
+        <Pressable onPress={() => router.push('/settings')} hitSlop={8}>
+          <Text style={styles.gear}>⚙</Text>
+        </Pressable>
       </View>
 
       <Animated.View style={{ opacity: fadeAnim }}>
@@ -142,11 +161,13 @@ export default function Home() {
         <Text style={styles.sub}>{t('tagline')}</Text>
         <View style={styles.divider} />
 
-        {/* 오늘의 운세 배너 (요약) */}
-        <View style={styles.fortuneBanner}>
+        {/* 오늘의 운세 배너 — 일진 + 한 줄 풀이(글). 탭 → 오늘의 운세 상세(분야별). */}
+        <Pressable style={styles.fortuneBanner} onPress={() => router.push('/today')}>
           <Text style={styles.bannerDate}>{fortune.date}</Text>
           <Text style={styles.bannerPillar}>{t('today.dayPillar')}: <Text style={{ color: colors.ju }}>{fortune.dayGanZhi}</Text></Text>
-        </View>
+          {todayProse && <Text style={styles.bannerProse} numberOfLines={3}>{todayProse}</Text>}
+          {todayProse && <Text style={styles.bannerMore}>{t('today.more')}</Text>}
+        </Pressable>
 
         {/* 대표 명식 선택/전환 (등록한 다른 명식으로 변경) */}
         <ChartPicker />
@@ -202,9 +223,11 @@ const styles = StyleSheet.create({
   screen: { backgroundColor: 'rgba(21,19,46,0.3)' },
  // 별밤 배경 위 반투명 남색 — 카드·텍스트 가독
   wrap: { padding: space(5), paddingTop: space(12), paddingBottom: space(10) }, // 헤더 숨김 → status bar 여백 확보
-  langRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: space(3), marginBottom: space(2) },
+  topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: space(2) },
+  langRow: { flexDirection: 'row', gap: space(3) },
   langBtn: { fontSize: 13, color: colors.inkFaint, fontWeight: '600' },
   langOn: { color: colors.ju },
+  gear: { fontSize: 20, color: colors.inkSoft },
   title: { ...font.display },
   sub: { ...font.body, color: colors.inkSoft, marginTop: space(2) },
   divider: { width: 44, height: 3, borderRadius: 2, backgroundColor: colors.ju, marginTop: space(4), marginBottom: space(6) },
@@ -214,6 +237,8 @@ const styles = StyleSheet.create({
   },
   bannerDate: { ...font.caption, color: colors.inkSoft },
   bannerPillar: { ...font.heading, color: colors.ink, marginTop: space(1) },
+  bannerProse: { ...font.body, color: colors.inkSoft, marginTop: space(2.5), lineHeight: 22 },
+  bannerMore: { ...font.caption, color: colors.ju, fontWeight: '700', marginTop: space(2) },
   grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: space(4) },
   // 카드 비율 384:512(3:4). 이미지 cover + 하단 라벨 오버레이.
   card: {

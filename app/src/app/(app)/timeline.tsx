@@ -50,7 +50,7 @@ export default function TimelineRoute() {
     }));
     const yearCats: ReadingCategory[] = Array.from(yearMap.values())
       .sort((a, b) => a.year - b.year)
-      .map((a) => ({ key: `year_${a.year}`, label: `${a.year === now ? '🎯 올해 · ' : ''}${a.year}년 · ${a.stem}${a.branch}` }));
+      .map((a) => ({ key: `year_${a.year}`, label: `${a.year === now ? '올해 · ' : ''}${a.year}년 · ${a.stem}${a.branch}` }));
     // ② 10년 단위 대운(10~100세)
     const decadeCats: ReadingCategory[] = luck
       .filter((l) => l.startAge + 9 >= AGE_MIN && l.startAge <= AGE_MAX)

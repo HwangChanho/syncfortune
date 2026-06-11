@@ -20,6 +20,7 @@ import { useEntitlement } from '../lib/entitlement';
 import { useSubscription } from '../lib/subscription';
 import { setServerChartId, type SavedChart } from '../lib/myChart';
 import { loadFollowups, askFollowup, type Followup } from '../lib/followups';
+import { useFontScale } from '../lib/fontScale';
 import { colors, radius, space, shadow, font } from '../lib/theme';
 import type { ChartInput, CategoryKey } from '@spec/chart';
 
@@ -63,6 +64,7 @@ export function ReadingScreen({
   const { session } = useAuth();
   const { mode, consumeTrial, watchAdForReading, purchaseReading } = useEntitlement();
   const { isPremium } = useSubscription();
+  const { fs } = useFontScale(); // 통변 본문 글자 크기(설정에서 조절)
   const [readings, setReadings] = useState<Record<string, any>>({});
   const [progress, setProgress] = useState<{ done: number; total: number; current?: string } | null>(null);
   const [globalError, setGlobalError] = useState<string | null>(null);
@@ -239,38 +241,39 @@ export function ReadingScreen({
     );
   };
 
-  // 항목 상세 섹션(🌱🌊💡) 렌더 — 리스트 상세 모달에서 재사용
+  // 항목 상세 섹션 렌더 — 리스트 상세 모달에서 재사용
   const renderSections = (key: string) => {
     const r = normalizeReading(readings[key]);
     const base = asText(r.base), past = asText(r.past), overlay = asText(r.overlay), remedy = asText(r.remedy);
     if (r.error) return <Text style={styles.err}>{r.error}</Text>;
+    const bodyDyn = { fontSize: fs(15), lineHeight: fs(26) }; // 설정 글자 크기 반영
     return (
       <>
         {base ? (
           <View style={styles.section}>
-            <Text style={styles.secLabel}>🌱 {t('reading.base')}</Text>
-            <Text style={styles.secBody}>{base}</Text>
+            <Text style={styles.secLabel}>{t('reading.base')}</Text>
+            <Text style={[styles.secBody, bodyDyn]}>{base}</Text>
           </View>
         ) : null}
         {past ? (
           <View style={styles.section}>
-            <Text style={styles.secLabel}>🕰 {t('reading.past')}</Text>
-            <Text style={styles.secBody}>{past}</Text>
+            <Text style={styles.secLabel}>{t('reading.past')}</Text>
+            <Text style={[styles.secBody, bodyDyn]}>{past}</Text>
           </View>
         ) : null}
         {overlay ? (
           <View style={styles.section}>
-            <Text style={styles.secLabel}>🌊 {t('reading.overlay')}</Text>
-            <Text style={styles.secBody}>{overlay}</Text>
+            <Text style={styles.secLabel}>{t('reading.overlay')}</Text>
+            <Text style={[styles.secBody, bodyDyn]}>{overlay}</Text>
           </View>
         ) : null}
         {remedy ? (
           <View style={[styles.section, styles.remedySection]}>
-            <Text style={styles.secLabel}>💡 {t('reading.remedy')}</Text>
-            <Text style={styles.secBody}>{remedy}</Text>
+            <Text style={styles.secLabel}>{t('reading.remedy')}</Text>
+            <Text style={[styles.secBody, bodyDyn]}>{remedy}</Text>
           </View>
         ) : null}
-        {!base && !overlay && !remedy && <Text style={styles.secBody}>{asText(r)}</Text>}
+        {!base && !overlay && !remedy && <Text style={[styles.secBody, bodyDyn]}>{asText(r)}</Text>}
       </>
     );
   };

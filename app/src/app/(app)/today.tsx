@@ -14,10 +14,12 @@ import { loadMyChart } from '../../lib/myChart';
 import { buildSajuChart } from '@engine/saju';
 import type { SajuChart, Stem, Branch } from '@spec/chart';
 import { colors, radius, space, shadow, font } from '../../lib/theme';
+import { useFontScale } from '../../lib/fontScale';
 import { stemElement, branchElement, elementColor, elementText, stemReading, branchReading } from '../../lib/ohaeng';
 
 export default function TodayScreen() {
   const { t } = useTranslation();
+  const { fs } = useFontScale(); // 본문 글자 크기(설정에서 조절)
   const router = useRouter();
   const f = useMemo(() => getDailyFortune(), []);
   const [saju, setSaju] = useState<SajuChart | null>(null);  // 대표 명식(없으면 null → 등록 유도)
@@ -75,7 +77,7 @@ export default function TodayScreen() {
         {areas && selected ? (
           <View style={styles.readCard}>
             {selected.paragraphs.map((p, i) => (
-              <Text key={i} style={[styles.readTx, i > 0 && styles.readTxGap]}>{p}</Text>
+              <Text key={i} style={[styles.readTx, { fontSize: fs(15), lineHeight: fs(25) }, i > 0 && styles.readTxGap]}>{p}</Text>
             ))}
           </View>
         ) : (

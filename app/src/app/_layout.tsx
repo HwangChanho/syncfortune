@@ -9,6 +9,7 @@ import '../lib/i18n'; // 다국어(한·영·일) init
 import { Stack } from 'expo-router';
 import { View, ActivityIndicator, StyleSheet, LogBox } from 'react-native';
 import { useAuth } from '../lib/useAuth';
+import { FontScaleProvider } from '../lib/fontScale'; // 전역 글자 크기(설정에서 조절)
 import { colors } from '../lib/theme';
 
 // i18next 26.x가 Hermes에서 Intl.PluralRules 를 인식 못 해 내는 dev 경고(동작은 v3 fallback 정상,
@@ -28,11 +29,14 @@ export default function RootLayout() {
   }
 
   // 최상위 두 영역: login(미인증) · (app)(인증). 헤더는 각 하위에서 제어.
+  //   FontScaleProvider 로 전역 글자 배율 제공(통변 등 본문 가독성, 설정에서 조절).
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="login" />
-      <Stack.Screen name="(app)" />
-    </Stack>
+    <FontScaleProvider>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="login" />
+        <Stack.Screen name="(app)" />
+      </Stack>
+    </FontScaleProvider>
   );
 }
 
