@@ -36,3 +36,13 @@ export async function useCredit(kind: CreditKind): Promise<boolean> {
   const { data, error } = await supabase.rpc('use_credit', { p_kind: kind });
   return !error && data === true;
 }
+
+/**
+ * 이용권 구매 성공 시 크레딧 부여(grant_credit RPC). 마켓에서 결제 완료 후 호출 → 잔여 +qty.
+ * ⚠️ 결제 검증은 RevenueCat 웹훅이 정식 — 현재는 클라 구매 성공 후 호출(신뢰기반, daniel 슬롯).
+ * @returns 부여 후 잔여 수(실패 시 null)
+ */
+export async function grantCredit(kind: CreditKind, qty = 1): Promise<number | null> {
+  const { data, error } = await supabase.rpc('grant_credit', { p_kind: kind, p_qty: qty });
+  return error ? null : (data as number);
+}

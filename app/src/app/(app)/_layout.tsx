@@ -6,6 +6,7 @@
 import { Stack } from 'expo-router';
 import { View } from 'react-native';
 import { AdBanner } from '../../components/AdBanner';
+import { BottomNav } from '../../components/BottomNav';
 import { OfflineBanner } from '../../components/OfflineBanner';
 import { colors } from '../../lib/theme';
 
@@ -42,9 +43,12 @@ export default function AppLayout() {
         <Stack.Screen name="pet" options={{ title: '나의 반려동물' }} />
         <Stack.Screen name="love" options={{ title: '나의 애정흐름' }} />
         <Stack.Screen name="premium" options={{ title: '프리미엄' }} />
+        <Stack.Screen name="market" options={{ title: '마켓' }} />
       </Stack>
       {/* 무료=하단 배너 고정 / 프리미엄=숨김 (AdBanner 내부에서 isPremium 분기) */}
       <AdBanner />
+      {/* 하단 탭 네비(홈/마켓) — 모든 화면 최하단 고정 */}
+      <BottomNav />
     </View>
   );
 }
