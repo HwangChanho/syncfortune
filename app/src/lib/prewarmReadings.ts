@@ -30,12 +30,19 @@ export async function ensureServerChartId(
   c: ReturnType<typeof computeChart>, input: ChartInput, session: Session, savedChart: SavedChart,
 ): Promise<string | null> {
   if (savedChart.serverChartId) return savedChart.serverChartId;
-  const { data, error } = await supabase.from('charts')
-    .insert({ owner_id: session.user.id, relation: 'self', saju: { ...c.saju, timeUnknown: input.timeAccuracy === '미상' }, ziwei: c.ziwei, consent: true })
-    .select('id').single();
+  // birth(ChartInput)는 평문으로 서버 컬럼에 두지 않는다(규칙8) — insert_chart_enc RPC 가 서버에서 pgp 암호화 저장(birth_enc).
+  //   ADR-005 완화: 관리자 조회(생년월일시)를 위해 birth 를 서버에 *암호화* 보관. 복호화는 관리자 RPC 만.
+  const { data, error } = await supabase.rpc('insert_chart_enc', {
+    p_relation: 'self',
+    p_saju: { ...c.saju, timeUnknown: input.timeAccuracy === '미상' },
+    p_ziwei: c.ziwei ?? null,
+    p_birth: JSON.stringify(input),     // 서버에서 즉시 암호화 → birth_enc (관리자만 복호화)
+    p_label: savedChart.label ?? null,  // 라벨도 동일 키로 암호화 → label_enc
+  });
   if (error || !data) return null;
-  await setServerChartId(savedChart.id, data.id); // 온디바이스 매핑 저장 → 다음부터 재사용
-  return data.id;
+  const newId = data as string;        // RPC 반환 = charts.id(uuid)
+  await setServerChartId(savedChart.id, newId); // 온디바이스 매핑 저장 → 다음부터 재사용
+  return newId;
 }
 
 let running = false; // 세션 내 동시 실행 방지(홈 재진입 등) — 멱등이지만 호출 낭비 차단

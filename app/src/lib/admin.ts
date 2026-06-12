@@ -35,7 +35,9 @@ export async function adminSetPremium(owner: string, val: boolean): Promise<bool
 
 export type AdminUserDetail = {
   reading_count: number; followup_count: number; chart_count: number;
-  charts: { id: string; saju: any }[];        // 등록 명식(saju=NormalizedChart, birth 제거)
+  // birth/label = 서버 암호화(birth_enc/label_enc) 복호화 결과(관리자만). birth=ChartInput JSON 문자열·label=명식 라벨.
+  //   기존(암호화 도입 전) 명식은 미저장 → null. 신규 등록/풀이부터 채워짐.
+  charts: { id: string; saju: any; birth?: string | null; label?: string | null }[];
   credits: { kind: string; remaining: number }[];
 };
 

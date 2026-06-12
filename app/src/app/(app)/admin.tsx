@@ -88,7 +88,27 @@ export default function AdminRoute() {
               {detail.charts.map((c, i) => {
                 const p = c.saju?.pillars;
                 const gz = p ? (['년', '월', '일', '시'] as const).map((k) => (p[k] ? `${p[k].stem}${p[k].branch}` : '')).filter(Boolean).join(' ') : '';
-                return <Text key={i} style={styles.detailChart}>· {c.saju?.dayMaster?.stem ?? '?'}일간{gz ? ` | ${gz}` : ''}</Text>;
+                // birth = 복호화된 ChartInput JSON(생년월일시·달력·성별·출생지). 미저장(기존 명식)·파싱 실패 시 생략.
+                let birthLine = '';
+                if (c.birth) {
+                  try {
+                    const b = JSON.parse(c.birth);
+                    birthLine = [
+                      (b.birthDateTime ?? '').replace('T', ' '),
+                      b.calendar === '음' ? '음력' : '양력',
+                      b.sex,
+                      b.birthPlace,
+                      b.timeAccuracy && b.timeAccuracy !== '정확' ? `시각 ${b.timeAccuracy}` : '',
+                    ].filter(Boolean).join(' · ');
+                  } catch {}
+                }
+                const nm = c.label ? `${c.label} · ` : '';
+                return (
+                  <View key={i} style={{ marginTop: space(1) }}>
+                    <Text style={styles.detailChart}>· {nm}{c.saju?.dayMaster?.stem ?? '?'}일간{gz ? ` | ${gz}` : ''}</Text>
+                    {birthLine ? <Text style={styles.detailBirth}>   {birthLine}</Text> : null}
+                  </View>
+                );
               })}
               {detail.credits.length > 0 && <Text style={styles.detailLine}>보유 이용권: {detail.credits.map((c) => `${c.kind}×${c.remaining}`).join(', ')}</Text>}
             </View>
@@ -128,6 +148,7 @@ const styles = StyleSheet.create({
   detailBox: { backgroundColor: colors.sunk, borderRadius: radius.sm, padding: space(3), marginBottom: space(4) },
   detailLine: { ...font.caption, color: colors.inkSoft, marginBottom: 2 },
   detailChart: { ...font.caption, color: colors.ink, marginTop: 2 },
+  detailBirth: { ...font.caption, color: colors.ju, marginTop: 1 },
   premToggle: { borderRadius: radius.sm, borderWidth: 1, borderColor: colors.ju, paddingVertical: space(2.5), alignItems: 'center', marginBottom: space(4) },
   premToggleOn: { backgroundColor: colors.juSoft },
   premToggleTx: { color: colors.ju, fontWeight: '800' },

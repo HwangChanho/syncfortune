@@ -132,10 +132,15 @@ export function ReadingScreen({
   // savedChart 없는 폴백(input-param 경로): 캐시 매핑 없이 1회용 charts insert.
   async function insertChart(): Promise<string | null> {
     if (!c || !session) return null;
-    const { data, error } = await supabase.from('charts')
-      .insert({ owner_id: session.user.id, relation: 'self', saju: { ...c.saju, timeUnknown: input?.timeAccuracy === '미상' }, ziwei: c.ziwei, consent: true })
-      .select('id').single();
-    return error || !data ? null : data.id;
+    // birth 평문 서버 저장 금지(규칙8) — insert_chart_enc RPC 로 서버 암호화. input 없으면 birth 생략(null).
+    const { data, error } = await supabase.rpc('insert_chart_enc', {
+      p_relation: 'self',
+      p_saju: { ...c.saju, timeUnknown: input?.timeAccuracy === '미상' },
+      p_ziwei: c.ziwei ?? null,
+      p_birth: input ? JSON.stringify(input) : null,
+      p_label: null,
+    });
+    return error || !data ? null : (data as string);
   }
 
   // 아직 없는 항목만 생성(캐시된 건 skip — 비용 방어). chart_id 는 재사용 우선.
