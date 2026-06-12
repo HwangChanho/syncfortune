@@ -108,9 +108,9 @@ export default function SettingsScreen() {
       )}
 
       {/* ── 관리자(is_admin 전용) ── */}
-      {admin && (
+      {(admin || __DEV__) && (
         <Pressable style={styles.adminLink} onPress={() => router.push('/admin')}>
-          <Text style={styles.adminLinkTx}>⚙ 관리자</Text>
+          <Text style={styles.adminLinkTx}>⚙ 관리자{__DEV__ && !admin ? ' (dev)' : ''}</Text>
         </Pressable>
       )}
 

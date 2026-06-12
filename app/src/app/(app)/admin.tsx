@@ -22,7 +22,7 @@ export default function AdminRoute() {
   useEffect(() => { isAdmin().then((a) => { setAllowed(a); if (a) reload(); }); }, []);
 
   if (allowed === null) return <View style={styles.center}><ActivityIndicator color={colors.ju} /></View>;
-  if (!allowed) return <View style={styles.center}><Text style={styles.denied}>관리자만 접근할 수 있어요.</Text></View>;
+  if (allowed === false && !__DEV__) return <View style={styles.center}><Text style={styles.denied}>관리자만 접근할 수 있어요.</Text></View>;
 
   const filtered = q ? users.filter((u) => u.email?.toLowerCase().includes(q.toLowerCase())) : users;
 
