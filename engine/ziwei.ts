@@ -48,9 +48,43 @@ function hourToTimeIndex(hour: number): number {
   return Math.floor((hour + 1) / 2) % 12;
 }
 
+// 대한 비성사화(四化) 순서 — iztro horoscope.decadal.mutagen 은 [祿,權,科,忌] 순 4성을 준다.
+const SIHWA_ORDER: SihwaType[] = ['化祿', '化權', '化科', '化忌'];
+
 /**
- * ChartInput → ZiweiChart (iztro 정규화).
- * 운한(대한 decades)은 추후 — M1은 성반·국·명궁 검증까지(규칙9 보조 범위).
+ * 운한(대한) 정규화 — 각 궁의 대한 구간(decadal.range)을 한 시기로, 그 시기 천간이 일으키는
+ *   비성사화(어느 별이 化祿/權/科/忌 되는지)를 horoscope 로 구해 채운다.
+ *   intoPalace = 그 별이 본명반에서 앉은 궁(= 그 시기에 활성화되는 삶의 영역) → 통변이 "운의 흐름"을 말할 근거.
+ * @param a iztro FunctionalAstrolabe (bySolar 결과)
+ * @param palaces 정규화된 본명 12궁(별→궁 매핑용)
+ * @param birthYear 출생 연도(대한 구간 → 양력 연도 변환용)
+ */
+function buildDecades(a: any, palaces: Palace[], birthYear: number): ZiweiChart['decades'] {
+  // 본명반 별 → 앉은 궁 이름 맵(intoPalace 산출용)
+  const starPalace: Record<string, string> = {};
+  palaces.forEach((pl) => [...pl.majorStars, ...pl.minorStars].forEach((st) => { starPalace[st.name] = pl.name; }));
+
+  const out: ZiweiChart['decades'] = [];
+  (a.palaces ?? []).forEach((p: any) => {
+    const range = p.decadal?.range as [number, number] | undefined;     // [시작나이, 끝나이]
+    if (!Array.isArray(range)) return;
+    const startAge = range[0];
+    if (startAge > 100) return;                                          // 10~100세 범위만(UI/통변 대상)
+    // 이 대한 구간 안의 한 날짜로 horoscope 호출 → decadal.mutagen(4성)
+    let mutagen: string[] = [];
+    try { mutagen = a.horoscope(`${birthYear + startAge}-06-15`)?.decadal?.mutagen ?? []; } catch { /* 환경 미지원 시 비움 */ }
+    const flyingSihwa = mutagen.map((raw, i) => {
+      const star = STAR_NAME[raw] ?? raw;                                // 간체 → 한글
+      return { star, type: SIHWA_ORDER[i], intoPalace: starPalace[star] ?? '' };
+    }).filter((x) => x.type);
+    out.push({ startAge, palaceBranch: p.earthlyBranch as Branch, flyingSihwa });
+  });
+  return out.sort((x, y) => x.startAge - y.startAge);                    // 나이 오름차순
+}
+
+/**
+ * ChartInput → ZiweiChart (iztro 정규화). 성반·국·명궁 + 운한(대한 비성사화).
+ *   규칙9: 보조·수렴 범위 — 깊은 진단은 만들지 않되, 운의 흐름(운한·사화)은 통변 근거로 정규화한다.
  */
 export function buildZiweiChart(input: ChartInput): ZiweiChart {
   const [datePart, timePart = '0:0'] = input.birthDateTime.split(' ');
@@ -65,10 +99,11 @@ export function buildZiweiChart(input: ChartInput): ZiweiChart {
     ...(p.isBodyPalace ? { isBodyPalace: true } : {}),
   }));
 
+  const birthYear = Number(datePart.slice(0, 4)) || 0;
   return {
     bureau: a.fiveElementsClass,                         // 예: "土五局"
     lifePalaceBranch: a.earthlyBranchOfSoulPalace as Branch,
     palaces,
-    decades: [],                                         // 운한 정규화는 추후
+    decades: buildDecades(a, palaces, birthYear),        // 운한(대한) 비성사화
   };
 }

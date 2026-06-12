@@ -77,11 +77,12 @@ export async function listCharts(): Promise<SavedChart[]> {
  *   ※ React 훅(useSubscription) 밖이라 구독 여부는 호출처(UI)가 주입한다.
  *   저장소에서 강제(throw)하므로 어떤 경로로 호출해도 한도 우회 불가(방어적·단일 진실원천).
  */
-export async function addChart(input: any, opts?: { isPro?: boolean }): Promise<string> {
+export async function addChart(input: any, opts?: { isPro?: boolean; bypassLimit?: boolean }): Promise<string> {
   const charts = await listCharts();
   // 무료 티어 = 직접 등록 명식 10개까지(샘플 시드 제외). 프로 = 무제한.
+  //   bypassLimit = 보상형 광고 1회 시청으로 이번 1건만 한도 우회(UI에서 광고 earned 후 주입).
   const used = countReal(charts);
-  if (!opts?.isPro && used >= FREE_CHART_LIMIT) {
+  if (!opts?.isPro && !opts?.bypassLimit && used >= FREE_CHART_LIMIT) {
     throw new ChartLimitError(used, FREE_CHART_LIMIT);
   }
   const id = `c_${Date.now()}`;
@@ -141,7 +142,7 @@ export async function setServerChartId(localId: string, serverId: string): Promi
 }
 
 /** 명식 등록 (호환 — register 에서 호출). 추가 + (첫이면)대표. 무료 한도는 addChart 가 강제. */
-export async function saveMyChart(input: any, opts?: { isPro?: boolean }): Promise<void> {
+export async function saveMyChart(input: any, opts?: { isPro?: boolean; bypassLimit?: boolean }): Promise<void> {
   await addChart(input, opts);
 }
 

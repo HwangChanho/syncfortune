@@ -18,6 +18,7 @@ import { BirthPlacePicker } from '../components/BirthPlacePicker';
 import { listCharts, getRepresentativeId, type SavedChart } from '../lib/myChart';
 import { useAuth } from '../lib/useAuth';
 import { useSubscription, purchasePremium } from '../lib/subscription';
+import { assertOnline } from '../lib/network'; // 오프라인 시 신규 생성 차단
 import { useEntitlement } from '../lib/entitlement';
 import { ensureServerChartId } from '../lib/prewarmReadings';
 import { useFontScale } from '../lib/fontScale';
@@ -80,12 +81,13 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
     const cached = await loadCompatReadings(chartId, sig);
     setReadings(cached);
 
-    // 관계 5종 순차 생성(캐시된 건 skip). 첫 미생성에서 게이트가 걸리면 전체 중단(쌍 단위 과금).
+    // 관계 유형(9종) 순차 생성(캐시된 건 skip). 첫 미생성에서 게이트가 걸리면 전체 중단(쌍 단위 과금 — 9종=1쌍).
     async function genAll(paid: boolean) {
+      if (!assertOnline(t)) return;                        // 오프라인 = 신규 생성 차단
       for (const r of COMPAT_RELS) {
         if (cached[r.key] || readings[r.key]) continue;
         setBusy(r.key);
-        const res = await genCompatReading(chartId!, r.key, sig, otherC.saju, cross, dx.dayMasterRelation.detail, paid);
+        const res = await genCompatReading(chartId!, r.key, sig, otherC.saju, cross, dx.dayMasterRelation.detail, paid, meC.ziwei, otherC.ziwei);
         if (res.kind === 'answer') { setReadings((prev) => ({ ...prev, [r.key]: res.reading })); continue; }
         setBusy(null);
         if (res.kind === 'needPremium') { Alert.alert(t('compat.premiumTitle'), t('compat.premiumMsg')); return; }
@@ -174,7 +176,7 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
           <View style={styles.relChips}>
             {COMPAT_RELS.map((r) => (
               <Pressable key={r.key} style={[styles.relChip, rel === r.key && styles.relChipOn]} onPress={() => setRel(r.key)}>
-                <Text style={[styles.relChipTx, rel === r.key && styles.relChipTxOn]}>{r.ko}</Text>
+                <Text style={[styles.relChipTx, rel === r.key && styles.relChipTxOn]}>{t(r.tk)}</Text>
               </Pressable>
             ))}
           </View>

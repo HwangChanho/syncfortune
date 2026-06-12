@@ -7,13 +7,18 @@
 import { supabase } from './supabase';
 import { appLang } from './i18n'; // 궁합 통변 언어(앱 언어)
 
-// 관계 유형(궁합 카테고리, daniel) — key=Edge 분기·캐시 / ko=표시
-export const COMPAT_RELS: { key: string; ko: string }[] = [
-  { key: 'friend', ko: '지인·친구' },
-  { key: 'business', ko: '동업' },
-  { key: 'invest', ko: '투자 파트너' },
-  { key: 'love', ko: '연애' },
-  { key: 'marriage', ko: '결혼' },
+// 관계 유형(궁합 카테고리, daniel) — key=Edge 분기·캐시 / tk=i18n 라벨 키(compat.rel.*)
+//   관계를 폭넓게: 정서(친구·가족·썸·연애·결혼) + 일/이해관계(직장·윗사람·동업·투자).
+export const COMPAT_RELS: { key: string; tk: string }[] = [
+  { key: 'friend', tk: 'compat.rel.friend' },
+  { key: 'family', tk: 'compat.rel.family' },
+  { key: 'crush', tk: 'compat.rel.crush' },
+  { key: 'love', tk: 'compat.rel.love' },
+  { key: 'marriage', tk: 'compat.rel.marriage' },
+  { key: 'coworker', tk: 'compat.rel.coworker' },
+  { key: 'senior', tk: 'compat.rel.senior' },
+  { key: 'business', tk: 'compat.rel.business' },
+  { key: 'invest', tk: 'compat.rel.invest' },
 ];
 
 export type CompatReading = { core?: string; base?: string; overlay?: string; remedy?: string; error?: string };
@@ -48,9 +53,10 @@ export async function loadCompatReadings(chartId: string, sig: string): Promise<
  */
 export async function genCompatReading(
   chartId: string, rel: string, sig: string, otherSaju: any, cross: string[], dayRel: string, paid = false,
+  meZiwei?: any, otherZiwei?: any, // 자미 교차(나=최신명반, 상대=상대 명반) — 사주 주축 + 자미 보조
 ): Promise<CompatResult> {
   const { data, error } = await supabase.functions.invoke('interpret', {
-    body: { chartId, category: `compat_${rel}_${sig}`, kind: 'compat', tier: 'paid', otherSaju, cross, dayRel, paid, lang: appLang() },
+    body: { chartId, category: `compat_${rel}_${sig}`, kind: 'compat', tier: 'paid', otherSaju, otherZiwei, cross, dayRel, paid, ziwei: meZiwei, lang: appLang() },
   });
   if (error) return { kind: 'error' };
   if (data?.needPremium) return { kind: 'needPremium' };

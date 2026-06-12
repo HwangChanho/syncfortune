@@ -65,7 +65,8 @@ export async function prewarmReadings(savedChart: SavedChart, session: Session):
     const runChain = async (items: typeof missing) => {
       for (const m of items) {
         try {
-          await supabase.functions.invoke('interpret', { body: { chartId: id, category: m.key, kind: m.kind, tier: 'paid', lang: appLang() } });
+          // 자미는 운한(대한 비성사화) 포함 최신 명반을 body 로(저장본 구버전 대비 — Edge 우선 사용).
+          await supabase.functions.invoke('interpret', { body: { chartId: id, category: m.key, kind: m.kind, tier: 'paid', lang: appLang(), ...(m.kind === 'ziwei' ? { ziwei: c.ziwei } : {}) } });
         } catch { /* 개별 실패 무시 — 풀이 화면 생성 버튼이 폴백 */ }
       }
     };

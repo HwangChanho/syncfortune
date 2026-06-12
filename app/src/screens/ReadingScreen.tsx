@@ -18,12 +18,14 @@ import { useAuth } from '../lib/useAuth';
 import { supabase } from '../lib/supabase';
 import { useEntitlement } from '../lib/entitlement';
 import { useSubscription } from '../lib/subscription';
-import { setServerChartId, type SavedChart } from '../lib/myChart';
+import { setServerChartId, getRepresentativeId, type SavedChart } from '../lib/myChart';
 import { loadFollowups, askFollowup, type Followup } from '../lib/followups';
 import { useFontScale } from '../lib/fontScale';
 import { appLang } from '../lib/i18n'; // 통변 출력 언어(앱 언어)
 import { PALACE_DESC } from '../lib/palaceDesc'; // 자미두수 궁 설명(궁 옆 표시)
 import { useCredit } from '../lib/coupons'; // 무료 이용권 크레딧(결제 전 우선 소비)
+import { requireLoginForPurchase } from '../lib/requireLogin'; // 결제/저장 전 로그인 안내
+import { assertOnline, isOnline } from '../lib/network'; // 오프라인 시 신규 생성 차단
 import { colors, radius, space, shadow, font } from '../lib/theme';
 import type { ChartInput, CategoryKey } from '@spec/chart';
 
@@ -79,6 +81,14 @@ export function ReadingScreen({
   const [asking, setAsking] = useState(false);
   const [cacheLoaded, setCacheLoaded] = useState(false);  // 캐시 로드 완료(자동 생성 판단 기준)
   const autoRan = useRef(false);                          // 프리미엄 진입 시 자동 생성 1회 가드
+  // 대표 명식 여부 — 프리미엄 '자동 생성'은 대표 명식에만(비용통제 daniel: 명식 100개 자동 생성 방지).
+  //   대표가 아니면 프리미엄이라도 수동 '생성' 버튼으로(의도된 1회 소비). 캐시는 그대로 표시.
+  const [isRep, setIsRep] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    getRepresentativeId().then((rid) => { if (alive) setIsRep(!!savedChart && !!rid && rid === savedChart.id); }).catch(() => {});
+    return () => { alive = false; };
+  }, [savedChart]);
   const c = useMemo(() => (input ? computeChart(input) : null), [input]);
   // 항목 집합: 주입된 categories 우선, 없으면 사주 16영역(i18n 라벨)
   const cats = useMemo<ReadingCategory[]>(() => {
@@ -143,7 +153,8 @@ export function ReadingScreen({
     for (const cat of todo) {
       setProgress((p) => (p ? { ...p, current: cat.label } : null)); // 지금 풀이 중인 영역
       try {
-        const { data, error } = await supabase.functions.invoke('interpret', { body: { chartId: id, category: cat.key, kind, tier: 'paid', lang: appLang() } });
+        // 자미는 운한(대한 비성사화)이 포함된 최신 명반을 body 로 전달(저장본은 구버전일 수 있음 → Edge가 우선 사용).
+        const { data, error } = await supabase.functions.invoke('interpret', { body: { chartId: id, category: cat.key, kind, tier: 'paid', lang: appLang(), ...(kind === 'ziwei' ? { ziwei: c!.ziwei } : {}) } });
         setReadings((prev) => ({ ...prev, [cat.key]: error ? { error: error.message } : data?.reading }));
       } catch (err) {
         setReadings((prev) => ({ ...prev, [cat.key]: { error: (err as Error).message } }));
@@ -156,13 +167,15 @@ export function ReadingScreen({
 
   // 생성 트리거: 프리미엄 > 무료이용권(쿠폰) > trial·perUse 순.
   async function onStart() {
-    if (!session) { router.push('/login'); return; }
+    // 풀이는 계정에 저장·캐시됨(서버차트 귀속) → 미로그인 시 '저장용' 안내 후 로그인 유도(daniel)
+    if (!requireLoginForPurchase(session, () => router.push('/login'), t)) return;
+    if (!assertOnline(t)) return;                          // 오프라인 = 신규 생성 차단(경고)
     if (isPremium) { await runAll(false); return; }        // 구독 = 무게이트(캐시로 비용 방어)
     // ★무료 이용권: 이 화면 종류(사주=reading/자미=ziwei) 크레딧 있으면 차감하고 무료 생성
     if (await useCredit(kind === 'ziwei' ? 'ziwei' : 'reading')) { await runAll(false); return; }
     if (mode === 'perUse') {
       Alert.alert(t('reading.premiumAlert'), t('reading.premiumAlertMsg'), [
-        { text: t('reading.watchAd'), onPress: async () => { try { await watchAdForReading(); await runAll(false); } catch (e) { Alert.alert('!', (e as Error).message); } } },
+        { text: t('reading.watchAd'), onPress: async () => { try { await watchAdForReading(); await runAll(false); } catch (e) { if ((e as Error).message !== 'cancelled') Alert.alert('!', (e as Error).message); } } },
         { text: t('reading.payPerUse'), onPress: async () => { try { await purchaseReading(); await runAll(false); } catch (e) { Alert.alert('!', (e as Error).message); } } },
         { text: t('common.cancel'), style: 'cancel' },
       ]);
@@ -173,16 +186,16 @@ export function ReadingScreen({
 
   const banner = isPremium ? t('reading.bannerPremium') : (mode === 'trial' ? t('reading.bannerTrial') : t('reading.bannerPerUse'));
   const haveAll = cats.every((cat) => readings[cat.key]);
-  // '전체 풀이 보기' 버튼 = 비프리미엄만(게이트). 프리미엄은 진입 시 자동 생성(daniel — 버튼 불필요).
-  const showStart = !haveAll && progress === null && !isPremium;
+  // 생성 버튼: 비프리미엄(게이트) + 프리미엄이라도 '대표 아님'(자동생성 제외 → 수동 생성). 대표 프리미엄만 버튼 없이 자동.
+  const showStart = !haveAll && progress === null && (!isPremium || !isRep);
 
   // 프리미엄 자동 생성 — 캐시 로드 후 미생성 영역이 있으면 1회 자동 runAll(버튼 없이).
-  //   (프리워밍이 대부분 채워두지만, 미완·input-param 경로 대비). 캐시·Edge가 중복 생성 방지.
+  //   ★대표 명식에만(비용통제): 다른 명식은 프리미엄이라도 자동 생성하지 않는다(수동 버튼).
   useEffect(() => {
-    if (!isPremium || !cacheLoaded || progress || autoRan.current || !session) return;
+    if (!isPremium || !isRep || !cacheLoaded || progress || autoRan.current || !session || !isOnline()) return; // 오프라인=자동생성 보류(조용히)
     if (cats.some((cat) => !readings[cat.key])) { autoRan.current = true; runAll(false); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isPremium, cacheLoaded, readings, cats, progress, session]);
+  }, [isPremium, isRep, cacheLoaded, readings, cats, progress, session]);
 
   // 추가 질문 전송 — 프리미엄 무료 2회 + 초과 시 건당 결제 후 재시도(paid). Edge가 게이트 판정.
   async function submitFollowup(retryPaid = false) {
