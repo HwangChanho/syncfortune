@@ -4,11 +4,15 @@
     "slug": "syncfortune",
     "version": "1.0.0",
     "orientation": "portrait",
+    "icon": "./assets/icon.png",
     "scheme": "syncfortune",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.syncfortune.app"
+      "bundleIdentifier": "com.syncfortune.app",
+      "config": {
+        "usesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "com.syncfortune.app"

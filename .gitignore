@@ -11,6 +11,7 @@ node_modules/
 # ── OS / 에디터 ──
 .DS_Store
 *.log
+*.swp
 
 # ── 빌드 산출 ──
 dist/
@@ -21,6 +22,10 @@ dist/
 web-build/
 app/ios/
 app/android/
+# fastlane 빌드 산출물(.ipa/.dSYM — 대용량 바이너리)
+app/build/
+# 로컬 빌드 자동화(개인 인증서·Apple ID·팀ID — 공개 안 함)
+app/fastlane/
 # 서명·프로비저닝 키
 *.jks
 *.p8
