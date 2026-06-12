@@ -41,8 +41,10 @@ export async function loadCompatReadings(chartId: string, sig: string): Promise<
   const { data } = await supabase.from('readings').select('category, content').eq('chart_id', chartId).like('category', 'compat_%').eq('lang', appLang());
   const out: Record<string, CompatReading> = {};
   (data ?? []).forEach((r: any) => {
-    if (!String(r.category).endsWith(`_${sig}`)) return;       // 이 상대 것만(category=compat_{rel}_{sig})
-    out[String(r.category).split('_')[1]] = r.content;         // rel → content
+    const parts = String(r.category).split('_');               // compat _ rel _ sig [_ y{YYYY}=연도별]
+    if (parts[2] !== sig) return;                              // 이 상대(sig) 것만
+    const key = parts[3] ? `${parts[1]}_${parts[3]}` : parts[1]; // 원국=rel / 연도별=rel_y{YYYY}
+    out[key] = r.content;
   });
   return out;
 }
@@ -54,9 +56,11 @@ export async function loadCompatReadings(chartId: string, sig: string): Promise<
 export async function genCompatReading(
   chartId: string, rel: string, sig: string, otherSaju: any, cross: string[], dayRel: string, paid = false,
   meZiwei?: any, otherZiwei?: any, // 자미 교차(나=최신명반, 상대=상대 명반) — 사주 주축 + 자미 보조
+  year?: string, yearGz?: string,  // year 있으면 연도별(그 해 흐름). yearGz=그 해 간지(클라 계산)
 ): Promise<CompatResult> {
+  const category = year ? `compat_${rel}_${sig}_y${year}` : `compat_${rel}_${sig}`;
   const { data, error } = await supabase.functions.invoke('interpret', {
-    body: { chartId, category: `compat_${rel}_${sig}`, kind: 'compat', tier: 'paid', otherSaju, otherZiwei, cross, dayRel, paid, ziwei: meZiwei, lang: appLang() },
+    body: { chartId, category, kind: 'compat', tier: 'paid', otherSaju, otherZiwei, cross, dayRel, paid, yearGz, ziwei: meZiwei, lang: appLang() },
   });
   if (error) return { kind: 'error' };
   if (data?.needPremium) return { kind: 'needPremium' };

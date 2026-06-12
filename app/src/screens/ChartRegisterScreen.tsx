@@ -17,7 +17,8 @@ import { BirthPlacePicker } from '../components/BirthPlacePicker';
 // 관계 프리셋 — 'self'(본인)은 내 차트 기준. 마지막 '직접입력'은 자유 텍스트 모드 트리거.
 const RELATION_PRESETS = ['self', '가족', '지인', '연인', '관심', '반려동물', '공인'] as const;
 
-export function ChartRegisterScreen({ onSubmit }: { onSubmit: (input: any) => void }) {
+// defaultRelation/submitLabel = 궁합 상대 등록 등 재사용 시 기본 관계·CTA 문구 주입(옵션, 기존 호출 영향 0).
+export function ChartRegisterScreen({ onSubmit, defaultRelation, submitLabel }: { onSubmit: (input: any) => void; defaultRelation?: string; submitLabel?: string }) {
   const { t } = useTranslation();
   const [label, setLabel] = useState('');
   const [birthDate, setBirthDate] = useState('');
@@ -27,7 +28,7 @@ export function ChartRegisterScreen({ onSubmit }: { onSubmit: (input: any) => vo
   const [sex, setSex] = useState<'남' | '여'>('남');
   const [birthPlace, setBirthPlace] = useState('');
   const [birthPlaceLon, setBirthPlaceLon] = useState<number | null>(null); // 진태양시 경도(ADR-008 준비)
-  const [relation, setRelation] = useState<string>('self');
+  const [relation, setRelation] = useState<string>(defaultRelation ?? 'self');
   const [relationCustom, setRelationCustom] = useState(false); // 직접입력 모드
 
   const sj = sijinIdx >= 0 ? SIJIN[sijinIdx] : null;
@@ -108,7 +109,7 @@ export function ChartRegisterScreen({ onSubmit }: { onSubmit: (input: any) => vo
 
         {/* 제출 (CTA = 주색) */}
         <Pressable style={styles.submit} onPress={handleSubmit}>
-          <Text style={styles.submitText}>{t('register.submit')}</Text>
+          <Text style={styles.submitText}>{submitLabel ?? t('register.submit')}</Text>
         </Pressable>
       </ScrollView>
 
