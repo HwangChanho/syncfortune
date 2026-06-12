@@ -406,3 +406,81 @@ export function dailyChartReadings(saju: SajuChart, todayStem: Stem, todayBranch
     { key: 'health', paragraphs: clean(health) },
   ];
 }
+
+// ─────────────────────────────────────────────────────────────────────────
+// 이달의 운세 전용 (daniel: 더 길게 + 상순·중순·하순 흐름 + '날'→'달')
+// ─────────────────────────────────────────────────────────────────────────
+
+// 일(日) 프레이밍 문구 → 월(月) 프레이밍 (안전한 구 단위 치환, 언어별). '날카롭다' 등 오치환 방지.
+const DAY_TO_MONTH: Record<Lang, [RegExp, string][]> = {
+  ko: [
+    [/오늘은/g, '이번 달은'], [/오늘/g, '이번 달'],
+    [/날이에요/g, '달이에요'], [/날입니다/g, '달입니다'], [/날이네요/g, '달이네요'], [/날엔/g, '달엔'], [/이 날/g, '이번 달'], [/하루/g, '한 달'],
+  ],
+  en: [
+    [/\btoday\b/gi, 'this month'], [/\ba day\b/gi, 'a month'], [/\bthe day\b/gi, 'the month'], [/\bday\b/gi, 'month'],
+  ],
+  ja: [
+    [/今日は/g, '今月は'], [/今日/g, '今月'], [/この日/g, '今月'], [/一日/g, '一ヶ月'], [/日です/g, '月です'], [/日ですね/g, '月ですね'],
+  ],
+};
+function dayToMonth(text: string): string {
+  return (DAY_TO_MONTH[appLang()] ?? DAY_TO_MONTH.ko).reduce((s, [re, to]) => s.replace(re, to), text);
+}
+
+// 상순·중순·하순 흐름 — 이번 달 기운(월건 십신)이 호의적이냐에 따라 전향적 3구간.
+const MONTH_FLOW: Record<Lang, { labels: [string, string, string]; fav: [string, string, string]; steady: [string, string, string] }> = {
+  ko: {
+    labels: ['상순 (1~10일)', '중순 (11~20일)', '하순 (21일~)'],
+    fav: [
+      '기운이 차오르는 출발이에요. 새로 벌이거나 먼저 움직이기 좋습니다 — 미뤄 둔 일을 이때 시작해 보세요.',
+      '흐름이 가장 무르익는 때예요. 중요한 일이나 결정은 이 구간에 밀어붙이면 한결 수월하게 풀립니다.',
+      '거두고 정리하는 마무리예요. 벌여 둔 일을 매듭짓고 다음 달을 위한 준비를 해 두면 좋아요.',
+    ],
+    steady: [
+      '천천히 점검하며 시작하는 게 좋아요. 무리한 확장보다 기반을 다지는 데 마음을 쓰세요.',
+      '한 고비가 지나가는 구간이에요. 페이스를 지키며 버티면 후반이 한결 가벼워집니다.',
+      '비우고 정리하는 마무리예요. 다음 달을 위한 여백을 만들어 두면 흐름이 살아납니다.',
+    ],
+  },
+  en: {
+    labels: ['Early (1–10)', 'Mid (11–20)', 'Late (21–end)'],
+    fav: [
+      "A rising start — a good time to begin or make the first move. Kick off what you've put off.",
+      'The flow peaks here. Push important matters and decisions in this stretch and they go more smoothly.',
+      'A gathering, tidying close. Tie off what you started and prepare for next month.',
+    ],
+    steady: [
+      'Better to start by checking in slowly. Focus on shoring up your base rather than overreaching.',
+      'A hump passes through. Hold your pace and the second half gets lighter.',
+      'A clearing, tidying close. Make some room for next month and the flow revives.',
+    ],
+  },
+  ja: {
+    labels: ['上旬 (1〜10日)', '中旬 (11〜20日)', '下旬 (21日〜)'],
+    fav: [
+      '気が満ちる出発です。新しく始めたり先に動くのに良い時期 — 後回しにしたことをここで始めましょう。',
+      '流れが最も熟す時です。大事な事や決断はこの区間で進めるとスムーズに運びます。',
+      '収めて整える締めくくり。広げたことをまとめ、来月の準備をしておくと良いです。',
+    ],
+    steady: [
+      'ゆっくり点検しながら始めるのが良いです。無理な拡大より土台を固めることに心を向けて。',
+      '一つの山場が過ぎる区間です。ペースを保てば後半がぐっと軽くなります。',
+      '空けて整える締めくくり。来月のための余白を作ると流れが生きます。',
+    ],
+  },
+};
+
+/** 이달의 흐름(상순·중순·하순) — 월건 십신 호의도에 따라 전향적 3구간. */
+export function monthFlow(saju: SajuChart, monthStem: Stem): { label: string; text: string }[] {
+  const g = GROUP[tenGod(saju.dayMaster.stem, monthStem)];
+  const favor = g === '비겁' || g === '인성';
+  const b = MONTH_FLOW[appLang()] ?? MONTH_FLOW.ko;
+  const arr = favor ? b.fav : b.steady;
+  return [0, 1, 2].map((i) => ({ label: b.labels[i], text: arr[i] }));
+}
+
+/** 이달의 운세 분야별 — 오늘의 운세와 같은 룰에 월건을 먹이고, 일(日)→월(月) 프레이밍으로 치환. */
+export function monthChartReadings(saju: SajuChart, monthStem: Stem, monthBranch: Branch): DailyAreaReading[] {
+  return dailyChartReadings(saju, monthStem, monthBranch).map((a) => ({ ...a, paragraphs: a.paragraphs.map(dayToMonth) }));
+}
