@@ -12,18 +12,16 @@ import { Platform } from 'react-native';
 let Ads: any = null;
 try { Ads = require('react-native-google-mobile-ads'); } catch { Ads = null; }
 
-// 구글 공식 테스트 unit — env 미설정 시 폴백(개발·미설정 빌드에서 광고 흐름 확인용).
-const TEST_REWARDED = { ios: 'ca-app-pub-3940256099942544/1712485313', android: 'ca-app-pub-3940256099942544/5224354917' };
-const TEST_INTERSTITIAL = { ios: 'ca-app-pub-3940256099942544/4411468910', android: 'ca-app-pub-3940256099942544/1033173712' };
-// 프로덕션 unit — app/.env 의 EXPO_PUBLIC_ADMOB_*(EXPO_PUBLIC_* 만 번들 인라인) 주입, 미설정 시 테스트 폴백.
-//   unit ID 는 시크릿 아님(클라 노출 정상)이나 공개 레포에 박지 않고 .env 로 주입한다.
+// 프로덕션 unit — app/.env 의 EXPO_PUBLIC_ADMOB_*(EXPO_PUBLIC_* 만 번들 인라인) 주입, 미설정 시 실 unit(daniel AdMob 계정) 폴백.
+//   unit ID 는 시크릿 아님(클라 노출 정상). 개발(__DEV__)에선 showRewarded/Interstitial 내부가 항상 구글 TestIds 사용
+//   → 실 unit 클릭(=계정 정지 사유) 방지. 폴백값을 실 unit 으로 둬 .env 없이도 프로덕션 빌드는 실 광고로 동작.
 const PROD_REWARDED: Record<string, string> = {
-  ios: process.env.EXPO_PUBLIC_ADMOB_REWARDED_IOS ?? TEST_REWARDED.ios,
-  android: process.env.EXPO_PUBLIC_ADMOB_REWARDED_ANDROID ?? TEST_REWARDED.android,
+  ios: process.env.EXPO_PUBLIC_ADMOB_REWARDED_IOS ?? 'ca-app-pub-2936938026486482/2861935815',         // 실 iOS 보상형
+  android: process.env.EXPO_PUBLIC_ADMOB_REWARDED_ANDROID ?? 'ca-app-pub-2936938026486482/3037490783',   // 실 Android 보상형
 };
-const PROD_INTERSTITIAL: Record<string, string> = {
-  ios: process.env.EXPO_PUBLIC_ADMOB_INTERSTITIAL_IOS ?? TEST_INTERSTITIAL.ios,
-  android: process.env.EXPO_PUBLIC_ADMOB_INTERSTITIAL_ANDROID ?? TEST_INTERSTITIAL.android,
+const PROD_INTERSTITIAL: Record<string, string> = {  // 현재 미사용(showInterstitialAd 호출처 없음) — 향후 전면 도입 대비 배선만.
+  ios: process.env.EXPO_PUBLIC_ADMOB_INTERSTITIAL_IOS ?? 'ca-app-pub-2936938026486482/9894248021',       // 실 iOS 전면
+  android: process.env.EXPO_PUBLIC_ADMOB_INTERSTITIAL_ANDROID ?? 'ca-app-pub-2936938026486482/8357266073', // 실 Android 전면
 };
 
 // 무료 진입 시 전면광고. 모듈 없음/로드 실패 시 조용히 통과(흐름 안 막음).

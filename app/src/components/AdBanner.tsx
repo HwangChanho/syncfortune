@@ -20,8 +20,8 @@ try { Ads = require('react-native-google-mobile-ads'); } catch { Ads = null; }
 
 // 프로덕션 배너 unitId 슬롯 — ★현재는 구글 테스트 unit. daniel AdMob 계정 후 실값 교체.
 const PROD_UNIT: Record<string, string> = {
-  ios: 'ca-app-pub-3940256099942544/2934735716',
-  android: 'ca-app-pub-3940256099942544/6300978111',
+  ios: 'ca-app-pub-2936938026486482/4542144148',     // 실 iOS 배너(daniel AdMob)
+  android: 'ca-app-pub-2936938026486482/4386770475', // 실 Android 배너
 };
 
 export function AdBanner() {
