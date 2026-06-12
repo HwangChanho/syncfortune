@@ -11,32 +11,36 @@ import { colors, radius, space, shadow, font } from '../lib/theme';
 export function AppAlert() {
   const [opts, setOpts] = useState<AlertOpts | null>(null);
   useEffect(() => { registerAlertHost(setOpts); }, []);
-  if (!opts) return null;
 
   const close = () => setOpts(null);
-  const horizontal = opts.buttons.length <= 2;
+  const horizontal = (opts?.buttons.length ?? 0) <= 2;
 
+  // ⚠️ Modal 은 항상 마운트하고 visible 로만 토글한다(이전엔 opts 없으면 return null → Modal unmount).
+  //   '확인 → 지급 → 완료'처럼 Alert 가 연속될 때, 닫힘(fade) 애니메이션 도중 Modal 이 재마운트되면
+  //   iOS 네이티브 모달이 프리징(앱 멈춤)한다. visible 토글 + 내용은 opts 있을 때만 → 재마운트 없이 내용만 교체.
   return (
-    <Modal transparent animationType="fade" onRequestClose={close}>
-      <View style={styles.backdrop}>
-        <View style={styles.card}>
-          <Text style={styles.title}>{opts.title}</Text>
-          {opts.message ? <Text style={styles.msg}>{opts.message}</Text> : null}
-          <View style={[styles.btns, horizontal ? styles.btnsRow : styles.btnsCol]}>
-            {opts.buttons.map((b, i) => {
-              const danger = b.style === 'destructive';
-              const cancel = b.style === 'cancel';
-              return (
-                <Pressable key={i}
-                  style={[styles.btn, horizontal && styles.btnFlex, cancel && styles.btnCancel, danger && styles.btnDanger]}
-                  onPress={() => { close(); b.onPress?.(); }}>
-                  <Text style={[styles.btnTx, cancel && styles.btnTxCancel, danger && styles.btnTxDanger]}>{b.text}</Text>
-                </Pressable>
-              );
-            })}
+    <Modal transparent visible={!!opts} animationType="fade" onRequestClose={close}>
+      {opts && (
+        <View style={styles.backdrop}>
+          <View style={styles.card}>
+            <Text style={styles.title}>{opts.title}</Text>
+            {opts.message ? <Text style={styles.msg}>{opts.message}</Text> : null}
+            <View style={[styles.btns, horizontal ? styles.btnsRow : styles.btnsCol]}>
+              {opts.buttons.map((b, i) => {
+                const danger = b.style === 'destructive';
+                const cancel = b.style === 'cancel';
+                return (
+                  <Pressable key={i}
+                    style={[styles.btn, horizontal && styles.btnFlex, cancel && styles.btnCancel, danger && styles.btnDanger]}
+                    onPress={() => { close(); b.onPress?.(); }}>
+                    <Text style={[styles.btnTx, cancel && styles.btnTxCancel, danger && styles.btnTxDanger]}>{b.text}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
           </View>
         </View>
-      </View>
+      )}
     </Modal>
   );
 }
