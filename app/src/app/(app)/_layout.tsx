@@ -44,6 +44,7 @@ export default function AppLayout() {
         <Stack.Screen name="love" options={{ title: '나의 애정흐름' }} />
         <Stack.Screen name="premium" options={{ title: '프리미엄' }} />
         <Stack.Screen name="market" options={{ title: '마켓' }} />
+        <Stack.Screen name="admin" options={{ title: '관리자' }} />
       </Stack>
       {/* 무료=하단 배너 고정 / 프리미엄=숨김 (AdBanner 내부에서 isPremium 분기) */}
       <AdBanner />

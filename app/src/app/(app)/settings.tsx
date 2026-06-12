@@ -3,12 +3,14 @@
 // daniel: 설정에서 글자 크기 조절. 통변 등 본문 가독성을 위한 전역 배율(fontScale) 선택 + 언어.
 //   글자 크기는 즉시 반영(미리보기 문장으로 확인). 언어는 i18n.changeLanguage.
 // ─────────────────────────────────────────────────────────────────────────
-import { useState } from 'react';
-import { View, Text, Pressable, ScrollView, StyleSheet, Alert } from 'react-native';
+import { useState, useEffect } from 'react';
+import { View, Text, Pressable, ScrollView, StyleSheet } from 'react-native';
+import { Alert } from '../../lib/alert'; // 커스텀 알림(앱 디자인)
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { setAppLang } from '../../lib/i18n'; // 언어 변경 + persist(재시작 후 유지)
 import { useFontScale, FONT_STEPS } from '../../lib/fontScale';
+import { isAdmin } from '../../lib/admin'; // 관리자 메뉴 노출 판정(실제 권한은 서버 RPC)
 import { useAuth } from '../../lib/useAuth';               // 계정(세션)
 import { useSubscription } from '../../lib/subscription';  // 프리미엄 상태·구매
 import { requireLoginForPurchase } from '../../lib/requireLogin'; // 결제 전 로그인 게이트
@@ -28,6 +30,9 @@ export default function SettingsScreen() {
   const { isPremium, purchasePremium, refresh } = useSubscription();
   const { scale, setScale, fs } = useFontScale();
   const [busy, setBusy] = useState<string | null>(null); // 전체화면 로딩 오버레이 메시지(긴 콜백)
+  const [admin, setAdmin] = useState(false); // 관리자 — 메뉴 노출용(실제 권한은 서버 RPC)
+
+  useEffect(() => { isAdmin().then(setAdmin).catch(() => {}); }, []);
 
   // 로그아웃 — 토큰 폐기(네트워크) 동안 오버레이. 완료 시 세션 변경으로 화면 전환.
   async function doLogout() {
@@ -102,6 +107,13 @@ export default function SettingsScreen() {
         </Pressable>
       )}
 
+      {/* ── 관리자(is_admin 전용) ── */}
+      {admin && (
+        <Pressable style={styles.adminLink} onPress={() => router.push('/admin')}>
+          <Text style={styles.adminLinkTx}>⚙ 관리자</Text>
+        </Pressable>
+      )}
+
       {/* ── 프리미엄 ── */}
       <Text style={[styles.h, { marginTop: space(7) }]}>{t('settings.premium')}</Text>
       {isPremium ? (
@@ -165,6 +177,9 @@ const styles = StyleSheet.create({
   acctAction: { color: colors.ju, fontWeight: '700', fontSize: 14 },
   acctLoginBtn: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.ju, padding: space(4), alignItems: 'center', ...shadow.soft },
   acctLoginTx: { color: colors.ju, fontWeight: '800', fontSize: 15 },
+  // 관리자 링크(cksgh0316)
+  adminLink: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.ju, padding: space(3.5), alignItems: 'center', marginTop: space(2) },
+  adminLinkTx: { color: colors.ju, fontWeight: '800', fontSize: 14 },
   // 계정 삭제 — 약하게 노출(파괴적), 우측 정렬 텍스트 링크
   delAcctBtn: { alignSelf: 'flex-end', marginTop: space(2), paddingVertical: space(1), paddingHorizontal: space(1) },
   delAcctTx: { color: '#E5484D', fontSize: 13, fontWeight: '600' },

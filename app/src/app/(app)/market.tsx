@@ -5,7 +5,8 @@
 //   (선택 명식을 대표로 설정 → 캐시·서버차트 연결, 거기서 이용권 use_credit·프리미엄·건당구매로 열림).
 //   무료 이용권(쿠폰) 등록도 여기로 이동(설정→마켓). ★1회성 소모 — 보유/미보유로만 표시.
 // ─────────────────────────────────────────────────────────────────────────
-import { View, Text, ScrollView, Pressable, TextInput, StyleSheet, Modal, Alert } from 'react-native';
+import { View, Text, ScrollView, Pressable, TextInput, StyleSheet, Modal } from 'react-native';
+import { Alert } from '../../lib/alert'; // 커스텀 알림(앱 디자인)
 import { useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -84,6 +85,7 @@ export default function MarketRoute() {
           <View key={c.key} style={styles.card}>
             <View style={{ flex: 1 }}>
               <Text style={styles.name}>{c.ko}</Text>
+              <Text style={styles.price}>₩{c.price.toLocaleString()}</Text>
               <Text style={[styles.have, owned && styles.haveOn]}>{owned ? t('market.owned') : t('market.notOwned')}</Text>
             </View>
             <Pressable style={styles.buyBtn} onPress={() => apply(c.key)} disabled={!sel}>
@@ -148,6 +150,7 @@ const styles = StyleSheet.create({
   chartSelChevron: { fontSize: 16, color: colors.ju, marginLeft: space(2) },
   card: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.line, padding: space(4), marginBottom: space(3), ...shadow.card },
   name: { fontSize: 16, fontWeight: '800', color: colors.ink },
+  price: { ...font.caption, color: colors.ju, fontWeight: '800', marginTop: 2 },
   have: { ...font.caption, color: colors.inkFaint, marginTop: 2 },
   haveOn: { color: colors.ju, fontWeight: '800' },
   buyBtn: { backgroundColor: colors.ju, borderRadius: radius.pill, paddingHorizontal: space(5), paddingVertical: space(2.5), minWidth: 84, alignItems: 'center' },

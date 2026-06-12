@@ -5,11 +5,11 @@
 // 무료 등록 한도(FREE_CHART_LIMIT=10): 저장소가 ChartLimitError 로 강제 → 여기서 잡아
 //   업그레이드 유도(프로=무제한, ADR-051). 한도 초과면 저장·네비 모두 일어나지 않는다.
 // ─────────────────────────────────────────────────────────────────────────
-import { Alert } from 'react-native';
+import { Alert } from '../../lib/alert'; // 커스텀 알림(앱 디자인)
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { ChartRegisterScreen } from '../../screens/ChartRegisterScreen';
-import { saveMyChart, ChartLimitError } from '../../lib/myChart';
+import { addChart, saveMyChart, ChartLimitError, setRepresentative } from '../../lib/myChart';
 import { useSubscription, purchasePremium } from '../../lib/subscription';
 import { useAuth } from '../../lib/useAuth';
 import { requireLoginForPurchase } from '../../lib/requireLogin'; // 구매 전 로그인 게이트(계정 귀속)
@@ -59,7 +59,8 @@ export default function RegisterRoute() {
       onSubmit={async (input) => {
         try {
           // 내 차트 기기 저장 → 궁합·풀이 재사용. 무료 한도는 isPro 주입으로 저장소가 판정.
-          await saveMyChart(input, { isPro: isPremium });
+          const id = await addChart(input, { isPro: isPremium });
+          if (input.makeRep) await setRepresentative(id); // '대표로 설정' 체크 시 그 명식을 대표로
         } catch (e) {
           if (e instanceof ChartLimitError) { showLimit(e.limit, input); return; } // 저장·네비 중단 → 광고/구매 안내
           throw e;

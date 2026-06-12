@@ -18,7 +18,7 @@ import { BirthPlacePicker } from '../components/BirthPlacePicker';
 const RELATION_PRESETS = ['self', '가족', '지인', '연인', '관심', '반려동물', '공인'] as const;
 
 // defaultRelation/submitLabel = 궁합 상대 등록 등 재사용 시 기본 관계·CTA 문구 주입(옵션, 기존 호출 영향 0).
-export function ChartRegisterScreen({ onSubmit, defaultRelation, submitLabel }: { onSubmit: (input: any) => void; defaultRelation?: string; submitLabel?: string }) {
+export function ChartRegisterScreen({ onSubmit, defaultRelation, submitLabel, showMakeRep = true }: { onSubmit: (input: any) => void; defaultRelation?: string; submitLabel?: string; showMakeRep?: boolean }) {
   const { t } = useTranslation();
   const [label, setLabel] = useState('');
   const [birthDate, setBirthDate] = useState('');
@@ -30,6 +30,7 @@ export function ChartRegisterScreen({ onSubmit, defaultRelation, submitLabel }: 
   const [birthPlaceLon, setBirthPlaceLon] = useState<number | null>(null); // 진태양시 경도(ADR-008 준비)
   const [relation, setRelation] = useState<string>(defaultRelation ?? 'self');
   const [relationCustom, setRelationCustom] = useState(false); // 직접입력 모드
+  const [makeRep, setMakeRep] = useState(false); // 이 명식을 대표로 설정(register 전용)
 
   const sj = sijinIdx >= 0 ? SIJIN[sijinIdx] : null;
   const sijinLabel = sj ? `${sj.gz} ${sj.ko} (${sj.range})` : t('register.timeUnknown');
@@ -44,6 +45,7 @@ export function ChartRegisterScreen({ onSubmit, defaultRelation, submitLabel }: 
       calendar, sex, birthPlace, birthLon: birthPlaceLon ?? undefined, // 진태양시 보정 경도(엔진 ChartInput.birthLon)
       relation,
       timeAccuracy: sj ? '정확' : '미상', // 시진 알면 시주 확정 → 정확
+      makeRep, // 대표 설정 여부 — register 라우트가 처리(궁합 상대 등록 시 showMakeRep=false 라 무시)
     };
     onSubmit(input);
   }
@@ -105,6 +107,14 @@ export function ChartRegisterScreen({ onSubmit, defaultRelation, submitLabel }: 
         {relationCustom && (
           <TextInput style={[styles.input, { marginTop: space(2) }]} value={relation} onChangeText={setRelation}
             placeholder={t('register.relationCustomPh')} placeholderTextColor={colors.inkFaint} autoFocus />
+        )}
+
+        {/* 대표 명식으로 설정 — register 전용(궁합 상대 등록 시 숨김) */}
+        {showMakeRep && (
+          <Pressable style={styles.repCheck} onPress={() => setMakeRep((v) => !v)}>
+            <View style={[styles.repBox, makeRep && styles.repBoxOn]}>{makeRep ? <Text style={styles.repChk}>✓</Text> : null}</View>
+            <Text style={styles.repLabel}>{t('register.makeRep')}</Text>
+          </Pressable>
         )}
 
         {/* 제출 (CTA = 주색) */}
@@ -216,6 +226,12 @@ const styles = StyleSheet.create({
   segOn: { backgroundColor: colors.ju, borderColor: colors.ju },
   segText: { color: colors.inkSoft, fontSize: 15 },
   segOnText: { color: colors.bg, fontSize: 15, fontWeight: '700' },
+  // 대표 설정 체크
+  repCheck: { flexDirection: 'row', alignItems: 'center', gap: space(2), marginTop: space(5) },
+  repBox: { width: 22, height: 22, borderRadius: radius.sm, borderWidth: 1.5, borderColor: colors.line, alignItems: 'center', justifyContent: 'center' },
+  repBoxOn: { backgroundColor: colors.ju, borderColor: colors.ju },
+  repChk: { color: colors.bg, fontSize: 14, fontWeight: '800' },
+  repLabel: { ...font.body, color: colors.ink },
   // 제출 CTA (주색)
   submit: {
     backgroundColor: colors.ju, borderRadius: radius.md, paddingVertical: space(4),

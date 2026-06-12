@@ -7,10 +7,12 @@
 import { supabase } from './supabase';
 
 export type CreditKind = 'reading' | 'ziwei' | 'compat' | 'timeline' | 'followup' | 'love';
-export const CREDIT_KINDS: { key: CreditKind; ko: string }[] = [
-  { key: 'reading', ko: '사주 풀이' }, { key: 'ziwei', ko: '자미두수' }, { key: 'compat', ko: '궁합' },
-  { key: 'timeline', ko: '인생 타임라인' }, { key: 'followup', ko: '추가 질문' }, { key: 'love', ko: '나의 애정흐름' },
+// price = 건당 가격(원). daniel 확정(2026-06): 원가(opus, 영구캐시 1회)×~3, 소액(타임라인·질문)=₩990, 애정 ₩4,900.
+export const CREDIT_KINDS: { key: CreditKind; ko: string; price: number }[] = [
+  { key: 'reading', ko: '사주 풀이', price: 6900 }, { key: 'ziwei', ko: '자미두수', price: 4900 }, { key: 'compat', ko: '궁합', price: 3900 },
+  { key: 'timeline', ko: '인생 타임라인', price: 990 }, { key: 'followup', ko: '추가 질문', price: 990 }, { key: 'love', ko: '나의 애정흐름', price: 4900 },
 ];
+export const PREMIUM_PRICE = 39900; // 평생 프리미엄(대표명식 전부 무제한)
 
 export type RedeemResult =
   | { ok: true; kind: string; qty: number }

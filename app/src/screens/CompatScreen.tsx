@@ -6,7 +6,8 @@
 // 결정론(일간관계·교차합충)은 온디바이스 → 통변의 근거로 Edge에 전달(규칙2 사주 단독). 상대 PII=동의(규칙8).
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useEffect } from 'react';
-import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator, Alert, Modal } from 'react-native';
+import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator, Modal } from 'react-native';
+import { Alert } from '../lib/alert'; // 커스텀 알림(앱 디자인)
 import { useTranslation } from 'react-i18next';
 import { computeChart } from '../lib/engine';
 import { analyzeCompatibility } from '@engine/compatibility';
@@ -261,7 +262,7 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
           <Text style={styles.modalTitle}>{t('compat.registerOtherTitle')}</Text>
           <Pressable onPress={() => setOtherReg(false)} hitSlop={10}><Text style={styles.modalClose}>✕</Text></Pressable>
         </View>
-        <ChartRegisterScreen defaultRelation="지인" submitLabel={t('compat.registerOtherSubmit')} onSubmit={onRegisterOther} />
+        <ChartRegisterScreen defaultRelation="지인" submitLabel={t('compat.registerOtherSubmit')} showMakeRep={false} onSubmit={onRegisterOther} />
       </View>
     </Modal>
     </>
