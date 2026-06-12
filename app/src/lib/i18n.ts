@@ -170,7 +170,7 @@ const ko = {
   },
   month: { title: '이달의 운세', monthPillar: '이번 달 기운', flowTitle: '이번 달 흐름 (상순·중순·하순)', note: '이번 달의 큰 흐름이에요. 구체적인 날은 오늘의 운세에서 봐요.' },
   nav: { home: '홈', market: '마켓' },
-  market: { intro: '이용권을 구매하면 해당 풀이를 무료로 열 수 있어요.', have: '보유 {{n}}장', buy: '구매', note: '구매한 이용권은 해당 기능에서 자동으로 사용돼요. (결제는 준비 중)', doneTitle: '구매 완료', doneMsg: '이용권이 지급되었어요.', payPending: '결제 준비 중' },
+  market: { intro: '이용권을 구매하면 해당 풀이를 무료로 열 수 있어요.', have: '보유 {{n}}장', owned: '보유', notOwned: '미보유', buy: '구매', note: '구매한 이용권은 해당 기능에서 자동으로 사용돼요. (결제는 준비 중)', doneTitle: '구매 완료', doneMsg: '이용권이 지급되었어요.', payPending: '결제 준비 중' },
   dayPillar: {
     title: '일주론', sub: '태어난 날의 간지(일주)로 보는 타고난 기질이에요.',
     male: '남자', female: '여자', mine: '내 일주', browseAll: '전체 일주 60', dayGroup: '일주', tapHint: '일주를 탭하면 상세 풀이가 펼쳐져요.',
@@ -345,7 +345,7 @@ const en = {
   },
   month: { title: 'Monthly Fortune', monthPillar: "This month's energy", flowTitle: "This month's flow (early · mid · late)", note: "The broad flow for this month. For specific days, see the Daily Fortune." },
   nav: { home: 'Home', market: 'Market' },
-  market: { intro: 'Buy a pass to unlock that reading for free.', have: 'You have {{n}}', buy: 'Buy', note: 'Passes are used automatically in that feature. (Payment coming soon)', doneTitle: 'Purchased', doneMsg: 'Your pass has been added.', payPending: 'Payment not ready' },
+  market: { intro: 'Buy a pass to unlock that reading for free.', have: 'You have {{n}}', owned: 'Owned', notOwned: 'Not owned', buy: 'Buy', note: 'Passes are used automatically in that feature. (Payment coming soon)', doneTitle: 'Purchased', doneMsg: 'Your pass has been added.', payPending: 'Payment not ready' },
   dayPillar: {
     title: 'Day Pillar', sub: 'Your innate nature, seen through your birth-day pillar (ilju).',
     male: 'Male', female: 'Female', mine: 'My Day Pillar', browseAll: 'All 60 Day Pillars', dayGroup: 'day', tapHint: 'Tap a pillar to expand its full reading.',
@@ -520,7 +520,7 @@ const ja = {
   },
   month: { title: '今月の運勢', monthPillar: '今月の気', flowTitle: '今月の流れ（上旬·中旬·下旬）', note: '今月の大きな流れです。具体的な日は今日の運勢で。' },
   nav: { home: 'ホーム', market: 'マーケット' },
-  market: { intro: 'チケットを購入すると該当の鑑定を無料で開けます。', have: '保有 {{n}}枚', buy: '購入', note: '購入したチケットは該当機能で自動的に使用されます。（決済は準備中）', doneTitle: '購入完了', doneMsg: 'チケットが付与されました。', payPending: '決済準備中' },
+  market: { intro: 'チケットを購入すると該当の鑑定を無料で開けます。', have: '保有 {{n}}枚', owned: '保有', notOwned: '未保有', buy: '購入', note: '購入したチケットは該当機能で自動的に使用されます。（決済は準備中）', doneTitle: '購入完了', doneMsg: 'チケットが付与されました。', payPending: '決済準備中' },
   dayPillar: {
     title: '日柱論', sub: '生まれた日の干支（日柱）でみる、生まれもった気質です。',
     male: '男性', female: '女性', mine: '私の日柱', browseAll: '日柱60すべて', dayGroup: '日', tapHint: '日柱をタップすると詳しい解説が開きます。',
