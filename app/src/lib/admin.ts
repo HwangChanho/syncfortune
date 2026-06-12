@@ -32,3 +32,15 @@ export async function adminSetPremium(owner: string, val: boolean): Promise<bool
   const { error } = await supabase.rpc('admin_set_premium', { p_owner: owner, p_val: val });
   return !error;
 }
+
+export type AdminUserDetail = {
+  reading_count: number; followup_count: number; chart_count: number;
+  charts: { id: string; saju: any }[];        // 등록 명식(saju=NormalizedChart, birth 제거)
+  credits: { kind: string; remaining: number }[];
+};
+
+/** 특정 유저 상세(사용량·등록 명식·보유 이용권) — 관리자만(서버 게이트). */
+export async function adminUserDetail(owner: string): Promise<AdminUserDetail | null> {
+  const { data, error } = await supabase.rpc('admin_user_detail', { p_owner: owner });
+  return error ? null : (data as AdminUserDetail);
+}

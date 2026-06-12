@@ -7,7 +7,7 @@
 import { View, Text, ScrollView, Pressable, TextInput, StyleSheet, ActivityIndicator } from 'react-native';
 import { Alert } from '../../lib/alert'; // 커스텀 알림(앱 디자인)
 import { useEffect, useState } from 'react';
-import { isAdmin, adminListUsers, adminGrantCredit, adminSetPremium, type AdminUser } from '../../lib/admin';
+import { isAdmin, adminListUsers, adminGrantCredit, adminSetPremium, adminUserDetail, type AdminUser, type AdminUserDetail } from '../../lib/admin';
 import { CREDIT_KINDS, type CreditKind } from '../../lib/coupons';
 import { colors, radius, space, shadow, font } from '../../lib/theme';
 
@@ -17,32 +17,47 @@ export default function AdminRoute() {
   const [q, setQ] = useState('');
   const [sel, setSel] = useState<AdminUser | null>(null);
   const [busy, setBusy] = useState(false);
+  const [detail, setDetail] = useState<AdminUserDetail | null>(null);
 
   async function reload() { setUsers(await adminListUsers()); }
   useEffect(() => { isAdmin().then((a) => { setAllowed(a); if (a) reload(); }); }, []);
+  // 유저 선택 시 상세(사용량·명식·이용권) 로드
+  useEffect(() => { setDetail(null); if (sel) adminUserDetail(sel.id).then(setDetail).catch(() => {}); }, [sel]);
 
   if (allowed === null) return <View style={styles.center}><ActivityIndicator color={colors.ju} /></View>;
   if (allowed === false && !__DEV__) return <View style={styles.center}><Text style={styles.denied}>관리자만 접근할 수 있어요.</Text></View>;
 
   const filtered = q ? users.filter((u) => u.email?.toLowerCase().includes(q.toLowerCase())) : users;
 
-  // 이용권 선물(+1)
-  async function gift(kind: CreditKind, ko: string) {
+  // 이용권 선물(+1) — 지급 전 확인
+  function gift(kind: CreditKind, ko: string) {
     if (!sel || busy) return;
-    setBusy(true);
-    const ok = await adminGrantCredit(sel.id, kind);
-    setBusy(false);
-    Alert.alert(ok ? '선물 완료' : '실패', ok ? `${sel.email} 에게\n‘${ko}’ 이용권 1장을 지급했어요.` : '오류가 발생했어요.');
+    const u = sel;
+    Alert.alert('이용권 선물', `${u.email} 에게\n‘${ko}’ 이용권 1장을 지급할까요?`, [
+      { text: '취소', style: 'cancel' },
+      { text: '지급', onPress: async () => {
+        setBusy(true);
+        const ok = await adminGrantCredit(u.id, kind);
+        setBusy(false);
+        Alert.alert(ok ? '선물 완료' : '실패', ok ? `‘${ko}’ 이용권 1장을 지급했어요.` : '오류가 발생했어요.');
+      } },
+    ]);
   }
-  // 프리미엄 선물/해제
-  async function togglePremium() {
+  // 프리미엄 선물/해제 — 적용 전 확인
+  function togglePremium() {
     if (!sel || busy) return;
-    setBusy(true);
-    const next = !sel.is_premium;
-    const ok = await adminSetPremium(sel.id, next);
-    setBusy(false);
-    if (ok) { setSel({ ...sel, is_premium: next }); reload(); }
-    else Alert.alert('실패', '오류가 발생했어요.');
+    const u = sel;
+    const next = !u.is_premium;
+    Alert.alert(next ? '프리미엄 선물' : '프리미엄 해제', `${u.email}\n${next ? '프리미엄을 지급할까요?' : '프리미엄을 해제할까요?'}`, [
+      { text: '취소', style: 'cancel' },
+      { text: next ? '지급' : '해제', style: next ? 'default' : 'destructive', onPress: async () => {
+        setBusy(true);
+        const ok = await adminSetPremium(u.id, next);
+        setBusy(false);
+        if (ok) { setSel({ ...u, is_premium: next }); reload(); }
+        else Alert.alert('실패', '오류가 발생했어요.');
+      } },
+    ]);
   }
 
   return (
@@ -65,6 +80,19 @@ export default function AdminRoute() {
       {sel && (
         <View style={styles.giftPanel}>
           <Text style={styles.giftHead}>{sel.email}</Text>
+          {detail && (
+            <View style={styles.detailBox}>
+              <Text style={styles.detailLine}>통변 {detail.reading_count}회 · 추가질문 {detail.followup_count}회</Text>
+              <Text style={styles.detailLine}>추정 API 비용 ≈ ₩{(detail.reading_count * 150).toLocaleString()}</Text>
+              <Text style={styles.detailLine}>등록 명식 {detail.chart_count}개</Text>
+              {detail.charts.map((c, i) => {
+                const p = c.saju?.pillars;
+                const gz = p ? (['년', '월', '일', '시'] as const).map((k) => (p[k] ? `${p[k].stem}${p[k].branch}` : '')).filter(Boolean).join(' ') : '';
+                return <Text key={i} style={styles.detailChart}>· {c.saju?.dayMaster?.stem ?? '?'}일간{gz ? ` | ${gz}` : ''}</Text>;
+              })}
+              {detail.credits.length > 0 && <Text style={styles.detailLine}>보유 이용권: {detail.credits.map((c) => `${c.kind}×${c.remaining}`).join(', ')}</Text>}
+            </View>
+          )}
           <Pressable style={[styles.premToggle, sel.is_premium && styles.premToggleOn]} onPress={togglePremium} disabled={busy}>
             <Text style={styles.premToggleTx}>{sel.is_premium ? '프리미엄 해제' : '프리미엄 선물'}</Text>
           </Pressable>
@@ -97,6 +125,9 @@ const styles = StyleSheet.create({
   premBadge: { ...font.caption, color: colors.ju, fontWeight: '800' },
   giftPanel: { marginTop: space(5), padding: space(4), borderRadius: radius.md, backgroundColor: colors.card, borderWidth: 1.5, borderColor: colors.ju, ...shadow.card },
   giftHead: { ...font.body, color: colors.ink, fontWeight: '800', marginBottom: space(3) },
+  detailBox: { backgroundColor: colors.sunk, borderRadius: radius.sm, padding: space(3), marginBottom: space(4) },
+  detailLine: { ...font.caption, color: colors.inkSoft, marginBottom: 2 },
+  detailChart: { ...font.caption, color: colors.ink, marginTop: 2 },
   premToggle: { borderRadius: radius.sm, borderWidth: 1, borderColor: colors.ju, paddingVertical: space(2.5), alignItems: 'center', marginBottom: space(4) },
   premToggleOn: { backgroundColor: colors.juSoft },
   premToggleTx: { color: colors.ju, fontWeight: '800' },
