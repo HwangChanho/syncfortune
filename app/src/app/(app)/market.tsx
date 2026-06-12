@@ -1,46 +1,52 @@
-// app/src/app/(app)/market.tsx — 마켓: 이용권 구매(unlock) + 쿠폰 등록
+// app/src/app/(app)/market.tsx — 마켓: 적용할 명식 선택 → 풀이 진입 + 쿠폰 등록
 // ─────────────────────────────────────────────────────────────────────────
-// daniel: 하단 네비 '마켓'. 파트별 이용권(사주·자미·궁합·타임라인·추가질문·애정) 구매 → credit 부여(grant_credit).
-//   결제 = RevenueCat consumable(키 미설정 시 '준비 중'). 구매 성공 → grantCredit → 게이트에서 use_credit 으로 무료 사용.
-//   ★1회성(소모성) 이용권 → '보유/미보유'로만 표시(장수 X, daniel). 쿠폰 등록도 여기로 이동(설정→마켓).
-//   ⚠️ 정식은 RevenueCat 웹훅 검증(현재 신뢰기반, daniel 슬롯).
+// daniel: 이용권/풀이는 명식별로 적용된다. 마켓에서 ① 적용할 명식을 드롭다운으로 고르고
+//   ② 이용권(사주·자미·궁합·타임라인·추가질문·애정)을 누르면 그 명식의 해당 풀이 화면으로 진입
+//   (선택 명식을 대표로 설정 → 캐시·서버차트 연결, 거기서 이용권 use_credit·프리미엄·건당구매로 열림).
+//   무료 이용권(쿠폰) 등록도 여기로 이동(설정→마켓). ★1회성 소모 — 보유/미보유로만 표시.
 // ─────────────────────────────────────────────────────────────────────────
-import { View, Text, ScrollView, Pressable, TextInput, StyleSheet, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, ScrollView, Pressable, TextInput, StyleSheet, Modal, Alert } from 'react-native';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { CREDIT_KINDS, loadCredits, grantCredit, redeemCoupon, type CreditKind } from '../../lib/coupons';
-import { purchaseConsumableRC, PRODUCT_UNLOCK_2500 } from '../../lib/purchases';
-import { requireLoginForPurchase } from '../../lib/requireLogin'; // 구매 전 로그인 게이트(계정 귀속)
-import { useAuth } from '../../lib/useAuth';
+import { CREDIT_KINDS, loadCredits, redeemCoupon, type CreditKind } from '../../lib/coupons';
+import { listCharts, getRepresentativeId, setRepresentative, type SavedChart } from '../../lib/myChart';
 import { colors, radius, space, shadow, font } from '../../lib/theme';
+
+// 이용권 kind → 적용할 풀이 화면(선택 명식을 대표로 둔 뒤 진입 — 대표 기준 캐시)
+const ROUTE: Record<CreditKind, { pathname: string; kind?: string }> = {
+  reading: { pathname: '/reading' },                  // 사주 원국 풀이
+  ziwei: { pathname: '/reading', kind: 'ziwei' },     // 자미두수 풀이
+  timeline: { pathname: '/timeline' },                // 인생 타임라인
+  compat: { pathname: '/compat' },                    // 궁합
+  followup: { pathname: '/reading' },                 // 추가 질문(풀이 안에서)
+  love: { pathname: '/love' },                        // 애정흐름
+};
 
 export default function MarketRoute() {
   const { t } = useTranslation();
   const router = useRouter();
-  const { session } = useAuth();
+  const [saved, setSaved] = useState<SavedChart[]>([]);
+  const [sel, setSel] = useState<SavedChart | null>(null);   // 적용할 명식(기본=대표)
+  const [pick, setPick] = useState(false);                   // 명식 선택 모달
   const [credits, setCredits] = useState<Record<string, number>>({});
-  const [busy, setBusy] = useState<string | null>(null);
-  const [code, setCode] = useState('');           // 쿠폰 코드
+  const [code, setCode] = useState('');
   const [redeeming, setRedeeming] = useState(false);
 
-  useEffect(() => { loadCredits().then(setCredits).catch(() => {}); }, []);
+  useEffect(() => {
+    (async () => {
+      const list = await listCharts(); setSaved(list);
+      const repId = await getRepresentativeId();
+      setSel(list.find((c) => c.id === repId) ?? list[0] ?? null);
+      loadCredits().then(setCredits).catch(() => {});
+    })();
+  }, []);
 
-  // 이용권 1개 구매 → 결제(consumable) → 성공 시 크레딧 부여 → 보유 갱신.
-  async function buy(kind: CreditKind) {
-    if (!requireLoginForPurchase(session, () => router.push('/login'), t)) return;
-    setBusy(kind);
-    try {
-      const ok = await purchaseConsumableRC(PRODUCT_UNLOCK_2500); // 키 미설정 시 '준비 중' throw
-      if (ok) {
-        await grantCredit(kind);
-        setCredits(await loadCredits());
-        Alert.alert(t('market.doneTitle'), t('market.doneMsg'));
-      }
-    } catch (e) {
-      Alert.alert(t('market.payPending'), (e as Error).message);
-    }
-    setBusy(null);
+  // 이용권 적용 — 선택 명식을 대표로 설정 후 해당 풀이 화면으로(거기서 이용권/프리미엄/구매로 열림).
+  async function apply(kind: CreditKind) {
+    if (sel) await setRepresentative(sel.id);
+    const r = ROUTE[kind];
+    router.push({ pathname: r.pathname, params: r.kind ? { kind: r.kind } : {} });
   }
 
   // 쿠폰 등록(설정→마켓 이동) — 서버 검증·부여 → 결과 안내 + 보유 갱신.
@@ -62,16 +68,26 @@ export default function MarketRoute() {
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>
       <Text style={styles.intro}>{t('market.intro')}</Text>
+
+      {/* 적용할 명식 선택(드롭다운) — 이용권은 이 명식에 적용된다 */}
+      <Pressable style={styles.chartSel} onPress={() => setPick(true)}>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.chartSelLabel}>{t('market.applyTo')}</Text>
+          <Text style={styles.chartSelVal}>{sel?.label ?? t('market.noChart')}</Text>
+        </View>
+        <Text style={styles.chartSelChevron}>▾</Text>
+      </Pressable>
+
       {CREDIT_KINDS.map((c) => {
-        const owned = (credits[c.key] ?? 0) > 0; // 1회성 이용권 — 보유/미보유로만(장수 미표시)
+        const owned = (credits[c.key] ?? 0) > 0; // 1회성 소모 — 보유/미보유로만
         return (
           <View key={c.key} style={styles.card}>
             <View style={{ flex: 1 }}>
               <Text style={styles.name}>{c.ko}</Text>
               <Text style={[styles.have, owned && styles.haveOn]}>{owned ? t('market.owned') : t('market.notOwned')}</Text>
             </View>
-            <Pressable style={[styles.buyBtn, !!busy && styles.buyOff]} onPress={() => buy(c.key)} disabled={!!busy}>
-              {busy === c.key ? <ActivityIndicator color={colors.bg} size="small" /> : <Text style={styles.buyTx}>{t('market.buy')}</Text>}
+            <Pressable style={styles.buyBtn} onPress={() => apply(c.key)} disabled={!sel}>
+              <Text style={styles.buyTx}>{t('market.openApply')}</Text>
             </Pressable>
           </View>
         );
@@ -96,6 +112,27 @@ export default function MarketRoute() {
       </View>
 
       <Text style={styles.note}>{t('market.note')}</Text>
+
+      {/* 명식 선택 모달 */}
+      <Modal visible={pick} transparent animationType="slide" onRequestClose={() => setPick(false)}>
+        <Pressable style={styles.backdrop} onPress={() => setPick(false)}>
+          <Pressable style={styles.sheet} onPress={() => {}}>
+            <View style={styles.sheetHandle} />
+            <Text style={styles.sheetTitle}>{t('market.applyTo')}</Text>
+            <ScrollView style={{ maxHeight: 340 }} showsVerticalScrollIndicator={false}>
+              {saved.length === 0 ? <Text style={styles.note}>{t('market.noChart')}</Text> : saved.map((s) => {
+                const on = sel?.id === s.id;
+                return (
+                  <Pressable key={s.id} style={styles.pickRow} onPress={() => { setSel(s); setPick(false); }}>
+                    <Text style={[styles.pickTx, on && styles.pickTxOn]}>{s.label}</Text>
+                    {on && <Text style={styles.pickChk}>✓</Text>}
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </ScrollView>
   );
 }
@@ -104,12 +141,16 @@ const styles = StyleSheet.create({
   screen: { backgroundColor: colors.bg },
   wrap: { padding: space(5), paddingBottom: space(20) },
   intro: { ...font.body, color: colors.inkSoft, marginBottom: space(4) },
+  // 적용할 명식 선택
+  chartSel: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.card, borderWidth: 1.5, borderColor: colors.ju, borderRadius: radius.md, padding: space(4), marginBottom: space(4), ...shadow.card },
+  chartSelLabel: { ...font.caption, color: colors.ju, fontWeight: '800' },
+  chartSelVal: { fontSize: 16, fontWeight: '800', color: colors.ink, marginTop: 2 },
+  chartSelChevron: { fontSize: 16, color: colors.ju, marginLeft: space(2) },
   card: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.line, padding: space(4), marginBottom: space(3), ...shadow.card },
   name: { fontSize: 16, fontWeight: '800', color: colors.ink },
   have: { ...font.caption, color: colors.inkFaint, marginTop: 2 },
   haveOn: { color: colors.ju, fontWeight: '800' },
   buyBtn: { backgroundColor: colors.ju, borderRadius: radius.pill, paddingHorizontal: space(5), paddingVertical: space(2.5), minWidth: 84, alignItems: 'center' },
-  buyOff: { opacity: 0.5 },
   buyTx: { color: colors.bg, fontWeight: '800', fontSize: 14 },
   // 쿠폰 등록
   couponH: { ...font.heading, marginTop: space(6), marginBottom: space(3) },
@@ -119,4 +160,13 @@ const styles = StyleSheet.create({
   couponBtnOff: { opacity: 0.45 },
   couponBtnTx: { color: colors.bg, fontWeight: '800', fontSize: 14 },
   note: { ...font.caption, color: colors.inkFaint, marginTop: space(4), lineHeight: 18 },
+  // 명식 선택 모달
+  backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' },
+  sheet: { backgroundColor: colors.bg, borderTopLeftRadius: radius.lg, borderTopRightRadius: radius.lg, paddingHorizontal: space(5), paddingTop: space(2.5), paddingBottom: space(8) },
+  sheetHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: colors.line, alignSelf: 'center', marginBottom: space(3) },
+  sheetTitle: { ...font.heading, marginBottom: space(2) },
+  pickRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: space(3.5), borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.line },
+  pickTx: { ...font.body, color: colors.inkSoft },
+  pickTxOn: { color: colors.ju, fontWeight: '800' },
+  pickChk: { fontSize: 16, color: colors.ju, fontWeight: '800' },
 });
