@@ -227,7 +227,7 @@ export function ReadingScreen({
   const renderFollowups = (key: string) => {
     const list = followups[key] ?? [];
     const used = list.length;
-    const freeLeft = Math.max(0, 2 - used);
+    const freeLeft = Math.max(0, 1 - used); // 무료 1회(daniel) — 초과는 건당 구매
     return (
       <View style={styles.askWrap}>
         <Text style={styles.askH}>{t('reading.askTitle')}</Text>
@@ -251,8 +251,10 @@ export function ReadingScreen({
                 placeholder={t('reading.askPh')}
                 placeholderTextColor={colors.inkFaint}
                 multiline
+                maxLength={50}
                 editable={!asking}
               />
+              <Text style={styles.askLen}>{askInput.length}/50</Text>
               <Pressable
                 style={[styles.askSend, (!askInput.trim() || asking) && styles.askSendOff]}
                 onPress={() => submitFollowup(false)}
@@ -422,6 +424,7 @@ const styles = StyleSheet.create({
   askQuota: { ...font.caption, color: colors.inkFaint, marginBottom: space(2) },
   askRow: { flexDirection: 'row', alignItems: 'flex-end', gap: space(2) },
   askInput: { ...font.body, flex: 1, minHeight: 44, maxHeight: 120, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, borderRadius: radius.md, paddingHorizontal: space(3), paddingVertical: space(2.5), color: colors.ink },
+  askLen: { fontSize: 11, color: colors.inkFaint, alignSelf: 'flex-end', marginBottom: space(3) },
   askSend: { backgroundColor: colors.ju, borderRadius: radius.md, paddingHorizontal: space(4), height: 44, alignItems: 'center', justifyContent: 'center' },
   askSendOff: { opacity: 0.4 },
   askSendTx: { color: colors.bg, fontWeight: '800', fontSize: 14 },
