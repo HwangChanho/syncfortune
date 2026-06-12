@@ -16,6 +16,7 @@ import { getDailyFortune, dailyChartReadings } from '../../lib/dailyFortune';
 import { useSubscription } from '../../lib/subscription';
 import { loadRepChart } from '../../lib/myChart';
 import { prewarmReadings } from '../../lib/prewarmReadings';
+import { scheduleDailyFortune } from '../../lib/notifications'; // 매일 9시 오늘의 운세 알림
 import { buildSajuChart } from '@engine/saju';
 import type { Stem, Branch } from '@spec/chart';
 import { colors, radius, space, shadow, font } from '../../lib/theme';
@@ -114,7 +115,8 @@ export default function Home() {
   const { t } = useTranslation();
   const { session } = useAuth();
   const { isPremium } = useSubscription();
-  const fortune = useMemo(() => getDailyFortune(), []);
+  const [dayOffset, setDayOffset] = useState(0); // 0=오늘·1=내일(오늘의 기운 카드 토글)
+  const fortune = useMemo(() => getDailyFortune(dayOffset), [dayOffset]);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   // 오늘의 기운 한 줄 풀이(글) — 대표 명식 일간 × 오늘 일진(온디바이스, 무료). 탭 → 오늘의 운세 상세.
   const [todayProse, setTodayProse] = useState<string | null>(null);
@@ -138,6 +140,9 @@ export default function Home() {
   useEffect(() => {
     Animated.timing(fadeAnim, { toValue: 1, duration: 1000, useNativeDriver: true }).start();
   }, []);
+
+  // 매일 9시 '오늘의 운세' 알림 스케줄(향후 14일치, 진입마다 갱신). 네이티브 모듈/권한 없으면 no-op.
+  useEffect(() => { scheduleDailyFortune().catch(() => {}); }, []);
 
   // 프로 구독자 풀이 선생성(daniel: "구독하면 통변 1회는 미리 돌아가게") — 홈 진입 시
   //   대표 명식의 전 영역(사주16+자미12)을 백그라운드 생성. 멱등(캐시된 영역 skip = 재과금 0).
@@ -173,13 +178,22 @@ export default function Home() {
         <Text style={styles.sub}>{t('tagline')}</Text>
         <View style={styles.divider} />
 
-        {/* 오늘의 운세 배너 — 일진 + 한 줄 풀이(글). 탭 → 오늘의 운세 상세(분야별). */}
-        <Pressable style={styles.fortuneBanner} onPress={() => router.push('/today')}>
-          <Text style={styles.bannerDate}>{fortune.date}</Text>
-          <Text style={styles.bannerPillar}>{t('today.dayPillar')}: <Text style={{ color: colors.ju }}>{fortune.dayGanZhi}</Text></Text>
-          {todayProse && <Text style={styles.bannerProse} numberOfLines={3}>{todayProse}</Text>}
-          {todayProse && <Text style={styles.bannerMore}>{t('today.more')}</Text>}
-        </Pressable>
+        {/* 오늘/내일 기운 배너 — 상단 토글로 오늘↔내일, 본문 탭 → 상세(분야별, 같은 offset 전달). */}
+        <View style={styles.fortuneBanner}>
+          <View style={styles.dayToggle}>
+            {([0, 1] as const).map((off) => (
+              <Pressable key={off} style={[styles.dayTogChip, dayOffset === off && styles.dayTogChipOn]} onPress={() => setDayOffset(off)}>
+                <Text style={[styles.dayTogTx, dayOffset === off && styles.dayTogTxOn]}>{t(off === 0 ? 'today.today' : 'today.tomorrow')}</Text>
+              </Pressable>
+            ))}
+          </View>
+          <Pressable onPress={() => router.push(`/today?offset=${dayOffset}`)}>
+            <Text style={styles.bannerDate}>{fortune.date}</Text>
+            <Text style={styles.bannerPillar}>{dayOffset === 0 ? t('today.dayPillar') : t('today.energyTomorrow')}: <Text style={{ color: colors.ju }}>{fortune.dayGanZhi}</Text></Text>
+            {todayProse && <Text style={styles.bannerProse} numberOfLines={3}>{todayProse}</Text>}
+            {todayProse && <Text style={styles.bannerMore}>{t('today.more')}</Text>}
+          </Pressable>
+        </View>
 
         {/* 대표 명식 선택/전환 (등록한 다른 명식으로 변경) */}
         <ChartPicker />
@@ -279,6 +293,12 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(34,31,68,0.6)', padding: space(4), borderRadius: radius.md,
     borderWidth: 1, borderColor: colors.line, marginBottom: space(6),
   },
+  // 오늘/내일 토글(배너 상단)
+  dayToggle: { flexDirection: 'row', gap: space(2), marginBottom: space(3) },
+  dayTogChip: { paddingHorizontal: space(4), paddingVertical: space(1.5), borderRadius: radius.pill, backgroundColor: 'rgba(21,19,46,0.5)', borderWidth: 1, borderColor: colors.line },
+  dayTogChipOn: { backgroundColor: colors.ju, borderColor: colors.ju },
+  dayTogTx: { fontSize: 13, fontWeight: '800', color: colors.inkSoft },
+  dayTogTxOn: { color: '#15132E' },
   bannerDate: { ...font.caption, color: colors.inkSoft },
   bannerPillar: { ...font.heading, color: colors.ink, marginTop: space(1) },
   bannerProse: { ...font.body, color: colors.inkSoft, marginTop: space(2.5), lineHeight: 22 },

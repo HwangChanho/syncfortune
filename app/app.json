@@ -22,6 +22,7 @@
       "expo-asset",
       "expo-router",
       "expo-localization",
+      "expo-notifications",
       [
         "react-native-google-mobile-ads",
         {

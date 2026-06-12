@@ -7,7 +7,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ImageBackground, ScrollView, Pressable } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { getDailyFortune, dailyChartReadings, DAILY_AREA_KEYS, type DailyAreaKey } from '../../lib/dailyFortune';
 import { loadMyChart } from '../../lib/myChart';
@@ -21,7 +21,9 @@ export default function TodayScreen() {
   const { t } = useTranslation();
   const { fs } = useFontScale(); // 본문 글자 크기(설정에서 조절)
   const router = useRouter();
-  const f = useMemo(() => getDailyFortune(), []);
+  const params = useLocalSearchParams<{ offset?: string }>();
+  const [dayOffset, setDayOffset] = useState(params.offset === '1' ? 1 : 0); // 0=오늘·1=내일(홈에서 넘어온 offset 초기 반영)
+  const f = useMemo(() => getDailyFortune(dayOffset), [dayOffset]);
   const [saju, setSaju] = useState<SajuChart | null>(null);  // 대표 명식(없으면 null → 등록 유도)
   const [area, setArea] = useState<DailyAreaKey>('general'); // 선택 분야(기본 통합)
 
@@ -55,12 +57,21 @@ export default function TodayScreen() {
   return (
     <ImageBackground source={require('../../../assets/icons/bg-night.png')} style={styles.bgImage} resizeMode="cover">
       <ScrollView style={styles.overlay} contentContainerStyle={styles.wrap}>
-        {/* ── 오늘 일진 — 컴팩트 한 줄(크게 보여줄 필요 없음 · daniel) ── */}
+        {/* ── 오늘/내일 토글(왔다갔다) ── */}
+        <View style={styles.dayToggle}>
+          {([0, 1] as const).map((off) => (
+            <Pressable key={off} style={[styles.dayTogChip, dayOffset === off && styles.dayTogChipOn]} onPress={() => setDayOffset(off)}>
+              <Text style={[styles.dayTogTx, dayOffset === off && styles.dayTogTxOn]}>{t(off === 0 ? 'today.today' : 'today.tomorrow')}</Text>
+            </Pressable>
+          ))}
+        </View>
+
+        {/* ── 일진 — 컴팩트 한 줄(크게 보여줄 필요 없음 · daniel) ── */}
         <View style={styles.pillarRow}>
           {gzChip(stem, 'stem')}
           {gzChip(branch, 'branch')}
           <View style={styles.pillarInfo}>
-            <Text style={styles.pillarTitle}>{t('today.dayPillar')}</Text>
+            <Text style={styles.pillarTitle}>{dayOffset === 0 ? t('today.dayPillar') : t('today.energyTomorrow')}</Text>
             <Text style={styles.pillarSub}>{f.date} · {f.yearGanZhi}년 {f.monthGanZhi}월</Text>
           </View>
         </View>
@@ -100,6 +111,12 @@ const styles = StyleSheet.create({
   bgImage: { flex: 1, backgroundColor: colors.bg },
   overlay: { flex: 1, backgroundColor: 'rgba(21,19,46,0.6)' },
   wrap: { padding: space(6), paddingBottom: space(12) },
+  // 오늘/내일 토글
+  dayToggle: { flexDirection: 'row', gap: space(2), marginBottom: space(3) },
+  dayTogChip: { paddingHorizontal: space(5), paddingVertical: space(2), borderRadius: radius.pill, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line },
+  dayTogChipOn: { backgroundColor: colors.ju, borderColor: colors.ju },
+  dayTogTx: { fontSize: 14, fontWeight: '800', color: colors.inkSoft },
+  dayTogTxOn: { color: colors.bg },
   // 일진 컴팩트 헤더
   pillarRow: {
     flexDirection: 'row', alignItems: 'center', gap: space(2.5),

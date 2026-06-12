@@ -16,8 +16,9 @@ import { analyzeSinsal, gongmang, twelveSinsalAt } from '@engine/sinsal';
 import { appLang } from './i18n';
 import type { SajuChart, Stem, Branch, PillarPos, ChartPosition } from '@spec/chart';
 
-export function getDailyFortune() {
+export function getDailyFortune(offsetDays = 0) {
   const d = new Date();
+  if (offsetDays) d.setDate(d.getDate() + offsetDays); // 0=오늘, 1=내일 (오늘↔내일 토글용). 무인자=오늘(호환).
   const solar = (Solar as any).fromDate(d);
   const lunar = solar.getLunar();
   return {
@@ -26,6 +27,11 @@ export function getDailyFortune() {
     monthGanZhi: lunar.getMonthInGanZhi() as string,
     yearGanZhi: lunar.getYearInGanZhi() as string,
   };
+}
+
+/** 특정 연도의 세운 간지(궁합 연도별 등). 양력 연중(6/15)로 안정 계산. */
+export function yearGanZhi(year: number): string {
+  return (Solar as any).fromYmd(year, 6, 15).getLunar().getYearInGanZhi() as string;
 }
 
 // ── 십신 10 → 5그룹 (오늘 들어오는 기운의 '결' — 내부 분류용, 화면 미노출) ──
