@@ -9,7 +9,7 @@
 //   정적 import + 모듈 top-level 네이티브 호출은 모듈 평가를 통째로 깨뜨려(→ import 하는 화면들이
 //   "missing default export" 로 죽음) 절대 금지. 반드시 require 가드로 감싼다.
 import { useState, useEffect } from 'react';
-import { Alert } from 'react-native';
+import { Alert } from './alert'; // 커스텀 알림(앱 디자인)
 
 // 네이티브 모듈 lazy require — 미포함 빌드에서 import-time 크래시 방지.
 let Network: any = null;

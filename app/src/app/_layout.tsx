@@ -13,6 +13,7 @@ import { useAuth } from '../lib/useAuth';
 import { configurePurchases } from '../lib/purchases'; // 인앱결제(RevenueCat) 초기화
 import { FontScaleProvider } from '../lib/fontScale'; // 전역 글자 크기(설정에서 조절)
 import { colors } from '../lib/theme';
+import { AppAlert } from '../components/AppAlert'; // 커스텀 알림 호스트(시스템 Alert 대체)
 
 // i18next 26.x가 Hermes에서 Intl.PluralRules 를 인식 못 해 내는 dev 경고(동작은 v3 fallback 정상,
 //   한·영·일 복수형 단순해 영향 0) 억제. 프로덕션 빌드엔 LogBox 자체가 없어 무영향.
@@ -42,6 +43,7 @@ export default function RootLayout() {
         <Stack.Screen name="auth-callback" />
         <Stack.Screen name="(app)" />
       </Stack>
+      <AppAlert />
     </FontScaleProvider>
   );
 }

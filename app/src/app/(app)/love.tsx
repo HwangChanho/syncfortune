@@ -5,7 +5,8 @@
 //   Edge kind='love'(category='love'), 운한 포함 최신 자미명반은 body로 전달.
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useMemo, useState } from 'react';
-import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
+import { Alert } from '../../lib/alert'; // 커스텀 알림(앱 디자인)
 import { useTranslation } from 'react-i18next';
 import { useRouter } from 'expo-router';
 import { computeChart } from '../../lib/engine';

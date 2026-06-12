@@ -10,7 +10,8 @@
 //   ⚠️ Edge invoke=프로덕션(개발 미배포=호출 실패=비용0·절대0). charts insert/readings select 는 직접 호출이라 개발에서도 동작.
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useMemo, useEffect, useRef } from 'react';
-import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator, Alert, Modal, TextInput } from 'react-native';
+import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator, Modal, TextInput } from 'react-native';
+import { Alert } from '../lib/alert'; // 커스텀 알림(앱 디자인)
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { computeChart } from '../lib/engine';

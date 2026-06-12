@@ -4,7 +4,8 @@
 // 로그인 게이트 없음(ADR-037). 메뉴 = daniel 제작 카드 이미지(assets/icons/{key}.png, 남색·골드, 라벨 없음).
 //   라벨은 코드 t()로 하단 오버레이 → 영·일 다국어 유지(ADR-049).
 // ─────────────────────────────────────────────────────────────────────────
-import { View, Text, Pressable, ScrollView, StyleSheet, Alert, ImageBackground, Animated } from 'react-native';
+import { View, Text, Pressable, ScrollView, StyleSheet, ImageBackground, Animated } from 'react-native';
+import { Alert } from '../../lib/alert'; // 커스텀 알림(앱 디자인)
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../lib/useAuth';

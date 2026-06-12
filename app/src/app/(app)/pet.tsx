@@ -4,7 +4,8 @@
 //   사람 명식과 분리 보관(petChart). 통변 = 온디바이스 템플릿(petTraits) → 무료·API 0.
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useMemo, useState, useCallback } from 'react';
-import { View, Text, TextInput, Pressable, ScrollView, StyleSheet, Alert, Modal } from 'react-native';
+import { View, Text, TextInput, Pressable, ScrollView, StyleSheet, Modal } from 'react-native';
+import { Alert } from '../../lib/alert'; // 커스텀 알림(앱 디자인)
 import { useTranslation } from 'react-i18next';
 import { useFocusEffect } from 'expo-router';
 import { buildSajuChart } from '@engine/saju';

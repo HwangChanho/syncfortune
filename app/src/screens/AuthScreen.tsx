@@ -7,7 +7,8 @@
 // ※ 애플 OAuth 는 스토어 심사 전 추가(애플은 타 소셜 있으면 Sign in with Apple 필수).
 // ─────────────────────────────────────────────────────────────────────────
 import { useState } from 'react';
-import { View, Text, TextInput, Pressable, StyleSheet, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
+import { Alert } from '../lib/alert'; // 커스텀 알림(앱 디자인)
 import * as Linking from 'expo-linking';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../lib/supabase';
