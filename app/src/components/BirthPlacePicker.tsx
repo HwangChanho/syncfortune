@@ -8,7 +8,7 @@
 // 검색 실패·미등록 지역 대비 '그대로 사용' fallback 제공(시골 등).
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useEffect } from 'react';
-import { View, Text, TextInput, Pressable, Modal, ScrollView, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, TextInput, Pressable, Modal, ScrollView, ActivityIndicator, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { colors, radius, space, shadow, font } from '../lib/theme';
 
@@ -65,6 +65,8 @@ export function BirthPlacePicker({ value, onSelect }: { value: string; onSelect:
       </Pressable>
 
       <Modal visible={open} transparent animationType="slide" onRequestClose={() => setOpen(false)}>
+        {/* 키보드가 시트(입력·결과)를 가리지 않게 위로 올림(daniel) */}
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <Pressable style={styles.backdrop} onPress={() => setOpen(false)}>
           <Pressable style={styles.sheet} onPress={() => {}}>
             <View style={styles.handle} />
@@ -93,6 +95,7 @@ export function BirthPlacePicker({ value, onSelect }: { value: string; onSelect:
             </ScrollView>
           </Pressable>
         </Pressable>
+        </KeyboardAvoidingView>
       </Modal>
     </>
   );

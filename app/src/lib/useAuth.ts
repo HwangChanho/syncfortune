@@ -5,7 +5,6 @@
 // RLS 가 user_id 기준 행 격리를 강제하므로(규칙8), 인증 = 데이터 접근의 1차 관문.
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useEffect } from 'react';
-import * as Linking from 'expo-linking';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from './supabase';
 
@@ -42,16 +41,9 @@ export function useAuth() {
     const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
       setSession(s);
     });
-    // 3) OAuth(구글) 리다이렉트 처리 — syncfortune://auth-callback?code=… → 세션 교환(PKCE)
-    const onUrl = async (url: string) => {
-      const { queryParams } = Linking.parse(url);
-      const code = queryParams?.code;
-      if (typeof code === 'string') await supabase.auth.exchangeCodeForSession(code).catch(() => {});
-    };
-    const linkSub = Linking.addEventListener('url', ({ url }) => onUrl(url));
-    Linking.getInitialURL().then((u) => { if (u) onUrl(u); });
-    // 언마운트 시 구독·리스너 해제 (메모리 누수 방지)
-    return () => { sub.subscription.unsubscribe(); linkSub.remove(); };
+    // ※ 소셜 로그인 복귀(syncfortune://auth-callback?code=/token_hash=)는 `app/auth-callback.tsx`
+    //   라우트가 단일 처리(exchangeCodeForSession/verifyOtp) — 여기서 중복 처리하지 않는다(레이스 방지).
+    return () => { sub.subscription.unsubscribe(); };
   }, []);
 
   return { session, loading };

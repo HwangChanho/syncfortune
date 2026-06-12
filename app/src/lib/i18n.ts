@@ -7,6 +7,8 @@ import 'intl-pluralrules'; // Hermes에 Intl.PluralRules 제공 — i18next init
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import * as Localization from 'expo-localization';
+import { Platform } from 'react-native';
+import * as SecureStore from 'expo-secure-store';
 
 const ko = {
   appName: 'SyncFortune',
@@ -17,12 +19,18 @@ const ko = {
     ziwei: '자미두수', ziweiDesc: '명반·12궁 성요 풀이',
     taro: '타로', taroDesc: '카드로 보는 오늘',
     today: '오늘의 운세', todayDesc: '매일 바뀌는 일운',
+    month: '이달의 운세', monthDesc: '이번 달 분야별 흐름',
     compat: '궁합', compatDesc: '관계역학 딥 분석',
     premium: '프리미엄 풀이', premiumDesc: '딥 통변·전 영역', premiumTag: '프리미엄',
     timeline: '인생 타임라인', timelineDesc: '10~100세 시기별 흐름',
+    pet: '나의 반려동물', petDesc: '우리 아이의 타고난 특징',
+    love: '나의 애정흐름', loveDesc: '이상형·만날 사람 디테일 분석',
+    dayPillar: '일주론', dayPillarDesc: '태어난 날로 보는 나의 기질',
+    saju: '사주', sajuDesc: '원국·타임라인·궁합', ziweiHub: '자미두수', ziweiHubDesc: '명반·운한·궁합',
+    secFree: '무료', secPremium: '프리미엄', secContent: '스페셜',
   },
   common: {
-    back: '← 뒤로', login: '로그인', signup: '회원가입', logout: '로그아웃',
+    back: '← 뒤로', login: '로그인', signup: '회원가입', logout: '로그아웃', loggingOut: '로그아웃 중…',
     comingSoon: '준비 중입니다.', error: '오류', loginOptional: '로그인 / 회원가입 (유료·저장 기능용 — 선택)',
     cancel: '취소', none: '없음',
   },
@@ -30,7 +38,7 @@ const ko = {
     signin: '로그인', signupTitle: '회원가입', email: '이메일', password: '비밀번호 (6자 이상)',
     toSignup: '계정이 없으신가요?  회원가입', toSignin: '이미 계정이 있으신가요?  로그인',
     needInput: '이메일과 비밀번호를 입력하세요.', signupDone: '확인 메일이 발송됐습니다. 메일 인증 후 로그인하세요.',
-    or: '또는', google: 'Google로 계속하기',
+    or: '또는', google: 'Google로 계속하기', apple: 'Apple로 계속하기', naver: '네이버로 계속하기', processing: '로그인 처리 중…',
   },
   register: {
     name: '이름·별칭', namePh: '예: 김OO / 본인',
@@ -43,8 +51,9 @@ const ko = {
     birthTimeSijin: '태어난 시각 (시진)', timeUnknown: '모름', selfLabel: '본인',
     relationCustom: '직접 입력', relationCustomPh: '관계를 직접 입력 (예: 직장 상사)',
     birthPlaceSearch: '도시·지역 검색', birthPlaceSearchPh: '예: 서울, 부산, Tokyo', useAsIs: "'{{q}}' 그대로 사용",
-    limitTitle: '무료 등록 한도', limitMsg: '무료 플랜은 명식을 {{limit}}개까지 등록할 수 있어요.\n프로로 업그레이드하면 무제한으로 등록할 수 있습니다.',
+    limitTitle: '무료 등록 한도', limitMsg: '무료 플랜은 명식을 {{limit}}개까지 등록할 수 있어요.\n광고를 보면 1개 더 추가하거나, 프로로 업그레이드하면 무제한이에요.',
     upgrade: '프로 업그레이드', usage: '명식 {{count}}/{{limit}}',
+    watchAdAdd: '광고 보고 1개 추가', adNotFinished: '광고를 끝까지 봐야 1개 추가돼요.',
   },
   myeongsik: {
     palja: '팔자', dayMaster: '일간', strength: '신강약 지표', pattern: '격국후보',
@@ -88,6 +97,7 @@ const ko = {
     detailToggle: '글자 작용 자세히 보기',
     premiumTitle: '프리미엄 전용', premiumMsg: '궁합 풀이는 프리미엄에서 5명까지 무료로 볼 수 있어요.',
     payTitle: '궁합 추가', payMsg: '무료 5명을 다 보셨어요. 이 분과의 궁합을 건당 ₩2,500으로 보시겠어요?', payBtn: '₩2,500 결제',
+    rel: { friend: '지인·친구', family: '가족', crush: '썸·짝사랑', love: '연애', marriage: '결혼', coworker: '직장 동료', senior: '윗사람·멘토', business: '동업', invest: '투자 파트너' },
   },
   category: {
     성격내면: '성격·내면', 취업운: '취업운', 직장운: '직장운', 사업운: '사업운',
@@ -102,6 +112,13 @@ const ko = {
     more: '분야별로 자세히 보기 →',
   },
   settings: {
+    account: '계정', loginCta: '로그인 / 회원가입', premium: '프리미엄',
+    premiumActive: '✓ 평생 프리미엄', premiumBuy: '평생 프리미엄', premiumDesc: '전 영역 딥 통변 · 광고 없음 · 한 번 결제로 평생 소장',
+    premiumOkTitle: '프리미엄', premiumOk: '프리미엄이 적용됐어요.', premiumTitle: '프리미엄',
+    deleteAccount: '계정 삭제',
+    delTitle: '계정 삭제', delMsg: '계정과 모든 데이터(명식·풀이·이용권)가 영구 삭제됩니다. 되돌릴 수 없어요.', delConfirm: '삭제 진행',
+    delTitle2: '정말 삭제할까요?', delMsg2: '이 작업은 되돌릴 수 없습니다.', delFinal: '영구 삭제',
+    delFail: '삭제에 실패했어요. 잠시 후 다시 시도해 주세요.', delDoneTitle: '삭제 완료', delDone: '계정과 데이터가 삭제됐어요.', deleting: '계정을 삭제하는 중…',
     fontSize: '글자 크기', size_sm: '작게', size_md: '보통', size_lg: '크게', size_xl: '아주 크게',
     preview: '미리보기 — 통변은 이 크기로 보입니다. 설정한 크기는 풀이·오늘의 운세·궁합 본문에 바로 반영돼요.',
     language: '언어', note: '※ 글자 크기는 읽는 본문(통변)에 적용됩니다.',
@@ -113,10 +130,53 @@ const ko = {
   },
   timeline: {
     decades: '10년 단위 (대운)', years: '연도별', pickDecade: '시기 선택', pickYear: '연도 선택', thisYear: '올해', now: '지금',
-    flow: '이 시기의 흐름', peak: '특히 두드러지는 때', advice: '이 시기 이렇게',
+    catGeneral: '통합', catWork: '직업', catMoney: '재물', catLove: '애정', catHealth: '건강',
+    catSocial: '대인', catGrowth: '배움', catMove: '이동', months: '월별 흐름', monthUnit: '월',
     generating: '이 시기를 풀이하는 중…', tapToRead: '시기나 연도를 선택하면 그 흐름을 풀어 드려요.',
     premiumTitle: '프리미엄 전용', premiumMsg: '인생 타임라인은 프리미엄에서 시기별로 풀어 드려요.',
+    lockedTitle: '잠긴 시기', lockedSub: '현재 대운과 올해는 무료, 다른 시기는 이용권으로 열어 카테고리별로 자세히 풀어 드려요.',
+    unlock: '이 시기 열기', unlockTitle: '이 시기 열기',
+    unlockMsg: '타임라인 이용권으로 이 시기를 카테고리별로 자세히 풀어 드려요. (이용권은 설정에서 쿠폰 등록 · 건당 결제 준비 중)',
+    freeBadge: '무료', usedCredit: '이용권으로 열었어요',
   },
+  premiumHub: {
+    sub: '무엇을 볼까요?',
+    sajuReading: '원국 풀이', sajuReadingDesc: '성격·재물·연애·직업 등 16영역 깊은 통변',
+    ziweiReading: '명반 풀이', ziweiReadingDesc: '12궁 + 운한(대한)·사화로 보는 시기별 흐름',
+  },
+  pet: {
+    title: '나의 반려동물', sub: '우리 아이의 타고난 결을 가볍게 살펴봐요.',
+    add: '새 아이', name: '이름', namePh: '예: 콩이', typeLabel: '어떤 아이예요?',
+    birth: '생년월일 (YYYY-MM-DD)', time: '태어난 시각', timeOptional: '— 몰라도 돼요',
+    timePick: '시진 선택 (자시·축시…)', timeUnknownChk: '시간 모름',
+    timeHint: '시각을 모르면 큰 결만 봐요(시간대 풀이는 빼요).',
+    save: '특징 보기', empty: '아직 등록된 아이가 없어요.',
+    delete: '이 아이 지우기', deleteTitle: '삭제', deleteMsg: '이 아이의 정보를 지울까요?',
+    invalidTitle: '확인해 주세요', invalidDate: '생년월일을 YYYY-MM-DD 로 입력해 주세요.',
+    type: { dog: '강아지', cat: '고양이', rabbit: '토끼', hamster: '햄스터', bird: '새', fish: '물고기', reptile: '파충류', other: '기타' },
+  },
+  love: {
+    title: '나의 애정흐름', sub: '사주와 자미두수를 둘 다 교차해, 이상형부터 실제 만날 사람까지 아주 자세히 풀어 드려요.',
+    generating: '두 명반을 교차해 애정의 결을 풀이하는 중…',
+    gateDesc: '이상형, 실제 만나게 되는 사람의 첫인상·성격·행동·습관, 어떻게 만나는지와 시기까지 — 사주와 자미두수를 교차해 아주 디테일하게.',
+    see: '{{price}}로 자세히 보기', cacheNote: '한 번 보면 계속 저장돼요 (다시 결제 없음).',
+    gateTitle: '나의 애정흐름', gateMsg: '아직 이용권이 없어요. 설정에서 쿠폰을 등록하거나, 결제 기능이 곧 열려요. ({{price}})',
+    idealType: '나의 이상형', appearance: '실제 만날 사람의 첫인상·이미지', personality: '그 사람의 성격·내면',
+    behavior: '그 사람의 행동·말투·습관', howWeMeet: '어떻게 만나게 될까', dynamic: '둘 사이의 끌림과 호흡',
+    timing: '애정이 무르익는 시기', caution: '조심할 점', advice: '좋은 인연을 가꾸는 법',
+  },
+  month: { title: '이달의 운세', monthPillar: '이번 달 기운', flowTitle: '이번 달 흐름 (상순·중순·하순)', note: '이번 달의 큰 흐름이에요. 구체적인 날은 오늘의 운세에서 봐요.' },
+  dayPillar: {
+    title: '일주론', sub: '태어난 날의 간지(일주)로 보는 타고난 기질이에요.',
+    male: '남자', female: '여자', mine: '내 일주', browseAll: '전체 일주 60', dayGroup: '일주', tapHint: '일주를 탭하면 상세 풀이가 펼쳐져요.',
+    s_overview: '개요', s_personality: '성격', s_love: '연애·결혼', s_career: '직업·재물', s_male: '남성', s_female: '여성', s_advice: '조언',
+    disclaimer: '일주론은 타고난 기질의 한 단면일 뿐이에요. 정확한 풀이는 일주만이 아니라 연·월·시 기둥과 합충·용신까지 사주원국 전체를 함께 봐야 해요.',
+  },
+  purchase: {
+    loginTitle: '로그인이 필요해요', loginMsg: '구매 내역을 계정에 저장해, 다른 기기나 앱을 다시 깔아도 그대로 쓸 수 있어요. 로그인하시겠어요?', loginCta: '로그인',
+    restore: '구매 복원', restored: '구매를 복원했어요.', restoreNone: '복원할 구매가 없어요.', preparing: '결제가 곧 열려요.',
+  },
+  offline: { title: '오프라인', msg: '인터넷에 연결돼 있지 않아요. 저장된 내용은 볼 수 있지만, 새 풀이는 연결된 뒤에 가능해요.', banner: '오프라인 — 저장된 내용만 볼 수 있어요' },
   taro: { draw: '카드 뽑기', reshuffle: '다시 뽑기', reversed: '역방향' },
   manse: { empty: '등록된 명식이 없습니다.', myChart: '명식' },
   sinsal: { 도화: '도화', 역마: '역마', 화개: '화개', 천을귀인: '천을귀인', 문창: '문창', 양인: '양인', 홍염: '홍염', 괴강: '괴강', 백호: '백호' },
@@ -130,13 +190,17 @@ const en = {
     manse: 'Manseryeok', manseDesc: 'Calendar charts & management',
     ziwei: 'Zi Wei Dou Shu', ziweiDesc: 'Palaces & stars reading',
     taro: 'Tarot', taroDesc: "Today's card",
-    today: 'Daily Fortune', todayDesc: 'Changes every day',
+    today: 'Daily Fortune', todayDesc: 'Changes every day', month: 'Monthly Fortune', monthDesc: "This month by area",
     compat: 'Compatibility', compatDesc: 'Deep relationship analysis',
     premium: 'Premium Reading', premiumDesc: 'Deep reading · all areas', premiumTag: 'Premium',
     timeline: 'Life Timeline', timelineDesc: 'Decade-by-decade, age 10–100',
+    pet: 'My Pet', petDesc: "Your companion's nature", love: 'My Love Flow', loveDesc: 'Ideal type & who you meet, in detail',
+    dayPillar: 'Day Pillar', dayPillarDesc: 'Your nature by your birth day',
+    saju: 'Saju', sajuDesc: 'Reading · timeline · compatibility', ziweiHub: 'Zi Wei', ziweiHubDesc: 'Chart · luck · compatibility',
+    secFree: 'Free', secPremium: 'Premium', secContent: 'Special',
   },
   common: {
-    back: '← Back', login: 'Log in', signup: 'Sign up', logout: 'Log out',
+    back: '← Back', login: 'Log in', signup: 'Sign up', logout: 'Log out', loggingOut: 'Logging out…',
     comingSoon: 'Coming soon.', error: 'Error', loginOptional: 'Log in / Sign up (for paid & saving — optional)',
     cancel: 'Cancel', none: 'None',
   },
@@ -144,7 +208,7 @@ const en = {
     signin: 'Log in', signupTitle: 'Sign up', email: 'Email', password: 'Password (6+ chars)',
     toSignup: "Don't have an account?  Sign up", toSignin: 'Already have an account?  Log in',
     needInput: 'Enter your email and password.', signupDone: 'Verification email sent. Verify, then log in.',
-    or: 'or', google: 'Continue with Google',
+    or: 'or', google: 'Continue with Google', apple: 'Continue with Apple', naver: 'Continue with Naver', processing: 'Signing in…',
   },
   register: {
     name: 'Name / Alias', namePh: 'e.g. John / Me',
@@ -157,8 +221,9 @@ const en = {
     birthTimeSijin: 'Birth time (Sijin)', timeUnknown: 'Unknown', selfLabel: 'Self',
     relationCustom: 'Custom', relationCustomPh: 'Enter relation (e.g. my boss)',
     birthPlaceSearch: 'Search city/region', birthPlaceSearchPh: 'e.g. Seoul, Tokyo', useAsIs: "Use '{{q}}'",
-    limitTitle: 'Free registration limit', limitMsg: 'The free plan lets you register up to {{limit}} charts.\nUpgrade to Pro for unlimited registrations.',
+    limitTitle: 'Free registration limit', limitMsg: 'The free plan lets you register up to {{limit}} charts.\nWatch an ad to add one more, or upgrade to Pro for unlimited.',
     upgrade: 'Upgrade to Pro', usage: 'Charts {{count}}/{{limit}}',
+    watchAdAdd: 'Watch ad, add 1', adNotFinished: 'Finish the ad to add a chart.',
   },
   myeongsik: {
     palja: 'Four Pillars', dayMaster: 'Day Master', strength: 'Strength index', pattern: 'Pattern',
@@ -202,6 +267,7 @@ const en = {
     detailToggle: 'Show character interactions',
     premiumTitle: 'Premium only', premiumMsg: 'Premium gives you 5 free compatibility readings.',
     payTitle: 'Another reading', payMsg: "You've used your 5 free readings. See this one for ₩2,500?", payBtn: 'Pay ₩2,500',
+    rel: { friend: 'Friend', family: 'Family', crush: 'Crush', love: 'Dating', marriage: 'Marriage', coworker: 'Coworker', senior: 'Mentor/Senior', business: 'Business', invest: 'Investing' },
   },
   category: {
     성격내면: 'Personality', 취업운: 'Job-seeking', 직장운: 'Career', 사업운: 'Business',
@@ -216,6 +282,13 @@ const en = {
     more: 'See it area by area →',
   },
   settings: {
+    account: 'Account', loginCta: 'Log in / Sign up', premium: 'Premium',
+    premiumActive: '✓ Lifetime Premium', premiumBuy: 'Lifetime Premium', premiumDesc: 'All deep readings · no ads · one-time, yours forever',
+    premiumOkTitle: 'Premium', premiumOk: 'Premium is now active.', premiumTitle: 'Premium',
+    deleteAccount: 'Delete account',
+    delTitle: 'Delete account', delMsg: 'Your account and all data (charts, readings, passes) will be permanently deleted. This cannot be undone.', delConfirm: 'Continue',
+    delTitle2: 'Are you sure?', delMsg2: 'This action cannot be undone.', delFinal: 'Delete permanently',
+    delFail: 'Deletion failed. Please try again later.', delDoneTitle: 'Deleted', delDone: 'Your account and data have been deleted.', deleting: 'Deleting your account…',
     fontSize: 'Text size', size_sm: 'Small', size_md: 'Normal', size_lg: 'Large', size_xl: 'X-Large',
     preview: 'Preview — readings appear at this size. It applies to reading, daily fortune, and compatibility text.',
     language: 'Language', note: '※ Text size applies to reading body text.',
@@ -225,6 +298,55 @@ const en = {
     couponErr_invalid: 'Invalid code.', couponErr_expired: 'This coupon has expired.',
     couponErr_exhausted: 'This coupon is used up.', couponErr_already: 'Already redeemed.', couponErr_auth: 'Please log in.',
   },
+  timeline: {
+    decades: 'By decade', years: 'By year', pickDecade: 'Pick a period', pickYear: 'Pick a year', thisYear: 'This year', now: 'Now',
+    catGeneral: 'Overall', catWork: 'Work', catMoney: 'Money', catLove: 'Love', catHealth: 'Health',
+    catSocial: 'People', catGrowth: 'Growth', catMove: 'Change', months: 'Month by month', monthUnit: '',
+    generating: 'Reading this period…', tapToRead: 'Pick a period or year to read its flow.',
+    premiumTitle: 'Premium only', premiumMsg: 'The Life Timeline reads each period in Premium.',
+    lockedTitle: 'Locked period', lockedSub: 'Your current decade and this year are free; open other periods with a pass for a category-by-category reading.',
+    unlock: 'Open this period', unlockTitle: 'Open this period',
+    unlockMsg: 'A timeline pass opens this period with a detailed category reading. (Get passes via coupons in Settings · per-use payment coming soon)',
+    freeBadge: 'Free', usedCredit: 'Opened with a pass',
+  },
+  premiumHub: {
+    sub: 'What would you like to see?',
+    sajuReading: 'Saju reading', sajuReadingDesc: 'Deep reading across 16 areas — personality, money, love, work…',
+    ziweiReading: 'Chart reading', ziweiReadingDesc: '12 palaces + decade luck & transformations over time',
+  },
+  pet: {
+    title: 'My Pet', sub: "A light look at your companion's natural temperament.",
+    add: 'New pet', name: 'Name', namePh: 'e.g. Kong', typeLabel: 'What kind?',
+    birth: 'Birth date (YYYY-MM-DD)', time: 'Birth time', timeOptional: "— optional",
+    timePick: 'Pick a time period', timeUnknownChk: "Time unknown",
+    timeHint: "Without a time we read only the broad strokes (no time-of-day reading).",
+    save: 'See traits', empty: 'No pet added yet.',
+    delete: 'Remove this pet', deleteTitle: 'Delete', deleteMsg: "Remove this pet's info?",
+    invalidTitle: 'Please check', invalidDate: 'Enter the birth date as YYYY-MM-DD.',
+    type: { dog: 'Dog', cat: 'Cat', rabbit: 'Rabbit', hamster: 'Hamster', bird: 'Bird', fish: 'Fish', reptile: 'Reptile', other: 'Other' },
+  },
+  love: {
+    title: 'My Love Flow', sub: 'Cross-reading Saju and Zi Wei together — from your ideal type to the person you actually meet, in rich detail.',
+    generating: 'Cross-reading both charts for your love story…',
+    gateDesc: 'Your ideal type, and the real person you meet — their first impression, personality, behavior and habits, how you meet and when — cross-read from Saju and Zi Wei in fine detail.',
+    see: 'See it for {{price}}', cacheNote: 'Once unlocked it stays saved (no re-charge).',
+    gateTitle: 'My Love Flow', gateMsg: 'No pass yet. Redeem a coupon in Settings, or payment is coming soon. ({{price}})',
+    idealType: 'Your ideal type', appearance: 'First impression & image of who you meet', personality: 'Their personality & inner world',
+    behavior: 'Their behavior, speech & habits', howWeMeet: 'How you’ll meet', dynamic: 'The chemistry between you',
+    timing: 'When love ripens', caution: 'What to watch for', advice: 'How to nurture a good connection',
+  },
+  month: { title: 'Monthly Fortune', monthPillar: "This month's energy", flowTitle: "This month's flow (early · mid · late)", note: "The broad flow for this month. For specific days, see the Daily Fortune." },
+  dayPillar: {
+    title: 'Day Pillar', sub: 'Your innate nature, seen through your birth-day pillar (ilju).',
+    male: 'Male', female: 'Female', mine: 'My Day Pillar', browseAll: 'All 60 Day Pillars', dayGroup: 'day', tapHint: 'Tap a pillar to expand its full reading.',
+    s_overview: 'Overview', s_personality: 'Personality', s_love: 'Love & Marriage', s_career: 'Career & Wealth', s_male: 'For Men', s_female: 'For Women', s_advice: 'Advice',
+    disclaimer: "The day pillar is only one facet of your nature. A precise reading needs your whole chart — the year, month and hour pillars plus combinations, clashes and the useful god — not the day pillar alone.",
+  },
+  purchase: {
+    loginTitle: 'Sign in required', loginMsg: 'Signing in saves your purchases to your account, so they carry over to other devices and reinstalls. Sign in now?', loginCta: 'Sign in',
+    restore: 'Restore purchases', restored: 'Purchases restored.', restoreNone: 'No purchases to restore.', preparing: 'Payments are coming soon.',
+  },
+  offline: { title: 'Offline', msg: "You're not connected to the internet. You can view saved content, but new readings need a connection.", banner: 'Offline — saved content only' },
   taro: { draw: 'Draw a card', reshuffle: 'Reshuffle', reversed: 'Reversed' },
   manse: { empty: 'No saved chart.', myChart: 'Chart' },
   sinsal: { 도화: 'Peach Blossom', 역마: 'Travel Horse', 화개: 'Canopy', 천을귀인: 'Nobleman', 문창: 'Academic', 양인: 'Blade', 홍염: 'Romance', 괴강: 'Goegang', 백호: 'White Tiger' },
@@ -238,13 +360,17 @@ const ja = {
     manse: '万歳暦', manseDesc: '日付別四柱·チャート管理',
     ziwei: '紫微斗数', ziweiDesc: '命盤·12宮の星',
     taro: 'タロット', taroDesc: '今日のカード',
-    today: '今日の運勢', todayDesc: '毎日変わる日運',
+    today: '今日の運勢', todayDesc: '毎日変わる日運', month: '今月の運勢', monthDesc: '今月の分野別の流れ',
     compat: '相性', compatDesc: '関係力学の深い分析',
     premium: 'プレミアム鑑定', premiumDesc: '深い通変·全領域', premiumTag: 'プレミアム',
     timeline: '人生タイムライン', timelineDesc: '10〜100歳の時期別の流れ',
+    pet: 'うちの子', petDesc: 'うちの子の生まれもった特徴', love: '私の恋愛の流れ', loveDesc: '理想のタイプ·出会う人を詳しく',
+    dayPillar: '日柱論', dayPillarDesc: '生まれた日でみる気質',
+    saju: '四柱推命', sajuDesc: '鑑定·タイムライン·相性', ziweiHub: '紫微斗数', ziweiHubDesc: '命盤·運限·相性',
+    secFree: '無料', secPremium: 'プレミアム', secContent: 'スペシャル',
   },
   common: {
-    back: '← 戻る', login: 'ログイン', signup: '新規登録', logout: 'ログアウト',
+    back: '← 戻る', login: 'ログイン', signup: '新規登録', logout: 'ログアウト', loggingOut: 'ログアウト中…',
     comingSoon: '準備中です。', error: 'エラー', loginOptional: 'ログイン / 新規登録（有料·保存機能用 — 任意）',
     cancel: 'キャンセル', none: 'なし',
   },
@@ -252,7 +378,7 @@ const ja = {
     signin: 'ログイン', signupTitle: '新規登録', email: 'メール', password: 'パスワード（6文字以上）',
     toSignup: 'アカウントがありませんか？  新規登録', toSignin: 'すでにアカウントをお持ちですか？  ログイン',
     needInput: 'メールとパスワードを入力してください。', signupDone: '確認メールを送信しました。認証後にログインしてください。',
-    or: 'または', google: 'Googleで続ける',
+    or: 'または', google: 'Googleで続ける', apple: 'Appleで続ける', naver: 'Naverで続ける', processing: 'ログイン処理中…',
   },
   register: {
     name: '名前·愛称', namePh: '例：キムOO / 本人',
@@ -265,8 +391,9 @@ const ja = {
     birthTimeSijin: '出生時刻（時辰）', timeUnknown: '不明', selfLabel: '本人',
     relationCustom: '直接入力', relationCustomPh: '関係を入力（例：上司）',
     birthPlaceSearch: '都市·地域を検索', birthPlaceSearchPh: '例：ソウル、東京', useAsIs: "'{{q}}' をそのまま使用",
-    limitTitle: '無料登録の上限', limitMsg: '無料プランは命式を{{limit}}件まで登録できます。\nプロにアップグレードすると無制限に登録できます。',
+    limitTitle: '無料登録の上限', limitMsg: '無料プランは命式を{{limit}}件まで登録できます。\n広告を見れば1件追加、プロにアップグレードすれば無制限です。',
     upgrade: 'プロにアップグレード', usage: '命式 {{count}}/{{limit}}',
+    watchAdAdd: '広告を見て1件追加', adNotFinished: '広告を最後まで見ると1件追加されます。',
   },
   myeongsik: {
     palja: '八字', dayMaster: '日干', strength: '身強弱指標', pattern: '格局候補',
@@ -310,6 +437,7 @@ const ja = {
     detailToggle: '文字の作用をくわしく',
     premiumTitle: 'プレミアム限定', premiumMsg: '相性鑑定はプレミアムで5名まで無料です。',
     payTitle: '相性を追加', payMsg: '無料5名を使い切りました。この方との相性を1回₩2,500で見ますか？', payBtn: '₩2,500 決済',
+    rel: { friend: '知人·友達', family: '家族', crush: '片思い·脈あり', love: '恋愛', marriage: '結婚', coworker: '職場の同僚', senior: '目上·メンター', business: '共同事業', invest: '投資パートナー' },
   },
   category: {
     성격내면: '性格·内面', 취업운: '就職運', 직장운: '職場運', 사업운: '事業運',
@@ -324,6 +452,13 @@ const ja = {
     more: '分野別にくわしく見る →',
   },
   settings: {
+    account: 'アカウント', loginCta: 'ログイン / 新規登録', premium: 'プレミアム',
+    premiumActive: '✓ 買い切りプレミアム', premiumBuy: '買い切りプレミアム', premiumDesc: '全領域の深い鑑定 · 広告なし · 一度の購入で永久',
+    premiumOkTitle: 'プレミアム', premiumOk: 'プレミアムが適用されました。', premiumTitle: 'プレミアム',
+    deleteAccount: 'アカウント削除',
+    delTitle: 'アカウント削除', delMsg: 'アカウントと全データ（命式・鑑定・パス）が永久に削除されます。元に戻せません。', delConfirm: '続ける',
+    delTitle2: '本当に削除しますか？', delMsg2: 'この操作は元に戻せません。', delFinal: '完全に削除',
+    delFail: '削除に失敗しました。後ほど再試行してください。', delDoneTitle: '削除完了', delDone: 'アカウントとデータを削除しました。', deleting: 'アカウントを削除中…',
     fontSize: '文字サイズ', size_sm: '小', size_md: '標準', size_lg: '大', size_xl: '特大',
     preview: 'プレビュー — 通変はこのサイズで表示されます。鑑定·今日の運勢·相性の本文に反映されます。',
     language: '言語', note: '※ 文字サイズは本文（通変）に適用されます。',
@@ -333,6 +468,55 @@ const ja = {
     couponErr_invalid: '無効なコードです。', couponErr_expired: '期限切れのクーポンです。',
     couponErr_exhausted: '利用上限に達したクーポンです。', couponErr_already: '使用済みのクーポンです。', couponErr_auth: 'ログインが必要です。',
   },
+  timeline: {
+    decades: '10年ごと', years: '年ごと', pickDecade: '時期を選ぶ', pickYear: '年を選ぶ', thisYear: '今年', now: '現在',
+    catGeneral: '総合', catWork: '仕事', catMoney: '金運', catLove: '恋愛', catHealth: '健康',
+    catSocial: '人間関係', catGrowth: '学び', catMove: '移動', months: '月別の流れ', monthUnit: '月',
+    generating: 'この時期を読み解き中…', tapToRead: '時期や年を選ぶと、その流れを読み解きます。',
+    premiumTitle: 'プレミアム限定', premiumMsg: '人生タイムラインはプレミアムで時期ごとに読み解きます。',
+    lockedTitle: 'ロック中の時期', lockedSub: '現在の大運と今年は無料、ほかの時期はパスでカテゴリ別に詳しく読み解きます。',
+    unlock: 'この時期を開く', unlockTitle: 'この時期を開く',
+    unlockMsg: 'タイムラインパスでこの時期をカテゴリ別に詳しく読み解きます。(パスは設定のクーポンで取得・都度課金は準備中)',
+    freeBadge: '無料', usedCredit: 'パスで開きました',
+  },
+  premiumHub: {
+    sub: '何を見ますか?',
+    sajuReading: '原局の鑑定', sajuReadingDesc: '性格·金運·恋愛·仕事など16領域の深い通変',
+    ziweiReading: '命盤の鑑定', ziweiReadingDesc: '十二宮 + 運限(大限)·四化で見る時期ごとの流れ',
+  },
+  pet: {
+    title: 'うちの子', sub: 'うちの子の生まれもった結を軽く見てみましょう。',
+    add: '新しい子', name: '名前', namePh: '例: コン', typeLabel: 'どんな子ですか?',
+    birth: '生年月日 (YYYY-MM-DD)', time: '生まれた時刻', timeOptional: '— 不明でもOK',
+    timePick: '時辰を選ぶ（子の刻·丑の刻…）', timeUnknownChk: '時刻不明',
+    timeHint: '時刻が不明なら大きな結だけ見ます(時間帯の鑑定は省きます)。',
+    save: '特徴を見る', empty: 'まだ登録された子がいません。',
+    delete: 'この子を削除', deleteTitle: '削除', deleteMsg: 'この子の情報を削除しますか?',
+    invalidTitle: 'ご確認ください', invalidDate: '生年月日を YYYY-MM-DD で入力してください。',
+    type: { dog: '犬', cat: '猫', rabbit: 'うさぎ', hamster: 'ハムスター', bird: '鳥', fish: '魚', reptile: '爬虫類', other: 'その他' },
+  },
+  love: {
+    title: '私の恋愛の流れ', sub: '四柱推命と紫微斗数を両方クロスして、理想のタイプから実際に出会う人まで詳しく読み解きます。',
+    generating: '二つの命盤をクロスして恋愛の結を読み解き中…',
+    gateDesc: '理想のタイプ、実際に出会う人の第一印象·性格·行動·習慣、出会い方と時期まで — 四柱推命と紫微斗数のクロスで詳細に。',
+    see: '{{price}}で詳しく見る', cacheNote: '一度見ればずっと保存されます（再課金なし）。',
+    gateTitle: '私の恋愛の流れ', gateMsg: 'まだパスがありません。設定でクーポンを登録するか、決済機能は近日公開です。({{price}})',
+    idealType: '私の理想のタイプ', appearance: '出会う人の第一印象·イメージ', personality: 'その人の性格·内面',
+    behavior: 'その人の行動·話し方·習慣', howWeMeet: 'どう出会うか', dynamic: '二人の惹かれ合いと相性',
+    timing: '恋が深まる時期', caution: '気をつけること', advice: '良い縁を育てる方法',
+  },
+  month: { title: '今月の運勢', monthPillar: '今月の気', flowTitle: '今月の流れ（上旬·中旬·下旬）', note: '今月の大きな流れです。具体的な日は今日の運勢で。' },
+  dayPillar: {
+    title: '日柱論', sub: '生まれた日の干支（日柱）でみる、生まれもった気質です。',
+    male: '男性', female: '女性', mine: '私の日柱', browseAll: '日柱60すべて', dayGroup: '日', tapHint: '日柱をタップすると詳しい解説が開きます。',
+    s_overview: '概要', s_personality: '性格', s_love: '恋愛·結婚', s_career: '仕事·財運', s_male: '男性', s_female: '女性', s_advice: 'アドバイス',
+    disclaimer: '日柱論は生まれもった気質の一面にすぎません。正確な鑑定は日柱だけでなく、年·月·時の柱や合冲·用神まで、命式全体を合わせてみる必要があります。',
+  },
+  purchase: {
+    loginTitle: 'ログインが必要です', loginMsg: '購入履歴をアカウントに保存すると、別の端末や再インストール後もそのまま使えます。ログインしますか？', loginCta: 'ログイン',
+    restore: '購入を復元', restored: '購入を復元しました。', restoreNone: '復元する購入がありません。', preparing: '決済はまもなく公開されます。',
+  },
+  offline: { title: 'オフライン', msg: 'インターネットに接続されていません。保存済みは見られますが、新しい鑑定は接続後に可能です。', banner: 'オフライン — 保存済みのみ' },
   taro: { draw: 'カードを引く', reshuffle: '引き直す', reversed: '逆位置' },
   manse: { empty: '登録された命式がありません。', myChart: '命式' },
   sinsal: { 도화: '桃花', 역마: '駅馬', 화개: '華蓋', 천을귀인: '天乙貴人', 문창: '文昌', 양인: '羊刃', 홍염: '紅艶', 괴강: '魁罡', 백호: '白虎' },
@@ -357,6 +541,23 @@ i18n.use(initReactI18next).init({
   compatibilityJSON: 'v3' as 'v4',
   interpolation: { escapeValue: false },
 });
+
+// 언어 저장/복원 — 기본은 기기 언어(위 lng), 사용자가 설정에서 바꾸면 persist 해 재시작 후에도 유지(daniel).
+const LANG_KEY = 'app_lang_v1';
+async function getStored(): Promise<string | null> {
+  try { return Platform.OS === 'web' ? ((globalThis as any).localStorage?.getItem(LANG_KEY) ?? null) : await SecureStore.getItemAsync(LANG_KEY); }
+  catch { return null; }
+}
+/** 앱 언어 변경 + persist(설정 화면에서 호출). 기기 기본을 덮어쓴다. */
+export async function setAppLang(lng: 'ko' | 'en' | 'ja'): Promise<void> {
+  i18n.changeLanguage(lng);
+  try {
+    if (Platform.OS === 'web') (globalThis as any).localStorage?.setItem(LANG_KEY, lng);
+    else await SecureStore.setItemAsync(LANG_KEY, lng);
+  } catch { /* persist 실패해도 런타임 반영은 됨 */ }
+}
+// 시작 시 저장된 선택이 있으면 기기 기본 위에 적용(있을 때만 — 없으면 기기 언어 유지)
+getStored().then((saved) => { if (saved && ['ko', 'en', 'ja'].includes(saved) && saved !== i18n.language) i18n.changeLanguage(saved); });
 
 // 현재 앱 언어(ko/en/ja) — 통변 생성/캐시를 언어별로 분기할 때 사용(Edge body.lang).
 export function appLang(): 'ko' | 'en' | 'ja' {

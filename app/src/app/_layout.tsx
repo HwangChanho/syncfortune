@@ -6,9 +6,11 @@
 // ─────────────────────────────────────────────────────────────────────────
 import 'intl-pluralrules'; // Intl.PluralRules polyfill (Hermes) — iztro i18next 보조(ERROR 폴백, 무해)
 import '../lib/i18n'; // 다국어(한·영·일) init
+import { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { View, ActivityIndicator, StyleSheet, LogBox } from 'react-native';
 import { useAuth } from '../lib/useAuth';
+import { configurePurchases } from '../lib/purchases'; // 인앱결제(RevenueCat) 초기화
 import { FontScaleProvider } from '../lib/fontScale'; // 전역 글자 크기(설정에서 조절)
 import { colors } from '../lib/theme';
 
@@ -17,7 +19,10 @@ import { colors } from '../lib/theme';
 LogBox.ignoreLogs([/i18next::pluralResolver/]);
 
 export default function RootLayout() {
-  const { loading } = useAuth();
+  const { session, loading } = useAuth();
+
+  // 인앱결제 초기화 — 키 미설정 시 no-op. 로그인 시 RC 유저(appUserID=Supabase user.id) 연결.
+  useEffect(() => { configurePurchases(session?.user?.id); }, [session?.user?.id]);
 
   // 저장된 세션 복원 중 — 스플래시(라우트 깜빡임 방지)
   if (loading) {
@@ -34,6 +39,7 @@ export default function RootLayout() {
     <FontScaleProvider>
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="login" />
+        <Stack.Screen name="auth-callback" />
         <Stack.Screen name="(app)" />
       </Stack>
     </FontScaleProvider>

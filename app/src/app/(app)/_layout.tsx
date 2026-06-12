@@ -6,6 +6,7 @@
 import { Stack } from 'expo-router';
 import { View } from 'react-native';
 import { AdBanner } from '../../components/AdBanner';
+import { OfflineBanner } from '../../components/OfflineBanner';
 import { colors } from '../../lib/theme';
 
 // deep link 로 하위 화면(register 등)에 직접 진입해도 index(홈)를 스택 최하단에 깔아
@@ -15,6 +16,7 @@ export const unstable_settings = { initialRouteName: 'index' };
 export default function AppLayout() {
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
+      <OfflineBanner />
       <Stack screenOptions={{
         headerStyle: { backgroundColor: colors.bg }, // 한지 헤더
         headerTintColor: colors.ink,                 // 먹 — 뒤로가기·타이틀
@@ -33,8 +35,13 @@ export default function AppLayout() {
         <Stack.Screen name="compat" options={{ title: '1:1 궁합' }} />
         <Stack.Screen name="taro" options={{ title: '타로' }} />
         <Stack.Screen name="today" options={{ title: '오늘의 운세' }} />
+        <Stack.Screen name="month" options={{ title: '이달의 운세' }} />
         <Stack.Screen name="charts" options={{ title: '만세력' }} />
         <Stack.Screen name="traits" options={{ title: '나의 특징' }} />
+        <Stack.Screen name="dayPillar" options={{ title: '일주론' }} />
+        <Stack.Screen name="pet" options={{ title: '나의 반려동물' }} />
+        <Stack.Screen name="love" options={{ title: '나의 애정흐름' }} />
+        <Stack.Screen name="premium" options={{ title: '프리미엄' }} />
       </Stack>
       {/* 무료=하단 배너 고정 / 프리미엄=숨김 (AdBanner 내부에서 isPremium 분기) */}
       <AdBanner />

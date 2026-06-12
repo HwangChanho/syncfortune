@@ -17,36 +17,27 @@ export function AuthScreen() {
   const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [mode, setMode] = useState<'signin' | 'signup'>('signin'); // 로그인/가입 토글
   const [loading, setLoading] = useState(false);
 
+  // 이메일 로그인(로그인 전용 — 회원가입은 따로 두지 않음, 신규 계정은 소셜 로그인으로. daniel)
   async function submit() {
     if (!email || !password) {
       Alert.alert(t('auth.needInput'), '');
       return;
     }
     setLoading(true);
-    const { error } =
-      mode === 'signin'
-        ? await supabase.auth.signInWithPassword({ email, password })
-        : await supabase.auth.signUp({ email, password });
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
-
-    if (error) {
-      Alert.alert('!', error.message);
-      return;
-    }
-    if (mode === 'signup') {
-      Alert.alert(t('auth.signupTitle'), t('auth.signupDone'));
-    }
+    if (error) { Alert.alert('!', error.message); return; }
   }
 
-  // 구글 OAuth — 인증 URL 을 받아 외부 브라우저로 열고, 복귀(deep-link)는 useAuth 가 처리.
-  async function signInWithGoogle() {
+  // 공용 OAuth(구글·애플) — Supabase 네이티브 프로바이더. 인증 URL 을 받아 외부 브라우저로 열고,
+  //   복귀(deep-link: ?code=)는 useAuth 가 exchangeCodeForSession 으로 처리.
+  async function signInWithOAuth(provider: 'google' | 'apple') {
     setLoading(true);
     const redirectTo = Linking.createURL('auth-callback'); // syncfortune://auth-callback
     const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
+      provider,
       options: { redirectTo, skipBrowserRedirect: true }, // URL 만 받아 직접 연다(웹 자동리다이렉트 억제)
     });
     setLoading(false);
@@ -54,11 +45,25 @@ export function AuthScreen() {
     if (data?.url) await Linking.openURL(data.url);
   }
 
+  // 네이버 — Supabase 미지원 프로바이더라 커스텀 Edge(naver-auth)가 OAuth 를 오케스트레이션한다.
+  //   앱은 Edge 진입 URL 만 연다 → Edge: 네이버 인증 → 프로필 → Supabase 유저 → 매직링크 토큰 →
+  //   syncfortune://auth-callback?token_hash=&type=magiclink 로 복귀 → useAuth 가 verifyOtp 로 세션 확립.
+  async function signInWithNaver() {
+    setLoading(true); // 외부 브라우저 전환까지 버튼 비활성(중복 탭 방지)
+    try {
+      const appRedirect = Linking.createURL('auth-callback');               // syncfortune://auth-callback
+      const fnBase = (process.env.EXPO_PUBLIC_SUPABASE_URL ?? '').replace(/\/+$/, '');
+      if (!fnBase) { Alert.alert('!', t('common.error')); return; }
+      await Linking.openURL(`${fnBase}/functions/v1/naver-auth?app_redirect=${encodeURIComponent(appRedirect)}`);
+    } catch (e) { Alert.alert('!', (e as Error).message); }
+    finally { setLoading(false); }
+  }
+
   return (
     <View style={styles.wrap}>
       <Text style={styles.title}>{t('appName')}</Text>
       <View style={styles.divider} />
-      <Text style={styles.sub}>{mode === 'signin' ? t('auth.signin') : t('auth.signupTitle')}</Text>
+      <Text style={styles.sub}>{t('auth.signin')}</Text>
 
       <TextInput
         style={styles.input}
@@ -83,12 +88,8 @@ export function AuthScreen() {
         {loading ? (
           <ActivityIndicator color={colors.white} />
         ) : (
-          <Text style={styles.btnText}>{mode === 'signin' ? t('auth.signin') : t('common.signup')}</Text>
+          <Text style={styles.btnText}>{t('auth.signin')}</Text>
         )}
-      </Pressable>
-
-      <Pressable onPress={() => setMode(mode === 'signin' ? 'signup' : 'signin')}>
-        <Text style={styles.toggle}>{mode === 'signin' ? t('auth.toSignup') : t('auth.toSignin')}</Text>
       </Pressable>
 
       {/* 구분선 (또는) */}
@@ -98,10 +99,20 @@ export function AuthScreen() {
         <View style={styles.orLine} />
       </View>
 
-      {/* 구글 로그인 — 흰 배경·구글 가이드라인 색(이메일 버튼과 시각 구분) */}
-      <Pressable style={[styles.googleBtn, loading && styles.btnDisabled]} onPress={signInWithGoogle} disabled={loading}>
+      {/* 소셜 로그인 — 애플·구글·네이버 (각 브랜드 색) */}
+      <Pressable style={[styles.appleBtn, loading && styles.btnDisabled]} onPress={() => signInWithOAuth('apple')} disabled={loading}>
+        <Text style={styles.appleLogo}></Text>
+        <Text style={styles.appleText}>{t('auth.apple')}</Text>
+      </Pressable>
+
+      <Pressable style={[styles.googleBtn, loading && styles.btnDisabled]} onPress={() => signInWithOAuth('google')} disabled={loading}>
         <Text style={styles.googleG}>G</Text>
         <Text style={styles.googleText}>{t('auth.google')}</Text>
+      </Pressable>
+
+      <Pressable style={[styles.naverBtn, loading && styles.btnDisabled]} onPress={signInWithNaver} disabled={loading}>
+        <Text style={styles.naverN}>N</Text>
+        <Text style={styles.naverText}>{t('auth.naver')}</Text>
       </Pressable>
     </View>
   );
@@ -131,4 +142,18 @@ const styles = StyleSheet.create({
   },
   googleG: { color: '#4285F4', fontSize: 18, fontWeight: '800' }, // 구글 블루 G
   googleText: { color: '#1F1F1F', fontSize: 16, fontWeight: '700' },
+  // 애플 — 검정 배경(애플 브랜드 가이드)
+  appleBtn: {
+    flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: space(2.5),
+    backgroundColor: '#000', borderRadius: radius.md, padding: space(4), marginTop: space(3), ...shadow.card,
+  },
+  appleLogo: { color: '#fff', fontSize: 18, marginTop: -2 }, // Apple 로고 글리프
+  appleText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  // 네이버 — 브랜드 그린(#03C75A) 배경, 흰 N
+  naverBtn: {
+    flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: space(2.5),
+    backgroundColor: '#03C75A', borderRadius: radius.md, padding: space(4), marginTop: space(3), ...shadow.card,
+  },
+  naverN: { color: '#fff', fontSize: 18, fontWeight: '900' },
+  naverText: { color: '#fff', fontSize: 16, fontWeight: '700' },
 });
