@@ -6,10 +6,10 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { supabase } from './supabase';
 
-export type CreditKind = 'reading' | 'ziwei' | 'compat' | 'timeline' | 'followup';
+export type CreditKind = 'reading' | 'ziwei' | 'compat' | 'timeline' | 'followup' | 'love';
 export const CREDIT_KINDS: { key: CreditKind; ko: string }[] = [
   { key: 'reading', ko: '사주 풀이' }, { key: 'ziwei', ko: '자미두수' }, { key: 'compat', ko: '궁합' },
-  { key: 'timeline', ko: '인생 타임라인' }, { key: 'followup', ko: '추가 질문' },
+  { key: 'timeline', ko: '인생 타임라인' }, { key: 'followup', ko: '추가 질문' }, { key: 'love', ko: '나의 애정흐름' },
 ];
 
 export type RedeemResult =

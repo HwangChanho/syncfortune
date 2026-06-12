@@ -2,12 +2,15 @@
 // ─────────────────────────────────────────────────────────────────────────
 // daniel 결정(2026-06): 무제한 구독 폐기(헤비 유저 API 적자 — 통변 1회≈$0.05, 손익분기 ~98회/월).
 //   → 건당 ₩2,500. mode: trial(첫 1회 무료) / perUse(건당 결제 or 광고 리워드 1회).
-// 건당 결제 = RevenueCat consumable, 광고 = AdMob rewarded — daniel 연동 전 미구현(안내).
+// 건당 결제 = RevenueCat consumable(purchases.ts), 광고 = AdMob rewarded(ads.ts) — 둘 다 실연동 완료.
+//   ★daniel: RC 키·AdMob 실 unit ID 만 app/.env 주입(.env.example), App Store Connect 상품 등록(unlock_2500 등).
 // 캐싱(Edge readings chart_id×category)이 비용 방어 — 같은 차트·영역 재호출 = API 0.
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useEffect } from 'react';
 import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
+import { purchaseConsumableRC, PRODUCT_UNLOCK_2500 } from './purchases';
+import { showRewardedAd } from './ads'; // 광고 리워드 1회 = 통변 1회 잠금 해제
 
 const TRIAL_KEY = 'free_trial_used_v1';
 
@@ -39,14 +42,18 @@ export function useEntitlement() {
     setTrialUsed(true);
   }
 
-  // 광고 리워드 1회 (AdMob rewarded) — daniel 연동 전 미구현
+  // 광고 리워드 1회 (AdMob rewarded) — 끝까지 시청(earned)해야 이 1회 잠금 해제.
+  //   미시청/닫기 = 'cancelled' throw → 호출처가 조용히 무시(잠금 유지).
   async function watchAdForReading(): Promise<void> {
-    throw new Error('광고는 준비 중입니다 (AdMob 연동 예정).');
+    const earned = await showRewardedAd();
+    if (!earned) throw new Error('cancelled');
   }
 
-  // 건당 결제 ₩2,500 (RevenueCat consumable) — daniel 연동 전 미구현
+  // 건당 결제 ₩2,500 (RevenueCat consumable). 성공=이 1회 잠금 해제. 취소='cancelled' throw(호출처 무시).
+  //   ※ 로그인 게이트는 호출처(requireLoginForPurchase) — 구매는 계정 귀속.
   async function purchaseReading(): Promise<void> {
-    throw new Error('건당 결제는 준비 중입니다 (RevenueCat 연동 예정).');
+    const ok = await purchaseConsumableRC(PRODUCT_UNLOCK_2500); // 키 미설정 시 '준비 중' throw
+    if (!ok) throw new Error('cancelled');
   }
 
   return { mode, loading, consumeTrial, watchAdForReading, purchaseReading };
