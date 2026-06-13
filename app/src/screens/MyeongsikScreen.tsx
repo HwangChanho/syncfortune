@@ -552,6 +552,8 @@ export function MyeongsikScreen({ input, onReading, onSinsal }: { input: ChartIn
                 {expandCols.map((col, i) => (
                   <View key={i} style={[styles.expCol2, col.luck && styles.expColLuck, hlExpand.has(col.label) && styles.expCol2On]}>
                     <Text style={styles.expLabel}>{col.label}</Text>
+                    {/* 대운수(입운 나이) — 대운 컬럼만 표기, 나머지 컬럼은 빈 줄로 세로 정렬 유지 */}
+                    <Text style={styles.expAge}>{col.label === '대운' && lc ? `${lc.startAge}세` : ' '}</Text>
                     <Text style={styles.expTg}>{col.tg}</Text>
                     <GzCell char={col.stem} kind="stem" size="sm" onPress={() => setGlossary({ kind: 'stem', key: col.stem })} />
                     <GzCell char={col.branch} kind="branch" size="sm" onPress={() => setGlossary({ kind: 'branch', key: col.branch })} />
@@ -900,6 +902,7 @@ const styles = StyleSheet.create({
   expCol2: { width: 50, alignItems: 'center', paddingVertical: space(0.5) },   // 고정폭(합충 호 좌표용)
   expColLuck: { backgroundColor: colors.juSoft, borderRadius: radius.sm },
   expLabel: { fontSize: 11, color: colors.inkFaint, marginBottom: 2, fontWeight: '600' },
+  expAge: { fontSize: 9, color: colors.ju, marginBottom: 2, fontWeight: '700' },  // 대운수(입운 나이) — 대운 컬럼 강조
   expTg: { fontSize: 11, color: colors.inkSoft, marginBottom: 2, fontWeight: '600' },
   expStage: { fontSize: 10, color: colors.inkFaint, fontWeight: '600', marginTop: 1 },   // 12운성
   expHidden: { alignItems: 'center', marginTop: 4 },
