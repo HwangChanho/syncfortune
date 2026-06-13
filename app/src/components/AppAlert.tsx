@@ -5,14 +5,16 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { Modal, View, Text, Pressable, StyleSheet } from 'react-native';
 import { useEffect, useState } from 'react';
-import { registerAlertHost, type AlertOpts } from '../lib/alert';
+import { registerAlertHost, alertDismissed, type AlertOpts } from '../lib/alert';
 import { colors, radius, space, shadow, font } from '../lib/theme';
 
 export function AppAlert() {
   const [opts, setOpts] = useState<AlertOpts | null>(null);
   useEffect(() => { registerAlertHost(setOpts); }, []);
 
-  const close = () => setOpts(null);
+  // 닫기 = 모달 내림 + (fade 끝난 뒤) 큐의 다음 알림 표시. 350ms = fade(약 300) 여유.
+  //   ★연속/연타 Alert 가 transition 겹쳐 크래시 나는 걸 큐(alert.ts)로 순차화 — 여기서 dismiss 완료를 알린다.
+  const close = () => { setOpts(null); setTimeout(alertDismissed, 350); };
   const horizontal = (opts?.buttons.length ?? 0) <= 2;
 
   // ⚠️ Modal 은 항상 마운트하고 visible 로만 토글한다(이전엔 opts 없으면 return null → Modal unmount).
@@ -32,7 +34,7 @@ export function AppAlert() {
                 return (
                   <Pressable key={i}
                     style={[styles.btn, horizontal && styles.btnFlex, cancel && styles.btnCancel, danger && styles.btnDanger]}
-                    onPress={() => { close(); if (b.onPress) setTimeout(b.onPress, 360); }}>
+                    onPress={() => { const cb = b.onPress; close(); cb?.(); }}>
                     <Text style={[styles.btnTx, cancel && styles.btnTxCancel, danger && styles.btnTxDanger]}>{b.text}</Text>
                   </Pressable>
                 );
