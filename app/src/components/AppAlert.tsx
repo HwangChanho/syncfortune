@@ -32,7 +32,7 @@ export function AppAlert() {
                 return (
                   <Pressable key={i}
                     style={[styles.btn, horizontal && styles.btnFlex, cancel && styles.btnCancel, danger && styles.btnDanger]}
-                    onPress={() => { close(); b.onPress?.(); }}>
+                    onPress={() => { close(); if (b.onPress) setTimeout(b.onPress, 360); }}>
                     <Text style={[styles.btnTx, cancel && styles.btnTxCancel, danger && styles.btnTxDanger]}>{b.text}</Text>
                   </Pressable>
                 );
