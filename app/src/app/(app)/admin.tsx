@@ -39,10 +39,10 @@ export default function AdminRoute() {
         setBusy(true);
         try {
           const ok = await adminGrantCredit(u.id, kind);
-          if (ok && detail) adminUserDetail(u.id).then(setDetail).catch(() => {}); // 보유 갱신
-          Alert.alert(ok ? '선물 완료' : '실패', ok ? `‘${ko}’ 이용권 1장을 지급했어요.` : '오류가 발생했어요.');
+          if (ok && detail) adminUserDetail(u.id).then(setDetail).catch(() => {}); // 보유 +1 갱신 = 성공 피드백
+          if (!ok) Alert.alert('실패', '오류가 발생했어요.');                       // ★성공 '완료' Alert 제거 — 확인→완료 연속 모달 present 충돌(크래시) 원천 차단. 성공은 보유 갱신으로만 피드백.
         } catch (e: any) {
-          Alert.alert('실패', String(e?.message ?? e)); // 처리 안 된 에러로 크래시 방지
+          Alert.alert('실패', String(e?.message ?? e));
         } finally { setBusy(false); }
       } },
     ]);
