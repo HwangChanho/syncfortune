@@ -24,6 +24,20 @@ import Svg, { Path, Rect, Circle, Text as SvgText, G } from 'react-native-svg';
 // 전통 표기 — 오른쪽이 년주: 시(왼) ← 일 ← 월 ← 년(오른쪽)
 const POS: PillarPos[] = ['시', '일', '월', '년'];
 
+// 신강/신약 특징(신강약 섹션 탭 → 상세 시트). ★명리 stance = daniel 검수 슬롯. en/ja i18n 은 검수 후.
+const STRENGTH_INFO: { key: '신강' | '신약'; title: string; traits: string; strong: string; caution: string; yongsin: string }[] = [
+  { key: '신강', title: '신강 (身強)',
+    traits: '일간이 뿌리 깊고 비겁·인성이 받쳐주는 사주. 자기 주관이 뚜렷하고 추진력·독립심이 강합니다.',
+    strong: '주도적이고 위기에 강하며, 자기 힘으로 밀어붙이는 돌파력과 리더십이 있습니다.',
+    caution: '힘이 과하면 독선·고집으로 흐르고 주변과 타협이 어려울 수 있습니다.',
+    yongsin: '식상·재성·관성으로 힘을 덜어 균형 잡는 게 관건 — 일·재물·관계·책임에 힘을 쓸 때 성취가 큽니다.' },
+  { key: '신약', title: '신약 (身弱)',
+    traits: '일간이 약하고 식상·재성·관성에 기운을 내주는 사주. 유연하고 섬세하며 환경에 잘 맞춥니다.',
+    strong: '협조·조율에 능하고 적응력이 좋아, 주변의 도움과 흐름을 활용하는 데 강합니다.',
+    caution: '힘이 너무 빠지면 의존적이거나 우유부단해지고 자신감이 약해질 수 있습니다.',
+    yongsin: '인성·비겁으로 보강하는 게 관건 — 배움·휴식·내 편(동료)을 통해 힘을 채울 때 안정됩니다.' },
+];
+
 // 간지 한 칸(오행색 배경 + 한자 + 한글음) — 대운·세운·월운 타임라인/확장명식 공용. sm=대운/원국, xs=세운/월운.
 //   onPress 주면 글자 탭 = 물상 설명(확장명식용). 타임라인 카드(선택 기능)에는 onPress 미전달(카드 탭=드릴다운 유지).
 function GzCell({ char, kind, size, onPress }: { char: string; kind: 'stem' | 'branch'; size: 'sm' | 'xs'; onPress?: () => void }) {
@@ -42,6 +56,7 @@ function GzCell({ char, kind, size, onPress }: { char: string; kind: 'stem' | 'b
 export function MyeongsikScreen({ input, onReading, onSinsal }: { input: ChartInput | null; onReading?: () => void; onSinsal?: () => void }) {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<'natal' | 'luck' | 'stars'>('natal');
+  const [strengthOpen, setStrengthOpen] = useState(false); // 신강·신약 특징 시트
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(10)).current;
   // 대운·세운·월운 타임라인 = 오른쪽(과거)→왼쪽(미래) 흐름(전통 명식). 초기엔 오른쪽 끝(과거 시작)을 보여준다.
@@ -298,8 +313,9 @@ export function MyeongsikScreen({ input, onReading, onSinsal }: { input: ChartIn
             <View key={p} style={[styles.ptCell, p === '일' && styles.ptCellDay]}>
               <View style={styles.ptHidWrap}>
                 {P[p].hiddenStems.map((h, i) => {
-                  // 통근 표시 — 이 지장간 글자가 투출 천간과 같은 오행이면(통근 뿌리) 동그라미로 강조.
-                  const rooted = allGan.some((g) => stemElement(g) === stemElement(h.stem));
+                  // 투출 표시 — 이 지장간 글자가 천간(시·일·월·년)에 *같은 글자*로 드러났으면 동그라미(透出).
+                  //   ※ 오행 통근(甲↔乙 같은 木)이 아니라 글자 일치 기준(daniel: 을목 투출 안 했으면 동그라미 X).
+                  const rooted = allGan.some((g) => g === h.stem);
                   return (
                     <Pressable key={i} onPress={() => setGlossary({ kind: 'tengod', key: h.tenGod })}>
                       <Text style={[styles.ptHid, rooted && styles.ptHidRooted, { color: elementColor[stemElement(h.stem)] }]}>{h.stem}</Text>
@@ -417,6 +433,10 @@ export function MyeongsikScreen({ input, onReading, onSinsal }: { input: ChartIn
         );
       })()}
       <Text style={styles.hint}>{c.strengthClass.reason}</Text>
+      {/* 신강·신약 특징 — 탭하면 상세 시트(성향·강점·주의·용신 방향) */}
+      <Pressable style={styles.strDetailBtn} onPress={() => setStrengthOpen(true)}>
+        <Text style={styles.strDetailBtnTx}>신강·신약 특징 자세히 보기 ›</Text>
+      </Pressable>
 
       {/* 오행 분포 (오행색 도넛 + %·개수 범례) */}
       <Text style={styles.h}>{t('myeongsik.elements')}</Text>
@@ -828,6 +848,38 @@ export function MyeongsikScreen({ input, onReading, onSinsal }: { input: ChartIn
         </Pressable>
       </Pressable>
     </Modal>
+
+    {/* 신강·신약 특징 시트 — 내 유형 강조 + 성향·강점·주의·용신 방향 */}
+    <Modal visible={strengthOpen} transparent animationType="slide" onRequestClose={() => setStrengthOpen(false)}>
+      <Pressable style={styles.sheetOverlay} onPress={() => setStrengthOpen(false)}>
+        <Pressable style={styles.sheet} onPress={() => {}}>
+          <View style={styles.sheetHandle} />
+          <Text style={styles.sheetKind}>신강·신약</Text>
+          <Text style={styles.sheetTitle}>내 명식 · {c.strengthClass.type}</Text>
+          <ScrollView style={{ maxHeight: 440 }} showsVerticalScrollIndicator={false}>
+            {STRENGTH_INFO.map((s) => {
+              const mine = c.strengthClass.type.includes(s.key === '신강' ? '강' : '약');
+              return (
+                <View key={s.key} style={[styles.strDetailCard, mine && styles.strDetailMine]}>
+                  <Text style={styles.strDetailTitle}>{s.title}{mine ? '  · 내 유형' : ''}</Text>
+                  <Text style={styles.strDetailBody}>{s.traits}</Text>
+                  <Text style={styles.strDetailLabel}>강점</Text>
+                  <Text style={styles.strDetailBody}>{s.strong}</Text>
+                  <Text style={styles.strDetailLabel}>주의</Text>
+                  <Text style={styles.strDetailBody}>{s.caution}</Text>
+                  <Text style={styles.strDetailLabel}>방향 (용신)</Text>
+                  <Text style={styles.strDetailBody}>{s.yongsin}</Text>
+                </View>
+              );
+            })}
+            <Text style={styles.sheetMeaning}>* 경향 안내예요. 정확한 풀이는 원국 전체로 봐야 합니다.</Text>
+          </ScrollView>
+          <Pressable style={styles.sheetClose} onPress={() => setStrengthOpen(false)}>
+            <Text style={styles.sheetCloseText}>닫기</Text>
+          </Pressable>
+        </Pressable>
+      </Pressable>
+    </Modal>
     </>
   );
 }
@@ -957,6 +1009,13 @@ const styles = StyleSheet.create({
   gaugeText: { ...font.caption, color: colors.ink },
   strengthRow: { flexDirection: 'row', alignItems: 'center', gap: space(4), marginTop: space(2) },
   strengthInfo: { flex: 1, gap: space(1.5) },
+  strDetailBtn: { marginTop: space(3), alignSelf: 'flex-start', paddingVertical: space(1) },
+  strDetailBtnTx: { ...font.caption, color: colors.ju, fontWeight: '800' },
+  strDetailCard: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.line, padding: space(4), marginBottom: space(3) },
+  strDetailMine: { borderColor: colors.ju, borderWidth: 1.5 },
+  strDetailTitle: { ...font.body, color: colors.ink, fontWeight: '800', marginBottom: space(2) },
+  strDetailLabel: { ...font.caption, color: colors.ju, fontWeight: '800', marginTop: space(2) },
+  strDetailBody: { ...font.body, color: colors.inkSoft, lineHeight: 22, marginTop: space(0.5) },
   elemLegend: { flex: 1, gap: space(1) },
   elemLegendRow: { flexDirection: 'row', alignItems: 'center', gap: space(2) },
   elemDot: { width: 10, height: 10, borderRadius: 5 },
@@ -994,7 +1053,7 @@ const styles = StyleSheet.create({
   ptGzKo: { fontSize: 9, fontWeight: '700', lineHeight: 10, opacity: 0.85 },
   ptHidWrap: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 2 },
   ptHid: { fontSize: 12, fontWeight: '700', textDecorationLine: 'underline', textDecorationStyle: 'dotted' },
-  ptHidRooted: { borderWidth: 1, borderColor: colors.ju, borderRadius: 9, paddingHorizontal: 3, paddingVertical: 0.5, textDecorationLine: 'none', overflow: 'hidden' }, // 통근 지장간 = 동그라미 강조
+  ptHidRooted: { borderWidth: 1, borderColor: colors.ju, borderRadius: 9, paddingHorizontal: 3, paddingVertical: 0.5, textDecorationLine: 'none', overflow: 'hidden' }, // 투출(透出) 지장간 = 동그라미 강조
   ptStageLink: { fontSize: 11, color: colors.inkSoft, fontWeight: '600', textAlign: 'center', textDecorationLine: 'underline', textDecorationStyle: 'dotted' },
   ptSsLink: { fontSize: 9, color: colors.ju, fontWeight: '600', lineHeight: 13, textAlign: 'center', textDecorationLine: 'underline', textDecorationStyle: 'dotted' },
   ptSsBase: { fontSize: 7, color: colors.inkFaint, fontWeight: '400', textDecorationLine: 'none' },
