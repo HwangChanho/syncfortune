@@ -44,6 +44,10 @@ export function MyeongsikScreen({ input, onReading, onSinsal }: { input: ChartIn
   const [activeTab, setActiveTab] = useState<'natal' | 'luck' | 'stars'>('natal');
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(10)).current;
+  // 대운·세운·월운 타임라인 = 오른쪽(과거)→왼쪽(미래) 흐름(전통 명식). 초기엔 오른쪽 끝(과거 시작)을 보여준다.
+  const luckScrollRef = useRef<ScrollView>(null);
+  const seunScrollRef = useRef<ScrollView>(null);
+  const monthScrollRef = useRef<ScrollView>(null);
 
   useEffect(() => {
     playSound('transition');
@@ -583,7 +587,7 @@ export function MyeongsikScreen({ input, onReading, onSinsal }: { input: ChartIn
           )}
           {/* 대운 타임라인 (천간/지지 분리, 탭 → 확장 명식·세운 갱신) */}
           <Text style={styles.luckSub}>대운 (탭하면 그 대운의 세운 펼침)</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.luckScroll} contentContainerStyle={styles.luckScrollC}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} ref={luckScrollRef} onContentSizeChange={() => luckScrollRef.current?.scrollToEnd({ animated: false })} style={styles.luckScroll} contentContainerStyle={styles.luckScrollC}>
             {luckCycles.map((l, i) => (
               <Pressable key={i} onPress={() => { setSelLuck(i); setSelSeun(0); }} style={[styles.luckCard, l.isCurrent && styles.luckCardCur, selLuck === i && styles.luckCardSel]}>
                 <Text style={styles.luckAge}>{l.startAge}세</Text>
@@ -599,7 +603,7 @@ export function MyeongsikScreen({ input, onReading, onSinsal }: { input: ChartIn
           {lc?.annuals?.length > 0 && (
             <>
               <Text style={styles.luckSub}>{lc.startAge}세 대운 · 세운 (탭하면 위 명식에 반영)</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.luckScroll} contentContainerStyle={styles.luckScrollC}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} ref={seunScrollRef} onContentSizeChange={() => seunScrollRef.current?.scrollToEnd({ animated: false })} style={styles.luckScroll} contentContainerStyle={styles.luckScrollC}>
                 {lc.annuals.map((a: any, j: number) => (
                   <Pressable key={j} onPress={() => { setSelSeun(j); setSelMonth(0); }} style={[styles.seunCard, selSeun === j && styles.luckCardSel, a.year === s.annual?.year && styles.seunCur]}>
                     <Text style={styles.seunYear}>{a.year}</Text>
@@ -616,7 +620,7 @@ export function MyeongsikScreen({ input, onReading, onSinsal }: { input: ChartIn
           {an?.months && an.months.length > 0 && (
             <>
               <Text style={styles.luckSub}>{an.year} 세운 · 월운 (탭하면 위 명식에 반영)</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.luckScroll} contentContainerStyle={styles.luckScrollC}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} ref={monthScrollRef} onContentSizeChange={() => monthScrollRef.current?.scrollToEnd({ animated: false })} style={styles.luckScroll} contentContainerStyle={styles.luckScrollC}>
                 {an.months.map((m: any, k: number) => (
                   <Pressable key={k} onPress={() => setSelMonth(k)} style={[styles.seunCard, selMonth === k && styles.luckCardSel]}>
                     <Text style={styles.seunYear}>{k + 1}월</Text>
@@ -877,7 +881,7 @@ const styles = StyleSheet.create({
   layerChipTx: { fontSize: 12, fontWeight: '700', color: colors.inkFaint },
   layerChipTxOn: { color: colors.ju },
   luckScroll: { marginTop: space(2) },
-  luckScrollC: { gap: space(1.5), paddingRight: space(2) },
+  luckScrollC: { gap: space(1.5), flexDirection: 'row-reverse', paddingHorizontal: space(2) },
   luckCard: { alignItems: 'center', paddingVertical: space(2), paddingHorizontal: space(2.5), borderRadius: radius.sm, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, minWidth: 58 },
   luckCardCur: { borderColor: colors.ju },
   luckCardSel: { backgroundColor: colors.juSoft, borderColor: colors.ju, borderWidth: 1.5 },
