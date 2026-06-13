@@ -12,7 +12,7 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { CREDIT_KINDS, loadCredits, redeemCoupon, grantCredit, type CreditKind } from '../../lib/coupons';
 import { listCharts, getRepresentativeId, setRepresentative, type SavedChart } from '../../lib/myChart';
-import { purchaseCreditRC, purchasesEnabled } from '../../lib/purchases';
+import { purchaseCreditRC, purchasesEnabled, priceStringsRC, CREDIT_PRODUCT } from '../../lib/purchases';
 import { colors, radius, space, shadow, font } from '../../lib/theme';
 
 // 이용권 kind → 적용할 풀이 화면(선택 명식을 대표로 둔 뒤 진입 — 대표 기준 캐시)
@@ -35,6 +35,7 @@ export default function MarketRoute() {
   const [code, setCode] = useState('');
   const [redeeming, setRedeeming] = useState(false);
   const [busy, setBusy] = useState<CreditKind | null>(null); // 구매 진행 중 kind
+  const [prices, setPrices] = useState<Record<string, string>>({}); // 현지통화 가격(RC) — 미설정 시 ₩ 폴백
 
   useEffect(() => {
     (async () => {
@@ -42,6 +43,10 @@ export default function MarketRoute() {
       const repId = await getRepresentativeId();
       setSel(list.find((c) => c.id === repId) ?? list[0] ?? null);
       loadCredits().then(setCredits).catch(() => {});
+      // 현지 통화 가격(RC) 일괄 로드 — USD 기준 등록 시 사용자 지역 통화로 자동 표시. 미설정/실패 시 ₩ 폴백.
+      priceStringsRC(CREDIT_KINDS.map((c) => CREDIT_PRODUCT[c.key])).then((m) => {
+        setPrices(Object.fromEntries(CREDIT_KINDS.map((c) => [c.key, m[CREDIT_PRODUCT[c.key]] ?? `₩${c.price.toLocaleString()}`])));
+      }).catch(() => {});
     })();
   }, []);
 
@@ -107,7 +112,7 @@ export default function MarketRoute() {
           <View key={c.key} style={styles.card}>
             <View style={{ flex: 1 }}>
               <Text style={styles.name}>{c.ko}</Text>
-              <Text style={styles.price}>₩{c.price.toLocaleString()}</Text>
+              <Text style={styles.price}>{prices[c.key] ?? `₩${c.price.toLocaleString()}`}</Text>
               <Text style={[styles.have, owned && styles.haveOn]}>{owned ? t('market.owned') : t('market.notOwned')}</Text>
             </View>
             {owned ? (

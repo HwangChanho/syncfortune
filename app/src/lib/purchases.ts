@@ -122,3 +122,12 @@ export async function priceStringRC(productId: string, fallback: string): Promis
     return products[0]?.priceString ?? fallback;
   } catch { return fallback; }
 }
+
+/** 여러 상품의 현지 통화 가격 일괄 조회 — { productId: priceString }. RC 미설정/실패 시 빈 객체(호출처가 ₩ 폴백). */
+export async function priceStringsRC(productIds: string[]): Promise<Record<string, string>> {
+  if (!purchasesEnabled()) return {};
+  try {
+    const products = await Purchases.getProducts(productIds);
+    return Object.fromEntries(products.map((p: any) => [p.identifier, p.priceString]));
+  } catch { return {}; }
+}

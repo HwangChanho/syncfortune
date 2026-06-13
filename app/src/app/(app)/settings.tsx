@@ -14,7 +14,8 @@ import { isAdmin } from '../../lib/admin'; // 관리자 메뉴 노출 판정(실
 import { useAuth } from '../../lib/useAuth';               // 계정(세션)
 import { useSubscription } from '../../lib/subscription';  // 프리미엄 상태·구매
 import { requireLoginForPurchase } from '../../lib/requireLogin'; // 결제 전 로그인 게이트
-import { restorePurchasesRC } from '../../lib/purchases';  // 구매 복원
+import { restorePurchasesRC, priceStringRC, PRODUCT_PREMIUM } from '../../lib/purchases';  // 구매 복원·프리미엄 현지가
+import { PREMIUM_PRICE } from '../../lib/coupons';  // 프리미엄 폴백 가격(₩)
 import { supabase } from '../../lib/supabase';             // 로그아웃
 import { BusyOverlay } from '../../components/BusyOverlay'; // 긴 콜백(로그아웃·삭제) 로딩 오버레이
 import { colors, radius, space, shadow, font } from '../../lib/theme';
@@ -31,8 +32,11 @@ export default function SettingsScreen() {
   const { scale, setScale, fs } = useFontScale();
   const [busy, setBusy] = useState<string | null>(null); // 전체화면 로딩 오버레이 메시지(긴 콜백)
   const [admin, setAdmin] = useState(false); // 관리자 — 메뉴 노출용(실제 권한은 서버 RPC)
+  const [premPrice, setPremPrice] = useState(''); // 프리미엄 현지통화 가격(RC) — 미설정 시 ₩ 폴백
 
   useEffect(() => { isAdmin().then(setAdmin).catch(() => {}); }, []);
+  // 프리미엄 현지 통화 가격(RC) 로드 — USD 기준 등록 시 사용자 지역 통화로 자동 표시.
+  useEffect(() => { priceStringRC(PRODUCT_PREMIUM, `₩${PREMIUM_PRICE.toLocaleString()}`).then(setPremPrice).catch(() => {}); }, []);
 
   // 로그아웃 — 토큰 폐기(네트워크) 동안 오버레이. 완료 시 세션 변경으로 화면 전환.
   async function doLogout() {
@@ -120,7 +124,7 @@ export default function SettingsScreen() {
         <View style={styles.premCardOn}><Text style={styles.premOnTx}>{t('settings.premiumActive')}</Text></View>
       ) : (
         <Pressable style={styles.premBuyBtn} onPress={onBuyPremium}>
-          <Text style={styles.premBuyTx}>{t('settings.premiumBuy')}</Text>
+          <Text style={styles.premBuyTx}>{t('settings.premiumBuy')}{premPrice ? ` · ${premPrice}` : ''}</Text>
           <Text style={styles.premBuySub}>{t('settings.premiumDesc')}</Text>
         </Pressable>
       )}
