@@ -25,13 +25,16 @@ const PROD_INTERSTITIAL: Record<string, string> = {  // 현재 미사용(showInt
 };
 
 // 무료 진입 시 전면광고. 모듈 없음/로드 실패 시 조용히 통과(흐름 안 막음).
+let interstitialShowing = false; // ★연타 중복 방지 — 이미 표시/로드 중이면 재호출 무시(광고 무한노출 버그 수정)
 export async function showInterstitialAd(): Promise<void> {
   if (!Ads?.InterstitialAd) return; // 재빌드 전 = 광고 없이 통과
+  if (interstitialShowing) return;  // 이미 진행 중(버튼 연타) — 무시
+  interstitialShowing = true;
   const { InterstitialAd, AdEventType, TestIds } = Ads;
   const unitId = __DEV__ ? TestIds.INTERSTITIAL : (PROD_INTERSTITIAL[Platform.OS] ?? TestIds.INTERSTITIAL);
   return new Promise<void>((resolve) => {
     let done = false;
-    const finish = () => { if (!done) { done = true; cleanup(); resolve(); } };
+    const finish = () => { if (!done) { done = true; interstitialShowing = false; cleanup(); resolve(); } };
     const ad = InterstitialAd.createForAdRequest(unitId, { requestNonPersonalizedAdsOnly: true });
     const offLoaded = ad.addAdEventListener(AdEventType.LOADED, () => { ad.show().catch(finish); });
     const offClosed = ad.addAdEventListener(AdEventType.CLOSED, finish);
@@ -47,14 +50,17 @@ export async function showInterstitialAd(): Promise<void> {
 
 // 보상형 광고 — 끝까지 시청(EARNED_REWARD) 시 true. 닫기/실패/모듈없음 = false.
 //   만세력 추가 게이트·무료 통변 리워드에서 사용(true 일 때만 보상 지급).
+let rewardedShowing = false; // ★연타 중복 방지 — 이미 표시/로드 중이면 재호출 무시(광고 무한노출 버그 수정)
 export async function showRewardedAd(): Promise<boolean> {
   if (!Ads?.RewardedAd) return false; // 재빌드 전 = 보상 없음(호출처가 폴백 판단)
+  if (rewardedShowing) return false;  // 이미 진행 중(버튼 연타) — 무시
+  rewardedShowing = true;
   const { RewardedAd, RewardedAdEventType, AdEventType, TestIds } = Ads;
   const unitId = __DEV__ ? TestIds.REWARDED : (PROD_REWARDED[Platform.OS] ?? TestIds.REWARDED);
   return new Promise<boolean>((resolve) => {
     let earned = false;
     let done = false;
-    const finish = (v: boolean) => { if (!done) { done = true; cleanup(); resolve(v); } };
+    const finish = (v: boolean) => { if (!done) { done = true; rewardedShowing = false; cleanup(); resolve(v); } };
     const ad = RewardedAd.createForAdRequest(unitId, { requestNonPersonalizedAdsOnly: true });
     const offLoaded = ad.addAdEventListener(RewardedAdEventType.LOADED, () => { ad.show().catch(() => finish(false)); });
     const offEarned = ad.addAdEventListener(RewardedAdEventType.EARNED_REWARD, () => { earned = true; });
