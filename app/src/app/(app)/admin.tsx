@@ -37,9 +37,13 @@ export default function AdminRoute() {
       { text: '취소', style: 'cancel' },
       { text: '지급', onPress: async () => {
         setBusy(true);
-        const ok = await adminGrantCredit(u.id, kind);
-        setBusy(false);
-        Alert.alert(ok ? '선물 완료' : '실패', ok ? `‘${ko}’ 이용권 1장을 지급했어요.` : '오류가 발생했어요.');
+        try {
+          const ok = await adminGrantCredit(u.id, kind);
+          if (ok && detail) adminUserDetail(u.id).then(setDetail).catch(() => {}); // 보유 갱신
+          Alert.alert(ok ? '선물 완료' : '실패', ok ? `‘${ko}’ 이용권 1장을 지급했어요.` : '오류가 발생했어요.');
+        } catch (e: any) {
+          Alert.alert('실패', String(e?.message ?? e)); // 처리 안 된 에러로 크래시 방지
+        } finally { setBusy(false); }
       } },
     ]);
   }
@@ -52,10 +56,13 @@ export default function AdminRoute() {
       { text: '취소', style: 'cancel' },
       { text: next ? '지급' : '해제', style: next ? 'default' : 'destructive', onPress: async () => {
         setBusy(true);
-        const ok = await adminSetPremium(u.id, next);
-        setBusy(false);
-        if (ok) { setSel({ ...u, is_premium: next }); reload(); }
-        else Alert.alert('실패', '오류가 발생했어요.');
+        try {
+          const ok = await adminSetPremium(u.id, next);
+          if (ok) { setSel({ ...u, is_premium: next }); reload(); }
+          else Alert.alert('실패', '오류가 발생했어요.');
+        } catch (e: any) {
+          Alert.alert('실패', String(e?.message ?? e));
+        } finally { setBusy(false); }
       } },
     ]);
   }
