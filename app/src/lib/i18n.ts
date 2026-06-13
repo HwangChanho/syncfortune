@@ -173,7 +173,7 @@ const ko = {
   market: { intro: '이용권을 적용할 명식을 고른 뒤, 보고 싶은 풀이를 누르세요.', applyTo: '적용할 명식', openApply: '열기', noChart: '저장된 명식이 없어요', have: '보유 {{n}}장', owned: '보유', notOwned: '미보유', buy: '구매', note: '풀이는 명식별로 저장돼요. 무료 이용권(쿠폰)은 아래에서 등록하세요.', doneTitle: '구매 완료', doneMsg: '이용권이 지급되었어요.', payPending: '결제 준비 중', buyFailTitle: '구매 실패' },
   dayPillar: {
     title: '일주론', sub: '태어난 날의 간지(일주)로 보는 타고난 기질이에요.',
-    male: '남자', female: '여자', mine: '내 일주', browseAll: '전체 일주 60', dayGroup: '일주', tapHint: '일주를 탭하면 상세 풀이가 펼쳐져요.',
+    male: '남자', female: '여자', mine: '내 일주', browseAll: '전체 일주 60', dayGroup: '일주', tapHint: '일주를 탭하면 상세 풀이가 펼쳐져요.', mineList: '내 명식 일주', noChart: '등록된 명식이 없어요. 명식을 먼저 등록하세요.',
     s_overview: '개요', s_personality: '성격', s_love: '연애·결혼', s_career: '직업·재물', s_male: '남성', s_female: '여성', s_advice: '조언',
     disclaimer: '일주론은 타고난 기질의 한 단면일 뿐이에요. 정확한 풀이는 일주만이 아니라 연·월·시 기둥과 합충·용신까지 사주원국 전체를 함께 봐야 해요.',
   },
@@ -348,7 +348,7 @@ const en = {
   market: { intro: 'Pick the chart to apply to, then tap a reading.', applyTo: 'Apply to', openApply: 'Open', noChart: 'No saved chart', have: 'You have {{n}}', owned: 'Owned', notOwned: 'Not owned', buy: 'Buy', note: 'Readings are saved per chart. Redeem free passes (coupons) below.', doneTitle: 'Purchased', doneMsg: 'Your pass has been added.', payPending: 'Payment not ready', buyFailTitle: 'Purchase failed' },
   dayPillar: {
     title: 'Day Pillar', sub: 'Your innate nature, seen through your birth-day pillar (ilju).',
-    male: 'Male', female: 'Female', mine: 'My Day Pillar', browseAll: 'All 60 Day Pillars', dayGroup: 'day', tapHint: 'Tap a pillar to expand its full reading.',
+    male: 'Male', female: 'Female', mine: 'My Day Pillar', browseAll: 'All 60 Day Pillars', dayGroup: 'day', tapHint: 'Tap a pillar to expand its full reading.', mineList: 'My Day Pillars', noChart: 'No saved charts. Register a chart first.',
     s_overview: 'Overview', s_personality: 'Personality', s_love: 'Love & Marriage', s_career: 'Career & Wealth', s_male: 'For Men', s_female: 'For Women', s_advice: 'Advice',
     disclaimer: "The day pillar is only one facet of your nature. A precise reading needs your whole chart — the year, month and hour pillars plus combinations, clashes and the useful god — not the day pillar alone.",
   },
@@ -523,7 +523,7 @@ const ja = {
   market: { intro: '適用する命式を選んでから、見たい鑑定をタップしてください。', applyTo: '適用する命式', openApply: '開く', noChart: '保存された命式がありません', have: '保有 {{n}}枚', owned: '保有', notOwned: '未保有', buy: '購入', note: '鑑定は命式ごとに保存されます。無料チケット（クーポン）は下で登録。', doneTitle: '購入完了', doneMsg: 'チケットが付与されました。', payPending: '決済準備中', buyFailTitle: '購入失敗' },
   dayPillar: {
     title: '日柱論', sub: '生まれた日の干支（日柱）でみる、生まれもった気質です。',
-    male: '男性', female: '女性', mine: '私の日柱', browseAll: '日柱60すべて', dayGroup: '日', tapHint: '日柱をタップすると詳しい解説が開きます。',
+    male: '男性', female: '女性', mine: '私の日柱', browseAll: '日柱60すべて', dayGroup: '日', tapHint: '日柱をタップすると詳しい解説が開きます。', mineList: '私の命式の日柱', noChart: '登録された命式がありません。先に命式を登録してください。',
     s_overview: '概要', s_personality: '性格', s_love: '恋愛·結婚', s_career: '仕事·財運', s_male: '男性', s_female: '女性', s_advice: 'アドバイス',
     disclaimer: '日柱論は生まれもった気質の一面にすぎません。正確な鑑定は日柱だけでなく、年·月·時の柱や合冲·用神まで、命式全体を合わせてみる必要があります。',
   },

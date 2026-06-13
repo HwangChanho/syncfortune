@@ -9,7 +9,8 @@ import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator } from
 import { Stack } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { computeChart } from '../../lib/engine';
-import { loadRepChart, type SavedChart } from '../../lib/myChart';
+import { loadRepChart, listCharts, type SavedChart } from '../../lib/myChart';
+import { isAdmin } from '../../lib/admin';
 import { DAY_PILLAR, dayPillarKey, type DayPillarTrait } from '../../lib/dayPillar';
 import { stemReading, branchReading } from '../../lib/ohaeng';
 import { useFontScale } from '../../lib/fontScale';
@@ -42,6 +43,9 @@ export default function DayPillarScreen() {
   const [loaded, setLoaded] = useState(false);
   const [sex, setSex] = useState<'남' | '여'>('남');       // 보기 성별 — 대표 명식 성별로 초기화
   const [open, setOpen] = useState<Set<string>>(new Set()); // 펼쳐진 일주(아코디언)
+  const [admin, setAdmin] = useState(false);                // 관리자만 60갑자 전체·남녀 토글 열람
+  // 일반 유저가 볼 일주 = 등록한 명식들의 일주만(명식별 성별·라벨 포함). 관리자는 전체 60을 본다.
+  const [myItems, setMyItems] = useState<{ key: string; sex: '남' | '여'; label: string }[]>([]);
 
   // 대표 명식 로드 → 내 일주키 + 성별 추출(온디바이스, PII는 기기 밖으로 안 나감)
   useEffect(() => {
@@ -49,6 +53,15 @@ export default function DayPillarScreen() {
       const ch = await loadRepChart();
       setRep(ch);
       if (ch) setSex(ch.input.sex); // 내 성별로 기본 보기 설정
+      isAdmin().then(setAdmin).catch(() => {}); // 관리자면 전체 60·남녀 토글 노출
+      // 등록된 모든 명식의 일주 + 성별(일반 유저 목록용). 같은 일주 중복은 명식 단위로 허용(label 로 구분).
+      const charts = await listCharts();
+      const items = charts.map((c) => {
+        const day = computeChart(c.input).saju.pillars['일'];
+        const key = dayPillarKey(day?.stem, day?.branch);
+        return key ? { key, sex: c.input.sex, label: c.label } : null;
+      }).filter(Boolean) as { key: string; sex: '남' | '여'; label: string }[];
+      setMyItems(items);
       setLoaded(true);
     })().catch(() => setLoaded(true));
   }, []);
@@ -62,12 +75,11 @@ export default function DayPillarScreen() {
 
   const toggle = (k: string) => setOpen((prev) => { const n = new Set(prev); n.has(k) ? n.delete(k) : n.add(k); return n; });
   const bodyDyn = { fontSize: fs(15), lineHeight: fs(25) };
-  const sections = sectionList(sex);
 
-  // 한 일주의 전체 섹션 렌더(개요·성격·…·조언)
-  const renderSections = (k: string) => {
+  // 한 일주의 전체 섹션 렌더. sx = 성별 기준(관리자=토글 sex / 일반=각 명식 성별).
+  const renderSections = (k: string, sx: '남' | '여' = sex) => {
     const d = DAY_PILLAR[k];
-    return sections.map((s) => (
+    return sectionList(sx).map((s) => (
       <View key={s.field} style={styles.section}>
         <Text style={styles.secLabel}>{t(s.tk)}</Text>
         <Text style={[styles.detailTx, bodyDyn]}>{d[s.field] as string}</Text>
@@ -84,14 +96,16 @@ export default function DayPillarScreen() {
       <Text style={styles.h}>{t('dayPillar.title')}</Text>
       <Text style={styles.sub}>{t('dayPillar.sub')}</Text>
 
-      {/* 남/여 보기 토글 — 일주론은 성별로 발현이 다름(daniel) */}
-      <View style={styles.toggle}>
-        {(['남', '여'] as const).map((g) => (
-          <Pressable key={g} style={[styles.toggleBtn, sex === g && styles.toggleOn]} onPress={() => setSex(g)}>
-            <Text style={[styles.toggleTx, sex === g && styles.toggleTxOn]}>{t(g === '남' ? 'dayPillar.male' : 'dayPillar.female')}</Text>
-          </Pressable>
-        ))}
-      </View>
+      {/* 남/여 보기 토글 — 관리자만(전체 열람). 일반 유저는 본인/명식 성별로 고정 표시. */}
+      {admin && (
+        <View style={styles.toggle}>
+          {(['남', '여'] as const).map((g) => (
+            <Pressable key={g} style={[styles.toggleBtn, sex === g && styles.toggleOn]} onPress={() => setSex(g)}>
+              <Text style={[styles.toggleTx, sex === g && styles.toggleTxOn]}>{t(g === '남' ? 'dayPillar.male' : 'dayPillar.female')}</Text>
+            </Pressable>
+          ))}
+        </View>
+      )}
 
       {/* 내 일주 — 풀상세 강조 카드(대표 명식 있을 때) */}
       {myKey && (
@@ -104,37 +118,58 @@ export default function DayPillarScreen() {
             </View>
             {/* 태그↔본문 사이 넉넉한 간격(daniel) */}
             <View style={styles.gap} />
-            {renderSections(myKey)}
+            {renderSections(myKey, rep?.input.sex ?? sex)}
           </View>
         </View>
       )}
 
-      {/* 전체 60일주 — 일간(천간)별 그룹. 행 탭 → 섹션 펼침(아코디언). 내 일주는 골드 강조. */}
-      <Text style={styles.browseH}>{t('dayPillar.browseAll')}</Text>
-      <Text style={styles.browseHint}>{t('dayPillar.tapHint')}</Text>
-      {STEMS.map((stem) => {
-        const keys = Object.keys(DAY_PILLAR).filter((k) => k[0] === stem); // 이 천간의 일주 6개
-        return (
-          <View key={stem} style={styles.group}>
-            <Text style={styles.groupH}>{stemReading(stem)}({stem}) {t('dayPillar.dayGroup')}</Text>
-            {keys.map((k) => {
-              const isOpen = open.has(k);
-              return (
-                <Pressable key={k} onPress={() => toggle(k)} style={[styles.card, styles.row, k === myKey && styles.rowMineHi]}>
-                  <View style={styles.rowHead}>
-                    <Text style={styles.rowKey}>{label(k)}</Text>
-                    <Text style={styles.chevron}>{isOpen ? '∧' : '∨'}</Text>
-                  </View>
-                  <View style={styles.kwRow}>
-                    {DAY_PILLAR[k].keywords.map((w) => (<View key={w} style={styles.kw}><Text style={styles.kwTx}>{w}</Text></View>))}
-                  </View>
-                  {isOpen && (<><View style={styles.gap} />{renderSections(k)}</>)}
-                </Pressable>
-              );
-            })}
-          </View>
-        );
-      })}
+      {/* 일주 목록 — 관리자: 전체 60(천간별 그룹) / 일반: 등록된 명식의 일주만. 내 일주는 골드 강조. */}
+      <Text style={styles.browseH}>{admin ? t('dayPillar.browseAll') : t('dayPillar.mineList')}</Text>
+      {admin && <Text style={styles.browseHint}>{t('dayPillar.tapHint')}</Text>}
+      {admin ? (
+        STEMS.map((stem) => {
+          const keys = Object.keys(DAY_PILLAR).filter((k) => k[0] === stem); // 이 천간의 일주 6개
+          return (
+            <View key={stem} style={styles.group}>
+              <Text style={styles.groupH}>{stemReading(stem)}({stem}) {t('dayPillar.dayGroup')}</Text>
+              {keys.map((k) => {
+                const isOpen = open.has(k);
+                return (
+                  <Pressable key={k} onPress={() => toggle(k)} style={[styles.card, styles.row, k === myKey && styles.rowMineHi]}>
+                    <View style={styles.rowHead}>
+                      <Text style={styles.rowKey}>{label(k)}</Text>
+                      <Text style={styles.chevron}>{isOpen ? '∧' : '∨'}</Text>
+                    </View>
+                    <View style={styles.kwRow}>
+                      {DAY_PILLAR[k].keywords.map((w) => (<View key={w} style={styles.kw}><Text style={styles.kwTx}>{w}</Text></View>))}
+                    </View>
+                    {isOpen && (<><View style={styles.gap} />{renderSections(k, sex)}</>)}
+                  </Pressable>
+                );
+              })}
+            </View>
+          );
+        })
+      ) : (
+        // 일반 유저 — 등록된 명식들의 일주만(각 명식 성별로). 같은 일주 여러 명식은 label 로 구분.
+        myItems.map((it, i) => {
+          const ok = `${it.key}_${i}`; // 명식별 고유 토글 키(같은 일주 중복 대비)
+          const isOpen = open.has(ok);
+          return (
+            <Pressable key={ok} onPress={() => toggle(ok)} style={[styles.card, styles.row, it.key === myKey && styles.rowMineHi]}>
+              <View style={styles.rowHead}>
+                <Text style={styles.rowKey}>{it.label} · {label(it.key)}</Text>
+                <Text style={styles.chevron}>{isOpen ? '∧' : '∨'}</Text>
+              </View>
+              <View style={styles.kwRow}>
+                {DAY_PILLAR[it.key].keywords.map((w) => (<View key={w} style={styles.kw}><Text style={styles.kwTx}>{w}</Text></View>))}
+              </View>
+              {isOpen && (<><View style={styles.gap} />{renderSections(it.key, it.sex)}</>)}
+            </Pressable>
+          );
+        })
+      )}
+      {!admin && myItems.length === 0 && <Text style={styles.browseHint}>{t('dayPillar.noChart')}</Text>}
 
       {/* 면책 — 일주론은 경향일 뿐, 정확한 풀이는 원국 전체 비교 필요(daniel 필수 코멘트) */}
       <View style={styles.disclaimer}>
