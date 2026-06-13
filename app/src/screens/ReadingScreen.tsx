@@ -56,7 +56,7 @@ function asText(v: any): string {
 import { SAJU_READING_CATEGORIES as SAJU_CATEGORIES, ensureServerChartId } from '../lib/prewarmReadings';
 
 export function ReadingScreen({
-  input, savedChart, categories, kind = 'saju', titleKey = 'reading.title', subKey = 'reading.sub',
+  input, savedChart, categories, kind = 'saju',
 }: {
   input: ChartInput | null;
   savedChart?: SavedChart | null;
@@ -319,9 +319,7 @@ export function ReadingScreen({
   return (
     <>
     <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>
-      <Text style={styles.h}>{t(titleKey)}</Text>
-      <Text style={styles.sub}>{t(subKey)}</Text>
-
+      {/* 상단 타이틀·설명 제거(daniel: 카드뷰만) — 화면 헤더(네비)로 충분 */}
       {/* 생성 버튼 + 과금 안내(미생성 항목이 있을 때만) */}
       {showStart && (
         <>
