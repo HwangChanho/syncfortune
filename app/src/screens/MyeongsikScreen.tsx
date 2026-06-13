@@ -297,11 +297,15 @@ export function MyeongsikScreen({ input, onReading, onSinsal }: { input: ChartIn
           {visiblePos.map((p) => (
             <View key={p} style={[styles.ptCell, p === '일' && styles.ptCellDay]}>
               <View style={styles.ptHidWrap}>
-                {P[p].hiddenStems.map((h, i) => (
-                  <Pressable key={i} onPress={() => setGlossary({ kind: 'tengod', key: h.tenGod })}>
-                    <Text style={[styles.ptHid, { color: elementColor[stemElement(h.stem)] }]}>{h.stem}</Text>
-                  </Pressable>
-                ))}
+                {P[p].hiddenStems.map((h, i) => {
+                  // 통근 표시 — 이 지장간 글자가 투출 천간과 같은 오행이면(통근 뿌리) 동그라미로 강조.
+                  const rooted = allGan.some((g) => stemElement(g) === stemElement(h.stem));
+                  return (
+                    <Pressable key={i} onPress={() => setGlossary({ kind: 'tengod', key: h.tenGod })}>
+                      <Text style={[styles.ptHid, rooted && styles.ptHidRooted, { color: elementColor[stemElement(h.stem)] }]}>{h.stem}</Text>
+                    </Pressable>
+                  );
+                })}
               </View>
             </View>
           ))}
@@ -990,6 +994,7 @@ const styles = StyleSheet.create({
   ptGzKo: { fontSize: 9, fontWeight: '700', lineHeight: 10, opacity: 0.85 },
   ptHidWrap: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 2 },
   ptHid: { fontSize: 12, fontWeight: '700', textDecorationLine: 'underline', textDecorationStyle: 'dotted' },
+  ptHidRooted: { borderWidth: 1, borderColor: colors.ju, borderRadius: 9, paddingHorizontal: 3, paddingVertical: 0.5, textDecorationLine: 'none', overflow: 'hidden' }, // 통근 지장간 = 동그라미 강조
   ptStageLink: { fontSize: 11, color: colors.inkSoft, fontWeight: '600', textAlign: 'center', textDecorationLine: 'underline', textDecorationStyle: 'dotted' },
   ptSsLink: { fontSize: 9, color: colors.ju, fontWeight: '600', lineHeight: 13, textAlign: 'center', textDecorationLine: 'underline', textDecorationStyle: 'dotted' },
   ptSsBase: { fontSize: 7, color: colors.inkFaint, fontWeight: '400', textDecorationLine: 'none' },
