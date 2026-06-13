@@ -10,8 +10,9 @@ import { Alert } from '../../lib/alert'; // 커스텀 알림(앱 디자인)
 import { useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { CREDIT_KINDS, loadCredits, redeemCoupon, type CreditKind } from '../../lib/coupons';
+import { CREDIT_KINDS, loadCredits, redeemCoupon, grantCredit, type CreditKind } from '../../lib/coupons';
 import { listCharts, getRepresentativeId, setRepresentative, type SavedChart } from '../../lib/myChart';
+import { purchaseCreditRC, purchasesEnabled } from '../../lib/purchases';
 import { colors, radius, space, shadow, font } from '../../lib/theme';
 
 // 이용권 kind → 적용할 풀이 화면(선택 명식을 대표로 둔 뒤 진입 — 대표 기준 캐시)
@@ -33,6 +34,7 @@ export default function MarketRoute() {
   const [credits, setCredits] = useState<Record<string, number>>({});
   const [code, setCode] = useState('');
   const [redeeming, setRedeeming] = useState(false);
+  const [busy, setBusy] = useState<CreditKind | null>(null); // 구매 진행 중 kind
 
   useEffect(() => {
     (async () => {
@@ -48,6 +50,26 @@ export default function MarketRoute() {
     if (sel) await setRepresentative(sel.id);
     const r = ROUTE[kind];
     router.push({ pathname: r.pathname, params: r.kind ? { kind: r.kind } : {} });
+  }
+
+  // 이용권 구매(결제) — RevenueCat 소비성 결제 성공 → 크레딧 +1(웹훅 전 클라 반영) → 보유 갱신.
+  //   RC 미설정(키/네이티브 미포함) 시 '준비 중' 안내. 사용자 취소는 조용히 무시.
+  async function buy(kind: CreditKind) {
+    if (busy) return;
+    if (!purchasesEnabled()) { Alert.alert(t('market.payPending')); return; }
+    setBusy(kind);
+    try {
+      const ok = await purchaseCreditRC(kind);   // 결제 성공 시 true(취소=false)
+      if (ok) {
+        await grantCredit(kind);                  // 크레딧 +1 (RC 웹훅 도입 전 MVP)
+        setCredits(await loadCredits());
+        Alert.alert(t('market.doneTitle'), t('market.doneMsg'));
+      }
+    } catch (e: any) {
+      Alert.alert(t('market.buyFailTitle'), e?.message ?? '');
+    } finally {
+      setBusy(null);
+    }
   }
 
   // 쿠폰 등록(설정→마켓 이동) — 서버 검증·부여 → 결과 안내 + 보유 갱신.
@@ -88,9 +110,15 @@ export default function MarketRoute() {
               <Text style={styles.price}>₩{c.price.toLocaleString()}</Text>
               <Text style={[styles.have, owned && styles.haveOn]}>{owned ? t('market.owned') : t('market.notOwned')}</Text>
             </View>
-            <Pressable style={styles.buyBtn} onPress={() => apply(c.key)} disabled={!sel}>
-              <Text style={styles.buyTx}>{t('market.openApply')}</Text>
-            </Pressable>
+            {owned ? (
+              <Pressable style={styles.buyBtn} onPress={() => apply(c.key)} disabled={!sel}>
+                <Text style={styles.buyTx}>{t('market.openApply')}</Text>
+              </Pressable>
+            ) : (
+              <Pressable style={[styles.buyBtn, busy === c.key && styles.buyBtnBusy]} onPress={() => buy(c.key)} disabled={busy !== null}>
+                <Text style={styles.buyTx}>{busy === c.key ? '…' : t('market.buy')}</Text>
+              </Pressable>
+            )}
           </View>
         );
       })}
@@ -154,6 +182,7 @@ const styles = StyleSheet.create({
   have: { ...font.caption, color: colors.inkFaint, marginTop: 2 },
   haveOn: { color: colors.ju, fontWeight: '800' },
   buyBtn: { backgroundColor: colors.ju, borderRadius: radius.pill, paddingHorizontal: space(5), paddingVertical: space(2.5), minWidth: 84, alignItems: 'center' },
+  buyBtnBusy: { opacity: 0.5 },
   buyTx: { color: colors.bg, fontWeight: '800', fontSize: 14 },
   // 쿠폰 등록
   couponH: { ...font.heading, marginTop: space(6), marginBottom: space(3) },
