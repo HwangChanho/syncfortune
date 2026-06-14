@@ -8,6 +8,7 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { MyeongsikScreen } from '../../screens/MyeongsikScreen';
 import { loadMyChart } from '../../lib/myChart';
+import { ChartPicker } from '../../components/ChartPicker';
 import { colors, radius, space, font } from '../../lib/theme';
 import type { ChartInput } from '@spec/chart';
 
@@ -34,10 +35,11 @@ export default function ChartsScreen() {
     );
   }
 
-  // 내 명식 표시 + 풀이 진입(같은 input 전달)
+  // 명식 변경(ChartPicker, 대표 전환 시 me 갱신 → 만세력 즉시 전환) + 내 명식 표시 + 풀이 진입.
   return (
     <MyeongsikScreen
       input={me}
+      header={<ChartPicker onChange={() => loadMyChart().then(setMe)} />}
       onReading={() => router.push({ pathname: '/reading', params: { input: JSON.stringify(me) } })}
     />
   );

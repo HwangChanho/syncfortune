@@ -7,7 +7,7 @@
 // 시각 미상(timeAccuracy '미상') = 시주 ✕ + 시주 의존 항목 제외(시각 모르면 시주 불가).
 // 일주(日柱) = '나'(일간) → 골드 강조. 용신·통변은 별도(하단 "풀이 보기").
 // ─────────────────────────────────────────────────────────────────────────
-import { useMemo, useState, useEffect, useRef } from 'react';
+import { useMemo, useState, useEffect, useRef, type ReactNode } from 'react';
 import { View, Text, ScrollView, StyleSheet, Pressable, Modal, Animated } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { computeChart } from '../lib/engine';
@@ -53,7 +53,7 @@ function GzCell({ char, kind, size, onPress }: { char: string; kind: 'stem' | 'b
   return onPress ? <Pressable onPress={onPress}>{inner}</Pressable> : inner;
 }
 
-export function MyeongsikScreen({ input, onReading, onSinsal }: { input: ChartInput | null; onReading?: () => void; onSinsal?: () => void }) {
+export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input: ChartInput | null; onReading?: () => void; onSinsal?: () => void; header?: ReactNode }) {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<'natal' | 'luck' | 'stars'>('natal');
   const [strengthOpen, setStrengthOpen] = useState(false); // 신강·신약 특징 시트
@@ -242,6 +242,7 @@ export function MyeongsikScreen({ input, onReading, onSinsal }: { input: ChartIn
     </View>
 
     <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>
+      {header}
       <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
         {activeTab === 'natal' && (
         <>

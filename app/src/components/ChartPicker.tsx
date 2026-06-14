@@ -12,7 +12,7 @@ import { listCharts, setRepresentative, getRepresentativeId, getChartUsage, type
 import { useSubscription } from '../lib/subscription';
 import { colors, radius, space, shadow, font } from '../lib/theme';
 
-export function ChartPicker() {
+export function ChartPicker({ onChange }: { onChange?: () => void }) {
   const { t } = useTranslation();
   const router = useRouter();
   const { isPremium } = useSubscription(); // 프로 = 무제한(사용량 배지 숨김)
@@ -35,6 +35,7 @@ export function ChartPicker() {
     await setRepresentative(id);
     setRepId(id);
     setOpen(false);
+    onChange?.(); // 대표 변경 알림 → 호출처(만세력 등) 즉시 갱신
   }
 
   // 명식 없음 — 등록 유도
