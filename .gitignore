@@ -49,8 +49,9 @@ engine/fixtures/
 # 전략·설계 문서 (spec/chart.ts 타입 계약만 공개)
 spec/*
 !spec/chart.ts
-# 살아있는 문서·ADR·아키텍처 다이어그램
-docs/
+# 살아있는 문서·ADR·아키텍처 다이어그램 (단, 약관/개인정보 docs/legal 은 공개 — 앱 출시 필수)
+docs/*
+!docs/legal/
 # 명리 지식 레이어·물상 (moat 콘텐츠)
 knowledge/
 # L2 해석 오케스트레이터 + 시스템 프롬프트 (LLM/RAG 레이어 — moat)
