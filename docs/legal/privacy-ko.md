@@ -1,3 +1,8 @@
+---
+layout: default
+title: 개인정보처리방침
+---
+
 # SyncFortune 개인정보처리방침
 
 **최종 수정일: 2026년 6월 17일**

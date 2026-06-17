@@ -1,3 +1,8 @@
+---
+layout: default
+title: Privacy Policy
+---
+
 # SyncFortune Privacy Policy
 
 **Last updated: June 17, 2026**

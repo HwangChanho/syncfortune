@@ -1,0 +1,6 @@
+title: SyncFortune
+description: 이용약관 및 개인정보처리방침 · Terms & Privacy
+theme: jekyll-theme-cayman
+# docs/legal 의 마크다운을 GitHub Pages(Jekyll)로 렌더
+include:
+  - legal

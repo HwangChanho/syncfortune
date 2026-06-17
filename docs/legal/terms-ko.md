@@ -1,3 +1,8 @@
+---
+layout: default
+title: 이용약관
+---
+
 # SyncFortune 이용약관
 
 **최종 수정일: 2026년 6월 17일**

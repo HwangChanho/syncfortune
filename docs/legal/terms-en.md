@@ -1,3 +1,8 @@
+---
+layout: default
+title: Terms of Service
+---
+
 # SyncFortune Terms of Service
 
 **Last updated: June 17, 2026**

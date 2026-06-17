@@ -1,3 +1,8 @@
+---
+layout: default
+title: プライバシーポリシー
+---
+
 # SyncFortune プライバシーポリシー
 
 **最終更新日: 2026年6月17日**

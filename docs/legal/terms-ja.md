@@ -1,3 +1,8 @@
+---
+layout: default
+title: 利用規約
+---
+
 # SyncFortune 利用規約
 
 **最終更新日: 2026年6月17日**
