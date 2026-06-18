@@ -10,9 +10,10 @@ import { Alert } from '../../lib/alert'; // 커스텀 알림(앱 디자인)
 import { useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { CREDIT_KINDS, loadCredits, redeemCoupon, grantCredit, type CreditKind } from '../../lib/coupons';
+import { CREDIT_KINDS, loadCredits, redeemCoupon, grantCredit, PREMIUM_PRICE, type CreditKind } from '../../lib/coupons';
 import { listCharts, getRepresentativeId, setRepresentative, type SavedChart } from '../../lib/myChart';
-import { purchaseCreditRC, purchasesEnabled, priceStringsRC, CREDIT_PRODUCT } from '../../lib/purchases';
+import { purchaseCreditRC, purchasesEnabled, priceStringsRC, priceStringRC, CREDIT_PRODUCT, PRODUCT_PREMIUM } from '../../lib/purchases';
+import { useSubscription } from '../../lib/subscription'; // 프리미엄 가입 루트(전체 무제한)
 import { colors, radius, space, shadow, font } from '../../lib/theme';
 
 // 이용권 kind → 적용할 풀이 화면(선택 명식을 대표로 둔 뒤 진입 — 대표 기준 캐시)
@@ -23,6 +24,11 @@ const ROUTE: Record<CreditKind, { pathname: string; kind?: string }> = {
   compat: { pathname: '/compat' },                    // 궁합
   followup: { pathname: '/reading' },                 // 추가 질문(풀이 안에서)
   love: { pathname: '/love' },                        // 애정흐름
+  newyear: { pathname: '/newyear' },                  // 신년운세(스페셜)
+  lifegraph: { pathname: '/lifegraph' },              // 인생 그래프(스페셜)
+  roots: { pathname: '/roots' },                      // 명식의 뿌리(통근·투출)
+  image: { pathname: '/image' },                      // 비치는 나(천간 인상)
+  mission: { pathname: '/mission' },                  // 나의 사명(자미 보조)
 };
 
 export default function MarketRoute() {
@@ -36,6 +42,9 @@ export default function MarketRoute() {
   const [redeeming, setRedeeming] = useState(false);
   const [busy, setBusy] = useState<CreditKind | null>(null); // 구매 진행 중 kind
   const [prices, setPrices] = useState<Record<string, string>>({}); // 현지통화 가격(RC) — 미설정 시 ₩ 폴백
+  const { isPremium, purchasePremium, refresh } = useSubscription(); // 프리미엄 상태·구매
+  const [premPrice, setPremPrice] = useState(''); // 프리미엄 현지통화 가격(RC)
+  const [buyingPrem, setBuyingPrem] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -49,6 +58,24 @@ export default function MarketRoute() {
       }).catch(() => {});
     })();
   }, []);
+
+  // 프리미엄 현지통화 가격(RC) — 미설정 시 ₩ 폴백
+  useEffect(() => { priceStringRC(PRODUCT_PREMIUM, `₩${PREMIUM_PRICE.toLocaleString()}`).then(setPremPrice).catch(() => {}); }, []);
+
+  // 프리미엄 가입(평생·전체 무제한) — 결제 미연동 시 '준비 중'. 성공 시 상태 갱신. 취소는 조용히.
+  async function buyPremium() {
+    if (buyingPrem) return;
+    if (!purchasesEnabled()) { Alert.alert(t('market.payPending')); return; }
+    setBuyingPrem(true);
+    try {
+      await purchasePremium();
+      await refresh();
+      Alert.alert(t('settings.premiumOkTitle'), t('settings.premiumOk'));
+    } catch (e: any) {
+      if (e?.message === 'cancelled') return;
+      Alert.alert(t('settings.premiumTitle'), e?.message ?? '');
+    } finally { setBuyingPrem(false); }
+  }
 
   // 이용권 적용 — 선택 명식을 대표로 설정 후 해당 풀이 화면으로(거기서 이용권/프리미엄/구매로 열림).
   async function apply(kind: CreditKind) {
@@ -97,6 +124,25 @@ export default function MarketRoute() {
     <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>
       <Text style={styles.intro}>{t('market.intro')}</Text>
 
+      {/* 프리미엄 — 명식 무관(전체 무제한). 비프리미엄=가입 카드 / 프리미엄=이용 중 표시(항상 노출) */}
+      {isPremium ? (
+        <View style={styles.premCard}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.premTitle}>{t('market.premiumActive', '프리미엄 이용 중')}</Text>
+            <Text style={styles.premSub}>{t('market.premiumActiveSub', '모든 콘텐츠 무제한 · 광고 제거 적용 중')}</Text>
+          </View>
+          <Text style={styles.premPrice}>✓</Text>
+        </View>
+      ) : (
+        <Pressable style={styles.premCard} onPress={buyPremium} disabled={buyingPrem}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.premTitle}>{t('settings.premiumBuy', '평생 프리미엄')}</Text>
+            <Text style={styles.premSub}>{t('settings.premiumDesc', '모든 콘텐츠 무제한 · 광고 제거')}</Text>
+          </View>
+          <Text style={styles.premPrice}>{buyingPrem ? '…' : (premPrice || `₩${PREMIUM_PRICE.toLocaleString()}`)}</Text>
+        </Pressable>
+      )}
+
       {/* 적용할 명식 선택(드롭다운) — 이용권은 이 명식에 적용된다 */}
       <Pressable style={styles.chartSel} onPress={() => setPick(true)}>
         <View style={{ flex: 1 }}>
@@ -113,7 +159,7 @@ export default function MarketRoute() {
             <View style={{ flex: 1 }}>
               <Text style={styles.name}>{c.ko}</Text>
               <Text style={styles.price}>{prices[c.key] ?? `₩${c.price.toLocaleString()}`}</Text>
-              <Text style={[styles.have, owned && styles.haveOn]}>{owned ? t('market.owned') : t('market.notOwned')}</Text>
+              <Text style={[styles.have, owned && styles.haveOn]}>{owned ? `${t('market.owned')} ×${credits[c.key]}` : t('market.notOwned')}</Text>
             </View>
             {owned ? (
               <Pressable style={styles.buyBtn} onPress={() => apply(c.key)} disabled={!sel}>
@@ -176,6 +222,11 @@ const styles = StyleSheet.create({
   screen: { backgroundColor: colors.bg },
   wrap: { padding: space(5), paddingBottom: space(20) },
   intro: { ...font.body, color: colors.inkSoft, marginBottom: space(4) },
+  // 프리미엄 가입 카드(골드 강조)
+  premCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.ju, borderRadius: radius.md, padding: space(4), marginBottom: space(4), ...shadow.card },
+  premTitle: { fontSize: 16, fontWeight: '900', color: colors.bg },
+  premSub: { fontSize: 12, color: colors.bg, opacity: 0.85, marginTop: 2 },
+  premPrice: { fontSize: 16, fontWeight: '900', color: colors.bg, marginLeft: space(2) },
   // 적용할 명식 선택
   chartSel: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.card, borderWidth: 1.5, borderColor: colors.ju, borderRadius: radius.md, padding: space(4), marginBottom: space(4), ...shadow.card },
   chartSelLabel: { ...font.caption, color: colors.ju, fontWeight: '800' },

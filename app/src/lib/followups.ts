@@ -35,11 +35,11 @@ export type AskResult =
  * @param kind 'saju'|'ziwei' (프롬프트 분기엔 무관하나 일관성 위해 전달)
  */
 export async function askFollowup(
-  chartId: string, category: string, kind: string, question: string, paid = false,
+  chartId: string, category: string, kind: string, question: string,
 ): Promise<AskResult> {
   try {
     const { data, error } = await supabase.functions.invoke('interpret', {
-      body: { chartId, category, kind, tier: 'paid', question, paid, lang: appLang() },
+      body: { chartId, category, kind, tier: 'paid', question, lang: appLang() }, // paid 제거(서버가 크레딧/프리미엄/무료한도 판정)
     });
     if (error) return { kind: 'error', message: error.message };
     if (data?.needPremium) return { kind: 'needPremium', used: data.used, freeLimit: data.freeLimit };

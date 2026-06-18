@@ -49,9 +49,7 @@ export default function TraitsScreen() {
     const d = c.saju.pillars[p];
     if (d) { elem[stemElement(d.stem)]++; elem[branchElement(d.branch)]++; }
   });
-  const sorted = Object.entries(elem).sort((a, b) => b[1] - a[1]);
-  const strongest = sorted[0][0];
-  const weakest = sorted[sorted.length - 1][0];
+  const elemMax = Math.max(...Object.values(elem), 1); // 막대 정규화 기준
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>
@@ -64,9 +62,24 @@ export default function TraitsScreen() {
       </View>
 
       {/* 구조 요약 */}
-      <Text style={styles.kv}><Text style={styles.label}>격국</Text>  {c.pattern.candidates.join(', ')}</Text>
-      <Text style={styles.kv}><Text style={styles.label}>신강약</Text>  {c.strength.verdict} ({c.strength.score})</Text>
-      <Text style={styles.kv}><Text style={styles.label}>오행</Text>  강한 <Text style={{ color: elementColor[strongest], fontWeight: '700' }}>{strongest}</Text> · 약한 <Text style={{ color: elementColor[weakest], fontWeight: '700' }}>{weakest}</Text></Text>
+      <View style={styles.card}>
+        <Text style={styles.kv}><Text style={styles.label}>격국</Text>  {c.pattern.candidates.join(', ')}</Text>
+        <Text style={styles.kv}><Text style={styles.label}>신강약</Text>  {c.strength.verdict} ({c.strength.score})</Text>
+      </View>
+
+      {/* 오행 강약 막대(보는 맛) */}
+      <View style={styles.card}>
+        <Text style={styles.label}>오행 강약</Text>
+        {(['木', '火', '土', '金', '水'] as const).map((el) => (
+          <View key={el} style={styles.elemRow}>
+            <Text style={[styles.elemEl, { color: elementColor[el] }]}>{el}</Text>
+            <View style={styles.elemTrack}>
+              <View style={[styles.elemFill, { width: `${(elem[el] / elemMax) * 100}%`, backgroundColor: elementColor[el] }]} />
+            </View>
+            <Text style={styles.elemCnt}>{elem[el]}</Text>
+          </View>
+        ))}
+      </View>
 
       <Text style={styles.note}>※ 기본 성향 요약입니다. 영역별(연애·직업·재물 등) 깊은 통변은 프리미엄 풀이에서.</Text>
 
@@ -94,6 +107,12 @@ const styles = StyleSheet.create({
   trait: { ...font.body, color: colors.ink, lineHeight: 24 },
   kv: { ...font.body, color: colors.ink, marginTop: space(2), lineHeight: 22 },
   label: { color: colors.inkSoft, fontWeight: '700' },
+  // 오행 강약 막대
+  elemRow: { flexDirection: 'row', alignItems: 'center', marginTop: space(2.5) },
+  elemEl: { fontSize: 16, fontWeight: '800', width: 24 },
+  elemTrack: { flex: 1, height: 10, borderRadius: 5, backgroundColor: colors.sunk, overflow: 'hidden', marginHorizontal: space(2) },
+  elemFill: { height: '100%', borderRadius: 5 },
+  elemCnt: { ...font.caption, color: colors.inkSoft, width: 16, textAlign: 'right' },
   note: { ...font.caption, marginTop: space(5) },
   cta: {
     backgroundColor: colors.ju, borderRadius: radius.md, paddingVertical: space(4),

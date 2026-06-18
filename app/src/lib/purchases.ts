@@ -21,10 +21,10 @@ const RC_KEY = Platform.OS === 'ios'
 
 // Entitlement(프리미엄)·상품 식별자 — RevenueCat·App Store Connect와 1:1. 가격은 스토어에서 설정(id엔 가격 안 박음).
 export const ENTITLEMENT_PREMIUM = 'premium';
-export const PRODUCT_PREMIUM = 'premium_lifetime';  // 비소모성(평생 프리미엄 ₩39,900)
+export const PRODUCT_PREMIUM = 'premium_lifetime';  // 비소모성(평생 프리미엄 ₩49,900)
 
 // 영역별 이용권(소비성) 상품 id — CreditKind ↔ 스토어 상품(1:1).
-//   가격: 사주6900·자미4900·궁합3900·애정4900·타임라인990·추가질문990 (CREDIT_KINDS.price, ASC에서 설정).
+//   가격: 사주6900·자미4900·궁합3900·애정4900·타임라인990·추가질문990·신년6900·인생그래프3900 (CREDIT_KINDS.price, ASC에서 설정).
 export const CREDIT_PRODUCT: Record<CreditKind, string> = {
   reading: 'credit_reading',
   ziwei: 'credit_ziwei',
@@ -32,6 +32,11 @@ export const CREDIT_PRODUCT: Record<CreditKind, string> = {
   love: 'credit_love',
   timeline: 'credit_timeline',
   followup: 'credit_followup',
+  newyear: 'credit_newyear',     // 신년운세 ₩6,900 (스페셜)
+  lifegraph: 'credit_lifegraph', // 인생 그래프 ₩3,900 (스페셜)
+  roots: 'credit_roots',         // 명식의 뿌리 ₩4,900
+  image: 'credit_image',         // 비치는 나 ₩4,900
+  mission: 'credit_mission',     // 나의 사명 ₩6,900
 };
 
 // ⚠️ deprecated(구 단일가 건당) — 영역별 CREDIT_PRODUCT 로 이행. entitlement.ts 하위호환 위해 유지.

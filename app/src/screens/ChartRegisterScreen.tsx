@@ -7,7 +7,7 @@
 //   · label(이름)·relation 을 onSubmit input 에 포함(기존 누락 버그 수정)
 // 입력 → onSubmit(input) 콜백(라우트가 myChart 저장 + /myeongsik 전달). PII 기기 잔류(ADR-005).
 // ─────────────────────────────────────────────────────────────────────────
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { View, Text, TextInput, Pressable, StyleSheet, ScrollView, Modal } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { colors, radius, space, shadow, font } from '../lib/theme';
@@ -18,17 +18,19 @@ import { BirthPlacePicker } from '../components/BirthPlacePicker';
 const RELATION_PRESETS = ['self', '가족', '지인', '연인', '관심', '반려동물', '공인'] as const;
 
 // defaultRelation/submitLabel = 궁합 상대 등록 등 재사용 시 기본 관계·CTA 문구 주입(옵션, 기존 호출 영향 0).
-export function ChartRegisterScreen({ onSubmit, defaultRelation, submitLabel, showMakeRep = true }: { onSubmit: (input: any) => void; defaultRelation?: string; submitLabel?: string; showMakeRep?: boolean }) {
+export function ChartRegisterScreen({ onSubmit, defaultRelation, submitLabel, showMakeRep = true, initial, autoSave, onAutoSave }: { onSubmit: (input: any) => void; defaultRelation?: string; submitLabel?: string; showMakeRep?: boolean; initial?: any; autoSave?: boolean; onAutoSave?: (input: any) => void }) {
   const { t } = useTranslation();
-  const [label, setLabel] = useState('');
-  const [birthDate, setBirthDate] = useState('');
-  const [sijinIdx, setSijinIdx] = useState<number>(-1); // -1 = 시각 모름
+  // 편집모드(initial) = 기존 명식 값으로 폼 prefill. 신규면 빈 값. 시각은 hm(대표시각)으로 시진 역매핑.
+  const initTime = initial && initial.timeAccuracy !== '미상' ? String(initial.birthDateTime ?? '').split(' ')[1] : null;
+  const [label, setLabel] = useState(initial?.label ?? '');
+  const [birthDate, setBirthDate] = useState(initial ? String(initial.birthDateTime ?? '').split(' ')[0] : '');
+  const [sijinIdx, setSijinIdx] = useState<number>(initTime ? SIJIN.findIndex((s) => s.hm === initTime) : -1); // -1 = 시각 모름
   const [sijinOpen, setSijinOpen] = useState(false);     // 시진 선택 바텀시트
-  const [calendar, setCalendar] = useState<'양' | '음'>('양');
-  const [sex, setSex] = useState<'남' | '여'>('남');
-  const [birthPlace, setBirthPlace] = useState('');
-  const [birthPlaceLon, setBirthPlaceLon] = useState<number | null>(null); // 진태양시 경도(ADR-008 준비)
-  const [relation, setRelation] = useState<string>(defaultRelation ?? 'self');
+  const [calendar, setCalendar] = useState<'양' | '음'>(initial?.calendar ?? '양');
+  const [sex, setSex] = useState<'남' | '여'>(initial?.sex ?? '남');
+  const [birthPlace, setBirthPlace] = useState(initial?.birthPlace ?? '');
+  const [birthPlaceLon, setBirthPlaceLon] = useState<number | null>(initial?.birthLon ?? null); // 진태양시 경도(ADR-008 준비)
+  const [relation, setRelation] = useState<string>(initial?.relation ?? defaultRelation ?? 'self');
   const [relationCustom, setRelationCustom] = useState(false); // 직접입력 모드
   const [makeRep, setMakeRep] = useState(false); // 이 명식을 대표로 설정(register 전용)
 
@@ -37,9 +39,9 @@ export function ChartRegisterScreen({ onSubmit, defaultRelation, submitLabel, sh
 
   function pickSijin(i: number) { setSijinIdx(i); setSijinOpen(false); }
 
-  function handleSubmit() {
-    // label/relation 은 메타(ChartInput PII 계약 외) — onSubmit input 에 함께 전달.
-    const input = {
+  // input 구성 — 수동 제출·자동저장 공용. label/relation 은 메타(ChartInput PII 계약 외).
+  function buildInput() {
+    return {
       label: label.trim() || (relation === 'self' ? t('register.selfLabel') : relation),
       birthDateTime: `${birthDate} ${sj ? sj.hm : '0:0'}`, // 시진 대표 시각 주입(모름=0:0)
       calendar, sex, birthPlace, birthLon: birthPlaceLon ?? undefined, // 진태양시 보정 경도(엔진 ChartInput.birthLon)
@@ -47,8 +49,18 @@ export function ChartRegisterScreen({ onSubmit, defaultRelation, submitLabel, sh
       timeAccuracy: sj ? '정확' : '미상', // 시진 알면 시주 확정 → 정확
       makeRep, // 대표 설정 여부 — register 라우트가 처리(궁합 상대 등록 시 showMakeRep=false 라 무시)
     };
-    onSubmit(input);
   }
+  function handleSubmit() { onSubmit(buildInput()); }
+
+  // 자동저장(편집모드) — 필드 변경 600ms 후 저장(저장 버튼 따로 안 눌러도 됨, daniel). 초기 prefill 은 skip(불필요 저장 방지).
+  const firstAuto = useRef(true);
+  useEffect(() => {
+    if (!autoSave || !onAutoSave) return;
+    if (firstAuto.current) { firstAuto.current = false; return; }
+    const id = setTimeout(() => onAutoSave(buildInput()), 600);
+    return () => clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [label, birthDate, sijinIdx, calendar, sex, birthPlace, birthPlaceLon, relation, makeRep, autoSave]);
 
   return (
     <>

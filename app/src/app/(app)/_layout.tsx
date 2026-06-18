@@ -42,6 +42,22 @@ export default function AppLayout() {
         <Stack.Screen name="dayPillar" options={{ title: '일주론' }} />
         <Stack.Screen name="pet" options={{ title: '나의 반려동물' }} />
         <Stack.Screen name="love" options={{ title: '나의 애정흐름' }} />
+        <Stack.Screen name="lifegraph" options={{ title: '인생 그래프' }} />
+        <Stack.Screen name="newyear" options={{ title: '신년운세' }} />
+        <Stack.Screen name="roots" options={{ title: '명식의 뿌리' }} />
+        <Stack.Screen name="image" options={{ title: '비치는 나' }} />
+        <Stack.Screen name="mission" options={{ title: '나의 사명' }} />
+        <Stack.Screen name="persona" options={{ title: '성격유형' }} />
+        <Stack.Screen name="egenteto" options={{ title: '에겐·테토' }} />
+        <Stack.Screen name="joseonjob" options={{ title: '조선시대 직업' }} />
+        <Stack.Screen name="lovestyle" options={{ title: '연애 스타일' }} />
+        <Stack.Screen name="bok" options={{ title: '타고난 복' }} />
+        <Stack.Screen name="pastlife" options={{ title: '전생 이야기' }} />
+        <Stack.Screen name="taegil" options={{ title: '택일' }} />
+        <Stack.Screen name="luck" options={{ title: '오늘의 행운' }} />
+        <Stack.Screen name="zodiac" options={{ title: '띠·별자리' }} />
+        <Stack.Screen name="name" options={{ title: '이름풀이' }} />
+        <Stack.Screen name="dream" options={{ title: '꿈해몽' }} />
         <Stack.Screen name="premium" options={{ title: '프리미엄' }} />
         <Stack.Screen name="market" options={{ title: '마켓' }} />
         <Stack.Screen name="admin" options={{ title: '관리자' }} />

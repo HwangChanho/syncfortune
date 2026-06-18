@@ -4,7 +4,8 @@
 //   글자 크기는 즉시 반영(미리보기 문장으로 확인). 언어는 i18n.changeLanguage.
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useEffect } from 'react';
-import { View, Text, Pressable, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, Pressable, ScrollView, StyleSheet, Linking } from 'react-native';
+import Constants from 'expo-constants'; // 앱 버전(app.json)
 import { Alert } from '../../lib/alert'; // 커스텀 알림(앱 디자인)
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -23,6 +24,12 @@ import { colors, radius, space, shadow, font } from '../../lib/theme';
 const LANGS: { key: string; label: string }[] = [
   { key: 'ko', label: '한국어' }, { key: 'en', label: 'English' }, { key: 'ja', label: '日本語' },
 ];
+
+// 앱 정보(출시) — 버전·약관·개인정보·오픈소스. ★daniel: 약관/개인정보 URL 을 실제 호스팅 주소로 교체(App Store 심사 필수).
+const APP_VERSION = Constants.expoConfig?.version ?? '1.0.0';
+const TERMS_URL = 'https://hwangchanho.github.io/syncfortune/legal/terms-ko.html';     // GitHub Pages(정식)
+const PRIVACY_URL = 'https://hwangchanho.github.io/syncfortune/legal/privacy-ko.html'; // GitHub Pages — App Store 개인정보 URL
+const OSS_LICENSES = 'React Native · Expo (MIT)\niztro · lunar-javascript (MIT)\nRevenueCat Purchases · Google Mobile Ads\nreact-i18next · React Navigation (MIT)\nreact-native-svg · safe-area-context (MIT)\n\n각 라이브러리는 해당 저장소의 라이선스를 따릅니다.';
 
 export default function SettingsScreen() {
   const { t, i18n } = useTranslation();
@@ -165,6 +172,15 @@ export default function SettingsScreen() {
 
       <Text style={styles.note}>{t('settings.note')}</Text>
 
+      {/* ── 앱 정보(버전·약관·개인정보·오픈소스) — 출시 준비 ── */}
+      <Text style={[styles.h, { marginTop: space(7) }]}>{t('settings.appInfo', '앱 정보')}</Text>
+      <View style={styles.infoCard}>
+        <View style={styles.infoRow}><Text style={styles.infoLabel}>{t('settings.version', '버전')}</Text><Text style={styles.infoVal}>{APP_VERSION}</Text></View>
+        <Pressable style={styles.infoRow} onPress={() => Linking.openURL(TERMS_URL).catch(() => {})}><Text style={styles.infoLabel}>{t('settings.terms', '이용약관')}</Text><Text style={styles.infoArrow}>›</Text></Pressable>
+        <Pressable style={styles.infoRow} onPress={() => Linking.openURL(PRIVACY_URL).catch(() => {})}><Text style={styles.infoLabel}>{t('settings.privacy', '개인정보처리방침')}</Text><Text style={styles.infoArrow}>›</Text></Pressable>
+        <Pressable style={[styles.infoRow, styles.infoRowLast]} onPress={() => Alert.alert(t('settings.license', '오픈소스 라이선스'), OSS_LICENSES)}><Text style={styles.infoLabel}>{t('settings.license', '오픈소스 라이선스')}</Text><Text style={styles.infoArrow}>›</Text></Pressable>
+      </View>
+
       {/* 긴 콜백(로그아웃·계정삭제) 동안 입력 차단 + 로딩 표시 */}
       <BusyOverlay visible={!!busy} message={busy ?? undefined} />
     </ScrollView>
@@ -177,6 +193,13 @@ const styles = StyleSheet.create({
   h: { ...font.heading, marginBottom: space(3) },
   // 계정
   acctCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.line, padding: space(4), ...shadow.soft },
+  // 앱 정보(버전·약관·개인정보·오픈소스)
+  infoCard: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.line, marginTop: space(2), overflow: 'hidden' },
+  infoRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: space(4), paddingVertical: space(3.5), borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.line },
+  infoRowLast: { borderBottomWidth: 0 },
+  infoLabel: { ...font.body, color: colors.ink },
+  infoVal: { ...font.body, color: colors.inkSoft },
+  infoArrow: { ...font.body, color: colors.inkFaint, fontSize: 18 },
   acctEmail: { ...font.body, color: colors.ink, flexShrink: 1, marginRight: space(3) },
   acctAction: { color: colors.ju, fontWeight: '700', fontSize: 14 },
   acctLoginBtn: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.ju, padding: space(4), alignItems: 'center', ...shadow.soft },

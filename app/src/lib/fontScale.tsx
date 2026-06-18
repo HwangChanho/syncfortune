@@ -10,13 +10,15 @@ import * as SecureStore from 'expo-secure-store';
 
 const KEY = 'font_scale_v1';
 
-// 단계(설정 UI) — 라벨·배율. '보통'=1.0 기준.
+// 단계(설정 UI) — 라벨·배율. 4단(작게·중간·크게·아주 크게). 기본 = 크게(1.3) — daniel.
 export const FONT_STEPS: { key: string; ko: string; scale: number }[] = [
-  { key: 'sm', ko: '작게', scale: 0.9 },
-  { key: 'md', ko: '보통', scale: 1.0 },
-  { key: 'lg', ko: '크게', scale: 1.15 },
-  { key: 'xl', ko: '아주 크게', scale: 1.3 },
+  { key: 'sm', ko: '작게', scale: 1.0 },
+  { key: 'md', ko: '중간', scale: 1.15 },
+  { key: 'lg', ko: '크게', scale: 1.3 },
+  { key: 'xl', ko: '아주 크게', scale: 1.45 },
 ];
+
+export const DEFAULT_SCALE = 1.3; // 기본 글자 배율 = 크게
 
 async function getRaw(): Promise<string | null> {
   if (Platform.OS === 'web') return (globalThis as any).localStorage?.getItem(KEY) ?? null;
@@ -32,8 +34,9 @@ const FontScaleContext = createContext<Ctx>({ scale: 1, setScale: () => {} });
 
 /** 앱 루트에 감싸 전역 글자 배율 제공. 저장값을 1회 로드. */
 export function FontScaleProvider({ children }: { children: ReactNode }) {
-  const [scale, setScaleState] = useState(1);
-  useEffect(() => { getRaw().then((v) => { const n = Number(v); if (n >= 0.8 && n <= 1.6) setScaleState(n); }); }, []);
+  const [scale, setScaleState] = useState(DEFAULT_SCALE); // 기본 = 아주 크게
+  // 저장값이 현재 단계(1.15·1.3) 범위면 적용, 아니면(미설정·구버전 0.9/1.0) 기본 1.3 으로 끌어올림.
+  useEffect(() => { getRaw().then((v) => { const n = Number(v); setScaleState(n >= 1.0 && n <= 1.6 ? n : DEFAULT_SCALE); }); }, []);
   const setScale = (s: number) => { setScaleState(s); setRaw(String(s)); };
   return <FontScaleContext.Provider value={{ scale, setScale }}>{children}</FontScaleContext.Provider>;
 }

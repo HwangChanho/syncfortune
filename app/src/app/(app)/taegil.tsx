@@ -1,0 +1,202 @@
+// src/app/(app)/taegil.tsx — 택일(좋은 날 찾기) — 달력형(무료·온디바이스)
+// ─────────────────────────────────────────────────────────────────────────
+// daniel: 목적별 향후 90일을 *달력*으로 — 좋은 날을 색으로 강조, 날짜 탭하면 그 날 상세(점수·이유).
+//   규칙5: 무료=온디바이스(lib/auspiciousDate, API 0). §4: 흉 단정 금지 — 좋은 날만 강조(낮은 날은 강조·탭 없음).
+//   stance(충 회피·합 가점·목적별 십신·12운성·공망)는 lib에 표준 통설 — daniel 검수 슬롯.
+// ─────────────────────────────────────────────────────────────────────────
+import { useState, useMemo, useCallback } from 'react';
+import { View, Text, Pressable, ActivityIndicator, ScrollView, StyleSheet, ImageBackground } from 'react-native';
+import { useRouter, useFocusEffect } from 'expo-router';
+import { useTranslation } from 'react-i18next';
+import { computeChart } from '../../lib/engine';
+import { loadMyChart } from '../../lib/myChart';
+import { findAuspiciousDays, PURPOSES, purposeLabel, type Purpose, type AuspiciousDay } from '../../lib/auspiciousDate';
+import { appLang } from '../../lib/i18n';
+import { useFontScale } from '../../lib/fontScale';
+import { colors, radius, space, shadow, font } from '../../lib/theme';
+import { ContentHero } from '../../components/SpecialContentScreen'; // 이미지 히어로(보는 맛)
+import type { ChartInput } from '@spec/chart';
+
+const WEEKDAYS: Record<string, string[]> = {
+  ko: ['일', '월', '화', '수', '목', '금', '토'],
+  en: ['S', 'M', 'T', 'W', 'T', 'F', 'S'],
+  ja: ['日', '月', '火', '水', '木', '金', '土'],
+};
+const pad = (n: number) => String(n).padStart(2, '0');
+
+// 날짜 라벨 — "6월 20일 (금)" / "Jun 20 (Fri)" / "6月20日 (金)"
+function fmtDate(d: string): string {
+  const [, m, day] = d.split('-');
+  const full = { ko: ['일', '월', '화', '수', '목', '금', '토'], en: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'], ja: ['日', '月', '火', '水', '木', '金', '土'] };
+  const l = appLang();
+  const wd = (full[l as keyof typeof full] ?? full.ko)[new Date(d + 'T00:00:00').getDay()];
+  if (l === 'en') return `${['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][Number(m) - 1]} ${Number(day)} (${wd})`;
+  if (l === 'ja') return `${Number(m)}月${Number(day)}日 (${wd})`;
+  return `${Number(m)}월 ${Number(day)}일 (${wd})`;
+}
+
+// 한 달 그리드 — 좋은 날(>=68)만 색 강조 + 탭. 과거·낮은 점수는 일반 숫자(§4: 흉 강조 안 함).
+function MonthGrid({ year, month, byDate, sel, onSel, todayStr }: {
+  year: number; month: number; byDate: Record<string, AuspiciousDay>; sel: string | null; onSel: (d: string) => void; todayStr: string;
+}) {
+  const firstDow = new Date(year, month, 1).getDay();
+  const dim = new Date(year, month + 1, 0).getDate();
+  const wk = WEEKDAYS[appLang()] ?? WEEKDAYS.ko;
+  const cells: (number | null)[] = [...Array(firstDow).fill(null), ...Array.from({ length: dim }, (_, i) => i + 1)];
+  return (
+    <View style={styles.month}>
+      <Text style={styles.monthTitle}>{year}. {month + 1}</Text>
+      <View style={styles.weekRow}>{wk.map((w, i) => <Text key={i} style={[styles.weekHead, i === 0 && styles.sun]}>{w}</Text>)}</View>
+      <View style={styles.grid}>
+        {cells.map((day, i) => {
+          if (!day) return <View key={i} style={styles.cell} />;
+          const date = `${year}-${pad(month + 1)}-${pad(day)}`;
+          const d = byDate[date];
+          const best = !!d && d.score >= 80;
+          const good = !!d && d.score >= 68;
+          const past = date < todayStr;
+          const on = sel === date;
+          return (
+            <Pressable key={i} style={styles.cell} onPress={() => good && onSel(date)} disabled={!good}>
+              <View style={[styles.dot, best && styles.dotBest, good && !best && styles.dotGood, on && styles.dotSel]}>
+                <Text style={[styles.dayNum, past && styles.dayPast, good && styles.dayGood]}>{day}</Text>
+              </View>
+            </Pressable>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
+export default function TaegilScreen() {
+  const router = useRouter();
+  const { t } = useTranslation();
+  const { fs } = useFontScale(); // 본문(읽는 글) 글자 크기 전역 배율
+  const [me, setMe] = useState<ChartInput | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [purpose, setPurpose] = useState<Purpose>('wedding');
+  const [sel, setSel] = useState<string | null>(null);
+
+  useFocusEffect(useCallback(() => {
+    let alive = true;
+    loadMyChart().then((c) => { if (alive) { setMe(c); setLoading(false); } });
+    return () => { alive = false; };
+  }, []));
+
+  // 향후 90일 전체 점수 → 날짜 맵(달력 색칠). 목적·명식 바뀌면 재계산.
+  const byDate = useMemo(() => {
+    if (!me) return {} as Record<string, AuspiciousDay>;
+    const saju = computeChart(me).saju;
+    const out: Record<string, AuspiciousDay> = {};
+    findAuspiciousDays(saju, purpose, 90).forEach((d) => { out[d.date] = d; });
+    return out;
+  }, [me, purpose]);
+
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
+  const selDay = sel ? byDate[sel] : null;
+
+  if (loading) return <View style={styles.center}><ActivityIndicator color={colors.ju} /></View>;
+  if (!me) return (
+    <View style={styles.center}>
+      <Text style={styles.msg}>{t('compat.needChart', '먼저 명식을 등록해 주세요.')}</Text>
+      <Pressable style={styles.btn} onPress={() => router.push('/register')}>
+        <Text style={styles.btnText}>{t('compat.registerMyChart', '내 명식 등록')}</Text>
+      </Pressable>
+    </View>
+  );
+
+  return (
+    <ImageBackground source={require('../../../assets/icons/bg-night.png')} style={styles.bg} resizeMode="cover">
+      <ScrollView style={styles.overlay} contentContainerStyle={styles.wrap}>
+        <ContentHero image={require('../../../assets/icons/taegil.png')} title={t('taegil.title', '택일 — 좋은 날 찾기')} sub={t('taegil.sub', '하려는 일을 고르면, 앞으로 석 달 달력에서 내 사주에 잘 맞는 날을 색으로 짚어 드려요.')} />
+
+        {/* 목적 칩 — 바꾸면 선택 날 초기화 */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
+          {PURPOSES.map((p) => (
+            <Pressable key={p.key} style={[styles.chip, purpose === p.key && styles.chipOn]} onPress={() => { setPurpose(p.key); setSel(null); }}>
+              <Text style={[styles.chipTx, purpose === p.key && styles.chipTxOn]}>{purposeLabel(p.key)}</Text>
+            </Pressable>
+          ))}
+        </ScrollView>
+
+        {/* 범례 */}
+        <View style={styles.legend}>
+          <View style={styles.legendItem}><View style={[styles.legendDot, styles.dotBest]} /><Text style={styles.legendTx}>{t('taegil.best', '아주 좋음')}</Text></View>
+          <View style={styles.legendItem}><View style={[styles.legendDot, styles.dotGood]} /><Text style={styles.legendTx}>{t('taegil.good', '좋음')}</Text></View>
+          <Text style={styles.legendHint}>{t('taegil.tapHint', '색칠된 날을 눌러 보세요')}</Text>
+        </View>
+
+        {/* 3개월 달력 */}
+        {[0, 1, 2].map((off) => {
+          const base = new Date(today.getFullYear(), today.getMonth() + off, 1);
+          return <MonthGrid key={off} year={base.getFullYear()} month={base.getMonth()} byDate={byDate} sel={sel} onSel={setSel} todayStr={todayStr} />;
+        })}
+
+        {/* 선택한 날 상세 */}
+        {selDay && (
+          <View style={styles.detailCard}>
+            <View style={styles.dayHead}>
+              <Text style={styles.detailDate}>{fmtDate(selDay.date)}</Text>
+              <View style={[styles.badge, selDay.score >= 80 ? styles.badgeBest : styles.badgeGood]}>
+                <Text style={[styles.badgeTx, selDay.score >= 80 ? styles.badgeTxBest : styles.badgeTxGood]}>{selDay.score >= 80 ? t('taegil.best', '아주 좋음') : t('taegil.good', '좋음')}</Text>
+              </View>
+            </View>
+            {selDay.reasons.map((r, i) => <Text key={i} style={[styles.reason, { fontSize: fs(14), lineHeight: fs(21) }]}>· {r}</Text>)}
+          </View>
+        )}
+
+        <Text style={[styles.note, { fontSize: fs(12), lineHeight: fs(18) }]}>{t('taegil.note', '※ 사주에 맞춘 참고용 길일이에요. 실제 일정은 형편에 맞게 정하세요.')}</Text>
+      </ScrollView>
+    </ImageBackground>
+  );
+}
+
+const styles = StyleSheet.create({
+  bg: { flex: 1, backgroundColor: colors.bg },
+  overlay: { flex: 1, backgroundColor: 'rgba(21,19,46,0.6)' },
+  wrap: { padding: space(6), paddingBottom: space(12) },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: space(7), backgroundColor: colors.bg },
+  msg: { ...font.body, color: colors.ink, textAlign: 'center', marginBottom: space(5) },
+  btn: { backgroundColor: colors.ju, borderRadius: radius.md, paddingVertical: space(3.25), paddingHorizontal: space(6) },
+  btnText: { color: colors.bg, fontSize: 15, fontWeight: '700' },
+  chips: { gap: space(2), paddingVertical: space(1), marginBottom: space(3) },
+  chip: { paddingHorizontal: space(3.5), paddingVertical: space(2.25), borderRadius: radius.pill, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line },
+  chipOn: { backgroundColor: colors.ju, borderColor: colors.ju },
+  chipTx: { fontSize: 13, fontWeight: '700', color: colors.inkSoft },
+  chipTxOn: { color: colors.bg },
+  // 범례
+  legend: { flexDirection: 'row', alignItems: 'center', gap: space(4), marginBottom: space(3) },
+  legendItem: { flexDirection: 'row', alignItems: 'center', gap: space(1.5) },
+  legendDot: { width: 16, height: 16, borderRadius: 8 },
+  legendTx: { ...font.caption, color: colors.inkSoft },
+  legendHint: { ...font.caption, color: colors.inkFaint, marginLeft: 'auto' },
+  // 달력
+  month: { marginBottom: space(5) },
+  monthTitle: { fontSize: 16, fontWeight: '800', color: colors.ju, marginBottom: space(2) },
+  weekRow: { flexDirection: 'row', marginBottom: space(1) },
+  weekHead: { width: `${100 / 7}%`, textAlign: 'center', ...font.caption, color: colors.inkFaint, fontWeight: '700' },
+  sun: { color: '#E5749B' },
+  grid: { flexDirection: 'row', flexWrap: 'wrap' },
+  cell: { width: `${100 / 7}%`, aspectRatio: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 2 },
+  dot: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
+  dotBest: { backgroundColor: colors.ju },                       // 아주 좋음 = 골드 채움
+  dotGood: { backgroundColor: 'rgba(212,165,75,0.26)' },         // 좋음 = 연한 골드
+  dotSel: { borderWidth: 2, borderColor: colors.ink },           // 선택 = 테두리
+  dayNum: { fontSize: 14, fontWeight: '600', color: colors.inkSoft },
+  dayPast: { color: colors.inkFaint, opacity: 0.5 },             // 과거 = 흐림
+  dayGood: { color: colors.ink, fontWeight: '800' },             // 좋은 날 = 진하게
+  // 선택 상세
+  detailCard: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.ju, padding: space(4.5), marginBottom: space(3), ...shadow.card },
+  dayHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: space(2) },
+  detailDate: { fontSize: 16, fontWeight: '800', color: colors.ink },
+  badge: { borderRadius: radius.pill, paddingHorizontal: space(2.5), paddingVertical: space(1) },
+  badgeBest: { backgroundColor: colors.ju },
+  badgeGood: { backgroundColor: 'rgba(212,165,75,0.22)' },
+  badgeTx: { fontSize: 11.5, fontWeight: '900' },
+  badgeTxBest: { color: colors.bg },
+  badgeTxGood: { color: colors.ju },
+  reason: { ...font.body, color: colors.inkSoft, marginTop: space(1), lineHeight: 21, fontSize: 14 },
+  note: { ...font.caption, color: colors.inkFaint, textAlign: 'center', marginTop: space(4), lineHeight: 18 },
+});

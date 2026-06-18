@@ -9,12 +9,18 @@ import { useState, useEffect, useRef } from 'react';
 import { View, Text, Pressable, ScrollView, Image, StyleSheet, ImageBackground, Modal, Animated } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import * as Haptics from 'expo-haptics';
 import {
   drawSpread, cardImage, combineReading, SPREAD_POSITIONS, TARO_CATEGORIES, type SpreadCard,
 } from '../../lib/tarot';
 import { loadTodayTaro, saveTodayTaro } from '../../lib/tarotStore';
 import { playSound } from '../../lib/sounds';
-import { colors, radius, space, shadow, font } from '../../lib/theme';
+import { colors, radius, space, shadow, font, gradients } from '../../lib/theme';
+import { GlassCard } from '../../components/GlassCard';
+
+// expo-haptics 는 네이티브 모듈 — 현재 dev 빌드 미포함 시 호출하면 크래시. 안전 래퍼로 감싼다(재빌드 후 정상 진동).
+const hImpact = (s: Haptics.ImpactFeedbackStyle) => { try { Haptics.impactAsync(s).catch(() => {}); } catch { /* 네이티브 미포함 — 무시 */ } };
+const hNotify = (n: Haptics.NotificationFeedbackType) => { try { Haptics.notificationAsync(n).catch(() => {}); } catch { /* 무시 */ } };
 
 // 주제별 생성 이미지(이모지 대체) — key→png. 미드나잇·골드 테마 통일(Recraft 생성).
 const TARO_IMAGES: Record<string, any> = {
@@ -45,6 +51,7 @@ export default function TaroScreen() {
 
   // 주제 선택: 그 주제의 오늘 결과가 있으면 복원(고정), 없으면 새로 섞는다.
   async function start(c: Category) {
+    hNotify(Haptics.NotificationFeedbackType.Success);
     playSound('flip');
     setCategory(c);
     setSel(null);
@@ -53,16 +60,22 @@ export default function TaroScreen() {
     else { setSpread(drawSpread(SPREAD_POSITIONS)); setDrawn(0); }
   }
   // 다른 주제 보기 (현재 주제 결과는 저장돼 있어 다시 고르면 복원)
-  function changeTopic() { playSound('flip'); setCategory(null); setSpread(null); setDrawn(0); setSel(null); }
+  function changeTopic() { 
+    hImpact(Haptics.ImpactFeedbackStyle.Medium);
+    playSound('flip'); 
+    setCategory(null); setSpread(null); setDrawn(0); setSel(null); 
+  }
   // 첫 카드부터 그 주제 결과로 저장(고정) → 나갔다 와도 이어서 같은 카드
   function drawNext() {
     if (!spread || !category || drawn >= spread.length) return;
+    hImpact(Haptics.ImpactFeedbackStyle.Light);
     playSound('flip');
     const nd = drawn + 1;
     setDrawn(nd);
     saveTodayTaro(today, category.key, spread, nd);
   }
   function openCard(i: number) {
+    hImpact(Haptics.ImpactFeedbackStyle.Medium);
     playSound('flip');
     setSel(i);
     lift.setValue(0);
@@ -86,7 +99,14 @@ export default function TaroScreen() {
   return (
     <ImageBackground source={require('../../../assets/icons/bg-night.png')} style={styles.bg} resizeMode="cover">
       <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>
-        <Text style={styles.title}>{t('menu.taro')}</Text>
+        <View style={styles.headerArea}>
+          <Text style={styles.title}>{t('menu.taro')}</Text>
+          {category && (
+            <Pressable style={styles.resetBtnNew} onPress={changeTopic}>
+              <Text style={styles.resetTxNew}>주제 변경</Text>
+            </Pressable>
+          )}
+        </View>
 
         {!spread ? (
           // ── 주제 선택 ──
@@ -94,25 +114,22 @@ export default function TaroScreen() {
             <Text style={styles.sub}>주제마다 하루 한 번. 보고 싶은 주제를 골라 카드를 직접 뽑아 보세요.</Text>
             <View style={styles.cats}>
               {TARO_CATEGORIES.map((c) => (
-                <Pressable key={c.key} style={styles.catBtn} onPress={() => start(c)}>
-                  <ImageBackground source={TARO_IMAGES[c.key]} style={styles.catImg} resizeMode="cover">
-                    <View style={styles.catLabel}>
-                      <Text style={styles.catKo}>{c.ko}</Text>
-                    </View>
-                  </ImageBackground>
+                <Pressable key={c.key} style={styles.catBtnNew} onPress={() => start(c)}>
+                  <GlassCard style={styles.catGlass} intensity={20}>
+                    <Image source={TARO_IMAGES[c.key]} style={styles.catImgNew} resizeMode="contain" />
+                    <Text style={styles.catKoNew}>{c.ko}</Text>
+                  </GlassCard>
                 </Pressable>
               ))}
             </View>
           </>
         ) : (
           <>
-            <View style={styles.spreadHead}>
-              {/* 주제 썸네일 + 이름 — 선택 화면 카드와 같은 이미지(주제 정체성 일관) */}
-              <View style={styles.spreadTitle}>
+            <View style={styles.spreadHeadNew}>
+              <GlassCard style={styles.spreadTitleNew} intensity={30}>
                 <Image source={TARO_IMAGES[category?.key ?? 'general']} style={styles.spreadThumb} />
                 <Text style={styles.spreadCat}>{category?.ko} · {drawn}/{spread.length}</Text>
-              </View>
-              <Pressable style={styles.resetBtn} onPress={changeTopic}><Text style={styles.resetTx}>주제 변경</Text></Pressable>
+              </GlassCard>
             </View>
 
             {/* 공개된 카드 — 부채꼴(탭하면 떠올라 설명) */}
@@ -123,38 +140,49 @@ export default function TaroScreen() {
                   const angle = (i - mid) * 7;
                   const offsetX = (i - mid) * 26;
                   return (
-                    <Pressable
+                    <Animated.View
                       key={i}
-                      style={[styles.fanCard, { zIndex: i, transform: [{ translateX: offsetX }, { rotate: `${angle}deg` }] }]}
-                      onPress={() => openCard(i)}
+                      style={[
+                        styles.fanCard, 
+                        { zIndex: i, transform: [{ translateX: offsetX }, { rotate: `${angle}deg` }] }
+                      ]}
                     >
-                      <Image source={cardImage(card.id)} style={[styles.fanImg, card.reversed && styles.revImg]} resizeMode="contain" />
-                    </Pressable>
+                      <Pressable onPress={() => openCard(i)}>
+                        <Image source={cardImage(card.id)} style={[styles.fanImg, card.reversed && styles.revImg]} resizeMode="contain" />
+                      </Pressable>
+                    </Animated.View>
                   );
                 })}
               </View>
             )}
 
             {!done ? (
-              // 뒷면 덱(탭해서 한 장씩) — 뒷면 = 주제 이미지(이모지 🔮 대체, 선택 카드와 동일 그림)
+              // 뒷면 덱(탭해서 한 장씩)
               <View style={styles.drawArea}>
-                <Pressable style={styles.deckBack} onPress={drawNext}>
-                  <ImageBackground source={TARO_IMAGES[category?.key ?? 'general']} style={styles.deckImg} resizeMode="cover">
-                    <View style={styles.deckTapBar}><Text style={styles.deckTapTx}>탭해서 뽑기</Text></View>
-                  </ImageBackground>
+                <Pressable onPress={drawNext}>
+                  <GlassCard style={styles.deckBackNew} intensity={50}>
+                    <ImageBackground source={TARO_IMAGES[category?.key ?? 'general']} style={styles.deckImg} resizeMode="contain">
+                      <View style={styles.deckTapBarNew}>
+                        <Text style={styles.deckTapTx}>탭해서 뽑기</Text>
+                      </View>
+                    </ImageBackground>
+                  </GlassCard>
                 </Pressable>
                 <Text style={styles.drawHint}>지금 고민 중인 문제를 떠올리며, 카드를 한 장씩 탭해 주세요 ({drawn}/{spread.length})</Text>
               </View>
             ) : (
-              // 완료 → 그 주제에 연관된 하나의 흐름 풀이 (오늘 고정)
-              <>
-                <Text style={styles.readingH}>풀이 · {category?.ko}의 흐름</Text>
-                {combineReading(spread, category ?? { key: 'general', ko: '종합 운세' }).map((line, i) => (
-                  <Text key={i} style={styles.combineLine}>{line}</Text>
-                ))}
-                <Text style={styles.lockNote}>🌙 오늘의 {category?.ko} 카드예요. 자정이 지나면 다시 뽑을 수 있어요.</Text>
+              // 완료 → 그 주제에 연관된 하나의 흐름 풀이
+              <View style={styles.readingSection}>
+                <GlassCard intensity={40} style={styles.readingGlass}>
+                  <Text style={styles.readingH}>풀이 · {category?.ko}의 흐름</Text>
+                  {combineReading(spread, category ?? { key: 'general', ko: '종합 운세' }).map((line, i) => (
+                    <Text key={i} style={styles.combineLine}>{line}</Text>
+                  ))}
+                  <View style={styles.readingDivider} />
+                  <Text style={styles.lockNote}>🌙 오늘의 {category?.ko} 카드예요. 자정이 지나면 다시 뽑을 수 있어요.</Text>
+                </GlassCard>
                 <Text style={styles.note}>※ 재미·자기성찰용. 카드를 탭하면 자세히 볼 수 있어요.</Text>
-              </>
+              </View>
             )}
           </>
         )}
@@ -165,7 +193,7 @@ export default function TaroScreen() {
         <Pressable style={styles.backdrop} onPress={closeCard}>
           {sel != null && spread && (
             <Animated.View
-              style={[styles.bigWrap, {
+              style={[styles.bigWrapNew, {
                 opacity: lift,
                 transform: [
                   { translateY: lift.interpolate({ inputRange: [0, 1], outputRange: [320, 0] }) },
@@ -173,13 +201,15 @@ export default function TaroScreen() {
                 ],
               }]}
             >
-              <Pressable onPress={() => {}}>
-                <Image source={cardImage(spread[sel].id)} style={[styles.bigImg, spread[sel].reversed && styles.revImg]} resizeMode="contain" />
-                <Text style={styles.bigPos}>{sel + 1}. {spread[sel].position}</Text>
-                <Text style={styles.bigName}>{spread[sel].ko}{spread[sel].reversed ? ' (뒤집힘)' : ''}</Text>
-                <Text style={styles.bigKw}>{spread[sel].reversed ? spread[sel].rev : spread[sel].up}</Text>
+              <GlassCard intensity={60} style={styles.bigGlass}>
+                <Image source={cardImage(spread[sel].id)} style={[styles.bigImgNew, spread[sel].reversed && styles.revImg]} resizeMode="contain" />
+                <View style={styles.bigInfo}>
+                  <Text style={styles.bigPos}>{sel + 1}. {spread[sel].position}</Text>
+                  <Text style={styles.bigName}>{spread[sel].ko}{spread[sel].reversed ? ' (뒤집힘)' : ''}</Text>
+                  <Text style={styles.bigKw}>{spread[sel].reversed ? spread[sel].rev : spread[sel].up}</Text>
+                </View>
                 <Text style={styles.bigClose}>빈 곳을 탭하면 닫혀요</Text>
-              </Pressable>
+              </GlassCard>
             </Animated.View>
           )}
         </Pressable>
@@ -192,38 +222,44 @@ const styles = StyleSheet.create({
   bg: { flex: 1, backgroundColor: colors.bg },
   screen: { backgroundColor: 'rgba(21,19,46,0.55)' },
   wrap: { padding: space(5), paddingTop: space(8), paddingBottom: space(10) },
-  title: { ...font.title, color: colors.ink, marginBottom: space(2) },
+  headerArea: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: space(4) },
+  title: { ...font.title, color: colors.ink, marginBottom: 0 },
   sub: { ...font.body, color: colors.inkSoft, marginBottom: space(6) },
   cats: { flexDirection: 'row', flexWrap: 'wrap', gap: space(3) },
-  catBtn: { width: '47%', aspectRatio: 1, borderRadius: radius.md, borderWidth: 1, borderColor: colors.juLine, overflow: 'hidden', ...shadow.card },
-  catImg: { flex: 1, justifyContent: 'flex-end' },                                      // 이미지 꽉 채우고 라벨 하단
-  catLabel: { backgroundColor: 'rgba(21,19,46,0.72)', paddingVertical: space(2.5), alignItems: 'center' }, // 하단 반투명 바
-  catKo: { ...font.body, color: colors.ink, fontWeight: '700' },
-  spreadHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: space(2) },
-  spreadTitle: { flexDirection: 'row', alignItems: 'center', gap: space(2.5), flexShrink: 1 },
-  spreadThumb: { width: 36, height: 36, borderRadius: radius.sm, borderWidth: 1, borderColor: colors.juLine },
+  catBtnNew: { width: '47%', aspectRatio: 1 },
+  catGlass: { flex: 1, padding: space(4), alignItems: 'center', justifyContent: 'center' },
+  catImgNew: { width: '80%', height: '80%', marginBottom: space(2) },
+  catKoNew: { ...font.body, color: colors.ink, fontWeight: '700' },
+  spreadHeadNew: { marginBottom: space(4) },
+  spreadTitleNew: { flexDirection: 'row', alignItems: 'center', gap: space(3), paddingVertical: space(2), paddingHorizontal: space(4), alignSelf: 'flex-start' },
+  spreadThumb: { width: 32, height: 32, borderRadius: radius.sm },
   spreadCat: { ...font.heading, color: colors.ju },
-  resetBtn: { paddingVertical: space(2), paddingHorizontal: space(4), borderRadius: radius.pill, backgroundColor: colors.line },
-  resetTx: { color: colors.ink, fontSize: 13, fontWeight: '700' },
-  fan: { height: 250, alignItems: 'center', justifyContent: 'flex-end', marginTop: space(4) },
-  fanCard: { position: 'absolute', bottom: space(2), transformOrigin: 'center bottom' },
-  fanImg: { width: 100, height: 171, borderRadius: radius.sm, borderWidth: 1, borderColor: colors.juLine, backgroundColor: colors.card },
+  resetBtnNew: { paddingVertical: space(1.5), paddingHorizontal: space(3), borderRadius: radius.sm, backgroundColor: colors.sunk },
+  resetTxNew: { color: colors.ju, fontSize: 12, fontWeight: '700' },
+  fan: { height: 260, alignItems: 'center', justifyContent: 'flex-end', marginTop: space(2) },
+  fanCard: { position: 'absolute', bottom: space(2) },
+  fanImg: { width: 110, height: 188, borderRadius: radius.md, borderWidth: 1.5, borderColor: colors.juLine, backgroundColor: colors.card },
   revImg: { transform: [{ rotate: '180deg' }] },
-  drawArea: { alignItems: 'center', marginTop: space(6) },
-  deckBack: { width: 120, height: 205, borderRadius: radius.md, backgroundColor: colors.card, borderWidth: 2, borderColor: colors.ju, overflow: 'hidden', ...shadow.card },
-  deckImg: { flex: 1, justifyContent: 'flex-end' },                                       // 주제 이미지 꽉 채움
-  deckTapBar: { backgroundColor: 'rgba(21,19,46,0.72)', paddingVertical: space(1.75), alignItems: 'center' },
-  deckTapTx: { color: colors.ink, fontSize: 12, fontWeight: '700' },
-  drawHint: { ...font.body, color: colors.inkSoft, marginTop: space(4), textAlign: 'center', lineHeight: 22 },
-  readingH: { ...font.heading, color: colors.ink, marginTop: space(7), marginBottom: space(3) },
-  combineLine: { ...font.body, color: colors.inkSoft, lineHeight: 24, marginBottom: space(3) },
-  lockNote: { ...font.body, color: colors.ju, textAlign: 'center', marginTop: space(2), fontWeight: '700' },
-  note: { ...font.caption, color: colors.inkFaint, marginTop: space(3), textAlign: 'center', lineHeight: 18 },
-  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.82)', justifyContent: 'center', alignItems: 'center', padding: space(6) },
-  bigWrap: { alignItems: 'center', backgroundColor: colors.card, borderRadius: radius.lg, padding: space(6), borderWidth: 1, borderColor: colors.juLine, ...shadow.card },
-  bigImg: { width: 200, height: 343, borderRadius: radius.md, marginBottom: space(4) },
-  bigPos: { ...font.caption, color: colors.ju, fontWeight: '700' },
-  bigName: { ...font.heading, color: colors.ink, marginTop: space(1) },
-  bigKw: { ...font.body, color: colors.inkSoft, textAlign: 'center', marginTop: space(2), lineHeight: 21 },
-  bigClose: { ...font.caption, color: colors.inkFaint, marginTop: space(4) },
+  drawArea: { alignItems: 'center', marginTop: space(4) },
+  deckBackNew: { width: 140, height: 240, padding: 0, overflow: 'hidden', borderWidth: 2, borderColor: colors.ju },
+  deckImg: { flex: 1, padding: space(6), justifyContent: 'center', alignItems: 'center' },
+  deckTapBarNew: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(21,19,46,0.8)', paddingVertical: space(2), alignItems: 'center' },
+  deckTapTx: { color: colors.ju, fontSize: 12, fontWeight: '800' },
+  drawHint: { ...font.body, color: colors.inkSoft, marginTop: space(6), textAlign: 'center', lineHeight: 22 },
+  readingSection: { marginTop: space(4) },
+  readingGlass: { padding: space(6) },
+  readingH: { ...font.heading, color: colors.ju, marginBottom: space(4) },
+  combineLine: { ...font.body, color: colors.ink, lineHeight: 26, marginBottom: space(3) },
+  readingDivider: { height: 1, backgroundColor: colors.line, marginVertical: space(4) },
+  lockNote: { ...font.body, color: colors.ju, textAlign: 'center', fontWeight: '700' },
+  note: { ...font.caption, color: colors.inkFaint, marginTop: space(4), textAlign: 'center' },
+  backdrop: { flex: 1, backgroundColor: 'rgba(10, 9, 23, 0.9)', justifyContent: 'center', alignItems: 'center', padding: space(6) },
+  bigWrapNew: { width: '100%', alignItems: 'center' },
+  bigGlass: { width: '100%', padding: space(6), alignItems: 'center' },
+  bigImgNew: { width: '100%', aspectRatio: 0.58, borderRadius: radius.md, marginBottom: space(6) },
+  bigInfo: { alignItems: 'center', gap: space(1) },
+  bigPos: { ...font.caption, color: colors.ju, fontWeight: '700', letterSpacing: 1 },
+  bigName: { ...font.heading, color: colors.ink, textAlign: 'center' },
+  bigKw: { ...font.body, color: colors.inkSoft, textAlign: 'center', marginTop: space(2), lineHeight: 22 },
+  bigClose: { ...font.caption, color: colors.inkFaint, marginTop: space(6) },
 });

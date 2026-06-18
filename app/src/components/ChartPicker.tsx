@@ -6,9 +6,10 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useCallback } from 'react';
 import { View, Text, Pressable, Modal, ScrollView, StyleSheet } from 'react-native';
+import { Alert } from '../lib/alert'; // 커스텀 알림(삭제 확인)
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { listCharts, setRepresentative, getRepresentativeId, getChartUsage, type SavedChart } from '../lib/myChart';
+import { listCharts, setRepresentative, getRepresentativeId, getChartUsage, deleteChart, type SavedChart } from '../lib/myChart';
 import { useSubscription } from '../lib/subscription';
 import { colors, radius, space, shadow, font } from '../lib/theme';
 
@@ -36,6 +37,21 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
     setRepId(id);
     setOpen(false);
     onChange?.(); // 대표 변경 알림 → 호출처(만세력 등) 즉시 갱신
+  }
+
+  // 명식 수정 → 등록 폼 편집모드(editId)로 이동. 모달 닫고 진입.
+  function edit(id: string) { setOpen(false); router.push({ pathname: '/register', params: { editId: id } }); }
+
+  // 명식 삭제 → 확인 후 deleteChart + 목록 갱신 + 호출처 알림(되돌릴 수 없음).
+  function remove(id: string, label: string) {
+    Alert.alert(
+      t('manse.deleteTitle', '명식 삭제'),
+      t('manse.deleteMsg', { label, defaultValue: `'${label}' 명식을 삭제할까요? 되돌릴 수 없어요.` }) as string,
+      [
+        { text: t('common.cancel', '취소'), style: 'cancel' },
+        { text: t('common.delete', '삭제'), style: 'destructive', onPress: async () => { await deleteChart(id); await reload(); onChange?.(); } },
+      ],
+    );
   }
 
   // 명식 없음 — 등록 유도
@@ -72,13 +88,17 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
               {charts.map((c) => {
                 const on = c.id === repId;
                 return (
-                  <Pressable key={c.id} style={styles.row} onPress={() => choose(c.id)}>
-                    <Text style={[styles.rowName, on && styles.rowOn]}>{c.label}</Text>
-                    <Text style={styles.rowMeta} numberOfLines={1}>
-                      {String(c.input.birthDateTime ?? '').split(' ')[0]} · {c.relation === 'self' ? t('register.selfLabel') : c.relation}
-                    </Text>
+                  <View key={c.id} style={styles.row}>
+                    <Pressable style={styles.rowMain} onPress={() => choose(c.id)}>
+                      <Text style={[styles.rowName, on && styles.rowOn]}>{c.label}</Text>
+                      <Text style={styles.rowMeta} numberOfLines={1}>
+                        {String(c.input.birthDateTime ?? '').split(' ')[0]} · {c.relation === 'self' ? t('register.selfLabel') : c.relation}
+                      </Text>
+                    </Pressable>
                     {on && <Text style={styles.check}>✓</Text>}
-                  </Pressable>
+                    <Pressable hitSlop={8} onPress={() => edit(c.id)}><Text style={styles.rowAct}>{t('common.edit', '수정')}</Text></Pressable>
+                    <Pressable hitSlop={8} onPress={() => remove(c.id, c.label)}><Text style={[styles.rowAct, styles.rowActDel]}>{t('common.delete', '삭제')}</Text></Pressable>
+                  </View>
                 );
               })}
             </ScrollView>
@@ -115,6 +135,9 @@ const styles = StyleSheet.create({
 
   list: { flexGrow: 0 },
   row: { flexDirection: 'row', alignItems: 'center', paddingVertical: space(3.5), borderBottomWidth: 1, borderBottomColor: colors.line, gap: space(2) },
+  rowMain: { flex: 1 },
+  rowAct: { fontSize: 13, fontWeight: '700', color: colors.ju, paddingHorizontal: space(1.5) }, // 수정·삭제 글자
+  rowActDel: { color: '#E5484D' }, // 삭제 = 적색 강조
   rowName: { ...font.body, fontWeight: '600', color: colors.ink },
   rowOn: { color: colors.ju },
   rowMeta: { ...font.caption, flex: 1 },

@@ -152,6 +152,24 @@ export async function getChartUsage(): Promise<{ count: number; limit: number }>
   return { count: countReal(charts), limit: FREE_CHART_LIMIT };
 }
 
+/**
+ * 명식 수정 — input(생년월일·시·성별·출생지 등) 교체. label/relation 도 input 값으로 갱신.
+ * ⚠️ 사주가 바뀌었을 수 있으므로 serverChartId 를 무효화한다 → 다음 풀이 때 새 chart_id 재발급(캐시 분리).
+ */
+export async function updateChart(id: string, input: any): Promise<void> {
+  const charts = await listCharts();
+  const idx = charts.findIndex((c) => c.id === id);
+  if (idx < 0) return;
+  charts[idx] = {
+    ...charts[idx],
+    input,
+    label: (input.label && String(input.label).trim()) || charts[idx].label,
+    relation: input.relation ?? charts[idx].relation,
+    serverChartId: undefined, // 생년월일 변경 가능 → 서버 매핑 초기화(이전 풀이 캐시와 분리)
+  };
+  await setRaw(KEY, JSON.stringify(charts));
+}
+
 /** 명식 삭제. 대표를 지우면 남은 첫 명식이 대표가 된다. */
 export async function deleteChart(id: string): Promise<void> {
   const charts = await listCharts();

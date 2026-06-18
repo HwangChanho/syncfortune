@@ -29,7 +29,14 @@ export const SAJU_READING_CATEGORIES: CategoryKey[] = [
 export async function ensureServerChartId(
   c: ReturnType<typeof computeChart>, input: ChartInput, session: Session, savedChart: SavedChart,
 ): Promise<string | null> {
-  if (savedChart.serverChartId) return savedChart.serverChartId;
+  if (savedChart.serverChartId) {
+    // stale 가드(2026-06-14): 온디바이스 매핑이 가리키는 charts row 가 실제 서버에 존재하는지 확인.
+    //   charts 가 삭제/재생성됐는데 매핑이 옛 id 를 가리키면 interpret 가 chartId 로 row 를 못 찾아
+    //   'chart not found'(404) → 풀이 전부 '생성 실패'가 된다. 존재하면 재사용, 없으면(stale) 아래로
+    //   떨어져 재생성 + 매핑 갱신(자가 치유). select id 만 — RLS 로 본인 행만 보이므로 소유 확인도 겸한다.
+    const { data: exists } = await supabase.from('charts').select('id').eq('id', savedChart.serverChartId).maybeSingle();
+    if (exists) return savedChart.serverChartId;
+  }
   // birth(ChartInput)는 평문으로 서버 컬럼에 두지 않는다(규칙8) — insert_chart_enc RPC 가 서버에서 pgp 암호화 저장(birth_enc).
   //   ADR-005 완화: 관리자 조회(생년월일시)를 위해 birth 를 서버에 *암호화* 보관. 복호화는 관리자 RPC 만.
   const { data, error } = await supabase.rpc('insert_chart_enc', {

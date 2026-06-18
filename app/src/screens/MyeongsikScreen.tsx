@@ -8,12 +8,22 @@
 // 일주(日柱) = '나'(일간) → 골드 강조. 용신·통변은 별도(하단 "풀이 보기").
 // ─────────────────────────────────────────────────────────────────────────
 import { useMemo, useState, useEffect, useRef, type ReactNode } from 'react';
-import { View, Text, ScrollView, StyleSheet, Pressable, Modal, Animated } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Pressable, Modal, Animated, LayoutAnimation, Platform, UIManager } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import * as Haptics from 'expo-haptics';
 import { computeChart } from '../lib/engine';
 import type { ChartInput, PillarPos } from '@spec/chart';
-import { colors, radius, space, shadow, font } from '../lib/theme';
+import { colors, radius, space, shadow, font, gradients } from '../lib/theme';
+import { GlassCard } from '../components/GlassCard';
+import { OhaengIcon } from '../components/OhaengIcon';
 import { stemElement, branchElement, elementColor, elementText, stemReading, branchReading } from '../lib/ohaeng';
+
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
+// ⚠️ expo-haptics 는 네이티브 모듈 — 현재 dev 빌드에 미포함이면 impactAsync 호출 시 크래시(2026-06).
+//   안전 래퍼로 감싼다(네이티브 없으면 조용히 무시). 재빌드(npx expo run:ios) 후 진동 정상 동작.
+const haptic = () => { try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); } catch { /* 네이티브 미포함 — 무시 */ } };
 import { HIDDEN, computeMonthDays, branchTenGod } from '@engine/saju'; // 지장간 표 + 일운(流日) + 지지십신
 import { twelveStage } from '@engine/twelve';                          // 임의 지지 12운성(타임라인용)
 import { detectInteractionsAmong } from '@engine/structure';           // 시간층(원국×대운×세운) 합충 검출
@@ -40,14 +50,19 @@ const STRENGTH_INFO: { key: '신강' | '신약'; title: string; traits: string; 
 
 // 간지 한 칸(오행색 배경 + 한자 + 한글음) — 대운·세운·월운 타임라인/확장명식 공용. sm=대운/원국, xs=세운/월운.
 //   onPress 주면 글자 탭 = 물상 설명(확장명식용). 타임라인 카드(선택 기능)에는 onPress 미전달(카드 탭=드릴다운 유지).
-function GzCell({ char, kind, size, onPress }: { char: string; kind: 'stem' | 'branch'; size: 'sm' | 'xs'; onPress?: () => void }) {
+function GzCell({ char, kind, size, scale = 1, onPress }: { char: string; kind: 'stem' | 'branch'; size: 'sm' | 'xs'; scale?: number; onPress?: () => void }) {
   const el = kind === 'stem' ? stemElement(char) : branchElement(char);
   const ko = kind === 'stem' ? stemReading(char) : branchReading(char);
   const txt = { color: elementText[el] };
+  // scale=1 → 정적 스타일(타임라인 카드). scale>1 → 확장명식 반응형(층 끄면 칸·글자 비례 확대).
+  const baseW = size === 'sm' ? 38 : 34, baseF = size === 'sm' ? 19 : 16, baseLH = size === 'sm' ? 22 : 19;
+  const cellDyn = scale !== 1 ? { width: Math.round(baseW * scale) } : null;
+  const textDyn = scale !== 1 ? { fontSize: Math.round(baseF * scale), lineHeight: Math.round(baseLH * scale) } : null;
+  const koDyn = scale !== 1 ? { fontSize: Math.round(9 * scale), lineHeight: Math.round(11 * scale) } : null;
   const inner = (
-    <View style={[size === 'sm' ? styles.gzCellSm : styles.gzCellXs, { backgroundColor: elementColor[el] }]}>
-      <Text style={[size === 'sm' ? styles.gzTextSm : styles.gzTextXs, txt]}>{char}</Text>
-      <Text style={[styles.gzKo, txt]}>{ko}</Text>
+    <View style={[size === 'sm' ? styles.gzCellSm : styles.gzCellXs, cellDyn, { backgroundColor: elementColor[el] }]}>
+      <Text style={[size === 'sm' ? styles.gzTextSm : styles.gzTextXs, textDyn, txt]}>{char}</Text>
+      <Text style={[styles.gzKo, koDyn, txt]}>{ko}</Text>
     </View>
   );
   return onPress ? <Pressable onPress={onPress}>{inner}</Pressable> : inner;
@@ -101,7 +116,8 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
   const [selSeun, setSelSeun] = useState(curSeunIdx);                 // 선택된 세운(기본=올해)
   const [selMonth, setSelMonth] = useState(now.getMonth());           // 선택된 월운(기본=이번 달)
   const [selDay, setSelDay] = useState(now.getDate());                // 선택된 일운(기본=오늘) — 일진 달력 탭으로 변경
-  const [showLayers, setShowLayers] = useState({ year: true, month: true, day: true }); // 운세 확장명식 시간층 토글(년운·월운·일운, 대운은 항상)
+  const [showLayers, setShowLayers] = useState({ luck: true, year: true, month: true, day: true }); // 운세 확장명식 시간층 토글(대운·년운·월운·일운 — 끄면 남은 칸 넓어지고 글자 커짐)
+  const [expW, setExpW] = useState(0); // 확장명식 가용폭 — 컬럼 수에 맞춰 칸·글자 반응형(daniel)
   const [glossary, setGlossary] = useState<{ kind: GlossaryKind; key?: string } | null>(null); // 클릭 설명 바텀시트
   const [showLinks, setShowLinks] = useState(false); // 팔자 합충형해 카드 펼침(기본 숨김)
   const [showExpandLinks, setShowExpandLinks] = useState(false); // 대운/세운 합충 펼침(기본 숨김)
@@ -121,34 +137,42 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
   // 합충 호 — 표의 천간 행 위(above·점선) / 지지 행 아래(below·실선). 라벨열(34) 오프셋 반영.
   const renderArcs = (links: any[], dir: 'above' | 'below') => {
     if (!(rowW > 0) || links.length === 0) return null;
-    const L = 34, colW = (rowW - L) / visiblePos.length, STEP = 16;
-    const H = links.length * STEP + 14;
-    const reach = dir === 'above' ? H : 0;                 // 인접 천간/지지 행에 닿는 끝
-    const dash = dir === 'above' ? '3 2' : undefined;       // 천간=점선 / 지지=실선
+    // 명식 기둥과 동일 좌표계 — 라벨열 없음(L=0), 기둥 사이 gap(=pillarContainer gap space(2)) 반영.
+    const GAP = space(2);
+    const n = visiblePos.length;
+    const colW = (rowW - GAP * (n - 1)) / n;                          // 각 기둥(칸) 너비 = flex 균등 + gap
+    const centerX = (idx: number) => idx * (colW + GAP) + colW / 2;   // 그 칸의 '중앙' x — 선이 여기서 나온다
+    const STEP = 20;
+    const H = links.length * STEP + 16;                              // 다리 영역 높이(여유 — 명식에서 띄움)
+    const reach = dir === 'above' ? H : 0;                           // 명식에 닿는 변(위=아래쪽 H / 아래=위쪽 0)
+    const dash = dir === 'above' ? '3 2' : undefined;
+
     const items = links.map((it, i) => {
-      const off = (i - (links.length - 1) / 2) * 5;
-      // 멤버 전체 x좌표(3자 국 포함) — 양끝은 ㄷ자 다리, 중간 글자는 가로대에 다리만 추가
-      const xs = (it.members as string[]).map((m) => L + colW * (visiblePos.indexOf(m as any) + 0.5) + off).sort((a, b) => a - b);
+      // off 없음 — 어느 관계든 해당 칸 '중앙'에서 수직으로 출발(daniel). 겹침은 다리 높이(STEP)로 구분.
+      const xs = (it.members as string[]).map((m) => centerX(visiblePos.indexOf(m as any))).sort((a, b) => a - b);
       const xa = xs[0], xb = xs[xs.length - 1];
-      const legY = dir === 'above' ? 6 + i * STEP : H - (6 + i * STEP); // 수평선 위치(다리는 reach까지 길게)
+      const legY = dir === 'above' ? 7 + i * STEP : H - (7 + i * STEP); // 수평 다리 높이(확장명식 legY 와 동일 방식)
       const lbl = linkLabel(it);
-      return { xa, xb, mids: xs.slice(1, -1), mid: (xa + xb) / 2, legY, col: linkColor(it), lbl, lw: lbl.length * 11 + 6 };
+      const mid = (xa + xb) / 2;
+      return { xa, xb, mids: xs.slice(1, -1), mid, legY, col: linkColor(it), lbl, lw: lbl.length * 11 + 8 };
     });
+
     return (
-      <Svg width={rowW} height={H}>
+      <Svg width={rowW} height={H} style={{ marginBottom: dir === 'above' ? -4 : 0, marginTop: dir === 'below' ? -4 : 0 }}>
         {items.map((o, i) => (
           <G key={`p${i}`}>
-            <Path d={`M ${o.xa} ${reach} L ${o.xa} ${o.legY} L ${o.mid - o.lw / 2} ${o.legY}`} stroke={o.col} strokeWidth={1.5} fill="none" strokeDasharray={dash} />
-            <Path d={`M ${o.mid + o.lw / 2} ${o.legY} L ${o.xb} ${o.legY} L ${o.xb} ${reach}`} stroke={o.col} strokeWidth={1.5} fill="none" strokeDasharray={dash} />
+            {/* ㄷ자 다리 — 칸 중앙에서 수직으로 나와 수평으로 잇고 라벨 양옆을 비운다(확장명식 expandArcs 와 동일 스타일) */}
+            <Path d={`M ${o.xa} ${reach} L ${o.xa} ${o.legY} L ${o.mid - o.lw / 2} ${o.legY}`} stroke={o.col} strokeWidth={2} fill="none" strokeDasharray={dash} opacity={0.85} />
+            <Path d={`M ${o.mid + o.lw / 2} ${o.legY} L ${o.xb} ${o.legY} L ${o.xb} ${reach}`} stroke={o.col} strokeWidth={2} fill="none" strokeDasharray={dash} opacity={0.85} />
             {o.mids.map((mx, k) => (
-              <Path key={k} d={`M ${mx} ${reach} L ${mx} ${o.legY}`} stroke={o.col} strokeWidth={1.5} fill="none" strokeDasharray={dash} />
+              <Path key={k} d={`M ${mx} ${reach} L ${mx} ${o.legY}`} stroke={o.col} strokeWidth={1.5} fill="none" strokeDasharray={dash} opacity={0.6} />
             ))}
           </G>
         ))}
         {items.map((o, i) => (
           <G key={`l${i}`}>
-            <Rect x={o.mid - o.lw / 2} y={o.legY - 7} width={o.lw} height={14} fill={colors.bg} rx={2} />
-            <SvgText x={o.mid} y={o.legY + 3} fill={o.col} fontSize={9} fontWeight="700" textAnchor="middle">{o.lbl}</SvgText>
+            <Rect x={o.mid - o.lw / 2} y={o.legY - 8} width={o.lw} height={16} fill={colors.card} rx={8} stroke={o.col} strokeWidth={0.5} />
+            <SvgText x={o.mid} y={o.legY + 4} fill={o.col} fontSize={10} fontWeight="800" textAnchor="middle">{o.lbl}</SvgText>
           </G>
         ))}
       </Svg>
@@ -223,18 +247,104 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
     );
   });
 
+  const [showAdvanced, setShowAdvanced] = useState(true); // daniel: 디폴트 상세분석 ON(지장간·12운성·통근)
+  const toggleAdvanced = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setShowAdvanced(!showAdvanced);
+    haptic();
+  };
+
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, { toValue: 1.05, duration: 1500, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1, duration: 1500, useNativeDriver: true }),
+      ])
+    ).start();
+  }, []);
+
+  const renderPillars = () => (
+    // 합충 호 좌표 기준 = 명식 기둥영역 실제 폭(패딩 안). arc Svg 와 동일 좌표계가 되도록 여기서 측정.
+    <View style={styles.pillarContainer} onLayout={(e) => setRowW(e.nativeEvent.layout.width)}>
+      {visiblePos.map((p) => {
+        const isDay = p === '일';
+        const elStem = stemElement(P[p].stem);
+        const elBranch = branchElement(P[p].branch);
+        
+        return (
+          <Animated.View 
+            key={p} 
+            style={[
+              styles.pillarWrapper, 
+              isDay && { transform: [{ scale: pulseAnim }] }
+            ]}
+          >
+            <GlassCard 
+              style={StyleSheet.flatten([styles.pillarGlass, isDay && styles.pillarDayGlass])} 
+              intensity={isDay ? 60 : 30}
+            >
+              <Text style={[styles.pillarPos, isDay && styles.pillarPosDay]}>{p}</Text>
+              
+              {/* 천간 십신 — 개별 클릭 시 십신 설명(daniel: 십성 클릭 복구) */}
+              <Pressable onPress={() => setGlossary({ kind: 'tengod', key: P[p].stemTenGod })}>
+                <Text style={[styles.pillarTenGod, { color: colors.inkSoft }]}>{P[p].stemTenGod}</Text>
+              </Pressable>
+              <Pressable style={styles.pillarMain} onPress={() => setGlossary({ kind: 'stem', key: P[p].stem })}>
+                <Text style={[styles.pillarChar, { color: elementColor[elStem] }]}>{P[p].stem}</Text>
+                <Text style={[styles.pillarReading, { color: colors.inkFaint }]}>{stemReading(P[p].stem)}</Text>
+              </Pressable>
+
+
+              <Pressable style={styles.pillarMain} onPress={() => setGlossary({ kind: 'branch', key: P[p].branch })}>
+                <Text style={[styles.pillarChar, { color: elementColor[elBranch] }]}>{P[p].branch}</Text>
+                <Text style={[styles.pillarReading, { color: colors.inkFaint }]}>{branchReading(P[p].branch)}</Text>
+              </Pressable>
+              {/* 지지 십신 — 개별 클릭 시 십신 설명 */}
+              <Pressable onPress={() => setGlossary({ kind: 'tengod', key: P[p].branchMainTenGod })}>
+                <Text style={[styles.pillarTenGod, { color: colors.inkSoft }]}>{P[p].branchMainTenGod}</Text>
+              </Pressable>
+
+              {showAdvanced && (
+                <Animated.View style={styles.advancedInfo}>
+                  <View style={styles.pillarDivider} />
+                  <Pressable onPress={() => setGlossary({ kind: 'stage', key: c.stages[p] })}>
+                    <Text style={styles.pillarStage}>{c.stages[p]}</Text>
+                  </Pressable>
+                  <View style={styles.pillarHidden}>
+                    {P[p].hiddenStems.map((h, i) => {
+                      const rooted = allGan.includes(h.stem); // 지장간이 원국 천간에 투출 = 통근(동그라미 표시)
+                      return (
+                        <View key={i} style={[styles.pillarHiddenItem, rooted && styles.pillarHiddenRooted]}>
+                          <Text style={[styles.pillarHiddenChar, { color: elementColor[stemElement(h.stem)] }]}>{h.stem}</Text>
+                        </View>
+                      );
+                    })}
+                  </View>
+                </Animated.View>
+              )}
+            </GlassCard>
+          </Animated.View>
+        );
+      })}
+    </View>
+  );
+
   return (
     <>
     <View style={styles.tabBar}>
       {[
-        { id: 'natal', label: '분석' },
+        { id: 'natal', label: '명식' },
         { id: 'luck', label: '운세' },
-        { id: 'stars', label: '특이사항' },
+        { id: 'stars', label: '신살' },
       ].map((t2) => (
         <Pressable
           key={t2.id}
           style={[styles.tabBtn, activeTab === t2.id && styles.tabBtnOn]}
-          onPress={() => setActiveTab(t2.id as any)}
+          onPress={() => {
+            setActiveTab(t2.id as any);
+            haptic();
+          }}
         >
           <Text style={[styles.tabLabel, activeTab === t2.id && styles.tabLabelOn]}>{t2.label}</Text>
         </Pressable>
@@ -246,136 +356,48 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
       <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
         {activeTab === 'natal' && (
         <>
-          {/* 팔자 — 표 형식 (행: 십성·천간·지지·십성·지장간·12운성·12신살·통근 × 열: 시일월년). 각 칸 탭→의미 */}
-          <Text style={styles.h}>{t('myeongsik.palja')}</Text>
-          <Text style={styles.hint}>{t('myeongsik.paljaHint')}</Text>
-          <View style={styles.ptable} onLayout={(e) => setRowW(e.nativeEvent.layout.width)}>
-        {/* 헤더 */}
-        <View style={styles.ptRow}>
-          <Text style={styles.ptLabel} />
-          {visiblePos.map((p) => (
-            <View key={p} style={[styles.ptCell, p === '일' && styles.ptCellDay]}><Text style={[styles.ptHead, p === '일' && styles.ptHeadDay]}>{p}</Text></View>
-          ))}
-        </View>
-        {/* 천간십신 */}
-        <View style={styles.ptRow}>
-          <Text style={styles.ptLabel}>십성</Text>
-          {visiblePos.map((p) => (
-            <Pressable key={p} style={[styles.ptCell, p === '일' && styles.ptCellDay]} onPress={() => setGlossary({ kind: 'tengod', key: P[p].stemTenGod })}>
-              <Text style={styles.ptTgLink}>{P[p].stemTenGod}</Text>
+          <View style={styles.headerArea}>
+            <Text style={styles.h}>{t('myeongsik.palja')}</Text>
+            <Pressable style={styles.advancedBtn} onPress={toggleAdvanced}>
+              <Text style={styles.advancedBtnTx}>{showAdvanced ? '간략히' : '상세 분석'}</Text>
             </Pressable>
-          ))}
-        </View>
-        {renderArcs(activeGanP, 'above')}
-        {/* 천간 (오행색) — 글자 탭 → 그 천간의 물상·설명 */}
-        <View style={styles.ptRow}>
-          <Text style={styles.ptLabel}>천간</Text>
-          {visiblePos.map((p) => {
-            const el = stemElement(P[p].stem);
-            return (
-              <Pressable key={p} style={[styles.ptCell, p === '일' && styles.ptCellDay, hlStem.has(p) && styles.ptCellHL]} onPress={() => setGlossary({ kind: 'stem', key: P[p].stem })}>
-                <View style={[styles.ptGz, { backgroundColor: elementColor[el] }]}>
-                  <Text style={[styles.ptGzTx, { color: elementText[el] }]}>{P[p].stem}</Text>
-                  <Text style={[styles.ptGzKo, { color: elementText[el] }]}>{stemReading(P[p].stem)}</Text>
-                </View>
-              </Pressable>
-            );
-          })}
-        </View>
-        {/* 지지 (오행색) — 글자 탭 → 그 지지의 물상·설명 */}
-        <View style={styles.ptRow}>
-          <Text style={styles.ptLabel}>지지</Text>
-          {visiblePos.map((p) => {
-            const el = branchElement(P[p].branch);
-            return (
-              <Pressable key={p} style={[styles.ptCell, p === '일' && styles.ptCellDay, hlBranch.has(p) && styles.ptCellHL]} onPress={() => setGlossary({ kind: 'branch', key: P[p].branch })}>
-                <View style={[styles.ptGz, { backgroundColor: elementColor[el] }]}>
-                  <Text style={[styles.ptGzTx, { color: elementText[el] }]}>{P[p].branch}</Text>
-                  <Text style={[styles.ptGzKo, { color: elementText[el] }]}>{branchReading(P[p].branch)}</Text>
-                </View>
-              </Pressable>
-            );
-          })}
-        </View>
-        {renderArcs(activeJiP, 'below')}
-        {/* 지지십신 */}
-        <View style={styles.ptRow}>
-          <Text style={styles.ptLabel}>십성</Text>
-          {visiblePos.map((p) => (
-            <Pressable key={p} style={[styles.ptCell, p === '일' && styles.ptCellDay]} onPress={() => setGlossary({ kind: 'tengod', key: P[p].branchMainTenGod })}>
-              <Text style={styles.ptTgLink}>{P[p].branchMainTenGod}</Text>
-            </Pressable>
-          ))}
-        </View>
-        {/* 지장간 (각 글자 탭→그 십신) */}
-        <View style={styles.ptRow}>
-          <Text style={styles.ptLabel}>지장간</Text>
-          {visiblePos.map((p) => (
-            <View key={p} style={[styles.ptCell, p === '일' && styles.ptCellDay]}>
-              <View style={styles.ptHidWrap}>
-                {P[p].hiddenStems.map((h, i) => {
-                  // 투출 표시 — 이 지장간 글자가 천간(시·일·월·년)에 *같은 글자*로 드러났으면 동그라미(透出).
-                  //   ※ 오행 통근(甲↔乙 같은 木)이 아니라 글자 일치 기준(daniel: 을목 투출 안 했으면 동그라미 X).
-                  const rooted = allGan.some((g) => g === h.stem);
-                  return (
-                    <Pressable key={i} onPress={() => setGlossary({ kind: 'tengod', key: h.tenGod })}>
-                      <Text style={[styles.ptHid, rooted && styles.ptHidRooted, { color: elementColor[stemElement(h.stem)] }]}>{h.stem}</Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
-            </View>
-          ))}
-        </View>
-        {/* 12운성 (탭→의미) */}
-        <View style={styles.ptRow}>
-          <Text style={styles.ptLabel}>12운성</Text>
-          {visiblePos.map((p) => (
-            <Pressable key={p} style={[styles.ptCell, p === '일' && styles.ptCellDay]} onPress={() => setGlossary({ kind: 'stage', key: c.stages[p] })}>
-              <Text style={styles.ptStageLink}>{c.stages[p]}</Text>
-            </Pressable>
-          ))}
-        </View>
-        {/* 12신살 (4기준 전부, 각 탭→의미) */}
-        <View style={styles.ptRow}>
-          <Text style={styles.ptLabel}>12신살</Text>
-          {visiblePos.map((p) => (
-            <View key={p} style={[styles.ptCell, p === '일' && styles.ptCellDay]}>
-              {c.sinsal.twelve[p]
-                .map((tw) => ({ name: tw.name, bases: tw.bases.filter((b) => visiblePos.includes(b)) }))
-                .filter((tw) => tw.bases.length > 0)
-                .map((tw, i) => (
-                  <Pressable key={i} onPress={() => setGlossary({ kind: 'sinsal', key: tw.name })}>
-                    <Text style={styles.ptSsLink}>{tw.name}<Text style={styles.ptSsBase}> {tw.bases.join('')}</Text></Text>
-                  </Pressable>
-                ))}
-            </View>
-          ))}
-        </View>
-        {/* 통근 (지지별 통근 천간 — 일간=골드) */}
-        <View style={[styles.ptRow, styles.ptRowLast]}>
-          <Text style={styles.ptLabel}>통근</Text>
-          {visiblePos.map((p) => {
-            const r = rootsOf(p);
-            return (
-              <View key={p} style={[styles.ptCell, p === '일' && styles.ptCellDay]}>
-                <View style={styles.ptHidWrap}>
-                  {r.length ? r.map((sg, i) => (
-                    <Text key={i} style={[styles.ptRoot, { color: sg === P['일'].stem ? colors.ju : elementColor[stemElement(sg)] }]}>{sg}根</Text>
-                  )) : <Text style={styles.ssDim}>—</Text>}
-                </View>
-              </View>
-            );
-          })}
-        </View>
-      </View>
+          </View>
 
-      {/* 합충형해 — 기본 숨김, 탭하면 선 + 글자별 작용 카드 */}
-      {(ganLinks.length + jiLinks.length) > 0 && (
-        <Pressable style={styles.linksToggle} onPress={() => setShowLinks((v) => !v)}>
-          <Text style={styles.linksToggleTx}>합충형해 {ganLinks.length + jiLinks.length}개  {showLinks ? '▲ 접기' : '▼ 펼쳐 보기'}</Text>
-        </Pressable>
-      )}
+          {renderArcs(activeGanP, 'above')}
+          {renderPillars()}
+          {renderArcs(activeJiP, 'below')}
+
+          {/* 12신살(원국) — 자리별 요약. 상세·기준지(년/일)·길신은 '신살' 탭에서(daniel: 원국에도 포함) */}
+          <View style={styles.twelveRow}>
+            <Text style={styles.twelveRowLabel}>12신살</Text>
+            {visiblePos.map((p) => {
+              const names = Array.from(new Set((c.sinsal.twelve[p] ?? []).map((tw: any) => tw.name)));
+              return (
+                <View key={p} style={styles.twelveCell}>
+                  {names.length ? names.map((n, i) => (
+                    <Pressable key={i} onPress={() => setGlossary({ kind: 'sinsal', key: n })}><Text style={styles.twelveCellTx}>{n}</Text></Pressable>
+                  )) : <Text style={styles.twelveDim}>—</Text>}
+                </View>
+              );
+            })}
+          </View>
+
+          {/* 합충형해 토글 */}
+          {(ganLinks.length + jiLinks.length) > 0 && (
+            <Pressable 
+              style={styles.linksToggleNew} 
+              onPress={() => {
+                setShowLinks((v) => !v);
+                haptic();
+              }}
+            >
+              <View style={[styles.linksToggleGradient, { backgroundColor: colors.glass }]}>
+                <Text style={styles.linksToggleTx}>
+                  관계 분석 {ganLinks.length + jiLinks.length}개  {showLinks ? '▲' : '▼'}
+                </Text>
+              </View>
+            </Pressable>
+          )}
       {showLinks && normPalja.length > 0 && (
         <View style={styles.linksCard}>{renderGroups(normPalja, activePalja, (k) => toggleKey(setActivePalja, k))}</View>
       )}
@@ -506,13 +528,17 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
         // 원국(시일월년) + 선택 대운 + 선택 세운 + 선택 월운 + 선택 일운 = 확장 명식 컬럼
         const expandCols = [
           ...visiblePos.map((p) => ({ label: `${p}주`, stem: P[p].stem, branch: P[p].branch, tg: P[p].stemTenGod, luck: false, hidden: HIDDEN[P[p].branch] ?? [] })),
-          ...(lc ? [{ label: '대운', stem: lc.stem, branch: lc.branch, tg: lc.stemTenGod, luck: true, hidden: HIDDEN[lc.branch as keyof typeof HIDDEN] ?? [] }] : []),
+          ...(lc && showLayers.luck ? [{ label: '대운', stem: lc.stem, branch: lc.branch, tg: lc.stemTenGod, luck: true, hidden: HIDDEN[lc.branch as keyof typeof HIDDEN] ?? [] }] : []),
           ...(an && showLayers.year ? [{ label: '세운', stem: an.stem, branch: an.branch, tg: an.stemTenGod, luck: true, hidden: HIDDEN[an.branch as keyof typeof HIDDEN] ?? [] }] : []),
           ...(mo && showLayers.month ? [{ label: `${selMonth + 1}월`, stem: mo.stem, branch: mo.branch, tg: mo.stemTenGod, luck: true, hidden: HIDDEN[mo.branch as keyof typeof HIDDEN] ?? [] }] : []),
           ...(dayItem && showLayers.day ? [{ label: '일운', stem: dayItem.stem, branch: dayItem.branch, tg: dayItem.stemTenGod, luck: true, hidden: HIDDEN[dayItem.branch as keyof typeof HIDDEN] ?? [] }] : []),
         ];
         // 시간층 합충 — 확장명식 컬럼(원국+운) 간 작용. 운(대운/세운/월운) 연루된 것만(원국끼리는 팔자 표에).
-        const COLW = 50;
+        // 컬럼 수에 맞춰 가용폭(expW)을 꽉 채움 — 층을 끄면 칸이 넓어지고 글자(scale)도 커진다.
+        //   컬럼이 많아 폭을 넘으면 최소 50으로 두고 가로 스크롤. scale 상한 1.7(과도 확대 방지).
+        const nCols = expandCols.length || 1;
+        const COLW = expW > 0 ? Math.max(50, Math.floor(expW / nCols)) : 50;
+        const scale = Math.min(1.7, COLW / 50);
         const expandLinks = detectInteractionsAmong(expandCols.map((c2) => ({ pos: c2.label as any, stem: c2.stem, branch: c2.branch })))
           .filter((it) => it.members.length >= 2 && it.members.some((m) => expandCols.find((c2) => c2.label === m)?.luck)); // 3자 국(원국+운 완성) 포함
         const ganEx = expandLinks.filter((it) => it.level === '천간');
@@ -535,8 +561,8 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
           const STEP = 16, H = links.length * STEP + 14, reach = dir === 'above' ? H : 0;
           const dash = dir === 'above' ? '3 2' : undefined;
           const items = links.map((it, i) => {
-            const off = (i - (links.length - 1) / 2) * 4;
-            const xs = (it.members as string[]).map((m) => xOfCol(m) + off).sort((a, b) => a - b); // 3자 국 포함 전 멤버
+            // off 없음 — 칸 '중앙'에서 출발(daniel: 대운/세운/월운/일운 토글로 컬럼 수가 바뀌어도 칸 중앙 정렬). 겹침은 다리 높이로 구분.
+            const xs = (it.members as string[]).map((m) => xOfCol(m)).sort((a, b) => a - b); // 3자 국 포함 전 멤버
             const xa = xs[0], xb = xs[xs.length - 1];
             const legY = dir === 'above' ? 6 + i * STEP : H - (6 + i * STEP);
             const lbl = linkLabel(it);
@@ -567,30 +593,30 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
           <Text style={styles.h}>{t('myeongsik.luck')}</Text>
           {/* 시간층 토글 — 명식에 년운·월운·일운 표시/숨김(대운은 항상 표시) */}
           <View style={styles.layerToggle}>
-            {([['year', '년운'], ['month', '월운'], ['day', '일운']] as const).map(([k, l]) => (
+            {([['luck', '대운'], ['year', '년운'], ['month', '월운'], ['day', '일운']] as const).map(([k, l]) => (
               <Pressable key={k} style={[styles.layerChip, showLayers[k] && styles.layerChipOn]} onPress={() => setShowLayers((p) => ({ ...p, [k]: !p[k] }))}>
                 <Text style={[styles.layerChipTx, showLayers[k] && styles.layerChipTxOn]}>{showLayers[k] ? '✓ ' : ''}{l}</Text>
               </Pressable>
             ))}
           </View>
           {/* 원국 + 대운·세운 확장 명식 (합충선은 아래 토글로 펼침) */}
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.luckScroll}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.luckScroll} onLayout={(e) => setExpW(e.nativeEvent.layout.width)}>
             <View>
               {expandArcs(activeGanEx, 'above')}
               <View style={{ flexDirection: 'row' }}>
                 {expandCols.map((col, i) => (
-                  <View key={i} style={[styles.expCol2, col.luck && styles.expColLuck, hlExpand.has(col.label) && styles.expCol2On]}>
-                    <Text style={styles.expLabel}>{col.label}</Text>
+                  <View key={i} style={[styles.expCol2, { width: COLW }, col.luck && styles.expColLuck, hlExpand.has(col.label) && styles.expCol2On]}>
+                    <Text style={[styles.expLabel, { fontSize: Math.round(11 * scale) }]}>{col.label}</Text>
                     {/* 대운수(입운 나이) — 대운 컬럼만 표기, 나머지 컬럼은 빈 줄로 세로 정렬 유지 */}
-                    <Text style={styles.expAge}>{col.label === '대운' && lc ? `${lc.startAge}세` : ' '}</Text>
-                    <Text style={styles.expTg}>{col.tg}</Text>
-                    <GzCell char={col.stem} kind="stem" size="sm" onPress={() => setGlossary({ kind: 'stem', key: col.stem })} />
-                    <GzCell char={col.branch} kind="branch" size="sm" onPress={() => setGlossary({ kind: 'branch', key: col.branch })} />
-                    <Text style={styles.expTg}>{branchTenGod(dm, col.branch)}</Text>
-                    <Text style={styles.expStage}>{twelveStage(dm, col.branch)}</Text>
+                    <Text style={[styles.expAge, { fontSize: Math.round(9 * scale) }]}>{col.label === '대운' && lc ? `${lc.startAge}세` : ' '}</Text>
+                    <Text style={[styles.expTg, { fontSize: Math.round(11 * scale) }]}>{col.tg}</Text>
+                    <GzCell char={col.stem} kind="stem" size="sm" scale={scale} onPress={() => setGlossary({ kind: 'stem', key: col.stem })} />
+                    <GzCell char={col.branch} kind="branch" size="sm" scale={scale} onPress={() => setGlossary({ kind: 'branch', key: col.branch })} />
+                    <Text style={[styles.expTg, { fontSize: Math.round(11 * scale) }]}>{branchTenGod(dm, col.branch)}</Text>
+                    <Text style={[styles.expStage, { fontSize: Math.round(10 * scale) }]}>{twelveStage(dm, col.branch)}</Text>
                     <View style={styles.expHidden}>
                       {col.hidden.map((h: any, k: number) => (
-                        <Text key={k} style={[styles.expHiddenTx, { color: elementColor[stemElement(h.stem)] }]}>{h.stem}</Text>
+                        <Text key={k} style={[styles.expHiddenTx, { fontSize: Math.round(12 * scale), lineHeight: Math.round(15 * scale) }, { color: elementColor[stemElement(h.stem)] }]}>{h.stem}</Text>
                       ))}
                     </View>
                   </View>
@@ -908,6 +934,12 @@ const styles = StyleSheet.create({
   ssRowLabel: { width: 36, alignSelf: 'center', textAlign: 'center', ...font.caption, color: colors.inkSoft, fontWeight: '700' },
   ssColHead: { flex: 1, textAlign: 'center', paddingVertical: space(1.5), ...font.caption, color: colors.inkFaint, fontWeight: '700' },
   ssCell: { flex: 1, alignItems: 'center', paddingVertical: space(1.5), paddingHorizontal: 2, gap: 2, borderLeftWidth: StyleSheet.hairlineWidth, borderLeftColor: colors.line },
+  // 12신살 원국 요약 행(명식 탭) — daniel: 원국에도 12신살 표시
+  twelveRow: { flexDirection: 'row', alignItems: 'flex-start', marginTop: space(3), backgroundColor: colors.card, borderRadius: radius.sm, borderWidth: 1, borderColor: colors.line, paddingVertical: space(2) },
+  twelveRowLabel: { width: 44, alignSelf: 'center', textAlign: 'center', ...font.caption, color: colors.inkSoft, fontWeight: '700' },
+  twelveCell: { flex: 1, alignItems: 'center', gap: 2 },
+  twelveCellTx: { ...font.caption, color: colors.ju, fontWeight: '600' },
+  twelveDim: { ...font.caption, color: colors.inkFaint },
   ssCellGz: { fontSize: 20, fontWeight: '800' },
   ssTag: { fontSize: 10, color: colors.ju, fontWeight: '600', textAlign: 'center' },
   ssGmRow: { flexDirection: 'row', alignItems: 'center', gap: space(2), marginTop: space(2.5) },
@@ -926,7 +958,7 @@ const styles = StyleSheet.create({
   ssDDim: { ...font.caption, color: colors.inkFaint, width: 58 },
   ssDKw: { ...font.caption, color: colors.inkSoft, flex: 1 },
   ssSubHead: { ...font.caption, color: colors.inkSoft, fontWeight: '700', marginTop: space(3), marginBottom: space(1) },
-  ss12Tag: { fontSize: 11, color: colors.ink, fontWeight: '700', textAlign: 'center', textDecorationLine: 'underline', textDecorationStyle: 'dotted' },
+  ss12Tag: { fontSize: 11, color: colors.ink, fontWeight: '700', textAlign: 'center', textDecorationLine: 'none', textDecorationStyle: 'dotted' },
   ss12Base: { fontSize: 8, color: colors.inkFaint, fontWeight: '400' },
   rootBadgeRow: { flexDirection: 'row', alignItems: 'center', marginTop: 2, flexWrap: 'wrap', justifyContent: 'center' },
   rootStem: { fontSize: 10, fontWeight: '800' },
@@ -977,28 +1009,31 @@ const styles = StyleSheet.create({
   calDayToday: { color: colors.ju, fontWeight: '800' },
   calGz: { fontSize: 13, fontWeight: '700', marginTop: 1 },
   row: { flexDirection: 'row', gap: space(2) },
-  pillar: {
-    flex: 1, alignItems: 'center', backgroundColor: colors.card,
-    borderWidth: 1, borderColor: colors.line, borderRadius: radius.sm,
-    paddingVertical: space(2.5), paddingHorizontal: space(1),
-  },
-  pillarDay: { borderColor: colors.ju, borderWidth: 1.5, ...shadow.card }, // 일주 = '나'
-  pillarMasked: { backgroundColor: colors.sunk, borderColor: colors.line },
-  pos: { ...font.caption, color: colors.inkSoft, marginBottom: space(1), fontWeight: '700' },
-  posDay: { color: colors.ju },
-  tgSmall: { fontSize: 10, color: colors.inkSoft, marginVertical: space(0.5) },
-  gzCell: { width: '88%', aspectRatio: 1.5, borderRadius: 5, alignItems: 'center', justifyContent: 'center', marginVertical: space(0.5) },
-  gzText: { fontSize: 24, fontWeight: '800' },
-  gzMasked: { fontSize: 26, fontWeight: '700', color: colors.inkFaint, lineHeight: 32 },
-  maskedLabel: { ...font.caption, marginTop: space(1) },
+  pillarContainer: { flexDirection: 'row', gap: space(2), marginTop: space(2), marginBottom: space(4) },
+  pillarWrapper: { flex: 1 },
+  pillarGlass: { paddingVertical: space(3), paddingHorizontal: 0, alignItems: 'center' },
+  pillarDayGlass: { borderColor: colors.ju, borderWidth: 1.5 },
+  pillarPos: { ...font.caption, fontWeight: '700', color: colors.inkFaint, marginBottom: space(1.5) },
+  pillarPosDay: { color: colors.ju },
+  pillarMain: { alignItems: 'center', width: '100%', paddingVertical: space(0.5) },
+  pillarChar: { fontSize: 26, fontWeight: '800', lineHeight: 32 },
+  pillarTenGod: { fontSize: 10, fontWeight: '600' },
+  pillarReading: { fontSize: 9, fontWeight: '400' },
+  pillarIcon: { marginVertical: space(2) },
+  advancedInfo: { width: '100%', alignItems: 'center' },
+  pillarStage: { fontSize: 10, color: colors.inkSoft, fontWeight: '600', marginTop: space(1) },
+  pillarHidden: { flexDirection: 'row', gap: 2, marginTop: space(1) },
+  pillarHiddenChar: { fontSize: 11, fontWeight: '700' },
+  pillarHiddenItem: { width: 15, height: 15, alignItems: 'center', justifyContent: 'center' }, // 지장간 1자 칸
+  pillarHiddenRooted: { borderWidth: 1, borderColor: colors.ju, borderRadius: 8 }, // 투출(통근) = 동그라미
+  headerArea: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: space(4) },
+  advancedBtn: { paddingHorizontal: space(2), paddingVertical: space(1), borderRadius: radius.sm, backgroundColor: colors.sunk },
+  advancedBtnTx: { ...font.caption, color: colors.ju, fontWeight: '700' },
+  linksToggleNew: { marginTop: space(4), borderRadius: radius.md, overflow: 'hidden', ...shadow.card },
+  linksToggleGradient: { paddingVertical: space(3), alignItems: 'center' },
+  linksToggleTx: { ...font.body, color: colors.ju, fontWeight: '700' },
   pillarDivider: { width: '70%', height: 1, backgroundColor: colors.line, marginVertical: space(1.5) },
-  stage: { fontSize: 10, color: colors.inkSoft, fontWeight: '600' },
-  hidden: { fontSize: 9, color: colors.inkFaint, marginTop: space(0.5), letterSpacing: 1 },
-  rootBadge: {
-    fontSize: 9, color: colors.bg, backgroundColor: colors.ju, fontWeight: '700',
-    paddingHorizontal: space(1.5), paddingVertical: 1, borderRadius: radius.pill, marginTop: space(1),
-    overflow: 'hidden',
-  },
+  ptable: { display: 'none' }, // 기존 테이블 숨김
   kv: { ...font.body, color: colors.ink, marginTop: space(1.5), lineHeight: 21 },
   kvLabel: { color: colors.inkSoft, fontWeight: '700' },
   kvAccent: { color: colors.ju, fontWeight: '700' },
@@ -1029,18 +1064,17 @@ const styles = StyleSheet.create({
   },
   readingBtnText: { color: colors.bg, fontSize: 15, fontWeight: '700' },
   // 클릭 설명 — 탭 가능 힌트(점선 밑줄) + 바텀시트
-  tgSmallLink: { fontSize: 10, color: colors.inkSoft, marginVertical: space(0.5), textDecorationLine: 'underline', textDecorationStyle: 'dotted' },
-  ssTagLink: { fontSize: 10, color: colors.ju, fontWeight: '600', textAlign: 'center', textDecorationLine: 'underline', textDecorationStyle: 'dotted' },
-  linkText: { textDecorationLine: 'underline', textDecorationStyle: 'dotted' },
+  tgSmallLink: { fontSize: 10, color: colors.inkSoft, marginVertical: space(0.5), textDecorationLine: 'none', textDecorationStyle: 'dotted' },
+  ssTagLink: { fontSize: 10, color: colors.ju, fontWeight: '600', textAlign: 'center', textDecorationLine: 'none', textDecorationStyle: 'dotted' },
+  linkText: { textDecorationLine: 'none', textDecorationStyle: 'dotted' },
   // 팔자 카드 — 12운성·지장간·12신살 (각 탭 가능, 점선밑줄 힌트)
-  stageLink: { fontSize: 10, color: colors.inkSoft, fontWeight: '600', textDecorationLine: 'underline', textDecorationStyle: 'dotted', marginTop: space(0.5) },
+  stageLink: { fontSize: 10, color: colors.inkSoft, fontWeight: '600', textDecorationLine: 'none', textDecorationStyle: 'dotted', marginTop: space(0.5) },
   hiddenRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 3, marginTop: space(0.5) },
-  hiddenG: { fontSize: 11, fontWeight: '700', textDecorationLine: 'underline', textDecorationStyle: 'dotted' },
+  hiddenG: { fontSize: 11, fontWeight: '700', textDecorationLine: 'none', textDecorationStyle: 'dotted' },
   pillarSinsal: { alignItems: 'center', marginTop: space(1) },
-  pillarSsTx: { fontSize: 9, color: colors.ju, fontWeight: '600', lineHeight: 13, textAlign: 'center', textDecorationLine: 'underline', textDecorationStyle: 'dotted' },
+  pillarSsTx: { fontSize: 9, color: colors.ju, fontWeight: '600', lineHeight: 13, textAlign: 'center', textDecorationLine: 'none', textDecorationStyle: 'dotted' },
   pillarSsBase: { fontSize: 7, color: colors.inkFaint, fontWeight: '400', textDecorationLine: 'none' },
   // 팔자 표 (행 라벨 + 칸 구분선 + 일주 강조)
-  ptable: { marginTop: space(2), borderWidth: 1, borderColor: colors.line, borderRadius: radius.sm },
   ptRow: { flexDirection: 'row', borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.line, alignItems: 'stretch' },
   ptRowLast: { borderBottomWidth: 0 },
   ptLabel: { width: 34, ...font.caption, color: colors.inkSoft, fontWeight: '700', textAlign: 'center', alignSelf: 'center', paddingVertical: space(1) },
@@ -1048,15 +1082,15 @@ const styles = StyleSheet.create({
   ptCellDay: { backgroundColor: colors.juSoft },
   ptHead: { ...font.caption, color: colors.inkFaint, fontWeight: '700' },
   ptHeadDay: { color: colors.ju },
-  ptTgLink: { fontSize: 11, color: colors.inkSoft, fontWeight: '600', textAlign: 'center', textDecorationLine: 'underline', textDecorationStyle: 'dotted' },
+  ptTgLink: { fontSize: 11, color: colors.inkSoft, fontWeight: '600', textAlign: 'center', textDecorationLine: 'none', textDecorationStyle: 'dotted' },
   ptGz: { width: 40, height: 40, borderRadius: 6, alignItems: 'center', justifyContent: 'center', marginVertical: 1 },
   ptGzTx: { fontSize: 22, fontWeight: '800', lineHeight: 24 },
   ptGzKo: { fontSize: 9, fontWeight: '700', lineHeight: 10, opacity: 0.85 },
   ptHidWrap: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 2 },
-  ptHid: { fontSize: 12, fontWeight: '700', textDecorationLine: 'underline', textDecorationStyle: 'dotted' },
+  ptHid: { fontSize: 12, fontWeight: '700', textDecorationLine: 'none', textDecorationStyle: 'dotted' },
   ptHidRooted: { borderWidth: 1, borderColor: colors.ju, borderRadius: 9, paddingHorizontal: 3, paddingVertical: 0.5, textDecorationLine: 'none', overflow: 'hidden' }, // 투출(透出) 지장간 = 동그라미 강조
-  ptStageLink: { fontSize: 11, color: colors.inkSoft, fontWeight: '600', textAlign: 'center', textDecorationLine: 'underline', textDecorationStyle: 'dotted' },
-  ptSsLink: { fontSize: 9, color: colors.ju, fontWeight: '600', lineHeight: 13, textAlign: 'center', textDecorationLine: 'underline', textDecorationStyle: 'dotted' },
+  ptStageLink: { fontSize: 11, color: colors.inkSoft, fontWeight: '600', textAlign: 'center', textDecorationLine: 'none', textDecorationStyle: 'dotted' },
+  ptSsLink: { fontSize: 9, color: colors.ju, fontWeight: '600', lineHeight: 13, textAlign: 'center', textDecorationLine: 'none', textDecorationStyle: 'dotted' },
   ptSsBase: { fontSize: 7, color: colors.inkFaint, fontWeight: '400', textDecorationLine: 'none' },
   ptRoot: { fontSize: 11, fontWeight: '800' },
   // 자미두수 명반 (12궁 4×4)
@@ -1073,10 +1107,9 @@ const styles = StyleSheet.create({
   ziBright: { fontSize: 8, color: colors.inkFaint, fontWeight: '400' },
   ziSihwa: { fontSize: 9, fontWeight: '800' },
   ziMinor: { fontSize: 8, color: colors.inkSoft, marginTop: 1, lineHeight: 12 },
-  ziLink: { textDecorationLine: 'underline', textDecorationStyle: 'dotted' }, // 탭 힌트
+  ziLink: { textDecorationLine: 'none', textDecorationStyle: 'dotted' }, // 탭 힌트
   // 합충형해 토글 카드 (기본 숨김 → 선 + 글자작용)
   linksToggle: { marginTop: space(2), paddingVertical: space(2.5), paddingHorizontal: space(3), borderRadius: radius.sm, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.card, alignItems: 'center' },
-  linksToggleTx: { ...font.body, color: colors.ju, fontWeight: '700' },
   linksCard: { marginTop: space(1.5), padding: space(3), borderRadius: radius.sm, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line },
   linkMini: { alignSelf: 'center', marginBottom: space(2) },
   linkMiniRow: { flexDirection: 'row' },
@@ -1102,8 +1135,8 @@ const styles = StyleSheet.create({
   repRow: { flexDirection: 'row', gap: space(2), marginTop: space(3) },
   repChip: { flex: 1, paddingVertical: space(2.5), paddingHorizontal: space(2), borderRadius: radius.sm, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.card, alignItems: 'center' },
   repLabel: { ...font.caption, color: colors.inkFaint },
-  repVal: { fontSize: 18, fontWeight: '800', marginTop: 2, textDecorationLine: 'underline', textDecorationStyle: 'dotted' },
-  repValTg: { fontSize: 15, fontWeight: '800', color: colors.ju, marginTop: 2, textDecorationLine: 'underline', textDecorationStyle: 'dotted' },
+  repVal: { fontSize: 18, fontWeight: '800', marginTop: 2, textDecorationLine: 'none', textDecorationStyle: 'dotted' },
+  repValTg: { fontSize: 15, fontWeight: '800', color: colors.ju, marginTop: 2, textDecorationLine: 'none', textDecorationStyle: 'dotted' },
   sheetOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'flex-end' },
   sheet: { backgroundColor: colors.card, borderTopLeftRadius: radius.md, borderTopRightRadius: radius.md, padding: space(5), paddingBottom: space(9) },
   sheetHandle: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: colors.line, marginBottom: space(3) },

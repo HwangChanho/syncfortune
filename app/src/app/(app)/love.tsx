@@ -4,8 +4,8 @@
 //   건당 ₩4,900(가격 마킹), 1회 생성→캐시(영구·재과금 0). 결제 미연동 → 'love' 이용권 or 안내.
 //   Edge kind='love'(category='love'), 운한 포함 최신 자미명반은 body로 전달.
 // ─────────────────────────────────────────────────────────────────────────
-import { useEffect, useMemo, useState } from 'react';
-import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
+import { useEffect, useMemo, useState, useRef } from 'react';
+import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator, Animated } from 'react-native';
 import { Alert } from '../../lib/alert'; // 커스텀 알림(앱 디자인)
 import { useTranslation } from 'react-i18next';
 import { useRouter } from 'expo-router';
@@ -14,13 +14,18 @@ import { loadRepChart, type SavedChart } from '../../lib/myChart';
 import { ensureServerChartId } from '../../lib/prewarmReadings';
 import { useAuth } from '../../lib/useAuth';
 import { useFontScale } from '../../lib/fontScale';
-import { useCredit } from '../../lib/coupons';
+import { useSubscription } from '../../lib/subscription'; // 프리미엄=자동 생성(타 스페셜과 통일)
+import { loadCredits } from '../../lib/coupons';
+import { isAdmin } from '../../lib/admin'; // 스페셜 = 관리자 바로 진입 / 그 외 쿠폰(크레딧)만 unlock(결제 미연동)
 import { requireLoginForPurchase } from '../../lib/requireLogin';
 import { assertOnline } from '../../lib/network';
-import { purchaseConsumableRC, purchasesEnabled, PRODUCT_UNLOCK_4900 } from '../../lib/purchases';
 import { supabase } from '../../lib/supabase';
 import { appLang } from '../../lib/i18n';
+import { logEvent } from '../../lib/logger'; // DB 로그(app_logs) — 단계별 추적(네이티브 크래시 직전 지점)
 import { colors, radius, space, shadow, font } from '../../lib/theme';
+import { UnlockOverlay } from '../../components/UnlockOverlay'; // unlock 자물쇠 애니 + 그 사이 LLM 분석
+import { ContentHero, cardAnim } from '../../components/SpecialContentScreen'; // 공용 히어로 + 섹션 stagger
+import { LoveThread } from '../../components/contentMotifs'; // 인연의 실 모티프
 
 // 건당 가격 — 정가 → 할인가로 마킹(daniel). 결제 연동 시 조율.
 export const LOVE_PRICE = '₩4,900';
@@ -40,17 +45,22 @@ const SECTIONS: { key: string; tk: string }[] = [
   { key: 'advice', tk: 'love.advice' },
 ];
 
+const LOVE_PINK = '#E5749B'; // 애정 테마색(인연 실 모티프와 통일)
+
 export default function LoveScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const { session } = useAuth();
   const { fs } = useFontScale();
+  const { isPremium } = useSubscription();
   const [savedChart, setSavedChart] = useState<SavedChart | null>(null);
   const [chartId, setChartId] = useState<string | null>(null);
   const [reading, setReading] = useState<any>(null);     // 캐시/생성된 통변(9항목)
   const [busy, setBusy] = useState(false);
   const [loaded, setLoaded] = useState(false);           // 캐시 로드 완료
   const c = useMemo(() => (savedChart ? computeChart(savedChart.input) : null), [savedChart]);
+  const gatingRef = useRef(false); // 결제 구간(모달) 연타 차단 — busy(생성중)와 별개
+  const reveal = useRef(new Animated.Value(0)).current; // 섹션 순차 등장
 
   // 대표 명식 로드 → 서버차트ID 확보 → 'love' 캐시 조회(생성 없이 즉시 표시)
   useEffect(() => {
@@ -66,32 +76,57 @@ export default function LoveScreen() {
       setChartId(id);
       const { data } = await supabase.from('readings').select('content').eq('chart_id', id).eq('category', 'love').eq('lang', appLang()).maybeSingle();
       if (!alive) return;
-      setReading(data?.content ?? null);
+      const cached = data?.content ?? null;
+      setReading(cached);
       setLoaded(true);
+      if (isPremium && !cached) generate(id, cc.ziwei); // 프리미엄=자동 생성(타 스페셜과 통일)
     })().catch(() => { if (alive) setLoaded(true); });
     return () => { alive = false; };
-  }, [session]);
+  }, [session, isPremium]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // 생성 — 로그인 게이트 → 이용권('love') 우선 → 없으면 건당 결제(₩4,900). 1회 생성 후 캐시.
-  async function generate() {
-    if (!chartId || !c || busy) return;
-    if (!assertOnline(t)) return;                                                  // 오프라인 = 생성 차단
-    if (!requireLoginForPurchase(session, () => router.push('/login'), t)) return; // 구매는 계정 귀속·저장
-    let unlocked = await useCredit('love');                                        // 무료 이용권(쿠폰) 우선
-    if (!unlocked) {
-      if (!purchasesEnabled()) { Alert.alert(t('love.gateTitle'), t('purchase.preparing')); return; } // RC 키 미설정
-      try { unlocked = await purchaseConsumableRC(PRODUCT_UNLOCK_4900); }
-      catch (e) { Alert.alert(t('love.gateTitle'), (e as Error).message); return; }
-      if (!unlocked) return;                                                       // 사용자 취소
-    }
+  // 통변 도착(캐시·생성 완료) → 섹션 순차 등장(stagger)
+  useEffect(() => {
+    if (reading && !reading.error) { reveal.setValue(0); Animated.timing(reveal, { toValue: 1, duration: 500 + SECTIONS.length * 110, useNativeDriver: true }).start(); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reading]);
+
+  // 순수 생성(LLM) — 게이트 통과 후 호출. idArg/ziweiArg = useEffect 자동생성용(state 갱신 전 직접 전달).
+  async function generate(idArg?: string, ziweiArg?: any) {
+    const id = idArg ?? chartId;
+    const zw = ziweiArg ?? c?.ziwei;
+    if (!id || !zw || busy) return;
     setBusy(true);
+    logEvent('love_invoke_start', { chartId: id });
     try {
       const { data, error } = await supabase.functions.invoke('interpret', {
-        body: { chartId, category: 'love', kind: 'love', tier: 'paid', ziwei: c.ziwei, lang: appLang() },
+        body: { chartId: id, category: 'love', kind: 'love', tier: 'paid', ziwei: zw, lang: appLang() },
       });
-      setReading(error ? { error: error.message } : data?.reading);
-    } catch (e) { setReading({ error: (e as Error).message }); }
+      if (error) logEvent('love_invoke_error', { message: error.message }, 'error');
+      else if ((data as any)?.needPayment) logEvent('love_need_payment', {}, 'error');   // 크레딧 stale 방어
+      else logEvent('love_invoke_ok');
+      setReading(error ? { error: error.message } : (data as any)?.needPayment ? { error: t('love.needPay', '이용권이 필요해요. 다시 시도해 주세요.') } : data?.reading);
+    } catch (e) { logEvent('love_invoke_throw', { message: (e as Error).message }, 'error'); setReading({ error: (e as Error).message }); }
     setBusy(false);
+  }
+
+  // 게이트(서버 차감 통일·타 스페셜과 동일): 프리미엄=바로 / 관리자=바로 / 그 외 쿠폰('love') 보유시만 — 결제 미연동.
+  async function onStart() {
+    if (!chartId || busy || gatingRef.current) return;
+    logEvent('love_generate_tap', { chartId });                                    // ← 진입(크래시 직전 추적 기준점)
+    if (!assertOnline(t)) { logEvent('love_offline'); return; }                    // 오프라인 = 생성 차단
+    if (isPremium) { generate(chartId); return; }                                  // 프리미엄 = 무광고 바로
+    gatingRef.current = true;                                                       // 게이트 구간 연타 차단
+    try {
+      const admin = await isAdmin();                                               // 관리자 = 바로 진입(테스트)
+      if (!admin) {
+        if (!requireLoginForPurchase(session, () => router.push('/login'), t)) { logEvent('love_need_login'); return; }
+        const credits = await loadCredits();                                       // 쿠폰(이용권) 크레딧만 unlock — 결제 미연동
+        logEvent('love_credit_check', { has: credits['love'] ?? 0 });
+        if ((credits['love'] ?? 0) <= 0) { Alert.alert(t('love.gateTitle'), t('special.couponOnly', '쿠폰(이용권)으로 열 수 있어요. 설정에서 쿠폰을 등록하거나 관리자에게 문의하세요.')); return; }
+      }
+    } catch (e) { logEvent('love_gate_error', { message: (e as Error).message }, 'error'); return; }
+    finally { gatingRef.current = false; }
+    generate(chartId);                                                              // 관리자·크레딧 통과 → 생성(서버 차감)
   }
 
   const bodyDyn = { fontSize: fs(15), lineHeight: fs(25) };
@@ -108,32 +143,31 @@ export default function LoveScreen() {
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>
-      <Text style={styles.h}>{t('love.title')}</Text>
-      <Text style={styles.sub}>{t('love.sub')}</Text>
+      <UnlockOverlay visible={busy} message={t('love.generating', '애정 흐름을 풀어내는 중…')} />
+      <ContentHero motif={<LoveThread />} title={t('love.title')} sub={t('love.sub')} themeColor={LOVE_PINK} />
 
-      {busy ? (
-        <View style={styles.card}><ActivityIndicator color={colors.ju} /><Text style={styles.busyTx}>{t('love.generating')}</Text></View>
-      ) : reading?.error ? (
+      {reading?.error ? (
         <View style={styles.card}><Text style={styles.err}>{String(reading.error)}</Text></View>
       ) : reading ? (
         // ── 9개 상세 섹션 ──
-        SECTIONS.map((s) => (typeof reading[s.key] === 'string' && reading[s.key] ? (
-          <View key={s.key} style={styles.card}>
-            <Text style={styles.secLabel}>{t(s.tk)}</Text>
+        SECTIONS.map((s, i) => (typeof reading[s.key] === 'string' && reading[s.key] ? (
+          <Animated.View key={s.key} style={[styles.card, styles.cardAccent, { borderLeftColor: LOVE_PINK }, cardAnim(reveal, i, SECTIONS.length)]}>
+            <Text style={[styles.secLabel, { color: LOVE_PINK }]}>{t(s.tk)}</Text>
             <Text style={[styles.body, bodyDyn]}>{reading[s.key]}</Text>
-          </View>
+          </Animated.View>
         ) : null))
       ) : (
-        // ── 가격 게이트(미생성) — 정가 취소선 → 할인가 + % 배지 ──
-        <View style={[styles.card, styles.gate]}>
-          <View style={styles.priceRow}>
-            <View style={styles.discBadge}><Text style={styles.discBadgeTx}>{LOVE_DISCOUNT}%</Text></View>
-            <Text style={styles.priceOrig}>{LOVE_PRICE_ORIG}</Text>
-            <Text style={styles.gatePrice}>{LOVE_PRICE}</Text>
-          </View>
+        // ── 잠김(미생성) — 스페셜은 쿠폰(이용권)/관리자로 unlock(결제 미연동, 타 스페셜과 통일) ──
+        <View style={[styles.card, styles.gate, { borderColor: LOVE_PINK }]}>
+          <Text style={styles.gateTitle}>{t('love.title')}</Text>
           <Text style={styles.gateDesc}>{t('love.gateDesc')}</Text>
-          <Pressable style={styles.cta} onPress={generate}><Text style={styles.ctaTx}>{t('love.see', { price: LOVE_PRICE })}</Text></Pressable>
-          <Text style={styles.gateNote}>{t('love.cacheNote')}</Text>
+          {/* 미리보기 — 궁금해할 핵심 항목 보여주고 unlock 유도(daniel) */}
+          <View style={styles.previewBox}>
+            <Text style={[styles.previewHead, { color: LOVE_PINK }]}>{t('special.previewHead', '이런 걸 풀어드려요')}</Text>
+            {SECTIONS.map((s) => <Text key={s.key} style={styles.previewItem}>· {t(s.tk)}</Text>)}
+          </View>
+          <Pressable style={[styles.cta, { backgroundColor: LOVE_PINK }]} onPress={onStart}><Text style={styles.ctaTx}>{t('special.unlock', '쿠폰으로 열기')}</Text></Pressable>
+          <Text style={styles.gateNote}>{t('special.couponHint', '관리자 계정 또는 쿠폰(이용권)으로 열려요')}</Text>
         </View>
       )}
     </ScrollView>
@@ -147,13 +181,18 @@ const styles = StyleSheet.create({
   h: { ...font.title, marginBottom: space(1) },
   sub: { ...font.caption, color: colors.inkSoft, marginBottom: space(5), lineHeight: 19 },
   card: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.juLine, padding: space(5), marginBottom: space(3), ...shadow.card },
-  secLabel: { fontSize: 16, fontWeight: '800', color: colors.ju, marginBottom: space(2) },
+  secLabel: { fontSize: 16, fontWeight: '800', marginBottom: space(2) },
+  cardAccent: { borderLeftWidth: 3 },
   body: { ...font.body, color: colors.ink },
   busyTx: { ...font.caption, color: colors.inkSoft, marginTop: space(2), textAlign: 'center' },
   err: { fontSize: 13, color: colors.ju },
   msg: { ...font.body, textAlign: 'center', marginBottom: space(5) },
   // 가격 게이트 — 할인 배지 + 정가 취소선 + 할인가
   gate: { alignItems: 'center', borderColor: colors.ju, borderStyle: 'dashed', paddingVertical: space(7) },
+  gateTitle: { ...font.heading, color: colors.ink, marginBottom: space(2) },
+  previewBox: { width: '100%', backgroundColor: colors.sunk, borderRadius: radius.md, padding: space(4), marginBottom: space(5) },
+  previewHead: { fontSize: 13, fontWeight: '800', marginBottom: space(2), letterSpacing: 0.5 },
+  previewItem: { ...font.body, color: colors.inkSoft, lineHeight: 24, fontSize: 14 },
   priceRow: { flexDirection: 'row', alignItems: 'center', gap: space(2) },
   discBadge: { backgroundColor: '#E5484D', borderRadius: radius.sm, paddingHorizontal: space(2), paddingVertical: space(1) },
   discBadgeTx: { color: '#fff', fontSize: 14, fontWeight: '900' },

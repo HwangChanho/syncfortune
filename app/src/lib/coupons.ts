@@ -5,14 +5,25 @@
 //   게이트는 결제 전에 useCredit(kind) 로 크레딧 우선 소비(있으면 무료). 비프리미엄 전용(프리미엄은 무게이트).
 // ─────────────────────────────────────────────────────────────────────────
 import { supabase } from './supabase';
+import { localGrant, localUse, localCreditsAll } from './localCredits'; // 비로그인 = 디바이스 로컬 크레딧(daniel H)
 
-export type CreditKind = 'reading' | 'ziwei' | 'compat' | 'timeline' | 'followup' | 'love';
+// 로그인 세션 유무 — 있으면 서버(RPC/테이블), 없으면 디바이스 로컬(비로그인 구매분, 로그인 시 이관).
+async function hasSession(): Promise<boolean> {
+  const { data } = await supabase.auth.getSession();
+  return !!data.session;
+}
+
+export type CreditKind = 'reading' | 'ziwei' | 'compat' | 'timeline' | 'followup' | 'love' | 'newyear' | 'lifegraph' | 'roots' | 'image' | 'mission';
 // price = 건당 가격(원). daniel 확정(2026-06): 원가(opus, 영구캐시 1회)×~3, 소액(타임라인·질문)=₩990, 애정 ₩4,900.
 export const CREDIT_KINDS: { key: CreditKind; ko: string; price: number }[] = [
   { key: 'reading', ko: '사주 풀이', price: 6900 }, { key: 'ziwei', ko: '자미두수', price: 4900 }, { key: 'compat', ko: '궁합', price: 3900 },
   { key: 'timeline', ko: '인생 타임라인', price: 990 }, { key: 'followup', ko: '추가 질문', price: 990 }, { key: 'love', ko: '나의 애정흐름', price: 4900 },
+  // 스페셜(고비용 LLM) — 광고 게이트 제거·건당 결제 전환(daniel 2026-06). 오늘/이달은 저비용이라 광고 무료 유지.
+  { key: 'newyear', ko: '신년운세', price: 6900 }, { key: 'lifegraph', ko: '인생 그래프', price: 3900 },
+  // 심층 콘텐츠(daniel 2026-06): 뿌리(통근·투출)·비치는 나(천간 인상)·나의 사명(격국·용신 + 자미 보조)
+  { key: 'roots', ko: '명식의 뿌리', price: 4900 }, { key: 'image', ko: '비치는 나', price: 4900 }, { key: 'mission', ko: '나의 사명', price: 6900 },
 ];
-export const PREMIUM_PRICE = 39900; // 평생 프리미엄(대표명식 전부 무제한)
+export const PREMIUM_PRICE = 49900; // 평생 프리미엄(대표명식 전부 무제한). daniel: 사업가 등 헤비유저(궁합 반복) 타겟 — 일반은 건당/쿠폰. 프리미엄은 소수 기대.
 
 export type RedeemResult =
   | { ok: true; kind: string; qty: number }
@@ -27,6 +38,7 @@ export async function redeemCoupon(code: string): Promise<RedeemResult> {
 
 /** 보유 크레딧(파트별 잔여 수) — 설정 표시·게이트 사전 확인용(RLS 본인만). */
 export async function loadCredits(): Promise<Record<string, number>> {
+  if (!(await hasSession())) return localCreditsAll();    // 비로그인 = 디바이스 로컬(H)
   const { data } = await supabase.from('entitlement_credits').select('kind, remaining');
   const out: Record<string, number> = {};
   (data ?? []).forEach((r: any) => { if (r.remaining > 0) out[r.kind] = r.remaining; });
@@ -35,6 +47,7 @@ export async function loadCredits(): Promise<Record<string, number>> {
 
 /** 크레딧 1 소비(use_credit RPC) — 있으면 차감 후 true(무료 진행), 없으면 false(기존 결제 게이트). */
 export async function useCredit(kind: CreditKind): Promise<boolean> {
+  if (!(await hasSession())) return localUse(kind);        // 비로그인 = 로컬 차감(H)
   const { data, error } = await supabase.rpc('use_credit', { p_kind: kind });
   return !error && data === true;
 }
@@ -45,6 +58,7 @@ export async function useCredit(kind: CreditKind): Promise<boolean> {
  * @returns 부여 후 잔여 수(실패 시 null)
  */
 export async function grantCredit(kind: CreditKind, qty = 1): Promise<number | null> {
+  if (!(await hasSession())) { await localGrant(kind, qty); return qty; } // 비로그인 = 로컬 적립(로그인 시 이관, H)
   const { data, error } = await supabase.rpc('grant_credit', { p_kind: kind, p_qty: qty });
   return error ? null : (data as number);
 }

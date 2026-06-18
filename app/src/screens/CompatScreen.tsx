@@ -6,7 +6,8 @@
 // 결정론(일간관계·교차합충)은 온디바이스 → 통변의 근거로 Edge에 전달(규칙2 사주 단독). 상대 PII=동의(규칙8).
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useEffect } from 'react';
-import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator, Modal } from 'react-native';
+import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator, Modal, TextInput, Keyboard } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context'; // 모달 상단 노치/상태바 침범 방지(J)
 import { Alert } from '../lib/alert'; // 커스텀 알림(앱 디자인)
 import { useTranslation } from 'react-i18next';
 import { computeChart } from '../lib/engine';
@@ -19,19 +20,22 @@ import { ChartRegisterScreen } from './ChartRegisterScreen'; // 상대 명식 = 
 import { useAuth } from '../lib/useAuth';
 import { useSubscription, purchasePremium } from '../lib/subscription';
 import { assertOnline } from '../lib/network'; // 오프라인 시 신규 생성 차단
-import { useEntitlement } from '../lib/entitlement';
+import { purchaseCreditRC } from '../lib/purchases'; // 궁합 건당 결제 = credit_compat(서버 consume)
+import { grantCredit } from '../lib/coupons';        // 결제 성공 → 크레딧 부여(서버가 차감)
 import { ensureServerChartId } from '../lib/prewarmReadings';
 import { useFontScale } from '../lib/fontScale';
-import { COMPAT_RELS, otherSig, loadCompatReadings, genCompatReading, type CompatReading } from '../lib/compatReadings';
+import { COMPAT_RELS, otherSig, loadCompatReadings, genCompatReading, compatSections, compatSectionLabel, type CompatReading } from '../lib/compatReadings';
+import { loadFollowups, askFollowup, type Followup } from '../lib/followups'; // 궁합 추가질문(사주/자미 풀이와 동일 — 무료1 + 건당)
 import { yearGanZhi } from '../lib/dailyFortune'; // 연도별 궁합: 그 해 간지(세운)
+import { UnlockOverlay } from '../components/UnlockOverlay'; // 생성 중 화면 가림 로딩(daniel)
 import type { ChartInput } from '@spec/chart';
 
 export function CompatScreen({ me }: { me: ChartInput | null }) {
   const { t } = useTranslation();
   const { session } = useAuth();
   const { isPremium } = useSubscription();
-  const { purchaseReading } = useEntitlement(); // 궁합 건당 결제(무료 5쌍 초과 시)
   const { fs } = useFontScale(); // 통변 본문 글자 크기(설정에서 조절)
+  const insets = useSafeAreaInsets(); // 상대 등록 모달 헤더가 노치/상태바에 가리지 않게(daniel J)
   const [saved, setSaved] = useState<SavedChart[]>([]);
   const [meSel, setMeSel] = useState<SavedChart | null>(null);   // '내 명식' 슬롯(기본=대표). 저장 명식에서 변경 가능.
   const [mePick, setMePick] = useState(false);                    // 내 명식 변경 피커 펼침
@@ -47,6 +51,10 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
   const YEARS = [0, 1, 2, 3, 4].map((i) => new Date().getFullYear() + i); // 연도별 옵션(올해~+4)
   const [showDetail, setShowDetail] = useState(false);           // 글자 작용 상세 접이식
   const [active, setActive] = useState<Set<string>>(new Set());
+  // 궁합 추가질문(관계유형/연도 키별) — 사주·자미 풀이와 동일(무료 1회 + 건당 결제)
+  const [followups, setFollowups] = useState<Record<string, Followup[]>>({});
+  const [askInput, setAskInput] = useState('');
+  const [asking, setAsking] = useState(false);
 
   // 저장 명식 + 대표 로드 → 내 명식 슬롯 기본값 = 대표(없으면 me 입력)
   useEffect(() => {
@@ -57,6 +65,9 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
       setMeSel(rep);
     })();
   }, []);
+
+  // 통변 컨텍스트(ctx) 준비되면 그 차트의 추가질문 로드(관계유형/연도 키별)
+  useEffect(() => { if (ctx?.chartId) loadFollowups(ctx.chartId).then(setFollowups).catch(() => {}); }, [ctx]);
 
   // 현재 '내 명식' input(슬롯 선택 우선, 없으면 라우트 me)
   const meInput: ChartInput | null = meSel?.input ?? me;
@@ -96,12 +107,12 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
     setReadings(cached);
 
     // 관계 유형(9종) 순차 생성(캐시된 건 skip). 첫 미생성에서 게이트가 걸리면 전체 중단(쌍 단위 과금 — 9종=1쌍).
-    async function genAll(paid: boolean) {
+    async function genAll() {
       if (!assertOnline(t)) return;                        // 오프라인 = 신규 생성 차단
       for (const r of COMPAT_RELS) {
         if (cached[r.key] || readings[r.key]) continue;
         setBusy(r.key);
-        const res = await genCompatReading(chartId!, r.key, sig, otherC.saju, cross, dx.dayMasterRelation.detail, paid, meC.ziwei, otherC.ziwei);
+        const res = await genCompatReading(chartId!, r.key, sig, otherC.saju, cross, dx.dayMasterRelation.detail, meC.ziwei, otherC.ziwei);
         if (res.kind === 'answer') { setReadings((prev) => ({ ...prev, [r.key]: res.reading })); continue; }
         setBusy(null);
         if (res.kind === 'needPremium') { Alert.alert(t('compat.premiumTitle'), t('compat.premiumMsg')); return; }
@@ -109,7 +120,7 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
           Alert.alert(t('compat.payTitle'), t('compat.payMsg'), [
             { text: t('common.cancel'), style: 'cancel' },
             { text: t('compat.payBtn'), onPress: async () => {
-              try { await purchaseReading(); await genAll(true); }
+              try { const ok = await purchaseCreditRC('compat'); if (!ok) return; await grantCredit('compat'); await genAll(); } // 결제→크레딧 부여→서버 consume
               catch (e) { Alert.alert(t('reading.payPending'), (e as Error).message); }
             } },
           ]);
@@ -119,7 +130,7 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
       }
       setBusy(null);
     }
-    await genAll(false);
+    await genAll();
   }
 
   // 연도별 궁합(그 해 흐름) — 선택 관계×연도 1개 lazy 생성. ctx(analyze 시 보관) 재사용.
@@ -131,7 +142,7 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
     if (readings[key]) return;
     setBusy(key);
     const gz = yearGanZhi(Number(yr));
-    const res = await genCompatReading(ctx.chartId, relKey, ctx.sig, pair.other, ctx.cross, ctx.dayRel, false, ctx.meZiwei, ctx.otherZiwei, yr, gz);
+    const res = await genCompatReading(ctx.chartId, relKey, ctx.sig, pair.other, ctx.cross, ctx.dayRel, ctx.meZiwei, ctx.otherZiwei, yr, gz);
     setBusy(null);
     if (res.kind === 'answer') { setReadings((prev) => ({ ...prev, [key]: res.reading })); return; }
     if (res.kind === 'needPremium') { Alert.alert(t('compat.premiumTitle'), t('compat.premiumMsg')); return; }
@@ -140,9 +151,10 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
         { text: t('common.cancel'), style: 'cancel' },
         { text: t('compat.payBtn'), onPress: async () => {
           try {
-            await purchaseReading();
+            const ok = await purchaseCreditRC('compat'); if (!ok) return;
+            await grantCredit('compat');                 // 결제→크레딧 부여→서버 consume
             setBusy(key);
-            const r2 = await genCompatReading(ctx.chartId, relKey, ctx.sig, pair.other, ctx.cross, ctx.dayRel, true, ctx.meZiwei, ctx.otherZiwei, yr, gz);
+            const r2 = await genCompatReading(ctx.chartId, relKey, ctx.sig, pair.other, ctx.cross, ctx.dayRel, ctx.meZiwei, ctx.otherZiwei, yr, gz);
             setBusy(null);
             if (r2.kind === 'answer') setReadings((prev) => ({ ...prev, [key]: r2.reading }));
           } catch (e) { setBusy(null); Alert.alert(t('reading.payPending'), (e as Error).message); }
@@ -165,11 +177,13 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
       .map((it) => it.detail);
   }
 
-  const cur = year ? readings[`${rel}_y${year}`] : readings[rel];
+  const curKey = year ? `${rel}_y${year}` : rel; // 추가질문 누적 키(관계유형/연도별 분리)
+  const cur = readings[curKey];
   const slotLine = (input: ChartInput | null) => input ? `${String(input.birthDateTime).split(' ')[0]} · ${input.sex}` : '미선택';
 
   return (
     <>
+    <UnlockOverlay visible={!!busy} message={t('compat.generating', '궁합을 풀어내는 중…')} />
     <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>
       {/* ── 내 명식 슬롯(골드, 따로 빼서 식별) ── */}
       <Text style={styles.slotLabel}>{t('compat.mySlot')}</Text>
@@ -233,18 +247,27 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
               );
             })}
           </View>
-          {busy && !cur ? (
-            <View style={styles.readCard}><ActivityIndicator color={colors.ju} /><Text style={styles.busyTx}>{t('compat.generating')}</Text></View>
-          ) : cur ? (
+          {cur ? (
             <View style={styles.readCard}>
-              {cur.core ? <Text style={[styles.coreTx, { fontSize: fs(16), lineHeight: fs(24) }]}>{cur.core}</Text> : null}
-              {cur.base ? <View style={styles.sec}><Text style={styles.secLabel}>{t('compat.secBase')}</Text><Text style={[styles.secBody, { fontSize: fs(15), lineHeight: fs(25) }]}>{cur.base}</Text></View> : null}
-              {cur.overlay ? <View style={styles.sec}><Text style={styles.secLabel}>{t('compat.secDynamic')}</Text><Text style={[styles.secBody, { fontSize: fs(15), lineHeight: fs(25) }]}>{cur.overlay}</Text></View> : null}
-              {cur.remedy ? <View style={[styles.sec, styles.remedySec]}><Text style={styles.secLabel}>{t('compat.secAdvice')}</Text><Text style={[styles.secBody, { fontSize: fs(15), lineHeight: fs(25) }]}>{cur.remedy}</Text></View> : null}
+              {/* 관계별 동적 섹션(daniel 2026-06): 연애=속궁합·썸·짝사랑 등 / 결혼=속궁합·시댁·자녀 등 / 동업=투자 등. 연도별은 기본 4항목. */}
+              {compatSections(rel, !!year).map((s) => {
+                const v = cur[s.key];
+                if (typeof v !== 'string' || !v) return null;
+                if (s.key === 'core') return <Text key="core" style={[styles.coreTx, { fontSize: fs(16), lineHeight: fs(24) }]}>{v}</Text>;
+                return (
+                  <View key={s.key} style={[styles.sec, s.key === 'advice' && styles.remedySec]}>
+                    <Text style={styles.secLabel}>{compatSectionLabel(s)}</Text>
+                    <Text style={[styles.secBody, { fontSize: fs(15), lineHeight: fs(25) }]}>{v}</Text>
+                  </View>
+                );
+              })}
             </View>
           ) : (
             <Text style={styles.note}>{t('compat.noReading')}</Text>
           )}
+
+          {/* 추가질문 — 통변이 있을 때만(관계유형/연도 키별, 사주·자미와 동일) */}
+          {cur && renderFollowups(curKey)}
 
           {/* 글자 작용 자세히(접이식 — 근거·글라스박스) */}
           <Pressable style={styles.detailToggle} onPress={() => setShowDetail((v) => !v)}>
@@ -258,7 +281,7 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
     {/* 상대 명식 등록 — 정식 등록 폼(이름·시진·출생지) 모달, 저장 시 상대 슬롯 자동 선택 */}
     <Modal visible={otherReg} animationType="slide" onRequestClose={() => setOtherReg(false)}>
       <View style={styles.modalRoot}>
-        <View style={styles.modalHeader}>
+        <View style={[styles.modalHeader, { paddingTop: insets.top + space(3) }]}>
           <Text style={styles.modalTitle}>{t('compat.registerOtherTitle')}</Text>
           <Pressable onPress={() => setOtherReg(false)} hitSlop={10}><Text style={styles.modalClose}>✕</Text></Pressable>
         </View>
@@ -267,6 +290,63 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
     </Modal>
     </>
   );
+
+  // 추가질문 전송 — 서버가 무료한도/크레딧/프리미엄 판정(사주·자미와 동일). 키=관계유형/연도.
+  async function submitFollowup() {
+    if (!cur || !ctx || !askInput.trim() || asking) return;
+    Keyboard.dismiss();
+    const q = askInput.trim();
+    setAsking(true);
+    const res = await askFollowup(ctx.chartId, curKey, 'compat', q);
+    setAsking(false);
+    if (res.kind === 'answer') {
+      setFollowups((prev) => ({ ...prev, [curKey]: [...(prev[curKey] ?? []), { question: q, answer: res.answer }] }));
+      setAskInput('');
+    } else if (res.kind === 'needPremium') {
+      Alert.alert(t('reading.askPremiumTitle'), t('reading.askPremiumMsg'));
+    } else if (res.kind === 'needPayment') {
+      Alert.alert(t('reading.askPayTitle'), t('reading.askPayMsg'), [
+        { text: t('common.cancel'), style: 'cancel' },
+        { text: t('reading.askPayBtn'), onPress: async () => {
+          try { const ok = await purchaseCreditRC('followup'); if (!ok) return; await grantCredit('followup'); await submitFollowup(); }
+          catch (e) { Alert.alert(t('reading.payPending'), (e as Error).message); }
+        } },
+      ]);
+    } else { Alert.alert(t('common.error'), res.message); }
+  }
+
+  // 추가질문(Q&A) 영역 — 통변 카드 하단. 프리미엄=무료1회+건당 / 비프리미엄=프리미엄 유도.
+  function renderFollowups(key: string) {
+    const list = followups[key] ?? [];
+    const freeLeft = Math.max(0, 1 - list.length);
+    return (
+      <View style={styles.askWrap}>
+        <Text style={styles.askH}>{t('reading.askTitle')}</Text>
+        {list.map((f, i) => (
+          <View key={i} style={styles.qaItem}>
+            <Text style={styles.qaQ}>Q. {f.question}</Text>
+            <Text style={styles.qaA}>{f.answer}</Text>
+          </View>
+        ))}
+        {isPremium ? (
+          <>
+            <Text style={styles.askQuota}>{freeLeft > 0 ? t('reading.askFree', { n: freeLeft }) : t('reading.askPaid')}</Text>
+            <View style={styles.askRow}>
+              <TextInput style={styles.askInput} value={askInput} onChangeText={setAskInput} placeholder={t('reading.askPh')} placeholderTextColor={colors.inkFaint} multiline maxLength={50} editable={!asking} />
+              <Text style={styles.askLen}>{askInput.length}/50</Text>
+              <Pressable style={[styles.askSend, (!askInput.trim() || asking) && styles.askSendOff]} onPress={() => submitFollowup()} disabled={!askInput.trim() || asking}>
+                {asking ? <ActivityIndicator color={colors.bg} size="small" /> : <Text style={styles.askSendTx}>{t('reading.askSend')}</Text>}
+              </Pressable>
+            </View>
+          </>
+        ) : (
+          <Pressable style={styles.askLock} onPress={() => Alert.alert(t('reading.askPremiumTitle'), t('reading.askPremiumMsg'))}>
+            <Text style={styles.askLockTx}>🔒 {t('reading.askPremiumCta')}</Text>
+          </Pressable>
+        )}
+      </View>
+    );
+  }
 
   // ── 글자 작용 비교(나↔상대) — 기존 미니명식 + 합충 그룹(근거·탭 강조) ──
   function renderCrossDetail() {
@@ -389,6 +469,21 @@ const styles = StyleSheet.create({
   busyTx: { ...font.caption, color: colors.inkSoft, marginTop: space(2), textAlign: 'center' },
   note: { ...font.caption, marginTop: space(3) },
   detailToggle: { marginTop: space(5), paddingVertical: space(2) },
+  // 추가질문(Q&A) — ReadingScreen 과 동일 스타일
+  askWrap: { marginTop: space(7), paddingTop: space(5), borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.line },
+  askH: { fontSize: 17, fontWeight: '800', color: colors.ink, marginBottom: space(3) },
+  qaItem: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.juLine, padding: space(4), marginBottom: space(3) },
+  qaQ: { ...font.body, fontWeight: '800', color: colors.ju, marginBottom: space(2) },
+  qaA: { ...font.body, color: colors.ink, lineHeight: 24 },
+  askQuota: { ...font.caption, color: colors.inkFaint, marginBottom: space(2) },
+  askRow: { flexDirection: 'row', alignItems: 'flex-end', gap: space(2) },
+  askInput: { ...font.body, flex: 1, minHeight: 44, maxHeight: 120, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, borderRadius: radius.md, paddingHorizontal: space(3), paddingVertical: space(2.5), color: colors.ink },
+  askLen: { fontSize: 11, color: colors.inkFaint, alignSelf: 'flex-end', marginBottom: space(3) },
+  askSend: { backgroundColor: colors.ju, borderRadius: radius.md, paddingHorizontal: space(4), height: 44, alignItems: 'center', justifyContent: 'center' },
+  askSendOff: { opacity: 0.4 },
+  askSendTx: { color: colors.bg, fontWeight: '800', fontSize: 14 },
+  askLock: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.ju, borderRadius: radius.md, paddingVertical: space(4), alignItems: 'center' },
+  askLockTx: { color: colors.ju, fontWeight: '700', fontSize: 14 },
   detailToggleTx: { ...font.body, color: colors.inkSoft, fontWeight: '700' },
   // 글자 작용 비교
   crossWrap: { marginTop: space(2) },

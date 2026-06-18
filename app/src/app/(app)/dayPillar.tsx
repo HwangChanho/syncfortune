@@ -15,6 +15,7 @@ import { DAY_PILLAR, dayPillarKey, type DayPillarTrait } from '../../lib/dayPill
 import { stemReading, branchReading } from '../../lib/ohaeng';
 import { useFontScale } from '../../lib/fontScale';
 import { colors, radius, space, shadow, font } from '../../lib/theme';
+import { ContentHero } from '../../components/SpecialContentScreen'; // 이미지 히어로(보는 맛)
 
 // 천간 순서(일간 그룹핑용) — 갑·을·…·계. 각 천간당 일주 6개(60갑자).
 const STEMS = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'];
@@ -93,8 +94,7 @@ export default function DayPillarScreen() {
     <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>
       {/* 헤더 타이틀 — 화면에서 직접 박아 확실하게(+다국어) */}
       <Stack.Screen options={{ title: t('dayPillar.title') }} />
-      <Text style={styles.h}>{t('dayPillar.title')}</Text>
-      <Text style={styles.sub}>{t('dayPillar.sub')}</Text>
+      <ContentHero image={require('../../../assets/icons/dayPillar.png')} title={t('dayPillar.title')} sub={t('dayPillar.sub')} />
 
       {/* 남/여 보기 토글 — 관리자만(전체 열람). 일반 유저는 본인/명식 성별로 고정 표시. */}
       {admin && (

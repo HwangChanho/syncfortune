@@ -41,6 +41,114 @@ const GROUP: Record<string, TgGroup> = {
   정재: '재성', 편재: '재성', 정관: '관성', 편관: '관성', 정인: '인성', 편인: '인성',
 };
 
+// ── 오늘의 기운 한 줄 타이틀(홈 배너) — [머리말]×[주제]×[서술] 조합 + 일진·명식 시드로 매일 다른 한 줄(1000+ 변형) ──
+//   톤별 풀로 길흉·명리 정합 유지(good=길 / care=조심·전향적 / 신살=특화). §4: 조심 톤도 공포 없이('~하면 좋은').
+//   결정론(같은 날·같은 명식 = 같은 타이틀): Math.random 금지 — 일진(干支)+일간 해시 시드. stance·문구 daniel 검수 슬롯.
+type HlLang = 'ko' | 'en' | 'ja';
+function hlHash(s: string): number { let h = 2166136261; for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619); return h >>> 0; }
+function hlPick<T>(arr: T[], seed: number): T { return arr[((seed % arr.length) + arr.length) % arr.length]; } // 음수 시드 방어(undefined 방지)
+// 머리말(ko/ja만 변주 — en은 'A day' 고정)
+const HL_LEAD: Record<'day' | 'month', Record<HlLang, string[]>> = {
+  day:   { ko: ['', '오늘은 ', '왠지 ', '가만히 보면 '], en: [''], ja: ['', '今日は', 'なんだか', 'ふと見ると'] },
+  month: { ko: ['', '이번 달은 ', '왠지 ', '가만히 보면 '], en: [''], ja: ['', '今月は', 'なんだか', 'ふと見ると'] },
+};
+// 좋은 날(good): [영역 주어] + [긍정 서술] (+ 하루). 그룹별 주어 풀.
+const HL_GOOD_SUBJ: Record<string, Record<HlLang, string[]>> = {
+  비겁: { ko: ['든든한 내 편이', '함께할 사람이', '나의 의지가', '추진력이', '자신감이'], en: ['allies', 'your resolve', 'your drive', 'a trusted friend'], ja: ['心強い味方が', '仲間が', '意志が', '推進力が'] },
+  식상: { ko: ['타고난 재능이', '재치가', '표현력이', '활력이', '아이디어가'], en: ['your talent', 'your wit', 'your spark', 'fresh ideas'], ja: ['才能が', '機知が', '表現力が', '活力が'] },
+  재성: { ko: ['재물운이', '금전운이', '좋은 기회가', '결실이', '풍요가'], en: ['good fortune', 'opportunity', 'abundance', 'your luck'], ja: ['財運が', '金運が', 'チャンスが', '実りが'] },
+  관성: { ko: ['노력의 결실이', '인정받을 일이', '좋은 자리가', '성취가', '책임감이'], en: ['recognition', 'your effort', 'a good role', 'achievement'], ja: ['努力の実りが', '評価が', '良い地位が', '達成が'] },
+  인성: { ko: ['귀인이', '배움의 기회가', '마음의 안정이', '좋은 인연이', '직관이'], en: ['a mentor', 'a chance to learn', 'inner calm', 'good ties'], ja: ['貴人が', '学びが', '心の安定が', '良い縁が'] },
+};
+const HL_GOOD_TAIL: Record<HlLang, string[]> = {
+  ko: ['활짝 열리는', '따르는', '빛나는', '무르익는', '함께하는', '깃드는', '솟아나는', '반짝이는'],
+  en: ['opens up', 'follows you', 'shines', 'ripens', 'is with you', 'comes through'],
+  ja: ['花開く', '味方する', '輝く', '実る', '寄り添う', '湧き上がる'],
+};
+// 조심할 날(care): [다스릴 것] + [전향 서술] (+ 하루). 공포·단정 없이.
+const HL_CARE_OBJ: Record<string, Record<HlLang, string[]>> = {
+  비겁: { ko: ['고집을', '욕심을', '경쟁심을'], en: ['stubbornness', 'rivalry', 'ego'], ja: ['意地を', '欲を', '張り合いを'] },
+  식상: { ko: ['말을', '벌인 일을', '들뜬 마음을'], en: ['careless words', 'overreach', 'restlessness'], ja: ['言葉を', '広げすぎた事を', '浮つきを'] },
+  재성: { ko: ['지출을', '욕심을', '조급함을'], en: ['spending', 'greed', 'impatience'], ja: ['出費を', '欲を', '焦りを'] },
+  관성: { ko: ['부담을', '무리함을', '조급함을'], en: ['pressure', 'overwork', 'haste'], ja: ['負担を', '無理を', '焦りを'] },
+  인성: { ko: ['혼자 짊어진 짐을', '복잡한 생각을', '걱정을'], en: ['burdens carried alone', 'tangled thoughts', 'worry'], ja: ['一人で抱えた荷を', '考え過ぎを', '心配を'] },
+};
+const HL_CARE_TAIL: Record<HlLang, string[]> = {
+  ko: ['잠시 내려놓으면 좋은', '다스리면 가벼운', '덜어내면 편안한', '비우면 맑아지는', '천천히 가면 되는'],
+  en: ['to ease', 'to set down for now', 'to lighten', 'to take slow'],
+  ja: ['手放すと良い', '抑えると軽い', '減らすと楽な', 'ゆっくり進む'],
+};
+// 신살·작용(특화) — 완성 서술구 풀(주제 포함). 우선순위로 분기.
+const HL_SPECIAL: Record<string, Record<HlLang, string[]>> = {
+  cheoneul: { ko: ['귀인이 손 내미는', '뜻밖의 도움이 닿는', '고마운 인연이 함께하는'], en: ['a helping hand finds you', 'unexpected help arrives', 'a kind soul stands by you'], ja: ['貴人が手を差し伸べる', '思わぬ助けが届く', 'ありがたい縁が寄り添う'] },
+  chung: { ko: ['변화의 바람이 부니 침착하면 좋은', '크고 작은 변동이 따르는', '자리바꿈이 있을 수 있는'], en: ['change is in the air — stay steady', 'shifts may come, keep calm', 'things move — go slow'], ja: ['変化の風が吹く', '変動が伴う', '配置換えがありうる'] },
+  hap: { ko: ['사람과 일이 어우러지는', '좋은 인연이 이어지는', '뜻이 맞아 술술 풀리는'], en: ['people and plans come together', 'good ties carry on', 'things click into place'], ja: ['人と物事がまとまる', '良い縁が続く', '息が合って進む'] },
+  yeokma: { ko: ['움직임과 변화가 따르는', '새 길이 열리는', '길 위에서 기회를 만나는'], en: ['movement and change follow', 'a new path opens', 'opportunity on the move'], ja: ['動きと変化が伴う', '新しい道が開く', '道中で機会に出会う'] },
+  dohwa: { ko: ['사람과 인연이 끌리는', '매력이 빛나는', '좋은 만남이 있을'], en: ['charm and connection draw near', 'your charm shines', 'a good encounter awaits'], ja: ['人との縁が引き寄せられる', '魅力が輝く', '良い出会いがありそうな'] },
+  gongmang: { ko: ['마음 비우고 재정비하기 좋은', '한 박자 쉬어가기 좋은', '욕심을 내려놓으면 가벼운'], en: ['to clear your mind and reset', 'to pause and breathe', 'lighter when you let go'], ja: ['心を整え直すのに良い', '一息つくのに良い', '欲を手放すと軽い'] },
+};
+// 언어별 결합 — ko: '주제 서술', en: 주어+자동사 / 'to+동사+목적', ja: 결합.
+function hlComposeGood(subj: string, tail: string, lang: HlLang): string {
+  return lang === 'ja' ? `${subj}${tail}` : `${subj} ${tail}`; // en: 'fortune shines'
+}
+function hlComposeCare(obj: string, tail: string, lang: HlLang): string {
+  if (lang === 'en') return `to ${tail.replace(/^to /, '')} ${obj}`; // 'to ease spending'
+  return lang === 'ja' ? `${obj}${tail}` : `${obj} ${tail}`;          // '지출을 다스리면 가벼운'
+}
+function hlWrap(lead: string, body: string, lang: HlLang, period: 'day' | 'month'): string {
+  if (lang === 'en') return `${period === 'month' ? 'A month' : 'A day'} ${body}`; // 머리말 미사용(어순)
+  if (lang === 'ja') return `${lead}${body}${period === 'month' ? 'ひと月' : '一日'}`;
+  return `${lead}${body} ${period === 'month' ? '한 달' : '하루'}`;
+}
+
+/** 오늘의 기운 타이틀 — 신살·작용 우선, 없으면 십신 그룹×길흉(신강약). 풀 조합 + 일진·명식 시드로 1000+ 변형. 온디바이스. */
+export function dailyHeadline(saju: SajuChart, todayStem: Stem, todayBranch: Branch, period: 'day' | 'month' = 'day'): string {
+  const me = saju.dayMaster.stem;
+  const P = saju.pillars;
+  const group = GROUP[tenGod(me, todayStem)];
+  const sc = classifyStrength(saju);
+  const strong = sc.type === '신왕' || sc.type === '신강';
+  const weak = sc.type === '신약';
+  // 오늘(일운)이 원국 지지와 만드는 작용(합·충·형)
+  const POS: PillarPos[] = ['년', '월', '일', '시'];
+  const items = [
+    ...POS.map((p) => ({ pos: p as ChartPosition, stem: P[p].stem, branch: P[p].branch })),
+    { pos: '일운' as ChartPosition, stem: todayStem, branch: todayBranch },
+  ];
+  const links = detectInteractionsAmong(items).filter((it) => it.members.includes('일운') && it.level !== '천간');
+  const hasChung = links.some((it) => it.type === '충' || it.type === '형');
+  const hasHap = links.some((it) => it.type === '합');
+  const [g1, g2] = gongmang(P['일'].stem, P['일'].branch);
+  const isGm = todayBranch === g1 || todayBranch === g2;
+  const sin = analyzeSinsal(saju);
+  const hasCheonEul = !!sin.sinsal.find((s) => s.name === '천을귀인')?.glyphs.includes(todayBranch);
+  const tw = new Set([twelveSinsalAt(P['년'].branch, todayBranch), twelveSinsalAt(P['일'].branch, todayBranch)]);
+  // 신강약 대비 오늘 기운이 우호적인가(간이 억부) — 길(good)/조심(care) 변별
+  const favorGood = weak ? (group === '비겁' || group === '인성')
+    : strong ? (group === '식상' || group === '재성' || group === '관성')
+    : true; // 중화 = 대체로 순(good)
+  const lang = appLang() as HlLang;
+  // 같은 날·같은 명식 = 같은 타이틀(결정론). 슬롯마다 다른 비트로 독립 선택.
+  const seed = hlHash(`${todayStem}${todayBranch}${me}`);
+  const lead = hlPick(HL_LEAD[period][lang], seed >>> 11);
+  // 신살·작용 특화(우선): 천을귀인 > 충/형 > 합 > 역마 > 도화 > 공망
+  const special = hasCheonEul ? 'cheoneul' : hasChung ? 'chung' : hasHap ? 'hap'
+    : tw.has('역마') ? 'yeokma' : tw.has('도화') ? 'dohwa' : isGm ? 'gongmang' : null;
+  if (special) {
+    const body = hlPick(HL_SPECIAL[special][lang] ?? HL_SPECIAL[special].ko, seed);
+    return hlWrap(lead, body, lang, period);
+  }
+  // 십신 그룹 × 길흉 조합
+  if (favorGood) {
+    const subj = hlPick((HL_GOOD_SUBJ[group] ?? HL_GOOD_SUBJ['비겁'])[lang], seed);
+    const tail = hlPick(HL_GOOD_TAIL[lang], seed >>> 5);
+    return hlWrap(lead, hlComposeGood(subj, tail, lang), lang, period);
+  }
+  const obj = hlPick((HL_CARE_OBJ[group] ?? HL_CARE_OBJ['비겁'])[lang], seed);
+  const ctail = hlPick(HL_CARE_TAIL[lang], seed >>> 5);
+  return hlWrap(lead, hlComposeCare(obj, ctail, lang), lang, period);
+}
+
 export type DailyAreaKey = 'general' | 'work' | 'money' | 'love' | 'health';
 export const DAILY_AREA_KEYS: DailyAreaKey[] = ['general', 'work', 'money', 'love', 'health'];
 

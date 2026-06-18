@@ -14,6 +14,7 @@ import { listPets, addPet, deletePet, PET_TYPES, type SavedPet, type PetType } f
 import { getPetTraits } from '../../lib/petTraits';
 import { useFontScale } from '../../lib/fontScale';
 import { colors, radius, space, shadow, font } from '../../lib/theme';
+import { ContentHero } from '../../components/SpecialContentScreen'; // 이미지 히어로(보는 맛)
 
 export default function PetScreen() {
   const { t } = useTranslation();
@@ -90,8 +91,7 @@ export default function PetScreen() {
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>
-      <Text style={styles.h}>{t('pet.title')}</Text>
-      <Text style={styles.sub}>{t('pet.sub')}</Text>
+      <ContentHero image={require('../../../assets/icons/pet.png')} title={t('pet.title')} sub={t('pet.sub')} />
 
       {/* 저장된 아이들 — 칩으로 전환 + 추가 */}
       {pets.length > 0 && (
