@@ -32,10 +32,10 @@ import { NewyearWheel } from '../../components/contentMotifs'; // 12달 수레�
 import { useFontScale } from '../../lib/fontScale';
 
 // 신년 패키지 분야 8(daniel: 컨텐츠 강화 — 통합·직업·재물·애정·건강·대인·배움·이동)
-const AREAS: { key: string; ko: string }[] = [
-  { key: 'general', ko: '통합' }, { key: 'work', ko: '직업' }, { key: 'money', ko: '재물' },
-  { key: 'love', ko: '애정' }, { key: 'marriage', ko: '결혼' }, { key: 'health', ko: '건강' },
-  { key: 'social', ko: '대인' }, { key: 'growth', ko: '배움' }, { key: 'move', ko: '이동' },
+const AREAS: { key: string; ko: string; icon: string }[] = [
+  { key: 'general', ko: '통합', icon: '🌟' }, { key: 'work', ko: '직업', icon: '💼' }, { key: 'money', ko: '재물', icon: '💰' },
+  { key: 'love', ko: '애정', icon: '💕' }, { key: 'marriage', ko: '결혼', icon: '💍' }, { key: 'health', ko: '건강', icon: '🌿' },
+  { key: 'social', ko: '대인', icon: '🤝' }, { key: 'growth', ko: '배움', icon: '📚' }, { key: 'move', ko: '이동', icon: '✈️' },
 ];
 
 export default function NewYearScreen() {
@@ -171,12 +171,17 @@ export default function NewYearScreen() {
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
               {AREAS.map((a) => (
                 <Pressable key={a.key} style={[styles.chip, area === a.key && styles.chipOn]} onPress={() => setArea(a.key)}>
+                  <Text style={styles.chipIcon}>{a.icon}</Text>
                   <Text style={[styles.chipTx, area === a.key && styles.chipTxOn]}>{a.ko}</Text>
                 </Pressable>
               ))}
             </ScrollView>
-            <View style={styles.card}>
-              <Text style={[styles.body, { fontSize: fs(15), lineHeight: fs(26) }]}>{typeof data[area] === 'string' ? data[area] : t('today.genFail', '생성 실패')}</Text>
+            <View style={styles.areaCard}>
+              <View style={styles.areaHead}>
+                <Text style={styles.areaIcon}>{AREAS.find((a) => a.key === area)?.icon}</Text>
+                <Text style={styles.areaTitle}>{AREAS.find((a) => a.key === area)?.ko}</Text>
+              </View>
+              <Text style={[styles.body, { fontSize: fs(15), lineHeight: fs(27) }]}>{typeof data[area] === 'string' ? data[area] : t('today.genFail', '생성 실패')}</Text>
             </View>
 
             {/* 상·하반기 흐름 */}
@@ -191,9 +196,12 @@ export default function NewYearScreen() {
             {/* 12개월 캘린더 */}
             {months.length > 0 && (
               <View style={styles.card}>
-                <Text style={styles.sectH}>{t('newyear.months', '달별 캘린더')}</Text>
+                <Text style={styles.sectH}>📅 {t('newyear.months', '달별 캘린더')}</Text>
                 {months.map((m, i) => (
-                  <Text key={i} style={[styles.monthTx, { fontSize: fs(14), lineHeight: fs(22) }]}>{m}</Text>
+                  <View key={i} style={styles.monthRow}>
+                    <View style={styles.monthBadge}><Text style={styles.monthBadgeTx}>{i + 1}</Text></View>
+                    <Text style={[styles.monthText, { fontSize: fs(14), lineHeight: fs(21) }]}>{m.replace(/^\s*\d+\s*월\s*[—\-–·]\s*/, '')}</Text>
+                  </View>
                 ))}
               </View>
             )}
@@ -254,11 +262,22 @@ const styles = StyleSheet.create({
   halfTx: { ...font.body, color: colors.ink },
   halfLabel: { color: colors.ju, fontWeight: '800' },
   chips: { gap: space(2), paddingVertical: space(1), marginBottom: space(2) },
-  chip: { paddingHorizontal: space(3.5), paddingVertical: space(2), borderRadius: radius.pill, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line },
+  chip: { flexDirection: 'row', alignItems: 'center', gap: space(1.5), paddingHorizontal: space(3.5), paddingVertical: space(2.25), borderRadius: radius.pill, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line },
   chipOn: { backgroundColor: colors.ju, borderColor: colors.ju },
+  chipIcon: { fontSize: 14 },
   chipTx: { fontSize: 13, fontWeight: '700', color: colors.inkSoft },
   chipTxOn: { color: colors.bg },
   monthTx: { ...font.body, color: colors.ink, marginBottom: space(2) },
+  // 선택 분야 카드(아이콘 헤더 + 내용) — 가독성(daniel)
+  areaCard: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.juLine, padding: space(5), marginBottom: space(3), ...shadow.card },
+  areaHead: { flexDirection: 'row', alignItems: 'center', gap: space(2.5), marginBottom: space(3), paddingBottom: space(3), borderBottomWidth: 1, borderBottomColor: colors.juLine },
+  areaIcon: { fontSize: 26 },
+  areaTitle: { fontSize: 18, fontWeight: '900', color: colors.ink },
+  // 12달 캘린더 — 월 배지 + 내용 행
+  monthRow: { flexDirection: 'row', alignItems: 'flex-start', gap: space(3), marginBottom: space(3) },
+  monthBadge: { width: 28, height: 28, borderRadius: 14, backgroundColor: colors.ju, alignItems: 'center', justifyContent: 'center', marginTop: space(0.5) },
+  monthBadgeTx: { color: colors.bg, fontSize: 13, fontWeight: '900' },
+  monthText: { flex: 1, ...font.body, color: colors.ink },
   wait: { ...font.caption, color: colors.inkSoft, marginTop: space(2), textAlign: 'center' },
   gate: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1.5, borderColor: colors.ju, borderStyle: 'dashed', padding: space(6), alignItems: 'center', ...shadow.card },
   gateTitle: { ...font.heading, color: colors.ink },
