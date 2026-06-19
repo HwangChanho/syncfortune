@@ -143,6 +143,7 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
     const colW = (rowW - GAP * (n - 1)) / n;                          // 각 기둥(칸) 너비 = flex 균등 + gap
     const centerX = (idx: number) => idx * (colW + GAP) + colW / 2;   // 그 칸의 '중앙' x — 선이 여기서 나온다
     const STEP = 20;
+    const PAD = 12;                                                  // 라벨 박스(높이16·중심±8, 둥근모서리)가 Svg 위/아래 가장자리에 짤리지 않게 한 여백(daniel: 합충선 위/아래 짤림)
     const H = links.length * STEP + 16;                              // 다리 영역 높이(여유 — 명식에서 띄움)
     const reach = dir === 'above' ? H : 0;                           // 명식에 닿는 변(위=아래쪽 H / 아래=위쪽 0)
     const dash = dir === 'above' ? '3 2' : undefined;
@@ -151,7 +152,7 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
       // off 없음 — 어느 관계든 해당 칸 '중앙'에서 수직으로 출발(daniel). 겹침은 다리 높이(STEP)로 구분.
       const xs = (it.members as string[]).map((m) => centerX(visiblePos.indexOf(m as any))).sort((a, b) => a - b);
       const xa = xs[0], xb = xs[xs.length - 1];
-      const legY = dir === 'above' ? 7 + i * STEP : H - (7 + i * STEP); // 수평 다리 높이(확장명식 legY 와 동일 방식)
+      const legY = dir === 'above' ? PAD + i * STEP : H - (PAD + i * STEP); // 수평 다리 높이(가장자리 PAD 확보 — 라벨 위/아래 짤림 방지)
       const lbl = linkLabel(it);
       const mid = (xa + xb) / 2;
       return { xa, xb, mids: xs.slice(1, -1), mid, legY, col: linkColor(it), lbl, lw: lbl.length * 11 + 8 };
@@ -501,14 +502,28 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
         );
       })()}
 
-      {/* 지장간 상세 (각 주 stem + 십신) */}
+      {/* 지장간 상세 — 숨은 기운(지장간)과 강약(본기=상시 강 / 중기·여기=잠재, 투출 시 드러나 강) */}
       <Text style={styles.h}>{t('myeongsik.hidden')}</Text>
+      <Text style={styles.hiddenHint}>진한 칸 = 드러나 작용하는 힘(본기·뿌리내린 기운) · 흐린 칸 = 아직 숨은 잠재 기운</Text>
       {visiblePos.map((p) => {
         const d = P[p];
         return (
-          <Text key={p} style={styles.kv}>
-            <Text style={styles.kvLabel}>{p}주 {d.branch}</Text>  {d.hiddenStems.map((h) => `${h.stem}(${h.tenGod})`).join(' · ')}
-          </Text>
+          <View key={p} style={styles.hiddenDetailRow}>
+            <Text style={styles.hiddenRowLabel}>{p}주 {d.branch}</Text>
+            <View style={styles.hiddenChips}>
+              {d.hiddenStems.map((h, i) => {
+                const rooted = allGan.includes(h.stem);            // 투출=통근(원국 천간에 드러나 뿌리내림)
+                const strong = h.role === '본기' || rooted;         // 본기=상시 강 / 중기·여기는 투출(통근) 시 강 발현
+                return (
+                  <View key={i} style={[styles.hiddenChip, strong ? styles.hiddenChipStrong : styles.hiddenChipWeak]}>
+                    <Text style={[styles.hiddenChipChar, { color: elementColor[stemElement(h.stem)] }, !strong && styles.hiddenDim]}>{h.stem}</Text>
+                    <Text style={[styles.hiddenChipTg, !strong && styles.hiddenDim]}>{h.tenGod}</Text>
+                    <Text style={styles.hiddenChipRole}>{h.role}{rooted ? '·뿌리' : ''}</Text>
+                  </View>
+                );
+              })}
+            </View>
+          </View>
         );
       })}
 
@@ -1000,6 +1015,18 @@ const styles = StyleSheet.create({
   expStage: { fontSize: 10, color: colors.inkFaint, fontWeight: '600', marginTop: 1 },   // 12운성
   expHidden: { alignItems: 'center', marginTop: 4 },
   expHiddenTx: { fontSize: 12, fontWeight: '700', lineHeight: 15 },
+  // 지장간 강약 칩 — 본기·통근(투출)=진하게(강) / 중기·여기 미투출=흐리게(잠재). daniel: 지장간 강약 표시
+  hiddenHint: { ...font.caption, color: colors.inkFaint, marginTop: space(1), marginBottom: space(1), lineHeight: 16 },
+  hiddenDetailRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', marginTop: space(2.5), gap: space(2) },
+  hiddenRowLabel: { ...font.caption, color: colors.inkSoft, fontWeight: '700', width: 52 },
+  hiddenChips: { flexDirection: 'row', flexWrap: 'wrap', gap: space(2), flex: 1 },
+  hiddenChip: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: space(2), paddingVertical: space(1), borderRadius: radius.sm, borderWidth: 1 },
+  hiddenChipStrong: { backgroundColor: colors.card, borderColor: colors.juLine },
+  hiddenChipWeak: { backgroundColor: 'transparent', borderColor: colors.line, borderStyle: 'dashed' },
+  hiddenChipChar: { fontSize: 15, fontWeight: '800' },
+  hiddenChipTg: { fontSize: 12, color: colors.ink, fontWeight: '600' },
+  hiddenChipRole: { fontSize: 9, color: colors.inkFaint, fontWeight: '700' },
+  hiddenDim: { opacity: 0.45 },
   calGrid: { flexDirection: 'row', flexWrap: 'wrap', marginTop: space(2) },
   calHead: { width: '14.28%', textAlign: 'center', fontSize: 10, color: colors.inkFaint, paddingVertical: 3 },
   calCell: { width: '14.28%', alignItems: 'center', paddingVertical: space(1) },
