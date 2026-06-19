@@ -18,7 +18,11 @@ import type { ChartInput } from '@spec/chart';
 // 일간 오행별 이미지(daniel O: 종류별 이미지) — assets/icons/healing/{wood|fire|earth|metal|water}.png.
 //   들어온 것만 require, 없으면 이모지(HEAL_EMOJI)로 자동 폴백(점진 적용). 키 = 오행 한자.
 const HEAL_IMG: Record<string, any> = {
-  // 木: require('../../../assets/icons/healing/wood.png'), … (daniel 이미지 생성 후 연결)
+  木: require('../../../assets/icons/healing/wood.png'),
+  火: require('../../../assets/icons/healing/fire.png'),
+  土: require('../../../assets/icons/healing/earth.png'),
+  金: require('../../../assets/icons/healing/metal.png'),
+  水: require('../../../assets/icons/healing/water.png'),
 };
 
 export default function HealingScreen() {
