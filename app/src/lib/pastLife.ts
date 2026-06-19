@@ -40,9 +40,14 @@ export function pastLife(saju: SajuChart): PastLifeResult {
   const { detail } = analyzeTenGods(saju);
   const g5: Record<G5, number> = { 비겁: 0, 식상: 0, 재성: 0, 관성: 0, 인성: 0 };
   for (const [k, n] of Object.entries(detail)) if ((n as number) > 0) g5[TO5[k as TenGod]] += n as number;
+  // 가장 강한 십신군 → 신분. 동률(흔함)이면 고정 우선순위가 다 '관성(관리)'으로 쏠리므로,
+  //   동률 그룹은 차트 고유값(일간 + 총 십신수)으로 분산해 다양성을 준다(재미 콘텐츠 — 25종 고르게, daniel).
   const PRIORITY: G5[] = ['관성', '인성', '식상', '재성', '비겁'];
-  let top: G5 = '인성', max = -1;
-  for (const g of PRIORITY) if (g5[g] > max) { max = g5[g]; top = g; }
+  const maxN = Math.max(...PRIORITY.map((g) => g5[g]));
+  const tied = PRIORITY.filter((g) => g5[g] === maxN);          // 동률(최다) 그룹들
+  const stemIdx = Math.max(0, '甲乙丙丁戊己庚辛壬癸'.indexOf(saju.dayMaster.stem));
+  const totalN = PRIORITY.reduce((s, g) => s + g5[g], 0);
+  const top: G5 = tied[(stemIdx + totalN) % tied.length];        // 차트별로 동률을 골고루 분산
   const element = saju.dayMaster.element ?? '木';
   const lang = appLang() as Lang;
   const era = (ERA[element] ?? ERA['木'])[lang] ?? ERA['木'].ko;
