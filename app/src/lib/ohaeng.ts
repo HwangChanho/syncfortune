@@ -42,3 +42,9 @@ const BRANCH_KO: Record<string, string> = {
 };
 export function stemReading(stem: string): string { return STEM_KO[stem] ?? ''; }
 export function branchReading(branch: string): string { return BRANCH_KO[branch] ?? ''; }
+
+// 음양(陰陽) — 천간/지지의 극성(daniel: 만세력 음양 표시·R27 통변 4축). 양=甲丙戊庚壬·子寅辰午申戌 / 음=나머지.
+const STEM_YY: Record<string, string> = { '甲': '양', '丙': '양', '戊': '양', '庚': '양', '壬': '양', '乙': '음', '丁': '음', '己': '음', '辛': '음', '癸': '음' };
+const BRANCH_YY: Record<string, string> = { '子': '양', '寅': '양', '辰': '양', '午': '양', '申': '양', '戌': '양', '丑': '음', '卯': '음', '巳': '음', '未': '음', '酉': '음', '亥': '음' };
+export function stemYinYang(stem: string): string { return STEM_YY[stem] ?? ''; }
+export function branchYinYang(branch: string): string { return BRANCH_YY[branch] ?? ''; }

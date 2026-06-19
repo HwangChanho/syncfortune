@@ -16,7 +16,7 @@ import type { ChartInput, PillarPos } from '@spec/chart';
 import { colors, radius, space, shadow, font, gradients } from '../lib/theme';
 import { GlassCard } from '../components/GlassCard';
 import { OhaengIcon } from '../components/OhaengIcon';
-import { stemElement, branchElement, elementColor, elementText, stemReading, branchReading } from '../lib/ohaeng';
+import { stemElement, branchElement, elementColor, elementText, stemReading, branchReading, stemYinYang, branchYinYang } from '../lib/ohaeng';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -299,13 +299,13 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
               </Pressable>
               <Pressable style={[styles.pillarMain, { borderWidth: 1.5, borderRadius: 6, borderColor: rootedGan.has(P[p].stem) ? TANG_Y : TANG_N }]} onPress={() => setGlossary({ kind: 'stem', key: P[p].stem })}>
                 <Text style={[styles.pillarChar, { color: elementColor[elStem] }]}>{P[p].stem}</Text>
-                <Text style={[styles.pillarReading, { color: colors.inkFaint }]}>{stemReading(P[p].stem)}</Text>
+                <Text style={[styles.pillarReading, { color: colors.inkFaint }]}>{stemReading(P[p].stem)} · {stemYinYang(P[p].stem)}</Text>
               </Pressable>
 
 
               <Pressable style={[styles.pillarMain, { borderWidth: 1.5, borderRadius: 6, borderColor: c.sinsal.gongmangHits.includes(p) ? TANG_N : TANG_Y }]} onPress={() => setGlossary({ kind: 'branch', key: P[p].branch })}>
                 <Text style={[styles.pillarChar, { color: elementColor[elBranch] }]}>{P[p].branch}</Text>
-                <Text style={[styles.pillarReading, { color: colors.inkFaint }]}>{branchReading(P[p].branch)}</Text>
+                <Text style={[styles.pillarReading, { color: colors.inkFaint }]}>{branchReading(P[p].branch)} · {branchYinYang(P[p].branch)}</Text>
               </Pressable>
               {/* 지지 십신 — 개별 클릭 시 십신 설명 */}
               <Pressable onPress={() => setGlossary({ kind: 'tengod', key: P[p].branchMainTenGod })}>
