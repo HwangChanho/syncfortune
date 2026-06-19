@@ -76,7 +76,21 @@ export async function syncChartsFromServer(): Promise<void> {
   const byId = new Map<string, SavedChart>();
   for (const c of (server?.charts ?? [])) if (c && c.id && !tomb.has(c.id)) byId.set(c.id, c);
   for (const c of local) if (!tomb.has(c.id)) byId.set(c.id, c); // 같은 id 면 로컬 우선(최근 편집 반영)
-  const merged = Array.from(byId.values());
+  let merged = Array.from(byId.values());
+  // 복구(ADR-056): blob·로컬 모두 비어 있으면(새 기기/구버전) 과거 풀이로 charts 테이블에 남은 명식을 복원(birth 복호→input 재구성).
+  if (merged.length === 0) {
+    try {
+      const { data: rec } = await supabase.rpc('recover_my_charts');
+      const rows: any[] = Array.isArray(rec) ? rec : (typeof rec === 'string' ? JSON.parse(rec) : []);
+      for (const r of rows) {
+        if (!r?.birth || tomb.has(String(r.id))) continue;
+        let input: any; try { input = JSON.parse(r.birth); } catch { continue; }
+        merged.push({ id: String(r.id), label: r.label || input.label || '내 명식', relation: r.relation || input.relation || 'self', input, serverChartId: String(r.id) });
+      }
+    } catch { /* 복구 실패 무시(권한/네트워크) */ }
+  }
+  // serverChartId 기준 중복 제거(복구분 uuid-id 와 기존 c_-id(serverChartId=uuid)가 같은 명식을 가리킬 때 합침).
+  { const seen = new Set<string>(); merged = merged.filter((c) => { const fp = c.serverChartId || c.id; if (seen.has(fp)) return false; seen.add(fp); return true; }); }
   await setRaw(KEY, JSON.stringify(merged));
   await setTombstones(Array.from(tomb));
   // 대표: 로컬 대표가 유효하면 유지, 아니면 서버 대표(merged 에 존재 시), 그것도 없으면 첫 명식.
