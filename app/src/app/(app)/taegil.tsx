@@ -114,7 +114,7 @@ export default function TaegilScreen() {
       <ScrollView style={styles.overlay} contentContainerStyle={styles.wrap}>
         {/* 상단 명식 헤더 — 현재 적용된 대표 명식 표시·전환(daniel: 모든 콘텐츠 상단) */}
         <ChartPicker onChange={() => loadMyChart().then(setMe)} />
-        <ContentHero image={require('../../../assets/icons/taegil.png')} title={t('taegil.title', '택일 — 좋은 날 찾기')} sub={t('taegil.sub', '하려는 일을 고르면, 앞으로 2년 달력에서 내 사주에 잘 맞는 날을 색으로 짚어 드려요.')} />
+        <ContentHero image={require('../../../assets/icons/taegil.jpg')} title={t('taegil.title', '택일 — 좋은 날 찾기')} sub={t('taegil.sub', '하려는 일을 고르면, 앞으로 2년 달력에서 내 사주에 잘 맞는 날을 색으로 짚어 드려요.')} />
 
         {/* 목적 칩 — 바꾸면 선택 날 초기화 */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>

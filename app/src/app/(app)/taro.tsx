@@ -24,11 +24,11 @@ const hNotify = (n: Haptics.NotificationFeedbackType) => { try { Haptics.notific
 
 // 주제별 생성 이미지(이모지 대체) — key→png. 미드나잇·골드 테마 통일(Recraft 생성).
 const TARO_IMAGES: Record<string, any> = {
-  love: require('../../../assets/icons/taro-love.png'),
-  work: require('../../../assets/icons/taro-work.png'),
-  money: require('../../../assets/icons/taro-money.png'),
-  health: require('../../../assets/icons/taro-health.png'),
-  general: require('../../../assets/icons/taro-general.png'),
+  love: require('../../../assets/icons/taro-love.jpg'),
+  work: require('../../../assets/icons/taro-work.jpg'),
+  money: require('../../../assets/icons/taro-money.jpg'),
+  health: require('../../../assets/icons/taro-health.jpg'),
+  general: require('../../../assets/icons/taro-general.jpg'),
 };
 
 type Category = (typeof TARO_CATEGORIES)[number];

@@ -12,7 +12,7 @@ export default function RootsRoute() {
     <SpecialContentScreen
       kind="roots"
       themeColor={elementColor['木']}
-      heroImage={require('../../../assets/icons/hero-roots.png')}
+      heroImage={require('../../../assets/icons/hero-roots.jpg')}
       heroMotif={<RootsTree />}
       title={t('roots.title', '명식의 뿌리')}
       sub={t('roots.sub', '겉으로 드러난 나와 속에 품은 힘, 그리고 진짜 단단한 기운을 짚어 드려요')}

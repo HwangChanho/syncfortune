@@ -107,7 +107,7 @@ export default function MonthScreen() {
   return (
     <ImageBackground source={require('../../../assets/icons/bg-night.png')} style={styles.bgImage} resizeMode="cover">
       <ScrollView style={styles.overlay} contentContainerStyle={styles.wrap}>
-        <ContentHero image={require('../../../assets/icons/month.png')} title={t('month.title', '이달의 운세')} sub={t('month.heroSub', '이번 달 월건으로 보는 흐름')} />
+        <ContentHero image={require('../../../assets/icons/month.jpg')} title={t('month.title', '이달의 운세')} sub={t('month.heroSub', '이번 달 월건으로 보는 흐름')} />
         {/* 이번 달 월건 헤더 */}
         <View style={styles.pillarRow}>
           {gzChip(stem, 'stem')}

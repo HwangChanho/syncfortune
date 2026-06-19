@@ -149,7 +149,7 @@ export default function LoveScreen() {
       {/* 상단 명식 헤더 — 현재 적용된 대표 명식 표시·전환(daniel: 모든 콘텐츠 상단). 전환 시 그 명식 기준 재로드 */}
       <ChartPicker onChange={() => setReloadKey((k) => k + 1)} />
       <UnlockOverlay visible={busy} message={t('love.generating', '애정 흐름을 풀어내는 중…')} />
-      <ContentHero motif={<LoveThread />} image={require('../../../assets/icons/love-hero.png')} title={t('love.title')} sub={t('love.sub')} themeColor={LOVE_PINK} />
+      <ContentHero motif={<LoveThread />} image={require('../../../assets/icons/love-hero.jpg')} title={t('love.title')} sub={t('love.sub')} themeColor={LOVE_PINK} />
 
       {reading?.error ? (
         <View style={styles.card}><Text style={styles.err}>{String(reading.error)}</Text></View>

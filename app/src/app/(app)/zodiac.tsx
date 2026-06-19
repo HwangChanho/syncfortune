@@ -47,7 +47,7 @@ export default function ZodiacScreen() {
       <ScrollView style={styles.overlay} contentContainerStyle={styles.wrap}>
         {/* 상단 명식 헤더 — 현재 적용된 대표 명식 표시·전환(daniel: 모든 콘텐츠 상단) */}
         <ChartPicker onChange={() => loadMyChart().then(setMe)} />
-        <ContentHero image={require('../../../assets/icons/zodiac.png')} title={t('zodiac.title', '띠·별자리 오늘운세')} sub={animal.date} />
+        <ContentHero image={require('../../../assets/icons/zodiac.jpg')} title={t('zodiac.title', '띠·별자리 오늘운세')} sub={animal.date} />
 
         {/* 토글 */}
         <View style={styles.toggle}>

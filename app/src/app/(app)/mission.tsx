@@ -13,7 +13,7 @@ export default function MissionRoute() {
       kind="mission"
       needsZiwei                                 // 사명 = 사주 + 자미 교차(자미 명반 body 전달)
       themeColor={colors.ju}
-      heroImage={require('../../../assets/icons/hero-mission.png')}
+      heroImage={require('../../../assets/icons/hero-mission.jpg')}
       heroMotif={<MissionStars />}
       title={t('mission.title', '나의 사명')}
       sub={t('mission.sub', '타고난 그릇과 재능으로 본, 내가 무엇을 위해 태어났는지')}

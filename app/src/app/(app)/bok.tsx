@@ -14,14 +14,14 @@ import { colors, radius, space, shadow, font } from '../../lib/theme';
 import { ChartPicker } from '../../components/ChartPicker'; // 상단 명식 헤더
 import type { ChartInput } from '@spec/chart';
 
-// 복 유형별 이미지(daniel: 종류별 이미지) — assets/icons/bok/{slug}.png. 들어온 것만 require, 없으면 이모지 폴백.
+// 복 유형별 이미지(daniel: 종류별 이미지) — assets/icons/bok/{slug}.jpg. 들어온 것만 require, 없으면 이모지 폴백.
 // slug: 재물복=jaeseong·귀인복=inseong·식복=siksang·관복=gwanseong·인복=bigeop (loveStyle과 동일 G5)
 const BOK_IMG: Record<string, any> = {
-  재성: require('../../../assets/icons/bok/jaeseong.png'),
-  인성: require('../../../assets/icons/bok/inseong.png'),
-  식상: require('../../../assets/icons/bok/siksang.png'),
-  관성: require('../../../assets/icons/bok/gwanseong.png'),
-  비겁: require('../../../assets/icons/bok/bigeop.png'),
+  재성: require('../../../assets/icons/bok/jaeseong.jpg'),
+  인성: require('../../../assets/icons/bok/inseong.jpg'),
+  식상: require('../../../assets/icons/bok/siksang.jpg'),
+  관성: require('../../../assets/icons/bok/gwanseong.jpg'),
+  비겁: require('../../../assets/icons/bok/bigeop.jpg'),
 };
 
 export default function BokScreen() {

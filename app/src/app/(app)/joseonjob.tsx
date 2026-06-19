@@ -18,16 +18,16 @@ import type { ChartInput } from '@spec/chart';
 // 직업 결과 이미지 — daniel 자산(assets/icons/joseon/). 파일 추가 후 해당 require 주석을 해제하면 자동 표시.
 //   없는 직업은 이모지로 폴백(정적 require라 파일 없으면 빌드 에러 → 파일 넣은 것만 활성화).
 const JOB_IMG: Record<string, any> = {
-  정관: require('../../../assets/icons/joseon/mungwan.png'),    // 문관
-  편관: require('../../../assets/icons/joseon/mugwan.png'),     // 무관·장수
-  정인: require('../../../assets/icons/joseon/hakja.png'),      // 학자·선비
-  편인: require('../../../assets/icons/joseon/uiwon.png'),      // 의원
-  식신: require('../../../assets/icons/joseon/myeongjang.png'), // 명장(장인)
-  상관: require('../../../assets/icons/joseon/yein.png'),       // 예인·화공
-  정재: require('../../../assets/icons/joseon/jiju.png'),       // 지주·대농
-  편재: require('../../../assets/icons/joseon/geosang.png'),    // 거상
-  비견: require('../../../assets/icons/joseon/uibyeong.png'),   // 의병장·무사
-  겁재: require('../../../assets/icons/joseon/bobusang.png'),   // 보부상
+  정관: require('../../../assets/icons/joseon/mungwan.jpg'),    // 문관
+  편관: require('../../../assets/icons/joseon/mugwan.jpg'),     // 무관·장수
+  정인: require('../../../assets/icons/joseon/hakja.jpg'),      // 학자·선비
+  편인: require('../../../assets/icons/joseon/uiwon.jpg'),      // 의원
+  식신: require('../../../assets/icons/joseon/myeongjang.jpg'), // 명장(장인)
+  상관: require('../../../assets/icons/joseon/yein.jpg'),       // 예인·화공
+  정재: require('../../../assets/icons/joseon/jiju.jpg'),       // 지주·대농
+  편재: require('../../../assets/icons/joseon/geosang.jpg'),    // 거상
+  비견: require('../../../assets/icons/joseon/uibyeong.jpg'),   // 의병장·무사
+  겁재: require('../../../assets/icons/joseon/bobusang.jpg'),   // 보부상
 };
 
 export default function JoseonJobScreen() {

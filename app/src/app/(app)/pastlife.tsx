@@ -14,36 +14,36 @@ import { colors, radius, space, shadow, font } from '../../lib/theme';
 import { ChartPicker } from '../../components/ChartPicker'; // 상단 명식 헤더 — 현재 적용 명식 표시·전환
 import type { ChartInput } from '@spec/chart';
 
-// 전생 시대(오행)×신분(십신) 이미지(daniel: 조합 25). assets/icons/pastlife/{elem}_{group}.png.
+// 전생 시대(오행)×신분(십신) 이미지(daniel: 조합 25). assets/icons/pastlife/{elem}_{group}.jpg.
 // 생성·배치 후 PASTLIFE_IMG에 require 추가, 없으면 이모지 폴백.
 const ELEM_SLUG: Record<string, string> = { 木: 'wood', 火: 'fire', 土: 'earth', 金: 'metal', 水: 'water' };
 const GROUP_SLUG: Record<string, string> = { 관성: 'gwanseong', 인성: 'inseong', 식상: 'siksang', 재성: 'jaeseong', 비겁: 'bigeop' };
 const PASTLIFE_IMG: Record<string, any> = {
-  wood_gwanseong: require('../../../assets/icons/pastlife/wood_gwanseong.png'),
-  wood_inseong: require('../../../assets/icons/pastlife/wood_inseong.png'),
-  wood_siksang: require('../../../assets/icons/pastlife/wood_siksang.png'),
-  wood_jaeseong: require('../../../assets/icons/pastlife/wood_jaeseong.png'),
-  wood_bigeop: require('../../../assets/icons/pastlife/wood_bigeop.png'),
-  fire_gwanseong: require('../../../assets/icons/pastlife/fire_gwanseong.png'),
-  fire_inseong: require('../../../assets/icons/pastlife/fire_inseong.png'),
-  fire_siksang: require('../../../assets/icons/pastlife/fire_siksang.png'),
-  fire_jaeseong: require('../../../assets/icons/pastlife/fire_jaeseong.png'),
-  fire_bigeop: require('../../../assets/icons/pastlife/fire_bigeop.png'),
-  earth_gwanseong: require('../../../assets/icons/pastlife/earth_gwanseong.png'),
-  earth_inseong: require('../../../assets/icons/pastlife/earth_inseong.png'),
-  earth_siksang: require('../../../assets/icons/pastlife/earth_siksang.png'),
-  earth_jaeseong: require('../../../assets/icons/pastlife/earth_jaeseong.png'),
-  earth_bigeop: require('../../../assets/icons/pastlife/earth_bigeop.png'),
-  metal_gwanseong: require('../../../assets/icons/pastlife/metal_gwanseong.png'),
-  metal_inseong: require('../../../assets/icons/pastlife/metal_inseong.png'),
-  metal_siksang: require('../../../assets/icons/pastlife/metal_siksang.png'),
-  metal_jaeseong: require('../../../assets/icons/pastlife/metal_jaeseong.png'),
-  metal_bigeop: require('../../../assets/icons/pastlife/metal_bigeop.png'),
-  water_gwanseong: require('../../../assets/icons/pastlife/water_gwanseong.png'),
-  water_inseong: require('../../../assets/icons/pastlife/water_inseong.png'),
-  water_siksang: require('../../../assets/icons/pastlife/water_siksang.png'),
-  water_jaeseong: require('../../../assets/icons/pastlife/water_jaeseong.png'),
-  water_bigeop: require('../../../assets/icons/pastlife/water_bigeop.png'),
+  wood_gwanseong: require('../../../assets/icons/pastlife/wood_gwanseong.jpg'),
+  wood_inseong: require('../../../assets/icons/pastlife/wood_inseong.jpg'),
+  wood_siksang: require('../../../assets/icons/pastlife/wood_siksang.jpg'),
+  wood_jaeseong: require('../../../assets/icons/pastlife/wood_jaeseong.jpg'),
+  wood_bigeop: require('../../../assets/icons/pastlife/wood_bigeop.jpg'),
+  fire_gwanseong: require('../../../assets/icons/pastlife/fire_gwanseong.jpg'),
+  fire_inseong: require('../../../assets/icons/pastlife/fire_inseong.jpg'),
+  fire_siksang: require('../../../assets/icons/pastlife/fire_siksang.jpg'),
+  fire_jaeseong: require('../../../assets/icons/pastlife/fire_jaeseong.jpg'),
+  fire_bigeop: require('../../../assets/icons/pastlife/fire_bigeop.jpg'),
+  earth_gwanseong: require('../../../assets/icons/pastlife/earth_gwanseong.jpg'),
+  earth_inseong: require('../../../assets/icons/pastlife/earth_inseong.jpg'),
+  earth_siksang: require('../../../assets/icons/pastlife/earth_siksang.jpg'),
+  earth_jaeseong: require('../../../assets/icons/pastlife/earth_jaeseong.jpg'),
+  earth_bigeop: require('../../../assets/icons/pastlife/earth_bigeop.jpg'),
+  metal_gwanseong: require('../../../assets/icons/pastlife/metal_gwanseong.jpg'),
+  metal_inseong: require('../../../assets/icons/pastlife/metal_inseong.jpg'),
+  metal_siksang: require('../../../assets/icons/pastlife/metal_siksang.jpg'),
+  metal_jaeseong: require('../../../assets/icons/pastlife/metal_jaeseong.jpg'),
+  metal_bigeop: require('../../../assets/icons/pastlife/metal_bigeop.jpg'),
+  water_gwanseong: require('../../../assets/icons/pastlife/water_gwanseong.jpg'),
+  water_inseong: require('../../../assets/icons/pastlife/water_inseong.jpg'),
+  water_siksang: require('../../../assets/icons/pastlife/water_siksang.jpg'),
+  water_jaeseong: require('../../../assets/icons/pastlife/water_jaeseong.jpg'),
+  water_bigeop: require('../../../assets/icons/pastlife/water_bigeop.jpg'),
 };
 
 export default function PastLifeScreen() {

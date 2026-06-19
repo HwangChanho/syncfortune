@@ -9,7 +9,7 @@ import type { CompatibilityDx } from '@engine/compatibility';
 
 export type CompatTier = { key: string; min: number; emoji: string; ko: string; en: string; ja: string };
 
-// 등급(점수 내림차순) — key = assets/icons/compat/{key}.png. 라벨은 전향적(낮아도 성장형).
+// 등급(점수 내림차순) — key = assets/icons/compat/{key}.jpg. 라벨은 전향적(낮아도 성장형).
 export const COMPAT_TIERS: CompatTier[] = [
   { key: 'soulmate', min: 88, emoji: '💞', ko: '천생연분',        en: 'Soulmates',          ja: '運命の相手' },
   { key: 'great',    min: 76, emoji: '💖', ko: '아주 좋은 인연',  en: 'Wonderful Match',    ja: 'とても良い縁' },

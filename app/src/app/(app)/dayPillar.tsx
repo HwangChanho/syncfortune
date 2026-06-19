@@ -105,7 +105,7 @@ export default function DayPillarScreen() {
     <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>
       {/* 헤더 타이틀 — 화면에서 직접 박아 확실하게(+다국어) */}
       <Stack.Screen options={{ title: t('dayPillar.title') }} />
-      <ContentHero image={require('../../../assets/icons/dayPillar.png')} title={t('dayPillar.title')} sub={t('dayPillar.sub')} />
+      <ContentHero image={require('../../../assets/icons/dayPillar.jpg')} title={t('dayPillar.title')} sub={t('dayPillar.sub')} />
 
       {/* 남/여 보기 토글 — 관리자만(전체 열람). 일반 유저는 본인/명식 성별로 고정 표시. */}
       {admin && (

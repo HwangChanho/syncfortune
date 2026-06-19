@@ -14,15 +14,15 @@ import { colors, radius, space, shadow, font } from '../../lib/theme';
 import { ChartPicker } from '../../components/ChartPicker'; // 상단 명식 헤더 — 현재 적용 명식 표시·전환
 import type { ChartInput } from '@spec/chart';
 
-// 연애 유형별 이미지(daniel: 종류별 이미지) — assets/icons/lovestyle/{slug}.png.
+// 연애 유형별 이미지(daniel: 종류별 이미지) — assets/icons/lovestyle/{slug}.jpg.
 // 들어온 것만 require하고, 없으면 이모지로 자동 폴백(점진 적용). 키 = loveStyle 십신군(한글).
 const LOVE_IMG: Record<string, any> = {
   // slug: 비겁=bigeop·식상=siksang·재성=jaeseong·관성=gwanseong·인성=inseong (daniel 생성)
-  비겁: require('../../../assets/icons/lovestyle/bigeop.png'),
-  식상: require('../../../assets/icons/lovestyle/siksang.png'),
-  재성: require('../../../assets/icons/lovestyle/jaeseong.png'),
-  관성: require('../../../assets/icons/lovestyle/gwanseong.png'),
-  인성: require('../../../assets/icons/lovestyle/inseong.png'),
+  비겁: require('../../../assets/icons/lovestyle/bigeop.jpg'),
+  식상: require('../../../assets/icons/lovestyle/siksang.jpg'),
+  재성: require('../../../assets/icons/lovestyle/jaeseong.jpg'),
+  관성: require('../../../assets/icons/lovestyle/gwanseong.jpg'),
+  인성: require('../../../assets/icons/lovestyle/inseong.jpg'),
 };
 
 export default function LoveStyleScreen() {

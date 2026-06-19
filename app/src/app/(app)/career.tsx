@@ -37,16 +37,16 @@ const SECTIONS: { key: string; tk: string; def: string }[] = [
   { key: 'strategy', tk: 'career.strategy', def: '전략과 처방' },
 ];
 
-// 카테고리별 이미지(daniel 자산, assets/icons/career/{key}.png) — 들어온 것만 require, 없으면 텍스트만.
+// 카테고리별 이미지(daniel 자산, assets/icons/career/{key}.jpg) — 들어온 것만 require, 없으면 텍스트만.
 //   ⚠️ 정적 require는 파일 없으면 빌드 에러 → 이미지 생성·배치 후 아래 require 주석 해제(hero 포함 7장).
 const CAREER_IMG: Record<string, any> = {
-  hero: require('../../../assets/icons/career/hero.png'),
-  overview: require('../../../assets/icons/career/overview.png'),
-  entrepreneur: require('../../../assets/icons/career/entrepreneur.png'),
-  employee: require('../../../assets/icons/career/employee.png'),
-  lean: require('../../../assets/icons/career/lean.png'),
-  timing: require('../../../assets/icons/career/timing.png'),
-  strategy: require('../../../assets/icons/career/strategy.png'),
+  hero: require('../../../assets/icons/career/hero.jpg'),
+  overview: require('../../../assets/icons/career/overview.jpg'),
+  entrepreneur: require('../../../assets/icons/career/entrepreneur.jpg'),
+  employee: require('../../../assets/icons/career/employee.jpg'),
+  lean: require('../../../assets/icons/career/lean.jpg'),
+  timing: require('../../../assets/icons/career/timing.jpg'),
+  strategy: require('../../../assets/icons/career/strategy.jpg'),
 };
 
 const CAREER_TEAL = '#3FA7A0'; // 테마색(독립↔조직)

@@ -106,7 +106,7 @@ export default function PetScreen() {
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>
-      <ContentHero image={require('../../../assets/icons/pet.png')} title={t('pet.title')} sub={t('pet.sub')} />
+      <ContentHero image={require('../../../assets/icons/pet.jpg')} title={t('pet.title')} sub={t('pet.sub')} />
 
       {/* 저장된 아이들 — 칩으로 전환 + 추가 */}
       {pets.length > 0 && (

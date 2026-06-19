@@ -15,14 +15,14 @@ import { colors, radius, space, shadow, font } from '../../lib/theme';
 import { ChartPicker } from '../../components/ChartPicker'; // 상단 명식 헤더 — 현재 적용 명식 표시·전환
 import type { ChartInput } from '@spec/chart';
 
-// 일간 오행별 이미지(daniel O: 종류별 이미지) — assets/icons/healing/{wood|fire|earth|metal|water}.png.
+// 일간 오행별 이미지(daniel O: 종류별 이미지) — assets/icons/healing/{wood|fire|earth|metal|water}.jpg.
 //   들어온 것만 require, 없으면 이모지(HEAL_EMOJI)로 자동 폴백(점진 적용). 키 = 오행 한자.
 const HEAL_IMG: Record<string, any> = {
-  木: require('../../../assets/icons/healing/wood.png'),
-  火: require('../../../assets/icons/healing/fire.png'),
-  土: require('../../../assets/icons/healing/earth.png'),
-  金: require('../../../assets/icons/healing/metal.png'),
-  水: require('../../../assets/icons/healing/water.png'),
+  木: require('../../../assets/icons/healing/wood.jpg'),
+  火: require('../../../assets/icons/healing/fire.jpg'),
+  土: require('../../../assets/icons/healing/earth.jpg'),
+  金: require('../../../assets/icons/healing/metal.jpg'),
+  水: require('../../../assets/icons/healing/water.jpg'),
 };
 
 export default function HealingScreen() {

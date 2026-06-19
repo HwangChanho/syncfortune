@@ -17,9 +17,9 @@ const SCREEN_H = Dimensions.get('window').height;
 const CARD_H = Math.round(SCREEN_H * 0.42);
 
 const ICON = {
-  saju: require('../../../assets/icons/premium.png'),
-  ziwei: require('../../../assets/icons/ziwei.png'),
-  timeline: require('../../../assets/icons/timeline.png'),
+  saju: require('../../../assets/icons/premium.jpg'),
+  ziwei: require('../../../assets/icons/ziwei.jpg'),
+  timeline: require('../../../assets/icons/timeline.jpg'),
 };
 
 // 도메인별 허브 = 원국풀이(도메인별) + 인생 타임라인(공통). 궁합은 독립(홈 프리미엄)으로 분리.

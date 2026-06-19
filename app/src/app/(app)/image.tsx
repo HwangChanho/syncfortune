@@ -11,7 +11,7 @@ export default function ImageRoute() {
     <SpecialContentScreen
       kind="image"
       themeColor="#A78BFA"
-      heroImage={require('../../../assets/icons/hero-image.png')}
+      heroImage={require('../../../assets/icons/hero-image.jpg')}
       heroMotif={<ImageAura />}
       title={t('image.title', '비치는 나')}
       sub={t('image.sub', '남에게 비치는 첫인상과 분위기, 관계 속 내 모습을 짚어 드려요')}
