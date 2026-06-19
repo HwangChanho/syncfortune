@@ -16,7 +16,8 @@ import { useRouter } from 'expo-router';
 import { useAuth } from '../../lib/useAuth';
 import { useSubscription } from '../../lib/subscription';
 import { isAdmin } from '../../lib/admin';
-import { useCredit } from '../../lib/coupons';                       // AI 해몽 건당 ₩300 이용권 차감
+import { useCredit, grantCredit } from '../../lib/coupons';          // AI 해몽 이용권 차감·적립
+import { purchaseCreditRC, DREAM_BUNDLE_QTY, purchasesEnabled } from '../../lib/purchases'; // 꿈해몽 5회 번들 결제
 import { requireLoginForPurchase } from '../../lib/requireLogin';
 
 export default function DreamScreen() {
@@ -54,10 +55,33 @@ export default function DreamScreen() {
       const admin = await isAdmin().catch(() => false);
       if (!admin) {
         if (!requireLoginForPurchase(session, () => router.push('/login'), t)) return;
-        const ok = await useCredit('dream');                          // ₩300 이용권 차감(서버 use_credit — 본인 인증)
-        if (!ok) { Alert.alert(t('dream.aiTitle', 'AI 꿈해몽'), t('dream.needCredit', '구매권(₩300)이 필요해요. 설정에서 구매권을 등록하거나 관리자에게 문의하세요.')); return; }
+        const ok = await useCredit('dream');                          // 이용권 차감(서버 use_credit — 본인 인증)
+        if (!ok) { promptBuyDream(text); return; }                    // 이용권 없음 → 5회 번들 구매 제안
       }
     }
+    runAI(text);
+  }
+
+  // 꿈해몽 5회 번들 구매 제안 — Apple IAP 최저가(₩1,200)=5회. 구매 성공 → 5 적립 → 1 차감 → 진행(daniel).
+  function promptBuyDream(text: string) {
+    if (!purchasesEnabled()) { Alert.alert(t('dream.aiTitle', 'AI 꿈해몽'), t('dream.needCredit', '꿈해몽 이용권이 필요해요. 설정에서 쿠폰을 등록하거나 잠시 후 다시 시도해 주세요.')); return; }
+    Alert.alert(
+      t('dream.aiTitle', 'AI 꿈해몽'),
+      t('dream.buyBundle', '꿈해몽 5회 이용권을 구매할까요? (₩1,200)'),
+      [
+        { text: t('common.cancel', '취소'), style: 'cancel' },
+        { text: t('dream.buy5', '5회 구매'), onPress: async () => {
+          try {
+            const bought = await purchaseCreditRC('dream'); if (!bought) return;  // 결제(취소 시 false)
+            await grantCredit('dream', DREAM_BUNDLE_QTY);                         // 5회 적립
+            if (await useCredit('dream')) runAI(text);                            // 1회 차감 후 진행
+          } catch (e) { Alert.alert(t('dream.aiTitle', 'AI 꿈해몽'), (e as Error).message); }
+        } },
+      ],
+    );
+  }
+
+  async function runAI(text: string) {
     setAiBusy(true);
     try {
       const { data } = await supabase.functions.invoke('interpret', { body: { kind: 'dream', dreamText: text, lang: appLang() } });

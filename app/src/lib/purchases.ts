@@ -38,8 +38,12 @@ export const CREDIT_PRODUCT: Record<CreditKind, string> = {
   image: 'credit_image',         // 비치는 나 ₩4,900
   mission: 'credit_mission',     // 나의 사명 ₩6,900
   career: 'credit_career',       // 사업가의 나 vs 직장인의 나 ₩4,900
-  dream: 'credit_dream',         // AI 꿈해몽 (건당 ₩300 — IAP 최소가 미만, 번들 상품 권장)
+  dream: 'credit_dream',         // AI 꿈해몽 — 단건 ₩300은 Apple IAP 최저가 미만 → 5회 번들(₩1,200) 상품으로 판매
 };
+
+// AI 꿈해몽: 단건 ₩300이 Apple IAP 최저가(~₩1,200) 미만이라 **5회 번들**(₩1,200, ≈₩240/회)로 판매(daniel 확정).
+//   구매 1회 = DREAM_BUNDLE_QTY 크레딧 적립(다른 이용권은 1:1, dream만 번들). grantCredit('dream', DREAM_BUNDLE_QTY).
+export const DREAM_BUNDLE_QTY = 5;
 
 // ⚠️ deprecated(구 단일가 건당) — 영역별 CREDIT_PRODUCT 로 이행. entitlement.ts 하위호환 위해 유지.
 export const PRODUCT_UNLOCK_2500 = 'unlock_2500';
