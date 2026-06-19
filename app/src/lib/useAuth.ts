@@ -7,6 +7,7 @@
 import { useState, useEffect } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from './supabase';
+import { syncChartsFromServer } from './myChart'; // 계정 동기화(ADR-056) — 로그인 시 서버 명식 복원
 
 // dev 전용 자동 로그인(시뮬 편의) — __DEV__ + app/.env(gitignore) 자격증명이 있을 때만 1회 시도.
 //   프로덕션 빌드는 __DEV__=false + .env 에 키 없음 → 절대 동작하지 않는다. 자격증명은 코드가 아닌 env 에만 둔다.
@@ -35,11 +36,13 @@ export function useAuth() {
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
       setLoading(false);
-      if (!data.session) tryDevAutoLogin(); // dev: 세션 없으면 테스트계정 자동 로그인(시뮬 편의)
+      if (data.session) void syncChartsFromServer();         // 앱 시작 시 세션 있으면 명식 동기화(다른 기기 등록분 복원)
+      else tryDevAutoLogin(); // dev: 세션 없으면 테스트계정 자동 로그인(시뮬 편의)
     });
     // 2) 이후 세션 변화 구독 — 로그인/로그아웃/토큰 자동 갱신 시 즉시 반영
     const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
       setSession(s);
+      if (_event === 'SIGNED_IN' && s) void syncChartsFromServer(); // 로그인 시 명식 계정 동기화(ADR-056)
     });
     // ※ 소셜 로그인 복귀(syncfortune://auth-callback?code=/token_hash=)는 `app/auth-callback.tsx`
     //   라우트가 단일 처리(exchangeCodeForSession/verifyOtp) — 여기서 중복 처리하지 않는다(레이스 방지).
