@@ -101,7 +101,7 @@ export default function LoveScreen() {
     logEvent('love_invoke_start', { chartId: id });
     try {
       const { data, error } = await supabase.functions.invoke('interpret', {
-        body: { chartId: id, category: 'love', kind: 'love', tier: 'paid', ziwei: zw, lang: appLang() },
+        body: { chartId: id, category: 'love', kind: 'love', tier: 'paid', ziwei: zw, lang: appLang(), ...(savedChart?.context ? { context: savedChart.context } : {}) },
       });
       if (error) logEvent('love_invoke_error', { message: error.message }, 'error');
       else if ((data as any)?.needPayment) logEvent('love_need_payment', {}, 'error');   // 크레딧 stale 방어

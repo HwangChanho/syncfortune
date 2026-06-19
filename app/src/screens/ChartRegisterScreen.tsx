@@ -33,6 +33,11 @@ export function ChartRegisterScreen({ onSubmit, defaultRelation, submitLabel, sh
   const [relation, setRelation] = useState<string>(initial?.relation ?? defaultRelation ?? 'self');
   const [relationCustom, setRelationCustom] = useState(false); // 직접입력 모드
   const [makeRep, setMakeRep] = useState(false); // 이 명식을 대표로 설정(register 전용)
+  // 풀이 grounding 기본정보(선택, daniel) — 하는 일·관계상태·관심/고민·메모. 입력 시 통변이 더 정확(특히 R25: 현재 배우자 유무가 연애·결혼·궁합 풀이를 좌우).
+  const [job, setJob] = useState(initial?.context?.job ?? '');
+  const [relationship, setRelationship] = useState<string>(initial?.context?.relationship ?? '');
+  const [concern, setConcern] = useState(initial?.context?.concern ?? '');
+  const [note, setNote] = useState(initial?.context?.note ?? '');
 
   const sj = sijinIdx >= 0 ? SIJIN[sijinIdx] : null;
   const sijinLabel = sj ? `${sj.gz} ${sj.ko} (${sj.range})` : t('register.timeUnknown');
@@ -48,6 +53,10 @@ export function ChartRegisterScreen({ onSubmit, defaultRelation, submitLabel, sh
       relation,
       timeAccuracy: sj ? '정확' : '미상', // 시진 알면 시주 확정 → 정확
       makeRep, // 대표 설정 여부 — register 라우트가 처리(궁합 상대 등록 시 showMakeRep=false 라 무시)
+      // 풀이 grounding 기본정보(선택) — 하나라도 채워졌을 때만 context 전달(빈 값은 undefined로 정리).
+      context: (job.trim() || relationship || concern.trim() || note.trim())
+        ? { job: job.trim() || undefined, relationship: relationship || undefined, concern: concern.trim() || undefined, note: note.trim() || undefined }
+        : undefined,
     };
   }
   function handleSubmit() { onSubmit(buildInput()); }
@@ -60,7 +69,7 @@ export function ChartRegisterScreen({ onSubmit, defaultRelation, submitLabel, sh
     const id = setTimeout(() => onAutoSave(buildInput()), 600);
     return () => clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [label, birthDate, sijinIdx, calendar, sex, birthPlace, birthPlaceLon, relation, makeRep, autoSave]);
+  }, [label, birthDate, sijinIdx, calendar, sex, birthPlace, birthPlaceLon, relation, makeRep, job, relationship, concern, note, autoSave]);
 
   return (
     <>
@@ -120,6 +129,36 @@ export function ChartRegisterScreen({ onSubmit, defaultRelation, submitLabel, sh
           <TextInput style={[styles.input, { marginTop: space(2) }]} value={relation} onChangeText={setRelation}
             placeholder={t('register.relationCustomPh')} placeholderTextColor={colors.inkFaint} autoFocus />
         )}
+
+        {/* 내 상황(선택) — 풀이 grounding 기본정보. R25: 현재 배우자 유무가 연애·결혼·궁합 풀이를 좌우 */}
+        <View style={styles.ctxBox}>
+          <Text style={styles.ctxTitle}>{t('register.ctxTitle')}</Text>
+          <Text style={styles.ctxDesc}>{t('register.ctxDesc')}</Text>
+
+          <Text style={styles.ctxLabel}>{t('register.ctxJob')}</Text>
+          <TextInput style={styles.input} value={job} onChangeText={setJob}
+            placeholder={t('register.ctxJobPh')} placeholderTextColor={colors.inkFaint} />
+
+          <Text style={styles.ctxLabel}>{t('register.ctxRel')}</Text>
+          <View style={styles.chipRow}>
+            {([['single', t('register.ctxRelSingle')], ['dating', t('register.ctxRelDating')], ['married', t('register.ctxRelMarried')], ['other', t('register.ctxRelOther')]] as const).map(([v, lbl]) => {
+              const on = relationship === v;
+              return (
+                <Pressable key={v} style={[styles.chip, on && styles.chipOn]} onPress={() => setRelationship(on ? '' : v)}>
+                  <Text style={on ? styles.chipOnText : styles.chipText}>{lbl}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          <Text style={styles.ctxLabel}>{t('register.ctxConcern')}</Text>
+          <TextInput style={[styles.input, styles.inputMulti]} value={concern} onChangeText={setConcern}
+            placeholder={t('register.ctxConcernPh')} placeholderTextColor={colors.inkFaint} multiline />
+
+          <Text style={styles.ctxLabel}>{t('register.ctxNote')}</Text>
+          <TextInput style={[styles.input, styles.inputMulti]} value={note} onChangeText={setNote}
+            placeholder={t('register.ctxNotePh')} placeholderTextColor={colors.inkFaint} multiline />
+        </View>
 
         {/* 대표 명식으로 설정 — register 전용(궁합 상대 등록 시 숨김) */}
         {showMakeRep && (
@@ -244,6 +283,12 @@ const styles = StyleSheet.create({
   repBoxOn: { backgroundColor: colors.ju, borderColor: colors.ju },
   repChk: { color: colors.bg, fontSize: 14, fontWeight: '800' },
   repLabel: { ...font.body, color: colors.ink },
+  // 내 상황(context) 입력 박스
+  ctxBox: { marginTop: space(5), padding: space(4), backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.line, ...shadow.soft },
+  ctxTitle: { ...font.heading, fontSize: 15 },
+  ctxDesc: { ...font.body, fontSize: 12, color: colors.inkSoft, marginTop: space(1), marginBottom: space(1) },
+  ctxLabel: { ...font.label, marginTop: space(3.5), marginBottom: space(1) },
+  inputMulti: { minHeight: 60, textAlignVertical: 'top', paddingTop: space(2.5) },
   // 제출 CTA (주색)
   submit: {
     backgroundColor: colors.ju, borderRadius: radius.md, paddingVertical: space(4),

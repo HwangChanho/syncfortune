@@ -76,6 +76,42 @@ export const COMPAT_SECTIONS: Record<string, CompatSection[]> = {
     { key: 'friction', ko: '주의·갈등', en: 'Caution', ja: '注意·葛藤' },
     { key: 'advice', ko: '관리 조언', en: 'Advice', ja: 'アドバイス' },
   ],
+  friend: [
+    { key: 'core', ko: '핵심', en: 'Core', ja: '核心' },
+    { key: 'vibe', ko: '함께일 때', en: 'Together vibe', ja: '一緒の空気' },
+    { key: 'trust', ko: '신뢰·의리', en: 'Trust & loyalty', ja: '信頼·義理' },
+    { key: 'fun', ko: '즐거움·시너지', en: 'Fun & synergy', ja: '楽しさ' },
+    { key: 'friction', ko: '부딪히는 점', en: 'Friction', ja: 'ぶつかる点' },
+    { key: 'longevity', ko: '오래가는 법', en: 'Lasting', ja: '長続き' },
+    { key: 'advice', ko: '조언', en: 'Advice', ja: 'アドバイス' },
+  ],
+  family: [
+    { key: 'core', ko: '핵심', en: 'Core', ja: '核心' },
+    { key: 'bond', ko: '정서적 유대', en: 'Bond', ja: '絆' },
+    { key: 'roles', ko: '역할·기대', en: 'Roles', ja: '役割·期待' },
+    { key: 'support', ko: '서로 기댐', en: 'Support', ja: '支え合い' },
+    { key: 'friction', ko: '갈등', en: 'Friction', ja: '葛藤' },
+    { key: 'heal', ko: '관계 회복', en: 'Healing', ja: '関係回復' },
+    { key: 'advice', ko: '조언', en: 'Advice', ja: 'アドバイス' },
+  ],
+  coworker: [
+    { key: 'core', ko: '핵심', en: 'Core', ja: '核心' },
+    { key: 'workstyle', ko: '일 스타일', en: 'Work style', ja: '仕事スタイル' },
+    { key: 'synergy', ko: '협업·시너지', en: 'Synergy', ja: '協業' },
+    { key: 'communication', ko: '소통', en: 'Communication', ja: 'コミュニケーション' },
+    { key: 'friction', ko: '마찰', en: 'Friction', ja: '摩擦' },
+    { key: 'distance', ko: '적정 거리', en: 'Boundaries', ja: '適度な距離' },
+    { key: 'advice', ko: '조언', en: 'Advice', ja: 'アドバイス' },
+  ],
+  senior: [
+    { key: 'core', ko: '핵심', en: 'Core', ja: '核心' },
+    { key: 'dynamic', ko: '권위 관계', en: 'Dynamic', ja: '上下関係' },
+    { key: 'read', ko: '상사 성향 읽기', en: 'Read them', ja: '上司の性向' },
+    { key: 'getalong', ko: '잘 지내는 법', en: 'Getting along', ja: 'うまくやる' },
+    { key: 'friction', ko: '주의·갈등', en: 'Caution', ja: '注意·葛藤' },
+    { key: 'grow', ko: '성장·기회', en: 'Growth', ja: '成長·機会' },
+    { key: 'advice', ko: '조언', en: 'Advice', ja: 'アドバイス' },
+  ],
 };
 /** 관계(rel)의 통변 섹션 목록 — 없으면 기본 4항목. 연도별(hasYear)은 기본 4항목 사용(특정 해 흐름). */
 export function compatSections(rel: string, hasYear = false): CompatSection[] {
@@ -119,10 +155,11 @@ export async function genCompatReading(
   chartId: string, rel: string, sig: string, otherSaju: any, cross: string[], dayRel: string,
   meZiwei?: any, otherZiwei?: any, // 자미 교차(나=최신명반, 상대=상대 명반) — 사주 주축 + 자미 보조
   year?: string, yearGz?: string,  // year 있으면 연도별(그 해 흐름). yearGz=그 해 간지(클라 계산)
+  meContext?: any,                  // 본인 명식 기본정보(context: 하는일·관계상태 등) grounding — R25 현재 배우자 유무가 궁합 해석 좌우(daniel)
 ): Promise<CompatResult> {
   const category = year ? `compat_${rel}_${sig}_y${year}` : `compat_${rel}_${sig}`;
   const { data, error } = await supabase.functions.invoke('interpret', {
-    body: { chartId, category, kind: 'compat', tier: 'paid', otherSaju, otherZiwei, cross, dayRel, yearGz, ziwei: meZiwei, lang: appLang() }, // paid 제거(서버가 크레딧/프리미엄 판정)
+    body: { chartId, category, kind: 'compat', tier: 'paid', otherSaju, otherZiwei, cross, dayRel, yearGz, ziwei: meZiwei, lang: appLang(), ...(meContext ? { context: meContext } : {}) }, // paid 제거(서버가 크레딧/프리미엄 판정) + context grounding
   });
   if (error) return { kind: 'error' };
   if (data?.needPremium) return { kind: 'needPremium' };

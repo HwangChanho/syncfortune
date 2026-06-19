@@ -6,7 +6,7 @@
 // 결정론(일간관계·교차합충)은 온디바이스 → 통변의 근거로 Edge에 전달(규칙2 사주 단독). 상대 PII=동의(규칙8).
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useEffect } from 'react';
-import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator, Modal, TextInput, Keyboard } from 'react-native';
+import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator, Modal, TextInput, Keyboard, Image } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context'; // 모달 상단 노치/상태바 침범 방지(J)
 import { Alert } from '../lib/alert'; // 커스텀 알림(앱 디자인)
 import { useTranslation } from 'react-i18next';
@@ -27,6 +27,23 @@ import { useFontScale } from '../lib/fontScale';
 import { COMPAT_RELS, otherSig, loadCompatReadings, genCompatReading, compatSections, compatSectionLabel, type CompatReading } from '../lib/compatReadings';
 import { loadFollowups, askFollowup, type Followup } from '../lib/followups'; // 궁합 추가질문(사주/자미 풀이와 동일 — 무료1 + 건당)
 import { yearGanZhi } from '../lib/dailyFortune'; // 연도별 궁합: 그 해 간지(세운)
+import { compatScore, tierLabel, tierOf, type CompatScoreResult } from '../lib/compatScore'; // 궁합 점수·등급(R26: LLM 직접 산출 우선, 결정론은 폴백)
+import { appLang } from '../lib/i18n';
+
+// 궁합 등급별 이미지 — assets/icons/compat/{tier.key}.png. 없으면 이모지 폴백(이미지 생성 후 require 연결).
+const COMPAT_IMG: Record<string, any> = {
+  soulmate: require('../../assets/icons/compat/soulmate.png'),
+  great: require('../../assets/icons/compat/great.png'),
+  // 생성 대기(Draw Things 경합) — 완료 후 require 추가. 그 전엔 이모지 폴백(렌더가 자동 처리):
+  // good / steady / spark / opposite
+};
+
+// 관계 카테고리별 이미지(daniel: 각 카테고리에 맞는 이미지) — assets/icons/compat-rel/{rel}.png. 선택 관계 배너.
+const CAT_IMG: Record<string, any> = {
+  friend: require('../../assets/icons/compat-rel/friend.png'),
+  // 생성 대기(Draw Things 경합) — 완료 후 require 추가. 그 전엔 배너 미표시(렌더가 자동 처리):
+  // family / love / marriage / coworker / senior / staff / business
+};
 import { UnlockOverlay } from '../components/UnlockOverlay'; // 생성 중 화면 가림 로딩(daniel)
 import type { ChartInput } from '@spec/chart';
 
@@ -47,6 +64,7 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
   const [readings, setReadings] = useState<Record<string, CompatReading>>({});
   const [busy, setBusy] = useState<string | null>(null);         // 생성 중 키(rel 또는 rel_yYYYY)
   const [pair, setPair] = useState<{ me: any; other: any } | null>(null);
+  const [compat, setCompat] = useState<CompatScoreResult | null>(null); // 궁합 점수·등급(결정론 — 통변과 별개로 항상)
   const [ctx, setCtx] = useState<{ chartId: string; sig: string; cross: string[]; dayRel: string; meZiwei: any; otherZiwei: any } | null>(null); // 연도별 추가 생성 컨텍스트
   const YEARS = [0, 1, 2, 3, 4].map((i) => new Date().getFullYear() + i); // 연도별 옵션(올해~+4)
   const [showDetail, setShowDetail] = useState(false);           // 글자 작용 상세 접이식
@@ -96,11 +114,12 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
     if (!meInput || !otherInput || !session) return;
     const meC = computeChart(meInput), otherC = computeChart(otherInput);
     setPair({ me: meC.saju, other: otherC.saju }); setActive(new Set()); setYear(''); // 분석 시작 = 원국부터
-    if (!meSel) return; // 캐시는 저장 명식(serverChartId) 필요 — 대표가 없으면 비교만
+    const dx = analyzeCompatibility(meC.saju, otherC.saju);     // 일간관계·교차(통변 근거)
+    setCompat(compatScore(dx));                                 // 궁합 점수·등급(결정론 — 항상 표시, 저장명식 없어도)
+    if (!meSel) return; // 캐시·통변은 저장 명식(serverChartId) 필요 — 대표 없으면 점수·비교만
     const chartId = await ensureServerChartId(meC, meInput, session, meSel);
     if (!chartId) return;
     const sig = otherSig(otherC.saju);
-    const dx = analyzeCompatibility(meC.saju, otherC.saju);     // 일간관계(통변 근거)
     const cross = crossDetails(meC.saju, otherC.saju);          // 교차작용(통변 근거 — 쉬운 말로 번역)
     setCtx({ chartId, sig, cross, dayRel: dx.dayMasterRelation.detail, meZiwei: meC.ziwei, otherZiwei: otherC.ziwei }); // 연도별 추가 생성용
     const cached = await loadCompatReadings(chartId, sig);
@@ -112,7 +131,7 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
       for (const r of COMPAT_RELS) {
         if (cached[r.key] || readings[r.key]) continue;
         setBusy(r.key);
-        const res = await genCompatReading(chartId!, r.key, sig, otherC.saju, cross, dx.dayMasterRelation.detail, meC.ziwei, otherC.ziwei);
+        const res = await genCompatReading(chartId!, r.key, sig, otherC.saju, cross, dx.dayMasterRelation.detail, meC.ziwei, otherC.ziwei, undefined, undefined, meSel?.context);
         if (res.kind === 'answer') { setReadings((prev) => ({ ...prev, [r.key]: res.reading })); continue; }
         setBusy(null);
         if (res.kind === 'needPremium') { Alert.alert(t('compat.premiumTitle'), t('compat.premiumMsg')); return; }
@@ -142,7 +161,7 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
     if (readings[key]) return;
     setBusy(key);
     const gz = yearGanZhi(Number(yr));
-    const res = await genCompatReading(ctx.chartId, relKey, ctx.sig, pair.other, ctx.cross, ctx.dayRel, ctx.meZiwei, ctx.otherZiwei, yr, gz);
+    const res = await genCompatReading(ctx.chartId, relKey, ctx.sig, pair.other, ctx.cross, ctx.dayRel, ctx.meZiwei, ctx.otherZiwei, yr, gz, meSel?.context);
     setBusy(null);
     if (res.kind === 'answer') { setReadings((prev) => ({ ...prev, [key]: res.reading })); return; }
     if (res.kind === 'needPremium') { Alert.alert(t('compat.premiumTitle'), t('compat.premiumMsg')); return; }
@@ -154,7 +173,7 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
             const ok = await purchaseCreditRC('compat'); if (!ok) return;
             await grantCredit('compat');                 // 결제→크레딧 부여→서버 consume
             setBusy(key);
-            const r2 = await genCompatReading(ctx.chartId, relKey, ctx.sig, pair.other, ctx.cross, ctx.dayRel, ctx.meZiwei, ctx.otherZiwei, yr, gz);
+            const r2 = await genCompatReading(ctx.chartId, relKey, ctx.sig, pair.other, ctx.cross, ctx.dayRel, ctx.meZiwei, ctx.otherZiwei, yr, gz, meSel?.context);
             setBusy(null);
             if (r2.kind === 'answer') setReadings((prev) => ({ ...prev, [key]: r2.reading }));
           } catch (e) { setBusy(null); Alert.alert(t('reading.payPending'), (e as Error).message); }
@@ -179,6 +198,10 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
 
   const curKey = year ? `${rel}_y${year}` : rel; // 추가질문 누적 키(관계유형/연도별 분리)
   const cur = readings[curKey];
+  // R26: 궁합 점수는 LLM이 카테고리별로 *입체 산출*(가산표 아님) → 현재 풀이의 score 우선. 생성 전엔 결정론(compat) 임시값.
+  const llmScore = (() => { const v: any = (cur as any)?.score; const n = typeof v === 'number' ? v : typeof v === 'string' ? parseInt(v, 10) : NaN; return Number.isFinite(n) ? Math.max(0, Math.min(100, Math.round(n))) : null; })();
+  const dispScore = llmScore ?? compat?.score ?? null;
+  const dispTier = llmScore != null ? tierOf(llmScore) : (compat?.tier ?? null);
   const slotLine = (input: ChartInput | null) => input ? `${String(input.birthDateTime).split(' ')[0]} · ${input.sex}` : '미선택';
 
   return (
@@ -226,6 +249,18 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
       {/* ── 관계 유형별 통변 ── */}
       {pair && (
         <>
+          {/* 궁합 점수 + 등급 이미지(daniel: 메인 콘텐츠 — 임의 점수·등급별 이미지) */}
+          {dispTier && dispScore != null && (
+            <View style={styles.scoreCard}>
+              {COMPAT_IMG[dispTier.key]
+                ? <Image source={COMPAT_IMG[dispTier.key]} style={styles.scoreImg} resizeMode="contain" />
+                : <Text style={styles.scoreEmoji}>{dispTier.emoji}</Text>}
+              <Text style={styles.scoreTier}>{dispTier.emoji} {tierLabel(dispTier, appLang() as 'ko' | 'en' | 'ja')}</Text>
+              <Text style={styles.scoreNum}>{dispScore}<Text style={styles.scoreUnit}> / 100</Text></Text>
+              <View style={styles.scoreBar}><View style={[styles.scoreBarFill, { width: `${dispScore}%` }]} /></View>
+              {compat && <Text style={styles.scoreSub}>{t('compat.scoreHarmony', '조화')} {compat.harmony} · {t('compat.scoreTension', '긴장')} {compat.tension}</Text>}
+            </View>
+          )}
           <View style={styles.relChips}>
             {COMPAT_RELS.map((r) => (
               <Pressable key={r.key} style={[styles.relChip, rel === r.key && styles.relChipOn]} onPress={() => { setRel(r.key); if (year && !readings[`${r.key}_y${year}`]) genYear(r.key, year); }}>
@@ -247,6 +282,8 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
               );
             })}
           </View>
+          {/* 선택한 관계 카테고리 배너(daniel: 카테고리별 이미지) */}
+          {CAT_IMG[rel] && <Image source={CAT_IMG[rel]} style={styles.catBanner} resizeMode="cover" />}
           {cur ? (
             <View style={styles.readCard}>
               {/* 관계별 동적 섹션(daniel 2026-06): 연애=속궁합·썸·짝사랑 등 / 결혼=속궁합·시댁·자녀 등 / 동업=투자 등. 연도별은 기본 4항목. */}
@@ -423,6 +460,17 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
 const styles = StyleSheet.create({
   screen: { backgroundColor: colors.bg },
   wrap: { padding: space(5), paddingBottom: space(12) },
+  // 궁합 점수 카드(daniel: 메인 콘텐츠 — 점수+등급 이미지)
+  scoreCard: { alignItems: 'center', backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1.5, borderColor: colors.ju, padding: space(5), marginTop: space(4), marginBottom: space(2), ...shadow.card },
+  scoreImg: { width: 160, aspectRatio: 0.68, borderRadius: radius.md, marginBottom: space(3) },
+  scoreEmoji: { fontSize: 60, marginBottom: space(2) },
+  scoreTier: { fontSize: 19, fontWeight: '900', color: colors.ju, marginBottom: space(1) },
+  scoreNum: { fontSize: 40, fontWeight: '900', color: colors.ink },
+  scoreUnit: { fontSize: 16, fontWeight: '700', color: colors.inkFaint },
+  scoreBar: { width: '80%', height: 8, borderRadius: 4, backgroundColor: colors.line, marginTop: space(3), overflow: 'hidden' },
+  scoreBarFill: { height: '100%', borderRadius: 4, backgroundColor: colors.ju },
+  scoreSub: { ...font.caption, color: colors.inkSoft, marginTop: space(2) },
+  catBanner: { width: '100%', aspectRatio: 1.75, borderRadius: radius.md, marginTop: space(2), marginBottom: space(1) },
   slotLabel: { ...font.caption, color: colors.ju, fontWeight: '800', marginBottom: space(2), letterSpacing: 0.3 },
   // 내 명식 골드 슬롯
   meSlot: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.card, borderWidth: 1.5, borderColor: colors.ju, borderRadius: radius.md, padding: space(4), ...shadow.card },

@@ -44,7 +44,9 @@ export class ChartLimitError extends Error {
 // label/relation 은 ChartInput PII 계약 외 메타 → 함께 보관
 // serverChartId = 이 명식에 대응하는 서버 charts.id (풀이 캐시 chart_id 안정화 — 재방문 시 재사용).
 //   온디바이스에만 매핑 보관(서버 PII 무전송 원칙 유지). 첫 풀이 때 1회 발급·저장(setServerChartId).
-export type SavedChart = { id: string; label: string; relation: string; input: ChartInput; serverChartId?: string };
+// 풀이 grounding용 기본 정보(daniel) — 하는 일·관심/고민·자유 메모(전부 선택). 사주/자미/궁합 통변에 맥락으로 반영.
+export type ChartContext = { job?: string; concern?: string; note?: string };
+export type SavedChart = { id: string; label: string; relation: string; input: ChartInput; serverChartId?: string; context?: ChartContext };
 
 /** 사용자가 직접 등록한 명식 수(데모 샘플 시드는 한도에서 제외). */
 function countReal(charts: SavedChart[]): number {
@@ -104,6 +106,7 @@ export async function addChart(input: any, opts?: { isPro?: boolean; bypassLimit
     label: (input.label && String(input.label).trim()) || '내 명식',
     relation: input.relation ?? 'self',
     input,
+    context: input.context, // 풀이 grounding 기본정보(선택)
   };
   await setRaw(KEY, JSON.stringify([...charts, item]));
   const rep = await getRaw(REP_KEY);
@@ -180,7 +183,8 @@ export async function updateChart(id: string, input: any): Promise<void> {
     input,
     label: (input.label && String(input.label).trim()) || charts[idx].label,
     relation: input.relation ?? charts[idx].relation,
-    serverChartId: undefined, // 생년월일 변경 가능 → 서버 매핑 초기화(이전 풀이 캐시와 분리)
+    context: input.context ?? charts[idx].context, // 기본정보(선택) — 없으면 기존 유지
+    serverChartId: undefined, // 생년월일/맥락 변경 가능 → 서버 매핑 초기화(이전 풀이 캐시와 분리)
   };
   await setRaw(KEY, JSON.stringify(charts));
   notifyRepChange(); // 명식 내용 변경 알림(전역 동기화 — 같은 대표라도 갱신)

@@ -206,7 +206,7 @@ export function ReadingScreen({
       setProgress((p) => (p ? { ...p, current: cat.label } : null)); // 지금 풀이 중인 영역
       try {
         // 자미는 운한(대한 비성사화)이 포함된 최신 명반을 body 로 전달(저장본은 구버전일 수 있음 → Edge가 우선 사용).
-        const { data, error } = await supabase.functions.invoke('interpret', { body: { chartId: id, category: cat.key, kind, tier: 'paid', lang: appLang(), ...(kind === 'ziwei' ? { ziwei: c!.ziwei } : {}) } });
+        const { data, error } = await supabase.functions.invoke('interpret', { body: { chartId: id, category: cat.key, kind, tier: 'paid', lang: appLang(), ...(kind === 'ziwei' ? { ziwei: c!.ziwei } : {}), ...(savedChart?.context ? { context: savedChart.context } : {}) } });
         setReadings((prev) => ({ ...prev, [cat.key]: error ? { error: error.message } : data?.reading }));
       } catch (err) {
         setReadings((prev) => ({ ...prev, [cat.key]: { error: (err as Error).message } }));
@@ -222,7 +222,7 @@ export function ReadingScreen({
     let id = chartId;
     if (!id) { id = savedChart ? await ensureServerChart() : await insertChart(); if (!id) return; setChartId(id); }
     try {
-      const { data, error } = await supabase.functions.invoke('interpret', { body: { chartId: id, category: key, kind, tier: 'paid', lang: appLang(), ...(kind === 'ziwei' ? { ziwei: c!.ziwei } : {}) } });
+      const { data, error } = await supabase.functions.invoke('interpret', { body: { chartId: id, category: key, kind, tier: 'paid', lang: appLang(), ...(kind === 'ziwei' ? { ziwei: c!.ziwei } : {}), ...(savedChart?.context ? { context: savedChart.context } : {}) } });
       setReadings((prev) => ({ ...prev, [key]: error ? { error: error.message } : data?.reading }));
     } catch (e) { setReadings((prev) => ({ ...prev, [key]: { error: (e as Error).message } })); }
   }
