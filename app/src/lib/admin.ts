@@ -63,3 +63,14 @@ export async function adminStats(): Promise<AdminStats | null> {
   const { data, error } = await supabase.rpc('admin_stats');
   return error ? null : (data as AdminStats);
 }
+
+// 계정별 앱 사용 시간(app_session 로그 집계, daniel 2026-06) — 평균/총/세션수/최근(최근 30일=app_logs 보관기간).
+export type AdminUsage = { sessions: number; avg_sec: number; total_sec: number; last_seen: string | null };
+
+/** 특정 유저의 앱 사용 시간 집계 — 관리자만(서버 게이트). */
+export async function adminUserUsage(owner: string): Promise<AdminUsage | null> {
+  const { data, error } = await supabase.rpc('admin_user_usage', { p_owner: owner });
+  if (error) return null;
+  const r = Array.isArray(data) ? data[0] : data;          // TABLE 반환(집계 1행)
+  return (r ?? null) as AdminUsage | null;
+}

@@ -7,10 +7,18 @@
 import { View, Text, ScrollView, Pressable, TextInput, StyleSheet, ActivityIndicator } from 'react-native';
 import { Alert } from '../../lib/alert'; // 커스텀 알림(앱 디자인)
 import { useEffect, useState } from 'react';
-import { isAdmin, adminListUsers, adminGrantCredit, adminSetPremium, adminUserDetail, adminStats, type AdminUser, type AdminUserDetail, type AdminStats } from '../../lib/admin';
+import { isAdmin, adminListUsers, adminGrantCredit, adminSetPremium, adminUserDetail, adminStats, adminUserUsage, type AdminUser, type AdminUserDetail, type AdminStats, type AdminUsage } from '../../lib/admin';
 import { CREDIT_KINDS, type CreditKind } from '../../lib/coupons';
 import { logEvent } from '../../lib/logger'; // DB 로그(app_logs) — 선물/프리미엄 단계 추적
 import { colors, radius, space, shadow, font } from '../../lib/theme';
+
+// 초 → 사람이 읽는 시간(평균 사용시간 표시).
+const fmtDur = (sec?: number | null) => {
+  const s = Math.round(Number(sec ?? 0));
+  if (s < 60) return `${s}초`;
+  const m = Math.round(s / 60);
+  return m < 60 ? `${m}분` : `${Math.floor(m / 60)}시간 ${m % 60}분`;
+};
 
 export default function AdminRoute() {
   const [allowed, setAllowed] = useState<boolean | null>(null);
@@ -21,11 +29,12 @@ export default function AdminRoute() {
   const [detail, setDetail] = useState<AdminUserDetail | null>(null);
   const [giftMsg, setGiftMsg] = useState<string | null>(null); // 지급/프리미엄 결과 inline 표시(확인 모달과 연속 present 크래시 회피)
   const [stats, setStats] = useState<AdminStats | null>(null); // 전체 현황 대시보드(daniel G)
+  const [usage, setUsage] = useState<AdminUsage | null>(null); // 선택 유저 앱 사용시간(daniel)
 
   async function reload() { setUsers(await adminListUsers()); }
   useEffect(() => { isAdmin().then((a) => { setAllowed(a); if (a) { reload(); adminStats().then(setStats); } }); }, []);
   // 유저 선택 시 상세(사용량·명식·이용권) 로드
-  useEffect(() => { setDetail(null); setGiftMsg(null); if (sel) adminUserDetail(sel.id).then(setDetail).catch(() => {}); }, [sel]);
+  useEffect(() => { setDetail(null); setGiftMsg(null); setUsage(null); if (sel) { adminUserDetail(sel.id).then(setDetail).catch(() => {}); adminUserUsage(sel.id).then(setUsage).catch(() => {}); } }, [sel]);
 
   if (allowed === null) return <View style={styles.center}><ActivityIndicator color={colors.ju} /></View>;
   if (allowed === false && !__DEV__) return <View style={styles.center}><Text style={styles.denied}>관리자만 접근할 수 있어요.</Text></View>;
@@ -115,6 +124,7 @@ export default function AdminRoute() {
             <View style={styles.detailBox}>
               <Text style={styles.detailLine}>통변 {detail.reading_count}회 · 추가질문 {detail.followup_count}회</Text>
               <Text style={styles.detailLine}>추정 API 비용 ≈ ₩{(detail.reading_count * 150).toLocaleString()}</Text>
+              {usage && usage.sessions > 0 ? <Text style={styles.detailLine}>⏱ 평균 사용 {fmtDur(usage.avg_sec)} · {usage.sessions}세션 · 총 {fmtDur(usage.total_sec)}{usage.last_seen ? ` · 최근 ${String(usage.last_seen).split('T')[0]}` : ''}</Text> : null}
               {/* 결제(RC 웹훅 기록) — 총결제액 + 구매 내역 */}
               <Text style={styles.detailRevenue}>💰 총결제 ₩{(detail.paid_total ?? 0).toLocaleString()}</Text>
               {detail.purchases && detail.purchases.length > 0 ? (
