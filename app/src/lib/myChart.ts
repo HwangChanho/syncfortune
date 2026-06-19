@@ -89,8 +89,15 @@ export async function syncChartsFromServer(): Promise<void> {
       }
     } catch { /* 복구 실패 무시(권한/네트워크) */ }
   }
-  // serverChartId 기준 중복 제거(복구분 uuid-id 와 기존 c_-id(serverChartId=uuid)가 같은 명식을 가리킬 때 합침).
-  { const seen = new Set<string>(); merged = merged.filter((c) => { const fp = c.serverChartId || c.id; if (seen.has(fp)) return false; seen.add(fp); return true; }); }
+  // 같은 사람(생년월일시·성별·역법) 기준 중복 제거 — blob·로컬·복구가 겹칠 때 *정보가 가장 풍부한* 레코드만 남긴다.
+  //   우선순위: context 있음 > 관계≠self > 온디바이스 origin(c_-id). 복구분(self·uuid·과거 풀이 중복)은 실기기 blob 으로 덮인다.
+  {
+    const fpOf = (c: SavedChart) => `${c.input?.birthDateTime ?? ''}|${(c.input as any)?.sex ?? ''}|${(c.input as any)?.calendar ?? ''}`;
+    const rich = (c: SavedChart) => (c.context ? 4 : 0) + (c.relation && c.relation !== 'self' ? 2 : 0) + (String(c.id).startsWith('c_') ? 1 : 0);
+    const best = new Map<string, SavedChart>();
+    for (const c of merged) { const fp = fpOf(c); const ex = best.get(fp); if (!ex || rich(c) > rich(ex)) best.set(fp, c); }
+    merged = Array.from(best.values());
+  }
   await setRaw(KEY, JSON.stringify(merged));
   await setTombstones(Array.from(tomb));
   // 대표: 로컬 대표가 유효하면 유지, 아니면 서버 대표(merged 에 존재 시), 그것도 없으면 첫 명식.
