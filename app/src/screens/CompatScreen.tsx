@@ -34,15 +34,22 @@ import { appLang } from '../lib/i18n';
 const COMPAT_IMG: Record<string, any> = {
   soulmate: require('../../assets/icons/compat/soulmate.png'),
   great: require('../../assets/icons/compat/great.png'),
-  // 생성 대기(Draw Things 경합) — 완료 후 require 추가. 그 전엔 이모지 폴백(렌더가 자동 처리):
-  // good / steady / spark / opposite
+  good: require('../../assets/icons/compat/good.png'),
+  steady: require('../../assets/icons/compat/steady.png'),
+  spark: require('../../assets/icons/compat/spark.png'),
+  opposite: require('../../assets/icons/compat/opposite.png'),
 };
 
 // 관계 카테고리별 이미지(daniel: 각 카테고리에 맞는 이미지) — assets/icons/compat-rel/{rel}.png. 선택 관계 배너.
 const CAT_IMG: Record<string, any> = {
   friend: require('../../assets/icons/compat-rel/friend.png'),
-  // 생성 대기(Draw Things 경합) — 완료 후 require 추가. 그 전엔 배너 미표시(렌더가 자동 처리):
-  // family / love / marriage / coworker / senior / staff / business
+  family: require('../../assets/icons/compat-rel/family.png'),
+  love: require('../../assets/icons/compat-rel/love.png'),
+  marriage: require('../../assets/icons/compat-rel/marriage.png'),
+  coworker: require('../../assets/icons/compat-rel/coworker.png'),
+  senior: require('../../assets/icons/compat-rel/senior.png'),
+  staff: require('../../assets/icons/compat-rel/staff.png'),
+  business: require('../../assets/icons/compat-rel/business.png'),
 };
 import { UnlockOverlay } from '../components/UnlockOverlay'; // 생성 중 화면 가림 로딩(daniel)
 import type { ChartInput } from '@spec/chart';
