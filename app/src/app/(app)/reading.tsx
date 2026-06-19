@@ -10,6 +10,7 @@ import { View, Text, Pressable, ActivityIndicator, StyleSheet } from 'react-nati
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { ReadingScreen } from '../../screens/ReadingScreen';
+import { ChartPicker } from '../../components/ChartPicker'; // 풀이 상단 명식 전환 헤더(전환 시 게이트 재평가)
 import { loadRepChart, type SavedChart } from '../../lib/myChart';
 import { colors, radius, space, font } from '../../lib/theme';
 import type { ChartInput } from '@spec/chart';
@@ -21,6 +22,7 @@ export default function ReadingRoute() {
   const [me, setMe] = useState<ChartInput | null>(null);
   const [savedChart, setSavedChart] = useState<SavedChart | null>(null);
   const [loading, setLoading] = useState(true);
+  const [reloadKey, setReloadKey] = useState(0); // 명식 전환(ChartPicker) → 대표 재로드 + ReadingScreen 리마운트(게이트 재평가)
 
   useEffect(() => {
     // input param(특정 명식 지정 경로) 우선 → 캐시 매핑 없는 1회용. 없으면 대표 SavedChart(캐시 연결).
@@ -33,7 +35,7 @@ export default function ReadingRoute() {
       setLoading(false);
     });
     return () => { alive = false; };
-  }, [input]);
+  }, [input, reloadKey]);
 
   if (loading) return <View style={styles.center}><ActivityIndicator color={colors.ju} /></View>;
 
@@ -53,11 +55,15 @@ export default function ReadingRoute() {
   const isZiwei = kind === 'ziwei';
   return (
     <ReadingScreen
+      // 대표 명식이 바뀌면 key 변경 → 리마운트 → unlock/광고/결제 게이트가 새 명식 기준으로 재평가(daniel: 전환 시 결제 재확인)
+      key={savedChart?.id ?? 'input'}
       input={me}
       savedChart={savedChart}
       kind={kind ?? 'saju'}
       titleKey={isZiwei ? 'reading.ziweiTitle' : 'reading.title'}
       subKey={isZiwei ? 'reading.ziweiSub' : 'reading.sub'}
+      // 1회용 특정 명식(input)이 아니면 상단 명식 전환 헤더(전환 시 reloadKey→재로드→리마운트)
+      header={!input ? <ChartPicker onChange={() => setReloadKey((k) => k + 1)} /> : undefined}
     />
   );
 }

@@ -9,7 +9,7 @@
 //   ⚠️ '1회 트리거=전 항목 1세트' 게이트. 세트 단가 정책은 daniel 검수.
 //   ⚠️ Edge invoke=프로덕션(개발 미배포=호출 실패=비용0·절대0). charts insert/readings select 는 직접 호출이라 개발에서도 동작.
 // ─────────────────────────────────────────────────────────────────────────
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo, useEffect, useRef, type ReactNode } from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator, Modal, TextInput, Keyboard } from 'react-native';
 import { Alert } from '../lib/alert'; // 커스텀 알림(앱 디자인)
 import { useRouter } from 'expo-router';
@@ -73,7 +73,7 @@ const ZIWEI_GROUPS: { label: string; keys: string[] }[] = [
 ];
 
 export function ReadingScreen({
-  input, savedChart, categories, kind = 'saju',
+  input, savedChart, categories, kind = 'saju', header,
 }: {
   input: ChartInput | null;
   savedChart?: SavedChart | null;
@@ -81,6 +81,7 @@ export function ReadingScreen({
   kind?: string;                         // 'saju' | 'ziwei' — Edge 프롬프트 분기 키
   titleKey?: string;
   subKey?: string;
+  header?: ReactNode;                    // 상단 명식 헤더(ChartPicker). 전환 시 부모가 key로 리마운트 → 게이트 재평가
 }) {
   const router = useRouter();
   const { t } = useTranslation();
@@ -382,6 +383,7 @@ export function ReadingScreen({
     <>
     <UnlockOverlay visible={!!progress} message={progress?.current ? t('reading.progress', { current: progress.current, done: progress.done, total: progress.total }) : t('reading.generating', '풀이를 정성껏 그리는 중…')} />
     <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>
+      {header}
       {/* 상단 타이틀·설명 제거(daniel: 카드뷰만) — 화면 헤더(네비)로 충분 */}
       {/* 생성 버튼 + 과금 안내(미생성 항목이 있을 때만) */}
       {showStart && (
