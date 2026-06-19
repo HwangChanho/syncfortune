@@ -40,6 +40,7 @@ const SECTIONS: { key: string; tk: string }[] = [
   { key: 'personality', tk: 'love.personality' },
   { key: 'behavior', tk: 'love.behavior' },
   { key: 'howWeMeet', tk: 'love.howWeMeet' },
+  { key: 'elementMatch', tk: 'love.elementMatch' },
   { key: 'dynamic', tk: 'love.dynamic' },
   { key: 'timing', tk: 'love.timing' },
   { key: 'caution', tk: 'love.caution' },
