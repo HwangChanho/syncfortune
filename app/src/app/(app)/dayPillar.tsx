@@ -11,7 +11,7 @@ import { useTranslation } from 'react-i18next';
 import { computeChart } from '../../lib/engine';
 import { loadRepChart, listCharts, type SavedChart } from '../../lib/myChart';
 import { isAdmin } from '../../lib/admin';
-import { DAY_PILLAR, dayPillarKey, type DayPillarTrait } from '../../lib/dayPillar';
+import { DAY_PILLAR, STRESS, dayPillarKey, type DayPillarTrait } from '../../lib/dayPillar';
 import { stemReading, branchReading } from '../../lib/ohaeng';
 import { useFontScale } from '../../lib/fontScale';
 import { colors, radius, space, shadow, font } from '../../lib/theme';
@@ -80,12 +80,23 @@ export default function DayPillarScreen() {
   // 한 일주의 전체 섹션 렌더. sx = 성별 기준(관리자=토글 sex / 일반=각 명식 성별).
   const renderSections = (k: string, sx: '남' | '여' = sex) => {
     const d = DAY_PILLAR[k];
-    return sectionList(sx).map((s) => (
-      <View key={s.field} style={styles.section}>
-        <Text style={styles.secLabel}>{t(s.tk)}</Text>
-        <Text style={[styles.detailTx, bodyDyn]}>{d[s.field] as string}</Text>
-      </View>
-    ));
+    return (
+      <>
+        {sectionList(sx).map((s) => (
+          <View key={s.field} style={styles.section}>
+            <Text style={styles.secLabel}>{t(s.tk)}</Text>
+            <Text style={[styles.detailTx, bodyDyn]}>{d[s.field] as string}</Text>
+          </View>
+        ))}
+        {/* 스트레스 해소(daniel: 일주별) — 일간 오행·일지 기질 기반 관리축 */}
+        {STRESS[k] ? (
+          <View style={styles.section}>
+            <Text style={styles.secLabel}>{t('dayPillar.s_stress', '스트레스 해소')}</Text>
+            <Text style={[styles.detailTx, bodyDyn]}>{STRESS[k]}</Text>
+          </View>
+        ) : null}
+      </>
+    );
   };
 
   if (!loaded) return <View style={styles.center}><ActivityIndicator color={colors.ju} /></View>;
