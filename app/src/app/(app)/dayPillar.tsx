@@ -11,7 +11,7 @@ import { useTranslation } from 'react-i18next';
 import { computeChart } from '../../lib/engine';
 import { loadRepChart, listCharts, type SavedChart } from '../../lib/myChart';
 import { isAdmin } from '../../lib/admin';
-import { DAY_PILLAR, STRESS, dayPillarKey, type DayPillarTrait } from '../../lib/dayPillar';
+import { DAY_PILLAR, STRESS, dayPillarKey, compatibleIlju, type DayPillarTrait } from '../../lib/dayPillar';
 import { stemReading, branchReading } from '../../lib/ohaeng';
 import { useFontScale } from '../../lib/fontScale';
 import { colors, radius, space, shadow, font } from '../../lib/theme';
@@ -95,6 +95,16 @@ export default function DayPillarScreen() {
             <Text style={[styles.detailTx, bodyDyn]}>{STRESS[k]}</Text>
           </View>
         ) : null}
+        {/* 잘 맞는 일주 5(daniel) — 천간합·지지합·삼합 기준, 한자 표기 */}
+        <View style={styles.section}>
+          <Text style={styles.secLabel}>{t('dayPillar.s_match', '잘 맞는 일주')}</Text>
+          {compatibleIlju(k[0], k[1]).map((m) => (
+            <View key={m.key} style={styles.matchRow}>
+              <Text style={[styles.matchKey, bodyDyn]}>{label(m.key)}</Text>
+              <Text style={styles.matchReason}>{m.reason}</Text>
+            </View>
+          ))}
+        </View>
       </>
     );
   };
@@ -228,6 +238,9 @@ const styles = StyleSheet.create({
   section: { marginBottom: space(4) },
   secLabel: { fontSize: 13, fontWeight: '800', color: colors.ju, marginBottom: space(1.5), letterSpacing: 0.3 },
   detailTx: { ...font.body, color: colors.inkSoft },
+  matchRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: space(2), borderBottomWidth: 1, borderBottomColor: colors.line },
+  matchKey: { fontSize: 17, fontWeight: '700', color: colors.ink },
+  matchReason: { fontSize: 12, color: colors.inkSoft },
   // 면책
   disclaimer: { marginTop: space(3), padding: space(4), borderRadius: radius.md, backgroundColor: 'rgba(34,31,68,0.4)', borderWidth: 1, borderColor: colors.line },
   disclaimerTx: { ...font.caption, color: colors.inkFaint, lineHeight: 19 },

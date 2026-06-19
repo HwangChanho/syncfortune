@@ -688,6 +688,41 @@ export const STRESS: Record<string, string> = {
   '癸亥': '기운이 세고 섬세해 안에서 소용돌이쳐요. 물·조용한 시간·충분한 잠으로 가라앉히고, 자극을 줄이세요.',
 };
 
+// ── 잘 맞는 일주 계산(daniel) — 천간합/지지육합·삼합/상생, 충 감점. 표준 명리 결정론(★stance 검수 슬롯). ──
+const CI_STEM_EL: Record<string, string> = { '甲': '木', '乙': '木', '丙': '火', '丁': '火', '戊': '土', '己': '土', '庚': '金', '辛': '金', '壬': '水', '癸': '水' };
+const CI_BR_EL: Record<string, string> = { '子': '水', '丑': '土', '寅': '木', '卯': '木', '辰': '土', '巳': '火', '午': '火', '未': '土', '申': '金', '酉': '金', '戌': '土', '亥': '水' };
+const CI_STEM_HAP: Record<string, string> = { '甲': '己', '己': '甲', '乙': '庚', '庚': '乙', '丙': '辛', '辛': '丙', '丁': '壬', '壬': '丁', '戊': '癸', '癸': '戊' };
+const CI_BR_YUKHAP: Record<string, string> = { '子': '丑', '丑': '子', '寅': '亥', '亥': '寅', '卯': '戌', '戌': '卯', '辰': '酉', '酉': '辰', '巳': '申', '申': '巳', '午': '未', '未': '午' };
+const CI_SAMHAP: string[][] = [['申', '子', '辰'], ['寅', '午', '戌'], ['巳', '酉', '丑'], ['亥', '卯', '未']];
+const CI_BR_CHUNG: Record<string, string> = { '子': '午', '午': '子', '丑': '未', '未': '丑', '寅': '申', '申': '寅', '卯': '酉', '酉': '卯', '辰': '戌', '戌': '辰', '巳': '亥', '亥': '巳' };
+const CI_SAENG: Record<string, string> = { '木': '火', '火': '土', '土': '金', '金': '水', '水': '木' }; // 오행 상생(key가 value를 생)
+const ciSamhap = (a: string, b: string) => CI_SAMHAP.some((g) => g.includes(a) && g.includes(b));
+
+/**
+ * 해당 일주와 잘 맞는 일주 Top5(한자 key + 사유). 천간합(+10)·지지육합(+8)·삼합(+6)·상생(+2~3), 충(−6).
+ * 표준 명리(간지 합·생) 기반 결정론 — daniel 명리 stance 검수 슬롯(가중치·예외는 추후 보강).
+ */
+export function compatibleIlju(stem: string, branch: string): { key: string; reason: string }[] {
+  const self = `${stem}${branch}`;
+  return Object.keys(DAY_PILLAR)
+    .filter((k) => k !== self)
+    .map((k) => {
+      const ps = k[0], pb = k[1];
+      let score = 0; const tags: string[] = [];
+      if (CI_STEM_HAP[stem] === ps) { score += 10; tags.push('천간 합'); }
+      else if (CI_SAENG[CI_STEM_EL[stem]] === CI_STEM_EL[ps] || CI_SAENG[CI_STEM_EL[ps]] === CI_STEM_EL[stem]) { score += 3; tags.push('기운 상생'); }
+      else if (CI_STEM_EL[stem] === CI_STEM_EL[ps]) { score += 2; }
+      if (CI_BR_YUKHAP[branch] === pb) { score += 8; tags.push('지지 합'); }
+      else if (ciSamhap(branch, pb)) { score += 6; tags.push('삼합'); }
+      else if (CI_SAENG[CI_BR_EL[branch]] === CI_BR_EL[pb] || CI_SAENG[CI_BR_EL[pb]] === CI_BR_EL[branch]) { score += 2; }
+      if (CI_BR_CHUNG[branch] === pb) { score -= 6; }
+      return { key: k, score, reason: tags.join(' · ') || '두루 무난' };
+    })
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 5)
+    .map(({ key, reason }) => ({ key, reason }));
+}
+
 // 일간/일지 한자 → 일주 key (대표 명식에서 산출). 엔진은 stem/branch 를 한자로 보관.
 export function dayPillarKey(stem?: string, branch?: string): string | null {
   if (!stem || !branch) return null;
