@@ -83,7 +83,7 @@ const ko = {
   },
   reading: {
     title: '전 영역 풀이 · 프리미엄', sub: '16개 전 영역을 한 번에 딥·정밀 통변해 드립니다. (명식은 무료)',
-    runAll: '전체 풀이 보기 ({{count}}개)', progress: '‘{{current}}’ 풀이 중… ({{done}}/{{total}})', generating: '풀이를 정성껏 그리는 중…', saveFail: '명식 저장에 실패했어요. 잠시 후 다시 시도해 주세요.',
+    runAll: '전체 풀이 보기 ({{count}}개)', progress: '‘{{current}}’ 풀이 중… ({{done}}/{{total}})', generating: '풀이를 정성껏 그리는 중…', saveFail: '명식 저장에 실패했어요. 잠시 후 다시 시도해 주세요.', refreshStale: '최신 해석으로 갱신', refreshDeniedTitle: '갱신 한도', refreshDenied: '이 풀이는 최대 {{cap}}번까지 갱신할 수 있어요.',
     ziweiTitle: '자미두수 12궁 풀이 · 프리미엄', ziweiSub: '명반 12궁을 한 번에 통합 통변해 드립니다. (명반은 무료)',
     timelineTitle: '인생 타임라인 · 프리미엄', timelineSub: '10~100세를 10년 단위로, 시기마다 어떤 흐름인지 풀어 드립니다.',
     bannerPremium: '구독 중 — 무제한 통변', bannerTrial: '🎁 첫 통변 1회 무료 체험!',
@@ -291,7 +291,7 @@ const en = {
   },
   reading: {
     title: 'Full Reading · Premium', sub: 'All 16 areas in one deep, precise reading. (Chart is free)',
-    runAll: 'See full reading ({{count}})', progress: 'Reading ‘{{current}}’… ({{done}}/{{total}})', generating: 'Crafting your reading…', saveFail: 'Failed to save chart. Please try again.',
+    runAll: 'See full reading ({{count}})', progress: 'Reading ‘{{current}}’… ({{done}}/{{total}})', generating: 'Crafting your reading…', saveFail: 'Failed to save chart. Please try again.', refreshStale: 'Update to latest reading', refreshDeniedTitle: 'Refresh limit', refreshDenied: 'This reading can be refreshed up to {{cap}} times.',
     ziweiTitle: 'Zi Wei · 12 Palaces · Premium', ziweiSub: 'All 12 palaces interpreted together. (Chart is free)',
     timelineTitle: 'Life Timeline · Premium', timelineSub: 'Age 10–100, one decade at a time — what each phase holds.',
     bannerPremium: 'Subscribed — unlimited readings', bannerTrial: '🎁 First reading free!',
@@ -499,7 +499,7 @@ const ja = {
   },
   reading: {
     title: '全領域鑑定 · プレミアム', sub: '16領域すべてを一度に深く精密な通変。（命式は無料）',
-    runAll: '全体を見る（{{count}}件）', progress: '‘{{current}}’ 鑑定中… ({{done}}/{{total}})', generating: '鑑定をていねいに描いています…', saveFail: 'チャートの保存に失敗しました。',
+    runAll: '全体を見る（{{count}}件）', progress: '‘{{current}}’ 鑑定中… ({{done}}/{{total}})', generating: '鑑定をていねいに描いています…', saveFail: 'チャートの保存に失敗しました。', refreshStale: '最新の解釈に更新', refreshDeniedTitle: '更新の上限', refreshDenied: 'この鑑定は最大{{cap}}回まで更新できます。',
     ziweiTitle: '紫微斗数 十二宮 · プレミアム', ziweiSub: '十二宮を一度に統合通変。（命盤は無料）',
     timelineTitle: '人生タイムライン · プレミアム', timelineSub: '10〜100歳を10年ごとに、各時期の流れを読み解きます。',
     bannerPremium: '購読中 — 無制限通変', bannerTrial: '🎁 初回鑑定が無料！',

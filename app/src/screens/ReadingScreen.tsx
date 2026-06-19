@@ -58,6 +58,10 @@ function asText(v: any): string {
 import { SAJU_READING_CATEGORIES as SAJU_CATEGORIES, ensureServerChartId } from '../lib/prewarmReadings';
 import { UnlockOverlay } from '../components/UnlockOverlay'; // 풀이 생성 중 화면 가림 로딩(daniel)
 
+// ADR-055 P3: opt-in 갱신 — 통변 분석(L2) 버전. Edge interpret 의 L2_VER 과 동기화(메이저 통변 개선 시 양쪽 +1).
+//   저장된 풀이의 l2_ver 가 이 값보다 낮으면(=옛 분석) '최신 해석으로 갱신' 노출. 레거시(l2_ver 0·분리 전)는 미노출.
+const READING_L2_VER = 1;
+
 // 풀이 영역/궁 → 카테고리 그룹(아코디언). 사주 16영역 4그룹 · 자미 12궁(daniel b안: 명궁·복덕=나/재백·전택=돈/부처·자녀·형제·노복=관계/관록·천이·질액·부모=일·건강).
 const SAJU_GROUPS: { label: string; keys: string[] }[] = [
   { label: '나', keys: ['성격내면', '건강'] },
@@ -94,6 +98,7 @@ export function ReadingScreen({
   const [globalError, setGlobalError] = useState<string | null>(null);
   const [chartId, setChartId] = useState<string | null>(savedChart?.serverChartId ?? null);
   const [detail, setDetail] = useState<string | null>(null); // 상세로 펼친 항목 key
+  const [stale, setStale] = useState<Set<string>>(new Set()); // ADR-055 P3: 분석 버전이 낮아 갱신 가능한 영역(opt-in)
   // 추가 질문(Q&A) — 영역별 누적 + 입력/전송 상태(프리미엄 2회 무료 + 건당)
   const [followups, setFollowups] = useState<Record<string, Followup[]>>({});
   const [askInput, setAskInput] = useState('');
@@ -143,12 +148,18 @@ export function ReadingScreen({
       const id = await ensureServerChart();
       if (!alive || !id) { if (alive) setCacheLoaded(true); return; }
       setChartId(id);
-      const { data } = await supabase.from('readings').select('category, content').eq('chart_id', id).eq('lang', appLang());
+      const { data } = await supabase.from('readings').select('category, content, l2_ver').eq('chart_id', id).eq('lang', appLang());
       if (!alive) return;
       const keys = new Set(cats.map((x) => x.key));   // 이 화면 항목(사주/자미)만 반영
       const loaded: Record<string, any> = {};
-      (data ?? []).forEach((r: any) => { if (keys.has(r.category)) loaded[r.category] = r.content; });
+      const st = new Set<string>();                   // ADR-055 P3: 분리본(l2_ver≥1)인데 옛 버전 → 갱신 가능
+      (data ?? []).forEach((r: any) => {
+        if (!keys.has(r.category)) return;
+        loaded[r.category] = r.content;
+        if ((r.l2_ver ?? 0) >= 1 && (r.l2_ver ?? 0) < READING_L2_VER) st.add(r.category);
+      });
       setReadings(loaded);
+      setStale(st);
       setCacheLoaded(true);
       loadFollowups(id).then((f) => { if (alive) setFollowups(f); }).catch(() => {}); // 추가 질문 누적 로드
     })().catch(() => { if (alive) setCacheLoaded(true); /* 실패해도 자동 생성 판단은 진행 */ });
@@ -214,6 +225,25 @@ export function ReadingScreen({
       const { data, error } = await supabase.functions.invoke('interpret', { body: { chartId: id, category: key, kind, tier: 'paid', lang: appLang(), ...(kind === 'ziwei' ? { ziwei: c!.ziwei } : {}) } });
       setReadings((prev) => ({ ...prev, [key]: error ? { error: error.message } : data?.reading }));
     } catch (e) { setReadings((prev) => ({ ...prev, [key]: { error: (e as Error).message } })); }
+  }
+
+  // ADR-055 P3 opt-in 갱신 — 분석 버전이 낮은 풀이를 최신 해석으로 재생성(refresh:true). 풀이당 횟수 cap(서버 REGEN_CAP).
+  async function refreshReading(key: string) {
+    if (!chartId || progress) return;
+    const label = cats.find((x) => x.key === key)?.label ?? '';
+    setProgress({ done: 0, total: 1, current: label });
+    try {
+      const { data, error } = await supabase.functions.invoke('interpret', {
+        body: { chartId, category: key, kind, tier: 'paid', refresh: true, lang: appLang(), ...(kind === 'ziwei' ? { ziwei: c!.ziwei } : {}) },
+      });
+      if (error) Alert.alert('!', error.message);
+      else if (data?.refreshDenied) Alert.alert(t('reading.refreshDeniedTitle', '갱신 한도'), t('reading.refreshDenied', { cap: data.cap, defaultValue: '이 풀이는 최대 {{cap}}번까지 갱신할 수 있어요.' }));
+      else if (data?.reading) {
+        setReadings((prev) => ({ ...prev, [key]: data.reading }));
+        setStale((prev) => { const n = new Set(prev); n.delete(key); return n; });
+      }
+    } catch (e) { Alert.alert('!', (e as Error).message); }
+    setProgress(null);
   }
 
   // 생성 트리거: 프리미엄 > 무료이용권(쿠폰) > 광고·결제(trial 폐지) 순.
@@ -443,6 +473,12 @@ export function ReadingScreen({
             {/* 자미두수 등 — 이 항목(궁)이 뭘 보는지 설명 */}
             {cats.find((x) => x.key === detail)?.desc ? <Text style={styles.detailDesc}>{cats.find((x) => x.key === detail)?.desc}</Text> : null}
             {renderSections(detail)}
+            {/* ADR-055 P3: 분석 버전이 낮은 풀이만 '최신 해석으로 갱신'(opt-in·cap). 최신이면 미노출. */}
+            {stale.has(detail) && (
+              <Pressable style={styles.refreshBtn} onPress={() => refreshReading(detail)}>
+                <Text style={styles.refreshBtnTx}>{t('reading.refreshStale', '최신 해석으로 갱신')}</Text>
+              </Pressable>
+            )}
             {renderFollowups(detail)}
           </ScrollView>
         )}
@@ -460,6 +496,9 @@ const styles = StyleSheet.create({
   sub: { ...font.caption, marginTop: space(1.5), marginBottom: space(4) },
   startBtn: { backgroundColor: colors.ju, borderRadius: radius.md, paddingVertical: space(4), alignItems: 'center', marginTop: space(2), ...shadow.card },
   startBtnText: { color: colors.bg, fontSize: 16, fontWeight: '800' },
+  // ADR-055 P3 '최신 해석으로 갱신'(stale 영역만) — 보조 외곽선 버튼
+  refreshBtn: { marginTop: space(6), borderWidth: 1.5, borderColor: colors.ju, borderRadius: radius.md, paddingVertical: space(3.5), alignItems: 'center' },
+  refreshBtnTx: { color: colors.ju, fontSize: 15, fontWeight: '800' },
   bannerText: { ...font.caption, color: colors.inkSoft, textAlign: 'center', marginTop: space(3) },
   progressRow: { flexDirection: 'row', alignItems: 'center', gap: space(2), marginTop: space(5), marginBottom: space(2) },
   progressText: { ...font.body, color: colors.inkSoft },
