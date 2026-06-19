@@ -79,6 +79,25 @@ export default function RegisterRoute() {
           catch (e) { Alert.alert('!', (e as Error).message); return; }
           proceed(input); return;
         }
+        // 본인(self)은 하나만 — 이미 있으면 경고 + 변경(교체) 여부 확인(daniel). 변경=기존 본인 명식 교체.
+        if ((input.relation ?? 'self') === 'self') {
+          const existingSelf = (await listCharts()).find((c) => c.relation === 'self');
+          if (existingSelf) {
+            Alert.alert(
+              t('register.selfExistsTitle', '본인 명식이 이미 있어요'),
+              t('register.selfExistsMsg', '본인 명식은 하나만 둘 수 있어요. 이 명식으로 변경(교체)할까요?'),
+              [
+                { text: t('common.cancel', '취소'), style: 'cancel' },
+                { text: t('register.selfReplace', '변경'), onPress: async () => {
+                  try { await updateChart(existingSelf.id, input); await setRepresentative(existingSelf.id); }
+                  catch (e) { Alert.alert('!', (e as Error).message); return; }
+                  proceed(input);
+                } },
+              ],
+            );
+            return; // 확인 대기 — 신규 추가 안 함
+          }
+        }
         try {
           // 내 차트 기기 저장 → 궁합·풀이 재사용. 무료 한도는 isPro 주입으로 저장소가 판정.
           const id = await addChart(input, { isPro: isPremium });
