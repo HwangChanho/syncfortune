@@ -29,6 +29,8 @@ const ROUTE: Record<CreditKind, { pathname: string; kind?: string }> = {
   roots: { pathname: '/roots' },                      // 명식의 뿌리(통근·투출)
   image: { pathname: '/image' },                      // 비치는 나(천간 인상)
   mission: { pathname: '/mission' },                  // 나의 사명(자미 보조)
+  career: { pathname: '/career' },                    // 사업가의 나 vs 직장인의 나
+  dream: { pathname: '/dream' },                       // AI 꿈해몽(자유 텍스트)
 };
 
 export default function MarketRoute() {

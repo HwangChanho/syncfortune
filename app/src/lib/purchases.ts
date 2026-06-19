@@ -37,6 +37,8 @@ export const CREDIT_PRODUCT: Record<CreditKind, string> = {
   roots: 'credit_roots',         // 명식의 뿌리 ₩4,900
   image: 'credit_image',         // 비치는 나 ₩4,900
   mission: 'credit_mission',     // 나의 사명 ₩6,900
+  career: 'credit_career',       // 사업가의 나 vs 직장인의 나 ₩4,900
+  dream: 'credit_dream',         // AI 꿈해몽 (건당 ₩300 — IAP 최소가 미만, 번들 상품 권장)
 };
 
 // ⚠️ deprecated(구 단일가 건당) — 영역별 CREDIT_PRODUCT 로 이행. entitlement.ts 하위호환 위해 유지.
