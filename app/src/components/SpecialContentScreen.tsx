@@ -27,6 +27,7 @@ import { appLang } from '../lib/i18n';
 import { logEvent } from '../lib/logger';
 import { colors, radius, space, shadow, font } from '../lib/theme';
 import { UnlockOverlay } from './UnlockOverlay';         // unlock 자물쇠 애니 + 그 사이 LLM
+import { ChartPicker } from './ChartPicker';             // 상단 명식 헤더 — 현재 적용 명식 표시·전환
 
 export type Section = { key: string; label: string };
 
@@ -51,6 +52,7 @@ export function SpecialContentScreen({ kind, title, sub, sections, needsZiwei = 
   const [reading, setReading] = useState<any>(null);
   const [busy, setBusy] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0); // ChartPicker 로 대표 전환 시 재로드 트리거
   const c = useMemo(() => (savedChart ? computeChart(savedChart.input) : null), [savedChart]);
   const gatingRef = useRef(false); // 게이트(모달) 연타 차단
   const reveal = useRef(new Animated.Value(0)).current; // 섹션 순차 등장
@@ -76,7 +78,7 @@ export function SpecialContentScreen({ kind, title, sub, sections, needsZiwei = 
     })().catch(() => { if (alive) setLoaded(true); });
     return () => { alive = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session, isPremium]);
+  }, [session, isPremium, reloadKey]);
 
   // 통변 도착(캐시·생성 완료) → 섹션 순차 등장 애니 시작
   useEffect(() => {
@@ -154,6 +156,8 @@ export function SpecialContentScreen({ kind, title, sub, sections, needsZiwei = 
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>
+      {/* 상단 명식 헤더 — 현재 적용된 대표 명식 표시·전환(daniel: 모든 콘텐츠 상단). 전환 시 그 명식 기준 재로드 */}
+      <ChartPicker onChange={() => setReloadKey((k) => k + 1)} />
       <UnlockOverlay visible={busy} message={genMsg} />
       <ContentHero motif={heroMotif} image={heroImage} title={title} sub={sub} themeColor={themeColor} />
 

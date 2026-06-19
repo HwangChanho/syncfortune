@@ -11,7 +11,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import * as Haptics from 'expo-haptics';
 import {
-  drawSpread, cardImage, combineReading, SPREAD_POSITIONS, TARO_CATEGORIES, type SpreadCard,
+  drawSpread, cardImage, combineReading, cardMeaning, SPREAD_POSITIONS, TARO_CATEGORIES, type SpreadCard,
 } from '../../lib/tarot';
 import { loadTodayTaro, saveTodayTaro } from '../../lib/tarotStore';
 import { playSound } from '../../lib/sounds';
@@ -206,7 +206,8 @@ export default function TaroScreen() {
                 <View style={styles.bigInfo}>
                   <Text style={styles.bigPos}>{sel + 1}. {spread[sel].position}</Text>
                   <Text style={styles.bigName}>{spread[sel].ko}{spread[sel].reversed ? ' (뒤집힘)' : ''}</Text>
-                  <Text style={styles.bigKw}>{spread[sel].reversed ? spread[sel].rev : spread[sel].up}</Text>
+                  {/* 선택한 주제의 언어로 카드 의미 표시(주제 미선택 시 general 폴백) — combineReading 과 동일 진실원 */}
+                  <Text style={styles.bigKw}>{cardMeaning(spread[sel], spread[sel].reversed, category?.key)}</Text>
                 </View>
                 <Text style={styles.bigClose}>빈 곳을 탭하면 닫혀요</Text>
               </GlassCard>

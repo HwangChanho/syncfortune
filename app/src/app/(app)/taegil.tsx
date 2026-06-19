@@ -15,6 +15,7 @@ import { appLang } from '../../lib/i18n';
 import { useFontScale } from '../../lib/fontScale';
 import { colors, radius, space, shadow, font } from '../../lib/theme';
 import { ContentHero } from '../../components/SpecialContentScreen'; // 이미지 히어로(보는 맛)
+import { ChartPicker } from '../../components/ChartPicker'; // 상단 명식 헤더 — 현재 적용 명식 표시·전환
 import type { ChartInput } from '@spec/chart';
 
 const WEEKDAYS: Record<string, string[]> = {
@@ -84,12 +85,13 @@ export default function TaegilScreen() {
     return () => { alive = false; };
   }, []));
 
-  // 향후 90일 전체 점수 → 날짜 맵(달력 색칠). 목적·명식 바뀌면 재계산.
+  // 향후 2년(730일) 전체 점수 → 날짜 맵(달력 색칠). 목적·명식 바뀌면 재계산.
+  // daniel: 택일을 2년 단위로 — 730일 산출 후 24개월 달력으로 렌더.
   const byDate = useMemo(() => {
     if (!me) return {} as Record<string, AuspiciousDay>;
     const saju = computeChart(me).saju;
     const out: Record<string, AuspiciousDay> = {};
-    findAuspiciousDays(saju, purpose, 90).forEach((d) => { out[d.date] = d; });
+    findAuspiciousDays(saju, purpose, 730).forEach((d) => { out[d.date] = d; });
     return out;
   }, [me, purpose]);
 
@@ -110,7 +112,9 @@ export default function TaegilScreen() {
   return (
     <ImageBackground source={require('../../../assets/icons/bg-night.png')} style={styles.bg} resizeMode="cover">
       <ScrollView style={styles.overlay} contentContainerStyle={styles.wrap}>
-        <ContentHero image={require('../../../assets/icons/taegil.png')} title={t('taegil.title', '택일 — 좋은 날 찾기')} sub={t('taegil.sub', '하려는 일을 고르면, 앞으로 석 달 달력에서 내 사주에 잘 맞는 날을 색으로 짚어 드려요.')} />
+        {/* 상단 명식 헤더 — 현재 적용된 대표 명식 표시·전환(daniel: 모든 콘텐츠 상단) */}
+        <ChartPicker onChange={() => loadMyChart().then(setMe)} />
+        <ContentHero image={require('../../../assets/icons/taegil.png')} title={t('taegil.title', '택일 — 좋은 날 찾기')} sub={t('taegil.sub', '하려는 일을 고르면, 앞으로 2년 달력에서 내 사주에 잘 맞는 날을 색으로 짚어 드려요.')} />
 
         {/* 목적 칩 — 바꾸면 선택 날 초기화 */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
@@ -128,8 +132,8 @@ export default function TaegilScreen() {
           <Text style={styles.legendHint}>{t('taegil.tapHint', '색칠된 날을 눌러 보세요')}</Text>
         </View>
 
-        {/* 3개월 달력 */}
-        {[0, 1, 2].map((off) => {
+        {/* 2년(24개월) 달력 — daniel: 2년 단위로 길일 확인 */}
+        {Array.from({ length: 24 }, (_, off) => off).map((off) => {
           const base = new Date(today.getFullYear(), today.getMonth() + off, 1);
           return <MonthGrid key={off} year={base.getFullYear()} month={base.getMonth()} byDate={byDate} sel={sel} onSel={setSel} todayStr={todayStr} />;
         })}

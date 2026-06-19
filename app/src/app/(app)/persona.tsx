@@ -13,6 +13,7 @@ import { loadMyChart } from '../../lib/myChart';
 import { classifyPersona, AXIS_INFO, type PersonaResult } from '../../lib/personaType';
 import { useFontScale } from '../../lib/fontScale';
 import { colors, radius, space, shadow, font } from '../../lib/theme';
+import { ChartPicker } from '../../components/ChartPicker'; // 상단 명식 헤더 — 현재 적용 명식 표시·전환
 import type { ChartInput } from '@spec/chart';
 
 export default function PersonaScreen() {
@@ -59,6 +60,8 @@ export default function PersonaScreen() {
   return (
     <ImageBackground source={require('../../../assets/icons/bg-night.png')} style={styles.bg} resizeMode="cover">
       <ScrollView style={styles.overlay} contentContainerStyle={styles.wrap}>
+        {/* 상단 명식 헤더 — 현재 적용된 대표 명식 표시·전환(daniel: 모든 콘텐츠 상단) */}
+        <ChartPicker onChange={() => loadMyChart().then(setMe)} />
         {/* 유형 카드 */}
         <View style={styles.hero}>
           <Text style={styles.emoji}>{persona.emoji}</Text>

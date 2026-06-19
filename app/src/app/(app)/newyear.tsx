@@ -27,6 +27,7 @@ import { logEvent } from '../../lib/logger';
 import { colors, radius, space, shadow, font } from '../../lib/theme';
 import { UnlockOverlay } from '../../components/UnlockOverlay'; // unlock 자물쇠 애니 + 그 사이 LLM 분석
 import { ContentHero } from '../../components/SpecialContentScreen'; // 공용 히어로
+import { ChartPicker } from '../../components/ChartPicker'; // 상단 명식 헤더 — 현재 적용 명식 표시·전환
 import { NewyearWheel } from '../../components/contentMotifs'; // 12달 수레바퀴 모티프
 import { useFontScale } from '../../lib/fontScale';
 
@@ -53,6 +54,7 @@ export default function NewYearScreen() {
   const [busy, setBusy] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0); // ChartPicker 로 대표 전환 시 재로드 트리거
   const gatingRef = useRef(false); // 결제 구간 연타 차단
 
   const category = `newyear_${year}`; // 연운(year_YYYY)과 분리된 신년 전용 캐시
@@ -84,7 +86,7 @@ export default function NewYearScreen() {
     })().catch(() => { if (alive) setLoaded(true); });
     return () => { alive = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session, category, isPremium]);
+  }, [session, category, isPremium, reloadKey]);
 
   async function generate(id: string) {
     if (busy) return;
@@ -124,8 +126,10 @@ export default function NewYearScreen() {
   return (
     <ImageBackground source={require('../../../assets/icons/bg-night.png')} style={styles.bg} resizeMode="cover">
       <ScrollView style={styles.overlay} contentContainerStyle={styles.wrap}>
+        {/* 상단 명식 헤더 — 현재 적용된 대표 명식 표시·전환(daniel: 모든 콘텐츠 상단). 전환 시 그 명식 기준 재로드 */}
+        <ChartPicker onChange={() => setReloadKey((k) => k + 1)} />
         <UnlockOverlay visible={busy} message={t('newyear.generating', '올 한 해를 풀어내는 중…')} />
-        <ContentHero motif={<NewyearWheel />} title={`${year}${t('newyear.title', '년 신년운세')}`} sub={t('newyear.heroSub', '올 한 해의 큰 흐름을 한눈에')} themeColor={colors.ju} />
+        <ContentHero motif={<NewyearWheel />} image={require('../../../assets/icons/newyear-hero.png')} title={`${year}${t('newyear.title', '년 신년운세')}`} sub={t('newyear.heroSub', '올 한 해의 큰 흐름을 한눈에')} themeColor={colors.ju} />
 
         {/* 삼재 배지(온디바이스 즉시 — 생성 전에도 노출, 전향적 표현) */}
         {samjae && (

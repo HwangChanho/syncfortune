@@ -15,7 +15,7 @@ const TO5: Record<string, G5> = {
   정재: '재성', 편재: '재성', 정관: '관성', 편관: '관성', 정인: '인성', 편인: '인성',
 };
 
-export type PastLifeResult = { emoji: string; era: string; role: string; story: string; hint: string };
+export type PastLifeResult = { emoji: string; era: string; role: string; story: string; hint: string; elem: string; group: string };
 
 // 일간 오행 → 시대 무드(이름·도입). 재미 판타지 stance.
 const ERA: Record<string, { ko: { name: string; intro: string }; en: { name: string; intro: string }; ja: { name: string; intro: string } }> = {
@@ -59,5 +59,5 @@ export function pastLife(saju: SajuChart): PastLifeResult {
     : lang === 'ja'
     ? `その「${r.echo}」が今のあなたにも流れています。`
     : `그때의 '${r.echo}'이(가) 지금의 당신에게도 흐르고 있어요.`;
-  return { emoji: role.emoji, era: era.name, role: r.title, story, hint };
+  return { emoji: role.emoji, era: era.name, role: r.title, story, hint, elem: element, group: top };
 }

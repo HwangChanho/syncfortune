@@ -3,7 +3,7 @@
 // 사주 십신 → 연애 유형(lib/loveStyle.ts, Claude stance·daniel 검수). 규칙5: 무료=온디바이스(API 0).
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useMemo, useCallback } from 'react';
-import { View, Text, Pressable, ActivityIndicator, ScrollView, StyleSheet, Share, ImageBackground } from 'react-native';
+import { View, Text, Pressable, ActivityIndicator, ScrollView, StyleSheet, Share, ImageBackground, Image } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { computeChart } from '../../lib/engine';
@@ -11,7 +11,19 @@ import { loadMyChart } from '../../lib/myChart';
 import { loveStyle, type LoveStyleResult } from '../../lib/loveStyle';
 import { useFontScale } from '../../lib/fontScale';
 import { colors, radius, space, shadow, font } from '../../lib/theme';
+import { ChartPicker } from '../../components/ChartPicker'; // 상단 명식 헤더 — 현재 적용 명식 표시·전환
 import type { ChartInput } from '@spec/chart';
+
+// 연애 유형별 이미지(daniel: 종류별 이미지) — assets/icons/lovestyle/{slug}.png.
+// 들어온 것만 require하고, 없으면 이모지로 자동 폴백(점진 적용). 키 = loveStyle 십신군(한글).
+const LOVE_IMG: Record<string, any> = {
+  // slug: 비겁=bigeop·식상=siksang·재성=jaeseong·관성=gwanseong·인성=inseong (daniel 생성)
+  비겁: require('../../../assets/icons/lovestyle/bigeop.png'),
+  식상: require('../../../assets/icons/lovestyle/siksang.png'),
+  재성: require('../../../assets/icons/lovestyle/jaeseong.png'),
+  관성: require('../../../assets/icons/lovestyle/gwanseong.png'),
+  인성: require('../../../assets/icons/lovestyle/inseong.png'),
+};
 
 export default function LoveStyleScreen() {
   const router = useRouter();
@@ -44,8 +56,12 @@ export default function LoveStyleScreen() {
   return (
     <ImageBackground source={require('../../../assets/icons/bg-night.png')} style={styles.bg} resizeMode="cover">
       <ScrollView style={styles.overlay} contentContainerStyle={styles.wrap}>
+        {/* 상단 명식 헤더 — 현재 적용된 대표 명식 표시·전환(daniel: 모든 콘텐츠 상단) */}
+        <ChartPicker onChange={() => loadMyChart().then(setMe)} />
         <View style={styles.hero}>
-          <Text style={styles.emoji}>{result.emoji}</Text>
+          {LOVE_IMG[result.group]
+            ? <Image source={LOVE_IMG[result.group]} style={styles.heroImg} resizeMode="contain" />
+            : <Text style={styles.emoji}>{result.emoji}</Text>}
           <Text style={styles.title}>{result.style}</Text>
         </View>
         <View style={styles.card}><Text style={[styles.body, { fontSize: fs(15), lineHeight: fs(25) }]}>{result.desc}</Text></View>
@@ -74,6 +90,7 @@ const styles = StyleSheet.create({
   btn: { backgroundColor: colors.ju, borderRadius: radius.md, paddingVertical: space(3.25), paddingHorizontal: space(6) },
   btnText: { color: colors.bg, fontSize: 15, fontWeight: '700' },
   hero: { alignItems: 'center', paddingVertical: space(6), marginBottom: space(3) },
+  heroImg: { width: 220, aspectRatio: 0.68, borderRadius: radius.md, marginBottom: space(3) },
   emoji: { fontSize: 64, marginBottom: space(2) },
   title: { fontSize: 25, fontWeight: '900', color: colors.ink, textAlign: 'center' },
   card: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.juLine, padding: space(5), marginBottom: space(3), ...shadow.card },

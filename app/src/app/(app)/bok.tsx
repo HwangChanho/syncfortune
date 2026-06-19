@@ -3,7 +3,7 @@
 // 사주 십신 → 타고난 복(lib/bokType.ts, Claude stance·daniel 검수). 규칙5: 무료=온디바이스(API 0). 처방(살리는 법) 동반.
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useMemo, useCallback } from 'react';
-import { View, Text, Pressable, ActivityIndicator, ScrollView, StyleSheet, Share, ImageBackground } from 'react-native';
+import { View, Text, Pressable, ActivityIndicator, ScrollView, StyleSheet, Share, ImageBackground, Image } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { computeChart } from '../../lib/engine';
@@ -11,7 +11,18 @@ import { loadMyChart } from '../../lib/myChart';
 import { bokType, type BokResult } from '../../lib/bokType';
 import { useFontScale } from '../../lib/fontScale';
 import { colors, radius, space, shadow, font } from '../../lib/theme';
+import { ChartPicker } from '../../components/ChartPicker'; // 상단 명식 헤더
 import type { ChartInput } from '@spec/chart';
+
+// 복 유형별 이미지(daniel: 종류별 이미지) — assets/icons/bok/{slug}.png. 들어온 것만 require, 없으면 이모지 폴백.
+// slug: 재물복=jaeseong·귀인복=inseong·식복=siksang·관복=gwanseong·인복=bigeop (loveStyle과 동일 G5)
+const BOK_IMG: Record<string, any> = {
+  재성: require('../../../assets/icons/bok/jaeseong.png'),
+  인성: require('../../../assets/icons/bok/inseong.png'),
+  식상: require('../../../assets/icons/bok/siksang.png'),
+  관성: require('../../../assets/icons/bok/gwanseong.png'),
+  비겁: require('../../../assets/icons/bok/bigeop.png'),
+};
 
 export default function BokScreen() {
   const router = useRouter();
@@ -44,8 +55,11 @@ export default function BokScreen() {
   return (
     <ImageBackground source={require('../../../assets/icons/bg-night.png')} style={styles.bg} resizeMode="cover">
       <ScrollView style={styles.overlay} contentContainerStyle={styles.wrap}>
+        <ChartPicker onChange={() => loadMyChart().then(setMe)} />
         <View style={styles.hero}>
-          <Text style={styles.emoji}>{result.emoji}</Text>
+          {BOK_IMG[result.group]
+            ? <Image source={BOK_IMG[result.group]} style={styles.heroImg} resizeMode="contain" />
+            : <Text style={styles.emoji}>{result.emoji}</Text>}
           <Text style={styles.title}>{result.bok}</Text>
         </View>
         <View style={styles.card}><Text style={[styles.body, { fontSize: fs(15), lineHeight: fs(25) }]}>{result.desc}</Text></View>
@@ -70,6 +84,7 @@ const styles = StyleSheet.create({
   btn: { backgroundColor: colors.ju, borderRadius: radius.md, paddingVertical: space(3.25), paddingHorizontal: space(6) },
   btnText: { color: colors.bg, fontSize: 15, fontWeight: '700' },
   hero: { alignItems: 'center', paddingVertical: space(6), marginBottom: space(3) },
+  heroImg: { width: 220, aspectRatio: 0.68, borderRadius: radius.md, marginBottom: space(3) },
   emoji: { fontSize: 64, marginBottom: space(2) },
   title: { fontSize: 25, fontWeight: '900', color: colors.ink, textAlign: 'center' },
   card: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.juLine, padding: space(5), marginBottom: space(3), ...shadow.card },

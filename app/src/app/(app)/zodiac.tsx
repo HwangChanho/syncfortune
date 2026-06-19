@@ -13,6 +13,7 @@ import { computeChart } from '../../lib/engine';
 import { colors, radius, space, shadow, font } from '../../lib/theme';
 import { useFontScale } from '../../lib/fontScale';
 import { ContentHero } from '../../components/SpecialContentScreen'; // 이미지 히어로(보는 맛)
+import { ChartPicker } from '../../components/ChartPicker'; // 상단 명식 헤더 — 현재 적용 명식 표시·전환
 import type { ChartInput } from '@spec/chart';
 
 export default function ZodiacScreen() {
@@ -44,6 +45,8 @@ export default function ZodiacScreen() {
   return (
     <ImageBackground source={require('../../../assets/icons/bg-night.png')} style={styles.bg} resizeMode="cover">
       <ScrollView style={styles.overlay} contentContainerStyle={styles.wrap}>
+        {/* 상단 명식 헤더 — 현재 적용된 대표 명식 표시·전환(daniel: 모든 콘텐츠 상단) */}
+        <ChartPicker onChange={() => loadMyChart().then(setMe)} />
         <ContentHero image={require('../../../assets/icons/zodiac.png')} title={t('zodiac.title', '띠·별자리 오늘운세')} sub={animal.date} />
 
         {/* 토글 */}

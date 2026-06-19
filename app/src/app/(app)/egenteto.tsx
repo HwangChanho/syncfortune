@@ -107,11 +107,10 @@ export default function EgenTetoScreen() {
   return (
     <ImageBackground source={require('../../../assets/icons/bg-night.png')} style={styles.bgImage} resizeMode="cover">
       <ScrollView style={styles.overlay} contentContainerStyle={styles.wrap}>
+        {/* 상단 명식 헤더 — 현재 적용된 대표 명식 표시·전환(daniel: 모든 콘텐츠 상단). 전환 시 그 명식 기준 재산출 */}
+        <ChartPicker onChange={() => setReloadKey((k) => k + 1)} />
         <Text style={styles.title}>{t('egen.title', '에겐 vs 테토')}</Text>
         <Text style={styles.heroSub}>{t('egen.heroSub', '내 사주로 보는 에겐·테토 성향')}</Text>
-
-        {/* 명식 선택 — 대표 전환 시 그 명식 기준 재산출(daniel: 명식별 적용) */}
-        <ChartPicker onChange={() => setReloadKey((k) => k + 1)} />
 
         {!loaded ? (
           <View style={styles.card}><ActivityIndicator color={colors.ju} /></View>

@@ -3,7 +3,7 @@
 // 사주 = 일간 오행(시대) × 십신군(신분) → 전생 이야기(lib/pastLife.ts, Claude stance·daniel 검수). 재미 판타지.
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useMemo, useCallback } from 'react';
-import { View, Text, Pressable, ActivityIndicator, ScrollView, StyleSheet, Share, ImageBackground } from 'react-native';
+import { View, Text, Pressable, ActivityIndicator, ScrollView, StyleSheet, Share, ImageBackground, Image } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { computeChart } from '../../lib/engine';
@@ -11,7 +11,40 @@ import { loadMyChart } from '../../lib/myChart';
 import { pastLife, type PastLifeResult } from '../../lib/pastLife';
 import { useFontScale } from '../../lib/fontScale';
 import { colors, radius, space, shadow, font } from '../../lib/theme';
+import { ChartPicker } from '../../components/ChartPicker'; // 상단 명식 헤더 — 현재 적용 명식 표시·전환
 import type { ChartInput } from '@spec/chart';
+
+// 전생 시대(오행)×신분(십신) 이미지(daniel: 조합 25). assets/icons/pastlife/{elem}_{group}.png.
+// 생성·배치 후 PASTLIFE_IMG에 require 추가, 없으면 이모지 폴백.
+const ELEM_SLUG: Record<string, string> = { 木: 'wood', 火: 'fire', 土: 'earth', 金: 'metal', 水: 'water' };
+const GROUP_SLUG: Record<string, string> = { 관성: 'gwanseong', 인성: 'inseong', 식상: 'siksang', 재성: 'jaeseong', 비겁: 'bigeop' };
+const PASTLIFE_IMG: Record<string, any> = {
+  wood_gwanseong: require('../../../assets/icons/pastlife/wood_gwanseong.png'),
+  wood_inseong: require('../../../assets/icons/pastlife/wood_inseong.png'),
+  wood_siksang: require('../../../assets/icons/pastlife/wood_siksang.png'),
+  wood_jaeseong: require('../../../assets/icons/pastlife/wood_jaeseong.png'),
+  wood_bigeop: require('../../../assets/icons/pastlife/wood_bigeop.png'),
+  fire_gwanseong: require('../../../assets/icons/pastlife/fire_gwanseong.png'),
+  fire_inseong: require('../../../assets/icons/pastlife/fire_inseong.png'),
+  fire_siksang: require('../../../assets/icons/pastlife/fire_siksang.png'),
+  fire_jaeseong: require('../../../assets/icons/pastlife/fire_jaeseong.png'),
+  fire_bigeop: require('../../../assets/icons/pastlife/fire_bigeop.png'),
+  earth_gwanseong: require('../../../assets/icons/pastlife/earth_gwanseong.png'),
+  earth_inseong: require('../../../assets/icons/pastlife/earth_inseong.png'),
+  earth_siksang: require('../../../assets/icons/pastlife/earth_siksang.png'),
+  earth_jaeseong: require('../../../assets/icons/pastlife/earth_jaeseong.png'),
+  earth_bigeop: require('../../../assets/icons/pastlife/earth_bigeop.png'),
+  metal_gwanseong: require('../../../assets/icons/pastlife/metal_gwanseong.png'),
+  metal_inseong: require('../../../assets/icons/pastlife/metal_inseong.png'),
+  metal_siksang: require('../../../assets/icons/pastlife/metal_siksang.png'),
+  metal_jaeseong: require('../../../assets/icons/pastlife/metal_jaeseong.png'),
+  metal_bigeop: require('../../../assets/icons/pastlife/metal_bigeop.png'),
+  water_gwanseong: require('../../../assets/icons/pastlife/water_gwanseong.png'),
+  water_inseong: require('../../../assets/icons/pastlife/water_inseong.png'),
+  water_siksang: require('../../../assets/icons/pastlife/water_siksang.png'),
+  water_jaeseong: require('../../../assets/icons/pastlife/water_jaeseong.png'),
+  water_bigeop: require('../../../assets/icons/pastlife/water_bigeop.png'),
+};
 
 export default function PastLifeScreen() {
   const router = useRouter();
@@ -44,8 +77,12 @@ export default function PastLifeScreen() {
   return (
     <ImageBackground source={require('../../../assets/icons/bg-night.png')} style={styles.bg} resizeMode="cover">
       <ScrollView style={styles.overlay} contentContainerStyle={styles.wrap}>
+        {/* 상단 명식 헤더 — 현재 적용된 대표 명식 표시·전환(daniel: 모든 콘텐츠 상단) */}
+        <ChartPicker onChange={() => loadMyChart().then(setMe)} />
         <View style={styles.hero}>
-          <Text style={styles.emoji}>{result.emoji}</Text>
+          {PASTLIFE_IMG[`${ELEM_SLUG[result.elem] ?? ''}_${GROUP_SLUG[result.group] ?? ''}`]
+            ? <Image source={PASTLIFE_IMG[`${ELEM_SLUG[result.elem]}_${GROUP_SLUG[result.group]}`]} style={styles.heroImg} resizeMode="contain" />
+            : <Text style={styles.emoji}>{result.emoji}</Text>}
           <Text style={styles.title}>{result.role}</Text>
           <Text style={styles.sub}>{result.era}</Text>
         </View>
@@ -71,6 +108,7 @@ const styles = StyleSheet.create({
   btn: { backgroundColor: colors.ju, borderRadius: radius.md, paddingVertical: space(3.25), paddingHorizontal: space(6) },
   btnText: { color: colors.bg, fontSize: 15, fontWeight: '700' },
   hero: { alignItems: 'center', paddingVertical: space(6), marginBottom: space(3) },
+  heroImg: { width: 220, aspectRatio: 0.68, borderRadius: radius.md, marginBottom: space(3) },
   emoji: { fontSize: 64, marginBottom: space(2) },
   title: { fontSize: 25, fontWeight: '900', color: colors.ink, textAlign: 'center' },
   sub: { fontSize: 14, fontWeight: '700', color: colors.ju, marginTop: space(1.5) },

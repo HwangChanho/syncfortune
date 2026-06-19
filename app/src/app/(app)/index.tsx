@@ -77,9 +77,9 @@ const SECTIONS: Section[] = [
     { key: 'persona', labelKey: 'menu.persona', descKey: 'menu.personaTileDesc', image: require('../../../assets/icons/persona.png'), route: '/persona', ready: true, content: true },
     { key: 'egen', labelKey: 'menu.egen', descKey: 'menu.egenTileDesc', image: require('../../../assets/icons/egen.png'), route: '/egenteto', ready: true, content: true },
     { key: 'joseonjob', labelKey: 'menu.joseonjob', descKey: 'menu.joseonjobTileDesc', image: require('../../../assets/icons/joseonjob.png'), route: '/joseonjob', ready: true, content: true },
-    { key: 'lovestyle', labelKey: 'menu.lovestyle', descKey: 'menu.lovestyleTileDesc', route: '/lovestyle', ready: true, content: true },
-    { key: 'bok', labelKey: 'menu.bok', descKey: 'menu.bokTileDesc', route: '/bok', ready: true, content: true },
-    { key: 'pastlife', labelKey: 'menu.pastlife', descKey: 'menu.pastlifeTileDesc', route: '/pastlife', ready: true, content: true },
+    { key: 'lovestyle', labelKey: 'menu.lovestyle', descKey: 'menu.lovestyleTileDesc', image: require('../../../assets/icons/lovestyle.png'), route: '/lovestyle', ready: true, content: true },
+    { key: 'bok', labelKey: 'menu.bok', descKey: 'menu.bokTileDesc', image: require('../../../assets/icons/bok.png'), route: '/bok', ready: true, content: true },
+    { key: 'pastlife', labelKey: 'menu.pastlife', descKey: 'menu.pastlifeTileDesc', image: require('../../../assets/icons/pastlife.png'), route: '/pastlife', ready: true, content: true },
     { key: 'taegil', labelKey: 'menu.taegil', descKey: 'menu.taegilTileDesc', image: require('../../../assets/icons/taegil.png'), route: '/taegil', ready: true, content: true },
     { key: 'luck', labelKey: 'menu.luck', descKey: 'menu.luckTileDesc', image: require('../../../assets/icons/luck.png'), route: '/luck', ready: true, content: true },
     { key: 'zodiac', labelKey: 'menu.zodiac', descKey: 'menu.zodiacTileDesc', image: require('../../../assets/icons/zodiac.png'), route: '/zodiac', ready: true, content: true },
@@ -162,7 +162,7 @@ export default function Home() {
   // 오늘의 기운 한 줄 풀이(글) — 대표 명식 일간 × 오늘 일진(온디바이스, 무료). 탭 → 오늘의 운세 상세.
   const [todayProse, setTodayProse] = useState<string | null>(null);
   const [todayHeadline, setTodayHeadline] = useState<string | null>(null); // 오늘의 기운 한 줄 타이틀(그날을 아우르는 캐치)
-  const [repId, setRepId] = useState<string | null>(null); // 대표 명식 변경 감지(①) — 바뀌면 오늘의 기운 재계산
+  const [reloadKey, setReloadKey] = useState(0); // 명식 변경(전환·수정) 감지 — 포커스마다 오늘의 기운 재계산(daniel: 명식 수정 시 id 동일이라 갱신 안 되던 버그)
   const [loggingOut, setLoggingOut] = useState(false); // 로그아웃 콜백 동안 오버레이
   async function doLogout() {
     setLoggingOut(true);
@@ -172,7 +172,7 @@ export default function Home() {
   // 홈 포커스 시(명식 변경 후 복귀 포함) 날짜·대표 명식 재확인 → 오늘의 기운 갱신(①③)
   useFocusEffect(useCallback(() => {
     setDateKey(new Date().toDateString());
-    loadRepChart().then((rep) => setRepId(rep?.id ?? null));
+    setReloadKey((k) => k + 1); // 홈 복귀마다 재계산 트리거 → 명식 전환·수정 모두 반영(daniel)
   }, []));
   // 백그라운드→포그라운드(자정 넘겨 홈 유지) 시 날짜 재확인(③)
   useEffect(() => {
@@ -190,7 +190,7 @@ export default function Home() {
       setTodayProse(general[0] ?? null); // 통합 기조 첫 문단
       setTodayHeadline(dailyHeadline(saju, fortune.dayGanZhi[0] as Stem, fortune.dayGanZhi[1] as Branch)); // 그날을 아우르는 캐치 타이틀
     })();
-  }, [fortune, repId]);
+  }, [fortune, reloadKey]);
 
   useEffect(() => {
     Animated.timing(fadeAnim, { toValue: 1, duration: 1000, useNativeDriver: true }).start();
@@ -314,11 +314,12 @@ export default function Home() {
               <Text style={styles.sectionH}>{t(sec.titleKey)}</Text>
               {sec.key !== 'free' && sec.descKey ? <Text style={styles.sectionDesc}>{t(sec.descKey)}</Text> : null}
               {isLight ? (
-                // 좌우 스크롤 2줄 — 첫 5개는 윗줄, 나머지는 아랫줄로 넘겨 함께 가로 스크롤(daniel)
+                // 좌우 스크롤 — 한 줄 5개씩, 5개 넘으면 아래 줄로 쌓음(daniel: 두번째 줄 5개 초과 시 세번째 줄로). 가로 스크롤 유지.
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.hRow}>
                   <View style={styles.grid2col}>
-                    <View style={styles.grid2row}>{cards.slice(0, 5)}</View>
-                    <View style={styles.grid2row}>{cards.slice(5)}</View>
+                    {Array.from({ length: Math.ceil(cards.length / 5) }, (_, r) => (
+                      <View key={r} style={styles.grid2row}>{cards.slice(r * 5, r * 5 + 5)}</View>
+                    ))}
                   </View>
                 </ScrollView>
               ) : (

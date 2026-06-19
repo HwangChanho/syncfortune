@@ -12,6 +12,7 @@ import { loadMyChart } from '../../lib/myChart';
 import { joseonJob, type JoseonJobResult } from '../../lib/joseonJob';
 import { useFontScale } from '../../lib/fontScale';
 import { colors, radius, space, shadow, font } from '../../lib/theme';
+import { ChartPicker } from '../../components/ChartPicker'; // 상단 명식 헤더 — 현재 적용 명식 표시·전환
 import type { ChartInput } from '@spec/chart';
 
 // 직업 결과 이미지 — daniel 자산(assets/icons/joseon/). 파일 추가 후 해당 require 주석을 해제하면 자동 표시.
@@ -25,8 +26,8 @@ const JOB_IMG: Record<string, any> = {
   상관: require('../../../assets/icons/joseon/yein.png'),       // 예인·화공
   정재: require('../../../assets/icons/joseon/jiju.png'),       // 지주·대농
   편재: require('../../../assets/icons/joseon/geosang.png'),    // 거상
-  // 비견: require('../../../assets/icons/joseon/uibyeong.png'),   // 의병장·무사 (이미지 대기 → 이모지 폴백)
-  // 겁재: require('../../../assets/icons/joseon/bobusang.png'),   // 보부상 (이미지 대기 → 이모지 폴백)
+  비견: require('../../../assets/icons/joseon/uibyeong.png'),   // 의병장·무사
+  겁재: require('../../../assets/icons/joseon/bobusang.png'),   // 보부상
 };
 
 export default function JoseonJobScreen() {
@@ -67,6 +68,8 @@ export default function JoseonJobScreen() {
   return (
     <ImageBackground source={require('../../../assets/icons/bg-night.png')} style={styles.bg} resizeMode="cover">
       <ScrollView style={styles.overlay} contentContainerStyle={styles.wrap}>
+        {/* 상단 명식 헤더 — 현재 적용된 대표 명식 표시·전환(daniel: 모든 콘텐츠 상단) */}
+        <ChartPicker onChange={() => loadMyChart().then(setMe)} />
         {/* 직업 카드 */}
         <View style={styles.hero}>
           {/* 직업 일러스트(daniel 자산) — 없으면 이모지 폴백 */}

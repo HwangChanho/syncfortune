@@ -5,7 +5,7 @@
 // 접근: 프리미엄=무광고 자동 / 무료=보상형 광고 1회 → 생성. 캐시: readings(chart_id × 'lifegraph' × lang).
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { View, Text, ScrollView, Pressable, ActivityIndicator, StyleSheet, Dimensions } from 'react-native';
+import { View, Text, ScrollView, Pressable, ActivityIndicator, StyleSheet, Dimensions, Image } from 'react-native';
 import Svg, { Polyline, Circle, Line } from 'react-native-svg';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -24,6 +24,7 @@ import { logEvent } from '../../lib/logger';
 import { useFontScale } from '../../lib/fontScale';
 import { colors, radius, space, shadow, font } from '../../lib/theme';
 import { UnlockOverlay } from '../../components/UnlockOverlay'; // unlock 자물쇠 애니 + 그 사이 LLM 분석
+import { ChartPicker } from '../../components/ChartPicker'; // 상단 명식 헤더 — 현재 적용 명식 표시·전환
 
 type Decade = { startAge: number; score: number; note: string; turning: boolean; keyword?: string; focus?: string };
 type LifeData = { summary: string; decades: Decade[]; yongsin?: string; peak?: string; caution?: string; advice?: string };
@@ -44,6 +45,7 @@ export default function LifeGraphScreen() {
   const [busy, setBusy] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0); // ChartPicker 로 대표 전환 시 재로드 트리거
   const gatingRef = useRef(false); // 결제 구간 연타 차단
 
   useEffect(() => {
@@ -67,7 +69,7 @@ export default function LifeGraphScreen() {
     })().catch(() => { if (alive) setLoaded(true); });
     return () => { alive = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session, isPremium]);
+  }, [session, isPremium, reloadKey]);
 
   async function generate(id: string) {
     if (busy) return;
@@ -121,6 +123,10 @@ export default function LifeGraphScreen() {
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>
+      {/* 상단 명식 헤더 — 현재 적용된 대표 명식 표시·전환(daniel: 모든 콘텐츠 상단). 전환 시 그 명식 기준 재로드 */}
+      <ChartPicker onChange={() => setReloadKey((k) => k + 1)} />
+      {/* 상단 hero 배너(daniel: 인생그래프 썰렁 → 이미지). 가로 1344×768 cover */}
+      <Image source={require('../../../assets/icons/lifegraph-hero.png')} style={{ width: '100%', height: 160, borderRadius: radius.lg, marginBottom: space(4) }} resizeMode="cover" />
       <UnlockOverlay visible={busy} message={t('life.generating', '인생 흐름을 그리는 중…')} />
       {!loaded ? (
         <View style={styles.card}><ActivityIndicator color={colors.ju} /></View>

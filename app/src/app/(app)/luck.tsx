@@ -12,6 +12,7 @@ import { loadMyChart } from '../../lib/myChart';
 import { computeChart } from '../../lib/engine';
 import { colors, radius, space, shadow, font } from '../../lib/theme';
 import { useFontScale } from '../../lib/fontScale';
+import { ChartPicker } from '../../components/ChartPicker'; // 상단 명식 헤더 — 현재 적용 명식 표시·전환
 import type { ChartInput } from '@spec/chart';
 
 export default function LuckScreen() {
@@ -49,6 +50,8 @@ export default function LuckScreen() {
   return (
     <ImageBackground source={require('../../../assets/icons/bg-night.png')} style={styles.bg} resizeMode="cover">
       <ScrollView style={styles.overlay} contentContainerStyle={styles.wrap}>
+        {/* 상단 명식 헤더 — 현재 적용된 대표 명식 표시·전환(daniel: 모든 콘텐츠 상단) */}
+        <ChartPicker onChange={() => loadMyChart().then(setMe)} />
         <Text style={styles.h}>{t('luck.title', '오늘의 행운')}</Text>
         <Text style={styles.sub}>{lucky.date} · {t('luck.todayEnergy', '오늘의 기운')} {lucky.elemLabel}</Text>
 
