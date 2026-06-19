@@ -69,6 +69,8 @@ const SECTIONS: Section[] = [
     { key: 'roots', labelKey: 'menu.roots', descKey: 'menu.rootsDesc', image: require('../../../assets/icons/roots.png'), route: '/roots', ready: true, content: true, creditKey: 'roots' },
     { key: 'image', labelKey: 'menu.image', descKey: 'menu.imageDesc', image: require('../../../assets/icons/image.png'), route: '/image', ready: true, content: true, creditKey: 'image' },
     { key: 'mission', labelKey: 'menu.mission', descKey: 'menu.missionDesc', image: require('../../../assets/icons/mission.png'), route: '/mission', ready: true, content: true, creditKey: 'mission' },
+    // 신규(daniel 2026-06): 사업가의 나 vs 직장인의 나.
+    { key: 'career', labelKey: 'menu.career', descKey: 'menu.careerDesc', image: require('../../../assets/icons/career.png'), route: '/career', ready: true, content: true, creditKey: 'career' },
   ] },
   // 가볍게 = 무료·온디바이스 재미(펫·성격유형·택일·행운·띠별자리·이름풀이·꿈해몽). API 0(daniel: 스페셜 아래 무료 따로).
   { key: 'light', titleKey: 'menu.secLight', descKey: 'menu.secLightDesc', items: [
@@ -264,8 +266,8 @@ export default function Home() {
           </Pressable>
         </View>
 
-        {/* 대표 명식 선택/전환 (등록한 다른 명식으로 변경) */}
-        <ChartPicker />
+        {/* 대표 명식 선택/전환 (등록한 다른 명식으로 변경) — 전환 시 오늘의 기운 즉시 재계산(daniel) */}
+        <ChartPicker onChange={() => setReloadKey((k) => k + 1)} />
 
         {/* 무료 / 프리미엄 / 콘텐츠 3범주 — 큰 섹션 헤더 + 좌우 가로 스크롤 카드(daniel) */}
         {SECTIONS.map((sec) => {

@@ -4,12 +4,12 @@
 //   대표 변경 = setRepresentative → 만세력·풀이·궁합이 그 명식 기준(loadMyChart).
 // 명식이 없으면 등록 유도. 화면 복귀 시 useFocusEffect 로 목록 갱신.
 // ─────────────────────────────────────────────────────────────────────────
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { View, Text, Pressable, Modal, ScrollView, StyleSheet } from 'react-native';
 import { Alert } from '../lib/alert'; // 커스텀 알림(삭제 확인)
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { listCharts, setRepresentative, getRepresentativeId, getChartUsage, deleteChart, type SavedChart } from '../lib/myChart';
+import { listCharts, setRepresentative, getRepresentativeId, getChartUsage, deleteChart, subscribeRepChange, type SavedChart } from '../lib/myChart';
 import { useSubscription } from '../lib/subscription';
 import { colors, radius, space, shadow, font } from '../lib/theme';
 
@@ -29,6 +29,9 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
   }, []);
   // 화면 복귀(등록 후 등) 때마다 갱신
   useFocusEffect(useCallback(() => { reload(); }, [reload]));
+  // 전역 명식 변경 구독(daniel: 어디서 바꿔도 자동 동기화) — 다른 화면에서 대표가 바뀌면 이 픽커·호스트도 즉시 갱신.
+  const onChangeRef = useRef(onChange); onChangeRef.current = onChange;
+  useEffect(() => subscribeRepChange(() => { reload(); onChangeRef.current?.(); }), [reload]);
 
   const rep = charts.find((c) => c.id === repId) ?? charts[0];
 

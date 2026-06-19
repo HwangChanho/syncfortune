@@ -16,6 +16,19 @@ const REP_KEY = 'my_rep_v2';  // 대표 id
 const SAMPLE_ID = 'sample-self';      // 데모 자동 시드 id (등록 한도 계산서 제외 — 사용자가 만든 게 아님)
 export const FREE_CHART_LIMIT = 10;   // 무료 티어 명식 등록 한도. 프로 = 무제한 (ADR-051)
 
+// ── 대표 명식 변경 전역 동기화(daniel 2026-06) — 홈이든 어디든 바꾸면 모든 화면·ChartPicker 즉시 반영 ──
+//   비React 모듈이라 가벼운 pub/sub. setRepresentative/add/update/delete 시 notifyRepChange()로 알린다.
+type RepListener = () => void;
+const repListeners = new Set<RepListener>();
+/** 대표 명식 변경 구독 → 해제 함수 반환(useEffect cleanup). */
+export function subscribeRepChange(cb: RepListener): () => void {
+  repListeners.add(cb);
+  return () => { repListeners.delete(cb); };
+}
+function notifyRepChange(): void {
+  repListeners.forEach((cb) => { try { cb(); } catch { /* 구독자 오류 격리 */ } });
+}
+
 /**
  * 무료 등록 한도 초과 시 addChart 가 던지는 에러.
  * UI(register)가 이걸 잡아 *업그레이드 유도*로 분기한다(저장은 일어나지 않음).
@@ -95,12 +108,14 @@ export async function addChart(input: any, opts?: { isPro?: boolean; bypassLimit
   await setRaw(KEY, JSON.stringify([...charts, item]));
   const rep = await getRaw(REP_KEY);
   if (!rep) await setRaw(REP_KEY, id); // 첫 명식 = 대표
+  notifyRepChange(); // 목록·대표 변경 알림(전역 동기화)
   return id;
 }
 
-/** 대표 명식 id 지정 (홈에서 전환). */
+/** 대표 명식 id 지정 (홈에서 전환). 전역 동기화 알림. */
 export async function setRepresentative(id: string): Promise<void> {
   await setRaw(REP_KEY, id);
+  notifyRepChange();
 }
 
 /** 현재 대표 명식 id. */
@@ -168,6 +183,7 @@ export async function updateChart(id: string, input: any): Promise<void> {
     serverChartId: undefined, // 생년월일 변경 가능 → 서버 매핑 초기화(이전 풀이 캐시와 분리)
   };
   await setRaw(KEY, JSON.stringify(charts));
+  notifyRepChange(); // 명식 내용 변경 알림(전역 동기화 — 같은 대표라도 갱신)
 }
 
 /** 명식 삭제. 대표를 지우면 남은 첫 명식이 대표가 된다. */
@@ -180,6 +196,7 @@ export async function deleteChart(id: string): Promise<void> {
     if (rest.length) await setRaw(REP_KEY, rest[0].id);
     else await delRaw(REP_KEY);
   }
+  notifyRepChange(); // 삭제·대표 재지정 알림(전역 동기화)
 }
 
 /** 전체 초기화. */
