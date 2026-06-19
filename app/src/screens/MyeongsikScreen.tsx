@@ -50,6 +50,10 @@ const STRENGTH_INFO: { key: '신강' | '신약'; title: string; traits: string; 
 
 // 간지 한 칸(오행색 배경 + 한자 + 한글음) — 대운·세운·월운 타임라인/확장명식 공용. sm=대운/원국, xs=세운/월운.
 //   onPress 주면 글자 탭 = 물상 설명(확장명식용). 타임라인 카드(선택 기능)에는 onPress 미전달(카드 탭=드릴다운 유지).
+// R21 유형/무형 글자 테두리 색(daniel) — 유형(실체·통근/온전)=연파랑 / 무형(부유·공망)=연빨강.
+const TANG_Y = '#7DB0FF';
+const TANG_N = '#FF8A8A';
+
 function GzCell({ char, kind, size, scale = 1, onPress }: { char: string; kind: 'stem' | 'branch'; size: 'sm' | 'xs'; scale?: number; onPress?: () => void }) {
   const el = kind === 'stem' ? stemElement(char) : branchElement(char);
   const ko = kind === 'stem' ? stemReading(char) : branchReading(char);
@@ -103,6 +107,8 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
     const he = new Set(P[p].hiddenStems.map((h) => stemElement(h.stem))); // 이 지지 지장간 오행
     return Array.from(new Set(allGan.filter((g) => he.has(stemElement(g))))); // 통근한 투출 천간
   };
+  // R21 유형/무형(daniel) — 만세력 글자 테두리. 천간: 통근=유형(연파랑)·무통근(부유)=무형(연빨강). 지지: 공망=무형·그 외=유형.
+  const rootedGan = new Set(visiblePos.flatMap((q) => rootsOf(q)));
   // 오행 분포 (천간+지지 카운트)
   const elem: Record<string, number> = { 木: 0, 火: 0, 土: 0, 金: 0, 水: 0 };
   visiblePos.forEach((p) => { elem[stemElement(P[p].stem)]++; elem[branchElement(P[p].branch)]++; });
@@ -291,13 +297,13 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
               <Pressable onPress={() => setGlossary({ kind: 'tengod', key: P[p].stemTenGod })}>
                 <Text style={[styles.pillarTenGod, { color: colors.inkSoft }]}>{P[p].stemTenGod}</Text>
               </Pressable>
-              <Pressable style={styles.pillarMain} onPress={() => setGlossary({ kind: 'stem', key: P[p].stem })}>
+              <Pressable style={[styles.pillarMain, { borderWidth: 1.5, borderRadius: 6, borderColor: rootedGan.has(P[p].stem) ? TANG_Y : TANG_N }]} onPress={() => setGlossary({ kind: 'stem', key: P[p].stem })}>
                 <Text style={[styles.pillarChar, { color: elementColor[elStem] }]}>{P[p].stem}</Text>
                 <Text style={[styles.pillarReading, { color: colors.inkFaint }]}>{stemReading(P[p].stem)}</Text>
               </Pressable>
 
 
-              <Pressable style={styles.pillarMain} onPress={() => setGlossary({ kind: 'branch', key: P[p].branch })}>
+              <Pressable style={[styles.pillarMain, { borderWidth: 1.5, borderRadius: 6, borderColor: c.sinsal.gongmangHits.includes(p) ? TANG_N : TANG_Y }]} onPress={() => setGlossary({ kind: 'branch', key: P[p].branch })}>
                 <Text style={[styles.pillarChar, { color: elementColor[elBranch] }]}>{P[p].branch}</Text>
                 <Text style={[styles.pillarReading, { color: colors.inkFaint }]}>{branchReading(P[p].branch)}</Text>
               </Pressable>
@@ -306,12 +312,15 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
                 <Text style={[styles.pillarTenGod, { color: colors.inkSoft }]}>{P[p].branchMainTenGod}</Text>
               </Pressable>
 
+              {/* 12운성 — 항상 표시(daniel: 상세분석 토글 밖). 탭 → 글로서리 설명. */}
+              <View style={styles.pillarDivider} />
+              <Pressable onPress={() => setGlossary({ kind: 'stage', key: c.stages[p] })}>
+                <Text style={styles.pillarStage}>{c.stages[p]}</Text>
+              </Pressable>
+
               {showAdvanced && (
                 <Animated.View style={styles.advancedInfo}>
                   <View style={styles.pillarDivider} />
-                  <Pressable onPress={() => setGlossary({ kind: 'stage', key: c.stages[p] })}>
-                    <Text style={styles.pillarStage}>{c.stages[p]}</Text>
-                  </Pressable>
                   <View style={styles.pillarHidden}>
                     {P[p].hiddenStems.map((h, i) => {
                       const rooted = allGan.includes(h.stem); // 지장간이 원국 천간에 투출 = 통근(동그라미 표시)
@@ -628,7 +637,9 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
                     <GzCell char={col.stem} kind="stem" size="sm" scale={scale} onPress={() => setGlossary({ kind: 'stem', key: col.stem })} />
                     <GzCell char={col.branch} kind="branch" size="sm" scale={scale} onPress={() => setGlossary({ kind: 'branch', key: col.branch })} />
                     <Text style={[styles.expTg, { fontSize: Math.round(11 * scale) }]}>{branchTenGod(dm, col.branch)}</Text>
-                    <Text style={[styles.expStage, { fontSize: Math.round(10 * scale) }]}>{twelveStage(dm, col.branch)}</Text>
+                    <Pressable onPress={() => setGlossary({ kind: 'stage', key: twelveStage(dm, col.branch) })}>
+                      <Text style={[styles.expStage, { fontSize: Math.round(10 * scale) }]}>{twelveStage(dm, col.branch)}</Text>
+                    </Pressable>
                     <View style={styles.expHidden}>
                       {col.hidden.map((h: any, k: number) => (
                         <Text key={k} style={[styles.expHiddenTx, { fontSize: Math.round(12 * scale), lineHeight: Math.round(15 * scale) }, { color: elementColor[stemElement(h.stem)] }]}>{h.stem}</Text>
