@@ -10,7 +10,7 @@ import { useTranslation } from 'react-i18next';
 import { useFocusEffect } from 'expo-router';
 import { buildSajuChart } from '@engine/saju';
 import { SIJIN } from '../../lib/sijin';                  // 12시진(자시·축시…) 피커 데이터
-import { listPets, addPet, deletePet, PET_TYPES, type SavedPet, type PetType } from '../../lib/petChart';
+import { listPets, addPet, updatePet, deletePet, PET_TYPES, type SavedPet, type PetType } from '../../lib/petChart';
 import { getPetTraits } from '../../lib/petTraits';
 import { useFontScale } from '../../lib/fontScale';
 import { colors, radius, space, shadow, font } from '../../lib/theme';
@@ -22,6 +22,7 @@ export default function PetScreen() {
   const [pets, setPets] = useState<SavedPet[]>([]);
   const [selId, setSelId] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null); // 수정 중인 펫 id(만세력 명식 수정처럼 내부에서)
   // 입력 폼 상태
   const [name, setName] = useState('');
   const [petType, setPetType] = useState<PetType>('dog');
@@ -68,10 +69,24 @@ export default function PetScreen() {
       sex: '남',                                   // 사주 기둥은 성별 무관(특징엔 영향 없음) — 기본값
       timeAccuracy: sj ? '정확' : '미상',
     };
-    const id = await addPet(name, petType, input);
-    setName(''); setDate(''); setSijinIdx(-1); setTimeUnknown(false); setPetType('dog');
+    if (editId) { await updatePet(editId, name, petType, input); setSelId(editId); }
+    else { const id = await addPet(name, petType, input); setSelId(id); }
+    setName(''); setDate(''); setSijinIdx(-1); setTimeUnknown(false); setPetType('dog'); setEditId(null);
     await reload();
-    setSelId(id); setAdding(false);
+    setAdding(false);
+  }
+
+  // 폼 초기화 + 새로 추가 진입(이전 수정 데이터 잔존 방지)
+  function startAdd() { setEditId(null); setName(''); setDate(''); setSijinIdx(-1); setTimeUnknown(false); setPetType('dog'); setAdding(true); }
+  // 수정 — 선택한 아이 정보를 폼에 로드(만세력 명식 수정처럼 콘텐츠 내부에서)
+  function onEdit(p: SavedPet) {
+    setName(p.name); setPetType(p.petType);
+    const parts = String(p.input.birthDateTime ?? '').split(' ');
+    setDate(parts[0] ?? '');
+    const tu = p.input.timeAccuracy === '미상';
+    setTimeUnknown(tu);
+    setSijinIdx(tu ? -1 : SIJIN.findIndex((s) => s.hm === parts[1]));
+    setEditId(p.id); setAdding(true);
   }
 
   // 시간 모름 토글 — 켜면 시진 선택 해제(공란·비활성)
@@ -101,7 +116,7 @@ export default function PetScreen() {
               <Text style={[styles.petChipTx, selId === p.id && !adding && styles.petChipTxOn]}>{p.name}</Text>
             </Pressable>
           ))}
-          <Pressable style={[styles.petChip, adding && styles.petChipOn]} onPress={() => setAdding(true)}>
+          <Pressable style={[styles.petChip, adding && styles.petChipOn]} onPress={startAdd}>
             <Text style={[styles.petChipTx, adding && styles.petChipTxOn]}>+ {t('pet.add')}</Text>
           </Pressable>
         </View>
@@ -147,6 +162,12 @@ export default function PetScreen() {
       ) : sel && reading ? (
         // ── 특징 통변 ──
         <View>
+          {/* 수정·삭제 — 만세력 명식처럼 콘텐츠 내부에서(하단 '이 아이 지우기' 대체) */}
+          <View style={styles.petActions}>
+            <Pressable hitSlop={8} onPress={() => onEdit(sel)}><Text style={styles.petActTx}>{t('common.edit', '수정')}</Text></Pressable>
+            <Text style={styles.petActSep}>·</Text>
+            <Pressable hitSlop={8} onPress={() => onDelete(sel.id)}><Text style={[styles.petActTx, styles.petActDel]}>{t('pet.delete')}</Text></Pressable>
+          </View>
           <View style={styles.introCard}>
             <Text style={[styles.intro, bodyDyn]}>{reading.intro}</Text>
           </View>
@@ -156,9 +177,6 @@ export default function PetScreen() {
               <Text style={[styles.body, bodyDyn]}>{s.text}</Text>
             </View>
           ))}
-          <Pressable style={styles.delBtn} onPress={() => onDelete(sel.id)}>
-            <Text style={styles.delBtnTx}>{t('pet.delete')}</Text>
-          </Pressable>
         </View>
       ) : (
         <View style={styles.card}><Text style={styles.body}>{t('pet.empty')}</Text></View>
@@ -241,4 +259,9 @@ const styles = StyleSheet.create({
   saveBtnTx: { color: colors.bg, fontWeight: '800', fontSize: 16 },
   delBtn: { paddingVertical: space(3), alignItems: 'center', marginTop: space(2) },
   delBtnTx: { color: colors.inkFaint, fontSize: 13, fontWeight: '600' },
+  // 펫 수정·삭제 액션(통변 상단 우측) — 만세력 명식처럼 내부 관리
+  petActions: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: space(2), marginBottom: space(2) },
+  petActTx: { fontSize: 13, fontWeight: '700', color: colors.ju },
+  petActSep: { color: colors.inkFaint },
+  petActDel: { color: '#E5484D' },
 });

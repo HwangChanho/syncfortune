@@ -46,3 +46,12 @@ export async function deletePet(id: string): Promise<void> {
   const pets = await listPets();
   await setRaw(PET_KEY, JSON.stringify(pets.filter((p) => p.id !== id)));
 }
+
+/** 반려동물 수정 — 이름·종류·사주 입력 교체(만세력 명식 수정처럼 콘텐츠 내부에서). */
+export async function updatePet(id: string, name: string, petType: PetType, input: ChartInput): Promise<void> {
+  const pets = await listPets();
+  const idx = pets.findIndex((p) => p.id === id);
+  if (idx < 0) return;
+  pets[idx] = { ...pets[idx], name: name.trim() || pets[idx].name, petType, input };
+  await setRaw(PET_KEY, JSON.stringify(pets));
+}

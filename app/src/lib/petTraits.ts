@@ -13,16 +13,17 @@ export type PetReading = { intro: string; sections: { label: string; text: strin
 // 오행(일간) → 기질/관계/케어 한 줄씩. 동물 무관한 '큰 결'.
 type ElCopy = { temper: string; bond: string; care: string };
 type Bundle = {
-  labels: { temper: string; bond: string; care: string };
+  labels: { temper: string; bond: string; care: string; health: string };
   intro: (name: string, animal: string) => string;
   noTime: string;
   el: Record<string, ElCopy>;          // key: 木火土金水
   animal: Record<PetType, string>;     // 종류별 한 줄 색채(intro 뒤에 붙음)
   animalCare: Record<PetType, string>; // 종류별 케어 한 줄(care 섹션에 붙음)
+  health: Record<string, string>;      // 일간 오행별 건강·케어 포인트(관리축 — 의료 단정 금지, daniel)
 };
 
 const KO: Bundle = {
-  labels: { temper: '타고난 기질', bond: '사람과의 호흡', care: '좋아하는 것 · 케어 팁' },
+  labels: { temper: '타고난 기질', bond: '사람과의 호흡', care: '좋아하는 것 · 케어 팁', health: '건강 · 케어 포인트' },
   intro: (name, animal) => `${name}는 타고난 결이 또렷한 ${animal}예요.`,
   noTime: '태어난 시각을 몰라서 큰 결만 봤어요 — 그래도 기질은 또렷하게 드러나요.',
   el: {
@@ -63,10 +64,17 @@ const KO: Bundle = {
     bird: '말 걸어 주고 소리로 교감하면 잘 따라요.', fish: '물·온도를 일정하게 지켜 주는 게 핵심이에요.',
     reptile: '온도와 빛을 일정하게 맞춰 주면 편안해해요.', other: '그 아이의 속도에 맞춰 주는 게 제일이에요.',
   },
+  health: {
+    '木': '활동량이 많은 만큼 다리·관절에 무리가 가지 않게. 과하게 뛴 날은 쉬어 가고, 정기 검진으로 컨디션을 살펴 주세요.',
+    '火': '쉽게 흥분해 체력 소모가 커요. 더위·과열에 약할 수 있으니 시원한 환경과 충분한 수분, 신나게 논 뒤 휴식을 챙겨 주세요.',
+    '土': '잘 먹는 만큼 소화·체중 관리가 포인트. 식사량과 산책을 규칙적으로 지켜 비만을 예방해 주세요.',
+    '金': '환경 변화·먼지에 호흡기가 예민할 수 있어요. 깨끗한 공기와 정돈된 잠자리로 컨디션을 지켜 주세요.',
+    '水': '예민해서 스트레스에 컨디션이 흔들리기 쉬워요. 따뜻하고 일정한 환경으로 안정감을 주면 좋아요.',
+  },
 };
 
 const EN: Bundle = {
-  labels: { temper: 'Natural temperament', bond: 'Bond with people', care: 'Likes & care tips' },
+  labels: { temper: 'Natural temperament', bond: 'Bond with people', care: 'Likes & care tips', health: 'Health & care' },
   intro: (name, animal) => `${name} is a ${animal} with a clear, distinct nature.`,
   noTime: "Without a birth time we read only the broad strokes — but the temperament still comes through clearly.",
   el: {
@@ -107,10 +115,17 @@ const EN: Bundle = {
     bird: 'Talk and chirp with them and they bond well.', fish: 'Steady water and temperature is the key.',
     reptile: 'Keep heat and light consistent and they relax.', other: 'Moving at their pace is what matters most.',
   },
+  health: {
+    '木': 'Active by nature, so go easy on legs and joints. Rest after big-run days and use regular checkups to keep tabs.',
+    '火': 'Excitable, so they burn energy fast and can struggle with heat — keep them cool, well-hydrated, and rested after lively play.',
+    '土': 'Hearty eaters, so watch digestion and weight. Keep portions and walks regular to prevent obesity.',
+    '金': 'Airways can be sensitive to dust and change. Clean air and a tidy bed keep them in good shape.',
+    '水': 'Sensitive, so stress can throw off their condition. Warm, steady surroundings give them stability.',
+  },
 };
 
 const JA: Bundle = {
-  labels: { temper: '生まれもった気質', bond: '人との相性', care: '好きなこと · ケアのコツ' },
+  labels: { temper: '生まれもった気質', bond: '人との相性', care: '好きなこと · ケアのコツ', health: '健康 · ケアのポイント' },
   intro: (name, animal) => `${name}は、生まれもった結がはっきりした${animal}です。`,
   noTime: '生まれた時刻が分からないので大きな結だけ見ました — それでも気質ははっきり出ています。',
   el: {
@@ -151,6 +166,13 @@ const JA: Bundle = {
     bird: '話しかけ、声で交感するとよく懐きます。', fish: '水と温度を一定に保つのが肝心です。',
     reptile: '温度と光を一定にすると安心します。', other: 'その子のペースに合わせるのが一番です。',
   },
+  health: {
+    '木': '活動量が多いぶん、脚や関節に無理をさせないように。走りすぎた日は休ませ、定期検診で体調を見てあげて。',
+    '火': '興奮しやすく体力の消耗が大きめ。暑さに弱いことがあるので、涼しい環境と十分な水分、遊んだ後の休息を。',
+    '土': 'よく食べるぶん消化と体重の管理がポイント。食事量と散歩を規則的に保って肥満を予防して。',
+    '金': '環境の変化やほこりに呼吸器が敏感なことも。きれいな空気と整った寝床で体調を守って。',
+    '水': '繊細でストレスに体調が左右されやすい子。暖かく一定した環境で安心感を与えてあげて。',
+  },
 };
 
 const T: Record<string, Bundle> = { ko: KO, en: EN, ja: JA };
@@ -167,10 +189,15 @@ export function getPetTraits(saju: any, petType: PetType, name: string): PetRead
   const animal = b.animal[petType] ?? b.animal.other;
   const timeUnknown = saju?.timeUnknown === true;
   const intro = b.intro(name, animal);
+  // 건강은 관리축만(의료 단정 금지) — 수의사 상담 면책 한 줄을 덧붙인다(가드4).
+  const vetNote = appLang() === 'en' ? ' (For real health concerns, please see your vet.)'
+    : appLang() === 'ja' ? '（実際の健康は獣医にご相談ください。）'
+    : ' (실제 건강은 수의사와 상담하세요.)';
   const sections = [
     { label: b.labels.temper, text: c.temper },
     { label: b.labels.bond, text: c.bond },
     { label: b.labels.care, text: `${c.care} ${b.animalCare[petType] ?? b.animalCare.other}` },
+    { label: b.labels.health, text: `${b.health[el] ?? b.health['土']}${vetNote}` },
   ];
   // 시각 미상이면 안내 한 줄을 intro 뒤에 덧붙임(가드: 시주 해석 제외)
   return { intro: timeUnknown ? `${intro}\n${b.noTime}` : intro, sections };
