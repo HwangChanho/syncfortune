@@ -82,7 +82,7 @@ export default function TodayScreen() {
     logEvent('daily_generate', { chartId: id, category });
     try {
       const { data, error } = await supabase.functions.invoke('interpret', {
-        body: { chartId: id, category, kind: 'daily', gz: f.dayGanZhi, tier: 'paid', lang: appLang() },
+        body: { chartId: id, category, kind: 'daily', gz: f.dayGanZhi, tier: 'paid', lang: appLang(), ...(saved?.context ? { context: saved.context } : {}) },
       });
       if (error) { logEvent('daily_error', { message: error.message }, 'error'); setErr(t('today.genFail', '풀이 생성에 실패했어요. 잠시 후 다시 시도해 주세요.')); }
       else setReading((data?.reading as Record<string, string>) ?? null);

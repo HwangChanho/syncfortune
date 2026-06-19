@@ -95,7 +95,7 @@ export default function NewYearScreen() {
     try {
       // 신년 전용 — kind='newyear' + 삼재(온디바이스 계산값) body 전달
       const { data: res, error } = await supabase.functions.invoke('interpret', {
-        body: { chartId: id, category, kind: 'newyear', samjae: samjae ?? undefined, tier: 'paid', lang: appLang() },
+        body: { chartId: id, category, kind: 'newyear', samjae: samjae ?? undefined, tier: 'paid', lang: appLang(), ...(saved?.context ? { context: saved.context } : {}) },
       });
       if (error) { logEvent('newyear_error', { message: error.message }, 'error'); setErr(t('today.genFail', '생성에 실패했어요. 잠시 후 다시 시도해 주세요.')); }
       else setData((res?.reading as Record<string, any>) ?? null);
