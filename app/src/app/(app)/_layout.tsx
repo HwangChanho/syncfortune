@@ -53,6 +53,7 @@ export default function AppLayout() {
         <Stack.Screen name="lovestyle" options={{ title: '연애 스타일' }} />
         <Stack.Screen name="bok" options={{ title: '타고난 복' }} />
         <Stack.Screen name="pastlife" options={{ title: '전생 이야기' }} />
+        <Stack.Screen name="healing" options={{ title: '나만의 힐링 방법' }} />
         <Stack.Screen name="taegil" options={{ title: '택일' }} />
         <Stack.Screen name="luck" options={{ title: '오늘의 행운' }} />
         <Stack.Screen name="zodiac" options={{ title: '띠·별자리' }} />

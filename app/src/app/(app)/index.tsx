@@ -82,6 +82,7 @@ const SECTIONS: Section[] = [
     { key: 'lovestyle', labelKey: 'menu.lovestyle', descKey: 'menu.lovestyleTileDesc', image: require('../../../assets/icons/lovestyle.png'), route: '/lovestyle', ready: true, content: true },
     { key: 'bok', labelKey: 'menu.bok', descKey: 'menu.bokTileDesc', image: require('../../../assets/icons/bok.png'), route: '/bok', ready: true, content: true },
     { key: 'pastlife', labelKey: 'menu.pastlife', descKey: 'menu.pastlifeTileDesc', image: require('../../../assets/icons/pastlife.png'), route: '/pastlife', ready: true, content: true },
+    { key: 'healing', labelKey: 'menu.healing', descKey: 'menu.healingTileDesc', image: require('../../../assets/icons/healing.png'), route: '/healing', ready: true, content: true },
     { key: 'taegil', labelKey: 'menu.taegil', descKey: 'menu.taegilTileDesc', image: require('../../../assets/icons/taegil.png'), route: '/taegil', ready: true, content: true },
     { key: 'luck', labelKey: 'menu.luck', descKey: 'menu.luckTileDesc', image: require('../../../assets/icons/luck.png'), route: '/luck', ready: true, content: true },
     { key: 'zodiac', labelKey: 'menu.zodiac', descKey: 'menu.zodiacTileDesc', image: require('../../../assets/icons/zodiac.png'), route: '/zodiac', ready: true, content: true },

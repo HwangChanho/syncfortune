@@ -30,7 +30,7 @@ const ko = {
     roots: '명식의 뿌리', rootsDesc: '드러난 나·품은 힘·진짜 단단한 기운',
     image: '비치는 나', imageDesc: '남에게 보이는 첫인상·분위기',
     mission: '나의 사명', missionDesc: '무엇을 위해 태어났는지',
-    persona: '성격유형', personaDesc: '사주로 보는 나의 16유형', egen: '에겐 vs 테토', joseonjob: '조선시대 직업', lovestyle: '연애 스타일', bok: '타고난 복', pastlife: '전생 이야기',
+    persona: '성격유형', personaDesc: '사주로 보는 나의 16유형', egen: '에겐 vs 테토', joseonjob: '조선시대 직업', lovestyle: '연애 스타일', bok: '타고난 복', pastlife: '전생 이야기', healing: '나만의 힐링 방법',
     taegil: '택일', taegilDesc: '결혼·이사·계약 좋은 날',
     luck: '오늘의 행운', luckDesc: '행운의 색·방향·숫자',
     zodiac: '띠·별자리', zodiacDesc: '오늘의 띠·별자리 운세',
@@ -39,7 +39,7 @@ const ko = {
     dayPillar: '일주론', dayPillarDesc: '태어난 날로 보는 나의 기질', career: '사업가의 나', careerDesc: '사업가 vs 직장인, 두 길 풀이',
     saju: '사주', sajuDesc: '원국·타임라인·궁합', ziweiHub: '자미두수', ziweiHubDesc: '명반·운한·궁합',
     secFree: '오늘·명식', secPremium: '프리미엄', secContent: '스페셜', secDeep: '나에 대해 알기', secLight: '가볍게 보기',
-    todayTileDesc: '오늘 하루 흐름', monthTileDesc: '이번 달 흐름', newyearTileDesc: '올해 키워드·열두 달', personaTileDesc: '사주 성격유형', taegilTileDesc: '좋은 날 택일', luckTileDesc: '오늘의 행운', zodiacTileDesc: '띠·별자리 운세', nameTileDesc: '이름 소리 오행', dreamTileDesc: '꿈 해몽', egenTileDesc: '내 사주는 에겐? 테토?', joseonjobTileDesc: '내 사주로 보는 조선시대 직업', lovestyleTileDesc: '내 연애 세포는?', bokTileDesc: '내 타고난 복은?', pastlifeTileDesc: '나의 전생은?',
+    todayTileDesc: '오늘 하루 흐름', monthTileDesc: '이번 달 흐름', newyearTileDesc: '올해 키워드·열두 달', personaTileDesc: '사주 성격유형', taegilTileDesc: '좋은 날 택일', luckTileDesc: '오늘의 행운', zodiacTileDesc: '띠·별자리 운세', nameTileDesc: '이름 소리 오행', dreamTileDesc: '꿈 해몽', egenTileDesc: '내 사주는 에겐? 테토?', joseonjobTileDesc: '내 사주로 보는 조선시대 직업', lovestyleTileDesc: '내 연애 세포는?', bokTileDesc: '내 타고난 복은?', pastlifeTileDesc: '나의 전생은?', healingTileDesc: '나에게 맞는 쉼은?',
     secPremiumDesc: '타고난 사주·자미를 깊이 풀어드려요', secContentDesc: 'AI가 정밀하게 풀어주는 깊은 콘텐츠', secDeepDesc: '나를 더 깊이 들여다보는 분석', secLightDesc: '가볍게 즐기는 오늘의 재미',
   },
   common: {
@@ -217,6 +217,7 @@ const ko = {
   lovestyle: { shareLead: '내 연애 스타일', inLove: '연애할 때', tip: '이런 점만 더하면', share: '내 연애 스타일 공유', note: '※ 사주 십신으로 가볍게 본 연애 스타일이에요. 재미로 즐겨 주세요.', detail: '내 애정 흐름 깊이 보기' },
   bok: { shareLead: '내 타고난 복', how: '복을 키우는 법', share: '내 복 공유하기', note: '※ 사주 십신으로 가볍게 본 타고난 복이에요. 재미로 즐겨 주세요.', detail: '내 사주 깊이 보기 (프리미엄)' },
   pastlife: { shareLead: '나의 전생', hint: '지금의 당신에게', share: '내 전생 공유하기', note: '※ 사주로 가볍게 그려 본 전생 이야기예요. 재미로 즐겨 주세요.', detail: '내 사주 깊이 보기 (프리미엄)' },
+  healing: { shareLead: '나만의 힐링 방법', recharge: '나의 충전 방식', nourish: '채우면 좋은 기운', release: '비우면 좋은 기운', color: '힐링 색', place: '힐링 공간', food: '곁들이면 좋은', mind: '마음 한마디', elemLead: '내 기운', share: '내 힐링 방법 공유', note: '※ 사주 오행으로 가볍게 본 자기돌봄 가이드예요. 마음 챙김에 참고만 하세요.' },
 };
 
 const en = {
@@ -237,7 +238,7 @@ const en = {
     roots: 'Roots', rootsDesc: 'Shown self · hidden strength · true power',
     image: 'How You Appear', imageDesc: 'First impression & vibe to others',
     mission: 'My Calling', missionDesc: 'What you were born to do',
-    persona: 'Personality', personaDesc: 'Your 16 saju personality types', egen: 'Egen vs Teto', joseonjob: 'Joseon Job', lovestyle: 'Love Style', bok: 'Your Fortune', pastlife: 'Past Life',
+    persona: 'Personality', personaDesc: 'Your 16 saju personality types', egen: 'Egen vs Teto', joseonjob: 'Joseon Job', lovestyle: 'Love Style', bok: 'Your Fortune', pastlife: 'Past Life', healing: 'My Healing',
     taegil: 'Lucky Days', taegilDesc: 'Best days for wedding · moving · contracts',
     luck: "Today's Luck", luckDesc: 'Lucky color · direction · number',
     zodiac: 'Zodiac', zodiacDesc: 'Daily Chinese & star sign',
@@ -246,7 +247,7 @@ const en = {
     dayPillar: 'Day Pillar', dayPillarDesc: 'Your nature by your birth day', career: 'Founder or Employee', careerDesc: 'Your two paths: business vs job',
     saju: 'Saju', sajuDesc: 'Reading · timeline · compatibility', ziweiHub: 'Zi Wei', ziweiHubDesc: 'Chart · luck · compatibility',
     secFree: 'Today & Chart', secPremium: 'Premium', secContent: 'Special', secDeep: 'Know Yourself', secLight: 'For Fun',
-    todayTileDesc: "Today's flow", monthTileDesc: "This month's flow", newyearTileDesc: "This year's keyword & 12 months", personaTileDesc: 'Saju personality type', taegilTileDesc: 'Pick a good day', luckTileDesc: "Today's luck", zodiacTileDesc: 'Zodiac & star sign', nameTileDesc: "Name's sound energy", dreamTileDesc: 'Dream meaning', egenTileDesc: 'Are you Egen or Teto?', joseonjobTileDesc: 'Your job in old Korea', lovestyleTileDesc: 'Your love cells?', bokTileDesc: 'Your innate fortune?', pastlifeTileDesc: 'Who were you?',
+    todayTileDesc: "Today's flow", monthTileDesc: "This month's flow", newyearTileDesc: "This year's keyword & 12 months", personaTileDesc: 'Saju personality type', taegilTileDesc: 'Pick a good day', luckTileDesc: "Today's luck", zodiacTileDesc: 'Zodiac & star sign', nameTileDesc: "Name's sound energy", dreamTileDesc: 'Dream meaning', egenTileDesc: 'Are you Egen or Teto?', joseonjobTileDesc: 'Your job in old Korea', lovestyleTileDesc: 'Your love cells?', bokTileDesc: 'Your innate fortune?', pastlifeTileDesc: 'Who were you?', healingTileDesc: 'Your way to rest?',
     secPremiumDesc: 'In-depth saju & Zi Wei readings', secContentDesc: 'AI-crafted deep readings', secDeepDesc: 'Look deeper into who you are', secLightDesc: 'Light daily fun',
   },
   common: {
@@ -424,6 +425,7 @@ const en = {
   lovestyle: { shareLead: 'My love style', inLove: 'In a relationship', tip: 'Add just this', share: 'Share my love style', note: '* A light take on your love style from your saju. Just for fun.', detail: 'Explore my love-life flow' },
   bok: { shareLead: 'My fortune', how: 'How to grow it', share: 'Share my fortune', note: '* A light take on your innate fortune from your saju. Just for fun.', detail: 'Explore my saju in depth (Premium)' },
   pastlife: { shareLead: 'My past life', hint: 'For you, now', share: 'Share my past life', note: '* A playful past-life tale from your saju. Just for fun.', detail: 'Explore my saju in depth (Premium)' },
+  healing: { shareLead: 'My healing', recharge: 'How you recharge', nourish: 'Energy to fill', release: 'Energy to release', color: 'Healing color', place: 'Healing space', food: 'Goes well with', mind: 'A word for your heart', elemLead: 'My energy', share: 'Share my healing', note: '* A gentle self-care guide from your saju elements. For mindful reference only.' },
 };
 
 const ja = {
@@ -444,7 +446,7 @@ const ja = {
     roots: '命式の根', rootsDesc: '表に出た自分·秘めた力·本当の強さ',
     image: '映る自分', imageDesc: '他人に見える第一印象·雰囲気',
     mission: '私の使命', missionDesc: '何のために生まれたか',
-    persona: '性格タイプ', personaDesc: '四柱で見る私の16タイプ', egen: 'エゲン vs テト', joseonjob: '朝鮮時代の職業', lovestyle: '恋愛スタイル', bok: '生まれ持つ福', pastlife: '前世物語',
+    persona: '性格タイプ', personaDesc: '四柱で見る私の16タイプ', egen: 'エゲン vs テト', joseonjob: '朝鮮時代の職業', lovestyle: '恋愛スタイル', bok: '生まれ持つ福', pastlife: '前世物語', healing: '私の癒し方',
     taegil: '択日', taegilDesc: '結婚・引越し・契約の吉日',
     luck: '今日の幸運', luckDesc: '幸運の色·方角·数字',
     zodiac: '干支·星座', zodiacDesc: '今日の干支·星座運勢',
@@ -453,7 +455,7 @@ const ja = {
     dayPillar: '日柱論', dayPillarDesc: '生まれた日でみる気質', career: '起業家の私 vs 会社員の私', careerDesc: '独立と組織、二つの道',
     saju: '四柱推命', sajuDesc: '鑑定·タイムライン·相性', ziweiHub: '紫微斗数', ziweiHubDesc: '命盤·運限·相性',
     secFree: '今日・命式', secPremium: 'プレミアム', secContent: 'スペシャル', secDeep: '自分を知る', secLight: '気軽に',
-    todayTileDesc: '今日一日の流れ', monthTileDesc: '今月の流れ', newyearTileDesc: '今年のキーワード・12か月', personaTileDesc: '性格タイプ', taegilTileDesc: '良い日選び', luckTileDesc: '今日の幸運', zodiacTileDesc: '干支・星座', nameTileDesc: '名前の響き', dreamTileDesc: '夢占い', egenTileDesc: '私はエゲン？テト？', joseonjobTileDesc: '四柱で見る朝鮮の職業', lovestyleTileDesc: '私の恋愛細胞は？', bokTileDesc: '私の福は？', pastlifeTileDesc: '私の前世は？',
+    todayTileDesc: '今日一日の流れ', monthTileDesc: '今月の流れ', newyearTileDesc: '今年のキーワード・12か月', personaTileDesc: '性格タイプ', taegilTileDesc: '良い日選び', luckTileDesc: '今日の幸運', zodiacTileDesc: '干支・星座', nameTileDesc: '名前の響き', dreamTileDesc: '夢占い', egenTileDesc: '私はエゲン？テト？', joseonjobTileDesc: '四柱で見る朝鮮の職業', lovestyleTileDesc: '私の恋愛細胞は？', bokTileDesc: '私の福は？', pastlifeTileDesc: '私の前世は？', healingTileDesc: '私に合う休み方は？',
     secPremiumDesc: '生まれ持った四柱·紫微を深く', secContentDesc: 'AIが丁寧に解く深い鑑定', secDeepDesc: '自分をより深く見つめる', secLightDesc: '気軽に楽しむ運勢',
   },
   common: {
@@ -631,6 +633,7 @@ const ja = {
   lovestyle: { shareLead: '私の恋愛スタイル', inLove: '恋愛では', tip: 'これを足すと', share: '恋愛スタイルをシェア', note: '※ 四柱の十神で気軽に見た恋愛スタイルです。お楽しみとしてご覧ください。', detail: '私の恋愛の流れをくわしく見る' },
   bok: { shareLead: '私の福', how: '福を育てる方法', share: '福をシェア', note: '※ 四柱の十神で気軽に見た生まれ持った福です。お楽しみとしてご覧ください。', detail: '私の四柱をくわしく見る（プレミアム）' },
   pastlife: { shareLead: '私の前世', hint: '今のあなたへ', share: '前世をシェア', note: '※ 四柱で気軽に描いた前世の物語です。お楽しみとしてご覧ください。', detail: '私の四柱をくわしく見る（プレミアム）' },
+  healing: { shareLead: '私の癒し方', recharge: '私の充電方法', nourish: '満たすと良い気', release: '手放すと良い気', color: '癒しの色', place: '癒しの空間', food: '添えると良い', mind: '心への一言', elemLead: '私の気', share: '癒し方をシェア', note: '※ 四柱の五行で気軽に見たセルフケアガイドです。心のケアの参考に。' },
 };
 
 const resources = {
