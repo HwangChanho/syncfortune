@@ -6,6 +6,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useState, useMemo } from 'react';
 import { View, Text, Pressable, ActivityIndicator, ScrollView, StyleSheet } from 'react-native';
+import { useFontScale } from '../../lib/fontScale';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { computeChart } from '../../lib/engine';
@@ -30,6 +31,8 @@ export default function TraitsScreen() {
   }, []));
 
   const c = useMemo(() => (me ? computeChart(me) : null), [me]);
+  const { fs } = useFontScale();                       // 글자 크기(설정)
+  const styles = useMemo(() => makeStyles(fs), [fs]);  // fs 적용 — 모든 글자 스케일
 
   if (loading) return <View style={styles.center}><ActivityIndicator color={colors.ju} /></View>;
   if (!c) return (
@@ -91,32 +94,39 @@ export default function TraitsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const scaledFont = (fs: (n: number) => number) => ({
+  title: { ...font.title, fontSize: fs(22) },
+  heading: { ...font.heading, fontSize: fs(17) },
+  body: { ...font.body, fontSize: fs(15) },
+  label: { ...font.label, fontSize: fs(13) },
+  caption: { ...font.caption, fontSize: fs(12) },
+});
+const makeStyles = (fs: (n: number) => number) => { const f = scaledFont(fs); return StyleSheet.create({
   screen: { backgroundColor: colors.bg },
   wrap: { padding: space(5), paddingBottom: space(10) },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: space(7), backgroundColor: colors.bg },
-  msg: { ...font.body, textAlign: 'center', marginBottom: space(5) },
+  msg: { ...f.body, textAlign: 'center', marginBottom: space(5) },
   btn: { backgroundColor: colors.ju, borderRadius: radius.md, paddingVertical: space(3.25), paddingHorizontal: space(6) },
-  btnText: { color: colors.bg, fontSize: 15, fontWeight: '700' },
-  h: { ...font.title, marginBottom: space(4) },
+  btnText: { color: colors.bg, fontSize: fs(15), fontWeight: '700' },
+  h: { ...f.title, marginBottom: space(4) },
   card: {
     backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, borderRadius: radius.md,
     padding: space(5), marginBottom: space(4), ...shadow.card,
   },
-  dm: { fontSize: 28, fontWeight: '800', marginBottom: space(3) },
-  trait: { ...font.body, color: colors.ink, lineHeight: 24 },
-  kv: { ...font.body, color: colors.ink, marginTop: space(2), lineHeight: 22 },
+  dm: { fontSize: fs(28), fontWeight: '800', marginBottom: space(3) },
+  trait: { ...f.body, color: colors.ink, lineHeight: fs(24) },
+  kv: { ...f.body, color: colors.ink, marginTop: space(2), lineHeight: fs(22) },
   label: { color: colors.inkSoft, fontWeight: '700' },
   // 오행 강약 막대
   elemRow: { flexDirection: 'row', alignItems: 'center', marginTop: space(2.5) },
-  elemEl: { fontSize: 16, fontWeight: '800', width: 24 },
+  elemEl: { fontSize: fs(16), fontWeight: '800', width: 24 },
   elemTrack: { flex: 1, height: 10, borderRadius: 5, backgroundColor: colors.sunk, overflow: 'hidden', marginHorizontal: space(2) },
   elemFill: { height: '100%', borderRadius: 5 },
-  elemCnt: { ...font.caption, color: colors.inkSoft, width: 16, textAlign: 'right' },
-  note: { ...font.caption, marginTop: space(5) },
+  elemCnt: { ...f.caption, color: colors.inkSoft, width: 16, textAlign: 'right' },
+  note: { ...f.caption, marginTop: space(5) },
   cta: {
     backgroundColor: colors.ju, borderRadius: radius.md, paddingVertical: space(4),
     alignItems: 'center', marginTop: space(6), ...shadow.card,
   },
-  ctaText: { color: colors.bg, fontSize: 16, fontWeight: '700' },
-});
+  ctaText: { color: colors.bg, fontSize: fs(16), fontWeight: '700' },
+}); };

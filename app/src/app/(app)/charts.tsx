@@ -2,8 +2,9 @@
 // ─────────────────────────────────────────────────────────────────────────
 // 저장된 내 차트(self) 로드 → MyeongsikScreen 재사용. 없으면 등록 유도. (추후 N명 목록 확장)
 // ─────────────────────────────────────────────────────────────────────────
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { View, Text, Pressable, ActivityIndicator, StyleSheet } from 'react-native';
+import { useFontScale } from '../../lib/fontScale';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { MyeongsikScreen } from '../../screens/MyeongsikScreen';
@@ -21,6 +22,8 @@ export default function ChartsScreen() {
   useEffect(() => {
     loadMyChart().then((c) => { setMe(c); setLoading(false); });
   }, []);
+  const { fs } = useFontScale();
+  const styles = useMemo(() => makeStyles(fs), [fs]);
 
   if (loading) return <View style={styles.center}><ActivityIndicator color={colors.ju} /></View>;
 
@@ -45,9 +48,16 @@ export default function ChartsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: space(7), backgroundColor: colors.bg },
-  msg: { ...font.body, textAlign: 'center', marginBottom: space(5) },
-  btn: { backgroundColor: colors.ju, borderRadius: radius.md, paddingVertical: space(3.25), paddingHorizontal: space(6) },
-  btnText: { color: colors.white, fontSize: 15, fontWeight: '700' },
+const scaledFont = (fs: (n: number) => number) => ({
+  title: { ...font.title, fontSize: fs(22) },
+  heading: { ...font.heading, fontSize: fs(17) },
+  body: { ...font.body, fontSize: fs(15) },
+  label: { ...font.label, fontSize: fs(13) },
+  caption: { ...font.caption, fontSize: fs(12) },
 });
+const makeStyles = (fs: (n: number) => number) => { const f = scaledFont(fs); return StyleSheet.create({
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: space(7), backgroundColor: colors.bg },
+  msg: { ...f.body, textAlign: 'center', marginBottom: space(5) },
+  btn: { backgroundColor: colors.ju, borderRadius: radius.md, paddingVertical: space(3.25), paddingHorizontal: space(6) },
+  btnText: { color: colors.white, fontSize: fs(15), fontWeight: '700' },
+}); };

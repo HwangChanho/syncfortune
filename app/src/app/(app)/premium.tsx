@@ -6,6 +6,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useMemo } from 'react';
 import { View, Text, Pressable, ScrollView, ImageBackground, StyleSheet, Dimensions } from 'react-native';
+import { useFontScale } from '../../lib/fontScale';
 import { useRouter, useLocalSearchParams, Stack } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { colors, radius, space, shadow, font } from '../../lib/theme';
@@ -45,6 +46,8 @@ export default function PremiumHub() {
   const router = useRouter();
   const { domain } = useLocalSearchParams<{ domain?: string }>();
   const hub = useMemo(() => HUBS[domain === 'ziwei' ? 'ziwei' : 'saju'], [domain]);
+  const { fs } = useFontScale();
+  const styles = useMemo(() => makeStyles(fs), [fs]);
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>
@@ -67,18 +70,25 @@ export default function PremiumHub() {
   );
 }
 
-const styles = StyleSheet.create({
+const scaledFont = (fs: (n: number) => number) => ({
+  title: { ...font.title, fontSize: fs(22) },
+  heading: { ...font.heading, fontSize: fs(17) },
+  body: { ...font.body, fontSize: fs(15) },
+  label: { ...font.label, fontSize: fs(13) },
+  caption: { ...font.caption, fontSize: fs(12) },
+});
+const makeStyles = (fs: (n: number) => number) => { const f = scaledFont(fs); return StyleSheet.create({
   screen: { backgroundColor: colors.bg },
   // 좌우 패딩(daniel) — 카드가 화면 양옆에서 떨어지게
   wrap: { paddingTop: space(5), paddingBottom: space(12), paddingHorizontal: space(5) },
-  h: { ...font.title, marginBottom: space(1) },
-  sub: { ...font.caption, color: colors.inkSoft, marginBottom: space(5) },
+  h: { ...f.title, marginBottom: space(1) },
+  sub: { ...f.caption, color: colors.inkSoft, marginBottom: space(5) },
   // 큰 카드 — 전체폭(좌우 패딩 적용) × 높이 0.42화면 → 세로로 한 화면 1.5~2개
   card: { width: '100%', height: CARD_H, borderRadius: radius.lg, overflow: 'hidden', marginBottom: space(4), ...shadow.card },
   cardImg: { flex: 1, justifyContent: 'flex-end' },
   cardImgInner: { borderRadius: radius.lg },
   // 하단 라벨 바(반투명 남색) — 제목 + 설명
   labelBar: { backgroundColor: 'rgba(21,19,46,0.78)', paddingVertical: space(4), paddingHorizontal: space(4) },
-  cardLabel: { color: colors.ju, fontSize: 20, fontWeight: '800', letterSpacing: 0.3 },
-  cardDesc: { color: colors.inkSoft, fontSize: 13, marginTop: space(1.5), lineHeight: 18 },
-});
+  cardLabel: { color: colors.ju, fontSize: fs(20), fontWeight: '800', letterSpacing: 0.3 },
+  cardDesc: { color: colors.inkSoft, fontSize: fs(13), marginTop: space(1.5), lineHeight: fs(18) },
+}); };

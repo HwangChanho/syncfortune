@@ -7,6 +7,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useMemo } from 'react';
 import { View, Text, ScrollView, StyleSheet, Pressable } from 'react-native';
+import { useFontScale } from '../lib/fontScale';
 import { computeChart } from '../lib/engine';
 import type { ChartInput, PillarPos } from '@spec/chart';
 import { colors, radius, space, shadow, font } from '../lib/theme';
@@ -37,6 +38,8 @@ const sideKo = (s: 'stem' | 'branch') => (s === 'stem' ? '천간' : '지지');
 /** 기준 글자 칩 — 오행색 배경 + 한자 + 한글음. 신살의 '근거 글자'를 시각화.
  *  괴강·백호처럼 간지 결합(2글자)은 단일 오행색이 없어 통짜 칩(중립)으로 표시. */
 function GlyphChip({ g }: { g: string }) {
+  const { fs } = useFontScale();
+  const styles = useMemo(() => makeStyles(fs), [fs]);
   if (g.length > 1) { // 간지 결합(괴강·백호) — 천간+지지 한 덩어리
     return <View style={styles.glyphChipWide}><Text style={styles.glyphTxWide}>{g}</Text></View>;
   }
@@ -52,6 +55,8 @@ function GlyphChip({ g }: { g: string }) {
 
 /** 신살 카드 — 명칭·기준글자·적중자리·의미·키워드를 한 장에 펼침(모달 탭 없이 바로 보이게 = '디테일'). */
 function SinsalCard({ row }: { row: Row }) {
+  const { fs } = useFontScale();
+  const styles = useMemo(() => makeStyles(fs), [fs]);
   const g = (SINSAL_GLOSSARY as Record<string, any>)[row.name];
   const ko: string = g?.ko ?? row.name;
   const hanja: string = g?.hanja ?? '';
@@ -89,6 +94,8 @@ function SinsalCard({ row }: { row: Row }) {
 
 /** 신살 그룹 — 원국 적중과 '운에서 들어옴'을 서브헤더로 분리(daniel: 운에서 온 건 명확히 구분). */
 function SinsalGroup({ rows }: { rows: Row[] }) {
+  const { fs } = useFontScale();
+  const styles = useMemo(() => makeStyles(fs), [fs]);
   const hitRows = rows.filter((r) => r.hit);
   const luckRows = rows.filter((r) => !r.hit);
   return (
@@ -104,6 +111,8 @@ function SinsalGroup({ rows }: { rows: Row[] }) {
 
 export function SinsalScreen({ input }: { input: ChartInput | null }) {
   const c = useMemo(() => (input ? computeChart(input) : null), [input]);
+  const { fs } = useFontScale();
+  const styles = useMemo(() => makeStyles(fs), [fs]);
   if (!c) return <View style={styles.center}><Text style={font.body}>명식 정보가 없습니다.</Text></View>;
 
   const timeUnknown = input?.timeAccuracy === '미상';                 // 시각 모름 → 시주 마스킹
@@ -216,17 +225,24 @@ export function SinsalScreen({ input }: { input: ChartInput | null }) {
   );
 }
 
-const styles = StyleSheet.create({
+const scaledFont = (fs: (n: number) => number) => ({
+  title: { ...font.title, fontSize: fs(22) },
+  heading: { ...font.heading, fontSize: fs(17) },
+  body: { ...font.body, fontSize: fs(15) },
+  label: { ...font.label, fontSize: fs(13) },
+  caption: { ...font.caption, fontSize: fs(12) },
+});
+const makeStyles = (fs: (n: number) => number) => { const f = scaledFont(fs); return StyleSheet.create({
   screen: { backgroundColor: colors.bg },
   wrap: { padding: space(5), paddingBottom: space(12) },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: space(7), backgroundColor: colors.bg },
-  title: { ...font.title, marginBottom: space(2) },
-  titleHanja: { ...font.title, color: colors.inkFaint, fontWeight: '400' },
-  intro: { ...font.caption, color: colors.inkSoft, lineHeight: 19, marginBottom: space(4) },
+  title: { ...f.title, marginBottom: space(2) },
+  titleHanja: { ...f.title, color: colors.inkFaint, fontWeight: '400' },
+  intro: { ...f.caption, color: colors.inkSoft, lineHeight: fs(19), marginBottom: space(4) },
 
-  section: { fontSize: 17, fontWeight: '800', color: colors.ink, marginTop: space(5), marginBottom: space(1) },
-  sectionHanja: { fontSize: 14, fontWeight: '400', color: colors.inkFaint },
-  sectionDesc: { ...font.caption, color: colors.inkFaint, marginBottom: space(3), lineHeight: 17 },
+  section: { fontSize: fs(17), fontWeight: '800', color: colors.ink, marginTop: space(5), marginBottom: space(1) },
+  sectionHanja: { fontSize: fs(14), fontWeight: '400', color: colors.inkFaint },
+  sectionDesc: { ...f.caption, color: colors.inkFaint, marginBottom: space(3), lineHeight: fs(17) },
 
   // 신살 카드
   card: {
@@ -236,25 +252,25 @@ const styles = StyleSheet.create({
   cardHit: { borderColor: colors.ju }, // 원국 적중 = 골드 테두리(내 사주에 실재)
   cardLuck: { opacity: 0.74 },         // 운에서 들어옴 = 흐리게(원국 적중과 대비)
   // '운에서 들어옴' 서브헤더 — 원국 적중 카드 묶음과 분리
-  luckSubHead: { fontSize: 13, fontWeight: '700', color: colors.inkSoft, marginTop: space(3), marginBottom: space(2.5) },
+  luckSubHead: { fontSize: fs(13), fontWeight: '700', color: colors.inkSoft, marginTop: space(3), marginBottom: space(2.5) },
   cardHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: space(2.5) },
-  cardName: { fontSize: 16, fontWeight: '800', color: colors.ink, flexShrink: 1 },
-  cardHanja: { fontSize: 13, fontWeight: '400', color: colors.inkFaint },
-  badgeHit: { fontSize: 12, fontWeight: '700', color: colors.ju, marginLeft: space(2) },
-  badgeLuck: { fontSize: 12, fontWeight: '600', color: colors.inkFaint, marginLeft: space(2) },
+  cardName: { fontSize: fs(16), fontWeight: '800', color: colors.ink, flexShrink: 1 },
+  cardHanja: { fontSize: fs(13), fontWeight: '400', color: colors.inkFaint },
+  badgeHit: { fontSize: fs(12), fontWeight: '700', color: colors.ju, marginLeft: space(2) },
+  badgeLuck: { fontSize: fs(12), fontWeight: '600', color: colors.inkFaint, marginLeft: space(2) },
 
   glyphRow: { flexDirection: 'row', flexWrap: 'wrap', gap: space(1.5), marginBottom: space(2.5) },
   glyphChip: { minWidth: 30, paddingHorizontal: space(1.5), paddingVertical: space(1), borderRadius: radius.sm, alignItems: 'center' },
-  glyphTx: { fontSize: 17, fontWeight: '800' },
-  glyphKo: { fontSize: 10, fontWeight: '600', marginTop: -2 },
+  glyphTx: { fontSize: fs(17), fontWeight: '800' },
+  glyphKo: { fontSize: fs(10), fontWeight: '600', marginTop: -2 },
   // 간지 결합(괴강·백호) 통짜 칩 — 단일 오행색이 없어 중립 배경
   glyphChipWide: { paddingHorizontal: space(2.5), paddingVertical: space(1.25), borderRadius: radius.sm, backgroundColor: colors.juSoft, borderWidth: 1, borderColor: colors.line },
-  glyphTxWide: { fontSize: 17, fontWeight: '800', color: colors.ink },
+  glyphTxWide: { fontSize: fs(17), fontWeight: '800', color: colors.ink },
 
-  cardMeaning: { ...font.body, color: colors.ink, lineHeight: 21, fontSize: 14 },
+  cardMeaning: { ...f.body, color: colors.ink, lineHeight: fs(21), fontSize: fs(14) },
   kwRow: { flexDirection: 'row', flexWrap: 'wrap', gap: space(1.5), marginTop: space(2.5) },
   kw: {
-    fontSize: 12, fontWeight: '600', color: colors.inkSoft, backgroundColor: colors.juSoft,
+    fontSize: fs(12), fontWeight: '600', color: colors.inkSoft, backgroundColor: colors.juSoft,
     paddingHorizontal: space(2), paddingVertical: space(0.75), borderRadius: radius.pill, overflow: 'hidden',
   },
 
@@ -265,13 +281,13 @@ const styles = StyleSheet.create({
   },
   twHead: { flexDirection: 'row', alignItems: 'center', marginBottom: space(2) },
   twBranch: { width: 38, height: 44, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center', marginRight: space(3) },
-  twBranchTx: { fontSize: 20, fontWeight: '800' },
-  twBranchKo: { fontSize: 10, fontWeight: '600', marginTop: -2 },
-  twPos: { fontSize: 14, fontWeight: '700', color: colors.inkSoft },
+  twBranchTx: { fontSize: fs(20), fontWeight: '800' },
+  twBranchKo: { fontSize: fs(10), fontWeight: '600', marginTop: -2 },
+  twPos: { fontSize: fs(14), fontWeight: '700', color: colors.inkSoft },
   twItems: { flexDirection: 'row', flexWrap: 'wrap', gap: space(2) },
   twItem: { backgroundColor: colors.juSoft, borderRadius: radius.sm, paddingHorizontal: space(2.5), paddingVertical: space(1.5) },
-  twName: { fontSize: 14, fontWeight: '700', color: colors.ink },
-  twBases: { fontSize: 11, color: colors.inkFaint, marginTop: 1 },
+  twName: { fontSize: fs(14), fontWeight: '700', color: colors.ink },
+  twBases: { fontSize: fs(11), color: colors.inkFaint, marginTop: 1 },
 
-  note: { ...font.caption, color: colors.inkFaint, marginTop: space(6), lineHeight: 18 },
-});
+  note: { ...f.caption, color: colors.inkFaint, marginTop: space(6), lineHeight: fs(18) },
+}); };

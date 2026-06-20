@@ -5,8 +5,9 @@
 // ② 주제 선택 → 그 주제의 오늘 결과가 있으면 복원, 없으면 새로 → 뒷면 덱 탭으로 5장 직접 공개
 // ③ 공개 카드 부채꼴+탭 확대 ④ 5장 다 뽑으면 '그 주제에 연관된 하나의 흐름'으로 풀이. 무제한 무료.
 // ─────────────────────────────────────────────────────────────────────────
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { View, Text, Pressable, ScrollView, Image, StyleSheet, ImageBackground, Modal, Animated } from 'react-native';
+import { useFontScale } from '../../lib/fontScale';
 import { useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import * as Haptics from 'expo-haptics';
@@ -48,6 +49,8 @@ export default function TaroScreen() {
   const [sel, setSel] = useState<number | null>(null);
   const lift = useRef(new Animated.Value(0)).current;
   const today = todayStr();
+  const { fs } = useFontScale();
+  const styles = useMemo(() => makeStyles(fs), [fs]);
 
   // 주제 선택: 그 주제의 오늘 결과가 있으면 복원(고정), 없으면 새로 섞는다.
   async function start(c: Category) {
@@ -219,24 +222,31 @@ export default function TaroScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const scaledFont = (fs: (n: number) => number) => ({
+  title: { ...font.title, fontSize: fs(22) },
+  heading: { ...font.heading, fontSize: fs(17) },
+  body: { ...font.body, fontSize: fs(15) },
+  label: { ...font.label, fontSize: fs(13) },
+  caption: { ...font.caption, fontSize: fs(12) },
+});
+const makeStyles = (fs: (n: number) => number) => { const f = scaledFont(fs); return StyleSheet.create({
   bg: { flex: 1, backgroundColor: colors.bg },
   screen: { backgroundColor: 'rgba(21,19,46,0.55)' },
   wrap: { padding: space(5), paddingTop: space(8), paddingBottom: space(10) },
   headerArea: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: space(4) },
-  title: { ...font.title, color: colors.ink, marginBottom: 0 },
-  sub: { ...font.body, color: colors.inkSoft, marginBottom: space(6) },
+  title: { ...f.title, color: colors.ink, marginBottom: 0 },
+  sub: { ...f.body, color: colors.inkSoft, marginBottom: space(6) },
   cats: { flexDirection: 'row', flexWrap: 'wrap', gap: space(3) },
   catBtnNew: { width: '47%', aspectRatio: 1 },
   catGlass: { flex: 1, padding: space(4), alignItems: 'center', justifyContent: 'center' },
   catImgNew: { width: '80%', height: '80%', marginBottom: space(2) },
-  catKoNew: { ...font.body, color: colors.ink, fontWeight: '700' },
+  catKoNew: { ...f.body, color: colors.ink, fontWeight: '700' },
   spreadHeadNew: { marginBottom: space(4) },
   spreadTitleNew: { flexDirection: 'row', alignItems: 'center', gap: space(3), paddingVertical: space(2), paddingHorizontal: space(4), alignSelf: 'flex-start' },
   spreadThumb: { width: 32, height: 32, borderRadius: radius.sm },
-  spreadCat: { ...font.heading, color: colors.ju },
+  spreadCat: { ...f.heading, color: colors.ju },
   resetBtnNew: { paddingVertical: space(1.5), paddingHorizontal: space(3), borderRadius: radius.sm, backgroundColor: colors.sunk },
-  resetTxNew: { color: colors.ju, fontSize: 12, fontWeight: '700' },
+  resetTxNew: { color: colors.ju, fontSize: fs(12), fontWeight: '700' },
   fan: { height: 260, alignItems: 'center', justifyContent: 'flex-end', marginTop: space(2) },
   fanCard: { position: 'absolute', bottom: space(2) },
   fanImg: { width: 110, height: 188, borderRadius: radius.md, borderWidth: 1.5, borderColor: colors.juLine, backgroundColor: colors.card },
@@ -245,22 +255,22 @@ const styles = StyleSheet.create({
   deckBackNew: { width: 140, height: 240, padding: 0, overflow: 'hidden', borderWidth: 2, borderColor: colors.ju },
   deckImg: { flex: 1, padding: space(6), justifyContent: 'center', alignItems: 'center' },
   deckTapBarNew: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(21,19,46,0.8)', paddingVertical: space(2), alignItems: 'center' },
-  deckTapTx: { color: colors.ju, fontSize: 12, fontWeight: '800' },
-  drawHint: { ...font.body, color: colors.inkSoft, marginTop: space(6), textAlign: 'center', lineHeight: 22 },
+  deckTapTx: { color: colors.ju, fontSize: fs(12), fontWeight: '800' },
+  drawHint: { ...f.body, color: colors.inkSoft, marginTop: space(6), textAlign: 'center', lineHeight: fs(22) },
   readingSection: { marginTop: space(4) },
   readingGlass: { padding: space(6) },
-  readingH: { ...font.heading, color: colors.ju, marginBottom: space(4) },
-  combineLine: { ...font.body, color: colors.ink, lineHeight: 26, marginBottom: space(3) },
+  readingH: { ...f.heading, color: colors.ju, marginBottom: space(4) },
+  combineLine: { ...f.body, color: colors.ink, lineHeight: fs(26), marginBottom: space(3) },
   readingDivider: { height: 1, backgroundColor: colors.line, marginVertical: space(4) },
-  lockNote: { ...font.body, color: colors.ju, textAlign: 'center', fontWeight: '700' },
-  note: { ...font.caption, color: colors.inkFaint, marginTop: space(4), textAlign: 'center' },
+  lockNote: { ...f.body, color: colors.ju, textAlign: 'center', fontWeight: '700' },
+  note: { ...f.caption, color: colors.inkFaint, marginTop: space(4), textAlign: 'center' },
   backdrop: { flex: 1, backgroundColor: 'rgba(10, 9, 23, 0.9)', justifyContent: 'center', alignItems: 'center', padding: space(6) },
   bigWrapNew: { width: '100%', alignItems: 'center' },
   bigGlass: { width: '100%', padding: space(6), alignItems: 'center' },
   bigImgNew: { width: '100%', aspectRatio: 0.58, borderRadius: radius.md, marginBottom: space(6) },
   bigInfo: { alignItems: 'center', gap: space(1) },
-  bigPos: { ...font.caption, color: colors.ju, fontWeight: '700', letterSpacing: 1 },
-  bigName: { ...font.heading, color: colors.ink, textAlign: 'center' },
-  bigKw: { ...font.body, color: colors.inkSoft, textAlign: 'center', marginTop: space(2), lineHeight: 22 },
-  bigClose: { ...font.caption, color: colors.inkFaint, marginTop: space(6) },
-});
+  bigPos: { ...f.caption, color: colors.ju, fontWeight: '700', letterSpacing: 1 },
+  bigName: { ...f.heading, color: colors.ink, textAlign: 'center' },
+  bigKw: { ...f.body, color: colors.inkSoft, textAlign: 'center', marginTop: space(2), lineHeight: fs(22) },
+  bigClose: { ...f.caption, color: colors.inkFaint, marginTop: space(6) },
+}); };
