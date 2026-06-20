@@ -17,6 +17,7 @@ import { useTranslation } from 'react-i18next';
 import { computeChart } from '../lib/engine';
 import { useAuth } from '../lib/useAuth';
 import { supabase } from '../lib/supabase';
+import { notifyReadingDone } from '../lib/notifications'; // 생성 완료 푸시(daniel: 풀이중 딴 일 + 완료 알림)
 import { useEntitlement } from '../lib/entitlement';
 import { isUnlocked, markUnlocked } from '../lib/unlocks'; // unlock 영속 — 차감 후 재차감/재잠금 방지
 import { useSubscription } from '../lib/subscription';
@@ -214,6 +215,7 @@ export function ReadingScreen({
       setProgress((p) => (p ? { done: p.done + 1, total: p.total, current: p.current } : null));
     }
     setProgress(null);
+    notifyReadingDone(t('reading.doneTitle', '풀이가 완성됐어요'), t('reading.doneBody', '준비된 풀이를 확인해 보세요')); // 생성 완료 푸시(딴 일 하다 알림)
   }
 
   // 미리보기(daniel 2026-06): 무료 진입 시 '첫 분야 1개만' 맛보기 생성 → 나머지는 잠김(unlock 유도).

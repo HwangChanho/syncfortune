@@ -66,3 +66,20 @@ export async function cancelDailyFortune(): Promise<void> {
   if (!Notif) return;
   try { await Notif.cancelAllScheduledNotificationsAsync(); } catch { /* ignore */ }
 }
+
+/**
+ * 풀이 생성 완료 즉시 로컬 알림 — daniel: 풀이 생성 중 다른 작업을 하다가 완료되면 푸시로 알림.
+ *   생성은 서버 캐시되므로 화면을 떠나도 진행·보관됨 → 완료 시 이 알림으로 통지(탭하면 route 로 복귀).
+ *   모듈/권한 없으면 no-op(재빌드 후 작동·무료 로컬 알림).
+ */
+export async function notifyReadingDone(title: string, body: string, route?: string): Promise<void> {
+  if (!Notif || Platform.OS === 'web') return;
+  try {
+    const perm = await Notif.getPermissionsAsync();
+    if (!(perm.granted || (perm.canAskAgain && (await Notif.requestPermissionsAsync()).granted))) return;
+    await Notif.scheduleNotificationAsync({
+      content: { title, body: (body || '').slice(0, 140), data: route ? { route } : {} },
+      trigger: null,   // 즉시 발송
+    });
+  } catch { /* 권한·모듈 문제 시 조용히 무시 */ }
+}
