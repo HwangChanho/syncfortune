@@ -477,7 +477,7 @@ const styles = StyleSheet.create({
   scoreBar: { width: '80%', height: 8, borderRadius: 4, backgroundColor: colors.line, marginTop: space(3), overflow: 'hidden' },
   scoreBarFill: { height: '100%', borderRadius: 4, backgroundColor: colors.ju },
   scoreSub: { ...font.caption, color: colors.inkSoft, marginTop: space(2) },
-  catBanner: { width: '100%', aspectRatio: 1.75, borderRadius: radius.md, marginTop: space(2), marginBottom: space(1) },
+  catBanner: { width: 170, aspectRatio: 1.5, alignSelf: 'center', borderRadius: radius.md, marginTop: space(2), marginBottom: space(1) },
   slotLabel: { ...font.caption, color: colors.ju, fontWeight: '800', marginBottom: space(2), letterSpacing: 0.3 },
   // 내 명식 골드 슬롯
   meSlot: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.card, borderWidth: 1.5, borderColor: colors.ju, borderRadius: radius.md, padding: space(4), ...shadow.card },
