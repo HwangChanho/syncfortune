@@ -17,6 +17,7 @@ import { colors, radius, space, shadow, font, gradients } from '../lib/theme';
 import { GlassCard } from '../components/GlassCard';
 import { OhaengIcon } from '../components/OhaengIcon';
 import { stemElement, branchElement, elementColor, elementText, stemReading, branchReading, stemYinYang, branchYinYang } from '../lib/ohaeng';
+import { useFontScale } from '../lib/fontScale'; // 글자 크기(설정) — 명식 글자까지 모든 텍스트에 적용(daniel)
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -55,14 +56,16 @@ const TANG_Y = '#7DB0FF';
 const TANG_N = '#FF8A8A';
 
 function GzCell({ char, kind, size, scale = 1, onPress }: { char: string; kind: 'stem' | 'branch'; size: 'sm' | 'xs'; scale?: number; onPress?: () => void }) {
+  const { fs } = useFontScale();
+  const styles = useMemo(() => makeStyles(fs), [fs]); // 글자 크기 적용(명식 간지 글자)
   const el = kind === 'stem' ? stemElement(char) : branchElement(char);
   const ko = kind === 'stem' ? stemReading(char) : branchReading(char);
   const txt = { color: elementText[el] };
-  // scale=1 → 정적 스타일(타임라인 카드). scale>1 → 확장명식 반응형(층 끄면 칸·글자 비례 확대).
-  const baseW = size === 'sm' ? 38 : 34, baseF = size === 'sm' ? 19 : 16, baseLH = size === 'sm' ? 22 : 19;
-  const cellDyn = scale !== 1 ? { width: Math.round(baseW * scale) } : null;
+  // scale=1 → 정적 스타일(타임라인 카드). scale>1 → 확장명식 반응형(층 끄면 칸·글자 비례 확대). fs=설정 글자크기(칸·글자 동시 확대).
+  const baseW = fs(size === 'sm' ? 38 : 34), baseF = fs(size === 'sm' ? 19 : 16), baseLH = fs(size === 'sm' ? 22 : 19);
+  const cellDyn = scale !== 1 ? { width: Math.round(baseW * scale) } : { width: Math.round(baseW) };
   const textDyn = scale !== 1 ? { fontSize: Math.round(baseF * scale), lineHeight: Math.round(baseLH * scale) } : null;
-  const koDyn = scale !== 1 ? { fontSize: Math.round(9 * scale), lineHeight: Math.round(11 * scale) } : null;
+  const koDyn = scale !== 1 ? { fontSize: Math.round(fs(9) * scale), lineHeight: Math.round(fs(11) * scale) } : null;
   const inner = (
     <View style={[size === 'sm' ? styles.gzCellSm : styles.gzCellXs, cellDyn, { backgroundColor: elementColor[el] }]}>
       <Text style={[size === 'sm' ? styles.gzTextSm : styles.gzTextXs, textDyn, txt]}>{char}</Text>
@@ -94,6 +97,8 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
   }, [activeTab]);
 
   const c = useMemo(() => (input ? computeChart(input) : null), [input]);
+  const { fs } = useFontScale();                          // 글자 크기(설정)
+  const styles = useMemo(() => makeStyles(fs), [fs]);     // fs 적용 스타일 — 명식 글자 포함 모든 텍스트 스케일
   if (!c) return <View style={styles.center}><Text style={font.body}>{t('myeongsik.noChart')}</Text></View>;
 
   const timeUnknown = input?.timeAccuracy === '미상'; // 시각 모름 → 시주 마스킹
@@ -644,19 +649,19 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
               <View style={{ flexDirection: 'row' }}>
                 {expandCols.map((col, i) => (
                   <View key={i} style={[styles.expCol2, { width: COLW }, col.luck && styles.expColLuck, hlExpand.has(col.label) && styles.expCol2On]}>
-                    <Text style={[styles.expLabel, { fontSize: Math.round(11 * scale) }]}>{col.label}</Text>
+                    <Text style={[styles.expLabel, { fontSize: Math.round(fs(11) * scale) }]}>{col.label}</Text>
                     {/* 대운수(입운 나이) — 대운 컬럼만 표기, 나머지 컬럼은 빈 줄로 세로 정렬 유지 */}
-                    <Text style={[styles.expAge, { fontSize: Math.round(9 * scale) }]}>{col.label === '대운' && lc ? `${lc.startAge}세` : ' '}</Text>
-                    <Text style={[styles.expTg, { fontSize: Math.round(11 * scale) }]}>{col.tg}</Text>
+                    <Text style={[styles.expAge, { fontSize: Math.round(fs(9) * scale) }]}>{col.label === '대운' && lc ? `${lc.startAge}세` : ' '}</Text>
+                    <Text style={[styles.expTg, { fontSize: Math.round(fs(11) * scale) }]}>{col.tg}</Text>
                     <GzCell char={col.stem} kind="stem" size="sm" scale={scale} onPress={() => setGlossary({ kind: 'stem', key: col.stem })} />
                     <GzCell char={col.branch} kind="branch" size="sm" scale={scale} onPress={() => setGlossary({ kind: 'branch', key: col.branch })} />
-                    <Text style={[styles.expTg, { fontSize: Math.round(11 * scale) }]}>{branchTenGod(dm, col.branch)}</Text>
+                    <Text style={[styles.expTg, { fontSize: Math.round(fs(11) * scale) }]}>{branchTenGod(dm, col.branch)}</Text>
                     <Pressable onPress={() => setGlossary({ kind: 'stage', key: twelveStage(dm, col.branch) })}>
-                      <Text style={[styles.expStage, { fontSize: Math.round(10 * scale) }]}>{twelveStage(dm, col.branch)}</Text>
+                      <Text style={[styles.expStage, { fontSize: Math.round(fs(10) * scale) }]}>{twelveStage(dm, col.branch)}</Text>
                     </Pressable>
                     <View style={styles.expHidden}>
                       {col.hidden.map((h: any, k: number) => (
-                        <Text key={k} style={[styles.expHiddenTx, { fontSize: Math.round(12 * scale), lineHeight: Math.round(15 * scale) }, { color: elementColor[stemElement(h.stem)] }]}>{h.stem}</Text>
+                        <Text key={k} style={[styles.expHiddenTx, { fontSize: Math.round(fs(12) * scale), lineHeight: Math.round(fs(15) * scale) }, { color: elementColor[stemElement(h.stem)] }]}>{h.stem}</Text>
                       ))}
                     </View>
                   </View>
@@ -951,115 +956,124 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
   );
 }
 
-const styles = StyleSheet.create({
+// 글자 크기(fs) 적용 — 테마 font 스프레드(고정 fontSize)도 fs로 덮어 명식 포함 모든 글자가 스케일.
+const scaledFont = (fs: (n: number) => number) => ({
+  title: { ...font.title, fontSize: fs(22) },
+  heading: { ...font.heading, fontSize: fs(17) },
+  body: { ...font.body, fontSize: fs(15) },
+  label: { ...font.label, fontSize: fs(13) },
+  caption: { ...font.caption, fontSize: fs(12) },
+});
+// makeStyles(fs): 아래 fontSize/lineHeight 리터럴은 sed로 fs()로 감쌈, ...font.X 는 ...f.X(scaledFont) 로 치환됨.
+const makeStyles = (fs: (n: number) => number) => { const f = scaledFont(fs); return StyleSheet.create({
   screen: { backgroundColor: colors.bg },
   wrap: { padding: space(5), paddingBottom: space(10) },
   tabBar: { flexDirection: 'row', backgroundColor: colors.card, borderBottomWidth: 1, borderBottomColor: colors.line },
   tabBtn: { flex: 1, paddingVertical: space(3.5), alignItems: 'center', borderBottomWidth: 2, borderBottomColor: 'transparent' },
   tabBtnOn: { borderBottomColor: colors.ju },
-  tabLabel: { ...font.body, color: colors.inkFaint, fontWeight: '700' },
+  tabLabel: { ...f.body, color: colors.inkFaint, fontWeight: '700' },
   tabLabelOn: { color: colors.ju },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.bg },
-  h: { ...font.heading, marginTop: space(5), marginBottom: space(2) },
-  hint: { ...font.caption, marginBottom: space(2) },
+  h: { ...f.heading, marginTop: space(5), marginBottom: space(2) },
+  hint: { ...f.caption, marginBottom: space(2) },
   ssRow: { flexDirection: 'row', alignItems: 'center', gap: space(2), paddingVertical: space(1.5), borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.line },
-  ssName: { ...font.body, width: 76, color: colors.ink },
+  ssName: { ...f.body, width: 76, color: colors.ink },
   ssBranches: { flexDirection: 'row', gap: space(1) },
-  ssBranch: { fontSize: 16, fontWeight: '800', minWidth: 22, textAlign: 'center' },
-  ssHit: { ...font.caption, color: colors.ju, fontWeight: '700' },
-  ssDim: { ...font.caption, color: colors.inkFaint },
+  ssBranch: { fontSize: fs(16), fontWeight: '800', minWidth: 22, textAlign: 'center' },
+  ssHit: { ...f.caption, color: colors.ju, fontWeight: '700' },
+  ssDim: { ...f.caption, color: colors.inkFaint },
   // 자리별 신살 표 (천간/지지 × 시·일·월·년)
   ssTable: { marginTop: space(2), borderWidth: 1, borderColor: colors.line, borderRadius: radius.sm, overflow: 'hidden' },
   ssTableRow: { flexDirection: 'row', borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.line },
-  ssRowLabel: { width: 36, alignSelf: 'center', textAlign: 'center', ...font.caption, color: colors.inkSoft, fontWeight: '700' },
-  ssColHead: { flex: 1, textAlign: 'center', paddingVertical: space(1.5), ...font.caption, color: colors.inkFaint, fontWeight: '700' },
+  ssRowLabel: { width: 36, alignSelf: 'center', textAlign: 'center', ...f.caption, color: colors.inkSoft, fontWeight: '700' },
+  ssColHead: { flex: 1, textAlign: 'center', paddingVertical: space(1.5), ...f.caption, color: colors.inkFaint, fontWeight: '700' },
   ssCell: { flex: 1, alignItems: 'center', paddingVertical: space(1.5), paddingHorizontal: 2, gap: 2, borderLeftWidth: StyleSheet.hairlineWidth, borderLeftColor: colors.line },
   // 12신살 원국 요약 행(명식 탭) — daniel: 원국에도 12신살 표시
   twelveRow: { flexDirection: 'row', alignItems: 'flex-start', marginTop: space(3), backgroundColor: colors.card, borderRadius: radius.sm, borderWidth: 1, borderColor: colors.line, paddingVertical: space(2) },
-  twelveRowLabel: { width: 44, alignSelf: 'center', textAlign: 'center', ...font.caption, color: colors.inkSoft, fontWeight: '700' },
+  twelveRowLabel: { width: 44, alignSelf: 'center', textAlign: 'center', ...f.caption, color: colors.inkSoft, fontWeight: '700' },
   twelveCell: { flex: 1, alignItems: 'center', gap: 2 },
-  twelveCellTx: { ...font.caption, color: colors.ju, fontWeight: '600' },
-  twelveDim: { ...font.caption, color: colors.inkFaint },
-  ssCellGz: { fontSize: 20, fontWeight: '800' },
-  ssTag: { fontSize: 10, color: colors.ju, fontWeight: '600', textAlign: 'center' },
+  twelveCellTx: { ...f.caption, color: colors.ju, fontWeight: '600' },
+  twelveDim: { ...f.caption, color: colors.inkFaint },
+  ssCellGz: { fontSize: fs(20), fontWeight: '800' },
+  ssTag: { fontSize: fs(10), color: colors.ju, fontWeight: '600', textAlign: 'center' },
   ssGmRow: { flexDirection: 'row', alignItems: 'center', gap: space(2), marginTop: space(2.5) },
-  ssLuckLine: { ...font.caption, color: colors.inkFaint, marginTop: space(2), lineHeight: 18 },
+  ssLuckLine: { ...f.caption, color: colors.inkFaint, marginTop: space(2), lineHeight: fs(18) },
   // 신살·공망 전용 상세 화면 진입 버튼(골드 아웃라인)
   sinsalDetailBtn: { alignSelf: 'flex-start', borderWidth: 1, borderColor: colors.ju, borderRadius: radius.pill, paddingHorizontal: space(3.5), paddingVertical: space(1.75), marginTop: space(1), marginBottom: space(3) },
-  sinsalDetailTx: { color: colors.ju, fontSize: 13, fontWeight: '700' },
+  sinsalDetailTx: { color: colors.ju, fontSize: fs(13), fontWeight: '700' },
   // 신살·공망 상세 (길신/흉살/기타/공망)
   ssCatBlock: { marginTop: space(3) },
-  ssCatHead: { ...font.caption, color: colors.ju, fontWeight: '800', marginBottom: space(1) },
+  ssCatHead: { ...f.caption, color: colors.ju, fontWeight: '800', marginBottom: space(1) },
   ssDRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: space(1.5), borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.line, gap: space(1.5) },
-  ssDName: { ...font.body, color: colors.ink, width: 96, fontWeight: '700' },
-  ssDHanja: { fontSize: 11, color: colors.inkFaint, fontWeight: '400' },
-  ssDGlyph: { fontSize: 14, fontWeight: '800', color: colors.inkSoft, width: 52 },
-  ssDHit: { ...font.caption, color: colors.ju, fontWeight: '700', width: 58 },
-  ssDDim: { ...font.caption, color: colors.inkFaint, width: 58 },
-  ssDKw: { ...font.caption, color: colors.inkSoft, flex: 1 },
-  ssSubHead: { ...font.caption, color: colors.inkSoft, fontWeight: '700', marginTop: space(3), marginBottom: space(1) },
-  ss12Tag: { fontSize: 11, color: colors.ink, fontWeight: '700', textAlign: 'center', textDecorationLine: 'none', textDecorationStyle: 'dotted' },
-  ss12Base: { fontSize: 8, color: colors.inkFaint, fontWeight: '400' },
+  ssDName: { ...f.body, color: colors.ink, width: 96, fontWeight: '700' },
+  ssDHanja: { fontSize: fs(11), color: colors.inkFaint, fontWeight: '400' },
+  ssDGlyph: { fontSize: fs(14), fontWeight: '800', color: colors.inkSoft, width: 52 },
+  ssDHit: { ...f.caption, color: colors.ju, fontWeight: '700', width: 58 },
+  ssDDim: { ...f.caption, color: colors.inkFaint, width: 58 },
+  ssDKw: { ...f.caption, color: colors.inkSoft, flex: 1 },
+  ssSubHead: { ...f.caption, color: colors.inkSoft, fontWeight: '700', marginTop: space(3), marginBottom: space(1) },
+  ss12Tag: { fontSize: fs(11), color: colors.ink, fontWeight: '700', textAlign: 'center', textDecorationLine: 'none', textDecorationStyle: 'dotted' },
+  ss12Base: { fontSize: fs(8), color: colors.inkFaint, fontWeight: '400' },
   rootBadgeRow: { flexDirection: 'row', alignItems: 'center', marginTop: 2, flexWrap: 'wrap', justifyContent: 'center' },
-  rootStem: { fontSize: 10, fontWeight: '800' },
-  rootSuffix: { fontSize: 9, color: colors.inkFaint, marginLeft: 1 },
+  rootStem: { fontSize: fs(10), fontWeight: '800' },
+  rootSuffix: { fontSize: fs(9), color: colors.inkFaint, marginLeft: 1 },
   // 시간층 토글(년운·월운·일운)
   layerToggle: { flexDirection: 'row', gap: space(2), marginTop: space(2), marginBottom: space(1) },
   layerChip: { paddingHorizontal: space(3), paddingVertical: space(1.5), borderRadius: radius.pill, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line },
   layerChipOn: { backgroundColor: colors.juSoft, borderColor: colors.ju },
-  layerChipTx: { fontSize: 12, fontWeight: '700', color: colors.inkFaint },
+  layerChipTx: { fontSize: fs(12), fontWeight: '700', color: colors.inkFaint },
   layerChipTxOn: { color: colors.ju },
   luckScroll: { marginTop: space(2) },
   luckScrollC: { gap: space(1.5), flexDirection: 'row-reverse', paddingHorizontal: space(2) },
   luckCard: { alignItems: 'center', paddingVertical: space(2), paddingHorizontal: space(2.5), borderRadius: radius.sm, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, minWidth: 58 },
   luckCardCur: { borderColor: colors.ju },
   luckCardSel: { backgroundColor: colors.juSoft, borderColor: colors.ju, borderWidth: 1.5 },
-  luckAge: { fontSize: 9, color: colors.inkFaint },
+  luckAge: { fontSize: fs(9), color: colors.inkFaint },
   luckGz: { flexDirection: 'row', gap: 1, marginVertical: 2 },
-  luckStem: { fontSize: 17, fontWeight: '800' },
-  luckTg: { fontSize: 9, color: colors.inkSoft },
-  luckStage: { fontSize: 9, color: colors.inkFaint, fontWeight: '600' },   // 12운성
-  luckSub: { ...font.caption, color: colors.ju, marginTop: space(3), marginBottom: space(1) },
+  luckStem: { fontSize: fs(17), fontWeight: '800' },
+  luckTg: { fontSize: fs(9), color: colors.inkSoft },
+  luckStage: { fontSize: fs(9), color: colors.inkFaint, fontWeight: '600' },   // 12운성
+  luckSub: { ...f.caption, color: colors.ju, marginTop: space(3), marginBottom: space(1) },
   seunCard: { alignItems: 'center', paddingVertical: space(1.5), paddingHorizontal: space(2), borderRadius: radius.sm, backgroundColor: colors.sunk, minWidth: 52 },
   seunCur: { borderWidth: 1.5, borderColor: colors.ju },
-  seunYear: { fontSize: 9, color: colors.inkFaint },
-  seunGz: { fontSize: 14, fontWeight: '700' },
-  seunTg: { fontSize: 8, color: colors.inkSoft },
-  seunStage: { fontSize: 8, color: colors.inkFaint, fontWeight: '600' },   // 12운성
+  seunYear: { fontSize: fs(9), color: colors.inkFaint },
+  seunGz: { fontSize: fs(14), fontWeight: '700' },
+  seunTg: { fontSize: fs(8), color: colors.inkSoft },
+  seunStage: { fontSize: fs(8), color: colors.inkFaint, fontWeight: '600' },   // 12운성
   gzCellSm: { width: 38, borderRadius: 6, alignItems: 'center', justifyContent: 'center', paddingVertical: 3, marginVertical: 1.5 },
-  gzTextSm: { fontSize: 19, fontWeight: '800', lineHeight: 22 },
+  gzTextSm: { fontSize: fs(19), fontWeight: '800', lineHeight: fs(22) },
   gzCellXs: { width: 34, borderRadius: 6, alignItems: 'center', justifyContent: 'center', paddingVertical: 2, marginVertical: 1.5 },
-  gzTextXs: { fontSize: 16, fontWeight: '700', lineHeight: 19 },
-  gzKo: { fontSize: 9, fontWeight: '700', lineHeight: 11, opacity: 0.85 },   // 한자 아래 한글음
+  gzTextXs: { fontSize: fs(16), fontWeight: '700', lineHeight: fs(19) },
+  gzKo: { fontSize: fs(9), fontWeight: '700', lineHeight: fs(11), opacity: 0.85 },   // 한자 아래 한글음
   expCol: { alignItems: 'center', paddingHorizontal: space(0.75), paddingVertical: space(0.5) },
   expCol2: { width: 50, alignItems: 'center', paddingVertical: space(0.5) },   // 고정폭(합충 호 좌표용)
   expColLuck: { backgroundColor: colors.juSoft, borderRadius: radius.sm },
-  expLabel: { fontSize: 11, color: colors.inkFaint, marginBottom: 2, fontWeight: '600' },
-  expAge: { fontSize: 9, color: colors.ju, marginBottom: 2, fontWeight: '700' },  // 대운수(입운 나이) — 대운 컬럼 강조
-  expTg: { fontSize: 11, color: colors.inkSoft, marginBottom: 2, fontWeight: '600' },
-  expStage: { fontSize: 10, color: colors.inkFaint, fontWeight: '600', marginTop: 1 },   // 12운성
+  expLabel: { fontSize: fs(11), color: colors.inkFaint, marginBottom: 2, fontWeight: '600' },
+  expAge: { fontSize: fs(9), color: colors.ju, marginBottom: 2, fontWeight: '700' },  // 대운수(입운 나이) — 대운 컬럼 강조
+  expTg: { fontSize: fs(11), color: colors.inkSoft, marginBottom: 2, fontWeight: '600' },
+  expStage: { fontSize: fs(10), color: colors.inkFaint, fontWeight: '600', marginTop: 1 },   // 12운성
   expHidden: { alignItems: 'center', marginTop: 4 },
-  expHiddenTx: { fontSize: 12, fontWeight: '700', lineHeight: 15 },
+  expHiddenTx: { fontSize: fs(12), fontWeight: '700', lineHeight: fs(15) },
   // 지장간 강약 칩 — 본기·통근(투출)=진하게(강) / 중기·여기 미투출=흐리게(잠재). daniel: 지장간 강약 표시
-  hiddenHint: { ...font.caption, color: colors.inkFaint, marginTop: space(1), marginBottom: space(1), lineHeight: 16 },
+  hiddenHint: { ...f.caption, color: colors.inkFaint, marginTop: space(1), marginBottom: space(1), lineHeight: fs(16) },
   hiddenDetailRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', marginTop: space(2.5), gap: space(2) },
-  hiddenRowLabel: { ...font.caption, color: colors.inkSoft, fontWeight: '700', width: 52 },
+  hiddenRowLabel: { ...f.caption, color: colors.inkSoft, fontWeight: '700', width: 52 },
   hiddenChips: { flexDirection: 'row', flexWrap: 'wrap', gap: space(2), flex: 1 },
   hiddenChip: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: space(2), paddingVertical: space(1), borderRadius: radius.sm, borderWidth: 1 },
   hiddenChipStrong: { backgroundColor: colors.card, borderColor: colors.juLine },
   hiddenChipWeak: { backgroundColor: 'transparent', borderColor: colors.line, borderStyle: 'dashed' },
-  hiddenChipChar: { fontSize: 15, fontWeight: '800' },
-  hiddenChipTg: { fontSize: 12, color: colors.ink, fontWeight: '600' },
-  hiddenChipRole: { fontSize: 9, color: colors.inkFaint, fontWeight: '700' },
+  hiddenChipChar: { fontSize: fs(15), fontWeight: '800' },
+  hiddenChipTg: { fontSize: fs(12), color: colors.ink, fontWeight: '600' },
+  hiddenChipRole: { fontSize: fs(9), color: colors.inkFaint, fontWeight: '700' },
   hiddenDim: { opacity: 0.45 },
   calGrid: { flexDirection: 'row', flexWrap: 'wrap', marginTop: space(2) },
-  calHead: { width: '14.28%', textAlign: 'center', fontSize: 10, color: colors.inkFaint, paddingVertical: 3 },
+  calHead: { width: '14.28%', textAlign: 'center', fontSize: fs(10), color: colors.inkFaint, paddingVertical: 3 },
   calCell: { width: '14.28%', alignItems: 'center', paddingVertical: space(1) },
-  calDay: { fontSize: 10, color: colors.inkSoft },
+  calDay: { fontSize: fs(10), color: colors.inkSoft },
   calCellToday: { backgroundColor: colors.juSoft, borderRadius: radius.sm },
   calCellSel: { borderWidth: 1.5, borderColor: colors.ju, borderRadius: radius.sm }, // 선택된 일운(달력 탭)
   calDayToday: { color: colors.ju, fontWeight: '800' },
-  calGz: { fontSize: 13, fontWeight: '700', marginTop: 1 },
+  calGz: { fontSize: fs(13), fontWeight: '700', marginTop: 1 },
   row: { flexDirection: 'row', gap: space(2) },
   pillarContainer: { flexDirection: 'row', gap: space(2), marginTop: space(2), marginBottom: space(4) },
   // 유형·무형 테두리 토글 + 범례(daniel)
@@ -1069,108 +1083,108 @@ const styles = StyleSheet.create({
   tangoTrackOn: { backgroundColor: colors.ju },
   tangoThumb: { width: 16, height: 16, borderRadius: 8, backgroundColor: '#FFFFFF' },
   tangoThumbOn: { alignSelf: 'flex-end' },
-  tangoLabel: { fontSize: 13, fontWeight: '700', color: colors.inkSoft },
+  tangoLabel: { fontSize: fs(13), fontWeight: '700', color: colors.inkSoft },
   tangoLegend: { flexDirection: 'row', flexWrap: 'wrap', gap: space(4), marginTop: space(2.5), paddingLeft: space(1) },
   tangoLegendItem: { flexDirection: 'row', alignItems: 'center', gap: space(1.5) },
   tangoSwatch: { width: 16, height: 16, borderRadius: 4, borderWidth: 1.5, backgroundColor: 'transparent' },
-  tangoLegendTx: { fontSize: 11.5, color: colors.inkSoft },
+  tangoLegendTx: { fontSize: fs(11.5), color: colors.inkSoft },
   pillarWrapper: { flex: 1 },
   pillarGlass: { paddingVertical: space(3), paddingHorizontal: 0, alignItems: 'center' },
   pillarDayGlass: { borderColor: colors.ju, borderWidth: 1.5 },
-  pillarPos: { ...font.caption, fontWeight: '700', color: colors.inkFaint, marginBottom: space(1.5) },
+  pillarPos: { ...f.caption, fontWeight: '700', color: colors.inkFaint, marginBottom: space(1.5) },
   pillarPosDay: { color: colors.ju },
   pillarMain: { alignItems: 'center', width: '100%', paddingVertical: space(0.5) },
-  pillarChar: { fontSize: 26, fontWeight: '800', lineHeight: 32 },
-  pillarTenGod: { fontSize: 10, fontWeight: '600' },
-  pillarReading: { fontSize: 9, fontWeight: '400' },
+  pillarChar: { fontSize: fs(26), fontWeight: '800', lineHeight: fs(32) },
+  pillarTenGod: { fontSize: fs(10), fontWeight: '600' },
+  pillarReading: { fontSize: fs(9), fontWeight: '400' },
   pillarIcon: { marginVertical: space(2) },
   advancedInfo: { width: '100%', alignItems: 'center' },
-  pillarStage: { fontSize: 10, color: colors.inkSoft, fontWeight: '600', marginTop: space(1) },
+  pillarStage: { fontSize: fs(10), color: colors.inkSoft, fontWeight: '600', marginTop: space(1) },
   pillarHidden: { flexDirection: 'row', gap: 2, marginTop: space(1) },
-  pillarHiddenChar: { fontSize: 11, fontWeight: '700' },
+  pillarHiddenChar: { fontSize: fs(11), fontWeight: '700' },
   pillarHiddenItem: { width: 15, height: 15, alignItems: 'center', justifyContent: 'center' }, // 지장간 1자 칸
   pillarHiddenRooted: { borderWidth: 1, borderColor: colors.ju, borderRadius: 8 }, // 투출(통근) = 동그라미
   headerArea: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: space(4) },
   advancedBtn: { paddingHorizontal: space(2), paddingVertical: space(1), borderRadius: radius.sm, backgroundColor: colors.sunk },
-  advancedBtnTx: { ...font.caption, color: colors.ju, fontWeight: '700' },
+  advancedBtnTx: { ...f.caption, color: colors.ju, fontWeight: '700' },
   linksToggleNew: { marginTop: space(4), borderRadius: radius.md, overflow: 'hidden', ...shadow.card },
   linksToggleGradient: { paddingVertical: space(3), alignItems: 'center' },
-  linksToggleTx: { ...font.body, color: colors.ju, fontWeight: '700' },
+  linksToggleTx: { ...f.body, color: colors.ju, fontWeight: '700' },
   pillarDivider: { width: '70%', height: 1, backgroundColor: colors.line, marginVertical: space(1.5) },
   ptable: { display: 'none' }, // 기존 테이블 숨김
-  kv: { ...font.body, color: colors.ink, marginTop: space(1.5), lineHeight: 21 },
+  kv: { ...f.body, color: colors.ink, marginTop: space(1.5), lineHeight: fs(21) },
   kvLabel: { color: colors.inkSoft, fontWeight: '700' },
   kvAccent: { color: colors.ju, fontWeight: '700' },
-  warn: { ...font.caption, color: colors.ju, marginTop: space(2) },
+  warn: { ...f.caption, color: colors.ju, marginTop: space(2) },
   gaugeRow: { flexDirection: 'row', alignItems: 'center', gap: space(3), marginTop: space(1) },
   gaugeTrack: { flex: 1, height: 10, borderRadius: 5, backgroundColor: colors.sunk, overflow: 'hidden', justifyContent: 'center' },
   gaugeMid: { position: 'absolute', left: '50%', width: 1, height: 10, backgroundColor: colors.inkFaint }, // 중화(중앙) 기준선
   gaugeFill: { height: '100%', backgroundColor: colors.ju, borderRadius: 5 },
-  gaugeText: { ...font.caption, color: colors.ink },
+  gaugeText: { ...f.caption, color: colors.ink },
   strengthRow: { flexDirection: 'row', alignItems: 'center', gap: space(4), marginTop: space(2) },
   strengthInfo: { flex: 1, gap: space(1.5) },
   strDetailBtn: { marginTop: space(3), alignSelf: 'flex-start', paddingVertical: space(1) },
-  strDetailBtnTx: { ...font.caption, color: colors.ju, fontWeight: '800' },
+  strDetailBtnTx: { ...f.caption, color: colors.ju, fontWeight: '800' },
   strDetailCard: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.line, padding: space(4), marginBottom: space(3) },
   strDetailMine: { borderColor: colors.ju, borderWidth: 1.5 },
-  strDetailTitle: { ...font.body, color: colors.ink, fontWeight: '800', marginBottom: space(2) },
-  strDetailLabel: { ...font.caption, color: colors.ju, fontWeight: '800', marginTop: space(2) },
-  strDetailBody: { ...font.body, color: colors.inkSoft, lineHeight: 22, marginTop: space(0.5) },
+  strDetailTitle: { ...f.body, color: colors.ink, fontWeight: '800', marginBottom: space(2) },
+  strDetailLabel: { ...f.caption, color: colors.ju, fontWeight: '800', marginTop: space(2) },
+  strDetailBody: { ...f.body, color: colors.inkSoft, lineHeight: fs(22), marginTop: space(0.5) },
   elemLegend: { flex: 1, gap: space(1) },
   elemLegendRow: { flexDirection: 'row', alignItems: 'center', gap: space(2) },
   elemDot: { width: 10, height: 10, borderRadius: 5 },
-  elemLegendEl: { fontSize: 15, fontWeight: '800', width: 20 },
-  elemLegendVal: { ...font.caption, color: colors.inkSoft },
-  note: { ...font.caption, marginTop: space(6) },
+  elemLegendEl: { fontSize: fs(15), fontWeight: '800', width: 20 },
+  elemLegendVal: { ...f.caption, color: colors.inkSoft },
+  note: { ...f.caption, marginTop: space(6) },
   readingBtn: {
     backgroundColor: colors.ju, borderRadius: radius.md, paddingVertical: space(3.5),
     alignItems: 'center', marginTop: space(5), ...shadow.card,
   },
-  readingBtnText: { color: colors.bg, fontSize: 15, fontWeight: '700' },
+  readingBtnText: { color: colors.bg, fontSize: fs(15), fontWeight: '700' },
   // 클릭 설명 — 탭 가능 힌트(점선 밑줄) + 바텀시트
-  tgSmallLink: { fontSize: 10, color: colors.inkSoft, marginVertical: space(0.5), textDecorationLine: 'none', textDecorationStyle: 'dotted' },
-  ssTagLink: { fontSize: 10, color: colors.ju, fontWeight: '600', textAlign: 'center', textDecorationLine: 'none', textDecorationStyle: 'dotted' },
+  tgSmallLink: { fontSize: fs(10), color: colors.inkSoft, marginVertical: space(0.5), textDecorationLine: 'none', textDecorationStyle: 'dotted' },
+  ssTagLink: { fontSize: fs(10), color: colors.ju, fontWeight: '600', textAlign: 'center', textDecorationLine: 'none', textDecorationStyle: 'dotted' },
   linkText: { textDecorationLine: 'none', textDecorationStyle: 'dotted' },
   // 팔자 카드 — 12운성·지장간·12신살 (각 탭 가능, 점선밑줄 힌트)
-  stageLink: { fontSize: 10, color: colors.inkSoft, fontWeight: '600', textDecorationLine: 'none', textDecorationStyle: 'dotted', marginTop: space(0.5) },
+  stageLink: { fontSize: fs(10), color: colors.inkSoft, fontWeight: '600', textDecorationLine: 'none', textDecorationStyle: 'dotted', marginTop: space(0.5) },
   hiddenRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 3, marginTop: space(0.5) },
-  hiddenG: { fontSize: 11, fontWeight: '700', textDecorationLine: 'none', textDecorationStyle: 'dotted' },
+  hiddenG: { fontSize: fs(11), fontWeight: '700', textDecorationLine: 'none', textDecorationStyle: 'dotted' },
   pillarSinsal: { alignItems: 'center', marginTop: space(1) },
-  pillarSsTx: { fontSize: 9, color: colors.ju, fontWeight: '600', lineHeight: 13, textAlign: 'center', textDecorationLine: 'none', textDecorationStyle: 'dotted' },
-  pillarSsBase: { fontSize: 7, color: colors.inkFaint, fontWeight: '400', textDecorationLine: 'none' },
+  pillarSsTx: { fontSize: fs(9), color: colors.ju, fontWeight: '600', lineHeight: fs(13), textAlign: 'center', textDecorationLine: 'none', textDecorationStyle: 'dotted' },
+  pillarSsBase: { fontSize: fs(7), color: colors.inkFaint, fontWeight: '400', textDecorationLine: 'none' },
   // 팔자 표 (행 라벨 + 칸 구분선 + 일주 강조)
   ptRow: { flexDirection: 'row', borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.line, alignItems: 'stretch' },
   ptRowLast: { borderBottomWidth: 0 },
-  ptLabel: { width: 34, ...font.caption, color: colors.inkSoft, fontWeight: '700', textAlign: 'center', alignSelf: 'center', paddingVertical: space(1) },
+  ptLabel: { width: 34, ...f.caption, color: colors.inkSoft, fontWeight: '700', textAlign: 'center', alignSelf: 'center', paddingVertical: space(1) },
   ptCell: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: space(1.5), borderLeftWidth: StyleSheet.hairlineWidth, borderLeftColor: colors.line },
   ptCellDay: { backgroundColor: colors.juSoft },
-  ptHead: { ...font.caption, color: colors.inkFaint, fontWeight: '700' },
+  ptHead: { ...f.caption, color: colors.inkFaint, fontWeight: '700' },
   ptHeadDay: { color: colors.ju },
-  ptTgLink: { fontSize: 11, color: colors.inkSoft, fontWeight: '600', textAlign: 'center', textDecorationLine: 'none', textDecorationStyle: 'dotted' },
+  ptTgLink: { fontSize: fs(11), color: colors.inkSoft, fontWeight: '600', textAlign: 'center', textDecorationLine: 'none', textDecorationStyle: 'dotted' },
   ptGz: { width: 40, height: 40, borderRadius: 6, alignItems: 'center', justifyContent: 'center', marginVertical: 1 },
-  ptGzTx: { fontSize: 22, fontWeight: '800', lineHeight: 24 },
-  ptGzKo: { fontSize: 9, fontWeight: '700', lineHeight: 10, opacity: 0.85 },
+  ptGzTx: { fontSize: fs(22), fontWeight: '800', lineHeight: fs(24) },
+  ptGzKo: { fontSize: fs(9), fontWeight: '700', lineHeight: fs(10), opacity: 0.85 },
   ptHidWrap: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 2 },
-  ptHid: { fontSize: 12, fontWeight: '700', textDecorationLine: 'none', textDecorationStyle: 'dotted' },
+  ptHid: { fontSize: fs(12), fontWeight: '700', textDecorationLine: 'none', textDecorationStyle: 'dotted' },
   ptHidRooted: { borderWidth: 1, borderColor: colors.ju, borderRadius: 9, paddingHorizontal: 3, paddingVertical: 0.5, textDecorationLine: 'none', overflow: 'hidden' }, // 투출(透出) 지장간 = 동그라미 강조
-  ptStageLink: { fontSize: 11, color: colors.inkSoft, fontWeight: '600', textAlign: 'center', textDecorationLine: 'none', textDecorationStyle: 'dotted' },
-  ptSsLink: { fontSize: 9, color: colors.ju, fontWeight: '600', lineHeight: 13, textAlign: 'center', textDecorationLine: 'none', textDecorationStyle: 'dotted' },
-  ptSsBase: { fontSize: 7, color: colors.inkFaint, fontWeight: '400', textDecorationLine: 'none' },
-  ptRoot: { fontSize: 11, fontWeight: '800' },
+  ptStageLink: { fontSize: fs(11), color: colors.inkSoft, fontWeight: '600', textAlign: 'center', textDecorationLine: 'none', textDecorationStyle: 'dotted' },
+  ptSsLink: { fontSize: fs(9), color: colors.ju, fontWeight: '600', lineHeight: fs(13), textAlign: 'center', textDecorationLine: 'none', textDecorationStyle: 'dotted' },
+  ptSsBase: { fontSize: fs(7), color: colors.inkFaint, fontWeight: '400', textDecorationLine: 'none' },
+  ptRoot: { fontSize: fs(11), fontWeight: '800' },
   // 자미두수 명반 (12궁 4×4)
   ziGrid: { marginTop: space(2), borderWidth: 1, borderColor: colors.line, borderRadius: radius.sm },
   ziRow: { flexDirection: 'row' },
   ziCell: { flex: 1, minHeight: 76, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.line, padding: 3 },
   ziCenterCell: { flex: 1, minHeight: 76, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.line, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.sunk },
-  ziCenterT: { fontSize: 9, color: colors.inkFaint },
-  ziCenterV: { fontSize: 15, color: colors.ju, fontWeight: '800' },
+  ziCenterT: { fontSize: fs(9), color: colors.inkFaint },
+  ziCenterV: { fontSize: fs(15), color: colors.ju, fontWeight: '800' },
   ziTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  ziName: { fontSize: 8, color: colors.inkFaint, fontWeight: '600' },
-  ziBr: { fontSize: 13, fontWeight: '800' },
-  ziMajor: { fontSize: 11, color: colors.ink, fontWeight: '700', marginTop: 1, lineHeight: 14 },
-  ziBright: { fontSize: 8, color: colors.inkFaint, fontWeight: '400' },
-  ziSihwa: { fontSize: 9, fontWeight: '800' },
-  ziMinor: { fontSize: 8, color: colors.inkSoft, marginTop: 1, lineHeight: 12 },
+  ziName: { fontSize: fs(8), color: colors.inkFaint, fontWeight: '600' },
+  ziBr: { fontSize: fs(13), fontWeight: '800' },
+  ziMajor: { fontSize: fs(11), color: colors.ink, fontWeight: '700', marginTop: 1, lineHeight: fs(14) },
+  ziBright: { fontSize: fs(8), color: colors.inkFaint, fontWeight: '400' },
+  ziSihwa: { fontSize: fs(9), fontWeight: '800' },
+  ziMinor: { fontSize: fs(8), color: colors.inkSoft, marginTop: 1, lineHeight: fs(12) },
   ziLink: { textDecorationLine: 'none', textDecorationStyle: 'dotted' }, // 탭 힌트
   // 합충형해 토글 카드 (기본 숨김 → 선 + 글자작용)
   linksToggle: { marginTop: space(2), paddingVertical: space(2.5), paddingHorizontal: space(3), borderRadius: radius.sm, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.card, alignItems: 'center' },
@@ -1180,35 +1194,35 @@ const styles = StyleSheet.create({
   linkMiniCol: { width: 56, alignItems: 'center' },
   linkList: { gap: space(1.5), borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.line, paddingTop: space(2.5) },
   linkRow: { flexDirection: 'row', alignItems: 'center', gap: space(2) },
-  linkDot: { fontSize: 10 },
-  linkRowTx: { ...font.body, color: colors.ink, flex: 1 },
-  linkLevel: { fontSize: 10, color: colors.inkFaint },
+  linkDot: { fontSize: fs(10) },
+  linkRowTx: { ...f.body, color: colors.ink, flex: 1 },
+  linkLevel: { fontSize: fs(10), color: colors.inkFaint },
   // 종류별 그룹(팔자) + 강도순(대운세운)
   linkGroup: { marginBottom: space(2) },
-  linkGroupHead: { ...font.caption, fontWeight: '800', marginBottom: space(1) },
+  linkGroupHead: { ...f.caption, fontWeight: '800', marginBottom: space(1) },
   linkGRow: { paddingVertical: space(1), paddingLeft: space(2) },
-  linkGTx: { ...font.body, color: colors.ink },
-  strHint: { ...font.caption, color: colors.inkFaint, marginBottom: space(2) },
+  linkGTx: { ...f.body, color: colors.ink },
+  strHint: { ...f.caption, color: colors.inkFaint, marginBottom: space(2) },
   strRow: { flexDirection: 'row', alignItems: 'center', gap: space(2), paddingVertical: space(1.5), paddingHorizontal: space(2), borderRadius: radius.sm },
   strRowTop: { backgroundColor: colors.sunk },
-  strBadge: { fontSize: 11, fontWeight: '800', width: 22, height: 20, lineHeight: 18, textAlign: 'center', borderWidth: 1, borderRadius: 4 },
+  strBadge: { fontSize: fs(11), fontWeight: '800', width: 22, height: 20, lineHeight: fs(18), textAlign: 'center', borderWidth: 1, borderRadius: 4 },
   linkGRowOn: { backgroundColor: colors.juSoft, borderRadius: radius.sm },          // 켜진 합충 행
   ptCellHL: { backgroundColor: 'rgba(201,161,74,0.30)' },                            // 명식 강조 셀
   expCol2On: { backgroundColor: 'rgba(201,161,74,0.30)', borderRadius: radius.sm },  // 확장명식 강조 컬럼
   // 대표 오행·십성 칩
   repRow: { flexDirection: 'row', gap: space(2), marginTop: space(3) },
   repChip: { flex: 1, paddingVertical: space(2.5), paddingHorizontal: space(2), borderRadius: radius.sm, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.card, alignItems: 'center' },
-  repLabel: { ...font.caption, color: colors.inkFaint },
-  repVal: { fontSize: 18, fontWeight: '800', marginTop: 2, textDecorationLine: 'none', textDecorationStyle: 'dotted' },
-  repValTg: { fontSize: 15, fontWeight: '800', color: colors.ju, marginTop: 2, textDecorationLine: 'none', textDecorationStyle: 'dotted' },
+  repLabel: { ...f.caption, color: colors.inkFaint },
+  repVal: { fontSize: fs(18), fontWeight: '800', marginTop: 2, textDecorationLine: 'none', textDecorationStyle: 'dotted' },
+  repValTg: { fontSize: fs(15), fontWeight: '800', color: colors.ju, marginTop: 2, textDecorationLine: 'none', textDecorationStyle: 'dotted' },
   sheetOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'flex-end' },
   sheet: { backgroundColor: colors.card, borderTopLeftRadius: radius.md, borderTopRightRadius: radius.md, padding: space(5), paddingBottom: space(9) },
   sheetHandle: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: colors.line, marginBottom: space(3) },
-  sheetKind: { ...font.caption, color: colors.ju, fontWeight: '700', marginBottom: space(1) },
-  sheetTitle: { ...font.heading, color: colors.ink, marginBottom: space(2.5) },
-  sheetMeaning: { ...font.body, color: colors.ink, lineHeight: 24 },
+  sheetKind: { ...f.caption, color: colors.ju, fontWeight: '700', marginBottom: space(1) },
+  sheetTitle: { ...f.heading, color: colors.ink, marginBottom: space(2.5) },
+  sheetMeaning: { ...f.body, color: colors.ink, lineHeight: fs(24) },
   sheetChips: { flexDirection: 'row', flexWrap: 'wrap', gap: space(1.5), marginTop: space(3.5) },
-  sheetChip: { ...font.caption, color: colors.ink, backgroundColor: colors.sunk, paddingHorizontal: space(2.5), paddingVertical: space(1), borderRadius: radius.pill, overflow: 'hidden' },
+  sheetChip: { ...f.caption, color: colors.ink, backgroundColor: colors.sunk, paddingHorizontal: space(2.5), paddingVertical: space(1), borderRadius: radius.pill, overflow: 'hidden' },
   sheetClose: { marginTop: space(4), alignItems: 'center', paddingVertical: space(2.5), borderRadius: radius.sm, backgroundColor: colors.sunk },
-  sheetCloseText: { ...font.body, color: colors.inkSoft, fontWeight: '700' },
-});
+  sheetCloseText: { ...f.body, color: colors.inkSoft, fontWeight: '700' },
+}); };
