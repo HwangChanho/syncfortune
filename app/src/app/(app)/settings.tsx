@@ -120,9 +120,14 @@ export default function SettingsScreen() {
 
       {/* ── 관리자(is_admin 전용) ── */}
       {(admin || __DEV__) && (
-        <Pressable style={styles.adminLink} onPress={() => router.push('/admin')}>
-          <Text style={styles.adminLinkTx}>⚙ 관리자{__DEV__ && !admin ? ' (dev)' : ''}</Text>
-        </Pressable>
+        <>
+          <Pressable style={styles.adminLink} onPress={() => router.push('/admin')}>
+            <Text style={styles.adminLinkTx}>⚙ 관리자{__DEV__ && !admin ? ' (dev)' : ''}</Text>
+          </Pressable>
+          <Pressable style={styles.adminLink} onPress={() => router.push('/coststable')}>
+            <Text style={styles.adminLinkTx}>📊 비용·수익 분석 (실측)</Text>
+          </Pressable>
+        </>
       )}
 
       {/* ── 프리미엄 ── */}
