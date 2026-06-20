@@ -87,7 +87,8 @@ export function solarYmd(input: ChartInput): [number, number, number] {
   const [datePart] = input.birthDateTime.split(' ');
   const [y, mo, d] = datePart.split('-').map(Number);
   if ((input as any).calendar === '음') {
-    try { const s = Lunar.fromYmd(y, mo, d).getSolar(); return [s.getYear(), s.getMonth(), s.getDay()]; }
+    // ⚠️ Lunar 는 모듈(Lunar.Solar 로도 씀) → 음력 변환은 Lunar.Lunar.fromYmd (Lunar.fromYmd 는 undefined).
+    try { const s = Lunar.Lunar.fromYmd(y, mo, d).getSolar(); return [s.getYear(), s.getMonth(), s.getDay()]; }
     catch { /* 변환 실패 시 입력 그대로(양력 간주) */ }
   }
   return [y, mo, d];
