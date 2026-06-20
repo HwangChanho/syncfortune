@@ -80,9 +80,22 @@ function buildPillar(position: PillarPos, ganZhi: string, dayStem: Stem): Pillar
  * @param input  엔진 입력(PII). birthDateTime "YYYY-MM-DD HH:mm" 시계시 — 진태양시 보정(서머타임·시대별 자오선·균시차)은 내부 적용(ADR-008 해소).
  * @param nowYear 세운 기준 연도(기본 2026).
  */
-export function buildSajuChart(input: ChartInput, nowYear = 2026): SajuChart {
-  const [datePart, timePart = '0:0'] = input.birthDateTime.split(' ');
+// 음력 입력이면 양력 [y,mo,d] 로 변환(lunar-javascript). 양력이면 그대로.
+//   ※ 만세력 음력 생일 오류 수정 — 기존엔 calendar='음'을 무시하고 양력처럼 계산했음.
+//   ※ 윤달은 입력 폼에 없어 평달(비윤달) 기준으로 변환한다(한계 — 추후 윤달 입력 시 보강).
+export function solarYmd(input: ChartInput): [number, number, number] {
+  const [datePart] = input.birthDateTime.split(' ');
   const [y, mo, d] = datePart.split('-').map(Number);
+  if ((input as any).calendar === '음') {
+    try { const s = Lunar.fromYmd(y, mo, d).getSolar(); return [s.getYear(), s.getMonth(), s.getDay()]; }
+    catch { /* 변환 실패 시 입력 그대로(양력 간주) */ }
+  }
+  return [y, mo, d];
+}
+
+export function buildSajuChart(input: ChartInput, nowYear = 2026): SajuChart {
+  const [y, mo, d] = solarYmd(input);                          // 음력 생일이면 양력으로 변환(만세력 음력 오류 수정)
+  const timePart = input.birthDateTime.split(' ')[1] ?? '0:0';
   const [h, mi = 0] = timePart.split(':').map(Number);
   // 진태양시 보정 — 시계시 → 출생지 실제 태양시(서머타임 환원+시대별 경도차+균시차)로 이동 후 팔자 산출.
   //   시각 미상은 시주가 어차피 마스킹되고 자정 경계 오류(일주 변동) 위험이 있어 보정 생략.
@@ -169,8 +182,7 @@ export function buildSajuChart(input: ChartInput, nowYear = 2026): SajuChart {
 /** 특정 세운(年)·월(1~12)의 일운(日辰) 달력 — 월운 탭 시 동적 생성(전체 미리계산 회피).
  *  일간지는 절기 무관 연속 60갑자라 양력 날짜로 직접 산출(정확). 월 라벨은 양력월 기준. */
 export function computeMonthDays(input: ChartInput, anYear: number, solarMonth: number): { day: number; stem: Stem; branch: Branch; stemTenGod: TenGod }[] {
-  const [datePart] = input.birthDateTime.split(' ');
-  const [by, bmo, bd] = datePart.split('-').map(Number);
+  const [by, bmo, bd] = solarYmd(input);                       // 음력 생일이면 양력으로 변환
   const dayStem = Solar.fromYmdHms(by, bmo, bd, 12, 0, 0).getLunar().getEightChar().getDayGan() as Stem;
   const last = new Date(anYear, solarMonth, 0).getDate();   // 그 양력월 말일
   const days: { day: number; stem: Stem; branch: Branch; stemTenGod: TenGod }[] = [];

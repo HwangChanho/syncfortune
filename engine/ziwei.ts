@@ -5,6 +5,7 @@
 // 간체(iztro) → 한글(chart.ts) 매핑: 궁이름·성요·밝기·사화.
 // ─────────────────────────────────────────────────────────────────────────
 import { astro } from 'iztro';
+import { solarYmd } from './saju'; // 음력 생일 → 양력 변환(자미도 saju와 동일 적용)
 import type { ChartInput, ZiweiChart, Palace, Star, Branch, Brightness, SihwaType } from '../spec/chart';
 
 const PALACE_NAME: Record<string, Palace['name']> = {
@@ -87,7 +88,9 @@ function buildDecades(a: any, palaces: Palace[], birthYear: number): ZiweiChart[
  *   규칙9: 보조·수렴 범위 — 깊은 진단은 만들지 않되, 운의 흐름(운한·사화)은 통변 근거로 정규화한다.
  */
 export function buildZiweiChart(input: ChartInput): ZiweiChart {
-  const [datePart, timePart = '0:0'] = input.birthDateTime.split(' ');
+  const timePart = input.birthDateTime.split(' ')[1] ?? '0:0';
+  const [sy, smo, sd] = solarYmd(input);                       // 음력 생일이면 양력으로 변환(음력 오류 수정)
+  const datePart = `${sy}-${String(smo).padStart(2, '0')}-${String(sd).padStart(2, '0')}`;
   const hour = Number(timePart.split(':')[0]) || 0;
   const a: any = astro.bySolar(datePart, hourToTimeIndex(hour), input.sex === '남' ? '男' : '女');
 
