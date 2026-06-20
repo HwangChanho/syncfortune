@@ -24,8 +24,8 @@ export const CREDIT_KINDS: { key: CreditKind; ko: string; price: number }[] = [
   { key: 'roots', ko: '명식의 뿌리', price: 4900 }, { key: 'image', ko: '비치는 나', price: 4900 }, { key: 'mission', ko: '나의 사명', price: 6900 },
   // 신규(daniel 2026-06): 사업가의 나 vs 직장인의 나(명식+대운+세운, 6카테고리)
   { key: 'career', ko: '사업가의 나', price: 4900 },
-  // AI 꿈해몽(자유 텍스트, 건당 ₩300 — 저가라 IAP는 번들 판매 권장, daniel)
-  { key: 'dream', ko: 'AI 꿈해몽', price: 300 },
+  // AI 꿈해몽 — 5회 번들 ₩1,200(=₩240/회). Apple IAP 최저가 미만이라 번들 판매(daniel). price=건당 참조값.
+  { key: 'dream', ko: 'AI 꿈해몽', price: 240 },
 ];
 export const PREMIUM_PRICE = 49900; // 평생 프리미엄(대표명식 전부 무제한). daniel: 사업가 등 헤비유저(궁합 반복) 타겟 — 일반은 건당/쿠폰. 프리미엄은 소수 기대.
 
