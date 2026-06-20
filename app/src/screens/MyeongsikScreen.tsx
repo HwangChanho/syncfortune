@@ -255,6 +255,7 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
   });
 
   const [showAdvanced, setShowAdvanced] = useState(true); // daniel: 디폴트 상세분석 ON(지장간·12운성·통근)
+  const [showTango, setShowTango] = useState(false); // 유형(파랑)·무형(빨강) 글자 테두리 토글 — daniel: 기본 OFF
   const toggleAdvanced = () => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setShowAdvanced(!showAdvanced);
@@ -297,13 +298,13 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
               <Pressable onPress={() => setGlossary({ kind: 'tengod', key: P[p].stemTenGod })}>
                 <Text style={[styles.pillarTenGod, { color: colors.inkSoft }]}>{P[p].stemTenGod}</Text>
               </Pressable>
-              <Pressable style={[styles.pillarMain, { borderWidth: 1.5, borderRadius: 6, borderColor: rootedGan.has(P[p].stem) ? TANG_Y : TANG_N }]} onPress={() => setGlossary({ kind: 'stem', key: P[p].stem })}>
+              <Pressable style={[styles.pillarMain, { borderWidth: 1.5, borderRadius: 6, borderColor: !showTango ? 'transparent' : rootedGan.has(P[p].stem) ? TANG_Y : TANG_N }]} onPress={() => setGlossary({ kind: 'stem', key: P[p].stem })}>
                 <Text style={[styles.pillarChar, { color: elementColor[elStem] }]}>{P[p].stem}</Text>
                 <Text style={[styles.pillarReading, { color: colors.inkFaint }]}>{stemReading(P[p].stem)} · {stemYinYang(P[p].stem)}</Text>
               </Pressable>
 
 
-              <Pressable style={[styles.pillarMain, { borderWidth: 1.5, borderRadius: 6, borderColor: c.sinsal.gongmangHits.includes(p) ? TANG_N : TANG_Y }]} onPress={() => setGlossary({ kind: 'branch', key: P[p].branch })}>
+              <Pressable style={[styles.pillarMain, { borderWidth: 1.5, borderRadius: 6, borderColor: !showTango ? 'transparent' : c.sinsal.gongmangHits.includes(p) ? TANG_N : TANG_Y }]} onPress={() => setGlossary({ kind: 'branch', key: P[p].branch })}>
                 <Text style={[styles.pillarChar, { color: elementColor[elBranch] }]}>{P[p].branch}</Text>
                 <Text style={[styles.pillarReading, { color: colors.inkFaint }]}>{branchReading(P[p].branch)} · {branchYinYang(P[p].branch)}</Text>
               </Pressable>
@@ -374,6 +375,19 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
           </View>
 
           {renderArcs(activeGanP, 'above')}
+          {/* 유형(파랑)·무형(빨강) 테두리 토글 + 범례 — daniel: 기본 OFF, 켜면 글자 테두리 색 + 설명 */}
+          <View style={styles.tangoBar}>
+            <Pressable style={styles.tangoToggle} onPress={() => { LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut); setShowTango((v) => !v); haptic(); }}>
+              <View style={[styles.tangoTrack, showTango && styles.tangoTrackOn]}><View style={[styles.tangoThumb, showTango && styles.tangoThumbOn]} /></View>
+              <Text style={styles.tangoLabel}>유형·무형 보기</Text>
+            </Pressable>
+            {showTango && (
+              <View style={styles.tangoLegend}>
+                <View style={styles.tangoLegendItem}><View style={[styles.tangoSwatch, { borderColor: TANG_Y }]} /><Text style={styles.tangoLegendTx}>유형 — 뿌리 있고 온전</Text></View>
+                <View style={styles.tangoLegendItem}><View style={[styles.tangoSwatch, { borderColor: TANG_N }]} /><Text style={styles.tangoLegendTx}>무형 — 떠 있거나 공망</Text></View>
+              </View>
+            )}
+          </View>
           {renderPillars()}
           {renderArcs(activeJiP, 'below')}
 
@@ -1048,6 +1062,18 @@ const styles = StyleSheet.create({
   calGz: { fontSize: 13, fontWeight: '700', marginTop: 1 },
   row: { flexDirection: 'row', gap: space(2) },
   pillarContainer: { flexDirection: 'row', gap: space(2), marginTop: space(2), marginBottom: space(4) },
+  // 유형·무형 테두리 토글 + 범례(daniel)
+  tangoBar: { marginTop: space(1), marginBottom: space(1) },
+  tangoToggle: { flexDirection: 'row', alignItems: 'center', gap: space(2), alignSelf: 'flex-start' },
+  tangoTrack: { width: 36, height: 20, borderRadius: 10, backgroundColor: colors.line, paddingHorizontal: 2, justifyContent: 'center' },
+  tangoTrackOn: { backgroundColor: colors.ju },
+  tangoThumb: { width: 16, height: 16, borderRadius: 8, backgroundColor: '#FFFFFF' },
+  tangoThumbOn: { alignSelf: 'flex-end' },
+  tangoLabel: { fontSize: 13, fontWeight: '700', color: colors.inkSoft },
+  tangoLegend: { flexDirection: 'row', flexWrap: 'wrap', gap: space(4), marginTop: space(2.5), paddingLeft: space(1) },
+  tangoLegendItem: { flexDirection: 'row', alignItems: 'center', gap: space(1.5) },
+  tangoSwatch: { width: 16, height: 16, borderRadius: 4, borderWidth: 1.5, backgroundColor: 'transparent' },
+  tangoLegendTx: { fontSize: 11.5, color: colors.inkSoft },
   pillarWrapper: { flex: 1 },
   pillarGlass: { paddingVertical: space(3), paddingHorizontal: 0, alignItems: 'center' },
   pillarDayGlass: { borderColor: colors.ju, borderWidth: 1.5 },
