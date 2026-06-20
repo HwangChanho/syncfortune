@@ -101,7 +101,7 @@ export default function RegisterRoute() {
         try {
           // 내 차트 기기 저장 → 궁합·풀이 재사용. 무료 한도는 isPro 주입으로 저장소가 판정.
           const id = await addChart(input, { isPro: isPremium });
-          if (input.makeRep) await setRepresentative(id); // '대표로 설정' 체크 시 그 명식을 대표로
+          await setRepresentative(id); // daniel: 신규 등록 시 항상 현재 설정(대표) 명식으로 전환
         } catch (e) {
           if (e instanceof ChartLimitError) { showLimit(e.limit, input); return; } // 저장·네비 중단 → 광고/구매 안내
           throw e;
