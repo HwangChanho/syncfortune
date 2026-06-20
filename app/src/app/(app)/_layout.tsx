@@ -3,8 +3,9 @@
 // 로그인 게이트 없음(ADR-037) — 명식·궁합은 온디바이스 무료(규칙5).
 // 무료 사용자 = 하단 AdBanner 고정 / 프리미엄(구독) = 광고 없음(ADR-043).
 // ─────────────────────────────────────────────────────────────────────────
-import { Stack } from 'expo-router';
-import { View } from 'react-native';
+import { Stack, useRouter } from 'expo-router';
+import { View, Pressable, Text } from 'react-native';
+import { useFontScale } from '../../lib/fontScale';
 import { AdBanner } from '../../components/AdBanner';
 import { BottomNav } from '../../components/BottomNav';
 import { OfflineBanner } from '../../components/OfflineBanner';
@@ -15,16 +16,24 @@ import { colors } from '../../lib/theme';
 export const unstable_settings = { initialRouteName: 'index' };
 
 export default function AppLayout() {
+  const { fs } = useFontScale();   // 글자크기 설정 → 헤더 타이틀·뒤로버튼도 반응(daniel)
+  const router = useRouter();
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
       <OfflineBanner />
       <Stack screenOptions={{
         headerStyle: { backgroundColor: colors.bg }, // 한지 헤더
         headerTintColor: colors.ink,                 // 먹 — 뒤로가기·타이틀
-        headerTitleStyle: { color: colors.ink, fontWeight: '700' },
+        headerTitleStyle: { color: colors.ink, fontWeight: '700', fontSize: fs(17) }, // 글자크기 반응
         headerShadowVisible: false,                  // 한지 무드 — 헤더 그림자 제거
-        headerBackButtonDisplayMode: 'minimal',      // 뒤로가기 텍스트('Back') 숨김 — 화살표만(react-nav 7, 다국어 무관)
+        headerBackButtonDisplayMode: 'minimal',
         contentStyle: { backgroundColor: colors.bg }, // 씬 배경 한지(전환 시 흰 깜빡임 방지)
+        // 뒤로버튼도 글자크기에 따라 커지게 — 커스텀 chevron(루트는 canGoBack=false라 미표시)
+        headerLeft: (p: any) => p?.canGoBack ? (
+          <Pressable onPress={() => router.back()} hitSlop={10} style={{ paddingRight: 12 }}>
+            <Text style={{ color: colors.ink, fontSize: fs(30), lineHeight: fs(32), marginTop: -3 }}>‹</Text>
+          </Pressable>
+        ) : null,
       }}>
         <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="register" options={{ title: '차트 등록' }} />
