@@ -5,10 +5,13 @@
 //   LLM 완료(부모 busy=false)되면 visible=false → 자연 페이드아웃. Modal 이라 위치 무관(어디 두든 최상단).
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useRef, useState } from 'react';
-import { Modal, View, Text, Animated, Easing, StyleSheet } from 'react-native';
+import { Modal, View, Text, Animated, Easing, StyleSheet, Pressable } from 'react-native';
+import { useRouter } from 'expo-router';
 import { colors, space, radius, font } from '../lib/theme';
 
-export function UnlockOverlay({ visible, message }: { visible: boolean; message?: string }) {
+// allowBackground=true(기본): API 생성처럼 시간이 걸리는 콘텐츠 — '홈으로 나가기' 노출(나가도 백그라운드 진행·완료 시 푸시).
+export function UnlockOverlay({ visible, message, allowBackground = true }: { visible: boolean; message?: string; allowBackground?: boolean }) {
+  const router = useRouter();
   const spin = useRef(new Animated.Value(0)).current;   // 골드 링 회전(분석 중)
   const pulse = useRef(new Animated.Value(0)).current;   // 자물쇠 펄스
   const [open, setOpen] = useState(false);               // 🔒 → 🔓 전환(0.6초 후 열림)
@@ -38,7 +41,12 @@ export function UnlockOverlay({ visible, message }: { visible: boolean; message?
           <Animated.Text style={[styles.lock, { transform: [{ scale }] }]}>{open ? '🔓' : '🔒'}</Animated.Text>
         </View>
         <Text style={styles.msg}>{message ?? '운명을 여는 중…'}</Text>
-        <Text style={styles.sub}>잠시만 기다려 주세요</Text>
+        <Text style={styles.sub}>{allowBackground ? '나가서 다른 걸 봐도 돼요 · 백그라운드에서 계속 풀이되고\n완료되면 알림으로 알려드릴게요' : '잠시만 기다려 주세요'}</Text>
+        {allowBackground && (
+          <Pressable style={styles.exitBtn} onPress={() => router.replace('/')}>
+            <Text style={styles.exitTx}>홈으로 나가기</Text>
+          </Pressable>
+        )}
       </View>
     </Modal>
   );
@@ -50,5 +58,7 @@ const styles = StyleSheet.create({
   ring: { position: 'absolute', width: 130, height: 130, borderRadius: 65, borderWidth: 3, borderColor: colors.ju, borderTopColor: 'transparent', borderRightColor: 'transparent' },
   lock: { fontSize: 52 },
   msg: { ...font.heading, color: colors.ink, fontWeight: '800' },
-  sub: { ...font.caption, color: colors.inkSoft, marginTop: space(2) },
+  sub: { ...font.caption, color: colors.inkSoft, marginTop: space(2), textAlign: 'center', lineHeight: 19 },
+  exitBtn: { marginTop: space(6), borderWidth: 1.5, borderColor: colors.ju, borderRadius: radius.pill, paddingHorizontal: space(6), paddingVertical: space(2.75) },
+  exitTx: { color: colors.ju, fontSize: 14, fontWeight: '700' },
 });

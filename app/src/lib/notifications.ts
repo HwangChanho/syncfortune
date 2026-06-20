@@ -6,6 +6,7 @@
 //   *로컬* 알림 — 서버 푸시·토큰 불필요(무료·온디바이스, 절대0 정합). 재빌드 후 작동(ads.ts·network.ts 패턴).
 // ─────────────────────────────────────────────────────────────────────────
 import { Platform } from 'react-native';
+import { router } from 'expo-router'; // 알림 탭 딥링크(컴포넌트 밖 전역 navigate)
 import { loadRepChart } from './myChart';
 import { getDailyFortune, dailyChartReadings } from './dailyFortune';
 import { buildSajuChart } from '@engine/saju';
@@ -82,4 +83,16 @@ export async function notifyReadingDone(title: string, body: string, route?: str
       trigger: null,   // 즉시 발송
     });
   } catch { /* 권한·모듈 문제 시 조용히 무시 */ }
+}
+
+/** 알림 탭 → data.route 로 이동(딥링크: 풀이 완료 알림 클릭 시 그 화면으로). 앱 루트에서 1회 설정·해제. */
+export function setupNotificationTapListener(): () => void {
+  if (!Notif || Platform.OS === 'web') return () => {};
+  try {
+    const sub = Notif.addNotificationResponseReceivedListener((resp: any) => {
+      const route = resp?.notification?.request?.content?.data?.route;
+      if (route) { try { router.push(route); } catch { /* 라우팅 실패 무시 */ } }
+    });
+    return () => { try { sub.remove(); } catch { /* ignore */ } };
+  } catch { return () => {}; }
 }

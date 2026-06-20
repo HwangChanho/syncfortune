@@ -8,6 +8,7 @@ import { useState, useEffect } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from './supabase';
 import { syncChartsFromServer } from './myChart'; // 계정 동기화(ADR-056) — 로그인 시 서버 명식 복원
+import { setupNotificationTapListener } from './notifications'; // 알림 탭 → 딥링크(풀이 완료 알림 클릭 시 그 화면으로)
 
 // dev 전용 자동 로그인(시뮬 편의) — __DEV__ + app/.env(gitignore) 자격증명이 있을 때만 1회 시도.
 //   프로덕션 빌드는 __DEV__=false + .env 에 키 없음 → 절대 동작하지 않는다. 자격증명은 코드가 아닌 env 에만 둔다.
@@ -46,7 +47,8 @@ export function useAuth() {
     });
     // ※ 소셜 로그인 복귀(syncfortune://auth-callback?code=/token_hash=)는 `app/auth-callback.tsx`
     //   라우트가 단일 처리(exchangeCodeForSession/verifyOtp) — 여기서 중복 처리하지 않는다(레이스 방지).
-    return () => { sub.subscription.unsubscribe(); };
+    const unsubTap = setupNotificationTapListener();         // 알림 탭 딥링크 리스너(루트 1회)
+    return () => { sub.subscription.unsubscribe(); unsubTap(); };
   }, []);
 
   return { session, loading };
