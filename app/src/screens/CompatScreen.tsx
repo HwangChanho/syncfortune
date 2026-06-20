@@ -290,7 +290,7 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
             })}
           </View>
           {/* 선택한 관계 카테고리 배너(daniel: 카테고리별 이미지) */}
-          {CAT_IMG[rel] && <Image source={CAT_IMG[rel]} style={styles.catBanner} resizeMode="cover" />}
+          {CAT_IMG[rel] && <Image source={CAT_IMG[rel]} style={styles.catBanner} resizeMode="contain" />}
           {cur ? (
             <View style={styles.readCard}>
               {/* 관계별 동적 섹션(daniel 2026-06): 연애=속궁합·썸·짝사랑 등 / 결혼=속궁합·시댁·자녀 등 / 동업=투자 등. 연도별은 기본 4항목. */}

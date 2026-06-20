@@ -156,7 +156,7 @@ export default function CareerScreen() {
           // ── 6개 카테고리 섹션(각 이미지 있으면 위에) ──
           SECTIONS.map((s) => (typeof reading[s.key] === 'string' && reading[s.key] ? (
             <View key={s.key} style={[styles.card, styles.cardAccent]}>
-              {CAREER_IMG[s.key] ? <Image source={CAREER_IMG[s.key]} style={styles.secImg} resizeMode="cover" /> : null}
+              {CAREER_IMG[s.key] ? <Image source={CAREER_IMG[s.key]} style={styles.secImg} resizeMode="contain" /> : null}
               <Text style={styles.secLabel}>{t(s.tk, s.def)}</Text>
               <Text style={[styles.body, bodyDyn]}>{reading[s.key]}</Text>
             </View>

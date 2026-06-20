@@ -291,7 +291,7 @@ export default function Home() {
             }
             return (
               <Pressable key={m.key} style={styles.card} onPress={() => onPress(m)}>
-                <ImageBackground source={m.image} style={styles.cardImg} imageStyle={styles.cardImgInner} resizeMode="cover">
+                <ImageBackground source={m.image} style={styles.cardImg} imageStyle={styles.cardImgInner} resizeMode="contain">
                   {prem && (
                     <View style={styles.premTag}>
                       <Text style={styles.premTagText}>{t('menu.premiumTag')}</Text>
@@ -412,7 +412,7 @@ const styles = StyleSheet.create({
   priceTagText: { color: '#15132E', fontSize: 10, fontWeight: '700', letterSpacing: 0.3 },
   // 카드 비율 384:512(3:4). 가로 스크롤 → 고정폭. 이미지 cover + 하단 라벨 오버레이.
   card: {
-    width: 162, aspectRatio: 0.6, borderRadius: radius.md, overflow: 'hidden',
+    width: 162, aspectRatio: 0.6, borderRadius: radius.md, overflow: 'hidden', backgroundColor: colors.sunk,
     ...shadow.card, // 박스 테두리 제거(이미지 자체 골드 프레임 사용)
   },
   cardImg: { flex: 1, justifyContent: 'flex-end' },

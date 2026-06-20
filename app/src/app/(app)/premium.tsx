@@ -55,7 +55,7 @@ export default function PremiumHub() {
       {/* 원국풀이·인생 타임라인 = 큰 카드 세로 스택(한 화면 1.5~2개, 좌우 패딩) */}
       {hub.items.map((it) => (
         <Pressable key={it.key} style={styles.card} onPress={() => router.push(it.route)}>
-          <ImageBackground source={it.icon} style={styles.cardImg} imageStyle={styles.cardImgInner} resizeMode="cover">
+          <ImageBackground source={it.icon} style={styles.cardImg} imageStyle={styles.cardImgInner} resizeMode="contain">
             <View style={styles.labelBar}>
               <Text style={styles.cardLabel}>{t(it.labelKey)}</Text>
               <Text style={styles.cardDesc} numberOfLines={2}>{t(it.descKey)}</Text>
