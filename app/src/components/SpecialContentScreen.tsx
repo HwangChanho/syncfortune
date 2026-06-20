@@ -210,7 +210,7 @@ export function ContentHero({ motif, image, title, sub, themeColor = colors.ju }
     </View>
   );
   if (image) return (
-    <ImageBackground source={image} style={styles.hero} imageStyle={styles.heroImg} resizeMode="contain">
+    <ImageBackground source={image} style={styles.hero} imageStyle={styles.heroImg} resizeMode="cover">
       <View style={styles.heroScrim} />
       {inner}
     </ImageBackground>
@@ -223,7 +223,7 @@ const styles = StyleSheet.create({
   wrap: { padding: space(5), paddingBottom: space(12) },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: space(7), backgroundColor: colors.bg },
   // 히어로
-  hero: { borderRadius: radius.lg, overflow: 'hidden', marginBottom: space(5), minHeight: 150, backgroundColor: colors.sunk },
+  hero: { borderRadius: radius.lg, overflow: 'hidden', marginBottom: space(5), aspectRatio: 1.5, backgroundColor: colors.sunk },
   heroPlain: { backgroundColor: colors.card, borderWidth: 1 },
   heroImg: { borderRadius: radius.lg },
   heroScrim: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(21,19,46,0.55)' }, // 이미지 위 가독 스크림
