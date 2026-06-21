@@ -421,7 +421,7 @@ const styles = StyleSheet.create({
   priceTagText: { color: '#15132E', fontSize: 10, fontWeight: '700', letterSpacing: 0.3 },
   // 카드 비율 384:512(3:4). 가로 스크롤 → 고정폭. 이미지 cover + 하단 라벨 오버레이.
   card: {
-    width: 162, aspectRatio: 0.6, borderRadius: radius.md, overflow: 'hidden',
+    width: 162, aspectRatio: 0.66, borderRadius: radius.md, overflow: 'hidden', // 카드 길이 살짝 줄임(daniel: 0.6→0.66)
     ...shadow.card, // 박스 테두리 제거(이미지 자체 골드 프레임 사용)
   },
   cardImg: { flex: 1, justifyContent: 'flex-end' },
