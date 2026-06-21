@@ -39,9 +39,12 @@ export default function SettingsScreen() {
   const { scale, setScale, fs } = useFontScale();
   const [busy, setBusy] = useState<string | null>(null); // 전체화면 로딩 오버레이 메시지(긴 콜백)
   const [admin, setAdmin] = useState(false); // 관리자 — 메뉴 노출용(실제 권한은 서버 RPC)
+  const [testMode, setTestMode] = useState(false); // 관리자 테스트 모드 — 켜면 통변 mock(API 미호출, daniel)
   const [premPrice, setPremPrice] = useState(''); // 프리미엄 현지통화 가격(RC) — 미설정 시 ₩ 폴백
 
   useEffect(() => { isAdmin().then(setAdmin).catch(() => {}); }, []);
+  // 관리자 테스트 모드 현재값 로드(통변 mock 토글)
+  useEffect(() => { supabase.auth.getUser().then(({ data }) => { if (data.user) supabase.from('profiles').select('test_mode').eq('id', data.user.id).maybeSingle().then(({ data: p }) => setTestMode(!!p?.test_mode)); }).catch(() => {}); }, []);
   // 프리미엄 현지 통화 가격(RC) 로드 — USD 기준 등록 시 사용자 지역 통화로 자동 표시.
   useEffect(() => { priceStringRC(PRODUCT_PREMIUM, `₩${PREMIUM_PRICE.toLocaleString()}`).then(setPremPrice).catch(() => {}); }, []);
 
@@ -126,6 +129,12 @@ export default function SettingsScreen() {
           </Pressable>
           <Pressable style={styles.adminLink} onPress={() => router.push('/coststable')}>
             <Text style={styles.adminLinkTx}>📊 비용·수익 분석 (실측)</Text>
+          </Pressable>
+          <Pressable style={[styles.adminLink, testMode && { borderColor: colors.ju, backgroundColor: colors.juSoft }]} onPress={async () => {
+            const next = !testMode;
+            try { const { data } = await supabase.rpc('set_my_test_mode', { p_on: next }); if (data === true) setTestMode(next); } catch { /* 무시 */ }
+          }}>
+            <Text style={styles.adminLinkTx}>테스트 모드 {testMode ? '— 켜짐 (통변 mock·API 미호출)' : '— 꺼짐'}</Text>
           </Pressable>
         </>
       )}
