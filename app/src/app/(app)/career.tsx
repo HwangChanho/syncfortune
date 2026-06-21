@@ -145,7 +145,7 @@ export default function CareerScreen() {
         <UnlockOverlay visible={busy} message={t('career.generating', '두 길을 풀어내는 중…')} />
         {/* 히어로 */}
         <View style={styles.hero}>
-          {CAREER_IMG.hero ? <Image source={CAREER_IMG.hero} style={styles.heroImg} resizeMode="contain" /> : null}
+          {CAREER_IMG.hero ? <Image source={CAREER_IMG.hero} style={styles.heroImg} resizeMode="cover" /> : null}
           <Text style={styles.title}>{t('career.title', '사업가의 나 vs 직장인의 나')}</Text>
           <Text style={styles.sub}>{t('career.sub', '명식과 대운·세운으로, 독립과 조직 두 길을 짚어 드려요')}</Text>
         </View>
@@ -156,7 +156,7 @@ export default function CareerScreen() {
           // ── 6개 카테고리 섹션(각 이미지 있으면 위에) ──
           SECTIONS.map((s) => (typeof reading[s.key] === 'string' && reading[s.key] ? (
             <View key={s.key} style={[styles.card, styles.cardAccent]}>
-              {CAREER_IMG[s.key] ? <Image source={CAREER_IMG[s.key]} style={styles.secImg} resizeMode="contain" /> : null}
+              {CAREER_IMG[s.key] ? <Image source={CAREER_IMG[s.key]} style={styles.secImg} resizeMode="cover" /> : null}
               <Text style={styles.secLabel}>{t(s.tk, s.def)}</Text>
               <Text style={[styles.body, bodyDyn]}>{reading[s.key]}</Text>
             </View>
@@ -186,12 +186,12 @@ const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: space(7), backgroundColor: colors.bg },
   msg: { ...font.body, color: colors.ink, textAlign: 'center', marginBottom: space(5) },
   hero: { alignItems: 'center', paddingVertical: space(4), marginBottom: space(3) },
-  heroImg: { width: 150, aspectRatio: 0.68, borderRadius: radius.md, marginBottom: space(3) },
+  heroImg: { width: '100%', height: 190, borderRadius: radius.md, marginBottom: space(3) },
   title: { fontSize: 24, fontWeight: '900', color: colors.ink, textAlign: 'center' },
   sub: { ...font.caption, color: colors.inkSoft, textAlign: 'center', marginTop: space(2), lineHeight: 19 },
   card: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.juLine, padding: space(5), marginBottom: space(3), ...shadow.card },
   cardAccent: { borderLeftWidth: 3, borderLeftColor: CAREER_TEAL },
-  secImg: { width: '100%', aspectRatio: 1.75, alignSelf: 'center', borderRadius: radius.sm, marginBottom: space(3) },
+  secImg: { width: '100%', height: 190, alignSelf: 'center', borderRadius: radius.sm, marginBottom: space(3) },
   secLabel: { fontSize: 16, fontWeight: '800', color: CAREER_TEAL, marginBottom: space(2) },
   body: { ...font.body, color: colors.ink },
   err: { fontSize: 13, color: colors.ju },

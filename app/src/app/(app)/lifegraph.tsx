@@ -126,7 +126,7 @@ export default function LifeGraphScreen() {
       {/* 상단 명식 헤더 — 현재 적용된 대표 명식 표시·전환(daniel: 모든 콘텐츠 상단). 전환 시 그 명식 기준 재로드 */}
       <ChartPicker onChange={() => setReloadKey((k) => k + 1)} />
       {/* 상단 hero 배너(daniel: 인생그래프 썰렁 → 이미지). 가로 1344×768 cover */}
-      <Image source={require('../../../assets/icons/lifegraph-hero.jpg')} style={{ width: '100%', aspectRatio: 1.5, borderRadius: radius.lg, marginBottom: space(4) }} resizeMode="cover" />
+      <Image source={require('../../../assets/icons/lifegraph-hero.jpg')} style={{ width: '100%', height: 190, borderRadius: radius.lg, marginBottom: space(4) }} resizeMode="cover" />
       <UnlockOverlay visible={busy} message={t('life.generating', '인생 흐름을 그리는 중…')} />
       {!loaded ? (
         <View style={styles.card}><ActivityIndicator color={colors.ju} /></View>

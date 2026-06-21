@@ -260,7 +260,7 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
           {dispTier && dispScore != null && (
             <View style={styles.scoreCard}>
               {COMPAT_IMG[dispTier.key]
-                ? <Image source={COMPAT_IMG[dispTier.key]} style={styles.scoreImg} resizeMode="contain" />
+                ? <Image source={COMPAT_IMG[dispTier.key]} style={styles.scoreImg} resizeMode="cover" />
                 : <Text style={styles.scoreEmoji}>{dispTier.emoji}</Text>}
               <Text style={styles.scoreTier}>{dispTier.emoji} {tierLabel(dispTier, appLang() as 'ko' | 'en' | 'ja')}</Text>
               <Text style={styles.scoreNum}>{dispScore}<Text style={styles.scoreUnit}> / 100</Text></Text>
@@ -290,7 +290,7 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
             })}
           </View>
           {/* 선택한 관계 카테고리 배너(daniel: 카테고리별 이미지) */}
-          {CAT_IMG[rel] && <Image source={CAT_IMG[rel]} style={styles.catBanner} resizeMode="contain" />}
+          {CAT_IMG[rel] && <Image source={CAT_IMG[rel]} style={styles.catBanner} resizeMode="cover" />}
           {cur ? (
             <View style={styles.readCard}>
               {/* 관계별 동적 섹션(daniel 2026-06): 연애=속궁합·썸·짝사랑 등 / 결혼=속궁합·시댁·자녀 등 / 동업=투자 등. 연도별은 기본 4항목. */}
@@ -469,7 +469,7 @@ const styles = StyleSheet.create({
   wrap: { padding: space(5), paddingBottom: space(12) },
   // 궁합 점수 카드(daniel: 메인 콘텐츠 — 점수+등급 이미지)
   scoreCard: { alignItems: 'center', backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1.5, borderColor: colors.ju, padding: space(5), marginTop: space(4), marginBottom: space(2), ...shadow.card },
-  scoreImg: { width: 160, aspectRatio: 0.68, borderRadius: radius.md, marginBottom: space(3) },
+  scoreImg: { width: '100%', height: 190, borderRadius: radius.md, marginBottom: space(3) },
   scoreEmoji: { fontSize: 60, marginBottom: space(2) },
   scoreTier: { fontSize: 19, fontWeight: '900', color: colors.ju, marginBottom: space(1) },
   scoreNum: { fontSize: 40, fontWeight: '900', color: colors.ink },
@@ -477,7 +477,7 @@ const styles = StyleSheet.create({
   scoreBar: { width: '80%', height: 8, borderRadius: 4, backgroundColor: colors.line, marginTop: space(3), overflow: 'hidden' },
   scoreBarFill: { height: '100%', borderRadius: 4, backgroundColor: colors.ju },
   scoreSub: { ...font.caption, color: colors.inkSoft, marginTop: space(2) },
-  catBanner: { width: '100%', aspectRatio: 1.75, alignSelf: 'center', borderRadius: radius.md, marginTop: space(2), marginBottom: space(1) },
+  catBanner: { width: '100%', height: 190, alignSelf: 'center', borderRadius: radius.md, marginTop: space(2), marginBottom: space(1) },
   slotLabel: { ...font.caption, color: colors.ju, fontWeight: '800', marginBottom: space(2), letterSpacing: 0.3 },
   // 내 명식 골드 슬롯
   meSlot: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.card, borderWidth: 1.5, borderColor: colors.ju, borderRadius: radius.md, padding: space(4), ...shadow.card },

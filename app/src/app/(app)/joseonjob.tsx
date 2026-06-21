@@ -74,7 +74,7 @@ export default function JoseonJobScreen() {
         <View style={styles.hero}>
           {/* 직업 일러스트(daniel 자산) — 없으면 이모지 폴백 */}
           {JOB_IMG[result.tenGod]
-            ? <Image source={JOB_IMG[result.tenGod]} style={styles.heroImg} resizeMode="contain" />
+            ? <Image source={JOB_IMG[result.tenGod]} style={styles.heroImg} resizeMode="cover" />
             : <Text style={styles.emoji}>{result.emoji}</Text>}
           <Text style={styles.job}>{result.job}</Text>
           <Text style={styles.rank}>{result.rank}</Text>
@@ -118,7 +118,7 @@ const styles = StyleSheet.create({
   btnText: { color: colors.bg, fontSize: 15, fontWeight: '700' },
   hero: { alignItems: 'center', paddingVertical: space(6), marginBottom: space(4) },
   emoji: { fontSize: 64, marginBottom: space(2) },
-  heroImg: { width: 150, aspectRatio: 0.83, marginBottom: space(3), borderRadius: radius.md },
+  heroImg: { width: '100%', height: 190, marginBottom: space(3), borderRadius: radius.md },
   job: { fontSize: 26, fontWeight: '900', color: colors.ink, marginBottom: space(1) },
   rank: { fontSize: 13, fontWeight: '800', color: colors.ju, letterSpacing: 1, marginBottom: space(3) },
   tagline: { ...font.body, color: colors.ink, textAlign: 'center', lineHeight: 25, fontSize: 15 },

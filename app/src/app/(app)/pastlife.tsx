@@ -81,7 +81,7 @@ export default function PastLifeScreen() {
         <ChartPicker onChange={() => loadMyChart().then(setMe)} />
         <View style={styles.hero}>
           {PASTLIFE_IMG[`${ELEM_SLUG[result.elem] ?? ''}_${GROUP_SLUG[result.group] ?? ''}`]
-            ? <Image source={PASTLIFE_IMG[`${ELEM_SLUG[result.elem]}_${GROUP_SLUG[result.group]}`]} style={styles.heroImg} resizeMode="contain" />
+            ? <Image source={PASTLIFE_IMG[`${ELEM_SLUG[result.elem]}_${GROUP_SLUG[result.group]}`]} style={styles.heroImg} resizeMode="cover" />
             : <Text style={styles.emoji}>{result.emoji}</Text>}
           <Text style={styles.title}>{result.role}</Text>
           <Text style={styles.sub}>{result.era}</Text>
@@ -108,7 +108,7 @@ const styles = StyleSheet.create({
   btn: { backgroundColor: colors.ju, borderRadius: radius.md, paddingVertical: space(3.25), paddingHorizontal: space(6) },
   btnText: { color: colors.bg, fontSize: 15, fontWeight: '700' },
   hero: { alignItems: 'center', paddingVertical: space(6), marginBottom: space(3) },
-  heroImg: { width: 150, aspectRatio: 0.68, borderRadius: radius.md, marginBottom: space(3) },
+  heroImg: { width: '100%', height: 190, borderRadius: radius.md, marginBottom: space(3) },
   emoji: { fontSize: 64, marginBottom: space(2) },
   title: { fontSize: 25, fontWeight: '900', color: colors.ink, textAlign: 'center' },
   sub: { fontSize: 14, fontWeight: '700', color: colors.ju, marginTop: space(1.5) },

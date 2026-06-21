@@ -65,7 +65,7 @@ export default function HealingScreen() {
         {/* 히어로 — 일간 오행 이미지(없으면 이모지) + 타이틀 */}
         <View style={styles.hero}>
           {HEAL_IMG[r.dayElem]
-            ? <Image source={HEAL_IMG[r.dayElem]} style={styles.heroImg} resizeMode="contain" />
+            ? <Image source={HEAL_IMG[r.dayElem]} style={styles.heroImg} resizeMode="cover" />
             : <Text style={styles.emoji}>{HEAL_EMOJI[r.dayElem]}</Text>}
           <Text style={styles.title}>{t('menu.healing', '나만의 힐링 방법')}</Text>
           <Text style={styles.subtitle}>{t('healing.elemLead', '내 기운')}: {r.dayLabel}</Text>
@@ -119,7 +119,7 @@ const styles = StyleSheet.create({
   btn: { backgroundColor: colors.ju, borderRadius: radius.md, paddingVertical: space(3.25), paddingHorizontal: space(6) },
   btnText: { color: colors.bg, fontSize: 15, fontWeight: '700' },
   hero: { alignItems: 'center', paddingVertical: space(6), marginBottom: space(3) },
-  heroImg: { width: 150, aspectRatio: 0.68, borderRadius: radius.md, marginBottom: space(3) },
+  heroImg: { width: '100%', height: 190, borderRadius: radius.md, marginBottom: space(3) },
   emoji: { fontSize: 64, marginBottom: space(2) },
   title: { fontSize: 25, fontWeight: '900', color: colors.ink, textAlign: 'center' },
   subtitle: { ...font.caption, color: colors.ju, marginTop: space(2), fontWeight: '700' },
