@@ -18,6 +18,7 @@ import { computeChart } from '../lib/engine';
 import { useAuth } from '../lib/useAuth';
 import { supabase } from '../lib/supabase';
 import { notifyReadingDone } from '../lib/notifications'; // 생성 완료 푸시(daniel: 풀이중 딴 일 + 완료 알림)
+import { setGenProgress } from '../lib/genProgress'; // 홈 진행률(풀이중 홈 나가도 % 표시)
 import { useEntitlement } from '../lib/entitlement';
 import { isUnlocked, markUnlocked } from '../lib/unlocks'; // unlock 영속 — 차감 후 재차감/재잠금 방지
 import { useSubscription } from '../lib/subscription';
@@ -202,7 +203,9 @@ export function ReadingScreen({
     }
     const todo = cats.filter((cat) => !readings[cat.key]);
     if (!todo.length) return;                              // 전부 캐시됨 → 생성 불필요
-    setProgress({ done: cats.length - todo.length, total: cats.length, current: todo[0].label });
+    let gDone = cats.length - todo.length;                 // 완료 영역(홈 진행률 공유 — 언마운트돼도 루프 지속)
+    setProgress({ done: gDone, total: cats.length, current: todo[0].label });
+    setGenProgress({ active: true, done: gDone, total: cats.length, label: kind === 'ziwei' ? t('reading.ziweiTitle', '자미두수') : t('reading.sajuTitle', '사주 풀이'), route: kind === 'ziwei' ? '/reading?kind=ziwei' : '/reading' });
     for (const cat of todo) {
       setProgress((p) => (p ? { ...p, current: cat.label } : null)); // 지금 풀이 중인 영역
       try {
@@ -213,8 +216,10 @@ export function ReadingScreen({
         setReadings((prev) => ({ ...prev, [cat.key]: { error: (err as Error).message } }));
       }
       setProgress((p) => (p ? { done: p.done + 1, total: p.total, current: p.current } : null));
+      setGenProgress({ done: ++gDone }); // 홈 진행률 갱신(영역 1개 완료)
     }
     setProgress(null);
+    setGenProgress({ active: false }); // 완료 — 홈 배너 숨김
     notifyReadingDone(t('reading.doneTitle', '풀이가 완성됐어요'), t('reading.doneBody', '준비된 풀이를 확인해 보세요'), kind === 'ziwei' ? '/reading?kind=ziwei' : '/reading'); // 생성 완료 푸시 + 탭 시 그 화면으로
   }
 
