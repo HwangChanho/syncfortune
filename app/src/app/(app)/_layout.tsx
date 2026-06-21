@@ -30,8 +30,8 @@ export default function AppLayout() {
         contentStyle: { backgroundColor: colors.bg }, // 씬 배경 한지(전환 시 흰 깜빡임 방지)
         // 뒤로버튼도 글자크기에 따라 커지게 — 커스텀 chevron(루트는 canGoBack=false라 미표시)
         headerLeft: (p: any) => p?.canGoBack ? (
-          <Pressable onPress={() => router.back()} hitSlop={10} style={{ paddingRight: 12 }}>
-            <Text style={{ color: colors.ink, fontSize: fs(30), lineHeight: fs(32), marginTop: -3 }}>‹</Text>
+          <Pressable onPress={() => router.back()} hitSlop={16} style={{ paddingRight: 16, paddingVertical: 4 }}>
+            <Text style={{ color: colors.ink, fontSize: fs(38), lineHeight: fs(40), marginTop: -3, fontWeight: '600' }}>‹</Text>
           </Pressable>
         ) : null,
       }}>

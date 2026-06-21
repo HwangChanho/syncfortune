@@ -10,7 +10,7 @@
 //   ⚠️ Edge invoke=프로덕션(개발 미배포=호출 실패=비용0·절대0). charts insert/readings select 는 직접 호출이라 개발에서도 동작.
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useMemo, useEffect, useRef, type ReactNode } from 'react';
-import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator, Modal, TextInput, Keyboard } from 'react-native';
+import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator, Modal, TextInput, Keyboard, KeyboardAvoidingView, Platform } from 'react-native';
 import { Alert } from '../lib/alert'; // 커스텀 알림(앱 디자인)
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -470,12 +470,12 @@ export function ReadingScreen({
 
     {/* 항목 상세 — 탭한 영역의 섹션을 별도 페이지처럼 슬라이드 */}
     <Modal visible={!!detail} animationType="slide" onRequestClose={closeDetail}>
-      <View style={styles.detailScreen}>
+      <KeyboardAvoidingView style={styles.detailScreen} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <Pressable style={styles.detailBack} onPress={closeDetail}>
           <Text style={styles.detailBackTx}>‹ 목록으로</Text>
         </Pressable>
         {detail && (
-          <ScrollView contentContainerStyle={styles.detailWrap}>
+          <ScrollView contentContainerStyle={styles.detailWrap} keyboardShouldPersistTaps="handled">
             <Text style={styles.detailTitle}>{cats.find((x) => x.key === detail)?.label}</Text>
             {/* 자미두수 등 — 이 항목(궁)이 뭘 보는지 설명 */}
             {cats.find((x) => x.key === detail)?.desc ? <Text style={styles.detailDesc}>{cats.find((x) => x.key === detail)?.desc}</Text> : null}
@@ -489,7 +489,7 @@ export function ReadingScreen({
             {renderFollowups(detail)}
           </ScrollView>
         )}
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
     </>
   );
@@ -534,8 +534,8 @@ const styles = StyleSheet.create({
   listArrow: { fontSize: 24, color: colors.inkFaint, fontWeight: '300' },
   // 상세 페이지(모달)
   detailScreen: { flex: 1, backgroundColor: colors.bg },
-  detailBack: { paddingTop: space(12), paddingHorizontal: space(5), paddingBottom: space(2) },
-  detailBackTx: { ...font.body, color: colors.ju, fontWeight: '700' },
+  detailBack: { paddingTop: space(12), paddingHorizontal: space(5), paddingBottom: space(3) },
+  detailBackTx: { ...font.body, fontSize: 18, color: colors.ju, fontWeight: '700' },
   detailWrap: { padding: space(5), paddingTop: space(2), paddingBottom: space(10) },
   detailTitle: { ...font.title, fontSize: 26, color: colors.ink, marginBottom: space(1) },
   detailDesc: { ...font.body, color: colors.inkSoft, marginBottom: space(3) },
@@ -548,7 +548,7 @@ const styles = StyleSheet.create({
   qaA: { ...font.body, color: colors.ink, lineHeight: 24 },
   askQuota: { ...font.caption, color: colors.inkFaint, marginBottom: space(2) },
   askRow: { flexDirection: 'row', alignItems: 'flex-end', gap: space(2) },
-  askInput: { ...font.body, flex: 1, minHeight: 44, maxHeight: 120, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, borderRadius: radius.md, paddingHorizontal: space(3), paddingVertical: space(2.5), color: colors.ink },
+  askInput: { ...font.body, flex: 1, minHeight: 44, maxHeight: 120, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, borderRadius: radius.md, paddingHorizontal: space(3), paddingVertical: space(2.5), color: colors.ink, textAlign: 'center' },
   askLen: { fontSize: 11, color: colors.inkFaint, alignSelf: 'flex-end', marginBottom: space(3) },
   askSend: { backgroundColor: colors.ju, borderRadius: radius.md, paddingHorizontal: space(4), height: 44, alignItems: 'center', justifyContent: 'center' },
   askSendOff: { opacity: 0.4 },
