@@ -197,6 +197,17 @@ export async function addChart(input: any, opts?: { isPro?: boolean; bypassLimit
   return id;
 }
 
+/** 명식 순서 변경(daniel: 롱프레스로 위치 이동) — orderedIds 순서로 재정렬·저장·동기화. 누락분은 뒤에 보존. */
+export async function reorderCharts(orderedIds: string[]): Promise<void> {
+  const charts = await listCharts();
+  const byId = new Map(charts.map((c) => [c.id, c]));
+  const next = orderedIds.map((id) => byId.get(id)).filter(Boolean) as SavedChart[];
+  for (const c of charts) if (!orderedIds.includes(c.id)) next.push(c); // 누락 방어
+  await setRaw(KEY, JSON.stringify(next));
+  notifyRepChange();      // 목록 변경 알림(전역)
+  pushChartsDebounced();  // 계정 동기화
+}
+
 /** 대표 명식 id 지정 (홈에서 전환). 전역 동기화 알림. */
 export async function setRepresentative(id: string): Promise<void> {
   await setRaw(REP_KEY, id);

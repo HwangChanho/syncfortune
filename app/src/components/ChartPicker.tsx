@@ -9,7 +9,7 @@ import { View, Text, Pressable, Modal, ScrollView, StyleSheet } from 'react-nati
 import { Alert } from '../lib/alert'; // 커스텀 알림(삭제 확인)
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { listCharts, setRepresentative, getRepresentativeId, getChartUsage, deleteChart, subscribeRepChange, type SavedChart } from '../lib/myChart';
+import { listCharts, setRepresentative, getRepresentativeId, getChartUsage, deleteChart, reorderCharts, subscribeRepChange, type SavedChart } from '../lib/myChart';
 import { useSubscription } from '../lib/subscription';
 import { colors, radius, space, shadow, font } from '../lib/theme';
 
@@ -21,6 +21,7 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
   const [repId, setRepId] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const [usage, setUsage] = useState<{ count: number; limit: number } | null>(null);
+  const [reorderMode, setReorderMode] = useState(false); // 명식 길게 눌러 순서변경 모드(daniel)
 
   const reload = useCallback(async () => {
     setCharts(await listCharts());
@@ -41,6 +42,16 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
     setOpen(false);
     onChange?.(); // 대표 변경 알림 → 호출처(만세력 등) 즉시 갱신
   }
+
+  // 순서 변경(롱프레스 → 모드 → ▲▼) — 로컬 즉시 반영 + 저장·계정동기화(daniel)
+  const move = async (idx: number, dir: -1 | 1) => {
+    const j = idx + dir;
+    if (j < 0 || j >= charts.length) return;
+    const next = [...charts];
+    [next[idx], next[j]] = [next[j], next[idx]];
+    setCharts(next);
+    await reorderCharts(next.map((c) => c.id));
+  };
 
   // 명식 수정 → 등록 폼 편집모드(editId)로 이동. 모달 닫고 진입.
   function edit(id: string) { setOpen(false); router.push({ pathname: '/register', params: { editId: id } }); }
@@ -75,32 +86,44 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
       </Pressable>
 
       <Modal visible={open} transparent animationType="slide" onRequestClose={() => setOpen(false)}>
-        <Pressable style={styles.backdrop} onPress={() => setOpen(false)}>
+        <Pressable style={styles.backdrop} onPress={() => { setOpen(false); setReorderMode(false); }}>
           <Pressable style={styles.sheet} onPress={() => {}}>
             <View style={styles.handle} />
             <View style={styles.sheetHead}>
               <Text style={styles.sheetTitle}>{t('manse.myChart')}</Text>
-              {/* 무료 사용량 배지 (프로는 무제한 → 숨김). 한도 도달 시 주색 강조. */}
-              {!isPremium && usage && (
+              {/* 순서변경 모드면 완료 버튼 / 아니면 무료 사용량 배지(프로는 숨김) */}
+              {reorderMode ? (
+                <Pressable hitSlop={8} onPress={() => setReorderMode(false)}><Text style={{ color: colors.ju, fontWeight: '700', fontSize: 13 }}>순서 변경 완료</Text></Pressable>
+              ) : !isPremium && usage ? (
                 <Text style={[styles.usage, usage.count >= usage.limit && styles.usageMax]}>
                   {t('register.usage', { count: usage.count, limit: usage.limit })}
                 </Text>
-              )}
+              ) : null}
             </View>
+            {!reorderMode && charts.length > 1 && <Text style={{ ...font.caption, color: colors.inkFaint, marginBottom: space(2) }}>명식을 길게 누르면 순서를 바꿀 수 있어요</Text>}
             <ScrollView style={styles.list} showsVerticalScrollIndicator={false}>
-              {charts.map((c) => {
+              {charts.map((c, idx) => {
                 const on = c.id === repId;
                 return (
                   <View key={c.id} style={styles.row}>
-                    <Pressable style={styles.rowMain} onPress={() => choose(c.id)}>
+                    <Pressable style={styles.rowMain} onPress={() => (reorderMode ? setReorderMode(false) : choose(c.id))} onLongPress={() => setReorderMode(true)} delayLongPress={300}>
                       <Text style={[styles.rowName, on && styles.rowOn]}>{c.label}</Text>
                       <Text style={styles.rowMeta} numberOfLines={1}>
                         {String(c.input.birthDateTime ?? '').split(' ')[0]} · {c.relation === 'self' ? t('register.selfLabel') : c.relation}
                       </Text>
                     </Pressable>
-                    {on && <Text style={styles.check}>✓</Text>}
-                    <Pressable hitSlop={8} onPress={() => edit(c.id)}><Text style={styles.rowAct}>{t('common.edit', '수정')}</Text></Pressable>
-                    <Pressable hitSlop={8} onPress={() => remove(c.id, c.label)}><Text style={[styles.rowAct, styles.rowActDel]}>{t('common.delete', '삭제')}</Text></Pressable>
+                    {reorderMode ? (
+                      <>
+                        <Pressable hitSlop={10} onPress={() => move(idx, -1)} disabled={idx === 0}><Text style={[styles.rowAct, { fontSize: 18 }, idx === 0 && { opacity: 0.25 }]}>▲</Text></Pressable>
+                        <Pressable hitSlop={10} onPress={() => move(idx, 1)} disabled={idx === charts.length - 1}><Text style={[styles.rowAct, { fontSize: 18 }, idx === charts.length - 1 && { opacity: 0.25 }]}>▼</Text></Pressable>
+                      </>
+                    ) : (
+                      <>
+                        {on && <Text style={styles.check}>✓</Text>}
+                        <Pressable hitSlop={8} onPress={() => edit(c.id)}><Text style={styles.rowAct}>{t('common.edit', '수정')}</Text></Pressable>
+                        <Pressable hitSlop={8} onPress={() => remove(c.id, c.label)}><Text style={[styles.rowAct, styles.rowActDel]}>{t('common.delete', '삭제')}</Text></Pressable>
+                      </>
+                    )}
                   </View>
                 );
               })}
