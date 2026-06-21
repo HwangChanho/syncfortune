@@ -83,12 +83,12 @@ export default function CostTableScreen() {
     return per == null ? null : per * r.mult;
   };
 
-  // 합계(측정값 있는 행만) — 측정 안 된 행 수 표기
-  let totCost = 0, totRev = 0, unknown = 0;
+  // 합계(측정값 있는 행만). ★광고 제외 원가산출(daniel): 순익=판매가−원가만, 광고 수익은 별도(충당 불확실).
+  let totCost = 0, totRev = 0, totAd = 0, unknown = 0;
   ROWS.forEach((r) => {
     const c = genCost(r);
     if (c == null) { unknown++; return; }
-    totCost += c * n; totRev += (r.price + r.adEst) * n;
+    totCost += c * n; totRev += r.price * n; totAd += r.adEst * n;
   });
 
   const typeColor = (t: Row['type']) => t === '유료' ? colors.ju : t === '광고무료' ? '#3FA7A0' : colors.inkSoft;
@@ -111,9 +111,10 @@ export default function CostTableScreen() {
 
       <View style={styles.sumCard}>
         <View style={styles.sumItem}><Text style={styles.sumLabel}>총 원가(실측)</Text><Text style={[styles.sumVal, { color: '#E5484D' }]}>{won(totCost)}</Text></View>
-        <View style={styles.sumItem}><Text style={styles.sumLabel}>총 수익</Text><Text style={[styles.sumVal, { color: '#3FA7A0' }]}>{won(totRev)}</Text></View>
-        <View style={styles.sumItem}><Text style={styles.sumLabel}>순익</Text><Text style={[styles.sumVal, { color: colors.ju }]}>{won(totRev - totCost)}</Text></View>
+        <View style={styles.sumItem}><Text style={styles.sumLabel}>판매 수익</Text><Text style={[styles.sumVal, { color: '#3FA7A0' }]}>{won(totRev)}</Text></View>
+        <View style={styles.sumItem}><Text style={styles.sumLabel}>순익(광고 제외)</Text><Text style={[styles.sumVal, { color: colors.ju }]}>{won(totRev - totCost)}</Text></View>
       </View>
+      <Text style={styles.adNote}>광고 수익(추정·별도): {won(totAd)} — 충당 불확실해 순익에서 제외(daniel). 광고 포함 가정 시 순익 {won(totRev + totAd - totCost)}.</Text>
       {!!unknown && <Text style={styles.warn}>⚠ {unknown}개 컨텐츠는 아직 실측값 없음(측정 필요) — 합계에서 제외. 해당 통변을 1회 생성하면 실측 채워짐.</Text>}
 
       <View style={[styles.row, styles.head]}>
@@ -121,12 +122,12 @@ export default function CostTableScreen() {
         <Text style={[styles.cType, styles.hTx]}>유형</Text>
         <Text style={[styles.cNum, styles.hTx]}>원가/회</Text>
         <Text style={[styles.cNum, styles.hTx]}>가격/광고</Text>
-        <Text style={[styles.cNum, styles.hTx]}>순익({n.toLocaleString()}인)</Text>
+        <Text style={[styles.cNum, styles.hTx]}>순익·광고제외({n.toLocaleString()}인)</Text>
       </View>
 
       {ROWS.map((r) => {
         const c = genCost(r);
-        const net = c == null ? null : (r.price + r.adEst - c) * n;
+        const net = c == null ? null : (r.price - c) * n; // 광고 제외 — 광고무료(price 0)는 −원가(순수 비용)
         return (
           <View key={r.name} style={styles.row}>
             <Text style={styles.cName} numberOfLines={1}>{r.name}</Text>
@@ -164,6 +165,7 @@ const styles = StyleSheet.create({
   sumLabel: { fontSize: 11, color: colors.inkSoft, marginBottom: space(1) },
   sumVal: { fontSize: 15, fontWeight: '900' },
   warn: { fontSize: 11, color: '#E5A93F', marginBottom: space(3), lineHeight: 15 },
+  adNote: { fontSize: 11, color: '#E5A93F', marginBottom: space(3), lineHeight: 16 },
   row: { flexDirection: 'row', alignItems: 'center', paddingVertical: space(2.25), borderBottomWidth: 1, borderBottomColor: colors.line },
   head: { borderBottomWidth: 1.5, borderBottomColor: colors.ju, paddingBottom: space(2) },
   hTx: { fontWeight: '800', color: colors.ju, fontSize: 11 },
