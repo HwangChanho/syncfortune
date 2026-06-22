@@ -2,9 +2,15 @@
 // 앱(astrology.ts)이 출생 순간(일시+위경도)으로 네이탈 차트(행성·상승궁·어스펙트)를 결정론 산출 → Edge kind='astrology'(ASTROLOGY_SYSTEM)가 해석.
 //   위경도는 출생지 피커에서 추출(birthLat/birthLon). 없으면(구버전 명식) 서울 기본 — 명식 재저장 시 정확해짐.
 import { useTranslation } from 'react-i18next';
-import { SpecialContentScreen } from '../../components/SpecialContentScreen';
+import { SpecialContentScreen, FreeBasics } from '../../components/SpecialContentScreen';
 import { colors } from '../../lib/theme';
 import { buildNatal } from '../../lib/astrology';
+
+// 별자리 영문명 → 한글(무료 빅3 미리보기용). 통변(유료)은 Edge가 한글로 풀어줌.
+const SIGN_KO: Record<string, string> = {
+  Aries: '양자리', Taurus: '황소자리', Gemini: '쌍둥이자리', Cancer: '게자리', Leo: '사자자리', Virgo: '처녀자리',
+  Libra: '천칭자리', Scorpio: '전갈자리', Sagittarius: '사수자리', Capricorn: '염소자리', Aquarius: '물병자리', Pisces: '물고기자리',
+};
 
 export default function AstrologyRoute() {
   const { t } = useTranslation();
@@ -24,6 +30,15 @@ export default function AstrologyRoute() {
           year: y, month: mo, day: d, hour: h || 0, minute: mi || 0,
           latitude: ch.input.birthLat ?? 37.5665, longitude: ch.input.birthLon ?? 126.978,
         }) };
+      }}
+      // 무료 티어(하이브리드) — 빅3(태양·달·상승궁)는 온디바이스로 먼저 무료, 깊은 해석은 유료 LLM
+      freePreview={(ch) => {
+        const [dp, tp] = (ch.input.birthDateTime ?? '').split(' ');
+        const [y, mo, d] = dp.split('-').map(Number);
+        const [h, mi] = (tp ?? '0:0').split(':').map(Number);
+        const nat = buildNatal({ year: y, month: mo, day: d, hour: h || 0, minute: mi || 0, latitude: ch.input.birthLat ?? 37.5665, longitude: ch.input.birthLon ?? 126.978 });
+        const ko = (s: string) => SIGN_KO[s] ?? s;
+        return <FreeBasics title={t('special.freeBasics', '먼저 무료로 — 나의 빅3')} rows={[['태양', ko(nat.big3.sun)], ['달', ko(nat.big3.moon)], ['상승궁', ko(nat.big3.rising)]]} />;
       }}
       sections={[
         { key: 'summary', label: t('astrology.summary', '한눈에') },

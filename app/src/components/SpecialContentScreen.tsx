@@ -35,7 +35,7 @@ import { ChartPicker } from './ChartPicker';             // 상단 명식 헤더
 
 export type Section = { key: string; label: string };
 
-export function SpecialContentScreen({ kind, title, sub, sections, needsZiwei = false, genMsg, heroMotif, themeColor = colors.ju, heroImage, buildBody }: {
+export function SpecialContentScreen({ kind, title, sub, sections, needsZiwei = false, genMsg, heroMotif, themeColor = colors.ju, heroImage, buildBody, freePreview }: {
   kind: CreditKind;        // 이용권/캐시 키(roots·image·mission). Edge category=kind.
   title: string;
   sub: string;
@@ -46,6 +46,7 @@ export function SpecialContentScreen({ kind, title, sub, sections, needsZiwei = 
   themeColor?: string;     // 섹션 강조색(콘텐츠별 정체성)
   heroImage?: any;         // 히어로 배경 이미지(옵션 — 없으면 모티프만)
   buildBody?: (chart: SavedChart) => Record<string, any>; // 추가 body(수비학/점성술 = 앱이 산출한 차트를 Edge로 전달)
+  freePreview?: (chart: SavedChart) => ReactNode; // 무료 티어(하이브리드) — 잠김 화면에 온디바이스 기본값 미리보기(수비학 생명수·점성술 빅3)
 }) {
   const { t } = useTranslation();
   const router = useRouter();
@@ -192,6 +193,8 @@ export function SpecialContentScreen({ kind, title, sub, sections, needsZiwei = 
         <View style={[styles.card, styles.gate, { borderColor: themeColor }]}>
           <Text style={styles.gateTitle}>{title}</Text>
           <Text style={styles.gateDesc}>{sub}</Text>
+          {/* 무료 티어(하이브리드) — 온디바이스 기본값 먼저 보여주고(API 0) 심층은 유료로 유도(daniel) */}
+          {freePreview && savedChart ? freePreview(savedChart) : null}
           {/* 미리보기 — 사람들이 궁금해할 핵심 항목들을 보여주고 unlock 유도(daniel) */}
           <View style={styles.previewBox}>
             <Text style={[styles.previewHead, { color: themeColor }]}>{t('special.previewHead', '이런 걸 풀어드려요')}</Text>
@@ -234,6 +237,21 @@ export function ContentHero({ motif, image, title, sub, themeColor = colors.ju }
     </View>
   );
   return <View style={[styles.hero, styles.heroPlain, { borderColor: themeColor + '40' }]}>{inner}</View>;
+}
+
+// 무료 티어 미리보기 카드 — 온디바이스 결정론 기본값(수비학 생명수·점성술 빅3)을 키:값 줄로. 유료=LLM 심층(하이브리드 hook).
+export function FreeBasics({ title, rows, color = colors.ju }: { title: string; rows: [string, string | number][]; color?: string }) {
+  return (
+    <View style={{ width: '100%', backgroundColor: colors.sunk, borderRadius: radius.md, padding: space(4), marginBottom: space(4) }}>
+      <Text style={{ fontSize: 13, fontWeight: '800', color, marginBottom: space(2), letterSpacing: 0.5 }}>{title}</Text>
+      {rows.map(([k, v]) => (
+        <View key={k} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: space(1.5) }}>
+          <Text style={{ ...font.body, color: colors.inkSoft, fontSize: 14 }}>{k}</Text>
+          <Text style={{ ...font.body, color: colors.ink, fontSize: 16, fontWeight: '800' }}>{String(v)}</Text>
+        </View>
+      ))}
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
