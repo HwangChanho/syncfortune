@@ -149,6 +149,53 @@ export function dailyHeadline(saju: SajuChart, todayStem: Stem, todayBranch: Bra
   return hlWrap(lead, hlComposeCare(obj, ctail, lang), lang, period);
 }
 
+// ── 홈 미리보기 본문(2문장 조합형) — 타이틀처럼 일진 시드로 매일·오늘≠내일 다르게(API 0·온디바이스). ──
+//   [기운 묘사 PV_OPEN]×[처방 PV_GOOD/PV_CARE](그룹×길흉). 같은 그룹이라도 일진 시드로 문장이 달라짐.
+//   ★문구 stance = daniel 검수 슬롯(전향적·일상어·흉 단정 금지, §4).
+const PV_OPEN: Record<string, Record<HlLang, string[]>> = {
+  비겁: { ko: ['내 페이스와 추진력이 살아나는 기운이에요.', '의지와 자신감이 단단해지는 하루예요.', '함께할 사람의 기운이 도는 날이에요.', '주도적으로 밀고 나갈 힘이 붙는 기운이에요.'], en: ['Your drive and resolve come alive today.', 'A day to lead and push forward.'], ja: ['推進力と意志が活きる気の日。', '主導して進める力がつく日。'] },
+  식상: { ko: ['표현력과 아이디어가 살아나는 기운이에요.', '말문이 트이고 재치가 도는 하루예요.', '새로운 시도가 잘 붙는 기운이에요.', '하고 싶은 걸 꺼내기 좋은 날이에요.'], en: ['Your ideas and expression flow today.', 'A day when words come easily.'], ja: ['表現力とアイデアが冴える日。', '言葉がすらすら出る日。'] },
+  재성: { ko: ['실속과 결실을 챙기기 좋은 기운이에요.', '눈에 보이는 성과로 이어지는 하루예요.', '돈과 기회의 흐름이 또렷해지는 날이에요.', '벌여 둔 일을 거두기 좋은 기운이에요.'], en: ['A day to secure results and substance.', 'Your sense for money and chances sharpens.'], ja: ['実りと実利を掴みやすい日。', 'お金とチャンスの流れが明確な日。'] },
+  관성: { ko: ['책임과 역할이 또렷해지는 기운이에요.', '인정받을 일이 따르는 하루예요.', '맡은 일에 무게가 실리는 날이에요.', '체계와 신뢰를 쌓기 좋은 기운이에요.'], en: ['Responsibility and your role come into focus.', 'A day that brings recognition.'], ja: ['責任と役割がはっきりする日。', '評価が伴う日。'] },
+  인성: { ko: ['차분히 배우고 정리하기 좋은 기운이에요.', '마음이 가라앉고 안정되는 하루예요.', '귀인과 정보가 닿는 날이에요.', '기반을 다지기 좋은 기운이에요.'], en: ['A good day to learn and organize calmly.', 'Your mind settles and steadies.'], ja: ['落ち着いて学び整えるのに良い日。', '心が静まり安定する日。'] },
+};
+const PV_GOOD: Record<string, Record<HlLang, string[]>> = {
+  비겁: { ko: ['혼자 다 하기보다 역할을 나누면 더 멀리 가요.', '같은 목표의 사람과 손잡으면 시너지가 나요.', '미뤄 둔 일을 오늘 밀어붙이면 수월하게 풀려요.'], en: ['Share the load and you go further.', 'Team up with the like-minded for synergy.'], ja: ['役割を分ければもっと遠くへ進めます。', '同じ目標の人と組むと相乗効果が出ます。'] },
+  식상: { ko: ['떠오른 생각 하나를 가볍게 꺼내 보면 반응이 따라와요.', '완벽하게 다듬기보다 일단 시작하는 쪽이 기회를 만들어요.', '미뤄 둔 이야기를 먼저 꺼내면 술술 풀려요.'], en: ['Float one idea and a response follows.', 'Starting beats perfecting today.'], ja: ['思いついた一つを軽く出すと反応が返ります。', '完璧より、まず始める方が機会を生みます。'] },
+  재성: { ko: ['한 가지에 집중하면 결실이 또렷해져요.', '오늘 끝낼 일 하나를 정하고 시작해 보세요.', '작은 성과를 놓치지 말고 챙기면 이득이에요.'], en: ['Focus on one thing and results sharpen.', 'Pick one task to finish today.'], ja: ['一つに集中すると実りが明確になります。', '今日終える事を一つ決めて始めましょう。'] },
+  관성: { ko: ['새 일을 벌이기보다 맡은 걸 매듭지으면 신뢰가 쌓여요.', '약속과 마감을 먼저 챙기면 부담이 기회로 바뀌어요.', '정공법으로 가는 게 가장 빠른 날이에요.'], en: ['Wrap up what you hold and trust builds.', 'Handle promises first and pressure turns to chance.'], ja: ['新しく広げるより、抱えた事を仕上げると信頼が積もります。', '約束と締切を先に片付けると好機に変わります。'] },
+  인성: { ko: ['공부·문서·계획이 잘 붙으니 정리해 두세요.', '조언을 구하면 막힌 데가 풀려요.', '오늘 다져 둔 것이 다음 며칠을 편하게 해 줘요.'], en: ['Study and plans stick — note them down.', 'Ask for advice and blocks clear.'], ja: ['勉強・計画がよく身につくので整理を。', '助言を求めると詰まりが解けます。'] },
+};
+const PV_CARE: Record<string, Record<HlLang, string[]>> = {
+  비겁: { ko: ['고집이나 경쟁심은 한 김 식히면 한결 가벼워요.', '욕심을 한 박자 내려놓으면 순하게 풀려요.', '괜한 자존심 싸움만 피하면 무난한 하루예요.'], en: ['Cool the ego a touch and it eases.', 'Skip needless rivalry for a smooth day.'], ja: ['意地は一息おくと軽くなります。', '無用な張り合いを避ければ穏やかな日。'] },
+  식상: { ko: ['벌인 일이 많다면 하나만 골라 마무리해 보세요.', '들뜬 말은 한 박자 천천히 하면 좋아요.', '새로 벌이기보다 있는 걸 다듬는 게 나아요.'], en: ['Pick one thing to finish if you spread thin.', 'Say flighty words a beat slower.'], ja: ['広げ過ぎなら一つに絞って仕上げましょう。', '浮ついた言葉は一拍ゆっくり。'] },
+  재성: { ko: ['큰 지출은 결제 전에 한 번만 더 생각해 보세요.', '조급함을 내려놓으면 오히려 실속이 와요.', '욕심보다 지킬 걸 지키는 게 버는 길이에요.'], en: ['Think twice before a big spend.', 'Let go of haste and substance comes.'], ja: ['大きな出費は決済前にもう一度。', '焦りを手放すとかえって実りが来ます。'] },
+  관성: { ko: ['부담은 혼자 안고 가지 말고 나눠 보세요.', '무리한 일정은 줄이고 핵심만 챙기세요.', '압박이 느껴질 땐 천천히 호흡을 골라 보세요.'], en: ['Share the burden, don’t carry it alone.', 'Trim the schedule to the essentials.'], ja: ['負担は一人で抱えず分けましょう。', '予定を要点だけに絞って。'] },
+  인성: { ko: ['혼자 짊어진 짐을 잠시 내려놓아도 괜찮아요.', '복잡한 생각은 한 김 식히면 맑아져요.', '큰일은 미루고 정리·휴식에 쓰기 좋은 날이에요.'], en: ['Set down the load you carry alone for now.', 'A day to tidy and rest, not to launch.'], ja: ['一人で抱えた荷を一旦下ろしても大丈夫。', '大事は控え、整理と休息に良い日。'] },
+};
+function pvJoin(open: string, body: string, lang: HlLang): string {
+  return lang === 'ja' ? `${open}${body}` : `${open} ${body}`; // ja=붙임 / ko·en=공백
+}
+
+/** 홈 미리보기 본문 — 그룹×길흉×일진 시드 조합(2문장). 매일·오늘≠내일 다르게. 온디바이스(LLM 0). */
+export function dailyPreview(saju: SajuChart, todayStem: Stem, todayBranch: Branch): string {
+  const me = saju.dayMaster.stem;
+  const group = GROUP[tenGod(me, todayStem)];
+  const sc = classifyStrength(saju);
+  const strong = sc.type === '신왕' || sc.type === '신강';
+  const weak = sc.type === '신약';
+  // 신강약 대비 오늘 기운이 우호적인가(dailyHeadline 과 동일 간이 억부)
+  const favorGood = weak ? (group === '비겁' || group === '인성')
+    : strong ? (group === '식상' || group === '재성' || group === '관성')
+    : true;
+  const lang = appLang() as HlLang;
+  const seed = hlHash(`${todayStem}${todayBranch}${me}pv`); // 일진+일간 시드(결정론·매일 다름)
+  const open = hlPick((PV_OPEN[group] ?? PV_OPEN['비겁'])[lang], seed);
+  const bodyPool = favorGood ? (PV_GOOD[group] ?? PV_GOOD['비겁'])[lang] : (PV_CARE[group] ?? PV_CARE['비겁'])[lang];
+  const body = hlPick(bodyPool, seed >>> 9); // 본문은 다른 비트로 독립 선택(open과 다른 변주)
+  return pvJoin(open, body, lang);
+}
+
 export type DailyAreaKey = 'general' | 'work' | 'money' | 'love' | 'health';
 export const DAILY_AREA_KEYS: DailyAreaKey[] = ['general', 'work', 'money', 'love', 'health'];
 

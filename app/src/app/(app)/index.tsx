@@ -15,7 +15,7 @@ import { supabase } from '../../lib/supabase';
 import { showRewardedAd } from '../../lib/ads';
 import { isAdmin } from '../../lib/admin'; // 관리자·프리미엄 = 무료 진입 광고 제외
 import { ChartPicker } from '../../components/ChartPicker';
-import { getDailyFortune, dailyChartReadings, dailyHeadline } from '../../lib/dailyFortune';
+import { getDailyFortune, dailyHeadline, dailyPreview } from '../../lib/dailyFortune';
 import { stemElement, branchElement, elementColor, elementText } from '../../lib/ohaeng'; // 오늘의 기운 = 오행색 네모 한자
 import { useGenProgress, setGenProgress } from '../../lib/genProgress'; // 풀이 진행률(풀이중 홈 나가도 % 표시·daniel)
 import { useSubscription } from '../../lib/subscription';
@@ -196,11 +196,11 @@ export default function Home() {
       const rep = await loadRepChart();
       if (!rep) { setDayData([{ headline: null, prose: null }, { headline: null, prose: null }]); return; }
       const saju = buildSajuChart(rep.input);
-      const calc = (f: typeof fortunes[number]) => {
-        const r = dailyChartReadings(saju, f.dayGanZhi[0] as Stem, f.dayGanZhi[1] as Branch);
-        const general = r.find((x) => x.key === 'general')?.paragraphs ?? [];
-        return { prose: general[0] ?? null, headline: dailyHeadline(saju, f.dayGanZhi[0] as Stem, f.dayGanZhi[1] as Branch) };
-      };
+      const calc = (f: typeof fortunes[number]) => ({
+        // 미리보기 본문 = 조합형(매일·오늘≠내일 다르게, API 0). 상세 화면은 전체 풀이(dailyChartReadings) 별도.
+        prose: dailyPreview(saju, f.dayGanZhi[0] as Stem, f.dayGanZhi[1] as Branch),
+        headline: dailyHeadline(saju, f.dayGanZhi[0] as Stem, f.dayGanZhi[1] as Branch),
+      });
       setDayData([calc(fortunes[0]), calc(fortunes[1])]);
     })();
   }, [fortunes, reloadKey]);
