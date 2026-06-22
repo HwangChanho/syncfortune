@@ -42,9 +42,10 @@ export default function SettingsScreen() {
   const [testMode, setTestMode] = useState(false); // 관리자 테스트 모드 — 켜면 통변 mock(API 미호출, daniel)
   const [premPrice, setPremPrice] = useState(''); // 프리미엄 현지통화 가격(RC) — 미설정 시 ₩ 폴백
 
-  useEffect(() => { isAdmin().then(setAdmin).catch(() => {}); }, []);
-  // 관리자 테스트 모드 현재값 로드(통변 mock 토글)
-  useEffect(() => { supabase.auth.getUser().then(({ data }) => { if (data.user) supabase.from('profiles').select('test_mode').eq('id', data.user.id).maybeSingle().then(({ data: p }) => setTestMode(!!p?.test_mode)); }).catch(() => {}); }, []);
+  // 관리자/테스트모드 노출 = session 반응형. 로그아웃(session=null) 즉시 false로 내려 관리자 메뉴가 바로 사라지게(daniel) — 빈 deps면 마운트 1회라 창 전환 전까지 살아있었음.
+  useEffect(() => { if (!session) { setAdmin(false); return; } isAdmin().then(setAdmin).catch(() => {}); }, [session]);
+  // 관리자 테스트 모드 현재값 로드(통변 mock 토글) — 로그아웃 시 즉시 끔
+  useEffect(() => { if (!session) { setTestMode(false); return; } supabase.auth.getUser().then(({ data }) => { if (data.user) supabase.from('profiles').select('test_mode').eq('id', data.user.id).maybeSingle().then(({ data: p }) => setTestMode(!!p?.test_mode)); }).catch(() => {}); }, [session]);
   // 프리미엄 현지 통화 가격(RC) 로드 — USD 기준 등록 시 사용자 지역 통화로 자동 표시.
   useEffect(() => { priceStringRC(PRODUCT_PREMIUM, `₩${PREMIUM_PRICE.toLocaleString()}`).then(setPremPrice).catch(() => {}); }, []);
 

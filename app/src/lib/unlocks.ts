@@ -11,6 +11,21 @@ import * as SecureStore from 'expo-secure-store';
 import { supabase } from './supabase';
 
 const key = (chartId: string, kind: string) => `unlock_${chartId}_${kind}`;
+const IDX = 'unlock_keys_v1'; // unlock 키 목록 — SecureStore 는 glob 미지원이라 로그아웃 일괄 삭제용 인덱스를 따로 둔다.
+
+async function rawGet(k: string): Promise<string | null> {
+  if (Platform.OS === 'web') return (globalThis as any).localStorage?.getItem(k) ?? null;
+  return SecureStore.getItemAsync(k);
+}
+async function rawSet(k: string, v: string): Promise<void> {
+  if (Platform.OS === 'web') (globalThis as any).localStorage?.setItem(k, v); else await SecureStore.setItemAsync(k, v);
+}
+async function rawDel(k: string): Promise<void> {
+  if (Platform.OS === 'web') (globalThis as any).localStorage?.removeItem(k); else await SecureStore.deleteItemAsync(k);
+}
+async function addToIndex(k: string): Promise<void> {
+  try { const raw = await rawGet(IDX); const arr: string[] = raw ? JSON.parse(raw) : []; if (!arr.includes(k)) { arr.push(k); await rawSet(IDX, JSON.stringify(arr)); } } catch { /* 인덱스 실패는 조용히(unlock 자체는 저장됨) */ }
+}
 
 /** (차트×종류) unlock(차감 완료) 여부 — true 면 재차감 없이 무료 생성/재생성. */
 export async function isUnlocked(chartId: string, kind: string): Promise<boolean> {
@@ -25,7 +40,18 @@ export async function markUnlocked(chartId: string, kind: string): Promise<void>
   try {
     if (Platform.OS === 'web') (globalThis as any).localStorage?.setItem(key(chartId, kind), '1');
     else await SecureStore.setItemAsync(key(chartId, kind), '1');
+    await addToIndex(key(chartId, kind)); // 로그아웃 일괄 삭제용 인덱스에 등록
   } catch { /* 저장 실패는 조용히 — 다음 차감 때 다시 시도(최악=재차감 1회, 크래시는 없음) */ }
+}
+
+/** 로그아웃 시 모든 통변 unlock 로컬 캐시 삭제(인덱스 기반 — 다른 계정이 이전 unlock 을 물려받지 않게). sessionCleanup 이 호출. */
+export async function clearAllUnlocks(): Promise<void> {
+  try {
+    const raw = await rawGet(IDX);
+    const arr: string[] = raw ? JSON.parse(raw) : [];
+    for (const k of arr) await rawDel(k);
+    await rawDel(IDX);
+  } catch { /* 정리 실패는 조용히 */ }
 }
 
 // ── 서버 권위 세트 언락(보안 P3, daniel 2026-06) — saju/ziwei/timeline 세트 단위 ──────────────

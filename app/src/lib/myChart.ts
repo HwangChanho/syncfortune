@@ -312,9 +312,10 @@ export async function deleteChart(id: string): Promise<void> {
   pushChartsDebounced(); // 계정 동기화(삭제 반영)
 }
 
-/** 전체 초기화. */
+/** 전체 초기화(로그아웃 시 sessionCleanup 이 호출). 서버 blob 은 보존 → 재로그인 시 복원. */
 export async function clearMyChart(): Promise<void> {
   await delRaw(KEY);
   await delRaw(REP_KEY);
   await delRaw(TOMB_KEY); // 로컬 초기화(서버 blob 은 보존 — 재로그인 시 복원)
+  notifyRepChange(); // ★로그아웃 즉시 구독자(ChartPicker·홈) 갱신 → 명식이 화면에서 바로 사라짐(daniel)
 }

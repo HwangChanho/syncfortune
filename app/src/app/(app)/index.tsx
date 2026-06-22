@@ -19,7 +19,7 @@ import { getDailyFortune, dailyHeadline, dailyPreview } from '../../lib/dailyFor
 import { stemElement, branchElement, elementColor, elementText } from '../../lib/ohaeng'; // 오늘의 기운 = 오행색 네모 한자
 import { useGenProgress, setGenProgress } from '../../lib/genProgress'; // 풀이 진행률(풀이중 홈 나가도 % 표시·daniel)
 import { useSubscription } from '../../lib/subscription';
-import { loadRepChart } from '../../lib/myChart';
+import { loadRepChart, subscribeRepChange } from '../../lib/myChart';
 import { prewarmReadings } from '../../lib/prewarmReadings';
 import { scheduleDailyFortune } from '../../lib/notifications'; // 매일 9시 오늘의 운세 알림
 import { buildSajuChart } from '@engine/saju';
@@ -164,7 +164,8 @@ export default function Home() {
   const { session } = useAuth();
   const { isPremium } = useSubscription();
   const [admin, setAdmin] = useState(false);
-  useEffect(() => { isAdmin().then(setAdmin).catch(() => {}); }, []);
+  // session 반응형 — 로그아웃(session=null) 즉시 관리자 메뉴 숨김(daniel). 빈 deps면 마운트 1회라 창 전환 전까지 살아있었음.
+  useEffect(() => { if (!session) { setAdmin(false); return; } isAdmin().then(setAdmin).catch(() => {}); }, [session]);
   const [dayOffset, setDayOffset] = useState(0); // 0=오늘·1=내일(오늘의 기운 카드 토글)
   // 날짜 키 — 홈을 켜둔 채 자정이 지나도 갱신되게(③). 포커스·앱 복귀 시 재확인.
   const [dateKey, setDateKey] = useState(() => new Date().toDateString());
@@ -189,6 +190,8 @@ export default function Home() {
     setDateKey(new Date().toDateString());
     setReloadKey((k) => k + 1); // 홈 복귀마다 재계산 트리거 → 명식 전환·수정 모두 반영(daniel)
   }, []));
+  // 명식 전역 변경(전환·수정·★로그아웃 클리어) 구독 → 오늘의 기운 즉시 재계산. 로그아웃 시 화면 전환 없이 명식이 비워지면 바로 빈 상태로(daniel).
+  useEffect(() => subscribeRepChange(() => setReloadKey((k) => k + 1)), []);
   // 백그라운드→포그라운드(자정 넘겨 홈 유지) 시 날짜 재확인(③)
   useEffect(() => {
     const sub = AppState.addEventListener('change', (s) => { if (s === 'active') setDateKey(new Date().toDateString()); });

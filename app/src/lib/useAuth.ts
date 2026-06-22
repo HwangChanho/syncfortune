@@ -8,6 +8,7 @@ import { useState, useEffect } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from './supabase';
 import { syncChartsFromServer } from './myChart'; // 계정 동기화(ADR-056) — 로그인 시 서버 명식 복원
+import { clearLocalUserData } from './sessionCleanup'; // 로그아웃 시 로컬 사용자 데이터 일괄 정리(daniel 2026-06-23)
 import { setupNotificationTapListener } from './notifications'; // 알림 탭 → 딥링크(풀이 완료 알림 클릭 시 그 화면으로)
 
 // dev 전용 자동 로그인(시뮬 편의) — __DEV__ + app/.env(gitignore) 자격증명이 있을 때만 1회 시도.
@@ -44,6 +45,7 @@ export function useAuth() {
     const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
       setSession(s);
       if (_event === 'SIGNED_IN' && s) void syncChartsFromServer(); // 로그인 시 명식 계정 동기화(ADR-056)
+      if (_event === 'SIGNED_OUT') void clearLocalUserData();       // ★로그아웃 즉시 명식·unlock·크레딧·진행률 일괄 정리(모든 로그아웃 경로 커버, daniel)
     });
     // ※ 소셜 로그인 복귀(syncfortune://auth-callback?code=/token_hash=)는 `app/auth-callback.tsx`
     //   라우트가 단일 처리(exchangeCodeForSession/verifyOtp) — 여기서 중복 처리하지 않는다(레이스 방지).
