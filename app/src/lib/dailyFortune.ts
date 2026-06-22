@@ -61,9 +61,9 @@ const HL_GOOD_SUBJ: Record<string, Record<HlLang, string[]>> = {
   인성: { ko: ['귀인이', '배움의 기회가', '마음의 안정이', '좋은 인연이', '직관이'], en: ['a mentor', 'a chance to learn', 'inner calm', 'good ties'], ja: ['貴人が', '学びが', '心の安定が', '良い縁が'] },
 };
 const HL_GOOD_TAIL: Record<HlLang, string[]> = {
-  ko: ['활짝 열리는', '따르는', '빛나는', '무르익는', '함께하는', '깃드는', '솟아나는', '반짝이는'],
-  en: ['opens up', 'follows you', 'shines', 'ripens', 'is with you', 'comes through'],
-  ja: ['花開く', '味方する', '輝く', '実る', '寄り添う', '湧き上がる'],
+  ko: ['활짝 열리는', '따르는', '빛나는', '무르익는', '함께하는', '깃드는', '솟아나는', '반짝이는', '곳곳에 닿는', '결실을 맺는', '술술 풀리는', '나를 밀어주는', '문을 여는', '제 편이 되어 주는'],
+  en: ['opens up', 'follows you', 'shines', 'ripens', 'is with you', 'comes through', 'lifts you', 'bears fruit', 'reaches everywhere', 'flows your way'],
+  ja: ['花開く', '味方する', '輝く', '実る', '寄り添う', '湧き上がる', '行き渡る', '後押しする', '実を結ぶ', 'すらすら運ぶ'],
 };
 // 조심할 날(care): [다스릴 것] + [전향 서술] (+ 하루). 공포·단정 없이.
 const HL_CARE_OBJ: Record<string, Record<HlLang, string[]>> = {
@@ -74,18 +74,18 @@ const HL_CARE_OBJ: Record<string, Record<HlLang, string[]>> = {
   인성: { ko: ['혼자 짊어진 짐을', '복잡한 생각을', '걱정을'], en: ['burdens carried alone', 'tangled thoughts', 'worry'], ja: ['一人で抱えた荷を', '考え過ぎを', '心配を'] },
 };
 const HL_CARE_TAIL: Record<HlLang, string[]> = {
-  ko: ['잠시 내려놓으면 좋은', '다스리면 가벼운', '덜어내면 편안한', '비우면 맑아지는', '천천히 가면 되는'],
-  en: ['to ease', 'to set down for now', 'to lighten', 'to take slow'],
-  ja: ['手放すと良い', '抑えると軽い', '減らすと楽な', 'ゆっくり進む'],
+  ko: ['잠시 내려놓으면 좋은', '다스리면 가벼운', '덜어내면 편안한', '비우면 맑아지는', '천천히 가면 되는', '한 박자 늦추면 풀리는', '욕심 내려놓으면 순해지는', '돌아보면 가벼워지는', '한 김 식히면 보이는', '서두르지 않으면 무난한'],
+  en: ['to ease', 'to set down for now', 'to lighten', 'to take slow', 'to slow a beat', 'softer when you let go', 'clearer when you pause'],
+  ja: ['手放すと良い', '抑えると軽い', '減らすと楽な', 'ゆっくり進む', '一拍遅らせると解ける', '欲を手放すと和らぐ', '一息おくと見える'],
 };
 // 신살·작용(특화) — 완성 서술구 풀(주제 포함). 우선순위로 분기.
 const HL_SPECIAL: Record<string, Record<HlLang, string[]>> = {
-  cheoneul: { ko: ['귀인이 손 내미는', '뜻밖의 도움이 닿는', '고마운 인연이 함께하는'], en: ['a helping hand finds you', 'unexpected help arrives', 'a kind soul stands by you'], ja: ['貴人が手を差し伸べる', '思わぬ助けが届く', 'ありがたい縁が寄り添う'] },
-  chung: { ko: ['변화의 바람이 부니 침착하면 좋은', '크고 작은 변동이 따르는', '자리바꿈이 있을 수 있는'], en: ['change is in the air — stay steady', 'shifts may come, keep calm', 'things move — go slow'], ja: ['変化の風が吹く', '変動が伴う', '配置換えがありうる'] },
-  hap: { ko: ['사람과 일이 어우러지는', '좋은 인연이 이어지는', '뜻이 맞아 술술 풀리는'], en: ['people and plans come together', 'good ties carry on', 'things click into place'], ja: ['人と物事がまとまる', '良い縁が続く', '息が合って進む'] },
-  yeokma: { ko: ['움직임과 변화가 따르는', '새 길이 열리는', '길 위에서 기회를 만나는'], en: ['movement and change follow', 'a new path opens', 'opportunity on the move'], ja: ['動きと変化が伴う', '新しい道が開く', '道中で機会に出会う'] },
-  dohwa: { ko: ['사람과 인연이 끌리는', '매력이 빛나는', '좋은 만남이 있을'], en: ['charm and connection draw near', 'your charm shines', 'a good encounter awaits'], ja: ['人との縁が引き寄せられる', '魅力が輝く', '良い出会いがありそうな'] },
-  gongmang: { ko: ['마음 비우고 재정비하기 좋은', '한 박자 쉬어가기 좋은', '욕심을 내려놓으면 가벼운'], en: ['to clear your mind and reset', 'to pause and breathe', 'lighter when you let go'], ja: ['心を整え直すのに良い', '一息つくのに良い', '欲を手放すと軽い'] },
+  cheoneul: { ko: ['귀인이 손 내미는', '뜻밖의 도움이 닿는', '고마운 인연이 함께하는', '막힌 데를 풀어 줄 사람을 만나는', '윗사람의 인정이 따르는', '곤란할 때 손잡아 줄 이가 있는', '귀한 자리에 부름받는'], en: ['a helping hand finds you', 'unexpected help arrives', 'a kind soul stands by you', 'someone opens a closed door for you', 'elders favor you', 'support arrives just in time'], ja: ['貴人が手を差し伸べる', '思わぬ助けが届く', 'ありがたい縁が寄り添う', '行き詰まりを解く人に出会う', '目上の引き立てがある', '困った時に支えがある'] },
+  chung: { ko: ['변화의 바람이 부니 침착하면 좋은', '크고 작은 변동이 따르는', '자리바꿈이 있을 수 있는', '익숙한 틀을 한번 흔드는', '오래 미룬 결단을 내리게 되는', '안 하던 일을 시도하게 되는', '한번 부딪고 도리어 정리되는'], en: ['change is in the air — stay steady', 'shifts may come, keep calm', 'a reshuffle may come', 'the familiar frame gets shaken', 'a long-delayed decision lands', 'you try something you never did'], ja: ['変化の風が吹く', '変動が伴う', '配置換えがありうる', '慣れた枠が一度揺れる', '先延ばしの決断を下す', 'やらなかった事に挑む'] },
+  hap: { ko: ['사람과 일이 어우러지는', '좋은 인연이 이어지는', '뜻이 맞아 술술 풀리는', '협력이 결실로 이어지는', '오해가 풀리고 가까워지는', '손발이 척척 맞는'], en: ['people and plans come together', 'good ties carry on', 'things click into place', 'cooperation bears fruit', 'distance closes warmly'], ja: ['人と物事がまとまる', '良い縁が続く', '息が合って進む', '協力が実る', '誤解が解け近づく'] },
+  yeokma: { ko: ['움직임과 변화가 따르는', '새 길이 열리는', '길 위에서 기회를 만나는', '멀리서 좋은 소식이 오는', '떠나 보면 답이 보이는', '바깥 활동이 잘 풀리는'], en: ['movement and change follow', 'a new path opens', 'opportunity on the move', 'good news from afar', 'answers come once you set out'], ja: ['動きと変化が伴う', '新しい道が開く', '道中で機会に出会う', '遠方から朗報が届く', '出てみると答えが見える'] },
+  dohwa: { ko: ['사람과 인연이 끌리는', '매력이 빛나는', '좋은 만남이 있을', '시선을 한 몸에 받는', '인기가 따르는', '마음이 통하는 사람을 만나는'], en: ['charm and connection draw near', 'your charm shines', 'a good encounter awaits', 'all eyes turn to you', 'popularity follows'], ja: ['人との縁が引き寄せられる', '魅力が輝く', '良い出会いがありそうな', '注目を集める', '人気が集まる'] },
+  gongmang: { ko: ['마음 비우고 재정비하기 좋은', '한 박자 쉬어가기 좋은', '욕심을 내려놓으면 가벼운', '큰일은 미루고 정리에 좋은', '속을 비우니 도리어 맑아지는', '무리하지 않으면 편안한'], en: ['to clear your mind and reset', 'to pause and breathe', 'lighter when you let go', 'a day to tidy, not to launch', 'clearer once you empty out'], ja: ['心を整え直すのに良い', '一息つくのに良い', '欲を手放すと軽い', '大事は控え整理に良い', '空けるほど澄む'] },
 };
 // 언어별 결합 — ko: '주제 서술', en: 주어+자동사 / 'to+동사+목적', ja: 결합.
 function hlComposeGood(subj: string, tail: string, lang: HlLang): string {
