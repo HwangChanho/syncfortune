@@ -71,6 +71,8 @@ engine/verify-fixture.ts
 # 내부 운영 매뉴얼·전략·로드맵
 CLAUDE.md
 SyncFortune_*.md
+# 명리 결정론 모듈 원본(월지 축 등 — 룰·프롬프트, moat IP). 루트에 두는 명리 .md 보호.
+wolji_axis_*.md
 
 # ── 참고 스크린샷·루트 스트레이 이미지 (앱 에셋 app/assets/*.png 는 보존) ──
 KakaoTalk_*.png
