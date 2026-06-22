@@ -12,13 +12,13 @@ import { View, Text, TextInput, Pressable, Modal, ScrollView, ActivityIndicator,
 import { useTranslation } from 'react-i18next';
 import { colors, radius, space, shadow, font } from '../lib/theme';
 
-type Place = { name: string; lon: number | null };
+type Place = { name: string; lon: number | null; lat: number | null }; // lat=점성술 상승궁(daniel: 출생지에서 추출)
 
 export function BirthPlacePicker({ value, onSelect }: { value: string; onSelect: (p: Place) => void }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState<{ name: string; lon: number }[]>([]);
+  const [results, setResults] = useState<{ name: string; lon: number; lat: number }[]>([]);
   const [loading, setLoading] = useState(false);
 
   // 디바운스(450ms) 검색 — 타이핑이 멈추면 Nominatim 조회(rate-limit 약관 충족)
@@ -36,7 +36,7 @@ export function BirthPlacePicker({ value, onSelect }: { value: string; onSelect:
           const city = a.city || a.town || a.village || a.county || a.municipality || a.suburb || '';
           const region = a.state || a.province || '';
           const name = [city, region, a.country].filter(Boolean).join(', ') || String(d.display_name).split(',').slice(0, 2).join(',').trim();
-          return { name, lon: parseFloat(d.lon) };
+          return { name, lon: parseFloat(d.lon), lat: parseFloat(d.lat) };
         }));
       } catch {
         setResults([]); // 네트워크 실패 → 아래 '그대로 사용' fallback 으로 진행 가능
@@ -82,13 +82,13 @@ export function BirthPlacePicker({ value, onSelect }: { value: string; onSelect:
             {loading && <ActivityIndicator style={{ marginTop: space(3) }} color={colors.ju} />}
             <ScrollView style={styles.list} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
               {results.map((r, i) => (
-                <Pressable key={i} style={styles.row} onPress={() => choose({ name: r.name, lon: r.lon })}>
+                <Pressable key={i} style={styles.row} onPress={() => choose({ name: r.name, lon: r.lon, lat: r.lat })}>
                   <Text style={styles.rowText} numberOfLines={2}>{r.name}</Text>
                 </Pressable>
               ))}
               {/* fallback: 검색 결과가 없거나 미등록 지역 — 입력값 그대로 사용(좌표 없음) */}
               {query.trim().length >= 2 && !loading && (
-                <Pressable style={styles.row} onPress={() => choose({ name: query.trim(), lon: null })}>
+                <Pressable style={styles.row} onPress={() => choose({ name: query.trim(), lon: null, lat: null })}>
                   <Text style={styles.rowAsIs}>{t('register.useAsIs', { q: query.trim() })}</Text>
                 </Pressable>
               )}

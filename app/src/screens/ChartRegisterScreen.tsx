@@ -34,6 +34,7 @@ export function ChartRegisterScreen({ onSubmit, defaultRelation, submitLabel, sh
   const [sex, setSex] = useState<'남' | '여'>(initial?.sex ?? '남');
   const [birthPlace, setBirthPlace] = useState(initial?.birthPlace ?? '');
   const [birthPlaceLon, setBirthPlaceLon] = useState<number | null>(initial?.birthLon ?? null); // 진태양시 경도(ADR-008 준비)
+  const [birthPlaceLat, setBirthPlaceLat] = useState<number | null>(initial?.birthLat ?? null); // 점성술 상승궁 위도(daniel: 출생지에서 추출)
   const [relation, setRelation] = useState<string>(initial?.relation ?? defaultRelation ?? 'self');
   const [relationCustom, setRelationCustom] = useState(false); // 직접입력 모드
   const [makeRep, setMakeRep] = useState(false); // 이 명식을 대표로 설정(register 전용)
@@ -59,7 +60,7 @@ export function ChartRegisterScreen({ onSubmit, defaultRelation, submitLabel, sh
     return {
       label: label.trim() || (relation === 'self' ? t('register.selfLabel') : relation),
       birthDateTime: `${birthDate} ${exactStr ?? (sj ? sj.hm : '0:0')}`, // 정확시각 우선(진태양시 보정 대상) → 없으면 시진 대표시각 → 모름=0:0
-      calendar, sex, birthPlace, birthLon: birthPlaceLon ?? undefined, // 진태양시 보정 경도(엔진 ChartInput.birthLon)
+      calendar, sex, birthPlace, birthLon: birthPlaceLon ?? undefined, birthLat: birthPlaceLat ?? undefined, // 진태양시 경도 + 점성술 위도
       relation,
       timeAccuracy: (exactStr || sj) ? '정확' : '미상', // 정확시각 또는 시진 알면 시주 확정 → 정확
       makeRep, // 대표 설정 여부 — register 라우트가 처리(궁합 상대 등록 시 showMakeRep=false 라 무시)
@@ -115,7 +116,7 @@ export function ChartRegisterScreen({ onSubmit, defaultRelation, submitLabel, sh
 
         {/* 출생지 — 도시 검색 선택(Nominatim, 검증된 입력 + 진태양시 경도 보관) */}
         <Text style={styles.label}>{t('register.birthPlace')}</Text>
-        <BirthPlacePicker value={birthPlace} onSelect={(p) => { setBirthPlace(p.name); setBirthPlaceLon(p.lon); }} />
+        <BirthPlacePicker value={birthPlace} onSelect={(p) => { setBirthPlace(p.name); setBirthPlaceLon(p.lon); setBirthPlaceLat(p.lat); }} />
 
         {/* 관계 — 프리셋 칩 + 직접 입력(자유 텍스트) */}
         <Text style={styles.label}>{t('register.relation')}</Text>
