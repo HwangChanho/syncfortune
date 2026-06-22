@@ -100,9 +100,11 @@ export async function syncChartsFromServer(): Promise<void> {
   }
   await setRaw(KEY, JSON.stringify(merged));
   await setTombstones(Array.from(tomb));
-  // 대표: 로컬 대표가 유효하면 유지, 아니면 서버 대표(merged 에 존재 시), 그것도 없으면 첫 명식.
+  // 대표: 본인('self') 명식이 있으면 그걸 대표로(daniel: 실행 시 본인). 없으면 로컬 유지/서버 대표/첫 명식.
+  const selfChart = merged.find((c) => c.relation === 'self');
   const curRep = await getRaw(REP_KEY);
-  if (!curRep || !merged.some((c) => c.id === curRep)) {
+  if (selfChart) { await setRaw(REP_KEY, selfChart.id); }
+  else if (!curRep || !merged.some((c) => c.id === curRep)) {
     if (server?.rep && merged.some((c) => c.id === server!.rep)) await setRaw(REP_KEY, server.rep);
     else if (merged.length) await setRaw(REP_KEY, merged[0].id);
   }
@@ -218,6 +220,15 @@ export async function setRepresentative(id: string): Promise<void> {
 /** 현재 대표 명식 id. */
 export async function getRepresentativeId(): Promise<string | null> {
   return getRaw(REP_KEY);
+}
+
+/** 앱 실행 시 '본인'(relation='self') 명식을 대표로 (daniel: 실행하면 대표=본인). 없으면 변경 없음. */
+export async function preferSelfAsRep(): Promise<void> {
+  const charts = await listCharts();
+  const self = charts.find((c) => c.relation === 'self');
+  if (!self) return;
+  const cur = await getRaw(REP_KEY);
+  if (cur !== self.id) { await setRaw(REP_KEY, self.id); notifyRepChange(); } // 전역 알림 → 화면 본인 기준 갱신
 }
 
 /** 대표 명식의 input (호환 — 기존 loadMyChart). 없으면 null. */

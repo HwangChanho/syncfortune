@@ -3,8 +3,8 @@
 // 로그인 게이트 없음(ADR-037) — 명식·궁합은 온디바이스 무료(규칙5).
 // 무료 사용자 = 하단 AdBanner 고정 / 프리미엄(구독) = 광고 없음(ADR-043).
 // ─────────────────────────────────────────────────────────────────────────
-import { Stack, useRouter } from 'expo-router';
-import { View, Pressable, Text } from 'react-native';
+import { Stack } from 'expo-router';
+import { View } from 'react-native';
 import { useFontScale } from '../../lib/fontScale';
 import { AdBanner } from '../../components/AdBanner';
 import { BottomNav } from '../../components/BottomNav';
@@ -16,8 +16,7 @@ import { colors } from '../../lib/theme';
 export const unstable_settings = { initialRouteName: 'index' };
 
 export default function AppLayout() {
-  const { fs } = useFontScale();   // 글자크기 설정 → 헤더 타이틀·뒤로버튼도 반응(daniel)
-  const router = useRouter();
+  const { fs } = useFontScale();   // 글자크기 설정 → 헤더 타이틀 반응(daniel). 뒤로버튼은 iOS 네이티브.
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
       <OfflineBanner />
@@ -26,16 +25,11 @@ export default function AppLayout() {
         headerTintColor: colors.ink,                 // 먹 — 뒤로가기·타이틀
         headerTitleStyle: { color: colors.ink, fontWeight: '700', fontSize: fs(17) }, // 글자크기 반응
         headerShadowVisible: false,                  // 한지 무드 — 헤더 그림자 제거
-        headerBackButtonDisplayMode: 'minimal',
+        // 뒤로버튼 = iOS 네이티브(daniel #9: iOS26 글래스 버튼 안에서 커스텀 '‹뒤로'가 왼쪽에 붙던 문제 →
+        //   네이티브가 글래스 안 가운데 정렬·표준 처리). headerBackTitle 로 '뒤로' 텍스트만 지정.
+        headerBackButtonDisplayMode: 'default',
+        headerBackTitle: '뒤로',
         contentStyle: { backgroundColor: colors.bg }, // 씬 배경 한지(전환 시 흰 깜빡임 방지)
-        // 뒤로버튼 = 표준 iOS 스타일(chevron + '뒤로') — 글자크기에 반응하되 과하지 않게(daniel: 큰 ‹ 투박).
-        //   (루트는 canGoBack=false라 미표시)
-        headerLeft: (p: any) => p?.canGoBack ? (
-          <Pressable onPress={() => router.back()} hitSlop={16} style={{ flexDirection: 'row', alignItems: 'center', paddingRight: 16, paddingVertical: 4 }}>
-            <Text style={{ color: colors.ink, fontSize: fs(26), lineHeight: fs(26), fontWeight: '300' }}>‹</Text>
-            <Text style={{ color: colors.ink, fontSize: fs(16), fontWeight: '600', marginLeft: 2 }}>뒤로</Text>
-          </Pressable>
-        ) : null,
       }}>
         <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="register" options={{ title: '차트 등록' }} />

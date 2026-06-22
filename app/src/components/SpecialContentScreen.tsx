@@ -6,7 +6,8 @@
 //   needsZiwei=true 면 자미두수 명반을 body 로 전달(사명=사주 主 + 자미 보조 교차).
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useMemo, useState, useRef, type ReactNode } from 'react';
-import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator, ImageBackground, Animated, Easing } from 'react-native';
+import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator, Animated, Easing } from 'react-native';
+import { Image as ExpoImage } from 'expo-image'; // 콘텐츠 배너 — 자동 다운샘플·디스크캐시(daniel: 이미지 프리로드/캐시). 홈카드와 같은 파일 캐시 공유 → 콘텐츠 진입 즉시
 import { Alert } from '../lib/alert'; // 커스텀 알림(앱 디자인)
 import { useTranslation } from 'react-i18next';
 import { useRouter } from 'expo-router';
@@ -224,10 +225,11 @@ export function ContentHero({ motif, image, title, sub, themeColor = colors.ju }
     </View>
   );
   if (image) return (
-    <ImageBackground source={image} style={styles.hero} imageStyle={styles.heroImg} resizeMode="cover">
+    <View style={styles.hero}>
+      <ExpoImage source={image} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="memory-disk" transition={150} />
       <View style={styles.heroScrim} />
       {inner}
-    </ImageBackground>
+    </View>
   );
   return <View style={[styles.hero, styles.heroPlain, { borderColor: themeColor + '40' }]}>{inner}</View>;
 }

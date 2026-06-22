@@ -15,6 +15,7 @@ import type { ChartInput, NormalizedChart } from '@spec/chart';
 function buildFullChart(input: ChartInput) {
   const saju = buildSajuChart(input, new Date().getFullYear()); // 세운·현재 대운 = 오늘 기준
   saju.interactions = detectInteractions(saju);
+  let _ziwei: ReturnType<typeof buildZiweiChart> | undefined; // 자미두수 지연 계산 캐시(아래 get ziwei)
   return {
     saju,
     strength: scoreStrength(saju),   // 지표 (verdict 확정은 daniel/LLM P2)
@@ -23,7 +24,9 @@ function buildFullChart(input: ChartInput) {
     pattern: detectPattern(saju),    // 격국 후보
     stages: dayMasterStages(saju),   // 12운성
     sinsal: analyzeSinsal(saju),     // 신살·공망
-    ziwei: buildZiweiChart(input),
+    // ⚡지연(성능·daniel "만세력 느림"): 자미두수(iztro)는 무겁고 사주-only 화면(만세력·신살)엔 불필요 →
+    //   c.ziwei 접근 시에만 1회 계산(자미/궁합 화면만 비용). 메모 객체 내 _ziwei 캐시.
+    get ziwei() { return _ziwei ?? (_ziwei = buildZiweiChart(input)); },
   };
 }
 

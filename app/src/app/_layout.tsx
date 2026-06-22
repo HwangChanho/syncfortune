@@ -13,6 +13,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler'; // 이슈
 import { useAuth } from '../lib/useAuth';
 import { configurePurchases } from '../lib/purchases'; // 인앱결제(RevenueCat) 초기화
 import { migrateLocalCreditsOnLogin } from '../lib/migrateCredits'; // 로그인 시 디바이스 구매 이관(H)
+import { preferSelfAsRep } from '../lib/myChart'; // 앱 실행 시 대표 명식 = 본인(daniel)
 import { FontScaleProvider } from '../lib/fontScale'; // 전역 글자 크기(설정에서 조절)
 import { colors } from '../lib/theme';
 import { AppAlert } from '../components/AppAlert'; // 커스텀 알림 호스트(시스템 Alert 대체)
@@ -29,6 +30,8 @@ export default function RootLayout() {
 
   // 전역 크래시 로거 등록(앱 시작 1회) — JS 치명 에러를 app_logs 에 기록(daniel: DB 로그).
   useEffect(() => { installCrashLogger(); }, []);
+  // 앱 실행 시 대표 명식을 '본인'으로(daniel) — 로컬 명식 기준 즉시(로그인 동기화 후엔 syncChartsFromServer가 한 번 더 보정).
+  useEffect(() => { preferSelfAsRep().catch(() => {}); }, []);
   // 앱 사용 세션 시간 추적(daniel: 관리자 계정별 평균 사용시간) — 포그라운드 구간 길이를 app_session 으로 기록.
   //   로그인 상태에서만 owner 귀속(미로그인 logEvent는 조용히 실패). 첫 구간 = 앱 실행~첫 백그라운드.
   useEffect(() => {
