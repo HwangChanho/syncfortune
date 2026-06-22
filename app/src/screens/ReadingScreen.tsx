@@ -28,6 +28,7 @@ import { useFontScale } from '../lib/fontScale';
 import { appLang } from '../lib/i18n'; // 통변 출력 언어(앱 언어)
 import { readingFromInvoke } from '../lib/interpretResult'; // 방어: Edge 응답 정규화(일시적 불가·결제필요·오류)
 import { PALACE_DESC } from '../lib/palaceDesc'; // 자미두수 궁 설명(궁 옆 표시)
+import { shareReading } from '../lib/share'; // 이슈17: 풀이 결과 공유(앱 설치자만 열람)
 import { loadCredits, grantCredit } from '../lib/coupons'; // 크레딧 보유확인(UX) + 광고/결제 후 부여(차감은 Edge 서버 권위·P3)
 import { purchaseCreditRC } from '../lib/purchases'; // 추가질문 건당 결제 = credit_followup(서버 consume)
 import { requireLoginForPurchase } from '../lib/requireLogin'; // 결제/저장 전 로그인 안내
@@ -476,9 +477,18 @@ export function ReadingScreen({
     {/* 항목 상세 — 탭한 영역의 섹션을 별도 페이지처럼 슬라이드 */}
     <Modal visible={!!detail} animationType="slide" onRequestClose={closeDetail}>
       <KeyboardAvoidingView style={styles.detailScreen} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <Pressable style={styles.detailBack} onPress={closeDetail} hitSlop={12}>
-          <Text style={[styles.detailBackTx, { fontSize: fs(20) }]}>‹ 목록으로</Text>
-        </Pressable>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Pressable style={styles.detailBack} onPress={closeDetail} hitSlop={12}>
+            <Text style={[styles.detailBackTx, { fontSize: fs(20) }]}>‹ 목록으로</Text>
+          </Pressable>
+          {/* 이슈17: 이 풀이 공유(앱 설치자만 열람·만료없음). 생성된 풀이만 노출. */}
+          {detail && readings[detail] && !(readings[detail] as any)?.error ? (
+            <Pressable hitSlop={12} style={{ paddingHorizontal: space(4), paddingVertical: space(2) }}
+              onPress={async () => { try { await shareReading({ kind, category: detail, title: cats.find((x) => x.key === detail)?.label, content: readings[detail] }); } catch (e) { Alert.alert('!', (e as Error).message); } }}>
+              <Text style={[styles.detailBackTx, { fontSize: fs(15), color: colors.ju }]}>공유 ↗</Text>
+            </Pressable>
+          ) : null}
+        </View>
         {detail && (
           <ScrollView contentContainerStyle={styles.detailWrap} keyboardShouldPersistTaps="handled">
             <Text style={styles.detailTitle}>{cats.find((x) => x.key === detail)?.label}</Text>

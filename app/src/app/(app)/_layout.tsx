@@ -73,6 +73,7 @@ export default function AppLayout() {
         <Stack.Screen name="dream" options={{ title: '꿈해몽' }} />
         <Stack.Screen name="premium" options={{ title: '프리미엄' }} />
         <Stack.Screen name="market" options={{ title: '마켓' }} />
+        <Stack.Screen name="shared/[id]" options={{ title: '공유받은 풀이' }} />
         <Stack.Screen name="admin" options={{ title: '관리자' }} />
         <Stack.Screen name="coststable" options={{ title: '비용·수익 분석' }} />
       </Stack>
