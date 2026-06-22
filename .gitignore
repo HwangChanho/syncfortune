@@ -54,6 +54,8 @@ docs/*
 !docs/legal/
 !docs/_config.yml
 !docs/index.md
+!docs/s/
+# ↑ 이슈17 공유 스마트링크 stub(docs/s) — GitHub Pages 공개 필요(앱 열기/설치 유도, 풀이 내용은 노출 X)
 # 명리 지식 레이어·물상 (moat 콘텐츠)
 knowledge/
 # L2 해석 오케스트레이터 + 시스템 프롬프트 (LLM/RAG 레이어 — moat)

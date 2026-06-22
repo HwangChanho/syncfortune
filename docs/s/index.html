@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<!-- 이슈17 공유 스마트링크 stub — 앱 설치 시 syncfortune://shared/<id> 로 앱 열기, 미설치 시 App Store 유도.
+     내용(풀이)은 절대 웹에 노출하지 않음(daniel: 앱 설치해야만 열람). 만료 없음. -->
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SyncFortune — 공유받은 풀이</title>
+  <style>
+    html,body{margin:0;height:100%;background:#15132e;color:#e8e4d0;
+      font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo",sans-serif;
+      display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px}
+    .logo{font-size:40px;color:#caa84a;font-weight:800;margin-bottom:8px}
+    p{opacity:.85;line-height:1.6;margin:6px 0}
+    a.btn{display:inline-block;margin-top:18px;background:#caa84a;color:#15132e;font-weight:700;
+      text-decoration:none;padding:12px 22px;border-radius:12px}
+  </style>
+</head>
+<body>
+  <div class="logo">緣</div>
+  <p><strong>SyncFortune</strong> 앱에서 공유받은 풀이를 여는 중…</p>
+  <p>앱이 설치돼 있으면 자동으로 열립니다.<br/>설치돼 있지 않으면 App Store로 이동해요.</p>
+  <a class="btn" id="store" href="https://apps.apple.com/app/id6779321930">App Store에서 설치하기</a>
+  <script>
+    // 공유 id 추출 → 앱 딥링크 시도(설치돼 있으면 앱이 가로챔) → 1.5초 뒤 미설치로 보고 App Store.
+    (function () {
+      var id = new URLSearchParams(location.search).get('id') || '';
+      var store = 'https://apps.apple.com/app/id6779321930';
+      if (id) {
+        // 앱 열기 시도(설치 시 앱이 열리며 이 페이지는 백그라운드로). 내용은 앱에서만 표시.
+        window.location.href = 'syncfortune://shared/' + encodeURIComponent(id);
+      }
+      setTimeout(function () { window.location.href = store; }, 1500);
+    })();
+  </script>
+</body>
+</html>
