@@ -5,7 +5,7 @@
 // 접근: 프리미엄=무광고 자동 / 무료=보상형 광고 1회 → 생성. 캐시: readings(chart_id × 'lifegraph' × lang).
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { View, Text, ScrollView, Pressable, ActivityIndicator, StyleSheet, Dimensions, Image } from 'react-native';
+import { View, Text, ScrollView, Pressable, ActivityIndicator, StyleSheet, Dimensions, Image, Animated, Easing } from 'react-native';
 import Svg, { Polyline, Circle, Line } from 'react-native-svg';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -33,6 +33,7 @@ type LifeData = { summary: string; decades: Decade[]; yongsin?: string; peak?: s
 
 const W = Dimensions.get('window').width - space(5) * 2 - space(5) * 2; // 카드 내부 폭
 const H = 170; // 곡선 높이
+const APolyline = Animated.createAnimatedComponent(Polyline); // 이슈18: 인생곡선 드로잉 애니
 
 export default function LifeGraphScreen() {
   const { t } = useTranslation();
@@ -49,6 +50,7 @@ export default function LifeGraphScreen() {
   const [err, setErr] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0); // ChartPicker 로 대표 전환 시 재로드 트리거
   const gatingRef = useRef(false); // 결제 구간 연타 차단
+  const draw = useRef(new Animated.Value(0)).current; // 이슈18: 인생곡선 드로잉 진행값(0→1)
 
   useEffect(() => {
     let alive = true;
@@ -72,6 +74,12 @@ export default function LifeGraphScreen() {
     return () => { alive = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session, isPremium, reloadKey]);
+
+  // 이슈18: 통변(곡선) 도착 시 곡선이 그려지는 애니(0→1). strokeDashoffset = useNativeDriver 미지원.
+  useEffect(() => {
+    if (data?.decades?.length) { draw.setValue(0); Animated.timing(draw, { toValue: 1, duration: 1200, easing: Easing.out(Easing.cubic), useNativeDriver: false }).start(); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data]);
 
   async function generate(id: string) {
     if (busy) return;
@@ -125,6 +133,8 @@ export default function LifeGraphScreen() {
     d, i, current: d.startAge === curAge,
   }));
   const polyline = pts.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+  // 이슈18: 곡선 총 길이(드로잉 dash 기준) — 점 사이 거리 합.
+  const pathLen = (() => { let L = 0; for (let i = 1; i < pts.length; i++) L += Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y); return Math.max(L, 1); })();
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>
@@ -159,7 +169,7 @@ export default function LifeGraphScreen() {
             <Svg width={W} height={H + 24}>
               {/* 기준선(50점) */}
               <Line x1={0} y1={H / 2} x2={W} y2={H / 2} stroke={colors.line} strokeWidth={1} strokeDasharray="4 4" />
-              <Polyline points={polyline} fill="none" stroke={colors.ju} strokeWidth={2.5} />
+              <APolyline points={polyline} fill="none" stroke={colors.ju} strokeWidth={2.5} strokeDasharray={pathLen} strokeDashoffset={draw.interpolate({ inputRange: [0, 1], outputRange: [pathLen, 0] })} />
               {pts.map((p) => (
                 <Circle
                   key={p.i} cx={p.x} cy={p.y}
