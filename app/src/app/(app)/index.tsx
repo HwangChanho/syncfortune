@@ -5,6 +5,8 @@
 //   라벨은 코드 t()로 하단 오버레이 → 영·일 다국어 유지(ADR-049).
 // ─────────────────────────────────────────────────────────────────────────
 import { View, Text, Pressable, ScrollView, StyleSheet, ImageBackground, Animated, AppState } from 'react-native';
+import { Image as ExpoImage } from 'expo-image'; // 이미지 자동 다운샘플(표시 크기로 디코딩) — 홈 카드 24장 메모리·랙 해결
+import { Gesture, GestureDetector } from 'react-native-gesture-handler'; // 홈 운세 배너 좌우 스와이프(오늘↔내일)
 import { Alert } from '../../lib/alert'; // 커스텀 알림(앱 디자인)
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -78,7 +80,7 @@ const SECTIONS: Section[] = [
     { key: 'taro', labelKey: 'menu.taro', descKey: 'menu.taroDesc', image: require('../../../assets/icons/taro.jpg'), route: '/taro', ready: true, content: true },
     { key: 'pet', labelKey: 'menu.pet', descKey: 'menu.petDesc', image: require('../../../assets/icons/pet.jpg'), route: '/pet', ready: true, content: true },
     { key: 'persona', labelKey: 'menu.persona', descKey: 'menu.personaTileDesc', image: require('../../../assets/icons/persona.jpg'), route: '/persona', ready: true, content: true },
-    { key: 'impression', labelKey: 'menu.impression', descKey: 'menu.impressionDesc', image: require('../../../assets/icons/image.jpg'), route: '/impression', ready: true, content: true },
+    { key: 'impression', labelKey: 'menu.impression', descKey: 'menu.impressionDesc', image: require('../../../assets/icons/impression.jpg'), route: '/impression', ready: true, content: true },
     { key: 'egen', labelKey: 'menu.egen', descKey: 'menu.egenTileDesc', image: require('../../../assets/icons/egen.jpg'), route: '/egenteto', ready: true, content: true },
     { key: 'joseonjob', labelKey: 'menu.joseonjob', descKey: 'menu.joseonjobTileDesc', image: require('../../../assets/icons/joseonjob.jpg'), route: '/joseonjob', ready: true, content: true },
     { key: 'lovestyle', labelKey: 'menu.lovestyle', descKey: 'menu.lovestyleTileDesc', image: require('../../../assets/icons/lovestyle.jpg'), route: '/lovestyle', ready: true, content: true },
@@ -165,6 +167,15 @@ export default function Home() {
   const [dateKey, setDateKey] = useState(() => new Date().toDateString());
   const fortune = useMemo(() => getDailyFortune(dayOffset), [dayOffset, dateKey]);
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  // 운세 배너 좌우 스와이프(daniel): ← 왼쪽=내일, → 오른쪽=오늘. 가로 이동에만 활성(세로 스크롤 방해 X).
+  const fortuneSwipe = useMemo(() => Gesture.Pan()
+    .activeOffsetX([-20, 20])   // 가로 20px 이상 움직여야 스와이프 활성
+    .failOffsetY([-14, 14])     // 세로로 끌면 실패 → ScrollView 스크롤 우선
+    .runOnJS(true)              // onEnd 를 JS 스레드에서 → setState 직접 호출 가능
+    .onEnd((e) => {
+      if (e.translationX <= -40) setDayOffset(1);       // ← 왼쪽 스와이프 = 내일
+      else if (e.translationX >= 40) setDayOffset(0);   // → 오른쪽 스와이프 = 오늘
+    }), []);
   // 오늘의 기운 한 줄 풀이(글) — 대표 명식 일간 × 오늘 일진(온디바이스, 무료). 탭 → 오늘의 운세 상세.
   const [todayProse, setTodayProse] = useState<string | null>(null);
   const [todayHeadline, setTodayHeadline] = useState<string | null>(null); // 오늘의 기운 한 줄 타이틀(그날을 아우르는 캐치)
@@ -253,7 +264,8 @@ export default function Home() {
           </Pressable>
         ))}
 
-        {/* 오늘/내일 기운 배너 — 상단 토글로 오늘↔내일, 본문 탭 → 상세(분야별, 같은 offset 전달). */}
+        {/* 오늘/내일 기운 배너 — 토글 또는 좌우 스와이프로 오늘↔내일(daniel), 본문 탭 → 상세(분야별, 같은 offset 전달). */}
+        <GestureDetector gesture={fortuneSwipe}>
         <View style={styles.fortuneBanner}>
           <View style={styles.dayToggle}>
             {([0, 1] as const).map((off) => (
@@ -282,6 +294,7 @@ export default function Home() {
             {todayProse && <Text style={styles.bannerMore}>{t('today.more')}</Text>}
           </Pressable>
         </View>
+        </GestureDetector>
 
         {/* 대표 명식 선택/전환 (등록한 다른 명식으로 변경) — 전환 시 오늘의 기운 즉시 재계산(daniel) */}
         <ChartPicker onChange={() => setReloadKey((k) => k + 1)} />
@@ -307,7 +320,9 @@ export default function Home() {
             }
             return (
               <Pressable key={m.key} style={styles.card} onPress={() => onPress(m)}>
-                <ImageBackground source={m.image} style={styles.cardImg} imageStyle={styles.cardImgInner} resizeMode="cover">
+                <View style={styles.cardImg}>
+                  {/* expo-image: 162pt 카드 표시 크기로 자동 다운샘플 → 풀해상도(796×1080) 디코딩 방지(메모리·랙 해결). absoluteFill 배경 + 위 오버레이. */}
+                  <ExpoImage source={m.image} style={[StyleSheet.absoluteFill, styles.cardImgInner]} contentFit="cover" cachePolicy="memory-disk" transition={120} />
                   {prem && (
                     <View style={styles.premTag}>
                       <Text style={styles.premTagText}>{t('menu.premiumTag')}</Text>
@@ -323,7 +338,7 @@ export default function Home() {
                     <Text style={[styles.cardLabel, prem && styles.cardLabelPrem]}>{t(m.labelKey)}</Text>
                     {m.descKey ? <Text style={styles.cardDesc} numberOfLines={2}>{t(m.descKey)}</Text> : null}
                   </View>
-                </ImageBackground>
+                </View>
               </Pressable>
             );
           });

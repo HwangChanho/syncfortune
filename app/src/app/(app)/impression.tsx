@@ -43,7 +43,7 @@ export default function ImpressionScreen() {
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>
       <ChartPicker onChange={() => setReloadKey((k) => k + 1)} />
-      <ContentHero image={require('../../../assets/icons/hero-image.jpg')}
+      <ContentHero image={require('../../../assets/icons/impression.jpg')}
         title={t('impression.title', '사람들이 보는 나의 인상')}
         sub={t('impression.sub', '겉으로 비치는 모습과 알고 보면 다른 진짜 나')} />
       {!saved || !c ? (

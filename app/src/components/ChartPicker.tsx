@@ -5,7 +5,8 @@
 // 명식이 없으면 등록 유도. 화면 복귀 시 useFocusEffect 로 목록 갱신.
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
-import { View, Text, Pressable, Modal, StyleSheet, Image, Dimensions } from 'react-native';
+import { View, Text, Pressable, Modal, StyleSheet, Dimensions } from 'react-native';
+import { Image as ExpoImage } from 'expo-image'; // 자동 다운샘플(메모리) + 엠블럼 탭 풀스크린 뷰어
 import DraggableFlatList, { ScaleDecorator } from 'react-native-draggable-flatlist'; // 이슈20 롱프레스 드래그 reorder
 import { Alert } from '../lib/alert'; // 커스텀 알림(삭제 확인)
 import { useRouter, useFocusEffect } from 'expo-router';
@@ -26,6 +27,7 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
   const [repId, setRepId] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const [usage, setUsage] = useState<{ count: number; limit: number } | null>(null);
+  const [viewImg, setViewImg] = useState<any>(null); // 엠블럼 탭 → 풀스크린 이미지 뷰어(daniel)
 
   const reload = useCallback(async () => {
     setCharts(await listCharts());
@@ -121,7 +123,9 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
                   <ScaleDecorator>
                     <View style={[styles.row, isActive && styles.rowActive]}>
                       {iljuImg ? (
-                        <Image source={iljuImg} style={styles.emblemImg} />
+                        <Pressable onPress={() => setViewImg(iljuImg)} hitSlop={6}>
+                          <ExpoImage source={iljuImg} style={styles.emblemImg} contentFit="cover" cachePolicy="memory-disk" />
+                        </Pressable>
                       ) : (
                         <View style={[styles.emblem, { backgroundColor: em?.color ?? colors.sunk }]}>
                           <Text style={[styles.emblemTx, { color: em?.textColor ?? colors.inkSoft, fontSize: fs(13) }]}>{em?.animal ?? '?'}</Text>
@@ -148,11 +152,23 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
           </Pressable>
         </Pressable>
       </Modal>
+
+      {/* 엠블럼 풀스크린 뷰어(daniel) — 일주 일러스트 탭 → 큰 화면, 다시 탭하면 닫힘 */}
+      <Modal visible={!!viewImg} transparent animationType="fade" onRequestClose={() => setViewImg(null)}>
+        <Pressable style={styles.imgViewerBackdrop} onPress={() => setViewImg(null)}>
+          {viewImg ? <ExpoImage source={viewImg} style={styles.imgViewerImg} contentFit="contain" cachePolicy="memory-disk" transition={150} /> : null}
+          <Text style={styles.imgViewerHint}>{t('common.tapToClose', '탭하여 닫기')}</Text>
+        </Pressable>
+      </Modal>
     </>
   );
 }
 
 const styles = StyleSheet.create({
+  // 엠블럼 풀스크린 뷰어(daniel) — 탭하면 큰 화면으로 일주 일러스트 감상
+  imgViewerBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.92)', alignItems: 'center', justifyContent: 'center' },
+  imgViewerImg: { width: Dimensions.get('window').width, height: Dimensions.get('window').height * 0.8 },
+  imgViewerHint: { position: 'absolute', bottom: space(10), color: 'rgba(255,255,255,0.55)', fontSize: 13 },
   bar: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line,
