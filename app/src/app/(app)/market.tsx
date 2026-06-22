@@ -5,7 +5,7 @@
 //   (선택 명식을 대표로 설정 → 캐시·서버차트 연결, 거기서 이용권 use_credit·프리미엄·건당구매로 열림).
 //   무료 이용권(쿠폰) 등록도 여기로 이동(설정→마켓). ★1회성 소모 — 보유/미보유로만 표시.
 // ─────────────────────────────────────────────────────────────────────────
-import { View, Text, ScrollView, Pressable, TextInput, StyleSheet, Modal } from 'react-native';
+import { View, Text, ScrollView, Pressable, TextInput, StyleSheet, Modal, Image } from 'react-native';
 import { Alert } from '../../lib/alert'; // 커스텀 알림(앱 디자인)
 import { useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
@@ -31,6 +31,23 @@ const ROUTE: Record<CreditKind, { pathname: string; kind?: string }> = {
   mission: { pathname: '/mission' },                  // 나의 사명(자미 보조)
   career: { pathname: '/career' },                    // 사업가의 나 vs 직장인의 나
   dream: { pathname: '/dream' },                       // AI 꿈해몽(자유 텍스트)
+};
+
+// 이용권 kind → 카드 이미지 + 설명키(홈 카드와 동일 재사용, daniel: 마켓 리스트에도 작게+설명).
+//   followup(추가질문)은 standalone 카드가 아니라(풀이 내부) 생략 — 없으면 이미지·설명 미표시(graceful).
+const CARD: Partial<Record<CreditKind, { img: any; desc: string }>> = {
+  reading: { img: require('../../../assets/icons/premium.jpg'), desc: 'menu.sajuDesc' },
+  ziwei: { img: require('../../../assets/icons/ziwei.jpg'), desc: 'menu.ziweiHubDesc' },
+  compat: { img: require('../../../assets/icons/compat.jpg'), desc: 'menu.compatDesc' },
+  timeline: { img: require('../../../assets/icons/timeline.jpg'), desc: 'menu.timelineDesc' },
+  love: { img: require('../../../assets/icons/love.jpg'), desc: 'menu.loveDesc' },
+  newyear: { img: require('../../../assets/icons/newyear.jpg'), desc: 'menu.newyearTileDesc' },
+  lifegraph: { img: require('../../../assets/icons/lifegraph.jpg'), desc: 'menu.lifegraphDesc' },
+  roots: { img: require('../../../assets/icons/roots.jpg'), desc: 'menu.rootsDesc' },
+  image: { img: require('../../../assets/icons/image.jpg'), desc: 'menu.imageDesc' },
+  mission: { img: require('../../../assets/icons/mission.jpg'), desc: 'menu.missionDesc' },
+  career: { img: require('../../../assets/icons/career.jpg'), desc: 'menu.careerDesc' },
+  dream: { img: require('../../../assets/icons/dream.jpg'), desc: 'menu.dreamDesc' },
 };
 
 export default function MarketRoute() {
@@ -156,10 +173,13 @@ export default function MarketRoute() {
 
       {CREDIT_KINDS.map((c) => {
         const owned = (credits[c.key] ?? 0) > 0; // 1회성 소모 — 보유/미보유로만
+        const card = CARD[c.key]; // 카드 이미지+설명(홈과 동일·daniel: 마켓 리스트에도)
         return (
           <View key={c.key} style={styles.card}>
+            {card && <Image source={card.img} style={styles.thumb} />}
             <View style={{ flex: 1 }}>
               <Text style={styles.name}>{c.ko}</Text>
+              {card && <Text style={styles.desc} numberOfLines={2}>{t(card.desc)}</Text>}
               <Text style={styles.price}>{prices[c.key] ?? `₩${c.price.toLocaleString()}`}</Text>
               <Text style={[styles.have, owned && styles.haveOn]}>{owned ? `${t('market.owned')} ×${credits[c.key]}` : t('market.notOwned')}</Text>
             </View>
@@ -236,6 +256,8 @@ const styles = StyleSheet.create({
   chartSelChevron: { fontSize: 16, color: colors.ju, marginLeft: space(2) },
   card: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.line, padding: space(4), marginBottom: space(3), ...shadow.card },
   name: { fontSize: 16, fontWeight: '800', color: colors.ink },
+  thumb: { width: 46, height: 64, borderRadius: radius.md, marginRight: space(3), backgroundColor: colors.sunk }, // 마켓 리스트 카드 썸네일(작게·daniel)
+  desc: { ...font.caption, color: colors.inkSoft, marginTop: 2, marginBottom: 1, lineHeight: 16 }, // 설명 아랫줄(홈과 동일)
   price: { ...font.caption, color: colors.ju, fontWeight: '800', marginTop: 2 },
   have: { ...font.caption, color: colors.inkFaint, marginTop: 2 },
   haveOn: { color: colors.ju, fontWeight: '800' },
