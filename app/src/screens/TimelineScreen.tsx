@@ -18,7 +18,9 @@ import { ensureServerChartId } from '../lib/prewarmReadings';
 import { invokeFail } from '../lib/interpretResult'; // 방어: 일시적 불가/오류 친화 처리
 import { getRepresentativeId } from '../lib/myChart'; // 대표 명식 여부(자동생성 한정)
 import { assertOnline, isOnline } from '../lib/network'; // 오프라인 시 신규 생성 차단
-import { useCredit } from '../lib/coupons'; // 무료 이용권(타임라인 1세트)
+import { loadCredits, grantCredit } from '../lib/coupons'; // 크레딧 보유확인 + 구매 후 부여(차감은 Edge·P3)
+import { isReadingUnlocked } from '../lib/unlocks'; // 서버 세트 언락(timeline)
+import { purchaseCreditRC } from '../lib/purchases'; // timeline 개별 구매(비프리미엄)
 import { appLang } from '../lib/i18n'; // 통변 출력 언어(앱 언어)
 import { stemElement, elementColor, elementText } from '../lib/ohaeng';
 import { colors, radius, space, shadow, font } from '../lib/theme';
@@ -77,7 +79,7 @@ export function TimelineScreen({ input, savedChart }: { input: ChartInput | null
   const ROW_H = 48;                                           // 목록 행 고정 높이(스크롤 오프셋 계산용)
   // 기간별 잠금 해제 집합(ref). 프리미엄=현재 대운/올해 무료, 그 외엔 이용권으로 해당 key만 1회 해제.
   //   생성되면 캐시(readings)에 남아 영구 무료 → ref는 '결제 직후 재생성 허용' 용도.
-  const unlocked = useRef<Set<string>>(new Set());
+  // 세트 언락은 서버 reading_unlocks 권위로 이전(P3) — 로컬 unlocked ref 제거
   // 대표 명식 여부 — 자동생성(현재 대운/올해)은 대표 명식에만(비용통제). 다른 명식은 직접 열어야.
   const [isRep, setIsRep] = useState(false);
   useEffect(() => {
@@ -88,7 +90,7 @@ export function TimelineScreen({ input, savedChart }: { input: ChartInput | null
 
   // 한 기간이 무료인지(프리미엄 & 현재 대운/올해) — 자동 생성·게이트 분기 공용
   const isCurrentPeriod = (key: string) => key === curDecadeKey || key === `year_${nowYear}`;
-  const isFree = (key: string) => isPremium && isCurrentPeriod(key);
+  const isFree = (key: string) => isCurrentPeriod(key); // 현재 대운·올해 = 전원 무료(무료시기·daniel)
 
   useEffect(() => { if (curDecadeKey && !selDecade) setSelDecade(curDecadeKey); }, [curDecadeKey, selDecade]);
 
@@ -116,7 +118,7 @@ export function TimelineScreen({ input, savedChart }: { input: ChartInput | null
       (data ?? []).forEach((r: any) => { if (/^(life|year)_/.test(r.category)) loaded[r.category] = r.content; });
       setReadings(loaded);
       // 프리미엄 자동 생성은 '무료' 기간(현재 대운·올해)만 + ★대표 명식에만(비용통제). 오프라인=보류.
-      if (isPremium && isRep && isOnline()) {
+      if (isRep && isOnline()) { // 현재 대운·올해는 전원 무료 → 자동 생성(daniel)
         if (curDecadeKey && !loaded[curDecadeKey]) gen(curDecadeKey, id);
         if (!loaded[`year_${nowYear}`]) gen(`year_${nowYear}`, id);
       }
@@ -132,10 +134,16 @@ export function TimelineScreen({ input, savedChart }: { input: ChartInput | null
     if (!cid || readings[key] || busy === key) return;
     if (!assertOnline(t)) return;                          // 오프라인 = 신규 생성 차단
     // 비프리미엄 = 프리미엄 유도(타임라인은 프리미엄 메뉴). 이용권이 있으면 이용권으로 열기 허용.
-    if (!isFree(key) && !unlocked.current.has(key)) {
-      if (!isPremium) { Alert.alert(t('timeline.premiumTitle'), t('timeline.premiumMsg')); return; }
-      if (await useCredit('timeline')) unlocked.current.add(key);       // 이용권 1장 차감 = 이 시기 열림
-      else { Alert.alert(t('timeline.unlockTitle'), t('timeline.unlockMsg')); return; } // 이용권 없음 → 안내
+    // 게이트(새 정책·daniel): 프리미엄(무제한)=무료 / 현재 대운·올해=전원 무료 / 그 외=서버 언락 또는 개별 크레딧(없으면 구매). 차감·언락은 Edge.
+    if (!isPremium && !isFree(key)) {
+      const has = (cid ? await isReadingUnlocked(cid, 'timeline') : false) || ((await loadCredits())['timeline'] ?? 0) > 0;
+      if (!has) {
+        Alert.alert(t('timeline.unlockTitle'), t('timeline.unlockMsg'), [
+          { text: t('common.cancel'), style: 'cancel' },
+          { text: t('reading.payPerUse', '구매'), onPress: async () => { try { const ok = await purchaseCreditRC('timeline'); if (!ok) return; await grantCredit('timeline'); await gen(key, cid); } catch (e) { Alert.alert('!', (e as Error).message); } } },
+        ]);
+        return;
+      }
     }
     setBusy(key);
     setGenProgress({ active: true, total: 1, done: 0, label: '인생 타임라인', route: '/timeline' }); // 일회성 진행도(daniel 이슈15)
@@ -153,7 +161,7 @@ export function TimelineScreen({ input, savedChart }: { input: ChartInput | null
   function pick(key: string) {
     if (key.startsWith('life_')) setSelDecade(key); else setSelYear(key);
     setPicker(null);
-    if (!readings[key] && (isFree(key) || unlocked.current.has(key))) gen(key);
+    if (!readings[key] && isFree(key)) gen(key); // 무료시기(현재 대운·올해)만 자동 — 유료 시기는 카드에서 직접
   }
 
   // 카드의 카테고리 칩 선택값(기본 general)
