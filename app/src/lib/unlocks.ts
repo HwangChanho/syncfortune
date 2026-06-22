@@ -8,6 +8,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
+import { supabase } from './supabase';
 
 const key = (chartId: string, kind: string) => `unlock_${chartId}_${kind}`;
 
@@ -25,4 +26,16 @@ export async function markUnlocked(chartId: string, kind: string): Promise<void>
     if (Platform.OS === 'web') (globalThis as any).localStorage?.setItem(key(chartId, kind), '1');
     else await SecureStore.setItemAsync(key(chartId, kind), '1');
   } catch { /* 저장 실패는 조용히 — 다음 차감 때 다시 시도(최악=재차감 1회, 크래시는 없음) */ }
+}
+
+// ── 서버 권위 세트 언락(보안 P3, daniel 2026-06) — saju/ziwei/timeline 세트 단위 ──────────────
+// Edge interpret 가 (크레딧 차감 후) reading_unlocks 에 기록한다. 클라는 *읽기만* — '이미 열림'이면
+//   재결제 없이 바로 재생성. (로컬 markUnlocked 와 달리 서버 진실의 원천 → 기기 바뀌어도 유지.)
+//   kind = 'reading'(saju) | 'ziwei' | 'timeline'.
+export async function isReadingUnlocked(chartId: string, kind: string): Promise<boolean> {
+  try {
+    const { data } = await supabase
+      .from('reading_unlocks').select('chart_id').eq('chart_id', chartId).eq('kind', kind).maybeSingle();
+    return !!data;
+  } catch { return false; } // 조회 실패 = 잠김(보수적, Edge 가 최종 판정)
 }

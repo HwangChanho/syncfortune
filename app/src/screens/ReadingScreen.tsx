@@ -20,7 +20,7 @@ import { supabase } from '../lib/supabase';
 import { notifyReadingDone } from '../lib/notifications'; // 생성 완료 푸시(daniel: 풀이중 딴 일 + 완료 알림)
 import { setGenProgress } from '../lib/genProgress'; // 홈 진행률(풀이중 홈 나가도 % 표시)
 import { useEntitlement } from '../lib/entitlement';
-import { isUnlocked, markUnlocked } from '../lib/unlocks'; // unlock 영속 — 차감 후 재차감/재잠금 방지
+import { isReadingUnlocked } from '../lib/unlocks'; // 서버 권위 세트 언락(P3) — 이미 열렸으면 무료 재생성
 import { useSubscription } from '../lib/subscription';
 import { setServerChartId, getRepresentativeId, type SavedChart } from '../lib/myChart';
 import { loadFollowups, askFollowup, type Followup } from '../lib/followups';
@@ -28,7 +28,7 @@ import { useFontScale } from '../lib/fontScale';
 import { appLang } from '../lib/i18n'; // 통변 출력 언어(앱 언어)
 import { readingFromInvoke } from '../lib/interpretResult'; // 방어: Edge 응답 정규화(일시적 불가·결제필요·오류)
 import { PALACE_DESC } from '../lib/palaceDesc'; // 자미두수 궁 설명(궁 옆 표시)
-import { useCredit, grantCredit } from '../lib/coupons'; // 무료 이용권 크레딧(reading/ziwei 차감) + 추가질문 결제 크레딧 부여
+import { loadCredits, grantCredit } from '../lib/coupons'; // 크레딧 보유확인(UX) + 광고/결제 후 부여(차감은 Edge 서버 권위·P3)
 import { purchaseCreditRC } from '../lib/purchases'; // 추가질문 건당 결제 = credit_followup(서버 consume)
 import { requireLoginForPurchase } from '../lib/requireLogin'; // 결제/저장 전 로그인 안내
 import { assertOnline, isOnline } from '../lib/network'; // 오프라인 시 신규 생성 차단
@@ -231,8 +231,8 @@ export function ReadingScreen({
     let id = chartId;
     if (!id) { id = savedChart ? await ensureServerChart() : await insertChart(); if (!id) return; setChartId(id); }
     try {
-      const { data, error } = await supabase.functions.invoke('interpret', { body: { chartId: id, category: key, kind, tier: 'paid', lang: appLang(), ...(kind === 'ziwei' ? { ziwei: c!.ziwei } : {}), ...(savedChart?.context ? { context: savedChart.context } : {}) } });
-      setReadings((prev) => ({ ...prev, [key]: readingFromInvoke(data, error) })); // 방어: 일시적 불가·오류 친화 처리
+      const { data, error } = await supabase.functions.invoke('interpret', { body: { chartId: id, category: key, kind, tier: 'paid', preview: true, lang: appLang(), ...(kind === 'ziwei' ? { ziwei: c!.ziwei } : {}), ...(savedChart?.context ? { context: savedChart.context } : {}) } });
+      setReadings((prev) => ({ ...prev, [key]: readingFromInvoke(data, error) })); // 방어: 일시적 불가·오류 친화 처리(미리보기=preview)
     } catch (e) { setReadings((prev) => ({ ...prev, [key]: { error: (e as Error).message } })); }
   }
 
@@ -262,17 +262,15 @@ export function ReadingScreen({
     if (!requireLoginForPurchase(session, () => router.push('/login'), t)) return;
     if (!assertOnline(t)) return;                          // 오프라인 = 신규 생성 차단(경고)
     if (isPremium) { await runAll(); return; }             // 구독 = 무게이트(캐시로 비용 방어)
-    const ck = kind === 'ziwei' ? 'ziwei' : 'reading';     // 이 화면 종류의 크레딧/unlock 키
-    // ★unlock 영속(daniel): 이미 차감(쿠폰·광고·결제)한 차트×종류면 재차감 없이 무료 재생성.
-    //   invoke 가 강종/홈이동/네트워크로 중단돼 일부만 생성됐어도 재진입 시 이어서(돈 두 번 안 나감).
-    if (chartId && await isUnlocked(chartId, ck)) { await runAll(); return; }
-    const markPaid = () => { if (chartId) markUnlocked(chartId, ck); }; // 차감 성공 직후 unlock 도장(영구)
-    // ★무료 이용권: 크레딧 있으면 차감하고 무료 생성
-    if (await useCredit(ck)) { markPaid(); await runAll(); return; }
-    // trial 폐지(daniel 2026-06) → 무료 첫1회 없음. 광고 시청 또는 건당 결제로만 전체 unlock.
+    const ck = kind === 'ziwei' ? 'ziwei' : 'reading';     // 이 화면 종류의 세트 크레딧 키
+    // ★서버 권위 세트 게이트(보안 P3·daniel): 차감·언락은 Edge가 한다(이중차감 제거). 클라는 UX 사전확인만.
+    //   ① 이미 세트 언락됨 → 무료 재생성  ② 크레딧 보유 → 바로 생성(Edge가 1회 차감+언락)  ③ 없음 → 광고/결제로 부여
+    if (chartId && await isReadingUnlocked(chartId, ck)) { await runAll(); return; }
+    if (((await loadCredits())[ck] ?? 0) > 0) { await runAll(); return; }
+    // trial 폐지(daniel) → 광고/건당 결제로 크레딧 부여 후 생성(Edge가 차감+세트 언락).
     Alert.alert(t('reading.premiumAlert'), t('reading.premiumAlertMsg'), [
-      { text: t('reading.watchAd'), onPress: async () => { try { await watchAdForReading(); markPaid(); await runAll(); } catch (e) { if ((e as Error).message !== 'cancelled') Alert.alert('!', (e as Error).message); } } },
-      { text: t('reading.payPerUse'), onPress: async () => { try { await purchaseReading(); markPaid(); await runAll(); } catch (e) { Alert.alert('!', (e as Error).message); } } },
+      { text: t('reading.watchAd'), onPress: async () => { try { await watchAdForReading(); await grantCredit(ck); await runAll(); } catch (e) { if ((e as Error).message !== 'cancelled') Alert.alert('!', (e as Error).message); } } },
+      { text: t('reading.payPerUse'), onPress: async () => { try { await purchaseReading(); await grantCredit(ck); await runAll(); } catch (e) { Alert.alert('!', (e as Error).message); } } },
       { text: t('common.cancel'), style: 'cancel' },
     ]);
   }
