@@ -28,6 +28,7 @@ import { useFontScale } from '../../lib/fontScale';
 import { stemElement, branchElement, elementColor, elementText, stemReading, branchReading } from '../../lib/ohaeng';
 import { ContentHero } from '../../components/SpecialContentScreen'; // 이미지 히어로(보는 맛)
 import { ChartPicker } from '../../components/ChartPicker'; // 명식 선택(대표 전환) — 명식별 오늘 운세(daniel)
+import { ShareReadingButton } from '../../components/ShareReadingButton'; // 이슈17: 풀이 결과 공유(가드 내장)
 
 export default function TodayScreen() {
   const { t } = useTranslation();
@@ -172,6 +173,8 @@ export default function TodayScreen() {
             <View style={styles.readCard}>
               <Text style={[styles.readTx, { fontSize: fs(15), lineHeight: fs(26) }]}>{reading[area] || t('today.genFail', '풀이 생성에 실패했어요. 잠시 후 다시 시도해 주세요.')}</Text>
             </View>
+            {/* 이슈17: 풀이 결과 공유(content 없거나 error면 컴포넌트가 자체 미노출) */}
+            <ShareReadingButton kind="daily" title={t('today.title', '오늘의 운세')} content={reading} />
           </>
         ) : busy ? (
           // 생성 중(프리미엄 자동 또는 광고 후)

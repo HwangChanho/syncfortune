@@ -28,6 +28,7 @@ import { setGenProgress } from '../../lib/genProgress'; // 일회성 진행도(d
 import { colors, radius, space, shadow, font } from '../../lib/theme';
 import { UnlockOverlay } from '../../components/UnlockOverlay';
 import { ChartPicker } from '../../components/ChartPicker'; // 상단 명식 헤더 — 전환 시 그 명식 기준 재로드
+import { ShareReadingButton } from '../../components/ShareReadingButton'; // 이슈17: 풀이 결과 공유(가드 내장)
 
 // 6개 카테고리(Edge 응답 키 ↔ i18n 라벨, 없으면 ko 기본값). 순서대로 스택.
 const SECTIONS: { key: string; tk: string; def: string }[] = [
@@ -171,6 +172,8 @@ export default function CareerScreen() {
               <Text style={[styles.body, bodyDyn]}>{reading[s.key]}</Text>
             </View>
           ) : null))}
+          {/* 이슈17: 풀이 결과 공유(content 없거나 error면 컴포넌트가 자체 미노출) */}
+          <ShareReadingButton kind="career" title={t('career.title', '사업가의 나 vs 직장인의 나')} content={reading} />
           </>
         ) : (
           // ── 잠김(미생성) — 쿠폰(이용권)/관리자로 unlock(타 스페셜과 통일) ──

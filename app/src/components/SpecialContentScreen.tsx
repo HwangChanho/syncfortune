@@ -18,6 +18,7 @@ import { useSubscription } from '../lib/subscription';   // 프리미엄=자동 
 import { useFontScale } from '../lib/fontScale';
 import { useCredit, grantCredit, type CreditKind } from '../lib/coupons';
 import { isUnlocked, markUnlocked } from '../lib/unlocks'; // unlock 영속(차감 후 재차감/재잠금 방지)
+import { ShareReadingButton } from './ShareReadingButton'; // 이슈17: 풀이 결과 공유
 import { purchaseCreditRC, purchasesEnabled } from '../lib/purchases'; // 즉시 구매(마켓 안 거치고 바로)
 import { isAdmin } from '../lib/admin';                  // 스페셜 = 관리자 바로 / 그 외 쿠폰(크레딧)
 import { requireLoginForPurchase } from '../lib/requireLogin';
@@ -180,6 +181,8 @@ export function SpecialContentScreen({ kind, title, sub, sections, needsZiwei = 
             <Text style={[styles.body, bodyDyn]}>{reading[s.key]}</Text>
           </Animated.View>
         ) : null))}
+        {/* 이슈17: 이 풀이 공유(앱 설치자만 열람) — roots/image/mission 등 공통 */}
+        <ShareReadingButton kind={kind} title={title} content={reading} />
         </>
       ) : (
         // 잠김(미생성) — 스페셜은 쿠폰(이용권)/관리자로 unlock(결제 미연동)

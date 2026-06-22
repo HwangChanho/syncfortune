@@ -27,6 +27,7 @@ import { useFontScale } from '../../lib/fontScale';
 import { colors, radius, space, shadow, font } from '../../lib/theme';
 import { UnlockOverlay } from '../../components/UnlockOverlay'; // unlock 자물쇠 애니 + 그 사이 LLM 분석
 import { ChartPicker } from '../../components/ChartPicker'; // 상단 명식 헤더 — 현재 적용 명식 표시·전환
+import { ShareReadingButton } from '../../components/ShareReadingButton'; // 이슈17: 풀이 결과 공유(가드 내장)
 
 type Decade = { startAge: number; score: number; note: string; turning: boolean; keyword?: string; focus?: string };
 type LifeData = { summary: string; decades: Decade[]; yongsin?: string; peak?: string; caution?: string; advice?: string; headline?: string };
@@ -221,6 +222,8 @@ export default function LifeGraphScreen() {
               <Text style={[styles.infoTx, { fontSize: fs(15), lineHeight: fs(23) }]}>{data.advice}</Text>
             </View>
           ) : null}
+          {/* 이슈17: 풀이 결과 공유(content 없거나 error면 컴포넌트가 자체 미노출) */}
+          <ShareReadingButton kind="lifegraph" title={t('life.gateTitle', '인생 그래프')} content={data} />
         </>
       ) : (
         <View style={styles.gateCard}>

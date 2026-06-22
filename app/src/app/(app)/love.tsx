@@ -28,6 +28,7 @@ import { colors, radius, space, shadow, font } from '../../lib/theme';
 import { UnlockOverlay } from '../../components/UnlockOverlay'; // unlock 자물쇠 애니 + 그 사이 LLM 분석
 import { ContentHero, cardAnim } from '../../components/SpecialContentScreen'; // 공용 히어로 + 섹션 stagger
 import { ChartPicker } from '../../components/ChartPicker'; // 상단 명식 헤더 — 현재 적용 명식 표시·전환
+import { ShareReadingButton } from '../../components/ShareReadingButton'; // 이슈17: 풀이 결과 공유(가드 내장)
 import { LoveThread } from '../../components/contentMotifs'; // 인연의 실 모티프
 
 // 건당 가격 — 정가 → 할인가로 마킹(daniel). 결제 연동 시 조율.
@@ -171,6 +172,8 @@ export default function LoveScreen() {
             <Text style={[styles.body, bodyDyn]}>{reading[s.key]}</Text>
           </Animated.View>
         ) : null))}
+          {/* 이슈17: 풀이 결과 공유(content 없거나 error면 컴포넌트가 자체 미노출) */}
+          <ShareReadingButton kind="love" title={t('love.title')} content={reading} />
         </>
       ) : (
         // ── 잠김(미생성) — 스페셜은 쿠폰(이용권)/관리자로 unlock(결제 미연동, 타 스페셜과 통일) ──

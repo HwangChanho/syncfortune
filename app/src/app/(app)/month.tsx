@@ -25,6 +25,7 @@ import { colors, radius, space, shadow, font } from '../../lib/theme';
 import { useFontScale } from '../../lib/fontScale';
 import { stemElement, branchElement, elementColor, elementText, stemReading, branchReading } from '../../lib/ohaeng';
 import { ContentHero } from '../../components/SpecialContentScreen'; // 이미지 히어로(보는 맛)
+import { ShareReadingButton } from '../../components/ShareReadingButton'; // 이슈17: 풀이 결과 공유(가드 내장)
 
 export default function MonthScreen() {
   const { t } = useTranslation();
@@ -149,6 +150,8 @@ export default function MonthScreen() {
             <View style={styles.readCard}>
               <Text style={[styles.readTx, { fontSize: fs(15), lineHeight: fs(26) }]}>{reading[area] || t('today.genFail', '풀이 생성에 실패했어요. 잠시 후 다시 시도해 주세요.')}</Text>
             </View>
+            {/* 이슈17: 풀이 결과 공유(content 없거나 error면 컴포넌트가 자체 미노출) */}
+            <ShareReadingButton kind="monthly" title={t('month.title', '이달의 운세')} content={reading} />
           </>
         ) : busy ? (
           <View style={styles.readCard}><ActivityIndicator color={colors.ju} /><Text style={styles.genWait}>{t('month.generating', '이번 달 흐름을 풀어내는 중…')}</Text></View>

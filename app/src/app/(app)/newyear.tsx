@@ -30,6 +30,7 @@ import { colors, radius, space, shadow, font } from '../../lib/theme';
 import { UnlockOverlay } from '../../components/UnlockOverlay'; // unlock 자물쇠 애니 + 그 사이 LLM 분석
 import { ContentHero } from '../../components/SpecialContentScreen'; // 공용 히어로
 import { ChartPicker } from '../../components/ChartPicker'; // 상단 명식 헤더 — 현재 적용 명식 표시·전환
+import { ShareReadingButton } from '../../components/ShareReadingButton'; // 이슈17: 풀이 결과 공유(가드 내장)
 import { NewyearWheel } from '../../components/contentMotifs'; // 12달 수레바퀴 모티프
 import { useFontScale } from '../../lib/fontScale';
 
@@ -228,6 +229,8 @@ export default function NewYearScreen() {
                 <Text style={[styles.body, { fontSize: fs(15), lineHeight: fs(26) }]}>{data.resolution}</Text>
               </View>
             )}
+            {/* 이슈17: 풀이 결과 공유(content 없거나 error면 컴포넌트가 자체 미노출) */}
+            <ShareReadingButton kind="newyear" title={t('newyear.title', '신년운세')} content={data} />
           </>
         ) : (
           <View style={styles.gate}>
