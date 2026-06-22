@@ -12,7 +12,7 @@ import * as SecureStore from 'expo-secure-store';
 
 const ko = {
   appName: '緣 SyncFortune',
-  tagline: '운명의 방향을 알려주는 나침반',
+  tagline: '나와 타인을 알고, 운명의 방향을 알려주는 나침반',
   menu: {
     myeongsik: '명식 등록', myeongsikDesc: '생년월일로 내 명식 등록·관리',
     manse: '만세력', manseDesc: '날짜별 사주·차트 관리',
@@ -29,6 +29,7 @@ const ko = {
     newyear: '신년운세', newyearDesc: '올해 종합·달별·삼재',
     roots: '명식의 뿌리', rootsDesc: '드러난 나·품은 힘·진짜 단단한 기운',
     image: '비치는 나', imageDesc: '남에게 보이는 첫인상·분위기',
+    impression: '사람들이 보는 나', impressionDesc: '첫인상부터 깊은 사이까지 비치는 나',
     mission: '나의 사명', missionDesc: '무엇을 위해 태어났는지',
     persona: '성격유형', personaDesc: '사주로 보는 나의 16유형', egen: '에겐 vs 테토', joseonjob: '조선시대 직업', lovestyle: '연애 스타일', bok: '타고난 복', pastlife: '전생 이야기', healing: '나만의 힐링 방법',
     taegil: '택일', taegilDesc: '결혼·이사·계약 좋은 날',
@@ -46,6 +47,8 @@ const ko = {
     back: '← 뒤로', login: '로그인', signup: '회원가입', logout: '로그아웃', loggingOut: '로그아웃 중…',
     comingSoon: '준비 중입니다.', error: '오류', loginOptional: '로그인 / 회원가입 (유료·저장 기능용 — 선택)',
     cancel: '취소', none: '없음',
+    llmBusy: '지금 통변 생성이 일시적으로 어려워요. 잠시 후 다시 시도해 주세요.', // 방어: LLM 일시적 불가(사용량 한도·혼잡)
+    genFailed: '풀이를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.',           // 방어: 일반 생성 실패(원문 숨김)
   },
   auth: {
     signin: '로그인', signupTitle: '회원가입', email: '이메일', password: '비밀번호 (6자 이상)',
@@ -228,7 +231,7 @@ const ko = {
 
 const en = {
   appName: '緣 SyncFortune',
-  tagline: 'Your compass to destiny',
+  tagline: 'Know yourself and others — your compass to destiny',
   menu: {
     myeongsik: 'Register Chart', myeongsikDesc: 'Add & manage your chart',
     manse: 'Manseryeok', manseDesc: 'Calendar charts & management',
@@ -243,6 +246,7 @@ const en = {
     newyear: 'New Year', newyearDesc: 'Year overview · monthly · samjae',
     roots: 'Roots', rootsDesc: 'Shown self · hidden strength · true power',
     image: 'How You Appear', imageDesc: 'First impression & vibe to others',
+    impression: 'How Others See You', impressionDesc: 'From first impression to a deep bond',
     mission: 'My Calling', missionDesc: 'What you were born to do',
     persona: 'Personality', personaDesc: 'Your 16 saju personality types', egen: 'Egen vs Teto', joseonjob: 'Joseon Job', lovestyle: 'Love Style', bok: 'Your Fortune', pastlife: 'Past Life', healing: 'My Healing',
     taegil: 'Lucky Days', taegilDesc: 'Best days for wedding · moving · contracts',
@@ -260,6 +264,8 @@ const en = {
     back: '← Back', login: 'Log in', signup: 'Sign up', logout: 'Log out', loggingOut: 'Logging out…',
     comingSoon: 'Coming soon.', error: 'Error', loginOptional: 'Log in / Sign up (for paid & saving — optional)',
     cancel: 'Cancel', none: 'None',
+    llmBusy: 'Readings are temporarily unavailable right now. Please try again in a little while.',
+    genFailed: 'Could not load the reading. Please try again in a little while.',
   },
   auth: {
     signin: 'Log in', signupTitle: 'Sign up', email: 'Email', password: 'Password (6+ chars)',
@@ -442,7 +448,7 @@ const en = {
 
 const ja = {
   appName: '緣 SyncFortune',
-  tagline: '運命の方向を示す羅針盤',
+  tagline: '自分と他人を知り、運命の方向を示す羅針盤',
   menu: {
     myeongsik: '命式登録', myeongsikDesc: '命式の登録·管理',
     manse: '万歳暦', manseDesc: '日付別四柱·チャート管理',
@@ -457,6 +463,7 @@ const ja = {
     newyear: '新年運勢', newyearDesc: '今年の総合·月別·三災',
     roots: '命式の根', rootsDesc: '表に出た自分·秘めた力·本当の強さ',
     image: '映る自分', imageDesc: '他人に見える第一印象·雰囲気',
+    impression: '人が見る私', impressionDesc: '第一印象から深い仲まで映る私',
     mission: '私の使命', missionDesc: '何のために生まれたか',
     persona: '性格タイプ', personaDesc: '四柱で見る私の16タイプ', egen: 'エゲン vs テト', joseonjob: '朝鮮時代の職業', lovestyle: '恋愛スタイル', bok: '生まれ持つ福', pastlife: '前世物語', healing: '私の癒し方',
     taegil: '択日', taegilDesc: '結婚・引越し・契約の吉日',
@@ -474,6 +481,8 @@ const ja = {
     back: '← 戻る', login: 'ログイン', signup: '新規登録', logout: 'ログアウト', loggingOut: 'ログアウト中…',
     comingSoon: '準備中です。', error: 'エラー', loginOptional: 'ログイン / 新規登録（有料·保存機能用 — 任意）',
     cancel: 'キャンセル', none: 'なし',
+    llmBusy: '今は鑑定の生成が一時的に難しいようです。しばらくしてからもう一度お試しください。',
+    genFailed: '鑑定を読み込めませんでした。しばらくしてからもう一度お試しください。',
   },
   auth: {
     signin: 'ログイン', signupTitle: '新規登録', email: 'メール', password: 'パスワード（6文字以上）',

@@ -28,10 +28,12 @@ export default function AppLayout() {
         headerShadowVisible: false,                  // 한지 무드 — 헤더 그림자 제거
         headerBackButtonDisplayMode: 'minimal',
         contentStyle: { backgroundColor: colors.bg }, // 씬 배경 한지(전환 시 흰 깜빡임 방지)
-        // 뒤로버튼도 글자크기에 따라 커지게 — 커스텀 chevron(루트는 canGoBack=false라 미표시)
+        // 뒤로버튼 = 표준 iOS 스타일(chevron + '뒤로') — 글자크기에 반응하되 과하지 않게(daniel: 큰 ‹ 투박).
+        //   (루트는 canGoBack=false라 미표시)
         headerLeft: (p: any) => p?.canGoBack ? (
-          <Pressable onPress={() => router.back()} hitSlop={16} style={{ paddingRight: 16, paddingVertical: 4 }}>
-            <Text style={{ color: colors.ink, fontSize: fs(38), lineHeight: fs(40), marginTop: -3, fontWeight: '600' }}>‹</Text>
+          <Pressable onPress={() => router.back()} hitSlop={16} style={{ flexDirection: 'row', alignItems: 'center', paddingRight: 16, paddingVertical: 4 }}>
+            <Text style={{ color: colors.ink, fontSize: fs(26), lineHeight: fs(28), marginTop: -2, fontWeight: '400' }}>‹</Text>
+            <Text style={{ color: colors.ink, fontSize: fs(16), fontWeight: '600', marginLeft: 1 }}>뒤로</Text>
           </Pressable>
         ) : null,
       }}>
@@ -55,6 +57,7 @@ export default function AppLayout() {
         <Stack.Screen name="newyear" options={{ title: '신년운세' }} />
         <Stack.Screen name="roots" options={{ title: '명식의 뿌리' }} />
         <Stack.Screen name="image" options={{ title: '비치는 나' }} />
+        <Stack.Screen name="impression" options={{ title: '사람들이 보는 나' }} />
         <Stack.Screen name="mission" options={{ title: '나의 사명' }} />
         <Stack.Screen name="persona" options={{ title: '성격유형' }} />
         <Stack.Screen name="egenteto" options={{ title: '에겐·테토' }} />
