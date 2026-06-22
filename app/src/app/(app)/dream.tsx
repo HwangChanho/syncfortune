@@ -19,6 +19,8 @@ import { isAdmin } from '../../lib/admin';
 import { useCredit, grantCredit } from '../../lib/coupons';          // AI 해몽 이용권 차감·적립
 import { purchaseCreditRC, DREAM_BUNDLE_QTY, purchasesEnabled } from '../../lib/purchases'; // 꿈해몽 5회 번들 결제
 import { requireLoginForPurchase } from '../../lib/requireLogin';
+import { setGenProgress } from '../../lib/genProgress'; // 일회성 진행도(daniel·docs/CONTENT_API_INVENTORY.md)
+import { invokeFail } from '../../lib/interpretResult'; // 방어: 일시적 불가/오류 친화 처리(dream은 reading 아닌 dream 구조라 invokeFail만)
 
 export default function DreamScreen() {
   const { t } = useTranslation();
@@ -41,8 +43,10 @@ export default function DreamScreen() {
     if (!kw || llmBusy) return;
     setLlmBusy(true);
     try {
-      const { data } = await supabase.functions.invoke('interpret', { body: { kind: 'dream', keyword: kw, lang: appLang() } });
-      setLlm((data?.dream as any) ?? { title: kw, meaning: t('dream.fail', '해몽을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.') });
+      const { data, error } = await supabase.functions.invoke('interpret', { body: { kind: 'dream', keyword: kw, lang: appLang() } });
+      // 방어: 일시적 불가/오류면 친화 메시지를 meaning 자리에(원문 'non-2xx' 노출 방지)
+      const fail = invokeFail(data, error);
+      setLlm(fail ? { title: kw, meaning: fail.message } : ((data?.dream as any) ?? { title: kw, meaning: t('dream.fail', '해몽을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.') }));
     } catch { setLlm({ title: kw, meaning: t('dream.fail', '해몽을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.') }); }
     setLlmBusy(false);
   }
@@ -83,10 +87,14 @@ export default function DreamScreen() {
 
   async function runAI(text: string) {
     setAiBusy(true);
+    setGenProgress({ active: true, total: 1, done: 0, label: 'AI 꿈해몽', route: '/dream' }); // 일회성 진행도(daniel)
     try {
-      const { data } = await supabase.functions.invoke('interpret', { body: { kind: 'dream', dreamText: text, lang: appLang() } });
-      setAiResult((data?.dream as any) ?? { title: text.slice(0, 12), meaning: t('dream.fail', '해몽을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.') });
+      const { data, error } = await supabase.functions.invoke('interpret', { body: { kind: 'dream', dreamText: text, lang: appLang() } });
+      // 방어: 일시적 불가/오류면 친화 메시지를 meaning 자리에(원문 'non-2xx' 노출 방지)
+      const fail = invokeFail(data, error);
+      setAiResult(fail ? { title: text.slice(0, 12), meaning: fail.message } : ((data?.dream as any) ?? { title: text.slice(0, 12), meaning: t('dream.fail', '해몽을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.') }));
     } catch { setAiResult({ title: text.slice(0, 12), meaning: t('dream.fail', '해몽을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.') }); }
+    setGenProgress({ done: 1, total: 1 }); // 완료 → 홈 배너 '풀이 보기'(daniel)
     setAiBusy(false);
   }
 

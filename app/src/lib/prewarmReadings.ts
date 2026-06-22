@@ -13,6 +13,7 @@ import { supabase } from './supabase';
 import { computeChart } from './engine';
 import { setServerChartId, type SavedChart } from './myChart';
 import { appLang } from './i18n'; // 통변 출력 언어(앱 언어)
+import { logEvent } from './logger'; // 방어: 일시적 불가 시 중단 로깅
 import type { ChartInput, CategoryKey } from '@spec/chart';
 
 // 사주 16영역 — 풀이 캐시 category 키(단일 출처: ReadingScreen·프리워밍 공용)
@@ -80,7 +81,9 @@ export async function prewarmReadings(savedChart: SavedChart, session: Session):
       for (const m of items) {
         try {
           // 자미는 운한(대한 비성사화) 포함 최신 명반을 body 로(저장본 구버전 대비 — Edge 우선 사용).
-          await supabase.functions.invoke('interpret', { body: { chartId: id, category: m.key, kind: m.kind, tier: 'paid', lang: appLang(), ...(m.kind === 'ziwei' ? { ziwei: c.ziwei } : {}) } });
+          const { data } = await supabase.functions.invoke('interpret', { body: { chartId: id, category: m.key, kind: m.kind, tier: 'paid', lang: appLang(), ...(m.kind === 'ziwei' ? { ziwei: c.ziwei } : {}) } });
+          // 방어(daniel): 일시적 불가(사용량 한도 등)면 남은 항목(16+)을 계속 때리지 말고 조용히 중단(사용자 노출 없음).
+          if ((data as any)?.unavailable) { logEvent('prewarm_unavailable', { category: m.key, retryAt: (data as any)?.retryAt }, 'warn'); return; }
         } catch { /* 개별 실패 무시 — 풀이 화면 생성 버튼이 폴백 */ }
       }
     };

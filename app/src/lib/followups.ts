@@ -6,6 +6,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { supabase } from './supabase';
 import { appLang } from './i18n'; // 추가질문 답변 언어(앱 언어)
+import { invokeFail } from './interpretResult'; // 방어: 일시적 불가/오류 친화 처리
 
 export type Followup = { question: string; answer: string; created_at?: string };
 
@@ -41,9 +42,12 @@ export async function askFollowup(
     const { data, error } = await supabase.functions.invoke('interpret', {
       body: { chartId, category, kind, tier: 'paid', question, lang: appLang() }, // paid 제거(서버가 크레딧/프리미엄/무료한도 판정)
     });
-    if (error) return { kind: 'error', message: error.message };
+    // 게이트(needPremium/needPayment)는 used/freeLimit 를 실어 기존 분기로 먼저 처리(shape 유지).
     if (data?.needPremium) return { kind: 'needPremium', used: data.used, freeLimit: data.freeLimit };
     if (data?.needPayment) return { kind: 'needPayment', used: data.used, freeLimit: data.freeLimit };
+    // 방어: 일시적 불가(200+unavailable)·진짜 오류는 친화 메시지로 error shape 반환(원문 'non-2xx' 노출 방지).
+    const fail = invokeFail(data, error);
+    if (fail) return { kind: 'error', message: fail.message };
     if (typeof data?.answer === 'string') return { kind: 'answer', answer: data.answer, used: data.used, freeLimit: data.freeLimit };
     return { kind: 'error', message: '응답을 받지 못했습니다.' };
   } catch (e) {

@@ -26,6 +26,7 @@ import { setServerChartId, getRepresentativeId, type SavedChart } from '../lib/m
 import { loadFollowups, askFollowup, type Followup } from '../lib/followups';
 import { useFontScale } from '../lib/fontScale';
 import { appLang } from '../lib/i18n'; // 통변 출력 언어(앱 언어)
+import { readingFromInvoke } from '../lib/interpretResult'; // 방어: Edge 응답 정규화(일시적 불가·결제필요·오류)
 import { PALACE_DESC } from '../lib/palaceDesc'; // 자미두수 궁 설명(궁 옆 표시)
 import { useCredit, grantCredit } from '../lib/coupons'; // 무료 이용권 크레딧(reading/ziwei 차감) + 추가질문 결제 크레딧 부여
 import { purchaseCreditRC } from '../lib/purchases'; // 추가질문 건당 결제 = credit_followup(서버 consume)
@@ -211,7 +212,8 @@ export function ReadingScreen({
       try {
         // 자미는 운한(대한 비성사화)이 포함된 최신 명반을 body 로 전달(저장본은 구버전일 수 있음 → Edge가 우선 사용).
         const { data, error } = await supabase.functions.invoke('interpret', { body: { chartId: id, category: cat.key, kind, tier: 'paid', lang: appLang(), ...(kind === 'ziwei' ? { ziwei: c!.ziwei } : {}), ...(savedChart?.context ? { context: savedChart.context } : {}) } });
-        setReadings((prev) => ({ ...prev, [cat.key]: error ? { error: error.message } : data?.reading }));
+        setReadings((prev) => ({ ...prev, [cat.key]: readingFromInvoke(data, error) })); // 방어: 일시적 불가·오류 친화 처리
+        if ((data as any)?.unavailable) { setProgress(null); setGenProgress({ active: false }); return; } // 방어: 사용량 한도 등 → 남은 영역 연속 호출·과금 방지(중단)
       } catch (err) {
         setReadings((prev) => ({ ...prev, [cat.key]: { error: (err as Error).message } }));
       }
@@ -219,7 +221,7 @@ export function ReadingScreen({
       setGenProgress({ done: ++gDone }); // 홈 진행률 갱신(영역 1개 완료)
     }
     setProgress(null);
-    setGenProgress({ active: false }); // 완료 — 홈 배너 숨김
+    setGenProgress({ done: cats.length, total: cats.length }); // 완료 — 홈 배너에 '풀이 보기'(active 유지·탭하면 이동+닫기, daniel 이슈13)
     notifyReadingDone(t('reading.doneTitle', '풀이가 완성됐어요'), t('reading.doneBody', '준비된 풀이를 확인해 보세요'), kind === 'ziwei' ? '/reading?kind=ziwei' : '/reading'); // 생성 완료 푸시 + 탭 시 그 화면으로
   }
 
@@ -230,7 +232,7 @@ export function ReadingScreen({
     if (!id) { id = savedChart ? await ensureServerChart() : await insertChart(); if (!id) return; setChartId(id); }
     try {
       const { data, error } = await supabase.functions.invoke('interpret', { body: { chartId: id, category: key, kind, tier: 'paid', lang: appLang(), ...(kind === 'ziwei' ? { ziwei: c!.ziwei } : {}), ...(savedChart?.context ? { context: savedChart.context } : {}) } });
-      setReadings((prev) => ({ ...prev, [key]: error ? { error: error.message } : data?.reading }));
+      setReadings((prev) => ({ ...prev, [key]: readingFromInvoke(data, error) })); // 방어: 일시적 불가·오류 친화 처리
     } catch (e) { setReadings((prev) => ({ ...prev, [key]: { error: (e as Error).message } })); }
   }
 
@@ -243,7 +245,8 @@ export function ReadingScreen({
       const { data, error } = await supabase.functions.invoke('interpret', {
         body: { chartId, category: key, kind, tier: 'paid', refresh: true, lang: appLang(), ...(kind === 'ziwei' ? { ziwei: c!.ziwei } : {}) },
       });
-      if (error) Alert.alert('!', error.message);
+      if (error) Alert.alert(t('common.error'), t('common.genFailed', '풀이를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.')); // 방어: 원문 대신 친화 문구
+      else if (data?.unavailable) Alert.alert(t('common.error'), (data as any).message || t('common.llmBusy', '지금 통변 생성이 일시적으로 어려워요. 잠시 후 다시 시도해 주세요.')); // 방어: LLM 일시적 불가
       else if (data?.refreshDenied) Alert.alert(t('reading.refreshDeniedTitle', '갱신 한도'), t('reading.refreshDenied', { cap: data.cap, defaultValue: '이 풀이는 최대 {{cap}}번까지 갱신할 수 있어요.' }));
       else if (data?.reading) {
         setReadings((prev) => ({ ...prev, [key]: data.reading }));
@@ -351,7 +354,7 @@ export function ReadingScreen({
             </Text>
             <View style={styles.askRow}>
               <TextInput
-                style={styles.askInput}
+                style={[styles.askInput, { fontSize: fs(15), lineHeight: fs(20), minHeight: fs(20) + space(5) }]}
                 value={askInput}
                 onChangeText={setAskInput}
                 placeholder={t('reading.askPh')}
@@ -362,7 +365,7 @@ export function ReadingScreen({
               />
               <Text style={styles.askLen}>{askInput.length}/50</Text>
               <Pressable
-                style={[styles.askSend, (!askInput.trim() || asking) && styles.askSendOff]}
+                style={[styles.askSend, { minHeight: fs(20) + space(5) }, (!askInput.trim() || asking) && styles.askSendOff]}
                 onPress={() => submitFollowup()}
                 disabled={!askInput.trim() || asking}
               >
@@ -387,6 +390,10 @@ export function ReadingScreen({
     const bodyDyn = { fontSize: fs(15), lineHeight: fs(26) }; // 설정 글자 크기 반영
     return (
       <>
+        {/* 이슈19 소제목 — 이 카테고리 통변의 headline 있으면 상세 내용 맨 위에 한 줄 강조 */}
+        {typeof r.headline === 'string' && r.headline.trim() ? (
+          <Text style={{ fontSize: fs(19), fontWeight: '800', color: colors.ju, marginBottom: space(3), lineHeight: fs(26) }}>{r.headline}</Text>
+        ) : null}
         {base ? (
           <View style={styles.section}>
             <Text style={styles.secLabel}>{t('reading.base')}</Text>
@@ -471,8 +478,8 @@ export function ReadingScreen({
     {/* 항목 상세 — 탭한 영역의 섹션을 별도 페이지처럼 슬라이드 */}
     <Modal visible={!!detail} animationType="slide" onRequestClose={closeDetail}>
       <KeyboardAvoidingView style={styles.detailScreen} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <Pressable style={styles.detailBack} onPress={closeDetail}>
-          <Text style={styles.detailBackTx}>‹ 목록으로</Text>
+        <Pressable style={styles.detailBack} onPress={closeDetail} hitSlop={12}>
+          <Text style={[styles.detailBackTx, { fontSize: fs(20) }]}>‹ 목록으로</Text>
         </Pressable>
         {detail && (
           <ScrollView contentContainerStyle={styles.detailWrap} keyboardShouldPersistTaps="handled">
@@ -547,10 +554,10 @@ const styles = StyleSheet.create({
   qaQ: { ...font.body, fontWeight: '800', color: colors.ju, marginBottom: space(2) },
   qaA: { ...font.body, color: colors.ink, lineHeight: 24 },
   askQuota: { ...font.caption, color: colors.inkFaint, marginBottom: space(2) },
-  askRow: { flexDirection: 'row', alignItems: 'flex-end', gap: space(2) },
-  askInput: { ...font.body, flex: 1, minHeight: 44, maxHeight: 120, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, borderRadius: radius.md, paddingHorizontal: space(3), paddingVertical: space(2.5), color: colors.ink, textAlign: 'center' },
+  askRow: { flexDirection: 'row', alignItems: 'center', gap: space(2) },
+  askInput: { ...font.body, flex: 1, maxHeight: 120, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, borderRadius: radius.md, paddingHorizontal: space(3), paddingVertical: space(2.5), color: colors.ink, textAlign: 'center', textAlignVertical: 'center' },
   askLen: { fontSize: 11, color: colors.inkFaint, alignSelf: 'flex-end', marginBottom: space(3) },
-  askSend: { backgroundColor: colors.ju, borderRadius: radius.md, paddingHorizontal: space(4), height: 44, alignItems: 'center', justifyContent: 'center' },
+  askSend: { backgroundColor: colors.ju, borderRadius: radius.md, paddingHorizontal: space(4), alignItems: 'center', justifyContent: 'center' },
   askSendOff: { opacity: 0.4 },
   askSendTx: { color: colors.bg, fontWeight: '800', fontSize: 14 },
   askLock: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.ju, borderRadius: radius.md, paddingVertical: space(4), alignItems: 'center' },

@@ -20,6 +20,8 @@ import { showRewardedAd } from '../../lib/ads'; // 보상형 광고 1회 = 설�
 import { supabase } from '../../lib/supabase';
 import { appLang } from '../../lib/i18n';
 import { logEvent } from '../../lib/logger';
+import { invokeFail } from '../../lib/interpretResult'; // 방어: 일시적 불가/오류 친화 처리
+import { setGenProgress } from '../../lib/genProgress'; // 일회성 진행도(daniel·docs/CONTENT_API_INVENTORY.md)
 import { colors, radius, space, shadow, font } from '../../lib/theme';
 import { useFontScale } from '../../lib/fontScale';
 import { ChartPicker } from '../../components/ChartPicker'; // 명식 선택(대표 전환) — 명식별 성향(daniel)
@@ -77,14 +79,18 @@ export default function EgenTetoScreen() {
   async function generate(id: string, res: EgenTetoResult) {
     if (busy) return;
     setBusy(true); setErr(null);
+    setGenProgress({ active: true, total: 1, done: 0, label: '에겐·테토', route: '/egenteto' }); // 일회성 진행도(daniel)
     logEvent('egen_generate', { chartId: id, score: res.tetoScore, type: res.type });
     try {
       const { data, error } = await supabase.functions.invoke('interpret', {
         body: { chartId: id, category, kind: 'egen', egenScore: res.tetoScore, egenType: res.type, egenReasons: res.reasons, tier: 'paid', lang: appLang() },
       });
-      if (error) { logEvent('egen_error', { message: error.message }, 'error'); setErr(t('egen.genFail', '설명을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.')); }
+      // 방어: 일시적 불가(200+unavailable)/오류 모두 친화 메시지로 처리(원문 'non-2xx' 노출 방지)
+      const fail = invokeFail(data, error);
+      if (fail) { logEvent(fail.kind === 'unavailable' ? 'egen_unavailable' : 'egen_error', { message: fail.message, retryAt: fail.retryAt }, 'error'); setErr(fail.message); }
       else setReading((data?.reading as EgenReading) ?? null);
     } catch (e: any) { logEvent('egen_throw', { message: String(e?.message ?? e) }, 'error'); setErr(t('egen.genFail', '설명을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.')); }
+    setGenProgress({ done: 1, total: 1 }); // 완료 → 홈 배너 '풀이 보기'(daniel)
     setBusy(false);
   }
 

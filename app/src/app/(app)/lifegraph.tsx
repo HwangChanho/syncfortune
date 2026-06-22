@@ -20,14 +20,16 @@ import { isAdmin } from '../../lib/admin'; // 스페셜 = 관리자 바로 / 그
 import { requireLoginForPurchase } from '../../lib/requireLogin';
 import { supabase } from '../../lib/supabase';
 import { appLang } from '../../lib/i18n';
+import { invokeFail } from '../../lib/interpretResult'; // 방어: Edge 실패(일시적 불가·결제필요·오류) 정규화
 import { logEvent } from '../../lib/logger';
+import { setGenProgress } from '../../lib/genProgress'; // 일회성 진행도(daniel 이슈15)
 import { useFontScale } from '../../lib/fontScale';
 import { colors, radius, space, shadow, font } from '../../lib/theme';
 import { UnlockOverlay } from '../../components/UnlockOverlay'; // unlock 자물쇠 애니 + 그 사이 LLM 분석
 import { ChartPicker } from '../../components/ChartPicker'; // 상단 명식 헤더 — 현재 적용 명식 표시·전환
 
 type Decade = { startAge: number; score: number; note: string; turning: boolean; keyword?: string; focus?: string };
-type LifeData = { summary: string; decades: Decade[]; yongsin?: string; peak?: string; caution?: string; advice?: string };
+type LifeData = { summary: string; decades: Decade[]; yongsin?: string; peak?: string; caution?: string; advice?: string; headline?: string };
 
 const W = Dimensions.get('window').width - space(5) * 2 - space(5) * 2; // 카드 내부 폭
 const H = 170; // 곡선 높이
@@ -74,14 +76,17 @@ export default function LifeGraphScreen() {
   async function generate(id: string) {
     if (busy) return;
     setBusy(true); setErr(null);
+    setGenProgress({ active: true, total: 1, done: 0, label: '인생 그래프', route: '/lifegraph' }); // 일회성 진행도(daniel 이슈15)
     logEvent('lifegraph_generate', { chartId: id });
     try {
       const { data: res, error } = await supabase.functions.invoke('interpret', {
         body: { chartId: id, category: 'lifegraph', kind: 'lifegraph', tier: 'paid', lang: appLang() },
       });
-      if (error) { logEvent('lifegraph_error', { message: error.message }, 'error'); setErr(t('life.genFail', '생성에 실패했어요. 잠시 후 다시 시도해 주세요.')); }
+      const f = invokeFail(res, error); // 방어: 일시적 불가→재시도 안내 / 결제필요·오류 일관 처리
+      if (f) { logEvent('lifegraph_fail', { kind: f.kind, message: error?.message }, 'error'); setErr(f.message); }
       else setData((res?.reading as LifeData) ?? null);
     } catch (e: any) { logEvent('lifegraph_throw', { message: String(e?.message ?? e) }, 'error'); setErr(t('life.genFail', '생성에 실패했어요. 잠시 후 다시 시도해 주세요.')); }
+    setGenProgress({ done: 1, total: 1 }); // 완료 → 홈 배너 '풀이 보기'(daniel 이슈15)
     setBusy(false);
   }
 
@@ -137,6 +142,10 @@ export default function LifeGraphScreen() {
         </View>
       ) : data && n ? (
         <>
+          {/* 이슈19 소제목 — 통변 결과 headline 있으면 그래프·섹션 맨 위에 한 줄 강조 */}
+          {typeof data.headline === 'string' && data.headline.trim() ? (
+            <Text style={{ fontSize: fs(19), fontWeight: '800', color: colors.ju, marginBottom: space(3), lineHeight: fs(26) }}>{data.headline}</Text>
+          ) : null}
           <Text style={[styles.summary, { fontSize: fs(15), lineHeight: fs(24) }]}>{data.summary}</Text>
           {/* 나에게 필요한 기운(용신) */}
           {data.yongsin ? (

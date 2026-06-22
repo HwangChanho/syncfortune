@@ -6,6 +6,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { supabase } from './supabase';
 import { appLang } from './i18n'; // 궁합 통변 언어(앱 언어)
+import { invokeFail } from './interpretResult'; // 방어: LLM 일시적 불가 메시지 정규화
 
 // 관계 유형(궁합 카테고리, daniel) — key=Edge 분기·캐시 / tk=i18n 라벨 키(compat.rel.*)
 //   관계를 폭넓게: 정서(친구·가족·썸·연애·결혼) + 일/이해관계(직장·윗사람·동업·투자).
@@ -44,6 +45,7 @@ export const COMPAT_SECTIONS: Record<string, CompatSection[]> = {
     { key: 'friction', ko: '부딪히는 점', en: 'Friction', ja: 'ぶつかる点' },
     { key: 'crisis', ko: '권태·위기', en: 'Slumps', ja: '倦怠·危機' },
     { key: 'future', ko: '발전·미래', en: 'Future', ja: '発展·未来' },
+    { key: 'children', ko: '자녀 인연', en: 'Children', ja: '子供の縁' },
     { key: 'advice', ko: '조언', en: 'Advice', ja: 'アドバイス' },
   ],
   marriage: [
@@ -52,7 +54,7 @@ export const COMPAT_SECTIONS: Record<string, CompatSection[]> = {
     { key: 'life', ko: '생활 습관', en: 'Daily life', ja: '生活習慣' },
     { key: 'values', ko: '가치관·돈', en: 'Values & money', ja: '価値観·お金' },
     { key: 'inlaws', ko: '시댁·처가', en: 'In-laws', ja: '両家' },
-    { key: 'children', ko: '자녀', en: 'Children', ja: '子供' },
+    { key: 'children', ko: '자녀운·인연', en: 'Children', ja: '子供' },
     { key: 'friction', ko: '갈등', en: 'Friction', ja: '葛藤' },
     { key: 'longterm', ko: '장기 안정', en: 'Long-term', ja: '長期安定' },
     { key: 'advice', ko: '조언', en: 'Advice', ja: 'アドバイス' },
@@ -126,6 +128,7 @@ export type CompatResult =
   | { kind: 'answer'; reading: CompatReading }
   | { kind: 'needPremium' }
   | { kind: 'needPayment'; used: number; freeLimit: number }
+  | { kind: 'unavailable'; message: string } // 방어: LLM 일시적 불가(사용량 한도·혼잡) — 잠시 후 재시도
   | { kind: 'error' };
 
 /** 상대 차트 서명(캐시 키 일부) — 4기둥 간지 결합. 같은 상대 = 같은 서명 → 캐시 적중. */
@@ -164,6 +167,8 @@ export async function genCompatReading(
   if (error) return { kind: 'error' };
   if (data?.needPremium) return { kind: 'needPremium' };
   if (data?.needPayment) return { kind: 'needPayment', used: data.used, freeLimit: data.freeLimit };
+  // 방어(daniel): LLM 일시적 불가(사용량 한도 등) — 200+unavailable. 서버가 차감분 환불, 클라는 재시도 안내.
+  if (data?.unavailable) return { kind: 'unavailable', message: invokeFail(data, null)?.message ?? '지금 통변 생성이 일시적으로 어려워요. 잠시 후 다시 시도해 주세요.' };
   if (data?.reading) return { kind: 'answer', reading: data.reading as CompatReading };
   return { kind: 'error' };
 }

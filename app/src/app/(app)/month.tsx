@@ -18,6 +18,8 @@ import { showRewardedAd } from '../../lib/ads';
 import { supabase } from '../../lib/supabase';
 import { appLang } from '../../lib/i18n';
 import { logEvent } from '../../lib/logger';
+import { invokeFail } from '../../lib/interpretResult'; // 방어: 일시적 불가/오류 친화 처리
+import { setGenProgress } from '../../lib/genProgress'; // 일회성 진행도(daniel·docs/CONTENT_API_INVENTORY.md)
 import type { Stem, Branch } from '@spec/chart';
 import { colors, radius, space, shadow, font } from '../../lib/theme';
 import { useFontScale } from '../../lib/fontScale';
@@ -71,14 +73,18 @@ export default function MonthScreen() {
   async function generate(id: string) {
     if (busy) return;
     setBusy(true); setErr(null);
+    setGenProgress({ active: true, total: 1, done: 0, label: '이달의 운세', route: '/month' }); // 일회성 진행도(daniel)
     logEvent('monthly_generate', { chartId: id, category });
     try {
       const { data, error } = await supabase.functions.invoke('interpret', {
         body: { chartId: id, category, kind: 'monthly', gz: f.monthGanZhi, tier: 'paid', lang: appLang(), ...(saved?.context ? { context: saved.context } : {}) },
       });
-      if (error) { logEvent('monthly_error', { message: error.message }, 'error'); setErr(t('today.genFail', '풀이 생성에 실패했어요. 잠시 후 다시 시도해 주세요.')); }
+      // 방어: 일시적 불가(200+unavailable)/오류 모두 친화 메시지로 처리(원문 'non-2xx' 노출 방지)
+      const fail = invokeFail(data, error);
+      if (fail) { logEvent(fail.kind === 'unavailable' ? 'monthly_unavailable' : 'monthly_error', { message: fail.message, retryAt: fail.retryAt }, 'error'); setErr(fail.message); }
       else setReading((data?.reading as Record<string, string>) ?? null);
     } catch (e: any) { logEvent('monthly_throw', { message: String(e?.message ?? e) }, 'error'); setErr(t('today.genFail', '풀이 생성에 실패했어요. 잠시 후 다시 시도해 주세요.')); }
+    setGenProgress({ done: 1, total: 1 }); // 완료 → 홈 배너 '풀이 보기'(daniel)
     setBusy(false);
   }
 

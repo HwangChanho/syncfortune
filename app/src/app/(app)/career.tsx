@@ -22,7 +22,9 @@ import { requireLoginForPurchase } from '../../lib/requireLogin';
 import { assertOnline } from '../../lib/network';
 import { supabase } from '../../lib/supabase';
 import { appLang } from '../../lib/i18n';
+import { readingFromInvoke } from '../../lib/interpretResult'; // 방어: Edge 응답 정규화(일시적 불가·결제필요·오류)
 import { logEvent } from '../../lib/logger'; // DB 로그(단계별 — 네이티브 크래시 직전 추적)
+import { setGenProgress } from '../../lib/genProgress'; // 일회성 진행도(daniel 이슈15)
 import { colors, radius, space, shadow, font } from '../../lib/theme';
 import { UnlockOverlay } from '../../components/UnlockOverlay';
 import { ChartPicker } from '../../components/ChartPicker'; // 상단 명식 헤더 — 전환 시 그 명식 기준 재로드
@@ -93,16 +95,19 @@ export default function CareerScreen() {
     const id = idArg ?? chartId;
     if (!id || busy) return;
     setBusy(true);
+    setGenProgress({ active: true, total: 1, done: 0, label: '사업가 vs 직장인', route: '/career' }); // 일회성 진행도(daniel 이슈15)
     logEvent('career_invoke_start', { chartId: id });
     try {
       const { data, error } = await supabase.functions.invoke('interpret', {
         body: { chartId: id, category: 'career', kind: 'career', tier: 'paid', lang: appLang() },
       });
       if (error) logEvent('career_invoke_error', { message: error.message }, 'error');
+      else if ((data as any)?.unavailable) logEvent('career_unavailable', { retryAt: (data as any)?.retryAt }, 'error'); // 방어: LLM 일시적 불가
       else if ((data as any)?.needPayment) logEvent('career_need_payment', {}, 'error');
       else logEvent('career_invoke_ok');
-      setReading(error ? { error: error.message } : (data as any)?.needPayment ? { error: t('career.needPay', '이용권이 필요해요. 다시 시도해 주세요.') } : data?.reading);
+      setReading(readingFromInvoke(data, error)); // 방어: 일시적 불가→친화 재시도 / 오류→원문 숨김
     } catch (e) { logEvent('career_invoke_throw', { message: (e as Error).message }, 'error'); setReading({ error: (e as Error).message }); }
+    setGenProgress({ done: 1, total: 1 }); // 완료 → 홈 배너 '풀이 보기'(daniel 이슈15)
     setBusy(false);
   }
 
@@ -153,14 +158,20 @@ export default function CareerScreen() {
         {reading?.error ? (
           <View style={styles.card}><Text style={styles.err}>{String(reading.error)}</Text></View>
         ) : reading ? (
-          // ── 6개 카테고리 섹션(각 이미지 있으면 위에) ──
-          SECTIONS.map((s) => (typeof reading[s.key] === 'string' && reading[s.key] ? (
+          // ── 소제목 + 6개 카테고리 섹션(각 이미지 있으면 위에) ──
+          <>
+          {/* 이슈19 소제목 — 통변 결과 headline 있으면 섹션들 맨 위에 한 줄 강조 */}
+          {typeof reading.headline === 'string' && reading.headline.trim() ? (
+            <Text style={{ fontSize: fs(19), fontWeight: '800', color: colors.ju, marginBottom: space(3), lineHeight: fs(26) }}>{reading.headline}</Text>
+          ) : null}
+          {SECTIONS.map((s) => (typeof reading[s.key] === 'string' && reading[s.key] ? (
             <View key={s.key} style={[styles.card, styles.cardAccent]}>
               {CAREER_IMG[s.key] ? <Image source={CAREER_IMG[s.key]} style={styles.secImg} resizeMode="cover" /> : null}
               <Text style={styles.secLabel}>{t(s.tk, s.def)}</Text>
               <Text style={[styles.body, bodyDyn]}>{reading[s.key]}</Text>
             </View>
-          ) : null))
+          ) : null))}
+          </>
         ) : (
           // ── 잠김(미생성) — 쿠폰(이용권)/관리자로 unlock(타 스페셜과 통일) ──
           <View style={[styles.card, styles.gate]}>
@@ -182,7 +193,7 @@ export default function CareerScreen() {
 const styles = StyleSheet.create({
   bg: { flex: 1, backgroundColor: colors.bg },
   overlay: { flex: 1, backgroundColor: 'rgba(21,19,46,0.6)' },
-  wrap: { padding: space(5), paddingBottom: space(12) },
+  wrap: { padding: space(6), paddingBottom: space(12) }, // 콘텐츠 좌우여백 통일(daniel)
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: space(7), backgroundColor: colors.bg },
   msg: { ...font.body, color: colors.ink, textAlign: 'center', marginBottom: space(5) },
   hero: { alignItems: 'center', paddingVertical: space(4), marginBottom: space(3) },

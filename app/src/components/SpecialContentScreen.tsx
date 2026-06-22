@@ -24,7 +24,9 @@ import { requireLoginForPurchase } from '../lib/requireLogin';
 import { assertOnline } from '../lib/network';
 import { supabase } from '../lib/supabase';
 import { appLang } from '../lib/i18n';
+import { readingFromInvoke } from '../lib/interpretResult'; // 방어: Edge 응답 정규화(일시적 불가·결제필요·오류)
 import { logEvent } from '../lib/logger';
+import { setGenProgress } from '../lib/genProgress'; // 일회성 진행도(daniel 이슈15)
 import { colors, radius, space, shadow, font } from '../lib/theme';
 import { UnlockOverlay } from './UnlockOverlay';         // unlock 자물쇠 애니 + 그 사이 LLM
 import { ChartPicker } from './ChartPicker';             // 상단 명식 헤더 — 현재 적용 명식 표시·전환
@@ -94,14 +96,17 @@ export function SpecialContentScreen({ kind, title, sub, sections, needsZiwei = 
     const id = idArg ?? chartId;
     if (!id || busy) return;
     setBusy(true);
+    setGenProgress({ active: true, total: 1, done: 0, label: title, route: ('/' + kind) }); // 일회성 진행도(daniel 이슈15) — '풀이 중'
     logEvent(`${kind}_invoke_start`, { chartId: id });
     try {
       const body: any = { chartId: id, category: kind, kind, tier: 'paid', lang: appLang() };
       if (needsZiwei) body.ziwei = ziweiArg ?? c?.ziwei; // 사명 = 자미 보조 교차
       const { data, error } = await supabase.functions.invoke('interpret', { body });
       if (error) logEvent(`${kind}_invoke_error`, { message: error.message }, 'error');
-      setReading(error ? { error: error.message } : (data as any)?.needPayment ? { error: t('special.needPay', '이용권이 필요해요. 다시 시도해 주세요.') } : data?.reading);
+      else if ((data as any)?.unavailable) logEvent(`${kind}_unavailable`, { retryAt: (data as any)?.retryAt }, 'error'); // 방어: LLM 일시적 불가
+      setReading(readingFromInvoke(data, error)); // 방어: 일시적 불가→친화 재시도 / 오류→원문 숨김
     } catch (e) { logEvent(`${kind}_invoke_throw`, { message: (e as Error).message }, 'error'); setReading({ error: (e as Error).message }); }
+    setGenProgress({ done: 1, total: 1 }); // 완료 → 홈 배너 '풀이 보기' 이동버튼(daniel 이슈15)
     setBusy(false);
   }
 
@@ -164,12 +169,18 @@ export function SpecialContentScreen({ kind, title, sub, sections, needsZiwei = 
       {reading?.error ? (
         <View style={styles.card}><Text style={styles.err}>{String(reading.error)}</Text></View>
       ) : reading ? (
-        sections.map((s, i) => (typeof reading[s.key] === 'string' && reading[s.key] ? (
+        <>
+        {/* 이슈19 소제목 — 통변 결과 headline 있으면 섹션들 맨 위에 한 줄 강조(콘텐츠 테마색) */}
+        {typeof reading.headline === 'string' && reading.headline.trim() ? (
+          <Text style={{ fontSize: fs(19), fontWeight: '800', color: themeColor, marginBottom: space(3), lineHeight: fs(26) }}>{reading.headline}</Text>
+        ) : null}
+        {sections.map((s, i) => (typeof reading[s.key] === 'string' && reading[s.key] ? (
           <Animated.View key={s.key} style={[styles.card, { borderLeftColor: themeColor }, styles.cardAccent, cardAnim(reveal, i, n)]}>
             <Text style={[styles.secLabel, { color: themeColor }]}>{s.label}</Text>
             <Text style={[styles.body, bodyDyn]}>{reading[s.key]}</Text>
           </Animated.View>
-        ) : null))
+        ) : null))}
+        </>
       ) : (
         // 잠김(미생성) — 스페셜은 쿠폰(이용권)/관리자로 unlock(결제 미연동)
         <View style={[styles.card, styles.gate, { borderColor: themeColor }]}>
@@ -220,7 +231,7 @@ export function ContentHero({ motif, image, title, sub, themeColor = colors.ju }
 
 const styles = StyleSheet.create({
   screen: { backgroundColor: colors.bg },
-  wrap: { padding: space(5), paddingBottom: space(12) },
+  wrap: { padding: space(6), paddingBottom: space(12) }, // 콘텐츠 화면 좌우여백 통일(daniel) — space(6)
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: space(7), backgroundColor: colors.bg },
   // 히어로
   hero: { borderRadius: radius.lg, overflow: 'hidden', marginBottom: space(5), aspectRatio: 1.5, backgroundColor: colors.sunk },

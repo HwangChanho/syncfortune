@@ -25,6 +25,7 @@ import { grantCredit } from '../lib/coupons';        // 결제 성공 → 크레
 import { ensureServerChartId } from '../lib/prewarmReadings';
 import { useFontScale } from '../lib/fontScale';
 import { COMPAT_RELS, otherSig, loadCompatReadings, genCompatReading, compatSections, compatSectionLabel, type CompatReading } from '../lib/compatReadings';
+import { setGenProgress, getGenProgress } from '../lib/genProgress'; // 다건 진행도(daniel·docs/CONTENT_API_INVENTORY.md)
 import { loadFollowups, askFollowup, type Followup } from '../lib/followups'; // 궁합 추가질문(사주/자미 풀이와 동일 — 무료1 + 건당)
 import { yearGanZhi } from '../lib/dailyFortune'; // 연도별 궁합: 그 해 간지(세운)
 import { compatScore, tierLabel, tierOf, type CompatScoreResult } from '../lib/compatScore'; // 궁합 점수·등급(R26: LLM 직접 산출 우선, 결정론은 폴백)
@@ -135,12 +136,14 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
     // 관계 유형(9종) 순차 생성(캐시된 건 skip). 첫 미생성에서 게이트가 걸리면 전체 중단(쌍 단위 과금 — 9종=1쌍).
     async function genAll() {
       if (!assertOnline(t)) return;                        // 오프라인 = 신규 생성 차단
+      setGenProgress({ active: true, total: COMPAT_RELS.length, done: COMPAT_RELS.filter((r) => cached[r.key] || readings[r.key]).length, label: '궁합', route: '/compat' }); // 다건 진행도(daniel)
       for (const r of COMPAT_RELS) {
         if (cached[r.key] || readings[r.key]) continue;
         setBusy(r.key);
         const res = await genCompatReading(chartId!, r.key, sig, otherC.saju, cross, dx.dayMasterRelation.detail, meC.ziwei, otherC.ziwei, undefined, undefined, meSel?.context);
-        if (res.kind === 'answer') { setReadings((prev) => ({ ...prev, [r.key]: res.reading })); continue; }
+        if (res.kind === 'answer') { setReadings((prev) => ({ ...prev, [r.key]: res.reading })); setGenProgress({ done: getGenProgress().done + 1 }); continue; }
         setBusy(null);
+        setGenProgress({ active: false }); // 게이트/중단 시 홈 배너 닫기(daniel)
         if (res.kind === 'needPremium') { Alert.alert(t('compat.premiumTitle'), t('compat.premiumMsg')); return; }
         if (res.kind === 'needPayment') {
           Alert.alert(t('compat.payTitle'), t('compat.payMsg'), [
@@ -152,8 +155,10 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
           ]);
           return;
         }
+        if (res.kind === 'unavailable') { Alert.alert(t('common.error'), res.message); return; } // 방어: LLM 일시적 불가 — 재시도 안내(차감분은 서버가 환불)
         return; // error
       }
+      setGenProgress({ done: COMPAT_RELS.length, total: COMPAT_RELS.length }); // 완료 → 홈 배너 '풀이 보기'(daniel)
       setBusy(null);
     }
     await genAll();
@@ -172,6 +177,7 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
     setBusy(null);
     if (res.kind === 'answer') { setReadings((prev) => ({ ...prev, [key]: res.reading })); return; }
     if (res.kind === 'needPremium') { Alert.alert(t('compat.premiumTitle'), t('compat.premiumMsg')); return; }
+    if (res.kind === 'unavailable') { Alert.alert(t('common.error'), res.message); return; } // 방어: LLM 일시적 불가 — 재시도 안내
     if (res.kind === 'needPayment') {
       Alert.alert(t('compat.payTitle'), t('compat.payMsg'), [
         { text: t('common.cancel'), style: 'cancel' },
@@ -293,6 +299,10 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
           {CAT_IMG[rel] && <Image source={CAT_IMG[rel]} style={styles.catBanner} resizeMode="cover" />}
           {cur ? (
             <View style={styles.readCard}>
+              {/* 이슈19 소제목 — 이 관계 통변의 headline 있으면 섹션들 맨 위에 한 줄 강조 */}
+              {typeof cur.headline === 'string' && cur.headline.trim() ? (
+                <Text style={{ fontSize: fs(19), fontWeight: '800', color: colors.ju, marginBottom: space(3), lineHeight: fs(26) }}>{cur.headline}</Text>
+              ) : null}
               {/* 관계별 동적 섹션(daniel 2026-06): 연애=속궁합·썸·짝사랑 등 / 결혼=속궁합·시댁·자녀 등 / 동업=투자 등. 연도별은 기본 4항목. */}
               {compatSections(rel, !!year).map((s) => {
                 const v = cur[s.key];

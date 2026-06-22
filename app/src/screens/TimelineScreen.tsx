@@ -12,8 +12,10 @@ import { computeChart } from '../lib/engine';
 import { useAuth } from '../lib/useAuth';
 import { useSubscription } from '../lib/subscription';
 import { useFontScale } from '../lib/fontScale';
+import { setGenProgress } from '../lib/genProgress'; // 일회성 진행도(daniel 이슈15)
 import { supabase } from '../lib/supabase';
 import { ensureServerChartId } from '../lib/prewarmReadings';
+import { invokeFail } from '../lib/interpretResult'; // 방어: 일시적 불가/오류 친화 처리
 import { getRepresentativeId } from '../lib/myChart'; // 대표 명식 여부(자동생성 한정)
 import { assertOnline, isOnline } from '../lib/network'; // 오프라인 시 신규 생성 차단
 import { useCredit } from '../lib/coupons'; // 무료 이용권(타임라인 1세트)
@@ -136,10 +138,14 @@ export function TimelineScreen({ input, savedChart }: { input: ChartInput | null
       else { Alert.alert(t('timeline.unlockTitle'), t('timeline.unlockMsg')); return; } // 이용권 없음 → 안내
     }
     setBusy(key);
+    setGenProgress({ active: true, total: 1, done: 0, label: '인생 타임라인', route: '/timeline' }); // 일회성 진행도(daniel 이슈15)
     try {
       const { data, error } = await supabase.functions.invoke('interpret', { body: { chartId: cid, category: key, kind: 'timeline', tier: 'paid', lang: appLang() } });
-      setReadings((prev) => ({ ...prev, [key]: error ? { error: error.message } : data?.reading }));
+      // 방어: 일시적 불가/오류는 원문 대신 친화 메시지로(예전 'non-2xx' 노출 방지)
+      const f = invokeFail(data, error);
+      setReadings((prev) => ({ ...prev, [key]: f ? { error: f.message } : data?.reading }));
     } catch (e) { setReadings((prev) => ({ ...prev, [key]: { error: (e as Error).message } })); }
+    setGenProgress({ done: 1, total: 1 }); // 완료 → 홈 배너 '풀이 보기'(daniel 이슈15)
     setBusy(null);
   }
 
@@ -172,7 +178,11 @@ export function TimelineScreen({ input, savedChart }: { input: ChartInput | null
     if (r?.error) return <View style={styles.card}><Text style={styles.err}>{String(r.error)}</Text></View>;
     // 아직 생성 안 됨 → 무료 기간이면 안내, 잠긴 기간이면 잠금 카드(열기 버튼)
     if (!r) {
-      if (isFree(key)) return <Text style={styles.note}>{t('timeline.tapToRead')}</Text>;
+      if (isFree(key)) return (
+        <Pressable style={styles.readBtn} onPress={() => gen(key)}>
+          <Text style={[styles.readBtnTx, { fontSize: fs(15) }]}>{t('timeline.readThis', '이 시기 풀이 보기')}</Text>
+        </Pressable>
+      );
       return (
         <View style={[styles.card, styles.lockCard]}>
           <Text style={styles.lockH}>🔒 {t('timeline.lockedTitle')}</Text>
@@ -201,6 +211,10 @@ export function TimelineScreen({ input, savedChart }: { input: ChartInput | null
     const months: any[] = Array.isArray(r.months) ? r.months : []; // 연운 월별(12)
     return (
       <View style={styles.card}>
+        {/* 이슈19 소제목 — 이 시기 통변의 headline 있으면 통변 표시 맨 위에 한 줄 강조 */}
+        {typeof r.headline === 'string' && r.headline.trim() ? (
+          <Text style={{ fontSize: fs(19), fontWeight: '800', color: colors.ju, marginBottom: space(3), lineHeight: fs(26) }}>{r.headline}</Text>
+        ) : null}
         {/* 카테고리 칩 — 대운 5 / 연운 8 */}
         <View style={styles.chips}>
           {cats.map((ck) => {
@@ -322,6 +336,8 @@ const styles = StyleSheet.create({
   lockSub: { ...font.caption, color: colors.inkSoft, textAlign: 'center', lineHeight: 19, marginBottom: space(4) },
   unlockBtn: { backgroundColor: colors.ju, borderRadius: radius.md, paddingVertical: space(3), paddingHorizontal: space(7) },
   unlockBtnTx: { color: colors.bg, fontWeight: '800', fontSize: 15 },
+  readBtn: { backgroundColor: colors.ju, borderRadius: radius.md, paddingVertical: space(3.5), alignItems: 'center', marginTop: space(3), ...shadow.card }, // 이 시기 풀이 생성 버튼(daniel)
+  readBtnTx: { color: colors.bg, fontWeight: '800' },
   busyTx: { ...font.caption, color: colors.inkSoft, marginTop: space(2), textAlign: 'center' },
   err: { fontSize: 13, color: colors.ju },
   note: { ...font.caption, color: colors.inkFaint, marginTop: space(3), lineHeight: 19 },

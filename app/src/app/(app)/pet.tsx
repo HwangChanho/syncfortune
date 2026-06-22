@@ -209,7 +209,7 @@ export default function PetScreen() {
 
 const styles = StyleSheet.create({
   screen: { backgroundColor: colors.bg },
-  wrap: { padding: space(5), paddingBottom: space(12) },
+  wrap: { padding: space(6), paddingBottom: space(12) }, // 콘텐츠 좌우여백 통일(daniel)
   h: { ...font.title, marginBottom: space(1) },
   sub: { ...font.caption, color: colors.inkSoft, marginBottom: space(5), lineHeight: 19 },
   petChips: { flexDirection: 'row', flexWrap: 'wrap', gap: space(2), marginBottom: space(4) },
