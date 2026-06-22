@@ -4,9 +4,8 @@
 // 로그인 게이트 없음(ADR-037). 메뉴 = daniel 제작 카드 이미지(assets/icons/{key}.jpg, 남색·골드, 라벨 없음).
 //   라벨은 코드 t()로 하단 오버레이 → 영·일 다국어 유지(ADR-049).
 // ─────────────────────────────────────────────────────────────────────────
-import { View, Text, Pressable, ScrollView, StyleSheet, ImageBackground, Animated, AppState } from 'react-native';
+import { View, Text, Pressable, ScrollView, StyleSheet, ImageBackground, Animated, AppState, Dimensions } from 'react-native';
 import { Image as ExpoImage } from 'expo-image'; // 이미지 자동 다운샘플(표시 크기로 디코딩) — 홈 카드 24장 메모리·랙 해결
-import { Gesture, GestureDetector } from 'react-native-gesture-handler'; // 홈 운세 배너 좌우 스와이프(오늘↔내일)
 import { Alert } from '../../lib/alert'; // 커스텀 알림(앱 디자인)
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -165,20 +164,15 @@ export default function Home() {
   const [dayOffset, setDayOffset] = useState(0); // 0=오늘·1=내일(오늘의 기운 카드 토글)
   // 날짜 키 — 홈을 켜둔 채 자정이 지나도 갱신되게(③). 포커스·앱 복귀 시 재확인.
   const [dateKey, setDateKey] = useState(() => new Date().toDateString());
-  const fortune = useMemo(() => getDailyFortune(dayOffset), [dayOffset, dateKey]);
+  // 오늘·내일 둘 다 미리 계산(daniel: 좌우 슬라이드 — 손가락 따라 미끄러지는 가로 페이징)
+  const fortunes = useMemo(() => [getDailyFortune(0), getDailyFortune(1)], [dateKey]);
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  // 운세 배너 좌우 스와이프(daniel): ← 왼쪽=내일, → 오른쪽=오늘. 가로 이동에만 활성(세로 스크롤 방해 X).
-  const fortuneSwipe = useMemo(() => Gesture.Pan()
-    .activeOffsetX([-20, 20])   // 가로 20px 이상 움직여야 스와이프 활성
-    .failOffsetY([-14, 14])     // 세로로 끌면 실패 → ScrollView 스크롤 우선
-    .runOnJS(true)              // onEnd 를 JS 스레드에서 → setState 직접 호출 가능
-    .onEnd((e) => {
-      if (e.translationX <= -40) setDayOffset(1);       // ← 왼쪽 스와이프 = 내일
-      else if (e.translationX >= 40) setDayOffset(0);   // → 오른쪽 스와이프 = 오늘
-    }), []);
-  // 오늘의 기운 한 줄 풀이(글) — 대표 명식 일간 × 오늘 일진(온디바이스, 무료). 탭 → 오늘의 운세 상세.
-  const [todayProse, setTodayProse] = useState<string | null>(null);
-  const [todayHeadline, setTodayHeadline] = useState<string | null>(null); // 오늘의 기운 한 줄 타이틀(그날을 아우르는 캐치)
+  // 오늘/내일 가로 페이징(네이티브 슬라이드) 제어 — 페이지 폭은 onLayout 으로 확정(초기엔 대략값=깜빡임 방지)
+  const fortunePager = useRef<ScrollView>(null);
+  const [pageW, setPageW] = useState(Dimensions.get('window').width - space(5) * 2 - space(4) * 2);
+  const goDay = (off: number) => { setDayOffset(off); fortunePager.current?.scrollTo({ x: off * pageW, animated: true }); };
+  // 오늘·내일 각각의 한 줄 풀이(글)+캐치 타이틀 — 대표 명식 일간 × 그날 일진(온디바이스). [0]=오늘 [1]=내일.
+  const [dayData, setDayData] = useState<{ headline: string | null; prose: string | null }[]>([{ headline: null, prose: null }, { headline: null, prose: null }]);
   const [reloadKey, setReloadKey] = useState(0); // 명식 변경(전환·수정) 감지 — 포커스마다 오늘의 기운 재계산(daniel: 명식 수정 시 id 동일이라 갱신 안 되던 버그)
   const [loggingOut, setLoggingOut] = useState(false); // 로그아웃 콜백 동안 오버레이
   async function doLogout() {
@@ -196,18 +190,20 @@ export default function Home() {
     const sub = AppState.addEventListener('change', (s) => { if (s === 'active') setDateKey(new Date().toDateString()); });
     return () => sub.remove();
   }, []);
-  // 대표 명식(repId) × 오늘 일진(fortune) → 한 줄 풀이. 둘 중 하나만 바뀌어도 재계산(①③)
+  // 대표 명식 × 오늘·내일 일진 → 각 날의 한 줄 풀이+캐치(둘 다 미리 = 슬라이드 시 즉시 표시). ①③ 재계산.
   useEffect(() => {
     (async () => {
       const rep = await loadRepChart();
-      if (!rep) { setTodayProse(null); setTodayHeadline(null); return; }
+      if (!rep) { setDayData([{ headline: null, prose: null }, { headline: null, prose: null }]); return; }
       const saju = buildSajuChart(rep.input);
-      const r = dailyChartReadings(saju, fortune.dayGanZhi[0] as Stem, fortune.dayGanZhi[1] as Branch);
-      const general = r.find((x) => x.key === 'general')?.paragraphs ?? [];
-      setTodayProse(general[0] ?? null); // 통합 기조 첫 문단
-      setTodayHeadline(dailyHeadline(saju, fortune.dayGanZhi[0] as Stem, fortune.dayGanZhi[1] as Branch)); // 그날을 아우르는 캐치 타이틀
+      const calc = (f: typeof fortunes[number]) => {
+        const r = dailyChartReadings(saju, f.dayGanZhi[0] as Stem, f.dayGanZhi[1] as Branch);
+        const general = r.find((x) => x.key === 'general')?.paragraphs ?? [];
+        return { prose: general[0] ?? null, headline: dailyHeadline(saju, f.dayGanZhi[0] as Stem, f.dayGanZhi[1] as Branch) };
+      };
+      setDayData([calc(fortunes[0]), calc(fortunes[1])]);
     })();
-  }, [fortune, reloadKey]);
+  }, [fortunes, reloadKey]);
 
   useEffect(() => {
     Animated.timing(fadeAnim, { toValue: 1, duration: 1000, useNativeDriver: true }).start();
@@ -264,37 +260,52 @@ export default function Home() {
           </Pressable>
         ))}
 
-        {/* 오늘/내일 기운 배너 — 토글 또는 좌우 스와이프로 오늘↔내일(daniel), 본문 탭 → 상세(분야별, 같은 offset 전달). */}
-        <GestureDetector gesture={fortuneSwipe}>
+        {/* 오늘/내일 기운 — 토글 또는 좌우 슬라이드(가로 페이징·daniel). 본문 탭 → 상세(분야별, 같은 offset). */}
         <View style={styles.fortuneBanner}>
           <View style={styles.dayToggle}>
             {([0, 1] as const).map((off) => (
-              <Pressable key={off} style={[styles.dayTogChip, dayOffset === off && styles.dayTogChipOn]} onPress={() => setDayOffset(off)}>
+              <Pressable key={off} style={[styles.dayTogChip, dayOffset === off && styles.dayTogChipOn]} onPress={() => goDay(off)}>
                 <Text style={[styles.dayTogTx, dayOffset === off && styles.dayTogTxOn]}>{t(off === 0 ? 'today.today' : 'today.tomorrow')}</Text>
               </Pressable>
             ))}
           </View>
-          <Pressable onPress={() => router.push(`/today?offset=${dayOffset}`)}>
-            <Text style={styles.bannerDate}>{fortune.date} ({t('today.weekdaysShort').split(',')[new Date(fortune.date + 'T00:00:00').getDay()] ?? ''})</Text>
-            <View style={styles.bannerPillarRow}>
-              <Text style={styles.bannerPillar}>{dayOffset === 0 ? t('today.dayPillar') : t('today.energyTomorrow')}</Text>
-              <View style={styles.gzBoxRow}>
-                {[fortune.dayGanZhi[0], fortune.dayGanZhi[1]].map((ch, i) => {
-                  const el = i === 0 ? stemElement(ch) : branchElement(ch); // 천간·지지 오행
-                  return (
-                    <View key={i} style={[styles.gzBox, { backgroundColor: elementColor[el] }]}>
-                      <Text style={[styles.gzBoxTx, { color: elementText[el] }]}>{ch}</Text>
+          {/* 가로 페이징 = 손가락 따라 슬라이드. onLayout 으로 페이지 폭 확정 → 한 페이지씩 스냅. */}
+          <View onLayout={(e) => setPageW(e.nativeEvent.layout.width)}>
+            <ScrollView
+              ref={fortunePager}
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              onMomentumScrollEnd={(e) => setDayOffset(Math.round(e.nativeEvent.contentOffset.x / Math.max(1, pageW)))}
+            >
+              {([0, 1] as const).map((off) => {
+                const f = fortunes[off];
+                const d = dayData[off];
+                return (
+                  <Pressable key={off} style={{ width: pageW }} onPress={() => router.push(`/today?offset=${off}`)}>
+                    <Text style={styles.bannerDate}>{f.date} ({t('today.weekdaysShort').split(',')[new Date(f.date + 'T00:00:00').getDay()] ?? ''})</Text>
+                    <View style={styles.bannerPillarRow}>
+                      <Text style={styles.bannerPillar}>{off === 0 ? t('today.dayPillar') : t('today.energyTomorrow')}</Text>
+                      <View style={styles.gzBoxRow}>
+                        {[f.dayGanZhi[0], f.dayGanZhi[1]].map((ch, i) => {
+                          const el = i === 0 ? stemElement(ch) : branchElement(ch); // 천간·지지 오행
+                          return (
+                            <View key={i} style={[styles.gzBox, { backgroundColor: elementColor[el] }]}>
+                              <Text style={[styles.gzBoxTx, { color: elementText[el] }]}>{ch}</Text>
+                            </View>
+                          );
+                        })}
+                      </View>
                     </View>
-                  );
-                })}
-              </View>
-            </View>
-            {todayHeadline && <Text style={[styles.bannerHeadline, { fontSize: fs(16) }]}>{todayHeadline}</Text>}
-            {todayProse && <Text style={[styles.bannerProse, { fontSize: fs(15), lineHeight: fs(22) }]} numberOfLines={3}>{todayProse}</Text>}
-            {todayProse && <Text style={styles.bannerMore}>{t('today.more')}</Text>}
-          </Pressable>
+                    {d.headline && <Text style={[styles.bannerHeadline, { fontSize: fs(16) }]}>{d.headline}</Text>}
+                    {d.prose && <Text style={[styles.bannerProse, { fontSize: fs(15), lineHeight: fs(22) }]} numberOfLines={3}>{d.prose}</Text>}
+                    {d.prose && <Text style={styles.bannerMore}>{t('today.more')}</Text>}
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          </View>
         </View>
-        </GestureDetector>
 
         {/* 대표 명식 선택/전환 (등록한 다른 명식으로 변경) — 전환 시 오늘의 기운 즉시 재계산(daniel) */}
         <ChartPicker onChange={() => setReloadKey((k) => k + 1)} />
