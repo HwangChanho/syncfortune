@@ -218,7 +218,7 @@ const styles = StyleSheet.create({
   acctAction: { color: colors.ju, fontWeight: '700', fontSize: 14 },
   acctLoginBtn: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.ju, padding: space(4), alignItems: 'center', ...shadow.soft },
   acctLoginTx: { color: colors.ju, fontWeight: '800', fontSize: 15 },
-  // 관리자 링크(cksgh0316)
+  // 관리자 링크
   adminLink: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.ju, padding: space(3.5), alignItems: 'center', marginTop: space(2) },
   adminLinkTx: { color: colors.ju, fontWeight: '800', fontSize: 14 },
   // 계정 삭제 — 약하게 노출(파괴적), 우측 정렬 텍스트 링크
