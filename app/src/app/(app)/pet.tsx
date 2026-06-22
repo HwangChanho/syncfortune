@@ -15,6 +15,7 @@ import { getPetTraits } from '../../lib/petTraits';
 import { useFontScale } from '../../lib/fontScale';
 import { colors, radius, space, shadow, font } from '../../lib/theme';
 import { ContentHero } from '../../components/SpecialContentScreen'; // 이미지 히어로(보는 맛)
+import { ShareReadingButton } from '../../components/ShareReadingButton'; // 이슈17: 풀이 결과 공유(앱게이트)
 
 export default function PetScreen() {
   const { t } = useTranslation();
@@ -177,6 +178,8 @@ export default function PetScreen() {
               <Text style={[styles.body, bodyDyn]}>{s.text}</Text>
             </View>
           ))}
+          {/* 이슈17: 반려동물 특징 공유(앱게이트) */}
+          <ShareReadingButton kind="pet" title={`${sel.name} 반려동물`} content={{ intro: reading.intro, sections: reading.sections }} />
         </View>
       ) : (
         <View style={styles.card}><Text style={styles.body}>{t('pet.empty')}</Text></View>

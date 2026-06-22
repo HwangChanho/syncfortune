@@ -25,6 +25,7 @@ import { setGenProgress } from '../../lib/genProgress'; // 일회성 진행도(d
 import { colors, radius, space, shadow, font } from '../../lib/theme';
 import { useFontScale } from '../../lib/fontScale';
 import { ChartPicker } from '../../components/ChartPicker'; // 명식 선택(대표 전환) — 명식별 성향(daniel)
+import { ShareReadingButton } from '../../components/ShareReadingButton'; // 이슈17: 풀이 결과 공유(앱게이트)
 
 // LLM 설명 결과(EGEN_SYSTEM JSON) — 4섹션 모두 문자열
 type EgenReading = { headline?: string; personality?: string; relationship?: string; nowTrend?: string };
@@ -156,6 +157,8 @@ export default function EgenTetoScreen() {
                     </View>
                   ) : null,
                 )}
+                {/* 이슈17: 에겐·테토 설명(LLM) 공유(앱게이트) */}
+                <ShareReadingButton kind="egen" title="에겐·테토" content={reading} />
               </>
             ) : busy ? (
               // 생성 중(프리미엄 자동 또는 광고 후)

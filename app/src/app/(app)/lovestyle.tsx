@@ -3,7 +3,7 @@
 // 사주 십신 → 연애 유형(lib/loveStyle.ts, Claude stance·daniel 검수). 규칙5: 무료=온디바이스(API 0).
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useMemo, useCallback } from 'react';
-import { View, Text, Pressable, ActivityIndicator, ScrollView, StyleSheet, Share, ImageBackground, Image } from 'react-native';
+import { View, Text, Pressable, ActivityIndicator, ScrollView, StyleSheet, ImageBackground, Image } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { computeChart } from '../../lib/engine';
@@ -12,6 +12,7 @@ import { loveStyle, type LoveStyleResult } from '../../lib/loveStyle';
 import { useFontScale } from '../../lib/fontScale';
 import { colors, radius, space, shadow, font } from '../../lib/theme';
 import { ChartPicker } from '../../components/ChartPicker'; // 상단 명식 헤더 — 현재 적용 명식 표시·전환
+import { ShareReadingButton } from '../../components/ShareReadingButton'; // 이슈17: 풀이 결과 공유(앱게이트)
 import type { ChartInput } from '@spec/chart';
 
 // 연애 유형별 이미지(daniel: 종류별 이미지) — assets/icons/lovestyle/{slug}.jpg.
@@ -39,11 +40,6 @@ export default function LoveStyleScreen() {
   }, []));
 
   const result: LoveStyleResult | null = useMemo(() => (me ? loveStyle(computeChart(me).saju) : null), [me]);
-
-  const onShare = useCallback(() => {
-    if (!result) return;
-    Share.share({ message: `${t('lovestyle.shareLead', '내 연애 스타일')}: ${result.emoji} ${result.style}\n${result.desc}\n— SyncFortune` }).catch(() => {});
-  }, [result, t]);
 
   if (loading) return <View style={styles.center}><ActivityIndicator color={colors.ju} /></View>;
   if (!result) return (
@@ -73,7 +69,8 @@ export default function LoveStyleScreen() {
           <Text style={styles.cardHead}>{t('lovestyle.tip', '이런 점만 더하면')}</Text>
           <Text style={[styles.body, { fontSize: fs(15), lineHeight: fs(25) }]}>{result.tip}</Text>
         </View>
-        <Pressable style={styles.share} onPress={onShare}><Text style={styles.shareTx}>{t('lovestyle.share', '내 연애 스타일 공유')}</Text></Pressable>
+        {/* 이슈17: 연애 스타일 결과 공유(앱게이트) */}
+        <ShareReadingButton kind="lovestyle" title="내 연애 스타일" content={result} />
         <Text style={styles.note}>{t('lovestyle.note', '※ 사주 십신으로 가볍게 본 연애 스타일이에요. 재미로 즐겨 주세요.')}</Text>
         <Pressable style={styles.cta} onPress={() => router.push('/love')}><Text style={styles.ctaText}>{t('lovestyle.detail', '내 애정 흐름 깊이 보기')}</Text></Pressable>
       </ScrollView>

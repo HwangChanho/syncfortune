@@ -14,6 +14,7 @@ import { colors, radius, space, shadow, font } from '../../lib/theme';
 import { useFontScale } from '../../lib/fontScale';
 import { ContentHero } from '../../components/SpecialContentScreen'; // 이미지 히어로(보는 맛)
 import { ChartPicker } from '../../components/ChartPicker'; // 상단 명식 헤더 — 현재 적용 명식 표시·전환
+import { ShareReadingButton } from '../../components/ShareReadingButton'; // 이슈17: 풀이 결과 공유(앱게이트)
 import type { ChartInput } from '@spec/chart';
 
 export default function ZodiacScreen() {
@@ -70,6 +71,15 @@ export default function ZodiacScreen() {
             </View>
           );
         })}
+
+        {/* 이슈17: 내 띠/별자리가 매칭될 때만 공유(앱게이트) — 미매칭이면 content=null 로 버튼 자체 숨김 */}
+        <ShareReadingButton
+          kind="zodiac"
+          title="내 띠·별자리 운세"
+          content={mineKey && list.find((i) => i.key === mineKey)
+            ? { label: list.find((i) => i.key === mineKey)?.label, text: list.find((i) => i.key === mineKey)?.text }
+            : null}
+        />
 
         <Text style={styles.note}>{t('zodiac.note', '※ 가볍게 즐기는 오늘의 운세예요. 자세한 풀이는 내 사주에서 보세요.')}</Text>
       </ScrollView>

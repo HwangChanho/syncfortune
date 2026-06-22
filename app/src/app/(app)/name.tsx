@@ -10,6 +10,7 @@ import { analyzeName } from '../../lib/nameReading';
 import { colors, radius, space, shadow, font } from '../../lib/theme';
 import { useFontScale } from '../../lib/fontScale';
 import { ContentHero } from '../../components/SpecialContentScreen'; // 이미지 히어로(보는 맛)
+import { ShareReadingButton } from '../../components/ShareReadingButton'; // 이슈17: 풀이 결과 공유(앱게이트)
 
 export default function NameScreen() {
   const { t } = useTranslation();
@@ -47,6 +48,8 @@ export default function NameScreen() {
             <View style={styles.card}>
               <Text style={[styles.summary, { fontSize: fs(15), lineHeight: fs(25) }]}>{result.summary}</Text>
             </View>
+            {/* 이슈17: 이름풀이 결과 공유(앱게이트) */}
+            <ShareReadingButton kind="name" title={`${name} 이름풀이`} content={{ summary: result.summary }} />
           </>
         ) : name.trim() ? (
           <View style={styles.card}><Text style={styles.empty}>{t('name.noHangul', '한글 이름을 입력해 주세요.')}</Text></View>

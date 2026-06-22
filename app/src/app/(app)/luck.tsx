@@ -13,6 +13,7 @@ import { computeChart } from '../../lib/engine';
 import { colors, radius, space, shadow, font } from '../../lib/theme';
 import { useFontScale } from '../../lib/fontScale';
 import { ChartPicker } from '../../components/ChartPicker'; // 상단 명식 헤더 — 현재 적용 명식 표시·전환
+import { ShareReadingButton } from '../../components/ShareReadingButton'; // 이슈17: 풀이 결과 공유(앱게이트)
 import type { ChartInput } from '@spec/chart';
 
 export default function LuckScreen() {
@@ -79,6 +80,9 @@ export default function LuckScreen() {
           </View>
           <Row label={t('luck.item', '행운의 아이템')} value={lucky.item} />
         </View>
+
+        {/* 이슈17: 오늘의 행운 공유(앱게이트) */}
+        <ShareReadingButton kind="luck" title="오늘의 행운" content={{ color: lucky.color, dir: lucky.dir, item: lucky.item }} />
 
         {/* 명식 있으면 — 내게 부족한 기운 보완색(상시) */}
         {weak && (

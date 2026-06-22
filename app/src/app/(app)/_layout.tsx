@@ -32,8 +32,8 @@ export default function AppLayout() {
         //   (루트는 canGoBack=false라 미표시)
         headerLeft: (p: any) => p?.canGoBack ? (
           <Pressable onPress={() => router.back()} hitSlop={16} style={{ flexDirection: 'row', alignItems: 'center', paddingRight: 16, paddingVertical: 4 }}>
-            <Text style={{ color: colors.ink, fontSize: fs(26), lineHeight: fs(28), marginTop: -2, fontWeight: '400' }}>‹</Text>
-            <Text style={{ color: colors.ink, fontSize: fs(16), fontWeight: '600', marginLeft: 1 }}>뒤로</Text>
+            <Text style={{ color: colors.ink, fontSize: fs(26), lineHeight: fs(26), fontWeight: '300' }}>‹</Text>
+            <Text style={{ color: colors.ink, fontSize: fs(16), fontWeight: '600', marginLeft: 2 }}>뒤로</Text>
           </Pressable>
         ) : null,
       }}>

@@ -16,6 +16,7 @@ import { useFontScale } from '../../lib/fontScale';
 import { colors, radius, space, shadow, font } from '../../lib/theme';
 import { ContentHero } from '../../components/SpecialContentScreen'; // 이미지 히어로(보는 맛)
 import { ChartPicker } from '../../components/ChartPicker'; // 상단 명식 헤더 — 현재 적용 명식 표시·전환
+import { ShareReadingButton } from '../../components/ShareReadingButton'; // 이슈17: 풀이 결과 공유(앱게이트)
 import type { ChartInput } from '@spec/chart';
 
 const WEEKDAYS: Record<string, string[]> = {
@@ -140,15 +141,19 @@ export default function TaegilScreen() {
 
         {/* 선택한 날 상세 */}
         {selDay && (
-          <View style={styles.detailCard}>
-            <View style={styles.dayHead}>
-              <Text style={styles.detailDate}>{fmtDate(selDay.date)}</Text>
-              <View style={[styles.badge, selDay.score >= 80 ? styles.badgeBest : styles.badgeGood]}>
-                <Text style={[styles.badgeTx, selDay.score >= 80 ? styles.badgeTxBest : styles.badgeTxGood]}>{selDay.score >= 80 ? t('taegil.best', '아주 좋음') : t('taegil.good', '좋음')}</Text>
+          <>
+            <View style={styles.detailCard}>
+              <View style={styles.dayHead}>
+                <Text style={styles.detailDate}>{fmtDate(selDay.date)}</Text>
+                <View style={[styles.badge, selDay.score >= 80 ? styles.badgeBest : styles.badgeGood]}>
+                  <Text style={[styles.badgeTx, selDay.score >= 80 ? styles.badgeTxBest : styles.badgeTxGood]}>{selDay.score >= 80 ? t('taegil.best', '아주 좋음') : t('taegil.good', '좋음')}</Text>
+                </View>
               </View>
+              {selDay.reasons.map((r, i) => <Text key={i} style={[styles.reason, { fontSize: fs(14), lineHeight: fs(21) }]}>· {r}</Text>)}
             </View>
-            {selDay.reasons.map((r, i) => <Text key={i} style={[styles.reason, { fontSize: fs(14), lineHeight: fs(21) }]}>· {r}</Text>)}
-          </View>
+            {/* 이슈17: 선택한 길일 공유(앱게이트) */}
+            <ShareReadingButton kind="taegil" title={`${fmtDate(selDay.date)} 택일`} content={{ date: selDay.date, score: selDay.score, reasons: selDay.reasons }} />
+          </>
         )}
 
         <Text style={[styles.note, { fontSize: fs(12), lineHeight: fs(18) }]}>{t('taegil.note', '※ 사주에 맞춘 참고용 길일이에요. 실제 일정은 형편에 맞게 정하세요.')}</Text>

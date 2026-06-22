@@ -5,7 +5,7 @@
 //   stance(4축·유형명)는 lib/personaType.ts에 표준 명리 기반 — daniel 검수 슬롯.
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useMemo, useCallback } from 'react';
-import { View, Text, Pressable, ActivityIndicator, ScrollView, StyleSheet, Share, ImageBackground } from 'react-native';
+import { View, Text, Pressable, ActivityIndicator, ScrollView, StyleSheet, ImageBackground } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { computeChart } from '../../lib/engine';
@@ -14,6 +14,7 @@ import { classifyPersona, AXIS_INFO, type PersonaResult } from '../../lib/person
 import { useFontScale } from '../../lib/fontScale';
 import { colors, radius, space, shadow, font } from '../../lib/theme';
 import { ChartPicker } from '../../components/ChartPicker'; // 상단 명식 헤더 — 현재 적용 명식 표시·전환
+import { ShareReadingButton } from '../../components/ShareReadingButton'; // 이슈17: 풀이 결과 공유(앱게이트)
 import type { ChartInput } from '@spec/chart';
 
 export default function PersonaScreen() {
@@ -41,11 +42,6 @@ export default function PersonaScreen() {
       pillars: c.saju.pillars,
     });
   }, [me]);
-
-  const onShare = useCallback(() => {
-    if (!persona) return;
-    Share.share({ message: `${t('persona.shareLead', '내 사주 성격유형')}: ${persona.emoji} ${persona.name}\n${persona.desc}\n— SyncFortune` }).catch(() => {});
-  }, [persona, t]);
 
   if (loading) return <View style={styles.center}><ActivityIndicator color={colors.ju} /></View>;
   if (!persona) return (
@@ -87,10 +83,8 @@ export default function PersonaScreen() {
           })}
         </View>
 
-        {/* 공유 */}
-        <Pressable style={styles.share} onPress={onShare}>
-          <Text style={styles.shareTx}>{t('persona.share', '내 유형 공유하기')}</Text>
-        </Pressable>
+        {/* 이슈17: 성격유형 결과 공유(앱게이트) */}
+        <ShareReadingButton kind="persona" title={persona.name} content={persona} />
 
         <Text style={styles.note}>{t('persona.note', '※ 사주 4축으로 본 성격 유형 맛보기예요. 더 깊은 성격·내면 풀이는 프리미엄에서 만나보세요.')}</Text>
 

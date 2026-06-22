@@ -4,7 +4,7 @@
 //   규칙5: 무료=온디바이스(API 0). 직업명·특징·신분 + 공유(바이럴). persona 패턴 차용.
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useMemo, useCallback } from 'react';
-import { View, Text, Pressable, ActivityIndicator, ScrollView, StyleSheet, Share, ImageBackground, Image } from 'react-native';
+import { View, Text, Pressable, ActivityIndicator, ScrollView, StyleSheet, ImageBackground, Image } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { computeChart } from '../../lib/engine';
@@ -13,6 +13,7 @@ import { joseonJob, type JoseonJobResult } from '../../lib/joseonJob';
 import { useFontScale } from '../../lib/fontScale';
 import { colors, radius, space, shadow, font } from '../../lib/theme';
 import { ChartPicker } from '../../components/ChartPicker'; // 상단 명식 헤더 — 현재 적용 명식 표시·전환
+import { ShareReadingButton } from '../../components/ShareReadingButton'; // 이슈17: 풀이 결과 공유(앱게이트)
 import type { ChartInput } from '@spec/chart';
 
 // 직업 결과 이미지 — daniel 자산(assets/icons/joseon/). 파일 추가 후 해당 require 주석을 해제하면 자동 표시.
@@ -49,11 +50,6 @@ export default function JoseonJobScreen() {
     const c = computeChart(me);
     return joseonJob(c.saju); // 온디바이스 — 가장 강한 십신 → 조선 직업
   }, [me]);
-
-  const onShare = useCallback(() => {
-    if (!result) return;
-    Share.share({ message: `${t('joseonjob.shareLead', '조선시대 나의 직업')}: ${result.emoji} ${result.job}\n${result.tagline}\n— SyncFortune` }).catch(() => {});
-  }, [result, t]);
 
   if (loading) return <View style={styles.center}><ActivityIndicator color={colors.ju} /></View>;
   if (!result) return (
@@ -92,10 +88,8 @@ export default function JoseonJobScreen() {
           ))}
         </View>
 
-        {/* 공유 */}
-        <Pressable style={styles.share} onPress={onShare}>
-          <Text style={styles.shareTx}>{t('joseonjob.share', '내 직업 공유하기')}</Text>
-        </Pressable>
+        {/* 이슈17: 조선시대 직업 결과 공유(앱게이트) */}
+        <ShareReadingButton kind="joseonjob" title="조선시대 나의 직업" content={result} />
 
         <Text style={styles.note}>{t('joseonjob.note', '※ 사주 십신으로 가볍게 본 조선시대 직업이에요. 재미로 즐겨 주세요.')}</Text>
 

@@ -3,7 +3,7 @@
 // 사주 십신 → 타고난 복(lib/bokType.ts, Claude stance·daniel 검수). 규칙5: 무료=온디바이스(API 0). 처방(살리는 법) 동반.
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useMemo, useCallback } from 'react';
-import { View, Text, Pressable, ActivityIndicator, ScrollView, StyleSheet, Share, ImageBackground, Image } from 'react-native';
+import { View, Text, Pressable, ActivityIndicator, ScrollView, StyleSheet, ImageBackground, Image } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { computeChart } from '../../lib/engine';
@@ -12,6 +12,7 @@ import { bokType, type BokResult } from '../../lib/bokType';
 import { useFontScale } from '../../lib/fontScale';
 import { colors, radius, space, shadow, font } from '../../lib/theme';
 import { ChartPicker } from '../../components/ChartPicker'; // 상단 명식 헤더
+import { ShareReadingButton } from '../../components/ShareReadingButton'; // 이슈17: 풀이 결과 공유(앱게이트)
 import type { ChartInput } from '@spec/chart';
 
 // 복 유형별 이미지(daniel: 종류별 이미지) — assets/icons/bok/{slug}.jpg. 들어온 것만 require, 없으면 이모지 폴백.
@@ -39,11 +40,6 @@ export default function BokScreen() {
 
   const result: BokResult | null = useMemo(() => (me ? bokType(computeChart(me).saju) : null), [me]);
 
-  const onShare = useCallback(() => {
-    if (!result) return;
-    Share.share({ message: `${t('bok.shareLead', '내 타고난 복')}: ${result.emoji} ${result.bok}\n${result.desc}\n— SyncFortune` }).catch(() => {});
-  }, [result, t]);
-
   if (loading) return <View style={styles.center}><ActivityIndicator color={colors.ju} /></View>;
   if (!result) return (
     <View style={styles.center}>
@@ -67,7 +63,8 @@ export default function BokScreen() {
           <Text style={styles.cardHead}>{t('bok.how', '복을 키우는 법')}</Text>
           <Text style={[styles.body, { fontSize: fs(15), lineHeight: fs(25) }]}>{result.how}</Text>
         </View>
-        <Pressable style={styles.share} onPress={onShare}><Text style={styles.shareTx}>{t('bok.share', '내 복 공유하기')}</Text></Pressable>
+        {/* 이슈17: 타고난 복 결과 공유(앱게이트) */}
+        <ShareReadingButton kind="bok" title="내 타고난 복" content={result} />
         <Text style={styles.note}>{t('bok.note', '※ 사주 십신으로 가볍게 본 타고난 복이에요. 재미로 즐겨 주세요.')}</Text>
         <Pressable style={styles.cta} onPress={() => router.push({ pathname: '/reading', params: { input: JSON.stringify(me) } })}><Text style={styles.ctaText}>{t('bok.detail', '내 사주 깊이 보기 (프리미엄)')}</Text></Pressable>
       </ScrollView>

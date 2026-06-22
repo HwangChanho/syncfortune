@@ -3,7 +3,7 @@
 // 사주 = 일간 오행(시대) × 십신군(신분) → 전생 이야기(lib/pastLife.ts, Claude stance·daniel 검수). 재미 판타지.
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useMemo, useCallback } from 'react';
-import { View, Text, Pressable, ActivityIndicator, ScrollView, StyleSheet, Share, ImageBackground, Image } from 'react-native';
+import { View, Text, Pressable, ActivityIndicator, ScrollView, StyleSheet, ImageBackground, Image } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { computeChart } from '../../lib/engine';
@@ -12,6 +12,7 @@ import { pastLife, type PastLifeResult } from '../../lib/pastLife';
 import { useFontScale } from '../../lib/fontScale';
 import { colors, radius, space, shadow, font } from '../../lib/theme';
 import { ChartPicker } from '../../components/ChartPicker'; // 상단 명식 헤더 — 현재 적용 명식 표시·전환
+import { ShareReadingButton } from '../../components/ShareReadingButton'; // 이슈17: 풀이 결과 공유(앱게이트)
 import type { ChartInput } from '@spec/chart';
 
 // 전생 시대(오행)×신분(십신) 이미지(daniel: 조합 25). assets/icons/pastlife/{elem}_{group}.jpg.
@@ -61,11 +62,6 @@ export default function PastLifeScreen() {
 
   const result: PastLifeResult | null = useMemo(() => (me ? pastLife(computeChart(me).saju) : null), [me]);
 
-  const onShare = useCallback(() => {
-    if (!result) return;
-    Share.share({ message: `${t('pastlife.shareLead', '나의 전생')}: ${result.emoji} ${result.era} · ${result.role}\n${result.story}\n— SyncFortune` }).catch(() => {});
-  }, [result, t]);
-
   if (loading) return <View style={styles.center}><ActivityIndicator color={colors.ju} /></View>;
   if (!result) return (
     <View style={styles.center}>
@@ -91,7 +87,8 @@ export default function PastLifeScreen() {
           <Text style={styles.cardHead}>{t('pastlife.hint', '지금의 당신에게')}</Text>
           <Text style={[styles.body, { fontSize: fs(15), lineHeight: fs(25) }]}>{result.hint}</Text>
         </View>
-        <Pressable style={styles.share} onPress={onShare}><Text style={styles.shareTx}>{t('pastlife.share', '내 전생 공유하기')}</Text></Pressable>
+        {/* 이슈17: 전생 이야기 결과 공유(앱게이트) */}
+        <ShareReadingButton kind="pastlife" title="나의 전생" content={result} />
         <Text style={styles.note}>{t('pastlife.note', '※ 사주로 가볍게 그려 본 전생 이야기예요. 재미로 즐겨 주세요.')}</Text>
         <Pressable style={styles.cta} onPress={() => router.push({ pathname: '/reading', params: { input: JSON.stringify(me) } })}><Text style={styles.ctaText}>{t('pastlife.detail', '내 사주 깊이 보기 (프리미엄)')}</Text></Pressable>
       </ScrollView>
