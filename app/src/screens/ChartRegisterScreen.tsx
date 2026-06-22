@@ -24,8 +24,12 @@ export function ChartRegisterScreen({ onSubmit, defaultRelation, submitLabel, sh
   const initTime = initial && initial.timeAccuracy !== '미상' ? String(initial.birthDateTime ?? '').split(' ')[1] : null;
   const [label, setLabel] = useState(initial?.label ?? '');
   const [birthDate, setBirthDate] = useState(initial ? String(initial.birthDateTime ?? '').split(' ')[0] : '');
-  const [sijinIdx, setSijinIdx] = useState<number>(initTime ? SIJIN.findIndex((s) => s.hm === initTime) : -1); // -1 = 시각 모름
-  const [sijinOpen, setSijinOpen] = useState(false);     // 시진 선택 바텀시트
+  const initSijinIdx = initTime ? SIJIN.findIndex((s) => s.hm === initTime) : -1;
+  const [sijinIdx, setSijinIdx] = useState<number>(initSijinIdx); // -1 = 시각 모름(또는 정확시각 모드)
+  const [sijinOpen, setSijinOpen] = useState(false);     // 시각 선택 바텀시트
+  // 정확한 시각(시:분) — daniel: 진태양시 보정은 2시간 시진 블록이 아니라 정확 시각이라야 의미. 알면 우선(출생지 경도로 시주 정밀).
+  const [exactH, setExactH] = useState(initTime && initSijinIdx < 0 ? (initTime.split(':')[0] ?? '') : '');
+  const [exactM, setExactM] = useState(initTime && initSijinIdx < 0 ? (initTime.split(':')[1] ?? '') : '');
   const [calendar, setCalendar] = useState<'양' | '음'>(initial?.calendar ?? '양');
   const [sex, setSex] = useState<'남' | '여'>(initial?.sex ?? '남');
   const [birthPlace, setBirthPlace] = useState(initial?.birthPlace ?? '');
@@ -40,18 +44,24 @@ export function ChartRegisterScreen({ onSubmit, defaultRelation, submitLabel, sh
   const [note, setNote] = useState(initial?.context?.note ?? '');
 
   const sj = sijinIdx >= 0 ? SIJIN[sijinIdx] : null;
-  const sijinLabel = sj ? `${sj.gz} ${sj.ko} (${sj.range})` : t('register.timeUnknown');
+  // 정확 시각이 유효(시 0~23·분 0~59)하면 우선 — 이게 진태양시 보정 대상 시각.
+  const exH = parseInt(exactH, 10), exM = parseInt(exactM, 10);
+  const exactStr = (exactH !== '' && exactM !== '' && exH >= 0 && exH <= 23 && exM >= 0 && exM <= 59)
+    ? `${exH}:${String(exM).padStart(2, '0')}` : null;
+  const timeLabel = exactStr ? `${String(exH).padStart(2, '0')}:${String(exM).padStart(2, '0')}`
+    : sj ? `${sj.gz} ${sj.ko} (${sj.range})` : t('register.timeUnknown');
 
-  function pickSijin(i: number) { setSijinIdx(i); setSijinOpen(false); }
+  function pickSijin(i: number) { setSijinIdx(i); setExactH(''); setExactM(''); setSijinOpen(false); } // 시진/모름 선택 = 정확시각 해제
+  function confirmExact() { if (exactStr) { setSijinIdx(-1); setSijinOpen(false); } }                 // 정확시각 확정(시진 무시)
 
   // input 구성 — 수동 제출·자동저장 공용. label/relation 은 메타(ChartInput PII 계약 외).
   function buildInput() {
     return {
       label: label.trim() || (relation === 'self' ? t('register.selfLabel') : relation),
-      birthDateTime: `${birthDate} ${sj ? sj.hm : '0:0'}`, // 시진 대표 시각 주입(모름=0:0)
+      birthDateTime: `${birthDate} ${exactStr ?? (sj ? sj.hm : '0:0')}`, // 정확시각 우선(진태양시 보정 대상) → 없으면 시진 대표시각 → 모름=0:0
       calendar, sex, birthPlace, birthLon: birthPlaceLon ?? undefined, // 진태양시 보정 경도(엔진 ChartInput.birthLon)
       relation,
-      timeAccuracy: sj ? '정확' : '미상', // 시진 알면 시주 확정 → 정확
+      timeAccuracy: (exactStr || sj) ? '정확' : '미상', // 정확시각 또는 시진 알면 시주 확정 → 정확
       makeRep, // 대표 설정 여부 — register 라우트가 처리(궁합 상대 등록 시 showMakeRep=false 라 무시)
       // 풀이 grounding 기본정보(선택) — 하나라도 채워졌을 때만 context 전달(빈 값은 undefined로 정리).
       context: (job.trim() || relationship || concern.trim() || note.trim())
@@ -89,7 +99,7 @@ export function ChartRegisterScreen({ onSubmit, defaultRelation, submitLabel, sh
         {/* 태어난 시각 — 드롭다운 필드 클릭 → 바텀시트 스크롤 선택 */}
         <Text style={styles.label}>{t('register.birthTimeSijin')}</Text>
         <Pressable style={styles.select} onPress={() => setSijinOpen(true)}>
-          <Text style={[styles.selectText, !sj && styles.selectPlaceholder]}>{sijinLabel}</Text>
+          <Text style={[styles.selectText, !exactStr && !sj && styles.selectPlaceholder]}>{timeLabel}</Text>
           <Text style={styles.selectChevron}>▾</Text>
         </Pressable>
 
@@ -181,6 +191,19 @@ export function ChartRegisterScreen({ onSubmit, defaultRelation, submitLabel, sh
           <Pressable style={styles.sheet} onPress={() => {}}>
             <View style={styles.sheetHandle} />
             <Text style={styles.sheetTitle}>{t('register.birthTimeSijin')}</Text>
+            {/* 정확한 시각(시:분) — 알면 우선(진태양시 보정). 출생지 경도로 시주 정밀 산출(daniel). */}
+            <View style={styles.exactBox}>
+              <Text style={styles.exactLabel}>{t('register.exactTime', '정확한 시각을 알아요 (출생지 경도로 진태양시 보정)')}</Text>
+              <View style={styles.exactRow}>
+                <TextInput style={styles.exactInput} value={exactH} onChangeText={(v) => setExactH(v.replace(/[^0-9]/g, '').slice(0, 2))} placeholder={t('register.hour', '시')} placeholderTextColor={colors.inkFaint} keyboardType="number-pad" maxLength={2} />
+                <Text style={styles.exactColon}>:</Text>
+                <TextInput style={styles.exactInput} value={exactM} onChangeText={(v) => setExactM(v.replace(/[^0-9]/g, '').slice(0, 2))} placeholder={t('register.minute', '분')} placeholderTextColor={colors.inkFaint} keyboardType="number-pad" maxLength={2} />
+                <Pressable style={[styles.exactBtn, !exactStr && styles.exactBtnOff]} onPress={confirmExact} disabled={!exactStr}>
+                  <Text style={styles.exactBtnTx}>{t('common.confirm', '확인')}</Text>
+                </Pressable>
+              </View>
+            </View>
+            <Text style={styles.sheetDivider}>{t('register.orSijin', '또는 시진(2시간)만 알 때')}</Text>
             <ScrollView style={styles.sheetList} showsVerticalScrollIndicator={false}>
               {/* 모름 */}
               <Pressable style={styles.optionRow} onPress={() => pickSijin(-1)}>
@@ -248,6 +271,16 @@ const styles = StyleSheet.create({
   },
   sheetHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: colors.line, alignSelf: 'center', marginBottom: space(3) },
   sheetTitle: { ...font.heading, marginBottom: space(2) },
+  // 정확한 시각(시:분) 입력 — 시진 병행(daniel: 진태양시 정밀)
+  exactBox: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.line, padding: space(3.5), marginBottom: space(3) },
+  exactLabel: { ...font.label, fontSize: 12, color: colors.inkSoft, marginBottom: space(2.5) },
+  exactRow: { flexDirection: 'row', alignItems: 'center', gap: space(2) },
+  exactInput: { width: 56, textAlign: 'center', backgroundColor: colors.bg, borderWidth: 1, borderColor: colors.line, borderRadius: radius.sm, paddingVertical: space(2.5), fontSize: 16, color: colors.ink },
+  exactColon: { fontSize: 18, fontWeight: '700', color: colors.ink },
+  exactBtn: { marginLeft: 'auto', backgroundColor: colors.ju, borderRadius: radius.sm, paddingVertical: space(2.5), paddingHorizontal: space(4) },
+  exactBtnOff: { backgroundColor: colors.line },
+  exactBtnTx: { color: colors.bg, fontWeight: '700', fontSize: 14 },
+  sheetDivider: { ...font.caption, color: colors.inkFaint, textAlign: 'center', marginBottom: space(2) },
   sheetList: { flexGrow: 0 },
   optionRow: {
     flexDirection: 'row', alignItems: 'center', paddingVertical: space(3.5),

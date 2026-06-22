@@ -3,7 +3,7 @@
 // 저장된 내 차트(self) 로드 → MyeongsikScreen 재사용. 없으면 등록 유도. (추후 N명 목록 확장)
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useState, useMemo } from 'react';
-import { View, Text, Pressable, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, Pressable, ActivityIndicator, StyleSheet, InteractionManager } from 'react-native';
 import { useFontScale } from '../../lib/fontScale';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -18,14 +18,18 @@ export default function ChartsScreen() {
   const { t } = useTranslation();
   const [me, setMe] = useState<ChartInput | null>(null);
   const [loading, setLoading] = useState(true);
-
+  // 만세력 첫 진입 시 computeChart(사주 엔진)가 동기 블록 → 화면 전환이 멈칫(daniel). 네비 애니 끝난 뒤
+  //   (InteractionManager) 계산하도록 미루고 그동안 로딩 인디케이터 유지 → 멈칫 없이 매끄럽게. 이후 전환은 메모됨이라 즉시.
+  const [ready, setReady] = useState(false);
   useEffect(() => {
     loadMyChart().then((c) => { setMe(c); setLoading(false); });
+    const task = InteractionManager.runAfterInteractions(() => setReady(true));
+    return () => task.cancel();
   }, []);
   const { fs } = useFontScale();
   const styles = useMemo(() => makeStyles(fs), [fs]);
 
-  if (loading) return <View style={styles.center}><ActivityIndicator color={colors.ju} /></View>;
+  if (loading || (me && !ready)) return <View style={styles.center}><ActivityIndicator color={colors.ju} /><Text style={[styles.msg, { marginTop: space(4) }]}>{t('manse.loading', '명식 불러오는 중…')}</Text></View>;
 
   if (!me) {
     return (

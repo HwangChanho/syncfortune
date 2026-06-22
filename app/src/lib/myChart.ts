@@ -100,11 +100,11 @@ export async function syncChartsFromServer(): Promise<void> {
   }
   await setRaw(KEY, JSON.stringify(merged));
   await setTombstones(Array.from(tomb));
-  // 대표: 본인('self') 명식이 있으면 그걸 대표로(daniel: 실행 시 본인). 없으면 로컬 유지/서버 대표/첫 명식.
-  const selfChart = merged.find((c) => c.relation === 'self');
+  // 대표: 로컬 대표가 유효하면 유지(★사용 중 전환 보존·daniel), 아니면 서버 대표, 그것도 없으면 첫 명식.
+  //   '본인으로 강제'는 여기(동기화 = 로그인·토큰갱신 SIGNED_IN 시에도 호출됨) 말고 *앱 실행 1회*(_layout preferSelfAsRep)에서만.
+  //   → 앱 켜면 본인, 사용 중 다른 명식으로 바꾸면 그대로 유지, 껐다 켜면 다시 본인.
   const curRep = await getRaw(REP_KEY);
-  if (selfChart) { await setRaw(REP_KEY, selfChart.id); }
-  else if (!curRep || !merged.some((c) => c.id === curRep)) {
+  if (!curRep || !merged.some((c) => c.id === curRep)) {
     if (server?.rep && merged.some((c) => c.id === server!.rep)) await setRaw(REP_KEY, server.rep);
     else if (merged.length) await setRaw(REP_KEY, merged[0].id);
   }
