@@ -38,6 +38,7 @@ export const CREDIT_PRODUCT: Record<CreditKind, string> = {
   image: 'credit_image',         // 비치는 나 ₩4,900
   mission: 'credit_mission',     // 나의 사명 ₩6,900
   career: 'credit_career',       // 사업가의 나 vs 직장인의 나 ₩4,900
+  talent: 'credit_talent',       // 나의 타고난 재능 ₩4,900(월지 축) — ⚠️ASC/RC에 credit_talent 상품 등록 필요(daniel)
   dream: 'credit_dream',         // AI 꿈해몽 — 단건 ₩300은 Apple IAP 최저가 미만 → 5회 번들(₩1,200) 상품으로 판매
 };
 

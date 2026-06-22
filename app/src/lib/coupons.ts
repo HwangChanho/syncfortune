@@ -13,7 +13,7 @@ async function hasSession(): Promise<boolean> {
   return !!data.session;
 }
 
-export type CreditKind = 'reading' | 'ziwei' | 'compat' | 'timeline' | 'followup' | 'love' | 'newyear' | 'lifegraph' | 'roots' | 'image' | 'mission' | 'career' | 'dream';
+export type CreditKind = 'reading' | 'ziwei' | 'compat' | 'timeline' | 'followup' | 'love' | 'newyear' | 'lifegraph' | 'roots' | 'image' | 'mission' | 'career' | 'talent' | 'dream';
 // price = 건당 가격(원). daniel 확정(2026-06): 원가(opus, 영구캐시 1회)×~3, 소액(타임라인·질문)=₩990, 애정 ₩4,900.
 export const CREDIT_KINDS: { key: CreditKind; ko: string; price: number }[] = [
   { key: 'reading', ko: '사주 풀이', price: 9900 }, { key: 'ziwei', ko: '자미두수', price: 8900 }, { key: 'compat', ko: '궁합', price: 3900 },
@@ -24,6 +24,8 @@ export const CREDIT_KINDS: { key: CreditKind; ko: string; price: number }[] = [
   { key: 'roots', ko: '명식의 뿌리', price: 4900 }, { key: 'image', ko: '비치는 나', price: 4900 }, { key: 'mission', ko: '나의 사명', price: 6900 },
   // 신규(daniel 2026-06): 사업가의 나 vs 직장인의 나(명식+대운+세운, 6카테고리)
   { key: 'career', ko: '사업가의 나', price: 4900 },
+  // 신규(daniel 2026-06-23): 나의 타고난 재능(월지 축 백본 — 재능·동기·재물)
+  { key: 'talent', ko: '나의 타고난 재능', price: 4900 },
   // AI 꿈해몽 — 5회 번들 ₩1,200(=₩240/회). Apple IAP 최저가 미만이라 번들 판매(daniel). price=건당 참조값.
   { key: 'dream', ko: 'AI 꿈해몽', price: 240 },
 ];
