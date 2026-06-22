@@ -5,7 +5,7 @@
 //   투자/연애/결혼)별로 핵심을 먼저 짚어 일반인이 읽게(Edge kind='compat', 쉬운 말). 합충 비교는 접이식 상세.
 // 결정론(일간관계·교차합충)은 온디바이스 → 통변의 근거로 Edge에 전달(규칙2 사주 단독). 상대 PII=동의(규칙8).
 // ─────────────────────────────────────────────────────────────────────────
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator, Modal, TextInput, Keyboard, Image } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context'; // 모달 상단 노치/상태바 침범 방지(J)
 import { Alert } from '../lib/alert'; // 커스텀 알림(앱 디자인)
@@ -55,6 +55,10 @@ const CAT_IMG: Record<string, any> = {
 import { UnlockOverlay } from '../components/UnlockOverlay'; // 생성 중 화면 가림 로딩(daniel)
 import type { ChartInput } from '@spec/chart';
 
+// 이어보기(daniel): 궁합 상태가 in-memory라 홈 갔다 오면 초기화됐음 → 마지막 선택(나·상대·관계)을 모듈에 보관해 복원.
+//   서버 캐시(readings)는 항상 저장되지만, 상대를 복원해야 sig로 캐시를 다시 불러올 수 있다.
+let _lastCompat: { meId?: string; otherId?: string; rel?: string } = {};
+
 export function CompatScreen({ me }: { me: ChartInput | null }) {
   const { t } = useTranslation();
   const { session } = useAuth();
@@ -82,15 +86,25 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
   const [askInput, setAskInput] = useState('');
   const [asking, setAsking] = useState(false);
 
-  // 저장 명식 + 대표 로드 → 내 명식 슬롯 기본값 = 대표(없으면 me 입력)
+  // 저장 명식 + 대표 로드 → 내 명식 슬롯. 이어보기(daniel): 마지막 나·상대·관계 복원(홈 갔다 와도 초기화 안 되게).
   useEffect(() => {
     (async () => {
       const list = await listCharts(); setSaved(list);
       const repId = await getRepresentativeId();
       const rep = list.find((c) => c.id === repId) ?? list.find((c) => c.relation === 'self') ?? list[0] ?? null;
-      setMeSel(rep);
+      setMeSel((_lastCompat.meId && list.find((c) => c.id === _lastCompat.meId)) || rep);
+      if (_lastCompat.otherId) { const o = list.find((c) => c.id === _lastCompat.otherId); if (o) setOtherSel(o); }
+      if (_lastCompat.rel) setRel(_lastCompat.rel);
     })();
   }, []);
+
+  // 이어보기: 복원된 나+상대가 준비되면 자동 분석 → 캐시 로드 + 미생성만 이어서(재선택·재생성 불필요·동일쌍이라 무과금). 1회만.
+  const resumedRef = useRef(false);
+  useEffect(() => {
+    if (resumedRef.current || pair) return;
+    if (meSel && otherSel && _lastCompat.otherId && session) { resumedRef.current = true; analyze(); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [meSel, otherSel, session]);
 
   // 통변 컨텍스트(ctx) 준비되면 그 차트의 추가질문 로드(관계유형/연도 키별)
   useEffect(() => { if (ctx?.chartId) loadFollowups(ctx.chartId).then(setFollowups).catch(() => {}); }, [ctx]);
@@ -120,6 +134,7 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
   //   게이트(서버 판정): 비프리미엄=프리미엄 유도 / 무료 5쌍 초과=건당 결제(paid 재시도). daniel.
   async function analyze() {
     if (!meInput || !otherInput || !session) return;
+    _lastCompat = { meId: meSel?.id, otherId: otherSel?.id, rel }; // 이어보기 복원용(마지막 선택 보관)
     const meC = computeChart(meInput), otherC = computeChart(otherInput);
     setPair({ me: meC.saju, other: otherC.saju }); setActive(new Set()); setYear(''); // 분석 시작 = 원국부터
     const dx = analyzeCompatibility(meC.saju, otherC.saju);     // 일간관계·교차(통변 근거)
