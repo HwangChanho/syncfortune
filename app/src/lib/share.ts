@@ -10,8 +10,9 @@ import { Share } from 'react-native';
 import { supabase } from './supabase';
 
 export const APP_STORE_URL = 'https://apps.apple.com/app/id6779321930';
-// GitHub Pages 스마트링크 stub(앱 열기 시도 → 미설치 시 App Store). 내용 페이지 아님(daniel).
-const SHARE_LINK_BASE = 'https://hwangchanho.github.io/syncfortune/s/';
+// Supabase Edge Function 스마트링크(깃헙 제거·daniel 2026-06): 앱 설치 시 syncfortune://shared/<id>(1회성 뷰어),
+//   미설치 시 App Store 유도. 내용 페이지 아님(최소 리다이렉트). 함수 share(no-verify-jwt 공개).
+const SHARE_LINK_BASE = 'https://zpslflbcxzalaikbbdzk.supabase.co/functions/v1/share';
 
 // 앱 게이트 공유라 충분히 unguessable 한 랜덤 id(22자). expo-crypto 미설치 → Math.random 조합.
 function randomShareId(): string {
