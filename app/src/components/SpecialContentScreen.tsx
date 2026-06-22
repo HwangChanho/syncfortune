@@ -35,7 +35,7 @@ import { ChartPicker } from './ChartPicker';             // 상단 명식 헤더
 
 export type Section = { key: string; label: string };
 
-export function SpecialContentScreen({ kind, title, sub, sections, needsZiwei = false, genMsg, heroMotif, themeColor = colors.ju, heroImage }: {
+export function SpecialContentScreen({ kind, title, sub, sections, needsZiwei = false, genMsg, heroMotif, themeColor = colors.ju, heroImage, buildBody }: {
   kind: CreditKind;        // 이용권/캐시 키(roots·image·mission). Edge category=kind.
   title: string;
   sub: string;
@@ -45,6 +45,7 @@ export function SpecialContentScreen({ kind, title, sub, sections, needsZiwei = 
   heroMotif?: ReactNode;   // 상단 SVG 모티프(나무·오라·별자리)
   themeColor?: string;     // 섹션 강조색(콘텐츠별 정체성)
   heroImage?: any;         // 히어로 배경 이미지(옵션 — 없으면 모티프만)
+  buildBody?: (chart: SavedChart) => Record<string, any>; // 추가 body(수비학/점성술 = 앱이 산출한 차트를 Edge로 전달)
 }) {
   const { t } = useTranslation();
   const router = useRouter();
@@ -103,6 +104,7 @@ export function SpecialContentScreen({ kind, title, sub, sections, needsZiwei = 
     try {
       const body: any = { chartId: id, category: kind, kind, tier: 'paid', lang: appLang() };
       if (needsZiwei) body.ziwei = ziweiArg ?? c?.ziwei; // 사명 = 자미 보조 교차
+      if (buildBody && savedChart) Object.assign(body, buildBody(savedChart)); // 수비학/점성술 = 앱 산출 차트(numerologyChart/natalChart)
       const { data, error } = await supabase.functions.invoke('interpret', { body });
       if (error) logEvent(`${kind}_invoke_error`, { message: error.message }, 'error');
       else if ((data as any)?.unavailable) logEvent(`${kind}_unavailable`, { retryAt: (data as any)?.retryAt }, 'error'); // 방어: LLM 일시적 불가

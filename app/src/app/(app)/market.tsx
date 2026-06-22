@@ -31,6 +31,8 @@ const ROUTE: Record<CreditKind, { pathname: string; kind?: string }> = {
   mission: { pathname: '/mission' },                  // 나의 사명(자미 보조)
   career: { pathname: '/career' },                    // 사업가의 나 vs 직장인의 나
   talent: { pathname: '/talent' },                    // 나의 타고난 재능(월지 축)
+  numerology: { pathname: '/numerology' },            // 수비학(피타고리안)
+  astrology: { pathname: '/astrology' },              // 별자리 운세(서양 네이탈)
   dream: { pathname: '/dream' },                       // AI 꿈해몽(자유 텍스트)
 };
 
@@ -49,6 +51,8 @@ const CARD: Partial<Record<CreditKind, { img: any; desc: string }>> = {
   mission: { img: require('../../../assets/icons/mission.jpg'), desc: 'menu.missionDesc' },
   career: { img: require('../../../assets/icons/career.jpg'), desc: 'menu.careerDesc' },
   talent: { img: require('../../../assets/icons/career.jpg'), desc: 'menu.talentDesc' }, // TODO: 전용 talent.jpg(현재 career 이미지 임시)
+  numerology: { img: require('../../../assets/icons/lifegraph.jpg'), desc: 'menu.numerologyDesc' }, // TODO: 전용 numerology.jpg
+  astrology: { img: require('../../../assets/icons/newyear.jpg'), desc: 'menu.astrologyDesc' },     // TODO: 전용 astrology.jpg
   dream: { img: require('../../../assets/icons/dream.jpg'), desc: 'menu.dreamDesc' },
 };
 
