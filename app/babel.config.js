@@ -8,5 +8,7 @@ module.exports = function (api) {
   api.cache(true);
   return {
     presets: ['babel-preset-expo'],
+    // react-native-reanimated 플러그인은 반드시 plugins 배열의 *마지막*(이슈20 드래그 reorder·이슈18 애니메이션용).
+    plugins: ['react-native-reanimated/plugin'],
   };
 };

@@ -4,24 +4,28 @@
 //   대표 변경 = setRepresentative → 만세력·풀이·궁합이 그 명식 기준(loadMyChart).
 // 명식이 없으면 등록 유도. 화면 복귀 시 useFocusEffect 로 목록 갱신.
 // ─────────────────────────────────────────────────────────────────────────
-import { useState, useCallback, useEffect, useRef } from 'react';
-import { View, Text, Pressable, Modal, ScrollView, StyleSheet } from 'react-native';
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
+import { View, Text, Pressable, Modal, StyleSheet, Image, Dimensions } from 'react-native';
+import DraggableFlatList, { ScaleDecorator } from 'react-native-draggable-flatlist'; // 이슈20 롱프레스 드래그 reorder
 import { Alert } from '../lib/alert'; // 커스텀 알림(삭제 확인)
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { listCharts, setRepresentative, getRepresentativeId, getChartUsage, deleteChart, reorderCharts, subscribeRepChange, type SavedChart } from '../lib/myChart';
 import { useSubscription } from '../lib/subscription';
+import { useFontScale } from '../lib/fontScale'; // 명식 헤더 글자크기 반영(daniel)
+import { computeChart } from '../lib/engine'; // 각 명식 일주 산출(엠블럼)
+import { iljuEmblem, iljuImage, type IljuEmblem } from '../lib/dayPillarEmblem'; // 일주 엠블럼(은빛 소 등) + 60갑자 AI 일러스트
 import { colors, radius, space, shadow, font } from '../lib/theme';
 
 export function ChartPicker({ onChange }: { onChange?: () => void }) {
   const { t } = useTranslation();
   const router = useRouter();
   const { isPremium } = useSubscription(); // 프로 = 무제한(사용량 배지 숨김)
+  const { fs } = useFontScale();           // 명식 헤더 글자크기(설정 반영)
   const [charts, setCharts] = useState<SavedChart[]>([]);
   const [repId, setRepId] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const [usage, setUsage] = useState<{ count: number; limit: number } | null>(null);
-  const [reorderMode, setReorderMode] = useState(false); // 명식 길게 눌러 순서변경 모드(daniel)
 
   const reload = useCallback(async () => {
     setCharts(await listCharts());
@@ -35,6 +39,12 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
   useEffect(() => subscribeRepChange(() => { reload(); onChangeRef.current?.(); }), [reload]);
 
   const rep = charts.find((c) => c.id === repId) ?? charts[0];
+  // 각 명식의 일주 엠블럼(일간 오행색 + 일지 동물 = "은빛 소" 등) — 명식 리스트 시각 정체성(daniel)
+  const emblems = useMemo(() => {
+    const m: Record<string, IljuEmblem> = {};
+    charts.forEach((c) => { try { const p = computeChart(c.input).saju.pillars['일']; if (p) m[c.id] = iljuEmblem(p.stem, p.branch); } catch { /* 계산 실패 무시 */ } });
+    return m;
+  }, [charts]);
 
   async function choose(id: string) {
     await setRepresentative(id);
@@ -43,14 +53,10 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
     onChange?.(); // 대표 변경 알림 → 호출처(만세력 등) 즉시 갱신
   }
 
-  // 순서 변경(롱프레스 → 모드 → ▲▼) — 로컬 즉시 반영 + 저장·계정동기화(daniel)
-  const move = async (idx: number, dir: -1 | 1) => {
-    const j = idx + dir;
-    if (j < 0 || j >= charts.length) return;
-    const next = [...charts];
-    [next[idx], next[j]] = [next[j], next[idx]];
-    setCharts(next);
-    await reorderCharts(next.map((c) => c.id));
+  // 순서 변경 — 롱프레스 드래그(이슈20): 끌어 놓으면 즉시 반영 + 저장·계정동기화(별도 저장 버튼 X, daniel).
+  const onDragEnd = async (data: SavedChart[]) => {
+    setCharts(data);                          // 로컬 즉시 반영(애니메이션은 DraggableFlatList가 처리)
+    await reorderCharts(data.map((c) => c.id)); // 영속 + 계정동기화(ADR-056)
   };
 
   // 명식 수정 → 등록 폼 편집모드(editId)로 이동. 모달 닫고 진입.
@@ -81,53 +87,61 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
   return (
     <>
       <Pressable style={styles.bar} onPress={() => setOpen(true)}>
-        <Text style={styles.barLabel}>{t('manse.myChart')}</Text>
-        <Text style={styles.barName}>{rep?.label} ▾</Text>
+        <Text style={[styles.barLabel, { fontSize: fs(12) }]}>{t('manse.myChart')}</Text>
+        <Text style={[styles.barName, { fontSize: fs(15) }]}>{rep?.label} ▾</Text>
       </Pressable>
 
       <Modal visible={open} transparent animationType="slide" onRequestClose={() => setOpen(false)}>
-        <Pressable style={styles.backdrop} onPress={() => { setOpen(false); setReorderMode(false); }}>
+        <Pressable style={styles.backdrop} onPress={() => setOpen(false)}>
           <Pressable style={styles.sheet} onPress={() => {}}>
             <View style={styles.handle} />
             <View style={styles.sheetHead}>
               <Text style={styles.sheetTitle}>{t('manse.myChart')}</Text>
-              {/* 순서변경 모드면 완료 버튼 / 아니면 무료 사용량 배지(프로는 숨김) */}
-              {reorderMode ? (
-                <Pressable hitSlop={8} onPress={() => setReorderMode(false)}><Text style={{ color: colors.ju, fontWeight: '700', fontSize: 13 }}>순서 변경 완료</Text></Pressable>
-              ) : !isPremium && usage ? (
+              {/* 무료 사용량 배지(프로는 숨김) */}
+              {!isPremium && usage ? (
                 <Text style={[styles.usage, usage.count >= usage.limit && styles.usageMax]}>
                   {t('register.usage', { count: usage.count, limit: usage.limit })}
                 </Text>
               ) : null}
             </View>
-            {!reorderMode && charts.length > 1 && <Text style={{ ...font.caption, color: colors.inkFaint, marginBottom: space(2) }}>명식을 길게 누르면 순서를 바꿀 수 있어요</Text>}
-            <ScrollView style={styles.list} showsVerticalScrollIndicator={false}>
-              {charts.map((c, idx) => {
+            {charts.length > 1 && <Text style={{ ...font.caption, color: colors.inkFaint, marginBottom: space(2) }}>명식을 길게 눌러 끌면 순서가 바뀌어요</Text>}
+            {/* 이슈20: 롱프레스→드래그 reorder. 끌어 놓으면 onDragEnd가 저장·계정동기화(별도 모드/저장버튼 없음). */}
+            <DraggableFlatList
+              data={charts}
+              keyExtractor={(c) => c.id}
+              style={styles.list}
+              showsVerticalScrollIndicator={false}
+              activationDistance={14}
+              onDragEnd={({ data }) => onDragEnd(data)}
+              renderItem={({ item: c, drag, isActive }) => {
                 const on = c.id === repId;
+                const em = emblems[c.id];
+                const iljuImg = em ? iljuImage(em.stem, em.branch) : null; // 60갑자 AI 일러스트(없으면 색+동물 폴백)
                 return (
-                  <View key={c.id} style={styles.row}>
-                    <Pressable style={styles.rowMain} onPress={() => (reorderMode ? setReorderMode(false) : choose(c.id))} onLongPress={() => setReorderMode(true)} delayLongPress={300}>
-                      <Text style={[styles.rowName, on && styles.rowOn]}>{c.label}</Text>
-                      <Text style={styles.rowMeta} numberOfLines={1}>
-                        {String(c.input.birthDateTime ?? '').split(' ')[0]} · {c.relation === 'self' ? t('register.selfLabel') : c.relation}
-                      </Text>
-                    </Pressable>
-                    {reorderMode ? (
-                      <>
-                        <Pressable hitSlop={10} onPress={() => move(idx, -1)} disabled={idx === 0}><Text style={[styles.rowAct, { fontSize: 18 }, idx === 0 && { opacity: 0.25 }]}>▲</Text></Pressable>
-                        <Pressable hitSlop={10} onPress={() => move(idx, 1)} disabled={idx === charts.length - 1}><Text style={[styles.rowAct, { fontSize: 18 }, idx === charts.length - 1 && { opacity: 0.25 }]}>▼</Text></Pressable>
-                      </>
-                    ) : (
-                      <>
-                        {on && <Text style={styles.check}>✓</Text>}
-                        <Pressable hitSlop={8} onPress={() => edit(c.id)}><Text style={styles.rowAct}>{t('common.edit', '수정')}</Text></Pressable>
-                        <Pressable hitSlop={8} onPress={() => remove(c.id, c.label)}><Text style={[styles.rowAct, styles.rowActDel]}>{t('common.delete', '삭제')}</Text></Pressable>
-                      </>
-                    )}
-                  </View>
+                  <ScaleDecorator>
+                    <View style={[styles.row, isActive && styles.rowActive]}>
+                      {iljuImg ? (
+                        <Image source={iljuImg} style={styles.emblemImg} />
+                      ) : (
+                        <View style={[styles.emblem, { backgroundColor: em?.color ?? colors.sunk }]}>
+                          <Text style={[styles.emblemTx, { color: em?.textColor ?? colors.inkSoft, fontSize: fs(13) }]}>{em?.animal ?? '?'}</Text>
+                        </View>
+                      )}
+                      <Pressable style={styles.rowMain} onPress={() => choose(c.id)} onLongPress={drag} delayLongPress={250}>
+                        <Text style={[styles.rowName, on && styles.rowOn, { fontSize: fs(15) }]}>{c.label}</Text>
+                        {em ? <Text style={[styles.iljuName, { fontSize: fs(12) }]}>{em.name}</Text> : null}
+                        <Text style={[styles.rowMeta, { fontSize: fs(12) }]} numberOfLines={1}>
+                          {String(c.input.birthDateTime ?? '').split(' ')[0]} · {c.relation === 'self' ? t('register.selfLabel') : c.relation}
+                        </Text>
+                      </Pressable>
+                      {on && <Text style={styles.check}>✓</Text>}
+                      <Pressable hitSlop={8} onPress={() => edit(c.id)}><Text style={styles.rowAct}>{t('common.edit', '수정')}</Text></Pressable>
+                      <Pressable hitSlop={8} onPress={() => remove(c.id, c.label)}><Text style={[styles.rowAct, styles.rowActDel]}>{t('common.delete', '삭제')}</Text></Pressable>
+                    </View>
+                  </ScaleDecorator>
                 );
-              })}
-            </ScrollView>
+              }}
+            />
             <Pressable style={styles.addBtn} onPress={() => { setOpen(false); router.push('/register'); }}>
               <Text style={styles.addBtnText}>＋ {t('compat.registerMyChart')}</Text>
             </Pressable>
@@ -159,9 +173,14 @@ const styles = StyleSheet.create({
   usage: { ...font.caption, color: colors.inkSoft, fontWeight: '700' },
   usageMax: { color: colors.ju }, // 한도 도달 = 주색(업그레이드 신호)
 
-  list: { flexGrow: 0 },
+  list: { maxHeight: Dimensions.get('window').height * 0.5 }, // 드래그 리스트(FlatList) 바운드 높이 — 시트 내 스크롤
   row: { flexDirection: 'row', alignItems: 'center', paddingVertical: space(3.5), borderBottomWidth: 1, borderBottomColor: colors.line, gap: space(2) },
+  rowActive: { backgroundColor: colors.card, borderRadius: radius.md, borderBottomColor: 'transparent' }, // 드래그 중 행 강조(들어올림)
   rowMain: { flex: 1 },
+  emblem: { width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center', marginRight: space(3) }, // 색+동물 폴백(일러스트 없을 때)
+  emblemImg: { width: 46, height: 46, borderRadius: 23, marginRight: space(3), backgroundColor: colors.sunk }, // 60갑자 AI 일러스트(원형 크롭)
+  emblemTx: { fontWeight: '800' },
+  iljuName: { color: colors.ju, fontWeight: '700', marginTop: 1 }, // 일주 이름 "은빛 소"
   rowAct: { fontSize: 13, fontWeight: '700', color: colors.ju, paddingHorizontal: space(1.5) }, // 수정·삭제 글자
   rowActDel: { color: '#E5484D' }, // 삭제 = 적색 강조
   rowName: { ...font.body, fontWeight: '600', color: colors.ink },

@@ -9,6 +9,7 @@ import '../lib/i18n'; // 다국어(한·영·일) init
 import { useEffect, useState } from 'react';
 import { Stack } from 'expo-router';
 import { View, ActivityIndicator, StyleSheet, LogBox, AppState } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler'; // 이슈20 드래그 reorder(gesture-handler) — 루트 래핑 필수
 import { useAuth } from '../lib/useAuth';
 import { configurePurchases } from '../lib/purchases'; // 인앱결제(RevenueCat) 초기화
 import { migrateLocalCreditsOnLogin } from '../lib/migrateCredits'; // 로그인 시 디바이스 구매 이관(H)
@@ -48,19 +49,21 @@ export default function RootLayout() {
   // 최상위 두 영역: login(미인증) · (app)(인증). 헤더는 각 하위에서 제어.
   //   FontScaleProvider 로 전역 글자 배율 제공. 인트로(SplashOverlay)는 최상위 1회 — 그 사이 세션 복원(loading).
   return (
-    <FontScaleProvider>
-      {loading ? (
-        <View style={styles.center}><ActivityIndicator size="large" color={colors.ju} /></View>
-      ) : (
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="login" />
-          <Stack.Screen name="auth-callback" />
-          <Stack.Screen name="(app)" />
-        </Stack>
-      )}
-      <AppAlert />
-      {splash && <SplashOverlay onDone={() => setSplash(false)} />}
-    </FontScaleProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <FontScaleProvider>
+        {loading ? (
+          <View style={styles.center}><ActivityIndicator size="large" color={colors.ju} /></View>
+        ) : (
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="login" />
+            <Stack.Screen name="auth-callback" />
+            <Stack.Screen name="(app)" />
+          </Stack>
+        )}
+        <AppAlert />
+        {splash && <SplashOverlay onDone={() => setSplash(false)} />}
+      </FontScaleProvider>
+    </GestureHandlerRootView>
   );
 }
 

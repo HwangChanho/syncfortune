@@ -5,7 +5,7 @@
 //   태그(키워드)↔본문 간격 넉넉히(daniel). 하단 면책 필수. API 0.
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useMemo, useState } from 'react';
-import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator, ImageBackground } from 'react-native';
 import { Stack } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { computeChart } from '../../lib/engine';
@@ -13,6 +13,7 @@ import { loadRepChart, listCharts, type SavedChart } from '../../lib/myChart';
 import { isAdmin } from '../../lib/admin';
 import { DAY_PILLAR, STRESS, dayPillarKey, compatibleIlju, type DayPillarTrait } from '../../lib/dayPillar';
 import { stemReading, branchReading } from '../../lib/ohaeng';
+import { iljuImage } from '../../lib/dayPillarEmblem'; // 60갑자 AI 일러스트(내 일주 배경)
 import { useFontScale } from '../../lib/fontScale';
 import { colors, radius, space, shadow, font } from '../../lib/theme';
 import { ContentHero } from '../../components/SpecialContentScreen'; // 이미지 히어로(보는 맛)
@@ -133,7 +134,15 @@ export default function DayPillarScreen() {
         <View style={styles.mineWrap}>
           <Text style={styles.mineLabel}>{t('dayPillar.mine')}</Text>
           <View style={[styles.card, styles.mineCard]}>
-            <Text style={styles.mineKey}>{label(myKey)}</Text>
+            {/* 내 일주 60갑자 일러스트(글자 뒤 배경 + 어두운 스크림 = 가독성). 없으면 텍스트만(daniel) */}
+            {(() => { const mi = iljuImage(myKey[0], myKey[1]); return mi ? (
+              <ImageBackground source={mi} style={styles.mineHero} imageStyle={styles.mineHeroImg} resizeMode="cover">
+                <View style={styles.mineScrim} />
+                <Text style={styles.mineKeyHero}>{label(myKey)}</Text>
+              </ImageBackground>
+            ) : (
+              <Text style={styles.mineKey}>{label(myKey)}</Text>
+            ); })()}
             <View style={styles.kwRow}>
               {DAY_PILLAR[myKey].keywords.map((w) => (<View key={w} style={styles.kw}><Text style={styles.kwTx}>{w}</Text></View>))}
             </View>
@@ -202,7 +211,7 @@ export default function DayPillarScreen() {
 
 const styles = StyleSheet.create({
   screen: { backgroundColor: colors.bg },
-  wrap: { padding: space(5), paddingBottom: space(12) },
+  wrap: { padding: space(6), paddingBottom: space(12) }, // 콘텐츠 좌우여백 통일(daniel)
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.bg },
   h: { ...font.title, marginBottom: space(1) },
   sub: { ...font.caption, color: colors.inkSoft, marginBottom: space(4), lineHeight: 19 },
@@ -218,6 +227,10 @@ const styles = StyleSheet.create({
   card: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.line, padding: space(4) },
   mineCard: { borderColor: colors.ju, borderWidth: 1.5, backgroundColor: 'rgba(34,31,68,0.5)', ...shadow.card },
   mineKey: { fontSize: 22, fontWeight: '800', color: colors.ju, marginBottom: space(3) },
+  mineHero: { height: 160, borderRadius: radius.md, overflow: 'hidden', justifyContent: 'flex-end', marginBottom: space(3) }, // 60갑자 일러스트 배경
+  mineHeroImg: { borderRadius: radius.md },
+  mineScrim: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(20,18,40,0.42)' }, // 어두운 스크림 — 글자 가독성
+  mineKeyHero: { fontSize: 26, fontWeight: '800', color: colors.ju, padding: space(3), textShadowColor: 'rgba(0,0,0,0.85)', textShadowRadius: 6 }, // 배경 위 간지(골드+그림자)
   browseH: { fontSize: 18, fontWeight: '800', color: colors.ink, marginBottom: space(1) },
   browseHint: { ...font.caption, color: colors.inkFaint, marginBottom: space(3) },
   group: { marginBottom: space(5) },
