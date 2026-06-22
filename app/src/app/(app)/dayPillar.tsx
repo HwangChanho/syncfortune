@@ -4,8 +4,8 @@
 //   내 일주는 상단 풀상세, 60목록은 탭→아코디언. 콘텐츠=Claude Code 직통 초안=daniel 검수.
 //   태그(키워드)↔본문 간격 넉넉히(daniel). 하단 면책 필수. API 0.
 // ─────────────────────────────────────────────────────────────────────────
-import { useEffect, useMemo, useState } from 'react';
-import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator, ImageBackground } from 'react-native';
+import { useEffect, useMemo, useState, useRef } from 'react';
+import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator, ImageBackground, Animated, Easing } from 'react-native';
 import { Stack } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { computeChart } from '../../lib/engine';
@@ -75,6 +75,12 @@ export default function DayPillarScreen() {
     return dayPillarKey(day?.stem, day?.branch);
   }, [rep]);
 
+  // 이슈18: 내 일주 엠블럼 '등장' 애니 — myKey 준비되면 페이드+살짝 확대(0.92→1)로 떠오름.
+  const emblemIn = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    if (myKey) { emblemIn.setValue(0); Animated.timing(emblemIn, { toValue: 1, duration: 600, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start(); }
+  }, [myKey, emblemIn]);
+
   const toggle = (k: string) => setOpen((prev) => { const n = new Set(prev); n.has(k) ? n.delete(k) : n.add(k); return n; });
   const bodyDyn = { fontSize: fs(15), lineHeight: fs(25) };
 
@@ -136,10 +142,12 @@ export default function DayPillarScreen() {
           <View style={[styles.card, styles.mineCard]}>
             {/* 내 일주 60갑자 일러스트(글자 뒤 배경 + 어두운 스크림 = 가독성). 없으면 텍스트만(daniel) */}
             {(() => { const mi = iljuImage(myKey[0], myKey[1]); return mi ? (
-              <ImageBackground source={mi} style={styles.mineHero} imageStyle={styles.mineHeroImg} resizeMode="cover">
-                <View style={styles.mineScrim} />
-                <Text style={styles.mineKeyHero}>{label(myKey)}</Text>
-              </ImageBackground>
+              <Animated.View style={{ opacity: emblemIn, transform: [{ scale: emblemIn.interpolate({ inputRange: [0, 1], outputRange: [0.92, 1] }) }] }}>
+                <ImageBackground source={mi} style={styles.mineHero} imageStyle={styles.mineHeroImg} resizeMode="cover">
+                  <View style={styles.mineScrim} />
+                  <Text style={styles.mineKeyHero}>{label(myKey)}</Text>
+                </ImageBackground>
+              </Animated.View>
             ) : (
               <Text style={styles.mineKey}>{label(myKey)}</Text>
             ); })()}

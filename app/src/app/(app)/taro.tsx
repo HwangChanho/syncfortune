@@ -6,7 +6,7 @@
 // ③ 공개 카드 부채꼴+탭 확대 ④ 5장 다 뽑으면 '그 주제에 연관된 하나의 흐름'으로 풀이. 무제한 무료.
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { View, Text, Pressable, ScrollView, Image, StyleSheet, ImageBackground, Modal, Animated } from 'react-native';
+import { View, Text, Pressable, ScrollView, Image, StyleSheet, ImageBackground, Modal, Animated, Easing } from 'react-native';
 import { useFontScale } from '../../lib/fontScale';
 import { useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -48,6 +48,9 @@ export default function TaroScreen() {
   const [drawn, setDrawn] = useState(0);
   const [sel, setSel] = useState<number | null>(null);
   const lift = useRef(new Animated.Value(0)).current;
+  // 이슈18: 카드 뒤집기 — 뽑힌 카드가 부채꼴에 등장할 때 rotateY 90°→0°로 뒤집히며 나타남(per-card, 1회).
+  const flips = useRef<Record<number, Animated.Value>>({}).current;
+  const flipped = useRef<Set<number>>(new Set()).current;
   const today = todayStr();
   const { fs } = useFontScale();
   const styles = useMemo(() => makeStyles(fs), [fs]);
@@ -98,6 +101,16 @@ export default function TaroScreen() {
 
   const cards = spread ? spread.slice(0, drawn) : [];
   const done = !!spread && drawn >= spread.length;
+  // 이슈18: 주제 바뀌면 플립 상태 초기화 → 새 스프레드 카드가 다시 뒤집히며 등장
+  useEffect(() => { for (const k in flips) delete (flips as any)[k]; flipped.clear(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [category]);
+  // 이슈18: 새로 뽑힌 카드(index)만 1회 플립 인(rotateY 90→0 + 페이드)
+  useEffect(() => {
+    for (let i = 0; i < drawn; i++) {
+      if (!flips[i]) flips[i] = new Animated.Value(0);
+      if (!flipped.has(i)) { flipped.add(i); Animated.timing(flips[i], { toValue: 1, duration: 440, delay: 40, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start(); }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [drawn]);
 
   return (
     <ImageBackground source={require('../../../assets/icons/bg-night.png')} style={styles.bg} resizeMode="cover">
@@ -142,12 +155,15 @@ export default function TaroScreen() {
                   const mid = (cards.length - 1) / 2;
                   const angle = (i - mid) * 7;
                   const offsetX = (i - mid) * 26;
+                  // 이슈18: per-card 뒤집기 — 없으면 0(뒤집힌 채 시작)→ 등장 effect가 0→1로 펼침. 기존 카드는 1(정지).
+                  let flip = flips[i]; if (!flip) { flip = new Animated.Value(0); flips[i] = flip; }
+                  const flipY = flip.interpolate({ inputRange: [0, 1], outputRange: ['90deg', '0deg'] });
                   return (
                     <Animated.View
                       key={i}
                       style={[
-                        styles.fanCard, 
-                        { zIndex: i, transform: [{ translateX: offsetX }, { rotate: `${angle}deg` }] }
+                        styles.fanCard,
+                        { zIndex: i, opacity: flip, transform: [{ perspective: 800 }, { translateX: offsetX }, { rotateY: flipY }, { rotate: `${angle}deg` }] }
                       ]}
                     >
                       <Pressable onPress={() => openCard(i)}>
