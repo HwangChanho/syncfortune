@@ -6,7 +6,8 @@
 //   ※ 화면 문구는 t() 기본값(ko)으로 i18n 키 없이도 동작 — en/ja career 블록은 점진 추가(daniel).
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useMemo, useState, useRef } from 'react';
-import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator, Image, ImageBackground } from 'react-native';
+import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
+import { Image as ExpoImage } from 'expo-image'; // 콘텐츠 이미지 — 자동 다운샘플·디스크캐시(랙 방지·타 콘텐츠와 통일, daniel)
 import { Alert } from '../../lib/alert';
 import { useTranslation } from 'react-i18next';
 import { useRouter } from 'expo-router';
@@ -145,13 +146,14 @@ export default function CareerScreen() {
   }
 
   return (
-    <ImageBackground source={require('../../../assets/icons/bg-night.png')} style={styles.bg} resizeMode="cover">
+    <View style={styles.bg}>
+      <ExpoImage source={require('../../../assets/icons/bg-night.png')} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="memory-disk" />
       <ScrollView style={styles.overlay} contentContainerStyle={styles.wrap}>
         <ChartPicker onChange={() => setReloadKey((k) => k + 1)} />
         <UnlockOverlay visible={busy} message={t('career.generating', '두 길을 풀어내는 중…')} />
         {/* 히어로 */}
         <View style={styles.hero}>
-          {CAREER_IMG.hero ? <Image source={CAREER_IMG.hero} style={styles.heroImg} resizeMode="cover" /> : null}
+          {CAREER_IMG.hero ? <ExpoImage source={CAREER_IMG.hero} style={styles.heroImg} contentFit="cover" cachePolicy="memory-disk" transition={150} /> : null}
           <Text style={styles.title}>{t('career.title', '사업가의 나 vs 직장인의 나')}</Text>
           <Text style={styles.sub}>{t('career.sub', '명식과 대운·세운으로, 독립과 조직 두 길을 짚어 드려요')}</Text>
         </View>
@@ -167,7 +169,7 @@ export default function CareerScreen() {
           ) : null}
           {SECTIONS.map((s) => (typeof reading[s.key] === 'string' && reading[s.key] ? (
             <View key={s.key} style={[styles.card, styles.cardAccent]}>
-              {CAREER_IMG[s.key] ? <Image source={CAREER_IMG[s.key]} style={styles.secImg} resizeMode="cover" /> : null}
+              {CAREER_IMG[s.key] ? <ExpoImage source={CAREER_IMG[s.key]} style={styles.secImg} contentFit="cover" cachePolicy="memory-disk" transition={150} /> : null}
               <Text style={styles.secLabel}>{t(s.tk, s.def)}</Text>
               <Text style={[styles.body, bodyDyn]}>{reading[s.key]}</Text>
             </View>
@@ -189,7 +191,7 @@ export default function CareerScreen() {
           </View>
         )}
       </ScrollView>
-    </ImageBackground>
+    </View>
   );
 }
 
