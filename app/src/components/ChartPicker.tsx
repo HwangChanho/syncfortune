@@ -42,11 +42,14 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
 
   const rep = charts.find((c) => c.id === repId) ?? charts[0];
   // 각 명식의 일주 엠블럼(일간 오행색 + 일지 동물 = "은빛 소" 등) — 명식 리스트 시각 정체성(daniel)
+  // ⚡성능(daniel "모든 로딩 느려"): 엠블럼은 명식 목록 모달 열 때만 보임(접힌 바엔 없음). 매 화면 마운트마다
+  //   명식 N개를 풀 엔진(사주+자미)으로 계산하던 것을 open=true 일 때만으로 → 매 화면 비용 제거.(computeChart도 메모됨)
   const emblems = useMemo(() => {
     const m: Record<string, IljuEmblem> = {};
+    if (!open) return m; // 모달 닫혀 있으면 계산 생략
     charts.forEach((c) => { try { const p = computeChart(c.input).saju.pillars['일']; if (p) m[c.id] = iljuEmblem(p.stem, p.branch); } catch { /* 계산 실패 무시 */ } });
     return m;
-  }, [charts]);
+  }, [charts, open]);
 
   async function choose(id: string) {
     await setRepresentative(id);
