@@ -17,6 +17,18 @@ import type { Stem, Branch } from '@spec/chart';
 let Notif: any = null;
 try { Notif = require('expo-notifications'); } catch { Notif = null; }
 
+// ★포그라운드 알림 표시 핸들러(daniel M: 앱 켜둔 채 풀이 완료 시 푸시가 안 뜨던 원인 — 핸들러 없으면 iOS가 포그라운드 알림을 숨김).
+//   완료 푸시(notifyReadingDone)는 보통 앱 사용 중 도착하므로 이게 필수. (구·신 SDK 키 모두 지정)
+if (Notif?.setNotificationHandler) {
+  try {
+    Notif.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowAlert: true, shouldShowBanner: true, shouldShowList: true, shouldPlaySound: true, shouldSetBadge: false,
+      }),
+    });
+  } catch { /* 핸들러 설정 실패 무시 */ }
+}
+
 const HOUR = 9;          // 알림 시각(매일 아침 9시)
 const DAYS_AHEAD = 14;   // 미리 스케줄할 일수(운세=결정론이라 미래도 계산 가능). iOS 64개 한도 내.
 const TITLE: Record<string, string> = { ko: '오늘의 기운', en: "Today's Energy", ja: '今日の気運' };
