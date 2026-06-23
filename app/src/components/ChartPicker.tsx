@@ -5,7 +5,7 @@
 // 명식이 없으면 등록 유도. 화면 복귀 시 useFocusEffect 로 목록 갱신.
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { View, Text, Pressable, Modal, StyleSheet, Dimensions } from 'react-native';
+import { View, Text, Pressable, Modal, StyleSheet, Dimensions, ActivityIndicator, InteractionManager } from 'react-native';
 import { Image as ExpoImage } from 'expo-image'; // 자동 다운샘플(메모리) + 엠블럼 탭 풀스크린 뷰어
 import DraggableFlatList, { ScaleDecorator } from 'react-native-draggable-flatlist'; // 이슈20 롱프레스 드래그 reorder
 import { Alert } from '../lib/alert'; // 커스텀 알림(삭제 확인)
@@ -26,6 +26,7 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
   const [charts, setCharts] = useState<SavedChart[]>([]);
   const [repId, setRepId] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
+  const [listReady, setListReady] = useState(false); // 모달 열림 직후 스피너 → 리스트는 인터랙션 후 마운트(daniel: 명식 버튼 로딩 표시)
   const [viewImg, setViewImg] = useState<any>(null); // 엠블럼 탭 → 풀스크린 이미지 뷰어(daniel)
 
   const reload = useCallback(async () => {
@@ -55,6 +56,12 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
     }, 0);                                                        // 0ms = 모달 렌더 이후로 무거운 계산을 미룸
     return () => { alive = false; clearTimeout(tid); };
   }, [charts, open]);
+  // daniel: 명식 버튼 누를 때 로딩 표시 — 모달은 즉시 열려 스피너를 보이고, 무거운 리스트(DraggableFlatList)는 슬라이드가 끝난 뒤 마운트.
+  useEffect(() => {
+    if (!open) { setListReady(false); return; }
+    const h = InteractionManager.runAfterInteractions(() => setListReady(true));
+    return () => h.cancel();
+  }, [open]);
 
   async function choose(id: string) {
     await setRepresentative(id);
@@ -111,6 +118,10 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
             </View>
             {charts.length > 1 && <Text style={{ ...font.caption, color: colors.inkFaint, marginBottom: space(2) }}>명식을 길게 눌러 끌면 순서가 바뀌어요</Text>}
             {/* 이슈20: 롱프레스→드래그 reorder. 끌어 놓으면 onDragEnd가 저장·계정동기화(별도 모드/저장버튼 없음). */}
+            {/* daniel: 무거운 리스트 마운트 전까지 스피너 — 명식 버튼 누르면 모달 즉시 열려 로딩 표시 */}
+            {!listReady ? (
+              <View style={{ height: 200, alignItems: 'center', justifyContent: 'center' }}><ActivityIndicator color={colors.ju} /></View>
+            ) : (
             <DraggableFlatList
               data={charts}
               keyExtractor={(c) => c.id}
@@ -151,6 +162,7 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
                 );
               }}
             />
+            )}
             <Pressable style={styles.addBtn} onPress={() => { setOpen(false); router.push('/register'); }}>
               <Text style={styles.addBtnText}>＋ {t('compat.registerMyChart')}</Text>
             </Pressable>
