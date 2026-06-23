@@ -11,7 +11,7 @@ import DraggableFlatList, { ScaleDecorator } from 'react-native-draggable-flatli
 import { Alert } from '../lib/alert'; // 커스텀 알림(삭제 확인)
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { listCharts, setRepresentative, getRepresentativeId, getChartUsage, deleteChart, reorderCharts, subscribeRepChange, type SavedChart } from '../lib/myChart';
+import { listCharts, setRepresentative, getRepresentativeId, deleteChart, reorderCharts, subscribeRepChange, type SavedChart } from '../lib/myChart';
 import { useSubscription } from '../lib/subscription';
 import { useFontScale } from '../lib/fontScale'; // 명식 헤더 글자크기 반영(daniel)
 import { computeChart } from '../lib/engine'; // 각 명식 일주 산출(엠블럼)
@@ -26,13 +26,11 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
   const [charts, setCharts] = useState<SavedChart[]>([]);
   const [repId, setRepId] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
-  const [usage, setUsage] = useState<{ count: number; limit: number } | null>(null);
   const [viewImg, setViewImg] = useState<any>(null); // 엠블럼 탭 → 풀스크린 이미지 뷰어(daniel)
 
   const reload = useCallback(async () => {
     setCharts(await listCharts());
     setRepId(await getRepresentativeId());
-    setUsage(await getChartUsage());
   }, []);
   // 화면 복귀(등록 후 등) 때마다 갱신
   useFocusEffect(useCallback(() => { reload(); }, [reload]));
@@ -102,12 +100,7 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
             <View style={styles.handle} />
             <View style={styles.sheetHead}>
               <Text style={styles.sheetTitle}>{t('manse.myChart')}</Text>
-              {/* 무료 사용량 배지(프로는 숨김) */}
-              {!isPremium && usage ? (
-                <Text style={[styles.usage, usage.count >= usage.limit && styles.usageMax]}>
-                  {t('register.usage', { count: usage.count, limit: usage.limit })}
-                </Text>
-              ) : null}
+              {/* 디바이스 명식 무제한(daniel 2026-06-23) — 사용량/한도(15/10) 배지 제거 */}
             </View>
             {charts.length > 1 && <Text style={{ ...font.caption, color: colors.inkFaint, marginBottom: space(2) }}>명식을 길게 눌러 끌면 순서가 바뀌어요</Text>}
             {/* 이슈20: 롱프레스→드래그 reorder. 끌어 놓으면 onDragEnd가 저장·계정동기화(별도 모드/저장버튼 없음). */}

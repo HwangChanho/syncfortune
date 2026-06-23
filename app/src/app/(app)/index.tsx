@@ -232,6 +232,14 @@ export default function Home() {
   async function onPress(m: MenuItem) {
     playSound('click');
     if (!m.ready) { Alert.alert(t(m.labelKey), t('common.comingSoon')); return; }
+    // 비로그인 + 콘텐츠/프리미엄 접근 = 로그인 유도(daniel 2026-06-23). 구매·계정 귀속 콘텐츠는 로그인 필요(무료 today/명식/타로는 제외).
+    if ((m.content || m.premium) && !session) {
+      Alert.alert(t('login.needTitle', '로그인이 필요해요'), t('login.needContentMsg', '이 콘텐츠를 보려면 로그인해 주세요. 로그인하면 구매·풀이가 계정에 안전하게 저장돼요.'), [
+        { text: t('login.go', '로그인'), onPress: () => router.push('/login') },
+        { text: t('common.cancel', '취소'), style: 'cancel' },
+      ]);
+      return;
+    }
     // 무료(비프리미엄) 진입 = 보상형 광고(daniel). 단 만세력은 제외(만세력은 명식 10개↑ 추가 시 게이트).
     //   광고 실패/미시청이어도 무료 콘텐츠는 진입 보장(광고는 스킵 가능) — 프리미엄은 광고 없음.
     // 무료 진입 보상형 광고 — 단, 프리미엄·관리자는 제외(광고 없음). 만세력·프리미엄 카드도 제외.

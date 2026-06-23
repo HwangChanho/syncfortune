@@ -177,12 +177,8 @@ export async function listCharts(): Promise<SavedChart[]> {
  */
 export async function addChart(input: any, opts?: { isPro?: boolean; bypassLimit?: boolean }): Promise<string> {
   const charts = await listCharts();
-  // 무료 티어 = 직접 등록 명식 10개까지(샘플 시드 제외). 프로 = 무제한.
-  //   bypassLimit = 보상형 광고 1회 시청으로 이번 1건만 한도 우회(UI에서 광고 earned 후 주입).
-  const used = countReal(charts);
-  if (!opts?.isPro && !opts?.bypassLimit && used >= FREE_CHART_LIMIT) {
-    throw new ChartLimitError(used, FREE_CHART_LIMIT);
-  }
+  // 디바이스 명식 저장 = 무제한(daniel 2026-06-23). 기존 무료 10개 한도 제거 — 로컬 등록은 제한 없음.
+  //   계정/서버 동기화(ADR-056)는 기존 룰 유지. opts.isPro/bypassLimit·ChartLimitError 는 호환 위해 시그니처만 유지(미사용).
   const id = `c_${Date.now()}`;
   const item: SavedChart = {
     id,
