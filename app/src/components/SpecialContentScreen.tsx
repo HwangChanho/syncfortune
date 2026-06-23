@@ -58,6 +58,7 @@ export function SpecialContentScreen({ kind, title, sub, sections, needsZiwei = 
   const [reading, setReading] = useState<any>(null);
   const [busy, setBusy] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const [owned, setOwned] = useState(false); // 소유(프리미엄/관리자/차감 unlock) — 미구매 차트 풀이 노출 차단(daniel ⓐ). 명식 변경 시 재판정.
   const [reloadKey, setReloadKey] = useState(0); // ChartPicker 로 대표 전환 시 재로드 트리거
   const c = useMemo(() => (savedChart ? computeChart(savedChart.input) : null), [savedChart]);
   const gatingRef = useRef(false); // 게이트(모달) 연타 차단
@@ -66,6 +67,7 @@ export function SpecialContentScreen({ kind, title, sub, sections, needsZiwei = 
   // 대표 명식 → 서버차트ID → 캐시(category=kind) 조회. 프리미엄이고 캐시 없으면 자동 생성.
   useEffect(() => {
     let alive = true;
+    setReading(null); setOwned(false); // 진입/명식 변경 시 초기화 — 미구매 차트가 직전 풀이로 새지 않게(daniel ⓐ)
     (async () => {
       const ch = await loadRepChart();
       if (!alive) return;
@@ -75,9 +77,12 @@ export function SpecialContentScreen({ kind, title, sub, sections, needsZiwei = 
       const id = await ensureServerChartId(cc, ch.input, session, ch);
       if (!alive || !id) { setLoaded(true); return; }
       setChartId(id);
+      // 소유 판정(daniel ⓐⓒ): 프리미엄 / 관리자 / 이 차트×종류 unlock(차감 완료) 중 하나여야 풀이 노출. 아니면 설명창(게이트).
+      const own = isPremium || (await isAdmin()) || (await isUnlocked(id, kind));
       const { data } = await supabase.from('readings').select('content').eq('chart_id', id).eq('category', kind).eq('lang', appLang()).maybeSingle();
       if (!alive) return;
       const cached = data?.content ?? null;
+      setOwned(own);
       setReading(cached);
       setLoaded(true);
       if (isPremium && !cached) generate(id, cc.ziwei); // 프리미엄=자동 생성
@@ -100,6 +105,7 @@ export function SpecialContentScreen({ kind, title, sub, sections, needsZiwei = 
     const id = idArg ?? chartId;
     if (!id || busy) return;
     setBusy(true);
+    setOwned(true); // 생성 = 게이트 통과(프리미엄/차감/관리자) → 소유로 표시(daniel ⓐ)
     setGenProgress({ active: true, total: 1, done: 0, label: title, route: ('/' + kind) }); // 일회성 진행도(daniel 이슈15) — '풀이 중'
     logEvent(`${kind}_invoke_start`, { chartId: id });
     try {
@@ -173,7 +179,7 @@ export function SpecialContentScreen({ kind, title, sub, sections, needsZiwei = 
 
       {reading?.error ? (
         <View style={styles.card}><Text style={styles.err}>{String(reading.error)}</Text></View>
-      ) : reading ? (
+      ) : (reading && owned) ? (
         <>
         {/* 이슈19 소제목 — 통변 결과 headline 있으면 섹션들 맨 위에 한 줄 강조(콘텐츠 테마색) */}
         {typeof reading.headline === 'string' && reading.headline.trim() ? (
