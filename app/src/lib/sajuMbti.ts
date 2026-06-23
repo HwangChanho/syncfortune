@@ -3,16 +3,15 @@
 // 원국 십신 분포 + 일간 음양으로 MBTI 4축(E/I·S/N·T/F·J/P)을 점수화 → 16유형.
 // ⚠️ stance(daniel★ 검수 대상): 십신↔MBTI 축 매핑은 명리 해석이라 가중치는 daniel이 조정한다.
 //   Claude는 *기계(축 산출·유형 조립)*만 제공. 아래 매핑은 일반적 대응의 1안(검수 전 임시).
-//   - E/I: 비겁·식상(밖으로 발산)+양 일간 = E / 인성·관성(안으로 수렴·절제)+음 일간 = I
-//   - S/N: 재성·비겁(현실·직접경험) = S / 인성·식상(사유·상상) = N
-//   - T/F: 관성·편재(원칙·계산) = T / 인성·식신·상관(공감·배려·표현) = F
-//   - J/P: 정관·정재·정인(질서·계획) = J / 상관·편재·겁재·편인(유연·즉흥·변화) = P
+//   - E/I: 식상·재성·편관(표현·사교·추진=발산) = E / 인성·정관·비겁(사색·신중·자기세계=수렴) = I
+//   - S/N: 偏(편관·편재·편인·상관=비정형·통찰·큰그림) = N / 正(정관·정재·정인·식신=정형·실무·현실) = S
+//   - T/F: 관성·재성(논리·결과) = T / 인성·식상(공감·표현) = F
+//   - J/P: 관성·정재·정인(질서·계획·통제) = J / 식상·편재·겁재·편인(유연·즉흥·변화) = P
+//   ※ daniel 검토(2026-06-23): 1안 오매핑 수정 — 편관=추진(E·J)·偏=직관(N)·음양≠E/I. 자기보고 검사에 끼워맞추지 않고 명리 논리로(사주가 더 객관적 신호).
 // 무료 티어 = 결과·설명 모두 온디바이스 템플릿(API 0). 문구도 daniel★ 검수 슬롯.
 // ─────────────────────────────────────────────────────────────────────────
 import type { SajuChart, TenGod } from '@spec/chart';
 import { analyzeTenGods } from '@engine/structure';
-
-const YANG = new Set(['甲', '丙', '戊', '庚', '壬']); // 양 천간(나머지 음)
 
 export type MbtiAxisKey = 'EI' | 'SN' | 'TF' | 'JP';
 export type MbtiAxis = { key: MbtiAxisKey; letter: string; score: number; reason: string }; // score=오른쪽 글자(E/N/F/P 아님 — 아래 정의) 비율 0~100
@@ -23,15 +22,16 @@ export type SajuMbtiResult = {
   axes: MbtiAxis[];             // 4축(글자 + 점수 + 근거)
 };
 
-// 십신 그룹 합(원국 천간·지지 분포)
+// 십신 그룹 합(원국 천간·지지 분포) + 개별 십신(축 매핑용)
 function groups(detail: Record<string, number>) {
-  const g = (ks: TenGod[]) => ks.reduce((s, k) => s + (detail[k] || 0), 0);
+  const v = (k: TenGod) => detail[k] || 0;
+  const g = (ks: TenGod[]) => ks.reduce((s, k) => s + v(k), 0);
   return {
     bigeop: g(['비견', '겁재']), siksang: g(['식신', '상관']), jaeseong: g(['정재', '편재']),
     gwanseong: g(['정관', '편관']), inseong: g(['정인', '편인']),
-    siksin: detail['식신'] || 0, sanggwan: detail['상관'] || 0,
-    pyeonjae: detail['편재'] || 0, gyeopjae: detail['겁재'] || 0, pyeonin: detail['편인'] || 0,
-    jeong: (detail['정관'] || 0) + (detail['정재'] || 0) + (detail['정인'] || 0), // 正(질서)
+    siksin: v('식신'), sanggwan: v('상관'),
+    jeongjae: v('정재'), pyeonjae: v('편재'), gyeopjae: v('겁재'),
+    jeongin: v('정인'), pyeonin: v('편인'), jeonggwan: v('정관'), pyeongwan: v('편관'),
   };
 }
 
@@ -65,23 +65,22 @@ const TYPE_INFO: Record<string, { nick: string; line: string }> = {
 export function sajuMbti(saju: SajuChart): SajuMbtiResult {
   const { detail } = analyzeTenGods(saju);
   const g = groups(detail);
-  const isYang = YANG.has(saju.dayMaster.stem);
 
-  // E/I: 발산(비겁+식상)+양 = E(오른) / 수렴(인성+관성)+음 = I(왼)
-  const eW = g.bigeop + g.siksang + (isYang ? 2 : 0);
-  const iW = g.inseong + g.gwanseong + (isYang ? 0 : 2);
+  // E/I: 발산(식상·재성·편관 = 표현·사교·추진) = E(오른) / 수렴(인성·정관·비겁 = 사색·신중·자기세계) = I(왼)
+  const eW = g.siksang + g.jaeseong + g.pyeongwan;
+  const iW = g.inseong + g.jeonggwan + g.bigeop;
   const ei = ratio(iW, eW); const eiL = ei >= 50 ? 'E' : 'I';
-  // S/N: 현실(재성+비겁) = S(왼) / 직관(인성+식상) = N(오른)
-  const sW = g.jaeseong + g.bigeop;
-  const nW = g.inseong + g.siksang;
+  // S/N: 偏(편관·편재·편인·상관 = 비정형·통찰·큰그림) = N(오른) / 正(정관·정재·정인·식신 = 정형·실무·현실) = S(왼)
+  const nW = g.pyeongwan + g.pyeonjae + g.pyeonin + g.sanggwan;
+  const sW = g.jeonggwan + g.jeongjae + g.jeongin + g.siksin;
   const sn = ratio(sW, nW); const snL = sn >= 50 ? 'N' : 'S';
-  // T/F: 원칙(관성+편재) = T(왼) / 공감(인성+식신+상관) = F(오른)
-  const tW = g.gwanseong + g.pyeonjae;
-  const fW = g.inseong + g.siksin + g.sanggwan;
+  // T/F: 논리·결과(관성+재성) = T(왼) / 공감·표현(인성+식상) = F(오른)
+  const tW = g.gwanseong + g.jaeseong;
+  const fW = g.inseong + g.siksang;
   const tf = ratio(tW, fW); const tfL = tf >= 50 ? 'F' : 'T';
-  // J/P: 질서(정관·정재·정인) = J(왼) / 유연(상관+편재+겁재+편인) = P(오른)
-  const jW = g.jeong;
-  const pW = g.sanggwan + g.pyeonjae + g.gyeopjae + g.pyeonin;
+  // J/P: 질서·계획(관성·정재·정인 = 통제·꾸준·안정) = J(왼) / 유연·즉흥(식상·편재·겁재·편인 = 자유·변화·충동) = P(오른)
+  const jW = g.gwanseong + g.jeongjae + g.jeongin;
+  const pW = g.siksang + g.pyeonjae + g.gyeopjae + g.pyeonin;
   const jp = ratio(jW, pW); const jpL = jp >= 50 ? 'P' : 'J';
 
   const type = `${eiL}${snL}${tfL}${jpL}`;
