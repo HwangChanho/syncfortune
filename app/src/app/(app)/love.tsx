@@ -30,6 +30,7 @@ import { ContentHero, cardAnim } from '../../components/SpecialContentScreen'; /
 import { ChartPicker } from '../../components/ChartPicker'; // 상단 명식 헤더 — 현재 적용 명식 표시·전환
 import { ShareReadingButton } from '../../components/ShareReadingButton'; // 이슈17: 풀이 결과 공유(가드 내장)
 import { LoveThread } from '../../components/contentMotifs'; // 인연의 실 모티프
+import { LoveFlowGraph } from '../../components/LoveFlowGraph'; // 애정(재성) 흐름 곡선(daniel B·R29)
 
 // 건당 가격 — 정가 → 할인가로 마킹(daniel). 결제 연동 시 조율.
 export const LOVE_PRICE = '₩4,900';
@@ -156,6 +157,8 @@ export default function LoveScreen() {
       <ChartPicker onChange={() => setReloadKey((k) => k + 1)} />
       <UnlockOverlay visible={busy} message={t('love.generating', '애정 흐름을 풀어내는 중…')} />
       <ContentHero motif={<LoveThread />} image={require('../../../assets/icons/love-hero.jpg')} title={t('love.title')} sub={t('love.sub')} themeColor={LOVE_PINK} />
+      {/* 애정 흐름 곡선(재성 12운성·시기별) — 무료 온디바이스 티저(daniel B). 깊은 통변은 아래 유료 */}
+      {c?.saju && <LoveFlowGraph saju={c.saju} />}
 
       {reading?.error ? (
         <View style={styles.card}><Text style={styles.err}>{String(reading.error)}</Text></View>
