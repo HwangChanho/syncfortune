@@ -4,7 +4,7 @@
 //   대표 변경 = setRepresentative → 만세력·풀이·궁합이 그 명식 기준(loadMyChart).
 // 명식이 없으면 등록 유도. 화면 복귀 시 useFocusEffect 로 목록 갱신.
 // ─────────────────────────────────────────────────────────────────────────
-import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { View, Text, Pressable, Modal, StyleSheet, Dimensions } from 'react-native';
 import { Image as ExpoImage } from 'expo-image'; // 자동 다운샘플(메모리) + 엠블럼 탭 풀스크린 뷰어
 import DraggableFlatList, { ScaleDecorator } from 'react-native-draggable-flatlist'; // 이슈20 롱프레스 드래그 reorder
@@ -42,11 +42,18 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
   // 각 명식의 일주 엠블럼(일간 오행색 + 일지 동물 = "은빛 소" 등) — 명식 리스트 시각 정체성(daniel)
   // ⚡성능(daniel "모든 로딩 느려"): 엠블럼은 명식 목록 모달 열 때만 보임(접힌 바엔 없음). 매 화면 마운트마다
   //   명식 N개를 풀 엔진(사주+자미)으로 계산하던 것을 open=true 일 때만으로 → 매 화면 비용 제거.(computeChart도 메모됨)
-  const emblems = useMemo(() => {
-    const m: Record<string, IljuEmblem> = {};
-    if (!open) return m; // 모달 닫혀 있으면 계산 생략
-    charts.forEach((c) => { try { const p = computeChart(c.input).saju.pillars['일']; if (p) m[c.id] = iljuEmblem(p.stem, p.branch); } catch { /* 계산 실패 무시 */ } });
-    return m;
+  // ⚡스켈레톤(daniel): 모달 열 때 N명식 엠블럼을 *동기*로 계산하면 모달 슬라이드/리스트 렌더가 지연됨(딜레이).
+  //   → setTimeout(0)으로 다음 틱에 계산 → 리스트는 즉시 올라오고(엠블럼은 스켈레톤 원), 계산 끝나면 채워짐.
+  const [emblems, setEmblems] = useState<Record<string, IljuEmblem>>({});
+  useEffect(() => {
+    if (!open) { setEmblems({}); return; }                       // 닫히면 초기화(다음 열 때 다시 스켈레톤→계산)
+    let alive = true;
+    const tid = setTimeout(() => {
+      const m: Record<string, IljuEmblem> = {};
+      charts.forEach((c) => { try { const p = computeChart(c.input).saju.pillars['일']; if (p) m[c.id] = iljuEmblem(p.stem, p.branch); } catch { /* 계산 실패 무시 */ } });
+      if (alive) setEmblems(m);
+    }, 0);                                                        // 0ms = 모달 렌더 이후로 무거운 계산을 미룸
+    return () => { alive = false; clearTimeout(tid); };
   }, [charts, open]);
 
   async function choose(id: string) {
@@ -118,13 +125,15 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
                 return (
                   <ScaleDecorator>
                     <View style={[styles.row, isActive && styles.rowActive]}>
-                      {iljuImg ? (
+                      {!em ? (
+                        <View style={[styles.emblem, styles.emblemSkel]} /> /* 스켈레톤 — 엠블럼 계산 전(딜레이 가림) */
+                      ) : iljuImg ? (
                         <Pressable onPress={() => setViewImg(iljuImg)} hitSlop={6}>
                           <ExpoImage source={iljuImg} style={styles.emblemImg} contentFit="cover" cachePolicy="memory-disk" />
                         </Pressable>
                       ) : (
-                        <View style={[styles.emblem, { backgroundColor: em?.color ?? colors.sunk }]}>
-                          <Text style={[styles.emblemTx, { color: em?.textColor ?? colors.inkSoft, fontSize: fs(13) }]}>{em?.animal ?? '?'}</Text>
+                        <View style={[styles.emblem, { backgroundColor: em.color }]}>
+                          <Text style={[styles.emblemTx, { color: em.textColor, fontSize: fs(13) }]}>{em.animal}</Text>
                         </View>
                       )}
                       <Pressable style={styles.rowMain} onPress={() => choose(c.id)} onLongPress={drag} delayLongPress={250}>
@@ -190,6 +199,7 @@ const styles = StyleSheet.create({
   rowActive: { backgroundColor: colors.card, borderRadius: radius.md, borderBottomColor: 'transparent' }, // 드래그 중 행 강조(들어올림)
   rowMain: { flex: 1 },
   emblem: { width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center', marginRight: space(3) }, // 색+동물 폴백(일러스트 없을 때)
+  emblemSkel: { backgroundColor: colors.sunk, opacity: 0.55 }, // 스켈레톤(엠블럼 계산 전 — 리스트는 즉시 표시, 딜레이 가림)
   emblemImg: { width: 46, height: 46, borderRadius: 23, marginRight: space(3), backgroundColor: colors.sunk }, // 60갑자 AI 일러스트(원형 크롭)
   emblemTx: { fontWeight: '800' },
   iljuName: { color: colors.ju, fontWeight: '700', marginTop: 1 }, // 일주 이름 "은빛 소"
