@@ -48,7 +48,7 @@ export default function NumerologyScreen() {
       <ScrollView style={styles.overlay} contentContainerStyle={styles.wrap}>
         {/* 상단 명식 헤더 — 현재 명식 표시·전환 */}
         <ChartPicker onChange={() => loadRepChart().then(setRep)} />
-        <ContentHero title={t('numerology.title', '수비학')} sub={t('numerology.sub', '생년월일에 담긴 수로 보는 인생 방향·재능·올해 흐름')} />
+        <ContentHero image={require('../../../assets/icons/numerology.jpg')} title={t('numerology.title', '수비학')} sub={t('numerology.sub', '생년월일에 담긴 수로 보는 인생 방향·재능·올해 흐름')} />
 
         {!n ? (
           <Text style={styles.note}>{t('numerology.empty', '명식을 등록하면 생년월일로 수비학을 보여드려요.')}</Text>

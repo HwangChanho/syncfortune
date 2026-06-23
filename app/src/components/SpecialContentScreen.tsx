@@ -35,6 +35,19 @@ import { ChartPicker } from './ChartPicker';             // 상단 명식 헤더
 
 export type Section = { key: string; label: string; groupTitle?: string }; // groupTitle: 이 섹션 카드 위에 그룹 구분 헤더(divider) 표시(daniel: 별자리/점성술 섹터 분리)
 
+// kind별 기본 히어로 이미지(daniel: 모든 콘텐츠 히어로에 이미지 — 세로 카드아트도 1.75 박스 cover-crop 시 중앙 띠가 꽉 참, 시뮬 확인).
+//   heroImage prop 명시 시 그게 우선(roots/image/mission = 전용 가로 hero-*.jpg). 없으면 이 맵 폴백.
+const HERO_BY_KIND: Record<string, any> = {
+  daily: require('../../assets/icons/today.jpg'), monthly: require('../../assets/icons/month.jpg'), dayPillar: require('../../assets/icons/dayPillar.jpg'),
+  astrology: require('../../assets/icons/astrology.jpg'), bok: require('../../assets/icons/bok.jpg'), career: require('../../assets/icons/career.jpg'),
+  dream: require('../../assets/icons/dream.jpg'), egen: require('../../assets/icons/egen.jpg'), healing: require('../../assets/icons/healing.jpg'),
+  joseonjob: require('../../assets/icons/joseonjob.jpg'), lifegraph: require('../../assets/icons/lifegraph-hero.jpg'), love: require('../../assets/icons/love-hero.jpg'),
+  lovestyle: require('../../assets/icons/lovestyle.jpg'), luck: require('../../assets/icons/luck.jpg'), mbti: require('../../assets/icons/mbti.jpg'),
+  name: require('../../assets/icons/name.jpg'), newyear: require('../../assets/icons/newyear-hero.jpg'), numerology: require('../../assets/icons/numerology.jpg'),
+  pastlife: require('../../assets/icons/pastlife.jpg'), persona: require('../../assets/icons/persona.jpg'), pet: require('../../assets/icons/pet.jpg'),
+  taegil: require('../../assets/icons/taegil.jpg'), talent: require('../../assets/icons/talent.jpg'), zodiac: require('../../assets/icons/zodiac.jpg'),
+};
+
 export function SpecialContentScreen({ kind, title, sub, sections, needsZiwei = false, genMsg, heroMotif, themeColor = colors.ju, heroImage, buildBody, freePreview }: {
   kind: CreditKind;        // 이용권/캐시 키(roots·image·mission). Edge category=kind.
   title: string;
@@ -175,7 +188,7 @@ export function SpecialContentScreen({ kind, title, sub, sections, needsZiwei = 
       {/* 상단 명식 헤더 — 현재 적용된 대표 명식 표시·전환(daniel: 모든 콘텐츠 상단). 전환 시 그 명식 기준 재로드 */}
       <ChartPicker onChange={() => setReloadKey((k) => k + 1)} />
       <UnlockOverlay visible={busy} message={genMsg} />
-      <ContentHero motif={heroMotif} image={heroImage} title={title} sub={sub} themeColor={themeColor} />
+      <ContentHero motif={heroMotif} image={heroImage ?? HERO_BY_KIND[kind]} title={title} sub={sub} themeColor={themeColor} />
 
       {reading?.error ? (
         <View style={styles.card}><Text style={styles.err}>{String(reading.error)}</Text></View>
@@ -247,7 +260,7 @@ export function ContentHero({ motif, image, title, sub, themeColor = colors.ju }
       {inner}
     </View>
   );
-  return <View style={[styles.hero, styles.heroPlain, { borderColor: themeColor + '40' }]}>{inner}</View>;
+  return <View style={[styles.heroPlain, { borderColor: themeColor + '40' }]}>{inner}</View>; // 이미지 없을 때 = 컴팩트 헤더(aspectRatio 1.5 큰 빈 박스 제거·daniel)
 }
 
 // 무료 티어 미리보기 카드 — 온디바이스 결정론 기본값(수비학 생명수·점성술 빅3)을 키:값 줄로. 유료=LLM 심층(하이브리드 hook).
@@ -273,7 +286,7 @@ const styles = StyleSheet.create({
   hero: { borderRadius: radius.lg, overflow: 'hidden', marginBottom: space(5), aspectRatio: 1.5, backgroundColor: colors.sunk },
   // 이미지 히어로 = 단일 스타일(hero와 병합 금지 — aspectRatio 이중지정이 Yoga 폭 계산을 깨 좌치우침 유발). width 100%로 전폭·중앙(daniel 시뮬 실측 확인: 좌72=우72).
   heroImageBox: { width: '100%', aspectRatio: 1.75, borderRadius: radius.lg, overflow: 'hidden', marginBottom: space(5), backgroundColor: colors.sunk },
-  heroPlain: { backgroundColor: colors.card, borderWidth: 1 },
+  heroPlain: { backgroundColor: colors.card, borderWidth: 1, borderRadius: radius.lg, marginBottom: space(5) }, // 이미지 없을 때 = 자동높이 컴팩트 헤더(큰 빈 박스 방지·daniel)
   heroImg: { borderRadius: radius.lg },
   heroScrim: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(21,19,46,0.55)' }, // 이미지 위 가독 스크림
   heroInner: { alignItems: 'center', justifyContent: 'center', paddingVertical: space(6), paddingHorizontal: space(5) },

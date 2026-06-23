@@ -38,7 +38,7 @@ export default function MbtiScreen() {
       <ScrollView style={styles.overlay} contentContainerStyle={styles.wrap}>
         {/* 상단 명식 헤더 — 현재 적용 명식 표시·전환 */}
         <ChartPicker onChange={() => loadMyChart().then(setMe)} />
-        <ContentHero title={t('mbti.title', '사주로 보는 내 MBTI')} sub={t('mbti.sub', '내 사주 구조로 풀어본 성향 유형')} />
+        <ContentHero image={require('../../../assets/icons/mbti.jpg')} title={t('mbti.title', '사주로 보는 내 MBTI')} sub={t('mbti.sub', '내 사주 구조로 풀어본 성향 유형')} />
 
         {!r ? (
           <Text style={styles.note}>{t('mbti.empty', '명식을 등록하면 사주로 본 MBTI를 보여드려요.')}</Text>
