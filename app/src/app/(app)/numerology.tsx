@@ -5,8 +5,8 @@
 //   생년월일 → 생명수·생일수·개인해 수(numerology.ts) + 표준 의미(LIFE_PATH/BIRTHDAY/PERSONAL_YEAR_MEANING).
 //   ⚠️ 의미 문구 tone = daniel★ 검수 슬롯(numerology.ts 주석 참고).
 // ─────────────────────────────────────────────────────────────────────────
-import { useMemo, useState, useCallback } from 'react';
-import { View, Text, ScrollView, StyleSheet, ImageBackground } from 'react-native';
+import { useMemo, useState, useCallback, useEffect } from 'react';
+import { View, Text, ScrollView, StyleSheet, ImageBackground, Animated, Easing } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { loadRepChart, type SavedChart } from '../../lib/myChart';
@@ -16,6 +16,7 @@ import { useFontScale } from '../../lib/fontScale';
 import { ContentHero } from '../../components/SpecialContentScreen';
 import { ChartPicker } from '../../components/ChartPicker';
 import { ShareReadingButton } from '../../components/ShareReadingButton';
+import { Reveal } from '../../components/Reveal'; // 카드 순차 등장(daniel 재미)
 
 export default function NumerologyScreen() {
   const { t } = useTranslation();
@@ -54,9 +55,9 @@ export default function NumerologyScreen() {
           <Text style={styles.note}>{t('numerology.empty', '명식을 등록하면 생년월일로 수비학을 보여드려요.')}</Text>
         ) : (
           <>
-            <NumCard hi label={t('numerology.lifePath', '생명수 — 인생의 큰 줄기')} big={n.lifePath} kw={lp!.keyword} text={lp!.text} fs={fs} />
-            <NumCard label={t('numerology.birthday', '생일수 — 타고난 재능')} big={n.birthday} kw={bd!.keyword} text={bd!.text} fs={fs} />
-            <NumCard label={`${thisYear} · ${t('numerology.personalYear', '개인해 — 올해 흐름')}`} big={n.personalYear} kw={py!.keyword} text={py!.text} fs={fs} />
+            <Reveal delay={0}><NumCard hi label={t('numerology.lifePath', '생명수 — 인생의 큰 줄기')} big={n.lifePath} kw={lp!.keyword} text={lp!.text} fs={fs} /></Reveal>
+            <Reveal delay={110}><NumCard label={t('numerology.birthday', '생일수 — 타고난 재능')} big={n.birthday} kw={bd!.keyword} text={bd!.text} fs={fs} /></Reveal>
+            <Reveal delay={220}><NumCard label={`${thisYear} · ${t('numerology.personalYear', '개인해 — 올해 흐름')}`} big={n.personalYear} kw={py!.keyword} text={py!.text} fs={fs} /></Reveal>
             {n.masterNumbers.length > 0 && (
               <Text style={styles.master}>{t('numerology.master', '✦ 마스터수(11·22·33) 보유 — 잠재력이 큰 대신 다루기 까다로운 수예요.')}</Text>
             )}
@@ -72,11 +73,19 @@ export default function NumerologyScreen() {
 
 /** 수 카드 — 큰 숫자 + 키워드 + 설명. hi=생명수(강조). */
 function NumCard({ label, big, kw, text, fs, hi }: { label: string; big: number; kw: string; text: string; fs: (n: number) => number; hi?: boolean }) {
+  // 큰 숫자 카운트업(0→big) — 수비학 고유 재미(daniel ②콘텐츠별 메타포). 리스너로 정수 갱신(JS 스레드, useNativeDriver 불가).
+  const [disp, setDisp] = useState(0);
+  useEffect(() => {
+    const v = new Animated.Value(0);
+    const id = v.addListener(({ value }) => setDisp(Math.round(value)));
+    Animated.timing(v, { toValue: big, duration: 750, easing: Easing.out(Easing.cubic), useNativeDriver: false }).start();
+    return () => v.removeListener(id);
+  }, [big]);
   return (
     <View style={[styles.card, hi && styles.cardHi]}>
       <Text style={styles.cardLabel}>{label}</Text>
       <View style={styles.cardRow}>
-        <Text style={[styles.bigNum, hi && { color: colors.ju, borderColor: colors.ju }]}>{big}</Text>
+        <Text style={[styles.bigNum, hi && { color: colors.ju, borderColor: colors.ju }]}>{disp}</Text>
         <View style={{ flex: 1 }}>
           <Text style={[styles.kw, { fontSize: fs(16) }]}>{kw}</Text>
           <Text style={[styles.text, { fontSize: fs(14), lineHeight: fs(21) }]}>{text}</Text>

@@ -3,8 +3,8 @@
 // 원국 십신·음양으로 MBTI 4축·16유형 산출(sajuMbti, API 0·규칙5). 명식 있으면 바로.
 //   ⚠️ 매핑·문구 stance = daniel★ 검수(sajuMbti.ts 주석 참고).
 // ─────────────────────────────────────────────────────────────────────────
-import { useMemo, useState, useCallback } from 'react';
-import { View, Text, ScrollView, StyleSheet, ImageBackground } from 'react-native';
+import { useMemo, useState, useCallback, useEffect, useRef } from 'react';
+import { View, Text, ScrollView, StyleSheet, ImageBackground, Animated, Easing } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { loadMyChart } from '../../lib/myChart';
@@ -13,12 +13,22 @@ import { sajuMbti } from '../../lib/sajuMbti';
 import { colors, radius, space, shadow, font } from '../../lib/theme';
 import { useFontScale } from '../../lib/fontScale';
 import { ContentHero } from '../../components/SpecialContentScreen';
+import { Reveal } from '../../components/Reveal'; // 카드 순차 등장(daniel 재미)
 import { ChartPicker } from '../../components/ChartPicker';
 import { ShareReadingButton } from '../../components/ShareReadingButton';
 import type { ChartInput } from '@spec/chart';
 
 // 각 축의 [왼글자, 오른글자] — score(0~100)는 오른글자 비율
 const AXIS_ENDS: Record<string, [string, string]> = { EI: ['I', 'E'], SN: ['S', 'N'], TF: ['T', 'F'], JP: ['J', 'P'] };
+
+// 축 게이지 채움 애니(0→score%) — MBTI 고유 재미(daniel ②콘텐츠별 메타포). width %라 useNativeDriver 불가.
+function AxisBar({ score }: { score: number }) {
+  const w = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.timing(w, { toValue: score, duration: 850, delay: 250, easing: Easing.out(Easing.cubic), useNativeDriver: false }).start();
+  }, [score, w]);
+  return <View style={styles.axisBar}><Animated.View style={[styles.axisFill, { width: w.interpolate({ inputRange: [0, 100], outputRange: ['0%', '100%'] }) }]} /></View>;
+}
 
 export default function MbtiScreen() {
   const { t } = useTranslation();
@@ -44,23 +54,27 @@ export default function MbtiScreen() {
           <Text style={styles.note}>{t('mbti.empty', '명식을 등록하면 사주로 본 MBTI를 보여드려요.')}</Text>
         ) : (
           <>
-            <View style={styles.typeCard}>
-              <Text style={styles.typeBig}>{r.type}</Text>
-              <Text style={styles.typeNick}>{r.nickname}</Text>
-              <Text style={[styles.typeSummary, { fontSize: fs(14), lineHeight: fs(21) }]}>{r.summary}</Text>
-            </View>
+            <Reveal delay={0}>
+              <View style={styles.typeCard}>
+                <Text style={styles.typeBig}>{r.type}</Text>
+                <Text style={styles.typeNick}>{r.nickname}</Text>
+                <Text style={[styles.typeSummary, { fontSize: fs(14), lineHeight: fs(21) }]}>{r.summary}</Text>
+              </View>
+            </Reveal>
 
-            {r.axes.map((a) => {
+            {r.axes.map((a, i) => {
               const [L, R] = AXIS_ENDS[a.key];
               return (
-                <View key={a.key} style={styles.axisCard}>
-                  <View style={styles.axisHead}>
-                    <Text style={[styles.axisEnd, a.letter === L && styles.axisOn]}>{L}</Text>
-                    <View style={styles.axisBar}><View style={[styles.axisFill, { width: `${a.score}%` }]} /></View>
-                    <Text style={[styles.axisEnd, a.letter === R && styles.axisOn]}>{R}</Text>
+                <Reveal key={a.key} delay={150 + i * 90}>
+                  <View style={styles.axisCard}>
+                    <View style={styles.axisHead}>
+                      <Text style={[styles.axisEnd, a.letter === L && styles.axisOn]}>{L}</Text>
+                      <AxisBar score={a.score} />
+                      <Text style={[styles.axisEnd, a.letter === R && styles.axisOn]}>{R}</Text>
+                    </View>
+                    <Text style={[styles.axisReason, { fontSize: fs(13), lineHeight: fs(20) }]}>{a.reason}</Text>
                   </View>
-                  <Text style={[styles.axisReason, { fontSize: fs(13), lineHeight: fs(20) }]}>{a.reason}</Text>
-                </View>
+                </Reveal>
               );
             })}
 
