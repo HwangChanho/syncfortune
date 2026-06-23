@@ -328,6 +328,7 @@ export default function Home() {
         {/* 무료 / 프리미엄 / 콘텐츠 3범주 — 큰 섹션 헤더 + 좌우 가로 스크롤 카드(daniel) */}
         {SECTIONS.map((sec) => {
           const isLight = sec.key === 'light'; // '가볍게 보기' = 항목이 많아 가로 스크롤 대신 2열 줄바꿈(daniel)
+          const isDeep = sec.key === 'deep';   // '나에 대해 알기' = 5개 넘어 2줄(컬럼 정렬) 가로 스크롤(daniel 2026-06-23)
           const cards = sec.items.map((m) => {
             const prem = !!m.premium;
             // 콘텐츠(이미지 없음) = 텍스트 카드(제목+설명), 이미지 카드와 시각 구분
@@ -380,6 +381,14 @@ export default function Home() {
                     {Array.from({ length: Math.ceil(cards.length / 5) }, (_, r) => (
                       <View key={r} style={styles.grid2row}>{cards.slice(r * 5, r * 5 + 5)}</View>
                     ))}
+                  </View>
+                </ScrollView>
+              ) : isDeep ? (
+                // 나에 대해 알기 — 5개 넘어 2줄(컬럼 정렬: 위/아래 번갈아 배치) 가로 스크롤(daniel)
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.hRow}>
+                  <View style={styles.grid2col}>
+                    <View style={styles.grid2row}>{cards.filter((_, i) => i % 2 === 0)}</View>
+                    <View style={styles.grid2row}>{cards.filter((_, i) => i % 2 === 1)}</View>
                   </View>
                 </ScrollView>
               ) : (
