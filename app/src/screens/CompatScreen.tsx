@@ -16,6 +16,7 @@ import { detectInteractionsAmong } from '@engine/structure';
 import { stemElement, branchElement, elementColor, elementText } from '../lib/ohaeng';
 import { colors, radius, space, shadow, font } from '../lib/theme';
 import { listCharts, getRepresentativeId, addChart, ChartLimitError, type SavedChart } from '../lib/myChart';
+import { buildNumerology } from '../lib/numerology'; // 수비학 보조 교차(궁합, daniel 2026-06-23)
 import { ChartRegisterScreen } from './ChartRegisterScreen'; // 상대 명식 = 정식 등록 폼으로 입력
 import { useAuth } from '../lib/useAuth';
 import { useSubscription, purchasePremium } from '../lib/subscription';
@@ -77,7 +78,7 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
   const [busy, setBusy] = useState<string | null>(null);         // 생성 중 키(rel 또는 rel_yYYYY)
   const [pair, setPair] = useState<{ me: any; other: any } | null>(null);
   const [compat, setCompat] = useState<CompatScoreResult | null>(null); // 궁합 점수·등급(결정론 — 통변과 별개로 항상)
-  const [ctx, setCtx] = useState<{ chartId: string; sig: string; cross: string[]; dayRel: string; meZiwei: any; otherZiwei: any } | null>(null); // 연도별 추가 생성 컨텍스트
+  const [ctx, setCtx] = useState<{ chartId: string; sig: string; cross: string[]; dayRel: string; meZiwei: any; otherZiwei: any; numMe?: any; numOther?: any } | null>(null); // 연도별 추가 생성 컨텍스트(+수비학 보조)
   const YEARS = [0, 1, 2, 3, 4].map((i) => new Date().getFullYear() + i); // 연도별 옵션(올해~+4)
   const [showDetail, setShowDetail] = useState(false);           // 글자 작용 상세 접이식
   const [active, setActive] = useState<Set<string>>(new Set());
@@ -136,6 +137,9 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
     if (!meInput || !otherInput || !session) return;
     _lastCompat = { meId: meSel?.id, otherId: otherSel?.id, rel }; // 이어보기 복원용(마지막 선택 보관)
     const meC = computeChart(meInput), otherC = computeChart(otherInput);
+    // 수비학 보조 교차(daniel 2026-06-23) — 두 사람 생명수·생일수(생년월일 기반)를 Edge 궁합 통변에 보조로 전달.
+    const numOf = (inp: any) => { const [dp] = String(inp?.birthDateTime ?? '').split(' '); const [y, mo, d] = dp.split('-').map(Number); return (y && mo && d) ? buildNumerology({ year: y, month: mo, day: d }) : undefined; };
+    const numMe = numOf(meInput), numOther = numOf(otherInput);
     setPair({ me: meC.saju, other: otherC.saju }); setActive(new Set()); setYear(''); // 분석 시작 = 원국부터
     const dx = analyzeCompatibility(meC.saju, otherC.saju);     // 일간관계·교차(통변 근거)
     setCompat(compatScore(dx));                                 // 궁합 점수·등급(결정론 — 항상 표시, 저장명식 없어도)
@@ -144,7 +148,7 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
     if (!chartId) return;
     const sig = otherSig(otherC.saju);
     const cross = crossDetails(meC.saju, otherC.saju);          // 교차작용(통변 근거 — 쉬운 말로 번역)
-    setCtx({ chartId, sig, cross, dayRel: dx.dayMasterRelation.detail, meZiwei: meC.ziwei, otherZiwei: otherC.ziwei }); // 연도별 추가 생성용
+    setCtx({ chartId, sig, cross, dayRel: dx.dayMasterRelation.detail, meZiwei: meC.ziwei, otherZiwei: otherC.ziwei, numMe, numOther }); // 연도별 추가 생성용(+수비학 보조)
     const cached = await loadCompatReadings(chartId, sig);
     setReadings(cached);
 
@@ -155,7 +159,7 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
       for (const r of COMPAT_RELS) {
         if (cached[r.key] || readings[r.key]) continue;
         setBusy(r.key);
-        const res = await genCompatReading(chartId!, r.key, sig, otherC.saju, cross, dx.dayMasterRelation.detail, meC.ziwei, otherC.ziwei, undefined, undefined, meSel?.context);
+        const res = await genCompatReading(chartId!, r.key, sig, otherC.saju, cross, dx.dayMasterRelation.detail, meC.ziwei, otherC.ziwei, undefined, undefined, meSel?.context, numMe, numOther);
         if (res.kind === 'answer') { setReadings((prev) => ({ ...prev, [r.key]: res.reading })); setGenProgress({ done: getGenProgress().done + 1 }); continue; }
         setBusy(null);
         setGenProgress({ active: false }); // 게이트/중단 시 홈 배너 닫기(daniel)
@@ -188,7 +192,7 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
     if (readings[key]) return;
     setBusy(key);
     const gz = yearGanZhi(Number(yr));
-    const res = await genCompatReading(ctx.chartId, relKey, ctx.sig, pair.other, ctx.cross, ctx.dayRel, ctx.meZiwei, ctx.otherZiwei, yr, gz, meSel?.context);
+    const res = await genCompatReading(ctx.chartId, relKey, ctx.sig, pair.other, ctx.cross, ctx.dayRel, ctx.meZiwei, ctx.otherZiwei, yr, gz, meSel?.context, ctx.numMe, ctx.numOther);
     setBusy(null);
     if (res.kind === 'answer') { setReadings((prev) => ({ ...prev, [key]: res.reading })); return; }
     if (res.kind === 'needPremium') { Alert.alert(t('compat.premiumTitle'), t('compat.premiumMsg')); return; }
@@ -201,7 +205,7 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
             const ok = await purchaseCreditRC('compat'); if (!ok) return;
             await grantCredit('compat');                 // 결제→크레딧 부여→서버 consume
             setBusy(key);
-            const r2 = await genCompatReading(ctx.chartId, relKey, ctx.sig, pair.other, ctx.cross, ctx.dayRel, ctx.meZiwei, ctx.otherZiwei, yr, gz, meSel?.context);
+            const r2 = await genCompatReading(ctx.chartId, relKey, ctx.sig, pair.other, ctx.cross, ctx.dayRel, ctx.meZiwei, ctx.otherZiwei, yr, gz, meSel?.context, ctx.numMe, ctx.numOther);
             setBusy(null);
             if (r2.kind === 'answer') setReadings((prev) => ({ ...prev, [key]: r2.reading }));
           } catch (e) { setBusy(null); Alert.alert(t('reading.payPending'), (e as Error).message); }

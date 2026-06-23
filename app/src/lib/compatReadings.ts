@@ -159,10 +159,11 @@ export async function genCompatReading(
   meZiwei?: any, otherZiwei?: any, // 자미 교차(나=최신명반, 상대=상대 명반) — 사주 주축 + 자미 보조
   year?: string, yearGz?: string,  // year 있으면 연도별(그 해 흐름). yearGz=그 해 간지(클라 계산)
   meContext?: any,                  // 본인 명식 기본정보(context: 하는일·관계상태 등) grounding — R25 현재 배우자 유무가 궁합 해석 좌우(daniel)
+  numMe?: any, numOther?: any,       // 수비학 보조 교차(두 사람 생명수·생일수, 앱 산출 — daniel 2026-06-23)
 ): Promise<CompatResult> {
   const category = year ? `compat_${rel}_${sig}_y${year}` : `compat_${rel}_${sig}`;
   const { data, error } = await supabase.functions.invoke('interpret', {
-    body: { chartId, category, kind: 'compat', tier: 'paid', otherSaju, otherZiwei, cross, dayRel, yearGz, ziwei: meZiwei, lang: appLang(), ...(meContext ? { context: meContext } : {}) }, // paid 제거(서버가 크레딧/프리미엄 판정) + context grounding
+    body: { chartId, category, kind: 'compat', tier: 'paid', otherSaju, otherZiwei, cross, dayRel, yearGz, ziwei: meZiwei, numMe, numOther, lang: appLang(), ...(meContext ? { context: meContext } : {}) }, // paid 제거(서버 판정) + context grounding + 수비학 보조 교차
   });
   if (error) return { kind: 'error' };
   if (data?.needPremium) return { kind: 'needPremium' };
