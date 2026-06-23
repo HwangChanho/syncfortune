@@ -1,17 +1,17 @@
 // app/src/lib/sajuMbti.ts — 사주로 보는 MBTI(온디바이스·무료, 규칙5: LLM 없이 룰)
 // ─────────────────────────────────────────────────────────────────────────
-// 원국 십신 분포 + 일간 음양으로 MBTI 4축(E/I·S/N·T/F·J/P)을 점수화 → 16유형.
-// ⚠️ stance(daniel★ 검수 대상): 십신↔MBTI 축 매핑은 명리 해석이라 가중치는 daniel이 조정한다.
-//   Claude는 *기계(축 산출·유형 조립)*만 제공. 아래 매핑은 일반적 대응의 1안(검수 전 임시).
-//   - E/I: 식상·재성·편관(표현·사교·추진=발산) = E / 인성·정관·비겁(사색·신중·자기세계=수렴) = I
+// 원국 십신(지장간 포함) + 현재 운(대운·세운)으로 MBTI 4축(E/I·S/N·T/F·J/P)을 점수화 → 16유형. **운따라 변동**.
+// ⚠️ stance(daniel★): 십신↔축 매핑은 명리 해석. daniel 확정(2026-06-23):
+//   - E/I: 식상·재성·편관(표현·사교·추진=발산) = E / 인성·정관(사색·신중=수렴) = I  (비겁=자기주도 양가→중립)
 //   - S/N: 偏(편관·편재·편인·상관=비정형·통찰·큰그림) = N / 正(정관·정재·정인·식신=정형·실무·현실) = S
 //   - T/F: 관성·재성(논리·결과) = T / 인성·식상(공감·표현) = F
 //   - J/P: 관성·정재·정인(질서·계획·통제) = J / 식상·편재·겁재·편인(유연·즉흥·변화) = P
-//   ※ daniel 검토(2026-06-23): 1안 오매핑 수정 — 편관=추진(E·J)·偏=직관(N)·음양≠E/I. 자기보고 검사에 끼워맞추지 않고 명리 논리로(사주가 더 객관적 신호).
+//   ※ 편관=추진(E·J)·偏=직관(N)·음양≠E/I·비겁 중립. **지장간 + 운 합산**(운에서 지장간 튀어나옴→운따라 변동).
+//     자기보고 MBTI 검사에 끼워맞추지 않음 — 사주가 더 객관적 신호(daniel).
 // 무료 티어 = 결과·설명 모두 온디바이스 템플릿(API 0). 문구도 daniel★ 검수 슬롯.
 // ─────────────────────────────────────────────────────────────────────────
 import type { SajuChart, TenGod } from '@spec/chart';
-import { analyzeTenGods } from '@engine/structure';
+import { HIDDEN, tenGod } from '@engine/saju'; // 지장간표·십신 — 원국 지장간 + 운(대운·세운) 합산용(daniel)
 
 export type MbtiAxisKey = 'EI' | 'SN' | 'TF' | 'JP';
 export type MbtiAxis = { key: MbtiAxisKey; letter: string; score: number; reason: string }; // score=오른쪽 글자(E/N/F/P 아님 — 아래 정의) 비율 0~100
@@ -38,6 +38,27 @@ function groups(detail: Record<string, number>) {
 // 양쪽 가중 → 오른쪽 글자 비율(0~100). 둘 다 0이면 50(중립).
 function ratio(left: number, right: number): number { const t = left + right; return t > 0 ? Math.round((right / t) * 100) : 50; }
 
+// 십신 카운트 — 원국 8글자(천간·본기 1.0 / 여기·중기 지장간 0.5) + 운(대운·세운, 지장간 포함).
+//   daniel: 지장간도 고려 + 운에서 지장간 글자 튀어나오니 현재 대운·세운도 합산 → MBTI가 운따라 변동(정적 아님).
+function tenGodCount(saju: SajuChart): Record<string, number> {
+  const c: Record<string, number> = {};
+  const add = (tg: string | undefined, w: number) => { if (tg) c[tg] = (c[tg] || 0) + w; };
+  const day = saju.dayMaster.stem;
+  // 원국: 천간(일간 제외) 1.0 + 지지 지장간(본기 1.0 / 여기·중기 0.5)
+  for (const p of ['년', '월', '일', '시'] as const) {
+    const pil = saju.pillars[p];
+    if (p !== '일') add(pil.stemTenGod, 1);
+    for (const h of pil.hiddenStems) add(h.tenGod, h.role === '본기' ? 1 : 0.5);
+  }
+  // 운(현재 대운·세운): 천간 1.0 + 지지 지장간(본기 1.0 / 여기·중기 0.5) — 운따라 변동(daniel)
+  for (const lk of [saju.currentLuck, saju.annual]) {
+    if (!lk) continue;
+    add(tenGod(day, lk.stem), 1);
+    for (const h of HIDDEN[lk.branch]) add(tenGod(day, h.stem), h.role === '본기' ? 1 : 0.5);
+  }
+  return c;
+}
+
 // 16유형 별명·한 줄(daniel★ 문구 검수 슬롯 — 일반 통용 별칭 기반)
 const TYPE_INFO: Record<string, { nick: string; line: string }> = {
   INTJ: { nick: '용신을 그리는 전략가', line: '멀리 보고 판을 짜는, 조용한 설계자예요.' },
@@ -63,12 +84,11 @@ const TYPE_INFO: Record<string, { nick: string; line: string }> = {
  * 각 축은 (왼글자 가중, 오른글자 가중) → 비율. 동률·무자료는 중립(왼글자 채택).
  */
 export function sajuMbti(saju: SajuChart): SajuMbtiResult {
-  const { detail } = analyzeTenGods(saju);
-  const g = groups(detail);
+  const g = groups(tenGodCount(saju)); // 지장간 + 운(대운·세운) 포함(daniel) — 운따라 변동
 
-  // E/I: 발산(식상·재성·편관 = 표현·사교·추진) = E(오른) / 수렴(인성·정관·비겁 = 사색·신중·자기세계) = I(왼)
+  // E/I: 발산(식상·재성·편관 = 표현·사교·추진) = E(오른) / 수렴(인성·정관 = 사색·신중) = I(왼). 비겁=자기주도 양가 → 중립(E/I 제외)
   const eW = g.siksang + g.jaeseong + g.pyeongwan;
-  const iW = g.inseong + g.jeonggwan + g.bigeop;
+  const iW = g.inseong + g.jeonggwan;
   const ei = ratio(iW, eW); const eiL = ei >= 50 ? 'E' : 'I';
   // S/N: 偏(편관·편재·편인·상관 = 비정형·통찰·큰그림) = N(오른) / 正(정관·정재·정인·식신 = 정형·실무·현실) = S(왼)
   const nW = g.pyeongwan + g.pyeonjae + g.pyeonin + g.sanggwan;

@@ -69,7 +69,7 @@ export default function MbtiScreen() {
           </>
         )}
 
-        <Text style={styles.note}>{t('mbti.note', '※ 사주 구조로 가볍게 풀어본 성향이에요. 심리검사 MBTI와 다를 수 있어요.')}</Text>
+        <Text style={styles.note}>{t('mbti.note', '※ 사주 구조(지장간·현재 운 포함)로 본 성향이라 시기에 따라 조금씩 달라져요. 심리검사 MBTI와 다를 수 있어요.')}</Text>
       </ScrollView>
     </ImageBackground>
   );
