@@ -42,7 +42,7 @@ export async function ensureServerChartId(
   //   ADR-005 완화: 관리자 조회(생년월일시)를 위해 birth 를 서버에 *암호화* 보관. 복호화는 관리자 RPC 만.
   const { data, error } = await supabase.rpc('insert_chart_enc', {
     p_relation: 'self',
-    p_saju: { ...c.saju, timeUnknown: input.timeAccuracy === '미상' },
+    p_saju: { ...c.saju, sensitivity: c.sensitivity, timeUnknown: input.timeAccuracy === '미상' }, // R35 예민보스(민감도)·辛金=날카로운 전문성 — 전체 통변 참고(daniel)
     p_ziwei: c.ziwei ?? null,
     p_birth: JSON.stringify(input),     // 서버에서 즉시 암호화 → birth_enc (관리자만 복호화)
     p_label: savedChart.label ?? null,  // 라벨도 동일 키로 암호화 → label_enc
