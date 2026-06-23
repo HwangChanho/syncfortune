@@ -13,6 +13,7 @@ import { supabase } from './supabase';
 import { computeChart } from './engine';
 import { setServerChartId, type SavedChart } from './myChart';
 import { appLang } from './i18n'; // 통변 출력 언어(앱 언어)
+import { getDailyFortune } from './dailyFortune'; // H2(daniel): 오늘/내일 daily LLM 프리워밍용 일진
 import { logEvent } from './logger'; // 방어: 일시적 불가 시 중단 로깅
 import type { ChartInput, CategoryKey } from '@spec/chart';
 
@@ -93,4 +94,33 @@ export async function prewarmReadings(savedChart: SavedChart, session: Session):
     ]);
   } catch { /* 프리워밍은 보조 — 어떤 실패도 앱 흐름을 막지 않는다 */ }
   finally { running = false; }
+}
+
+let dailyRunning = false; // 세션 내 daily 프리워밍 동시 실행 방지(멱등이지만 호출 낭비 차단)
+
+/**
+ * H2(daniel): 앱 진입 시 '오늘·내일 운세'(daily LLM)를 미리 생성해 둔다 — /today를 열면 즉시·정확.
+ *   ⚠️ 프로덕션 Edge(LLM) 호출 — *프리미엄에서만* 트리거하라(호출처 책임). 구독료가 비용을 커버.
+ *   무료 사용자는 비용(daily≈$0.044/건)을 홈 배너 광고(≈$0.001)로 못 덮으므로 자동 생성하지 않음
+ *   → 무료는 /today에서 보상형 광고 1회로 생성(기존 모델 유지). fire-and-forget·멱등(캐시 선확인).
+ */
+export async function prewarmDaily(savedChart: SavedChart, session: Session): Promise<void> {
+  if (dailyRunning) return;
+  dailyRunning = true;
+  try {
+    const c = computeChart(savedChart.input);
+    const id = await ensureServerChartId(c, savedChart.input, session, savedChart);
+    if (!id) return;
+    for (let off = 0; off < 2; off++) {                          // 오늘(0)·내일(1)
+      const f = getDailyFortune(off);
+      const category = `daily_${f.date.replace(/-/g, '')}`;       // today.tsx와 동일 캐시 키(daily_YYYYMMDD)
+      const { data: have } = await supabase.from('readings').select('category').eq('chart_id', id).eq('category', category).eq('lang', appLang()).maybeSingle();
+      if (have) continue;                                         // 이미 캐시 — 재생성 안 함(비용 0)
+      const { data: res } = await supabase.functions.invoke('interpret', {
+        body: { chartId: id, category, kind: 'daily', gz: f.dayGanZhi, tier: 'paid', lang: appLang(), ...(savedChart.context ? { context: savedChart.context } : {}) },
+      });
+      if ((res as any)?.unavailable) { logEvent('prewarm_daily_unavailable', { category, retryAt: (res as any)?.retryAt }, 'warn'); return; } // 한도 등 = 중단
+    }
+  } catch { /* 보조 — 실패해도 앱 흐름 무관(/today 생성 버튼이 폴백) */ }
+  finally { dailyRunning = false; }
 }

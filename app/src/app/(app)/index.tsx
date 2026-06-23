@@ -20,7 +20,7 @@ import { stemElement, branchElement, elementColor, elementText } from '../../lib
 import { useGenProgress, clearGenProgress } from '../../lib/genProgress'; // 풀이 진행률(다중·route별, 풀이중 홈 나가도 % — daniel)
 import { useSubscription } from '../../lib/subscription';
 import { loadRepChart, subscribeRepChange } from '../../lib/myChart';
-import { prewarmReadings } from '../../lib/prewarmReadings';
+import { prewarmReadings, prewarmDaily } from '../../lib/prewarmReadings';
 import { scheduleDailyFortune } from '../../lib/notifications'; // 매일 9시 오늘의 운세 알림
 import { buildSajuChart } from '@engine/saju';
 import type { Stem, Branch } from '@spec/chart';
@@ -179,6 +179,7 @@ export default function Home() {
   const goDay = (off: number) => { setDayOffset(off); fortunePager.current?.scrollTo({ x: off * pageW, animated: true }); };
   // 오늘·내일 각각의 한 줄 풀이(글)+캐치 타이틀 — 대표 명식 일간 × 그날 일진(온디바이스). [0]=오늘 [1]=내일.
   const [dayData, setDayData] = useState<{ headline: string | null; prose: string | null }[]>([{ headline: null, prose: null }, { headline: null, prose: null }]);
+  const [hasChart, setHasChart] = useState<boolean>(true); // H1(daniel): 대표 명식 유무 — 없으면 오늘/내일 배너를 '명식 등록 안내'로(탭→등록)
   const [reloadKey, setReloadKey] = useState(0); // 명식 변경(전환·수정) 감지 — 포커스마다 오늘의 기운 재계산(daniel: 명식 수정 시 id 동일이라 갱신 안 되던 버그)
   const [loggingOut, setLoggingOut] = useState(false); // 로그아웃 콜백 동안 오버레이
   async function doLogout() {
@@ -202,6 +203,7 @@ export default function Home() {
   useEffect(() => {
     (async () => {
       const rep = await loadRepChart();
+      setHasChart(!!rep); // H1: 명식 유무 → 오늘/내일 배너 분기(등록안내 vs 운세)
       if (!rep) { setDayData([{ headline: null, prose: null }, { headline: null, prose: null }]); return; }
       const saju = buildSajuChart(rep.input);
       const calc = (f: typeof fortunes[number]) => ({
@@ -227,6 +229,7 @@ export default function Home() {
     (async () => {
       const rep = await loadRepChart();
       if (rep) prewarmReadings(rep, session); // fire-and-forget — 실패해도 앱 흐름 무관
+      if (rep) prewarmDaily(rep, session);    // H2(daniel): 오늘·내일 정확한 운세(LLM) 미리 생성 → /today 즉시(프리미엄만, 구독이 비용 커버)
     })();
   }, [session, isPremium]);
 
@@ -278,6 +281,16 @@ export default function Home() {
 
         {/* 오늘/내일 기운 — 토글 또는 좌우 슬라이드(가로 페이징·daniel). 본문 탭 → 상세(분야별, 같은 offset). */}
         <View style={styles.fortuneBanner}>
+          {!hasChart ? (
+            // H1(daniel): 명식 미등록 → 오늘/내일 운세 대신 등록 안내(탭하면 등록창)
+            <Pressable onPress={() => router.push('/register')} style={{ alignItems: 'center', paddingVertical: space(5), gap: space(2) }}>
+              <Text style={{ color: colors.ju, fontWeight: '900', fontSize: fs(16), textAlign: 'center' }}>{t('home.noChartTitle', '명식을 등록하면 오늘·내일 운세를 봐요')}</Text>
+              <Text style={{ color: colors.inkSoft, fontSize: fs(13), textAlign: 'center' }}>{t('home.noChartSub', '생년월일시로 나의 사주를 먼저 등록해 주세요')}</Text>
+              <View style={{ backgroundColor: colors.ju, borderRadius: radius.md, paddingVertical: space(2.5), paddingHorizontal: space(6), marginTop: space(2) }}>
+                <Text style={{ color: colors.bg, fontWeight: '800', fontSize: fs(14) }}>{t('home.noChartCta', '+ 명식 등록')}</Text>
+              </View>
+            </Pressable>
+          ) : (<>
           <View style={styles.dayToggle}>
             {([0, 1] as const).map((off) => (
               <Pressable key={off} style={[styles.dayTogChip, dayOffset === off && styles.dayTogChipOn]} onPress={() => goDay(off)}>
@@ -321,6 +334,7 @@ export default function Home() {
               })}
             </ScrollView>
           </View>
+          </>)}
         </View>
 
         {/* 대표 명식 선택/전환 (등록한 다른 명식으로 변경) — 전환 시 오늘의 기운 즉시 재계산(daniel) */}
