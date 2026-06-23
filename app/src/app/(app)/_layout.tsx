@@ -45,31 +45,36 @@ export default function AppLayout() {
         <Stack.Screen name="settings" options={{ title: '설정' }} />
         <Stack.Screen name="compat" options={{ title: '1:1 궁합' }} />
         <Stack.Screen name="taro" options={{ title: '타로' }} />
-        <Stack.Screen name="today" options={{ title: '오늘의 운세' }} />
-        <Stack.Screen name="month" options={{ title: '이달의 운세' }} />
+        <Stack.Screen name="today" options={{ headerTitle: '' }} />
+        <Stack.Screen name="month" options={{ headerTitle: '' }} />
         <Stack.Screen name="charts" options={{ title: '만세력' }} />
-        <Stack.Screen name="traits" options={{ title: '나의 특징' }} />
-        <Stack.Screen name="dayPillar" options={{ title: '일주론' }} />
-        <Stack.Screen name="pet" options={{ title: '나의 반려동물' }} />
-        <Stack.Screen name="love" options={{ title: '나의 애정흐름' }} />
-        <Stack.Screen name="lifegraph" options={{ title: '인생 그래프' }} />
-        <Stack.Screen name="newyear" options={{ title: '신년운세' }} />
-        <Stack.Screen name="roots" options={{ title: '명식의 뿌리' }} />
-        <Stack.Screen name="image" options={{ title: '비치는 나' }} />
-        <Stack.Screen name="impression" options={{ title: '사람들이 보는 나' }} />
-        <Stack.Screen name="mission" options={{ title: '나의 사명' }} />
-        <Stack.Screen name="persona" options={{ title: '성격유형' }} />
-        <Stack.Screen name="egenteto" options={{ title: '에겐·테토' }} />
-        <Stack.Screen name="joseonjob" options={{ title: '조선시대 직업' }} />
-        <Stack.Screen name="lovestyle" options={{ title: '연애 스타일' }} />
-        <Stack.Screen name="bok" options={{ title: '타고난 복' }} />
-        <Stack.Screen name="pastlife" options={{ title: '전생 이야기' }} />
-        <Stack.Screen name="healing" options={{ title: '나만의 힐링 방법' }} />
-        <Stack.Screen name="taegil" options={{ title: '택일' }} />
-        <Stack.Screen name="luck" options={{ title: '오늘의 행운' }} />
-        <Stack.Screen name="zodiac" options={{ title: '띠·별자리' }} />
-        <Stack.Screen name="name" options={{ title: '이름풀이' }} />
-        <Stack.Screen name="dream" options={{ title: '꿈해몽' }} />
+        <Stack.Screen name="traits" options={{ headerTitle: '' }} />
+        <Stack.Screen name="dayPillar" options={{ headerTitle: '' }} />
+        <Stack.Screen name="pet" options={{ headerTitle: '' }} />
+        <Stack.Screen name="love" options={{ headerTitle: '' }} />
+        <Stack.Screen name="lifegraph" options={{ headerTitle: '' }} />
+        <Stack.Screen name="newyear" options={{ headerTitle: '' }} />
+        <Stack.Screen name="career" options={{ headerTitle: '' }} />
+        <Stack.Screen name="talent" options={{ headerTitle: '' }} />
+        <Stack.Screen name="numerology" options={{ headerTitle: '' }} />
+        <Stack.Screen name="astrology" options={{ headerTitle: '' }} />
+        <Stack.Screen name="mbti" options={{ headerTitle: '' }} />
+        <Stack.Screen name="roots" options={{ headerTitle: '' }} />
+        <Stack.Screen name="image" options={{ headerTitle: '' }} />
+        <Stack.Screen name="impression" options={{ headerTitle: '' }} />
+        <Stack.Screen name="mission" options={{ headerTitle: '' }} />
+        <Stack.Screen name="persona" options={{ headerTitle: '' }} />
+        <Stack.Screen name="egenteto" options={{ headerTitle: '' }} />
+        <Stack.Screen name="joseonjob" options={{ headerTitle: '' }} />
+        <Stack.Screen name="lovestyle" options={{ headerTitle: '' }} />
+        <Stack.Screen name="bok" options={{ headerTitle: '' }} />
+        <Stack.Screen name="pastlife" options={{ headerTitle: '' }} />
+        <Stack.Screen name="healing" options={{ headerTitle: '' }} />
+        <Stack.Screen name="taegil" options={{ headerTitle: '' }} />
+        <Stack.Screen name="luck" options={{ headerTitle: '' }} />
+        <Stack.Screen name="zodiac" options={{ headerTitle: '' }} />
+        <Stack.Screen name="name" options={{ headerTitle: '' }} />
+        <Stack.Screen name="dream" options={{ headerTitle: '' }} />
         <Stack.Screen name="premium" options={{ title: '프리미엄' }} />
         <Stack.Screen name="market" options={{ title: '마켓' }} />
         <Stack.Screen name="shared/[id]" options={{ title: '공유받은 풀이' }} />
