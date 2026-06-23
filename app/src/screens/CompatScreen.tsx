@@ -80,7 +80,8 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
   const [pair, setPair] = useState<{ me: any; other: any } | null>(null);
   const [compat, setCompat] = useState<CompatScoreResult | null>(null); // 궁합 점수·등급(결정론 — 통변과 별개로 항상)
   const [ctx, setCtx] = useState<{ chartId: string; sig: string; cross: string[]; dayRel: string; meZiwei: any; otherZiwei: any; numMe?: any; numOther?: any } | null>(null); // 연도별 추가 생성 컨텍스트(+수비학 보조)
-  const YEARS = [0, 1, 2, 3, 4].map((i) => new Date().getFullYear() + i); // 연도별 옵션(올해~+4)
+  const YEARS = Array.from({ length: 43 }, (_, i) => new Date().getFullYear() - 2 + i); // 연도별 옵션(올해-2~+40 전체 — 드롭다운 스크롤·daniel K)
+  const [yearOpen, setYearOpen] = useState(false);              // 년도 선택 드롭다운(전체 년도 스크롤 리스트)
   const [showDetail, setShowDetail] = useState(false);           // 글자 작용 상세 접이식
   const [active, setActive] = useState<Set<string>>(new Set());
   // 궁합 추가질문(관계유형/연도 키별) — 사주·자미 풀이와 동일(무료 1회 + 건당 결제)
@@ -280,14 +281,10 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
             <Pressable style={[styles.yearChip, !year && styles.yearChipOn]} onPress={() => setYear('')}>
               <Text style={[styles.yearChipTx, !year && styles.yearChipTxOn]}>{t('compat.yearAll')}</Text>
             </Pressable>
-            {YEARS.map((y) => {
-              const ys = String(y);
-              return (
-                <Pressable key={ys} style={[styles.yearChip, year === ys && styles.yearChipOn]} onPress={() => setYear(ys)}>
-                  <Text style={[styles.yearChipTx, year === ys && styles.yearChipTxOn]}>{ys}</Text>
-                </Pressable>
-              );
-            })}
+            {/* K(daniel): 고정 5칸 → 드롭다운(전체 년도 스크롤 선택) */}
+            <Pressable style={[styles.yearChip, !!year && styles.yearChipOn]} onPress={() => setYearOpen(true)}>
+              <Text style={[styles.yearChipTx, !!year && styles.yearChipTxOn]}>{year ? `${year}년` : t('compat.yearPick', '년도 선택')} ▾</Text>
+            </Pressable>
           </View>
           {/* 선택한 관계 카테고리 배너(daniel: 카테고리별 이미지) */}
           {CAT_IMG[rel] && <Image source={CAT_IMG[rel]} style={styles.catBanner} resizeMode="cover" />}
@@ -364,6 +361,27 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
               <Text style={styles.regOtherTx}>＋ {t('compat.registerOther')}</Text>
             </Pressable>
           )}
+        </Pressable>
+      </Pressable>
+    </Modal>
+
+    {/* K(daniel): 년도 선택 드롭다운 — 전체 년도 스크롤 리스트 */}
+    <Modal visible={yearOpen} transparent animationType="fade" onRequestClose={() => setYearOpen(false)}>
+      <Pressable style={styles.pickBackdrop} onPress={() => setYearOpen(false)}>
+        <Pressable style={[styles.pickSheet, { paddingBottom: insets.bottom + space(4) }]} onPress={() => {}}>
+          <Text style={styles.pickHead}>{t('compat.yearPick', '년도 선택')}</Text>
+          <ScrollView style={{ maxHeight: 400 }} showsVerticalScrollIndicator>
+            <Pressable style={[styles.pickRow, !year && styles.pickRowOn]} onPress={() => { setYear(''); setYearOpen(false); }}>
+              <Text style={[styles.pickRowTx, !year && styles.pickRowTxOn]}>{t('compat.yearAll')}</Text>
+              {!year ? <Text style={styles.pickCheck}>✓</Text> : null}
+            </Pressable>
+            {YEARS.map((y) => { const ys = String(y); const on = year === ys; return (
+              <Pressable key={ys} style={[styles.pickRow, on && styles.pickRowOn]} onPress={() => { setYear(ys); setYearOpen(false); }}>
+                <Text style={[styles.pickRowTx, on && styles.pickRowTxOn]}>{ys}년</Text>
+                {on ? <Text style={styles.pickCheck}>✓</Text> : null}
+              </Pressable>
+            ); })}
+          </ScrollView>
         </Pressable>
       </Pressable>
     </Modal>
