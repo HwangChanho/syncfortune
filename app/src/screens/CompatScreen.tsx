@@ -68,7 +68,7 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
   const insets = useSafeAreaInsets(); // 상대 등록 모달 헤더가 노치/상태바에 가리지 않게(daniel J)
   const [saved, setSaved] = useState<SavedChart[]>([]);
   const [meSel, setMeSel] = useState<SavedChart | null>(null);   // '내 명식' 슬롯(기본=대표). 저장 명식에서 변경 가능.
-  const [mePick, setMePick] = useState(false);                    // 내 명식 변경 피커 펼침
+  const [pickFor, setPickFor] = useState<null | 'me' | 'other'>(null); // 명식 선택 드롭다운(내/상대 공용) — daniel: 버블 대신 세로 리스트 스크롤
   const [otherSel, setOtherSel] = useState<SavedChart | null>(null); // 상대(저장 명식). 없으면 등록 폼으로 추가.
   const [otherReg, setOtherReg] = useState(false);                    // 상대 명식 등록 폼 모달
   // 통변(관계별) + 결정론 비교
@@ -242,34 +242,23 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
     <ScrollView style={styles.screen} contentContainerStyle={styles.wrap} automaticallyAdjustKeyboardInsets keyboardShouldPersistTaps="handled">
       {/* ── 내 명식 슬롯(골드, 따로 빼서 식별) ── */}
       <Text style={styles.slotLabel}>{t('compat.mySlot')}</Text>
-      <Pressable style={styles.meSlot} onPress={() => setMePick((v) => !v)}>
+      <Pressable style={styles.meSlot} onPress={() => setPickFor('me')}>
         <View style={{ flex: 1 }}>
           <Text style={styles.meSlotName}>{meSel?.label ?? t('compat.mySlot')}</Text>
           <Text style={styles.meSlotSub}>{slotLine(meInput)}</Text>
         </View>
         <Text style={styles.meSlotChange}>{t('compat.change')}</Text>
       </Pressable>
-      {mePick && saved.length > 0 && (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
-          {saved.map((s) => {
-            const on = meSel?.id === s.id;
-            return <Pressable key={s.id} style={[styles.chip, on && styles.chipOn]} onPress={() => { setMeSel(s); setMePick(false); }}>
-              <Text style={[styles.chipTx, on && styles.chipTxOn]}>{s.label}</Text></Pressable>;
-          })}
-        </ScrollView>
-      )}
 
-      {/* ── 상대 슬롯 ── */}
+      {/* ── 상대 슬롯 — 내 명식과 동일하게 박스+변경, 탭하면 세로 리스트 드롭다운(daniel) ── */}
       <Text style={[styles.slotLabel, { marginTop: space(5) }]}>{t('compat.otherSlot')}</Text>
-      {saved.length > 0 && (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
-          {saved.filter((s) => s.id !== meSel?.id).map((s) => {
-            const on = otherSel?.id === s.id;
-            return <Pressable key={s.id} style={[styles.chip, on && styles.chipOn]} onPress={() => setOtherSel(on ? null : s)}>
-              <Text style={[styles.chipTx, on && styles.chipTxOn]}>{s.label}</Text></Pressable>;
-          })}
-        </ScrollView>
-      )}
+      <Pressable style={[styles.meSlot, { borderColor: colors.line }]} onPress={() => saved.filter((s) => s.id !== meSel?.id).length > 0 ? setPickFor('other') : setOtherReg(true)}>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.meSlotName}>{otherSel?.label ?? t('compat.otherSlot')}</Text>
+          <Text style={styles.meSlotSub}>{otherSel ? slotLine(otherInput) : t('compat.otherPick', '탭해서 선택하거나 등록')}</Text>
+        </View>
+        <Text style={styles.meSlotChange}>{t('compat.change')}</Text>
+      </Pressable>
       <Pressable style={styles.regOtherBtn} onPress={() => setOtherReg(true)}>
         <Text style={styles.regOtherTx}>＋ {t('compat.registerOther')}</Text>
       </Pressable>
@@ -360,6 +349,30 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
         </View>
         <ChartRegisterScreen defaultRelation="지인" submitLabel={t('compat.registerOtherSubmit')} showMakeRep={false} onSubmit={onRegisterOther} />
       </View>
+    </Modal>
+    {/* 명식 선택 드롭다운(내/상대 공용) — 버블 대신 세로 리스트 스크롤 선택(daniel) */}
+    <Modal visible={!!pickFor} transparent animationType="fade" onRequestClose={() => setPickFor(null)}>
+      <Pressable style={styles.pickBackdrop} onPress={() => setPickFor(null)}>
+        <Pressable style={[styles.pickSheet, { paddingBottom: insets.bottom + space(4) }]} onPress={() => {}}>
+          <Text style={styles.pickHead}>{pickFor === 'me' ? t('compat.mySlot') : t('compat.otherSlot')}</Text>
+          <ScrollView style={{ maxHeight: 380 }} showsVerticalScrollIndicator={false}>
+            {saved.filter((s) => pickFor === 'other' ? s.id !== meSel?.id : true).map((s) => {
+              const on = pickFor === 'me' ? meSel?.id === s.id : otherSel?.id === s.id;
+              return (
+                <Pressable key={s.id} style={[styles.pickRow, on && styles.pickRowOn]} onPress={() => { if (pickFor === 'me') setMeSel(s); else setOtherSel(s); setPickFor(null); }}>
+                  <Text style={[styles.pickRowTx, on && styles.pickRowTxOn]} numberOfLines={1}>{s.label}</Text>
+                  {on ? <Text style={styles.pickCheck}>✓</Text> : null}
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+          {pickFor === 'other' && (
+            <Pressable style={[styles.regOtherBtn, { marginTop: space(3) }]} onPress={() => { setPickFor(null); setOtherReg(true); }}>
+              <Text style={styles.regOtherTx}>＋ {t('compat.registerOther')}</Text>
+            </Pressable>
+          )}
+        </Pressable>
+      </Pressable>
     </Modal>
     </>
   );
@@ -518,6 +531,14 @@ const styles = StyleSheet.create({
   chipOn: { backgroundColor: colors.ju, borderColor: colors.ju },
   chipTx: { ...font.body, color: colors.ink, fontWeight: '700' },
   chipTxOn: { color: colors.bg },
+  pickBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }, // 드롭다운 배경(탭하면 닫힘)
+  pickSheet: { backgroundColor: colors.card, borderTopLeftRadius: radius.lg, borderTopRightRadius: radius.lg, paddingHorizontal: space(5), paddingTop: space(4) },
+  pickHead: { fontSize: 16, fontWeight: '900', color: colors.ju, marginBottom: space(3) },
+  pickRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: space(3.5), paddingHorizontal: space(4), borderRadius: radius.md, marginBottom: space(2), backgroundColor: colors.sunk },
+  pickRowOn: { backgroundColor: colors.ju + '22', borderWidth: 1, borderColor: colors.ju },
+  pickRowTx: { fontSize: 15, fontWeight: '700', color: colors.ink, flex: 1 },
+  pickRowTxOn: { color: colors.ju },
+  pickCheck: { color: colors.ju, fontSize: 16, fontWeight: '900', marginLeft: space(2) },
   orHint: { ...font.caption, color: colors.inkSoft, marginTop: space(2), marginBottom: space(1) },
   placeField: { marginTop: space(2) },
   input: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, borderRadius: radius.sm, padding: space(3), fontSize: 15, color: colors.ink, marginTop: space(2), ...shadow.soft },
