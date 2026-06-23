@@ -4,7 +4,8 @@
 // 로그인 게이트 없음(ADR-037). 메뉴 = daniel 제작 카드 이미지(assets/icons/{key}.jpg, 남색·골드, 라벨 없음).
 //   라벨은 코드 t()로 하단 오버레이 → 영·일 다국어 유지(ADR-049).
 // ─────────────────────────────────────────────────────────────────────────
-import { View, Text, Pressable, ScrollView, StyleSheet, ImageBackground, Animated, AppState, Dimensions } from 'react-native';
+import { View, Text, Pressable, ScrollView, StyleSheet, ImageBackground, Animated, AppState, Dimensions, Easing } from 'react-native';
+import Svg, { Path, Ellipse, Circle, Line } from 'react-native-svg'; // 선비 실루엣 + 산 능선(daniel)
 import { Image as ExpoImage } from 'expo-image'; // 이미지 자동 다운샘플(표시 크기로 디코딩) — 홈 카드 24장 메모리·랙 해결
 import { Alert } from '../../lib/alert'; // 커스텀 알림(앱 디자인)
 import { useRouter, useFocusEffect } from 'expo-router';
@@ -157,6 +158,43 @@ function TwinklingStars() {
   );
 }
 
+// 별 떨어지는 밤하늘 아래, 산 능선을 따라 걷는 갓 쓴 선비(daniel) — SVG 실루엣(금장 윤곽)이 좌→우로 글라이드 + 잔잔한 bob(걷는 느낌).
+function SeonbiWalk() {
+  const W = Dimensions.get('window').width;
+  const walk = useRef(new Animated.Value(0)).current;
+  const bob = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.loop(Animated.timing(walk, { toValue: 1, duration: 26000, easing: Easing.linear, useNativeDriver: true })).start();
+    Animated.loop(Animated.sequence([
+      Animated.timing(bob, { toValue: 1, duration: 480, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+      Animated.timing(bob, { toValue: 0, duration: 480, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+    ])).start();
+  }, []);
+  const tx = walk.interpolate({ inputRange: [0, 1], outputRange: [-44, W + 44] });   // 화면 밖→밖 가로 이동(루프)
+  const ty = bob.interpolate({ inputRange: [0, 1], outputRange: [0, -2.5] });         // 걸음 bob(위아래)
+  const DARK = '#0C0A22'; const GOLD = 'rgba(212,175,110,0.45)';
+  return (
+    <View style={styles.seonbiLayer} pointerEvents="none">
+      {/* 산 능선(다크 실루엣 + 금장 윤곽) */}
+      <Svg width={W} height={140} style={{ position: 'absolute', bottom: 0 }}>
+        <Path d={`M0,140 L0,92 L${W * 0.22},62 L${W * 0.42},82 L${W * 0.62},52 L${W * 0.82},78 L${W},64 L${W},140 Z`} fill="rgba(12,10,34,0.92)" />
+        <Path d={`M0,92 L${W * 0.22},62 L${W * 0.42},82 L${W * 0.62},52 L${W * 0.82},78 L${W},64`} stroke={GOLD} strokeWidth={1} fill="none" />
+      </Svg>
+      {/* 걷는 선비(갓 + 도포 + 지팡이) */}
+      <Animated.View style={{ position: 'absolute', bottom: 62, transform: [{ translateX: tx }, { translateY: ty }] }}>
+        <Svg width={42} height={64} viewBox="0 0 42 64">
+          <Ellipse cx={21} cy={14} rx={15} ry={3.4} fill={DARK} stroke={GOLD} strokeWidth={0.6} />{/* 갓 챙 */}
+          <Path d="M15,14 Q15,6.5 21,6.5 Q27,6.5 27,14 Z" fill={DARK} stroke={GOLD} strokeWidth={0.6} />{/* 갓 대우 */}
+          <Circle cx={21} cy={18.5} r={3.3} fill={DARK} />{/* 머리 */}
+          <Path d="M16,21.5 L26,21.5 L29,53 L13,53 Z" fill={DARK} stroke={GOLD} strokeWidth={0.6} />{/* 두루마기 */}
+          <Path d="M26,23.5 L29,24.5 L28,33 L25,30.5 Z" fill={DARK} />{/* 소맷자락 */}
+          <Line x1={29} y1={25} x2={34} y2={55} stroke={GOLD} strokeWidth={1.3} />{/* 지팡이 */}
+        </Svg>
+      </Animated.View>
+    </View>
+  );
+}
+
 export default function Home() {
   const router = useRouter();
   const { t } = useTranslation();
@@ -265,6 +303,7 @@ export default function Home() {
   return (
     <ImageBackground source={require('../../../assets/icons/bg-night.png')} style={styles.bgImage} resizeMode="cover">
     <TwinklingStars />
+    <SeonbiWalk />
     <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>
       <Animated.View style={{ opacity: fadeAnim }}>
         {/* 헤더 — 타이틀 옆에 계정(사람) 아이콘: 탭 → 계정 관리·프리미엄 구매(설정)(daniel) */}
@@ -441,6 +480,7 @@ export default function Home() {
 
 const styles = StyleSheet.create({
   bgImage: { flex: 1, backgroundColor: colors.bg },
+  seonbiLayer: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 140 }, // 산길 걷는 선비 + 능선(배경 하단·daniel)
   star: { position: 'absolute', color: colors.ju, fontSize: 16 },
   shootingStar: {
     position: 'absolute', width: 100, height: 2,
