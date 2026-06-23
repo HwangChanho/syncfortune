@@ -72,8 +72,7 @@ const SECTIONS: Section[] = [
     { key: 'image', labelKey: 'menu.image', descKey: 'menu.imageDesc', image: require('../../../assets/icons/image.jpg'), route: '/image', ready: true, content: true, creditKey: 'image' },
     { key: 'mission', labelKey: 'menu.mission', descKey: 'menu.missionDesc', image: require('../../../assets/icons/mission.jpg'), route: '/mission', ready: true, content: true, creditKey: 'mission' },
     { key: 'talent', labelKey: 'menu.talent', descKey: 'menu.talentDesc', image: require('../../../assets/icons/talent.jpg'), route: '/talent', ready: true, content: true, creditKey: 'talent' },
-    // 신규(daniel 2026-06-23): 수비학·별자리 운세(도메인=Claude 인코딩, 무료 빅3/생명수 미리보기 + 유료 LLM)
-    { key: 'numerology', labelKey: 'menu.numerology', descKey: 'menu.numerologyDesc', image: require('../../../assets/icons/numerology.jpg'), route: '/numerology', ready: true, content: true, creditKey: 'numerology' },
+    // 신규(daniel 2026-06-23): 별자리 운세(유료 LLM). ※수비학은 무료화(온디바이스·API 0)되어 light 섹션으로 이동(daniel: 비용 안 들면 무료).
     { key: 'astrology', labelKey: 'menu.astrology', descKey: 'menu.astrologyDesc', image: require('../../../assets/icons/astrology.jpg'), route: '/astrology', ready: true, content: true, creditKey: 'astrology' },
     // 신규(daniel 2026-06): 사업가의 나 vs 직장인의 나.
     { key: 'career', labelKey: 'menu.career', descKey: 'menu.careerDesc', image: require('../../../assets/icons/career.jpg'), route: '/career', ready: true, content: true, creditKey: 'career' },
@@ -86,6 +85,7 @@ const SECTIONS: Section[] = [
     { key: 'impression', labelKey: 'menu.impression', descKey: 'menu.impressionDesc', image: require('../../../assets/icons/impression.jpg'), route: '/impression', ready: true, content: true },
     { key: 'egen', labelKey: 'menu.egen', descKey: 'menu.egenTileDesc', image: require('../../../assets/icons/egen.jpg'), route: '/egenteto', ready: true, content: true },
     { key: 'mbti', labelKey: 'menu.mbti', descKey: 'menu.mbtiTileDesc', image: require('../../../assets/icons/mbti.jpg'), route: '/mbti', ready: true, content: true }, // 사주로 보는 MBTI(무료·온디바이스, daniel 2026-06-23)
+    { key: 'numerology', labelKey: 'menu.numerology', descKey: 'menu.numerologyDesc', image: require('../../../assets/icons/numerology.jpg'), route: '/numerology', ready: true, content: true }, // 수비학(무료·온디바이스 — 피타고리안 표준의미 템플릿, daniel 2026-06-23 무료화)
     { key: 'joseonjob', labelKey: 'menu.joseonjob', descKey: 'menu.joseonjobTileDesc', image: require('../../../assets/icons/joseonjob.jpg'), route: '/joseonjob', ready: true, content: true },
     { key: 'lovestyle', labelKey: 'menu.lovestyle', descKey: 'menu.lovestyleTileDesc', image: require('../../../assets/icons/lovestyle.jpg'), route: '/lovestyle', ready: true, content: true },
     { key: 'bok', labelKey: 'menu.bok', descKey: 'menu.bokTileDesc', image: require('../../../assets/icons/bok.jpg'), route: '/bok', ready: true, content: true },

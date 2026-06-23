@@ -13,7 +13,7 @@ async function hasSession(): Promise<boolean> {
   return !!data.session;
 }
 
-export type CreditKind = 'reading' | 'ziwei' | 'compat' | 'timeline' | 'followup' | 'love' | 'newyear' | 'lifegraph' | 'roots' | 'image' | 'mission' | 'career' | 'talent' | 'numerology' | 'astrology' | 'dream';
+export type CreditKind = 'reading' | 'ziwei' | 'compat' | 'timeline' | 'followup' | 'love' | 'newyear' | 'lifegraph' | 'roots' | 'image' | 'mission' | 'career' | 'talent' | 'astrology' | 'dream';
 // price = 건당 가격(원). daniel 확정(2026-06): 원가(opus, 영구캐시 1회)×~3, 소액(타임라인·질문)=₩990, 애정 ₩4,900.
 export const CREDIT_KINDS: { key: CreditKind; ko: string; price: number }[] = [
   { key: 'reading', ko: '사주 풀이', price: 9900 }, { key: 'ziwei', ko: '자미두수', price: 8900 }, { key: 'compat', ko: '궁합', price: 3900 },
@@ -27,7 +27,7 @@ export const CREDIT_KINDS: { key: CreditKind; ko: string; price: number }[] = [
   // 신규(daniel 2026-06-23): 나의 타고난 재능(월지 축 백본 — 재능·동기·재물)
   { key: 'talent', ko: '나의 타고난 재능', price: 4900 },
   // 신규(daniel 2026-06-23): 수비학(피타고리안)·별자리 운세(서양 네이탈) — 도메인=Claude 표준 레퍼런스 인코딩, 가격=api_usage 실측 후 daniel 확정
-  { key: 'numerology', ko: '수비학', price: 4900 }, { key: 'astrology', ko: '별자리 운세', price: 4900 },
+  { key: 'astrology', ko: '별자리 운세', price: 4900 },
   // AI 꿈해몽 — 5회 번들 ₩1,200(=₩240/회). Apple IAP 최저가 미만이라 번들 판매(daniel). price=건당 참조값.
   { key: 'dream', ko: 'AI 꿈해몽', price: 240 },
 ];

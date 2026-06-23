@@ -99,3 +99,53 @@ export function buildNumerology(input: {
   const masters = [lp, bd, py, ex, su, pe].filter((n): n is number => n != null && MASTERS.has(n));
   return { lifePath: lp, birthday: bd, personalYear: py, expression: ex, soulUrge: su, personality: pe, masterNumbers: [...new Set(masters)] };
 }
+
+// ── 무료 해석 템플릿(온디바이스·API 0) — daniel: 비용 안 드는 표준 의미는 무료로. ──
+//   피타고리안 숫자 의미는 표준·고정이라 템플릿으로 충분(사주처럼 nuance 통변 불필요). ★문구 tone = daniel 검수 슬롯.
+export type NumMeaning = { keyword: string; text: string };
+
+export const LIFE_PATH_MEANING: Record<number, NumMeaning> = {
+  1: { keyword: '개척하는 리더', text: '스스로 길을 내는 독립·추진의 사람이에요. 시작하고 주도하는 데 강하고, 기대기보다 앞장설 때 빛나요. 다만 고집·독선은 한 번씩 돌아보면 좋아요.' },
+  2: { keyword: '조화의 중재자', text: '함께·균형·배려가 인생의 큰 줄기예요. 관계를 잇고 분위기를 맞추는 데 탁월해요. 휘둘리지 않게 나의 중심을 지키면 더 단단해집니다.' },
+  3: { keyword: '표현하는 창작자', text: '말·글·예술로 자신을 드러내는 밝은 에너지예요. 사람을 즐겁게 하고 아이디어가 풍부해요. 흩어지는 집중만 잡으면 크게 피어납니다.' },
+  4: { keyword: '단단한 성실가', text: '꾸준함·체계·신뢰가 무기예요. 차근차근 쌓아 기반을 만드는 사람. 너무 굳지 않게 유연함을 더하면 완성도가 올라가요.' },
+  5: { keyword: '자유로운 모험가', text: '변화·경험·자유를 좇는 역동의 사람이에요. 새로운 걸 빠르게 흡수하고 사람도 잘 사귀어요. 한곳에 진득함을 보태면 결실이 커집니다.' },
+  6: { keyword: '따뜻한 돌봄이', text: '책임·사랑·가정이 핵심이에요. 곁을 챙기고 조화를 만드는 사람. 다 떠안다 지치지 않게 나 자신도 꼭 돌보세요.' },
+  7: { keyword: '깊이 파는 탐구자', text: '사색·통찰·본질을 향하는 내면형이에요. 혼자만의 시간에 힘을 얻고 깊이 꿰뚫어요. 가끔 마음을 나누면 더 풍요로워집니다.' },
+  8: { keyword: '성취하는 전략가', text: '권한·성과·현실 감각이 큰 줄기예요. 목표를 향해 판을 짜고 끌고 가는 힘이 있어요. 일과 사람의 균형을 맞추면 더 멀리 갑니다.' },
+  9: { keyword: '품이 넓은 완성자', text: '봉사·이상·포용의 사람이에요. 큰 그림과 따뜻함으로 베풀고 마무리하는 결. 다 내어주다 소진되지 않게 선을 지키세요.' },
+  11: { keyword: '영감의 등불(마스터수)', text: '직관·영성·영향력이 남다른 자리예요. 사람을 일깨우고 비추는 힘이 있어요. 예민함을 잘 다스리면 큰 빛이 됩니다.' },
+  22: { keyword: '큰 실현가(마스터수)', text: '이상을 현실로 짓는 드문 힘이에요. 큰 비전을 실제 결과로 만들어내요. 압박을 잘 풀어가면 크게 이룹니다.' },
+  33: { keyword: '사랑의 치유자(마스터수)', text: '헌신·치유·가르침의 자리예요. 깊은 사랑으로 사람을 보듬고 키워요. 자기희생이 과하지 않게 균형을 잡으면 좋아요.' },
+};
+
+export const BIRTHDAY_MEANING: Record<number, NumMeaning> = {
+  1: { keyword: '주도력', text: '스스로 시작하고 이끄는 타고난 추진력이 있어요.' },
+  2: { keyword: '공감력', text: '사람의 마음을 읽고 잇는 섬세한 재능이 있어요.' },
+  3: { keyword: '표현력', text: '말·글·끼로 자신을 드러내는 재능이 있어요.' },
+  4: { keyword: '성실함', text: '맡은 일을 끝까지 해내는 단단한 재능이 있어요.' },
+  5: { keyword: '융통성', text: '변화에 빠르게 적응하고 사람을 사귀는 재능이 있어요.' },
+  6: { keyword: '돌봄', text: '챙기고 보듬어 조화를 만드는 재능이 있어요.' },
+  7: { keyword: '통찰', text: '깊이 파고들어 본질을 보는 재능이 있어요.' },
+  8: { keyword: '추진·성취', text: '판을 읽고 결과를 만드는 재능이 있어요.' },
+  9: { keyword: '포용', text: '넓게 품고 베푸는 재능이 있어요.' },
+  11: { keyword: '직관(마스터)', text: '번뜩이는 영감과 직관의 재능이 있어요.' },
+  22: { keyword: '실현(마스터)', text: '큰 구상을 현실로 만드는 재능이 있어요.' },
+};
+
+export const PERSONAL_YEAR_MEANING: Record<number, NumMeaning> = {
+  1: { keyword: '새 출발', text: '시작·결정·씨뿌리기에 좋은 해예요. 새 일을 벌이기 좋아요.' },
+  2: { keyword: '관계·인내', text: '함께·기다림·다지기의 해. 서두르기보다 관계를 쌓을 때.' },
+  3: { keyword: '확장·즐거움', text: '표현·인연·기회가 늘어나는 활기찬 해예요.' },
+  4: { keyword: '다지기', text: '차근차근 기반을 쌓고 노력하는 해. 결과보다 토대.' },
+  5: { keyword: '변화·기회', text: '움직임·새 경험이 많은 해. 변화를 기회로.' },
+  6: { keyword: '책임·가정', text: '가족·관계·돌봄이 중심이 되는 해예요.' },
+  7: { keyword: '성찰·휴식', text: '안으로 채우고 정비하는 해. 무리한 확장은 잠시 미뤄도.' },
+  8: { keyword: '결실·성과', text: '노력이 보상으로 돌아오는 해. 큰일을 추진하기 좋아요.' },
+  9: { keyword: '마무리·정리', text: '비우고 매듭짓는 해. 다음 사이클을 위한 정리의 때.' },
+};
+
+/** 숫자 → 의미(없으면 한 자리로 축소해 재조회 — 31일 등). */
+export function meaningFor(table: Record<number, NumMeaning>, n: number): NumMeaning {
+  return table[n] ?? table[reduce(n, false)] ?? { keyword: String(n), text: '' };
+}
