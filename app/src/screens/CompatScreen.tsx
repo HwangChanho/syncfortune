@@ -6,7 +6,7 @@
 // 결정론(일간관계·교차합충)은 온디바이스 → 통변의 근거로 Edge에 전달(규칙2 사주 단독). 상대 PII=동의(규칙8).
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useEffect, useRef } from 'react';
-import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator, Modal, TextInput, Keyboard, Image } from 'react-native';
+import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator, Modal, TextInput, Keyboard, Image, Animated, Easing } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context'; // 모달 상단 노치/상태바 침범 방지(J)
 import { Alert } from '../lib/alert'; // 커스텀 알림(앱 디자인)
 import { useTranslation } from 'react-i18next';
@@ -59,6 +59,25 @@ import type { ChartInput } from '@spec/chart';
 // 이어보기(daniel): 궁합 상태가 in-memory라 홈 갔다 오면 초기화됐음 → 마지막 선택(나·상대·관계)을 모듈에 보관해 복원.
 //   서버 캐시(readings)는 항상 저장되지만, 상대를 복원해야 sig로 캐시를 다시 불러올 수 있다.
 let _lastCompat: { meId?: string; otherId?: string; rel?: string } = {};
+
+// 궁합 점수 카운트업(0→score) + 게이지 채움 — 궁합 고유 재미(daniel ②콘텐츠별 메타포). score 변경 시 재애니.
+function ScoreReveal({ score }: { score: number }) {
+  const [disp, setDisp] = useState(0);
+  const w = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const v = new Animated.Value(0);
+    const id = v.addListener(({ value }) => setDisp(Math.round(value)));
+    Animated.timing(v, { toValue: score, duration: 900, easing: Easing.out(Easing.cubic), useNativeDriver: false }).start();
+    Animated.timing(w, { toValue: score, duration: 900, easing: Easing.out(Easing.cubic), useNativeDriver: false }).start();
+    return () => v.removeListener(id);
+  }, [score, w]);
+  return (
+    <>
+      <Text style={styles.scoreNum}>{disp}<Text style={styles.scoreUnit}> / 100</Text></Text>
+      <View style={styles.scoreBar}><Animated.View style={[styles.scoreBarFill, { width: w.interpolate({ inputRange: [0, 100], outputRange: ['0%', '100%'] }) }]} /></View>
+    </>
+  );
+}
 
 export function CompatScreen({ me }: { me: ChartInput | null }) {
   const { t } = useTranslation();
@@ -264,8 +283,7 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
                 ? <Image source={COMPAT_IMG[dispTier.key]} style={styles.scoreImg} resizeMode="cover" />
                 : <Text style={styles.scoreEmoji}>{dispTier.emoji}</Text>}
               <Text style={styles.scoreTier}>{dispTier.emoji} {tierLabel(dispTier, appLang() as 'ko' | 'en' | 'ja')}</Text>
-              <Text style={styles.scoreNum}>{dispScore}<Text style={styles.scoreUnit}> / 100</Text></Text>
-              <View style={styles.scoreBar}><View style={[styles.scoreBarFill, { width: `${dispScore}%` }]} /></View>
+              <ScoreReveal score={dispScore} />
               {compat && <Text style={styles.scoreSub}>{t('compat.scoreHarmony', '조화')} {compat.harmony} · {t('compat.scoreTension', '긴장')} {compat.tension}</Text>}
             </View>
           )}
