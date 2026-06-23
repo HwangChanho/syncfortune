@@ -42,15 +42,17 @@ export default function AstrologyRoute() {
       }}
       // 한 콘텐츠에 두 파트 분리(daniel): ①별자리(태양별자리·접근성) ②점성술(네이탈·심층). 둘 다 유료 LLM 통변.
       sections={[
-        { key: 'signSummary', label: t('astrology.signSummary', '⭐ 별자리 — 내 태양별자리') },
-        { key: 'signTraits', label: t('astrology.signTraits', '별자리 · 성격·기질') },
-        { key: 'signLove', label: t('astrology.signLove', '별자리 · 연애 스타일') },
-        { key: 'signStrength', label: t('astrology.signStrength', '별자리 · 강점·매력') },
-        { key: 'big3', label: t('astrology.big3', '🔭 점성술 — 태양·달·상승궁') },
-        { key: 'natalLove', label: t('astrology.natalLove', '점성술 · 사랑·욕구') },
-        { key: 'natalWork', label: t('astrology.natalWork', '점성술 · 일·성취') },
-        { key: 'strength', label: t('astrology.strength', '점성술 · 타고난 강점') },
-        { key: 'challenge', label: t('astrology.challenge', '점성술 · 과제') },
+        // ⭐ 별자리 섹터 — groupTitle로 구분 헤더(divider) 표시
+        { key: 'signSummary', label: t('astrology.signSummary', '내 태양별자리'), groupTitle: t('astrology.signGroup', '⭐ 별자리 — 태양별자리로 보는 나') },
+        { key: 'signTraits', label: t('astrology.signTraits', '성격·기질') },
+        { key: 'signLove', label: t('astrology.signLove', '연애 스타일') },
+        { key: 'signStrength', label: t('astrology.signStrength', '강점·매력') },
+        // 🔭 점성술 섹터 — groupTitle로 구분 헤더(divider) 표시
+        { key: 'big3', label: t('astrology.big3', '태양·달·상승궁'), groupTitle: t('astrology.natalGroup', '🔭 점성술 — 네이탈 차트로 보는 나') },
+        { key: 'natalLove', label: t('astrology.natalLove', '사랑·욕구') },
+        { key: 'natalWork', label: t('astrology.natalWork', '일·성취') },
+        { key: 'strength', label: t('astrology.strength', '타고난 강점') },
+        { key: 'challenge', label: t('astrology.challenge', '과제') },
         { key: 'advice', label: t('astrology.advice', '한마디') },
       ]}
     />

@@ -33,7 +33,7 @@ import { colors, radius, space, shadow, font } from '../lib/theme';
 import { UnlockOverlay } from './UnlockOverlay';         // unlock 자물쇠 애니 + 그 사이 LLM
 import { ChartPicker } from './ChartPicker';             // 상단 명식 헤더 — 현재 적용 명식 표시·전환
 
-export type Section = { key: string; label: string };
+export type Section = { key: string; label: string; groupTitle?: string }; // groupTitle: 이 섹션 카드 위에 그룹 구분 헤더(divider) 표시(daniel: 별자리/점성술 섹터 분리)
 
 export function SpecialContentScreen({ kind, title, sub, sections, needsZiwei = false, genMsg, heroMotif, themeColor = colors.ju, heroImage, buildBody, freePreview }: {
   kind: CreditKind;        // 이용권/캐시 키(roots·image·mission). Edge category=kind.
@@ -180,10 +180,14 @@ export function SpecialContentScreen({ kind, title, sub, sections, needsZiwei = 
           <Text style={{ fontSize: fs(19), fontWeight: '800', color: themeColor, marginBottom: space(3), lineHeight: fs(26) }}>{reading.headline}</Text>
         ) : null}
         {sections.map((s, i) => (typeof reading[s.key] === 'string' && reading[s.key] ? (
-          <Animated.View key={s.key} style={[styles.card, { borderLeftColor: themeColor }, styles.cardAccent, cardAnim(reveal, i, n)]}>
-            <Text style={[styles.secLabel, { color: themeColor }]}>{s.label}</Text>
-            <Text style={[styles.body, bodyDyn]}>{reading[s.key]}</Text>
-          </Animated.View>
+          <View key={s.key}>
+            {/* 그룹 구분 헤더(daniel: 별자리/점성술 섹터 분리) — groupTitle 있으면 카드 위 divider+제목 */}
+            {s.groupTitle ? <Text style={[styles.groupTitle, { color: themeColor }]}>{s.groupTitle}</Text> : null}
+            <Animated.View style={[styles.card, { borderLeftColor: themeColor }, styles.cardAccent, cardAnim(reveal, i, n)]}>
+              <Text style={[styles.secLabel, { color: themeColor }]}>{s.label}</Text>
+              <Text style={[styles.body, bodyDyn]}>{reading[s.key]}</Text>
+            </Animated.View>
+          </View>
         ) : null))}
         {/* 이슈17: 이 풀이 공유(앱 설치자만 열람) — roots/image/mission 등 공통 */}
         <ShareReadingButton kind={kind} title={title} content={reading} />
@@ -270,6 +274,7 @@ const styles = StyleSheet.create({
   card: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.juLine, padding: space(5), marginBottom: space(3), ...shadow.card },
   cardAccent: { borderLeftWidth: 3 },
   secLabel: { fontSize: 16, fontWeight: '800', marginBottom: space(2) },
+  groupTitle: { fontSize: 18, fontWeight: '900', marginTop: space(6), marginBottom: space(3), paddingTop: space(4), borderTopWidth: 1, borderTopColor: colors.juLine }, // 섹터 구분 헤더(별자리/점성술 — daniel)
   body: { ...font.body, color: colors.ink },
   busyTx: { ...font.caption, color: colors.inkSoft, marginTop: space(2), textAlign: 'center' },
   err: { fontSize: 13, color: colors.ju },
