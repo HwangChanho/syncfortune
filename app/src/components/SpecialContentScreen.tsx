@@ -243,7 +243,17 @@ export function cardAnim(reveal: Animated.Value, i: number, n: number) {
 // 상단 히어로 — SVG 모티프(+선택적 이미지 배경) + 타이틀/부제 페이드인. love/newyear 등 다른 화면도 재사용(export).
 export function ContentHero({ motif, image, title, sub, themeColor = colors.ju }: { motif?: ReactNode; image?: any; title: string; sub: string; themeColor?: string }) {
   const a = useRef(new Animated.Value(0)).current;
+  const kb = useRef(new Animated.Value(0)).current; // 히어로 켄번스(느린 줌 인↔아웃) — 정적 이미지에 생동(daniel 재미)
   useEffect(() => { Animated.timing(a, { toValue: 1, duration: 700, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start(); }, [a]);
+  useEffect(() => {
+    if (!image) return; // 이미지 히어로만
+    const loop = Animated.loop(Animated.sequence([
+      Animated.timing(kb, { toValue: 1, duration: 9000, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+      Animated.timing(kb, { toValue: 0, duration: 9000, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+    ]));
+    loop.start();
+    return () => loop.stop();
+  }, [kb, image]);
   const titleAnim = { opacity: a, transform: [{ translateY: a.interpolate({ inputRange: [0, 1], outputRange: [10, 0] }) }] };
   const inner = (
     <View style={styles.heroInner}>
@@ -255,7 +265,9 @@ export function ContentHero({ motif, image, title, sub, themeColor = colors.ju }
   if (image) return (
     // 히어로 이미지 박스 = 이미지 비율(1344x768=1.75)에 맞춤 → cover가 좌우 안 자르고 풀이미지 중앙 노출(daniel: 이미지 가운데/가로 꽉)
     <View style={styles.heroImageBox}>
-      <ExpoImage source={image} style={StyleSheet.absoluteFill} contentFit="cover" contentPosition="center" cachePolicy="memory-disk" transition={150} />
+      <Animated.View style={[StyleSheet.absoluteFill, { transform: [{ scale: kb.interpolate({ inputRange: [0, 1], outputRange: [1, 1.08] }) }] }]}>
+        <ExpoImage source={image} style={StyleSheet.absoluteFill} contentFit="cover" contentPosition="center" cachePolicy="memory-disk" transition={150} />
+      </Animated.View>
       <View style={styles.heroScrim} />
       {inner}
     </View>

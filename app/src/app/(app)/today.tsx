@@ -7,6 +7,7 @@
 //   ★본문은 일상어만(한자·명리 용어 미노출 — 프롬프트가 강제). 명식 없으면 등록 유도.
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useMemo, useState } from 'react';
+import { Reveal } from '../../components/Reveal'; // 분야 전환 시 풀이 크로스페이드(daniel 재미)
 import { View, Text, StyleSheet, ImageBackground, ScrollView, Pressable, ActivityIndicator } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -170,9 +171,11 @@ export default function TodayScreen() {
                 </Pressable>
               ))}
             </View>
-            <View style={styles.readCard}>
-              <Text style={[styles.readTx, { fontSize: fs(15), lineHeight: fs(26) }]}>{reading[area] || t('today.genFail', '풀이 생성에 실패했어요. 잠시 후 다시 시도해 주세요.')}</Text>
-            </View>
+            <Reveal key={area} dy={8}>
+              <View style={styles.readCard}>
+                <Text style={[styles.readTx, { fontSize: fs(15), lineHeight: fs(26) }]}>{reading[area] || t('today.genFail', '풀이 생성에 실패했어요. 잠시 후 다시 시도해 주세요.')}</Text>
+              </View>
+            </Reveal>
             {/* 이슈17: 풀이 결과 공유(content 없거나 error면 컴포넌트가 자체 미노출) */}
             <ShareReadingButton kind="daily" title={t('today.title', '오늘의 운세')} content={reading} />
           </>
