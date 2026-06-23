@@ -155,63 +155,45 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
     setReadings(cached);
     setLoading(false); // 캐시 로드 완료 — 준비된 관계는 바로 표시(나머지는 genAll이 백그라운드)
 
-    // 관계 유형(9종) 순차 생성(캐시된 건 skip). 첫 미생성에서 게이트가 걸리면 전체 중단(쌍 단위 과금 — 9종=1쌍).
-    async function genAll() {
-      if (!assertOnline(t)) return;                        // 오프라인 = 신규 생성 차단
-      setGenProgress({ active: true, total: COMPAT_RELS.length, done: COMPAT_RELS.filter((r) => cached[r.key] || readings[r.key]).length, label: '궁합', route: '/compat' }); // 다건 진행도(daniel)
-      for (const r of COMPAT_RELS) {
-        if (cached[r.key] || readings[r.key]) continue;
-        setBusy(r.key);
-        const res = await genCompatReading(chartId!, r.key, sig, otherC.saju, cross, dx.dayMasterRelation.detail, meC.ziwei, otherC.ziwei, undefined, undefined, meSel?.context, numMe, numOther);
-        if (res.kind === 'answer') { setReadings((prev) => ({ ...prev, [r.key]: res.reading })); setGenProgress({ route: '/compat', done: (getGenItem('/compat')?.done ?? 0) + 1 }); continue; }
-        setBusy(null);
-        setGenProgress({ route: '/compat', active: false }); // 게이트/중단 시 홈 배너 닫기(daniel)
-        if (res.kind === 'needPremium') { Alert.alert(t('compat.premiumTitle'), t('compat.premiumMsg')); return; }
-        if (res.kind === 'needPayment') {
-          Alert.alert(t('compat.payTitle'), t('compat.payMsg'), [
-            { text: t('common.cancel'), style: 'cancel' },
-            { text: t('compat.payBtn'), onPress: async () => {
-              try { const ok = await purchaseCreditRC('compat'); if (!ok) return; await grantCredit('compat'); await genAll(); } // 결제→크레딧 부여→서버 consume
-              catch (e) { Alert.alert(t('reading.payPending'), (e as Error).message); }
-            } },
-          ]);
-          return;
-        }
-        if (res.kind === 'unavailable') { Alert.alert(t('common.error'), res.message); return; } // 방어: LLM 일시적 불가 — 재시도 안내(차감분은 서버가 환불)
-        return; // error
-      }
-      setGenProgress({ route: '/compat', done: COMPAT_RELS.length, total: COMPAT_RELS.length }); // 완료 → 홈 배너 '풀이 보기'(daniel)
-      setBusy(null);
-    }
-    await genAll();
+    // ★비용 보호(daniel J/L): 진입 시 9종을 자동 생성하지 않는다(genAll 제거 = 비용 폭탄 차단).
+    //   캐시된 관계는 위에서 로드돼 바로 보이고, 미생성 관계는 탭→'생성' 버튼→alert 확인 후 1건씩(genOne).
   }
 
   // 연도별 궁합(그 해 흐름) — 선택 관계×연도 1개 lazy 생성. ctx(analyze 시 보관) 재사용.
   //   같은 상대(쌍)면 게이트 통과(원국 생성 후라 samePair) — 비용은 캐시(연도×관계 1회)로 방어.
-  async function genYear(relKey: string, yr: string) {
+  // ★관계(±연도) 1건 생성 — 개별 비용이라 alert 확인 후에만(daniel J/L). 자동 전부생성(genAll) 대체.
+  async function genOne(relKey: string, yr = '') {
     if (!ctx || !pair || busy) return;
     if (!assertOnline(t)) return;
-    const key = `${relKey}_y${yr}`;
+    const key = yr ? `${relKey}_y${yr}` : relKey;
     if (readings[key]) return;
+    const relName = t(COMPAT_RELS.find((r) => r.key === relKey)?.tk ?? '');
+    Alert.alert(
+      t('compat.genTitle', '풀이 만들기'),
+      `${relName}${yr ? ' ' + yr + '년' : ''} 궁합 풀이를 만들까요?\n이용권 1회 또는 결제가 필요해요.`,
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        { text: t('compat.genConfirm', '생성'), onPress: () => runCompatGen(relKey, yr, key) },
+      ],
+    );
+  }
+  async function runCompatGen(relKey: string, yr: string, key: string) {
+    if (!ctx || !pair) return;
     setBusy(key);
-    const gz = yearGanZhi(Number(yr));
-    const res = await genCompatReading(ctx.chartId, relKey, ctx.sig, pair.other, ctx.cross, ctx.dayRel, ctx.meZiwei, ctx.otherZiwei, yr, gz, meSel?.context, ctx.numMe, ctx.numOther);
+    setGenProgress({ active: true, total: 1, done: 0, label: '궁합', route: '/compat' });
+    const gz = yr ? yearGanZhi(Number(yr)) : undefined;
+    const res = await genCompatReading(ctx.chartId, relKey, ctx.sig, pair.other, ctx.cross, ctx.dayRel, ctx.meZiwei, ctx.otherZiwei, yr || undefined, gz, meSel?.context, ctx.numMe, ctx.numOther);
     setBusy(null);
-    if (res.kind === 'answer') { setReadings((prev) => ({ ...prev, [key]: res.reading })); return; }
+    if (res.kind === 'answer') { setReadings((prev) => ({ ...prev, [key]: res.reading })); setGenProgress({ route: '/compat', done: 1, total: 1 }); return; }
+    setGenProgress({ route: '/compat', active: false });
     if (res.kind === 'needPremium') { Alert.alert(t('compat.premiumTitle'), t('compat.premiumMsg')); return; }
     if (res.kind === 'unavailable') { Alert.alert(t('common.error'), res.message); return; } // 방어: LLM 일시적 불가 — 재시도 안내
     if (res.kind === 'needPayment') {
       Alert.alert(t('compat.payTitle'), t('compat.payMsg'), [
         { text: t('common.cancel'), style: 'cancel' },
         { text: t('compat.payBtn'), onPress: async () => {
-          try {
-            const ok = await purchaseCreditRC('compat'); if (!ok) return;
-            await grantCredit('compat');                 // 결제→크레딧 부여→서버 consume
-            setBusy(key);
-            const r2 = await genCompatReading(ctx.chartId, relKey, ctx.sig, pair.other, ctx.cross, ctx.dayRel, ctx.meZiwei, ctx.otherZiwei, yr, gz, meSel?.context, ctx.numMe, ctx.numOther);
-            setBusy(null);
-            if (r2.kind === 'answer') setReadings((prev) => ({ ...prev, [key]: r2.reading }));
-          } catch (e) { setBusy(null); Alert.alert(t('reading.payPending'), (e as Error).message); }
+          try { const ok = await purchaseCreditRC('compat'); if (!ok) return; await grantCredit('compat'); await runCompatGen(relKey, yr, key); } // 결제→크레딧 부여→서버 consume→재생성
+          catch (e) { Alert.alert(t('reading.payPending'), (e as Error).message); }
         } },
       ]);
     }
@@ -288,7 +270,7 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
           )}
           <View style={styles.relChips}>
             {COMPAT_RELS.map((r) => (
-              <Pressable key={r.key} style={[styles.relChip, rel === r.key && styles.relChipOn]} onPress={() => { setRel(r.key); if (year && !readings[`${r.key}_y${year}`]) genYear(r.key, year); }}>
+              <Pressable key={r.key} style={[styles.relChip, rel === r.key && styles.relChipOn]} onPress={() => setRel(r.key)}>
                 <Text style={[styles.relChipTx, rel === r.key && styles.relChipTxOn]}>{t(r.tk)}</Text>
               </Pressable>
             ))}
@@ -301,7 +283,7 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
             {YEARS.map((y) => {
               const ys = String(y);
               return (
-                <Pressable key={ys} style={[styles.yearChip, year === ys && styles.yearChipOn]} onPress={() => { setYear(ys); if (!readings[`${rel}_y${ys}`]) genYear(rel, ys); }}>
+                <Pressable key={ys} style={[styles.yearChip, year === ys && styles.yearChipOn]} onPress={() => setYear(ys)}>
                   <Text style={[styles.yearChipTx, year === ys && styles.yearChipTxOn]}>{ys}</Text>
                 </Pressable>
               );
@@ -332,7 +314,11 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
             // 로딩/이 관계 생성 중 = 자물쇠 대신 스피너(daniel ⑦)
             <View style={{ paddingVertical: space(8), alignItems: 'center' }}><ActivityIndicator color={colors.ju} /></View>
           ) : (
-            <Text style={styles.note}>{t('compat.noReading')}</Text>
+            // 비용 보호(daniel J/L): 미생성 관계는 자동 호출 않고 '생성' 버튼 → alert 확인 후 1건만(genOne)
+            <Pressable onPress={() => genOne(rel, year)} style={{ alignItems: 'center', backgroundColor: colors.ju, borderRadius: radius.md, paddingVertical: space(4), paddingHorizontal: space(5), marginTop: space(4), gap: space(1) }}>
+              <Text style={{ color: colors.bg, fontWeight: '900', fontSize: 16 }}>{t('compat.genCta', '이 관계 풀이 만들기')}</Text>
+              <Text style={{ color: colors.bg, opacity: 0.85, fontSize: 12, fontWeight: '600' }}>{t('compat.genCtaSub', '확인 후 이용권 1회 또는 결제')}</Text>
+            </Pressable>
           )}
 
           {/* 추가질문 — 통변이 있을 때만(관계유형/연도 키별, 사주·자미와 동일) */}
