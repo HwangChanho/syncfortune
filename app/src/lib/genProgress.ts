@@ -18,6 +18,7 @@ export type GenItem = {
   label: string;    // 표시명(예: '사주 풀이')
   active: boolean;  // 생성 중/완료대기(배너 표시). false patch = 제거
   seq: number;      // 추가 순서(배너 정렬 — 단조 증가)
+  startedAt: number; // 생성 시작 시각(ms) — 단일 콜(총1)의 추정 진행률(시작 0%~저장 100%)용. multi는 done/total 실제값 사용
 };
 
 let items: Record<string, GenItem> = {};
@@ -40,6 +41,7 @@ export function setGenProgress(patch: Partial<GenItem> & { route: string }) {
     label: patch.label ?? prev?.label ?? '',
     active: patch.active ?? prev?.active ?? true,
     seq: prev?.seq ?? ++seq,
+    startedAt: prev?.startedAt ?? Date.now(), // 최초 생성 시각 고정(이후 갱신해도 유지) — 추정 진행률 기준점
   };
   items[route] = next;
   emit();

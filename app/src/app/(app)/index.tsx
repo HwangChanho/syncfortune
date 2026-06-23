@@ -162,6 +162,17 @@ export default function Home() {
   const { t } = useTranslation();
   const { fs } = useFontScale(); // 오늘의 기운 배너 본문(읽는 글) 글자 크기 반영
   const gen = useGenProgress(); // 통변 생성 진행률(풀이중 홈 나가면 여기 배너로 %)
+  // I(daniel): %가 움직이도록 — 진행 중 풀이가 있으면 주기 리렌더(단일 콜의 추정 % 갱신). 진행 없으면 타이머 미동작.
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    if (!gen.some((g) => g.active && g.done < g.total)) return;
+    const id = setInterval(() => setTick((x) => x + 1), 700);
+    return () => clearInterval(id);
+  }, [gen]);
+  // 홈 배너 % — multi(사주16/자미12)=저장 기반 실제값, single(총1)=시작~저장 추정(저장되면 done>=total로 완료 분기=100%)
+  const genPct = (done: number, total: number, startedAt: number) => total > 1
+    ? Math.round((done / total) * 100)
+    : Math.min(95, Math.max(3, Math.round(((Date.now() - startedAt) / 20000) * 100)));
   const { session } = useAuth();
   const { isPremium } = useSubscription();
   const [admin, setAdmin] = useState(false);
@@ -274,7 +285,7 @@ export default function Home() {
           </Pressable>
         ) : (
           <Pressable key={g.route} onPress={() => router.push(g.route as any)} style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.juSoft, borderColor: colors.ju, borderWidth: 1, borderRadius: radius.md, paddingVertical: space(2.5), paddingHorizontal: space(4), marginBottom: space(3), gap: space(2) }}>
-            <Text style={{ color: colors.ju, fontWeight: '700', fontSize: fs(13), flex: 1 }}>{g.label} 풀이 중… {g.total > 1 ? `${g.done}/${g.total} (${Math.round((g.done / g.total) * 100)}%)` : '생성 중'}</Text>
+            <Text style={{ color: colors.ju, fontWeight: '700', fontSize: fs(13), flex: 1 }}>{g.label} 풀이 중… {g.total > 1 ? `${g.done}/${g.total} ` : ''}{genPct(g.done, g.total, g.startedAt)}%</Text>
             <Text style={{ color: colors.ju, fontWeight: '700', fontSize: fs(13) }}>이어보기 ›</Text>
           </Pressable>
         )))}
