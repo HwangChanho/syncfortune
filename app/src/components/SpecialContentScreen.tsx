@@ -234,8 +234,9 @@ export function ContentHero({ motif, image, title, sub, themeColor = colors.ju }
     </View>
   );
   if (image) return (
-    <View style={styles.hero}>
-      <ExpoImage source={image} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="memory-disk" transition={150} />
+    // 히어로 이미지 박스 = 이미지 비율(1344x768=1.75)에 맞춤 → cover가 좌우 안 자르고 풀이미지 중앙 노출(daniel: 이미지 가운데/가로 꽉)
+    <View style={[styles.hero, styles.heroImageBox]}>
+      <ExpoImage source={image} style={StyleSheet.absoluteFill} contentFit="cover" contentPosition="center" cachePolicy="memory-disk" transition={150} />
       <View style={styles.heroScrim} />
       {inner}
     </View>
@@ -264,6 +265,7 @@ const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: space(7), backgroundColor: colors.bg },
   // 히어로
   hero: { borderRadius: radius.lg, overflow: 'hidden', marginBottom: space(5), aspectRatio: 1.5, backgroundColor: colors.sunk },
+  heroImageBox: { aspectRatio: 1.75 }, // 이미지 히어로 = 생성 비율(1344x768=1.75) 맞춤·좌우 크롭 방지·중앙(daniel)
   heroPlain: { backgroundColor: colors.card, borderWidth: 1 },
   heroImg: { borderRadius: radius.lg },
   heroScrim: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(21,19,46,0.55)' }, // 이미지 위 가독 스크림
