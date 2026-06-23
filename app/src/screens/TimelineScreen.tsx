@@ -153,7 +153,7 @@ export function TimelineScreen({ input, savedChart }: { input: ChartInput | null
       const f = invokeFail(data, error);
       setReadings((prev) => ({ ...prev, [key]: f ? { error: f.message } : data?.reading }));
     } catch (e) { setReadings((prev) => ({ ...prev, [key]: { error: (e as Error).message } })); }
-    setGenProgress({ done: 1, total: 1 }); // 완료 → 홈 배너 '풀이 보기'(daniel 이슈15)
+    setGenProgress({ route: '/timeline', done: 1, total: 1 }); // 완료 → 홈 배너 '풀이 보기'(daniel 이슈15)
     setBusy(null);
   }
 

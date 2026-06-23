@@ -109,7 +109,7 @@ export default function CareerScreen() {
       else logEvent('career_invoke_ok');
       setReading(readingFromInvoke(data, error)); // 방어: 일시적 불가→친화 재시도 / 오류→원문 숨김
     } catch (e) { logEvent('career_invoke_throw', { message: (e as Error).message }, 'error'); setReading({ error: (e as Error).message }); }
-    setGenProgress({ done: 1, total: 1 }); // 완료 → 홈 배너 '풀이 보기'(daniel 이슈15)
+    setGenProgress({ route: '/career', done: 1, total: 1 }); // 완료 → 홈 배너 '풀이 보기'(daniel 이슈15)
     setBusy(false);
   }
 

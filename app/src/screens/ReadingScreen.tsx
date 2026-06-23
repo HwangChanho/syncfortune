@@ -17,7 +17,7 @@ import { useTranslation } from 'react-i18next';
 import { computeChart } from '../lib/engine';
 import { useAuth } from '../lib/useAuth';
 import { supabase } from '../lib/supabase';
-import { notifyReadingDone } from '../lib/notifications'; // 생성 완료 푸시(daniel: 풀이중 딴 일 + 완료 알림)
+// 완료 푸시는 genProgress(setGenProgress 완료 전이)에서 중앙 처리(daniel ⑨ — 모든 풀이 공통)
 import { setGenProgress } from '../lib/genProgress'; // 홈 진행률(풀이중 홈 나가도 % 표시)
 import { useEntitlement } from '../lib/entitlement';
 import { isReadingUnlocked } from '../lib/unlocks'; // 서버 권위 세트 언락(P3) — 이미 열렸으면 무료 재생성
@@ -206,24 +206,25 @@ export function ReadingScreen({
     const todo = cats.filter((cat) => !readings[cat.key]);
     if (!todo.length) return;                              // 전부 캐시됨 → 생성 불필요
     let gDone = cats.length - todo.length;                 // 완료 영역(홈 진행률 공유 — 언마운트돼도 루프 지속)
+    const gpRoute = kind === 'ziwei' ? '/reading?kind=ziwei' : '/reading'; // 홈 배너 route 키(다중 진행도 — daniel ⑨)
     setProgress({ done: gDone, total: cats.length, current: todo[0].label });
-    setGenProgress({ active: true, done: gDone, total: cats.length, label: kind === 'ziwei' ? t('reading.ziweiTitle', '자미두수') : t('reading.sajuTitle', '사주 풀이'), route: kind === 'ziwei' ? '/reading?kind=ziwei' : '/reading' });
+    setGenProgress({ active: true, done: gDone, total: cats.length, label: kind === 'ziwei' ? t('reading.ziweiTitle', '자미두수') : t('reading.sajuTitle', '사주 풀이'), route: gpRoute });
     for (const cat of todo) {
       setProgress((p) => (p ? { ...p, current: cat.label } : null)); // 지금 풀이 중인 영역
       try {
         // 자미는 운한(대한 비성사화)이 포함된 최신 명반을 body 로 전달(저장본은 구버전일 수 있음 → Edge가 우선 사용).
         const { data, error } = await supabase.functions.invoke('interpret', { body: { chartId: id, category: cat.key, kind, tier: 'paid', lang: appLang(), ...(kind === 'ziwei' ? { ziwei: c!.ziwei } : {}), ...(savedChart?.context ? { context: savedChart.context } : {}) } });
         setReadings((prev) => ({ ...prev, [cat.key]: readingFromInvoke(data, error) })); // 방어: 일시적 불가·오류 친화 처리
-        if ((data as any)?.unavailable) { setProgress(null); setGenProgress({ active: false }); return; } // 방어: 사용량 한도 등 → 남은 영역 연속 호출·과금 방지(중단)
+        if ((data as any)?.unavailable) { setProgress(null); setGenProgress({ route: gpRoute, active: false }); return; } // 방어: 사용량 한도 등 → 남은 영역 연속 호출·과금 방지(중단)
       } catch (err) {
         setReadings((prev) => ({ ...prev, [cat.key]: { error: (err as Error).message } }));
       }
       setProgress((p) => (p ? { done: p.done + 1, total: p.total, current: p.current } : null));
-      setGenProgress({ done: ++gDone }); // 홈 진행률 갱신(영역 1개 완료)
+      setGenProgress({ route: gpRoute, done: ++gDone }); // 홈 진행률 갱신(영역 1개 완료)
     }
     setProgress(null);
-    setGenProgress({ done: cats.length, total: cats.length }); // 완료 — 홈 배너에 '풀이 보기'(active 유지·탭하면 이동+닫기, daniel 이슈13)
-    notifyReadingDone(t('reading.doneTitle', '풀이가 완성됐어요'), t('reading.doneBody', '준비된 풀이를 확인해 보세요'), kind === 'ziwei' ? '/reading?kind=ziwei' : '/reading'); // 생성 완료 푸시 + 탭 시 그 화면으로
+    setGenProgress({ route: gpRoute, done: cats.length, total: cats.length }); // 완료 — 홈 배너에 '풀이 보기'(active 유지·탭하면 이동+닫기, daniel 이슈13)
+    // (완료 푸시는 setGenProgress 완료 전이에서 중앙 발송 — 중복 방지)
   }
 
   // 미리보기(daniel 2026-06): 무료 진입 시 '첫 분야 1개만' 맛보기 생성 → 나머지는 잠김(unlock 유도).

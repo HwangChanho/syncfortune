@@ -111,7 +111,7 @@ export function SpecialContentScreen({ kind, title, sub, sections, needsZiwei = 
       else if ((data as any)?.unavailable) logEvent(`${kind}_unavailable`, { retryAt: (data as any)?.retryAt }, 'error'); // 방어: LLM 일시적 불가
       setReading(readingFromInvoke(data, error)); // 방어: 일시적 불가→친화 재시도 / 오류→원문 숨김
     } catch (e) { logEvent(`${kind}_invoke_throw`, { message: (e as Error).message }, 'error'); setReading({ error: (e as Error).message }); }
-    setGenProgress({ done: 1, total: 1 }); // 완료 → 홈 배너 '풀이 보기' 이동버튼(daniel 이슈15)
+    setGenProgress({ route: ('/' + kind), done: 1, total: 1 }); // 완료 → 홈 배너 '풀이 보기' 이동버튼(daniel 이슈15)
     setBusy(false);
   }
 

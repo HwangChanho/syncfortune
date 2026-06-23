@@ -3,8 +3,10 @@
 // 로그인 게이트 없음(ADR-037) — 명식·궁합은 온디바이스 무료(규칙5).
 // 무료 사용자 = 하단 AdBanner 고정 / 프리미엄(구독) = 광고 없음(ADR-043).
 // ─────────────────────────────────────────────────────────────────────────
-import { Stack } from 'expo-router';
+import { Stack, usePathname } from 'expo-router';
 import { View } from 'react-native';
+import { useEffect } from 'react';
+import { clearGenByPath } from '../../lib/genProgress'; // 화면 접근 시 그 풀이 알림 배너 해제(daniel ⑨)
 import { useFontScale } from '../../lib/fontScale';
 import { AdBanner } from '../../components/AdBanner';
 import { BottomNav } from '../../components/BottomNav';
@@ -17,6 +19,9 @@ export const unstable_settings = { initialRouteName: 'index' };
 
 export default function AppLayout() {
   const { fs } = useFontScale();   // 글자크기 설정 → 헤더 타이틀 반응(daniel). 뒤로버튼은 iOS 네이티브.
+  // 해당 화면을 어떤 루트로든 접근하면 그 풀이의 홈 알림 배너 해제(daniel ⑨). 홈('/')은 제외(배너 노출 유지).
+  const pathname = usePathname();
+  useEffect(() => { if (pathname && pathname !== '/') clearGenByPath(pathname); }, [pathname]);
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
       <OfflineBanner />

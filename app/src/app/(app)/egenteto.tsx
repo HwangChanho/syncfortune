@@ -91,7 +91,7 @@ export default function EgenTetoScreen() {
       if (fail) { logEvent(fail.kind === 'unavailable' ? 'egen_unavailable' : 'egen_error', { message: fail.message, retryAt: fail.retryAt }, 'error'); setErr(fail.message); }
       else setReading((data?.reading as EgenReading) ?? null);
     } catch (e: any) { logEvent('egen_throw', { message: String(e?.message ?? e) }, 'error'); setErr(t('egen.genFail', '설명을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.')); }
-    setGenProgress({ done: 1, total: 1 }); // 완료 → 홈 배너 '풀이 보기'(daniel)
+    setGenProgress({ route: '/egenteto', done: 1, total: 1 }); // 완료 → 홈 배너 '풀이 보기'(daniel)
     setBusy(false);
   }
 

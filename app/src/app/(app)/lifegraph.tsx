@@ -96,7 +96,7 @@ export default function LifeGraphScreen() {
       if (f) { logEvent('lifegraph_fail', { kind: f.kind, message: error?.message }, 'error'); setErr(f.message); }
       else setData((res?.reading as LifeData) ?? null);
     } catch (e: any) { logEvent('lifegraph_throw', { message: String(e?.message ?? e) }, 'error'); setErr(t('life.genFail', '생성에 실패했어요. 잠시 후 다시 시도해 주세요.')); }
-    setGenProgress({ done: 1, total: 1 }); // 완료 → 홈 배너 '풀이 보기'(daniel 이슈15)
+    setGenProgress({ route: '/lifegraph', done: 1, total: 1 }); // 완료 → 홈 배너 '풀이 보기'(daniel 이슈15)
     setBusy(false);
   }
 

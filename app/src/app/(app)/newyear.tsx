@@ -105,7 +105,7 @@ export default function NewYearScreen() {
       if (f) { logEvent('newyear_fail', { kind: f.kind, message: error?.message }, 'error'); setErr(f.message); }
       else setData((res?.reading as Record<string, any>) ?? null);
     } catch (e: any) { logEvent('newyear_throw', { message: String(e?.message ?? e) }, 'error'); setErr(t('today.genFail', '생성에 실패했어요. 잠시 후 다시 시도해 주세요.')); }
-    setGenProgress({ done: 1, total: 1 }); // 완료 → 홈 배너 '풀이 보기' 이동버튼(daniel 이슈15)
+    setGenProgress({ route: '/newyear', done: 1, total: 1 }); // 완료 → 홈 배너 '풀이 보기' 이동버튼(daniel 이슈15)
     setBusy(false);
   }
 

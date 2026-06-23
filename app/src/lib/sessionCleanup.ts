@@ -10,10 +10,10 @@
 //     로그아웃으로 지우면 재로그인 시 구매 손실·재차감 위험. 구매 상태는 로그인과 분리한다.
 // ─────────────────────────────────────────────────────────────────────────
 import { clearMyChart } from './myChart';
-import { setGenProgress } from './genProgress';
+import { clearAllGenProgress } from './genProgress';
 
 /** 로그아웃 시 호출 — 명식·진행률만 정리(구매/이용권은 보존). */
 export async function clearLocalUserData(): Promise<void> {
   await clearMyChart().catch(() => {}); // 명식·대표·tombstone (notifyRepChange 로 ChartPicker·홈 즉시 갱신). 서버 blob 보존.
-  setGenProgress({ active: false, done: 0, total: 0, label: '', route: '/' }); // 진행률 배너 초기화
+  clearAllGenProgress(); // 진행률 배너 전부 초기화(다중)
 }

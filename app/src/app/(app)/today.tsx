@@ -93,7 +93,7 @@ export default function TodayScreen() {
       if (fail) { logEvent(fail.kind === 'unavailable' ? 'daily_unavailable' : 'daily_error', { message: fail.message, retryAt: fail.retryAt }, 'error'); setErr(fail.message); }
       else setReading((data?.reading as Record<string, string>) ?? null);
     } catch (e: any) { logEvent('daily_throw', { message: String(e?.message ?? e) }, 'error'); setErr(t('today.genFail', '풀이 생성에 실패했어요. 잠시 후 다시 시도해 주세요.')); }
-    setGenProgress({ done: 1, total: 1 }); // 완료 → 홈 배너 '풀이 보기'(daniel)
+    setGenProgress({ route: '/today', done: 1, total: 1 }); // 완료 → 홈 배너 '풀이 보기'(daniel)
     setBusy(false);
   }
 
