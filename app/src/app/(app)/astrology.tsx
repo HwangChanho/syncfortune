@@ -3,6 +3,7 @@
 //   위경도는 출생지 피커에서 추출(birthLat/birthLon). 없으면(구버전 명식) 서울 기본 — 명식 재저장 시 정확해짐.
 import { useTranslation } from 'react-i18next';
 import { SpecialContentScreen, FreeBasics } from '../../components/SpecialContentScreen';
+import { ZodiacWheel } from '../../components/ZodiacWheel'; // 황도 12궁 회전 휠(daniel B 재미)
 import { colors } from '../../lib/theme';
 import { buildNatal } from '../../lib/astrology';
 
@@ -38,7 +39,10 @@ export default function AstrologyRoute() {
         const [h, mi] = (tp ?? '0:0').split(':').map(Number);
         const nat = buildNatal({ year: y, month: mo, day: d, hour: h || 0, minute: mi || 0, latitude: ch.input.birthLat ?? 37.5665, longitude: ch.input.birthLon ?? 126.978 });
         const ko = (s: string) => SIGN_KO[s] ?? s;
-        return <FreeBasics title={t('special.freeBasics', '먼저 무료로 — 나의 빅3')} rows={[['태양', ko(nat.big3.sun)], ['달', ko(nat.big3.moon)], ['상승궁', ko(nat.big3.rising)]]} />;
+        return (<>
+          <ZodiacWheel sunSign={nat.big3.sun} />
+          <FreeBasics title={t('special.freeBasics', '먼저 무료로 — 나의 빅3')} rows={[['태양', ko(nat.big3.sun)], ['달', ko(nat.big3.moon)], ['상승궁', ko(nat.big3.rising)]]} />
+        </>);
       }}
       // 한 콘텐츠에 두 파트 분리(daniel): ①별자리(태양별자리·접근성) ②점성술(네이탈·심층). 둘 다 유료 LLM 통변.
       sections={[
