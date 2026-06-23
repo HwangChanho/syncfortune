@@ -76,6 +76,7 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
   const [year, setYear] = useState('');                          // '' = 원국(관계 본바탕) / 'YYYY' = 그 해 흐름
   const [readings, setReadings] = useState<Record<string, CompatReading>>({});
   const [busy, setBusy] = useState<string | null>(null);         // 생성 중 키(rel 또는 rel_yYYYY)
+  const [loading, setLoading] = useState(false);                 // 재진입 시 캐시 로딩 중 — 자물쇠 대신 스피너(daniel ⑦ 완료 감지)
   const [pair, setPair] = useState<{ me: any; other: any } | null>(null);
   const [compat, setCompat] = useState<CompatScoreResult | null>(null); // 궁합 점수·등급(결정론 — 통변과 별개로 항상)
   const [ctx, setCtx] = useState<{ chartId: string; sig: string; cross: string[]; dayRel: string; meZiwei: any; otherZiwei: any; numMe?: any; numOther?: any } | null>(null); // 연도별 추가 생성 컨텍스트(+수비학 보조)
@@ -135,6 +136,7 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
   //   게이트(서버 판정): 비프리미엄=프리미엄 유도 / 무료 5쌍 초과=건당 결제(paid 재시도). daniel.
   async function analyze() {
     if (!meInput || !otherInput || !session) return;
+    setLoading(true); // 캐시/서버 차트 로딩 시작 — 준비 전까지 스피너(noReading·자물쇠 플래시 방지)
     _lastCompat = { meId: meSel?.id, otherId: otherSel?.id, rel }; // 이어보기 복원용(마지막 선택 보관)
     const meC = computeChart(meInput), otherC = computeChart(otherInput);
     // 수비학 보조 교차(daniel 2026-06-23) — 두 사람 생명수·생일수(생년월일 기반)를 Edge 궁합 통변에 보조로 전달.
@@ -143,14 +145,15 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
     setPair({ me: meC.saju, other: otherC.saju }); setActive(new Set()); setYear(''); // 분석 시작 = 원국부터
     const dx = analyzeCompatibility(meC.saju, otherC.saju);     // 일간관계·교차(통변 근거)
     setCompat(compatScore(dx));                                 // 궁합 점수·등급(결정론 — 항상 표시, 저장명식 없어도)
-    if (!meSel) return; // 캐시·통변은 저장 명식(serverChartId) 필요 — 대표 없으면 점수·비교만
+    if (!meSel) { setLoading(false); return; } // 캐시·통변은 저장 명식(serverChartId) 필요 — 대표 없으면 점수·비교만
     const chartId = await ensureServerChartId(meC, meInput, session, meSel);
-    if (!chartId) return;
+    if (!chartId) { setLoading(false); return; }
     const sig = otherSig(otherC.saju);
     const cross = crossDetails(meC.saju, otherC.saju);          // 교차작용(통변 근거 — 쉬운 말로 번역)
     setCtx({ chartId, sig, cross, dayRel: dx.dayMasterRelation.detail, meZiwei: meC.ziwei, otherZiwei: otherC.ziwei, numMe, numOther }); // 연도별 추가 생성용(+수비학 보조)
     const cached = await loadCompatReadings(chartId, sig);
     setReadings(cached);
+    setLoading(false); // 캐시 로드 완료 — 준비된 관계는 바로 표시(나머지는 genAll이 백그라운드)
 
     // 관계 유형(9종) 순차 생성(캐시된 건 skip). 첫 미생성에서 게이트가 걸리면 전체 중단(쌍 단위 과금 — 9종=1쌍).
     async function genAll() {
@@ -238,7 +241,8 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
 
   return (
     <>
-    <UnlockOverlay visible={!!busy} message={t('compat.generating', '궁합을 풀어내는 중…')} />
+    {/* 보고 있는 관계 풀이가 이미 준비됐으면(cur) 전체 잠금 오버레이로 막지 않음 — 나머지 관계는 홈 배너로 백그라운드 진행(daniel: 완료 감지·이어보기 개선) */}
+    <UnlockOverlay visible={!!busy && !cur} message={t('compat.generating', '궁합을 풀어내는 중…')} />
     <ScrollView style={styles.screen} contentContainerStyle={styles.wrap} automaticallyAdjustKeyboardInsets keyboardShouldPersistTaps="handled">
       {/* ── 내 명식 슬롯(골드, 따로 빼서 식별) ── */}
       <Text style={styles.slotLabel}>{t('compat.mySlot')}</Text>
@@ -324,6 +328,9 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
                 );
               })}
             </View>
+          ) : (loading || (!!busy && busy === curKey)) ? (
+            // 로딩/이 관계 생성 중 = 자물쇠 대신 스피너(daniel ⑦)
+            <View style={{ paddingVertical: space(8), alignItems: 'center' }}><ActivityIndicator color={colors.ju} /></View>
           ) : (
             <Text style={styles.note}>{t('compat.noReading')}</Text>
           )}
