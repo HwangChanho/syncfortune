@@ -1,14 +1,14 @@
 // app/src/components/ZodiacWheel.tsx — 황도 12궁 회전 휠(별자리 콘텐츠 재미)
 // ─────────────────────────────────────────────────────────────────────────
-// daniel B: 별자리 화면에 회전 휠. 정적 12궁 글리프(태양별자리 강조) + *포인터가 돌아
-//   내 태양별자리에 안착*(운명의 수레바퀴 — 글리프는 똑바로 유지해 가독성 확보).
-//   마운트 시 2바퀴 + 내 별자리 각도만큼 회전 후 감속 정지(Easing.out).
+// daniel B: 별자리 화면에 회전 휠. 정적 12궁 글리프 + *포인터가 돌아 내 태양별자리에 안착*
+//   (운명의 수레바퀴 — 글리프는 똑바로 유지해 가독성 확보). 마운트 시 2바퀴 + 내 별자리 각도 후 감속.
+//   ※ 글리프(♈)에 VS15(︎) 붙여 텍스트 표시 시도 — iOS svg가 이모지로 렌더해도 태양별자리는 금색 디스크로 강조됨.
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useRef } from 'react';
 import { View, Animated, Easing } from 'react-native';
-import Svg, { Circle, Line, Text as SvgText } from 'react-native-svg';
+import Svg, { Circle, Line, G, Text as SvgText } from 'react-native-svg';
 
-const GLYPHS = ['♈', '♉', '♊', '♋', '♌', '♍', '♎', '♏', '♐', '♑', '♒', '♓'];
+const GLYPHS = ['♈', '♉', '♊', '♋', '♌', '♍', '♎', '♏', '♐', '♑', '♒', '♓'].map((g) => g + '︎');
 // 영문 별자리명(astrology.big3.sun) → 인덱스(양자리=0 …)
 const SIGN_ORDER = ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'];
 
@@ -25,7 +25,7 @@ export function ZodiacWheel({ sunSign, size = 220 }: { sunSign?: string; size?: 
   const rGlyph = c - 22;
   return (
     <View style={{ width: size, height: size, alignSelf: 'center', marginBottom: 8 }}>
-      {/* 정적 휠 — 12궁 글리프(똑바로), 태양별자리 강조 */}
+      {/* 정적 휠 — 12궁 글리프(똑바로), 태양별자리 금색 디스크 강조 */}
       <Svg width={size} height={size}>
         <Circle cx={c} cy={c} r={c - 5} stroke="rgba(212,175,110,0.35)" strokeWidth={1.2} fill="none" />
         <Circle cx={c} cy={c} r={c - 38} stroke="rgba(212,175,110,0.15)" strokeWidth={1} fill="none" />
@@ -35,7 +35,10 @@ export function ZodiacWheel({ sunSign, size = 220 }: { sunSign?: string; size?: 
           const y = c + rGlyph * Math.sin(th);
           const on = i === sunIdx;
           return (
-            <SvgText key={i} x={x} y={y + (on ? 8 : 6)} fontSize={on ? 23 : 16} fill={on ? '#E9C77B' : 'rgba(230,220,245,0.5)'} textAnchor="middle" fontWeight="bold">{g}</SvgText>
+            <G key={i}>
+              {on && <Circle cx={x} cy={y} r={16} fill="rgba(233,199,123,0.92)" />}
+              <SvgText x={x} y={y + 6} fontSize={on ? 18 : 15} fill={on ? '#15132E' : 'rgba(230,220,245,0.6)'} textAnchor="middle" fontWeight="bold">{g}</SvgText>
+            </G>
           );
         })}
       </Svg>
