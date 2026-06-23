@@ -18,8 +18,8 @@ export default function AstrologyRoute() {
     <SpecialContentScreen
       kind="astrology"
       themeColor={colors.ju}
-      title={t('astrology.title', '별자리 운세')}
-      sub={t('astrology.sub', '태어난 순간 하늘로 보는 나 — 태양·달·상승궁과 행성들')}
+      title={t('astrology.title', '별자리·점성술')}
+      sub={t('astrology.sub', '내 별자리(태양별자리)와 점성술(네이탈 차트)을 한 번에 — 두 관점으로 깊이 풀이')}
       genMsg={t('astrology.generating', '별자리를 읽는 중…')}
       // 출생 일시 + 위경도 → 네이탈 차트. 위도 없으면 서울 기본(daniel: 출생지 피커서 추출하도록 보강함)
       buildBody={(ch) => {
@@ -40,13 +40,17 @@ export default function AstrologyRoute() {
         const ko = (s: string) => SIGN_KO[s] ?? s;
         return <FreeBasics title={t('special.freeBasics', '먼저 무료로 — 나의 빅3')} rows={[['태양', ko(nat.big3.sun)], ['달', ko(nat.big3.moon)], ['상승궁', ko(nat.big3.rising)]]} />;
       }}
+      // 한 콘텐츠에 두 파트 분리(daniel): ①별자리(태양별자리·접근성) ②점성술(네이탈·심층). 둘 다 유료 LLM 통변.
       sections={[
-        { key: 'summary', label: t('astrology.summary', '한눈에') },
-        { key: 'big3', label: t('astrology.big3', '태양·달·상승궁') },
-        { key: 'love', label: t('astrology.love', '사랑·욕구') },
-        { key: 'work', label: t('astrology.work', '일·성취') },
-        { key: 'strength', label: t('astrology.strength', '타고난 강점') },
-        { key: 'challenge', label: t('astrology.challenge', '과제') },
+        { key: 'signSummary', label: t('astrology.signSummary', '⭐ 별자리 — 내 태양별자리') },
+        { key: 'signTraits', label: t('astrology.signTraits', '별자리 · 성격·기질') },
+        { key: 'signLove', label: t('astrology.signLove', '별자리 · 연애 스타일') },
+        { key: 'signStrength', label: t('astrology.signStrength', '별자리 · 강점·매력') },
+        { key: 'big3', label: t('astrology.big3', '🔭 점성술 — 태양·달·상승궁') },
+        { key: 'natalLove', label: t('astrology.natalLove', '점성술 · 사랑·욕구') },
+        { key: 'natalWork', label: t('astrology.natalWork', '점성술 · 일·성취') },
+        { key: 'strength', label: t('astrology.strength', '점성술 · 타고난 강점') },
+        { key: 'challenge', label: t('astrology.challenge', '점성술 · 과제') },
         { key: 'advice', label: t('astrology.advice', '한마디') },
       ]}
     />
