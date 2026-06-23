@@ -71,10 +71,10 @@ const SECTIONS: Section[] = [
     { key: 'roots', labelKey: 'menu.roots', descKey: 'menu.rootsDesc', image: require('../../../assets/icons/roots.jpg'), route: '/roots', ready: true, content: true, creditKey: 'roots' },
     { key: 'image', labelKey: 'menu.image', descKey: 'menu.imageDesc', image: require('../../../assets/icons/image.jpg'), route: '/image', ready: true, content: true, creditKey: 'image' },
     { key: 'mission', labelKey: 'menu.mission', descKey: 'menu.missionDesc', image: require('../../../assets/icons/mission.jpg'), route: '/mission', ready: true, content: true, creditKey: 'mission' },
-    { key: 'talent', labelKey: 'menu.talent', descKey: 'menu.talentDesc', image: require('../../../assets/icons/career.jpg'), route: '/talent', ready: true, content: true, creditKey: 'talent' }, // TODO: 전용 talent.jpg
+    { key: 'talent', labelKey: 'menu.talent', descKey: 'menu.talentDesc', image: require('../../../assets/icons/talent.jpg'), route: '/talent', ready: true, content: true, creditKey: 'talent' },
     // 신규(daniel 2026-06-23): 수비학·별자리 운세(도메인=Claude 인코딩, 무료 빅3/생명수 미리보기 + 유료 LLM)
-    { key: 'numerology', labelKey: 'menu.numerology', descKey: 'menu.numerologyDesc', image: require('../../../assets/icons/lifegraph.jpg'), route: '/numerology', ready: true, content: true, creditKey: 'numerology' }, // TODO: 전용 numerology.jpg
-    { key: 'astrology', labelKey: 'menu.astrology', descKey: 'menu.astrologyDesc', image: require('../../../assets/icons/newyear.jpg'), route: '/astrology', ready: true, content: true, creditKey: 'astrology' }, // TODO: 전용 astrology.jpg
+    { key: 'numerology', labelKey: 'menu.numerology', descKey: 'menu.numerologyDesc', image: require('../../../assets/icons/numerology.jpg'), route: '/numerology', ready: true, content: true, creditKey: 'numerology' },
+    { key: 'astrology', labelKey: 'menu.astrology', descKey: 'menu.astrologyDesc', image: require('../../../assets/icons/astrology.jpg'), route: '/astrology', ready: true, content: true, creditKey: 'astrology' },
     // 신규(daniel 2026-06): 사업가의 나 vs 직장인의 나.
     { key: 'career', labelKey: 'menu.career', descKey: 'menu.careerDesc', image: require('../../../assets/icons/career.jpg'), route: '/career', ready: true, content: true, creditKey: 'career' },
   ] },

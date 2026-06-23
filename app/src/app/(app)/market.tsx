@@ -50,9 +50,9 @@ const CARD: Partial<Record<CreditKind, { img: any; desc: string }>> = {
   image: { img: require('../../../assets/icons/image.jpg'), desc: 'menu.imageDesc' },
   mission: { img: require('../../../assets/icons/mission.jpg'), desc: 'menu.missionDesc' },
   career: { img: require('../../../assets/icons/career.jpg'), desc: 'menu.careerDesc' },
-  talent: { img: require('../../../assets/icons/career.jpg'), desc: 'menu.talentDesc' }, // TODO: 전용 talent.jpg(현재 career 이미지 임시)
-  numerology: { img: require('../../../assets/icons/lifegraph.jpg'), desc: 'menu.numerologyDesc' }, // TODO: 전용 numerology.jpg
-  astrology: { img: require('../../../assets/icons/newyear.jpg'), desc: 'menu.astrologyDesc' },     // TODO: 전용 astrology.jpg
+  talent: { img: require('../../../assets/icons/talent.jpg'), desc: 'menu.talentDesc' },
+  numerology: { img: require('../../../assets/icons/numerology.jpg'), desc: 'menu.numerologyDesc' },
+  astrology: { img: require('../../../assets/icons/astrology.jpg'), desc: 'menu.astrologyDesc' },
   dream: { img: require('../../../assets/icons/dream.jpg'), desc: 'menu.dreamDesc' },
 };
 
