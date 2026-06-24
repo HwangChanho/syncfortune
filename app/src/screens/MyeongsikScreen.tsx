@@ -16,7 +16,8 @@ import type { ChartInput, PillarPos } from '@spec/chart';
 import { colors, radius, space, shadow, font, gradients } from '../lib/theme';
 import { GlassCard } from '../components/GlassCard';
 import { OhaengIcon } from '../components/OhaengIcon';
-import { stemElement, branchElement, elementColor, elementText, stemReading, branchReading, stemYinYang, branchYinYang } from '../lib/ohaeng';
+import { stemElement, branchElement, elementColor, elementText, stemReading, branchReading, stemYinYang, branchYinYang, eumYangSkew, johuSkew } from '../lib/ohaeng';
+import { ELEMENT_SKEW, TENGOD_SKEW, YINYANG_SKEW, JOHU_SKEW, CONCEPT_INFO, type SkewItem } from '../lib/skewKnowledge';
 import { useFontScale } from '../lib/fontScale'; // 글자 크기(설정) — 명식 글자까지 모든 텍스트에 적용(daniel)
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -79,6 +80,7 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<'natal' | 'luck' | 'stars'>('natal');
   const [strengthOpen, setStrengthOpen] = useState(false); // 신강·신약 특징 시트
+  const [johuOpen, setJohuOpen] = useState(false); // 조후·음양 쏠림 시트(daniel)
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(10)).current;
   // 대운·세운·월운 타임라인 = 오른쪽(과거)→왼쪽(미래) 흐름(전통 명식). 초기엔 오른쪽 끝(과거 시작)을 보여준다.
@@ -489,6 +491,15 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
       <Pressable style={styles.strDetailBtn} onPress={() => setStrengthOpen(true)}>
         <Text style={styles.strDetailBtnTx}>신강·신약 특징 자세히 보기 ›</Text>
       </Pressable>
+      {/* 조후·음양 쏠림(daniel) — 탭하면 설명·문제점·대응법(개운법) */}
+      {(() => {
+        const ey = eumYangSkew(P, input?.sex); const jh = johuSkew(P);
+        return (
+          <Pressable style={styles.strDetailBtn} onPress={() => setJohuOpen(true)}>
+            <Text style={styles.strDetailBtnTx}>조후 {jh.skew} · 음양 {ey.skew}  — 문제점·대응법 ›</Text>
+          </Pressable>
+        );
+      })()}
 
       {/* 오행 분포 (오행색 도넛 + %·개수 범례) */}
       <Text style={styles.h}>{t('myeongsik.elements')}</Text>
@@ -947,6 +958,46 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
             <Text style={styles.sheetMeaning}>* 경향 안내예요. 정확한 풀이는 원국 전체로 봐야 합니다.</Text>
           </ScrollView>
           <Pressable style={styles.sheetClose} onPress={() => setStrengthOpen(false)}>
+            <Text style={styles.sheetCloseText}>닫기</Text>
+          </Pressable>
+        </Pressable>
+      </Pressable>
+    </Modal>
+
+    {/* 조후·음양·오행·십성 쏠림 → 문제점·대응법(daniel 2026-06-24) */}
+    <Modal visible={johuOpen} transparent animationType="slide" onRequestClose={() => setJohuOpen(false)}>
+      <Pressable style={styles.sheetOverlay} onPress={() => setJohuOpen(false)}>
+        <Pressable style={styles.sheet} onPress={() => {}}>
+          <View style={styles.sheetHandle} />
+          <Text style={styles.sheetKind}>조후 · 음양 쏠림</Text>
+          <ScrollView style={{ maxHeight: 460 }} showsVerticalScrollIndicator={false}>
+            {(() => {
+              const ey = eumYangSkew(P, input?.sex); const jh = johuSkew(P);
+              const elc: Record<string, number> = {};
+              for (const p of (['년', '월', '일', '시'] as const)) { const d = P[p]; if (!d) continue; const se = stemElement(d.stem), be = branchElement(d.branch); elc[se] = (elc[se] || 0) + 1; elc[be] = (elc[be] || 0) + (p === '월' ? 2 : 1); }
+              const domEl = Object.entries(elc).sort((a, b) => b[1] - a[1])[0];
+              const dist = (c.tenGods?.distribution ?? {}) as Record<string, number>;
+              const TGG: Record<string, string> = { 비견: '비겁', 겁재: '비겁', 식신: '식상', 상관: '식상', 편재: '재성', 정재: '재성', 편관: '관성', 정관: '관성', 편인: '인성', 정인: '인성' };
+              const grp: Record<string, number> = {};
+              for (const [k, v] of Object.entries(dist)) { const g = TGG[k] ?? k; grp[g] = (grp[g] ?? 0) + (v as number); }
+              const domTg = Object.entries(grp).sort((a, b) => b[1] - a[1])[0];
+              const block = (label: string, sub: string, concept: string, item: SkewItem | null) => (
+                <View style={styles.strDetailCard} key={label}>
+                  <Text style={styles.strDetailTitle}>{label} · {sub}</Text>
+                  {concept ? <Text style={styles.strDetailBody}>{concept}</Text> : null}
+                  {item ? (<><Text style={styles.strDetailLabel}>이렇게 쏠리면</Text><Text style={styles.strDetailBody}>{item.problem}</Text><Text style={styles.strDetailLabel}>대응법(개운)</Text><Text style={styles.strDetailBody}>{item.remedy}</Text></>) : <Text style={styles.strDetailBody}>치우침이 크지 않아 무난해요.</Text>}
+                </View>
+              );
+              return (<>
+                {block('조후', `${jh.skew} (따뜻 ${jh.warm}·차가움 ${jh.cold})`, CONCEPT_INFO.조후, jh.skew !== '중화' ? JOHU_SKEW[jh.skew] : null)}
+                {block('음양', `${ey.skew} (양 ${ey.yang}·음 ${ey.yin})`, CONCEPT_INFO.음양, ey.skew !== '균형' ? YINYANG_SKEW[ey.skew] : null)}
+                {domEl && domEl[1] >= 4 ? block('오행 쏠림', `${domEl[0]} 강함`, '', ELEMENT_SKEW[domEl[0]]) : null}
+                {domTg && domTg[1] >= 4 ? block('기운(십성) 쏠림', `${domTg[0]} 강함`, '', TENGOD_SKEW[domTg[0]]) : null}
+              </>);
+            })()}
+            <Text style={styles.sheetMeaning}>* 쏠림 경향 안내예요(대응법=개운법). 정확한 풀이는 원국 전체로 봐야 합니다.</Text>
+          </ScrollView>
+          <Pressable style={styles.sheetClose} onPress={() => setJohuOpen(false)}>
             <Text style={styles.sheetCloseText}>닫기</Text>
           </Pressable>
         </Pressable>
