@@ -12,6 +12,7 @@
 import { useState, useMemo, useEffect, useRef, type ReactNode } from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator, Modal, TextInput, Keyboard, KeyboardAvoidingView, Platform } from 'react-native';
 import { TTSButton } from '../components/TTSButton'; // daniel: 풀이 음성 읽기(온디바이스 TTS·무료)
+import { ShareReadingButton } from '../components/ShareReadingButton'; // daniel: 공유는 풀이 맨 끝에 균일하게(콘텐츠 화면과 동일)
 import { Alert } from '../lib/alert'; // 커스텀 알림(앱 디자인)
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -479,17 +480,11 @@ export function ReadingScreen({
     {/* 항목 상세 — 탭한 영역의 섹션을 별도 페이지처럼 슬라이드 */}
     <Modal visible={!!detail} animationType="slide" onRequestClose={closeDetail}>
       <KeyboardAvoidingView style={styles.detailScreen} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        {/* daniel(2026-06-24): 공유는 헤더가 아니라 풀이 맨 끝으로 이동(자미 등 위치 통일) → 헤더는 '목록으로'만 */}
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
           <Pressable style={styles.detailBack} onPress={closeDetail} hitSlop={12}>
             <Text style={[styles.detailBackTx, { fontSize: fs(20) }]}>‹ 목록으로</Text>
           </Pressable>
-          {/* 이슈17: 이 풀이 공유(앱 설치자만 열람·만료없음). 생성된 풀이만 노출. */}
-          {detail && readings[detail] && !(readings[detail] as any)?.error ? (
-            <Pressable hitSlop={12} style={{ paddingHorizontal: space(4), paddingVertical: space(2) }}
-              onPress={async () => { try { await shareReading({ kind, category: detail, title: cats.find((x) => x.key === detail)?.label, content: readings[detail] }); } catch (e) { Alert.alert('!', (e as Error).message); } }}>
-              <Text style={[styles.detailBackTx, { fontSize: fs(15), color: colors.ju }]}>공유 ↗</Text>
-            </Pressable>
-          ) : null}
         </View>
         {detail && (
           <ScrollView contentContainerStyle={styles.detailWrap} keyboardShouldPersistTaps="handled">
@@ -497,8 +492,6 @@ export function ReadingScreen({
             {/* 자미두수 등 — 이 항목(궁)이 뭘 보는지 설명 */}
             {cats.find((x) => x.key === detail)?.desc ? <Text style={styles.detailDesc}>{cats.find((x) => x.key === detail)?.desc}</Text> : null}
             {renderSections(detail)}
-            {/* daniel(2026-06-24): 이 풀이 음성으로 듣기(온디바이스 TTS·무료) */}
-            {readings[detail] && !(readings[detail] as any)?.error ? <TTSButton reading={readings[detail]} /> : null}
             {/* ADR-055 P3: 분석 버전이 낮은 풀이만 '최신 해석으로 갱신'(opt-in·cap). 최신이면 미노출. */}
             {stale.has(detail) && (
               <Pressable style={styles.refreshBtn} onPress={() => refreshReading(detail)}>
@@ -506,6 +499,11 @@ export function ReadingScreen({
               </Pressable>
             )}
             {renderFollowups(detail)}
+            {/* daniel(2026-06-24): 풀이 맨 끝에 음성 듣기 + 공유(콘텐츠 화면과 균일 — 자미 등 헤더에 있던 공유 통일) */}
+            {readings[detail] && !(readings[detail] as any)?.error ? (<>
+              <TTSButton reading={readings[detail]} />
+              <ShareReadingButton kind={kind} category={detail} title={cats.find((x) => x.key === detail)?.label} content={readings[detail]} />
+            </>) : null}
           </ScrollView>
         )}
       </KeyboardAvoidingView>
