@@ -77,6 +77,8 @@ const SECTIONS: Section[] = [
     { key: 'astrology', labelKey: 'menu.astrology', descKey: 'menu.astrologyDesc', image: require('../../../assets/icons/astrology.jpg'), route: '/astrology', ready: true, content: true, creditKey: 'astrology' },
     // 신규(daniel 2026-06): 사업가의 나 vs 직장인의 나.
     { key: 'career', labelKey: 'menu.career', descKey: 'menu.careerDesc', image: require('../../../assets/icons/career.jpg'), route: '/career', ready: true, content: true, creditKey: 'career' },
+    // daniel #18(2026-06-24): 맞춤 개운법(원국+지금 운 → 구체 처방·살풀이). 이미지는 배치 생성 후 연결(현재 텍스트 카드).
+    { key: 'gaeun', labelKey: 'menu.gaeun', descKey: 'menu.gaeunDesc', route: '/gaeun', ready: true, content: true, creditKey: 'gaeun' },
   ] },
   // 가볍게 = 무료·온디바이스 재미(펫·성격유형·택일·행운·띠별자리·이름풀이·꿈해몽). API 0(daniel: 스페셜 아래 무료 따로).
   { key: 'light', titleKey: 'menu.secLight', descKey: 'menu.secLightDesc', items: [

@@ -117,7 +117,10 @@ export const COMPAT_SECTIONS: Record<string, CompatSection[]> = {
 };
 /** 관계(rel)의 통변 섹션 목록 — 없으면 기본 4항목. 연도별(hasYear)은 기본 4항목 사용(특정 해 흐름). */
 export function compatSections(rel: string, hasYear = false): CompatSection[] {
-  return hasYear ? DEFAULT_SECTIONS : (COMPAT_SECTIONS[rel] ?? DEFAULT_SECTIONS);
+  // daniel(2026-06-24): 관계역학 '개운법'(remedy)을 모든 관계에 필수 섹션으로(Edge buildCompatPrompt와 동기).
+  const base = hasYear ? DEFAULT_SECTIONS : (COMPAT_SECTIONS[rel] ?? DEFAULT_SECTIONS);
+  if (base.some((s) => s.key === 'remedy')) return base;
+  return [...base, { key: 'remedy', ko: '관계 개운법', en: 'Relationship remedy', ja: '関係の開運法' }];
 }
 export function compatSectionLabel(s: CompatSection): string {
   return (s as any)[appLang()] ?? s.ko;

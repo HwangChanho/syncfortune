@@ -41,6 +41,7 @@ export const CREDIT_PRODUCT: Record<CreditKind, string> = {
   talent: 'credit_talent',       // 나의 타고난 재능 ₩4,900(월지 축) — ⚠️ASC/RC에 credit_talent 상품 등록 필요(daniel)
   astrology: 'credit_astrology',   // 별자리 운세 ₩4,900 — ⚠️ASC/RC 상품 등록 필요(daniel)
   dream: 'credit_dream',         // AI 꿈해몽 — 단건 ₩300은 Apple IAP 최저가 미만 → 5회 번들(₩1,200) 상품으로 판매
+  gaeun: 'credit_gaeun',         // 맞춤 개운법 ₩4,900 — ⚠️ASC/RC 상품 등록 필요(daniel)
 };
 
 // AI 꿈해몽: 단건 ₩300이 Apple IAP 최저가(~₩1,200) 미만이라 **5회 번들**(₩1,200, ≈₩240/회)로 판매(daniel 확정).

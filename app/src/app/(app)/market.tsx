@@ -33,6 +33,7 @@ const ROUTE: Record<CreditKind, { pathname: string; kind?: string }> = {
   talent: { pathname: '/talent' },                    // 나의 타고난 재능(월지 축)
   astrology: { pathname: '/astrology' },              // 별자리 운세(서양 네이탈)
   dream: { pathname: '/dream' },                       // AI 꿈해몽(자유 텍스트)
+  gaeun: { pathname: '/gaeun' },                       // 맞춤 개운법(daniel #18)
 };
 
 // 이용권 kind → 카드 이미지 + 설명키(홈 카드와 동일 재사용, daniel: 마켓 리스트에도 작게+설명).

@@ -316,7 +316,7 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
                 if (typeof v !== 'string' || !v) return null;
                 if (s.key === 'core') return <Text key="core" style={[styles.coreTx, { fontSize: fs(16), lineHeight: fs(24) }]}>{v}</Text>;
                 return (
-                  <View key={s.key} style={[styles.sec, s.key === 'advice' && styles.remedySec]}>
+                  <View key={s.key} style={[styles.sec, (s.key === 'advice' || s.key === 'remedy') && styles.remedySec]}>
                     <Text style={styles.secLabel}>{compatSectionLabel(s)}</Text>
                     <Text style={[styles.secBody, { fontSize: fs(15), lineHeight: fs(25) }]}>{v}</Text>
                   </View>
