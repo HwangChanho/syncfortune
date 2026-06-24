@@ -134,7 +134,8 @@ export default function EgenTetoScreen() {
             {/* 점수 비주얼(온디바이스 — 즉시 표시, 게이트 무관) */}
             <View style={styles.scoreCard}>
               <Text style={styles.scoreBadge}>{typeLabel(result.type)}</Text>
-              <Text style={styles.scoreNum}>{t('egen.tetoPower', '테토력')} {result.tetoScore}<Text style={styles.scoreNumUnit}>%</Text></Text>
+              {/* daniel: '테토력' 표기 대신 50% 기준 판정 타입(에겐/테토)의 강도% */}
+              <Text style={styles.scoreNum}>{result.type === 'teto' ? t('egen.scaleTeto', '테토') : t('egen.scaleEgen', '에겐')} {result.type === 'teto' ? result.tetoScore : 100 - result.tetoScore}<Text style={styles.scoreNumUnit}>%</Text></Text>
               <View style={styles.barRow}>
                 <Text style={[styles.barEnd, result.type === 'egen' && styles.barEndOn]}>{t('egen.scaleEgen', '에겐')}</Text>
                 <View style={styles.track}>

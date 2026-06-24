@@ -42,7 +42,7 @@ export function egenTeto(saju: SajuChart): EgenTetoResult {
   }
   const total = teto + egen;
   const tetoScore = total > 0 ? Math.round((teto / total) * 100) : 50;
-  const type: EgenTetoResult['type'] = tetoScore >= 60 ? 'teto' : tetoScore <= 40 ? 'egen' : 'balanced';
+  const type: EgenTetoResult['type'] = tetoScore >= 50 ? 'teto' : 'egen'; // daniel: 50% 기준 — 50 미만이면 에겐(균형 구간 없음)
   const reasons = Object.entries(tHits).sort((a, b) => b[1] - a[1]).map(([k]) => k);
   return { tetoScore, type, teto, egen, reasons };
 }
