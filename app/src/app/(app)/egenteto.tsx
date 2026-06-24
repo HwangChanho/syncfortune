@@ -6,8 +6,8 @@
 //   캐시: readings(chart_id × 'egen' × lang). 가볍게 보기(secLight) 재미·공유 콘텐츠라 영구 캐시(재방문 비용 0).
 //   ※ 점수는 현재 운(대운·세운)을 반영해 매번 최신 산출되나 설명은 1회 캐시 — 운 변동 시 미세 불일치 허용(가벼운 콘텐츠, daniel 검수 슬롯).
 // ─────────────────────────────────────────────────────────────────────────
-import { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ImageBackground, ScrollView, Pressable, ActivityIndicator, type DimensionValue } from 'react-native';
+import { useEffect, useState, useRef } from 'react';
+import { View, Text, StyleSheet, ImageBackground, ScrollView, Pressable, ActivityIndicator, Animated, Easing, type DimensionValue } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { loadRepChart, type SavedChart } from '../../lib/myChart';
@@ -29,6 +29,19 @@ import { ShareReadingButton } from '../../components/ShareReadingButton'; // 이
 
 // LLM 설명 결과(EGEN_SYSTEM JSON) — 4섹션 모두 문자열
 type EgenReading = { headline?: string; personality?: string; relationship?: string; nowTrend?: string };
+
+// 에겐↔테토 게이지 — fill·dot이 0→score로 차오르고 이동(daniel #13: 실제 인디케이터 애니).
+function EgenBar({ score }: { score: number }) {
+  const a = useRef(new Animated.Value(0)).current;
+  useEffect(() => { Animated.timing(a, { toValue: score, duration: 950, delay: 200, easing: Easing.out(Easing.cubic), useNativeDriver: false }).start(); }, [a, score]);
+  const w = a.interpolate({ inputRange: [0, 100], outputRange: ['0%', '100%'] });
+  return (
+    <View style={styles.track}>
+      <Animated.View style={[styles.fill, { width: w }]} />
+      <Animated.View style={[styles.dot, { left: w }]} />
+    </View>
+  );
+}
 
 export default function EgenTetoScreen() {
   const { t } = useTranslation();
@@ -138,10 +151,7 @@ export default function EgenTetoScreen() {
               <Text style={styles.scoreNum}>{result.type === 'teto' ? t('egen.scaleTeto', '테토') : t('egen.scaleEgen', '에겐')} {result.type === 'teto' ? result.tetoScore : 100 - result.tetoScore}<Text style={styles.scoreNumUnit}>%</Text></Text>
               <View style={styles.barRow}>
                 <Text style={[styles.barEnd, result.type === 'egen' && styles.barEndOn]}>{t('egen.scaleEgen', '에겐')}</Text>
-                <View style={styles.track}>
-                  <View style={[styles.fill, { width: `${result.tetoScore}%` as DimensionValue }]} />
-                  <View style={[styles.dot, { left: `${result.tetoScore}%` as DimensionValue }]} />
-                </View>
+                <EgenBar score={result.tetoScore} />
                 <Text style={[styles.barEnd, styles.barEndRight, result.type === 'teto' && styles.barEndOn]}>{t('egen.scaleTeto', '테토')}</Text>
               </View>
             </View>

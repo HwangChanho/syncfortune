@@ -258,16 +258,14 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
 
       {/* ── 상대 슬롯 — 내 명식과 동일하게 박스+변경, 탭하면 세로 리스트 드롭다운(daniel) ── */}
       <Text style={[styles.slotLabel, { marginTop: space(5) }]}>{t('compat.otherSlot')}</Text>
-      <Pressable style={[styles.meSlot, { borderColor: colors.line }]} onPress={() => saved.filter((s) => s.id !== meSel?.id).length > 0 ? setPickFor('other') : setOtherReg(true)}>
+      <Pressable style={[styles.meSlot, { borderColor: colors.line }]} onPress={() => setPickFor('other')}>
         <View style={{ flex: 1 }}>
           <Text style={styles.meSlotName}>{otherSel?.label ?? t('compat.otherSlot')}</Text>
           <Text style={styles.meSlotSub}>{otherSel ? slotLine(otherInput) : t('compat.otherPick', '탭해서 선택하거나 등록')}</Text>
         </View>
         <Text style={styles.meSlotChange}>{t('compat.change')}</Text>
       </Pressable>
-      <Pressable style={styles.regOtherBtn} onPress={() => setOtherReg(true)}>
-        <Text style={styles.regOtherTx}>＋ {t('compat.registerOther')}</Text>
-      </Pressable>
+      {/* daniel #12: 외부 '상대 등록' 버튼 제거 — 등록은 리스트(드롭다운) 안에서만. 상대 명식 없으면 리스트엔 등록 버튼만 노출됨. */}
 
       <Pressable style={[styles.btn, (!otherInput || !!busy) && styles.btnOff]} onPress={analyze} disabled={!otherInput || !!busy}>
         {busy ? <ActivityIndicator color={colors.bg} /> : <Text style={styles.btnText}>{t('compat.analyze')}</Text>}
