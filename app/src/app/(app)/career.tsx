@@ -26,7 +26,7 @@ import { appLang } from '../../lib/i18n';
 import { readingFromInvoke } from '../../lib/interpretResult'; // 방어: Edge 응답 정규화(일시적 불가·결제필요·오류)
 import { logEvent } from '../../lib/logger'; // DB 로그(단계별 — 네이티브 크래시 직전 추적)
 import { setGenProgress } from '../../lib/genProgress'; // 일회성 진행도(daniel 이슈15)
-import { colors, radius, space, shadow, font } from '../../lib/theme';
+import { bgSource, colors, radius, space, shadow, font } from '../../lib/theme';
 import { UnlockOverlay } from '../../components/UnlockOverlay';
 import { ChartPicker } from '../../components/ChartPicker'; // 상단 명식 헤더 — 전환 시 그 명식 기준 재로드
 import { ShareReadingButton } from '../../components/ShareReadingButton'; // 이슈17: 풀이 결과 공유(가드 내장)
@@ -147,7 +147,7 @@ export default function CareerScreen() {
 
   return (
     <View style={styles.bg}>
-      <ExpoImage source={require('../../../assets/icons/bg-night.png')} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="memory-disk" />
+      <ExpoImage source={bgSource} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="memory-disk" />
       <ScrollView style={styles.overlay} contentContainerStyle={styles.wrap}>
         <ChartPicker onChange={() => setReloadKey((k) => k + 1)} />
         <UnlockOverlay visible={busy} message={t('career.generating', '두 길을 풀어내는 중…')} />
@@ -197,7 +197,7 @@ export default function CareerScreen() {
 
 const styles = StyleSheet.create({
   bg: { flex: 1, backgroundColor: colors.bg },
-  overlay: { flex: 1, backgroundColor: 'rgba(21,19,46,0.6)' },
+  overlay: { flex: 1, backgroundColor: colors.overlay },
   wrap: { padding: space(6), paddingBottom: space(12) }, // 콘텐츠 좌우여백 통일(daniel)
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: space(7), backgroundColor: colors.bg },
   msg: { ...font.body, color: colors.ink, textAlign: 'center', marginBottom: space(5) },

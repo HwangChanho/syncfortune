@@ -25,7 +25,7 @@ import { prewarmReadings, prewarmDaily } from '../../lib/prewarmReadings';
 import { scheduleDailyFortune } from '../../lib/notifications'; // 매일 9시 오늘의 운세 알림
 import { buildSajuChart } from '@engine/saju';
 import type { Stem, Branch } from '@spec/chart';
-import { colors, radius, space, shadow, font } from '../../lib/theme';
+import { bgSource, colors, radius, space, shadow, font } from '../../lib/theme';
 import { useFontScale } from '../../lib/fontScale';
 import { playSound } from '../../lib/sounds';
 import { BusyOverlay } from '../../components/BusyOverlay'; // 로그아웃 등 긴 콜백 로딩
@@ -324,7 +324,7 @@ export default function Home() {
   }
 
   return (
-    <ImageBackground source={require('../../../assets/icons/bg-night.png')} style={styles.bgImage} resizeMode="cover">
+    <ImageBackground source={bgSource} style={styles.bgImage} resizeMode="cover">
     <TwinklingStars />
     <SeonbiWalk />
     <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>
@@ -510,7 +510,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.ju, borderRadius: radius.pill,
     shadowColor: colors.ju, shadowOpacity: 0.8, shadowRadius: 4, elevation: 5,
   },
-  screen: { backgroundColor: 'rgba(21,19,46,0.3)' },
+  screen: { backgroundColor: colors.overlaySoft },
  // 별밤 배경 위 반투명 남색 — 카드·텍스트 가독
   wrap: { padding: space(5), paddingTop: space(12), paddingBottom: space(10) }, // 헤더 숨김 → status bar 여백 확보
   topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: space(2) },
@@ -533,7 +533,7 @@ const styles = StyleSheet.create({
   },
   // 오늘/내일 토글(배너 상단)
   dayToggle: { flexDirection: 'row', gap: space(2), marginBottom: space(3) },
-  dayTogChip: { paddingHorizontal: space(4), paddingVertical: space(1.5), borderRadius: radius.pill, backgroundColor: 'rgba(21,19,46,0.5)', borderWidth: 1, borderColor: colors.line },
+  dayTogChip: { paddingHorizontal: space(4), paddingVertical: space(1.5), borderRadius: radius.pill, backgroundColor: colors.overlay, borderWidth: 1, borderColor: colors.line },
   dayTogChipOn: { backgroundColor: colors.ju, borderColor: colors.ju },
   dayTogTx: { fontSize: 13, fontWeight: '800', color: colors.inkSoft },
   dayTogTxOn: { color: '#15132E' },
@@ -572,7 +572,7 @@ const styles = StyleSheet.create({
   },
   cardImg: { flex: 1, justifyContent: 'flex-end' },
   cardImgInner: { borderRadius: radius.md },
-  labelBar: { backgroundColor: 'rgba(21,19,46,0.72)', paddingVertical: space(2.5), alignItems: 'center' },
+  labelBar: { backgroundColor: colors.overlayStrong, paddingVertical: space(2.5), alignItems: 'center' },
   cardLabel: { color: colors.ink, fontSize: 15, fontWeight: '700', letterSpacing: 0.3 },
   cardDesc: { color: colors.inkSoft, fontSize: 10.5, lineHeight: 13.5, textAlign: 'center', marginTop: 3, paddingHorizontal: space(1.5) },
   cardLabelPrem: { color: colors.ju }, // 프리미엄 = 골드 라벨

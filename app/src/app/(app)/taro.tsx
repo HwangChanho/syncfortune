@@ -16,7 +16,7 @@ import {
 } from '../../lib/tarot';
 import { loadTodayTaro, saveTodayTaro } from '../../lib/tarotStore';
 import { playSound } from '../../lib/sounds';
-import { colors, radius, space, shadow, font, gradients } from '../../lib/theme';
+import { bgSource, colors, radius, space, shadow, font, gradients } from '../../lib/theme';
 import { GlassCard } from '../../components/GlassCard';
 
 // expo-haptics 는 네이티브 모듈 — 현재 dev 빌드 미포함 시 호출하면 크래시. 안전 래퍼로 감싼다(재빌드 후 정상 진동).
@@ -113,7 +113,7 @@ export default function TaroScreen() {
   }, [drawn]);
 
   return (
-    <ImageBackground source={require('../../../assets/icons/bg-night.png')} style={styles.bg} resizeMode="cover">
+    <ImageBackground source={bgSource} style={styles.bg} resizeMode="cover">
       <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>
         <View style={styles.headerArea}>
           <Text style={styles.title}>{t('menu.taro')}</Text>
@@ -247,7 +247,7 @@ const scaledFont = (fs: (n: number) => number) => ({
 });
 const makeStyles = (fs: (n: number) => number) => { const f = scaledFont(fs); return StyleSheet.create({
   bg: { flex: 1, backgroundColor: colors.bg },
-  screen: { backgroundColor: 'rgba(21,19,46,0.55)' },
+  screen: { backgroundColor: colors.overlay },
   wrap: { padding: space(5), paddingTop: space(8), paddingBottom: space(10) },
   headerArea: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: space(4) },
   title: { ...f.title, color: colors.ink, marginBottom: 0 },
@@ -270,7 +270,7 @@ const makeStyles = (fs: (n: number) => number) => { const f = scaledFont(fs); re
   drawArea: { alignItems: 'center', marginTop: space(4) },
   deckBackNew: { width: 140, height: 240, padding: 0, overflow: 'hidden', borderWidth: 2, borderColor: colors.ju },
   deckImg: { flex: 1, padding: space(6), justifyContent: 'center', alignItems: 'center' },
-  deckTapBarNew: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(21,19,46,0.8)', paddingVertical: space(2), alignItems: 'center' },
+  deckTapBarNew: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: colors.overlayStrong, paddingVertical: space(2), alignItems: 'center' },
   deckTapTx: { color: colors.ju, fontSize: fs(12), fontWeight: '800' },
   drawHint: { ...f.body, color: colors.inkSoft, marginTop: space(6), textAlign: 'center', lineHeight: fs(22) },
   readingSection: { marginTop: space(4) },

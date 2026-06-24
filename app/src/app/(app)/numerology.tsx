@@ -11,7 +11,7 @@ import { useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { loadRepChart, type SavedChart } from '../../lib/myChart';
 import { buildNumerology, LIFE_PATH_MEANING, BIRTHDAY_MEANING, PERSONAL_YEAR_MEANING, meaningFor } from '../../lib/numerology';
-import { colors, radius, space, shadow, font } from '../../lib/theme';
+import { bgSource, colors, radius, space, shadow, font } from '../../lib/theme';
 import { useFontScale } from '../../lib/fontScale';
 import { ContentHero } from '../../components/SpecialContentScreen';
 import { ChartPicker } from '../../components/ChartPicker';
@@ -45,7 +45,7 @@ export default function NumerologyScreen() {
   const thisYear = new Date().getFullYear();
 
   return (
-    <ImageBackground source={require('../../../assets/icons/bg-night.png')} style={styles.bg} resizeMode="cover">
+    <ImageBackground source={bgSource} style={styles.bg} resizeMode="cover">
       <ScrollView style={styles.overlay} contentContainerStyle={styles.wrap}>
         {/* 상단 명식 헤더 — 현재 명식 표시·전환 */}
         <ChartPicker onChange={() => loadRepChart().then(setRep)} />
@@ -97,7 +97,7 @@ function NumCard({ label, big, kw, text, fs, hi }: { label: string; big: number;
 
 const styles = StyleSheet.create({
   bg: { flex: 1, backgroundColor: colors.bg },
-  overlay: { flex: 1, backgroundColor: 'rgba(21,19,46,0.6)' },
+  overlay: { flex: 1, backgroundColor: colors.overlay },
   wrap: { padding: space(6), paddingBottom: space(12) },
   card: { backgroundColor: colors.card, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.juLine, padding: space(5), marginBottom: space(3), ...shadow.card },
   cardHi: { borderWidth: 1.5, borderColor: colors.ju },

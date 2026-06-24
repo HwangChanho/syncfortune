@@ -10,7 +10,7 @@ import { useTranslation } from 'react-i18next';
 import { loadMyChart } from '../../lib/myChart';
 import { computeChart } from '../../lib/engine';
 import { sajuMbti } from '../../lib/sajuMbti';
-import { colors, radius, space, shadow, font } from '../../lib/theme';
+import { bgSource, colors, radius, space, shadow, font } from '../../lib/theme';
 import { useFontScale } from '../../lib/fontScale';
 import { ContentHero } from '../../components/SpecialContentScreen';
 import { Reveal } from '../../components/Reveal'; // 카드 순차 등장(daniel 재미)
@@ -44,7 +44,7 @@ export default function MbtiScreen() {
   const r = useMemo(() => (me ? sajuMbti(computeChart(me).saju) : null), [me]);
 
   return (
-    <ImageBackground source={require('../../../assets/icons/bg-night.png')} style={styles.bg} resizeMode="cover">
+    <ImageBackground source={bgSource} style={styles.bg} resizeMode="cover">
       <ScrollView style={styles.overlay} contentContainerStyle={styles.wrap}>
         {/* 상단 명식 헤더 — 현재 적용 명식 표시·전환 */}
         <ChartPicker onChange={() => loadMyChart().then(setMe)} />
@@ -91,7 +91,7 @@ export default function MbtiScreen() {
 
 const styles = StyleSheet.create({
   bg: { flex: 1, backgroundColor: colors.bg },
-  overlay: { flex: 1, backgroundColor: 'rgba(21,19,46,0.6)' },
+  overlay: { flex: 1, backgroundColor: colors.overlay },
   wrap: { padding: space(6), paddingBottom: space(12) },
   typeCard: { alignItems: 'center', backgroundColor: colors.card, borderRadius: radius.lg, borderWidth: 1.5, borderColor: colors.ju, padding: space(6), marginBottom: space(4), ...shadow.card },
   typeBig: { fontSize: 44, fontWeight: '900', color: colors.ju, letterSpacing: 3 },

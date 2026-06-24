@@ -7,7 +7,7 @@ import { useMemo, useState } from 'react';
 import { View, Text, ScrollView, TextInput, StyleSheet, ImageBackground } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { analyzeName } from '../../lib/nameReading';
-import { colors, radius, space, shadow, font } from '../../lib/theme';
+import { bgSource, colors, radius, space, shadow, font } from '../../lib/theme';
 import { useFontScale } from '../../lib/fontScale';
 import { ContentHero } from '../../components/SpecialContentScreen'; // 이미지 히어로(보는 맛)
 import { ShareReadingButton } from '../../components/ShareReadingButton'; // 이슈17: 풀이 결과 공유(앱게이트)
@@ -19,7 +19,7 @@ export default function NameScreen() {
   const result = useMemo(() => (name.trim() ? analyzeName(name) : null), [name]);
 
   return (
-    <ImageBackground source={require('../../../assets/icons/bg-night.png')} style={styles.bg} resizeMode="cover">
+    <ImageBackground source={bgSource} style={styles.bg} resizeMode="cover">
       <ScrollView style={styles.overlay} contentContainerStyle={styles.wrap} keyboardShouldPersistTaps="handled">
         <ContentHero image={require('../../../assets/icons/name.jpg')} title={t('name.title', '이름풀이')} sub={t('name.sub', '이름 속 소리의 기운(오행)으로 결을 봐요.')} />
 
@@ -63,7 +63,7 @@ export default function NameScreen() {
 
 const styles = StyleSheet.create({
   bg: { flex: 1, backgroundColor: colors.bg },
-  overlay: { flex: 1, backgroundColor: 'rgba(21,19,46,0.6)' },
+  overlay: { flex: 1, backgroundColor: colors.overlay },
   wrap: { padding: space(6), paddingBottom: space(12) },
   h: { ...font.title, color: colors.ink, marginBottom: space(1) },
   sub: { ...font.caption, color: colors.inkSoft, marginBottom: space(5) },

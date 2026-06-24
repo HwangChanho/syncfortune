@@ -26,7 +26,7 @@ import { appLang } from '../../lib/i18n';
 import { invokeFail } from '../../lib/interpretResult'; // 방어: Edge 실패(일시적 불가·결제필요·오류) 정규화
 import { logEvent } from '../../lib/logger';
 import { setGenProgress } from '../../lib/genProgress'; // 일회성 컨텐츠 진행도(daniel 이슈15)
-import { colors, radius, space, shadow, font } from '../../lib/theme';
+import { bgSource, colors, radius, space, shadow, font } from '../../lib/theme';
 import { UnlockOverlay } from '../../components/UnlockOverlay'; // unlock 자물쇠 애니 + 그 사이 LLM 분석
 import { ContentHero } from '../../components/SpecialContentScreen'; // 공용 히어로
 import { ChartPicker } from '../../components/ChartPicker'; // 상단 명식 헤더 — 현재 적용 명식 표시·전환
@@ -130,7 +130,7 @@ export default function NewYearScreen() {
   const months: string[] = Array.isArray(data?.months) ? data!.months : [];
 
   return (
-    <ImageBackground source={require('../../../assets/icons/bg-night.png')} style={styles.bg} resizeMode="cover">
+    <ImageBackground source={bgSource} style={styles.bg} resizeMode="cover">
       <ScrollView style={styles.overlay} contentContainerStyle={styles.wrap}>
         {/* 상단 명식 헤더 — 현재 적용된 대표 명식 표시·전환(daniel: 모든 콘텐츠 상단). 전환 시 그 명식 기준 재로드 */}
         <ChartPicker onChange={() => setReloadKey((k) => k + 1)} />
@@ -268,7 +268,7 @@ export default function NewYearScreen() {
 
 const styles = StyleSheet.create({
   bg: { flex: 1, backgroundColor: colors.bg },
-  overlay: { flex: 1, backgroundColor: 'rgba(21,19,46,0.6)' },
+  overlay: { flex: 1, backgroundColor: colors.overlay },
   wrap: { padding: space(6), paddingBottom: space(12) },
   h: { ...font.title, color: colors.ink, marginBottom: space(3) },
   samjae: { borderRadius: radius.md, paddingVertical: space(2.5), paddingHorizontal: space(4), marginBottom: space(4), borderWidth: 1 },

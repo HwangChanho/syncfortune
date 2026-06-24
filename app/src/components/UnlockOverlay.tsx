@@ -53,7 +53,7 @@ export function UnlockOverlay({ visible, message, allowBackground = true }: { vi
 }
 
 const styles = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: 'rgba(21,19,46,0.94)', alignItems: 'center', justifyContent: 'center' },
+  overlay: { flex: 1, backgroundColor: colors.overlayStrong, alignItems: 'center', justifyContent: 'center' },
   center: { width: 140, height: 140, alignItems: 'center', justifyContent: 'center', marginBottom: space(6) },
   ring: { position: 'absolute', width: 130, height: 130, borderRadius: 65, borderWidth: 3, borderColor: colors.ju, borderTopColor: 'transparent', borderRightColor: 'transparent' },
   lock: { fontSize: 52 },

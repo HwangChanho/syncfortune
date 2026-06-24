@@ -300,7 +300,7 @@ const styles = StyleSheet.create({
   heroImageBox: { width: '100%', aspectRatio: 1.75, borderRadius: radius.lg, overflow: 'hidden', marginBottom: space(5), backgroundColor: colors.sunk },
   heroPlain: { backgroundColor: colors.card, borderWidth: 1, borderRadius: radius.lg, marginBottom: space(5) }, // 이미지 없을 때 = 자동높이 컴팩트 헤더(큰 빈 박스 방지·daniel)
   heroImg: { borderRadius: radius.lg },
-  heroScrim: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(21,19,46,0.55)' }, // 이미지 위 가독 스크림
+  heroScrim: { ...StyleSheet.absoluteFillObject, backgroundColor: colors.overlay }, // 이미지 위 가독 스크림
   heroInner: { alignItems: 'center', justifyContent: 'center', paddingVertical: space(6), paddingHorizontal: space(5) },
   heroTitle: { ...font.title, color: colors.ink, marginTop: space(2), textAlign: 'center' },
   heroSub: { ...font.caption, color: colors.inkSoft, marginTop: space(1.5), textAlign: 'center', lineHeight: 19 },

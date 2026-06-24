@@ -88,7 +88,7 @@ const makeStyles = (fs: (n: number) => number) => { const f = scaledFont(fs); re
   cardImg: { flex: 1, justifyContent: 'flex-end' },
   cardImgInner: { borderRadius: radius.lg },
   // 하단 라벨 바(반투명 남색) — 제목 + 설명
-  labelBar: { backgroundColor: 'rgba(21,19,46,0.78)', paddingVertical: space(4), paddingHorizontal: space(4) },
+  labelBar: { backgroundColor: colors.overlayStrong, paddingVertical: space(4), paddingHorizontal: space(4) },
   cardLabel: { color: colors.ju, fontSize: fs(20), fontWeight: '800', letterSpacing: 0.3 },
   cardDesc: { color: colors.inkSoft, fontSize: fs(13), marginTop: space(1.5), lineHeight: fs(18) },
 }); };

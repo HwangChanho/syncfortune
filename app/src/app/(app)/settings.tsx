@@ -19,7 +19,7 @@ import { restorePurchasesRC, priceStringRC, PRODUCT_PREMIUM } from '../../lib/pu
 import { PREMIUM_PRICE } from '../../lib/coupons';  // 프리미엄 폴백 가격(₩)
 import { supabase } from '../../lib/supabase';             // 로그아웃
 import { BusyOverlay } from '../../components/BusyOverlay'; // 긴 콜백(로그아웃·삭제) 로딩 오버레이
-import { colors, radius, space, shadow, font } from '../../lib/theme';
+import { colors, radius, space, shadow, font, setThemePref, getThemePref, type ThemePref } from '../../lib/theme';
 
 const LANGS: { key: string; label: string }[] = [
   { key: 'ko', label: '한국어' }, { key: 'en', label: 'English' }, { key: 'ja', label: '日本語' },
@@ -41,6 +41,7 @@ export default function SettingsScreen() {
   const [admin, setAdmin] = useState(false); // 관리자 — 메뉴 노출용(실제 권한은 서버 RPC)
   const [testMode, setTestMode] = useState(false); // 관리자 테스트 모드 — 켜면 통변 mock(API 미호출, daniel)
   const [premPrice, setPremPrice] = useState(''); // 프리미엄 현지통화 가격(RC) — 미설정 시 ₩ 폴백
+  const [themePref, setThemePrefState] = useState<ThemePref>(getThemePref()); // 화면 테마(다크/라이트/시스템) — 변경은 재시작 후 적용
 
   // 관리자/테스트모드 노출 = session 반응형. 로그아웃(session=null) 즉시 false로 내려 관리자 메뉴가 바로 사라지게(daniel) — 빈 deps면 마운트 1회라 창 전환 전까지 살아있었음.
   useEffect(() => { if (!session) { setAdmin(false); return; } isAdmin().then(setAdmin).catch(() => {}); }, [session]);
@@ -180,6 +181,22 @@ export default function SettingsScreen() {
           return (
             <Pressable key={l.key} style={[styles.opt, on && styles.optOn]} onPress={() => setAppLang(l.key as 'ko' | 'en' | 'ja')}>
               <Text style={[styles.optTx, on && styles.optTxOn]}>{l.label}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
+
+      {/* ── 화면 테마(다크/라이트) — daniel 2026-06-24. 기본=기기 따라감, 변경은 재시작 후 적용 ── */}
+      <Text style={[styles.h, { marginTop: space(7) }]}>{t('settings.theme', '화면 테마')}</Text>
+      <View style={styles.row}>
+        {(['system', 'light', 'dark'] as ThemePref[]).map((k) => {
+          const on = themePref === k;
+          return (
+            <Pressable key={k} style={[styles.opt, on && styles.optOn]} onPress={() => {
+              setThemePref(k); setThemePrefState(k);
+              Alert.alert(t('settings.theme', '화면 테마'), t('settings.themeRestart', '앱을 다시 켜면 적용돼요.'));
+            }}>
+              <Text style={[styles.optTx, on && styles.optTxOn]}>{t(`settings.theme_${k}`, k === 'system' ? '기기 따라' : k === 'light' ? '라이트' : '다크')}</Text>
             </Pressable>
           );
         })}

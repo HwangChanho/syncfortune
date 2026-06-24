@@ -24,7 +24,7 @@ import { logEvent } from '../../lib/logger';
 import { invokeFail } from '../../lib/interpretResult'; // 방어: 일시적 불가/오류 친화 처리
 import { setGenProgress } from '../../lib/genProgress'; // 일회성 진행도(daniel·docs/CONTENT_API_INVENTORY.md)
 import type { Stem, Branch } from '@spec/chart';
-import { colors, radius, space, shadow, font } from '../../lib/theme';
+import { bgSource, colors, radius, space, shadow, font } from '../../lib/theme';
 import { useFontScale } from '../../lib/fontScale';
 import { stemElement, branchElement, elementColor, elementText, stemReading, branchReading } from '../../lib/ohaeng';
 import { ContentHero } from '../../components/SpecialContentScreen'; // 이미지 히어로(보는 맛)
@@ -123,7 +123,7 @@ export default function TodayScreen() {
   };
 
   return (
-    <ImageBackground source={require('../../../assets/icons/bg-night.png')} style={styles.bgImage} resizeMode="cover">
+    <ImageBackground source={bgSource} style={styles.bgImage} resizeMode="cover">
       <ScrollView style={styles.overlay} contentContainerStyle={styles.wrap}>
         <ContentHero image={require('../../../assets/icons/today.jpg')} title={t('today.title', '오늘의 운세')} sub={t('today.heroSub', '오늘 일진으로 보는 하루 흐름')} />
         {/* 명식 선택 — 대표 전환 시 그 명식 기준으로 오늘의 운세 재로드(daniel: 명식별 적용) */}
@@ -211,7 +211,7 @@ export default function TodayScreen() {
 
 const styles = StyleSheet.create({
   bgImage: { flex: 1, backgroundColor: colors.bg },
-  overlay: { flex: 1, backgroundColor: 'rgba(21,19,46,0.6)' },
+  overlay: { flex: 1, backgroundColor: colors.overlay },
   wrap: { padding: space(6), paddingBottom: space(12) },
   headlineCard: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.juLine, paddingVertical: space(3.5), paddingHorizontal: space(4), marginBottom: space(4), alignItems: 'center', ...shadow.card },
   headlineTitle: { ...font.body, color: colors.ju, fontWeight: '800', fontSize: 17, textAlign: 'center', lineHeight: 24 },

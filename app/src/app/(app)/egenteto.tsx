@@ -22,7 +22,7 @@ import { appLang } from '../../lib/i18n';
 import { logEvent } from '../../lib/logger';
 import { invokeFail } from '../../lib/interpretResult'; // 방어: 일시적 불가/오류 친화 처리
 import { setGenProgress } from '../../lib/genProgress'; // 일회성 진행도(daniel·docs/CONTENT_API_INVENTORY.md)
-import { colors, radius, space, shadow, font } from '../../lib/theme';
+import { bgSource, colors, radius, space, shadow, font } from '../../lib/theme';
 import { useFontScale } from '../../lib/fontScale';
 import { ChartPicker } from '../../components/ChartPicker'; // 명식 선택(대표 전환) — 명식별 성향(daniel)
 import { ShareReadingButton } from '../../components/ShareReadingButton'; // 이슈17: 풀이 결과 공유(앱게이트)
@@ -125,7 +125,7 @@ export default function EgenTetoScreen() {
     ty === 'teto' ? t('egen.typeTeto', '테토형') : ty === 'egen' ? t('egen.typeEgen', '에겐형') : t('egen.typeBalanced', '균형형');
 
   return (
-    <ImageBackground source={require('../../../assets/icons/bg-night.png')} style={styles.bgImage} resizeMode="cover">
+    <ImageBackground source={bgSource} style={styles.bgImage} resizeMode="cover">
       <ScrollView style={styles.overlay} contentContainerStyle={styles.wrap}>
         {/* 상단 명식 헤더 — 현재 적용된 대표 명식 표시·전환(daniel: 모든 콘텐츠 상단). 전환 시 그 명식 기준 재산출 */}
         <ChartPicker onChange={() => setReloadKey((k) => k + 1)} />
@@ -196,7 +196,7 @@ export default function EgenTetoScreen() {
 
 const styles = StyleSheet.create({
   bgImage: { flex: 1, backgroundColor: colors.bg },
-  overlay: { flex: 1, backgroundColor: 'rgba(21,19,46,0.6)' },
+  overlay: { flex: 1, backgroundColor: colors.overlay },
   wrap: { padding: space(6), paddingBottom: space(12) },
   title: { fontSize: 24, fontWeight: '900', color: colors.ink, textAlign: 'center', marginTop: space(2) },
   heroSub: { ...font.caption, color: colors.inkSoft, textAlign: 'center', marginTop: space(1), marginBottom: space(4) },

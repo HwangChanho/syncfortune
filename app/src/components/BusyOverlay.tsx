@@ -20,7 +20,7 @@ export function BusyOverlay({ visible, message }: { visible: boolean; message?: 
 }
 
 const styles = StyleSheet.create({
-  backdrop: { flex: 1, backgroundColor: 'rgba(21,19,46,0.6)', justifyContent: 'center', alignItems: 'center' },
+  backdrop: { flex: 1, backgroundColor: colors.overlay, justifyContent: 'center', alignItems: 'center' },
   card: { backgroundColor: colors.card, borderRadius: radius.md, paddingVertical: space(7), paddingHorizontal: space(9), alignItems: 'center', borderWidth: 1, borderColor: colors.juLine },
   tx: { ...font.body, color: colors.ink, marginTop: space(4) },
 });

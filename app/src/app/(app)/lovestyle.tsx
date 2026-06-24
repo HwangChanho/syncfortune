@@ -10,7 +10,7 @@ import { computeChart } from '../../lib/engine';
 import { loadMyChart } from '../../lib/myChart';
 import { loveStyle, type LoveStyleResult } from '../../lib/loveStyle';
 import { useFontScale } from '../../lib/fontScale';
-import { colors, radius, space, shadow, font } from '../../lib/theme';
+import { bgSource, colors, radius, space, shadow, font } from '../../lib/theme';
 import { ChartPicker } from '../../components/ChartPicker'; // 상단 명식 헤더 — 현재 적용 명식 표시·전환
 import { ShareReadingButton } from '../../components/ShareReadingButton'; // 이슈17: 풀이 결과 공유(앱게이트)
 import type { ChartInput } from '@spec/chart';
@@ -50,7 +50,7 @@ export default function LoveStyleScreen() {
   );
 
   return (
-    <ImageBackground source={require('../../../assets/icons/bg-night.png')} style={styles.bg} resizeMode="cover">
+    <ImageBackground source={bgSource} style={styles.bg} resizeMode="cover">
       <ScrollView style={styles.overlay} contentContainerStyle={styles.wrap}>
         {/* 상단 명식 헤더 — 현재 적용된 대표 명식 표시·전환(daniel: 모든 콘텐츠 상단) */}
         <ChartPicker onChange={() => loadMyChart().then(setMe)} />
@@ -80,7 +80,7 @@ export default function LoveStyleScreen() {
 
 const styles = StyleSheet.create({
   bg: { flex: 1, backgroundColor: colors.bg },
-  overlay: { flex: 1, backgroundColor: 'rgba(21,19,46,0.6)' },
+  overlay: { flex: 1, backgroundColor: colors.overlay },
   wrap: { padding: space(6), paddingBottom: space(12) },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: space(7), backgroundColor: colors.bg },
   msg: { ...font.body, color: colors.ink, textAlign: 'center', marginBottom: space(5) },

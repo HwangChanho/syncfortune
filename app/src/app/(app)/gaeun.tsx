@@ -25,7 +25,7 @@ import { appLang } from '../../lib/i18n';
 import { readingFromInvoke } from '../../lib/interpretResult';
 import { logEvent } from '../../lib/logger';
 import { setGenProgress } from '../../lib/genProgress';
-import { colors, radius, space, shadow, font } from '../../lib/theme';
+import { bgSource, colors, radius, space, shadow, font } from '../../lib/theme';
 import { UnlockOverlay } from '../../components/UnlockOverlay';
 import { ChartPicker } from '../../components/ChartPicker';
 import { ShareReadingButton } from '../../components/ShareReadingButton';
@@ -130,7 +130,7 @@ export default function GaeunScreen() {
 
   return (
     <View style={styles.bg}>
-      <ExpoImage source={require('../../../assets/icons/bg-night.png')} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="memory-disk" />
+      <ExpoImage source={bgSource} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="memory-disk" />
       <ScrollView style={styles.overlay} contentContainerStyle={styles.wrap}>
         <ChartPicker onChange={() => setReloadKey((k) => k + 1)} />
         <UnlockOverlay visible={busy} message={t('gaeun.generating', '지금 운에 맞는 개운법을 찾는 중…')} />
@@ -175,7 +175,7 @@ export default function GaeunScreen() {
 
 const styles = StyleSheet.create({
   bg: { flex: 1, backgroundColor: colors.bg },
-  overlay: { flex: 1, backgroundColor: 'rgba(21,19,46,0.6)' },
+  overlay: { flex: 1, backgroundColor: colors.overlay },
   wrap: { padding: space(6), paddingBottom: space(12) },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: space(7), backgroundColor: colors.bg },
   msg: { ...font.body, color: colors.ink, textAlign: 'center', marginBottom: space(5) },
