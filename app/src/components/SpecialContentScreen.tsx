@@ -20,6 +20,7 @@ import { useFontScale } from '../lib/fontScale';
 import { useCredit, grantCredit, type CreditKind } from '../lib/coupons';
 import { isUnlocked, markUnlocked } from '../lib/unlocks'; // unlock 영속(차감 후 재차감/재잠금 방지)
 import { ShareReadingButton } from './ShareReadingButton'; // 이슈17: 풀이 결과 공유
+import { TTSButton } from './TTSButton'; // daniel: 풀이 음성 읽기(온디바이스 TTS·무료)
 import { purchaseCreditRC, purchasesEnabled } from '../lib/purchases'; // 즉시 구매(마켓 안 거치고 바로)
 import { isAdmin } from '../lib/admin';                  // 스페셜 = 관리자 바로 / 그 외 쿠폰(크레딧)
 import { requireLoginForPurchase } from '../lib/requireLogin';
@@ -209,6 +210,8 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
             </Animated.View>
           </View>
         ) : null))}
+        {/* daniel(2026-06-24): 풀이 음성으로 듣기(온디바이스 TTS·무료) */}
+        <TTSButton reading={reading} sections={sections} />
         {/* 이슈17: 이 풀이 공유(앱 설치자만 열람) — roots/image/mission 등 공통 */}
         <ShareReadingButton kind={kind} title={title} content={reading} />
         </>

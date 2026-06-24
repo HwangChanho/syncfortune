@@ -24,6 +24,17 @@ const PROD_INTERSTITIAL: Record<string, string> = {  // 현재 미사용(showInt
   android: process.env.EXPO_PUBLIC_ADMOB_INTERSTITIAL_ANDROID ?? 'ca-app-pub-2936938026486482/8357266073', // 실 Android 전면
 };
 
+// AdMob SDK 초기화 — ★광고 로드 전 1회 필수. 없으면 ad.load()가 실패해 광고가 안 뜬다(daniel 2026-06-24 "무료 광고 안 나옴" 버그 원인).
+//   앱 시작 시(루트 레이아웃) 1회 호출. 모듈 없는 빌드/실패는 조용히 통과.
+let adsInited = false;
+export async function initAds(): Promise<void> {
+  if (adsInited || !Ads) return;
+  const mobileAds = Ads.default ?? Ads;             // default export = mobileAds()
+  if (typeof mobileAds !== 'function') return;
+  adsInited = true;
+  try { await mobileAds().initialize(); } catch { adsInited = false; } // 실패 시 다음 시도 허용
+}
+
 // 무료 진입 시 전면광고. 모듈 없음/로드 실패 시 조용히 통과(흐름 안 막음).
 let interstitialShowing = false; // ★연타 중복 방지 — 이미 표시/로드 중이면 재호출 무시(광고 무한노출 버그 수정)
 export async function showInterstitialAd(): Promise<void> {

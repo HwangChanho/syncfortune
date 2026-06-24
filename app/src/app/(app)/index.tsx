@@ -63,9 +63,10 @@ const SECTIONS: Section[] = [
   ] },
   // 스페셜 = 유료 LLM 콘텐츠(애정흐름·인생그래프·신년). 골드 라인아트 타일 이미지(Recraft).
   { key: 'content', titleKey: 'menu.secContent', descKey: 'menu.secContentDesc', items: [
+    // daniel(2026-06-24): 신년운세 = 시즌 콘텐츠라 리스트 제일 앞.
+    { key: 'newyear', labelKey: 'menu.newyear', descKey: 'menu.newyearTileDesc', image: require('../../../assets/icons/newyear.jpg'), route: '/newyear', ready: true, content: true, creditKey: 'newyear' },
     { key: 'love', labelKey: 'menu.love', descKey: 'menu.loveDesc', image: require('../../../assets/icons/love.jpg'), route: '/love', ready: true, content: true, creditKey: 'love' },
     { key: 'lifegraph', labelKey: 'menu.lifegraph', descKey: 'menu.lifegraphDesc', image: require('../../../assets/icons/lifegraph.jpg'), route: '/lifegraph', ready: true, content: true, creditKey: 'lifegraph' },
-    { key: 'newyear', labelKey: 'menu.newyear', descKey: 'menu.newyearTileDesc', image: require('../../../assets/icons/newyear.jpg'), route: '/newyear', ready: true, content: true, creditKey: 'newyear' },
   ] },
   // 심층 분석(daniel 2026-06) — 사주/자미 깊은 해석 유료.
   { key: 'deep', titleKey: 'menu.secDeep', descKey: 'menu.secDeepDesc', items: [
