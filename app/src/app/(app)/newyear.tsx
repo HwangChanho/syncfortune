@@ -169,6 +169,13 @@ export default function NewYearScreen() {
             {typeof data.summary === 'string' && (
               <View style={styles.card}><Text style={[styles.body, { fontSize: fs(15), lineHeight: fs(26) }]}>{data.summary}</Text></View>
             )}
+            {/* ★올해 좋은 시기 — 콕 집어(daniel: 정확한 시점/날짜). 가장 눈에 띄게 강조 */}
+            {typeof data.timing === 'string' && (
+              <View style={[styles.card, styles.timingCard]}>
+                <Text style={[styles.sectH, { color: colors.bg }]}>📅 {t('newyear.timing', '올해 좋은 시기 · 콕 집어')}</Text>
+                <Text style={[styles.body, { fontSize: fs(15), lineHeight: fs(26), color: colors.bg }]}>{data.timing}</Text>
+              </View>
+            )}
             {/* 올해의 행운 포인트 */}
             {typeof data.luckyPoints === 'string' && (
               <View style={[styles.card, styles.luckyCard]}>
@@ -214,6 +221,13 @@ export default function NewYearScreen() {
               </View>
             )}
 
+            {/* 올해 개운법(daniel: 신년운세에도 개운법 필수) */}
+            {typeof data.remedy === 'string' && (
+              <View style={[styles.card, styles.luckyCard]}>
+                <Text style={styles.sectH}>🍀 {t('newyear.remedy', '올해 개운법')}</Text>
+                <Text style={[styles.body, { fontSize: fs(15), lineHeight: fs(26) }]}>{data.remedy}</Text>
+              </View>
+            )}
             {/* 삼재 대처(LLM) */}
             {typeof data.samjaeAdvice === 'string' && (
               <View style={styles.card}>
@@ -269,6 +283,7 @@ const styles = StyleSheet.create({
   body: { ...font.body, color: colors.ink, lineHeight: 26, fontSize: 15 },
   sectH: { fontSize: 15, fontWeight: '800', color: colors.ju, marginBottom: space(3) },
   luckyCard: { borderColor: colors.ju, borderWidth: 1.5 },
+  timingCard: { backgroundColor: colors.ju, borderColor: colors.ju }, // 올해 좋은 시기 — 금색 강조(daniel: 가장 눈에 띄게)
   halfTx: { ...font.body, color: colors.ink },
   halfLabel: { color: colors.ju, fontWeight: '800' },
   chips: { gap: space(2), paddingVertical: space(1), marginBottom: space(2) },
