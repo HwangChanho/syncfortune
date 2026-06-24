@@ -100,6 +100,26 @@ const SECTIONS: Section[] = [
   ] },
 ];
 
+// 홈 카드 켄번스 — 정적 이미지를 아주 느리게 줌(daniel #21: 카드가 '가볍게' 살아 움직이게).
+//   정적 일러스트라 내부 요소 자체를 움직일 순 없어, 느린 줌으로 생동감을 준다. native 드라이버=GPU라 스크롤 영향 최소.
+function KenBurnsCard({ source }: { source: any }) {
+  const s = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const loop = Animated.loop(Animated.sequence([
+      Animated.timing(s, { toValue: 1, duration: 6500, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+      Animated.timing(s, { toValue: 0, duration: 6500, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+    ]));
+    loop.start();
+    return () => loop.stop();
+  }, [s]);
+  const scale = s.interpolate({ inputRange: [0, 1], outputRange: [1, 1.08] });
+  return (
+    <Animated.View style={[StyleSheet.absoluteFill, { transform: [{ scale }] }]}>
+      <ExpoImage source={source} style={[StyleSheet.absoluteFill, styles.cardImgInner]} contentFit="cover" cachePolicy="memory-disk" transition={120} />
+    </Animated.View>
+  );
+}
+
 function TwinklingStars() {
   const starAnims = useRef([new Animated.Value(0.3), new Animated.Value(0.5), new Animated.Value(0.2)]).current;
   const shootingAnim = useRef(new Animated.Value(0)).current;
@@ -413,8 +433,8 @@ export default function Home() {
             return (
               <Pressable key={m.key} style={styles.card} onPress={() => onPress(m)}>
                 <View style={styles.cardImg}>
-                  {/* expo-image: 162pt 카드 표시 크기로 자동 다운샘플 → 풀해상도(796×1080) 디코딩 방지(메모리·랙 해결). absoluteFill 배경 + 위 오버레이. */}
-                  <ExpoImage source={m.image} style={[StyleSheet.absoluteFill, styles.cardImgInner]} contentFit="cover" cachePolicy="memory-disk" transition={120} />
+                  {/* expo-image 다운샘플 유지(메모리·랙) + 켄번스 느린 줌(daniel #21). absoluteFill 배경 + 위 오버레이. */}
+                  <KenBurnsCard source={m.image} />
                   {prem && (
                     <View style={styles.premTag}>
                       <Text style={styles.premTagText}>{t('menu.premiumTag')}</Text>
