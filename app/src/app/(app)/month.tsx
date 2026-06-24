@@ -23,7 +23,7 @@ import { setGenProgress } from '../../lib/genProgress'; // 일회성 진행도(d
 import type { Stem, Branch } from '@spec/chart';
 import { bgSource, colors, radius, space, shadow, font } from '../../lib/theme';
 import { useFontScale } from '../../lib/fontScale';
-import { stemElement, branchElement, elementColor, elementText, stemReading, branchReading } from '../../lib/ohaeng';
+import { stemElement, branchElement, elementColor, elementText, stemReading, branchReading, stemYinYang, branchYinYang } from '../../lib/ohaeng';
 import { ContentHero } from '../../components/SpecialContentScreen'; // 이미지 히어로(보는 맛)
 import { ShareReadingButton } from '../../components/ShareReadingButton'; // 이슈17: 풀이 결과 공유(가드 내장)
 
@@ -103,10 +103,11 @@ export default function MonthScreen() {
   const gzChip = (g: string, kind: 'stem' | 'branch') => {
     const el = kind === 'stem' ? stemElement(g) : branchElement(g);
     const ko = kind === 'stem' ? stemReading(g) : branchReading(g);
+    const yy = kind === 'stem' ? stemYinYang(g) : branchYinYang(g); // daniel: 음양 표시
     return (
       <View style={[styles.gzChip, { backgroundColor: elementColor[el] }]}>
         <Text style={[styles.gzChipTx, { color: elementText[el] }]}>{g}</Text>
-        <Text style={[styles.gzChipKo, { color: elementText[el] }]}>{ko}</Text>
+        <Text style={[styles.gzChipKo, { color: elementText[el] }]}>{ko} {yy === '+' ? '양' : '음'}</Text>
       </View>
     );
   };
