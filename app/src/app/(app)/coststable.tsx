@@ -62,6 +62,8 @@ export default function CostTableScreen() {
   const [n, setN] = useState(1000);
   // kind → 요청당 실측 ₩ 평균(영역 단위). null = 아직 측정값 없음
   const [costMap, setCostMap] = useState<Record<string, number> | null>(null);
+  // daniel #14: 풀이(kind×category) 단위 실측 원가 — 타임라인 대운/연도·궁합 관계별·사주 영역별 각각
+  const [catRows, setCatRows] = useState<{ kind: string; category: string; reqs: number; avg: number }[] | null>(null);
 
   useEffect(() => {
     // 실측 비용 RPC — Edge가 적재한 api_usage 집계(요청당 평균 ₩)
@@ -72,6 +74,11 @@ export default function CostTableScreen() {
         (data ?? []).forEach((r: any) => { m[r.kind] = Number(r.avg_won_per_req) || 0; });
         setCostMap(m);
       } catch { setCostMap({}); }
+      // 풀이별(시기·관계·영역) 세분 원가(daniel #14)
+      try {
+        const { data } = await supabase.rpc('usage_cost_by_category');
+        setCatRows((data ?? []).map((r: any) => ({ kind: r.kind, category: r.category, reqs: Number(r.reqs) || 0, avg: Number(r.avg_won_per_req) || 0 })));
+      } catch { setCatRows([]); }
     })();
   }, []);
 
@@ -146,6 +153,24 @@ export default function CostTableScreen() {
         ※ 원가는 신규 생성 1회 기준 — 캐시(차트×영역 1회=영구)로 재방문은 0원이라 실제 누적 마진은 더 큼.
         사주=영역당 실측×16, 자미=×12. 광고 수익은 eCPM·충전율에 따라 변동(추정).
       </Text>
+
+      {/* daniel #14: 풀이별(시기·관계·영역) 실측 원가 — 타임라인 대운/연도·궁합 관계별·사주 영역별 각각 얼마인지 */}
+      <Text style={[styles.title, { marginTop: space(8) }]}>풀이별 실측 원가</Text>
+      <Text style={styles.note}>각 풀이(타임라인 시기·궁합 관계·사주 영역 등) 1회 실측 원가(요청당 평균 ₩). 차트별 간지는 묶어 풀이 유형으로 집계 — 데이터 쌓일수록 정확.</Text>
+      {catRows == null ? (
+        <Text style={styles.foot}>측정 중…</Text>
+      ) : catRows.length === 0 ? (
+        <Text style={styles.foot}>아직 생성 데이터가 없어요(풀이 생성 후 채워짐).</Text>
+      ) : (
+        catRows.map((r) => (
+          <View key={r.kind + '|' + r.category} style={styles.row}>
+            <Text style={styles.cName} numberOfLines={1}>{r.kind}</Text>
+            <Text style={[styles.cType, { color: colors.inkSoft, flex: 1.6 }]} numberOfLines={1}>{r.category}</Text>
+            <Text style={[styles.cNum, { color: '#E5484D' }]}>{won(r.avg)}</Text>
+            <Text style={styles.cNum}>{r.reqs}회</Text>
+          </View>
+        ))
+      )}
     </ScrollView>
   );
 }
