@@ -135,7 +135,7 @@ export default function GaeunScreen() {
         <ChartPicker onChange={() => setReloadKey((k) => k + 1)} />
         <UnlockOverlay visible={busy} message={t('gaeun.generating', '지금 운에 맞는 개운법을 찾는 중…')} />
         <View style={styles.hero}>
-          <Text style={styles.heroEmoji}>🍀</Text>
+          <ExpoImage source={require('../../../assets/icons/gaeun.jpg')} style={styles.heroImg} contentFit="cover" cachePolicy="memory-disk" transition={150} />
           <Text style={styles.title}>{t('gaeun.title', '맞춤 개운법')}</Text>
           <Text style={styles.sub}>{t('gaeun.sub', '지금 운(대운·세운)에 맞춰 운을 살리는 구체적인 방법을 짚어 드려요')}</Text>
         </View>
@@ -180,7 +180,7 @@ const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: space(7), backgroundColor: colors.bg },
   msg: { ...font.body, color: colors.ink, textAlign: 'center', marginBottom: space(5) },
   hero: { alignItems: 'center', paddingVertical: space(4), marginBottom: space(3) },
-  heroEmoji: { fontSize: 44, marginBottom: space(2) },
+  heroImg: { width: '100%', height: 190, borderRadius: radius.md, marginBottom: space(3) },
   title: { fontSize: 24, fontWeight: '900', color: colors.ink, textAlign: 'center' },
   sub: { ...font.caption, color: colors.inkSoft, textAlign: 'center', marginTop: space(2), lineHeight: 19 },
   card: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.juLine, padding: space(5), marginBottom: space(3), ...shadow.card },

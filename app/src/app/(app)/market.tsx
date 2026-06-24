@@ -53,6 +53,8 @@ const CARD: Partial<Record<CreditKind, { img: any; desc: string }>> = {
   talent: { img: require('../../../assets/icons/talent.jpg'), desc: 'menu.talentDesc' },
   astrology: { img: require('../../../assets/icons/astrology.jpg'), desc: 'menu.astrologyDesc' },
   dream: { img: require('../../../assets/icons/dream.jpg'), desc: 'menu.dreamDesc' },
+  gaeun: { img: require('../../../assets/icons/gaeun.jpg'), desc: 'menu.gaeunDesc' }, // 맞춤 개운법(daniel #18)
+  followup: { img: require('../../../assets/icons/followup.jpg'), desc: 'menu.followupDesc' }, // 추가 질문(daniel: 마켓에도 이미지)
 };
 
 export default function MarketRoute() {
