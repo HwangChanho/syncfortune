@@ -198,7 +198,7 @@ const ko = {
   dayPillar: {
     title: '일주론', sub: '태어난 날의 간지(일주)로 보는 타고난 기질이에요.',
     male: '남자', female: '여자', mine: '내 일주', browseAll: '전체 일주 60', dayGroup: '일주', tapHint: '일주를 탭하면 상세 풀이가 펼쳐져요.', mineList: '내 명식 일주', noChart: '등록된 명식이 없어요. 명식을 먼저 등록하세요.',
-    s_overview: '개요', s_personality: '성격', s_love: '연애·결혼', s_career: '직업·재물', s_male: '남성', s_female: '여성', s_advice: '조언',
+    s_overview: '개요', s_personality: '성격', s_love: '연애·결혼', s_career: '직업·재물', s_male: '남성', s_female: '여성', s_advice: '조언', s_live: '어떻게 살아야 하나',
     disclaimer: '일주론은 타고난 기질의 한 단면일 뿐이에요. 정확한 풀이는 일주만이 아니라 연·월·시 기둥과 합충·용신까지 사주원국 전체를 함께 봐야 해요.',
   },
   purchase: {
@@ -212,7 +212,7 @@ const ko = {
   special: { previewHead: '이런 걸 풀어드려요', unlock: '쿠폰으로 열기', couponHint: '관리자 계정 또는 쿠폰(이용권)으로 열려요', couponOnly: '쿠폰(이용권)으로 열 수 있어요. 설정에서 쿠폰을 등록하거나 관리자에게 문의하세요.', needPay: '이용권이 필요해요. 다시 시도해 주세요.', needPayMsg: '이용권이 필요해요. 바로 구매하거나 마켓에서 받을 수 있어요.', buyNow: '바로 구매', goMarket: '마켓에서 보기', unlockCta: '구매하고 보기', unlockHint: '이용권 구매 또는 쿠폰으로 열려요' },
   roots: { title: '명식의 뿌리', sub: '겉으로 드러난 나와 속에 품은 힘, 그리고 진짜 단단한 기운을 짚어 드려요', generating: '뿌리를 더듬는 중…', summary: '한눈에', surface: '드러난 나', depth: '속에 품은 힘', strength: '진짜 단단한 힘', gap: '겉과 속의 차이', advice: '이렇게 키워요' },
   image: { title: '비치는 나', sub: '남에게 비치는 첫인상과 분위기, 관계 속 내 모습을 짚어 드려요', generating: '비치는 인상을 그리는 중…', summary: '한눈에', firstImpression: '첫인상', persona: '드러나는 이미지', inRelationship: '관계 속 나', charm: '매력 포인트', gap: '겉과 속', advice: '이렇게 보여 주세요' },
-  mission: { title: '나의 사명', sub: '타고난 그릇과 재능으로 본, 내가 무엇을 위해 태어났는지', generating: '타고난 사명을 읽는 중…', summary: '한눈에', coreNature: '타고난 본질', calling: '나의 소명', strengths: '타고난 무기', howToRealize: '펼치는 길', careers: '어울리는 일·직무', environment: '빛나는 환경', lifeTheme: '인생 주제', crossInsight: '함께 가리키는 방향', advice: '사명을 살아내는 법' },
+  mission: { title: '나의 사명', sub: '타고난 그릇과 재능으로 본, 내가 무엇을 위해 태어났는지', generating: '타고난 사명을 읽는 중…', summary: '한눈에', coreNature: '타고난 본질', calling: '나의 소명', strengths: '타고난 무기', howToRealize: '펼치는 길', successWay: '성공하는 방식', careers: '어울리는 일·직무', environment: '빛나는 환경', lifeTheme: '인생 주제', crossInsight: '함께 가리키는 방향', advice: '사명을 살아내는 법' },
   talent: { title: '나의 타고난 재능', sub: '무엇을 타고났는지, 좋아하는 일·해야 하는 일 중 어디서 빛나는지, 돈을 어떻게 다뤄야 하는지', generating: '타고난 재능을 읽는 중…', summary: '한눈에', talent: '타고난 재능', drive: '좋아하는 일 vs 해야 하는 일', money: '돈을 다루는 법', howToUse: '재능을 살리는 법', careers: '빛나는 일·분야', advice: '한마디' },
   numerology: { title: '수비학', sub: '생년월일에 담긴 수로 보는 나의 인생 방향·재능·올해 흐름', generating: '타고난 수를 읽는 중…', summary: '한눈에', lifePath: '생명수 — 인생 방향', innerYou: '내면과 겉모습', talent: '타고난 재능', thisYear: '올해 흐름', advice: '한마디' },
   astrology: { title: '별자리·점성술', sub: '내 별자리(태양별자리)와 점성술(네이탈 차트)을 한 번에 — 두 관점으로 깊이', generating: '별자리·점성술을 읽는 중…', signGroup: '⭐ 별자리 — 태양별자리로 보는 나', signSummary: '내 태양별자리', signTraits: '성격·기질', signLove: '연애 스타일', signStrength: '강점·매력', natalGroup: '🔭 점성술 — 네이탈 차트로 보는 나', big3: '태양·달·상승궁', natalLove: '사랑·욕구', natalWork: '일·성취', strength: '타고난 강점', challenge: '과제', advice: '한마디' },
@@ -418,7 +418,7 @@ const en = {
   dayPillar: {
     title: 'Day Pillar', sub: 'Your innate nature, seen through your birth-day pillar (ilju).',
     male: 'Male', female: 'Female', mine: 'My Day Pillar', browseAll: 'All 60 Day Pillars', dayGroup: 'day', tapHint: 'Tap a pillar to expand its full reading.', mineList: 'My Day Pillars', noChart: 'No saved charts. Register a chart first.',
-    s_overview: 'Overview', s_personality: 'Personality', s_love: 'Love & Marriage', s_career: 'Career & Wealth', s_male: 'For Men', s_female: 'For Women', s_advice: 'Advice',
+    s_overview: 'Overview', s_personality: 'Personality', s_love: 'Love & Marriage', s_career: 'Career & Wealth', s_male: 'For Men', s_female: 'For Women', s_advice: 'Advice', s_live: 'How to Live',
     disclaimer: "The day pillar is only one facet of your nature. A precise reading needs your whole chart — the year, month and hour pillars plus combinations, clashes and the useful god — not the day pillar alone.",
   },
   purchase: {
@@ -432,7 +432,7 @@ const en = {
   special: { previewHead: "What you'll get", unlock: 'Unlock with a coupon', couponHint: 'Open with an admin account or a coupon (pass)', couponOnly: 'Open with a coupon (pass). Register one in Settings or ask the admin.', needPay: 'A pass is needed. Please try again.', needPayMsg: 'A pass is needed. Buy now or get one in the market.', buyNow: 'Buy now', goMarket: 'Go to market', unlockCta: 'Buy & view', unlockHint: 'Open by buying a pass or with a coupon' },
   roots: { title: 'Roots of Your Chart', sub: 'Your visible self, hidden strengths, and what truly holds firm', generating: 'Tracing your roots…', summary: 'At a glance', surface: 'Visible you', depth: 'Hidden strength', strength: 'What truly holds', gap: 'Surface vs depth', advice: 'How to grow it' },
   image: { title: 'How You Appear', sub: 'Your first impression, vibe, and how you come across with others', generating: 'Drawing your impression…', summary: 'At a glance', firstImpression: 'First impression', persona: 'Outward image', inRelationship: 'In relationships', charm: 'Your charm', gap: 'Surface vs inner', advice: 'How to show up' },
-  mission: { title: 'My Calling', sub: 'What you were born to do — your gifts and role in this world', generating: 'Reading your calling…', summary: 'At a glance', coreNature: 'Core nature', calling: 'Your calling', strengths: 'Your gifts', howToRealize: 'How to realize it', careers: 'Fitting work', environment: 'Where you shine', lifeTheme: 'Life theme', crossInsight: 'Converging direction', advice: 'Living your calling' },
+  mission: { title: 'My Calling', sub: 'What you were born to do — your gifts and role in this world', generating: 'Reading your calling…', summary: 'At a glance', coreNature: 'Core nature', calling: 'Your calling', strengths: 'Your gifts', howToRealize: 'How to realize it', successWay: 'How You Succeed', careers: 'Fitting work', environment: 'Where you shine', lifeTheme: 'Life theme', crossInsight: 'Converging direction', advice: 'Living your calling' },
   talent: { title: 'My Innate Talent', sub: 'What you were born with, where you shine — doing what you love or what you must — and how to handle money', generating: 'Reading your innate talent…', summary: 'At a glance', talent: 'Your innate talent', drive: 'Passion vs duty', money: 'How you handle money', howToUse: 'How to use your talent', careers: 'Where you shine', advice: 'A word' },
   numerology: { title: 'Numerology', sub: 'Your life direction, talents, and this year — by the numbers in your birth date', generating: 'Reading your numbers…', summary: 'At a glance', lifePath: 'Life Path — your direction', innerYou: 'Inner self & outer image', talent: 'Your talents', thisYear: 'This year', advice: 'A word' },
   astrology: { title: 'Zodiac & Astrology', sub: 'Your star sign + full natal chart — two views in one', generating: 'Reading your stars…', signGroup: '⭐ Star Sign — by your Sun sign', signSummary: 'Your Sun Sign', signTraits: 'Personality', signLove: 'Love style', signStrength: 'Strengths', natalGroup: '🔭 Astrology — by your natal chart', big3: 'Sun·Moon·Rising', natalLove: 'Love & desire', natalWork: 'Work', strength: 'Strengths', challenge: 'Challenge', advice: 'A word' },
@@ -638,7 +638,7 @@ const ja = {
   dayPillar: {
     title: '日柱論', sub: '生まれた日の干支（日柱）でみる、生まれもった気質です。',
     male: '男性', female: '女性', mine: '私の日柱', browseAll: '日柱60すべて', dayGroup: '日', tapHint: '日柱をタップすると詳しい解説が開きます。', mineList: '私の命式の日柱', noChart: '登録された命式がありません。先に命式を登録してください。',
-    s_overview: '概要', s_personality: '性格', s_love: '恋愛·結婚', s_career: '仕事·財運', s_male: '男性', s_female: '女性', s_advice: 'アドバイス',
+    s_overview: '概要', s_personality: '性格', s_love: '恋愛·結婚', s_career: '仕事·財運', s_male: '男性', s_female: '女性', s_advice: 'アドバイス', s_live: 'どう生きるか',
     disclaimer: '日柱論は生まれもった気質の一面にすぎません。正確な鑑定は日柱だけでなく、年·月·時の柱や合冲·用神まで、命式全体を合わせてみる必要があります。',
   },
   purchase: {
@@ -652,7 +652,7 @@ const ja = {
   special: { previewHead: 'こんなことが分かります', unlock: 'クーポンで開く', couponHint: '管理者アカウントまたはクーポン(利用券)で開けます', couponOnly: 'クーポン(利用券)で開けます。設定で登録するか管理者にお問い合わせください。', needPay: '利用券が必要です。もう一度お試しください。', needPayMsg: '利用券が必要です。今すぐ購入するか、マーケットで受け取れます。', buyNow: '今すぐ購入', goMarket: 'マーケットで見る', unlockCta: '購入して見る', unlockHint: '利用券の購入またはクーポンで開けます' },
   roots: { title: '命式の根', sub: '表に出た自分·秘めた力·本当に揺るがない強さを読み解きます', generating: '根をたどっています…', summary: 'ひと目で', surface: '表に出た自分', depth: '秘めた力', strength: '本当の強さ', gap: '表と内の違い', advice: '伸ばし方' },
   image: { title: '映る自分', sub: '他人に映る第一印象·雰囲気·関係の中の自分', generating: '映る印象を描いています…', summary: 'ひと目で', firstImpression: '第一印象', persona: '表に出るイメージ', inRelationship: '関係の中の自分', charm: '魅力ポイント', gap: '表と内', advice: '見せ方' },
-  mission: { title: '私の使命', sub: '生まれ持った器と才能で見る、何のために生まれたか', generating: '使命を読んでいます…', summary: 'ひと目で', coreNature: '生まれ持った本質', calling: '私の使命', strengths: '才能·武器', howToRealize: '実現の道', careers: '向く仕事·職務', environment: '輝く環境', lifeTheme: '人生のテーマ', crossInsight: '共に示す方向', advice: '使命の生き方' },
+  mission: { title: '私の使命', sub: '生まれ持った器と才能で見る、何のために生まれたか', generating: '使命を読んでいます…', summary: 'ひと目で', coreNature: '生まれ持った本質', calling: '私の使命', strengths: '才能·武器', howToRealize: '実現の道', successWay: '成功の仕方', careers: '向く仕事·職務', environment: '輝く環境', lifeTheme: '人生のテーマ', crossInsight: '共に示す方向', advice: '使命の生き方' },
   talent: { title: '私の生まれ持った才能', sub: '何を持って生まれたか、好きな事·すべき事のどちらで輝くか、お金をどう扱うか', generating: '才能を読んでいます…', summary: 'ひと目で', talent: '生まれ持った才能', drive: '好きな事 vs すべき事', money: 'お金の扱い方', howToUse: '才能の活かし方', careers: '輝く分野', advice: 'ひとこと' },
   numerology: { title: '数秘術', sub: '生年月日の数で見る人生の方向·才能·今年の流れ', generating: '数を読んでいます…', summary: 'ひと目で', lifePath: '生命数 — 人生の方向', innerYou: '内面と外見', talent: '才能', thisYear: '今年の流れ', advice: 'ひとこと' },
   astrology: { title: '星座·占星術', sub: '星座(太陽星座)とネイタルチャートを一度に — 二つの視点で', generating: '星を読んでいます…', signGroup: '⭐ 星座 — 太陽星座で見る私', signSummary: '私の太陽星座', signTraits: '性格', signLove: '恋愛スタイル', signStrength: '強み', natalGroup: '🔭 占星術 — ネイタルで見る私', big3: '太陽·月·上昇', natalLove: '愛·欲求', natalWork: '仕事', strength: '強み', challenge: '課題', advice: 'ひとこと' },
