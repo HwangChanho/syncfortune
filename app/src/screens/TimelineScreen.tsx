@@ -22,7 +22,7 @@ import { loadCredits, grantCredit } from '../lib/coupons'; // 크레딧 보유�
 import { isReadingUnlocked } from '../lib/unlocks'; // 서버 세트 언락(timeline)
 import { purchaseCreditRC } from '../lib/purchases'; // timeline 개별 구매(비프리미엄)
 import { appLang } from '../lib/i18n'; // 통변 출력 언어(앱 언어)
-import { stemElement, elementColor, elementText } from '../lib/ohaeng';
+import { stemElement, branchElement, elementColor, elementText } from '../lib/ohaeng';
 import { colors, radius, space, shadow, font } from '../lib/theme';
 import type { ChartInput } from '@spec/chart';
 import type { SavedChart } from '../lib/myChart';
@@ -171,10 +171,17 @@ export function TimelineScreen({ input, savedChart }: { input: ChartInput | null
   const decadeLabel = decades.find((d) => d.key === selDecade)?.label ?? '';
   const yearLabel = selYear.startsWith('year_') ? `${selYear.slice(5)}년` : '';
 
-  // 간지 칩(오행색)
-  const gzChip = (gz: string, stem: string) => (
-    <View style={[styles.gz, { backgroundColor: elementColor[stemElement(stem)] }]}>
-      <Text style={[styles.gzTx, { color: elementText[stemElement(stem)] }]}>{gz}</Text>
+  // 간지 칩 — 천간·지지 각각 제 오행색으로 분리(daniel #16: 한 글자씩 알맞은 색)
+  const gzChip = (gz: string, _stem?: string) => (
+    <View style={{ flexDirection: 'row', gap: 3 }}>
+      {[...gz].map((ch, i) => {
+        const el = i === 0 ? stemElement(ch) : branchElement(ch); // 0=천간, 1=지지
+        return (
+          <View key={i} style={[styles.gz, { backgroundColor: elementColor[el] }]}>
+            <Text style={[styles.gzTx, { color: elementText[el] }]}>{ch}</Text>
+          </View>
+        );
+      })}
     </View>
   );
 
