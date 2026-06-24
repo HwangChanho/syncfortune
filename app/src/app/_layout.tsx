@@ -12,6 +12,7 @@ import { View, ActivityIndicator, StyleSheet, LogBox, AppState } from 'react-nat
 import { GestureHandlerRootView } from 'react-native-gesture-handler'; // 이슈20 드래그 reorder(gesture-handler) — 루트 래핑 필수
 import { useAuth } from '../lib/useAuth';
 import { configurePurchases } from '../lib/purchases'; // 인앱결제(RevenueCat) 초기화
+import { refreshPremium } from '../lib/premiumStore'; // 세션 변경(로그인/로그아웃/계정전환) 시 프리미엄 전역 재평가 → 광고 즉시 토글(daniel 2026-06-24)
 import { migrateLocalCreditsOnLogin } from '../lib/migrateCredits'; // 로그인 시 디바이스 구매 이관(H)
 import { preferSelfAsRep } from '../lib/myChart'; // 앱 실행 시 대표 명식 = 본인(daniel)
 import { initAds } from '../lib/ads'; // AdMob SDK 초기화(광고 로드 전 1회 필수 — 없으면 무료 광고 안 뜸, daniel 2026-06-24)
@@ -49,6 +50,7 @@ export default function RootLayout() {
   // 인앱결제 초기화 — 키 미설정 시 no-op. 로그인 시 RC 유저(appUserID=Supabase user.id) 연결.
   useEffect(() => {
     configurePurchases(session?.user?.id);
+    void refreshPremium(session?.user?.id ?? null); // ★세션 변경 시 프리미엄 재평가 → 전 화면 광고(하단 배너·보상형 게이트) 즉시 반영
     if (session?.user) migrateLocalCreditsOnLogin(); // 로그인 시 디바이스 구매분 계정 이관(확인 후, daniel H)
   }, [session?.user?.id]);
 
