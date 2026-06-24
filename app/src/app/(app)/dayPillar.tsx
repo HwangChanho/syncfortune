@@ -12,6 +12,7 @@ import { computeChart } from '../../lib/engine';
 import { loadRepChart, listCharts, type SavedChart } from '../../lib/myChart';
 import { isAdmin } from '../../lib/admin';
 import { DAY_PILLAR, STRESS, dayPillarKey, compatibleIlju, type DayPillarTrait } from '../../lib/dayPillar';
+import { DAY_PILLAR_LIVE } from '../../lib/dayPillarLive'; // 일주별 '어떻게 살아야 하나' 실천 4계명(별도 파일·daniel 검수 슬롯)
 import { stemReading, branchReading } from '../../lib/ohaeng';
 import { iljuImage } from '../../lib/dayPillarEmblem'; // 60갑자 AI 일러스트(내 일주 배경)
 import { useFontScale } from '../../lib/fontScale';
@@ -96,6 +97,19 @@ export default function DayPillarScreen() {
             <Text style={[styles.detailTx, bodyDyn]}>{d[s.field] as string}</Text>
           </View>
         ))}
+        {/* 어떻게 살아야 하나 — 일주별 실천 4계명(개운·처방). DAY_PILLAR_LIVE(별도 파일·daniel 검수 슬롯). */}
+        {DAY_PILLAR_LIVE[k] ? (
+          <View style={styles.section}>
+            <Text style={styles.secLabel}>{t('dayPillar.s_live', '어떻게 살아야 하나')}</Text>
+            {DAY_PILLAR_LIVE[k].map((line, i) => (
+              <View key={i} style={styles.liveRow}>
+                {/* 번호(골드) + 명령형 한 문장 */}
+                <Text style={[styles.liveNum, { fontSize: fs(14) }]}>{i + 1}</Text>
+                <Text style={[styles.liveTx, bodyDyn]}>{line}</Text>
+              </View>
+            ))}
+          </View>
+        ) : null}
         {/* 스트레스 해소(daniel: 일주별) — 일간 오행·일지 기질 기반 관리축 */}
         {STRESS[k] ? (
           <View style={styles.section}>
@@ -266,6 +280,10 @@ const styles = StyleSheet.create({
   section: { marginBottom: space(4) },
   secLabel: { fontSize: 13, fontWeight: '800', color: colors.ju, marginBottom: space(1.5), letterSpacing: 0.3 },
   detailTx: { ...font.body, color: colors.inkSoft },
+  // 어떻게 살아야 하나 — 4계명 행(번호 골드 + 명령형 문장)
+  liveRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: space(2) },
+  liveNum: { fontWeight: '800', color: colors.ju, marginRight: space(2.5), marginTop: 1, minWidth: 16 },
+  liveTx: { ...font.body, color: colors.inkSoft, flex: 1 },
   matchRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: space(2), borderBottomWidth: 1, borderBottomColor: colors.line },
   matchKey: { fontSize: 17, fontWeight: '700', color: colors.ink },
   matchReason: { fontSize: 12, color: colors.inkSoft },
