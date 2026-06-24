@@ -34,6 +34,7 @@ const ROUTE: Record<CreditKind, { pathname: string; kind?: string }> = {
   astrology: { pathname: '/astrology' },              // 별자리 운세(서양 네이탈)
   dream: { pathname: '/dream' },                       // AI 꿈해몽(자유 텍스트)
   gaeun: { pathname: '/gaeun' },                       // 맞춤 개운법(daniel #18)
+  celeb: { pathname: '/celeb' },                       // 세계 인물 매칭(daniel B)
 };
 
 // 이용권 kind → 카드 이미지 + 설명키(홈 카드와 동일 재사용, daniel: 마켓 리스트에도 작게+설명).
@@ -54,6 +55,7 @@ const CARD: Partial<Record<CreditKind, { img: any; desc: string }>> = {
   astrology: { img: require('../../../assets/icons/astrology.jpg'), desc: 'menu.astrologyDesc' },
   dream: { img: require('../../../assets/icons/dream.jpg'), desc: 'menu.dreamDesc' },
   gaeun: { img: require('../../../assets/icons/gaeun.jpg'), desc: 'menu.gaeunDesc' }, // 맞춤 개운법(daniel #18)
+  celeb: { img: require('../../../assets/icons/celeb.jpg'), desc: 'menu.celebDesc' }, // 세계 인물 매칭(daniel B)
   followup: { img: require('../../../assets/icons/followup.jpg'), desc: 'menu.followupDesc' }, // 추가 질문(daniel: 마켓에도 이미지)
 };
 

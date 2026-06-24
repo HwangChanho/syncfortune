@@ -39,7 +39,7 @@ export type Section = { key: string; label: string; groupTitle?: string }; // gr
 //   heroImage prop 명시 시 그게 우선(roots/image/mission = 전용 가로 hero-*.jpg). 없으면 이 맵 폴백.
 const HERO_BY_KIND: Record<string, any> = {
   daily: require('../../assets/icons/today.jpg'), monthly: require('../../assets/icons/month.jpg'), dayPillar: require('../../assets/icons/dayPillar.jpg'),
-  astrology: require('../../assets/icons/astrology.jpg'), bok: require('../../assets/icons/bok.jpg'), career: require('../../assets/icons/career.jpg'),
+  astrology: require('../../assets/icons/astrology.jpg'), bok: require('../../assets/icons/bok.jpg'), career: require('../../assets/icons/career.jpg'), celeb: require('../../assets/icons/celeb.jpg'),
   dream: require('../../assets/icons/dream.jpg'), egen: require('../../assets/icons/egen.jpg'), healing: require('../../assets/icons/healing.jpg'),
   joseonjob: require('../../assets/icons/joseonjob.jpg'), lifegraph: require('../../assets/icons/lifegraph-hero.jpg'), love: require('../../assets/icons/love-hero.jpg'),
   lovestyle: require('../../assets/icons/lovestyle.jpg'), luck: require('../../assets/icons/luck.jpg'), mbti: require('../../assets/icons/mbti.jpg'),
@@ -48,8 +48,9 @@ const HERO_BY_KIND: Record<string, any> = {
   taegil: require('../../assets/icons/taegil.jpg'), talent: require('../../assets/icons/talent.jpg'), zodiac: require('../../assets/icons/zodiac.jpg'),
 };
 
-export function SpecialContentScreen({ kind, title, sub, sections, needsZiwei = false, genMsg, heroMotif, themeColor = colors.ju, heroImage, buildBody, freePreview }: {
-  kind: CreditKind;        // 이용권/캐시 키(roots·image·mission). Edge category=kind.
+export function SpecialContentScreen({ kind, category = kind, title, sub, sections, needsZiwei = false, genMsg, heroMotif, themeColor = colors.ju, heroImage, buildBody, freePreview }: {
+  kind: CreditKind;        // 이용권/unlock 키(roots·image·mission). 크레딧 단위.
+  category?: string;       // 캐시·Edge category(기본=kind). daniel B 유명인: 인물별 celeb_{id}로 분리(크레딧은 kind='celeb' 공용).
   title: string;
   sub: string;
   sections: Section[];     // 응답 JSON 키 ↔ 라벨(순서대로 카드)
@@ -92,7 +93,7 @@ export function SpecialContentScreen({ kind, title, sub, sections, needsZiwei = 
       setChartId(id);
       // 소유 판정(daniel ⓐⓒ): 프리미엄 / 관리자 / 이 차트×종류 unlock(차감 완료) 중 하나여야 풀이 노출. 아니면 설명창(게이트).
       const own = isPremium || (await isAdmin()) || (await isUnlocked(id, kind));
-      const { data } = await supabase.from('readings').select('content').eq('chart_id', id).eq('category', kind).eq('lang', appLang()).maybeSingle();
+      const { data } = await supabase.from('readings').select('content').eq('chart_id', id).eq('category', category).eq('lang', appLang()).maybeSingle();
       if (!alive) return;
       const cached = data?.content ?? null;
       setOwned(own);
@@ -102,7 +103,7 @@ export function SpecialContentScreen({ kind, title, sub, sections, needsZiwei = 
     })().catch(() => { if (alive) setLoaded(true); });
     return () => { alive = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session, isPremium, reloadKey]);
+  }, [session, isPremium, reloadKey, category]);
 
   // 통변 도착(캐시·생성 완료) → 섹션 순차 등장 애니 시작
   useEffect(() => {
@@ -122,7 +123,7 @@ export function SpecialContentScreen({ kind, title, sub, sections, needsZiwei = 
     setGenProgress({ active: true, total: 1, done: 0, label: title, route: ('/' + kind) }); // 일회성 진행도(daniel 이슈15) — '풀이 중'
     logEvent(`${kind}_invoke_start`, { chartId: id });
     try {
-      const body: any = { chartId: id, category: kind, kind, tier: 'paid', lang: appLang() };
+      const body: any = { chartId: id, category, kind, tier: 'paid', lang: appLang() };
       if (needsZiwei) body.ziwei = ziweiArg ?? c?.ziwei; // 사명 = 자미 보조 교차
       if (buildBody && savedChart) Object.assign(body, buildBody(savedChart)); // 수비학/점성술 = 앱 산출 차트(numerologyChart/natalChart)
       const { data, error } = await supabase.functions.invoke('interpret', { body });
