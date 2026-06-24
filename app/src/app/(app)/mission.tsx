@@ -24,6 +24,7 @@ export default function MissionRoute() {
         { key: 'calling', label: t('mission.calling', '나의 소명') },
         { key: 'strengths', label: t('mission.strengths', '타고난 무기') },
         { key: 'howToRealize', label: t('mission.howToRealize', '펼치는 길') },
+        { key: 'successWay', label: t('mission.successWay', '성공하는 방식') }, // daniel: 내 사주 구조가 가리키는 성공 전략·방식(stance 검수 슬롯)
         { key: 'careers', label: t('mission.careers', '어울리는 일·직무') },
         { key: 'environment', label: t('mission.environment', '빛나는 환경') },
         { key: 'lifeTheme', label: t('mission.lifeTheme', '인생 주제') },
