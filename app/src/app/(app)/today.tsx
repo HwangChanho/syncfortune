@@ -153,6 +153,14 @@ export default function TodayScreen() {
 
         {!loaded ? (
           <View style={styles.readCard}><ActivityIndicator color={colors.ju} /></View>
+        ) : !session ? (
+          // daniel(2026-06-24): 오늘/이달 운세는 로그인 필요(LLM·서버차트·계정 귀속)
+          <View style={styles.readCard}>
+            <Text style={styles.readTx}>{t('today.needLogin', '오늘의 운세는 로그인 후 볼 수 있어요.')}</Text>
+            <Pressable style={styles.regBtn} onPress={() => router.push('/login')}>
+              <Text style={styles.regBtnTx}>{t('login.go', '로그인')}</Text>
+            </Pressable>
+          </View>
         ) : !saved ? (
           // 명식 미등록 — 등록 유도
           <View style={styles.readCard}>
