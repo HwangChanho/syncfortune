@@ -132,7 +132,7 @@ const ko = {
   today: {
     today: '오늘', tomorrow: '내일', energyTomorrow: '내일의 기운', weekdaysShort: '일,월,화,수,목,금,토',
     dayPillar: '오늘의 기운', note: '매일 자정에 바뀌는 오늘의 흐름이에요. 내 사주와 엮어 풀어 드려요 — 더 깊은 맞춤 풀이는 프리미엄에서.',
-    areas: '분야별 풀이', area_general: '통합', area_work: '직업', area_money: '재물', area_love: '애정', area_health: '건강',
+    areas: '분야별 풀이', area_general: '통합', area_work: '직업', area_money: '재물', area_invest: '투자', area_love: '애정', area_health: '건강',
     needChart: '내 명식을 등록하면 오늘의 흐름을 나에게 맞춰 분야별로 풀어 드려요.', registerBtn: '명식 등록하기',
     more: '분야별로 자세히 보기 →',
     genFail: '풀이 생성에 실패했어요. 잠시 후 다시 시도해 주세요.', title: '오늘의 운세', heroSub: '오늘 일진으로 보는 하루 흐름', generating: '오늘의 흐름을 풀어내는 중…', gateTitle: '오늘의 운세 보기', gateDesc: '타고난 사주에 지금의 큰 흐름·올해·오늘 기운을 더해, 오늘 생길 수 있는 일과 대처를 풀어 드려요.', seePremium: '오늘의 운세 보기', seeAd: '광고 보고 무료로 보기', adFail: '광고를 불러오지 못했어요. 잠시 후 다시 시도하거나, 프리미엄으로 광고 없이 보실 수 있어요.',
@@ -352,7 +352,7 @@ const en = {
   today: {
     today: 'Today', tomorrow: 'Tomorrow', energyTomorrow: "Tomorrow's Energy", weekdaysShort: 'Sun,Mon,Tue,Wed,Thu,Fri,Sat',
     dayPillar: "Today's Energy", note: "Changes daily at midnight, read against your own chart — deeper readings in Premium.",
-    areas: 'Readings by area', area_general: 'Overall', area_work: 'Work', area_money: 'Wealth', area_love: 'Love', area_health: 'Health',
+    areas: 'Readings by area', area_general: 'Overall', area_work: 'Work', area_money: 'Wealth', area_invest: 'Investing', area_love: 'Love', area_health: 'Health',
     needChart: 'Register your chart to get today personalized for you, area by area.', registerBtn: 'Register chart',
     more: 'See it area by area →',
     genFail: "We couldn't create your reading. Please try again in a moment.", title: "Today's Fortune", heroSub: 'How your day is shaping up today', generating: "Reading today's flow for you…", gateTitle: "See Today's Fortune", gateDesc: "Combining who you are with your bigger picture right now, this year, and today's mood, we'll walk you through what might come up today and how to handle it.", seePremium: "See Today's Fortune", seeAd: 'Watch an ad to view for free', adFail: "Couldn't load the ad. Please try again later, or go ad-free with Premium.",
@@ -572,7 +572,7 @@ const ja = {
   today: {
     today: '今日', tomorrow: '明日', energyTomorrow: '明日の気運', weekdaysShort: '日,月,火,水,木,金,土',
     dayPillar: '今日の気運', note: '毎日0時に変わる今日の流れを、あなたの命式と合わせて読み解きます — より深い鑑定はプレミアムで。',
-    areas: '分野別の運勢', area_general: '総合', area_work: '仕事', area_money: '財運', area_love: '恋愛', area_health: '健康',
+    areas: '分野別の運勢', area_general: '総合', area_work: '仕事', area_money: '財運', area_invest: '投資', area_love: '恋愛', area_health: '健康',
     needChart: '命式を登録すると、今日の流れをあなたに合わせて分野別に読み解きます。', registerBtn: '命式を登録',
     more: '分野別にくわしく見る →',
     genFail: '占い結果の作成に失敗しました。しばらくしてからもう一度お試しください。', title: '今日の運勢', heroSub: '今日一日の流れを見てみましょう', generating: '今日の流れを読み解いています…', gateTitle: '今日の運勢を見る', gateDesc: 'あなたの生まれ持った性質に、今の大きな流れ・今年・今日の雰囲気を重ねて、今日起こりそうなことと対処法をお伝えします。', seePremium: '今日の運勢を見る', seeAd: '広告を見て無料で見る', adFail: '広告を読み込めませんでした。しばらくして再度お試しいただくか、プレミアムで広告なしでご覧いただけます。',

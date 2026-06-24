@@ -196,13 +196,13 @@ export function dailyPreview(saju: SajuChart, todayStem: Stem, todayBranch: Bran
   return pvJoin(open, body, lang);
 }
 
-export type DailyAreaKey = 'general' | 'work' | 'money' | 'love' | 'health';
-export const DAILY_AREA_KEYS: DailyAreaKey[] = ['general', 'work', 'money', 'love', 'health'];
+export type DailyAreaKey = 'general' | 'work' | 'money' | 'invest' | 'love' | 'health';
+export const DAILY_AREA_KEYS: DailyAreaKey[] = ['general', 'work', 'money', 'invest', 'love', 'health']; // daniel #17: 투자 추가(재물 옆)
 
 // ── 언어별 템플릿 묶음 (ko/en/ja) — 본문은 앱 언어로. group/stage/type/pos 키는 내부(엔진 산출) 고정. ──
 type Lang = 'ko' | 'en' | 'ja';
 type Bundle = {
-  area: Record<DailyAreaKey, Record<TgGroup, string>>;       // 분야5 × 기운그룹5 기조
+  area: Record<'general' | 'work' | 'money' | 'love' | 'health', Record<TgGroup, string>>; // 온디바이스 템플릿 5분야(투자는 재물+주의로 파생 — daniel #17)
   stage: Record<string, string>;                             // 12운성 → 에너지 결
   posArea: Record<string, string>;                           // 궁위 → 삶의 영역 라벨
   link: (type: string, pos: string) => string;               // 합충 → 일상어
@@ -212,6 +212,7 @@ type Bundle = {
   areaSub: Record<TgGroup, string>;
   threeUnite: string; gm: string; gmMoney: string; cheonEul: string; hwagae: string;
   yeokma: string; dohwa: string; moneyBijeop: string; healthLow: string;
+  investCaution: string;                                      // 투자 분야 주의(daniel #17 — 흐름·타이밍 관점만, 종목·매수 조언 아님)
 };
 
 const KO: Bundle = {
@@ -302,6 +303,7 @@ const KO: Bundle = {
   dohwa: '매력이 살아나고 시선이 모이는 날이에요 — 첫 만남이든 오랜 사이든 호감이 잘 통해요.',
   moneyBijeop: '주변과 같이 쓰는 돈은 특히 새기 쉬워요 — 오늘만큼은 한도를 정해 두는 게 안전해요.',
   healthLow: '몸이 보내는 신호에 평소보다 민감해지세요 — 오늘은 일찍 쉬는 것이 보약이에요.',
+  investCaution: '투자·재테크는 흐름과 타이밍의 관점에서만 가볍게 보세요. 무리한 베팅·빚투는 한 걸음 물러서고, 큰 결정은 하루 묵혀 결제 전 한 번 더 점검 — 구체적인 종목·매수 조언이 아니에요.',
 };
 
 const EN: Bundle = {
@@ -392,6 +394,7 @@ const EN: Bundle = {
   dohwa: 'A day your charm shines and eyes turn your way — first meeting or long-time bond, goodwill comes through.',
   moneyBijeop: 'Money shared with others leaks especially easily — for today, setting a limit is the safe move.',
   healthLow: 'Be more sensitive than usual to what your body signals — today, turning in early is the best medicine.',
+  investCaution: 'Treat investing as a matter of flow and timing only. Step back from over-leveraged bets, sleep on big decisions, and double-check before you commit — this is not specific stock or buy advice.',
 };
 
 const JA: Bundle = {
@@ -482,6 +485,7 @@ const JA: Bundle = {
   dohwa: '魅力が生きて視線が集まる日です——初対面でも長い間柄でも、好意がよく通じます。',
   moneyBijeop: '周りと一緒に使うお金は特に漏れやすい——今日だけは上限を決めておくのが安全。',
   healthLow: '体が送るサインに普段より敏感に——今日は早めに休むのが一番の薬です。',
+  investCaution: '投資・資産運用は流れとタイミングの観点だけで軽く。無理なベットや借金投資は一歩引いて、大きな決断は一晩おいて決済前にもう一度——具体的な銘柄・買い推奨ではありません。',
 };
 
 const T: Record<Lang, Bundle> = { ko: KO, en: EN, ja: JA };
@@ -552,6 +556,9 @@ export function dailyChartReadings(saju: SajuChart, todayStem: Stem, todayBranch
   if (group === '비겁' && strong) money.push(tt.moneyBijeop);
   if (isGm) money.push(tt.gmMoney);
 
+  // 투자(daniel #17) = 재물 흐름 관점 + 표준 주의(흐름·타이밍만, 종목·매수 조언 아님). ※ 십신별 투자 stance 정교화는 daniel 검수 슬롯.
+  const invest: string[] = [tt.area.money[group], tt.investCaution];
+
   const love: string[] = [tt.area.love[group], ...loveLines];
   if (tw.has('도화')) love.push(tt.dohwa);
 
@@ -563,6 +570,7 @@ export function dailyChartReadings(saju: SajuChart, todayStem: Stem, todayBranch
     { key: 'general', paragraphs: clean(general) },
     { key: 'work', paragraphs: clean(work) },
     { key: 'money', paragraphs: clean(money) },
+    { key: 'invest', paragraphs: clean(invest) },
     { key: 'love', paragraphs: clean(love) },
     { key: 'health', paragraphs: clean(health) },
   ];
