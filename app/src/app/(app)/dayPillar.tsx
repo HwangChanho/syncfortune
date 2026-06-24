@@ -124,6 +124,10 @@ export default function DayPillarScreen() {
       {/* 헤더 타이틀 — 화면에서 직접 박아 확실하게(+다국어) */}
       <Stack.Screen options={{ title: t('dayPillar.title') }} />
       <ContentHero image={require('../../../assets/icons/dayPillar.jpg')} title={t('dayPillar.title')} sub={t('dayPillar.sub')} />
+      {/* daniel #20: 일주론은 '태어난 날(일주)' 기준 경향 — 정확한 풀이엔 사주 전체가 필요함을 설명 상단에 명시 */}
+      <Text style={{ ...font.caption, color: colors.ju, marginBottom: space(4), lineHeight: 19 }}>
+        {t('dayPillar.fullChartNote', '※ 일주론은 ‘태어난 날(일주)’ 하나로 보는 큰 경향이에요. 정확한 풀이는 사주 전체(원국)를 함께 봐야 해요.')}
+      </Text>
 
       {/* 남/여 보기 토글 — 관리자만(전체 열람). 일반 유저는 본인/명식 성별로 고정 표시. */}
       {admin && (
