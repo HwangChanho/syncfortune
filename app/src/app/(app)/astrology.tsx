@@ -6,6 +6,7 @@ import { SpecialContentScreen, FreeBasics } from '../../components/SpecialConten
 import { ZodiacWheel } from '../../components/ZodiacWheel'; // 황도 12궁 회전 휠(daniel B 재미)
 import { colors } from '../../lib/theme';
 import { buildNatal } from '../../lib/astrology';
+import { buildNumerology } from '../../lib/numerology'; // 수비학 병합(daniel: 별자리·점성술과 한 콘텐츠)
 
 // 별자리 영문명 → 한글(무료 빅3 미리보기용). 통변(유료)은 Edge가 한글로 풀어줌.
 const SIGN_KO: Record<string, string> = {
@@ -19,18 +20,18 @@ export default function AstrologyRoute() {
     <SpecialContentScreen
       kind="astrology"
       themeColor={colors.ju}
-      title={t('astrology.title', '별자리·점성술')}
-      sub={t('astrology.sub', '내 별자리(태양별자리)와 점성술(네이탈 차트)을 한 번에 — 두 관점으로 깊이 풀이')}
+      title={t('astrology.title', '별자리·점성술·수비학')}
+      sub={t('astrology.sub2', '별자리(태양)·점성술(네이탈)·수비학(생명수)을 한 번에 — 세 관점으로 깊이 풀이')}
       genMsg={t('astrology.generating', '별자리를 읽는 중…')}
       // 출생 일시 + 위경도 → 네이탈 차트. 위도 없으면 서울 기본(daniel: 출생지 피커서 추출하도록 보강함)
       buildBody={(ch) => {
         const [datePart, timePart] = (ch.input.birthDateTime ?? '').split(' ');
         const [y, mo, d] = datePart.split('-').map(Number);
         const [h, mi] = (timePart ?? '0:0').split(':').map(Number);
-        return { natalChart: buildNatal({
-          year: y, month: mo, day: d, hour: h || 0, minute: mi || 0,
-          latitude: ch.input.birthLat ?? 37.5665, longitude: ch.input.birthLon ?? 126.978,
-        }) };
+        return {
+          natalChart: buildNatal({ year: y, month: mo, day: d, hour: h || 0, minute: mi || 0, latitude: ch.input.birthLat ?? 37.5665, longitude: ch.input.birthLon ?? 126.978 }),
+          numerologyChart: buildNumerology({ year: y, month: mo, day: d }), // 수비학 병합(daniel: 별자리·점성술·수비학 한 콘텐츠)
+        };
       }}
       // 무료 티어(하이브리드) — 빅3(태양·달·상승궁)는 온디바이스로 먼저 무료, 깊은 해석은 유료 LLM
       freePreview={(ch) => {
@@ -39,9 +40,10 @@ export default function AstrologyRoute() {
         const [h, mi] = (tp ?? '0:0').split(':').map(Number);
         const nat = buildNatal({ year: y, month: mo, day: d, hour: h || 0, minute: mi || 0, latitude: ch.input.birthLat ?? 37.5665, longitude: ch.input.birthLon ?? 126.978 });
         const ko = (s: string) => SIGN_KO[s] ?? s;
+        const num = buildNumerology({ year: y, month: mo, day: d }); // 수비학 병합 — 생명수 무료 티저
         return (<>
           <ZodiacWheel sunSign={nat.big3.sun} />
-          <FreeBasics title={t('special.freeBasics', '먼저 무료로 — 나의 빅3')} rows={[['태양', ko(nat.big3.sun)], ['달', ko(nat.big3.moon)], ['상승궁', ko(nat.big3.rising)]]} />
+          <FreeBasics title={t('special.freeBasics2', '먼저 무료로 — 빅3 + 생명수')} rows={[['태양', ko(nat.big3.sun)], ['달', ko(nat.big3.moon)], ['상승궁', ko(nat.big3.rising)], ['생명수', num.lifePath]]} />
         </>);
       }}
       // 한 콘텐츠에 두 파트 분리(daniel): ①별자리(태양별자리·접근성) ②점성술(네이탈·심층). 둘 다 유료 LLM 통변.
@@ -57,6 +59,10 @@ export default function AstrologyRoute() {
         { key: 'natalWork', label: t('astrology.natalWork', '일·성취') },
         { key: 'strength', label: t('astrology.strength', '타고난 강점') },
         { key: 'challenge', label: t('astrology.challenge', '과제') },
+        // 🔢 수비학 섹터(daniel: 수비학 병합 — 유료 디테일)
+        { key: 'numCore', label: t('astrology.numCore', '수로 본 나'), groupTitle: t('astrology.numGroup', '🔢 수비학 — 생년월일의 수로 보는 나') },
+        { key: 'numLove', label: t('astrology.numLove', '수비학으로 본 관계') },
+        { key: 'numYear', label: t('astrology.numYear', '올해의 수') },
         { key: 'advice', label: t('astrology.advice', '한마디') },
       ]}
     />
