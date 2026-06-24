@@ -305,8 +305,9 @@ export default function Home() {
   async function onPress(m: MenuItem) {
     playSound('click');
     if (!m.ready) { Alert.alert(t(m.labelKey), t('common.comingSoon')); return; }
-    // 비로그인 + 콘텐츠/프리미엄 접근 = 로그인 유도(daniel 2026-06-23). 구매·계정 귀속 콘텐츠는 로그인 필요(무료 today/명식/타로는 제외).
-    if ((m.content || m.premium) && !session) {
+    // daniel #8(2026-06-24): 무료 콘텐츠는 로그인 없이(광고 보면 OK·온디바이스라 서버 불필요). 로그인은 *유료/구매(계정 귀속)* 콘텐츠에만 필요.
+    //   (LLM 무료 콘텐츠 = 에겐테토는 점수만 비로그인 표시·설명 LLM은 화면 내 로그인 유도. 오늘/이달 운세는 서버차트 필요 → 추후 익명세션 백엔드.)
+    if ((m.premium || m.creditKey) && !session) {
       Alert.alert(t('login.needTitle', '로그인이 필요해요'), t('login.needContentMsg', '이 콘텐츠를 보려면 로그인해 주세요. 로그인하면 구매·풀이가 계정에 안전하게 저장돼요.'), [
         { text: t('login.go', '로그인'), onPress: () => router.push('/login') },
         { text: t('common.cancel', '취소'), style: 'cancel' },
