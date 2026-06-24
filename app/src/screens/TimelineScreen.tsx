@@ -22,7 +22,8 @@ import { loadCredits, grantCredit } from '../lib/coupons'; // 크레딧 보유�
 import { isReadingUnlocked } from '../lib/unlocks'; // 서버 세트 언락(timeline)
 import { purchaseCreditRC } from '../lib/purchases'; // timeline 개별 구매(비프리미엄)
 import { appLang } from '../lib/i18n'; // 통변 출력 언어(앱 언어)
-import { stemElement, branchElement, elementColor, elementText } from '../lib/ohaeng';
+import { stemElement, branchElement, elementColor, elementText, stemYinYang, branchYinYang } from '../lib/ohaeng';
+import { TTSButton } from '../components/TTSButton'; // daniel: 풀이 음성 읽기(온디바이스 TTS·무료)
 import { colors, radius, space, shadow, font } from '../lib/theme';
 import type { ChartInput } from '@spec/chart';
 import type { SavedChart } from '../lib/myChart';
@@ -176,9 +177,11 @@ export function TimelineScreen({ input, savedChart }: { input: ChartInput | null
     <View style={{ flexDirection: 'row', gap: 3 }}>
       {[...gz].map((ch, i) => {
         const el = i === 0 ? stemElement(ch) : branchElement(ch); // 0=천간, 1=지지
+        const yy = i === 0 ? stemYinYang(ch) : branchYinYang(ch); // daniel: 모든 한자에 음양 표시
         return (
           <View key={i} style={[styles.gz, { backgroundColor: elementColor[el] }]}>
             <Text style={[styles.gzTx, { color: elementText[el] }]}>{ch}</Text>
+            <Text style={{ fontSize: 8, fontWeight: '700', color: elementText[el], marginTop: -3 }}>{yy === '+' ? '양' : '음'}</Text>
           </View>
         );
       })}
@@ -255,6 +258,8 @@ export function TimelineScreen({ input, savedChart }: { input: ChartInput | null
             ))}
           </View>
         )}
+        {/* daniel(2026-06-24): 이 시기 풀이 음성으로 듣기(온디바이스 TTS·무료) */}
+        <TTSButton reading={r} />
       </View>
     );
   };

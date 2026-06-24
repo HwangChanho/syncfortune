@@ -11,6 +11,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useMemo, useEffect, useRef, type ReactNode } from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator, Modal, TextInput, Keyboard, KeyboardAvoidingView, Platform } from 'react-native';
+import { TTSButton } from '../components/TTSButton'; // daniel: 풀이 음성 읽기(온디바이스 TTS·무료)
 import { Alert } from '../lib/alert'; // 커스텀 알림(앱 디자인)
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -496,6 +497,8 @@ export function ReadingScreen({
             {/* 자미두수 등 — 이 항목(궁)이 뭘 보는지 설명 */}
             {cats.find((x) => x.key === detail)?.desc ? <Text style={styles.detailDesc}>{cats.find((x) => x.key === detail)?.desc}</Text> : null}
             {renderSections(detail)}
+            {/* daniel(2026-06-24): 이 풀이 음성으로 듣기(온디바이스 TTS·무료) */}
+            {readings[detail] && !(readings[detail] as any)?.error ? <TTSButton reading={readings[detail]} /> : null}
             {/* ADR-055 P3: 분석 버전이 낮은 풀이만 '최신 해석으로 갱신'(opt-in·cap). 최신이면 미노출. */}
             {stale.has(detail) && (
               <Pressable style={styles.refreshBtn} onPress={() => refreshReading(detail)}>

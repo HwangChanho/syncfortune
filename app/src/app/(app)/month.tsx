@@ -26,6 +26,7 @@ import { useFontScale } from '../../lib/fontScale';
 import { stemElement, branchElement, elementColor, elementText, stemReading, branchReading, stemYinYang, branchYinYang } from '../../lib/ohaeng';
 import { ContentHero } from '../../components/SpecialContentScreen'; // 이미지 히어로(보는 맛)
 import { ShareReadingButton } from '../../components/ShareReadingButton'; // 이슈17: 풀이 결과 공유(가드 내장)
+import { TTSButton } from '../../components/TTSButton'; // daniel: 풀이 음성 읽기(온디바이스 TTS·무료)
 
 export default function MonthScreen() {
   const { t } = useTranslation();
@@ -161,6 +162,7 @@ export default function MonthScreen() {
               <Text style={[styles.readTx, { fontSize: fs(15), lineHeight: fs(26) }]}>{reading[area] || t('today.areaSoon', '이 분야 풀이는 다음 운세부터 채워져요.')}</Text>
             </View>
             {/* 이슈17: 풀이 결과 공유(content 없거나 error면 컴포넌트가 자체 미노출) */}
+            <TTSButton reading={reading} />
             <ShareReadingButton kind="monthly" title={t('month.title', '이달의 운세')} content={reading} />
           </>
         ) : busy ? (

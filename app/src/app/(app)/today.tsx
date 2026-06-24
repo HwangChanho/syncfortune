@@ -30,6 +30,7 @@ import { stemElement, branchElement, elementColor, elementText, stemReading, bra
 import { ContentHero } from '../../components/SpecialContentScreen'; // 이미지 히어로(보는 맛)
 import { ChartPicker } from '../../components/ChartPicker'; // 명식 선택(대표 전환) — 명식별 오늘 운세(daniel)
 import { ShareReadingButton } from '../../components/ShareReadingButton'; // 이슈17: 풀이 결과 공유(가드 내장)
+import { TTSButton } from '../../components/TTSButton'; // daniel: 풀이 음성 읽기(온디바이스 TTS·무료)
 
 export default function TodayScreen() {
   const { t } = useTranslation();
@@ -186,6 +187,8 @@ export default function TodayScreen() {
                 <Text style={[styles.readTx, { fontSize: fs(15), lineHeight: fs(26) }]}>{reading[area] || t('today.areaSoon', '이 분야 풀이는 다음 운세부터 채워져요.')}</Text>
               </View>
             </Reveal>
+            {/* daniel(2026-06-24): 오늘의 운세 음성으로 듣기(온디바이스 TTS·무료) */}
+            <TTSButton reading={reading} />
             {/* 이슈17: 풀이 결과 공유(content 없거나 error면 컴포넌트가 자체 미노출) */}
             <ShareReadingButton kind="daily" title={t('today.title', '오늘의 운세')} content={reading} />
           </>
