@@ -80,3 +80,10 @@ KakaoTalk_*.png
 
 # Claude Code 로컬 설정(개인 — 공개 레포 미커밋)
 .claude/settings.local.json
+
+# 통변/콘텐츠 원본 seed (PII 가능 — 미커밋)
+tmp_readings_seed/
+
+# 내부 기획·임시 디버깅(공개 레포 비노출 — 전략/PII)
+time_pillar_reconstruction_spec.md
+v48_baseline.txt
