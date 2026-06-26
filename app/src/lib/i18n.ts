@@ -15,7 +15,7 @@ const ko = {
   tagline: '나와 타인을 알고, 운명의 방향을 알려주는 나침반',
   menu: {
     myeongsik: '명식 등록', myeongsikDesc: '생년월일로 내 명식 등록·관리',
-    manse: '만세력', manseDesc: '날짜별 사주·차트 관리',
+    manse: '만세력', manseDesc: '날짜별 사주·차트 관리', timeResolve: '태어난 시 찾기', timeResolveDesc: '시간 몰라도 인생 사건으로 시를 추론',
     ziwei: '자미두수', ziweiDesc: '명반·12궁 성요 풀이',
     taro: '타로', taroDesc: '카드로 보는 오늘',
     today: '오늘의 운세', todayDesc: '매일 바뀌는 일운',
@@ -237,7 +237,7 @@ const en = {
   tagline: 'Know yourself and others — your compass to destiny',
   menu: {
     myeongsik: 'Register Chart', myeongsikDesc: 'Add & manage your chart',
-    manse: 'Manseryeok', manseDesc: 'Calendar charts & management',
+    manse: 'Manseryeok', manseDesc: 'Calendar charts & management', timeResolve: 'Find Your Hour', timeResolveDesc: 'Infer your birth hour from life events',
     ziwei: 'Zi Wei Dou Shu', ziweiDesc: 'Palaces & stars reading',
     taro: 'Tarot', taroDesc: "Today's card",
     today: 'Daily Fortune', todayDesc: 'Changes every day', month: 'Monthly Fortune', monthDesc: "This month by area",
@@ -457,7 +457,7 @@ const ja = {
   tagline: '自分と他人を知り、運命の方向を示す羅針盤',
   menu: {
     myeongsik: '命式登録', myeongsikDesc: '命式の登録·管理',
-    manse: '万歳暦', manseDesc: '日付別四柱·チャート管理',
+    manse: '万歳暦', manseDesc: '日付別四柱·チャート管理', timeResolve: '生まれた時刻さがし', timeResolveDesc: '時刻不明でも出来事から推論',
     ziwei: '紫微斗数', ziweiDesc: '命盤·12宮の星',
     taro: 'タロット', taroDesc: '今日のカード',
     today: '今日の運勢', todayDesc: '毎日変わる日運', month: '今月の運勢', monthDesc: '今月の分野別の流れ',

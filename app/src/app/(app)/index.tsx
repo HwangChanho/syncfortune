@@ -51,6 +51,7 @@ const priceLabel = (key: string) => {
 const SECTIONS: Section[] = [
   { key: 'free', titleKey: 'menu.secFree', items: [
     { key: 'manse', labelKey: 'menu.manse', descKey: 'menu.manseDesc', image: require('../../../assets/icons/manse.jpg'), route: '/charts', ready: true },
+    { key: 'timeResolve', labelKey: 'menu.timeResolve', descKey: 'menu.timeResolveDesc', image: require('../../../assets/icons/manse.jpg'), route: '/timeResolve', ready: true }, // TPR: 시 모르는 사용자(이미지 임시=manse 재사용, 전용 추후)
     { key: 'today', labelKey: 'menu.today', descKey: 'menu.todayTileDesc', image: require('../../../assets/icons/today.jpg'), route: '/today', ready: true },
     { key: 'month', labelKey: 'menu.month', descKey: 'menu.monthTileDesc', image: require('../../../assets/icons/month.jpg'), route: '/month', ready: true },
     { key: 'dayPillar', labelKey: 'menu.dayPillar', descKey: 'menu.dayPillarDesc', image: require('../../../assets/icons/dayPillar.jpg'), route: '/dayPillar', ready: true },

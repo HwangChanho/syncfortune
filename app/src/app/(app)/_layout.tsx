@@ -62,6 +62,7 @@ export default function AppLayout() {
         <Stack.Screen name="roots" options={{ headerTitle: '' }} />
         <Stack.Screen name="image" options={{ headerTitle: '' }} />
         <Stack.Screen name="impression" options={{ headerTitle: '' }} />
+        <Stack.Screen name="timeResolve" options={{ headerTitle: '' }} />
         <Stack.Screen name="mission" options={{ headerTitle: '' }} />
         <Stack.Screen name="persona" options={{ headerTitle: '' }} />
         <Stack.Screen name="egenteto" options={{ headerTitle: '' }} />
