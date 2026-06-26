@@ -7,11 +7,12 @@
 //   · label(이름)·relation 을 onSubmit input 에 포함(기존 누락 버그 수정)
 // 입력 → onSubmit(input) 콜백(라우트가 myChart 저장 + /myeongsik 전달). PII 기기 잔류(ADR-005).
 // ─────────────────────────────────────────────────────────────────────────
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { View, Text, TextInput, Pressable, StyleSheet, ScrollView, Modal } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { colors, radius, space, shadow, font } from '../lib/theme';
 import { SIJIN, formatBirthDate } from '../lib/sijin';
+import { trueSolarOffsetMin } from '@engine/solartime'; // 진태양시 보정(거주지 경도·서머타임·균시차) — 경계시 경고용
 import { BirthPlacePicker } from '../components/BirthPlacePicker';
 
 // 관계 프리셋 — 'self'(본인)은 내 차트 기준. 마지막 '직접입력'은 자유 텍스트 모드 트리거.
@@ -54,6 +55,25 @@ export function ChartRegisterScreen({ onSubmit, defaultRelation, submitLabel, sh
 
   function pickSijin(i: number) { setSijinIdx(i); setExactH(''); setExactM(''); setSijinOpen(false); } // 시진/모름 선택 = 정확시각 해제
   function confirmExact() { if (exactStr) { setSijinIdx(-1); setSijinOpen(false); } }                 // 정확시각 확정(시진 무시)
+
+  // 경계시 보정(daniel) — 정확시각 입력 시 진태양시 = 시계 + 거주지 보정. 시진 경계 ±20분이면 경고(시주가 바뀔 수 있음).
+  const boundaryInfo = useMemo(() => {
+    if (!exactStr) return null;
+    const [by, bm, bd] = birthDate.split('-').map((x) => parseInt(x, 10));
+    if (!by || !bm || !bd) return null;
+    const input = { birthDateTime: `${birthDate} ${exactStr}`, calendar, sex, birthPlace, birthLon: birthPlaceLon ?? undefined } as any;
+    const offset = Math.round(trueSolarOffsetMin(input, by, bm, bd, exH, exM));
+    const solarMin = (((exH * 60 + exM + offset) % 1440) + 1440) % 1440;             // 진태양시 분(0~1439)
+    const fromStart = (((solarMin - 1380) % 120) + 120) % 120;                       // 시진 블록(子 23:00 시작, 2h) 경계로부터
+    const toBoundary = Math.min(fromStart, 120 - fromStart);                         // 가까운 시진 경계까지(분)
+    const blockIdx = Math.floor(((((solarMin - 1380) % 1440) + 1440) % 1440) / 120); // 0=자..11=해
+    const SIJI = ['자', '축', '인', '묘', '진', '사', '오', '미', '신', '유', '술', '해'];
+    return {
+      offset,
+      solarTime: `${String(Math.floor(solarMin / 60)).padStart(2, '0')}:${String(solarMin % 60).padStart(2, '0')}`,
+      siji: SIJI[blockIdx], toBoundary, warn: toBoundary <= 20,
+    };
+  }, [exactStr, birthDate, calendar, sex, birthPlace, birthPlaceLon, exH, exM]);
 
   // input 구성 — 수동 제출·자동저장 공용. label/relation 은 메타(ChartInput PII 계약 외).
   function buildInput() {
@@ -203,6 +223,18 @@ export function ChartRegisterScreen({ onSubmit, defaultRelation, submitLabel, sh
                   <Text style={styles.exactBtnTx}>{t('common.confirm', '확인')}</Text>
                 </Pressable>
               </View>
+              {boundaryInfo && (
+                <View style={{ marginTop: space(2.5), padding: space(3), borderRadius: radius.md, backgroundColor: 'rgba(201,161,74,0.1)', borderWidth: 1, borderColor: colors.juLine }}>
+                  <Text style={{ fontSize: 13, color: colors.ju, fontWeight: '700' }}>
+                    거주지 보정 {boundaryInfo.offset >= 0 ? '+' : ''}{boundaryInfo.offset}분 → 실제 {boundaryInfo.solarTime} ({boundaryInfo.siji}시)
+                  </Text>
+                  {boundaryInfo.warn && (
+                    <Text style={{ fontSize: 12, color: colors.ju, marginTop: space(1.5), lineHeight: 17 }}>
+                      ⚠️ 시(時) 경계까지 {boundaryInfo.toBoundary}분 — 시각이 조금만 달라도 시주가 바뀔 수 있어요. 정확한지 확인하세요.
+                    </Text>
+                  )}
+                </View>
+              )}
             </View>
             <Text style={styles.sheetDivider}>{t('register.orSijin', '또는 시진(2시간)만 알 때')}</Text>
             <ScrollView style={styles.sheetList} showsVerticalScrollIndicator={false}>
