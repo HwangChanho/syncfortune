@@ -7,8 +7,9 @@
 //   - SecureStore.getItem(동기)로 로드 시점에 즉시 결정(첫 렌더부터 올바른 테마).
 //   - 토글 변경은 *재시작 후 적용*(StyleSheet 캐시 특성 — 설정에서 안내). 시스템 변경도 재시작 시 반영.
 // ─────────────────────────────────────────────────────────────────────────
-import { Appearance } from 'react-native';
+import { Appearance, DevSettings } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
+import * as Updates from 'expo-updates';
 
 export type ThemePref = 'system' | 'dark' | 'light';
 export type Scheme = 'dark' | 'light';
@@ -26,13 +27,14 @@ const DARK = {
 };
 // ── 라이트 팔레트(한지 — 따뜻한 베이지 + 먹 + 깊은 골드) ──────────
 const LIGHT = {
-  bg: '#F4EEDE', card: '#FFFFFF', sunk: '#ECE4D2',
-  glass: 'rgba(255, 255, 255, 0.72)', glassLight: 'rgba(43, 38, 32, 0.05)',
-  ink: '#2A2620', inkSoft: '#6B6356', inkFaint: '#9B9080', line: '#DED4BF',
-  ju: '#9A7A2C', juDeep: '#7C611F', juSoft: '#F5ECD2', juLine: '#CBB983',
-  gold: '#9A7A2C', white: '#FFFFFF',
-  // 한지 위 옅은 베이지 스크림(라이트) — 다크의 남색 스크림 대체.
-  overlay: 'rgba(244,238,222,0.45)', overlaySoft: 'rgba(244,238,222,0.2)', overlayStrong: 'rgba(255,255,255,0.82)',
+  // 전반 채도↓ + 이미지(미드나잇 네이비·골드 #C9A14A)와 조화(daniel 06-28). 노란기·탁함·순백대비 완화.
+  bg: '#F2EFE7', card: '#FBFAF6', sunk: '#EBE6DC',
+  glass: 'rgba(251, 250, 246, 0.72)', glassLight: 'rgba(43, 38, 32, 0.05)',
+  ink: '#2B2722', inkSoft: '#6A645B', inkFaint: '#9A938A', line: '#DCD7CC',
+  ju: '#A08948', juDeep: '#84703B', juSoft: '#EFEBE0', juLine: '#C9C0A6',
+  gold: '#A08948', white: '#FFFFFF',
+  // 한지 위 옅은 스크림(라이트) — 채도 낮춰 차분하게.
+  overlay: 'rgba(242,239,231,0.45)', overlaySoft: 'rgba(242,239,231,0.2)', overlayStrong: 'rgba(251,250,246,0.82)',
 };
 
 // 로드 시점 동기 결정: 저장 오버라이드(다크/라이트) > 시스템(Appearance). 실패 시 다크.
@@ -56,8 +58,12 @@ export const bgSource = activeScheme === 'light'
 
 // 설정 토글 — 저장(재시작 후 적용). 동기/비동기 모두 시도.
 export function setThemePref(p: ThemePref) {
-  try { (SecureStore as any).setItem?.(PREF_KEY, p); } catch { /* noop */ }
+  try { (SecureStore as any).setItem?.(PREF_KEY, p); } catch { /* noop */ } // 동기 저장(리로드 직후 로드 시 반영)
   SecureStore.setItemAsync(PREF_KEY, p).catch(() => {});
+  // ★즉시 적용(daniel) — StyleSheet 캐시 특성상 JS 리로드로 새 팔레트를 앱 안 끄고 바로 반영.
+  //   개발(dev client)=DevSettings.reload / 프로덕션=expo-updates reloadAsync(네이티브 → 다음 빌드부터 동작).
+  if (__DEV__) { try { DevSettings.reload(); } catch { /* noop */ } }
+  else { Updates.reloadAsync().catch(() => {}); }
 }
 export function getThemePref(): ThemePref {
   try { return ((SecureStore as any).getItem?.(PREF_KEY) as ThemePref) || 'system'; } catch { return 'system'; }
@@ -66,8 +72,8 @@ export function getThemePref(): ThemePref {
 // ── 그라데이션 (프리미엄 질감) — 라이트에선 톤 조정 ─────────────
 export const gradients = activeScheme === 'light'
   ? {
-      gold: ['#D9BE78', '#9A7A2C', '#7C611F'],
-      midnight: ['#FFFFFF', '#F4EEDE'],
+      gold: ['#CDB87C', '#A08948', '#84703B'], // 채도↓ 골드(LIGHT.ju 동기화)
+      midnight: ['#FBFAF6', '#F2EFE7'],         // card·bg 채도↓
       glass: ['rgba(43,38,32,0.06)', 'rgba(43,38,32,0.02)'],
     }
   : {

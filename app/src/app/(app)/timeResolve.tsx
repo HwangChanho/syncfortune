@@ -58,7 +58,8 @@ export default function TimeResolveScreen() {
 
       <Text style={styles.label}>인생 사건 (연도 + 유형)</Text>
       <TextInput value={yr} onChangeText={setYr} placeholder="연도 (예: 2023)" placeholderTextColor={colors.inkFaint} keyboardType="number-pad" style={styles.input} />
-      <View style={styles.chipRow}>
+      {/* 연도 입력과 카테고리 선택 사이 — 다른 label→input 간격(space(2))과 균일하게 */}
+      <View style={[styles.chipRow, { marginTop: space(2) }]}>
         {EVENT_TYPES.map((t) => (
           <Pressable key={t} onPress={() => setTy(t)} style={[styles.chip, ty === t && styles.chipOn]}>
             <Text style={ty === t ? styles.chipTxOn : styles.chipTx}>{t}</Text>

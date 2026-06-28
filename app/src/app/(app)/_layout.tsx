@@ -38,13 +38,13 @@ export default function AppLayout() {
       }}>
         <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="register" options={{ title: '차트 등록' }} />
-        <Stack.Screen name="myeongsik" options={{ title: '명식' }} />
-        <Stack.Screen name="sinsal" options={{ title: '신살·공망' }} />
-        <Stack.Screen name="reading" options={{ title: '풀이' }} />
-        <Stack.Screen name="timeline" options={{ title: '인생 타임라인' }} />
+        <Stack.Screen name="myeongsik" options={{ headerTitle: '' }} />
+        <Stack.Screen name="sinsal" options={{ headerTitle: '' }} />
+        <Stack.Screen name="reading" options={{ headerTitle: '' }} />
+        <Stack.Screen name="timeline" options={{ headerTitle: '' }} />
         <Stack.Screen name="settings" options={{ title: '설정' }} />
-        <Stack.Screen name="compat" options={{ title: '1:1 궁합' }} />
-        <Stack.Screen name="taro" options={{ title: '타로' }} />
+        <Stack.Screen name="compat" options={{ headerTitle: '' }} />
+        <Stack.Screen name="taro" options={{ headerTitle: '' }} />
         <Stack.Screen name="today" options={{ headerTitle: '' }} />
         <Stack.Screen name="month" options={{ headerTitle: '' }} />
         <Stack.Screen name="charts" options={{ title: '만세력' }} />
@@ -76,7 +76,7 @@ export default function AppLayout() {
         <Stack.Screen name="zodiac" options={{ headerTitle: '' }} />
         <Stack.Screen name="name" options={{ headerTitle: '' }} />
         <Stack.Screen name="dream" options={{ headerTitle: '' }} />
-        <Stack.Screen name="premium" options={{ title: '프리미엄' }} />
+        <Stack.Screen name="premium" options={{ headerTitle: '' }} />
         <Stack.Screen name="market" options={{ title: '마켓' }} />
         <Stack.Screen name="shared/[id]" options={{ title: '공유받은 풀이' }} />
         <Stack.Screen name="admin" options={{ title: '관리자' }} />

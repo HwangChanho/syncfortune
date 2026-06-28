@@ -31,13 +31,21 @@ export function BirthPlacePicker({ value, onSelect }: { value: string; onSelect:
         const url = `https://nominatim.openstreetmap.org/search?format=json&limit=8&featuretype=settlement&addressdetails=1&accept-language=ko&q=${encodeURIComponent(query.trim())}`;
         const res = await fetch(url, { headers: { 'User-Agent': 'SyncFortune/1.0 (fortune app)' } });
         const data = await res.json();
-        setResults((data ?? []).map((d: any) => {
+        // 원시 결과 → { name, lon, lat } 변환
+        const mapped: { name: string; lon: number; lat: number }[] = (data ?? []).map((d: any) => {
           const a = d.address ?? {};
           const city = a.city || a.town || a.village || a.county || a.municipality || a.suburb || '';
           const region = a.state || a.province || '';
           const name = [city, region, a.country].filter(Boolean).join(', ') || String(d.display_name).split(',').slice(0, 2).join(',').trim();
           return { name, lon: parseFloat(d.lon), lat: parseFloat(d.lat) };
-        }));
+        });
+        // 같은 name이 행정구역 세분/좌표 차이로 여러 번 올 수 있음(예: 여수시, 여수군 등).
+        // name을 키로 Map에 first-win 삽입 → 대표 1개(첫 좌표 유지)만 표시.
+        const seen = new Map<string, { name: string; lon: number; lat: number }>();
+        for (const item of mapped) {
+          if (!seen.has(item.name)) seen.set(item.name, item);
+        }
+        setResults(Array.from(seen.values()));
       } catch {
         setResults([]); // 네트워크 실패 → 아래 '그대로 사용' fallback 으로 진행 가능
       } finally {

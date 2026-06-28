@@ -1,4 +1,4 @@
-// src/app/(app)/country.tsx — '나에게 맞는 나라'(daniel 2026-06-24, 무료·온디바이스)
+// src/app/(app)/country.tsx — '내가 살기 좋은 곳'(daniel 2026-06-24, 무료·온디바이스)
 // ─────────────────────────────────────────────────────────────────────────
 // 원국 조후(더움/추움)·성별 음양으로 기운을 보완해 줄 기후·방위의 나라를 추천(국기 emoji). API 0.
 //   ※ '이주 권유'가 아니라 기운 보완 관점의 재미 안내. 국가 매핑 stance = daniel 검수 슬롯.
@@ -45,7 +45,7 @@ export default function CountryScreen() {
     <ImageBackground source={bgSource} style={styles.bg} resizeMode="cover">
       <ScrollView style={styles.overlay} contentContainerStyle={styles.wrap}>
         <ChartPicker onChange={() => setReloadKey((k) => k + 1)} />
-        <Text style={styles.title}>{t('country.title', '나에게 맞는 나라')}</Text>
+        <Text style={styles.title}>{t('country.title', '내가 살기 좋은 곳')}</Text>
         <Text style={styles.sub}>{t('country.sub', '타고난 기운(조후)을 보완해 줄 기후·방위의 나라를 짚어 드려요')}</Text>
 
         {!loaded ? null : !saved ? (
@@ -59,7 +59,7 @@ export default function CountryScreen() {
               <Text style={styles.johuBadge}>조후: {fit.johu} (따뜻 {fit.warm} · 차가움 {fit.cold})</Text>
               <Text style={[styles.headline, { fontSize: fs(15), lineHeight: fs(24) }]}>{fit.headline}</Text>
             </View>
-            <Text style={styles.h}>잘 맞는 나라</Text>
+            <Text style={styles.h}>살기 좋은 곳</Text>
             <View style={styles.card}>{fit.recommend.map((c) => card(c, 'rec'))}</View>
             {fit.caution.length > 0 && (<>
               <Text style={styles.h}>주의할 결</Text>

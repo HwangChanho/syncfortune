@@ -8,7 +8,7 @@
 //   ★출시 전: ATT/UMP 동의 플로우 추가 후 requestNonPersonalizedAdsOnly 해제 검토(지금은 비맞춤 = 동의 불요).
 // 로드 실패 시 = 접기(null) — 빈 회색 바보다 콘텐츠에 양보.
 // ─────────────────────────────────────────────────────────────────────────
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { View, Text, StyleSheet, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSubscription } from '../lib/subscription';
@@ -29,10 +29,10 @@ export function AdBanner() {
   const insets = useSafeAreaInsets();
   const [failed, setFailed] = useState(false); // 로드 실패 → 접기
 
-  // SDK 초기화(1회) — 모듈 있는 빌드에서만.
-  useEffect(() => {
-    if (Ads?.default) { Ads.default().initialize().catch(() => {}); }
-  }, []);
+  // SDK 초기화는 루트 _layout 의 initAds() 가 앱 시작 시 1회 담당 — 여기서 중복 호출하면
+  //   initAds() 의 adsInited 플래그를 우회해 BannerAd 렌더 시점과 초기화 완료 시점이 어긋나
+  //   onAdFailedToLoad → failed=true → 배너가 숨겨지는 레이스 조건이 생긴다.
+  //   (버그: 2026-06-28 발견·제거)
 
   if (isPremium) return null;  // 프리미엄 = 광고 제거
   if (failed) return null;     // 광고 없음 = 자리도 접음
