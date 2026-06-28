@@ -59,8 +59,16 @@ export function branchTenGod(day: Stem, branch: Branch): TenGod {
   return tenGod(day, BRANCH_MAIN[branch]);
 }
 
-/** 간지 문자열(예 "甲戌") → 한 기둥(PillarData). 지장간·십신·통근은 우리 로직. */
+/** 간지 문자열(예 "甲戌") → 한 기둥(PillarData). 지장간·십신·통근은 우리 로직.
+ *  @throws Error 간지 문자열이 2자 미만(라이브러리 경계값·범위 외 날짜)이면 에러를 던진다.
+ *          buildSajuChart 전체가 실패하게 해 silent 오류를 방지한다.
+ */
 function buildPillar(position: PillarPos, ganZhi: string, dayStem: Stem): PillarData {
+  // 라이브러리가 범위 밖 날짜에서 빈 문자열·1자 문자열을 반환하면 stem/branch가 undefined가 됨.
+  // 이를 막기 위해 길이를 먼저 검사한다.
+  if (!ganZhi || ganZhi.length < 2) {
+    throw new Error(`[saju] buildPillar(${position}): 간지 문자열이 유효하지 않습니다 → "${ganZhi}". 지원 범위 밖 날짜일 수 있습니다.`);
+  }
   const stem = ganZhi[0] as Stem;
   const branch = ganZhi[1] as Branch;
   const hiddenStems: HiddenStem[] = HIDDEN[branch].map((h) => ({
@@ -89,7 +97,12 @@ export function solarYmd(input: ChartInput): [number, number, number] {
   if ((input as any).calendar === '음') {
     // ⚠️ Lunar 는 모듈(Lunar.Solar 로도 씀) → 음력 변환은 Lunar.Lunar.fromYmd (Lunar.fromYmd 는 undefined).
     try { const lm = (input as any).isLeap ? -mo : mo; const s = Lunar.Lunar.fromYmd(y, lm, d).getSolar(); return [s.getYear(), s.getMonth(), s.getDay()]; }
-    catch { /* 변환 실패 시 입력 그대로(양력 간주) */ }
+    catch (e) {
+      // ⚠️ 음력→양력 변환 실패: 라이브러리가 지원하지 않는 날짜(범위 외·윤달 오류 등)일 수 있음.
+      // 입력 날짜를 양력으로 간주하고 계속하지만, 사주가 틀릴 수 있으므로 경고 로그를 남긴다.
+      // 호출처(buildSajuChart)는 이 폴백을 인지하기 어려우므로 최소한 콘솔로 기록.
+      console.warn('[saju] 음력→양력 변환 실패, 입력 날짜를 양력으로 폴백합니다. 결과가 부정확할 수 있습니다.', { y, mo: (input as any).isLeap ? -mo : mo, d, err: e });
+    }
   }
   return [y, mo, d];
 }
@@ -129,8 +142,18 @@ export function buildSajuChart(input: ChartInput, nowYear = 2026): SajuChart {
         // 이 세운의 월운(流月) 12 — 세운 탭 시 드릴다운에 사용
         const months: MonthPillar[] = (ln.getLiuYue?.() ?? []).map((ly: any) => {
           const mgz: string = ly.getGanZhi();
+          // 라이브러리 경계: 2자 미만이면 해당 월운만 스킵(대운/세운 전체는 유지)
+          if (!mgz || mgz.length < 2) {
+            console.warn('[saju] 월운 간지 이상, 스킵:', mgz);
+            return null;
+          }
           return { stem: mgz[0] as Stem, branch: mgz[1] as Branch, stemTenGod: tenGod(dayStem, mgz[0] as Stem), label: ly.getMonthInChinese?.() ?? '' };
-        });
+        }).filter(Boolean) as MonthPillar[];
+        // 세운 간지 이상이면 해당 세운 스킵
+        if (!agz || agz.length < 2) {
+          console.warn('[saju] 세운 간지 이상, 스킵:', agz);
+          return null;
+        }
         return {
           year: ln.getYear(),
           stem: agz[0] as Stem, branch: agz[1] as Branch,
@@ -138,7 +161,8 @@ export function buildSajuChart(input: ChartInput, nowYear = 2026): SajuChart {
           interactionsWithLuck: [],   // WS3(원국×대운×세운 합충) 영역
           months,
         };
-      });
+      }).filter(Boolean) as AnnualPillar[];
+      // 대운 간지 이상이면 이 대운을 건너뜀 — 위 filter 전에도 gz 검사 실행됨
       return {
         startAge: dy.getStartAge(),
         stem: gz[0] as Stem, branch: gz[1] as Branch,
@@ -151,9 +175,21 @@ export function buildSajuChart(input: ChartInput, nowYear = 2026): SajuChart {
     const nxt = luckCycles[i + 1];
     if (age >= cur.startAge && (!nxt || age < nxt.startAge)) cur.isCurrent = true;
   });
-  const currentLuck = luckCycles.find((l) => l.isCurrent) ?? luckCycles[0];
+  // luckCycles가 빈 배열(라이브러리가 대운을 전혀 계산 못한 경우)에도 크래시 방지.
+  // · find → luckCycles[0] → 최후 폴백(더미 대운) 순으로 안전하게 처리.
+  // · SajuChart 타입(currentLuck: LuckCycle, non-null) 유지를 위해 더미 대운 삽입.
+  const FALLBACK_LUCK: LuckCycle = {
+    startAge: 0, stem: '甲' as Stem, branch: '子' as Branch,
+    stemTenGod: tenGod(dayStem, '甲' as Stem),
+    isCurrent: true, annuals: [],
+  };
+  if (luckCycles.length === 0) {
+    console.warn('[saju] luckCycles 빈 배열 — 라이브러리가 대운을 반환하지 않았습니다. 더미 대운으로 폴백합니다.');
+  }
+  const currentLuck: LuckCycle = luckCycles.find((l) => l.isCurrent) ?? luckCycles[0] ?? FALLBACK_LUCK;
 
-  // 세운: 현재 대운의 流年에서 nowYear 찾기 (없으면 연간지 직접)
+  // 세운: 현재 대운의 流年에서 nowYear 찾기 (없으면 연간지 직접 계산 폴백)
+  // luckCycles가 빈 배열 폴백 케이스에서는 daYunRaw에 매칭이 없으므로 undefined → 폴백으로 이어짐.
   const curDaYun = daYunRaw.find((dy) => {
     const gz = dy.getGanZhi && dy.getGanZhi();
     return gz && gz[0] === currentLuck.stem && gz[1] === currentLuck.branch;

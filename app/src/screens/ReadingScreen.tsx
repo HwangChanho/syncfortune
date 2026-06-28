@@ -387,6 +387,8 @@ export function ReadingScreen({
   // 항목 상세 섹션 렌더 — 리스트 상세 모달에서 재사용
   const renderSections = (key: string) => {
     const r = normalizeReading(readings[key]);
+    // race 방어: readings 상태 초기화·undefined 시 빈 표시(크래시 방지)
+    if (!r || typeof r !== 'object') return <Text style={styles.err}>{'풀이를 불러오는 중…'}</Text>;
     const base = asText(r.base), past = asText(r.past), overlay = asText(r.overlay), future = asText(r.future), remedy = asText(r.remedy);
     if (r.error) return <Text style={styles.err}>{r.error}</Text>;
     const bodyDyn = { fontSize: fs(15), lineHeight: fs(26) }; // 설정 글자 크기 반영
@@ -464,7 +466,8 @@ export function ReadingScreen({
             </Pressable>
             {open && g.items.map((cat) => {
               const r = normalizeReading(readings[cat.key]);
-              const preview = r.error ? '생성 실패 — 다시 시도해 주세요' : asText(r.base);
+              // race 방어: r이 undefined이면 로딩 중으로 표시(크래시 방지)
+              const preview = (!r || typeof r !== 'object') ? '풀이를 불러오는 중…' : r.error ? '생성 실패 — 다시 시도해 주세요' : asText(r.base);
               return (
                 <Pressable key={cat.key} style={styles.listItem} onPress={() => setDetail(cat.key)}>
                   <View style={{ flex: 1 }}>

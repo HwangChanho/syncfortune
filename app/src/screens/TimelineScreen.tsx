@@ -131,6 +131,8 @@ export function TimelineScreen({ input, savedChart }: { input: ChartInput | null
   // 항목 통변 생성(Edge kind='timeline') — 캐시 적중 시 재생성 0.
   //   게이트(daniel): 프리미엄=현재 대운/올해 무료, 그 외 시기는 타임라인 이용권으로 1회 열기(건당 결제 준비 중).
   async function gen(key: string, id?: string | null) {
+    // 가드: selDecade 초기값('')이 그대로 전달되면 Edge에 빈 category가 가는 것을 막는다.
+    if (!key) return;
     const cid = id ?? chartId;
     if (!cid || readings[key] || busy === key) return;
     if (!assertOnline(t)) return;                          // 오프라인 = 신규 생성 차단
@@ -191,6 +193,8 @@ export function TimelineScreen({ input, savedChart }: { input: ChartInput | null
   // 통변 카드(공용) — 5카테고리(통합·직업·재물·애정·건강) 칩 + 선택 카테고리 본문(원국 풀이처럼 상세).
   //   잠긴 기간(프리미엄 현재 외)은 잠금 안내 + '이 시기 열기' 버튼(이용권 차감).
   const card = (key: string) => {
+    // 가드: curDecadeKey가 아직 확정되지 않아 selDecade === '' 인 경우 스켈레톤만 표시(Edge 호출 없음).
+    if (!key) return <View style={styles.card}><ActivityIndicator color={colors.ju} /></View>;
     const r = readings[key];
     if (busy === key && !r) return <View style={styles.card}><ActivityIndicator color={colors.ju} /><Text style={[styles.busyTx, { fontSize: fs(12) }]}>{t('timeline.generating')}</Text></View>;
     if (r?.error) return <View style={styles.card}><Text style={[styles.err, { fontSize: fs(13) }]}>{String(r.error)}</Text></View>;
