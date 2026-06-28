@@ -5,7 +5,7 @@
 //   태그(키워드)↔본문 간격 넉넉히(daniel). 하단 면책 필수. API 0.
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useMemo, useState, useRef } from 'react';
-import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator, ImageBackground, Animated, Easing } from 'react-native';
+import { View, Text, Pressable, ScrollView, StyleSheet, ImageBackground, Animated, Easing, InteractionManager } from 'react-native';
 import { Stack } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { computeChart } from '../../lib/engine';
@@ -19,6 +19,7 @@ import { useFontScale } from '../../lib/fontScale';
 import { colors, radius, space, shadow, font } from '../../lib/theme';
 import { ContentHero } from '../../components/SpecialContentScreen'; // 이미지 히어로(보는 맛)
 import { ShareReadingButton } from '../../components/ShareReadingButton'; // 이슈17: 풀이 결과 공유(앱게이트)
+import { ListSkeleton } from '../../components/Skeleton'; // 로딩 중 콘텐츠 형태 스켈레톤(daniel 2026-06-28)
 
 // 천간 순서(일간 그룹핑용) — 갑·을·…·계. 각 천간당 일주 6개(60갑자).
 const STEMS = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'];
@@ -51,23 +52,28 @@ export default function DayPillarScreen() {
   // 일반 유저가 볼 일주 = 등록한 명식들의 일주만(명식별 성별·라벨 포함). 관리자는 전체 60을 본다.
   const [myItems, setMyItems] = useState<{ key: string; sex: '남' | '여'; label: string }[]>([]);
 
-  // 대표 명식 로드 → 내 일주키 + 성별 추출(온디바이스, PII는 기기 밖으로 안 나감)
+  // 대표 명식 로드 → 내 일주키 + 성별 추출(온디바이스, PII는 기기 밖으로 안 나감).
+  //   ★전환 멈칫 제거(daniel): 등록 명식마다 computeChart 가 도는 무거운 루프라, 전환 애니가 끝난 뒤
+  //     (InteractionManager) 실행한다. 그 사이엔 ListSkeleton 이 즉시 떠 화면이 매끄럽게 넘어간다.
   useEffect(() => {
-    (async () => {
-      const ch = await loadRepChart();
-      setRep(ch);
-      if (ch) setSex(ch.input.sex); // 내 성별로 기본 보기 설정
-      isAdmin().then(setAdmin).catch(() => {}); // 관리자면 전체 60·남녀 토글 노출
-      // 등록된 모든 명식의 일주 + 성별(일반 유저 목록용). 같은 일주 중복은 명식 단위로 허용(label 로 구분).
-      const charts = await listCharts();
-      const items = charts.map((c) => {
-        const day = computeChart(c.input).saju.pillars['일'];
-        const key = dayPillarKey(day?.stem, day?.branch);
-        return key ? { key, sex: c.input.sex, label: c.label } : null;
-      }).filter(Boolean) as { key: string; sex: '남' | '여'; label: string }[];
-      setMyItems(items);
-      setLoaded(true);
-    })().catch(() => setLoaded(true));
+    const task = InteractionManager.runAfterInteractions(() => {
+      (async () => {
+        const ch = await loadRepChart();
+        setRep(ch);
+        if (ch) setSex(ch.input.sex); // 내 성별로 기본 보기 설정
+        isAdmin().then(setAdmin).catch(() => {}); // 관리자면 전체 60·남녀 토글 노출
+        // 등록된 모든 명식의 일주 + 성별(일반 유저 목록용). 같은 일주 중복은 명식 단위로 허용(label 로 구분).
+        const charts = await listCharts();
+        const items = charts.map((c) => {
+          const day = computeChart(c.input).saju.pillars['일'];
+          const key = dayPillarKey(day?.stem, day?.branch);
+          return key ? { key, sex: c.input.sex, label: c.label } : null;
+        }).filter(Boolean) as { key: string; sex: '남' | '여'; label: string }[];
+        setMyItems(items);
+        setLoaded(true);
+      })().catch(() => setLoaded(true));
+    });
+    return () => task.cancel(); // 전환 중 이탈 시 취소
   }, []);
 
   // 내 일주키(한자 2글자) — 대표 명식의 일간·일지
@@ -131,7 +137,7 @@ export default function DayPillarScreen() {
     );
   };
 
-  if (!loaded) return <View style={styles.center}><ActivityIndicator color={colors.ju} /></View>;
+  if (!loaded) return <ListSkeleton />;
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>

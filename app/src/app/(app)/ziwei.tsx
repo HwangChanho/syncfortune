@@ -4,8 +4,10 @@
 // 깊은 통합 풀이·운한(대한)은 프리미엄(LLM 패스) — 여기선 명반·성요까지 + 프리미엄 유도.
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useCallback } from 'react';
-import { View, Text, ScrollView, Pressable, Modal, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, Pressable, Modal, StyleSheet } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
+import { useDeferredReady } from '../../lib/useDeferredReady'; // 전환 멈칫 제거(daniel 2026-06-28)
+import { ChartSkeleton } from '../../components/Skeleton';     // 그 사이 스켈레톤
 import { computeChart } from '../../lib/engine';
 import { loadMyChart } from '../../lib/myChart';
 import { branchElement, elementColor } from '../../lib/ohaeng';
@@ -23,6 +25,7 @@ export default function ZiweiRoute() {
   const [me, setMe] = useState<ChartInput | null>(null);
   const [loading, setLoading] = useState(true);
   const [glossary, setGlossary] = useState<{ kind: GlossaryKind; key?: string } | null>(null);
+  const ready = useDeferredReady(); // 전환 멈칫 제거 — 전환 끝난 뒤 computeChart(자미 성반 산출)·렌더
 
   useFocusEffect(useCallback(() => {
     let alive = true;
@@ -30,13 +33,14 @@ export default function ZiweiRoute() {
     return () => { alive = false; };
   }, []));
 
-  if (loading) return <View style={styles.center}><ActivityIndicator color={colors.ju} /></View>;
+  if (loading) return <ChartSkeleton />;
   if (!me) return (
     <View style={styles.center}>
       <Text style={[font.body, { color: colors.ink, marginBottom: space(3) }]}>등록된 명식이 없습니다.</Text>
       <Pressable style={styles.btn} onPress={() => router.push('/register')}><Text style={styles.btnText}>명식 등록</Text></Pressable>
     </View>
   );
+  if (!ready) return <ChartSkeleton />; // 명식 있음 + 전환 중 → 스켈레톤(아래 computeChart 지연)
 
   const c = computeChart(me);
   const z = c.ziwei;

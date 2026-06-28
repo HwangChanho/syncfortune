@@ -8,6 +8,8 @@
 import { useMemo } from 'react';
 import { View, Text, ScrollView, StyleSheet, Pressable } from 'react-native';
 import { useFontScale } from '../lib/fontScale';
+import { useDeferredReady } from '../lib/useDeferredReady'; // 전환 멈칫 제거(daniel 2026-06-28)
+import { ChartSkeleton } from '../components/Skeleton';     // 그 사이 스켈레톤(스피너보다 빠른 체감)
 import { computeChart } from '../lib/engine';
 import type { ChartInput, PillarPos } from '@spec/chart';
 import { colors, radius, space, shadow, font } from '../lib/theme';
@@ -110,9 +112,12 @@ function SinsalGroup({ rows }: { rows: Row[] }) {
 }
 
 export function SinsalScreen({ input }: { input: ChartInput | null }) {
-  const c = useMemo(() => (input ? computeChart(input) : null), [input]);
+  // 전환 멈칫 제거(daniel): 전환 끝나기 전엔 computeChart(신살 전수 산출) 미실행 + 스켈레톤만.
+  const ready = useDeferredReady();
+  const c = useMemo(() => (ready && input ? computeChart(input) : null), [input, ready]);
   const { fs } = useFontScale();
   const styles = useMemo(() => makeStyles(fs), [fs]);
+  if (!ready) return <ChartSkeleton />;                  // 전환 중 — 명식 형태 스켈레톤(즉시 페인트)
   if (!c) return <View style={styles.center}><Text style={font.body}>명식 정보가 없습니다.</Text></View>;
 
   const timeUnknown = input?.timeAccuracy === '미상';                 // 시각 모름 → 시주 마스킹

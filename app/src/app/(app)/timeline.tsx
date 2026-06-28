@@ -4,10 +4,12 @@
 //   캐시 연결을 위해 대표 SavedChart(serverChartId)도 전달(ADR-052).
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useState } from 'react';
-import { View, Text, Pressable, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { TimelineScreen } from '../../screens/TimelineScreen';
+import { useDeferredReady } from '../../lib/useDeferredReady'; // 전환 멈칫 제거(daniel 2026-06-28)
+import { ChartSkeleton } from '../../components/Skeleton';     // 그 사이 스켈레톤
 import { loadRepChart, type SavedChart } from '../../lib/myChart';
 import { useFontScale } from '../../lib/fontScale';
 import { colors, radius, space, font } from '../../lib/theme';
@@ -21,6 +23,7 @@ export default function TimelineRoute() {
   const [me, setMe] = useState<ChartInput | null>(null);
   const [savedChart, setSavedChart] = useState<SavedChart | null>(null);
   const [loading, setLoading] = useState(true);
+  const ready = useDeferredReady(); // 전환 끝난 뒤 TimelineScreen(대운·세운 산출) 마운트
 
   useEffect(() => {
     if (input) { setMe(JSON.parse(input)); setSavedChart(null); setLoading(false); return; }
@@ -32,7 +35,7 @@ export default function TimelineRoute() {
     return () => { alive = false; };
   }, [input]);
 
-  if (loading) return <View style={styles.center}><ActivityIndicator color={colors.ju} /></View>;
+  if (loading) return <ChartSkeleton />;
   if (!me) {
     return (
       <View style={styles.center}>
@@ -43,6 +46,7 @@ export default function TimelineRoute() {
       </View>
     );
   }
+  if (!ready) return <ChartSkeleton />; // 명식 있음 + 전환 중 → 스켈레톤(TimelineScreen 마운트 지연)
   return <TimelineScreen input={me} savedChart={savedChart} />;
 }
 
