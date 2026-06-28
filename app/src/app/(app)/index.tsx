@@ -36,13 +36,13 @@ type Section = { key: string; titleKey: string; descKey?: string; items: MenuIte
 
 // 유료 콘텐츠 가격 배지 — 정가(9,900) 대비 할인율 + 건당 할인가(₩). 건당가는 CREDIT_KINDS(coupons) 단일 출처.
 //   무료(온디바이스) 콘텐츠는 creditKey 없음 → 배지 미표시.
-const LIST_PRICE_ORIG = 9900;
+const LIST_PRICE_ORIG = 19900; // 사주·자미 정가(할인율 표시 기준, daniel 06-28)
 const CREDIT_PRICE: Record<string, number> = Object.fromEntries(CREDIT_KINDS.map((c) => [c.key, c.price]));
 const wonFmt = (n: number) => '₩' + n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ','); // 천단위 콤마(Hermes Intl 비의존)
 const priceLabel = (key: string) => {
   const p = CREDIT_PRICE[key] ?? 0;
   const disc = Math.round((1 - p / LIST_PRICE_ORIG) * 100);
-  return `${disc}% · ${wonFmt(p)}`;
+  return disc > 0 ? `${disc}% · ${wonFmt(p)}` : wonFmt(p); // 정가(할인 0/음수)는 가격만
 };
 
 // 홈 = 무료 / 프리미엄 / 콘텐츠 3범주(daniel 기획, docs/기획_정보구조_v0.1.md).

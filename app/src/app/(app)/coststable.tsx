@@ -40,8 +40,8 @@ const ROWS: Row[] = [
   { name: '이름풀이', kind: '', mult: 1, type: '무료', api: false, price: 0, adEst: 3 },
   { name: '오늘의 운세', kind: 'daily', mult: 1, type: '광고무료', api: true, price: 0, adEst: 20 },
   { name: '이달의 운세', kind: 'monthly', mult: 1, type: '광고무료', api: true, price: 0, adEst: 20 },
-  { name: '사주 풀이(16영역)', kind: 'saju', mult: 16, type: '유료', api: true, price: 9900, adEst: 0 },
-  { name: '자미두수(12궁)', kind: 'ziwei', mult: 12, type: '유료', api: true, price: 8900, adEst: 0 },
+  { name: '사주 풀이(16영역)', kind: 'saju', mult: 16, type: '유료', api: true, price: 19900, adEst: 0 },
+  { name: '자미두수(12궁)', kind: 'ziwei', mult: 12, type: '유료', api: true, price: 19900, adEst: 0 },
   { name: '궁합', kind: 'compat', mult: 1, type: '유료', api: true, price: 3900, adEst: 0 },
   { name: '나의 애정흐름', kind: 'love', mult: 1, type: '유료', api: true, price: 4900, adEst: 0 },
   { name: '인생 타임라인', kind: 'timeline', mult: 1, type: '유료', api: true, price: 990, adEst: 0 },
@@ -52,7 +52,7 @@ const ROWS: Row[] = [
   { name: '비치는 나', kind: 'image', mult: 1, type: '유료', api: true, price: 4900, adEst: 0 },
   { name: '나의 사명', kind: 'mission', mult: 1, type: '유료', api: true, price: 6900, adEst: 0 },
   { name: '사업가의 나', kind: 'career', mult: 1, type: '유료', api: true, price: 4900, adEst: 0 },
-  { name: 'AI 꿈해몽', kind: 'dream', mult: 1, type: '유료', api: true, price: 240, adEst: 0 },
+  { name: 'AI 꿈해몽(개당)', kind: 'dream', mult: 1, type: '유료', api: true, price: 500, adEst: 0 },
 ];
 
 const SCALES = [1, 10, 100, 1000];

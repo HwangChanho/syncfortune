@@ -40,12 +40,12 @@ export const CREDIT_PRODUCT: Record<CreditKind, string> = {
   career: 'credit_career',       // 사업가의 나 vs 직장인의 나 ₩4,900
   talent: 'credit_talent',       // 나의 타고난 재능 ₩4,900(월지 축) — ⚠️ASC/RC에 credit_talent 상품 등록 필요(daniel)
   astrology: 'credit_astrology',   // 별자리 운세 ₩4,900 — ⚠️ASC/RC 상품 등록 필요(daniel)
-  dream: 'credit_dream',         // AI 꿈해몽 — 단건 ₩300은 Apple IAP 최저가 미만 → 5회 번들(₩1,200) 상품으로 판매
+  dream: 'credit_dream',         // AI 꿈해몽 — 단건 ₩500은 Apple IAP 최저가 미만 → 5회 번들(₩2,500) 상품으로 판매(daniel 06-28)
   gaeun: 'credit_gaeun',         // 맞춤 개운법 ₩4,900 — ⚠️ASC/RC 상품 등록 필요(daniel)
   celeb: 'credit_celeb',         // 세계 인물 매칭 ₩4,900 — ⚠️ASC/RC 상품 등록 필요(daniel)
 };
 
-// AI 꿈해몽: 단건 ₩300이 Apple IAP 최저가(~₩1,200) 미만이라 **5회 번들**(₩1,200, ≈₩240/회)로 판매(daniel 확정).
+// AI 꿈해몽: 단건 ₩500이 Apple IAP 최저가(~₩1,200) 미만이라 **5회 번들**(₩2,500, ≈₩500/회)로 판매(daniel 06-28).
 //   구매 1회 = DREAM_BUNDLE_QTY 크레딧 적립(다른 이용권은 1:1, dream만 번들). grantCredit('dream', DREAM_BUNDLE_QTY).
 export const DREAM_BUNDLE_QTY = 5;
 
