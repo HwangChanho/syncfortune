@@ -6,6 +6,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useEffect, useRef } from 'react';
 import { View, Text, TextInput, Pressable, ScrollView, StyleSheet } from 'react-native';
+import { Image as ExpoImage } from 'expo-image'; // 상단 히어로 — 자동 다운샘플·디스크캐시(daniel ⑥ 전용 이미지)
 import { Stack, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import type { ChartInput } from '@spec/chart';
@@ -102,6 +103,8 @@ export default function TimeResolveScreen() {
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.wrap} keyboardShouldPersistTaps="handled">
       <Stack.Screen options={{ title: '태어난 시 찾기' }} />
+      {/* 전용 히어로(daniel ⑥) — 천체 시계 모티프. 도구 화면이라 폼을 가리지 않게 컴팩트 높이. */}
+      <ExpoImage source={require('../../../assets/icons/timeResolve-hero.jpg')} style={styles.hero} contentFit="cover" contentPosition="center" cachePolicy="memory-disk" transition={150} />
       <Text style={styles.lead}>태어난 시간을 몰라도, 인생 사건으로 시(時)를 좁혀 드려요. 사건을 더 넣을수록 정확해져요.</Text>
 
       <Text style={styles.label}>생년월일 (양력)</Text>
@@ -171,6 +174,7 @@ function ResultView({ result }: { result: ReturnType<typeof scoreTimePillars> })
 const styles = StyleSheet.create({
   screen: { backgroundColor: colors.bg },
   wrap: { padding: space(6), paddingBottom: space(12) },
+  hero: { width: '100%', height: 140, borderRadius: radius.lg, marginBottom: space(5), backgroundColor: colors.sunk }, // 전용 천체 시계 배너(컴팩트)
   lead: { ...font.caption, color: colors.inkSoft, lineHeight: 20, marginBottom: space(5) },
   label: { fontSize: 13, fontWeight: '800', color: colors.ju, marginTop: space(4), marginBottom: space(2) },
   input: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.line, paddingHorizontal: space(3.5), paddingVertical: space(3), color: colors.ink, fontSize: 15 },

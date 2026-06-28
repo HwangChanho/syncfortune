@@ -10,7 +10,7 @@ import { useTranslation } from 'react-i18next';
 import { loadRepChart, type SavedChart } from '../../lib/myChart';
 import { computeChart } from '../../lib/engine';
 import { countryFit, type CountryRec } from '../../lib/countryFit';
-import { bgSource, colors, radius, space, shadow, font } from '../../lib/theme';
+import { colors, radius, space, shadow, font } from '../../lib/theme';
 import { useFontScale } from '../../lib/fontScale';
 import { ChartPicker } from '../../components/ChartPicker';
 
@@ -42,7 +42,7 @@ export default function CountryScreen() {
   );
 
   return (
-    <ImageBackground source={bgSource} style={styles.bg} resizeMode="cover">
+    <ImageBackground source={require('../../../assets/icons/country.jpg')} style={styles.bg} resizeMode="cover">
       <ScrollView style={styles.overlay} contentContainerStyle={styles.wrap}>
         <ChartPicker onChange={() => setReloadKey((k) => k + 1)} />
         <Text style={styles.title}>{t('country.title', '내가 살기 좋은 곳')}</Text>

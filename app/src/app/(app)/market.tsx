@@ -57,7 +57,7 @@ const CARD: Partial<Record<CreditKind, { img: any; desc: string }>> = {
   dream: { img: require('../../../assets/icons/dream.jpg'), desc: 'menu.dreamDesc' },
   gaeun: { img: require('../../../assets/icons/gaeun.jpg'), desc: 'menu.gaeunDesc' }, // 맞춤 개운법(daniel #18)
   celeb: { img: require('../../../assets/icons/celeb.jpg'), desc: 'menu.celebDesc' }, // 세계 인물 매칭(daniel B)
-  timeresolve: { img: require('../../../assets/icons/manse.jpg'), desc: 'menu.timeResolveDesc' }, // 태어난 시 찾기(TPR — daniel 06-28)
+  timeresolve: { img: require('../../../assets/icons/timeResolve.jpg'), desc: 'menu.timeResolveDesc' }, // 태어난 시 찾기(TPR — daniel 06-28)
   followup: { img: require('../../../assets/icons/followup.jpg'), desc: 'menu.followupDesc' }, // 추가 질문(daniel: 마켓에도 이미지)
 };
 
