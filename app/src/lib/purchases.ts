@@ -92,11 +92,12 @@ export async function isPremiumActiveRC(): Promise<boolean> {
 /** 프리미엄(평생) 구매 → 활성 성공 시 true. 사용자 취소 시 false. */
 export async function purchasePremiumRC(): Promise<boolean> {
   if (!purchasesEnabled()) throw new Error('결제가 아직 준비 중이에요.');
-  const offerings = await Purchases.getOfferings();
-  const pkg = offerings.current?.availablePackages?.[0];
-  if (!pkg) throw new Error('상품을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.');
+  // ★상품 직접 구매(오퍼링/패키지 경유 X) — RC 오퍼링의 Lifetime 패키지가 placeholder 상품(lifetime)에
+  //   묶여 있어 평생 프리미엄 구매가 실패하던 문제 우회(rc-setup 404). 이용권과 동일하게 premium_lifetime 직접.
+  const products = await Purchases.getProducts([PRODUCT_PREMIUM]);
+  if (!products.length) throw new Error('상품을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.');
   try {
-    const { customerInfo } = await Purchases.purchasePackage(pkg);
+    const { customerInfo } = await Purchases.purchaseStoreProduct(products[0]);
     return !!customerInfo.entitlements.active[ENTITLEMENT_PREMIUM];
   } catch (e: any) {
     if (e?.userCancelled) return false;
