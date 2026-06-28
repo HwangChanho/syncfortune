@@ -32,6 +32,7 @@ export function ChartRegisterScreen({ onSubmit, defaultRelation, submitLabel, sh
   const [exactH, setExactH] = useState(initTime && initSijinIdx < 0 ? (initTime.split(':')[0] ?? '') : '');
   const [exactM, setExactM] = useState(initTime && initSijinIdx < 0 ? (initTime.split(':')[1] ?? '') : '');
   const [calendar, setCalendar] = useState<'양' | '음'>(initial?.calendar ?? '양');
+  const [isLeap, setIsLeap] = useState<boolean>((initial as any)?.isLeap ?? false); // ⑧ 윤달(daniel) — 음력 윤달 구분
   const [sex, setSex] = useState<'남' | '여'>(initial?.sex ?? '남');
   const [birthPlace, setBirthPlace] = useState(initial?.birthPlace ?? '');
   const [birthPlaceLon, setBirthPlaceLon] = useState<number | null>(initial?.birthLon ?? null); // 진태양시 경도(ADR-008 준비)
@@ -88,6 +89,7 @@ export function ChartRegisterScreen({ onSubmit, defaultRelation, submitLabel, sh
       context: (job.trim() || relationship || concern.trim() || note.trim())
         ? { job: job.trim() || undefined, relationship: relationship || undefined, concern: concern.trim() || undefined, note: note.trim() || undefined }
         : undefined,
+      ...(calendar === '음' && isLeap ? { isLeap: true } : {}), // ⑧ 윤달 — 음력 윤달일 때만 전달(saju.ts solarYmd가 음수 month로 변환)
     };
   }
   function handleSubmit() { onSubmit(buildInput()); }
@@ -100,7 +102,7 @@ export function ChartRegisterScreen({ onSubmit, defaultRelation, submitLabel, sh
     const id = setTimeout(() => onAutoSave(buildInput()), 600);
     return () => clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [label, birthDate, sijinIdx, calendar, sex, birthPlace, birthPlaceLon, relation, makeRep, job, relationship, concern, note, autoSave]);
+  }, [label, birthDate, sijinIdx, calendar, isLeap, sex, birthPlace, birthPlaceLon, relation, makeRep, job, relationship, concern, note, autoSave]);
 
   return (
     <>
@@ -128,6 +130,11 @@ export function ChartRegisterScreen({ onSubmit, defaultRelation, submitLabel, sh
         <Text style={styles.label}>{t('register.calendar')}</Text>
         <Segmented options={[{ value: '양', label: t('register.solar') }, { value: '음', label: t('register.lunar') }]}
           value={calendar} onChange={(v) => setCalendar(v as '양' | '음')} />
+        {/* ⑧ 윤달(daniel) — 음력 선택 시 평달/윤달 구분(같은 달이 두 번 드는 해) */}
+        {calendar === '음' && (
+          <Segmented options={[{ value: 'false', label: t('register.normalMonth', '평달') }, { value: 'true', label: t('register.leapMonth', '윤달') }]}
+            value={String(isLeap)} onChange={(v) => setIsLeap(v === 'true')} />
+        )}
 
         {/* 성별 */}
         <Text style={styles.label}>{t('register.sex')}</Text>

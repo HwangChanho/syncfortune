@@ -82,13 +82,13 @@ function buildPillar(position: PillarPos, ganZhi: string, dayStem: Stem): Pillar
  */
 // 음력 입력이면 양력 [y,mo,d] 로 변환(lunar-javascript). 양력이면 그대로.
 //   ※ 만세력 음력 생일 오류 수정 — 기존엔 calendar='음'을 무시하고 양력처럼 계산했음.
-//   ※ 윤달은 입력 폼에 없어 평달(비윤달) 기준으로 변환한다(한계 — 추후 윤달 입력 시 보강).
+//   ※ ⑧ 윤달(daniel): isLeap=true면 음수 month로 변환한다(lunar-javascript 윤달 규약 — 윤4월=fromYmd(y,-4,d)). 입력 폼 윤달 토글에서 isLeap 전달.
 export function solarYmd(input: ChartInput): [number, number, number] {
   const [datePart] = input.birthDateTime.split(' ');
   const [y, mo, d] = datePart.split('-').map(Number);
   if ((input as any).calendar === '음') {
     // ⚠️ Lunar 는 모듈(Lunar.Solar 로도 씀) → 음력 변환은 Lunar.Lunar.fromYmd (Lunar.fromYmd 는 undefined).
-    try { const s = Lunar.Lunar.fromYmd(y, mo, d).getSolar(); return [s.getYear(), s.getMonth(), s.getDay()]; }
+    try { const lm = (input as any).isLeap ? -mo : mo; const s = Lunar.Lunar.fromYmd(y, lm, d).getSolar(); return [s.getYear(), s.getMonth(), s.getDay()]; }
     catch { /* 변환 실패 시 입력 그대로(양력 간주) */ }
   }
   return [y, mo, d];
