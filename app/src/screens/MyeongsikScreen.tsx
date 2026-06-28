@@ -19,8 +19,10 @@ import { OhaengIcon } from '../components/OhaengIcon';
 import { stemElement, branchElement, elementColor, elementText, stemReading, branchReading, stemYinYang, branchYinYang, eumYangSkew, johuSkew } from '../lib/ohaeng';
 import { ELEMENT_SKEW, TENGOD_SKEW, YINYANG_SKEW, JOHU_SKEW, CONCEPT_INFO, type SkewItem } from '../lib/skewKnowledge';
 import { useFontScale } from '../lib/fontScale'; // 글자 크기(설정) — 명식 글자까지 모든 텍스트에 적용(daniel)
-import { useDeferredReady } from '../lib/useDeferredReady'; // 전환 멈칫 제거 — 전환 끝난 뒤 computeChart·렌더(daniel 2026-06-28)
-import { ChartSkeleton } from '../components/Skeleton';     // 그 사이 명식 형태 스켈레톤(스피너보다 빠른 체감)
+// ⚠️ 전환 지연(useDeferredReady/ChartSkeleton)은 이 컴포넌트 *내부에서 조기 return* 하면 안 된다 —
+//   본문 곳곳(140·145~·282…)에 useState 가 있어, ready false→true 재렌더 시 hook 수가 바뀌어
+//   "Rendered more hooks than during the previous render" 크래시(06-29). 지연은 *래퍼*(charts/myeongsik 라우트)가
+//   마운트 자체를 늦춰 담당한다(컴포넌트는 마운트되면 항상 전체 hook 실행).
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -100,12 +102,9 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
     ]).start();
   }, [activeTab]);
 
-  // 전환 멈칫 제거(daniel): 전환 애니가 끝나기 전엔 computeChart(무거움)를 돌리지 않고 스켈레톤만 그린다.
-  const ready = useDeferredReady();
-  const c = useMemo(() => (ready && input ? computeChart(input) : null), [input, ready]);
+  const c = useMemo(() => (input ? computeChart(input) : null), [input]);
   const { fs } = useFontScale();                          // 글자 크기(설정)
   const styles = useMemo(() => makeStyles(fs), [fs]);     // fs 적용 스타일 — 명식 글자 포함 모든 텍스트 스케일
-  if (!ready) return <ChartSkeleton />;                   // 전환 중 — 명식 형태 스켈레톤(즉시 페인트)
   if (!c) return <View style={styles.center}><Text style={font.body}>{t('myeongsik.noChart')}</Text></View>;
 
   const timeUnknown = input?.timeAccuracy === '미상'; // 시각 모름 → 시주 마스킹

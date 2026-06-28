@@ -11,6 +11,7 @@ import { MyeongsikScreen } from '../../screens/MyeongsikScreen';
 import { loadMyChart } from '../../lib/myChart';
 import { ChartPicker } from '../../components/ChartPicker';
 import { ChartSkeleton } from '../../components/Skeleton'; // 로딩 중 명식 형태 스켈레톤(daniel 2026-06-28)
+import { useDeferredReady } from '../../lib/useDeferredReady'; // 전환 끝난 뒤 MyeongsikScreen 마운트(멈칫 제거)
 import { colors, radius, space, font } from '../../lib/theme';
 import type { ChartInput } from '@spec/chart';
 
@@ -19,14 +20,15 @@ export default function ChartsScreen() {
   const { t } = useTranslation();
   const [me, setMe] = useState<ChartInput | null>(null);
   const [loading, setLoading] = useState(true);
+  const ready = useDeferredReady(); // 전환 애니가 끝난 뒤 MyeongsikScreen(무거운 computeChart) 마운트 → 멈칫 제거
   useEffect(() => {
     loadMyChart().then((c) => { setMe(c); setLoading(false); });
   }, []);
   const { fs } = useFontScale();
   const styles = useMemo(() => makeStyles(fs), [fs]);
 
-  // 명식 로드 중 = 명식 형태 스켈레톤(즉시 페인트). 전환 멈칫 제거는 MyeongsikScreen 내부 useDeferredReady 가 담당.
-  if (loading) return <ChartSkeleton />;
+  // 로드 중 OR 전환 중 = 명식 형태 스켈레톤. ★MyeongsikScreen 은 ready 후에만 마운트(내부 조기 return 금지 — hook 수 불변).
+  if (loading || !ready) return <ChartSkeleton />;
 
   if (!me) {
     return (
