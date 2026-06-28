@@ -1212,8 +1212,8 @@ const makeStyles = (fs: (n: number) => number) => { const f = scaledFont(fs); re
   elemLegend: { flex: 1, gap: space(1) },
   elemLegendRow: { flexDirection: 'row', alignItems: 'center', gap: space(2) },
   elemDot: { width: 10, height: 10, borderRadius: 5 },
-  elemLegendEl: { fontSize: fs(15), fontWeight: '800', width: 20 },
-  elemLegendVal: { ...f.caption, color: colors.inkSoft },
+  elemLegendEl: { fontSize: fs(15), fontWeight: '800' }, // 오행+십성 한 줄(daniel) — 고정폭 제거(width 20이 '(식상)'을 줄바꿈시켰음)
+  elemLegendVal: { ...f.caption, color: colors.inkSoft, marginLeft: 'auto' }, // 개수·% 는 우측 정렬(열 정돈)
   note: { ...f.caption, marginTop: space(6) },
   readingBtn: {
     backgroundColor: colors.ju, borderRadius: radius.md, paddingVertical: space(3.5),
