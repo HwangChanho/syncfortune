@@ -9,7 +9,11 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { Appearance, DevSettings } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
-import * as Updates from 'expo-updates';
+// ⚠️ expo-updates = 네이티브 모듈. theme.ts 는 거의 모든 화면이 import → *정적 import* 하면 런치 시 로드되어,
+//   모듈/설정 이슈 시 JS 로거 설치 전 네이티브 크래시 위험(purchases.ts·ads.ts 와 동일 패턴 위반).
+//   → lazy require 가드(setThemePref 호출 시에만 로드). 모듈 없으면 조용히 no-op(테마는 재시작 후 적용).
+let Updates: any = null;
+try { Updates = require('expo-updates'); } catch { Updates = null; }
 
 export type ThemePref = 'system' | 'dark' | 'light';
 export type Scheme = 'dark' | 'light';
@@ -63,7 +67,7 @@ export function setThemePref(p: ThemePref) {
   // ★즉시 적용(daniel) — StyleSheet 캐시 특성상 JS 리로드로 새 팔레트를 앱 안 끄고 바로 반영.
   //   개발(dev client)=DevSettings.reload / 프로덕션=expo-updates reloadAsync(네이티브 → 다음 빌드부터 동작).
   if (__DEV__) { try { DevSettings.reload(); } catch { /* noop */ } }
-  else { Updates.reloadAsync().catch(() => {}); }
+  else { try { Updates?.reloadAsync?.().catch(() => {}); } catch { /* 모듈/설정 없으면 재시작 후 적용 */ } }
 }
 export function getThemePref(): ThemePref {
   try { return ((SecureStore as any).getItem?.(PREF_KEY) as ThemePref) || 'system'; } catch { return 'system'; }
