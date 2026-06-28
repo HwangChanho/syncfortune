@@ -112,10 +112,6 @@ export default function SettingsScreen() {
             <Text style={styles.acctEmail} numberOfLines={1}>{session.user.email}</Text>
             <Pressable onPress={doLogout}><Text style={styles.acctAction}>{t('common.logout')}</Text></Pressable>
           </View>
-          {/* 계정 삭제(App Store 필수) — 데이터·계정 영구 삭제 */}
-          <Pressable style={styles.delAcctBtn} onPress={onDeleteAccount}>
-            <Text style={styles.delAcctTx}>{t('settings.deleteAccount')}</Text>
-          </Pressable>
         </>
       ) : (
         <Pressable style={styles.acctLoginBtn} onPress={() => router.push('/login')}>
@@ -212,6 +208,13 @@ export default function SettingsScreen() {
         <Pressable style={styles.infoRow} onPress={() => Linking.openURL(PRIVACY_URL).catch(() => {})}><Text style={styles.infoLabel}>{t('settings.privacy', '개인정보처리방침')}</Text><Text style={styles.infoArrow}>›</Text></Pressable>
         <Pressable style={[styles.infoRow, styles.infoRowLast]} onPress={() => Alert.alert(t('settings.license', '오픈소스 라이선스'), OSS_LICENSES)}><Text style={styles.infoLabel}>{t('settings.license', '오픈소스 라이선스')}</Text><Text style={styles.infoArrow}>›</Text></Pressable>
       </View>
+
+      {/* 계정 삭제(App Store 필수) — 파괴적 동작이라 맨 하단 배치(daniel). 로그인 상태에서만 노출 */}
+      {session && (
+        <Pressable style={styles.delAcctBtn} onPress={onDeleteAccount}>
+          <Text style={styles.delAcctTx}>{t('settings.deleteAccount')}</Text>
+        </Pressable>
+      )}
 
       {/* 긴 콜백(로그아웃·계정삭제) 동안 입력 차단 + 로딩 표시 */}
       <BusyOverlay visible={!!busy} message={busy ?? undefined} />

@@ -35,7 +35,7 @@ export function BottomNav() {
 }
 
 const styles = StyleSheet.create({
-  bar: { flexDirection: 'row', borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.line, backgroundColor: colors.bg, paddingBottom: space(6), paddingTop: space(5) }, // 바 높이 키움(위로, daniel) — paddingTop 3.5→5
+  bar: { flexDirection: 'row', borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.line, backgroundColor: colors.bg, paddingBottom: space(6), paddingTop: space(5), marginBottom: space(4) }, // 바 높이 키움(위로, daniel) — paddingTop 3.5→5 / marginBottom 16px 추가로 safe area 위로 올림(daniel)
 
   tab: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   // active 상단 짧은 골드 바(이모지 대신 시각 표시)
