@@ -51,8 +51,8 @@ export const colors = { ...(activeScheme === 'light' ? LIGHT : DARK) };
 
 // 전 화면 배경 이미지 — 다크=밤하늘, 라이트=한지(daniel #다크모드). 둘 다 번들에 포함.
 export const bgSource = activeScheme === 'light'
-  ? require('../../../assets/icons/bg-paper.jpg')
-  : require('../../../assets/icons/bg-night.png');
+  ? require('../../assets/icons/bg-paper.jpg')
+  : require('../../assets/icons/bg-night.png');
 
 // 설정 토글 — 저장(재시작 후 적용). 동기/비동기 모두 시도.
 export function setThemePref(p: ThemePref) {
