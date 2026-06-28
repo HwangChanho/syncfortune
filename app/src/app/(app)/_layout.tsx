@@ -26,6 +26,9 @@ export default function AppLayout() {
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
       <OfflineBanner />
       <Stack screenOptions={{
+        // ★기본 = 헤더 타이틀 없음(daniel: 콘텐츠 상단에 라우트 영어 이름 'country'·'gaeun' 등이 박히던 문제 →
+        //   _layout 누락 라우트가 expo-router 기본값=파일명(영어)을 띄움). 타이틀이 필요한 화면만 아래 title: 로 덮어씀.
+        headerTitle: '',
         headerStyle: { backgroundColor: colors.bg }, // 한지 헤더
         headerTintColor: colors.ink,                 // 먹 — 뒤로가기·타이틀
         headerTitleStyle: { color: colors.ink, fontWeight: '700', fontSize: fs(17) }, // 글자크기 반응
