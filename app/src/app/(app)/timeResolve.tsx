@@ -62,6 +62,16 @@ export default function TimeResolveScreen() {
   };
   const removeEvent = (i: number) => setEvents((p) => p.filter((_, idx) => idx !== i));
 
+  // 생년월일 자동 하이픈(daniel) — 숫자만 입력해도 YYYY-MM-DD 로 변환(붙여넣기·부분입력 안전).
+  //   ★이게 없으면 숫자만 입력 시 run()의 정규식(YYYY-MM-DD)이 실패해 '후보 좁히기'가 조용히 안 됨.
+  const onDateChange = (s: string) => {
+    const d = s.replace(/\D/g, '').slice(0, 8);              // 숫자만 최대 8자리(YYYYMMDD)
+    let out = d.slice(0, 4);                                  // 연
+    if (d.length > 4) out += '-' + d.slice(4, 6);            // 월
+    if (d.length > 6) out += '-' + d.slice(6, 8);            // 일
+    setDate(out);
+  };
+
   // 실제 스코어링(게이트 통과 후). 시각은 스코어러가 12후보로 덮어쓰므로 임시값. timeAccuracy 는 무관(시 모름).
   const compute = () => {
     const input: ChartInput = { birthDateTime: `${date} 12:00`, calendar: '양', timeAccuracy: '미상', sex, birthPlace: place };
@@ -108,7 +118,7 @@ export default function TimeResolveScreen() {
       <Text style={styles.lead}>태어난 시간을 몰라도, 인생 사건으로 시(時)를 좁혀 드려요. 사건을 더 넣을수록 정확해져요.</Text>
 
       <Text style={styles.label}>생년월일 (양력)</Text>
-      <TextInput value={date} onChangeText={setDate} placeholder="예: 1994-03-16" placeholderTextColor={colors.inkFaint} style={styles.input} />
+      <TextInput value={date} onChangeText={onDateChange} keyboardType="number-pad" maxLength={10} placeholder="예: 19940316 (숫자만 입력해도 돼요)" placeholderTextColor={colors.inkFaint} style={styles.input} />
 
       <Text style={styles.label}>성별</Text>
       <View style={styles.chipRow}>

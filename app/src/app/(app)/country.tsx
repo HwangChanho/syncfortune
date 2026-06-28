@@ -4,7 +4,8 @@
 //   ※ '이주 권유'가 아니라 기운 보완 관점의 재미 안내. 국가 매핑 stance = daniel 검수 슬롯.
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useMemo, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, Pressable, ImageBackground } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Pressable } from 'react-native';
+import { Image as ExpoImage } from 'expo-image'; // 상단 히어로 — 자동 다운샘플·디스크캐시(daniel: 이미지 노출)
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { loadRepChart, type SavedChart } from '../../lib/myChart';
@@ -42,11 +43,12 @@ export default function CountryScreen() {
   );
 
   return (
-    <ImageBackground source={require('../../../assets/icons/country.jpg')} style={styles.bg} resizeMode="cover">
-      <ScrollView style={styles.overlay} contentContainerStyle={styles.wrap}>
-        <ChartPicker onChange={() => setReloadKey((k) => k + 1)} />
-        <Text style={styles.title}>{t('country.title', '내가 살기 좋은 곳')}</Text>
-        <Text style={styles.sub}>{t('country.sub', '타고난 기운(조후)을 보완해 줄 기후·방위의 나라를 짚어 드려요')}</Text>
+    <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>
+      <ChartPicker onChange={() => setReloadKey((k) => k + 1)} />
+      {/* 전용 히어로(daniel ⑥) — 달·나침반·산수 모티프. 어두운 풀배경 대신 밝게 보이는 배너로(다른 콘텐츠와 일관). */}
+      <ExpoImage source={require('../../../assets/icons/country.jpg')} style={styles.hero} contentFit="cover" contentPosition="center" cachePolicy="memory-disk" transition={150} />
+      <Text style={styles.title}>{t('country.title', '내가 살기 좋은 곳')}</Text>
+      <Text style={styles.sub}>{t('country.sub', '타고난 기운(조후)을 보완해 줄 기후·방위의 나라를 짚어 드려요')}</Text>
 
         {!loaded ? null : !saved ? (
           <View style={styles.card}>
@@ -69,14 +71,13 @@ export default function CountryScreen() {
             <Text style={styles.disclaimer}>* 기운 보완 관점의 안내예요(이주·이민 조언 아님). 정확한 풀이는 원국 전체로.</Text>
           </>
         ) : null}
-      </ScrollView>
-    </ImageBackground>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  bg: { flex: 1, backgroundColor: colors.bg },
-  overlay: { flex: 1, backgroundColor: colors.overlay },
+  screen: { flex: 1, backgroundColor: colors.bg },
+  hero: { width: '100%', height: 170, borderRadius: radius.lg, marginBottom: space(4), backgroundColor: colors.sunk }, // 전용 배너(달·나침반 산수)
   wrap: { padding: space(6), paddingBottom: space(12) },
   title: { fontSize: 24, fontWeight: '900', color: colors.ink, textAlign: 'center', marginTop: space(2) },
   sub: { ...font.caption, color: colors.inkSoft, textAlign: 'center', marginTop: space(2), marginBottom: space(4), lineHeight: 19 },
