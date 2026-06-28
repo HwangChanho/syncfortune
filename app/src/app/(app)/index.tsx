@@ -5,7 +5,7 @@
 //   라벨은 코드 t()로 하단 오버레이 → 영·일 다국어 유지(ADR-049).
 // ─────────────────────────────────────────────────────────────────────────
 import { View, Text, Pressable, ScrollView, StyleSheet, ImageBackground, Animated, AppState, Dimensions, Easing } from 'react-native';
-import Svg, { Path, Ellipse, Circle, Line } from 'react-native-svg'; // 선비 실루엣 + 산 능선(daniel)
+import Svg, { Path, Ellipse, Circle, Line, Defs, LinearGradient, Stop } from 'react-native-svg'; // 선비 실루엣 + 산수화풍 한지산(daniel)
 import { Image as ExpoImage } from 'expo-image'; // 이미지 자동 다운샘플(표시 크기로 디코딩) — 홈 카드 24장 메모리·랙 해결
 import { Alert } from '../../lib/alert'; // 커스텀 알림(앱 디자인)
 import { useRouter, useFocusEffect } from 'expo-router';
@@ -187,30 +187,60 @@ function TwinklingStars() {
   );
 }
 
-// 별 떨어지는 밤하늘 아래, 산 능선을 따라 걷는 갓 쓴 선비(daniel) — SVG 실루엣(금장 윤곽)이 좌→우로 글라이드 + 잔잔한 bob(걷는 느낌).
+// 조선 산수화풍 한지산(daniel ③) — 겹겹의 연봉(원경·중경·근경 수묵 농담) + 운무 + 달, 그 능선을 따라 걷는 갓 쓴 선비.
+//   ★개선: 단일 각진 능선 → 부드러운 베지어 연봉 3겹(원근 = 농담·불투명도 차) + 산 사이 운무 띠 + 옅은 달.
+//   선비 위치(bottom 62)·근경 능선 높이는 검증값 보존 — 뒤로 원경/중경 산만 추가해 깊이를 만든다.
 function SeonbiWalk() {
   const W = Dimensions.get('window').width;
   const walk = useRef(new Animated.Value(0)).current;
   const bob = useRef(new Animated.Value(0)).current;
+  const mist = useRef(new Animated.Value(0)).current; // 운무 잔잔한 좌우 흐름(산수화 운치)
   useEffect(() => {
-    Animated.loop(Animated.timing(walk, { toValue: 1, duration: 26000, easing: Easing.linear, useNativeDriver: true })).start();
+    Animated.loop(Animated.timing(walk, { toValue: 1, duration: 30000, easing: Easing.linear, useNativeDriver: true })).start();
     Animated.loop(Animated.sequence([
       Animated.timing(bob, { toValue: 1, duration: 480, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
       Animated.timing(bob, { toValue: 0, duration: 480, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
     ])).start();
+    Animated.loop(Animated.sequence([
+      Animated.timing(mist, { toValue: 1, duration: 9000, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+      Animated.timing(mist, { toValue: 0, duration: 9000, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+    ])).start();
   }, []);
   const tx = walk.interpolate({ inputRange: [0, 1], outputRange: [-44, W + 44] });   // 화면 밖→밖 가로 이동(루프)
   const ty = bob.interpolate({ inputRange: [0, 1], outputRange: [0, -2.5] });         // 걸음 bob(위아래)
+  const mistX = mist.interpolate({ inputRange: [0, 1], outputRange: [-14, 14] });     // 운무 좌우 흐름
   const DARK = '#0C0A22'; const GOLD = 'rgba(212,175,110,0.45)';
   return (
     <View style={styles.seonbiLayer} pointerEvents="none">
-      {/* 산 능선(다크 실루엣 + 금장 윤곽) */}
       <Svg width={W} height={140} style={{ position: 'absolute', bottom: 0 }}>
-        <Path d={`M0,140 L0,92 L${W * 0.22},62 L${W * 0.42},82 L${W * 0.62},52 L${W * 0.82},78 L${W},64 L${W},140 Z`} fill="rgba(12,10,34,0.92)" />
-        <Path d={`M0,92 L${W * 0.22},62 L${W * 0.42},82 L${W * 0.62},52 L${W * 0.82},78 L${W},64`} stroke={GOLD} strokeWidth={1} fill="none" />
+        <Defs>
+          {/* 근경(가까운 산) 수묵 — 능선(위) 진하고 아래로 더 어두워지는 먹빛 */}
+          <LinearGradient id="ink-near" x1="0" y1="0" x2="0" y2="1">
+            <Stop offset="0" stopColor="#0E0B26" stopOpacity="0.99" /><Stop offset="1" stopColor="#070512" stopOpacity="1" />
+          </LinearGradient>
+        </Defs>
+        {/* 달(옅은 보름) + 은은한 무리 — 산 너머 */}
+        <Circle cx={W * 0.78} cy={30} r={17} fill="rgba(231,222,196,0.05)" />
+        <Circle cx={W * 0.78} cy={30} r={10.5} fill="rgba(231,222,196,0.15)" />
+        {/* 원경(먼 산) — 옅은 라벤더 안개(수묵 농담 '담') */}
+        <Path d={`M0,140 L0,50 Q${W * 0.16},30 ${W * 0.34},46 Q${W * 0.5},60 ${W * 0.66},34 Q${W * 0.82},22 ${W},40 L${W},140 Z`} fill="rgba(120,112,165,0.20)" />
+        <Path d={`M0,50 Q${W * 0.16},30 ${W * 0.34},46 Q${W * 0.5},60 ${W * 0.66},34 Q${W * 0.82},22 ${W},40`} stroke="rgba(150,142,195,0.22)" strokeWidth={1} fill="none" />
+        {/* 중경(중간 산) — '중' 농담 */}
+        <Path d={`M0,140 L0,64 Q${W * 0.2},46 ${W * 0.4},62 Q${W * 0.58},74 ${W * 0.76},50 Q${W * 0.88},40 ${W},56 L${W},140 Z`} fill="rgba(40,36,82,0.78)" />
+        <Path d={`M0,64 Q${W * 0.2},46 ${W * 0.4},62 Q${W * 0.58},74 ${W * 0.76},50 Q${W * 0.88},40 ${W},56`} stroke="rgba(120,110,170,0.16)" strokeWidth={1} fill="none" />
+        {/* 근경(가까운 산) — 가장 진한 '농' + 금장 윤곽. 완만·높게 = 선비(bottom 58) 발이 능선에 닿음 */}
+        <Path d={`M0,140 L0,76 Q${W * 0.18},64 ${W * 0.36},74 Q${W * 0.52},80 ${W * 0.66},62 Q${W * 0.82},72 ${W},66 L${W},140 Z`} fill="url(#ink-near)" />
+        <Path d={`M0,76 Q${W * 0.18},64 ${W * 0.36},74 Q${W * 0.52},80 ${W * 0.66},62 Q${W * 0.82},72 ${W},66`} stroke={GOLD} strokeWidth={1} fill="none" />
       </Svg>
-      {/* 걷는 선비(갓 + 도포 + 지팡이) */}
-      <Animated.View style={{ position: 'absolute', bottom: 62, transform: [{ translateX: tx }, { translateY: ty }] }}>
+      {/* 운무 띠 — 중경·근경 사이 옅은 가로 안개(살짝 좌우로 흐름) */}
+      <Animated.View style={{ position: 'absolute', bottom: 62, left: 0, right: 0, transform: [{ translateX: mistX }] }} pointerEvents="none">
+        <Svg width={W} height={28}>
+          <Ellipse cx={W * 0.3} cy={16} rx={W * 0.36} ry={6.5} fill="rgba(173,164,200,0.06)" />
+          <Ellipse cx={W * 0.74} cy={11} rx={W * 0.3} ry={5} fill="rgba(173,164,200,0.05)" />
+        </Svg>
+      </Animated.View>
+      {/* 걷는 선비(갓 + 도포 + 지팡이) — 근경 능선 위 */}
+      <Animated.View style={{ position: 'absolute', bottom: 58, transform: [{ translateX: tx }, { translateY: ty }] }}>
         <Svg width={42} height={64} viewBox="0 0 42 64">
           <Ellipse cx={21} cy={14} rx={15} ry={3.4} fill={DARK} stroke={GOLD} strokeWidth={0.6} />{/* 갓 챙 */}
           <Path d="M15,14 Q15,6.5 21,6.5 Q27,6.5 27,14 Z" fill={DARK} stroke={GOLD} strokeWidth={0.6} />{/* 갓 대우 */}
