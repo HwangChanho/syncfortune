@@ -142,7 +142,7 @@ export default function DayPillarScreen() {
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>
       {/* 헤더 타이틀 — 화면에서 직접 박아 확실하게(+다국어) */}
-      <Stack.Screen options={{ title: t('dayPillar.title') }} />
+      <Stack.Screen options={{ headerTitle: '' }} />{/* 상단 타이틀 제거(daniel) — 히어로가 제목 표시 */}
       <ContentHero image={require('../../../assets/icons/dayPillar.jpg')} title={t('dayPillar.title')} sub={t('dayPillar.sub')} />
       {/* daniel #20: 일주론은 '태어난 날(일주)' 기준 경향 — 정확한 풀이엔 사주 전체가 필요함을 설명 상단에 명시 */}
       <Text style={{ ...font.caption, color: colors.ju, marginBottom: space(4), lineHeight: 19 }}>

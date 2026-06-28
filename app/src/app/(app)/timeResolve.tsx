@@ -112,7 +112,7 @@ export default function TimeResolveScreen() {
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.wrap} keyboardShouldPersistTaps="handled">
-      <Stack.Screen options={{ title: '태어난 시 찾기' }} />
+      <Stack.Screen options={{ headerTitle: '' }} />{/* 상단 타이틀 제거(daniel: 콘텐츠 헤더 타이틀 X) — 히어로·리드가 대신 */}
       {/* 전용 히어로(daniel ⑥) — 천체 시계 모티프. 도구 화면이라 폼을 가리지 않게 컴팩트 높이. */}
       <ExpoImage source={require('../../../assets/icons/timeResolve-hero.jpg')} style={styles.hero} contentFit="cover" contentPosition="center" cachePolicy="memory-disk" transition={150} />
       <Text style={styles.lead}>태어난 시간을 몰라도, 인생 사건으로 시(時)를 좁혀 드려요. 사건을 더 넣을수록 정확해져요.</Text>
