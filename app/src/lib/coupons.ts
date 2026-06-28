@@ -33,7 +33,7 @@ export const CREDIT_KINDS: { key: CreditKind; ko: string; price: number }[] = [
   // 신규(daniel 2026-06-24): 맞춤 개운법(원국+지금 운 → 구체 처방·살풀이). 가격 daniel 조정 슬롯.
   { key: 'gaeun', ko: '맞춤 개운법', price: 4900 },
   // 신규(daniel 2026-06-24 기획 B): 세계 인물 매칭(유명인 사주 ↔ 나 — 재미·추정, 투자/정치 단정 금지). 1회 결제로 전 인물 열람(인물별 캐시).
-  { key: 'celeb', ko: '세계 인물 매칭', price: 4900 },
+  { key: 'celeb', ko: '세계 인물 매칭', price: 1200 }, // 결정론(비용0)·앱스토어 최소가(daniel 06-28)
 ];
 export const PREMIUM_PRICE = 49900; // 평생 프리미엄(대표명식 전부 무제한). daniel: 사업가 등 헤비유저(궁합 반복) 타겟 — 일반은 건당/쿠폰. 프리미엄은 소수 기대.
 
