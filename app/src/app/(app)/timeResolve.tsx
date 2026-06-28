@@ -4,17 +4,36 @@
 //   → "확정 / 유력 2~3 / 후보 더 필요(inconclusive)"를 정직하게 노출. 사건 많을수록 정확.
 //   ⚠️ 스코어링 가중치는 잠정(daniel n=1 캘리브레이션·과적합 가능 — 블라인드 검증 전). 그래서 정직 노출이 기본.
 // ─────────────────────────────────────────────────────────────────────────
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { View, Text, TextInput, Pressable, ScrollView, StyleSheet } from 'react-native';
-import { Stack } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import type { ChartInput } from '@spec/chart';
 import { scoreTimePillars, type LifeEvent, type BigEventType } from '../../lib/timePillarScore';
 import { stemReading, branchReading } from '../../lib/ohaeng';
 import { colors, radius, space, font } from '../../lib/theme';
+// ── TPR 결제 게이트(daniel 06-28): 결정론 도구지만 990 1회 결제로 *영구 해제*(재실행·사건 추가 무료) ──
+import { Alert } from '../../lib/alert';                         // 커스텀 알림(앱 디자인)
+import { useAuth } from '../../lib/useAuth';
+import { useSubscription } from '../../lib/subscription';        // 프리미엄=무료
+import { isAdmin } from '../../lib/admin';                       // 관리자=무료
+import { useCredit, grantCredit } from '../../lib/coupons';      // 서버/로컬 크레딧 차감·적립
+import { isUnlocked, markUnlocked } from '../../lib/unlocks';    // 1회 해제 후 영구(재차감 방지)
+import { purchaseCreditRC, purchasesEnabled } from '../../lib/purchases'; // 즉시 구매
+import { requireLoginForPurchase } from '../../lib/requireLogin';
+import { assertOnline } from '../../lib/network';
 
 const EVENT_TYPES: BigEventType[] = ['이사', '이직', '창업', '결혼', '이혼', '투자손실', '질병', '사고'];
 
+// markUnlocked 센티넬 — TPR은 저장 명식이 아니라 *도구 단위*로 해제(차트 무관). 키 = unlock_timeresolve_timeresolve.
+const TPR_UNLOCK = 'timeresolve';
+const TPR_PRICE_LABEL = '₩990';
+
 export default function TimeResolveScreen() {
+  const { t } = useTranslation();
+  const router = useRouter();
+  const { session } = useAuth();
+  const { isPremium } = useSubscription();
   const [date, setDate] = useState('');                       // 생년월일 'YYYY-MM-DD'
   const [sex, setSex] = useState<'남' | '여'>('남');
   const [place, setPlace] = useState('서울');
@@ -22,6 +41,19 @@ export default function TimeResolveScreen() {
   const [yr, setYr] = useState('');
   const [ty, setTy] = useState<BigEventType>('이사');
   const [result, setResult] = useState<ReturnType<typeof scoreTimePillars> | null>(null);
+  const [unlocked, setUnlocked] = useState(false);            // 해제(프리미엄/구매/관리자) 시 가격 배지·게이트 생략
+  const gating = useRef(false);                               // 게이트(모달) 연타 차단
+
+  // 진입 시 해제 여부 판정 — 프리미엄/이전 구매(영구)/관리자면 가격 없이 바로 사용.
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      if (isPremium) { if (alive) setUnlocked(true); return; }
+      const u = (await isUnlocked(TPR_UNLOCK, 'timeresolve')) || (await isAdmin());
+      if (alive) setUnlocked(u);
+    })().catch(() => {});
+    return () => { alive = false; };
+  }, [isPremium]);
 
   const addEvent = () => {
     const y = parseInt(yr, 10);
@@ -29,11 +61,42 @@ export default function TimeResolveScreen() {
   };
   const removeEvent = (i: number) => setEvents((p) => p.filter((_, idx) => idx !== i));
 
-  const run = () => {
-    if (!/^\d{4}-\d{1,2}-\d{1,2}$/.test(date)) { setResult(null); return; }
-    // 시각은 스코어러가 12후보로 덮어쓰므로 임시값. timeAccuracy 는 무관(시 모름).
+  // 실제 스코어링(게이트 통과 후). 시각은 스코어러가 12후보로 덮어쓰므로 임시값. timeAccuracy 는 무관(시 모름).
+  const compute = () => {
     const input: ChartInput = { birthDateTime: `${date} 12:00`, calendar: '양', timeAccuracy: '미상', sex, birthPlace: place };
     setResult(scoreTimePillars(input, { events }));
+  };
+
+  // "후보 좁히기" — 입력 검증 → 게이트(프리미엄/해제/관리자=무료, 그 외 크레딧 차감 or 즉시 구매) → 스코어링.
+  //   ★도구 단위 영구 해제: 한 번 결제하면 사건을 추가하며 재실행해도 재차감 없음(markUnlocked 센티넬).
+  const run = async () => {
+    if (!/^\d{4}-\d{1,2}-\d{1,2}$/.test(date)) { setResult(null); return; } // 날짜 형식 불충분 → 조용히
+    if (unlocked) { compute(); return; }                                   // 이미 해제 → 바로
+    if (gating.current) return;
+    if (!assertOnline(t)) return;                                          // 결제/RPC는 온라인 필요
+    gating.current = true;
+    try {
+      if (isPremium) { setUnlocked(true); compute(); return; }
+      if (await isUnlocked(TPR_UNLOCK, 'timeresolve')) { setUnlocked(true); compute(); return; } // 이전 구매(영구)
+      if (await isAdmin()) { setUnlocked(true); compute(); return; }
+      if (!requireLoginForPurchase(session, () => router.push('/login'), t)) return; // 미로그인 → 로그인 유도
+      // 보유 크레딧 차감(쿠폰/선물/이전 구매분) → 영구 해제
+      if (await useCredit('timeresolve')) { await markUnlocked(TPR_UNLOCK, 'timeresolve'); setUnlocked(true); compute(); return; }
+      // 미보유 → 바로 구매 / 마켓 / 취소
+      Alert.alert(t('timeResolve.title', '태어난 시 찾기'), t('special.needPayMsg', '이용권이 필요해요. 바로 구매하거나 마켓에서 받을 수 있어요.'), [
+        { text: t('special.buyNow', '바로 구매'), onPress: async () => {
+            if (!purchasesEnabled()) { Alert.alert(t('timeResolve.title', '태어난 시 찾기'), t('market.payPending', '결제 준비 중이에요. 쿠폰을 이용하거나 잠시 후 다시 시도해 주세요.')); return; }
+            try {
+              const ok = await purchaseCreditRC('timeresolve'); if (!ok) return; // 취소=false(조용히)
+              await grantCredit('timeresolve');                                  // 구매분 +1(서버/로컬)
+              if (await useCredit('timeresolve')) { await markUnlocked(TPR_UNLOCK, 'timeresolve'); setUnlocked(true); compute(); }
+            } catch (e) { Alert.alert('!', (e as Error).message); }
+          } },
+        { text: t('special.goMarket', '마켓에서 보기'), onPress: () => router.push('/market') },
+        { text: t('common.cancel', '취소'), style: 'cancel' },
+      ]);
+    } catch { /* 게이트 실패는 조용히(크래시 방지) */ }
+    finally { gating.current = false; }
   };
 
   return (
@@ -73,7 +136,11 @@ export default function TimeResolveScreen() {
         </Pressable>
       ))}
 
-      <Pressable onPress={run} style={styles.runBtn}><Text style={styles.runTx}>후보 좁히기</Text></Pressable>
+      <Pressable onPress={run} style={styles.runBtn}>
+        <Text style={styles.runTx}>{unlocked ? '후보 좁히기' : `후보 좁히기 · ${TPR_PRICE_LABEL}`}</Text>
+      </Pressable>
+      {/* 결제 안내 — 1회 결제로 도구 영구 해제(사건 추가·재실행 무료). 프리미엄/구매 후엔 숨김. */}
+      {!unlocked && <Text style={styles.payHint}>한 번 결제하면 사건을 더 넣어가며 계속 좁혀볼 수 있어요.</Text>}
 
       {result && <ResultView result={result} />}
     </ScrollView>
@@ -119,6 +186,7 @@ const styles = StyleSheet.create({
   evDel: { color: colors.inkFaint, fontSize: 14, paddingHorizontal: space(2) },
   runBtn: { marginTop: space(6), backgroundColor: colors.ju, borderRadius: radius.md, paddingVertical: space(4), alignItems: 'center' },
   runTx: { color: colors.bg, fontWeight: '800', fontSize: 16 },
+  payHint: { ...font.caption, color: colors.inkFaint, marginTop: space(2.5), textAlign: 'center', lineHeight: 18 },
   result: { marginTop: space(7), padding: space(5), borderRadius: radius.md, backgroundColor: 'rgba(34,31,68,0.5)', borderWidth: 1, borderColor: colors.ju },
   resultH: { fontSize: 17, fontWeight: '800', color: colors.ju, marginBottom: space(4) },
   cand: { flexDirection: 'row', alignItems: 'center', marginBottom: space(3), gap: space(2) },
