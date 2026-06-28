@@ -57,6 +57,10 @@ const ROWS: Row[] = [
 
 const SCALES = [1, 10, 100, 1000];
 const won = (n: number) => '₩' + Math.round(n).toLocaleString();
+// ⑥ 가격 실수령(daniel) — 애플 인앱 수수료 + 세금 차감 후 실제 손에 들어오는 돈
+const APPLE_CUT = 0.30; // 애플 인앱 수수료(연 100만달러 미만 소규모 15% 가능하나 보수적 30%)
+const TAX_RATE = 0.10;  // 세금(사업소득세 등 — ★daniel 실제 세율로 조정). 부가세는 애플이 별도 처리
+const netPrice = (price: number) => price * (1 - APPLE_CUT) * (1 - TAX_RATE); // 실수령 = 판매가×(1−수수료)×(1−세금)
 
 export default function CostTableScreen() {
   const [n, setN] = useState(1000);
@@ -91,11 +95,11 @@ export default function CostTableScreen() {
   };
 
   // 합계(측정값 있는 행만). ★광고 제외 원가산출(daniel): 순익=판매가−원가만, 광고 수익은 별도(충당 불확실).
-  let totCost = 0, totRev = 0, totAd = 0, unknown = 0;
+  let totCost = 0, totRev = 0, totAd = 0, totNet = 0, unknown = 0;
   ROWS.forEach((r) => {
     const c = genCost(r);
     if (c == null) { unknown++; return; }
-    totCost += c * n; totRev += r.price * n; totAd += r.adEst * n;
+    totCost += c * n; totRev += r.price * n; totAd += r.adEst * n; totNet += netPrice(r.price) * n;
   });
 
   const typeColor = (t: Row['type']) => t === '유료' ? colors.ju : t === '광고무료' ? '#3FA7A0' : colors.inkSoft;
@@ -118,10 +122,10 @@ export default function CostTableScreen() {
 
       <View style={styles.sumCard}>
         <View style={styles.sumItem}><Text style={styles.sumLabel}>총 원가(실측)</Text><Text style={[styles.sumVal, { color: '#E5484D' }]}>{won(totCost)}</Text></View>
-        <View style={styles.sumItem}><Text style={styles.sumLabel}>판매 수익</Text><Text style={[styles.sumVal, { color: '#3FA7A0' }]}>{won(totRev)}</Text></View>
-        <View style={styles.sumItem}><Text style={styles.sumLabel}>순익(광고 제외)</Text><Text style={[styles.sumVal, { color: colors.ju }]}>{won(totRev - totCost)}</Text></View>
+        <View style={styles.sumItem}><Text style={styles.sumLabel}>실수령(수수료·세금 후)</Text><Text style={[styles.sumVal, { color: '#3FA7A0' }]}>{won(totNet)}</Text></View>
+        <View style={styles.sumItem}><Text style={styles.sumLabel}>순마진(실수령−원가)</Text><Text style={[styles.sumVal, { color: colors.ju }]}>{won(totNet - totCost)}</Text></View>
       </View>
-      <Text style={styles.adNote}>광고 수익(추정·별도): {won(totAd)} — 충당 불확실해 순익에서 제외(daniel). 광고 포함 가정 시 순익 {won(totRev + totAd - totCost)}.</Text>
+      <Text style={styles.adNote}>판매가 합계 {won(totRev)} → 애플 {Math.round(APPLE_CUT * 100)}%·세금 {Math.round(TAX_RATE * 100)}% 차감 = 실수령 {won(totNet)}(원가 차감 전). 광고(추정·별도) {won(totAd)}는 순익에서 제외(daniel).</Text>
       {!!unknown && <Text style={styles.warn}>⚠ {unknown}개 컨텐츠는 아직 실측값 없음(측정 필요) — 합계에서 제외. 해당 통변을 1회 생성하면 실측 채워짐.</Text>}
 
       <View style={[styles.row, styles.head]}>
@@ -129,12 +133,12 @@ export default function CostTableScreen() {
         <Text style={[styles.cType, styles.hTx]}>유형</Text>
         <Text style={[styles.cNum, styles.hTx]}>원가/회</Text>
         <Text style={[styles.cNum, styles.hTx]}>가격/광고</Text>
-        <Text style={[styles.cNum, styles.hTx]}>순익·광고제외({n.toLocaleString()}인)</Text>
+        <Text style={[styles.cNum, styles.hTx]}>순마진·수수료세금후({n.toLocaleString()}인)</Text>
       </View>
 
       {ROWS.map((r) => {
         const c = genCost(r);
-        const net = c == null ? null : (r.price - c) * n; // 광고 제외 — 광고무료(price 0)는 −원가(순수 비용)
+        const net = c == null ? null : (netPrice(r.price) - c) * n; // ⑥ 실수령(수수료·세금 후)−원가 = 순마진. 광고무료(price 0)는 −원가
         return (
           <View key={r.name} style={styles.row}>
             <Text style={styles.cName} numberOfLines={1}>{r.name}</Text>
