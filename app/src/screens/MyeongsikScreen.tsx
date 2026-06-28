@@ -119,6 +119,18 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
   // 오행 분포 (천간+지지 카운트)
   const elem: Record<string, number> = { 木: 0, 火: 0, 土: 0, 金: 0, 水: 0 };
   visiblePos.forEach((p) => { elem[stemElement(P[p].stem)]++; elem[branchElement(P[p].branch)]++; });
+  // ① 오행별 십성(daniel) — 일간 오행 기준 각 오행의 십성(대분류: 비겁/식상/재성/관성/인성)
+  const dayElem = stemElement(P['일'].stem);
+  const ELEM_GEN: Record<string, string> = { 木: '火', 火: '土', 土: '金', 金: '水', 水: '木' }; // 상생
+  const ELEM_CTRL: Record<string, string> = { 木: '土', 火: '金', 土: '水', 金: '木', 水: '火' }; // 상극
+  const elemTenGod = (el: string): string => {
+    if (el === dayElem) return '비겁';
+    if (ELEM_GEN[dayElem] === el) return '식상';   // 일간이 생함
+    if (ELEM_CTRL[dayElem] === el) return '재성';  // 일간이 극함
+    if (ELEM_CTRL[el] === dayElem) return '관성';  // 일간을 극함
+    if (ELEM_GEN[el] === dayElem) return '인성';   // 일간을 생함
+    return '';
+  };
   // 합충형해 선 (원국 — 쌍(2자)·삼합국/방합국(3자) 모두, 전 멤버가 표시 중일 때만)
   const [rowW, setRowW] = useState(0);
   const luckCycles: any[] = (c.saju as any).luckCycles ?? [];          // 전체 대운(과거~미래)
@@ -202,7 +214,7 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
     return (
       <View key={ty} style={styles.linkGroup}>
         <Pressable onPress={() => setGlossary({ kind: 'interaction', key: ty })}><Text style={[styles.linkGroupHead, { color: col }]}>● {ty} {grp.length}  ⓘ</Text></Pressable>
-        {grp.map((x: any, i: number) => {
+        {[...grp].sort((a: any, b: any) => b.mem.length - a.mem.length).map((x: any, i: number) => {
           const on = active.has(x.key);
           return (
             <Pressable key={i} onPress={() => onToggle(x.key)} style={[styles.linkGRow, on && styles.linkGRowOn]}>
@@ -215,6 +227,7 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
                 ))}
                 {ty === '합' && x.transformsTo ? <Text style={{ color: col, fontWeight: '800' }}>{`  → ${x.transformsTo}`}</Text> : null}
                 {x.isGan ? <Text style={styles.linkLevel}>  천간</Text> : null}
+                {x.mem.length === 3 ? <Text style={{ color: col, fontWeight: '800', fontSize: 11 }}>  ★{x.type === '합' ? '삼합/방합' : x.type === '형' ? '삼형' : '3자'}</Text> : null}
               </Text>
             </Pressable>
           );
@@ -430,7 +443,13 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
             </Pressable>
           )}
       {showLinks && normPalja.length > 0 && (
-        <View style={styles.linksCard}>{renderGroups(normPalja, activePalja, (k) => toggleKey(setActivePalja, k))}</View>
+        <View style={styles.linksCard}>
+          {/* ③ 전체 선택/해제(daniel) — 합충선 한번에 켜고 끄기 */}
+          <Pressable onPress={() => setActivePalja((p) => p.size ? new Set<string>() : new Set(normPalja.map((x: any) => x.key as string)))} style={{ alignSelf: 'flex-end', paddingVertical: 4, paddingHorizontal: 8 }}>
+            <Text style={{ color: colors.ju, fontWeight: '700', fontSize: 12 }}>{activePalja.size ? '전체 해제' : '전체 선택'}</Text>
+          </Pressable>
+          {renderGroups(normPalja, activePalja, (k) => toggleKey(setActivePalja, k))}
+        </View>
       )}
 
       {/* 일간·신강약·격국 */}
@@ -532,7 +551,7 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
               {order.map((el) => (
                 <View key={el} style={styles.elemLegendRow}>
                   <View style={[styles.elemDot, { backgroundColor: elementColor[el] }]} />
-                  <Text style={[styles.elemLegendEl, { color: elementColor[el] }]}>{el}</Text>
+                  <Text style={[styles.elemLegendEl, { color: elementColor[el] }]}>{el} <Text style={{ fontSize: 11, color: colors.inkFaint, fontWeight: '600' }}>({elemTenGod(el)})</Text></Text>
                   <Text style={styles.elemLegendVal}>{elem[el]}  ·  {Math.round((elem[el] / total) * 100)}%</Text>
                 </View>
               ))}
@@ -689,6 +708,10 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
           {showExpandLinks && normEx.length > 0 && (
             <View style={styles.linksCard}>
               <Text style={styles.strHint}>작용이 강한 순 — 충·합 강 / 형·극 중 / 해·파 약</Text>
+              {/* ③ 운 합충선 전체 선택/해제(daniel) — 한번에 켜고 끄기 */}
+              <Pressable onPress={() => setActiveExpand((p) => p.size ? new Set<string>() : new Set(normEx.map((x: any) => x.key as string)))} style={{ alignSelf: 'flex-end', paddingVertical: 4, paddingHorizontal: 8 }}>
+                <Text style={{ color: colors.ju, fontWeight: '700', fontSize: 12 }}>{activeExpand.size ? '전체 해제' : '전체 선택'}</Text>
+              </Pressable>
               {renderByStrength(normEx as any[], activeExpand, (k) => toggleKey(setActiveExpand, k))}
             </View>
           )}

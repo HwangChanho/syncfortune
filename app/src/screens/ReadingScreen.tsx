@@ -387,7 +387,7 @@ export function ReadingScreen({
   // 항목 상세 섹션 렌더 — 리스트 상세 모달에서 재사용
   const renderSections = (key: string) => {
     const r = normalizeReading(readings[key]);
-    const base = asText(r.base), past = asText(r.past), overlay = asText(r.overlay), remedy = asText(r.remedy);
+    const base = asText(r.base), past = asText(r.past), overlay = asText(r.overlay), future = asText(r.future), remedy = asText(r.remedy);
     if (r.error) return <Text style={styles.err}>{r.error}</Text>;
     const bodyDyn = { fontSize: fs(15), lineHeight: fs(26) }; // 설정 글자 크기 반영
     return (
@@ -412,6 +412,12 @@ export function ReadingScreen({
           <View style={styles.section}>
             <Text style={styles.secLabel}>{t('reading.overlay')}</Text>
             <Text style={[styles.secBody, bodyDyn]}>{overlay}</Text>
+          </View>
+        ) : null}
+        {future ? (
+          <View style={styles.section}>
+            <Text style={styles.secLabel}>{t('reading.future', '앞날·다가올 흐름')}</Text>
+            <Text style={[styles.secBody, bodyDyn]}>{future}</Text>
           </View>
         ) : null}
         {remedy ? (
