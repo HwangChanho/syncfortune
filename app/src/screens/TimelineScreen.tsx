@@ -192,8 +192,8 @@ export function TimelineScreen({ input, savedChart }: { input: ChartInput | null
   //   잠긴 기간(프리미엄 현재 외)은 잠금 안내 + '이 시기 열기' 버튼(이용권 차감).
   const card = (key: string) => {
     const r = readings[key];
-    if (busy === key && !r) return <View style={styles.card}><ActivityIndicator color={colors.ju} /><Text style={styles.busyTx}>{t('timeline.generating')}</Text></View>;
-    if (r?.error) return <View style={styles.card}><Text style={styles.err}>{String(r.error)}</Text></View>;
+    if (busy === key && !r) return <View style={styles.card}><ActivityIndicator color={colors.ju} /><Text style={[styles.busyTx, { fontSize: fs(12) }]}>{t('timeline.generating')}</Text></View>;
+    if (r?.error) return <View style={styles.card}><Text style={[styles.err, { fontSize: fs(13) }]}>{String(r.error)}</Text></View>;
     // 아직 생성 안 됨 → 무료 기간이면 안내, 잠긴 기간이면 잠금 카드(열기 버튼)
     if (!r) {
       if (isFree(key)) return (
@@ -203,10 +203,10 @@ export function TimelineScreen({ input, savedChart }: { input: ChartInput | null
       );
       return (
         <View style={[styles.card, styles.lockCard]}>
-          <Text style={styles.lockH}>🔒 {t('timeline.lockedTitle')}</Text>
-          <Text style={styles.lockSub}>{t('timeline.lockedSub')}</Text>
+          <Text style={[styles.lockH, { fontSize: fs(15) }]}>🔒 {t('timeline.lockedTitle')}</Text>
+          <Text style={[styles.lockSub, { fontSize: fs(12), lineHeight: fs(19) }]}>{t('timeline.lockedSub')}</Text>
           <Pressable style={styles.unlockBtn} onPress={() => gen(key)}>
-            <Text style={styles.unlockBtnTx}>{t('timeline.unlock')}</Text>
+            <Text style={[styles.unlockBtnTx, { fontSize: fs(15) }]}>{t('timeline.unlock')}</Text>
           </Pressable>
         </View>
       );
@@ -239,7 +239,7 @@ export function TimelineScreen({ input, savedChart }: { input: ChartInput | null
             const on = ck === cat;
             return (
               <Pressable key={ck} style={[styles.chip, on && styles.chipOn]} onPress={() => setCatByKey((p) => ({ ...p, [key]: ck }))}>
-                <Text style={[styles.chipTx, on && styles.chipTxOn]}>{t(CAT_DEF[ck])}</Text>
+                <Text style={[styles.chipTx, on && styles.chipTxOn, { fontSize: fs(13) }]}>{t(CAT_DEF[ck])}</Text>
               </Pressable>
             );
           })}
@@ -249,10 +249,10 @@ export function TimelineScreen({ input, savedChart }: { input: ChartInput | null
         {/* 연운 월별 흐름(1~12월) — 유료라 더 디테일하게 */}
         {months.length > 0 && (
           <View style={styles.monthsBox}>
-            <Text style={styles.monthsH}>{t('timeline.months')}</Text>
+            <Text style={[styles.monthsH, { fontSize: fs(14) }]}>{t('timeline.months')}</Text>
             {months.map((m, i) => (
               <View key={i} style={styles.monthRow}>
-                <Text style={styles.monthNo}>{i + 1}{t('timeline.monthUnit')}</Text>
+                <Text style={[styles.monthNo, { fontSize: fs(13) }]}>{i + 1}{t('timeline.monthUnit')}</Text>
                 <Text style={[styles.monthTx, bodyDyn]}>{String(m).replace(/^\s*\d+\s*월\s*[—\-:]*\s*/, '')}</Text>
               </View>
             ))}
@@ -267,27 +267,27 @@ export function TimelineScreen({ input, savedChart }: { input: ChartInput | null
   // picker 버튼(공용)
   const pickerBtn = (label: string, sub: string, onPress: () => void) => (
     <Pressable style={styles.pickBtn} onPress={onPress}>
-      <Text style={styles.pickBtnTx}>{label}: <Text style={{ color: colors.ju, fontWeight: '800' }}>{sub}</Text></Text>
+      <Text style={[styles.pickBtnTx, { fontSize: fs(15) }]}>{label}: <Text style={{ color: colors.ju, fontWeight: '800' }}>{sub}</Text></Text>
       <Text style={styles.pickChevron}>▾</Text>
     </Pressable>
   );
 
-  if (!c) return <View style={styles.center}><Text style={font.body}>{t('myeongsik.noChart')}</Text></View>;
+  if (!c) return <View style={styles.center}><Text style={[font.body, { fontSize: fs(15) }]}>{t('myeongsik.noChart')}</Text></View>;
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>
-      <Text style={styles.h}>{t('reading.timelineTitle')}</Text>
-      <Text style={styles.sub}>{t('reading.timelineSub')}</Text>
+      <Text style={[styles.h, { fontSize: fs(22) }]}>{t('reading.timelineTitle')}</Text>
+      <Text style={[styles.sub, { fontSize: fs(12), lineHeight: fs(19) }]}>{t('reading.timelineSub')}</Text>
 
       {/* ── 위: 대운(10년) ── */}
-      <Text style={styles.secH}>{t('timeline.decades')}</Text>
+      <Text style={[styles.secH, { fontSize: fs(15) }]}>{t('timeline.decades')}</Text>
       {pickerBtn(t('timeline.pickDecade'), `${decadeLabel}${selDecade === curDecadeKey ? ` (${t('timeline.now')})` : ''}`, () => setPicker('decade'))}
       {card(selDecade)}
 
       <View style={styles.divider} />
 
       {/* ── 아래: 연도(1년) ── */}
-      <Text style={styles.secH}>{t('timeline.years')}</Text>
+      <Text style={[styles.secH, { fontSize: fs(15) }]}>{t('timeline.years')}</Text>
       {pickerBtn(t('timeline.pickYear'), `${yearLabel}${selYear === `year_${nowYear}` ? ` (${t('timeline.thisYear')})` : ''}`, () => setPicker('year'))}
       {card(selYear)}
 
@@ -295,13 +295,13 @@ export function TimelineScreen({ input, savedChart }: { input: ChartInput | null
       <Modal visible={picker !== null} transparent animationType="slide" onRequestClose={() => setPicker(null)}>
         <Pressable style={styles.backdrop} onPress={() => setPicker(null)}>
           <Pressable style={styles.sheet} onPress={() => {}}>
-            <Text style={styles.sheetH}>{picker === 'decade' ? t('timeline.pickDecade') : t('timeline.pickYear')}</Text>
+            <Text style={[styles.sheetH, { fontSize: fs(17) }]}>{picker === 'decade' ? t('timeline.pickDecade') : t('timeline.pickYear')}</Text>
             <ScrollView ref={listRef} style={{ maxHeight: 440 }}>
               {picker === 'decade' && decades.map((d) => {
                 const on = selDecade === d.key, isCur = d.key === curDecadeKey;
                 return (
                   <Pressable key={d.key} style={[styles.row, on && styles.rowOn]} onPress={() => pick(d.key)}>
-                    <Text style={[styles.rowTx, isCur && { color: colors.ju, fontWeight: '800' }]}>{d.label}{isCur ? ` (${t('timeline.now')})` : ''}</Text>
+                    <Text style={[styles.rowTx, isCur && { color: colors.ju, fontWeight: '800' }, { fontSize: fs(15) }]}>{d.label}{isCur ? ` (${t('timeline.now')})` : ''}</Text>
                     {gzChip(d.gz, d.stem)}
                   </Pressable>
                 );
@@ -310,7 +310,7 @@ export function TimelineScreen({ input, savedChart }: { input: ChartInput | null
                 const on = selYear === y.key, isNow = y.year === nowYear;
                 return (
                   <Pressable key={y.key} style={[styles.row, on && styles.rowOn]} onPress={() => pick(y.key)}>
-                    <Text style={[styles.rowTx, isNow && { color: colors.ju, fontWeight: '800' }]}>{y.year}년 · {y.age}세{isNow ? ` (${t('timeline.thisYear')})` : ''}</Text>
+                    <Text style={[styles.rowTx, isNow && { color: colors.ju, fontWeight: '800' }, { fontSize: fs(15) }]}>{y.year}년 · {y.age}세{isNow ? ` (${t('timeline.thisYear')})` : ''}</Text>
                     {gzChip(y.gz, y.stem)}
                   </Pressable>
                 );

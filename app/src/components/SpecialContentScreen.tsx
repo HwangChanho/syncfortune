@@ -175,13 +175,26 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
   }
 
   const bodyDyn = { fontSize: fs(15), lineHeight: fs(25) };
+  // 동적 폰트 스케일이 필요한 StyleSheet 정적값 대체 — StyleSheet.create는 렌더 밖이라 fs()를 직접 쓸 수 없음.
+  const dynStyles = {
+    secLabel:    { fontSize: fs(16) },
+    groupTitle:  { fontSize: fs(18), lineHeight: fs(26) },
+    err:         { fontSize: fs(13) },
+    msg:         { fontSize: fs(15) },                       // font.body 기본값
+    gateTitle:   { fontSize: fs(17) },                       // font.heading 기본값
+    gateDesc:    { fontSize: fs(15), lineHeight: fs(22) },   // font.body + lineHeight
+    gateNote:    { fontSize: fs(12) },                       // font.caption 기본값
+    previewHead: { fontSize: fs(13) },
+    previewItem: { fontSize: fs(14), lineHeight: fs(24) },
+    ctaTx:       { fontSize: fs(16) },
+  };
   const n = sections.length;
 
   if (!loaded) return <View style={styles.center}><ActivityIndicator color={colors.ju} /></View>;
   if (!savedChart) return (
     <View style={styles.center}>
-      <Text style={styles.msg}>{t('manse.empty')}</Text>
-      <Pressable style={styles.cta} onPress={() => router.push('/register')}><Text style={styles.ctaTx}>{t('compat.registerMyChart')}</Text></Pressable>
+      <Text style={[styles.msg, dynStyles.msg]}>{t('manse.empty')}</Text>
+      <Pressable style={styles.cta} onPress={() => router.push('/register')}><Text style={[styles.ctaTx, dynStyles.ctaTx]}>{t('compat.registerMyChart')}</Text></Pressable>
     </View>
   );
 
@@ -193,7 +206,7 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
       <ContentHero motif={heroMotif} image={heroImage ?? HERO_BY_KIND[kind]} title={title} sub={sub} themeColor={themeColor} />
 
       {reading?.error ? (
-        <View style={styles.card}><Text style={styles.err}>{String(reading.error)}</Text></View>
+        <View style={styles.card}><Text style={[styles.err, dynStyles.err]}>{String(reading.error)}</Text></View>
       ) : (reading && owned) ? (
         <>
         {/* 이슈19 소제목 — 통변 결과 headline 있으면 섹션들 맨 위에 한 줄 강조(콘텐츠 테마색) */}
@@ -203,9 +216,9 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
         {sections.map((s, i) => (typeof reading[s.key] === 'string' && reading[s.key] ? (
           <View key={s.key}>
             {/* 그룹 구분 헤더(daniel: 별자리/점성술 섹터 분리) — groupTitle 있으면 카드 위 divider+제목 */}
-            {s.groupTitle ? <Text style={[styles.groupTitle, { color: themeColor }]}>{s.groupTitle}</Text> : null}
+            {s.groupTitle ? <Text style={[styles.groupTitle, { color: themeColor }, dynStyles.groupTitle]}>{s.groupTitle}</Text> : null}
             <Animated.View style={[styles.card, { borderLeftColor: themeColor }, styles.cardAccent, cardAnim(reveal, i, n)]}>
-              <Text style={[styles.secLabel, { color: themeColor }]}>{s.label}</Text>
+              <Text style={[styles.secLabel, { color: themeColor }, dynStyles.secLabel]}>{s.label}</Text>
               <Text style={[styles.body, bodyDyn]}>{reading[s.key]}</Text>
             </Animated.View>
           </View>
@@ -218,17 +231,17 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
       ) : (
         // 잠김(미생성) — 스페셜은 쿠폰(이용권)/관리자로 unlock(결제 미연동)
         <View style={[styles.card, styles.gate, { borderColor: themeColor }]}>
-          <Text style={styles.gateTitle}>{title}</Text>
-          <Text style={styles.gateDesc}>{sub}</Text>
+          <Text style={[styles.gateTitle, dynStyles.gateTitle]}>{title}</Text>
+          <Text style={[styles.gateDesc, dynStyles.gateDesc]}>{sub}</Text>
           {/* 무료 티어(하이브리드) — 온디바이스 기본값 먼저 보여주고(API 0) 심층은 유료로 유도(daniel) */}
           {freePreview && savedChart ? freePreview(savedChart) : null}
           {/* 미리보기 — 사람들이 궁금해할 핵심 항목들을 보여주고 unlock 유도(daniel) */}
           <View style={styles.previewBox}>
-            <Text style={[styles.previewHead, { color: themeColor }]}>{t('special.previewHead', '이런 걸 풀어드려요')}</Text>
-            {sections.filter((s) => s.key !== 'summary').map((s) => <Text key={s.key} style={styles.previewItem}>· {s.label}</Text>)}
+            <Text style={[styles.previewHead, { color: themeColor }, dynStyles.previewHead]}>{t('special.previewHead', '이런 걸 풀어드려요')}</Text>
+            {sections.filter((s) => s.key !== 'summary').map((s) => <Text key={s.key} style={[styles.previewItem, dynStyles.previewItem]}>· {s.label}</Text>)}
           </View>
-          <Pressable style={[styles.cta, { backgroundColor: themeColor }]} onPress={onStart}><Text style={styles.ctaTx}>{t('special.unlockCta', '구매하고 보기')}</Text></Pressable>
-          <Text style={styles.gateNote}>{t('special.unlockHint', '이용권 구매 또는 쿠폰으로 열려요')}</Text>
+          <Pressable style={[styles.cta, { backgroundColor: themeColor }]} onPress={onStart}><Text style={[styles.ctaTx, dynStyles.ctaTx]}>{t('special.unlockCta', '구매하고 보기')}</Text></Pressable>
+          <Text style={[styles.gateNote, dynStyles.gateNote]}>{t('special.unlockHint', '이용권 구매 또는 쿠폰으로 열려요')}</Text>
         </View>
       )}
     </ScrollView>
@@ -246,6 +259,7 @@ export function cardAnim(reveal: Animated.Value, i: number, n: number) {
 
 // 상단 히어로 — SVG 모티프(+선택적 이미지 배경) + 타이틀/부제 페이드인. love/newyear 등 다른 화면도 재사용(export).
 export function ContentHero({ motif, image, title, sub, themeColor = colors.ju }: { motif?: ReactNode; image?: any; title: string; sub: string; themeColor?: string }) {
+  const { fs } = useFontScale();
   const a = useRef(new Animated.Value(0)).current;
   const kb = useRef(new Animated.Value(0)).current; // 히어로 켄번스(느린 줌 인↔아웃) — 정적 이미지에 생동(daniel 재미)
   useEffect(() => { Animated.timing(a, { toValue: 1, duration: 700, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start(); }, [a]);
@@ -262,8 +276,8 @@ export function ContentHero({ motif, image, title, sub, themeColor = colors.ju }
   const inner = (
     <View style={styles.heroInner}>
       {!image && motif}
-      <Animated.Text style={[styles.heroTitle, titleAnim]}>{title}</Animated.Text>
-      <Animated.Text style={[styles.heroSub, { opacity: a }]}>{sub}</Animated.Text>
+      <Animated.Text style={[styles.heroTitle, { fontSize: fs(22) }, titleAnim]}>{title}</Animated.Text>
+      <Animated.Text style={[styles.heroSub, { fontSize: fs(12), lineHeight: fs(19), opacity: a }]}>{sub}</Animated.Text>
     </View>
   );
   if (image) return (
@@ -281,13 +295,14 @@ export function ContentHero({ motif, image, title, sub, themeColor = colors.ju }
 
 // 무료 티어 미리보기 카드 — 온디바이스 결정론 기본값(수비학 생명수·점성술 빅3)을 키:값 줄로. 유료=LLM 심층(하이브리드 hook).
 export function FreeBasics({ title, rows, color = colors.ju }: { title: string; rows: [string, string | number][]; color?: string }) {
+  const { fs } = useFontScale();
   return (
     <View style={{ width: '100%', backgroundColor: colors.sunk, borderRadius: radius.md, padding: space(4), marginBottom: space(4) }}>
-      <Text style={{ fontSize: 13, fontWeight: '800', color, marginBottom: space(2), letterSpacing: 0.5 }}>{title}</Text>
+      <Text style={{ fontSize: fs(13), fontWeight: '800', color, marginBottom: space(2), letterSpacing: 0.5 }}>{title}</Text>
       {rows.map(([k, v]) => (
         <View key={k} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: space(1.5) }}>
-          <Text style={{ ...font.body, color: colors.inkSoft, fontSize: 14 }}>{k}</Text>
-          <Text style={{ ...font.body, color: colors.ink, fontSize: 16, fontWeight: '800' }}>{String(v)}</Text>
+          <Text style={{ ...font.body, color: colors.inkSoft, fontSize: fs(14) }}>{k}</Text>
+          <Text style={{ ...font.body, color: colors.ink, fontSize: fs(16), fontWeight: '800' }}>{String(v)}</Text>
         </View>
       ))}
     </View>

@@ -9,12 +9,14 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { TimelineScreen } from '../../screens/TimelineScreen';
 import { loadRepChart, type SavedChart } from '../../lib/myChart';
+import { useFontScale } from '../../lib/fontScale';
 import { colors, radius, space, font } from '../../lib/theme';
 import type { ChartInput } from '@spec/chart';
 
 export default function TimelineRoute() {
   const router = useRouter();
   const { t } = useTranslation();
+  const { fs } = useFontScale();
   const { input } = useLocalSearchParams<{ input?: string }>();
   const [me, setMe] = useState<ChartInput | null>(null);
   const [savedChart, setSavedChart] = useState<SavedChart | null>(null);
@@ -34,9 +36,9 @@ export default function TimelineRoute() {
   if (!me) {
     return (
       <View style={styles.center}>
-        <Text style={styles.msg}>{t('manse.empty')}</Text>
+        <Text style={[styles.msg, { fontSize: fs(15) }]}>{t('manse.empty')}</Text>
         <Pressable style={styles.btn} onPress={() => router.push('/register')}>
-          <Text style={styles.btnText}>{t('compat.registerMyChart')}</Text>
+          <Text style={[styles.btnText, { fontSize: fs(15) }]}>{t('compat.registerMyChart')}</Text>
         </Pressable>
       </View>
     );
