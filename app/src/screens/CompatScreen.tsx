@@ -615,7 +615,8 @@ const styles = StyleSheet.create({
   qaA: { ...font.body, color: colors.ink, lineHeight: 24 },
   askQuota: { ...font.caption, color: colors.inkFaint, marginBottom: space(2) },
   askRow: { flexDirection: 'row', alignItems: 'flex-end', gap: space(2) },
-  askInput: { ...font.body, flex: 1, minHeight: 44, maxHeight: 120, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, borderRadius: radius.md, paddingHorizontal: space(3), paddingVertical: space(2.5), color: colors.ink, textAlign: 'center' },
+  // 좌상단 정렬(daniel: 가운데 X — 위·왼쪽으로)
+  askInput: { ...font.body, flex: 1, minHeight: 44, maxHeight: 120, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, borderRadius: radius.md, paddingHorizontal: space(3), paddingVertical: space(2.5), color: colors.ink, textAlign: 'left', textAlignVertical: 'top' },
   askLen: { fontSize: 11, color: colors.inkFaint, alignSelf: 'flex-end', marginBottom: space(3) },
   askSend: { backgroundColor: colors.ju, borderRadius: radius.md, paddingHorizontal: space(4), height: 44, alignItems: 'center', justifyContent: 'center' },
   askSendOff: { opacity: 0.4 },
