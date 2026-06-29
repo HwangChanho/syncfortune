@@ -102,6 +102,28 @@ export function detectInteractionsAmong(items: { pos: ChartPosition; stem: Stem;
   return out.map((it) => ({ ...it, level: it.level ?? '지지' as const }));
 }
 
+// ── 합충 짝 이름 라벨(daniel: 경쟁앱식 표기 — '유축반합'·'묘술육합'·'정신극'). detail(한자)을 한글 짝으로 변환.
+//   ★검출은 표준대로 유지(묘유=충·유술=해, 경쟁앱 비표준 묘유형/유술반합 안 따름). 라벨 스타일만 짝 이름.
+const BRANCH_KO: Record<string, string> = { 子:'자',丑:'축',寅:'인',卯:'묘',辰:'진',巳:'사',午:'오',未:'미',申:'신',酉:'유',戌:'술',亥:'해' };
+const STEM_KO: Record<string, string> = { 甲:'갑',乙:'을',丙:'병',丁:'정',戊:'무',己:'기',庚:'경',辛:'신',壬:'임',癸:'계' };
+/** Interaction → 한글 짝 이름 라벨. 예: 酉丑半合金→'유축반합', 卯戌合化火→'묘술육합', 卯酉冲→'묘유충', 丁克辛(천간극)→'정신극'. */
+export function interactionLabel(it: Interaction): string {
+  if (it.type === '극') return '정신극';                          // 천간 극 = 정신(천간 차원) 극(daniel)
+  const d = it.detail ?? '';
+  // 글자(지지/천간)만 한글로 — 관계 한자(合冲害破刑半三方化)·화오행(金木水火土)은 제외
+  const ko = [...d].map((ch) => BRANCH_KO[ch] ?? STEM_KO[ch] ?? '').join('');
+  if (d.includes('自刑')) return `${BRANCH_KO[[...d][0]] ?? ''}자형`; // 辰辰自刑→'진자형'(중복 제거)
+  if (d.includes('半合')) return `${ko}반합`;                      // 酉丑半合金→'유축반합'
+  if (d.includes('三合')) return `${ko}삼합`;                      // 申子辰三合水→'신자진삼합'
+  if (d.includes('方合')) return `${ko}방합`;
+  if (d.includes('合')) return it.level === '천간' ? `${ko}합` : `${ko}육합`; // 卯戌合化火→'묘술육합' / 丁壬合化木(천간)→'정임합'
+  if (d.includes('冲')) return `${ko}충`;                          // 卯酉冲→'묘유충'
+  if (d.includes('害')) return `${ko}해`;                          // 酉戌害→'유술해'
+  if (d.includes('破')) return `${ko}파`;
+  if (d.includes('刑')) return `${ko}형`;                          // 丑戌刑→'축술형'
+  return ko || it.type;
+}
+
 /**
  * 원국 4기둥 합충형해 검출 (결정론). = detectInteractionsAmong(원국).
  * @returns Interaction[] — *검출*만. '핵심 vs 부가' 선별은 stance(daniel).

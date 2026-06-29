@@ -32,7 +32,7 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 const haptic = () => { try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); } catch { /* 네이티브 미포함 — 무시 */ } };
 import { HIDDEN, computeMonthDays, branchTenGod } from '@engine/saju'; // 지장간 표 + 일운(流日) + 지지십신
 import { twelveStage } from '@engine/twelve';                          // 임의 지지 12운성(타임라인용)
-import { detectInteractionsAmong } from '@engine/structure';           // 시간층(원국×대운×세운) 합충 검출
+import { detectInteractionsAmong, interactionLabel } from '@engine/structure';   // 합충 검출 + 짝이름 라벨(daniel: 유축반합·정신극)
 import { lookupGlossary, GLOSSARY_KIND_LABEL, SINSAL_GLOSSARY, type GlossaryKind } from '../lib/myeongriGlossary'; // 클릭 설명
 import { playSound } from '../lib/sounds';
 import Svg, { Path, Rect, Circle, Text as SvgText, G } from 'react-native-svg';
@@ -159,7 +159,7 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
   const ganLinks = allLinks.filter((it: any) => it.level === '천간'); // 천간 합·충(극) — 팔자 위(점선)
   const jiLinks = allLinks.filter((it: any) => it.level !== '천간');  // 지지 합·충·형·해·파 — 팔자 아래(실선)
   // 합충선 라벨: 합이면 '합+합화오행'을 그 오행 색으로(=어떤 기운이 강해지는지), 그 외는 종류만.
-  const linkLabel = (it: any) => (it.type === '합' ? `${t('myeongsik.합')}${it.transformsTo ?? ''}` : t(`myeongsik.${it.type}`));
+  const linkLabel = (it: any) => interactionLabel(it); // 짝 이름 라벨(유축반합·묘술육합·정신극) — daniel. 화오행은 글라스박스/transformsTo로.
   const linkColor = (it: any) =>
     it.type === '합' ? colors.ju
     : (it.type === '충' || it.type === '극') ? '#C0392B' : '#9A8CC0';
@@ -271,7 +271,7 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
             </Text>
           ))}
           {'   '}
-          <Text style={{ color: col, fontWeight: '800' }}>{x.type}{x.type === '합' && x.transformsTo ? ` ${x.transformsTo}` : ''}</Text>
+          <Text style={{ color: col, fontWeight: '800' }}>{interactionLabel({ type: x.type, detail: x.key, level: x.isGan ? '천간' : '지지' } as any)}</Text>
           {x.isGan ? <Text style={styles.linkLevel}>  천간</Text> : null}
         </Text>
       </Pressable>
