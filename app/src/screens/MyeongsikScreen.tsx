@@ -111,6 +111,14 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
   const luckScrollRef = useRef<ScrollView>(null);
   const seunScrollRef = useRef<ScrollView>(null);
   const monthScrollRef = useRef<ScrollView>(null);
+  // 현재(대운/세운/월운) 셀을 가로 스크롤 *가운데*로(daniel) — 선택/현재 셀의 onLayout 위치(x,w)와 뷰 너비(v)를 재서 scrollTo 중앙. 미측정 시 끝으로 폴백.
+  const centerM = useRef<Record<string, { v: number; x: number; w: number }>>({ luck: { v: 0, x: 0, w: 0 }, seun: { v: 0, x: 0, w: 0 }, month: { v: 0, x: 0, w: 0 } });
+  const recenter = (key: 'luck' | 'seun' | 'month', ref: any) => {
+    const m = centerM.current[key];
+    if (!ref.current) return;
+    if (m.v && m.w) ref.current.scrollTo({ x: Math.max(0, m.x + m.w / 2 - m.v / 2), animated: false });
+    else ref.current.scrollToEnd({ animated: false });
+  };
 
   useEffect(() => {
     playSound('transition');
@@ -463,6 +471,10 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
       {/* ── 사주관계 1: 합충(천간과 지지) ── */}
       {activeTab === 'rel' && relSub === 'hapchung' && (
         <>
+          {/* 명식 차트 + 합충선(daniel: 관계를 명식 위에서 시각적으로 — 아래 관계 리스트 항목을 탭하면 그 글자가 명식에서 강조됨) */}
+          {renderArcs(activeGanP, 'above')}
+          {renderPillars()}
+          {renderArcs(activeJiP, 'below')}
           {/* 합충형해 토글 */}
           {(ganLinks.length + jiLinks.length) > 0 && (
             <Pressable 
@@ -791,9 +803,9 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
           )}
           {/* 대운 타임라인 (천간/지지 분리, 탭 → 확장 명식·세운 갱신) */}
           <Text style={styles.luckSub}>대운 (탭하면 그 대운의 세운 펼침)</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} ref={luckScrollRef} onContentSizeChange={() => luckScrollRef.current?.scrollToEnd({ animated: false })} style={styles.luckScroll} contentContainerStyle={styles.luckScrollC}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} ref={luckScrollRef} onLayout={(e) => { centerM.current.luck.v = e.nativeEvent.layout.width; recenter('luck', luckScrollRef); }} onContentSizeChange={() => recenter('luck', luckScrollRef)} style={styles.luckScroll} contentContainerStyle={styles.luckScrollC}>
             {luckCycles.map((l, i) => (
-              <Pressable key={i} onPress={() => { setSelLuck(i); setSelSeun(0); }} style={[styles.luckCard, l.isCurrent && styles.luckCardCur, selLuck === i && styles.luckCardSel]}>
+              <Pressable key={i} onPress={() => { setSelLuck(i); setSelSeun(0); }} onLayout={l.isCurrent ? (e) => { centerM.current.luck.x = e.nativeEvent.layout.x; centerM.current.luck.w = e.nativeEvent.layout.width; recenter('luck', luckScrollRef); } : undefined} style={[styles.luckCard, l.isCurrent && styles.luckCardCur, selLuck === i && styles.luckCardSel]}>
                 <Text style={styles.luckAge}>{l.startAge}세</Text>
                 <Text style={styles.luckTg}>{l.stemTenGod}</Text>
                 <GzCell char={l.stem} kind="stem" size="sm" />
@@ -807,9 +819,9 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
           {lc?.annuals?.length > 0 && (
             <>
               <Text style={styles.luckSub}>{lc.startAge}세 대운 · 세운 (탭하면 위 명식에 반영)</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} ref={seunScrollRef} onContentSizeChange={() => seunScrollRef.current?.scrollToEnd({ animated: false })} style={styles.luckScroll} contentContainerStyle={styles.luckScrollC}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} ref={seunScrollRef} onLayout={(e) => { centerM.current.seun.v = e.nativeEvent.layout.width; recenter('seun', seunScrollRef); }} onContentSizeChange={() => recenter('seun', seunScrollRef)} style={styles.luckScroll} contentContainerStyle={styles.luckScrollC}>
                 {lc.annuals.map((a: any, j: number) => (
-                  <Pressable key={j} onPress={() => { setSelSeun(j); setSelMonth(0); }} style={[styles.seunCard, selSeun === j && styles.luckCardSel, a.year === s.annual?.year && styles.seunCur]}>
+                  <Pressable key={j} onPress={() => { setSelSeun(j); setSelMonth(0); }} onLayout={a.year === s.annual?.year ? (e) => { centerM.current.seun.x = e.nativeEvent.layout.x; centerM.current.seun.w = e.nativeEvent.layout.width; recenter('seun', seunScrollRef); } : undefined} style={[styles.seunCard, selSeun === j && styles.luckCardSel, a.year === s.annual?.year && styles.seunCur]}>
                     <Text style={styles.seunYear}>{a.year}</Text>
                     <Text style={styles.seunTg}>{a.stemTenGod}</Text>
                     <GzCell char={a.stem} kind="stem" size="xs" />
@@ -824,9 +836,9 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
           {an?.months && an.months.length > 0 && (
             <>
               <Text style={styles.luckSub}>{an.year} 세운 · 월운 (탭하면 위 명식에 반영)</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} ref={monthScrollRef} onContentSizeChange={() => monthScrollRef.current?.scrollToEnd({ animated: false })} style={styles.luckScroll} contentContainerStyle={styles.luckScrollC}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} ref={monthScrollRef} onLayout={(e) => { centerM.current.month.v = e.nativeEvent.layout.width; recenter('month', monthScrollRef); }} onContentSizeChange={() => recenter('month', monthScrollRef)} style={styles.luckScroll} contentContainerStyle={styles.luckScrollC}>
                 {an.months.map((m: any, k: number) => (
-                  <Pressable key={k} onPress={() => setSelMonth(k)} style={[styles.seunCard, selMonth === k && styles.luckCardSel]}>
+                  <Pressable key={k} onPress={() => setSelMonth(k)} onLayout={selMonth === k ? (e) => { centerM.current.month.x = e.nativeEvent.layout.x; centerM.current.month.w = e.nativeEvent.layout.width; recenter('month', monthScrollRef); } : undefined} style={[styles.seunCard, selMonth === k && styles.luckCardSel]}>
                     <Text style={styles.seunYear}>{k + 1}월</Text>
                     <Text style={styles.seunTg}>{m.stemTenGod}</Text>
                     <GzCell char={m.stem} kind="stem" size="xs" />
