@@ -66,39 +66,8 @@ export function AuthScreen() {
       <View style={styles.divider} />
       <Text style={styles.sub}>{t('auth.signin')}</Text>
 
-      <TextInput
-        style={styles.input}
-        value={email}
-        onChangeText={setEmail}
-        placeholder={t('auth.email')}
-        placeholderTextColor={colors.inkFaint}
-        autoCapitalize="none"
-        keyboardType="email-address"
-        autoComplete="email"
-      />
-      <TextInput
-        style={styles.input}
-        value={password}
-        onChangeText={setPassword}
-        placeholder={t('auth.password')}
-        placeholderTextColor={colors.inkFaint}
-        secureTextEntry
-      />
-
-      <Pressable style={[styles.btn, loading && styles.btnDisabled]} onPress={submit} disabled={loading}>
-        {loading ? (
-          <ActivityIndicator color={colors.white} />
-        ) : (
-          <Text style={styles.btnText}>{t('auth.signin')}</Text>
-        )}
-      </Pressable>
-
-      {/* 구분선 (또는) */}
-      <View style={styles.orRow}>
-        <View style={styles.orLine} />
-        <Text style={styles.orText}>{t('auth.or')}</Text>
-        <View style={styles.orLine} />
-      </View>
+      {/* ★이메일/비번 로그인 제거 — SNS 로그인만(daniel). 신규·기존 모두 소셜로. */}
+      {loading ? <ActivityIndicator color={colors.ju} style={{ marginVertical: space(3) }} /> : null}
 
       {/* 소셜 로그인 — 애플·구글·네이버 (각 브랜드 색) */}
       <Pressable style={[styles.appleBtn, loading && styles.btnDisabled]} onPress={() => signInWithOAuth('apple')} disabled={loading}>
