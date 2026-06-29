@@ -9,6 +9,7 @@
 //   - useGenProgress()=항목 배열(추가된 순서). getGenItem(route)=단건(루프 증분용).
 // ─────────────────────────────────────────────────────────────────────────
 import { useReducer, useEffect } from 'react';
+import * as SecureStore from 'expo-secure-store'; // 진행률 영구 저장(daniel: 강제종료해도 홈 배너 복원). 앱 공통 스토리지(AsyncStorage 미설치)
 import { notifyReadingDone } from './notifications'; // 완료 전이 시 푸시 1회(daniel ⑨ — 화면 밖/백그라운드에도 알림)
 
 export type GenItem = {
@@ -19,12 +20,42 @@ export type GenItem = {
   active: boolean;  // 생성 중/완료대기(배너 표시). false patch = 제거
   seq: number;      // 추가 순서(배너 정렬 — 단조 증가)
   startedAt: number; // 생성 시작 시각(ms) — 단일 콜(총1)의 추정 진행률(시작 0%~저장 100%)용. multi는 done/total 실제값 사용
+  restored?: boolean; // 앱 재시작 시 영구저장에서 복원됨(daniel: '이전에 진행중인 풀이' 문구·탭하여 이어보기). 실시간 생성 중 아님.
 };
 
 let items: Record<string, GenItem> = {};
 let seq = 0;
 const listeners = new Set<() => void>();
-function emit() { listeners.forEach((l) => l()); }
+// 영구 저장(daniel: 풀이 중 강제종료해도 재오픈 시 홈 배너로 진행중/미확인 풀이 복원). 변경마다 디바운스 저장.
+const PKEY = 'genProgress_v1'; // SecureStore 키는 영숫자·._- 만(콜론 불가)
+let saveTimer: ReturnType<typeof setTimeout> | null = null;
+function persist() {
+  if (saveTimer) clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => { SecureStore.setItemAsync(PKEY, JSON.stringify(items)).catch(() => {}); }, 400);
+}
+function emit() { listeners.forEach((l) => l()); persist(); }
+
+/**
+ * 앱 시작 시 1회 호출 — 종료 전 진행중/완료-미확인 풀이를 복원해 홈 배너로 노출(daniel).
+ * 복원 항목은 restored=true(실시간 생성 중 아님 — 탭하면 그 화면에서 이어 생성/확인).
+ */
+export async function hydrateGenProgress(): Promise<void> {
+  try {
+    const raw = await SecureStore.getItemAsync(PKEY);
+    if (!raw) return;
+    const saved = JSON.parse(raw) as Record<string, GenItem>;
+    const keys = Object.keys(saved);
+    if (!keys.length) return;
+    let max = seq;
+    for (const k of keys) {
+      if (items[k]) continue; // 이미 이번 세션에서 생성/갱신된 건 덮지 않음
+      items[k] = { ...saved[k], restored: true };
+      if (saved[k].seq > max) max = saved[k].seq;
+    }
+    seq = max;
+    listeners.forEach((l) => l()); // emit 직접(persist 재호출 불필요)
+  } catch { /* 손상 데이터 무시 */ }
+}
 
 /**
  * 진행률 갱신 — route별 upsert. patch.route 필수.

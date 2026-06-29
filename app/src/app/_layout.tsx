@@ -15,6 +15,7 @@ import { configurePurchases } from '../lib/purchases'; // 인앱결제(RevenueCa
 import { refreshPremium } from '../lib/premiumStore'; // 세션 변경(로그인/로그아웃/계정전환) 시 프리미엄 전역 재평가 → 광고 즉시 토글(daniel 2026-06-24)
 import { migrateLocalCreditsOnLogin } from '../lib/migrateCredits'; // 로그인 시 디바이스 구매 이관(H)
 import { preferSelfAsRep } from '../lib/myChart'; // 앱 실행 시 대표 명식 = 본인(daniel)
+import { hydrateGenProgress } from '../lib/genProgress'; // 앱 시작 시 진행중/미확인 풀이 복원 → 홈 배너(daniel: 강제종료 생존)
 import { initAds, setAdTestMode } from '../lib/ads'; // AdMob 초기화 + 테스트광고 모드(관리자/테스트=실 유닛 서빙 전이라 구글 테스트광고로, daniel)
 import { supabase } from '../lib/supabase'; // 세션 유저 test_mode·is_admin → 테스트광고 게이트
 import { FontScaleProvider } from '../lib/fontScale'; // 전역 글자 크기(설정에서 조절)
@@ -35,6 +36,8 @@ export default function RootLayout() {
   useEffect(() => { installCrashLogger(); }, []);
   // AdMob SDK 초기화(앱 시작 1회) — 이게 없으면 ad.load()가 실패해 무료 보상형 광고가 안 뜬다(daniel 버그). 모듈 없는 빌드는 no-op.
   useEffect(() => { initAds().catch(() => {}); }, []);
+  // 진행중/완료-미확인 풀이 복원(daniel: 풀이 중 강제종료해도 홈에 '이전에 진행중인 풀이' 배너 → 탭하여 이어보기).
+  useEffect(() => { hydrateGenProgress().catch(() => {}); }, []);
   // ★테스트광고 게이트(daniel) — 관리자/테스트 계정은 실 AdMob 유닛 서빙 전이라 구글 테스트광고를 보게(배너·보상형·전면 동작 확인용).
   //   세션 바뀔 때마다 test_mode·is_admin 재평가. 일반 유저는 false(실 유닛, 앱 출시 후 서빙).
   useEffect(() => {

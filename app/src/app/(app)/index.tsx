@@ -385,7 +385,7 @@ export default function Home() {
           </Pressable>
         ) : (
           <Pressable key={g.route} onPress={() => router.push(g.route as any)} style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.juSoft, borderColor: colors.ju, borderWidth: 1, borderRadius: radius.md, paddingVertical: space(2.5), paddingHorizontal: space(4), marginBottom: space(3), gap: space(2) }}>
-            <Text style={{ color: colors.ju, fontWeight: '700', fontSize: fs(13), flex: 1 }}>{g.label} 풀이 중… {g.total > 1 ? `${g.done}/${g.total} ` : ''}{genPct(g.done, g.total, g.startedAt)}%</Text>
+            <Text style={{ color: colors.ju, fontWeight: '700', fontSize: fs(13), flex: 1 }}>{g.restored ? `이전에 진행중이던 ${g.label} 풀이가 있어요` : `${g.label} 풀이 중… ${g.total > 1 ? `${g.done}/${g.total} ` : ''}${genPct(g.done, g.total, g.startedAt)}%`}</Text>
             <Text style={{ color: colors.ju, fontWeight: '700', fontSize: fs(13) }}>이어보기 ›</Text>
           </Pressable>
         )))}
