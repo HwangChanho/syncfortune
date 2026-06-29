@@ -85,16 +85,23 @@ export async function cancelDailyFortune(): Promise<void> {
  *   생성은 서버 캐시되므로 화면을 떠나도 진행·보관됨 → 완료 시 이 알림으로 통지(탭하면 route 로 복귀).
  *   모듈/권한 없으면 no-op(재빌드 후 작동·무료 로컬 알림).
  */
+// ★완료 푸시 직렬화 체인 — 동시에 풀이 2개가 끝나면 즉시(trigger:null) 알림이 겹쳐 iOS가 하나를
+//   코얼레싱/드롭(씹힘)하던 문제(daniel) 방지. 한 번에 하나씩 ~700ms 간격으로 순차 발송한다.
+let notifChain: Promise<void> = Promise.resolve();
 export async function notifyReadingDone(title: string, body: string, route?: string): Promise<void> {
   if (!Notif || Platform.OS === 'web') return;
-  try {
-    const perm = await Notif.getPermissionsAsync();
-    if (!(perm.granted || (perm.canAskAgain && (await Notif.requestPermissionsAsync()).granted))) return;
-    await Notif.scheduleNotificationAsync({
-      content: { title, body: (body || '').slice(0, 140), data: route ? { route } : {} },
-      trigger: null,   // 즉시 발송
-    });
-  } catch { /* 권한·모듈 문제 시 조용히 무시 */ }
+  notifChain = notifChain.then(async () => {
+    try {
+      const perm = await Notif.getPermissionsAsync();
+      if (!(perm.granted || (perm.canAskAgain && (await Notif.requestPermissionsAsync()).granted))) return;
+      await Notif.scheduleNotificationAsync({
+        content: { title, body: (body || '').slice(0, 140), data: route ? { route } : {} },
+        trigger: null,   // 즉시 발송
+      });
+      await new Promise((r) => setTimeout(r, 700)); // 다음 완료 알림과 간격 → 겹침(씹힘) 방지
+    } catch { /* 권한·모듈 문제 시 조용히 무시 */ }
+  });
+  return notifChain;
 }
 
 /** 알림 탭 → data.route 로 이동(딥링크: 풀이 완료 알림 클릭 시 그 화면으로). 앱 루트에서 1회 설정·해제. */
