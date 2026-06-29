@@ -43,6 +43,7 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
   const [listReady, setListReady] = useState(false); // 모달 열림 직후 스피너 → 리스트는 인터랙션 후 마운트(daniel: 명식 버튼 로딩 표시)
   const [viewImg, setViewImg] = useState<any>(null); // 엠블럼 탭 → 풀스크린 이미지 뷰어(daniel)
   const [loadedEmblems, setLoadedEmblems] = useState<Set<string>>(new Set()); // 엠블럼 이미지 디코드 완료 — 로딩 인디케이터용(daniel: 명식변경 리스트 이미지 로딩 표시)
+  const [actionsFor, setActionsFor] = useState<string | null>(null); // 수정/삭제 펼친 행(daniel: 한 버튼 ⋯ 탭 → 수정·삭제 분리)
 
   const reload = useCallback(async () => {
     setCharts(await listCharts());
@@ -175,8 +176,15 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
                       {/* 카테고리(관계)를 행 우측에 배지로(daniel: 카테고리도 오른쪽에) */}
                       <Text style={[styles.rowCategory, { fontSize: fs(11) }]} numberOfLines={1}>{c.relation === 'self' ? t('register.selfLabel') : c.relation}</Text>
                       {on && <Text style={styles.check}>✓</Text>}
-                      <Pressable hitSlop={8} onPress={() => edit(c.id)}><Text style={styles.rowAct}>{t('common.edit', '수정')}</Text></Pressable>
-                      <Pressable hitSlop={8} onPress={() => remove(c.id, c.label)}><Text style={[styles.rowAct, styles.rowActDel]}>{t('common.delete', '삭제')}</Text></Pressable>
+                      {/* 한 버튼(⋯) → 탭하면 수정·삭제로 분리(daniel) */}
+                      {actionsFor === c.id ? (
+                        <>
+                          <Pressable hitSlop={8} onPress={() => { setActionsFor(null); edit(c.id); }}><Text style={styles.rowAct}>{t('common.edit', '수정')}</Text></Pressable>
+                          <Pressable hitSlop={8} onPress={() => { setActionsFor(null); remove(c.id, c.label); }}><Text style={[styles.rowAct, styles.rowActDel]}>{t('common.delete', '삭제')}</Text></Pressable>
+                        </>
+                      ) : (
+                        <Pressable hitSlop={10} onPress={() => setActionsFor(c.id)}><Text style={[styles.rowAct, { fontSize: 18 }]}>⋯</Text></Pressable>
+                      )}
                     </View>
                   </ScaleDecorator>
                 );
