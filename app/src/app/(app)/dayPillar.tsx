@@ -106,7 +106,7 @@ export default function DayPillarScreen() {
         {/* 어떻게 살아야 하나 — 일주별 실천 4계명(개운·처방). DAY_PILLAR_LIVE(별도 파일·daniel 검수 슬롯). */}
         {DAY_PILLAR_LIVE[k] ? (
           <View style={styles.section}>
-            <Text style={styles.secLabel}>{t('dayPillar.s_live', '어떻게 살아야 하나')}</Text>
+            <Text style={styles.secLabel}>{t('dayPillar.s_live', '인생 꿀팁')}</Text>
             {DAY_PILLAR_LIVE[k].map((line, i) => (
               <View key={i} style={styles.liveRow}>
                 {/* 번호(골드) + 명령형 한 문장 */}

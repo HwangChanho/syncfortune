@@ -198,7 +198,7 @@ const ko = {
   dayPillar: {
     title: '일주론', sub: '태어난 날의 간지(일주)로 보는 타고난 기질이에요.',
     male: '남자', female: '여자', mine: '내 일주', browseAll: '전체 일주 60', dayGroup: '일주', tapHint: '일주를 탭하면 상세 풀이가 펼쳐져요.', mineList: '내 명식 일주', noChart: '등록된 명식이 없어요. 명식을 먼저 등록하세요.',
-    s_overview: '개요', s_personality: '성격', s_love: '연애·결혼', s_career: '직업·재물', s_male: '남성', s_female: '여성', s_advice: '조언', s_live: '어떻게 살아야 하나',
+    s_overview: '개요', s_personality: '성격', s_love: '연애·결혼', s_career: '직업·재물', s_male: '남성', s_female: '여성', s_advice: '조언', s_live: '인생 꿀팁',
     disclaimer: '일주론은 타고난 기질의 한 단면일 뿐이에요. 정확한 풀이는 일주만이 아니라 연·월·시 기둥과 합충·용신까지 사주원국 전체를 함께 봐야 해요.',
   },
   purchase: {
@@ -418,7 +418,7 @@ const en = {
   dayPillar: {
     title: 'Day Pillar', sub: 'Your innate nature, seen through your birth-day pillar (ilju).',
     male: 'Male', female: 'Female', mine: 'My Day Pillar', browseAll: 'All 60 Day Pillars', dayGroup: 'day', tapHint: 'Tap a pillar to expand its full reading.', mineList: 'My Day Pillars', noChart: 'No saved charts. Register a chart first.',
-    s_overview: 'Overview', s_personality: 'Personality', s_love: 'Love & Marriage', s_career: 'Career & Wealth', s_male: 'For Men', s_female: 'For Women', s_advice: 'Advice', s_live: 'How to Live',
+    s_overview: 'Overview', s_personality: 'Personality', s_love: 'Love & Marriage', s_career: 'Career & Wealth', s_male: 'For Men', s_female: 'For Women', s_advice: 'Advice', s_live: 'Life Tips',
     disclaimer: "The day pillar is only one facet of your nature. A precise reading needs your whole chart — the year, month and hour pillars plus combinations, clashes and the useful god — not the day pillar alone.",
   },
   purchase: {
@@ -638,7 +638,7 @@ const ja = {
   dayPillar: {
     title: '日柱論', sub: '生まれた日の干支（日柱）でみる、生まれもった気質です。',
     male: '男性', female: '女性', mine: '私の日柱', browseAll: '日柱60すべて', dayGroup: '日', tapHint: '日柱をタップすると詳しい解説が開きます。', mineList: '私の命式の日柱', noChart: '登録された命式がありません。先に命式を登録してください。',
-    s_overview: '概要', s_personality: '性格', s_love: '恋愛·結婚', s_career: '仕事·財運', s_male: '男性', s_female: '女性', s_advice: 'アドバイス', s_live: 'どう生きるか',
+    s_overview: '概要', s_personality: '性格', s_love: '恋愛·結婚', s_career: '仕事·財運', s_male: '男性', s_female: '女性', s_advice: 'アドバイス', s_live: '人生のコツ',
     disclaimer: '日柱論は生まれもった気質の一面にすぎません。正確な鑑定は日柱だけでなく、年·月·時の柱や合冲·用神まで、命式全体を合わせてみる必要があります。',
   },
   purchase: {

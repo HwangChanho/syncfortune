@@ -100,8 +100,8 @@ const SECTIONS: Section[] = [
     { key: 'pastlife', labelKey: 'menu.pastlife', descKey: 'menu.pastlifeTileDesc', image: require('../../../assets/icons/pastlife.jpg'), route: '/pastlife', ready: true, content: true },
     { key: 'healing', labelKey: 'menu.healing', descKey: 'menu.healingTileDesc', image: require('../../../assets/icons/healing.jpg'), route: '/healing', ready: true, content: true },
     { key: 'taegil', labelKey: 'menu.taegil', descKey: 'menu.taegilTileDesc', image: require('../../../assets/icons/taegil.jpg'), route: '/taegil', ready: true, content: true },
-    // daniel #A(2026-06-24): 내가 살기 좋은 곳(원국 조후→기후/방위·국기, 무료·온디바이스). 이미지 배치 후 연결.
-    { key: 'country', labelKey: 'menu.country', descKey: 'menu.countryDesc', route: '/country', ready: true, content: true },
+    // daniel #A(2026-06-24): 내가 살기 좋은 곳(원국 조후→기후/방위·국기, 무료·온디바이스). country.jpg 연결(daniel: 홈 카드 이미지 누락 — image 필드 자체가 없어 빈 카드였음).
+    { key: 'country', labelKey: 'menu.country', descKey: 'menu.countryDesc', image: require('../../../assets/icons/country.jpg'), route: '/country', ready: true, content: true },
     { key: 'luck', labelKey: 'menu.luck', descKey: 'menu.luckTileDesc', image: require('../../../assets/icons/luck.jpg'), route: '/luck', ready: true, content: true },
     // 별자리(/zodiac)는 점성술 콘텐츠로 병합(daniel 2026-06-23) — 별도 홈 카드 제거. /zodiac 라우트는 유지(딥링크 안전).
     { key: 'name', labelKey: 'menu.name', descKey: 'menu.nameTileDesc', image: require('../../../assets/icons/name.jpg'), route: '/name', ready: true, content: true },

@@ -4,7 +4,7 @@
 //   ※ 클라우드 TTS(고품질 음성)는 호출당 과금이라 미사용. 비용 0이므로 daniel "비용 발생 시 프리미엄" 조건에 안 걸림.
 //   다시 누르면 정지. 화면 벗어나면(언마운트) 자동 정지.
 // ─────────────────────────────────────────────────────────────────────────
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { View, Pressable, Text, StyleSheet } from 'react-native';
 import * as Speech from 'expo-speech';
 import { appLang } from '../lib/i18n';
@@ -29,26 +29,33 @@ function readingToText(reading: any, sections?: { key: string; label?: string }[
 
 export function TTSButton({ reading, sections }: { reading: any; sections?: { key: string; label?: string }[] }) {
   const [speaking, setSpeaking] = useState(false);
-  useEffect(() => () => { Speech.stop(); }, []); // 화면 이탈 시 정지
+  // ★세션 토큰 — 정지/언마운트 시 증가시켜, 진행 중이던 청크 체인이 *다음 청크로 넘어가지 않게* 막는다.
+  //   iOS는 Speech.stop() 이 현재 청크의 onDone 을 부르는 경우가 있어, 체인이 계속 이어지며
+  //   "멈춤 눌러도·화면 나가도 계속 읽힘"(daniel)이 발생. 세션이 바뀌면 onDone 이 와도 다음 청크를 안 읽는다.
+  const sessionRef = useRef(0);
+  useEffect(() => () => { sessionRef.current++; Speech.stop(); }, []); // 화면 이탈 = 세션 무효화 + 정지
 
-  // 문단(청크)을 *순차 체인*으로 읽는다 — 한 번에 큐잉하면 중간 청크가 끊길 때 멈추던 문제 방지.
-  //   각 청크가 끝나면(onDone) 다음 청크를 읽고, 마지막이면 speaking 해제. 정지(stop)=onStopped로 체인 중단.
-  const speakFrom = (chunks: string[], i: number, lang: string) => {
+  // 문단(청크)을 *순차 체인*으로 읽되, 매 청크 전에 세션 유효성 확인 — 무효(정지/이탈)면 더 읽지 않음.
+  const speakChain = (chunks: string[], i: number, lang: string, session: number) => {
+    if (session !== sessionRef.current) return;        // 정지/이탈된 세션 → 체인 중단
     if (i >= chunks.length) { setSpeaking(false); return; }
     Speech.speak(chunks[i], {
-      language: lang, pitch: 1.0, // rate 생략=기본 속도(iOS는 rate×기본이라 1.0=정상, 생략도 동일)
-      onDone: () => speakFrom(chunks, i + 1, lang),
-      onStopped: () => setSpeaking(false),
-      onError: () => setSpeaking(false),
+      language: lang,
+      pitch: 0.8,  // 중저음(daniel) — 1.0=기본, 낮출수록 깊은 목소리. rate 생략=기본 속도.
+      onDone: () => speakChain(chunks, i + 1, lang, session),
+      onStopped: () => {},
+      onError: () => { if (session === sessionRef.current) setSpeaking(false); },
     });
   };
+  const stop = () => { sessionRef.current++; Speech.stop(); setSpeaking(false); }; // 세션 무효화로 체인까지 확실히 중단
   const toggle = () => {
-    if (speaking) { Speech.stop(); setSpeaking(false); return; }
+    if (speaking) { stop(); return; }
     const text = readingToText(reading, sections).trim();
     if (!text) return;
     const lang = appLang() === 'ja' ? 'ja-JP' : appLang() === 'en' ? 'en-US' : 'ko-KR';
+    const session = ++sessionRef.current;              // 새 재생 세션 시작
     setSpeaking(true);
-    speakFrom(text.split(/\n\n+/).filter(Boolean), 0, lang);
+    speakChain(text.split(/\n\n+/).filter(Boolean), 0, lang, session);
   };
 
   if (reading?.error) return null;
