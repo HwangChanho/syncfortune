@@ -40,6 +40,21 @@ import Svg, { Path, Rect, Circle, Text as SvgText, G } from 'react-native-svg';
 // 전통 표기 — 오른쪽이 년주: 시(왼) ← 일 ← 월 ← 년(오른쪽)
 const POS: PillarPos[] = ['시', '일', '월', '년'];
 
+// 만세력 카테고리 탭(daniel: 경쟁앱식 분류) — 원국/관계/오행십성/강약. '관계' 하위 = 합충·신살·운세.
+type MyeongTab = 'wonguk' | 'rel' | 'elem' | 'strength';
+type RelSub = 'hapchung' | 'sinsal' | 'unse';
+const MYEONG_TABS: { id: MyeongTab; label: string; desc: string }[] = [
+  { id: 'wonguk', label: '사주원국', desc: '태어난 연·월·일·시를 천간·지지 여덟 글자로 세운 것(팔자)과, 그 속에 숨은 기운(지장간)을 봐요.' },
+  { id: 'rel', label: '사주관계', desc: '여덟 글자끼리 서로 끌어당기거나(합) 부딪히는(충·형·해·파) 관계, 신살·길성, 그리고 시기별 운(운세)을 봐요.' },
+  { id: 'elem', label: '오행십성', desc: '내 글자들이 목·화·토·금·수 다섯 기운 중 무엇에 쏠렸는지, 그게 나에게 어떤 역할(십성)인지 봐요.' },
+  { id: 'strength', label: '신강신약', desc: '내 힘(일간)이 주변 기운에 비해 강한지 약한지, 그래서 무엇으로 균형을 잡으면 좋은지 봐요.' },
+];
+const REL_SUBS: { id: RelSub; label: string }[] = [
+  { id: 'hapchung', label: '천간과 지지' }, { id: 'sinsal', label: '신살과 길성' }, { id: 'unse', label: '운세' },
+];
+let lastMyeongTab: MyeongTab = 'wonguk';   // 선택 탭 기억(세션 내 — 나갔다 와도 분류 유지, daniel)
+let lastRelSub: RelSub = 'hapchung';
+
 // 신강/신약 특징(신강약 섹션 탭 → 상세 시트). ★명리 stance = daniel 검수 슬롯. en/ja i18n 은 검수 후.
 const STRENGTH_INFO: { key: '신강' | '신약'; title: string; traits: string; strong: string; caution: string; yongsin: string }[] = [
   { key: '신강', title: '신강 (身強)',
@@ -82,7 +97,11 @@ function GzCell({ char, kind, size, scale = 1, onPress }: { char: string; kind: 
 
 export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input: ChartInput | null; onReading?: () => void; onSinsal?: () => void; header?: ReactNode }) {
   const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState<'natal' | 'luck' | 'stars'>('natal');
+  const [activeTab, setActiveTab] = useState<MyeongTab>(lastMyeongTab);
+  const [relSub, setRelSub] = useState<RelSub>(lastRelSub);
+  const [catDescOpen, setCatDescOpen] = useState(false); // 카테고리 ? 설명 시트(daniel: 설명도 나오게)
+  useEffect(() => { lastMyeongTab = activeTab; }, [activeTab]); // 선택 탭 기억 — 나갔다 와도 유지(daniel)
+  useEffect(() => { lastRelSub = relSub; }, [relSub]);
   const [strengthOpen, setStrengthOpen] = useState(false); // 신강·신약 특징 시트
   const [johuOpen, setJohuOpen] = useState(false); // 조후·음양 쏠림 시트(daniel)
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -368,28 +387,36 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
   return (
     <>
     <View style={styles.tabBar}>
-      {[
-        { id: 'natal', label: '명식' },
-        { id: 'luck', label: '운세' },
-        { id: 'stars', label: '신살' },
-      ].map((t2) => (
+      {MYEONG_TABS.map((t2) => (
         <Pressable
           key={t2.id}
           style={[styles.tabBtn, activeTab === t2.id && styles.tabBtnOn]}
-          onPress={() => {
-            setActiveTab(t2.id as any);
-            haptic();
-          }}
+          onPress={() => { setActiveTab(t2.id); haptic(); }}
         >
-          <Text style={[styles.tabLabel, activeTab === t2.id && styles.tabLabelOn]}>{t2.label}</Text>
+          <Text style={[styles.tabLabel, activeTab === t2.id && styles.tabLabelOn]} numberOfLines={1}>{t2.label}</Text>
         </Pressable>
       ))}
     </View>
+    {/* 관계 하위탭(daniel: 운세·신살은 관계 하위) — 천간과 지지(합충)·신살과 길성·운세 */}
+    {activeTab === 'rel' && (
+      <View style={styles.subTabBar}>
+        {REL_SUBS.map((s) => (
+          <Pressable key={s.id} style={[styles.subTabBtn, relSub === s.id && styles.subTabBtnOn]} onPress={() => { setRelSub(s.id); haptic(); }}>
+            <Text style={[styles.subTabLabel, relSub === s.id && styles.subTabLabelOn]}>{s.label}</Text>
+          </Pressable>
+        ))}
+      </View>
+    )}
+    {/* 카테고리 ? 설명(daniel: 설명도 나오게) — 탭하면 이 분류가 무엇을 보는지 시트로 */}
+    <Pressable style={styles.catDescBtn} onPress={() => setCatDescOpen(true)}>
+      <Text style={styles.catDescBtnTx}>ⓘ 이 분류는 무엇을 보나요?</Text>
+    </Pressable>
 
     <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>
       {header}
       <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
-        {activeTab === 'natal' && (
+        {/* ── 사주원국 1: 팔자 그리드 + 12신살(원국) ── */}
+        {activeTab === 'wonguk' && (
         <>
           <View style={styles.headerArea}>
             <Text style={styles.h}>{t('myeongsik.palja')}</Text>
@@ -430,6 +457,11 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
             })}
           </View>
 
+        </>
+      )}
+      {/* ── 사주관계 1: 합충(천간과 지지) ── */}
+      {activeTab === 'rel' && relSub === 'hapchung' && (
+        <>
           {/* 합충형해 토글 */}
           {(ganLinks.length + jiLinks.length) > 0 && (
             <Pressable 
@@ -456,6 +488,11 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
         </View>
       )}
 
+        </>
+      )}
+      {/* ── 오행과 십성 1: 일간·격국·대표 십성 ── */}
+      {activeTab === 'elem' && (
+        <>
       {/* 일간·신강약·격국 */}
       <Text style={styles.kv}>{t('myeongsik.dayMaster')}: <Text style={styles.kvAccent}>{c.saju.dayMaster.stem}({c.saju.dayMaster.element})</Text></Text>
       <Text style={styles.kv}>{t('myeongsik.dayMaster')} {c.saju.dayMaster.stem}  ·  {t('myeongsik.pattern')}: {c.pattern.candidates.join(', ')}</Text>
@@ -478,6 +515,11 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
         })()}
       </View>
 
+        </>
+      )}
+      {/* ── 신강신약 ── */}
+      {activeTab === 'strength' && (
+        <>
       {/* 신강약 — 게이지(중화=50% 기준, 신약←→신강) + 신왕/신강 분류(강함의 동력) */}
       <Text style={styles.h}>{t('myeongsik.strength')}</Text>
       {(() => {
@@ -521,6 +563,11 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
         );
       })()}
 
+        </>
+      )}
+      {/* ── 오행과 십성 2: 오행 분포 ── */}
+      {activeTab === 'elem' && (
+        <>
       {/* 오행 분포 (오행색 도넛 + %·개수 범례) */}
       <Text style={styles.h}>{t('myeongsik.elements')}</Text>
       {(() => {
@@ -561,6 +608,11 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
         );
       })()}
 
+        </>
+      )}
+      {/* ── 사주원국 2: 지장간 상세 ── */}
+      {activeTab === 'wonguk' && (
+        <>
       {/* 지장간 상세 — 숨은 기운(지장간)과 강약(본기=상시 강 / 중기·여기=잠재, 투출 시 드러나 강) */}
       <Text style={styles.h}>{t('myeongsik.hidden')}</Text>
       <Text style={styles.hiddenHint}>진한 칸 = 드러나 작용하는 힘(본기·뿌리내린 기운) · 흐린 칸 = 아직 숨은 잠재 기운</Text>
@@ -589,7 +641,8 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
         </>
       )}
 
-      {activeTab === 'luck' && (
+      {/* ── 사주관계 3: 운세(대운/세운/월운/일진) — 관계 하위탭(daniel) ── */}
+      {activeTab === 'rel' && relSub === 'unse' && (
         <>
           {/* 대운·세운 타임라인 (원국·지장간 바로 아래) — 대운 탭 → 세운(과거~100세) → 월운 드릴다운 */}
           {luckCycles.length > 0 && (() => {
@@ -796,7 +849,8 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
         </>
       )}
 
-      {activeTab === 'stars' && (
+      {/* ── 사주관계 2: 신살과 길성 — 관계 하위탭(daniel) ── */}
+      {activeTab === 'rel' && relSub === 'sinsal' && (
         <>
           {/* 신살·공망 — 원국 적중은 자리별 표(팔자처럼 칸), 운에서 오는 건 별도 분리 */}
           <Text style={styles.h}>{t('myeongsik.sinsal')}</Text>
@@ -956,6 +1010,20 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
       </Pressable>
     </Modal>
 
+    {/* 카테고리 ? 설명 시트(daniel: 설명도 나오게) — 지금 보는 분류가 무엇을 보는지 쉬운 말로 */}
+    <Modal visible={catDescOpen} transparent animationType="slide" onRequestClose={() => setCatDescOpen(false)}>
+      <Pressable style={styles.sheetOverlay} onPress={() => setCatDescOpen(false)}>
+        <Pressable style={styles.sheet} onPress={() => {}}>
+          <View style={styles.sheetHandle} />
+          <Text style={styles.sheetTitle}>{MYEONG_TABS.find((x) => x.id === activeTab)?.label}</Text>
+          <Text style={styles.sheetMeaning}>{MYEONG_TABS.find((x) => x.id === activeTab)?.desc}</Text>
+          <Pressable style={styles.sheetClose} onPress={() => setCatDescOpen(false)}>
+            <Text style={styles.sheetCloseText}>닫기</Text>
+          </Pressable>
+        </Pressable>
+      </Pressable>
+    </Modal>
+
     {/* 신강·신약 특징 시트 — 내 유형 강조 + 성향·강점·주의·용신 방향 */}
     <Modal visible={strengthOpen} transparent animationType="slide" onRequestClose={() => setStrengthOpen(false)}>
       <Pressable style={styles.sheetOverlay} onPress={() => setStrengthOpen(false)}>
@@ -1048,6 +1116,14 @@ const makeStyles = (fs: (n: number) => number) => { const f = scaledFont(fs); re
   tabBtnOn: { borderBottomColor: colors.ju },
   tabLabel: { ...f.body, color: colors.inkFaint, fontWeight: '700' },
   tabLabelOn: { color: colors.ju },
+  // 관계 하위탭(합충·신살·운세) + 카테고리 ? 설명 버튼(daniel: 카테고리 분류 + 설명)
+  subTabBar: { flexDirection: 'row', backgroundColor: colors.sunk, borderBottomWidth: 1, borderBottomColor: colors.line },
+  subTabBtn: { flex: 1, paddingVertical: space(2.5), alignItems: 'center', borderBottomWidth: 2, borderBottomColor: 'transparent' },
+  subTabBtnOn: { borderBottomColor: colors.ju },
+  subTabLabel: { color: colors.inkFaint, fontWeight: '700', fontSize: 13 },
+  subTabLabelOn: { color: colors.ju },
+  catDescBtn: { alignSelf: 'flex-start', marginHorizontal: space(4), marginTop: space(2.5), marginBottom: space(1), paddingVertical: space(1.5), paddingHorizontal: space(3), borderRadius: 999, backgroundColor: colors.sunk },
+  catDescBtnTx: { color: colors.ju, fontWeight: '600', fontSize: 12 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.bg },
   h: { ...f.heading, marginTop: space(5), marginBottom: space(2) },
   hint: { ...f.caption, marginBottom: space(2) },
