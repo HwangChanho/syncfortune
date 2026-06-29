@@ -167,7 +167,7 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
   const [showLayers, setShowLayers] = useState({ luck: true, year: true, month: true, day: true }); // 운세 확장명식 시간층 토글(대운·년운·월운·일운 — 끄면 남은 칸 넓어지고 글자 커짐)
   const [expW, setExpW] = useState(0); // 확장명식 가용폭 — 컬럼 수에 맞춰 칸·글자 반응형(daniel)
   const [glossary, setGlossary] = useState<{ kind: GlossaryKind; key?: string } | null>(null); // 클릭 설명 바텀시트
-  const [showLinks, setShowLinks] = useState(false); // 팔자 합충형해 카드 펼침(기본 숨김)
+  const [showLinks, setShowLinks] = useState(true); // 팔자 합충형해 카드 펼침 — 관계 탭 전용이 됐으니 기본 펼침(daniel: 합충 탭 비어보임)
   const [showExpandLinks, setShowExpandLinks] = useState(false); // 대운/세운 합충 펼침(기본 숨김)
   const [activePalja, setActivePalja] = useState<Set<string>>(() => new Set());   // 클릭으로 켠 팔자 합충(명식 강조용)
   const [activeExpand, setActiveExpand] = useState<Set<string>>(() => new Set());  // 클릭으로 켠 대운/세운 합충

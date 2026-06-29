@@ -37,9 +37,10 @@ function fmtDate(d: string): string {
   return `${Number(m)}월 ${Number(day)}일 (${wd})`;
 }
 
-// 한 달 그리드 — 좋은 날(>=68)만 색 강조 + 탭. 과거·낮은 점수는 일반 숫자(§4: 흉 강조 안 함).
-function MonthGrid({ year, month, byDate, sel, onSel, todayStr }: {
-  year: number; month: number; byDate: Record<string, AuspiciousDay>; sel: string | null; onSel: (d: string) => void; todayStr: string;
+// 한 달 그리드 — 좋은 날(상대 임계 goodT/bestT 이상)만 색 강조 + 탭. 과거·낮은 점수는 일반 숫자(§4: 흉 강조 안 함).
+//   ★임계를 절대값(68/80) 대신 *목적별 점수분포 상대값*으로 — 그래야 목적을 바꾸면 다른 날이 뜬다(daniel).
+function MonthGrid({ year, month, byDate, goodT, bestT, sel, onSel, todayStr }: {
+  year: number; month: number; byDate: Record<string, AuspiciousDay>; goodT: number; bestT: number; sel: string | null; onSel: (d: string) => void; todayStr: string;
 }) {
   const firstDow = new Date(year, month, 1).getDay();
   const dim = new Date(year, month + 1, 0).getDate();
@@ -54,8 +55,8 @@ function MonthGrid({ year, month, byDate, sel, onSel, todayStr }: {
           if (!day) return <View key={i} style={styles.cell} />;
           const date = `${year}-${pad(month + 1)}-${pad(day)}`;
           const d = byDate[date];
-          const best = !!d && d.score >= 80;
-          const good = !!d && d.score >= 68;
+          const best = !!d && d.score >= bestT;
+          const good = !!d && d.score >= goodT;
           const past = date < todayStr;
           const on = sel === date;
           return (
@@ -95,6 +96,15 @@ export default function TaegilScreen() {
     findAuspiciousDays(saju, purpose, 730).forEach((d) => { out[d.date] = d; });
     return out;
   }, [me, purpose]);
+
+  // ★상대 임계 — 목적별 점수 분포의 상위 %를 '좋음/아주 좋음'으로. 절대값(68/80)이면 합·왕 날만 항상 떠
+  //   목적을 바꿔도 같은 날이 나오던 문제(daniel) → 목적마다 분포가 달라 다른 날이 뜬다. 바닥값(60/72)로 너무 낮은 날 방지.
+  const { goodT, bestT } = useMemo(() => {
+    const ss = Object.values(byDate).map((d) => d.score).filter((s) => s > 0).sort((a, b) => b - a);
+    if (ss.length < 12) return { goodT: 68, bestT: 80 };
+    const at = (p: number) => ss[Math.min(ss.length - 1, Math.floor(ss.length * p))];
+    return { goodT: Math.max(60, at(0.16)), bestT: Math.max(72, at(0.05)) };
+  }, [byDate]);
 
   const today = new Date();
   const todayStr = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
@@ -136,7 +146,7 @@ export default function TaegilScreen() {
         {/* 2년(24개월) 달력 — daniel: 2년 단위로 길일 확인 */}
         {Array.from({ length: 24 }, (_, off) => off).map((off) => {
           const base = new Date(today.getFullYear(), today.getMonth() + off, 1);
-          return <MonthGrid key={off} year={base.getFullYear()} month={base.getMonth()} byDate={byDate} sel={sel} onSel={setSel} todayStr={todayStr} />;
+          return <MonthGrid key={off} year={base.getFullYear()} month={base.getMonth()} byDate={byDate} goodT={goodT} bestT={bestT} sel={sel} onSel={setSel} todayStr={todayStr} />;
         })}
 
         {/* 선택한 날 상세 */}
@@ -145,8 +155,8 @@ export default function TaegilScreen() {
             <View style={styles.detailCard}>
               <View style={styles.dayHead}>
                 <Text style={styles.detailDate}>{fmtDate(selDay.date)}</Text>
-                <View style={[styles.badge, selDay.score >= 80 ? styles.badgeBest : styles.badgeGood]}>
-                  <Text style={[styles.badgeTx, selDay.score >= 80 ? styles.badgeTxBest : styles.badgeTxGood]}>{selDay.score >= 80 ? t('taegil.best', '아주 좋음') : t('taegil.good', '좋음')}</Text>
+                <View style={[styles.badge, selDay.score >= bestT ? styles.badgeBest : styles.badgeGood]}>
+                  <Text style={[styles.badgeTx, selDay.score >= bestT ? styles.badgeTxBest : styles.badgeTxGood]}>{selDay.score >= bestT ? t('taegil.best', '아주 좋음') : t('taegil.good', '좋음')}</Text>
                 </View>
               </View>
               {selDay.reasons.map((r, i) => <Text key={i} style={[styles.reason, { fontSize: fs(14), lineHeight: fs(21) }]}>· {r}</Text>)}

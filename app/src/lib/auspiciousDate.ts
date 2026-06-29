@@ -53,15 +53,17 @@ const GROUP: Record<string, TgGroup> = {
 };
 
 // 목적별 선호 십신 가중(+점) — 그날 천간 십신이 목적에 맞으면 가점(표준 통설 매핑)
+// ★목적별 선호 십신 가중 — daniel: 목적을 바꿔도 좋은 날이 안 바뀌던 문제(합+14·왕+8 같은 목적-무관
+//   요소에 묻힘) 해결을 위해 목적별 핵심 십신을 *합·왕과 경쟁 가능한 수준*으로 강화. 화면은 상대 임계로 상위 N일 노출.
 const PURPOSE_PREF: Record<Purpose, Partial<Record<TgGroup, number>>> = {
-  wedding: { 관성: 6, 재성: 6, 인성: 3 },   // 혼사 = 배우자·예(관)·살림(재)·안정(인)
-  dating: { 재성: 6, 식상: 5, 관성: 3 },    // 소개팅 = 이성운(재)·매력 표현(식상)·인연(관)
-  casual: { 식상: 6, 비겁: 4 },             // 가벼운 만남 = 즐거움·표현(식상)·어울림(비겁)
-  moving: { 인성: 7, 식상: 3 },             // 이사 = 거처·안정(인), 이동(식상)
-  contract: { 인성: 7, 관성: 6 },           // 계약 = 문서(인)·신뢰·공식(관)
-  opening: { 식상: 6, 재성: 8 },            // 개업 = 생산·표현(식상)·이익(재)
-  travel: { 식상: 5, 재성: 3 },             // 여행·이동 = 활동·표현(식상)
-  general: { 인성: 3, 재성: 3, 관성: 3 },   // 일반 길일
+  wedding: { 관성: 12, 재성: 12, 인성: 6 },  // 혼사 = 배우자·예(관)·살림(재)·안정(인)
+  dating: { 재성: 12, 식상: 10, 관성: 6 },   // 소개팅 = 이성운(재)·매력 표현(식상)·인연(관)
+  casual: { 식상: 12, 비겁: 8 },             // 가벼운 만남 = 즐거움·표현(식상)·어울림(비겁)
+  moving: { 인성: 14, 식상: 6 },             // 이사 = 거처·안정(인), 이동(식상)
+  contract: { 인성: 14, 관성: 12 },          // 계약 = 문서(인)·신뢰·공식(관)
+  opening: { 식상: 12, 재성: 16 },           // 개업 = 생산·표현(식상)·이익(재)
+  travel: { 식상: 10, 재성: 6 },             // 여행·이동 = 활동·표현(식상)
+  general: { 인성: 6, 재성: 6, 관성: 6 },    // 일반 길일
 };
 // 목적별 충(沖) 패널티 — 결혼·계약은 엄격, 여행은 변동 허용
 const CHUNG_PENALTY: Record<Purpose, number> = { wedding: -30, contract: -28, opening: -22, general: -22, moving: -20, dating: -18, travel: -12, casual: -10 };
@@ -71,8 +73,8 @@ const HAE_PENALTY: Record<Purpose, number> = { wedding: -9, contract: -8, openin
 const PA_PENALTY: Record<Purpose, number> = { wedding: -6, contract: -6, opening: -5, general: -4, moving: -4, dating: -4, travel: -3, casual: -2 };
 // 역마(이동)·도화(이성 끌림) 가점이 유효한 목적만 — 그 외 목적엔 미적용(카테고리 변별의 핵심).
 //   ★도화 = '이성이 꼬이는' 끌림이지 *결혼 여부가 아님*(daniel) → 만남(소개팅·가벼운 만남)에만, 결혼 제외.
-const YEOKMA_BONUS: Partial<Record<Purpose, number>> = { travel: 12, moving: 10, opening: 4 };
-const DOHWA_BONUS: Partial<Record<Purpose, number>> = { dating: 12, casual: 9 };
+const YEOKMA_BONUS: Partial<Record<Purpose, number>> = { travel: 18, moving: 15, opening: 8 };
+const DOHWA_BONUS: Partial<Record<Purpose, number>> = { dating: 18, casual: 13 };
 
 const WANG = new Set(['장생', '관대', '건록', '제왕']); // 기세 왕성
 const SOI = new Set(['병', '사', '묘', '절']);           // 기세 쇠퇴
