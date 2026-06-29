@@ -42,6 +42,7 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
   const [open, setOpen] = useState(false);
   const [listReady, setListReady] = useState(false); // 모달 열림 직후 스피너 → 리스트는 인터랙션 후 마운트(daniel: 명식 버튼 로딩 표시)
   const [viewImg, setViewImg] = useState<any>(null); // 엠블럼 탭 → 풀스크린 이미지 뷰어(daniel)
+  const [loadedEmblems, setLoadedEmblems] = useState<Set<string>>(new Set()); // 엠블럼 이미지 디코드 완료 — 로딩 인디케이터용(daniel: 명식변경 리스트 이미지 로딩 표시)
 
   const reload = useCallback(async () => {
     setCharts(await listCharts());
@@ -153,8 +154,11 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
                       {!em ? (
                         <SkeletonDot /> /* 펄스 스켈레톤 — 엠블럼 계산 전(딜레이 가림) */
                       ) : iljuImg ? (
-                        <Pressable onPress={() => setViewImg(iljuImg)} hitSlop={6}>
-                          <ExpoImage source={iljuImg} style={styles.emblemImg} contentFit="cover" cachePolicy="memory-disk" />
+                        <Pressable onPress={() => setViewImg(iljuImg)} hitSlop={6} style={styles.emblemImg}>
+                          <ExpoImage source={iljuImg} style={[StyleSheet.absoluteFill, { borderRadius: 23 }]} contentFit="cover" cachePolicy="memory-disk" transition={250}
+                            onLoadEnd={() => setLoadedEmblems((s) => { const n = new Set(s); n.add(c.id); return n; })} />
+                          {/* 이미지 디코드 중 로딩 인디케이터(daniel: 명식변경 리스트 이미지 로딩 표시) — 로드되면 사라짐 */}
+                          {!loadedEmblems.has(c.id) && <ActivityIndicator size="small" color={colors.ju} style={StyleSheet.absoluteFill} />}
                         </Pressable>
                       ) : (
                         <View style={[styles.emblem, { backgroundColor: em.color }]}>
