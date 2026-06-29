@@ -274,17 +274,7 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
       {/* ── 관계 유형별 통변 ── */}
       {pair && (
         <>
-          {/* 궁합 점수 + 등급 이미지(daniel: 메인 콘텐츠 — 임의 점수·등급별 이미지) */}
-          {dispTier && dispScore != null && (
-            <View style={styles.scoreCard}>
-              {COMPAT_IMG[dispTier.key]
-                ? <Image source={COMPAT_IMG[dispTier.key]} style={styles.scoreImg} resizeMode="cover" />
-                : <Text style={styles.scoreEmoji}>{dispTier.emoji}</Text>}
-              <Text style={styles.scoreTier}>{dispTier.emoji} {tierLabel(dispTier, appLang() as 'ko' | 'en' | 'ja')}</Text>
-              <ScoreReveal score={dispScore} />
-              {compat && <Text style={styles.scoreSub}>{t('compat.scoreHarmony', '조화')} {compat.harmony} · {t('compat.scoreTension', '긴장')} {compat.tension}</Text>}
-            </View>
-          )}
+          {/* (점수 카드는 아래로 이동 — daniel: 실제 풀이가 나온 뒤에 노출. 풀이 전 결정론 점수 선노출 X) */}
           <View style={styles.relChips}>
             {COMPAT_RELS.map((r) => (
               <Pressable key={r.key} style={[styles.relChip, rel === r.key && styles.relChipOn]} onPress={() => setRel(r.key)}>
@@ -332,6 +322,18 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
               <Text style={{ color: colors.bg, fontWeight: '900', fontSize: 16 }}>{t('compat.genCta', '이 관계 풀이 만들기')}</Text>
               <Text style={{ color: colors.bg, opacity: 0.85, fontSize: 12, fontWeight: '600' }}>{t('compat.genCtaSub', '확인 후 이용권 1회 또는 결제')}</Text>
             </Pressable>
+          )}
+
+          {/* 궁합 점수 — 실제 풀이가 나온 뒤(cur)에만, 그 아래에 노출(daniel: 점수 아래로·풀이 후). LLM 산출 score 우선. */}
+          {cur && dispTier && dispScore != null && (
+            <View style={styles.scoreCard}>
+              {COMPAT_IMG[dispTier.key]
+                ? <Image source={COMPAT_IMG[dispTier.key]} style={styles.scoreImg} resizeMode="cover" />
+                : <Text style={styles.scoreEmoji}>{dispTier.emoji}</Text>}
+              <Text style={styles.scoreTier}>{dispTier.emoji} {tierLabel(dispTier, appLang() as 'ko' | 'en' | 'ja')}</Text>
+              <ScoreReveal score={dispScore} />
+              {compat && <Text style={styles.scoreSub}>{t('compat.scoreHarmony', '조화')} {compat.harmony} · {t('compat.scoreTension', '긴장')} {compat.tension}</Text>}
+            </View>
           )}
 
           {/* 추가질문 — 통변이 있을 때만(관계유형/연도 키별, 사주·자미와 동일) */}
