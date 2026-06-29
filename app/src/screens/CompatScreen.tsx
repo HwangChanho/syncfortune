@@ -255,7 +255,7 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
           <Text style={styles.wizRole}>{t('compat.mySlot', '나')}</Text>
           <Text style={styles.wizName} numberOfLines={1}>{meSel?.label ?? t('compat.mySlot', '나')}</Text>
         </Pressable>
-        <Text style={styles.wizHeart}>❤</Text>
+        <Text style={styles.wizHeart}>↔</Text>{/* daniel: 하트 X(연애 전용 아님) → 중립 상호관계 기호 */}
         <Pressable style={[styles.wizPerson, !otherSel && styles.wizPersonEmpty]} onPress={() => setPickFor('other')}>
           <Text style={styles.wizRole}>{t('compat.otherSlot', '상대')}</Text>
           <Text style={[styles.wizName, !otherSel && styles.wizNameEmpty]} numberOfLines={1}>{otherSel?.label ?? t('compat.wizPickShort', '탭해서 선택')}</Text>
@@ -565,7 +565,7 @@ const styles = StyleSheet.create({
   scoreBar: { width: '80%', height: 8, borderRadius: 4, backgroundColor: colors.line, marginTop: space(3), overflow: 'hidden' },
   scoreBarFill: { height: '100%', borderRadius: 4, backgroundColor: colors.ju },
   scoreSub: { ...font.caption, color: colors.inkSoft, marginTop: space(2) },
-  catBanner: { width: '100%', height: 190, alignSelf: 'center', borderRadius: radius.md, marginTop: space(2), marginBottom: space(1) },
+  catBanner: { width: '100%', height: 190, alignSelf: 'center', borderRadius: radius.md, marginTop: space(3), marginBottom: space(5) },  // 이미지↔컨텐츠 간격 넓힘(daniel: 너무 가까움)
   slotLabel: { ...font.caption, color: colors.ju, fontWeight: '800', marginBottom: space(2), letterSpacing: 0.3 },
   // 내 명식 골드 슬롯
   meSlot: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.card, borderWidth: 1.5, borderColor: colors.ju, borderRadius: radius.md, padding: space(4), ...shadow.card },
@@ -600,7 +600,7 @@ const styles = StyleSheet.create({
   modalTitle: { fontSize: 18, fontWeight: '800', color: colors.ink },
   modalClose: { fontSize: 22, color: colors.inkSoft, fontWeight: '700' },
   // 관계 유형
-  relChips: { flexDirection: 'row', flexWrap: 'wrap', gap: space(2), marginTop: space(6), marginBottom: space(3) },
+  relChips: { flexDirection: 'row', flexWrap: 'wrap', gap: space(2), marginBottom: space(3) },  // marginTop 제거 — ② 라벨 밑 여백을 ③과 동일하게(daniel)
   // 연도별 칩(전체/그 해)
   yearChips: { flexDirection: 'row', flexWrap: 'wrap', gap: space(2), marginBottom: space(3) },
   yearChip: { paddingHorizontal: space(3), paddingVertical: space(1.5), borderRadius: radius.pill, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line },
