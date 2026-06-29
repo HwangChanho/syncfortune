@@ -524,7 +524,7 @@ export function ReadingScreen({
             {renderFollowups(detail)}
             {/* daniel(2026-06-24): 풀이 맨 끝에 음성 듣기 + 공유(콘텐츠 화면과 균일 — 자미 등 헤더에 있던 공유 통일) */}
             {readings[detail] && !(readings[detail] as any)?.error ? (<>
-              <TTSButton reading={readings[detail]} />
+              <TTSButton key={detail} reading={readings[detail]} />{/* key=카테고리 → 이동 시 옛 TTSButton 언마운트=옛 음성 정지(daniel: 다른 카테고리 읽힘) */}
               <ShareReadingButton kind={kind} category={detail} title={cats.find((x) => x.key === detail)?.label} content={readings[detail]} />
             </>) : null}
           </ScrollView>

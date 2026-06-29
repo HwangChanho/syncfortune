@@ -100,7 +100,7 @@ export default function DreamScreen() {
 
   return (
     <ImageBackground source={bgSource} style={styles.bg} resizeMode="cover">
-      <ScrollView style={styles.overlay} contentContainerStyle={styles.wrap} keyboardShouldPersistTaps="handled">
+      <ScrollView style={styles.overlay} contentContainerStyle={styles.wrap} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets keyboardDismissMode="interactive">
         <ContentHero image={require('../../../assets/icons/dream.jpg')} title={t('dream.title', '꿈해몽')} sub={t('dream.sub', '꿈에 나온 것을 검색해 보세요.')} />
 
         <TextInput
