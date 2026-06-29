@@ -42,13 +42,13 @@ import Svg, { Path, Rect, Circle, Text as SvgText, G } from 'react-native-svg';
 const POS: PillarPos[] = ['시', '일', '월', '년'];
 
 // 만세력 카테고리 탭(daniel: 경쟁앱식 분류) — 원국/관계/오행십성/강약. '관계' 하위 = 합충·신살·운세.
-type MyeongTab = 'wonguk' | 'rel' | 'elem' | 'strength';
+type MyeongTab = 'wonguk' | 'rel' | 'elem' | 'ziwei';  // (daniel) strength→ziwei: 자미두수 별도 탭. elem=오행십성+신강신약 통합
 type RelSub = 'hapchung' | 'sinsal' | 'unse';
 const MYEONG_TABS: { id: MyeongTab; label: string; desc: string }[] = [
   { id: 'wonguk', label: '사주원국', desc: '태어난 연·월·일·시를 천간·지지 여덟 글자로 세운 것(팔자)과, 그 속에 숨은 기운(지장간)을 봐요.' },
   { id: 'rel', label: '사주관계', desc: '여덟 글자끼리 서로 끌어당기거나(합) 부딪히는(충·형·해·파) 관계, 신살·길성, 그리고 시기별 운(운세)을 봐요.' },
-  { id: 'elem', label: '오행십성', desc: '내 글자들이 목·화·토·금·수 다섯 기운 중 무엇에 쏠렸는지, 그게 나에게 어떤 역할(십성)인지 봐요.' },
-  { id: 'strength', label: '신강신약', desc: '내 힘(일간)이 주변 기운에 비해 강한지 약한지, 그래서 무엇으로 균형을 잡으면 좋은지 봐요.' },
+  { id: 'elem', label: '오행·강약', desc: '내 글자들이 목·화·토·금·수 다섯 기운 중 무엇에 쏠렸는지·그게 나에게 어떤 역할(십성)인지, 그리고 내 힘(일간)이 강한지 약한지·무엇으로 균형을 잡으면 좋은지 함께 봐요.' },
+  { id: 'ziwei', label: '자미두수', desc: '사주와는 별개의 운명 체계예요. 태어난 시각으로 열두 자리(명궁·재물·관록·배우자 등)에 여러 별을 배치해, 삶의 각 영역에 어떤 기운이 드는지 봅니다. 사주를 보조해 교차로 참고해요(시각을 알아야 정확).' },
 ];
 const REL_SUBS: { id: RelSub; label: string }[] = [
   { id: 'hapchung', label: '천간과 지지' }, { id: 'sinsal', label: '신살과 길성' }, { id: 'unse', label: '운세' },
@@ -538,7 +538,7 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
         </>
       )}
       {/* ── 신강신약 ── */}
-      {activeTab === 'strength' && (
+      {activeTab === 'elem' && (    /* 신강신약 — 오행·강약 통합 탭(daniel) */
         <>
       {/* 신강약 — 게이지(중화=50% 기준, 신약←→신강) + 신왕/신강 분류(강함의 동력) */}
       <Text style={styles.h}>{t('myeongsik.strength')}</Text>
@@ -932,9 +932,14 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
           </>
         );
       })()}
-
+        </>
+      )}
+      {/* ── 자미두수: 사주관계 신살탭에서 별도 탭으로 분리(daniel) ── */}
+      {activeTab === 'ziwei' && (
+        <>
       {/* 자미두수(보조) */}
       <Text style={styles.h}>{t('myeongsik.ziwei')}</Text>
+      <Text style={[styles.hint, { marginHorizontal: 0 }]}>사주와는 별개의 운명 체계예요. 태어난 시각으로 열두 자리(명궁·재물·관록·배우자 등)에 별을 배치해, 삶의 각 영역에 드는 기운을 봅니다. 사주를 보조해 교차로 참고해요.</Text>
       <Text style={styles.kv}>{c.ziwei.bureau} · {t('myeongsik.lifePalace')} {c.ziwei.lifePalaceBranch}</Text>
       {/* 자미두수 명반 (12궁 4×4, 중앙=일간·명궁·국) */}
       {(() => {
