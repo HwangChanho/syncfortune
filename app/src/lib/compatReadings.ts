@@ -142,12 +142,14 @@ export function otherSig(otherSaju: any): string {
 
 /** 이 상대(sig)에 대해 이미 생성된 관계별 통변 로드 → rel 별 맵. */
 export async function loadCompatReadings(chartId: string, sig: string): Promise<Record<string, CompatReading>> {
-  const { data } = await supabase.from('readings').select('category, content').eq('chart_id', chartId).like('category', 'compat_%').eq('lang', appLang());
+  // 사주(compat_) + 자미(compatzw_) 둘 다 로드 → 키에 탭 접두(daniel: 사주/자미 분리 탭). 키 = `${tab}:${rel}[_y{YYYY}]`
+  const { data } = await supabase.from('readings').select('category, content').eq('chart_id', chartId).like('category', 'compat%').eq('lang', appLang());
   const out: Record<string, CompatReading> = {};
   (data ?? []).forEach((r: any) => {
-    const parts = String(r.category).split('_');               // compat _ rel _ sig [_ y{YYYY}=연도별]
+    const parts = String(r.category).split('_');               // compat|compatzw _ rel _ sig [_ y{YYYY}=연도별]
     if (parts[2] !== sig) return;                              // 이 상대(sig) 것만
-    const key = parts[3] ? `${parts[1]}_${parts[3]}` : parts[1]; // 원국=rel / 연도별=rel_y{YYYY}
+    const tab = parts[0] === 'compatzw' ? 'ziwei' : 'saju';
+    const key = parts[3] ? `${tab}:${parts[1]}_${parts[3]}` : `${tab}:${parts[1]}`;
     out[key] = r.content;
   });
   return out;
@@ -163,10 +165,13 @@ export async function genCompatReading(
   year?: string, yearGz?: string,  // year 있으면 연도별(그 해 흐름). yearGz=그 해 간지(클라 계산)
   meContext?: any,                  // 본인 명식 기본정보(context: 하는일·관계상태 등) grounding — R25 현재 배우자 유무가 궁합 해석 좌우(daniel)
   numMe?: any, numOther?: any,       // 수비학 보조 교차(두 사람 생명수·생일수, 앱 산출 — daniel 2026-06-23)
+  tab: 'saju' | 'ziwei' = 'saju',    // 사주 궁합(compat) / 자미 궁합(compat_ziwei) — daniel: 분리 탭. 결제는 쌍당 1회 공유
 ): Promise<CompatResult> {
-  const category = year ? `compat_${rel}_${sig}_y${year}` : `compat_${rel}_${sig}`;
+  const prefix = tab === 'ziwei' ? 'compatzw' : 'compat';
+  const k = tab === 'ziwei' ? 'compat_ziwei' : 'compat';
+  const category = year ? `${prefix}_${rel}_${sig}_y${year}` : `${prefix}_${rel}_${sig}`;
   const { data, error } = await supabase.functions.invoke('interpret', {
-    body: { chartId, category, kind: 'compat', tier: 'paid', otherSaju, otherZiwei, cross, dayRel, yearGz, ziwei: meZiwei, numMe, numOther, lang: appLang(), ...(meContext ? { context: meContext } : {}) }, // paid 제거(서버 판정) + context grounding + 수비학 보조 교차
+    body: { chartId, category, kind: k, tier: 'paid', otherSaju, otherZiwei, cross, dayRel, yearGz, ziwei: meZiwei, numMe, numOther, lang: appLang(), ...(meContext ? { context: meContext } : {}) }, // paid 제거(서버 판정) + context grounding + 수비학 보조 교차
   });
   if (error) return { kind: 'error' };
   if (data?.needPremium) return { kind: 'needPremium' };

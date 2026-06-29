@@ -93,6 +93,7 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
   // 통변(관계별) + 결정론 비교
   const [rel, setRel] = useState('love');                        // 선택 관계 유형(기본 연애)
   const [year, setYear] = useState('');                          // '' = 원국(관계 본바탕) / 'YYYY' = 그 해 흐름
+  const [compatTab, setCompatTab] = useState<'saju' | 'ziwei'>('saju'); // 사주로 본 궁합 / 자미두수로 본 궁합(daniel: 분리 탭, 결제 쌍당 1회 공유)
   const [readings, setReadings] = useState<Record<string, CompatReading>>({});
   const [busy, setBusy] = useState<string | null>(null);         // 생성 중 키(rel 또는 rel_yYYYY)
   const [loading, setLoading] = useState(false);                 // 재진입 시 캐시 로딩 중 — 자물쇠 대신 스피너(daniel ⑦ 완료 감지)
@@ -185,12 +186,14 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
   async function genOne(relKey: string, yr = '') {
     if (!ctx || !pair || busy) return;
     if (!assertOnline(t)) return;
-    const key = yr ? `${relKey}_y${yr}` : relKey;
+    const key = `${compatTab}:${relKey}${yr ? '_y' + yr : ''}`;
     if (readings[key]) return;
     const relName = t(COMPAT_RELS.find((r) => r.key === relKey)?.tk ?? '');
+    const tabName = compatTab === 'ziwei' ? '자미두수로 본' : '사주로 본';
+    const pairOwned = Object.keys(readings).length > 0; // 이 쌍을 이미 구매했으면(어느 탭이든) 추가 비용 0(쌍당 1회 결제)
     Alert.alert(
       t('compat.genTitle', '풀이 만들기'),
-      `${relName}${yr ? ' ' + yr + '년' : ''} 궁합 풀이를 만들까요?\n이용권 1회 또는 결제가 필요해요.`,
+      `${tabName} ${relName}${yr ? ' ' + yr + '년' : ''} 궁합 풀이를 만들까요?\n${pairOwned ? '추가 비용 없이 생성돼요.' : '이용권 1회 또는 결제가 필요해요.'}`,
       [
         { text: t('common.cancel'), style: 'cancel' },
         { text: t('compat.genConfirm', '생성'), onPress: () => runCompatGen(relKey, yr, key) },
@@ -199,10 +202,11 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
   }
   async function runCompatGen(relKey: string, yr: string, key: string) {
     if (!ctx || !pair) return;
+    const tab: 'saju' | 'ziwei' = key.split(':')[0] === 'ziwei' ? 'ziwei' : 'saju'; // 키 접두에서 탭 추출(닫힘 안전)
     setBusy(key);
-    setGenProgress({ active: true, total: 1, done: 0, label: '궁합', route: '/compat' });
+    setGenProgress({ active: true, total: 1, done: 0, label: tab === 'ziwei' ? '자미 궁합' : '궁합', route: '/compat' });
     const gz = yr ? yearGanZhi(Number(yr)) : undefined;
-    const res = await genCompatReading(ctx.chartId, relKey, ctx.sig, pair.other, ctx.cross, ctx.dayRel, ctx.meZiwei, ctx.otherZiwei, yr || undefined, gz, meSel?.context, ctx.numMe, ctx.numOther);
+    const res = await genCompatReading(ctx.chartId, relKey, ctx.sig, pair.other, ctx.cross, ctx.dayRel, ctx.meZiwei, ctx.otherZiwei, yr || undefined, gz, meSel?.context, ctx.numMe, ctx.numOther, tab);
     setBusy(null);
     if (res.kind === 'answer') { setReadings((prev) => ({ ...prev, [key]: res.reading })); setGenProgress({ route: '/compat', done: 1, total: 1 }); return; }
     setGenProgress({ route: '/compat', active: false });
@@ -233,7 +237,7 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
       .map((it) => it.detail);
   }
 
-  const curKey = year ? `${rel}_y${year}` : rel; // 추가질문 누적 키(관계유형/연도별 분리)
+  const curKey = `${compatTab}:${rel}${year ? '_y' + year : ''}`; // 탭(사주/자미) × 관계 × 연도 — 추가질문·캐시 키
   const cur = readings[curKey];
   // R26: 궁합 점수는 LLM이 카테고리별로 *입체 산출*(가산표 아님) → 현재 풀이의 score 우선. 생성 전엔 결정론(compat) 임시값.
   const llmScore = (() => { const v: any = (cur as any)?.score; const n = typeof v === 'number' ? v : typeof v === 'string' ? parseInt(v, 10) : NaN; return Number.isFinite(n) ? Math.max(0, Math.min(100, Math.round(n))) : null; })();
@@ -274,6 +278,14 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
       {/* ── 관계 유형별 통변 ── */}
       {pair && (
         <>
+          {/* ★사주로 본 궁합 / 자미두수로 본 궁합 — 2탭(daniel). 결제는 쌍당 1회 공유, 자미는 온디맨드 생성 */}
+          <View style={styles.compatTabBar}>
+            {([['saju', '사주로 본 궁합'], ['ziwei', '자미두수로 본 궁합']] as const).map(([id, label]) => (
+              <Pressable key={id} style={[styles.compatTab, compatTab === id && styles.compatTabOn]} onPress={() => setCompatTab(id)}>
+                <Text style={[styles.compatTabTx, compatTab === id && styles.compatTabTxOn]} numberOfLines={1}>{label}</Text>
+              </Pressable>
+            ))}
+          </View>
           {/* (점수 카드는 아래로 이동 — daniel: 실제 풀이가 나온 뒤에 노출. 풀이 전 결정론 점수 선노출 X) */}
           <View style={styles.relChips}>
             {COMPAT_RELS.map((r) => (
@@ -597,6 +609,12 @@ const styles = StyleSheet.create({
   yearChipTx: { fontSize: 12, fontWeight: '700', color: colors.inkSoft },
   yearChipTxOn: { color: colors.ju },
   relChip: { paddingHorizontal: space(3.5), paddingVertical: space(2), borderRadius: radius.pill, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line },
+  // 사주/자미 궁합 2탭(daniel)
+  compatTabBar: { flexDirection: 'row', backgroundColor: colors.sunk, borderRadius: radius.md, padding: 3, marginBottom: space(3) },
+  compatTab: { flex: 1, paddingVertical: space(2.5), alignItems: 'center', borderRadius: radius.sm },
+  compatTabOn: { backgroundColor: colors.ju },
+  compatTabTx: { color: colors.inkFaint, fontWeight: '700', fontSize: 13 },
+  compatTabTxOn: { color: colors.bg },
   relChipOn: { backgroundColor: colors.ju, borderColor: colors.ju },
   relChipTx: { fontSize: 13, fontWeight: '700', color: colors.inkSoft },
   relChipTxOn: { color: colors.bg },
