@@ -8,7 +8,7 @@ import 'intl-pluralrules'; // Intl.PluralRules polyfill (Hermes) — iztro i18ne
 import '../lib/i18n'; // 다국어(한·영·일) init
 import { useEffect, useState } from 'react';
 import { Stack } from 'expo-router';
-import { View, ActivityIndicator, StyleSheet, LogBox, AppState } from 'react-native';
+import { View, ActivityIndicator, StyleSheet, LogBox, AppState, InteractionManager } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler'; // 이슈20 드래그 reorder(gesture-handler) — 루트 래핑 필수
 import { useAuth } from '../lib/useAuth';
 import { configurePurchases } from '../lib/purchases'; // 인앱결제(RevenueCat) 초기화
@@ -62,7 +62,7 @@ export default function RootLayout() {
   useEffect(() => {
     configurePurchases(session?.user?.id);
     void refreshPremium(session?.user?.id ?? null); // ★세션 변경 시 프리미엄 재평가 → 전 화면 광고(하단 배너·보상형 게이트) 즉시 반영
-    if (session?.user) migrateLocalCreditsOnLogin(); // 로그인 시 디바이스 구매분 계정 이관(확인 후, daniel H)
+    if (session?.user) InteractionManager.runAfterInteractions(() => { migrateLocalCreditsOnLogin(); }); // 로그인 시 구매분 이관 — 상호작용 후로(#2 진입 지연 완화, daniel)
   }, [session?.user?.id]);
 
   // 최상위 두 영역: login(미인증) · (app)(인증). 헤더는 각 하위에서 제어.
