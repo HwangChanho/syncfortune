@@ -20,7 +20,7 @@ import { computeChart } from '../lib/engine';
 import { useAuth } from '../lib/useAuth';
 import { supabase } from '../lib/supabase';
 // 완료 푸시는 genProgress(setGenProgress 완료 전이)에서 중앙 처리(daniel ⑨ — 모든 풀이 공통)
-import { setGenProgress } from '../lib/genProgress'; // 홈 진행률(풀이중 홈 나가도 % 표시)
+import { setGenProgress, useGenProgress } from '../lib/genProgress'; // 홈 진행률 + 완료 구독(G: 백그라운드 생성분 라이브 반영)
 import { useEntitlement } from '../lib/entitlement';
 import { isReadingUnlocked } from '../lib/unlocks'; // 서버 권위 세트 언락(P3) — 이미 열렸으면 무료 재생성
 import { useSubscription } from '../lib/subscription';
@@ -107,6 +107,7 @@ export function ReadingScreen({
   const [readings, setReadings] = useState<Record<string, any>>({});
   const [progress, setProgress] = useState<{ done: number; total: number; current?: string } | null>(null);
   const [globalError, setGlobalError] = useState<string | null>(null);
+  const genDone = useGenProgress().reduce((s, g) => s + g.done, 0); // 풀이 완료 누적 — 변할 때마다 캐시 재조회(G: 백그라운드 생성분을 이 화면에 라이브 반영, 무한로딩/씽크 어긋남 제거)
   const [chartId, setChartId] = useState<string | null>(savedChart?.serverChartId ?? null);
   const [detail, setDetail] = useState<string | null>(null); // 상세로 펼친 항목 key
   const [stale, setStale] = useState<Set<string>>(new Set()); // ADR-055 P3: 분석 버전이 낮아 갱신 가능한 영역(opt-in)
@@ -177,6 +178,21 @@ export function ReadingScreen({
     return () => { alive = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [input, session, savedChart, cats]);
+
+  // G(daniel: 씽크 단일화): 풀이 완료(genDone)마다 캐시 재조회 → 머지(기존 보존). 다른 화면/백그라운드 생성분이
+  //   이 화면에 *라이브로* 채워진다 → 들어왔을 때 무한로딩·홈%·푸시가 따로 노는 문제 제거(잠금화면은 실제 데이터로 갱신).
+  useEffect(() => {
+    if (!chartId) return;
+    let alive = true;
+    supabase.from('readings').select('category, content').eq('chart_id', chartId).eq('lang', appLang()).then(({ data }) => {
+      if (!alive) return;
+      const upd: Record<string, any> = {};
+      (data ?? []).forEach((r: any) => { if (cats.some((c) => c.key === r.category)) upd[r.category] = r.content; });
+      if (Object.keys(upd).length) setReadings((prev) => ({ ...prev, ...upd }));
+    });
+    return () => { alive = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [genDone, chartId]);
 
   if (!c) return <View style={styles.center}><Text style={font.body}>{t('myeongsik.noChart')}</Text></View>;
 
