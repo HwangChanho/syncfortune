@@ -130,7 +130,7 @@ export function buildSajuChart(input: ChartInput, nowYear = 2026): SajuChart {
   } as Record<PillarPos, PillarData>;
 
   // 대운 (gender: 남=1, 여=0). getDaYun()[0]은 미입운(빈 간지)이라 제외.
-  const daYunRaw: any[] = ec.getYun(input.sex === '남' ? 1 : 0).getDaYun();
+  const daYunRaw: any[] = ec.getYun(input.sex === '남' ? 1 : 0).getDaYun(13); // 13개(미입운 [0] 제외 12) → 대운 110세+까지(daniel: 만세력 대운 110세까지)
   const age = nowYear - y; // 근사 나이(세운 연도 − 출생 연도)
   const luckCycles: LuckCycle[] = daYunRaw
     .filter((dy) => dy.getGanZhi && dy.getGanZhi())

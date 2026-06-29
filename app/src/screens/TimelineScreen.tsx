@@ -28,7 +28,7 @@ import { colors, radius, space, shadow, font } from '../lib/theme';
 import type { ChartInput } from '@spec/chart';
 import type { SavedChart } from '../lib/myChart';
 
-const AGE_MIN = 10, AGE_MAX = 100;
+const AGE_MIN = 10, AGE_MAX = 110;  // 대운 110세까지(daniel)
 
 // 타임라인 통변 카테고리 — Edge 응답 키와 1:1, 라벨은 i18n.
 //   대운(10년)=5갈래 / 연운(1년)=유료라 8갈래(+월별, daniel "올해는 더 다양하게").
