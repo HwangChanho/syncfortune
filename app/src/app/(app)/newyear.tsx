@@ -174,7 +174,7 @@ export default function NewYearScreen() {
             {/* ★올해 좋은 시기 — 콕 집어(daniel: 정확한 시점/날짜). 가장 눈에 띄게 강조 */}
             {typeof data.timing === 'string' && (
               <View style={[styles.card, styles.timingCard]}>
-                <Text style={[styles.sectH, { color: colors.bg }]}>📅 {t('newyear.timing', '올해 좋은 시기 · 콕 집어')}</Text>
+                <Text style={[styles.sectH, { color: colors.bg }]}>📅 {t('newyear.timing', '올해 좋은 시기')}</Text>
                 <Text style={[styles.body, { fontSize: fs(15), lineHeight: fs(26), color: colors.bg }]}>{data.timing}</Text>
               </View>
             )}
