@@ -32,7 +32,11 @@ let adsInited = false;
 //   앱 시작/로그인 시 setAdTestMode(test_mode || isAdmin) 호출. 일반 유저는 false(실 유닛, 출시 후 서빙).
 let forceTestAds = false;
 export function setAdTestMode(v: boolean): void { forceTestAds = v; }
-export function adTestMode(): boolean { return forceTestAds; }
+// ★★검증용(daniel: 광고 여전히 안 뜸) — true면 로그인·관리자·테스트모드 무관 *전원* 구글 테스트광고로 배너·보상형·전면이 뜬다.
+//   실 AdMob 유닛이 신규 앱이라 서빙 전(no-fill)이라 안 뜨므로, 광고 코드·게이트 동작을 이걸로 확인.
+//   ⚠️⚠️ App Store 정식 출시 전 반드시 false 로 — 그래야 실광고(수익) 서빙. (지금은 TestFlight 검증용.)
+const VERIFY_ADS = true;
+export function adTestMode(): boolean { return forceTestAds || VERIFY_ADS; }
 export async function initAds(): Promise<void> {
   if (adsInited || !Ads) return;
   const mobileAds = Ads.default ?? Ads;             // default export = mobileAds()
@@ -48,7 +52,7 @@ export async function showInterstitialAd(): Promise<void> {
   if (interstitialShowing) return;  // 이미 진행 중(버튼 연타) — 무시
   interstitialShowing = true;
   const { InterstitialAd, AdEventType, TestIds } = Ads;
-  const unitId = (__DEV__ || forceTestAds) ? TestIds.INTERSTITIAL : (PROD_INTERSTITIAL[Platform.OS] ?? TestIds.INTERSTITIAL);
+  const unitId = (__DEV__ || adTestMode()) ? TestIds.INTERSTITIAL : (PROD_INTERSTITIAL[Platform.OS] ?? TestIds.INTERSTITIAL);
   return new Promise<void>((resolve) => {
     let done = false;
     const finish = () => { if (!done) { done = true; interstitialShowing = false; cleanup(); resolve(); } };
@@ -73,7 +77,7 @@ export async function showRewardedAd(): Promise<boolean> {
   if (rewardedShowing) return false;  // 이미 진행 중(버튼 연타) — 무시
   rewardedShowing = true;
   const { RewardedAd, RewardedAdEventType, AdEventType, TestIds } = Ads;
-  const unitId = (__DEV__ || forceTestAds) ? TestIds.REWARDED : (PROD_REWARDED[Platform.OS] ?? TestIds.REWARDED);
+  const unitId = (__DEV__ || adTestMode()) ? TestIds.REWARDED : (PROD_REWARDED[Platform.OS] ?? TestIds.REWARDED);
   return new Promise<boolean>((resolve) => {
     let earned = false;
     let done = false;
