@@ -12,6 +12,7 @@ import { useTranslation } from 'react-i18next';
 import { setAppLang } from '../../lib/i18n'; // 언어 변경 + persist(재시작 후 유지)
 import { useFontScale, FONT_STEPS } from '../../lib/fontScale';
 import { isAdmin } from '../../lib/admin'; // 관리자 메뉴 노출 판정(실제 권한은 서버 RPC)
+import { setAdTestMode } from '../../lib/ads'; // 테스트모드 토글 → 테스트광고+게이트 즉시 반영(daniel)
 import { useAuth } from '../../lib/useAuth';               // 계정(세션)
 import { useSubscription } from '../../lib/subscription';  // 프리미엄 상태·구매
 import { requireLoginForPurchase } from '../../lib/requireLogin'; // 결제 전 로그인 게이트
@@ -130,7 +131,7 @@ export default function SettingsScreen() {
           </Pressable>
           <Pressable style={[styles.adminLink, testMode && { borderColor: colors.ju, backgroundColor: colors.juSoft }]} onPress={async () => {
             const next = !testMode;
-            try { const { data } = await supabase.rpc('set_my_test_mode', { p_on: next }); if (data === true) setTestMode(next); } catch { /* 무시 */ }
+            try { const { data } = await supabase.rpc('set_my_test_mode', { p_on: next }); if (data === true) { setTestMode(next); setAdTestMode(next); } } catch { /* 무시 */ }
           }}>
             <Text style={styles.adminLinkTx}>테스트 모드 {testMode ? '— 켜짐 (통변 mock·API 미호출)' : '— 꺼짐'}</Text>
           </Pressable>

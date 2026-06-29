@@ -13,7 +13,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../lib/useAuth';
 import { useEffect, useRef, useMemo, useState, useCallback } from 'react';
 import { supabase } from '../../lib/supabase';
-import { showRewardedAd } from '../../lib/ads';
+import { showRewardedAd, adTestMode } from '../../lib/ads'; // 보상형 + 테스트광고 모드(관리자도 게이트 확인 가능)
 import { isAdmin } from '../../lib/admin'; // 관리자·프리미엄 = 무료 진입 광고 제외
 import { ChartPicker } from '../../components/ChartPicker';
 import { getDailyFortune, dailyHeadline, dailyPreview } from '../../lib/dailyFortune';
@@ -356,7 +356,8 @@ export default function Home() {
     // 무료(비프리미엄) 진입 = 보상형 광고(daniel). 단 만세력은 제외(만세력은 명식 10개↑ 추가 시 게이트).
     //   광고 실패/미시청이어도 무료 콘텐츠는 진입 보장(광고는 스킵 가능) — 프리미엄은 광고 없음.
     // 무료 진입 보상형 광고 — 단, 프리미엄·관리자는 제외(광고 없음). 만세력·프리미엄 카드도 제외.
-    if (!m.premium && m.key !== 'manse' && !isPremium && !admin) await showRewardedAd().catch(() => false);
+    // 무료 진입 보상형 광고 — 프리미엄·만세력 제외. 관리자는 평소 제외하되, *테스트광고 모드*면 게이트도 동작(daniel 확인용).
+    if (!m.premium && m.key !== 'manse' && !isPremium && (!admin || adTestMode())) await showRewardedAd().catch(() => false);
     router.push(m.route);
   }
 

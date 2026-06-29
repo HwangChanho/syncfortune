@@ -41,8 +41,8 @@ export default function RootLayout() {
     if (!session) { setAdTestMode(false); return; }
     supabase.auth.getUser().then(({ data }) => {
       if (!data.user) { setAdTestMode(false); return; }
-      supabase.from('profiles').select('test_mode, is_admin').eq('id', data.user.id).maybeSingle()
-        .then(({ data: p }) => setAdTestMode(!!(p?.test_mode || p?.is_admin)));
+      supabase.from('profiles').select('test_mode').eq('id', data.user.id).maybeSingle()
+        .then(({ data: p }) => setAdTestMode(!!p?.test_mode)); // 테스트모드 토글 ON 시에만 테스트광고+게이트(평소 관리자 편의)
     }).catch(() => {});
   }, [session]);
   // 앱 실행 시 대표 명식을 '본인'으로(daniel) — 로컬 명식 기준 즉시(로그인 동기화 후엔 syncChartsFromServer가 한 번 더 보정).
