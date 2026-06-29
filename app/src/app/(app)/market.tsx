@@ -153,6 +153,8 @@ export default function MarketRoute() {
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>
       <Text style={styles.intro}>{t('market.intro')}</Text>
+      {/* ★보유기한 1년 명시(daniel: 법적 — 약관 제4조 3항과 일치) */}
+      <Text style={styles.retention}>{t('market.retentionNote', '구매한 풀이는 구매일로부터 1년간 보유되며, 1년이 지나면 자동 삭제됩니다. 이후 다시 보려면 재구매가 필요해요.')}</Text>
 
       {/* 프리미엄 — 명식 무관(전체 무제한). 비프리미엄=가입 카드 / 프리미엄=이용 중 표시(항상 노출) */}
       {isPremium ? (
@@ -254,7 +256,8 @@ export default function MarketRoute() {
 const styles = StyleSheet.create({
   screen: { backgroundColor: colors.bg },
   wrap: { padding: space(5), paddingBottom: space(20) },
-  intro: { ...font.body, color: colors.inkSoft, marginBottom: space(4) },
+  intro: { ...font.body, color: colors.inkSoft, marginBottom: space(2) },
+  retention: { ...font.caption, color: colors.inkFaint, marginBottom: space(4), lineHeight: 18 }, // 보유기한 1년 안내(daniel 법적)
   // 프리미엄 가입 카드(골드 강조)
   premCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.ju, borderRadius: radius.md, padding: space(4), marginBottom: space(4), ...shadow.card },
   premTitle: { fontSize: 16, fontWeight: '900', color: colors.bg },

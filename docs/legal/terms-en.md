@@ -26,7 +26,7 @@ These Terms govern the conditions of use of the mobile application **SyncFortune
 ## 4. Paid Services & Payment
 1. Some content (in-depth readings, premium, per-area passes) is paid and provided through **Apple App Store in-app purchases**.
 2. Payment, billing, and refunds follow **Apple App Store policies**; refund requests must be made directly to Apple. The Operator does not hold payment method information (card numbers, etc.).
-3. Once purchased and viewed, content is permanently stored for that chart/item, and re-viewing the same content is not charged again.
+3. Once purchased and viewed, content is **retained for one (1) year from the date of purchase** for that chart/item, and re-viewing the same content within this period is not charged again. **After the retention period (1 year) elapses, the stored reading is deleted, and re-purchase is required to access it again.** The retention period applies per content (reading).
 4. Passes belong to the purchasing account. Passes bought while logged out are transferred to the user's account upon login, with the user's consent.
 
 ## 5. User Obligations
