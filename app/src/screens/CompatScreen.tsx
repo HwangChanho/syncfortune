@@ -121,13 +121,11 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
     })();
   }, []);
 
-  // 이어보기: 복원된 나+상대가 준비되면 자동 분석 → 캐시 로드 + 미생성만 이어서(재선택·재생성 불필요·동일쌍이라 무과금). 1회만.
-  const resumedRef = useRef(false);
+  // 위저드(daniel 궁합 재디자인): 나+상대가 준비되면 자동 분석 → 캐시 로드(동일 쌍 재선택은 무과금). 상대 변경 시 재분석. 큰 분석 버튼 제거 → 선택만으로 진행.
   useEffect(() => {
-    if (resumedRef.current || pair) return;
-    if (meSel && otherSel && _lastCompat.otherId && session) { resumedRef.current = true; analyze(); }
+    if (meSel && otherSel && session) analyze();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [meSel, otherSel, session]);
+  }, [meSel?.id, otherSel?.id, session?.user?.id]);
 
   // 통변 컨텍스트(ctx) 준비되면 그 차트의 추가질문 로드(관계유형/연도 키별)
   useEffect(() => { if (ctx?.chartId) loadFollowups(ctx.chartId).then(setFollowups).catch(() => {}); }, [ctx]);
@@ -250,47 +248,48 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
     {/* 보고 있는 관계 풀이가 이미 준비됐으면(cur) 전체 잠금 오버레이로 막지 않음 — 나머지 관계는 홈 배너로 백그라운드 진행(daniel: 완료 감지·이어보기 개선) */}
     <UnlockOverlay visible={!!busy && !cur} message={t('compat.generating', '궁합을 풀어내는 중…')} />
     <ScrollView style={styles.screen} contentContainerStyle={styles.wrap} automaticallyAdjustKeyboardInsets keyboardShouldPersistTaps="handled">
-      {/* ── 내 명식 슬롯(골드, 따로 빼서 식별) ── */}
-      <Text style={styles.slotLabel}>{t('compat.mySlot')}</Text>
-      <Pressable style={styles.meSlot} onPress={() => setPickFor('me')}>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.meSlotName}>{meSel?.label ?? t('compat.mySlot')}</Text>
-          <Text style={styles.meSlotSub}>{slotLine(meInput)}</Text>
-        </View>
-        <Text style={styles.meSlotChange}>{t('compat.change')}</Text>
-      </Pressable>
+      {/* ── 단계형 위저드(daniel: 궁합 새 디자인) — 나❤상대 헤더 → ①상대 → ②관계 → ③관점 → 풀이 ── */}
+      {/* 나 ❤ 상대 — 한 줄 컴팩트 헤더(각자 탭하면 변경/선택). 큰 슬롯·갈색 분석버튼 제거 */}
+      <View style={styles.wizPair}>
+        <Pressable style={styles.wizPerson} onPress={() => setPickFor('me')}>
+          <Text style={styles.wizRole}>{t('compat.mySlot', '나')}</Text>
+          <Text style={styles.wizName} numberOfLines={1}>{meSel?.label ?? t('compat.mySlot', '나')}</Text>
+        </Pressable>
+        <Text style={styles.wizHeart}>❤</Text>
+        <Pressable style={[styles.wizPerson, !otherSel && styles.wizPersonEmpty]} onPress={() => setPickFor('other')}>
+          <Text style={styles.wizRole}>{t('compat.otherSlot', '상대')}</Text>
+          <Text style={[styles.wizName, !otherSel && styles.wizNameEmpty]} numberOfLines={1}>{otherSel?.label ?? t('compat.wizPickShort', '탭해서 선택')}</Text>
+        </Pressable>
+      </View>
 
-      {/* ── 상대 슬롯 — 내 명식과 동일하게 박스+변경, 탭하면 세로 리스트 드롭다운(daniel) ── */}
-      <Text style={[styles.slotLabel, { marginTop: space(5) }]}>{t('compat.otherSlot')}</Text>
-      <Pressable style={[styles.meSlot, { borderColor: colors.line }]} onPress={() => setPickFor('other')}>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.meSlotName}>{otherSel?.label ?? t('compat.otherSlot')}</Text>
-          <Text style={styles.meSlotSub}>{otherSel ? slotLine(otherInput) : t('compat.otherPick', '탭해서 선택하거나 등록')}</Text>
+      {/* ① 누구와 — 상대 미선택 시 안내(선택하면 자동 분석 → 다음 단계 펼쳐짐) */}
+      {!otherSel && (
+        <View style={styles.wizStep}>
+          <Text style={styles.stepLabel}>{t('compat.step1', '① 누구와 볼까요?')}</Text>
+          <Pressable style={styles.wizSelectBtn} onPress={() => setPickFor('other')}>
+            <Text style={styles.wizSelectBtnTx}>{t('compat.otherPick', '상대 선택 · 새 상대 등록')}</Text>
+          </Pressable>
         </View>
-        <Text style={styles.meSlotChange}>{t('compat.change')}</Text>
-      </Pressable>
-      {/* daniel #12: 외부 '상대 등록' 버튼 제거 — 등록은 리스트(드롭다운) 안에서만. 상대 명식 없으면 리스트엔 등록 버튼만 노출됨. */}
-
-      <Pressable style={[styles.btn, (!otherInput || !!busy) && styles.btnOff]} onPress={analyze} disabled={!otherInput || !!busy}>
-        {busy ? <ActivityIndicator color={colors.bg} /> : <Text style={styles.btnText}>{t('compat.analyze')}</Text>}
-      </Pressable>
+      )}
 
       {/* ── 관계 유형별 통변 ── */}
       {pair && (
         <>
-          {/* ★사주로 본 궁합 / 자미두수로 본 궁합 — 2탭(daniel). 결제는 쌍당 1회 공유, 자미는 온디맨드 생성 */}
-          <View style={styles.compatTabBar}>
-            {([['saju', '사주로 본 궁합'], ['ziwei', '자미두수로 본 궁합']] as const).map(([id, label]) => (
-              <Pressable key={id} style={[styles.compatTab, compatTab === id && styles.compatTabOn]} onPress={() => setCompatTab(id)}>
-                <Text style={[styles.compatTabTx, compatTab === id && styles.compatTabTxOn]} numberOfLines={1}>{label}</Text>
-              </Pressable>
-            ))}
-          </View>
-          {/* (점수 카드는 아래로 이동 — daniel: 실제 풀이가 나온 뒤에 노출. 풀이 전 결정론 점수 선노출 X) */}
+          {/* ② 어떤 사이? — 관계 유형 */}
+          <Text style={styles.stepLabel}>{t('compat.step2', '② 어떤 사이인가요?')}</Text>
           <View style={styles.relChips}>
             {COMPAT_RELS.map((r) => (
               <Pressable key={r.key} style={[styles.relChip, rel === r.key && styles.relChipOn]} onPress={() => setRel(r.key)}>
                 <Text style={[styles.relChipTx, rel === r.key && styles.relChipTxOn]}>{t(r.tk)}</Text>
+              </Pressable>
+            ))}
+          </View>
+          {/* ③ 무엇으로 볼까? — 사주/자미 관점(결제 쌍당 1회 공유·자미 온디맨드) + 년도 */}
+          <Text style={[styles.stepLabel, { marginTop: space(4) }]}>{t('compat.step3', '③ 무엇으로 볼까요?')}</Text>
+          <View style={styles.compatTabBar}>
+            {([['saju', '사주로 본 궁합'], ['ziwei', '자미두수로 본 궁합']] as const).map(([id, label]) => (
+              <Pressable key={id} style={[styles.compatTab, compatTab === id && styles.compatTabOn]} onPress={() => setCompatTab(id)}>
+                <Text style={[styles.compatTabTx, compatTab === id && styles.compatTabTxOn]} numberOfLines={1}>{label}</Text>
               </Pressable>
             ))}
           </View>
@@ -615,6 +614,18 @@ const styles = StyleSheet.create({
   compatTabOn: { backgroundColor: colors.ju },
   compatTabTx: { color: colors.inkFaint, fontWeight: '700', fontSize: 13 },
   compatTabTxOn: { color: colors.bg },
+  // 위저드 — 나❤상대 헤더 + 단계 라벨(daniel 궁합 재디자인)
+  wizPair: { flexDirection: 'row', alignItems: 'center', gap: space(2), marginBottom: space(4) },
+  wizPerson: { flex: 1, backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.line, paddingVertical: space(3), paddingHorizontal: space(2), alignItems: 'center' },
+  wizPersonEmpty: { borderStyle: 'dashed', borderColor: colors.ju },
+  wizRole: { color: colors.inkFaint, fontSize: 11, fontWeight: '700', marginBottom: 2 },
+  wizName: { color: colors.ink, fontSize: 15, fontWeight: '800' },
+  wizNameEmpty: { color: colors.ju },
+  wizHeart: { color: colors.ju, fontSize: 18 },
+  wizStep: { marginBottom: space(4) },
+  stepLabel: { color: colors.ju, fontSize: 14, fontWeight: '800', marginBottom: space(2.5) },
+  wizSelectBtn: { backgroundColor: colors.ju, borderRadius: radius.md, paddingVertical: space(4), alignItems: 'center' },
+  wizSelectBtnTx: { color: colors.bg, fontSize: 15, fontWeight: '800' },
   relChipOn: { backgroundColor: colors.ju, borderColor: colors.ju },
   relChipTx: { fontSize: 13, fontWeight: '700', color: colors.inkSoft },
   relChipTxOn: { color: colors.bg },
