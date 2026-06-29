@@ -487,9 +487,6 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
         const ratio = favor / total;
         const R = 42, CX = 52, CY = 52, circ = 2 * Math.PI * R;
         const sc = c.strength.score;
-        const driverLabel = c.strengthClass.driver === '비겁' ? '비겁결집형 (자력본위)'
-          : c.strengthClass.driver === '인성' ? '인성받침형 (수용)'
-          : c.strengthClass.driver === '약' ? '신약' : '혼합';
         return (
           <View style={styles.strengthRow}>
             <Svg width={104} height={104}>
@@ -501,7 +498,7 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
               <SvgText x={CX} y={CY + 17} fill={colors.ju} fontSize={12} fontWeight="700" textAnchor="middle">{c.strengthClass.type}</SvgText>
             </Svg>
             <View style={styles.strengthInfo}>
-              <Text style={styles.kv}><Text style={styles.kvLabel}>결집유형</Text>  {driverLabel}</Text>
+              <Text style={styles.kv}><Text style={styles.kvLabel}>강약</Text>  {c.strengthClass.type}</Text>{/* 엔진 판단값 그대로(daniel) — 재해석 라벨 제거 */}
               <Text style={styles.kv}><Text style={styles.kvLabel}>강약축</Text>  {c.strengthClass.gangyakAxis} (재관 대비)</Text>
               <Text style={styles.kv}><Text style={styles.kvLabel}>우호세력</Text>  {Math.round(ratio * 100)}% · 비겁+인성</Text>
               <Text style={styles.kv}><Text style={styles.kvLabel}>득령·득지·득세</Text>  {[c.strengthClass.deukryeong && '득령', c.strengthClass.deukji && '득지', c.strengthClass.deukse && '득세'].filter(Boolean).join('·') || '없음'}</Text>
@@ -966,7 +963,7 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
           <View style={styles.sheetHandle} />
           <Text style={styles.sheetKind}>신강·신약</Text>
           <Text style={styles.sheetTitle}>내 명식 · {c.strengthClass.type}</Text>
-          <ScrollView style={{ maxHeight: 440 }} showsVerticalScrollIndicator={false}>
+          <ScrollView style={{ flexShrink: 1 }} showsVerticalScrollIndicator={true}>
             {STRENGTH_INFO.map((s) => {
               const mine = c.strengthClass.type.includes(s.key === '신강' ? '강' : '약');
               return (
@@ -997,7 +994,7 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
         <Pressable style={styles.sheet} onPress={() => {}}>
           <View style={styles.sheetHandle} />
           <Text style={styles.sheetKind}>조후 · 음양 쏠림</Text>
-          <ScrollView style={{ maxHeight: 460 }} showsVerticalScrollIndicator={false}>
+          <ScrollView style={{ flexShrink: 1 }} showsVerticalScrollIndicator={true}>
             {(() => {
               const ey = eumYangSkew(P, input?.sex); const jh = johuSkew(P);
               const elc: Record<string, number> = {};
@@ -1294,7 +1291,8 @@ const makeStyles = (fs: (n: number) => number) => { const f = scaledFont(fs); re
   repVal: { fontSize: fs(18), fontWeight: '800', marginTop: 2, textDecorationLine: 'none', textDecorationStyle: 'dotted' },
   repValTg: { fontSize: fs(15), fontWeight: '800', color: colors.ju, marginTop: 2, textDecorationLine: 'none', textDecorationStyle: 'dotted' },
   sheetOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'flex-end' },
-  sheet: { backgroundColor: colors.card, borderTopLeftRadius: radius.md, borderTopRightRadius: radius.md, padding: space(5), paddingBottom: space(9) },
+  // 시트 90% 상한 + 내부 ScrollView 적응 → 화면 넘어 닫기버튼·하단 짤리던 것 방지(daniel)
+  sheet: { backgroundColor: colors.card, borderTopLeftRadius: radius.md, borderTopRightRadius: radius.md, padding: space(5), paddingBottom: space(9), maxHeight: '90%' },
   sheetHandle: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: colors.line, marginBottom: space(3) },
   sheetKind: { ...f.caption, color: colors.ju, fontWeight: '700', marginBottom: space(1) },
   sheetTitle: { ...f.heading, color: colors.ink, marginBottom: space(2.5) },
