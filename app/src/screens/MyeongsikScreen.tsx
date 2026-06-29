@@ -33,6 +33,7 @@ const haptic = () => { try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Lig
 import { HIDDEN, computeMonthDays, branchTenGod } from '@engine/saju'; // 지장간 표 + 일운(流日) + 지지십신
 import { twelveStage } from '@engine/twelve';                          // 임의 지지 12운성(타임라인용)
 import { detectInteractionsAmong, interactionLabel } from '@engine/structure';   // 합충 검출 + 짝이름 라벨(daniel: 유축반합·정신극)
+import { detectGyeokguk } from '../lib/gyeokguk';                                 // 핵심 격(살인상생·식신제살 등) 검출 — daniel
 import { lookupGlossary, GLOSSARY_KIND_LABEL, SINSAL_GLOSSARY, type GlossaryKind } from '../lib/myeongriGlossary'; // 클릭 설명
 import { playSound } from '../lib/sounds';
 import Svg, { Path, Rect, Circle, Text as SvgText, G } from 'react-native-svg';
@@ -497,6 +498,25 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
       <Text style={styles.kv}>{t('myeongsik.dayMaster')}: <Text style={styles.kvAccent}>{c.saju.dayMaster.stem}({c.saju.dayMaster.element})</Text></Text>
       <Text style={styles.kv}>{t('myeongsik.dayMaster')} {c.saju.dayMaster.stem}  ·  {t('myeongsik.pattern')}: {c.pattern.candidates.join(', ')}</Text>
       {timeUnknown && <Text style={styles.warn}>{t('myeongsik.timeUnknownNote')}</Text>}
+
+      {/* ★핵심 격(格, 동적 구조) — 살인상생·식신제살·상관패인 등(daniel). 천간+지지본기 십신 존재 기반 후보. 명리 정제 = daniel 검수 슬롯 */}
+      {(() => {
+        const present = new Set<string>();
+        for (const p of POS) { const d = P[p]; if (d) { present.add(d.stemTenGod); present.add(d.branchMainTenGod); } }
+        const gyeok = detectGyeokguk(present);
+        if (!gyeok.length) return null;
+        return (
+          <View style={styles.gyeokWrap}>
+            <Text style={styles.gyeokHead}>핵심 격</Text>
+            {gyeok.map((g, i) => (
+              <View key={i} style={styles.gyeokCard}>
+                <Text style={styles.gyeokName}>{g.name} <Text style={styles.gyeokHanja}>{g.hanja}</Text></Text>
+                <Text style={[styles.gyeokDesc, { fontSize: fs(13), lineHeight: fs(19) }]}>{g.desc}</Text>
+              </View>
+            ))}
+          </View>
+        );
+      })()}
 
       {/* 대표 오행(일간)·대표 십성(격국) — 탭→설명 */}
       <View style={styles.repRow}>
@@ -1124,6 +1144,13 @@ const makeStyles = (fs: (n: number) => number) => { const f = scaledFont(fs); re
   subTabLabelOn: { color: colors.ju },
   catDescBtn: { alignSelf: 'flex-start', marginHorizontal: space(4), marginTop: space(2.5), marginBottom: space(1), paddingVertical: space(1.5), paddingHorizontal: space(3), borderRadius: 999, backgroundColor: colors.sunk },
   catDescBtnTx: { color: colors.ju, fontWeight: '600', fontSize: 12 },
+  // 핵심 격(살인상생 등) 카드 — daniel
+  gyeokWrap: { marginTop: space(3), marginBottom: space(1) },
+  gyeokHead: { ...f.label, color: colors.ju, fontWeight: '800', marginBottom: space(2) },
+  gyeokCard: { backgroundColor: colors.sunk, borderRadius: radius.md, borderLeftWidth: 3, borderLeftColor: colors.ju, paddingVertical: space(2.5), paddingHorizontal: space(3), marginBottom: space(2) },
+  gyeokName: { ...f.body, color: colors.ink, fontWeight: '800' },
+  gyeokHanja: { color: colors.inkFaint, fontWeight: '600', fontSize: 13 },
+  gyeokDesc: { color: colors.inkSoft, marginTop: space(1) },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.bg },
   h: { ...f.heading, marginTop: space(5), marginBottom: space(2) },
   hint: { ...f.caption, marginBottom: space(2) },
