@@ -366,7 +366,13 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
               const on = pickFor === 'me' ? meSel?.id === s.id : otherSel?.id === s.id;
               return (
                 <Pressable key={s.id} style={[styles.pickRow, on && styles.pickRowOn]} onPress={() => { if (pickFor === 'me') setMeSel(s); else setOtherSel(s); setPickFor(null); }}>
-                  <Text style={[styles.pickRowTx, on && styles.pickRowTxOn]} numberOfLines={1}>{s.label}</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.pickRowTx, on && styles.pickRowTxOn]} numberOfLines={1}>{s.label}</Text>
+                    {/* 날짜+시간 노출(daniel: 시간도) */}
+                    <Text style={{ color: colors.inkFaint, fontSize: fs(11), marginTop: 1 }} numberOfLines={1}>{String(s.input.birthDateTime ?? '').replace('T', ' ').slice(0, 16)}</Text>
+                  </View>
+                  {/* 카테고리(관계)를 우측에(daniel: 카테고리도 오른쪽에) */}
+                  <Text style={{ color: colors.inkFaint, fontSize: fs(11), marginHorizontal: space(1.5) }} numberOfLines={1}>{s.relation === 'self' ? t('register.selfLabel') : s.relation}</Text>
                   {on ? <Text style={styles.pickCheck}>✓</Text> : null}
                 </Pressable>
               );

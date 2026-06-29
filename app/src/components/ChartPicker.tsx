@@ -165,9 +165,11 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
                         <Text style={[styles.rowName, on && styles.rowOn, { fontSize: fs(15) }]}>{c.label}</Text>
                         {em ? <Text style={[styles.iljuName, { fontSize: fs(12) }]}>{em.name}</Text> : null}
                         <Text style={[styles.rowMeta, { fontSize: fs(12) }]} numberOfLines={1}>
-                          {String(c.input.birthDateTime ?? '').split(' ')[0]} · {c.relation === 'self' ? t('register.selfLabel') : c.relation}
+                          {String(c.input.birthDateTime ?? '').replace('T', ' ').slice(0, 16)}{/* 날짜+시간(daniel: 시간도 노출) */}
                         </Text>
                       </Pressable>
+                      {/* 카테고리(관계)를 행 우측에 배지로(daniel: 카테고리도 오른쪽에) */}
+                      <Text style={[styles.rowCategory, { fontSize: fs(11) }]} numberOfLines={1}>{c.relation === 'self' ? t('register.selfLabel') : c.relation}</Text>
                       {on && <Text style={styles.check}>✓</Text>}
                       <Pressable hitSlop={8} onPress={() => edit(c.id)}><Text style={styles.rowAct}>{t('common.edit', '수정')}</Text></Pressable>
                       <Pressable hitSlop={8} onPress={() => remove(c.id, c.label)}><Text style={[styles.rowAct, styles.rowActDel]}>{t('common.delete', '삭제')}</Text></Pressable>
@@ -234,6 +236,7 @@ const styles = StyleSheet.create({
   rowName: { ...font.body, fontWeight: '600', color: colors.ink },
   rowOn: { color: colors.ju },
   rowMeta: { ...font.caption, flex: 1 },
+  rowCategory: { ...font.caption, color: colors.inkFaint, marginHorizontal: space(1.5) }, // 관계 카테고리 우측 배지(daniel)
   check: { fontSize: 18, color: colors.ju, fontWeight: '700' },
   addBtn: { backgroundColor: colors.ju, borderRadius: radius.md, paddingVertical: space(3.5), alignItems: 'center', marginTop: space(4) },
   addBtnText: { color: colors.bg, fontSize: 15, fontWeight: '700' },
