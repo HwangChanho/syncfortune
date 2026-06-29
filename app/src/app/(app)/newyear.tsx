@@ -24,6 +24,7 @@ import { requireLoginForPurchase } from '../../lib/requireLogin';
 import { supabase } from '../../lib/supabase';
 import { appLang } from '../../lib/i18n';
 import { invokeFail } from '../../lib/interpretResult'; // 방어: Edge 실패(일시적 불가·결제필요·오류) 정규화
+import { assertOnline } from '../../lib/network'; // daniel: 네트워크/서버 미연결 시 풀이 생성 차단
 import { logEvent } from '../../lib/logger';
 import { setGenProgress } from '../../lib/genProgress'; // 일회성 컨텐츠 진행도(daniel 이슈15)
 import { bgSource, colors, radius, space, shadow, font } from '../../lib/theme';
@@ -92,6 +93,7 @@ export default function NewYearScreen() {
   }, [session, category, isPremium, reloadKey]);
 
   async function generate(id: string) {
+    if (!assertOnline(t)) return; // daniel: 오프라인이면 풀이 진입(Edge 생성) 차단
     if (busy) return;
     setBusy(true); setErr(null);
     setGenProgress({ active: true, total: 1, done: 0, label: t('newyear.title', '신년운세'), route: '/newyear' }); // 일회성=진행도 측정 어려움 → '풀이 중'(daniel 이슈15)

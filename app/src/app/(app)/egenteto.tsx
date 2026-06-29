@@ -21,6 +21,7 @@ import { supabase } from '../../lib/supabase';
 import { appLang } from '../../lib/i18n';
 import { logEvent } from '../../lib/logger';
 import { invokeFail } from '../../lib/interpretResult'; // 방어: 일시적 불가/오류 친화 처리
+import { assertOnline } from '../../lib/network'; // daniel: 네트워크/서버 미연결 시 풀이 생성 차단
 import { setGenProgress } from '../../lib/genProgress'; // 일회성 진행도(daniel·docs/CONTENT_API_INVENTORY.md)
 import { bgSource, colors, radius, space, shadow, font } from '../../lib/theme';
 import { useFontScale } from '../../lib/fontScale';
@@ -91,6 +92,7 @@ export default function EgenTetoScreen() {
 
   // LLM 설명 생성 — 점수·판정·근거를 body 로 전달(Edge 는 점수 재계산 없이 설명만). 캐시는 Edge 가 저장.
   async function generate(id: string, res: EgenTetoResult) {
+    if (!assertOnline(t)) return; // daniel: 오프라인이면 풀이 진입(Edge 생성) 차단
     if (busy) return;
     setBusy(true); setErr(null);
     setGenProgress({ active: true, total: 1, done: 0, label: '에겐·테토', route: '/egenteto' }); // 일회성 진행도(daniel)

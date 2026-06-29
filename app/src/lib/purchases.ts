@@ -9,6 +9,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { Platform } from 'react-native';
 import type { CreditKind } from './coupons';
+import { isOnline } from './network'; // daniel: 네트워크/서버 미연결 시 구매 차단(결제 후 미반영·실패상태 방지)
 
 // 네이티브 모듈 lazy require — 미포함 빌드에서 정적 import 크래시 방지(필수 가드).
 let Purchases: any = null;
@@ -92,6 +93,7 @@ export async function isPremiumActiveRC(): Promise<boolean> {
 /** 프리미엄(평생) 구매 → 활성 성공 시 true. 사용자 취소 시 false. */
 export async function purchasePremiumRC(): Promise<boolean> {
   if (!purchasesEnabled()) throw new Error('결제가 아직 준비 중이에요.');
+  if (!isOnline()) throw new Error('인터넷 연결이 필요해요. 연결한 뒤 다시 시도해 주세요.'); // daniel: 오프라인 구매 차단(결제만 되고 미반영되는 상태 방지)
   // ★상품 직접 구매(오퍼링/패키지 경유 X) — RC 오퍼링의 Lifetime 패키지가 placeholder 상품(lifetime)에
   //   묶여 있어 평생 프리미엄 구매가 실패하던 문제 우회(rc-setup 404). 이용권과 동일하게 premium_lifetime 직접.
   const products = await Purchases.getProducts([PRODUCT_PREMIUM]);
@@ -108,6 +110,7 @@ export async function purchasePremiumRC(): Promise<boolean> {
 /** 소비성(상품 id) 구매 — 성공 시 true(결제 완료). 취소 시 false. */
 export async function purchaseConsumableRC(productId: string): Promise<boolean> {
   if (!purchasesEnabled()) throw new Error('결제가 아직 준비 중이에요.');
+  if (!isOnline()) throw new Error('인터넷 연결이 필요해요. 연결한 뒤 다시 시도해 주세요.'); // daniel: 오프라인 구매 차단(결제만 되고 미반영되는 상태 방지)
   const products = await Purchases.getProducts([productId]);
   if (!products.length) throw new Error('상품을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.');
   try {

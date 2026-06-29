@@ -19,6 +19,7 @@ import { supabase } from '../../lib/supabase';
 import { appLang } from '../../lib/i18n';
 import { logEvent } from '../../lib/logger';
 import { invokeFail } from '../../lib/interpretResult'; // 방어: 일시적 불가/오류 친화 처리
+import { assertOnline } from '../../lib/network'; // daniel: 네트워크/서버 미연결 시 풀이 생성 차단
 import { setGenProgress } from '../../lib/genProgress'; // 일회성 진행도(daniel·docs/CONTENT_API_INVENTORY.md)
 import type { Stem, Branch } from '@spec/chart';
 import { bgSource, colors, radius, space, shadow, font } from '../../lib/theme';
@@ -73,6 +74,7 @@ export default function MonthScreen() {
   }, [session, category, isPremium]);
 
   async function generate(id: string) {
+    if (!assertOnline(t)) return; // daniel: 오프라인이면 풀이 진입(Edge 생성) 차단
     if (busy) return;
     setBusy(true); setErr(null);
     setGenProgress({ active: true, total: 1, done: 0, label: '이달의 운세', route: '/month' }); // 일회성 진행도(daniel)

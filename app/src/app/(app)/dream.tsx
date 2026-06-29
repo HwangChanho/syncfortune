@@ -21,6 +21,7 @@ import { purchaseCreditRC, DREAM_BUNDLE_QTY, purchasesEnabled } from '../../lib/
 import { requireLoginForPurchase } from '../../lib/requireLogin';
 import { setGenProgress } from '../../lib/genProgress'; // 일회성 진행도(daniel·docs/CONTENT_API_INVENTORY.md)
 import { invokeFail } from '../../lib/interpretResult'; // 방어: 일시적 불가/오류 친화 처리(dream은 reading 아닌 dream 구조라 invokeFail만)
+import { assertOnline } from '../../lib/network'; // daniel: 네트워크/서버 미연결 시 풀이 생성 차단
 
 export default function DreamScreen() {
   const { t } = useTranslation();
@@ -86,6 +87,7 @@ export default function DreamScreen() {
   }
 
   async function runAI(text: string) {
+    if (!assertOnline(t)) return; // daniel: 오프라인이면 풀이 진입(Edge 생성) 차단
     setAiBusy(true);
     setGenProgress({ active: true, total: 1, done: 0, label: 'AI 꿈해몽', route: '/dream' }); // 일회성 진행도(daniel)
     try {
