@@ -11,31 +11,35 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { ReadingScreen } from '../../screens/ReadingScreen';
 import { ChartPicker } from '../../components/ChartPicker'; // 풀이 상단 명식 전환 헤더(전환 시 게이트 재평가)
-import { loadRepChart, type SavedChart } from '../../lib/myChart';
+import { loadRepChart, listCharts, type SavedChart } from '../../lib/myChart';
 import { colors, radius, space, font } from '../../lib/theme';
 import type { ChartInput } from '@spec/chart';
 
 export default function ReadingRoute() {
   const router = useRouter();
   const { t } = useTranslation();
-  const { input, kind } = useLocalSearchParams<{ input?: string; kind?: string }>();
+  const { input, kind, chartId } = useLocalSearchParams<{ input?: string; kind?: string; chartId?: string }>();
   const [me, setMe] = useState<ChartInput | null>(null);
   const [savedChart, setSavedChart] = useState<SavedChart | null>(null);
   const [loading, setLoading] = useState(true);
   const [reloadKey, setReloadKey] = useState(0); // 명식 전환(ChartPicker) → 대표 재로드 + ReadingScreen 리마운트(게이트 재평가)
 
   useEffect(() => {
-    // input param(특정 명식 지정 경로) 우선 → 캐시 매핑 없는 1회용. 없으면 대표 SavedChart(캐시 연결).
+    // input param(특정 명식 지정 경로) 우선 → 캐시 매핑 없는 1회용.
     if (input) { setMe(JSON.parse(input)); setSavedChart(null); setLoading(false); return; }
     let alive = true;
-    loadRepChart().then((ch) => {
+    // ★chartId param(홈 배너/푸시) → 그 저장 명식 로드(캐시 일치, daniel G: 진입 시 재생성 버그 수정). 없거나 못 찾으면 대표.
+    (async () => {
+      let ch: SavedChart | null = null;
+      if (chartId) { const cs = await listCharts(); ch = cs.find((c) => c.id === chartId) ?? null; }
+      if (!ch) ch = await loadRepChart();
       if (!alive) return;
       setSavedChart(ch);
       setMe(ch?.input ?? null);
       setLoading(false);
-    });
+    })();
     return () => { alive = false; };
-  }, [input, reloadKey]);
+  }, [input, chartId, reloadKey]);
 
   if (loading) return <View style={styles.center}><ActivityIndicator color={colors.ju} /></View>;
 

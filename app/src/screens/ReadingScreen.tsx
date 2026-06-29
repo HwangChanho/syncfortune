@@ -234,7 +234,8 @@ export function ReadingScreen({
     if (genActive.has(lockKey)) return;
     genActive.add(lockKey);
     let gDone = cats.length - todo.length;                 // 완료 영역(홈 진행률 공유 — 언마운트돼도 루프 지속)
-    const gpRoute = kind === 'ziwei' ? '/reading?kind=ziwei' : '/reading'; // 홈 배너 route 키(다중 진행도 — daniel ⑨)
+    // 홈 배너/푸시 route — ★chartId를 담아야 진입 시 *그 명식*을 로드(안 담으면 대표로 가서 캐시 미스→재생성 버그, daniel G).
+    const gpRoute = `/reading?kind=${kind === 'ziwei' ? 'ziwei' : 'saju'}${savedChart ? `&chartId=${savedChart.id}` : ''}`;
     setProgress({ done: gDone, total: cats.length, current: todo[0].label });
     setGenProgress({ active: true, done: gDone, total: cats.length, label: kind === 'ziwei' ? t('reading.ziweiTitle', '자미두수') : t('reading.sajuTitle', '사주 풀이'), route: gpRoute });
     try {
