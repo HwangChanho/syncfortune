@@ -13,6 +13,7 @@ import { View, Text, StyleSheet, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSubscription } from '../lib/subscription';
 import { colors } from '../lib/theme';
+import { adTestMode } from '../lib/ads'; // 테스트광고 모드(daniel: 관리자/테스트는 TestFlight서도 구글 테스트광고)
 
 // 네이티브 모듈 lazy require — 미포함 빌드(재빌드 전 dev client)에서 import 크래시 방지.
 let Ads: any = null;
@@ -49,7 +50,7 @@ export function AdBanner() {
 
   const { BannerAd, BannerAdSize, TestIds } = Ads;
   // 개발 = 항상 테스트 unit(실 unit 클릭은 계정 정지 사유) / 프로덕션 = PROD_UNIT(현재 테스트값, daniel 교체).
-  const unitId = __DEV__ ? TestIds.ADAPTIVE_BANNER : (PROD_UNIT[Platform.OS] ?? TestIds.ADAPTIVE_BANNER);
+  const unitId = (__DEV__ || adTestMode()) ? TestIds.ADAPTIVE_BANNER : (PROD_UNIT[Platform.OS] ?? TestIds.ADAPTIVE_BANNER);
   return (
     <View style={{ backgroundColor: colors.bg, paddingBottom: insets.bottom }}>
       <BannerAd

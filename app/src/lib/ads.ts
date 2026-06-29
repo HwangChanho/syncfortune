@@ -27,6 +27,12 @@ const PROD_INTERSTITIAL: Record<string, string> = {  // 현재 미사용(showInt
 // AdMob SDK 초기화 — ★광고 로드 전 1회 필수. 없으면 ad.load()가 실패해 광고가 안 뜬다(daniel 2026-06-24 "무료 광고 안 나옴" 버그 원인).
 //   앱 시작 시(루트 레이아웃) 1회 호출. 모듈 없는 빌드/실패는 조용히 통과.
 let adsInited = false;
+// ★테스트 광고 모드(daniel) — 관리자/테스트 계정은 TestFlight(실 빌드)에서도 구글 테스트광고를 보게 한다.
+//   실 AdMob 유닛은 신규 앱이라 아직 서빙 전(no-fill) → 안 뜸. 테스트광고로 *광고 코드·게이트 동작*을 검증.
+//   앱 시작/로그인 시 setAdTestMode(test_mode || isAdmin) 호출. 일반 유저는 false(실 유닛, 출시 후 서빙).
+let forceTestAds = false;
+export function setAdTestMode(v: boolean): void { forceTestAds = v; }
+export function adTestMode(): boolean { return forceTestAds; }
 export async function initAds(): Promise<void> {
   if (adsInited || !Ads) return;
   const mobileAds = Ads.default ?? Ads;             // default export = mobileAds()
@@ -42,7 +48,7 @@ export async function showInterstitialAd(): Promise<void> {
   if (interstitialShowing) return;  // 이미 진행 중(버튼 연타) — 무시
   interstitialShowing = true;
   const { InterstitialAd, AdEventType, TestIds } = Ads;
-  const unitId = __DEV__ ? TestIds.INTERSTITIAL : (PROD_INTERSTITIAL[Platform.OS] ?? TestIds.INTERSTITIAL);
+  const unitId = (__DEV__ || forceTestAds) ? TestIds.INTERSTITIAL : (PROD_INTERSTITIAL[Platform.OS] ?? TestIds.INTERSTITIAL);
   return new Promise<void>((resolve) => {
     let done = false;
     const finish = () => { if (!done) { done = true; interstitialShowing = false; cleanup(); resolve(); } };
@@ -67,7 +73,7 @@ export async function showRewardedAd(): Promise<boolean> {
   if (rewardedShowing) return false;  // 이미 진행 중(버튼 연타) — 무시
   rewardedShowing = true;
   const { RewardedAd, RewardedAdEventType, AdEventType, TestIds } = Ads;
-  const unitId = __DEV__ ? TestIds.REWARDED : (PROD_REWARDED[Platform.OS] ?? TestIds.REWARDED);
+  const unitId = (__DEV__ || forceTestAds) ? TestIds.REWARDED : (PROD_REWARDED[Platform.OS] ?? TestIds.REWARDED);
   return new Promise<boolean>((resolve) => {
     let earned = false;
     let done = false;
