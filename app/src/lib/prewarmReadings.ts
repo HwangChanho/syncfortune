@@ -28,30 +28,45 @@ export const SAJU_READING_CATEGORIES: CategoryKey[] = [
  * 풀이 캐시 chart_id 안정화의 단일 구현(ReadingScreen·프리워밍 공용, ADR-052).
  * @returns 서버 charts.id (실패 시 null)
  */
+// ★동시 호출 dedupe(daniel 06-30: charts row 중복발급 race = stale 근본원인 1차 방어) —
+//   홈 진입 시 prewarmReadings·ReadingScreen autoGen·prewarmDaily 가 거의 동시에 이 함수를 호출하면
+//   셋 다 serverChartId 미존재로 판단(setServerChartId 완료 전)해 insert_chart_enc 를 각자 때린다
+//   → 본인 명식 1개에 charts row 가 여러 개 발급(실측: self 33개) → serverChartId 불안정 → 진입 시
+//   캐시 미스 → autoGen 재생성 → 또 새 row(악순환·자물쇠+풀이중). 같은 localId 의 진행 중 Promise 를
+//   공유해 *한 진입 = 한 발급* 으로 직렬화한다. (서버측 멱등 RPC = 근본 해결, ADR 별도.)
+const inflightEnsure = new Map<string, Promise<string | null>>();
+
 export async function ensureServerChartId(
   c: ReturnType<typeof computeChart>, input: ChartInput, session: Session, savedChart: SavedChart,
 ): Promise<string | null> {
-  if (savedChart.serverChartId) {
-    // stale 가드(2026-06-14): 온디바이스 매핑이 가리키는 charts row 가 실제 서버에 존재하는지 확인.
-    //   charts 가 삭제/재생성됐는데 매핑이 옛 id 를 가리키면 interpret 가 chartId 로 row 를 못 찾아
-    //   'chart not found'(404) → 풀이 전부 '생성 실패'가 된다. 존재하면 재사용, 없으면(stale) 아래로
-    //   떨어져 재생성 + 매핑 갱신(자가 치유). select id 만 — RLS 로 본인 행만 보이므로 소유 확인도 겸한다.
-    const { data: exists } = await supabase.from('charts').select('id').eq('id', savedChart.serverChartId).maybeSingle();
-    if (exists) return savedChart.serverChartId;
-  }
-  // birth(ChartInput)는 평문으로 서버 컬럼에 두지 않는다(규칙8) — insert_chart_enc RPC 가 서버에서 pgp 암호화 저장(birth_enc).
-  //   ADR-005 완화: 관리자 조회(생년월일시)를 위해 birth 를 서버에 *암호화* 보관. 복호화는 관리자 RPC 만.
-  const { data, error } = await supabase.rpc('insert_chart_enc', {
-    p_relation: 'self',
-    p_saju: { ...c.saju, sensitivity: c.sensitivity, timeUnknown: input.timeAccuracy === '미상' }, // R35 예민보스(민감도)·辛金=날카로운 전문성 — 전체 통변 참고(daniel)
-    p_ziwei: c.ziwei ?? null,
-    p_birth: JSON.stringify(input),     // 서버에서 즉시 암호화 → birth_enc (관리자만 복호화)
-    p_label: savedChart.label ?? null,  // 라벨도 동일 키로 암호화 → label_enc
-  });
-  if (error || !data) return null;
-  const newId = data as string;        // RPC 반환 = charts.id(uuid)
-  await setServerChartId(savedChart.id, newId); // 온디바이스 매핑 저장 → 다음부터 재사용
-  return newId;
+  const lockKey = savedChart.id;
+  const pending = inflightEnsure.get(lockKey);
+  if (pending) return pending;                            // 이미 발급 진행 중이면 같은 결과를 공유(중복 insert 차단)
+  const task = (async (): Promise<string | null> => {
+    if (savedChart.serverChartId) {
+      // stale 가드(2026-06-14): 온디바이스 매핑이 가리키는 charts row 가 실제 서버에 존재하는지 확인.
+      //   charts 가 삭제/재생성됐는데 매핑이 옛 id 를 가리키면 interpret 가 chartId 로 row 를 못 찾아
+      //   'chart not found'(404) → 풀이 전부 '생성 실패'가 된다. 존재하면 재사용, 없으면(stale) 아래로
+      //   떨어져 재생성 + 매핑 갱신(자가 치유). select id 만 — RLS 로 본인 행만 보이므로 소유 확인도 겸한다.
+      const { data: exists } = await supabase.from('charts').select('id').eq('id', savedChart.serverChartId).maybeSingle();
+      if (exists) return savedChart.serverChartId;
+    }
+    // birth(ChartInput)는 평문으로 서버 컬럼에 두지 않는다(규칙8) — insert_chart_enc RPC 가 서버에서 pgp 암호화 저장(birth_enc).
+    //   ADR-005 완화: 관리자 조회(생년월일시)를 위해 birth 를 서버에 *암호화* 보관. 복호화는 관리자 RPC 만.
+    const { data, error } = await supabase.rpc('insert_chart_enc', {
+      p_relation: 'self',
+      p_saju: { ...c.saju, sensitivity: c.sensitivity, timeUnknown: input.timeAccuracy === '미상' }, // R35 예민보스(민감도)·辛金=날카로운 전문성 — 전체 통변 참고(daniel)
+      p_ziwei: c.ziwei ?? null,
+      p_birth: JSON.stringify(input),     // 서버에서 즉시 암호화 → birth_enc (관리자만 복호화)
+      p_label: savedChart.label ?? null,  // 라벨도 동일 키로 암호화 → label_enc
+    });
+    if (error || !data) return null;
+    const newId = data as string;        // RPC 반환 = charts.id(uuid)
+    await setServerChartId(savedChart.id, newId); // 온디바이스 매핑 저장 → 다음부터 재사용
+    return newId;
+  })();
+  inflightEnsure.set(lockKey, task);
+  try { return await task; } finally { inflightEnsure.delete(lockKey); }
 }
 
 let running = false; // 세션 내 동시 실행 방지(홈 재진입 등) — 멱등이지만 호출 낭비 차단

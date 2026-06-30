@@ -6,6 +6,8 @@
 //   *로컬* 알림 — 서버 푸시·토큰 불필요(무료·온디바이스, 절대0 정합). 재빌드 후 작동(ads.ts·network.ts 패턴).
 // ─────────────────────────────────────────────────────────────────────────
 import { Platform } from 'react-native';
+import Constants from 'expo-constants'; // EAS projectId(Expo 푸시 토큰 발급)
+import { supabase } from './supabase'; // push_token 저장(set_push_token RPC)
 import { router } from 'expo-router'; // 알림 탭 딥링크(컴포넌트 밖 전역 navigate)
 import { loadRepChart } from './myChart';
 import { getDailyFortune, dailyChartReadings } from './dailyFortune';
@@ -114,4 +116,24 @@ export function setupNotificationTapListener(): () => void {
     });
     return () => { try { sub.remove(); } catch { /* ignore */ } };
   } catch { return () => {}; }
+}
+
+/**
+ * Expo 푸시 토큰 등록(로그인 시 1회) — 강제종료 중 서버생성(generate_set) 완료 시 푸시 발송 대상.
+ *   profiles.push_token 에 set_push_token RPC 로 저장(profiles 는 서버관리·UPDATE 정책 없음 → RPC 경유).
+ *   ⚠️ EAS projectId 없으면 ExpoPushToken 발급 불가 → no-op(서버생성·재오픈 확인은 토큰과 무관하게 작동).
+ *   네이티브 모듈 미포함 빌드·권한 거부도 no-op(앱 흐름 무관).
+ */
+export async function registerPushToken(): Promise<void> {
+  if (!Notif || Platform.OS === 'web') return;
+  try {
+    const perm = await Notif.getPermissionsAsync();
+    const granted = perm.granted || (perm.canAskAgain && (await Notif.requestPermissionsAsync()).granted);
+    if (!granted) return;
+    // projectId: app.json extra.eas.projectId 또는 런타임 easConfig. 없으면 토큰 발급 불가 → 가드.
+    const projectId = (Constants as any)?.expoConfig?.extra?.eas?.projectId ?? (Constants as any)?.easConfig?.projectId;
+    if (!projectId) return;
+    const { data: token } = await Notif.getExpoPushTokenAsync({ projectId });
+    if (token) await supabase.rpc('set_push_token', { p_token: token }); // 본인 row 갱신(security definer)
+  } catch { /* 권한·모듈·네트워크 문제 시 조용히 무시 */ }
 }

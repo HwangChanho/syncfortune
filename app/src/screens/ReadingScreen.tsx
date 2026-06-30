@@ -20,7 +20,7 @@ import { computeChart } from '../lib/engine';
 import { useAuth } from '../lib/useAuth';
 import { supabase } from '../lib/supabase';
 // 완료 푸시는 genProgress(setGenProgress 완료 전이)에서 중앙 처리(daniel ⑨ — 모든 풀이 공통)
-import { setGenProgress, useGenProgress } from '../lib/genProgress'; // 홈 진행률 + 완료 구독(G: 백그라운드 생성분 라이브 반영)
+import { setGenProgress, useGenProgress, clearGenProgress } from '../lib/genProgress'; // 홈 진행률 + 완료 구독 + 진입 시 배너 제거(daniel: 완성 배너 안 사라짐)
 import { useEntitlement } from '../lib/entitlement';
 import { isReadingUnlocked } from '../lib/unlocks'; // 서버 권위 세트 언락(P3) — 이미 열렸으면 무료 재생성
 import { useSubscription } from '../lib/subscription';
@@ -194,6 +194,51 @@ export function ReadingScreen({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [genDone, chartId]);
 
+  // ★G(daniel 2026-06-30): 서버측 생성(generate_set) 진행을 gen_jobs realtime 으로 구독.
+  //   강제종료 후 재오픈해도 서버가 만들어 둔 진행을 이어 반영한다. setGenProgress(done) 만 갱신하면
+  //   위 genDone useEffect 가 readings 캐시 머지를 자동 처리(중복 구현 0). 완료/오류 시 genActive 락 해제.
+  useEffect(() => {
+    if (!chartId || !savedChart) return;
+    let alive = true;
+    const k = kind === 'ziwei' ? 'ziwei' : 'saju';
+    const route = `/reading?kind=${k}&chartId=${savedChart.id}`;
+    const label = kind === 'ziwei' ? t('reading.ziweiTitle', '자미두수') : t('reading.sajuTitle', '사주 풀이');
+    const apply = (row: any) => {
+      if (!alive || !row || row.kind !== kind) return;       // 같은 명식·kind 작업만 반영
+      if (row.status === 'running') {
+        setProgress({ done: row.done, total: row.total });
+        setGenProgress({ route, active: true, done: row.done, total: row.total, label });
+      } else if (row.status === 'done') {
+        setProgress(null);
+        setGenProgress({ route, done: row.total, total: row.total, label }); // 완료 → 홈 배너 '풀이 보기'
+        genActive.delete(`${kind}:${chartId}`);
+      } else if (row.status === 'error') {
+        setProgress(null);
+        setGenProgress({ route, active: false });             // 배너 제거(중단)
+        genActive.delete(`${kind}:${chartId}`);
+      }
+    };
+    // 구독 전 현재 상태(재오픈 시 이미 진행된 분) 1회 조회 → 즉시 반영
+    supabase.from('gen_jobs').select('kind, done, total, status').eq('chart_id', chartId).eq('kind', kind).maybeSingle().then(({ data }) => { if (data) apply(data); });
+    const chan = supabase.channel(`genjobs:${chartId}:${k}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'gen_jobs', filter: `chart_id=eq.${chartId}` }, (payload) => apply(payload.new))
+      .subscribe();
+    return () => { alive = false; supabase.removeChannel(chan); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chartId, kind, savedChart]);
+
+  // ★daniel(2026-06-30): '○○ 풀이가 완성됐어요' 배너를 탭해 진입했는데 안 사라지던 것 —
+  //   이 화면 항목이 전부 캐시(완성)이고 생성 진행 중이 아니면 홈 배너를 확실히 제거(진입=이미 봄).
+  //   (생성 진행 중이면 progress 로 유지 → 홈 나가도 진행률 표시.) charts stale 로 배너 키가 어긋났어도 차단.
+  useEffect(() => {
+    if (!savedChart || !cacheLoaded || progress) return;
+    if (cats.length && cats.every((cat) => readings[cat.key])) {
+      const k = kind === 'ziwei' ? 'ziwei' : 'saju';
+      clearGenProgress(`/reading?kind=${k}&chartId=${savedChart.id}`);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [savedChart, cacheLoaded, readings, cats, progress, kind]);
+
   if (!c) return <View style={styles.center}><Text style={font.body}>{t('myeongsik.noChart')}</Text></View>;
 
   // 서버 charts row 확보 — 단일 구현(lib/prewarmReadings.ensureServerChartId) 공유.
@@ -229,15 +274,35 @@ export function ReadingScreen({
     const todo = cats.filter((cat) => !readings[cat.key]);
     if (!todo.length) return;                              // 전부 캐시됨 → 생성 불필요(자물쇠·진행 X, 바로 노출)
     // ★중복 생성 방지(daniel: 로딩바 타고 재진입 시 1/12 재시작) — 같은 차트·종류가 이미 생성 중이면
-    //   두 번째는 생성하지 않는다(백그라운드 runAll 이 이어서 채움). 자물쇠도 안 띄움.
+    //   두 번째는 생성하지 않는다. 서버 위임이면 gen_jobs 구독이, 폴백이면 runAllLocal 이 이어 채운다.
     const lockKey = `${kind}:${id}`;
     if (genActive.has(lockKey)) return;
     genActive.add(lockKey);
-    let gDone = cats.length - todo.length;                 // 완료 영역(홈 진행률 공유 — 언마운트돼도 루프 지속)
+    const gDone = cats.length - todo.length;               // 이미 완료된 영역(홈 진행률 시작값)
     // 홈 배너/푸시 route — ★chartId를 담아야 진입 시 *그 명식*을 로드(안 담으면 대표로 가서 캐시 미스→재생성 버그, daniel G).
     const gpRoute = `/reading?kind=${kind === 'ziwei' ? 'ziwei' : 'saju'}${savedChart ? `&chartId=${savedChart.id}` : ''}`;
     setProgress({ done: gDone, total: cats.length, current: todo[0].label });
     setGenProgress({ active: true, done: gDone, total: cats.length, label: kind === 'ziwei' ? t('reading.ziweiTitle', '자미두수') : t('reading.sajuTitle', '사주 풀이'), route: gpRoute });
+    // ★G(daniel 2026-06-30): 서버 위임 — generate_set 이 interpret 를 백그라운드(EdgeRuntime.waitUntil)로 끝까지
+    //   생성 → *앱을 강제종료해도* 서버가 완성하고 푸시. 진행은 gen_jobs realtime 구독(아래 useEffect)이 반영하고,
+    //   genActive 락은 그 구독이 status=done/error 시 해제한다. savedChart 가 있어야(구독 키=chart_id) 위임.
+    if (savedChart) {
+      try {
+        const { data, error } = await supabase.functions.invoke('generate_set', {
+          body: { chartId: id, kind, categories: todo.map((tt) => ({ key: tt.key })), lang: appLang(), ...(kind === 'ziwei' ? { ziwei: c!.ziwei } : {}), ...(savedChart.context ? { context: savedChart.context } : {}), savedChartId: savedChart.id },
+        });
+        if (!error && ((data as any)?.jobStarted || (data as any)?.already)) return; // 서버가 이어받음 — 구독이 진행/완료 반영(락도 구독이 해제)
+        // generate_set 미배포/실패 → 폴백(아래 클라 직접 루프)
+      } catch { /* 폴백으로 진행 */ }
+    }
+    // 폴백: 클라가 직접 interpret 루프(generate_set 불가·또는 savedChart 없는 1회용 경로). 기존 동작.
+    await runAllLocal(id, todo, gDone, gpRoute);
+  }
+
+  // 폴백 — generate_set 위임이 안 될 때(미배포·오류·1회용 명식) 클라가 직접 항목별 interpret 호출. 기존 runAll 본문.
+  async function runAllLocal(id: string, todo: ReadingCategory[], gDone0: number, gpRoute: string) {
+    let gDone = gDone0;
+    const lockKey = `${kind}:${id}`;
     try {
       for (const cat of todo) {
         setProgress((p) => (p ? { ...p, current: cat.label } : null)); // 지금 풀이 중인 영역
