@@ -11,7 +11,7 @@ import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 
 const ko = {
-  appName: '緣 SyncFortune',
+  appName: '팔자(八字)',
   tagline: '나와 타인을 알고, 운명의 방향을 알려주는 나침반',
   menu: {
     myeongsik: '명식 등록', myeongsikDesc: '생년월일로 내 명식 등록·관리',
@@ -233,7 +233,7 @@ const ko = {
 };
 
 const en = {
-  appName: '緣 SyncFortune',
+  appName: '팔자(八字)',
   tagline: 'Know yourself and others — your compass to destiny',
   menu: {
     myeongsik: 'Register Chart', myeongsikDesc: 'Add & manage your chart',
@@ -453,7 +453,7 @@ const en = {
 };
 
 const ja = {
-  appName: '緣 SyncFortune',
+  appName: '팔자(八字)',
   tagline: '自分と他人を知り、運命の方向を示す羅針盤',
   menu: {
     myeongsik: '命式登録', myeongsikDesc: '命式の登録·管理',

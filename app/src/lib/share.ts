@@ -63,7 +63,7 @@ export async function shareReading(p: ShareReadingInput): Promise<string> {
   if (error) throw error;
   const url = `${SHARE_LINK_BASE}?id=${id}`;
   await Share.share({
-    message: `${p.title ?? '내 운세 풀이'} — SyncFortune\n${url}`,
+    message: `${p.title ?? '내 운세 풀이'} — 팔자(八字)\n${url}`,
     url, // iOS: 링크 카드로 공유
   });
   return url;

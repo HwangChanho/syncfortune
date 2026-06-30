@@ -110,7 +110,7 @@ export default function MonthScreen() {
     return (
       <View style={[styles.gzChip, { backgroundColor: elementColor[el] }]}>
         <Text style={[styles.gzChipTx, { color: elementText[el] }]}>{g}</Text>
-        <Text style={[styles.gzChipKo, { color: elementText[el] }]}>{ko} {yy === '+' ? '양' : '음'}</Text>
+        <Text style={[styles.gzChipKo, { color: elementText[el] }]}>{ko} {yy}</Text>
       </View>
     );
   };

@@ -66,7 +66,7 @@ export default function SharedReadingScreen() {
           ))}
           {/* 앱 유도 — 받은 사람이 자기 운세도 보게 */}
           <Pressable style={styles.cta} onPress={() => router.replace('/')}><Text style={styles.ctaTx}>나도 내 운세 보기 ›</Text></Pressable>
-          <Text style={styles.note}>SyncFortune — 사주·자미두수·타로 운세</Text>
+          <Text style={styles.note}>팔자(八字) — 사주·자미두수·타로 운세</Text>
         </>
       )}
     </ScrollView>

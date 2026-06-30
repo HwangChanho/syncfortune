@@ -595,7 +595,7 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
         const ey = eumYangSkew(P, input?.sex); const jh = johuSkew(P);
         return (
           <Pressable style={styles.strDetailBtn} onPress={() => setJohuOpen(true)}>
-            <Text style={styles.strDetailBtnTx}>조후 {jh.skew} · 음양 {ey.skew}  — 문제점·대응법 ›</Text>
+            <Text style={styles.strDetailBtnTx}>조후 {jh.skew} · 음양 {ey.skew.replace('양', '+').replace('음', '-')}  — 문제점·대응법 ›</Text>
           </Pressable>
         );
       })()}
@@ -1136,7 +1136,7 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
               );
               return (<>
                 {block('조후', `${jh.skew} (따뜻 ${jh.warm}·차가움 ${jh.cold})`, CONCEPT_INFO.조후, jh.skew !== '중화' ? JOHU_SKEW[jh.skew] : null)}
-                {block('음양', `${ey.skew} (양 ${ey.yang}·음 ${ey.yin})`, CONCEPT_INFO.음양, ey.skew !== '균형' ? YINYANG_SKEW[ey.skew] : null)}
+                {block('음양', `${ey.skew.replace('양', '+').replace('음', '-')} (+ ${ey.yang}·- ${ey.yin})`, CONCEPT_INFO.음양, ey.skew !== '균형' ? YINYANG_SKEW[ey.skew] : null)}
                 {domEl && domEl[1] >= 4 ? block('오행 쏠림', `${domEl[0]} 강함`, '', ELEMENT_SKEW[domEl[0]]) : null}
                 {domTg && domTg[1] >= 4 ? block('기운(십성) 쏠림', `${domTg[0]} 강함`, '', TENGOD_SKEW[domTg[0]]) : null}
               </>);

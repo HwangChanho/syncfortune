@@ -186,7 +186,7 @@ export function TimelineScreen({ input, savedChart }: { input: ChartInput | null
         return (
           <View key={i} style={[styles.gz, { backgroundColor: elementColor[el] }]}>
             <Text style={[styles.gzTx, { color: elementText[el] }]}>{ch}</Text>
-            <Text style={{ fontSize: 8, fontWeight: '700', color: elementText[el], marginTop: -3 }}>{yy === '+' ? '양' : '음'}</Text>
+            <Text style={{ fontSize: 8, fontWeight: '700', color: elementText[el], marginTop: -3 }}>{yy}</Text>
           </View>
         );
       })}

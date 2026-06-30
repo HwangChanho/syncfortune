@@ -40,8 +40,8 @@ export function ShareReadingButton({ kind, category, title, content, style }: {
       const link = await createSharedLink({ kind, category, title, content });
       // 이미지 + 캡션(딥링크 우선, 실패 시 스토어 링크). iOS=url로 이미지 첨부.
       const msg = link
-        ? `${title ?? '내 운세 풀이'} — SyncFortune\n앱에서 풀이 전체 보기 ▸ ${link}`
-        : `${title ?? '내 운세 풀이'} — SyncFortune\n앱에서 내 운세 보기 ${APP_STORE_URL}`;
+        ? `${title ?? '내 운세 풀이'} — 팔자(八字)\n앱에서 풀이 전체 보기 ▸ ${link}`
+        : `${title ?? '내 운세 풀이'} — 팔자(八字)\n앱에서 내 운세 보기 ${APP_STORE_URL}`;
       await Share.share({ url: uri, message: msg });
     } catch (e) {
       Alert.alert('!', (e as Error).message);
@@ -58,7 +58,7 @@ export function ShareReadingButton({ kind, category, title, content, style }: {
       <View style={styles.offscreen} pointerEvents="none">
         <ViewShot ref={shotRef} options={{ format: 'jpg', quality: 0.95 }}>
           <View style={styles.card}>
-            <Text style={styles.brand}>✨ SyncFortune</Text>
+            <Text style={styles.brand}>✨ 팔자(八字)</Text>
             {title ? <Text style={styles.cardTitle}>{title}</Text> : null}
             {headline ? <Text style={styles.cardHeadline}>{headline}</Text> : null}
             {excerpt ? <Text style={styles.cardBody}>{excerpt}…</Text> : null}
