@@ -6,6 +6,7 @@
 import { useState, useCallback } from 'react';
 import { View, Text, ScrollView, Pressable, Modal, StyleSheet } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
+import { Alert } from '../../lib/alert'; // 커스텀 알림 — 자미 풀이 전 정확한 시간 안내(daniel)
 import { useDeferredReady } from '../../lib/useDeferredReady'; // 전환 멈칫 제거(daniel 2026-06-28)
 import { ChartSkeleton } from '../../components/Skeleton';     // 그 사이 스켈레톤
 import { computeChart } from '../../lib/engine';
@@ -92,7 +93,17 @@ export default function ZiweiRoute() {
           <Text style={styles.premTitle}>자미두수 상세 풀이 (프리미엄)</Text>
           <Text style={styles.premDesc}>12궁 통합 해석과 운한(대한) 흐름 풀이는 프리미엄에서 제공됩니다.</Text>
           {/* 자미두수 전용 풀이(/reading?kind=ziwei) — 대표 명식 12궁 통변. input 생략 → serverChartId 캐시 연결 */}
-          <Pressable style={styles.btn} onPress={() => router.push({ pathname: '/reading', params: { kind: 'ziwei' } })}><Text style={styles.btnText}>프리미엄 풀이 보기</Text></Pressable>
+          <Pressable style={styles.btn} onPress={() => {
+            // 자미두수는 시(時)에 따라 명반이 크게 바뀌므로, 풀이 전 정확한 시간 안내 + 명식 수정 유도(daniel)
+            Alert.alert(
+              '자미두수는 정확한 시간이 필요해요',
+              '태어난 시(時)에 따라 명반(命盤)이 크게 달라집니다. 명식의 출생 시간이 정확한지 먼저 확인해 주세요.',
+              [
+                { text: '명식 확인·수정', onPress: () => router.push('/charts') },
+                { text: '풀이 보기', onPress: () => router.push({ pathname: '/reading', params: { kind: 'ziwei' } }) },
+              ],
+            );
+          }}><Text style={styles.btnText}>프리미엄 풀이 보기</Text></Pressable>
         </View>
       </ScrollView>
 

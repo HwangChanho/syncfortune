@@ -22,6 +22,7 @@ import { requireLoginForPurchase } from '../../lib/requireLogin';
 import { setGenProgress } from '../../lib/genProgress'; // 일회성 진행도(daniel·docs/CONTENT_API_INVENTORY.md)
 import { invokeFail } from '../../lib/interpretResult'; // 방어: 일시적 불가/오류 친화 처리(dream은 reading 아닌 dream 구조라 invokeFail만)
 import { assertOnline } from '../../lib/network'; // daniel: 네트워크/서버 미연결 시 풀이 생성 차단
+import { TTSButton } from '../../components/TTSButton'; // 풀이 음성 읽기(온디바이스 TTS·무료)
 
 export default function DreamScreen() {
   const { t } = useTranslation();
@@ -176,6 +177,8 @@ export default function DreamScreen() {
             <View style={styles.aiOut}>
               <Text style={styles.cardTitle}>{aiResult.title}</Text>
               <Text style={[styles.cardBody, { fontSize: fs(15), lineHeight: fs(25) }]}>{aiResult.meaning}</Text>
+              {/* 풀이 음성 읽기(온디바이스 TTS·무료) — 제목+해몽 본문 읽음 */}
+              <TTSButton reading={aiResult} />
             </View>
           ) : null}
         </View>

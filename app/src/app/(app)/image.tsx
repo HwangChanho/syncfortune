@@ -8,8 +8,10 @@ import { ImageAura } from '../../components/contentMotifs';
 export default function ImageRoute() {
   const { t } = useTranslation();
   return (
+    // 유료 단일 풀이 → 생성일+1년 '보유 만료일' 표시(daniel #25)
     <SpecialContentScreen
       kind="image"
+      showExpiry
       themeColor="#A78BFA"
       heroImage={require('../../../assets/icons/hero-image.jpg')}
       heroMotif={<ImageAura />}

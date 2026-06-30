@@ -24,7 +24,12 @@ export type InvokeFailKind = 'unavailable' | 'needPayment' | 'needPremium' | 'er
 export function readingFromInvoke(data: any, error: any): any {
   const f = invokeFail(data, error);
   if (!f) return data?.reading ?? null;
-  return { error: f.message, [f.kind]: true, retryAt: f.retryAt ?? null };
+  // ★error 키는 항상 *문자열 메시지*로 유지(화면이 String(reading.error)로 표시). 과거엔 `{ error: f.message, [f.kind]: true }`라
+  //   f.kind='error'일 때 ['error']:true가 error를 boolean true로 덮어써 화면에 'true'가 노출됐다(daniel #28).
+  //   → kind 플래그(unavailable/needPayment/needPremium)는 'error'가 아닐 때만 별도로 추가한다.
+  const r: Record<string, any> = { error: f.message, retryAt: f.retryAt ?? null };
+  if (f.kind !== 'error') r[f.kind] = true;
+  return r;
 }
 
 // 실패 사유 정규화(없으면 null = 성공). 화면별 커스텀 처리가 필요할 때 사용.

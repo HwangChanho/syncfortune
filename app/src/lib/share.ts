@@ -29,6 +29,22 @@ export type ShareReadingInput = {
 };
 
 /**
+ * 풀이 스냅샷을 shared_readings 에 저장하고 *스마트링크만* 반환(공유 시트는 호출측이 — 이미지+링크를 함께 보낼 때).
+ *   받는 사람: 앱 설치 시 syncfortune://shared/<id> 로 풀이 열람 / 미설치 시 App Store 유도. 실패 시 null(폴백).
+ */
+export async function createSharedLink(p: ShareReadingInput): Promise<string | null> {
+  try {
+    const id = randomShareId();
+    const { data: auth } = await supabase.auth.getUser();
+    const { error } = await supabase.from('shared_readings').insert({
+      id, kind: p.kind, category: p.category ?? null, title: p.title ?? null, content: p.content, created_by: auth?.user?.id ?? null,
+    });
+    if (error) return null;
+    return `${SHARE_LINK_BASE}?id=${id}`;
+  } catch { return null; }
+}
+
+/**
  * 풀이 결과를 공유한다 — shared_readings 에 스냅샷 저장 후 공유 시트(카톡/라인 등)를 띄운다.
  * @returns 공유 링크(성공 시) / 실패 시 throw
  */

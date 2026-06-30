@@ -280,13 +280,20 @@ export async function updateChart(id: string, input: any): Promise<void> {
   const charts = await listCharts();
   const idx = charts.findIndex((c) => c.id === id);
   if (idx < 0) return;
+  const prev = charts[idx];
+  const p = prev.input;
+  const newRel = input.relation ?? prev.relation;
+  // 사주(팔자+대운)를 결정하는 값(생일·시간·달력·성별·출생지 경도)과 관계가 *그대로*면 serverChartId 유지
+  //   → 이름·맥락만 수정 시 풀이 캐시 단절·자물쇠·재생성 방지(daniel #24). 하나라도 바뀌면 무효화(새 chart_id 재발급).
+  const sameSaju = p.birthDateTime === input.birthDateTime && p.calendar === input.calendar
+    && p.sex === input.sex && (p.birthLon ?? null) === (input.birthLon ?? null) && newRel === prev.relation;
   charts[idx] = {
-    ...charts[idx],
+    ...prev,
     input,
-    label: (input.label && String(input.label).trim()) || charts[idx].label,
-    relation: input.relation ?? charts[idx].relation,
-    context: input.context ?? charts[idx].context, // 기본정보(선택) — 없으면 기존 유지
-    serverChartId: undefined, // 생년월일/맥락 변경 가능 → 서버 매핑 초기화(이전 풀이 캐시와 분리)
+    label: (input.label && String(input.label).trim()) || prev.label,
+    relation: newRel,
+    context: input.context ?? prev.context, // 기본정보(선택) — 없으면 기존 유지
+    serverChartId: sameSaju ? prev.serverChartId : undefined, // 사주·관계 동일=캐시 유지 / 변경=재발급(daniel #24)
   };
   await setRaw(KEY, JSON.stringify(charts));
   notifyRepChange(); // 명식 내용 변경 알림(전역 동기화 — 같은 대표라도 갱신)

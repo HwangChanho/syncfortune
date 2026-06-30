@@ -32,6 +32,7 @@ import { UnlockOverlay } from '../../components/UnlockOverlay'; // unlock 자물
 import { ContentHero } from '../../components/SpecialContentScreen'; // 공용 히어로
 import { ChartPicker } from '../../components/ChartPicker'; // 상단 명식 헤더 — 현재 적용 명식 표시·전환
 import { ShareReadingButton } from '../../components/ShareReadingButton'; // 이슈17: 풀이 결과 공유(가드 내장)
+import { TTSButton } from '../../components/TTSButton'; // 풀이 음성 읽기(온디바이스 TTS·무료)
 import { NewyearWheel } from '../../components/contentMotifs'; // 12달 수레바퀴 모티프
 import { useFontScale } from '../../lib/fontScale';
 
@@ -59,6 +60,7 @@ export default function NewYearScreen() {
   const [loaded, setLoaded] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0); // ChartPicker 로 대표 전환 시 재로드 트리거
+  const [expiry, setExpiry] = useState<string | null>(null); // 보유 만료일(생성일+1년) — 캐시 created_at으로 채움(daniel #25)
   const gatingRef = useRef(false); // 결제 구간 연타 차단
 
   const category = `newyear_${year}`; // 연운(year_YYYY)과 분리된 신년 전용 캐시
@@ -81,10 +83,12 @@ export default function NewYearScreen() {
       const id = await ensureServerChartId(c, ch.input, session, ch);
       if (!alive || !id) { setLoaded(true); return; }
       setChartId(id);
-      const { data: row } = await supabase.from('readings').select('content').eq('chart_id', id).eq('category', category).eq('lang', appLang()).maybeSingle();
+      const { data: row } = await supabase.from('readings').select('content, created_at').eq('chart_id', id).eq('category', category).eq('lang', appLang()).maybeSingle();
       if (!alive) return;
       const cached = (row?.content as Record<string, any> | undefined) ?? null;
       setData(cached);
+      // 보유 만료일(daniel #25): 생성(구매)일 + 1년. 캐시 created_at 있을 때만(명식 전환 시 stale 방지 위해 else로 초기화).
+      if (row?.created_at) { const d = new Date(row.created_at); d.setFullYear(d.getFullYear() + 1); setExpiry(`${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`); } else setExpiry(null);
       setLoaded(true);
       if (isPremium && !cached) generate(id);
     })().catch(() => { if (alive) setLoaded(true); });
@@ -157,6 +161,10 @@ export default function NewYearScreen() {
           </View>
         ) : data ? (
           <>
+            {/* 풀이 보유 만료일(daniel #25) — 캐시(생성된 풀이)가 있을 때만 */}
+            {expiry ? (
+              <Text style={{ fontSize: fs(12), color: colors.inkFaint, marginBottom: space(3), textAlign: 'center', lineHeight: 18 }}>이 풀이는 {expiry}까지 보유돼요 · 이후 다시 보려면 재구매가 필요해요</Text>
+            ) : null}
             {/* 이슈19 소제목 — 통변 결과 headline 있으면 섹션들 맨 위에 한 줄 강조(keyword와 별개 필드) */}
             {typeof data.headline === 'string' && data.headline.trim() ? (
               <Text style={{ fontSize: fs(19), fontWeight: '800', color: colors.ju, marginBottom: space(3), lineHeight: fs(26) }}>{data.headline}</Text>
@@ -245,6 +253,8 @@ export default function NewYearScreen() {
                 <Text style={[styles.body, { fontSize: fs(15), lineHeight: fs(26) }]}>{data.resolution}</Text>
               </View>
             )}
+            {/* 풀이 음성 읽기(온디바이스 TTS·무료) — 전체 신년 통변을 순서대로 읽음(months 배열은 자동 제외) */}
+            <TTSButton reading={data} />
             {/* 이슈17: 풀이 결과 공유(content 없거나 error면 컴포넌트가 자체 미노출) */}
             <ShareReadingButton kind="newyear" title={t('newyear.title', '신년운세')} content={data} />
           </>

@@ -29,6 +29,7 @@ import { UnlockOverlay } from '../../components/UnlockOverlay'; // unlock 자물
 import { ContentHero, cardAnim } from '../../components/SpecialContentScreen'; // 공용 히어로 + 섹션 stagger
 import { ChartPicker } from '../../components/ChartPicker'; // 상단 명식 헤더 — 현재 적용 명식 표시·전환
 import { ShareReadingButton } from '../../components/ShareReadingButton'; // 이슈17: 풀이 결과 공유(가드 내장)
+import { TTSButton } from '../../components/TTSButton'; // 풀이 음성 읽기(온디바이스 TTS·무료)
 import { LoveThread } from '../../components/contentMotifs'; // 인연의 실 모티프
 import { LoveFlowGraph } from '../../components/LoveFlowGraph'; // 애정(재성) 흐름 곡선(daniel B·R29)
 
@@ -65,6 +66,7 @@ export default function LoveScreen() {
   const [busy, setBusy] = useState(false);
   const [loaded, setLoaded] = useState(false);           // 캐시 로드 완료
   const [reloadKey, setReloadKey] = useState(0);         // ChartPicker 로 대표 전환 시 재로드 트리거
+  const [expiry, setExpiry] = useState<string | null>(null); // 보유 만료일(생성일+1년) — 캐시 created_at으로 채움(daniel #25)
   const c = useMemo(() => (savedChart ? computeChart(savedChart.input) : null), [savedChart]);
   const gatingRef = useRef(false); // 결제 구간(모달) 연타 차단 — busy(생성중)와 별개
   const reveal = useRef(new Animated.Value(0)).current; // 섹션 순차 등장
@@ -81,10 +83,15 @@ export default function LoveScreen() {
       const id = await ensureServerChartId(cc, ch.input, session, ch);
       if (!alive || !id) { setLoaded(true); return; }
       setChartId(id);
-      const { data } = await supabase.from('readings').select('content').eq('chart_id', id).eq('category', 'love').eq('lang', appLang()).maybeSingle();
+      const { data } = await supabase.from('readings').select('content, created_at').eq('chart_id', id).eq('category', 'love').eq('lang', appLang()).maybeSingle();
       if (!alive) return;
-      const cached = data?.content ?? null;
+      // 방어(daniel: 풀이가 'true'로 뜨던 버그) — 캐시 content가 정상 통변 '객체'가 아니거나(boolean·배열·문자열),
+      //   error 플래그가 박힌 비정상 저장분이면 무효 처리 → 재생성 유도(이전 실패 응답이 캐시에 굳어 String(error)='true'로 노출되던 것 차단).
+      const raw = data?.content ?? null;
+      const cached = raw && typeof raw === 'object' && !Array.isArray(raw) && !(raw as any).error ? raw : null;
       setReading(cached);
+      // 보유 만료일(daniel #25): 생성(구매)일 + 1년. 캐시 created_at 있을 때만(명식 전환 시 stale 방지 위해 else로 초기화).
+      if (data?.created_at) { const d = new Date(data.created_at); d.setFullYear(d.getFullYear() + 1); setExpiry(`${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`); } else setExpiry(null);
       setLoaded(true);
       if (isPremium && !cached) generate(id, cc.ziwei); // 프리미엄=자동 생성(타 스페셜과 통일)
     })().catch(() => { if (alive) setLoaded(true); });
@@ -165,6 +172,10 @@ export default function LoveScreen() {
       ) : reading ? (
         // ── 소제목 + 9개 상세 섹션 ──
         <>
+          {/* 풀이 보유 만료일(daniel #25) — 캐시(생성된 풀이)가 있을 때만 */}
+          {expiry ? (
+            <Text style={{ fontSize: fs(12), color: colors.inkFaint, marginBottom: space(3), textAlign: 'center', lineHeight: 18 }}>이 풀이는 {expiry}까지 보유돼요 · 이후 다시 보려면 재구매가 필요해요</Text>
+          ) : null}
           {/* 이슈19 소제목 — 통변 결과 headline 있으면 섹션들 맨 위에 한 줄 강조 */}
           {typeof reading.headline === 'string' && reading.headline.trim() ? (
             <Text style={{ fontSize: fs(19), fontWeight: '800', color: colors.ju, marginBottom: space(3), lineHeight: fs(26) }}>{reading.headline}</Text>
@@ -175,6 +186,8 @@ export default function LoveScreen() {
             <Text style={[styles.body, bodyDyn]}>{reading[s.key]}</Text>
           </Animated.View>
         ) : null))}
+          {/* 풀이 음성 읽기(온디바이스 TTS·무료) — SECTIONS 순서로 읽음 */}
+          <TTSButton reading={reading} sections={SECTIONS} />
           {/* 이슈17: 풀이 결과 공유(content 없거나 error면 컴포넌트가 자체 미노출) */}
           <ShareReadingButton kind="love" title={t('love.title')} content={reading} />
         </>

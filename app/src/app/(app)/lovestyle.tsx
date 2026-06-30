@@ -13,6 +13,7 @@ import { useFontScale } from '../../lib/fontScale';
 import { bgSource, colors, radius, space, shadow, font } from '../../lib/theme';
 import { ChartPicker } from '../../components/ChartPicker'; // 상단 명식 헤더 — 현재 적용 명식 표시·전환
 import { ShareReadingButton } from '../../components/ShareReadingButton'; // 이슈17: 풀이 결과 공유(앱게이트)
+import { TTSButton } from '../../components/TTSButton'; // 풀이 음성 읽기(온디바이스 TTS·무료)
 import type { ChartInput } from '@spec/chart';
 
 // 연애 유형별 이미지(daniel: 종류별 이미지) — assets/icons/lovestyle/{slug}.jpg.
@@ -69,6 +70,8 @@ export default function LoveStyleScreen() {
           <Text style={styles.cardHead}>{t('lovestyle.tip', '이런 점만 더하면')}</Text>
           <Text style={[styles.body, { fontSize: fs(15), lineHeight: fs(25) }]}>{result.tip}</Text>
         </View>
+        {/* 풀이 음성 읽기(온디바이스 TTS·무료) — 연애 스타일 설명을 읽음 */}
+        <TTSButton reading={result} />
         {/* 이슈17: 연애 스타일 결과 공유(앱게이트) */}
         <ShareReadingButton kind="lovestyle" title="내 연애 스타일" content={result} />
         <Text style={styles.note}>{t('lovestyle.note', '※ 사주 십신으로 가볍게 본 연애 스타일이에요. 재미로 즐겨 주세요.')}</Text>

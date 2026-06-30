@@ -25,7 +25,7 @@ import { prewarmReadings, prewarmDaily } from '../../lib/prewarmReadings';
 import { scheduleDailyFortune } from '../../lib/notifications'; // 매일 9시 오늘의 운세 알림
 import { buildSajuChart } from '@engine/saju';
 import type { Stem, Branch } from '@spec/chart';
-import { bgSource, colors, radius, space, shadow, font } from '../../lib/theme';
+import { bgSource, colors, radius, space, shadow, font, activeScheme } from '../../lib/theme';
 import { useFontScale } from '../../lib/fontScale';
 import { playSound } from '../../lib/sounds';
 import { BusyOverlay } from '../../components/BusyOverlay'; // 로그아웃 등 긴 콜백 로딩
@@ -183,6 +183,33 @@ function TwinklingStars() {
           },
         ]}
       />
+    </View>
+  );
+}
+
+// 라이트모드 배경 — 우측 상단 태양(글로우 맥동 + 광선 천천히 회전). 다크의 별·유성에 대응(daniel 06-30).
+function SunGlow() {
+  const pulse = useRef(new Animated.Value(0)).current;
+  const spin = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.loop(Animated.sequence([
+      Animated.timing(pulse, { toValue: 1, duration: 3200, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+      Animated.timing(pulse, { toValue: 0, duration: 3200, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+    ])).start();
+    Animated.loop(Animated.timing(spin, { toValue: 1, duration: 60000, easing: Easing.linear, useNativeDriver: true })).start();
+  }, [pulse, spin]);
+  const scale = pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.14] });
+  const glowOp = pulse.interpolate({ inputRange: [0, 1], outputRange: [0.32, 0.58] });
+  const rot = spin.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
+  return (
+    <View style={styles.sunWrap} pointerEvents="none">
+      <Animated.View style={[styles.sunRays, { transform: [{ rotate: rot }] }]}>
+        {Array.from({ length: 12 }).map((_, i) => (
+          <View key={i} style={[styles.sunRay, { transform: [{ rotate: `${i * 30}deg` }] }]} />
+        ))}
+      </Animated.View>
+      <Animated.View style={[styles.sunGlow, { transform: [{ scale }], opacity: glowOp }]} />
+      <View style={styles.sunCore} />
     </View>
   );
 }
@@ -363,7 +390,7 @@ export default function Home() {
 
   return (
     <ImageBackground source={bgSource} style={styles.bgImage} resizeMode="cover">
-    <TwinklingStars />
+    {activeScheme === 'light' ? <SunGlow /> : <TwinklingStars />}
     <SeonbiWalk />
     <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>
       <Animated.View style={{ opacity: fadeAnim }}>
@@ -543,6 +570,12 @@ const styles = StyleSheet.create({
   bgImage: { flex: 1, backgroundColor: colors.bg },
   seonbiLayer: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 140 }, // 산길 걷는 선비 + 능선(배경 하단·daniel)
   star: { position: 'absolute', color: colors.ju, fontSize: 16 },
+  // 라이트 태양(우측 상단) — 본체·글로우·회전 광선(daniel)
+  sunWrap: { position: 'absolute', top: '7%', right: '11%', width: 130, height: 130, alignItems: 'center', justifyContent: 'center' },
+  sunRays: { position: 'absolute', width: 220, height: 220, alignItems: 'center', justifyContent: 'center' },
+  sunRay: { position: 'absolute', width: 2, height: 150, backgroundColor: 'rgba(200,161,74,0.16)', borderRadius: 1 },
+  sunGlow: { position: 'absolute', width: 120, height: 120, borderRadius: 60, backgroundColor: 'rgba(224,178,74,0.5)' },
+  sunCore: { width: 64, height: 64, borderRadius: 32, backgroundColor: '#E0B24A' },
   shootingStar: {
     position: 'absolute', width: 100, height: 2,
     backgroundColor: colors.ju, borderRadius: radius.pill,
@@ -610,7 +643,7 @@ const styles = StyleSheet.create({
   },
   cardImg: { flex: 1, justifyContent: 'flex-end' },
   cardImgInner: { borderRadius: radius.md },
-  labelBar: { backgroundColor: colors.overlayStrong, paddingVertical: space(2.5), alignItems: 'center' },
+  labelBar: { backgroundColor: colors.labelScrim, paddingVertical: space(2.5), alignItems: 'center' }, // 라이트=거의 불투명(카드 이미지 비침 차단·daniel)
   cardLabel: { color: colors.ink, fontSize: 15, fontWeight: '700', letterSpacing: 0.3 },
   cardDesc: { color: colors.inkSoft, fontSize: 10.5, lineHeight: 13.5, textAlign: 'center', marginTop: 3, paddingHorizontal: space(1.5) },
   cardLabelPrem: { color: colors.ju }, // 프리미엄 = 골드 라벨

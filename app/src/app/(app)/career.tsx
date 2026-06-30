@@ -30,6 +30,7 @@ import { bgSource, colors, radius, space, shadow, font } from '../../lib/theme';
 import { UnlockOverlay } from '../../components/UnlockOverlay';
 import { ChartPicker } from '../../components/ChartPicker'; // 상단 명식 헤더 — 전환 시 그 명식 기준 재로드
 import { ShareReadingButton } from '../../components/ShareReadingButton'; // 이슈17: 풀이 결과 공유(가드 내장)
+import { TTSButton } from '../../components/TTSButton'; // 풀이 음성 읽기(온디바이스 TTS·무료)
 
 // 6개 카테고리(Edge 응답 키 ↔ i18n 라벨, 없으면 ko 기본값). 순서대로 스택.
 const SECTIONS: { key: string; tk: string; def: string }[] = [
@@ -67,6 +68,7 @@ export default function CareerScreen() {
   const [busy, setBusy] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);         // ChartPicker 전환 시 재로드
+  const [expiry, setExpiry] = useState<string | null>(null); // 보유 만료일(생성일+1년) — 캐시 created_at으로 채움(daniel #25)
   const c = useMemo(() => (savedChart ? computeChart(savedChart.input) : null), [savedChart]);
   const gatingRef = useRef(false);                       // 게이트(모달) 연타 차단
 
@@ -82,10 +84,12 @@ export default function CareerScreen() {
       const id = await ensureServerChartId(cc, ch.input, session, ch);
       if (!alive || !id) { setLoaded(true); return; }
       setChartId(id);
-      const { data } = await supabase.from('readings').select('content').eq('chart_id', id).eq('category', 'career').eq('lang', appLang()).maybeSingle();
+      const { data } = await supabase.from('readings').select('content, created_at').eq('chart_id', id).eq('category', 'career').eq('lang', appLang()).maybeSingle();
       if (!alive) return;
       const cached = data?.content ?? null;
       setReading(cached);
+      // 보유 만료일(daniel #25): 생성(구매)일 + 1년. 캐시 created_at 있을 때만(명식 전환 시 stale 방지 위해 else로 초기화).
+      if (data?.created_at) { const d = new Date(data.created_at); d.setFullYear(d.getFullYear() + 1); setExpiry(`${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`); } else setExpiry(null);
       setLoaded(true);
       if (isPremium && !cached) generate(id); // 프리미엄=자동 생성(타 스페셜과 통일)
     })().catch(() => { if (alive) setLoaded(true); });
@@ -163,6 +167,10 @@ export default function CareerScreen() {
         ) : reading ? (
           // ── 소제목 + 6개 카테고리 섹션(각 이미지 있으면 위에) ──
           <>
+          {/* 풀이 보유 만료일(daniel #25) — 캐시(생성된 풀이)가 있을 때만 */}
+          {expiry ? (
+            <Text style={{ fontSize: fs(12), color: colors.inkFaint, marginBottom: space(3), textAlign: 'center', lineHeight: 18 }}>이 풀이는 {expiry}까지 보유돼요 · 이후 다시 보려면 재구매가 필요해요</Text>
+          ) : null}
           {/* 이슈19 소제목 — 통변 결과 headline 있으면 섹션들 맨 위에 한 줄 강조 */}
           {typeof reading.headline === 'string' && reading.headline.trim() ? (
             <Text style={{ fontSize: fs(19), fontWeight: '800', color: colors.ju, marginBottom: space(3), lineHeight: fs(26) }}>{reading.headline}</Text>
@@ -174,6 +182,8 @@ export default function CareerScreen() {
               <Text style={[styles.body, bodyDyn]}>{reading[s.key]}</Text>
             </View>
           ) : null))}
+          {/* 풀이 음성 읽기(온디바이스 TTS·무료) — SECTIONS 순서로 읽음 */}
+          <TTSButton reading={reading} sections={SECTIONS} />
           {/* 이슈17: 풀이 결과 공유(content 없거나 error면 컴포넌트가 자체 미노출) */}
           <ShareReadingButton kind="career" title={t('career.title', '사업가의 나 vs 직장인의 나')} content={reading} />
           </>

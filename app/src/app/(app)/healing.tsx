@@ -14,6 +14,7 @@ import { useFontScale } from '../../lib/fontScale';
 import { bgSource, colors, radius, space, shadow, font } from '../../lib/theme';
 import { ChartPicker } from '../../components/ChartPicker'; // 상단 명식 헤더 — 현재 적용 명식 표시·전환
 import { ShareReadingButton } from '../../components/ShareReadingButton'; // 이슈17: 풀이 결과 공유(앱게이트)
+import { TTSButton } from '../../components/TTSButton'; // 풀이 음성 읽기(온디바이스 TTS·무료)
 import type { ChartInput } from '@spec/chart';
 
 // 일간 오행별 이미지(daniel O: 종류별 이미지) — assets/icons/healing/{wood|fire|earth|metal|water}.jpg.
@@ -99,6 +100,8 @@ export default function HealingScreen() {
           <Text style={[styles.body, bodyDyn]}>{r.mind}</Text>
         </View>
 
+        {/* 풀이 음성 읽기(온디바이스 TTS·무료) — 힐링 카드 전체를 읽음 */}
+        <TTSButton reading={r} />
         {/* 이슈17: 힐링 방법 결과 공유(앱게이트) */}
         <ShareReadingButton kind="healing" title="나만의 힐링 방법" content={r} />
         <Text style={styles.note}>{t('healing.note', '※ 사주 오행으로 가볍게 본 자기돌봄 가이드예요. 마음 챙김에 참고만 하세요.')}</Text>

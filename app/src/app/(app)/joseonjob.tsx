@@ -14,6 +14,7 @@ import { useFontScale } from '../../lib/fontScale';
 import { bgSource, colors, radius, space, shadow, font } from '../../lib/theme';
 import { ChartPicker } from '../../components/ChartPicker'; // 상단 명식 헤더 — 현재 적용 명식 표시·전환
 import { ShareReadingButton } from '../../components/ShareReadingButton'; // 이슈17: 풀이 결과 공유(앱게이트)
+import { TTSButton } from '../../components/TTSButton'; // 풀이 음성 읽기(온디바이스 TTS·무료)
 import type { ChartInput } from '@spec/chart';
 
 // 직업 결과 이미지 — daniel 자산(assets/icons/joseon/). 파일 추가 후 해당 require 주석을 해제하면 자동 표시.
@@ -88,6 +89,8 @@ export default function JoseonJobScreen() {
           ))}
         </View>
 
+        {/* 풀이 음성 읽기(온디바이스 TTS·무료) — 직업·타고난 강점을 읽음 */}
+        <TTSButton reading={result} />
         {/* 이슈17: 조선시대 직업 결과 공유(앱게이트) */}
         <ShareReadingButton kind="joseonjob" title="조선시대 나의 직업" content={result} />
 

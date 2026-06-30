@@ -9,8 +9,10 @@ import { elementColor } from '../../lib/ohaeng';
 export default function RootsRoute() {
   const { t } = useTranslation();
   return (
+    // 유료 단일 풀이 → 생성일+1년 '보유 만료일' 표시(daniel #25)
     <SpecialContentScreen
       kind="roots"
+      showExpiry
       themeColor={elementColor['木']}
       heroImage={require('../../../assets/icons/hero-roots.jpg')}
       heroMotif={<RootsTree />}

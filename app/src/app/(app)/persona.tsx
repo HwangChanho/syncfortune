@@ -15,6 +15,7 @@ import { useFontScale } from '../../lib/fontScale';
 import { bgSource, colors, radius, space, shadow, font } from '../../lib/theme';
 import { ChartPicker } from '../../components/ChartPicker'; // 상단 명식 헤더 — 현재 적용 명식 표시·전환
 import { ShareReadingButton } from '../../components/ShareReadingButton'; // 이슈17: 풀이 결과 공유(앱게이트)
+import { TTSButton } from '../../components/TTSButton'; // 풀이 음성 읽기(온디바이스 TTS·무료)
 import type { ChartInput } from '@spec/chart';
 
 export default function PersonaScreen() {
@@ -83,6 +84,8 @@ export default function PersonaScreen() {
           })}
         </View>
 
+        {/* 풀이 음성 읽기(온디바이스 TTS·무료) — 유형 설명을 읽음 */}
+        <TTSButton reading={persona} />
         {/* 이슈17: 성격유형 결과 공유(앱게이트) */}
         <ShareReadingButton kind="persona" title={persona.name} content={persona} />
 

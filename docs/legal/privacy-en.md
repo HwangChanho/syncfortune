@@ -5,9 +5,7 @@ title: Privacy Policy
 
 # SyncFortune Privacy Policy
 
-**Last updated: June 17, 2026**
-
-> ⚠️ Draft — requires legal review before release. `[ ]` items to be filled by the operator. (Based on Korea's PIPA and Apple App Store privacy requirements.)
+**Effective date: June 30, 2026 · Last updated: June 30, 2026**
 
 SyncFortune (the "Operator") complies with applicable laws including Korea's Personal Information Protection Act and processes users' personal information as follows.
 
@@ -20,6 +18,8 @@ SyncFortune (the "Operator") complies with applicable laws including Korea's Per
 | Advertising ID (IDFA, etc.) | Serving ads | Google AdMob; non-personalized where possible |
 | Device info & usage logs | Error diagnosis & service improvement | Auto-deleted 30 days after collection |
 
+**Collection method**: Personal information is either entered directly by the user in the app (date of birth, chart information, etc.) or generated/collected automatically during use of the Service (device info, usage logs, advertising ID, etc.).
+
 Note: The Operator collects only information the user enters or consents to. When registering a third party's chart (family, acquaintance), the user is responsible for obtaining that person's consent.
 
 ## 2. Purpose of Use
@@ -28,8 +28,8 @@ Note: The Operator collects only information the user enters or consents to. Whe
 - Payment processing and ad serving
 - Service improvement, error handling, and fraud prevention
 
-## 3. Outsourcing & Overseas Transfer
-To provide the Service, the Operator outsources processing to the following; some data may be stored/processed on overseas servers:
+## 3. Provision to Third Parties, Outsourcing & Overseas Transfer
+The Operator does not provide personal information to third parties except with the user's consent or as specifically required by law. To provide the Service, however, the Operator outsources processing to the following; some data may be stored/processed on overseas servers:
 
 | Processor | Task | Items |
 |---|---|---|
@@ -40,6 +40,7 @@ To provide the Service, the Operator outsources processing to the following; som
 
 ## 4. Retention & Disposal
 - **Account & chart data**: destroyed without delay upon account deletion.
+- **Paid readings (content)**: retained for one (1) year from the date of purchase, then deleted.
 - **Usage logs**: auto-destroyed 30 days after collection.
 - Where retention is required by law, data is kept for that period and then destroyed.
 

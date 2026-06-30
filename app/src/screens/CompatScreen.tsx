@@ -54,6 +54,7 @@ const CAT_IMG: Record<string, any> = {
   business: require('../../assets/icons/compat-rel/business.jpg'),
 };
 import { UnlockOverlay } from '../components/UnlockOverlay'; // 생성 중 화면 가림 로딩(daniel)
+import { TTSButton } from '../components/TTSButton'; // 풀이 음성 읽기(온디바이스 TTS·무료)
 import type { ChartInput } from '@spec/chart';
 
 // 이어보기(daniel): 궁합 상태가 in-memory라 홈 갔다 오면 초기화됐음 → 마지막 선택(나·상대·관계)을 모듈에 보관해 복원.
@@ -305,6 +306,17 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
           </View>
           {/* 선택한 관계 카테고리 배너(daniel: 카테고리별 이미지) */}
           {CAT_IMG[rel] && <Image source={CAT_IMG[rel]} style={styles.catBanner} resizeMode="cover" />}
+          {/* 궁합 점수 — 풀이 '위로'(daniel 변경: 점수 먼저, 풀이 앞). LLM 산출 score 우선, 생성 전 결정론 임시값. */}
+          {cur && dispTier && dispScore != null && (
+            <View style={styles.scoreCard}>
+              {COMPAT_IMG[dispTier.key]
+                ? <Image source={COMPAT_IMG[dispTier.key]} style={styles.scoreImg} resizeMode="cover" />
+                : <Text style={styles.scoreEmoji}>{dispTier.emoji}</Text>}
+              <Text style={styles.scoreTier}>{dispTier.emoji} {tierLabel(dispTier, appLang() as 'ko' | 'en' | 'ja')}</Text>
+              <ScoreReveal score={dispScore} />
+              {compat && <Text style={styles.scoreSub}>{t('compat.scoreHarmony', '조화')} {compat.harmony} · {t('compat.scoreTension', '긴장')} {compat.tension}</Text>}
+            </View>
+          )}
           {cur ? (
             <View style={styles.readCard}>
               {/* 이슈19 소제목 — 이 관계 통변의 headline 있으면 섹션들 맨 위에 한 줄 강조 */}
@@ -323,6 +335,8 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
                   </View>
                 );
               })}
+              {/* 풀이 음성 읽기(온디바이스 TTS·무료) — 이 관계 통변을 compatSections 순서로 읽음 */}
+              <TTSButton reading={cur} sections={compatSections(rel, !!year)} />
             </View>
           ) : (loading || (!!busy && busy === curKey)) ? (
             // 로딩/이 관계 생성 중 = 자물쇠 대신 스피너(daniel ⑦)
@@ -333,18 +347,6 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
               <Text style={{ color: colors.bg, fontWeight: '900', fontSize: 16 }}>{t('compat.genCta', '이 관계 풀이 만들기')}</Text>
               <Text style={{ color: colors.bg, opacity: 0.85, fontSize: 12, fontWeight: '600' }}>{t('compat.genCtaSub', '확인 후 이용권 1회 또는 결제')}</Text>
             </Pressable>
-          )}
-
-          {/* 궁합 점수 — 실제 풀이가 나온 뒤(cur)에만, 그 아래에 노출(daniel: 점수 아래로·풀이 후). LLM 산출 score 우선. */}
-          {cur && dispTier && dispScore != null && (
-            <View style={styles.scoreCard}>
-              {COMPAT_IMG[dispTier.key]
-                ? <Image source={COMPAT_IMG[dispTier.key]} style={styles.scoreImg} resizeMode="cover" />
-                : <Text style={styles.scoreEmoji}>{dispTier.emoji}</Text>}
-              <Text style={styles.scoreTier}>{dispTier.emoji} {tierLabel(dispTier, appLang() as 'ko' | 'en' | 'ja')}</Text>
-              <ScoreReveal score={dispScore} />
-              {compat && <Text style={styles.scoreSub}>{t('compat.scoreHarmony', '조화')} {compat.harmony} · {t('compat.scoreTension', '긴장')} {compat.tension}</Text>}
-            </View>
           )}
 
           {/* 추가질문 — 통변이 있을 때만(관계유형/연도 키별, 사주·자미와 동일) */}
@@ -464,7 +466,8 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
           <>
             <Text style={styles.askQuota}>{freeLeft > 0 ? t('reading.askFree', { n: freeLeft }) : t('reading.askPaid')}</Text>
             <View style={styles.askRow}>
-              <TextInput style={styles.askInput} value={askInput} onChangeText={setAskInput} placeholder={t('reading.askPh')} placeholderTextColor={colors.inkFaint} multiline maxLength={50} editable={!asking} />
+              {/* singleline — 50자 제한이라 한 줄로 충분, iOS/Android 모두 텍스트가 칸 세로중앙 자동정렬(daniel: y축 한가운데) */}
+              <TextInput style={styles.askInput} value={askInput} onChangeText={setAskInput} placeholder={t('reading.askPh')} placeholderTextColor={colors.inkFaint} maxLength={50} editable={!asking} returnKeyType="send" onSubmitEditing={() => submitFollowup()} />
               <Text style={styles.askLen}>{askInput.length}/50</Text>
               <Pressable style={[styles.askSend, (!askInput.trim() || asking) && styles.askSendOff]} onPress={() => submitFollowup()} disabled={!askInput.trim() || asking}>
                 {asking ? <ActivityIndicator color={colors.bg} size="small" /> : <Text style={styles.askSendTx}>{t('reading.askSend')}</Text>}
@@ -645,10 +648,10 @@ const styles = StyleSheet.create({
   qaQ: { ...font.body, fontWeight: '800', color: colors.ju, marginBottom: space(2) },
   qaA: { ...font.body, color: colors.ink, lineHeight: 24 },
   askQuota: { ...font.caption, color: colors.inkFaint, marginBottom: space(2) },
-  askRow: { flexDirection: 'row', alignItems: 'flex-end', gap: space(2) },
+  askRow: { flexDirection: 'row', alignItems: 'center', gap: space(2) },
   // 좌상단 정렬(daniel: 가운데 X — 위·왼쪽으로)
-  askInput: { ...font.body, flex: 1, minHeight: 44, maxHeight: 120, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, borderRadius: radius.md, paddingHorizontal: space(3), paddingVertical: space(2.5), color: colors.ink, textAlign: 'left', textAlignVertical: 'top' },
-  askLen: { fontSize: 11, color: colors.inkFaint, alignSelf: 'flex-end', marginBottom: space(3) },
+  askInput: { ...font.body, flex: 1, height: 44, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, borderRadius: radius.md, paddingHorizontal: space(3), color: colors.ink, textAlign: 'left' },
+  askLen: { fontSize: 11, color: colors.inkFaint },
   askSend: { backgroundColor: colors.ju, borderRadius: radius.md, paddingHorizontal: space(4), height: 44, alignItems: 'center', justifyContent: 'center' },
   askSendOff: { opacity: 0.4 },
   askSendTx: { color: colors.bg, fontWeight: '800', fontSize: 14 },

@@ -70,6 +70,7 @@ export function TimelineScreen({ input, savedChart }: { input: ChartInput | null
   }, [c, birthYear, curAge]);
 
   const [readings, setReadings] = useState<Record<string, any>>({});
+  const [createdAt, setCreatedAt] = useState<Record<string, string>>({}); // 기간(life_/year_)별 생성일 — 보유 만료일(생성일+1년) 계산용(daniel #25)
   const [selDecade, setSelDecade] = useState<string>('');
   const [selYear, setSelYear] = useState<string>(`year_${nowYear}`);
   const [chartId, setChartId] = useState<string | null>(savedChart?.serverChartId ?? null);
@@ -113,11 +114,13 @@ export function TimelineScreen({ input, savedChart }: { input: ChartInput | null
       const id = await ensureServerChartId(c, input, session, savedChart);
       if (!alive || !id) return;
       setChartId(id);
-      const { data } = await supabase.from('readings').select('category, content').eq('chart_id', id).eq('lang', appLang());
+      const { data } = await supabase.from('readings').select('category, content, created_at').eq('chart_id', id).eq('lang', appLang());
       if (!alive) return;
       const loaded: Record<string, any> = {};
-      (data ?? []).forEach((r: any) => { if (/^(life|year)_/.test(r.category)) loaded[r.category] = r.content; });
+      const created: Record<string, string> = {}; // 기간별 생성일(보유 만료일 계산용·daniel #25)
+      (data ?? []).forEach((r: any) => { if (/^(life|year)_/.test(r.category)) { loaded[r.category] = r.content; if (r.created_at) created[r.category] = r.created_at; } });
       setReadings(loaded);
+      setCreatedAt(created);
       // 프리미엄 자동 생성은 '무료' 기간(현재 대운·올해)만 + ★대표 명식에만(비용통제). 오프라인=보류.
       if (isRep && isOnline()) { // 현재 대운·올해는 전원 무료 → 자동 생성(daniel)
         if (curDecadeKey && !loaded[curDecadeKey]) gen(curDecadeKey, id);
@@ -215,12 +218,21 @@ export function TimelineScreen({ input, savedChart }: { input: ChartInput | null
         </View>
       );
     }
+    // 보유 만료일(daniel #25): 이 기간 풀이 생성(구매)일 + 1년. 유료 기간만(현재 대운·올해 = 무료라 '재구매' 문구 부적합 → 미표시).
+    //   현재 무료 기간도 시간이 지나면(과거 대운·작년) isFree=false가 되어 그때부터 만료일이 노출된다.
+    const cAt = createdAt[key];
+    const expiryNote = (cAt && !isFree(key)) ? (() => {
+      const d = new Date(cAt); d.setFullYear(d.getFullYear() + 1);
+      const exp = `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
+      return <Text style={{ fontSize: fs(12), color: colors.inkFaint, marginBottom: space(3), textAlign: 'center', lineHeight: 18 }}>이 풀이는 {exp}까지 보유돼요 · 이후 다시 보려면 재구매가 필요해요</Text>;
+    })() : null;
     // 하위호환: 구(舊) 캐시는 {base,overlay,remedy} 형식 — 카테고리 키가 없으면 옛 레이아웃으로 표시.
     //   (배포 후 새로 생성되는 풀이는 {general,work,money,love,health} 5카테고리)
     const isOld = !YEAR_KEYS.some((ck) => typeof r[ck] === 'string') && (r.base || r.overlay || r.remedy);
     if (isOld) {
       return (
         <View style={styles.card}>
+          {expiryNote}
           {r.base ? <Text style={[styles.body, bodyDyn]}>{r.base}</Text> : null}
           {r.overlay ? <Text style={[styles.body, bodyDyn, { marginTop: space(3) }]}>{r.overlay}</Text> : null}
           {r.remedy ? <Text style={[styles.body, bodyDyn, { marginTop: space(3) }]}>{r.remedy}</Text> : null}
@@ -233,6 +245,7 @@ export function TimelineScreen({ input, savedChart }: { input: ChartInput | null
     const months: any[] = Array.isArray(r.months) ? r.months : []; // 연운 월별(12)
     return (
       <View style={styles.card}>
+        {expiryNote}
         {/* 이슈19 소제목 — 이 시기 통변의 headline 있으면 통변 표시 맨 위에 한 줄 강조 */}
         {typeof r.headline === 'string' && r.headline.trim() ? (
           <Text style={{ fontSize: fs(19), fontWeight: '800', color: colors.ju, marginBottom: space(3), lineHeight: fs(26) }}>{r.headline}</Text>

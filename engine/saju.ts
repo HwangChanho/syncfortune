@@ -38,6 +38,22 @@ export const HIDDEN: Record<Branch, { stem: Stem; role: HiddenStem['role'] }[]> 
 const ELEM_ORDER: Element[] = ['木','火','土','金','水']; // 상생 순
 
 /**
+ * 대운 순행/역행 판정 — 명식당 하나(첫 입운 방향). 년간(年干) 음양 × 성별로 결정.
+ *   · 양년생 남자 · 음년생 여자 = 순행(順行) — 대운 간지가 월주 다음부터 순서대로 진행
+ *   · 음년생 남자 · 양년생 여자 = 역행(逆行) — 월주 이전으로 거슬러 진행
+ *   lunar-javascript `getYun().isForward()`와 동일 공식 `(yang&&man)||(!yang&&!man)`이며,
+ *   chart.ts(동결 계약) 변경을 피하려 순수 함수로 분리해 UI에서 직접 호출한다.
+ * @param yearStem 년주(年柱) 천간
+ * @param sex 성별 '남' | '여'
+ * @returns true=순행, false=역행
+ */
+export function daeunForward(yearStem: Stem, sex: '남' | '여'): boolean {
+  const yang = STEM_YANG[yearStem];   // 년간이 양간(甲丙戊庚壬)인가
+  const man = sex === '남';
+  return (yang && man) || (!yang && !man);
+}
+
+/**
  * 십신 계산 — 일간(day) 기준으로 상대 천간(other)의 십신을 결정한다.
  * 오행 관계(상생순): 0 동일(비겁) / 1 일간이 생(식상) / 2 일간이 극(재) / 3 극일간(관) / 4 생일간(인).
  * 정/편: 비겁·식상은 같은 음양=비견/식신, 재·관·인은 다른 음양=정(正).

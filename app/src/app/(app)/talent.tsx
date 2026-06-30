@@ -8,8 +8,10 @@ import { colors } from '../../lib/theme';
 export default function TalentRoute() {
   const { t } = useTranslation();
   return (
+    // 유료 단일 풀이 → 생성일+1년 '보유 만료일' 표시(daniel #25)
     <SpecialContentScreen
       kind="talent"
+      showExpiry
       themeColor={colors.ju}
       title={t('talent.title', '나의 타고난 재능')}
       sub={t('talent.sub', '무엇을 타고났는지, 좋아하는 일·해야 하는 일 중 어디서 빛나는지, 돈을 어떻게 다뤄야 하는지 짚어 드려요')}

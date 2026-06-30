@@ -13,6 +13,7 @@ import { useFontScale } from '../../lib/fontScale';
 import { bgSource, colors, radius, space, shadow, font } from '../../lib/theme';
 import { ChartPicker } from '../../components/ChartPicker'; // 상단 명식 헤더 — 현재 적용 명식 표시·전환
 import { ShareReadingButton } from '../../components/ShareReadingButton'; // 이슈17: 풀이 결과 공유(앱게이트)
+import { TTSButton } from '../../components/TTSButton'; // 풀이 음성 읽기(온디바이스 TTS·무료)
 import type { ChartInput } from '@spec/chart';
 
 // 전생 시대(오행)×신분(십신) 이미지(daniel: 조합 25). assets/icons/pastlife/{elem}_{group}.jpg.
@@ -87,6 +88,8 @@ export default function PastLifeScreen() {
           <Text style={styles.cardHead}>{t('pastlife.hint', '지금의 당신에게')}</Text>
           <Text style={[styles.body, { fontSize: fs(15), lineHeight: fs(25) }]}>{result.hint}</Text>
         </View>
+        {/* 풀이 음성 읽기(온디바이스 TTS·무료) — 전생 이야기·지금의 당신에게를 읽음 */}
+        <TTSButton reading={result} />
         {/* 이슈17: 전생 이야기 결과 공유(앱게이트) */}
         <ShareReadingButton kind="pastlife" title="나의 전생" content={result} />
         <Text style={styles.note}>{t('pastlife.note', '※ 사주로 가볍게 그려 본 전생 이야기예요. 재미로 즐겨 주세요.')}</Text>

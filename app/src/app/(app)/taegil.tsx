@@ -17,6 +17,7 @@ import { bgSource, colors, radius, space, shadow, font } from '../../lib/theme';
 import { ContentHero } from '../../components/SpecialContentScreen'; // 이미지 히어로(보는 맛)
 import { ChartPicker } from '../../components/ChartPicker'; // 상단 명식 헤더 — 현재 적용 명식 표시·전환
 import { ShareReadingButton } from '../../components/ShareReadingButton'; // 이슈17: 풀이 결과 공유(앱게이트)
+import { TTSButton } from '../../components/TTSButton'; // 풀이 음성 읽기(온디바이스 TTS·무료)
 import type { ChartInput } from '@spec/chart';
 
 const WEEKDAYS: Record<string, string[]> = {
@@ -161,6 +162,8 @@ export default function TaegilScreen() {
               </View>
               {selDay.reasons.map((r, i) => <Text key={i} style={[styles.reason, { fontSize: fs(14), lineHeight: fs(21) }]}>· {r}</Text>)}
             </View>
+            {/* 풀이 음성 읽기(온디바이스 TTS·무료) — 선택한 길일의 추천 이유를 읽음(공유 카드와 동일 내용·ganzhi 등 내부값 제외) */}
+            <TTSButton reading={{ date: selDay.date, score: selDay.score, reasons: selDay.reasons }} />
             {/* 이슈17: 선택한 길일 공유(앱게이트) */}
             <ShareReadingButton kind="taegil" title={`${fmtDate(selDay.date)} 택일`} content={{ date: selDay.date, score: selDay.score, reasons: selDay.reasons }} />
           </>

@@ -9,7 +9,7 @@ import { useRef } from 'react';
 import { Pressable, Text, View, StyleSheet, Share, Platform, type StyleProp, type ViewStyle } from 'react-native';
 import ViewShot, { captureRef } from 'react-native-view-shot';
 import { Alert } from '../lib/alert';
-import { APP_STORE_URL } from '../lib/share';
+import { APP_STORE_URL, createSharedLink } from '../lib/share';
 import { colors, radius, space } from '../lib/theme';
 
 export function ShareReadingButton({ kind, category, title, content, style }: {
@@ -36,8 +36,13 @@ export function ShareReadingButton({ kind, category, title, content, style }: {
     try {
       // off-screen 카드 캡처 → 이미지 파일 uri
       const uri = await captureRef(shotRef, { format: 'jpg', quality: 0.95, result: 'tmpfile' });
-      // 이미지 + 캡션(스토어 링크). iOS=url로 이미지 첨부.
-      await Share.share({ url: uri, message: `${title ?? '내 운세 풀이'} — SyncFortune\n앱에서 내 운세 보기 ${APP_STORE_URL}` });
+      // 받는 사람이 앱에서 풀이를 *직접 열어볼* 스마트링크(딥링크) 생성 — shared_readings 스냅샷(daniel #18)
+      const link = await createSharedLink({ kind, category, title, content });
+      // 이미지 + 캡션(딥링크 우선, 실패 시 스토어 링크). iOS=url로 이미지 첨부.
+      const msg = link
+        ? `${title ?? '내 운세 풀이'} — SyncFortune\n앱에서 풀이 전체 보기 ▸ ${link}`
+        : `${title ?? '내 운세 풀이'} — SyncFortune\n앱에서 내 운세 보기 ${APP_STORE_URL}`;
+      await Share.share({ url: uri, message: msg });
     } catch (e) {
       Alert.alert('!', (e as Error).message);
     }
@@ -46,7 +51,7 @@ export function ShareReadingButton({ kind, category, title, content, style }: {
   return (
     <>
       <Pressable style={[styles.btn, style]} onPress={onShare}>
-        <Text style={styles.tx}>🔗 이 풀이 이미지로 공유</Text>
+        <Text style={styles.tx}>🔗 이 풀이 공유 (이미지 + 링크)</Text>
       </Pressable>
 
       {/* 캡처용 카드 — 화면 밖(top:-10000)에 레이아웃만(보이지 않음). 상대가 받는 공유 이미지. */}

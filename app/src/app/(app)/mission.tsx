@@ -9,8 +9,10 @@ import { colors } from '../../lib/theme';
 export default function MissionRoute() {
   const { t } = useTranslation();
   return (
+    // 유료 단일 풀이 → 생성일+1년 '보유 만료일' 표시(daniel #25)
     <SpecialContentScreen
       kind="mission"
+      showExpiry
       needsZiwei                                 // 사명 = 사주 + 자미 교차(자미 명반 body 전달)
       themeColor={colors.ju}
       heroImage={require('../../../assets/icons/hero-mission.jpg')}

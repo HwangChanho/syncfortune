@@ -29,6 +29,7 @@ import { bgSource, colors, radius, space, shadow, font } from '../../lib/theme';
 import { UnlockOverlay } from '../../components/UnlockOverlay';
 import { ChartPicker } from '../../components/ChartPicker';
 import { ShareReadingButton } from '../../components/ShareReadingButton';
+import { TTSButton } from '../../components/TTSButton'; // 풀이 음성 읽기(온디바이스 TTS·무료)
 
 // 섹션(Edge GAEUN_SYSTEM 응답 키 ↔ 라벨). 순서대로 스택. ※ headline 은 별도(맨 위 강조).
 const SECTIONS: { key: string; tk: string; def: string }[] = [
@@ -153,6 +154,8 @@ export default function GaeunScreen() {
               <Text style={[styles.body, bodyDyn]}>{reading[s.key]}</Text>
             </View>
           ) : null))}
+          {/* 풀이 음성 읽기(온디바이스 TTS·무료) — SECTIONS 순서로 읽음 */}
+          <TTSButton reading={reading} sections={SECTIONS} />
           <ShareReadingButton kind="gaeun" title={t('gaeun.title', '맞춤 개운법')} content={reading} />
           </>
         ) : (

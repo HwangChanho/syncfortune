@@ -19,6 +19,7 @@ import { useFontScale } from '../../lib/fontScale';
 import { colors, radius, space, shadow, font } from '../../lib/theme';
 import { ContentHero } from '../../components/SpecialContentScreen'; // 이미지 히어로(보는 맛)
 import { ShareReadingButton } from '../../components/ShareReadingButton'; // 이슈17: 풀이 결과 공유(앱게이트)
+import { TTSButton } from '../../components/TTSButton'; // 풀이 음성 읽기(온디바이스 TTS·무료)
 import { ListSkeleton } from '../../components/Skeleton'; // 로딩 중 콘텐츠 형태 스켈레톤(daniel 2026-06-28)
 
 // 천간 순서(일간 그룹핑용) — 갑·을·…·계. 각 천간당 일주 6개(60갑자).
@@ -183,6 +184,8 @@ export default function DayPillarScreen() {
             <View style={styles.gap} />
             {renderSections(myKey, rep?.input.sex ?? sex)}
           </View>
+          {/* 풀이 음성 읽기(온디바이스 TTS·무료) — 내 일주 본문(개요·성격·연애·직업 등)을 읽음 */}
+          <TTSButton reading={DAY_PILLAR[myKey]} />
           {/* 이슈17: 내 일주론 공유(앱게이트) */}
           <ShareReadingButton kind="dayPillar" title={`${label(myKey)} 일주론`} content={DAY_PILLAR[myKey]} />
         </View>

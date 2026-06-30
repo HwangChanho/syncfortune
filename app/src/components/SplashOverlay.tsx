@@ -12,10 +12,16 @@ export function SplashOverlay({ onDone }: { onDone: () => void }) {
   const op = useRef(new Animated.Value(0)).current;     // 전체 페이드(등장→유지→퇴장)
   const scale = useRef(new Animated.Value(0.82)).current; // 로고 확대(스프링)
   const glyph = useRef(new Animated.Value(0)).current;   // 緣 회전 + 제목 페이드
+  const swing = useRef(new Animated.Value(0)).current;   // 緣 좌우 원형 회전(세로 가운데축 rotateY·daniel)
 
   useEffect(() => {
     // 緣 회전 등장(독립) — 전체 시퀀스와 병행
     Animated.timing(glyph, { toValue: 1, duration: 1100, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
+    // 緣 좌우 원형 회전 — 세로 가운데축 기준 동전 뒤집듯 좌우로(daniel: 좌우로 가운데축 원형방향)
+    Animated.loop(Animated.sequence([
+      Animated.timing(swing, { toValue: 1, duration: 1300, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+      Animated.timing(swing, { toValue: -1, duration: 1300, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+    ])).start();
     // 전체: 페이드인+확대 → 0.9초 유지 → 페이드아웃 → onDone
     Animated.sequence([
       Animated.parallel([
@@ -27,11 +33,11 @@ export function SplashOverlay({ onDone }: { onDone: () => void }) {
     ]).start(() => onDone());
   }, []);
 
-  const rotate = glyph.interpolate({ inputRange: [0, 1], outputRange: ['-25deg', '0deg'] });
+  const rotateY = swing.interpolate({ inputRange: [-1, 1], outputRange: ['-55deg', '55deg'] });
 
   return (
     <Animated.View style={[styles.overlay, { opacity: op }]} pointerEvents="none">
-      <Animated.Text style={[styles.glyph, { transform: [{ scale }, { rotate }] }]}>緣</Animated.Text>
+      <Animated.Text style={[styles.glyph, { transform: [{ perspective: 800 }, { scale }, { rotateY }] }]}>緣</Animated.Text>
       <Animated.Text style={[styles.title, { opacity: glyph }]}>SyncFortune</Animated.Text>
     </Animated.View>
   );

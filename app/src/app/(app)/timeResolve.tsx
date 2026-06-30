@@ -11,6 +11,7 @@ import { Stack, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import type { ChartInput } from '@spec/chart';
 import { scoreTimePillars, type LifeEvent, type BigEventType } from '../../lib/timePillarScore';
+import { BirthPlacePicker } from '../../components/BirthPlacePicker'; // 출생지 = 지역 검색(명식 등록과 동일·Nominatim, daniel #21)
 import { stemReading, branchReading } from '../../lib/ohaeng';
 import { colors, radius, space, font } from '../../lib/theme';
 // ── TPR 결제 게이트(daniel 06-28): 결정론 도구지만 990 1회 결제로 *영구 해제*(재실행·사건 추가 무료) ──
@@ -38,6 +39,7 @@ export default function TimeResolveScreen() {
   const [date, setDate] = useState('');                       // 생년월일 'YYYY-MM-DD'
   const [sex, setSex] = useState<'남' | '여'>('남');
   const [place, setPlace] = useState('서울');
+  const [placeLon, setPlaceLon] = useState<number | null>(null); // 출생지 경도 — 진태양시 보정으로 시주 정밀(TPR 정확도↑·daniel #21)
   const [events, setEvents] = useState<LifeEvent[]>([]);
   const [yr, setYr] = useState('');
   const [ty, setTy] = useState<BigEventType>('이사');
@@ -74,7 +76,7 @@ export default function TimeResolveScreen() {
 
   // 실제 스코어링(게이트 통과 후). 시각은 스코어러가 12후보로 덮어쓰므로 임시값. timeAccuracy 는 무관(시 모름).
   const compute = () => {
-    const input: ChartInput = { birthDateTime: `${date} 12:00`, calendar: '양', timeAccuracy: '미상', sex, birthPlace: place };
+    const input: ChartInput = { birthDateTime: `${date} 12:00`, calendar: '양', timeAccuracy: '미상', sex, birthPlace: place, birthLon: placeLon ?? undefined };
     setResult(scoreTimePillars(input, { events }));
   };
 
@@ -130,7 +132,7 @@ export default function TimeResolveScreen() {
       </View>
 
       <Text style={styles.label}>출생지</Text>
-      <TextInput value={place} onChangeText={setPlace} placeholder="예: 전라남도 여수" placeholderTextColor={colors.inkFaint} style={styles.input} />
+      <BirthPlacePicker value={place} onSelect={(p) => { setPlace(p.name); setPlaceLon(p.lon); }} />
 
       <Text style={styles.label}>인생 사건 (연도 + 유형)</Text>
       <TextInput value={yr} onChangeText={setYr} placeholder="연도 (예: 2023)" placeholderTextColor={colors.inkFaint} keyboardType="number-pad" style={styles.input} />
@@ -160,6 +162,17 @@ export default function TimeResolveScreen() {
   );
 }
 
+// TPR signal(명리 약어)을 일상어 한 줄로 — daniel: 후보에 '쉬운 이유'를 짧게(어려운 명리용어 금지)
+function plainSignal(sig: string): string | null {
+  if (sig.startsWith('★') || sig.includes('직격')) return '입력한 인생 사건이 이 시간의 기운과 바로 통해요';
+  if (sig.includes('이동충')) return '이사·이동이 잦은 흐름과 잘 맞아요';
+  if (sig.includes('몸') || sig.includes('건강')) return '건강·몸의 변화 시기와 들어맞아요';
+  if (sig.startsWith('앵커')) return '그 해 겪은 사건의 변동과 맞아떨어져요';
+  if (sig.startsWith('조후')) return '계절 기운의 균형이 잘 맞는 시간이에요';
+  if (sig.startsWith('합충')) return '글자들이 끌고 부딪히는 모양이 사건과 맞아요';
+  return null; // 운성 등 미시 신호는 생략(너무 전문적)
+}
+
 function ResultView({ result }: { result: ReturnType<typeof scoreTimePillars> }) {
   const { ranked, verdict } = result;
   const head = verdict.kind === 'confirmed' ? '1순위로 좁혀졌어요'
@@ -169,13 +182,23 @@ function ResultView({ result }: { result: ReturnType<typeof scoreTimePillars> })
   return (
     <View style={styles.result}>
       <Text style={styles.resultH}>{head}</Text>
-      {ranked.slice(0, show).map((c, i) => (
-        <View key={c.candidate.branch} style={styles.cand}>
-          <Text style={styles.candKey}>{i + 1}. {branchReading(c.candidate.branch)}시 ({stemReading(c.candidate.stem)}{branchReading(c.candidate.branch)})</Text>
-          <View style={styles.barBg}><View style={[styles.bar, { width: `${Math.max(4, Math.round(c.prob * 100))}%` }]} /></View>
-          <Text style={styles.candPct}>{Math.round(c.prob * 100)}%</Text>
-        </View>
-      ))}
+      {ranked.slice(0, show).map((c, i) => {
+        // 시각 구간(hourRange) + 쉬운 이유(signals→일상어, 중복 제거 후 최대 2개)
+        const reasons = Array.from(new Set(c.signals.map(plainSignal).filter(Boolean))).slice(0, 2) as string[];
+        return (
+          <View key={c.candidate.branch} style={styles.cand}>
+            <View style={styles.candHead}>
+              <Text style={styles.candKey}>{i + 1}. {branchReading(c.candidate.branch)}시 ({stemReading(c.candidate.stem)}{branchReading(c.candidate.branch)})</Text>
+              <Text style={styles.candHour}>{c.candidate.hourRange}</Text>
+            </View>
+            <View style={styles.candBarRow}>
+              <View style={styles.barBg}><View style={[styles.bar, { width: `${Math.max(4, Math.round(c.prob * 100))}%` }]} /></View>
+              <Text style={styles.candPct}>{Math.round(c.prob * 100)}%</Text>
+            </View>
+            {reasons.length > 0 && <Text style={styles.candReason}>{reasons.map((r) => `· ${r}`).join('\n')}</Text>}
+          </View>
+        );
+      })}
       <Text style={styles.disc}>※ 사건이 많을수록 정확해져요. 추정 결과이며, 정확한 풀이는 시를 확정한 뒤 원국 전체로 봅니다.</Text>
     </View>
   );
@@ -203,10 +226,14 @@ const styles = StyleSheet.create({
   payHint: { ...font.caption, color: colors.inkFaint, marginTop: space(2.5), textAlign: 'center', lineHeight: 18 },
   result: { marginTop: space(7), padding: space(5), borderRadius: radius.md, backgroundColor: colors.juSoft, borderWidth: 1, borderColor: colors.ju },
   resultH: { fontSize: 17, fontWeight: '800', color: colors.ju, marginBottom: space(4) },
-  cand: { flexDirection: 'row', alignItems: 'center', marginBottom: space(3), gap: space(2) },
-  candKey: { fontSize: 14, fontWeight: '700', color: colors.ink, width: 130 },
+  cand: { marginBottom: space(4) },
+  candHead: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: space(1.5), gap: space(2) },
+  candKey: { fontSize: 14, fontWeight: '700', color: colors.ink, flexShrink: 1 },
+  candHour: { fontSize: 12, fontWeight: '700', color: colors.ju },
+  candBarRow: { flexDirection: 'row', alignItems: 'center', gap: space(2) },
   barBg: { flex: 1, height: 10, borderRadius: 5, backgroundColor: colors.sunk, overflow: 'hidden' },
   bar: { height: 10, borderRadius: 5, backgroundColor: colors.ju },
   candPct: { fontSize: 13, fontWeight: '800', color: colors.ju, width: 42, textAlign: 'right' },
+  candReason: { ...font.caption, color: colors.inkSoft, marginTop: space(1.5), lineHeight: 17 },
   disc: { ...font.caption, color: colors.inkFaint, marginTop: space(4), lineHeight: 18 },
 });

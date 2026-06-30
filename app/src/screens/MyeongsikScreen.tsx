@@ -30,7 +30,7 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 // ⚠️ expo-haptics 는 네이티브 모듈 — 현재 dev 빌드에 미포함이면 impactAsync 호출 시 크래시(2026-06).
 //   안전 래퍼로 감싼다(네이티브 없으면 조용히 무시). 재빌드(npx expo run:ios) 후 진동 정상 동작.
 const haptic = () => { try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); } catch { /* 네이티브 미포함 — 무시 */ } };
-import { HIDDEN, computeMonthDays, branchTenGod } from '@engine/saju'; // 지장간 표 + 일운(流日) + 지지십신
+import { HIDDEN, computeMonthDays, branchTenGod, daeunForward } from '@engine/saju'; // 지장간 표 + 일운(流日) + 지지십신 + 대운 순역
 import { twelveStage } from '@engine/twelve';                          // 임의 지지 12운성(타임라인용)
 import { detectInteractionsAmong, interactionLabel } from '@engine/structure';   // 합충 검출 + 짝이름 라벨(daniel: 유축반합·정신극)
 import { detectGyeokguk } from '../lib/gyeokguk';                                 // 핵심 격(살인상생·식신제살 등) 검출 — daniel
@@ -104,6 +104,7 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
   useEffect(() => { lastMyeongTab = activeTab; }, [activeTab]); // 선택 탭 기억 — 나갔다 와도 유지(daniel)
   useEffect(() => { lastRelSub = relSub; }, [relSub]);
   const [strengthOpen, setStrengthOpen] = useState(false); // 신강·신약 특징 시트
+  const [elemHidden, setElemHidden] = useState(false); // 오행분포에 지장간(支藏干) 오행 포함 토글(daniel)
   const [johuOpen, setJohuOpen] = useState(false); // 조후·음양 쏠림 시트(daniel)
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(10)).current;
@@ -148,9 +149,13 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
   };
   // R21 유형/무형(daniel) — 만세력 글자 테두리. 천간: 통근=유형(연파랑)·무통근(부유)=무형(연빨강). 지지: 공망=무형·그 외=유형.
   const rootedGan = new Set(visiblePos.flatMap((q) => rootsOf(q)));
-  // 오행 분포 (천간+지지 카운트)
+  // 오행 분포 (천간+지지 카운트) — daniel: elemHidden 토글 시 각 지지의 지장간(支藏干) 오행도 합산(숨은 기운까지 본 분포)
   const elem: Record<string, number> = { 木: 0, 火: 0, 土: 0, 金: 0, 水: 0 };
-  visiblePos.forEach((p) => { elem[stemElement(P[p].stem)]++; elem[branchElement(P[p].branch)]++; });
+  visiblePos.forEach((p) => {
+    elem[stemElement(P[p].stem)]++;
+    elem[branchElement(P[p].branch)]++;
+    if (elemHidden) P[p].hiddenStems.forEach((h) => { elem[stemElement(h.stem)]++; });
+  });
   // ① 오행별 십성(daniel) — 일간 오행 기준 각 오행의 십성(대분류: 비겁/식상/재성/관성/인성)
   const dayElem = stemElement(P['일'].stem);
   const ELEM_GEN: Record<string, string> = { 木: '火', 火: '土', 土: '金', 金: '水', 水: '木' }; // 상생
@@ -602,6 +607,12 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
         <>
       {/* 오행 분포 (오행색 도넛 + %·개수 범례) */}
       <Text style={styles.h}>{t('myeongsik.elements')}</Text>
+      {/* 지장간 포함 토글(daniel) — 켜면 도넛·범례가 지장간(支藏干) 오행까지 합산해 '숨은 기운'까지 본 분포 */}
+      <View style={styles.layerToggle}>
+        <Pressable style={[styles.layerChip, elemHidden && styles.layerChipOn]} onPress={() => setElemHidden((v) => !v)}>
+          <Text style={[styles.layerChipTx, elemHidden && styles.layerChipTxOn]}>{elemHidden ? '✓ ' : ''}지장간 포함</Text>
+        </Pressable>
+      </View>
       {(() => {
         const order = ['木', '火', '土', '金', '水'] as const;
         const total = order.reduce((a, el) => a + elem[el], 0) || 1;
@@ -679,6 +690,10 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
           {/* 대운·세운 타임라인 (원국·지장간 바로 아래) — 대운 탭 → 세운(과거~100세) → 월운 드릴다운 */}
           {luckCycles.length > 0 && (() => {
         const lc = luckCycles[selLuck];
+        // 대운수(행운수)+순역 — 명식당 하나(첫 입운 나이·순행/역행). daniel: 대운 옆 표기
+        const daeunsu: number | undefined = luckCycles[0]?.startAge;
+        const sx = input?.sex;
+        const luckDir = sx ? (daeunForward(P['년'].stem, sx) ? '순행' : '역행') : null;
         const an = lc?.annuals?.[selSeun];
         const mo = an?.months?.[selMonth];
         // 일진(流日) — 선택 세운·월운의 날짜별 간지. 선택 일운(selDay)이 없으면 그 달 1일로 폴백.
@@ -801,8 +816,10 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
               {renderByStrength(normEx as any[], activeExpand, (k) => toggleKey(setActiveExpand, k))}
             </View>
           )}
-          {/* 대운 타임라인 (천간/지지 분리, 탭 → 확장 명식·세운 갱신) */}
-          <Text style={styles.luckSub}>대운 (탭하면 그 대운의 세운 펼침)</Text>
+          {/* 대운 타임라인 — 제목 옆 대운수(행운수)·순역 표기(daniel) */}
+          <Text style={styles.luckSub}>
+            대운{daeunsu != null ? <Text style={{ fontWeight: '700' }}> · 대운수 {daeunsu}{luckDir ? ` ${luckDir}` : ''}</Text> : null} (탭하면 그 대운의 세운 펼침)
+          </Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} ref={luckScrollRef} onLayout={(e) => { centerM.current.luck.v = e.nativeEvent.layout.width; recenter('luck', luckScrollRef); }} onContentSizeChange={() => recenter('luck', luckScrollRef)} style={styles.luckScroll} contentContainerStyle={styles.luckScrollC}>
             {luckCycles.map((l, i) => (
               <Pressable key={i} onPress={() => { setSelLuck(i); setSelSeun(0); }} onLayout={l.isCurrent ? (e) => { centerM.current.luck.x = e.nativeEvent.layout.x; centerM.current.luck.w = e.nativeEvent.layout.width; recenter('luck', luckScrollRef); } : undefined} style={[styles.luckCard, l.isCurrent && styles.luckCardCur, selLuck === i && styles.luckCardSel]}>

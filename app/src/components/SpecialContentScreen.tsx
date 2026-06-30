@@ -49,7 +49,7 @@ const HERO_BY_KIND: Record<string, any> = {
   taegil: require('../../assets/icons/taegil.jpg'), talent: require('../../assets/icons/talent.jpg'), zodiac: require('../../assets/icons/zodiac.jpg'),
 };
 
-export function SpecialContentScreen({ kind, category = kind, title, sub, sections, needsZiwei = false, genMsg, heroMotif, themeColor = colors.ju, heroImage, buildBody, freePreview }: {
+export function SpecialContentScreen({ kind, category = kind, title, sub, sections, needsZiwei = false, genMsg, heroMotif, themeColor = colors.ju, heroImage, buildBody, freePreview, showExpiry = false }: {
   kind: CreditKind;        // 이용권/unlock 키(roots·image·mission). 크레딧 단위.
   category?: string;       // 캐시·Edge category(기본=kind). daniel B 유명인: 인물별 celeb_{id}로 분리(크레딧은 kind='celeb' 공용).
   title: string;
@@ -62,6 +62,7 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
   heroImage?: any;         // 히어로 배경 이미지(옵션 — 없으면 모티프만)
   buildBody?: (chart: SavedChart) => Record<string, any>; // 추가 body(수비학/점성술 = 앱이 산출한 차트를 Edge로 전달)
   freePreview?: (chart: SavedChart) => ReactNode; // 무료 티어(하이브리드) — 잠김 화면에 온디바이스 기본값 미리보기(수비학 생명수·점성술 빅3)
+  showExpiry?: boolean;    // 유료 단일 풀이(roots·image·talent·mission)만 = 생성일+1년 '보유 만료일' 표시(daniel #25). 무료·소모성 콘텐츠는 미전달 → 숨김.
 }) {
   const { t } = useTranslation();
   const router = useRouter();
@@ -71,6 +72,7 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
   const [savedChart, setSavedChart] = useState<SavedChart | null>(null);
   const [chartId, setChartId] = useState<string | null>(null);
   const [reading, setReading] = useState<any>(null);
+  const [expiry, setExpiry] = useState<string | null>(null); // 보유 만료일(생성일+1년) — showExpiry(유료 단일)일 때 캐시 created_at으로 채움(daniel #25)
   const [busy, setBusy] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [owned, setOwned] = useState(false); // 소유(프리미엄/관리자/차감 unlock) — 미구매 차트 풀이 노출 차단(daniel ⓐ). 명식 변경 시 재판정.
@@ -82,7 +84,7 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
   // 대표 명식 → 서버차트ID → 캐시(category=kind) 조회. 프리미엄이고 캐시 없으면 자동 생성.
   useEffect(() => {
     let alive = true;
-    setReading(null); setOwned(false); // 진입/명식 변경 시 초기화 — 미구매 차트가 직전 풀이로 새지 않게(daniel ⓐ)
+    setReading(null); setOwned(false); setExpiry(null); // 진입/명식 변경 시 초기화 — 미구매 차트가 직전 풀이로 새지 않게(daniel ⓐ)
     (async () => {
       const ch = await loadRepChart();
       if (!alive) return;
@@ -94,11 +96,13 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
       setChartId(id);
       // 소유 판정(daniel ⓐⓒ): 프리미엄 / 관리자 / 이 차트×종류 unlock(차감 완료) 중 하나여야 풀이 노출. 아니면 설명창(게이트).
       const own = isPremium || (await isAdmin()) || (await isUnlocked(id, kind));
-      const { data } = await supabase.from('readings').select('content').eq('chart_id', id).eq('category', category).eq('lang', appLang()).maybeSingle();
+      const { data } = await supabase.from('readings').select('content, created_at').eq('chart_id', id).eq('category', category).eq('lang', appLang()).maybeSingle();
       if (!alive) return;
       const cached = data?.content ?? null;
       setOwned(own);
       setReading(cached);
+      // 보유 만료일(daniel #25): 생성(구매)일 + 1년. 유료 단일 풀이(showExpiry)이고 캐시 created_at 있을 때만.
+      if (showExpiry && data?.created_at) { const d = new Date(data.created_at); d.setFullYear(d.getFullYear() + 1); setExpiry(`${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`); }
       setLoaded(true);
       if (isPremium && !cached) generate(id, cc.ziwei); // 프리미엄=자동 생성
     })().catch(() => { if (alive) setLoaded(true); });
@@ -209,6 +213,10 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
         <View style={styles.card}><Text style={[styles.err, dynStyles.err]}>{String(reading.error)}</Text></View>
       ) : (reading && owned) ? (
         <>
+        {/* 풀이 보유 만료일(daniel #25) — 캐시(생성된 풀이) + 유료 단일(showExpiry)일 때만. 소모성·무료는 showExpiry 미전달이라 미노출. */}
+        {showExpiry && expiry ? (
+          <Text style={{ fontSize: fs(12), color: colors.inkFaint, marginBottom: space(3), textAlign: 'center', lineHeight: 18 }}>이 풀이는 {expiry}까지 보유돼요 · 이후 다시 보려면 재구매가 필요해요</Text>
+        ) : null}
         {/* 이슈19 소제목 — 통변 결과 headline 있으면 섹션들 맨 위에 한 줄 강조(콘텐츠 테마색) */}
         {typeof reading.headline === 'string' && reading.headline.trim() ? (
           <Text style={{ fontSize: fs(19), fontWeight: '800', color: themeColor, marginBottom: space(3), lineHeight: fs(26) }}>{reading.headline}</Text>
@@ -273,11 +281,14 @@ export function ContentHero({ motif, image, title, sub, themeColor = colors.ju }
     return () => loop.stop();
   }, [kb, image]);
   const titleAnim = { opacity: a, transform: [{ translateY: a.interpolate({ inputRange: [0, 1], outputRange: [10, 0] }) }] };
+  // ★이미지 히어로 = 어두운 배경 → 글씨 항상 밝게(onImage). plain(이미지 없음) = 밝은 카드 → 기본 ink.
+  //   (라이트모드에서 어두운 히어로 이미지 위 ink(어두움) 글씨가 안 보이던 문제 — daniel 가시성 QA)
+  const onImg = !!image;
   const inner = (
     <View style={styles.heroInner}>
       {!image && motif}
-      <Animated.Text style={[styles.heroTitle, { fontSize: fs(22) }, titleAnim]}>{title}</Animated.Text>
-      <Animated.Text style={[styles.heroSub, { fontSize: fs(12), lineHeight: fs(19), opacity: a }]}>{sub}</Animated.Text>
+      <Animated.Text style={[styles.heroTitle, { fontSize: fs(22) }, onImg && { color: colors.onImage }, titleAnim]}>{title}</Animated.Text>
+      <Animated.Text style={[styles.heroSub, { fontSize: fs(12), lineHeight: fs(19), opacity: a }, onImg && { color: colors.onImageSoft }]}>{sub}</Animated.Text>
     </View>
   );
   if (image) return (
@@ -319,7 +330,7 @@ const styles = StyleSheet.create({
   heroImageBox: { width: '100%', aspectRatio: 1.75, borderRadius: radius.lg, overflow: 'hidden', marginBottom: space(5), backgroundColor: colors.sunk },
   heroPlain: { backgroundColor: colors.card, borderWidth: 1, borderRadius: radius.lg, marginBottom: space(5) }, // 이미지 없을 때 = 자동높이 컴팩트 헤더(큰 빈 박스 방지·daniel)
   heroImg: { borderRadius: radius.lg },
-  heroScrim: { ...StyleSheet.absoluteFillObject, backgroundColor: colors.overlay }, // 이미지 위 가독 스크림
+  heroScrim: { ...StyleSheet.absoluteFillObject, backgroundColor: colors.scrimHero }, // 이미지 위 가독 스크림(스킴 무관 어둡게 — 이미지가 어두우므로 라이트모드에서도 어두운 스크림이라야 밝은 글씨가 산다)
   heroInner: { alignItems: 'center', justifyContent: 'center', paddingVertical: space(6), paddingHorizontal: space(5) },
   heroTitle: { ...font.title, color: colors.ink, marginTop: space(2), textAlign: 'center' },
   heroSub: { ...font.caption, color: colors.inkSoft, marginTop: space(1.5), textAlign: 'center', lineHeight: 19 },

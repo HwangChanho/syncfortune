@@ -111,6 +111,7 @@ export function ReadingScreen({
   const [chartId, setChartId] = useState<string | null>(savedChart?.serverChartId ?? null);
   const [detail, setDetail] = useState<string | null>(null); // 상세로 펼친 항목 key
   const [stale, setStale] = useState<Set<string>>(new Set()); // ADR-055 P3: 분석 버전이 낮아 갱신 가능한 영역(opt-in)
+  const [expiry, setExpiry] = useState<string | null>(null); // 풀이 보유 만료일(가장 먼저 만료=최초 생성+1년) — 소모성 제외 모든 풀이 1년(daniel #25)
   // 추가 질문(Q&A) — 영역별 누적 + 입력/전송 상태(프리미엄 2회 무료 + 건당)
   const [followups, setFollowups] = useState<Record<string, Followup[]>>({});
   const [askInput, setAskInput] = useState('');
@@ -160,18 +161,21 @@ export function ReadingScreen({
       const id = await ensureServerChart();
       if (!alive || !id) { if (alive) setCacheLoaded(true); return; }
       setChartId(id);
-      const { data } = await supabase.from('readings').select('category, content, l2_ver').eq('chart_id', id).eq('lang', appLang());
+      const { data } = await supabase.from('readings').select('category, content, l2_ver, created_at').eq('chart_id', id).eq('lang', appLang());
       if (!alive) return;
       const keys = new Set(cats.map((x) => x.key));   // 이 화면 항목(사주/자미)만 반영
       const loaded: Record<string, any> = {};
       const st = new Set<string>();                   // ADR-055 P3: 분리본(l2_ver≥1)인데 옛 버전 → 갱신 가능
+      let minCreated: string | null = null; // 보유 만료 = 최초 생성+1년(가장 먼저 만료되는 영역 기준)
       (data ?? []).forEach((r: any) => {
         if (!keys.has(r.category)) return;
         loaded[r.category] = r.content;
+        if (r.created_at && (!minCreated || r.created_at < minCreated)) minCreated = r.created_at;
         if ((r.l2_ver ?? 0) >= 1 && (r.l2_ver ?? 0) < READING_L2_VER) st.add(r.category);
       });
       setReadings(loaded);
       setStale(st);
+      if (minCreated) { const d = new Date(minCreated); d.setFullYear(d.getFullYear() + 1); setExpiry(`${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`); }
       setCacheLoaded(true);
       loadFollowups(id).then((f) => { if (alive) setFollowups(f); }).catch(() => {}); // 추가 질문 누적 로드
     })().catch(() => { if (alive) setCacheLoaded(true); /* 실패해도 자동 생성 판단은 진행 */ });
@@ -490,9 +494,15 @@ export function ReadingScreen({
 
   return (
     <>
-    <UnlockOverlay visible={!!progress} message={progress?.current ? t('reading.progress', { current: progress.current, done: progress.done, total: progress.total }) : t('reading.generating', '풀이를 정성껏 그리는 중…')} />
+    <UnlockOverlay visible={!!progress && Object.keys(readings).length === 0 /* 캐시(이미 생성된 풀이)가 하나라도 있으면 자물쇠 숨김 — 재진입/부분단절 시 기존 풀이 위에 자물쇠+재생성 뜨던 것 방지(daniel #24) */} message={progress?.current ? t('reading.progress', { current: progress.current, done: progress.done, total: progress.total }) : t('reading.generating', '풀이를 정성껏 그리는 중…')} />
     <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>
       {header}
+      {/* 풀이 보유 만료일(daniel #25) — 생성된 풀이가 있을 때만. 소모성(꿈해몽·추가질문)은 별도라 무관. */}
+      {expiry && Object.keys(readings).length > 0 && (
+        <Text style={{ fontSize: fs(12), color: colors.inkFaint, marginBottom: space(3), textAlign: 'center', lineHeight: 18 }}>
+          이 풀이는 {expiry}까지 보유돼요 · 이후 다시 보려면 재구매가 필요해요
+        </Text>
+      )}
       {/* 상단 타이틀·설명 제거(daniel: 카드뷰만) — 화면 헤더(네비)로 충분 */}
       {/* 생성 버튼 + 과금 안내(미생성 항목이 있을 때만) */}
       {showStart && (

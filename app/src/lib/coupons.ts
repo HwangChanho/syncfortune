@@ -17,7 +17,7 @@ export type CreditKind = 'reading' | 'ziwei' | 'compat' | 'timeline' | 'followup
 // price = 건당 가격(원). daniel 확정(2026-06): 원가(opus, 영구캐시 1회)×~3, 소액(타임라인·질문)=₩990, 애정 ₩4,900.
 export const CREDIT_KINDS: { key: CreditKind; ko: string; price: number }[] = [
   { key: 'reading', ko: '사주 풀이', price: 19900 }, { key: 'ziwei', ko: '자미두수', price: 19900 }, { key: 'compat', ko: '궁합', price: 6900 }, // 궁합 3900→6900: 사주+자미 2탭 묶음(daniel 06-29, 쌍당 1회로 두 탭·년도 온디맨드). ASC 실가는 fastlane(daniel)
-  { key: 'timeline', ko: '인생 타임라인', price: 990 }, { key: 'followup', ko: '추가 질문', price: 990 }, { key: 'love', ko: '나의 애정흐름', price: 4900 },
+  { key: 'timeline', ko: '인생 타임라인', price: 1900 }, { key: 'followup', ko: '추가 질문', price: 990 }, { key: 'love', ko: '나의 애정흐름', price: 4900 }, // 타임라인 990→1900(daniel 06-30). ASC 실가도 1900 반영 필요(fastlane/ASC=daniel)
   // 스페셜(고비용 LLM) — 광고 게이트 제거·건당 결제 전환(daniel 2026-06). 오늘/이달은 저비용이라 광고 무료 유지.
   { key: 'newyear', ko: '신년운세', price: 6900 }, { key: 'lifegraph', ko: '인생 그래프', price: 3900 },
   // 심층 콘텐츠(daniel 2026-06): 뿌리(통근·투출)·비치는 나(천간 인상)·나의 사명(격국·용신 + 자미 보조)
