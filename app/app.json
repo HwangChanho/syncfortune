@@ -37,7 +37,14 @@
     },
     "extra": {
       "supabaseUrl": "https://YOUR_PROJECT_REF.supabase.co",
-      "supabaseAnonKey": "YOUR_SUPABASE_ANON_KEY"
-    }
+      "supabaseAnonKey": "YOUR_SUPABASE_ANON_KEY",
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "72e189fd-50b9-45b1-b1a9-e0e89f37b3ef"
+      }
+    },
+    "owner": "danielhwang"
   }
 }
