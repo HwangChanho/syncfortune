@@ -5,13 +5,13 @@
 //   ② param 없이 직접 진입(홈 '프리미엄 풀이' 타일) → 대표 SavedChart 로드 → serverChartId 캐시 연결(ADR-052)
 // 대표 명식조차 없을 때만 등록을 유도(이미 등록한 사용자에게 '다시 등록' 요구 안 함).
 // ─────────────────────────────────────────────────────────────────────────
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { View, Text, Pressable, ActivityIndicator, StyleSheet } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { ReadingScreen } from '../../screens/ReadingScreen';
 import { ChartPicker } from '../../components/ChartPicker'; // 풀이 상단 명식 전환 헤더(전환 시 게이트 재평가)
-import { loadRepChart, listCharts, type SavedChart } from '../../lib/myChart';
+import { loadRepChart, listCharts, setRepresentative, getRepresentativeId, type SavedChart } from '../../lib/myChart';
 import { colors, radius, space, font } from '../../lib/theme';
 import type { ChartInput } from '@spec/chart';
 
@@ -23,16 +23,22 @@ export default function ReadingRoute() {
   const [savedChart, setSavedChart] = useState<SavedChart | null>(null);
   const [loading, setLoading] = useState(true);
   const [reloadKey, setReloadKey] = useState(0); // 명식 전환(ChartPicker) → 대표 재로드 + ReadingScreen 리마운트(게이트 재평가)
+  const didApplyChartId = useRef(false); // chartId param(풀이 명식) 대표 전환을 최초 1회만 — ChartPicker 수동 전환 존중·무한루프 방지
 
   useEffect(() => {
     // input param(특정 명식 지정 경로) 우선 → 캐시 매핑 없는 1회용.
     if (input) { setMe(JSON.parse(input)); setSavedChart(null); setLoading(false); return; }
     let alive = true;
-    // ★chartId param(홈 배너/푸시) → 그 저장 명식 로드(캐시 일치, daniel G: 진입 시 재생성 버그 수정). 없거나 못 찾으면 대표.
     (async () => {
-      let ch: SavedChart | null = null;
-      if (chartId) { const cs = await listCharts(); ch = cs.find((c) => c.id === chartId) ?? null; }
-      if (!ch) ch = await loadRepChart();
+      // ★chartId param(홈 배너/푸시 = 그 풀이를 적용한 명식) → 최초 1회 *대표로 전환*(daniel #31: 풀이 명식으로 넘어가고
+      //   헤더·전 화면이 그 명식으로 동기화). 이후엔 ChartPicker 수동 전환을 존중(didApply 가드 + 이미 대표면 skip → 무한루프 방지).
+      if (chartId && !didApplyChartId.current) {
+        didApplyChartId.current = true;
+        const cs = await listCharts();
+        const target = cs.find((c) => c.id === chartId) ?? null;
+        if (target && (await getRepresentativeId()) !== target.id) await setRepresentative(target.id);
+      }
+      const ch = await loadRepChart(); // 대표(위 전환 반영) 로드 → savedChart·ChartPicker 헤더 일치
       if (!alive) return;
       setSavedChart(ch);
       setMe(ch?.input ?? null);
