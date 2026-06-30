@@ -38,7 +38,7 @@ async function prefetchOnLogin(s: Session): Promise<void> {
     const rep = await loadRepChart();
     if (rep) await ensureServerChartId(computeChart(rep.input), rep.input, s, rep); // ① serverChartId 선발급(첫 진입 즉시)
     // ② 프리미엄이면 대표 풀이(사주16+자미12)·오늘내일도 백그라운드 선생성 — 홈 진입 전 미리(멱등·캐시, daniel #32)
-    await refreshPremium();
+    await refreshPremium(s.user?.id); // ★ userId 넘겨야 프리미엄 평가(없이 호출하면 미로그인=false로 덮어써 광고가 뜸·#36)
     if (rep && getPremiumSnapshot()) { void prewarmReadings(rep, s); void prewarmDaily(rep, s); }
   } catch { /* 선발급 실패 무시 — 진입 시 정상 경로가 재시도 */ }
 }

@@ -64,7 +64,6 @@ export function AuthScreen() {
     <View style={styles.wrap}>
       <Text style={styles.title}>{t('appName')}</Text>
       <View style={styles.divider} />
-      <Text style={styles.sub}>{t('auth.signin')}</Text>
 
       {/* ★이메일/비번 로그인 제거 — SNS 로그인만(daniel). 신규·기존 모두 소셜로. */}
       {loading ? <ActivityIndicator color={colors.ju} style={{ marginVertical: space(3) }} /> : null}

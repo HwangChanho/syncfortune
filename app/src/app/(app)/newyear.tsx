@@ -4,7 +4,7 @@
 //   = 올해의 키워드 + 새해 총평 + 분야 5(통합·직업·재물·애정·건강) + 12개월 캘린더 + 삼재 대처 + 올해 다짐.
 //   Edge kind='newyear'(NEWYEAR_READING_SYSTEM) · 캐시 category='newyear_YYYY'(연운 year_YYYY와 안 겹침).
 //   삼재(lib/samjae 온디바이스)는 배지로 즉시 표시 + body로 Edge에 전달(LLM 대처문 samjaeAdvice 생성).
-//   접근: 프리미엄=무광고 자동 / 무료=보상형 광고 1회. §4 안전: 삼재=흉 단정 금지(전향적).
+//   접근: 프리미엄=무광고 자동 / 비프리미엄=결제(이용권·관리자)만 — 유료 콘텐츠라 보상형 광고 무료 생성 없음(daniel). §4 안전: 삼재=흉 단정 금지(전향적).
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useMemo, useState, useRef } from 'react';
 import { View, Text, ScrollView, Pressable, ActivityIndicator, StyleSheet, ImageBackground } from 'react-native';

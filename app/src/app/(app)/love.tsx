@@ -44,6 +44,7 @@ const SECTIONS: { key: string; tk: string }[] = [
   { key: 'appearance', tk: 'love.appearance' },
   { key: 'personality', tk: 'love.personality' },
   { key: 'behavior', tk: 'love.behavior' },
+  { key: 'ageGap', tk: 'love.ageGap' }, // #40 배우자 나이차(R8 연배) — 만날 사람과 나의 나이차 경향(연상/또래/연하·폭)
   { key: 'howWeMeet', tk: 'love.howWeMeet' },
   { key: 'elementMatch', tk: 'love.elementMatch' },
   { key: 'dynamic', tk: 'love.dynamic' },
@@ -54,6 +55,10 @@ const SECTIONS: { key: string; tk: string }[] = [
 
 const LOVE_PINK = '#E5749B'; // 애정 테마색(인연 실 모티프와 통일)
 
+// love 결과(Edge 응답 JSON) — SECTIONS 키로 동적 접근. 런타임 JSON이라 인덱스 시그니처로 느슨하게 두되,
+//   알려진 키는 명시해 문서화한다. #40 배우자 나이차(R8 연배) = ageGap 섹션(옵셔널).
+type LoveReading = { [section: string]: string | undefined; headline?: string; ageGap?: string; error?: string };
+
 export default function LoveScreen() {
   const { t } = useTranslation();
   const router = useRouter();
@@ -62,7 +67,7 @@ export default function LoveScreen() {
   const { isPremium } = useSubscription();
   const [savedChart, setSavedChart] = useState<SavedChart | null>(null);
   const [chartId, setChartId] = useState<string | null>(null);
-  const [reading, setReading] = useState<any>(null);     // 캐시/생성된 통변(9항목)
+  const [reading, setReading] = useState<LoveReading | null>(null);     // 캐시/생성된 통변(10항목 — #40 ageGap 포함)
   const [busy, setBusy] = useState(false);
   const [loaded, setLoaded] = useState(false);           // 캐시 로드 완료
   const [reloadKey, setReloadKey] = useState(0);         // ChartPicker 로 대표 전환 시 재로드 트리거

@@ -29,14 +29,12 @@ const HUBS: Record<string, { titleKey: string; items: HubItem[] }> = {
     titleKey: 'menu.saju',
     items: [
       { key: 'reading', icon: ICON.saju, labelKey: 'premiumHub.sajuReading', descKey: 'premiumHub.sajuReadingDesc', route: '/reading' },
-      { key: 'timeline', icon: ICON.timeline, labelKey: 'menu.timeline', descKey: 'menu.timelineDesc', route: '/timeline' },
     ],
   },
   ziwei: {
     titleKey: 'menu.ziweiHub',
     items: [
       { key: 'reading', icon: ICON.ziwei, labelKey: 'premiumHub.ziweiReading', descKey: 'premiumHub.ziweiReadingDesc', route: '/ziwei' },
-      { key: 'timeline', icon: ICON.timeline, labelKey: 'menu.timeline', descKey: 'menu.timelineDesc', route: '/timeline' },
     ],
   },
 };

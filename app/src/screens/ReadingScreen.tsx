@@ -5,7 +5,8 @@
 // 캐시(ADR-052): 명식↔서버 charts.id 매핑(savedChart.serverChartId, 온디바이스)으로 chart_id 안정화
 //   → 진입 시 readings(chart_id×category)를 select 해 *생성 없이* 즉시 표시. 없는 항목만 생성.
 //   사주/자미는 같은 serverChartId 를 공유하고 category 키(영역명 vs 궁명)로 구분 캐시된다.
-// 접근: 프리미엄(구독)=게이트 없이 생성 / 비프리미엄=trial(첫1회 무료)·perUse(광고·건당). 캐시 열람은 무게이트.
+// 접근: 프리미엄(구독)=게이트 없이 생성 / 비프리미엄=미리보기 + perUse(이용권·건당 결제). 캐시 열람은 무게이트.
+//   ★daniel(2026-07): 유료(비용발생) 통변은 보상형 광고로 무료 생성하지 않는다 — 결제/프리미엄만(광고 무료 경로 제거).
 //   ⚠️ '1회 트리거=전 항목 1세트' 게이트. 세트 단가 정책은 daniel 검수.
 //   ⚠️ Edge invoke=프로덕션(개발 미배포=호출 실패=비용0·절대0). charts insert/readings select 는 직접 호출이라 개발에서도 동작.
 // ─────────────────────────────────────────────────────────────────────────
@@ -101,7 +102,7 @@ export function ReadingScreen({
   const router = useRouter();
   const { t } = useTranslation();
   const { session } = useAuth();
-  const { watchAdForReading, purchaseReading } = useEntitlement();
+  const { purchaseReading } = useEntitlement();
   const { isPremium } = useSubscription();
   const { fs } = useFontScale(); // 통변 본문 글자 크기(설정에서 조절)
   const [readings, setReadings] = useState<Record<string, any>>({});
@@ -119,6 +120,7 @@ export function ReadingScreen({
   const [cacheLoaded, setCacheLoaded] = useState(false);  // 캐시 로드 완료(자동 생성 판단 기준)
   const autoRan = useRef(false);                          // 프리미엄 진입 시 자동 생성 1회 가드
   const previewRan = useRef(false);                       // 미리보기(첫 분야 맛보기) 1회 가드 — 무료 진입용
+  const startingRef = useRef(false);                      // onStart(생성 시작) 연타 가드(동기 ref) — 이중 결제·중복 API 호출 차단(daniel). runAll의 genActive(모듈락) 앞단에서 동기 차단.
   // 대표 명식 여부 — 프리미엄 '자동 생성'은 대표 명식에만(비용통제 daniel: 명식 100개 자동 생성 방지).
   //   대표가 아니면 프리미엄이라도 수동 '생성' 버튼으로(의도된 1회 소비). 캐시는 그대로 표시.
   const [isRep, setIsRep] = useState(false);
@@ -319,23 +321,28 @@ export function ReadingScreen({
     setProgress(null);
   }
 
-  // 생성 트리거: 프리미엄 > 무료이용권(쿠폰) > 광고·결제(trial 폐지) 순.
+  // 생성 트리거: 프리미엄 > 무료이용권(쿠폰) > 건당 결제 순. (★보상형 광고 무료 생성 제거 — 유료 통변은 결제/프리미엄만, daniel 2026-07.)
   async function onStart() {
-    // 풀이는 계정에 저장·캐시됨(서버차트 귀속) → 미로그인 시 '저장용' 안내 후 로그인 유도(daniel)
-    if (!requireLoginForPurchase(session, () => router.push('/login'), t)) return;
-    if (!assertOnline(t)) return;                          // 오프라인 = 신규 생성 차단(경고)
-    if (isPremium) { await runAll(); return; }             // 구독 = 무게이트(캐시로 비용 방어)
-    const ck = kind === 'ziwei' ? 'ziwei' : 'reading';     // 이 화면 종류의 세트 크레딧 키
-    // ★서버 권위 세트 게이트(보안 P3·daniel): 차감·언락은 Edge가 한다(이중차감 제거). 클라는 UX 사전확인만.
-    //   ① 이미 세트 언락됨 → 무료 재생성  ② 크레딧 보유 → 바로 생성(Edge가 1회 차감+언락)  ③ 없음 → 광고/결제로 부여
-    if (chartId && await isReadingUnlocked(chartId, ck)) { await runAll(); return; }
-    if (((await loadCredits())[ck] ?? 0) > 0) { await runAll(); return; }
-    // trial 폐지(daniel) → 광고/건당 결제로 크레딧 부여 후 생성(Edge가 차감+세트 언락).
-    Alert.alert(t('reading.premiumAlert'), t('reading.premiumAlertMsg'), [
-      { text: t('reading.watchAd'), onPress: async () => { try { await watchAdForReading(); await grantCredit(ck); await runAll(); } catch (e) { if ((e as Error).message !== 'cancelled') Alert.alert('!', (e as Error).message); } } },
-      { text: t('reading.payPerUse'), onPress: async () => { try { await purchaseReading(); await grantCredit(ck); await runAll(); } catch (e) { Alert.alert('!', (e as Error).message); } } },
-      { text: t('common.cancel'), style: 'cancel' },
-    ]);
+    if (startingRef.current) return;                       // ★연타 가드(동기): 이미 시작 처리 중이면 무시 — 게이트(언락·크레딧 조회) 비동기 구간 사이로 새는 이중 결제·중복 생성 차단
+    startingRef.current = true;
+    try {
+      // 풀이는 계정에 저장·캐시됨(서버차트 귀속) → 미로그인 시 '저장용' 안내 후 로그인 유도(daniel)
+      if (!requireLoginForPurchase(session, () => router.push('/login'), t)) return;
+      if (!assertOnline(t)) return;                          // 오프라인 = 신규 생성 차단(경고)
+      if (isPremium) { await runAll(); return; }             // 구독 = 무게이트(캐시로 비용 방어)
+      const ck = kind === 'ziwei' ? 'ziwei' : 'reading';     // 이 화면 종류의 세트 크레딧 키
+      // ★서버 권위 세트 게이트(보안 P3·daniel): 차감·언락은 Edge가 한다(이중차감 제거). 클라는 UX 사전확인만.
+      //   ① 이미 세트 언락됨 → 무료 재생성  ② 크레딧 보유 → 바로 생성(Edge가 1회 차감+언락)  ③ 없음 → 건당 결제로 부여
+      if (chartId && await isReadingUnlocked(chartId, ck)) { await runAll(); return; }
+      if (((await loadCredits())[ck] ?? 0) > 0) { await runAll(); return; }
+      // ★유료 통변은 보상형 광고로 무료 생성하지 않는다(daniel: 비용발생 콘텐츠=결제/프리미엄만) → 건당 결제로만 크레딧 부여 후 생성(Edge가 차감+세트 언락).
+      Alert.alert(t('reading.premiumAlert'), t('reading.premiumAlertMsg'), [
+        { text: t('reading.payPerUse'), onPress: async () => { try { await purchaseReading(); await grantCredit(ck); await runAll(); } catch (e) { Alert.alert('!', (e as Error).message); } } },
+        { text: t('common.cancel'), style: 'cancel' },
+      ]);
+    } finally {
+      startingRef.current = false;                           // 해제 — 생성(runAll)은 위에서 await되어 끝까지 잠금 유지, 결제 alert 분기는 모달이 추가 탭을 막음
+    }
   }
 
   const banner = isPremium ? t('reading.bannerPremium') : t('reading.bannerPerUse');
@@ -519,6 +526,12 @@ export function ReadingScreen({
       {/* 차트 저장 실패(전역) */}
       {globalError && <View style={styles.card}><Text style={styles.err}>{globalError}</Text></View>}
 
+      {/* ★진입 직후 캐시(serverChartId·readings) 로딩 중 — 빈 화면 '무반응' 대신 스피너(daniel: 첫 진입 로딩이 김).
+          생성 중(progress)·생성 버튼(showStart)·이미 받은 풀이가 있으면 그쪽 UI가 대신 떠서 미표시. */}
+      {!cacheLoaded && !showStart && !progress && Object.keys(readings).length === 0 && (
+        <View style={styles.loadingBox}><ActivityIndicator color={colors.ju} /></View>
+      )}
+
       {/* 카테고리 그룹 아코디언 — 그룹 헤더(접기/펴기) + 영역 리스트(탭→상세 모달). 기본 펼침. */}
       {groups.map((g) => {
         const open = expandedG[g.label] ?? true;
@@ -590,6 +603,7 @@ const styles = StyleSheet.create({
   screen: { backgroundColor: colors.bg },
   wrap: { padding: space(5), paddingBottom: space(10) },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.bg },
+  loadingBox: { paddingVertical: space(12), alignItems: 'center' }, // 진입 직후 캐시 로딩 스피너(무반응 방지·daniel)
   h: { ...font.heading, fontSize: 21 },
   sub: { ...font.caption, marginTop: space(1.5), marginBottom: space(4) },
   startBtn: { backgroundColor: colors.ju, borderRadius: radius.md, paddingVertical: space(4), alignItems: 'center', marginTop: space(2), ...shadow.card },

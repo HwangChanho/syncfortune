@@ -154,7 +154,9 @@ export function TimelineScreen({ input, savedChart }: { input: ChartInput | null
     setBusy(key);
     setGenProgress({ active: true, total: 1, done: 0, label: '인생 타임라인', route: '/timeline' }); // 일회성 진행도(daniel 이슈15)
     try {
-      const { data, error } = await supabase.functions.invoke('interpret', { body: { chartId: cid, category: key, kind: 'timeline', tier: 'paid', lang: appLang() } });
+      // 사주 大運 주축 + 자미두수 운한(대한) 보조 교차(daniel: 타임라인은 사주+자미 종합) — love 화면처럼 최신 자미 명반(운한 포함)을 body로 전달.
+      //   시각 미상 차트는 c.ziwei가 子시(0시) 기반이라 부실하지만, 서버 빌더가 timeUnknown 게이트로 무시(사주만 폴백). 자미 계산은 지연 — 이 호출 시 1회만.
+      const { data, error } = await supabase.functions.invoke('interpret', { body: { chartId: cid, category: key, kind: 'timeline', tier: 'paid', lang: appLang(), ziwei: c?.ziwei } });
       // 방어: 일시적 불가/오류는 원문 대신 친화 메시지로(예전 'non-2xx' 노출 방지)
       const f = invokeFail(data, error);
       setReadings((prev) => ({ ...prev, [key]: f ? { error: f.message } : data?.reading }));

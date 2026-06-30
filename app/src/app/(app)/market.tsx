@@ -93,18 +93,33 @@ export default function MarketRoute() {
   useEffect(() => { priceStringRC(PRODUCT_PREMIUM, `₩${PREMIUM_PRICE.toLocaleString()}`).then(setPremPrice).catch(() => {}); }, []);
 
   // 프리미엄 가입(평생·전체 무제한) — 결제 미연동 시 '준비 중'. 성공 시 상태 갱신. 취소는 조용히.
+  //   daniel: 결제 진행 전 '적용 명식'을 확인 Alert 로 한 번 더 보여준다(오결제 방지). 실제 구매 로직은 내부 함수로 분리.
   async function buyPremium() {
-    if (buyingPrem) return;
-    if (!purchasesEnabled()) { Alert.alert(t('market.payPending')); return; }
-    setBuyingPrem(true);
-    try {
-      await purchasePremium();
-      await refresh();
-      Alert.alert(t('settings.premiumOkTitle'), t('settings.premiumOk'));
-    } catch (e: any) {
-      if (e?.message === 'cancelled') return;
-      Alert.alert(t('settings.premiumTitle'), e?.message ?? '');
-    } finally { setBuyingPrem(false); }
+    // 실제 프리미엄 구매(확인 Alert 통과 후 호출) — 기존 로직 그대로 이동.
+    async function doBuyPremium() {
+      if (buyingPrem) return;
+      if (!purchasesEnabled()) { Alert.alert(t('market.payPending')); return; }
+      setBuyingPrem(true);
+      try {
+        await purchasePremium();
+        await refresh();
+        Alert.alert(t('settings.premiumOkTitle'), t('settings.premiumOk'));
+      } catch (e: any) {
+        if (e?.message === 'cancelled') return;
+        Alert.alert(t('settings.premiumTitle'), e?.message ?? '');
+      } finally { setBuyingPrem(false); }
+    }
+    // 명식이 하나도 없으면(=등록 0개) 먼저 등록 안내 — 명식 기준으로 적용·진입하므로.
+    if (!sel) { Alert.alert(t('market.noChart'), t('market.registerChartFirst', '명식을 먼저 등록해 주세요')); return; }
+    // 진행 전 적용 명식 확인(daniel) — 확인 시에만 실제 구매.
+    Alert.alert(
+      t('market.confirmChartTitle', '명식 확인'),
+      t('market.confirmChartMsg', `'${sel?.label ?? '대표 명식'}' 명식으로 프리미엄을 진행할까요?`),
+      [
+        { text: t('common.cancel', '취소'), style: 'cancel' },
+        { text: t('common.confirm', '확인'), onPress: () => void doBuyPremium() },
+      ],
+    );
   }
 
   // 이용권 적용 — 선택 명식을 대표로 설정 후 해당 풀이 화면으로(거기서 이용권/프리미엄/구매로 열림).
@@ -150,11 +165,66 @@ export default function MarketRoute() {
     }
   }
 
+  // 개별 구매 전용(프리미엄 미포함) kind — 섹션 B. 그 외 전부는 프리미엄에 포함(섹션 A).
+  //   ※ timeline(인생 타임라인)은 섹션 A·B 어디에도 넣지 않고, 명식 선택 아래 '독립 강조 카드'로 단독 노출(daniel).
+  const INDIVIDUAL = new Set<CreditKind>(['dream', 'followup', 'timeresolve']);
+
+  // 인생 타임라인(독립 강조 카드)용 파생값 — 카드 이미지(있으면)·보유 여부(1회성 소모)
+  const tlCard = CARD['timeline'];                  // 타임라인 카드 이미지·설명(홈과 동일 재사용)
+  const tlOwned = (credits['timeline'] ?? 0) > 0;   // 타임라인 보유 여부(보유=열기 / 미보유=구매)
+
+  // 마켓 카드 한 장 렌더(섹션 A·B 공유 헬퍼) — premInc=프리미엄 포함 섹션 여부.
+  //   • premInc && isPremium → 가격·구매 버튼 숨기고 '무제한 이용 중' 배지 + 카드 누르면 열기(apply).
+  //   • 그 외(비프리미엄 또는 개별전용 섹션) → 기존 동작: 보유 시 열기 / 미보유 시 개별 구매.
+  //   ※ 결제·적용 로직(buy/apply/grantCredit)은 미변경 — 표시 분기만 추가(UI 전용).
+  function renderCard(c: (typeof CREDIT_KINDS)[number], premInc: boolean) {
+    const owned = (credits[c.key] ?? 0) > 0; // 1회성 소모 — 보유/미보유로만
+    const card = CARD[c.key];                // 카드 이미지+설명(홈과 동일·daniel: 마켓 리스트에도)
+
+    // 프리미엄 포함 섹션 + 프리미엄 가입 = 무제한(가격/구매 숨김, 카드 전체가 열기 버튼)
+    if (premInc && isPremium) {
+      return (
+        <Pressable key={c.key} style={styles.card} onPress={() => apply(c.key)} disabled={!sel}>
+          {card && <Image source={card.img} style={styles.thumb} />}
+          <View style={{ flex: 1 }}>
+            <Text style={styles.name}>{c.ko}</Text>
+            {card && <Text style={styles.desc} numberOfLines={2}>{t(card.desc)}</Text>}
+          </View>
+          <View style={styles.unlimitedBadge}>
+            <Text style={styles.unlimitedTx}>{t('market.unlimited', '무제한 이용 중')}</Text>
+          </View>
+        </Pressable>
+      );
+    }
+
+    // 기존 동작(현행 그대로): 보유 시 열기(apply) / 미보유 시 개별 구매(buy)
+    return (
+      <View key={c.key} style={styles.card}>
+        {card && <Image source={card.img} style={styles.thumb} />}
+        <View style={{ flex: 1 }}>
+          <Text style={styles.name}>{c.ko}</Text>
+          {card && <Text style={styles.desc} numberOfLines={2}>{t(card.desc)}</Text>}
+          <Text style={styles.price}>{prices[c.key] ?? `₩${c.price.toLocaleString()}`}</Text>
+          <Text style={[styles.have, owned && styles.haveOn]}>{owned ? `${t('market.owned')} ×${credits[c.key]}` : t('market.notOwned')}</Text>
+        </View>
+        {owned ? (
+          <Pressable style={styles.buyBtn} onPress={() => apply(c.key)} disabled={!sel}>
+            <Text style={styles.buyTx}>{t('market.openApply')}</Text>
+          </Pressable>
+        ) : (
+          <Pressable style={[styles.buyBtn, busy === c.key && styles.buyBtnBusy]} onPress={() => buy(c.key)} disabled={busy !== null}>
+            <Text style={styles.buyTx}>{busy === c.key ? '…' : t('market.buy')}</Text>
+          </Pressable>
+        )}
+      </View>
+    );
+  }
+
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>
       <Text style={styles.intro}>{t('market.intro')}</Text>
-      {/* ★보유기한 1년 명시(daniel: 법적 — 약관 제4조 3항과 일치) */}
-      <Text style={styles.retention}>{t('market.retentionNote', '구매한 풀이는 구매일로부터 1년간 보유되며, 1년이 지나면 자동 삭제됩니다. 이후 다시 보려면 재구매가 필요해요.')}</Text>
+      {/* ★보유기한 1년 명시(daniel: 법적 — 약관 제4조 3항과 일치) — 비프리미엄에게만(프리미엄=무제한 보유라 불필요) */}
+      {!isPremium && <Text style={styles.retention}>{t('market.retentionNote', '구매한 풀이는 구매일로부터 1년간 보유되며, 1년이 지나면 자동 삭제됩니다. 이후 다시 보려면 재구매가 필요해요.')}</Text>}
 
       {/* 프리미엄 — 명식 무관(전체 무제한). 비프리미엄=가입 카드 / 프리미엄=이용 중 표시(항상 노출) */}
       {isPremium ? (
@@ -170,6 +240,8 @@ export default function MarketRoute() {
           <View style={{ flex: 1 }}>
             <Text style={styles.premTitle}>{t('settings.premiumBuy', '평생 프리미엄')}</Text>
             <Text style={styles.premSub}>{t('settings.premiumDesc', '모든 콘텐츠 무제한 · 광고 제거')}</Text>
+            {/* 적용 명식 안내(daniel) — 결제 전 어느 명식으로 진행되는지 작은 글씨로 노출 */}
+            <Text style={styles.premChart}>{t('market.appliedChart', '적용 명식')}: {sel?.label ?? t('market.noChart')}</Text>
           </View>
           <Text style={styles.premPrice}>{buyingPrem ? '…' : (premPrice || `₩${PREMIUM_PRICE.toLocaleString()}`)}</Text>
         </Pressable>
@@ -184,30 +256,35 @@ export default function MarketRoute() {
         <Text style={styles.chartSelChevron}>▾</Text>
       </Pressable>
 
-      {CREDIT_KINDS.map((c) => {
-        const owned = (credits[c.key] ?? 0) > 0; // 1회성 소모 — 보유/미보유로만
-        const card = CARD[c.key]; // 카드 이미지+설명(홈과 동일·daniel: 마켓 리스트에도)
-        return (
-          <View key={c.key} style={styles.card}>
-            {card && <Image source={card.img} style={styles.thumb} />}
-            <View style={{ flex: 1 }}>
-              <Text style={styles.name}>{c.ko}</Text>
-              {card && <Text style={styles.desc} numberOfLines={2}>{t(card.desc)}</Text>}
-              <Text style={styles.price}>{prices[c.key] ?? `₩${c.price.toLocaleString()}`}</Text>
-              <Text style={[styles.have, owned && styles.haveOn]}>{owned ? `${t('market.owned')} ×${credits[c.key]}` : t('market.notOwned')}</Text>
-            </View>
-            {owned ? (
-              <Pressable style={styles.buyBtn} onPress={() => apply(c.key)} disabled={!sel}>
-                <Text style={styles.buyTx}>{t('market.openApply')}</Text>
-              </Pressable>
-            ) : (
-              <Pressable style={[styles.buyBtn, busy === c.key && styles.buyBtnBusy]} onPress={() => buy(c.key)} disabled={busy !== null}>
-                <Text style={styles.buyTx}>{busy === c.key ? '…' : t('market.buy')}</Text>
-              </Pressable>
-            )}
-          </View>
-        );
-      })}
+      {/* ── 인생 타임라인(독립 강조 카드) ── 섹션 A·B에서 빼서 명식 선택 아래 단독 노출(daniel). 사주+자미 종합 = 위쪽 강조.
+          보유 시 열기(apply) / 미보유 시 구매(buy) — busy 패턴은 다른 카드와 동일 재사용. */}
+      <View style={styles.timelineCard}>
+        {tlCard && <Image source={tlCard.img} style={styles.timelineThumb} />}
+        <View style={{ flex: 1 }}>
+          <Text style={styles.timelineTitle}>{t('market.timelineCardTitle', '인생 타임라인')}</Text>
+          <Text style={styles.timelineDesc} numberOfLines={2}>{t('market.timelineCardDesc', '사주 + 자미두수를 종합해 인생 흐름을 봐요')}</Text>
+          <Text style={styles.price}>{prices['timeline'] ?? '₩1,900'}</Text>
+        </View>
+        {tlOwned ? (
+          <Pressable style={styles.buyBtn} onPress={() => apply('timeline')} disabled={!sel}>
+            <Text style={styles.buyTx}>{t('market.openApply')}</Text>
+          </Pressable>
+        ) : (
+          <Pressable style={[styles.buyBtn, busy === 'timeline' && styles.buyBtnBusy]} onPress={() => buy('timeline')} disabled={busy !== null}>
+            <Text style={styles.buyTx}>{busy === 'timeline' ? '…' : t('market.buy')}</Text>
+          </Pressable>
+        )}
+      </View>
+
+      {/* ── 섹션 A: 프리미엄에 포함 ── 프리미엄=무제한 이용 중 배지 / 비프리미엄=가격+개별구매(기존) */}
+      <Text style={styles.sectionH}>{t('market.sectionIncluded', '✦ 프리미엄에 포함')}</Text>
+      <Text style={styles.sectionSub}>{t('market.sectionIncludedSub', '프리미엄 가입 시 아래 풀이를 명식 수 제한 없이 무제한 이용해요(개별 구매도 가능).')}</Text>
+      {CREDIT_KINDS.filter((c) => !INDIVIDUAL.has(c.key) && c.key !== 'timeline').map((c) => renderCard(c, true))}
+
+      {/* ── 섹션 B: 개별 구매 전용(프리미엄 미포함) ── isPremium 무관 항상 개별 구매(기존) */}
+      <Text style={styles.sectionH}>{t('market.sectionIndividual', '◆ 개별 구매 전용 · 프리미엄 미포함')}</Text>
+      <Text style={styles.sectionSub}>{t('market.sectionIndividualSub', '아래 항목은 프리미엄에 포함되지 않아 따로 구매해요.')}</Text>
+      {CREDIT_KINDS.filter((c) => INDIVIDUAL.has(c.key)).map((c) => renderCard(c, false))}
 
       {/* 쿠폰 등록(무료 이용권) — 설정에서 이동 */}
       <Text style={styles.couponH}>{t('settings.coupon')}</Text>
@@ -262,7 +339,13 @@ const styles = StyleSheet.create({
   premCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.ju, borderRadius: radius.md, padding: space(4), marginBottom: space(4), ...shadow.card },
   premTitle: { fontSize: 16, fontWeight: '900', color: colors.bg },
   premSub: { fontSize: 12, color: colors.bg, opacity: 0.85, marginTop: 2 },
+  premChart: { fontSize: 11, fontWeight: '700', color: colors.bg, opacity: 0.75, marginTop: 4 }, // 적용 명식 안내(비프리미엄 카드)
   premPrice: { fontSize: 16, fontWeight: '900', color: colors.bg, marginLeft: space(2) },
+  // 인생 타임라인 독립 강조 카드(골드 강조 테두리 — 명식 선택 아래 단독 노출, daniel)
+  timelineCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1.5, borderColor: colors.ju, padding: space(4), marginBottom: space(4), ...shadow.card },
+  timelineThumb: { width: 56, height: 78, borderRadius: radius.md, marginRight: space(3), backgroundColor: colors.sunk }, // 강조 카드라 일반 thumb(46×64)보다 크게
+  timelineTitle: { fontSize: 17, fontWeight: '900', color: colors.ink },
+  timelineDesc: { ...font.caption, color: colors.inkSoft, marginTop: 2, marginBottom: 1, lineHeight: 16 },
   // 적용할 명식 선택
   chartSel: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.card, borderWidth: 1.5, borderColor: colors.ju, borderRadius: radius.md, padding: space(4), marginBottom: space(4), ...shadow.card },
   chartSelLabel: { ...font.caption, color: colors.ju, fontWeight: '800' },
@@ -278,6 +361,12 @@ const styles = StyleSheet.create({
   buyBtn: { backgroundColor: colors.ju, borderRadius: radius.pill, paddingHorizontal: space(5), paddingVertical: space(2.5), minWidth: 84, alignItems: 'center' },
   buyBtnBusy: { opacity: 0.5 },
   buyTx: { color: colors.bg, fontWeight: '800', fontSize: 14 },
+  // 마켓 섹션 제목·설명(프리미엄 포함 / 개별 구매 전용 구분 — daniel) — 골드 톤 heading + 보조 caption
+  sectionH: { ...font.heading, color: colors.ju, marginTop: space(5), marginBottom: space(1) },
+  sectionSub: { ...font.caption, color: colors.inkSoft, marginBottom: space(3), lineHeight: 16 },
+  // 프리미엄 무제한 배지(섹션 A · 프리미엄 가입 시 가격·구매 버튼 대체) — 골드 외곽선 상태 배지
+  unlimitedBadge: { backgroundColor: colors.juSoft, borderWidth: 1, borderColor: colors.juLine, borderRadius: radius.pill, paddingHorizontal: space(4), paddingVertical: space(2), marginLeft: space(2), alignItems: 'center' },
+  unlimitedTx: { color: colors.ju, fontWeight: '800', fontSize: 13 },
   // 쿠폰 등록
   couponH: { ...font.heading, marginTop: space(6), marginBottom: space(3) },
   couponRow: { flexDirection: 'row', gap: space(2), alignItems: 'center' },

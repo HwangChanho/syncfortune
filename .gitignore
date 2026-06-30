@@ -87,3 +87,4 @@ tmp_readings_seed/
 # 내부 기획·임시 디버깅(공개 레포 비노출 — 전략/PII)
 time_pillar_reconstruction_spec.md
 v48_baseline.txt
+age_gap_rule.md

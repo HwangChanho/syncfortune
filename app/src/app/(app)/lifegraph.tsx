@@ -2,7 +2,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 // daniel: 점수=용신 부합도(LLM 정식 용신 판정). 10년 단위 대운 곡선 + 변곡점("전환점") + 현재 위치.
 //   Edge kind='lifegraph' → {summary, decades:[{startAge,score,note,turning}]}. 점 탭하면 그 시기 해설.
-// 접근: 프리미엄=무광고 자동 / 무료=보상형 광고 1회 → 생성. 캐시: readings(chart_id × 'lifegraph' × lang).
+// 접근: 프리미엄=무광고 자동 / 비프리미엄=결제(이용권·관리자)만 — 유료 콘텐츠라 보상형 광고 무료 생성 없음(daniel). 캐시: readings(chart_id × 'lifegraph' × lang).
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { View, Text, ScrollView, Pressable, ActivityIndicator, StyleSheet, Dimensions, Animated, Easing } from 'react-native';

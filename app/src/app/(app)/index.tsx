@@ -109,6 +109,22 @@ const SECTIONS: Section[] = [
   ] },
 ];
 
+// ─────────────────────────────────────────────────────────────────────────
+// 홈 카드 순차 로딩(daniel: "이미지 로딩이 너무 김 — 한번에 다 하지 말고 위→아래로 하나씩").
+//   문제: SECTIONS 전체(약 35장)를 한 프레임에 렌더하면 모든 카드 이미지가 동시에 디코드 → 스레드 포화 → 로딩 지연·랙.
+//   해법: 카드마다 '전역 순번'을 부여하고, 그 순번이 공개분(revealCount)에 들어올 때만 이미지를 mount(디코드 시작).
+//        → 디코드 작업이 위→아래 시간축으로 분산되어, 위쪽 카드가 즉시 뜨고 아래로 한 장씩 채워진다.
+//   CARD_REVEAL_OFFSETS[secIdx] = 그 섹션이 시작되기 전까지의 누적 카드 수(= 첫 카드의 전역 순번).
+//     카드 전역 순번 = CARD_REVEAL_OFFSETS[secIdx] + itemIdx (섹션·항목 순서 = 화면 위→아래 순서).
+//   SECTIONS는 정적이라 모듈 로드 시 1회만 계산(렌더마다 재계산 안 함).
+const CARD_REVEAL_OFFSETS: number[] = (() => {
+  const offsets: number[] = [];
+  let acc = 0;
+  for (const sec of SECTIONS) { offsets.push(acc); acc += sec.items.length; }
+  return offsets;
+})();
+const TOTAL_CARDS = SECTIONS.reduce((n, s) => n + s.items.length, 0); // 전체 카드 수(공개 완료 판정 = revealCount >= TOTAL_CARDS)
+
 // 홈 카드 켄번스 — 정적 이미지를 아주 느리게 줌(daniel #21: 카드가 '가볍게' 살아 움직이게).
 //   정적 일러스트라 내부 요소 자체를 움직일 순 없어, 느린 줌으로 생동감을 준다. native 드라이버=GPU라 스크롤 영향 최소.
 function KenBurnsCard({ source }: { source: any }) {
@@ -317,6 +333,17 @@ export default function Home() {
   const [hasChart, setHasChart] = useState<boolean>(true); // H1(daniel): 대표 명식 유무 — 없으면 오늘/내일 배너를 '명식 등록 안내'로(탭→등록)
   const [reloadKey, setReloadKey] = useState(0); // 명식 변경(전환·수정) 감지 — 포커스마다 오늘의 기운 재계산(daniel: 명식 수정 시 id 동일이라 갱신 안 되던 버그)
   const [loggingOut, setLoggingOut] = useState(false); // 로그아웃 콜백 동안 오버레이
+  // 카드 이미지 순차 공개(daniel) — 위→아래로 한 장씩 mount. 전역 순번 < revealCount 인 카드만 이미지 로드.
+  //   ★타이머(시간 기반)를 택한 이유: 가장 단순·안정적. expo-image onLoad 체인 방식은 이미지 하나라도
+  //     로드 실패/지연하면 거기서 멈춰(stall) 아래 카드가 영영 안 뜨는 위험이 있음. 타이머는 절대 멈추지 않는다.
+  //   첫 장은 즉시(빈 화면 깜빡임 방지), 이후 ~90ms 간격으로 한 장씩. 전부 공개되면 effect가 일찍 return → 타이머 정지.
+  //   탭 화면이라 마운트 유지 → 한 번 공개되면 revealCount가 TOTAL_CARDS로 남아, 재포커스 시엔 placeholder 없이 즉시 표시(캐시).
+  const [revealCount, setRevealCount] = useState(1);
+  useEffect(() => {
+    if (revealCount >= TOTAL_CARDS) return; // 모두 공개됨 → 더 이상 타이머 안 검(정지)
+    const id = setTimeout(() => setRevealCount((c) => c + 1), 90); // 한 장씩 위→아래 공개(디코드 시간 분산)
+    return () => clearTimeout(id);
+  }, [revealCount]);
   async function doLogout() {
     setLoggingOut(true);
     try { await supabase.auth.signOut(); }
@@ -368,7 +395,11 @@ export default function Home() {
     })();
   }, [session, isPremium]);
 
+  // ★카드 연타·중복 진입 차단(daniel) — 네비가 진행 중이면 다음 탭을 즉시 무시(같은/다른 화면 이중 push 방지).
+  //   동기 ref라 state 리렌더 전에도 막힌다. 광고 시청 구간에도 잠금 유지 → 광고 중 다른 카드 탭이 먹지 않음.
+  const navigatingRef = useRef(false);
   async function onPress(m: MenuItem) {
+    if (navigatingRef.current) return;                 // 이미 진입 처리 중 — 연타 무시
     playSound('click');
     if (!m.ready) { Alert.alert(t(m.labelKey), t('common.comingSoon')); return; }
     // daniel #8(2026-06-24): 무료 콘텐츠는 로그인 없이(광고 보면 OK·온디바이스라 서버 불필요). 로그인은 *유료/구매(계정 귀속)* 콘텐츠에만 필요.
@@ -384,8 +415,10 @@ export default function Home() {
     //   광고 실패/미시청이어도 무료 콘텐츠는 진입 보장(광고는 스킵 가능) — 프리미엄은 광고 없음.
     // 무료 진입 보상형 광고 — 단, 프리미엄·관리자는 제외(광고 없음). 만세력·프리미엄 카드도 제외.
     // 무료 진입 보상형 광고 — 프리미엄·만세력 제외. 관리자는 평소 제외하되, *테스트광고 모드*면 게이트도 동작(daniel 확인용).
-    if (!m.premium && m.key !== 'manse' && !isPremium && (!admin || adTestMode())) await showRewardedAd().catch(() => false);
+    navigatingRef.current = true;                      // 여기부터 실제 진입(광고→네비) 경로 — 잠금(광고 동안에도 다른 카드 탭 차단)
+    if (!m.premium && !m.creditKey && m.key !== 'manse' && !isPremium && (!admin || adTestMode())) await showRewardedAd().catch(() => false); // 유료(creditKey) 콘텐츠는 보상형 제외 — 결제만(daniel #39). 무료 콘텐츠만 진입 보상형.
     router.push(m.route);
+    setTimeout(() => { navigatingRef.current = false; }, 600); // push 후 짧게 해제 — 연타 이중 push만 막고 정상 재탐색은 허용
   }
 
   return (
@@ -479,11 +512,14 @@ export default function Home() {
         <ChartPicker onChange={() => setReloadKey((k) => k + 1)} />
 
         {/* 무료 / 프리미엄 / 콘텐츠 3범주 — 큰 섹션 헤더 + 좌우 가로 스크롤 카드(daniel) */}
-        {SECTIONS.map((sec) => {
+        {SECTIONS.map((sec, secIdx) => {
           const isLight = sec.key === 'light'; // '가볍게 보기' = 항목이 많아 가로 스크롤 대신 2열 줄바꿈(daniel)
           const isDeep = sec.key === 'deep';   // '나에 대해 알기' = 5개 넘어 2줄(컬럼 정렬) 가로 스크롤(daniel 2026-06-23)
-          const cards = sec.items.map((m) => {
+          const cards = sec.items.map((m, itemIdx) => {
             const prem = !!m.premium;
+            // 순차 공개 — 이 카드의 전역 순번(섹션 오프셋 + 항목 인덱스 = 화면 위→아래 순서)이 공개분에 들어왔는지.
+            //   revealed=false면 이미지 대신 미드나잇 빈 박스만 렌더(디코드 미발생) → 차례가 오면 KenBurnsCard로 교체.
+            const revealed = CARD_REVEAL_OFFSETS[secIdx] + itemIdx < revealCount;
             // 콘텐츠(이미지 없음) = 텍스트 카드(제목+설명), 이미지 카드와 시각 구분
             if (!m.image) {
               return (
@@ -502,7 +538,10 @@ export default function Home() {
               <Pressable key={m.key} style={styles.card} onPress={() => onPress(m)}>
                 <View style={styles.cardImg}>
                   {/* expo-image 다운샘플 유지(메모리·랙) + 켄번스 느린 줌(daniel #21). absoluteFill 배경 + 위 오버레이. */}
-                  <KenBurnsCard source={m.image} />
+                  {/* 순차 로딩(daniel) — 차례가 온 카드만 이미지 mount, 그 전엔 미드나잇 빈 박스(디코드 분산). 라벨/배지는 그대로 유지(레이아웃 동일). */}
+                  {revealed
+                    ? <KenBurnsCard source={m.image} />
+                    : <View style={[StyleSheet.absoluteFill, styles.cardImgInner, styles.cardPlaceholder]} />}
                   {prem && (
                     <View style={styles.premTag}>
                       <Text style={styles.premTagText}>{t('menu.premiumTag')}</Text>
@@ -643,6 +682,8 @@ const styles = StyleSheet.create({
   },
   cardImg: { flex: 1, justifyContent: 'flex-end' },
   cardImgInner: { borderRadius: radius.md },
+  // 순차 공개 전 카드 자리 — 미드나잇 빈 박스(이미지 디코드 전 placeholder). 카드와 같은 크기·둥근 모서리 유지(레이아웃 안 흔들림).
+  cardPlaceholder: { backgroundColor: colors.juSoft },
   labelBar: { backgroundColor: colors.labelScrim, paddingVertical: space(2.5), alignItems: 'center' }, // 라이트=거의 불투명(카드 이미지 비침 차단·daniel)
   cardLabel: { color: colors.ink, fontSize: 15, fontWeight: '700', letterSpacing: 0.3 },
   cardDesc: { color: colors.inkSoft, fontSize: 10.5, lineHeight: 13.5, textAlign: 'center', marginTop: 3, paddingHorizontal: space(1.5) },
