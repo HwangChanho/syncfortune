@@ -242,7 +242,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     padding: space(5),
     marginBottom: space(4),
-    backgroundColor: 'rgba(34,31,68,0.5)',
+    backgroundColor: colors.juSoft,
     ...shadow.card,
   },
   scoreGrade: { fontSize: 18, fontWeight: '800', letterSpacing: 0.5 },

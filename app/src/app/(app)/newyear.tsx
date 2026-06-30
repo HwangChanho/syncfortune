@@ -275,7 +275,7 @@ const styles = StyleSheet.create({
   h: { ...font.title, color: colors.ink, marginBottom: space(3) },
   samjae: { borderRadius: radius.md, paddingVertical: space(2.5), paddingHorizontal: space(4), marginBottom: space(4), borderWidth: 1 },
   samjaeOn: { backgroundColor: 'rgba(229,72,77,0.12)', borderColor: '#E5484D' },
-  samjaeOff: { backgroundColor: 'rgba(34,31,68,0.6)', borderColor: colors.line },
+  samjaeOff: { backgroundColor: colors.juSoft, borderColor: colors.line },
   samjaeTx: { ...font.body, color: colors.ink, fontWeight: '700', fontSize: 14 },
   keyCard: { backgroundColor: colors.ju, borderRadius: radius.md, padding: space(5), marginBottom: space(3), ...shadow.card },
   keyLabel: { fontSize: 12, fontWeight: '800', color: colors.bg, opacity: 0.8, marginBottom: space(1.5), letterSpacing: 1 },

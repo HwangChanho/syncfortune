@@ -201,7 +201,7 @@ const styles = StyleSheet.create({
   runBtn: { marginTop: space(6), backgroundColor: colors.ju, borderRadius: radius.md, paddingVertical: space(4), alignItems: 'center' },
   runTx: { color: colors.bg, fontWeight: '800', fontSize: 16 },
   payHint: { ...font.caption, color: colors.inkFaint, marginTop: space(2.5), textAlign: 'center', lineHeight: 18 },
-  result: { marginTop: space(7), padding: space(5), borderRadius: radius.md, backgroundColor: 'rgba(34,31,68,0.5)', borderWidth: 1, borderColor: colors.ju },
+  result: { marginTop: space(7), padding: space(5), borderRadius: radius.md, backgroundColor: colors.juSoft, borderWidth: 1, borderColor: colors.ju },
   resultH: { fontSize: 17, fontWeight: '800', color: colors.ju, marginBottom: space(4) },
   cand: { flexDirection: 'row', alignItems: 'center', marginBottom: space(3), gap: space(2) },
   candKey: { fontSize: 14, fontWeight: '700', color: colors.ink, width: 130 },

@@ -561,12 +561,12 @@ const styles = StyleSheet.create({
   // 헤더 행 — 전체를 살짝 아래로(타이틀 너무 위 방지), 아이콘은 타이틀 하단 정렬(daniel)
   headerRow: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', marginTop: space(4) },
   // 계정 아이콘 — 타이틀 옆, 살짝 왼쪽·아래로
-  accountBtn: { width: 40, height: 40, borderRadius: 20, borderWidth: 1.5, borderColor: colors.ju, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(34,31,68,0.5)', marginRight: space(2), marginBottom: space(1) },
+  accountBtn: { width: 40, height: 40, borderRadius: 20, borderWidth: 1.5, borderColor: colors.ju, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.juSoft, marginRight: space(2), marginBottom: space(1) },
   accountIcon: { fontSize: 20 },
   sub: { ...font.body, color: colors.inkSoft, marginTop: space(2) },
   divider: { width: 44, height: 3, borderRadius: 2, backgroundColor: colors.ju, marginTop: space(4), marginBottom: space(6) },
   fortuneBanner: {
-    backgroundColor: 'rgba(34,31,68,0.6)', padding: space(4), borderRadius: radius.md,
+    backgroundColor: colors.juSoft, padding: space(4), borderRadius: radius.md,
     borderWidth: 1, borderColor: colors.line, marginBottom: space(6),
   },
   // 오늘/내일 토글(배너 상단)
@@ -593,7 +593,7 @@ const styles = StyleSheet.create({
   grid2col: { gap: space(3) },                       // 윗줄·아랫줄 세로 간격
   grid2row: { flexDirection: 'row', gap: space(3) }, // 한 줄 카드 가로 간격
   // 콘텐츠 텍스트 카드(이미지 없음) — 이미지 카드와 동일 비율, 제목+설명 하단 정렬
-  textCard: { backgroundColor: 'rgba(34,31,68,0.6)', borderWidth: 1, borderColor: colors.juLine, justifyContent: 'flex-end', padding: space(4) },
+  textCard: { backgroundColor: colors.juSoft, borderWidth: 1, borderColor: colors.juLine, justifyContent: 'flex-end', padding: space(4) },
   textCardLabel: { fontSize: 18, fontWeight: '800', color: colors.ink },
   textCardDesc: { ...font.caption, color: colors.inkSoft, marginTop: space(1.5), lineHeight: 18 },
   // 가격 마킹 배지 — 프리미엄 마크와 동일(골드 pill·다크 텍스트·10pt/700, daniel)

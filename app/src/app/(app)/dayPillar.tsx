@@ -260,7 +260,7 @@ const styles = StyleSheet.create({
   mineWrap: { marginBottom: space(6) },
   mineLabel: { fontSize: 14, fontWeight: '800', color: colors.ju, marginBottom: space(2) },
   card: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.line, padding: space(4) },
-  mineCard: { borderColor: colors.ju, borderWidth: 1.5, backgroundColor: 'rgba(34,31,68,0.5)', ...shadow.card },
+  mineCard: { borderColor: colors.ju, borderWidth: 1.5, backgroundColor: colors.juSoft, ...shadow.card },
   mineKey: { fontSize: 22, fontWeight: '800', color: colors.ju, marginBottom: space(3) },
   mineHero: { height: 160, borderRadius: radius.md, overflow: 'hidden', justifyContent: 'flex-end', marginBottom: space(3) }, // 60갑자 일러스트 배경
   mineHeroImg: { borderRadius: radius.md },
@@ -294,6 +294,6 @@ const styles = StyleSheet.create({
   matchKey: { fontSize: 17, fontWeight: '700', color: colors.ink },
   matchReason: { fontSize: 12, color: colors.inkSoft },
   // 면책
-  disclaimer: { marginTop: space(3), padding: space(4), borderRadius: radius.md, backgroundColor: 'rgba(34,31,68,0.4)', borderWidth: 1, borderColor: colors.line },
+  disclaimer: { marginTop: space(3), padding: space(4), borderRadius: radius.md, backgroundColor: colors.juSoft, borderWidth: 1, borderColor: colors.line },
   disclaimerTx: { ...font.caption, color: colors.inkFaint, lineHeight: 19 },
 });

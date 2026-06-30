@@ -121,7 +121,7 @@ const styles = StyleSheet.create({
   title: { fontSize: 25, fontWeight: '900', color: colors.ink, textAlign: 'center' },
   subtitle: { ...font.caption, color: colors.ju, marginTop: space(2), fontWeight: '700' },
   card: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.juLine, padding: space(5), marginBottom: space(3), ...shadow.card },
-  mindCard: { borderColor: colors.ju, backgroundColor: 'rgba(34,31,68,0.5)' }, // 마음 한마디 강조
+  mindCard: { borderColor: colors.ju, backgroundColor: colors.juSoft }, // 마음 한마디 강조
   cardHead: { fontSize: 14, fontWeight: '800', color: colors.ju, marginBottom: space(2) },
   body: { ...font.body, color: colors.ink, fontSize: 15, lineHeight: 25 },
   // 색·공간·음식 메타
