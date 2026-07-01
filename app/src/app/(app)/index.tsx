@@ -439,8 +439,8 @@ export default function Home() {
       <Animated.View style={{ opacity: fadeAnim }}>
         {/* 헤더 — 타이틀 옆에 계정(사람) 아이콘: 탭 → 계정 관리·프리미엄 구매(설정)(daniel) */}
         <View style={styles.headerRow}>
-          {/* 타이틀·서브타이틀 = 좌측 컬럼(왼쪽 정렬 유지). 👤 아이콘만 우측에서 이 컬럼 높이 기준 y축 가운데(daniel 07-02) */}
-          <View style={{ flex: 1 }}>
+          {/* 타이틀·서브타이틀 = 좌측 컬럼. ★왼쪽 못박기(daniel 07-02: 여전히 가운데로 보임 → 명시 좌측): 컬럼 alignItems:flex-start + 텍스트 textAlign:left. 👤만 우측 y축 가운데 */}
+          <View style={{ flex: 1, alignItems: 'flex-start' }}>
             <Text style={styles.title}>{t('appName')}</Text>
             <Text style={styles.sub}>{t('tagline')}</Text>
           </View>
@@ -642,14 +642,14 @@ const styles = StyleSheet.create({
   langBtn: { fontSize: 13, color: colors.inkFaint, fontWeight: '600' },
   langOn: { color: colors.ju },
   gear: { fontSize: 20, color: colors.inkSoft },
-  title: { ...font.display },
+  title: { ...font.display, textAlign: 'left' as const }, // ★좌측 못박기(daniel 07-02)
   // 타이틀 + 계정(사람) 아이콘 한 줄
   // 헤더 행 — 전체를 살짝 아래로(타이틀 너무 위 방지), 아이콘은 타이틀 하단 정렬(daniel)
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: space(4) }, // 👤 아이콘만 좌측 타이틀·서브 컬럼 기준 y축 가운데(daniel 07-02)
   // 계정 아이콘 — 타이틀 옆, 살짝 왼쪽·아래로
   accountBtn: { width: 40, height: 40, borderRadius: 20, borderWidth: 1.5, borderColor: colors.ju, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.juSoft, marginRight: space(2), marginBottom: space(1) },
   accountIcon: { fontSize: 20 },
-  sub: { ...font.body, color: colors.inkSoft, marginTop: space(2) },
+  sub: { ...font.body, color: colors.inkSoft, marginTop: space(2), textAlign: 'left' as const }, // ★좌측 못박기(daniel 07-02)
   divider: { width: 44, height: 3, borderRadius: 2, backgroundColor: colors.ju, marginTop: space(4), marginBottom: space(6) },
   fortuneBanner: {
     backgroundColor: colors.juSoft, padding: space(4), borderRadius: radius.md,
