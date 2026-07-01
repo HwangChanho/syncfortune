@@ -5,23 +5,23 @@
 import { useMemo, useState, useEffect } from 'react';
 import { View, Text, ScrollView, TextInput, Pressable, StyleSheet, ImageBackground, ActivityIndicator } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { searchDreams, DREAM_POPULAR, dreamTitle, dreamMeaning, popularLabel } from '../../lib/dreamDict';
+import { searchDreams, DREAM_POPULAR, dreamTitle, dreamMeaning, popularLabel } from '../../lib/content/dreamDict';
 import { supabase } from '../../lib/supabase';        // 사전 miss → LLM 폴백(전역 캐시)
 import { appLang } from '../../lib/i18n';
 import { bgSource, colors, radius, space, shadow, font } from '../../lib/theme';
-import { useFontScale } from '../../lib/fontScale';
+import { useFontScale } from '../../lib/ui/fontScale';
 import { ContentHero } from '../../components/SpecialContentScreen'; // 이미지 히어로(보는 맛)
-import { Alert } from '../../lib/alert';
+import { Alert } from '../../lib/ui/alert';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../lib/useAuth';
-import { useSubscription } from '../../lib/subscription';
-import { isAdmin } from '../../lib/admin';
-import { useCredit, grantCredit } from '../../lib/coupons';          // AI 해몽 이용권 차감·적립
-import { purchaseCreditRC, DREAM_BUNDLE_QTY, purchasesEnabled } from '../../lib/purchases'; // 꿈해몽 5회 번들 결제
-import { requireLoginForPurchase } from '../../lib/requireLogin';
-import { setGenProgress } from '../../lib/genProgress'; // 일회성 진행도(daniel·docs/CONTENT_API_INVENTORY.md)
-import { invokeFail } from '../../lib/interpretResult'; // 방어: 일시적 불가/오류 친화 처리(dream은 reading 아닌 dream 구조라 invokeFail만)
-import { assertOnline } from '../../lib/network'; // daniel: 네트워크/서버 미연결 시 풀이 생성 차단
+import { useSubscription } from '../../lib/billing/subscription';
+import { isAdmin } from '../../lib/core/admin';
+import { useCredit, grantCredit } from '../../lib/billing/coupons';          // AI 해몽 이용권 차감·적립
+import { purchaseCreditRC, DREAM_BUNDLE_QTY, purchasesEnabled } from '../../lib/billing/purchases'; // 꿈해몽 5회 번들 결제
+import { requireLoginForPurchase } from '../../lib/billing/requireLogin';
+import { setGenProgress } from '../../lib/backend/genProgress'; // 일회성 진행도(daniel·docs/CONTENT_API_INVENTORY.md)
+import { invokeFail } from '../../lib/backend/interpretResult'; // 방어: 일시적 불가/오류 친화 처리(dream은 reading 아닌 dream 구조라 invokeFail만)
+import { assertOnline } from '../../lib/backend/network'; // daniel: 네트워크/서버 미연결 시 풀이 생성 차단
 import { TTSButton } from '../../components/TTSButton'; // 풀이 음성 읽기(온디바이스 TTS·무료)
 
 export default function DreamScreen() {

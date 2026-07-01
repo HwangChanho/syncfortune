@@ -11,14 +11,14 @@ import { useMemo, useState, useEffect, useRef, type ReactNode } from 'react';
 import { View, Text, ScrollView, StyleSheet, Pressable, Modal, Animated, LayoutAnimation, Platform, UIManager } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import * as Haptics from 'expo-haptics';
-import { computeChart } from '../lib/engine';
+import { computeChart } from '../lib/engine/engine';
 import type { ChartInput, PillarPos } from '@spec/chart';
 import { colors, radius, space, shadow, font, gradients } from '../lib/theme';
 import { GlassCard } from '../components/GlassCard';
 import { OhaengIcon } from '../components/OhaengIcon';
-import { stemElement, branchElement, elementColor, elementText, stemReading, branchReading, stemYinYang, branchYinYang, eumYangSkew, johuSkew } from '../lib/ohaeng';
-import { ELEMENT_SKEW, TENGOD_SKEW, YINYANG_SKEW, JOHU_SKEW, CONCEPT_INFO, type SkewItem } from '../lib/skewKnowledge';
-import { useFontScale } from '../lib/fontScale'; // 글자 크기(설정) — 명식 글자까지 모든 텍스트에 적용(daniel)
+import { stemElement, branchElement, elementColor, elementText, stemReading, branchReading, stemYinYang, branchYinYang, eumYangSkew, johuSkew } from '../lib/engine/ohaeng';
+import { ELEMENT_SKEW, TENGOD_SKEW, YINYANG_SKEW, JOHU_SKEW, CONCEPT_INFO, type SkewItem } from '../lib/content/skewKnowledge';
+import { useFontScale } from '../lib/ui/fontScale'; // 글자 크기(설정) — 명식 글자까지 모든 텍스트에 적용(daniel)
 // ⚠️ 전환 지연(useDeferredReady/ChartSkeleton)은 이 컴포넌트 *내부에서 조기 return* 하면 안 된다 —
 //   본문 곳곳(140·145~·282…)에 useState 가 있어, ready false→true 재렌더 시 hook 수가 바뀌어
 //   "Rendered more hooks than during the previous render" 크래시(06-29). 지연은 *래퍼*(charts/myeongsik 라우트)가
@@ -33,9 +33,9 @@ const haptic = () => { try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Lig
 import { HIDDEN, computeMonthDays, branchTenGod, daeunForward } from '@engine/saju'; // 지장간 표 + 일운(流日) + 지지십신 + 대운 순역
 import { twelveStage } from '@engine/twelve';                          // 임의 지지 12운성(타임라인용)
 import { detectInteractionsAmong, interactionLabel } from '@engine/structure';   // 합충 검출 + 짝이름 라벨(daniel: 유축반합·정신극)
-import { detectGyeokguk } from '../lib/gyeokguk';                                 // 핵심 격(살인상생·식신제살 등) 검출 — daniel
-import { lookupGlossary, GLOSSARY_KIND_LABEL, SINSAL_GLOSSARY, type GlossaryKind } from '../lib/myeongriGlossary'; // 클릭 설명
-import { playSound } from '../lib/sounds';
+import { detectGyeokguk } from '../lib/engine/gyeokguk';                                 // 핵심 격(살인상생·식신제살 등) 검출 — daniel
+import { lookupGlossary, GLOSSARY_KIND_LABEL, SINSAL_GLOSSARY, type GlossaryKind } from '../lib/content/myeongriGlossary'; // 클릭 설명
+import { playSound } from '../lib/ui/sounds';
 import Svg, { Path, Rect, Circle, Text as SvgText, G } from 'react-native-svg';
 
 // 전통 표기 — 오른쪽이 년주: 시(왼) ← 일 ← 월 ← 년(오른쪽)

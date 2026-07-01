@@ -7,10 +7,10 @@ import { useState, useMemo, useCallback } from 'react';
 import { View, Text, Pressable, ActivityIndicator, ScrollView, StyleSheet, ImageBackground, Image } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { computeChart } from '../../lib/engine';
-import { loadMyChart } from '../../lib/myChart';
-import { joseonJob, type JoseonJobResult } from '../../lib/joseonJob';
-import { useFontScale } from '../../lib/fontScale';
+import { computeChart } from '../../lib/engine/engine';
+import { loadMyChart } from '../../lib/engine/myChart';
+import { joseonJob, type JoseonJobResult } from '../../lib/content/joseonJob';
+import { useFontScale } from '../../lib/ui/fontScale';
 import { bgSource, colors, radius, space, shadow, font } from '../../lib/theme';
 import { ChartPicker } from '../../components/ChartPicker'; // 상단 명식 헤더 — 현재 적용 명식 표시·전환
 import { ShareReadingButton } from '../../components/ShareReadingButton'; // 이슈17: 풀이 결과 공유(앱게이트)

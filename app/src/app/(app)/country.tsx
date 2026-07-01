@@ -8,11 +8,11 @@ import { View, Text, ScrollView, StyleSheet, Pressable } from 'react-native';
 import { Image as ExpoImage } from 'expo-image'; // 상단 히어로 — 자동 다운샘플·디스크캐시(daniel: 이미지 노출)
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { loadRepChart, type SavedChart } from '../../lib/myChart';
-import { computeChart } from '../../lib/engine';
-import { countryFit, type CountryRec } from '../../lib/countryFit';
+import { loadRepChart, type SavedChart } from '../../lib/engine/myChart';
+import { computeChart } from '../../lib/engine/engine';
+import { countryFit, type CountryRec } from '../../lib/content/countryFit';
 import { colors, radius, space, shadow, font } from '../../lib/theme';
-import { useFontScale } from '../../lib/fontScale';
+import { useFontScale } from '../../lib/ui/fontScale';
 import { ChartPicker } from '../../components/ChartPicker';
 
 export default function CountryScreen() {

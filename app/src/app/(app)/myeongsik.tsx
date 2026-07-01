@@ -5,7 +5,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { MyeongsikScreen } from '../../screens/MyeongsikScreen';
-import { useDeferredReady } from '../../lib/useDeferredReady'; // 전환 끝난 뒤 MyeongsikScreen 마운트(멈칫 제거)
+import { useDeferredReady } from '../../lib/ui/useDeferredReady'; // 전환 끝난 뒤 MyeongsikScreen 마운트(멈칫 제거)
 import { ChartSkeleton } from '../../components/Skeleton';
 import type { ChartInput } from '@spec/chart';
 

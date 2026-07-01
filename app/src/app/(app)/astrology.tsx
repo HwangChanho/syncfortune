@@ -5,8 +5,8 @@ import { useTranslation } from 'react-i18next';
 import { SpecialContentScreen, FreeBasics } from '../../components/SpecialContentScreen';
 import { ZodiacWheel } from '../../components/ZodiacWheel'; // 황도 12궁 회전 휠(daniel B 재미)
 import { colors } from '../../lib/theme';
-import { buildNatal } from '../../lib/astrology';
-import { buildNumerology } from '../../lib/numerology'; // 수비학 병합(daniel: 별자리·점성술과 한 콘텐츠)
+import { buildNatal } from '../../lib/content/astrology';
+import { buildNumerology } from '../../lib/content/numerology'; // 수비학 병합(daniel: 별자리·점성술과 한 콘텐츠)
 
 // 별자리 영문명 → 한글(무료 빅3 미리보기용). 통변(유료)은 Edge가 한글로 풀어줌.
 const SIGN_KO: Record<string, string> = {

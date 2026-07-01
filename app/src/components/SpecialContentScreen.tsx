@@ -8,28 +8,28 @@
 import { useEffect, useMemo, useState, useRef, type ReactNode } from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator, Animated, Easing } from 'react-native';
 import { Image as ExpoImage } from 'expo-image'; // 콘텐츠 배너 — 자동 다운샘플·디스크캐시(daniel: 이미지 프리로드/캐시). 홈카드와 같은 파일 캐시 공유 → 콘텐츠 진입 즉시
-import { Alert } from '../lib/alert'; // 커스텀 알림(앱 디자인)
+import { Alert } from '../lib/ui/alert'; // 커스텀 알림(앱 디자인)
 import { useTranslation } from 'react-i18next';
 import { useRouter } from 'expo-router';
-import { computeChart } from '../lib/engine';
-import { loadRepChart, type SavedChart } from '../lib/myChart';
-import { ensureServerChartId } from '../lib/prewarmReadings';
+import { computeChart } from '../lib/engine/engine';
+import { loadRepChart, type SavedChart } from '../lib/engine/myChart';
+import { ensureServerChartId } from '../lib/backend/prewarmReadings';
 import { useAuth } from '../lib/useAuth';
-import { useSubscription } from '../lib/subscription';   // 프리미엄=자동 생성
-import { useFontScale } from '../lib/fontScale';
-import { useCredit, grantCredit, type CreditKind } from '../lib/coupons';
-import { isUnlocked, markUnlocked } from '../lib/unlocks'; // unlock 영속(차감 후 재차감/재잠금 방지)
+import { useSubscription } from '../lib/billing/subscription';   // 프리미엄=자동 생성
+import { useFontScale } from '../lib/ui/fontScale';
+import { useCredit, grantCredit, type CreditKind } from '../lib/billing/coupons';
+import { isUnlocked, markUnlocked } from '../lib/billing/unlocks'; // unlock 영속(차감 후 재차감/재잠금 방지)
 import { ShareReadingButton } from './ShareReadingButton'; // 이슈17: 풀이 결과 공유
 import { TTSButton } from './TTSButton'; // daniel: 풀이 음성 읽기(온디바이스 TTS·무료)
-import { purchaseCreditRC, purchasesEnabled } from '../lib/purchases'; // 즉시 구매(마켓 안 거치고 바로)
-import { isAdmin } from '../lib/admin';                  // 스페셜 = 관리자 바로 / 그 외 쿠폰(크레딧)
-import { requireLoginForPurchase } from '../lib/requireLogin';
-import { assertOnline } from '../lib/network';
+import { purchaseCreditRC, purchasesEnabled } from '../lib/billing/purchases'; // 즉시 구매(마켓 안 거치고 바로)
+import { isAdmin } from '../lib/core/admin';                  // 스페셜 = 관리자 바로 / 그 외 쿠폰(크레딧)
+import { requireLoginForPurchase } from '../lib/billing/requireLogin';
+import { assertOnline } from '../lib/backend/network';
 import { supabase } from '../lib/supabase';
 import { appLang } from '../lib/i18n';
-import { readingFromInvoke } from '../lib/interpretResult'; // 방어: Edge 응답 정규화(일시적 불가·결제필요·오류)
-import { logEvent } from '../lib/logger';
-import { setGenProgress } from '../lib/genProgress'; // 일회성 진행도(daniel 이슈15)
+import { readingFromInvoke } from '../lib/backend/interpretResult'; // 방어: Edge 응답 정규화(일시적 불가·결제필요·오류)
+import { logEvent } from '../lib/backend/logger';
+import { setGenProgress } from '../lib/backend/genProgress'; // 일회성 진행도(daniel 이슈15)
 import { colors, radius, space, shadow, font } from '../lib/theme';
 import { UnlockOverlay } from './UnlockOverlay';         // unlock 자물쇠 애니 + 그 사이 LLM
 import { ChartPicker } from './ChartPicker';             // 상단 명식 헤더 — 현재 적용 명식 표시·전환

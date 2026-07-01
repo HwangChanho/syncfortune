@@ -4,7 +4,7 @@
 import { useTranslation } from 'react-i18next';
 import { SpecialContentScreen } from '../../components/SpecialContentScreen';
 import { RootsTree } from '../../components/contentMotifs';
-import { elementColor } from '../../lib/ohaeng';
+import { elementColor } from '../../lib/engine/ohaeng';
 
 export default function RootsRoute() {
   const { t } = useTranslation();

@@ -11,7 +11,7 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { View, Text, TextInput, Pressable, StyleSheet, ScrollView, Modal } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { colors, radius, space, shadow, font } from '../lib/theme';
-import { SIJIN, formatBirthDate } from '../lib/sijin';
+import { SIJIN, formatBirthDate } from '../lib/engine/sijin';
 import { trueSolarOffsetMin } from '@engine/solartime'; // 진태양시 보정(거주지 경도·서머타임·균시차) — 경계시 경고용
 import { BirthPlacePicker } from '../components/BirthPlacePicker';
 

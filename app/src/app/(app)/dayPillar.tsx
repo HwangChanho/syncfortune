@@ -8,14 +8,14 @@ import { useEffect, useMemo, useState, useRef } from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet, ImageBackground, Animated, Easing, InteractionManager } from 'react-native';
 import { Stack } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { computeChart } from '../../lib/engine';
-import { loadRepChart, listCharts, type SavedChart } from '../../lib/myChart';
-import { isAdmin } from '../../lib/admin';
-import { DAY_PILLAR, STRESS, dayPillarKey, compatibleIlju, type DayPillarTrait } from '../../lib/dayPillar';
-import { DAY_PILLAR_LIVE } from '../../lib/dayPillarLive'; // 일주별 '어떻게 살아야 하나' 실천 4계명(별도 파일·daniel 검수 슬롯)
-import { stemReading, branchReading } from '../../lib/ohaeng';
+import { computeChart } from '../../lib/engine/engine';
+import { loadRepChart, listCharts, type SavedChart } from '../../lib/engine/myChart';
+import { isAdmin } from '../../lib/core/admin';
+import { DAY_PILLAR, STRESS, dayPillarKey, compatibleIlju, type DayPillarTrait } from '../../lib/engine/dayPillar';
+import { DAY_PILLAR_LIVE } from '../../lib/engine/dayPillarLive'; // 일주별 '어떻게 살아야 하나' 실천 4계명(별도 파일·daniel 검수 슬롯)
+import { stemReading, branchReading } from '../../lib/engine/ohaeng';
 import { iljuImage } from '../../lib/dayPillarEmblem'; // 60갑자 AI 일러스트(내 일주 배경)
-import { useFontScale } from '../../lib/fontScale';
+import { useFontScale } from '../../lib/ui/fontScale';
 import { colors, radius, space, shadow, font } from '../../lib/theme';
 import { ContentHero } from '../../components/SpecialContentScreen'; // 이미지 히어로(보는 맛)
 import { ShareReadingButton } from '../../components/ShareReadingButton'; // 이슈17: 풀이 결과 공유(앱게이트)

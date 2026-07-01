@@ -10,7 +10,7 @@ import { useEffect, useRef } from 'react';
 import { Animated, Easing } from 'react-native';
 import Svg, { Path, Circle, Line, G } from 'react-native-svg';
 import { colors } from '../lib/theme';
-import { elementColor } from '../lib/ohaeng';
+import { elementColor } from '../lib/engine/ohaeng';
 
 const APath = Animated.createAnimatedComponent(Path);
 const ACircle = Animated.createAnimatedComponent(Circle);

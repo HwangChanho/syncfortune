@@ -8,11 +8,11 @@ import { useState, useMemo, useCallback } from 'react';
 import { View, Text, Pressable, ActivityIndicator, ScrollView, StyleSheet, ImageBackground } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { computeChart } from '../../lib/engine';
-import { loadMyChart } from '../../lib/myChart';
-import { findAuspiciousDays, PURPOSES, purposeLabel, type Purpose, type AuspiciousDay } from '../../lib/auspiciousDate';
+import { computeChart } from '../../lib/engine/engine';
+import { loadMyChart } from '../../lib/engine/myChart';
+import { findAuspiciousDays, PURPOSES, purposeLabel, type Purpose, type AuspiciousDay } from '../../lib/content/auspiciousDate';
 import { appLang } from '../../lib/i18n';
-import { useFontScale } from '../../lib/fontScale';
+import { useFontScale } from '../../lib/ui/fontScale';
 import { bgSource, colors, radius, space, shadow, font } from '../../lib/theme';
 import { ContentHero } from '../../components/SpecialContentScreen'; // 이미지 히어로(보는 맛)
 import { ChartPicker } from '../../components/ChartPicker'; // 상단 명식 헤더 — 현재 적용 명식 표시·전환

@@ -8,28 +8,28 @@
 import { useState, useEffect, useRef } from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator, Modal, TextInput, Keyboard, Image, Animated, Easing } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context'; // 모달 상단 노치/상태바 침범 방지(J)
-import { Alert } from '../lib/alert'; // 커스텀 알림(앱 디자인)
+import { Alert } from '../lib/ui/alert'; // 커스텀 알림(앱 디자인)
 import { useTranslation } from 'react-i18next';
-import { computeChart } from '../lib/engine';
+import { computeChart } from '../lib/engine/engine';
 import { analyzeCompatibility } from '@engine/compatibility';
 import { detectInteractionsAmong } from '@engine/structure';
-import { stemElement, branchElement, elementColor, elementText } from '../lib/ohaeng';
+import { stemElement, branchElement, elementColor, elementText } from '../lib/engine/ohaeng';
 import { colors, radius, space, shadow, font } from '../lib/theme';
-import { listCharts, getRepresentativeId, addChart, ChartLimitError, type SavedChart } from '../lib/myChart';
-import { buildNumerology } from '../lib/numerology'; // 수비학 보조 교차(궁합, daniel 2026-06-23)
+import { listCharts, getRepresentativeId, addChart, ChartLimitError, type SavedChart } from '../lib/engine/myChart';
+import { buildNumerology } from '../lib/content/numerology'; // 수비학 보조 교차(궁합, daniel 2026-06-23)
 import { ChartRegisterScreen } from './ChartRegisterScreen'; // 상대 명식 = 정식 등록 폼으로 입력
 import { useAuth } from '../lib/useAuth';
-import { useSubscription, purchasePremium } from '../lib/subscription';
-import { assertOnline } from '../lib/network'; // 오프라인 시 신규 생성 차단
-import { purchaseCreditRC } from '../lib/purchases'; // 궁합 건당 결제 = credit_compat(서버 consume)
-import { grantCredit } from '../lib/coupons';        // 결제 성공 → 크레딧 부여(서버가 차감)
-import { ensureServerChartId } from '../lib/prewarmReadings';
-import { useFontScale } from '../lib/fontScale';
-import { COMPAT_RELS, otherSig, loadCompatReadings, genCompatReading, compatSections, compatSectionLabel, type CompatReading } from '../lib/compatReadings';
-import { setGenProgress, getGenItem } from '../lib/genProgress'; // 다건 진행도(route='/compat', daniel·docs/CONTENT_API_INVENTORY.md)
-import { loadFollowups, askFollowup, type Followup } from '../lib/followups'; // 궁합 추가질문(사주/자미 풀이와 동일 — 무료1 + 건당)
-import { yearGanZhi } from '../lib/dailyFortune'; // 연도별 궁합: 그 해 간지(세운)
-import { compatScore, tierLabel, tierOf, type CompatScoreResult } from '../lib/compatScore'; // 궁합 점수·등급(R26: LLM 직접 산출 우선, 결정론은 폴백)
+import { useSubscription, purchasePremium } from '../lib/billing/subscription';
+import { assertOnline } from '../lib/backend/network'; // 오프라인 시 신규 생성 차단
+import { purchaseCreditRC } from '../lib/billing/purchases'; // 궁합 건당 결제 = credit_compat(서버 consume)
+import { grantCredit } from '../lib/billing/coupons';        // 결제 성공 → 크레딧 부여(서버가 차감)
+import { ensureServerChartId } from '../lib/backend/prewarmReadings';
+import { useFontScale } from '../lib/ui/fontScale';
+import { COMPAT_RELS, otherSig, loadCompatReadings, genCompatReading, compatSections, compatSectionLabel, type CompatReading } from '../lib/content/compatReadings';
+import { setGenProgress, getGenItem } from '../lib/backend/genProgress'; // 다건 진행도(route='/compat', daniel·docs/CONTENT_API_INVENTORY.md)
+import { loadFollowups, askFollowup, type Followup } from '../lib/backend/followups'; // 궁합 추가질문(사주/자미 풀이와 동일 — 무료1 + 건당)
+import { yearGanZhi } from '../lib/content/dailyFortune'; // 연도별 궁합: 그 해 간지(세운)
+import { compatScore, tierLabel, tierOf, type CompatScoreResult } from '../lib/content/compatScore'; // 궁합 점수·등급(R26: LLM 직접 산출 우선, 결정론은 폴백)
 import { appLang } from '../lib/i18n';
 
 // 궁합 등급별 이미지 — assets/icons/compat/{tier.key}.jpg. 없으면 이모지 폴백(이미지 생성 후 require 연결).

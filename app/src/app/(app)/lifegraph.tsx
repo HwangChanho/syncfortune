@@ -10,22 +10,22 @@ import { Image as ExpoImage } from 'expo-image'; // hero 배너 — 다운샘플
 import Svg, { Polyline, Circle, Line, Rect } from 'react-native-svg';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { loadRepChart, type SavedChart } from '../../lib/myChart';
-import { ensureServerChartId } from '../../lib/prewarmReadings';
-import { computeChart } from '../../lib/engine';
+import { loadRepChart, type SavedChart } from '../../lib/engine/myChart';
+import { ensureServerChartId } from '../../lib/backend/prewarmReadings';
+import { computeChart } from '../../lib/engine/engine';
 import { useAuth } from '../../lib/useAuth';
-import { useSubscription } from '../../lib/subscription';
-import { Alert } from '../../lib/alert';
-import { loadCredits } from '../../lib/coupons';
-import { isAdmin } from '../../lib/admin'; // 스페셜 = 관리자 바로 / 그 외 쿠폰(크레딧)만
-import { requireLoginForPurchase } from '../../lib/requireLogin';
+import { useSubscription } from '../../lib/billing/subscription';
+import { Alert } from '../../lib/ui/alert';
+import { loadCredits } from '../../lib/billing/coupons';
+import { isAdmin } from '../../lib/core/admin'; // 스페셜 = 관리자 바로 / 그 외 쿠폰(크레딧)만
+import { requireLoginForPurchase } from '../../lib/billing/requireLogin';
 import { supabase } from '../../lib/supabase';
 import { appLang } from '../../lib/i18n';
-import { invokeFail } from '../../lib/interpretResult'; // 방어: Edge 실패(일시적 불가·결제필요·오류) 정규화
-import { assertOnline } from '../../lib/network'; // daniel: 네트워크/서버 미연결 시 풀이 생성 차단
-import { logEvent } from '../../lib/logger';
-import { setGenProgress } from '../../lib/genProgress'; // 일회성 진행도(daniel 이슈15)
-import { useFontScale } from '../../lib/fontScale';
+import { invokeFail } from '../../lib/backend/interpretResult'; // 방어: Edge 실패(일시적 불가·결제필요·오류) 정규화
+import { assertOnline } from '../../lib/backend/network'; // daniel: 네트워크/서버 미연결 시 풀이 생성 차단
+import { logEvent } from '../../lib/backend/logger';
+import { setGenProgress } from '../../lib/backend/genProgress'; // 일회성 진행도(daniel 이슈15)
+import { useFontScale } from '../../lib/ui/fontScale';
 import { colors, radius, space, shadow, font } from '../../lib/theme';
 import { UnlockOverlay } from '../../components/UnlockOverlay'; // unlock 자물쇠 애니 + 그 사이 LLM 분석
 import { ChartPicker } from '../../components/ChartPicker'; // 상단 명식 헤더 — 현재 적용 명식 표시·전환

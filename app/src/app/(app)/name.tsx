@@ -6,9 +6,9 @@
 import { useMemo, useState } from 'react';
 import { View, Text, ScrollView, TextInput, StyleSheet, ImageBackground } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { analyzeName } from '../../lib/nameReading';
+import { analyzeName } from '../../lib/content/nameReading';
 import { bgSource, colors, radius, space, shadow, font } from '../../lib/theme';
-import { useFontScale } from '../../lib/fontScale';
+import { useFontScale } from '../../lib/ui/fontScale';
 import { ContentHero } from '../../components/SpecialContentScreen'; // 이미지 히어로(보는 맛)
 import { ShareReadingButton } from '../../components/ShareReadingButton'; // 이슈17: 풀이 결과 공유(앱게이트)
 

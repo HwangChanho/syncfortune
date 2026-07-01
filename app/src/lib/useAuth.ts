@@ -8,13 +8,13 @@ import { useState, useEffect } from 'react';
 import { InteractionManager } from 'react-native'; // #2(daniel): 로그인 직후 무거운 동기화를 상호작용 이후로 미뤄 콘텐츠 진입 지연 완화
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from './supabase';
-import { syncChartsFromServer, loadRepChart } from './myChart'; // 계정 동기화(ADR-056) + 대표 명식(serverChartId 선발급)
-import { computeChart } from './engine'; // 대표 차트 산출(serverChartId 선발급용)
-import { ensureServerChartId, prewarmReadings, prewarmDaily } from './prewarmReadings'; // serverChartId 선발급 + 프리미엄 풀이 선생성(daniel #32)
-import { refreshPremium, getPremiumSnapshot } from './premiumStore'; // 로그인 직후 프리미엄 확인(prewarm 게이트)
-import { clearLocalUserData } from './sessionCleanup'; // 로그아웃 시 로컬 사용자 데이터 일괄 정리(daniel 2026-06-23)
-import { logoutPurchases } from './purchases'; // 로그아웃 시 RC(RevenueCat) 익명화 — 이전 계정 프리미엄이 stale 하게 남아 광고가 안 뜨던 버그 차단(daniel 2026-06-24)
-import { setupNotificationTapListener, registerPushToken } from './notifications'; // 알림 탭 딥링크 + 푸시 토큰 등록(G: 강제종료 중 서버생성 완료 푸시)
+import { syncChartsFromServer, loadRepChart } from './engine/myChart'; // 계정 동기화(ADR-056) + 대표 명식(serverChartId 선발급)
+import { computeChart } from './engine/engine'; // 대표 차트 산출(serverChartId 선발급용)
+import { ensureServerChartId, prewarmReadings, prewarmDaily } from './backend/prewarmReadings'; // serverChartId 선발급 + 프리미엄 풀이 선생성(daniel #32)
+import { refreshPremium, getPremiumSnapshot } from './billing/premiumStore'; // 로그인 직후 프리미엄 확인(prewarm 게이트)
+import { clearLocalUserData } from './backend/sessionCleanup'; // 로그아웃 시 로컬 사용자 데이터 일괄 정리(daniel 2026-06-23)
+import { logoutPurchases } from './billing/purchases'; // 로그아웃 시 RC(RevenueCat) 익명화 — 이전 계정 프리미엄이 stale 하게 남아 광고가 안 뜨던 버그 차단(daniel 2026-06-24)
+import { setupNotificationTapListener, registerPushToken } from './backend/notifications'; // 알림 탭 딥링크 + 푸시 토큰 등록(G: 강제종료 중 서버생성 완료 푸시)
 
 // dev 전용 자동 로그인(시뮬 편의) — __DEV__ + app/.env(gitignore) 자격증명이 있을 때만 1회 시도.
 //   프로덕션 빌드는 __DEV__=false + .env 에 키 없음 → 절대 동작하지 않는다. 자격증명은 코드가 아닌 env 에만 둔다.

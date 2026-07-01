@@ -5,14 +5,14 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { View, Text, TextInput, Pressable, ScrollView, StyleSheet, Modal } from 'react-native';
-import { Alert } from '../../lib/alert'; // 커스텀 알림(앱 디자인)
+import { Alert } from '../../lib/ui/alert'; // 커스텀 알림(앱 디자인)
 import { useTranslation } from 'react-i18next';
 import { useFocusEffect } from 'expo-router';
 import { buildSajuChart } from '@engine/saju';
-import { SIJIN } from '../../lib/sijin';                  // 12시진(자시·축시…) 피커 데이터
-import { listPets, addPet, updatePet, deletePet, PET_TYPES, type SavedPet, type PetType } from '../../lib/petChart';
-import { getPetTraits } from '../../lib/petTraits';
-import { useFontScale } from '../../lib/fontScale';
+import { SIJIN } from '../../lib/engine/sijin';                  // 12시진(자시·축시…) 피커 데이터
+import { listPets, addPet, updatePet, deletePet, PET_TYPES, type SavedPet, type PetType } from '../../lib/content/petChart';
+import { getPetTraits } from '../../lib/content/petTraits';
+import { useFontScale } from '../../lib/ui/fontScale';
 import { colors, radius, space, shadow, font } from '../../lib/theme';
 import { ContentHero } from '../../components/SpecialContentScreen'; // 이미지 히어로(보는 맛)
 import { ShareReadingButton } from '../../components/ShareReadingButton'; // 이슈17: 풀이 결과 공유(앱게이트)

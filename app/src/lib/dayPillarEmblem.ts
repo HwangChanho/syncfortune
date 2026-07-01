@@ -4,7 +4,7 @@
 //   일간(천간) 오행 = 색,  일지(지지) = 띠 동물.  예) 辛丑 = 金(은빛) + 소 = "은빛 소".
 //   60갑자 AI 일러스트(assets/ilju/{간지}.jpg)는 ILJU_IMG 맵으로 추후 연결 — 없으면 색+동물 폴백.
 // ─────────────────────────────────────────────────────────────────────────
-import { stemElement, elementColor, elementText } from './ohaeng';
+import { stemElement, elementColor, elementText } from './engine/ohaeng';
 
 // 지지 → 띠 동물(한글). zodiac.ts ANIMAL 과 동일 셋(독립 보관 — 엠블럼 전용·간결).
 export const ILJU_ANIMAL: Record<string, string> = {

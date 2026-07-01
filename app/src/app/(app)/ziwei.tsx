@@ -6,14 +6,14 @@
 import { useState, useCallback } from 'react';
 import { View, Text, ScrollView, Pressable, Modal, StyleSheet } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
-import { Alert } from '../../lib/alert'; // 커스텀 알림 — 자미 풀이 전 정확한 시간 안내(daniel)
-import { useDeferredReady } from '../../lib/useDeferredReady'; // 전환 멈칫 제거(daniel 2026-06-28)
+import { Alert } from '../../lib/ui/alert'; // 커스텀 알림 — 자미 풀이 전 정확한 시간 안내(daniel)
+import { useDeferredReady } from '../../lib/ui/useDeferredReady'; // 전환 멈칫 제거(daniel 2026-06-28)
 import { ChartSkeleton } from '../../components/Skeleton';     // 그 사이 스켈레톤
-import { computeChart } from '../../lib/engine';
-import { loadMyChart } from '../../lib/myChart';
-import { branchElement, elementColor } from '../../lib/ohaeng';
-import { lookupGlossary, GLOSSARY_KIND_LABEL, type GlossaryKind } from '../../lib/myeongriGlossary';
-import { PALACE_DESC } from '../../lib/palaceDesc'; // 12궁 짧은 설명(공용 — 풀이 화면과 공유)
+import { computeChart } from '../../lib/engine/engine';
+import { loadMyChart } from '../../lib/engine/myChart';
+import { branchElement, elementColor } from '../../lib/engine/ohaeng';
+import { lookupGlossary, GLOSSARY_KIND_LABEL, type GlossaryKind } from '../../lib/content/myeongriGlossary';
+import { PALACE_DESC } from '../../lib/content/palaceDesc'; // 12궁 짧은 설명(공용 — 풀이 화면과 공유)
 import { colors, radius, space, shadow, font } from '../../lib/theme';
 import type { ChartInput } from '@spec/chart';
 

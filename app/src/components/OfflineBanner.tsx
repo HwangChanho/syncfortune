@@ -5,7 +5,7 @@
 import { View, Text, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
-import { useOnline } from '../lib/network';
+import { useOnline } from '../lib/backend/network';
 import { colors, space } from '../lib/theme';
 
 export function OfflineBanner() {

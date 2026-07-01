@@ -12,12 +12,12 @@ import { useState } from 'react';
 import { View, Text, StyleSheet, Platform } from 'react-native';
 import { usePathname } from 'expo-router'; // 콘텐츠 열람 화면에선 광고 숨김(daniel: 구매한 컨텐츠엔 광고X)
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useSubscription } from '../lib/subscription';
+import { useSubscription } from '../lib/billing/subscription';
 
 // 광고 숨길 화면 = ★유료(구매)로 보는 깊은 풀이만(daniel: 구매한 컨텐츠엔 광고X). 무료(오늘·이달·에겐·타로 등)는 광고로 지원하니 배너 유지.
 const NO_AD_ROUTES = ['/reading', '/ziwei', '/compat', '/love', '/gaeun', '/newyear', '/lifegraph', '/career', '/talent', '/astrology', '/celeb', '/roots', '/image', '/mission', '/timeline', '/timeResolve', '/dream'];
 import { colors } from '../lib/theme';
-import { adTestMode } from '../lib/ads'; // 테스트광고 모드(daniel: 관리자/테스트는 TestFlight서도 구글 테스트광고)
+import { adTestMode } from '../lib/core/ads'; // 테스트광고 모드(daniel: 관리자/테스트는 TestFlight서도 구글 테스트광고)
 
 // 네이티브 모듈 lazy require — 미포함 빌드(재빌드 전 dev client)에서 import 크래시 방지.
 let Ads: any = null;

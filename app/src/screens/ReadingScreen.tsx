@@ -14,29 +14,29 @@ import { useState, useMemo, useEffect, useRef, type ReactNode } from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator, Modal, TextInput, Keyboard, KeyboardAvoidingView, Platform } from 'react-native';
 import { TTSButton } from '../components/TTSButton'; // daniel: 풀이 음성 읽기(온디바이스 TTS·무료)
 import { ShareReadingButton } from '../components/ShareReadingButton'; // daniel: 공유는 풀이 맨 끝에 균일하게(콘텐츠 화면과 동일)
-import { Alert } from '../lib/alert'; // 커스텀 알림(앱 디자인)
+import { Alert } from '../lib/ui/alert'; // 커스텀 알림(앱 디자인)
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { computeChart } from '../lib/engine';
+import { computeChart } from '../lib/engine/engine';
 import { useAuth } from '../lib/useAuth';
 import { supabase } from '../lib/supabase';
 // 완료 푸시는 genProgress(setGenProgress 완료 전이)에서 중앙 처리(daniel ⑨ — 모든 풀이 공통)
-import { setGenProgress, useGenProgress, clearGenProgress } from '../lib/genProgress'; // 홈 진행률 + 완료 구독 + 진입 시 배너 제거(daniel: 완성 배너 안 사라짐)
-import { useEntitlement } from '../lib/entitlement';
-import { isReadingUnlocked } from '../lib/unlocks'; // 서버 권위 세트 언락(P3) — 이미 열렸으면 무료 재생성
-import { isPremiumForChart } from '../lib/premiumStore'; // 명식별 프리미엄 판정(#1 — 비지정 명식/무료모드 페이월)
-import { useSubscription } from '../lib/subscription';
-import { setServerChartId, getRepresentativeId, type SavedChart } from '../lib/myChart';
-import { loadFollowups, askFollowup, type Followup } from '../lib/followups';
-import { useFontScale } from '../lib/fontScale';
+import { setGenProgress, useGenProgress, clearGenProgress } from '../lib/backend/genProgress'; // 홈 진행률 + 완료 구독 + 진입 시 배너 제거(daniel: 완성 배너 안 사라짐)
+import { useEntitlement } from '../lib/billing/entitlement';
+import { isReadingUnlocked } from '../lib/billing/unlocks'; // 서버 권위 세트 언락(P3) — 이미 열렸으면 무료 재생성
+import { isPremiumForChart } from '../lib/billing/premiumStore'; // 명식별 프리미엄 판정(#1 — 비지정 명식/무료모드 페이월)
+import { useSubscription } from '../lib/billing/subscription';
+import { setServerChartId, getRepresentativeId, type SavedChart } from '../lib/engine/myChart';
+import { loadFollowups, askFollowup, type Followup } from '../lib/backend/followups';
+import { useFontScale } from '../lib/ui/fontScale';
 import { appLang } from '../lib/i18n'; // 통변 출력 언어(앱 언어)
-import { readingFromInvoke } from '../lib/interpretResult'; // 방어: Edge 응답 정규화(일시적 불가·결제필요·오류)
-import { PALACE_DESC } from '../lib/palaceDesc'; // 자미두수 궁 설명(궁 옆 표시)
-import { shareReading } from '../lib/share'; // 이슈17: 풀이 결과 공유(앱 설치자만 열람)
-import { loadCredits, grantCredit } from '../lib/coupons'; // 크레딧 보유확인(UX) + 광고/결제 후 부여(차감은 Edge 서버 권위·P3)
-import { purchaseCreditRC } from '../lib/purchases'; // 추가질문 건당 결제 = credit_followup(서버 consume)
-import { requireLoginForPurchase } from '../lib/requireLogin'; // 결제/저장 전 로그인 안내
-import { assertOnline, isOnline } from '../lib/network'; // 오프라인 시 신규 생성 차단
+import { readingFromInvoke } from '../lib/backend/interpretResult'; // 방어: Edge 응답 정규화(일시적 불가·결제필요·오류)
+import { PALACE_DESC } from '../lib/content/palaceDesc'; // 자미두수 궁 설명(궁 옆 표시)
+import { shareReading } from '../lib/ui/share'; // 이슈17: 풀이 결과 공유(앱 설치자만 열람)
+import { loadCredits, grantCredit } from '../lib/billing/coupons'; // 크레딧 보유확인(UX) + 광고/결제 후 부여(차감은 Edge 서버 권위·P3)
+import { purchaseCreditRC } from '../lib/billing/purchases'; // 추가질문 건당 결제 = credit_followup(서버 consume)
+import { requireLoginForPurchase } from '../lib/billing/requireLogin'; // 결제/저장 전 로그인 안내
+import { assertOnline, isOnline } from '../lib/backend/network'; // 오프라인 시 신규 생성 차단
 import { colors, radius, space, shadow, font } from '../lib/theme';
 import type { ChartInput, CategoryKey } from '@spec/chart';
 
@@ -63,7 +63,7 @@ function asText(v: any): string {
 }
 
 // 사주 16영역 = lib/prewarmReadings 와 단일 출처 공유(프리워밍·화면이 같은 캐시 키를 쓴다).
-import { SAJU_READING_CATEGORIES as SAJU_CATEGORIES, ensureServerChartId } from '../lib/prewarmReadings';
+import { SAJU_READING_CATEGORIES as SAJU_CATEGORIES, ensureServerChartId } from '../lib/backend/prewarmReadings';
 import { UnlockOverlay } from '../components/UnlockOverlay'; // 풀이 생성 중 화면 가림 로딩(daniel)
 
 // ADR-055 P3: opt-in 갱신 — 통변 분석(L2) 버전. Edge interpret 의 L2_VER 과 동기화(메이저 통변 개선 시 양쪽 +1).

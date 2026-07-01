@@ -10,12 +10,12 @@ import { useEffect, useState, useRef } from 'react';
 import { View, Text, StyleSheet, ImageBackground, ScrollView, Pressable, ActivityIndicator, Animated, Easing } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { loadRepChart, type SavedChart } from '../../lib/myChart';
-import { computeChart } from '../../lib/engine';
-import { egenTeto, type EgenTetoResult } from '../../lib/egenTeto';
-import { buildEgenReading, type EgenReading } from '../../lib/egenReading'; // 온디바이스 성향 설명(LLM 0·무료, daniel 2026-06-30)
+import { loadRepChart, type SavedChart } from '../../lib/engine/myChart';
+import { computeChart } from '../../lib/engine/engine';
+import { egenTeto, type EgenTetoResult } from '../../lib/content/egenTeto';
+import { buildEgenReading, type EgenReading } from '../../lib/content/egenReading'; // 온디바이스 성향 설명(LLM 0·무료, daniel 2026-06-30)
 import { bgSource, colors, radius, space, shadow, font } from '../../lib/theme';
-import { useFontScale } from '../../lib/fontScale';
+import { useFontScale } from '../../lib/ui/fontScale';
 import { ChartPicker } from '../../components/ChartPicker'; // 명식 선택(대표 전환) — 명식별 성향(daniel)
 import { ShareReadingButton } from '../../components/ShareReadingButton'; // 이슈17: 풀이 결과 공유(앱게이트)
 

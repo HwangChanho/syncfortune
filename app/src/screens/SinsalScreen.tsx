@@ -7,14 +7,14 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useMemo } from 'react';
 import { View, Text, ScrollView, StyleSheet, Pressable } from 'react-native';
-import { useFontScale } from '../lib/fontScale';
-import { useDeferredReady } from '../lib/useDeferredReady'; // 전환 멈칫 제거(daniel 2026-06-28)
+import { useFontScale } from '../lib/ui/fontScale';
+import { useDeferredReady } from '../lib/ui/useDeferredReady'; // 전환 멈칫 제거(daniel 2026-06-28)
 import { ChartSkeleton } from '../components/Skeleton';     // 그 사이 스켈레톤(스피너보다 빠른 체감)
-import { computeChart } from '../lib/engine';
+import { computeChart } from '../lib/engine/engine';
 import type { ChartInput, PillarPos } from '@spec/chart';
 import { colors, radius, space, shadow, font } from '../lib/theme';
-import { stemElement, branchElement, elementColor, elementText, stemReading, branchReading } from '../lib/ohaeng';
-import { SINSAL_GLOSSARY, GONGMANG_GLOSSARY } from '../lib/myeongriGlossary';
+import { stemElement, branchElement, elementColor, elementText, stemReading, branchReading } from '../lib/engine/ohaeng';
+import { SINSAL_GLOSSARY, GONGMANG_GLOSSARY } from '../lib/content/myeongriGlossary';
 
 // 전통 표기 — 오른쪽이 년주: 시 ← 일 ← 월 ← 년
 const POS: PillarPos[] = ['시', '일', '월', '년'];

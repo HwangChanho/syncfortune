@@ -7,11 +7,11 @@ import { useMemo, useState, useCallback, useRef, useEffect } from 'react';
 import { View, Text, ScrollView, StyleSheet, ImageBackground, Animated } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { luckyToday, weakElementColor } from '../../lib/luckyItem';
-import { loadMyChart } from '../../lib/myChart';
-import { computeChart } from '../../lib/engine';
+import { luckyToday, weakElementColor } from '../../lib/content/luckyItem';
+import { loadMyChart } from '../../lib/engine/myChart';
+import { computeChart } from '../../lib/engine/engine';
 import { bgSource, colors, radius, space, shadow, font } from '../../lib/theme';
-import { useFontScale } from '../../lib/fontScale';
+import { useFontScale } from '../../lib/ui/fontScale';
 import { ChartPicker } from '../../components/ChartPicker'; // 상단 명식 헤더 — 현재 적용 명식 표시·전환
 import { ShareReadingButton } from '../../components/ShareReadingButton'; // 이슈17: 풀이 결과 공유(앱게이트)
 import { TTSButton } from '../../components/TTSButton'; // 풀이 음성 읽기(온디바이스 TTS·무료)

@@ -6,17 +6,17 @@
 //   무료 이용권(쿠폰) 등록도 여기로 이동(설정→마켓). ★1회성 소모 — 보유/미보유로만 표시.
 // ─────────────────────────────────────────────────────────────────────────
 import { View, Text, ScrollView, Pressable, TextInput, StyleSheet, Modal, Image } from 'react-native';
-import { Alert } from '../../lib/alert'; // 커스텀 알림(앱 디자인)
+import { Alert } from '../../lib/ui/alert'; // 커스텀 알림(앱 디자인)
 import { useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { CREDIT_KINDS, loadCredits, redeemCoupon, grantCredit, PREMIUM_PRICE, type CreditKind } from '../../lib/coupons';
-import { listCharts, getRepresentativeId, setRepresentative, type SavedChart } from '../../lib/myChart';
-import { purchaseCreditRC, purchasesEnabled, priceStringsRC, priceStringRC, CREDIT_PRODUCT, PRODUCT_PREMIUM } from '../../lib/purchases';
-import { useSubscription } from '../../lib/subscription'; // 프리미엄 가입 루트(전체 무제한)
+import { CREDIT_KINDS, loadCredits, redeemCoupon, grantCredit, PREMIUM_PRICE, type CreditKind } from '../../lib/billing/coupons';
+import { listCharts, getRepresentativeId, setRepresentative, type SavedChart } from '../../lib/engine/myChart';
+import { purchaseCreditRC, purchasesEnabled, priceStringsRC, priceStringRC, CREDIT_PRODUCT, PRODUCT_PREMIUM } from '../../lib/billing/purchases';
+import { useSubscription } from '../../lib/billing/subscription'; // 프리미엄 가입 루트(전체 무제한)
 import { useAuth } from '../../lib/useAuth';              // 세션(프리미엄 명식 지정 시 serverChartId 발급)
 import { supabase } from '../../lib/supabase';            // set_premium_chart RPC(구매 명식 지정)
-import { ensureServerChartIdForSaved } from '../../lib/prewarmReadings'; // 구매 명식 serverChartId 확보
+import { ensureServerChartIdForSaved } from '../../lib/backend/prewarmReadings'; // 구매 명식 serverChartId 확보
 import { colors, radius, space, shadow, font } from '../../lib/theme';
 
 // 이용권 kind → 적용할 풀이 화면(선택 명식을 대표로 둔 뒤 진입 — 대표 기준 캐시)

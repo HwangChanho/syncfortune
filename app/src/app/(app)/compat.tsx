@@ -8,7 +8,7 @@ import { View, Text, Pressable, ActivityIndicator, StyleSheet } from 'react-nati
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { CompatScreen } from '../../screens/CompatScreen';
-import { loadMyChart } from '../../lib/myChart';
+import { loadMyChart } from '../../lib/engine/myChart';
 import { colors, radius, space, font } from '../../lib/theme';
 import type { ChartInput } from '@spec/chart';
 

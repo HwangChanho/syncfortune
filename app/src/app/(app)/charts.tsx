@@ -4,14 +4,14 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useState, useMemo } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
-import { useFontScale } from '../../lib/fontScale';
+import { useFontScale } from '../../lib/ui/fontScale';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { MyeongsikScreen } from '../../screens/MyeongsikScreen';
-import { loadMyChart } from '../../lib/myChart';
+import { loadMyChart } from '../../lib/engine/myChart';
 import { ChartPicker } from '../../components/ChartPicker';
 import { ChartSkeleton } from '../../components/Skeleton'; // 로딩 중 명식 형태 스켈레톤(daniel 2026-06-28)
-import { useDeferredReady } from '../../lib/useDeferredReady'; // 전환 끝난 뒤 MyeongsikScreen 마운트(멈칫 제거)
+import { useDeferredReady } from '../../lib/ui/useDeferredReady'; // 전환 끝난 뒤 MyeongsikScreen 마운트(멈칫 제거)
 import { colors, radius, space, font } from '../../lib/theme';
 import type { ChartInput } from '@spec/chart';
 

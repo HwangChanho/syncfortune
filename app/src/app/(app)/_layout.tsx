@@ -6,8 +6,8 @@
 import { Stack, usePathname } from 'expo-router';
 import { View } from 'react-native';
 import { useEffect } from 'react';
-import { clearGenByPath } from '../../lib/genProgress'; // 화면 접근 시 그 풀이 알림 배너 해제(daniel ⑨)
-import { useFontScale } from '../../lib/fontScale';
+import { clearGenByPath } from '../../lib/backend/genProgress'; // 화면 접근 시 그 풀이 알림 배너 해제(daniel ⑨)
+import { useFontScale } from '../../lib/ui/fontScale';
 import { AdBanner } from '../../components/AdBanner';
 import { BottomNav } from '../../components/BottomNav';
 import { OfflineBanner } from '../../components/OfflineBanner';

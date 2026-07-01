@@ -8,13 +8,13 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { View, Text, Pressable, Modal, StyleSheet, Dimensions, ActivityIndicator, InteractionManager, Animated } from 'react-native';
 import { Image as ExpoImage } from 'expo-image'; // 자동 다운샘플(메모리) + 엠블럼 탭 풀스크린 뷰어
 import DraggableFlatList, { ScaleDecorator } from 'react-native-draggable-flatlist'; // 이슈20 롱프레스 드래그 reorder
-import { Alert } from '../lib/alert'; // 커스텀 알림(삭제 확인)
+import { Alert } from '../lib/ui/alert'; // 커스텀 알림(삭제 확인)
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { listCharts, setRepresentative, getRepresentativeId, deleteChart, reorderCharts, subscribeRepChange, type SavedChart } from '../lib/myChart';
-import { useSubscription } from '../lib/subscription';
-import { useFontScale } from '../lib/fontScale'; // 명식 헤더 글자크기 반영(daniel)
-import { computeChart } from '../lib/engine'; // 각 명식 일주 산출(엠블럼)
+import { listCharts, setRepresentative, getRepresentativeId, deleteChart, reorderCharts, subscribeRepChange, type SavedChart } from '../lib/engine/myChart';
+import { useSubscription } from '../lib/billing/subscription';
+import { useFontScale } from '../lib/ui/fontScale'; // 명식 헤더 글자크기 반영(daniel)
+import { computeChart } from '../lib/engine/engine'; // 각 명식 일주 산출(엠블럼)
 import { iljuEmblem, iljuImage, type IljuEmblem } from '../lib/dayPillarEmblem'; // 일주 엠블럼(은빛 소 등) + 60갑자 AI 일러스트
 import { colors, radius, space, shadow, font } from '../lib/theme';
 

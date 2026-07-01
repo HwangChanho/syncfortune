@@ -11,7 +11,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { ReadingScreen } from '../../screens/ReadingScreen';
 import { ChartPicker } from '../../components/ChartPicker'; // 풀이 상단 명식 전환 헤더(전환 시 게이트 재평가)
-import { loadRepChart, listCharts, setRepresentative, getRepresentativeId, type SavedChart } from '../../lib/myChart';
+import { loadRepChart, listCharts, setRepresentative, getRepresentativeId, type SavedChart } from '../../lib/engine/myChart';
 import { colors, radius, space, font } from '../../lib/theme';
 import type { ChartInput } from '@spec/chart';
 

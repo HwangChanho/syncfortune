@@ -6,28 +6,28 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator, Modal } from 'react-native';
-import { Alert } from '../lib/alert'; // 커스텀 알림(앱 디자인)
+import { Alert } from '../lib/ui/alert'; // 커스텀 알림(앱 디자인)
 import { useTranslation } from 'react-i18next';
-import { computeChart } from '../lib/engine';
+import { computeChart } from '../lib/engine/engine';
 import { useAuth } from '../lib/useAuth';
-import { useSubscription } from '../lib/subscription';
-import { useFontScale } from '../lib/fontScale';
-import { setGenProgress } from '../lib/genProgress'; // 일회성 진행도(daniel 이슈15)
+import { useSubscription } from '../lib/billing/subscription';
+import { useFontScale } from '../lib/ui/fontScale';
+import { setGenProgress } from '../lib/backend/genProgress'; // 일회성 진행도(daniel 이슈15)
 import { supabase } from '../lib/supabase';
-import { ensureServerChartId } from '../lib/prewarmReadings';
-import { invokeFail } from '../lib/interpretResult'; // 방어: 일시적 불가/오류 친화 처리
-import { getRepresentativeId } from '../lib/myChart'; // 대표 명식 여부(자동생성 한정)
-import { assertOnline, isOnline } from '../lib/network'; // 오프라인 시 신규 생성 차단
-import { loadCredits, grantCredit } from '../lib/coupons'; // 크레딧 보유확인 + 구매 후 부여(차감은 Edge·P3)
-import { isReadingUnlocked } from '../lib/unlocks'; // 서버 세트 언락(timeline)
-import { isPremiumForChart } from '../lib/premiumStore'; // 명식별 프리미엄 판정(#1 — 비지정 명식/무료모드 게이트)
-import { purchaseCreditRC } from '../lib/purchases'; // timeline 개별 구매(비프리미엄)
+import { ensureServerChartId } from '../lib/backend/prewarmReadings';
+import { invokeFail } from '../lib/backend/interpretResult'; // 방어: 일시적 불가/오류 친화 처리
+import { getRepresentativeId } from '../lib/engine/myChart'; // 대표 명식 여부(자동생성 한정)
+import { assertOnline, isOnline } from '../lib/backend/network'; // 오프라인 시 신규 생성 차단
+import { loadCredits, grantCredit } from '../lib/billing/coupons'; // 크레딧 보유확인 + 구매 후 부여(차감은 Edge·P3)
+import { isReadingUnlocked } from '../lib/billing/unlocks'; // 서버 세트 언락(timeline)
+import { isPremiumForChart } from '../lib/billing/premiumStore'; // 명식별 프리미엄 판정(#1 — 비지정 명식/무료모드 게이트)
+import { purchaseCreditRC } from '../lib/billing/purchases'; // timeline 개별 구매(비프리미엄)
 import { appLang } from '../lib/i18n'; // 통변 출력 언어(앱 언어)
-import { stemElement, branchElement, elementColor, elementText, stemYinYang, branchYinYang } from '../lib/ohaeng';
+import { stemElement, branchElement, elementColor, elementText, stemYinYang, branchYinYang } from '../lib/engine/ohaeng';
 import { TTSButton } from '../components/TTSButton'; // daniel: 풀이 음성 읽기(온디바이스 TTS·무료)
 import { colors, radius, space, shadow, font } from '../lib/theme';
 import type { ChartInput } from '@spec/chart';
-import type { SavedChart } from '../lib/myChart';
+import type { SavedChart } from '../lib/engine/myChart';
 
 const AGE_MIN = 10, AGE_MAX = 110;  // 대운 110세까지(daniel)
 

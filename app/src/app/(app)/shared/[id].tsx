@@ -6,7 +6,7 @@
 import { useEffect, useState } from 'react';
 import { View, Text, ScrollView, Pressable, ActivityIndicator, StyleSheet } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
-import { fetchSharedReading, type ShareReadingInput } from '../../../lib/share';
+import { fetchSharedReading, type ShareReadingInput } from '../../../lib/ui/share';
 import { colors, radius, space, font, shadow } from '../../../lib/theme';
 
 // content(스냅샷)를 사람이 읽을 블록[{label?, text}]으로 평탄화 — 문자열/배열/{label,text}/중첩객체 모두 처리.

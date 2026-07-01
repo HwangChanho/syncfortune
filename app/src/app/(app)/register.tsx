@@ -7,15 +7,15 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useEffect } from 'react';
 import { View, ActivityIndicator } from 'react-native';
-import { Alert } from '../../lib/alert'; // 커스텀 알림(앱 디자인)
+import { Alert } from '../../lib/ui/alert'; // 커스텀 알림(앱 디자인)
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { ChartRegisterScreen } from '../../screens/ChartRegisterScreen';
-import { addChart, saveMyChart, ChartLimitError, setRepresentative, updateChart, listCharts, type SavedChart } from '../../lib/myChart';
-import { useSubscription, purchasePremium } from '../../lib/subscription';
+import { addChart, saveMyChart, ChartLimitError, setRepresentative, updateChart, listCharts, type SavedChart } from '../../lib/engine/myChart';
+import { useSubscription, purchasePremium } from '../../lib/billing/subscription';
 import { useAuth } from '../../lib/useAuth';
-import { requireLoginForPurchase } from '../../lib/requireLogin'; // 구매 전 로그인 게이트(계정 귀속)
-import { showRewardedAd } from '../../lib/ads'; // 보상형 광고 → 한도 1건 우회
+import { requireLoginForPurchase } from '../../lib/billing/requireLogin'; // 구매 전 로그인 게이트(계정 귀속)
+import { showRewardedAd } from '../../lib/core/ads'; // 보상형 광고 → 한도 1건 우회
 import { colors } from '../../lib/theme';
 
 export default function RegisterRoute() {

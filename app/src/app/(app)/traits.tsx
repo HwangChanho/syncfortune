@@ -6,13 +6,13 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useState, useMemo } from 'react';
 import { View, Text, Pressable, ActivityIndicator, ScrollView, StyleSheet } from 'react-native';
-import { useFontScale } from '../../lib/fontScale';
+import { useFontScale } from '../../lib/ui/fontScale';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { computeChart } from '../../lib/engine';
-import { loadMyChart } from '../../lib/myChart';
-import { dayMasterTraits } from '../../lib/dayMasterTraits';
-import { stemElement, branchElement, elementColor } from '../../lib/ohaeng';
+import { computeChart } from '../../lib/engine/engine';
+import { loadMyChart } from '../../lib/engine/myChart';
+import { dayMasterTraits } from '../../lib/engine/dayMasterTraits';
+import { stemElement, branchElement, elementColor } from '../../lib/engine/ohaeng';
 import { colors, radius, space, shadow, font } from '../../lib/theme';
 import type { ChartInput } from '@spec/chart';
 import { useCallback } from 'react';

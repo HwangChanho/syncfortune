@@ -8,10 +8,10 @@ import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { TimelineScreen } from '../../screens/TimelineScreen';
-import { useDeferredReady } from '../../lib/useDeferredReady'; // 전환 멈칫 제거(daniel 2026-06-28)
+import { useDeferredReady } from '../../lib/ui/useDeferredReady'; // 전환 멈칫 제거(daniel 2026-06-28)
 import { ChartSkeleton } from '../../components/Skeleton';     // 그 사이 스켈레톤
-import { loadRepChart, type SavedChart } from '../../lib/myChart';
-import { useFontScale } from '../../lib/fontScale';
+import { loadRepChart, type SavedChart } from '../../lib/engine/myChart';
+import { useFontScale } from '../../lib/ui/fontScale';
 import { colors, radius, space, font } from '../../lib/theme';
 import type { ChartInput } from '@spec/chart';
 

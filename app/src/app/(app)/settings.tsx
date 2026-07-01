@@ -6,17 +6,17 @@
 import { useState, useEffect } from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet, Linking } from 'react-native';
 import Constants from 'expo-constants'; // 앱 버전(app.json)
-import { Alert } from '../../lib/alert'; // 커스텀 알림(앱 디자인)
+import { Alert } from '../../lib/ui/alert'; // 커스텀 알림(앱 디자인)
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { setAppLang } from '../../lib/i18n'; // 언어 변경 + persist(재시작 후 유지)
-import { useFontScale, FONT_STEPS } from '../../lib/fontScale';
-import { isAdmin } from '../../lib/admin'; // 관리자 메뉴 노출 판정(실제 권한은 서버 RPC)
+import { useFontScale, FONT_STEPS } from '../../lib/ui/fontScale';
+import { isAdmin } from '../../lib/core/admin'; // 관리자 메뉴 노출 판정(실제 권한은 서버 RPC)
 import { useAuth } from '../../lib/useAuth';               // 계정(세션)
-import { useSubscription } from '../../lib/subscription';  // 프리미엄 상태·구매
-import { requireLoginForPurchase } from '../../lib/requireLogin'; // 결제 전 로그인 게이트
-import { restorePurchasesRC, priceStringRC, PRODUCT_PREMIUM } from '../../lib/purchases';  // 구매 복원·프리미엄 현지가
-import { PREMIUM_PRICE } from '../../lib/coupons';  // 프리미엄 폴백 가격(₩)
+import { useSubscription } from '../../lib/billing/subscription';  // 프리미엄 상태·구매
+import { requireLoginForPurchase } from '../../lib/billing/requireLogin'; // 결제 전 로그인 게이트
+import { restorePurchasesRC, priceStringRC, PRODUCT_PREMIUM } from '../../lib/billing/purchases';  // 구매 복원·프리미엄 현지가
+import { PREMIUM_PRICE } from '../../lib/billing/coupons';  // 프리미엄 폴백 가격(₩)
 import { supabase } from '../../lib/supabase';             // 로그아웃
 import { BusyOverlay } from '../../components/BusyOverlay'; // 긴 콜백(로그아웃·삭제) 로딩 오버레이
 import { colors, radius, space, shadow, font, setThemePref, getThemePref, type ThemePref } from '../../lib/theme';

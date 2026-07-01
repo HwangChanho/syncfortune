@@ -7,29 +7,29 @@
 import { View, Text, Pressable, ScrollView, StyleSheet, ImageBackground, Animated, AppState, Dimensions, Easing } from 'react-native';
 import Svg, { Path, Ellipse, Circle, Line, Defs, LinearGradient, Stop } from 'react-native-svg'; // 선비 실루엣 + 산수화풍 한지산(daniel)
 import { Image as ExpoImage } from 'expo-image'; // 이미지 자동 다운샘플(표시 크기로 디코딩) — 홈 카드 24장 메모리·랙 해결
-import { Alert } from '../../lib/alert'; // 커스텀 알림(앱 디자인)
+import { Alert } from '../../lib/ui/alert'; // 커스텀 알림(앱 디자인)
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../lib/useAuth';
 import { useEffect, useRef, useMemo, useState, useCallback } from 'react';
 import { supabase } from '../../lib/supabase';
-import { showRewardedAd, adTestMode } from '../../lib/ads'; // 보상형 + 테스트광고 모드(관리자도 게이트 확인 가능)
-import { isAdmin } from '../../lib/admin'; // 관리자·프리미엄 = 무료 진입 광고 제외
+import { showRewardedAd, adTestMode } from '../../lib/core/ads'; // 보상형 + 테스트광고 모드(관리자도 게이트 확인 가능)
+import { isAdmin } from '../../lib/core/admin'; // 관리자·프리미엄 = 무료 진입 광고 제외
 import { ChartPicker } from '../../components/ChartPicker';
-import { getDailyFortune, dailyHeadline, dailyPreview } from '../../lib/dailyFortune';
-import { stemElement, branchElement, elementColor, elementText } from '../../lib/ohaeng'; // 오늘의 기운 = 오행색 네모 한자
-import { useGenProgress, clearGenProgress } from '../../lib/genProgress'; // 풀이 진행률(다중·route별, 풀이중 홈 나가도 % — daniel)
-import { useSubscription } from '../../lib/subscription';
-import { loadRepChart, subscribeRepChange } from '../../lib/myChart';
-import { prewarmReadings, prewarmDaily } from '../../lib/prewarmReadings';
-import { scheduleDailyFortune } from '../../lib/notifications'; // 매일 9시 오늘의 운세 알림
+import { getDailyFortune, dailyHeadline, dailyPreview } from '../../lib/content/dailyFortune';
+import { stemElement, branchElement, elementColor, elementText } from '../../lib/engine/ohaeng'; // 오늘의 기운 = 오행색 네모 한자
+import { useGenProgress, clearGenProgress } from '../../lib/backend/genProgress'; // 풀이 진행률(다중·route별, 풀이중 홈 나가도 % — daniel)
+import { useSubscription } from '../../lib/billing/subscription';
+import { loadRepChart, subscribeRepChange } from '../../lib/engine/myChart';
+import { prewarmReadings, prewarmDaily } from '../../lib/backend/prewarmReadings';
+import { scheduleDailyFortune } from '../../lib/backend/notifications'; // 매일 9시 오늘의 운세 알림
 import { buildSajuChart } from '@engine/saju';
 import type { Stem, Branch } from '@spec/chart';
 import { bgSource, colors, radius, space, shadow, font, activeScheme } from '../../lib/theme';
-import { useFontScale } from '../../lib/fontScale';
-import { playSound } from '../../lib/sounds';
+import { useFontScale } from '../../lib/ui/fontScale';
+import { playSound } from '../../lib/ui/sounds';
 import { BusyOverlay } from '../../components/BusyOverlay'; // 로그아웃 등 긴 콜백 로딩
-import { CREDIT_KINDS, type CreditKind } from '../../lib/coupons'; // 유료 콘텐츠 카드 가격 배지(정가 대비 할인)
+import { CREDIT_KINDS, type CreditKind } from '../../lib/billing/coupons'; // 유료 콘텐츠 카드 가격 배지(정가 대비 할인)
 
 type MenuItem = { key: string; labelKey: string; descKey?: string; image?: any; route: string; ready: boolean; premium?: boolean; content?: boolean; creditKey?: CreditKind };
 type Section = { key: string; titleKey: string; descKey?: string; items: MenuItem[] };

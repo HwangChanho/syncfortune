@@ -10,20 +10,20 @@ import { Image as ExpoImage } from 'expo-image'; // 상단 히어로 — 자동 
 import { Stack, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import type { ChartInput } from '@spec/chart';
-import { scoreTimePillars, type LifeEvent, type BigEventType } from '../../lib/timePillarScore';
+import { scoreTimePillars, type LifeEvent, type BigEventType } from '../../lib/engine/timePillarScore';
 import { BirthPlacePicker } from '../../components/BirthPlacePicker'; // 출생지 = 지역 검색(명식 등록과 동일·Nominatim, daniel #21)
-import { stemReading, branchReading } from '../../lib/ohaeng';
+import { stemReading, branchReading } from '../../lib/engine/ohaeng';
 import { colors, radius, space, font } from '../../lib/theme';
 // ── TPR 결제 게이트(daniel 06-28): 결정론 도구지만 990 1회 결제로 *영구 해제*(재실행·사건 추가 무료) ──
-import { Alert } from '../../lib/alert';                         // 커스텀 알림(앱 디자인)
+import { Alert } from '../../lib/ui/alert';                         // 커스텀 알림(앱 디자인)
 import { useAuth } from '../../lib/useAuth';
-import { useSubscription } from '../../lib/subscription';        // 프리미엄=무료
-import { isAdmin } from '../../lib/admin';                       // 관리자=무료
-import { useCredit, grantCredit } from '../../lib/coupons';      // 서버/로컬 크레딧 차감·적립
-import { isUnlocked, markUnlocked } from '../../lib/unlocks';    // 1회 해제 후 영구(재차감 방지)
-import { purchaseCreditRC, purchasesEnabled } from '../../lib/purchases'; // 즉시 구매
-import { requireLoginForPurchase } from '../../lib/requireLogin';
-import { assertOnline } from '../../lib/network';
+import { useSubscription } from '../../lib/billing/subscription';        // 프리미엄=무료
+import { isAdmin } from '../../lib/core/admin';                       // 관리자=무료
+import { useCredit, grantCredit } from '../../lib/billing/coupons';      // 서버/로컬 크레딧 차감·적립
+import { isUnlocked, markUnlocked } from '../../lib/billing/unlocks';    // 1회 해제 후 영구(재차감 방지)
+import { purchaseCreditRC, purchasesEnabled } from '../../lib/billing/purchases'; // 즉시 구매
+import { requireLoginForPurchase } from '../../lib/billing/requireLogin';
+import { assertOnline } from '../../lib/backend/network';
 
 const EVENT_TYPES: BigEventType[] = ['이사', '이직', '창업', '결혼', '이혼', '투자손실', '질병', '사고'];
 

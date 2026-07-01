@@ -11,17 +11,17 @@ import { Stack } from 'expo-router';
 import { View, ActivityIndicator, StyleSheet, LogBox, AppState, InteractionManager } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler'; // 이슈20 드래그 reorder(gesture-handler) — 루트 래핑 필수
 import { useAuth } from '../lib/useAuth';
-import { configurePurchases } from '../lib/purchases'; // 인앱결제(RevenueCat) 초기화
-import { refreshPremium } from '../lib/premiumStore'; // 세션 변경(로그인/로그아웃/계정전환) 시 프리미엄 전역 재평가 → 광고 즉시 토글(daniel 2026-06-24)
-import { migrateLocalCreditsOnLogin } from '../lib/migrateCredits'; // 로그인 시 디바이스 구매 이관(H)
-import { preferSelfAsRep } from '../lib/myChart'; // 앱 실행 시 대표 명식 = 본인(daniel)
-import { hydrateGenProgress } from '../lib/genProgress'; // 앱 시작 시 진행중/미확인 풀이 복원 → 홈 배너(daniel: 강제종료 생존)
-import { initAds, setAdTestMode } from '../lib/ads'; // AdMob 초기화 + 테스트광고 모드(관리자/테스트=실 유닛 서빙 전이라 구글 테스트광고로, daniel)
+import { configurePurchases } from '../lib/billing/purchases'; // 인앱결제(RevenueCat) 초기화
+import { refreshPremium } from '../lib/billing/premiumStore'; // 세션 변경(로그인/로그아웃/계정전환) 시 프리미엄 전역 재평가 → 광고 즉시 토글(daniel 2026-06-24)
+import { migrateLocalCreditsOnLogin } from '../lib/billing/migrateCredits'; // 로그인 시 디바이스 구매 이관(H)
+import { preferSelfAsRep } from '../lib/engine/myChart'; // 앱 실행 시 대표 명식 = 본인(daniel)
+import { hydrateGenProgress } from '../lib/backend/genProgress'; // 앱 시작 시 진행중/미확인 풀이 복원 → 홈 배너(daniel: 강제종료 생존)
+import { initAds, setAdTestMode } from '../lib/core/ads'; // AdMob 초기화 + 테스트광고 모드(관리자/테스트=실 유닛 서빙 전이라 구글 테스트광고로, daniel)
 import { supabase } from '../lib/supabase'; // 세션 유저 test_mode·is_admin → 테스트광고 게이트
-import { FontScaleProvider } from '../lib/fontScale'; // 전역 글자 크기(설정에서 조절)
+import { FontScaleProvider } from '../lib/ui/fontScale'; // 전역 글자 크기(설정에서 조절)
 import { colors } from '../lib/theme';
 import { AppAlert } from '../components/AppAlert'; // 커스텀 알림 호스트(시스템 Alert 대체)
-import { installCrashLogger, logEvent } from '../lib/logger'; // 전역 JS 크래시 → app_logs(DB 로그) + 앱 사용 세션 시간 로깅
+import { installCrashLogger, logEvent } from '../lib/backend/logger'; // 전역 JS 크래시 → app_logs(DB 로그) + 앱 사용 세션 시간 로깅
 import { SplashOverlay } from '../components/SplashOverlay'; // 앱 실행 인트로(緣) 애니메이션
 
 // i18next 26.x가 Hermes에서 Intl.PluralRules 를 인식 못 해 내는 dev 경고(동작은 v3 fallback 정상,

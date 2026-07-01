@@ -1,6 +1,6 @@
 import React from 'react';
 import Svg, { Circle, Path, G, Rect } from 'react-native-svg';
-import { elementColor } from '../lib/ohaeng';
+import { elementColor } from '../lib/engine/ohaeng';
 
 type OhaengType = '木' | '火' | '土' | '金' | '水';
 

@@ -12,11 +12,11 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
-import { computeChart } from '../../../lib/engine';
-import { loadMyChart } from '../../../lib/myChart';
-import { CELEB_DB, celebChartInput } from '../../../lib/celebData';
-import { rankCelebs, matchHeadline, matchGrade, type CelebMatchResult } from '../../../lib/celebMatch';
-import { stemElement } from '../../../lib/ohaeng';
+import { computeChart } from '../../../lib/engine/engine';
+import { loadMyChart } from '../../../lib/engine/myChart';
+import { CELEB_DB, celebChartInput } from '../../../lib/content/celebData';
+import { rankCelebs, matchHeadline, matchGrade, type CelebMatchResult } from '../../../lib/content/celebMatch';
+import { stemElement } from '../../../lib/engine/ohaeng';
 import { bgSource, colors, radius, space, shadow, font } from '../../../lib/theme';
 import { ChartPicker } from '../../../components/ChartPicker';
 import type { ChartInput } from '@spec/chart';

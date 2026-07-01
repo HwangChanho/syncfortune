@@ -7,11 +7,11 @@ import { useMemo, useState, useCallback, useEffect, useRef } from 'react';
 import { View, Text, ScrollView, StyleSheet, ImageBackground, Animated, Easing } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { loadMyChart } from '../../lib/myChart';
-import { computeChart } from '../../lib/engine';
-import { sajuMbti } from '../../lib/sajuMbti';
+import { loadMyChart } from '../../lib/engine/myChart';
+import { computeChart } from '../../lib/engine/engine';
+import { sajuMbti } from '../../lib/content/sajuMbti';
 import { bgSource, colors, radius, space, shadow, font } from '../../lib/theme';
-import { useFontScale } from '../../lib/fontScale';
+import { useFontScale } from '../../lib/ui/fontScale';
 import { ContentHero } from '../../components/SpecialContentScreen';
 import { Reveal } from '../../components/Reveal'; // 카드 순차 등장(daniel 재미)
 import { ChartPicker } from '../../components/ChartPicker';

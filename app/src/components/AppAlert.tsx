@@ -5,7 +5,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { Modal, View, Text, Pressable, StyleSheet } from 'react-native';
 import { useEffect, useState } from 'react';
-import { registerAlertHost, alertDismissed, type AlertOpts } from '../lib/alert';
+import { registerAlertHost, alertDismissed, type AlertOpts } from '../lib/ui/alert';
 import { colors, radius, space, shadow, font } from '../lib/theme';
 
 export function AppAlert() {

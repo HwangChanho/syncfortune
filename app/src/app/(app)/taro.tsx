@@ -7,15 +7,15 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { View, Text, Pressable, ScrollView, Image, StyleSheet, ImageBackground, Modal, Animated, Easing } from 'react-native';
-import { useFontScale } from '../../lib/fontScale';
+import { useFontScale } from '../../lib/ui/fontScale';
 import { useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import * as Haptics from 'expo-haptics';
 import {
   drawSpread, cardImage, combineReading, cardMeaning, SPREAD_POSITIONS, TARO_CATEGORIES, type SpreadCard,
 } from '../../lib/tarot';
-import { loadTodayTaro, saveTodayTaro } from '../../lib/tarotStore';
-import { playSound } from '../../lib/sounds';
+import { loadTodayTaro, saveTodayTaro } from '../../lib/content/tarotStore';
+import { playSound } from '../../lib/ui/sounds';
 import { bgSource, colors, radius, space, shadow, font, gradients } from '../../lib/theme';
 import { GlassCard } from '../../components/GlassCard';
 

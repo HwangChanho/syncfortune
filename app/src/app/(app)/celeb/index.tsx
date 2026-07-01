@@ -7,7 +7,7 @@
 import { View, Text, ScrollView, StyleSheet, Pressable, ImageBackground } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { CELEB_DB } from '../../../lib/celebData';       // 결정론 DB (celebData.ts)
+import { CELEB_DB } from '../../../lib/content/celebData';       // 결정론 DB (celebData.ts)
 import { bgSource, colors, radius, space, shadow, font } from '../../../lib/theme';
 
 export default function CelebIndex() {

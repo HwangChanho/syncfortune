@@ -8,8 +8,8 @@
 import { useRef } from 'react';
 import { Pressable, Text, View, StyleSheet, Share, Platform, type StyleProp, type ViewStyle } from 'react-native';
 import ViewShot, { captureRef } from 'react-native-view-shot';
-import { Alert } from '../lib/alert';
-import { APP_STORE_URL, createSharedLink } from '../lib/share';
+import { Alert } from '../lib/ui/alert';
+import { APP_STORE_URL, createSharedLink } from '../lib/ui/share';
 import { colors, radius, space } from '../lib/theme';
 
 export function ShareReadingButton({ kind, category, title, content, style }: {

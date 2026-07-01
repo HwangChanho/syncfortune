@@ -5,16 +5,16 @@
 //   ⚠️ 이메일=PII — 관리자만 노출(규칙8). 비관리자는 접근 차단(서버 RPC + 아래 allowed 게이트).
 // ─────────────────────────────────────────────────────────────────────────
 import { View, Text, ScrollView, Pressable, TextInput, StyleSheet, ActivityIndicator } from 'react-native';
-import { Alert } from '../../lib/alert'; // 커스텀 알림(앱 디자인)
+import { Alert } from '../../lib/ui/alert'; // 커스텀 알림(앱 디자인)
 import { useEffect, useState } from 'react';
-import { isAdmin, adminListUsers, adminGrantCredit, adminSetPremium, adminUserDetail, adminStats, adminUserUsage, type AdminUser, type AdminUserDetail, type AdminStats, type AdminUsage } from '../../lib/admin';
-import { CREDIT_KINDS, type CreditKind } from '../../lib/coupons';
-import { logEvent } from '../../lib/logger'; // DB 로그(app_logs) — 선물/프리미엄 단계 추적
+import { isAdmin, adminListUsers, adminGrantCredit, adminSetPremium, adminUserDetail, adminStats, adminUserUsage, type AdminUser, type AdminUserDetail, type AdminStats, type AdminUsage } from '../../lib/core/admin';
+import { CREDIT_KINDS, type CreditKind } from '../../lib/billing/coupons';
+import { logEvent } from '../../lib/backend/logger'; // DB 로그(app_logs) — 선물/프리미엄 단계 추적
 import { colors, radius, space, shadow, font } from '../../lib/theme';
 import { useRouter } from 'expo-router'; // 비용분석 화면 이동
 import { supabase } from '../../lib/supabase'; // 테스트/관리자 모드 RPC + 프로필 로드
-import { setAdTestMode } from '../../lib/ads'; // 테스트모드 → 테스트광고 즉시 반영
-import { useSubscription } from '../../lib/subscription'; // 관리자모드 토글 후 프리미엄 새로고침
+import { setAdTestMode } from '../../lib/core/ads'; // 테스트모드 → 테스트광고 즉시 반영
+import { useSubscription } from '../../lib/billing/subscription'; // 관리자모드 토글 후 프리미엄 새로고침
 
 // 초 → 사람이 읽는 시간(평균 사용시간 표시).
 const fmtDur = (sec?: number | null) => {

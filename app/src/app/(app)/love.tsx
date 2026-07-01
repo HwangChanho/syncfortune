@@ -6,24 +6,24 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useMemo, useState, useRef } from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator, Animated } from 'react-native';
-import { Alert } from '../../lib/alert'; // 커스텀 알림(앱 디자인)
+import { Alert } from '../../lib/ui/alert'; // 커스텀 알림(앱 디자인)
 import { useTranslation } from 'react-i18next';
 import { useRouter } from 'expo-router';
-import { computeChart } from '../../lib/engine';
-import { loadRepChart, type SavedChart } from '../../lib/myChart';
-import { ensureServerChartId } from '../../lib/prewarmReadings';
+import { computeChart } from '../../lib/engine/engine';
+import { loadRepChart, type SavedChart } from '../../lib/engine/myChart';
+import { ensureServerChartId } from '../../lib/backend/prewarmReadings';
 import { useAuth } from '../../lib/useAuth';
-import { useFontScale } from '../../lib/fontScale';
-import { useSubscription } from '../../lib/subscription'; // 프리미엄=자동 생성(타 스페셜과 통일)
-import { loadCredits } from '../../lib/coupons';
-import { isAdmin } from '../../lib/admin'; // 스페셜 = 관리자 바로 진입 / 그 외 쿠폰(크레딧)만 unlock(결제 미연동)
-import { requireLoginForPurchase } from '../../lib/requireLogin';
-import { assertOnline } from '../../lib/network';
+import { useFontScale } from '../../lib/ui/fontScale';
+import { useSubscription } from '../../lib/billing/subscription'; // 프리미엄=자동 생성(타 스페셜과 통일)
+import { loadCredits } from '../../lib/billing/coupons';
+import { isAdmin } from '../../lib/core/admin'; // 스페셜 = 관리자 바로 진입 / 그 외 쿠폰(크레딧)만 unlock(결제 미연동)
+import { requireLoginForPurchase } from '../../lib/billing/requireLogin';
+import { assertOnline } from '../../lib/backend/network';
 import { supabase } from '../../lib/supabase';
 import { appLang } from '../../lib/i18n';
-import { readingFromInvoke } from '../../lib/interpretResult'; // 방어: Edge 응답 정규화(일시적 불가·결제필요·오류 친화 처리)
-import { logEvent } from '../../lib/logger'; // DB 로그(app_logs) — 단계별 추적(네이티브 크래시 직전 지점)
-import { setGenProgress } from '../../lib/genProgress'; // 일회성 진행도(daniel 이슈15)
+import { readingFromInvoke } from '../../lib/backend/interpretResult'; // 방어: Edge 응답 정규화(일시적 불가·결제필요·오류 친화 처리)
+import { logEvent } from '../../lib/backend/logger'; // DB 로그(app_logs) — 단계별 추적(네이티브 크래시 직전 지점)
+import { setGenProgress } from '../../lib/backend/genProgress'; // 일회성 진행도(daniel 이슈15)
 import { colors, radius, space, shadow, font } from '../../lib/theme';
 import { UnlockOverlay } from '../../components/UnlockOverlay'; // unlock 자물쇠 애니 + 그 사이 LLM 분석
 import { ContentHero, cardAnim } from '../../components/SpecialContentScreen'; // 공용 히어로 + 섹션 stagger
