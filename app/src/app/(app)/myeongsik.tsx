@@ -20,7 +20,7 @@ export default function MyeongsikRoute() {
   return (
     <MyeongsikScreen
       input={parsed}
-      onReading={() => router.push({ pathname: '/reading', params: { input: input ?? '' } })}
+      onReading={() => router.navigate({ pathname: '/reading', params: { input: input ?? '' } })}
       onSinsal={() => router.push({ pathname: '/sinsal', params: { input: input ?? '' } })}
     />
   );

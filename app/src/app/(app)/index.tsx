@@ -21,6 +21,7 @@ import { stemElement, branchElement, elementColor, elementText } from '../../lib
 import { useGenProgress, clearGenProgress } from '../../lib/backend/genProgress'; // 풀이 진행률(다중·route별, 풀이중 홈 나가도 % — daniel)
 import { useSubscription } from '../../lib/billing/subscription';
 import { loadRepChart, subscribeRepChange } from '../../lib/engine/myChart';
+import { isPremiumForChart } from '../../lib/billing/premiumStore'; // 명식별 프리미엄(홈 카드 '이용중' 표시)
 import { prewarmReadings, prewarmDaily } from '../../lib/backend/prewarmReadings';
 import { scheduleDailyFortune } from '../../lib/backend/notifications'; // 매일 9시 오늘의 운세 알림
 import { buildSajuChart } from '@engine/saju';
@@ -29,6 +30,7 @@ import { bgSource, colors, radius, space, shadow, font, activeScheme } from '../
 import { useFontScale } from '../../lib/ui/fontScale';
 import { playSound } from '../../lib/ui/sounds';
 import { BusyOverlay } from '../../components/BusyOverlay'; // 로그아웃 등 긴 콜백 로딩
+import { PressableScale } from '../../components/PressableScale'; // 탭 피드백(눌림 표시)
 import { CREDIT_KINDS, type CreditKind } from '../../lib/billing/coupons'; // 유료 콘텐츠 카드 가격 배지(정가 대비 할인)
 
 type MenuItem = { key: string; labelKey: string; descKey?: string; image?: any; route: string; ready: boolean; premium?: boolean; content?: boolean; creditKey?: CreditKind };
@@ -39,6 +41,7 @@ type Section = { key: string; titleKey: string; descKey?: string; items: MenuIte
 const LIST_PRICE_ORIG = 19900; // 사주·자미 정가(할인율 표시 기준, daniel 06-28)
 const CREDIT_PRICE: Record<string, number> = Object.fromEntries(CREDIT_KINDS.map((c) => [c.key, c.price]));
 const wonFmt = (n: number) => '₩' + n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ','); // 천단위 콤마(Hermes Intl 비의존)
+const HOME_INDIVIDUAL = new Set(['dream', 'followup', 'timeresolve']); // 프리미엄 미포함(개별구매 전용) — 그 외는 프리미엄 명식이면 '이용중'
 const priceLabel = (key: string) => {
   const p = CREDIT_PRICE[key] ?? 0;
   const disc = Math.round((1 - p / LIST_PRICE_ORIG) * 100);
@@ -316,6 +319,7 @@ export default function Home() {
   const { session } = useAuth();
   const { isPremium } = useSubscription();
   const [admin, setAdmin] = useState(false);
+  const [repServerChartId, setRepServerChartId] = useState<string | null>(null); // 현재 대표 명식 serverChartId(홈 카드 프리미엄 판정 — 명식 전환 시 재평가)
   // session 반응형 — 로그아웃(session=null) 즉시 관리자 메뉴 숨김(daniel). 빈 deps면 마운트 1회라 창 전환 전까지 살아있었음.
   useEffect(() => { if (!session) { setAdmin(false); return; } isAdmin().then(setAdmin).catch(() => {}); }, [session]);
   const [dayOffset, setDayOffset] = useState(0); // 0=오늘·1=내일(오늘의 기운 카드 토글)
@@ -366,6 +370,7 @@ export default function Home() {
     (async () => {
       const rep = await loadRepChart();
       setHasChart(!!rep); // H1: 명식 유무 → 오늘/내일 배너 분기(등록안내 vs 운세)
+      setRepServerChartId(rep?.serverChartId ?? null); // 홈 카드 프리미엄 판정용(명식 전환 시 reloadKey로 이 effect 재실행=재평가)
       if (!rep) { setDayData([{ headline: null, prose: null }, { headline: null, prose: null }]); return; }
       const saju = buildSajuChart(rep.input);
       const calc = (f: typeof fortunes[number]) => ({
@@ -401,22 +406,8 @@ export default function Home() {
   // ★카드 진입 애니(daniel 07-01): 탭한 카드가 그 자리에서 확대되어 화면 중앙으로 나오며 페이드아웃 → 컨텐츠 진입.
   //   measureInWindow로 카드 위치를 재 '그 자리에서' 시작(진짜 그 카드가 앞으로 나오는 느낌). 이미지 카드에만(텍스트는 즉시).
   const cardRefs = useRef<Record<string, View | null>>({});
-  const [trans, setTrans] = useState<{ image: any; x: number; y: number; w: number; h: number } | null>(null);
-  const transAnim = useRef(new Animated.Value(0)).current;
-  // 카드 → 컨텐츠 진입 애니. 측정 후 오버레이를 그 카드 위치에서 확대·중앙이동·페이드 → 끝나면 라우팅.
-  function launchCard(m: MenuItem) {
-    const node = cardRefs.current[m.key];
-    if (!m.image || !node || typeof (node as any).measureInWindow !== 'function') { router.push(m.route); return; } // 텍스트카드·측정불가 = 즉시 진입
-    (node as any).measureInWindow((x: number, y: number, w: number, h: number) => {
-      if (!w || !h) { router.push(m.route); return; }
-      setTrans({ image: m.image, x, y, w, h });
-      transAnim.setValue(0);
-      Animated.timing(transAnim, { toValue: 1, duration: 400, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start(() => {
-        router.push(m.route);
-        setTimeout(() => setTrans(null), 60); // 진입 후 오버레이 정리(다음 진입 위해 리셋)
-      });
-    });
-  }
+  // 카드 → 컨텐츠 진입: 확대 오버레이 제거(daniel 07-02 "확대 별로"). '누른 느낌'=PressableScale + 화면 페이드 전환으로 대체 → 바로 이동.
+  function launchCard(m: MenuItem) { router.navigate(m.route); }
   async function onPress(m: MenuItem) {
     if (navigatingRef.current) return;                 // 이미 진입 처리 중 — 연타 무시
     playSound('click');
@@ -448,23 +439,26 @@ export default function Home() {
       <Animated.View style={{ opacity: fadeAnim }}>
         {/* 헤더 — 타이틀 옆에 계정(사람) 아이콘: 탭 → 계정 관리·프리미엄 구매(설정)(daniel) */}
         <View style={styles.headerRow}>
-          <Text style={styles.title}>{t('appName')}</Text>
+          {/* 타이틀·서브타이틀 = 좌측 컬럼(왼쪽 정렬 유지). 👤 아이콘만 우측에서 이 컬럼 높이 기준 y축 가운데(daniel 07-02) */}
+          <View style={{ flex: 1 }}>
+            <Text style={styles.title}>{t('appName')}</Text>
+            <Text style={styles.sub}>{t('tagline')}</Text>
+          </View>
           <Pressable onPress={() => router.push('/settings')} hitSlop={10} style={styles.accountBtn}>
             <Text style={styles.accountIcon}>👤</Text>
           </Pressable>
         </View>
-        <Text style={styles.sub}>{t('tagline')}</Text>
         <View style={styles.divider} />
         {/* 통변 생성 진행률(daniel) — 여러 개 동시 풀이 가능 → route별 배너 여러 개. 탭=그 화면 이동 + 그 배너만 닫기. */}
         {gen.map((g) => (g.total > 0 && g.done >= g.total ? (
           // 완료(daniel 이슈13): '풀이 보기' — 탭하면 그 화면 이동 + 그 배너만 닫기(다른 풀이 배너는 유지).
-          <Pressable key={g.route} onPress={() => { clearGenProgress(g.route); router.push(g.route as any); }} style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.ju, borderRadius: radius.md, paddingVertical: space(2.5), paddingHorizontal: space(4), marginBottom: space(3), gap: space(2) }}>
-            <Text style={{ color: colors.bg, fontWeight: '800', fontSize: fs(13), flex: 1 }}>{g.label} 풀이가 완성됐어요!</Text>
+          <Pressable key={g.route} onPress={() => { clearGenProgress(g.route); router.navigate(g.route as any); }} style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.ju, borderRadius: radius.md, paddingVertical: space(2.5), paddingHorizontal: space(4), marginBottom: space(3), gap: space(2) }}>
+            <Text style={{ color: colors.bg, fontWeight: '800', fontSize: fs(13), flex: 1 }}>{g.chartLabel ? g.chartLabel + ' — ' : ''}{g.label} 풀이가 완성됐어요!</Text>
             <Text style={{ color: colors.bg, fontWeight: '800', fontSize: fs(13) }}>풀이 보기 ›</Text>
           </Pressable>
         ) : (
-          <Pressable key={g.route} onPress={() => router.push(g.route as any)} style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.juSoft, borderColor: colors.ju, borderWidth: 1, borderRadius: radius.md, paddingVertical: space(2.5), paddingHorizontal: space(4), marginBottom: space(3), gap: space(2) }}>
-            <Text style={{ color: colors.ju, fontWeight: '700', fontSize: fs(13), flex: 1 }}>{g.restored ? `이전에 진행중이던 ${g.label} 풀이가 있어요` : `${g.label} 풀이 중… ${g.total > 1 ? `${g.done}/${g.total} ` : ''}${genPct(g.done, g.total, g.startedAt)}%`}</Text>
+          <Pressable key={g.route} onPress={() => router.navigate(g.route as any)} style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.juSoft, borderColor: colors.ju, borderWidth: 1, borderRadius: radius.md, paddingVertical: space(2.5), paddingHorizontal: space(4), marginBottom: space(3), gap: space(2) }}>
+            <Text style={{ color: colors.ju, fontWeight: '700', fontSize: fs(13), flex: 1 }}>{g.restored ? `이전에 진행중이던 ${g.chartLabel ? g.chartLabel + ' — ' : ''}${g.label} 풀이가 있어요` : `${g.chartLabel ? g.chartLabel + ' — ' : ''}${g.label} 풀이 중… ${g.total > 1 ? `${g.done}/${g.total} ` : ''}${genPct(g.done, g.total, g.startedAt)}%`}</Text>
             <Text style={{ color: colors.ju, fontWeight: '700', fontSize: fs(13) }}>이어보기 ›</Text>
           </Pressable>
         )))}
@@ -542,19 +536,19 @@ export default function Home() {
             // 콘텐츠(이미지 없음) = 텍스트 카드(제목+설명), 이미지 카드와 시각 구분
             if (!m.image) {
               return (
-                <Pressable key={m.key} ref={(n) => { cardRefs.current[m.key] = n; }} style={[styles.card, styles.textCard]} onPress={() => onPress(m)}>
+                <PressableScale key={m.key} ref={(n) => { cardRefs.current[m.key] = n; }} style={[styles.card, styles.textCard]} onPress={() => onPress(m)}>
                   {m.creditKey && (
                     <View style={styles.priceTag}>
-                      <Text style={styles.priceTagText}>{priceLabel(m.creditKey)}</Text>
+                      <Text style={styles.priceTagText}>{isPremiumForChart(repServerChartId) && !HOME_INDIVIDUAL.has(m.creditKey) ? '프리미엄 이용중' : priceLabel(m.creditKey)}</Text>
                     </View>
                   )}
                   <Text style={styles.textCardLabel}>{t(m.labelKey)}</Text>
                   {m.descKey ? <Text style={styles.textCardDesc}>{t(m.descKey)}</Text> : null}
-                </Pressable>
+                </PressableScale>
               );
             }
             return (
-              <Pressable key={m.key} ref={(n) => { cardRefs.current[m.key] = n; }} style={styles.card} onPress={() => onPress(m)}>
+              <PressableScale key={m.key} ref={(n) => { cardRefs.current[m.key] = n; }} style={styles.card} onPress={() => onPress(m)}>
                 <View style={styles.cardImg}>
                   {/* expo-image 다운샘플 유지(메모리·랙) + 켄번스 느린 줌(daniel #21). absoluteFill 배경 + 위 오버레이. */}
                   {/* 순차 로딩(daniel) — 차례가 온 카드만 이미지 mount, 그 전엔 미드나잇 빈 박스(디코드 분산). 라벨/배지는 그대로 유지(레이아웃 동일). */}
@@ -568,7 +562,7 @@ export default function Home() {
                   )}
                   {m.creditKey && (
                     <View style={styles.priceTag}>
-                      <Text style={styles.priceTagText}>{priceLabel(m.creditKey)}</Text>
+                      <Text style={styles.priceTagText}>{isPremiumForChart(repServerChartId) && !HOME_INDIVIDUAL.has(m.creditKey) ? '프리미엄 이용중' : priceLabel(m.creditKey)}</Text>
                     </View>
                   )}
                   {/* 하단 라벨 바(반투명 남색) — 라벨 + 간략 설명(daniel: 콘텐츠별 설명) */}
@@ -577,7 +571,7 @@ export default function Home() {
                     {m.descKey ? <Text style={styles.cardDesc} numberOfLines={2}>{t(m.descKey)}</Text> : null}
                   </View>
                 </View>
-              </Pressable>
+              </PressableScale>
             );
           });
           return (
@@ -620,22 +614,7 @@ export default function Home() {
       </Animated.View>
     </ScrollView>
     <BusyOverlay visible={loggingOut} message={t('common.loggingOut')} />
-    {/* ★카드 진입 애니 오버레이(daniel 07-01) — 탭한 카드가 그 자리에서 확대되며 중앙으로 나와 페이드아웃 → 컨텐츠 */}
-    {trans && (
-      <Animated.View pointerEvents="none" style={StyleSheet.absoluteFill}>
-        <Animated.View style={{
-          position: 'absolute', left: trans.x, top: trans.y, width: trans.w, height: trans.h, borderRadius: 16, overflow: 'hidden',
-          opacity: transAnim.interpolate({ inputRange: [0, 0.5, 1], outputRange: [1, 1, 0] }),            // 앞으로 나온 뒤(후반) 페이드아웃
-          transform: [
-            { translateX: transAnim.interpolate({ inputRange: [0, 1], outputRange: [0, Dimensions.get('window').width / 2 - (trans.x + trans.w / 2)] }) },
-            { translateY: transAnim.interpolate({ inputRange: [0, 1], outputRange: [0, Dimensions.get('window').height / 2 - (trans.y + trans.h / 2)] }) },
-            { scale: transAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 1.35] }) },               // 앞으로(확대)
-          ],
-        }}>
-          <ExpoImage source={trans.image} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="memory-disk" />
-        </Animated.View>
-      </Animated.View>
-    )}
+    {/* 카드 확대 진입 오버레이 제거(daniel 07-02 "확대 별로") — PressableScale 누른 느낌 + 화면 페이드 전환으로 대체 */}
     </ImageBackground>
   );
 }
@@ -666,7 +645,7 @@ const styles = StyleSheet.create({
   title: { ...font.display },
   // 타이틀 + 계정(사람) 아이콘 한 줄
   // 헤더 행 — 전체를 살짝 아래로(타이틀 너무 위 방지), 아이콘은 타이틀 하단 정렬(daniel)
-  headerRow: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', marginTop: space(4) },
+  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: space(4) }, // 👤 아이콘만 좌측 타이틀·서브 컬럼 기준 y축 가운데(daniel 07-02)
   // 계정 아이콘 — 타이틀 옆, 살짝 왼쪽·아래로
   accountBtn: { width: 40, height: 40, borderRadius: 20, borderWidth: 1.5, borderColor: colors.ju, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.juSoft, marginRight: space(2), marginBottom: space(1) },
   accountIcon: { fontSize: 20 },

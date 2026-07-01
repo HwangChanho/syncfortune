@@ -23,7 +23,7 @@ export default function ReadingRoute() {
   const [savedChart, setSavedChart] = useState<SavedChart | null>(null);
   const [loading, setLoading] = useState(true);
   const [reloadKey, setReloadKey] = useState(0); // 명식 전환(ChartPicker) → 대표 재로드 + ReadingScreen 리마운트(게이트 재평가)
-  const didApplyChartId = useRef(false); // chartId param(풀이 명식) 대표 전환을 최초 1회만 — ChartPicker 수동 전환 존중·무한루프 방지
+  const lastAppliedChartId = useRef<string | null>(null); // ★적용한 chartId 값 추적 — 파라미터가 *바뀔 때마다*(새 푸시/배너) 재적용. navigate로 화면 재사용돼도 새 명식 반영(daniel 07-02). ChartPicker 수동전환은 chartId 불변이라 존중(무한루프 없음)
 
   useEffect(() => {
     // input param(특정 명식 지정 경로) 우선 → 캐시 매핑 없는 1회용.
@@ -32,8 +32,8 @@ export default function ReadingRoute() {
     (async () => {
       // ★chartId param(홈 배너/푸시 = 그 풀이를 적용한 명식) → 최초 1회 *대표로 전환*(daniel #31: 풀이 명식으로 넘어가고
       //   헤더·전 화면이 그 명식으로 동기화). 이후엔 ChartPicker 수동 전환을 존중(didApply 가드 + 이미 대표면 skip → 무한루프 방지).
-      if (chartId && !didApplyChartId.current) {
-        didApplyChartId.current = true;
+      if (chartId && chartId !== lastAppliedChartId.current) {
+        lastAppliedChartId.current = chartId;
         const cs = await listCharts();
         const target = cs.find((c) => c.id === chartId) ?? null;
         if (target && (await getRepresentativeId()) !== target.id) await setRepresentative(target.id);

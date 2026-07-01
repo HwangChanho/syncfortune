@@ -206,7 +206,7 @@ export default function DayPillarScreen() {
                   <Pressable key={k} onPress={() => toggle(k)} style={[styles.card, styles.row, k === myKey && styles.rowMineHi]}>
                     <View style={styles.rowHead}>
                       <Text style={styles.rowKey}>{label(k)}</Text>
-                      <Text style={styles.chevron}>{isOpen ? '∧' : '∨'}</Text>
+                      <Text style={styles.chevron}>{isOpen ? '▴' : '▾'}</Text>
                     </View>
                     <View style={styles.kwRow}>
                       {DAY_PILLAR[k].keywords.map((w) => (<View key={w} style={styles.kw}><Text style={styles.kwTx}>{w}</Text></View>))}
@@ -227,7 +227,7 @@ export default function DayPillarScreen() {
             <Pressable key={ok} onPress={() => toggle(ok)} style={[styles.card, styles.row, it.key === myKey && styles.rowMineHi]}>
               <View style={styles.rowHead}>
                 <Text style={styles.rowKey}>{it.label} · {label(it.key)}</Text>
-                <Text style={styles.chevron}>{isOpen ? '∧' : '∨'}</Text>
+                <Text style={styles.chevron}>{isOpen ? '▴' : '▾'}</Text>
               </View>
               <View style={styles.kwRow}>
                 {DAY_PILLAR[it.key].keywords.map((w) => (<View key={w} style={styles.kw}><Text style={styles.kwTx}>{w}</Text></View>))}
@@ -278,7 +278,8 @@ const styles = StyleSheet.create({
   rowMineHi: { borderColor: colors.ju, borderWidth: 1.5 }, // 내 일주는 목록에서도 골드 테두리
   rowHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: space(2.5) },
   rowKey: { fontSize: 16, fontWeight: '800', color: colors.ink },
-  chevron: { fontSize: 16, color: colors.inkFaint, fontWeight: '700' },
+  // 둥근 골드 뱃지 안 작은 삼각(daniel: ∧∨ 각진 기호 → 예쁜 형태 07-01)
+  chevron: { fontSize: 11, color: colors.ju, fontWeight: '900', width: 22, height: 22, borderRadius: 11, backgroundColor: colors.juSoft, textAlign: 'center', lineHeight: 22, overflow: 'hidden' },
   // 키워드 칩
   kwRow: { flexDirection: 'row', flexWrap: 'wrap', gap: space(1.5) },
   kw: { backgroundColor: 'rgba(201,161,74,0.14)', borderRadius: radius.pill, paddingHorizontal: space(2.5), paddingVertical: space(1) },

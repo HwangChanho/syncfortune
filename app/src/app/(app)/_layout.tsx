@@ -38,6 +38,7 @@ export default function AppLayout() {
         headerBackButtonDisplayMode: 'default',
         headerBackTitle: '뒤로',
         contentStyle: { backgroundColor: colors.bg }, // 씬 배경 한지(전환 시 흰 깜빡임 방지)
+        animation: 'fade', // ★카드 진입 애니(홈 카드가 화면 채움) 뒤에 슬라이드가 또 나와 이상하던 것 → 페이드로 통일(카드 fill이 전환, daniel 07-01)
       }}>
         <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="register" options={{ title: '차트 등록' }} />

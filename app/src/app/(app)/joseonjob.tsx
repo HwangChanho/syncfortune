@@ -97,7 +97,7 @@ export default function JoseonJobScreen() {
         <Text style={styles.note}>{t('joseonjob.note', '※ 사주 십신으로 가볍게 본 조선시대 직업이에요. 재미로 즐겨 주세요.')}</Text>
 
         {/* 유료 상세(내 사주 깊이 보기) */}
-        <Pressable style={styles.cta} onPress={() => router.push({ pathname: '/reading', params: { input: JSON.stringify(me) } })}>
+        <Pressable style={styles.cta} onPress={() => router.navigate({ pathname: '/reading', params: { input: JSON.stringify(me) } })}>
           <Text style={styles.ctaText}>{t('joseonjob.detail', '내 사주 깊이 보기 (프리미엄)')}</Text>
         </Pressable>
       </ScrollView>

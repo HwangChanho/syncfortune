@@ -10,6 +10,8 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "typecheck": "tsc --noEmit",
     "check:prompts": "node scripts/check-prompt-sync.mjs",
+    "test:flows": "tsx scripts/test-reading-gate.ts",
+    "preflight": "npm run typecheck && npm run check:prompts && npm run test:flows",
     "verify": "tsx engine/verify-fixture.ts",
     "p2": "tsx --env-file-if-exists=.env interpretation/run-p2.ts",
     "p3": "tsx --env-file-if-exists=.env interpretation/run-p3.ts",

@@ -106,16 +106,22 @@ export async function notifyReadingDone(title: string, body: string, route?: str
   return notifChain;
 }
 
-/** 알림 탭 → data.route 로 이동(딥링크: 풀이 완료 알림 클릭 시 그 화면으로). 앱 루트에서 1회 설정·해제. */
+/** 알림 탭 → data.route 로 이동(딥링크: 풀이 완료 알림 클릭 시 그 화면으로). ★앱 전역 1회만 등록. */
+let lastHandledNotifId: string | null = null; // 같은 알림 응답 재전달 시 1회만 처리
+let tapSub: any = null;                        // 전역 단일 리스너(useAuth 40개 마운트돼도 1개만 — 리스너 40개=push 40개가 뷰쌓임 주범, daniel 07-01)
 export function setupNotificationTapListener(): () => void {
-  if (!Notif || Platform.OS === 'web') return () => {};
+  if (!Notif || Platform.OS === 'web' || tapSub) return () => {}; // 이미 등록됨 → 중복 등록 차단
   try {
-    const sub = Notif.addNotificationResponseReceivedListener((resp: any) => {
+    tapSub = Notif.addNotificationResponseReceivedListener((resp: any) => {
+      const id = resp?.notification?.request?.identifier ?? String(resp?.notification?.date ?? '');
+      if (id && id === lastHandledNotifId) return; // 재전달 dedup
+      lastHandledNotifId = id;
       const route = resp?.notification?.request?.content?.data?.route;
-      if (route) { try { router.push(route); } catch { /* 라우팅 실패 무시 */ } }
+      // navigate = 정적 route(/reading 등) 중복 스택 dedup. ★push 폴백 제거(콜드스타트 push가 스택 쌓던 원인).
+      if (route) { try { (router as any).navigate ? (router as any).navigate(route) : router.push(route); } catch { /* 실패 시 스택 방지 위해 push 폴백 안 함 */ } }
     });
-    return () => { try { sub.remove(); } catch { /* ignore */ } };
-  } catch { return () => {}; }
+  } catch { /* ignore */ }
+  return () => {}; // ★컴포넌트 언마운트로 제거하지 않음 — 딥링크 전역 핸들러라 앱 수명 내내 1개 유지
 }
 
 /**

@@ -137,7 +137,7 @@ export default function MarketRoute() {
   async function apply(kind: CreditKind) {
     if (sel) await setRepresentative(sel.id);
     const r = ROUTE[kind];
-    router.push({ pathname: r.pathname, params: r.kind ? { kind: r.kind } : {} });
+    router.navigate({ pathname: r.pathname, params: r.kind ? { kind: r.kind } : {} }); // navigate=정적 /reading 중복 스택 dedup(daniel 07-01)
   }
 
   // 이용권 구매(결제) — RevenueCat 소비성 결제 성공 → 크레딧 +1(웹훅 전 클라 반영) → 보유 갱신.

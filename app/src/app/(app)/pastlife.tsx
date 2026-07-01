@@ -93,7 +93,7 @@ export default function PastLifeScreen() {
         {/* 이슈17: 전생 이야기 결과 공유(앱게이트) */}
         <ShareReadingButton kind="pastlife" title="나의 전생" content={result} />
         <Text style={styles.note}>{t('pastlife.note', '※ 사주로 가볍게 그려 본 전생 이야기예요. 재미로 즐겨 주세요.')}</Text>
-        <Pressable style={styles.cta} onPress={() => router.push({ pathname: '/reading', params: { input: JSON.stringify(me) } })}><Text style={styles.ctaText}>{t('pastlife.detail', '내 사주 깊이 보기 (프리미엄)')}</Text></Pressable>
+        <Pressable style={styles.cta} onPress={() => router.navigate({ pathname: '/reading', params: { input: JSON.stringify(me) } })}><Text style={styles.ctaText}>{t('pastlife.detail', '내 사주 깊이 보기 (프리미엄)')}</Text></Pressable>
       </ScrollView>
     </ImageBackground>
   );

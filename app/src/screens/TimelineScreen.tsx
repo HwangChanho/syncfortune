@@ -6,6 +6,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator, Modal } from 'react-native';
+import { ExpiryNote } from '../components/ExpiryNote'; // 보유 만료일 공통(프리미엄 가드 한 곳)
 import { Alert } from '../lib/ui/alert'; // 커스텀 알림(앱 디자인)
 import { useTranslation } from 'react-i18next';
 import { computeChart } from '../lib/engine/engine';
@@ -224,11 +225,9 @@ export function TimelineScreen({ input, savedChart }: { input: ChartInput | null
     // 보유 만료일(daniel #25): 이 기간 풀이 생성(구매)일 + 1년. 유료 기간만(현재 대운·올해 = 무료라 '재구매' 문구 부적합 → 미표시).
     //   현재 무료 기간도 시간이 지나면(과거 대운·작년) isFree=false가 되어 그때부터 만료일이 노출된다.
     const cAt = createdAt[key];
-    const expiryNote = (!isPremium && cAt && !isFree(key)) ? (() => {
-      const d = new Date(cAt); d.setFullYear(d.getFullYear() + 1);
-      const exp = `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
-      return <Text style={{ fontSize: fs(12), color: colors.inkFaint, marginBottom: space(3), textAlign: 'center', lineHeight: 18 }}>이 풀이는 {exp}까지 보유돼요 · 이후 다시 보려면 재구매가 필요해요</Text>;
-    })() : null;
+    // 만료일 = 유료 기간(현재 대운/올해 무료 제외)만 계산 → ExpiryNote가 프리미엄 가드·표시(공통, daniel 07-01)
+    const exp = (cAt && !isFree(key)) ? (() => { const d = new Date(cAt); d.setFullYear(d.getFullYear() + 1); return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`; })() : null;
+    const expiryNote = <ExpiryNote expiry={exp} chartId={chartId} />;
     // 하위호환: 구(舊) 캐시는 {base,overlay,remedy} 형식 — 카테고리 키가 없으면 옛 레이아웃으로 표시.
     //   (배포 후 새로 생성되는 풀이는 {general,work,money,love,health} 5카테고리)
     const isOld = !YEAR_KEYS.some((ck) => typeof r[ck] === 'string') && (r.base || r.overlay || r.remedy);

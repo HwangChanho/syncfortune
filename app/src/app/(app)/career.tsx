@@ -7,6 +7,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useMemo, useState, useRef } from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
+import { ExpiryNote } from '../../components/ExpiryNote'; // 보유 만료일 공통(프리미엄 가드 한 곳)
 import { Image as ExpoImage } from 'expo-image'; // 콘텐츠 이미지 — 자동 다운샘플·디스크캐시(랙 방지·타 콘텐츠와 통일, daniel)
 import { Alert } from '../../lib/ui/alert';
 import { useTranslation } from 'react-i18next';
@@ -167,10 +168,8 @@ export default function CareerScreen() {
         ) : reading ? (
           // ── 소제목 + 6개 카테고리 섹션(각 이미지 있으면 위에) ──
           <>
-          {/* 풀이 보유 만료일(daniel #25) — 캐시(생성된 풀이)가 있을 때만 */}
-          {expiry ? (
-            <Text style={{ fontSize: fs(12), color: colors.inkFaint, marginBottom: space(3), textAlign: 'center', lineHeight: 18 }}>이 풀이는 {expiry}까지 보유돼요 · 이후 다시 보려면 재구매가 필요해요</Text>
-          ) : null}
+          {/* 풀이 보유 만료일 — 공통 컴포넌트(daniel 07-01) */}
+          <ExpiryNote expiry={expiry} chartId={chartId} />
           {/* 이슈19 소제목 — 통변 결과 headline 있으면 섹션들 맨 위에 한 줄 강조 */}
           {typeof reading.headline === 'string' && reading.headline.trim() ? (
             <Text style={{ fontSize: fs(19), fontWeight: '800', color: colors.ju, marginBottom: space(3), lineHeight: fs(26) }}>{reading.headline}</Text>

@@ -7,6 +7,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useMemo, useState, useRef, type ReactNode } from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator, Animated, Easing } from 'react-native';
+import { ExpiryNote } from './ExpiryNote'; // 보유 만료일 공통(프리미엄 가드 한 곳)
 import { Image as ExpoImage } from 'expo-image'; // 콘텐츠 배너 — 자동 다운샘플·디스크캐시(daniel: 이미지 프리로드/캐시). 홈카드와 같은 파일 캐시 공유 → 콘텐츠 진입 즉시
 import { Alert } from '../lib/ui/alert'; // 커스텀 알림(앱 디자인)
 import { useTranslation } from 'react-i18next';
@@ -214,9 +215,7 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
       ) : (reading && owned) ? (
         <>
         {/* 풀이 보유 만료일(daniel #25) — 캐시(생성된 풀이) + 유료 단일(showExpiry)일 때만. 소모성·무료는 showExpiry 미전달이라 미노출. */}
-        {!isPremium && showExpiry && expiry ? (
-          <Text style={{ fontSize: fs(12), color: colors.inkFaint, marginBottom: space(3), textAlign: 'center', lineHeight: 18 }}>이 풀이는 {expiry}까지 보유돼요 · 이후 다시 보려면 재구매가 필요해요</Text>
-        ) : null}
+        <ExpiryNote expiry={showExpiry ? expiry : null} chartId={chartId} />
         {/* 이슈19 소제목 — 통변 결과 headline 있으면 섹션들 맨 위에 한 줄 강조(콘텐츠 테마색) */}
         {typeof reading.headline === 'string' && reading.headline.trim() ? (
           <Text style={{ fontSize: fs(19), fontWeight: '800', color: themeColor, marginBottom: space(3), lineHeight: fs(26) }}>{reading.headline}</Text>

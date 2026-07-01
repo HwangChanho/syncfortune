@@ -43,16 +43,12 @@ export async function ensureServerChartId(
   const pending = inflightEnsure.get(lockKey);
   if (pending) return pending;                            // 이미 발급 진행 중이면 같은 결과를 공유(중복 insert 차단)
   const task = (async (): Promise<string | null> => {
-    if (savedChart.serverChartId) {
-      // stale 가드(2026-06-14): 온디바이스 매핑이 가리키는 charts row 가 실제 서버에 존재하는지 확인.
-      //   charts 가 삭제/재생성됐는데 매핑이 옛 id 를 가리키면 interpret 가 chartId 로 row 를 못 찾아
-      //   'chart not found'(404) → 풀이 전부 '생성 실패'가 된다. 존재하면 재사용, 없으면(stale) 아래로
-      //   떨어져 재생성 + 매핑 갱신(자가 치유). select id 만 — RLS 로 본인 행만 보이므로 소유 확인도 겸한다.
-      const { data: exists } = await supabase.from('charts').select('id').eq('id', savedChart.serverChartId).maybeSingle();
-      if (exists) return savedChart.serverChartId;
-    }
-    // birth(ChartInput)는 평문으로 서버 컬럼에 두지 않는다(규칙8) — insert_chart_enc RPC 가 서버에서 pgp 암호화 저장(birth_enc).
-    //   ADR-005 완화: 관리자 조회(생년월일시)를 위해 birth 를 서버에 *암호화* 보관. 복호화는 관리자 RPC 만.
+    // ★항상 서버 멱등 RPC로 canonical id 해석(daniel 07-02 자물쇠 근본): 온디바이스에 캐시된 serverChartId를
+    //   *그대로 재사용하지 않는다*. 캐시 id가 (계정 동기화 union머지 등으로) readings 적은 stale row를 가리키면
+    //   readings(chart_id×category) 캐시 미스 → 프리미엄 자동생성(자물쇠+재생성)이 매 진입 반복되던 것이 근본 원인.
+    //   insert_chart_enc는 (owner,relation,*안정 natal 지문*) 기준 **readings 최다 canonical row**를 반환/발급 →
+    //   같은 명식은 항상 같은(가장 완성된) row로 수렴 → 캐시 적중 → 자동생성 안 함. 존재 row면 SELECT만(재암호화·재발급 없음=저비용).
+    //   birth(ChartInput)는 평문으로 두지 않고 RPC가 서버에서 pgp 암호화 저장(규칙8·ADR-005: 관리자 복호화용 birth_enc).
     const { data, error } = await supabase.rpc('insert_chart_enc', {
       p_relation: 'self',
       p_saju: { ...c.saju, sensitivity: c.sensitivity, timeUnknown: input.timeAccuracy === '미상' }, // R35 예민보스(민감도)·辛金=날카로운 전문성 — 전체 통변 참고(daniel)
@@ -60,9 +56,9 @@ export async function ensureServerChartId(
       p_birth: JSON.stringify(input),     // 서버에서 즉시 암호화 → birth_enc (관리자만 복호화)
       p_label: savedChart.label ?? null,  // 라벨도 동일 키로 암호화 → label_enc
     });
-    if (error || !data) return null;
-    const newId = data as string;        // RPC 반환 = charts.id(uuid)
-    await setServerChartId(savedChart.id, newId); // 온디바이스 매핑 저장 → 다음부터 재사용
+    if (error || !data) return savedChart.serverChartId ?? null; // RPC 실패(오프라인 등) = 기존 매핑 폴백(있으면)
+    const newId = data as string;        // RPC 반환 = canonical charts.id(uuid)
+    if (newId !== savedChart.serverChartId) await setServerChartId(savedChart.id, newId); // 바뀌었을 때만 온디바이스 매핑 갱신
     return newId;
   })();
   inflightEnsure.set(lockKey, task);

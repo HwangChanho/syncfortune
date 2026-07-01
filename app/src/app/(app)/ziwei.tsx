@@ -100,7 +100,7 @@ export default function ZiweiRoute() {
               '태어난 시(時)에 따라 명반(命盤)이 크게 달라집니다. 명식의 출생 시간이 정확한지 먼저 확인해 주세요.',
               [
                 { text: '명식 확인·수정', onPress: () => router.push('/charts') },
-                { text: '풀이 보기', onPress: () => router.push({ pathname: '/reading', params: { kind: 'ziwei' } }) },
+                { text: '풀이 보기', onPress: () => router.navigate({ pathname: '/reading', params: { kind: 'ziwei' } }) },
               ],
             );
           }}><Text style={styles.btnText}>프리미엄 풀이 보기</Text></Pressable>

@@ -13,6 +13,7 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { listCharts, setRepresentative, getRepresentativeId, deleteChart, reorderCharts, subscribeRepChange, type SavedChart } from '../lib/engine/myChart';
 import { useSubscription } from '../lib/billing/subscription';
+import { getPremiumChartIdSnapshot, subscribePremium } from '../lib/billing/premiumStore'; // 프리미엄 지정 명식(왕관·삭제경고, daniel 07-01)
 import { useFontScale } from '../lib/ui/fontScale'; // 명식 헤더 글자크기 반영(daniel)
 import { computeChart } from '../lib/engine/engine'; // 각 명식 일주 산출(엠블럼)
 import { iljuEmblem, iljuImage, type IljuEmblem } from '../lib/dayPillarEmblem'; // 일주 엠블럼(은빛 소 등) + 60갑자 AI 일러스트
@@ -44,6 +45,7 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
   const [viewImg, setViewImg] = useState<any>(null); // 엠블럼 탭 → 풀스크린 이미지 뷰어(daniel)
   const [loadedEmblems, setLoadedEmblems] = useState<Set<string>>(new Set()); // 엠블럼 이미지 디코드 완료 — 로딩 인디케이터용(daniel: 명식변경 리스트 이미지 로딩 표시)
   const [actionsFor, setActionsFor] = useState<string | null>(null); // 수정/삭제 펼친 행(daniel: 한 버튼 ⋯ 탭 → 수정·삭제 분리)
+  const [premChartId, setPremChartId] = useState<string | null>(getPremiumChartIdSnapshot()); // 프리미엄 지정 명식 serverChartId(👑·삭제경고)
 
   const reload = useCallback(async () => {
     setCharts(await listCharts());
@@ -54,6 +56,7 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
   // 전역 명식 변경 구독(daniel: 어디서 바꿔도 자동 동기화) — 다른 화면에서 대표가 바뀌면 이 픽커·호스트도 즉시 갱신.
   const onChangeRef = useRef(onChange); onChangeRef.current = onChange;
   useEffect(() => subscribeRepChange(() => { reload(); onChangeRef.current?.(); }), [reload]);
+  useEffect(() => subscribePremium(() => setPremChartId(getPremiumChartIdSnapshot())), []); // 프리미엄 지정 변경 시 👑 갱신
 
   const rep = charts.find((c) => c.id === repId) ?? charts[0];
   // 각 명식의 일주 엠블럼(일간 오행색 + 일지 동물 = "은빛 소" 등) — 명식 리스트 시각 정체성(daniel)
@@ -105,9 +108,11 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
 
   // 명식 삭제 → 확인 후 deleteChart + 목록 갱신 + 호출처 알림(되돌릴 수 없음).
   function remove(id: string, label: string) {
+    // ★프리미엄 지정 명식 삭제 = 프리미엄 혜택 사라짐 → 경고 필수(daniel 07-01)
+    const isPrem = !!premChartId && charts.find((c) => c.id === id)?.serverChartId === premChartId;
     Alert.alert(
       t('manse.deleteTitle', '명식 삭제'),
-      t('manse.deleteMsg', { label, defaultValue: `'${label}' 명식을 삭제할까요? 되돌릴 수 없어요.` }) as string,
+      (isPrem ? '⚠️ 이 명식은 프리미엄이 적용된 명식이에요.\n삭제하면 프리미엄 혜택이 사라지니 신중히 결정하세요.\n\n' : '') + (t('manse.deleteMsg', { label, defaultValue: `'${label}' 명식을 삭제할까요? 되돌릴 수 없어요.` }) as string),
       [
         { text: t('common.cancel', '취소'), style: 'cancel' },
         { text: t('common.delete', '삭제'), style: 'destructive', onPress: async () => { await deleteChart(id); await reload(); onChange?.(); } },
@@ -175,7 +180,7 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
                         </View>
                       )}
                       <Pressable style={styles.rowMain} onPress={() => choose(c.id)} onLongPress={drag} delayLongPress={250}>
-                        <Text style={[styles.rowName, on && styles.rowOn, { fontSize: fs(15) }]}>{c.label}</Text>
+                        <Text style={[styles.rowName, on && styles.rowOn, { fontSize: fs(15) }]}>{!!premChartId && c.serverChartId === premChartId ? '👑 ' : ''}{c.label}</Text>
                         {em ? <Text style={[styles.iljuName, { fontSize: fs(12) }]}>{em.name}</Text> : null}
                         <Text style={[styles.rowMeta, { fontSize: fs(12) }]} numberOfLines={1}>
                           {String(c.input.birthDateTime ?? '').replace('T', ' ').slice(0, 16)}{/* 날짜+시간(daniel: 시간도 노출) */}

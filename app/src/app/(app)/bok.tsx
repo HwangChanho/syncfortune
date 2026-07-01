@@ -66,7 +66,7 @@ export default function BokScreen() {
         {/* 이슈17: 타고난 복 결과 공유(앱게이트) */}
         <ShareReadingButton kind="bok" title="내 타고난 복" content={result} />
         <Text style={styles.note}>{t('bok.note', '※ 사주 십신으로 가볍게 본 타고난 복이에요. 재미로 즐겨 주세요.')}</Text>
-        <Pressable style={styles.cta} onPress={() => router.push({ pathname: '/reading', params: { input: JSON.stringify(me) } })}><Text style={styles.ctaText}>{t('bok.detail', '내 사주 깊이 보기 (프리미엄)')}</Text></Pressable>
+        <Pressable style={styles.cta} onPress={() => router.navigate({ pathname: '/reading', params: { input: JSON.stringify(me) } })}><Text style={styles.ctaText}>{t('bok.detail', '내 사주 깊이 보기 (프리미엄)')}</Text></Pressable>
       </ScrollView>
     </ImageBackground>
   );

@@ -92,7 +92,7 @@ export default function PersonaScreen() {
         <Text style={styles.note}>{t('persona.note', '※ 사주 4축으로 본 성격 유형 맛보기예요. 더 깊은 성격·내면 풀이는 프리미엄에서 만나보세요.')}</Text>
 
         {/* 유료 상세(기존 성격내면 프리미엄 풀이) */}
-        <Pressable style={styles.cta} onPress={() => router.push({ pathname: '/reading', params: { input: JSON.stringify(me) } })}>
+        <Pressable style={styles.cta} onPress={() => router.navigate({ pathname: '/reading', params: { input: JSON.stringify(me) } })}>
           <Text style={styles.ctaText}>{t('persona.detail', '내 성격 깊이 보기 (프리미엄)')}</Text>
         </Pressable>
       </ScrollView>

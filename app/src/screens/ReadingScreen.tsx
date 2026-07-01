@@ -12,6 +12,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useMemo, useEffect, useRef, type ReactNode } from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator, Modal, TextInput, Keyboard, KeyboardAvoidingView, Platform } from 'react-native';
+import { ExpiryNote } from '../components/ExpiryNote'; // 보유 만료일 공통(프리미엄 가드 한 곳)
 import { TTSButton } from '../components/TTSButton'; // daniel: 풀이 음성 읽기(온디바이스 TTS·무료)
 import { ShareReadingButton } from '../components/ShareReadingButton'; // daniel: 공유는 풀이 맨 끝에 균일하게(콘텐츠 화면과 동일)
 import { Alert } from '../lib/ui/alert'; // 커스텀 알림(앱 디자인)
@@ -25,6 +26,7 @@ import { setGenProgress, useGenProgress, clearGenProgress } from '../lib/backend
 import { useEntitlement } from '../lib/billing/entitlement';
 import { isReadingUnlocked } from '../lib/billing/unlocks'; // 서버 권위 세트 언락(P3) — 이미 열렸으면 무료 재생성
 import { isPremiumForChart } from '../lib/billing/premiumStore'; // 명식별 프리미엄 판정(#1 — 비지정 명식/무료모드 페이월)
+import { computeEntitled, computeLocked, showUnlockOverlay, computeShouldAutoGen } from '../lib/billing/readingGate'; // 게이트 순수로직(하네스 시나리오 테스트 대상)
 import { useSubscription } from '../lib/billing/subscription';
 import { setServerChartId, getRepresentativeId, type SavedChart } from '../lib/engine/myChart';
 import { loadFollowups, askFollowup, type Followup } from '../lib/backend/followups';
@@ -107,6 +109,7 @@ export function ReadingScreen({
   const { isPremium } = useSubscription();
   const { fs } = useFontScale(); // 통변 본문 글자 크기(설정에서 조절)
   const [readings, setReadings] = useState<Record<string, any>>({});
+  const [readingsChartId, setReadingsChartId] = useState<string | null>(null); // 지금 readings가 *어느 chartId 기준*으로 로드됐나 — 자동생성 가드(stale 로드로 재생성 방지, daniel 07-02)
   const [progress, setProgress] = useState<{ done: number; total: number; current?: string } | null>(null);
   const [globalError, setGlobalError] = useState<string | null>(null);
   const genDone = useGenProgress().reduce((s, g) => s + g.done, 0); // 풀이 완료 누적 — 변할 때마다 캐시 재조회(G: 백그라운드 생성분을 이 화면에 라이브 반영, 무한로딩/씽크 어긋남 제거)
@@ -126,6 +129,7 @@ export function ReadingScreen({
   //   대표가 아니면 프리미엄이라도 수동 '생성' 버튼으로(의도된 1회 소비). 캐시는 그대로 표시.
   const [isRep, setIsRep] = useState(false);
   const [unlocked, setUnlocked] = useState(false); // 이 명식 세트 결제 언락 여부(#1 — 프리미엄 아니어도 결제자면 표시 유지)
+  const [unlockedLoaded, setUnlockedLoaded] = useState(false); // 언락 조회 완료 — 이 전엔 잠금 판정 보류(로드 race 자물쇠 깜빡임 방지, daniel 07-01)
   const [expandedG, setExpandedG] = useState<Record<string, boolean>>({}); // 아코디언 펼침(그룹 라벨→bool, 기본 펼침)
   useEffect(() => {
     let alive = true;
@@ -165,7 +169,7 @@ export function ReadingScreen({
       const id = await ensureServerChart();
       if (!alive || !id) { if (alive) setCacheLoaded(true); return; }
       setChartId(id);
-      isReadingUnlocked(id, kind === 'ziwei' ? 'ziwei' : 'reading').then((u) => { if (alive) setUnlocked(u); }).catch(() => {}); // #1 표시 게이트용 세트 언락 로드
+      isReadingUnlocked(id, kind === 'ziwei' ? 'ziwei' : 'reading').then((u) => { if (alive) { setUnlocked(u); setUnlockedLoaded(true); } }).catch(() => { if (alive) setUnlockedLoaded(true); }); // #1 표시 게이트용 세트 언락 로드(+완료 플래그)
       const { data } = await supabase.from('readings').select('category, content, l2_ver, created_at').eq('chart_id', id).eq('lang', appLang());
       if (!alive) return;
       const keys = new Set(cats.map((x) => x.key));   // 이 화면 항목(사주/자미)만 반영
@@ -179,6 +183,7 @@ export function ReadingScreen({
         if ((r.l2_ver ?? 0) >= 1 && (r.l2_ver ?? 0) < READING_L2_VER) st.add(r.category);
       });
       setReadings(loaded);
+      setReadingsChartId(id); // 이 readings는 id(현재 resolved 명식) 기준 — 자동생성 가드가 stale 로드 구분에 사용
       setStale(st);
       if (minCreated) { const d = new Date(minCreated); d.setFullYear(d.getFullYear() + 1); setExpiry(`${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`); }
       setCacheLoaded(true);
@@ -260,7 +265,7 @@ export function ReadingScreen({
     // 홈 배너/푸시 route — ★chartId를 담아야 진입 시 *그 명식*을 로드(안 담으면 대표로 가서 캐시 미스→재생성 버그, daniel G).
     const gpRoute = `/reading?kind=${kind === 'ziwei' ? 'ziwei' : 'saju'}${savedChart ? `&chartId=${savedChart.id}` : ''}`;
     setProgress({ done: gDone, total: cats.length, current: todo[0].label });
-    setGenProgress({ active: true, done: gDone, total: cats.length, label: kind === 'ziwei' ? t('reading.ziweiTitle', '자미두수') : t('reading.sajuTitle', '사주 풀이'), route: gpRoute });
+    setGenProgress({ active: true, done: gDone, total: cats.length, label: kind === 'ziwei' ? t('reading.ziweiTitle', '자미두수') : t('reading.sajuTitle', '사주 풀이'), chartLabel: savedChart?.label, route: gpRoute }); // 어느 명식 풀이인지 배너·푸시에(daniel 07-02)
     // ★G 서버위임 롤백(daniel 2026-06-30: 무한반복 버그 — gen_jobs done↔autoGen 재호출↔재생성↔푸시 루프).
     //   클라 직접 생성으로 복귀(기존 안정 경로). 완료(todo 없음)면 위에서 이미 return → 자물쇠 안 뜸.
     //   서버측 generate_set 위임은 무한반복 없이 재설계 후 재도입(gen_jobs 구독도 함께 제거).
@@ -336,7 +341,7 @@ export function ReadingScreen({
       const ck = kind === 'ziwei' ? 'ziwei' : 'reading';     // 이 화면 종류의 세트 크레딧 키
       // ★서버 권위 세트 게이트(보안 P3·daniel): 차감·언락은 Edge가 한다(이중차감 제거). 클라는 UX 사전확인만.
       //   ① 이미 세트 언락됨 → 무료 재생성  ② 크레딧 보유 → 바로 생성(Edge가 1회 차감+언락)  ③ 없음 → 건당 결제로 부여
-      if (chartId && await isReadingUnlocked(chartId, ck)) { await runAll(); return; }
+      if (chartId && await isReadingUnlocked(chartId, ck)) { setUnlocked(true); await runAll(); return; } // ★언락됨 → 표시상태 즉시 해제(자물쇠 누른 뒤 안 풀리던 것 수정)
       if (((await loadCredits())[ck] ?? 0) > 0) { await runAll(); return; }
       // ★유료 통변은 보상형 광고로 무료 생성하지 않는다(daniel: 비용발생 콘텐츠=결제/프리미엄만) → 건당 결제로만 크레딧 부여 후 생성(Edge가 차감+세트 언락).
       Alert.alert(t('reading.premiumAlert'), t('reading.premiumAlertMsg'), [
@@ -351,18 +356,24 @@ export function ReadingScreen({
   const banner = isPremium ? t('reading.bannerPremium') : t('reading.bannerPerUse');
   const haveAll = cats.every((cat) => readings[cat.key]);
   // 명식별 프리미엄(#1): 이 명식이 프리미엄 지정이거나 결제 언락돼야 '전부 보기'. 아니면(무료모드·비지정 명식) 캐시가 있어도 페이월.
-  const entitled = isPremiumForChart(chartId) || unlocked;
-  const locked = cacheLoaded && !entitled && !progress; // 미권한 = 잠금(캐시 대신 페이월 선표시 → 무료모드 결제 테스트/비지정 명식)
+  const entitled = computeEntitled(isPremium, isPremiumForChart(chartId), unlocked); // 권한=전역프리미엄/이명식지정/결제언락(readingGate·테스트됨)
+  // 미권한 = 잠금 — 단 ①캐시된 풀이가 하나도 없을 때만(이미 생성된 풀이는 절대 가리지 않음=자물쇠 근본수정) ②언락 조회 끝난 뒤(race 깜빡임 방지). daniel 07-01
+  const locked = computeLocked({ cacheLoaded, unlockedLoaded, entitled, hasProgress: !!progress, readingsCount: Object.keys(readings).length }); // ★캐시 있으면 잠금 X(readingGate·테스트됨)
   // 생성/결제 버튼: 잠금(미권한)이거나, 미완성 + (비프리미엄 or 대표 아님)일 때.
   const showStart = progress === null && (locked || (!haveAll && (!isPremium || !isRep)));
 
   // 프리미엄 자동 생성 — 캐시 로드 후 미생성 영역이 있으면 1회 자동 runAll(버튼 없이).
   //   ★대표 명식에만(비용통제): 다른 명식은 프리미엄이라도 자동 생성하지 않는다(수동 버튼).
   useEffect(() => {
-    if (!isPremiumForChart(chartId) || !isRep || !cacheLoaded || progress || autoRan.current || !session || !isOnline()) return; // 지정 프리미엄 명식만 자동 생성(#1). 오프라인=보류
-    if (cats.some((cat) => !readings[cat.key])) { autoRan.current = true; runAll(); }
+    // ★자물쇠 근본 방어(readingGate·테스트됨): 로드된 캐시가 *현재 명식(chartId) 기준*으로 비어 있을 때만 자동생성.
+    //   stale/race 로드(직전 다른 명식으로 로드된 결과)로는 재생성하지 않는다(잘못된 명식 재생성=자물쇠 방지). 서버 지문 멱등이 근본.
+    if (computeShouldAutoGen({
+      premiumForChart: isPremiumForChart(chartId), isRep, cacheLoaded, hasProgress: !!progress,
+      autoRan: autoRan.current, online: isOnline(), hasSession: !!session,
+      readingsChartId, currentChartId: chartId, missingCount: cats.filter((cat) => !readings[cat.key]).length,
+    })) { autoRan.current = true; runAll(); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isPremium, isRep, cacheLoaded, readings, cats, progress, session, chartId]);
+  }, [isPremium, isRep, cacheLoaded, readings, cats, progress, session, chartId, readingsChartId]);
 
   // 미리보기 자동 생성 — 미프리미엄·미완성 시 '첫 분야 1개'만 맛보기(나머지는 showStart 로 unlock).
   //   이미 맛보기/전체 캐시가 있으면 skip(멱등). 오프라인·미로그인 보류.
@@ -507,15 +518,11 @@ export function ReadingScreen({
 
   return (
     <>
-    <UnlockOverlay visible={!!progress && Object.keys(readings).length === 0 /* 캐시(이미 생성된 풀이)가 하나라도 있으면 자물쇠 숨김 — 재진입/부분단절 시 기존 풀이 위에 자물쇠+재생성 뜨던 것 방지(daniel #24) */} message={progress?.current ? t('reading.progress', { current: progress.current, done: progress.done, total: progress.total }) : t('reading.generating', '풀이를 정성껏 그리는 중…')} />
+    <UnlockOverlay visible={showUnlockOverlay(!!progress, Object.keys(readings).length) /* 생성중+캐시0일 때만 — 기존 풀이 위 자물쇠 방지(readingGate·테스트됨) */} message={progress?.current ? t('reading.progress', { current: progress.current, done: progress.done, total: progress.total }) : t('reading.generating', '풀이를 정성껏 그리는 중…')} />
     <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>
       {header}
-      {/* 풀이 보유 만료일(daniel #25) — 생성된 풀이가 있을 때만. 소모성(꿈해몽·추가질문)은 별도라 무관. */}
-      {!isPremium && expiry && Object.keys(readings).length > 0 && (
-        <Text style={{ fontSize: fs(12), color: colors.inkFaint, marginBottom: space(3), textAlign: 'center', lineHeight: 18 }}>
-          이 풀이는 {expiry}까지 보유돼요 · 이후 다시 보려면 재구매가 필요해요
-        </Text>
-      )}
+      {/* 풀이 보유 만료일 — 공통 컴포넌트(프리미엄 가드·문구 한 곳, daniel 07-01). 생성된 풀이 있을 때만. */}
+      <ExpiryNote expiry={Object.keys(readings).length > 0 ? expiry : null} chartId={chartId} />
       {/* 상단 타이틀·설명 제거(daniel: 카드뷰만) — 화면 헤더(네비)로 충분 */}
       {/* 생성 버튼 + 과금 안내(미생성 항목이 있을 때만) */}
       {showStart && (

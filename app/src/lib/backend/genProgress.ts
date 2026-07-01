@@ -17,6 +17,7 @@ export type GenItem = {
   done: number;     // 완료 영역 수
   total: number;    // 전체 영역 수(사주 16·자미 12·단일 1)
   label: string;    // 표시명(예: '사주 풀이')
+  chartLabel?: string; // 어느 명식의 풀이인지(예: '황찬호') — 배너·푸시에 노출(daniel 07-02)
   active: boolean;  // 생성 중/완료대기(배너 표시). false patch = 제거
   seq: number;      // 추가 순서(배너 정렬 — 단조 증가)
   startedAt: number; // 생성 시작 시각(ms) — 단일 콜(총1)의 추정 진행률(시작 0%~저장 100%)용. multi는 done/total 실제값 사용
@@ -70,6 +71,7 @@ export function setGenProgress(patch: Partial<GenItem> & { route: string }) {
     done: patch.done ?? prev?.done ?? 0,
     total: patch.total ?? prev?.total ?? 1,
     label: patch.label ?? prev?.label ?? '',
+    chartLabel: patch.chartLabel ?? prev?.chartLabel,
     active: patch.active ?? prev?.active ?? true,
     seq: prev?.seq ?? ++seq,
     startedAt: prev?.startedAt ?? Date.now(), // 최초 생성 시각 고정(이후 갱신해도 유지) — 추정 진행률 기준점
@@ -79,7 +81,7 @@ export function setGenProgress(patch: Partial<GenItem> & { route: string }) {
   // 완료 전이(이전엔 미완료 → 이번에 완료) = 푸시 1회(daniel ⑨: 화면 밖/백그라운드에도). 실패해도 무시.
   const wasDone = !!prev && prev.total > 0 && prev.done >= prev.total;
   const nowDone = next.total > 0 && next.done >= next.total;
-  if (nowDone && !wasDone) { notifyReadingDone(`${next.label} 풀이가 완성됐어요`, '준비된 풀이를 확인해 보세요', next.route).catch(() => {}); }
+  if (nowDone && !wasDone) { notifyReadingDone(`${next.chartLabel ? next.chartLabel + ' — ' : ''}${next.label} 풀이가 완성됐어요`, '준비된 풀이를 확인해 보세요', next.route).catch(() => {}); }
 }
 
 /** 특정 route 항목 제거 — 배너 탭 이동 시 / 해당 화면 접근 시(daniel: 접근하면 알림 사라짐). */

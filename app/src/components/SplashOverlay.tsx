@@ -5,11 +5,17 @@
 //   페이드아웃 → onDone(). RN Animated + ImageBackground(번들 에셋)라 네이티브 빌드 의존 없음.
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useRef } from 'react';
-import { Animated, Easing, ImageBackground, StyleSheet, Text } from 'react-native';
+import { Animated, Easing, ImageBackground, StyleSheet, Text, Dimensions } from 'react-native';
 import { colors } from '../lib/theme';
 
 export function SplashOverlay({ onDone }: { onDone: () => void }) {
   const op = useRef(new Animated.Value(0)).current; // 전체 페이드(등장→유지→퇴장)
+  // 八字를 상단 여백(이미지 contain 시 위쪽 미드나잇 공간)에 *이미지와 안 겹치게* 최대한 크게(daniel 07-02).
+  //   이미지 비율 832:1216 → contain 높이 = 화면폭×1216/832, 상단 여백 = (화면높이−높이)/2. 여백의 60%로 크게, 기기별 자동.
+  const { width: W, height: H } = Dimensions.get('window');
+  const topMargin = Math.max(0, (H - (W * 1216) / 832) / 2);
+  const hanjaSize = Math.min(104, Math.max(40, Math.round(topMargin * 0.6)));
+  const hanjaTop = Math.max(14, Math.round(topMargin - hanjaSize - 5)); // 이미지 바로 위(5pt 여백)까지 아래로(daniel 07-02)
 
   useEffect(() => {
     // 페이드인 → 1.3초 유지 → 페이드아웃 → onDone
@@ -25,7 +31,7 @@ export function SplashOverlay({ onDone }: { onDone: () => void }) {
       {/* 백두산 천지 이미지만 — 전체가 보이게 contain(잘림 없음). 여백은 미드나잇 배경이 자연스럽게 이음. */}
       <ImageBackground source={require('../../assets/splash-bg.png')} style={StyleSheet.absoluteFill} resizeMode="contain" />
       {/* 좌상단 八字(노란색) — 브랜드 표식(daniel 07-01) */}
-      <Text style={styles.hanja}>八字</Text>
+      <Text style={[styles.hanja, { fontSize: hanjaSize, top: hanjaTop }]}>八字</Text>
     </Animated.View>
   );
 }

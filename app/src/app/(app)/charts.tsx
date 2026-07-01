@@ -46,7 +46,7 @@ export default function ChartsScreen() {
     <MyeongsikScreen
       input={me}
       header={<ChartPicker onChange={() => loadMyChart().then(setMe)} />}
-      onReading={() => router.push({ pathname: '/reading', params: { input: JSON.stringify(me) } })}
+      onReading={() => router.navigate({ pathname: '/reading', params: { input: JSON.stringify(me) } })}
     />
   );
 }
