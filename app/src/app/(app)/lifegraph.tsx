@@ -7,7 +7,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { View, Text, ScrollView, Pressable, ActivityIndicator, StyleSheet, Dimensions, Animated, Easing } from 'react-native';
 import { Image as ExpoImage } from 'expo-image'; // hero 배너 — 다운샘플·디스크캐시(daniel: 이미지 캐시·로딩 가속)
-import Svg, { Polyline, Circle, Line } from 'react-native-svg';
+import Svg, { Polyline, Circle, Line, Rect } from 'react-native-svg';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { loadRepChart, type SavedChart } from '../../lib/myChart';
@@ -179,6 +179,17 @@ export default function LifeGraphScreen() {
           {/* 곡선 차트 */}
           <View style={styles.chartCard}>
             <Svg width={W} height={H + 24}>
+              {/* 터치 영역 확대 + 선택 시 세로 연한 밴드(daniel 07-01) — 각 시기 '열' 전체가 터치·강조되게 */}
+              {pts.map((p) => {
+                const half = (n > 1 ? W / (n - 1) : W) / 2;
+                const x0 = Math.max(0, p.x - half);
+                const x1 = Math.min(W, p.x + half);
+                return (
+                  <Rect key={`band-${p.i}`} x={x0} y={0} width={Math.max(1, x1 - x0)} height={H}
+                    fill={sel === p.i ? colors.ju : 'transparent'} fillOpacity={sel === p.i ? 0.12 : 1}
+                    onPress={() => setSel(p.i)} />
+                );
+              })}
               {/* 기준선(50점) */}
               <Line x1={0} y1={H / 2} x2={W} y2={H / 2} stroke={colors.line} strokeWidth={1} strokeDasharray="4 4" />
               <APolyline points={polyline} fill="none" stroke={colors.ju} strokeWidth={2.5} strokeDasharray={pathLen} strokeDashoffset={draw.interpolate({ inputRange: [0, 1], outputRange: [pathLen, 0] })} />

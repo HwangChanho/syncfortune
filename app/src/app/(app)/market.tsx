@@ -14,6 +14,9 @@ import { CREDIT_KINDS, loadCredits, redeemCoupon, grantCredit, PREMIUM_PRICE, ty
 import { listCharts, getRepresentativeId, setRepresentative, type SavedChart } from '../../lib/myChart';
 import { purchaseCreditRC, purchasesEnabled, priceStringsRC, priceStringRC, CREDIT_PRODUCT, PRODUCT_PREMIUM } from '../../lib/purchases';
 import { useSubscription } from '../../lib/subscription'; // 프리미엄 가입 루트(전체 무제한)
+import { useAuth } from '../../lib/useAuth';              // 세션(프리미엄 명식 지정 시 serverChartId 발급)
+import { supabase } from '../../lib/supabase';            // set_premium_chart RPC(구매 명식 지정)
+import { ensureServerChartIdForSaved } from '../../lib/prewarmReadings'; // 구매 명식 serverChartId 확보
 import { colors, radius, space, shadow, font } from '../../lib/theme';
 
 // 이용권 kind → 적용할 풀이 화면(선택 명식을 대표로 둔 뒤 진입 — 대표 기준 캐시)
@@ -64,6 +67,7 @@ const CARD: Partial<Record<CreditKind, { img: any; desc: string }>> = {
 export default function MarketRoute() {
   const { t } = useTranslation();
   const router = useRouter();
+  const { session } = useAuth();                          // 프리미엄 명식 지정(serverChartId 발급)에 필요
   const [saved, setSaved] = useState<SavedChart[]>([]);
   const [sel, setSel] = useState<SavedChart | null>(null);   // 적용할 명식(기본=대표)
   const [pick, setPick] = useState(false);                   // 명식 선택 모달
@@ -102,6 +106,13 @@ export default function MarketRoute() {
       setBuyingPrem(true);
       try {
         await purchasePremium();
+        // 프리미엄 = 지정 명식 1개에 적용(daniel 07-01) — 구매한 명식(sel)을 서버 지정(최초 1회, 변경은 재결제).
+        try {
+          if (sel && session) {
+            const scid = await ensureServerChartIdForSaved(sel, session);
+            if (scid) await supabase.rpc('set_premium_chart', { p_chart_id: scid });
+          }
+        } catch { /* 지정 실패해도 구매는 성공(유예=전 명식, 추후 재시도) */ }
         await refresh();
         Alert.alert(t('settings.premiumOkTitle'), t('settings.premiumOk'));
       } catch (e: any) {
@@ -166,12 +177,8 @@ export default function MarketRoute() {
   }
 
   // 개별 구매 전용(프리미엄 미포함) kind — 섹션 B. 그 외 전부는 프리미엄에 포함(섹션 A).
-  //   ※ timeline(인생 타임라인)은 섹션 A·B 어디에도 넣지 않고, 명식 선택 아래 '독립 강조 카드'로 단독 노출(daniel).
+  //   ※ timeline(인생 타임라인)도 프리미엄에 포함(섹션 A) — 사주+자미 종합이라 프리미엄 콘텐츠(daniel 2026-07-01). 개별가 ₩1,990.
   const INDIVIDUAL = new Set<CreditKind>(['dream', 'followup', 'timeresolve']);
-
-  // 인생 타임라인(독립 강조 카드)용 파생값 — 카드 이미지(있으면)·보유 여부(1회성 소모)
-  const tlCard = CARD['timeline'];                  // 타임라인 카드 이미지·설명(홈과 동일 재사용)
-  const tlOwned = (credits['timeline'] ?? 0) > 0;   // 타임라인 보유 여부(보유=열기 / 미보유=구매)
 
   // 마켓 카드 한 장 렌더(섹션 A·B 공유 헬퍼) — premInc=프리미엄 포함 섹션 여부.
   //   • premInc && isPremium → 가격·구매 버튼 숨기고 '무제한 이용 중' 배지 + 카드 누르면 열기(apply).
@@ -221,7 +228,7 @@ export default function MarketRoute() {
   }
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>
+    <ScrollView style={styles.screen} contentContainerStyle={styles.wrap} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
       <Text style={styles.intro}>{t('market.intro')}</Text>
       {/* ★보유기한 1년 명시(daniel: 법적 — 약관 제4조 3항과 일치) — 비프리미엄에게만(프리미엄=무제한 보유라 불필요) */}
       {!isPremium && <Text style={styles.retention}>{t('market.retentionNote', '구매한 풀이는 구매일로부터 1년간 보유되며, 1년이 지나면 자동 삭제됩니다. 이후 다시 보려면 재구매가 필요해요.')}</Text>}
@@ -256,30 +263,10 @@ export default function MarketRoute() {
         <Text style={styles.chartSelChevron}>▾</Text>
       </Pressable>
 
-      {/* ── 인생 타임라인(독립 강조 카드) ── 섹션 A·B에서 빼서 명식 선택 아래 단독 노출(daniel). 사주+자미 종합 = 위쪽 강조.
-          보유 시 열기(apply) / 미보유 시 구매(buy) — busy 패턴은 다른 카드와 동일 재사용. */}
-      <View style={styles.timelineCard}>
-        {tlCard && <Image source={tlCard.img} style={styles.timelineThumb} />}
-        <View style={{ flex: 1 }}>
-          <Text style={styles.timelineTitle}>{t('market.timelineCardTitle', '인생 타임라인')}</Text>
-          <Text style={styles.timelineDesc} numberOfLines={2}>{t('market.timelineCardDesc', '사주 + 자미두수를 종합해 인생 흐름을 봐요')}</Text>
-          <Text style={styles.price}>{prices['timeline'] ?? '₩1,900'}</Text>
-        </View>
-        {tlOwned ? (
-          <Pressable style={styles.buyBtn} onPress={() => apply('timeline')} disabled={!sel}>
-            <Text style={styles.buyTx}>{t('market.openApply')}</Text>
-          </Pressable>
-        ) : (
-          <Pressable style={[styles.buyBtn, busy === 'timeline' && styles.buyBtnBusy]} onPress={() => buy('timeline')} disabled={busy !== null}>
-            <Text style={styles.buyTx}>{busy === 'timeline' ? '…' : t('market.buy')}</Text>
-          </Pressable>
-        )}
-      </View>
-
-      {/* ── 섹션 A: 프리미엄에 포함 ── 프리미엄=무제한 이용 중 배지 / 비프리미엄=가격+개별구매(기존) */}
+      {/* ── 섹션 A: 프리미엄에 포함 ── 프리미엄=무제한 이용 중 배지 / 비프리미엄=가격+개별구매(기존). 타임라인도 여기 포함(daniel 2026-07-01, 사주+자미 종합). */}
       <Text style={styles.sectionH}>{t('market.sectionIncluded', '✦ 프리미엄에 포함')}</Text>
       <Text style={styles.sectionSub}>{t('market.sectionIncludedSub', '프리미엄 가입 시 아래 풀이를 명식 수 제한 없이 무제한 이용해요(개별 구매도 가능).')}</Text>
-      {CREDIT_KINDS.filter((c) => !INDIVIDUAL.has(c.key) && c.key !== 'timeline').map((c) => renderCard(c, true))}
+      {CREDIT_KINDS.filter((c) => !INDIVIDUAL.has(c.key)).map((c) => renderCard(c, true))}
 
       {/* ── 섹션 B: 개별 구매 전용(프리미엄 미포함) ── isPremium 무관 항상 개별 구매(기존) */}
       <Text style={styles.sectionH}>{t('market.sectionIndividual', '◆ 개별 구매 전용 · 프리미엄 미포함')}</Text>

@@ -57,8 +57,8 @@ const SECTIONS: Section[] = [
   ] },
   // 프리미엄 = 사주·자미 2허브(각 허브 안에 원국풀이·타임라인 큰 카드) + 궁합 독립(사주+자미 교차, daniel).
   { key: 'premium', titleKey: 'menu.secPremium', descKey: 'menu.secPremiumDesc', items: [
-    { key: 'saju', labelKey: 'menu.saju', descKey: 'menu.sajuDesc', image: require('../../../assets/icons/premium.jpg'), route: '/premium?domain=saju', ready: true, premium: true },
-    { key: 'ziwei', labelKey: 'menu.ziweiHub', descKey: 'menu.ziweiHubDesc', image: require('../../../assets/icons/ziwei.jpg'), route: '/premium?domain=ziwei', ready: true, premium: true },
+    { key: 'saju', labelKey: 'menu.saju', descKey: 'menu.sajuDesc', image: require('../../../assets/icons/premium.jpg'), route: '/reading', ready: true, premium: true },        // 허브 제거 → 원국풀이 직접 진입(daniel 07-01)
+    { key: 'ziwei', labelKey: 'menu.ziweiHub', descKey: 'menu.ziweiHubDesc', image: require('../../../assets/icons/ziwei.jpg'), route: '/ziwei', ready: true, premium: true },        // 허브 제거 → 자미 원국풀이 직접
     { key: 'compat', labelKey: 'menu.compat', descKey: 'menu.compatDesc', image: require('../../../assets/icons/compat.jpg'), route: '/compat', ready: true, premium: true },
   ] },
   // 스페셜 = 유료 LLM 콘텐츠(애정흐름·인생그래프·신년). 골드 라인아트 타일 이미지(Recraft).
@@ -398,6 +398,25 @@ export default function Home() {
   // ★카드 연타·중복 진입 차단(daniel) — 네비가 진행 중이면 다음 탭을 즉시 무시(같은/다른 화면 이중 push 방지).
   //   동기 ref라 state 리렌더 전에도 막힌다. 광고 시청 구간에도 잠금 유지 → 광고 중 다른 카드 탭이 먹지 않음.
   const navigatingRef = useRef(false);
+  // ★카드 진입 애니(daniel 07-01): 탭한 카드가 그 자리에서 확대되어 화면 중앙으로 나오며 페이드아웃 → 컨텐츠 진입.
+  //   measureInWindow로 카드 위치를 재 '그 자리에서' 시작(진짜 그 카드가 앞으로 나오는 느낌). 이미지 카드에만(텍스트는 즉시).
+  const cardRefs = useRef<Record<string, View | null>>({});
+  const [trans, setTrans] = useState<{ image: any; x: number; y: number; w: number; h: number } | null>(null);
+  const transAnim = useRef(new Animated.Value(0)).current;
+  // 카드 → 컨텐츠 진입 애니. 측정 후 오버레이를 그 카드 위치에서 확대·중앙이동·페이드 → 끝나면 라우팅.
+  function launchCard(m: MenuItem) {
+    const node = cardRefs.current[m.key];
+    if (!m.image || !node || typeof (node as any).measureInWindow !== 'function') { router.push(m.route); return; } // 텍스트카드·측정불가 = 즉시 진입
+    (node as any).measureInWindow((x: number, y: number, w: number, h: number) => {
+      if (!w || !h) { router.push(m.route); return; }
+      setTrans({ image: m.image, x, y, w, h });
+      transAnim.setValue(0);
+      Animated.timing(transAnim, { toValue: 1, duration: 400, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start(() => {
+        router.push(m.route);
+        setTimeout(() => setTrans(null), 60); // 진입 후 오버레이 정리(다음 진입 위해 리셋)
+      });
+    });
+  }
   async function onPress(m: MenuItem) {
     if (navigatingRef.current) return;                 // 이미 진입 처리 중 — 연타 무시
     playSound('click');
@@ -417,8 +436,8 @@ export default function Home() {
     // 무료 진입 보상형 광고 — 프리미엄·만세력 제외. 관리자는 평소 제외하되, *테스트광고 모드*면 게이트도 동작(daniel 확인용).
     navigatingRef.current = true;                      // 여기부터 실제 진입(광고→네비) 경로 — 잠금(광고 동안에도 다른 카드 탭 차단)
     if (!m.premium && !m.creditKey && m.key !== 'manse' && !isPremium && (!admin || adTestMode())) await showRewardedAd().catch(() => false); // 유료(creditKey) 콘텐츠는 보상형 제외 — 결제만(daniel #39). 무료 콘텐츠만 진입 보상형.
-    router.push(m.route);
-    setTimeout(() => { navigatingRef.current = false; }, 600); // push 후 짧게 해제 — 연타 이중 push만 막고 정상 재탐색은 허용
+    launchCard(m); // 카드 확대→페이드 애니 후 진입(이미지 카드) / 텍스트 카드는 즉시(daniel 07-01)
+    setTimeout(() => { navigatingRef.current = false; }, 900); // 애니(400ms)+진입 커버 후 해제 — 연타 이중 push 차단
   }
 
   return (
@@ -523,7 +542,7 @@ export default function Home() {
             // 콘텐츠(이미지 없음) = 텍스트 카드(제목+설명), 이미지 카드와 시각 구분
             if (!m.image) {
               return (
-                <Pressable key={m.key} style={[styles.card, styles.textCard]} onPress={() => onPress(m)}>
+                <Pressable key={m.key} ref={(n) => { cardRefs.current[m.key] = n; }} style={[styles.card, styles.textCard]} onPress={() => onPress(m)}>
                   {m.creditKey && (
                     <View style={styles.priceTag}>
                       <Text style={styles.priceTagText}>{priceLabel(m.creditKey)}</Text>
@@ -535,7 +554,7 @@ export default function Home() {
               );
             }
             return (
-              <Pressable key={m.key} style={styles.card} onPress={() => onPress(m)}>
+              <Pressable key={m.key} ref={(n) => { cardRefs.current[m.key] = n; }} style={styles.card} onPress={() => onPress(m)}>
                 <View style={styles.cardImg}>
                   {/* expo-image 다운샘플 유지(메모리·랙) + 켄번스 느린 줌(daniel #21). absoluteFill 배경 + 위 오버레이. */}
                   {/* 순차 로딩(daniel) — 차례가 온 카드만 이미지 mount, 그 전엔 미드나잇 빈 박스(디코드 분산). 라벨/배지는 그대로 유지(레이아웃 동일). */}
@@ -601,6 +620,22 @@ export default function Home() {
       </Animated.View>
     </ScrollView>
     <BusyOverlay visible={loggingOut} message={t('common.loggingOut')} />
+    {/* ★카드 진입 애니 오버레이(daniel 07-01) — 탭한 카드가 그 자리에서 확대되며 중앙으로 나와 페이드아웃 → 컨텐츠 */}
+    {trans && (
+      <Animated.View pointerEvents="none" style={StyleSheet.absoluteFill}>
+        <Animated.View style={{
+          position: 'absolute', left: trans.x, top: trans.y, width: trans.w, height: trans.h, borderRadius: 16, overflow: 'hidden',
+          opacity: transAnim.interpolate({ inputRange: [0, 0.5, 1], outputRange: [1, 1, 0] }),            // 앞으로 나온 뒤(후반) 페이드아웃
+          transform: [
+            { translateX: transAnim.interpolate({ inputRange: [0, 1], outputRange: [0, Dimensions.get('window').width / 2 - (trans.x + trans.w / 2)] }) },
+            { translateY: transAnim.interpolate({ inputRange: [0, 1], outputRange: [0, Dimensions.get('window').height / 2 - (trans.y + trans.h / 2)] }) },
+            { scale: transAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 1.35] }) },               // 앞으로(확대)
+          ],
+        }}>
+          <ExpoImage source={trans.image} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="memory-disk" />
+        </Animated.View>
+      </Animated.View>
+    )}
     </ImageBackground>
   );
 }

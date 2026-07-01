@@ -11,6 +11,10 @@ import { isAdmin, adminListUsers, adminGrantCredit, adminSetPremium, adminUserDe
 import { CREDIT_KINDS, type CreditKind } from '../../lib/coupons';
 import { logEvent } from '../../lib/logger'; // DB 로그(app_logs) — 선물/프리미엄 단계 추적
 import { colors, radius, space, shadow, font } from '../../lib/theme';
+import { useRouter } from 'expo-router'; // 비용분석 화면 이동
+import { supabase } from '../../lib/supabase'; // 테스트/관리자 모드 RPC + 프로필 로드
+import { setAdTestMode } from '../../lib/ads'; // 테스트모드 → 테스트광고 즉시 반영
+import { useSubscription } from '../../lib/subscription'; // 관리자모드 토글 후 프리미엄 새로고침
 
 // 초 → 사람이 읽는 시간(평균 사용시간 표시).
 const fmtDur = (sec?: number | null) => {
@@ -31,11 +35,18 @@ export default function AdminRoute() {
   const [stats, setStats] = useState<AdminStats | null>(null); // 전체 현황 대시보드(daniel G)
   const [usage, setUsage] = useState<AdminUsage | null>(null); // 선택 유저 앱 사용시간(daniel)
   const [showCharts, setShowCharts] = useState(false); // 등록 명식 목록 접기/펼치기(daniel)
+  // ── 관리자 제어(설정에서 이동, daniel 07-01): 비용분석·테스트모드·관리자모드 ──
+  const router = useRouter();
+  const { refresh } = useSubscription();
+  const [testMode, setTestMode] = useState(false); // 통변 mock(API 미호출)
+  const [adminMode, setAdminMode] = useState(true); // god ON / 일반계정 OFF
 
   async function reload() { setUsers(await adminListUsers()); }
   useEffect(() => { isAdmin().then((a) => { setAllowed(a); if (a) { reload(); adminStats().then(setStats); } }); }, []);
   // 유저 선택 시 상세(사용량·명식·이용권) 로드
   useEffect(() => { setDetail(null); setGiftMsg(null); setUsage(null); setShowCharts(false); if (sel) { adminUserDetail(sel.id).then(setDetail).catch(() => {}); adminUserUsage(sel.id).then(setUsage).catch(() => {}); } }, [sel]);
+  // 테스트/관리자 모드 현재값 로드(프로필) — 설정에서 이동(daniel 07-01)
+  useEffect(() => { supabase.auth.getUser().then(({ data }) => { if (data.user) supabase.from('profiles').select('test_mode, admin_mode').eq('id', data.user.id).maybeSingle().then(({ data: p }) => { setTestMode(!!p?.test_mode); setAdminMode(p?.admin_mode !== false); }); }).catch(() => {}); }, []);
 
   if (allowed === null) return <View style={styles.center}><ActivityIndicator color={colors.ju} /></View>;
   if (allowed === false && !__DEV__) return <View style={styles.center}><Text style={styles.denied}>관리자만 접근할 수 있어요.</Text></View>;
@@ -88,6 +99,22 @@ export default function AdminRoute() {
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>
+      {/* ── 관리자 제어(설정에서 이동, daniel 07-01): 비용분석·테스트모드·관리자모드 ── */}
+      <Pressable style={styles.adminLink} onPress={() => router.push('/coststable')}>
+        <Text style={styles.adminLinkTx}>📊 비용·수익 분석 (실측)</Text>
+      </Pressable>
+      <Pressable style={[styles.adminLink, testMode && styles.adminLinkOn]} onPress={async () => {
+        const next = !testMode;
+        try { const { data } = await supabase.rpc('set_my_test_mode', { p_on: next }); if (data === true) { setTestMode(next); setAdTestMode(next); } } catch { /* 무시 */ }
+      }}>
+        <Text style={styles.adminLinkTx}>테스트 모드 {testMode ? '— 켜짐 (통변 mock·API 미호출)' : '— 꺼짐'}</Text>
+      </Pressable>
+      <Pressable style={[styles.adminLink, adminMode && styles.adminLinkOn]} onPress={async () => {
+        const next = !adminMode;
+        try { const { data } = await supabase.rpc('set_my_admin_mode', { p_on: next }); if (typeof data === 'boolean') { setAdminMode(data); await refresh(); } } catch { /* 무시 */ }
+      }}>
+        <Text style={styles.adminLinkTx}>관리자 모드 {adminMode ? '— 켜짐 (프리미엄+전부 unlock)' : '— 꺼짐 (일반계정처럼)'}</Text>
+      </Pressable>
       {/* 전체 현황 대시보드 — API 사용량·추정비용·잔여 이용권·분야별·상위 사용자(daniel G) */}
       {stats && (
         <View style={styles.giftPanel}>
@@ -215,4 +242,7 @@ const styles = StyleSheet.create({
   giftBtn: { backgroundColor: colors.ju, borderRadius: radius.pill, paddingHorizontal: space(3.5), paddingVertical: space(2) },
   giftBtnTx: { color: colors.bg, fontWeight: '800', fontSize: 13 },
   giftMsg: { ...font.body, color: colors.ju, fontWeight: '700', marginTop: space(3), textAlign: 'center' },
+  adminLink: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.ju, padding: space(3.5), alignItems: 'center', marginBottom: space(2) },
+  adminLinkOn: { borderColor: colors.ju, backgroundColor: colors.juSoft },
+  adminLinkTx: { color: colors.ju, fontWeight: '800', fontSize: 14 },
 });

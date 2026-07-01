@@ -151,8 +151,9 @@ export default function TodayScreen() {
           </View>
         </View>
 
-        {headline && (
-          <View style={styles.headlineCard}><Text style={styles.headlineTitle}>{headline}</Text></View>
+        {/* 타이틀 = API 본문 headline 우선(본문과 정합·모순 제거) / 로드 전엔 온디바이스 룰 headline(즉시성) — daniel 07-01 */}
+        {(reading?.headline || headline) && (
+          <View style={styles.headlineCard}><Text style={styles.headlineTitle}>{reading?.headline || headline}</Text></View>
         )}
 
         {!loaded ? (

@@ -65,12 +65,18 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
   useEffect(() => {
     if (!open) { setEmblems({}); return; }                       // 닫히면 초기화(다음 열 때 다시 스켈레톤→계산)
     let alive = true;
-    const tid = setTimeout(() => {
-      const m: Record<string, IljuEmblem> = {};
-      charts.forEach((c) => { try { const p = computeChart(c.input).saju.pillars['일']; if (p) m[c.id] = iljuEmblem(p.stem, p.branch); } catch { /* 계산 실패 무시 */ } });
-      if (alive) setEmblems(m);
-    }, 0);                                                        // 0ms = 모달 렌더 이후로 무거운 계산을 미룸
-    return () => { alive = false; clearTimeout(tid); };
+    let ti: ReturnType<typeof setTimeout>;
+    // ★순차 로딩(daniel 07-01): 한 번에 N개를 계산·렌더하면 무거워 이미지 로딩이 느림 →
+    //   한 명식씩 계산해 setEmblems 로 *즉시* 반영(엠블럼·이미지가 위에서부터 하나씩 채워짐).
+    let i = 0;
+    const step = () => {
+      if (!alive || i >= charts.length) return;
+      const c = charts[i++];
+      try { const p = computeChart(c.input).saju.pillars['일']; if (p) setEmblems((prev) => ({ ...prev, [c.id]: iljuEmblem(p.stem, p.branch) })); } catch { /* 계산 실패 무시 */ }
+      ti = setTimeout(step, 0);                                  // 다음 명식은 다음 틱에(순차·뷰 즉시 갱신)
+    };
+    ti = setTimeout(step, 0);                                    // 0ms = 모달 렌더 이후로 미룸
+    return () => { alive = false; clearTimeout(ti); };
   }, [charts, open]);
   // daniel: 명식 버튼 누를 때 로딩 표시 — 모달은 즉시 열려 스피너를 보이고, 무거운 리스트(DraggableFlatList)는 슬라이드가 끝난 뒤 마운트.
   useEffect(() => {
@@ -94,6 +100,8 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
 
   // 명식 수정 → 등록 폼 편집모드(editId)로 이동. 모달 닫고 진입.
   function edit(id: string) { setOpen(false); router.push({ pathname: '/register', params: { editId: id } }); }
+  // 만세력 보기 → 그 명식을 대표로 설정하고 만세력(/charts) 화면으로 진입(daniel 07-01)
+  async function viewManse(id: string) { await setRepresentative(id); setOpen(false); onChange?.(); router.push('/charts'); }
 
   // 명식 삭제 → 확인 후 deleteChart + 목록 갱신 + 호출처 알림(되돌릴 수 없음).
   function remove(id: string, label: string) {
@@ -151,7 +159,7 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
                 const iljuImg = em ? iljuImage(em.stem, em.branch) : null; // 60갑자 AI 일러스트(없으면 색+동물 폴백)
                 return (
                   <ScaleDecorator>
-                    <View style={[styles.row, isActive && styles.rowActive]}>
+                    <View style={[styles.row, isActive && styles.rowActive, actionsFor === c.id && styles.rowMenuOpen]}>
                       {!em ? (
                         <SkeletonDot /> /* 펄스 스켈레톤 — 엠블럼 계산 전(딜레이 가림) */
                       ) : iljuImg ? (
@@ -176,15 +184,19 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
                       {/* 카테고리(관계)를 행 우측에 배지로(daniel: 카테고리도 오른쪽에) */}
                       <Text style={[styles.rowCategory, { fontSize: fs(11) }]} numberOfLines={1}>{c.relation === 'self' ? t('register.selfLabel') : c.relation}</Text>
                       {on && <Text style={styles.check}>✓</Text>}
-                      {/* 한 버튼(⋯) → 탭하면 수정·삭제로 분리(daniel) */}
-                      {actionsFor === c.id ? (
-                        <>
-                          <Pressable hitSlop={8} onPress={() => { setActionsFor(null); edit(c.id); }}><Text style={styles.rowAct}>{t('common.edit', '수정')}</Text></Pressable>
-                          <Pressable hitSlop={8} onPress={() => { setActionsFor(null); remove(c.id, c.label); }}><Text style={[styles.rowAct, styles.rowActDel]}>{t('common.delete', '삭제')}</Text></Pressable>
-                        </>
-                      ) : (
-                        <Pressable hitSlop={10} onPress={() => setActionsFor(c.id)}><Text style={[styles.rowAct, { fontSize: 18 }]}>⋯</Text></Pressable>
-                      )}
+                      {/* ⋯ 토글 → 작은 세로 메뉴(수정·만세력보기·삭제). 삭제는 항상 재확인 alert(daniel 07-01) */}
+                      <View style={styles.actWrap}>
+                        <Pressable hitSlop={10} onPress={() => setActionsFor(actionsFor === c.id ? null : c.id)}>
+                          <Text style={[styles.rowAct, { fontSize: 18 }]}>⋯</Text>
+                        </Pressable>
+                        {actionsFor === c.id && (
+                          <View style={styles.actMenu}>
+                            <Pressable style={styles.actItem} hitSlop={6} onPress={() => { setActionsFor(null); edit(c.id); }}><Text style={styles.rowAct}>{t('common.edit', '수정')}</Text></Pressable>
+                            <Pressable style={styles.actItem} hitSlop={6} onPress={() => { setActionsFor(null); viewManse(c.id); }}><Text style={styles.rowAct}>{t('manse.viewManse', '만세력보기')}</Text></Pressable>
+                            <Pressable style={styles.actItem} hitSlop={6} onPress={() => { setActionsFor(null); remove(c.id, c.label); }}><Text style={[styles.rowAct, styles.rowActDel]}>{t('common.delete', '삭제')}</Text></Pressable>
+                          </View>
+                        )}
+                      </View>
                     </View>
                   </ScaleDecorator>
                 );
@@ -245,6 +257,11 @@ const styles = StyleSheet.create({
   iljuName: { color: colors.ju, fontWeight: '700', marginTop: 1 }, // 일주 이름 "은빛 소"
   rowAct: { fontSize: 13, fontWeight: '700', color: colors.ju, paddingHorizontal: space(1.5) }, // 수정·삭제 글자
   rowActDel: { color: '#E5484D' }, // 삭제 = 적색 강조
+  // ⋯ 토글 드롭다운(수정·만세력보기·삭제) — 작은 세로 리스트(daniel 07-01)
+  actWrap: { position: 'relative', alignItems: 'flex-end', justifyContent: 'center' },
+  actMenu: { position: 'absolute', top: 26, right: 0, minWidth: 108, backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.line, paddingVertical: space(1), zIndex: 50, elevation: 10 },
+  actItem: { paddingVertical: space(2.25), paddingHorizontal: space(3.5) },
+  rowMenuOpen: { zIndex: 50 }, // 메뉴 열린 행을 다른 행 위로
   rowName: { ...font.body, fontWeight: '600', color: colors.ink },
   rowOn: { color: colors.ju },
   rowMeta: { ...font.caption, flex: 1 },

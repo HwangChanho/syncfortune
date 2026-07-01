@@ -69,6 +69,12 @@ export async function ensureServerChartId(
   try { return await task; } finally { inflightEnsure.delete(lockKey); }
 }
 
+/** SavedChart 로 서버 charts.id 확보(computeChart 내부 수행) — 프리미엄 명식 지정 등 호출처 편의 래퍼(daniel 07-01). */
+export async function ensureServerChartIdForSaved(savedChart: SavedChart, session: Session): Promise<string | null> {
+  try { return await ensureServerChartId(computeChart(savedChart.input), savedChart.input, session, savedChart); }
+  catch { return null; }
+}
+
 let running = false; // 세션 내 동시 실행 방지(홈 재진입 등) — 멱등이지만 호출 낭비 차단
 
 /**

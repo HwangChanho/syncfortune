@@ -24,6 +24,7 @@ import { supabase } from '../lib/supabase';
 import { setGenProgress, useGenProgress, clearGenProgress } from '../lib/genProgress'; // 홈 진행률 + 완료 구독 + 진입 시 배너 제거(daniel: 완성 배너 안 사라짐)
 import { useEntitlement } from '../lib/entitlement';
 import { isReadingUnlocked } from '../lib/unlocks'; // 서버 권위 세트 언락(P3) — 이미 열렸으면 무료 재생성
+import { isPremiumForChart } from '../lib/premiumStore'; // 명식별 프리미엄 판정(#1 — 비지정 명식/무료모드 페이월)
 import { useSubscription } from '../lib/subscription';
 import { setServerChartId, getRepresentativeId, type SavedChart } from '../lib/myChart';
 import { loadFollowups, askFollowup, type Followup } from '../lib/followups';
@@ -124,6 +125,7 @@ export function ReadingScreen({
   // 대표 명식 여부 — 프리미엄 '자동 생성'은 대표 명식에만(비용통제 daniel: 명식 100개 자동 생성 방지).
   //   대표가 아니면 프리미엄이라도 수동 '생성' 버튼으로(의도된 1회 소비). 캐시는 그대로 표시.
   const [isRep, setIsRep] = useState(false);
+  const [unlocked, setUnlocked] = useState(false); // 이 명식 세트 결제 언락 여부(#1 — 프리미엄 아니어도 결제자면 표시 유지)
   const [expandedG, setExpandedG] = useState<Record<string, boolean>>({}); // 아코디언 펼침(그룹 라벨→bool, 기본 펼침)
   useEffect(() => {
     let alive = true;
@@ -163,6 +165,7 @@ export function ReadingScreen({
       const id = await ensureServerChart();
       if (!alive || !id) { if (alive) setCacheLoaded(true); return; }
       setChartId(id);
+      isReadingUnlocked(id, kind === 'ziwei' ? 'ziwei' : 'reading').then((u) => { if (alive) setUnlocked(u); }).catch(() => {}); // #1 표시 게이트용 세트 언락 로드
       const { data } = await supabase.from('readings').select('category, content, l2_ver, created_at').eq('chart_id', id).eq('lang', appLang());
       if (!alive) return;
       const keys = new Set(cats.map((x) => x.key));   // 이 화면 항목(사주/자미)만 반영
@@ -329,7 +332,7 @@ export function ReadingScreen({
       // 풀이는 계정에 저장·캐시됨(서버차트 귀속) → 미로그인 시 '저장용' 안내 후 로그인 유도(daniel)
       if (!requireLoginForPurchase(session, () => router.push('/login'), t)) return;
       if (!assertOnline(t)) return;                          // 오프라인 = 신규 생성 차단(경고)
-      if (isPremium) { await runAll(); return; }             // 구독 = 무게이트(캐시로 비용 방어)
+      if (isPremiumForChart(chartId)) { await runAll(); return; } // 이 명식이 프리미엄 지정이면 무게이트(#1 — 계정 프리미엄이라도 비지정 명식은 아래 결제 게이트로)
       const ck = kind === 'ziwei' ? 'ziwei' : 'reading';     // 이 화면 종류의 세트 크레딧 키
       // ★서버 권위 세트 게이트(보안 P3·daniel): 차감·언락은 Edge가 한다(이중차감 제거). 클라는 UX 사전확인만.
       //   ① 이미 세트 언락됨 → 무료 재생성  ② 크레딧 보유 → 바로 생성(Edge가 1회 차감+언락)  ③ 없음 → 건당 결제로 부여
@@ -347,27 +350,30 @@ export function ReadingScreen({
 
   const banner = isPremium ? t('reading.bannerPremium') : t('reading.bannerPerUse');
   const haveAll = cats.every((cat) => readings[cat.key]);
-  // 생성 버튼: 비프리미엄(게이트) + 프리미엄이라도 '대표 아님'(자동생성 제외 → 수동 생성). 대표 프리미엄만 버튼 없이 자동.
-  const showStart = !haveAll && progress === null && (!isPremium || !isRep);
+  // 명식별 프리미엄(#1): 이 명식이 프리미엄 지정이거나 결제 언락돼야 '전부 보기'. 아니면(무료모드·비지정 명식) 캐시가 있어도 페이월.
+  const entitled = isPremiumForChart(chartId) || unlocked;
+  const locked = cacheLoaded && !entitled && !progress; // 미권한 = 잠금(캐시 대신 페이월 선표시 → 무료모드 결제 테스트/비지정 명식)
+  // 생성/결제 버튼: 잠금(미권한)이거나, 미완성 + (비프리미엄 or 대표 아님)일 때.
+  const showStart = progress === null && (locked || (!haveAll && (!isPremium || !isRep)));
 
   // 프리미엄 자동 생성 — 캐시 로드 후 미생성 영역이 있으면 1회 자동 runAll(버튼 없이).
   //   ★대표 명식에만(비용통제): 다른 명식은 프리미엄이라도 자동 생성하지 않는다(수동 버튼).
   useEffect(() => {
-    if (!isPremium || !isRep || !cacheLoaded || progress || autoRan.current || !session || !isOnline()) return; // 오프라인=자동생성 보류(조용히)
+    if (!isPremiumForChart(chartId) || !isRep || !cacheLoaded || progress || autoRan.current || !session || !isOnline()) return; // 지정 프리미엄 명식만 자동 생성(#1). 오프라인=보류
     if (cats.some((cat) => !readings[cat.key])) { autoRan.current = true; runAll(); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isPremium, isRep, cacheLoaded, readings, cats, progress, session]);
+  }, [isPremium, isRep, cacheLoaded, readings, cats, progress, session, chartId]);
 
   // 미리보기 자동 생성 — 미프리미엄·미완성 시 '첫 분야 1개'만 맛보기(나머지는 showStart 로 unlock).
   //   이미 맛보기/전체 캐시가 있으면 skip(멱등). 오프라인·미로그인 보류.
   useEffect(() => {
-    if (isPremium || !cacheLoaded || !session || !isOnline() || progress || previewRan.current) return;
+    if (isPremiumForChart(chartId) || unlocked || !cacheLoaded || !session || !isOnline() || progress || previewRan.current) return; // 권한 있으면(지정 프리미엄/결제) 미리보기 불필요
     const pk = cats[0]?.key;
     if (!pk || haveAll || readings[pk]) return;            // 전체 완성 or 맛보기 이미 있으면 생성 안 함
     previewRan.current = true;
     generatePreview(pk);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isPremium, cacheLoaded, session, progress, cats, readings, haveAll]);
+  }, [isPremium, unlocked, chartId, cacheLoaded, session, progress, cats, readings, haveAll]);
 
   // 추가 질문 전송 — 프리미엄 무료 2회 + 초과 시 건당 결제 후 재시도(paid). Edge가 게이트 판정.
   async function submitFollowup() {
@@ -505,7 +511,7 @@ export function ReadingScreen({
     <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>
       {header}
       {/* 풀이 보유 만료일(daniel #25) — 생성된 풀이가 있을 때만. 소모성(꿈해몽·추가질문)은 별도라 무관. */}
-      {expiry && Object.keys(readings).length > 0 && (
+      {!isPremium && expiry && Object.keys(readings).length > 0 && (
         <Text style={{ fontSize: fs(12), color: colors.inkFaint, marginBottom: space(3), textAlign: 'center', lineHeight: 18 }}>
           이 풀이는 {expiry}까지 보유돼요 · 이후 다시 보려면 재구매가 필요해요
         </Text>
@@ -532,8 +538,20 @@ export function ReadingScreen({
         <View style={styles.loadingBox}><ActivityIndicator color={colors.ju} /></View>
       )}
 
+      {/* #1: 미권한 명식(무료모드·비지정 프리미엄)은 캐시 풀이 대신 페이월 — 첫 영역만 맛보기 */}
+      {locked && (
+        <View style={styles.card}>
+          <Text style={{ ...font.heading, color: colors.ju, marginBottom: space(3), fontSize: fs(16) }}>🔒 {t('reading.lockedTitle', '이 명식의 풀이는 프리미엄 또는 결제로 열려요')}</Text>
+          {(() => {
+            const r0 = normalizeReading(readings[cats[0]?.key]);
+            const tease = r0 && typeof r0 === 'object' && !(r0 as any).error ? asText((r0 as any).base) : null;
+            return tease ? <Text style={[styles.secBody, { fontSize: fs(15), lineHeight: fs(26) }]} numberOfLines={4}>{tease}</Text> : null;
+          })()}
+          <Text style={{ ...font.caption, color: colors.inkSoft, marginTop: space(3) }}>{t('reading.lockedNote', '위 버튼으로 열어 전부 보실 수 있어요.')}</Text>
+        </View>
+      )}
       {/* 카테고리 그룹 아코디언 — 그룹 헤더(접기/펴기) + 영역 리스트(탭→상세 모달). 기본 펼침. */}
-      {groups.map((g) => {
+      {!locked && groups.map((g) => {
         const open = expandedG[g.label] ?? true;
         return (
           <View key={g.label} style={styles.group}>

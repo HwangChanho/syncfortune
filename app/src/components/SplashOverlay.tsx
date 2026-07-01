@@ -5,7 +5,7 @@
 //   페이드아웃 → onDone(). RN Animated + ImageBackground(번들 에셋)라 네이티브 빌드 의존 없음.
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useRef } from 'react';
-import { Animated, Easing, ImageBackground, StyleSheet } from 'react-native';
+import { Animated, Easing, ImageBackground, StyleSheet, Text } from 'react-native';
 import { colors } from '../lib/theme';
 
 export function SplashOverlay({ onDone }: { onDone: () => void }) {
@@ -24,6 +24,8 @@ export function SplashOverlay({ onDone }: { onDone: () => void }) {
     <Animated.View style={[styles.overlay, { opacity: op }]} pointerEvents="none">
       {/* 백두산 천지 이미지만 — 전체가 보이게 contain(잘림 없음). 여백은 미드나잇 배경이 자연스럽게 이음. */}
       <ImageBackground source={require('../../assets/splash-bg.png')} style={StyleSheet.absoluteFill} resizeMode="contain" />
+      {/* 좌상단 八字(노란색) — 브랜드 표식(daniel 07-01) */}
+      <Text style={styles.hanja}>八字</Text>
     </Animated.View>
   );
 }
@@ -31,4 +33,6 @@ export function SplashOverlay({ onDone }: { onDone: () => void }) {
 const styles = StyleSheet.create({
   // 풀스크린 미드나잇 배경(이미지 contain 시 상하 여백을 자연스럽게 메움)
   overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center', zIndex: 999 },
+  // 좌상단 八字 — 브랜드 골드(노란색), 어두운 천지 이미지 위 가독 위해 그림자(daniel 07-01)
+  hanja: { position: 'absolute', top: 64, left: 26, fontSize: 36, fontWeight: '900', color: colors.ju, letterSpacing: 3, textShadowColor: 'rgba(0,0,0,0.55)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 5 },
 });

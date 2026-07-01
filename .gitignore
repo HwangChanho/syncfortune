@@ -58,6 +58,8 @@ docs/*
 # ↑ 이슈17 공유 스마트링크 stub(docs/s) — GitHub Pages 공개 필요(앱 열기/설치 유도, 풀이 내용은 노출 X)
 # 명리 지식 레이어·물상 (moat 콘텐츠)
 knowledge/
+# 풀이 규칙 모듈(Encoded Expert Layer — daniel 작성 명리 IP, 공개 금지 07-01)
+풀이/
 # L2 해석 오케스트레이터 + 시스템 프롬프트 (LLM/RAG 레이어 — moat)
 interpretation/
 # 백엔드 (Edge 함수·프롬프트·마이그레이션·CLI 시크릿·.temp)

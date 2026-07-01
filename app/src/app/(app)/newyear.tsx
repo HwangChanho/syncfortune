@@ -179,6 +179,13 @@ export default function NewYearScreen() {
             {typeof data.summary === 'string' && (
               <View style={styles.card}><Text style={[styles.body, { fontSize: fs(15), lineHeight: fs(26) }]}>{data.summary}</Text></View>
             )}
+            {/* 올해의 나 — 올 한 해 어떤 사람으로 살아가는지(daniel 07-01) */}
+            {typeof data.thisYearSelf === 'string' && (
+              <View style={[styles.card, styles.luckyCard]}>
+                <Text style={styles.sectH}>🧭 {t('newyear.thisYearSelf', '올해의 나')}</Text>
+                <Text style={[styles.body, { fontSize: fs(15), lineHeight: fs(26) }]}>{data.thisYearSelf}</Text>
+              </View>
+            )}
             {/* ★올해 좋은 시기 — 콕 집어(daniel: 정확한 시점/날짜). 가장 눈에 띄게 강조 */}
             {typeof data.timing === 'string' && (
               <View style={[styles.card, styles.timingCard]}>
@@ -253,6 +260,13 @@ export default function NewYearScreen() {
                 <Text style={[styles.body, { fontSize: fs(15), lineHeight: fs(26) }]}>{data.resolution}</Text>
               </View>
             )}
+            {/* 올해의 대응전략(daniel 07-01) — 흐름·과제·기회에 어떻게 대응할지 */}
+            {typeof data.strategy === 'string' && (
+              <View style={[styles.card, styles.luckyCard]}>
+                <Text style={styles.sectH}>♟️ {t('newyear.strategy', '올해의 대응전략')}</Text>
+                <Text style={[styles.body, { fontSize: fs(15), lineHeight: fs(26) }]}>{data.strategy}</Text>
+              </View>
+            )}
             {/* 풀이 음성 읽기(온디바이스 TTS·무료) — 전체 신년 통변을 순서대로 읽음(months 배열은 자동 제외) */}
             <TTSButton reading={data} />
             {/* 이슈17: 풀이 결과 공유(content 없거나 error면 컴포넌트가 자체 미노출) */}
@@ -268,7 +282,7 @@ export default function NewYearScreen() {
             </View>
             {err ? <Text style={styles.err}>{err}</Text> : null}
             <Pressable style={styles.gateBtn} onPress={onStart}>
-              <Text style={styles.gateBtnTx}>{isPremium ? t('newyear.see', '신년운세 보기') : t('newyear.seePaid', '신년운세 보기 (₩6,900)')}</Text>
+              <Text style={styles.gateBtnTx}>{isPremium ? t('newyear.see', '신년운세 보기') : t('newyear.seePaid', '신년운세 보기 (₩9,900)')}</Text>
             </Pressable>
           </View>
         )}

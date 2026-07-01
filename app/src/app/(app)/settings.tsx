@@ -12,7 +12,6 @@ import { useTranslation } from 'react-i18next';
 import { setAppLang } from '../../lib/i18n'; // 언어 변경 + persist(재시작 후 유지)
 import { useFontScale, FONT_STEPS } from '../../lib/fontScale';
 import { isAdmin } from '../../lib/admin'; // 관리자 메뉴 노출 판정(실제 권한은 서버 RPC)
-import { setAdTestMode } from '../../lib/ads'; // 테스트모드 토글 → 테스트광고+게이트 즉시 반영(daniel)
 import { useAuth } from '../../lib/useAuth';               // 계정(세션)
 import { useSubscription } from '../../lib/subscription';  // 프리미엄 상태·구매
 import { requireLoginForPurchase } from '../../lib/requireLogin'; // 결제 전 로그인 게이트
@@ -39,15 +38,12 @@ export default function SettingsScreen() {
   const { isPremium, purchasePremium, refresh } = useSubscription();
   const { scale, setScale, fs } = useFontScale();
   const [busy, setBusy] = useState<string | null>(null); // 전체화면 로딩 오버레이 메시지(긴 콜백)
-  const [admin, setAdmin] = useState(false); // 관리자 — 메뉴 노출용(실제 권한은 서버 RPC)
-  const [testMode, setTestMode] = useState(false); // 관리자 테스트 모드 — 켜면 통변 mock(API 미호출, daniel)
+  const [admin, setAdmin] = useState(false); // 관리자 — 메뉴 노출용(실제 권한은 서버 RPC). 제어(비용분석·테스트/관리자모드)는 /admin 내부로 통합(daniel 07-01)
   const [premPrice, setPremPrice] = useState(''); // 프리미엄 현지통화 가격(RC) — 미설정 시 ₩ 폴백
   const [themePref, setThemePrefState] = useState<ThemePref>(getThemePref()); // 화면 테마(다크/라이트/시스템) — 변경은 재시작 후 적용
 
   // 관리자/테스트모드 노출 = session 반응형. 로그아웃(session=null) 즉시 false로 내려 관리자 메뉴가 바로 사라지게(daniel) — 빈 deps면 마운트 1회라 창 전환 전까지 살아있었음.
   useEffect(() => { if (!session) { setAdmin(false); return; } isAdmin().then(setAdmin).catch(() => {}); }, [session]);
-  // 관리자 테스트 모드 현재값 로드(통변 mock 토글) — 로그아웃 시 즉시 끔
-  useEffect(() => { if (!session) { setTestMode(false); return; } supabase.auth.getUser().then(({ data }) => { if (data.user) supabase.from('profiles').select('test_mode').eq('id', data.user.id).maybeSingle().then(({ data: p }) => setTestMode(!!p?.test_mode)); }).catch(() => {}); }, [session]);
   // 프리미엄 현지 통화 가격(RC) 로드 — USD 기준 등록 시 사용자 지역 통화로 자동 표시.
   useEffect(() => { priceStringRC(PRODUCT_PREMIUM, `₩${PREMIUM_PRICE.toLocaleString()}`).then(setPremPrice).catch(() => {}); }, []);
 
@@ -120,22 +116,11 @@ export default function SettingsScreen() {
         </Pressable>
       )}
 
-      {/* ── 관리자(is_admin 전용) ── */}
+      {/* ── 관리자(is_admin 전용) — 제어(비용분석·테스트/관리자모드)는 ⚙관리자 화면 내부로 통합(daniel 07-01) ── */}
       {(admin || __DEV__) && (
-        <>
-          <Pressable style={styles.adminLink} onPress={() => router.push('/admin')}>
-            <Text style={styles.adminLinkTx}>⚙ 관리자{__DEV__ && !admin ? ' (dev)' : ''}</Text>
-          </Pressable>
-          <Pressable style={styles.adminLink} onPress={() => router.push('/coststable')}>
-            <Text style={styles.adminLinkTx}>📊 비용·수익 분석 (실측)</Text>
-          </Pressable>
-          <Pressable style={[styles.adminLink, testMode && { borderColor: colors.ju, backgroundColor: colors.juSoft }]} onPress={async () => {
-            const next = !testMode;
-            try { const { data } = await supabase.rpc('set_my_test_mode', { p_on: next }); if (data === true) { setTestMode(next); setAdTestMode(next); } } catch { /* 무시 */ }
-          }}>
-            <Text style={styles.adminLinkTx}>테스트 모드 {testMode ? '— 켜짐 (통변 mock·API 미호출)' : '— 꺼짐'}</Text>
-          </Pressable>
-        </>
+        <Pressable style={styles.adminLink} onPress={() => router.push('/admin')}>
+          <Text style={styles.adminLinkTx}>⚙ 관리자{__DEV__ && !admin ? ' (dev)' : ''}</Text>
+        </Pressable>
       )}
 
       {/* ── 프리미엄 ── */}

@@ -214,7 +214,7 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
       ) : (reading && owned) ? (
         <>
         {/* 풀이 보유 만료일(daniel #25) — 캐시(생성된 풀이) + 유료 단일(showExpiry)일 때만. 소모성·무료는 showExpiry 미전달이라 미노출. */}
-        {showExpiry && expiry ? (
+        {!isPremium && showExpiry && expiry ? (
           <Text style={{ fontSize: fs(12), color: colors.inkFaint, marginBottom: space(3), textAlign: 'center', lineHeight: 18 }}>이 풀이는 {expiry}까지 보유돼요 · 이후 다시 보려면 재구매가 필요해요</Text>
         ) : null}
         {/* 이슈19 소제목 — 통변 결과 headline 있으면 섹션들 맨 위에 한 줄 강조(콘텐츠 테마색) */}

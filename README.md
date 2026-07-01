@@ -1,7 +1,7 @@
-# SyncFortune
+# 팔자 · 八字 (SyncFortune)
 
-> **AI-powered Korean fortune-telling app** built on a deterministic _Saju_ (四柱, Four Pillars) engine with a RAG-grounded LLM interpretation layer.
-> _사주(명리)를 핵심으로 자미두수를 보조로 통합하는 AI 운세 앱._
+> **AI-powered Korean fortune-telling app** built on a deterministic _Saju_ (四柱 · 八字, Four Pillars) engine with a RAG-grounded LLM interpretation layer.
+> _사주(명리)를 핵심으로 자미두수·타로를 통합하는 AI 운세 앱. 앱 이름 **팔자(八字)** — 태어난 순간의 여덟 글자._
 
 The thesis: **the calendar math is deterministic; only interpretation is generative.** The Four Pillars chart (palja), hidden stems, clashes/combinations, twelve life-stages, and sinsal are computed by a rule engine — never hallucinated. An LLM interprets _on top of_ that structured chart, grounded by a curated knowledge layer. This "encoded expert layer" is what separates the product from a generic LLM wrapper.
 
