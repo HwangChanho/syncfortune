@@ -16,6 +16,7 @@ import { ContentHero } from '../../components/SpecialContentScreen';
 import { Reveal } from '../../components/Reveal'; // 카드 순차 등장(daniel 재미)
 import { ChartPicker } from '../../components/ChartPicker';
 import { ShareReadingButton } from '../../components/ShareReadingButton';
+import { useContentGate } from '../../components/ContentAdGate'; // 무료 콘텐츠 광고 게이트(진입 후 광고 보고 보기)
 import type { ChartInput } from '@spec/chart';
 
 // 각 축의 [왼글자, 오른글자] — score(0~100)는 오른글자 비율
@@ -42,6 +43,9 @@ export default function MbtiScreen() {
   }, []));
 
   const r = useMemo(() => (me ? sajuMbti(computeChart(me).saju) : null), [me]);
+  const gate = useContentGate('mbti', { title: t('menu.mbti', '사주 MBTI') }); // 진입 후 광고 보고 보기(프리미엄/광고없음=통과)
+
+  if (r && gate) return gate; // 명식 있을 때만 게이트(없으면 아래 '명식 등록' 안내 먼저) · 미시청=광고 게이트
 
   return (
     <ImageBackground source={bgSource} style={styles.bg} resizeMode="cover">

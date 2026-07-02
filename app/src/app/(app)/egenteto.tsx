@@ -18,6 +18,7 @@ import { bgSource, colors, radius, space, shadow, font } from '../../lib/theme';
 import { useFontScale } from '../../lib/ui/fontScale';
 import { ChartPicker } from '../../components/ChartPicker'; // 명식 선택(대표 전환) — 명식별 성향(daniel)
 import { ShareReadingButton } from '../../components/ShareReadingButton'; // 이슈17: 풀이 결과 공유(앱게이트)
+import { useContentGate } from '../../components/ContentAdGate'; // 무료 콘텐츠 광고 게이트(진입 후 광고 보고 보기)
 
 // 에겐↔테토 게이지 — fill·dot이 0→score로 차오르고 이동(daniel #13: 실제 인디케이터 애니).
 function EgenBar({ score }: { score: number }) {
@@ -64,6 +65,9 @@ export default function EgenTetoScreen() {
   // 타입 → 라벨(에겐형/테토형/균형형)
   const typeLabel = (ty: EgenTetoResult['type']) =>
     ty === 'teto' ? t('egen.typeTeto', '테토형') : ty === 'egen' ? t('egen.typeEgen', '에겐형') : t('egen.typeBalanced', '균형형');
+  const gate = useContentGate('egen', { title: t('menu.egen', '에겐 vs 테토') }); // 진입 후 광고 보고 보기(프리미엄/광고없음=통과)
+
+  if (saved && gate) return gate; // 명식 있을 때만 게이트(없으면 아래 '명식 등록' 안내 먼저) · 미시청=광고 게이트
 
   return (
     <ImageBackground source={bgSource} style={styles.bgImage} resizeMode="cover">

@@ -37,6 +37,9 @@ export function setAdTestMode(v: boolean): void { forceTestAds = v; }
 //   ⚠️⚠️ App Store 정식 출시 전 반드시 false 로 — 그래야 실광고(수익) 서빙. (지금은 TestFlight 검증용.)
 const VERIFY_ADS = true;
 export function adTestMode(): boolean { return forceTestAds || VERIFY_ADS; }
+// 보상형 광고 모듈 가용 여부 — 미포함 빌드(재빌드 전 dev client)면 false → 광고 게이트는 통과(내용 바로 표시).
+//   프로덕션/TestFlight 빌드엔 모듈이 있으므로 게이트가 정상 동작. (게이트가 dev에서 영구 잠기는 것 방지)
+export function adsAvailable(): boolean { return !!Ads?.RewardedAd; }
 export async function initAds(): Promise<void> {
   if (adsInited || !Ads) return;
   const mobileAds = Ads.default ?? Ads;             // default export = mobileAds()

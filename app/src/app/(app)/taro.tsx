@@ -18,6 +18,7 @@ import { loadTodayTaro, saveTodayTaro } from '../../lib/content/tarotStore';
 import { playSound } from '../../lib/ui/sounds';
 import { bgSource, colors, radius, space, shadow, font, gradients } from '../../lib/theme';
 import { GlassCard } from '../../components/GlassCard';
+import { useContentGate } from '../../components/ContentAdGate'; // 무료 콘텐츠 광고 게이트(진입 후 광고 보고 보기)
 
 // expo-haptics 는 네이티브 모듈 — 현재 dev 빌드 미포함 시 호출하면 크래시. 안전 래퍼로 감싼다(재빌드 후 정상 진동).
 const hImpact = (s: Haptics.ImpactFeedbackStyle) => { try { Haptics.impactAsync(s).catch(() => {}); } catch { /* 네이티브 미포함 — 무시 */ } };
@@ -111,6 +112,9 @@ export default function TaroScreen() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [drawn]);
+  const gate = useContentGate('taro', { title: t('menu.taro', '타로') }); // 진입 후 광고 보고 보기(프리미엄/광고없음=통과)
+
+  if (gate) return gate; // 미시청(무료) = 광고 게이트 화면 / null = 열림(아래 내용)
 
   return (
     <ImageBackground source={bgSource} style={styles.bg} resizeMode="cover">

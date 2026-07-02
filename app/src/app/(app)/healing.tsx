@@ -15,6 +15,7 @@ import { bgSource, colors, radius, space, shadow, font } from '../../lib/theme';
 import { ChartPicker } from '../../components/ChartPicker'; // 상단 명식 헤더 — 현재 적용 명식 표시·전환
 import { ShareReadingButton } from '../../components/ShareReadingButton'; // 이슈17: 풀이 결과 공유(앱게이트)
 import { TTSButton } from '../../components/TTSButton'; // 풀이 음성 읽기(온디바이스 TTS·무료)
+import { useContentGate } from '../../components/ContentAdGate'; // 무료 콘텐츠 광고 게이트(진입 후 광고 보고 보기)
 import type { ChartInput } from '@spec/chart';
 
 // 일간 오행별 이미지(daniel O: 종류별 이미지) — assets/icons/healing/{wood|fire|earth|metal|water}.jpg.
@@ -42,6 +43,7 @@ export default function HealingScreen() {
   }, []));
 
   const r: HealingResult | null = useMemo(() => (me ? healingMethod(computeChart(me).saju) : null), [me]);
+  const gate = useContentGate('healing', { title: t('menu.healing', '힐링') }); // 진입 후 광고 보고 보기(프리미엄/광고없음=통과)
 
   const bodyDyn = { fontSize: fs(15), lineHeight: fs(25) };
 
@@ -52,6 +54,7 @@ export default function HealingScreen() {
       <Pressable style={styles.btn} onPress={() => router.push('/register')}><Text style={styles.btnText}>{t('compat.registerMyChart', '내 명식 등록')}</Text></Pressable>
     </View>
   );
+  if (gate) return gate; // 미시청(무료) = 광고 게이트 화면 / null = 열림(아래 내용)
 
   return (
     <ImageBackground source={bgSource} style={styles.bg} resizeMode="cover">

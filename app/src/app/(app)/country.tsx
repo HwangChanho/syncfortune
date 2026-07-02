@@ -14,6 +14,7 @@ import { countryFit, type CountryRec } from '../../lib/content/countryFit';
 import { colors, radius, space, shadow, font } from '../../lib/theme';
 import { useFontScale } from '../../lib/ui/fontScale';
 import { ChartPicker } from '../../components/ChartPicker';
+import { useContentGate } from '../../components/ContentAdGate'; // 무료 콘텐츠 광고 게이트(진입 후 광고 보고 보기)
 
 export default function CountryScreen() {
   const { t } = useTranslation();
@@ -41,6 +42,9 @@ export default function CountryScreen() {
       </View>
     </View>
   );
+  const gate = useContentGate('country', { title: t('menu.country', '국가 궁합') }); // 진입 후 광고 보고 보기(프리미엄/광고없음=통과)
+
+  if (saved && gate) return gate; // 명식 있을 때만 게이트(없으면 아래 '명식 등록' 안내 먼저) · 미시청=광고 게이트
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>

@@ -16,6 +16,7 @@ import { useFontScale } from '../../lib/ui/fontScale';
 import { colors, radius, space, shadow, font } from '../../lib/theme';
 import { ContentHero } from '../../components/SpecialContentScreen'; // 이미지 히어로(보는 맛)
 import { ShareReadingButton } from '../../components/ShareReadingButton'; // 이슈17: 풀이 결과 공유(앱게이트)
+import { useContentGate } from '../../components/ContentAdGate'; // 무료 콘텐츠 광고 게이트(진입 후 광고 보고 보기)
 
 export default function PetScreen() {
   const { t } = useTranslation();
@@ -104,6 +105,9 @@ export default function PetScreen() {
   }
 
   const bodyDyn = { fontSize: fs(15), lineHeight: fs(24) };
+  const gate = useContentGate('pet', { title: t('menu.pet', '반려동물') }); // 진입 후 광고 보고 보기(프리미엄/광고없음=통과)
+
+  if (gate) return gate; // 미시청(무료) = 광고 게이트 화면 / null = 열림(아래 내용)
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>

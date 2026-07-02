@@ -15,6 +15,7 @@ import { useFontScale } from '../../lib/ui/fontScale';
 import { elementColor, elementText } from '../../lib/engine/ohaeng';
 import { ContentHero } from '../../components/SpecialContentScreen';
 import { ChartPicker } from '../../components/ChartPicker';
+import { useContentGate } from '../../components/ContentAdGate'; // 무료 콘텐츠 광고 게이트(진입 후 광고 보고 보기)
 import { colors, radius, space, shadow, font } from '../../lib/theme';
 
 export default function ImpressionScreen() {
@@ -39,6 +40,9 @@ export default function ImpressionScreen() {
     const gap = monthGroup ? !stemGroups.has(monthGroup) : false;
     return { essence: TENGOD_ESSENCE[monthTg], gap };
   }, [c]);
+  const gate = useContentGate('impression', { title: t('menu.impression', '첫인상') }); // 진입 후 광고 보고 보기(프리미엄/광고없음=통과)
+
+  if (saved && gate) return gate; // 명식 있을 때만 게이트(없으면 아래 '명식 등록' 안내 먼저) · 미시청=광고 게이트
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>
