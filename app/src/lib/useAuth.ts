@@ -63,7 +63,10 @@ export function useAuth() {
     });
     // 2) 이후 세션 변화 구독 — 로그인/로그아웃/토큰 자동 갱신 시 즉시 반영
     const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
-      setSession(s);
+      // ★참조 안정화(daniel 07-02 무한 깜빡임 근본): 토큰 자동갱신·INITIAL_SESSION 재발행 등으로 *내용은 같은데
+      //   객체 참조만 바뀐* 세션이 오면 state를 갱신하지 않는다. 안 그러면 session을 deps로 쓰는 전 화면 로드 이펙트가
+      //   매 이벤트마다 재실행 → 콘텐츠가 '구매화면↔풀이화면'으로 깜빡이던 원인. user.id+access_token 동일 = 같은 세션.
+      setSession((prev) => (prev?.user?.id === s?.user?.id && prev?.access_token === s?.access_token ? prev : s));
       if (_event === 'SIGNED_IN' && s) InteractionManager.runAfterInteractions(() => { void prefetchOnLogin(s); }); // 로그인 시 명식 동기화 + 푸시토큰 + serverChartId 선발급 — 상호작용 후로(#2·#32 daniel: 첫 로그인 진입 지연 완화)
       if (_event === 'SIGNED_OUT') { void logoutPurchases(); void clearLocalUserData(); } // ★로그아웃 즉시: RC 익명화(프리미엄 stale 차단→광고 복귀) + 명식·진행률 정리(daniel)
     });

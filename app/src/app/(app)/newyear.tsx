@@ -72,16 +72,18 @@ export default function NewYearScreen() {
     return yb ? samjaeStatus(yb, yearBranch) : null;
   }, [saved, yearBranch]);
 
+  const uid = session?.user?.id ?? null; // ★deps 안정화 — session 객체 참조가 아닌 user.id로(재발행 깜빡임 방지, daniel 07-02)
   useEffect(() => {
     let alive = true;
-    setData(null); setErr(null); setLoaded(false);
+    // ★재실행 시 화면을 비우지 않는다(구매화면↔풀이화면 깜빡임 근본): 새 값을 받은 뒤에만 교체.
+    //   (기존엔 시작 시 setData(null)+setLoaded(false)로 blank → 캐시 재세팅을 반복해 깜빡였음)
     (async () => {
       const ch = await loadRepChart();
       if (!alive) return;
       setSaved(ch);
-      if (!ch || !session) { setLoaded(true); return; }
+      if (!ch || !uid) { setData(null); setLoaded(true); return; }
       const c = computeChart(ch.input);
-      const id = await ensureServerChartId(c, ch.input, session, ch);
+      const id = await ensureServerChartId(c, ch.input, session!, ch);
       if (!alive || !id) { setLoaded(true); return; }
       setChartId(id);
       const { data: row } = await supabase.from('readings').select('content, created_at').eq('chart_id', id).eq('category', category).eq('lang', appLang()).maybeSingle();
@@ -95,7 +97,7 @@ export default function NewYearScreen() {
     })().catch(() => { if (alive) setLoaded(true); });
     return () => { alive = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session, category, isPremium, reloadKey]);
+  }, [uid, category, isPremium, reloadKey]);
 
   async function generate(id: string) {
     if (!assertOnline(t)) return; // daniel: 오프라인이면 풀이 진입(Edge 생성) 차단
