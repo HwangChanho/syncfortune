@@ -38,7 +38,7 @@ const LIGHT = {
   // 전반 채도↓ + 이미지(미드나잇 네이비·골드 #C9A14A)와 조화(daniel 06-28). 노란기·탁함·순백대비 완화.
   bg: '#F2EFE7', card: '#FBF5E8', sunk: '#EFE7D6', // 카드=흰색(#FBFAF6)→따뜻한 연베이지(daniel 07-02: 글 적힌 부분 베이지)
   glass: 'rgba(251, 245, 232, 0.78)', glassLight: 'rgba(43, 38, 32, 0.05)',
-  ink: '#2B2722', inkSoft: '#6A645B', inkFaint: '#9A938A', line: '#DCD7CC',
+  ink: '#2B2722', inkSoft: '#6A645B', inkFaint: '#9A938A', line: '#CDC3AF', // 카드 테두리 더 또렷(한지 배경 위 필드 분리, daniel 07-03)
   ju: '#A08948', juDeep: '#84703B', juSoft: '#EFEBE0', juLine: '#C9C0A6',
   gold: '#A08948', white: '#FFFFFF',
   // ★어두운 히어로 이미지 위 텍스트/스크림 — DARK와 동일값(이미지가 어두우므로 라이트모드에서도 밝은 글씨·어두운 스크림이라야 보임).
@@ -80,6 +80,16 @@ export function getThemePref(): ThemePref {
   try { return ((SecureStore as any).getItem?.(PREF_KEY) as ThemePref) || 'system'; } catch { return 'system'; }
 }
 
+// 로딩(인트로) 영상 on/off — daniel 07-03. 끄면 八字 한자 스플래시만. 기본 on. 다음 실행부터 반영(스플래시는 실행 시 1회).
+const LOADING_VIDEO_KEY = 'pref.loadingVideo';
+export function getLoadingVideoEnabled(): boolean {
+  try { const v = (SecureStore as any).getItem?.(LOADING_VIDEO_KEY); return v == null ? true : v === '1'; } catch { return true; }
+}
+export function setLoadingVideoEnabled(on: boolean) {
+  try { (SecureStore as any).setItem?.(LOADING_VIDEO_KEY, on ? '1' : '0'); } catch { /* noop */ }
+  SecureStore.setItemAsync(LOADING_VIDEO_KEY, on ? '1' : '0').catch(() => {});
+}
+
 // ── 그라데이션 (프리미엄 질감) — 라이트에선 톤 조정 ─────────────
 export const gradients = activeScheme === 'light'
   ? {
@@ -101,7 +111,7 @@ export const space = (n: number) => n * 4;
 
 // ── 그림자 ───────────────────────────────────────────────────
 export const shadow = {
-  card: { shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 2 },
+  card: { shadowColor: '#000', shadowOpacity: 0.11, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 3 }, // 라이트=한지 배경 위 카드 리프트 강화(muddy 필드 분리, daniel 07-03)
   soft: { shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, shadowOffset: { width: 0, height: 1 }, elevation: 1 },
 } as const;
 
