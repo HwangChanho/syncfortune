@@ -85,18 +85,22 @@ export async function refreshPremium(userId: string | null | undefined): Promise
     }
     return;
   }
-  // 서버(웹훅이 갱신) OR RC(구매 직후 즉시) — 소유 여부. 관리자 모드·지정 명식은 명식별 게이트 원재료.
-  const [profile, rc] = await Promise.all([
-    supabase.from('profiles').select('is_premium, is_admin, admin_mode, premium_chart_id').eq('id', userId).maybeSingle(),
-    isPremiumActiveRC(),
-  ]);
+  // ★속도(daniel 07-02: 프리미엄 적용 느림): 프로필(빠름)을 *먼저* 읽어 즉시 판정.
+  //   is_premium=true(관리자 선물·웹훅 반영)면 RC 네트워크 조회(getCustomerInfo, 느림)를 기다리지 않고 바로 프리미엄.
+  //   is_premium=false 이고 일반전환도 아닐 때만 RC 확인(실구매 웹훅 전 즉시 반영용).
+  const profile = await supabase.from('profiles').select('is_premium, is_admin, admin_mode, premium_chart_id').eq('id', userId).maybeSingle();
   if (seq !== _reqSeq) return; // 더 최신 전환 요청이 들어왔으면 이 응답은 폐기(stale 방지).
   const p: any = profile.error ? null : profile.data;
   const isAdmin = !!p?.is_admin;
   const adminMode = p?.admin_mode !== false;                 // null/undefined/true → god
   const actingNormal = isAdmin && !adminMode;                // 관리자 모드 OFF = 일반계정 전환
   const god = isAdmin && adminMode;
-  const owns = !!p?.is_premium || rc;
+  let owns = !!p?.is_premium;                                 // 서버 프리미엄 = 즉시(RC 대기 없음)
+  if (!owns && !actingNormal) {                              // 서버 미반영 & 일반전환 아님 → RC(실구매 직후) 확인
+    const rc = await isPremiumActiveRC();
+    if (seq !== _reqSeq) return;
+    owns = rc;
+  }
   const next = god || (!actingNormal && owns);               // 계정레벨(광고·배지)
   const pcid = actingNormal ? null : ((p?.premium_chart_id as string | null) ?? null);
   if (_isPremium !== next || _owns !== owns || _isAdmin !== isAdmin || _adminMode !== adminMode || _premiumChartId !== pcid || _loading) {
