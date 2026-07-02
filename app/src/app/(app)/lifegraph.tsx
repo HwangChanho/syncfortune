@@ -20,6 +20,7 @@ import { Alert } from '../../lib/ui/alert';
 import { loadCredits } from '../../lib/billing/coupons';
 import { isAdmin } from '../../lib/core/admin'; // 스페셜 = 관리자 바로 / 그 외 쿠폰(크레딧)만
 import { requireLoginForPurchase } from '../../lib/billing/requireLogin';
+import { confirmReadingChart } from '../../lib/ui/confirmChart'; // 생성 전 명식 확인 + 보유 이용권 안내(daniel)
 import { supabase } from '../../lib/supabase';
 import { appLang } from '../../lib/i18n';
 import { invokeFail } from '../../lib/backend/interpretResult'; // 방어: Edge 실패(일시적 불가·결제필요·오류) 정규화
@@ -107,9 +108,14 @@ export default function LifeGraphScreen() {
     setBusy(false);
   }
 
+  // 생성 전 '이 명식으로 풀이할지' 확인(+보유 이용권) → 확인 시 doStart(daniel 07-02).
+  function onStart() {
+    if (!chartId || busy || gatingRef.current) return;
+    void confirmReadingChart({ chartLabel: saved?.label, creditKind: 'lifegraph', t, onConfirm: () => { void doStart(); } });
+  }
   // 결제 게이트(서버 차감 통일·daniel 2026-06): 프리미엄=무료 / 비프리미엄=크레딧 보유시 통과(서버 차감), 없으면 결제→부여.
   //   ★실제 차감·검증은 Edge(consume_credit). 클라는 결제 UI + 사전 보유 확인(UX)만 — 우회·이중차감 방지.
-  async function onStart() {
+  async function doStart() {
     if (!chartId || busy || gatingRef.current) return;
     if (isPremium) { generate(chartId); return; }
     gatingRef.current = true;                                                       // 게이트 구간 연타 차단

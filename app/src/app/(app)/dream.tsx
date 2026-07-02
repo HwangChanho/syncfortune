@@ -19,6 +19,7 @@ import { isAdmin } from '../../lib/core/admin';
 import { useCredit, grantCredit } from '../../lib/billing/coupons';          // AI 해몽 이용권 차감·적립
 import { purchaseCreditRC, DREAM_BUNDLE_QTY, purchasesEnabled } from '../../lib/billing/purchases'; // 꿈해몽 5회 번들 결제
 import { requireLoginForPurchase } from '../../lib/billing/requireLogin';
+import { confirmReadingChart } from '../../lib/ui/confirmChart'; // 생성 전 확인 + 보유 이용권 안내(daniel)
 import { setGenProgress } from '../../lib/backend/genProgress'; // 일회성 진행도(daniel·docs/CONTENT_API_INVENTORY.md)
 import { invokeFail } from '../../lib/backend/interpretResult'; // 방어: 일시적 불가/오류 친화 처리(dream은 reading 아닌 dream 구조라 invokeFail만)
 import { assertOnline } from '../../lib/backend/network'; // daniel: 네트워크/서버 미연결 시 풀이 생성 차단
@@ -53,8 +54,14 @@ export default function DreamScreen() {
     setLlmBusy(false);
   }
 
+  // 생성 전 '이 풀이를 만들지' 확인(+보유 이용권) → 확인 시 doStart(daniel 07-02). 꿈해몽은 명식 무관 → 명식명 생략(확인창은 '현재 명식').
+  function onAI() {
+    const text = aiText.trim();
+    if (text.length < 4 || aiBusy) return;
+    void confirmReadingChart({ creditKind: 'dream', chartless: true, t, onConfirm: () => { void doStart(); } });
+  }
   // AI 해몽(자유 텍스트) — 게이트(프리미엄/관리자 무료 / 그 외 ₩300 이용권) 후 Edge 자유텍스트 해몽.
-  async function onAI() {
+  async function doStart() {
     const text = aiText.trim();
     if (text.length < 4 || aiBusy) return;
     if (!isPremium) {

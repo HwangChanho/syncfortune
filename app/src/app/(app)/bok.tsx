@@ -13,7 +13,6 @@ import { useFontScale } from '../../lib/ui/fontScale';
 import { bgSource, colors, radius, space, shadow, font } from '../../lib/theme';
 import { ChartPicker } from '../../components/ChartPicker'; // 상단 명식 헤더
 import { ShareReadingButton } from '../../components/ShareReadingButton'; // 이슈17: 풀이 결과 공유(앱게이트)
-import { useContentGate } from '../../components/ContentAdGate'; // 무료 콘텐츠 광고 게이트(진입 후 광고 보고 보기)
 import type { ChartInput } from '@spec/chart';
 
 // 복 유형별 이미지(daniel: 종류별 이미지) — assets/icons/bok/{slug}.jpg. 들어온 것만 require, 없으면 이모지 폴백.
@@ -40,7 +39,6 @@ export default function BokScreen() {
   }, []));
 
   const result: BokResult | null = useMemo(() => (me ? bokType(computeChart(me).saju) : null), [me]);
-  const gate = useContentGate('bok', { title: t('menu.bok', '타고난 복') }); // 진입 후 광고 보고 보기(프리미엄/광고없음=통과)
 
   if (loading) return <View style={styles.center}><ActivityIndicator color={colors.ju} /></View>;
   if (!result) return (
@@ -49,7 +47,6 @@ export default function BokScreen() {
       <Pressable style={styles.btn} onPress={() => router.push('/register')}><Text style={styles.btnText}>{t('compat.registerMyChart', '내 명식 등록')}</Text></Pressable>
     </View>
   );
-  if (gate) return gate; // 미시청(무료) = 광고 게이트 화면 / null = 열림(아래 내용)
 
   return (
     <ImageBackground source={bgSource} style={styles.bg} resizeMode="cover">

@@ -18,7 +18,6 @@ import { ContentHero } from '../../components/SpecialContentScreen'; // 이미�
 import { ChartPicker } from '../../components/ChartPicker'; // 상단 명식 헤더 — 현재 적용 명식 표시·전환
 import { ShareReadingButton } from '../../components/ShareReadingButton'; // 이슈17: 풀이 결과 공유(앱게이트)
 import { TTSButton } from '../../components/TTSButton'; // 풀이 음성 읽기(온디바이스 TTS·무료)
-import { useContentGate } from '../../components/ContentAdGate'; // 무료 콘텐츠 광고 게이트(진입 후 광고 보고 보기)
 import type { ChartInput } from '@spec/chart';
 
 const WEEKDAYS: Record<string, string[]> = {
@@ -111,7 +110,6 @@ export default function TaegilScreen() {
   const today = new Date();
   const todayStr = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
   const selDay = sel ? byDate[sel] : null;
-  const gate = useContentGate('taegil', { title: t('menu.taegil', '택일') }); // 진입 후 광고 보고 보기(프리미엄/광고없음=통과)
 
   if (loading) return <View style={styles.center}><ActivityIndicator color={colors.ju} /></View>;
   if (!me) return (
@@ -122,7 +120,6 @@ export default function TaegilScreen() {
       </Pressable>
     </View>
   );
-  if (gate) return gate; // 미시청(무료) = 광고 게이트 화면 / null = 열림(아래 내용)
 
   return (
     <ImageBackground source={bgSource} style={styles.bg} resizeMode="cover">

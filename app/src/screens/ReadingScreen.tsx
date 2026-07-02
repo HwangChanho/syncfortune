@@ -36,6 +36,7 @@ import { readingFromInvoke } from '../lib/backend/interpretResult'; // 방어: E
 import { PALACE_DESC } from '../lib/content/palaceDesc'; // 자미두수 궁 설명(궁 옆 표시)
 import { shareReading } from '../lib/ui/share'; // 이슈17: 풀이 결과 공유(앱 설치자만 열람)
 import { loadCredits, grantCredit } from '../lib/billing/coupons'; // 크레딧 보유확인(UX) + 광고/결제 후 부여(차감은 Edge 서버 권위·P3)
+import { confirmReadingChart } from '../lib/ui/confirmChart'; // 생성 전 명식 확인 + 보유 이용권 안내(daniel)
 import { purchaseCreditRC } from '../lib/billing/purchases'; // 추가질문 건당 결제 = credit_followup(서버 consume)
 import { requireLoginForPurchase } from '../lib/billing/requireLogin'; // 결제/저장 전 로그인 안내
 import { assertOnline, isOnline } from '../lib/backend/network'; // 오프라인 시 신규 생성 차단
@@ -330,7 +331,12 @@ export function ReadingScreen({
   }
 
   // 생성 트리거: 프리미엄 > 무료이용권(쿠폰) > 건당 결제 순. (★보상형 광고 무료 생성 제거 — 유료 통변은 결제/프리미엄만, daniel 2026-07.)
-  async function onStart() {
+  // 생성 전 '이 명식으로 풀이할지' 확인(+보유 이용권) → 확인 시 doStart(daniel 07-02). 자동생성(runAll 직접)엔 미적용.
+  function onStart() {
+    if (startingRef.current) return;                       // 연타 시 확인창 중복 방지(실제 락은 doStart)
+    void confirmReadingChart({ chartLabel: savedChart?.label, creditKind: kind === 'ziwei' ? 'ziwei' : 'reading', t, onConfirm: () => { void doStart(); } });
+  }
+  async function doStart() {
     if (startingRef.current) return;                       // ★연타 가드(동기): 이미 시작 처리 중이면 무시 — 게이트(언락·크레딧 조회) 비동기 구간 사이로 새는 이중 결제·중복 생성 차단
     startingRef.current = true;
     try {

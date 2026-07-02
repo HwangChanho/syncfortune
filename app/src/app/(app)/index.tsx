@@ -13,7 +13,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../lib/useAuth';
 import { useEffect, useRef, useMemo, useState, useCallback } from 'react';
 import { supabase } from '../../lib/supabase';
-// (진입 보상형 광고 제거 — daniel 07-02: 이중광고·첫 탭 지연 원인. 화면 내 광고·배너·프리미엄으로 대체)
+import { showRewardedAd, adTestMode } from '../../lib/core/ads'; // 무료 온디바이스 콘텐츠 진입 보상형 광고(오늘/이달 제외)
 import { isAdmin } from '../../lib/core/admin'; // 관리자·프리미엄 = 무료 진입 광고 제외
 import { ChartPicker } from '../../components/ChartPicker';
 import { getDailyFortune, dailyHeadline, dailyPreview } from '../../lib/content/dailyFortune';
@@ -421,12 +421,13 @@ export default function Home() {
       ]);
       return;
     }
-    // ★진입 보상형 광고 제거(daniel 07-02): ①오늘/이달의 운세는 화면 안에서 '광고 보고 풀이 보기'가 또 있어 이중 광고였음.
-    //   ②진입 시 광고 로딩(몇 초 무반응)이 "첫 탭이 너무 느림"의 주범 → 제거해 탭 즉시 진입. 무료 콘텐츠는 바로 열림.
-    //   비용 발생 콘텐츠(오늘/이달)는 화면 내 보상형 광고가, 그 외 무료 티어 수익은 하단 배너·프리미엄 유도가 담당.
     navigatingRef.current = true;                      // 진입 경로 잠금(연타 이중 push 차단)
-    launchCard(m);                                     // 즉시 진입(광고 지연 없음)
-    setTimeout(() => { navigatingRef.current = false; }, 600); // 페이드 전환 커버 후 해제
+    // ★무료 온디바이스 콘텐츠 진입 = 보상형 광고 1회(daniel 07-02: 오늘/이달 제외 나머지 무료는 진입 시 바로 광고).
+    //   scope=content 카드 & 유료(creditKey) 아님. 오늘·이달의 운세는 content 플래그가 없어 자동 제외(그 화면 내부에 '광고 보고 보기' 별도).
+    //   프리미엄=광고 없음. 관리자=평소 제외하되 테스트광고 모드면 게이트 동작. 카드 탭=유저 개시(보상형 정책 OK).
+    if (m.content && !m.creditKey && !isPremium && (!admin || adTestMode())) await showRewardedAd().catch(() => false);
+    launchCard(m);
+    setTimeout(() => { navigatingRef.current = false; }, 900); // 광고+진입 커버 후 해제(연타 이중 push 차단)
   }
 
   return (

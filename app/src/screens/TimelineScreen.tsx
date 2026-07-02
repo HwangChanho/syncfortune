@@ -24,6 +24,7 @@ import { isReadingUnlocked } from '../lib/billing/unlocks'; // 서버 세트 언
 import { isPremiumForChart } from '../lib/billing/premiumStore'; // 명식별 프리미엄 판정(#1 — 비지정 명식/무료모드 게이트)
 import { purchaseCreditRC } from '../lib/billing/purchases'; // timeline 개별 구매(비프리미엄)
 import { appLang } from '../lib/i18n'; // 통변 출력 언어(앱 언어)
+import { confirmReadingChart } from '../lib/ui/confirmChart'; // 생성 전 명식 확인 + 보유 이용권 안내(daniel)
 import { stemElement, branchElement, elementColor, elementText, stemYinYang, branchYinYang } from '../lib/engine/ohaeng';
 import { TTSButton } from '../components/TTSButton'; // daniel: 풀이 음성 읽기(온디바이스 TTS·무료)
 import { colors, radius, space, shadow, font } from '../lib/theme';
@@ -167,6 +168,12 @@ export function TimelineScreen({ input, savedChart }: { input: ChartInput | null
     setBusy(null);
   }
 
+  // 생성 전 '이 명식으로 풀이할지' 확인(+보유 이용권) → 확인 시 gen. 수동 '보기/열기' 버튼 전용 — 자동생성 useEffect·pick(무료 자동)에는 미적용(daniel 07-02).
+  function startGen(key: string) {
+    if (!key || busy === key || readings[key]) return; // gen과 동일한 값싼 가드(불필요한 확인창 방지)
+    void confirmReadingChart({ chartLabel: savedChart?.label, creditKind: 'timeline', t, onConfirm: () => { void gen(key); } });
+  }
+
   // picker에서 선택 → 무료/이미 캐시된 기간만 자동 생성. 잠긴 기간은 카드의 '열기' 버튼으로 명시적 결제.
   function pick(key: string) {
     if (key.startsWith('life_')) setSelDecade(key); else setSelYear(key);
@@ -208,7 +215,7 @@ export function TimelineScreen({ input, savedChart }: { input: ChartInput | null
     // 아직 생성 안 됨 → 무료 기간이면 안내, 잠긴 기간이면 잠금 카드(열기 버튼)
     if (!r) {
       if (isFree(key)) return (
-        <Pressable style={styles.readBtn} onPress={() => gen(key)}>
+        <Pressable style={styles.readBtn} onPress={() => startGen(key)}>
           <Text style={[styles.readBtnTx, { fontSize: fs(15) }]}>{t('timeline.readThis', '이 시기 풀이 보기')}</Text>
         </Pressable>
       );
@@ -216,7 +223,7 @@ export function TimelineScreen({ input, savedChart }: { input: ChartInput | null
         <View style={[styles.card, styles.lockCard]}>
           <Text style={[styles.lockH, { fontSize: fs(15) }]}>🔒 {t('timeline.lockedTitle')}</Text>
           <Text style={[styles.lockSub, { fontSize: fs(12), lineHeight: fs(19) }]}>{t('timeline.lockedSub')}</Text>
-          <Pressable style={styles.unlockBtn} onPress={() => gen(key)}>
+          <Pressable style={styles.unlockBtn} onPress={() => startGen(key)}>
             <Text style={[styles.unlockBtnTx, { fontSize: fs(15) }]}>{t('timeline.unlock')}</Text>
           </Pressable>
         </View>
