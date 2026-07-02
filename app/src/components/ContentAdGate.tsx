@@ -6,7 +6,8 @@
 // 규칙:
 //   · 프리미엄 = 무광고(바로 열림)
 //   · 광고 모듈 없음(재빌드 전 dev client) = 바로 열림(게이트가 dev에서 영구 잠기는 것 방지)
-//   · 같은 세션에 이미 광고 본 콘텐츠 = 재광고 안 함(뒤로/재진입 시 반복 방지 — 앱 재실행 시 초기화)
+//   · ★진입(리마운트)마다 광고 1회(daniel 07-02): 뒤로 갔다 다시 들어오면 다시 시청 필요.
+//     (세션 기억 없음 — 한 번 열면 그 화면에 머무는 동안만 열려 있고, 나갔다 오면 재게이트)
 // 사용:
 //   const gate = useContentGate('bok', { title: '타고난 복' });
 //   ...로딩/명식없음 early-return 뒤에...
@@ -20,24 +21,22 @@ import { showRewardedAd, adsAvailable } from '../lib/core/ads';
 import { useFontScale } from '../lib/ui/fontScale';
 import { bgSource, colors, radius, space, shadow, font } from '../lib/theme';
 
-// 세션 동안 광고로 연 콘텐츠 키 집합 — 재진입 시 재광고 안 함(앱 재실행 시 자연 초기화).
-const sessionUnlocked = new Set<string>();
-
 /**
  * 무료 콘텐츠 광고 게이트 훅. 반환:
- *   null      → 열림(프리미엄/광고모듈없음/이미 시청) → 호출 화면이 내용을 그대로 렌더
+ *   null      → 열림(프리미엄/광고모듈없음/이번 진입에 이미 시청) → 호출 화면이 내용을 그대로 렌더
  *   ReactElement → 잠김 → 그대로 early-return 하면 광고 게이트 화면 표시('광고 보고 보기')
+ * ★열림 상태는 이 마운트(진입) 동안만 유지 — 나갔다 다시 들어오면(리마운트) 다시 게이트(daniel: 재진입도 광고).
  */
 export function useContentGate(contentKey: string, opts?: { title?: string; sub?: string }): ReactElement | null {
   const { t } = useTranslation();
   const { fs } = useFontScale();
   const { isPremium } = useSubscription();
-  // 통과 조건: 프리미엄 / 광고 모듈 없음(dev) / 이 세션에 이미 광고 봄.
-  const canBypass = () => isPremium || !adsAvailable() || sessionUnlocked.has(contentKey);
+  // 통과 조건: 프리미엄 / 광고 모듈 없음(dev). ★세션 기억 없음 — 진입마다 광고.
+  const canBypass = () => isPremium || !adsAvailable();
   const [unlocked, setUnlocked] = useState(canBypass);
   const [loadingAd, setLoadingAd] = useState(false);
   const [err, setErr] = useState(false);
-  // 프리미엄 상태가 뒤늦게 로드되거나 세션 언락이 갱신되면 열림 반영.
+  // 프리미엄 상태가 뒤늦게 로드되면 열림 반영(그 외엔 진입마다 게이트 유지).
   useEffect(() => { if (canBypass()) setUnlocked(true); }, [isPremium, contentKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const watch = useCallback(async () => {
@@ -45,9 +44,9 @@ export function useContentGate(contentKey: string, opts?: { title?: string; sub?
     let earned = false;
     try { earned = await showRewardedAd(); } catch { /* 닫기/실패 */ }
     setLoadingAd(false);
-    if (earned) { sessionUnlocked.add(contentKey); setUnlocked(true); } // 시청 완료 → 이 세션 동안 열림
-    else setErr(true);                                                  // 미시청/실패 → 재시도 안내
-  }, [contentKey]);
+    if (earned) setUnlocked(true); // 시청 완료 → 이 진입 동안만 열림(나갔다 오면 재게이트)
+    else setErr(true);             // 미시청/실패 → 재시도 안내
+  }, []);
 
   if (unlocked) return null; // 열림 — 호출 화면이 내용 렌더
 
