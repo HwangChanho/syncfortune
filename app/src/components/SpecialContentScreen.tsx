@@ -53,7 +53,7 @@ const HERO_BY_KIND: Record<string, any> = {
   taegil: require('../../assets/icons/taegil.jpg'), talent: require('../../assets/icons/talent.jpg'), zodiac: require('../../assets/icons/zodiac.jpg'),
 };
 
-export function SpecialContentScreen({ kind, category = kind, title, sub, sections, needsZiwei = false, genMsg, heroMotif, themeColor = colors.ju, heroImage, buildBody, freePreview, showExpiry = false, premiumCovered = false }: {
+export function SpecialContentScreen({ kind, category = kind, title, sub, sections, needsZiwei = false, genMsg, heroMotif, themeColor = colors.ju, heroImage, buildBody, freePreview, showExpiry = false, premiumCovered = false, headerExtra }: {
   kind: CreditKind;        // 이용권/unlock 키(roots·image·mission). 크레딧 단위.
   category?: string;       // 캐시·Edge category(기본=kind). daniel B 유명인: 인물별 celeb_{id}로 분리(크레딧은 kind='celeb' 공용).
   title: string;
@@ -68,6 +68,7 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
   freePreview?: (chart: SavedChart) => ReactNode; // 무료 티어(하이브리드) — 잠김 화면에 온디바이스 기본값 미리보기(수비학 생명수·점성술 빅3)
   showExpiry?: boolean;    // 유료 단일 풀이(roots·image·talent·mission)만 = 생성일+1년 '보유 만료일' 표시(daniel #25). 무료·소모성 콘텐츠는 미전달 → 숨김.
   premiumCovered?: boolean; // 프리미엄 포함 콘텐츠(자식운 등 프리미엄 5종) = 프리미엄 명식이면 무료 해제·자동생성. 기본 false(스페셜=관리자/크레딧 전용, 프리미엄 무관).
+  headerExtra?: ReactNode;  // 콘텐츠별 상단 커스텀 컨트롤(히어로 아래·섹션/게이트 위, 옵션). 자식운 COUPLE 토글 등 — 잠김·열림 두 상태 모두 노출. 기본 undefined(대부분 콘텐츠는 변화 없음).
 }) {
   const { t } = useTranslation();
   const router = useRouter();
@@ -248,6 +249,9 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
       <ChartPicker onChange={() => setReloadKey((k) => k + 1)} />
       <UnlockOverlay visible={busy} message={genMsg} />
       <ContentHero motif={heroMotif} image={heroImage ?? HERO_BY_KIND[kind]} title={title} sub={sub} themeColor={themeColor} />
+
+      {/* 콘텐츠별 상단 커스텀 컨트롤(옵션) — 히어로 아래·섹션/게이트 위. 잠김·열림 어느 상태든 한 번만 노출(자식운 COUPLE 토글). */}
+      {headerExtra}
 
       {reading?.error ? (
         <View style={styles.card}><Text style={[styles.err, dynStyles.err]}>{String(reading.error)}</Text></View>
