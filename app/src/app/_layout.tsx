@@ -21,7 +21,7 @@ import { supabase } from '../lib/supabase'; // 세션 유저 test_mode·is_admin
 import { FontScaleProvider } from '../lib/ui/fontScale'; // 전역 글자 크기(설정에서 조절)
 import { colors } from '../lib/theme';
 import { AppAlert } from '../components/AppAlert'; // 커스텀 알림 호스트(시스템 Alert 대체)
-import { installCrashLogger, logEvent } from '../lib/backend/logger'; // 전역 JS 크래시 → app_logs(DB 로그) + 앱 사용 세션 시간 로깅
+import { installCrashLogger, logEvent, setLogTestContext } from '../lib/backend/logger'; // 전역 JS 크래시 → app_logs(DB 로그) + 앱 사용 세션 시간 로깅 + 테스트/배포 로그 태그
 import { SplashOverlay } from '../components/SplashOverlay'; // 앱 실행 인트로(緣) 애니메이션
 
 // i18next 26.x가 Hermes에서 Intl.PluralRules 를 인식 못 해 내는 dev 경고(동작은 v3 fallback 정상,
@@ -41,11 +41,14 @@ export default function RootLayout() {
   // ★테스트광고 게이트(daniel) — 관리자/테스트 계정은 실 AdMob 유닛 서빙 전이라 구글 테스트광고를 보게(배너·보상형·전면 동작 확인용).
   //   세션 바뀔 때마다 test_mode·is_admin 재평가. 일반 유저는 false(실 유닛, 앱 출시 후 서빙).
   useEffect(() => {
-    if (!session) { setAdTestMode(false); return; }
+    if (!session) { setAdTestMode(false); setLogTestContext(false); return; }
     supabase.auth.getUser().then(({ data }) => {
-      if (!data.user) { setAdTestMode(false); return; }
-      supabase.from('profiles').select('test_mode').eq('id', data.user.id).maybeSingle()
-        .then(({ data: p }) => setAdTestMode(!!p?.test_mode)); // 테스트모드 토글 ON 시에만 테스트광고+게이트(평소 관리자 편의)
+      if (!data.user) { setAdTestMode(false); setLogTestContext(false); return; }
+      supabase.from('profiles').select('test_mode, is_admin, admin_mode').eq('id', data.user.id).maybeSingle()
+        .then(({ data: p }) => {
+          setAdTestMode(!!p?.test_mode); // 테스트모드 토글 ON 시에만 테스트광고+게이트(평소 관리자 편의)
+          setLogTestContext(!!p?.test_mode || !!p?.is_admin || !!p?.admin_mode); // ★로그 test 태그 = 관리자/테스트 계정(실사용자 로그와 분리)
+        });
     }).catch(() => {});
   }, [session]);
   // 앱 실행 시 대표 명식을 '본인'으로(daniel) — 로컬 명식 기준 즉시(로그인 동기화 후엔 syncChartsFromServer가 한 번 더 보정).

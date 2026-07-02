@@ -12,6 +12,12 @@ import { supabase } from '../supabase';
 
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
+// ★테스트/배포 로그 분리(daniel 07-02): 모든 로그에 env(dev/prod 빌드) + test(관리자·테스트모드 계정) 태그를 붙여
+//   관리자 조회 시 실제 사용자 로그와 테스트 노이즈를 구분(detail->>'env' / detail->>'test'로 필터).
+//   test 플래그 = 로그인 시 setLogTestContext(isAdmin || test_mode || admin_mode)로 설정(ads 테스트모드와 동일 신호).
+let logTest = false;
+export function setLogTestContext(v: boolean): void { logTest = v; }
+
 /**
  * app_logs 에 1줄 기록(log_event RPC). fire-and-forget — 로깅 실패가 앱을 막지 않는다.
  * @param event 짧은 이벤트 키(예: 'love_generate_start', 'credit_use', 'edge_error')
@@ -20,8 +26,10 @@ export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
  */
 export function logEvent(event: string, detail?: unknown, level: LogLevel = 'info'): void {
   try {
+    // 모든 로그에 env/test 태그(테스트↔배포 분리). 원본 detail 은 그대로 병합.
+    const meta: Record<string, unknown> = { env: __DEV__ ? 'dev' : 'prod', ...(logTest ? { test: true } : {}) };
     const p_detail =
-      detail == null ? null : typeof detail === 'object' ? detail : { msg: String(detail) };
+      detail == null ? meta : typeof detail === 'object' ? { ...meta, ...detail } : { ...meta, msg: String(detail) };
     // then(noop, noop) 으로 reject 도 삼킴(미처리 rejection 방지)
     supabase
       .rpc('log_event', { p_event: event, p_level: level, p_detail, p_platform: Platform.OS })

@@ -6,6 +6,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { supabase } from '../supabase';
 import { localGrant, localUse, localCreditsAll } from './localCredits'; // 비로그인 = 디바이스 로컬 크레딧(daniel H)
+import { logEvent } from '../backend/logger'; // ★이용권 부여/차감 로그(배포 필수 — daniel 07-02)
 
 // 로그인 세션 유무 — 있으면 서버(RPC/테이블), 없으면 디바이스 로컬(비로그인 구매분, 로그인 시 이관).
 async function hasSession(): Promise<boolean> {
@@ -63,7 +64,9 @@ export async function loadCredits(): Promise<Record<string, number>> {
 export async function useCredit(kind: CreditKind): Promise<boolean> {
   if (!(await hasSession())) return localUse(kind);        // 비로그인 = 로컬 차감(H)
   const { data, error } = await supabase.rpc('use_credit', { p_kind: kind });
-  return !error && data === true;
+  const ok = !error && data === true;
+  logEvent('credit_use', { kind, ok }); // 이용권 차감 로그
+  return ok;
 }
 
 /**
@@ -74,5 +77,6 @@ export async function useCredit(kind: CreditKind): Promise<boolean> {
 export async function grantCredit(kind: CreditKind, qty = 1): Promise<number | null> {
   if (!(await hasSession())) { await localGrant(kind, qty); return qty; } // 비로그인 = 로컬 적립(로그인 시 이관, H)
   const { data, error } = await supabase.rpc('grant_credit', { p_kind: kind, p_qty: qty });
+  logEvent('credit_grant', { kind, qty, total: error ? null : data, ok: !error }, error ? 'error' : 'info'); // 이용권 부여 로그(결제→적립)
   return error ? null : (data as number);
 }

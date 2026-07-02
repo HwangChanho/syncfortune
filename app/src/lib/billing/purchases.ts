@@ -10,6 +10,7 @@
 import { Platform } from 'react-native';
 import type { CreditKind } from './coupons';
 import { isOnline } from '../backend/network'; // daniel: 네트워크/서버 미연결 시 구매 차단(결제 후 미반영·실패상태 방지)
+import { logEvent } from '../backend/logger'; // ★결제 이벤트 로그(배포 필수 — daniel 07-02)
 
 // 네이티브 모듈 lazy require — 미포함 빌드에서 정적 import 크래시 방지(필수 가드).
 let Purchases: any = null;
@@ -100,9 +101,12 @@ export async function purchasePremiumRC(): Promise<boolean> {
   if (!products.length) throw new Error('상품을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.');
   try {
     const { customerInfo } = await Purchases.purchaseStoreProduct(products[0]);
-    return !!customerInfo.entitlements.active[ENTITLEMENT_PREMIUM];
+    const ok = !!customerInfo.entitlements.active[ENTITLEMENT_PREMIUM];
+    logEvent('purchase_premium', { product: PRODUCT_PREMIUM, ok }); // 결제 성공 로그(배포 필수)
+    return ok;
   } catch (e: any) {
-    if (e?.userCancelled) return false;
+    if (e?.userCancelled) { logEvent('purchase_premium_cancel', { product: PRODUCT_PREMIUM }); return false; }
+    logEvent('purchase_premium_fail', { product: PRODUCT_PREMIUM, message: String(e?.message ?? e) }, 'error');
     throw e;
   }
 }
@@ -115,9 +119,11 @@ export async function purchaseConsumableRC(productId: string): Promise<boolean> 
   if (!products.length) throw new Error('상품을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.');
   try {
     await Purchases.purchaseStoreProduct(products[0]);
+    logEvent('purchase_consumable', { productId, ok: true }); // 이용권 결제 성공 로그(배포 필수)
     return true;
   } catch (e: any) {
-    if (e?.userCancelled) return false;
+    if (e?.userCancelled) { logEvent('purchase_consumable_cancel', { productId }); return false; }
+    logEvent('purchase_consumable_fail', { productId, message: String(e?.message ?? e) }, 'error');
     throw e;
   }
 }
@@ -131,7 +137,9 @@ export async function purchaseCreditRC(kind: CreditKind): Promise<boolean> {
 export async function restorePurchasesRC(): Promise<boolean> {
   if (!purchasesEnabled()) return false;
   const ci = await Purchases.restorePurchases();
-  return !!ci.entitlements.active[ENTITLEMENT_PREMIUM];
+  const premium = !!ci.entitlements.active[ENTITLEMENT_PREMIUM];
+  logEvent('purchase_restore', { premium }); // 복원 결과 로그
+  return premium;
 }
 
 /** 현지 통화 가격 문자열(상품). 없으면 fallback. */
