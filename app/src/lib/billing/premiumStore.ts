@@ -53,6 +53,21 @@ export function isPremiumForChart(serverChartId: string | null | undefined): boo
   return _premiumChartId == null || (serverChartId != null && String(serverChartId) === String(_premiumChartId));
 }
 
+/**
+ * ★구매 직후 낙관적 즉시 반영(daniel 07-02: 프리미엄 구매하고 바로 적용 안 됨).
+ *   purchasePremium()이 throw 없이 끝났으면 결제 확정 — RC 캐시(isPremiumActiveRC)가 즉시 true가 아니어도
+ *   먼저 owns=true로 켜 전 화면(배너·배지·페이월)에 바로 반영하고, 이어지는 refreshPremium()이 서버로 재확인한다.
+ * @param pcid 이 구매가 지정한 명식(charts.id) — 명식별 프리미엄 즉시 일치. undefined면 지정 미변경.
+ */
+export function markPremiumOwnedNow(pcid?: string | null): void {
+  _owns = true;
+  if (pcid !== undefined) _premiumChartId = pcid;
+  const actingNormal = _isAdmin && !_adminMode;
+  _isPremium = (_isAdmin && _adminMode) || (!actingNormal && _owns); // 계정레벨 재계산
+  _loading = false;
+  emit();
+}
+
 // 빠른 로그인/로그아웃 연속 전환의 레이스 가드 — 마지막 요청 결과만 반영(오래된 응답 폐기).
 let _reqSeq = 0;
 

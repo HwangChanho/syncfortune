@@ -13,6 +13,7 @@ import { useTranslation } from 'react-i18next';
 import { CREDIT_KINDS, loadCredits, redeemCoupon, grantCredit, PREMIUM_PRICE, type CreditKind } from '../../lib/billing/coupons';
 import { listCharts, getRepresentativeId, setRepresentative, type SavedChart } from '../../lib/engine/myChart';
 import { purchaseCreditRC, purchasesEnabled, priceStringsRC, priceStringRC, CREDIT_PRODUCT, PRODUCT_PREMIUM } from '../../lib/billing/purchases';
+import { markPremiumOwnedNow } from '../../lib/billing/premiumStore'; // 구매 즉시 낙관적 반영(바로 적용)
 import { useSubscription } from '../../lib/billing/subscription'; // 프리미엄 가입 루트(전체 무제한)
 import { useAuth } from '../../lib/useAuth';              // 세션(프리미엄 명식 지정 시 serverChartId 발급)
 import { supabase } from '../../lib/supabase';            // set_premium_chart RPC(구매 명식 지정)
@@ -107,13 +108,15 @@ export default function MarketRoute() {
       try {
         await purchasePremium();
         // 프리미엄 = 지정 명식 1개에 적용(daniel 07-01) — 구매한 명식(sel)을 서버 지정(최초 1회, 변경은 재결제).
+        let scid: string | null = null;
         try {
           if (sel && session) {
-            const scid = await ensureServerChartIdForSaved(sel, session);
+            scid = await ensureServerChartIdForSaved(sel, session);
             if (scid) await supabase.rpc('set_premium_chart', { p_chart_id: scid });
           }
         } catch { /* 지정 실패해도 구매는 성공(유예=전 명식, 추후 재시도) */ }
-        await refresh();
+        markPremiumOwnedNow(scid ?? undefined); // ★구매 즉시 반영(RC 캐시 지연 무관, daniel 07-02: 바로 적용)
+        await refresh();                        // 서버 재확인(웹훅·지정 명식 반영)
         Alert.alert(t('settings.premiumOkTitle'), t('settings.premiumOk'));
       } catch (e: any) {
         if (e?.message === 'cancelled') return;

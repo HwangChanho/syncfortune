@@ -5,7 +5,7 @@
 // 명식이 없으면 등록 유도. 화면 복귀 시 useFocusEffect 로 목록 갱신.
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { View, Text, Pressable, Modal, StyleSheet, Dimensions, ActivityIndicator, InteractionManager, Animated } from 'react-native';
+import { View, Text, Pressable, Modal, StyleSheet, Dimensions, ActivityIndicator, InteractionManager, Animated, LayoutAnimation } from 'react-native';
 import { Image as ExpoImage } from 'expo-image'; // 자동 다운샘플(메모리) + 엠블럼 탭 풀스크린 뷰어
 import DraggableFlatList, { ScaleDecorator } from 'react-native-draggable-flatlist'; // 이슈20 롱프레스 드래그 reorder
 import { Alert } from '../lib/ui/alert'; // 커스텀 알림(삭제 확인)
@@ -180,7 +180,13 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
                         </View>
                       )}
                       <Pressable style={styles.rowMain} onPress={() => choose(c.id)} onLongPress={drag} delayLongPress={250}>
-                        <Text style={[styles.rowName, on && styles.rowOn, { fontSize: fs(15) }]}>{!!premChartId && c.serverChartId === premChartId ? '👑 ' : ''}{c.label}</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: space(1.5) }}>
+                          <Text style={[styles.rowName, on && styles.rowOn, { fontSize: fs(15) }]} numberOfLines={1}>{c.label}</Text>
+                          {/* ★프리미엄 지정 명식 배지(daniel 07-02: 명식 옆에 프리미엄 여부) — 골드 왕관 배지 */}
+                          {!!premChartId && c.serverChartId === premChartId && (
+                            <View style={styles.premBadge}><Text style={styles.premBadgeTx}>👑 프리미엄</Text></View>
+                          )}
+                        </View>
                         {em ? <Text style={[styles.iljuName, { fontSize: fs(12) }]}>{em.name}</Text> : null}
                         <Text style={[styles.rowMeta, { fontSize: fs(12) }]} numberOfLines={1}>
                           {String(c.input.birthDateTime ?? '').replace('T', ' ').slice(0, 16)}{/* 날짜+시간(daniel: 시간도 노출) */}
@@ -191,7 +197,7 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
                       {on && <Text style={styles.check}>✓</Text>}
                       {/* ⋯ 토글 → 작은 세로 메뉴(수정·만세력보기·삭제). 삭제는 항상 재확인 alert(daniel 07-01) */}
                       <View style={styles.actWrap}>
-                        <Pressable hitSlop={10} onPress={() => setActionsFor(actionsFor === c.id ? null : c.id)}>
+                        <Pressable hitSlop={10} onPress={() => { LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut); setActionsFor(actionsFor === c.id ? null : c.id); }}>
                           <Text style={[styles.rowAct, { fontSize: 18 }]}>⋯</Text>
                         </Pressable>
                         {actionsFor === c.id && (
@@ -264,9 +270,13 @@ const styles = StyleSheet.create({
   rowActDel: { color: '#E5484D' }, // 삭제 = 적색 강조
   // ⋯ 토글 드롭다운(수정·만세력보기·삭제) — 작은 세로 리스트(daniel 07-01)
   actWrap: { position: 'relative', alignItems: 'flex-end', justifyContent: 'center' },
-  actMenu: { position: 'absolute', top: 26, right: 0, minWidth: 108, backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.line, paddingVertical: space(1), zIndex: 50, elevation: 10 },
+  // ⋯ 드롭다운 — 완전 불투명(alpha 1)·그림자로 또렷하게 떠보이게(daniel 07-02: 알파값 1). bg=불투명 미드나잇 카드.
+  actMenu: { position: 'absolute', top: 26, right: 0, minWidth: 108, backgroundColor: colors.card, opacity: 1, borderRadius: radius.md, borderWidth: 1, borderColor: colors.juLine, paddingVertical: space(1), zIndex: 50, ...shadow.card, elevation: 12 },
   actItem: { paddingVertical: space(2.25), paddingHorizontal: space(3.5) },
   rowMenuOpen: { zIndex: 50 }, // 메뉴 열린 행을 다른 행 위로
+  // 프리미엄 지정 명식 배지(골드) — 명식 옆에 프리미엄 여부(daniel 07-02)
+  premBadge: { backgroundColor: colors.ju, borderRadius: radius.pill, paddingHorizontal: space(2), paddingVertical: 1, overflow: 'hidden' },
+  premBadgeTx: { color: colors.bg, fontSize: 10, fontWeight: '900' },
   rowName: { ...font.body, fontWeight: '600', color: colors.ink },
   rowOn: { color: colors.ju },
   rowMeta: { ...font.caption, flex: 1 },

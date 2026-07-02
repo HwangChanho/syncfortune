@@ -10,12 +10,8 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useState } from 'react';
 import { View, Text, StyleSheet, Platform } from 'react-native';
-import { usePathname } from 'expo-router'; // 콘텐츠 열람 화면에선 광고 숨김(daniel: 구매한 컨텐츠엔 광고X)
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSubscription } from '../lib/billing/subscription';
-
-// 광고 숨길 화면 = ★유료(구매)로 보는 깊은 풀이만(daniel: 구매한 컨텐츠엔 광고X). 무료(오늘·이달·에겐·타로 등)는 광고로 지원하니 배너 유지.
-const NO_AD_ROUTES = ['/reading', '/ziwei', '/compat', '/love', '/gaeun', '/newyear', '/lifegraph', '/career', '/talent', '/astrology', '/celeb', '/roots', '/image', '/mission', '/timeline', '/timeResolve', '/dream'];
 import { colors } from '../lib/theme';
 import { adTestMode } from '../lib/core/ads'; // 테스트광고 모드(daniel: 관리자/테스트는 TestFlight서도 구글 테스트광고)
 
@@ -32,11 +28,10 @@ const PROD_UNIT: Record<string, string> = {
 export function AdBanner() {
   const { isPremium } = useSubscription();
   const insets = useSafeAreaInsets();
-  const path = usePathname(); // 현재 화면 경로 — 콘텐츠 열람 화면이면 광고 숨김(daniel)
   const [failed, setFailed] = useState(false); // 로드 실패 → 접기
 
-  // ★구매/열람한 컨텐츠 화면에선 광고 숨김(daniel: 일반 계정도 구매한 컨텐츠엔 광고X). 홈·목록 등 브라우징에만 배너.
-  if (NO_AD_ROUTES.some((r) => path.startsWith(r))) return null;
+  // ★비프리미엄 = 모든 화면에서 하단 배너 상시 노출(daniel 07-02: 프리미엄 아니면 어떤 뷰든 배너 계속).
+  //   (이전 NO_AD_ROUTES=유료 콘텐츠 화면 숨김 제거 — 이제 프리미엄만 무광고.)
 
   // SDK 초기화는 루트 _layout 의 initAds() 가 앱 시작 시 1회 담당 — 여기서 중복 호출하면
   //   initAds() 의 adsInited 플래그를 우회해 BannerAd 렌더 시점과 초기화 완료 시점이 어긋나
