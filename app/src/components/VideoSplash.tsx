@@ -7,7 +7,6 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useRef, useState } from 'react';
 import { Animated, Pressable, StyleSheet } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient'; // 하단 매끄러운 페이드(워터마크 가림 — 계단현상 없이)
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { SplashOverlay } from './SplashOverlay'; // 로드 실패 시 폴백(호랑이 이미지 인트로)
 
@@ -55,19 +54,11 @@ export function VideoSplash({ onDone }: { onDone: () => void }) {
       <Pressable style={StyleSheet.absoluteFill} onPress={finish}>
         <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="cover" nativeControls={false} />
       </Pressable>
-      {/* ★하단 페이드 — Runway 워터마크(오른쪽 아래)를 미드나잇으로 가림 + 시네마틱 비네트. 매끄러운 단일 그라데이션(계단현상 없음). */}
-      <LinearGradient
-        pointerEvents="none"
-        colors={['transparent', 'rgba(11,10,26,0.65)', '#0B0A1A']}
-        locations={[0, 0.62, 1]}
-        style={styles.bottomFade}
-      />
+      {/* Runway 워터마크는 영상 자체에서 delogo로 제거함(오른쪽 아래) — 별도 가림 레이어 불필요(daniel: 티 안 나게). */}
     </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
   bg: { backgroundColor: '#0B0A1A' }, // 영상 로드 전/레터박스 시 미드나잇 배경
-  // 하단 매끄러운 페이드 — 최하단 불투명(워터마크 완전 가림) → 위로 자연스럽게 투명. 단일 그라데이션이라 계단현상 없음.
-  bottomFade: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 190 },
 });
