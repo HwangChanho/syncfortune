@@ -79,7 +79,6 @@ export default function LifeGraphScreen() {
       // 보유 만료일(daniel #25): 생성(구매)일 + 1년. 캐시 created_at 있을 때만(명식 전환 시 stale 방지 위해 else로 초기화).
       if (row?.created_at) { const d = new Date(row.created_at); d.setFullYear(d.getFullYear() + 1); setExpiry(`${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`); } else setExpiry(null);
       setLoaded(true);
-      if (isPremium && !cached) generate(id);
     })().catch(() => { if (alive) setLoaded(true); });
     return () => { alive = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -118,7 +117,6 @@ export default function LifeGraphScreen() {
   //   ★실제 차감·검증은 Edge(consume_credit). 클라는 결제 UI + 사전 보유 확인(UX)만 — 우회·이중차감 방지.
   async function doStart() {
     if (!chartId || busy || gatingRef.current) return;
-    if (isPremium) { generate(chartId); return; }
     gatingRef.current = true;                                                       // 게이트 구간 연타 차단
     try {
       const admin = await isAdmin();                                                // 관리자 = 바로 진입
@@ -265,7 +263,7 @@ export default function LifeGraphScreen() {
           </View>
           {err ? <Text style={styles.err}>{err}</Text> : null}
           <PressableScale style={styles.gateBtn} onPress={onStart}>
-            <Text style={styles.gateBtnTx}>{isPremium ? t('life.see', '인생 그래프 보기') : t('life.seePaid', '인생 그래프 보기 (₩3,900)')}</Text>
+            <Text style={styles.gateBtnTx}>{t('life.seePaid', '인생 그래프 보기 (₩3,900)')}</Text>
           </PressableScale>
         </View>
       )}

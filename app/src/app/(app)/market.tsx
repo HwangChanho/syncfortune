@@ -12,7 +12,8 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { CREDIT_KINDS, loadCredits, redeemCoupon, grantCredit, PREMIUM_PRICE, type CreditKind } from '../../lib/billing/coupons';
-import { listCharts, getRepresentativeId, setRepresentative, type SavedChart } from '../../lib/engine/myChart';
+import { listCharts, getRepresentativeId, setRepresentative, loadRepChart, type SavedChart } from '../../lib/engine/myChart';
+import { requestChartConfirm } from '../../lib/ui/chartConfirm'; // 구매 전 명식 확인(드롭다운으로 변경 가능)
 import { ListSkeleton } from '../../components/Skeleton'; // 첫 진입 로딩 스켈레톤(daniel 07-02: 마켓 즉시 전환+스켈레톤)
 import { useDeferredReady } from '../../lib/ui/useDeferredReady'; // 전환 즉시 스켈레톤 → 전환 후 콘텐츠 마운트(멈칫 제거)
 import { purchaseCreditRC, purchasesEnabled, priceStringsRC, priceStringRC, CREDIT_PRODUCT, PRODUCT_PREMIUM } from '../../lib/billing/purchases';
@@ -104,18 +105,18 @@ export default function MarketRoute() {
   // 프리미엄 가입(평생·전체 무제한) — 결제 미연동 시 '준비 중'. 성공 시 상태 갱신. 취소는 조용히.
   //   daniel: 결제 진행 전 '적용 명식'을 확인 Alert 로 한 번 더 보여준다(오결제 방지). 실제 구매 로직은 내부 함수로 분리.
   async function buyPremium() {
-    // 실제 프리미엄 구매(확인 Alert 통과 후 호출) — 기존 로직 그대로 이동.
-    async function doBuyPremium() {
+    // 실제 프리미엄 구매(명식 확인 통과 후 호출). target = 확인창에서 고른(변경 가능) 명식.
+    async function doBuyPremium(target: SavedChart | null) {
       if (buyingPrem) return;
       if (!purchasesEnabled()) { Alert.alert(t('market.payPending')); return; }
       setBuyingPrem(true);
       try {
         await purchasePremium();
-        // 프리미엄 = 지정 명식 1개에 적용(daniel 07-01) — 구매한 명식(sel)을 서버 지정(최초 1회, 변경은 재결제).
+        // 프리미엄 = 지정 명식 1개에 적용(daniel 07-01) — 확인창에서 고른 명식(target)을 서버 지정(최초 1회, 변경은 재결제).
         let scid: string | null = null;
         try {
-          if (sel && session) {
-            scid = await ensureServerChartIdForSaved(sel, session);
+          if (target && session) {
+            scid = await ensureServerChartIdForSaved(target, session);
             if (scid) await supabase.rpc('set_premium_chart', { p_chart_id: scid });
           }
         } catch { /* 지정 실패해도 구매는 성공(유예=전 명식, 추후 재시도) */ }
@@ -129,15 +130,12 @@ export default function MarketRoute() {
     }
     // 명식이 하나도 없으면(=등록 0개) 먼저 등록 안내 — 명식 기준으로 적용·진입하므로.
     if (!sel) { Alert.alert(t('market.noChart'), t('market.registerChartFirst', '명식을 먼저 등록해 주세요')); return; }
-    // 진행 전 적용 명식 확인(daniel) — 확인 시에만 실제 구매.
-    Alert.alert(
-      t('market.confirmChartTitle', '명식 확인'),
-      t('market.confirmChartMsg', `'${sel?.label ?? '대표 명식'}' 명식으로 프리미엄을 진행할까요?`),
-      [
-        { text: t('common.cancel', '취소'), style: 'cancel' },
-        { text: t('common.confirm', '확인'), onPress: () => void doBuyPremium() },
-      ],
-    );
+    // ★진행 전 적용 명식 확인 — 드롭다운으로 *다른 명식으로 변경 가능*(daniel 07-02). 확인 시 (변경된) 대표 명식으로 구매.
+    const ok = await requestChartConfirm({}); // 명식 목록 모달(선택 시 대표 전환)
+    if (!ok) return;
+    const target = await loadRepChart();      // 모달에서 고른 명식(대표) = 프리미엄 적용 명식
+    if (target) setSel(target);               // 마켓 표시 동기화
+    void doBuyPremium(target ?? sel);
   }
 
   // 이용권 적용 — 선택 명식을 대표로 설정 후 해당 풀이 화면으로(거기서 이용권/프리미엄/구매로 열림).

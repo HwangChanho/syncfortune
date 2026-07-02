@@ -101,7 +101,6 @@ export default function LoveScreen() {
       // 보유 만료일(daniel #25): 생성(구매)일 + 1년. 캐시 created_at 있을 때만(명식 전환 시 stale 방지 위해 else로 초기화).
       if (data?.created_at) { const d = new Date(data.created_at); d.setFullYear(d.getFullYear() + 1); setExpiry(`${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`); } else setExpiry(null);
       setLoaded(true);
-      if (isPremium && !cached) generate(id, cc.ziwei); // 프리미엄=자동 생성(타 스페셜과 통일)
     })().catch(() => { if (alive) setLoaded(true); });
     return () => { alive = false; };
   }, [session, isPremium, reloadKey]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -144,7 +143,6 @@ export default function LoveScreen() {
     if (!chartId || busy || gatingRef.current) return;
     logEvent('love_generate_tap', { chartId });                                    // ← 진입(크래시 직전 추적 기준점)
     if (!assertOnline(t)) { logEvent('love_offline'); return; }                    // 오프라인 = 생성 차단
-    if (isPremium) { generate(chartId); return; }                                  // 프리미엄 = 무광고 바로
     gatingRef.current = true;                                                       // 게이트 구간 연타 차단
     try {
       const admin = await isAdmin();                                               // 관리자 = 바로 진입(테스트)

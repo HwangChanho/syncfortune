@@ -95,7 +95,6 @@ export default function NewYearScreen() {
       // 보유 만료일(daniel #25): 생성(구매)일 + 1년. 캐시 created_at 있을 때만(명식 전환 시 stale 방지 위해 else로 초기화).
       if (row?.created_at) { const d = new Date(row.created_at); d.setFullYear(d.getFullYear() + 1); setExpiry(`${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`); } else setExpiry(null);
       setLoaded(true);
-      if (isPremium && !cached) generate(id);
     })().catch(() => { if (alive) setLoaded(true); });
     return () => { alive = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -129,7 +128,6 @@ export default function NewYearScreen() {
   }
   async function doStart() {
     if (!chartId || busy || gatingRef.current) return;
-    if (isPremium) { generate(chartId); return; }
     gatingRef.current = true;                                                       // 게이트 구간 연타 차단
     try {
       const admin = await isAdmin();                                                // 관리자 = 바로 진입
@@ -290,7 +288,7 @@ export default function NewYearScreen() {
             </View>
             {err ? <Text style={styles.err}>{err}</Text> : null}
             <PressableScale style={styles.gateBtn} onPress={onStart}>
-              <Text style={styles.gateBtnTx}>{isPremium ? t('newyear.see', '신년운세 보기') : t('newyear.seePaid', '신년운세 보기 (₩9,900)')}</Text>
+              <Text style={styles.gateBtnTx}>{t('newyear.seePaid', '신년운세 보기 (₩9,900)')}</Text>
             </PressableScale>
           </View>
         )}

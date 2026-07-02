@@ -98,7 +98,7 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
       if (!alive || !id) { setLoaded(true); return; }
       setChartId(id);
       // 소유 판정(daniel ⓐⓒ): 프리미엄 / 관리자 / 이 차트×종류 unlock(차감 완료) 중 하나여야 풀이 노출. 아니면 설명창(게이트).
-      const own = isPremium || (await isAdmin()) || (await isUnlocked(id, kind));
+      const own = (await isAdmin()) || (await isUnlocked(id, kind));
       const { data } = await supabase.from('readings').select('content, created_at').eq('chart_id', id).eq('category', category).eq('lang', appLang()).maybeSingle();
       if (!alive) return;
       const cached = data?.content ?? null;
@@ -107,7 +107,6 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
       // 보유 만료일(daniel #25): 생성(구매)일 + 1년. 유료 단일 풀이(showExpiry)이고 캐시 created_at 있을 때만.
       if (showExpiry && data?.created_at) { const d = new Date(data.created_at); d.setFullYear(d.getFullYear() + 1); setExpiry(`${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`); }
       setLoaded(true);
-      if (isPremium && !cached) generate(id, cc.ziwei); // 프리미엄=자동 생성
     })().catch(() => { if (alive) setLoaded(true); });
     return () => { alive = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -153,7 +152,6 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
     if (!chartId || busy || gatingRef.current) return;
     logEvent(`${kind}_generate_tap`, { chartId });
     if (!assertOnline(t)) return;
-    if (isPremium) { generate(chartId); return; }
     // unlock 영속(daniel): 이미 차감한 차트×종류면 재차감 없이 무료 재생성(invoke 중단 후 재진입 보호)
     if (await isUnlocked(chartId, kind)) { generate(chartId); return; }
     gatingRef.current = true;
