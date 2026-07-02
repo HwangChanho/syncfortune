@@ -111,6 +111,19 @@ export default function LoveScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reading]);
 
+  // invoke 타임아웃/실패 시 readings 캐시를 폴링해 결과 회수(Edge가 서버에서 계속 생성·캐시하므로).
+  //   무거운 애정 풀이(사주+자미 교차)는 Edge 생성이 87~103s → 클라 invoke가 먼저 끊겨도('Failed to send request')
+  //   서버는 완료·캐시함. 그 캐시를 폴링해 로딩 유지한 채 결과를 받아온다(멈춤·"갑자기 완료" 해결, daniel 07-02).
+  async function pollCachedReading(id: string, maxMs = 135000, everyMs = 3500): Promise<any | null> {
+    const deadline = Date.now() + maxMs;
+    while (Date.now() < deadline) {
+      await new Promise((r) => setTimeout(r, everyMs));
+      const { data } = await supabase.from('readings').select('content').eq('chart_id', id).eq('category', 'love').eq('lang', appLang()).maybeSingle();
+      if (data?.content) return data.content;
+    }
+    return null;
+  }
+
   // 순수 생성(LLM) — 게이트 통과 후 호출. idArg/ziweiArg = useEffect 자동생성용(state 갱신 전 직접 전달).
   async function generate(idArg?: string, ziweiArg?: any) {
     const id = idArg ?? chartId;
@@ -123,12 +136,27 @@ export default function LoveScreen() {
       const { data, error } = await supabase.functions.invoke('interpret', {
         body: { chartId: id, category: 'love', kind: 'love', tier: 'paid', ziwei: zw, lang: appLang(), ...(savedChart?.context ? { context: savedChart.context } : {}) },
       });
-      if (error) logEvent('love_invoke_error', { message: error.message }, 'error');
-      else if ((data as any)?.unavailable) logEvent('love_unavailable', { retryAt: (data as any)?.retryAt }, 'error'); // 방어: LLM 일시적 불가(사용량 한도 등)
-      else if ((data as any)?.needPayment) logEvent('love_need_payment', {}, 'error');   // 크레딧 stale 방어
-      else logEvent('love_invoke_ok');
-      setReading(readingFromInvoke(data, error)); // 방어: 일시적 불가→친화 재시도 문구 / 오류→원문 숨김
-    } catch (e) { logEvent('love_invoke_throw', { message: (e as Error).message }, 'error'); setReading({ error: (e as Error).message }); }
+      if (error || !data) {
+        // ★클라 invoke가 끊겨도(무거운 풀이 타임아웃) Edge는 서버에서 완료·캐시 → 캐시 폴링으로 회수(로딩 유지).
+        logEvent('love_invoke_error', { message: error?.message ?? 'no data', polling: true }, 'error');
+        const cached = await pollCachedReading(id);
+        setReading(cached ?? readingFromInvoke(data, error));
+      } else if ((data as any)?.unavailable) {
+        logEvent('love_unavailable', { retryAt: (data as any)?.retryAt }, 'error'); // LLM 일시적 불가(사용량 한도 등) — 빠른 실패라 폴링 없이 친화 문구
+        setReading(readingFromInvoke(data, error));
+      } else if ((data as any)?.needPayment) {
+        logEvent('love_need_payment', {}, 'error');   // 크레딧 stale 방어 — 빠른 실패
+        setReading(readingFromInvoke(data, error));
+      } else {
+        logEvent('love_invoke_ok');
+        setReading(readingFromInvoke(data, error)); // 정상 도착(성공 경로 그대로)
+      }
+    } catch (e) {
+      // fetch throw(타임아웃 등)도 동일 — 서버가 완료·캐시했으면 폴링으로 회수, 아니면 오류 표시.
+      logEvent('love_invoke_throw', { message: (e as Error).message }, 'error');
+      const cached = await pollCachedReading(id);
+      setReading(cached ?? { error: (e as Error).message });
+    }
     setGenProgress({ route: '/love', done: 1, total: 1 }); // 완료 → 홈 배너 '풀이 보기'(daniel 이슈15)
     setBusy(false);
   }

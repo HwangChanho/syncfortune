@@ -121,6 +121,19 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reading]);
 
+  // invoke 타임아웃/실패 시 readings 캐시를 폴링해 결과 회수(Edge가 서버에서 계속 생성·캐시하므로).
+  //   무거운 풀이(별자리=사주+점성+수비 3계층 등)는 Edge 생성이 87~103s → 클라 invoke가 먼저 끊겨도('Failed to send request')
+  //   서버는 완료·캐시함. 그 캐시를 폴링해 로딩 유지한 채 결과를 받아온다(멈춤·"갑자기 완료" 해결, daniel 07-02).
+  async function pollCachedReading(id: string, maxMs = 135000, everyMs = 3500): Promise<any | null> {
+    const deadline = Date.now() + maxMs;
+    while (Date.now() < deadline) {
+      await new Promise((r) => setTimeout(r, everyMs));
+      const { data } = await supabase.from('readings').select('content').eq('chart_id', id).eq('category', category).eq('lang', appLang()).maybeSingle();
+      if (data?.content) return data.content;
+    }
+    return null;
+  }
+
   // 순수 생성(LLM) — 게이트 통과 후. idArg/ziweiArg = 자동생성용(state 갱신 전 직접 전달).
   async function generate(idArg?: string, ziweiArg?: any) {
     const id = idArg ?? chartId;
@@ -134,10 +147,23 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
       if (needsZiwei) body.ziwei = ziweiArg ?? c?.ziwei; // 사명 = 자미 보조 교차
       if (buildBody && savedChart) Object.assign(body, buildBody(savedChart)); // 수비학/점성술 = 앱 산출 차트(numerologyChart/natalChart)
       const { data, error } = await supabase.functions.invoke('interpret', { body });
-      if (error) logEvent(`${kind}_invoke_error`, { message: error.message }, 'error');
-      else if ((data as any)?.unavailable) logEvent(`${kind}_unavailable`, { retryAt: (data as any)?.retryAt }, 'error'); // 방어: LLM 일시적 불가
-      setReading(readingFromInvoke(data, error)); // 방어: 일시적 불가→친화 재시도 / 오류→원문 숨김
-    } catch (e) { logEvent(`${kind}_invoke_throw`, { message: (e as Error).message }, 'error'); setReading({ error: (e as Error).message }); }
+      if (error || !data) {
+        // ★클라 invoke가 끊겨도(무거운 풀이 타임아웃) Edge는 서버에서 완료·캐시 → 캐시 폴링으로 회수(로딩 유지).
+        logEvent(`${kind}_invoke_error`, { message: error?.message ?? 'no data', polling: true }, 'error');
+        const cached = await pollCachedReading(id);
+        setReading(cached ?? readingFromInvoke(data, error));
+      } else if ((data as any)?.unavailable) {
+        logEvent(`${kind}_unavailable`, { retryAt: (data as any)?.retryAt }, 'error'); // 방어: LLM 일시적 불가
+        setReading(readingFromInvoke(data, error));
+      } else {
+        setReading(readingFromInvoke(data, error)); // 정상 도착
+      }
+    } catch (e) {
+      // fetch throw(타임아웃 등)도 동일 — 서버가 완료·캐시했으면 폴링으로 회수, 아니면 오류 표시.
+      logEvent(`${kind}_invoke_throw`, { message: (e as Error).message }, 'error');
+      const cached = await pollCachedReading(id);
+      setReading(cached ?? { error: (e as Error).message });
+    }
     setGenProgress({ route: ('/' + kind), done: 1, total: 1 }); // 완료 → 홈 배너 '풀이 보기' 이동버튼(daniel 이슈15)
     setBusy(false);
   }

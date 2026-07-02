@@ -90,6 +90,19 @@ export default function LifeGraphScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data]);
 
+  // invoke 타임아웃/실패 시 readings 캐시를 폴링해 결과 회수(Edge가 서버에서 계속 생성·캐시하므로).
+  //   무거운 인생그래프 풀이(대운별 용신 부합)는 Edge 생성이 87~103s → 클라 invoke가 먼저 끊겨도('Failed to send request')
+  //   서버는 완료·캐시함. 그 캐시를 폴링해 로딩 유지한 채 결과를 받아온다(멈춤·"갑자기 완료" 해결, daniel 07-02).
+  async function pollCachedReading(id: string, maxMs = 135000, everyMs = 3500): Promise<any | null> {
+    const deadline = Date.now() + maxMs;
+    while (Date.now() < deadline) {
+      await new Promise((r) => setTimeout(r, everyMs));
+      const { data } = await supabase.from('readings').select('content').eq('chart_id', id).eq('category', 'lifegraph').eq('lang', appLang()).maybeSingle();
+      if (data?.content) return data.content;
+    }
+    return null;
+  }
+
   async function generate(id: string) {
     if (!assertOnline(t)) return; // daniel: 오프라인이면 풀이 진입(Edge 생성) 차단
     if (busy) return;
@@ -101,9 +114,24 @@ export default function LifeGraphScreen() {
         body: { chartId: id, category: 'lifegraph', kind: 'lifegraph', tier: 'paid', lang: appLang() },
       });
       const f = invokeFail(res, error); // 방어: 일시적 불가→재시도 안내 / 결제필요·오류 일관 처리
-      if (f) { logEvent('lifegraph_fail', { kind: f.kind, message: error?.message }, 'error'); setErr(f.message); }
-      else setData((res?.reading as LifeData) ?? null);
-    } catch (e: any) { logEvent('lifegraph_throw', { message: String(e?.message ?? e) }, 'error'); setErr(t('life.genFail', '생성에 실패했어요. 잠시 후 다시 시도해 주세요.')); }
+      if (f && f.kind !== 'error') {
+        // unavailable/needPayment = 200 빠른 실패(Edge가 긴 생성을 시작 안 함) → 폴링 없이 즉시 친화 문구
+        logEvent('lifegraph_fail', { kind: f.kind, message: error?.message }, 'error');
+        setErr(f.message);
+      } else if (error || !res?.reading) {
+        // ★클라 invoke가 끊기거나(무거운 풀이 타임아웃) 응답이 비어도 Edge는 서버에서 완료·캐시 → 캐시 폴링으로 회수(로딩 유지).
+        logEvent('lifegraph_fail', { kind: 'timeout', message: error?.message ?? 'no reading', polling: true }, 'error');
+        const cached = await pollCachedReading(id);
+        if (cached) setData(cached);
+        else setErr(f?.message ?? t('life.genFail', '생성에 실패했어요. 잠시 후 다시 시도해 주세요.'));
+      } else setData((res?.reading as LifeData) ?? null);
+    } catch (e: any) {
+      // fetch throw(타임아웃 등)도 동일 — 서버가 완료·캐시했으면 폴링으로 회수, 아니면 오류 표시.
+      logEvent('lifegraph_throw', { message: String(e?.message ?? e) }, 'error');
+      const cached = await pollCachedReading(id);
+      if (cached) setData(cached);
+      else setErr(t('life.genFail', '생성에 실패했어요. 잠시 후 다시 시도해 주세요.'));
+    }
     setGenProgress({ route: '/lifegraph', done: 1, total: 1 }); // 완료 → 홈 배너 '풀이 보기'(daniel 이슈15)
     setBusy(false);
   }
