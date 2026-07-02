@@ -29,7 +29,8 @@
           "androidAppId": "ca-app-pub-2936938026486482~6976735795",
           "iosAppId": "ca-app-pub-2936938026486482~5922674426"
         }
-      ]
+      ],
+      "expo-video"
     ],
     "web": {
       "bundler": "metro",

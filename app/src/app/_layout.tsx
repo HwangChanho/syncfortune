@@ -22,7 +22,7 @@ import { FontScaleProvider } from '../lib/ui/fontScale'; // 전역 글자 크기
 import { colors } from '../lib/theme';
 import { AppAlert } from '../components/AppAlert'; // 커스텀 알림 호스트(시스템 Alert 대체)
 import { installCrashLogger, logEvent, setLogTestContext } from '../lib/backend/logger'; // 전역 JS 크래시 → app_logs(DB 로그) + 앱 사용 세션 시간 로깅 + 테스트/배포 로그 태그
-import { SplashOverlay } from '../components/SplashOverlay'; // 앱 실행 인트로(緣) 애니메이션
+import { VideoSplash } from '../components/VideoSplash'; // 앱 실행 인트로 영상(왕궁 문→웅장한 호랑이→으르렁, 폴백=이미지)
 import { BusyOverlay } from '../components/BusyOverlay'; // 인증 전환(로그아웃/로그인) 중 전역 블로킹 로딩(먹통 방지)
 import { subscribeAuthBusy, getAuthBusy } from '../lib/ui/authBusy';
 import { ChartConfirmHost } from '../lib/ui/chartConfirm'; // 풀이/구매 전 명식 확인 모달(드롭다운 변경)
@@ -94,7 +94,7 @@ export default function RootLayout() {
         <ChartConfirmHost />
         {/* 인증 전환(로그아웃/로그인) 중 화면 막고 로딩 — 클린업 캐스케이드 동안 '먹통' 방지(daniel 07-02) */}
         <BusyOverlay visible={authBusy} message="잠시만 기다려 주세요…" />
-        {splash && <SplashOverlay onDone={() => setSplash(false)} />}
+        {splash && <VideoSplash onDone={() => setSplash(false)} />}
       </FontScaleProvider>
     </GestureHandlerRootView>
   );
