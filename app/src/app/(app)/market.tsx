@@ -185,9 +185,9 @@ export default function MarketRoute() {
     }
   }
 
-  // 개별 구매 전용(프리미엄 미포함) kind — 섹션 B. 그 외 전부는 프리미엄에 포함(섹션 A).
-  //   ※ timeline(인생 타임라인)도 프리미엄에 포함(섹션 A) — 사주+자미 종합이라 프리미엄 콘텐츠(daniel 2026-07-01). 개별가 ₩1,990.
-  const INDIVIDUAL = new Set<CreditKind>(['dream', 'followup', 'timeresolve']);
+  // ★프리미엄 포함(섹션 A) = 프리미엄이 실제 제공하는 5종만(사주·자미·궁합·인생타임라인·자식운, daniel 07-03).
+  //   그 외 전부(애정·신년·인생그래프·10년뒤·개운·재능 등)는 개별 구매 전용(섹션 B) — 프리미엄에 포함 아님.
+  const PREMIUM_KINDS = new Set<CreditKind>(['reading', 'ziwei', 'compat', 'timeline', 'child']);
 
   // 마켓 카드 한 장 렌더(섹션 A·B 공유 헬퍼) — premInc=프리미엄 포함 섹션 여부.
   //   • premInc && isPremium → 가격·구매 버튼 숨기고 '무제한 이용 중' 배지 + 카드 누르면 열기(apply).
@@ -278,12 +278,12 @@ export default function MarketRoute() {
       {/* ── 섹션 A: 프리미엄에 포함 ── 프리미엄=무제한 이용 중 배지 / 비프리미엄=가격+개별구매(기존). 타임라인도 여기 포함(daniel 2026-07-01, 사주+자미 종합). */}
       <Text style={styles.sectionH}>{t('market.sectionIncluded', '✦ 프리미엄에 포함')}</Text>
       <Text style={styles.sectionSub}>{t('market.sectionIncludedSub', '프리미엄 가입 시 아래 풀이를 명식 수 제한 없이 무제한 이용해요(개별 구매도 가능).')}</Text>
-      {CREDIT_KINDS.filter((c) => !INDIVIDUAL.has(c.key)).map((c) => renderCard(c, true))}
+      {CREDIT_KINDS.filter((c) => PREMIUM_KINDS.has(c.key)).map((c) => renderCard(c, true))}
 
       {/* ── 섹션 B: 개별 구매 전용(프리미엄 미포함) ── isPremium 무관 항상 개별 구매(기존) */}
       <Text style={styles.sectionH}>{t('market.sectionIndividual', '◆ 개별 구매 전용 · 프리미엄 미포함')}</Text>
       <Text style={styles.sectionSub}>{t('market.sectionIndividualSub', '아래 항목은 프리미엄에 포함되지 않아 따로 구매해요.')}</Text>
-      {CREDIT_KINDS.filter((c) => INDIVIDUAL.has(c.key)).map((c) => renderCard(c, false))}
+      {CREDIT_KINDS.filter((c) => !PREMIUM_KINDS.has(c.key)).map((c) => renderCard(c, false))}
 
       {/* 쿠폰 등록(무료 이용권) — 설정에서 이동 */}
       <Text style={styles.couponH}>{t('settings.coupon')}</Text>

@@ -54,7 +54,7 @@ const HERO_BY_KIND: Record<string, any> = {
   child: require('../../assets/icons/child.jpg'), future10: require('../../assets/icons/future10.jpg'),
 };
 
-export function SpecialContentScreen({ kind, category = kind, title, sub, sections, needsZiwei = false, genMsg, heroMotif, themeColor = colors.ju, heroImage, buildBody, freePreview, showExpiry = false, premiumCovered = false, headerExtra }: {
+export function SpecialContentScreen({ kind, category = kind, title, sub, sections, needsZiwei = false, genMsg, heroMotif, themeColor = colors.ju, heroImage, buildBody, freePreview, showExpiry = false, premiumCovered = false, headerExtra, autoGen = true }: {
   kind: CreditKind;        // 이용권/unlock 키(roots·image·mission). 크레딧 단위.
   category?: string;       // 캐시·Edge category(기본=kind). daniel B 유명인: 인물별 celeb_{id}로 분리(크레딧은 kind='celeb' 공용).
   title: string;
@@ -69,6 +69,7 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
   freePreview?: (chart: SavedChart) => ReactNode; // 무료 티어(하이브리드) — 잠김 화면에 온디바이스 기본값 미리보기(수비학 생명수·점성술 빅3)
   showExpiry?: boolean;    // 유료 단일 풀이(roots·image·talent·mission)만 = 생성일+1년 '보유 만료일' 표시(daniel #25). 무료·소모성 콘텐츠는 미전달 → 숨김.
   premiumCovered?: boolean; // 프리미엄 포함 콘텐츠(자식운 등 프리미엄 5종) = 프리미엄 명식이면 무료 해제·자동생성. 기본 false(스페셜=관리자/크레딧 전용, 프리미엄 무관).
+  autoGen?: boolean;         // 프리미엄/소유 시 자동 생성 여부(기본 true). ★자식운=false: 부부/단일을 고른 뒤 '풀이 보기'로 생성(자동생성 시 선택 기회 없음, daniel 07-03).
   headerExtra?: ReactNode;  // 콘텐츠별 상단 커스텀 컨트롤(히어로 아래·섹션/게이트 위, 옵션). 자식운 COUPLE 토글 등 — 잠김·열림 두 상태 모두 노출. 기본 undefined(대부분 콘텐츠는 변화 없음).
 }) {
   const { t } = useTranslation();
@@ -113,8 +114,8 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
       // 보유 만료일(daniel #25): 생성(구매)일 + 1년. 유료 단일 풀이(showExpiry)이고 캐시 created_at 있을 때만.
       if (showExpiry && data?.created_at) { const d = new Date(data.created_at); d.setFullYear(d.getFullYear() + 1); setExpiry(`${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`); }
       setLoaded(true);
-      // 프리미엄=자동 생성(옛 동작 복원, premiumCovered 한정): 프리미엄 명식이고 캐시 없으면 바로 생성(탭 없이). needsZiwei면 자미 명반 전달.
-      if (alive && prem && !cached) generate(id, cc.ziwei);
+      // 프리미엄=자동 생성(premiumCovered 한정): 프리미엄 명식이고 캐시 없으면 바로 생성. ★단 autoGen=false(자식운)면 자동생성 안 함 — 부부/단일을 고른 뒤 '풀이 보기'로 생성.
+      if (alive && autoGen && prem && !cached) generate(id, cc.ziwei);
     })().catch(() => { if (alive) setLoaded(true); });
     return () => { alive = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -251,8 +252,8 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
       <UnlockOverlay visible={busy} message={genMsg} />
       <ContentHero motif={heroMotif} image={heroImage ?? HERO_BY_KIND[kind]} title={title} sub={sub} themeColor={themeColor} />
 
-      {/* 콘텐츠별 상단 커스텀 컨트롤(옵션) — 히어로 아래·섹션/게이트 위. 잠김·열림 어느 상태든 한 번만 노출(자식운 COUPLE 토글). */}
-      {headerExtra}
+      {/* 콘텐츠별 상단 커스텀 컨트롤(옵션) — 히어로 아래·게이트 위. ★풀이가 나온 뒤엔 숨김(자식운 COUPLE 토글은 생성 前에만 의미, daniel 07-03). */}
+      {!(reading && owned) && headerExtra}
 
       {reading?.error ? (
         <View style={styles.card}><Text style={[styles.err, dynStyles.err]}>{String(reading.error)}</Text></View>
@@ -291,8 +292,9 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
             <Text style={[styles.previewHead, { color: themeColor }, dynStyles.previewHead]}>{t('special.previewHead', '이런 걸 풀어드려요')}</Text>
             {sections.filter((s) => s.key !== 'summary').map((s) => <Text key={s.key} style={[styles.previewItem, dynStyles.previewItem]}>· {s.label}</Text>)}
           </View>
-          <PressableScale style={[styles.cta, { backgroundColor: themeColor }]} onPress={onStart}><Text style={[styles.ctaTx, dynStyles.ctaTx]}>{t('special.unlockCta', '구매하고 보기')}</Text></PressableScale>
-          <Text style={[styles.gateNote, dynStyles.gateNote]}>{t('special.unlockHint', '이용권 구매 또는 쿠폰으로 열려요')}</Text>
+          {/* owned(프리미엄/관리자/unlock)면 '풀이 보기'(구매 아님) — 자식운은 위 토글로 단일/부부 고른 뒤 이 버튼으로 생성(daniel 07-03) */}
+          <PressableScale style={[styles.cta, { backgroundColor: themeColor }]} onPress={onStart}><Text style={[styles.ctaTx, dynStyles.ctaTx]}>{owned ? t('special.viewCta', '풀이 보기') : t('special.unlockCta', '구매하고 보기')}</Text></PressableScale>
+          {!owned ? <Text style={[styles.gateNote, dynStyles.gateNote]}>{t('special.unlockHint', '이용권 구매 또는 쿠폰으로 열려요')}</Text> : null}
         </View>
       )}
     </ScrollView>

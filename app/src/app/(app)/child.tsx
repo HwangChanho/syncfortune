@@ -109,6 +109,7 @@ export default function ChildRoute() {
     <SpecialContentScreen
       kind="child"
       premiumCovered
+      autoGen={false}          // ★자동생성 끔 — 프리미엄/관리자도 단일/부부를 고른 뒤 '풀이 보기'로 생성(선택 기회 보장, daniel 07-03)
       category={category}      // 혼자='child' / 부부='child_couple_<배우자8자>'(배우자별 캐시 분리)
       buildBody={buildBody}    // 부부일 때만 배우자 명식(otherSaju/otherZiwei) 전달
       headerExtra={headerExtra} // 상단 COUPLE 토글 + 배우자 선택
