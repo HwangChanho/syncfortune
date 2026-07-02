@@ -62,7 +62,7 @@ export default function RegisterRoute() {
   }
 
   // 편집모드 = 기존 명식 로드 완료 후에야 폼 마운트(초기값 prefill 보장). 로드 전엔 로딩 표시.
-  if (!editReady) return <View style={{ flex: 1, justifyContent: 'center', backgroundColor: colors.bg }}><ActivityIndicator color={colors.ju} /></View>;
+  if (!editReady) return <View style={{ flex: 1, justifyContent: 'center', backgroundColor: 'transparent' }}><ActivityIndicator color={colors.ju} /></View>; // 전역 배경 노출
 
   return (
     <ChartRegisterScreen

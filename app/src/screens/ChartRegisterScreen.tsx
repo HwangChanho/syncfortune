@@ -287,7 +287,7 @@ function Segmented({ options, value, onChange }: { options: { value: string; lab
 }
 
 const styles = StyleSheet.create({
-  screen: { backgroundColor: colors.bg },
+  screen: { backgroundColor: 'transparent' }, // 전역 배경 투과(ContentBackdrop)
   form: { padding: space(5), paddingBottom: space(12), gap: space(1.5) },
   label: { ...font.label, marginTop: space(4) },
   input: {

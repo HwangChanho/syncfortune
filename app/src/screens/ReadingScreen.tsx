@@ -632,9 +632,9 @@ export function ReadingScreen({
 }
 
 const styles = StyleSheet.create({
-  screen: { backgroundColor: colors.bg },
+  screen: { backgroundColor: 'transparent' }, // 전역 배경 투과(ContentBackdrop)
   wrap: { padding: space(5), paddingBottom: space(10) },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.bg },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'transparent' }, // 전역 배경 투과(ContentBackdrop)
   loadingBox: { paddingVertical: space(12), alignItems: 'center' }, // 진입 직후 캐시 로딩 스피너(무반응 방지·daniel)
   h: { ...font.heading, fontSize: 21 },
   sub: { ...font.caption, marginTop: space(1.5), marginBottom: space(4) },

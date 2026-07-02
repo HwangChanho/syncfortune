@@ -5,7 +5,7 @@
 // 접근: 프리미엄=무광고 자동 / 무료=보상형 광고 1회 → 생성. 캐시: readings(chart_id × 'monthly_YYYYMM' × lang).
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, ImageBackground, ScrollView, Pressable, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator } from 'react-native';
 import { PressableScale } from '../../components/PressableScale';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -23,7 +23,7 @@ import { invokeFail } from '../../lib/backend/interpretResult'; // 방어: 일�
 import { assertOnline } from '../../lib/backend/network'; // daniel: 네트워크/서버 미연결 시 풀이 생성 차단
 import { setGenProgress } from '../../lib/backend/genProgress'; // 일회성 진행도(daniel·docs/CONTENT_API_INVENTORY.md)
 import type { Stem, Branch } from '@spec/chart';
-import { bgSource, colors, radius, space, shadow, font } from '../../lib/theme';
+import { colors, radius, space, shadow, font } from '../../lib/theme';
 import { useFontScale } from '../../lib/ui/fontScale';
 import { stemElement, branchElement, elementColor, elementText, stemReading, branchReading, stemYinYang, branchYinYang } from '../../lib/engine/ohaeng';
 import { ContentHero } from '../../components/SpecialContentScreen'; // 이미지 히어로(보는 맛)
@@ -117,7 +117,7 @@ export default function MonthScreen() {
   };
 
   return (
-    <ImageBackground source={bgSource} style={styles.bgImage} resizeMode="cover">
+    <View style={styles.bgImage}>
       <ScrollView style={styles.overlay} contentContainerStyle={styles.wrap}>
         <ContentHero image={require('../../../assets/icons/month.jpg')} title={t('month.title', '이달의 운세')} sub={t('month.heroSub', '이번 달 월건으로 보는 흐름')} />
         {/* 이번 달 월건 헤더 */}
@@ -184,12 +184,12 @@ export default function MonthScreen() {
 
         <Text style={styles.sub}>{t('month.note')}</Text>
       </ScrollView>
-    </ImageBackground>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  bgImage: { flex: 1, backgroundColor: colors.bg },
+  bgImage: { flex: 1, backgroundColor: 'transparent' }, // 전역 ContentBackdrop 이 비쳐 보이게(daniel 07-02)
   overlay: { flex: 1, backgroundColor: colors.overlay },
   wrap: { padding: space(6), paddingBottom: space(12) },
   headlineCard: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.juLine, paddingVertical: space(3.5), paddingHorizontal: space(4), marginBottom: space(4), alignItems: 'center', ...shadow.card },

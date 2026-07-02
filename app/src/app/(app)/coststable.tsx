@@ -181,7 +181,7 @@ export default function CostTableScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.bg },
+  screen: { flex: 1, backgroundColor: 'transparent' }, // 전역 배경 노출
   wrap: { padding: space(4), paddingBottom: space(12) },
   title: { ...font.title, color: colors.ink, marginBottom: space(1) },
   note: { ...font.caption, color: colors.inkSoft, lineHeight: 17, marginBottom: space(4) },

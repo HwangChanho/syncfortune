@@ -238,9 +238,9 @@ const scaledFont = (fs: (n: number) => number) => ({
   caption: { ...font.caption, fontSize: fs(12) },
 });
 const makeStyles = (fs: (n: number) => number) => { const f = scaledFont(fs); return StyleSheet.create({
-  screen: { backgroundColor: colors.bg },
+  screen: { backgroundColor: 'transparent' }, // 전역 배경 투과(ContentBackdrop)
   wrap: { padding: space(5), paddingBottom: space(12) },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: space(7), backgroundColor: colors.bg },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: space(7), backgroundColor: 'transparent' }, // 전역 배경 투과(ContentBackdrop)
   title: { ...f.title, marginBottom: space(2) },
   titleHanja: { ...f.title, color: colors.inkFaint, fontWeight: '400' },
   intro: { ...f.caption, color: colors.inkSoft, lineHeight: fs(19), marginBottom: space(4) },

@@ -100,7 +100,7 @@ export default function ImpressionScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { backgroundColor: colors.bg },
+  screen: { backgroundColor: 'transparent' }, // 전역 배경 노출
   wrap: { padding: space(6), paddingBottom: space(12) },
   emptyBox: { alignItems: 'center', paddingVertical: space(8) },
   empty: { ...font.body, color: colors.inkSoft, textAlign: 'center', marginBottom: space(4) },

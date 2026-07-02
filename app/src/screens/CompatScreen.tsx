@@ -557,7 +557,7 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
 }
 
 const styles = StyleSheet.create({
-  screen: { backgroundColor: colors.bg },
+  screen: { backgroundColor: 'transparent' }, // 전역 배경 투과(ContentBackdrop)
   wrap: { padding: space(5), paddingBottom: space(12) },
   // 궁합 점수 카드(daniel: 메인 콘텐츠 — 점수+등급 이미지)
   scoreCard: { alignItems: 'center', backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1.5, borderColor: colors.ju, padding: space(5), marginTop: space(4), marginBottom: space(2), ...shadow.card },

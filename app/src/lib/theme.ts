@@ -36,8 +36,8 @@ const DARK = {
 // ── 라이트 팔레트(한지 — 따뜻한 베이지 + 먹 + 깊은 골드) ──────────
 const LIGHT = {
   // 전반 채도↓ + 이미지(미드나잇 네이비·골드 #C9A14A)와 조화(daniel 06-28). 노란기·탁함·순백대비 완화.
-  bg: '#F2EFE7', card: '#FBFAF6', sunk: '#EBE6DC',
-  glass: 'rgba(251, 250, 246, 0.72)', glassLight: 'rgba(43, 38, 32, 0.05)',
+  bg: '#F2EFE7', card: '#FBF5E8', sunk: '#EFE7D6', // 카드=흰색(#FBFAF6)→따뜻한 연베이지(daniel 07-02: 글 적힌 부분 베이지)
+  glass: 'rgba(251, 245, 232, 0.78)', glassLight: 'rgba(43, 38, 32, 0.05)',
   ink: '#2B2722', inkSoft: '#6A645B', inkFaint: '#9A938A', line: '#DCD7CC',
   ju: '#A08948', juDeep: '#84703B', juSoft: '#EFEBE0', juLine: '#C9C0A6',
   gold: '#A08948', white: '#FFFFFF',

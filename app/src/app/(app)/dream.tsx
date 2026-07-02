@@ -3,13 +3,13 @@
 // 키워드 검색 → 해몽(lib/dreamDict). 인기 키워드 칩. 규칙5: 무료=온디바이스(API 0). §4: 전향적.
 // ─────────────────────────────────────────────────────────────────────────
 import { useMemo, useState, useEffect } from 'react';
-import { View, Text, ScrollView, TextInput, Pressable, StyleSheet, ImageBackground, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, TextInput, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
 import { PressableScale } from '../../components/PressableScale';
 import { useTranslation } from 'react-i18next';
 import { searchDreams, DREAM_POPULAR, dreamTitle, dreamMeaning, popularLabel } from '../../lib/content/dreamDict';
 import { supabase } from '../../lib/supabase';        // 사전 miss → LLM 폴백(전역 캐시)
 import { appLang } from '../../lib/i18n';
-import { bgSource, colors, radius, space, shadow, font } from '../../lib/theme';
+import { colors, radius, space, shadow, font } from '../../lib/theme';
 import { useFontScale } from '../../lib/ui/fontScale';
 import { ContentHero } from '../../components/SpecialContentScreen'; // 이미지 히어로(보는 맛)
 import { Alert } from '../../lib/ui/alert';
@@ -110,7 +110,7 @@ export default function DreamScreen() {
   }
 
   return (
-    <ImageBackground source={bgSource} style={styles.bg} resizeMode="cover">
+    <View style={styles.bg}>
       <ScrollView style={styles.overlay} contentContainerStyle={styles.wrap} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets keyboardDismissMode="interactive">
         <ContentHero image={require('../../../assets/icons/dream.jpg')} title={t('dream.title', '꿈해몽')} sub={t('dream.sub', '꿈에 나온 것을 검색해 보세요.')} />
 
@@ -193,12 +193,12 @@ export default function DreamScreen() {
 
         <Text style={styles.note}>{t('dream.note', '※ 가볍게 즐기는 전통 해몽이에요.')}</Text>
       </ScrollView>
-    </ImageBackground>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  bg: { flex: 1, backgroundColor: colors.bg },
+  bg: { flex: 1, backgroundColor: 'transparent' }, // 전역 배경(ContentBackdrop) 투과
   overlay: { flex: 1, backgroundColor: colors.overlay },
   wrap: { padding: space(6), paddingBottom: space(12) },
   h: { ...font.title, color: colors.ink, marginBottom: space(1) },

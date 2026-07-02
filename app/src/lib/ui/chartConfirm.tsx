@@ -40,7 +40,10 @@ export function ChartConfirmHost() {
     (async () => {
       const [cs, rid] = await Promise.all([listCharts(), getRepresentativeId()]);
       if (!alive) return;
-      setCharts(cs); setRepId(rid ?? cs[0]?.id ?? null);
+      const cur = rid ?? cs[0]?.id ?? null;
+      // ★현재 적용(대표) 명식을 맨 위로 — 리스트가 길어도 선택된 명식이 바로 보이게(daniel 07-02: 한참 아래 선택돼 안 보임).
+      const sorted = cur ? [...cs].sort((a, b) => (a.id === cur ? -1 : b.id === cur ? 1 : 0)) : cs;
+      setCharts(sorted); setRepId(cur);
       if (state.opts.creditKind) {
         try { const c = await loadCredits(); if (alive) setCredits(c[state.opts.creditKind!] ?? 0); } catch { /* 개수 조회 실패=0 */ }
       } else setCredits(0);

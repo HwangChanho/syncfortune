@@ -3,7 +3,7 @@
 // 사주 = 일간 오행(시대) × 십신군(신분) → 전생 이야기(lib/pastLife.ts, Claude stance·daniel 검수). 재미 판타지.
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useMemo, useCallback } from 'react';
-import { View, Text, Pressable, ActivityIndicator, ScrollView, StyleSheet, ImageBackground, Image } from 'react-native';
+import { View, Text, Pressable, ActivityIndicator, ScrollView, StyleSheet, Image } from 'react-native';
 import { PressableScale } from '../../components/PressableScale';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -11,7 +11,7 @@ import { computeChart } from '../../lib/engine/engine';
 import { loadMyChart } from '../../lib/engine/myChart';
 import { pastLife, type PastLifeResult } from '../../lib/content/pastLife';
 import { useFontScale } from '../../lib/ui/fontScale';
-import { bgSource, colors, radius, space, shadow, font } from '../../lib/theme';
+import { colors, radius, space, shadow, font } from '../../lib/theme';
 import { ChartPicker } from '../../components/ChartPicker'; // 상단 명식 헤더 — 현재 적용 명식 표시·전환
 import { ShareReadingButton } from '../../components/ShareReadingButton'; // 이슈17: 풀이 결과 공유(앱게이트)
 import { TTSButton } from '../../components/TTSButton'; // 풀이 음성 읽기(온디바이스 TTS·무료)
@@ -73,7 +73,7 @@ export default function PastLifeScreen() {
   );
 
   return (
-    <ImageBackground source={bgSource} style={styles.bg} resizeMode="cover">
+    <View style={styles.bg}>
       <ScrollView style={styles.overlay} contentContainerStyle={styles.wrap}>
         {/* 상단 명식 헤더 — 현재 적용된 대표 명식 표시·전환(daniel: 모든 콘텐츠 상단) */}
         <ChartPicker onChange={() => loadMyChart().then(setMe)} />
@@ -96,15 +96,15 @@ export default function PastLifeScreen() {
         <Text style={styles.note}>{t('pastlife.note', '※ 사주로 가볍게 그려 본 전생 이야기예요. 재미로 즐겨 주세요.')}</Text>
         <PressableScale style={styles.cta} onPress={() => router.navigate({ pathname: '/reading', params: { input: JSON.stringify(me) } })}><Text style={styles.ctaText}>{t('pastlife.detail', '내 사주 깊이 보기 (프리미엄)')}</Text></PressableScale>
       </ScrollView>
-    </ImageBackground>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  bg: { flex: 1, backgroundColor: colors.bg },
+  bg: { flex: 1, backgroundColor: 'transparent' }, // 전역 배경(ContentBackdrop) 투과
   overlay: { flex: 1, backgroundColor: colors.overlay },
   wrap: { padding: space(6), paddingBottom: space(12) },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: space(7), backgroundColor: colors.bg },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: space(7), backgroundColor: 'transparent' }, // 전역 배경 투과
   msg: { ...font.body, color: colors.ink, textAlign: 'center', marginBottom: space(5) },
   btn: { backgroundColor: colors.ju, borderRadius: radius.md, paddingVertical: space(3.25), paddingHorizontal: space(6) },
   btnText: { color: colors.bg, fontSize: 15, fontWeight: '700' },

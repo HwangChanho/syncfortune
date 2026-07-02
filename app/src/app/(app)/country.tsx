@@ -78,7 +78,7 @@ export default function CountryScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.bg },
+  screen: { flex: 1, backgroundColor: 'transparent' }, // 전역 배경 노출
   hero: { width: '100%', height: 170, borderRadius: radius.lg, marginBottom: space(4), backgroundColor: colors.sunk }, // 전용 배너(달·나침반 산수)
   wrap: { padding: space(6), paddingBottom: space(12) },
   title: { fontSize: 24, fontWeight: '900', color: colors.ink, textAlign: 'center', marginTop: space(2) },

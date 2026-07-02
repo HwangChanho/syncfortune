@@ -133,9 +133,9 @@ export default function ZiweiRoute() {
 }
 
 const styles = StyleSheet.create({
-  screen: { backgroundColor: colors.bg },
+  screen: { backgroundColor: 'transparent' }, // 전역 배경 노출
   wrap: { padding: space(5), paddingBottom: space(10) },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.bg, padding: space(5) },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'transparent', padding: space(5) }, // 전역 배경 노출
   h: { ...font.heading, marginBottom: space(2) },
   kv: { ...font.body, color: colors.ink, marginBottom: space(2) },
   hint: { ...font.caption, marginTop: space(2) },

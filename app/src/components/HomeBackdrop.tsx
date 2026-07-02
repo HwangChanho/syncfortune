@@ -11,7 +11,8 @@ import Svg, { Path, Ellipse, Circle, Line, Defs, LinearGradient, Stop } from 're
 import { colors, radius, activeScheme } from '../lib/theme';
 
 // 다크 배경 — 반짝이는 별 3개(각기 다른 주기) + 8초마다 대각선으로 흐르는 유성.
-function TwinklingStars() {
+//   ★export: 전역 콘텐츠 배경(ContentBackdrop)이 다크 밤하늘 위에 동일한 별·유성을 재사용(daniel 07-02).
+export function TwinklingStars() {
   const starAnims = useRef([new Animated.Value(0.3), new Animated.Value(0.5), new Animated.Value(0.2)]).current;
   const shootingAnim = useRef(new Animated.Value(0)).current;
 

@@ -156,6 +156,8 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
               data={charts}
               keyExtractor={(c) => c.id}
               style={styles.list}
+              // 마지막 행 ⋯ 메뉴(수정/삭제)가 하단에 잘리지 않도록 여유(daniel 07-02)
+              contentContainerStyle={{ paddingBottom: space(14) }}
               showsVerticalScrollIndicator={false}
               activationDistance={14}
               onDragEnd={({ data }) => onDragEnd(data)}

@@ -26,7 +26,7 @@ import { appLang } from '../../lib/i18n';
 import { readingFromInvoke } from '../../lib/backend/interpretResult';
 import { logEvent } from '../../lib/backend/logger';
 import { setGenProgress } from '../../lib/backend/genProgress';
-import { bgSource, colors, radius, space, shadow, font } from '../../lib/theme';
+import { colors, radius, space, shadow, font } from '../../lib/theme';
 import { UnlockOverlay } from '../../components/UnlockOverlay';
 import { ChartPicker } from '../../components/ChartPicker';
 import { ShareReadingButton } from '../../components/ShareReadingButton';
@@ -132,7 +132,7 @@ export default function GaeunScreen() {
 
   return (
     <View style={styles.bg}>
-      <ExpoImage source={bgSource} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="memory-disk" />
+      {/* 전역 ContentBackdrop 이 배경(한지/달밤+별)을 제공 — 화면별 bgSource 이미지·스크림 제거(daniel 07-02) */}
       <ScrollView style={styles.overlay} contentContainerStyle={styles.wrap}>
         <ChartPicker onChange={() => setReloadKey((k) => k + 1)} />
         <UnlockOverlay visible={busy} message={t('gaeun.generating', '지금 운에 맞는 개운법을 찾는 중…')} />
@@ -178,10 +178,10 @@ export default function GaeunScreen() {
 }
 
 const styles = StyleSheet.create({
-  bg: { flex: 1, backgroundColor: colors.bg },
-  overlay: { flex: 1, backgroundColor: colors.overlay },
+  bg: { flex: 1, backgroundColor: 'transparent' },                 // ★전역 ContentBackdrop 이 비쳐 보이게(daniel 07-02)
+  overlay: { flex: 1, backgroundColor: 'transparent' },            // 스크롤 컨텐츠 루트 — 투명(스크림 제거)
   wrap: { padding: space(6), paddingBottom: space(12) },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: space(7), backgroundColor: colors.bg },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: space(7), backgroundColor: 'transparent' },
   msg: { ...font.body, color: colors.ink, textAlign: 'center', marginBottom: space(5) },
   hero: { alignItems: 'center', paddingVertical: space(4), marginBottom: space(3) },
   heroImg: { width: '100%', height: 190, borderRadius: radius.md, marginBottom: space(3) },

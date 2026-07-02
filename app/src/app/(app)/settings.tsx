@@ -226,7 +226,7 @@ export default function SettingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { backgroundColor: colors.bg },
+  screen: { backgroundColor: 'transparent' }, // 전역 배경 노출
   wrap: { padding: space(5), paddingBottom: space(12) },
   h: { ...font.heading, marginBottom: space(3) },
   // 계정

@@ -11,6 +11,7 @@ import { useFontScale } from '../../lib/ui/fontScale';
 import { AdBanner } from '../../components/AdBanner';
 import { BottomNav } from '../../components/BottomNav';
 import { OfflineBanner } from '../../components/OfflineBanner';
+import { ContentBackdrop } from '../../components/ContentBackdrop'; // ★전 콘텐츠 화면 공통 배경(한지/달밤+별) — daniel 07-02
 import { colors } from '../../lib/theme';
 
 // deep link 로 하위 화면(register 등)에 직접 진입해도 index(홈)를 스택 최하단에 깔아
@@ -24,6 +25,9 @@ export default function AppLayout() {
   useEffect(() => { if (pathname && pathname !== '/') clearGenByPath(pathname); }, [pathname]);
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
+      {/* ★전역 배경 — 모든 하위 화면 뒤에 단 하나. 첫 자식 = 최하단(뒤). 화면 루트는 투명이라 이게 비쳐 보인다.
+          루트 View 의 backgroundColor: colors.bg 는 이 배경이 뜨기 전 흰 깜빡임 방지용 베이스(곧 가려짐). */}
+      <ContentBackdrop />
       <OfflineBanner />
       <Stack screenOptions={{
         // ★기본 = 헤더 타이틀 없음(daniel: 콘텐츠 상단에 라우트 영어 이름 'country'·'gaeun' 등이 박히던 문제 →
@@ -37,7 +41,7 @@ export default function AppLayout() {
         //   네이티브가 글래스 안 가운데 정렬·표준 처리). headerBackTitle 로 '뒤로' 텍스트만 지정.
         headerBackButtonDisplayMode: 'default',
         headerBackTitle: '뒤로',
-        contentStyle: { backgroundColor: colors.bg }, // 씬 배경 한지(전환 시 흰 깜빡임 방지)
+        contentStyle: { backgroundColor: 'transparent' }, // ★씬 투명 — 전역 ContentBackdrop 이 비쳐 보이게(daniel 07-02). 흰 깜빡임은 루트 View bg + 배경 레이어가 방지.
         animation: 'fade', // ★카드 진입 애니(홈 카드가 화면 채움) 뒤에 슬라이드가 또 나와 이상하던 것 → 페이드로 통일(카드 fill이 전환, daniel 07-01)
       }}>
         <Stack.Screen name="index" options={{ headerShown: false }} />

@@ -351,9 +351,9 @@ export function TimelineScreen({ input, savedChart }: { input: ChartInput | null
 }
 
 const styles = StyleSheet.create({
-  screen: { backgroundColor: colors.bg },
+  screen: { backgroundColor: 'transparent' }, // 전역 배경 투과(ContentBackdrop)
   wrap: { padding: space(5), paddingBottom: space(12) },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.bg },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'transparent' }, // 전역 배경 투과(ContentBackdrop)
   h: { ...font.title, marginBottom: space(1) },
   sub: { ...font.caption, color: colors.inkSoft, marginBottom: space(5), lineHeight: 19 },
   secH: { fontSize: 15, fontWeight: '800', color: colors.ju, marginBottom: space(2) },

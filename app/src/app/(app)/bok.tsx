@@ -3,7 +3,7 @@
 // 사주 십신 → 타고난 복(lib/bokType.ts, Claude stance·daniel 검수). 규칙5: 무료=온디바이스(API 0). 처방(살리는 법) 동반.
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useMemo, useCallback } from 'react';
-import { View, Text, Pressable, ActivityIndicator, ScrollView, StyleSheet, ImageBackground, Image } from 'react-native';
+import { View, Text, Pressable, ActivityIndicator, ScrollView, StyleSheet, Image } from 'react-native';
 import { PressableScale } from '../../components/PressableScale';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -11,7 +11,7 @@ import { computeChart } from '../../lib/engine/engine';
 import { loadMyChart } from '../../lib/engine/myChart';
 import { bokType, type BokResult } from '../../lib/content/bokType';
 import { useFontScale } from '../../lib/ui/fontScale';
-import { bgSource, colors, radius, space, shadow, font } from '../../lib/theme';
+import { colors, radius, space, shadow, font } from '../../lib/theme';
 import { ChartPicker } from '../../components/ChartPicker'; // 상단 명식 헤더
 import { ShareReadingButton } from '../../components/ShareReadingButton'; // 이슈17: 풀이 결과 공유(앱게이트)
 import type { ChartInput } from '@spec/chart';
@@ -50,7 +50,7 @@ export default function BokScreen() {
   );
 
   return (
-    <ImageBackground source={bgSource} style={styles.bg} resizeMode="cover">
+    <View style={styles.bg}>
       <ScrollView style={styles.overlay} contentContainerStyle={styles.wrap}>
         <ChartPicker onChange={() => loadMyChart().then(setMe)} />
         <View style={styles.hero}>
@@ -69,15 +69,15 @@ export default function BokScreen() {
         <Text style={styles.note}>{t('bok.note', '※ 사주 십신으로 가볍게 본 타고난 복이에요. 재미로 즐겨 주세요.')}</Text>
         <PressableScale style={styles.cta} onPress={() => router.navigate({ pathname: '/reading', params: { input: JSON.stringify(me) } })}><Text style={styles.ctaText}>{t('bok.detail', '내 사주 깊이 보기 (프리미엄)')}</Text></PressableScale>
       </ScrollView>
-    </ImageBackground>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  bg: { flex: 1, backgroundColor: colors.bg },
+  bg: { flex: 1, backgroundColor: 'transparent' }, // 전역 배경(ContentBackdrop) 투과
   overlay: { flex: 1, backgroundColor: colors.overlay },
   wrap: { padding: space(6), paddingBottom: space(12) },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: space(7), backgroundColor: colors.bg },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: space(7), backgroundColor: 'transparent' }, // 전역 배경 투과
   msg: { ...font.body, color: colors.ink, textAlign: 'center', marginBottom: space(5) },
   btn: { backgroundColor: colors.ju, borderRadius: radius.md, paddingVertical: space(3.25), paddingHorizontal: space(6) },
   btnText: { color: colors.bg, fontSize: 15, fontWeight: '700' },

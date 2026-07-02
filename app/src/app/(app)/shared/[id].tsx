@@ -75,7 +75,7 @@ export default function SharedReadingScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { backgroundColor: colors.bg },
+  screen: { backgroundColor: 'transparent' }, // 전역 배경 투과(ContentBackdrop)
   wrap: { padding: space(6), paddingBottom: space(12) },
   center: { paddingVertical: space(20), alignItems: 'center', gap: space(3) },
   dim: { ...font.caption, color: colors.inkSoft },

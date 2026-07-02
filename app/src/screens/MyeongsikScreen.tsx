@@ -1164,7 +1164,7 @@ const scaledFont = (fs: (n: number) => number) => ({
 });
 // makeStyles(fs): 아래 fontSize/lineHeight 리터럴은 sed로 fs()로 감쌈, ...font.X 는 ...f.X(scaledFont) 로 치환됨.
 const makeStyles = (fs: (n: number) => number) => { const f = scaledFont(fs); return StyleSheet.create({
-  screen: { backgroundColor: colors.bg },
+  screen: { backgroundColor: 'transparent' }, // 전역 배경 투과(ContentBackdrop)
   wrap: { padding: space(5), paddingBottom: space(10) },
   tabBar: { flexDirection: 'row', backgroundColor: colors.card, borderBottomWidth: 1, borderBottomColor: colors.line },
   tabBtn: { flex: 1, paddingVertical: space(3.5), alignItems: 'center', borderBottomWidth: 2, borderBottomColor: 'transparent' },
@@ -1186,7 +1186,7 @@ const makeStyles = (fs: (n: number) => number) => { const f = scaledFont(fs); re
   gyeokName: { ...f.body, color: colors.ink, fontWeight: '800' },
   gyeokHanja: { color: colors.inkFaint, fontWeight: '600', fontSize: 13 },
   gyeokDesc: { color: colors.inkSoft, marginTop: space(1) },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.bg },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'transparent' }, // 전역 배경 투과(ContentBackdrop)
   h: { ...f.heading, marginTop: space(5), marginBottom: space(2) },
   hint: { ...f.caption, marginBottom: space(2) },
   ssRow: { flexDirection: 'row', alignItems: 'center', gap: space(2), paddingVertical: space(1.5), borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.line },

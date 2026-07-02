@@ -6,12 +6,12 @@
 //   ⚠️ 의미 문구 tone = daniel★ 검수 슬롯(numerology.ts 주석 참고).
 // ─────────────────────────────────────────────────────────────────────────
 import { useMemo, useState, useCallback, useEffect } from 'react';
-import { View, Text, ScrollView, StyleSheet, ImageBackground, Animated, Easing } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Animated, Easing } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { loadRepChart, type SavedChart } from '../../lib/engine/myChart';
 import { buildNumerology, LIFE_PATH_MEANING, BIRTHDAY_MEANING, PERSONAL_YEAR_MEANING, meaningFor } from '../../lib/content/numerology';
-import { bgSource, colors, radius, space, shadow, font } from '../../lib/theme';
+import { colors, radius, space, shadow, font } from '../../lib/theme';
 import { useFontScale } from '../../lib/ui/fontScale';
 import { ContentHero } from '../../components/SpecialContentScreen';
 import { ChartPicker } from '../../components/ChartPicker';
@@ -45,7 +45,7 @@ export default function NumerologyScreen() {
   const thisYear = new Date().getFullYear();
 
   return (
-    <ImageBackground source={bgSource} style={styles.bg} resizeMode="cover">
+    <View style={styles.bg}>
       <ScrollView style={styles.overlay} contentContainerStyle={styles.wrap}>
         {/* 상단 명식 헤더 — 현재 명식 표시·전환 */}
         <ChartPicker onChange={() => loadRepChart().then(setRep)} />
@@ -67,7 +67,7 @@ export default function NumerologyScreen() {
         )}
         <Text style={styles.note}>{t('numerology.note', '※ 피타고리안 수비학(서양 표준)으로 산출했어요. 이름 기반 수(표현·영혼수)는 추후 추가됩니다.')}</Text>
       </ScrollView>
-    </ImageBackground>
+    </View>
   );
 }
 
@@ -96,7 +96,7 @@ function NumCard({ label, big, kw, text, fs, hi }: { label: string; big: number;
 }
 
 const styles = StyleSheet.create({
-  bg: { flex: 1, backgroundColor: colors.bg },
+  bg: { flex: 1, backgroundColor: 'transparent' }, // 전역 ContentBackdrop 이 비쳐 보이게(daniel 07-02)
   overlay: { flex: 1, backgroundColor: colors.overlay },
   wrap: { padding: space(6), paddingBottom: space(12) },
   card: { backgroundColor: colors.card, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.juLine, padding: space(5), marginBottom: space(3), ...shadow.card },

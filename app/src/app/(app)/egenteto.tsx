@@ -7,7 +7,7 @@
 //   점수·설명 모두 명식만 있으면 비로그인·오프라인에서도 즉시(서버·캐시 불요). 같은 명식·점수=같은 설명(결정론).
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, ImageBackground, ScrollView, Pressable, ActivityIndicator, Animated, Easing } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Animated, Easing } from 'react-native';
 import { PressableScale } from '../../components/PressableScale';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -15,7 +15,7 @@ import { loadRepChart, type SavedChart } from '../../lib/engine/myChart';
 import { computeChart } from '../../lib/engine/engine';
 import { egenTeto, type EgenTetoResult } from '../../lib/content/egenTeto';
 import { buildEgenReading, type EgenReading } from '../../lib/content/egenReading'; // 온디바이스 성향 설명(LLM 0·무료, daniel 2026-06-30)
-import { bgSource, colors, radius, space, shadow, font } from '../../lib/theme';
+import { colors, radius, space, shadow, font } from '../../lib/theme';
 import { useFontScale } from '../../lib/ui/fontScale';
 import { ChartPicker } from '../../components/ChartPicker'; // 명식 선택(대표 전환) — 명식별 성향(daniel)
 import { ShareReadingButton } from '../../components/ShareReadingButton'; // 이슈17: 풀이 결과 공유(앱게이트)
@@ -68,7 +68,7 @@ export default function EgenTetoScreen() {
 
 
   return (
-    <ImageBackground source={bgSource} style={styles.bgImage} resizeMode="cover">
+    <View style={styles.bgImage}>
       <ScrollView style={styles.overlay} contentContainerStyle={styles.wrap}>
         {/* 상단 명식 헤더 — 현재 적용된 대표 명식 표시·전환(daniel: 모든 콘텐츠 상단). 전환 시 그 명식 기준 재산출 */}
         <ChartPicker onChange={() => setReloadKey((k) => k + 1)} />
@@ -120,12 +120,12 @@ export default function EgenTetoScreen() {
 
         <Text style={styles.note}>{t('egen.note', '※ 사주로 가볍게 보는 성향 테스트예요. 재미로 즐겨 주세요.')}</Text>
       </ScrollView>
-    </ImageBackground>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  bgImage: { flex: 1, backgroundColor: colors.bg },
+  bgImage: { flex: 1, backgroundColor: 'transparent' }, // 전역 ContentBackdrop 이 비쳐 보이게(daniel 07-02)
   overlay: { flex: 1, backgroundColor: colors.overlay },
   wrap: { padding: space(6), paddingBottom: space(12) },
   title: { fontSize: 24, fontWeight: '900', color: colors.ink, textAlign: 'center', marginTop: space(2) },

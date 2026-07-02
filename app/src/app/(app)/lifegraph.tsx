@@ -272,7 +272,7 @@ export default function LifeGraphScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { backgroundColor: colors.bg },
+  screen: { backgroundColor: 'transparent' }, // 전역 배경 노출
   wrap: { padding: space(6), paddingBottom: space(12) }, // 좌우 여백 표준(space6)으로 — 배너가 타 콘텐츠와 정렬(daniel #8)
   card: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.juLine, padding: space(6), alignItems: 'center', ...shadow.card },
   body: { ...font.body, color: colors.ink, textAlign: 'center' },

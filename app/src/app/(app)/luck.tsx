@@ -4,13 +4,13 @@
 //   규칙5: 무료=온디바이스(API 0). §4: 가벼운 재미 — 단정 없이 '곁에 두면 좋은 결'.
 // ─────────────────────────────────────────────────────────────────────────
 import { useMemo, useState, useCallback, useRef, useEffect } from 'react';
-import { View, Text, ScrollView, StyleSheet, ImageBackground, Animated } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Animated } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { luckyToday, weakElementColor } from '../../lib/content/luckyItem';
 import { loadMyChart } from '../../lib/engine/myChart';
 import { computeChart } from '../../lib/engine/engine';
-import { bgSource, colors, radius, space, shadow, font } from '../../lib/theme';
+import { colors, radius, space, shadow, font } from '../../lib/theme';
 import { useFontScale } from '../../lib/ui/fontScale';
 import { ChartPicker } from '../../components/ChartPicker'; // 상단 명식 헤더 — 현재 적용 명식 표시·전환
 import { ShareReadingButton } from '../../components/ShareReadingButton'; // 이슈17: 풀이 결과 공유(앱게이트)
@@ -51,7 +51,7 @@ export default function LuckScreen() {
 
 
   return (
-    <ImageBackground source={bgSource} style={styles.bg} resizeMode="cover">
+    <View style={styles.bg}>
       <ScrollView style={styles.overlay} contentContainerStyle={styles.wrap}>
         {/* 상단 명식 헤더 — 현재 적용된 대표 명식 표시·전환(daniel: 모든 콘텐츠 상단) */}
         <ChartPicker onChange={() => loadMyChart().then(setMe)} />
@@ -101,12 +101,12 @@ export default function LuckScreen() {
 
         <Text style={styles.note}>{t('luck.note', '※ 가볍게 즐기는 오늘의 길잡이예요.')}</Text>
       </ScrollView>
-    </ImageBackground>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  bg: { flex: 1, backgroundColor: colors.bg },
+  bg: { flex: 1, backgroundColor: 'transparent' }, // 전역 ContentBackdrop 이 비쳐 보이게(daniel 07-02)
   overlay: { flex: 1, backgroundColor: colors.overlay },
   wrap: { padding: space(6), paddingBottom: space(12) },
   h: { ...font.title, color: colors.ink, marginBottom: space(1) },

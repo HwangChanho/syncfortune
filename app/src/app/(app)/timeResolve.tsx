@@ -206,7 +206,7 @@ function ResultView({ result }: { result: ReturnType<typeof scoreTimePillars> })
 }
 
 const styles = StyleSheet.create({
-  screen: { backgroundColor: colors.bg },
+  screen: { backgroundColor: 'transparent' }, // 전역 배경 노출
   wrap: { padding: space(6), paddingBottom: space(12) },
   hero: { width: '100%', height: 140, borderRadius: radius.lg, marginBottom: space(5), backgroundColor: colors.sunk }, // 전용 천체 시계 배너(컴팩트)
   lead: { ...font.caption, color: colors.inkSoft, lineHeight: 20, marginBottom: space(5) },

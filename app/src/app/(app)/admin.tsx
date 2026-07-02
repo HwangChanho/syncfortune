@@ -216,9 +216,9 @@ export default function AdminRoute() {
 }
 
 const styles = StyleSheet.create({
-  screen: { backgroundColor: colors.bg },
+  screen: { backgroundColor: 'transparent' }, // 전역 배경 투과(ContentBackdrop)
   wrap: { padding: space(5), paddingBottom: space(20) },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.bg, padding: space(7) },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'transparent', padding: space(7) }, // 전역 배경 투과(ContentBackdrop)
   denied: { ...font.body, color: colors.inkSoft },
   h: { ...font.heading, marginTop: space(7), marginBottom: space(3), paddingTop: space(5), borderTopWidth: 1, borderTopColor: colors.line }, // 전체현황 ↔ 유저 목록 구분 간격(daniel)
   detailRevenue: { ...font.body, color: colors.ju, fontWeight: '800', marginVertical: 2 },

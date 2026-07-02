@@ -249,9 +249,9 @@ export default function DayPillarScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { backgroundColor: colors.bg },
+  screen: { backgroundColor: 'transparent' }, // 전역 배경 노출
   wrap: { padding: space(6), paddingBottom: space(12) }, // 콘텐츠 좌우여백 통일(daniel)
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.bg },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'transparent' }, // 전역 배경 노출
   h: { ...font.title, marginBottom: space(1) },
   sub: { ...font.caption, color: colors.inkSoft, marginBottom: space(4), lineHeight: 19 },
   // 남/여 토글 — pill 2분할
