@@ -6,7 +6,8 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useRef } from 'react';
 import { Animated, Easing, ImageBackground, StyleSheet, Text, Dimensions } from 'react-native';
-import { colors } from '../lib/theme';
+import { colors, bgSource } from '../lib/theme';
+import { HomeBackdrop } from './HomeBackdrop'; // 홈과 동일한 배경 애니(별/태양 + 걷는 선비)로 스플래시 통일
 
 export function SplashOverlay({ onDone }: { onDone: () => void }) {
   const op = useRef(new Animated.Value(0)).current; // 전체 페이드(등장→유지→퇴장)
@@ -29,8 +30,9 @@ export function SplashOverlay({ onDone }: { onDone: () => void }) {
 
   return (
     <Animated.View style={[styles.overlay, { opacity: op }]} pointerEvents="none">
-      {/* 백두산 천지 이미지만 — 전체가 보이게 contain(잘림 없음). 여백은 미드나잇 배경이 자연스럽게 이음. */}
-      <ImageBackground source={require('../../assets/splash-bg.png')} style={[StyleSheet.absoluteFill, { transform: [{ translateY: SHIFT }] }]} resizeMode="contain" />
+      {/* 홈과 동일한 배경 이미지(cover) + 배경 애니(별/태양 + 걷는 선비) — 스플래시가 홈 테마와 이어지게(daniel 07-02). */}
+      <ImageBackground source={bgSource} style={StyleSheet.absoluteFill} resizeMode="cover" />
+      <HomeBackdrop />
       {/* 좌상단 八字(노란색) — 브랜드 표식(daniel 07-01) */}
       <Text style={[styles.hanja, { fontSize: hanjaSize, top: hanjaTop }]}>八字</Text>
     </Animated.View>
