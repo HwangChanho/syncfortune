@@ -44,6 +44,8 @@ const ROUTE: Record<CreditKind, { pathname: string; kind?: string }> = {
   gaeun: { pathname: '/gaeun' },                       // 맞춤 개운법(daniel #18)
   celeb: { pathname: '/celeb' },                       // 세계 인물 매칭(daniel B)
   timeresolve: { pathname: '/timeResolve' },           // 태어난 시 찾기(TPR — daniel 06-28)
+  future10: { pathname: '/future10' },                 // 10년 뒤 나의 모습(대운·세운 스페셜)
+  child: { pathname: '/child' },                       // 자식운(프리미엄 포함, 비프리미엄 개별)
 };
 
 // 이용권 kind → 카드 이미지 + 설명키(홈 카드와 동일 재사용, daniel: 마켓 리스트에도 작게+설명).
@@ -67,6 +69,8 @@ const CARD: Partial<Record<CreditKind, { img: any; desc: string }>> = {
   celeb: { img: require('../../../assets/icons/celeb.jpg'), desc: 'menu.celebDesc' }, // 세계 인물 매칭(daniel B)
   timeresolve: { img: require('../../../assets/icons/timeResolve.jpg'), desc: 'menu.timeResolveDesc' }, // 태어난 시 찾기(TPR — daniel 06-28)
   followup: { img: require('../../../assets/icons/followup.jpg'), desc: 'menu.followupDesc' }, // 추가 질문(daniel: 마켓에도 이미지)
+  future10: { img: require('../../../assets/icons/lifegraph.jpg'), desc: 'menu.future10Desc' }, // 10년 뒤 나의 모습 — lifegraph.jpg 재사용(전용 이미지 추후)
+  child: { img: require('../../../assets/icons/premium.jpg'), desc: 'menu.childDesc' }, // 자식운 — premium.jpg 재사용(전용 이미지 추후)
 };
 
 export default function MarketRoute() {

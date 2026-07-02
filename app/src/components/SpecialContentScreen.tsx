@@ -18,6 +18,7 @@ import { loadRepChart, type SavedChart } from '../lib/engine/myChart';
 import { ensureServerChartId } from '../lib/backend/prewarmReadings';
 import { useAuth } from '../lib/useAuth';
 import { useSubscription } from '../lib/billing/subscription';   // 프리미엄=자동 생성
+import { isPremiumForChart } from '../lib/billing/premiumStore'; // 명식별 프리미엄(premiumCovered 콘텐츠 = 프리미엄 무료해제·자동생성)
 import { useFontScale } from '../lib/ui/fontScale';
 import { useCredit, grantCredit, type CreditKind } from '../lib/billing/coupons';
 import { isUnlocked, markUnlocked } from '../lib/billing/unlocks'; // unlock 영속(차감 후 재차감/재잠금 방지)
@@ -52,7 +53,7 @@ const HERO_BY_KIND: Record<string, any> = {
   taegil: require('../../assets/icons/taegil.jpg'), talent: require('../../assets/icons/talent.jpg'), zodiac: require('../../assets/icons/zodiac.jpg'),
 };
 
-export function SpecialContentScreen({ kind, category = kind, title, sub, sections, needsZiwei = false, genMsg, heroMotif, themeColor = colors.ju, heroImage, buildBody, freePreview, showExpiry = false }: {
+export function SpecialContentScreen({ kind, category = kind, title, sub, sections, needsZiwei = false, genMsg, heroMotif, themeColor = colors.ju, heroImage, buildBody, freePreview, showExpiry = false, premiumCovered = false }: {
   kind: CreditKind;        // 이용권/unlock 키(roots·image·mission). 크레딧 단위.
   category?: string;       // 캐시·Edge category(기본=kind). daniel B 유명인: 인물별 celeb_{id}로 분리(크레딧은 kind='celeb' 공용).
   title: string;
@@ -66,6 +67,7 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
   buildBody?: (chart: SavedChart) => Record<string, any>; // 추가 body(수비학/점성술 = 앱이 산출한 차트를 Edge로 전달)
   freePreview?: (chart: SavedChart) => ReactNode; // 무료 티어(하이브리드) — 잠김 화면에 온디바이스 기본값 미리보기(수비학 생명수·점성술 빅3)
   showExpiry?: boolean;    // 유료 단일 풀이(roots·image·talent·mission)만 = 생성일+1년 '보유 만료일' 표시(daniel #25). 무료·소모성 콘텐츠는 미전달 → 숨김.
+  premiumCovered?: boolean; // 프리미엄 포함 콘텐츠(자식운 등 프리미엄 5종) = 프리미엄 명식이면 무료 해제·자동생성. 기본 false(스페셜=관리자/크레딧 전용, 프리미엄 무관).
 }) {
   const { t } = useTranslation();
   const router = useRouter();
@@ -97,8 +99,10 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
       const id = await ensureServerChartId(cc, ch.input, session, ch);
       if (!alive || !id) { setLoaded(true); return; }
       setChartId(id);
-      // 소유 판정(daniel ⓐⓒ): 프리미엄 / 관리자 / 이 차트×종류 unlock(차감 완료) 중 하나여야 풀이 노출. 아니면 설명창(게이트).
-      const own = (await isAdmin()) || (await isUnlocked(id, kind));
+      // 소유 판정(daniel ⓐⓒ): (premiumCovered면 프리미엄 명식) / 관리자 / 이 차트×종류 unlock(차감 완료) 중 하나여야 풀이 노출. 아니면 설명창(게이트).
+      //   ★premiumCovered(자식운 등 프리미엄 포함 콘텐츠)만 프리미엄을 소유로 인정 — 스페셜(astrology/mission 등 기본값)은 프리미엄 무관(관리자/크레딧 전용) 그대로.
+      const prem = premiumCovered && isPremiumForChart(id);
+      const own = prem || (await isAdmin()) || (await isUnlocked(id, kind));
       const { data } = await supabase.from('readings').select('content, created_at').eq('chart_id', id).eq('category', category).eq('lang', appLang()).maybeSingle();
       if (!alive) return;
       const cached = data?.content ?? null;
@@ -107,6 +111,8 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
       // 보유 만료일(daniel #25): 생성(구매)일 + 1년. 유료 단일 풀이(showExpiry)이고 캐시 created_at 있을 때만.
       if (showExpiry && data?.created_at) { const d = new Date(data.created_at); d.setFullYear(d.getFullYear() + 1); setExpiry(`${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`); }
       setLoaded(true);
+      // 프리미엄=자동 생성(옛 동작 복원, premiumCovered 한정): 프리미엄 명식이고 캐시 없으면 바로 생성(탭 없이). needsZiwei면 자미 명반 전달.
+      if (alive && prem && !cached) generate(id, cc.ziwei);
     })().catch(() => { if (alive) setLoaded(true); });
     return () => { alive = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -178,6 +184,8 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
     if (!chartId || busy || gatingRef.current) return;
     logEvent(`${kind}_generate_tap`, { chartId });
     if (!assertOnline(t)) return;
+    // 프리미엄 무료(premiumCovered 한정): 프리미엄 명식이면 차감 없이 바로 생성(자식운 등 프리미엄 포함 콘텐츠). 스페셜(기본값)은 이 분기 통과 안 함.
+    if (premiumCovered && isPremiumForChart(chartId)) { generate(chartId); return; }
     // unlock 영속(daniel): 이미 차감한 차트×종류면 재차감 없이 무료 재생성(invoke 중단 후 재진입 보호)
     if (await isUnlocked(chartId, kind)) { generate(chartId); return; }
     gatingRef.current = true;

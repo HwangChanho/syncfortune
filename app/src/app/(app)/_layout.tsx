@@ -61,6 +61,8 @@ export default function AppLayout() {
         <Stack.Screen name="pet" options={{ headerTitle: '' }} />
         <Stack.Screen name="love" options={{ headerTitle: '' }} />
         <Stack.Screen name="lifegraph" options={{ headerTitle: '' }} />
+        <Stack.Screen name="future10" options={{ headerTitle: '' }} />
+        <Stack.Screen name="child" options={{ headerTitle: '' }} />
         <Stack.Screen name="newyear" options={{ headerTitle: '' }} />
         <Stack.Screen name="career" options={{ headerTitle: '' }} />
         <Stack.Screen name="talent" options={{ headerTitle: '' }} />
