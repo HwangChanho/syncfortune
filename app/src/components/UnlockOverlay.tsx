@@ -42,7 +42,8 @@ export function UnlockOverlay({ visible, message, allowBackground = true }: { vi
           <Animated.Text style={[styles.lock, { transform: [{ scale }] }]}>{open ? '🔓' : '🔒'}</Animated.Text>
         </View>
         <Text style={styles.msg}>{message ?? '운명을 여는 중…'}</Text>
-        <Text style={styles.sub}>{allowBackground ? '나가서 다른 걸 봐도 돼요 · 백그라운드에서 계속 풀이되고\n완료되면 알림으로 알려드릴게요' : '잠시만 기다려 주세요'}</Text>
+        {/* daniel: 정확한 통변엔 시간이 걸림을 안내(무거운 풀이 대기 안심) */}
+        <Text style={styles.sub}>정확한 통변을 위해 일정 시간이 소요됩니다{allowBackground ? '\n나가 있어도 백그라운드에서 계속 풀이되고, 완료되면 알림으로 알려드릴게요' : '\n잠시만 기다려 주세요'}</Text>
         {allowBackground && (
           <PressableScale style={styles.exitBtn} onPress={() => router.replace('/')}>
             <Text style={styles.exitTx}>홈으로 나가기</Text>

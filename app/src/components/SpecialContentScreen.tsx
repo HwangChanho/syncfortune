@@ -51,6 +51,7 @@ const HERO_BY_KIND: Record<string, any> = {
   name: require('../../assets/icons/name.jpg'), newyear: require('../../assets/icons/newyear-hero.jpg'), numerology: require('../../assets/icons/numerology.jpg'),
   pastlife: require('../../assets/icons/pastlife.jpg'), persona: require('../../assets/icons/persona.jpg'), pet: require('../../assets/icons/pet.jpg'),
   taegil: require('../../assets/icons/taegil.jpg'), talent: require('../../assets/icons/talent.jpg'), zodiac: require('../../assets/icons/zodiac.jpg'),
+  child: require('../../assets/icons/child.jpg'), future10: require('../../assets/icons/future10.jpg'),
 };
 
 export function SpecialContentScreen({ kind, category = kind, title, sub, sections, needsZiwei = false, genMsg, heroMotif, themeColor = colors.ju, heroImage, buildBody, freePreview, showExpiry = false, premiumCovered = false, headerExtra }: {

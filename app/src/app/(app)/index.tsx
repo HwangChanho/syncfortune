@@ -65,7 +65,7 @@ const SECTIONS: Section[] = [
     { key: 'compat', labelKey: 'menu.compat', descKey: 'menu.compatDesc', image: require('../../../assets/icons/compat.jpg'), route: '/compat', ready: true, premium: true },
     { key: 'timeline', labelKey: 'menu.timeline', descKey: 'menu.timelineDesc', image: require('../../../assets/icons/timeline.jpg'), route: '/timeline', ready: true, premium: true }, // 연도별 인생 타임라인 = 프리미엄 4종(사주·자미·궁합·타임라인) — 홈 리스트 누락 수정(daniel 07-02)
     // 신규(daniel 2026-07-02): 자식운 = 프리미엄 5번째 콘텐츠(프리미엄 무료·비프리미엄 개별 유료). premium.jpg 아이콘 재사용(전용 이미지 추후).
-    { key: 'child', labelKey: 'menu.child', descKey: 'menu.childDesc', image: require('../../../assets/icons/premium.jpg'), route: '/child', ready: true, premium: true },
+    { key: 'child', labelKey: 'menu.child', descKey: 'menu.childDesc', image: require('../../../assets/icons/child.jpg'), route: '/child', ready: true, premium: true },
   ] },
   // 스페셜 = 유료 LLM 콘텐츠(애정흐름·인생그래프·신년). 골드 라인아트 타일 이미지(Recraft).
   { key: 'content', titleKey: 'menu.secContent', descKey: 'menu.secContentDesc', items: [
@@ -74,7 +74,7 @@ const SECTIONS: Section[] = [
     { key: 'love', labelKey: 'menu.love', descKey: 'menu.loveDesc', image: require('../../../assets/icons/love.jpg'), route: '/love', ready: true, content: true, creditKey: 'love' },
     { key: 'lifegraph', labelKey: 'menu.lifegraph', descKey: 'menu.lifegraphDesc', image: require('../../../assets/icons/lifegraph.jpg'), route: '/lifegraph', ready: true, content: true, creditKey: 'lifegraph' },
     // 신규(daniel 2026-07-02): 10년 뒤 나의 모습(대운·세운 스페셜, 개별 유료). lifegraph.jpg 아이콘 재사용(전용 이미지 추후).
-    { key: 'future10', labelKey: 'menu.future10', descKey: 'menu.future10Desc', image: require('../../../assets/icons/lifegraph.jpg'), route: '/future10', ready: true, content: true, creditKey: 'future10' },
+    { key: 'future10', labelKey: 'menu.future10', descKey: 'menu.future10Desc', image: require('../../../assets/icons/future10.jpg'), route: '/future10', ready: true, content: true, creditKey: 'future10' },
   ] },
   // 심층 분석(daniel 2026-06) — 사주/자미 깊은 해석 유료. timeResolve(태어난 시 찾기)도 자기이해 진입점으로 배치.
   { key: 'deep', titleKey: 'menu.secDeep', descKey: 'menu.secDeepDesc', items: [

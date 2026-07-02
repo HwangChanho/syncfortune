@@ -69,8 +69,8 @@ const CARD: Partial<Record<CreditKind, { img: any; desc: string }>> = {
   celeb: { img: require('../../../assets/icons/celeb.jpg'), desc: 'menu.celebDesc' }, // 세계 인물 매칭(daniel B)
   timeresolve: { img: require('../../../assets/icons/timeResolve.jpg'), desc: 'menu.timeResolveDesc' }, // 태어난 시 찾기(TPR — daniel 06-28)
   followup: { img: require('../../../assets/icons/followup.jpg'), desc: 'menu.followupDesc' }, // 추가 질문(daniel: 마켓에도 이미지)
-  future10: { img: require('../../../assets/icons/lifegraph.jpg'), desc: 'menu.future10Desc' }, // 10년 뒤 나의 모습 — lifegraph.jpg 재사용(전용 이미지 추후)
-  child: { img: require('../../../assets/icons/premium.jpg'), desc: 'menu.childDesc' }, // 자식운 — premium.jpg 재사용(전용 이미지 추후)
+  future10: { img: require('../../../assets/icons/future10.jpg'), desc: 'menu.future10Desc' }, // 10년 뒤 나의 모습(전용 아이콘)
+  child: { img: require('../../../assets/icons/child.jpg'), desc: 'menu.childDesc' }, // 자식운(전용 아이콘)
 };
 
 export default function MarketRoute() {
