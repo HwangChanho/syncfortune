@@ -20,6 +20,7 @@ import { priceStringRC, PRODUCT_PREMIUM } from '../../lib/billing/purchases';  /
 import { PREMIUM_PRICE } from '../../lib/billing/coupons';  // 프리미엄 폴백 가격(₩)
 import { supabase } from '../../lib/supabase';             // 로그아웃
 import { BusyOverlay } from '../../components/BusyOverlay'; // 긴 콜백(로그아웃·삭제) 로딩 오버레이
+import { setAuthBusy } from '../../lib/ui/authBusy'; // 로그아웃 전환 전역 블로킹(먹통 방지)
 import { colors, radius, space, shadow, font, setThemePref, getThemePref, type ThemePref } from '../../lib/theme';
 
 const LANGS: { key: string; label: string }[] = [
@@ -53,9 +54,9 @@ export default function SettingsScreen() {
 
   // 로그아웃 — 토큰 폐기(네트워크) 동안 오버레이. 완료 시 세션 변경으로 화면 전환.
   async function doLogout() {
-    setBusy(t('common.loggingOut'));
-    try { await supabase.auth.signOut(); }
-    finally { setBusy(null); }
+    // ★전역 블로킹 오버레이(로그아웃 클린업 먹통 방지, daniel 07-02) — signOut 즉시 표시, SIGNED_OUT 핸들러가 클린업 후 해제.
+    setAuthBusy(true);
+    try { await supabase.auth.signOut(); } catch { setAuthBusy(false); }
   }
 
   // 알림 켜기/안내 — 상태별 분기(daniel 07-02: 시스템 프롬프트가 안 뜨던 문제 근본 대응).
@@ -77,19 +78,6 @@ export default function SettingsScreen() {
     }
     // denied → iOS는 재프롬프트 불가 → 기기 설정으로
     Alert.alert(t('settings.notif', '알림'), t('settings.notifDeniedMsg', '알림을 받으려면 기기 설정에서 팔자 알림을 켜 주세요.'), [cancel, openIosSettings]);
-  }
-
-  // 프리미엄 구매 — 로그인 게이트(구매 계정 귀속) → RC 구독 → 갱신.
-  async function onBuyPremium() {
-    if (!requireLoginForPurchase(session, () => router.push('/login'), t)) return;
-    try {
-      await purchasePremium();
-      await refresh();
-      Alert.alert(t('settings.premiumOkTitle'), t('settings.premiumOk'));
-    } catch (e) {
-      if ((e as Error).message === 'cancelled') return;     // 사용자 취소 — 조용히
-      Alert.alert(t('settings.premiumTitle'), (e as Error).message);
-    }
   }
 
   // 계정 삭제 — 이중 확인 → Edge(service role)가 데이터+계정 삭제 → 로그아웃(App Store 5.1.1 필수).
@@ -143,9 +131,9 @@ export default function SettingsScreen() {
       {isPremium ? (
         <View style={styles.premCardOn}><Text style={styles.premOnTx}>{t('settings.premiumActive')}</Text></View>
       ) : (
-        <Pressable style={styles.premBuyBtn} onPress={onBuyPremium}>
-          <Text style={styles.premBuyTx}>{t('settings.premiumBuy')}{premPrice ? ` · ${premPrice}` : ''}</Text>
-          <Text style={styles.premBuySub}>{t('settings.premiumDesc')}</Text>
+        // ★프리미엄 구매는 마켓에서만(daniel 07-02: 계정창에선 구매 제거·상태만 표시). 여기선 마켓으로 유도.
+        <Pressable style={styles.premBuyBtn} onPress={() => router.push('/market')}>
+          <Text style={styles.premBuyTx}>{t('settings.premiumGoMarket', '마켓에서 프리미엄 보기 ›')}</Text>
         </Pressable>
       )}
       {/* 프리미엄 적용 범위(daniel 07-02): 앞으로 나올 프리미엄 콘텐츠까지 무료 + 프리미엄 콘텐츠 한정 명확화 */}

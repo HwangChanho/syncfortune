@@ -15,6 +15,7 @@ import { refreshPremium, getPremiumSnapshot } from './billing/premiumStore'; // 
 import { clearLocalUserData } from './backend/sessionCleanup'; // 로그아웃 시 로컬 사용자 데이터 일괄 정리(daniel 2026-06-23)
 import { logoutPurchases } from './billing/purchases'; // 로그아웃 시 RC(RevenueCat) 익명화 — 이전 계정 프리미엄이 stale 하게 남아 광고가 안 뜨던 버그 차단(daniel 2026-06-24)
 import { setupNotificationTapListener, registerPushToken } from './backend/notifications'; // 알림 탭 딥링크 + 푸시 토큰 등록(G: 강제종료 중 서버생성 완료 푸시)
+import { setAuthBusy } from './ui/authBusy'; // 로그아웃 클린업 동안 전역 블로킹(먹통 방지, daniel 07-02)
 
 // dev 전용 자동 로그인(시뮬 편의) — __DEV__ + app/.env(gitignore) 자격증명이 있을 때만 1회 시도.
 //   프로덕션 빌드는 __DEV__=false + .env 에 키 없음 → 절대 동작하지 않는다. 자격증명은 코드가 아닌 env 에만 둔다.
@@ -68,7 +69,15 @@ export function useAuth() {
       //   매 이벤트마다 재실행 → 콘텐츠가 '구매화면↔풀이화면'으로 깜빡이던 원인. user.id+access_token 동일 = 같은 세션.
       setSession((prev) => (prev?.user?.id === s?.user?.id && prev?.access_token === s?.access_token ? prev : s));
       if (_event === 'SIGNED_IN' && s) InteractionManager.runAfterInteractions(() => { void prefetchOnLogin(s); }); // 로그인 시 명식 동기화 + 푸시토큰 + serverChartId 선발급 — 상호작용 후로(#2·#32 daniel: 첫 로그인 진입 지연 완화)
-      if (_event === 'SIGNED_OUT') { void logoutPurchases(); void clearLocalUserData(); } // ★로그아웃 즉시: RC 익명화(프리미엄 stale 차단→광고 복귀) + 명식·진행률 정리(daniel)
+      if (_event === 'SIGNED_OUT') {
+        // ★로그아웃 클린업 동안 화면 막고 로딩(먹통 방지, daniel 07-02) — RC 익명화·로컬 정리가 끝나면 해제해 다시 사용 가능.
+        setAuthBusy(true);
+        void (async () => {
+          try { await logoutPurchases(); } catch { /* RC 익명화 실패 무시 */ }   // 프리미엄 stale 차단→광고 복귀
+          try { await clearLocalUserData(); } catch { /* 로컬 정리 실패 무시 */ } // 명식·진행률 정리
+          setAuthBusy(false); // 완료 → 오버레이 해제
+        })();
+      }
     });
     // ※ 소셜 로그인 복귀(syncfortune://auth-callback?code=/token_hash=)는 `app/auth-callback.tsx`
     //   라우트가 단일 처리(exchangeCodeForSession/verifyOtp) — 여기서 중복 처리하지 않는다(레이스 방지).

@@ -6,7 +6,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import 'intl-pluralrules'; // Intl.PluralRules polyfill (Hermes) — iztro i18next 보조(ERROR 폴백, 무해)
 import '../lib/i18n'; // 다국어(한·영·일) init
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 import { Stack } from 'expo-router';
 import { View, ActivityIndicator, StyleSheet, LogBox, AppState, InteractionManager } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler'; // 이슈20 드래그 reorder(gesture-handler) — 루트 래핑 필수
@@ -23,6 +23,8 @@ import { colors } from '../lib/theme';
 import { AppAlert } from '../components/AppAlert'; // 커스텀 알림 호스트(시스템 Alert 대체)
 import { installCrashLogger, logEvent, setLogTestContext } from '../lib/backend/logger'; // 전역 JS 크래시 → app_logs(DB 로그) + 앱 사용 세션 시간 로깅 + 테스트/배포 로그 태그
 import { SplashOverlay } from '../components/SplashOverlay'; // 앱 실행 인트로(緣) 애니메이션
+import { BusyOverlay } from '../components/BusyOverlay'; // 인증 전환(로그아웃/로그인) 중 전역 블로킹 로딩(먹통 방지)
+import { subscribeAuthBusy, getAuthBusy } from '../lib/ui/authBusy';
 
 // i18next 26.x가 Hermes에서 Intl.PluralRules 를 인식 못 해 내는 dev 경고(동작은 v3 fallback 정상,
 //   한·영·일 복수형 단순해 영향 0) 억제. 프로덕션 빌드엔 LogBox 자체가 없어 무영향.
@@ -30,6 +32,7 @@ LogBox.ignoreLogs([/i18next::pluralResolver/]);
 
 export default function RootLayout() {
   const { session, loading } = useAuth();
+  const authBusy = useSyncExternalStore(subscribeAuthBusy, getAuthBusy); // 로그아웃/로그인 전환 중 전역 블로킹 오버레이(먹통 방지)
   const [splash, setSplash] = useState(true); // 앱 실행 인트로(緣) 1회 — 끝나면 언마운트
 
   // 전역 크래시 로거 등록(앱 시작 1회) — JS 치명 에러를 app_logs 에 기록(daniel: DB 로그).
@@ -86,6 +89,8 @@ export default function RootLayout() {
           </Stack>
         )}
         <AppAlert />
+        {/* 인증 전환(로그아웃/로그인) 중 화면 막고 로딩 — 클린업 캐스케이드 동안 '먹통' 방지(daniel 07-02) */}
+        <BusyOverlay visible={authBusy} message="잠시만 기다려 주세요…" />
         {splash && <SplashOverlay onDone={() => setSplash(false)} />}
       </FontScaleProvider>
     </GestureHandlerRootView>

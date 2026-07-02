@@ -6,8 +6,8 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useRef } from 'react';
 import { Animated, Easing, ImageBackground, StyleSheet, Text, Dimensions } from 'react-native';
-import { colors, bgSource } from '../lib/theme';
-import { HomeBackdrop } from './HomeBackdrop'; // 홈과 동일한 배경 애니(별/태양 + 걷는 선비)로 스플래시 통일
+import { colors } from '../lib/theme';
+import { HomeBackdrop } from './HomeBackdrop'; // 홈과 동일한 배경 애니(별/태양 + 걷는 선비) — 호랑이 이미지 뒤 여백에
 
 export function SplashOverlay({ onDone }: { onDone: () => void }) {
   const op = useRef(new Animated.Value(0)).current; // 전체 페이드(등장→유지→퇴장)
@@ -30,9 +30,10 @@ export function SplashOverlay({ onDone }: { onDone: () => void }) {
 
   return (
     <Animated.View style={[styles.overlay, { opacity: op }]} pointerEvents="none">
-      {/* 홈과 동일한 배경 이미지(cover) + 배경 애니(별/태양 + 걷는 선비) — 스플래시가 홈 테마와 이어지게(daniel 07-02). */}
-      <ImageBackground source={bgSource} style={StyleSheet.absoluteFill} resizeMode="cover" />
+      {/* 홈 테마 배경 애니(별·유성·걷는 선비) — 미드나잇 배경 위, 호랑이 이미지의 상하 여백에 비친다(daniel 07-02: 이미지는 남기고 뒷배경만 홈테마). */}
       <HomeBackdrop />
+      {/* ★호랑이(백두산) 이미지 유지 — contain(잘림 없음), 아래로 SHIFT. 상하 여백엔 위 HomeBackdrop(별 상단·선비 하단)가 보임 */}
+      <ImageBackground source={require('../../assets/splash-bg.png')} style={[StyleSheet.absoluteFill, { transform: [{ translateY: SHIFT }] }]} resizeMode="contain" />
       {/* 좌상단 八字(노란색) — 브랜드 표식(daniel 07-01) */}
       <Text style={[styles.hanja, { fontSize: hanjaSize, top: hanjaTop }]}>八字</Text>
     </Animated.View>
