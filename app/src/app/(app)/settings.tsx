@@ -5,6 +5,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useEffect, useCallback } from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet, Linking } from 'react-native';
+import { PressableScale } from '../../components/PressableScale';
 import Constants from 'expo-constants'; // 앱 버전(app.json)
 import { Alert } from '../../lib/ui/alert'; // 커스텀 알림(앱 디자인)
 import { useRouter, useFocusEffect } from 'expo-router';
@@ -110,20 +111,20 @@ export default function SettingsScreen() {
         <>
           <View style={styles.acctCard}>
             <Text style={styles.acctEmail} numberOfLines={1}>{session.user.email}</Text>
-            <Pressable onPress={doLogout}><Text style={styles.acctAction}>{t('common.logout')}</Text></Pressable>
+            <PressableScale onPress={doLogout}><Text style={styles.acctAction}>{t('common.logout')}</Text></PressableScale>
           </View>
         </>
       ) : (
-        <Pressable style={styles.acctLoginBtn} onPress={() => router.push('/login')}>
+        <PressableScale style={styles.acctLoginBtn} onPress={() => router.push('/login')}>
           <Text style={styles.acctLoginTx}>{t('settings.loginCta')}</Text>
-        </Pressable>
+        </PressableScale>
       )}
 
       {/* ── 관리자(is_admin 전용) — 제어(비용분석·테스트/관리자모드)는 ⚙관리자 화면 내부로 통합(daniel 07-01) ── */}
       {(admin || __DEV__) && (
-        <Pressable style={styles.adminLink} onPress={() => router.push('/admin')}>
+        <PressableScale style={styles.adminLink} onPress={() => router.push('/admin')}>
           <Text style={styles.adminLinkTx}>⚙ 관리자{__DEV__ && !admin ? ' (dev)' : ''}</Text>
-        </Pressable>
+        </PressableScale>
       )}
 
       {/* ── 프리미엄 ── */}
@@ -132,9 +133,9 @@ export default function SettingsScreen() {
         <View style={styles.premCardOn}><Text style={styles.premOnTx}>{t('settings.premiumActive')}</Text></View>
       ) : (
         // ★프리미엄 구매는 마켓에서만(daniel 07-02: 계정창에선 구매 제거·상태만 표시). 여기선 마켓으로 유도.
-        <Pressable style={styles.premBuyBtn} onPress={() => router.push('/market')}>
+        <PressableScale style={styles.premBuyBtn} onPress={() => router.push('/market')}>
           <Text style={styles.premBuyTx}>{t('settings.premiumGoMarket', '마켓에서 프리미엄 보기 ›')}</Text>
-        </Pressable>
+        </PressableScale>
       )}
       {/* 프리미엄 적용 범위(daniel 07-02): 앞으로 나올 프리미엄 콘텐츠까지 무료 + 프리미엄 콘텐츠 한정 명확화 */}
       <Text style={styles.premScope}>{t('settings.premiumScope')}</Text>
@@ -145,9 +146,9 @@ export default function SettingsScreen() {
         {FONT_STEPS.map((s) => {
           const on = Math.abs(scale - s.scale) < 0.001;
           return (
-            <Pressable key={s.key} style={[styles.opt, on && styles.optOn]} onPress={() => setScale(s.scale)}>
+            <PressableScale key={s.key} style={[styles.opt, on && styles.optOn]} onPress={() => setScale(s.scale)}>
               <Text style={[styles.optTx, on && styles.optTxOn, { fontSize: 13 * s.scale }]}>{t(`settings.size_${s.key}`)}</Text>
-            </Pressable>
+            </PressableScale>
           );
         })}
       </View>
@@ -162,9 +163,9 @@ export default function SettingsScreen() {
         {LANGS.map((l) => {
           const on = i18n.language?.startsWith(l.key);
           return (
-            <Pressable key={l.key} style={[styles.opt, on && styles.optOn]} onPress={() => setAppLang(l.key as 'ko' | 'en' | 'ja')}>
+            <PressableScale key={l.key} style={[styles.opt, on && styles.optOn]} onPress={() => setAppLang(l.key as 'ko' | 'en' | 'ja')}>
               <Text style={[styles.optTx, on && styles.optTxOn]}>{l.label}</Text>
-            </Pressable>
+            </PressableScale>
           );
         })}
       </View>
@@ -175,19 +176,19 @@ export default function SettingsScreen() {
         {(['system', 'light', 'dark'] as ThemePref[]).map((k) => {
           const on = themePref === k;
           return (
-            <Pressable key={k} style={[styles.opt, on && styles.optOn]} onPress={() => {
+            <PressableScale key={k} style={[styles.opt, on && styles.optOn]} onPress={() => {
               setThemePref(k); setThemePrefState(k);
               Alert.alert(t('settings.theme', '화면 테마'), t('settings.themeRestart', '앱을 다시 켜면 적용돼요.'));
             }}>
               <Text style={[styles.optTx, on && styles.optTxOn]}>{t(`settings.theme_${k}`, k === 'system' ? '기기 따라' : k === 'light' ? '라이트' : '다크')}</Text>
-            </Pressable>
+            </PressableScale>
           );
         })}
       </View>
 
       {/* ── 알림 ── daniel 07-02: 시스템 권한 프롬프트가 안 뜨던 문제 → 명시적 켜기 진입점(미결정=프롬프트, 거부=기기설정) */}
       <Text style={[styles.h, { marginTop: space(7) }]}>{t('settings.notif', '알림')}</Text>
-      <Pressable style={styles.notifRow} onPress={onNotif}>
+      <PressableScale style={styles.notifRow} onPress={onNotif}>
         <View style={{ flex: 1, marginRight: space(3) }}>
           <Text style={styles.infoLabel}>{t('settings.notifDaily', '매일 오늘의 운세 알림')}</Text>
           <Text style={styles.notifSub}>
@@ -198,7 +199,7 @@ export default function SettingsScreen() {
           </Text>
         </View>
         <Text style={[styles.notifState, notifStatus === 'granted' && { color: colors.ju }]}>{notifStatus === 'granted' ? 'ON' : 'OFF'}</Text>
-      </Pressable>
+      </PressableScale>
 
       <Text style={styles.note}>{t('settings.note')}</Text>
 
@@ -206,16 +207,16 @@ export default function SettingsScreen() {
       <Text style={[styles.h, { marginTop: space(7) }]}>{t('settings.appInfo', '앱 정보')}</Text>
       <View style={styles.infoCard}>
         <View style={styles.infoRow}><Text style={styles.infoLabel}>{t('settings.version', '버전')}</Text><Text style={styles.infoVal}>{APP_VERSION}</Text></View>
-        <Pressable style={styles.infoRow} onPress={() => Linking.openURL(TERMS_URL).catch(() => {})}><Text style={styles.infoLabel}>{t('settings.terms', '이용약관')}</Text><Text style={styles.infoArrow}>›</Text></Pressable>
-        <Pressable style={styles.infoRow} onPress={() => Linking.openURL(PRIVACY_URL).catch(() => {})}><Text style={styles.infoLabel}>{t('settings.privacy', '개인정보처리방침')}</Text><Text style={styles.infoArrow}>›</Text></Pressable>
-        <Pressable style={[styles.infoRow, styles.infoRowLast]} onPress={() => Alert.alert(t('settings.license', '오픈소스 라이선스'), OSS_LICENSES)}><Text style={styles.infoLabel}>{t('settings.license', '오픈소스 라이선스')}</Text><Text style={styles.infoArrow}>›</Text></Pressable>
+        <PressableScale style={styles.infoRow} onPress={() => Linking.openURL(TERMS_URL).catch(() => {})}><Text style={styles.infoLabel}>{t('settings.terms', '이용약관')}</Text><Text style={styles.infoArrow}>›</Text></PressableScale>
+        <PressableScale style={styles.infoRow} onPress={() => Linking.openURL(PRIVACY_URL).catch(() => {})}><Text style={styles.infoLabel}>{t('settings.privacy', '개인정보처리방침')}</Text><Text style={styles.infoArrow}>›</Text></PressableScale>
+        <PressableScale style={[styles.infoRow, styles.infoRowLast]} onPress={() => Alert.alert(t('settings.license', '오픈소스 라이선스'), OSS_LICENSES)}><Text style={styles.infoLabel}>{t('settings.license', '오픈소스 라이선스')}</Text><Text style={styles.infoArrow}>›</Text></PressableScale>
       </View>
 
       {/* 계정 삭제(App Store 필수) — 파괴적 동작이라 맨 하단 배치(daniel). 로그인 상태에서만 노출 */}
       {session && (
-        <Pressable style={styles.delAcctBtn} onPress={onDeleteAccount}>
+        <PressableScale style={styles.delAcctBtn} onPress={onDeleteAccount}>
           <Text style={styles.delAcctTx}>{t('settings.deleteAccount')}</Text>
-        </Pressable>
+        </PressableScale>
       )}
 
       {/* 긴 콜백(로그아웃·계정삭제) 동안 입력 차단 + 로딩 표시 */}

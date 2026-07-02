@@ -9,6 +9,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useMemo, useState, useEffect, useRef, type ReactNode } from 'react';
 import { View, Text, ScrollView, StyleSheet, Pressable, Modal, Animated, LayoutAnimation, Platform, UIManager } from 'react-native';
+import { PressableScale } from '../components/PressableScale';
 import { useTranslation } from 'react-i18next';
 import * as Haptics from 'expo-haptics';
 import { computeChart } from '../lib/engine/engine';
@@ -93,7 +94,7 @@ function GzCell({ char, kind, size, scale = 1, onPress }: { char: string; kind: 
       <Text style={[styles.gzKo, koDyn, txt]}>{ko}</Text>
     </View>
   );
-  return onPress ? <Pressable onPress={onPress}>{inner}</Pressable> : inner;
+  return onPress ? <PressableScale onPress={onPress}>{inner}</PressableScale> : inner;
 }
 
 export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input: ChartInput | null; onReading?: () => void; onSinsal?: () => void; header?: ReactNode }) {
@@ -250,11 +251,11 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
     const col = typeColor(ty);
     return (
       <View key={ty} style={styles.linkGroup}>
-        <Pressable onPress={() => setGlossary({ kind: 'interaction', key: ty })}><Text style={[styles.linkGroupHead, { color: col }]}>● {ty} {grp.length}  ⓘ</Text></Pressable>
+        <PressableScale onPress={() => setGlossary({ kind: 'interaction', key: ty })}><Text style={[styles.linkGroupHead, { color: col }]}>● {ty} {grp.length}  ⓘ</Text></PressableScale>
         {[...grp].sort((a: any, b: any) => b.mem.length - a.mem.length).map((x: any, i: number) => {
           const on = active.has(x.key);
           return (
-            <Pressable key={i} onPress={() => onToggle(x.key)} style={[styles.linkGRow, on && styles.linkGRowOn]}>
+            <PressableScale key={i} onPress={() => onToggle(x.key)} style={[styles.linkGRow, on && styles.linkGRowOn]}>
               <Text style={styles.linkGTx}>
                 <Text style={{ color: on ? col : colors.inkFaint }}>{on ? '◉ ' : '○ '}</Text>
                 {x.mem.map((mm: any, k: number) => (
@@ -266,7 +267,7 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
                 {x.isGan ? <Text style={styles.linkLevel}>  천간</Text> : null}
                 {x.mem.length === 3 ? <Text style={{ color: col, fontWeight: '800', fontSize: 11 }}>  ★{x.type === '합' ? '삼합/방합' : x.type === '형' ? '삼형' : '3자'}</Text> : null}
               </Text>
-            </Pressable>
+            </PressableScale>
           );
         })}
       </View>
@@ -295,7 +296,7 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
     const col = typeColor(x.type);
     const on = active.has(x.key);
     return (
-      <Pressable key={i} onPress={() => onToggle(x.key)} style={[styles.strRow, tier === '강' && styles.strRowTop, on && styles.linkGRowOn]}>
+      <PressableScale key={i} onPress={() => onToggle(x.key)} style={[styles.strRow, tier === '강' && styles.strRowTop, on && styles.linkGRowOn]}>
         <Text style={[styles.strBadge, { color: col, borderColor: col }]}>{on ? '◉' : tier}</Text>
         <Text style={styles.linkGTx}>
           {x.mem.map((mm: any, k: number) => (
@@ -307,7 +308,7 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
           <Text style={{ color: col, fontWeight: '800' }}>{interactionLabel({ type: x.type, detail: x.key, level: x.isGan ? '천간' : '지지' } as any)}</Text>
           {x.isGan ? <Text style={styles.linkLevel}>  천간</Text> : null}
         </Text>
-      </Pressable>
+      </PressableScale>
     );
   });
 
@@ -352,29 +353,29 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
               <Text style={[styles.pillarPos, isDay && styles.pillarPosDay]}>{p}</Text>
               
               {/* 천간 십신 — 개별 클릭 시 십신 설명(daniel: 십성 클릭 복구) */}
-              <Pressable onPress={() => setGlossary({ kind: 'tengod', key: P[p].stemTenGod })}>
+              <PressableScale onPress={() => setGlossary({ kind: 'tengod', key: P[p].stemTenGod })}>
                 <Text style={[styles.pillarTenGod, { color: colors.inkSoft }]}>{P[p].stemTenGod}</Text>
-              </Pressable>
-              <Pressable style={[styles.pillarMain, { borderWidth: 1.5, borderRadius: 6, borderColor: !showTango ? 'transparent' : rootedGan.has(P[p].stem) ? TANG_Y : TANG_N }]} onPress={() => setGlossary({ kind: 'stem', key: P[p].stem })}>
+              </PressableScale>
+              <PressableScale style={[styles.pillarMain, { borderWidth: 1.5, borderRadius: 6, borderColor: !showTango ? 'transparent' : rootedGan.has(P[p].stem) ? TANG_Y : TANG_N }]} onPress={() => setGlossary({ kind: 'stem', key: P[p].stem })}>
                 <Text style={[styles.pillarChar, { color: elementColor[elStem] }]}>{P[p].stem}</Text>
                 <Text style={[styles.pillarReading, { color: colors.inkFaint }]}>{stemReading(P[p].stem)} · {stemYinYang(P[p].stem)}</Text>
-              </Pressable>
+              </PressableScale>
 
 
-              <Pressable style={[styles.pillarMain, { borderWidth: 1.5, borderRadius: 6, borderColor: !showTango ? 'transparent' : c.sinsal.gongmangHits.includes(p) ? TANG_N : TANG_Y }]} onPress={() => setGlossary({ kind: 'branch', key: P[p].branch })}>
+              <PressableScale style={[styles.pillarMain, { borderWidth: 1.5, borderRadius: 6, borderColor: !showTango ? 'transparent' : c.sinsal.gongmangHits.includes(p) ? TANG_N : TANG_Y }]} onPress={() => setGlossary({ kind: 'branch', key: P[p].branch })}>
                 <Text style={[styles.pillarChar, { color: elementColor[elBranch] }]}>{P[p].branch}</Text>
                 <Text style={[styles.pillarReading, { color: colors.inkFaint }]}>{branchReading(P[p].branch)} · {branchYinYang(P[p].branch)}</Text>
-              </Pressable>
+              </PressableScale>
               {/* 지지 십신 — 개별 클릭 시 십신 설명 */}
-              <Pressable onPress={() => setGlossary({ kind: 'tengod', key: P[p].branchMainTenGod })}>
+              <PressableScale onPress={() => setGlossary({ kind: 'tengod', key: P[p].branchMainTenGod })}>
                 <Text style={[styles.pillarTenGod, { color: colors.inkSoft }]}>{P[p].branchMainTenGod}</Text>
-              </Pressable>
+              </PressableScale>
 
               {/* 12운성 — 항상 표시(daniel: 상세분석 토글 밖). 탭 → 글로서리 설명. */}
               <View style={styles.pillarDivider} />
-              <Pressable onPress={() => setGlossary({ kind: 'stage', key: c.stages[p] })}>
+              <PressableScale onPress={() => setGlossary({ kind: 'stage', key: c.stages[p] })}>
                 <Text style={styles.pillarStage}>{c.stages[p]}</Text>
-              </Pressable>
+              </PressableScale>
 
               {showAdvanced && (
                 <Animated.View style={styles.advancedInfo}>
@@ -402,29 +403,29 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
     <>
     <View style={styles.tabBar}>
       {MYEONG_TABS.map((t2) => (
-        <Pressable
+        <PressableScale
           key={t2.id}
           style={[styles.tabBtn, activeTab === t2.id && styles.tabBtnOn]}
           onPress={() => { setActiveTab(t2.id); haptic(); }}
         >
           <Text style={[styles.tabLabel, activeTab === t2.id && styles.tabLabelOn]} numberOfLines={1}>{t2.label}</Text>
-        </Pressable>
+        </PressableScale>
       ))}
     </View>
     {/* 관계 하위탭(daniel: 운세·신살은 관계 하위) — 천간과 지지(합충)·신살과 길성·운세 */}
     {activeTab === 'rel' && (
       <View style={styles.subTabBar}>
         {REL_SUBS.map((s) => (
-          <Pressable key={s.id} style={[styles.subTabBtn, relSub === s.id && styles.subTabBtnOn]} onPress={() => { setRelSub(s.id); haptic(); }}>
+          <PressableScale key={s.id} style={[styles.subTabBtn, relSub === s.id && styles.subTabBtnOn]} onPress={() => { setRelSub(s.id); haptic(); }}>
             <Text style={[styles.subTabLabel, relSub === s.id && styles.subTabLabelOn]}>{s.label}</Text>
-          </Pressable>
+          </PressableScale>
         ))}
       </View>
     )}
     {/* 카테고리 ? 설명(daniel: 설명도 나오게) — 탭하면 이 분류가 무엇을 보는지 시트로 */}
-    <Pressable style={styles.catDescBtn} onPress={() => setCatDescOpen(true)}>
+    <PressableScale style={styles.catDescBtn} onPress={() => setCatDescOpen(true)}>
       <Text style={styles.catDescBtnTx}>ⓘ 이 분류는 무엇을 보나요?</Text>
-    </Pressable>
+    </PressableScale>
 
     <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>
       {header}
@@ -434,18 +435,18 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
         <>
           <View style={styles.headerArea}>
             <Text style={styles.h}>{t('myeongsik.palja')}</Text>
-            <Pressable style={styles.advancedBtn} onPress={toggleAdvanced}>
+            <PressableScale style={styles.advancedBtn} onPress={toggleAdvanced}>
               <Text style={styles.advancedBtnTx}>{showAdvanced ? '간략히' : '상세 분석'}</Text>
-            </Pressable>
+            </PressableScale>
           </View>
 
           {renderArcs(activeGanP, 'above')}
           {/* 유형(파랑)·무형(빨강) 테두리 토글 + 범례 — daniel: 기본 OFF, 켜면 글자 테두리 색 + 설명 */}
           <View style={styles.tangoBar}>
-            <Pressable style={styles.tangoToggle} onPress={() => { LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut); setShowTango((v) => !v); haptic(); }}>
+            <PressableScale style={styles.tangoToggle} onPress={() => { LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut); setShowTango((v) => !v); haptic(); }}>
               <View style={[styles.tangoTrack, showTango && styles.tangoTrackOn]}><View style={[styles.tangoThumb, showTango && styles.tangoThumbOn]} /></View>
               <Text style={styles.tangoLabel}>유형·무형 보기</Text>
-            </Pressable>
+            </PressableScale>
             {showTango && (
               <View style={styles.tangoLegend}>
                 <View style={styles.tangoLegendItem}><View style={[styles.tangoSwatch, { borderColor: TANG_Y }]} /><Text style={styles.tangoLegendTx}>유형 — 뿌리 있고 온전</Text></View>
@@ -464,7 +465,7 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
               return (
                 <View key={p} style={styles.twelveCell}>
                   {names.length ? names.map((n, i) => (
-                    <Pressable key={i} onPress={() => setGlossary({ kind: 'sinsal', key: n })}><Text style={styles.twelveCellTx}>{n}</Text></Pressable>
+                    <PressableScale key={i} onPress={() => setGlossary({ kind: 'sinsal', key: n })}><Text style={styles.twelveCellTx}>{n}</Text></PressableScale>
                   )) : <Text style={styles.twelveDim}>—</Text>}
                 </View>
               );
@@ -482,7 +483,7 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
           {renderArcs(activeJiP, 'below')}
           {/* 합충형해 토글 */}
           {(ganLinks.length + jiLinks.length) > 0 && (
-            <Pressable 
+            <PressableScale 
               style={styles.linksToggleNew} 
               onPress={() => {
                 setShowLinks((v) => !v);
@@ -494,14 +495,14 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
                   관계 분석 {ganLinks.length + jiLinks.length}개  {showLinks ? '▲' : '▼'}
                 </Text>
               </View>
-            </Pressable>
+            </PressableScale>
           )}
       {showLinks && normPalja.length > 0 && (
         <View style={styles.linksCard}>
           {/* ③ 전체 선택/해제(daniel) — 합충선 한번에 켜고 끄기 */}
-          <Pressable onPress={() => setActivePalja((p) => p.size ? new Set<string>() : new Set(normPalja.map((x: any) => x.key as string)))} style={{ alignSelf: 'flex-end', paddingVertical: 4, paddingHorizontal: 8 }}>
+          <PressableScale onPress={() => setActivePalja((p) => p.size ? new Set<string>() : new Set(normPalja.map((x: any) => x.key as string)))} style={{ alignSelf: 'flex-end', paddingVertical: 4, paddingHorizontal: 8 }}>
             <Text style={{ color: colors.ju, fontWeight: '700', fontSize: 12 }}>{activePalja.size ? '전체 해제' : '전체 선택'}</Text>
-          </Pressable>
+          </PressableScale>
           {renderGroups(normPalja, activePalja, (k) => toggleKey(setActivePalja, k))}
         </View>
       )}
@@ -537,17 +538,17 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
 
       {/* 대표 오행(일간)·대표 십성(격국) — 탭→설명 */}
       <View style={styles.repRow}>
-        <Pressable style={styles.repChip} onPress={() => setGlossary({ kind: 'element', key: c.saju.dayMaster.element })}>
+        <PressableScale style={styles.repChip} onPress={() => setGlossary({ kind: 'element', key: c.saju.dayMaster.element })}>
           <Text style={styles.repLabel}>대표 오행</Text>
           <Text style={[styles.repVal, { color: elementColor[c.saju.dayMaster.element] }]}>{c.saju.dayMaster.stem} · {c.saju.dayMaster.element}</Text>
-        </Pressable>
+        </PressableScale>
         {(() => {
           const repTg = (c.pattern.candidates[0] || '').replace('격', '') || c.saju.pillars['월'].branchMainTenGod;
           return (
-            <Pressable style={styles.repChip} onPress={() => setGlossary({ kind: 'tengod', key: repTg })}>
+            <PressableScale style={styles.repChip} onPress={() => setGlossary({ kind: 'tengod', key: repTg })}>
               <Text style={styles.repLabel}>대표 십성(격)</Text>
               <Text style={styles.repValTg}>{c.pattern.candidates.join(' · ') || repTg}</Text>
-            </Pressable>
+            </PressableScale>
           );
         })()}
       </View>
@@ -587,16 +588,16 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
       })()}
       <Text style={styles.hint}>{c.strengthClass.reason}</Text>
       {/* 신강·신약 특징 — 탭하면 상세 시트(성향·강점·주의·용신 방향) */}
-      <Pressable style={styles.strDetailBtn} onPress={() => setStrengthOpen(true)}>
+      <PressableScale style={styles.strDetailBtn} onPress={() => setStrengthOpen(true)}>
         <Text style={styles.strDetailBtnTx}>신강·신약 특징 자세히 보기 ›</Text>
-      </Pressable>
+      </PressableScale>
       {/* 조후·음양 쏠림(daniel) — 탭하면 설명·문제점·대응법(개운법) */}
       {(() => {
         const ey = eumYangSkew(P, input?.sex); const jh = johuSkew(P);
         return (
-          <Pressable style={styles.strDetailBtn} onPress={() => setJohuOpen(true)}>
+          <PressableScale style={styles.strDetailBtn} onPress={() => setJohuOpen(true)}>
             <Text style={styles.strDetailBtnTx}>조후 {jh.skew} · 음양 {ey.skew.replace('양', '+').replace('음', '-')}  — 문제점·대응법 ›</Text>
-          </Pressable>
+          </PressableScale>
         );
       })()}
 
@@ -609,9 +610,9 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
       <Text style={styles.h}>{t('myeongsik.elements')}</Text>
       {/* 지장간 포함 토글(daniel) — 켜면 도넛·범례가 지장간(支藏干) 오행까지 합산해 '숨은 기운'까지 본 분포 */}
       <View style={styles.layerToggle}>
-        <Pressable style={[styles.layerChip, elemHidden && styles.layerChipOn]} onPress={() => setElemHidden((v) => !v)}>
+        <PressableScale style={[styles.layerChip, elemHidden && styles.layerChipOn]} onPress={() => setElemHidden((v) => !v)}>
           <Text style={[styles.layerChipTx, elemHidden && styles.layerChipTxOn]}>{elemHidden ? '✓ ' : ''}지장간 포함</Text>
-        </Pressable>
+        </PressableScale>
       </View>
       {(() => {
         const order = ['木', '火', '土', '金', '水'] as const;
@@ -768,9 +769,9 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
           {/* 시간층 토글 — 명식에 년운·월운·일운 표시/숨김(대운은 항상 표시) */}
           <View style={styles.layerToggle}>
             {([['luck', '대운'], ['year', '년운'], ['month', '월운'], ['day', '일운']] as const).map(([k, l]) => (
-              <Pressable key={k} style={[styles.layerChip, showLayers[k] && styles.layerChipOn]} onPress={() => setShowLayers((p) => ({ ...p, [k]: !p[k] }))}>
+              <PressableScale key={k} style={[styles.layerChip, showLayers[k] && styles.layerChipOn]} onPress={() => setShowLayers((p) => ({ ...p, [k]: !p[k] }))}>
                 <Text style={[styles.layerChipTx, showLayers[k] && styles.layerChipTxOn]}>{showLayers[k] ? '✓ ' : ''}{l}</Text>
-              </Pressable>
+              </PressableScale>
             ))}
           </View>
           {/* 원국 + 대운·세운 확장 명식 (합충선은 아래 토글로 펼침) */}
@@ -787,9 +788,9 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
                     <GzCell char={col.stem} kind="stem" size="sm" scale={scale} onPress={() => setGlossary({ kind: 'stem', key: col.stem })} />
                     <GzCell char={col.branch} kind="branch" size="sm" scale={scale} onPress={() => setGlossary({ kind: 'branch', key: col.branch })} />
                     <Text style={[styles.expTg, { fontSize: Math.round(fs(11) * scale) }]}>{branchTenGod(dm, col.branch)}</Text>
-                    <Pressable onPress={() => setGlossary({ kind: 'stage', key: twelveStage(dm, col.branch) })}>
+                    <PressableScale onPress={() => setGlossary({ kind: 'stage', key: twelveStage(dm, col.branch) })}>
                       <Text style={[styles.expStage, { fontSize: Math.round(fs(10) * scale) }]}>{twelveStage(dm, col.branch)}</Text>
-                    </Pressable>
+                    </PressableScale>
                     <View style={styles.expHidden}>
                       {col.hidden.map((h: any, k: number) => (
                         <Text key={k} style={[styles.expHiddenTx, { fontSize: Math.round(fs(12) * scale), lineHeight: Math.round(fs(15) * scale) }, { color: elementColor[stemElement(h.stem)] }]}>{h.stem}</Text>
@@ -802,17 +803,17 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
             </View>
           </ScrollView>
           {(ganEx.length + jiEx.length) > 0 && (
-            <Pressable style={styles.linksToggle} onPress={() => setShowExpandLinks((v) => !v)}>
+            <PressableScale style={styles.linksToggle} onPress={() => setShowExpandLinks((v) => !v)}>
               <Text style={styles.linksToggleTx}>운 합충형해 {ganEx.length + jiEx.length}개  {showExpandLinks ? '▲ 접기' : '▼ 펼쳐 보기'}</Text>
-            </Pressable>
+            </PressableScale>
           )}
           {showExpandLinks && normEx.length > 0 && (
             <View style={styles.linksCard}>
               <Text style={styles.strHint}>작용이 강한 순 — 충·합 강 / 형·극 중 / 해·파 약</Text>
               {/* ③ 운 합충선 전체 선택/해제(daniel) — 한번에 켜고 끄기 */}
-              <Pressable onPress={() => setActiveExpand((p) => p.size ? new Set<string>() : new Set(normEx.map((x: any) => x.key as string)))} style={{ alignSelf: 'flex-end', paddingVertical: 4, paddingHorizontal: 8 }}>
+              <PressableScale onPress={() => setActiveExpand((p) => p.size ? new Set<string>() : new Set(normEx.map((x: any) => x.key as string)))} style={{ alignSelf: 'flex-end', paddingVertical: 4, paddingHorizontal: 8 }}>
                 <Text style={{ color: colors.ju, fontWeight: '700', fontSize: 12 }}>{activeExpand.size ? '전체 해제' : '전체 선택'}</Text>
-              </Pressable>
+              </PressableScale>
               {renderByStrength(normEx as any[], activeExpand, (k) => toggleKey(setActiveExpand, k))}
             </View>
           )}
@@ -822,14 +823,14 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
           </Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} ref={luckScrollRef} onLayout={(e) => { centerM.current.luck.v = e.nativeEvent.layout.width; recenter('luck', luckScrollRef); }} onContentSizeChange={() => recenter('luck', luckScrollRef)} style={styles.luckScroll} contentContainerStyle={styles.luckScrollC}>
             {luckCycles.map((l, i) => (
-              <Pressable key={i} onPress={() => { setSelLuck(i); setSelSeun(0); }} onLayout={l.isCurrent ? (e) => { centerM.current.luck.x = e.nativeEvent.layout.x; centerM.current.luck.w = e.nativeEvent.layout.width; recenter('luck', luckScrollRef); } : undefined} style={[styles.luckCard, l.isCurrent && styles.luckCardCur, selLuck === i && styles.luckCardSel]}>
+              <PressableScale key={i} onPress={() => { setSelLuck(i); setSelSeun(0); }} onLayout={l.isCurrent ? (e) => { centerM.current.luck.x = e.nativeEvent.layout.x; centerM.current.luck.w = e.nativeEvent.layout.width; recenter('luck', luckScrollRef); } : undefined} style={[styles.luckCard, l.isCurrent && styles.luckCardCur, selLuck === i && styles.luckCardSel]}>
                 <Text style={styles.luckAge}>{l.startAge}세</Text>
                 <Text style={styles.luckTg}>{l.stemTenGod}</Text>
                 <GzCell char={l.stem} kind="stem" size="sm" />
                 <GzCell char={l.branch} kind="branch" size="sm" />
                 <Text style={styles.luckTg}>{branchTenGod(dm, l.branch)}</Text>
                 <Text style={styles.luckStage}>{twelveStage(dm, l.branch)}</Text>
-              </Pressable>
+              </PressableScale>
             ))}
           </ScrollView>
           {/* 세운 타임라인 (선택 대운 10년, 탭 → 확장 명식 갱신) */}
@@ -838,14 +839,14 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
               <Text style={styles.luckSub}>{lc.startAge}세 대운 · 세운 (탭하면 위 명식에 반영)</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} ref={seunScrollRef} onLayout={(e) => { centerM.current.seun.v = e.nativeEvent.layout.width; recenter('seun', seunScrollRef); }} onContentSizeChange={() => recenter('seun', seunScrollRef)} style={styles.luckScroll} contentContainerStyle={styles.luckScrollC}>
                 {lc.annuals.map((a: any, j: number) => (
-                  <Pressable key={j} onPress={() => { setSelSeun(j); setSelMonth(0); }} onLayout={a.year === s.annual?.year ? (e) => { centerM.current.seun.x = e.nativeEvent.layout.x; centerM.current.seun.w = e.nativeEvent.layout.width; recenter('seun', seunScrollRef); } : undefined} style={[styles.seunCard, selSeun === j && styles.luckCardSel, a.year === s.annual?.year && styles.seunCur]}>
+                  <PressableScale key={j} onPress={() => { setSelSeun(j); setSelMonth(0); }} onLayout={a.year === s.annual?.year ? (e) => { centerM.current.seun.x = e.nativeEvent.layout.x; centerM.current.seun.w = e.nativeEvent.layout.width; recenter('seun', seunScrollRef); } : undefined} style={[styles.seunCard, selSeun === j && styles.luckCardSel, a.year === s.annual?.year && styles.seunCur]}>
                     <Text style={styles.seunYear}>{a.year}</Text>
                     <Text style={styles.seunTg}>{a.stemTenGod}</Text>
                     <GzCell char={a.stem} kind="stem" size="xs" />
                     <GzCell char={a.branch} kind="branch" size="xs" />
                     <Text style={styles.seunTg}>{branchTenGod(dm, a.branch)}</Text>
                     <Text style={styles.seunStage}>{twelveStage(dm, a.branch)}</Text>
-                  </Pressable>
+                  </PressableScale>
                 ))}
               </ScrollView>
             </>
@@ -855,14 +856,14 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
               <Text style={styles.luckSub}>{an.year} 세운 · 월운 (탭하면 위 명식에 반영)</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} ref={monthScrollRef} onLayout={(e) => { centerM.current.month.v = e.nativeEvent.layout.width; recenter('month', monthScrollRef); }} onContentSizeChange={() => recenter('month', monthScrollRef)} style={styles.luckScroll} contentContainerStyle={styles.luckScrollC}>
                 {an.months.map((m: any, k: number) => (
-                  <Pressable key={k} onPress={() => setSelMonth(k)} onLayout={selMonth === k ? (e) => { centerM.current.month.x = e.nativeEvent.layout.x; centerM.current.month.w = e.nativeEvent.layout.width; recenter('month', monthScrollRef); } : undefined} style={[styles.seunCard, selMonth === k && styles.luckCardSel]}>
+                  <PressableScale key={k} onPress={() => setSelMonth(k)} onLayout={selMonth === k ? (e) => { centerM.current.month.x = e.nativeEvent.layout.x; centerM.current.month.w = e.nativeEvent.layout.width; recenter('month', monthScrollRef); } : undefined} style={[styles.seunCard, selMonth === k && styles.luckCardSel]}>
                     <Text style={styles.seunYear}>{k + 1}월</Text>
                     <Text style={styles.seunTg}>{m.stemTenGod}</Text>
                     <GzCell char={m.stem} kind="stem" size="xs" />
                     <GzCell char={m.branch} kind="branch" size="xs" />
                     <Text style={styles.seunTg}>{branchTenGod(dm, m.branch)}</Text>
                     <Text style={styles.seunStage}>{twelveStage(dm, m.branch)}</Text>
-                  </Pressable>
+                  </PressableScale>
                 ))}
               </ScrollView>
             </>
@@ -882,10 +883,10 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
                     const isToday = an.year === now.getFullYear() && selMonth === now.getMonth() && dd.day === now.getDate();
                     const isSel = dayItem?.day === dd.day; // 선택된 일운 강조
                     return (
-                      <Pressable key={dd.day} onPress={() => setSelDay(dd.day)} style={[styles.calCell, isToday && styles.calCellToday, isSel && styles.calCellSel]}>
+                      <PressableScale key={dd.day} onPress={() => setSelDay(dd.day)} style={[styles.calCell, isToday && styles.calCellToday, isSel && styles.calCellSel]}>
                         <Text style={[styles.calDay, isToday && styles.calDayToday]}>{dd.day}{isToday ? ' ·오늘' : ''}</Text>
                         <Text style={[styles.calGz, { color: elementColor[stemElement(dd.stem)] }]}>{dd.stem}{dd.branch}</Text>
-                      </Pressable>
+                      </PressableScale>
                     );
                   })}
                 </View>
@@ -906,9 +907,9 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
       <Text style={styles.hint}>{t('myeongsik.sinsalHint')}</Text>
       {/* 전용 상세 화면(분류·의미·활용)으로 — 명식 표는 요약, 깊은 디테일은 따로 */}
       {onSinsal && (
-        <Pressable style={styles.sinsalDetailBtn} onPress={onSinsal}>
+        <PressableScale style={styles.sinsalDetailBtn} onPress={onSinsal}>
           <Text style={styles.sinsalDetailTx}>{t('myeongsik.sinsalDetail')}</Text>
-        </Pressable>
+        </PressableScale>
       )}
       {(() => {
         // 적중(원국) 길신·흉살 병합(천을귀인 등 다중) + 괴강·백호
@@ -926,16 +927,16 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
         const noGm = c.sinsal.gongmangHits.filter((p) => (visiblePos as string[]).includes(p)).length === 0;
         const tag = (name: string, onPress: () => void, key: any) => {
           const g = (SINSAL_GLOSSARY as any)[name];
-          return <Pressable key={key} onPress={onPress}><Text style={styles.ssTagLink}>{g?.ko ?? name}</Text></Pressable>;
+          return <PressableScale key={key} onPress={onPress}><Text style={styles.ssTagLink}>{g?.ko ?? name}</Text></PressableScale>;
         };
         const cellTags = (names: string[]) => names.length ? names.map((n, i) => tag(n, () => setGlossary({ kind: 'sinsal', key: n }), i)) : <Text style={styles.ssDim}>—</Text>;
         const detailRow = (name: string, glyphs: string, hanja: string, kw: string, onPress: () => void) => (
-          <Pressable onPress={onPress} style={styles.ssDRow}>
+          <PressableScale onPress={onPress} style={styles.ssDRow}>
             <Text style={styles.ssDName} numberOfLines={1}>{name}<Text style={styles.ssDHanja}>{hanja ? ` ${hanja}` : ''}</Text></Text>
             <Text style={styles.ssDGlyph}>{glyphs}</Text>
             <Text style={styles.ssDDim}>운에서</Text>
             <Text style={styles.ssDKw} numberOfLines={1}>{kw}</Text>
-          </Pressable>
+          </PressableScale>
         );
         return (
           <>
@@ -1000,22 +1001,22 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
                     <View key={ci} style={styles.ziCell}>
                       <View style={styles.ziTop}>
                         {pl ? (
-                          <Pressable onPress={() => setGlossary({ kind: 'palace', key: pl.name })}><Text style={[styles.ziName, styles.ziLink]}>{pl.name}</Text></Pressable>
+                          <PressableScale onPress={() => setGlossary({ kind: 'palace', key: pl.name })}><Text style={[styles.ziName, styles.ziLink]}>{pl.name}</Text></PressableScale>
                         ) : <Text style={styles.ziName} />}
                         <Text style={[styles.ziBr, { color: elementColor[branchElement(cell)] }]}>{cell}</Text>
                       </View>
                       {pl?.majorStars?.map((st: any, i: number) => (
-                        <Pressable key={i} onPress={() => setGlossary({ kind: 'star', key: st.name })}>
+                        <PressableScale key={i} onPress={() => setGlossary({ kind: 'star', key: st.name })}>
                           <Text style={[styles.ziMajor, styles.ziLink]}>
                             {st.name}<Text style={styles.ziBright}>{brSym[st.brightness] ?? ''}</Text>
                             {(st.transforms ?? []).map((tr: string, j: number) => <Text key={j} style={[styles.ziSihwa, { color: sihwaCol[tr] ?? colors.ink }]}> {tr.slice(-1)}</Text>)}
                           </Text>
-                        </Pressable>
+                        </PressableScale>
                       ))}
                       {pl?.minorStars?.map((s: any, k: number) => (
-                        <Pressable key={`m${k}`} onPress={() => setGlossary({ kind: 'star', key: s.name })}>
+                        <PressableScale key={`m${k}`} onPress={() => setGlossary({ kind: 'star', key: s.name })}>
                           <Text style={[styles.ziMinor, styles.ziLink]}>{s.name}</Text>
-                        </Pressable>
+                        </PressableScale>
                       ))}
                     </View>
                   );
@@ -1031,9 +1032,9 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
       <Text style={styles.note}>{t('myeongsik.note')}</Text>
 
       {onReading && (
-        <Pressable style={styles.readingBtn} onPress={onReading}>
+        <PressableScale style={styles.readingBtn} onPress={onReading}>
           <Text style={styles.readingBtnText}>{t('myeongsik.readingBtn')}</Text>
-        </Pressable>
+        </PressableScale>
       )}
       </Animated.View>
     </ScrollView>
@@ -1054,9 +1055,9 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
                 <View style={styles.sheetChips}>
                   {e.keywords.map((k, i) => <Text key={i} style={styles.sheetChip}>{k}</Text>)}
                 </View>
-                <Pressable style={styles.sheetClose} onPress={() => setGlossary(null)}>
+                <PressableScale style={styles.sheetClose} onPress={() => setGlossary(null)}>
                   <Text style={styles.sheetCloseText}>닫기</Text>
-                </Pressable>
+                </PressableScale>
               </>
             );
           })()}
@@ -1071,9 +1072,9 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
           <View style={styles.sheetHandle} />
           <Text style={styles.sheetTitle}>{MYEONG_TABS.find((x) => x.id === activeTab)?.label}</Text>
           <Text style={styles.sheetMeaning}>{MYEONG_TABS.find((x) => x.id === activeTab)?.desc}</Text>
-          <Pressable style={styles.sheetClose} onPress={() => setCatDescOpen(false)}>
+          <PressableScale style={styles.sheetClose} onPress={() => setCatDescOpen(false)}>
             <Text style={styles.sheetCloseText}>닫기</Text>
-          </Pressable>
+          </PressableScale>
         </Pressable>
       </Pressable>
     </Modal>
@@ -1103,9 +1104,9 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
             })}
             <Text style={styles.sheetMeaning}>* 경향 안내예요. 정확한 풀이는 원국 전체로 봐야 합니다.</Text>
           </ScrollView>
-          <Pressable style={styles.sheetClose} onPress={() => setStrengthOpen(false)}>
+          <PressableScale style={styles.sheetClose} onPress={() => setStrengthOpen(false)}>
             <Text style={styles.sheetCloseText}>닫기</Text>
-          </Pressable>
+          </PressableScale>
         </Pressable>
       </Pressable>
     </Modal>
@@ -1143,9 +1144,9 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
             })()}
             <Text style={styles.sheetMeaning}>* 쏠림 경향 안내예요(대응법=개운법). 정확한 풀이는 원국 전체로 봐야 합니다.</Text>
           </ScrollView>
-          <Pressable style={styles.sheetClose} onPress={() => setJohuOpen(false)}>
+          <PressableScale style={styles.sheetClose} onPress={() => setJohuOpen(false)}>
             <Text style={styles.sheetCloseText}>닫기</Text>
-          </Pressable>
+          </PressableScale>
         </Pressable>
       </Pressable>
     </Modal>

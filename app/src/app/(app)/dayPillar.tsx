@@ -6,6 +6,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useMemo, useState, useRef } from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet, ImageBackground, Animated, Easing, InteractionManager } from 'react-native';
+import { PressableScale } from '../../components/PressableScale';
 import { Stack } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { computeChart } from '../../lib/engine/engine';
@@ -154,9 +155,9 @@ export default function DayPillarScreen() {
       {admin && (
         <View style={styles.toggle}>
           {(['남', '여'] as const).map((g) => (
-            <Pressable key={g} style={[styles.toggleBtn, sex === g && styles.toggleOn]} onPress={() => setSex(g)}>
+            <PressableScale key={g} style={[styles.toggleBtn, sex === g && styles.toggleOn]} onPress={() => setSex(g)}>
               <Text style={[styles.toggleTx, sex === g && styles.toggleTxOn]}>{t(g === '남' ? 'dayPillar.male' : 'dayPillar.female')}</Text>
-            </Pressable>
+            </PressableScale>
           ))}
         </View>
       )}
@@ -203,7 +204,7 @@ export default function DayPillarScreen() {
               {keys.map((k) => {
                 const isOpen = open.has(k);
                 return (
-                  <Pressable key={k} onPress={() => toggle(k)} style={[styles.card, styles.row, k === myKey && styles.rowMineHi]}>
+                  <PressableScale key={k} onPress={() => toggle(k)} style={[styles.card, styles.row, k === myKey && styles.rowMineHi]}>
                     <View style={styles.rowHead}>
                       <Text style={styles.rowKey}>{label(k)}</Text>
                       <Text style={styles.chevron}>{isOpen ? '▴' : '▾'}</Text>
@@ -212,7 +213,7 @@ export default function DayPillarScreen() {
                       {DAY_PILLAR[k].keywords.map((w) => (<View key={w} style={styles.kw}><Text style={styles.kwTx}>{w}</Text></View>))}
                     </View>
                     {isOpen && (<><View style={styles.gap} />{renderSections(k, sex)}</>)}
-                  </Pressable>
+                  </PressableScale>
                 );
               })}
             </View>
@@ -224,7 +225,7 @@ export default function DayPillarScreen() {
           const ok = `${it.key}_${i}`; // 명식별 고유 토글 키(같은 일주 중복 대비)
           const isOpen = open.has(ok);
           return (
-            <Pressable key={ok} onPress={() => toggle(ok)} style={[styles.card, styles.row, it.key === myKey && styles.rowMineHi]}>
+            <PressableScale key={ok} onPress={() => toggle(ok)} style={[styles.card, styles.row, it.key === myKey && styles.rowMineHi]}>
               <View style={styles.rowHead}>
                 <Text style={styles.rowKey}>{it.label} · {label(it.key)}</Text>
                 <Text style={styles.chevron}>{isOpen ? '▴' : '▾'}</Text>
@@ -233,7 +234,7 @@ export default function DayPillarScreen() {
                 {DAY_PILLAR[it.key].keywords.map((w) => (<View key={w} style={styles.kw}><Text style={styles.kwTx}>{w}</Text></View>))}
               </View>
               {isOpen && (<><View style={styles.gap} />{renderSections(it.key, it.sex)}</>)}
-            </Pressable>
+            </PressableScale>
           );
         })
       )}

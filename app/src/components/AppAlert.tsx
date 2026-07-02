@@ -4,6 +4,7 @@
 //   버튼 style: cancel(가라앉은 회색)·destructive(빨강)·default(골드). 2개 이하=가로, 3개+=세로.
 // ─────────────────────────────────────────────────────────────────────────
 import { Modal, View, Text, Pressable, StyleSheet } from 'react-native';
+import { PressableScale } from './PressableScale';
 import { useEffect, useState } from 'react';
 import { registerAlertHost, alertDismissed, type AlertOpts } from '../lib/ui/alert';
 import { colors, radius, space, shadow, font } from '../lib/theme';
@@ -32,11 +33,11 @@ export function AppAlert() {
                 const danger = b.style === 'destructive';
                 const cancel = b.style === 'cancel';
                 return (
-                  <Pressable key={i}
+                  <PressableScale key={i}
                     style={[styles.btn, horizontal && styles.btnFlex, cancel && styles.btnCancel, danger && styles.btnDanger]}
                     onPress={() => { const cb = b.onPress; close(); cb?.(); }}>
                     <Text style={[styles.btnTx, cancel && styles.btnTxCancel, danger && styles.btnTxDanger]}>{b.text}</Text>
-                  </Pressable>
+                  </PressableScale>
                 );
               })}
             </View>

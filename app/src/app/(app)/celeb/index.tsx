@@ -5,6 +5,7 @@
 // ⚠️ 재미·추정 콘텐츠. 투자/정치 단정 절대 금지. 명예 존중.
 // ─────────────────────────────────────────────────────────────────────────
 import { View, Text, ScrollView, StyleSheet, Pressable, ImageBackground } from 'react-native';
+import { PressableScale } from '../../../components/PressableScale';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { CELEB_DB } from '../../../lib/content/celebData';       // 결정론 DB (celebData.ts)
@@ -26,7 +27,7 @@ export default function CelebIndex() {
         {/* 인물 그리드 */}
         <View style={styles.grid}>
           {CELEB_DB.map((c) => (
-            <Pressable
+            <PressableScale
               key={c.id}
               style={styles.card}
               onPress={() => router.push(`/celeb/${c.id}`)}
@@ -35,7 +36,7 @@ export default function CelebIndex() {
               <Text style={styles.name}>{c.name}</Text>
               <Text style={styles.role}>{c.role}</Text>
               <Text style={styles.blurb}>{c.blurb}</Text>
-            </Pressable>
+            </PressableScale>
           ))}
         </View>
 

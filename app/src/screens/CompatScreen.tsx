@@ -7,6 +7,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useEffect, useRef } from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator, Modal, TextInput, Keyboard, Image, Animated, Easing } from 'react-native';
+import { PressableScale } from '../components/PressableScale';
 import { useSafeAreaInsets } from 'react-native-safe-area-context'; // 모달 상단 노치/상태바 침범 방지(J)
 import { Alert } from '../lib/ui/alert'; // 커스텀 알림(앱 디자인)
 import { useTranslation } from 'react-i18next';
@@ -252,24 +253,24 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
       {/* ── 단계형 위저드(daniel: 궁합 새 디자인) — 나❤상대 헤더 → ①상대 → ②관계 → ③관점 → 풀이 ── */}
       {/* 나 ❤ 상대 — 한 줄 컴팩트 헤더(각자 탭하면 변경/선택). 큰 슬롯·갈색 분석버튼 제거 */}
       <View style={styles.wizPair}>
-        <Pressable style={styles.wizPerson} onPress={() => setPickFor('me')}>
+        <PressableScale style={styles.wizPerson} onPress={() => setPickFor('me')}>
           <Text style={styles.wizRole}>{t('compat.mySlot', '나')}</Text>
           <Text style={styles.wizName} numberOfLines={1}>{meSel?.label ?? t('compat.mySlot', '나')}</Text>
-        </Pressable>
+        </PressableScale>
         <Text style={styles.wizHeart}>↔</Text>{/* daniel: 하트 X(연애 전용 아님) → 중립 상호관계 기호 */}
-        <Pressable style={[styles.wizPerson, !otherSel && styles.wizPersonEmpty]} onPress={() => setPickFor('other')}>
+        <PressableScale style={[styles.wizPerson, !otherSel && styles.wizPersonEmpty]} onPress={() => setPickFor('other')}>
           <Text style={styles.wizRole}>{t('compat.otherSlot', '상대')}</Text>
           <Text style={[styles.wizName, !otherSel && styles.wizNameEmpty]} numberOfLines={1}>{otherSel?.label ?? t('compat.wizPickShort', '탭해서 선택')}</Text>
-        </Pressable>
+        </PressableScale>
       </View>
 
       {/* ① 누구와 — 상대 미선택 시 안내(선택하면 자동 분석 → 다음 단계 펼쳐짐) */}
       {!otherSel && (
         <View style={styles.wizStep}>
           <Text style={styles.stepLabel}>{t('compat.step1', '① 누구와 볼까요?')}</Text>
-          <Pressable style={styles.wizSelectBtn} onPress={() => setPickFor('other')}>
+          <PressableScale style={styles.wizSelectBtn} onPress={() => setPickFor('other')}>
             <Text style={styles.wizSelectBtnTx}>{t('compat.otherPick', '상대 선택 · 새 상대 등록')}</Text>
-          </Pressable>
+          </PressableScale>
         </View>
       )}
 
@@ -280,29 +281,29 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
           <Text style={styles.stepLabel}>{t('compat.step2', '② 어떤 사이인가요?')}</Text>
           <View style={styles.relChips}>
             {COMPAT_RELS.map((r) => (
-              <Pressable key={r.key} style={[styles.relChip, rel === r.key && styles.relChipOn]} onPress={() => setRel(r.key)}>
+              <PressableScale key={r.key} style={[styles.relChip, rel === r.key && styles.relChipOn]} onPress={() => setRel(r.key)}>
                 <Text style={[styles.relChipTx, rel === r.key && styles.relChipTxOn]}>{t(r.tk)}</Text>
-              </Pressable>
+              </PressableScale>
             ))}
           </View>
           {/* ③ 무엇으로 볼까? — 사주/자미 관점(결제 쌍당 1회 공유·자미 온디맨드) + 년도 */}
           <Text style={[styles.stepLabel, { marginTop: space(4) }]}>{t('compat.step3', '③ 무엇으로 볼까요?')}</Text>
           <View style={styles.compatTabBar}>
             {([['saju', '사주로 본 궁합'], ['ziwei', '자미두수로 본 궁합']] as const).map(([id, label]) => (
-              <Pressable key={id} style={[styles.compatTab, compatTab === id && styles.compatTabOn]} onPress={() => setCompatTab(id)}>
+              <PressableScale key={id} style={[styles.compatTab, compatTab === id && styles.compatTabOn]} onPress={() => setCompatTab(id)}>
                 <Text style={[styles.compatTabTx, compatTab === id && styles.compatTabTxOn]} numberOfLines={1}>{label}</Text>
-              </Pressable>
+              </PressableScale>
             ))}
           </View>
           {/* 연도별 — 전체(원국 본바탕) / 그 해 흐름(세운). 연도 탭 시 그 관계×연도 통변 생성 */}
           <View style={styles.yearChips}>
-            <Pressable style={[styles.yearChip, !year && styles.yearChipOn]} onPress={() => setYear('')}>
+            <PressableScale style={[styles.yearChip, !year && styles.yearChipOn]} onPress={() => setYear('')}>
               <Text style={[styles.yearChipTx, !year && styles.yearChipTxOn]}>{t('compat.yearAll')}</Text>
-            </Pressable>
+            </PressableScale>
             {/* K(daniel): 고정 5칸 → 드롭다운(전체 년도 스크롤 선택) */}
-            <Pressable style={[styles.yearChip, !!year && styles.yearChipOn]} onPress={() => setYearOpen(true)}>
+            <PressableScale style={[styles.yearChip, !!year && styles.yearChipOn]} onPress={() => setYearOpen(true)}>
               <Text style={[styles.yearChipTx, !!year && styles.yearChipTxOn]}>{year ? `${year}년` : t('compat.yearPick', '년도 선택')} ▾</Text>
-            </Pressable>
+            </PressableScale>
           </View>
           {/* 선택한 관계 카테고리 배너(daniel: 카테고리별 이미지) */}
           {CAT_IMG[rel] && <Image source={CAT_IMG[rel]} style={styles.catBanner} resizeMode="cover" />}
@@ -343,19 +344,19 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
             <View style={{ paddingVertical: space(8), alignItems: 'center' }}><ActivityIndicator color={colors.ju} /></View>
           ) : (
             // 비용 보호(daniel J/L): 미생성 관계는 자동 호출 않고 '생성' 버튼 → alert 확인 후 1건만(genOne)
-            <Pressable onPress={() => genOne(rel, year)} style={{ alignItems: 'center', backgroundColor: colors.ju, borderRadius: radius.md, paddingVertical: space(4), paddingHorizontal: space(5), marginTop: space(4), gap: space(1) }}>
+            <PressableScale onPress={() => genOne(rel, year)} style={{ alignItems: 'center', backgroundColor: colors.ju, borderRadius: radius.md, paddingVertical: space(4), paddingHorizontal: space(5), marginTop: space(4), gap: space(1) }}>
               <Text style={{ color: colors.bg, fontWeight: '900', fontSize: 16 }}>{t('compat.genCta', '이 관계 풀이 만들기')}</Text>
               <Text style={{ color: colors.bg, opacity: 0.85, fontSize: 12, fontWeight: '600' }}>{t('compat.genCtaSub', '확인 후 이용권 1회 또는 결제')}</Text>
-            </Pressable>
+            </PressableScale>
           )}
 
           {/* 추가질문 — 통변이 있을 때만(관계유형/연도 키별, 사주·자미와 동일) */}
           {cur && renderFollowups(curKey)}
 
           {/* 글자 작용 자세히(접이식 — 근거·글라스박스) */}
-          <Pressable style={styles.detailToggle} onPress={() => setShowDetail((v) => !v)}>
+          <PressableScale style={styles.detailToggle} onPress={() => setShowDetail((v) => !v)}>
             <Text style={styles.detailToggleTx}>{showDetail ? '▾' : '▸'} {t('compat.detailToggle')}</Text>
-          </Pressable>
+          </PressableScale>
           {showDetail && renderCrossDetail()}
         </>
       )}
@@ -366,7 +367,7 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
       <View style={styles.modalRoot}>
         <View style={[styles.modalHeader, { paddingTop: insets.top + space(3) }]}>
           <Text style={styles.modalTitle}>{t('compat.registerOtherTitle')}</Text>
-          <Pressable onPress={() => setOtherReg(false)} hitSlop={10}><Text style={styles.modalClose}>✕</Text></Pressable>
+          <PressableScale onPress={() => setOtherReg(false)} hitSlop={10}><Text style={styles.modalClose}>✕</Text></PressableScale>
         </View>
         <ChartRegisterScreen defaultRelation="지인" submitLabel={t('compat.registerOtherSubmit')} showMakeRep={false} onSubmit={onRegisterOther} />
       </View>
@@ -380,7 +381,7 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
             {saved.filter((s) => pickFor === 'other' ? s.id !== meSel?.id : true).map((s) => {
               const on = pickFor === 'me' ? meSel?.id === s.id : otherSel?.id === s.id;
               return (
-                <Pressable key={s.id} style={[styles.pickRow, on && styles.pickRowOn]} onPress={() => { if (pickFor === 'me') setMeSel(s); else setOtherSel(s); setPickFor(null); }}>
+                <PressableScale key={s.id} style={[styles.pickRow, on && styles.pickRowOn]} onPress={() => { if (pickFor === 'me') setMeSel(s); else setOtherSel(s); setPickFor(null); }}>
                   <View style={{ flex: 1 }}>
                     <Text style={[styles.pickRowTx, on && styles.pickRowTxOn]} numberOfLines={1}>{s.label}</Text>
                     {/* 날짜+시간 노출(daniel: 시간도) */}
@@ -389,14 +390,14 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
                   {/* 카테고리(관계)를 우측에(daniel: 카테고리도 오른쪽에) */}
                   <Text style={{ color: colors.inkFaint, fontSize: fs(11), marginHorizontal: space(1.5) }} numberOfLines={1}>{s.relation === 'self' ? t('register.selfLabel') : s.relation}</Text>
                   {on ? <Text style={styles.pickCheck}>✓</Text> : null}
-                </Pressable>
+                </PressableScale>
               );
             })}
           </ScrollView>
           {pickFor === 'other' && (
-            <Pressable style={[styles.regOtherBtn, { marginTop: space(3) }]} onPress={() => { setPickFor(null); setOtherReg(true); }}>
+            <PressableScale style={[styles.regOtherBtn, { marginTop: space(3) }]} onPress={() => { setPickFor(null); setOtherReg(true); }}>
               <Text style={styles.regOtherTx}>＋ {t('compat.registerOther')}</Text>
-            </Pressable>
+            </PressableScale>
           )}
         </Pressable>
       </Pressable>
@@ -408,15 +409,15 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
         <Pressable style={[styles.pickSheet, { paddingBottom: insets.bottom + space(4) }]} onPress={() => {}}>
           <Text style={styles.pickHead}>{t('compat.yearPick', '년도 선택')}</Text>
           <ScrollView style={{ maxHeight: 400 }} showsVerticalScrollIndicator>
-            <Pressable style={[styles.pickRow, !year && styles.pickRowOn]} onPress={() => { setYear(''); setYearOpen(false); }}>
+            <PressableScale style={[styles.pickRow, !year && styles.pickRowOn]} onPress={() => { setYear(''); setYearOpen(false); }}>
               <Text style={[styles.pickRowTx, !year && styles.pickRowTxOn]}>{t('compat.yearAll')}</Text>
               {!year ? <Text style={styles.pickCheck}>✓</Text> : null}
-            </Pressable>
+            </PressableScale>
             {YEARS.map((y) => { const ys = String(y); const on = year === ys; return (
-              <Pressable key={ys} style={[styles.pickRow, on && styles.pickRowOn]} onPress={() => { setYear(ys); setYearOpen(false); }}>
+              <PressableScale key={ys} style={[styles.pickRow, on && styles.pickRowOn]} onPress={() => { setYear(ys); setYearOpen(false); }}>
                 <Text style={[styles.pickRowTx, on && styles.pickRowTxOn]}>{ys}년</Text>
                 {on ? <Text style={styles.pickCheck}>✓</Text> : null}
-              </Pressable>
+              </PressableScale>
             ); })}
           </ScrollView>
         </Pressable>
@@ -469,15 +470,15 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
               {/* singleline — 50자 제한이라 한 줄로 충분, iOS/Android 모두 텍스트가 칸 세로중앙 자동정렬(daniel: y축 한가운데) */}
               <TextInput style={styles.askInput} value={askInput} onChangeText={setAskInput} placeholder={t('reading.askPh')} placeholderTextColor={colors.inkFaint} maxLength={50} editable={!asking} returnKeyType="send" onSubmitEditing={() => submitFollowup()} />
               <Text style={styles.askLen}>{askInput.length}/50</Text>
-              <Pressable style={[styles.askSend, (!askInput.trim() || asking) && styles.askSendOff]} onPress={() => submitFollowup()} disabled={!askInput.trim() || asking}>
+              <PressableScale style={[styles.askSend, (!askInput.trim() || asking) && styles.askSendOff]} onPress={() => submitFollowup()} disabled={!askInput.trim() || asking}>
                 {asking ? <ActivityIndicator color={colors.bg} size="small" /> : <Text style={styles.askSendTx}>{t('reading.askSend')}</Text>}
-              </Pressable>
+              </PressableScale>
             </View>
           </>
         ) : (
-          <Pressable style={styles.askLock} onPress={() => Alert.alert(t('reading.askPremiumTitle'), t('reading.askPremiumMsg'))}>
+          <PressableScale style={styles.askLock} onPress={() => Alert.alert(t('reading.askPremiumTitle'), t('reading.askPremiumMsg'))}>
             <Text style={styles.askLockTx}>🔒 {t('reading.askPremiumCta')}</Text>
-          </Pressable>
+          </PressableScale>
         )}
       </View>
     );
@@ -541,9 +542,9 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
                     const ca = isGan ? pa.stem : pa.branch, cb = isGan ? pb.stem : pb.branch;
                     const key = rowKey(it), on = active.has(key);
                     return (
-                      <Pressable key={i} onPress={() => toggleActive(key)} style={[styles.cmLinkRow, on && { borderLeftColor: col, backgroundColor: colors.sunk }]}>
+                      <PressableScale key={i} onPress={() => toggleActive(key)} style={[styles.cmLinkRow, on && { borderLeftColor: col, backgroundColor: colors.sunk }]}>
                         <Text style={styles.cmLink}>{on ? '◉ ' : '○ '}{pa.who}·{pa.label} <Text style={{ color: elementColor[isGan ? stemElement(ca) : branchElement(ca)], fontWeight: '800' }}>{ca}</Text>{'  ⟷  '}{pb.who}·{pb.label} <Text style={{ color: elementColor[isGan ? stemElement(cb) : branchElement(cb)], fontWeight: '800' }}>{cb}</Text>{'   '}<Text style={{ color: col, fontWeight: '800' }}>{it.type}{it.transformsTo ? ` ${it.transformsTo}` : ''}</Text></Text>
-                      </Pressable>
+                      </PressableScale>
                     );
                   })}
                 </View>

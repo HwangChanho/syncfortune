@@ -6,6 +6,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useMemo, useState, useEffect } from 'react';
 import { View, Text, ScrollView, StyleSheet, Pressable } from 'react-native';
+import { PressableScale } from '../../components/PressableScale';
 import { useTranslation } from 'react-i18next';
 import { useRouter } from 'expo-router';
 import { computeChart } from '../../lib/engine/engine';
@@ -50,7 +51,7 @@ export default function ImpressionScreen() {
       {!saved || !c ? (
         <View style={styles.emptyBox}>
           <Text style={styles.empty}>{t('manse.empty', '먼저 명식을 등록해 주세요.')}</Text>
-          <Pressable style={styles.cta} onPress={() => router.push('/register')}><Text style={styles.ctaTx}>{t('compat.registerMyChart', '내 명식 등록')}</Text></Pressable>
+          <PressableScale style={styles.cta} onPress={() => router.push('/register')}><Text style={styles.ctaTx}>{t('compat.registerMyChart', '내 명식 등록')}</Text></PressableScale>
         </View>
       ) : (
         <>

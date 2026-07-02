@@ -5,6 +5,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useState } from 'react';
 import { View, Text, Pressable, ActivityIndicator, StyleSheet } from 'react-native';
+import { PressableScale } from '../../components/PressableScale';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { CompatScreen } from '../../screens/CompatScreen';
@@ -34,9 +35,9 @@ export default function CompatRoute() {
     return (
       <View style={styles.center}>
         <Text style={styles.msg}>{t('compat.needChart')}</Text>
-        <Pressable style={styles.btn} onPress={() => router.push('/register')}>
+        <PressableScale style={styles.btn} onPress={() => router.push('/register')}>
           <Text style={styles.btnText}>{t('compat.registerMyChart')}</Text>
-        </Pressable>
+        </PressableScale>
       </View>
     );
   }

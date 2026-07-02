@@ -5,6 +5,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useMemo, useCallback } from 'react';
 import { View, Text, Pressable, ActivityIndicator, ScrollView, StyleSheet, ImageBackground, Image } from 'react-native';
+import { PressableScale } from '../../components/PressableScale';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { computeChart } from '../../lib/engine/engine';
@@ -56,9 +57,9 @@ export default function JoseonJobScreen() {
   if (!result) return (
     <View style={styles.center}>
       <Text style={styles.msg}>{t('compat.needChart', '먼저 명식을 등록해 주세요.')}</Text>
-      <Pressable style={styles.btn} onPress={() => router.push('/register')}>
+      <PressableScale style={styles.btn} onPress={() => router.push('/register')}>
         <Text style={styles.btnText}>{t('compat.registerMyChart', '내 명식 등록')}</Text>
-      </Pressable>
+      </PressableScale>
     </View>
   );
 
@@ -97,9 +98,9 @@ export default function JoseonJobScreen() {
         <Text style={styles.note}>{t('joseonjob.note', '※ 사주 십신으로 가볍게 본 조선시대 직업이에요. 재미로 즐겨 주세요.')}</Text>
 
         {/* 유료 상세(내 사주 깊이 보기) */}
-        <Pressable style={styles.cta} onPress={() => router.navigate({ pathname: '/reading', params: { input: JSON.stringify(me) } })}>
+        <PressableScale style={styles.cta} onPress={() => router.navigate({ pathname: '/reading', params: { input: JSON.stringify(me) } })}>
           <Text style={styles.ctaText}>{t('joseonjob.detail', '내 사주 깊이 보기 (프리미엄)')}</Text>
-        </Pressable>
+        </PressableScale>
       </ScrollView>
     </ImageBackground>
   );

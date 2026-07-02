@@ -3,7 +3,7 @@
 // 탭 피드백(눌림 표시·daniel 07-01): 누르면 살짝 작아지고(scale) 흐려졌다가(opacity) 스프링으로 복귀.
 //   Pressable 드롭인 대체 — style·onPress 등 그대로 쓰고, 누른 순간 시각 피드백만 더한다.
 //   ref 전달(forwardRef)하므로 measureInWindow 등 필요한 곳(홈 카드)에서도 그대로 동작.
-//   ※ style 이 함수(({pressed})=>…)인 Pressable에는 쓰지 말 것(정적 style 전용).
+//   ★정적 style·함수형 style(({pressed})=>…) 모두 지원 = 어떤 Pressable이든 안전한 드롭인(daniel 07-02: 모든 버튼 누름 애니).
 // ─────────────────────────────────────────────────────────────────────────
 import { forwardRef, useRef } from 'react';
 import { Animated, Pressable, type PressableProps } from 'react-native';
@@ -30,7 +30,8 @@ export const PressableScale = forwardRef<any, Props>(function PressableScale(
       {...rest}
       onPressIn={(e) => { Animated.spring(a, { toValue: 1, useNativeDriver: true, speed: 50, bounciness: 0 }).start(); onPressIn?.(e); }}
       onPressOut={(e) => { Animated.spring(a, { toValue: 0, useNativeDriver: true, speed: 18, bounciness: 8 }).start(); onPressOut?.(e); }}
-      style={[style as any, anim]}
+      // 정적 style이면 [style, anim] / 함수형 style이면 (state)=>[style(state), anim] — 둘 다 안전.
+      style={typeof style === 'function' ? (state: any) => [(style as any)(state), anim] : [style as any, anim]}
     >
       {children as any}
     </AnimatedPressable>

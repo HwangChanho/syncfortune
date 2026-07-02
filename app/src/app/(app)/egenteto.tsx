@@ -8,6 +8,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useState, useRef } from 'react';
 import { View, Text, StyleSheet, ImageBackground, ScrollView, Pressable, ActivityIndicator, Animated, Easing } from 'react-native';
+import { PressableScale } from '../../components/PressableScale';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { loadRepChart, type SavedChart } from '../../lib/engine/myChart';
@@ -80,9 +81,9 @@ export default function EgenTetoScreen() {
           // 명식 미등록 — 등록 유도
           <View style={styles.card}>
             <Text style={styles.readTx}>{t('egen.needChart', '먼저 명식을 등록해 주세요.')}</Text>
-            <Pressable style={styles.regBtn} onPress={() => router.push('/register')}>
+            <PressableScale style={styles.regBtn} onPress={() => router.push('/register')}>
               <Text style={styles.regBtnTx}>{t('egen.registerBtn', '명식 등록하기')}</Text>
-            </Pressable>
+            </PressableScale>
           </View>
         ) : result ? (
           <>

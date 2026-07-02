@@ -7,6 +7,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useMemo, useState, useRef, type ReactNode } from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator, Animated, Easing } from 'react-native';
+import { PressableScale } from './PressableScale';
 import { ExpiryNote } from './ExpiryNote'; // 보유 만료일 공통(프리미엄 가드 한 곳)
 import { Image as ExpoImage } from 'expo-image'; // 콘텐츠 배너 — 자동 다운샘플·디스크캐시(daniel: 이미지 프리로드/캐시). 홈카드와 같은 파일 캐시 공유 → 콘텐츠 진입 즉시
 import { Alert } from '../lib/ui/alert'; // 커스텀 알림(앱 디자인)
@@ -205,7 +206,7 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
   if (!savedChart) return (
     <View style={styles.center}>
       <Text style={[styles.msg, dynStyles.msg]}>{t('manse.empty')}</Text>
-      <Pressable style={styles.cta} onPress={() => router.push('/register')}><Text style={[styles.ctaTx, dynStyles.ctaTx]}>{t('compat.registerMyChart')}</Text></Pressable>
+      <PressableScale style={styles.cta} onPress={() => router.push('/register')}><Text style={[styles.ctaTx, dynStyles.ctaTx]}>{t('compat.registerMyChart')}</Text></PressableScale>
     </View>
   );
 
@@ -253,7 +254,7 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
             <Text style={[styles.previewHead, { color: themeColor }, dynStyles.previewHead]}>{t('special.previewHead', '이런 걸 풀어드려요')}</Text>
             {sections.filter((s) => s.key !== 'summary').map((s) => <Text key={s.key} style={[styles.previewItem, dynStyles.previewItem]}>· {s.label}</Text>)}
           </View>
-          <Pressable style={[styles.cta, { backgroundColor: themeColor }]} onPress={onStart}><Text style={[styles.ctaTx, dynStyles.ctaTx]}>{t('special.unlockCta', '구매하고 보기')}</Text></Pressable>
+          <PressableScale style={[styles.cta, { backgroundColor: themeColor }]} onPress={onStart}><Text style={[styles.ctaTx, dynStyles.ctaTx]}>{t('special.unlockCta', '구매하고 보기')}</Text></PressableScale>
           <Text style={[styles.gateNote, dynStyles.gateNote]}>{t('special.unlockHint', '이용권 구매 또는 쿠폰으로 열려요')}</Text>
         </View>
       )}

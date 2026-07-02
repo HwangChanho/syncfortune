@@ -291,42 +291,42 @@ export default function Home() {
             <Text style={styles.title}>{t('appName')}</Text>
             <Text style={styles.sub}>{t('tagline')}</Text>
           </View>
-          <Pressable onPress={() => router.push('/settings')} hitSlop={10} style={styles.accountBtn}>
+          <PressableScale onPress={() => router.push('/settings')} hitSlop={10} style={styles.accountBtn}>
             <Text style={styles.accountIcon}>👤</Text>
-          </Pressable>
+          </PressableScale>
         </View>
         <View style={styles.divider} />
         {/* 통변 생성 진행률(daniel) — 여러 개 동시 풀이 가능 → route별 배너 여러 개. 탭=그 화면 이동 + 그 배너만 닫기. */}
         {gen.map((g) => (g.total > 0 && g.done >= g.total ? (
           // 완료(daniel 이슈13): '풀이 보기' — 탭하면 그 화면 이동 + 그 배너만 닫기(다른 풀이 배너는 유지).
-          <Pressable key={g.route} onPress={() => { clearGenProgress(g.route); router.navigate(g.route as any); }} style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.ju, borderRadius: radius.md, paddingVertical: space(2.5), paddingHorizontal: space(4), marginBottom: space(3), gap: space(2) }}>
+          <PressableScale key={g.route} onPress={() => { clearGenProgress(g.route); router.navigate(g.route as any); }} style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.ju, borderRadius: radius.md, paddingVertical: space(2.5), paddingHorizontal: space(4), marginBottom: space(3), gap: space(2) }}>
             <Text style={{ color: colors.bg, fontWeight: '800', fontSize: fs(13), flex: 1 }}>{g.chartLabel ? g.chartLabel + ' — ' : ''}{g.label} 풀이가 완성됐어요!</Text>
             <Text style={{ color: colors.bg, fontWeight: '800', fontSize: fs(13) }}>풀이 보기 ›</Text>
-          </Pressable>
+          </PressableScale>
         ) : (
-          <Pressable key={g.route} onPress={() => router.navigate(g.route as any)} style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.juSoft, borderColor: colors.ju, borderWidth: 1, borderRadius: radius.md, paddingVertical: space(2.5), paddingHorizontal: space(4), marginBottom: space(3), gap: space(2) }}>
+          <PressableScale key={g.route} onPress={() => router.navigate(g.route as any)} style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.juSoft, borderColor: colors.ju, borderWidth: 1, borderRadius: radius.md, paddingVertical: space(2.5), paddingHorizontal: space(4), marginBottom: space(3), gap: space(2) }}>
             <Text style={{ color: colors.ju, fontWeight: '700', fontSize: fs(13), flex: 1 }}>{g.restored ? `이전에 진행중이던 ${g.chartLabel ? g.chartLabel + ' — ' : ''}${g.label} 풀이가 있어요` : `${g.chartLabel ? g.chartLabel + ' — ' : ''}${g.label} 풀이 중… ${g.total > 1 ? `${g.done}/${g.total} ` : ''}${genPct(g.done, g.total, g.startedAt)}%`}</Text>
             <Text style={{ color: colors.ju, fontWeight: '700', fontSize: fs(13) }}>이어보기 ›</Text>
-          </Pressable>
+          </PressableScale>
         )))}
 
         {/* 오늘/내일 기운 — 토글 또는 좌우 슬라이드(가로 페이징·daniel). 본문 탭 → 상세(분야별, 같은 offset). */}
         <View style={styles.fortuneBanner}>
           {!hasChart ? (
             // H1(daniel): 명식 미등록 → 오늘/내일 운세 대신 등록 안내(탭하면 등록창)
-            <Pressable onPress={() => router.push('/register')} style={{ alignItems: 'center', paddingVertical: space(5), gap: space(2) }}>
+            <PressableScale onPress={() => router.push('/register')} style={{ alignItems: 'center', paddingVertical: space(5), gap: space(2) }}>
               <Text style={{ color: colors.ju, fontWeight: '900', fontSize: fs(16), textAlign: 'center' }}>{t('home.noChartTitle', '명식을 등록하면 오늘·내일 운세를 봐요')}</Text>
               <Text style={{ color: colors.inkSoft, fontSize: fs(13), textAlign: 'center' }}>{t('home.noChartSub', '생년월일시로 나의 사주를 먼저 등록해 주세요')}</Text>
               <View style={{ backgroundColor: colors.ju, borderRadius: radius.md, paddingVertical: space(2.5), paddingHorizontal: space(6), marginTop: space(2) }}>
                 <Text style={{ color: colors.bg, fontWeight: '800', fontSize: fs(14) }}>{t('home.noChartCta', '+ 명식 등록')}</Text>
               </View>
-            </Pressable>
+            </PressableScale>
           ) : (<>
           <View style={styles.dayToggle}>
             {([0, 1] as const).map((off) => (
-              <Pressable key={off} style={[styles.dayTogChip, dayOffset === off && styles.dayTogChipOn]} onPress={() => goDay(off)}>
+              <PressableScale key={off} style={[styles.dayTogChip, dayOffset === off && styles.dayTogChipOn]} onPress={() => goDay(off)}>
                 <Text style={[styles.dayTogTx, dayOffset === off && styles.dayTogTxOn]}>{t(off === 0 ? 'today.today' : 'today.tomorrow')}</Text>
-              </Pressable>
+              </PressableScale>
             ))}
           </View>
           {/* 가로 페이징 = 손가락 따라 슬라이드. onLayout 으로 페이지 폭 확정 → 한 페이지씩 스냅. */}
@@ -342,7 +342,7 @@ export default function Home() {
                 const f = fortunes[off];
                 const d = dayData[off];
                 return (
-                  <Pressable key={off} style={{ width: pageW }} onPress={() => router.push(`/today?offset=${off}`)}>
+                  <PressableScale key={off} style={{ width: pageW }} onPress={() => router.push(`/today?offset=${off}`)}>
                     <Text style={styles.bannerDate}>{f.date} ({t('today.weekdaysShort').split(',')[new Date(f.date + 'T00:00:00').getDay()] ?? ''})</Text>
                     <View style={styles.bannerPillarRow}>
                       <Text style={styles.bannerPillar}>{off === 0 ? t('today.dayPillar') : t('today.energyTomorrow')}</Text>
@@ -360,7 +360,7 @@ export default function Home() {
                     {d.headline && <Text style={[styles.bannerHeadline, { fontSize: fs(16) }]}>{d.headline}</Text>}
                     {d.prose && <Text style={[styles.bannerProse, { fontSize: fs(15), lineHeight: fs(22) }]} numberOfLines={3}>{d.prose}</Text>}
                     {d.prose && <Text style={styles.bannerMore}>{t('today.more')}</Text>}
-                  </Pressable>
+                  </PressableScale>
                 );
               })}
             </ScrollView>
@@ -453,9 +453,9 @@ export default function Home() {
         {/* 로그인 = 선택 (로그아웃은 설정에서 — daniel: 홈 하단 로그아웃 버튼 제거) */}
         <View style={styles.authRow}>
           {!session && (
-            <Pressable onPress={() => router.push('/login')}>
+            <PressableScale onPress={() => router.push('/login')}>
               <Text style={styles.linkText}>{t('common.loginOptional')}</Text>
-            </Pressable>
+            </PressableScale>
           )}
         </View>
       </Animated.View>

@@ -6,6 +6,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useMemo, useCallback } from 'react';
 import { View, Text, Pressable, ActivityIndicator, ScrollView, StyleSheet, ImageBackground } from 'react-native';
+import { PressableScale } from '../../components/PressableScale';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { computeChart } from '../../lib/engine/engine';
@@ -48,9 +49,9 @@ export default function PersonaScreen() {
   if (!persona) return (
     <View style={styles.center}>
       <Text style={styles.msg}>{t('compat.needChart', '먼저 명식을 등록해 주세요.')}</Text>
-      <Pressable style={styles.btn} onPress={() => router.push('/register')}>
+      <PressableScale style={styles.btn} onPress={() => router.push('/register')}>
         <Text style={styles.btnText}>{t('compat.registerMyChart', '내 명식 등록')}</Text>
-      </Pressable>
+      </PressableScale>
     </View>
   );
 
@@ -92,9 +93,9 @@ export default function PersonaScreen() {
         <Text style={styles.note}>{t('persona.note', '※ 사주 4축으로 본 성격 유형 맛보기예요. 더 깊은 성격·내면 풀이는 프리미엄에서 만나보세요.')}</Text>
 
         {/* 유료 상세(기존 성격내면 프리미엄 풀이) */}
-        <Pressable style={styles.cta} onPress={() => router.navigate({ pathname: '/reading', params: { input: JSON.stringify(me) } })}>
+        <PressableScale style={styles.cta} onPress={() => router.navigate({ pathname: '/reading', params: { input: JSON.stringify(me) } })}>
           <Text style={styles.ctaText}>{t('persona.detail', '내 성격 깊이 보기 (프리미엄)')}</Text>
-        </Pressable>
+        </PressableScale>
       </ScrollView>
     </ImageBackground>
   );

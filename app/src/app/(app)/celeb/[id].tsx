@@ -8,6 +8,7 @@ import {
   View, Text, ScrollView, StyleSheet, Pressable,
   ActivityIndicator, ImageBackground,
 } from 'react-native';
+import { PressableScale } from '../../../components/PressableScale';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -56,9 +57,9 @@ export default function CelebDetail() {
     return (
       <View style={styles.center}>
         <Text style={styles.msg}>인물 정보를 찾을 수 없어요.</Text>
-        <Pressable style={styles.btn} onPress={() => router.back()}>
+        <PressableScale style={styles.btn} onPress={() => router.back()}>
           <Text style={styles.btnTx}>돌아가기</Text>
-        </Pressable>
+        </PressableScale>
       </View>
     );
   }
@@ -71,9 +72,9 @@ export default function CelebDetail() {
     return (
       <View style={styles.center}>
         <Text style={styles.msg}>{t('compat.needChart', '먼저 명식을 등록해 주세요.')}</Text>
-        <Pressable style={styles.btn} onPress={() => router.push('/register')}>
+        <PressableScale style={styles.btn} onPress={() => router.push('/register')}>
           <Text style={styles.btnTx}>{t('compat.registerMyChart', '내 명식 등록')}</Text>
-        </Pressable>
+        </PressableScale>
       </View>
     );
   }

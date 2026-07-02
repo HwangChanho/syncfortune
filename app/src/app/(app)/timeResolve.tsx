@@ -6,6 +6,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useEffect, useRef } from 'react';
 import { View, Text, TextInput, Pressable, ScrollView, StyleSheet } from 'react-native';
+import { PressableScale } from '../../components/PressableScale';
 import { Image as ExpoImage } from 'expo-image'; // 상단 히어로 — 자동 다운샘플·디스크캐시(daniel ⑥ 전용 이미지)
 import { Stack, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -125,9 +126,9 @@ export default function TimeResolveScreen() {
       <Text style={styles.label}>성별</Text>
       <View style={styles.chipRow}>
         {(['남', '여'] as const).map((g) => (
-          <Pressable key={g} onPress={() => setSex(g)} style={[styles.chip, sex === g && styles.chipOn]}>
+          <PressableScale key={g} onPress={() => setSex(g)} style={[styles.chip, sex === g && styles.chipOn]}>
             <Text style={sex === g ? styles.chipTxOn : styles.chipTx}>{g}</Text>
-          </Pressable>
+          </PressableScale>
         ))}
       </View>
 
@@ -139,21 +140,21 @@ export default function TimeResolveScreen() {
       {/* 연도 입력과 카테고리 선택 사이 — 다른 label→input 간격(space(2))과 균일하게 */}
       <View style={[styles.chipRow, { marginTop: space(2) }]}>
         {EVENT_TYPES.map((t) => (
-          <Pressable key={t} onPress={() => setTy(t)} style={[styles.chip, ty === t && styles.chipOn]}>
+          <PressableScale key={t} onPress={() => setTy(t)} style={[styles.chip, ty === t && styles.chipOn]}>
             <Text style={ty === t ? styles.chipTxOn : styles.chipTx}>{t}</Text>
-          </Pressable>
+          </PressableScale>
         ))}
       </View>
-      <Pressable onPress={addEvent} style={styles.addBtn}><Text style={styles.addTx}>+ 사건 추가</Text></Pressable>
+      <PressableScale onPress={addEvent} style={styles.addBtn}><Text style={styles.addTx}>+ 사건 추가</Text></PressableScale>
       {events.map((e, i) => (
-        <Pressable key={`${e.year}-${e.type}-${i}`} onPress={() => removeEvent(i)} style={styles.evItem}>
+        <PressableScale key={`${e.year}-${e.type}-${i}`} onPress={() => removeEvent(i)} style={styles.evItem}>
           <Text style={styles.evTx}>· {e.year}년 · {e.type}</Text><Text style={styles.evDel}>✕</Text>
-        </Pressable>
+        </PressableScale>
       ))}
 
-      <Pressable onPress={run} style={styles.runBtn}>
+      <PressableScale onPress={run} style={styles.runBtn}>
         <Text style={styles.runTx}>{unlocked ? '후보 좁히기' : `후보 좁히기 · ${TPR_PRICE_LABEL}`}</Text>
-      </Pressable>
+      </PressableScale>
       {/* 결제 안내 — 1회 결제로 도구 영구 해제(사건 추가·재실행 무료). 프리미엄/구매 후엔 숨김. */}
       {!unlocked && <Text style={styles.payHint}>한 번 결제하면 사건을 더 넣어가며 계속 좁혀볼 수 있어요.</Text>}
 

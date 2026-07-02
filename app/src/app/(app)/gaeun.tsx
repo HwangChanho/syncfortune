@@ -6,6 +6,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useMemo, useState, useRef } from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
+import { PressableScale } from '../../components/PressableScale';
 import { Image as ExpoImage } from 'expo-image';
 import { Alert } from '../../lib/ui/alert';
 import { useTranslation } from 'react-i18next';
@@ -124,7 +125,7 @@ export default function GaeunScreen() {
     return (
       <View style={styles.center}>
         <Text style={styles.msg}>{t('manse.empty')}</Text>
-        <Pressable style={styles.cta} onPress={() => router.push('/register')}><Text style={styles.ctaTx}>{t('compat.registerMyChart')}</Text></Pressable>
+        <PressableScale style={styles.cta} onPress={() => router.push('/register')}><Text style={styles.ctaTx}>{t('compat.registerMyChart')}</Text></PressableScale>
       </View>
     );
   }
@@ -167,7 +168,7 @@ export default function GaeunScreen() {
               <Text style={styles.previewHead}>{t('special.previewHead', '이런 걸 풀어드려요')}</Text>
               {SECTIONS.map((s) => <Text key={s.key} style={styles.previewItem}>· {t(s.tk, s.def)}</Text>)}
             </View>
-            <Pressable style={styles.cta} onPress={onStart}><Text style={styles.ctaTx}>{t('special.unlock', '쿠폰으로 열기')}</Text></Pressable>
+            <PressableScale style={styles.cta} onPress={onStart}><Text style={styles.ctaTx}>{t('special.unlock', '쿠폰으로 열기')}</Text></PressableScale>
             <Text style={styles.gateNote}>{t('special.couponHint', '관리자 계정 또는 쿠폰(이용권)으로 열려요')}</Text>
           </View>
         )}

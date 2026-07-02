@@ -5,6 +5,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { View, Text, TextInput, Pressable, ScrollView, StyleSheet, Modal } from 'react-native';
+import { PressableScale } from '../../components/PressableScale';
 import { Alert } from '../../lib/ui/alert'; // 커스텀 알림(앱 디자인)
 import { useTranslation } from 'react-i18next';
 import { useFocusEffect } from 'expo-router';
@@ -114,13 +115,13 @@ export default function PetScreen() {
       {pets.length > 0 && (
         <View style={styles.petChips}>
           {pets.map((p) => (
-            <Pressable key={p.id} style={[styles.petChip, selId === p.id && !adding && styles.petChipOn]} onPress={() => { setSelId(p.id); setAdding(false); }}>
+            <PressableScale key={p.id} style={[styles.petChip, selId === p.id && !adding && styles.petChipOn]} onPress={() => { setSelId(p.id); setAdding(false); }}>
               <Text style={[styles.petChipTx, selId === p.id && !adding && styles.petChipTxOn]}>{p.name}</Text>
-            </Pressable>
+            </PressableScale>
           ))}
-          <Pressable style={[styles.petChip, adding && styles.petChipOn]} onPress={startAdd}>
+          <PressableScale style={[styles.petChip, adding && styles.petChipOn]} onPress={startAdd}>
             <Text style={[styles.petChipTx, adding && styles.petChipTxOn]}>+ {t('pet.add')}</Text>
-          </Pressable>
+          </PressableScale>
         </View>
       )}
 
@@ -133,9 +134,9 @@ export default function PetScreen() {
           <Text style={styles.label}>{t('pet.typeLabel')}</Text>
           <View style={styles.typeGrid}>
             {PET_TYPES.map((ty) => (
-              <Pressable key={ty} style={[styles.typeChip, petType === ty && styles.typeChipOn]} onPress={() => setPetType(ty)}>
+              <PressableScale key={ty} style={[styles.typeChip, petType === ty && styles.typeChipOn]} onPress={() => setPetType(ty)}>
                 <Text style={[styles.typeChipTx, petType === ty && styles.typeChipTxOn]}>{t(`pet.type.${ty}`)}</Text>
-              </Pressable>
+              </PressableScale>
             ))}
           </View>
 
@@ -144,31 +145,31 @@ export default function PetScreen() {
 
           <Text style={styles.label}>{t('pet.time')} <Text style={styles.optional}>{t('pet.timeOptional')}</Text></Text>
           {/* 시진 피커 필드(명식과 동일) — 시간 모름이면 비활성·공란 */}
-          <Pressable style={[styles.input, styles.selectField, timeUnknown && styles.fieldDisabled]} disabled={timeUnknown} onPress={() => setSijinOpen(true)}>
+          <PressableScale style={[styles.input, styles.selectField, timeUnknown && styles.fieldDisabled]} disabled={timeUnknown} onPress={() => setSijinOpen(true)}>
             <Text style={[styles.selectText, (timeUnknown || sijinIdx < 0) && styles.selectPlaceholder]}>
               {timeUnknown ? '' : sijinIdx >= 0 ? `${SIJIN[sijinIdx].gz} ${SIJIN[sijinIdx].ko} (${SIJIN[sijinIdx].range})` : ''}
             </Text>
             {!timeUnknown && <Text style={styles.chevron}>▾</Text>}
-          </Pressable>
+          </PressableScale>
           {/* 시간 모름 체크 */}
-          <Pressable style={styles.checkRow} onPress={toggleTimeUnknown}>
+          <PressableScale style={styles.checkRow} onPress={toggleTimeUnknown}>
             <View style={[styles.checkbox, timeUnknown && styles.checkboxOn]}>{timeUnknown && <Text style={styles.checkMark}>✓</Text>}</View>
             <Text style={styles.checkLabel}>{t('pet.timeUnknownChk')}</Text>
-          </Pressable>
+          </PressableScale>
           <Text style={styles.hint}>{t('pet.timeHint')}</Text>
 
-          <Pressable style={styles.saveBtn} onPress={onSave}>
+          <PressableScale style={styles.saveBtn} onPress={onSave}>
             <Text style={styles.saveBtnTx}>{t('pet.save')}</Text>
-          </Pressable>
+          </PressableScale>
         </View>
       ) : sel && reading ? (
         // ── 특징 통변 ──
         <View>
           {/* 수정·삭제 — 만세력 명식처럼 콘텐츠 내부에서(하단 '이 아이 지우기' 대체) */}
           <View style={styles.petActions}>
-            <Pressable hitSlop={8} onPress={() => onEdit(sel)}><Text style={styles.petActTx}>{t('common.edit', '수정')}</Text></Pressable>
+            <PressableScale hitSlop={8} onPress={() => onEdit(sel)}><Text style={styles.petActTx}>{t('common.edit', '수정')}</Text></PressableScale>
             <Text style={styles.petActSep}>·</Text>
-            <Pressable hitSlop={8} onPress={() => onDelete(sel.id)}><Text style={[styles.petActTx, styles.petActDel]}>{t('pet.delete')}</Text></Pressable>
+            <PressableScale hitSlop={8} onPress={() => onDelete(sel.id)}><Text style={[styles.petActTx, styles.petActDel]}>{t('pet.delete')}</Text></PressableScale>
           </View>
           <View style={styles.introCard}>
             <Text style={[styles.intro, bodyDyn]}>{reading.intro}</Text>
@@ -196,11 +197,11 @@ export default function PetScreen() {
               {SIJIN.map((s, i) => {
                 const on = sijinIdx === i;
                 return (
-                  <Pressable key={s.gz} style={[styles.optionRow, on && styles.optionRowOn]} onPress={() => pickSijin(i)}>
+                  <PressableScale key={s.gz} style={[styles.optionRow, on && styles.optionRowOn]} onPress={() => pickSijin(i)}>
                     <Text style={[styles.optionGz, on && styles.optionGzOn]}>{s.gz}</Text>
                     <Text style={[styles.optionText, on && styles.optionTextOn]}>{s.ko} · {s.range}</Text>
                     {on && <Text style={styles.optionCheck}>✓</Text>}
-                  </Pressable>
+                  </PressableScale>
                 );
               })}
             </ScrollView>

@@ -9,6 +9,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useEffect } from 'react';
 import { View, Text, TextInput, Pressable, Modal, ScrollView, ActivityIndicator, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
+import { PressableScale } from './PressableScale';
 import { useTranslation } from 'react-i18next';
 import { colors, radius, space, shadow, font } from '../lib/theme';
 
@@ -65,12 +66,12 @@ export function BirthPlacePicker({ value, onSelect }: { value: string; onSelect:
   return (
     <>
       {/* 출생지 필드 — 탭하면 검색 바텀시트 */}
-      <Pressable style={styles.select} onPress={() => setOpen(true)}>
+      <PressableScale style={styles.select} onPress={() => setOpen(true)}>
         <Text style={[styles.selectText, !value && styles.placeholder]} numberOfLines={1}>
           {value || t('register.birthPlacePh')}
         </Text>
         <Text style={styles.icon}>🔍</Text>
-      </Pressable>
+      </PressableScale>
 
       <Modal visible={open} transparent animationType="slide" onRequestClose={() => setOpen(false)}>
         {/* 키보드가 시트(입력·결과)를 가리지 않게 위로 올림(daniel) */}
@@ -90,15 +91,15 @@ export function BirthPlacePicker({ value, onSelect }: { value: string; onSelect:
             {loading && <ActivityIndicator style={{ marginTop: space(3) }} color={colors.ju} />}
             <ScrollView style={styles.list} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
               {results.map((r, i) => (
-                <Pressable key={i} style={styles.row} onPress={() => choose({ name: r.name, lon: r.lon, lat: r.lat })}>
+                <PressableScale key={i} style={styles.row} onPress={() => choose({ name: r.name, lon: r.lon, lat: r.lat })}>
                   <Text style={styles.rowText} numberOfLines={2}>{r.name}</Text>
-                </Pressable>
+                </PressableScale>
               ))}
               {/* fallback: 검색 결과가 없거나 미등록 지역 — 입력값 그대로 사용(좌표 없음) */}
               {query.trim().length >= 2 && !loading && (
-                <Pressable style={styles.row} onPress={() => choose({ name: query.trim(), lon: null, lat: null })}>
+                <PressableScale style={styles.row} onPress={() => choose({ name: query.trim(), lon: null, lat: null })}>
                   <Text style={styles.rowAsIs}>{t('register.useAsIs', { q: query.trim() })}</Text>
-                </Pressable>
+                </PressableScale>
               )}
             </ScrollView>
           </Pressable>

@@ -6,6 +6,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator, Modal } from 'react-native';
+import { PressableScale } from '../components/PressableScale';
 import { ExpiryNote } from '../components/ExpiryNote'; // 보유 만료일 공통(프리미엄 가드 한 곳)
 import { Alert } from '../lib/ui/alert'; // 커스텀 알림(앱 디자인)
 import { useTranslation } from 'react-i18next';
@@ -215,17 +216,17 @@ export function TimelineScreen({ input, savedChart }: { input: ChartInput | null
     // 아직 생성 안 됨 → 무료 기간이면 안내, 잠긴 기간이면 잠금 카드(열기 버튼)
     if (!r) {
       if (isFree(key)) return (
-        <Pressable style={styles.readBtn} onPress={() => startGen(key)}>
+        <PressableScale style={styles.readBtn} onPress={() => startGen(key)}>
           <Text style={[styles.readBtnTx, { fontSize: fs(15) }]}>{t('timeline.readThis', '이 시기 풀이 보기')}</Text>
-        </Pressable>
+        </PressableScale>
       );
       return (
         <View style={[styles.card, styles.lockCard]}>
           <Text style={[styles.lockH, { fontSize: fs(15) }]}>🔒 {t('timeline.lockedTitle')}</Text>
           <Text style={[styles.lockSub, { fontSize: fs(12), lineHeight: fs(19) }]}>{t('timeline.lockedSub')}</Text>
-          <Pressable style={styles.unlockBtn} onPress={() => startGen(key)}>
+          <PressableScale style={styles.unlockBtn} onPress={() => startGen(key)}>
             <Text style={[styles.unlockBtnTx, { fontSize: fs(15) }]}>{t('timeline.unlock')}</Text>
-          </Pressable>
+          </PressableScale>
         </View>
       );
     }
@@ -264,9 +265,9 @@ export function TimelineScreen({ input, savedChart }: { input: ChartInput | null
           {cats.map((ck) => {
             const on = ck === cat;
             return (
-              <Pressable key={ck} style={[styles.chip, on && styles.chipOn]} onPress={() => setCatByKey((p) => ({ ...p, [key]: ck }))}>
+              <PressableScale key={ck} style={[styles.chip, on && styles.chipOn]} onPress={() => setCatByKey((p) => ({ ...p, [key]: ck }))}>
                 <Text style={[styles.chipTx, on && styles.chipTxOn, { fontSize: fs(13) }]}>{t(CAT_DEF[ck])}</Text>
-              </Pressable>
+              </PressableScale>
             );
           })}
         </View>
@@ -292,10 +293,10 @@ export function TimelineScreen({ input, savedChart }: { input: ChartInput | null
 
   // picker 버튼(공용)
   const pickerBtn = (label: string, sub: string, onPress: () => void) => (
-    <Pressable style={styles.pickBtn} onPress={onPress}>
+    <PressableScale style={styles.pickBtn} onPress={onPress}>
       <Text style={[styles.pickBtnTx, { fontSize: fs(15) }]}>{label}: <Text style={{ color: colors.ju, fontWeight: '800' }}>{sub}</Text></Text>
       <Text style={styles.pickChevron}>▾</Text>
-    </Pressable>
+    </PressableScale>
   );
 
   if (!c) return <View style={styles.center}><Text style={[font.body, { fontSize: fs(15) }]}>{t('myeongsik.noChart')}</Text></View>;
@@ -326,19 +327,19 @@ export function TimelineScreen({ input, savedChart }: { input: ChartInput | null
               {picker === 'decade' && decades.map((d) => {
                 const on = selDecade === d.key, isCur = d.key === curDecadeKey;
                 return (
-                  <Pressable key={d.key} style={[styles.row, on && styles.rowOn]} onPress={() => pick(d.key)}>
+                  <PressableScale key={d.key} style={[styles.row, on && styles.rowOn]} onPress={() => pick(d.key)}>
                     <Text style={[styles.rowTx, isCur && { color: colors.ju, fontWeight: '800' }, { fontSize: fs(15) }]}>{d.label}{isCur ? ` (${t('timeline.now')})` : ''}</Text>
                     {gzChip(d.gz, d.stem)}
-                  </Pressable>
+                  </PressableScale>
                 );
               })}
               {picker === 'year' && years.map((y) => {
                 const on = selYear === y.key, isNow = y.year === nowYear;
                 return (
-                  <Pressable key={y.key} style={[styles.row, on && styles.rowOn]} onPress={() => pick(y.key)}>
+                  <PressableScale key={y.key} style={[styles.row, on && styles.rowOn]} onPress={() => pick(y.key)}>
                     <Text style={[styles.rowTx, isNow && { color: colors.ju, fontWeight: '800' }, { fontSize: fs(15) }]}>{y.year}년 · {y.age}세{isNow ? ` (${t('timeline.thisYear')})` : ''}</Text>
                     {gzChip(y.gz, y.stem)}
-                  </Pressable>
+                  </PressableScale>
                 );
               })}
             </ScrollView>

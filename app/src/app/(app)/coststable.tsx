@@ -6,6 +6,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, Pressable } from 'react-native';
+import { PressableScale } from '../../components/PressableScale';
 import { supabase } from '../../lib/supabase';
 import { colors, space, radius, font } from '../../lib/theme';
 
@@ -114,9 +115,9 @@ export default function CostTableScreen() {
 
       <View style={styles.scaleRow}>
         {SCALES.map((s) => (
-          <Pressable key={s} style={[styles.scaleBtn, n === s && styles.scaleOn]} onPress={() => setN(s)}>
+          <PressableScale key={s} style={[styles.scaleBtn, n === s && styles.scaleOn]} onPress={() => setN(s)}>
             <Text style={[styles.scaleTx, n === s && styles.scaleTxOn]}>{s.toLocaleString()}인</Text>
-          </Pressable>
+          </PressableScale>
         ))}
       </View>
 

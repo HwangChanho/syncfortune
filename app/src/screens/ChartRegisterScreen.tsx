@@ -9,6 +9,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { View, Text, TextInput, Pressable, StyleSheet, ScrollView, Modal } from 'react-native';
+import { PressableScale } from '../components/PressableScale';
 import { useTranslation } from 'react-i18next';
 import { colors, radius, space, shadow, font } from '../lib/theme';
 import { SIJIN, formatBirthDate } from '../lib/engine/sijin';
@@ -121,10 +122,10 @@ export function ChartRegisterScreen({ onSubmit, defaultRelation, submitLabel, sh
 
         {/* 태어난 시각 — 드롭다운 필드 클릭 → 바텀시트 스크롤 선택 */}
         <Text style={styles.label}>{t('register.birthTimeSijin')}</Text>
-        <Pressable style={styles.select} onPress={() => setSijinOpen(true)}>
+        <PressableScale style={styles.select} onPress={() => setSijinOpen(true)}>
           <Text style={[styles.selectText, !exactStr && !sj && styles.selectPlaceholder]}>{timeLabel}</Text>
           <Text style={styles.selectChevron}>▾</Text>
-        </Pressable>
+        </PressableScale>
 
         {/* 양력/음력 */}
         <Text style={styles.label}>{t('register.calendar')}</Text>
@@ -151,17 +152,17 @@ export function ChartRegisterScreen({ onSubmit, defaultRelation, submitLabel, sh
           {RELATION_PRESETS.map((r) => {
             const on = !relationCustom && relation === r;
             return (
-              <Pressable key={r} style={[styles.chip, on && styles.chipOn]}
+              <PressableScale key={r} style={[styles.chip, on && styles.chipOn]}
                 onPress={() => { setRelationCustom(false); setRelation(r); }}>
                 <Text style={on ? styles.chipOnText : styles.chipText}>{r === 'self' ? t('register.selfLabel') : r}</Text>
-              </Pressable>
+              </PressableScale>
             );
           })}
           {/* 직접입력 토글 */}
-          <Pressable style={[styles.chip, relationCustom && styles.chipOn]}
+          <PressableScale style={[styles.chip, relationCustom && styles.chipOn]}
             onPress={() => { setRelationCustom(true); setRelation(''); }}>
             <Text style={relationCustom ? styles.chipOnText : styles.chipText}>＋ {t('register.relationCustom')}</Text>
-          </Pressable>
+          </PressableScale>
         </View>
         {relationCustom && (
           <TextInput style={[styles.input, { marginTop: space(2) }]} value={relation} onChangeText={setRelation}
@@ -182,9 +183,9 @@ export function ChartRegisterScreen({ onSubmit, defaultRelation, submitLabel, sh
             {([['single', t('register.ctxRelSingle')], ['dating', t('register.ctxRelDating')], ['married', t('register.ctxRelMarried')], ['other', t('register.ctxRelOther')]] as const).map(([v, lbl]) => {
               const on = relationship === v;
               return (
-                <Pressable key={v} style={[styles.chip, on && styles.chipOn]} onPress={() => setRelationship(on ? '' : v)}>
+                <PressableScale key={v} style={[styles.chip, on && styles.chipOn]} onPress={() => setRelationship(on ? '' : v)}>
                   <Text style={on ? styles.chipOnText : styles.chipText}>{lbl}</Text>
-                </Pressable>
+                </PressableScale>
               );
             })}
           </View>
@@ -200,16 +201,16 @@ export function ChartRegisterScreen({ onSubmit, defaultRelation, submitLabel, sh
 
         {/* 대표 명식으로 설정 — register 전용(궁합 상대 등록 시 숨김) */}
         {showMakeRep && (
-          <Pressable style={styles.repCheck} onPress={() => setMakeRep((v) => !v)}>
+          <PressableScale style={styles.repCheck} onPress={() => setMakeRep((v) => !v)}>
             <View style={[styles.repBox, makeRep && styles.repBoxOn]}>{makeRep ? <Text style={styles.repChk}>✓</Text> : null}</View>
             <Text style={styles.repLabel}>{t('register.makeRep')}</Text>
-          </Pressable>
+          </PressableScale>
         )}
 
         {/* 제출 (CTA = 주색) */}
-        <Pressable style={styles.submit} onPress={handleSubmit}>
+        <PressableScale style={styles.submit} onPress={handleSubmit}>
           <Text style={styles.submitText}>{submitLabel ?? t('register.submit')}</Text>
-        </Pressable>
+        </PressableScale>
       </ScrollView>
 
       {/* 시진 선택 바텀시트 — 클릭 시 슬라이드 업, 스크롤로 12시진+모름 선택 */}
@@ -226,9 +227,9 @@ export function ChartRegisterScreen({ onSubmit, defaultRelation, submitLabel, sh
                 <TextInput style={styles.exactInput} value={exactH} onChangeText={(v) => setExactH(v.replace(/[^0-9]/g, '').slice(0, 2))} placeholder={t('register.hour', '시')} placeholderTextColor={colors.inkFaint} keyboardType="number-pad" maxLength={2} />
                 <Text style={styles.exactColon}>:</Text>
                 <TextInput style={styles.exactInput} value={exactM} onChangeText={(v) => setExactM(v.replace(/[^0-9]/g, '').slice(0, 2))} placeholder={t('register.minute', '분')} placeholderTextColor={colors.inkFaint} keyboardType="number-pad" maxLength={2} />
-                <Pressable style={[styles.exactBtn, !exactStr && styles.exactBtnOff]} onPress={confirmExact} disabled={!exactStr}>
+                <PressableScale style={[styles.exactBtn, !exactStr && styles.exactBtnOff]} onPress={confirmExact} disabled={!exactStr}>
                   <Text style={styles.exactBtnTx}>{t('common.confirm', '확인')}</Text>
-                </Pressable>
+                </PressableScale>
               </View>
               {boundaryInfo && (
                 <View style={{ marginTop: space(2.5), padding: space(3), borderRadius: radius.md, backgroundColor: 'rgba(201,161,74,0.1)', borderWidth: 1, borderColor: colors.juLine }}>
@@ -246,19 +247,19 @@ export function ChartRegisterScreen({ onSubmit, defaultRelation, submitLabel, sh
             <Text style={styles.sheetDivider}>{t('register.orSijin', '또는 시진(2시간)만 알 때')}</Text>
             <ScrollView style={styles.sheetList} showsVerticalScrollIndicator={false}>
               {/* 모름 */}
-              <Pressable style={styles.optionRow} onPress={() => pickSijin(-1)}>
+              <PressableScale style={styles.optionRow} onPress={() => pickSijin(-1)}>
                 <Text style={styles.optionGz}>?</Text>
                 <Text style={styles.optionText}>{t('register.timeUnknown')}</Text>
                 {sijinIdx === -1 && <Text style={styles.optionCheck}>✓</Text>}
-              </Pressable>
+              </PressableScale>
               {SIJIN.map((s, i) => {
                 const on = sijinIdx === i;
                 return (
-                  <Pressable key={s.gz} style={[styles.optionRow, on && styles.optionRowOn]} onPress={() => pickSijin(i)}>
+                  <PressableScale key={s.gz} style={[styles.optionRow, on && styles.optionRowOn]} onPress={() => pickSijin(i)}>
                     <Text style={[styles.optionGz, on && styles.optionGzOn]}>{s.gz}</Text>
                     <Text style={[styles.optionText, on && styles.optionTextOn]}>{s.ko} · {s.range}</Text>
                     {on && <Text style={styles.optionCheck}>✓</Text>}
-                  </Pressable>
+                  </PressableScale>
                 );
               })}
             </ScrollView>
@@ -276,9 +277,9 @@ function Segmented({ options, value, onChange }: { options: { value: string; lab
       {options.map((o) => {
         const on = value === o.value;
         return (
-          <Pressable key={o.value} style={[styles.segItem, on && styles.segOn]} onPress={() => onChange(o.value)}>
+          <PressableScale key={o.value} style={[styles.segItem, on && styles.segOn]} onPress={() => onChange(o.value)}>
             <Text style={on ? styles.segOnText : styles.segText}>{o.label}</Text>
-          </Pressable>
+          </PressableScale>
         );
       })}
     </View>

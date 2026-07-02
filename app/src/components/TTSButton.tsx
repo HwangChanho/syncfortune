@@ -6,6 +6,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useEffect, useRef } from 'react';
 import { View, Pressable, Text, StyleSheet } from 'react-native';
+import { PressableScale } from './PressableScale';
 import * as Speech from 'expo-speech';
 import { appLang } from '../lib/i18n';
 import { colors, radius, space, font } from '../lib/theme';
@@ -61,9 +62,9 @@ export function TTSButton({ reading, sections }: { reading: any; sections?: { ke
   if (reading?.error) return null;
   return (
     <View style={{ alignItems: 'center' }}>
-      <Pressable style={styles.btn} onPress={toggle} accessibilityRole="button">
+      <PressableScale style={styles.btn} onPress={toggle} accessibilityRole="button">
         <Text style={styles.tx}>{speaking ? '⏸  읽기 멈춤' : '🔊  음성으로 듣기'}</Text>
-      </Pressable>
+      </PressableScale>
       {/* iOS는 expo-speech가 무음 스위치를 따라 음소거 → 소리 안 들리면 무음 끄기 안내(daniel) */}
       <Text style={styles.hint}>소리가 안 들리면 휴대폰 무음(측면 스위치)을 꺼 주세요</Text>
     </View>

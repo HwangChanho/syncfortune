@@ -5,6 +5,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useState } from 'react';
 import { View, Text, ScrollView, Pressable, ActivityIndicator, StyleSheet } from 'react-native';
+import { PressableScale } from '../../../components/PressableScale';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { fetchSharedReading, type ShareReadingInput } from '../../../lib/ui/share';
 import { colors, radius, space, font, shadow } from '../../../lib/theme';
@@ -51,7 +52,7 @@ export default function SharedReadingScreen() {
       ) : state === 'err' ? (
         <View style={styles.card}>
           <Text style={styles.err}>이 공유 링크의 풀이를 찾을 수 없어요.</Text>
-          <Pressable style={styles.cta} onPress={() => router.replace('/')}><Text style={styles.ctaTx}>내 운세 보러 가기 ›</Text></Pressable>
+          <PressableScale style={styles.cta} onPress={() => router.replace('/')}><Text style={styles.ctaTx}>내 운세 보러 가기 ›</Text></PressableScale>
         </View>
       ) : (
         <>
@@ -65,7 +66,7 @@ export default function SharedReadingScreen() {
             </View>
           ))}
           {/* 앱 유도 — 받은 사람이 자기 운세도 보게 */}
-          <Pressable style={styles.cta} onPress={() => router.replace('/')}><Text style={styles.ctaTx}>나도 내 운세 보기 ›</Text></Pressable>
+          <PressableScale style={styles.cta} onPress={() => router.replace('/')}><Text style={styles.ctaTx}>나도 내 운세 보기 ›</Text></PressableScale>
           <Text style={styles.note}>팔자(八字) — 사주·자미두수·타로 운세</Text>
         </>
       )}

@@ -6,6 +6,7 @@
 //   현재 경로(usePathname)로 active. 탭은 replace 로 전환(스택 누적 방지).
 // ─────────────────────────────────────────────────────────────────────────
 import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { PressableScale } from './PressableScale';
 import { useRouter, usePathname } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { colors, space } from '../lib/theme';
@@ -24,10 +25,10 @@ export function BottomNav() {
       {TABS.map((tb) => {
         const on = tb.key === 'market' ? path.startsWith('/market') : (path === '/' || path === '/index');
         return (
-          <Pressable key={tb.key} style={styles.tab} onPress={() => { if (!on) router.replace(tb.route); }} hitSlop={6}>
+          <PressableScale key={tb.key} style={styles.tab} onPress={() => { if (!on) router.replace(tb.route); }} hitSlop={6}>
             {on && <View style={styles.activeBar} />}
             <Text style={[styles.label, on && styles.labelOn]}>{t(`nav.${tb.key}`)}</Text>
-          </Pressable>
+          </PressableScale>
         );
       })}
     </View>

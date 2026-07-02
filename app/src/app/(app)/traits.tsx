@@ -6,6 +6,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useState, useMemo } from 'react';
 import { View, Text, Pressable, ActivityIndicator, ScrollView, StyleSheet } from 'react-native';
+import { PressableScale } from '../../components/PressableScale';
 import { useFontScale } from '../../lib/ui/fontScale';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -38,9 +39,9 @@ export default function TraitsScreen() {
   if (!c) return (
     <View style={styles.center}>
       <Text style={styles.msg}>{t('compat.needChart')}</Text>
-      <Pressable style={styles.btn} onPress={() => router.push('/register')}>
+      <PressableScale style={styles.btn} onPress={() => router.push('/register')}>
         <Text style={styles.btnText}>{t('compat.registerMyChart')}</Text>
-      </Pressable>
+      </PressableScale>
     </View>
   );
 
@@ -87,9 +88,9 @@ export default function TraitsScreen() {
       <Text style={styles.note}>※ 기본 성향 요약입니다. 영역별(연애·직업·재물 등) 깊은 통변은 프리미엄 풀이에서.</Text>
 
       {/* 프리미엄 풀이 유도 (건당) */}
-      <Pressable style={styles.cta} onPress={() => router.navigate({ pathname: '/reading', params: { input: JSON.stringify(me) } })}>
+      <PressableScale style={styles.cta} onPress={() => router.navigate({ pathname: '/reading', params: { input: JSON.stringify(me) } })}>
         <Text style={styles.ctaText}>{t('myeongsik.readingBtn')}</Text>
-      </Pressable>
+      </PressableScale>
     </ScrollView>
   );
 }

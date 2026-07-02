@@ -7,6 +7,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useMemo, useState, useRef } from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
+import { PressableScale } from '../../components/PressableScale';
 import { ExpiryNote } from '../../components/ExpiryNote'; // 보유 만료일 공통(프리미엄 가드 한 곳)
 import { Image as ExpoImage } from 'expo-image'; // 콘텐츠 이미지 — 자동 다운샘플·디스크캐시(랙 방지·타 콘텐츠와 통일, daniel)
 import { Alert } from '../../lib/ui/alert';
@@ -145,7 +146,7 @@ export default function CareerScreen() {
     return (
       <View style={styles.center}>
         <Text style={styles.msg}>{t('manse.empty')}</Text>
-        <Pressable style={styles.cta} onPress={() => router.push('/register')}><Text style={styles.ctaTx}>{t('compat.registerMyChart')}</Text></Pressable>
+        <PressableScale style={styles.cta} onPress={() => router.push('/register')}><Text style={styles.ctaTx}>{t('compat.registerMyChart')}</Text></PressableScale>
       </View>
     );
   }
@@ -195,7 +196,7 @@ export default function CareerScreen() {
               <Text style={styles.previewHead}>{t('special.previewHead', '이런 걸 풀어드려요')}</Text>
               {SECTIONS.map((s) => <Text key={s.key} style={styles.previewItem}>· {t(s.tk, s.def)}</Text>)}
             </View>
-            <Pressable style={[styles.cta, styles.ctaTeal]} onPress={onStart}><Text style={styles.ctaTx}>{t('special.unlock', '쿠폰으로 열기')}</Text></Pressable>
+            <PressableScale style={[styles.cta, styles.ctaTeal]} onPress={onStart}><Text style={styles.ctaTx}>{t('special.unlock', '쿠폰으로 열기')}</Text></PressableScale>
             <Text style={styles.gateNote}>{t('special.couponHint', '관리자 계정 또는 쿠폰(이용권)으로 열려요')}</Text>
           </View>
         )}

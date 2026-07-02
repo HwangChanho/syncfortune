@@ -6,6 +6,7 @@
 //   무료 이용권(쿠폰) 등록도 여기로 이동(설정→마켓). ★1회성 소모 — 보유/미보유로만 표시.
 // ─────────────────────────────────────────────────────────────────────────
 import { View, Text, ScrollView, Pressable, TextInput, StyleSheet, Modal, Image } from 'react-native';
+import { PressableScale } from '../../components/PressableScale';
 import { Alert } from '../../lib/ui/alert'; // 커스텀 알림(앱 디자인)
 import { useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
@@ -197,7 +198,7 @@ export default function MarketRoute() {
     // 프리미엄 포함 섹션 + 프리미엄 가입 = 무제한(가격/구매 숨김, 카드 전체가 열기 버튼)
     if (premInc && isPremium) {
       return (
-        <Pressable key={c.key} style={styles.card} onPress={() => apply(c.key)} disabled={!sel}>
+        <PressableScale key={c.key} style={styles.card} onPress={() => apply(c.key)} disabled={!sel}>
           {card && <Image source={card.img} style={styles.thumb} />}
           <View style={{ flex: 1 }}>
             <Text style={styles.name}>{c.ko}</Text>
@@ -206,7 +207,7 @@ export default function MarketRoute() {
           <View style={styles.unlimitedBadge}>
             <Text style={styles.unlimitedTx}>{t('market.unlimited', '무제한 이용 중')}</Text>
           </View>
-        </Pressable>
+        </PressableScale>
       );
     }
 
@@ -221,13 +222,13 @@ export default function MarketRoute() {
           <Text style={[styles.have, owned && styles.haveOn]}>{owned ? `${t('market.owned')} ×${credits[c.key]}` : t('market.notOwned')}</Text>
         </View>
         {owned ? (
-          <Pressable style={styles.buyBtn} onPress={() => apply(c.key)} disabled={!sel}>
+          <PressableScale style={styles.buyBtn} onPress={() => apply(c.key)} disabled={!sel}>
             <Text style={styles.buyTx}>{t('market.openApply')}</Text>
-          </Pressable>
+          </PressableScale>
         ) : (
-          <Pressable style={[styles.buyBtn, busy === c.key && styles.buyBtnBusy]} onPress={() => buy(c.key)} disabled={busy !== null}>
+          <PressableScale style={[styles.buyBtn, busy === c.key && styles.buyBtnBusy]} onPress={() => buy(c.key)} disabled={busy !== null}>
             <Text style={styles.buyTx}>{busy === c.key ? '…' : t('market.buy')}</Text>
-          </Pressable>
+          </PressableScale>
         )}
       </View>
     );
@@ -252,7 +253,7 @@ export default function MarketRoute() {
           <Text style={styles.premPrice}>✓</Text>
         </View>
       ) : (
-        <Pressable style={styles.premCard} onPress={buyPremium} disabled={buyingPrem}>
+        <PressableScale style={styles.premCard} onPress={buyPremium} disabled={buyingPrem}>
           <View style={{ flex: 1 }}>
             <Text style={styles.premTitle}>{t('settings.premiumBuy', '평생 프리미엄')}</Text>
             <Text style={styles.premSub}>{t('settings.premiumDesc', '모든 콘텐츠 무제한 · 광고 제거')}</Text>
@@ -260,17 +261,17 @@ export default function MarketRoute() {
             <Text style={styles.premChart}>{t('market.appliedChart', '적용 명식')}: {sel?.label ?? t('market.noChart')}</Text>
           </View>
           <Text style={styles.premPrice}>{buyingPrem ? '…' : (premPrice || `₩${PREMIUM_PRICE.toLocaleString()}`)}</Text>
-        </Pressable>
+        </PressableScale>
       )}
 
       {/* 적용할 명식 선택(드롭다운) — 이용권은 이 명식에 적용된다 */}
-      <Pressable style={styles.chartSel} onPress={() => setPick(true)}>
+      <PressableScale style={styles.chartSel} onPress={() => setPick(true)}>
         <View style={{ flex: 1 }}>
           <Text style={styles.chartSelLabel}>{t('market.applyTo')}</Text>
           <Text style={styles.chartSelVal}>{sel?.label ?? t('market.noChart')}</Text>
         </View>
         <Text style={styles.chartSelChevron}>▾</Text>
-      </Pressable>
+      </PressableScale>
 
       {/* ── 섹션 A: 프리미엄에 포함 ── 프리미엄=무제한 이용 중 배지 / 비프리미엄=가격+개별구매(기존). 타임라인도 여기 포함(daniel 2026-07-01, 사주+자미 종합). */}
       <Text style={styles.sectionH}>{t('market.sectionIncluded', '✦ 프리미엄에 포함')}</Text>
@@ -295,9 +296,9 @@ export default function MarketRoute() {
           autoCorrect={false}
           editable={!redeeming}
         />
-        <Pressable style={[styles.couponBtn, (!code.trim() || redeeming) && styles.couponBtnOff]} onPress={onRedeem} disabled={!code.trim() || redeeming}>
+        <PressableScale style={[styles.couponBtn, (!code.trim() || redeeming) && styles.couponBtnOff]} onPress={onRedeem} disabled={!code.trim() || redeeming}>
           <Text style={styles.couponBtnTx}>{t('settings.couponRedeem')}</Text>
-        </Pressable>
+        </PressableScale>
       </View>
 
       <Text style={styles.note}>{t('market.note')}</Text>
@@ -312,10 +313,10 @@ export default function MarketRoute() {
               {saved.length === 0 ? <Text style={styles.note}>{t('market.noChart')}</Text> : saved.map((s) => {
                 const on = sel?.id === s.id;
                 return (
-                  <Pressable key={s.id} style={styles.pickRow} onPress={() => { setSel(s); setPick(false); }}>
+                  <PressableScale key={s.id} style={styles.pickRow} onPress={() => { setSel(s); setPick(false); }}>
                     <Text style={[styles.pickTx, on && styles.pickTxOn]}>{s.label}</Text>
                     {on && <Text style={styles.pickChk}>✓</Text>}
-                  </Pressable>
+                  </PressableScale>
                 );
               })}
             </ScrollView>

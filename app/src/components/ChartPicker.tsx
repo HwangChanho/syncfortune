@@ -6,6 +6,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { View, Text, Pressable, Modal, StyleSheet, Dimensions, ActivityIndicator, InteractionManager, Animated, LayoutAnimation } from 'react-native';
+import { PressableScale } from './PressableScale';
 import { Image as ExpoImage } from 'expo-image'; // 자동 다운샘플(메모리) + 엠블럼 탭 풀스크린 뷰어
 import DraggableFlatList, { ScaleDecorator } from 'react-native-draggable-flatlist'; // 이슈20 롱프레스 드래그 reorder
 import { Alert } from '../lib/ui/alert'; // 커스텀 알림(삭제 확인)
@@ -123,19 +124,19 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
   // 명식 없음 — 등록 유도
   if (!charts.length) {
     return (
-      <Pressable style={styles.bar} onPress={() => router.push('/register')}>
+      <PressableScale style={styles.bar} onPress={() => router.push('/register')}>
         <Text style={styles.barLabel}>{t('manse.myChart')}</Text>
         <Text style={styles.barAdd}>＋ {t('compat.registerMyChart')}</Text>
-      </Pressable>
+      </PressableScale>
     );
   }
 
   return (
     <>
-      <Pressable style={styles.bar} onPress={() => setOpen(true)}>
+      <PressableScale style={styles.bar} onPress={() => setOpen(true)}>
         <Text style={[styles.barLabel, { fontSize: fs(12) }]}>{t('manse.myChart')}</Text>
         <Text style={[styles.barName, { fontSize: fs(15) }]}>{rep?.label} ▾</Text>
-      </Pressable>
+      </PressableScale>
 
       <Modal visible={open} transparent animationType="slide" onRequestClose={() => setOpen(false)}>
         <Pressable style={styles.backdrop} onPress={() => setOpen(false)}>
@@ -168,18 +169,18 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
                       {!em ? (
                         <SkeletonDot /> /* 펄스 스켈레톤 — 엠블럼 계산 전(딜레이 가림) */
                       ) : iljuImg ? (
-                        <Pressable onPress={() => setViewImg(iljuImg)} hitSlop={6} style={styles.emblemImg}>
+                        <PressableScale onPress={() => setViewImg(iljuImg)} hitSlop={6} style={styles.emblemImg}>
                           <ExpoImage source={iljuImg} style={[StyleSheet.absoluteFill, { borderRadius: 23 }]} contentFit="cover" cachePolicy="memory-disk" transition={250}
                             onLoadEnd={() => setLoadedEmblems((s) => { const n = new Set(s); n.add(c.id); return n; })} />
                           {/* 이미지 디코드 중 로딩 인디케이터(daniel: 명식변경 리스트 이미지 로딩 표시) — 로드되면 사라짐 */}
                           {!loadedEmblems.has(c.id) && <ActivityIndicator size="small" color={colors.ju} style={StyleSheet.absoluteFill} />}
-                        </Pressable>
+                        </PressableScale>
                       ) : (
                         <View style={[styles.emblem, { backgroundColor: em.color }]}>
                           <Text style={[styles.emblemTx, { color: em.textColor, fontSize: fs(13) }]}>{em.animal}</Text>
                         </View>
                       )}
-                      <Pressable style={styles.rowMain} onPress={() => choose(c.id)} onLongPress={drag} delayLongPress={250}>
+                      <PressableScale style={styles.rowMain} onPress={() => choose(c.id)} onLongPress={drag} delayLongPress={250}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: space(1.5) }}>
                           <Text style={[styles.rowName, on && styles.rowOn, { fontSize: fs(15) }]} numberOfLines={1}>{c.label}</Text>
                           {/* ★프리미엄 지정 명식 배지(daniel 07-02: 명식 옆에 프리미엄 여부) — 골드 왕관 배지 */}
@@ -191,20 +192,20 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
                         <Text style={[styles.rowMeta, { fontSize: fs(12) }]} numberOfLines={1}>
                           {String(c.input.birthDateTime ?? '').replace('T', ' ').slice(0, 16)}{/* 날짜+시간(daniel: 시간도 노출) */}
                         </Text>
-                      </Pressable>
+                      </PressableScale>
                       {/* 카테고리(관계)를 행 우측에 배지로(daniel: 카테고리도 오른쪽에) */}
                       <Text style={[styles.rowCategory, { fontSize: fs(11) }]} numberOfLines={1}>{c.relation === 'self' ? t('register.selfLabel') : c.relation}</Text>
                       {on && <Text style={styles.check}>✓</Text>}
                       {/* ⋯ 토글 → 작은 세로 메뉴(수정·만세력보기·삭제). 삭제는 항상 재확인 alert(daniel 07-01) */}
                       <View style={styles.actWrap}>
-                        <Pressable hitSlop={10} onPress={() => { LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut); setActionsFor(actionsFor === c.id ? null : c.id); }}>
+                        <PressableScale hitSlop={10} onPress={() => { LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut); setActionsFor(actionsFor === c.id ? null : c.id); }}>
                           <Text style={[styles.rowAct, { fontSize: 18 }]}>⋯</Text>
-                        </Pressable>
+                        </PressableScale>
                         {actionsFor === c.id && (
                           <View style={styles.actMenu}>
-                            <Pressable style={styles.actItem} hitSlop={6} onPress={() => { setActionsFor(null); edit(c.id); }}><Text style={styles.rowAct}>{t('common.edit', '수정')}</Text></Pressable>
-                            <Pressable style={styles.actItem} hitSlop={6} onPress={() => { setActionsFor(null); viewManse(c.id); }}><Text style={styles.rowAct}>{t('manse.viewManse', '만세력보기')}</Text></Pressable>
-                            <Pressable style={styles.actItem} hitSlop={6} onPress={() => { setActionsFor(null); remove(c.id, c.label); }}><Text style={[styles.rowAct, styles.rowActDel]}>{t('common.delete', '삭제')}</Text></Pressable>
+                            <PressableScale style={styles.actItem} hitSlop={6} onPress={() => { setActionsFor(null); edit(c.id); }}><Text style={styles.rowAct}>{t('common.edit', '수정')}</Text></PressableScale>
+                            <PressableScale style={styles.actItem} hitSlop={6} onPress={() => { setActionsFor(null); viewManse(c.id); }}><Text style={styles.rowAct}>{t('manse.viewManse', '만세력보기')}</Text></PressableScale>
+                            <PressableScale style={styles.actItem} hitSlop={6} onPress={() => { setActionsFor(null); remove(c.id, c.label); }}><Text style={[styles.rowAct, styles.rowActDel]}>{t('common.delete', '삭제')}</Text></PressableScale>
                           </View>
                         )}
                       </View>
@@ -214,9 +215,9 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
               }}
             />
             )}
-            <Pressable style={styles.addBtn} onPress={() => { setOpen(false); router.push('/register'); }}>
+            <PressableScale style={styles.addBtn} onPress={() => { setOpen(false); router.push('/register'); }}>
               <Text style={styles.addBtnText}>＋ {t('compat.registerMyChart')}</Text>
-            </Pressable>
+            </PressableScale>
           </Pressable>
         </Pressable>
       </Modal>

@@ -5,6 +5,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { Redirect, useRouter } from 'expo-router';
 import { View, Pressable, Text, StyleSheet } from 'react-native';
+import { PressableScale } from '../components/PressableScale';
 import { useTranslation } from 'react-i18next';
 import { AuthScreen } from '../screens/AuthScreen';
 import { useAuth } from '../lib/useAuth';
@@ -20,13 +21,13 @@ export default function Login() {
   return (
     <View style={styles.container}>
       {/* 선택 로그인이라 뒤로가기로 빠져나올 수 있어야 함 */}
-      <Pressable
+      <PressableScale
         onPress={() => (router.canGoBack() ? router.back() : router.replace('/(app)'))}
         style={styles.back}
         hitSlop={8}
       >
         <Text style={styles.backText}>{t('common.back')}</Text>
-      </Pressable>
+      </PressableScale>
       <AuthScreen />
     </View>
   );

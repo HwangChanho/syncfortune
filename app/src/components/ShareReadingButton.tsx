@@ -7,6 +7,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useRef } from 'react';
 import { Pressable, Text, View, StyleSheet, Share, Platform, type StyleProp, type ViewStyle } from 'react-native';
+import { PressableScale } from './PressableScale';
 import ViewShot, { captureRef } from 'react-native-view-shot';
 import { Alert } from '../lib/ui/alert';
 import { APP_STORE_URL, createSharedLink } from '../lib/ui/share';
@@ -50,9 +51,9 @@ export function ShareReadingButton({ kind, category, title, content, style }: {
 
   return (
     <>
-      <Pressable style={[styles.btn, style]} onPress={onShare}>
+      <PressableScale style={[styles.btn, style]} onPress={onShare}>
         <Text style={styles.tx}>🔗 이 풀이 공유 (이미지 + 링크)</Text>
-      </Pressable>
+      </PressableScale>
 
       {/* 캡처용 카드 — 화면 밖(top:-10000)에 레이아웃만(보이지 않음). 상대가 받는 공유 이미지. */}
       <View style={styles.offscreen} pointerEvents="none">

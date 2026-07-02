@@ -6,6 +6,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ImageBackground, ScrollView, Pressable, ActivityIndicator } from 'react-native';
+import { PressableScale } from '../../components/PressableScale';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { getDailyFortune, DAILY_AREA_KEYS, dailyHeadline, type DailyAreaKey } from '../../lib/content/dailyFortune';
@@ -140,24 +141,24 @@ export default function MonthScreen() {
           // daniel(2026-06-24): 이달의 운세도 로그인 필요(LLM·서버차트·계정 귀속)
           <View style={styles.readCard}>
             <Text style={styles.readTx}>{t('month.needLogin', '이달의 운세는 로그인 후 볼 수 있어요.')}</Text>
-            <Pressable style={styles.regBtn} onPress={() => router.push('/login')}>
+            <PressableScale style={styles.regBtn} onPress={() => router.push('/login')}>
               <Text style={styles.regBtnTx}>{t('login.go', '로그인')}</Text>
-            </Pressable>
+            </PressableScale>
           </View>
         ) : !saved ? (
           <View style={styles.readCard}>
             <Text style={styles.readTx}>{t('today.needChart')}</Text>
-            <Pressable style={styles.regBtn} onPress={() => router.push('/register')}>
+            <PressableScale style={styles.regBtn} onPress={() => router.push('/register')}>
               <Text style={styles.regBtnTx}>{t('today.registerBtn')}</Text>
-            </Pressable>
+            </PressableScale>
           </View>
         ) : reading ? (
           <>
             <View style={styles.areaChips}>
               {DAILY_AREA_KEYS.map((k) => (
-                <Pressable key={k} style={[styles.areaChip, area === k && styles.areaChipOn]} onPress={() => setArea(k)}>
+                <PressableScale key={k} style={[styles.areaChip, area === k && styles.areaChipOn]} onPress={() => setArea(k)}>
                   <Text style={[styles.areaChipTx, area === k && styles.areaChipTxOn]}>{t(`today.area_${k}`)}</Text>
-                </Pressable>
+                </PressableScale>
               ))}
             </View>
             <View style={styles.readCard}>
@@ -175,9 +176,9 @@ export default function MonthScreen() {
             <Text style={styles.gateTitle}>{t('month.gateTitle', '이달의 운세 보기')}</Text>
             <Text style={styles.gateDesc}>{t('month.gateDesc', '타고난 사주에 지금의 큰 흐름·올해·이번 달 기운을 더해, 이달 생길 수 있는 일과 대처를 풀어 드려요.')}</Text>
             {err ? <Text style={styles.err}>{err}</Text> : null}
-            <Pressable style={styles.gateBtn} onPress={onStart}>
+            <PressableScale style={styles.gateBtn} onPress={onStart}>
               <Text style={styles.gateBtnTx}>{isPremium ? t('month.seePremium', '이달의 운세 보기') : t('today.seeAd', '광고 보고 무료로 보기')}</Text>
-            </Pressable>
+            </PressableScale>
           </View>
         )}
 

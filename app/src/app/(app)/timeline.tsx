@@ -5,6 +5,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useState } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { PressableScale } from '../../components/PressableScale';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { TimelineScreen } from '../../screens/TimelineScreen';
@@ -40,9 +41,9 @@ export default function TimelineRoute() {
     return (
       <View style={styles.center}>
         <Text style={[styles.msg, { fontSize: fs(15) }]}>{t('manse.empty')}</Text>
-        <Pressable style={styles.btn} onPress={() => router.push('/register')}>
+        <PressableScale style={styles.btn} onPress={() => router.push('/register')}>
           <Text style={[styles.btnText, { fontSize: fs(15) }]}>{t('compat.registerMyChart')}</Text>
-        </Pressable>
+        </PressableScale>
       </View>
     );
   }

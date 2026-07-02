@@ -7,6 +7,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useState, useRef } from 'react';
 import { View, Text, Pressable, ActivityIndicator, StyleSheet } from 'react-native';
+import { PressableScale } from '../../components/PressableScale';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { ReadingScreen } from '../../screens/ReadingScreen';
@@ -54,9 +55,9 @@ export default function ReadingRoute() {
     return (
       <View style={styles.center}>
         <Text style={styles.msg}>{t('manse.empty')}</Text>
-        <Pressable style={styles.btn} onPress={() => router.push('/register')}>
+        <PressableScale style={styles.btn} onPress={() => router.push('/register')}>
           <Text style={styles.btnText}>{t('compat.registerMyChart')}</Text>
-        </Pressable>
+        </PressableScale>
       </View>
     );
   }

@@ -4,6 +4,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useMemo, useState, useEffect } from 'react';
 import { View, Text, ScrollView, TextInput, Pressable, StyleSheet, ImageBackground, ActivityIndicator } from 'react-native';
+import { PressableScale } from '../../components/PressableScale';
 import { useTranslation } from 'react-i18next';
 import { searchDreams, DREAM_POPULAR, dreamTitle, dreamMeaning, popularLabel } from '../../lib/content/dreamDict';
 import { supabase } from '../../lib/supabase';        // 사전 miss → LLM 폴백(전역 캐시)
@@ -127,9 +128,9 @@ export default function DreamScreen() {
           {DREAM_POPULAR.map((k) => {
             const label = popularLabel(k);
             return (
-              <Pressable key={k.ko} style={[styles.chip, q === label && styles.chipOn]} onPress={() => setQ(label)}>
+              <PressableScale key={k.ko} style={[styles.chip, q === label && styles.chipOn]} onPress={() => setQ(label)}>
                 <Text style={[styles.chipTx, q === label && styles.chipTxOn]}>{label}</Text>
-              </Pressable>
+              </PressableScale>
             );
           })}
         </ScrollView>
@@ -153,7 +154,7 @@ export default function DreamScreen() {
           ) : (
             <View style={styles.card}>
               <Text style={styles.empty}>{t('dream.notInDict', '사전에 없는 꿈이에요. AI 해몽을 받아보세요.')}</Text>
-              <Pressable style={styles.aiBtn} onPress={searchLLM}><Text style={styles.aiBtnTx}>{t('dream.aiSee', 'AI 해몽 보기')}</Text></Pressable>
+              <PressableScale style={styles.aiBtn} onPress={searchLLM}><Text style={styles.aiBtnTx}>{t('dream.aiSee', 'AI 해몽 보기')}</Text></PressableScale>
             </View>
           )
         ) : null}
@@ -173,13 +174,13 @@ export default function DreamScreen() {
             editable={!aiBusy}
           />
           <Text style={styles.aiLen}>{aiText.length}/300</Text>
-          <Pressable
+          <PressableScale
             style={[styles.aiGenBtn, (aiText.trim().length < 4 || aiBusy) && styles.aiGenOff]}
             onPress={onAI}
             disabled={aiText.trim().length < 4 || aiBusy}
           >
             {aiBusy ? <ActivityIndicator color={colors.bg} /> : <Text style={styles.aiGenTx}>{t('dream.aiBtn', 'AI 해몽 받기 (₩300)')}</Text>}
-          </Pressable>
+          </PressableScale>
           {aiResult ? (
             <View style={styles.aiOut}>
               <Text style={styles.cardTitle}>{aiResult.title}</Text>

@@ -6,6 +6,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useMemo, useCallback } from 'react';
 import { View, Text, Pressable, ActivityIndicator, ScrollView, StyleSheet, ImageBackground } from 'react-native';
+import { PressableScale } from '../../components/PressableScale';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { computeChart } from '../../lib/engine/engine';
@@ -61,11 +62,11 @@ function MonthGrid({ year, month, byDate, goodT, bestT, sel, onSel, todayStr }: 
           const past = date < todayStr;
           const on = sel === date;
           return (
-            <Pressable key={i} style={styles.cell} onPress={() => good && onSel(date)} disabled={!good}>
+            <PressableScale key={i} style={styles.cell} onPress={() => good && onSel(date)} disabled={!good}>
               <View style={[styles.dot, best && styles.dotBest, good && !best && styles.dotGood, on && styles.dotSel]}>
                 <Text style={[styles.dayNum, past && styles.dayPast, good && styles.dayGood]}>{day}</Text>
               </View>
-            </Pressable>
+            </PressableScale>
           );
         })}
       </View>
@@ -115,9 +116,9 @@ export default function TaegilScreen() {
   if (!me) return (
     <View style={styles.center}>
       <Text style={styles.msg}>{t('compat.needChart', '먼저 명식을 등록해 주세요.')}</Text>
-      <Pressable style={styles.btn} onPress={() => router.push('/register')}>
+      <PressableScale style={styles.btn} onPress={() => router.push('/register')}>
         <Text style={styles.btnText}>{t('compat.registerMyChart', '내 명식 등록')}</Text>
-      </Pressable>
+      </PressableScale>
     </View>
   );
 
@@ -131,9 +132,9 @@ export default function TaegilScreen() {
         {/* 목적 칩 — 바꾸면 선택 날 초기화 */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
           {PURPOSES.map((p) => (
-            <Pressable key={p.key} style={[styles.chip, purpose === p.key && styles.chipOn]} onPress={() => { setPurpose(p.key); setSel(null); }}>
+            <PressableScale key={p.key} style={[styles.chip, purpose === p.key && styles.chipOn]} onPress={() => { setPurpose(p.key); setSel(null); }}>
               <Text style={[styles.chipTx, purpose === p.key && styles.chipTxOn]}>{purposeLabel(p.key)}</Text>
-            </Pressable>
+            </PressableScale>
           ))}
         </ScrollView>
 

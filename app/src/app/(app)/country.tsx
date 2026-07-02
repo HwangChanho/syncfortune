@@ -5,6 +5,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useMemo, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, Pressable } from 'react-native';
+import { PressableScale } from '../../components/PressableScale';
 import { Image as ExpoImage } from 'expo-image'; // 상단 히어로 — 자동 다운샘플·디스크캐시(daniel: 이미지 노출)
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -54,7 +55,7 @@ export default function CountryScreen() {
         {!loaded ? null : !saved ? (
           <View style={styles.card}>
             <Text style={styles.body}>{t('country.needChart', '먼저 명식을 등록해 주세요.')}</Text>
-            <Pressable style={styles.cta} onPress={() => router.push('/register')}><Text style={styles.ctaTx}>{t('compat.registerMyChart', '명식 등록하기')}</Text></Pressable>
+            <PressableScale style={styles.cta} onPress={() => router.push('/register')}><Text style={styles.ctaTx}>{t('compat.registerMyChart', '명식 등록하기')}</Text></PressableScale>
           </View>
         ) : fit ? (
           <>

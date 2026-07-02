@@ -5,6 +5,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useMemo, useState, useCallback } from 'react';
 import { View, Text, ScrollView, Pressable, StyleSheet, ImageBackground } from 'react-native';
+import { PressableScale } from '../../components/PressableScale';
 import { useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { chineseZodiacToday, westernZodiacToday, signOf } from '../../lib/content/zodiac';
@@ -53,9 +54,9 @@ export default function ZodiacScreen() {
         {/* 토글 */}
         <View style={styles.toggle}>
           {([['animal', t('zodiac.animal', '띠')], ['sign', t('zodiac.sign', '별자리')]] as const).map(([k, l]) => (
-            <Pressable key={k} style={[styles.togBtn, tab === k && styles.togBtnOn]} onPress={() => setTab(k)}>
+            <PressableScale key={k} style={[styles.togBtn, tab === k && styles.togBtnOn]} onPress={() => setTab(k)}>
               <Text style={[styles.togTx, tab === k && styles.togTxOn]}>{l}</Text>
-            </Pressable>
+            </PressableScale>
           ))}
         </View>
 

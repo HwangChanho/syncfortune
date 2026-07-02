@@ -5,6 +5,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useCallback } from 'react';
 import { View, Text, ScrollView, Pressable, Modal, StyleSheet } from 'react-native';
+import { PressableScale } from '../../components/PressableScale';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Alert } from '../../lib/ui/alert'; // 커스텀 알림 — 자미 풀이 전 정확한 시간 안내(daniel)
 import { useDeferredReady } from '../../lib/ui/useDeferredReady'; // 전환 멈칫 제거(daniel 2026-06-28)
@@ -38,7 +39,7 @@ export default function ZiweiRoute() {
   if (!me) return (
     <View style={styles.center}>
       <Text style={[font.body, { color: colors.ink, marginBottom: space(3) }]}>등록된 명식이 없습니다.</Text>
-      <Pressable style={styles.btn} onPress={() => router.push('/register')}><Text style={styles.btnText}>명식 등록</Text></Pressable>
+      <PressableScale style={styles.btn} onPress={() => router.push('/register')}><Text style={styles.btnText}>명식 등록</Text></PressableScale>
     </View>
   );
   if (!ready) return <ChartSkeleton />; // 명식 있음 + 전환 중 → 스켈레톤(아래 computeChart 지연)
@@ -69,17 +70,17 @@ export default function ZiweiRoute() {
                 return (
                   <View key={ci} style={styles.cell}>
                     <View style={styles.top}>
-                      {pl ? <Pressable onPress={() => setGlossary({ kind: 'palace', key: pl.name })}><Text style={[styles.pname, styles.link]}>{pl.name}</Text></Pressable> : <Text style={styles.pname} />}
+                      {pl ? <PressableScale onPress={() => setGlossary({ kind: 'palace', key: pl.name })}><Text style={[styles.pname, styles.link]}>{pl.name}</Text></PressableScale> : <Text style={styles.pname} />}
                       <Text style={[styles.br, { color: elementColor[branchElement(cell)] }]}>{cell}</Text>
                     </View>
                     {pl && PALACE_DESC[pl.name] ? <Text style={styles.pdesc}>{PALACE_DESC[pl.name]}</Text> : null}
                     {pl?.majorStars?.map((st: any, i: number) => (
-                      <Pressable key={i} onPress={() => setGlossary({ kind: 'star', key: st.name })}>
+                      <PressableScale key={i} onPress={() => setGlossary({ kind: 'star', key: st.name })}>
                         <Text style={[styles.major, styles.link]}>{st.name}<Text style={styles.bright}>{BR_SYM[st.brightness] ?? ''}</Text>{(st.transforms ?? []).map((tr: string, j: number) => <Text key={j} style={[styles.sihwa, { color: SIHWA_COL[tr] ?? colors.ink }]}> {tr.slice(-1)}</Text>)}</Text>
-                      </Pressable>
+                      </PressableScale>
                     ))}
                     {pl?.minorStars?.map((s: any, k: number) => (
-                      <Pressable key={`m${k}`} onPress={() => setGlossary({ kind: 'star', key: s.name })}><Text style={[styles.minor, styles.link]}>{s.name}</Text></Pressable>
+                      <PressableScale key={`m${k}`} onPress={() => setGlossary({ kind: 'star', key: s.name })}><Text style={[styles.minor, styles.link]}>{s.name}</Text></PressableScale>
                     ))}
                   </View>
                 );
@@ -93,7 +94,7 @@ export default function ZiweiRoute() {
           <Text style={styles.premTitle}>자미두수 상세 풀이 (프리미엄)</Text>
           <Text style={styles.premDesc}>12궁 통합 해석과 운한(대한) 흐름 풀이는 프리미엄에서 제공됩니다.</Text>
           {/* 자미두수 전용 풀이(/reading?kind=ziwei) — 대표 명식 12궁 통변. input 생략 → serverChartId 캐시 연결 */}
-          <Pressable style={styles.btn} onPress={() => {
+          <PressableScale style={styles.btn} onPress={() => {
             // 자미두수는 시(時)에 따라 명반이 크게 바뀌므로, 풀이 전 정확한 시간 안내 + 명식 수정 유도(daniel)
             Alert.alert(
               '자미두수는 정확한 시간이 필요해요',
@@ -103,7 +104,7 @@ export default function ZiweiRoute() {
                 { text: '풀이 보기', onPress: () => router.navigate({ pathname: '/reading', params: { kind: 'ziwei' } }) },
               ],
             );
-          }}><Text style={styles.btnText}>프리미엄 풀이 보기</Text></Pressable>
+          }}><Text style={styles.btnText}>프리미엄 풀이 보기</Text></PressableScale>
         </View>
       </ScrollView>
 
@@ -120,7 +121,7 @@ export default function ZiweiRoute() {
                   <Text style={styles.sTitle}>{e.ko}{e.hanja ? `   ${e.hanja}` : ''}</Text>
                   <Text style={styles.sMeaning}>{e.meaning}</Text>
                   <View style={styles.sChips}>{e.keywords.map((k, i) => <Text key={i} style={styles.sChip}>{k}</Text>)}</View>
-                  <Pressable style={styles.sClose} onPress={() => setGlossary(null)}><Text style={styles.sCloseTx}>닫기</Text></Pressable>
+                  <PressableScale style={styles.sClose} onPress={() => setGlossary(null)}><Text style={styles.sCloseTx}>닫기</Text></PressableScale>
                 </>
               );
             })()}

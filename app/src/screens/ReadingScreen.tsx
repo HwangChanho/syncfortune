@@ -12,6 +12,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useMemo, useEffect, useRef, type ReactNode } from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator, Modal, TextInput, Keyboard, KeyboardAvoidingView, Platform } from 'react-native';
+import { PressableScale } from '../components/PressableScale';
 import { ExpiryNote } from '../components/ExpiryNote'; // 보유 만료일 공통(프리미엄 가드 한 곳)
 import { TTSButton } from '../components/TTSButton'; // daniel: 풀이 음성 읽기(온디바이스 TTS·무료)
 import { ShareReadingButton } from '../components/ShareReadingButton'; // daniel: 공유는 풀이 맨 끝에 균일하게(콘텐츠 화면과 동일)
@@ -455,19 +456,19 @@ export function ReadingScreen({
                 editable={!asking}
               />
               <Text style={styles.askLen}>{askInput.length}/50</Text>
-              <Pressable
+              <PressableScale
                 style={[styles.askSend, { minHeight: fs(20) + space(5) }, (!askInput.trim() || asking) && styles.askSendOff]}
                 onPress={() => submitFollowup()}
                 disabled={!askInput.trim() || asking}
               >
                 {asking ? <ActivityIndicator color={colors.bg} size="small" /> : <Text style={styles.askSendTx}>{t('reading.askSend')}</Text>}
-              </Pressable>
+              </PressableScale>
             </View>
           </>
         ) : (
-          <Pressable style={styles.askLock} onPress={() => Alert.alert(t('reading.askPremiumTitle'), t('reading.askPremiumMsg'))}>
+          <PressableScale style={styles.askLock} onPress={() => Alert.alert(t('reading.askPremiumTitle'), t('reading.askPremiumMsg'))}>
             <Text style={styles.askLockTx}>🔒 {t('reading.askPremiumCta')}</Text>
-          </Pressable>
+          </PressableScale>
         )}
       </View>
     );
@@ -533,9 +534,9 @@ export function ReadingScreen({
       {/* 생성 버튼 + 과금 안내(미생성 항목이 있을 때만) */}
       {showStart && (
         <>
-          <Pressable style={styles.startBtn} onPress={onStart}>
+          <PressableScale style={styles.startBtn} onPress={onStart}>
             <Text style={styles.startBtnText}>{t('reading.runAll', { count: cats.length })}</Text>
-          </Pressable>
+          </PressableScale>
           <Text style={styles.bannerText}>{banner}</Text>
         </>
       )}
@@ -568,17 +569,17 @@ export function ReadingScreen({
         const open = expandedG[g.label] ?? true;
         return (
           <View key={g.label} style={styles.group}>
-            <Pressable style={styles.groupHead} onPress={() => setExpandedG((e) => ({ ...e, [g.label]: !open }))}>
+            <PressableScale style={styles.groupHead} onPress={() => setExpandedG((e) => ({ ...e, [g.label]: !open }))}>
               <Text style={styles.groupLabel}>{g.label}</Text>
               <Text style={styles.groupCount}>{g.items.length}</Text>
               <Text style={styles.groupChevron}>{open ? '▼' : '▶'}</Text>
-            </Pressable>
+            </PressableScale>
             {open && g.items.map((cat) => {
               const r = normalizeReading(readings[cat.key]);
               // race 방어: r이 undefined이면 로딩 중으로 표시(크래시 방지)
               const preview = (!r || typeof r !== 'object') ? '풀이를 불러오는 중…' : r.error ? '생성 실패 — 다시 시도해 주세요' : asText(r.base);
               return (
-                <Pressable key={cat.key} style={styles.listItem} onPress={() => setDetail(cat.key)}>
+                <PressableScale key={cat.key} style={styles.listItem} onPress={() => setDetail(cat.key)}>
                   <View style={{ flex: 1 }}>
                     <View style={styles.listLabelRow}>
                       <Text style={styles.listLabel}>{cat.label}</Text>
@@ -587,7 +588,7 @@ export function ReadingScreen({
                     <Text style={styles.listPreview} numberOfLines={1}>{preview}</Text>
                   </View>
                   <Text style={styles.listArrow}>›</Text>
-                </Pressable>
+                </PressableScale>
               );
             })}
           </View>
@@ -600,9 +601,9 @@ export function ReadingScreen({
       <KeyboardAvoidingView style={styles.detailScreen} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         {/* daniel(2026-06-24): 공유는 헤더가 아니라 풀이 맨 끝으로 이동(자미 등 위치 통일) → 헤더는 '목록으로'만 */}
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <Pressable style={styles.detailBack} onPress={closeDetail} hitSlop={12}>
+          <PressableScale style={styles.detailBack} onPress={closeDetail} hitSlop={12}>
             <Text style={[styles.detailBackTx, { fontSize: fs(20) }]}>‹ 목록으로</Text>
-          </Pressable>
+          </PressableScale>
         </View>
         {detail && (
           <ScrollView contentContainerStyle={styles.detailWrap} keyboardShouldPersistTaps="handled">
@@ -612,9 +613,9 @@ export function ReadingScreen({
             {renderSections(detail)}
             {/* ADR-055 P3: 분석 버전이 낮은 풀이만 '최신 해석으로 갱신'(opt-in·cap). 최신이면 미노출. */}
             {stale.has(detail) && (
-              <Pressable style={styles.refreshBtn} onPress={() => refreshReading(detail)}>
+              <PressableScale style={styles.refreshBtn} onPress={() => refreshReading(detail)}>
                 <Text style={styles.refreshBtnTx}>{t('reading.refreshStale', '최신 해석으로 갱신')}</Text>
-              </Pressable>
+              </PressableScale>
             )}
             {renderFollowups(detail)}
             {/* daniel(2026-06-24): 풀이 맨 끝에 음성 듣기 + 공유(콘텐츠 화면과 균일 — 자미 등 헤더에 있던 공유 통일) */}

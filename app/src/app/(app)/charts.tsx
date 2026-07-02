@@ -4,6 +4,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useState, useMemo } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { PressableScale } from '../../components/PressableScale';
 import { useFontScale } from '../../lib/ui/fontScale';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -34,9 +35,9 @@ export default function ChartsScreen() {
     return (
       <View style={styles.center}>
         <Text style={styles.msg}>{t('manse.empty')}</Text>
-        <Pressable style={styles.btn} onPress={() => router.push('/register')}>
+        <PressableScale style={styles.btn} onPress={() => router.push('/register')}>
           <Text style={styles.btnText}>{t('compat.registerMyChart')}</Text>
-        </Pressable>
+        </PressableScale>
       </View>
     );
   }

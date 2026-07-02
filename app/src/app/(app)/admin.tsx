@@ -5,6 +5,7 @@
 //   ⚠️ 이메일=PII — 관리자만 노출(규칙8). 비관리자는 접근 차단(서버 RPC + 아래 allowed 게이트).
 // ─────────────────────────────────────────────────────────────────────────
 import { View, Text, ScrollView, Pressable, TextInput, StyleSheet, ActivityIndicator } from 'react-native';
+import { PressableScale } from '../../components/PressableScale';
 import { Alert } from '../../lib/ui/alert'; // 커스텀 알림(앱 디자인)
 import { useEffect, useState } from 'react';
 import { isAdmin, adminListUsers, adminGrantCredit, adminSetPremium, adminUserDetail, adminStats, adminUserUsage, type AdminUser, type AdminUserDetail, type AdminStats, type AdminUsage } from '../../lib/core/admin';
@@ -100,21 +101,21 @@ export default function AdminRoute() {
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>
       {/* ── 관리자 제어(설정에서 이동, daniel 07-01): 비용분석·테스트모드·관리자모드 ── */}
-      <Pressable style={styles.adminLink} onPress={() => router.push('/coststable')}>
+      <PressableScale style={styles.adminLink} onPress={() => router.push('/coststable')}>
         <Text style={styles.adminLinkTx}>📊 비용·수익 분석 (실측)</Text>
-      </Pressable>
-      <Pressable style={[styles.adminLink, testMode && styles.adminLinkOn]} onPress={async () => {
+      </PressableScale>
+      <PressableScale style={[styles.adminLink, testMode && styles.adminLinkOn]} onPress={async () => {
         const next = !testMode;
         try { const { data } = await supabase.rpc('set_my_test_mode', { p_on: next }); if (data === true) { setTestMode(next); setAdTestMode(next); } } catch { /* 무시 */ }
       }}>
         <Text style={styles.adminLinkTx}>테스트 모드 {testMode ? '— 켜짐 (통변 mock·API 미호출)' : '— 꺼짐'}</Text>
-      </Pressable>
-      <Pressable style={[styles.adminLink, adminMode && styles.adminLinkOn]} onPress={async () => {
+      </PressableScale>
+      <PressableScale style={[styles.adminLink, adminMode && styles.adminLinkOn]} onPress={async () => {
         const next = !adminMode;
         try { const { data } = await supabase.rpc('set_my_admin_mode', { p_on: next }); if (typeof data === 'boolean') { setAdminMode(data); await refresh(); } } catch { /* 무시 */ }
       }}>
         <Text style={styles.adminLinkTx}>관리자 모드 {adminMode ? '— 켜짐 (프리미엄+전부 unlock)' : '— 꺼짐 (일반계정처럼)'}</Text>
-      </Pressable>
+      </PressableScale>
       {/* 전체 현황 대시보드 — API 사용량·추정비용·잔여 이용권·분야별·상위 사용자(daniel G) */}
       {stats && (
         <View style={styles.giftPanel}>
@@ -135,13 +136,13 @@ export default function AdminRoute() {
       {filtered.map((u) => {
         const on = sel?.id === u.id;
         return (
-          <Pressable key={u.id} style={[styles.userRow, on && styles.userRowOn]} onPress={() => setSel(u)}>
+          <PressableScale key={u.id} style={[styles.userRow, on && styles.userRowOn]} onPress={() => setSel(u)}>
             <View style={{ flex: 1 }}>
               <Text style={styles.email} numberOfLines={1}>{u.email}</Text>
               <Text style={styles.meta}>{String(u.created_at).split('T')[0]} · 명식 {u.chart_count ?? 0} · 통변 {u.reading_count ?? 0}{(u.paid_total ?? 0) > 0 ? ` · 결제 ₩${u.paid_total.toLocaleString()}` : ''}{u.is_admin ? ' · 관리자' : ''}</Text>
             </View>
             {u.is_premium && <Text style={styles.premBadge}>프리미엄</Text>}
-          </Pressable>
+          </PressableScale>
         );
       })}
 
@@ -163,9 +164,9 @@ export default function AdminRoute() {
                   ))}
                 </>
               ) : <Text style={styles.detailLine}>구매 내역 없음 (웹훅 연동 후 기록)</Text>}
-              <Pressable onPress={() => setShowCharts((s) => !s)}>
+              <PressableScale onPress={() => setShowCharts((s) => !s)}>
                 <Text style={[styles.detailLine, { marginTop: space(2), color: colors.ju, fontWeight: '700' }]}>등록 명식 {detail.chart_count}개 {showCharts ? '▾ 접기' : '▸ 펼치기'}</Text>
-              </Pressable>
+              </PressableScale>
               {showCharts && detail.charts.map((c, i) => {
                 const p = c.saju?.pillars;
                 const gz = p ? (['년', '월', '일', '시'] as const).map((k) => (p[k] ? `${p[k].stem}${p[k].branch}` : '')).filter(Boolean).join(' ') : '';
@@ -194,15 +195,15 @@ export default function AdminRoute() {
               {detail.credits.length > 0 && <Text style={styles.detailLine}>보유 이용권: {detail.credits.map((c) => `${c.kind}×${c.remaining}`).join(', ')}</Text>}
             </View>
           )}
-          <Pressable style={[styles.premToggle, sel.is_premium && styles.premToggleOn]} onPress={togglePremium} disabled={busy}>
+          <PressableScale style={[styles.premToggle, sel.is_premium && styles.premToggleOn]} onPress={togglePremium} disabled={busy}>
             <Text style={styles.premToggleTx}>{sel.is_premium ? '프리미엄 해제' : '프리미엄 선물'}</Text>
-          </Pressable>
+          </PressableScale>
           <Text style={styles.giftSub}>이용권 선물 (+1)</Text>
           <View style={styles.giftGrid}>
             {CREDIT_KINDS.map((c) => (
-              <Pressable key={c.key} style={styles.giftBtn} onPress={() => gift(c.key, c.ko)} disabled={busy}>
+              <PressableScale key={c.key} style={styles.giftBtn} onPress={() => gift(c.key, c.ko)} disabled={busy}>
                 <Text style={styles.giftBtnTx}>{c.ko}</Text>
-              </Pressable>
+              </PressableScale>
             ))}
           </View>
           {busy && <ActivityIndicator color={colors.ju} style={{ marginTop: space(2) }} />}

@@ -4,6 +4,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useMemo, useCallback } from 'react';
 import { View, Text, Pressable, ActivityIndicator, ScrollView, StyleSheet, ImageBackground, Image } from 'react-native';
+import { PressableScale } from '../../components/PressableScale';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { computeChart } from '../../lib/engine/engine';
@@ -44,7 +45,7 @@ export default function BokScreen() {
   if (!result) return (
     <View style={styles.center}>
       <Text style={styles.msg}>{t('compat.needChart', '먼저 명식을 등록해 주세요.')}</Text>
-      <Pressable style={styles.btn} onPress={() => router.push('/register')}><Text style={styles.btnText}>{t('compat.registerMyChart', '내 명식 등록')}</Text></Pressable>
+      <PressableScale style={styles.btn} onPress={() => router.push('/register')}><Text style={styles.btnText}>{t('compat.registerMyChart', '내 명식 등록')}</Text></PressableScale>
     </View>
   );
 
@@ -66,7 +67,7 @@ export default function BokScreen() {
         {/* 이슈17: 타고난 복 결과 공유(앱게이트) */}
         <ShareReadingButton kind="bok" title="내 타고난 복" content={result} />
         <Text style={styles.note}>{t('bok.note', '※ 사주 십신으로 가볍게 본 타고난 복이에요. 재미로 즐겨 주세요.')}</Text>
-        <Pressable style={styles.cta} onPress={() => router.navigate({ pathname: '/reading', params: { input: JSON.stringify(me) } })}><Text style={styles.ctaText}>{t('bok.detail', '내 사주 깊이 보기 (프리미엄)')}</Text></Pressable>
+        <PressableScale style={styles.cta} onPress={() => router.navigate({ pathname: '/reading', params: { input: JSON.stringify(me) } })}><Text style={styles.ctaText}>{t('bok.detail', '내 사주 깊이 보기 (프리미엄)')}</Text></PressableScale>
       </ScrollView>
     </ImageBackground>
   );

@@ -8,6 +8,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useMemo, useState, useRef } from 'react';
 import { View, Text, ScrollView, Pressable, ActivityIndicator, StyleSheet, ImageBackground } from 'react-native';
+import { PressableScale } from '../../components/PressableScale';
 import { ExpiryNote } from '../../components/ExpiryNote'; // 보유 만료일 공통(프리미엄 가드 한 곳)
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -166,7 +167,7 @@ export default function NewYearScreen() {
         ) : !saved ? (
           <View style={styles.card}>
             <Text style={styles.body}>{t('manse.empty', '먼저 명식을 등록해 주세요.')}</Text>
-            <Pressable style={styles.cta} onPress={() => router.push('/register')}><Text style={styles.ctaTx}>{t('compat.registerMyChart', '내 명식 등록')}</Text></Pressable>
+            <PressableScale style={styles.cta} onPress={() => router.push('/register')}><Text style={styles.ctaTx}>{t('compat.registerMyChart', '내 명식 등록')}</Text></PressableScale>
           </View>
         ) : data ? (
           <>
@@ -211,9 +212,9 @@ export default function NewYearScreen() {
             {/* 분야 8 */}
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
               {AREAS.map((a) => (
-                <Pressable key={a.key} style={[styles.chip, area === a.key && styles.chipOn]} onPress={() => setArea(a.key)}>
+                <PressableScale key={a.key} style={[styles.chip, area === a.key && styles.chipOn]} onPress={() => setArea(a.key)}>
                   <Text style={[styles.chipTx, area === a.key && styles.chipTxOn]}>{a.ko}</Text>
-                </Pressable>
+                </PressableScale>
               ))}
             </ScrollView>
             <View style={styles.areaCard}>
@@ -288,9 +289,9 @@ export default function NewYearScreen() {
               {[t('newyear.pv1', '올해의 키워드'), t('newyear.pv2', '분야별 운 8가지'), t('newyear.pv3', '열두 달 캘린더'), t('newyear.pv4', '상·하반기 흐름'), t('newyear.pv5', '올해 다질 점·새해 다짐')].map((p, i) => <Text key={i} style={styles.previewItem}>· {p}</Text>)}
             </View>
             {err ? <Text style={styles.err}>{err}</Text> : null}
-            <Pressable style={styles.gateBtn} onPress={onStart}>
+            <PressableScale style={styles.gateBtn} onPress={onStart}>
               <Text style={styles.gateBtnTx}>{isPremium ? t('newyear.see', '신년운세 보기') : t('newyear.seePaid', '신년운세 보기 (₩9,900)')}</Text>
-            </Pressable>
+            </PressableScale>
           </View>
         )}
         <Text style={styles.note}>{t('newyear.bottomNote', '※ 올 한 해의 큰 흐름이에요. 매일의 운세는 \'오늘의 운세\'에서 확인하세요.')}</Text>

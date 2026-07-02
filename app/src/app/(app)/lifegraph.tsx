@@ -6,6 +6,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { View, Text, ScrollView, Pressable, ActivityIndicator, StyleSheet, Dimensions, Animated, Easing } from 'react-native';
+import { PressableScale } from '../../components/PressableScale';
 import { ExpiryNote } from '../../components/ExpiryNote'; // 보유 만료일 공통(프리미엄 가드 한 곳)
 import { Image as ExpoImage } from 'expo-image'; // hero 배너 — 다운샘플·디스크캐시(daniel: 이미지 캐시·로딩 가속)
 import Svg, { Polyline, Circle, Line, Rect } from 'react-native-svg';
@@ -163,7 +164,7 @@ export default function LifeGraphScreen() {
       ) : !saved ? (
         <View style={styles.card}>
           <Text style={styles.body}>{t('manse.empty', '먼저 명식을 등록해 주세요.')}</Text>
-          <Pressable style={styles.cta} onPress={() => router.push('/register')}><Text style={styles.ctaTx}>{t('compat.registerMyChart', '내 명식 등록')}</Text></Pressable>
+          <PressableScale style={styles.cta} onPress={() => router.push('/register')}><Text style={styles.ctaTx}>{t('compat.registerMyChart', '내 명식 등록')}</Text></PressableScale>
         </View>
       ) : data && n ? (
         <>
@@ -263,9 +264,9 @@ export default function LifeGraphScreen() {
             {[t('life.pv1', '나에게 필요한 기운'), t('life.pv2', '10년 단위 인생 곡선'), t('life.pv3', '인생의 전환점'), t('life.pv4', '가장 빛나는 시기'), t('life.pv5', '다지고 조심할 시기')].map((p, i) => <Text key={i} style={styles.previewItem}>· {p}</Text>)}
           </View>
           {err ? <Text style={styles.err}>{err}</Text> : null}
-          <Pressable style={styles.gateBtn} onPress={onStart}>
+          <PressableScale style={styles.gateBtn} onPress={onStart}>
             <Text style={styles.gateBtnTx}>{isPremium ? t('life.see', '인생 그래프 보기') : t('life.seePaid', '인생 그래프 보기 (₩3,900)')}</Text>
-          </Pressable>
+          </PressableScale>
         </View>
       )}
     </ScrollView>

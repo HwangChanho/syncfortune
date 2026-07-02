@@ -4,6 +4,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useMemo, useCallback } from 'react';
 import { View, Text, Pressable, ActivityIndicator, ScrollView, StyleSheet, ImageBackground, Image } from 'react-native';
+import { PressableScale } from '../../components/PressableScale';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { computeChart } from '../../lib/engine/engine';
@@ -46,7 +47,7 @@ export default function LoveStyleScreen() {
   if (!result) return (
     <View style={styles.center}>
       <Text style={styles.msg}>{t('compat.needChart', '먼저 명식을 등록해 주세요.')}</Text>
-      <Pressable style={styles.btn} onPress={() => router.push('/register')}><Text style={styles.btnText}>{t('compat.registerMyChart', '내 명식 등록')}</Text></Pressable>
+      <PressableScale style={styles.btn} onPress={() => router.push('/register')}><Text style={styles.btnText}>{t('compat.registerMyChart', '내 명식 등록')}</Text></PressableScale>
     </View>
   );
 
@@ -75,7 +76,7 @@ export default function LoveStyleScreen() {
         {/* 이슈17: 연애 스타일 결과 공유(앱게이트) */}
         <ShareReadingButton kind="lovestyle" title="내 연애 스타일" content={result} />
         <Text style={styles.note}>{t('lovestyle.note', '※ 사주 십신으로 가볍게 본 연애 스타일이에요. 재미로 즐겨 주세요.')}</Text>
-        <Pressable style={styles.cta} onPress={() => router.push('/love')}><Text style={styles.ctaText}>{t('lovestyle.detail', '내 애정 흐름 깊이 보기')}</Text></Pressable>
+        <PressableScale style={styles.cta} onPress={() => router.push('/love')}><Text style={styles.ctaText}>{t('lovestyle.detail', '내 애정 흐름 깊이 보기')}</Text></PressableScale>
       </ScrollView>
     </ImageBackground>
   );

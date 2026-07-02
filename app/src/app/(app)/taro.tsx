@@ -7,6 +7,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { View, Text, Pressable, ScrollView, Image, StyleSheet, ImageBackground, Modal, Animated, Easing } from 'react-native';
+import { PressableScale } from '../../components/PressableScale';
 import { useFontScale } from '../../lib/ui/fontScale';
 import { useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -119,9 +120,9 @@ export default function TaroScreen() {
         <View style={styles.headerArea}>
           <Text style={styles.title}>{t('menu.taro')}</Text>
           {category && (
-            <Pressable style={styles.resetBtnNew} onPress={changeTopic}>
+            <PressableScale style={styles.resetBtnNew} onPress={changeTopic}>
               <Text style={styles.resetTxNew}>주제 변경</Text>
-            </Pressable>
+            </PressableScale>
           )}
         </View>
 
@@ -131,12 +132,12 @@ export default function TaroScreen() {
             <Text style={styles.sub}>주제마다 하루 한 번. 보고 싶은 주제를 골라 카드를 직접 뽑아 보세요.</Text>
             <View style={styles.cats}>
               {TARO_CATEGORIES.map((c) => (
-                <Pressable key={c.key} style={styles.catBtnNew} onPress={() => start(c)}>
+                <PressableScale key={c.key} style={styles.catBtnNew} onPress={() => start(c)}>
                   <GlassCard style={styles.catGlass} intensity={20}>
                     <Image source={TARO_IMAGES[c.key]} style={styles.catImgNew} resizeMode="contain" />
                     <Text style={styles.catKoNew}>{c.ko}</Text>
                   </GlassCard>
-                </Pressable>
+                </PressableScale>
               ))}
             </View>
           </>
@@ -167,9 +168,9 @@ export default function TaroScreen() {
                         { zIndex: i, opacity: flip, transform: [{ perspective: 800 }, { translateX: offsetX }, { rotateY: flipY }, { rotate: `${angle}deg` }] }
                       ]}
                     >
-                      <Pressable onPress={() => openCard(i)}>
+                      <PressableScale onPress={() => openCard(i)}>
                         <Image source={cardImage(card.id)} style={[styles.fanImg, card.reversed && styles.revImg]} resizeMode="contain" />
-                      </Pressable>
+                      </PressableScale>
                     </Animated.View>
                   );
                 })}
@@ -179,7 +180,7 @@ export default function TaroScreen() {
             {!done ? (
               // 뒷면 덱(탭해서 한 장씩)
               <View style={styles.drawArea}>
-                <Pressable onPress={drawNext}>
+                <PressableScale onPress={drawNext}>
                   <GlassCard style={styles.deckBackNew} intensity={50}>
                     <ImageBackground source={TARO_IMAGES[category?.key ?? 'general']} style={styles.deckImg} resizeMode="contain">
                       <View style={styles.deckTapBarNew}>
@@ -187,7 +188,7 @@ export default function TaroScreen() {
                       </View>
                     </ImageBackground>
                   </GlassCard>
-                </Pressable>
+                </PressableScale>
                 <Text style={styles.drawHint}>지금 고민 중인 문제를 떠올리며, 카드를 한 장씩 탭해 주세요 ({drawn}/{spread.length})</Text>
               </View>
             ) : (

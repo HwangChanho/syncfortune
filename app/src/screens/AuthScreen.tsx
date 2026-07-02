@@ -8,6 +8,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useState } from 'react';
 import { View, Text, TextInput, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
+import { PressableScale } from '../components/PressableScale';
 import { Alert } from '../lib/ui/alert'; // 커스텀 알림(앱 디자인)
 import * as Linking from 'expo-linking';
 import { useTranslation } from 'react-i18next';
@@ -69,20 +70,20 @@ export function AuthScreen() {
       {loading ? <ActivityIndicator color={colors.ju} style={{ marginVertical: space(3) }} /> : null}
 
       {/* 소셜 로그인 — 애플·구글·네이버 (각 브랜드 색) */}
-      <Pressable style={[styles.appleBtn, loading && styles.btnDisabled]} onPress={() => signInWithOAuth('apple')} disabled={loading}>
+      <PressableScale style={[styles.appleBtn, loading && styles.btnDisabled]} onPress={() => signInWithOAuth('apple')} disabled={loading}>
         <Text style={styles.appleLogo}></Text>
         <Text style={styles.appleText}>{t('auth.apple')}</Text>
-      </Pressable>
+      </PressableScale>
 
-      <Pressable style={[styles.googleBtn, loading && styles.btnDisabled]} onPress={() => signInWithOAuth('google')} disabled={loading}>
+      <PressableScale style={[styles.googleBtn, loading && styles.btnDisabled]} onPress={() => signInWithOAuth('google')} disabled={loading}>
         <Text style={styles.googleG}>G</Text>
         <Text style={styles.googleText}>{t('auth.google')}</Text>
-      </Pressable>
+      </PressableScale>
 
-      <Pressable style={[styles.naverBtn, loading && styles.btnDisabled]} onPress={signInWithNaver} disabled={loading}>
+      <PressableScale style={[styles.naverBtn, loading && styles.btnDisabled]} onPress={signInWithNaver} disabled={loading}>
         <Text style={styles.naverN}>N</Text>
         <Text style={styles.naverText}>{t('auth.naver')}</Text>
-      </Pressable>
+      </PressableScale>
     </View>
   );
 }

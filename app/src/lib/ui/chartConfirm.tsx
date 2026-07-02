@@ -8,6 +8,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useEffect, useSyncExternalStore } from 'react';
 import { View, Text, Pressable, Modal, ScrollView, StyleSheet } from 'react-native';
+import { PressableScale } from '../../components/PressableScale';
 import { listCharts, setRepresentative, getRepresentativeId, type SavedChart } from '../engine/myChart';
 import { loadCredits, type CreditKind } from '../billing/coupons';
 import { colors, radius, space, shadow, font } from '../theme';
@@ -64,10 +65,10 @@ export function ChartConfirmHost() {
                 {charts.map((c) => {
                   const on = c.id === repId;
                   return (
-                    <Pressable key={c.id} style={[styles.item, on && styles.itemOn]} onPress={() => pick(c.id)}>
+                    <PressableScale key={c.id} style={[styles.item, on && styles.itemOn]} onPress={() => pick(c.id)}>
                       <Text style={[styles.itemTx, on && styles.itemTxOn]} numberOfLines={1}>{on ? '✓ ' : ''}{c.label}</Text>
                       <Text style={[styles.itemMeta, on && styles.itemTxOn]} numberOfLines={1}>{c.relation === 'self' ? '본인' : c.relation}</Text>
-                    </Pressable>
+                    </PressableScale>
                   );
                 })}
               </ScrollView>
@@ -75,8 +76,8 @@ export function ChartConfirmHost() {
           )}
           {credits > 0 && <Text style={styles.credit}>보유 이용권 {credits}개</Text>}
           <View style={styles.btns}>
-            <Pressable style={styles.btnCancel} onPress={() => close(false)}><Text style={styles.btnCancelTx}>취소</Text></Pressable>
-            <Pressable style={styles.btnOk} onPress={() => close(true)}><Text style={styles.btnOkTx}>네, 볼게요</Text></Pressable>
+            <PressableScale style={styles.btnCancel} onPress={() => close(false)}><Text style={styles.btnCancelTx}>취소</Text></PressableScale>
+            <PressableScale style={styles.btnOk} onPress={() => close(true)}><Text style={styles.btnOkTx}>네, 볼게요</Text></PressableScale>
           </View>
         </Pressable>
       </Pressable>

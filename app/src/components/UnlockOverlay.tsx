@@ -6,6 +6,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useRef, useState } from 'react';
 import { Modal, View, Text, Animated, Easing, StyleSheet, Pressable } from 'react-native';
+import { PressableScale } from './PressableScale';
 import { useRouter } from 'expo-router';
 import { colors, space, radius, font } from '../lib/theme';
 
@@ -43,9 +44,9 @@ export function UnlockOverlay({ visible, message, allowBackground = true }: { vi
         <Text style={styles.msg}>{message ?? '운명을 여는 중…'}</Text>
         <Text style={styles.sub}>{allowBackground ? '나가서 다른 걸 봐도 돼요 · 백그라운드에서 계속 풀이되고\n완료되면 알림으로 알려드릴게요' : '잠시만 기다려 주세요'}</Text>
         {allowBackground && (
-          <Pressable style={styles.exitBtn} onPress={() => router.replace('/')}>
+          <PressableScale style={styles.exitBtn} onPress={() => router.replace('/')}>
             <Text style={styles.exitTx}>홈으로 나가기</Text>
-          </Pressable>
+          </PressableScale>
         )}
       </View>
     </Modal>
