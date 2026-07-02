@@ -36,7 +36,7 @@ export function BottomNav() {
 }
 
 const styles = StyleSheet.create({
-  bar: { flexDirection: 'row', borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.line, backgroundColor: colors.bg, paddingBottom: space(6), paddingTop: space(5), marginBottom: space(4) }, // 바 높이 키움(위로, daniel) — paddingTop 3.5→5 / marginBottom 16px 추가로 safe area 위로 올림(daniel)
+  bar: { flexDirection: 'row', borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.line, backgroundColor: colors.card, paddingBottom: space(6), paddingTop: space(5), marginBottom: space(4) }, // 네비바 배경 = 카드 서피스(라이트=연베이지 #FBF5E8, 다크=#221F44) — 배경(한지/달밤) 위에서 바로 도드라지게(daniel 07-03)
 
   tab: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   // active 상단 짧은 골드 바(이모지 대신 시각 표시)
