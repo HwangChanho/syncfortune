@@ -25,6 +25,7 @@ import { installCrashLogger, logEvent, setLogTestContext } from '../lib/backend/
 import { SplashOverlay } from '../components/SplashOverlay'; // 앱 실행 인트로(緣) 애니메이션
 import { BusyOverlay } from '../components/BusyOverlay'; // 인증 전환(로그아웃/로그인) 중 전역 블로킹 로딩(먹통 방지)
 import { subscribeAuthBusy, getAuthBusy } from '../lib/ui/authBusy';
+import { ChartConfirmHost } from '../lib/ui/chartConfirm'; // 풀이/구매 전 명식 확인 모달(드롭다운 변경)
 
 // i18next 26.x가 Hermes에서 Intl.PluralRules 를 인식 못 해 내는 dev 경고(동작은 v3 fallback 정상,
 //   한·영·일 복수형 단순해 영향 0) 억제. 프로덕션 빌드엔 LogBox 자체가 없어 무영향.
@@ -89,6 +90,8 @@ export default function RootLayout() {
           </Stack>
         )}
         <AppAlert />
+        {/* 풀이/구매 전 명식 확인 모달(드롭다운으로 명식 변경 가능, daniel 07-02) — 전역 호스트 1개 */}
+        <ChartConfirmHost />
         {/* 인증 전환(로그아웃/로그인) 중 화면 막고 로딩 — 클린업 캐스케이드 동안 '먹통' 방지(daniel 07-02) */}
         <BusyOverlay visible={authBusy} message="잠시만 기다려 주세요…" />
         {splash && <SplashOverlay onDone={() => setSplash(false)} />}
