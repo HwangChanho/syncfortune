@@ -3,11 +3,12 @@
 // daniel: 설정에서 글자 크기 조절. 통변 등 본문 가독성을 위한 전역 배율(fontScale) 선택 + 언어.
 //   글자 크기는 즉시 반영(미리보기 문장으로 확인). 언어는 i18n.changeLanguage.
 // ─────────────────────────────────────────────────────────────────────────
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet, Linking } from 'react-native';
 import Constants from 'expo-constants'; // 앱 버전(app.json)
 import { Alert } from '../../lib/ui/alert'; // 커스텀 알림(앱 디자인)
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
+import { getNotifStatus, requestNotifPermission, type NotifStatus } from '../../lib/backend/notifications'; // 알림 권한 상태·요청(설정 토글)
 import { useTranslation } from 'react-i18next';
 import { setAppLang } from '../../lib/i18n'; // 언어 변경 + persist(재시작 후 유지)
 import { useFontScale, FONT_STEPS } from '../../lib/ui/fontScale';
@@ -41,6 +42,9 @@ export default function SettingsScreen() {
   const [admin, setAdmin] = useState(false); // 관리자 — 메뉴 노출용(실제 권한은 서버 RPC). 제어(비용분석·테스트/관리자모드)는 /admin 내부로 통합(daniel 07-01)
   const [premPrice, setPremPrice] = useState(''); // 프리미엄 현지통화 가격(RC) — 미설정 시 ₩ 폴백
   const [themePref, setThemePrefState] = useState<ThemePref>(getThemePref()); // 화면 테마(다크/라이트/시스템) — 변경은 재시작 후 적용
+  const [notifStatus, setNotifStatus] = useState<NotifStatus>('undetermined'); // 알림 권한 상태(행 라벨·동작 분기)
+  // 알림 권한 상태 로드 — 포커스마다(기기 설정 다녀와서 켜/끄면 ON/OFF 즉시 반영, daniel 07-02)
+  useFocusEffect(useCallback(() => { getNotifStatus().then(setNotifStatus).catch(() => {}); }, []));
 
   // 관리자/테스트모드 노출 = session 반응형. 로그아웃(session=null) 즉시 false로 내려 관리자 메뉴가 바로 사라지게(daniel) — 빈 deps면 마운트 1회라 창 전환 전까지 살아있었음.
   useEffect(() => { if (!session) { setAdmin(false); return; } isAdmin().then(setAdmin).catch(() => {}); }, [session]);
@@ -52,6 +56,27 @@ export default function SettingsScreen() {
     setBusy(t('common.loggingOut'));
     try { await supabase.auth.signOut(); }
     finally { setBusy(null); }
+  }
+
+  // 알림 켜기/안내 — 상태별 분기(daniel 07-02: 시스템 프롬프트가 안 뜨던 문제 근본 대응).
+  //   미결정 → 시스템 프롬프트 1회. 거부/이미 켜짐 → 앱에서 못 바꾸므로 기기 설정으로 유도(Linking.openSettings).
+  async function onNotif() {
+    const cur = await getNotifStatus();
+    setNotifStatus(cur);
+    const openIosSettings = { text: t('settings.openSettings', '설정 열기'), onPress: () => { Linking.openSettings().catch(() => {}); } };
+    const cancel = { text: t('common.cancel', '취소'), style: 'cancel' as const };
+    if (cur === 'unavailable') { Alert.alert(t('settings.notif', '알림'), t('settings.notifUnavailable', '이 기기에서는 알림을 사용할 수 없어요.')); return; }
+    if (cur === 'granted') { // 이미 켜짐 → 끄려면 기기 설정에서(앱에서 직접 못 끔)
+      Alert.alert(t('settings.notif', '알림'), t('settings.notifOnMsg', '알림이 켜져 있어요. 끄려면 기기 설정에서 바꿀 수 있어요.'), [cancel, openIosSettings]); return;
+    }
+    if (cur === 'undetermined') { // 프롬프트 가능 → 시스템 권한창
+      const after = await requestNotifPermission();
+      setNotifStatus(after);
+      if (after !== 'granted') Alert.alert(t('settings.notif', '알림'), t('settings.notifDeniedMsg', '알림을 받으려면 기기 설정에서 팔자 알림을 켜 주세요.'), [cancel, openIosSettings]);
+      return;
+    }
+    // denied → iOS는 재프롬프트 불가 → 기기 설정으로
+    Alert.alert(t('settings.notif', '알림'), t('settings.notifDeniedMsg', '알림을 받으려면 기기 설정에서 팔자 알림을 켜 주세요.'), [cancel, openIosSettings]);
   }
 
   // 프리미엄 구매 — 로그인 게이트(구매 계정 귀속) → RC 구독 → 갱신.
@@ -184,6 +209,21 @@ export default function SettingsScreen() {
         })}
       </View>
 
+      {/* ── 알림 ── daniel 07-02: 시스템 권한 프롬프트가 안 뜨던 문제 → 명시적 켜기 진입점(미결정=프롬프트, 거부=기기설정) */}
+      <Text style={[styles.h, { marginTop: space(7) }]}>{t('settings.notif', '알림')}</Text>
+      <Pressable style={styles.notifRow} onPress={onNotif}>
+        <View style={{ flex: 1, marginRight: space(3) }}>
+          <Text style={styles.infoLabel}>{t('settings.notifDaily', '매일 오늘의 운세 알림')}</Text>
+          <Text style={styles.notifSub}>
+            {notifStatus === 'granted' ? t('settings.notifOn', '켜짐 · 매일 오전 9시')
+              : notifStatus === 'denied' ? t('settings.notifDenied', '꺼짐 · 눌러서 기기 설정에서 켜기')
+              : notifStatus === 'unavailable' ? t('settings.notifNA', '이 기기에서 사용 불가')
+              : t('settings.notifOff', '꺼짐 · 눌러서 켜기')}
+          </Text>
+        </View>
+        <Text style={[styles.notifState, notifStatus === 'granted' && { color: colors.ju }]}>{notifStatus === 'granted' ? 'ON' : 'OFF'}</Text>
+      </Pressable>
+
       <Text style={styles.note}>{t('settings.note')}</Text>
 
       {/* ── 앱 정보(버전·약관·개인정보·오픈소스) — 출시 준비 ── */}
@@ -239,6 +279,10 @@ const styles = StyleSheet.create({
   premOnTx: { color: colors.ju, fontWeight: '800', fontSize: 15 },
   restoreBtn: { alignSelf: 'center', marginTop: space(2.5), paddingVertical: space(1) },
   restoreTx: { color: colors.inkSoft, fontSize: 13, fontWeight: '600', textDecorationLine: 'underline' },
+  // 알림 행(설정에서 켜기·상태 표시)
+  notifRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.line, padding: space(4), ...shadow.soft },
+  notifSub: { ...font.caption, color: colors.inkFaint, marginTop: space(1) },
+  notifState: { fontWeight: '900', fontSize: 14, color: colors.inkFaint },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: space(2), alignItems: 'center' },
   // 칩 = 균일 높이 + 내용 중앙 정렬(글자 크기가 달라도 라벨이 가운데 오게, daniel)
   opt: { minHeight: 46, paddingHorizontal: space(4), borderRadius: radius.pill, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, alignItems: 'center', justifyContent: 'center' },

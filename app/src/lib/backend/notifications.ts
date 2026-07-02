@@ -33,12 +33,50 @@ if (Notif?.setNotificationHandler) {
 
 const HOUR = 9;          // 알림 시각(매일 아침 9시)
 const DAYS_AHEAD = 14;   // 미리 스케줄할 일수(운세=결정론이라 미래도 계산 가능). iOS 64개 한도 내.
-const TITLE: Record<string, string> = { ko: '오늘의 기운', en: "Today's Energy", ja: '今日の気運' };
+const TITLE: Record<string, string> = { ko: '오늘의 운세', en: "Today's Fortune", ja: '今日の運勢' }; // daniel 07-02: '기운'→'운세'
 
 /** 알림 권한이 켜져 있는지(설정 토글 표시용). 모듈 없으면 false. */
 export async function notificationsEnabled(): Promise<boolean> {
   if (!Notif || Platform.OS === 'web') return false;
   try { return (await Notif.getPermissionsAsync()).granted; } catch { return false; }
+}
+
+export type NotifStatus = 'granted' | 'denied' | 'undetermined' | 'unavailable';
+
+/**
+ * ★알림 권한 확보(중앙화) — 이전엔 scheduleDailyFortune/notifyReadingDone/registerPushToken 3곳에 중복돼
+ *   있고 iOS 옵션도 없었다(daniel 07-02). 한 곳에서 iOS 옵션 명시 + 미결정 시에만 시스템 프롬프트 1회.
+ *   granted면 true. 이미 거부(canAskAgain=false)면 프롬프트 안 뜸 → false(설정 화면이 iOS 설정으로 유도).
+ */
+async function ensurePermission(): Promise<boolean> {
+  try {
+    const perm = await Notif.getPermissionsAsync();
+    if (perm.granted) return true;
+    if (!perm.canAskAgain) return false;                 // iOS: 한 번 거부하면 재프롬프트 불가 → 기기 설정에서만
+    const req = await Notif.requestPermissionsAsync({ ios: { allowAlert: true, allowBadge: true, allowSound: true } });
+    return !!req.granted;
+  } catch { return false; }
+}
+
+/** 설정 화면용 — 현재 알림 권한 상태(행 라벨·동작 분기). 모듈/웹 없으면 'unavailable'. */
+export async function getNotifStatus(): Promise<NotifStatus> {
+  if (!Notif || Platform.OS === 'web') return 'unavailable';
+  try {
+    const p = await Notif.getPermissionsAsync();
+    if (p.granted) return 'granted';
+    return p.canAskAgain ? 'undetermined' : 'denied';    // 미결정=프롬프트 가능 / 거부=iOS 설정 필요
+  } catch { return 'unavailable'; }
+}
+
+/**
+ * 설정 화면용 — 알림 켜기 시도. 미결정이면 시스템 프롬프트를 띄우고, 켜지면 오늘의 운세 알림도 재스케줄.
+ *   반환 = 시도 후 상태('granted'면 성공, 'denied'면 이미 거부라 프롬프트 불가 → 호출부가 iOS 설정 유도).
+ */
+export async function requestNotifPermission(): Promise<NotifStatus> {
+  if (!Notif || Platform.OS === 'web') return 'unavailable';
+  const ok = await ensurePermission();
+  if (ok) { scheduleDailyFortune().catch(() => {}); return 'granted'; }
+  return getNotifStatus();                                // 'undetermined'(취소) 또는 'denied'
 }
 
 /**
@@ -49,9 +87,7 @@ export async function notificationsEnabled(): Promise<boolean> {
 export async function scheduleDailyFortune(): Promise<void> {
   if (!Notif || Platform.OS === 'web') return;
   try {
-    const perm = await Notif.getPermissionsAsync();
-    const granted = perm.granted || (perm.canAskAgain && (await Notif.requestPermissionsAsync()).granted);
-    if (!granted) return;
+    if (!(await ensurePermission())) return;             // 권한 확보(중앙화·iOS 옵션·미결정 시 1회 프롬프트)
 
     const rep = await loadRepChart();
     if (!rep) return;                                    // 대표 명식 없으면 개인화 불가 → 스케줄 안 함
@@ -94,8 +130,7 @@ export async function notifyReadingDone(title: string, body: string, route?: str
   if (!Notif || Platform.OS === 'web') return;
   notifChain = notifChain.then(async () => {
     try {
-      const perm = await Notif.getPermissionsAsync();
-      if (!(perm.granted || (perm.canAskAgain && (await Notif.requestPermissionsAsync()).granted))) return;
+      if (!(await ensurePermission())) return;           // 권한 확보(중앙화)
       await Notif.scheduleNotificationAsync({
         content: { title, body: (body || '').slice(0, 140), data: route ? { route } : {} },
         trigger: null,   // 즉시 발송
@@ -133,9 +168,7 @@ export function setupNotificationTapListener(): () => void {
 export async function registerPushToken(): Promise<void> {
   if (!Notif || Platform.OS === 'web') return;
   try {
-    const perm = await Notif.getPermissionsAsync();
-    const granted = perm.granted || (perm.canAskAgain && (await Notif.requestPermissionsAsync()).granted);
-    if (!granted) return;
+    if (!(await ensurePermission())) return;             // 권한 확보(중앙화)
     // projectId: app.json extra.eas.projectId 또는 런타임 easConfig. 없으면 토큰 발급 불가 → 가드.
     const projectId = (Constants as any)?.expoConfig?.extra?.eas?.projectId ?? (Constants as any)?.easConfig?.projectId;
     if (!projectId) return;
