@@ -28,6 +28,7 @@ import { appLang } from '../lib/i18n'; // 통변 출력 언어(앱 언어)
 import { confirmReadingChart } from '../lib/ui/confirmChart'; // 생성 전 명식 확인 + 보유 이용권 안내(daniel)
 import { stemElement, branchElement, elementColor, elementText, stemYinYang, branchYinYang } from '../lib/engine/ohaeng';
 import { TTSButton } from '../components/TTSButton'; // daniel: 풀이 음성 읽기(온디바이스 TTS·무료)
+import { UnlockOverlay } from '../components/UnlockOverlay'; // 시기 통변 생성 중 로딩(타임라인 테마 영상)
 import { colors, radius, space, shadow, font } from '../lib/theme';
 import type { ChartInput } from '@spec/chart';
 import type { SavedChart } from '../lib/engine/myChart';
@@ -303,6 +304,8 @@ export function TimelineScreen({ input, savedChart }: { input: ChartInput | null
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>
+      {/* 시기(대운/세운) 통변 생성 중 = 타임라인 테마 영상 로딩(busy=생성 중인 category). Modal 이라 위치 무관(최상단 오버레이) */}
+      <UnlockOverlay visible={!!busy} videoKey="timeline" message={t('timeline.generating')} />
       <Text style={[styles.h, { fontSize: fs(22) }]}>{t('reading.timelineTitle')}</Text>
       <Text style={[styles.sub, { fontSize: fs(12), lineHeight: fs(19) }]}>{t('reading.timelineSub')}</Text>
 

@@ -525,7 +525,7 @@ export function ReadingScreen({
 
   return (
     <>
-    <UnlockOverlay visible={showUnlockOverlay(!!progress, Object.keys(readings).length) /* 생성중+캐시0일 때만 — 기존 풀이 위 자물쇠 방지(readingGate·테스트됨) */} message={progress?.current ? t('reading.progress', { current: progress.current, done: progress.done, total: progress.total }) : t('reading.generating', '풀이를 정성껏 그리는 중…')} />
+    <UnlockOverlay visible={showUnlockOverlay(!!progress, Object.keys(readings).length) /* 생성중+캐시0일 때만 — 기존 풀이 위 자물쇠 방지(readingGate·테스트됨) */} message={progress?.current ? t('reading.progress', { current: progress.current, done: progress.done, total: progress.total }) : t('reading.generating', '풀이를 정성껏 그리는 중…')} videoKey={kind === 'ziwei' ? 'ziwei' : 'saju'} /* 사주=saju / 자미두수=ziwei 테마 로딩 영상(ReadingScreen 은 kind prop 로 두 종류 공용) */ />
     <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>
       {header}
       {/* 풀이 보유 만료일 — 공통 컴포넌트(프리미엄 가드·문구 한 곳, daniel 07-01). 생성된 풀이 있을 때만. */}
