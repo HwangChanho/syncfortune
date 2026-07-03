@@ -82,7 +82,40 @@ export async function useCredit(kind: CreditKind): Promise<boolean> {
  */
 export async function grantCredit(kind: CreditKind, qty = 1): Promise<number | null> {
   if (!(await hasSession())) { await localGrant(kind, qty); return qty; } // 비로그인 = 로컬 적립(로그인 시 이관, H)
+  // ⚠️ 로그인 서버 적립(grant_credit)은 migration 0010 으로 authenticated 회수됨(C1 보안) → 이 경로는 실패(null).
+  //    결제 후 적립은 RC 웹훅(영수증 검증)이 수행 → 호출처는 grantCredit 대신 waitForCreditGrant 로 반영을 폴링한다.
+  //    (남은 grantCredit 호출은 비로그인 localGrant · migrateCredits 안전가드 등 non-minting 경로뿐.)
   const { data, error } = await supabase.rpc('grant_credit', { p_kind: kind, p_qty: qty });
   logEvent('credit_grant', { kind, qty, total: error ? null : data, ok: !error }, error ? 'error' : 'info'); // 이용권 부여 로그(결제→적립)
   return error ? null : (data as number);
+}
+
+/**
+ * 결제(RevenueCat) 후 웹훅(rc-webhook)이 서버에 이용권을 적립할 때까지 폴링 대기(C1 보안 — daniel 2026-07-03).
+ * ─────────────────────────────────────────────────────────────────────────
+ * 배경: 클라가 grant_credit 을 직접 호출하던 방식을 폐지(영수증 미검증 결제 우회, migration 0010 회수).
+ *   이제 *영수증 검증된 RC 웹훅*만 entitlement_credits 를 적립하므로, 결제 성공 → 서버 반영까지 짧은 지연이 있다.
+ *   loadCredits 를 여러 번 조회해 해당 kind 잔여가 baseline 보다 늘면 반영 완료로 본다(비로그인 로컬 적립도 즉시 반영).
+ *   타임아웃이면 미반영(granted=false) — 호출처가 '적용 중' 안내 후 재시도를 유도한다.
+ * @param kind 기다릴 이용권 종류
+ * @param opts.baseline 결제 직전 잔여 수(이 값보다 커지면 반영됨). 결제 게이트는 잔여 0 에서 진입하므로 기본 0.
+ * @param opts.tries 최대 조회 횟수(기본 8), opts.intervalMs 조회 간격 ms(기본 800) → 기본 최대 ~6.4s 대기
+ * @returns { granted, credits } granted=반영 확인 여부, credits=최신 보유 맵(호출처 setState 용)
+ */
+export async function waitForCreditGrant(
+  kind: CreditKind,
+  opts: { baseline?: number; tries?: number; intervalMs?: number } = {},
+): Promise<{ granted: boolean; credits: Record<string, number> }> {
+  const baseline = opts.baseline ?? 0;
+  const tries = opts.tries ?? 8;
+  const intervalMs = opts.intervalMs ?? 800;
+  let credits = await loadCredits();
+  // 아직 미반영이면 간격을 두고 재조회(웹훅 도달 대기). 이미 반영됐으면 루프 없이 즉시 반환.
+  for (let i = 0; i < tries && (credits[kind] ?? 0) <= baseline; i++) {
+    await new Promise((r) => setTimeout(r, intervalMs));
+    credits = await loadCredits();
+  }
+  const granted = (credits[kind] ?? 0) > baseline;
+  logEvent('credit_wait', { kind, granted }, granted ? 'info' : 'error'); // 웹훅 반영 관측(지연·미반영 추적)
+  return { granted, credits };
 }

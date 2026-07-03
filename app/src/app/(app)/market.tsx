@@ -11,7 +11,8 @@ import { Alert } from '../../lib/ui/alert'; // 커스텀 알림(앱 디자인)
 import { useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { CREDIT_KINDS, loadCredits, redeemCoupon, grantCredit, PREMIUM_PRICE, type CreditKind } from '../../lib/billing/coupons';
+import { CREDIT_KINDS, loadCredits, redeemCoupon, waitForCreditGrant, PREMIUM_PRICE, type CreditKind } from '../../lib/billing/coupons';
+import { requireLoginForPurchase } from '../../lib/billing/requireLogin'; // C1: 결제=계정 귀속(웹훅 적립엔 로그인 필수)
 import { listCharts, getRepresentativeId, setRepresentative, loadRepChart, type SavedChart } from '../../lib/engine/myChart';
 import { requestChartConfirm } from '../../lib/ui/chartConfirm'; // 구매 전 명식 확인(드롭다운으로 변경 가능)
 import { ListSkeleton } from '../../components/Skeleton'; // 첫 진입 로딩 스켈레톤(daniel 07-02: 마켓 즉시 전환+스켈레톤)
@@ -161,13 +162,20 @@ export default function MarketRoute() {
   async function buy(kind: CreditKind) {
     if (busy) return;
     if (!purchasesEnabled()) { Alert.alert(t('market.payPending')); return; }
+    // ★C1: 결제는 계정에 귀속(웹훅이 그 계정에 적립) → 로그인 필수. 비로그인 결제는 웹훅이 적립할 수 없어 유실.
+    if (!requireLoginForPurchase(session, () => router.push('/login'), t)) return;
     setBusy(kind);
     try {
+      const before = credits[kind] ?? 0;         // 결제 전 잔여(웹훅 반영 판정 기준 — 마켓 buy 는 미보유에서만 진입해 보통 0)
       const ok = await purchaseCreditRC(kind);   // 결제 성공 시 true(취소=false)
       if (ok) {
-        await grantCredit(kind);                  // 크레딧 +1 (RC 웹훅 도입 전 MVP)
-        setCredits(await loadCredits());
-        Alert.alert(t('market.doneTitle'), t('market.doneMsg'));
+        // ★C1 보안(daniel 07-03): 클라 grant_credit 직접 적립 폐지(위변조 차단) — 영수증 검증된 RC 웹훅만 적립.
+        //   결제 성공 → 웹훅이 서버에 적립할 때까지 폴링(loadCredits). 반영되면 보유 갱신, 지연되면 '적용 중' 안내.
+        const { granted, credits: fresh } = await waitForCreditGrant(kind, { baseline: before });
+        setCredits(fresh);
+        Alert.alert(t('market.doneTitle'), granted
+          ? t('market.doneMsg')
+          : t('market.applyPending', '결제가 완료됐어요. 이용권 적용까지 잠시 걸릴 수 있어요. 잠시 후 새로고침해 주세요.'));
       }
     } catch (e: any) {
       Alert.alert(t('market.buyFailTitle'), e?.message ?? '');
@@ -199,7 +207,7 @@ export default function MarketRoute() {
   // 마켓 카드 한 장 렌더(섹션 A·B 공유 헬퍼) — premInc=프리미엄 포함 섹션 여부.
   //   • premInc && isPremium → 가격·구매 버튼 숨기고 '무제한 이용 중' 배지 + 카드 누르면 열기(apply).
   //   • 그 외(비프리미엄 또는 개별전용 섹션) → 기존 동작: 보유 시 열기 / 미보유 시 개별 구매.
-  //   ※ 결제·적용 로직(buy/apply/grantCredit)은 미변경 — 표시 분기만 추가(UI 전용).
+  //   ※ 결제·적용 로직(buy=웹훅 폴링/apply)은 미변경 — 표시 분기만 추가(UI 전용).
   function renderCard(c: (typeof CREDIT_KINDS)[number], premInc: boolean) {
     const owned = (credits[c.key] ?? 0) > 0; // 1회성 소모 — 보유/미보유로만
     const card = CARD[c.key];                // 카드 이미지+설명(홈과 동일·daniel: 마켓 리스트에도)

@@ -24,7 +24,6 @@ import { useAuth } from '../lib/useAuth';
 import { supabase } from '../lib/supabase';
 // 완료 푸시는 genProgress(setGenProgress 완료 전이)에서 중앙 처리(daniel ⑨ — 모든 풀이 공통)
 import { setGenProgress, useGenProgress, clearGenProgress } from '../lib/backend/genProgress'; // 홈 진행률 + 완료 구독 + 진입 시 배너 제거(daniel: 완성 배너 안 사라짐)
-import { useEntitlement } from '../lib/billing/entitlement';
 import { isReadingUnlocked } from '../lib/billing/unlocks'; // 서버 권위 세트 언락(P3) — 이미 열렸으면 무료 재생성
 import { isPremiumForChart } from '../lib/billing/premiumStore'; // 명식별 프리미엄 판정(#1 — 비지정 명식/무료모드 페이월)
 import { computeEntitled, computeLocked, showUnlockOverlay, computeShouldAutoGen } from '../lib/billing/readingGate'; // 게이트 순수로직(하네스 시나리오 테스트 대상)
@@ -36,7 +35,7 @@ import { appLang } from '../lib/i18n'; // 통변 출력 언어(앱 언어)
 import { readingFromInvoke } from '../lib/backend/interpretResult'; // 방어: Edge 응답 정규화(일시적 불가·결제필요·오류)
 import { PALACE_DESC } from '../lib/content/palaceDesc'; // 자미두수 궁 설명(궁 옆 표시)
 import { shareReading } from '../lib/ui/share'; // 이슈17: 풀이 결과 공유(앱 설치자만 열람)
-import { loadCredits, grantCredit } from '../lib/billing/coupons'; // 크레딧 보유확인(UX) + 광고/결제 후 부여(차감은 Edge 서버 권위·P3)
+import { loadCredits, waitForCreditGrant } from '../lib/billing/coupons'; // 크레딧 보유확인(UX) + 결제 후 웹훅 반영 폴링(적립은 웹훅·차감은 Edge 서버 권위·P3·C1)
 import { confirmReadingChart } from '../lib/ui/confirmChart'; // 생성 전 명식 확인 + 보유 이용권 안내(daniel)
 import { purchaseCreditRC } from '../lib/billing/purchases'; // 추가질문 건당 결제 = credit_followup(서버 consume)
 import { requireLoginForPurchase } from '../lib/billing/requireLogin'; // 결제/저장 전 로그인 안내
@@ -107,7 +106,6 @@ export function ReadingScreen({
   const router = useRouter();
   const { t } = useTranslation();
   const { session } = useAuth();
-  const { purchaseReading } = useEntitlement();
   const { isPremium } = useSubscription();
   const { fs } = useFontScale(); // 통변 본문 글자 크기(설정에서 조절)
   const [readings, setReadings] = useState<Record<string, any>>({});
@@ -352,7 +350,9 @@ export function ReadingScreen({
       if (((await loadCredits())[ck] ?? 0) > 0) { await runAll(); return; }
       // ★유료 통변은 보상형 광고로 무료 생성하지 않는다(daniel: 비용발생 콘텐츠=결제/프리미엄만) → 건당 결제로만 크레딧 부여 후 생성(Edge가 차감+세트 언락).
       Alert.alert(t('reading.premiumAlert'), t('reading.premiumAlertMsg'), [
-        { text: t('reading.payPerUse'), onPress: async () => { try { await purchaseReading(); await grantCredit(ck); await runAll(); } catch (e) { Alert.alert('!', (e as Error).message); } } },
+        // ★C1(daniel 07-03): 결제 상품을 credit_{reading|ziwei}(웹훅이 적립 가능)로 통일 + 클라 grant 폐지 → 웹훅 반영 폴링 후 생성(Edge 세트게이트가 1회 차감·언락).
+        //   (기존 purchaseReading=deprecated unlock_2500 은 credit_* 아님 → 웹훅이 적립할 수 없어 교체. 가격은 스토어의 credit_reading/credit_ziwei 값.)
+        { text: t('reading.payPerUse'), onPress: async () => { try { const ok = await purchaseCreditRC(ck); if (!ok) return; const { granted } = await waitForCreditGrant(ck); if (granted) await runAll(); else Alert.alert(t('reading.premiumAlert'), t('reading.applyPending', '결제가 완료됐어요. 적용까지 잠시 걸릴 수 있어요. 잠시 후 다시 시도해 주세요.')); } catch (e) { Alert.alert('!', (e as Error).message); } } },
         { text: t('common.cancel'), style: 'cancel' },
       ]);
     } finally {
@@ -411,7 +411,7 @@ export function ReadingScreen({
       Alert.alert(t('reading.askPayTitle'), t('reading.askPayMsg'), [
         { text: t('common.cancel'), style: 'cancel' },
         { text: t('reading.askPayBtn'), onPress: async () => {
-          try { const ok = await purchaseCreditRC('followup'); if (!ok) return; await grantCredit('followup'); await submitFollowup(); } // 결제→크레딧 부여→서버 consume
+          try { const ok = await purchaseCreditRC('followup'); if (!ok) return; const { granted } = await waitForCreditGrant('followup'); if (granted) await submitFollowup(); else Alert.alert(t('reading.askPayTitle'), t('reading.applyPending', '결제가 완료됐어요. 적용까지 잠시 걸릴 수 있어요. 잠시 후 다시 시도해 주세요.')); } // ★C1: 클라 grant 폐지 → 웹훅 적립 폴링 후 서버 consume(followup)
           catch (e) { Alert.alert(t('reading.payPending'), (e as Error).message); }
         } },
       ]);

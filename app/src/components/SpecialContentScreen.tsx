@@ -20,7 +20,7 @@ import { useAuth } from '../lib/useAuth';
 import { useSubscription } from '../lib/billing/subscription';   // 프리미엄=자동 생성
 import { isPremiumForChart } from '../lib/billing/premiumStore'; // 명식별 프리미엄(premiumCovered 콘텐츠 = 프리미엄 무료해제·자동생성)
 import { useFontScale } from '../lib/ui/fontScale';
-import { useCredit, grantCredit, type CreditKind } from '../lib/billing/coupons';
+import { useCredit, waitForCreditGrant, type CreditKind } from '../lib/billing/coupons';
 import { isUnlocked, markUnlocked } from '../lib/billing/unlocks'; // unlock 영속(차감 후 재차감/재잠금 방지)
 import { ShareReadingButton } from './ShareReadingButton'; // 이슈17: 풀이 결과 공유
 import { TTSButton } from './TTSButton'; // daniel: 풀이 음성 읽기(온디바이스 TTS·무료)
@@ -207,8 +207,10 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
                 if (!purchasesEnabled()) { Alert.alert(title, t('market.payPending', '결제 준비 중이에요. 쿠폰을 이용하거나 잠시 후 다시 시도해 주세요.')); return; }
                 try {
                   const ok = await purchaseCreditRC(kind); if (!ok) return;   // 결제 취소=false(조용히)
-                  await grantCredit(kind);                                     // 구매분 크레딧 +1(서버 기록)
-                  if (await useCredit(kind)) { await markUnlocked(chartId, kind); generate(chartId); } // 차감 → unlock → 생성
+                  // ★C1 보안(daniel 07-03): 클라 grant 폐지 → 영수증 검증된 RC 웹훅이 적립. 반영까지 폴링 후 차감·생성.
+                  const { granted } = await waitForCreditGrant(kind);
+                  if (granted && await useCredit(kind)) { await markUnlocked(chartId, kind); generate(chartId); } // 차감 → unlock → 생성
+                  else if (!granted) Alert.alert(title, t('special.applyPending', '결제가 완료됐어요. 적용까지 잠시 걸릴 수 있어요. 잠시 후 다시 시도해 주세요.'));
                 } catch (e) { Alert.alert('!', (e as Error).message); }
               } },
             { text: t('special.goMarket', '마켓에서 보기'), onPress: () => router.push('/market') },
