@@ -653,3 +653,40 @@ export function monthFlow(saju: SajuChart, monthStem: Stem): { label: string; te
 export function monthChartReadings(saju: SajuChart, monthStem: Stem, monthBranch: Branch): DailyAreaReading[] {
   return dailyChartReadings(saju, monthStem, monthBranch).map((a) => ({ ...a, paragraphs: a.paragraphs.map(dayToMonth) }));
 }
+
+/**
+ * ★무료·온디바이스 5분야(+투자) 풀이 → 화면용 평면 맵(Record<분야, 한 문단>).
+ * ─────────────────────────────────────────────────────────────────────────
+ * 목적: 오늘의/이달의 운세 '무료 기본'을 LLM 없이(API 0) 즉시 렌더 — 절대규칙5(무료=룰/템플릿/캐시) 복원.
+ *   today.tsx·month.tsx 가 이 결과를 그대로 `reading[area]`(Record<분야,문장>) 형태로 사용하도록,
+ *   이미 검증된 결정론 엔진(dailyChartReadings / monthChartReadings)을 재사용해 어댑터로 감싼다(중복 템플릿 금지).
+ * 분야별 신호 매핑(엔진이 종합 — dailyChartReadings 참조):
+ *   · general(통합): 십신 그룹 기조 + 신강약 억부(길/조심) + 12운성 + 원국×기간 합충 + 부재십신·공망·천을·화개
+ *   · work(직업·일): 그룹 기조 + 월지(직장궁) 합충 + 역마(이동)
+ *   · money(재물): 그룹 기조 + 비겁·강(경쟁·손재 moneyBijeop) + 공망(큰지출 보류)
+ *   · invest(투자): 재물 흐름 + 표준 주의(흐름·타이밍만, 종목·매수 조언 아님 — daniel #17)
+ *   · love(애정): 그룹 기조 + 일지(배우자궁) 합충 + 도화(관계)   ※SajuChart 에 성별 없음 → 재성·관성·일지 작용을 성별 무관하게 서술(십신별 love 템플릿)
+ *   · health(건강): 그룹 기조 + 저에너지 운성(휴식 권고) — 관리축(스트레스·휴식)만, 의료 단정 금지(§4)
+ * ★문구 stance = daniel 검수 슬롯(전향적·일상어·흉 단정 금지·처방 동반·건강은 관리축만, §4) — 실제 문구는 위 KO/EN/JA 번들.
+ * @param saju 대표 명식(원국)
+ * @param periodStem  기간 천간 (day=오늘 일간 / month=이번 달 월건 천간)
+ * @param periodBranch 기간 지지 (day=오늘 일지 / month=이번 달 월건 지지)
+ * @param period 'day'=오늘의 운세 / 'month'=이달의 운세('하루→한 달' 프레이밍 치환 포함)
+ * @returns 분야별(통합·직업·재물·투자·애정·건강) 풀이 맵(앱 언어) — LLM 결과와 동일 형태
+ */
+export function getDailyReading(
+  saju: SajuChart,
+  periodStem: Stem,
+  periodBranch: Branch,
+  period: 'day' | 'month' = 'day',
+): Record<DailyAreaKey, string> {
+  // 기간에 맞는 결정론 분야 풀이(문단 배열). 이달은 월(月) 프레이밍 치환까지 포함(monthChartReadings).
+  const areas = period === 'month'
+    ? monthChartReadings(saju, periodStem, periodBranch)
+    : dailyChartReadings(saju, periodStem, periodBranch);
+  // 문단 배열 → 한 문단 문자열. ja 는 문장부호(。)로 이미 끝나 붙임(공백 없음), ko/en 은 공백 조인.
+  const sep = appLang() === 'ja' ? '' : ' ';
+  const out = {} as Record<DailyAreaKey, string>;
+  for (const a of areas) out[a.key] = a.paragraphs.join(sep);
+  return out;
+}

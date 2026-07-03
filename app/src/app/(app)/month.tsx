@@ -2,14 +2,17 @@
 // ─────────────────────────────────────────────────────────────────────────
 // daniel: 오늘의 운세와 동일하게 LLM 통변 — 원국+대운+세운+이번 달 월건의 형충화합을 종합해
 //   이달 생길 이슈와 대처까지 쉽게. Edge kind='monthly'(DAILY_READING_SYSTEM 공용).
-// 접근: 프리미엄=무광고 자동 / 무료=보상형 광고 1회 → 생성. 캐시: readings(chart_id × 'monthly_YYYYMM' × lang).
+// 접근(하이브리드·절대규칙5 무료=룰 복원 / API 역마진 제거):
+//   · 무료 기본 = 온디바이스 룰 5분야(getDailyReading period='month') *즉시* 표시 — interpret 호출 0.
+//   · 프리미엄 = 무광고 LLM 자동 / 무료 AI 정밀 = 보상형 광고 1회 → LLM(opt-in). shown = reading ?? ruleReading.
+//   캐시: readings(chart_id × 'monthly_YYYYMM' × lang).
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator } from 'react-native';
 import { PressableScale } from '../../components/PressableScale';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { getDailyFortune, DAILY_AREA_KEYS, dailyHeadline, type DailyAreaKey } from '../../lib/content/dailyFortune';
+import { getDailyFortune, DAILY_AREA_KEYS, dailyHeadline, getDailyReading, type DailyAreaKey } from '../../lib/content/dailyFortune';
 import { loadRepChart, type SavedChart } from '../../lib/engine/myChart';
 import { ensureServerChartId } from '../../lib/backend/prewarmReadings';
 import { computeChart } from '../../lib/engine/engine';
@@ -50,6 +53,10 @@ export default function MonthScreen() {
   const category = `monthly_${f.date.slice(0, 7).replace('-', '')}`; // monthly_YYYYMM (월별 캐시)
   // 이달의 기운 한 줄 타이틀(온디바이스) — 이번 달 월건 기준. 명식 있으면 즉시.
   const headline = useMemo(() => { if (!saved) return null; try { return dailyHeadline(computeChart(saved.input).saju, stem, branch, 'month'); } catch { return null; } }, [saved, stem, branch]);
+  // 무료 기본 = 온디바이스 룰 5분야 풀이(이달·월 프레이밍·LLM 0·즉시). 명식만 있으면 계산 — 로그인/서버 불필요(절대규칙5).
+  const ruleReading = useMemo(() => { if (!saved) return null; try { return getDailyReading(computeChart(saved.input).saju, stem, branch, 'month'); } catch { return null; } }, [saved, stem, branch]);
+  // 실제 표시 풀이: LLM 결과(프리미엄/광고)가 있으면 그것, 없으면 무료 룰 기본.
+  const shown = reading ?? ruleReading;
 
   useEffect(() => {
     let alive = true;
@@ -137,22 +144,16 @@ export default function MonthScreen() {
 
         {!loaded ? (
           <View style={styles.readCard}><ActivityIndicator color={colors.ju} /></View>
-        ) : !session ? (
-          // daniel(2026-06-24): 이달의 운세도 로그인 필요(LLM·서버차트·계정 귀속)
-          <View style={styles.readCard}>
-            <Text style={styles.readTx}>{t('month.needLogin', '이달의 운세는 로그인 후 볼 수 있어요.')}</Text>
-            <PressableScale style={styles.regBtn} onPress={() => router.push('/login')}>
-              <Text style={styles.regBtnTx}>{t('login.go', '로그인')}</Text>
-            </PressableScale>
-          </View>
         ) : !saved ? (
+          // 명식 미등록 — 등록 유도(무료 룰 풀이도 원국은 필요)
           <View style={styles.readCard}>
             <Text style={styles.readTx}>{t('today.needChart')}</Text>
             <PressableScale style={styles.regBtn} onPress={() => router.push('/register')}>
               <Text style={styles.regBtnTx}>{t('today.registerBtn')}</Text>
             </PressableScale>
           </View>
-        ) : reading ? (
+        ) : (
+          // 명식 있음 → 무료 룰 기본(shown)을 *즉시* 표시(API 0). LLM(프리미엄/광고)이 있으면 우선(shown = reading ?? ruleReading).
           <>
             <View style={styles.areaChips}>
               {DAILY_AREA_KEYS.map((k) => (
@@ -163,23 +164,38 @@ export default function MonthScreen() {
             </View>
             <View style={styles.readCard}>
               {/* daniel #17: 신규 '투자' 영역이 구(舊) 캐시엔 없을 수 있음 → '실패' 대신 중립 안내 */}
-              <Text style={[styles.readTx, { fontSize: fs(15), lineHeight: fs(26) }]}>{reading[area] || t('today.areaSoon', '이 분야 풀이는 다음 운세부터 채워져요.')}</Text>
+              <Text style={[styles.readTx, { fontSize: fs(15), lineHeight: fs(26) }]}>{shown?.[area] || t('today.areaSoon', '이 분야 풀이는 다음 운세부터 채워져요.')}</Text>
             </View>
-            {/* 이슈17: 풀이 결과 공유(content 없거나 error면 컴포넌트가 자체 미노출) */}
-            <TTSButton reading={reading} />
-            <ShareReadingButton kind="monthly" title={t('month.title', '이달의 운세')} content={reading} />
+            {/* 음성으로 듣기(온디바이스 TTS·무료) — 현재 표시본(룰/LLM) 읽기 */}
+            <TTSButton reading={shown} />
+            {/* 풀이 공유 — 스마트링크(shared_readings)는 계정 필요 → 로그인 시에만 노출 */}
+            {session ? <ShareReadingButton kind="monthly" title={t('month.title', '이달의 운세')} content={shown} /> : null}
+            {/* AI 정밀 풀이 업셀 — LLM 결과가 아직 없을 때만(무료 룰 기본은 위에서 이미 표시됨) */}
+            {!reading && (
+              busy ? (
+                <View style={styles.readCard}><ActivityIndicator color={colors.ju} /><Text style={styles.genWait}>{t('month.generating', '이번 달 흐름을 풀어내는 중…')}</Text></View>
+              ) : !session ? (
+                // 로그아웃: 무료 룰은 이미 보임 → AI 정밀(LLM·계정 필요)만 로그인 유도
+                <View style={styles.gateCard}>
+                  <Text style={styles.gateTitle}>{t('month.aiTitle', 'AI 정밀 풀이')}</Text>
+                  <Text style={styles.gateDesc}>{t('month.aiLogin', '로그인하면 AI가 이번 달 흐름을 더 깊게 풀어 드려요.')}</Text>
+                  <PressableScale style={styles.gateBtn} onPress={() => router.push('/login')}>
+                    <Text style={styles.gateBtnTx}>{t('login.go', '로그인')}</Text>
+                  </PressableScale>
+                </View>
+              ) : !isPremium ? (
+                // 무료·로그인: 보상형 광고 1회로 AI 정밀 풀이 해제(opt-in) — interpret 는 오직 이 경로에서만(광고로 비용 커버)
+                <View style={styles.gateCard}>
+                  <Text style={styles.gateTitle}>{t('month.aiTitle', 'AI 정밀 풀이')}</Text>
+                  <Text style={styles.gateDesc}>{t('month.aiDesc', '타고난 사주에 지금의 큰 흐름·올해·이번 달 기운을 더해, 이달 생길 수 있는 일과 대처까지 AI가 더 깊게 풀어 드려요.')}</Text>
+                  {err ? <Text style={styles.err}>{err}</Text> : null}
+                  <PressableScale style={styles.gateBtn} onPress={onStart}>
+                    <Text style={styles.gateBtnTx}>{t('today.seeAd', '광고 보고 무료로 보기')}</Text>
+                  </PressableScale>
+                </View>
+              ) : null // 프리미엄 = 위 useEffect 자동 생성(busy 로 처리) → 여기 도달 X
+            )}
           </>
-        ) : busy ? (
-          <View style={styles.readCard}><ActivityIndicator color={colors.ju} /><Text style={styles.genWait}>{t('month.generating', '이번 달 흐름을 풀어내는 중…')}</Text></View>
-        ) : (
-          <View style={styles.gateCard}>
-            <Text style={styles.gateTitle}>{t('month.gateTitle', '이달의 운세 보기')}</Text>
-            <Text style={styles.gateDesc}>{t('month.gateDesc', '타고난 사주에 지금의 큰 흐름·올해·이번 달 기운을 더해, 이달 생길 수 있는 일과 대처를 풀어 드려요.')}</Text>
-            {err ? <Text style={styles.err}>{err}</Text> : null}
-            <PressableScale style={styles.gateBtn} onPress={onStart}>
-              <Text style={styles.gateBtnTx}>{isPremium ? t('month.seePremium', '이달의 운세 보기') : t('today.seeAd', '광고 보고 무료로 보기')}</Text>
-            </PressableScale>
-          </View>
         )}
 
         <Text style={styles.sub}>{t('month.note')}</Text>
