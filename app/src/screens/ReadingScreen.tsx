@@ -245,10 +245,12 @@ export function ReadingScreen({
   }
 
   // 아직 없는 항목만 생성(캐시된 건 skip — 비용 방어). chart_id 는 재사용 우선.
-  async function runAll() {
+  async function runAll(preId?: string | null) {
     if (!c || !session) return;
     setGlobalError(null);
-    let id = chartId;
+    // ★자물쇠(chart race) 계보(daniel 07-03): 호출처(doStart)가 canonical id를 넘기면 그대로 신뢰한다(이미 재해석됨).
+    //   자동생성(autoGen effect)은 canonical 확정 뒤에만 fire되도록 가드돼 있어 chartId가 곧 canonical이다.
+    let id = preId ?? chartId;
     if (!id) {
       id = savedChart ? await ensureServerChart() : await insertChart();
       if (!id) { setGlobalError(t('reading.saveFail')); return; }
@@ -342,17 +344,24 @@ export function ReadingScreen({
       // 풀이는 계정에 저장·캐시됨(서버차트 귀속) → 미로그인 시 '저장용' 안내 후 로그인 유도(daniel)
       if (!requireLoginForPurchase(session, () => router.push('/login'), t)) return;
       if (!assertOnline(t)) return;                          // 오프라인 = 신규 생성 차단(경고)
-      if (isPremiumForChart(chartId)) { await runAll(); return; } // 이 명식이 프리미엄 지정이면 무게이트(#1 — 계정 프리미엄이라도 비지정 명식은 아래 결제 게이트로)
+      // ★자물쇠(chart race) 계보의 마지막 문(daniel 07-03): 수동 생성은 게이트 판정·생성 모두 canonical id로 한다.
+      //   chartId useState 시드는 온디바이스 캐시(savedChart.serverChartId)라, 진입 effect가 서버 canonical로 교체하기 전에
+      //   사용자가 이 버튼을 누르면 stale id로 게이트·interpret가 나갈 수 있다(재해석·자물쇠 재발·오결제). ensureServerChartId는
+      //   멱등(inflight dedupe + 서버 natal 지문)이라 재호출해도 이중 발급·이중 과금이 없다 → 아래 전 분기에서 이 id만 쓴다.
+      const id = savedChart ? await ensureServerChart() : chartId;
+      if (savedChart && !id) { setGlobalError(t('reading.saveFail')); return; } // 저장명식인데 canonical 해석 실패(오프라인 등) → stale로 진행 금지(생성 보류)
+      if (id && id !== chartId) setChartId(id);              // 시드가 stale이었으면 canonical로 동기화(표시 상태 일치)
+      if (isPremiumForChart(id)) { await runAll(id); return; } // 이 명식이 프리미엄 지정이면 무게이트(#1 — 계정 프리미엄이라도 비지정 명식은 아래 결제 게이트로)
       const ck = kind === 'ziwei' ? 'ziwei' : 'reading';     // 이 화면 종류의 세트 크레딧 키
       // ★서버 권위 세트 게이트(보안 P3·daniel): 차감·언락은 Edge가 한다(이중차감 제거). 클라는 UX 사전확인만.
       //   ① 이미 세트 언락됨 → 무료 재생성  ② 크레딧 보유 → 바로 생성(Edge가 1회 차감+언락)  ③ 없음 → 건당 결제로 부여
-      if (chartId && await isReadingUnlocked(chartId, ck)) { setUnlocked(true); await runAll(); return; } // ★언락됨 → 표시상태 즉시 해제(자물쇠 누른 뒤 안 풀리던 것 수정)
-      if (((await loadCredits())[ck] ?? 0) > 0) { await runAll(); return; }
+      if (id && await isReadingUnlocked(id, ck)) { setUnlocked(true); await runAll(id); return; } // ★언락됨 → 표시상태 즉시 해제(자물쇠 누른 뒤 안 풀리던 것 수정)
+      if (((await loadCredits())[ck] ?? 0) > 0) { await runAll(id); return; }
       // ★유료 통변은 보상형 광고로 무료 생성하지 않는다(daniel: 비용발생 콘텐츠=결제/프리미엄만) → 건당 결제로만 크레딧 부여 후 생성(Edge가 차감+세트 언락).
       Alert.alert(t('reading.premiumAlert'), t('reading.premiumAlertMsg'), [
         // ★C1(daniel 07-03): 결제 상품을 credit_{reading|ziwei}(웹훅이 적립 가능)로 통일 + 클라 grant 폐지 → 웹훅 반영 폴링 후 생성(Edge 세트게이트가 1회 차감·언락).
         //   (기존 purchaseReading=deprecated unlock_2500 은 credit_* 아님 → 웹훅이 적립할 수 없어 교체. 가격은 스토어의 credit_reading/credit_ziwei 값.)
-        { text: t('reading.payPerUse'), onPress: async () => { try { const ok = await purchaseCreditRC(ck); if (!ok) return; const { granted } = await waitForCreditGrant(ck); if (granted) await runAll(); else Alert.alert(t('reading.premiumAlert'), t('reading.applyPending', '결제가 완료됐어요. 적용까지 잠시 걸릴 수 있어요. 잠시 후 다시 시도해 주세요.')); } catch (e) { Alert.alert('!', (e as Error).message); } } },
+        { text: t('reading.payPerUse'), onPress: async () => { try { const ok = await purchaseCreditRC(ck); if (!ok) return; const { granted } = await waitForCreditGrant(ck); if (granted) await runAll(id); else Alert.alert(t('reading.premiumAlert'), t('reading.applyPending', '결제가 완료됐어요. 적용까지 잠시 걸릴 수 있어요. 잠시 후 다시 시도해 주세요.')); } catch (e) { Alert.alert('!', (e as Error).message); } } },
         { text: t('common.cancel'), style: 'cancel' },
       ]);
     } finally {

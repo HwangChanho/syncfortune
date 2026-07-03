@@ -9,7 +9,7 @@ import { View, Text, ScrollView, Pressable, ActivityIndicator, StyleSheet, Dimen
 import { PressableScale } from '../../components/PressableScale';
 import { ExpiryNote } from '../../components/ExpiryNote'; // 보유 만료일 공통(프리미엄 가드 한 곳)
 import { Image as ExpoImage } from 'expo-image'; // hero 배너 — 다운샘플·디스크캐시(daniel: 이미지 캐시·로딩 가속)
-import Svg, { Polyline, Circle, Line, Rect } from 'react-native-svg';
+import Svg, { Polyline, Circle, Line, Rect, Text as SvgText } from 'react-native-svg';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { loadRepChart, type SavedChart } from '../../lib/engine/myChart';
@@ -177,6 +177,10 @@ export default function LifeGraphScreen() {
   const polyline = pts.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
   // 이슈18: 곡선 총 길이(드로잉 dash 기준) — 점 사이 거리 합.
   const pathLen = (() => { let L = 0; for (let i = 1; i < pts.length; i++) L += Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y); return Math.max(L, 1); })();
+  // ★daniel 07-03: 강조(밴드+나이) 기본값 = 현재 대운(없으면 전환점). sel=null(최초 로드/풀이 직후)에도
+  //   그래프 하이라이트가 아래 해설카드(기본 현재/전환점)와 일치하게 — '풀이중엔 하이라이트 없음' 불일치 해소.
+  const effSel: number | null = sel != null ? sel
+    : (() => { const c = pts.findIndex((p) => p.current); if (c >= 0) return c; const tt = decs.findIndex((d) => (d as any).turning); return tt >= 0 ? tt : null; })();
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>
@@ -217,8 +221,8 @@ export default function LifeGraphScreen() {
                 const x0 = Math.max(0, p.x - half);
                 const x1 = Math.min(W, p.x + half);
                 return (
-                  <Rect key={`band-${p.i}`} x={x0} y={0} width={Math.max(1, x1 - x0)} height={H}
-                    fill={sel === p.i ? colors.ju : 'transparent'} fillOpacity={sel === p.i ? 0.12 : 1}
+                  <Rect key={`band-${p.i}`} x={x0} y={0} width={Math.max(1, x1 - x0)} height={H + 24}
+                    fill={effSel === p.i ? colors.ju : 'transparent'} fillOpacity={effSel === p.i ? 0.12 : 1}
                     onPress={() => setSel(p.i)} />
                 );
               })}
@@ -235,17 +239,20 @@ export default function LifeGraphScreen() {
                   onPress={() => setSel(p.i)}
                 />
               ))}
-            </Svg>
-            {/* x축 나이 라벨(처음·중간·끝만 — 겹침 방지) */}
-            <View style={styles.axisRow}>
+              {/* x축 나이 라벨 — SVG 안에 점 x 위치 기준 '중앙정렬'(밴드와 정렬 + 밴드 height가 숫자까지 덮음, daniel 07-03).
+                  양끝(첫·끝)은 화면 밖 클리핑 방지로 start/end 앵커. 강조 시기는 밴드 정중앙에 굵은 골드로. */}
               {pts.map((p) => (
-                <Text key={p.i} style={[styles.axisTx, sel === p.i && styles.axisTxOn]} onPress={() => setSel(p.i)}>{p.d.startAge}</Text>
+                <SvgText key={`age-${p.i}`} x={p.x} y={H + 17}
+                  fontSize={11} fontWeight={effSel === p.i ? '800' : '400'}
+                  fill={effSel === p.i ? colors.ju : colors.inkFaint}
+                  textAnchor={p.i === 0 ? 'start' : p.i === n - 1 ? 'end' : 'middle'}
+                  onPress={() => setSel(p.i)}>{p.d.startAge}</SvgText>
               ))}
-            </View>
+            </Svg>
           </View>
           {/* 선택한(또는 현재) 대운 해설 */}
           {(() => {
-            const pick = sel != null ? decs[sel] : decs.find((d) => (d as any).turning) ?? decs[0];
+            const pick = effSel != null ? decs[effSel] : decs[0]; // 밴드 강조(effSel)와 동일 시기 해설
             if (!pick) return null;
             return (
               <View style={styles.noteCard}>

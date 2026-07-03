@@ -14,7 +14,7 @@
     "check:audit:release": "node scripts/audit-guard.mjs --release",
     "check:engine": "npm run verify:engine && npm run guards",
     "test:flows": "tsx scripts/test-reading-gate.ts",
-    "preflight": "npm run typecheck && npm run check:prompts && npm run test:flows && npm run check:audit",
+    "preflight": "npm run typecheck && npm run check:prompts && npm run test:flows && npm run check:audit && npm run check:engine",
     "preflight:release": "npm run preflight && npm run check:audit:release",
     "verify": "tsx engine/verify-fixture.ts",
     "p2": "tsx --env-file-if-exists=.env interpretation/run-p2.ts",

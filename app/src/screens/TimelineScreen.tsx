@@ -136,13 +136,24 @@ export function TimelineScreen({ input, savedChart }: { input: ChartInput | null
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [input, session, savedChart, curDecadeKey, isRep]);
 
+  // ★자물쇠(chart race) 계보의 마지막 문(daniel 07-03): 수동 생성 경로가 stale 시드로 나가지 않게 canonical id 재해석.
+  //   chartId useState 시드는 온디바이스 캐시(savedChart.serverChartId)라, 진입 effect가 서버 canonical로 교체하기 전에
+  //   사용자가 생성/열기 버튼을 누르면 그 stale id로 게이트·interpret가 나갈 수 있다. ensureServerChartId는 멱등
+  //   (inflight dedupe + 서버 natal 지문)이라 재호출해도 이중 발급·이중 과금이 없다. 자동생성 경로는 이미 canonical id를 넘긴다.
+  async function resolveChartId(): Promise<string | null> {
+    if (!c || !session || !input || !savedChart) return chartId; // 재해석 불가(폴백 경로) → 기존 시드 유지
+    return ensureServerChartId(c, input, session, savedChart);
+  }
+
   // 항목 통변 생성(Edge kind='timeline') — 캐시 적중 시 재생성 0.
   //   게이트(daniel): 프리미엄=현재 대운/올해 무료, 그 외 시기는 타임라인 이용권으로 1회 열기(건당 결제 준비 중).
   async function gen(key: string, id?: string | null) {
     // 가드: selDecade 초기값('')이 그대로 전달되면 Edge에 빈 category가 가는 것을 막는다.
     if (!key) return;
-    const cid = id ?? chartId;
+    // id를 명시적으로 받지 않은 수동 경로(startGen/pick)는 canonical id를 항상 재해석(자물쇠 계보 마지막 문).
+    const cid = id ?? await resolveChartId();
     if (!cid || readings[key] || busy === key) return;
+    if (cid !== chartId) setChartId(cid);                   // 온디바이스 시드가 stale이었으면 canonical로 동기화
     if (!assertOnline(t)) return;                          // 오프라인 = 신규 생성 차단
     // 비프리미엄 = 프리미엄 유도(타임라인은 프리미엄 메뉴). 이용권이 있으면 이용권으로 열기 허용.
     // 게이트(새 정책·daniel): 프리미엄(무제한)=무료 / 현재 대운·올해=전원 무료 / 그 외=서버 언락 또는 개별 크레딧(없으면 구매). 차감·언락은 Edge.
