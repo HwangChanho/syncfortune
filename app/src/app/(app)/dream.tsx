@@ -85,8 +85,10 @@ export default function DreamScreen() {
         { text: t('dream.buy5', '5회 구매'), onPress: async () => {
           try {
             const bought = await purchaseCreditRC('dream'); if (!bought) return;  // 결제(취소 시 false)
-            await grantCredit('dream', DREAM_BUNDLE_QTY);                         // 5회 적립
-            if (await useCredit('dream')) runAI(text);                            // 1회 차감 후 진행
+            // ★C1(daniel 07-03): 클라 grant 폐지 → 영수증 검증된 웹훅이 5회 적립. 반영까지 폴링 후 재시도(Edge 가 1회 차감).
+            const { granted } = await waitForCreditGrant('dream');
+            if (granted) runAI(text);
+            else Alert.alert(t('dream.aiTitle', 'AI 꿈해몽'), t('dream.applyPending', '결제가 완료됐어요. 이용권 적용까지 잠시 걸릴 수 있어요. 잠시 후 다시 시도해 주세요.'));
           } catch (e) { Alert.alert(t('dream.aiTitle', 'AI 꿈해몽'), (e as Error).message); }
         } },
       ],
@@ -99,6 +101,8 @@ export default function DreamScreen() {
     setGenProgress({ active: true, total: 1, done: 0, label: 'AI 꿈해몽', route: '/dream' }); // 일회성 진행도(daniel)
     try {
       const { data, error } = await supabase.functions.invoke('interpret', { body: { kind: 'dream', dreamText: text, lang: appLang() } });
+      // ★C3b 서버 게이트: 'dream' 이용권 없음 → needPayment. 결과 표시 대신 5회 번들 구매 제안(구매·웹훅 반영 후 재시도).
+      if ((data as any)?.needPayment) { setGenProgress({ route: '/dream', active: false }); setAiBusy(false); promptBuyDream(text); return; }
       // 방어: 일시적 불가/오류면 친화 메시지를 meaning 자리에(원문 'non-2xx' 노출 방지)
       const fail = invokeFail(data, error);
       setAiResult(fail ? { title: text.slice(0, 12), meaning: fail.message } : ((data?.dream as any) ?? { title: text.slice(0, 12), meaning: t('dream.fail', '해몽을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.') }));

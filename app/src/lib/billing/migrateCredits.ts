@@ -28,9 +28,13 @@ export async function migrateLocalCreditsOnLogin(): Promise<void> {
     [
       { text: '나중에', style: 'cancel', onPress: () => { asked = false; } }, // 보류 → 다음 로그인에 다시 물어봄
       { text: '옮기기', onPress: async () => {
-          for (const [kind, qty] of entries) await grantCredit(kind, qty); // 세션 있음 → 서버 적립
-          await localClear();                                              // 이관 완료 → 로컬 비움(중복 방지)
-          Alert.alert('이관 완료', '구매한 이용권이 계정으로 옮겨졌어요.');
+          // ★C1(daniel 07-03): grant_credit(로그인 서버 적립)은 migration 0010 으로 authenticated 회수됨 → 이 경로는 실패(null) 가능.
+          //   실패인데 로컬을 비우면 구매분이 유실되므로, *모든 적립이 성공했을 때만* 로컬을 비운다(데이터 손실 방지).
+          //   ⚠️ 웹훅 기반 적립 모델에선 로그아웃 구매→로그인 이관 자체가 근본적으로 재설계 필요(웹훅은 uid 필요) — 서버검증 이관 경로 백로그.
+          let allOk = true;
+          for (const [kind, qty] of entries) { if ((await grantCredit(kind, qty)) == null) allOk = false; } // 세션 있음 → 서버 적립 시도
+          if (allOk) { await localClear(); Alert.alert('이관 완료', '구매한 이용권이 계정으로 옮겨졌어요.'); } // 전부 성공 시에만 로컬 비움
+          else { asked = false; Alert.alert('이관 보류', '지금은 이용권을 옮길 수 없어요. 잠시 후 다시 시도해 주세요.'); } // 실패 = 로컬 유지(유실 방지)
         } },
     ],
   );

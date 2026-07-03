@@ -23,7 +23,7 @@ import { useAuth } from '../lib/useAuth';
 import { useSubscription, purchasePremium } from '../lib/billing/subscription';
 import { assertOnline } from '../lib/backend/network'; // 오프라인 시 신규 생성 차단
 import { purchaseCreditRC } from '../lib/billing/purchases'; // 궁합 건당 결제 = credit_compat(서버 consume)
-import { grantCredit } from '../lib/billing/coupons';        // 결제 성공 → 크레딧 부여(서버가 차감)
+import { waitForCreditGrant } from '../lib/billing/coupons';        // C1: 결제 후 웹훅 적립 폴링(차감은 Edge 서버 게이트)
 import { ensureServerChartId } from '../lib/backend/prewarmReadings';
 import { useFontScale } from '../lib/ui/fontScale';
 import { COMPAT_RELS, otherSig, loadCompatReadings, genCompatReading, compatSections, compatSectionLabel, type CompatReading } from '../lib/content/compatReadings';
@@ -216,7 +216,7 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
       Alert.alert(t('compat.payTitle'), t('compat.payMsg'), [
         { text: t('common.cancel'), style: 'cancel' },
         { text: t('compat.payBtn'), onPress: async () => {
-          try { const ok = await purchaseCreditRC('compat'); if (!ok) return; await grantCredit('compat'); await runCompatGen(relKey, yr, key); } // 결제→크레딧 부여→서버 consume→재생성
+          try { const ok = await purchaseCreditRC('compat'); if (!ok) return; const { granted } = await waitForCreditGrant('compat'); if (granted) await runCompatGen(relKey, yr, key); else Alert.alert(t('compat.payTitle'), t('reading.applyPending', '결제가 완료됐어요. 적용까지 잠시 걸릴 수 있어요. 잠시 후 다시 시도해 주세요.')); } // ★C1: 결제→웹훅 적립 폴링→서버 consume→재생성
           catch (e) { Alert.alert(t('reading.payPending'), (e as Error).message); }
         } },
       ]);
@@ -443,7 +443,7 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
       Alert.alert(t('reading.askPayTitle'), t('reading.askPayMsg'), [
         { text: t('common.cancel'), style: 'cancel' },
         { text: t('reading.askPayBtn'), onPress: async () => {
-          try { const ok = await purchaseCreditRC('followup'); if (!ok) return; await grantCredit('followup'); await submitFollowup(); }
+          try { const ok = await purchaseCreditRC('followup'); if (!ok) return; const { granted } = await waitForCreditGrant('followup'); if (granted) await submitFollowup(); else Alert.alert(t('reading.askPayTitle'), t('reading.applyPending', '결제가 완료됐어요. 적용까지 잠시 걸릴 수 있어요. 잠시 후 다시 시도해 주세요.')); } // ★C1: 결제→웹훅 적립 폴링→서버 consume(followup)
           catch (e) { Alert.alert(t('reading.payPending'), (e as Error).message); }
         } },
       ]);

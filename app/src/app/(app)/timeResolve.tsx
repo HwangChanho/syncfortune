@@ -20,7 +20,7 @@ import { Alert } from '../../lib/ui/alert';                         // 커스텀
 import { useAuth } from '../../lib/useAuth';
 import { useSubscription } from '../../lib/billing/subscription';        // 프리미엄=무료
 import { isAdmin } from '../../lib/core/admin';                       // 관리자=무료
-import { useCredit, grantCredit } from '../../lib/billing/coupons';      // 서버/로컬 크레딧 차감·적립
+import { useCredit, waitForCreditGrant } from '../../lib/billing/coupons';      // 서버 크레딧 차감 + 결제 후 웹훅 적립 폴링(C1)
 import { isUnlocked, markUnlocked } from '../../lib/billing/unlocks';    // 1회 해제 후 영구(재차감 방지)
 import { purchaseCreditRC, purchasesEnabled } from '../../lib/billing/purchases'; // 즉시 구매
 import { requireLoginForPurchase } from '../../lib/billing/requireLogin';
@@ -102,8 +102,10 @@ export default function TimeResolveScreen() {
             if (!purchasesEnabled()) { Alert.alert(t('timeResolve.title', '태어난 시 찾기'), t('market.payPending', '결제 준비 중이에요. 쿠폰을 이용하거나 잠시 후 다시 시도해 주세요.')); return; }
             try {
               const ok = await purchaseCreditRC('timeresolve'); if (!ok) return; // 취소=false(조용히)
-              await grantCredit('timeresolve');                                  // 구매분 +1(서버/로컬)
-              if (await useCredit('timeresolve')) { await markUnlocked(TPR_UNLOCK, 'timeresolve'); setUnlocked(true); compute(); }
+              // ★C1(daniel 07-03): 클라 grant 폐지 → 영수증 검증된 웹훅이 적립. 반영까지 폴링 후 차감·영구 해제.
+              const { granted } = await waitForCreditGrant('timeresolve');
+              if (granted && await useCredit('timeresolve')) { await markUnlocked(TPR_UNLOCK, 'timeresolve'); setUnlocked(true); compute(); }
+              else if (!granted) Alert.alert(t('timeResolve.title', '태어난 시 찾기'), t('special.applyPending', '결제가 완료됐어요. 적용까지 잠시 걸릴 수 있어요. 잠시 후 다시 시도해 주세요.'));
             } catch (e) { Alert.alert('!', (e as Error).message); }
           } },
         { text: t('special.goMarket', '마켓에서 보기'), onPress: () => router.push('/market') },

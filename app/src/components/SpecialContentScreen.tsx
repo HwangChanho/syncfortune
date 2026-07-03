@@ -20,8 +20,8 @@ import { useAuth } from '../lib/useAuth';
 import { useSubscription } from '../lib/billing/subscription';   // 프리미엄=자동 생성
 import { isPremiumForChart } from '../lib/billing/premiumStore'; // 명식별 프리미엄(premiumCovered 콘텐츠 = 프리미엄 무료해제·자동생성)
 import { useFontScale } from '../lib/ui/fontScale';
-import { useCredit, waitForCreditGrant, type CreditKind } from '../lib/billing/coupons';
-import { isUnlocked, markUnlocked } from '../lib/billing/unlocks'; // unlock 영속(차감 후 재차감/재잠금 방지)
+import { waitForCreditGrant, type CreditKind } from '../lib/billing/coupons'; // C1: 결제 후 웹훅 적립 폴링(차감은 Edge 서버 게이트)
+import { isUnlocked, markUnlocked } from '../lib/billing/unlocks'; // isUnlocked=무차감 재열람 힌트 / markUnlocked=생성 성공 후 캐시 힌트(C3 part2 — 게이트 아님)
 import { ShareReadingButton } from './ShareReadingButton'; // 이슈17: 풀이 결과 공유
 import { TTSButton } from './TTSButton'; // daniel: 풀이 음성 읽기(온디바이스 TTS·무료)
 import { purchaseCreditRC, purchasesEnabled } from '../lib/billing/purchases'; // 즉시 구매(마켓 안 거치고 바로)
@@ -144,12 +144,15 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
     return null;
   }
 
-  // 순수 생성(LLM) — 게이트 통과 후. idArg/ziweiArg = 자동생성용(state 갱신 전 직접 전달).
+  // 순수 생성(LLM) — 게이트는 Edge(SERVER_GATED consume_credit / effPrem)가 권위. idArg/ziweiArg = 자동생성용(state 갱신 전 직접 전달).
+  //   ★C3 part2(daniel 2026-07-03): 클라는 이용권을 차감하지 않는다 — Edge 가 1회 차감/판정(이중차감 제거).
+  //   이용권 없으면 Edge 가 needPayment(200) 반환 → 구매 플로우(promptPurchase)로 유도. 생성 성공 시에만
+  //   markUnlocked(캐시 힌트) — 게이트가 아니라 재열람 시 owned 표시·재차감 없음.
   async function generate(idArg?: string, ziweiArg?: any) {
     const id = idArg ?? chartId;
     if (!id || busy) return;
     setBusy(true);
-    setOwned(true); // 생성 = 게이트 통과(프리미엄/차감/관리자) → 소유로 표시(daniel ⓐ)
+    setOwned(true); // 낙관적: 생성 진행 = 소유 표시(생성 애니). needPayment 면 아래에서 되돌림.
     setGenProgress({ active: true, total: 1, done: 0, label: title, route: ('/' + kind) }); // 일회성 진행도(daniel 이슈15) — '풀이 중'
     logEvent(`${kind}_invoke_start`, { chartId: id });
     try {
@@ -157,22 +160,32 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
       if (needsZiwei) body.ziwei = ziweiArg ?? c?.ziwei; // 사명 = 자미 보조 교차
       if (buildBody && savedChart) Object.assign(body, buildBody(savedChart)); // 수비학/점성술 = 앱 산출 차트(numerologyChart/natalChart)
       const { data, error } = await supabase.functions.invoke('interpret', { body });
+      // ★C3 part2: 서버 게이트가 이용권 없음 판정 → needPayment(200) → 소유 되돌리고 구매 플로우(에러 표시 아님).
+      if ((data as any)?.needPayment || (data as any)?.needPremium) {
+        setOwned(false); setBusy(false); setGenProgress({ route: ('/' + kind), active: false });
+        logEvent(`${kind}_need_payment`, { chartId: id });
+        promptPurchase(id);
+        return;
+      }
       if (error || !data) {
         // ★클라 invoke가 끊겨도(무거운 풀이 타임아웃) Edge는 서버에서 완료·캐시 → 캐시 폴링으로 회수(로딩 유지).
         logEvent(`${kind}_invoke_error`, { message: error?.message ?? 'no data', polling: true }, 'error');
         const cached = await pollCachedReading(id);
-        setReading(cached ?? readingFromInvoke(data, error));
+        if (cached) { setReading(cached); await markUnlocked(id, kind); } // 서버가 완료·캐시 = 생성 성공(차감됨) → 캐시 힌트
+        else setReading(readingFromInvoke(data, error));
       } else if ((data as any)?.unavailable) {
-        logEvent(`${kind}_unavailable`, { retryAt: (data as any)?.retryAt }, 'error'); // 방어: LLM 일시적 불가
+        logEvent(`${kind}_unavailable`, { retryAt: (data as any)?.retryAt }, 'error'); // 방어: LLM 일시적 불가(미차감·재시도)
         setReading(readingFromInvoke(data, error));
       } else {
         setReading(readingFromInvoke(data, error)); // 정상 도착
+        await markUnlocked(id, kind); // ★생성 성공 = 캐시 힌트(재열람 시 owned·무료 재열람). 게이트 아님.
       }
     } catch (e) {
       // fetch throw(타임아웃 등)도 동일 — 서버가 완료·캐시했으면 폴링으로 회수, 아니면 오류 표시.
       logEvent(`${kind}_invoke_throw`, { message: (e as Error).message }, 'error');
       const cached = await pollCachedReading(id);
-      setReading(cached ?? { error: (e as Error).message });
+      if (cached) { setReading(cached); await markUnlocked(id, kind); } // 서버 완료·캐시 = 성공 → 캐시 힌트
+      else setReading({ error: (e as Error).message });
     }
     setGenProgress({ route: ('/' + kind), done: 1, total: 1 }); // 완료 → 홈 배너 '풀이 보기' 이동버튼(daniel 이슈15)
     setBusy(false);
@@ -183,45 +196,44 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
     if (!chartId || busy || gatingRef.current) return;
     void confirmReadingChart({ chartLabel: savedChart?.label, creditKind: kind as any, t, onConfirm: () => { void doStart(); } });
   }
-  // 게이트(서버 차감 통일·타 스페셜과 동일): 프리미엄=바로 / 관리자=바로 / 그 외 쿠폰 보유시만(결제 미연동).
+  // 게이트(★C3 part2·daniel 2026-07-03 — Edge 단일 권위): 프리미엄=바로 / 관리자=바로 / 이미 언락=바로 / 그 외=로그인 후 생성.
+  //   ⚠️ 클라는 더 이상 useCredit 로 차감하지 않는다 — Edge(SERVER_GATED)가 이용권을 1회 차감/판정(이중차감 제거).
+  //   크레딧 있으면 Edge 가 차감·생성 / 없으면 needPayment → generate 가 구매 플로우(promptPurchase)로 유도.
   async function doStart() {
     if (!chartId || busy || gatingRef.current) return;
     logEvent(`${kind}_generate_tap`, { chartId });
     if (!assertOnline(t)) return;
-    // 프리미엄 무료(premiumCovered 한정): 프리미엄 명식이면 차감 없이 바로 생성(자식운 등 프리미엄 포함 콘텐츠). 스페셜(기본값)은 이 분기 통과 안 함.
+    // 무차감 통과: 프리미엄(premiumCovered 명식) / 이미 언락(구매·생성 완료) → 바로 생성(재차감 없음).
     if (premiumCovered && isPremiumForChart(chartId)) { generate(chartId); return; }
-    // unlock 영속(daniel): 이미 차감한 차트×종류면 재차감 없이 무료 재생성(invoke 중단 후 재진입 보호)
     if (await isUnlocked(chartId, kind)) { generate(chartId); return; }
     gatingRef.current = true;
+    let proceed = false;
     try {
-      const admin = await isAdmin();
-      if (!admin) {
-        if (!requireLoginForPurchase(session, () => router.push('/login'), t)) return;
-        // 크레딧 1 차감(roots·image·mission 은 Edge 서버게이트가 아니라 여기서 차감) → 성공 시 unlock 도장.
-        //   ★기존 버그 수정: 차감 없이 잔여 '확인'만 해서, 크레딧 1로 다른 차트까지 무한 생성됐음(수익 누수).
-        if (await useCredit(kind)) { await markUnlocked(chartId, kind); }
-        else {
-          // 크레딧 없음 → '쿠폰으로 열기' 대신 바로 구매 또는 마켓 이동(daniel 2026-06)
-          Alert.alert(title, t('special.needPayMsg', '이용권이 필요해요. 바로 구매하거나 마켓에서 받을 수 있어요.'), [
-            { text: t('special.buyNow', '바로 구매'), onPress: async () => {
-                if (!purchasesEnabled()) { Alert.alert(title, t('market.payPending', '결제 준비 중이에요. 쿠폰을 이용하거나 잠시 후 다시 시도해 주세요.')); return; }
-                try {
-                  const ok = await purchaseCreditRC(kind); if (!ok) return;   // 결제 취소=false(조용히)
-                  // ★C1 보안(daniel 07-03): 클라 grant 폐지 → 영수증 검증된 RC 웹훅이 적립. 반영까지 폴링 후 차감·생성.
-                  const { granted } = await waitForCreditGrant(kind);
-                  if (granted && await useCredit(kind)) { await markUnlocked(chartId, kind); generate(chartId); } // 차감 → unlock → 생성
-                  else if (!granted) Alert.alert(title, t('special.applyPending', '결제가 완료됐어요. 적용까지 잠시 걸릴 수 있어요. 잠시 후 다시 시도해 주세요.'));
-                } catch (e) { Alert.alert('!', (e as Error).message); }
-              } },
-            { text: t('special.goMarket', '마켓에서 보기'), onPress: () => router.push('/market') },
-            { text: t('common.cancel'), style: 'cancel' },
-          ]);
-          return;
-        }
-      }
-    } catch (e) { logEvent(`${kind}_gate_error`, { message: (e as Error).message }, 'error'); return; }
+      // 관리자 = 무료(Edge god 도 통과) / 그 외 = 로그인만 보장(결제=계정 귀속). 차감·판정은 Edge.
+      if (await isAdmin()) proceed = true;
+      else proceed = requireLoginForPurchase(session, () => router.push('/login'), t);
+    } catch (e) { logEvent(`${kind}_gate_error`, { message: (e as Error).message }, 'error'); }
     finally { gatingRef.current = false; }
-    generate(chartId);
+    if (proceed) generate(chartId); // Edge 가 이용권 차감/판정 → 없으면 generate 안에서 needPayment → promptPurchase
+  }
+
+  // 구매 유도 — 서버 게이트(Edge)가 needPayment 를 반환했을 때만 호출(클라 차감 없음).
+  //   바로 구매: 결제 → 웹훅 적립 폴링(C1) → 재생성(Edge 가 1회 차감) / 또는 마켓 이동. id = 재생성 대상 명식.
+  function promptPurchase(id?: string) {
+    Alert.alert(title, t('special.needPayMsg', '이용권이 필요해요. 바로 구매하거나 마켓에서 받을 수 있어요.'), [
+      { text: t('special.buyNow', '바로 구매'), onPress: async () => {
+          if (!purchasesEnabled()) { Alert.alert(title, t('market.payPending', '결제 준비 중이에요. 쿠폰을 이용하거나 잠시 후 다시 시도해 주세요.')); return; }
+          try {
+            const ok = await purchaseCreditRC(kind); if (!ok) return;   // 결제 취소=false(조용히)
+            // ★C1 보안(daniel 07-03): 클라 grant/차감 폐지 → 영수증 검증된 웹훅이 적립. 반영까지 폴링 후 재생성(Edge 가 1회 차감).
+            const { granted } = await waitForCreditGrant(kind);
+            if (granted) generate(id);
+            else Alert.alert(title, t('special.applyPending', '결제가 완료됐어요. 적용까지 잠시 걸릴 수 있어요. 잠시 후 다시 시도해 주세요.'));
+          } catch (e) { Alert.alert('!', (e as Error).message); }
+        } },
+      { text: t('special.goMarket', '마켓에서 보기'), onPress: () => router.push('/market') },
+      { text: t('common.cancel'), style: 'cancel' },
+    ]);
   }
 
   const bodyDyn = { fontSize: fs(15), lineHeight: fs(25) };

@@ -20,7 +20,7 @@ import { ensureServerChartId } from '../lib/backend/prewarmReadings';
 import { invokeFail } from '../lib/backend/interpretResult'; // 방어: 일시적 불가/오류 친화 처리
 import { getRepresentativeId } from '../lib/engine/myChart'; // 대표 명식 여부(자동생성 한정)
 import { assertOnline, isOnline } from '../lib/backend/network'; // 오프라인 시 신규 생성 차단
-import { loadCredits, grantCredit } from '../lib/billing/coupons'; // 크레딧 보유확인 + 구매 후 부여(차감은 Edge·P3)
+import { loadCredits, waitForCreditGrant } from '../lib/billing/coupons'; // 크레딧 보유확인 + 결제 후 웹훅 적립 폴링(차감은 Edge·P3·C1)
 import { isReadingUnlocked } from '../lib/billing/unlocks'; // 서버 세트 언락(timeline)
 import { isPremiumForChart } from '../lib/billing/premiumStore'; // 명식별 프리미엄 판정(#1 — 비지정 명식/무료모드 게이트)
 import { purchaseCreditRC } from '../lib/billing/purchases'; // timeline 개별 구매(비프리미엄)
@@ -150,7 +150,7 @@ export function TimelineScreen({ input, savedChart }: { input: ChartInput | null
       if (!has) {
         Alert.alert(t('timeline.unlockTitle'), t('timeline.unlockMsg'), [
           { text: t('common.cancel'), style: 'cancel' },
-          { text: t('reading.payPerUse', '구매'), onPress: async () => { try { const ok = await purchaseCreditRC('timeline'); if (!ok) return; await grantCredit('timeline'); await gen(key, cid); } catch (e) { Alert.alert('!', (e as Error).message); } } },
+          { text: t('reading.payPerUse', '구매'), onPress: async () => { try { const ok = await purchaseCreditRC('timeline'); if (!ok) return; const { granted } = await waitForCreditGrant('timeline'); if (granted) await gen(key, cid); else Alert.alert(t('timeline.unlockTitle'), t('reading.applyPending', '결제가 완료됐어요. 적용까지 잠시 걸릴 수 있어요. 잠시 후 다시 시도해 주세요.')); } catch (e) { Alert.alert('!', (e as Error).message); } } }, // ★C1: 결제→웹훅 적립 폴링→Edge 세트게이트 차감
         ]);
         return;
       }
