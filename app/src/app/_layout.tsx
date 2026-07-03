@@ -14,7 +14,7 @@ import { useAuth } from '../lib/useAuth';
 import { configurePurchases } from '../lib/billing/purchases'; // 인앱결제(RevenueCat) 초기화
 import { refreshPremium } from '../lib/billing/premiumStore'; // 세션 변경(로그인/로그아웃/계정전환) 시 프리미엄 전역 재평가 → 광고 즉시 토글(daniel 2026-06-24)
 import { migrateLocalCreditsOnLogin } from '../lib/billing/migrateCredits'; // 로그인 시 디바이스 구매 이관(H)
-import { preferSelfAsRep } from '../lib/engine/myChart'; // 앱 실행 시 대표 명식 = 본인(daniel)
+import { preferSelfAsRep, syncChartsFromServer } from '../lib/engine/myChart'; // 대표 명식=본인 + 명식 멀티기기 동기화(포그라운드 복귀 시)
 import { hydrateGenProgress } from '../lib/backend/genProgress'; // 앱 시작 시 진행중/미확인 풀이 복원 → 홈 배너(daniel: 강제종료 생존)
 import { initAds, setAdTestMode } from '../lib/core/ads'; // AdMob 초기화 + 테스트광고 모드(관리자/테스트=실 유닛 서빙 전이라 구글 테스트광고로, daniel)
 import { supabase } from '../lib/supabase'; // 세션 유저 test_mode·is_admin → 테스트광고 게이트
@@ -63,7 +63,14 @@ export default function RootLayout() {
   useEffect(() => {
     let start = Date.now();
     const sub = AppState.addEventListener('change', (s) => {
-      if (s === 'active') { start = Date.now(); return; }   // 포그라운드 복귀 → 구간 시작 리셋
+      if (s === 'active') {
+        start = Date.now();                                  // 포그라운드 복귀 → 구간 시작 리셋
+        // ★포그라운드 복귀 시 서버 동기화(daniel 07-03: 재실행 없이 반영) — 명식 멀티기기 동기화 + 백그라운드 풀이 완료 반영.
+        //   (프리미엄은 premiumStore 자체 리스너가 별도로 재평가. 크레딧=마켓 진입 시 로드, 공유=딥링크라 여기선 제외.)
+        void syncChartsFromServer();
+        hydrateGenProgress().catch(() => {});
+        return;
+      }
       const sec = Math.round((Date.now() - start) / 1000);   // 백그라운드/비활성 → 이번 구간 길이
       if (sec >= 3 && sec <= 6 * 3600) logEvent('app_session', { sec }); // 3초~6시간만(이상치 제외)
     });

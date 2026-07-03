@@ -123,7 +123,7 @@ export default function ChildRoute() {
         </View>
       ))}
 
-      {/* ★부부 반값 업그레이드 안내(daniel 07-03) — 배우자는 골랐지만 솔로(child) 미소유 → 먼저 솔로를 열어야 부부를 반값(₩4,950)에 볼 수 있음.
+      {/* ★부부 반값 업그레이드 안내(daniel 07-03) — 배우자는 골랐지만 솔로(child) 미소유 → 먼저 솔로를 열어야 부부를 반값(COUPLE_PRICE)에 볼 수 있음.
           이 동안 화면은 kind='child'(솔로 게이트)라 부부 콘텐츠는 생성/과금되지 않는다. '나 혼자 보기로' 로 토글 복귀. 프리미엄/관리자는 soloOwned=true 라 이 카드가 안 뜬다. */}
       {coupleNeedsSolo && (
         <View style={styles.upsell}>

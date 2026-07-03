@@ -8,6 +8,7 @@
 //   진실원천 = Supabase profiles.is_premium OR RC entitlement(구매 직후 즉시). 미로그인 = 항상 false.
 //   ※ 여기서 Edge LLM 을 호출하지 않는다(유료 통변은 useEntitlement 별도) → ABSOLUTE-0 정합 유지.
 // ─────────────────────────────────────────────────────────────────────────
+import { AppState } from 'react-native'; // 포그라운드 복귀 시 프리미엄 재평가(daniel 07-03)
 import { supabase } from '../supabase';
 import { isPremiumActiveRC } from './purchases';
 
@@ -17,7 +18,16 @@ let _isAdmin = false;   // 관리자 계정 여부
 let _adminMode = true;  // 관리자 모드(god). false=일반계정 전환(권한·프리미엄 무시, daniel 2026-07-01)
 let _premiumChartId: string | null = null; // 프리미엄 지정 명식(charts.id) — 명식별 판정
 let _loading = true;    // 최초 1회 평가 전 = 로딩
+let _lastUserId: string | null | undefined = null; // 최근 평가한 userId — 포그라운드 복귀 재평가에 재사용
 const listeners = new Set<() => void>();
+
+// 앱 포그라운드 복귀(active) 시 프리미엄 재평가(daniel 07-03) — 관리자 선물/해제·결제가 앱 재실행 없이 반영.
+//   모듈 1회 등록(idempotent). refreshPremium 최초 호출 시 세팅.
+let _fgSub: { remove?: () => void } | null = null;
+function ensureForegroundRefresh(): void {
+  if (_fgSub) return;
+  try { _fgSub = AppState.addEventListener('change', (s) => { if (s === 'active') void refreshPremium(_lastUserId); }) as any; } catch { /* 모듈 문제 시 무시 */ }
+}
 
 function emit(): void { for (const l of listeners) l(); }
 
@@ -77,6 +87,7 @@ let _reqSeq = 0;
  * 로그인/로그아웃(_layout·useAuth)·구매 직후(settings·market refresh) 시점에 호출한다.
  */
 export async function refreshPremium(userId: string | null | undefined): Promise<void> {
+  _lastUserId = userId; ensureForegroundRefresh(); // 최근 userId 기록 + 포그라운드 재평가 리스너 1회 등록
   const seq = ++_reqSeq;
   // 미로그인/로그아웃 = 즉시 일반(false). RC 조회 불필요(엔타이틀먼트=계정 귀속). RC 익명화는 호출처(로그아웃)에서 logOut.
   if (!userId) {
