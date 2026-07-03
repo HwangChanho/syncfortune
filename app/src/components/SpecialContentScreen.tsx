@@ -85,6 +85,7 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
   const [loaded, setLoaded] = useState(false);
   const [owned, setOwned] = useState(false); // 소유(프리미엄/관리자/차감 unlock) — 미구매 차트 풀이 노출 차단(daniel ⓐ). 명식 변경 시 재판정.
   const [reloadKey, setReloadKey] = useState(0); // ChartPicker 로 대표 전환 시 재로드 트리거
+  const [revealed, setRevealed] = useState(false); // 상태 뷰 경유(daniel 07-03): 소유(프리미엄/구매/관리자) 풀이도 바로 노출하지 않고 '이미 열려 있음' 상태 뷰를 먼저 보여준 뒤 '풀이 보기'로 공개. 명식/카테고리 변경 시 false 리셋 → 전환할 때마다 상태 뷰 재노출.
   const c = useMemo(() => (savedChart ? computeChart(savedChart.input) : null), [savedChart]);
   const gatingRef = useRef(false); // 게이트(모달) 연타 차단
   const reveal = useRef(new Animated.Value(0)).current; // 섹션 순차 등장
@@ -92,7 +93,7 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
   // 대표 명식 → 서버차트ID → 캐시(category=kind) 조회. 프리미엄이고 캐시 없으면 자동 생성.
   useEffect(() => {
     let alive = true;
-    setReading(null); setOwned(false); setExpiry(null); // 진입/명식 변경 시 초기화 — 미구매 차트가 직전 풀이로 새지 않게(daniel ⓐ)
+    setReading(null); setOwned(false); setExpiry(null); setRevealed(false); // 진입/명식 변경 시 초기화 — 미구매 차트가 직전 풀이로 새지 않게(daniel ⓐ) + 상태 뷰 재노출(revealed 리셋: 명식 전환 시 다시 상태 뷰부터, daniel 07-03)
     (async () => {
       const ch = await loadRepChart();
       if (!alive) return;
@@ -252,12 +253,31 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
       <UnlockOverlay visible={busy} message={genMsg} />
       <ContentHero motif={heroMotif} image={heroImage ?? HERO_BY_KIND[kind]} title={title} sub={sub} themeColor={themeColor} />
 
-      {/* 콘텐츠별 상단 커스텀 컨트롤(옵션) — 히어로 아래·게이트 위. ★풀이가 나온 뒤엔 숨김(자식운 COUPLE 토글은 생성 前에만 의미, daniel 07-03). */}
-      {!(reading && owned) && headerExtra}
+      {/* 콘텐츠별 상단 커스텀 컨트롤(옵션) — 히어로 아래·상태 뷰/게이트 위. ★풀이를 실제로 공개(revealed)한 뒤엔 숨김 — 상태 뷰·게이트(공개 前)에서는 계속 노출(자식운 COUPLE 토글은 생성 前에만 의미, daniel 07-03). */}
+      {!(reading && owned && revealed) && headerExtra}
 
       {reading?.error ? (
         <View style={styles.card}><Text style={[styles.err, dynStyles.err]}>{String(reading.error)}</Text></View>
-      ) : (reading && owned) ? (
+      ) : (owned && !revealed) ? (
+        // ★상태 뷰(daniel 07-03): 소유(프리미엄/구매/관리자) 풀이라도 바로 노출하지 않고
+        //   '이미 열려 있음 + (일반 계정) 만료일' 상태를 먼저 보여준 뒤 '풀이 보기'로 공개(관리 편의·구매이력 인지).
+        //   reading 유무와 무관하게 진입 — 캐시가 있으면 '풀이 보기'가 즉시 공개, 없으면 생성까지 트리거(소유 경로라 재차감 없음).
+        <View style={[styles.card, styles.gate, { borderColor: themeColor }]}>
+          <Text style={[styles.gateTitle, dynStyles.gateTitle]}>{t('special.ownedTitle', '이미 열려 있는 풀이예요')}</Text>
+          {/* 상태 라인 — 프리미엄 명식=무제한(골드) / 그 외(구매·관리자)=만료일(showExpiry+expiry 있으면) 또는 '구매한 풀이'. 만료 포맷=ExpiryNote와 동일한 expiry 값(생성일+1년 YYYY.MM.DD) 재사용. */}
+          {premiumCovered && isPremiumForChart(chartId) ? (
+            <Text style={[styles.ownedStatus, dynStyles.gateDesc, { color: colors.gold }]}>{t('special.ownedUnlimited', '프리미엄 · 무제한 이용')}</Text>
+          ) : (showExpiry && expiry) ? (
+            <Text style={[styles.ownedStatus, dynStyles.gateDesc]}>{t('special.ownedUntil', { date: expiry, defaultValue: '{{date}}까지 볼 수 있어요' })}</Text>
+          ) : (
+            <Text style={[styles.ownedStatus, dynStyles.gateDesc]}>{t('special.ownedBought', '구매한 풀이예요')}</Text>
+          )}
+          {/* '풀이 보기' — revealed 전환(캐시 즉시 공개). 캐시 없으면 onStart(소유 경로: 프리미엄/unlock/관리자 → generate만, 재차감 없음)로 생성까지 트리거. */}
+          <PressableScale style={[styles.cta, { backgroundColor: themeColor }]} onPress={() => { setRevealed(true); if (!reading) onStart(); }}>
+            <Text style={[styles.ctaTx, dynStyles.ctaTx]}>{t('special.viewCta', '풀이 보기')}</Text>
+          </PressableScale>
+        </View>
+      ) : (reading && owned && revealed) ? (
         <>
         {/* 풀이 보유 만료일(daniel #25) — 캐시(생성된 풀이) + 유료 단일(showExpiry)일 때만. 소모성·무료는 showExpiry 미전달이라 미노출. */}
         <ExpiryNote expiry={showExpiry ? expiry : null} chartId={chartId} />
@@ -393,6 +413,7 @@ const styles = StyleSheet.create({
   gateTitle: { ...font.heading, color: colors.ink, marginBottom: space(2) },
   gateDesc: { ...font.body, color: colors.inkSoft, textAlign: 'center', marginBottom: space(5), lineHeight: 22 },
   gateNote: { ...font.caption, color: colors.inkFaint, marginTop: space(3) },
+  ownedStatus: { ...font.body, color: colors.ink, fontWeight: '700', textAlign: 'center', marginBottom: space(5), lineHeight: 22 }, // 상태 뷰(daniel 07-03) 상태 라인 — 구매이력/만료일/무제한. 게이트 설명(inkSoft)보다 또렷하게(ink·700).
   // 미리보기 박스(잠긴 콘텐츠의 핵심 항목 목록)
   previewBox: { width: '100%', backgroundColor: colors.sunk, borderRadius: radius.md, padding: space(4), marginBottom: space(5) },
   previewHead: { fontSize: 13, fontWeight: '800', marginBottom: space(2), letterSpacing: 0.5 },

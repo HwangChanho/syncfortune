@@ -81,7 +81,10 @@ export function setGenProgress(patch: Partial<GenItem> & { route: string }) {
   // 완료 전이(이전엔 미완료 → 이번에 완료) = 푸시 1회(daniel ⑨: 화면 밖/백그라운드에도). 실패해도 무시.
   const wasDone = !!prev && prev.total > 0 && prev.done >= prev.total;
   const nowDone = next.total > 0 && next.done >= next.total;
-  if (nowDone && !wasDone) { notifyReadingDone(`${next.chartLabel ? next.chartLabel + ' — ' : ''}${next.label} 풀이가 완성됐어요`, '준비된 풀이를 확인해 보세요', next.route).catch(() => {}); }
+  // daniel 07-03: 오늘/이달의 운세(/today·/month)는 완료 푸시 미발송 — 하루 3회 티저 알림으로 대체(중복 방지).
+  //   홈 배너('풀이 보기')는 items 기반이라 그대로 유지되고, 즉시 푸시만 건너뛴다. 그 외 풀이(프리미엄 세트 등)는 기존대로 완료 푸시.
+  const skipDonePush = next.route === '/today' || next.route === '/month';
+  if (nowDone && !wasDone && !skipDonePush) { notifyReadingDone(`${next.chartLabel ? next.chartLabel + ' — ' : ''}${next.label} 풀이가 완성됐어요`, '준비된 풀이를 확인해 보세요', next.route).catch(() => {}); }
 }
 
 /** 특정 route 항목 제거 — 배너 탭 이동 시 / 해당 화면 접근 시(daniel: 접근하면 알림 사라짐). */

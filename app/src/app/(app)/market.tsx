@@ -206,6 +206,8 @@ export default function MarketRoute() {
           <View style={{ flex: 1 }}>
             <Text style={styles.name}>{c.ko}</Text>
             {card && <Text style={styles.desc} numberOfLines={2}>{t(card.desc)}</Text>}
+            {/* 개별 구매가 노출(daniel 07-03: 프리미엄 상품도 개별구매 가능하니 금액 표시) — 프리미엄 유저는 무제한이라 참조용 */}
+            <Text style={styles.price}>{prices[c.key] ?? `₩${c.price.toLocaleString()}`} {t('market.perItem', '개별')}</Text>
           </View>
           <View style={styles.unlimitedBadge}>
             <Text style={styles.unlimitedTx}>{t('market.unlimited', '무제한 이용 중')}</Text>

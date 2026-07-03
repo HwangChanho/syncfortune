@@ -40,7 +40,7 @@ export const CREDIT_KINDS: { key: CreditKind; ko: string; price: number }[] = [
   // 신규(daniel 2026-07-02): 10년 뒤 나의 모습(대운·세운으로 보는 10년 뒤 — 스페셜, 개별 유료).
   { key: 'future10', ko: '10년 뒤 나의 모습', price: 4900 }, // 가격 daniel 확정(API 비용 측정 후)
   // 신규(daniel 2026-07-02): 자식운(원국으로 보는 자녀 인연·기질 — 프리미엄 포함, 비프리미엄은 개별 유료).
-  { key: 'child', ko: '자식운', price: 12900 }, // 가격 daniel 확정(API 비용 측정 후)
+  { key: 'child', ko: '자식운', price: 9900 }, // 가격 daniel 확정(07-03: 12900→9900). 부부모드=단일 구매자 반값 업그레이드
 ];
 export const PREMIUM_PRICE = 49900; // 평생 프리미엄(대표명식 전부 무제한). daniel: 사업가 등 헤비유저(궁합 반복) 타겟 — 일반은 건당/쿠폰. 프리미엄은 소수 기대.
 
