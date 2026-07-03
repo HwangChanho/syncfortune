@@ -56,10 +56,20 @@ function subscribe(cb: () => void): () => void { subs.add(cb); return () => { su
 const getSession = () => _session;   // useSyncExternalStore snapshot(참조 안정)
 const getLoading = () => _loading;
 
-// 세션 갱신 — 내용(user.id+access_token) 동일하면 no-op(참조 안정 → 전 구독자 스퍼리어스 리렌더 차단).
+// 세션 갱신 — *로그인한 유저(user.id)가 바뀔 때만* 반영(참조 안정 → 전 구독자 스퍼리어스 리렌더 차단).
+//   ★핵심(daniel 07-03 "풀이 읽는 중 화면이 중간중간 리로딩됨"): supabase 는 autoRefreshToken=true 라
+//   토큰 만료 즈음(≈1시간)·포그라운드 복귀 시 onAuthStateChange('TOKEN_REFRESHED', s) 를 쏜다 —
+//   같은 유저인데 access_token 만 새로 발급된 세션 *객체*다. 예전엔 access_token 이 다르면 세션을 교체·emit 해서,
+//   useAuth() 를 쓰는 전 컴포넌트(25곳)가 리렌더되고 특히 풀이/콘텐츠 화면의 캐시 fetch effect(deps 에 session 포함)가
+//   재실행 → readings 재조회 → 리스트가 새로 그려지며 '리로딩(깜빡임)'으로 보였다.
+//   → 토큰만 바뀐 갱신은 무시하고, 실제 로그인/로그아웃(null↔세션)·계정 전환(user.id 변화)만 반영한다.
+//   안전성: 앱 어디서도 세션의 access_token 을 직접 인증에 쓰지 않는다(grep 확인). supabase 클라가 SecureStore 의
+//   최신 토큰을 내부적으로 주입하고, 소비처는 session.user.id/존재여부만 사용 → 스토어 참조를 고정해도 무해.
 function setSession(s: Session | null): boolean {
-  if (_session?.user?.id === s?.user?.id && _session?.access_token === s?.access_token) return false;
-  _session = s; emit(); return true;
+  // 둘 다 세션이고 같은 유저 = TOKEN_REFRESHED/중복 SIGNED_IN → 참조 유지(no-op, 리렌더 차단).
+  if (_session && s && _session.user?.id === s.user?.id) return false;
+  if (_session === s) return false;             // null↔null 등 동일 참조 = no-op
+  _session = s; emit(); return true;            // 로그인/로그아웃/계정전환만 반영
 }
 
 let _started = false;

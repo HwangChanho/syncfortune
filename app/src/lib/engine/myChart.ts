@@ -104,11 +104,19 @@ export async function syncChartsFromServer(): Promise<void> {
   //   '본인으로 강제'는 여기(동기화 = 로그인·토큰갱신 SIGNED_IN 시에도 호출됨) 말고 *앱 실행 1회*(_layout preferSelfAsRep)에서만.
   //   → 앱 켜면 본인, 사용 중 다른 명식으로 바꾸면 그대로 유지, 껐다 켜면 다시 본인.
   const curRep = await getRaw(REP_KEY);
+  let repChanged = false;
   if (!curRep || !merged.some((c) => c.id === curRep)) {
-    if (server?.rep && merged.some((c) => c.id === server!.rep)) await setRaw(REP_KEY, server.rep);
-    else if (merged.length) await setRaw(REP_KEY, merged[0].id);
+    if (server?.rep && merged.some((c) => c.id === server!.rep)) { await setRaw(REP_KEY, server.rep); repChanged = true; }
+    else if (merged.length) { await setRaw(REP_KEY, merged[0].id); repChanged = true; }
   }
-  notifyRepChange();
+  // ★실제 변경이 있을 때만 전역 알림(daniel 07-03 "풀이 읽는 중 화면이 중간중간 리로딩됨") —
+  //   syncChartsFromServer 는 포그라운드 복귀(_layout AppState 'active')마다 호출된다. 서버·로컬이 이미 같아
+  //   아무 변화가 없어도 notifyRepChange() 를 무조건 쏘면, 구독자 ChartPicker 가 onChange 를 호출 →
+  //   풀이/콘텐츠 화면(reading·love·special)의 reloadKey 가 증가 → fetch effect 재실행 → readings 재조회로
+  //   화면이 깜빡였다. 명식 목록(순서무관 시그니처)이나 대표가 *실제로* 바뀐 경우에만 알린다.
+  //   (원격 기기 편집 등 진짜 변경은 그대로 반영되고, 서버 수렴은 아래 pushChartsNow 로 유지된다.)
+  const chartSig = (arr: SavedChart[]) => arr.map((c) => `${c.id}:${c.serverChartId ?? ''}:${c.label ?? ''}:${c.relation ?? ''}:${c.context ? 1 : 0}`).sort().join('|');
+  if (repChanged || chartSig(local) !== chartSig(merged)) notifyRepChange();
   await pushChartsNow();                                   // 머지 결과를 서버에 반영(수렴)
 }
 
