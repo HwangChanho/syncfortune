@@ -46,7 +46,13 @@ const ROUTE: Record<CreditKind, { pathname: string; kind?: string }> = {
   timeresolve: { pathname: '/timeResolve' },           // 태어난 시 찾기(TPR — daniel 06-28)
   future10: { pathname: '/future10' },                 // 10년 뒤 나의 모습(대운·세운 스페셜)
   child: { pathname: '/child' },                       // 자식운(프리미엄 포함, 비프리미엄 개별)
+  child_couple: { pathname: '/child' },                // 자식운 · 부부(반값 업그레이드) — /child 안에서만 구매(마켓 단독 판매 X, 아래 MARKET_HIDDEN)
 };
+
+// 마켓 목록에서 숨길 이용권(kind) — 컨텍스트 전용(단독 판매 안 함).
+//   child_couple(자식운·부부) = 솔로(child) 소유자만 /child 안에서 반값 업그레이드로 구매한다. 마켓에 단독 타일로 노출하면
+//   솔로 미소유자가 부부(상위 콘텐츠)를 반값에 우회 구매해 솔로 상품을 잠식하므로 목록에서 제외(daniel 07-03).
+const MARKET_HIDDEN = new Set<CreditKind>(['child_couple']);
 
 // 이용권 kind → 카드 이미지 + 설명키(홈 카드와 동일 재사용, daniel: 마켓 리스트에도 작게+설명).
 //   followup(추가질문)은 standalone 카드가 아니라(풀이 내부) 생략 — 없으면 이미지·설명 미표시(graceful).

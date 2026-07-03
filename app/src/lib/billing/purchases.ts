@@ -48,6 +48,7 @@ export const CREDIT_PRODUCT: Record<CreditKind, string> = {
   timeresolve: 'credit_timeresolve', // 태어난 시 찾기(TPR) ₩990 — ⚠️ASC/RC 상품 등록 필요(daniel)
   future10: 'credit_future10',   // 10년 뒤 나의 모습 — ⚠️ASC/RC 상품 등록 필요(daniel)
   child: 'credit_child',         // 자식운(프리미엄 포함, 비프리미엄 개별) — ⚠️ASC/RC 상품 등록 필요(daniel)
+  child_couple: 'credit_child_couple', // 자식운 · 부부(솔로 소유자 반값 업그레이드 ₩4,950) — ⚠️ASC/RC 상품 등록 필요(daniel)
 };
 
 // AI 꿈해몽: 단건 ₩500이 Apple IAP 최저가(~₩1,200) 미만이라 **5회 번들**(₩2,500, ≈₩500/회)로 판매(daniel 06-28).
