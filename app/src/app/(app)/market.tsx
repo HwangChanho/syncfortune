@@ -135,7 +135,8 @@ export default function MarketRoute() {
     // 명식이 하나도 없으면(=등록 0개) 먼저 등록 안내 — 명식 기준으로 적용·진입하므로.
     if (!sel) { Alert.alert(t('market.noChart'), t('market.registerChartFirst', '명식을 먼저 등록해 주세요')); return; }
     // ★진행 전 적용 명식 확인 — 드롭다운으로 *다른 명식으로 변경 가능*(daniel 07-02). 확인 시 (변경된) 대표 명식으로 구매.
-    const ok = await requestChartConfirm({}); // 명식 목록 모달(선택 시 대표 전환)
+    //   프리미엄 구매용 문구(daniel 07-03: 풀이 문구 '풀이할까요/볼게요'가 뜨던 버그 → 구매 문구로).
+    const ok = await requestChartConfirm({ title: '이 명식에 프리미엄을 적용할까요?', sub: '명식을 눌러 변경할 수 있어요 · 확인하면 결제가 진행돼요', okLabel: '네, 구매할게요' });
     if (!ok) return;
     const target = await loadRepChart();      // 모달에서 고른 명식(대표) = 프리미엄 적용 명식
     if (target) setSel(target);               // 마켓 표시 동기화

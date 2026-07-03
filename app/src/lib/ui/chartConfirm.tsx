@@ -13,7 +13,7 @@ import { listCharts, setRepresentative, getRepresentativeId, type SavedChart } f
 import { loadCredits, type CreditKind } from '../billing/coupons';
 import { colors, radius, space, shadow, font } from '../theme';
 
-type Opts = { creditKind?: CreditKind; chartless?: boolean };
+type Opts = { creditKind?: CreditKind; chartless?: boolean; title?: string; sub?: string; okLabel?: string }; // title/sub/okLabel: 용도별 문구(프리미엄 구매 등 — 기본은 풀이 문구, daniel 07-03)
 type State = { opts: Opts; resolve: (v: boolean) => void } | null;
 
 let _state: State = null;
@@ -60,10 +60,10 @@ export function ChartConfirmHost() {
     <Modal transparent animationType="fade" visible onRequestClose={() => close(false)}>
       <Pressable style={styles.backdrop} onPress={() => close(false)}>
         <Pressable style={styles.card} onPress={() => {}}>
-          <Text style={styles.title}>{chartless ? '풀이 확인' : '이 명식으로 풀이할까요?'}</Text>
+          <Text style={styles.title}>{state.opts.title ?? (chartless ? '풀이 확인' : '이 명식으로 풀이할까요?')}</Text>
           {!chartless && (
             <>
-              <Text style={styles.sub}>명식을 눌러 변경할 수 있어요</Text>
+              <Text style={styles.sub}>{state.opts.sub ?? '명식을 눌러 변경할 수 있어요'}</Text>
               <ScrollView style={styles.list} keyboardShouldPersistTaps="handled">
                 {charts.map((c) => {
                   const on = c.id === repId;
@@ -80,7 +80,7 @@ export function ChartConfirmHost() {
           {credits > 0 && <Text style={styles.credit}>보유 이용권 {credits}개</Text>}
           <View style={styles.btns}>
             <PressableScale style={styles.btnCancel} onPress={() => close(false)}><Text style={styles.btnCancelTx}>취소</Text></PressableScale>
-            <PressableScale style={styles.btnOk} onPress={() => close(true)}><Text style={styles.btnOkTx}>네, 볼게요</Text></PressableScale>
+            <PressableScale style={styles.btnOk} onPress={() => close(true)}><Text style={styles.btnOkTx}>{state.opts.okLabel ?? '네, 볼게요'}</Text></PressableScale>
           </View>
         </Pressable>
       </Pressable>
