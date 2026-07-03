@@ -11,9 +11,21 @@ import { View, Text, TextInput, Pressable, StyleSheet, ActivityIndicator } from 
 import { PressableScale } from '../components/PressableScale';
 import { Alert } from '../lib/ui/alert'; // 커스텀 알림(앱 디자인)
 import * as Linking from 'expo-linking';
+import * as WebBrowser from 'expo-web-browser'; // 인앱 인증 세션(로그인 후 브라우저 자동 닫힘, daniel 07-03)
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../lib/supabase';
 import { colors, radius, space, shadow, font } from '../lib/theme';
+
+WebBrowser.maybeCompleteAuthSession(); // 남은 인증 세션 정리(권장 — 웹/재진입 시 브라우저 잔류 방지)
+
+// 인증 세션 복귀 URL(syncfortune://auth-callback?code=… / ?token_hash=&type=) → 세션 확립.
+//   openAuthSessionAsync 가 리다이렉트를 가로채 브라우저를 닫으므로, 콜백 라우트 대신 여기서 직접 처리한다.
+async function completeAuthFromUrl(url: string): Promise<void> {
+  const { queryParams } = Linking.parse(url);
+  const code = queryParams?.code, th = queryParams?.token_hash, ty = queryParams?.type;
+  if (typeof code === 'string') await supabase.auth.exchangeCodeForSession(code);                         // 구글·애플(PKCE)
+  else if (typeof th === 'string' && typeof ty === 'string') await supabase.auth.verifyOtp({ token_hash: th, type: ty as any }); // 네이버(매직링크)
+}
 
 export function AuthScreen() {
   const { t } = useTranslation();
@@ -42,9 +54,15 @@ export function AuthScreen() {
       provider,
       options: { redirectTo, skipBrowserRedirect: true }, // URL 만 받아 직접 연다(웹 자동리다이렉트 억제)
     });
+    if (error) { setLoading(false); Alert.alert('!', error.message); return; }
+    // 인앱 인증 세션(ASWebAuthenticationSession) — 로그인 후 리다이렉트 시 브라우저가 자동으로 닫힌다(외부 탭 잔류 X).
+    if (data?.url) {
+      try {
+        const res = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
+        if (res.type === 'success' && res.url) await completeAuthFromUrl(res.url); // 세션 확립(성공 시 useAuth 가 자동 분기)
+      } catch (e) { Alert.alert('!', (e as Error).message); }
+    }
     setLoading(false);
-    if (error) { Alert.alert('!', error.message); return; }
-    if (data?.url) await Linking.openURL(data.url);
   }
 
   // 네이버 — Supabase 미지원 프로바이더라 커스텀 Edge(naver-auth)가 OAuth 를 오케스트레이션한다.
@@ -56,7 +74,9 @@ export function AuthScreen() {
       const appRedirect = Linking.createURL('auth-callback');               // syncfortune://auth-callback
       const fnBase = (process.env.EXPO_PUBLIC_SUPABASE_URL ?? '').replace(/\/+$/, '');
       if (!fnBase) { Alert.alert('!', t('common.error')); return; }
-      await Linking.openURL(`${fnBase}/functions/v1/naver-auth?app_redirect=${encodeURIComponent(appRedirect)}`);
+      // 인앱 인증 세션 — 네이버 로그인·매직링크 복귀 시 브라우저 자동 닫힘(외부 탭 잔류 X).
+      const res = await WebBrowser.openAuthSessionAsync(`${fnBase}/functions/v1/naver-auth?app_redirect=${encodeURIComponent(appRedirect)}`, appRedirect);
+      if (res.type === 'success' && res.url) await completeAuthFromUrl(res.url);
     } catch (e) { Alert.alert('!', (e as Error).message); }
     finally { setLoading(false); }
   }
