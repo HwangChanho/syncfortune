@@ -204,7 +204,7 @@ export default function LoveScreen() {
       <UnlockOverlay visible={busy} message={t('love.generating', '애정 흐름을 풀어내는 중…')} />
       <ContentHero motif={<LoveThread />} image={require('../../../assets/icons/love-hero.jpg')} title={t('love.title')} sub={t('love.sub')} themeColor={LOVE_PINK} />
       {/* 애정 흐름 곡선(재성 12운성·시기별) — 무료 온디바이스 티저(daniel B). 깊은 통변은 아래 유료 */}
-      {c?.saju && <LoveFlowGraph saju={c.saju} />}
+      {c?.saju && <LoveFlowGraph saju={c.saju} gender={savedChart?.input?.sex} />}
 
       {reading?.error ? (
         <View style={styles.card}><Text style={styles.err}>{String(reading.error)}</Text></View>
