@@ -163,6 +163,9 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
               onDragEnd={({ data }) => onDragEnd(data)}
               renderItem={({ item: c, drag, isActive }) => {
                 const on = c.id === repId;
+                // 3개 이상 리스트의 마지막 2개 행은 ⋯ 메뉴를 위로 열어 하단(‘+명식등록’) 잘림 방지(daniel 07-03).
+                //   ≤2개는 상단이라 아래로 여는 게 안전(위로 열면 오히려 위가 잘림).
+                const dropUp = charts.length > 2 && charts.findIndex((x) => x.id === c.id) >= charts.length - 2;
                 const em = emblems[c.id];
                 const iljuImg = em ? iljuImage(em.stem, em.branch) : null; // 60갑자 AI 일러스트(없으면 색+동물 폴백)
                 return (
@@ -204,7 +207,7 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
                           <Text style={[styles.rowAct, { fontSize: 18 }]}>⋯</Text>
                         </PressableScale>
                         {actionsFor === c.id && (
-                          <View style={styles.actMenu}>
+                          <View style={dropUp ? styles.actMenuUp : styles.actMenu}>
                             <PressableScale style={styles.actItem} hitSlop={6} onPress={() => { setActionsFor(null); edit(c.id); }}><Text style={styles.rowAct}>{t('common.edit', '수정')}</Text></PressableScale>
                             <PressableScale style={styles.actItem} hitSlop={6} onPress={() => { setActionsFor(null); viewManse(c.id); }}><Text style={styles.rowAct}>{t('manse.viewManse', '만세력보기')}</Text></PressableScale>
                             <PressableScale style={styles.actItem} hitSlop={6} onPress={() => { setActionsFor(null); remove(c.id, c.label); }}><Text style={[styles.rowAct, styles.rowActDel]}>{t('common.delete', '삭제')}</Text></PressableScale>
@@ -275,6 +278,8 @@ const styles = StyleSheet.create({
   actWrap: { position: 'relative', alignItems: 'flex-end', justifyContent: 'center' },
   // ⋯ 드롭다운 — 완전 불투명(alpha 1)·그림자로 또렷하게 떠보이게(daniel 07-02: 알파값 1). bg=불투명 미드나잇 카드.
   actMenu: { position: 'absolute', top: 26, right: 0, minWidth: 108, backgroundColor: colors.card, opacity: 1, borderRadius: radius.md, borderWidth: 1, borderColor: colors.juLine, paddingVertical: space(1), zIndex: 50, ...shadow.card, elevation: 12 },
+  // ★마지막 행들은 아래로 열면 리스트 하단/‘+명식등록’ 버튼에 삭제가 잘림 → 위로 열기(daniel 07-03). top 대신 bottom 앵커.
+  actMenuUp: { position: 'absolute', bottom: 26, right: 0, minWidth: 108, backgroundColor: colors.card, opacity: 1, borderRadius: radius.md, borderWidth: 1, borderColor: colors.juLine, paddingVertical: space(1), zIndex: 50, ...shadow.card, elevation: 12 },
   actItem: { paddingVertical: space(2.25), paddingHorizontal: space(3.5) },
   rowMenuOpen: { zIndex: 50 }, // 메뉴 열린 행을 다른 행 위로
   // 프리미엄 지정 명식 배지(골드) — 명식 옆에 프리미엄 여부(daniel 07-02)
