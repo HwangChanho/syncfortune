@@ -134,7 +134,7 @@ export default function LoveScreen() {
     logEvent('love_invoke_start', { chartId: id });
     try {
       const { data, error } = await supabase.functions.invoke('interpret', {
-        body: { chartId: id, category: 'love', kind: 'love', tier: 'paid', ziwei: zw, lang: appLang(), ...(savedChart?.context ? { context: savedChart.context } : {}) },
+        body: { chartId: id, category: 'love', kind: 'love', tier: 'paid', ziwei: zw, lang: appLang(), sex: savedChart?.input?.sex, ...(savedChart?.context ? { context: savedChart.context } : {}) }, // sex=배우자성(남재성/여관성, refined timing)
       });
       if (error || !data) {
         // ★클라 invoke가 끊겨도(무거운 풀이 타임아웃) Edge는 서버에서 완료·캐시 → 캐시 폴링으로 회수(로딩 유지).
