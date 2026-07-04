@@ -50,6 +50,8 @@ const ROUTE: Record<CreditKind, { pathname: string; kind?: string }> = {
   child: { pathname: '/child' },                       // 자식운(프리미엄 포함, 비프리미엄 개별)
   child_couple: { pathname: '/child' },                // 자식운 · 부부(반값 업그레이드) — /child 안에서만 구매(마켓 단독 판매 X, 아래 MARKET_HIDDEN)
   reunion: { pathname: '/reunion' },                   // 재회운(옛 인연·도화-충 timing)
+  crush: { pathname: '/crush' },                       // 짝사랑 인연운(인연星·도화 발동 timing)
+  job: { pathname: '/job' },                           // 취업·이직운(관성·인성 발동 timing)
 };
 
 // 마켓 목록에서 숨길 이용권(kind) — 컨텍스트 전용(단독 판매 안 함).
@@ -59,7 +61,7 @@ const MARKET_HIDDEN = new Set<CreditKind>(['child_couple']);
 
 // ★가장 많이 찾는 콘텐츠(daniel 07-05) — 수요 폭발 카테고리에 ★★★ 배지로 구미를 당긴다(전환 유도).
 //   재회·애정·궁합·신년 = 사람들이 가장 많이 검색·구매하는 연애/시즌 콘텐츠(시장 조사 기반).
-const HOT_KINDS = new Set<CreditKind>(['reunion', 'love', 'compat', 'newyear']);
+const HOT_KINDS = new Set<CreditKind>(['reunion', 'crush', 'love', 'compat', 'newyear']); // crush(짝사랑)=최다 수요(daniel 07-05)
 
 // 이용권 kind → 카드 이미지 + 설명키(홈 카드와 동일 재사용, daniel: 마켓 리스트에도 작게+설명).
 //   followup(추가질문)은 standalone 카드가 아니라(풀이 내부) 생략 — 없으면 이미지·설명 미표시(graceful).
@@ -85,6 +87,8 @@ const CARD: Partial<Record<CreditKind, { img: any; desc: string }>> = {
   future10: { img: require('../../../assets/icons/future10.jpg'), desc: 'menu.future10Desc' }, // 10년 뒤 나의 모습(전용 아이콘)
   child: { img: require('../../../assets/icons/child.jpg'), desc: 'menu.childDesc' }, // 자식운(전용 아이콘)
   reunion: { img: require('../../../assets/icons/reunion.jpg'), desc: 'menu.reunionDesc' }, // 재회운(전용 아이콘 — 부모가 reunion.jpg 추가)
+  crush: { img: require('../../../assets/icons/crush.jpg'), desc: 'menu.crushDesc' }, // 짝사랑 인연운(전용 히어로)
+  job: { img: require('../../../assets/icons/job.jpg'), desc: 'menu.jobDesc' }, // 취업·이직운(전용 히어로)
 };
 
 export default function MarketRoute() {

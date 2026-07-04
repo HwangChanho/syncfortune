@@ -50,6 +50,8 @@ export const CREDIT_PRODUCT: Record<CreditKind, string> = {
   child: 'credit_child',         // 자식운(프리미엄 포함, 비프리미엄 개별) — ⚠️ASC/RC 상품 등록 필요(daniel)
   child_couple: 'credit_child_couple', // 자식운 · 부부(솔로 소유자 반값 업그레이드 ₩4,950) — ⚠️ASC/RC 상품 등록 필요(daniel)
   reunion: 'credit_reunion',     // 재회운(옛 인연·도화-충 timing) ₩4,900 — ⚠️ASC/RC 상품 등록 필요(daniel)
+  crush: 'credit_crush',         // 짝사랑 인연운(인연星·도화 발동 timing) ₩4,900 — ⚠️ASC/RC 상품 등록 필요(daniel)
+  job: 'credit_job',             // 취업·이직운(관성·인성 발동 timing) ₩4,900 — ⚠️ASC/RC 상품 등록 필요(daniel)
 };
 
 // AI 꿈해몽: 단건 ₩500이 Apple IAP 최저가(~₩1,200) 미만이라 **5회 번들**(₩2,500, ≈₩500/회)로 판매(daniel 06-28).

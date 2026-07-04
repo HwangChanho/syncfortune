@@ -14,7 +14,7 @@ async function hasSession(): Promise<boolean> {
   return !!data.session;
 }
 
-export type CreditKind = 'reading' | 'ziwei' | 'compat' | 'timeline' | 'followup' | 'love' | 'newyear' | 'lifegraph' | 'roots' | 'image' | 'mission' | 'career' | 'talent' | 'astrology' | 'dream' | 'gaeun' | 'celeb' | 'timeresolve' | 'future10' | 'child' | 'child_couple' | 'reunion';
+export type CreditKind = 'reading' | 'ziwei' | 'compat' | 'timeline' | 'followup' | 'love' | 'newyear' | 'lifegraph' | 'roots' | 'image' | 'mission' | 'career' | 'talent' | 'astrology' | 'dream' | 'gaeun' | 'celeb' | 'timeresolve' | 'future10' | 'child' | 'child_couple' | 'reunion' | 'crush' | 'job';
 // price = 건당 가격(원). daniel 확정(2026-06): 원가(opus, 영구캐시 1회)×~3, 소액(타임라인·질문)=₩990, 애정 ₩4,900.
 export const CREDIT_KINDS: { key: CreditKind; ko: string; price: number }[] = [
   { key: 'reading', ko: '사주 풀이', price: 19900 }, { key: 'ziwei', ko: '자미두수', price: 14900 }, { key: 'compat', ko: '궁합', price: 4900 }, // 궁합 3900→6900: 사주+자미 2탭 묶음(daniel 06-29, 쌍당 1회로 두 탭·년도 온디맨드). ASC 실가는 fastlane(daniel)
@@ -44,6 +44,10 @@ export const CREDIT_KINDS: { key: CreditKind; ko: string; price: number }[] = [
   // ※ child_couple(자식운·부부)은 daniel 07-04 제거 — CreditKind 타입엔 남기되(Edge 호환) 상품/UI에서 노출 안 함.
   // 신규(daniel 2026-07-05): 재회운(옛 인연과 다시 이어질 시기·가능성 — 도화-충 timing). 개별 유료(프리미엄 미포함).
   { key: 'reunion', ko: '재회운', price: 4900 }, // 가격 daniel 확정(API 비용 측정 후). ASC=credit_reunion
+  // 신규(daniel 2026-07-05): 짝사랑 인연운(내 crush가 이뤄질지·나에게 마음이 있을 사람의 결·시기·다가가는 법 — 인연星·도화 발동). 개별 유료.
+  { key: 'crush', ko: '짝사랑 인연운', price: 4900 }, // 가격 daniel 확정(API 비용 측정 후). ASC=credit_crush
+  // 신규(daniel 2026-07-05): 취업·이직운(취업·이직·합격·시험 timing — 관성·인성 발동. career 사업가vs직장인과 별개). 개별 유료.
+  { key: 'job', ko: '취업·이직운', price: 4900 }, // 가격 daniel 확정(API 비용 측정 후). ASC=credit_job
 ];
 export const PREMIUM_PRICE = 49900; // 평생 프리미엄(대표명식 전부 무제한). daniel: 사업가 등 헤비유저(궁합 반복) 타겟 — 일반은 건당/쿠폰. 프리미엄은 소수 기대.
 
