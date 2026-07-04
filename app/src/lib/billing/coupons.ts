@@ -40,9 +40,8 @@ export const CREDIT_KINDS: { key: CreditKind; ko: string; price: number }[] = [
   // 신규(daniel 2026-07-02): 10년 뒤 나의 모습(대운·세운으로 보는 10년 뒤 — 스페셜, 개별 유료).
   { key: 'future10', ko: '10년 뒤 나의 모습', price: 4900 }, // 가격 daniel 확정(API 비용 측정 후)
   // 신규(daniel 2026-07-02): 자식운(원국으로 보는 자녀 인연·기질 — 프리미엄 포함, 비프리미엄은 개별 유료).
-  { key: 'child', ko: '자식운', price: 9900 }, // 가격 daniel 확정(07-03: 12900→9900). 부부모드=단일 구매자 반값 업그레이드
-  // 신규(daniel 2026-07-03): 자식운 · 부부 = 솔로(child) 소유자 전용 반값 업그레이드(9900의 절반 4950). 별도 kind → 솔로 소유가 부부를 자동 해제하지 않음.
-  { key: 'child_couple', ko: '자식운 · 부부', price: 4900 }, // ASC 실가 ₩4,900(Apple KOR에 4950 없어 최근접). RC가 실가 fetch·이건 폴백
+  { key: 'child', ko: '자식운', price: 4900 }, // 가격 daniel 확정(07-04: 9900→4900). 부부모드 제거(단일만).
+  // ※ child_couple(자식운·부부)은 daniel 07-04 제거 — CreditKind 타입엔 남기되(Edge 호환) 상품/UI에서 노출 안 함.
 ];
 export const PREMIUM_PRICE = 49900; // 평생 프리미엄(대표명식 전부 무제한). daniel: 사업가 등 헤비유저(궁합 반복) 타겟 — 일반은 건당/쿠폰. 프리미엄은 소수 기대.
 
