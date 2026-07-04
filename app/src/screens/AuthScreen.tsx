@@ -11,12 +11,16 @@ import { View, Text, TextInput, Pressable, StyleSheet, ActivityIndicator } from 
 import { PressableScale } from '../components/PressableScale';
 import { Alert } from '../lib/ui/alert'; // 커스텀 알림(앱 디자인)
 import * as Linking from 'expo-linking';
-import * as WebBrowser from 'expo-web-browser'; // 인앱 인증 세션(로그인 후 브라우저 자동 닫힘, daniel 07-03)
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../lib/supabase';
 import { colors, radius, space, shadow, font } from '../lib/theme';
 
-WebBrowser.maybeCompleteAuthSession(); // 남은 인증 세션 정리(권장 — 웹/재진입 시 브라우저 잔류 방지)
+// ★크래시 근본수정(daniel 07-04): expo-web-browser 네이티브 모듈이 빌드에 링크 안 되면(Podfile.lock 누락) 정적 import·
+//   모듈로드 호출이 화면 진입(로그아웃→AuthScreen)·로그인 탭에서 즉시 크래시("Cannot find native module 'ExpoWebBrowser'").
+//   → lazy require + guard(런치크래시 교훈: 전역 네이티브 정적 import 금지). 모듈 없으면 null → Linking 폴백(브라우저
+//   자동닫힘만 없고, 로그인 콜백은 useAuth 의 url 리스너가 exchangeCodeForSession/verifyOtp 로 처리 = 기존 방식).
+function webBrowser(): any | null { try { return require('expo-web-browser'); } catch { return null; } }
+try { webBrowser()?.maybeCompleteAuthSession(); } catch { /* 네이티브 모듈 없으면 무시 */ }
 
 // 인증 세션 복귀 URL(syncfortune://auth-callback?code=… / ?token_hash=&type=) → 세션 확립.
 //   openAuthSessionAsync 가 리다이렉트를 가로채 브라우저를 닫으므로, 콜백 라우트 대신 여기서 직접 처리한다.
@@ -57,10 +61,15 @@ export function AuthScreen() {
     if (error) { setLoading(false); Alert.alert('!', error.message); return; }
     // 인앱 인증 세션(ASWebAuthenticationSession) — 로그인 후 리다이렉트 시 브라우저가 자동으로 닫힌다(외부 탭 잔류 X).
     if (data?.url) {
-      try {
-        const res = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
-        if (res.type === 'success' && res.url) await completeAuthFromUrl(res.url); // 세션 확립(성공 시 useAuth 가 자동 분기)
-      } catch (e) { Alert.alert('!', (e as Error).message); }
+      const WB = webBrowser();
+      if (WB) {
+        try {
+          const res = await WB.openAuthSessionAsync(data.url, redirectTo);
+          if (res.type === 'success' && res.url) await completeAuthFromUrl(res.url); // 세션 확립(성공 시 useAuth 가 자동 분기)
+        } catch (e) { Alert.alert('!', (e as Error).message); }
+      } else {
+        await Linking.openURL(data.url); // 폴백: 네이티브 모듈 없으면 외부 브라우저(자동닫힘 X)·콜백은 useAuth url 리스너가 처리
+      }
     }
     setLoading(false);
   }
@@ -75,8 +84,14 @@ export function AuthScreen() {
       const fnBase = (process.env.EXPO_PUBLIC_SUPABASE_URL ?? '').replace(/\/+$/, '');
       if (!fnBase) { Alert.alert('!', t('common.error')); return; }
       // 인앱 인증 세션 — 네이버 로그인·매직링크 복귀 시 브라우저 자동 닫힘(외부 탭 잔류 X).
-      const res = await WebBrowser.openAuthSessionAsync(`${fnBase}/functions/v1/naver-auth?app_redirect=${encodeURIComponent(appRedirect)}`, appRedirect);
-      if (res.type === 'success' && res.url) await completeAuthFromUrl(res.url);
+      const naverUrl = `${fnBase}/functions/v1/naver-auth?app_redirect=${encodeURIComponent(appRedirect)}`;
+      const WB = webBrowser();
+      if (WB) {
+        const res = await WB.openAuthSessionAsync(naverUrl, appRedirect);
+        if (res.type === 'success' && res.url) await completeAuthFromUrl(res.url);
+      } else {
+        await Linking.openURL(naverUrl); // 폴백: 네이티브 모듈 없으면 외부 브라우저·콜백은 useAuth url 리스너가 처리
+      }
     } catch (e) { Alert.alert('!', (e as Error).message); }
     finally { setLoading(false); }
   }
