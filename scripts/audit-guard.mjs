@@ -122,6 +122,19 @@ if (plist) {
     warn('aps-env', '엔타이틀먼트에 aps-environment 없음 — 원격 푸시(gen_jobs 완료 알림) 미작동 가능. 서버측 푸시를 쓰면 TestFlight 실기기에서 수신 확인 필요.');
 }
 
+// ── [G] 리스트 안 absolute 드롭다운/토글 메뉴 (경고 — daniel 07-05 ChartPicker 교훈) ────────────
+//   in-row 로 리스트(FlatList) 안에 position:'absolute' 드롭다운을 띄우면 ①리스트가 하단을 잘라내고(clipping)
+//   ②뷰 전환·시트 닫힘 시 열림 상태가 남아 "계속 열려있는" 버그가 난다(daniel 지적). → 모달/바텀시트로 띄우고,
+//   시트 닫힘(useEffect)·화면 blur(useFocusEffect) 시 열림 상태를 반드시 리셋(auto-dismiss)할 것.
+for (const f of walkFind('app/src', /:\s*\{[^}]*position:\s*['"]absolute['"][^}]*\b(?:top|bottom)\s*:/)) {
+  const src = read(f);
+  if (!src) continue;
+  const inList = /(FlatList|DraggableFlatList|SectionList)/.test(src);         // 리스트를 렌더하는 화면/컴포넌트
+  const looksDropdown = /(actMenu|dropMenu|dropdown|popover|toggleMenu)\b/i.test(src); // 드롭다운/토글 메뉴 네이밍
+  if (inList && looksDropdown)
+    warn('inlist-dropdown', `${f}: 리스트 안 absolute 드롭다운/토글 메뉴 의심 — 하단 잘림·auto-dismiss 부재 위험. 모달/바텀시트로 전환하고 시트닫힘(useEffect)·화면 blur(useFocusEffect) 시 열림상태 리셋할 것(daniel 07-05 ChartPicker 교훈).`);
+}
+
 // ── 리포트 ──────────────────────────────────────────────────────────────────────
 const mode = RELEASE ? '출시(release)' : '개발(dev)';
 console.log(`\n🔎 감사 가드(audit-guard) — ${mode} 모드`);

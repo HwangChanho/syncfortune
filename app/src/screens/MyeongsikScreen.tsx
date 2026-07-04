@@ -97,7 +97,7 @@ function GzCell({ char, kind, size, scale = 1, onPress }: { char: string; kind: 
   return onPress ? <PressableScale onPress={onPress}>{inner}</PressableScale> : inner;
 }
 
-export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input: ChartInput | null; onReading?: () => void; onSinsal?: () => void; header?: ReactNode }) {
+export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }: { input: ChartInput | null; onReading?: () => void; onSinsal?: () => void; header?: ReactNode; whoName?: string | null }) {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<MyeongTab>(lastMyeongTab);
   const [relSub, setRelSub] = useState<RelSub>(lastRelSub);
@@ -434,7 +434,8 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header }: { input:
         {activeTab === 'wonguk' && (
         <>
           <View style={styles.headerArea}>
-            <Text style={styles.h}>{t('myeongsik.palja')}</Text>
+            {/* 누구 명식인지 제목에 표기(daniel 07-05) — 헤더 ChartPicker(변경 가능)와 함께 '누구의 사주 원국'인지 명확히. */}
+            <Text style={styles.h}>{whoName ? `${whoName} · ${t('myeongsik.palja')}` : t('myeongsik.palja')}</Text>
             <PressableScale style={styles.advancedBtn} onPress={toggleAdvanced}>
               <Text style={styles.advancedBtnTx}>{showAdvanced ? '간략히' : '상세 분석'}</Text>
             </PressableScale>

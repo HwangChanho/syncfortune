@@ -5,7 +5,7 @@
 // 명식이 없으면 등록 유도. 화면 복귀 시 useFocusEffect 로 목록 갱신.
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { View, Text, Pressable, Modal, StyleSheet, Dimensions, ActivityIndicator, InteractionManager, Animated, LayoutAnimation } from 'react-native';
+import { View, Text, Pressable, Modal, StyleSheet, Dimensions, ActivityIndicator, InteractionManager, Animated } from 'react-native';
 import { PressableScale } from './PressableScale';
 import { Image as ExpoImage } from 'expo-image'; // 자동 다운샘플(메모리) + 엠블럼 탭 풀스크린 뷰어
 import DraggableFlatList, { ScaleDecorator } from 'react-native-draggable-flatlist'; // 이슈20 롱프레스 드래그 reorder
@@ -52,8 +52,10 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
     setCharts(await listCharts());
     setRepId(await getRepresentativeId());
   }, []);
-  // 화면 복귀(등록 후 등) 때마다 갱신
-  useFocusEffect(useCallback(() => { reload(); }, [reload]));
+  // 화면 복귀(등록 후 등) 때마다 갱신 + 화면 이탈 시 열린 시트·액션시트 강제 닫힘(daniel 07-05: 뷰 바뀌면 자동으로 사라져야).
+  useFocusEffect(useCallback(() => { reload(); return () => { setOpen(false); setActionsFor(null); }; }, [reload]));
+  // ★토글형 뷰 auto-dismiss(daniel 07-05): 시트가 닫히면 열려있던 ⋯ 액션시트도 반드시 함께 닫는다(stale 열림 방지).
+  useEffect(() => { if (!open) setActionsFor(null); }, [open]);
   // 전역 명식 변경 구독(daniel: 어디서 바꿔도 자동 동기화) — 다른 화면에서 대표가 바뀌면 이 픽커·호스트도 즉시 갱신.
   const onChangeRef = useRef(onChange); onChangeRef.current = onChange;
   useEffect(() => subscribeRepChange(() => { reload(); onChangeRef.current?.(); }), [reload]);
@@ -163,9 +165,6 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
               onDragEnd={({ data }) => onDragEnd(data)}
               renderItem={({ item: c, drag, isActive }) => {
                 const on = c.id === repId;
-                // 3개 이상 리스트의 마지막 2개 행은 ⋯ 메뉴를 위로 열어 하단(‘+명식등록’) 잘림 방지(daniel 07-03).
-                //   ≤2개는 상단이라 아래로 여는 게 안전(위로 열면 오히려 위가 잘림).
-                const dropUp = charts.length > 2 && charts.findIndex((x) => x.id === c.id) >= charts.length - 2;
                 const em = emblems[c.id];
                 const iljuImg = em ? iljuImage(em.stem, em.branch) : null; // 60갑자 AI 일러스트(없으면 색+동물 폴백)
                 return (
@@ -202,18 +201,11 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
                       <Text style={[styles.rowCategory, { fontSize: fs(11) }]} numberOfLines={1}>{c.relation === 'self' ? t('register.selfLabel') : c.relation}</Text>
                       {on && <Text style={styles.check}>✓</Text>}
                       {/* ⋯ 토글 → 작은 세로 메뉴(수정·만세력보기·삭제). 삭제는 항상 재확인 alert(daniel 07-01) */}
-                      <View style={styles.actWrap}>
-                        <PressableScale hitSlop={10} onPress={() => { LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut); setActionsFor(actionsFor === c.id ? null : c.id); }}>
-                          <Text style={[styles.rowAct, { fontSize: 18 }]}>⋯</Text>
-                        </PressableScale>
-                        {actionsFor === c.id && (
-                          <View style={dropUp ? styles.actMenuUp : styles.actMenu}>
-                            <PressableScale style={styles.actItem} hitSlop={6} onPress={() => { setActionsFor(null); edit(c.id); }}><Text style={styles.rowAct}>{t('common.edit', '수정')}</Text></PressableScale>
-                            <PressableScale style={styles.actItem} hitSlop={6} onPress={() => { setActionsFor(null); viewManse(c.id); }}><Text style={styles.rowAct}>{t('manse.viewManse', '만세력보기')}</Text></PressableScale>
-                            <PressableScale style={styles.actItem} hitSlop={6} onPress={() => { setActionsFor(null); remove(c.id, c.label); }}><Text style={[styles.rowAct, styles.rowActDel]}>{t('common.delete', '삭제')}</Text></PressableScale>
-                          </View>
-                        )}
-                      </View>
+                      {/* ⋯ → 하단 액션시트 모달(수정·만세력보기·삭제). in-row 드롭다운은 리스트가 잘라내고 반투명·auto-dismiss가
+                          안 돼서 모달로 전환(daniel 07-05). 모달=클리핑 없음·불투명·뷰 바뀌면 자동 닫힘. */}
+                      <PressableScale style={styles.actWrap} hitSlop={12} onPress={() => setActionsFor(c.id)}>
+                        <Text style={[styles.rowAct, { fontSize: 20 }]}>⋯</Text>
+                      </PressableScale>
                     </View>
                   </ScaleDecorator>
                 );
@@ -225,6 +217,31 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
             </PressableScale>
           </Pressable>
         </Pressable>
+        {/* ⋯ 액션시트 — 메인 모달 안·리스트 밖(absoluteFill)이라 하단이 잘리지 않고, bg 불투명이라 뒤가 안 비침.
+            backdrop 탭·액션 선택·시트 닫힘(useEffect)·화면 이탈(useFocusEffect) 어디서든 자동으로 닫힌다(daniel 07-05). */}
+        {!!actionsFor && (() => {
+          const c = charts.find((x) => x.id === actionsFor);
+          if (!c) return null;
+          return (
+            <Pressable style={styles.actSheetBackdrop} onPress={() => setActionsFor(null)}>
+              <Pressable style={styles.actSheet} onPress={() => {}}>
+                <Text style={styles.actSheetTitle} numberOfLines={1}>{c.label}</Text>
+                <PressableScale style={styles.actSheetItem} onPress={() => { setActionsFor(null); edit(c.id); }}>
+                  <Text style={styles.actSheetTx}>{t('common.edit', '수정')}</Text>
+                </PressableScale>
+                <PressableScale style={styles.actSheetItem} onPress={() => { setActionsFor(null); viewManse(c.id); }}>
+                  <Text style={styles.actSheetTx}>{t('manse.viewManse', '만세력 보기')}</Text>
+                </PressableScale>
+                <PressableScale style={styles.actSheetItem} onPress={() => { const id = c.id, lbl = c.label; setActionsFor(null); remove(id, lbl); }}>
+                  <Text style={[styles.actSheetTx, styles.actSheetDel]}>{t('common.delete', '삭제')}</Text>
+                </PressableScale>
+                <PressableScale style={[styles.actSheetItem, styles.actSheetCancel]} onPress={() => setActionsFor(null)}>
+                  <Text style={styles.actSheetCancelTx}>{t('common.cancel', '취소')}</Text>
+                </PressableScale>
+              </Pressable>
+            </Pressable>
+          );
+        })()}
       </Modal>
 
       {/* 엠블럼 풀스크린 뷰어(daniel) — 일주 일러스트 탭 → 큰 화면, 다시 탭하면 닫힘 */}
@@ -274,14 +291,19 @@ const styles = StyleSheet.create({
   iljuName: { color: colors.ju, fontWeight: '700', marginTop: 1 }, // 일주 이름 "은빛 소"
   rowAct: { fontSize: 13, fontWeight: '700', color: colors.ju, paddingHorizontal: space(1.5) }, // 수정·삭제 글자
   rowActDel: { color: '#E5484D' }, // 삭제 = 적색 강조
-  // ⋯ 토글 드롭다운(수정·만세력보기·삭제) — 작은 세로 리스트(daniel 07-01)
-  actWrap: { position: 'relative', alignItems: 'flex-end', justifyContent: 'center' },
-  // ⋯ 드롭다운 — 완전 불투명(alpha 1)·그림자로 또렷하게 떠보이게(daniel 07-02: 알파값 1). bg=불투명 미드나잇 카드.
-  actMenu: { position: 'absolute', top: 26, right: 0, minWidth: 108, backgroundColor: colors.card, opacity: 1, borderRadius: radius.md, borderWidth: 1, borderColor: colors.juLine, paddingVertical: space(1), zIndex: 50, ...shadow.card, elevation: 12 },
-  // ★마지막 행들은 아래로 열면 리스트 하단/‘+명식등록’ 버튼에 삭제가 잘림 → 위로 열기(daniel 07-03). top 대신 bottom 앵커.
-  actMenuUp: { position: 'absolute', bottom: 26, right: 0, minWidth: 108, backgroundColor: colors.card, opacity: 1, borderRadius: radius.md, borderWidth: 1, borderColor: colors.juLine, paddingVertical: space(1), zIndex: 50, ...shadow.card, elevation: 12 },
-  actItem: { paddingVertical: space(2.25), paddingHorizontal: space(3.5) },
-  rowMenuOpen: { zIndex: 50 }, // 메뉴 열린 행을 다른 행 위로
+  // ⋯ 버튼 래퍼(행 우측) — 탭 → 하단 액션시트(아래) 오픈
+  actWrap: { paddingHorizontal: space(1.5), alignItems: 'center', justifyContent: 'center' },
+  rowMenuOpen: { zIndex: 1 }, // (액션시트가 모달 오버레이라 행 z-index 불필요 — 참조 유지)
+  // ⋯ 액션시트(수정·만세력보기·삭제) — 하단 모달형. in-row 드롭다운의 클리핑·반투명·auto-dismiss 문제 근본해결(daniel 07-05).
+  //   불투명 카드 + backdrop dim = 뒤 안 비침 / absoluteFill = 하단 안 잘림 / setActionsFor(null) 다경로 = 뷰 바뀌면 닫힘.
+  actSheetBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  actSheet: { backgroundColor: colors.card, borderTopLeftRadius: radius.lg, borderTopRightRadius: radius.lg, paddingTop: space(3), paddingBottom: space(8), paddingHorizontal: space(4), borderTopWidth: 1, borderColor: colors.juLine, ...shadow.card, elevation: 16 },
+  actSheetTitle: { ...font.caption, color: colors.inkFaint, fontWeight: '700', textAlign: 'center', marginBottom: space(1), paddingBottom: space(2.5), borderBottomWidth: 1, borderBottomColor: colors.line },
+  actSheetItem: { paddingVertical: space(3.5), alignItems: 'center' },
+  actSheetTx: { fontSize: 16, fontWeight: '700', color: colors.ink },
+  actSheetDel: { color: '#E5484D' },
+  actSheetCancel: { marginTop: space(2), backgroundColor: colors.sunk, borderRadius: radius.md },
+  actSheetCancelTx: { fontSize: 16, fontWeight: '700', color: colors.inkSoft },
   // 프리미엄 지정 명식 배지(골드) — 명식 옆에 프리미엄 여부(daniel 07-02)
   premBadge: { backgroundColor: colors.ju, borderRadius: radius.pill, paddingHorizontal: space(2), paddingVertical: 1, overflow: 'hidden' },
   premBadgeTx: { color: colors.bg, fontSize: 10, fontWeight: '900' },

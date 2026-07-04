@@ -9,7 +9,7 @@ import { useFontScale } from '../../lib/ui/fontScale';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { MyeongsikScreen } from '../../screens/MyeongsikScreen';
-import { loadMyChart } from '../../lib/engine/myChart';
+import { loadMyChart, listCharts, getRepresentativeId } from '../../lib/engine/myChart';
 import { ChartPicker } from '../../components/ChartPicker';
 import { ChartSkeleton } from '../../components/Skeleton'; // 로딩 중 명식 형태 스켈레톤(daniel 2026-06-28)
 import { useDeferredReady } from '../../lib/ui/useDeferredReady'; // 전환 끝난 뒤 MyeongsikScreen 마운트(멈칫 제거)
@@ -20,10 +20,14 @@ export default function ChartsScreen() {
   const router = useRouter();
   const { t } = useTranslation();
   const [me, setMe] = useState<ChartInput | null>(null);
+  const [repName, setRepName] = useState<string | null>(null); // 대표 명식 이름(만세력 사주 원국 제목 '누구 명식인지', daniel 07-05)
   const [loading, setLoading] = useState(true);
   const ready = useDeferredReady(); // 전환 애니가 끝난 뒤 MyeongsikScreen(무거운 computeChart) 마운트 → 멈칫 제거
+  // 대표 명식 이름 로드 — 명식 변경(ChartPicker) 시에도 갱신해 제목이 항상 현재 명식을 가리키게.
+  const refreshRepName = () => Promise.all([listCharts(), getRepresentativeId()]).then(([cs, id]) => setRepName(cs.find((c) => c.id === id)?.label ?? cs[0]?.label ?? null));
   useEffect(() => {
     loadMyChart().then((c) => { setMe(c); setLoading(false); });
+    refreshRepName();
   }, []);
   const { fs } = useFontScale();
   const styles = useMemo(() => makeStyles(fs), [fs]);
@@ -46,7 +50,8 @@ export default function ChartsScreen() {
   return (
     <MyeongsikScreen
       input={me}
-      header={<ChartPicker onChange={() => loadMyChart().then(setMe)} />}
+      header={<ChartPicker onChange={() => { loadMyChart().then(setMe); refreshRepName(); }} />}
+      whoName={repName}
       onReading={() => router.navigate({ pathname: '/reading', params: { input: JSON.stringify(me) } })}
     />
   );

@@ -118,3 +118,23 @@ export async function refreshPremium(userId: string | null | undefined): Promise
     _isPremium = next; _owns = owns; _isAdmin = isAdmin; _adminMode = adminMode; _premiumChartId = pcid; _loading = false; emit();
   }
 }
+
+/**
+ * 프리미엄 결제(RC) 후 rc-webhook 이 *서버* profiles.is_premium 를 세팅할 때까지 폴링 대기(daniel 2026-07-05).
+ * ─────────────────────────────────────────────────────────────────────────
+ * 배경: 기존 markPremiumOwnedNow(낙관적 즉시표시)는 서버 확인 전에 프리미엄을 켜서, 결제가 실제로 반영되지 않았거나
+ *   웹훅이 지연될 때 "결제 안 됐는데 적용된 것처럼" 보였다(daniel 지적). 크레딧의 waitForCreditGrant 와 동일 철학
+ *   = *서버가 진실*. 여기서는 **profiles.is_premium 을 직접 조회**한다 — RC 캐시(isPremiumActiveRC)는 샌드박스에서
+ *   이미 소유한 비소모성 상품을 true 로 오탐할 수 있어, 영수증 검증을 거친 웹훅 결과(is_premium)만 신뢰한다.
+ * @returns confirmed — 서버 is_premium 확인 여부(타임아웃이면 false → 호출처가 '반영까지 잠시' 안내). 확인 시 store 도 갱신.
+ */
+export async function waitForPremium(userId: string, opts: { tries?: number; intervalMs?: number } = {}): Promise<boolean> {
+  const tries = opts.tries ?? 12;
+  const intervalMs = opts.intervalMs ?? 1000; // 기본 최대 ~12s 대기(웹훅 도달 여유)
+  for (let i = 0; i < tries; i++) {
+    const { data } = await supabase.from('profiles').select('is_premium').eq('id', userId).maybeSingle();
+    if (data?.is_premium) { await refreshPremium(userId); return true; } // 서버 확인 → store 갱신(전 화면 동시 반영)
+    await new Promise((r) => setTimeout(r, intervalMs));
+  }
+  return false; // 웹훅 미도달(타임아웃) — 낙관적 표시 안 함(서버 미확인)
+}
