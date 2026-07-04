@@ -197,7 +197,7 @@ export function dailyPreview(saju: SajuChart, todayStem: Stem, todayBranch: Bran
 }
 
 export type DailyAreaKey = 'general' | 'work' | 'money' | 'invest' | 'love' | 'health';
-export const DAILY_AREA_KEYS: DailyAreaKey[] = ['general', 'work', 'money', 'invest', 'love', 'health']; // daniel #17: 투자 추가(재물 옆)
+export const DAILY_AREA_KEYS: DailyAreaKey[] = ['general', 'work', 'money', 'love', 'health']; // 오늘/이달 노출 5분야(투자 제외 — daniel 07-04. getDailyReading은 invest 계산하나 화면 미노출)
 
 // ── 언어별 템플릿 묶음 (ko/en/ja) — 본문은 앱 언어로. group/stage/type/pos 키는 내부(엔진 산출) 고정. ──
 type Lang = 'ko' | 'en' | 'ja';
