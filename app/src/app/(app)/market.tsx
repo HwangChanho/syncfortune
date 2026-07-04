@@ -49,12 +49,17 @@ const ROUTE: Record<CreditKind, { pathname: string; kind?: string }> = {
   future10: { pathname: '/future10' },                 // 10년 뒤 나의 모습(대운·세운 스페셜)
   child: { pathname: '/child' },                       // 자식운(프리미엄 포함, 비프리미엄 개별)
   child_couple: { pathname: '/child' },                // 자식운 · 부부(반값 업그레이드) — /child 안에서만 구매(마켓 단독 판매 X, 아래 MARKET_HIDDEN)
+  reunion: { pathname: '/reunion' },                   // 재회운(옛 인연·도화-충 timing)
 };
 
 // 마켓 목록에서 숨길 이용권(kind) — 컨텍스트 전용(단독 판매 안 함).
 //   child_couple(자식운·부부) = 솔로(child) 소유자만 /child 안에서 반값 업그레이드로 구매한다. 마켓에 단독 타일로 노출하면
 //   솔로 미소유자가 부부(상위 콘텐츠)를 반값에 우회 구매해 솔로 상품을 잠식하므로 목록에서 제외(daniel 07-03).
 const MARKET_HIDDEN = new Set<CreditKind>(['child_couple']);
+
+// ★가장 많이 찾는 콘텐츠(daniel 07-05) — 수요 폭발 카테고리에 ★★★ 배지로 구미를 당긴다(전환 유도).
+//   재회·애정·궁합·신년 = 사람들이 가장 많이 검색·구매하는 연애/시즌 콘텐츠(시장 조사 기반).
+const HOT_KINDS = new Set<CreditKind>(['reunion', 'love', 'compat', 'newyear']);
 
 // 이용권 kind → 카드 이미지 + 설명키(홈 카드와 동일 재사용, daniel: 마켓 리스트에도 작게+설명).
 //   followup(추가질문)은 standalone 카드가 아니라(풀이 내부) 생략 — 없으면 이미지·설명 미표시(graceful).
@@ -79,6 +84,7 @@ const CARD: Partial<Record<CreditKind, { img: any; desc: string }>> = {
   followup: { img: require('../../../assets/icons/followup.jpg'), desc: 'menu.followupDesc' }, // 추가 질문(daniel: 마켓에도 이미지)
   future10: { img: require('../../../assets/icons/future10.jpg'), desc: 'menu.future10Desc' }, // 10년 뒤 나의 모습(전용 아이콘)
   child: { img: require('../../../assets/icons/child.jpg'), desc: 'menu.childDesc' }, // 자식운(전용 아이콘)
+  reunion: { img: require('../../../assets/icons/reunion.jpg'), desc: 'menu.reunionDesc' }, // 재회운(전용 아이콘 — 부모가 reunion.jpg 추가)
 };
 
 export default function MarketRoute() {
@@ -215,6 +221,7 @@ export default function MarketRoute() {
   function renderCard(c: (typeof CREDIT_KINDS)[number], premInc: boolean) {
     const owned = (credits[c.key] ?? 0) > 0; // 1회성 소모 — 보유/미보유로만
     const card = CARD[c.key];                // 카드 이미지+설명(홈과 동일·daniel: 마켓 리스트에도)
+    const isHot = HOT_KINDS.has(c.key);      // ★★★ 가장 많이 찾는 배지(daniel 07-05)
 
     // 프리미엄 포함 섹션 + 프리미엄 가입 = 무제한(가격/구매 숨김, 카드 전체가 열기 버튼)
     if (premInc && isPremium) {
@@ -222,6 +229,7 @@ export default function MarketRoute() {
         <PressableScale key={c.key} style={styles.card} onPress={() => apply(c.key)} disabled={!sel}>
           {card && <Image source={card.img} style={styles.thumb} />}
           <View style={{ flex: 1 }}>
+            {isHot && <View style={styles.hotBadge}><Text style={styles.hotBadgeTx}>★★★ 가장 많이 찾는</Text></View>}
             <Text style={styles.name}>{c.ko}</Text>
             {card && <Text style={styles.desc} numberOfLines={2}>{t(card.desc)}</Text>}
             {/* 개별 구매가 노출(daniel 07-03: 프리미엄 상품도 개별구매 가능하니 금액 표시) — 프리미엄 유저는 무제한이라 참조용 */}
@@ -239,6 +247,7 @@ export default function MarketRoute() {
       <View key={c.key} style={styles.card}>
         {card && <Image source={card.img} style={styles.thumb} />}
         <View style={{ flex: 1 }}>
+          {isHot && <View style={styles.hotBadge}><Text style={styles.hotBadgeTx}>★★★ 가장 많이 찾는</Text></View>}
           <Text style={styles.name}>{c.ko}</Text>
           {card && <Text style={styles.desc} numberOfLines={2}>{t(card.desc)}</Text>}
           <Text style={styles.price}>{prices[c.key] ?? `₩${c.price.toLocaleString()}`}</Text>
@@ -375,6 +384,9 @@ const styles = StyleSheet.create({
   chartSelChevron: { fontSize: 16, color: colors.ju, marginLeft: space(2) },
   card: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.line, padding: space(4), marginBottom: space(3), ...shadow.card },
   name: { fontSize: 16, fontWeight: '800', color: colors.ink },
+  // ★★★ 가장 많이 찾는 배지(daniel 07-05) — 골드 필, 이름 위 작게
+  hotBadge: { alignSelf: 'flex-start', backgroundColor: colors.ju, borderRadius: radius.pill, paddingHorizontal: space(2), paddingVertical: 1, marginBottom: 3, overflow: 'hidden' },
+  hotBadgeTx: { color: colors.bg, fontSize: 10, fontWeight: '900', letterSpacing: 0.2 },
   thumb: { width: 46, height: 64, borderRadius: radius.md, marginRight: space(3), backgroundColor: colors.sunk }, // 마켓 리스트 카드 썸네일(작게·daniel)
   desc: { ...font.caption, color: colors.inkSoft, marginTop: 2, marginBottom: 1, lineHeight: 16 }, // 설명 아랫줄(홈과 동일)
   price: { ...font.caption, color: colors.ju, fontWeight: '800', marginTop: 2 },

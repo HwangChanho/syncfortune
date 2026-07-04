@@ -54,7 +54,7 @@ const HERO_BY_KIND: Record<string, any> = {
   child: require('../../assets/icons/child.jpg'), future10: require('../../assets/icons/future10.jpg'),
 };
 
-export function SpecialContentScreen({ kind, category = kind, title, sub, sections, needsZiwei = false, genMsg, heroMotif, themeColor = colors.ju, heroImage, buildBody, freePreview, showExpiry = false, premiumCovered = false, headerExtra, autoGen = true }: {
+export function SpecialContentScreen({ kind, category = kind, title, sub, sections, needsZiwei = false, genMsg, heroMotif, themeColor = colors.ju, heroImage, buildBody, freePreview, freeHook, showExpiry = false, premiumCovered = false, headerExtra, autoGen = true }: {
   kind: CreditKind;        // 이용권/unlock 키(roots·image·mission). 크레딧 단위.
   category?: string;       // 캐시·Edge category(기본=kind). daniel B 유명인: 인물별 celeb_{id}로 분리(크레딧은 kind='celeb' 공용).
   title: string;
@@ -67,6 +67,7 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
   heroImage?: any;         // 히어로 배경 이미지(옵션 — 없으면 모티프만)
   buildBody?: (chart: SavedChart) => Record<string, any>; // 추가 body(수비학/점성술 = 앱이 산출한 차트를 Edge로 전달)
   freePreview?: (chart: SavedChart) => ReactNode; // 무료 티어(하이브리드) — 잠김 화면에 온디바이스 기본값 미리보기(수비학 생명수·점성술 빅3)
+  freeHook?: (saju: any) => ReactNode; // ★무료 온디바이스 티저 — 히어로 바로 아래·잠김/열림 무관 항상 노출(유료 전환 후크). love.tsx의 LoveFlowGraph 배치를 공용화(재회 도화-충 달력 등). c.saju(+timeUnknown 관례 병합)를 넘겨받는다.
   showExpiry?: boolean;    // 유료 단일 풀이(roots·image·talent·mission)만 = 생성일+1년 '보유 만료일' 표시(daniel #25). 무료·소모성 콘텐츠는 미전달 → 숨김.
   premiumCovered?: boolean; // 프리미엄 포함 콘텐츠(자식운 등 프리미엄 5종) = 프리미엄 명식이면 무료 해제·자동생성. 기본 false(스페셜=관리자/크레딧 전용, 프리미엄 무관).
   autoGen?: boolean;         // 프리미엄/소유 시 자동 생성 여부(기본 true). ★자식운=false: 부부/단일을 고른 뒤 '풀이 보기'로 생성(자동생성 시 선택 기회 없음, daniel 07-03).
@@ -267,6 +268,10 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
       {/* child/child_couple(자녀운)만 전용 테마 영상 — 그 외 스페셜(roots·image·mission·talent·astrology·future10 등)은 videoKey 미지정=기본 링+자물쇠 */}
       <UnlockOverlay visible={busy} message={genMsg} videoKey={(kind === 'child' || kind === 'child_couple') ? 'child' : undefined} />
       <ContentHero motif={heroMotif} image={heroImage ?? HERO_BY_KIND[kind]} title={title} sub={sub} themeColor={themeColor} />
+
+      {/* ★무료 온디바이스 티저(재회 도화-충 달력 등) — 히어로 바로 아래·항상 노출(잠김/열림 무관). 유료 풀이는 이 아래.
+          love.tsx가 <LoveFlowGraph>를 히어로 아래 항상 노출하는 배치를 공용화. c.saju에 timeUnknown을 코드베이스 관례(prewarm/Reading)와 동일하게 병합해 전달(클라 computeChart 산출물엔 timeUnknown이 없음). */}
+      {freeHook && c?.saju ? freeHook({ ...c.saju, timeUnknown: savedChart?.input?.timeAccuracy === '미상' }) : null}
 
       {/* 콘텐츠별 상단 커스텀 컨트롤(옵션) — 히어로 아래·상태 뷰/게이트 위. ★풀이를 실제로 공개(revealed)한 뒤엔 숨김 — 상태 뷰·게이트(공개 前)에서는 계속 노출(자식운 COUPLE 토글은 생성 前에만 의미, daniel 07-03). */}
       {!(reading && owned && revealed) && headerExtra}
