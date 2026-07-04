@@ -27,7 +27,6 @@ import { appLang } from '../../lib/i18n';
 import { logEvent } from '../../lib/backend/logger';
 import { invokeFail } from '../../lib/backend/interpretResult'; // 방어: 일시적 불가/오류 친화 처리
 import { assertOnline } from '../../lib/backend/network'; // daniel: 네트워크/서버 미연결 시 풀이 생성 차단
-import { setGenProgress } from '../../lib/backend/genProgress'; // 일회성 진행도(daniel·docs/CONTENT_API_INVENTORY.md)
 import type { Stem, Branch } from '@spec/chart';
 import { colors, radius, space, shadow, font } from '../../lib/theme';
 import { useFontScale } from '../../lib/ui/fontScale';
@@ -94,7 +93,7 @@ export default function TodayScreen() {
     if (!assertOnline(t)) return; // daniel: 오프라인이면 풀이 진입(Edge 생성) 차단
     if (busy) return;
     setBusy(true); setErr(null);
-    setGenProgress({ active: true, total: 1, done: 0, label: '오늘의 운세', route: '/today' }); // 일회성 진행도(daniel)
+    // 오늘/이달 운세는 홈 풀이 진행률 배너에 띄우지 않는다(daniel 07-05 — 저비용 단발이라 노티 불필요).
     logEvent('daily_generate', { chartId: id, category });
     try {
       const { data, error } = await supabase.functions.invoke('interpret', {
@@ -105,7 +104,6 @@ export default function TodayScreen() {
       if (fail) { logEvent(fail.kind === 'unavailable' ? 'daily_unavailable' : 'daily_error', { message: fail.message, retryAt: fail.retryAt }, 'error'); setErr(fail.message); }
       else setReading((data?.reading as Record<string, string>) ?? null);
     } catch (e: any) { logEvent('daily_throw', { message: String(e?.message ?? e) }, 'error'); setErr(t('today.genFail', '풀이 생성에 실패했어요. 잠시 후 다시 시도해 주세요.')); }
-    setGenProgress({ route: '/today', done: 1, total: 1 }); // 완료 → 홈 배너 '풀이 보기'(daniel)
     setBusy(false);
   }
 
