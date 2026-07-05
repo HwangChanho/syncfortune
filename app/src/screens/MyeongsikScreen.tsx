@@ -719,8 +719,11 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
         const nCols = expandCols.length || 1;
         const COLW = expW > 0 ? Math.max(50, Math.floor(expW / nCols)) : 50;
         const scale = Math.min(1.7, COLW / 50);
+        // 운(대운/세운/월운/일운) 컬럼이 하나라도 켜져 있으면 = 운 연루된 작용만(원국끼리는 위 팔자 표에 이미 표시).
+        //   ★모든 운이 꺼져 원국만 남으면 = 원국 합충형해를 여기서도 보여준다(daniel 07-05: 다 꺼도 원국 합충 나와야).
+        const hasLuckCol = expandCols.some((c2) => c2.luck);
         const expandLinks = detectInteractionsAmong(expandCols.map((c2) => ({ pos: c2.label as any, stem: c2.stem, branch: c2.branch })))
-          .filter((it) => it.members.length >= 2 && it.members.some((m) => expandCols.find((c2) => c2.label === m)?.luck)); // 3자 국(원국+운 완성) 포함
+          .filter((it) => it.members.length >= 2 && (!hasLuckCol || it.members.some((m) => expandCols.find((c2) => c2.label === m)?.luck))); // 운 켜짐=운 연루만 / 다 꺼짐=원국 전부
         const ganEx = expandLinks.filter((it) => it.level === '천간');
         const jiEx = expandLinks.filter((it) => it.level !== '천간');
         const normEx = [...ganEx, ...jiEx].map((it: any) => {
@@ -809,7 +812,7 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
           </ScrollView>
           {(ganEx.length + jiEx.length) > 0 && (
             <PressableScale style={styles.linksToggle} onPress={() => setShowExpandLinks((v) => !v)}>
-              <Text style={styles.linksToggleTx}>운 합충형해 {ganEx.length + jiEx.length}개  {showExpandLinks ? '▲ 접기' : '▼ 펼쳐 보기'}</Text>
+              <Text style={styles.linksToggleTx}>{hasLuckCol ? '운 ' : '원국 '}합충형해 {ganEx.length + jiEx.length}개  {showExpandLinks ? '▲ 접기' : '▼ 펼쳐 보기'}</Text>
             </PressableScale>
           )}
           {showExpandLinks && normEx.length > 0 && (
