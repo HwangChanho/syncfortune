@@ -34,6 +34,7 @@ import { UnlockOverlay } from '../../components/UnlockOverlay'; // unlock 자물
 import { ChartPicker } from '../../components/ChartPicker'; // 상단 명식 헤더 — 현재 적용 명식 표시·전환
 import { ShareReadingButton } from '../../components/ShareReadingButton'; // 이슈17: 풀이 결과 공유(가드 내장)
 import { TTSButton } from '../../components/TTSButton'; // 풀이 음성 읽기(온디바이스 TTS·무료)
+import { LifeGraphTeaser } from '../../components/LifeGraphTeaser'; // 무료 온디바이스 곡선 티저(잠김 상태 퍼널 — 결정론 대운 곡선·전환점)
 
 type Decade = { startAge: number; score: number; note: string; turning: boolean; keyword?: string; focus?: string };
 type LifeData = { summary: string; decades: Decade[]; yongsin?: string; peak?: string; caution?: string; advice?: string; headline?: string };
@@ -161,8 +162,10 @@ export default function LifeGraphScreen() {
   // ── 곡선 좌표 계산 ──
   const decs = data?.decades ?? [];
   const n = decs.length;
+  // 대표 명식 산출(현재 대운 마커 + 무료 티저 곡선 공용) — 한 번만 계산해 재사용.
+  const c = useMemo(() => (saved ? computeChart(saved.input) : null), [saved]);
   // 현재 대운(클라 계산 — LLM 출력엔 없음). 곡선에서 '지금 위치' 마커로 강조.
-  const curAge = useMemo(() => (saved ? computeChart(saved.input).saju.currentLuck?.startAge : undefined), [saved]);
+  const curAge = c?.saju.currentLuck?.startAge;
   // 진폭 확대(daniel): 점수를 0~100 그대로 매핑하면 30~80에 몰려 밋밋 → 보이는 min~max 를 위아래로 stretch.
   const scoreVals = decs.map((d) => Math.max(0, Math.min(100, d.score)));
   const sLo = scoreVals.length ? Math.min(...scoreVals) : 0;
@@ -180,7 +183,7 @@ export default function LifeGraphScreen() {
   // ★daniel 07-03: 강조(밴드+나이) 기본값 = 현재 대운(없으면 전환점). sel=null(최초 로드/풀이 직후)에도
   //   그래프 하이라이트가 아래 해설카드(기본 현재/전환점)와 일치하게 — '풀이중엔 하이라이트 없음' 불일치 해소.
   const effSel: number | null = sel != null ? sel
-    : (() => { const c = pts.findIndex((p) => p.current); if (c >= 0) return c; const tt = decs.findIndex((d) => (d as any).turning); return tt >= 0 ? tt : null; })();
+    : (() => { const ci = pts.findIndex((p) => p.current); if (ci >= 0) return ci; const tt = decs.findIndex((d) => (d as any).turning); return tt >= 0 ? tt : null; })();
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>
@@ -289,18 +292,23 @@ export default function LifeGraphScreen() {
           <ShareReadingButton kind="lifegraph" title={t('life.gateTitle', '인생 그래프')} content={data} />
         </>
       ) : (
-        <View style={styles.gateCard}>
-          <Text style={styles.gateTitle}>{t('life.gateTitle', '인생 그래프')}</Text>
-          <Text style={styles.gateDesc}>{t('life.gateDesc', '타고난 기운에 필요한 흐름을 기준으로, 10년 단위 인생 곡선과 전환점을 그려 드려요.')}</Text>
-          <View style={styles.previewBox}>
-            <Text style={styles.previewHead}>{t('special.previewHead', '이런 걸 풀어드려요')}</Text>
-            {[t('life.pv1', '나에게 필요한 기운'), t('life.pv2', '10년 단위 인생 곡선'), t('life.pv3', '인생의 전환점'), t('life.pv4', '가장 빛나는 시기'), t('life.pv5', '다지고 조심할 시기')].map((p, i) => <Text key={i} style={styles.previewItem}>· {p}</Text>)}
+        <>
+          {/* 무료 온디바이스 곡선 티저(daniel 프리미엄 퍼널) — 결정론 대운 곡선·전환점을 잠김 상태에서 먼저 무료로.
+              유료(아래 게이트)=각 시기 왜·무엇·전성기 활용·주의 대처(LLM). 재회/애정 티저와 동일 결·API 0. */}
+          {c?.saju ? <LifeGraphTeaser saju={c.saju} /> : null}
+          <View style={styles.gateCard}>
+            <Text style={styles.gateTitle}>{t('life.gateTitle', '인생 그래프')}</Text>
+            <Text style={styles.gateDesc}>{t('life.gateDesc', '위 곡선의 각 시기가 왜 그런지, 지금 무엇을 하면 좋은지, 전성기 활용법과 어려운 때 대처까지 깊이 풀어 드려요.')}</Text>
+            <View style={styles.previewBox}>
+              <Text style={styles.previewHead}>{t('special.previewHead', '이런 걸 풀어드려요')}</Text>
+              {[t('life.pv1', '각 시기가 왜 오르내리는지'), t('life.pv2', '지금 시기에 무엇을 하면 좋은지'), t('life.pv3', '가장 빛나는 시기를 살리는 법'), t('life.pv4', '조심할 시기를 넘기는 법'), t('life.pv5', '평생 지켜갈 삶의 방향')].map((p, i) => <Text key={i} style={styles.previewItem}>· {p}</Text>)}
+            </View>
+            {err ? <Text style={styles.err}>{err}</Text> : null}
+            <PressableScale style={styles.gateBtn} onPress={onStart}>
+              <Text style={styles.gateBtnTx}>{t('life.seePaid', '인생 그래프 보기 (₩3,900)')}</Text>
+            </PressableScale>
           </View>
-          {err ? <Text style={styles.err}>{err}</Text> : null}
-          <PressableScale style={styles.gateBtn} onPress={onStart}>
-            <Text style={styles.gateBtnTx}>{t('life.seePaid', '인생 그래프 보기 (₩3,900)')}</Text>
-          </PressableScale>
-        </View>
+        </>
       )}
     </ScrollView>
   );
