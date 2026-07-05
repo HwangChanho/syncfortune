@@ -697,6 +697,10 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
         const sx = input?.sex;
         const luckDir = sx ? (daeunForward(P['년'].stem, sx) ? '순행' : '역행') : null;
         const an = lc?.annuals?.[selSeun];
+        // ★세운 만 나이(daniel) — 선택 세운 연도의 만 나이. 대운 startAge(입운 만나이) + 대운 내 연차(an.year−첫세운.year).
+        //   엔진 나이모델(대운 startAge)과 일관 → 대운 옆 나이와 안 어긋남 + 음력도 정확(startAge는 solar 변환 후 산출).
+        const seunAge = (an && lc && typeof lc.startAge === 'number' && lc.annuals?.[0])
+          ? lc.startAge + (an.year - lc.annuals[0].year) : null;
         const mo = an?.months?.[selMonth];
         // 일진(流日) — 선택 세운·월운의 날짜별 간지. 선택 일운(selDay)이 없으면 그 달 1일로 폴백.
         const days = (input && an) ? computeMonthDays(input, an.year, selMonth + 1) : [];
@@ -784,7 +788,7 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
                   <View key={i} style={[styles.expCol2, { width: COLW }, col.luck && styles.expColLuck, hlExpand.has(col.label) && styles.expCol2On]}>
                     <Text style={[styles.expLabel, { fontSize: Math.round(fs(11) * scale) }]}>{col.label}</Text>
                     {/* 대운수(입운 나이) — 대운 컬럼만 표기, 나머지 컬럼은 빈 줄로 세로 정렬 유지 */}
-                    <Text style={[styles.expAge, { fontSize: Math.round(fs(9) * scale) }]}>{col.label === '대운' && lc ? `${lc.startAge}세` : ' '}</Text>
+                    <Text style={[styles.expAge, { fontSize: Math.round(fs(9) * scale) }]}>{col.label === '대운' && lc ? `${lc.startAge}세` : col.label === '세운' && seunAge != null ? `만 ${seunAge}세` : ' '}</Text>
                     <Text style={[styles.expTg, { fontSize: Math.round(fs(11) * scale) }]}>{col.tg}</Text>
                     <GzCell char={col.stem} kind="stem" size="sm" scale={scale} onPress={() => setGlossary({ kind: 'stem', key: col.stem })} />
                     <GzCell char={col.branch} kind="branch" size="sm" scale={scale} onPress={() => setGlossary({ kind: 'branch', key: col.branch })} />
