@@ -283,10 +283,7 @@ export function ReunionRich({ saju }: { saju: SajuChart }) {
         <View style={styles.card}>
           <Text style={styles.cardTitle}>인연 기운의 방향·계절</Text>
           <Text style={styles.cardBody}>
-            당신의 인연 기운은 <Text style={styles.accent}>{d.dirSeason.seasons.join('·')}</Text>에 무르익어요.
-          </Text>
-          <Text style={styles.cardBody}>
-            연락은 <Text style={styles.accent}>{d.dirSeason.dir}</Text>이 조금 더 좋아요.
+            당신의 인연 기운은 <Text style={styles.accent}>{d.dirSeason.seasons.join('·')}</Text>에 무르익고, <Text style={styles.accent}>{d.dirSeason.dir}</Text> 방향의 기운과 잘 통해요.
           </Text>
         </View>
       )}

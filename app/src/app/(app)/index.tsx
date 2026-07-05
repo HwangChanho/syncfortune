@@ -409,7 +409,7 @@ export default function Home() {
               );
             }
             return (
-              <PressableScale key={m.key} ref={(n) => { cardRefs.current[m.key] = n; }} style={styles.card} onPress={() => onPress(m)}>
+              <PressableScale key={m.key} ref={(n) => { cardRefs.current[m.key] = n; }} style={[styles.card, sec.key === 'content' && styles.cardHot]} onPress={() => onPress(m)}>
                 <View style={styles.cardImg}>
                   {/* expo-image 다운샘플 유지(메모리·랙) + 켄번스 느린 줌(daniel #21). absoluteFill 배경 + 위 오버레이. */}
                   {/* 순차 로딩(daniel) — 차례가 온 카드만 이미지 mount, 그 전엔 미드나잇 빈 박스(디코드 분산). 라벨/배지는 그대로 유지(레이아웃 동일). */}
@@ -551,6 +551,8 @@ const styles = StyleSheet.create({
     width: 162, aspectRatio: 0.72, borderRadius: radius.md, overflow: 'hidden', // 카드 높이 더 줄임(daniel: 0.6→0.66→0.72)
     ...shadow.card, // 박스 테두리 제거(이미지 자체 골드 프레임 사용)
   },
+  // ★'가장 많이 찾는'(content) 카드 강조(daniel 07-05) — 골드 테두리(colors.ju=라이트/다크 자동). 이미지 카드가 눈에 띄게.
+  cardHot: { borderWidth: 2, borderColor: colors.ju },
   cardImg: { flex: 1, justifyContent: 'flex-end' },
   cardImgInner: { borderRadius: radius.md },
   // 순차 공개 전 카드 자리 — 미드나잇 빈 박스(이미지 디코드 전 placeholder). 카드와 같은 크기·둥근 모서리 유지(레이아웃 안 흔들림).
