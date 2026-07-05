@@ -285,7 +285,9 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
         <View style={[styles.card, styles.gate, { borderColor: themeColor }]}>
           <Text style={[styles.gateTitle, dynStyles.gateTitle]}>{t('special.ownedTitle', '이미 열려 있는 풀이예요')}</Text>
           {/* 상태 라인 — 프리미엄 명식=무제한(골드) / 그 외(구매·관리자)=만료일(showExpiry+expiry 있으면) 또는 '구매한 풀이'. 만료 포맷=ExpiryNote와 동일한 expiry 값(생성일+1년 YYYY.MM.DD) 재사용. */}
-          {premiumCovered && isPremiumForChart(chartId) ? (
+          {/* 프리미엄(지정 명식)은 서버 effPrem이 모든 유료 kind를 바이패스 = 전 콘텐츠 무제한 → premiumCovered 여부와 무관하게
+              이 명식이 프리미엄이면 '무제한'. (daniel 07-05: 프리미엄 계정인데 신규 3종 등에서 만료일 뜨던 문제 — premiumCovered 미전달이 원인) */}
+          {isPremiumForChart(chartId) ? (
             <Text style={[styles.ownedStatus, dynStyles.gateDesc, { color: colors.gold }]}>{t('special.ownedUnlimited', '프리미엄 · 무제한 이용')}</Text>
           ) : (showExpiry && expiry) ? (
             <Text style={[styles.ownedStatus, dynStyles.gateDesc]}>{t('special.ownedUntil', { date: expiry, defaultValue: '{{date}}까지 볼 수 있어요' })}</Text>

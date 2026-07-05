@@ -6,7 +6,7 @@
 //      / 육합·삼합 가점. (기존 충·합에 형·해·파를 더해 변별력 ↑)
 //   ② 운(運) 다각도 — 그날 지지가 현재 대운·세운 지지와 충/형/합을 이루는지도 본다(약하게). 원국만 보지 않음(가드10).
 //   ③ 목적별 선호 십신 — 그날 천간(드러난 기운). +개고: 그날이 내 묘고지(辰戌丑未)를 *충해 열 때만* 지장간 십신 발현(daniel: 지장간은 평소 잠복, 운에서 튀어나올 때 고려).
-//   ④ 역마·도화 — 내 일지 삼합국에서 도출. 역마=이동(여행·이사) 가점 / 도화=*이성 끌림*(소개팅·가벼운 만남만, ★결혼 아님 daniel) → 카테고리 변별.
+//   ④ 역마·도화 — 내 일지 삼합국에서 도출. 역마=이동(여행·이사) 가점 / 도화=*이성 끌림*(소개팅·가벼운 만남·고백만, ★결혼 아님 daniel) → 카테고리 변별.
 //   ⑤ 12운성 — 기세가 왕한 날(장생·관대·건록·제왕) 가점, 쇠한 날(병·사·묘·절) 감점.
 //   ⑥ 공망(空亡) 회피 — 그날 지지가 내 일주 기준 공망이면 감점(중요한 일은 비우는 날).
 // ⚠️ §4 안전: 흉 단정·공포 금지 — 낮은 날은 '권하지 않음/피하는 게 좋음'으로 전향적. 본문 한자·용어 미노출.
@@ -19,7 +19,7 @@ import { gongmang } from '@engine/sinsal';
 import { appLang } from '../i18n';
 import type { SajuChart } from '@spec/chart';
 
-export type Purpose = 'wedding' | 'dating' | 'casual' | 'moving' | 'contract' | 'opening' | 'travel' | 'general';
+export type Purpose = 'wedding' | 'dating' | 'casual' | 'confess' | 'moving' | 'contract' | 'opening' | 'travel' | 'general';
 
 // 지지 육충(六沖) — 자리가 정면으로 부딪히는 변동
 const CHUNG: Record<string, string> = { 子: '午', 午: '子', 丑: '未', 未: '丑', 寅: '申', 申: '寅', 卯: '酉', 酉: '卯', 辰: '戌', 戌: '辰', 巳: '亥', 亥: '巳' };
@@ -59,6 +59,7 @@ const PURPOSE_PREF: Record<Purpose, Partial<Record<TgGroup, number>>> = {
   wedding: { 관성: 12, 재성: 12, 인성: 6 },  // 혼사 = 배우자·예(관)·살림(재)·안정(인)
   dating: { 재성: 12, 식상: 10, 관성: 6 },   // 소개팅 = 이성운(재)·매력 표현(식상)·인연(관)
   casual: { 식상: 12, 비겁: 8 },             // 가벼운 만남 = 즐거움·표현(식상)·어울림(비겁)
+  confess: { 식상: 12, 재성: 10, 관성: 8 },  // ★daniel 검수: 고백 = 매력·마음 표현(식상 主)+이성운·인연(남 재성/여 관성)
   moving: { 인성: 14, 식상: 6 },             // 이사 = 거처·안정(인), 이동(식상)
   contract: { 인성: 14, 관성: 12 },          // 계약 = 문서(인)·신뢰·공식(관)
   opening: { 식상: 12, 재성: 16 },           // 개업 = 생산·표현(식상)·이익(재)
@@ -66,15 +67,16 @@ const PURPOSE_PREF: Record<Purpose, Partial<Record<TgGroup, number>>> = {
   general: { 인성: 6, 재성: 6, 관성: 6 },    // 일반 길일
 };
 // 목적별 충(沖) 패널티 — 결혼·계약은 엄격, 여행은 변동 허용
-const CHUNG_PENALTY: Record<Purpose, number> = { wedding: -30, contract: -28, opening: -22, general: -22, moving: -20, dating: -18, travel: -12, casual: -10 };
+const CHUNG_PENALTY: Record<Purpose, number> = { wedding: -30, contract: -28, opening: -22, general: -22, moving: -20, dating: -18, confess: -16, travel: -12, casual: -10 };
 // 목적별 형(刑)·해(害)·파(破) 패널티(충보다 약함) — 결혼·계약은 마찰에 민감, 가벼운 만남·여행은 둔감(daniel 검수 슬롯).
-const HYEONG_PENALTY: Record<Purpose, number> = { wedding: -16, contract: -15, opening: -12, general: -10, moving: -10, dating: -9, travel: -7, casual: -5 };
-const HAE_PENALTY: Record<Purpose, number> = { wedding: -9, contract: -8, opening: -6, general: -5, moving: -5, dating: -5, travel: -3, casual: -3 };
-const PA_PENALTY: Record<Purpose, number> = { wedding: -6, contract: -6, opening: -5, general: -4, moving: -4, dating: -4, travel: -3, casual: -2 };
+const HYEONG_PENALTY: Record<Purpose, number> = { wedding: -16, contract: -15, opening: -12, general: -10, moving: -10, dating: -9, confess: -8, travel: -7, casual: -5 };
+const HAE_PENALTY: Record<Purpose, number> = { wedding: -9, contract: -8, opening: -6, general: -5, moving: -5, dating: -5, confess: -4, travel: -3, casual: -3 };
+const PA_PENALTY: Record<Purpose, number> = { wedding: -6, contract: -6, opening: -5, general: -4, moving: -4, dating: -4, confess: -3, travel: -3, casual: -2 };
 // 역마(이동)·도화(이성 끌림) 가점이 유효한 목적만 — 그 외 목적엔 미적용(카테고리 변별의 핵심).
-//   ★도화 = '이성이 꼬이는' 끌림이지 *결혼 여부가 아님*(daniel) → 만남(소개팅·가벼운 만남)에만, 결혼 제외.
+//   ★도화 = '이성이 꼬이는' 끌림이지 *결혼 여부가 아님*(daniel) → 만남·고백(소개팅·가벼운 만남·고백)에만, 결혼 제외.
 const YEOKMA_BONUS: Partial<Record<Purpose, number>> = { travel: 18, moving: 15, opening: 8 };
-const DOHWA_BONUS: Partial<Record<Purpose, number>> = { dating: 18, casual: 13 };
+// ★고백(confess) = 끌림·설렘이 무르익는 날이 핵심 → 도화 가점을 dating 급 이상으로(20).
+const DOHWA_BONUS: Partial<Record<Purpose, number>> = { confess: 20, dating: 18, casual: 13 };
 
 const WANG = new Set(['장생', '관대', '건록', '제왕']); // 기세 왕성
 const SOI = new Set(['병', '사', '묘', '절']);           // 기세 쇠퇴
@@ -129,6 +131,7 @@ export const PURPOSES: { key: Purpose; ko: string; en: string; ja: string }[] = 
   { key: 'wedding', ko: '결혼·예식', en: 'Wedding', ja: '結婚・式' },
   { key: 'dating', ko: '소개팅', en: 'Blind date', ja: 'お見合い' },
   { key: 'casual', ko: '가벼운 만남', en: 'Casual date', ja: '気軽な出会い' },
+  { key: 'confess', ko: '고백·마음 전하기', en: 'Confession', ja: '告白' },
   { key: 'moving', ko: '이사', en: 'Moving', ja: '引越し' },
   { key: 'contract', ko: '계약', en: 'Contract', ja: '契約' },
   { key: 'opening', ko: '개업·오픈', en: 'Opening', ja: '開業' },

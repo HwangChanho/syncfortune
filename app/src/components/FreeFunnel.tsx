@@ -110,7 +110,8 @@ const styles = StyleSheet.create({
   registerBtn: { backgroundColor: colors.ju, borderRadius: radius.md, paddingVertical: space(3.25), paddingHorizontal: space(6), ...shadow.card },
   registerTx: { color: colors.bg, fontSize: 15, fontWeight: '800' },
   // 히어로(이미지 배경 + 스크림 + 질문). 세로 카드아트(832×1216)를 가로 박스에 cover-crop 시 중앙 띠가 꽉 참.
-  hero: { aspectRatio: 1.5, borderRadius: radius.lg, overflow: 'hidden', marginBottom: space(6), backgroundColor: colors.sunk, justifyContent: 'center' },
+  //   ★width:'100%' 필수(daniel 07-05) — 없으면 aspectRatio만으로 Yoga 폭 계산이 깨져 좌치우침(오른쪽 여백↑). SpecialContentScreen.heroImageBox와 동일 틀.
+  hero: { width: '100%', aspectRatio: 1.5, borderRadius: radius.lg, overflow: 'hidden', marginBottom: space(6), backgroundColor: colors.sunk, justifyContent: 'center' },
   heroImg: { borderRadius: radius.lg },
   heroScrim: { ...StyleSheet.absoluteFillObject, backgroundColor: colors.scrimHero }, // 이미지 위 가독 스크림(밝은 글씨 대비)
   heroInner: { alignItems: 'center', paddingHorizontal: space(6), paddingVertical: space(7) },

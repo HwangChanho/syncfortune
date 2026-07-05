@@ -80,8 +80,10 @@ export function JobTiming({ saju }: { saju: SajuChart }) {
   return (
     <View style={styles.box}>
       <Text style={styles.title}>취업·합격운이 열리는 시기 <Text style={styles.titleSub}>(일·자격 흐름)</Text></Text>
-      {/* 관성=일자리 / 인성=자격·문서·합격 — 용어 없이 일상어로 요약 */}
-      <Text style={styles.lead}>일자리가 열리는 기운과, 자격·시험·합격을 뒷받침하는 기운이 드는 해예요. 그런 시기에 문이 열리기 좋아요.</Text>
+      {/* 진입 시 기준 '올해 년도'를 먼저 노출(연 단위라 이 목록의 base가 올해임을 명시) — subtle 캡션 */}
+      {curYear != null && <Text style={styles.yearBadge}>올해 {curYear}년 기준</Text>}
+      {/* 관성=일자리 / 인성=자격·문서·합격 — 용어 없이 일상어로 요약. 올해부터 가까운 해를 봄(base 명시). */}
+      <Text style={styles.lead}>올해부터 가까운 해 가운데, 일자리가 열리는 기운과 자격·시험·합격을 뒷받침하는 기운이 드는 해예요. 그런 시기에 문이 열리기 좋아요.</Text>
       {/* 유리한 해 목록 — 각 해를 금색으로 강조하고, 그해가 '일자리'인지 '자격·합격'인지 일상어로 */}
       <View style={styles.yearList}>
         {years.map(({ year, kind }) => (
@@ -102,6 +104,8 @@ const styles = StyleSheet.create({
   box: { backgroundColor: colors.sunk, borderRadius: radius.md, padding: space(4), marginBottom: space(4) },
   title: { ...font.body, fontWeight: '800', color: colors.ju, marginBottom: space(2), fontSize: 14 },
   titleSub: { ...font.caption, color: colors.inkFaint, fontWeight: '600' },
+  // 올해(기준) 년도 캡션 — 제목 바로 아래 subtle(ReunionTiming/CrushTiming과 동일 톤)
+  yearBadge: { ...font.caption, color: colors.inkFaint, fontWeight: '700', letterSpacing: 0.3, marginTop: -space(1), marginBottom: space(2.5) },
   lead: { ...font.caption, color: colors.inkSoft, lineHeight: 19, marginBottom: space(3) },
   // 유리한 해 목록 — 세로 행(금색 강조 연도 + 일상어 설명)
   yearList: { gap: space(2) },

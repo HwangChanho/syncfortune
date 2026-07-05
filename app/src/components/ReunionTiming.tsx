@@ -37,6 +37,11 @@ export function ReunionTiming({ saju }: { saju: SajuChart }) {
   const timeUnknown = (saju as any)?.timeUnknown === true;
   const posList: PillarPos[] = timeUnknown ? ['년', '월', '일'] : ['년', '월', '일', '시'];
 
+  // 올해(현재 세운) 연도 — 엔진 산출값(computeChart가 '오늘' 기준이라 해가 바뀌면 자동 갱신).
+  //   daniel 07-05: 진입 시 '월'뿐 아니라 '올해 년도'도 보여야 함(무료 = 올해꺼만).
+  //   annual.year가 없으면(엔진 미채움) 연도 표기를 생략(크래시 방지) — 잘못된 연도 발명 금지.
+  const annualYear: number | undefined = (saju as any)?.annual?.year;
+
   // 1) 원국 도화 탐지 — 4지지(시각 미상=시주 제외) 중 왕지.
   const natalBranches = posList
     .map((p) => saju.pillars?.[p]?.branch)
@@ -61,6 +66,8 @@ export function ReunionTiming({ saju }: { saju: SajuChart }) {
   return (
     <View style={styles.box}>
       <Text style={styles.title}>재회가 열리는 달 <Text style={styles.titleSub}>(도화 흐름)</Text></Text>
+      {/* 진입 시 올해 년도를 먼저 노출(달 강조 이전) — 미드나잇-골드 캡션(subtle) */}
+      {annualYear != null && <Text style={styles.yearBadge}>올해 {annualYear}년 기준</Text>}
       {/* 원국 도화 = 끌림의 기운(한자/용어 노출 금지 — 일상어) */}
       <Text style={styles.lead}>당신 안엔 사람을 끄는 끌림의 기운이 있어요. 그 기운이 깨어나는 달에 옛 인연과 다시 이어질 문이 열려요.</Text>
       {/* 12개월 달력 — 재회 연락이 열리는 달을 금색으로 강조 */}
@@ -74,7 +81,8 @@ export function ReunionTiming({ saju }: { saju: SajuChart }) {
           );
         })}
       </View>
-      <Text style={styles.summary}>{months.map((m) => `${m}월`).join(' · ')} — 옛 인연에게 연락이 닿기 좋은 달</Text>
+      {/* 요약 = 올해 년도 + 열리는 달들(daniel 07-05: 월 앞에 올해 년도 prefix) */}
+      <Text style={styles.summary}>{annualYear != null ? `${annualYear}년 · ` : ''}{months.map((m) => `${m}월`).join(' · ')} — 옛 인연에게 연락이 닿기 좋은 달</Text>
       <Text style={styles.note}>※ 이 달들에 마음을 전하면 닿을 확률이 높아요. 특히 그달의 흐름이 당신의 끌림을 깨우는 시기예요.</Text>
     </View>
   );
@@ -84,6 +92,8 @@ const styles = StyleSheet.create({
   box: { backgroundColor: colors.sunk, borderRadius: radius.md, padding: space(4), marginBottom: space(4) },
   title: { ...font.body, fontWeight: '800', color: colors.ju, marginBottom: space(2), fontSize: 14 },
   titleSub: { ...font.caption, color: colors.inkFaint, fontWeight: '600' },
+  // 올해 년도 캡션 — 제목 바로 아래 subtle하게(금색 아닌 inkFaint), 제목과 살짝 붙임
+  yearBadge: { ...font.caption, color: colors.inkFaint, fontWeight: '700', letterSpacing: 0.3, marginTop: -space(1), marginBottom: space(2.5) },
   lead: { ...font.caption, color: colors.inkSoft, lineHeight: 19, marginBottom: space(3) },
   // 12개월 격자 — 한 줄 6칸씩 자연스럽게 감김
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: space(1.5), justifyContent: 'center' },
