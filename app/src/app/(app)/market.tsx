@@ -233,7 +233,6 @@ export default function MarketRoute() {
   function renderCard(c: (typeof CREDIT_KINDS)[number], premInc: boolean) {
     const owned = (credits[c.key] ?? 0) > 0; // 1회성 소모 — 보유/미보유로만
     const card = CARD[c.key];                // 카드 이미지+설명(홈과 동일·daniel: 마켓 리스트에도)
-    const isHot = HOT_KINDS.has(c.key);      // ★★★ 가장 많이 찾는 배지(daniel 07-05)
 
     // 프리미엄 포함 섹션 + 프리미엄 가입 = 무제한(가격/구매 숨김, 카드 전체가 열기 버튼)
     if (premInc && isPremium) {
@@ -241,7 +240,6 @@ export default function MarketRoute() {
         <PressableScale key={c.key} style={styles.card} onPress={() => apply(c.key)} disabled={!sel}>
           {card && <Image source={card.img} style={styles.thumb} />}
           <View style={{ flex: 1 }}>
-            {isHot && <View style={styles.hotBadge}><Text style={styles.hotBadgeTx}>★★★ 가장 많이 찾는</Text></View>}
             <Text style={styles.name}>{c.ko}</Text>
             {card && <Text style={styles.desc} numberOfLines={2}>{t(card.desc)}</Text>}
             {/* 개별 구매가 노출(daniel 07-03: 프리미엄 상품도 개별구매 가능하니 금액 표시) — 프리미엄 유저는 무제한이라 참조용 */}
@@ -259,7 +257,6 @@ export default function MarketRoute() {
       <View key={c.key} style={styles.card}>
         {card && <Image source={card.img} style={styles.thumb} />}
         <View style={{ flex: 1 }}>
-          {isHot && <View style={styles.hotBadge}><Text style={styles.hotBadgeTx}>★★★ 가장 많이 찾는</Text></View>}
           <Text style={styles.name}>{c.ko}</Text>
           {card && <Text style={styles.desc} numberOfLines={2}>{t(card.desc)}</Text>}
           <Text style={styles.price}>{prices[c.key] ?? `₩${c.price.toLocaleString()}`}</Text>

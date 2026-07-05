@@ -435,7 +435,15 @@ export default function Home() {
           return (
             <View key={sec.key} style={styles.section}>
               {/* '무료' 라벨은 빼고(daniel) 맨 위 기본 섹션은 헤더 없이 — 프리미엄·스페셜만 헤더 표시 */}
-              <Text style={styles.sectionH}>{t(sec.titleKey)}</Text>
+              {sec.key === 'content' ? (
+                // ★'가장 많이 찾는' 홈 강조(daniel 07-05) — 골드 하이라이트 밴드 + 🔥(단순 텍스트 X). 마켓 ★★★ 배지 제거하고 홈으로 강조 이동. colors.juSoft/ju/juLine = 라이트/다크 자동 대응.
+                <View style={styles.sectionHotBand}>
+                  <Text style={styles.sectionHotFire}>🔥</Text>
+                  <Text style={styles.sectionHotTx}>{t(sec.titleKey)}</Text>
+                </View>
+              ) : (
+                <Text style={styles.sectionH}>{t(sec.titleKey)}</Text>
+              )}
               {sec.key !== 'free' && sec.descKey ? <Text style={styles.sectionDesc}>{t(sec.descKey)}</Text> : null}
               {isLight ? (
                 // 좌우 스크롤 — 한 줄 5개씩, 5개 넘으면 아래 줄로 쌓음(daniel: 두번째 줄 5개 초과 시 세번째 줄로). 가로 스크롤 유지.
@@ -518,6 +526,10 @@ const styles = StyleSheet.create({
   // 범주 섹션(무료/프리미엄/콘텐츠) — 큰 헤더 + 좌우 가로 스크롤
   section: { marginBottom: space(6), marginHorizontal: -space(5) }, // 가로 스크롤이 화면 끝까지 닿도록 wrap 패딩 상쇄
   sectionH: { fontSize: 22, fontWeight: '800', color: colors.ju, marginBottom: space(1), letterSpacing: 0.3, paddingHorizontal: space(5) },
+  // ★'가장 많이 찾는' 홈 강조 밴드(daniel 07-05) — 골드 하이라이트 칩. juSoft(연한 골드 틴트)+ju(골드 글씨)+juLine = 라이트/다크 자동.
+  sectionHotBand: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', marginHorizontal: space(5), marginBottom: space(1), backgroundColor: colors.juSoft, borderColor: colors.juLine, borderWidth: 1, borderRadius: radius.md, paddingVertical: space(2), paddingHorizontal: space(3.5), gap: space(2), ...shadow.soft },
+  sectionHotFire: { fontSize: 20 },
+  sectionHotTx: { fontSize: 21, fontWeight: '900', color: colors.ju, letterSpacing: 0.3 },
   sectionDesc: { ...font.caption, color: colors.inkSoft, marginBottom: space(3), paddingHorizontal: space(5), lineHeight: 18 },
   hRow: { gap: space(3), paddingHorizontal: space(5), paddingVertical: space(1) }, // 카드 사이 간격 + 좌우 여백(가로 스크롤)
   // '가볍게 보기' 좌우 스크롤 2줄 — 5개씩 위/아래로(daniel). 카드 크기(162) 유지, 가로 스크롤.
