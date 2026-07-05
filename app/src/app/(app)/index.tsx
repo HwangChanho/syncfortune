@@ -68,8 +68,16 @@ const SECTIONS: Section[] = [
     // 신규(daniel 2026-07-02): 자식운 = 프리미엄 5번째 콘텐츠(프리미엄 무료·비프리미엄 개별 유료). premium.jpg 아이콘 재사용(전용 이미지 추후).
     { key: 'child', labelKey: 'menu.child', descKey: 'menu.childDesc', image: require('../../../assets/icons/child.jpg'), route: '/child', ready: true, premium: true, creditKey: 'child' },
   ] },
-  // 스페셜 = 유료 LLM 콘텐츠(애정흐름·인생그래프·신년). 골드 라인아트 타일 이미지(Recraft).
-  { key: 'content', titleKey: 'menu.secContent', descKey: 'menu.secContentDesc', items: [
+  // ★가장 많이 찾는(광고/유료 유도용, daniel 07-05) — 무료 '질문형'(재회/짝사랑/취업)을 프리미엄 바로 밑에 중복
+  //   노출해 눈길을 끌고 → 화면 CTA로 유료 깊은 풀이 유도. 원본은 '가볍게 보기'에도 그대로(의도된 중복).
+  //   ★키는 고유(hot*)로 — 같은 라우트라도 React 키/카드 ref 충돌 방지. 라벨·이미지·라우트는 light 원본과 동일.
+  { key: 'hot', titleKey: 'menu.secContent', descKey: 'menu.secHotDesc', items: [
+    { key: 'hotReunionAsk', labelKey: 'menu.reunionAsk', descKey: 'menu.reunionAskDesc', image: require('../../../assets/icons/reunion.jpg'), route: '/reunionAsk', ready: true, content: true },
+    { key: 'hotCrushAsk', labelKey: 'menu.crushAsk', descKey: 'menu.crushAskDesc', image: require('../../../assets/icons/crush.jpg'), route: '/crushAsk', ready: true, content: true },
+    { key: 'hotJobAsk', labelKey: 'menu.jobAsk', descKey: 'menu.jobAskDesc', image: require('../../../assets/icons/job.jpg'), route: '/jobAsk', ready: true, content: true },
+  ] },
+  // 스페셜 = 유료 LLM 콘텐츠(애정흐름·인생그래프·신년 등). 골드 라인아트 타일 이미지(Recraft). (옛 '가장 많이 찾는' → daniel 07-05 스페셜로 개칭)
+  { key: 'special', titleKey: 'menu.secSpecial', descKey: 'menu.secContentDesc', items: [
     // daniel(2026-06-24): 신년운세 = 시즌 콘텐츠라 리스트 제일 앞.
     { key: 'newyear', labelKey: 'menu.newyear', descKey: 'menu.newyearTileDesc', image: require('../../../assets/icons/newyear.jpg'), route: '/newyear', ready: true, content: true, creditKey: 'newyear' },
     { key: 'love', labelKey: 'menu.love', descKey: 'menu.loveDesc', image: require('../../../assets/icons/love.jpg'), route: '/love', ready: true, content: true, creditKey: 'love' },
@@ -435,8 +443,8 @@ export default function Home() {
           return (
             <View key={sec.key} style={styles.section}>
               {/* '무료' 라벨은 빼고(daniel) 맨 위 기본 섹션은 헤더 없이 — 프리미엄·스페셜만 헤더 표시 */}
-              {sec.key === 'content' ? (
-                // ★'가장 많이 찾는' 홈 강조(daniel 07-05) — 골드 하이라이트 밴드 + 🔥(단순 텍스트 X). 마켓 ★★★ 배지 제거하고 홈으로 강조 이동. colors.juSoft/ju/juLine = 라이트/다크 자동 대응.
+              {sec.key === 'hot' ? (
+                // ★'가장 많이 찾는' 홈 강조(daniel 07-05) — 연한 골드 하이라이트 밴드(테두리·🔥 제거). 프리미엄 바로 밑 광고/유료유도 섹션. colors.juSoft/ju = 라이트/다크 자동.
                 <View style={styles.sectionHotBand}>
                   <Text style={styles.sectionHotTx}>{t(sec.titleKey)}</Text>
                 </View>
