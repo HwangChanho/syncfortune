@@ -43,7 +43,7 @@ export const CREDIT_KINDS: { key: CreditKind; ko: string; price: number }[] = [
   { key: 'child', ko: '자식운', price: 4900 }, // 가격 daniel 확정(07-04: 9900→4900). 부부모드 제거(단일만).
   // ※ child_couple(자식운·부부)은 daniel 07-04 제거 — CreditKind 타입엔 남기되(Edge 호환) 상품/UI에서 노출 안 함.
   // 신규(daniel 2026-07-05): 재회운(옛 인연과 다시 이어질 시기·가능성 — 도화-충 timing). 개별 유료(프리미엄 미포함).
-  { key: 'reunion', ko: '재회운', price: 4900 }, // 가격 daniel 확정(API 비용 측정 후). ASC=credit_reunion
+  { key: 'reunion', ko: '재회운', price: 9900 }, // 가격 daniel 확정(API 비용 측정 후). ASC=credit_reunion
   // 신규(daniel 2026-07-05): 짝사랑 인연운(내 crush가 이뤄질지·나에게 마음이 있을 사람의 결·시기·다가가는 법 — 인연星·도화 발동). 개별 유료.
   { key: 'crush', ko: '짝사랑 인연운', price: 4900 }, // 가격 daniel 확정(API 비용 측정 후). ASC=credit_crush
   // 신규(daniel 2026-07-05): 취업·이직운(취업·이직·합격·시험 timing — 관성·인성 발동. career 사업가vs직장인과 별개). 개별 유료.

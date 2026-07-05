@@ -45,8 +45,10 @@ export function FreeFunnel({ heroImage, question, sub, paidRoute, paidCta, rende
         if (c) {
           // 시각 미상(timeAccuracy='미상')이면 timeUnknown 을 saju 에 병합 — 타이밍 컴포넌트가 시주(時支)를
           //   도화 탐지에서 제외하도록(코드베이스 관례: SpecialContentScreen/pet 과 동일). 엔진 산출물엔 이 플래그가 없음.
+          //   sex 도 함께 병합 — 재회 리치(ReunionRich)가 배우자성(남명 재성/여명 관성)을 성별에 맞게 판정하도록.
+          //   SajuChart 엔 성별이 없어(구조 데이터) 여기서 얹는다. 기존 render(짝사랑/취업)는 이 필드를 무시(가산·무해).
           const computed = computeChart(c.input).saju;
-          setSaju({ ...computed, timeUnknown: c.input?.timeAccuracy === '미상' });
+          setSaju({ ...computed, timeUnknown: c.input?.timeAccuracy === '미상', sex: c.input?.sex });
         }
       } catch {
         // 산출 실패 = saju null 유지 → 아래에서 '명식 등록 유도' 폴백(무한 스피너 방지).
