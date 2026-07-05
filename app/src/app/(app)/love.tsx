@@ -35,6 +35,8 @@ import { ShareReadingButton } from '../../components/ShareReadingButton'; // 이
 import { TTSButton } from '../../components/TTSButton'; // 풀이 음성 읽기(온디바이스 TTS·무료)
 import { LoveThread } from '../../components/contentMotifs'; // 인연의 실 모티프
 import { LoveFlowGraph } from '../../components/LoveFlowGraph'; // 애정(재성) 흐름 곡선(daniel B·R29)
+import { PossibilityGauge } from '../../components/PossibilityGauge'; // 공용 인연 가능성 게이지(재회와 공유 — 애니 미터)
+import { loveInyeonGauge } from '../../lib/love/inyeonGauge'; // 인연 가능성 점수(결정론·온디바이스·재회와 동일 신호)
 
 // 건당 가격 — 정가 → 할인가로 마킹(daniel). 결제 연동 시 조율.
 export const LOVE_PRICE = '₩9,900';
@@ -76,6 +78,12 @@ export default function LoveScreen() {
   const [reloadKey, setReloadKey] = useState(0);         // ChartPicker 로 대표 전환 시 재로드 트리거
   const [expiry, setExpiry] = useState<string | null>(null); // 보유 만료일(생성일+1년) — 캐시 created_at으로 채움(daniel #25)
   const c = useMemo(() => (savedChart ? computeChart(savedChart.input) : null), [savedChart]);
+  // 인연 가능성 게이지(무료·결정론·API 0) — 재회와 동일 신호(배우자궁 개폐·도화·인연星 발동+강약)로 산출, 애정 카피만 다름.
+  //   LoveFlowGraph(흐름 곡선) '위'에 얹어 '지금 인연 기운'을 0~100 + 한 줄로(무료 훅) → 아래 유료 깊은 풀이로 유도.
+  const loveGauge = useMemo(
+    () => (c?.saju ? loveInyeonGauge(c.saju, { sex: savedChart?.input?.sex, timeUnknown: savedChart?.input?.timeAccuracy === '미상' }) : null),
+    [c, savedChart],
+  );
   const gatingRef = useRef(false); // 결제 구간(모달) 연타 차단 — busy(생성중)와 별개
   const reveal = useRef(new Animated.Value(0)).current; // 섹션 순차 등장
 
@@ -203,6 +211,10 @@ export default function LoveScreen() {
       <ChartPicker onChange={() => setReloadKey((k) => k + 1)} />
       <UnlockOverlay visible={busy} message={t('love.generating', '애정 흐름을 풀어내는 중…')} />
       <ContentHero motif={<LoveThread />} image={require('../../../assets/icons/love-hero.jpg')} title={t('love.title')} sub={t('love.sub')} themeColor={LOVE_PINK} />
+      {/* 인연 가능성 게이지(무료·결정론) — 흐름 곡선 '위'에 얹는 핵심 훅. 지금 인연 기운을 0~100 + 한 줄 일상어로. */}
+      {loveGauge && (
+        <PossibilityGauge score={loveGauge.score} label={loveGauge.label} tone={loveGauge.tone} title="인연이 무르익는 흐름" caption={loveGauge.caption} accent={LOVE_PINK} />
+      )}
       {/* 애정 흐름 곡선(재성 12운성·시기별) — 무료 온디바이스 티저(daniel B). 깊은 통변은 아래 유료 */}
       {c?.saju && <LoveFlowGraph saju={c.saju} gender={savedChart?.input?.sex} />}
 
