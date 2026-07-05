@@ -54,7 +54,7 @@ const HERO_BY_KIND: Record<string, any> = {
   child: require('../../assets/icons/child.jpg'), future10: require('../../assets/icons/future10.jpg'),
 };
 
-export function SpecialContentScreen({ kind, category = kind, title, sub, sections, needsZiwei = false, genMsg, heroMotif, themeColor = colors.ju, heroImage, buildBody, freePreview, freeHook, showExpiry = false, premiumCovered = false, headerExtra, autoGen = true }: {
+export function SpecialContentScreen({ kind, category = kind, title, sub, sections, needsZiwei = false, genMsg, heroMotif, themeColor = colors.ju, heroImage, buildBody, freePreview, freeHook, showExpiry = false, premiumCovered = false, headerExtra, autoGen = true, keepHeaderExtra = false, onChartResolved, regenToken }: {
   kind: CreditKind;        // 이용권/unlock 키(roots·image·mission). 크레딧 단위.
   category?: string;       // 캐시·Edge category(기본=kind). daniel B 유명인: 인물별 celeb_{id}로 분리(크레딧은 kind='celeb' 공용).
   title: string;
@@ -72,6 +72,9 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
   premiumCovered?: boolean; // 프리미엄 포함 콘텐츠(자식운 등 프리미엄 5종) = 프리미엄 명식이면 무료 해제·자동생성. 기본 false(스페셜=관리자/크레딧 전용, 프리미엄 무관).
   autoGen?: boolean;         // 프리미엄/소유 시 자동 생성 여부(기본 true). ★자식운=false: 부부/단일을 고른 뒤 '풀이 보기'로 생성(자동생성 시 선택 기회 없음, daniel 07-03).
   headerExtra?: ReactNode;  // 콘텐츠별 상단 커스텀 컨트롤(히어로 아래·섹션/게이트 위, 옵션). 자식운 COUPLE 토글 등 — 잠김·열림 두 상태 모두 노출. 기본 undefined(대부분 콘텐츠는 변화 없음).
+  keepHeaderExtra?: boolean; // headerExtra 를 풀이 공개(revealed) 후에도 계속 노출(기본 false=공개 시 숨김). ★재회=true: 잠긴 상대 표시·'상대 바꾸기'를 풀이 보면서도 접근(daniel 07-05).
+  onChartResolved?: (chartId: string | null) => void; // 대표 명식 → 서버차트ID 해석/전환 시 콜백(옵션). ★재회: 상대 잠금 저장 키(reunion_other_<id>)를 이 id 로 맞추고 명식 전환 시 재로드.
+  regenToken?: number;      // 값이 바뀌면 '그 상대로 다시 풀기' 재생성 트리거(옵션). ★재회: 상대 등록/변경 시 reunion.tsx 가 증가 → 캐시(본인만) 있으면 refresh 로 덮어씀, 없으면 정식 게이트(onStart).
 }) {
   const { t } = useTranslation();
   const router = useRouter();
@@ -99,11 +102,12 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
       const ch = await loadRepChart();
       if (!alive) return;
       setSavedChart(ch);
-      if (!ch || !session) { setLoaded(true); return; }
+      if (!ch || !session) { onChartResolved?.(null); setLoaded(true); return; } // 명식/세션 없음 → 상대 잠금 키 없음(null)
       const cc = computeChart(ch.input);
       const id = await ensureServerChartId(cc, ch.input, session, ch);
-      if (!alive || !id) { setLoaded(true); return; }
+      if (!alive || !id) { onChartResolved?.(null); setLoaded(true); return; } // 서버차트ID 미해석(미로그인 등) → null
       setChartId(id);
+      onChartResolved?.(id); // ★해석된 서버차트ID 통지(재회: 이 명식의 잠긴 상대를 로드/저장)
       // 소유 판정(daniel ⓐⓒ): (premiumCovered면 프리미엄 명식) / 관리자 / 이 차트×종류 unlock(차감 완료) 중 하나여야 풀이 노출. 아니면 설명창(게이트).
       //   ★premiumCovered(자식운 등 프리미엄 포함 콘텐츠)만 프리미엄을 소유로 인정 — 스페셜(astrology/mission 등 기본값)은 프리미엄 무관(관리자/크레딧 전용) 그대로.
       const prem = premiumCovered && isPremiumForChart(id);
@@ -132,6 +136,21 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reading]);
 
+  // ★상대(옛 인연) 등록/변경 시 재생성(daniel 07-05 재회) — regenToken 이 바뀌면 그 상대로 다시 푼다.
+  //   · 이미 풀이(캐시)가 있으면 = 상태 뷰 건너뛰고 refresh 로 덮어쓴다(프리미엄=무료 / 비프리미엄=Edge 재차감).
+  //     → 프리미엄이 '본인만' 캐시를 보던 버그(상대 추가해도 그대로) 해소: 상대를 넣어 실제 재생성.
+  //   · 캐시가 없으면(첫 생성) = 정식 확인·게이트(onStart) 경유 — 상대는 buildBody 로 포함되어 그 상대로 생성된다.
+  //   chartId 미해석(미로그인 등)이면 스킵하고 lastRegenTok 을 갱신하지 않아, chartId 세팅 후 재시도되게 둔다.
+  const lastRegenTok = useRef(0);
+  useEffect(() => {
+    if (!regenToken || regenToken === lastRegenTok.current) return;
+    if (!chartId) return; // 미해석 — 다음 렌더(chartId 세팅)에서 재시도(lastRegenTok 미갱신)
+    lastRegenTok.current = regenToken;
+    if (reading) { setRevealed(true); generate(chartId, c?.ziwei, true); } // 캐시 덮어쓰기(refresh) — 상대 반영
+    else onStart(); // 첫 생성 — 확인·결제 게이트 경유(상대는 buildBody 포함)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [regenToken, chartId]);
+
   // invoke 타임아웃/실패 시 readings 캐시를 폴링해 결과 회수(Edge가 서버에서 계속 생성·캐시하므로).
   //   무거운 풀이(별자리=사주+점성+수비 3계층 등)는 Edge 생성이 87~103s → 클라 invoke가 먼저 끊겨도('Failed to send request')
   //   서버는 완료·캐시함. 그 캐시를 폴링해 로딩 유지한 채 결과를 받아온다(멈춤·"갑자기 완료" 해결, daniel 07-02).
@@ -149,7 +168,7 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
   //   ★C3 part2(daniel 2026-07-03): 클라는 이용권을 차감하지 않는다 — Edge 가 1회 차감/판정(이중차감 제거).
   //   이용권 없으면 Edge 가 needPayment(200) 반환 → 구매 플로우(promptPurchase)로 유도. 생성 성공 시에만
   //   markUnlocked(캐시 힌트) — 게이트가 아니라 재열람 시 owned 표시·재차감 없음.
-  async function generate(idArg?: string, ziweiArg?: any) {
+  async function generate(idArg?: string, ziweiArg?: any, refreshArg = false) {
     const id = idArg ?? chartId;
     if (!id || busy) return;
     setBusy(true);
@@ -158,6 +177,7 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
     logEvent(`${kind}_invoke_start`, { chartId: id });
     try {
       const body: any = { chartId: id, category, kind, tier: 'paid', lang: appLang() };
+      if (refreshArg) body.refresh = true; // ★캐시(본인만) 덮어쓰기(daniel 07-05 재회 상대 재등록) — Edge 가 REGEN_CAP 내 재생성(프리미엄=무료 / 비프리미엄=재차감). refresh 계약은 ReadingScreen 갱신과 동일.
       if (needsZiwei) body.ziwei = ziweiArg ?? c?.ziwei; // 사명 = 자미 보조 교차
       if (buildBody && savedChart) Object.assign(body, buildBody(savedChart)); // 수비학/점성술 = 앱 산출 차트(numerologyChart/natalChart)
       const { data, error } = await supabase.functions.invoke('interpret', { body });
@@ -165,7 +185,7 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
       if ((data as any)?.needPayment || (data as any)?.needPremium) {
         setOwned(false); setBusy(false); setGenProgress({ route: ('/' + kind), active: false });
         logEvent(`${kind}_need_payment`, { chartId: id });
-        promptPurchase(id);
+        promptPurchase(id, refreshArg); // ★refresh 유지 — 결제 후 재시도도 캐시 덮어쓰기여야(재회 상대 반영). 아니면 stale 캐시(본인만)를 서빙.
         return;
       }
       if (error || !data) {
@@ -220,7 +240,7 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
 
   // 구매 유도 — 서버 게이트(Edge)가 needPayment 를 반환했을 때만 호출(클라 차감 없음).
   //   바로 구매: 결제 → 웹훅 적립 폴링(C1) → 재생성(Edge 가 1회 차감) / 또는 마켓 이동. id = 재생성 대상 명식.
-  function promptPurchase(id?: string) {
+  function promptPurchase(id?: string, refresh = false) {
     Alert.alert(title, t('special.needPayMsg', '이용권이 필요해요. 바로 구매하거나 마켓에서 받을 수 있어요.'), [
       { text: t('special.buyNow', '바로 구매'), onPress: async () => {
           if (!purchasesEnabled()) { Alert.alert(title, t('market.payPending', '결제 준비 중이에요. 쿠폰을 이용하거나 잠시 후 다시 시도해 주세요.')); return; }
@@ -228,7 +248,7 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
             const ok = await purchaseCreditRC(kind); if (!ok) return;   // 결제 취소=false(조용히)
             // ★C1 보안(daniel 07-03): 클라 grant/차감 폐지 → 영수증 검증된 웹훅이 적립. 반영까지 폴링 후 재생성(Edge 가 1회 차감).
             const { granted } = await waitForCreditGrant(kind);
-            if (granted) generate(id);
+            if (granted) generate(id, undefined, refresh); // refresh 유지(재회 상대 재등록 후 결제=캐시 덮어쓰기)
             else Alert.alert(title, t('special.applyPending', '결제가 완료됐어요. 적용까지 잠시 걸릴 수 있어요. 잠시 후 다시 시도해 주세요.'));
           } catch (e) { Alert.alert('!', (e as Error).message); }
         } },
@@ -273,8 +293,9 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
           love.tsx가 <LoveFlowGraph>를 히어로 아래 항상 노출하는 배치를 공용화. c.saju에 timeUnknown을 코드베이스 관례(prewarm/Reading)와 동일하게 병합해 전달(클라 computeChart 산출물엔 timeUnknown이 없음). */}
       {freeHook && c?.saju ? freeHook({ ...c.saju, timeUnknown: savedChart?.input?.timeAccuracy === '미상' }) : null}
 
-      {/* 콘텐츠별 상단 커스텀 컨트롤(옵션) — 히어로 아래·상태 뷰/게이트 위. ★풀이를 실제로 공개(revealed)한 뒤엔 숨김 — 상태 뷰·게이트(공개 前)에서는 계속 노출(자식운 COUPLE 토글은 생성 前에만 의미, daniel 07-03). */}
-      {!(reading && owned && revealed) && headerExtra}
+      {/* 콘텐츠별 상단 커스텀 컨트롤(옵션) — 히어로 아래·상태 뷰/게이트 위. ★풀이를 실제로 공개(revealed)한 뒤엔 숨김 — 상태 뷰·게이트(공개 前)에서는 계속 노출(자식운 COUPLE 토글은 생성 前에만 의미, daniel 07-03).
+          단 keepHeaderExtra(재회)=공개 후에도 계속 노출: 잠긴 상대 표시·'상대 바꾸기'를 풀이 보면서도 쓸 수 있게(daniel 07-05). */}
+      {(keepHeaderExtra || !(reading && owned && revealed)) && headerExtra}
 
       {reading?.error ? (
         <View style={styles.card}><Text style={[styles.err, dynStyles.err]}>{String(reading.error)}</Text></View>
