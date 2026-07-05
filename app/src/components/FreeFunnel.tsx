@@ -88,8 +88,9 @@ export function FreeFunnel({ heroImage, question, sub, paidRoute, paidCta, rende
         </View>
       )}
 
-      {/* ★골드 CTA — 유료 깊은 풀이로 유도(퍼널 전환점). 눌림 피드백(PressableScale) + 화살표. */}
-      <PressableScale style={styles.cta} onPress={() => router.push(paidRoute)}>
+      {/* ★골드 CTA — 유료 깊은 풀이로 유도(퍼널 전환점). 눌림 피드백(PressableScale) + 화살표.
+          네비는 앱 관례(router.navigate·홈/joseonjob과 동일 틀) — router.push 로 무반응하던 것 수정(daniel 07-05). */}
+      <PressableScale style={styles.cta} onPress={() => router.navigate(paidRoute as any)}>
         <Text style={styles.ctaTx}>{paidCta}</Text>
         <Text style={styles.ctaArrow}>→</Text>
       </PressableScale>

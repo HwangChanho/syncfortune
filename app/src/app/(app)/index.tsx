@@ -60,12 +60,13 @@ const SECTIONS: Section[] = [
   ] },
   // 프리미엄 = 사주·자미 2허브(각 허브 안에 원국풀이·타임라인 큰 카드) + 궁합 독립(사주+자미 교차, daniel).
   { key: 'premium', titleKey: 'menu.secPremium', descKey: 'menu.secPremiumDesc', items: [
-    { key: 'saju', labelKey: 'menu.saju', descKey: 'menu.sajuDesc', image: require('../../../assets/icons/premium.jpg'), route: '/reading', ready: true, premium: true },        // 허브 제거 → 원국풀이 직접 진입(daniel 07-01)
-    { key: 'ziwei', labelKey: 'menu.ziweiHub', descKey: 'menu.ziweiHubDesc', image: require('../../../assets/icons/ziwei.jpg'), route: '/ziwei', ready: true, premium: true },        // 허브 제거 → 자미 원국풀이 직접
-    { key: 'compat', labelKey: 'menu.compat', descKey: 'menu.compatDesc', image: require('../../../assets/icons/compat.jpg'), route: '/compat', ready: true, premium: true },
-    { key: 'timeline', labelKey: 'menu.timeline', descKey: 'menu.timelineDesc', image: require('../../../assets/icons/timeline.jpg'), route: '/timeline', ready: true, premium: true }, // 연도별 인생 타임라인 = 프리미엄 4종(사주·자미·궁합·타임라인) — 홈 리스트 누락 수정(daniel 07-02)
+    // premium 섹션 5종 — creditKey 부여(프리미엄=「프리미엄 이용중」, 비프리미엄=개별가 표시, daniel 07-05).
+    { key: 'saju', labelKey: 'menu.saju', descKey: 'menu.sajuDesc', image: require('../../../assets/icons/premium.jpg'), route: '/reading', ready: true, premium: true, creditKey: 'reading' },        // 허브 제거 → 원국풀이 직접 진입(daniel 07-01)
+    { key: 'ziwei', labelKey: 'menu.ziweiHub', descKey: 'menu.ziweiHubDesc', image: require('../../../assets/icons/ziwei.jpg'), route: '/ziwei', ready: true, premium: true, creditKey: 'ziwei' },        // 허브 제거 → 자미 원국풀이 직접
+    { key: 'compat', labelKey: 'menu.compat', descKey: 'menu.compatDesc', image: require('../../../assets/icons/compat.jpg'), route: '/compat', ready: true, premium: true, creditKey: 'compat' },
+    { key: 'timeline', labelKey: 'menu.timeline', descKey: 'menu.timelineDesc', image: require('../../../assets/icons/timeline.jpg'), route: '/timeline', ready: true, premium: true, creditKey: 'timeline' }, // 연도별 인생 타임라인 = 프리미엄 4종(사주·자미·궁합·타임라인) — 홈 리스트 누락 수정(daniel 07-02)
     // 신규(daniel 2026-07-02): 자식운 = 프리미엄 5번째 콘텐츠(프리미엄 무료·비프리미엄 개별 유료). premium.jpg 아이콘 재사용(전용 이미지 추후).
-    { key: 'child', labelKey: 'menu.child', descKey: 'menu.childDesc', image: require('../../../assets/icons/child.jpg'), route: '/child', ready: true, premium: true },
+    { key: 'child', labelKey: 'menu.child', descKey: 'menu.childDesc', image: require('../../../assets/icons/child.jpg'), route: '/child', ready: true, premium: true, creditKey: 'child' },
   ] },
   // 스페셜 = 유료 LLM 콘텐츠(애정흐름·인생그래프·신년). 골드 라인아트 타일 이미지(Recraft).
   { key: 'content', titleKey: 'menu.secContent', descKey: 'menu.secContentDesc', items: [
@@ -395,7 +396,7 @@ export default function Home() {
                 <PressableScale key={m.key} ref={(n) => { cardRefs.current[m.key] = n; }} style={[styles.card, styles.textCard]} onPress={() => onPress(m)}>
                   {m.creditKey && (
                     <View style={styles.priceTag}>
-                      <Text style={styles.priceTagText}>{isPremiumForChart(repServerChartId) && !HOME_INDIVIDUAL.has(m.creditKey) ? '프리미엄 이용중' : priceLabel(m.creditKey)}</Text>
+                      <Text style={styles.priceTagText}>{m.premium && isPremiumForChart(repServerChartId) ? '프리미엄 이용중' : priceLabel(m.creditKey)}</Text>
                     </View>
                   )}
                   <Text style={styles.textCardLabel}>{t(m.labelKey)}</Text>
@@ -411,14 +412,11 @@ export default function Home() {
                   {revealed
                     ? <KenBurnsCard source={m.image} />
                     : <View style={[StyleSheet.absoluteFill, styles.cardImgInner, styles.cardPlaceholder]} />}
-                  {prem && (
-                    <View style={styles.premTag}>
-                      <Text style={styles.premTagText}>{t('menu.premiumTag')}</Text>
-                    </View>
-                  )}
+                  {/* premTag(「프리미엄」 코너 배지) 제거(daniel 07-05) — 아래 priceTag가 프리미엄 섹션엔 「프리미엄 이용중」,
+                      그 외/비프리미엄엔 가격을 표시하므로 중복. 프리미엄 여부는 섹션 헤더 + priceTag로 전달. */}
                   {m.creditKey && (
                     <View style={styles.priceTag}>
-                      <Text style={styles.priceTagText}>{isPremiumForChart(repServerChartId) && !HOME_INDIVIDUAL.has(m.creditKey) ? '프리미엄 이용중' : priceLabel(m.creditKey)}</Text>
+                      <Text style={styles.priceTagText}>{m.premium && isPremiumForChart(repServerChartId) ? '프리미엄 이용중' : priceLabel(m.creditKey)}</Text>
                     </View>
                   )}
                   {/* 하단 라벨 바(반투명 남색) — 라벨 + 간략 설명(daniel: 콘텐츠별 설명) */}

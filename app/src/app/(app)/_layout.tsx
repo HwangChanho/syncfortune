@@ -62,6 +62,13 @@ export default function AppLayout() {
         <Stack.Screen name="love" options={{ headerTitle: '' }} />
         <Stack.Screen name="lifegraph" options={{ headerTitle: '' }} />
         <Stack.Screen name="future10" options={{ headerTitle: '' }} />
+        {/* 신규(daniel 2026-07-05) — 재회·짝사랑·취업 유료 + 무료 질문형 퍼널. 기존 콘텐츠와 동일 틀(headerTitle:''). */}
+        <Stack.Screen name="reunion" options={{ headerTitle: '' }} />
+        <Stack.Screen name="crush" options={{ headerTitle: '' }} />
+        <Stack.Screen name="job" options={{ headerTitle: '' }} />
+        <Stack.Screen name="reunionAsk" options={{ headerTitle: '' }} />
+        <Stack.Screen name="crushAsk" options={{ headerTitle: '' }} />
+        <Stack.Screen name="jobAsk" options={{ headerTitle: '' }} />
         <Stack.Screen name="child" options={{ headerTitle: '' }} />
         <Stack.Screen name="newyear" options={{ headerTitle: '' }} />
         <Stack.Screen name="career" options={{ headerTitle: '' }} />
