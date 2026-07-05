@@ -28,6 +28,7 @@ import { buildSajuChart } from '@engine/saju';
 import type { Stem, Branch } from '@spec/chart';
 import { bgSource, colors, radius, space, shadow, font } from '../../lib/theme';
 import { useFontScale } from '../../lib/ui/fontScale';
+import { useHomeViewMode } from '../../lib/ui/homeView'; // 홈 보기 방식(카드/리스트) 저장·토글(daniel)
 import { playSound } from '../../lib/ui/sounds';
 import { BusyOverlay } from '../../components/BusyOverlay'; // 로그아웃 등 긴 콜백 로딩
 import { PressableScale } from '../../components/PressableScale'; // 탭 피드백(눌림 표시)
@@ -175,6 +176,7 @@ export default function Home() {
   const router = useRouter();
   const { t } = useTranslation();
   const { fs } = useFontScale(); // 오늘의 기운 배너 본문(읽는 글) 글자 크기 반영
+  const { viewMode, setViewMode } = useHomeViewMode(); // 홈 메뉴 보기 방식(카드/리스트) — 저장·토글(daniel)
   const gen = useGenProgress(); // 통변 생성 진행률(풀이중 홈 나가면 여기 배너로 %)
   // I(daniel): %가 움직이도록 — 진행 중 풀이가 있으면 주기 리렌더(단일 콜의 추정 % 갱신). 진행 없으면 타이머 미동작.
   const [, setTick] = useState(0);
@@ -393,10 +395,88 @@ export default function Home() {
         {/* 대표 명식 선택/전환 (등록한 다른 명식으로 변경) — 전환 시 오늘의 기운 즉시 재계산(daniel) */}
         <ChartPicker onChange={() => setReloadKey((k) => k + 1)} />
 
+        {/* 홈 보기 방식 토글(daniel: "홈에서 카드뷰↔리스트뷰 변경") — 아래 메뉴를 카드/리스트로 전환.
+            우측 정렬 세그먼트(카드 ▦ / 리스트 ☰), 활성 골드 강조, 선택은 저장(다음 실행에도 유지). */}
+        <View style={styles.viewToggleRow}>
+          <View style={styles.viewToggle}>
+            {(['card', 'list'] as const).map((mode) => (
+              <PressableScale
+                key={mode}
+                style={[styles.viewTogChip, viewMode === mode && styles.viewTogChipOn]}
+                onPress={() => setViewMode(mode)}
+              >
+                <Text style={[styles.viewTogTx, viewMode === mode && styles.viewTogTxOn]}>
+                  {mode === 'card' ? '▦' : '☰'} {t(mode === 'card' ? 'menu.viewCard' : 'menu.viewList')}
+                </Text>
+              </PressableScale>
+            ))}
+          </View>
+        </View>
+
         {/* 무료 / 프리미엄 / 콘텐츠 3범주 — 큰 섹션 헤더 + 좌우 가로 스크롤 카드(daniel) */}
         {SECTIONS.map((sec, secIdx) => {
           const isLight = sec.key === 'light'; // '가볍게 보기' = 항목이 많아 가로 스크롤 대신 2열 줄바꿈(daniel)
           const isDeep = sec.key === 'deep';   // '나에 대해 알기' = 5개 넘어 2줄(컬럼 정렬) 가로 스크롤(daniel 2026-06-23)
+          // 섹션 헤더(밴드/타이틀 + 설명) — 카드뷰·리스트뷰가 동일하게 재사용(중복 제거·정합).
+          const sectionHeader = (
+            <>
+              {/* '무료' 라벨은 빼고(daniel) 맨 위 기본 섹션은 헤더 없이 — 프리미엄·스페셜만 헤더 표시 */}
+              {sec.key === 'hot' ? (
+                // ★'가장 많이 찾는' 홈 강조(daniel 07-05) — 연한 골드 하이라이트 밴드(테두리·🔥 제거). 프리미엄 바로 밑 광고/유료유도 섹션. colors.juSoft/ju = 라이트/다크 자동.
+                <View style={styles.sectionHotBand}>
+                  <Text style={styles.sectionHotTx}>{t(sec.titleKey)}</Text>
+                </View>
+              ) : (
+                <Text style={styles.sectionH}>{t(sec.titleKey)}</Text>
+              )}
+              {sec.key !== 'free' && sec.descKey ? <Text style={styles.sectionDesc}>{t(sec.descKey)}</Text> : null}
+            </>
+          );
+
+          // ── 리스트뷰(daniel: "리스트로 좀 더 보기 편한 뷰") ─────────────────────────
+          //   카드뷰의 순차 공개·켄번스 줌 없이, 각 항목을 세로 '행'으로: 작은 썸네일(좌) + 제목·설명(가운데)
+          //   + 가격 배지/셰브런(우). 썸네일이 작아(≈54px) expo-image 다운샘플로 전량 즉시 로드해도 가볍다.
+          //   가격/프리미엄 판정·진입(onPress)은 카드뷰와 완전히 동일한 헬퍼를 재사용(단일 출처).
+          if (viewMode === 'list') {
+            return (
+              <View key={sec.key} style={styles.section}>
+                {sectionHeader}
+                <View style={styles.listBody}>
+                  {sec.items.map((m) => {
+                    const prem = !!m.premium;
+                    // 가격 텍스트 = 카드뷰와 동일 규칙(프리미엄 명식이면 '이용중', 아니면 개별가). creditKey 없으면 › 셰브런.
+                    const priceTxt = m.creditKey
+                      ? (m.premium && isPremiumForChart(repServerChartId) ? '프리미엄 이용중' : priceLabel(m.creditKey))
+                      : null;
+                    return (
+                      <PressableScale key={m.key} style={styles.listRow} onPress={() => onPress(m)}>
+                        {m.image ? (
+                          // 썸네일(작아서 순차 공개 불필요 — expo-image 다운샘플로 메모리·랙 무시할 수준)
+                          <ExpoImage source={m.image} style={styles.listThumb} contentFit="cover" cachePolicy="memory-disk" transition={120} />
+                        ) : (
+                          // 이미지 없는 항목(텍스트 카드) = 라벨 첫 글자 골드 썸네일 placeholder(행 정렬 유지)
+                          <View style={[styles.listThumb, styles.listThumbPlaceholder]}>
+                            <Text style={styles.listThumbGlyph}>{t(m.labelKey).slice(0, 1)}</Text>
+                          </View>
+                        )}
+                        <View style={styles.listTextCol}>
+                          <Text style={[styles.listLabel, prem && styles.listLabelPrem]} numberOfLines={1}>{t(m.labelKey)}</Text>
+                          {m.descKey ? <Text style={styles.listDesc} numberOfLines={2}>{t(m.descKey)}</Text> : null}
+                        </View>
+                        {priceTxt ? (
+                          <View style={styles.listPriceTag}><Text style={styles.listPriceTx}>{priceTxt}</Text></View>
+                        ) : (
+                          <Text style={styles.listChevron}>›</Text>
+                        )}
+                      </PressableScale>
+                    );
+                  })}
+                </View>
+              </View>
+            );
+          }
+
+          // ── 카드뷰(기본·기존 유지) — 순차 공개 + 켄번스 가로 스크롤 ──────────────────
           const cards = sec.items.map((m, itemIdx) => {
             const prem = !!m.premium;
             // 순차 공개 — 이 카드의 전역 순번(섹션 오프셋 + 항목 인덱스 = 화면 위→아래 순서)이 공개분에 들어왔는지.
@@ -442,16 +522,7 @@ export default function Home() {
           });
           return (
             <View key={sec.key} style={styles.section}>
-              {/* '무료' 라벨은 빼고(daniel) 맨 위 기본 섹션은 헤더 없이 — 프리미엄·스페셜만 헤더 표시 */}
-              {sec.key === 'hot' ? (
-                // ★'가장 많이 찾는' 홈 강조(daniel 07-05) — 연한 골드 하이라이트 밴드(테두리·🔥 제거). 프리미엄 바로 밑 광고/유료유도 섹션. colors.juSoft/ju = 라이트/다크 자동.
-                <View style={styles.sectionHotBand}>
-                  <Text style={styles.sectionHotTx}>{t(sec.titleKey)}</Text>
-                </View>
-              ) : (
-                <Text style={styles.sectionH}>{t(sec.titleKey)}</Text>
-              )}
-              {sec.key !== 'free' && sec.descKey ? <Text style={styles.sectionDesc}>{t(sec.descKey)}</Text> : null}
+              {sectionHeader}
               {isLight ? (
                 // 좌우 스크롤 — 한 줄 5개씩, 5개 넘으면 아래 줄로 쌓음(daniel: 두번째 줄 5개 초과 시 세번째 줄로). 가로 스크롤 유지.
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.hRow}>
@@ -530,6 +601,13 @@ const styles = StyleSheet.create({
   bannerHeadline: { ...font.body, color: colors.ju, fontWeight: '800', fontSize: 16, marginTop: space(3) }, // 오늘의 기운을 아우르는 캐치 타이틀
   bannerProse: { ...font.body, color: colors.inkSoft, marginTop: space(1.5), lineHeight: 22 },
   bannerMore: { ...font.caption, color: colors.ju, fontWeight: '700', marginTop: space(2) },
+  // 홈 보기 방식(카드/리스트) 토글 — 오늘/내일 토글과 동일한 pill 세그먼트, 우측 정렬(daniel).
+  viewToggleRow: { flexDirection: 'row', justifyContent: 'flex-end', marginBottom: space(4) },
+  viewToggle: { flexDirection: 'row', gap: space(1), backgroundColor: colors.overlay, borderRadius: radius.pill, padding: space(1), borderWidth: 1, borderColor: colors.line },
+  viewTogChip: { paddingHorizontal: space(3.5), paddingVertical: space(1.5), borderRadius: radius.pill },
+  viewTogChipOn: { backgroundColor: colors.ju }, // 활성 = 골드(라이트/다크 자동)
+  viewTogTx: { fontSize: 13, fontWeight: '800', color: colors.inkSoft, letterSpacing: 0.2 },
+  viewTogTxOn: { color: '#15132E' }, // 골드 위 다크 텍스트(오늘/내일 토글과 동일)
   // 범주 섹션(무료/프리미엄/콘텐츠) — 큰 헤더 + 좌우 가로 스크롤
   section: { marginBottom: space(6), marginHorizontal: -space(5) }, // 가로 스크롤이 화면 끝까지 닿도록 wrap 패딩 상쇄
   sectionH: { fontSize: 22, fontWeight: '800', color: colors.ju, marginBottom: space(1), letterSpacing: 0.3, paddingHorizontal: space(5) },
@@ -571,6 +649,26 @@ const styles = StyleSheet.create({
     paddingHorizontal: space(2), paddingVertical: space(0.5),
   },
   premTagText: { color: '#15132E', fontSize: 10, fontWeight: '700', letterSpacing: 0.3 },
+  // ── 리스트뷰(daniel: "보기 편한 뷰") — 세로 행: 썸네일 + 텍스트(제목·설명) + 가격/셰브런 ──
+  //   카드뷰보다 조밀·가독 우선. card 배경 + line 테두리 + soft 그림자로 한지/미드나잇 배경 위에서 또렷하게.
+  listBody: { paddingHorizontal: space(5), gap: space(2), marginTop: space(1) }, // section 의 -space(5) 를 상쇄해 콘텐츠 폭 정렬
+  listRow: {
+    flexDirection: 'row', alignItems: 'center', gap: space(3),
+    backgroundColor: colors.card, borderRadius: radius.md,
+    borderWidth: 1, borderColor: colors.line,
+    paddingVertical: space(2.5), paddingHorizontal: space(3),
+    ...shadow.soft,
+  },
+  listThumb: { width: 54, height: 54, borderRadius: radius.sm, backgroundColor: colors.juSoft }, // 로드 전 골드틴트 자리
+  listThumbPlaceholder: { alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.juLine }, // 이미지 없는 항목
+  listThumbGlyph: { fontSize: 22, fontWeight: '800', color: colors.ju },
+  listTextCol: { flex: 1, justifyContent: 'center' }, // 가운데 텍스트 컬럼(남는 폭 차지 → 가격/셰브런 우측 고정)
+  listLabel: { fontSize: 16, fontWeight: '800', color: colors.ink, letterSpacing: 0.2 },
+  listLabelPrem: { color: colors.ju }, // 프리미엄 = 골드 라벨(카드뷰와 동일 신호)
+  listDesc: { fontSize: 12.5, color: colors.inkSoft, lineHeight: 17, marginTop: 2 },
+  listPriceTag: { flexShrink: 0, backgroundColor: colors.ju, borderRadius: radius.pill, paddingHorizontal: space(2.5), paddingVertical: space(1) },
+  listPriceTx: { color: '#15132E', fontSize: 11, fontWeight: '800', letterSpacing: 0.2 },
+  listChevron: { flexShrink: 0, fontSize: 24, fontWeight: '700', color: colors.inkFaint, paddingHorizontal: space(1) },
   authRow: { marginTop: space(8), marginBottom: space(4), alignItems: 'center' },
   linkText: { color: colors.ju, fontSize: 14 },
 });
