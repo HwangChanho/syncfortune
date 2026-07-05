@@ -7,6 +7,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useTranslation } from 'react-i18next';
 import { SpecialContentScreen } from '../../components/SpecialContentScreen';
+import { CrushTiming } from '../../components/CrushTiming';
 import { colors } from '../../lib/theme';
 
 export default function CrushRoute() {
@@ -18,6 +19,8 @@ export default function CrushRoute() {
       showExpiry
       themeColor={colors.ju}
       heroImage={require('../../../assets/icons/crush.jpg')}
+      // ★무료 온디바이스 훅 — 도화 발동 '매력·인연이 도는 달' 달력(히어로 아래·항상 노출). 깊은 통변은 이 아래 유료.
+      freeHook={(saju) => <CrushTiming saju={saju} />}
       title={t('crush.title', '짝사랑 인연운')}
       sub={t('crush.sub', '지금 나의 매력과, 짝사랑·썸이 무르익기 좋은 시기, 다가가는 법을 짚어 드려요')}
       genMsg={t('crush.generating', '끌림의 기운과 인연의 흐름을 읽는 중…')}

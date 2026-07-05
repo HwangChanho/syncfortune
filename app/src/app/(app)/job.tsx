@@ -7,6 +7,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useTranslation } from 'react-i18next';
 import { SpecialContentScreen } from '../../components/SpecialContentScreen';
+import { JobTiming } from '../../components/JobTiming';
 import { colors } from '../../lib/theme';
 
 export default function JobRoute() {
@@ -18,6 +19,8 @@ export default function JobRoute() {
       showExpiry
       themeColor={colors.ju}
       heroImage={require('../../../assets/icons/job.jpg')}
+      // ★무료 온디바이스 훅 — 관성·인성 발동 '취업·합격운이 열리는 시기'(연 단위·히어로 아래·항상 노출). 깊은 통변은 이 아래 유료.
+      freeHook={(saju) => <JobTiming saju={saju} />}
       title={t('job.title', '취업·이직운')}
       sub={t('job.sub', '취업·이직·합격·시험이 잘 풀리는 흐름과 시기, 맞는 직종·준비 법을 짚어 드려요')}
       genMsg={t('job.generating', '취업·합격의 기운과 흐름을 읽는 중…')}
