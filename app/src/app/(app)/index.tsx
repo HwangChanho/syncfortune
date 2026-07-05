@@ -409,7 +409,7 @@ export default function Home() {
               );
             }
             return (
-              <PressableScale key={m.key} ref={(n) => { cardRefs.current[m.key] = n; }} style={[styles.card, sec.key === 'content' && styles.cardHot]} onPress={() => onPress(m)}>
+              <PressableScale key={m.key} ref={(n) => { cardRefs.current[m.key] = n; }} style={styles.card} onPress={() => onPress(m)}>
                 <View style={styles.cardImg}>
                   {/* expo-image 다운샘플 유지(메모리·랙) + 켄번스 느린 줌(daniel #21). absoluteFill 배경 + 위 오버레이. */}
                   {/* 순차 로딩(daniel) — 차례가 온 카드만 이미지 mount, 그 전엔 미드나잇 빈 박스(디코드 분산). 라벨/배지는 그대로 유지(레이아웃 동일). */}
@@ -438,7 +438,6 @@ export default function Home() {
               {sec.key === 'content' ? (
                 // ★'가장 많이 찾는' 홈 강조(daniel 07-05) — 골드 하이라이트 밴드 + 🔥(단순 텍스트 X). 마켓 ★★★ 배지 제거하고 홈으로 강조 이동. colors.juSoft/ju/juLine = 라이트/다크 자동 대응.
                 <View style={styles.sectionHotBand}>
-                  <Text style={styles.sectionHotFire}>🔥</Text>
                   <Text style={styles.sectionHotTx}>{t(sec.titleKey)}</Text>
                 </View>
               ) : (
@@ -526,9 +525,8 @@ const styles = StyleSheet.create({
   // 범주 섹션(무료/프리미엄/콘텐츠) — 큰 헤더 + 좌우 가로 스크롤
   section: { marginBottom: space(6), marginHorizontal: -space(5) }, // 가로 스크롤이 화면 끝까지 닿도록 wrap 패딩 상쇄
   sectionH: { fontSize: 22, fontWeight: '800', color: colors.ju, marginBottom: space(1), letterSpacing: 0.3, paddingHorizontal: space(5) },
-  // ★'가장 많이 찾는' 홈 강조 밴드(daniel 07-05) — 골드 하이라이트 칩. juSoft(연한 골드 틴트)+ju(골드 글씨)+juLine = 라이트/다크 자동.
-  sectionHotBand: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', marginHorizontal: space(5), marginBottom: space(1), backgroundColor: colors.juSoft, borderColor: colors.juLine, borderWidth: 1, borderRadius: radius.md, paddingVertical: space(2), paddingHorizontal: space(3.5), gap: space(2), ...shadow.soft },
-  sectionHotFire: { fontSize: 20 },
+  // ★'가장 많이 찾는' 홈 강조 밴드(daniel 07-05) — 연한 골드 틴트 칩(juSoft)+골드 글씨. 테두리·🔥 제거(daniel). 라이트/다크 자동.
+  sectionHotBand: { alignSelf: 'flex-start', marginHorizontal: space(5), marginBottom: space(1), backgroundColor: colors.juSoft, borderRadius: radius.md, paddingVertical: space(2), paddingHorizontal: space(3.5) },
   sectionHotTx: { fontSize: 21, fontWeight: '900', color: colors.ju, letterSpacing: 0.3 },
   sectionDesc: { ...font.caption, color: colors.inkSoft, marginBottom: space(3), paddingHorizontal: space(5), lineHeight: 18 },
   hRow: { gap: space(3), paddingHorizontal: space(5), paddingVertical: space(1) }, // 카드 사이 간격 + 좌우 여백(가로 스크롤)
@@ -551,8 +549,6 @@ const styles = StyleSheet.create({
     width: 162, aspectRatio: 0.72, borderRadius: radius.md, overflow: 'hidden', // 카드 높이 더 줄임(daniel: 0.6→0.66→0.72)
     ...shadow.card, // 박스 테두리 제거(이미지 자체 골드 프레임 사용)
   },
-  // ★'가장 많이 찾는'(content) 카드 강조(daniel 07-05) — 골드 테두리(colors.ju=라이트/다크 자동). 이미지 카드가 눈에 띄게.
-  cardHot: { borderWidth: 2, borderColor: colors.ju },
   cardImg: { flex: 1, justifyContent: 'flex-end' },
   cardImgInner: { borderRadius: radius.md },
   // 순차 공개 전 카드 자리 — 미드나잇 빈 박스(이미지 디코드 전 placeholder). 카드와 같은 크기·둥근 모서리 유지(레이아웃 안 흔들림).
