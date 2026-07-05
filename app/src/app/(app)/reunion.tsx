@@ -171,9 +171,16 @@ export default function ReunionRoute() {
           </PressableScale>
         </View>
       ) : (
-        <PressableScale style={styles.addBtn} onPress={() => setOtherReg(true)}>
-          <Text style={styles.addBtnTx}>＋ {t('reunion.otherAdd', '옛 인연 생년월일 입력')}</Text>
-        </PressableScale>
+        <>
+          {/* ★넛지(daniel 07-05 A안): 상대 없이 '본인만' 먼저 뽑으면, 나중에 상대 추가 시 재생성 = 이용권이 한 번 더
+              든다. 성급히 본인만 뽑지 않도록 지금 넣기를 부드럽게 권한다(프리미엄은 재차감 없이 재생성). */}
+          <View style={styles.nudge}>
+            <Text style={styles.nudgeTx}>💡 옛 인연을 <Text style={styles.nudgeStrong}>지금</Text> 넣으면 두 사람 사주를 함께 봐요. 나중에 넣으면 다시 풀어야 해요.</Text>
+          </View>
+          <PressableScale style={styles.addBtn} onPress={() => setOtherReg(true)}>
+            <Text style={styles.addBtnTx}>＋ {t('reunion.otherAdd', '옛 인연 생년월일 입력')}</Text>
+          </PressableScale>
+        </>
       )}
       {/* 동의·프라이버시(규칙8) — 상대 정보는 이 재회 풀이에만, 바꾸기 전까지 이 기기에만 잠금 보관(명식 목록엔 안 남음) */}
       <Text style={styles.privacy}>{t('reunion.otherPrivacy2', '※ 상대 정보는 이 재회 풀이에만 쓰여요. 바꾸기 전까지 이 기기에만 잠겨 보관되고, 명식 목록엔 남지 않아요. 동의를 얻은 경우에만 입력해 주세요.')}</Text>
@@ -249,6 +256,10 @@ const styles = StyleSheet.create({
   // 상대 명식 추가 버튼(점선, 미등록 시)
   addBtn: { padding: space(3.25), borderRadius: radius.md, borderWidth: 1, borderColor: colors.ju, borderStyle: 'dashed', alignItems: 'center', backgroundColor: colors.sunk },
   addBtnTx: { color: colors.ju, fontSize: 14, fontWeight: '800' },
+  // ★넛지(상대 지금 넣기 권유) — 연한 골드 콜아웃(daniel 07-05 A안). 성급히 본인만 뽑아 재차감되는 것 방지.
+  nudge: { backgroundColor: colors.juSoft, borderRadius: radius.md, paddingVertical: space(2.5), paddingHorizontal: space(3.5), marginBottom: space(2.5) },
+  nudgeTx: { ...font.caption, color: colors.inkSoft, lineHeight: 18, fontSize: 12.5 },
+  nudgeStrong: { color: colors.ju, fontWeight: '900' },
   // 잠긴 상대(읽기전용) 박스 — 이름/생일 + 안내 + '상대 바꾸기'
   lockedBox: { backgroundColor: colors.sunk, borderRadius: radius.md, borderWidth: 1, borderColor: colors.juLine, paddingVertical: space(3), paddingHorizontal: space(3.5) },
   lockedTop: { flexDirection: 'row', alignItems: 'center', gap: space(2) },
