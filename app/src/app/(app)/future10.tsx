@@ -6,6 +6,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useTranslation } from 'react-i18next';
 import { SpecialContentScreen } from '../../components/SpecialContentScreen';
+import { Future10Teaser } from '../../components/Future10Teaser'; // ★무료 온디바이스 티저(히어로 아래·항상 노출) — 10년 뒤 큰 흐름·부합도 → 유료 전환 후크
 import { colors } from '../../lib/theme';
 
 export default function Future10Route() {
@@ -18,6 +19,9 @@ export default function Future10Route() {
       sub={t('future10.sub', '대운·세운으로 보는 10년 뒤의 나와 지금부터의 준비')}
       genMsg={t('future10.gen', '10년 뒤를 그리는 중…')}
       showExpiry
+      // ★무료 온디바이스 훅(재회 ReunionTiming / 애정 LoveFlowGraph 와 동일 배치) — 10년 뒤 큰 흐름·용신 부합
+      //   게이지를 히어로 아래·항상 노출(잠김/열림 무관). 깊은 통변(그때 구체 변화·준비)은 이 아래 유료.
+      freeHook={(saju) => <Future10Teaser saju={saju} />}
       sections={[
         { key: 'bigPicture', label: t('future10.bigPicture', '10년 뒤 큰 그림') },
         { key: 'career', label: t('future10.career', '커리어·성취') },

@@ -29,6 +29,7 @@ import { confirmReadingChart } from '../lib/ui/confirmChart'; // 생성 전 명�
 import { stemElement, branchElement, elementColor, elementText, stemYinYang, branchYinYang } from '../lib/engine/ohaeng';
 import { TTSButton } from '../components/TTSButton'; // daniel: 풀이 음성 읽기(온디바이스 TTS·무료)
 import { UnlockOverlay } from '../components/UnlockOverlay'; // 시기 통변 생성 중 로딩(타임라인 테마 영상)
+import { TimelineTeaser } from '../components/TimelineTeaser'; // 무료 결정론 대운 흐름 스트립(유료 카드 위·API 0·퍼널)
 import { colors, radius, space, shadow, font } from '../lib/theme';
 import type { ChartInput } from '@spec/chart';
 import type { SavedChart } from '../lib/engine/myChart';
@@ -319,6 +320,9 @@ export function TimelineScreen({ input, savedChart }: { input: ChartInput | null
       <UnlockOverlay visible={!!busy} videoKey="timeline" message={t('timeline.generating')} />
       <Text style={[styles.h, { fontSize: fs(22) }]}>{t('reading.timelineTitle')}</Text>
       <Text style={[styles.sub, { fontSize: fs(12), lineHeight: fs(19) }]}>{t('reading.timelineSub')}</Text>
+
+      {/* 무료 결정론 티저 — 유료 연도별 풀이 '위'에 대운 흐름 스트립(온디바이스·API 0). 아래 유료 카드로 자연 유도 */}
+      {c.saju ? <TimelineTeaser saju={c.saju} /> : null}
 
       {/* ── 위: 대운(10년) ── */}
       <Text style={[styles.secH, { fontSize: fs(15) }]}>{t('timeline.decades')}</Text>

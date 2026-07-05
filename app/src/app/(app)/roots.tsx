@@ -4,6 +4,7 @@
 import { useTranslation } from 'react-i18next';
 import { SpecialContentScreen } from '../../components/SpecialContentScreen';
 import { RootsTree } from '../../components/contentMotifs';
+import { RootsTeaser } from '../../components/RootsTeaser'; // 무료 온디바이스 티저(통근·투출 강도) → 유료 전환 퍼널
 import { elementColor } from '../../lib/engine/ohaeng';
 
 export default function RootsRoute() {
@@ -16,6 +17,9 @@ export default function RootsRoute() {
       themeColor={elementColor['木']}
       heroImage={require('../../../assets/icons/hero-roots.jpg')}
       heroMotif={<RootsTree />}
+      // ★무료 온디바이스 티저 — 히어로 아래·잠김/열림 무관 항상 노출(재회/애정/인생그래프와 동일 퍼널).
+      //   4기둥(근묘화실) 통근·투출 강도 막대 + 전체 단단함 → 아래 유료 깊은 풀이로 유도. saju 는 SpecialContentScreen 이 병합해 넘김.
+      freeHook={(saju) => <RootsTeaser saju={saju} />}
       title={t('roots.title', '명식의 뿌리')}
       sub={t('roots.sub', '겉으로 드러난 나와 속에 품은 힘, 그리고 진짜 단단한 기운을 짚어 드려요')}
       genMsg={t('roots.generating', '뿌리를 더듬는 중…')}
