@@ -68,6 +68,7 @@ function asText(v: any): string {
 // 사주 16영역 = lib/prewarmReadings 와 단일 출처 공유(프리워밍·화면이 같은 캐시 키를 쓴다).
 import { SAJU_READING_CATEGORIES as SAJU_CATEGORIES, ensureServerChartId } from '../lib/backend/prewarmReadings';
 import { UnlockOverlay } from '../components/UnlockOverlay'; // 풀이 생성 중 화면 가림 로딩(daniel)
+import { DoorReveal } from '../components/DoorReveal'; // 풀이 진입 골드 명조 문 열림 영상(daniel 07-06)
 
 // ADR-055 P3: opt-in 갱신 — 통변 분석(L2) 버전. Edge interpret 의 L2_VER 과 동기화(메이저 통변 개선 시 양쪽 +1).
 //   저장된 풀이의 l2_ver 가 이 값보다 낮으면(=옛 분석) '최신 해석으로 갱신' 노출. 레거시(l2_ver 0·분리 전)는 미노출.
@@ -125,6 +126,12 @@ export function ReadingScreen({
   const autoRan = useRef(false);                          // 프리미엄 진입 시 자동 생성 1회 가드
   const previewRan = useRef(false);                       // 미리보기(첫 분야 맛보기) 1회 가드 — 무료 진입용
   const startingRef = useRef(false);                      // onStart(생성 시작) 연타 가드(동기 ref) — 이중 결제·중복 API 호출 차단(daniel). runAll의 genActive(모듈락) 앞단에서 동기 차단.
+  // ★풀이 진입 문 열림(daniel 07-06): 풀이가 준비돼 보이는 순간(캐시/생성완료·생성중 아님) 골드 명조 문 1회 연출. 명식 전환=부모 key 리마운트라 매 진입 재생.
+  const [doorPlaying, setDoorPlaying] = useState(false);
+  const doorShown = useRef(false);
+  useEffect(() => {
+    if (Object.keys(readings).length > 0 && !progress && !doorShown.current) { doorShown.current = true; setDoorPlaying(true); }
+  }, [readings, progress]);
   // 대표 명식 여부 — 프리미엄 '자동 생성'은 대표 명식에만(비용통제 daniel: 명식 100개 자동 생성 방지).
   //   대표가 아니면 프리미엄이라도 수동 '생성' 버튼으로(의도된 1회 소비). 캐시는 그대로 표시.
   const [isRep, setIsRep] = useState(false);
@@ -535,6 +542,8 @@ export function ReadingScreen({
   return (
     <>
     <UnlockOverlay visible={showUnlockOverlay(!!progress, Object.keys(readings).length) /* 생성중+캐시0일 때만 — 기존 풀이 위 자물쇠 방지(readingGate·테스트됨) */} message={progress?.current ? t('reading.progress', { current: progress.current, done: progress.done, total: progress.total }) : t('reading.generating', '풀이를 정성껏 그리는 중…')} videoKey={kind === 'ziwei' ? 'ziwei' : 'saju'} /* 사주=saju / 자미두수=ziwei 테마 로딩 영상(ReadingScreen 은 kind prop 로 두 종류 공용) */ />
+    {/* 풀이 진입 순간 골드 명조 문 열림 영상 — 1회 재생 후 페이드아웃(daniel 07-06) */}
+    <DoorReveal visible={doorPlaying} onDone={() => setDoorPlaying(false)} />
     <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>
       {header}
       {/* 풀이 보유 만료일 — 공통 컴포넌트(프리미엄 가드·문구 한 곳, daniel 07-01). 생성된 풀이 있을 때만. */}
