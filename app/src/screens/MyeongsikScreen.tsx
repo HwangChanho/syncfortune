@@ -20,6 +20,7 @@ import { OhaengIcon } from '../components/OhaengIcon';
 import { stemElement, branchElement, elementColor, elementText, stemReading, branchReading, stemYinYang, branchYinYang, eumYangSkew, johuSkew } from '../lib/engine/ohaeng';
 import { ELEMENT_SKEW, tengodSkew, YINYANG_SKEW, JOHU_SKEW, CONCEPT_INFO, type SkewItem } from '../lib/content/skewKnowledge';
 import { useFontScale } from '../lib/ui/fontScale'; // 글자 크기(설정) — 명식 글자까지 모든 텍스트에 적용(daniel)
+import { emph } from '../lib/ui/richText'; // 콘텐츠 *별표 강조* → bold 렌더(CONCEPT_INFO 개념설명, daniel 2026-07-07)
 // ⚠️ 전환 지연(useDeferredReady/ChartSkeleton)은 이 컴포넌트 *내부에서 조기 return* 하면 안 된다 —
 //   본문 곳곳(140·145~·282…)에 useState 가 있어, ready false→true 재렌더 시 hook 수가 바뀌어
 //   "Rendered more hooks than during the previous render" 크래시(06-29). 지연은 *래퍼*(charts/myeongsik 라우트)가
@@ -1144,7 +1145,7 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
               const block = (label: string, sub: string, concept: string, item: SkewItem | null, favorable = false) => (
                 <View style={styles.strDetailCard} key={label}>
                   <Text style={styles.strDetailTitle}>{label} · {sub}</Text>
-                  {concept ? <Text style={styles.strDetailBody}>{concept}</Text> : null}
+                  {concept ? emph(concept, styles.strDetailBody) : null}
                   {item ? (<><Text style={styles.strDetailLabel}>{favorable ? '이렇게 강하면' : '이렇게 쏠리면'}</Text><Text style={styles.strDetailBody}>{item.problem}</Text><Text style={styles.strDetailLabel}>{favorable ? '살리는 법' : '대응법(개운)'}</Text><Text style={styles.strDetailBody}>{item.remedy}</Text></>) : <Text style={styles.strDetailBody}>치우침이 크지 않아 무난해요.</Text>}
                 </View>
               );

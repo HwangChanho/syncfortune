@@ -14,6 +14,7 @@ import { computeChart } from '../../lib/engine/engine';
 import { countryFit, type CountryRec } from '../../lib/content/countryFit';
 import { colors, radius, space, shadow, font } from '../../lib/theme';
 import { useFontScale } from '../../lib/ui/fontScale';
+import { emph } from '../../lib/ui/richText'; // 콘텐츠 *별표 강조* → bold 렌더(별표 제거, daniel 2026-07-07)
 import { ChartPicker } from '../../components/ChartPicker';
 import { useLogContentVisit } from '../../lib/backend/contentVisit'; // 콘텐츠 방문 집계(daniel 2026-07-06) — 진입 1회 기록
 
@@ -63,7 +64,7 @@ export default function CountryScreen() {
           <>
             <View style={[styles.card, styles.headCard]}>
               <Text style={styles.johuBadge}>조후: {fit.johu} (따뜻 {fit.warm} · 차가움 {fit.cold})</Text>
-              <Text style={[styles.headline, { fontSize: fs(15), lineHeight: fs(24) }]}>{fit.headline}</Text>
+              {emph(fit.headline, [styles.headline, { fontSize: fs(15), lineHeight: fs(24) }])}
             </View>
             <Text style={styles.h}>살기 좋은 곳</Text>
             <View style={styles.card}>{fit.recommend.map((c) => card(c, 'rec'))}</View>
@@ -71,7 +72,7 @@ export default function CountryScreen() {
               <Text style={styles.h}>주의할 결</Text>
               <View style={styles.card}>{fit.caution.map((c) => card(c, 'caution'))}</View>
             </>)}
-            <Text style={styles.note}>{fit.note}</Text>
+            {emph(fit.note, styles.note)}
             <Text style={styles.disclaimer}>* 기운 보완 관점의 안내예요(이주·이민 조언 아님). 정확한 풀이는 원국 전체로.</Text>
           </>
         ) : null}
