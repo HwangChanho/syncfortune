@@ -305,7 +305,7 @@ const styles = StyleSheet.create({
   actSheetCancel: { marginTop: space(2), backgroundColor: colors.sunk, borderRadius: radius.md },
   actSheetCancelTx: { fontSize: 16, fontWeight: '700', color: colors.inkSoft },
   // 프리미엄 지정 명식 배지(골드) — 명식 옆에 프리미엄 여부(daniel 07-02)
-  premBadge: { backgroundColor: colors.ju, borderRadius: radius.pill, paddingHorizontal: space(2), paddingVertical: 1, overflow: 'hidden' },
+  premBadge: { backgroundColor: colors.badgeGold, borderRadius: radius.pill, paddingHorizontal: space(2), paddingVertical: 1, overflow: 'hidden' },
   premBadgeTx: { color: colors.bg, fontSize: 10, fontWeight: '900' },
   rowName: { ...font.body, fontWeight: '600', color: colors.ink },
   rowOn: { color: colors.ju },

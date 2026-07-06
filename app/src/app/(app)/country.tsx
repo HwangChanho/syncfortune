@@ -88,7 +88,7 @@ const styles = StyleSheet.create({
   h: { ...font.heading, color: colors.ju, marginTop: space(5), marginBottom: space(2) },
   card: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.juLine, padding: space(4), marginBottom: space(2), ...shadow.card },
   headCard: { borderColor: colors.ju, borderWidth: 1.5 },
-  johuBadge: { ...font.label, color: colors.ju, marginBottom: space(2) },
+  johuBadge: { ...font.label, color: colors.badgeGold, marginBottom: space(2) },
   headline: { ...font.body, color: colors.ink },
   row: { flexDirection: 'row', alignItems: 'center', gap: space(3), paddingVertical: space(2.5), borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.line },
   rowCaution: { opacity: 0.85 },

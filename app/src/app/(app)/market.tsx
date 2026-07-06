@@ -394,7 +394,7 @@ const styles = StyleSheet.create({
   card: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.line, padding: space(4), marginBottom: space(3), ...shadow.card },
   name: { fontSize: 16, fontWeight: '800', color: colors.ink },
   // ★★★ 가장 많이 찾는 배지(daniel 07-05) — 골드 필, 이름 위 작게
-  hotBadge: { alignSelf: 'flex-start', backgroundColor: colors.ju, borderRadius: radius.pill, paddingHorizontal: space(2), paddingVertical: 1, marginBottom: 3, overflow: 'hidden' },
+  hotBadge: { alignSelf: 'flex-start', backgroundColor: colors.badgeGold, borderRadius: radius.pill, paddingHorizontal: space(2), paddingVertical: 1, marginBottom: 3, overflow: 'hidden' },
   hotBadgeTx: { color: colors.bg, fontSize: 10, fontWeight: '900', letterSpacing: 0.2 },
   thumb: { width: 46, height: 64, borderRadius: radius.md, marginRight: space(3), backgroundColor: colors.sunk }, // 마켓 리스트 카드 썸네일(작게·daniel)
   desc: { ...font.caption, color: colors.inkSoft, marginTop: 2, marginBottom: 1, lineHeight: 16 }, // 설명 아랫줄(홈과 동일)

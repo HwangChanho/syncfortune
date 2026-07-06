@@ -26,6 +26,7 @@ const DARK = {
   ink: '#EDE7D6', inkSoft: '#ADA4C8', inkFaint: '#6E6692', line: '#332E58',
   ju: '#C9A14A', juDeep: '#A8843A', juSoft: '#2B2652', juLine: '#6B5A33',
   gold: '#C9A14A', white: '#FFFFFF',
+  badgeGold: '#C9A14A', // ★배지 전용 금색 — 라이트/다크 동일(다크 금색). daniel 07-07: 라이트에서 배지 금색은 다크와 동일.
   // ★어두운 히어로 이미지 위 텍스트/스크림 — 스킴 무관 *항상* 밝은 글씨 + 어두운 스크림.
   //   (히어로 배너 이미지는 라이트모드에서도 어둡기 때문에 ink(라이트=어두움)를 쓰면 안 보임 — daniel 가시성 QA)
   onImage: '#F7F1E3', onImageSoft: 'rgba(247,241,227,0.86)', scrimHero: 'rgba(16,14,34,0.5)',
@@ -41,6 +42,7 @@ const LIGHT = {
   ink: '#2B2722', inkSoft: '#6A645B', inkFaint: '#9A938A', line: '#CDC3AF', // 카드 테두리 더 또렷(한지 배경 위 필드 분리, daniel 07-03)
   ju: '#A08948', juDeep: '#84703B', juSoft: '#EFEBE0', juLine: '#C9C0A6',
   gold: '#A08948', white: '#FFFFFF',
+  badgeGold: '#C9A14A', // ★배지 전용 금색 — 라이트에서도 다크 금색(밝은 #C9A14A) 사용. daniel 07-07(배지만 예외적 채도↑).
   // ★어두운 히어로 이미지 위 텍스트/스크림 — DARK와 동일값(이미지가 어두우므로 라이트모드에서도 밝은 글씨·어두운 스크림이라야 보임).
   onImage: '#F7F1E3', onImageSoft: 'rgba(247,241,227,0.86)', scrimHero: 'rgba(16,14,34,0.5)',
   // 한지 위 옅은 스크림(라이트) — 채도 낮춰 차분하게.

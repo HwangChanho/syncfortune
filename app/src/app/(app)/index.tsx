@@ -630,7 +630,7 @@ const styles = StyleSheet.create({
   // 가격 마킹 배지 — 프리미엄 마크와 동일(골드 pill·다크 텍스트·10pt/700, daniel)
   priceTag: {
     position: 'absolute', top: space(2.5), right: space(2.5), zIndex: 1,
-    backgroundColor: colors.ju, borderRadius: radius.pill,
+    backgroundColor: colors.badgeGold, borderRadius: radius.pill, // ★배지 금색(라이트도 다크 금색·daniel 07-07)
     paddingHorizontal: space(2), paddingVertical: space(0.5),
   },
   priceTagText: { color: '#15132E', fontSize: 10, fontWeight: '700', letterSpacing: 0.3 },
@@ -649,7 +649,7 @@ const styles = StyleSheet.create({
   cardLabelPrem: { color: colors.ju }, // 프리미엄 = 골드 라벨
   premTag: {
     position: 'absolute', top: space(2.5), right: space(2.5),
-    backgroundColor: colors.ju, borderRadius: radius.pill,
+    backgroundColor: colors.badgeGold, borderRadius: radius.pill, // ★배지 금색 통일(daniel 07-07)
     paddingHorizontal: space(2), paddingVertical: space(0.5),
   },
   premTagText: { color: '#15132E', fontSize: 10, fontWeight: '700', letterSpacing: 0.3 },
@@ -670,7 +670,7 @@ const styles = StyleSheet.create({
   listLabel: { fontSize: 16, fontWeight: '800', color: colors.ink, letterSpacing: 0.2 },
   listLabelPrem: { color: colors.ju }, // 프리미엄 = 골드 라벨(카드뷰와 동일 신호)
   listDesc: { fontSize: 12.5, color: colors.inkSoft, lineHeight: 17, marginTop: 2 },
-  listPriceTag: { flexShrink: 0, backgroundColor: colors.ju, borderRadius: radius.pill, paddingHorizontal: space(2.5), paddingVertical: space(1) },
+  listPriceTag: { flexShrink: 0, backgroundColor: colors.badgeGold, borderRadius: radius.pill, paddingHorizontal: space(2.5), paddingVertical: space(1) },
   listPriceTx: { color: '#15132E', fontSize: 11, fontWeight: '800', letterSpacing: 0.2 },
   listChevron: { flexShrink: 0, fontSize: 24, fontWeight: '700', color: colors.inkFaint, paddingHorizontal: space(1) },
   authRow: { marginTop: space(8), marginBottom: space(4), alignItems: 'center' },

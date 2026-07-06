@@ -198,7 +198,7 @@ const styles = StyleSheet.create({
   age: { ...font.caption, color: colors.inkFaint, fontSize: 11, marginTop: space(1.5), textAlign: 'center' },
   ageCur: { color: colors.ju, fontWeight: '800' },
   badgeSlot: { height: 16, justifyContent: 'center' },
-  nowBadge: { fontSize: 10, fontWeight: '900', color: colors.ju, letterSpacing: 0.3 },
+  nowBadge: { fontSize: 10, fontWeight: '900', color: colors.badgeGold, letterSpacing: 0.3 },
   legend: { ...font.caption, color: colors.inkFaint, fontSize: 10.5, lineHeight: 15, marginTop: space(3), textAlign: 'center' },
   // 현재 흐름 한 줄(라벨:값)
   nowCard: { backgroundColor: colors.sunk, borderRadius: radius.md, padding: space(4), marginBottom: space(3) },

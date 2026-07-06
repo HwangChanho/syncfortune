@@ -217,7 +217,7 @@ const styles = StyleSheet.create({
   dayHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: space(2) },
   detailDate: { fontSize: 16, fontWeight: '800', color: colors.ink },
   badge: { borderRadius: radius.pill, paddingHorizontal: space(2.5), paddingVertical: space(1) },
-  badgeBest: { backgroundColor: colors.ju },
+  badgeBest: { backgroundColor: colors.badgeGold },
   badgeGood: { backgroundColor: 'rgba(212,165,75,0.22)' },
   badgeTx: { fontSize: 11.5, fontWeight: '900' },
   badgeTxBest: { color: colors.bg },

@@ -357,7 +357,7 @@ const styles = StyleSheet.create({
   areaTitle: { fontSize: 18, fontWeight: '900', color: colors.ink },
   // 12달 캘린더 — 월 배지 + 내용 행
   monthRow: { flexDirection: 'row', alignItems: 'flex-start', gap: space(3), marginBottom: space(3) },
-  monthBadge: { width: 28, height: 28, borderRadius: 14, backgroundColor: colors.ju, alignItems: 'center', justifyContent: 'center', marginTop: space(0.5) },
+  monthBadge: { width: 28, height: 28, borderRadius: 14, backgroundColor: colors.badgeGold, alignItems: 'center', justifyContent: 'center', marginTop: space(0.5) },
   monthBadgeTx: { color: colors.bg, fontSize: 13, fontWeight: '900' },
   monthText: { flex: 1, ...font.body, color: colors.ink },
   wait: { ...font.caption, color: colors.inkSoft, marginTop: space(2), textAlign: 'center' },

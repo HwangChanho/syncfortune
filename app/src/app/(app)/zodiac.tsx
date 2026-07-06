@@ -106,7 +106,7 @@ const styles = StyleSheet.create({
   cardHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: space(1.5) },
   cardLabel: { fontSize: 16, fontWeight: '800', color: colors.ink },
   cardLabelMine: { color: colors.ju },
-  mineBadge: { fontSize: 11, fontWeight: '900', color: colors.bg, backgroundColor: colors.ju, paddingHorizontal: space(2), paddingVertical: space(0.75), borderRadius: radius.pill, overflow: 'hidden' },
+  mineBadge: { fontSize: 11, fontWeight: '900', color: colors.bg, backgroundColor: colors.badgeGold, paddingHorizontal: space(2), paddingVertical: space(0.75), borderRadius: radius.pill, overflow: 'hidden' },
   cardText: { ...font.body, color: colors.ink },
   note: { ...font.caption, color: colors.inkFaint, textAlign: 'center', marginTop: space(4), lineHeight: 18 },
 });

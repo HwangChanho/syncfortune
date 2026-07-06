@@ -135,7 +135,7 @@ const styles = StyleSheet.create({
   card: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.juLine, padding: space(5), ...shadow.card, alignItems: 'center' },
   // 점수 카드(온디바이스)
   scoreCard: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.juLine, padding: space(5), marginBottom: space(4), ...shadow.card, alignItems: 'center' },
-  scoreBadge: { fontSize: 14, fontWeight: '800', color: colors.bg, backgroundColor: colors.ju, paddingHorizontal: space(3.5), paddingVertical: space(1.25), borderRadius: radius.pill, overflow: 'hidden' },
+  scoreBadge: { fontSize: 14, fontWeight: '800', color: colors.bg, backgroundColor: colors.badgeGold, paddingHorizontal: space(3.5), paddingVertical: space(1.25), borderRadius: radius.pill, overflow: 'hidden' },
   scoreNum: { fontSize: 34, fontWeight: '900', color: colors.ink, marginTop: space(3) },
   scoreNumUnit: { fontSize: 20, fontWeight: '800', color: colors.inkSoft },
   barRow: { flexDirection: 'row', alignItems: 'center', alignSelf: 'stretch', marginTop: space(4) },
