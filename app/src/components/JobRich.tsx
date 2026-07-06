@@ -46,7 +46,7 @@ export function JobRich({ saju }: { saju: SajuChart }) {
   const d = useMemo(() => {
     // ① 취업 게이지 신호(온디바이스 엔진) — timeUnknown 은 saju 병합값을 읽음(opts 미전달 = 기존 동작).
     const sig = computeJobSignals(saju);
-    const { score, tone, gwanActive, inActive, siksangActive, jaeActive, natalGwanIn, primary } = sig;
+    const { score, tone, gwanActive, inActive, siksangActive, jaeActive, natalGwanIn, primary, pressureNuance } = sig;
 
     // 경향 라벨/문구(§4 경향·단정 금지 + 처방 동반 + 전향적). tone 경계 = 재회 게이지와 동일(66/34).
     const tendency = tone === 'open' ? '열려 있어요' : tone === 'warming' ? '서서히 열려요' : '지금은 조용해요';
@@ -80,7 +80,14 @@ export function JobRich({ saju }: { saju: SajuChart }) {
       ? { label: '지원·면접에 힘을 주는 요일', value: gaeun.day }
       : { label: '합격·면접에 힘을 주는 색', value: gaeun.color };
 
-    return { score, tone, tendency, gaugeCaption, signalLabel, signalBody, teaser };
+    // ★daniel C 게이트 뉘앙스: 신약 + 편관 단독 강발동 → '취업'보다 '압박·시험대'의 결(부정 증폭 금지·전향적·처방 동반 §4).
+    //   관살을 자격·전문성으로 소화하는 다지기 구간으로 프레이밍(살인상생 방향) — 단정·불안 조장 없이.
+    const finalLabel = pressureNuance ? '지금은 취업보다 압박·시험대의 시기예요' : signalLabel;
+    const finalBody = pressureNuance
+      ? '지금 흐름은 자리(직장)를 여는 기운보다 나를 시험하는 압박의 결이 강해요. 무리해서 밀어붙이기보다, 이 압박을 자격·전문성으로 소화해 두면(살을 다스려 힘으로) 다음 흐름에서 문이 더 크게 열려요.'
+      : signalBody;
+
+    return { score, tone, tendency, gaugeCaption, signalLabel: finalLabel, signalBody: finalBody, teaser };
   }, [saju]);
 
   const bright = d.tone === 'open';

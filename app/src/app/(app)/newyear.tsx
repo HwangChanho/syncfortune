@@ -37,6 +37,7 @@ import { ChartPicker } from '../../components/ChartPicker'; // 상단 명식 헤
 import { ShareReadingButton } from '../../components/ShareReadingButton'; // 이슈17: 풀이 결과 공유(가드 내장)
 import { TTSButton } from '../../components/TTSButton'; // 풀이 음성 읽기(온디바이스 TTS·무료)
 import { NewyearWheel } from '../../components/contentMotifs'; // 12달 수레바퀴 모티프
+import { NewyearTeaser } from '../../components/NewyearTeaser'; // 무료 온디바이스 티저(내년 신수 3층 산식 + 큰 삼재 배지 + 길월) — 유료 전환 후크
 import { useFontScale } from '../../lib/ui/fontScale';
 
 // 신년 패키지 분야 8(daniel: 컨텐츠 강화 — 통합·직업·재물·애정·건강·대인·배움·이동)
@@ -67,12 +68,13 @@ export default function NewYearScreen() {
   const gatingRef = useRef(false); // 결제 구간 연타 차단
 
   const category = `newyear_${year}`; // 연운(year_YYYY)과 분리된 신년 전용 캐시
-  // 삼재(온디바이스) — 태어난 해 지지 vs 올해 지지
+  // 대표 명식의 결정론 차트(무료 티저 + 삼재 산출 공용). computeChart 는 엔진 캐시라 재호출 저렴.
+  const c = useMemo(() => (saved ? computeChart(saved.input) : null), [saved]);
+  // 삼재(온디바이스) — 태어난 해 지지 vs 올해 지지. ★유료 통변(Edge) body 로 전달용(올해 기준). 화면 배지는 NewyearTeaser(내년)로 이관.
   const samjae = useMemo(() => {
-    if (!saved) return null;
-    const yb = computeChart(saved.input).saju.pillars['년']?.branch;
+    const yb = c?.saju.pillars['년']?.branch;
     return yb ? samjaeStatus(yb, yearBranch) : null;
-  }, [saved, yearBranch]);
+  }, [c, yearBranch]);
 
   const uid = session?.user?.id ?? null; // ★deps 안정화 — session 객체 참조가 아닌 user.id로(재발행 깜빡임 방지, daniel 07-02)
   useEffect(() => {
@@ -180,14 +182,10 @@ export default function NewYearScreen() {
         <UnlockOverlay visible={busy} message={t('newyear.generating', '올 한 해를 풀어내는 중…')} />
         <ContentHero motif={<NewyearWheel />} image={require('../../../assets/icons/newyear-hero.jpg')} title={`${year}${t('newyear.title', '년 신년운세')}`} sub={t('newyear.heroSub', '올 한 해의 큰 흐름을 한눈에')} themeColor={colors.ju} />
 
-        {/* 삼재 배지(온디바이스 즉시 — 생성 전에도 노출, 전향적 표현) */}
-        {samjae && (
-          <View style={[styles.samjae, samjae.isSamjae ? styles.samjaeOn : styles.samjaeOff]}>
-            <Text style={styles.samjaeTx}>
-              {samjae.isSamjae ? '올해는 새 일보다 정비·건강·관계를 다지면 좋은 해예요' : '올해는 무난히 흘러가는 해예요'}
-            </Text>
-          </View>
-        )}
+        {/* ★무료 온디바이스 티저(내년 신수 3층 곱연산 산식 + 큰 삼재 배지 + 길월 달력) — 히어로 아래·잠김/열림 무관 항상 노출.
+            love.tsx가 게이지/곡선을 히어로 아래 항상 노출하는 배치를 신년에 적용(유료 전환 후크). 내년(curYear+1) 기준.
+            시각 미상은 강도(원국↔세운 합충) 판정에서 시주를 빼도록 timeUnknown 병합해 전달(코드베이스 관례). */}
+        {c?.saju && <NewyearTeaser saju={c.saju} timeUnknown={saved?.input?.timeAccuracy === '미상'} />}
 
         {!loaded ? (
           <View style={styles.card}><ActivityIndicator color={colors.ju} /></View>
@@ -332,10 +330,6 @@ const styles = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: colors.overlay },
   wrap: { padding: space(6), paddingBottom: space(12) },
   h: { ...font.title, color: colors.ink, marginBottom: space(3) },
-  samjae: { borderRadius: radius.md, paddingVertical: space(2.5), paddingHorizontal: space(4), marginBottom: space(4), borderWidth: 1 },
-  samjaeOn: { backgroundColor: 'rgba(229,72,77,0.12)', borderColor: '#E5484D' },
-  samjaeOff: { backgroundColor: colors.juSoft, borderColor: colors.line },
-  samjaeTx: { ...font.body, color: colors.ink, fontWeight: '700', fontSize: 14 },
   keyCard: { backgroundColor: colors.ju, borderRadius: radius.md, padding: space(5), marginBottom: space(3), ...shadow.card },
   keyLabel: { fontSize: 12, fontWeight: '800', color: colors.bg, opacity: 0.8, marginBottom: space(1.5), letterSpacing: 1 },
   keyTx: { fontSize: 18, fontWeight: '900', color: colors.bg, lineHeight: 26 },

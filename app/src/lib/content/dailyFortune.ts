@@ -14,7 +14,7 @@ import { detectInteractionsAmong, classifyStrength, analyzeTenGods } from '@engi
 import { twelveStage } from '@engine/twelve';
 import { analyzeSinsal, gongmang, twelveSinsalAt } from '@engine/sinsal';
 import { appLang } from '../i18n';
-import type { SajuChart, Stem, Branch, PillarPos, ChartPosition } from '@spec/chart';
+import type { SajuChart, Stem, Branch, PillarPos, ChartPosition, TenGod } from '@spec/chart';
 
 export function getDailyFortune(offsetDays = 0) {
   const d = new Date();
@@ -116,7 +116,8 @@ export function dailyHeadline(saju: SajuChart, todayStem: Stem, todayBranch: Bra
     { pos: '일운' as ChartPosition, stem: todayStem, branch: todayBranch },
   ];
   const links = detectInteractionsAmong(items).filter((it) => it.members.includes('일운') && it.level !== '천간');
-  const hasChung = links.some((it) => it.type === '충' || it.type === '형');
+  // ★C1(daniel): 충/형 특화 헤드라인은 고지(개고)·통근 자리를 칠 때만 — 일 단위 개고 과발화 방지(그 외엔 십신 그룹 헤드라인으로 통과).
+  const hasChung = links.some((it) => (it.type === '충' || it.type === '형') && it.members.some((m) => m !== '일운' && isSignificantClash(P, m as PillarPos)));
   const hasHap = links.some((it) => it.type === '합');
   const [g1, g2] = gongmang(P['일'].stem, P['일'].branch);
   const isGm = todayBranch === g1 || todayBranch === g2;
@@ -213,6 +214,9 @@ type Bundle = {
   threeUnite: string; gm: string; gmMoney: string; cheonEul: string; hwagae: string;
   yeokma: string; dohwa: string; moneyBijeop: string; healthLow: string;
   investCaution: string;                                      // 투자 분야 주의(daniel #17 — 흐름·타이밍 관점만, 종목·매수 조언 아님)
+  polarity: Partial<Record<TenGod, string>>;                  // ★C3(daniel): 오늘 기운 正/偏·식/상 결 한 줄(5-lump 복구 — 칠살·상관 등). general 에 덧댐
+  sangGwanGyeonGwan: string;                                  // ★C3(daniel): 상관견관(오늘 상관 + 원국 정관) — 윗사람·규칙 마찰 주의(직업)
+  gate: Record<'work' | 'money' | 'love' | 'health', string>; // ★테마A(daniel): 억부 게이트 — 오늘 기운이 신강약 대비 버거울 때(!favorGood) 분야별 균형 한 줄
 };
 
 const KO: Bundle = {
@@ -304,6 +308,27 @@ const KO: Bundle = {
   moneyBijeop: '주변과 같이 쓰는 돈은 특히 새기 쉬워요 — 오늘만큼은 한도를 정해 두는 게 안전해요.',
   healthLow: '몸이 보내는 신호에 평소보다 민감해지세요 — 오늘은 일찍 쉬는 것이 보약이에요.',
   investCaution: '투자·재테크는 흐름과 타이밍의 관점에서만 가볍게 보세요. 무리한 베팅·빚투는 한 걸음 물러서고, 큰 결정은 하루 묵혀 결제 전 한 번 더 점검 — 구체적인 종목·매수 조언이 아니에요.',
+  // ★C3(daniel): 오늘 천간의 정밀 십신 결 — 5-lump 로 뭉갠 正/偏·식/상 복구(특히 편관=칠살 압박·상관=표출). general 에 한 줄.
+  polarity: {
+    비견: '오늘은 내 뜻과 페이스를 또렷이 세우는 결이에요 — 다만 혼자 다 하려 말고 곁을 살피면 좋아요.',
+    겁재: '경쟁·승부의 기운이 도는 결이에요 — 이기려는 마음보다 함께 가면 오히려 실속이 남아요.',
+    식신: '여유롭게 표현하고 즐기는 순한 결이에요 — 편안하게 재능을 펼쳐 보세요.',
+    상관: '톡톡 튀는 표현과 재치가 살아나는 결이에요 — 말은 한 박자 골라서 하면 빛이 오래가요.',
+    정재: '차곡차곡 실속을 챙기기 좋은 안정적인 결이에요 — 꾸준함이 그대로 이득이 돼요.',
+    편재: '큰 기회·큰돈이 오가는 활달한 결이에요 — 벌인 만큼 관리도 함께하면 확장이 실속으로 남아요.',
+    정관: '질서와 책임이 또렷해지는 반듯한 결이에요 — 맡은 걸 정공법으로 가면 신뢰가 쌓여요.',
+    편관: '압박·긴장이 강하게 들어오는 결이에요 — 정면으로 다 받기보다 힘을 한 번 빼면 한결 수월해요.',
+    정인: '차분히 배우고 기대어 채우는 안정의 결이에요 — 서두르지 말고 기반을 다지세요.',
+    편인: '남다른 직관과 몰입이 도는 결이에요 — 혼자 너무 파고들지 말고 바깥바람도 쐬어 주세요.',
+  },
+  sangGwanGyeonGwan: '표현하고 싶은 마음이 세지는 날이라 윗사람·규칙과 부딪히기 쉬워요 — 하고 싶은 말은 결과로 보여 주고, 예의와 절차를 곁들이면 탈이 없어요.',
+  // ★테마A(daniel): 억부 게이트 — 오늘 기운이 신강약 대비 버거울 때(!favorGood)만 덧대는 분야별 균형 한 줄(§4 전향적).
+  gate: {
+    work: '다만 오늘 기운이 지금의 나에겐 조금 과할 수 있는 결이에요 — 다 떠안기보다 핵심 한두 가지에 집중하면 수월해요.',
+    money: '다만 오늘 기운이 지금의 나에겐 조금 버거운 결이에요 — 돈은 크게 벌이기보다 지키고 관리하는 쪽이 안전해요.',
+    love: '다만 오늘은 마음이 앞서기 쉬운 결이에요 — 한 박자 천천히, 상대의 속도에 맞추면 더 편안해요.',
+    health: '다만 기운을 무리하게 쓰기 쉬운 결이에요 — 쉼을 먼저 챙기면 페이스가 지켜져요.',
+  },
 };
 
 const EN: Bundle = {
@@ -395,6 +420,25 @@ const EN: Bundle = {
   moneyBijeop: 'Money shared with others leaks especially easily — for today, setting a limit is the safe move.',
   healthLow: 'Be more sensitive than usual to what your body signals — today, turning in early is the best medicine.',
   investCaution: 'Treat investing as a matter of flow and timing only. Step back from over-leveraged bets, sleep on big decisions, and double-check before you commit — this is not specific stock or buy advice.',
+  polarity: {
+    비견: 'A day your own will and pace stand out clearly — just don’t do it all alone; keep an eye on those beside you.',
+    겁재: 'A current of rivalry and contest runs today — going together beats trying to win, and more substance stays with you.',
+    식신: 'An easygoing current of expressing and enjoying — unfold your talent at a relaxed pace.',
+    상관: 'Sparkling expression and wit come alive — pick your words a beat slower and the shine lasts.',
+    정재: 'A stable current, good for securing substance bit by bit — steadiness itself becomes gain.',
+    편재: 'A lively current where big chances and money move — manage as much as you make, and expansion becomes real gain.',
+    정관: 'An upright current where order and duty come into focus — go by the book on what you hold, and trust builds.',
+    편관: 'A current of strong pressure and tension — rather than taking it all head-on, ease off once and it gets smoother.',
+    정인: 'A steady current of learning and leaning to refill — don’t rush; shore up your base.',
+    편인: 'A current of rare intuition and immersion — don’t dig in too much alone; get some outside air too.',
+  },
+  sangGwanGyeonGwan: 'Your urge to speak up runs strong today, so you may clash with superiors or rules — show your point through results, add courtesy and process, and there’s no trouble.',
+  gate: {
+    work: 'That said, today’s energy may be a bit much for you right now — focus on one or two essentials rather than taking it all on.',
+    money: 'That said, today’s energy sits a bit heavy for you right now — keep and manage money rather than betting big.',
+    love: 'That said, your heart may run ahead today — go a beat slower and match your partner’s pace for more ease.',
+    health: 'That said, it’s a day you may overspend your energy — put rest first and your pace holds.',
+  },
 };
 
 const JA: Bundle = {
@@ -486,10 +530,39 @@ const JA: Bundle = {
   moneyBijeop: '周りと一緒に使うお金は特に漏れやすい——今日だけは上限を決めておくのが安全。',
   healthLow: '体が送るサインに普段より敏感に——今日は早めに休むのが一番の薬です。',
   investCaution: '投資・資産運用は流れとタイミングの観点だけで軽く。無理なベットや借金投資は一歩引いて、大きな決断は一晩おいて決済前にもう一度——具体的な銘柄・買い推奨ではありません。',
+  polarity: {
+    비견: '自分の意志とペースがはっきり立つ日です——ただ一人で抱えず、周りにも目を向けて。',
+    겁재: '競争・勝負の気が巡る日です——勝とうとするより共に進むほうが、かえって実利が残ります。',
+    식신: 'ゆったり表現し楽しむ穏やかな流れです——気楽に才能を広げてみて。',
+    상관: 'きらめく表現と機知が冴える流れです——言葉を一拍選ぶと輝きが長持ちします。',
+    정재: 'こつこつ実利を固めるのに良い安定した流れです——堅実さがそのまま得になります。',
+    편재: '大きな機会・大金が動く活発な流れです——稼ぐぶん管理も一緒にすれば拡張が実利に。',
+    정관: '秩序と責任がはっきりする端正な流れです——任されたことを正攻法で行くと信頼が積もります。',
+    편관: '圧力・緊張が強く入る流れです——正面から全部受けるより、一度力を抜くと楽になります。',
+    정인: '落ち着いて学び、頼って満たす安定の流れです——急がず土台を固めて。',
+    편인: '人と違う直感と没入が巡る流れです——一人で掘り込みすぎず、外の風にも当たって。',
+  },
+  sangGwanGyeonGwan: '言いたい気持ちが強まる日で、目上や規則とぶつかりやすいです——言い分は結果で見せ、礼儀と手順を添えれば問題ありません。',
+  gate: {
+    work: 'ただ今日の気は、今の自分には少し過剰かもしれません——全部抱えるより、要点一つ二つに絞ると楽です。',
+    money: 'ただ今日の気は、今の自分には少し重めです——お金は大きく広げるより、守って管理するほうが安全。',
+    love: 'ただ今日は気持ちが先走りやすい流れです——一拍ゆっくり、相手のペースに合わせると楽です。',
+    health: 'ただ気を使いすぎやすい日です——休みを先に取ればペースが保てます。',
+  },
 };
 
 const T: Record<Lang, Bundle> = { ko: KO, en: EN, ja: JA };
 const LOW_ENERGY = new Set(['쇠', '병', '사', '묘', '절']); // 건강 분야 휴식 권고 트리거(운성 키는 내부 고정)
+
+// ★C1(daniel 2026-07-06): 개고/변동 이벤트 트리거 하한 ↑ — 일 단위라 매일 충이 걸려 개고가 과발화됨.
+//   충/형을 '큰 변동'으로 읽는 건 **고지(墓庫 辰戌丑未 = 개고 대상) 또는 통근(뿌리) 자리**를 칠 때만.
+//   그 외 비중 낮은 자리 충/형은 '사소한 어긋남'으로 완충(headline 의 충 특화·분야 변동 라인 모두 이 컷을 통과해야 발화).
+const GOJI_SET = new Set<Branch>(['辰', '戌', '丑', '未']); // 고지(墓庫) — 개고의 실체
+function isSignificantClash(P: SajuChart['pillars'], pos: PillarPos): boolean {
+  const pil = P[pos];
+  if (!pil) return false;
+  return GOJI_SET.has(pil.branch) || pil.isRoot === true; // 고지(개고) 또는 통근(뿌리) 자리만 '변동'급으로 인정
+}
 
 export type DailyAreaReading = { key: DailyAreaKey; paragraphs: string[] };
 
@@ -504,11 +577,16 @@ export function dailyChartReadings(saju: SajuChart, todayStem: Stem, todayBranch
 
   const group = GROUP[tenGod(me, todayStem)];
   const bGroup = GROUP[branchTenGod(me, todayBranch)];
+  const tg = tenGod(me, todayStem); // ★C3(daniel): 오늘 천간의 정밀 십신(정/편·식/상). group 은 5-lump, 이건 10정밀 — 칠살·상관 등 결 복구용.
 
   const sc = classifyStrength(saju);
   const strong = sc.type === '신왕' || sc.type === '신강';
   const weak = sc.type === '신약';
-  const favor = group === '비겁' || group === '인성';
+  const favor = group === '비겁' || group === '인성'; // strength() 용 동측(비겁·인성) 지표 — 의미 유지
+  // ★테마A(daniel): 억부 게이트 — 오늘 기운이 신강약 대비 우호적인가(dailyHeadline/preview 와 동일 3분기). 분야별 균형에 소비.
+  const favorGood = weak ? (group === '비겁' || group === '인성')
+    : strong ? (group === '식상' || group === '재성' || group === '관성')
+    : true;
 
   const stage = twelveStage(me, todayBranch);
 
@@ -523,7 +601,9 @@ export function dailyChartReadings(saju: SajuChart, todayStem: Stem, todayBranch
     const others = it.members.filter((m) => m !== '일운') as string[];
     if (others.length >= 2) { generalLines.push(tt.threeUnite); continue; } // 3자 국 완성
     const pos = others[0];
-    const line = tt.link(it.type, tt.posArea[pos] ?? tt.posArea['일']);
+    // ★C1(daniel): 충/형은 고지(개고)·통근 자리를 칠 때만 '변동'으로 — 그 외엔 '사소한 어긋남'(default)으로 완충(일 단위 개고 과발화 방지).
+    const linkType = ((it.type === '충' || it.type === '형') && !isSignificantClash(P, pos as PillarPos)) ? '기타' : it.type;
+    const line = tt.link(linkType, tt.posArea[pos] ?? tt.posArea['일']);
     if (pos === '월') workLines.push(line);
     else if (pos === '일') loveLines.push(line);
     else generalLines.push(line);
@@ -536,12 +616,14 @@ export function dailyChartReadings(saju: SajuChart, todayStem: Stem, todayBranch
   const tw = new Set([twelveSinsalAt(P['년'].branch, todayBranch), twelveSinsalAt(P['일'].branch, todayBranch)]);
   const hasCheonEul = !!sin.sinsal.find((s) => s.name === '천을귀인')?.glyphs.includes(todayBranch);
 
-  const absent = analyzeTenGods(saju).absent;
+  const tga = analyzeTenGods(saju);
+  const absent = tga.absent; // 부재 십신(보충 신호). tga.detail 은 상관견관(원국 정관 유무) 판정에 사용.
 
   // ── 분야별 조립 (기조 → 개인화 시그널 → 색채) ──
   const general: string[] = [tt.area.general[group]];
   if (bGroup !== group) general.push(tt.sub(tt.areaSub[bGroup]));
   general.push(tt.strength(strong, weak, favor));
+  { const pol = tt.polarity[tg]; if (pol) general.push(pol); } // ★C3: 오늘 기운 正/偏·식/상 결(칠살·상관 등 복구)
   general.push(tt.stage[stage] ?? '');
   general.push(...generalLines);
   if (absent.includes(group)) general.push(tt.absent[group]);
@@ -550,20 +632,25 @@ export function dailyChartReadings(saju: SajuChart, todayStem: Stem, todayBranch
   if (tw.has('화개')) general.push(tt.hwagae);
 
   const work: string[] = [tt.area.work[group], ...workLines];
+  if (tg === '상관' && (tga.detail['정관'] ?? 0) > 0) work.push(tt.sangGwanGyeonGwan); // ★C3: 상관견관 복구(오늘 상관 + 원국 정관 → 윗사람·규칙 마찰)
   if (tw.has('역마')) work.push(tt.yeokma);
+  if (!favorGood) work.push(tt.gate.work); // ★테마A: 억부 게이트
 
   const money: string[] = [tt.area.money[group]];
   if (group === '비겁' && strong) money.push(tt.moneyBijeop);
+  if (!favorGood) money.push(tt.gate.money); // ★테마A: 억부 게이트 — 신약 재성날 ≠ 항상 '돈 유리'
   if (isGm) money.push(tt.gmMoney);
 
   // 투자(daniel #17) = 재물 흐름 관점 + 표준 주의(흐름·타이밍만, 종목·매수 조언 아님). ※ 십신별 투자 stance 정교화는 daniel 검수 슬롯.
-  const invest: string[] = [tt.area.money[group], tt.investCaution];
+  const invest: string[] = [tt.area.money[group], ...(!favorGood ? [tt.gate.money] : []), tt.investCaution]; // ★테마A: 억부 게이트
 
   const love: string[] = [tt.area.love[group], ...loveLines];
   if (tw.has('도화')) love.push(tt.dohwa);
+  if (!favorGood) love.push(tt.gate.love); // ★테마A: 억부 게이트
 
   const health: string[] = [tt.area.health[group]];
   if (LOW_ENERGY.has(stage)) health.push(tt.healthLow);
+  if (!favorGood) health.push(tt.gate.health); // ★테마A: 억부 게이트
 
   const clean = (arr: string[]) => arr.filter(Boolean);
   return [

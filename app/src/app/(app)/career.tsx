@@ -31,6 +31,7 @@ import { setGenProgress } from '../../lib/backend/genProgress'; // 일회성 진
 import { colors, radius, space, shadow, font } from '../../lib/theme';
 import { UnlockOverlay } from '../../components/UnlockOverlay';
 import { ChartPicker } from '../../components/ChartPicker'; // 상단 명식 헤더 — 전환 시 그 명식 기준 재로드
+import { CareerTeaser } from '../../components/CareerTeaser'; // ★무료 온디바이스 성향 저울(유료 전환 후크 — 재회/취업과 동일 결)
 import { ShareReadingButton } from '../../components/ShareReadingButton'; // 이슈17: 풀이 결과 공유(가드 내장)
 import { TTSButton } from '../../components/TTSButton'; // 풀이 음성 읽기(온디바이스 TTS·무료)
 
@@ -163,6 +164,11 @@ export default function CareerScreen() {
           <Text style={styles.title}>{t('career.title', '사업가의 나 vs 직장인의 나')}</Text>
           <Text style={styles.sub}>{t('career.sub', '명식과 대운·세운으로, 독립과 조직 두 길을 짚어 드려요')}</Text>
         </View>
+
+        {/* ★무료 온디바이스 티저 — 사업가↔직장인 성향 저울(히어로 아래·잠김/열림 무관 항상 노출·유료 전환 후크).
+            career 는 SpecialContentScreen 이 아닌 커스텀 화면이라 freeHook 슬롯 대신 여기(게이트 위)에 직접 배치(love.tsx 와 동일 결).
+            c.saju 에 timeUnknown 을 코드베이스 관례(prewarm/Reading/freeHook)와 동일하게 병합해 넘긴다. */}
+        {c?.saju ? <CareerTeaser saju={{ ...c.saju, timeUnknown: savedChart?.input?.timeAccuracy === '미상' }} /> : null}
 
         {reading?.error ? (
           <View style={styles.card}><Text style={styles.err}>{String(reading.error)}</Text></View>

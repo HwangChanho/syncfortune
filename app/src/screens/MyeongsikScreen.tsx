@@ -18,7 +18,7 @@ import { colors, radius, space, shadow, font, gradients } from '../lib/theme';
 import { GlassCard } from '../components/GlassCard';
 import { OhaengIcon } from '../components/OhaengIcon';
 import { stemElement, branchElement, elementColor, elementText, stemReading, branchReading, stemYinYang, branchYinYang, eumYangSkew, johuSkew } from '../lib/engine/ohaeng';
-import { ELEMENT_SKEW, TENGOD_SKEW, YINYANG_SKEW, JOHU_SKEW, CONCEPT_INFO, type SkewItem } from '../lib/content/skewKnowledge';
+import { ELEMENT_SKEW, tengodSkew, YINYANG_SKEW, JOHU_SKEW, CONCEPT_INFO, type SkewItem } from '../lib/content/skewKnowledge';
 import { useFontScale } from '../lib/ui/fontScale'; // 글자 크기(설정) — 명식 글자까지 모든 텍스트에 적용(daniel)
 // ⚠️ 전환 지연(useDeferredReady/ChartSkeleton)은 이 컴포넌트 *내부에서 조기 return* 하면 안 된다 —
 //   본문 곳곳(140·145~·282…)에 useState 가 있어, ready false→true 재렌더 시 hook 수가 바뀌어
@@ -1131,23 +1131,20 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
               const elc: Record<string, number> = {};
               for (const p of (['년', '월', '일', '시'] as const)) { const d = P[p]; if (!d) continue; const se = stemElement(d.stem), be = branchElement(d.branch); elc[se] = (elc[se] || 0) + 1; elc[be] = (elc[be] || 0) + (p === '월' ? 2 : 1); }
               const domEl = Object.entries(elc).sort((a, b) => b[1] - a[1])[0];
-              const dist = (c.tenGods?.distribution ?? {}) as Record<string, number>;
-              const TGG: Record<string, string> = { 비견: '비겁', 겁재: '비겁', 식신: '식상', 상관: '식상', 편재: '재성', 정재: '재성', 편관: '관성', 정관: '관성', 편인: '인성', 정인: '인성' };
-              const grp: Record<string, number> = {};
-              for (const [k, v] of Object.entries(dist)) { const g = TGG[k] ?? k; grp[g] = (grp[g] ?? 0) + (v as number); }
-              const domTg = Object.entries(grp).sort((a, b) => b[1] - a[1])[0];
-              const block = (label: string, sub: string, concept: string, item: SkewItem | null) => (
+              // ★테마A(daniel 2026-07-06): 십성 쏠림 = 정/편·식/상 분리 + 신강약 게이트(재/관 신강=용신·길). 10정밀 detail + verdict 소비.
+              const tgSkew = tengodSkew((c.tenGods?.detail ?? {}) as Record<string, number>, c.strength?.verdict ?? '중화');
+              const block = (label: string, sub: string, concept: string, item: SkewItem | null, favorable = false) => (
                 <View style={styles.strDetailCard} key={label}>
                   <Text style={styles.strDetailTitle}>{label} · {sub}</Text>
                   {concept ? <Text style={styles.strDetailBody}>{concept}</Text> : null}
-                  {item ? (<><Text style={styles.strDetailLabel}>이렇게 쏠리면</Text><Text style={styles.strDetailBody}>{item.problem}</Text><Text style={styles.strDetailLabel}>대응법(개운)</Text><Text style={styles.strDetailBody}>{item.remedy}</Text></>) : <Text style={styles.strDetailBody}>치우침이 크지 않아 무난해요.</Text>}
+                  {item ? (<><Text style={styles.strDetailLabel}>{favorable ? '이렇게 강하면' : '이렇게 쏠리면'}</Text><Text style={styles.strDetailBody}>{item.problem}</Text><Text style={styles.strDetailLabel}>{favorable ? '살리는 법' : '대응법(개운)'}</Text><Text style={styles.strDetailBody}>{item.remedy}</Text></>) : <Text style={styles.strDetailBody}>치우침이 크지 않아 무난해요.</Text>}
                 </View>
               );
               return (<>
                 {block('조후', `${jh.skew} (따뜻 ${jh.warm}·차가움 ${jh.cold})`, CONCEPT_INFO.조후, jh.skew !== '중화' ? JOHU_SKEW[jh.skew] : null)}
                 {block('음양', `${ey.skew.replace('양', '+').replace('음', '-')} (+ ${ey.yang}·- ${ey.yin})`, CONCEPT_INFO.음양, ey.skew !== '균형' ? YINYANG_SKEW[ey.skew] : null)}
                 {domEl && domEl[1] >= 4 ? block('오행 쏠림', `${domEl[0]} 강함`, '', ELEMENT_SKEW[domEl[0]]) : null}
-                {domTg && domTg[1] >= 4 ? block('기운(십성) 쏠림', `${domTg[0]} 강함`, '', TENGOD_SKEW[domTg[0]]) : null}
+                {tgSkew ? block('기운(십성) 쏠림', `${tgSkew.god} 강함`, '', tgSkew.item, tgSkew.favorable) : null}
               </>);
             })()}
             <Text style={styles.sheetMeaning}>* 쏠림 경향 안내예요(대응법=개운법). 정확한 풀이는 원국 전체로 봐야 합니다.</Text>

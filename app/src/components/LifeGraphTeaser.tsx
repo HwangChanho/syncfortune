@@ -8,7 +8,7 @@
 // ▶ 곡선/전환점은 lib/content/lifeGraph.ts 가 이미 온디바이스로 산출한다(대운별 '용신 부합도' 점수).
 //   여기선 그걸 그대로 재사용(재계산 X)하고, 유료 화면(lifegraph.tsx)의 곡선과 같은 결로 그린다.
 //   ★화면 텍스트엔 용신/한자/십신 같은 전문 용어를 절대 노출하지 않는다 = 일상어(오르내림·전환점·전성기·다지는 때).
-//   ★곡선 가중치(천간 ×1.5 / 동일 +3·생 +1·극 −2)는 lifeGraph.ts 의 daniel 검수 슬롯을 그대로 따른다(발명 아님).
+//   ★곡선 가중치·희기신 매핑은 lifeGraph.ts 의 daniel 검수 stance(대운 지지 우위 · R2 5분류 대칭 ±3)를 그대로 따른다(여기서 재계산·발명 X).
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useMemo, useRef } from 'react';
 import { View, Text, Animated, Easing, StyleSheet, Dimensions } from 'react-native';
