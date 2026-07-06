@@ -29,6 +29,7 @@
 import { tenGod, HIDDEN } from '@engine/saju';                          // 십신·지장간 표준표(엔진 재사용 — 발명 아님)
 import { scoreStrength } from '@engine/structure';                      // 신강약 지표(personaType가 쓰는 것과 동일 소스) — C 게이트 폴백
 import { toneFromScore, type GaugeTone } from '../love/inyeonGauge';    // 톤 경계(66/34)·타입 = 재회 게이지와 단일 소스(일관 표시)
+import { computeYongsinApprox } from './yongsinApprox';                 // ★A게이트 용신 소스 = 경량 억부용신(daniel 2026-07-06). structure.usefulGod 온디바이스 공란 → 억부로 '관성==용신'·'식상==용신' 절 발동
 import type { SajuChart, Branch, Stem, TenGod, PillarPos, Element } from '@spec/chart';
 
 // ── 십신 그룹/개별(표준 통설). 취업 도메인 매핑 = ★daniel 검수 슬롯. C·A 게이트가 정/편을 차등하므로 개별 상수도 둔다 ──
@@ -144,15 +145,20 @@ function elementGroup(el: string, dayEl: string): SipsinGroup {
   return '비겁';
 }
 /**
- * R2 용신 → 십신 그룹. lifeGraph L41 과 동일하게 saju.structure.usefulGod.value 를 읽는다.
- *   value 가 오행이면 elementGroup, 십신이면 tenGodGroup. 무료 경로(structure 미채움)면 undefined
- *   → A 게이트의 '관성==용신'·'식상==용신' 절은 발동 안 하고 주도발동/살중 등 원국 기반 절로 폴백(정상 열화).
+ * R2 용신 → 십신 그룹. Edge/골든이 채운 structure.usefulGod 가 있으면 우선(조후·통관·병약 포함 완본),
+ *   없으면(무료 온디바이스) 경량 억부용신(computeYongsinApprox)으로 산출 — ★daniel 2026-07-06 억부배선.
+ *   과거: on-device 는 structure 공란 → undefined → A게이트 '관성==용신'·'식상==용신' 절이 죽어 주도발동/살중만 작동(열화).
+ *   지금: 억부 용신 오행을 elementGroup 으로 그룹화 → '관성 오행===용신' ⟺ elementGroup==='관성' 절이 살아난다.
+ *   (strengthClass 가 structure.verdict ?? scoreStrength 로 폴백하는 것과 동일한 레이어링.)
+ * @param opts timeUnknown — 억부 원국 그룹강도 산출에 전달(FreeFunnel 이 saju 밖으로 넘긴 값도 반영).
  */
-function usefulGodGroup(saju: SajuChart): SipsinGroup | undefined {
-  const v = saju.structure?.usefulGod?.value as string | undefined; // lifeGraph.ts L41 과 동일 읽기
-  if (!v) return undefined;
+function usefulGodGroup(saju: SajuChart, opts?: Opts): SipsinGroup {
   const dayEl = saju.dayMaster.element as string;
-  return (ELEMS as string[]).includes(v) ? elementGroup(v, dayEl) : tenGodGroup(v);
+  const v = saju.structure?.usefulGod?.value as string | undefined; // Edge/골든이 채웠으면 우선
+  if (v) return (ELEMS as string[]).includes(v) ? elementGroup(v, dayEl) : tenGodGroup(v);
+  // 온디바이스 무료 경로: 억부근사 용신(오행) → 일간 기준 십신 그룹.
+  const ya = computeYongsinApprox(saju, opts);
+  return elementGroup(ya.yongsin, dayEl);
 }
 
 /**
@@ -239,7 +245,7 @@ export function computeJobSignals(saju: SajuChart, opts?: Opts): JobSignals {
   // ══ C 게이트 전제: 신강약 분류 + R2 용신 그룹(A 게이트가 참조) ══
   const cls = strengthClass(saju);               // 'strong'|'neutral'|'weak'
   const isWeak = cls === 'weak';
-  const yongGroup = usefulGodGroup(saju);        // 용신 → 십신 그룹(무료=undefined)
+  const yongGroup = usefulGodGroup(saju, { timeUnknown }); // 용신 → 십신 그룹(★억부배선: 무료도 억부로 산출·과거 undefined). A게이트 '관성/식상==용신' 절 발동
 
   // ── ① 원국 바탕: 4주(시주 제외 옵션)에서 관/인 슬롯 수 + 살중용식 판정 재료(편관 count·식상 존재) ──
   let natalHits = 0;          // 관/인 자리 수(그릇)
@@ -295,9 +301,9 @@ export function computeJobSignals(saju: SajuChart, opts?: Opts): JobSignals {
   //   ★'관성 주도발동' = 천간(드러난) 관성 발동으로 조작화(daniel "primary 발동 중"): 지장간 배경 관성이 상관견관을
   //     오발동시키지 않도록. 그리고 살중용식(편관≥2 원국)은 상관견관에 우선(살중 원국의 식상=제살(+), 견관(-) 아님).
   const gwanLead = dAct.gwanStem || sAct.gwanStem;      // 관성 주도발동(천간)
-  const gwanIsYong = yongGroup === '관성';
-  const sikIsYong = yongGroup === '식상';
-  const saljung = natalPyeongwan >= 2 && natalHasSiksang; // 살중용식 구조(원국 편관 양투 + 식상 존재)
+  const gwanIsYong = yongGroup === '관성';               // ★억부배선(daniel 2026-07-06): 관성 오행===억부 용신 → 이제 온디바이스에서도 live(과거 undefined 로 사문화)
+  const sikIsYong = yongGroup === '식상';                // ★억부배선: 식상 오행===억부 용신 → live. ※ 살중 선행(STEP1)·if/else 순서는 그대로(발동 조건 소스만 살림)
+  const saljung = natalPyeongwan >= 2 && natalHasSiksang; // 살중용식 구조(원국 편관 양투 + 식상 존재) — STEP1(우선)
   let siksangDelta = 0;
   let aBranch: ABranch = siksangActive ? 'mild' : 'none';
   if (siksangActive) {

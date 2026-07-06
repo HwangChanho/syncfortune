@@ -6,7 +6,7 @@
 //
 // ▶ ★핵심 = daniel 3층 곱연산 산식 (방향 × 강도 + 보정):
 //     신수 = 방향(용신층) × 강도(응기층) + 보정(구조층)
-//   ① 용신층(방향) : 내년 세운 천간·지지 각각을 R2(오행 생극)로 5단 희기신 대조 →
+//   ① 용신층(방향) : 내년 세운 천간·지지 각각을 억부용신 5단(용신/희신/한신/구신/기신)으로 대조 →
 //                    용신 +2 / 희신 +1 / 한신 0 / 구신 −1 / 기신 −2. 천간+지지 합 = 방향(−4~+4).
 //   ② 응기층(강도) : 원국 ↔ 내년 세운 합충형해 강도합(충=강·합=중·형해파=약) → 배율(조용=낮음·시끄러움=높음).
 //   ③ 구조층(보정) : 천간·지지 희기 '괴리'(겉 좋고 속 시끄러움 등) 시 혼합 라벨 + 소폭 보정.
@@ -18,8 +18,9 @@
 //   ★복/악 판정은 반환하되 무료 화면은 '들/눌/날'까지만 노출 = 유료 유도(NewyearTeaser 참고).
 //
 // ⚠️ 온디바이스 한계(★daniel 검수 필수): computeChart 는 saju.structure(용신)를 채우지 않는다(엔진 주석: WS3/골든 영역).
-//    → 용신 오행은 lifeGraph 의 보수적 폴백(인성=일간을 생하는 오행)을 그대로 재사용한다(무료 인생그래프 티저와 동일 결).
-//    실제 용신이 다르면 5단 표가 자동 재계산되므로, 유료(Edge)나 골든 용신 주입 시 정밀해진다. hasUseful=false = 폴백 사용 중.
+//    → 용신 오행은 경량 억부용신(computeYongsinApprox·억부근사)으로 산출한다(daniel 2026-07-06 배선. 과거 lifeGraph 인성 폴백 교체).
+//    억부는 Edge R2(조후·통관·병약 포함)의 부분집합이라, 유료(Edge)/골든 용신과 갈릴 수 있다(divergence — 유료에서 서술).
+//    hasUseful=false = 억부가 판정 보류(극신약 종격 후보) = 방향 신뢰도 낮음.
 //
 // ▶ 화면 텍스트엔 한자·십신 노출 금지 = 일상어. 이 모듈은 neutral key + 최소 일상어 키워드만 반환(컴포넌트가 카피를 얹음).
 //   §4 웰빙: 흉년·삼재 단정 금지 — 낮은 점수도 '다지는 해'로 전향적. 처방·관리축은 컴포넌트/유료가 담당.
@@ -27,16 +28,11 @@
 import { detectInteractionsAmong } from '@engine/structure'; // 합충형해 검출(엔진 재사용) — MyeongsikScreen 확장명식과 동일 로직
 import { stemElement, branchElement } from '../engine/ohaeng'; // 천간·지지 → 오행(木火土金水)
 import { samjaeStatus } from '../engine/samjae';               // 삼재(띠 삼합국 3년) L1 룩업 — 재사용(발명 아님)
-import { lifeGraph } from './lifeGraph';                       // 용신 오행 산출 재사용(structure.usefulGod → 오행 + 폴백) — 단일 소스
+import { computeYongsinApprox, yongsinToClass5, type HuiGiClass } from './yongsinApprox'; // ★용신층 방향 소스 = 경량 억부용신(daniel 2026-07-06). structure.usefulGod 온디바이스 공란 → 억부 근사(lifeGraph 인성 폴백 교체)
 import { toneFromScore, type GaugeTone } from '../love/inyeonGauge'; // 톤 경계(66/34)·타입 = 재회/애정/취업 게이지와 단일 소스(일관 표시)
 import type { SajuChart, Element, Stem, Branch, ChartPosition } from '@spec/chart';
 
-// ── R2 오행 생극(표준) — lifeGraph 와 동일 값·결(모듈 결합 낮추려 로컬 정의, ★daniel 검수 슬롯) ──
-const ELEMS: Element[] = ['木', '火', '土', '金', '水'];
-const GEN: Record<Element, Element> = { 木: '火', 火: '土', 土: '金', 金: '水', 水: '木' };   // X 가 생하는 오행(X→)
-const CTRL: Record<Element, Element> = { 木: '土', 火: '金', 土: '水', 金: '木', 水: '火' };  // X 가 극하는 오행(X→)
-const whoGen = (y: Element): Element => ELEMS.find((e) => GEN[e] === y)!;   // 무엇이 y 를 생하나(y 의 인성 오행)
-const whoCtrl = (y: Element): Element => ELEMS.find((e) => CTRL[e] === y)!; // 무엇이 y 를 극하나(y 의 관성 오행)
+// (오행 생극·희기신 도출은 억부 모듈 yongsinApprox 가 소유 — 여기 로컬 생극표는 제거하고 5단 결론만 소비, daniel 2026-07-06)
 
 // ══ ★daniel 검수: 신수 산식 가중치·표(스탠스 · 전부 튜닝 슬롯) ══════════════════════════════════
 const W = {
@@ -62,20 +58,11 @@ const clamp = (x: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, x
 const STEMS: Stem[] = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'];
 const BRANCHES: Branch[] = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'];
 
-/**
- * 용신 오행 기준 5단 희기신 점수표(오행→점수). 용신+2/희신+1/한신0/구신−1/기신−2.
- *   희신 = 용신을 생(生)하는 오행 / 기신 = 용신을 극(剋)하는 오행 / 구신 = 기신을 생하는 오행 / 나머지 = 한신.
- *   5오행이 정확히 {용신·희신·기신·구신·한신} 으로 일대일 대응한다.
- */
-function heegiTable(useEl: Element): Record<Element, number> {
-  const hee = whoGen(useEl);   // 용신을 생 = 희신
-  const gi = whoCtrl(useEl);   // 용신을 극 = 기신
-  const gu = whoGen(gi);       // 기신을 생 = 구신
-  const tbl = {} as Record<Element, number>;
-  ELEMS.forEach((e) => { tbl[e] = W.han; });  // 기본 = 한신(0)
-  tbl[useEl] = W.yong; tbl[hee] = W.hee; tbl[gi] = W.gi; tbl[gu] = W.gu;
-  return tbl;
-}
+// 억부 5단(용신/희신/한신/구신/기신) → newyear 고유 점수 스케일(±2/±1).
+//   ★daniel 2026-07-06 억부배선: 희기신 '분류'는 억부용신(computeYongsinApprox)이 결론짓고,
+//   여기선 yongsinToClass5 로 임의 오행을 그 5단에 대조한 뒤 이 표로 점수만 환산한다.
+//   lifegraph 는 ±3 대칭이지만 newyear 는 방향×강도 곱연산 튜닝값 보존 위해 ±2/±1 유지(W 값 그대로).
+const CLASS_SCORE: Record<HuiGiClass, number> = { 용신: W.yong, 희신: W.hee, 한신: W.han, 구신: W.gu, 기신: W.gi };
 
 // ── 반환 타입(neutral key — 컴포넌트가 일상어 카피로 매핑) ──────────────────────────────────────
 export type SamjaeLabel = 'deul' | 'nul' | 'nal' | 'none';           // 들/눌/날/삼재아님(전원 노출)
@@ -100,8 +87,8 @@ export interface NewyearSinsu {
   strength: number;         // 응기 강도합(원국↔세운 상호작용)
   mult: number;             // 강도 배율
   mismatch: 'outGoodInHard' | 'outHardInGood' | 'aligned'; // 구조층 괴리
-  usefulEl: Element;        // 쓴 용신 오행(폴백 여부는 hasUseful) — 검수용, 화면 미표시(한자)
-  hasUseful: boolean;       // 실제 structure.usefulGod 유무(false = lifeGraph 인성 폴백)
+  usefulEl: Element;        // 쓴 용신 오행(억부근사) — 검수용, 화면 미표시(한자)
+  hasUseful: boolean;       // 억부 신뢰도(false = 극신약 종격 후보 판정 보류 → Edge 위임)
   interactions: string[];   // 원국↔세운 상호작용 라벨(검수용)
 }
 
@@ -131,11 +118,14 @@ export function newyearSinsu(saju: SajuChart, opts?: Opts): NewyearSinsu {
   const nextStem: Stem = nextAnnual?.stem ?? STEMS[(STEMS.indexOf(cur.stem) + 1) % 10];
   const nextBranch: Branch = nextAnnual?.branch ?? BRANCHES[(BRANCHES.indexOf(cur.branch) + 1) % 12];
 
-  // ── 용신 오행(폴백 포함) — lifeGraph 재사용(structure.usefulGod → 오행 / 없으면 인성 폴백) ──
-  const lg = lifeGraph(saju);
-  const usefulEl = lg.usefulElement as Element;
-  const heegi = heegiTable(usefulEl);
-  const scoreOf = (el: Element) => heegi[el] ?? W.han;
+  // ── ★억부 배선(daniel 2026-07-06): 용신층 방향 소스 = 경량 억부용신 ──
+  //   과거: lifeGraph().usefulElement(structure.usefulGod 없으면 인성 폴백). 온디바이스는 늘 폴백이라 방향이 근사였다.
+  //   교체: computeYongsinApprox 로 억부 용신/희신/기신/구신/한신을 직접 산출 → yongsinToClass5 로 오행별 5단 점수.
+  //   ※ amplitudeScale(중화=×0.5)은 lifeGraph 처럼 '곡선' 진폭 조절용 — newyear 는 단일 게이지(곡선 아님)라 미적용(기존 동작 보존).
+  //   ※ opts.timeUnknown 을 억부에 그대로 전달(FreeFunnel 이 saju 객체 밖으로 넘긴 값도 원국 그룹강도에 반영되도록).
+  const ya = computeYongsinApprox(saju, { timeUnknown });
+  const usefulEl = ya.yongsin;
+  const scoreOf = (el: Element) => CLASS_SCORE[yongsinToClass5(el, ya)];
 
   // ── ① 용신층(방향) : 내년 세운 천간·지지 각각 5단 희기신 → 합 ───────────────
   const dirStem = scoreOf(stemElement(nextStem) as Element);
@@ -187,7 +177,7 @@ export function newyearSinsu(saju: SajuChart, opts?: Opts): NewyearSinsu {
 
   return {
     nextYear, score, tone, keyword, topTheme, samjae, bokAk, goodMonths,
-    dir, dirStem, dirBranch, strength, mult, mismatch, usefulEl, hasUseful: lg.hasUseful,
+    dir, dirStem, dirBranch, strength, mult, mismatch, usefulEl, hasUseful: !ya.jonggyeokHold,
     interactions: links.map((it) => it.detail ?? it.type),
   };
 }

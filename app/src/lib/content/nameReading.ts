@@ -3,6 +3,11 @@
 // 한글 초성의 발음오행(훈민정음 오성): ㄱㅋㄲ=목 / ㄴㄷㄹㅌ=화 / ㅇㅎ=토 / ㅅㅈㅊ=금 / ㅁㅂㅍ=수.
 //   이름 글자 초성의 오행 흐름(상생=순·상극=역)으로 결을 본다. ★발음오행은 작명계 통설(이설 존재) — daniel 검수 슬롯.
 // §4: 가벼운 콘텐츠 — 흉 단정 없이 전향적(부딪힘도 '개성·추진력'으로).
+//
+// ── B6(daniel 2026-07-06): 발음오행 기준 = 훈민정음 후음(喉音) ㅇ·ㅎ = 土 (다수설), 순음(脣音) ㅁ·ㅂ·ㅍ = 水 ──
+//   성명학은 학파마다 ㅇ·ㅎ의 오행이 갈린다(土설 ↔ 水설). 유저(성명학 관심층)는 이 논쟁을 알기에
+//   *어느 기준을 쓰는지 명시*해야 신뢰가 생긴다 → 결과 화면에 기준 한 줄(CRITERION_NOTE)을 노출.
+//   ※ 아래 CHO_ELEM 맵은 이미 ㅇ·ㅎ=土 로 올바르게 세팅돼 있음(변경 불필요, 기준 표기만 추가).
 // ─────────────────────────────────────────────────────────────────────────
 import { appLang } from '../i18n';
 
@@ -33,7 +38,15 @@ function elemOfChar(ch: string): Elem | null {
 }
 
 export type NameElem = { ch: string; elem: Elem; elemLabel: string; hex: string };
-export type NameResult = { chars: NameElem[]; flow: 'good' | 'mixed' | 'tough'; summary: string };
+// B6(daniel): criterionNote = 발음오행 기준 표기(결과 화면에 한 줄 노출). 학파 논쟁(ㅇㅎ의 土/水) 속 어느 기준인지 밝혀 신뢰 확보.
+export type NameResult = { chars: NameElem[]; flow: 'good' | 'mixed' | 'tough'; summary: string; criterionNote: string };
+
+// B6(daniel): 발음오행 기준 = 훈민정음 후음(喉音) ㅇ·ㅎ = 土 (다수설). 3개국어(모듈이 ko/en/ja 지원).
+const CRITERION_NOTE: Record<L, string> = {
+  ko: '훈민정음 후음(ㅇ·ㅎ=土) 기준',
+  en: 'Based on Hunminjeongeum guttural sounds (ㅇ·ㅎ = Earth)',
+  ja: '訓民正音の喉音(ㅇ・ㅎ=土)基準',
+};
 
 const HEX: Record<Elem, string> = { 木: '#3E8E5A', 火: '#C0392B', 土: '#B8860B', 金: '#C9A14A', 水: '#3A6EA5' };
 
@@ -74,5 +87,5 @@ export function analyzeName(name: string): NameResult | null {
     else ctrl++;                                     // 상극
   }
   const flow: NameResult['flow'] = gen > 0 && ctrl === 0 ? 'good' : ctrl > gen ? 'tough' : 'mixed';
-  return { chars, flow, summary: SUMMARY[flow][L] };
+  return { chars, flow, summary: SUMMARY[flow][L], criterionNote: CRITERION_NOTE[L] }; // B6: 기준 표기 동봉
 }

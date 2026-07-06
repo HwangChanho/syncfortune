@@ -518,11 +518,19 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
       <Text style={styles.kv}>{t('myeongsik.dayMaster')} {c.saju.dayMaster.stem}  ·  {t('myeongsik.pattern')}: {c.pattern.candidates.join(', ')}</Text>
       {timeUnknown && <Text style={styles.warn}>{t('myeongsik.timeUnknownNote')}</Text>}
 
-      {/* ★핵심 격(格, 동적 구조) — 살인상생·식신제살·상관패인 등(daniel). 천간+지지본기 십신 존재 기반 후보. 명리 정제 = daniel 검수 슬롯 */}
+      {/* ★핵심 격(格, 동적 구조) — 살인상생·식신제살·상관패인 등(daniel). B5: 월령(월지 본기/투출) 중심으로 발화 게이트. 명리 정제 = daniel 검수 슬롯 */}
       {(() => {
         const present = new Set<string>();
         for (const p of POS) { const d = P[p]; if (d) { present.add(d.stemTenGod); present.add(d.branchMainTenGod); } }
-        const gyeok = detectGyeokguk(present);
+        // B5(daniel 2026-07-06): 월령 앵커 십신 집합 — 격의 주기(主氣)는 반드시 여기 있어야 성립(자평 월령 중심).
+        //   ① 월지 본기 십신(월령)  ② 월지 지장간 중 원국 천간(allGan)에 투출한 것의 십신.
+        const wollyeong = new Set<string>();
+        const wolP = P['월'];
+        if (wolP) {
+          wollyeong.add(wolP.branchMainTenGod);                                        // ① 월령 본기 십신
+          for (const h of wolP.hiddenStems) { if (allGan.includes(h.stem)) wollyeong.add(h.tenGod); } // ② 월지 지장간 투출 → 그 십신도 월령 격 주기
+        }
+        const gyeok = detectGyeokguk(present, wollyeong);
         if (!gyeok.length) return null;
         return (
           <View style={styles.gyeokWrap}>

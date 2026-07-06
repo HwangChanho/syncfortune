@@ -49,6 +49,8 @@ export default function NameScreen() {
             <View style={styles.card}>
               <Text style={[styles.summary, { fontSize: fs(15), lineHeight: fs(25) }]}>{result.summary}</Text>
             </View>
+            {/* B6(daniel): 발음오행 기준 한 줄 명시 — 학파마다 ㅇ·ㅎ 오행이 갈려(土/水), 어느 기준인지 밝혀 신뢰를 준다 */}
+            <Text style={[styles.criterion, { fontSize: fs(12), lineHeight: fs(17) }]}>{result.criterionNote}</Text>
             {/* 이슈17: 이름풀이 결과 공유(앱게이트) */}
             <ShareReadingButton kind="name" title={`${name} 이름풀이`} content={{ summary: result.summary }} />
           </>
@@ -76,6 +78,7 @@ const styles = StyleSheet.create({
   charElem: { ...font.caption, color: colors.inkSoft, fontWeight: '700' },
   card: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.juLine, padding: space(5), ...shadow.card },
   summary: { ...font.body, color: colors.ink },
+  criterion: { ...font.caption, color: colors.inkFaint, textAlign: 'center', marginTop: space(2) }, // B6: 발음오행 기준 표기(후음 ㅇㅎ=土)
   empty: { ...font.body, color: colors.inkSoft, textAlign: 'center' },
   note: { ...font.caption, color: colors.inkFaint, textAlign: 'center', marginTop: space(4), lineHeight: 18 },
 });

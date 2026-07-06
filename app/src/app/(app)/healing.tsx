@@ -69,15 +69,15 @@ export default function HealingScreen() {
           <Text style={styles.subtitle}>{t('healing.elemLead', '내 기운')}: {r.dayLabel}</Text>
         </View>
 
-        {/* 나의 충전 방식 — 일간 오행 */}
+        {/* 나의 충전 방식 — ★억부 용신 오행(daniel B7) */}
         <View style={styles.card}>
-          <Text style={styles.cardHead}>{t('healing.recharge', '나의 충전 방식')}</Text>
+          <Text style={styles.cardHead}>{t('healing.recharge', '나의 충전 방식')} · {r.yongLabel}</Text>
           <Text style={[styles.body, bodyDyn]}>{r.recharge}</Text>
         </View>
 
-        {/* 채우면 좋은 기운 — 가장 적은 오행(보완 활동 + 색·공간·음식) */}
+        {/* 채우면 좋은 기운 — ★억부 희신 오행(daniel B7). 결핍 오행은 참고 표기로 강등 */}
         <View style={styles.card}>
-          <Text style={styles.cardHead}>{t('healing.nourish', '채우면 좋은 기운')} · {r.weakLabel}</Text>
+          <Text style={styles.cardHead}>{t('healing.nourish', '채우면 좋은 기운')} · {r.huiLabel}</Text>
           <Text style={[styles.body, bodyDyn]}>{r.nourish}</Text>
           <View style={styles.metaRow}>
             <View style={[styles.swatch, { backgroundColor: r.hex }]} />
@@ -85,6 +85,7 @@ export default function HealingScreen() {
           </View>
           <Text style={styles.metaTx}>{t('healing.place', '힐링 공간')}: {r.place}</Text>
           <Text style={styles.metaTx}>{t('healing.food', '곁들이면 좋은')}: {r.food}</Text>
+          <Text style={styles.metaTx}>{t('healing.deficit', '가장 적은 기운(참고)')}: {r.weakLabel}</Text>
         </View>
 
         {/* 비우면 좋은 기운 — 가장 많은 오행(과다 해소; 뚜렷할 때만) */}

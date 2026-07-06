@@ -1,15 +1,19 @@
-// app/src/lib/healingMethod.ts — '나만의 힐링 방법'(가볍게 보기·무료·온디바이스·API 0)
+// app/src/lib/content/healingMethod.ts — '나만의 힐링 방법'(가볍게 보기·무료·온디바이스·API 0)
 // ─────────────────────────────────────────────────────────────────────────
 // daniel O: 명식 오행 균형으로 '나에게 맞는 쉼·자기돌봄'을 가볍게 안내.
-//   · 일간 오행      = 나의 기본 충전 방식(어떻게 쉬어야 기운이 차는지)
-//   · 가장 적은 오행 = 채우면 좋은 기운(보완 활동 + 색·공간·음식)
+//   ★daniel B7(2026-07-06 억부배선): 충전·보조를 억부 용신/희신으로 교정 —
+//     과거 '충전=일간오행·채움=최소오행'은 명리 오류였다(신강 일간은 덜어야[설기] 하고, 최소오행이 곧 용신인 것도 아님).
+//   · 억부 용신 오행 = 나의 충전 방식(어떻게 쉬어야 기운이 차는지)      ← computeYongsinApprox().yongsin
+//   · 억부 희신 오행 = 채우면 좋은 보조 기운(보완 활동 + 색·공간·음식)   ← computeYongsinApprox().huisin
+//   · 가장 적은 오행 = 결핍 참고(강등·주 처방 아님·표기만)
 //   · 가장 많은 오행 = 비우면 좋은 기운(과다 해소; 8글자 중 3+ 일 때만 노출)
-//   · 일간 오행      = 마음 한마디(전향적 위로)
+//   · 일간 오행      = 마음 한마디(전향적 위로·본질에게 건네는 말·처방 아님)
 //   ★stance(Claude 초안 — daniel 검수 슬롯): 전통 오행 상징(오색·오미·오방)에 기댄
 //     가벼운 자기돌봄 매핑. §4: 의료 단정 금지·재미와 다독임 톤(정통 진단 아님).
 // ─────────────────────────────────────────────────────────────────────────
 import { stemElement, branchElement, elementColor } from '../engine/ohaeng';
 import { appLang } from '../i18n';
+import { computeYongsinApprox } from './yongsinApprox'; // ★억부 용신(충전)·희신(보조) 처방 소스(daniel B7 2026-07-06)
 
 type Elem = '木' | '火' | '土' | '金' | '水';
 type L = 'ko' | 'en' | 'ja';
@@ -53,41 +57,54 @@ const DATA: Record<Elem, Record<L, Loc>> = {
 };
 
 export type HealingResult = {
-  dayElem: Elem; weakElem: Elem; excessElem: Elem; hasExcess: boolean;
-  emoji: string; dayLabel: string; weakLabel: string; excessLabel: string; hex: string;
-  recharge: string; nourish: string; release: string; color: string; place: string; food: string; mind: string;
+  dayElem: Elem;                        // 일간 오행 = 나의 본질(히어로·마음 한마디)
+  yongElem: Elem; huiElem: Elem;        // ★억부 용신(충전)·희신(보조) — daniel B7 2026-07-06
+  weakElem: Elem;                       // 최소 오행 = 결핍 참고(강등·주 처방 아님)
+  excessElem: Elem; hasExcess: boolean; // 최대 오행 = 비움(과다 3+)
+  emoji: string;
+  dayLabel: string; yongLabel: string; huiLabel: string; weakLabel: string; excessLabel: string; hex: string;
+  recharge: string;                     // 용신 오행 — 충전 방식
+  nourish: string; color: string; place: string; food: string; // 희신 오행 — 보조/채움(활동·색·공간·음식)
+  release: string;                      // 과다 오행 — 비움
+  mind: string;                         // 일간 오행 — 마음 한마디
 };
 
 /**
- * 나만의 힐링 방법 — 명식 8글자(천간4·지지4)의 오행 분포에서 도출.
- * @param saju computeChart(input).saju (pillars 필요)
- * @returns 명식 없으면 null. 일간=충전 방식, 최소 오행=채움, 최대 오행=비움(3+일 때).
+ * 나만의 힐링 방법 — 억부 용신/희신(충전·보조) + 오행 분포(결핍 참고·과다 비움)에서 도출.
+ * @param saju computeChart(input).saju (pillars + dayMaster 필요)
+ * @returns 명식 없으면 null. 억부 용신=충전, 희신=보조/채움, 최소=결핍 참고, 최대=비움(3+), 일간=마음 한마디.
  */
 export function healingMethod(saju: any): HealingResult | null {
   if (!saju?.pillars) return null;
-  // 8글자 오행 카운트(천간·지지) — 분포로 부족/과다 판정
+  // 8글자 오행 카운트(천간·지지) — 분포로 결핍(최소)·과다(최대) 판정(참고·비움용). 충전/보조는 아래 억부가 결정.
   const cnt: Record<Elem, number> = { 木: 0, 火: 0, 土: 0, 金: 0, 水: 0 };
   (['년', '월', '일', '시'] as const).forEach((p) => {
     const d = saju.pillars[p];
     if (d) { cnt[stemElement(d.stem) as Elem]++; cnt[branchElement(d.branch) as Elem]++; }
   });
   const day = saju.pillars['일'];
-  const dayElem = stemElement(day?.stem ?? '戊') as Elem;           // 일간 오행 = 나의 본질
+  const dayElem = stemElement(day?.stem ?? '戊') as Elem;           // 일간 오행 = 나의 본질(히어로·마음 한마디)
   const sorted = (Object.entries(cnt) as [Elem, number][]).sort((a, b) => a[1] - b[1]);
-  const weakElem = sorted[0][0];                                    // 가장 적은 오행 = 채움
+  const weakElem = sorted[0][0];                                    // 가장 적은 오행 = 결핍 참고(강등)
   const excessElem = sorted[sorted.length - 1][0];                  // 가장 많은 오행 = 비움
   const hasExcess = sorted[sorted.length - 1][1] >= 3;              // 8글자 중 3+ = 뚜렷한 과다일 때만 노출
 
+  // ★daniel B7(억부배선): 충전 = 억부 용신 오행 · 보조 = 억부 희신 오행(신강 일간을 더 채우던 명리 오류 교정).
+  const ya = computeYongsinApprox(saju);
+  const yongElem = ya.yongsin as Elem;                              // 억부 용신 = 충전
+  const huiElem = (ya.huisin ?? ya.yongsin) as Elem;               // 억부 희신 = 보조(현 구현상 항상 non-null·타입 안전 폴백만 용신)
+
   const L = (appLang() as L) ?? 'ko';
-  const dl = DATA[dayElem][L], wl = DATA[weakElem][L], el = DATA[excessElem][L];
+  const yd = DATA[yongElem][L], hd = DATA[huiElem][L], dd = DATA[dayElem][L], ed = DATA[excessElem][L];
   return {
-    dayElem, weakElem, excessElem, hasExcess,
-    emoji: HEAL_EMOJI[dayElem],
-    dayLabel: ELEM_LABEL[dayElem][L], weakLabel: ELEM_LABEL[weakElem][L], excessLabel: ELEM_LABEL[excessElem][L],
-    hex: elementColor[weakElem],
-    recharge: dl.recharge,                       // 일간 오행 — 충전 방식
-    nourish: wl.nourish, color: wl.color, place: wl.place, food: wl.food, // 부족 오행 — 채움(활동·색·공간·음식)
-    release: el.release,                         // 과다 오행 — 비움
-    mind: dl.mind,                               // 일간 오행 — 마음 한마디
+    dayElem, yongElem, huiElem, weakElem, excessElem, hasExcess,
+    emoji: HEAL_EMOJI[dayElem],                  // 히어로 = 일간(내 기운·정체성)
+    dayLabel: ELEM_LABEL[dayElem][L], yongLabel: ELEM_LABEL[yongElem][L], huiLabel: ELEM_LABEL[huiElem][L],
+    weakLabel: ELEM_LABEL[weakElem][L], excessLabel: ELEM_LABEL[excessElem][L],
+    hex: elementColor[huiElem],                  // 힐링 색 = 희신(보조/채움 오행)에 맞춤
+    recharge: yd.recharge,                       // ★용신 오행 — 충전 방식(daniel B7)
+    nourish: hd.nourish, color: hd.color, place: hd.place, food: hd.food, // ★희신 오행 — 보조/채움(활동·색·공간·음식)
+    release: ed.release,                         // 과다 오행 — 비움
+    mind: dd.mind,                               // 일간 오행 — 마음 한마디(본질에게·처방 아님)
   };
 }
