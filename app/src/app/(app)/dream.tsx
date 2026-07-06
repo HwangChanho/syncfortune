@@ -190,10 +190,10 @@ export default function DreamScreen() {
             placeholder={t('dream.aiPh', '꿈에서 보거나 겪은 일을 자세히…')}
             placeholderTextColor={colors.inkFaint}
             multiline
-            maxLength={300}
+            maxLength={200}
             editable={!aiBusy}
           />
-          <Text style={styles.aiLen}>{aiText.length}/300</Text>
+          <Text style={styles.aiLen}>{aiText.length}/200</Text>
           <PressableScale
             style={[styles.aiGenBtn, (aiText.trim().length < 4 || aiBusy) && styles.aiGenOff]}
             onPress={onAI}

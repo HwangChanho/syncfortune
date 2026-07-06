@@ -5,12 +5,13 @@
 //   + 로그아웃 시 RC(RevenueCat) 익명화를 안 해 isPremiumActiveRC 가 이전 계정으로 true 유지되는 버그도 겹침.
 // 해결: 프리미엄 여부를 *모듈 전역 단일 상태*로 두고 useSyncExternalStore 로 구독 →
 //   refreshPremium(userId) 한 번 = 전 구독자(배너·보상형 게이트·콘텐츠 등 21곳) 동시 반영.
-//   진실원천 = Supabase profiles.is_premium OR RC entitlement(구매 직후 즉시). 미로그인 = 항상 false.
+//   진실원천 = Supabase profiles.is_premium *만*(단일·서버 권위). 미로그인 = 항상 false.
+//   ★07-07(daniel): RC 엔타이틀먼트 폴백 제거 — RC(클라)↔서버 갈라짐이 "앱=프리미엄/관리자·게이트=일반" 불일치 유발.
+//     구매 직후 즉시반영은 markPremiumOwnedNow(낙관)+waitForPremium(서버 폴링)이 담당 → 앱=관리자=interpret 게이트 전부 동일 소스.
 //   ※ 여기서 Edge LLM 을 호출하지 않는다(유료 통변은 useEntitlement 별도) → ABSOLUTE-0 정합 유지.
 // ─────────────────────────────────────────────────────────────────────────
 import { AppState } from 'react-native'; // 포그라운드 복귀 시 프리미엄 재평가(daniel 07-03)
 import { supabase } from '../supabase';
-import { isPremiumActiveRC } from './purchases';
 
 let _isPremium = false; // 계정레벨 스냅샷(광고 제거·배지) = god || (일반전환 아님 && owns)
 let _owns = false;      // 프리미엄 소유(profiles.is_premium OR RC) — 명식별 게이트 원재료
@@ -96,9 +97,10 @@ export async function refreshPremium(userId: string | null | undefined): Promise
     }
     return;
   }
-  // ★속도(daniel 07-02: 프리미엄 적용 느림): 프로필(빠름)을 *먼저* 읽어 즉시 판정.
-  //   is_premium=true(관리자 선물·웹훅 반영)면 RC 네트워크 조회(getCustomerInfo, 느림)를 기다리지 않고 바로 프리미엄.
-  //   is_premium=false 이고 일반전환도 아닐 때만 RC 확인(실구매 웹훅 전 즉시 반영용).
+  // ★단일 소스(daniel 2026-07-07): 프리미엄 판정 = 서버 profiles.is_premium *만*(진실원천 1개).
+  //   RC 엔타이틀먼트 폴백을 제거한다 — RC(클라)와 서버가 갈라져(샌드박스·복원·웹훅 지연) "앱=프리미엄 / 관리자 페이지·
+  //   interpret effPrem 게이트=일반"으로 불일치했음(cksghdls0316: RC엔 있고 is_premium=false → 유령 프리미엄).
+  //   구매 직후 즉시반영은 markPremiumOwnedNow(낙관)+waitForPremium(서버 is_premium 폴링)이 담당 = 서버 권위로 통일.
   const profile = await supabase.from('profiles').select('is_premium, is_admin, admin_mode, premium_chart_id').eq('id', userId).maybeSingle();
   if (seq !== _reqSeq) return; // 더 최신 전환 요청이 들어왔으면 이 응답은 폐기(stale 방지).
   const p: any = profile.error ? null : profile.data;
@@ -106,12 +108,7 @@ export async function refreshPremium(userId: string | null | undefined): Promise
   const adminMode = p?.admin_mode !== false;                 // null/undefined/true → god
   const actingNormal = isAdmin && !adminMode;                // 관리자 모드 OFF = 일반계정 전환
   const god = isAdmin && adminMode;
-  let owns = !!p?.is_premium;                                 // 서버 프리미엄 = 즉시(RC 대기 없음)
-  if (!owns && !actingNormal) {                              // 서버 미반영 & 일반전환 아님 → RC(실구매 직후) 확인
-    const rc = await isPremiumActiveRC();
-    if (seq !== _reqSeq) return;
-    owns = rc;
-  }
+  const owns = !!p?.is_premium;                              // ★서버 프리미엄만(단일 진실원천 — RC 폴백 제거)
   const next = god || (!actingNormal && owns);               // 계정레벨(광고·배지)
   const pcid = actingNormal ? null : ((p?.premium_chart_id as string | null) ?? null);
   if (_isPremium !== next || _owns !== owns || _isAdmin !== isAdmin || _adminMode !== adminMode || _premiumChartId !== pcid || _loading) {

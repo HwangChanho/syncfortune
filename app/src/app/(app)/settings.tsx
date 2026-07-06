@@ -16,6 +16,7 @@ import { useFontScale, FONT_STEPS } from '../../lib/ui/fontScale';
 import { isAdmin } from '../../lib/core/admin'; // 관리자 메뉴 노출 판정(실제 권한은 서버 RPC)
 import { useAuth } from '../../lib/useAuth';               // 계정(세션)
 import { useSubscription } from '../../lib/billing/subscription';  // 프리미엄 상태·구매
+import { waitForPremium } from '../../lib/billing/premiumStore';   // ★복원도 서버 is_premium 로 확정(단일소스·07-07)
 import { requireLoginForPurchase } from '../../lib/billing/requireLogin'; // 결제 전 로그인 게이트
 import { priceStringRC, PRODUCT_PREMIUM, restorePurchasesRC } from '../../lib/billing/purchases';  // 프리미엄 현지가 + 구매 복원(3.1.1 필수)
 import { PREMIUM_PRICE, loadCredits } from '../../lib/billing/coupons';  // 프리미엄 폴백 가격(₩) + 이용권 잔여 재로딩(복원 후)
@@ -69,12 +70,17 @@ export default function SettingsScreen() {
     if (restoring) return;                                  // 연타 가드(중복 복원 요청 차단)
     setRestoring(true);
     try {
-      const premium = await restorePurchasesRC();           // 이전 구매 복원 → 프리미엄 엔타이틀먼트 활성 여부
-      await refresh();                                       // 프리미엄 재평가(refreshPremium(session?.user.id)) — 전역 store 반영
+      const rcPremium = await restorePurchasesRC();         // RC 복원 → 엔타이틀먼트 인식(appUserID=계정 → 웹훅이 서버 is_premium 세팅)
+      // ★단일소스(07-07): 복원도 서버 is_premium 로 확정 — RC 캐시 오탐(샌드박스 유령 프리미엄) 방지. RC 인식 시 웹훅 반영을 폴링 확인.
+      const uid = session?.user?.id;
+      const confirmed = rcPremium && uid ? await waitForPremium(uid, { tries: 6 }) : false; // ~6s 서버 폴링(성공 시 store 갱신)
+      await refresh();                                       // 프리미엄 재평가(서버 is_premium) — 전역 store 반영
       await loadCredits();                                  // 이용권(크레딧) 잔여 재로딩(웹훅 반영분)
       Alert.alert(
         t('settings.restore', '구매 복원'),
-        premium ? t('settings.restoreDone', '구매가 복원되었습니다.') : t('settings.restoreNone', '복원할 구매 내역이 없습니다.'),
+        confirmed ? t('settings.restoreDone', '구매가 복원되었습니다.')
+          : rcPremium ? t('settings.restorePending', '구매가 확인됐어요. 서버 반영까지 잠시 걸릴 수 있어요 — 잠시 후 다시 확인해 주세요.')
+          : t('settings.restoreNone', '복원할 구매 내역이 없습니다.'),
       );
     } catch {
       Alert.alert(t('settings.restore', '구매 복원'), t('settings.restoreFail', '구매 복원에 실패했어요. 잠시 후 다시 시도해 주세요.'));

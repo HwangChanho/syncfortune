@@ -46,7 +46,7 @@ export const LOVE_PRICE = '₩9,900';
 export const LOVE_PRICE_ORIG = '₩9,900';
 export const LOVE_DISCOUNT = Math.round((1 - 4900 / 9900) * 100); // 51% 할인
 
-// 9개 상세 항목(Edge 응답 키 ↔ i18n 라벨). 순서대로 스택 표시.
+// 상세 항목(Edge 응답 키 ↔ i18n 라벨). 순서대로 스택 표시. (렌더 가드: reading[key] 가 문자열일 때만 노출 → 없는 키는 무해)
 const SECTIONS: { key: string; tk: string }[] = [
   { key: 'idealType', tk: 'love.idealType' },
   { key: 'appearance', tk: 'love.appearance' },
@@ -57,6 +57,9 @@ const SECTIONS: { key: string; tk: string }[] = [
   { key: 'elementMatch', tk: 'love.elementMatch' },
   { key: 'dynamic', tk: 'love.dynamic' },
   { key: 'timing', tk: 'love.timing' },
+  // ★특히 조심할 상대 — 기존 배우자 stance(잘 맞는 축)의 역(逆) + §4 웰빙 완충(2026-07-07 초안 · stance daniel 검수 필요).
+  //   Edge 미배포(초안) 동안은 응답에 cautionPartner 키가 없어 렌더 가드로 자동 미노출(무해). daniel 검수·배포 후 노출.
+  { key: 'cautionPartner', tk: 'love.cautionPartner' },
   { key: 'caution', tk: 'love.caution' },
   { key: 'advice', tk: 'love.advice' },
 ];
