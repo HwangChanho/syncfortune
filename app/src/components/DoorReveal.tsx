@@ -1,16 +1,16 @@
 // app/src/components/DoorReveal.tsx — 풀이 진입(공개) 연출: 골드 명조 문이 열리는 영상
 // ─────────────────────────────────────────────────────────────────────────
-// daniel 2026-07-06: 풀이를 '공개(revealed)'하는 순간, 팔자 골드 명조 문이 좌우로 갈라지며
-//   로딩화면(splash-bg)의 백두산 호랑이 장면이 드러나고 → 호랑이가 어흥(포효 펀치) → 한 발 물러나며
-//   → 카메라가 호랑이를 따라 쭈욱 들어가(push-in) 골드로 밝아지는 영상(door-open.mp4·4.7초·
-//   DrawThings 문 + 로딩 원본 켄번스 + ffmpeg 합성)을 전체화면 1회 재생 → 끝나면 페이드아웃하며 풀이 공개.
+// daniel 2026-07-06: 풀이를 '공개(revealed)'하는 순간, 백호(白虎)가 정면으로 으르렁 → 뒤돌아 →
+//   달빛 왕궁 문 안으로 걸어 들어가고 카메라가 뒤를 따라 들어가는 영상(door-open.mp4·5초)을 전체화면
+//   1회 재생 → 끝나면 부드럽게 페이드아웃하며 풀이가 드러난다. (Runway Gen-4 Turbo·loading.mp4 백호
+//   원본 키프레임 image-to-video로 생성·워터마크 delogo 제거. UnlockOverlay/VideoSplash 와 동일 expo-video.)
 //   ★expo-video 패턴 = UnlockOverlay/VideoSplash 와 동일(신규 네이티브 의존 없음).
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useRef } from 'react';
 import { Modal, Animated, StyleSheet } from 'react-native';
 import { useVideoPlayer, VideoView } from 'expo-video';
 
-const DOOR_VIDEO = require('../../assets/content-videos/door-open.mp4'); // 문 열림→백두산 호랑이 어흥→카메라 push-in(4.7초)
+const DOOR_VIDEO = require('../../assets/content-videos/door-open.mp4'); // 백호 으르렁→뒤돌아→왕궁으로 걸어감→카메라 따라감(5초·Runway)
 
 // visible=true 로 켜지면 문 영상을 1회 재생, 끝(playToEnd)나면 onDone() 호출(부모가 visible=false 로 내림).
 export function DoorReveal({ visible, onDone }: { visible: boolean; onDone: () => void }) {
