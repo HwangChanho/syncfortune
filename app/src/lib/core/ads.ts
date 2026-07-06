@@ -35,7 +35,8 @@ export function setAdTestMode(v: boolean): void { forceTestAds = v; }
 // ★★검증용(daniel: 광고 여전히 안 뜸) — true면 로그인·관리자·테스트모드 무관 *전원* 구글 테스트광고로 배너·보상형·전면이 뜬다.
 //   실 AdMob 유닛이 신규 앱이라 서빙 전(no-fill)이라 안 뜨므로, 광고 코드·게이트 동작을 이걸로 확인.
 //   ⚠️⚠️ App Store 정식 출시 전 반드시 false 로 — 그래야 실광고(수익) 서빙. (지금은 TestFlight 검증용.)
-const VERIFY_ADS = true;
+//   ★출시(2026-07-07): false 로 전환 — 실 AdMob 유닛 서빙. (test_mode/is_admin 계정은 setAdTestMode 로 여전히 테스트광고.)
+const VERIFY_ADS = false;
 export function adTestMode(): boolean { return forceTestAds || VERIFY_ADS; }
 // 보상형 광고 모듈 가용 여부 — 미포함 빌드(재빌드 전 dev client)면 false → 광고 게이트는 통과(내용 바로 표시).
 //   프로덕션/TestFlight 빌드엔 모듈이 있으므로 게이트가 정상 동작. (게이트가 dev에서 영구 잠기는 것 방지)
