@@ -17,8 +17,10 @@ import { ContentHero } from '../../components/SpecialContentScreen';
 import { ChartPicker } from '../../components/ChartPicker';
 import { ShareReadingButton } from '../../components/ShareReadingButton';
 import { Reveal } from '../../components/Reveal'; // 카드 순차 등장(daniel 재미)
+import { useLogContentVisit } from '../../lib/backend/contentVisit'; // 콘텐츠 방문 집계(daniel 2026-07-06) — 진입 1회 기록
 
 export default function NumerologyScreen() {
+  useLogContentVisit('numerology'); // 진입 1회 방문 기록(daniel 2026-07-06)
   const { t } = useTranslation();
   const { fs } = useFontScale();
   const [rep, setRep] = useState<SavedChart | null>(null);

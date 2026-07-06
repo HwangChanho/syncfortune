@@ -17,6 +17,7 @@ import { ChartPicker } from '../../components/ChartPicker'; // 상단 명식 헤
 import { ShareReadingButton } from '../../components/ShareReadingButton'; // 이슈17: 풀이 결과 공유(앱게이트)
 import { TTSButton } from '../../components/TTSButton'; // 풀이 음성 읽기(온디바이스 TTS·무료)
 import type { ChartInput } from '@spec/chart';
+import { useLogContentVisit } from '../../lib/backend/contentVisit'; // 콘텐츠 방문 집계(daniel 2026-07-06) — 진입 1회 기록
 
 // 일간 오행별 이미지(daniel O: 종류별 이미지) — assets/icons/healing/{wood|fire|earth|metal|water}.jpg.
 //   들어온 것만 require, 없으면 이모지(HEAL_EMOJI)로 자동 폴백(점진 적용). 키 = 오행 한자.
@@ -29,6 +30,7 @@ const HEAL_IMG: Record<string, any> = {
 };
 
 export default function HealingScreen() {
+  useLogContentVisit('healing'); // 진입 1회 방문 기록(daniel 2026-07-06)
   const router = useRouter();
   const { t } = useTranslation();
   const { fs } = useFontScale();

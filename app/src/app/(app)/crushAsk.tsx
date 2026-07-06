@@ -7,8 +7,10 @@
 import { useTranslation } from 'react-i18next';
 import { FreeFunnel } from '../../components/FreeFunnel';
 import { CrushRich } from '../../components/CrushRich';   // 짝사랑 무료 리치 본문(CrushTiming 달력을 내부에 품음)
+import { useLogContentVisit } from '../../lib/backend/contentVisit'; // 콘텐츠 방문 집계(daniel 2026-07-06) — 진입 1회 기록
 
 export default function CrushAskScreen() {
+  useLogContentVisit('crushAsk'); // 진입 1회 방문 기록(daniel 2026-07-06)
   const { t } = useTranslation();
   return (
     <FreeFunnel

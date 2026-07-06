@@ -17,6 +17,7 @@ import { Reveal } from '../../components/Reveal'; // 카드 순차 등장(daniel
 import { ChartPicker } from '../../components/ChartPicker';
 import { ShareReadingButton } from '../../components/ShareReadingButton';
 import type { ChartInput } from '@spec/chart';
+import { useLogContentVisit } from '../../lib/backend/contentVisit'; // 콘텐츠 방문 집계(daniel 2026-07-06) — 진입 1회 기록
 
 // 각 축의 [왼글자, 오른글자] — score(0~100)는 오른글자 비율
 const AXIS_ENDS: Record<string, [string, string]> = { EI: ['I', 'E'], SN: ['S', 'N'], TF: ['T', 'F'], JP: ['J', 'P'] };
@@ -31,6 +32,7 @@ function AxisBar({ score }: { score: number }) {
 }
 
 export default function MbtiScreen() {
+  useLogContentVisit('mbti'); // 진입 1회 방문 기록(daniel 2026-07-06)
   const { t } = useTranslation();
   const { fs } = useFontScale();
   const [me, setMe] = useState<ChartInput | null>(null);

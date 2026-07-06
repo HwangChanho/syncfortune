@@ -74,3 +74,13 @@ export async function adminUserUsage(owner: string): Promise<AdminUsage | null> 
   const r = Array.isArray(data) ? data[0] : data;          // TABLE 반환(집계 1행)
   return (r ?? null) as AdminUsage | null;
 }
+
+// 콘텐츠별 방문 집계(content_visits, daniel 2026-07-06) — 어떤 콘텐츠를 얼마나 봤는지(kind별 방문 횟수·최근 방문 시각).
+//   kind = 앱이 쓰는 콘텐츠 식별자('saju'·'love'·'daily' 등). visits = 누적 방문 수. last_at = 최근 방문 시각(ISO, 없으면 null).
+export type AdminContentVisit = { kind: string; visits: number; last_at: string | null };
+
+/** 특정 유저의 콘텐츠별 방문 내역(방문 많은 순) — 관리자만(서버 게이트). 비관리자·오류 시 빈 배열. */
+export async function adminUserContentVisits(owner: string): Promise<AdminContentVisit[]> {
+  const { data, error } = await supabase.rpc('admin_user_content_visits', { p_owner: owner });
+  return error ? [] : ((data ?? []) as AdminContentVisit[]);
+}

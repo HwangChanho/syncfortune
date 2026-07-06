@@ -39,6 +39,7 @@ import { TTSButton } from '../../components/TTSButton'; // 풀이 음성 읽기(
 import { NewyearWheel } from '../../components/contentMotifs'; // 12달 수레바퀴 모티프
 import { NewyearTeaser } from '../../components/NewyearTeaser'; // 무료 온디바이스 티저(내년 신수 3층 산식 + 큰 삼재 배지 + 길월) — 유료 전환 후크
 import { useFontScale } from '../../lib/ui/fontScale';
+import { useLogContentVisit } from '../../lib/backend/contentVisit'; // 콘텐츠 방문 집계(daniel 2026-07-06) — 진입 1회 기록
 
 // 신년 패키지 분야 8(daniel: 컨텐츠 강화 — 통합·직업·재물·애정·건강·대인·배움·이동)
 const AREAS: { key: string; ko: string }[] = [
@@ -48,6 +49,7 @@ const AREAS: { key: string; ko: string }[] = [
 ];
 
 export default function NewYearScreen() {
+  useLogContentVisit('newyear'); // 진입 1회 방문 기록(daniel 2026-07-06)
   const { t } = useTranslation();
   const { fs } = useFontScale();
   const router = useRouter();

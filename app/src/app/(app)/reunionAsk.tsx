@@ -7,8 +7,10 @@
 import { useTranslation } from 'react-i18next';
 import { FreeFunnel } from '../../components/FreeFunnel';
 import { ReunionRich } from '../../components/ReunionRich';
+import { useLogContentVisit } from '../../lib/backend/contentVisit'; // 콘텐츠 방문 집계(daniel 2026-07-06) — 진입 1회 기록
 
 export default function ReunionAskScreen() {
+  useLogContentVisit('reunionAsk'); // 진입 1회 방문 기록(daniel 2026-07-06)
   const { t } = useTranslation();
   return (
     <FreeFunnel

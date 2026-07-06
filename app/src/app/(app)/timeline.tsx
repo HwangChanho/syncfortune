@@ -15,8 +15,10 @@ import { loadRepChart, type SavedChart } from '../../lib/engine/myChart';
 import { useFontScale } from '../../lib/ui/fontScale';
 import { colors, radius, space, font } from '../../lib/theme';
 import type { ChartInput } from '@spec/chart';
+import { useLogContentVisit } from '../../lib/backend/contentVisit'; // 콘텐츠 방문 집계(daniel 2026-07-06) — 진입 1회 기록
 
 export default function TimelineRoute() {
+  useLogContentVisit('timeline'); // 진입 1회 방문 기록(daniel 2026-07-06)
   const router = useRouter();
   const { t } = useTranslation();
   const { fs } = useFontScale();

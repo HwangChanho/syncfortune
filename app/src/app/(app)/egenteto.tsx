@@ -19,6 +19,7 @@ import { colors, radius, space, shadow, font } from '../../lib/theme';
 import { useFontScale } from '../../lib/ui/fontScale';
 import { ChartPicker } from '../../components/ChartPicker'; // 명식 선택(대표 전환) — 명식별 성향(daniel)
 import { ShareReadingButton } from '../../components/ShareReadingButton'; // 이슈17: 풀이 결과 공유(앱게이트)
+import { useLogContentVisit } from '../../lib/backend/contentVisit'; // 콘텐츠 방문 집계(daniel 2026-07-06) — 진입 1회 기록
 
 // 에겐↔테토 게이지 — fill·dot이 0→score로 차오르고 이동(daniel #13: 실제 인디케이터 애니).
 function EgenBar({ score }: { score: number }) {
@@ -34,6 +35,7 @@ function EgenBar({ score }: { score: number }) {
 }
 
 export default function EgenTetoScreen() {
+  useLogContentVisit('egen'); // 진입 1회 방문 기록(daniel 2026-07-06)
   const { t } = useTranslation();
   const { fs } = useFontScale();
   const router = useRouter();

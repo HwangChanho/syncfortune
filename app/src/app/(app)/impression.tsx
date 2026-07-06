@@ -17,8 +17,10 @@ import { elementColor, elementText } from '../../lib/engine/ohaeng';
 import { ContentHero } from '../../components/SpecialContentScreen';
 import { ChartPicker } from '../../components/ChartPicker';
 import { colors, radius, space, shadow, font } from '../../lib/theme';
+import { useLogContentVisit } from '../../lib/backend/contentVisit'; // 콘텐츠 방문 집계(daniel 2026-07-06) — 진입 1회 기록
 
 export default function ImpressionScreen() {
+  useLogContentVisit('impression'); // 진입 1회 방문 기록(daniel 2026-07-06)
   const { t } = useTranslation();
   const router = useRouter();
   const { fs } = useFontScale();

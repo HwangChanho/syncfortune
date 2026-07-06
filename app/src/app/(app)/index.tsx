@@ -72,10 +72,14 @@ const SECTIONS: Section[] = [
   // ★가장 많이 찾는(광고/유료 유도용, daniel 07-05) — 무료 '질문형'(재회/짝사랑/취업)을 프리미엄 바로 밑에 중복
   //   노출해 눈길을 끌고 → 화면 CTA로 유료 깊은 풀이 유도. 원본은 '가볍게 보기'에도 그대로(의도된 중복).
   //   ★키는 고유(hot*)로 — 같은 라우트라도 React 키/카드 ref 충돌 방지. 라벨·이미지·라우트는 light 원본과 동일.
-  { key: 'hot', titleKey: 'menu.secContent', descKey: 'menu.secHotDesc', items: [
+  // ★인기(daniel 07-06: '가장 많이 찾는'→'인기'로 개칭·서브타이틀 제거). 유료 유도(재회/짝사랑/취업) + 인기 무료(연애스타일·반려동물) 혼합.
+  { key: 'hot', titleKey: 'menu.secContent', items: [
     { key: 'hotReunionAsk', labelKey: 'menu.reunionAsk', descKey: 'menu.reunionAskDesc', image: require('../../../assets/icons/reunion.jpg'), route: '/reunionAsk', ready: true, content: true },
     { key: 'hotCrushAsk', labelKey: 'menu.crushAsk', descKey: 'menu.crushAskDesc', image: require('../../../assets/icons/crush.jpg'), route: '/crushAsk', ready: true, content: true },
     { key: 'hotJobAsk', labelKey: 'menu.jobAsk', descKey: 'menu.jobAskDesc', image: require('../../../assets/icons/job.jpg'), route: '/jobAsk', ready: true, content: true },
+    // daniel 07-06: 인기에 연애스타일·반려동물 추가(무료 온디바이스, light 원본과 동일·hot* 고유키로 React 키 충돌 방지).
+    { key: 'hotLovestyle', labelKey: 'menu.lovestyle', descKey: 'menu.lovestyleTileDesc', image: require('../../../assets/icons/lovestyle.jpg'), route: '/lovestyle', ready: true, content: true },
+    { key: 'hotPet', labelKey: 'menu.pet', descKey: 'menu.petDesc', image: require('../../../assets/icons/pet.jpg'), route: '/pet', ready: true, content: true },
   ] },
   // 스페셜 = 유료 LLM 콘텐츠(애정흐름·인생그래프·신년 등). 골드 라인아트 타일 이미지(Recraft). (옛 '가장 많이 찾는' → daniel 07-05 스페셜로 개칭)
   { key: 'special', titleKey: 'menu.secSpecial', descKey: 'menu.secContentDesc', items: [

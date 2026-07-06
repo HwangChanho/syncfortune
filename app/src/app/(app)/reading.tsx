@@ -15,11 +15,13 @@ import { ChartPicker } from '../../components/ChartPicker'; // 풀이 상단 명
 import { loadRepChart, listCharts, setRepresentative, getRepresentativeId, type SavedChart } from '../../lib/engine/myChart';
 import { colors, radius, space, font } from '../../lib/theme';
 import type { ChartInput } from '@spec/chart';
+import { useLogContentVisit } from '../../lib/backend/contentVisit'; // 콘텐츠 방문 집계(daniel 2026-07-06) — 진입 1회 기록
 
 export default function ReadingRoute() {
   const router = useRouter();
   const { t } = useTranslation();
   const { input, kind, chartId } = useLocalSearchParams<{ input?: string; kind?: string; chartId?: string }>();
+  useLogContentVisit(kind ?? 'saju'); // 진입 1회 방문 기록(daniel 2026-07-06)
   const [me, setMe] = useState<ChartInput | null>(null);
   const [savedChart, setSavedChart] = useState<SavedChart | null>(null);
   const [loading, setLoading] = useState(true);

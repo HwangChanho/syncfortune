@@ -17,12 +17,14 @@ import { lookupGlossary, GLOSSARY_KIND_LABEL, type GlossaryKind } from '../../li
 import { PALACE_DESC } from '../../lib/content/palaceDesc'; // 12궁 짧은 설명(공용 — 풀이 화면과 공유)
 import { colors, radius, space, shadow, font } from '../../lib/theme';
 import type { ChartInput } from '@spec/chart';
+import { useLogContentVisit } from '../../lib/backend/contentVisit'; // 콘텐츠 방문 집계(daniel 2026-07-06) — 진입 1회 기록
 
 const LAYOUT = [['巳', '午', '未', '申'], ['辰', 'C', 'C', '酉'], ['卯', 'C', 'C', '戌'], ['寅', '丑', '子', '亥']];
 const SIHWA_COL: Record<string, string> = { '化祿': '#3E8E5A', '化權': '#C0392B', '化科': '#3A6EA5', '化忌': '#7A7A7A' };
 const BR_SYM: Record<string, string> = { '廟': '◎', '旺': '○', '得地': '△', '利': '△', '平': '△', '不得地': 'x', '陷': 'x' };
 
 export default function ZiweiRoute() {
+  useLogContentVisit('ziwei'); // 진입 1회 방문 기록(daniel 2026-07-06)
   const router = useRouter();
   const [me, setMe] = useState<ChartInput | null>(null);
   const [loading, setLoading] = useState(true);

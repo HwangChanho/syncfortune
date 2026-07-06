@@ -8,7 +8,7 @@ import { View, Text, ScrollView, Pressable, TextInput, StyleSheet, ActivityIndic
 import { PressableScale } from '../../components/PressableScale';
 import { Alert } from '../../lib/ui/alert'; // 커스텀 알림(앱 디자인)
 import { useEffect, useState } from 'react';
-import { isAdmin, adminListUsers, adminGrantCredit, adminSetPremium, adminUserDetail, adminStats, adminUserUsage, type AdminUser, type AdminUserDetail, type AdminStats, type AdminUsage } from '../../lib/core/admin';
+import { isAdmin, adminListUsers, adminGrantCredit, adminSetPremium, adminUserDetail, adminStats, adminUserUsage, adminUserContentVisits, type AdminUser, type AdminUserDetail, type AdminStats, type AdminUsage, type AdminContentVisit } from '../../lib/core/admin';
 import { CREDIT_KINDS, type CreditKind } from '../../lib/billing/coupons';
 import { logEvent } from '../../lib/backend/logger'; // DB 로그(app_logs) — 선물/프리미엄 단계 추적
 import { colors, radius, space, shadow, font } from '../../lib/theme';
@@ -25,6 +25,24 @@ const fmtDur = (sec?: number | null) => {
   return m < 60 ? `${m}분` : `${Math.floor(m / 60)}시간 ${m % 60}분`;
 };
 
+// 콘텐츠 kind → 한글 라벨(콘텐츠 방문 내역 표시용, daniel 2026-07-06). 앱 홈 menu 라벨(i18n ko menu.*)과 동일 결로 맞춤.
+//   ※ 관리자 화면은 한국어 전용(daniel)이라 i18n 대신 로컬 맵 — 미등록 kind 는 raw kind 그대로 노출(신규 콘텐츠 누락이 눈에 띄게).
+const KIND_LABEL: Record<string, string> = {
+  saju: '사주', ziwei: '자미두수', compat: '궁합', timeline: '인생 타임라인', child: '자식운',
+  daily: '오늘의 운세', monthly: '이달의 운세', dayPillar: '일주론', newyear: '신년운세',
+  love: '나의 애정흐름', reunion: '재회운', crush: '짝사랑 인연운', job: '취업·이직운',
+  lifegraph: '인생 그래프', future10: '10년 뒤 나의 모습', roots: '명식의 뿌리', image: '비치는 나',
+  mission: '나의 사명', talent: '나의 타고난 재능', astrology: '별자리·점성술', career: '사업가의 나',
+  celeb: '세계 인물 매칭', gaeun: '맞춤 개운법', reunionAsk: '재회 가능할까?(무료)', crushAsk: '그 사람과 이어질까?(무료)',
+  jobAsk: '취업 언제 될까?(무료)', taro: '타로', pet: '나의 반려동물', persona: '성격유형',
+  impression: '사람들이 보는 나', egen: '에겐 vs 테토', mbti: '사주 MBTI', joseonjob: '조선시대 직업',
+  lovestyle: '연애 스타일', bok: '타고난 복', pastlife: '전생 이야기', healing: '나만의 힐링 방법',
+  taegil: '택일', country: '내가 살기 좋은 곳', luck: '오늘의 행운', zodiac: '띠·별자리',
+  name: '이름풀이', dream: '꿈해몽', numerology: '수비학',
+};
+// kind → 라벨(미등록이면 raw kind 노출).
+const contentLabel = (kind: string) => KIND_LABEL[kind] ?? kind;
+
 export default function AdminRoute() {
   const [allowed, setAllowed] = useState<boolean | null>(null);
   const [users, setUsers] = useState<AdminUser[]>([]);
@@ -35,6 +53,7 @@ export default function AdminRoute() {
   const [giftMsg, setGiftMsg] = useState<string | null>(null); // 지급/프리미엄 결과 inline 표시(확인 모달과 연속 present 크래시 회피)
   const [stats, setStats] = useState<AdminStats | null>(null); // 전체 현황 대시보드(daniel G)
   const [usage, setUsage] = useState<AdminUsage | null>(null); // 선택 유저 앱 사용시간(daniel)
+  const [visits, setVisits] = useState<AdminContentVisit[]>([]); // 선택 유저 콘텐츠별 방문 내역(daniel 2026-07-06)
   const [showCharts, setShowCharts] = useState(false); // 등록 명식 목록 접기/펼치기(daniel)
   // ── 관리자 제어(설정에서 이동, daniel 07-01): 비용분석·테스트모드·관리자모드 ──
   const router = useRouter();
@@ -45,7 +64,7 @@ export default function AdminRoute() {
   async function reload() { setUsers(await adminListUsers()); }
   useEffect(() => { isAdmin().then((a) => { setAllowed(a); if (a) { reload(); adminStats().then(setStats); } }); }, []);
   // 유저 선택 시 상세(사용량·명식·이용권) 로드
-  useEffect(() => { setDetail(null); setGiftMsg(null); setUsage(null); setShowCharts(false); if (sel) { adminUserDetail(sel.id).then(setDetail).catch(() => {}); adminUserUsage(sel.id).then(setUsage).catch(() => {}); } }, [sel]);
+  useEffect(() => { setDetail(null); setGiftMsg(null); setUsage(null); setVisits([]); setShowCharts(false); if (sel) { adminUserDetail(sel.id).then(setDetail).catch(() => {}); adminUserUsage(sel.id).then(setUsage).catch(() => {}); adminUserContentVisits(sel.id).then(setVisits).catch(() => {}); } }, [sel]);
   // 테스트/관리자 모드 현재값 로드(프로필) — 설정에서 이동(daniel 07-01)
   useEffect(() => { supabase.auth.getUser().then(({ data }) => { if (data.user) supabase.from('profiles').select('test_mode, admin_mode').eq('id', data.user.id).maybeSingle().then(({ data: p }) => { setTestMode(!!p?.test_mode); setAdminMode(p?.admin_mode !== false); }); }).catch(() => {}); }, []);
 
@@ -196,6 +215,15 @@ export default function AdminRoute() {
               {detail.credits.length > 0 && <Text style={styles.detailLine}>보유 이용권: {detail.credits.map((c) => `${c.kind}×${c.remaining}`).join(', ')}</Text>}
             </View>
           )}
+          {/* 콘텐츠 방문 내역(daniel 2026-07-06) — 어떤 콘텐츠를 얼마나 봤는지. 방문 많은 순(서버 정렬 + 방어적 재정렬). */}
+          <View style={styles.detailBox}>
+            <Text style={styles.detailSub}>콘텐츠 방문{visits.length ? ` (${visits.length})` : ''}</Text>
+            {visits.length > 0 ? (
+              [...visits].sort((a, b) => b.visits - a.visits).map((v) => (
+                <Text key={v.kind} style={styles.detailChart}>· {contentLabel(v.kind)} · 방문 {v.visits}회{v.last_at ? ` · 최근 ${String(v.last_at).split('T')[0]}` : ''}</Text>
+              ))
+            ) : <Text style={styles.detailLine}>방문 기록 없음</Text>}
+          </View>
           <PressableScale style={[styles.premToggle, sel.is_premium && styles.premToggleOn]} onPress={togglePremium} disabled={busy}>
             <Text style={styles.premToggleTx}>{sel.is_premium ? '프리미엄 해제' : '프리미엄 선물'}</Text>
           </PressableScale>

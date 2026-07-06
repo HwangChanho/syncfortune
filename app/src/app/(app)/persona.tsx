@@ -18,8 +18,10 @@ import { ChartPicker } from '../../components/ChartPicker'; // 상단 명식 헤
 import { ShareReadingButton } from '../../components/ShareReadingButton'; // 이슈17: 풀이 결과 공유(앱게이트)
 import { TTSButton } from '../../components/TTSButton'; // 풀이 음성 읽기(온디바이스 TTS·무료)
 import type { ChartInput } from '@spec/chart';
+import { useLogContentVisit } from '../../lib/backend/contentVisit'; // 콘텐츠 방문 집계(daniel 2026-07-06) — 진입 1회 기록
 
 export default function PersonaScreen() {
+  useLogContentVisit('persona'); // 진입 1회 방문 기록(daniel 2026-07-06)
   const router = useRouter();
   const { t } = useTranslation();
   const { fs } = useFontScale(); // 본문(읽는 글) 글자 크기 전역 배율

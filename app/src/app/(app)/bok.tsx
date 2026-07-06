@@ -15,6 +15,7 @@ import { colors, radius, space, shadow, font } from '../../lib/theme';
 import { ChartPicker } from '../../components/ChartPicker'; // 상단 명식 헤더
 import { ShareReadingButton } from '../../components/ShareReadingButton'; // 이슈17: 풀이 결과 공유(앱게이트)
 import type { ChartInput } from '@spec/chart';
+import { useLogContentVisit } from '../../lib/backend/contentVisit'; // 콘텐츠 방문 집계(daniel 2026-07-06) — 진입 1회 기록
 
 // 복 유형별 이미지(daniel: 종류별 이미지) — assets/icons/bok/{slug}.jpg. 들어온 것만 require, 없으면 이모지 폴백.
 // slug: 재물복=jaeseong·귀인복=inseong·식복=siksang·관복=gwanseong·인복=bigeop (loveStyle과 동일 G5)
@@ -27,6 +28,7 @@ const BOK_IMG: Record<string, any> = {
 };
 
 export default function BokScreen() {
+  useLogContentVisit('bok'); // 진입 1회 방문 기록(daniel 2026-07-06)
   const router = useRouter();
   const { t } = useTranslation();
   const { fs } = useFontScale();

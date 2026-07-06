@@ -34,6 +34,7 @@ import { ChartPicker } from '../../components/ChartPicker'; // 상단 명식 헤
 import { CareerTeaser } from '../../components/CareerTeaser'; // ★무료 온디바이스 성향 저울(유료 전환 후크 — 재회/취업과 동일 결)
 import { ShareReadingButton } from '../../components/ShareReadingButton'; // 이슈17: 풀이 결과 공유(가드 내장)
 import { TTSButton } from '../../components/TTSButton'; // 풀이 음성 읽기(온디바이스 TTS·무료)
+import { useLogContentVisit } from '../../lib/backend/contentVisit'; // 콘텐츠 방문 집계(daniel 2026-07-06) — 진입 1회 기록
 
 // 6개 카테고리(Edge 응답 키 ↔ i18n 라벨, 없으면 ko 기본값). 순서대로 스택.
 const SECTIONS: { key: string; tk: string; def: string }[] = [
@@ -60,6 +61,7 @@ const CAREER_IMG: Record<string, any> = {
 const CAREER_TEAL = '#3FA7A0'; // 테마색(독립↔조직)
 
 export default function CareerScreen() {
+  useLogContentVisit('career'); // 진입 1회 방문 기록(daniel 2026-07-06)
   const { t } = useTranslation();
   const router = useRouter();
   const { session } = useAuth();

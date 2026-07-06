@@ -19,6 +19,7 @@ import { loadTodayTaro, saveTodayTaro } from '../../lib/content/tarotStore';
 import { playSound } from '../../lib/ui/sounds';
 import { bgSource, colors, radius, space, shadow, font, gradients } from '../../lib/theme';
 import { GlassCard } from '../../components/GlassCard';
+import { useLogContentVisit } from '../../lib/backend/contentVisit'; // 콘텐츠 방문 집계(daniel 2026-07-06) — 진입 1회 기록
 
 // expo-haptics 는 네이티브 모듈 — 현재 dev 빌드 미포함 시 호출하면 크래시. 안전 래퍼로 감싼다(재빌드 후 정상 진동).
 const hImpact = (s: Haptics.ImpactFeedbackStyle) => { try { Haptics.impactAsync(s).catch(() => {}); } catch { /* 네이티브 미포함 — 무시 */ } };
@@ -42,6 +43,7 @@ function todayStr(): string {
 }
 
 export default function TaroScreen() {
+  useLogContentVisit('taro'); // 진입 1회 방문 기록(daniel 2026-07-06)
   const { t } = useTranslation();
   const { cat } = useLocalSearchParams<{ cat?: string }>();
   const [category, setCategory] = useState<Category | null>(null);

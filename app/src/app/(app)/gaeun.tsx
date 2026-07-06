@@ -31,6 +31,7 @@ import { UnlockOverlay } from '../../components/UnlockOverlay';
 import { ChartPicker } from '../../components/ChartPicker';
 import { ShareReadingButton } from '../../components/ShareReadingButton';
 import { TTSButton } from '../../components/TTSButton'; // 풀이 음성 읽기(온디바이스 TTS·무료)
+import { useLogContentVisit } from '../../lib/backend/contentVisit'; // 콘텐츠 방문 집계(daniel 2026-07-06) — 진입 1회 기록
 
 // 섹션(Edge GAEUN_SYSTEM 응답 키 ↔ 라벨). 순서대로 스택. ※ headline 은 별도(맨 위 강조).
 const SECTIONS: { key: string; tk: string; def: string }[] = [
@@ -44,6 +45,7 @@ const SECTIONS: { key: string; tk: string; def: string }[] = [
 ];
 
 export default function GaeunScreen() {
+  useLogContentVisit('gaeun'); // 진입 1회 방문 기록(daniel 2026-07-06)
   const { t } = useTranslation();
   const router = useRouter();
   const { session } = useAuth();

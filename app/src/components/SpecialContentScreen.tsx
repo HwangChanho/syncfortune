@@ -33,6 +33,7 @@ import { supabase } from '../lib/supabase';
 import { appLang } from '../lib/i18n';
 import { readingFromInvoke } from '../lib/backend/interpretResult'; // 방어: Edge 응답 정규화(일시적 불가·결제필요·오류)
 import { logEvent } from '../lib/backend/logger';
+import { useLogContentVisit } from '../lib/backend/contentVisit'; // 콘텐츠 방문 집계(daniel 2026-07-06) — 진입 1회
 import { setGenProgress } from '../lib/backend/genProgress'; // 일회성 진행도(daniel 이슈15)
 import { colors, radius, space, shadow, font } from '../lib/theme';
 import { UnlockOverlay } from './UnlockOverlay';         // unlock 자물쇠 애니 + 그 사이 LLM
@@ -93,6 +94,8 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
   const c = useMemo(() => (savedChart ? computeChart(savedChart.input) : null), [savedChart]);
   const gatingRef = useRef(false); // 게이트(모달) 연타 차단
   const reveal = useRef(new Animated.Value(0)).current; // 섹션 순차 등장
+  // 콘텐츠 방문 집계(daniel 2026-07-06) — 이 공통 화면을 쓰는 전 콘텐츠(roots/image/mission/crush/job/reunion/future10/child/talent/astrology 등)를 kind 기준 진입 1회 기록.
+  useLogContentVisit(kind);
 
   // 대표 명식 → 서버차트ID → 캐시(category=kind) 조회. 프리미엄이고 캐시 없으면 자동 생성.
   useEffect(() => {

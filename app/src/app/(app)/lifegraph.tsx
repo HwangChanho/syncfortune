@@ -35,6 +35,7 @@ import { ChartPicker } from '../../components/ChartPicker'; // 상단 명식 헤
 import { ShareReadingButton } from '../../components/ShareReadingButton'; // 이슈17: 풀이 결과 공유(가드 내장)
 import { TTSButton } from '../../components/TTSButton'; // 풀이 음성 읽기(온디바이스 TTS·무료)
 import { LifeGraphTeaser } from '../../components/LifeGraphTeaser'; // 무료 온디바이스 곡선 티저(잠김 상태 퍼널 — 결정론 대운 곡선·전환점)
+import { useLogContentVisit } from '../../lib/backend/contentVisit'; // 콘텐츠 방문 집계(daniel 2026-07-06) — 진입 1회 기록
 
 type Decade = { startAge: number; score: number; note: string; turning: boolean; keyword?: string; focus?: string };
 type LifeData = { summary: string; decades: Decade[]; yongsin?: string; peak?: string; caution?: string; advice?: string; headline?: string };
@@ -44,6 +45,7 @@ const H = 170; // 곡선 높이
 const APolyline = Animated.createAnimatedComponent(Polyline); // 이슈18: 인생곡선 드로잉 애니
 
 export default function LifeGraphScreen() {
+  useLogContentVisit('lifegraph'); // 진입 1회 방문 기록(daniel 2026-07-06)
   const { t } = useTranslation();
   const { fs } = useFontScale(); // 본문(읽는 글) 글자 크기 전역 배율
   const router = useRouter();
