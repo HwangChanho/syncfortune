@@ -35,6 +35,7 @@ import { readingFromInvoke } from '../lib/backend/interpretResult'; // 방어: E
 import { logEvent } from '../lib/backend/logger';
 import { useLogContentVisit } from '../lib/backend/contentVisit'; // 콘텐츠 방문 집계(daniel 2026-07-06) — 진입 1회
 import { setGenProgress } from '../lib/backend/genProgress'; // 일회성 진행도(daniel 이슈15)
+import { acquireGen, releaseGen } from '../lib/backend/genLock'; // 크로스마운트 이중 생성 잠금(② 이중 LLM 방지)
 import { colors, radius, space, shadow, font } from '../lib/theme';
 import { UnlockOverlay } from './UnlockOverlay';         // unlock 자물쇠 애니 + 그 사이 LLM
 import { DoorReveal } from './DoorReveal';               // 풀이 공개 순간 골드 명조 문 열림 영상(daniel 07-06)
@@ -94,6 +95,8 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
   const [revealed, setRevealed] = useState(false); // 상태 뷰 경유(daniel 07-03): 소유(프리미엄/구매/관리자) 풀이도 바로 노출하지 않고 '이미 열려 있음' 상태 뷰를 먼저 보여준 뒤 '풀이 보기'로 공개. 명식/카테고리 변경 시 false 리셋 → 전환할 때마다 상태 뷰 재노출.
   const c = useMemo(() => (savedChart ? computeChart(savedChart.input) : null), [savedChart]);
   const gatingRef = useRef(false); // 게이트(모달) 연타 차단
+  const genSeq = useRef(0);        // ① 생성 세대 토큰 — 명식 전환/재로드 시 ++ 로 진행 중 gen 무효화(stale setReading 폐기)
+  const chartIdRef = useRef<string | null>(null); // ① 현재 로드된 serverChartId — generate 결과 명식 대조(남의 풀이 표시 차단)
   const reveal = useRef(new Animated.Value(0)).current; // 섹션 순차 등장
   const [doorPlaying, setDoorPlaying] = useState(false); // 풀이 공개 순간 골드 명조 문 열림 영상(daniel 07-06)
   const prevRevealed = useRef(false);                    // revealed false→true 전환 감지(문 1회 재생)
@@ -108,6 +111,8 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
   // 대표 명식 → 서버차트ID → 캐시(category=kind) 조회. 프리미엄이고 캐시 없으면 자동 생성.
   useEffect(() => {
     let alive = true;
+    genSeq.current++;   // ① 재로드(진입·명식전환) = 진행 중 generate 무효화(그 결과가 이 화면에 setReading 되지 않게)
+    setBusy(false);     // ① 무효화한 gen 의 로딩 상태 정리(자물쇠가 남지 않게)
     setReading(null); setOwned(false); setExpiry(null); setRevealed(false); // 진입/명식 변경 시 초기화 — 미구매 차트가 직전 풀이로 새지 않게(daniel ⓐ) + 상태 뷰 재노출(revealed 리셋: 명식 전환 시 다시 상태 뷰부터, daniel 07-03)
     (async () => {
       const ch = await loadRepChart();
@@ -118,6 +123,7 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
       const id = await ensureServerChartId(cc, ch.input, session, ch);
       if (!alive || !id) { onChartResolved?.(null); setLoaded(true); return; } // 서버차트ID 미해석(미로그인 등) → null
       setChartId(id);
+      chartIdRef.current = id;   // ① 현재 명식 확정 — 이후 도착하는 generate 결과의 명식 대조 기준
       onChartResolved?.(id); // ★해석된 서버차트ID 통지(재회: 이 명식의 잠긴 상대를 로드/저장)
       // 소유 판정(daniel ⓐⓒ): (premiumCovered면 프리미엄 명식) / 관리자 / 이 차트×종류 unlock(차감 완료) 중 하나여야 풀이 노출. 아니면 설명창(게이트).
       //   ★premiumCovered(자식운 등 프리미엄 포함 콘텐츠)만 프리미엄을 소유로 인정 — 스페셜(astrology/mission 등 기본값)은 프리미엄 무관(관리자/크레딧 전용) 그대로.
@@ -182,9 +188,18 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
   async function generate(idArg?: string, ziweiArg?: any, refreshArg = false) {
     const id = idArg ?? chartId;
     if (!id || busy) return;
+    // ② 크로스마운트 이중 LLM 방지 — 이미 이 명식·이 콘텐츠(category)가 생성 중이면 2차 호출하지 않는다(과금 0·프리미엄 자동생성 경로도 포함).
+    const lockKey = `${category}:${id}`; // category = 콘텐츠 캐시 단위(roots·celeb_{id} 등)
+    if (!acquireGen(lockKey)) return;
+    const myGen = genSeq.current;    // ① 이 생성의 세대 스냅샷(읽기만) — 재로드/명식전환(load effect)이 genSeq 를 올리면 stale
+    const myChart = id;              // ① 대상 명식
+    const isStale = () => myGen !== genSeq.current || myChart !== chartIdRef.current; // ① 결과 쓰기 직전 대조 — 남의 명식 위에 setReading 차단
     setBusy(true);
     setOwned(true); // 낙관적: 생성 진행 = 소유 표시(생성 애니). needPayment 면 아래에서 되돌림.
-    setGenProgress({ active: true, total: 1, done: 0, label: title, route: ('/' + kind) }); // 일회성 진행도(daniel 이슈15) — '풀이 중'
+    // ③ 배너/푸시 명식 식별 — route 에 chartId(로컬 savedChart.id) + chartLabel.
+    //    ⚠️ 재진입 시 이 param 을 읽어 그 명식을 로드하는 '바인딩'은 TODO(SpecialContentScreen 은 route-agnostic — 소비 라우트가 loadRepChart 만 사용, reading.tsx 38-43 패턴 참고).
+    const gpRoute = savedChart?.id ? `/${kind}?chartId=${savedChart.id}` : ('/' + kind);
+    setGenProgress({ active: true, total: 1, done: 0, label: title, chartLabel: savedChart?.label, route: gpRoute }); // 일회성 진행도(daniel 이슈15) — '풀이 중'
     logEvent(`${kind}_invoke_start`, { chartId: id });
     try {
       const body: any = { chartId: id, category, kind, tier: 'paid', lang: appLang() };
@@ -192,9 +207,10 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
       if (needsZiwei) body.ziwei = ziweiArg ?? c?.ziwei; // 사명 = 자미 보조 교차
       if (buildBody && savedChart) Object.assign(body, buildBody(savedChart)); // 수비학/점성술 = 앱 산출 차트(numerologyChart/natalChart)
       const { data, error } = await supabase.functions.invoke('interpret', { body });
+      if (isStale()) return;   // ① 생성 사이 명식 전환됨 → 폐기(promptPurchase·setReading 모두 안 함)
       // ★C3 part2: 서버 게이트가 이용권 없음 판정 → needPayment(200) → 소유 되돌리고 구매 플로우(에러 표시 아님).
       if ((data as any)?.needPayment || (data as any)?.needPremium) {
-        setOwned(false); setBusy(false); setGenProgress({ route: ('/' + kind), active: false });
+        setOwned(false); setBusy(false); setGenProgress({ route: gpRoute, active: false });
         logEvent(`${kind}_need_payment`, { chartId: id });
         promptPurchase(id, refreshArg); // ★refresh 유지 — 결제 후 재시도도 캐시 덮어쓰기여야(재회 상대 반영). 아니면 stale 캐시(본인만)를 서빙.
         return;
@@ -203,6 +219,7 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
         // ★클라 invoke가 끊겨도(무거운 풀이 타임아웃) Edge는 서버에서 완료·캐시 → 캐시 폴링으로 회수(로딩 유지).
         logEvent(`${kind}_invoke_error`, { message: error?.message ?? 'no data', polling: true }, 'error');
         const cached = await pollCachedReading(id);
+        if (isStale()) return;   // ① 폴링 사이 명식 전환됨 → 폐기
         if (cached) { setReading(cached); await markUnlocked(id, kind); } // 서버가 완료·캐시 = 생성 성공(차감됨) → 캐시 힌트
         else setReading(readingFromInvoke(data, error));
       } else if ((data as any)?.unavailable) {
@@ -216,10 +233,14 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
       // fetch throw(타임아웃 등)도 동일 — 서버가 완료·캐시했으면 폴링으로 회수, 아니면 오류 표시.
       logEvent(`${kind}_invoke_throw`, { message: (e as Error).message }, 'error');
       const cached = await pollCachedReading(id);
+      if (isStale()) return;
       if (cached) { setReading(cached); await markUnlocked(id, kind); } // 서버 완료·캐시 = 성공 → 캐시 힌트
       else setReading({ error: (e as Error).message });
+    } finally {
+      releaseGen(lockKey);   // ② 완료·중단·오류·폐기 모두 잠금 해제
     }
-    setGenProgress({ route: ('/' + kind), done: 1, total: 1 }); // 완료 → 홈 배너 '풀이 보기' 이동버튼(daniel 이슈15)
+    if (isStale()) return;   // ① 완료 처리도 현재 명식일 때만
+    setGenProgress({ route: gpRoute, done: 1, total: 1 }); // 완료 → 홈 배너 '풀이 보기' 이동버튼(daniel 이슈15)
     setBusy(false);
   }
 

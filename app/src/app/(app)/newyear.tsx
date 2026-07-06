@@ -30,8 +30,10 @@ import { invokeFail } from '../../lib/backend/interpretResult'; // 방어: Edge 
 import { assertOnline } from '../../lib/backend/network'; // daniel: 네트워크/서버 미연결 시 풀이 생성 차단
 import { logEvent } from '../../lib/backend/logger';
 import { setGenProgress } from '../../lib/backend/genProgress'; // 일회성 컨텐츠 진행도(daniel 이슈15)
+import { acquireGen, releaseGen } from '../../lib/backend/genLock'; // 크로스마운트 이중 생성 잠금(② 이중 LLM 방지)
 import { bgSource, colors, radius, space, shadow, font } from '../../lib/theme';
 import { UnlockOverlay } from '../../components/UnlockOverlay'; // unlock 자물쇠 애니 + 그 사이 LLM 분석
+import { DoorReveal } from '../../components/DoorReveal'; // 풀이 공개 순간 골드 명조 문 열림 영상(daniel 07-06)
 import { ContentHero } from '../../components/SpecialContentScreen'; // 공용 히어로
 import { ChartPicker } from '../../components/ChartPicker'; // 상단 명식 헤더 — 현재 적용 명식 표시·전환
 import { ShareReadingButton } from '../../components/ShareReadingButton'; // 이슈17: 풀이 결과 공유(가드 내장)
@@ -68,6 +70,15 @@ export default function NewYearScreen() {
   const [reloadKey, setReloadKey] = useState(0); // ChartPicker 로 대표 전환 시 재로드 트리거
   const [expiry, setExpiry] = useState<string | null>(null); // 보유 만료일(생성일+1년) — 캐시 created_at으로 채움(daniel #25)
   const gatingRef = useRef(false); // 결제 구간 연타 차단
+  const genSeq = useRef(0);        // ① 생성 세대 토큰 — 명식 전환/재로드 시 ++ 로 진행 중 gen 무효화(stale setData 폐기)
+  const chartIdRef = useRef<string | null>(null); // ① 현재 로드된 serverChartId — generate 결과 명식 대조(남의 풀이 표시 차단)
+  const [doorPlaying, setDoorPlaying] = useState(false); // 풀이 공개 순간 골드 명조 문 열림 영상(daniel 07-06)
+  const doorShown = useRef(false);                       // 유효 통변 최초 공개 1회 가드(재렌더·명식전환 시 재생 방지)
+
+  // ★신년 통변(data)이 실제로 공개되는 순간 = 골드 명조 문 열림 연출 1회(daniel 07-06). 캐시 로드/생성 완료로 처음 뜰 때만(ref 가드·오류는 err 상태라 data는 유효 통변만).
+  useEffect(() => {
+    if (data && !(data as any).error && !doorShown.current) { doorShown.current = true; setDoorPlaying(true); }
+  }, [data]);
 
   const category = `newyear_${year}`; // 연운(year_YYYY)과 분리된 신년 전용 캐시
   // 대표 명식의 결정론 차트(무료 티저 + 삼재 산출 공용). computeChart 는 엔진 캐시라 재호출 저렴.
@@ -81,6 +92,8 @@ export default function NewYearScreen() {
   const uid = session?.user?.id ?? null; // ★deps 안정화 — session 객체 참조가 아닌 user.id로(재발행 깜빡임 방지, daniel 07-02)
   useEffect(() => {
     let alive = true;
+    genSeq.current++;   // ① 재로드(진입·명식전환) = 진행 중 generate 무효화(그 결과가 이 화면에 setData 되지 않게)
+    setBusy(false);     // ① 무효화한 gen 의 로딩 상태 정리(자물쇠가 남지 않게)
     // ★재실행 시 화면을 비우지 않는다(구매화면↔풀이화면 깜빡임 근본): 새 값을 받은 뒤에만 교체.
     //   (기존엔 시작 시 setData(null)+setLoaded(false)로 blank → 캐시 재세팅을 반복해 깜빡였음)
     (async () => {
@@ -92,6 +105,7 @@ export default function NewYearScreen() {
       const id = await ensureServerChartId(c, ch.input, session!, ch);
       if (!alive || !id) { setLoaded(true); return; }
       setChartId(id);
+      chartIdRef.current = id;   // ① 현재 명식 확정 — 이후 도착하는 generate 결과의 명식 대조 기준
       const { data: row } = await supabase.from('readings').select('content, created_at').eq('chart_id', id).eq('category', category).eq('lang', appLang()).maybeSingle();
       if (!alive) return;
       const cached = (row?.content as Record<string, any> | undefined) ?? null;
@@ -121,8 +135,16 @@ export default function NewYearScreen() {
   async function generate(id: string) {
     if (!assertOnline(t)) return; // daniel: 오프라인이면 풀이 진입(Edge 생성) 차단
     if (busy) return;
+    // ② 크로스마운트 이중 LLM 방지 — 이미 이 명식·이 연도 신년운세가 생성 중이면 2차 호출하지 않는다(과금 0).
+    const lockKey = `${category}:${id}`; // category=newyear_YYYY(연도별 분리)
+    if (!acquireGen(lockKey)) return;
+    const myGen = genSeq.current;    // ① 이 생성의 세대 스냅샷(읽기만) — 재로드/명식전환(load effect)이 genSeq 를 올리면 stale
+    const myChart = id;              // ① 대상 명식
+    const isStale = () => myGen !== genSeq.current || myChart !== chartIdRef.current; // ① 결과 쓰기 직전 대조
     setBusy(true); setErr(null);
-    setGenProgress({ active: true, total: 1, done: 0, label: t('newyear.title', '신년운세'), route: '/newyear' }); // 일회성=진행도 측정 어려움 → '풀이 중'(daniel 이슈15)
+    // ③ 배너/푸시 명식 식별 — route 에 chartId(로컬 saved.id) + chartLabel. 재진입 param 바인딩은 TODO(reading.tsx 38-43 패턴).
+    const gpRoute = saved?.id ? `/newyear?chartId=${saved.id}` : '/newyear';
+    setGenProgress({ active: true, total: 1, done: 0, label: t('newyear.title', '신년운세'), chartLabel: saved?.label, route: gpRoute }); // 일회성=진행도 측정 어려움 → '풀이 중'(daniel 이슈15)
     logEvent('newyear_generate', { chartId: id, category });
     try {
       // 신년 전용 — kind='newyear' + 삼재(온디바이스 계산값) body 전달
@@ -133,22 +155,28 @@ export default function NewYearScreen() {
       if (f && f.kind !== 'error') {
         // unavailable/needPayment = 200 빠른 실패(Edge가 긴 생성을 시작 안 함) → 폴링 없이 즉시 친화 문구
         logEvent('newyear_fail', { kind: f.kind, message: error?.message }, 'error');
+        if (isStale()) return;   // ① 생성 사이 명식 전환됨 → 폐기
         setErr(f.message);
       } else if (error || !res?.reading) {
         // ★클라 invoke가 끊기거나(무거운 풀이 타임아웃) 응답이 비어도 Edge는 서버에서 완료·캐시 → 캐시 폴링으로 회수(로딩 유지).
         logEvent('newyear_fail', { kind: 'timeout', message: error?.message ?? 'no reading', polling: true }, 'error');
         const cached = await pollCachedReading(id, category);
+        if (isStale()) return;   // ① 폴링 사이 명식 전환됨 → 폐기
         if (cached) setData(cached);
         else setErr(f?.message ?? t('today.genFail', '생성에 실패했어요. 잠시 후 다시 시도해 주세요.'));
-      } else setData((res?.reading as Record<string, any>) ?? null);
+      } else { if (isStale()) return; setData((res?.reading as Record<string, any>) ?? null); }
     } catch (e: any) {
       // fetch throw(타임아웃 등)도 동일 — 서버가 완료·캐시했으면 폴링으로 회수, 아니면 오류 표시.
       logEvent('newyear_throw', { message: String(e?.message ?? e) }, 'error');
       const cached = await pollCachedReading(id, category);
+      if (isStale()) return;
       if (cached) setData(cached);
       else setErr(t('today.genFail', '생성에 실패했어요. 잠시 후 다시 시도해 주세요.'));
+    } finally {
+      releaseGen(lockKey);   // ② 완료·중단·오류·폐기 모두 잠금 해제
     }
-    setGenProgress({ route: '/newyear', done: 1, total: 1 }); // 완료 → 홈 배너 '풀이 보기' 이동버튼(daniel 이슈15)
+    if (isStale()) return;   // ① 완료 처리도 현재 명식일 때만
+    setGenProgress({ route: gpRoute, done: 1, total: 1 }); // 완료 → 홈 배너 '풀이 보기' 이동버튼(daniel 이슈15)
     setBusy(false);
   }
 
@@ -182,6 +210,8 @@ export default function NewYearScreen() {
         {/* 상단 명식 헤더 — 현재 적용된 대표 명식 표시·전환(daniel: 모든 콘텐츠 상단). 전환 시 그 명식 기준 재로드 */}
         <ChartPicker onChange={() => setReloadKey((k) => k + 1)} />
         <UnlockOverlay visible={busy} message={t('newyear.generating', '올 한 해를 풀어내는 중…')} />
+        {/* 풀이 공개 순간 골드 명조 문 열림 영상 — 1회 재생 후 페이드아웃하며 풀이 노출(daniel 07-06) */}
+        <DoorReveal visible={doorPlaying} onDone={() => setDoorPlaying(false)} />
         <ContentHero motif={<NewyearWheel />} image={require('../../../assets/icons/newyear-hero.jpg')} title={`${year}${t('newyear.title', '년 신년운세')}`} sub={t('newyear.heroSub', '올 한 해의 큰 흐름을 한눈에')} themeColor={colors.ju} />
 
         {/* ★무료 온디바이스 티저(내년 신수 3층 곱연산 산식 + 큰 삼재 배지 + 길월 달력) — 히어로 아래·잠김/열림 무관 항상 노출.

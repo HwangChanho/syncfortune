@@ -28,6 +28,7 @@ import { ensureServerChartId } from '../lib/backend/prewarmReadings';
 import { useFontScale } from '../lib/ui/fontScale';
 import { COMPAT_RELS, otherSig, loadCompatReadings, genCompatReading, compatSections, compatSectionLabel, type CompatReading } from '../lib/content/compatReadings';
 import { setGenProgress, getGenItem } from '../lib/backend/genProgress'; // 다건 진행도(route='/compat', daniel·docs/CONTENT_API_INVENTORY.md)
+import { acquireGen, releaseGen } from '../lib/backend/genLock'; // 크로스마운트 이중 생성 잠금(② 이중 LLM 방지)
 import { loadFollowups, askFollowup, type Followup } from '../lib/backend/followups'; // 궁합 추가질문(사주/자미 풀이와 동일 — 무료1 + 건당)
 import { yearGanZhi } from '../lib/content/dailyFortune'; // 연도별 궁합: 그 해 간지(세운)
 import { compatScore, tierLabel, tierOf, type CompatScoreResult } from '../lib/content/compatScore'; // 궁합 점수·등급(R26: LLM 직접 산출 우선, 결정론은 폴백)
@@ -55,6 +56,7 @@ const CAT_IMG: Record<string, any> = {
   business: require('../../assets/icons/compat-rel/business.jpg'),
 };
 import { UnlockOverlay } from '../components/UnlockOverlay'; // 생성 중 화면 가림 로딩(daniel)
+import { DoorReveal } from '../components/DoorReveal'; // 풀이 공개 순간 골드 명조 문 열림 영상(daniel 07-06)
 import { TTSButton } from '../components/TTSButton'; // 풀이 음성 읽기(온디바이스 TTS·무료)
 import type { ChartInput } from '@spec/chart';
 
@@ -110,6 +112,11 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
   const [followups, setFollowups] = useState<Record<string, Followup[]>>({});
   const [askInput, setAskInput] = useState('');
   const [asking, setAsking] = useState(false);
+  const [doorPlaying, setDoorPlaying] = useState(false); // 풀이 공개 순간 골드 명조 문 열림 영상(daniel 07-06)
+  const doorShown = useRef(false);                       // 유효 궁합 통변 최초 공개 1회 가드(관계/탭 전환·재렌더 시 재생 방지)
+  // ① 생성 세대 토큰 — 쌍(나+상대) 전환 시 analyze() 가 ++ 로 진행 중 gen 무효화(옛 쌍 결과가 새 쌍 readings 에 섞이는 것 차단).
+  //   compat 의 '명식'은 쌍이므로 analyze() 재실행(= 쌍 변경)이 곧 chartIdRef 갱신 역할을 겸한다.
+  const genSeq = useRef(0);
 
   // 저장 명식 + 대표 로드 → 내 명식 슬롯. 이어보기(daniel): 마지막 나·상대·관계 복원(홈 갔다 와도 초기화 안 되게).
   useEffect(() => {
@@ -157,6 +164,8 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
   //   게이트(서버 판정): 비프리미엄=프리미엄 유도 / 무료 5쌍 초과=건당 결제(paid 재시도). daniel.
   async function analyze() {
     if (!meInput || !otherInput || !session) return;
+    genSeq.current++;  // ① 쌍(나+상대) 재분석 = 진행 중 runCompatGen 무효화(옛 쌍 결과가 새 쌍 readings 에 setReadings 되지 않게)
+    setBusy(null);     // ① 무효화한 gen 의 로딩 키 정리(옛 관계키 스피너 잔존 방지)
     setLoading(true); // 캐시/서버 차트 로딩 시작 — 준비 전까지 스피너(noReading·자물쇠 플래시 방지)
     _lastCompat = { meId: meSel?.id, otherId: otherSel?.id, rel }; // 이어보기 복원용(마지막 선택 보관)
     const meC = computeChart(meInput), otherC = computeChart(otherInput);
@@ -203,23 +212,35 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
   async function runCompatGen(relKey: string, yr: string, key: string) {
     if (!ctx || !pair) return;
     const tab: 'saju' | 'ziwei' = key.split(':')[0] === 'ziwei' ? 'ziwei' : 'saju'; // 키 접두에서 탭 추출(닫힘 안전)
+    // ② 중복/크로스마운트 생성 잠금 — 이 명식·이 관계키가 이미 생성 중이면 2차 호출 안 함(쌍당 비용 방어).
+    const lockKey = `compat:${ctx.chartId}:${key}`;
+    if (!acquireGen(lockKey)) return;
+    const myGen = genSeq.current;    // ① 이 생성의 세대 스냅샷(읽기만) — 쌍 전환 시 analyze 가 genSeq 를 올려 무효화. 동시 관계키 생성끼리 서로 무효화 안 하게 '읽기'.
+    const isStale = () => myGen !== genSeq.current; // ① 도중 쌍 바뀌면 이 결과를 새 쌍 readings 에 쓰지 않음(오염 차단)
     setBusy(key);
-    setGenProgress({ active: true, total: 1, done: 0, label: tab === 'ziwei' ? '자미 궁합' : '궁합', route: '/compat' });
-    const gz = yr ? yearGanZhi(Number(yr)) : undefined;
-    const res = await genCompatReading(ctx.chartId, relKey, ctx.sig, pair.other, ctx.cross, ctx.dayRel, ctx.meZiwei, ctx.otherZiwei, yr || undefined, gz, meSel?.context, ctx.numMe, ctx.numOther, tab);
-    setBusy(null);
-    if (res.kind === 'answer') { setReadings((prev) => ({ ...prev, [key]: res.reading })); setGenProgress({ route: '/compat', done: 1, total: 1 }); return; }
-    setGenProgress({ route: '/compat', active: false });
-    if (res.kind === 'needPremium') { Alert.alert(t('compat.premiumTitle'), t('compat.premiumMsg')); return; }
-    if (res.kind === 'unavailable') { Alert.alert(t('common.error'), res.message); return; } // 방어: LLM 일시적 불가 — 재시도 안내
-    if (res.kind === 'needPayment') {
-      Alert.alert(t('compat.payTitle'), t('compat.payMsg'), [
-        { text: t('common.cancel'), style: 'cancel' },
-        { text: t('compat.payBtn'), onPress: async () => {
-          try { const ok = await purchaseCreditRC('compat'); if (!ok) return; const { granted } = await waitForCreditGrant('compat'); if (granted) await runCompatGen(relKey, yr, key); else Alert.alert(t('compat.payTitle'), t('reading.applyPending', '결제가 완료됐어요. 적용까지 잠시 걸릴 수 있어요. 잠시 후 다시 시도해 주세요.')); } // ★C1: 결제→웹훅 적립 폴링→서버 consume→재생성
-          catch (e) { Alert.alert(t('reading.payPending'), (e as Error).message); }
-        } },
-      ]);
+    // ③ 배너/푸시 명식 식별 — route 에 chartId(내 명식 로컬 meSel.id) + chartLabel. 쌍(상대)까지의 재진입 param 바인딩은 TODO.
+    const gpRoute = meSel?.id ? `/compat?chartId=${meSel.id}` : '/compat';
+    setGenProgress({ active: true, total: 1, done: 0, label: tab === 'ziwei' ? '자미 궁합' : '궁합', chartLabel: meSel?.label, route: gpRoute });
+    try {
+      const gz = yr ? yearGanZhi(Number(yr)) : undefined;
+      const res = await genCompatReading(ctx.chartId, relKey, ctx.sig, pair.other, ctx.cross, ctx.dayRel, ctx.meZiwei, ctx.otherZiwei, yr || undefined, gz, meSel?.context, ctx.numMe, ctx.numOther, tab);
+      if (isStale()) return;   // ① 생성 사이 쌍 전환됨 → 폐기(옛 쌍 결과가 새 쌍 readings 에 섞이지 않게)
+      setBusy(null);
+      if (res.kind === 'answer') { setReadings((prev) => ({ ...prev, [key]: res.reading })); setGenProgress({ route: gpRoute, done: 1, total: 1 }); return; }
+      setGenProgress({ route: gpRoute, active: false });
+      if (res.kind === 'needPremium') { Alert.alert(t('compat.premiumTitle'), t('compat.premiumMsg')); return; }
+      if (res.kind === 'unavailable') { Alert.alert(t('common.error'), res.message); return; } // 방어: LLM 일시적 불가 — 재시도 안내
+      if (res.kind === 'needPayment') {
+        Alert.alert(t('compat.payTitle'), t('compat.payMsg'), [
+          { text: t('common.cancel'), style: 'cancel' },
+          { text: t('compat.payBtn'), onPress: async () => {
+            try { const ok = await purchaseCreditRC('compat'); if (!ok) return; const { granted } = await waitForCreditGrant('compat'); if (granted) await runCompatGen(relKey, yr, key); else Alert.alert(t('compat.payTitle'), t('reading.applyPending', '결제가 완료됐어요. 적용까지 잠시 걸릴 수 있어요. 잠시 후 다시 시도해 주세요.')); } // ★C1: 결제→웹훅 적립 폴링→서버 consume→재생성(새 lock 획득)
+            catch (e) { Alert.alert(t('reading.payPending'), (e as Error).message); }
+          } },
+        ]);
+      }
+    } finally {
+      releaseGen(lockKey);   // ② 완료·중단·오류·폐기·구매유도 모두 해제(구매 후 재시도는 새 lock)
     }
   }
 
@@ -245,10 +266,18 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
   const dispTier = llmScore != null ? tierOf(llmScore) : (compat?.tier ?? null);
   const slotLine = (input: ChartInput | null) => input ? `${String(input.birthDateTime).split(' ')[0]} · ${input.sex}` : '미선택';
 
+  // ★유료 궁합 통변(cur)이 실제로 공개되는 순간 = 골드 명조 문 열림 연출 1회(daniel 07-06). 캐시 로드/생성 완료로 처음 뜰 때만.
+  //   ReadingScreen 선례처럼 마운트당 1회(관계/탭/연도 전환마다 재생 X). 무료 결정론 점수 티저(ScoreReveal)엔 재생 안 함.
+  useEffect(() => {
+    if (cur && !(cur as any).error && !doorShown.current) { doorShown.current = true; setDoorPlaying(true); }
+  }, [cur]);
+
   return (
     <>
     {/* 보고 있는 관계 풀이가 이미 준비됐으면(cur) 전체 잠금 오버레이로 막지 않음 — 나머지 관계는 홈 배너로 백그라운드 진행(daniel: 완료 감지·이어보기 개선) */}
     <UnlockOverlay visible={!!busy && !cur} message={t('compat.generating', '궁합을 풀어내는 중…')} videoKey="compat" />
+    {/* 풀이 공개 순간 골드 명조 문 열림 영상 — 1회 재생 후 페이드아웃하며 풀이 노출(daniel 07-06) */}
+    <DoorReveal visible={doorPlaying} onDone={() => setDoorPlaying(false)} />
     <ScrollView style={styles.screen} contentContainerStyle={styles.wrap} automaticallyAdjustKeyboardInsets keyboardShouldPersistTaps="handled">
       {/* ── 단계형 위저드(daniel: 궁합 새 디자인) — 나❤상대 헤더 → ①상대 → ②관계 → ③관점 → 풀이 ── */}
       {/* 나 ❤ 상대 — 한 줄 컴팩트 헤더(각자 탭하면 변경/선택). 큰 슬롯·갈색 분석버튼 제거 */}

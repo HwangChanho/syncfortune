@@ -28,9 +28,11 @@ import { invokeFail } from '../../lib/backend/interpretResult'; // 방어: Edge 
 import { assertOnline } from '../../lib/backend/network'; // daniel: 네트워크/서버 미연결 시 풀이 생성 차단
 import { logEvent } from '../../lib/backend/logger';
 import { setGenProgress } from '../../lib/backend/genProgress'; // 일회성 진행도(daniel 이슈15)
+import { acquireGen, releaseGen } from '../../lib/backend/genLock'; // 크로스마운트 이중 생성 잠금(② 이중 LLM 방지)
 import { useFontScale } from '../../lib/ui/fontScale';
 import { colors, radius, space, shadow, font } from '../../lib/theme';
 import { UnlockOverlay } from '../../components/UnlockOverlay'; // unlock 자물쇠 애니 + 그 사이 LLM 분석
+import { DoorReveal } from '../../components/DoorReveal'; // 풀이 공개 순간 골드 명조 문 열림 영상(daniel 07-06)
 import { ChartPicker } from '../../components/ChartPicker'; // 상단 명식 헤더 — 현재 적용 명식 표시·전환
 import { ShareReadingButton } from '../../components/ShareReadingButton'; // 이슈17: 풀이 결과 공유(가드 내장)
 import { TTSButton } from '../../components/TTSButton'; // 풀이 음성 읽기(온디바이스 TTS·무료)
@@ -61,10 +63,16 @@ export default function LifeGraphScreen() {
   const [reloadKey, setReloadKey] = useState(0); // ChartPicker 로 대표 전환 시 재로드 트리거
   const [expiry, setExpiry] = useState<string | null>(null); // 보유 만료일(생성일+1년) — 캐시 created_at으로 채움(daniel #25)
   const gatingRef = useRef(false); // 결제 구간 연타 차단
+  const genSeq = useRef(0);        // ① 생성 세대 토큰 — 명식 전환/재로드 시 ++ 로 진행 중 gen 무효화(stale setData 폐기)
+  const chartIdRef = useRef<string | null>(null); // ① 현재 로드된 serverChartId — generate 결과 명식 대조(남의 풀이 표시 차단)
   const draw = useRef(new Animated.Value(0)).current; // 이슈18: 인생곡선 드로잉 진행값(0→1)
+  const [doorPlaying, setDoorPlaying] = useState(false); // 풀이 공개 순간 골드 명조 문 열림 영상(daniel 07-06)
+  const doorShown = useRef(false);                       // 유효 통변 최초 공개 1회 가드(재렌더·명식전환 시 재생 방지)
 
   useEffect(() => {
     let alive = true;
+    genSeq.current++;   // ① 재로드(진입·명식전환) = 진행 중 generate 무효화(그 결과가 이 화면에 setData 되지 않게)
+    setBusy(false);     // ① 무효화한 gen 의 로딩 상태 정리(자물쇠가 남지 않게)
     setData(null); setErr(null); setLoaded(false); setSel(null);
     (async () => {
       const ch = await loadRepChart();
@@ -75,6 +83,7 @@ export default function LifeGraphScreen() {
       const id = await ensureServerChartId(c, ch.input, session, ch);
       if (!alive || !id) { setLoaded(true); return; }
       setChartId(id);
+      chartIdRef.current = id;   // ① 현재 명식 확정 — 이후 도착하는 generate 결과의 명식 대조 기준
       const { data: row } = await supabase.from('readings').select('content, created_at').eq('chart_id', id).eq('category', 'lifegraph').eq('lang', appLang()).maybeSingle();
       if (!alive) return;
       const cached = (row?.content as LifeData | undefined) ?? null;
@@ -93,6 +102,11 @@ export default function LifeGraphScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data]);
 
+  // ★인생그래프 통변(data.decades)이 실제로 공개되는 순간 = 골드 명조 문 열림 연출 1회(daniel 07-06). 곡선이 처음 뜰 때만(ref 가드).
+  useEffect(() => {
+    if (data?.decades?.length && !doorShown.current) { doorShown.current = true; setDoorPlaying(true); }
+  }, [data]);
+
   // invoke 타임아웃/실패 시 readings 캐시를 폴링해 결과 회수(Edge가 서버에서 계속 생성·캐시하므로).
   //   무거운 인생그래프 풀이(대운별 용신 부합)는 Edge 생성이 87~103s → 클라 invoke가 먼저 끊겨도('Failed to send request')
   //   서버는 완료·캐시함. 그 캐시를 폴링해 로딩 유지한 채 결과를 받아온다(멈춤·"갑자기 완료" 해결, daniel 07-02).
@@ -109,8 +123,16 @@ export default function LifeGraphScreen() {
   async function generate(id: string) {
     if (!assertOnline(t)) return; // daniel: 오프라인이면 풀이 진입(Edge 생성) 차단
     if (busy) return;
+    // ② 크로스마운트 이중 LLM 방지 — 이미 이 명식 lifegraph 가 생성 중이면 2차 호출하지 않는다(과금 0).
+    const lockKey = `lifegraph:${id}`;
+    if (!acquireGen(lockKey)) return;
+    const myGen = genSeq.current;    // ① 이 생성의 세대 스냅샷(읽기만) — 재로드/명식전환(load effect)이 genSeq 를 올리면 stale
+    const myChart = id;              // ① 대상 명식
+    const isStale = () => myGen !== genSeq.current || myChart !== chartIdRef.current; // ① 결과 쓰기 직전 대조
     setBusy(true); setErr(null);
-    setGenProgress({ active: true, total: 1, done: 0, label: '인생 그래프', route: '/lifegraph' }); // 일회성 진행도(daniel 이슈15)
+    // ③ 배너/푸시 명식 식별 — route 에 chartId(로컬 saved.id) + chartLabel. 재진입 param 바인딩은 TODO(reading.tsx 38-43 패턴).
+    const gpRoute = saved?.id ? `/lifegraph?chartId=${saved.id}` : '/lifegraph';
+    setGenProgress({ active: true, total: 1, done: 0, label: '인생 그래프', chartLabel: saved?.label, route: gpRoute }); // 일회성 진행도(daniel 이슈15)
     logEvent('lifegraph_generate', { chartId: id });
     try {
       const { data: res, error } = await supabase.functions.invoke('interpret', {
@@ -120,22 +142,28 @@ export default function LifeGraphScreen() {
       if (f && f.kind !== 'error') {
         // unavailable/needPayment = 200 빠른 실패(Edge가 긴 생성을 시작 안 함) → 폴링 없이 즉시 친화 문구
         logEvent('lifegraph_fail', { kind: f.kind, message: error?.message }, 'error');
+        if (isStale()) return;   // ① 생성 사이 명식 전환됨 → 폐기
         setErr(f.message);
       } else if (error || !res?.reading) {
         // ★클라 invoke가 끊기거나(무거운 풀이 타임아웃) 응답이 비어도 Edge는 서버에서 완료·캐시 → 캐시 폴링으로 회수(로딩 유지).
         logEvent('lifegraph_fail', { kind: 'timeout', message: error?.message ?? 'no reading', polling: true }, 'error');
         const cached = await pollCachedReading(id);
+        if (isStale()) return;   // ① 폴링 사이 명식 전환됨 → 폐기
         if (cached) setData(cached);
         else setErr(f?.message ?? t('life.genFail', '생성에 실패했어요. 잠시 후 다시 시도해 주세요.'));
-      } else setData((res?.reading as LifeData) ?? null);
+      } else { if (isStale()) return; setData((res?.reading as LifeData) ?? null); }
     } catch (e: any) {
       // fetch throw(타임아웃 등)도 동일 — 서버가 완료·캐시했으면 폴링으로 회수, 아니면 오류 표시.
       logEvent('lifegraph_throw', { message: String(e?.message ?? e) }, 'error');
       const cached = await pollCachedReading(id);
+      if (isStale()) return;
       if (cached) setData(cached);
       else setErr(t('life.genFail', '생성에 실패했어요. 잠시 후 다시 시도해 주세요.'));
+    } finally {
+      releaseGen(lockKey);   // ② 완료·중단·오류·폐기 모두 잠금 해제
     }
-    setGenProgress({ route: '/lifegraph', done: 1, total: 1 }); // 완료 → 홈 배너 '풀이 보기'(daniel 이슈15)
+    if (isStale()) return;   // ① 완료 처리도 현재 명식일 때만
+    setGenProgress({ route: gpRoute, done: 1, total: 1 }); // 완료 → 홈 배너 '풀이 보기'(daniel 이슈15)
     setBusy(false);
   }
 
@@ -194,6 +222,8 @@ export default function LifeGraphScreen() {
       {/* 상단 hero 배너(daniel: 인생그래프 썰렁 → 이미지). 가로 1344×768 cover */}
       <ExpoImage source={require('../../../assets/icons/lifegraph-hero.jpg')} style={{ width: '100%', height: 190, borderRadius: radius.lg, marginBottom: space(4) }} contentFit="cover" cachePolicy="memory-disk" transition={150} />
       <UnlockOverlay visible={busy} message={t('life.generating', '인생 흐름을 그리는 중…')} />
+      {/* 풀이 공개 순간 골드 명조 문 열림 영상 — 1회 재생 후 페이드아웃하며 풀이 노출(daniel 07-06) */}
+      <DoorReveal visible={doorPlaying} onDone={() => setDoorPlaying(false)} />
       {!loaded ? (
         <View style={styles.card}><ActivityIndicator color={colors.ju} /></View>
       ) : !saved ? (

@@ -27,8 +27,10 @@ import { appLang } from '../../lib/i18n';
 import { readingFromInvoke } from '../../lib/backend/interpretResult'; // 방어: Edge 응답 정규화(일시적 불가·결제필요·오류 친화 처리)
 import { logEvent } from '../../lib/backend/logger'; // DB 로그(app_logs) — 단계별 추적(네이티브 크래시 직전 지점)
 import { setGenProgress } from '../../lib/backend/genProgress'; // 일회성 진행도(daniel 이슈15)
+import { acquireGen, releaseGen } from '../../lib/backend/genLock'; // 크로스마운트 이중 생성 잠금(② 이중 LLM 방지)
 import { colors, radius, space, shadow, font } from '../../lib/theme';
 import { UnlockOverlay } from '../../components/UnlockOverlay'; // unlock 자물쇠 애니 + 그 사이 LLM 분석
+import { DoorReveal } from '../../components/DoorReveal'; // 풀이 공개 순간 골드 명조 문 열림 영상(daniel 07-06)
 import { ContentHero, cardAnim } from '../../components/SpecialContentScreen'; // 공용 히어로 + 섹션 stagger
 import { ChartPicker } from '../../components/ChartPicker'; // 상단 명식 헤더 — 현재 적용 명식 표시·전환
 import { ShareReadingButton } from '../../components/ShareReadingButton'; // 이슈17: 풀이 결과 공유(가드 내장)
@@ -87,11 +89,17 @@ export default function LoveScreen() {
     [c, savedChart],
   );
   const gatingRef = useRef(false); // 결제 구간(모달) 연타 차단 — busy(생성중)와 별개
+  const genSeq = useRef(0);        // ① 생성 세대 토큰 — 명식 전환/재로드 시 ++ 로 진행 중 gen 무효화(stale setReading 폐기)
+  const chartIdRef = useRef<string | null>(null); // ① 현재 로드된 serverChartId — generate 결과가 이 명식용인지 대조(남의 풀이 표시 차단)
   const reveal = useRef(new Animated.Value(0)).current; // 섹션 순차 등장
+  const [doorPlaying, setDoorPlaying] = useState(false); // 풀이 공개 순간 골드 명조 문 열림 영상(daniel 07-06)
+  const doorShown = useRef(false);                       // 유효 통변 최초 공개 1회 가드(재렌더·명식전환 시 재생 방지)
 
   // 대표 명식 로드 → 서버차트ID 확보 → 'love' 캐시 조회(생성 없이 즉시 표시)
   useEffect(() => {
     let alive = true;
+    genSeq.current++;   // ① 재로드(진입·명식전환) = 진행 중 generate 무효화(그 결과가 이 화면에 setReading 되지 않게)
+    setBusy(false);     // ① 무효화한 gen 의 로딩 상태 정리(자물쇠가 남지 않게 — 새 명식은 자기 상태로 다시 그린다)
     (async () => {
       const ch = await loadRepChart();
       if (!alive) return;
@@ -101,6 +109,8 @@ export default function LoveScreen() {
       const id = await ensureServerChartId(cc, ch.input, session, ch);
       if (!alive || !id) { setLoaded(true); return; }
       setChartId(id);
+      chartIdRef.current = id;   // ① 현재 명식 확정 — 이후 도착하는 generate 결과의 명식 대조 기준
+
       const { data } = await supabase.from('readings').select('content, created_at').eq('chart_id', id).eq('category', 'love').eq('lang', appLang()).maybeSingle();
       if (!alive) return;
       // 방어(daniel: 풀이가 'true'로 뜨던 버그) — 캐시 content가 정상 통변 '객체'가 아니거나(boolean·배열·문자열),
@@ -121,6 +131,11 @@ export default function LoveScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reading]);
 
+  // ★유효 통변(reading)이 실제로 공개되는 순간 = 골드 명조 문 열림 연출 1회(daniel 07-06). 캐시 로드/생성 완료로 처음 뜰 때만(ref 가드).
+  useEffect(() => {
+    if (reading && !reading.error && !doorShown.current) { doorShown.current = true; setDoorPlaying(true); }
+  }, [reading]);
+
   // invoke 타임아웃/실패 시 readings 캐시를 폴링해 결과 회수(Edge가 서버에서 계속 생성·캐시하므로).
   //   무거운 애정 풀이(사주+자미 교차)는 Edge 생성이 87~103s → 클라 invoke가 먼저 끊겨도('Failed to send request')
   //   서버는 완료·캐시함. 그 캐시를 폴링해 로딩 유지한 채 결과를 받아온다(멈춤·"갑자기 완료" 해결, daniel 07-02).
@@ -139,8 +154,17 @@ export default function LoveScreen() {
     const id = idArg ?? chartId;
     const zw = ziweiArg ?? c?.ziwei;
     if (!id || !zw || busy) return;
+    // ② 크로스마운트 이중 LLM 방지 — 이미 이 명식 love 가 생성 중이면 2차 호출하지 않는다(과금 0·ReadingScreen genActive 와 동일 계약).
+    const lockKey = `love:${id}`;
+    if (!acquireGen(lockKey)) return;
+    const myGen = genSeq.current;    // ① 이 생성의 세대 스냅샷(읽기만) — 재로드/명식전환(load effect)이 genSeq 를 올리면 stale. 동시 생성끼리 서로 무효화하지 않게 '증가' 아닌 '읽기'.
+    const myChart = id;              // ① 이 생성이 대상으로 삼은 명식(serverChartId)
+    const isStale = () => myGen !== genSeq.current || myChart !== chartIdRef.current; // ① 결과 쓰기 직전 대조 — 남의 명식 위에 setReading 차단
     setBusy(true);
-    setGenProgress({ active: true, total: 1, done: 0, label: '나의 애정흐름', route: '/love' }); // 일회성 진행도(daniel 이슈15)
+    // ③ 배너/푸시가 어느 명식인지 식별하도록 route 에 chartId(로컬 savedChart.id·ReadingScreen 규약) + chartLabel.
+    //    ⚠️ 재진입 시 이 param 을 읽어 그 명식을 로드하는 '바인딩'은 TODO(love.tsx 는 현재 loadRepChart 만 사용 — reading.tsx 38-43 패턴 참고).
+    const gpRoute = savedChart?.id ? `/love?chartId=${savedChart.id}` : '/love';
+    setGenProgress({ active: true, total: 1, done: 0, label: '나의 애정흐름', chartLabel: savedChart?.label, route: gpRoute }); // 일회성 진행도(daniel 이슈15)
     logEvent('love_invoke_start', { chartId: id });
     try {
       const { data, error } = await supabase.functions.invoke('interpret', {
@@ -150,24 +174,32 @@ export default function LoveScreen() {
         // ★클라 invoke가 끊겨도(무거운 풀이 타임아웃) Edge는 서버에서 완료·캐시 → 캐시 폴링으로 회수(로딩 유지).
         logEvent('love_invoke_error', { message: error?.message ?? 'no data', polling: true }, 'error');
         const cached = await pollCachedReading(id);
+        if (isStale()) return;   // ① 폴링 사이 명식 전환됨 → 폐기
         setReading(cached ?? readingFromInvoke(data, error));
       } else if ((data as any)?.unavailable) {
         logEvent('love_unavailable', { retryAt: (data as any)?.retryAt }, 'error'); // LLM 일시적 불가(사용량 한도 등) — 빠른 실패라 폴링 없이 친화 문구
+        if (isStale()) return;
         setReading(readingFromInvoke(data, error));
       } else if ((data as any)?.needPayment) {
         logEvent('love_need_payment', {}, 'error');   // 크레딧 stale 방어 — 빠른 실패
+        if (isStale()) return;
         setReading(readingFromInvoke(data, error));
       } else {
         logEvent('love_invoke_ok');
+        if (isStale()) return;
         setReading(readingFromInvoke(data, error)); // 정상 도착(성공 경로 그대로)
       }
     } catch (e) {
       // fetch throw(타임아웃 등)도 동일 — 서버가 완료·캐시했으면 폴링으로 회수, 아니면 오류 표시.
       logEvent('love_invoke_throw', { message: (e as Error).message }, 'error');
       const cached = await pollCachedReading(id);
+      if (isStale()) return;
       setReading(cached ?? { error: (e as Error).message });
+    } finally {
+      releaseGen(lockKey);   // ② 완료·중단·오류·폐기 모두 잠금 해제(누수 방지)
     }
-    setGenProgress({ route: '/love', done: 1, total: 1 }); // 완료 → 홈 배너 '풀이 보기'(daniel 이슈15)
+    if (isStale()) return;   // ① 완료 처리(배너/버튼)도 현재 명식일 때만
+    setGenProgress({ route: gpRoute, done: 1, total: 1 }); // 완료 → 홈 배너 '풀이 보기'(daniel 이슈15)
     setBusy(false);
   }
 
@@ -212,6 +244,8 @@ export default function LoveScreen() {
       {/* 상단 명식 헤더 — 현재 적용된 대표 명식 표시·전환(daniel: 모든 콘텐츠 상단). 전환 시 그 명식 기준 재로드 */}
       <ChartPicker onChange={() => setReloadKey((k) => k + 1)} />
       <UnlockOverlay visible={busy} message={t('love.generating', '애정 흐름을 풀어내는 중…')} />
+      {/* 풀이 공개 순간 골드 명조 문 열림 영상 — 1회 재생 후 페이드아웃하며 풀이 노출(daniel 07-06) */}
+      <DoorReveal visible={doorPlaying} onDone={() => setDoorPlaying(false)} />
       <ContentHero motif={<LoveThread />} image={require('../../../assets/icons/love-hero.jpg')} title={t('love.title')} sub={t('love.sub')} themeColor={LOVE_PINK} />
       {/* 인연 가능성 게이지(무료·결정론) — 흐름 곡선 '위'에 얹는 핵심 훅. 지금 인연 기운을 0~100 + 한 줄 일상어로. */}
       {loveGauge && (

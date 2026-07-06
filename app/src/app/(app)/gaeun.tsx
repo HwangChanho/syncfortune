@@ -26,8 +26,10 @@ import { appLang } from '../../lib/i18n';
 import { readingFromInvoke } from '../../lib/backend/interpretResult';
 import { logEvent } from '../../lib/backend/logger';
 import { setGenProgress } from '../../lib/backend/genProgress';
+import { acquireGen, releaseGen } from '../../lib/backend/genLock'; // 크로스마운트 이중 생성 잠금(② 이중 LLM 방지)
 import { colors, radius, space, shadow, font } from '../../lib/theme';
 import { UnlockOverlay } from '../../components/UnlockOverlay';
+import { DoorReveal } from '../../components/DoorReveal'; // 풀이 공개 순간 골드 명조 문 열림 영상(daniel 07-06)
 import { ChartPicker } from '../../components/ChartPicker';
 import { ShareReadingButton } from '../../components/ShareReadingButton';
 import { TTSButton } from '../../components/TTSButton'; // 풀이 음성 읽기(온디바이스 TTS·무료)
@@ -59,9 +61,20 @@ export default function GaeunScreen() {
   const [reloadKey, setReloadKey] = useState(0);
   const c = useMemo(() => (savedChart ? computeChart(savedChart.input) : null), [savedChart]);
   const gatingRef = useRef(false);
+  const genSeq = useRef(0);        // ① 생성 세대 토큰 — 명식 전환/재로드 시 ++ 로 진행 중 gen 무효화(stale setReading 폐기)
+  const chartIdRef = useRef<string | null>(null); // ① 현재 로드된 serverChartId — generate 결과 명식 대조(남의 풀이 표시 차단)
+  const [doorPlaying, setDoorPlaying] = useState(false); // 풀이 공개 순간 골드 명조 문 열림 영상(daniel 07-06)
+  const doorShown = useRef(false);                       // 유효 통변 최초 공개 1회 가드(재렌더·명식전환 시 재생 방지)
+
+  // ★유효 통변(reading)이 실제로 공개되는 순간 = 골드 명조 문 열림 연출 1회(daniel 07-06). 캐시 로드/생성 완료로 처음 뜰 때만(ref 가드).
+  useEffect(() => {
+    if (reading && !reading.error && !doorShown.current) { doorShown.current = true; setDoorPlaying(true); }
+  }, [reading]);
 
   useEffect(() => {
     let alive = true;
+    genSeq.current++;   // ① 재로드(진입·명식전환) = 진행 중 generate 무효화(그 결과가 이 화면에 setReading 되지 않게)
+    setBusy(false);     // ① 무효화한 gen 의 로딩 상태 정리(자물쇠가 남지 않게)
     (async () => {
       const ch = await loadRepChart();
       if (!alive) return;
@@ -71,6 +84,7 @@ export default function GaeunScreen() {
       const id = await ensureServerChartId(cc, ch.input, session, ch);
       if (!alive || !id) { setLoaded(true); return; }
       setChartId(id);
+      chartIdRef.current = id;   // ① 현재 명식 확정 — 이후 도착하는 generate 결과의 명식 대조 기준
       const { data } = await supabase.from('readings').select('content').eq('chart_id', id).eq('category', 'gaeun').eq('lang', appLang()).maybeSingle();
       if (!alive) return;
       setReading(data?.content ?? null);
@@ -83,20 +97,36 @@ export default function GaeunScreen() {
   async function generate(idArg?: string) {
     const id = idArg ?? chartId;
     if (!id || busy) return;
+    // ② 크로스마운트 이중 LLM 방지 — 이미 이 명식 gaeun 이 생성 중이면 2차 호출하지 않는다(과금 0).
+    const lockKey = `gaeun:${id}`;
+    if (!acquireGen(lockKey)) return;
+    const myGen = genSeq.current;    // ① 이 생성의 세대 스냅샷(읽기만) — 재로드/명식전환(load effect)이 genSeq 를 올리면 stale
+    const myChart = id;              // ① 대상 명식
+    const isStale = () => myGen !== genSeq.current || myChart !== chartIdRef.current; // ① 결과 쓰기 직전 대조
     setBusy(true);
-    setGenProgress({ active: true, total: 1, done: 0, label: '맞춤 개운법', route: '/gaeun' });
+    // ③ 배너/푸시 명식 식별 — route 에 chartId(로컬 savedChart.id) + chartLabel. 재진입 param 바인딩은 TODO(reading.tsx 38-43 패턴).
+    const gpRoute = savedChart?.id ? `/gaeun?chartId=${savedChart.id}` : '/gaeun';
+    setGenProgress({ active: true, total: 1, done: 0, label: '맞춤 개운법', chartLabel: savedChart?.label, route: gpRoute });
     logEvent('gaeun_invoke_start', { chartId: id });
     try {
       const { data, error } = await supabase.functions.invoke('interpret', {
         body: { chartId: id, category: 'gaeun', kind: 'gaeun', tier: 'paid', lang: appLang() },
       });
+      if (isStale()) return;   // ① 생성 사이 명식 전환됨 → 폐기
       if (error) logEvent('gaeun_invoke_error', { message: error.message }, 'error');
       else if ((data as any)?.unavailable) logEvent('gaeun_unavailable', { retryAt: (data as any)?.retryAt }, 'error');
       else if ((data as any)?.needPayment) logEvent('gaeun_need_payment', {}, 'error');
       else logEvent('gaeun_invoke_ok');
       setReading(readingFromInvoke(data, error));
-    } catch (e) { logEvent('gaeun_invoke_throw', { message: (e as Error).message }, 'error'); setReading({ error: (e as Error).message }); }
-    setGenProgress({ route: '/gaeun', done: 1, total: 1 });
+    } catch (e) {
+      logEvent('gaeun_invoke_throw', { message: (e as Error).message }, 'error');
+      if (isStale()) return;
+      setReading({ error: (e as Error).message });
+    } finally {
+      releaseGen(lockKey);   // ② 완료·중단·오류·폐기 모두 잠금 해제
+    }
+    if (isStale()) return;   // ① 완료 처리도 현재 명식일 때만
+    setGenProgress({ route: gpRoute, done: 1, total: 1 });
     setBusy(false);
   }
 
@@ -138,6 +168,8 @@ export default function GaeunScreen() {
       <ScrollView style={styles.overlay} contentContainerStyle={styles.wrap}>
         <ChartPicker onChange={() => setReloadKey((k) => k + 1)} />
         <UnlockOverlay visible={busy} message={t('gaeun.generating', '지금 운에 맞는 개운법을 찾는 중…')} />
+        {/* 풀이 공개 순간 골드 명조 문 열림 영상 — 1회 재생 후 페이드아웃하며 풀이 노출(daniel 07-06) */}
+        <DoorReveal visible={doorPlaying} onDone={() => setDoorPlaying(false)} />
         <View style={styles.hero}>
           <ExpoImage source={require('../../../assets/icons/gaeun.jpg')} style={styles.heroImg} contentFit="cover" cachePolicy="memory-disk" transition={150} />
           <Text style={styles.title}>{t('gaeun.title', '맞춤 개운법')}</Text>

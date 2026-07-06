@@ -2,7 +2,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 // 키워드 검색 → 해몽(lib/dreamDict). 인기 키워드 칩. 규칙5: 무료=온디바이스(API 0). §4: 전향적.
 // ─────────────────────────────────────────────────────────────────────────
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import { View, Text, ScrollView, TextInput, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
 import { PressableScale } from '../../components/PressableScale';
 import { useTranslation } from 'react-i18next';
@@ -22,9 +22,11 @@ import { purchaseCreditRC, purchasesEnabled } from '../../lib/billing/purchases'
 import { requireLoginForPurchase } from '../../lib/billing/requireLogin';
 import { confirmReadingChart } from '../../lib/ui/confirmChart'; // 생성 전 확인 + 보유 이용권 안내(daniel)
 import { setGenProgress } from '../../lib/backend/genProgress'; // 일회성 진행도(daniel·docs/CONTENT_API_INVENTORY.md)
+import { acquireGen, releaseGen } from '../../lib/backend/genLock'; // 크로스마운트 이중 생성 잠금(② 이중 LLM 방지)
 import { invokeFail } from '../../lib/backend/interpretResult'; // 방어: 일시적 불가/오류 친화 처리(dream은 reading 아닌 dream 구조라 invokeFail만)
 import { assertOnline } from '../../lib/backend/network'; // daniel: 네트워크/서버 미연결 시 풀이 생성 차단
 import { TTSButton } from '../../components/TTSButton'; // 풀이 음성 읽기(온디바이스 TTS·무료)
+import { DoorReveal } from '../../components/DoorReveal'; // 유료 AI 해몽 공개 순간 골드 명조 문 열림 영상(daniel 07-06)
 import { useLogContentVisit } from '../../lib/backend/contentVisit'; // 콘텐츠 방문 집계(daniel 2026-07-06) — 진입 1회 기록
 
 export default function DreamScreen() {
@@ -39,6 +41,14 @@ export default function DreamScreen() {
   const [aiText, setAiText] = useState('');
   const [aiBusy, setAiBusy] = useState(false);
   const [aiResult, setAiResult] = useState<{ title: string; meaning: string } | null>(null);
+  // ★유료 AI 꿈해몽(₩300)이 공개되는 순간만 골드 명조 문 연출 — 무료 사전검색/키워드 폴백엔 재생 안 함.
+  //   AI 해몽은 반복 유료라 prev-ref로 '새 결과가 뜰 때마다' 1회(재렌더로는 재생 안 함·SpecialContentScreen prevRevealed 패턴).
+  const [doorPlaying, setDoorPlaying] = useState(false);
+  const prevAiResult = useRef<{ title: string; meaning: string } | null>(null);
+  useEffect(() => {
+    if (aiResult && aiResult !== prevAiResult.current) setDoorPlaying(true);
+    prevAiResult.current = aiResult;
+  }, [aiResult]);
   const results = useMemo(() => searchDreams(q), [q]);
   // LLM 폴백 — 사전에 없는 꿈은 Edge(kind='dream')로 즉석 해몽(전역 캐시 → 없으면 생성). 검색어 바뀌면 리셋.
   const [llm, setLlm] = useState<{ title: string; meaning: string } | null>(null);
@@ -99,6 +109,9 @@ export default function DreamScreen() {
 
   async function runAI(text: string) {
     if (!assertOnline(t)) return; // daniel: 오프라인이면 풀이 진입(Edge 생성) 차단
+    // ② 크로스마운트 이중 LLM 방지 — AI 꿈해몽(건당 ₩300)이 이미 생성 중이면 2차 호출 안 함(과금 0).
+    //    ★dream 은 명식 무관(chartless)이라 ①명식가드·③route chartId 는 미적용 — 콘텐츠 desync 3종 중 ②만 해당.
+    if (!acquireGen('dream')) return;
     setAiBusy(true);
     setGenProgress({ active: true, total: 1, done: 0, label: 'AI 꿈해몽', route: '/dream' }); // 일회성 진행도(daniel)
     try {
@@ -109,12 +122,15 @@ export default function DreamScreen() {
       const fail = invokeFail(data, error);
       setAiResult(fail ? { title: text.slice(0, 12), meaning: fail.message } : ((data?.dream as any) ?? { title: text.slice(0, 12), meaning: t('dream.fail', '해몽을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.') }));
     } catch { setAiResult({ title: text.slice(0, 12), meaning: t('dream.fail', '해몽을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.') }); }
+    finally { releaseGen('dream'); } // ② 완료·중단·오류·구매유도 모두 해제(구매 후 재시도는 새 lock)
     setGenProgress({ route: '/dream', done: 1, total: 1 }); // 완료 → 홈 배너 '풀이 보기'(daniel)
     setAiBusy(false);
   }
 
   return (
     <View style={styles.bg}>
+      {/* 유료 AI 해몽 공개 순간 골드 명조 문 열림 영상 — 1회 재생 후 페이드아웃(daniel 07-06) */}
+      <DoorReveal visible={doorPlaying} onDone={() => setDoorPlaying(false)} />
       <ScrollView style={styles.overlay} contentContainerStyle={styles.wrap} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets keyboardDismissMode="interactive">
         <ContentHero image={require('../../../assets/icons/dream.jpg')} title={t('dream.title', '꿈해몽')} sub={t('dream.sub', '꿈에 나온 것을 검색해 보세요.')} />
 
