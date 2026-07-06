@@ -184,20 +184,22 @@ export default function TodayScreen() {
             </View>
             <Reveal key={area} dy={8}>
               <View style={styles.readCard}>
-                {/* daniel #17: 신규 '투자' 영역이 구(舊) 캐시엔 없을 수 있음 → '실패' 대신 중립 안내 */}
-                <Text style={[styles.readTx, { fontSize: fs(15), lineHeight: fs(26) }]}>{shown?.[area] || t('today.areaSoon', '이 분야 풀이는 다음 운세부터 채워져요.')}</Text>
+                {busy && !reading ? (
+                  // ★생성 중 — 무료 룰 대신 로딩만(무료룰+아래 로딩박스 이중표시 차단, daniel 07-06)
+                  <><ActivityIndicator color={colors.ju} /><Text style={styles.genWait}>{t('today.generating', '오늘의 흐름을 풀어내는 중…')}</Text></>
+                ) : (
+                  // daniel #17: 신규 '투자' 영역이 구(舊) 캐시엔 없을 수 있음 → '실패' 대신 중립 안내
+                  <Text style={[styles.readTx, { fontSize: fs(15), lineHeight: fs(26) }]}>{shown?.[area] || t('today.areaSoon', '이 분야 풀이는 다음 운세부터 채워져요.')}</Text>
+                )}
               </View>
             </Reveal>
             {/* 음성으로 듣기(온디바이스 TTS·무료) — 현재 표시본(룰/LLM) 읽기 */}
-            <TTSButton reading={shown} />
-            {/* 풀이 공유 — 스마트링크(shared_readings)는 계정 필요 → 로그인 시에만 노출 */}
-            {session ? <ShareReadingButton kind="daily" title={t('today.title', '오늘의 운세')} content={shown} /> : null}
-            {/* AI 정밀 풀이 업셀 — LLM 결과가 아직 없을 때만(무료 룰 기본은 위에서 이미 표시됨) */}
-            {!reading && (
-              busy ? (
-                // 생성 중(프리미엄 자동 또는 광고 후)
-                <View style={styles.readCard}><ActivityIndicator color={colors.ju} /><Text style={styles.genWait}>{t('today.generating', '오늘의 흐름을 풀어내는 중…')}</Text></View>
-              ) : !session ? (
+            {/* TTS·공유 — 생성 중(로딩)엔 숨김(daniel 07-06 이중표시 정리) */}
+            {!(busy && !reading) && <TTSButton reading={shown} />}
+            {!(busy && !reading) && session ? <ShareReadingButton kind="daily" title={t('today.title', '오늘의 운세')} content={shown} /> : null}
+            {/* AI 정밀 풀이 업셀 — LLM 없고 생성 중도 아닐 때만(생성 중 로딩은 위 풀이 카드가 처리, daniel 07-06) */}
+            {!reading && !busy && (
+              !session ? (
                 // 로그아웃: 무료 룰은 이미 보임 → AI 정밀(LLM·계정 필요)만 로그인 유도
                 <View style={styles.gateCard}>
                   <Text style={styles.gateTitle}>{t('today.aiTitle', 'AI 정밀 풀이')}</Text>
