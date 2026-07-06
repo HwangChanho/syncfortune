@@ -141,7 +141,8 @@ export default function AdminRoute() {
               <Text style={styles.email} numberOfLines={1}>{u.email}</Text>
               <Text style={styles.meta}>{String(u.created_at).split('T')[0]} · 명식 {u.chart_count ?? 0} · 통변 {u.reading_count ?? 0}{(u.paid_total ?? 0) > 0 ? ` · 결제 ₩${u.paid_total.toLocaleString()}` : ''}{u.is_admin ? ' · 관리자' : ''}</Text>
             </View>
-            {u.is_premium && <Text style={styles.premBadge}>프리미엄</Text>}
+            {/* 프리미엄 여부 = 모든 계정에 명확히(daniel 07-06: 비프리미엄은 공백이라 '여부' 안 보임 → 프리미엄/일반 둘 다 pill) */}
+            <Text style={[styles.premBadge, !u.is_premium && styles.premBadgeOff]}>{u.is_premium ? '프리미엄' : '일반'}</Text>
           </PressableScale>
         );
       })}
@@ -227,7 +228,8 @@ const styles = StyleSheet.create({
   userRowOn: { borderColor: colors.ju, borderWidth: 1.5 },
   email: { ...font.body, color: colors.ink, fontWeight: '600' },
   meta: { ...font.caption, color: colors.inkFaint, marginTop: 2 },
-  premBadge: { ...font.caption, color: colors.ju, fontWeight: '800' },
+  premBadge: { ...font.caption, color: colors.ju, fontWeight: '800', backgroundColor: colors.juSoft, paddingHorizontal: space(2.5), paddingVertical: space(1), borderRadius: radius.sm, overflow: 'hidden' },
+  premBadgeOff: { color: colors.inkFaint, backgroundColor: colors.sunk }, // 일반 계정 = 은은한 muted pill(프리미엄 골드와 시각 구분·라이트다크 자동)
   giftPanel: { marginTop: space(5), padding: space(4), borderRadius: radius.md, backgroundColor: colors.card, borderWidth: 1.5, borderColor: colors.ju, ...shadow.card },
   giftHead: { ...font.body, color: colors.ink, fontWeight: '800', marginBottom: space(3) },
   detailBox: { backgroundColor: colors.sunk, borderRadius: radius.sm, padding: space(3), marginBottom: space(4) },
