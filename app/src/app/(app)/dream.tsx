@@ -29,6 +29,16 @@ import { TTSButton } from '../../components/TTSButton'; // 풀이 음성 읽기(
 import { DoorReveal } from '../../components/DoorReveal'; // 유료 AI 해몽 공개 순간 골드 명조 문 열림 영상(daniel 07-06)
 import { useLogContentVisit } from '../../lib/backend/contentVisit'; // 콘텐츠 방문 집계(daniel 2026-07-06) — 진입 1회 기록
 
+// 계정별 지난 AI 꿈해몽 한 건(테이블 public.dream_readings 1행). RLS로 본인 것만 조회/삽입(user_id=auth.uid).
+//   ★재진입 버그 해소: aiResult는 로컬 state뿐이라 완료 배너 탭 → /dream 새 마운트 시 사라짐 → DB에 저장해 목록으로 재조회.
+type DreamRow = { id: string; input_text: string; title: string; meaning: string; lang: string; created_at: string };
+
+// created_at(ISO) → 짧은 날짜 'YYYY.MM.DD'(newyear/love 만료일과 동일 포맷). 목록 각 항목의 날짜 표기용.
+function shortDate(iso: string): string {
+  const d = new Date(iso);
+  return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
+}
+
 export default function DreamScreen() {
   useLogContentVisit('dream'); // 진입 1회 방문 기록(daniel 2026-07-06)
   const { t } = useTranslation();
@@ -41,6 +51,9 @@ export default function DreamScreen() {
   const [aiText, setAiText] = useState('');
   const [aiBusy, setAiBusy] = useState(false);
   const [aiResult, setAiResult] = useState<{ title: string; meaning: string } | null>(null);
+  // 지난 AI 꿈해몽 목록(계정별, 최신순 최대 50 — 초과분은 DB 트리거가 자동 삭제). 로그인 시 마운트에서 로드.
+  const [pastDreams, setPastDreams] = useState<DreamRow[]>([]);
+  const [openId, setOpenId] = useState<string | null>(null); // 목록 아코디언: 펼친 항목 id(탭하면 본문 표시)
   // ★유료 AI 꿈해몽(₩300)이 공개되는 순간만 골드 명조 문 연출 — 무료 사전검색/키워드 폴백엔 재생 안 함.
   //   AI 해몽은 반복 유료라 prev-ref로 '새 결과가 뜰 때마다' 1회(재렌더로는 재생 안 함·SpecialContentScreen prevRevealed 패턴).
   const [doorPlaying, setDoorPlaying] = useState(false);
@@ -49,6 +62,23 @@ export default function DreamScreen() {
     if (aiResult && aiResult !== prevAiResult.current) setDoorPlaying(true);
     prevAiResult.current = aiResult;
   }, [aiResult]);
+  // 지난 꿈해몽 로드 — 로그인 상태면 최신순 50건 조회(RLS가 본인 것만 반환). 로그아웃/미로그인=빈 목록.
+  //   완료 배너 탭으로 /dream 재진입해도 이 목록으로 방금 만든 해몽을 다시 볼 수 있음(재진입 버그 해소).
+  useEffect(() => {
+    const uid = session?.user?.id;
+    if (!uid) { setPastDreams([]); return; } // 미로그인 = 저장/조회 스킵(로그인 게이트는 결제 경로에 이미 존재)
+    let alive = true; // 언마운트 후 setState 방지
+    (async () => {
+      const { data, error } = await supabase
+        .from('dream_readings')
+        .select('id, input_text, title, meaning, lang, created_at')
+        .order('created_at', { ascending: false })
+        .limit(50);
+      if (!alive || error) return; // 실패해도 조용히(로컬 aiResult 흐름엔 영향 없음)
+      setPastDreams((data ?? []) as DreamRow[]);
+    })();
+    return () => { alive = false; };
+  }, [session?.user?.id]);
   const results = useMemo(() => searchDreams(q), [q]);
   // LLM 폴백 — 사전에 없는 꿈은 Edge(kind='dream')로 즉석 해몽(전역 캐시 → 없으면 생성). 검색어 바뀌면 리셋.
   const [llm, setLlm] = useState<{ title: string; meaning: string } | null>(null);
@@ -120,11 +150,32 @@ export default function DreamScreen() {
       if ((data as any)?.needPayment) { setGenProgress({ route: '/dream', active: false }); setAiBusy(false); promptBuyDream(text); return; }
       // 방어: 일시적 불가/오류면 친화 메시지를 meaning 자리에(원문 'non-2xx' 노출 방지)
       const fail = invokeFail(data, error);
-      setAiResult(fail ? { title: text.slice(0, 12), meaning: fail.message } : ((data?.dream as any) ?? { title: text.slice(0, 12), meaning: t('dream.fail', '해몽을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.') }));
+      const dream = (data as any)?.dream as { title: string; meaning: string } | undefined; // Edge 실제 해몽 페이로드(성공 시만 존재)
+      setAiResult(fail ? { title: text.slice(0, 12), meaning: fail.message } : (dream ?? { title: text.slice(0, 12), meaning: t('dream.fail', '해몽을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.') }));
+      // ★계정별 저장 — 실제 해몽일 때만(invokeFail·needPayment·친화 폴백 제외). 저장 실패해도 UX 막지 않음.
+      if (!fail && dream) void saveDream(text, dream);
     } catch { setAiResult({ title: text.slice(0, 12), meaning: t('dream.fail', '해몽을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.') }); }
     finally { releaseGen('dream'); } // ② 완료·중단·오류·구매유도 모두 해제(구매 후 재시도는 새 lock)
     setGenProgress({ route: '/dream', done: 1, total: 1 }); // 완료 → 홈 배너 '풀이 보기'(daniel)
     setAiBusy(false);
+  }
+
+  // 방금 생성한 해몽을 계정에 저장(dream_readings) 후 목록 맨 앞에 prepend — 재진입 시 목록에서 다시 봄.
+  //   @param input 유저가 적은 꿈 원문(input_text) / @param dream Edge 해몽 결과(title·meaning)
+  //   주의: RLS가 본인 것만 insert/select 허용. 50개 초과분은 DB 트리거가 자동 삭제(클라 관리 X).
+  //         저장 실패는 조용히 로그만(로컬 aiResult는 이미 표시됐으므로 UX를 막지 않음).
+  async function saveDream(input: string, dream: { title: string; meaning: string }) {
+    const uid = session?.user?.id;
+    if (!uid) return; // 미로그인 = 저장 스킵(user_id만 필요 · 명식 무관 chartless)
+    try {
+      const { data, error } = await supabase
+        .from('dream_readings')
+        .insert({ user_id: uid, input_text: input, title: dream.title, meaning: dream.meaning, lang: appLang() })
+        .select('id, input_text, title, meaning, lang, created_at')
+        .single(); // 삽입된 행(실제 id·created_at)을 받아 목록에 그대로 prepend
+      if (error || !data) { console.warn('[dream] save failed', error?.message); return; }
+      setPastDreams((prev) => [data as DreamRow, ...prev].slice(0, 50)); // 맨 앞에 추가(최신순 · 상한 50 방어)
+    } catch (e) { console.warn('[dream] save error', (e as Error).message); }
   }
 
   return (
@@ -211,6 +262,34 @@ export default function DreamScreen() {
           ) : null}
         </View>
 
+        {/* 지난 꿈해몽 — 계정별 저장분(최대 50). 완료 배너로 재진입해도 여기서 다시 봄(재진입 버그 해소). 비었으면 섹션 숨김. */}
+        {pastDreams.length > 0 ? (
+          <View style={styles.histWrap}>
+            <Text style={styles.histHead}>{t('dream.history', '지난 꿈해몽')}</Text>
+            {pastDreams.map((d) => {
+              const open = openId === d.id; // 아코디언: 탭하면 본문 펼침/접힘
+              return (
+                <View key={d.id} style={styles.card}>
+                  <PressableScale style={styles.histRow} onPress={() => setOpenId(open ? null : d.id)}>
+                    <View style={styles.histInfo}>
+                      <Text style={[styles.cardTitle, { fontSize: fs(15), marginBottom: 2 }]} numberOfLines={open ? undefined : 1}>{d.title}</Text>
+                      <Text style={styles.histDate}>{shortDate(d.created_at)}</Text>
+                    </View>
+                    <Text style={styles.histChevron}>{open ? '▾' : '▸'}</Text>
+                  </PressableScale>
+                  {open ? (
+                    <View style={styles.histBody}>
+                      <Text style={[styles.cardBody, { fontSize: fs(15), lineHeight: fs(25) }]}>{d.meaning}</Text>
+                      {/* 저장분도 음성 읽기(온디바이스 TTS·무료) */}
+                      <TTSButton reading={{ title: d.title, meaning: d.meaning }} />
+                    </View>
+                  ) : null}
+                </View>
+              );
+            })}
+          </View>
+        ) : null}
+
         <Text style={styles.note}>{t('dream.note', '※ 가볍게 즐기는 전통 해몽이에요.')}</Text>
       </ScrollView>
     </View>
@@ -246,4 +325,12 @@ const styles = StyleSheet.create({
   aiGenOff: { opacity: 0.4 },
   aiGenTx: { color: colors.bg, fontWeight: '800', fontSize: 15 },
   aiOut: { marginTop: space(4), paddingTop: space(4), borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.line },
+  // 지난 꿈해몽 목록 — 기존 card 스타일 재사용 + 행/날짜/펼침 본문
+  histWrap: { marginTop: space(5) },
+  histHead: { fontSize: 16, fontWeight: '900', color: colors.ink, marginBottom: space(2.5) },
+  histRow: { flexDirection: 'row', alignItems: 'center', gap: space(2) },
+  histInfo: { flex: 1 },
+  histDate: { fontSize: 12, color: colors.inkFaint, fontWeight: '600' },
+  histChevron: { fontSize: 16, color: colors.ju, fontWeight: '900' },
+  histBody: { marginTop: space(3), paddingTop: space(3), borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.line },
 });
