@@ -19,17 +19,20 @@ export const TENGOD_GLOSSARY: Record<string, GlossaryEntry> = {
   비견: { ko: '비견', hanja: '比肩', keywords: ['자존', '독립', '주체', '동료'],
     meaning: '일간과 같은 오행·같은 음양. 자존심·독립심·주체성, 그리고 동료·경쟁의 축. 협력하면 큰 힘이 되고, 과하면 고집·재물 분탈로 흐를 수 있어 협업의 균형이 강점이 된다.' },
   겁재: { ko: '겁재', hanja: '劫財', keywords: ['추진', '승부욕', '과감', '협업'],
-    meaning: '일간과 같은 오행·다른 음양. 추진력·승부욕·과감함. 함께 일굴 때와 부딪힐 때의 양면이 있어, 경쟁 에너지를 협업·도전으로 돌릴 때 빛난다.' },
+    // ★daniel 07-06 완충: 재물 분산 리스크(양면 1) + 신약엔 부조(양면 2, B4 결정과 정합) — 유료 해석과 딴말 방지.
+    meaning: '일간과 같은 오행·다른 음양. 추진력·승부욕·경쟁의 기운. 재물 분산 리스크가 있는 반면, 일간이 약할 땐 오히려 나를 받쳐 주는 힘이 된다 — 경쟁 에너지를 협업·도전으로 돌릴 때 빛난다.' },
   식신: { ko: '식신', hanja: '食神', keywords: ['표현', '연구', '여유', '재능'],
     meaning: '일간이 생하는 같은 음양. 표현·연구·먹을복·여유. 꾸준히 만들어내는 생산력과 재능의 통로. 관심사를 깊게 파고들 때 안정적으로 발현된다.' },
   상관: { ko: '상관', hanja: '傷官', keywords: ['창의', '언변', '재능', '자유'],
-    meaning: '일간이 생하는 다른 음양. 재능·언변·창의·자유로운 기질. 빛나지만 규범과 마찰할 수 있어, 표현 통로를 확보해 두면 강점으로 살아난다.' },
+    // ★daniel 07-06 완충: 어원(정관을 상함)이 아니라 '기존 틀을 넘는 재능'을 앞에, 견관 리스크는 뒤에(어순 = 첫인상).
+    meaning: '일간이 생하는 다른 음양. 표현·창의·언변, 기존 틀을 넘는 재능. 규범과 마찰할 수 있어(견관), 표현 통로를 확보해 두면 강점으로 살아난다.' },
   편재: { ko: '편재', hanja: '偏財', keywords: ['사업', '기회', '활동', '재물'],
     meaning: '일간이 극하는 같은 음양. 활동적 재물·사업·기회·이성. 크게 벌고 크게 쓰는 흐름이라, 분산·관리가 받쳐 줄 때 결실로 남는다.' },
   정재: { ko: '정재', hanja: '正財', keywords: ['안정', '성실', '축적', '가정'],
     meaning: '일간이 극하는 다른 음양. 성실한 재물·안정·꼼꼼함·가정. 착실한 축적이 어울리며, 꾸준함 자체가 가장 큰 강점이 된다.' },
   편관: { ko: '편관(칠살)', hanja: '偏官', keywords: ['권력', '결단', '추진', '전문성'],
-    meaning: '일간을 극하는 같은 음양. 압박·권력·결단·추진의 기운. 규율·전문성으로 다스리면(제살) 큰 권위·전문성으로 전환되고, 그대로 두면 스트레스로 느껴질 수 있다. 제어가 곧 성장축.' },
+    // ★daniel 07-06(B3): 편관 있는 유저가 자기 명식 탭에서 처음 보는 문장 — 강한 추진력·카리스마·감당하면 권위를 앞에.
+    meaning: '일간을 극하는 같은 음양. 강한 추진력·결단·카리스마의 기운. 규율·전문성으로 감당하면(제살) 큰 권위·전문성이 되고, 그대로 두면 압박·스트레스로 느껴질 수 있다. 제어가 곧 성장축.' },
   정관: { ko: '정관', hanja: '正官', keywords: ['명예', '책임', '규범', '직책'],
     meaning: '일간을 극하는 다른 음양. 명예·책임·규범·직책. 안정된 사회적 자리와 신뢰의 축. 체계·책임을 맡을 때 자연스럽게 발현된다.' },
   편인: { ko: '편인', hanja: '偏印', keywords: ['직관', '전문', '궁리', '특수재능'],
@@ -46,6 +49,9 @@ export const SINSAL_GLOSSARY: Record<string, GlossaryEntry> = {
     meaning: '이동·변동·여행·바쁨의 기운. 한곳에 머물기보다 움직이고 넓힐 때 풀리는 경향이 있다.' },
   화개: { ko: '화개', hanja: '華蓋', keywords: ['예술', '종교', '학문', '몰입'],
     meaning: '고독·예술·종교·학문·총명. 깊이 파고드는 몰입 기질로, 연구·영성·창작에서 빛난다.' },
+  // ★daniel 07-06: 복삼재 개념 필수 — '삼재=재난 3년'으로 단정하면 신년 freemium의 복/악삼재 판정(페이월 상품)을 글로서리가 자가부정.
+  삼재: { ko: '삼재', hanja: '三災', keywords: ['주의', '정비', '복삼재'],
+    meaning: '띠(삼합)로 정해지는 3년 주기(들·눌·날). 단정적 재난이 아니라 정비·관리의 해로 본다. 단, 그 해의 운(세운)에 따라 오히려 발복하는 복삼재(福三災)가 되기도 하니 — 당신의 진짜 한 해는 사주 여덟 글자로 다시 봐야 한다.' },
   // ── 12신살(十二神煞) — 삼합국 기준 12지지 배속 (도화=년살·역마·화개는 위와 공유) ──
   겁살: { ko: '겁살', hanja: '劫煞', keywords: ['돌발', '변동', '위기관리'],
     meaning: '빼앗김·돌발 변동의 기운. 강하게 작용하는 만큼 위기관리·전문성으로 다스리면 추진력이 된다.' },
@@ -104,6 +110,17 @@ export const SINSAL_GLOSSARY: Record<string, GlossaryEntry> = {
 export const GONGMANG_GLOSSARY: GlossaryEntry = {
   ko: '공망', hanja: '空亡', keywords: ['허(虛)', '비움', '정신·종교'],
   meaning: '비어 있는 자리 — 그 영역의 힘이 흩어지거나 채워지지 않은 느낌으로 본다. 물질적 집착보다 정신·종교·전문 분야에선 오히려 유리하게 쓰이기도 하니, 채우기보다 비움을 활용하는 축으로 이해한다.',
+};
+
+// ── 강약(强弱) — 신강/중화/신약 ──
+// ★daniel 07-06: 억부 전체 프레임의 뿌리. "강=좋음" 오독을 첫 문장에서 차단(잘못 박히면 이후 모든 해석 오독).
+export const GANGYAK_GLOSSARY: Record<string, GlossaryEntry> = {
+  신강: { ko: '신강', hanja: '身强', keywords: ['방향', '억부', '설기'],
+    meaning: '일간(나)의 기운이 강한 상태. ★좋고 나쁨이 아니라 에너지의 방향 차이 — 강하면 덜어 쓰는 쪽(식상·재물·직위)이 나를 살리는 용신이 된다.' },
+  중화: { ko: '중화', hanja: '中和', keywords: ['균형', '유연', '귀함'],
+    meaning: '강약이 균형에 가까운 상태(정설에선 귀하다). 한쪽으로 크게 치우치지 않아 운의 흐름에 유연하게 반응한다.' },
+  신약: { ko: '신약', hanja: '身弱', keywords: ['방향', '억부', '부조'],
+    meaning: '일간(나)의 기운이 약한 상태. ★좋고 나쁨이 아니라 에너지의 방향 차이 — 약하면 도와 받치는 쪽(배움·동료의 힘)이 나를 살리는 용신이 된다.' },
 };
 
 // ── 12운성(十二運星) — 일간이 각 지지에서 갖는 기운의 강약·단계 ──
@@ -177,7 +194,8 @@ export const STAR_GLOSSARY: Record<string, GlossaryEntry> = {
 // ── 합충형해(合冲刑害破剋) 작용 ──
 export const INTERACTION_GLOSSARY: Record<string, GlossaryEntry> = {
   합: { ko: '합', hanja: '合', keywords: ['결합', '화합', '이탈'], meaning: '두 글자가 묶여 새 기운으로 — 화합·협력. 합화가 성립하면 그 오행이 강해지고, 때로 본분에서 벗어나기도(합거).' },
-  충: { ko: '충', hanja: '冲', keywords: ['충돌', '이동', '변화'], meaning: '정면으로 부딪힘 — 이동·변화·자극·깨짐. 묵은 것을 흔들어 바꾸는 힘.' },
+  // ★daniel 07-06(B8): 충=흉 단정 금지 — 개고(창고 열림)가 충으로 발동하는 시스템이라 '충=흉'으로 박으면 R44 재물 해석과 자가당착.
+  충: { ko: '충', hanja: '冲', keywords: ['변동', '재편', '기회'], meaning: '정면으로 부딪힘 — 변동과 재편의 신호. 맥락에 따라 위기이자 기회이며(닫힌 창고를 여는 개고도 충으로 발동), 묵은 것을 흔들어 바꾸는 힘.' },
   형: { ko: '형', hanja: '刑', keywords: ['갈등', '조정', '단련'], meaning: '서로 다듬고 부딪는 작용 — 갈등·조정·송사. 거치며 단단해지기도 한다.' },
   해: { ko: '해', hanja: '害', keywords: ['손상', '방해', '서운함'], meaning: '은근한 손상·방해·서운함. 드러나지 않게 깎이는 작용.' },
   파: { ko: '파', hanja: '破', keywords: ['깨짐', '균열', '분산'], meaning: '깨지고 흩어지는 작용 — 관계·계획의 균열.' },
@@ -247,12 +265,12 @@ export const BRANCH_GLOSSARY: Record<string, GlossaryEntry> = {
     meaning: '돼지 — 해월(≈11월), 초겨울의 수(水). 순수·포용·지혜의 기운 — 너그러움·끈기. 역마이자 천문(天門)의 자리.' },
 };
 
-export type GlossaryKind = 'tengod' | 'sinsal' | 'gongmang' | 'stage' | 'palace' | 'star' | 'interaction' | 'element' | 'stem' | 'branch';
+export type GlossaryKind = 'tengod' | 'sinsal' | 'gongmang' | 'stage' | 'palace' | 'star' | 'interaction' | 'element' | 'stem' | 'branch' | 'gangyak';
 
 export const GLOSSARY_KIND_LABEL: Record<GlossaryKind, string> = {
   tengod: '십신 (十神)', sinsal: '신살 (神煞)', gongmang: '공망 (空亡)', stage: '12운성 (十二運星)',
   palace: '자미두수 궁 (宮)', star: '자미두수 성요 (星曜)', interaction: '합충형해 (合冲刑害)', element: '오행 (五行)',
-  stem: '천간 물상 (天干)', branch: '지지 물상 (地支)',
+  stem: '천간 물상 (天干)', branch: '지지 물상 (地支)', gangyak: '강약 (强弱)',
 };
 
 /** 종류+키로 글로서리 엔트리 조회. 없으면 null. */
@@ -267,5 +285,6 @@ export function lookupGlossary(kind: GlossaryKind, key?: string): GlossaryEntry 
   if (kind === 'element') return (key && OHAENG_GLOSSARY[key]) || null;
   if (kind === 'stem') return (key && STEM_GLOSSARY[key]) || null;
   if (kind === 'branch') return (key && BRANCH_GLOSSARY[key]) || null;
+  if (kind === 'gangyak') return (key && GANGYAK_GLOSSARY[key]) || null;
   return null;
 }

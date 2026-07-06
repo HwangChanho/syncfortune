@@ -141,7 +141,10 @@ export function detectInteractions(saju: SajuChart): Interaction[] {
 const BRANCH_MAIN_S: Record<Branch, Stem> = { 子:'癸',丑:'己',寅:'甲',卯:'乙',辰:'戊',巳:'丙',午:'丁',未:'己',申:'庚',酉:'辛',戌:'戊',亥:'壬' };
 const SHENG_TO: Record<Element, Element> = { 水:'木', 木:'火', 火:'土', 土:'金', 金:'水' }; // X가 Y를 생
 const POS_WEIGHT: Record<PillarPos, number> = { 월: 3, 일: 2, 시: 2, 년: 1.5 }; // 월령 최대 — ★조정 슬롯
-const STEM_W = 1, ROOT_BONUS = 1.5, THRESHOLD = 3, GUK_BONUS = 1.5, CHUNG_MULT = 0.5; // ★조정 슬롯(합충 가중 포함)
+// ★강약 가중 = daniel 2026-07-06 **동결**(D1). 월3·일2·시2·년1.5 / 충½ / 통근1.5 / 완합국±1.5 / 반합×0.6(BANHAP_MULT).
+//   THRESHOLD ±2 확정(중화 26.5%): ±3(39.6%)은 판정 유보 40%=회피에 가깝고, 진짜 중화명은 귀하다는 정설·30% 기준선 초과라 정상화.
+//   ▷ v2 백로그(지금 X): 경계 감쇠 — THRESHOLD 근처 ±1 구간(약신강/약신약)은 5분류 진폭 ×0.75 선형 완충(경계값 컴플레인 시 도입).
+const STEM_W = 1, ROOT_BONUS = 1.5, THRESHOLD = 2, GUK_BONUS = 1.5, CHUNG_MULT = 0.5; // ★동결 슬롯(합충 가중 포함)
 // D1(daniel 2026-07-06 승인): 삼합 완합(3자)=GUK_BONUS 그대로 / 반합(2자, 왕지 포함)=×0.6 차등.
 //   ★배경: 완합과 반합이 동률(±GUK_BONUS)로 찍히던 문제(酉丑 반합 금국이 완성국과 동일 세력으로 계산됨) → 반합 세력을 0.6으로 감쇄.
 const BANHAP_MULT = 0.6; // ★조정 슬롯 — 반합 세력 계수(완합 대비)

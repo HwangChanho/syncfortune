@@ -1,4 +1,4 @@
-// app/src/lib/content/yongsinApprox.ts — 경량 억부용신 (온디바이스·API 0) ★daniel 2026-07-06 확정 스펙
+// app/src/lib/content/yongsinApprox.ts — 경량 억부용신 (온디바이스·API 0) ★daniel 2026-07-06 스펙 동결(FROZEN) — 극/설/재 선택규칙·5분류·재생살·비겁감점 확정
 // ─────────────────────────────────────────────────────────────────────────
 // 엔진(buildSajuChart)은 L1 만세력만 채우고 용신(structure.usefulGod=L2)은 온디바이스에서 비어 있다.
 //   무료 용신기반 티저(lifegraph·신년·취업 A·healing)가 용신을 필요로 하므로, 여기서 '억부용신'을
