@@ -36,8 +36,9 @@ export function AuthScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [reviewMode, setReviewMode] = useState(false); // ★심사용 히든 로그인(타이틀 롱프레스 0.8s) — SNS 전용이라 App Store 리뷰어 데모계정 접근 경로(daniel 07-07). 일반 유저엔 안 보임.
 
-  // 이메일 로그인(로그인 전용 — 회원가입은 따로 두지 않음, 신규 계정은 소셜 로그인으로. daniel)
+  // 이메일 로그인(심사용 히든 — reviewMode에서만 노출. 신규 계정은 소셜 로그인으로. daniel)
   async function submit() {
     if (!email || !password) {
       Alert.alert(t('auth.needInput'), '');
@@ -98,10 +99,22 @@ export function AuthScreen() {
 
   return (
     <View style={styles.wrap}>
-      <Text style={styles.title}>{t('appName')}</Text>
+      {/* 타이틀 롱프레스(0.8s) = 심사용 히든 로그인 노출(App Store 리뷰어 전용 — SNS 전용 앱의 데모계정 접근, daniel 07-07) */}
+      <Pressable onLongPress={() => setReviewMode(true)} delayLongPress={800}>
+        <Text style={styles.title}>{t('appName')}</Text>
+      </Pressable>
       <View style={styles.divider} />
 
-      {/* ★이메일/비번 로그인 제거 — SNS 로그인만(daniel). 신규·기존 모두 소셜로. */}
+      {/* ★이메일/비번 로그인 제거 — SNS 로그인만(daniel). 단 심사용 히든 로그인은 reviewMode(타이틀 롱프레스)에서만 노출. */}
+      {reviewMode && (
+        <View>
+          <TextInput style={styles.input} placeholder="email" autoCapitalize="none" autoCorrect={false} keyboardType="email-address" value={email} onChangeText={setEmail} placeholderTextColor={colors.inkFaint} />
+          <TextInput style={styles.input} placeholder="password" secureTextEntry value={password} onChangeText={setPassword} placeholderTextColor={colors.inkFaint} />
+          <PressableScale style={[styles.btn, loading && styles.btnDisabled]} onPress={submit} disabled={loading}>
+            <Text style={styles.btnText}>{t('auth.login', '로그인')}</Text>
+          </PressableScale>
+        </View>
+      )}
       {loading ? <ActivityIndicator color={colors.ju} style={{ marginVertical: space(3) }} /> : null}
 
       {/* 소셜 로그인 — 애플·구글·네이버 (각 브랜드 색) */}
