@@ -715,7 +715,9 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
         //   양력월→절기월 매핑 (selMonth+11)%12: 7월→index5=未월(乙未·정답). (재현 검증: 2026 [5]乙未 [6]丙申)
         const mo = an?.months?.[(selMonth + 11) % 12];
         // 일진(流日) — 선택 세운·월운의 날짜별 간지. 선택 일운(selDay)이 없으면 그 달 1일로 폴백.
-        const days = (input && an) ? computeMonthDays(input, an.year, selMonth + 1) : [];
+        // ★일운 빈칸 수정(daniel 07-07): input 은 저장/대표 명식 로드 시 null 이라 (input && an) 가드가 days 를 비워
+        //   *일운 컬럼만 통째로 사라졌다*(월운은 an.months 라 떴음). 일간(dm=c.saju.dayMaster)은 항상 가용 → input 의존 제거.
+        const days = an ? computeMonthDays(dm, an.year, selMonth + 1) : [];
         const dayItem = days.find((d) => d.day === selDay) ?? days[0] ?? null;
         // 원국(시일월년) + 선택 대운 + 선택 세운 + 선택 월운 + 선택 일운 = 확장 명식 컬럼
         const expandCols = [

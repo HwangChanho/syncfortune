@@ -234,9 +234,10 @@ export function buildSajuChart(input: ChartInput, nowYear = 2026): SajuChart {
 
 /** 특정 세운(年)·월(1~12)의 일운(日辰) 달력 — 월운 탭 시 동적 생성(전체 미리계산 회피).
  *  일간지는 절기 무관 연속 60갑자라 양력 날짜로 직접 산출(정확). 월 라벨은 양력월 기준. */
-export function computeMonthDays(input: ChartInput, anYear: number, solarMonth: number): { day: number; stem: Stem; branch: Branch; stemTenGod: TenGod }[] {
-  const [by, bmo, bd] = solarYmd(input);                       // 음력 생일이면 양력으로 변환
-  const dayStem = Solar.fromYmdHms(by, bmo, bd, 12, 0, 0).getLunar().getEightChar().getDayGan() as Stem;
+export function computeMonthDays(dayStem: Stem, anYear: number, solarMonth: number): { day: number; stem: Stem; branch: Branch; stemTenGod: TenGod }[] {
+  // ★일간(dayStem)을 직접 인자로 받는다(daniel 2026-07-07 일운 빈칸 버그): 기존엔 input→solarYmd 로 일간을 구했는데,
+  //   저장/대표 명식 로드 시 input=null 이면 호출부가 빈배열로 폴백 → *일운(流日) 컬럼이 통째로 사라졌다*
+  //   (월운은 an.months 라 떠서 "월운은 뜨는데 일운만 안 뜸"). 일간은 c.saju.dayMaster 로 항상 가용 → input 의존 제거.
   const last = new Date(anYear, solarMonth, 0).getDate();   // 그 양력월 말일
   const days: { day: number; stem: Stem; branch: Branch; stemTenGod: TenGod }[] = [];
   for (let d = 1; d <= last; d++) {
