@@ -710,7 +710,10 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
         //   엔진 나이모델(대운 startAge)과 일관 → 대운 옆 나이와 안 어긋남 + 음력도 정확(startAge는 solar 변환 후 산출).
         const seunAge = (an && lc && typeof lc.startAge === 'number' && lc.annuals?.[0])
           ? lc.startAge + (an.year - lc.annuals[0].year) : null;
-        const mo = an?.months?.[selMonth];
+        // ★월운 인덱싱 수정(daniel 07-07): months 는 寅(正月)기준 0-index(getLiuYue: [0]正월=寅 … [5]六월=未 … [6]七월=申)인데
+        //   selMonth 는 양력월(getMonth, 0=1월)이다. 그대로 쓰면 7월(selMonth=6)→months[6]=申월(丙申)로 한 달 밀렸다(daniel).
+        //   양력월→절기월 매핑 (selMonth+11)%12: 7월→index5=未월(乙未·정답). (재현 검증: 2026 [5]乙未 [6]丙申)
+        const mo = an?.months?.[(selMonth + 11) % 12];
         // 일진(流日) — 선택 세운·월운의 날짜별 간지. 선택 일운(selDay)이 없으면 그 달 1일로 폴백.
         const days = (input && an) ? computeMonthDays(input, an.year, selMonth + 1) : [];
         const dayItem = days.find((d) => d.day === selDay) ?? days[0] ?? null;
@@ -902,7 +905,11 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
                     return (
                       <PressableScale key={dd.day} onPress={() => setSelDay(dd.day)} style={[styles.calCell, isToday && styles.calCellToday, isSel && styles.calCellSel]}>
                         <Text style={[styles.calDay, isToday && styles.calDayToday]}>{dd.day}{isToday ? ' ·오늘' : ''}</Text>
-                        <Text style={[styles.calGz, { color: elementColor[stemElement(dd.stem)] }]}>{dd.stem}{dd.branch}</Text>
+                        {/* ★일진 달력 오행색(daniel 07-07): 간지 전체를 stem 색 하나로 칠하던 것 → 천간·지지 각각 제 오행색(壬=水파랑·午=火빨강). */}
+                        <Text style={styles.calGz}>
+                          <Text style={{ color: elementColor[stemElement(dd.stem)] }}>{dd.stem}</Text>
+                          <Text style={{ color: elementColor[branchElement(dd.branch)] }}>{dd.branch}</Text>
+                        </Text>
                       </PressableScale>
                     );
                   })}
