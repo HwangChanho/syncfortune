@@ -10,10 +10,10 @@ import { useEffect, useMemo, useState, useRef } from 'react';
 import { View, Text, ScrollView, Pressable, ActivityIndicator, StyleSheet, ImageBackground } from 'react-native';
 import { PressableScale } from '../../components/PressableScale';
 import { ExpiryNote } from '../../components/ExpiryNote'; // 보유 만료일 공통(프리미엄 가드 한 곳)
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { getDailyFortune } from '../../lib/content/dailyFortune';
-import { loadRepChart, type SavedChart } from '../../lib/engine/myChart';
+import { loadRepChart, listCharts, setRepresentative, getRepresentativeId, type SavedChart } from '../../lib/engine/myChart';
 import { ensureServerChartId } from '../../lib/backend/prewarmReadings';
 import { computeChart } from '../../lib/engine/engine';
 import { samjaeStatus } from '../../lib/engine/samjae';
@@ -55,6 +55,7 @@ export default function NewYearScreen() {
   const { t } = useTranslation();
   const { fs } = useFontScale();
   const router = useRouter();
+  const { chartId: chartIdParam } = useLocalSearchParams<{ chartId?: string }>(); // ★M1 재진입 바인딩(배너/푸시 route 의 chartId)
   const { session } = useAuth();
   const { isPremium } = useSubscription();
   const f = useMemo(() => getDailyFortune(), []);
@@ -70,6 +71,7 @@ export default function NewYearScreen() {
   const [reloadKey, setReloadKey] = useState(0); // ChartPicker 로 대표 전환 시 재로드 트리거
   const [expiry, setExpiry] = useState<string | null>(null); // 보유 만료일(생성일+1년) — 캐시 created_at으로 채움(daniel #25)
   const gatingRef = useRef(false); // 결제 구간 연타 차단
+  const lastAppliedChartId = useRef<string | null>(null); // ★M1 적용한 chartId param 추적(재진입 중복 setRepresentative 방지·reading.tsx 38-43)
   const genSeq = useRef(0);        // ① 생성 세대 토큰 — 명식 전환/재로드 시 ++ 로 진행 중 gen 무효화(stale setData 폐기)
   const chartIdRef = useRef<string | null>(null); // ① 현재 로드된 serverChartId — generate 결과 명식 대조(남의 풀이 표시 차단)
   const [doorPlaying, setDoorPlaying] = useState(false); // 풀이 공개 순간 골드 명조 문 열림 영상(daniel 07-06)
@@ -97,6 +99,13 @@ export default function NewYearScreen() {
     // ★재실행 시 화면을 비우지 않는다(구매화면↔풀이화면 깜빡임 근본): 새 값을 받은 뒤에만 교체.
     //   (기존엔 시작 시 setData(null)+setLoaded(false)로 blank → 캐시 재세팅을 반복해 깜빡였음)
     (async () => {
+      // ★M1(재진입 바인딩): 배너/푸시 route 의 chartId → 그 명식을 대표로 1회 전환(reading.tsx 38-43 패턴). 중복가드(ref)+이미 대표면 skip.
+      if (chartIdParam && chartIdParam !== lastAppliedChartId.current) {
+        lastAppliedChartId.current = chartIdParam;
+        const cs = await listCharts();
+        const target = cs.find((sc) => sc.id === chartIdParam) ?? null;
+        if (target && (await getRepresentativeId()) !== target.id) await setRepresentative(target.id);
+      }
       const ch = await loadRepChart();
       if (!alive) return;
       setSaved(ch);
@@ -116,7 +125,7 @@ export default function NewYearScreen() {
     })().catch(() => { if (alive) setLoaded(true); });
     return () => { alive = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [uid, category, isPremium, reloadKey]);
+  }, [uid, category, isPremium, reloadKey, chartIdParam]);
 
   // invoke 타임아웃/실패 시 readings 캐시를 폴링해 결과 회수(Edge가 서버에서 계속 생성·캐시하므로).
   //   무거운 신년 풀이(원국+대운+세운 종합)는 Edge 생성이 87~103s → 클라 invoke가 먼저 끊겨도('Failed to send request')
@@ -142,10 +151,11 @@ export default function NewYearScreen() {
     const myChart = id;              // ① 대상 명식
     const isStale = () => myGen !== genSeq.current || myChart !== chartIdRef.current; // ① 결과 쓰기 직전 대조
     setBusy(true); setErr(null);
-    // ③ 배너/푸시 명식 식별 — route 에 chartId(로컬 saved.id) + chartLabel. 재진입 param 바인딩은 TODO(reading.tsx 38-43 패턴).
+    // ③ 배너/푸시 명식 식별 — route 에 chartId(로컬 saved.id) + chartLabel. 재진입 바인딩은 ★M1 로 load effect 상단에 구현됨(reading.tsx 38-43 패턴).
     const gpRoute = saved?.id ? `/newyear?chartId=${saved.id}` : '/newyear';
     setGenProgress({ active: true, total: 1, done: 0, label: t('newyear.title', '신년운세'), chartLabel: saved?.label, route: gpRoute }); // 일회성=진행도 측정 어려움 → '풀이 중'(daniel 이슈15)
     logEvent('newyear_generate', { chartId: id, category });
+    let ok = false; // ★L2: 실제 성공(정상 통변 데이터) 여부 — 완료 배너·푸시는 이때만(오완료 '완성' 푸시 방지)
     try {
       // 신년 전용 — kind='newyear' + 삼재(온디바이스 계산값) body 전달
       const { data: res, error } = await supabase.functions.invoke('interpret', {
@@ -162,21 +172,23 @@ export default function NewYearScreen() {
         logEvent('newyear_fail', { kind: 'timeout', message: error?.message ?? 'no reading', polling: true }, 'error');
         const cached = await pollCachedReading(id, category);
         if (isStale()) return;   // ① 폴링 사이 명식 전환됨 → 폐기
-        if (cached) setData(cached);
+        if (cached) { setData(cached); ok = true; } // 서버 완료·캐시 = 성공
         else setErr(f?.message ?? t('today.genFail', '생성에 실패했어요. 잠시 후 다시 시도해 주세요.'));
-      } else { if (isStale()) return; setData((res?.reading as Record<string, any>) ?? null); }
+      } else { if (isStale()) return; const rd = (res?.reading as Record<string, any>) ?? null; setData(rd); ok = !!rd; }
     } catch (e: any) {
       // fetch throw(타임아웃 등)도 동일 — 서버가 완료·캐시했으면 폴링으로 회수, 아니면 오류 표시.
       logEvent('newyear_throw', { message: String(e?.message ?? e) }, 'error');
       const cached = await pollCachedReading(id, category);
       if (isStale()) return;
-      if (cached) setData(cached);
+      if (cached) { setData(cached); ok = true; } // 서버 완료·캐시 = 성공
       else setErr(t('today.genFail', '생성에 실패했어요. 잠시 후 다시 시도해 주세요.'));
     } finally {
       releaseGen(lockKey);   // ② 완료·중단·오류·폐기 모두 잠금 해제
     }
     if (isStale()) return;   // ① 완료 처리도 현재 명식일 때만
-    setGenProgress({ route: gpRoute, done: 1, total: 1 }); // 완료 → 홈 배너 '풀이 보기' 이동버튼(daniel 이슈15)
+    // ★L2: 실제 성공만 완료 전이(배너+완료 푸시). 실패(오류·폴링실패·unavailable·needPayment)면 배너 제거 → 오완료 '완성' 푸시 방지.
+    if (ok) setGenProgress({ route: gpRoute, done: 1, total: 1 }); // 완료 → 홈 배너 '풀이 보기' 이동버튼(daniel 이슈15)
+    else setGenProgress({ route: gpRoute, active: false });
     setBusy(false);
   }
 

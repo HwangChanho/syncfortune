@@ -98,6 +98,7 @@ if (!src.coupons || !TYPE.size || !SELLABLE.length) {
 //   GATE_ALLOW = 서버(interpret) 게이트가 *불요*한 유료 kind(사유 필수). 추가는 의식적 결정이어야 함.
 const GATE_ALLOW = new Map([
   ['timeresolve', '온디바이스 결정론 도구(TPR) — LLM(interpret) 미경유. 클라 useCredit 로 1회 결제=도구 영구 해제.'],
+  ['celeb', '온디바이스 무료 전환(07-07) — 결정론(computeChart·rankCelebs)·API 0·마켓 미노출(MARKET_HIDDEN). interpret 는 kind=celeb 하드 거부(비용 벡터 차단). CREDIT_KINDS 타입은 파급 최소화로 유지.'],
 ]);
 //   TYPE_ONLY = CreditKind 타입엔 있으나 CREDIT_KINDS(판매목록)엔 없는 kind(=타입 잔존). 게이트/스토어에 있으면 경고.
 const TYPE_ONLY = new Map([

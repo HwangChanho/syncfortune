@@ -10,7 +10,7 @@ import { useEffect, useState, useSyncExternalStore } from 'react';
 import { Stack } from 'expo-router';
 import { View, ActivityIndicator, StyleSheet, LogBox, AppState, InteractionManager } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler'; // 이슈20 드래그 reorder(gesture-handler) — 루트 래핑 필수
-import { useAuth } from '../lib/useAuth';
+import { useAuth, whenAuthCleanupIdle } from '../lib/useAuth'; // whenAuthCleanupIdle: 로그아웃 클린업 완료 게이트(L3 — sync 전 대기)
 import { configurePurchases } from '../lib/billing/purchases'; // 인앱결제(RevenueCat) 초기화
 import { refreshPremium } from '../lib/billing/premiumStore'; // 세션 변경(로그인/로그아웃/계정전환) 시 프리미엄 전역 재평가 → 광고 즉시 토글(daniel 2026-06-24)
 import { migrateLocalCreditsOnLogin } from '../lib/billing/migrateCredits'; // 로그인 시 디바이스 구매 이관(H)
@@ -67,7 +67,8 @@ export default function RootLayout() {
         start = Date.now();                                  // 포그라운드 복귀 → 구간 시작 리셋
         // ★포그라운드 복귀 시 서버 동기화(daniel 07-03: 재실행 없이 반영) — 명식 멀티기기 동기화 + 백그라운드 풀이 완료 반영.
         //   (프리미엄은 premiumStore 자체 리스너가 별도로 재평가. 크레딧=마켓 진입 시 로드, 공유=딥링크라 여기선 제외.)
-        void syncChartsFromServer();
+        // ★L3: 로그아웃 클린업이 진행 중이면 완료 후 sync — 이전 계정 명식이 새 계정 blob 으로 새는 것 방지(배리어 없으면 즉시).
+        void whenAuthCleanupIdle().then(() => syncChartsFromServer());
         hydrateGenProgress().catch(() => {});
         return;
       }

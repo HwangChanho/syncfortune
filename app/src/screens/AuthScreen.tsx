@@ -2,8 +2,9 @@
 // ─────────────────────────────────────────────────────────────────────────
 // P0 인증 = Supabase Auth 이메일+비밀번호 + 구글 OAuth(PKCE). 세션은 SecureStore(ADR-032). 문자열은 i18n(한·영·일).
 // 성공 시 onAuthStateChange(useAuth)가 분기를 자동 전환(단일 진실원천=세션). 네비 직접 호출 안 함.
-// 구글: signInWithOAuth({skipBrowserRedirect}) 로 인증 URL 받아 Linking.openURL → 외부 브라우저 로그인 →
-//   syncfortune://auth-callback?code= 로 복귀 → useAuth 의 url 리스너가 exchangeCodeForSession 처리.
+// 구글: signInWithOAuth({skipBrowserRedirect}) 로 인증 URL 받아 openAuthSessionAsync(인앱 인증 세션)로 로그인 →
+//   syncfortune://auth-callback?code= 로 복귀 → 성공 시 completeAuthFromUrl(아래)이 exchangeCodeForSession 처리
+//   (WB 네이티브 모듈 없어 Linking 폴백일 땐 딥링크를 auth-callback 라우트가 처리 — useAuth 엔 url 리스너 없음).
 // ※ 애플 OAuth 는 스토어 심사 전 추가(애플은 타 소셜 있으면 Sign in with Apple 필수).
 // ─────────────────────────────────────────────────────────────────────────
 import { useState } from 'react';
@@ -18,7 +19,7 @@ import { colors, radius, space, shadow, font } from '../lib/theme';
 // ★크래시 근본수정(daniel 07-04): expo-web-browser 네이티브 모듈이 빌드에 링크 안 되면(Podfile.lock 누락) 정적 import·
 //   모듈로드 호출이 화면 진입(로그아웃→AuthScreen)·로그인 탭에서 즉시 크래시("Cannot find native module 'ExpoWebBrowser'").
 //   → lazy require + guard(런치크래시 교훈: 전역 네이티브 정적 import 금지). 모듈 없으면 null → Linking 폴백(브라우저
-//   자동닫힘만 없고, 로그인 콜백은 useAuth 의 url 리스너가 exchangeCodeForSession/verifyOtp 로 처리 = 기존 방식).
+//   자동닫힘만 없고, 로그인 콜백(딥링크)은 auth-callback 라우트가 exchangeCodeForSession/verifyOtp 로 처리한다).
 function webBrowser(): any | null { try { return require('expo-web-browser'); } catch { return null; } }
 try { webBrowser()?.maybeCompleteAuthSession(); } catch { /* 네이티브 모듈 없으면 무시 */ }
 
@@ -50,8 +51,8 @@ export function AuthScreen() {
     if (error) { Alert.alert('!', error.message); return; }
   }
 
-  // 공용 OAuth(구글·애플) — Supabase 네이티브 프로바이더. 인증 URL 을 받아 외부 브라우저로 열고,
-  //   복귀(deep-link: ?code=)는 useAuth 가 exchangeCodeForSession 으로 처리.
+  // 공용 OAuth(구글·애플) — Supabase 네이티브 프로바이더. 인증 URL 을 받아 인앱 인증 세션으로 열고,
+  //   복귀(?code=)는 성공 시 completeAuthFromUrl 이(WB 없는 폴백 딥링크는 auth-callback 라우트가) exchangeCodeForSession 으로 처리.
   async function signInWithOAuth(provider: 'google' | 'apple') {
     setLoading(true);
     const redirectTo = Linking.createURL('auth-callback'); // syncfortune://auth-callback
@@ -69,7 +70,7 @@ export function AuthScreen() {
           if (res.type === 'success' && res.url) await completeAuthFromUrl(res.url); // 세션 확립(성공 시 useAuth 가 자동 분기)
         } catch (e) { Alert.alert('!', (e as Error).message); }
       } else {
-        await Linking.openURL(data.url); // 폴백: 네이티브 모듈 없으면 외부 브라우저(자동닫힘 X)·콜백은 useAuth url 리스너가 처리
+        await Linking.openURL(data.url); // 폴백: 네이티브 모듈 없으면 외부 브라우저(자동닫힘 X)·콜백 딥링크는 auth-callback 라우트가 처리
       }
     }
     setLoading(false);
@@ -77,7 +78,7 @@ export function AuthScreen() {
 
   // 네이버 — Supabase 미지원 프로바이더라 커스텀 Edge(naver-auth)가 OAuth 를 오케스트레이션한다.
   //   앱은 Edge 진입 URL 만 연다 → Edge: 네이버 인증 → 프로필 → Supabase 유저 → 매직링크 토큰 →
-  //   syncfortune://auth-callback?token_hash=&type=magiclink 로 복귀 → useAuth 가 verifyOtp 로 세션 확립.
+  //   syncfortune://auth-callback?token_hash=&type=magiclink 로 복귀 → 성공 시 completeAuthFromUrl 이(폴백 딥링크는 auth-callback 라우트가) verifyOtp 로 세션 확립.
   async function signInWithNaver() {
     setLoading(true); // 외부 브라우저 전환까지 버튼 비활성(중복 탭 방지)
     try {
@@ -91,7 +92,7 @@ export function AuthScreen() {
         const res = await WB.openAuthSessionAsync(naverUrl, appRedirect);
         if (res.type === 'success' && res.url) await completeAuthFromUrl(res.url);
       } else {
-        await Linking.openURL(naverUrl); // 폴백: 네이티브 모듈 없으면 외부 브라우저·콜백은 useAuth url 리스너가 처리
+        await Linking.openURL(naverUrl); // 폴백: 네이티브 모듈 없으면 외부 브라우저·콜백 딥링크는 auth-callback 라우트가 처리
       }
     } catch (e) { Alert.alert('!', (e as Error).message); }
     finally { setLoading(false); }

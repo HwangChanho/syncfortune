@@ -10,9 +10,9 @@ import { PressableScale } from '../../components/PressableScale';
 import { ExpiryNote } from '../../components/ExpiryNote'; // 보유 만료일 공통(프리미엄 가드 한 곳)
 import { Image as ExpoImage } from 'expo-image'; // hero 배너 — 다운샘플·디스크캐시(daniel: 이미지 캐시·로딩 가속)
 import Svg, { Polyline, Circle, Line, Rect, Text as SvgText } from 'react-native-svg';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { loadRepChart, type SavedChart } from '../../lib/engine/myChart';
+import { loadRepChart, listCharts, setRepresentative, getRepresentativeId, type SavedChart } from '../../lib/engine/myChart';
 import { ensureServerChartId } from '../../lib/backend/prewarmReadings';
 import { computeChart } from '../../lib/engine/engine';
 import { useAuth } from '../../lib/useAuth';
@@ -51,6 +51,7 @@ export default function LifeGraphScreen() {
   const { t } = useTranslation();
   const { fs } = useFontScale(); // 본문(읽는 글) 글자 크기 전역 배율
   const router = useRouter();
+  const { chartId: chartIdParam } = useLocalSearchParams<{ chartId?: string }>(); // ★M1 재진입 바인딩(배너/푸시 route 의 chartId)
   const { session } = useAuth();
   const { isPremium } = useSubscription();
   const [saved, setSaved] = useState<SavedChart | null>(null);
@@ -63,6 +64,7 @@ export default function LifeGraphScreen() {
   const [reloadKey, setReloadKey] = useState(0); // ChartPicker 로 대표 전환 시 재로드 트리거
   const [expiry, setExpiry] = useState<string | null>(null); // 보유 만료일(생성일+1년) — 캐시 created_at으로 채움(daniel #25)
   const gatingRef = useRef(false); // 결제 구간 연타 차단
+  const lastAppliedChartId = useRef<string | null>(null); // ★M1 적용한 chartId param 추적(재진입 중복 setRepresentative 방지·reading.tsx 38-43)
   const genSeq = useRef(0);        // ① 생성 세대 토큰 — 명식 전환/재로드 시 ++ 로 진행 중 gen 무효화(stale setData 폐기)
   const chartIdRef = useRef<string | null>(null); // ① 현재 로드된 serverChartId — generate 결과 명식 대조(남의 풀이 표시 차단)
   const draw = useRef(new Animated.Value(0)).current; // 이슈18: 인생곡선 드로잉 진행값(0→1)
@@ -75,6 +77,13 @@ export default function LifeGraphScreen() {
     setBusy(false);     // ① 무효화한 gen 의 로딩 상태 정리(자물쇠가 남지 않게)
     setData(null); setErr(null); setLoaded(false); setSel(null);
     (async () => {
+      // ★M1(재진입 바인딩): 배너/푸시 route 의 chartId → 그 명식을 대표로 1회 전환(reading.tsx 38-43 패턴). 중복가드(ref)+이미 대표면 skip.
+      if (chartIdParam && chartIdParam !== lastAppliedChartId.current) {
+        lastAppliedChartId.current = chartIdParam;
+        const cs = await listCharts();
+        const target = cs.find((sc) => sc.id === chartIdParam) ?? null;
+        if (target && (await getRepresentativeId()) !== target.id) await setRepresentative(target.id);
+      }
       const ch = await loadRepChart();
       if (!alive) return;
       setSaved(ch);
@@ -94,7 +103,7 @@ export default function LifeGraphScreen() {
     })().catch(() => { if (alive) setLoaded(true); });
     return () => { alive = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session, isPremium, reloadKey]);
+  }, [session, isPremium, reloadKey, chartIdParam]);
 
   // 이슈18: 통변(곡선) 도착 시 곡선이 그려지는 애니(0→1). strokeDashoffset = useNativeDriver 미지원.
   useEffect(() => {
@@ -130,10 +139,11 @@ export default function LifeGraphScreen() {
     const myChart = id;              // ① 대상 명식
     const isStale = () => myGen !== genSeq.current || myChart !== chartIdRef.current; // ① 결과 쓰기 직전 대조
     setBusy(true); setErr(null);
-    // ③ 배너/푸시 명식 식별 — route 에 chartId(로컬 saved.id) + chartLabel. 재진입 param 바인딩은 TODO(reading.tsx 38-43 패턴).
+    // ③ 배너/푸시 명식 식별 — route 에 chartId(로컬 saved.id) + chartLabel. 재진입 바인딩은 ★M1 로 load effect 상단에 구현됨(reading.tsx 38-43 패턴).
     const gpRoute = saved?.id ? `/lifegraph?chartId=${saved.id}` : '/lifegraph';
     setGenProgress({ active: true, total: 1, done: 0, label: '인생 그래프', chartLabel: saved?.label, route: gpRoute }); // 일회성 진행도(daniel 이슈15)
     logEvent('lifegraph_generate', { chartId: id });
+    let ok = false; // ★L2: 실제 성공(정상 통변 데이터) 여부 — 완료 배너·푸시는 이때만(오완료 '완성' 푸시 방지)
     try {
       const { data: res, error } = await supabase.functions.invoke('interpret', {
         body: { chartId: id, category: 'lifegraph', kind: 'lifegraph', tier: 'paid', lang: appLang() },
@@ -149,21 +159,23 @@ export default function LifeGraphScreen() {
         logEvent('lifegraph_fail', { kind: 'timeout', message: error?.message ?? 'no reading', polling: true }, 'error');
         const cached = await pollCachedReading(id);
         if (isStale()) return;   // ① 폴링 사이 명식 전환됨 → 폐기
-        if (cached) setData(cached);
+        if (cached) { setData(cached); ok = true; } // 서버 완료·캐시 = 성공
         else setErr(f?.message ?? t('life.genFail', '생성에 실패했어요. 잠시 후 다시 시도해 주세요.'));
-      } else { if (isStale()) return; setData((res?.reading as LifeData) ?? null); }
+      } else { if (isStale()) return; const rd = (res?.reading as LifeData) ?? null; setData(rd); ok = !!rd; }
     } catch (e: any) {
       // fetch throw(타임아웃 등)도 동일 — 서버가 완료·캐시했으면 폴링으로 회수, 아니면 오류 표시.
       logEvent('lifegraph_throw', { message: String(e?.message ?? e) }, 'error');
       const cached = await pollCachedReading(id);
       if (isStale()) return;
-      if (cached) setData(cached);
+      if (cached) { setData(cached); ok = true; } // 서버 완료·캐시 = 성공
       else setErr(t('life.genFail', '생성에 실패했어요. 잠시 후 다시 시도해 주세요.'));
     } finally {
       releaseGen(lockKey);   // ② 완료·중단·오류·폐기 모두 잠금 해제
     }
     if (isStale()) return;   // ① 완료 처리도 현재 명식일 때만
-    setGenProgress({ route: gpRoute, done: 1, total: 1 }); // 완료 → 홈 배너 '풀이 보기'(daniel 이슈15)
+    // ★L2: 실제 성공만 완료 전이(배너+완료 푸시). 실패(오류·폴링실패·unavailable·needPayment)면 배너 제거 → 오완료 '완성' 푸시 방지.
+    if (ok) setGenProgress({ route: gpRoute, done: 1, total: 1 }); // 완료 → 홈 배너 '풀이 보기'(daniel 이슈15)
+    else setGenProgress({ route: gpRoute, active: false });
     setBusy(false);
   }
 

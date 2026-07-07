@@ -10,9 +10,9 @@ import { PressableScale } from '../../components/PressableScale';
 import { Image as ExpoImage } from 'expo-image';
 import { Alert } from '../../lib/ui/alert';
 import { useTranslation } from 'react-i18next';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { computeChart } from '../../lib/engine/engine';
-import { loadRepChart, type SavedChart } from '../../lib/engine/myChart';
+import { loadRepChart, listCharts, setRepresentative, getRepresentativeId, type SavedChart } from '../../lib/engine/myChart';
 import { ensureServerChartId } from '../../lib/backend/prewarmReadings';
 import { useAuth } from '../../lib/useAuth';
 import { useFontScale } from '../../lib/ui/fontScale';
@@ -50,6 +50,7 @@ export default function GaeunScreen() {
   useLogContentVisit('gaeun'); // 진입 1회 방문 기록(daniel 2026-07-06)
   const { t } = useTranslation();
   const router = useRouter();
+  const { chartId: chartIdParam } = useLocalSearchParams<{ chartId?: string }>(); // ★M1 재진입 바인딩(배너/푸시 route 의 chartId)
   const { session } = useAuth();
   const { fs } = useFontScale();
   const { isPremium } = useSubscription();
@@ -61,6 +62,7 @@ export default function GaeunScreen() {
   const [reloadKey, setReloadKey] = useState(0);
   const c = useMemo(() => (savedChart ? computeChart(savedChart.input) : null), [savedChart]);
   const gatingRef = useRef(false);
+  const lastAppliedChartId = useRef<string | null>(null); // ★M1 적용한 chartId param 추적(재진입 중복 setRepresentative 방지·reading.tsx 38-43)
   const genSeq = useRef(0);        // ① 생성 세대 토큰 — 명식 전환/재로드 시 ++ 로 진행 중 gen 무효화(stale setReading 폐기)
   const chartIdRef = useRef<string | null>(null); // ① 현재 로드된 serverChartId — generate 결과 명식 대조(남의 풀이 표시 차단)
   const [doorPlaying, setDoorPlaying] = useState(false); // 풀이 공개 순간 골드 명조 문 열림 영상(daniel 07-06)
@@ -76,6 +78,13 @@ export default function GaeunScreen() {
     genSeq.current++;   // ① 재로드(진입·명식전환) = 진행 중 generate 무효화(그 결과가 이 화면에 setReading 되지 않게)
     setBusy(false);     // ① 무효화한 gen 의 로딩 상태 정리(자물쇠가 남지 않게)
     (async () => {
+      // ★M1(재진입 바인딩): 배너/푸시 route 의 chartId → 그 명식을 대표로 1회 전환(reading.tsx 38-43 패턴). 중복가드(ref)+이미 대표면 skip.
+      if (chartIdParam && chartIdParam !== lastAppliedChartId.current) {
+        lastAppliedChartId.current = chartIdParam;
+        const cs = await listCharts();
+        const target = cs.find((sc) => sc.id === chartIdParam) ?? null;
+        if (target && (await getRepresentativeId()) !== target.id) await setRepresentative(target.id);
+      }
       const ch = await loadRepChart();
       if (!alive) return;
       setSavedChart(ch);
@@ -92,7 +101,7 @@ export default function GaeunScreen() {
       if (isPremium && !(data?.content)) generate(id); // 프리미엄=자동 생성(타 스페셜과 통일)
     })().catch(() => { if (alive) setLoaded(true); });
     return () => { alive = false; };
-  }, [session, isPremium, reloadKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [session, isPremium, reloadKey, chartIdParam]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function generate(idArg?: string) {
     const id = idArg ?? chartId;
@@ -104,10 +113,11 @@ export default function GaeunScreen() {
     const myChart = id;              // ① 대상 명식
     const isStale = () => myGen !== genSeq.current || myChart !== chartIdRef.current; // ① 결과 쓰기 직전 대조
     setBusy(true);
-    // ③ 배너/푸시 명식 식별 — route 에 chartId(로컬 savedChart.id) + chartLabel. 재진입 param 바인딩은 TODO(reading.tsx 38-43 패턴).
+    // ③ 배너/푸시 명식 식별 — route 에 chartId(로컬 savedChart.id) + chartLabel. 재진입 바인딩은 ★M1 로 load effect 상단에 구현됨(reading.tsx 38-43 패턴).
     const gpRoute = savedChart?.id ? `/gaeun?chartId=${savedChart.id}` : '/gaeun';
     setGenProgress({ active: true, total: 1, done: 0, label: '맞춤 개운법', chartLabel: savedChart?.label, route: gpRoute });
     logEvent('gaeun_invoke_start', { chartId: id });
+    let ok = false; // ★L2: 실제 성공(정상 reading 객체) 여부 — 완료 배너·푸시는 이때만(오완료 '완성' 푸시 방지)
     try {
       const { data, error } = await supabase.functions.invoke('interpret', {
         body: { chartId: id, category: 'gaeun', kind: 'gaeun', tier: 'paid', lang: appLang() },
@@ -117,7 +127,9 @@ export default function GaeunScreen() {
       else if ((data as any)?.unavailable) logEvent('gaeun_unavailable', { retryAt: (data as any)?.retryAt }, 'error');
       else if ((data as any)?.needPayment) logEvent('gaeun_need_payment', {}, 'error');
       else logEvent('gaeun_invoke_ok');
-      setReading(readingFromInvoke(data, error));
+      const r = readingFromInvoke(data, error);
+      setReading(r);
+      ok = !!r && typeof r === 'object' && !r.error; // 정상 통변 객체(error·unavailable·needPayment 아님)만 완료
     } catch (e) {
       logEvent('gaeun_invoke_throw', { message: (e as Error).message }, 'error');
       if (isStale()) return;
@@ -126,7 +138,9 @@ export default function GaeunScreen() {
       releaseGen(lockKey);   // ② 완료·중단·오류·폐기 모두 잠금 해제
     }
     if (isStale()) return;   // ① 완료 처리도 현재 명식일 때만
-    setGenProgress({ route: gpRoute, done: 1, total: 1 });
+    // ★L2: 실제 성공만 완료 전이(배너+완료 푸시). 실패(오류·unavailable·needPayment)면 배너 제거 → 오완료 '완성' 푸시 방지.
+    if (ok) setGenProgress({ route: gpRoute, done: 1, total: 1 });
+    else setGenProgress({ route: gpRoute, active: false });
     setBusy(false);
   }
 

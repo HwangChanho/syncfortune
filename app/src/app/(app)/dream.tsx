@@ -144,6 +144,7 @@ export default function DreamScreen() {
     if (!acquireGen('dream')) return;
     setAiBusy(true);
     setGenProgress({ active: true, total: 1, done: 0, label: 'AI 꿈해몽', route: '/dream' }); // 일회성 진행도(daniel)
+    let ok = false; // ★L2: 실제 해몽 성공 여부 — 완료 배너·푸시는 이때만(친화 폴백·오류에 '완성' 오푸시 방지)
     try {
       const { data, error } = await supabase.functions.invoke('interpret', { body: { kind: 'dream', dreamText: text, lang: appLang() } });
       // ★C3b 서버 게이트: 'dream' 이용권 없음 → needPayment. 결과 표시 대신 5회 번들 구매 제안(구매·웹훅 반영 후 재시도).
@@ -153,10 +154,12 @@ export default function DreamScreen() {
       const dream = (data as any)?.dream as { title: string; meaning: string } | undefined; // Edge 실제 해몽 페이로드(성공 시만 존재)
       setAiResult(fail ? { title: text.slice(0, 12), meaning: fail.message } : (dream ?? { title: text.slice(0, 12), meaning: t('dream.fail', '해몽을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.') }));
       // ★계정별 저장 — 실제 해몽일 때만(invokeFail·needPayment·친화 폴백 제외). 저장 실패해도 UX 막지 않음.
-      if (!fail && dream) void saveDream(text, dream);
+      if (!fail && dream) { void saveDream(text, dream); ok = true; } // 실제 해몽 성공 = 완료
     } catch { setAiResult({ title: text.slice(0, 12), meaning: t('dream.fail', '해몽을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.') }); }
     finally { releaseGen('dream'); } // ② 완료·중단·오류·구매유도 모두 해제(구매 후 재시도는 새 lock)
-    setGenProgress({ route: '/dream', done: 1, total: 1 }); // 완료 → 홈 배너 '풀이 보기'(daniel)
+    // ★L2: 성공만 완료 배너·푸시 / 실패(친화 폴백·오류)는 배너 제거 → 오완료 '완성' 푸시 방지(needPayment 처리와 통일).
+    if (ok) setGenProgress({ route: '/dream', done: 1, total: 1 }); // 완료 → 홈 배너 '풀이 보기'(daniel)
+    else setGenProgress({ route: '/dream', active: false });
     setAiBusy(false);
   }
 

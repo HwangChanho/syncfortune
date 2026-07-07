@@ -31,12 +31,28 @@ async function tryDevAutoLogin() {
   await supabase.auth.signInWithPassword({ email, password }).catch(() => {});
 }
 
+// ── 로그아웃 클린업 배리어(L3) ──────────────────────────────────────────────
+//   버그: 로그아웃(계정 A) 클린업(RC 익명화 logoutPurchases + 로컬 명식 삭제 clearLocalUserData)이 *비동기 배리어 없이*
+//     돌아가는 사이에, 곧이은 다른 계정(B) 로그인의 명식 동기화(prefetchOnLogin → syncChartsFromServer)가 아직 안 지워진
+//     A의 로컬 명식을 읽어 union 머지 → pushChartsNow 로 **B 계정 blob 에 A 명식을 밀어넣는다**(계정 간 명식 누출).
+//     느린 건 logoutPurchases(네트워크)라 clearLocalUserData 가 시작도 전에 sync 가 끼어들 수 있어 창이 넓다.
+//   해결: SIGNED_OUT 시 클린업 전체(logoutPurchases + clearLocalUserData)를 하나의 Promise 로 감싸 배리어에 *동기 세팅*하고,
+//     명식 sync 진입 전(prefetchOnLogin 내부 · _layout 포그라운드 복귀)에서 whenAuthCleanupIdle() 로 완료를 기다린다.
+//   ※ 배리어는 완료 후 null 로 되돌리지 않는다 — 이미 resolve 된 Promise 를 await 하면 즉시 통과(무해)이고,
+//     다음 SIGNED_OUT 이 새 pending Promise 로 덮는다(되돌리면 뒤늦은 finally 가 새 배리어를 지우는 레이스가 생김).
+let _cleanupBarrier: Promise<void> | null = null;
+/** 진행 중인 로그아웃 클린업이 있으면 그 완료를 기다린다(없으면 즉시 resolve). 명식 sync 진입 전 게이트(L3). */
+export function whenAuthCleanupIdle(): Promise<void> { return _cleanupBarrier ?? Promise.resolve(); }
+
 // 로그인 직후 백그라운드 prefetch — 명식 동기화·푸시토큰 + 대표 serverChartId 선발급 + 프리미엄 선생성.
 //   ★세션당 1회(lastPrefetchId 가드) — 싱글톤이라 원래 1회지만, 같은 세션 재발행(SIGNED_IN 반복) 대비 이중 가드.
 let lastPrefetchId: string | null = null;
 async function prefetchOnLogin(s: Session): Promise<void> {
   if (!s.user?.id || s.user.id === lastPrefetchId) return; // 같은 세션 = 스킵(중복 prefetch 방지)
   lastPrefetchId = s.user.id;
+  // ★L3: 직전 로그아웃 클린업(로컬 명식 삭제)이 진행 중이면 완료까지 대기 — 안 그러면 아래 syncChartsFromServer /
+  //   loadRepChart 가 이전 계정 명식을 읽어 새 계정 blob·serverChartId 로 오염된다(계정 간 누출). 클린업 없으면 즉시 통과.
+  await whenAuthCleanupIdle();
   void syncChartsFromServer();
   void registerPushToken();
   try {
@@ -90,11 +106,14 @@ function startAuthOnce(): void {
     if (_event === 'SIGNED_OUT') {
       lastPrefetchId = null; // 다음 로그인 때 다시 prefetch
       setAuthBusy(true);     // 로그아웃 클린업 동안 화면 막고 로딩(먹통 방지)
-      void (async () => {
+      // ★L3: 클린업 전체를 배리어에 *동기 세팅* — 느린 logoutPurchases(네트워크)까지 덮어야 다음 로그인 sync 가
+      //   클린업 완료(로컬 명식 삭제)까지 기다린다. 여기서 지연 세팅하면 그 사이 sync 가 이전 계정 명식을 밀어넣는다.
+      _cleanupBarrier = (async () => {
         try { await logoutPurchases(); } catch { /* ignore */ }
         try { await clearLocalUserData(); } catch { /* ignore */ }
         setAuthBusy(false);
       })();
+      void _cleanupBarrier;
     }
     void changed; // (참조 안정용 반환값 — 현재 분기엔 불필요)
   });

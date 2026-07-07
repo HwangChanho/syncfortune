@@ -63,7 +63,7 @@ const ROWS: Row[] = [
   { name: '취업·이직운', kind: 'job', mult: 1, type: '유료', api: true, price: 4900, adEst: 0 },
   { name: '10년 뒤 나의 모습', kind: 'future10', mult: 1, type: '유료', api: true, price: 4900, adEst: 0 },
   { name: '자식운', kind: 'child', mult: 1, type: '유료', api: true, price: 4900, adEst: 0 },
-  { name: '세계 인물 매칭', kind: 'celeb', mult: 1, type: '유료', api: false, price: 1200, adEst: 0 },
+  { name: '세계 인물 매칭', kind: 'celeb', mult: 1, type: '무료', api: false, price: 0, adEst: 0 }, // 온디바이스 결정론·완전 무료 전환(daniel 07-07) — 마켓 판매·잠금 퍼널 제거
   { name: '태어난 시 찾기', kind: 'timeresolve', mult: 1, type: '유료', api: false, price: 990, adEst: 0 },
 ];
 

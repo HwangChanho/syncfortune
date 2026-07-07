@@ -10,9 +10,9 @@ import { PressableScale } from '../../components/PressableScale';
 import { ExpiryNote } from '../../components/ExpiryNote'; // 보유 만료일 공통(프리미엄 가드 한 곳)
 import { Alert } from '../../lib/ui/alert'; // 커스텀 알림(앱 디자인)
 import { useTranslation } from 'react-i18next';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { computeChart } from '../../lib/engine/engine';
-import { loadRepChart, type SavedChart } from '../../lib/engine/myChart';
+import { loadRepChart, listCharts, setRepresentative, getRepresentativeId, type SavedChart } from '../../lib/engine/myChart';
 import { ensureServerChartId } from '../../lib/backend/prewarmReadings';
 import { useAuth } from '../../lib/useAuth';
 import { useFontScale } from '../../lib/ui/fontScale';
@@ -74,6 +74,7 @@ export default function LoveScreen() {
   useLogContentVisit('love'); // 진입 1회 방문 기록(daniel 2026-07-06)
   const { t } = useTranslation();
   const router = useRouter();
+  const { chartId: chartIdParam } = useLocalSearchParams<{ chartId?: string }>(); // ★M1 재진입 바인딩(배너/푸시 route 의 chartId)
   const { session } = useAuth();
   const { fs } = useFontScale();
   const { isPremium } = useSubscription();
@@ -92,6 +93,7 @@ export default function LoveScreen() {
     [c, savedChart],
   );
   const gatingRef = useRef(false); // 결제 구간(모달) 연타 차단 — busy(생성중)와 별개
+  const lastAppliedChartId = useRef<string | null>(null); // ★M1 적용한 chartId param 추적(재진입 중복 setRepresentative 방지·reading.tsx 38-43)
   const genSeq = useRef(0);        // ① 생성 세대 토큰 — 명식 전환/재로드 시 ++ 로 진행 중 gen 무효화(stale setReading 폐기)
   const chartIdRef = useRef<string | null>(null); // ① 현재 로드된 serverChartId — generate 결과가 이 명식용인지 대조(남의 풀이 표시 차단)
   const reveal = useRef(new Animated.Value(0)).current; // 섹션 순차 등장
@@ -104,6 +106,14 @@ export default function LoveScreen() {
     genSeq.current++;   // ① 재로드(진입·명식전환) = 진행 중 generate 무효화(그 결과가 이 화면에 setReading 되지 않게)
     setBusy(false);     // ① 무효화한 gen 의 로딩 상태 정리(자물쇠가 남지 않게 — 새 명식은 자기 상태로 다시 그린다)
     (async () => {
+      // ★M1(재진입 바인딩): 배너/푸시 route 의 chartId → 그 명식을 대표로 1회 전환(reading.tsx 38-43 패턴).
+      //   콜드런치 preferSelfAsRep 로 대표가 self 로 리셋돼도 결제한 명식이 뜨게. 중복가드(ref)+이미 대표면 skip(무한전환 방지).
+      if (chartIdParam && chartIdParam !== lastAppliedChartId.current) {
+        lastAppliedChartId.current = chartIdParam;
+        const cs = await listCharts();
+        const target = cs.find((sc) => sc.id === chartIdParam) ?? null;
+        if (target && (await getRepresentativeId()) !== target.id) await setRepresentative(target.id);
+      }
       const ch = await loadRepChart();
       if (!alive) return;
       setSavedChart(ch);
@@ -126,7 +136,7 @@ export default function LoveScreen() {
       setLoaded(true);
     })().catch(() => { if (alive) setLoaded(true); });
     return () => { alive = false; };
-  }, [session, isPremium, reloadKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [session, isPremium, reloadKey, chartIdParam]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 통변 도착(캐시·생성 완료) → 섹션 순차 등장(stagger)
   useEffect(() => {
@@ -165,10 +175,11 @@ export default function LoveScreen() {
     const isStale = () => myGen !== genSeq.current || myChart !== chartIdRef.current; // ① 결과 쓰기 직전 대조 — 남의 명식 위에 setReading 차단
     setBusy(true);
     // ③ 배너/푸시가 어느 명식인지 식별하도록 route 에 chartId(로컬 savedChart.id·ReadingScreen 규약) + chartLabel.
-    //    ⚠️ 재진입 시 이 param 을 읽어 그 명식을 로드하는 '바인딩'은 TODO(love.tsx 는 현재 loadRepChart 만 사용 — reading.tsx 38-43 패턴 참고).
+    //    재진입 바인딩(이 param → 대표 전환)은 ★M1 로 load effect 상단에 구현됨(reading.tsx 38-43 패턴).
     const gpRoute = savedChart?.id ? `/love?chartId=${savedChart.id}` : '/love';
     setGenProgress({ active: true, total: 1, done: 0, label: '나의 애정흐름', chartLabel: savedChart?.label, route: gpRoute }); // 일회성 진행도(daniel 이슈15)
     logEvent('love_invoke_start', { chartId: id });
+    let ok = false; // ★L2: 실제 성공(정상 reading 객체) 여부 — 완료 배너·푸시는 이때만(오완료 '완성' 푸시 방지)
     try {
       const { data, error } = await supabase.functions.invoke('interpret', {
         body: { chartId: id, category: 'love', kind: 'love', tier: 'paid', ziwei: zw, lang: appLang(), sex: savedChart?.input?.sex, ...(savedChart?.context ? { context: savedChart.context } : {}) }, // sex=배우자성(남재성/여관성, refined timing)
@@ -178,7 +189,8 @@ export default function LoveScreen() {
         logEvent('love_invoke_error', { message: error?.message ?? 'no data', polling: true }, 'error');
         const cached = await pollCachedReading(id);
         if (isStale()) return;   // ① 폴링 사이 명식 전환됨 → 폐기
-        setReading(cached ?? readingFromInvoke(data, error));
+        if (cached) { setReading(cached); ok = true; } // 서버가 완료·캐시 = 성공
+        else setReading(readingFromInvoke(data, error)); // 폴링 실패 = 오류(완료 아님)
       } else if ((data as any)?.unavailable) {
         logEvent('love_unavailable', { retryAt: (data as any)?.retryAt }, 'error'); // LLM 일시적 불가(사용량 한도 등) — 빠른 실패라 폴링 없이 친화 문구
         if (isStale()) return;
@@ -190,19 +202,24 @@ export default function LoveScreen() {
       } else {
         logEvent('love_invoke_ok');
         if (isStale()) return;
-        setReading(readingFromInvoke(data, error)); // 정상 도착(성공 경로 그대로)
+        const r = readingFromInvoke(data, error); // 정상 도착(성공 경로 그대로)
+        setReading(r);
+        ok = !!r && !r.error; // 정상 통변 객체일 때만 완료 전이
       }
     } catch (e) {
       // fetch throw(타임아웃 등)도 동일 — 서버가 완료·캐시했으면 폴링으로 회수, 아니면 오류 표시.
       logEvent('love_invoke_throw', { message: (e as Error).message }, 'error');
       const cached = await pollCachedReading(id);
       if (isStale()) return;
-      setReading(cached ?? { error: (e as Error).message });
+      if (cached) { setReading(cached); ok = true; } // 서버 완료·캐시 = 성공
+      else setReading({ error: (e as Error).message });
     } finally {
       releaseGen(lockKey);   // ② 완료·중단·오류·폐기 모두 잠금 해제(누수 방지)
     }
     if (isStale()) return;   // ① 완료 처리(배너/버튼)도 현재 명식일 때만
-    setGenProgress({ route: gpRoute, done: 1, total: 1 }); // 완료 → 홈 배너 '풀이 보기'(daniel 이슈15)
+    // ★L2: 실제 성공만 완료 전이(배너 '풀이 보기' + 완료 푸시). 실패(오류·폴링실패·unavailable·needPayment)면 배너 제거 → 오완료 '완성' 푸시 방지(needPayment/unavailable 처리와 통일).
+    if (ok) setGenProgress({ route: gpRoute, done: 1, total: 1 }); // 완료 → 홈 배너 '풀이 보기'(daniel 이슈15)
+    else setGenProgress({ route: gpRoute, active: false });
     setBusy(false);
   }
 

@@ -16,7 +16,7 @@ import { useFontScale, FONT_STEPS } from '../../lib/ui/fontScale';
 import { isAdmin } from '../../lib/core/admin'; // 관리자 메뉴 노출 판정(실제 권한은 서버 RPC)
 import { useAuth } from '../../lib/useAuth';               // 계정(세션)
 import { useSubscription } from '../../lib/billing/subscription';  // 프리미엄 상태·구매
-import { waitForPremium } from '../../lib/billing/premiumStore';   // ★복원도 서버 is_premium 로 확정(단일소스·07-07)
+import { waitForPremium, markPremiumOwnedNow } from '../../lib/billing/premiumStore';   // 복원=서버 is_premium 확정(단일소스·07-07) + 웹훅 실패 시 영수증 검증분 낙관표시(#2)
 import { requireLoginForPurchase } from '../../lib/billing/requireLogin'; // 결제 전 로그인 게이트
 import { priceStringRC, PRODUCT_PREMIUM, restorePurchasesRC } from '../../lib/billing/purchases';  // 프리미엄 현지가 + 구매 복원(3.1.1 필수)
 import { PREMIUM_PRICE, loadCredits } from '../../lib/billing/coupons';  // 프리미엄 폴백 가격(₩) + 이용권 잔여 재로딩(복원 후)
@@ -74,7 +74,17 @@ export default function SettingsScreen() {
       // ★단일소스(07-07): 복원도 서버 is_premium 로 확정 — RC 캐시 오탐(샌드박스 유령 프리미엄) 방지. RC 인식 시 웹훅 반영을 폴링 확인.
       const uid = session?.user?.id;
       const confirmed = rcPremium && uid ? await waitForPremium(uid, { tries: 6 }) : false; // ~6s 서버 폴링(성공 시 store 갱신)
-      await refresh();                                       // 프리미엄 재평가(서버 is_premium) — 전역 store 반영
+      if (confirmed) {
+        await refresh();                                     // 서버 is_premium 확인됨 → 서버값으로 재평가(단일소스 유지)
+      } else if (rcPremium) {
+        // ★#2 복원 예외(영수증 검증됨): RC 영수증은 유효한데 서버 is_premium 이 아직 꺼져 있으면(웹훅 실패/지연) 복구 불가였다
+        //   → 복원 경로에 한해 낙관표시(markPremiumOwnedNow)로 프리미엄을 켠다. 일반 게이트(refreshPremium)는 서버 단일소스 유지 —
+        //   *복원만* 예외(App Store 3.1.1: 영수증=구매 진실). 여기서 refresh() 로 덮지 않는다(서버 미반영이라 owns=false 로 도로 꺼짐).
+        //   웹훅이 도달하면 다음 refreshPremium(포그라운드·재로그인)이 서버로 확정, 끝내 미도달이면 그때 정정된다.
+        markPremiumOwnedNow();
+      } else {
+        await refresh();                                     // 영수증 없음(복원분 없음) → 서버값으로 재평가(owns=false 정정)
+      }
       await loadCredits();                                  // 이용권(크레딧) 잔여 재로딩(웹훅 반영분)
       Alert.alert(
         t('settings.restore', '구매 복원'),

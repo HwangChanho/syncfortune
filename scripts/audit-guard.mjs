@@ -76,6 +76,7 @@ if (!coupons || !interpret) {
   // ALLOWLIST — 서버(interpret) 게이트가 불요한 유료 kind. *추가는 의식적 결정*이어야 하므로 사유 필수.
   const ALLOW = new Map([
     ['timeresolve', '온디바이스 결정론 도구(TPR) — LLM(interpret) 미경유. 클라 useCredit 로 1회 결제=도구 영구 해제.'],
+    ['celeb', '온디바이스 무료 전환(07-07) — 결정론(computeChart·rankCelebs)·API 0·마켓 미노출. interpret 는 kind=celeb 하드 거부. CREDIT_KINDS 타입은 파급 최소화로 유지.'],
   ]);
   for (const k of kinds) {
     if (gated.has(k) || ALLOW.has(k)) continue;

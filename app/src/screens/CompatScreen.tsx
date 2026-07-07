@@ -218,7 +218,7 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
     const myGen = genSeq.current;    // ① 이 생성의 세대 스냅샷(읽기만) — 쌍 전환 시 analyze 가 genSeq 를 올려 무효화. 동시 관계키 생성끼리 서로 무효화 안 하게 '읽기'.
     const isStale = () => myGen !== genSeq.current; // ① 도중 쌍 바뀌면 이 결과를 새 쌍 readings 에 쓰지 않음(오염 차단)
     setBusy(key);
-    // ③ 배너/푸시 명식 식별 — route 에 chartId(내 명식 로컬 meSel.id) + chartLabel. 쌍(상대)까지의 재진입 param 바인딩은 TODO.
+    // ③ 배너/푸시 명식 식별 — route 에 chartId(내 명식 로컬 meSel.id) + chartLabel. '나' 측 재진입 바인딩은 ★M1 로 compat.tsx 라우트(대표 전환→meSel 채택)에 구현됨. 상대(쌍)는 _lastCompat 복원.
     const gpRoute = meSel?.id ? `/compat?chartId=${meSel.id}` : '/compat';
     setGenProgress({ active: true, total: 1, done: 0, label: tab === 'ziwei' ? '자미 궁합' : '궁합', chartLabel: meSel?.label, route: gpRoute });
     try {

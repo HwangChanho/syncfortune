@@ -191,7 +191,7 @@ export function TimelineScreen({ input, savedChart }: { input: ChartInput | null
     const myChart = cid;            // ① 대상 명식
     const isStale = () => myGen !== genSeq.current || myChart !== chartIdRef.current;
     setBusy(key);
-    // ③ 배너/푸시 명식 식별 — route 에 chartId(로컬 savedChart.id) + chartLabel. 재진입 param 바인딩은 TODO(timeline.tsx 는 loadRepChart 만 사용).
+    // ③ 배너/푸시 명식 식별 — route 에 chartId(로컬 savedChart.id) + chartLabel. 재진입 바인딩은 ★M1 로 timeline.tsx 라우트(loadRepChart 前)에 구현됨(reading.tsx 38-43 패턴).
     const gpRoute = savedChart?.id ? `/timeline?chartId=${savedChart.id}` : '/timeline';
     setGenProgress({ active: true, total: 1, done: 0, label: '인생 타임라인', chartLabel: savedChart?.label, route: gpRoute }); // 일회성 진행도(daniel 이슈15)
     try {
