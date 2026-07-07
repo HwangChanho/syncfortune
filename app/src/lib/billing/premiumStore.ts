@@ -103,7 +103,11 @@ export async function refreshPremium(userId: string | null | undefined): Promise
   //   구매 직후 즉시반영은 markPremiumOwnedNow(낙관)+waitForPremium(서버 is_premium 폴링)이 담당 = 서버 권위로 통일.
   const profile = await supabase.from('profiles').select('is_premium, is_admin, admin_mode, premium_chart_id').eq('id', userId).maybeSingle();
   if (seq !== _reqSeq) return; // 더 최신 전환 요청이 들어왔으면 이 응답은 폐기(stale 방지).
-  const p: any = profile.error ? null : profile.data;
+  // ★조회 실패 시 이전 프리미엄 상태 보존(daniel 07-07): 네트워크/일시 RLS 오류로 profile.error 면
+  //   기존엔 p=null→owns=false 로 *결제한 프리미엄 유저를 즉시 강등*(광고 재노출·콘텐츠 재잠금)했다.
+  //   단일소스화로 RC 쿠션이 없어 블립이 그대로 노출 → 오류면 갱신 스킵(다음 성공 refresh 에서 반영). 미로그인(userId 없음)은 위에서 이미 false 처리.
+  if (profile.error) return;
+  const p: any = profile.data;
   const isAdmin = !!p?.is_admin;
   const adminMode = p?.admin_mode !== false;                 // null/undefined/true → god
   const actingNormal = isAdmin && !adminMode;                // 관리자 모드 OFF = 일반계정 전환

@@ -8,7 +8,7 @@ import { View, Text, ScrollView, Pressable, TextInput, StyleSheet, ActivityIndic
 import { PressableScale } from '../../components/PressableScale';
 import { Alert } from '../../lib/ui/alert'; // 커스텀 알림(앱 디자인)
 import { useEffect, useState } from 'react';
-import { isAdmin, adminListUsers, adminGrantCredit, adminSetPremium, adminUserDetail, adminStats, adminUserUsage, adminUserContentVisits, type AdminUser, type AdminUserDetail, type AdminStats, type AdminUsage, type AdminContentVisit } from '../../lib/core/admin';
+import { isAdmin, adminListUsers, adminGrantCredit, adminSetPremium, adminUserDetail, adminStats, adminUserUsage, adminUserContentVisits, type AdminUser, type AdminUserDetail, type AdminStats, type AdminUsage, type AdminContentVisit, type DayPoint } from '../../lib/core/admin';
 import { CREDIT_KINDS, type CreditKind } from '../../lib/billing/coupons';
 import { logEvent } from '../../lib/backend/logger'; // DB 로그(app_logs) — 선물/프리미엄 단계 추적
 import { colors, radius, space, shadow, font } from '../../lib/theme';
@@ -41,9 +41,156 @@ const KIND_LABEL: Record<string, string> = {
   name: '이름풀이', dream: '꿈해몽', numerology: '수비학',
   // ★CreditKind 별칭 통일(daniel 07-07) — 크레딧/원가 표시가 영어(reading 등)로 새지 않도록. saju=콘텐츠kind·reading=결제kind 동일 콘텐츠.
   reading: '사주 풀이', followup: '추가 질문', timeresolve: '태어난 시 찾기', child_couple: '자식운(부부)',
+  // 집계 소스(api_usage·purchases)에서 나올 수 있는 kind 보강 — 대시보드에 영어/상품id 노출 방지.
+  compat_ziwei: '궁합(자미)', premium: '프리미엄', premium_lifetime: '프리미엄(평생)',
 };
 // kind → 라벨(미등록이면 raw kind 노출).
 const contentLabel = (kind: string) => KIND_LABEL[kind] ?? kind;
+
+// ── 시각화 유틸(외부 차트 라이브러리 없이 View width/height %·px 로만, daniel 07-07) ──
+const won = (n: number) => '₩' + Math.round(Number(n) || 0).toLocaleString(); // 원화 표기
+const POS = '#3FA7A0'; // 흑자·매출(coststable 색과 통일)
+const NEG = '#E5484D'; // 원가·적자
+const ACC2 = '#5B8DEF'; // 보조 강조(방문·활동 추이 — 골드와 시각 구분)
+
+// 수치 타일: 큰 숫자 + 라벨(+보조문구). accent 로 숫자 색 강조.
+function StatTile({ label, value, sub, accent }: { label: string; value: string | number; sub?: string; accent?: string }) {
+  return (
+    <View style={styles.tile}>
+      <Text style={[styles.tileVal, accent ? { color: accent } : null]} numberOfLines={1} adjustsFontSizeToFit>{value}</Text>
+      <Text style={styles.tileLbl} numberOfLines={1}>{label}</Text>
+      {sub ? <Text style={styles.tileSub} numberOfLines={1}>{sub}</Text> : null}
+    </View>
+  );
+}
+
+// 가로 비율 막대(순위형): 라벨 | 트랙(채움 width%) | 값. max 대비 비율, 최소 4%(작은 값도 보이게).
+function BarRow({ label, value, max, suffix, accent }: { label: string; value: number; max: number; suffix?: string; accent?: string }) {
+  const pct = max > 0 ? Math.max(4, Math.round((value / max) * 100)) : 0;
+  return (
+    <View style={styles.barRow}>
+      <Text style={styles.barLabel} numberOfLines={1}>{label}</Text>
+      <View style={styles.barTrack}>
+        <View style={[styles.barFill, { width: (`${pct}%` as any) }, accent ? { backgroundColor: accent } : null]} />
+      </View>
+      <Text style={styles.barVal} numberOfLines={1}>{value.toLocaleString()}{suffix ?? ''}</Text>
+    </View>
+  );
+}
+
+// 일별 추이 스파크바(세로 막대 나열): 값(위)·막대(높이=값/최대)·날짜 DD(아래). 최근 N일.
+function SparkBars({ data, accent }: { data: DayPoint[]; accent: string }) {
+  if (!data || data.length === 0) return <Text style={styles.emptyLine}>데이터 없음</Text>;
+  const max = data.reduce((m, p) => Math.max(m, p.n), 0);
+  const total = data.reduce((s, p) => s + p.n, 0);
+  return (
+    <>
+      <View style={styles.spark}>
+        {data.map((p) => {
+          const h = max > 0 ? Math.max(3, Math.round((p.n / max) * 42)) : 3; // 막대 높이(px). 최소 3(0도 흔적)
+          return (
+            <View key={p.d} style={styles.sparkCol}>
+              <Text style={styles.sparkNum} numberOfLines={1}>{p.n}</Text>
+              <View style={[styles.sparkBar, { height: h, backgroundColor: accent }]} />
+              <Text style={styles.sparkDay} numberOfLines={1}>{p.d.slice(-2)}</Text>
+            </View>
+          );
+        })}
+      </View>
+      <Text style={styles.sparkCap}>최근 {data.length}일 · 합계 {total} · 최대 {max}</Text>
+    </>
+  );
+}
+
+// 전체 현황 대시보드 — 규모·매출/원가/순익(실측)·풀이분포·인기콘텐츠·원가·매출·일별추이·상위사용자.
+//   집계는 서버 admin_stats(SECURITY DEFINER + is_caller_admin)가 계산 → 여기선 시각화만. 라벨은 KIND_LABEL(단일 소스).
+function Dashboard({ stats }: { stats: AdminStats }) {
+  const rbk = (stats.readings_by_kind ?? []).slice(0, 12);        // 풀이 분포 Top
+  const tc = (stats.top_content ?? []).slice(0, 10);              // 인기 콘텐츠 Top
+  const cbk = (stats.cost_by_kind ?? []).slice(0, 12);           // 분야별 원가 Top
+  const rev = (stats.revenue_by_kind ?? []).slice(0, 10);        // 분야별 매출 Top
+  const maxRk = Math.max(1, ...rbk.map((r) => r.n));
+  const maxTc = Math.max(1, ...tc.map((r) => r.visits));
+  const maxCost = Math.max(1, ...cbk.map((r) => r.won));
+  const maxRev = Math.max(1, ...rev.map((r) => r.won));
+  const net = (stats.total_revenue ?? 0) - (stats.measured_cost ?? 0); // 순익(매출−실측원가·수수료세금 전)
+
+  return (
+    <View>
+      {/* 규모 */}
+      <View style={styles.card}>
+        <Text style={styles.cardHead}>전체 현황</Text>
+        <View style={styles.tileGrid}>
+          <StatTile label="유저" value={stats.total_users} sub={`프리미엄 ${stats.premium_users} · 관리자 ${stats.admin_users}`} accent={colors.ju} />
+          <StatTile label="결제 유저" value={stats.paying_users} />
+          <StatTile label="7일 활성" value={stats.active_7d} />
+          <StatTile label="명식" value={stats.total_charts} />
+          <StatTile label="풀이" value={stats.total_readings} sub={`추가질문 ${stats.total_followups}`} />
+          <StatTile label="미사용 이용권" value={stats.credits_remaining} />
+        </View>
+      </View>
+
+      {/* 매출·원가·순익(실측) */}
+      <View style={styles.card}>
+        <Text style={styles.cardHead}>매출 · 원가 · 순익 <Text style={styles.cardHeadSub}>실측</Text></Text>
+        <View style={styles.tileGrid}>
+          <StatTile label="총매출" value={won(stats.total_revenue)} accent={POS} />
+          <StatTile label="실측 원가" value={won(stats.measured_cost)} accent={NEG} />
+          <StatTile label="순익(매출−원가)" value={won(net)} accent={net >= 0 ? colors.ju : NEG} />
+        </View>
+        <Text style={styles.cardNote}>원가 = Anthropic usage 토큰 실측(api_usage 누적). 수수료·세금 반영 상세는 ‘비용·수익 분석’ 참고.</Text>
+      </View>
+
+      {/* 풀이 분야 분포 */}
+      <View style={styles.card}>
+        <Text style={styles.cardHead}>풀이 분야 분포 <Text style={styles.cardHeadSub}>Top {rbk.length}</Text></Text>
+        {rbk.length ? rbk.map((r) => <BarRow key={r.kind} label={contentLabel(r.kind)} value={r.n} max={maxRk} suffix="회" />) : <Text style={styles.emptyLine}>데이터 없음</Text>}
+      </View>
+
+      {/* 인기 콘텐츠(전 계정 방문 합산) */}
+      <View style={styles.card}>
+        <Text style={styles.cardHead}>인기 콘텐츠 <Text style={styles.cardHeadSub}>방문 Top {tc.length}</Text></Text>
+        {tc.length ? tc.map((r) => <BarRow key={r.kind} label={contentLabel(r.kind)} value={r.visits} max={maxTc} suffix="회" accent={ACC2} />) : <Text style={styles.emptyLine}>방문 기록 없음</Text>}
+      </View>
+
+      {/* 분야별 실측 원가 */}
+      <View style={styles.card}>
+        <Text style={styles.cardHead}>분야별 실측 원가 <Text style={styles.cardHeadSub}>Top {cbk.length} · (요청수)</Text></Text>
+        {cbk.length ? cbk.map((r) => <BarRow key={r.kind} label={`${contentLabel(r.kind)} (${r.reqs})`} value={r.won} max={maxCost} suffix="원" accent={NEG} />) : <Text style={styles.emptyLine}>측정값 없음</Text>}
+      </View>
+
+      {/* 분야별 실매출(비샌드박스 결제 있을 때만) */}
+      {rev.length > 0 && (
+        <View style={styles.card}>
+          <Text style={styles.cardHead}>분야별 실매출 <Text style={styles.cardHeadSub}>(건수)</Text></Text>
+          {rev.map((r) => <BarRow key={r.kind} label={`${contentLabel(r.kind)} (${r.cnt})`} value={r.won} max={maxRev} suffix="원" accent={POS} />)}
+        </View>
+      )}
+
+      {/* 일별 추이(최근 14일) */}
+      <View style={styles.card}>
+        <Text style={styles.cardHead}>신규 가입 추이</Text>
+        <SparkBars data={stats.signups_daily ?? []} accent={colors.ju} />
+        <Text style={[styles.cardHead, { marginTop: space(4) }]}>풀이 생성 추이</Text>
+        <SparkBars data={stats.readings_daily ?? []} accent={ACC2} />
+      </View>
+
+      {/* 상위 사용자 */}
+      {(stats.top_users?.length ?? 0) > 0 && (
+        <View style={styles.card}>
+          <Text style={styles.cardHead}>상위 사용자 <Text style={styles.cardHeadSub}>풀이 많은 순</Text></Text>
+          {stats.top_users.map((u, i) => (
+            <View key={i} style={styles.rankRow}>
+              <Text style={styles.rankNo}>{i + 1}</Text>
+              <Text style={styles.rankName} numberOfLines={1}>{u.name ?? '(이름 없음)'}</Text>
+              <Text style={styles.rankVal}>{u.readings}회</Text>
+            </View>
+          ))}
+        </View>
+      )}
+    </View>
+  );
+}
 
 export default function AdminRoute() {
   const [allowed, setAllowed] = useState<boolean | null>(null);
@@ -74,6 +221,8 @@ export default function AdminRoute() {
   if (allowed === false && !__DEV__) return <View style={styles.center}><Text style={styles.denied}>관리자만 접근할 수 있어요.</Text></View>;
 
   const filtered = q ? users.filter((u) => u.email?.toLowerCase().includes(q.toLowerCase())) : users;
+  // 선택 유저 풀이 분야 막대의 최대값(비율 기준) — detail 없으면 1(0 나눗셈 방지).
+  const maxUserRk = detail?.readings_by_kind?.length ? Math.max(1, ...detail.readings_by_kind.map((x) => x.n)) : 1;
 
   // 이용권 선물(+1) — 지급 전 확인
   function gift(kind: CreditKind, ko: string) {
@@ -137,21 +286,8 @@ export default function AdminRoute() {
       }}>
         <Text style={styles.adminLinkTx}>관리자 모드 {adminMode ? '— 켜짐 (프리미엄+전부 unlock)' : '— 꺼짐 (일반계정처럼)'}</Text>
       </PressableScale>
-      {/* 전체 현황 대시보드 — API 사용량·추정비용·잔여 이용권·분야별·상위 사용자(daniel G) */}
-      {stats && (
-        <View style={styles.giftPanel}>
-          <Text style={styles.giftHead}>전체 현황</Text>
-          <View style={styles.detailBox}>
-            <Text style={styles.detailLine}>유저 {stats.total_users}명 · 프리미엄 {stats.premium_users}명</Text>
-            <Text style={styles.detailLine}>통변 {stats.total_readings}회 · 추가질문 {stats.total_followups}회</Text>
-            <Text style={styles.detailRevenue}>총매출 ₩{(stats.total_revenue ?? 0).toLocaleString()}</Text>
-            <Text style={styles.detailLine}>추정 API 비용 ≈ ₩{stats.est_cost.toLocaleString()}</Text>
-            <Text style={styles.detailLine}>미사용 이용권 잔여 {stats.credits_remaining}장</Text>
-            {stats.by_category.length > 0 && <Text style={styles.detailLine}>분야별: {stats.by_category.map((c) => `${c.category} ${c.n}`).join(' · ')}</Text>}
-            {stats.top_users.length > 0 && <Text style={styles.detailLine}>상위 사용자: {stats.top_users.map((u) => `${u.name ?? '?'}(${u.readings})`).join(', ')}</Text>}
-          </View>
-        </View>
-      )}
+      {/* 전체 현황 대시보드(daniel 07-07 대폭 확장) — 규모·매출/원가/순익 실측·풀이분포·인기콘텐츠·일별추이·상위사용자 */}
+      {stats && <Dashboard stats={stats} />}
       <Text style={styles.h}>유저 ({users.length})</Text>
       <TextInput style={styles.search} value={q} onChangeText={setQ} placeholder="이메일 검색" placeholderTextColor={colors.inkFaint} autoCapitalize="none" autoCorrect={false} />
       {filtered.map((u) => {
@@ -173,9 +309,24 @@ export default function AdminRoute() {
           <Text style={styles.giftHead}>{sel.email}</Text>
           {detail && (
             <View style={styles.detailBox}>
+              {/* 계정 메타(daniel 07-07): 가입·최근활동·상태 pill */}
+              <Text style={styles.detailLine}>가입 {detail.created_at ? String(detail.created_at).split('T')[0] : '?'}{detail.last_seen ? ` · 최근활동 ${String(detail.last_seen).split('T')[0]}` : ''}</Text>
+              <View style={styles.pillRow}>
+                <Text style={[styles.miniPill, detail.is_premium ? styles.miniPillOn : styles.miniPillOff]}>{detail.is_premium ? '프리미엄' : '일반'}</Text>
+                {detail.is_admin ? <Text style={[styles.miniPill, styles.miniPillAdmin]}>{detail.admin_mode ? '관리자' : '관리자·모드OFF'}</Text> : null}
+              </View>
               <Text style={styles.detailLine}>통변 {detail.reading_count}회 · 추가질문 {detail.followup_count}회</Text>
               <Text style={styles.detailLine}>원가(실측)는 비용·수익 분석 화면 참고</Text>
               {usage && usage.sessions > 0 ? <Text style={styles.detailLine}>평균 사용 {fmtDur(usage.avg_sec)} · {usage.sessions}세션 · 총 {fmtDur(usage.total_sec)}{usage.last_seen ? ` · 최근 ${String(usage.last_seen).split('T')[0]}` : ''}</Text> : null}
+              {/* 풀이 kind별 분해(daniel 07-07) — 어떤 분야를 얼마나 생성했는지 막대로(방문 많은 순 Top 8) */}
+              {(detail.readings_by_kind?.length ?? 0) > 0 && (
+                <>
+                  <Text style={styles.detailSub}>풀이 분야별 ({detail.readings_by_kind.length})</Text>
+                  {detail.readings_by_kind.slice(0, 8).map((r) => (
+                    <BarRow key={r.kind} label={contentLabel(r.kind)} value={r.n} max={maxUserRk} suffix="회" />
+                  ))}
+                </>
+              )}
               {/* 결제(RC 웹훅 기록) — 총결제액 + 구매 내역 */}
               <Text style={styles.detailRevenue}>총결제 ₩{(detail.paid_total ?? 0).toLocaleString()}</Text>
               {detail.purchases && detail.purchases.length > 0 ? (
@@ -278,4 +429,41 @@ const styles = StyleSheet.create({
   adminLink: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.ju, padding: space(3.5), alignItems: 'center', marginBottom: space(2) },
   adminLinkOn: { borderColor: colors.ju, backgroundColor: colors.juSoft },
   adminLinkTx: { color: colors.ju, fontWeight: '800', fontSize: 14 },
+
+  // ── 대시보드 카드/시각화(daniel 07-07: 정보밀도·가시성) ──
+  card: { marginTop: space(3), padding: space(4), borderRadius: radius.md, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, ...shadow.card },
+  cardHead: { ...font.body, color: colors.ink, fontWeight: '800', marginBottom: space(2.5) },
+  cardHeadSub: { ...font.caption, color: colors.inkFaint, fontWeight: '600' }, // 헤더 옆 보조(Top N·실측 등)
+  cardNote: { ...font.caption, color: colors.inkFaint, marginTop: space(2), lineHeight: 16 },
+  // 수치 타일(3열 wrap) — 큰 숫자 강조
+  tileGrid: { flexDirection: 'row', flexWrap: 'wrap' },
+  tile: { width: '33.33%', paddingVertical: space(1.5), paddingRight: space(2) },
+  tileVal: { ...font.heading, color: colors.ink, fontWeight: '900' },
+  tileLbl: { ...font.caption, color: colors.inkSoft, marginTop: 1 },
+  tileSub: { fontSize: 10, color: colors.inkFaint, marginTop: 1 },
+  // 가로 비율 막대(순위형)
+  barRow: { flexDirection: 'row', alignItems: 'center', marginVertical: 3 },
+  barLabel: { width: 96, fontSize: 11.5, color: colors.ink, fontWeight: '600' },
+  barTrack: { flex: 1, height: 12, backgroundColor: colors.sunk, borderRadius: 6, overflow: 'hidden', marginHorizontal: space(2) },
+  barFill: { height: '100%', backgroundColor: colors.ju, borderRadius: 6, minWidth: 2 },
+  barVal: { width: 66, fontSize: 11, color: colors.inkSoft, textAlign: 'right', fontWeight: '700' },
+  // 세로 스파크바(일별 추이)
+  spark: { flexDirection: 'row', alignItems: 'flex-end', height: 66, marginTop: space(1) },
+  sparkCol: { flex: 1, alignItems: 'center', justifyContent: 'flex-end' },
+  sparkNum: { fontSize: 8, color: colors.inkFaint, marginBottom: 1 },
+  sparkBar: { width: '58%', minWidth: 5, borderRadius: 2 },
+  sparkDay: { fontSize: 8, color: colors.inkFaint, marginTop: 2 },
+  sparkCap: { ...font.caption, color: colors.inkFaint, marginTop: space(1.5) },
+  // 순위 행(상위 사용자)
+  rankRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: space(1.5), borderBottomWidth: 1, borderBottomColor: colors.line },
+  rankNo: { width: 22, fontSize: 12, fontWeight: '800', color: colors.ju },
+  rankName: { flex: 1, fontSize: 12.5, color: colors.ink },
+  rankVal: { fontSize: 12, color: colors.inkSoft, fontWeight: '700' },
+  emptyLine: { ...font.caption, color: colors.inkFaint, paddingVertical: space(1) },
+  // 상세: 계정 상태 mini pill
+  pillRow: { flexDirection: 'row', gap: space(1.5), marginVertical: space(1) },
+  miniPill: { fontSize: 10.5, fontWeight: '800', paddingHorizontal: space(2), paddingVertical: 2, borderRadius: radius.sm, overflow: 'hidden' },
+  miniPillOn: { color: colors.badgeGold, backgroundColor: colors.juSoft },
+  miniPillOff: { color: colors.inkFaint, backgroundColor: colors.sunk },
+  miniPillAdmin: { color: colors.bg, backgroundColor: colors.ju },
 });
