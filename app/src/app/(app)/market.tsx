@@ -408,14 +408,17 @@ const styles = StyleSheet.create({
   price: { ...font.caption, color: colors.ju, fontWeight: '800', marginTop: 2 },
   have: { ...font.caption, color: colors.inkFaint, marginTop: 2 },
   haveOn: { color: colors.ju, fontWeight: '800' },
-  buyBtn: { backgroundColor: colors.ju, borderRadius: radius.pill, paddingHorizontal: space(5), paddingVertical: space(2.5), minWidth: 84, alignItems: 'center' },
+  // marginLeft = 텍스트(제목·설명·가격) 컨테이너(flex:1)와 구매/열기 버튼 사이 gutter 확보.
+  //   flex:1 컨테이너가 이 여백만큼 줄어들어 긴 설명(numberOfLines=2)이 버튼에 닿지 않고 그 안에서 줄바꿈된다(daniel 07-07 IMG_7980: '별자리 운세' 긴 설명↔구매 버튼 밀착 수정).
+  buyBtn: { backgroundColor: colors.ju, borderRadius: radius.pill, paddingHorizontal: space(5), paddingVertical: space(2.5), minWidth: 84, alignItems: 'center', marginLeft: space(4) },
   buyBtnBusy: { opacity: 0.5 },
   buyTx: { color: colors.bg, fontWeight: '800', fontSize: 14 },
   // 마켓 섹션 제목·설명(프리미엄 포함 / 개별 구매 전용 구분 — daniel) — 골드 톤 heading + 보조 caption
   sectionH: { ...font.heading, color: colors.ju, marginTop: space(5), marginBottom: space(1) },
   sectionSub: { ...font.caption, color: colors.inkSoft, marginBottom: space(3), lineHeight: 16 },
   // 프리미엄 무제한 배지(섹션 A · 프리미엄 가입 시 가격·구매 버튼 대체) — 골드 외곽선 상태 배지
-  unlimitedBadge: { backgroundColor: colors.juSoft, borderWidth: 1, borderColor: colors.juLine, borderRadius: radius.pill, paddingHorizontal: space(4), paddingVertical: space(2), marginLeft: space(2), alignItems: 'center' },
+  //   marginLeft = 텍스트 컨테이너↔무제한 배지 gutter(구매버튼과 동일 space(4)로 통일 — 프리미엄 카드도 설명이 배지에 닿지 않게).
+  unlimitedBadge: { backgroundColor: colors.juSoft, borderWidth: 1, borderColor: colors.juLine, borderRadius: radius.pill, paddingHorizontal: space(4), paddingVertical: space(2), marginLeft: space(4), alignItems: 'center' },
   unlimitedTx: { color: colors.ju, fontWeight: '800', fontSize: 13 },
   // 쿠폰 등록
   couponH: { ...font.heading, marginTop: space(6), marginBottom: space(3) },
