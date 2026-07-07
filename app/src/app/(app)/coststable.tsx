@@ -45,7 +45,7 @@ const ROWS: Row[] = [
   { name: '자미두수(12궁)', kind: 'ziwei', mult: 12, type: '유료', api: true, price: 14900, adEst: 0 },
   { name: '궁합', kind: 'compat', mult: 1, type: '유료', api: true, price: 4900, adEst: 0 },
   { name: '나의 애정흐름', kind: 'love', mult: 1, type: '유료', api: true, price: 9900, adEst: 0 },
-  { name: '인생 타임라인', kind: 'timeline', mult: 1, type: '유료', api: true, price: 1990, adEst: 0 },
+  { name: '인생 타임라인', kind: 'timeline', mult: 1, type: '유료', api: true, price: 1900, adEst: 0 },
   { name: '추가 질문', kind: 'followup', mult: 1, type: '유료', api: true, price: 990, adEst: 0 },
   { name: '신년운세', kind: 'newyear', mult: 1, type: '유료', api: true, price: 9900, adEst: 0 },
   { name: '인생 그래프', kind: 'lifegraph', mult: 1, type: '유료', api: true, price: 3900, adEst: 0 },
@@ -54,6 +54,17 @@ const ROWS: Row[] = [
   { name: '나의 사명', kind: 'mission', mult: 1, type: '유료', api: true, price: 6900, adEst: 0 },
   { name: '사업가의 나', kind: 'career', mult: 1, type: '유료', api: true, price: 4900, adEst: 0 },
   { name: 'AI 꿈해몽(개당)', kind: 'dream', mult: 1, type: '유료', api: true, price: 500, adEst: 0 },
+  // ★누락 보강(daniel 07-07): 전 24종 유료 콘텐츠 원가표 — 실측(usage_cost_by_kind)로 채움. celeb/timeresolve=결정론(비용0).
+  { name: '나의 타고난 재능', kind: 'talent', mult: 1, type: '유료', api: true, price: 4900, adEst: 0 },
+  { name: '별자리·점성술', kind: 'astrology', mult: 1, type: '유료', api: true, price: 4900, adEst: 0 },
+  { name: '맞춤 개운법', kind: 'gaeun', mult: 1, type: '유료', api: true, price: 4900, adEst: 0 },
+  { name: '재회운', kind: 'reunion', mult: 1, type: '유료', api: true, price: 9900, adEst: 0 },
+  { name: '짝사랑 인연운', kind: 'crush', mult: 1, type: '유료', api: true, price: 4900, adEst: 0 },
+  { name: '취업·이직운', kind: 'job', mult: 1, type: '유료', api: true, price: 4900, adEst: 0 },
+  { name: '10년 뒤 나의 모습', kind: 'future10', mult: 1, type: '유료', api: true, price: 4900, adEst: 0 },
+  { name: '자식운', kind: 'child', mult: 1, type: '유료', api: true, price: 4900, adEst: 0 },
+  { name: '세계 인물 매칭', kind: 'celeb', mult: 1, type: '유료', api: false, price: 1200, adEst: 0 },
+  { name: '태어난 시 찾기', kind: 'timeresolve', mult: 1, type: '유료', api: false, price: 990, adEst: 0 },
 ];
 
 const SCALES = [1, 10, 100, 1000];

@@ -67,7 +67,7 @@ if (!coupons || !interpret) {
   // interpret 에서 '서버 게이트되는 credit kind' 집합 수집
   const gated = new Set();
   const objBody = (name) => {
-    const m = interpret.match(new RegExp(`${name}[^{]*\\{([\\s\\S]*?)\\}`));
+    const m = interpret.match(new RegExp(`const\\s+${name}\\b[^{]*\\{([\\s\\S]*?)\\}`)); // ★const 선언에 앵커(주석의 이름 언급 오탐 차단·daniel 07-07)
     return m ? m[1] : '';
   };
   for (const m of objBody('SERVER_GATED').matchAll(/(\w+):\s*'(\w+)'/g)) gated.add(m[2]); // 값 = credit kind

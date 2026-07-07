@@ -39,6 +39,8 @@ const KIND_LABEL: Record<string, string> = {
   lovestyle: '연애 스타일', bok: '타고난 복', pastlife: '전생 이야기', healing: '나만의 힐링 방법',
   taegil: '택일', country: '내가 살기 좋은 곳', luck: '오늘의 행운', zodiac: '띠·별자리',
   name: '이름풀이', dream: '꿈해몽', numerology: '수비학',
+  // ★CreditKind 별칭 통일(daniel 07-07) — 크레딧/원가 표시가 영어(reading 등)로 새지 않도록. saju=콘텐츠kind·reading=결제kind 동일 콘텐츠.
+  reading: '사주 풀이', followup: '추가 질문', timeresolve: '태어난 시 찾기', child_couple: '자식운(부부)',
 };
 // kind → 라벨(미등록이면 raw kind 노출).
 const contentLabel = (kind: string) => KIND_LABEL[kind] ?? kind;
