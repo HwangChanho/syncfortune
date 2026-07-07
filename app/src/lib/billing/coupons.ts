@@ -71,7 +71,13 @@ export async function loadCredits(): Promise<Record<string, number>> {
   return out;
 }
 
-/** 크레딧 1 소비(use_credit RPC) — 있으면 차감 후 true(무료 진행), 없으면 false(기존 결제 게이트). */
+/**
+ * 크레딧 1 소비(use_credit RPC) — 있으면 차감 후 true(무료 진행), 없으면 false(결제 게이트).
+ * ⚠️ 현재 사용처(07-07 확인) = *온디바이스 결정론 유료 도구*뿐 = timeResolve(태어난 시 찾기, kind 'timeresolve').
+ *    이 도구는 LLM/Edge 를 호출하지 않아(API 비용 0) 클라 차감으로 충분하다.
+ *    반면 LLM 유료 kind(사주·애정·궁합·신년 등)는 서버 단독게이트(Edge interpret 의 consume_credit)로 통일 —
+ *    클라에서 이 함수로 선차감하지 않는다(과차감·결제 우회 방지, daniel 07-03). 새 LLM kind 에 이 함수를 쓰지 말 것.
+ */
 export async function useCredit(kind: CreditKind): Promise<boolean> {
   if (!(await hasSession())) return localUse(kind);        // 비로그인 = 로컬 차감(H)
   const { data, error } = await supabase.rpc('use_credit', { p_kind: kind });

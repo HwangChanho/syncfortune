@@ -215,7 +215,7 @@ export function ReadingScreen({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [genDone, chartId]);
 
-  // (G 서버위임 gen_jobs realtime 구독은 무한반복 버그로 롤백 — daniel 2026-06-30. 재설계 후 재도입.)
+  // (G 서버위임 gen_jobs realtime 구독은 무한반복 버그로 제거됨 — daniel 2026-06-30. 현재 runAllLocal 직접 생성. 재설계 시 재도입.)
 
   // ★daniel(2026-06-30): '○○ 풀이가 완성됐어요' 배너를 탭해 진입했는데 안 사라지던 것 —
   //   이 화면 항목이 전부 캐시(완성)이고 생성 진행 중이 아니면 홈 배너를 확실히 제거(진입=이미 봄).
@@ -266,7 +266,7 @@ export function ReadingScreen({
     const todo = cats.filter((cat) => !readings[cat.key]);
     if (!todo.length) return;                              // 전부 캐시됨 → 생성 불필요(자물쇠·진행 X, 바로 노출)
     // ★중복 생성 방지(daniel: 로딩바 타고 재진입 시 1/12 재시작) — 같은 차트·종류가 이미 생성 중이면
-    //   두 번째는 생성하지 않는다. 서버 위임이면 gen_jobs 구독이, 폴백이면 runAllLocal 이 이어 채운다.
+    //   두 번째는 생성하지 않는다. runAllLocal 이 이어서 남은 영역을 채운다.
     const lockKey = `${kind}:${id}`;
     if (genActive.has(lockKey)) return;
     genActive.add(lockKey);
@@ -277,11 +277,11 @@ export function ReadingScreen({
     setGenProgress({ active: true, done: gDone, total: cats.length, label: kind === 'ziwei' ? t('reading.ziweiTitle', '자미두수') : t('reading.sajuTitle', '사주 풀이'), chartLabel: savedChart?.label, route: gpRoute }); // 어느 명식 풀이인지 배너·푸시에(daniel 07-02)
     // ★G 서버위임 롤백(daniel 2026-06-30: 무한반복 버그 — gen_jobs done↔autoGen 재호출↔재생성↔푸시 루프).
     //   클라 직접 생성으로 복귀(기존 안정 경로). 완료(todo 없음)면 위에서 이미 return → 자물쇠 안 뜸.
-    //   서버측 generate_set 위임은 무한반복 없이 재설계 후 재도입(gen_jobs 구독도 함께 제거).
+    //   서버측 generate_set 위임(+gen_jobs 구독)은 현재 휴면 — 무한반복 없이 재설계 후 재도입.
     await runAllLocal(id, todo, gDone, gpRoute);
   }
 
-  // 폴백 — generate_set 위임이 안 될 때(미배포·오류·1회용 명식) 클라가 직접 항목별 interpret 호출. 기존 runAll 본문.
+  // 클라가 직접 항목별 interpret 를 호출(현재 유일 경로 — generate_set 서버위임은 휴면). 재도입 시 이 함수는 미배포·오류·1회용 명식 폴백으로 강등.
   async function runAllLocal(id: string, todo: ReadingCategory[], gDone0: number, gpRoute: string) {
     let gDone = gDone0;
     const lockKey = `${kind}:${id}`;
