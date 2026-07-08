@@ -184,7 +184,7 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
   const [expW, setExpW] = useState(0); // 확장명식 가용폭 — 컬럼 수에 맞춰 칸·글자 반응형(daniel)
   const [glossary, setGlossary] = useState<{ kind: GlossaryKind; key?: string } | null>(null); // 클릭 설명 바텀시트
   const [showLinks, setShowLinks] = useState(true); // 팔자 합충형해 카드 펼침 — 관계 탭 전용이 됐으니 기본 펼침(daniel: 합충 탭 비어보임)
-  const [showExpandLinks, setShowExpandLinks] = useState(false); // 대운/세운 합충 펼침(기본 숨김)
+  const [showExpandLinks, setShowExpandLinks] = useState(true); // 대운/세운 관계 펼침(daniel 07-08: 3자 국[삼합/삼형 ★]을 메인으로 + 개별 2자도 함께 기본 노출)
   const [activePalja, setActivePalja] = useState<Set<string>>(() => new Set());   // 클릭으로 켠 팔자 합충(명식 강조용)
   const [activeExpand, setActiveExpand] = useState<Set<string>>(() => new Set());  // 클릭으로 켠 대운/세운 합충
   const posIndex: Record<string, number> = { 시: 0, 일: 1, 월: 2, 년: 3 };
