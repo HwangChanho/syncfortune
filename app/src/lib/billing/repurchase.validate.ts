@@ -1,5 +1,5 @@
 // repurchase.validate.ts — 재구매 판정 검증(daniel: 수익구조 테스트까지 확실히). 실행: npx tsx app/src/lib/billing/repurchase.validate.ts
-import { categoryYear, needsYearRepurchase, currentYearCategory, offerPremiumRenewal, renewalPrice, discountPercent } from './repurchase';
+import { categoryYear, needsYearRepurchase, currentYearCategory, offerPremiumRenewal, renewalPrice, discountPercent, RENEWABLE_KINDS, renewalDiscountRate, contentRenewalPrice, needsContentRenewal } from './repurchase';
 
 let pass = 0, fail = 0;
 function check(name: string, cond: boolean, detail = '') { if (cond) { pass++; console.log(`  ✓ ${name}`); } else { fail++; console.log(`  ✗ ${name}  ${detail}`); } }
@@ -37,6 +37,21 @@ check('49900 × 0.7 → 34900(100원 반올림)', renewalPrice(49900) === 34900,
 check('9900 × 0.7 → 6900', renewalPrice(9900) === 6900, `got ${renewalPrice(9900)}`);
 check('할인율 49900→34900 ≈ 30%', discountPercent(49900, 34900) === 30, `got ${discountPercent(49900, 34900)}`);
 check('정가 0 → 0%(0분모 방어)', discountPercent(0, 0) === 0);
+
+console.log('── 통일 재통변(운세형·티어별 할인) ──');
+check('reading(운세형) 재구매 대상', RENEWABLE_KINDS.has('reading') === true);
+check('compat(궁합·연도별) 포함', RENEWABLE_KINDS.has('compat') === true);
+check('roots(명식형) 제외', RENEWABLE_KINDS.has('roots') === false);
+check('gaeun(개운) 제외', RENEWABLE_KINDS.has('gaeun') === false);
+check('astrology(별자리) 제외', RENEWABLE_KINDS.has('astrology') === false);
+check('프리미엄 할인율 0.30', renewalDiscountRate(true) === 0.30);
+check('일반 할인율 0.10', renewalDiscountRate(false) === 0.10);
+check('사주 19900 프리미엄 → 13900(30%)', contentRenewalPrice(19900, true) === 13900, `got ${contentRenewalPrice(19900, true)}`);
+check('사주 19900 일반 → 17900(10%)', contentRenewalPrice(19900, false) === 17900, `got ${contentRenewalPrice(19900, false)}`);
+check('궁합 4900 프리미엄 → 3400', contentRenewalPrice(4900, true) === 3400, `got ${contentRenewalPrice(4900, true)}`);
+check('needsContentRenewal 운세형+1년경과 → O', needsContentRenewal('reading', '2026-01-01', now2027) === true);
+check('needsContentRenewal 명식형 → X', needsContentRenewal('roots', '2026-01-01', now2027) === false);
+check('needsContentRenewal 운세형+11개월 → X', needsContentRenewal('reading', '2026-05-01', now2027) === false);
 
 console.log(`\n${'='.repeat(38)}\nPASS ${pass} / FAIL ${fail}`);
 declare const process: { exit(c?: number): never };

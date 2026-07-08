@@ -142,6 +142,17 @@ export async function purchaseCreditRC(kind: CreditKind): Promise<boolean> {
   return purchaseConsumableRC(CREDIT_PRODUCT[kind]);
 }
 
+// ★재통변 할인 상품ID(daniel 07-08 통일 모델·ⓑ 콘텐츠별): 기존 이용권 SKU + 티어 접미(_r30 프리미엄 30% / _r10 일반 10%).
+//   rc-webhook 이 접미를 떼어 같은 kind 로 적립 → 재생성. ★가격은 스토어 등록가(정가×0.7/0.9) — asc-iap.js 가 정가에서 파생 생성(가격 변동 대비).
+export function renewalCreditProductId(kind: CreditKind, isPremium: boolean): string {
+  return `${CREDIT_PRODUCT[kind]}${isPremium ? '_r30' : '_r10'}`;
+}
+
+/** 운세형 콘텐츠 구매 1년 후 재통변(할인) 구매 — 성공 시 true. 웹훅이 kind 이용권 적립 → 호출처가 최신 모델로 재생성. */
+export async function purchaseContentRenewalRC(kind: CreditKind, isPremium: boolean): Promise<boolean> {
+  return purchaseConsumableRC(renewalCreditProductId(kind, isPremium));
+}
+
 /** 프리미엄 1주년 갱신(30% 할인·소비성) 구매 — 성공 시 true(취소 false). 웹훅이 kind='premium'으로 is_premium 유지 + 새 구매일 기록(오퍼 리셋). 호출처는 waitForPremium 로 서버 확인. */
 export async function purchasePremiumRenewalRC(): Promise<boolean> {
   return purchaseConsumableRC(PRODUCT_PREMIUM_RENEW);

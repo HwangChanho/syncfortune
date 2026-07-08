@@ -50,3 +50,28 @@ export function discountPercent(listPrice: number, salePrice: number): number {
   if (listPrice <= 0) return 0;
   return Math.round((1 - salePrice / listPrice) * 100);
 }
+
+// ─────────────────────────────────────────────────────────────────────────
+// ★통일 재통변/재구매 모델(daniel 2026-07-08): 모든 유료 콘텐츠 중 **운세형만** 구매 1년 후 할인 재통변.
+//   프리미엄 계정=30% 할인 / 일반 계정=10% 할인(개별가 기준). 명식형(원국 불변→1년 뒤도 같음)은 제외.
+//   ★가격 변동 대비: 재구매가는 정가에서 파생(하드코딩 금지) — 정가 바뀌면 파생가·SKU 재생성으로 따라감.
+// ─────────────────────────────────────────────────────────────────────────
+
+/** 재통변 대상 = 운세형(매년 운이 바뀜). 명식형(뿌리·비침·사명·재능·자식·성격·전생·개운·별자리)은 제외. 궁합=연도별 궁합 있어 포함(daniel). */
+export const RENEWABLE_KINDS: ReadonlySet<string> = new Set([
+  'reading', 'ziwei', 'compat', 'love', 'newyear', 'reunion', 'crush', 'job', 'timeline', 'lifegraph', 'future10',
+]);
+
+/** 계정 티어별 재구매 할인율(daniel: 프리미엄 0.30 / 일반 0.10). */
+export function renewalDiscountRate(isPremium: boolean): number { return isPremium ? 0.30 : 0.10; }
+
+/** 재구매 표시가 = 정가 × (1−할인율), 100원 반올림. ★정가 단일소스에서 파생(가격 변동 대비). */
+export function contentRenewalPrice(listPrice: number, isPremium: boolean): number {
+  return Math.round((listPrice * (1 - renewalDiscountRate(isPremium))) / 100) * 100;
+}
+
+/** 이 풀이가 재통변 버튼 노출 대상? = 운세형 & 생성 1년 경과(readings.created_at 기준). */
+export function needsContentRenewal(kind: string, createdAt: string | Date | null | undefined, now: Date): boolean {
+  if (!RENEWABLE_KINDS.has(kind)) return false;
+  return offerPremiumRenewal(createdAt, now); // 1년 경과 판정 재사용(구매/생성일 + 1년 ≤ now)
+}
