@@ -41,6 +41,18 @@ const GROUP: Record<string, TgGroup> = {
   정재: '재성', 편재: '재성', 정관: '관성', 편관: '관성', 정인: '인성', 편인: '인성',
 };
 
+// ★반반 보정(daniel 2026-07-08: 오늘/이달이 너무 비관적 → 비관 반·낙관 반).
+//   기존엔 !favorGood(오늘 기운이 신강약에 버거운 날)이면 work/money/love/health 4영역 *전부*에 gate 주의가 붙어 하루가 '다 조심'으로 기울었다.
+//   → 그 날 기운(group)이 *실제로 부담 주는 영역에만* 주의를 붙이고 나머지는 긍정 기조 유지 = 하루가 '어떤 건 좋고 어떤 건 조심'으로 균형(명리 정합).
+//   매핑(!favorGood 문맥 = 그 group 이 신강약에 불리): 겁재 지출(재물)·설기 소모(건강)·재다신약(재물+처관계)·관살 압박(일+스트레스)·인다 지연(실행력=직업).
+const GATE_AREAS: Record<TgGroup, Array<'work' | 'money' | 'love' | 'health'>> = {
+  비겁: ['money'],
+  식상: ['health'],
+  재성: ['money', 'love'],
+  관성: ['work', 'health'],
+  인성: ['work'],
+};
+
 // ── 오늘의 기운 한 줄 타이틀(홈 배너) — [머리말]×[주제]×[서술] 조합 + 일진·명식 시드로 매일 다른 한 줄(1000+ 변형) ──
 //   톤별 풀로 길흉·명리 정합 유지(good=길 / care=조심·전향적 / 신살=특화). §4: 조심 톤도 공포 없이('~하면 좋은').
 //   결정론(같은 날·같은 명식 = 같은 타이틀): Math.random 금지 — 일진(干支)+일간 해시 시드. stance·문구 daniel 검수 슬롯.
@@ -634,23 +646,23 @@ export function dailyChartReadings(saju: SajuChart, todayStem: Stem, todayBranch
   const work: string[] = [tt.area.work[group], ...workLines];
   if (tg === '상관' && (tga.detail['정관'] ?? 0) > 0) work.push(tt.sangGwanGyeonGwan); // ★C3: 상관견관 복구(오늘 상관 + 원국 정관 → 윗사람·규칙 마찰)
   if (tw.has('역마')) work.push(tt.yeokma);
-  if (!favorGood) work.push(tt.gate.work); // ★테마A: 억부 게이트
+  if (!favorGood && GATE_AREAS[group].includes('work')) work.push(tt.gate.work); // ★테마A + 반반 보정(daniel 07-08): 이 기운이 부담 주는 영역에만 주의
 
   const money: string[] = [tt.area.money[group]];
   if (group === '비겁' && strong) money.push(tt.moneyBijeop);
-  if (!favorGood) money.push(tt.gate.money); // ★테마A: 억부 게이트 — 신약 재성날 ≠ 항상 '돈 유리'
+  if (!favorGood && GATE_AREAS[group].includes('money')) money.push(tt.gate.money); // ★테마A + 반반 보정(신약 재성날 ≠ 항상 '돈 유리', 단 그 부담을 전 영역이 아닌 재물에만)
   if (isGm) money.push(tt.gmMoney);
 
   // 투자(daniel #17) = 재물 흐름 관점 + 표준 주의(흐름·타이밍만, 종목·매수 조언 아님). ※ 십신별 투자 stance 정교화는 daniel 검수 슬롯.
-  const invest: string[] = [tt.area.money[group], ...(!favorGood ? [tt.gate.money] : []), tt.investCaution]; // ★테마A: 억부 게이트
+  const invest: string[] = [tt.area.money[group], ...(!favorGood && GATE_AREAS[group].includes('money') ? [tt.gate.money] : []), tt.investCaution]; // ★테마A + 반반 보정
 
   const love: string[] = [tt.area.love[group], ...loveLines];
   if (tw.has('도화')) love.push(tt.dohwa);
-  if (!favorGood) love.push(tt.gate.love); // ★테마A: 억부 게이트
+  if (!favorGood && GATE_AREAS[group].includes('love')) love.push(tt.gate.love); // ★테마A + 반반 보정
 
   const health: string[] = [tt.area.health[group]];
   if (LOW_ENERGY.has(stage)) health.push(tt.healthLow);
-  if (!favorGood) health.push(tt.gate.health); // ★테마A: 억부 게이트
+  if (!favorGood && GATE_AREAS[group].includes('health')) health.push(tt.gate.health); // ★테마A + 반반 보정
 
   const clean = (arr: string[]) => arr.filter(Boolean);
   return [
