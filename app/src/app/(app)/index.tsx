@@ -22,6 +22,7 @@ import { useGenProgress, clearGenProgress } from '../../lib/backend/genProgress'
 import { useSubscription } from '../../lib/billing/subscription';
 import { loadRepChart, subscribeRepChange } from '../../lib/engine/myChart';
 import { isPremiumForChart } from '../../lib/billing/premiumStore'; // 명식별 프리미엄(홈 카드 '이용중' 표시)
+import { needsYearRepurchase } from '../../lib/billing/repurchase'; // 지난 해 연도 풀이 → '재구매' 배지(daniel 07-08)
 import { prewarmReadings, prewarmDaily } from '../../lib/backend/prewarmReadings';
 import { scheduleDailyFortune } from '../../lib/backend/notifications'; // 매일 9시 오늘의 운세 알림
 import { buildSajuChart } from '@engine/saju';
@@ -338,14 +339,17 @@ export default function Home() {
     const ck = m.creditKey;
     if (!ck) return null;                                                                  // 무료 콘텐츠 = 배지 없음
     if (isPremiumForChart(repServerChartId) && !HOME_INDIVIDUAL.has(ck)) return '무제한';   // ①
-    // ② 카테고리 정확 일치 또는 연도접미(newyear_2027 등) 접두 일치 → 매칭 row 생성일+1년 = 만료일
-    const row = readingRows.find((r) => r.category === ck || r.category.startsWith(ck + '_'));
-    if (row?.created_at) {
-      const d = new Date(row.created_at);
+    // ② 올해(또는 연도무관) 풀이 우선 → '풀이있음 · 만료일'. 지난 해 연도 풀이(newyear_2026 등)만 있으면 → '재구매'(daniel 07-08 수익구조).
+    const nowD = new Date();
+    const matched = readingRows.filter((r) => r.category === ck || r.category.startsWith(ck + '_'));
+    const cur = matched.find((r) => !needsYearRepurchase(r.category, nowD)); // 현재연도 or 연도무관 풀이(재구매 불필요)
+    if (cur?.created_at) {
+      const d = new Date(cur.created_at);
       d.setFullYear(d.getFullYear() + 1);
       const exp = `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
       return `풀이있음 · ${exp}`;
     }
+    if (matched.length > 0) return '재구매'; // 지난 해 연도 풀이만 남음 → 올해 것으로 재구매 유도(진입 시 category=올해라 새 게이트)
     if ((credits[ck] ?? 0) > 0) return `쿠폰 ${credits[ck]}장`;                              // ③
     return priceLabel(ck);                                                                 // ④ 개별 가격
   }
