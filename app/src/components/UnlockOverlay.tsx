@@ -30,16 +30,25 @@ const CONTENT_VIDEOS: Record<VideoKey, any> = {
 
 // allowBackground=true(기본): API 생성처럼 시간이 걸리는 콘텐츠 — '홈으로 나가기' 노출(나가도 백그라운드 진행·완료 시 푸시).
 // videoKey: 지정 시 해당 콘텐츠 테마 영상을 로딩 배경으로 재생(미지정=기존 링+자물쇠).
-export function UnlockOverlay({ visible, message, allowBackground = true, videoKey }: { visible: boolean; message?: string; allowBackground?: boolean; videoKey?: VideoKey }) {
+export function UnlockOverlay({ visible, message, allowBackground = true, videoKey, minMs = 3200 }: { visible: boolean; message?: string; allowBackground?: boolean; videoKey?: VideoKey; minMs?: number }) {
   const router = useRouter();
   const spin = useRef(new Animated.Value(0)).current;   // 골드 링 회전(분석 중)
   const pulse = useRef(new Animated.Value(0)).current;   // 자물쇠 펄스
   const [open, setOpen] = useState(false);               // 🔒 → 🔓 전환(0.6초 후 열림)
 
-  // ★테마 영상 플레이어 — 훅 규칙상 *항상* 호출(조건부 금지). 실제 보일 때(visible && videoKey)만 소스를 넘겨
-  //   그때만 재생/오디오가 나게 한다. visible=false(예: 부모 busy 종료)면 소스를 null 로 → 재생 중지·이전 플레이어 릴리스.
-  //   (useVideoPlayer 는 소스가 바뀌면 새 플레이어를 만들고 이전 것을 자동 해제 — visible 토글이 곧 정지/해제.)
-  const videoSource = (visible && videoKey) ? CONTENT_VIDEOS[videoKey] : null;
+  // A(daniel 2026-07-08 '영상먼저'): 한 번 뜨면 최소 minMs 동안 유지 → 캐시/빠른 완료여도 로딩 연출이 '깜빡'하지 않고 온전히 재생 후 뷰 공개.
+  const [held, setHeld] = useState(false);
+  useEffect(() => {
+    if (!visible) return;              // 뜰 때만 타이머 시작(내려갈 땐 held 가 minMs 까지 표시 유지)
+    setHeld(true);
+    const t = setTimeout(() => setHeld(false), minMs);
+    return () => clearTimeout(t);
+  }, [visible, minMs]);
+  const show = visible || held;        // 부모가 busy=false 로 내려도 minMs 전이면 계속 표시
+
+  // ★테마 영상 플레이어 — 훅 규칙상 *항상* 호출(조건부 금지). 실제 보일 때(show && videoKey)만 소스를 넘겨
+  //   그때만 재생/오디오가 나게 한다. show=false 면 소스를 null 로 → 재생 중지·이전 플레이어 릴리스.
+  const videoSource = (show && videoKey) ? CONTENT_VIDEOS[videoKey] : null;
   const player = useVideoPlayer(videoSource, (p) => {
     // 루프 재생 + 앰비언트 사운드 유지(무음 아님). 소스 null 이면 재생할 게 없어 무해(try 로 보호).
     try { p.loop = true; p.muted = false; p.play(); } catch { /* 소스 없음/재생 불가 — 텍스트만 노출 */ }
@@ -47,7 +56,7 @@ export function UnlockOverlay({ visible, message, allowBackground = true, videoK
 
   useEffect(() => {
     // 영상 모드(videoKey)에선 링·자물쇠를 렌더하지 않으므로 애니 루프도 돌리지 않는다(불필요한 연산 절약).
-    if (!visible || videoKey) { setOpen(false); return; }
+    if (!show || videoKey) { setOpen(false); return; }
     spin.setValue(0); pulse.setValue(0);
     const spinLoop = Animated.loop(Animated.timing(spin, { toValue: 1, duration: 1600, easing: Easing.linear, useNativeDriver: true }));
     const pulseLoop = Animated.loop(Animated.sequence([
@@ -57,9 +66,9 @@ export function UnlockOverlay({ visible, message, allowBackground = true, videoK
     spinLoop.start(); pulseLoop.start();
     const openT = setTimeout(() => setOpen(true), 600);   // 잠시 흔들다 열림
     return () => { spinLoop.stop(); pulseLoop.stop(); clearTimeout(openT); };
-  }, [visible, videoKey]);
+  }, [show, videoKey]);
 
-  if (!visible) return null;
+  if (!show) return null;
   const rotate = spin.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
   const scale = pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.12] });
 

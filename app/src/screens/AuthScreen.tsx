@@ -10,6 +10,7 @@
 import { useState } from 'react';
 import { View, Text, TextInput, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
 import { PressableScale } from '../components/PressableScale';
+import Svg, { Path } from 'react-native-svg'; // 애플 로고(글리프 U+F8FF 미전송·미렌더 이슈 → SVG로 안정 렌더)
 import { Alert } from '../lib/ui/alert'; // 커스텀 알림(앱 디자인)
 import * as Linking from 'expo-linking';
 import { useTranslation } from 'react-i18next';
@@ -120,7 +121,7 @@ export function AuthScreen() {
 
       {/* 소셜 로그인 — 애플·구글·네이버 (각 브랜드 색) */}
       <PressableScale style={[styles.appleBtn, loading && styles.btnDisabled]} onPress={() => signInWithOAuth('apple')} disabled={loading}>
-        <Text style={styles.appleLogo}></Text>
+        <Svg width={16} height={19} viewBox="0 0 24 24" style={{ marginTop: -2 }}><Path fill="#fff" d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 8.02 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.51 4.08l.01-.02zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" /></Svg>
         <Text style={styles.appleText}>{t('auth.apple')}</Text>
       </PressableScale>
 

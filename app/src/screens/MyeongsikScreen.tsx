@@ -698,6 +698,13 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
       {/* ── 사주관계 3: 운세(대운/세운/월운/일진) — 관계 하위탭(daniel) ── */}
       {activeTab === 'rel' && relSub === 'unse' && (
         <>
+          {/* ★현재운세 보기(daniel 2026-07-08): 대운/세운/월운/일운을 모두 오늘자 인덱스로 리셋 → 오늘 기준 운세 바로 표시 */}
+          <PressableScale
+            onPress={() => { setSelLuck(curLuckIdx); setSelSeun(curSeunIdx); setSelMonth(now.getMonth()); setSelDay(now.getDate()); }}
+            style={styles.todayBtn}
+          >
+            <Text style={styles.todayBtnTx}>⊙ 오늘 기준 현재운세 보기</Text>
+          </PressableScale>
           {/* 대운·세운 타임라인 (원국·지장간 바로 아래) — 대운 탭 → 세운(과거~100세) → 월운 드릴다운 */}
           {luckCycles.length > 0 && (() => {
         const lc = luckCycles[selLuck];
@@ -877,7 +884,11 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
             <>
               <Text style={styles.luckSub}>{an.year} 세운 · 월운 (탭하면 위 명식에 반영)</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} ref={monthScrollRef} onLayout={(e) => { centerM.current.month.v = e.nativeEvent.layout.width; recenter('month', monthScrollRef); }} onContentSizeChange={() => recenter('month', monthScrollRef)} style={styles.luckScroll} contentContainerStyle={styles.luckScrollC}>
-                {an.months.map((m: any, k: number) => (
+                {an.months.map((_m: any, k: number) => {
+                  // ★월 선택기(daniel 2026-07-08): 카드 k = 양력월(라벨 (k+1)월). 干支는 월운 타임라인(위 line 716)과 동일하게
+                  //   절기월로 매핑 months[(k+11)%12] — 예전엔 months[k] 를 그대로 써 7월(k=6) 카드에 申월(丙申)이 떠 한 달 밀렸다.
+                  const m = an.months[(k + 11) % 12];
+                  return (
                   <PressableScale key={k} onPress={() => setSelMonth(k)} onLayout={selMonth === k ? (e) => { centerM.current.month.x = e.nativeEvent.layout.x; centerM.current.month.w = e.nativeEvent.layout.width; recenter('month', monthScrollRef); } : undefined} style={[styles.seunCard, selMonth === k && styles.luckCardSel]}>
                     <Text style={styles.seunYear}>{k + 1}월</Text>
                     <Text style={styles.seunTg}>{m.stemTenGod}</Text>
@@ -886,7 +897,8 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
                     <Text style={styles.seunTg}>{branchTenGod(dm, m.branch)}</Text>
                     <Text style={styles.seunStage}>{twelveStage(dm, m.branch)}</Text>
                   </PressableScale>
-                ))}
+                  );
+                })}
               </ScrollView>
             </>
           )}
@@ -1271,6 +1283,8 @@ const makeStyles = (fs: (n: number) => number) => { const f = scaledFont(fs); re
   luckStage: { fontSize: fs(9), color: colors.inkFaint, fontWeight: '600' },   // 12운성
   luckSub: { ...f.caption, color: colors.ju, marginTop: space(3), marginBottom: space(1) },
   seunCard: { alignItems: 'center', paddingVertical: space(1.5), paddingHorizontal: space(2), borderRadius: radius.sm, backgroundColor: colors.sunk, minWidth: 52 },
+  todayBtn: { alignSelf: 'center', flexDirection: 'row', alignItems: 'center', gap: 5, paddingVertical: space(1.5), paddingHorizontal: space(4), borderRadius: radius.sm, borderWidth: 1, borderColor: colors.ju, backgroundColor: colors.sunk, marginTop: space(2), marginBottom: space(1) }, // 현재운세 보기(daniel 07-08)
+  todayBtnTx: { ...f.caption, color: colors.ju, fontWeight: '700' },
   seunCur: { borderWidth: 1.5, borderColor: colors.ju },
   seunYear: { fontSize: fs(9), color: colors.inkFaint },
   seunGz: { fontSize: fs(14), fontWeight: '700' },
