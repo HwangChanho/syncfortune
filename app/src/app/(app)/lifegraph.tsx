@@ -134,10 +134,18 @@ export default function LifeGraphScreen() {
     if (busy) return;
     // ② 크로스마운트 이중 LLM 방지 — 이미 이 명식 lifegraph 가 생성 중이면 2차 호출하지 않는다(과금 0).
     const lockKey = `lifegraph:${id}`;
-    if (!acquireGen(lockKey)) return;
     const myGen = genSeq.current;    // ① 이 생성의 세대 스냅샷(읽기만) — 재로드/명식전환(load effect)이 genSeq 를 올리면 stale
     const myChart = id;              // ① 대상 명식
     const isStale = () => myGen !== genSeq.current || myChart !== chartIdRef.current; // ① 결과 쓰기 직전 대조
+    // A4(daniel 2026-07-08): 이미 다른 마운트가 생성 중(잠금 점유)이면 2차 LLM은 막되(과금 0), 로딩+캐시폴링으로 회수(무피드백 멈춤 방지).
+    if (!acquireGen(lockKey)) {
+      setBusy(true); setErr(null);
+      const cached = await pollCachedReading(id);
+      if (isStale()) return;
+      if (cached) setData(cached);
+      setBusy(false);
+      return;
+    }
     setBusy(true); setErr(null);
     // ③ 배너/푸시 명식 식별 — route 에 chartId(로컬 saved.id) + chartLabel. 재진입 바인딩은 ★M1 로 load effect 상단에 구현됨(reading.tsx 38-43 패턴).
     const gpRoute = saved?.id ? `/lifegraph?chartId=${saved.id}` : '/lifegraph';

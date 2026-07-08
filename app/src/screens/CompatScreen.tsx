@@ -28,7 +28,7 @@ import { ensureServerChartId } from '../lib/backend/prewarmReadings';
 import { useFontScale } from '../lib/ui/fontScale';
 import { COMPAT_RELS, otherSig, loadCompatReadings, genCompatReading, compatSections, compatSectionLabel, type CompatReading } from '../lib/content/compatReadings';
 import { setGenProgress, getGenItem } from '../lib/backend/genProgress'; // 다건 진행도(route='/compat', daniel·docs/CONTENT_API_INVENTORY.md)
-import { acquireGen, releaseGen } from '../lib/backend/genLock'; // 크로스마운트 이중 생성 잠금(② 이중 LLM 방지)
+import { acquireGen, releaseGen, isGenActive } from '../lib/backend/genLock'; // 크로스마운트 이중 생성 잠금(② 이중 LLM 방지)
 import { loadFollowups, askFollowup, type Followup } from '../lib/backend/followups'; // 궁합 추가질문(사주/자미 풀이와 동일 — 무료1 + 건당)
 import { yearGanZhi } from '../lib/content/dailyFortune'; // 연도별 궁합: 그 해 간지(세운)
 import { compatScore, tierLabel, tierOf, type CompatScoreResult } from '../lib/content/compatScore'; // 궁합 점수·등급(R26: LLM 직접 산출 우선, 결정론은 폴백)
@@ -214,9 +214,16 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
     const tab: 'saju' | 'ziwei' = key.split(':')[0] === 'ziwei' ? 'ziwei' : 'saju'; // 키 접두에서 탭 추출(닫힘 안전)
     // ② 중복/크로스마운트 생성 잠금 — 이 명식·이 관계키가 이미 생성 중이면 2차 호출 안 함(쌍당 비용 방어).
     const lockKey = `compat:${ctx.chartId}:${key}`;
-    if (!acquireGen(lockKey)) return;
     const myGen = genSeq.current;    // ① 이 생성의 세대 스냅샷(읽기만) — 쌍 전환 시 analyze 가 genSeq 를 올려 무효화. 동시 관계키 생성끼리 서로 무효화 안 하게 '읽기'.
     const isStale = () => myGen !== genSeq.current; // ① 도중 쌍 바뀌면 이 결과를 새 쌍 readings 에 쓰지 않음(오염 차단)
+    // A4(daniel 2026-07-08): 이미 이 관계키가 생성 중이면 2차 LLM 막고(과금0) 로딩 유지·완료까지 대기 후 재시도(Edge 캐시 히트=과금0). daniel: 풀이중 진입차단 허용.
+    if (!acquireGen(lockKey)) {
+      setBusy(key);
+      for (let i = 0; i < 45 && isGenActive(lockKey); i++) await new Promise((r) => setTimeout(r, 3000));
+      setBusy(null);
+      if (isStale() || isGenActive(lockKey)) return;
+      return runCompatGen(relKey, yr, key);
+    }
     setBusy(key);
     // ③ 배너/푸시 명식 식별 — route 에 chartId(내 명식 로컬 meSel.id) + chartLabel. '나' 측 재진입 바인딩은 ★M1 로 compat.tsx 라우트(대표 전환→meSel 채택)에 구현됨. 상대(쌍)는 _lastCompat 복원.
     const gpRoute = meSel?.id ? `/compat?chartId=${meSel.id}` : '/compat';

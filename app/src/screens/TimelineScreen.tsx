@@ -15,7 +15,7 @@ import { useAuth } from '../lib/useAuth';
 import { useSubscription } from '../lib/billing/subscription';
 import { useFontScale } from '../lib/ui/fontScale';
 import { setGenProgress } from '../lib/backend/genProgress'; // 일회성 진행도(daniel 이슈15)
-import { acquireGen, releaseGen } from '../lib/backend/genLock'; // 크로스마운트 이중 생성 잠금(② 이중 LLM 방지)
+import { acquireGen, releaseGen, isGenActive } from '../lib/backend/genLock'; // 크로스마운트 이중 생성 잠금(② 이중 LLM 방지)
 import { supabase } from '../lib/supabase';
 import { ensureServerChartId } from '../lib/backend/prewarmReadings';
 import { invokeFail } from '../lib/backend/interpretResult'; // 방어: 일시적 불가/오류 친화 처리
@@ -186,10 +186,17 @@ export function TimelineScreen({ input, savedChart }: { input: ChartInput | null
     }
     // ② 중복/크로스마운트 생성 잠금 — 이 명식·이 기간이 이미 생성 중이면 2차 호출 안 함(자동 2기간은 키가 달라 각각 통과·과금 0).
     const lockKey = `timeline:${cid}:${key}`;
-    if (!acquireGen(lockKey)) return;
     const myGen = genSeq.current;   // ① 세대 스냅샷(load effect 가 명식전환 시 증가 → stale 판별)
     const myChart = cid;            // ① 대상 명식
     const isStale = () => myGen !== genSeq.current || myChart !== chartIdRef.current;
+    // A4(daniel 2026-07-08): 이미 이 기간이 생성 중이면 2차 LLM 막고(과금0) 로딩 유지·완료까지 대기 후 재시도(Edge 캐시 히트=과금0). daniel: 풀이중 진입차단 허용.
+    if (!acquireGen(lockKey)) {
+      setBusy(key);
+      for (let i = 0; i < 45 && isGenActive(lockKey); i++) await new Promise((r) => setTimeout(r, 3000));
+      setBusy(null);
+      if (isStale() || isGenActive(lockKey)) return;
+      return gen(key, myChart);
+    }
     setBusy(key);
     // ③ 배너/푸시 명식 식별 — route 에 chartId(로컬 savedChart.id) + chartLabel. 재진입 바인딩은 ★M1 로 timeline.tsx 라우트(loadRepChart 前)에 구현됨(reading.tsx 38-43 패턴).
     const gpRoute = savedChart?.id ? `/timeline?chartId=${savedChart.id}` : '/timeline';

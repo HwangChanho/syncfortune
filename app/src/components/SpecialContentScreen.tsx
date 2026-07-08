@@ -200,10 +200,19 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
     if (!id || busy) return;
     // ② 크로스마운트 이중 LLM 방지 — 이미 이 명식·이 콘텐츠(category)가 생성 중이면 2차 호출하지 않는다(과금 0·프리미엄 자동생성 경로도 포함).
     const lockKey = `${category}:${id}`; // category = 콘텐츠 캐시 단위(roots·celeb_{id} 등)
-    if (!acquireGen(lockKey)) return;
     const myGen = genSeq.current;    // ① 이 생성의 세대 스냅샷(읽기만) — 재로드/명식전환(load effect)이 genSeq 를 올리면 stale
     const myChart = id;              // ① 대상 명식
     const isStale = () => myGen !== genSeq.current || myChart !== chartIdRef.current; // ① 결과 쓰기 직전 대조 — 남의 명식 위에 setReading 차단
+    // A4(daniel 2026-07-08): 이미 다른 마운트가 이 명식·콘텐츠를 생성 중(잠금 점유)이면 2차 LLM은 막되(과금 0),
+    //   화면은 로딩으로 두고 캐시를 폴링해 완료 시 결과 회수. 예전엔 여기서 조용히 return → 오버레이·에러·로딩 없이 '멈춤'(홈도 못 감)이었다.
+    if (!acquireGen(lockKey)) {
+      setBusy(true);
+      const cached = await pollCachedReading(id);
+      if (isStale()) return;
+      if (cached) { setReading(cached); await markUnlocked(id, kind); }
+      setBusy(false);
+      return;
+    }
     setBusy(true);
     setOwned(true); // 낙관적: 생성 진행 = 소유 표시(생성 애니). needPayment 면 아래에서 되돌림.
     // ③ 배너/푸시 명식 식별 — route 에 chartId(로컬 savedChart.id) + chartLabel.
@@ -405,7 +414,15 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
           </View>
           {/* owned(프리미엄/관리자/unlock)면 '풀이 보기'(구매 아님) — 자식운은 위 토글로 단일/부부 고른 뒤 이 버튼으로 생성(daniel 07-03) */}
           <PressableScale style={[styles.cta, { backgroundColor: themeColor }]} onPress={onStart}><Text style={[styles.ctaTx, dynStyles.ctaTx]}>{owned ? t('special.viewCta', '풀이 보기') : t('special.unlockCta', '구매하고 보기')}</Text></PressableScale>
-          {!owned ? <Text style={[styles.gateNote, dynStyles.gateNote]}>{t('special.unlockHint', '이용권 구매 또는 쿠폰으로 열려요')}</Text> : null}
+          {!owned ? (
+            <>
+              <Text style={[styles.gateNote, dynStyles.gateNote]}>{t('special.unlockHint', '이용권 구매 또는 쿠폰으로 열려요')}</Text>
+              {/* 상점 이동 버튼(daniel 07-07): 쿠폰 없을 때 마켓으로 바로 이동 — 안내만 있고 버튼 없던 것 보완 */}
+              <PressableScale style={styles.goMarketBtn} onPress={() => router.push('/market')}>
+                <Text style={[styles.goMarketTx, dynStyles.ctaTx]}>{t('special.goMarketBtn', '상점으로 이동 ›')}</Text>
+              </PressableScale>
+            </>
+          ) : null}
         </View>
       )}
     </ScrollView>
@@ -504,6 +521,9 @@ const styles = StyleSheet.create({
   gateTitle: { ...font.heading, color: colors.ink, marginBottom: space(2) },
   gateDesc: { ...font.body, color: colors.inkSoft, textAlign: 'center', marginBottom: space(5), lineHeight: 22 },
   gateNote: { ...font.caption, color: colors.inkFaint, marginTop: space(3) },
+  // 상점 이동 버튼(daniel 07-07) — 게이트 안내 아래 서브 버튼(마켓으로). 주 CTA(구매하고 보기)와 구분되게 아웃라인.
+  goMarketBtn: { marginTop: space(3), paddingVertical: space(2.5), paddingHorizontal: space(6), borderRadius: radius.md, borderWidth: 1, borderColor: colors.ju, backgroundColor: colors.sunk, alignItems: 'center' },
+  goMarketTx: { ...font.body, color: colors.ju, fontWeight: '700' },
   ownedStatus: { ...font.body, color: colors.ink, fontWeight: '700', textAlign: 'center', marginBottom: space(5), lineHeight: 22 }, // 상태 뷰(daniel 07-03) 상태 라인 — 구매이력/만료일/무제한. 게이트 설명(inkSoft)보다 또렷하게(ink·700).
   // 미리보기 박스(잠긴 콘텐츠의 핵심 항목 목록)
   previewBox: { width: '100%', backgroundColor: colors.sunk, borderRadius: radius.md, padding: space(4), marginBottom: space(5) },

@@ -169,10 +169,18 @@ export default function LoveScreen() {
     if (!id || !zw || busy) return;
     // ② 크로스마운트 이중 LLM 방지 — 이미 이 명식 love 가 생성 중이면 2차 호출하지 않는다(과금 0·ReadingScreen genActive 와 동일 계약).
     const lockKey = `love:${id}`;
-    if (!acquireGen(lockKey)) return;
     const myGen = genSeq.current;    // ① 이 생성의 세대 스냅샷(읽기만) — 재로드/명식전환(load effect)이 genSeq 를 올리면 stale. 동시 생성끼리 서로 무효화하지 않게 '증가' 아닌 '읽기'.
     const myChart = id;              // ① 이 생성이 대상으로 삼은 명식(serverChartId)
     const isStale = () => myGen !== genSeq.current || myChart !== chartIdRef.current; // ① 결과 쓰기 직전 대조 — 남의 명식 위에 setReading 차단
+    // A4(daniel 2026-07-08): 이미 다른 마운트가 생성 중(잠금 점유)이면 2차 LLM은 막되(과금 0), 로딩+캐시폴링으로 회수(무피드백 멈춤 방지).
+    if (!acquireGen(lockKey)) {
+      setBusy(true);
+      const cached = await pollCachedReading(id);
+      if (isStale()) return;
+      if (cached) setReading(cached);
+      setBusy(false);
+      return;
+    }
     setBusy(true);
     // ③ 배너/푸시가 어느 명식인지 식별하도록 route 에 chartId(로컬 savedChart.id·ReadingScreen 규약) + chartLabel.
     //    재진입 바인딩(이 param → 대표 전환)은 ★M1 로 load effect 상단에 구현됨(reading.tsx 38-43 패턴).

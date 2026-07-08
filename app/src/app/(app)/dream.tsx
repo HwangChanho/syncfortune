@@ -22,7 +22,7 @@ import { purchaseCreditRC, purchasesEnabled } from '../../lib/billing/purchases'
 import { requireLoginForPurchase } from '../../lib/billing/requireLogin';
 import { confirmReadingChart } from '../../lib/ui/confirmChart'; // 생성 전 확인 + 보유 이용권 안내(daniel)
 import { setGenProgress } from '../../lib/backend/genProgress'; // 일회성 진행도(daniel·docs/CONTENT_API_INVENTORY.md)
-import { acquireGen, releaseGen } from '../../lib/backend/genLock'; // 크로스마운트 이중 생성 잠금(② 이중 LLM 방지)
+import { acquireGen, releaseGen, isGenActive } from '../../lib/backend/genLock'; // 크로스마운트 이중 생성 잠금(② 이중 LLM 방지)
 import { invokeFail } from '../../lib/backend/interpretResult'; // 방어: 일시적 불가/오류 친화 처리(dream은 reading 아닌 dream 구조라 invokeFail만)
 import { assertOnline } from '../../lib/backend/network'; // daniel: 네트워크/서버 미연결 시 풀이 생성 차단
 import { TTSButton } from '../../components/TTSButton'; // 풀이 음성 읽기(온디바이스 TTS·무료)
@@ -141,7 +141,14 @@ export default function DreamScreen() {
     if (!assertOnline(t)) return; // daniel: 오프라인이면 풀이 진입(Edge 생성) 차단
     // ② 크로스마운트 이중 LLM 방지 — AI 꿈해몽(건당 ₩300)이 이미 생성 중이면 2차 호출 안 함(과금 0).
     //    ★dream 은 명식 무관(chartless)이라 ①명식가드·③route chartId 는 미적용 — 콘텐츠 desync 3종 중 ②만 해당.
-    if (!acquireGen('dream')) return;
+    // A4(daniel 2026-07-08): 이미 꿈해몽이 생성 중이면 2차 LLM 막고(과금0) 완료까지 로딩 유지 후 종료(무피드백 멈춤 방지).
+    //   ★dream 은 명식無·텍스트별 과금건(캐시 없음)이라 자동 재시도 금지 — 완료 후 사용자가 다시 제출. daniel: 풀이중 진입차단 허용.
+    if (!acquireGen('dream')) {
+      setAiBusy(true);
+      for (let i = 0; i < 45 && isGenActive('dream'); i++) await new Promise((r) => setTimeout(r, 3000));
+      setAiBusy(false);
+      return;
+    }
     setAiBusy(true);
     setGenProgress({ active: true, total: 1, done: 0, label: 'AI 꿈해몽', route: '/dream' }); // 일회성 진행도(daniel)
     let ok = false; // ★L2: 실제 해몽 성공 여부 — 완료 배너·푸시는 이때만(친화 폴백·오류에 '완성' 오푸시 방지)

@@ -28,7 +28,7 @@ import { appLang } from '../../lib/i18n';
 import { readingFromInvoke } from '../../lib/backend/interpretResult'; // 방어: Edge 응답 정규화(일시적 불가·결제필요·오류)
 import { logEvent } from '../../lib/backend/logger'; // DB 로그(단계별 — 네이티브 크래시 직전 추적)
 import { setGenProgress } from '../../lib/backend/genProgress'; // 일회성 진행도(daniel 이슈15)
-import { acquireGen, releaseGen } from '../../lib/backend/genLock'; // 크로스마운트 이중 생성 잠금(② 이중 LLM 방지)
+import { acquireGen, releaseGen, isGenActive } from '../../lib/backend/genLock'; // 크로스마운트 이중 생성 잠금(② 이중 LLM 방지)
 import { colors, radius, space, shadow, font } from '../../lib/theme';
 import { UnlockOverlay } from '../../components/UnlockOverlay';
 import { DoorReveal } from '../../components/DoorReveal'; // 풀이 공개 순간 골드 명조 문 열림 영상(daniel 07-06)
@@ -130,10 +130,17 @@ export default function CareerScreen() {
     if (!id || busy) return;
     // ② 크로스마운트 이중 LLM 방지 — 이미 이 명식 career 가 생성 중이면 2차 호출하지 않는다(과금 0).
     const lockKey = `career:${id}`;
-    if (!acquireGen(lockKey)) return;
     const myGen = genSeq.current;    // ① 이 생성의 세대 스냅샷(읽기만) — 재로드/명식전환(load effect)이 genSeq 를 올리면 stale
     const myChart = id;              // ① 대상 명식
     const isStale = () => myGen !== genSeq.current || myChart !== chartIdRef.current; // ① 결과 쓰기 직전 대조
+    // A4(daniel 2026-07-08): 이미 다른 마운트가 생성 중이면 2차 LLM 막고(과금0) 로딩 유지·완료까지 대기 후 재시도(Edge 캐시 히트=과금0). daniel: 풀이중 진입차단 허용.
+    if (!acquireGen(lockKey)) {
+      setBusy(true);
+      for (let i = 0; i < 45 && isGenActive(lockKey); i++) await new Promise((r) => setTimeout(r, 3000));
+      setBusy(false);
+      if (isStale() || isGenActive(lockKey)) return;
+      return generate(idArg);
+    }
     setBusy(true);
     // ③ 배너/푸시 명식 식별 — route 에 chartId(로컬 savedChart.id) + chartLabel. 재진입 바인딩은 ★M1 로 load effect 상단에 구현됨(reading.tsx 38-43 패턴).
     const gpRoute = savedChart?.id ? `/career?chartId=${savedChart.id}` : '/career';
