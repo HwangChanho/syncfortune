@@ -335,7 +335,12 @@ export default function MarketRoute() {
       {/* ── 섹션 B: 개별 구매 전용(프리미엄 미포함) ── isPremium 무관 항상 개별 구매(기존) */}
       <Text style={styles.sectionH}>{t('market.sectionIndividual', '◆ 개별 구매 전용 · 프리미엄 미포함')}</Text>
       <Text style={styles.sectionSub}>{t('market.sectionIndividualSub', '아래 항목은 프리미엄에 포함되지 않아 따로 구매해요.')}</Text>
-      {CREDIT_KINDS.filter((c) => !PREMIUM_KINDS.has(c.key) && !MARKET_HIDDEN.has(c.key)).map((c) => renderCard(c, false))}
+      {/* ★인기 외곽칸(daniel 07-08) — 개별 섹션 상단에 수요 많은 유료 콘텐츠를 박스로 강조(홈 '인기'와 동일 개념). 아래 목록에선 중복 제외. */}
+      <View style={styles.hotBox}>
+        <Text style={styles.hotBoxH}>{t('market.hotSection', '🔥 인기')}</Text>
+        {CREDIT_KINDS.filter((c) => HOT_KINDS.has(c.key) && !PREMIUM_KINDS.has(c.key) && !MARKET_HIDDEN.has(c.key)).map((c) => renderCard(c, false))}
+      </View>
+      {CREDIT_KINDS.filter((c) => !PREMIUM_KINDS.has(c.key) && !MARKET_HIDDEN.has(c.key) && !HOT_KINDS.has(c.key)).map((c) => renderCard(c, false))}
 
       {/* 쿠폰 등록(무료 이용권) — 설정에서 이동 */}
       <Text style={styles.couponH}>{t('settings.coupon')}</Text>
@@ -419,6 +424,9 @@ const styles = StyleSheet.create({
   buyTx: { color: colors.bg, fontWeight: '800', fontSize: 14 },
   // 마켓 섹션 제목·설명(프리미엄 포함 / 개별 구매 전용 구분 — daniel) — 골드 톤 heading + 보조 caption
   sectionH: { ...font.heading, color: colors.ju, marginTop: space(5), marginBottom: space(1) },
+  // ★인기 외곽칸(daniel 07-08) — juSoft 배경 + gold 테두리로 개별섹션 상단 강조.
+  hotBox: { borderWidth: 1, borderColor: colors.ju, borderRadius: radius.md, backgroundColor: colors.juSoft, paddingHorizontal: space(2), paddingTop: space(2), paddingBottom: space(1), marginBottom: space(3) },
+  hotBoxH: { ...font.heading, color: colors.ju, marginBottom: space(2), paddingHorizontal: space(1) },
   sectionSub: { ...font.caption, color: colors.inkSoft, marginBottom: space(3), lineHeight: 16 },
   // 프리미엄 무제한 배지(섹션 A · 프리미엄 가입 시 가격·구매 버튼 대체) — 골드 외곽선 상태 배지
   //   marginLeft = 텍스트 컨테이너↔무제한 배지 gutter(구매버튼과 동일 space(4)로 통일 — 프리미엄 카드도 설명이 배지에 닿지 않게).
