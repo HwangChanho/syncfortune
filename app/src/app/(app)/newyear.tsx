@@ -40,6 +40,8 @@ import { ShareReadingButton } from '../../components/ShareReadingButton'; // 이
 import { TTSButton } from '../../components/TTSButton'; // 풀이 음성 읽기(온디바이스 TTS·무료)
 import { NewyearWheel } from '../../components/contentMotifs'; // 12달 수레바퀴 모티프
 import { NewyearTeaser } from '../../components/NewyearTeaser'; // 무료 온디바이스 티저(내년 신수 3층 산식 + 큰 삼재 배지 + 길월) — 유료 전환 후크
+import { MonthFlowGraph } from '../../components/MonthFlowGraph'; // 12개월 흐름 곡선(SVG 공용)
+import { newyearCategoryFlow, type NewyearCategory } from '../../lib/content/newyearCategoryFlow'; // 카테고리별 월별 흐름(합성 활성×부합·결정론·daniel 07-08)
 import { useFontScale } from '../../lib/ui/fontScale';
 import { useLogContentVisit } from '../../lib/backend/contentVisit'; // 콘텐츠 방문 집계(daniel 2026-07-06) — 진입 1회 기록
 
@@ -87,6 +89,11 @@ export default function NewYearScreen() {
   const category = `newyear_${year}`; // 연운(year_YYYY)과 분리된 신년 전용 캐시
   // 대표 명식의 결정론 차트(무료 티저 + 삼재 산출 공용). computeChart 는 엔진 캐시라 재호출 저렴.
   const c = useMemo(() => (saved ? computeChart(saved.input) : null), [saved]);
+  // ★신년 카테고리별 12개월 흐름(결정론·온디바이스·daniel 07-08) — 합성(활성×부합). 유료 본문 분야 카드의 곡선 소스.
+  const catFlow = useMemo(
+    () => (c?.saju ? newyearCategoryFlow(c.saju, year, { timeUnknown: saved?.input?.timeAccuracy === '미상' }) : null),
+    [c, year, saved],
+  );
   // 삼재(온디바이스) — 태어난 해 지지 vs 올해 지지. ★유료 통변(Edge) body 로 전달용(올해 기준). 화면 배지는 NewyearTeaser(내년)로 이관.
   const samjae = useMemo(() => {
     const yb = c?.saju.pillars['년']?.branch;
@@ -301,6 +308,13 @@ export default function NewYearScreen() {
               <View style={styles.areaHead}>
                 <Text style={styles.areaTitle}>{AREAS.find((a) => a.key === area)?.ko}</Text>
               </View>
+              {/* ★카테고리 월별 흐름(결정론·활성×부합·daniel 07-08) — 선택 분야의 12개월 곡선. 월운 확보 시만 노출 */}
+              {catFlow?.hasMonths && Array.isArray(catFlow.flows[area as NewyearCategory]) && (
+                <View style={styles.flowWrap}>
+                  <MonthFlowGraph scores={catFlow.flows[area as NewyearCategory]} height={124} />
+                  <Text style={styles.flowNote}>{t('newyear.flowNote', '※ 위=오르는 달 · 아래=다지는 달 · 숫자=절기 기준 달')}</Text>
+                </View>
+              )}
               <Text style={[styles.body, { fontSize: fs(15), lineHeight: fs(27) }]}>{typeof data[area] === 'string' ? data[area] : t('today.genFail', '생성 실패')}</Text>
             </View>
 
@@ -406,6 +420,9 @@ const styles = StyleSheet.create({
   // 선택 분야 카드(아이콘 헤더 + 내용) — 가독성(daniel)
   areaCard: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.juLine, padding: space(5), marginBottom: space(3), ...shadow.card },
   areaHead: { flexDirection: 'row', alignItems: 'center', gap: space(2.5), marginBottom: space(3), paddingBottom: space(3), borderBottomWidth: 1, borderBottomColor: colors.juLine },
+  // 카테고리 월별 흐름 그래프 래퍼(분야명 아래·본문 위)
+  flowWrap: { marginBottom: space(4), paddingBottom: space(3.5), borderBottomWidth: 1, borderBottomColor: colors.juLine },
+  flowNote: { ...font.caption, color: colors.inkFaint, marginTop: space(1.5), textAlign: 'center' },
   areaIcon: { fontSize: 26 },
   areaTitle: { fontSize: 18, fontWeight: '900', color: colors.ink },
   // 12달 캘린더 — 월 배지 + 내용 행

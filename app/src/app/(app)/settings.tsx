@@ -34,6 +34,7 @@ const APP_VERSION = Constants.expoConfig?.version ?? '1.0.0';
 const TERMS_URL = 'https://hwangchanho.github.io/syncfortune/legal/terms-ko.html';     // GitHub Pages(정식)
 const PRIVACY_URL = 'https://hwangchanho.github.io/syncfortune/legal/privacy-ko.html'; // GitHub Pages — App Store 개인정보 URL
 const OSS_LICENSES = 'React Native · Expo (MIT)\niztro · lunar-javascript (MIT)\nRevenueCat Purchases · Google Mobile Ads\nreact-i18next · React Navigation (MIT)\nreact-native-svg · safe-area-context (MIT)\n\n각 라이브러리는 해당 저장소의 라이선스를 따릅니다.';
+const SUPPORT_EMAIL = 'cksgh0316@gmail.com'; // 버그 제보·문의 수신(daniel 2026-07-08)
 
 export default function SettingsScreen() {
   const { t, i18n } = useTranslation();
@@ -268,6 +269,13 @@ export default function SettingsScreen() {
         <View style={styles.infoRow}><Text style={styles.infoLabel}>{t('settings.version', '버전')}</Text><Text style={styles.infoVal}>{APP_VERSION}</Text></View>
         <PressableScale style={styles.infoRow} onPress={() => Linking.openURL(TERMS_URL).catch(() => {})}><Text style={styles.infoLabel}>{t('settings.terms', '이용약관')}</Text><Text style={styles.infoArrow}>›</Text></PressableScale>
         <PressableScale style={styles.infoRow} onPress={() => Linking.openURL(PRIVACY_URL).catch(() => {})}><Text style={styles.infoLabel}>{t('settings.privacy', '개인정보처리방침')}</Text><Text style={styles.infoArrow}>›</Text></PressableScale>
+        {/* 버그 제보·문의(daniel 07-08) — 메일 프리필(앱 버전 포함=디버그). 메일 앱 없으면 주소 안내 폴백 */}
+        <PressableScale style={styles.infoRow} onPress={() => {
+          const subject = encodeURIComponent('[팔자] 버그 제보 · 문의');
+          const body = encodeURIComponent(`\n\n\n──────────\n앱 버전: ${APP_VERSION}\n(위에 버그 내용이나 문의를 적어 주세요)`);
+          Linking.openURL(`mailto:${SUPPORT_EMAIL}?subject=${subject}&body=${body}`).catch(() =>
+            Alert.alert(t('settings.bugReport', '버그 제보 · 문의'), `${t('settings.bugReportFail', '메일 앱을 열 수 없어요. 아래 주소로 보내 주세요.')}\n${SUPPORT_EMAIL}`));
+        }}><Text style={styles.infoLabel}>{t('settings.bugReport', '버그 제보 · 문의')}</Text><Text style={styles.infoArrow}>›</Text></PressableScale>
         <PressableScale style={[styles.infoRow, styles.infoRowLast]} onPress={() => Alert.alert(t('settings.license', '오픈소스 라이선스'), OSS_LICENSES)}><Text style={styles.infoLabel}>{t('settings.license', '오픈소스 라이선스')}</Text><Text style={styles.infoArrow}>›</Text></PressableScale>
       </View>
 
