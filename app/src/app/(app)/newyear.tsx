@@ -274,6 +274,13 @@ export default function NewYearScreen() {
             {typeof data.summary === 'string' && (
               <View style={styles.card}><Text style={[styles.body, { fontSize: fs(15), lineHeight: fs(26) }]}>{data.summary}</Text></View>
             )}
+            {/* ★올해 간지 특성 + 대운·원국 작용(daniel 07-08) — 상세 분야 전에 '올해는 어떤 해'를 먼저 설명. */}
+            {typeof data.yearNature === 'string' && (
+              <View style={styles.card}>
+                <Text style={styles.sectH}>🗓️ {t('newyear.yearNature', '올해는 어떤 해')}</Text>
+                <Text style={[styles.body, { fontSize: fs(15), lineHeight: fs(26) }]}>{data.yearNature}</Text>
+              </View>
+            )}
             {/* 올해의 나 — 올 한 해 어떤 사람으로 살아가는지(daniel 07-01) */}
             {typeof data.thisYearSelf === 'string' && (
               <View style={[styles.card, styles.luckyCard]}>
