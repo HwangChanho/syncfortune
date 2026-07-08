@@ -32,7 +32,8 @@ import { useHomeViewMode } from '../../lib/ui/homeView'; // 홈 보기 방식(�
 import { playSound } from '../../lib/ui/sounds';
 import { BusyOverlay } from '../../components/BusyOverlay'; // 로그아웃 등 긴 콜백 로딩
 import { PressableScale } from '../../components/PressableScale'; // 탭 피드백(눌림 표시)
-import { CREDIT_KINDS, type CreditKind } from '../../lib/billing/coupons'; // 유료 콘텐츠 카드 가격 배지(정가 대비 할인)
+import { CREDIT_KINDS, loadCredits, type CreditKind } from '../../lib/billing/coupons'; // 유료 카드 가격/상태 배지 + 쿠폰 잔량
+import { appLang } from '../../lib/i18n'; // 대표 명식에 이 콘텐츠 풀이가 이미 있는지 조회(배지 '풀이있음')
 
 type MenuItem = { key: string; labelKey: string; descKey?: string; image?: any; route: string; ready: boolean; premium?: boolean; content?: boolean; creditKey?: CreditKind };
 type Section = { key: string; titleKey: string; descKey?: string; items: MenuItem[] };
@@ -61,7 +62,7 @@ const SECTIONS: Section[] = [
   ] },
   // 프리미엄 = 사주·자미 2허브(각 허브 안에 원국풀이·타임라인 큰 카드) + 궁합 독립(사주+자미 교차, daniel).
   { key: 'premium', titleKey: 'menu.secPremium', descKey: 'menu.secPremiumDesc', items: [
-    // premium 섹션 5종 — creditKey 부여(프리미엄=「프리미엄 이용중」, 비프리미엄=개별가 표시, daniel 07-05).
+    // premium 섹션 5종 — creditKey 부여(배지=badgeFor 명식별 상태: 프리미엄「무제한」·풀이있음「풀이있음·만료일」·쿠폰「쿠폰 N장」·그 외 개별가, daniel 07-08).
     { key: 'saju', labelKey: 'menu.saju', descKey: 'menu.sajuDesc', image: require('../../../assets/icons/premium.jpg'), route: '/reading', ready: true, premium: true, creditKey: 'reading' },        // 허브 제거 → 원국풀이 직접 진입(daniel 07-01)
     { key: 'ziwei', labelKey: 'menu.ziweiHub', descKey: 'menu.ziweiHubDesc', image: require('../../../assets/icons/ziwei.jpg'), route: '/ziwei', ready: true, premium: true, creditKey: 'ziwei' },        // 허브 제거 → 자미 원국풀이 직접
     { key: 'compat', labelKey: 'menu.compat', descKey: 'menu.compatDesc', image: require('../../../assets/icons/compat.jpg'), route: '/compat', ready: true, premium: true, creditKey: 'compat' },
@@ -197,6 +198,9 @@ export default function Home() {
   const { isPremium } = useSubscription();
   const [admin, setAdmin] = useState(false);
   const [repServerChartId, setRepServerChartId] = useState<string | null>(null); // 현재 대표 명식 serverChartId(홈 카드 프리미엄 판정 — 명식 전환 시 재평가)
+  // 홈 유료 카드 배지(명식별 상태·daniel 07-08) — 현 대표 명식의 쿠폰 잔량 + 이미 생성된 풀이(카테고리·생성일).
+  const [credits, setCredits] = useState<Record<string, number>>({});                            // creditKey별 쿠폰 잔량('쿠폰 N장')
+  const [readingRows, setReadingRows] = useState<{ category: string; created_at: string }[]>([]); // 이 명식의 기존 풀이('풀이있음 · 만료일')
   // session 반응형 — 로그아웃(session=null) 즉시 관리자 메뉴 숨김(daniel). 빈 deps면 마운트 1회라 창 전환 전까지 살아있었음.
   useEffect(() => { if (!session) { setAdmin(false); return; } isAdmin().then(setAdmin).catch(() => {}); }, [session]);
   const [dayOffset, setDayOffset] = useState(0); // 0=오늘·1=내일(오늘의 기운 카드 토글)
@@ -259,6 +263,23 @@ export default function Home() {
     })();
   }, [fortunes, reloadKey]);
 
+  // 홈 유료 카드 배지 데이터 — 대표 명식의 쿠폰 잔량 + 기존 풀이(카테고리+생성일) 로드.
+  //   deps: 명식 전환(repServerChartId)·홈 복귀/명식 수정(reloadKey)·로그인 상태(session). 로그인·명식 없으면 비움(null 가드).
+  useEffect(() => {
+    if (!session || !repServerChartId) { setCredits({}); setReadingRows([]); return; }
+    let alive = true;
+    (async () => {
+      const cr = await loadCredits().catch((): Record<string, number> => ({})); // 쿠폰 잔량(로그인=서버·비로그인=로컬)
+      const { data } = await supabase                                            // 이 명식에 이미 있는 풀이(카테고리+생성일)
+        .from('readings').select('category, created_at')
+        .eq('chart_id', repServerChartId).eq('lang', appLang());
+      if (!alive) return;
+      setCredits(cr);
+      setReadingRows((data ?? []) as { category: string; created_at: string }[]);
+    })().catch(() => {});
+    return () => { alive = false; };
+  }, [repServerChartId, reloadKey, session]);
+
   useEffect(() => {
     Animated.timing(fadeAnim, { toValue: 1, duration: 1000, useNativeDriver: true }).start();
   }, []);
@@ -305,6 +326,28 @@ export default function Home() {
     if (m.content && !m.creditKey && !isPremium && (!admin || adTestMode())) await showRewardedAd().catch(() => false);
     launchCard(m);
     setTimeout(() => { navigatingRef.current = false; }, 900); // 광고+진입 커버 후 해제(연타 이중 push 차단)
+  }
+
+  // ★홈 유료 카드 배지(daniel 07-08) — 가격 대신 '명식별 상태'를 보여준다. 우선순위대로 첫 매칭 반환:
+  //   ① 프리미엄(대표 명식 지정) = '무제한' — 단 개별전용 3종(dream/followup/timeresolve)은 프리미엄 커버 밖이라 제외.
+  //   ② 이 명식에 이 콘텐츠 풀이가 이미 있음 = '풀이있음 · {만료일}'(생성일+1년, ExpiryNote와 동일 YYYY.MM.DD).
+  //   ③ 이 creditKey 쿠폰 잔량 > 0 = '쿠폰 {n}장'.
+  //   ④ 그 외 = 개별 가격(priceLabel, 기존). creditKey 없으면 null(배지 없이 › 셰브런).
+  //   리스트뷰·카드뷰가 이 헬퍼 하나만 쓴다(단일 출처). 데이터는 위 useEffect가 대표 명식 기준으로 적재.
+  function badgeFor(m: MenuItem): string | null {
+    const ck = m.creditKey;
+    if (!ck) return null;                                                                  // 무료 콘텐츠 = 배지 없음
+    if (isPremiumForChart(repServerChartId) && !HOME_INDIVIDUAL.has(ck)) return '무제한';   // ①
+    // ② 카테고리 정확 일치 또는 연도접미(newyear_2027 등) 접두 일치 → 매칭 row 생성일+1년 = 만료일
+    const row = readingRows.find((r) => r.category === ck || r.category.startsWith(ck + '_'));
+    if (row?.created_at) {
+      const d = new Date(row.created_at);
+      d.setFullYear(d.getFullYear() + 1);
+      const exp = `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
+      return `풀이있음 · ${exp}`;
+    }
+    if ((credits[ck] ?? 0) > 0) return `쿠폰 ${credits[ck]}장`;                              // ③
+    return priceLabel(ck);                                                                 // ④ 개별 가격
   }
 
   return (
@@ -448,10 +491,8 @@ export default function Home() {
                 <View style={styles.listBody}>
                   {sec.items.map((m) => {
                     const prem = !!m.premium;
-                    // 가격 텍스트 = 카드뷰와 동일 규칙(프리미엄 명식이면 '이용중', 아니면 개별가). creditKey 없으면 › 셰브런.
-                    const priceTxt = m.creditKey
-                      ? (m.premium && isPremiumForChart(repServerChartId) ? '프리미엄 이용중' : priceLabel(m.creditKey))
-                      : null;
+                    // 배지 텍스트 = 카드뷰와 동일 규칙(badgeFor 단일 출처: 무제한/풀이있음·만료일/쿠폰/금액). creditKey 없으면 › 셰브런.
+                    const priceTxt = badgeFor(m);
                     return (
                       <PressableScale key={m.key} style={styles.listRow} onPress={() => onPress(m)}>
                         {m.image ? (
@@ -483,6 +524,7 @@ export default function Home() {
           // ── 카드뷰(기본·기존 유지) — 순차 공개 + 켄번스 가로 스크롤 ──────────────────
           const cards = sec.items.map((m, itemIdx) => {
             const prem = !!m.premium;
+            const badge = badgeFor(m); // 유료 카드 배지(명식별 상태: 무제한/풀이있음/쿠폰/금액) — 텍스트·이미지 카드 공용 단일 출처
             // 순차 공개 — 이 카드의 전역 순번(섹션 오프셋 + 항목 인덱스 = 화면 위→아래 순서)이 공개분에 들어왔는지.
             //   revealed=false면 이미지 대신 미드나잇 빈 박스만 렌더(디코드 미발생) → 차례가 오면 KenBurnsCard로 교체.
             const revealed = CARD_REVEAL_OFFSETS[secIdx] + itemIdx < revealCount;
@@ -490,9 +532,9 @@ export default function Home() {
             if (!m.image) {
               return (
                 <PressableScale key={m.key} ref={(n) => { cardRefs.current[m.key] = n; }} style={[styles.card, styles.textCard]} onPress={() => onPress(m)}>
-                  {m.creditKey && (
+                  {badge && (
                     <View style={styles.priceTag}>
-                      <Text style={styles.priceTagText}>{m.premium && isPremiumForChart(repServerChartId) ? '프리미엄 이용중' : priceLabel(m.creditKey)}</Text>
+                      <Text style={styles.priceTagText}>{badge}</Text>
                     </View>
                   )}
                   <Text style={styles.textCardLabel}>{t(m.labelKey)}</Text>
@@ -508,11 +550,10 @@ export default function Home() {
                   {revealed
                     ? <KenBurnsCard source={m.image} />
                     : <View style={[StyleSheet.absoluteFill, styles.cardImgInner, styles.cardPlaceholder]} />}
-                  {/* premTag(「프리미엄」 코너 배지) 제거(daniel 07-05) — 아래 priceTag가 프리미엄 섹션엔 「프리미엄 이용중」,
-                      그 외/비프리미엄엔 가격을 표시하므로 중복. 프리미엄 여부는 섹션 헤더 + priceTag로 전달. */}
-                  {m.creditKey && (
+                  {/* 유료 카드 배지(daniel 07-08) — 명식별 상태: 프리미엄=「무제한」(개별전용 3종 제외)·기존 풀이=「풀이있음 · 만료일」·쿠폰 보유=「쿠폰 N장」·그 외=가격. badgeFor 단일 출처. */}
+                  {badge && (
                     <View style={styles.priceTag}>
-                      <Text style={styles.priceTagText}>{m.premium && isPremiumForChart(repServerChartId) ? '프리미엄 이용중' : priceLabel(m.creditKey)}</Text>
+                      <Text style={styles.priceTagText}>{badge}</Text>
                     </View>
                   )}
                   {/* 하단 라벨 바(반투명 남색) — 라벨 + 간략 설명(daniel: 콘텐츠별 설명) */}
