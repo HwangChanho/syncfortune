@@ -91,7 +91,7 @@ export default function NewYearScreen() {
   const c = useMemo(() => (saved ? computeChart(saved.input) : null), [saved]);
   // ★신년 카테고리별 12개월 흐름(결정론·온디바이스·daniel 07-08) — 합성(활성×부합). 유료 본문 분야 카드의 곡선 소스.
   const catFlow = useMemo(
-    () => (c?.saju ? newyearCategoryFlow(c.saju, year, { timeUnknown: saved?.input?.timeAccuracy === '미상' }) : null),
+    () => (c?.saju ? newyearCategoryFlow(c.saju, year, { gender: saved?.input?.sex, timeUnknown: saved?.input?.timeAccuracy === '미상' }) : null),
     [c, year, saved],
   );
   // 삼재(온디바이스) — 태어난 해 지지 vs 올해 지지. ★유료 통변(Edge) body 로 전달용(올해 기준). 화면 배지는 NewyearTeaser(내년)로 이관.
@@ -312,7 +312,9 @@ export default function NewYearScreen() {
               {catFlow?.hasMonths && Array.isArray(catFlow.flows[area as NewyearCategory]) && (
                 <View style={styles.flowWrap}>
                   <MonthFlowGraph scores={catFlow.flows[area as NewyearCategory]} height={124} />
-                  <Text style={styles.flowNote}>{t('newyear.flowNote', '※ 위=오르는 달 · 아래=다지는 달 · 숫자=절기 기준 달')}</Text>
+                  <Text style={styles.flowNote}>{catFlow.lowConf.includes(area as NewyearCategory)
+                    ? t('newyear.flowNoteLow', '※ 건강은 전체 흐름 기반 근사예요 · 위=오르는 달 · 아래=다지는 달')
+                    : t('newyear.flowNote', '※ 위=오르는 달 · 아래=다지는 달 · 숫자=절기 기준 달')}</Text>
                 </View>
               )}
               <Text style={[styles.body, { fontSize: fs(15), lineHeight: fs(27) }]}>{typeof data[area] === 'string' ? data[area] : t('today.genFail', '생성 실패')}</Text>
