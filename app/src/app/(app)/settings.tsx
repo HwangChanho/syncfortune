@@ -39,7 +39,7 @@ const SUPPORT_EMAIL = 'cksgh0316@gmail.com'; // 버그 제보·문의 수신(dan
 export default function SettingsScreen() {
   const { t, i18n } = useTranslation();
   const router = useRouter();
-  const { session } = useAuth();
+  const { session, isRegistered } = useAuth();
   const { isPremium, purchasePremium, refresh } = useSubscription();
   const { scale, setScale, fs } = useFontScale();
   const [busy, setBusy] = useState<string | null>(null); // 전체화면 로딩 오버레이 메시지(긴 콜백)
@@ -147,16 +147,18 @@ export default function SettingsScreen() {
     <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>
       {/* ── 계정 ── */}
       <Text style={styles.h}>{t('settings.account')}</Text>
-      {session ? (
+      {/* ★익명 세션 상시라 session 아닌 isRegistered 로 구분 — 등록 유저만 계정카드, 익명/미로그인은 로그인 유도(Apple 5.1.1: 등록은 선택·언제든 가능) */}
+      {isRegistered ? (
         <>
           <View style={styles.acctCard}>
-            <Text style={styles.acctEmail} numberOfLines={1}>{session.user.email}</Text>
+            <Text style={styles.acctEmail} numberOfLines={1}>{session?.user?.email}</Text>
             <PressableScale onPress={doLogout}><Text style={styles.acctAction}>{t('common.logout')}</Text></PressableScale>
           </View>
         </>
       ) : (
         <PressableScale style={styles.acctLoginBtn} onPress={() => router.push('/login')}>
           <Text style={styles.acctLoginTx}>{t('settings.loginCta')}</Text>
+          <Text style={styles.acctLoginSub}>{t('settings.loginBenefit', '로그인하면 구매한 콘텐츠가 다른 기기·재설치에서도 이어져요 (선택)')}</Text>
         </PressableScale>
       )}
 
@@ -279,8 +281,8 @@ export default function SettingsScreen() {
         <PressableScale style={[styles.infoRow, styles.infoRowLast]} onPress={() => Alert.alert(t('settings.license', '오픈소스 라이선스'), OSS_LICENSES)}><Text style={styles.infoLabel}>{t('settings.license', '오픈소스 라이선스')}</Text><Text style={styles.infoArrow}>›</Text></PressableScale>
       </View>
 
-      {/* 계정 삭제(App Store 필수) — 파괴적 동작이라 맨 하단 배치(daniel). 로그인 상태에서만 노출 */}
-      {session && (
+      {/* 계정 삭제(App Store 필수) — 파괴적 동작이라 맨 하단 배치(daniel). ★등록 유저만(익명은 '계정' 없음 — 데이터는 앱 삭제로 제거) */}
+      {isRegistered && (
         <PressableScale style={styles.delAcctBtn} onPress={onDeleteAccount}>
           <Text style={styles.delAcctTx}>{t('settings.deleteAccount')}</Text>
         </PressableScale>
@@ -309,6 +311,7 @@ const styles = StyleSheet.create({
   acctAction: { color: colors.ju, fontWeight: '700', fontSize: 14 },
   acctLoginBtn: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.ju, padding: space(4), alignItems: 'center', ...shadow.soft },
   acctLoginTx: { color: colors.ju, fontWeight: '800', fontSize: 15 },
+  acctLoginSub: { ...font.caption, color: colors.inkFaint, textAlign: 'center', marginTop: space(1) }, // 로그인=선택·크로스디바이스 안내(Apple 5.1.1)
   // 관리자 링크
   adminLink: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.ju, padding: space(3.5), alignItems: 'center', marginTop: space(2) },
   adminLinkTx: { color: colors.ju, fontWeight: '800', fontSize: 14 },

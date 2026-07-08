@@ -195,7 +195,7 @@ export default function Home() {
   const genPct = (done: number, total: number, startedAt: number) => total > 1
     ? Math.round((done / total) * 100)
     : Math.min(95, Math.max(3, Math.round(((Date.now() - startedAt) / 20000) * 100)));
-  const { session } = useAuth();
+  const { session, isRegistered } = useAuth();
   const { isPremium } = useSubscription();
   const [admin, setAdmin] = useState(false);
   const [repServerChartId, setRepServerChartId] = useState<string | null>(null); // 현재 대표 명식 serverChartId(홈 카드 프리미엄 판정 — 명식 전환 시 재평가)
@@ -596,9 +596,9 @@ export default function Home() {
           );
         })}
 
-        {/* 로그인 = 선택 (로그아웃은 설정에서 — daniel: 홈 하단 로그아웃 버튼 제거) */}
+        {/* 로그인 = 선택 (로그아웃은 설정에서 — daniel: 홈 하단 로그아웃 버튼 제거). ★익명 세션 상시라 !session 아닌 !isRegistered — 익명/미로그인에 로그인 유도 노출 */}
         <View style={styles.authRow}>
-          {!session && (
+          {!isRegistered && (
             <PressableScale onPress={() => router.push('/login')}>
               <Text style={styles.linkText}>{t('common.loginOptional')}</Text>
             </PressableScale>

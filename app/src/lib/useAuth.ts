@@ -20,15 +20,30 @@ import { logoutPurchases } from './billing/purchases';
 import { setupNotificationTapListener, registerPushToken } from './backend/notifications';
 import { setAuthBusy } from './ui/authBusy'; // 로그아웃 클린업 동안 전역 블로킹(먹통 방지)
 
-// dev 전용 자동 로그인(시뮬 편의) — __DEV__ + .env 자격증명 있을 때만 1회.
+// dev 전용 자동 로그인(시뮬 편의) — __DEV__ + .env 자격증명 있을 때만 1회. 성공 여부 반환(ensureAnonSession 이 실패 시 익명으로 폴백).
 let devAutoLoginTried = false;
-async function tryDevAutoLogin() {
-  if (!__DEV__ || devAutoLoginTried) return;
+async function tryDevAutoLogin(): Promise<boolean> {
+  if (!__DEV__ || devAutoLoginTried) return false;
   const email = process.env.EXPO_PUBLIC_DEV_AUTOLOGIN_EMAIL;
   const password = process.env.EXPO_PUBLIC_DEV_AUTOLOGIN_PASSWORD;
-  if (!email || !password) return;
+  if (!email || !password) return false;
   devAutoLoginTried = true;
-  await supabase.auth.signInWithPassword({ email, password }).catch(() => {});
+  try { const { error } = await supabase.auth.signInWithPassword({ email, password }); return !error; }
+  catch { return false; }
+}
+
+// ★익명 세션 확보(Apple 5.1.1 — 비계정형 IAP 구매에 로그인 강제 금지, daniel 2026-07-08 심사반려 대응).
+//   저장 세션이 없으면(미로그인) 익명 세션을 만들어 **로그인 없이 구매·통변**이 되게 한다. dev 자동로그인이 되면 그걸 우선.
+//   이후 SIGNED_IN(익명)이 configurePurchases(익명uid)·prefetchOnLogin 파이프라인을 그대로 가동. 로그인(SSO/이메일)은
+//   **선택** = 크로스디바이스 동기화용(익명→등록 link 로 같은 uid 승격). 익명도 안정 uid+profiles+RLS 격리 → C1(결제=계정귀속) 유지.
+//   ⚠️선결: Supabase 대시보드/Config 에서 익명 로그인 활성화(enable_anonymous_sign_ins). 비활성이면 catch → 미로그인 폴백(무료만).
+let anonTried = false;
+async function ensureAnonSession(): Promise<void> {
+  if (anonTried) return;
+  anonTried = true;
+  if (await tryDevAutoLogin()) return;                 // dev 시뮬 = 테스트 계정 우선
+  try { await supabase.auth.signInAnonymously(); }      // 프로덕션 = 익명 세션
+  catch { /* 익명 비활성/네트워크 실패 = 미로그인 유지(무료 온디바이스만 사용) */ }
 }
 
 // ── 로그아웃 클린업 배리어(L3) ──────────────────────────────────────────────
@@ -97,7 +112,7 @@ function startAuthOnce(): void {
     setSession(data.session);
     if (_loading) { _loading = false; emit(); }
     if (data.session) InteractionManager.runAfterInteractions(() => { void prefetchOnLogin(data.session!); });
-    else tryDevAutoLogin();
+    else void ensureAnonSession(); // ★미로그인 → 익명 세션(로그인 없이 구매·통변 · Apple 5.1.1)
   });
   // 2) 세션 변화 구독(앱 전역 단 1개)
   supabase.auth.onAuthStateChange((_event, s) => {
@@ -114,6 +129,9 @@ function startAuthOnce(): void {
         setAuthBusy(false);
       })();
       void _cleanupBarrier;
+      // ★로그아웃/계정삭제 후 재익명(Apple 5.1.1: 로그인 없이 계속 사용·구매 가능) — 클린업 배리어 *완료 후* 새 익명 세션.
+      //   배리어 *안*에 넣으면: 재익명 SIGNED_IN→prefetchOnLogin→whenAuthCleanupIdle 가 아직 안 끝난 배리어를 await = 데드락. 그래서 .then 으로 배리어 밖.
+      void _cleanupBarrier.then(() => supabase.auth.signInAnonymously()).catch(() => { /* 익명 비활성/실패 = 미로그인(무료만) */ });
     }
     void changed; // (참조 안정용 반환값 — 현재 분기엔 불필요)
   });
@@ -128,5 +146,10 @@ export function useAuth() {
   useEffect(() => { startAuthOnce(); }, []); // 최초 마운트 1회 초기화(이후 idempotent)
   const session = useSyncExternalStore(subscribe, getSession);
   const loading = useSyncExternalStore(subscribe, getLoading);
-  return { session, loading };
+  // ★isRegistered = 등록(익명 아님) 유저. 익명 세션이 상시 존재하므로 session!=등록 — 로그인 CTA·계정카드·공유/동기화는 이 값으로 구분.
+  //   구매·통변은 session(익명 포함)만 있으면 되고(Apple 5.1.1), 로그인 유도·크로스디바이스 UI만 isRegistered 로 가른다.
+  return { session, loading, isRegistered: !!session?.user && !(session.user as any).is_anonymous };
 }
+
+/** 훅 밖(스토어/유틸)에서 등록 여부 — 익명 세션은 false. */
+export function isRegisteredUser(): boolean { return !!_session?.user && !(_session.user as any).is_anonymous; }
