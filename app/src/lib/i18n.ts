@@ -43,7 +43,7 @@ const ko = {
     secFree: '오늘·명식', secPremium: '프리미엄', secContent: '인기', secSpecial: '스페셜', secDeep: '나에 대해 알기', secLight: '가볍게 보기',
     viewCard: '카드', viewList: '리스트', // 홈 보기 방식 토글(daniel)
     todayTileDesc: '오늘 하루 흐름', monthTileDesc: '이번 달 흐름', newyearTileDesc: '올해 키워드·열두 달', personaTileDesc: '사주 성격유형', taegilTileDesc: '좋은 날 택일', luckTileDesc: '오늘의 행운', zodiacTileDesc: '띠·별자리 운세', nameTileDesc: '이름 소리 오행', dreamTileDesc: '꿈 해몽', egenTileDesc: '내 사주는 에겐? 테토?', mbtiTileDesc: '사주로 보는 내 MBTI', joseonjobTileDesc: '내 사주로 보는 조선시대 직업', lovestyleTileDesc: '내 연애 세포는?', bokTileDesc: '내 타고난 복은?', pastlifeTileDesc: '나의 전생은?', healingTileDesc: '나에게 맞는 쉼은?',
-    secPremiumDesc: '타고난 사주·자미를 깊이 풀어드려요', secContentDesc: 'AI가 정밀하게 풀어주는 깊은 콘텐츠', secHotDesc: '요즘 가장 많이 찾는 질문 — 무료로 확인하고 더 깊이 봐요', secDeepDesc: '나를 더 깊이 들여다보는 분석', secLightDesc: '가볍게 즐기는 오늘의 재미',
+    secPremiumDesc: '나는 어떤 사람인지 — 사주·자미로 깊이 분석해요', secContentDesc: 'AI가 정밀하게 풀어주는 깊은 콘텐츠', secHotDesc: '요즘 가장 많이 찾는 질문 — 무료로 확인하고 더 깊이 봐요', secDeepDesc: '나를 더 깊이 들여다보는 분석', secLightDesc: '가볍게 즐기는 오늘의 재미',
   },
   common: {
     back: '← 뒤로', login: '로그인', signup: '회원가입', logout: '로그아웃', loggingOut: '로그아웃 중…',
@@ -267,7 +267,7 @@ const en = {
     secFree: 'Today & Chart', secPremium: 'Premium', secContent: 'Popular', secSpecial: 'Special', secDeep: 'Know Yourself', secLight: 'For Fun',
     viewCard: 'Cards', viewList: 'List', // home view toggle
     todayTileDesc: "Today's flow", monthTileDesc: "This month's flow", newyearTileDesc: "This year's keyword & 12 months", personaTileDesc: 'Saju personality type', taegilTileDesc: 'Pick a good day', luckTileDesc: "Today's luck", zodiacTileDesc: 'Zodiac & star sign', nameTileDesc: "Name's sound energy", dreamTileDesc: 'Dream meaning', egenTileDesc: 'Are you Egen or Teto?', mbtiTileDesc: 'Your MBTI by saju', joseonjobTileDesc: 'Your job in old Korea', lovestyleTileDesc: 'Your love cells?', bokTileDesc: 'Your innate fortune?', pastlifeTileDesc: 'Who were you?', healingTileDesc: 'Your way to rest?',
-    secPremiumDesc: 'In-depth saju & Zi Wei readings', secContentDesc: 'AI-crafted deep readings', secHotDesc: 'The questions everyone asks — check free, then go deeper', secDeepDesc: 'Look deeper into who you are', secLightDesc: 'Light daily fun',
+    secPremiumDesc: 'Who you are — in depth via Saju & Zi Wei', secContentDesc: 'AI-crafted deep readings', secHotDesc: 'The questions everyone asks — check free, then go deeper', secDeepDesc: 'Look deeper into who you are', secLightDesc: 'Light daily fun',
   },
   common: {
     back: '← Back', login: 'Log in', signup: 'Sign up', logout: 'Log out', loggingOut: 'Logging out…',
@@ -491,7 +491,7 @@ const ja = {
     secFree: '今日・命式', secPremium: 'プレミアム', secContent: '人気', secSpecial: 'スペシャル', secDeep: '自分を知る', secLight: '気軽に',
     viewCard: 'カード', viewList: 'リスト', // ホーム表示切替
     todayTileDesc: '今日一日の流れ', monthTileDesc: '今月の流れ', newyearTileDesc: '今年のキーワード・12か月', personaTileDesc: '性格タイプ', taegilTileDesc: '良い日選び', luckTileDesc: '今日の幸運', zodiacTileDesc: '干支・星座', nameTileDesc: '名前の響き', dreamTileDesc: '夢占い', egenTileDesc: '私はエゲン？テト？', mbtiTileDesc: '四柱で見るMBTI', joseonjobTileDesc: '四柱で見る朝鮮の職業', lovestyleTileDesc: '私の恋愛細胞は？', bokTileDesc: '私の福は？', pastlifeTileDesc: '私の前世は？', healingTileDesc: '私に合う休み方は？',
-    secPremiumDesc: '生まれ持った四柱·紫微を深く', secContentDesc: 'AIが丁寧に解く深い鑑定', secHotDesc: '今よく検索される質問 — 無料で確認、さらに深く', secDeepDesc: '自分をより深く見つめる', secLightDesc: '気軽に楽しむ運勢',
+    secPremiumDesc: 'あなたはどんな人か — 四柱·紫微で深く', secContentDesc: 'AIが丁寧に解く深い鑑定', secHotDesc: '今よく検索される質問 — 無料で確認、さらに深く', secDeepDesc: '自分をより深く見つめる', secLightDesc: '気軽に楽しむ運勢',
   },
   common: {
     back: '← 戻る', login: 'ログイン', signup: '新規登録', logout: 'ログアウト', loggingOut: 'ログアウト中…',
