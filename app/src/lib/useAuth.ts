@@ -153,3 +153,6 @@ export function useAuth() {
 
 /** 훅 밖(스토어/유틸)에서 등록 여부 — 익명 세션은 false. */
 export function isRegisteredUser(): boolean { return !!_session?.user && !(_session.user as any).is_anonymous; }
+
+/** 현재 세션이 익명인지 — 로그인 시 linkIdentity(같은 uid 승격·데이터 보존) vs signInWithOAuth(신규/전환) 분기용. */
+export function isAnonSession(): boolean { return !!_session?.user && !!(_session.user as any).is_anonymous; }

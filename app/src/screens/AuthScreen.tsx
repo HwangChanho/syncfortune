@@ -15,6 +15,7 @@ import { Alert } from '../lib/ui/alert'; // 커스텀 알림(앱 디자인)
 import * as Linking from 'expo-linking';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../lib/supabase';
+import { isAnonSession } from '../lib/useAuth'; // 익명 세션 판정 — 로그인 시 linkIdentity(승격·데이터 보존) vs signInWithOAuth 분기(Apple 5.1.1)
 import { colors, radius, space, shadow, font } from '../lib/theme';
 
 // ★크래시 근본수정(daniel 07-04): expo-web-browser 네이티브 모듈이 빌드에 링크 안 되면(Podfile.lock 누락) 정적 import·
@@ -26,11 +27,13 @@ try { webBrowser()?.maybeCompleteAuthSession(); } catch { /* 네이티브 모듈
 
 // 인증 세션 복귀 URL(syncfortune://auth-callback?code=… / ?token_hash=&type=) → 세션 확립.
 //   openAuthSessionAsync 가 리다이렉트를 가로채 브라우저를 닫으므로, 콜백 라우트 대신 여기서 직접 처리한다.
-async function completeAuthFromUrl(url: string): Promise<void> {
+async function completeAuthFromUrl(url: string): Promise<{ error: any } | undefined> {
   const { queryParams } = Linking.parse(url);
   const code = queryParams?.code, th = queryParams?.token_hash, ty = queryParams?.type;
-  if (typeof code === 'string') await supabase.auth.exchangeCodeForSession(code);                         // 구글·애플(PKCE)
-  else if (typeof th === 'string' && typeof ty === 'string') await supabase.auth.verifyOtp({ token_hash: th, type: ty as any }); // 네이버(매직링크)
+  // ★에러를 반환(옛 코드는 무시) — 익명 linkIdentity 콜백에서 '이미 가입된 소셜' 실패를 호출부가 감지해 전환(signInWithOAuth) 처리하게.
+  if (typeof code === 'string') { const { error } = await supabase.auth.exchangeCodeForSession(code); return error ? { error } : undefined; }                   // 구글·애플(PKCE)
+  if (typeof th === 'string' && typeof ty === 'string') { const { error } = await supabase.auth.verifyOtp({ token_hash: th, type: ty as any }); return error ? { error } : undefined; } // 네이버(매직링크)
+  return undefined;
 }
 
 export function AuthScreen() {
@@ -54,27 +57,44 @@ export function AuthScreen() {
 
   // 공용 OAuth(구글·애플) — Supabase 네이티브 프로바이더. 인증 URL 을 받아 인앱 인증 세션으로 열고,
   //   복귀(?code=)는 성공 시 completeAuthFromUrl 이(WB 없는 폴백 딥링크는 auth-callback 라우트가) exchangeCodeForSession 으로 처리.
+  // OAuth 1스텝 실행 — mode='link'(익명 승격·같은 uid) 또는 'signin'(신규/전환). URL 받아 인앱 세션으로 열고 콜백 처리.
+  //   반환: 콜백 에러(있으면). 인앱 세션(ASWebAuthenticationSession)은 리다이렉트 시 브라우저 자동 닫힘.
+  async function runOAuth(provider: 'google' | 'apple', mode: 'link' | 'signin', redirectTo: string): Promise<{ error: any } | undefined> {
+    const { data, error } = mode === 'link'
+      ? await supabase.auth.linkIdentity({ provider, options: { redirectTo, skipBrowserRedirect: true } }) // 익명 세션에 소셜 연결(같은 uid·데이터 보존)
+      : await supabase.auth.signInWithOAuth({ provider, options: { redirectTo, skipBrowserRedirect: true } });
+    if (error) return { error };
+    if (!data?.url) return { error: { message: t('common.error') } };
+    const WB = webBrowser();
+    if (!WB) { await Linking.openURL(data.url); return undefined; } // 폴백: 네이티브 모듈 없으면 외부 브라우저 · 콜백 딥링크는 auth-callback 라우트가 처리
+    const res = await WB.openAuthSessionAsync(data.url, redirectTo);
+    if (res.type === 'success' && res.url) return await completeAuthFromUrl(res.url); // 성공 시 useAuth 가 자동 분기
+    return undefined; // 취소 등
+  }
+
+  // 구글·애플 로그인 — ★익명 세션이면 먼저 linkIdentity(같은 uid 로 승격 = 익명 때 산 이용권·명식 보존, daniel 2026-07-08 Apple 5.1.1).
+  //   이미 그 소셜로 가입된 계정이면(Case B) 링크가 실패 → signInWithOAuth 로 전환(그 기존 계정으로 로그인). 등록 세션이면 바로 signin.
   async function signInWithOAuth(provider: 'google' | 'apple') {
     setLoading(true);
     const redirectTo = Linking.createURL('auth-callback'); // syncfortune://auth-callback
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider,
-      options: { redirectTo, skipBrowserRedirect: true }, // URL 만 받아 직접 연다(웹 자동리다이렉트 억제)
-    });
-    if (error) { setLoading(false); Alert.alert('!', error.message); return; }
-    // 인앱 인증 세션(ASWebAuthenticationSession) — 로그인 후 리다이렉트 시 브라우저가 자동으로 닫힌다(외부 탭 잔류 X).
-    if (data?.url) {
-      const WB = webBrowser();
-      if (WB) {
-        try {
-          const res = await WB.openAuthSessionAsync(data.url, redirectTo);
-          if (res.type === 'success' && res.url) await completeAuthFromUrl(res.url); // 세션 확립(성공 시 useAuth 가 자동 분기)
-        } catch (e) { Alert.alert('!', (e as Error).message); }
+    try {
+      if (isAnonSession()) {
+        const r = await runOAuth(provider, 'link', redirectTo);
+        if (r?.error) {
+          const msg = String(r.error?.message ?? r.error?.code ?? '');
+          if (/exist|already|linked|registered|duplicate|conflict/i.test(msg)) {
+            const r2 = await runOAuth(provider, 'signin', redirectTo); // Case B: 이미 가입된 소셜 → 기존 계정으로 전환(익명 데이터는 이관 안 됨 — 그 계정 데이터 사용)
+            if (r2?.error) Alert.alert('!', r2.error.message ?? String(r2.error));
+          } else {
+            Alert.alert('!', r.error.message ?? String(r.error));
+          }
+        }
       } else {
-        await Linking.openURL(data.url); // 폴백: 네이티브 모듈 없으면 외부 브라우저(자동닫힘 X)·콜백 딥링크는 auth-callback 라우트가 처리
+        const r = await runOAuth(provider, 'signin', redirectTo);
+        if (r?.error) Alert.alert('!', r.error.message ?? String(r.error));
       }
-    }
-    setLoading(false);
+    } catch (e) { Alert.alert('!', (e as Error).message); }
+    finally { setLoading(false); }
   }
 
   // 네이버 — Supabase 미지원 프로바이더라 커스텀 Edge(naver-auth)가 OAuth 를 오케스트레이션한다.
