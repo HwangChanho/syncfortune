@@ -24,9 +24,6 @@ const RC_KEY = Platform.OS === 'ios'
 // Entitlement(프리미엄)·상품 식별자 — RevenueCat·App Store Connect와 1:1. 가격은 스토어에서 설정(id엔 가격 안 박음).
 export const ENTITLEMENT_PREMIUM = 'premium';
 export const PRODUCT_PREMIUM = 'premium_lifetime';  // 비소모성(평생 프리미엄 ₩49,900)
-// 프리미엄 1주년 '갱신'(30% 할인) — **소비성**(재구매 반복 가능). 정가×0.7 ≈ ₩34,900. daniel 2026-07-08.
-//   ⚠️ASC/Google Play/RC에 상품 등록 필요(daniel) + rc-webhook 이 이 productId 를 kind='premium'으로 매핑해야 is_premium 유지 + 새 purchases 행(구매일 리셋).
-export const PRODUCT_PREMIUM_RENEW = 'premium_renew30';
 
 // 영역별 이용권(소비성) 상품 id — CreditKind ↔ 스토어 상품(1:1).
 //   가격: 사주6900·자미4900·궁합3900·애정4900·타임라인990·추가질문990·신년6900·인생그래프3900 (CREDIT_KINDS.price, ASC에서 설정).
@@ -151,11 +148,6 @@ export function renewalCreditProductId(kind: CreditKind, isPremium: boolean): st
 /** 운세형 콘텐츠 구매 1년 후 재통변(할인) 구매 — 성공 시 true. 웹훅이 kind 이용권 적립 → 호출처가 최신 모델로 재생성. */
 export async function purchaseContentRenewalRC(kind: CreditKind, isPremium: boolean): Promise<boolean> {
   return purchaseConsumableRC(renewalCreditProductId(kind, isPremium));
-}
-
-/** 프리미엄 1주년 갱신(30% 할인·소비성) 구매 — 성공 시 true(취소 false). 웹훅이 kind='premium'으로 is_premium 유지 + 새 구매일 기록(오퍼 리셋). 호출처는 waitForPremium 로 서버 확인. */
-export async function purchasePremiumRenewalRC(): Promise<boolean> {
-  return purchaseConsumableRC(PRODUCT_PREMIUM_RENEW);
 }
 
 /** 구매 복원(App Store 필수) → 프리미엄 활성 여부 반환. */

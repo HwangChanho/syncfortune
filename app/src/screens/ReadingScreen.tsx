@@ -28,7 +28,8 @@ import { isReadingUnlocked } from '../lib/billing/unlocks'; // 서버 권위 세
 import { isPremiumForChart } from '../lib/billing/premiumStore'; // 명식별 프리미엄 판정(#1 — 비지정 명식/무료모드 페이월)
 import { computeEntitled, computeLocked, showUnlockOverlay, computeShouldAutoGen } from '../lib/billing/readingGate'; // 게이트 순수로직(하네스 시나리오 테스트 대상)
 import { useSubscription } from '../lib/billing/subscription';
-import { runPremiumRenewal } from '../lib/billing/renewal'; // 프리미엄 1년 경과 + 새 분석버전 → 갱신 유도 후 재생성(daniel 07-08)
+import { runContentRenewal } from '../lib/billing/renewal'; // 운세형 1년 경과 → 재통변 할인 구매 후 재생성(daniel 07-08 통일모델)
+import { needsContentRenewal } from '../lib/billing/repurchase'; // 운세형 1년 경과 판정(재통변 버튼 노출)
 import { setServerChartId, getRepresentativeId, type SavedChart } from '../lib/engine/myChart';
 import { loadFollowups, askFollowup, type Followup } from '../lib/backend/followups';
 import { useFontScale } from '../lib/ui/fontScale';
@@ -118,6 +119,7 @@ export function ReadingScreen({
   const [chartId, setChartId] = useState<string | null>(savedChart?.serverChartId ?? null);
   const [detail, setDetail] = useState<string | null>(null); // 상세로 펼친 항목 key
   const [stale, setStale] = useState<Set<string>>(new Set()); // ADR-055 P3: 분석 버전이 낮아 갱신 가능한 영역(opt-in)
+  const [renewable, setRenewable] = useState<Set<string>>(new Set()); // ★재통변(daniel 07-08): 운세형 & 생성 1년 경과 영역
   const [expiry, setExpiry] = useState<string | null>(null); // 풀이 보유 만료일(가장 먼저 만료=최초 생성+1년) — 소모성 제외 모든 풀이 1년(daniel #25)
   // 추가 질문(Q&A) — 영역별 누적 + 입력/전송 상태(프리미엄 2회 무료 + 건당)
   const [followups, setFollowups] = useState<Record<string, Followup[]>>({});
@@ -183,16 +185,21 @@ export function ReadingScreen({
       const keys = new Set(cats.map((x) => x.key));   // 이 화면 항목(사주/자미)만 반영
       const loaded: Record<string, any> = {};
       const st = new Set<string>();                   // ADR-055 P3: 분리본(l2_ver≥1)인데 옛 버전 → 갱신 가능
+      const rn = new Set<string>();                   // ★재통변(daniel 07-08): 운세형 & 생성 1년 경과 영역
+      const renewCk = kind === 'ziwei' ? 'ziwei' : 'reading'; // 이 화면 credit kind(SET_KIND — saju→reading)
+      const nowD = new Date();
       let minCreated: string | null = null; // 보유 만료 = 최초 생성+1년(가장 먼저 만료되는 영역 기준)
       (data ?? []).forEach((r: any) => {
         if (!keys.has(r.category)) return;
         loaded[r.category] = r.content;
         if (r.created_at && (!minCreated || r.created_at < minCreated)) minCreated = r.created_at;
         if ((r.l2_ver ?? 0) >= 1 && (r.l2_ver ?? 0) < READING_L2_VER) st.add(r.category);
+        if (needsContentRenewal(renewCk, r.created_at, nowD)) rn.add(r.category); // 운세형 1년 경과 → 재통변 노출
       });
       setReadings(loaded);
       setReadingsChartId(id); // 이 readings는 id(현재 resolved 명식) 기준 — 자동생성 가드가 stale 로드 구분에 사용
       setStale(st);
+      setRenewable(rn);
       if (minCreated) { const d = new Date(minCreated); d.setFullYear(d.getFullYear() + 1); setExpiry(`${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`); }
       setCacheLoaded(true);
       loadFollowups(id).then((f) => { if (alive) setFollowups(f); }).catch(() => {}); // 추가 질문 누적 로드
@@ -331,7 +338,7 @@ export function ReadingScreen({
       if (error) Alert.alert(t('common.error'), t('common.genFailed', '풀이를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.')); // 방어: 원문 대신 친화 문구
       else if (data?.unavailable) Alert.alert(t('common.error'), (data as any).message || t('common.llmBusy', '지금 통변 생성이 일시적으로 어려워요. 잠시 후 다시 시도해 주세요.')); // 방어: LLM 일시적 불가
       else if (data?.refreshDenied) Alert.alert(t('reading.refreshDeniedTitle', '갱신 한도'), t('reading.refreshDenied', { cap: data.cap, defaultValue: '이 풀이는 최대 {{cap}}번까지 갱신할 수 있어요.' }));
-      else if (data?.renewRequired) await runPremiumRenewal({ curL2Ver: data.curL2Ver, onDone: () => void refreshReading(key) }); // 프리미엄 1년 경과 + 새 분석버전 → 갱신 유도 후 재생성 재시도(daniel 07-08)
+      else if (data?.renewRequired) await runContentRenewal({ kind: data.kind, isPremium, onDone: () => void refreshReading(key) }); // 운세형 1년 경과 → 재통변 할인(프리미엄30%/일반10%) 구매 후 재생성 재시도(daniel 07-08)
       else if (data?.reading) {
         setReadings((prev) => ({ ...prev, [key]: data.reading }));
         setStale((prev) => { const n = new Set(prev); n.delete(key); return n; });
@@ -632,9 +639,9 @@ export function ReadingScreen({
             {cats.find((x) => x.key === detail)?.desc ? <Text style={styles.detailDesc}>{cats.find((x) => x.key === detail)?.desc}</Text> : null}
             {renderSections(detail)}
             {/* ADR-055 P3: 분석 버전이 낮은 풀이만 '최신 해석으로 갱신'(opt-in·cap). 최신이면 미노출. */}
-            {stale.has(detail) && (
+            {(stale.has(detail) || renewable.has(detail)) && (
               <PressableScale style={styles.refreshBtn} onPress={() => refreshReading(detail)}>
-                <Text style={styles.refreshBtnTx}>{t('reading.refreshStale', '최신 해석으로 갱신')}</Text>
+                <Text style={styles.refreshBtnTx}>{renewable.has(detail) ? t('reading.renew', '🔄 최신 통변으로 재통변') : t('reading.refreshStale', '최신 해석으로 갱신')}</Text>
               </PressableScale>
             )}
             {renderFollowups(detail)}

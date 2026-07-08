@@ -141,7 +141,7 @@ const ko = {
   },
   settings: {
     account: '계정', loginCta: '로그인 / 회원가입', premium: '프리미엄',
-    premiumActive: '✓ 프리미엄 적용됨', premiumBuy: '평생 프리미엄', premiumDesc: '지금과 앞으로 추가될 모든 프리미엄 콘텐츠 무료 · 광고 없음 · 한 번 결제로 평생 소장', premiumScope: '※ 앞으로 새로 나오는 프리미엄 콘텐츠까지 모두 무료로 보실 수 있어요. 단, 프리미엄 콘텐츠에 한하며 꿈해몽·추가 질문 등 개별 이용권은 별도예요.',
+    premiumActive: '✓ 프리미엄 적용됨', premiumBuy: '평생 프리미엄', premiumDesc: '지금과 앞으로 추가될 모든 프리미엄 콘텐츠 무료 · 광고 없음 · 한 번 결제로 평생 소장 · 유료 콘텐츠 재통변 30% 할인(일반 10%)', premiumScope: '※ 앞으로 새로 나오는 프리미엄 콘텐츠까지 모두 무료로 보실 수 있어요. 단, 프리미엄 콘텐츠에 한하며 꿈해몽·추가 질문 등 개별 이용권은 별도예요.',
     premiumOkTitle: '프리미엄', premiumOk: '프리미엄이 적용됐어요.', premiumTitle: '프리미엄',
     deleteAccount: '계정 삭제',
     delTitle: '계정 삭제', delMsg: '계정과 모든 데이터(명식·풀이·이용권)가 영구 삭제됩니다. 되돌릴 수 없어요.', delConfirm: '삭제 진행',
@@ -365,7 +365,7 @@ const en = {
   },
   settings: {
     account: 'Account', loginCta: 'Log in / Sign up', premium: 'Premium',
-    premiumActive: '✓ Premium active', premiumBuy: 'Lifetime Premium', premiumDesc: 'All premium content — now & future — free · no ads · one-time, yours forever', premiumScope: '※ Includes every premium content added in the future. Premium content only — consumables like Dream Reading and follow-up questions are separate.',
+    premiumActive: '✓ Premium active', premiumBuy: 'Lifetime Premium', premiumDesc: 'All premium content — now & future — free · no ads · one-time, yours forever · 30% off yearly re-readings (10% for others)', premiumScope: '※ Includes every premium content added in the future. Premium content only — consumables like Dream Reading and follow-up questions are separate.',
     premiumOkTitle: 'Premium', premiumOk: 'Premium is now active.', premiumTitle: 'Premium',
     deleteAccount: 'Delete account',
     delTitle: 'Delete account', delMsg: 'Your account and all data (charts, readings, passes) will be permanently deleted. This cannot be undone.', delConfirm: 'Continue',
@@ -589,7 +589,7 @@ const ja = {
   },
   settings: {
     account: 'アカウント', loginCta: 'ログイン / 新規登録', premium: 'プレミアム',
-    premiumActive: '✓ プレミアム適用中', premiumBuy: '買い切りプレミアム', premiumDesc: '今後追加分も含む全プレミアムコンテンツが無料 · 広告なし · 一度の購入で永久', premiumScope: '※ 今後新しく追加されるプレミアムコンテンツもすべて無料。ただしプレミアムコンテンツに限り、夢占い・追加質問などの個別利用券は別途です。',
+    premiumActive: '✓ プレミアム適用中', premiumBuy: '買い切りプレミアム', premiumDesc: '今後追加分も含む全プレミアムコンテンツが無料 · 広告なし · 一度の購入で永久 · 有料コンテンツの再鑑定30%割引(一般10%)', premiumScope: '※ 今後新しく追加されるプレミアムコンテンツもすべて無料。ただしプレミアムコンテンツに限り、夢占い・追加質問などの個別利用券は別途です。',
     premiumOkTitle: 'プレミアム', premiumOk: 'プレミアムが適用されました。', premiumTitle: 'プレミアム',
     deleteAccount: 'アカウント削除',
     delTitle: 'アカウント削除', delMsg: 'アカウントと全データ（命式・鑑定・パス）が永久に削除されます。元に戻せません。', delConfirm: '続ける',
