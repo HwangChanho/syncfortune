@@ -28,6 +28,7 @@ import { isReadingUnlocked } from '../lib/billing/unlocks'; // 서버 권위 세
 import { isPremiumForChart } from '../lib/billing/premiumStore'; // 명식별 프리미엄 판정(#1 — 비지정 명식/무료모드 페이월)
 import { computeEntitled, computeLocked, showUnlockOverlay, computeShouldAutoGen } from '../lib/billing/readingGate'; // 게이트 순수로직(하네스 시나리오 테스트 대상)
 import { useSubscription } from '../lib/billing/subscription';
+import { runPremiumRenewal } from '../lib/billing/renewal'; // 프리미엄 1년 경과 + 새 분석버전 → 갱신 유도 후 재생성(daniel 07-08)
 import { setServerChartId, getRepresentativeId, type SavedChart } from '../lib/engine/myChart';
 import { loadFollowups, askFollowup, type Followup } from '../lib/backend/followups';
 import { useFontScale } from '../lib/ui/fontScale';
@@ -330,6 +331,7 @@ export function ReadingScreen({
       if (error) Alert.alert(t('common.error'), t('common.genFailed', '풀이를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.')); // 방어: 원문 대신 친화 문구
       else if (data?.unavailable) Alert.alert(t('common.error'), (data as any).message || t('common.llmBusy', '지금 통변 생성이 일시적으로 어려워요. 잠시 후 다시 시도해 주세요.')); // 방어: LLM 일시적 불가
       else if (data?.refreshDenied) Alert.alert(t('reading.refreshDeniedTitle', '갱신 한도'), t('reading.refreshDenied', { cap: data.cap, defaultValue: '이 풀이는 최대 {{cap}}번까지 갱신할 수 있어요.' }));
+      else if (data?.renewRequired) await runPremiumRenewal({ curL2Ver: data.curL2Ver, onDone: () => void refreshReading(key) }); // 프리미엄 1년 경과 + 새 분석버전 → 갱신 유도 후 재생성 재시도(daniel 07-08)
       else if (data?.reading) {
         setReadings((prev) => ({ ...prev, [key]: data.reading }));
         setStale((prev) => { const n = new Set(prev); n.delete(key); return n; });

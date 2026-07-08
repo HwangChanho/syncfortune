@@ -17,9 +17,8 @@ import { listCharts, getRepresentativeId, setRepresentative, loadRepChart, type 
 import { requestChartConfirm } from '../../lib/ui/chartConfirm'; // 구매 전 명식 확인(드롭다운으로 변경 가능)
 import { ListSkeleton } from '../../components/Skeleton'; // 첫 진입 로딩 스켈레톤(daniel 07-02: 마켓 즉시 전환+스켈레톤)
 import { useDeferredReady } from '../../lib/ui/useDeferredReady'; // 전환 즉시 스켈레톤 → 전환 후 콘텐츠 마운트(멈칫 제거)
-import { purchaseCreditRC, purchasesEnabled, priceStringsRC, priceStringRC, CREDIT_PRODUCT, PRODUCT_PREMIUM, purchasePremiumRenewalRC, PRODUCT_PREMIUM_RENEW } from '../../lib/billing/purchases';
-import { waitForPremium, markPremiumOwnedNow, fetchPremiumPurchasedAt } from '../../lib/billing/premiumStore'; // 구매 후: 낙관 즉시표시 + 서버 확인(#6) · 프리미엄 구매일(1주년 갱신 판정)
-import { offerPremiumRenewal, renewalPrice, discountPercent } from '../../lib/billing/repurchase'; // 1주년 30% 갱신 오퍼 판정·표시가(daniel 07-08)
+import { purchaseCreditRC, purchasesEnabled, priceStringsRC, priceStringRC, CREDIT_PRODUCT, PRODUCT_PREMIUM } from '../../lib/billing/purchases';
+import { waitForPremium, markPremiumOwnedNow } from '../../lib/billing/premiumStore'; // 구매 후: 낙관 즉시표시(markPremiumOwnedNow) + 서버 is_premium 확인(waitForPremium) 병행(#6)
 import { useSubscription } from '../../lib/billing/subscription'; // 프리미엄 가입 루트(전체 무제한)
 import { getPremiumChartIdSnapshot } from '../../lib/billing/premiumStore'; // 프리미엄 지정 명식(어느 명식에 적용 중인지 표기, daniel 07-04)
 import { useAuth } from '../../lib/useAuth';              // 세션(프리미엄 명식 지정 시 serverChartId 발급)
@@ -113,8 +112,6 @@ export default function MarketRoute() {
   const premChart = premChartId ? saved.find((c) => String(c.serverChartId) === String(premChartId)) : null;
   const [premPrice, setPremPrice] = useState(''); // 프리미엄 현지통화 가격(RC)
   const [buyingPrem, setBuyingPrem] = useState(false);
-  const [premPurchasedAt, setPremPurchasedAt] = useState<string | null>(null); // 프리미엄 최신 구매일(1주년 갱신 오퍼 판정, daniel 07-08)
-  const [renewPrice, setRenewPrice] = useState(`₩${renewalPrice(PREMIUM_PRICE).toLocaleString()}`); // 갱신 현지가(RC·₩폴백)
   const ready = useDeferredReady(); // 네비 전환 완료 후 콘텐츠 마운트 — 그 전엔 스켈레톤(첫 진입 즉시 전환·멈칫 제거)
 
   useEffect(() => {
@@ -133,14 +130,6 @@ export default function MarketRoute() {
   // 프리미엄 현지통화 가격(RC) — 미설정 시 ₩ 폴백
   useEffect(() => { priceStringRC(PRODUCT_PREMIUM, `₩${PREMIUM_PRICE.toLocaleString()}`).then(setPremPrice).catch(() => {}); }, []);
 
-  // 프리미엄 1주년 30% '갱신' 오퍼용 — 최신 구매일(오퍼 판정) + 갱신 상품 현지가(RC). isPremium/세션 변화 시 재조회.
-  useEffect(() => {
-    const uid = session?.user?.id;
-    if (isPremium && uid) fetchPremiumPurchasedAt(uid).then(setPremPurchasedAt).catch(() => {});
-    else setPremPurchasedAt(null);
-    priceStringRC(PRODUCT_PREMIUM_RENEW, `₩${renewalPrice(PREMIUM_PRICE).toLocaleString()}`).then(setRenewPrice).catch(() => {});
-  }, [isPremium, session]);
-  const showRenewal = isPremium && offerPremiumRenewal(premPurchasedAt, new Date()); // 프리미엄 + 구매 1년 경과 → 갱신 카드
 
   // 프리미엄 가입(평생·전체 무제한) — 결제 미연동 시 '준비 중'. 성공 시 상태 갱신. 취소는 조용히.
   //   daniel: 결제 진행 전 '적용 명식'을 확인 Alert 로 한 번 더 보여준다(오결제 방지). 실제 구매 로직은 내부 함수로 분리.
@@ -189,26 +178,6 @@ export default function MarketRoute() {
     const target = await loadRepChart();      // 모달에서 고른 명식(대표) = 프리미엄 적용 명식
     if (target) setSel(target);               // 마켓 표시 동기화
     void doBuyPremium(target ?? sel);
-  }
-
-  // 프리미엄 1주년 '갱신'(30% 할인) 구매 — 소비성 premium_renew30. 웹훅이 kind='premium'으로 is_premium 유지 + 새 구매일(오퍼 리셋). daniel 07-08.
-  //   프리미엄 유저 전용(isPremium=이미 로그인) → requireLogin 불필요. 평생 접근은 그대로, 이건 '최신 통변으로 새로고침' 성격.
-  async function buyRenewal() {
-    if (buyingPrem) return;
-    if (!purchasesEnabled()) { Alert.alert(t('market.payPending')); return; }
-    setBuyingPrem(true);
-    try {
-      const ok = await purchasePremiumRenewalRC();
-      if (!ok) return; // 사용자 취소(조용히)
-      const uid = session?.user?.id;
-      if (uid) await waitForPremium(uid);              // 웹훅 반영 대기(is_premium 유지 + 새 purchases 행)
-      setPremPurchasedAt(new Date().toISOString());    // 낙관: 갱신 즉시 오퍼 카드 숨김(다음 refresh 에서 서버 구매일로 정정)
-      await refresh();
-      Alert.alert(t('market.renewOkTitle', '갱신 완료'), t('market.renewOk', '프리미엄이 최신 통변으로 갱신됐어요.'));
-    } catch (e: any) {
-      if (e?.message === 'cancelled') return;
-      Alert.alert(t('settings.premiumTitle'), e?.message ?? '');
-    } finally { setBuyingPrem(false); }
   }
 
   // 이용권 적용 — 선택 명식을 대표로 설정 후 해당 풀이 화면으로(거기서 이용권/프리미엄/구매로 열림).
@@ -346,22 +315,8 @@ export default function MarketRoute() {
         </PressableScale>
       )}
 
-      {/* 프리미엄 1주년 30% '갱신' 오퍼(daniel 07-08) — 프리미엄 + 구매 1년 경과에만. 평생 접근은 유지, '최신 통변으로 새로고침' 성격. */}
-      {showRenewal && (
-        <PressableScale style={styles.renewCard} onPress={buyRenewal} disabled={buyingPrem}>
-          <View style={{ flex: 1 }}>
-            <View style={styles.renewTop}>
-              <Text style={styles.renewTitle}>{t('market.renewTitle', '1주년 · 최신 통변으로 갱신')}</Text>
-              <View style={styles.discBadge}><Text style={styles.discTx}>{discountPercent(PREMIUM_PRICE, renewalPrice(PREMIUM_PRICE))}%</Text></View>
-            </View>
-            <Text style={styles.renewSub}>{t('market.renewSub', '프리미엄 구매 1년이 지났어요 — 30% 할인가로 갱신할 수 있어요')}</Text>
-          </View>
-          <View style={styles.renewRight}>
-            <Text style={styles.renewOrig}>₩{PREMIUM_PRICE.toLocaleString()}</Text>
-            <Text style={styles.renewNow}>{buyingPrem ? '…' : (renewPrice || `₩${renewalPrice(PREMIUM_PRICE).toLocaleString()}`)}</Text>
-          </View>
-        </PressableScale>
-      )}
+      {/* ★프리미엄 '갱신'은 마켓 카드에서 제거(daniel 07-08) — 풀이 화면의 '최신 해석으로 갱신' 버튼(맥락상 인지적)에만 노출.
+          갱신 흐름은 lib/billing/renewal.ts(runPremiumRenewal) + interpret renewRequired 게이트가 담당. */}
 
       {/* 적용할 명식 선택(드롭다운) — 이용권은 이 명식에 적용된다 */}
       <PressableScale style={styles.chartSel} onPress={() => setPick(true)}>
@@ -437,16 +392,6 @@ const styles = StyleSheet.create({
   premSub: { fontSize: 12, color: colors.bg, opacity: 0.85, marginTop: 2 },
   premChart: { fontSize: 11, fontWeight: '700', color: colors.bg, opacity: 0.75, marginTop: 4 }, // 적용 명식 안내(비프리미엄 카드)
   premPrice: { fontSize: 16, fontWeight: '900', color: colors.bg, marginLeft: space(2) },
-  // 1주년 30% 갱신 카드(daniel 07-08) — 프리미엄 카드(solid gold)와 구분되게 juSoft 배경 + gold 테두리(오퍼 성격).
-  renewCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.juSoft, borderRadius: radius.md, borderWidth: 1, borderColor: colors.ju, padding: space(4), marginBottom: space(4) },
-  renewTop: { flexDirection: 'row', alignItems: 'center', gap: space(2) },
-  renewTitle: { fontSize: 15, fontWeight: '900', color: colors.ju },
-  renewSub: { fontSize: 12, color: colors.inkSoft, marginTop: 3 },
-  renewRight: { alignItems: 'flex-end', marginLeft: space(2) },
-  renewOrig: { fontSize: 12, color: colors.inkFaint, textDecorationLine: 'line-through' },
-  renewNow: { fontSize: 16, fontWeight: '900', color: colors.ju, marginTop: 1 },
-  discBadge: { backgroundColor: colors.ju, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 1 },
-  discTx: { fontSize: 11, fontWeight: '900', color: colors.bg },
   // 인생 타임라인 독립 강조 카드(골드 강조 테두리 — 명식 선택 아래 단독 노출, daniel)
   timelineCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1.5, borderColor: colors.ju, padding: space(4), marginBottom: space(4), ...shadow.card },
   timelineThumb: { width: 56, height: 78, borderRadius: radius.md, marginRight: space(3), backgroundColor: colors.sunk }, // 강조 카드라 일반 thumb(46×64)보다 크게
