@@ -140,3 +140,17 @@ export async function waitForPremium(userId: string, opts: { tries?: number; int
   }
   return false; // 웹훅 미도달(타임아웃) — 이 함수 자체는 표시를 바꾸지 않는다(서버 미확인). 낙관표시 여부는 호출처가 결정(#6 구매/#2 복원)
 }
+
+/**
+ * 프리미엄(평생) 최초 구매일 조회 — 1주년 30% '갱신' 오퍼 판정용(daniel 2026-07-08 수익구조).
+ *   purchases(kind='premium', owner_id=본인·RLS)의 가장 이른 created_at. 여러 건(복원·재구매)이면 최초 구매 기준으로 1년 경과 판정.
+ *   ★평생 접근은 유지(is_premium 불변) — 이 날짜는 오직 '갱신 오퍼를 띄울지'(offerPremiumRenewal)에만 쓴다. 만료 강제 아님.
+ * @returns ISO 문자열 또는 null(구매 이력 없음/미로그인).
+ */
+export async function fetchPremiumPurchasedAt(userId: string | null | undefined): Promise<string | null> {
+  if (!userId) return null;
+  const { data } = await supabase.from('purchases')
+    .select('created_at').eq('owner_id', userId).eq('kind', 'premium')
+    .order('created_at', { ascending: true }).limit(1).maybeSingle();
+  return (data?.created_at as string | undefined) ?? null;
+}
