@@ -43,9 +43,11 @@ import { NewyearTeaser } from '../../components/NewyearTeaser'; // 무료 온디
 import { useFontScale } from '../../lib/ui/fontScale';
 import { useLogContentVisit } from '../../lib/backend/contentVisit'; // 콘텐츠 방문 집계(daniel 2026-07-06) — 진입 1회 기록
 
-// 신년 패키지 분야 8(daniel: 컨텐츠 강화 — 통합·직업·재물·애정·건강·대인·배움·이동)
+// 신년 패키지 분야 10(daniel: 컨텐츠 강화 — 통합·직업·사업·재물·애정·결혼·건강·대인·배움·이동)
 const AREAS: { key: string; ko: string }[] = [
-  { key: 'general', ko: '통합' }, { key: 'work', ko: '직업' }, { key: 'money', ko: '재물' },
+  { key: 'general', ko: '통합' }, { key: 'work', ko: '직업' },
+  { key: 'business', ko: '사업' }, // daniel 2026-07-08: 사업·창업 방면(편재·식상=식신생재 사업 통로) — 직업(고용)과 분리
+  { key: 'money', ko: '재물' },
   { key: 'love', ko: '애정' }, { key: 'marriage', ko: '결혼' }, { key: 'health', ko: '건강' },
   { key: 'social', ko: '대인' }, { key: 'growth', ko: '배움' }, { key: 'move', ko: '이동' },
 ];
@@ -146,10 +148,19 @@ export default function NewYearScreen() {
     if (busy) return;
     // ② 크로스마운트 이중 LLM 방지 — 이미 이 명식·이 연도 신년운세가 생성 중이면 2차 호출하지 않는다(과금 0).
     const lockKey = `${category}:${id}`; // category=newyear_YYYY(연도별 분리)
-    if (!acquireGen(lockKey)) return;
     const myGen = genSeq.current;    // ① 이 생성의 세대 스냅샷(읽기만) — 재로드/명식전환(load effect)이 genSeq 를 올리면 stale
     const myChart = id;              // ① 대상 명식
     const isStale = () => myGen !== genSeq.current || myChart !== chartIdRef.current; // ① 결과 쓰기 직전 대조
+    // A4(daniel 2026-07-08): 이미 다른 마운트가 이 명식·연도를 생성 중(잠금 점유)이면 2차 LLM은 막되(과금 0),
+    //   화면은 로딩으로 두고 캐시 폴링해 완료 시 결과 회수. 예전엔 조용히 return → 오버레이·에러·로딩 없이 '멈춤'(홈도 못 감).
+    if (!acquireGen(lockKey)) {
+      setBusy(true); setErr(null);
+      const cached = await pollCachedReading(id, category);
+      if (isStale()) return;
+      if (cached) setData(cached);
+      setBusy(false);
+      return;
+    }
     setBusy(true); setErr(null);
     // ③ 배너/푸시 명식 식별 — route 에 chartId(로컬 saved.id) + chartLabel. 재진입 바인딩은 ★M1 로 load effect 상단에 구현됨(reading.tsx 38-43 패턴).
     const gpRoute = saved?.id ? `/newyear?chartId=${saved.id}` : '/newyear';

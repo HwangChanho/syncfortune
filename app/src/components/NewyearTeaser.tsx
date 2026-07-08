@@ -13,6 +13,7 @@ import { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import type { SajuChart } from '@spec/chart';
 import { colors, radius, space, font } from '../lib/theme';
+import Svg, { Path, Line, Circle, Defs, LinearGradient, Stop, Text as SvgText } from 'react-native-svg'; // '좋은 달' 그래프(SVG)
 import { PossibilityGauge } from './PossibilityGauge';                   // 공용 가능성 게이지(재회·애정과 공유 — 애니 미터)
 import { newyearSinsu, type SamjaeLabel } from '../lib/content/newyearGauge'; // 내년 신수 결정론 엔진
 
@@ -31,6 +32,39 @@ function toneCopy(tone: 'open' | 'warming' | 'quiet') {
   return { label: '조심', caption: '내년은 힘을 안으로 모으며 다지기 좋은 해예요. 무리한 확장보다 내실을 챙겨 보세요.' };
 }
 
+// ── '내년 좋은 달' 그래프 — 12개월 월별 기운(방향점수 −4~+4)을 곡선으로. 좋은 달=금색 점 강조.
+//   §4 웰빙: 낮은 달도 흉 아님(중립선 기준 흐름·관리축). 곡선은 '어느 달이 나와 잘 통하나'만 보여준다.
+function MonthGraph({ scores, goodSet }: { scores: number[]; goodSet: Set<number> }) {
+  const W = 320, H = 116, padX = 16, padY = 14;
+  const n = scores.length;
+  const x = (i: number) => padX + (i / (n - 1)) * (W - 2 * padX);
+  const y = (md: number) => padY + (1 - (md + 4) / 8) * (H - 2 * padY); // +4=위 / −4=아래 / 0=중앙(중립선)
+  const pts = scores.map((md, i) => [x(i), y(md)] as const);
+  const line = pts.map(([px, py], i) => `${i === 0 ? 'M' : 'L'} ${px.toFixed(1)},${py.toFixed(1)}`).join(' ');
+  const area = `${line} L ${x(n - 1).toFixed(1)},${(H - padY).toFixed(1)} L ${padX.toFixed(1)},${(H - padY).toFixed(1)} Z`;
+  const y0 = y(0);
+  return (
+    <Svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`}>
+      <Defs>
+        <LinearGradient id="mg" x1="0" y1="0" x2="0" y2="1">
+          <Stop offset="0" stopColor={colors.ju} stopOpacity={0.34} />
+          <Stop offset="1" stopColor={colors.ju} stopOpacity={0.02} />
+        </LinearGradient>
+      </Defs>
+      <Line x1={padX} y1={y0} x2={W - padX} y2={y0} stroke={colors.line} strokeWidth={1} strokeDasharray="3 4" />
+      <Path d={area} fill="url(#mg)" />
+      <Path d={line} fill="none" stroke={colors.ju} strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" />
+      {pts.map(([px, py], i) => {
+        const good = goodSet.has(i + 1);
+        return <Circle key={i} cx={px} cy={py} r={good ? 5 : 2.5} fill={good ? colors.ju : colors.card} stroke={colors.ju} strokeWidth={good ? 0 : 1.5} />;
+      })}
+      {pts.map(([px], i) => (
+        <SvgText key={`t${i}`} x={px} y={H - 2} fontSize="9" fill={goodSet.has(i + 1) ? colors.ju : colors.inkFaint} fontWeight={goodSet.has(i + 1) ? '800' : '500'} textAnchor="middle">{i + 1}</SvgText>
+      ))}
+    </Svg>
+  );
+}
+
 /**
  * 신년운세 무료 리치 티저. newyear.tsx 히어로 아래(잠김/열림 무관)에 노출.
  * @param saju 대표 명식의 사주(원국 + 세운 목록 + 대운).
@@ -43,8 +77,7 @@ export function NewyearTeaser({ saju, timeUnknown }: { saju: SajuChart; timeUnkn
   const tc = toneCopy(d.tone);
   const isSamjae = d.samjae !== 'none';
 
-  // 길월 미니 달력 — 1~12 셀, 길월만 강조. 폴백(월운 없음)이면 goodMonths 빈 배열 → 안내로 대체.
-  const months = Array.from({ length: 12 }, (_, i) => i + 1);
+  // '좋은 달' 그래프 — 월별 방향점수(monthScores) 곡선 + 길월(goodMonths) 금색 점. 월운 없으면 그래프 생략(안내 문구 대체).
   const goodSet = new Set(d.goodMonths);
 
   return (
@@ -77,22 +110,13 @@ export function NewyearTeaser({ saju, timeUnknown }: { saju: SajuChart; timeUnkn
         <Text style={styles.keyword}>{d.keyword}</Text>
       </View>
 
-      {/* ③ 길월 미니 달력(1~12) — 내년 좋은 달만 금색 강조 */}
+      {/* ③ 내년 좋은 달 그래프(1~12) — 월별 기운 곡선 + 좋은 달 금색 점 (daniel 07-07: 그리드→그래프) */}
       <View style={styles.card}>
         <Text style={styles.cardTitle}>내년 좋은 달</Text>
-        <View style={styles.calendar}>
-          {months.map((m) => {
-            const good = goodSet.has(m);
-            return (
-              <View key={m} style={[styles.cell, good && styles.cellGood]}>
-                <Text style={[styles.cellTx, good && styles.cellTxGood]}>{m}</Text>
-              </View>
-            );
-          })}
-        </View>
+        {d.monthScores.length === 12 && <MonthGraph scores={d.monthScores} goodSet={goodSet} />}
         <Text style={styles.calNote}>
           {d.goodMonths.length
-            ? `금색으로 표시된 달에 기운이 나와 잘 통해요. 어떤 일에 좋은지는 깊은 풀이에서 달별로 짚어 드려요.`
+            ? `곡선이 높은 달에 기운이 나와 잘 통해요(금색 점). 어떤 일에 좋은지는 깊은 풀이에서 달별로 짚어 드려요.`
             : `내년 좋은 달은 깊은 풀이에서 달별로 콕 짚어 드려요.`}
         </Text>
       </View>

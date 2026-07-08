@@ -80,6 +80,7 @@ export interface NewyearSinsu {
   samjae: SamjaeLabel;      // 삼재 3단계(들/눌/날) or none — 전원 노출(큰 배지)
   bokAk: BokAk;             // 복/악삼재 크로스(방향층 재사용) — ★free 미표시, 유료 유도용 반환
   goodMonths: number[];     // 1~12 중 길월(내년 월운 干支가 용신·희신에 부합)
+  monthScores: number[];    // 1~12 월별 방향점수(−4~+4) — '좋은 달' 그래프용. 월운 없으면 빈 배열(그래프 생략)
   // ── 검수/유료용(화면 미표시) ──
   dir: number;              // 방향 값(−4~+4)
   dirStem: number;          // 세운 천간 희기 점수
@@ -170,13 +171,15 @@ export function newyearSinsu(saju: SajuChart, opts?: Opts): NewyearSinsu {
 
   // ── 길월 : 내년 12 월운 중 干支 방향점수 ≥ goodMonthMin 인 달(1~12) ──────────
   const goodMonths: number[] = [];
+  const monthScores: number[] = [];
   (nextAnnual?.months ?? []).forEach((m, i) => {
     const md = scoreOf(stemElement(m.stem) as Element) + scoreOf(branchElement(m.branch) as Element);
+    monthScores.push(md); // −4~+4 원값 보존(그래프에서 정규화). 길월과 별개로 12개 전부 수집
     if (md >= W.goodMonthMin && goodMonths.length < W.goodMonthCap) goodMonths.push(i + 1);
   });
 
   return {
-    nextYear, score, tone, keyword, topTheme, samjae, bokAk, goodMonths,
+    nextYear, score, tone, keyword, topTheme, samjae, bokAk, goodMonths, monthScores,
     dir, dirStem, dirBranch, strength, mult, mismatch, usefulEl, hasUseful: !ya.jonggyeokHold,
     interactions: links.map((it) => it.detail ?? it.type),
   };
