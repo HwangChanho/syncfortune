@@ -142,8 +142,9 @@ export async function waitForPremium(userId: string, opts: { tries?: number; int
 }
 
 /**
- * 프리미엄(평생) 최초 구매일 조회 — 1주년 30% '갱신' 오퍼 판정용(daniel 2026-07-08 수익구조).
- *   purchases(kind='premium', owner_id=본인·RLS)의 가장 이른 created_at. 여러 건(복원·재구매)이면 최초 구매 기준으로 1년 경과 판정.
+ * 프리미엄 최신 구매일 조회 — 1주년 30% '갱신' 오퍼 판정용(daniel 2026-07-08 수익구조).
+ *   purchases(kind='premium'=평생+갱신 둘 다, owner_id=본인·RLS)의 **가장 최근** created_at.
+ *   ★내림차순인 이유: 갱신(premium_renew30)을 사면 새 purchases 행이 생겨 최신 구매일이 갱신됨 → 오퍼가 그 시점부터 1년 뒤로 미뤄짐(갱신 직후 오퍼 재노출 방지).
  *   ★평생 접근은 유지(is_premium 불변) — 이 날짜는 오직 '갱신 오퍼를 띄울지'(offerPremiumRenewal)에만 쓴다. 만료 강제 아님.
  * @returns ISO 문자열 또는 null(구매 이력 없음/미로그인).
  */
@@ -151,6 +152,6 @@ export async function fetchPremiumPurchasedAt(userId: string | null | undefined)
   if (!userId) return null;
   const { data } = await supabase.from('purchases')
     .select('created_at').eq('owner_id', userId).eq('kind', 'premium')
-    .order('created_at', { ascending: true }).limit(1).maybeSingle();
+    .order('created_at', { ascending: false }).limit(1).maybeSingle();
   return (data?.created_at as string | undefined) ?? null;
 }
