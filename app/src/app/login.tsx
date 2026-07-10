@@ -12,11 +12,13 @@ import { useAuth } from '../lib/useAuth';
 import { colors, space } from '../lib/theme';
 
 export default function Login() {
-  const { session } = useAuth();
+  const { isRegistered } = useAuth();
   const router = useRouter();
   const { t } = useTranslation();
 
-  if (session) return <Redirect href="/(app)" />;
+  // ★익명 세션이 항상 존재하므로 session 이 아닌 isRegistered 로 판정(daniel 07-11 버그: 익명 세션 때문에 로그인 화면에 도달 못 하고 홈으로 튕김).
+  //   등록 유저만 홈으로 리다이렉트 — 익명/미로그인은 로그인 화면(AuthScreen)을 볼 수 있어야 소셜 로그인으로 승격 가능.
+  if (isRegistered) return <Redirect href="/(app)" />;
 
   return (
     <View style={styles.container}>
