@@ -142,17 +142,30 @@ function startAuthOnce(): void {
  * 현재 로그인 세션·로딩 상태. 앱 전역 단일 스토어를 구독(가벼움).
  * - session: null=미로그인 / Session=로그인됨 · loading: 세션 복원 중(스플래시).
  */
+// ★등록 유저 판정(daniel 07-11 재수정) — is_anonymous 만으로 판정하면 **persist된 세션에 is_anonymous 가 undefined 일 때**
+//   `!undefined = true` 가 되어 익명인데도 '등록'으로 오판 → 로그인 화면이 홈으로 튕긴다(07-08 저장 익명세션에서 실제 발생).
+//   → **이메일/전화/identities 유무**로 판정(등록 유저는 반드시 이 중 하나 보유, 익명은 셋 다 없음). undefined 여도 안전하게 '미등록'(=로그인 화면 노출)으로 폴백.
+function userIsRegistered(u: any): boolean {
+  if (!u) return false;
+  if ((u.identities?.length ?? 0) > 0) return true; // 소셜/이메일 연결(익명 = 빈 배열)
+  if (u.email || u.phone) return true;               // 이메일·전화 보유
+  return u.is_anonymous === false;                   // 명시적으로 익명 아님(있을 때만 신뢰)
+}
+
+/**
+ * 현재 로그인 세션·로딩 상태. 앱 전역 단일 스토어를 구독(가벼움).
+ * - session: null=미로그인 / Session=로그인됨(익명 포함) · loading: 세션 복원 중(스플래시).
+ * - isRegistered: 등록(익명 아님) 유저 — 로그인 CTA·계정카드·공유/동기화 구분용. 구매·통변은 session(익명 포함)이면 됨(Apple 5.1.1).
+ */
 export function useAuth() {
   useEffect(() => { startAuthOnce(); }, []); // 최초 마운트 1회 초기화(이후 idempotent)
   const session = useSyncExternalStore(subscribe, getSession);
   const loading = useSyncExternalStore(subscribe, getLoading);
-  // ★isRegistered = 등록(익명 아님) 유저. 익명 세션이 상시 존재하므로 session!=등록 — 로그인 CTA·계정카드·공유/동기화는 이 값으로 구분.
-  //   구매·통변은 session(익명 포함)만 있으면 되고(Apple 5.1.1), 로그인 유도·크로스디바이스 UI만 isRegistered 로 가른다.
-  return { session, loading, isRegistered: !!session?.user && !(session.user as any).is_anonymous };
+  return { session, loading, isRegistered: userIsRegistered(session?.user) };
 }
 
 /** 훅 밖(스토어/유틸)에서 등록 여부 — 익명 세션은 false. */
-export function isRegisteredUser(): boolean { return !!_session?.user && !(_session.user as any).is_anonymous; }
+export function isRegisteredUser(): boolean { return userIsRegistered(_session?.user); }
 
-/** 현재 세션이 익명인지 — 로그인 시 linkIdentity(같은 uid 승격·데이터 보존) vs signInWithOAuth(신규/전환) 분기용. */
-export function isAnonSession(): boolean { return !!_session?.user && !!(_session.user as any).is_anonymous; }
+/** 현재 세션이 익명인지 — 로그인 시 linkIdentity(같은 uid 승격·데이터 보존) vs signInWithOAuth(신규/전환) 분기용. 세션은 있으나 미등록 = 익명. */
+export function isAnonSession(): boolean { return !!_session?.user && !userIsRegistered(_session.user); }
