@@ -16,6 +16,7 @@ import * as Linking from 'expo-linking';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../lib/supabase';
 import { isAnonSession } from '../lib/useAuth'; // 익명 세션 판정 — 로그인 시 linkIdentity(승격·데이터 보존) vs signInWithOAuth 분기(Apple 5.1.1)
+import { logEvent } from '../lib/backend/logger'; // ★로그인 진단(daniel 07-11: OAuth 버튼 무반응 원인 로그)
 import { colors, radius, space, shadow, font } from '../lib/theme';
 
 // ★크래시 근본수정(daniel 07-04): expo-web-browser 네이티브 모듈이 빌드에 링크 안 되면(Podfile.lock 누락) 정적 import·
@@ -63,11 +64,14 @@ export function AuthScreen() {
     const { data, error } = mode === 'link'
       ? await supabase.auth.linkIdentity({ provider, options: { redirectTo, skipBrowserRedirect: true } }) // 익명 세션에 소셜 연결(같은 uid·데이터 보존)
       : await supabase.auth.signInWithOAuth({ provider, options: { redirectTo, skipBrowserRedirect: true } });
+    logEvent('diag_oauth_call', { provider, mode, hasUrl: !!data?.url, err: error ? String(error.message ?? error.code ?? error) : null }); // ★진단: linkIdentity/signin 응답
     if (error) return { error };
     if (!data?.url) return { error: { message: t('common.error') } };
     const WB = webBrowser();
+    logEvent('diag_oauth_wb', { hasWB: !!WB }); // ★진단: expo-web-browser 네이티브 모듈 존재 여부(없으면 Linking 폴백)
     if (!WB) { await Linking.openURL(data.url); return undefined; } // 폴백: 네이티브 모듈 없으면 외부 브라우저 · 콜백 딥링크는 auth-callback 라우트가 처리
     const res = await WB.openAuthSessionAsync(data.url, redirectTo);
+    logEvent('diag_oauth_result', { resType: res?.type ?? 'null' }); // ★진단: 인앱 세션 결과(success/cancel/dismiss)
     if (res.type === 'success' && res.url) return await completeAuthFromUrl(res.url); // 성공 시 useAuth 가 자동 분기
     return undefined; // 취소 등
   }
@@ -77,6 +81,7 @@ export function AuthScreen() {
   async function signInWithOAuth(provider: 'google' | 'apple') {
     setLoading(true);
     const redirectTo = Linking.createURL('auth-callback'); // syncfortune://auth-callback
+    logEvent('diag_oauth_start', { provider, isAnon: isAnonSession(), redirectTo }); // ★진단: 버튼 탭 진입(무반응이면 이 로그부터 없을 것)
     try {
       if (isAnonSession()) {
         const r = await runOAuth(provider, 'link', redirectTo);

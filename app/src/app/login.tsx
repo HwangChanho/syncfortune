@@ -3,18 +3,27 @@
 // AuthScreen + 상단 뒤로가기(선택 로그인이라 취소 가능). 로그인 성공 시 useAuth →
 // (app)/_layout 가드가 본체 노출. 이미 로그인 상태면 홈으로.
 // ─────────────────────────────────────────────────────────────────────────
+import { useEffect } from 'react';
 import { Redirect, useRouter } from 'expo-router';
 import { View, Pressable, Text, StyleSheet } from 'react-native';
 import { PressableScale } from '../components/PressableScale';
 import { useTranslation } from 'react-i18next';
 import { AuthScreen } from '../screens/AuthScreen';
 import { useAuth } from '../lib/useAuth';
+import { logEvent } from '../lib/backend/logger'; // ★로그인 진단(daniel 07-11: 로그인 안 됨 원인 로그)
+import Constants from 'expo-constants'; // 빌드 번호(어느 빌드에서 재현 중인지 로그로 확정)
 import { colors, space } from '../lib/theme';
 
 export default function Login() {
-  const { isRegistered } = useAuth();
+  const { session, isRegistered } = useAuth();
   const router = useRouter();
   const { t } = useTranslation();
+
+  // ★진단 로그(daniel 07-11): /login 진입 시 isRegistered 판정과 세션 상세 → app_logs 로 원인 추적(리다이렉트로 화면 못 봄 vs 화면 뜸).
+  useEffect(() => {
+    const u: any = session?.user;
+    logEvent('diag_login_route', { build: Constants.nativeBuildVersion ?? '?', isRegistered, hasSession: !!session, isAnon: u?.is_anonymous ?? null, hasEmail: !!u?.email, ids: u?.identities?.length ?? null, willRedirect: isRegistered });
+  }, [isRegistered, session]);
 
   // ★익명 세션이 항상 존재하므로 session 이 아닌 isRegistered 로 판정(daniel 07-11 버그: 익명 세션 때문에 로그인 화면에 도달 못 하고 홈으로 튕김).
   //   등록 유저만 홈으로 리다이렉트 — 익명/미로그인은 로그인 화면(AuthScreen)을 볼 수 있어야 소셜 로그인으로 승격 가능.
