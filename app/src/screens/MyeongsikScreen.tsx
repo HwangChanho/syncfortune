@@ -43,20 +43,15 @@ import Svg, { Path, Rect, Circle, Text as SvgText, G } from 'react-native-svg';
 // 전통 표기 — 오른쪽이 년주: 시(왼) ← 일 ← 월 ← 년(오른쪽)
 const POS: PillarPos[] = ['시', '일', '월', '년'];
 
-// 만세력 카테고리 탭(daniel: 경쟁앱식 분류) — 원국/관계/오행십성/강약. '관계' 하위 = 합충·신살·운세.
-type MyeongTab = 'wonguk' | 'rel' | 'elem' | 'ziwei';  // (daniel) strength→ziwei: 자미두수 별도 탭. elem=오행십성+신강신약 통합
-type RelSub = 'hapchung' | 'sinsal' | 'unse';
+// 만세력 카테고리 탭(daniel 07-13 재편) — 사주원국(팔자+지장간+합충+신살길성 통합)/운세(대운·세운·월운·일운)/오행·강약/자미두수.
+type MyeongTab = 'wonguk' | 'rel' | 'elem' | 'ziwei';  // rel = 운세 전용(구 '사주관계' → 운세). 합충·신살은 wonguk으로 흡수.
 const MYEONG_TABS: { id: MyeongTab; label: string; desc: string }[] = [
-  { id: 'wonguk', label: '사주원국', desc: '태어난 연·월·일·시를 천간·지지 여덟 글자로 세운 것(팔자)과, 그 속에 숨은 기운(지장간)을 봐요.' },
-  { id: 'rel', label: '사주관계', desc: '여덟 글자끼리 서로 끌어당기거나(합) 부딪히는(충·형·해·파) 관계, 신살·길성, 그리고 시기별 운(운세)을 봐요.' },
+  { id: 'wonguk', label: '사주원국', desc: '태어난 연·월·일·시를 천간·지지 여덟 글자로 세운 것(팔자)과 그 속에 숨은 기운(지장간), 글자끼리 끌어당기고(합) 부딪히는(충·형·해·파) 관계, 그리고 신살·길성까지 한자리에서 봐요.' },
+  { id: 'rel', label: '운세', desc: '대운·세운·월운·일운으로 지금과 앞으로의 시기별 흐름(운세)을 봐요.' },
   { id: 'elem', label: '오행·강약', desc: '내 글자들이 목·화·토·금·수 다섯 기운 중 무엇에 쏠렸는지·그게 나에게 어떤 역할(십성)인지, 그리고 내 힘(일간)이 강한지 약한지·무엇으로 균형을 잡으면 좋은지 함께 봐요.' },
   { id: 'ziwei', label: '자미두수', desc: '사주와는 별개의 운명 체계예요. 태어난 시각으로 열두 자리(명궁·재물·관록·배우자 등)에 여러 별을 배치해, 삶의 각 영역에 어떤 기운이 드는지 봅니다. 사주를 보조해 교차로 참고해요(시각을 알아야 정확).' },
 ];
-const REL_SUBS: { id: RelSub; label: string }[] = [
-  { id: 'hapchung', label: '천간과 지지' }, { id: 'sinsal', label: '신살과 길성' }, { id: 'unse', label: '운세' },
-];
 let lastMyeongTab: MyeongTab = 'wonguk';   // 선택 탭 기억(세션 내 — 나갔다 와도 분류 유지, daniel)
-let lastRelSub: RelSub = 'hapchung';
 
 // 신강/신약 특징(신강약 섹션 탭 → 상세 시트). ★명리 stance = daniel 검수 슬롯. en/ja i18n 은 검수 후.
 const STRENGTH_INFO: { key: '신강' | '신약'; title: string; traits: string; strong: string; caution: string; yongsin: string }[] = [
@@ -101,10 +96,8 @@ function GzCell({ char, kind, size, scale = 1, onPress }: { char: string; kind: 
 export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }: { input: ChartInput | null; onReading?: () => void; onSinsal?: () => void; header?: ReactNode; whoName?: string | null }) {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<MyeongTab>(lastMyeongTab);
-  const [relSub, setRelSub] = useState<RelSub>(lastRelSub);
   const [catDescOpen, setCatDescOpen] = useState(false); // 카테고리 ? 설명 시트(daniel: 설명도 나오게)
   useEffect(() => { lastMyeongTab = activeTab; }, [activeTab]); // 선택 탭 기억 — 나갔다 와도 유지(daniel)
-  useEffect(() => { lastRelSub = relSub; }, [relSub]);
   const [strengthOpen, setStrengthOpen] = useState(false); // 신강·신약 특징 시트
   const [elemHidden, setElemHidden] = useState(false); // 오행분포에 지장간(支藏干) 오행 포함 토글(daniel)
   const [johuOpen, setJohuOpen] = useState(false); // 조후·음양 쏠림 시트(daniel)
@@ -413,16 +406,6 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
         </PressableScale>
       ))}
     </View>
-    {/* 관계 하위탭(daniel: 운세·신살은 관계 하위) — 천간과 지지(합충)·신살과 길성·운세 */}
-    {activeTab === 'rel' && (
-      <View style={styles.subTabBar}>
-        {REL_SUBS.map((s) => (
-          <PressableScale key={s.id} style={[styles.subTabBtn, relSub === s.id && styles.subTabBtnOn]} onPress={() => { setRelSub(s.id); haptic(); }}>
-            <Text style={[styles.subTabLabel, relSub === s.id && styles.subTabLabelOn]}>{s.label}</Text>
-          </PressableScale>
-        ))}
-      </View>
-    )}
     {/* 카테고리 ? 설명(daniel: 설명도 나오게) — 탭하면 이 분류가 무엇을 보는지 시트로 */}
     <PressableScale style={styles.catDescBtn} onPress={() => setCatDescOpen(true)}>
       <Text style={styles.catDescBtnTx}>ⓘ 이 분류는 무엇을 보나요?</Text>
@@ -476,14 +459,10 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
 
         </>
       )}
-      {/* ── 사주관계 1: 합충(천간과 지지) ── */}
-      {activeTab === 'rel' && relSub === 'hapchung' && (
+      {/* ── 사주원국 2: 천간과 지지(합충) 관계 — daniel 07-13: 원국 탭에 통합(차트는 위 part1이 이미 arcs로 렌더, 여기선 관계 리스트만) ── */}
+      {activeTab === 'wonguk' && (
         <>
-          {/* 명식 차트 + 합충선(daniel: 관계를 명식 위에서 시각적으로 — 아래 관계 리스트 항목을 탭하면 그 글자가 명식에서 강조됨) */}
-          {renderArcs(activeGanP, 'above')}
-          {renderPillars()}
-          {renderArcs(activeJiP, 'below')}
-          {/* 합충형해 토글 */}
+          {/* 합충형해 토글 — 위 명식 차트의 합충선(arcs)에 대응하는 관계 분석 리스트 */}
           {(ganLinks.length + jiLinks.length) > 0 && (
             <PressableScale 
               style={styles.linksToggleNew} 
@@ -695,8 +674,8 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
         </>
       )}
 
-      {/* ── 사주관계 3: 운세(대운/세운/월운/일진) — 관계 하위탭(daniel) ── */}
-      {activeTab === 'rel' && relSub === 'unse' && (
+      {/* ── 운세 탭(대운/세운/월운/일진) — daniel 07-13: 기존 '사주관계' 탭을 운세 전용으로 전환 ── */}
+      {activeTab === 'rel' && (
         <>
           {/* ★현재운세 보기(daniel 2026-07-08): 대운/세운/월운/일운을 모두 오늘자 인덱스로 리셋 → 오늘 기준 운세 바로 표시 */}
           <PressableScale
@@ -949,8 +928,8 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
         </>
       )}
 
-      {/* ── 사주관계 2: 신살과 길성 — 관계 하위탭(daniel) ── */}
-      {activeTab === 'rel' && relSub === 'sinsal' && (
+      {/* ── 사주원국 3: 신살과 길성 — daniel 07-13: 원국 탭에 통합(지장간 아래) ── */}
+      {activeTab === 'wonguk' && (
         <>
           {/* 신살·공망 — 원국 적중은 자리별 표(팔자처럼 칸), 운에서 오는 건 별도 분리 */}
           <Text style={styles.h}>{t('myeongsik.sinsal')}</Text>
