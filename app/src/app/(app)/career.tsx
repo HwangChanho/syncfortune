@@ -236,7 +236,10 @@ export default function CareerScreen() {
           {typeof reading.headline === 'string' && reading.headline.trim() ? (
             <Text style={{ fontSize: fs(19), fontWeight: '800', color: colors.ju, marginBottom: space(3), lineHeight: fs(26) }}>{reading.headline}</Text>
           ) : null}
-          {SECTIONS.map((s) => (typeof reading[s.key] === 'string' && reading[s.key] ? (
+          {/* ★근본 '풀이 안 보임'(daniel 07-11): base 폴백 형식이면 구조화 섹션 키가 비어 화면이 텅 빔 → base 있으면 통째로 표시. */}
+          {typeof reading.base === 'string' && reading.base.trim() ? (
+            <View style={[styles.card, styles.cardAccent]}><Text style={[styles.body, bodyDyn]}>{reading.base}</Text></View>
+          ) : SECTIONS.map((s) => (typeof reading[s.key] === 'string' && reading[s.key] ? (
             <View key={s.key} style={[styles.card, styles.cardAccent]}>
               {CAREER_IMG[s.key] ? <ExpoImage source={CAREER_IMG[s.key]} style={styles.secImg} contentFit="cover" cachePolicy="memory-disk" transition={150} /> : null}
               <Text style={styles.secLabel}>{t(s.tk, s.def)}</Text>

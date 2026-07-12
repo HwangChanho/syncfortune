@@ -264,6 +264,10 @@ export default function NewYearScreen() {
             {typeof data.headline === 'string' && data.headline.trim() ? (
               <Text style={{ fontSize: fs(19), fontWeight: '800', color: colors.ju, marginBottom: space(3), lineHeight: fs(26) }}>{data.headline}</Text>
             ) : null}
+            {/* ★근본 '풀이 안 보임'(daniel 07-11): base 프로즈만 오면(JSON 파싱 폴백) 명명 키(keyword/yearNature/분야…)가 전부 비어 본문 텅 빔 → base 통째로 표시. */}
+            {typeof data.base === 'string' && data.base.trim() ? (
+              <View style={styles.card}><Text style={[styles.body, { fontSize: fs(15), lineHeight: fs(26) }]}>{data.base}</Text></View>
+            ) : null}
             {/* 올해의 키워드 + 총평 */}
             {typeof data.keyword === 'string' && (
               <View style={styles.keyCard}>

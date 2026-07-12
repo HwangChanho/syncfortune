@@ -79,18 +79,26 @@ export default function RegisterRoute() {
           catch (e) { Alert.alert('!', (e as Error).message); return; }
           proceed(input); return;
         }
-        // 본인(self)은 하나만 — 이미 있으면 경고 + 변경(교체) 여부 확인(daniel). 변경=기존 본인 명식 교체.
+        // ★본인(self)은 하나만 — 이미 있으면 기존 본인을 '기타'로 *강등*해 리스트에 보존하고, 이 명식을 새 본인으로 *추가*한다(daniel 2026-07-12).
+        //   (옛 동작=updateChart 로 기존 본인을 새 사람 데이터로 덮어써 소실됐음 → 강등+추가로 두 명식 모두 유지.)
         if ((input.relation ?? 'self') === 'self') {
           const existingSelf = (await listCharts()).find((c) => c.relation === 'self');
           if (existingSelf) {
             Alert.alert(
               t('register.selfExistsTitle', '본인 명식이 이미 있어요'),
-              t('register.selfExistsMsg', '본인 명식은 하나만 둘 수 있어요. 이 명식으로 변경(교체)할까요?'),
+              t('register.selfExistsMsg', "본인 명식은 하나만 둘 수 있어요. 기존 본인 명식은 '기타'로 옮기고 이 명식을 본인으로 등록할까요?"),
               [
                 { text: t('common.cancel', '취소'), style: 'cancel' },
-                { text: t('register.selfReplace', '변경'), onPress: async () => {
-                  try { await updateChart(existingSelf.id, input); await setRepresentative(existingSelf.id); }
-                  catch (e) { Alert.alert('!', (e as Error).message); return; }
+                { text: t('register.selfReplace', '본인으로 등록'), onPress: async () => {
+                  try {
+                    // 기존 본인 = 삭제/덮어쓰기 대신 '기타'로 강등(생년월일 등 원본 그대로 보존) → 리스트에 남는다.
+                    await updateChart(existingSelf.id, { ...existingSelf.input, label: existingSelf.label, relation: '기타' });
+                    const id = await addChart(input, { isPro: isPremium }); // 새 명식을 본인으로 추가
+                    await setRepresentative(id);
+                  } catch (e) {
+                    if (e instanceof ChartLimitError) { showLimit(e.limit, input); return; } // 한도 시 광고/구매 안내
+                    Alert.alert('!', (e as Error).message); return;
+                  }
                   proceed(input);
                 } },
               ],

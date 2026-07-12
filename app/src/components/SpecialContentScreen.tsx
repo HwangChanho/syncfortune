@@ -385,7 +385,10 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
         {typeof reading.headline === 'string' && reading.headline.trim() ? (
           <Text style={{ fontSize: fs(19), fontWeight: '800', color: themeColor, marginBottom: space(3), lineHeight: fs(26) }}>{reading.headline}</Text>
         ) : null}
-        {sections.map((s, i) => (typeof reading[s.key] === 'string' && reading[s.key] ? (
+        {/* ★근본 '풀이 안 보임'(daniel 07-11): LLM이 구조화 JSON을 못 내면 Edge가 {base:텍스트}로 폴백 → 구조화 섹션 키가 비어 화면이 텅 빔. base 있으면 통째로 표시(무표시 방지). */}
+        {typeof reading.base === 'string' && reading.base.trim() ? (
+          <Animated.View style={[styles.card, { borderLeftColor: themeColor }, styles.cardAccent, cardAnim(reveal, 0, 1)]}><Text style={[styles.body, bodyDyn]}>{reading.base}</Text></Animated.View>
+        ) : sections.map((s, i) => (typeof reading[s.key] === 'string' && reading[s.key] ? (
           <View key={s.key}>
             {/* 그룹 구분 헤더(daniel: 별자리/점성술 섹터 분리) — groupTitle 있으면 카드 위 divider+제목 */}
             {s.groupTitle ? <Text style={[styles.groupTitle, { color: themeColor }, dynStyles.groupTitle]}>{s.groupTitle}</Text> : null}

@@ -764,20 +764,27 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
           if (!links.length) return null;
           const STEP = 16, H = links.length * STEP + 14, reach = dir === 'above' ? H : 0;
           const dash = dir === 'above' ? '3 2' : undefined;
+          // ★라벨 양옆 잘림 방지(daniel 07-11): SVG 폭 밖으로 라벨이 넘으면 뷰포트가 잘라낸다. 폭에 좌우 여백(PAD)을 주고
+          //   라벨(+연결선 갭)을 [lw/2, W-lw/2] 로 clamp 해 어느 칸의 라벨이든 안 잘리게. 아크 다리(xa·xb)는 칸 중앙 그대로.
+          const PAD = 8;
+          const svgW = expandCols.length * COLW + PAD * 2;
           const items = links.map((it, i) => {
             // off 없음 — 칸 '중앙'에서 출발(daniel: 대운/세운/월운/일운 토글로 컬럼 수가 바뀌어도 칸 중앙 정렬). 겹침은 다리 높이로 구분.
-            const xs = (it.members as string[]).map((m) => xOfCol(m)).sort((a, b) => a - b); // 3자 국 포함 전 멤버
+            const xs = (it.members as string[]).map((m) => xOfCol(m) + PAD).sort((a, b) => a - b); // 3자 국 포함 전 멤버(+PAD 오프셋)
             const xa = xs[0], xb = xs[xs.length - 1];
             const legY = dir === 'above' ? 6 + i * STEP : H - (6 + i * STEP);
             const lbl = linkLabel(it);
-            return { xa, xb, mids: xs.slice(1, -1), mid: (xa + xb) / 2, legY, col: linkColor(it), lbl, lw: lbl.length * 11 + 6 };
+            const lw = lbl.length * 12 + 8; // 라벨 배경 폭(한글 넉넉히 — 텍스트가 배경/뷰포트를 넘지 않게)
+            const mid = (xa + xb) / 2;
+            const lx = Math.max(lw / 2 + 1, Math.min(mid, svgW - lw / 2 - 1)); // 라벨을 SVG 안쪽으로 clamp(양옆 잘림 방지)
+            return { xa, xb, mids: xs.slice(1, -1), mid, lx, legY, col: linkColor(it), lbl, lw };
           });
           return (
-            <Svg width={expandCols.length * COLW} height={H}>
+            <Svg width={svgW} height={H} style={{ marginLeft: -PAD }}>
               {items.map((o, i) => (
                 <G key={`p${i}`}>
-                  <Path d={`M ${o.xa} ${reach} L ${o.xa} ${o.legY} L ${o.mid - o.lw / 2} ${o.legY}`} stroke={o.col} strokeWidth={1.5} fill="none" strokeDasharray={dash} />
-                  <Path d={`M ${o.mid + o.lw / 2} ${o.legY} L ${o.xb} ${o.legY} L ${o.xb} ${reach}`} stroke={o.col} strokeWidth={1.5} fill="none" strokeDasharray={dash} />
+                  <Path d={`M ${o.xa} ${reach} L ${o.xa} ${o.legY} L ${o.lx - o.lw / 2} ${o.legY}`} stroke={o.col} strokeWidth={1.5} fill="none" strokeDasharray={dash} />
+                  <Path d={`M ${o.lx + o.lw / 2} ${o.legY} L ${o.xb} ${o.legY} L ${o.xb} ${reach}`} stroke={o.col} strokeWidth={1.5} fill="none" strokeDasharray={dash} />
                   {o.mids.map((mx, k) => (
                     <Path key={k} d={`M ${mx} ${reach} L ${mx} ${o.legY}`} stroke={o.col} strokeWidth={1.5} fill="none" strokeDasharray={dash} />
                   ))}
@@ -785,8 +792,8 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
               ))}
               {items.map((o, i) => (
                 <G key={`l${i}`}>
-                  <Rect x={o.mid - o.lw / 2} y={o.legY - 7} width={o.lw} height={14} fill={colors.bg} rx={2} />
-                  <SvgText x={o.mid} y={o.legY + 3} fill={o.col} fontSize={9} fontWeight="700" textAnchor="middle">{o.lbl}</SvgText>
+                  <Rect x={o.lx - o.lw / 2} y={o.legY - 7} width={o.lw} height={14} fill={colors.bg} rx={2} />
+                  <SvgText x={o.lx} y={o.legY + 3} fill={o.col} fontSize={9} fontWeight="700" textAnchor="middle">{o.lbl}</SvgText>
                 </G>
               ))}
             </Svg>
@@ -867,16 +874,21 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
             <>
               <Text style={styles.luckSub}>{lc.startAge}세 대운 · 세운 (탭하면 위 명식에 반영)</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} ref={seunScrollRef} onLayout={(e) => { centerM.current.seun.v = e.nativeEvent.layout.width; recenter('seun', seunScrollRef); }} onContentSizeChange={() => recenter('seun', seunScrollRef)} style={styles.luckScroll} contentContainerStyle={styles.luckScrollC}>
-                {lc.annuals.map((a: any, j: number) => (
+                {lc.annuals.map((a: any, j: number) => {
+                  // ★세운 만 나이(daniel 2026-07-12) — 대운 입운 만나이(startAge) + 대운 내 연차(위 seunAge 와 동일식·엔진 나이모델 일관)
+                  const seunAgeJ = (typeof lc.startAge === 'number' && lc.annuals?.[0]) ? lc.startAge + (a.year - lc.annuals[0].year) : null;
+                  return (
                   <PressableScale key={j} onPress={() => { setSelSeun(j); setSelMonth(0); }} onLayout={a.year === s.annual?.year ? (e) => { centerM.current.seun.x = e.nativeEvent.layout.x; centerM.current.seun.w = e.nativeEvent.layout.width; recenter('seun', seunScrollRef); } : undefined} style={[styles.seunCard, selSeun === j && styles.luckCardSel, a.year === s.annual?.year && styles.seunCur]}>
                     <Text style={styles.seunYear}>{a.year}</Text>
+                    {seunAgeJ != null && <Text style={styles.seunAge}>{seunAgeJ}세</Text>}
                     <Text style={styles.seunTg}>{a.stemTenGod}</Text>
                     <GzCell char={a.stem} kind="stem" size="xs" />
                     <GzCell char={a.branch} kind="branch" size="xs" />
                     <Text style={styles.seunTg}>{branchTenGod(dm, a.branch)}</Text>
                     <Text style={styles.seunStage}>{twelveStage(dm, a.branch)}</Text>
                   </PressableScale>
-                ))}
+                  );
+                })}
               </ScrollView>
             </>
           )}
@@ -1287,6 +1299,8 @@ const makeStyles = (fs: (n: number) => number) => { const f = scaledFont(fs); re
   todayBtnTx: { ...f.caption, color: colors.ju, fontWeight: '700' },
   seunCur: { borderWidth: 1.5, borderColor: colors.ju },
   seunYear: { fontSize: fs(9), color: colors.inkFaint },
+  seunAge: { fontSize: fs(8), color: colors.inkSoft, fontWeight: '600' },   // ★세운 만 나이(daniel 2026-07-12) — 연도 아래
+
   seunGz: { fontSize: fs(14), fontWeight: '700' },
   seunTg: { fontSize: fs(8), color: colors.inkSoft },
   seunStage: { fontSize: fs(8), color: colors.inkFaint, fontWeight: '600' },   // 12운성

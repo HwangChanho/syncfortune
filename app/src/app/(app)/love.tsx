@@ -166,7 +166,10 @@ export default function LoveScreen() {
   async function generate(idArg?: string, ziweiArg?: any) {
     const id = idArg ?? chartId;
     const zw = ziweiArg ?? c?.ziwei;
-    if (!id || !zw || busy) return;
+    if (!id || busy) return;
+    // ★자미(ziwei) 누락 무피드백 종료 방지(daniel 07-11 '쿠폰으로 열기→멈춤·풀이 안 나옴'): 애정 흐름은 사주×자미 교차가 필수인데
+    //   c.ziwei(iztro 지연계산)가 null/실패면 옛 코드는 여기서 로그·안내 없이 조용히 return 했다 → 사용자엔 '멈춤'. 로그+안내로 가시화.
+    if (!zw) { logEvent('love_gen_no_ziwei', { chartId: id }, 'error'); Alert.alert(t('love.gateTitle'), t('love.needZiwei', '이 명식으로는 애정 흐름을 풀 수 없어요. 태어난 시가 정확해야 자미 교차 분석이 가능합니다.')); return; }
     // ② 크로스마운트 이중 LLM 방지 — 이미 이 명식 love 가 생성 중이면 2차 호출하지 않는다(과금 0·ReadingScreen genActive 와 동일 계약).
     const lockKey = `love:${id}`;
     const myGen = genSeq.current;    // ① 이 생성의 세대 스냅샷(읽기만) — 재로드/명식전환(load effect)이 genSeq 를 올리면 stale. 동시 생성끼리 서로 무효화하지 않게 '증가' 아닌 '읽기'.
@@ -174,10 +177,12 @@ export default function LoveScreen() {
     const isStale = () => myGen !== genSeq.current || myChart !== chartIdRef.current; // ① 결과 쓰기 직전 대조 — 남의 명식 위에 setReading 차단
     // A4(daniel 2026-07-08): 이미 다른 마운트가 생성 중(잠금 점유)이면 2차 LLM은 막되(과금 0), 로딩+캐시폴링으로 회수(무피드백 멈춤 방지).
     if (!acquireGen(lockKey)) {
+      logEvent('love_gen_locked', { chartId: id }); // ★진단(daniel 07-11): 락 점유로 폴링 진입 — 누수면 genLock stale-timeout(150s)이 다음 시도에 회수
       setBusy(true);
       const cached = await pollCachedReading(id);
       if (isStale()) return;
       if (cached) setReading(cached);
+      else Alert.alert(t('love.gateTitle'), t('love.genDelayed', '풀이 생성이 지연되고 있어요. 잠시 후 다시 시도해 주세요.')); // ★폴링 실패 무피드백 멈춤 방지
       setBusy(false);
       return;
     }
@@ -293,7 +298,13 @@ export default function LoveScreen() {
           {typeof reading.headline === 'string' && reading.headline.trim() ? (
             <Text style={{ fontSize: fs(19), fontWeight: '800', color: colors.ju, marginBottom: space(3), lineHeight: fs(26) }}>{reading.headline}</Text>
           ) : null}
-          {SECTIONS.map((s, i) => (typeof reading[s.key] === 'string' && reading[s.key] ? (
+          {/* ★근본 '풀이 안 보임'(daniel 07-11): LLM이 구조화 JSON(idealType 등)을 못 내면(길이초과 등 파싱 실패) Edge가 {base:텍스트}로
+              폴백하는데, 옛 코드는 base 를 안 그려 결정론 게이지·그래프만 뜨고 본문이 통째로 비었다. base 있으면 통째로 표시(무표시 방지·ReadingScreen 동일 패턴), 없으면 구조화 섹션. */}
+          {typeof reading.base === 'string' && reading.base.trim() ? (
+            <Animated.View style={[styles.card, styles.cardAccent, { borderLeftColor: LOVE_PINK }, cardAnim(reveal, 0, 1)]}>
+              <Text style={[styles.body, bodyDyn]}>{reading.base}</Text>
+            </Animated.View>
+          ) : SECTIONS.map((s, i) => (typeof reading[s.key] === 'string' && reading[s.key] ? (
           <Animated.View key={s.key} style={[styles.card, styles.cardAccent, { borderLeftColor: LOVE_PINK }, cardAnim(reveal, i, SECTIONS.length)]}>
             <Text style={[styles.secLabel, { color: LOVE_PINK }]}>{t(s.tk)}</Text>
             <Text style={[styles.body, bodyDyn]}>{reading[s.key]}</Text>
