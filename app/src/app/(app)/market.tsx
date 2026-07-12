@@ -334,7 +334,7 @@ export default function MarketRoute() {
 
       {/* ── 섹션 B: 개별 구매 전용(프리미엄 미포함) ── isPremium 무관 항상 개별 구매(기존) */}
       <Text style={styles.sectionH}>{t('market.sectionIndividual', '◆ 개별 구매 전용 · 프리미엄 미포함')}</Text>
-      <Text style={styles.sectionSub}>{t('market.sectionIndividualSub', '아래 항목은 프리미엄에 포함되지 않아 따로 구매해요.')}</Text>
+      <Text style={styles.sectionSub}>{t('market.sectionIndividualSub', '아래 항목은 프리미엄에 포함되지 않아 개별 구매해야 합니다.')}</Text>
       {/* ★인기 외곽칸(daniel 07-08) — 개별 섹션 상단에 수요 많은 유료 콘텐츠를 박스로 강조(홈 '인기'와 동일 개념). 아래 목록에선 중복 제외. */}
       <View style={styles.hotBox}>
         <Text style={styles.hotBoxH}>{t('market.hotSection', '🔥 인기')}</Text>

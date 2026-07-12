@@ -7,7 +7,7 @@
 import { supabase } from '../supabase';
 import type { CreditKind } from '../billing/coupons';
 
-export type AdminUser = { id: string; email: string; is_premium: boolean; is_admin: boolean; created_at: string; chart_count: number; reading_count: number; paid_total: number };
+export type AdminUser = { id: string; email: string; is_premium: boolean; is_admin: boolean; created_at: string; chart_count: number; reading_count: number; paid_total: number; credits: number };
 
 /** 내가 관리자인지(profiles.is_admin) — 화면 진입 노출용. 실제 권한은 서버 RPC가 강제. */
 export async function isAdmin(): Promise<boolean> {

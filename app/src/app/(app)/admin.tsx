@@ -15,6 +15,7 @@ import { colors, radius, space, shadow, font } from '../../lib/theme';
 import { useRouter } from 'expo-router'; // 비용분석 화면 이동
 import { supabase } from '../../lib/supabase'; // 테스트/관리자 모드 RPC + 프로필 로드
 import { setAdTestMode } from '../../lib/core/ads'; // 테스트모드 → 테스트광고 즉시 반영
+import { isOnboardingEnabled, setOnboardingEnabled } from '../../components/Onboarding'; // ★관리자 온보딩 토글(daniel 07-12)
 import { useSubscription } from '../../lib/billing/subscription'; // 관리자모드 토글 후 프리미엄 새로고침
 
 // 초 → 사람이 읽는 시간(평균 사용시간 표시).
@@ -209,6 +210,7 @@ export default function AdminRoute() {
   const { refresh } = useSubscription();
   const [testMode, setTestMode] = useState(false); // 통변 mock(API 미호출)
   const [adminMode, setAdminMode] = useState(true); // god ON / 일반계정 OFF
+  const [onbOn, setOnbOn] = useState(false); // 온보딩 노출 여부(관리자 토글·로컬 SecureStore FLAG, daniel 07-12)
 
   async function reload() { setUsers(await adminListUsers()); }
   useEffect(() => { isAdmin().then((a) => { setAllowed(a); if (a) { reload(); adminStats().then(setStats); } }); }, []);
@@ -216,6 +218,7 @@ export default function AdminRoute() {
   useEffect(() => { setDetail(null); setGiftMsg(null); setUsage(null); setVisits([]); setShowCharts(false); if (sel) { adminUserDetail(sel.id).then(setDetail).catch(() => {}); adminUserUsage(sel.id).then(setUsage).catch(() => {}); adminUserContentVisits(sel.id).then(setVisits).catch(() => {}); } }, [sel]);
   // 테스트/관리자 모드 현재값 로드(프로필) — 설정에서 이동(daniel 07-01)
   useEffect(() => { supabase.auth.getUser().then(({ data }) => { if (data.user) supabase.from('profiles').select('test_mode, admin_mode').eq('id', data.user.id).maybeSingle().then(({ data: p }) => { setTestMode(!!p?.test_mode); setAdminMode(p?.admin_mode !== false); }); }).catch(() => {}); }, []);
+  useEffect(() => { isOnboardingEnabled().then(setOnbOn).catch(() => {}); }, []); // 온보딩 노출 여부 로드(관리자 토글)
 
   if (allowed === null) return <View style={styles.center}><ActivityIndicator color={colors.ju} /></View>;
   if (allowed === false && !__DEV__) return <View style={styles.center}><Text style={styles.denied}>관리자만 접근할 수 있어요.</Text></View>;
@@ -286,6 +289,12 @@ export default function AdminRoute() {
       }}>
         <Text style={styles.adminLinkTx}>관리자 모드 {adminMode ? '— 켜짐 (프리미엄+전부 unlock)' : '— 꺼짐 (일반계정처럼)'}</Text>
       </PressableScale>
+      {/* ★온보딩 토글(daniel 07-12·관리자 전용) — 켜기 = 첫 실행 온보딩 즉시 재노출(테스트) / 끄기 = 숨김. 로컬 SecureStore. */}
+      <PressableScale style={[styles.adminLink, onbOn && styles.adminLinkOn]} onPress={() => {
+        const next = !onbOn; setOnboardingEnabled(next); setOnbOn(next); // on=이력삭제+즉시 재노출 / off=봤음 처리
+      }}>
+        <Text style={styles.adminLinkTx}>온보딩 {onbOn ? '— 켜짐 (지금 재노출·다음 실행에도)' : '— 꺼짐 (숨김)'}</Text>
+      </PressableScale>
       {/* 전체 현황 대시보드(daniel 07-07 대폭 확장) — 규모·매출/원가/순익 실측·풀이분포·인기콘텐츠·일별추이·상위사용자 */}
       {stats && <Dashboard stats={stats} />}
       <Text style={styles.h}>유저 ({users.length})</Text>
@@ -299,7 +308,8 @@ export default function AdminRoute() {
               <Text style={styles.meta}>{String(u.created_at).split('T')[0]} · 명식 {u.chart_count ?? 0} · 통변 {u.reading_count ?? 0}{(u.paid_total ?? 0) > 0 ? ` · 결제 ₩${u.paid_total.toLocaleString()}` : ''}{u.is_admin ? ' · 관리자' : ''}</Text>
             </View>
             {/* 프리미엄 여부 = 모든 계정에 명확히(daniel 07-06: 비프리미엄은 공백이라 '여부' 안 보임 → 프리미엄/일반 둘 다 pill) */}
-            <Text style={[styles.premBadge, !u.is_premium && styles.premBadgeOff]}>{u.is_premium ? '프리미엄' : '일반'}</Text>
+            {/* 3단 구분(daniel 07-12): 프리미엄 / 이용권 N장 / 일반 */}
+            <Text style={[styles.premBadge, u.is_premium ? null : ((u.credits ?? 0) > 0 ? styles.premBadgeCredit : styles.premBadgeOff)]}>{u.is_premium ? '프리미엄' : ((u.credits ?? 0) > 0 ? `이용권 ${u.credits}` : '일반')}</Text>
           </PressableScale>
         );
       })}
@@ -411,6 +421,7 @@ const styles = StyleSheet.create({
   meta: { ...font.caption, color: colors.inkFaint, marginTop: 2 },
   premBadge: { ...font.caption, color: colors.badgeGold, fontWeight: '800', backgroundColor: colors.juSoft, paddingHorizontal: space(2.5), paddingVertical: space(1), borderRadius: radius.sm, overflow: 'hidden' },
   premBadgeOff: { color: colors.inkFaint, backgroundColor: colors.sunk }, // 일반 계정 = 은은한 muted pill(프리미엄 골드와 시각 구분·라이트다크 자동)
+  premBadgeCredit: { color: colors.ju, backgroundColor: 'transparent', borderWidth: 1, borderColor: colors.juLine }, // 이용권 보유(비프리미엄) = 골드 아웃라인(프리미엄=골드필·일반=muted 와 3단 구분·daniel 07-12)
   giftPanel: { marginTop: space(5), padding: space(4), borderRadius: radius.md, backgroundColor: colors.card, borderWidth: 1.5, borderColor: colors.ju, ...shadow.card },
   giftHead: { ...font.body, color: colors.ink, fontWeight: '800', marginBottom: space(3) },
   detailBox: { backgroundColor: colors.sunk, borderRadius: radius.sm, padding: space(3), marginBottom: space(4) },
