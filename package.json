@@ -14,7 +14,7 @@
     "check:audit:release": "node scripts/audit-guard.mjs --release",
     "check:credit": "node scripts/check-credit-drift.mjs",
     "check:engine": "npm run verify:engine && npm run guards && npm run check:golden",
-    "check:golden": "tsx interpretation/engine/ipmyoGaego.goldenset.ts && tsx interpretation/engine/wealthTiming.goldenset.ts && tsx interpretation/engine/yongsinApprox.validate.ts && tsx interpretation/engine/compatRho.validate.ts",
+    "check:golden": "tsx interpretation/engine/ipmyoGaego.goldenset.ts && tsx interpretation/engine/wealthTiming.goldenset.ts && tsx interpretation/engine/yongsinApprox.validate.ts && tsx interpretation/engine/compatRho.validate.ts && tsx interpretation/engine/careerReport.validate.ts",
     "test:flows": "tsx scripts/test-reading-gate.ts",
     "preflight": "npm run typecheck && npm run check:prompts && npm run test:flows && npm run check:audit && npm run check:credit && npm run check:engine",
     "preflight:release": "npm run preflight && npm run check:audit:release",
