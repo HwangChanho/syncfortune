@@ -83,6 +83,7 @@ export default function AppLayout() {
         <Stack.Screen name="mission" options={{ headerTitle: '' }} />
         <Stack.Screen name="persona" options={{ headerTitle: '' }} />
         <Stack.Screen name="egenteto" options={{ headerTitle: '' }} />
+        <Stack.Screen name="coach" options={{ headerShown: false }} />
         <Stack.Screen name="joseonjob" options={{ headerTitle: '' }} />
         <Stack.Screen name="lovestyle" options={{ headerTitle: '' }} />
         <Stack.Screen name="bok" options={{ headerTitle: '' }} />

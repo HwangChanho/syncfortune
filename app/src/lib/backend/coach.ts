@@ -1,0 +1,43 @@
+// app/src/lib/backend/coach.ts — AI 자기이해 코치 Q&A 호출(daniel 2026-07-12)
+// ─────────────────────────────────────────────────────────────────────────
+// 독립 대화형(풀이 종속 아님) — 사용자가 자신에 대해 궁금한 점을 물으면 그 사람의 차트에 근거해 답한다.
+//   Edge interpret 의 coach 분기 사용(buildFollowupPrompt reading={} 재사용). 캐시 대신 reading_followups(category='coach') 누적.
+//   게이트=서버(Edge) 판정: 비프리미엄 무료 일일 N 초과 시 needPremium. 프리미엄=무제한.
+// ─────────────────────────────────────────────────────────────────────────
+import { supabase } from '../supabase';
+import { appLang } from '../i18n';
+import { invokeFail } from './interpretResult'; // 방어: 일시적 불가/오류 친화 처리
+
+export type CoachTurn = { question: string; answer: string };
+
+// Edge 코치 응답: 답변 or 게이트(무료 일일 소진 → 프리미엄 유도)
+export type CoachResult =
+  | { kind: 'answer'; answer: string }
+  | { kind: 'needPremium'; used: number; dailyLimit: number }
+  | { kind: 'error'; message: string };
+
+/** 코치 질문 전송 → Edge(coach 분기). chartId=서버 chart_id(본인 차트). */
+export async function askCoach(chartId: string, question: string): Promise<CoachResult> {
+  try {
+    const { data, error } = await supabase.functions.invoke('interpret', {
+      body: { chartId, coach: true, question, lang: appLang() },
+    });
+    if (data?.needPremium) return { kind: 'needPremium', used: data.used ?? 0, dailyLimit: data.dailyLimit ?? 3 };
+    const fail = invokeFail(data, error); // 일시적 불가·오류 → 친화 메시지(원문 non-2xx 노출 방지)
+    if (fail) return { kind: 'error', message: fail.message };
+    if (typeof data?.answer === 'string') return { kind: 'answer', answer: data.answer };
+    return { kind: 'error', message: '응답을 받지 못했습니다.' };
+  } catch (e) {
+    return { kind: 'error', message: (e as Error).message };
+  }
+}
+
+/** 이 차트의 지난 코치 대화 로드(RLS 본인만·시간순). 화면 재진입 시 히스토리 복원. */
+export async function loadCoachHistory(chartId: string): Promise<CoachTurn[]> {
+  const { data } = await supabase
+    .from('reading_followups')
+    .select('question, answer, created_at')
+    .eq('chart_id', chartId).eq('category', 'coach')
+    .order('created_at', { ascending: true });
+  return (data ?? []).map((r: any) => ({ question: r.question, answer: r.answer }));
+}

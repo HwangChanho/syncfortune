@@ -16,6 +16,7 @@ import { supabase } from '../../lib/supabase';
 import { showRewardedAd, adTestMode } from '../../lib/core/ads'; // 무료 온디바이스 콘텐츠 진입 보상형 광고(오늘/이달 제외)
 import { isAdmin } from '../../lib/core/admin'; // 관리자·프리미엄 = 무료 진입 광고 제외
 import { ChartPicker } from '../../components/ChartPicker';
+import { SelfUnderstandingHero } from '../../components/SelfUnderstandingHero'; // ★4.3: 홈 최상단 자기이해 히어로(성향분석 첫 경험)
 import { getDailyFortune, dailyHeadline, dailyPreview } from '../../lib/content/dailyFortune';
 import { stemElement, branchElement, elementColor, elementText } from '../../lib/engine/ohaeng'; // 오늘의 기운 = 오행색 네모 한자
 import { useGenProgress, clearGenProgress } from '../../lib/backend/genProgress'; // 풀이 진행률(다중·route별, 풀이중 홈 나가도 % — daniel)
@@ -55,13 +56,8 @@ const priceLabel = (key: string) => {
 //   · 무료: 온디바이스·룰(API 0). · 프리미엄: 사주·자미 2허브(각 풀이·타임라인·궁합). · 콘텐츠: 무료+유료 혼합.
 //   명식 등록·전환은 상단 ChartPicker(그리드 제외).
 const SECTIONS: Section[] = [
-  { key: 'free', titleKey: 'menu.secFree', items: [
-    { key: 'manse', labelKey: 'menu.manse', descKey: 'menu.manseDesc', image: require('../../../assets/icons/manse.jpg'), route: '/charts', ready: true },
-    { key: 'today', labelKey: 'menu.today', descKey: 'menu.todayTileDesc', image: require('../../../assets/icons/today.jpg'), route: '/today', ready: true },
-    { key: 'month', labelKey: 'menu.month', descKey: 'menu.monthTileDesc', image: require('../../../assets/icons/month.jpg'), route: '/month', ready: true },
-    { key: 'dayPillar', labelKey: 'menu.dayPillar', descKey: 'menu.dayPillarDesc', image: require('../../../assets/icons/dayPillar.jpg'), route: '/dayPillar', ready: true },
-  ] },
-  // 프리미엄 = 사주·자미 2허브(각 허브 안에 원국풀이·타임라인 큰 카드) + 궁합 독립(사주+자미 교차, daniel).
+  // ★자기이해 먼저(App Store 4.3, daniel 07-11): 홈이 '오늘의 운세'로 시작하지 않게 — 사주·자미 정밀분석('나는 어떤 사람인가')을 최상단으로.
+  //   프리미엄 = 사주·자미 2허브(각 허브 안에 원국풀이·타임라인 큰 카드) + 궁합 독립(사주+자미 교차, daniel).
   { key: 'premium', titleKey: 'menu.secPremium', descKey: 'menu.secPremiumDesc', items: [
     // premium 섹션 5종 — creditKey 부여(배지=badgeFor 명식별 상태: 프리미엄「무제한」·풀이있음「풀이있음·만료일」·쿠폰「쿠폰 N장」·그 외 개별가, daniel 07-08).
     { key: 'saju', labelKey: 'menu.saju', descKey: 'menu.sajuDesc', image: require('../../../assets/icons/premium.jpg'), route: '/reading', ready: true, premium: true, creditKey: 'reading' },        // 허브 제거 → 원국풀이 직접 진입(daniel 07-01)
@@ -70,6 +66,13 @@ const SECTIONS: Section[] = [
     { key: 'timeline', labelKey: 'menu.timeline', descKey: 'menu.timelineDesc', image: require('../../../assets/icons/timeline.jpg'), route: '/timeline', ready: true, premium: true, creditKey: 'timeline' }, // 연도별 인생 타임라인 = 프리미엄 4종(사주·자미·궁합·타임라인) — 홈 리스트 누락 수정(daniel 07-02)
     // 신규(daniel 2026-07-02): 자식운 = 프리미엄 5번째 콘텐츠(프리미엄 무료·비프리미엄 개별 유료). premium.jpg 아이콘 재사용(전용 이미지 추후).
     { key: 'child', labelKey: 'menu.child', descKey: 'menu.childDesc', image: require('../../../assets/icons/child.jpg'), route: '/child', ready: true, premium: true, creditKey: 'child' },
+  ] },
+  // 오늘·명식(만세력·오늘/이달의 운세·일주) — 자기이해 섹션 아래로(daniel 07-11: 홈이 '오늘의 운세'로 시작하지 않게).
+  { key: 'free', titleKey: 'menu.secFree', items: [
+    { key: 'manse', labelKey: 'menu.manse', descKey: 'menu.manseDesc', image: require('../../../assets/icons/manse.jpg'), route: '/charts', ready: true },
+    { key: 'today', labelKey: 'menu.today', descKey: 'menu.todayTileDesc', image: require('../../../assets/icons/today.jpg'), route: '/today', ready: true },
+    { key: 'month', labelKey: 'menu.month', descKey: 'menu.monthTileDesc', image: require('../../../assets/icons/month.jpg'), route: '/month', ready: true },
+    { key: 'dayPillar', labelKey: 'menu.dayPillar', descKey: 'menu.dayPillarDesc', image: require('../../../assets/icons/dayPillar.jpg'), route: '/dayPillar', ready: true },
   ] },
   // ★가장 많이 찾는(광고/유료 유도용, daniel 07-05) — 무료 '질문형'(재회/짝사랑/취업)을 프리미엄 바로 밑에 중복
   //   노출해 눈길을 끌고 → 화면 CTA로 유료 깊은 풀이 유도. 원본은 '가볍게 보기'에도 그대로(의도된 중복).
@@ -385,6 +388,20 @@ export default function Home() {
           </PressableScale>
         )))}
 
+        {/* ★자기이해 히어로(App Store 4.3 · daniel 2026-07-12) — 홈 첫 화면을 '운세 목록'이 아니라 '나를 분석하는 도구'로 각인.
+            에겐·테토 성향을 온디바이스 즉시 산출해 게이지+한줄요약 + 성격유형/MBTI/특징 클러스터. 오늘 기운 배너 *위*. */}
+        <SelfUnderstandingHero reloadKey={reloadKey} />
+
+        {/* ★AI 자기이해 코치(App Store 4.3 · daniel 2026-07-12) — 대화형 도구 진입. '운세 피드'가 아니라 물어보는 도구 = 차별화. */}
+        <PressableScale style={styles.coachBanner} onPress={() => router.push('/coach')}>
+          <Text style={styles.coachBannerEmoji}>💬</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.coachBannerTitle}>{t('coach.title', 'AI 자기이해 코치')}</Text>
+            <Text style={styles.coachBannerSub} numberOfLines={1}>{t('coach.sub', '나에 대해 궁금한 걸 물어보세요')}</Text>
+          </View>
+          <Text style={styles.coachBannerArrow}>›</Text>
+        </PressableScale>
+
         {/* 오늘/내일 기운 — 토글 또는 좌우 슬라이드(가로 페이징·daniel). 본문 탭 → 상세(분야별, 같은 offset). */}
         <View style={styles.fortuneBanner}>
           {!hasChart ? (
@@ -635,6 +652,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.juSoft, padding: space(4), borderRadius: radius.md,
     borderWidth: 1, borderColor: colors.line, marginBottom: space(6),
   },
+  // ★AI 자기이해 코치 진입 배너(홈 상단·4.3 대화형 도구)
+  coachBanner: { flexDirection: 'row', alignItems: 'center', gap: space(3), backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.ju, paddingVertical: space(3.5), paddingHorizontal: space(4), marginBottom: space(6), ...shadow.card },
+  coachBannerEmoji: { fontSize: 22 },
+  coachBannerTitle: { ...font.body, color: colors.ink, fontWeight: '800' },
+  coachBannerSub: { ...font.caption, color: colors.inkSoft, marginTop: 1 },
+  coachBannerArrow: { fontSize: 22, color: colors.ju, fontWeight: '800' },
   // 오늘/내일 토글(배너 상단)
   dayToggle: { flexDirection: 'row', gap: space(2), marginBottom: space(3) },
   dayTogChip: { paddingHorizontal: space(4), paddingVertical: space(1.5), borderRadius: radius.pill, backgroundColor: colors.overlay, borderWidth: 1, borderColor: colors.line },

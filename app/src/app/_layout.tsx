@@ -27,6 +27,7 @@ import { TextSplash } from '../components/TextSplash'; // 로딩 영상 OFF 시(
 import { BusyOverlay } from '../components/BusyOverlay'; // 인증 전환(로그아웃/로그인) 중 전역 블로킹 로딩(먹통 방지)
 import { subscribeAuthBusy, getAuthBusy } from '../lib/ui/authBusy';
 import { ChartConfirmHost } from '../lib/ui/chartConfirm'; // 풀이/구매 전 명식 확인 모달(드롭다운 변경)
+import { Onboarding } from '../components/Onboarding'; // ★첫 실행 자기이해 온보딩(App Store 4.3: '운세앱'→'AI 자기이해 도구' 인상 전환)
 
 // i18next 26.x가 Hermes에서 Intl.PluralRules 를 인식 못 해 내는 dev 경고(동작은 v3 fallback 정상,
 //   한·영·일 복수형 단순해 영향 0) 억제. 프로덕션 빌드엔 LogBox 자체가 없어 무영향.
@@ -103,6 +104,9 @@ export default function RootLayout() {
         <ChartConfirmHost />
         {/* 인증 전환(로그아웃/로그인) 중 화면 막고 로딩 — 클린업 캐스케이드 동안 '먹통' 방지(daniel 07-02) */}
         <BusyOverlay visible={authBusy} message="잠시만 기다려 주세요…" />
+        {/* ★첫 실행 자기이해 온보딩 — 스플래시 종료 후 노출. 신규 설치 1회(컴포넌트 자체 판정: 플래그+기존 명식).
+            App Store 4.3 대응 = 리뷰어가 운세 카드그리드 대신 'AI 자기이해 도구' 여정을 먼저 보게. */}
+        {!splash && <Onboarding />}
         {/* 인트로 스플래시 1회 — 설정 pref: 영상 ON=VideoSplash / OFF=八字 한자만(daniel 07-03) */}
         {splash && (getLoadingVideoEnabled() ? <VideoSplash onDone={() => setSplash(false)} /> : <TextSplash onDone={() => setSplash(false)} />)}
       </FontScaleProvider>
