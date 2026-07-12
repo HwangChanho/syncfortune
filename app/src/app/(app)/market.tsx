@@ -52,6 +52,7 @@ const ROUTE: Record<CreditKind, { pathname: string; kind?: string }> = {
   reunion: { pathname: '/reunion' },                   // 재회운(옛 인연·도화-충 timing)
   crush: { pathname: '/crush' },                       // 짝사랑 인연운(인연星·도화 발동 timing)
   job: { pathname: '/job' },                           // 취업·이직운(관성·인성 발동 timing)
+  jobfit: { pathname: '/jobfit' },                     // 나에게 어울리는 직업(직업 적성 딥리포트 EEL)
 };
 
 // 마켓 목록에서 숨길 이용권(kind) — 아래 섹션 A·B 렌더 필터에서 제외한다(!MARKET_HIDDEN.has).
@@ -92,6 +93,7 @@ const CARD: Partial<Record<CreditKind, { img: any; desc: string }>> = {
   reunion: { img: require('../../../assets/icons/reunion.jpg'), desc: 'menu.reunionDesc' }, // 재회운(전용 아이콘 — 부모가 reunion.jpg 추가)
   crush: { img: require('../../../assets/icons/crush.jpg'), desc: 'menu.crushDesc' }, // 짝사랑 인연운(전용 히어로)
   job: { img: require('../../../assets/icons/job.jpg'), desc: 'menu.jobDesc' }, // 취업·이직운(전용 히어로)
+  jobfit: { img: require('../../../assets/icons/job.jpg'), desc: 'menu.jobfitDesc' }, // 나에게 어울리는 직업 — ⚠️임시로 job.jpg 재사용, daniel 전용 히어로(jobfit.jpg) 생성 필요(image-asset-pipeline)
 };
 
 export default function MarketRoute() {
