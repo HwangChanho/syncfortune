@@ -38,7 +38,7 @@ import { readingFromInvoke } from '../lib/backend/interpretResult'; // 방어: E
 import { PALACE_DESC } from '../lib/content/palaceDesc'; // 자미두수 궁 설명(궁 옆 표시)
 import { shareReading } from '../lib/ui/share'; // 이슈17: 풀이 결과 공유(앱 설치자만 열람)
 import { loadCredits, waitForCreditGrant, creditPrice, formatKrw } from '../lib/billing/coupons'; // 크레딧 보유확인(UX) + 결제 후 웹훅 반영 폴링 + 실가 주입(하드코딩 가격 근절·daniel 2026-07-12)
-import { confirmReadingChart } from '../lib/ui/confirmChart'; // 생성 전 명식 확인 + 보유 이용권 안내(daniel)
+import { confirmReadingChart, autoGenWithChartConfirm } from '../lib/ui/confirmChart'; // 생성 전 명식 확인(수동=항상 / 자동=명식 2개+ 일 때, daniel 07-13)
 import { purchaseCreditRC } from '../lib/billing/purchases'; // 추가질문 건당 결제 = credit_followup(서버 consume)
 import { requireLoginForPurchase } from '../lib/billing/requireLogin'; // 결제/저장 전 로그인 안내
 import { assertOnline, isOnline } from '../lib/backend/network'; // 오프라인 시 신규 생성 차단
@@ -403,7 +403,7 @@ export function ReadingScreen({
       premiumForChart: isPremiumForChart(chartId), isRep, cacheLoaded, hasProgress: !!progress,
       autoRan: autoRan.current, online: isOnline(), hasSession: !!session,
       readingsChartId, currentChartId: chartId, missingCount: cats.filter((cat) => !readings[cat.key]).length,
-    })) { autoRan.current = true; runAll(); }
+    })) { autoRan.current = true; void autoGenWithChartConfirm({ creditKind: kind === 'ziwei' ? 'ziwei' : 'reading', onConfirm: () => runAll() }); } // 명식 2개+ 면 '어느 명식?' 먼저(daniel 07-13)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isPremium, isRep, cacheLoaded, readings, cats, progress, session, chartId, readingsChartId]);
 

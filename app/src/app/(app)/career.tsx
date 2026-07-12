@@ -19,6 +19,7 @@ import { ensureServerChartId } from '../../lib/backend/prewarmReadings';
 import { useAuth } from '../../lib/useAuth';
 import { useFontScale } from '../../lib/ui/fontScale';
 import { useSubscription } from '../../lib/billing/subscription'; // 프리미엄=자동 생성(타 스페셜과 통일)
+import { autoGenWithChartConfirm } from '../../lib/ui/confirmChart'; // 자동생성 전 명식 확인(명식 2개+ 일 때, daniel 07-13)
 import { loadCredits } from '../../lib/billing/coupons';
 import { isAdmin } from '../../lib/core/admin'; // 스페셜 = 관리자 바로 진입 / 그 외 쿠폰(크레딧)만 unlock(결제 미연동)
 import { requireLoginForPurchase } from '../../lib/billing/requireLogin';
@@ -119,7 +120,7 @@ export default function CareerScreen() {
       // 보유 만료일(daniel #25): 생성(구매)일 + 1년. 캐시 created_at 있을 때만(명식 전환 시 stale 방지 위해 else로 초기화).
       if (data?.created_at) { const d = new Date(data.created_at); d.setFullYear(d.getFullYear() + 1); setExpiry(`${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`); } else setExpiry(null);
       setLoaded(true);
-      if (isPremium && !cached) generate(id); // 프리미엄=자동 생성(타 스페셜과 통일)
+      if (isPremium && !cached) void autoGenWithChartConfirm({ creditKind: 'career', onConfirm: () => generate(id) }); // 프리미엄 자동 생성 — 명식 2개+ 면 '어느 명식?' 먼저(daniel 07-13)
     })().catch(() => { if (alive) setLoaded(true); });
     return () => { alive = false; };
   }, [session, isPremium, reloadKey, chartIdParam]); // eslint-disable-line react-hooks/exhaustive-deps

@@ -18,6 +18,7 @@ import { ensureServerChartId } from '../../lib/backend/prewarmReadings';
 import { computeChart } from '../../lib/engine/engine';
 import { useAuth } from '../../lib/useAuth';
 import { useSubscription } from '../../lib/billing/subscription';
+import { autoGenWithChartConfirm } from '../../lib/ui/confirmChart'; // 자동생성 전 명식 확인(명식 2개+ 일 때, daniel 07-13)
 import { showRewardedAd } from '../../lib/core/ads';
 import { supabase } from '../../lib/supabase';
 import { appLang } from '../../lib/i18n';
@@ -76,7 +77,7 @@ export default function MonthScreen() {
       const cached = (data?.content as Record<string, string> | undefined) ?? null;
       setReading(cached);
       setLoaded(true);
-      if (isPremium && !cached) generate(id);
+      if (isPremium && !cached) void autoGenWithChartConfirm({ onConfirm: () => generate(id) }); // 프리미엄 자동 생성 — 명식 2개+ 면 '어느 명식?' 먼저(daniel 07-13)
     })().catch(() => { if (alive) setLoaded(true); });
     return () => { alive = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps

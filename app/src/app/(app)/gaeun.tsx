@@ -17,6 +17,7 @@ import { ensureServerChartId } from '../../lib/backend/prewarmReadings';
 import { useAuth } from '../../lib/useAuth';
 import { useFontScale } from '../../lib/ui/fontScale';
 import { useSubscription } from '../../lib/billing/subscription';
+import { autoGenWithChartConfirm } from '../../lib/ui/confirmChart'; // 자동생성 전 명식 확인(명식 2개+ 일 때, daniel 07-13)
 import { loadCredits } from '../../lib/billing/coupons';
 import { isAdmin } from '../../lib/core/admin';
 import { requireLoginForPurchase } from '../../lib/billing/requireLogin';
@@ -98,7 +99,7 @@ export default function GaeunScreen() {
       if (!alive) return;
       setReading(data?.content ?? null);
       setLoaded(true);
-      if (isPremium && !(data?.content)) generate(id); // 프리미엄=자동 생성(타 스페셜과 통일)
+      if (isPremium && !(data?.content)) void autoGenWithChartConfirm({ creditKind: 'gaeun', onConfirm: () => generate(id) }); // 프리미엄 자동 생성 — 명식 2개+ 면 '어느 명식?' 먼저(daniel 07-13)
     })().catch(() => { if (alive) setLoaded(true); });
     return () => { alive = false; };
   }, [session, isPremium, reloadKey, chartIdParam]); // eslint-disable-line react-hooks/exhaustive-deps
