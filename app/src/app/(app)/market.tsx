@@ -93,7 +93,7 @@ const CARD: Partial<Record<CreditKind, { img: any; desc: string }>> = {
   reunion: { img: require('../../../assets/icons/reunion.jpg'), desc: 'menu.reunionDesc' }, // 재회운(전용 아이콘 — 부모가 reunion.jpg 추가)
   crush: { img: require('../../../assets/icons/crush.jpg'), desc: 'menu.crushDesc' }, // 짝사랑 인연운(전용 히어로)
   job: { img: require('../../../assets/icons/job.jpg'), desc: 'menu.jobDesc' }, // 취업·이직운(전용 히어로)
-  jobfit: { img: require('../../../assets/icons/job.jpg'), desc: 'menu.jobfitDesc' }, // 나에게 어울리는 직업 — ⚠️임시로 job.jpg 재사용, daniel 전용 히어로(jobfit.jpg) 생성 필요(image-asset-pipeline)
+  jobfit: { img: require('../../../assets/icons/jobfit.jpg'), desc: 'menu.jobfitDesc' }, // 나에게 어울리는 직업(전용 히어로 — 갈림길에서 어울리는 길, 미드나잇+골드 톤)
 };
 
 export default function MarketRoute() {

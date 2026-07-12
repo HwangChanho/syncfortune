@@ -18,8 +18,7 @@ export default function JobfitRoute() {
       kind="jobfit"
       showExpiry
       themeColor={colors.ju}
-      // ⚠️ 임시로 job 히어로 재사용 — daniel 전용 히어로(jobfit.jpg) 생성 필요(image-asset-pipeline)
-      heroImage={require('../../../assets/icons/job.jpg')}
+      heroImage={require('../../../assets/icons/jobfit.jpg')}
       title={t('jobfit.title', '나에게 어울리는 직업')}
       sub={t('jobfit.sub', '타고난 적성으로 어떤 직업이 어울리는지, 끌림과 능력의 간극까지 짚어 드려요')}
       genMsg={t('jobfit.generating', '타고난 적성과 어울리는 직업을 읽는 중…')}
