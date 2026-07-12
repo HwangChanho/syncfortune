@@ -162,6 +162,78 @@ export function dailyHeadline(saju: SajuChart, todayStem: Stem, todayBranch: Bra
   return hlWrap(lead, hlComposeCare(obj, ctail, lang), lang, period);
 }
 
+/** 오늘의 기운 점수(0~100) — dailyHeadline과 *동일한 길흉 factor*를 숫자로 정량화(발명 아님·daniel 승인 로직 재사용).
+ *   기준 50 ± 억부 우호(주축) ± 신살/작용(천을귀인·합·도화·역마 / 충형·공망) ± 일진시드 미세변동. 22~92 클램프(극단 회피).
+ *   ★가중치는 daniel 튜닝 슬롯(그래프 감각 조정). 같은 명식·같은 날 = 같은 점수(결정론·온디바이스). period='month'면 월운 간지로 동일 산출. */
+export function dailyScore(saju: SajuChart, todayStem: Stem, todayBranch: Branch): number {
+  const me = saju.dayMaster.stem;
+  const P = saju.pillars;
+  const group = GROUP[tenGod(me, todayStem)];
+  const sc = classifyStrength(saju);
+  const strong = sc.type === '신왕' || sc.type === '신강';
+  const weak = sc.type === '신약';
+  // 억부 우호도(주축) — dailyHeadline favorGood 동일
+  const favorGood = weak ? (group === '비겁' || group === '인성')
+    : strong ? (group === '식상' || group === '재성' || group === '관성')
+    : true;
+  // 작용/신살 — dailyHeadline과 동일 산출
+  const POS: PillarPos[] = ['년', '월', '일', '시'];
+  const items = [
+    ...POS.map((p) => ({ pos: p as ChartPosition, stem: P[p].stem, branch: P[p].branch })),
+    { pos: '일운' as ChartPosition, stem: todayStem, branch: todayBranch },
+  ];
+  const links = detectInteractionsAmong(items).filter((it) => it.members.includes('일운') && it.level !== '천간');
+  const hasChung = links.some((it) => (it.type === '충' || it.type === '형') && it.members.some((m) => m !== '일운' && isSignificantClash(P, m as PillarPos)));
+  const hasHap = links.some((it) => it.type === '합');
+  const [g1, g2] = gongmang(P['일'].stem, P['일'].branch);
+  const isGm = todayBranch === g1 || todayBranch === g2;
+  const sin = analyzeSinsal(saju);
+  const hasCheonEul = !!sin.sinsal.find((s) => s.name === '천을귀인')?.glyphs.includes(todayBranch);
+  const tw = new Set([twelveSinsalAt(P['년'].branch, todayBranch), twelveSinsalAt(P['일'].branch, todayBranch)]);
+  // 점수 조립 — 기준 50, 억부 우호가 주축(±), 신살/작용 가감(daniel 튜닝 슬롯)
+  let s = 50;
+  s += favorGood ? 14 : -12;                 // 억부 우호도(주축)
+  if (hasCheonEul) s += 16;                   // 천을귀인(최고 길신)
+  if (hasHap) s += 8;                         // 합(어우러짐)
+  if (tw.has('도화')) s += 3;                  // 도화(대인·매력)
+  if (tw.has('역마')) s += 2;                  // 역마(변동·이동 — 소폭)
+  if (hasChung) s -= 12;                       // 충/형(부딪힘·흔들림)
+  if (isGm) s -= 8;                            // 공망(비움·붕 뜸)
+  s += (hlHash(`${todayStem}${todayBranch}${me}`) % 5) - 2; // 일진 시드 ±2 미세변동(매일 다른 곡선감·결정론)
+  return Math.max(22, Math.min(92, Math.round(s)));
+}
+
+// ── 점수 흐름 그래프용 데이터(그제~모레 / 지지난달~다다음달) — ScoreFlowGraph 에 넘김. 온디바이스·결정론. ──
+/** 이번달 기준 monthOffset(±) 이동한 달의 월운 간지(그래프 월축용). */
+export function getMonthGanZhi(monthOffset = 0): string {
+  const d = new Date();
+  d.setDate(15);                              // 월 중앙(월경계 오차 안전)
+  d.setMonth(d.getMonth() + monthOffset);
+  const solar = (Solar as any).fromDate(d);
+  return solar.getLunar().getMonthInGanZhi() as string;
+}
+const FLOW_DAY_LABELS: Record<HlLang, string[]> = {
+  ko: ['그제', '어제', '오늘', '내일', '모레'],
+  en: ['2d ago', 'Yest', 'Today', 'Tmrw', '+2d'],
+  ja: ['一昨日', '昨日', '今日', '明日', '明後日'],
+};
+const FLOW_MONTH_LABELS: Record<HlLang, string[]> = {
+  ko: ['지지난달', '지난달', '이번달', '다음달', '다다음달'],
+  en: ['−2mo', 'Last', 'This', 'Next', '+2mo'],
+  ja: ['先々月', '先月', '今月', '来月', '再来月'],
+};
+/** 점수 흐름(5지점) — day: 그제~모레 / month: 지지난달~다다음달. currentIndex=2(가운데=오늘/이번달). */
+export function scoreFlow(saju: SajuChart, period: 'day' | 'month'): { scores: number[]; labels: string[]; currentIndex: number } {
+  const scores: number[] = [];
+  for (let o = -2; o <= 2; o++) {
+    const gz = period === 'day' ? getDailyFortune(o).dayGanZhi : getMonthGanZhi(o);
+    scores.push(dailyScore(saju, gz[0] as Stem, gz[1] as Branch));
+  }
+  const lang = appLang() as HlLang;
+  const labels = (period === 'day' ? FLOW_DAY_LABELS : FLOW_MONTH_LABELS)[lang] ?? FLOW_DAY_LABELS.ko;
+  return { scores, labels, currentIndex: 2 };
+}
+
 // ── 홈 미리보기 본문(2문장 조합형) — 타이틀처럼 일진 시드로 매일·오늘≠내일 다르게(API 0·온디바이스). ──
 //   [기운 묘사 PV_OPEN]×[처방 PV_GOOD/PV_CARE](그룹×길흉). 같은 그룹이라도 일진 시드로 문장이 달라짐.
 //   ★문구 stance = daniel 검수 슬롯(전향적·일상어·흉 단정 금지, §4).

@@ -15,7 +15,8 @@ import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator } from
 import { PressableScale } from '../../components/PressableScale';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { getDailyFortune, DAILY_AREA_KEYS, dailyHeadline, getDailyReading, type DailyAreaKey } from '../../lib/content/dailyFortune';
+import { getDailyFortune, DAILY_AREA_KEYS, dailyHeadline, getDailyReading, scoreFlow, type DailyAreaKey } from '../../lib/content/dailyFortune';
+import { ScoreFlowGraph } from '../../components/ScoreFlowGraph'; // 점수 흐름 그래프(그제~모레, daniel 07-13)
 import { loadRepChart, type SavedChart } from '../../lib/engine/myChart';
 import { ensureServerChartId } from '../../lib/backend/prewarmReadings';
 import { computeChart } from '../../lib/engine/engine';
@@ -64,6 +65,8 @@ export default function TodayScreen() {
   const headline = useMemo(() => { if (!saved) return null; try { return dailyHeadline(computeChart(saved.input).saju, stem, branch); } catch { return null; } }, [saved, stem, branch]);
   // 무료 기본 = 온디바이스 룰 5분야 풀이(LLM 0·즉시). 명식만 있으면 계산 — 로그인/서버 불필요(절대규칙5).
   const ruleReading = useMemo(() => { if (!saved) return null; try { return getDailyReading(computeChart(saved.input).saju, stem, branch, 'day'); } catch { return null; } }, [saved, stem, branch]);
+  // 오늘 점수 흐름(그제~모레 5일) — 온디바이스 결정론. 상단 그래프(daniel 07-13)
+  const flow = useMemo(() => { if (!saved) return null; try { return scoreFlow(computeChart(saved.input).saju, 'day'); } catch { return null; } }, [saved]);
   // 실제 표시 풀이: LLM 결과(프리미엄/광고)가 있으면 그것, 없으면 무료 룰 기본.
   const shown = reading ?? ruleReading;
 
@@ -160,6 +163,15 @@ export default function TodayScreen() {
           </View>
         </View>
 
+        {/* 점수 흐름 그래프(그제~오늘~모레) — 온디바이스 결정론 점수(daniel 07-13). 오늘/내일 토글에 맞춰 강조점 이동. */}
+        {flow ? (
+          <View style={styles.graphCard}>
+            <Text style={styles.graphScore}>{flow.scores[flow.currentIndex + dayOffset] ?? flow.scores[flow.currentIndex]}</Text>
+            <Text style={styles.graphScoreCap}>{(dayOffset === 0 ? t('today.today', '오늘') : t('today.tomorrow', '내일'))} 기운 점수</Text>
+            <ScoreFlowGraph scores={flow.scores} labels={flow.labels} currentIndex={flow.currentIndex + dayOffset} />
+          </View>
+        ) : null}
+
         {/* 타이틀 = API 본문 headline 우선(본문과 정합·모순 제거) / 로드 전엔 온디바이스 룰 headline(즉시성) — daniel 07-01 */}
         {(reading?.headline || headline) && (
           <View style={styles.headlineCard}><Text style={styles.headlineTitle}>{reading?.headline || headline}</Text></View>
@@ -237,6 +249,10 @@ const styles = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: colors.overlay },
   wrap: { padding: space(6), paddingBottom: space(12) },
   headlineCard: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.juLine, paddingVertical: space(3.5), paddingHorizontal: space(4), marginBottom: space(4), alignItems: 'center', ...shadow.card },
+  // 점수 흐름 그래프 카드(daniel 07-13)
+  graphCard: { backgroundColor: colors.card, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.juLine, paddingTop: space(4), paddingBottom: space(2), paddingHorizontal: space(2), marginBottom: space(4), alignItems: 'center', ...shadow.card },
+  graphScore: { fontSize: 44, fontWeight: '900', color: colors.ju, lineHeight: 48 },
+  graphScoreCap: { ...font.caption, color: colors.inkFaint, marginBottom: space(1), fontWeight: '700' },
   headlineTitle: { ...font.body, color: colors.ju, fontWeight: '800', fontSize: 17, textAlign: 'center', lineHeight: 24 },
   dayToggle: { flexDirection: 'row', gap: space(2), marginBottom: space(3) },
   dayTogChip: { paddingHorizontal: space(5), paddingVertical: space(2), borderRadius: radius.pill, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line },
