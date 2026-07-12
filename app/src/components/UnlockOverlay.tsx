@@ -46,6 +46,16 @@ export function UnlockOverlay({ visible, message, allowBackground = true, videoK
   }, [visible, minMs]);
   const show = visible || held;        // 부모가 busy=false 로 내려도 minMs 전이면 계속 표시
 
+  // 진행률 %(daniel 2026-07-13): LLM 생성은 실제 진행신호가 없어 *완만 램프*(0→95% 점근) + 완료(visible=false) 시 100%.
+  //   자물쇠 로딩('영상먼저' 대기)이 죽은 대기처럼 안 느껴지게 — 대략적 진척감. 285ms마다 남은거리의 4.5%씩(초반 빠르고 후반 느림).
+  const [pct, setPct] = useState(0);
+  useEffect(() => {
+    if (!show) { setPct(0); return; }            // 닫히면 리셋
+    if (!visible) { setPct(100); return; }        // 생성 완료(부모 busy=false) → 100%, held 동안 잠깐 노출 후 페이드
+    const id = setInterval(() => setPct((p) => (p >= 95 ? 95 : Math.min(95, p + Math.max(0.6, (95 - p) * 0.045)))), 285);
+    return () => clearInterval(id);
+  }, [show, visible]);
+
   // ★테마 영상 플레이어 — 훅 규칙상 *항상* 호출(조건부 금지). 실제 보일 때(show && videoKey)만 소스를 넘겨
   //   그때만 재생/오디오가 나게 한다. show=false 면 소스를 null 로 → 재생 중지·이전 플레이어 릴리스.
   const videoSource = (show && videoKey) ? CONTENT_VIDEOS[videoKey] : null;
@@ -90,6 +100,8 @@ export function UnlockOverlay({ visible, message, allowBackground = true, videoK
             <Animated.Text style={[styles.lock, { transform: [{ scale }] }]}>{open ? '🔓' : '🔒'}</Animated.Text>
           </View>
         )}
+        {/* 진행률 %(daniel 2026-07-13) — 자물쇠 로딩이 죽은 대기처럼 안 느껴지게. 완료 시 100%. */}
+        <Text style={[styles.pct, videoKey && { color: colors.onImage }]}>{Math.round(pct)}%</Text>
         {/* 공통: 메시지 + 안내 + 홈 나가기. 영상 위에선 어두운 영상이라 항상 밝은 글씨(onImage)로 — 라이트모드에서도 가독성 확보(ink=어두움 회피). */}
         <Text style={[styles.msg, videoKey && { color: colors.onImage }]}>{message ?? '운명을 여는 중…'}</Text>
         {/* daniel: 정확한 통변엔 시간이 걸림을 안내(무거운 풀이 대기 안심) */}
@@ -111,6 +123,7 @@ const styles = StyleSheet.create({
   center: { width: 140, height: 140, alignItems: 'center', justifyContent: 'center', marginBottom: space(6) },
   ring: { position: 'absolute', width: 130, height: 130, borderRadius: 65, borderWidth: 3, borderColor: colors.ju, borderTopColor: 'transparent', borderRightColor: 'transparent' },
   lock: { fontSize: 52 },
+  pct: { fontSize: 42, fontWeight: '900', color: colors.ju, letterSpacing: 0.5, marginBottom: space(2) }, // 진행률 % — 골드 강조(영상 위=onImage 오버라이드)
   msg: { ...font.heading, color: colors.ink, fontWeight: '800' },
   sub: { ...font.caption, color: colors.inkSoft, marginTop: space(2), textAlign: 'center', lineHeight: 19 },
   exitBtn: { marginTop: space(6), borderWidth: 1.5, borderColor: colors.ju, borderRadius: radius.pill, paddingHorizontal: space(6), paddingVertical: space(2.75) },
