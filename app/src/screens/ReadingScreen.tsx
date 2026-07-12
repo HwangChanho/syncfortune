@@ -37,7 +37,7 @@ import { appLang } from '../lib/i18n'; // 통변 출력 언어(앱 언어)
 import { readingFromInvoke } from '../lib/backend/interpretResult'; // 방어: Edge 응답 정규화(일시적 불가·결제필요·오류)
 import { PALACE_DESC } from '../lib/content/palaceDesc'; // 자미두수 궁 설명(궁 옆 표시)
 import { shareReading } from '../lib/ui/share'; // 이슈17: 풀이 결과 공유(앱 설치자만 열람)
-import { loadCredits, waitForCreditGrant } from '../lib/billing/coupons'; // 크레딧 보유확인(UX) + 결제 후 웹훅 반영 폴링(적립은 웹훅·차감은 Edge 서버 권위·P3·C1)
+import { loadCredits, waitForCreditGrant, creditPrice, formatKrw } from '../lib/billing/coupons'; // 크레딧 보유확인(UX) + 결제 후 웹훅 반영 폴링 + 실가 주입(하드코딩 가격 근절·daniel 2026-07-12)
 import { confirmReadingChart } from '../lib/ui/confirmChart'; // 생성 전 명식 확인 + 보유 이용권 안내(daniel)
 import { purchaseCreditRC } from '../lib/billing/purchases'; // 추가질문 건당 결제 = credit_followup(서버 consume)
 import { requireLoginForPurchase } from '../lib/billing/requireLogin'; // 결제/저장 전 로그인 안내
@@ -374,10 +374,10 @@ export function ReadingScreen({
       if (id && await isReadingUnlocked(id, ck)) { setUnlocked(true); await runAll(id); return; } // ★언락됨 → 표시상태 즉시 해제(자물쇠 누른 뒤 안 풀리던 것 수정)
       if (((await loadCredits())[ck] ?? 0) > 0) { await runAll(id); return; }
       // ★유료 통변은 보상형 광고로 무료 생성하지 않는다(daniel: 비용발생 콘텐츠=결제/프리미엄만) → 건당 결제로만 크레딧 부여 후 생성(Edge가 차감+세트 언락).
-      Alert.alert(t('reading.premiumAlert'), t('reading.premiumAlertMsg'), [
+      Alert.alert(t('reading.premiumAlert'), t('reading.premiumAlertMsg', { price: formatKrw(creditPrice(ck)) }), [
         // ★C1(daniel 07-03): 결제 상품을 credit_{reading|ziwei}(웹훅이 적립 가능)로 통일 + 클라 grant 폐지 → 웹훅 반영 폴링 후 생성(Edge 세트게이트가 1회 차감·언락).
         //   (기존 purchaseReading=deprecated unlock_2500 은 credit_* 아님 → 웹훅이 적립할 수 없어 교체. 가격은 스토어의 credit_reading/credit_ziwei 값.)
-        { text: t('reading.payPerUse'), onPress: async () => { try { const ok = await purchaseCreditRC(ck); if (!ok) return; const { granted } = await waitForCreditGrant(ck); if (granted) await runAll(id); else Alert.alert(t('reading.premiumAlert'), t('reading.applyPending', '결제가 완료됐어요. 적용까지 잠시 걸릴 수 있어요. 잠시 후 다시 시도해 주세요.')); } catch (e) { Alert.alert('!', (e as Error).message); } } },
+        { text: t('reading.payPerUse', { price: formatKrw(creditPrice(ck)) }), onPress: async () => { try { const ok = await purchaseCreditRC(ck); if (!ok) return; const { granted } = await waitForCreditGrant(ck); if (granted) await runAll(id); else Alert.alert(t('reading.premiumAlert'), t('reading.applyPending', '결제가 완료됐어요. 적용까지 잠시 걸릴 수 있어요. 잠시 후 다시 시도해 주세요.')); } catch (e) { Alert.alert('!', (e as Error).message); } } },
         { text: t('common.cancel'), style: 'cancel' },
       ]);
     } finally {
@@ -385,7 +385,7 @@ export function ReadingScreen({
     }
   }
 
-  const banner = isPremium ? t('reading.bannerPremium') : t('reading.bannerPerUse');
+  const banner = isPremium ? t('reading.bannerPremium') : t('reading.bannerPerUse', { price: formatKrw(creditPrice(kind === 'ziwei' ? 'ziwei' : 'reading')) }); // 실가 주입(사주 19,900·자미 14,900) — 하드코딩 근절
   const haveAll = cats.every((cat) => readings[cat.key]);
   // 명식별 프리미엄(#1): 이 명식이 프리미엄 지정이거나 결제 언락돼야 '전부 보기'. 아니면(무료모드·비지정 명식) 캐시가 있어도 페이월.
   const entitled = computeEntitled(isPremium, isPremiumForChart(chartId), unlocked); // 권한=전역프리미엄/이명식지정/결제언락(readingGate·테스트됨)
@@ -433,9 +433,9 @@ export function ReadingScreen({
       Alert.alert(t('reading.askPremiumTitle'), t('reading.askPremiumMsg'));
     } else if (res.kind === 'needPayment') {
       // 무료 한도 소진 → 건당 결제 안내 → 결제 성공 시 paid 로 재시도(RevenueCat 미연동 시 '준비 중')
-      Alert.alert(t('reading.askPayTitle'), t('reading.askPayMsg'), [
+      Alert.alert(t('reading.askPayTitle'), t('reading.askPayMsg', { price: formatKrw(creditPrice('followup')) }), [
         { text: t('common.cancel'), style: 'cancel' },
-        { text: t('reading.askPayBtn'), onPress: async () => {
+        { text: t('reading.askPayBtn', { price: formatKrw(creditPrice('followup')) }), onPress: async () => {
           try { const ok = await purchaseCreditRC('followup'); if (!ok) return; const { granted } = await waitForCreditGrant('followup'); if (granted) await submitFollowup(); else Alert.alert(t('reading.askPayTitle'), t('reading.applyPending', '결제가 완료됐어요. 적용까지 잠시 걸릴 수 있어요. 잠시 후 다시 시도해 주세요.')); } // ★C1: 클라 grant 폐지 → 웹훅 적립 폴링 후 서버 consume(followup)
           catch (e) { Alert.alert(t('reading.payPending'), (e as Error).message); }
         } },
@@ -467,7 +467,7 @@ export function ReadingScreen({
         {isPremium ? (
           <>
             <Text style={styles.askQuota}>
-              {freeLeft > 0 ? t('reading.askFree', { n: freeLeft }) : t('reading.askPaid')}
+              {freeLeft > 0 ? t('reading.askFree', { n: freeLeft }) : t('reading.askPaid', { price: formatKrw(creditPrice('followup')) })}
             </Text>
             <View style={styles.askRow}>
               <TextInput

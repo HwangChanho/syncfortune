@@ -23,7 +23,7 @@ import { useAuth } from '../lib/useAuth';
 import { useSubscription, purchasePremium } from '../lib/billing/subscription';
 import { assertOnline } from '../lib/backend/network'; // 오프라인 시 신규 생성 차단
 import { purchaseCreditRC } from '../lib/billing/purchases'; // 궁합 건당 결제 = credit_compat(서버 consume)
-import { waitForCreditGrant } from '../lib/billing/coupons';        // C1: 결제 후 웹훅 적립 폴링(차감은 Edge 서버 게이트)
+import { waitForCreditGrant, creditPrice, formatKrw } from '../lib/billing/coupons'; // C1 웹훅 폴링 + 실가 주입(하드코딩 근절)
 import { ensureServerChartId } from '../lib/backend/prewarmReadings';
 import { useFontScale } from '../lib/ui/fontScale';
 import { COMPAT_RELS, otherSig, loadCompatReadings, genCompatReading, compatSections, compatSectionLabel, type CompatReading } from '../lib/content/compatReadings';
@@ -360,6 +360,10 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
               {typeof cur.headline === 'string' && cur.headline.trim() ? (
                 <Text style={{ fontSize: fs(19), fontWeight: '800', color: colors.ju, marginBottom: space(3), lineHeight: fs(26) }}>{cur.headline}</Text>
               ) : null}
+              {/* ★근본 '풀이 안 보임'(daniel 07-11): 관계별 섹션셋에 base 키가 없어 base 프로즈만 오면(JSON 파싱 폴백) 본문 공백(headline만) → base 통째로 표시. */}
+              {typeof cur.base === 'string' && cur.base.trim() ? (
+                <Text style={[styles.secBody, { fontSize: fs(15), lineHeight: fs(25) }]}>{cur.base}</Text>
+              ) : null}
               {/* 관계별 동적 섹션(daniel 2026-06): 연애=속궁합·썸·짝사랑 등 / 결혼=속궁합·시댁·자녀 등 / 동업=투자 등. 연도별은 기본 4항목. */}
               {compatSections(rel, !!year).map((s) => {
                 const v = cur[s.key];
@@ -476,9 +480,9 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
     } else if (res.kind === 'needPremium') {
       Alert.alert(t('reading.askPremiumTitle'), t('reading.askPremiumMsg'));
     } else if (res.kind === 'needPayment') {
-      Alert.alert(t('reading.askPayTitle'), t('reading.askPayMsg'), [
+      Alert.alert(t('reading.askPayTitle'), t('reading.askPayMsg', { price: formatKrw(creditPrice('followup')) }), [
         { text: t('common.cancel'), style: 'cancel' },
-        { text: t('reading.askPayBtn'), onPress: async () => {
+        { text: t('reading.askPayBtn', { price: formatKrw(creditPrice('followup')) }), onPress: async () => {
           try { const ok = await purchaseCreditRC('followup'); if (!ok) return; const { granted } = await waitForCreditGrant('followup'); if (granted) await submitFollowup(); else Alert.alert(t('reading.askPayTitle'), t('reading.applyPending', '결제가 완료됐어요. 적용까지 잠시 걸릴 수 있어요. 잠시 후 다시 시도해 주세요.')); } // ★C1: 결제→웹훅 적립 폴링→서버 consume(followup)
           catch (e) { Alert.alert(t('reading.payPending'), (e as Error).message); }
         } },
@@ -501,7 +505,7 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
         ))}
         {isPremium ? (
           <>
-            <Text style={styles.askQuota}>{freeLeft > 0 ? t('reading.askFree', { n: freeLeft }) : t('reading.askPaid')}</Text>
+            <Text style={styles.askQuota}>{freeLeft > 0 ? t('reading.askFree', { n: freeLeft }) : t('reading.askPaid', { price: formatKrw(creditPrice('followup')) })}</Text>
             <View style={styles.askRow}>
               {/* singleline — 50자 제한이라 한 줄로 충분, iOS/Android 모두 텍스트가 칸 세로중앙 자동정렬(daniel: y축 한가운데) */}
               <TextInput style={styles.askInput} value={askInput} onChangeText={setAskInput} placeholder={t('reading.askPh')} placeholderTextColor={colors.inkFaint} maxLength={50} editable={!asking} returnKeyType="send" onSubmitEditing={() => submitFollowup()} />

@@ -51,6 +51,12 @@ export const CREDIT_KINDS: { key: CreditKind; ko: string; price: number }[] = [
 ];
 export const PREMIUM_PRICE = 49900; // 평생 프리미엄(대표명식 전부 무제한). daniel: 사업가 등 헤비유저(궁합 반복) 타겟 — 일반은 건당/쿠폰. 프리미엄은 소수 기대.
 
+// ★가격 SSoT = CREDIT_KINDS. 화면 문구(미리보기 배너·결제 버튼 등)는 하드코딩 대신 이 헬퍼로 실가를 주입한다.
+//   (daniel 2026-07-12: reading/ziwei/timeline/followup/compat 문구에 옛 단일가 '₩2,500'이 박제돼 사주 19,900 자리에 2,500이 뜨던 버그 근절.)
+export const creditPrice = (k: CreditKind): number => CREDIT_KINDS.find((c) => c.key === k)?.price ?? 0;
+/** ₩ 통화 포맷(예: ₩19,900). i18n 문구의 {{price}} 에 주입. */
+export const formatKrw = (n: number): string => `₩${n.toLocaleString()}`;
+
 export type RedeemResult =
   | { ok: true; kind: string; qty: number }
   | { ok: false; error: string };
