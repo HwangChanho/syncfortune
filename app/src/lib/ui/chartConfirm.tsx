@@ -77,7 +77,8 @@ export function ChartConfirmHost() {
               </ScrollView>
             </>
           )}
-          {credits > 0 && <Text style={styles.credit}>보유 이용권 {credits}개</Text>}
+          {/* ★이용권 개수 항상 표시(daniel 07-11): 0장(구매 케이스)도 안내 — 확인 시 구매 흐름으로 이어진다. */}
+          {state.opts.creditKind ? <Text style={styles.credit}>보유 이용권 {credits}개{credits <= 0 ? ' · 없으면 확인 후 구매 안내' : ''}</Text> : null}
           <View style={styles.btns}>
             <PressableScale style={styles.btnCancel} onPress={() => close(false)}><Text style={styles.btnCancelTx}>취소</Text></PressableScale>
             <PressableScale style={styles.btnOk} onPress={() => close(true)}><Text style={styles.btnOkTx}>{state.opts.okLabel ?? '네, 볼게요'}</Text></PressableScale>

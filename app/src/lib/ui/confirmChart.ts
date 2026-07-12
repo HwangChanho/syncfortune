@@ -24,5 +24,7 @@ export async function confirmReadingChart(opts: {
   onConfirm: () => void;
 }): Promise<void> {
   const ok = await requestChartConfirm({ creditKind: opts.creditKind, chartless: opts.chartless });
-  if (ok) opts.onConfirm();
+  // ★확인 모달이 완전히 닫힌 뒤 생성 시작(daniel 07-11 '애정흐름 자물쇠 안 나와'): 생성이 곧바로 setBusy→UnlockOverlay(Modal)를 띄우는데,
+  //   확인 모달(Modal)이 아직 dismiss 애니 중이면 iOS는 한 번에 하나만 present → 자물쇠 오버레이가 표시 안 됨. dismiss 완료 후 시작.
+  if (ok) setTimeout(() => opts.onConfirm(), 380);
 }

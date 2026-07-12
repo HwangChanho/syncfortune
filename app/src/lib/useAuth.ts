@@ -123,9 +123,12 @@ function startAuthOnce(): void {
       setAuthBusy(true);     // 로그아웃 클린업 동안 화면 막고 로딩(먹통 방지)
       // ★L3: 클린업 전체를 배리어에 *동기 세팅* — 느린 logoutPurchases(네트워크)까지 덮어야 다음 로그인 sync 가
       //   클린업 완료(로컬 명식 삭제)까지 기다린다. 여기서 지연 세팅하면 그 사이 sync 가 이전 계정 명식을 밀어넣는다.
+      // ★배리어 hang 방어(감사 07-11): logoutPurchases()=RC 네이티브/네트워크 콜이 타임아웃 없이 멈추면 setAuthBusy(false)·재익명이
+      //   영영 안 돌아 전역 BusyOverlay 가 걸린 채 '먹통'. 각 단계를 타임아웃 레이스로 감싸 최악의 경우에도 ~수초 내 진행(실패·hang 은 무시하고 다음).
+      const withTimeout = (p: Promise<unknown>, ms: number) => Promise.race([p.catch(() => {}), new Promise<void>((res) => setTimeout(res, ms))]);
       _cleanupBarrier = (async () => {
-        try { await logoutPurchases(); } catch { /* ignore */ }
-        try { await clearLocalUserData(); } catch { /* ignore */ }
+        await withTimeout(logoutPurchases(), 5000);
+        await withTimeout(clearLocalUserData(), 5000);
         setAuthBusy(false);
       })();
       void _cleanupBarrier;

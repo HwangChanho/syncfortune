@@ -34,6 +34,12 @@ async function completeAuthFromUrl(url: string): Promise<{ error: any } | undefi
   // ★에러를 반환(옛 코드는 무시) — 익명 linkIdentity 콜백에서 '이미 가입된 소셜' 실패를 호출부가 감지해 전환(signInWithOAuth) 처리하게.
   if (typeof code === 'string') { const { error } = await supabase.auth.exchangeCodeForSession(code); return error ? { error } : undefined; }                   // 구글·애플(PKCE)
   if (typeof th === 'string' && typeof ty === 'string') { const { error } = await supabase.auth.verifyOtp({ token_hash: th, type: ty as any }); return error ? { error } : undefined; } // 네이버(매직링크)
+  // ★★근본원인(daniel 07-11 진단 확정): 익명 세션에 '이미 다른 계정에 연결된 소셜'을 link 시도하면 Supabase 는 콜백 URL 에 code 없이
+  //   ?error=/?error_description= 로 실패를 실어 보낸다. 위 code/token_hash 분기를 전부 건너뛰고 옛 코드는 여기서 그냥 undefined 를 반환 →
+  //   호출부가 '성공도 실패도 아님'으로 오인해 조용히 로그인 화면으로 복귀(=OAuth 무반응 버그). → error 파라미터를 {error}로 전파해 signin 폴백을 태운다.
+  const ep = queryParams?.error_description ?? queryParams?.error_code ?? queryParams?.error;
+  const em = Array.isArray(ep) ? ep[0] : ep;
+  if (typeof em === 'string' && em) return { error: { message: em } };
   return undefined;
 }
 
@@ -83,21 +89,12 @@ export function AuthScreen() {
     const redirectTo = Linking.createURL('auth-callback'); // syncfortune://auth-callback
     logEvent('diag_oauth_start', { provider, isAnon: isAnonSession(), redirectTo }); // ★진단: 버튼 탭 진입(무반응이면 이 로그부터 없을 것)
     try {
-      if (isAnonSession()) {
-        const r = await runOAuth(provider, 'link', redirectTo);
-        if (r?.error) {
-          const msg = String(r.error?.message ?? r.error?.code ?? '');
-          if (/exist|already|linked|registered|duplicate|conflict/i.test(msg)) {
-            const r2 = await runOAuth(provider, 'signin', redirectTo); // Case B: 이미 가입된 소셜 → 기존 계정으로 전환(익명 데이터는 이관 안 됨 — 그 계정 데이터 사용)
-            if (r2?.error) Alert.alert('!', r2.error.message ?? String(r2.error));
-          } else {
-            Alert.alert('!', r.error.message ?? String(r.error));
-          }
-        }
-      } else {
-        const r = await runOAuth(provider, 'signin', redirectTo);
-        if (r?.error) Alert.alert('!', r.error.message ?? String(r.error));
-      }
+      // ★항상 signin(구글/애플 계정 선택창 1회 — daniel 07-11 버그: 창이 두 번 떴다).
+      //   과거엔 익명 세션이면 linkIdentity(익명→등록 승격) 먼저 시도했으나, 그 소셜이 이미 다른 계정에 연결돼 있으면
+      //   (=대부분의 복귀 유저) link 실패 → signin 폴백으로 브라우저(계정 선택창)가 '두 번' 떴다. signin 단독이면
+      //   기존 계정으로 곧바로 단일 창 로그인. ※익명 세션의 로컬 명식은 로그인 시 migrateLocalCreditsOnLogin·명식 동기화로 이관(_layout).
+      const r = await runOAuth(provider, 'signin', redirectTo);
+      if (r?.error) Alert.alert('!', r.error.message ?? String(r.error));
     } catch (e) { Alert.alert('!', (e as Error).message); }
     finally { setLoading(false); }
   }
@@ -116,7 +113,8 @@ export function AuthScreen() {
       const WB = webBrowser();
       if (WB) {
         const res = await WB.openAuthSessionAsync(naverUrl, appRedirect);
-        if (res.type === 'success' && res.url) await completeAuthFromUrl(res.url);
+        const nerr = res.type === 'success' && res.url ? await completeAuthFromUrl(res.url) : undefined; // ★네이버 콜백 에러도 표면화(무반응 방지·구글과 동일 클래스)
+        if (nerr?.error) Alert.alert('!', nerr.error.message ?? String(nerr.error));
       } else {
         await Linking.openURL(naverUrl); // 폴백: 네이티브 모듈 없으면 외부 브라우저·콜백 딥링크는 auth-callback 라우트가 처리
       }

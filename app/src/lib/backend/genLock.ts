@@ -19,18 +19,27 @@
 //   try { /* …invoke·setReading… */ } finally { releaseGen(key); }  // 완료·중단·오류 모두 해제
 // ─────────────────────────────────────────────────────────────────────────
 
-// 진행 중인 (콘텐츠×명식) 키 집합. 모듈 레벨이라 컴포넌트 마운트/언마운트와 무관하게 유지된다.
-const active = new Set<string>();
+// 진행 중인 (콘텐츠×명식) 키 → 획득 시각(ms). 모듈 레벨이라 컴포넌트 마운트/언마운트와 무관하게 유지된다.
+const active = new Map<string, number>();
+
+// ★stale 타임아웃(daniel 07-11: '쿠폰으로 열기→앱 멈춤' 근본): interpret 이 느리거나(실측 27~34초) 응답 없이
+//   hang 하면 generate 의 finally(releaseGen)가 안 돌아 락이 *영구 누수* → 이후 탭마다 acquireGen 실패 →
+//   135초 캐시 폴링만 반복(멈춤). 획득 후 이 시간이 지난 락은 '죽은 것'으로 보고 재획득을 허용해 영구 멈춤을 차단한다.
+//   값은 캐시 폴링(135초)보다 넉넉히 위 → 정상적인 느린 생성엔 절대 개입하지 않고, 진짜 누수만 회수(서버 consume_credit
+//   가 이중차감을 막으므로 만에 하나 겹쳐도 과금 안전).
+const STALE_MS = 150000;
 
 /**
  * 생성 잠금 획득.
  * @param key `${kind}:${chartId}` 형태의 고유 키(콘텐츠·명식·필요 시 기간/관계 하위키 포함).
  * @returns 획득 성공(true)이면 호출자가 반드시 finally 에서 releaseGen(key) 로 해제해야 한다.
- *          이미 같은 키가 생성 중이면 false — 호출자는 생성하지 말고 즉시 반환할 것(2차 LLM 호출 차단).
+ *          이미 같은 키가 *살아있는* 생성 중이면 false — 호출자는 생성하지 말고 즉시 반환(2차 LLM 호출 차단).
+ *          단, STALE_MS 초과로 죽은(누수) 락이면 회수하고 true(영구 멈춤 방지).
  */
 export function acquireGen(key: string): boolean {
-  if (active.has(key)) return false;
-  active.add(key);
+  const acquiredAt = active.get(key);
+  if (acquiredAt !== undefined && Date.now() - acquiredAt < STALE_MS) return false; // 살아있는 락
+  active.set(key, Date.now()); // 신규 획득 or 누수 락 회수
   return true;
 }
 
@@ -39,7 +48,8 @@ export function releaseGen(key: string): void {
   active.delete(key);
 }
 
-/** 진행 중 여부 조회(옵션 — UI 가드 등). 상태 변경 없음. */
+/** 진행 중 여부 조회(옵션 — UI 가드 등). 상태 변경 없음. stale 락은 '진행 아님'으로 본다. */
 export function isGenActive(key: string): boolean {
-  return active.has(key);
+  const acquiredAt = active.get(key);
+  return acquiredAt !== undefined && Date.now() - acquiredAt < STALE_MS;
 }
