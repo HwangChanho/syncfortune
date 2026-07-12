@@ -65,7 +65,7 @@ const MARKET_HIDDEN = new Set<CreditKind>(['child_couple', 'celeb']);
 
 // ★가장 많이 찾는 콘텐츠(daniel 07-05) — 수요 폭발 카테고리에 ★★★ 배지로 구미를 당긴다(전환 유도).
 //   재회·애정·궁합·신년 = 사람들이 가장 많이 검색·구매하는 연애/시즌 콘텐츠(시장 조사 기반).
-const HOT_KINDS = new Set<CreditKind>(['reunion', 'crush', 'love', 'compat', 'newyear']); // crush(짝사랑)=최다 수요(daniel 07-05)
+const HOT_KINDS = new Set<CreditKind>(['reunion', 'crush', 'love', 'compat', 'newyear', 'jobfit']); // crush(짝사랑)=최다 수요(daniel 07-05) · jobfit=나에게 어울리는 직업(신규 유료 딥리포트, 인기 섹션 노출·daniel 07-13)
 
 // 이용권 kind → 카드 이미지 + 설명키(홈 카드와 동일 재사용, daniel: 마켓 리스트에도 작게+설명).
 //   followup(추가질문)은 standalone 카드가 아니라(풀이 내부) 생략 — 없으면 이미지·설명 미표시(graceful).

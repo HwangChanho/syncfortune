@@ -112,6 +112,8 @@ const SECTIONS: Section[] = [
     { key: 'astrology', labelKey: 'menu.astrology', descKey: 'menu.astrologyDesc', image: require('../../../assets/icons/astrology.jpg'), route: '/astrology', ready: true, content: true, creditKey: 'astrology' },
     // 신규(daniel 2026-06): 사업가의 나 vs 직장인의 나.
     { key: 'career', labelKey: 'menu.career', descKey: 'menu.careerDesc', image: require('../../../assets/icons/career.jpg'), route: '/career', ready: true, content: true, creditKey: 'career' },
+    // 신규(daniel 2026-07-13): 나에게 어울리는 직업(직업 적성 딥리포트 EEL — career 사업가vs직장인과 별개). 나에 대해 알기 섹션.
+    { key: 'jobfit', labelKey: 'menu.jobfit', descKey: 'menu.jobfitDesc', image: require('../../../assets/icons/jobfit.jpg'), route: '/jobfit', ready: true, content: true, creditKey: 'jobfit' },
     // daniel #B(2026-06-24): 세계를 움직이는 사람들 — 유명인 사주 ↔ 나 매칭(재미·추정, 투자/정치 단정 금지). 유료(1회로 전 인물).
     { key: 'celeb', labelKey: 'menu.celeb', descKey: 'menu.celebDesc', image: require('../../../assets/icons/celeb.jpg'), route: '/celeb', ready: true, content: true, creditKey: 'celeb' },
     // daniel #18(2026-06-24): 맞춤 개운법(원국+지금 운 → 구체 처방·살풀이). 부적/만다라 이미지.
