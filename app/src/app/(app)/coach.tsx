@@ -18,7 +18,22 @@ import { ensureServerChartId } from '../../lib/backend/prewarmReadings';
 import { useAuth } from '../../lib/useAuth';
 import { useFontScale } from '../../lib/ui/fontScale';
 import { askCoach, loadCoachHistory, type CoachTurn } from '../../lib/backend/coach';
+import { useSubscription } from '../../lib/billing/subscription'; // 프리미엄=월 5회 무료
+import { showRewardedAd } from '../../lib/core/ads';               // 비프리미엄 무료=보상형 광고(daniel 07-13)
+import { purchaseCreditRC } from '../../lib/billing/purchases';    // coach 이용권 즉시 구매
+import * as SecureStore from 'expo-secure-store';
 import { colors, radius, space, shadow, font } from '../../lib/theme';
+
+// 오늘 이미 무료 광고를 봤는지(하루 1회 무료 게이트용 로컬 플래그) — 서버가 실제 카운트 판정, 이건 광고 노출 UX만.
+const COACH_AD_KEY = 'pref.coachAdDate';
+function coachAdSeenToday(): boolean {
+  try { return (SecureStore as any).getItem?.(COACH_AD_KEY) === new Date().toISOString().slice(0, 10); } catch { return false; }
+}
+function markCoachAdToday() {
+  const d = new Date().toISOString().slice(0, 10);
+  try { (SecureStore as any).setItem?.(COACH_AD_KEY, d); } catch { /* noop */ }
+  SecureStore.setItemAsync(COACH_AD_KEY, d).catch(() => {});
+}
 
 export default function CoachScreen() {
   const { t } = useTranslation();
@@ -30,7 +45,9 @@ export default function CoachScreen() {
   const [history, setHistory] = useState<CoachTurn[]>([]);
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
-  const [gate, setGate] = useState<{ used: number; dailyLimit: number } | null>(null); // 무료 일일 소진
+  const [gate, setGate] = useState<{ isPremium: boolean; used: number; freeLimit: number; period: 'day' | 'month' } | null>(null); // 무료 소진 → 이용권
+  const { isPremium } = useSubscription(); // 프리미엄=월 5회 무료(광고 없음)
+  const lastQ = useRef<string>(''); // 이용권 구매 후 재전송용
   const [reloadKey, setReloadKey] = useState(0);
   const [kbH, setKbH] = useState(0); // 키보드 높이(px) — 입력바를 키보드 바로 위로 올림(전역 네비바 보정)
   const scrollRef = useRef<ScrollView>(null);
@@ -82,14 +99,20 @@ export default function CoachScreen() {
       if (!id) { Alert.alert('!', t('coach.loadFail', '명식을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.')); return; }
       setChartId(id);
     }
-    setInput(''); setBusy(true);
+    setInput(''); setBusy(true); lastQ.current = question;
+    // 비프리미엄 무료 = 보상형 광고(daniel 07-13: 광고 보고 하루 1회 무료). 오늘 이미 봤으면 재노출 안 함(서버가 실제 카운트 판정).
+    //   프리미엄(월5)·이용권 차감은 광고 없음. 광고 미시청/실패해도 진행(서버가 무료/needCredit 판정).
+    if (!isPremium && !coachAdSeenToday()) {
+      const rewarded = await showRewardedAd().catch(() => false);
+      if (rewarded) markCoachAdToday();
+    }
     const res = await askCoach(id, question);
     setBusy(false);
     if (res.kind === 'answer') {
       setHistory((h) => [...h, { question, answer: res.answer }]);
       setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 120);
-    } else if (res.kind === 'needPremium') {
-      setGate({ used: res.used, dailyLimit: res.dailyLimit });
+    } else if (res.kind === 'needCredit') {
+      setGate({ isPremium: res.isPremium, used: res.used, freeLimit: res.freeLimit, period: res.period });
     } else {
       Alert.alert('!', res.message);
     }
@@ -102,7 +125,7 @@ export default function CoachScreen() {
       <ScrollView ref={scrollRef} style={styles.overlay} contentContainerStyle={[styles.wrap, { paddingBottom: 84 + lift }]} keyboardShouldPersistTaps="handled">
         <ChartPicker onChange={() => setReloadKey((k) => k + 1)} />
         <Text style={[styles.title, { fontSize: fs(23) }]}>{t('coach.title', 'AI 자기이해 코치')}</Text>
-        <Text style={[styles.sub, { fontSize: fs(13) }]}>{t('coach.sub', '나에 대해 궁금한 걸 물어보세요. 당신의 사주로 답해 드려요.')}</Text>
+        <Text style={[styles.sub, { fontSize: fs(13) }]}>{t('coach.sub2', '나와 내 삶에 대해 물어보세요. 사주와 자미두수로 함께 답해 드려요.')}</Text>
 
         {hasChart === false ? (
           <View style={styles.card}>
@@ -128,11 +151,23 @@ export default function CoachScreen() {
             {/* 무료 일일 소진 게이트 → 프리미엄 유도 */}
             {gate ? (
               <View style={styles.gateCard}>
-                <Text style={styles.gateTitle}>{t('coach.gateTitle', '오늘 무료 질문을 다 쓰셨어요')}</Text>
-                <Text style={styles.gateDesc}>{t('coach.gateDesc', { count: gate.dailyLimit, defaultValue: '무료로 하루 {{count}}번까지 물어볼 수 있어요. 프리미엄이면 제한 없이 코치와 대화할 수 있어요.' })}</Text>
-                <PressableScale style={styles.gateBtn} onPress={() => router.push('/market')}>
-                  <Text style={styles.gateBtnTx}>{t('coach.gateCta', '프리미엄 보기')}</Text>
+                <Text style={styles.gateTitle}>{gate.isPremium ? t('coach.gateTitleMonth', '이번 달 무료 질문을 다 쓰셨어요') : t('coach.gateTitle', '오늘 무료 질문을 다 쓰셨어요')}</Text>
+                <Text style={styles.gateDesc}>{gate.isPremium
+                  ? t('coach.gateDescMonth', { count: gate.freeLimit, defaultValue: '프리미엄은 매달 {{count}}번까지 무료예요. 이용권으로 더 물어볼 수 있어요.' })
+                  : t('coach.gateDescDay', { count: gate.freeLimit, defaultValue: '무료는 하루 {{count}}번(광고 시청)이에요. 이용권으로 더 물어보거나 프리미엄으로 매달 넉넉히 쓸 수 있어요.' })}</Text>
+                {/* 이용권으로 물어보기 — 즉시 구매 후 마지막 질문 재전송 */}
+                <PressableScale style={styles.gateBtn} onPress={async () => {
+                  const ok = await purchaseCreditRC('coach'); if (!ok) return; // 취소=조용히
+                  setGate(null);
+                  if (lastQ.current) void send(lastQ.current); // 구매 성공 → 그 질문 재전송(서버가 이용권 차감)
+                }}>
+                  <Text style={styles.gateBtnTx}>{t('coach.gateBuy', '이용권으로 물어보기')}</Text>
                 </PressableScale>
+                {!gate.isPremium && (
+                  <PressableScale style={styles.gatePrem} onPress={() => router.push('/market')}>
+                    <Text style={styles.gatePremTx}>{t('coach.gateCta', '프리미엄 보기')}</Text>
+                  </PressableScale>
+                )}
               </View>
             ) : (
               <>
@@ -206,6 +241,8 @@ const styles = StyleSheet.create({
   gateDesc: { ...font.body, color: colors.inkSoft, textAlign: 'center', marginTop: space(2.5), marginBottom: space(5), lineHeight: 22 },
   gateBtn: { backgroundColor: colors.ju, borderRadius: radius.pill, paddingHorizontal: space(6), paddingVertical: space(3.25) },
   gateBtnTx: { color: colors.bg, fontSize: 15, fontWeight: '800' },
+  gatePrem: { marginTop: space(3), paddingVertical: space(2) },
+  gatePremTx: { color: colors.ju, fontSize: 13, fontWeight: '700' },
   note: { ...font.caption, color: colors.inkFaint, textAlign: 'center', lineHeight: 19, marginTop: space(6) },
   // 입력바
   inputBar: { position: 'absolute', left: 0, right: 0, bottom: 0, flexDirection: 'row', alignItems: 'flex-end', gap: space(2.5), paddingHorizontal: space(5), paddingVertical: space(3), backgroundColor: colors.card, borderTopWidth: 1, borderTopColor: colors.juLine },

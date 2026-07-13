@@ -14,7 +14,7 @@ async function hasSession(): Promise<boolean> {
   return !!data.session;
 }
 
-export type CreditKind = 'reading' | 'ziwei' | 'compat' | 'timeline' | 'followup' | 'love' | 'newyear' | 'lifegraph' | 'roots' | 'image' | 'mission' | 'career' | 'talent' | 'astrology' | 'dream' | 'gaeun' | 'celeb' | 'timeresolve' | 'future10' | 'child' | 'child_couple' | 'reunion' | 'crush' | 'job' | 'jobfit';
+export type CreditKind = 'reading' | 'ziwei' | 'compat' | 'timeline' | 'followup' | 'love' | 'newyear' | 'lifegraph' | 'roots' | 'image' | 'mission' | 'career' | 'talent' | 'astrology' | 'dream' | 'gaeun' | 'celeb' | 'timeresolve' | 'future10' | 'child' | 'child_couple' | 'reunion' | 'crush' | 'job' | 'jobfit' | 'coach';
 // price = 건당 가격(원). daniel 확정(2026-06): 원가(opus, 영구캐시 1회)×~3, 소액(타임라인·질문)=₩990, 애정 ₩4,900.
 export const CREDIT_KINDS: { key: CreditKind; ko: string; price: number }[] = [
   { key: 'reading', ko: '사주 풀이', price: 19900 }, { key: 'ziwei', ko: '자미두수', price: 14900 }, { key: 'compat', ko: '궁합', price: 4900 }, // 궁합 3900→6900: 사주+자미 2탭 묶음(daniel 06-29, 쌍당 1회로 두 탭·년도 온디맨드). ASC 실가는 fastlane(daniel)
@@ -50,6 +50,8 @@ export const CREDIT_KINDS: { key: CreditKind; ko: string; price: number }[] = [
   { key: 'job', ko: '취업·이직운', price: 4900 }, // 가격 daniel 확정(API 비용 측정 후). ASC=credit_job
   // 신규(daniel 2026-07-12): 나에게 어울리는 직업(직업 *적성* 딥리포트 — L1 결정론 엔진 EEL·3축/갭/용신/대운. job취업·career사업과 별개). 개별 유료.
   { key: 'jobfit', ko: '나에게 어울리는 직업', price: 4900 }, // 가격 daniel 확정(Sonnet 원가~370원). ASC=credit_jobfit
+  // 신규(daniel 2026-07-13): AI 코치 질문권 — 무료 소진(비프리미엄 일1광고·프리미엄 월5) 초과 시 1질문. 사주+자미 종합(Sonnet 원가~35원).
+  { key: 'coach', ko: 'AI 코치 질문', price: 990 }, // 가격 daniel 조정슬롯(원가~35원·마진 큼). ASC=credit_coach
 ];
 export const PREMIUM_PRICE = 49900; // 평생 프리미엄(대표명식 전부 무제한). daniel: 사업가 등 헤비유저(궁합 반복) 타겟 — 일반은 건당/쿠폰. 프리미엄은 소수 기대.
 
