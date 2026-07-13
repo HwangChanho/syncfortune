@@ -11,6 +11,7 @@ import { useRouter } from 'expo-router';
 import { Alert } from '../../lib/ui/alert';
 import { PressableScale } from '../../components/PressableScale';
 import { ChartPicker } from '../../components/ChartPicker';
+import { TigerMascot } from '../../components/TigerMascot'; // 아기 백호 마스코트(모션) — 코치 아바타(생각 중=active)
 import { getNavBarHeight } from '../../components/BottomNav'; // 전역 네비바 높이 — 키보드 위 입력바 정확 위치용
 import { computeChart } from '../../lib/engine/engine';
 import { loadRepChart } from '../../lib/engine/myChart';
@@ -124,6 +125,8 @@ export default function CoachScreen() {
     <View style={styles.bg}>
       <ScrollView ref={scrollRef} style={styles.overlay} contentContainerStyle={[styles.wrap, { paddingBottom: 84 + lift }]} keyboardShouldPersistTaps="handled">
         <ChartPicker onChange={() => setReloadKey((k) => k + 1)} />
+        {/* 아기 백호 마스코트 — 코치 아바타. busy(답 생성)면 active=true 로 광채·움직임 강화(반응하는 느낌). */}
+        <TigerMascot size={76} active={busy} style={{ alignSelf: 'center', marginTop: space(1), marginBottom: space(1) }} />
         <Text style={[styles.title, { fontSize: fs(23) }]}>{t('coach.title', 'AI 자기이해 코치')}</Text>
         <Text style={[styles.sub, { fontSize: fs(13) }]}>{t('coach.sub2', '나와 내 삶에 대해 물어보세요. 사주와 자미두수로 함께 답해 드려요.')}</Text>
 
