@@ -11,6 +11,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useTranslation } from 'react-i18next';
 import { SpecialContentScreen } from '../../components/SpecialContentScreen';
+import { ChildTeaser } from '../../components/ChildTeaser'; // 무료 티저(§4 민감 — 판정無 안전 퍼널·API 0)
 import { colors } from '../../lib/theme';
 
 export default function ChildRoute() {
@@ -27,6 +28,8 @@ export default function ChildRoute() {
       title={t('child.title', '자식운')}
       sub={t('child.sub', '원국으로 보는 자녀 인연·기질·부모로서의 나')}
       genMsg={t('child.gen', '자녀 인연을 살피는 중…')}
+      // 무료 티저(§4 민감 — 판정 없이 전향적 안내·자녀궁 사실만)
+      freeHook={(saju) => <ChildTeaser saju={saju} />}
       showExpiry
       sections={[
         { key: 'bigPicture', label: t('child.bigPicture', '자녀 인연의 큰 그림') },

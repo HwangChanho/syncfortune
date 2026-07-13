@@ -3,6 +3,7 @@
 // 시각: 오행 5색 오라 모티프(빛/거울) + 보라 테마.
 import { useTranslation } from 'react-i18next';
 import { SpecialContentScreen } from '../../components/SpecialContentScreen';
+import { ImageTeaser } from '../../components/ImageTeaser'; // 무료 온디바이스 첫인상 티저(일간 오행·API 0)
 import { ImageAura } from '../../components/contentMotifs';
 
 export default function ImageRoute() {
@@ -18,6 +19,8 @@ export default function ImageRoute() {
       title={t('image.title', '비치는 나')}
       sub={t('image.sub', '남에게 비치는 첫인상과 분위기, 관계 속 내 모습을 짚어 드려요')}
       genMsg={t('image.generating', '비치는 인상을 그리는 중…')}
+      // 무료 첫인상 티저(일간 오행·결정론·API 0)
+      freeHook={(saju) => <ImageTeaser saju={saju} />}
       sections={[
         { key: 'summary', label: t('image.summary', '한눈에') },
         { key: 'firstImpression', label: t('image.firstImpression', '첫인상') },

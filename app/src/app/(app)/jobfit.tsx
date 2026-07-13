@@ -8,6 +8,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useTranslation } from 'react-i18next';
 import { SpecialContentScreen } from '../../components/SpecialContentScreen';
+import { JobfitTeaser } from '../../components/JobfitTeaser'; // 무료 온디바이스 적성 강점 티저(유료 전환 후크·API 0)
 import { colors } from '../../lib/theme';
 
 export default function JobfitRoute() {
@@ -22,6 +23,8 @@ export default function JobfitRoute() {
       title={t('jobfit.title', '나에게 어울리는 직업')}
       sub={t('jobfit.sub', '타고난 적성으로 어떤 직업이 어울리는지, 끌림과 능력의 간극까지 짚어 드려요')}
       genMsg={t('jobfit.generating', '타고난 적성과 어울리는 직업을 읽는 중…')}
+      // ★무료 온디바이스 티저(freeHook) — 히어로 아래·잠김/열림 무관 항상 노출. 적성 강점(careerGauge 결정론) 미리보기 → 유료 전환.
+      freeHook={(saju) => <JobfitTeaser saju={saju} />}
       // key = CAREERFIT_SYSTEM JSON 필드명과 1:1(headline은 SpecialContentScreen이 상단 요약으로 자동 렌더).
       sections={[
         { key: 'preference', label: t('jobfit.preference', '끌리는 것 (능력 아님)') },

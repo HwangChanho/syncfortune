@@ -15,6 +15,7 @@ import { loadMyChart } from '../../lib/engine/myChart';
 import { branchElement, elementColor } from '../../lib/engine/ohaeng';
 import { lookupGlossary, GLOSSARY_KIND_LABEL, type GlossaryKind } from '../../lib/content/myeongriGlossary';
 import { PALACE_DESC } from '../../lib/content/palaceDesc'; // 12궁 짧은 설명(공용 — 풀이 화면과 공유)
+import { ZiweiTeaser } from '../../components/ZiweiTeaser'; // 무료 명궁 主星 구조 티저(유료 전환 후크·API 0·§3.3)
 import { colors, radius, space, shadow, font } from '../../lib/theme';
 import type { ChartInput } from '@spec/chart';
 import { useLogContentVisit } from '../../lib/backend/contentVisit'; // 콘텐츠 방문 집계(daniel 2026-07-06) — 진입 1회 기록
@@ -95,6 +96,8 @@ export default function ZiweiRoute() {
         <View style={styles.premCard}>
           <Text style={styles.premTitle}>자미두수 상세 풀이 (프리미엄)</Text>
           <Text style={styles.premDesc}>12궁 통합 해석과 운한(대한) 흐름 풀이는 프리미엄에서 제공됩니다.</Text>
+          {/* 무료 온디바이스 티저 — 명궁 主星(구조 사실) 미리보기 → 유료 통합 해석 전환(§3.3 구조만·판정無) */}
+          <ZiweiTeaser ziwei={z} />
           {/* 자미두수 전용 풀이(/reading?kind=ziwei) — 대표 명식 12궁 통변. input 생략 → serverChartId 캐시 연결 */}
           <PressableScale style={styles.btn} onPress={() => {
             // 자미두수는 시(時)에 따라 명반이 크게 바뀌므로, 풀이 전 정확한 시간 안내 + 명식 수정 유도(daniel)

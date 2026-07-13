@@ -3,6 +3,7 @@
 // Edge kind='talent' → TALENT_SYSTEM(+WOLJI_AXIS_BLOCK) + buildWoljiAxis 결정론 주입. SpecialContentScreen 재사용.
 import { useTranslation } from 'react-i18next';
 import { SpecialContentScreen } from '../../components/SpecialContentScreen';
+import { TalentTeaser } from '../../components/TalentTeaser'; // 무료 온디바이스 재능 티저(유료 전환 후크·API 0)
 import { colors } from '../../lib/theme';
 
 export default function TalentRoute() {
@@ -16,6 +17,8 @@ export default function TalentRoute() {
       title={t('talent.title', '나의 타고난 재능')}
       sub={t('talent.sub', '무엇을 타고났는지, 좋아하는 일·해야 하는 일 중 어디서 빛나는지, 돈을 어떻게 다뤄야 하는지 짚어 드려요')}
       genMsg={t('talent.generating', '타고난 재능을 읽는 중…')}
+      // 무료 재능 티저(최강 오행·결정론·API 0)
+      freeHook={(saju) => <TalentTeaser saju={saju} />}
       sections={[
         { key: 'summary', label: t('talent.summary', '한눈에') },
         { key: 'talent', label: t('talent.talent', '타고난 재능') },

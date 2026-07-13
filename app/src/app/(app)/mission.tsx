@@ -3,6 +3,7 @@
 // 시각: 별자리 모티프(북극성=사명 / 작은 별=자미 보조) + 골드 테마.
 import { useTranslation } from 'react-i18next';
 import { SpecialContentScreen } from '../../components/SpecialContentScreen';
+import { MissionTeaser } from '../../components/MissionTeaser'; // 무료 온디바이스 사명 티저(용신 오행·API 0)
 import { MissionStars } from '../../components/contentMotifs';
 import { colors } from '../../lib/theme';
 
@@ -20,6 +21,8 @@ export default function MissionRoute() {
       title={t('mission.title', '나의 사명')}
       sub={t('mission.sub', '타고난 그릇과 재능으로 본, 내가 무엇을 위해 태어났는지')}
       genMsg={t('mission.generating', '타고난 사명을 읽는 중…')}
+      // 무료 사명 티저(용신 오행·결정론·API 0)
+      freeHook={(saju) => <MissionTeaser saju={saju} />}
       sections={[
         { key: 'summary', label: t('mission.summary', '한눈에') },
         { key: 'coreNature', label: t('mission.coreNature', '타고난 본질') },
