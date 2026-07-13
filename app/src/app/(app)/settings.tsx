@@ -23,7 +23,7 @@ import { PREMIUM_PRICE, loadCredits } from '../../lib/billing/coupons';  // 프�
 import { supabase } from '../../lib/supabase';             // 로그아웃
 import { BusyOverlay } from '../../components/BusyOverlay'; // 긴 콜백(로그아웃·삭제) 로딩 오버레이
 import { setAuthBusy } from '../../lib/ui/authBusy'; // 로그아웃 전환 전역 블로킹(먹통 방지)
-import { colors, radius, space, shadow, font, setThemePref, getThemePref, getLoadingVideoEnabled, setLoadingVideoEnabled, type ThemePref } from '../../lib/theme';
+import { colors, radius, space, shadow, font, setThemePref, getThemePref, getLoadingVideoEnabled, setLoadingVideoEnabled, getReadingVideoEnabled, setReadingVideoEnabled, type ThemePref } from '../../lib/theme';
 
 const LANGS: { key: string; label: string }[] = [
   { key: 'ko', label: '한국어' }, { key: 'en', label: 'English' }, { key: 'ja', label: '日本語' },
@@ -47,6 +47,7 @@ export default function SettingsScreen() {
   const [premPrice, setPremPrice] = useState(''); // 프리미엄 현지통화 가격(RC) — 미설정 시 ₩ 폴백
   const [themePref, setThemePrefState] = useState<ThemePref>(getThemePref()); // 화면 테마(다크/라이트/시스템) — 변경은 재시작 후 적용
   const [loadingVid, setLoadingVid] = useState<boolean>(getLoadingVideoEnabled()); // 로딩(인트로) 영상 on/off — off=八字 한자만(daniel 07-03)
+  const [readingVid, setReadingVid] = useState<boolean>(getReadingVideoEnabled()); // 풀이 로딩(자물쇠 화면) 테마영상 on/off — off=링+자물쇠만(daniel 07-13)
   const [notifStatus, setNotifStatus] = useState<NotifStatus>('undetermined'); // 알림 권한 상태(행 라벨·동작 분기)
   const [restoring, setRestoring] = useState(false); // 구매 복원 진행 중(연타 가드·버튼 로딩)
   // 알림 권한 상태 로드 — 포커스마다(기기 설정 다녀와서 켜/끄면 ON/OFF 즉시 반영, daniel 07-02)
@@ -243,6 +244,19 @@ export default function SettingsScreen() {
               Alert.alert(t('settings.loadingScreen', '로딩 화면'), t('settings.themeRestart', '앱을 다시 켜면 적용돼요.'));
             }}>
               <Text style={[styles.optTx, sel && styles.optTxOn]}>{on ? t('settings.loadingVideoOn', '호랑이 영상') : t('settings.loadingVideoOff', '八字 한자')}</Text>
+            </PressableScale>
+          );
+        })}
+      </View>
+
+      {/* ── 풀이 로딩 영상(자물쇠 화면 테마영상) on/off — daniel 07-13. 끄면 링+자물쇠 애니만. 다음 풀이부터 즉시 적용 ── */}
+      <Text style={[styles.h, { marginTop: space(5) }]}>{t('settings.readingVideo', '풀이 로딩 영상')}</Text>
+      <View style={styles.row}>
+        {[true, false].map((on) => {
+          const sel = readingVid === on;
+          return (
+            <PressableScale key={String(on)} style={[styles.opt, sel && styles.optOn]} onPress={() => { setReadingVideoEnabled(on); setReadingVid(on); }}>
+              <Text style={[styles.optTx, sel && styles.optTxOn]}>{on ? t('settings.readingVideoOn', '테마 영상') : t('settings.readingVideoOff', '심플(영상 없이)')}</Text>
             </PressableScale>
           );
         })}

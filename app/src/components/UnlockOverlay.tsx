@@ -13,7 +13,7 @@ import { Modal, View, Text, Animated, Easing, StyleSheet, Pressable } from 'reac
 import { useVideoPlayer, VideoView } from 'expo-video'; // 번들 mp4 재생(이미 VideoSplash 에서 사용 — 신규 네이티브 의존 없음)
 import { PressableScale } from './PressableScale';
 import { useRouter } from 'expo-router';
-import { colors, space, radius, font } from '../lib/theme';
+import { colors, space, radius, font, getReadingVideoEnabled } from '../lib/theme';
 
 // videoKey → 번들된 콘텐츠 테마 로딩 영상(720×1280·5초·앰비언트 사운드). 현재 5종만 준비됨.
 //   ★매핑 근거: 생성에 시간이 걸리는 *유료* 콘텐츠 종류별 전용 로딩 연출.
@@ -30,7 +30,9 @@ const CONTENT_VIDEOS: Record<VideoKey, any> = {
 
 // allowBackground=true(기본): API 생성처럼 시간이 걸리는 콘텐츠 — '홈으로 나가기' 노출(나가도 백그라운드 진행·완료 시 푸시).
 // videoKey: 지정 시 해당 콘텐츠 테마 영상을 로딩 배경으로 재생(미지정=기존 링+자물쇠).
-export function UnlockOverlay({ visible, message, allowBackground = true, videoKey, minMs = 3200 }: { visible: boolean; message?: string; allowBackground?: boolean; videoKey?: VideoKey; minMs?: number }) {
+export function UnlockOverlay({ visible, message, allowBackground = true, videoKey: videoKeyProp, minMs = 3200 }: { visible: boolean; message?: string; allowBackground?: boolean; videoKey?: VideoKey; minMs?: number }) {
+  // 풀이 로딩영상 on/off(daniel 07-13·설정) — OFF면 테마영상 무시하고 링+자물쇠 연출로 폴백(아래 videoKey 로직 자동 반영).
+  const videoKey = getReadingVideoEnabled() ? videoKeyProp : undefined;
   const router = useRouter();
   const spin = useRef(new Animated.Value(0)).current;   // 골드 링 회전(분석 중)
   const pulse = useRef(new Animated.Value(0)).current;   // 자물쇠 펄스

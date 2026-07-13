@@ -92,6 +92,16 @@ export function setLoadingVideoEnabled(on: boolean) {
   SecureStore.setItemAsync(LOADING_VIDEO_KEY, on ? '1' : '0').catch(() => {});
 }
 
+// 풀이 로딩(생성 중 자물쇠 화면) 테마 영상 on/off — daniel 07-13. 끄면 영상 대신 링+자물쇠 애니만(즉시 반영·인트로와 별개 축). 기본 on.
+const READING_VIDEO_KEY = 'pref.readingVideo';
+export function getReadingVideoEnabled(): boolean {
+  try { const v = (SecureStore as any).getItem?.(READING_VIDEO_KEY); return v == null ? true : v === '1'; } catch { return true; }
+}
+export function setReadingVideoEnabled(on: boolean) {
+  try { (SecureStore as any).setItem?.(READING_VIDEO_KEY, on ? '1' : '0'); } catch { /* noop */ }
+  SecureStore.setItemAsync(READING_VIDEO_KEY, on ? '1' : '0').catch(() => {});
+}
+
 // ── 그라데이션 (프리미엄 질감) — 라이트에선 톤 조정 ─────────────
 export const gradients = activeScheme === 'light'
   ? {
