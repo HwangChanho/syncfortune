@@ -83,7 +83,7 @@ export function SelfUnderstandingHero({ reloadKey }: { reloadKey?: number }) {
     <View style={styles.hero}>
       <Text style={styles.kicker}>{t('selfHero.kicker', '나는 어떤 사람인가')}</Text>
       {result ? (
-        <PressableScale style={styles.card} onPress={() => router.push('/egenteto')}>
+        <PressableScale style={styles.card} onPress={() => router.push('/selfanalysis')}>
           <View style={styles.badgeRow}>
             <Text style={styles.badge}>{typeLabel}</Text>
             <Text style={styles.pctTx}>{result.type === 'teto' ? t('egen.scaleTeto', '테토') : t('egen.scaleEgen', '에겐')} {pct}%</Text>
@@ -94,7 +94,7 @@ export function SelfUnderstandingHero({ reloadKey }: { reloadKey?: number }) {
             <Text style={[styles.barEnd, styles.barEndRight, result.type === 'teto' && styles.barEndOn]}>{t('egen.scaleTeto', '테토')}</Text>
           </View>
           {reading?.headline ? <Text style={[styles.headline, { fontSize: fs(15) }]} numberOfLines={2}>{reading.headline}</Text> : null}
-          <Text style={styles.more}>{t('selfHero.more', '성향 분석 자세히 보기 ›')}</Text>
+          <Text style={styles.more}>{t('selfHero.more', '나 분석 종합 보기 ›')}</Text>
         </PressableScale>
       ) : null}
       {/* 자기이해 클러스터 — 성격유형·MBTI·특징(무료·온디바이스) */}

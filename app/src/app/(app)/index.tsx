@@ -122,6 +122,9 @@ const SECTIONS: Section[] = [
   ] },
   // 가볍게 = 무료·온디바이스 재미(펫·성격유형·택일·행운·띠별자리·이름풀이·꿈해몽). API 0(daniel: 스페셜 아래 무료 따로).
   { key: 'light', titleKey: 'menu.secLight', descKey: 'menu.secLightDesc', items: [
+    // 신규(daniel 2026-07-13·4.3 자기분석): 나 분석 종합 + 관계 패턴 — 무료 온디바이스(사주 엔진). '자기분석 도구' 정체성.
+    { key: 'selfAnalysis', labelKey: 'menu.selfAnalysis', descKey: 'menu.selfAnalysisDesc', image: require('../../../assets/icons/persona.jpg'), route: '/selfanalysis', ready: true, content: true },
+    { key: 'relationPattern', labelKey: 'menu.relationPattern', descKey: 'menu.relationPatternDesc', image: require('../../../assets/icons/compat.jpg'), route: '/relationpattern', ready: true, content: true },
     // 신규(daniel 2026-07-05): 재회·짝사랑·취업 무료 '질문형'(올해 결정론 미리보기) → 화면 CTA로 유료 깊은 풀이 유도. 가볍게 보기에 배치.
     { key: 'reunionAsk', labelKey: 'menu.reunionAsk', descKey: 'menu.reunionAskDesc', image: require('../../../assets/icons/reunion.jpg'), route: '/reunionAsk', ready: true, content: true },
     { key: 'crushAsk', labelKey: 'menu.crushAsk', descKey: 'menu.crushAskDesc', image: require('../../../assets/icons/crush.jpg'), route: '/crushAsk', ready: true, content: true },
