@@ -158,13 +158,21 @@ export function storeChartElement(el: string) {
 }
 
 // 로딩(인트로) 영상 on/off — daniel 07-03. 끄면 八字 한자 스플래시만. 기본 on. 다음 실행부터 반영(스플래시는 실행 시 1회).
-const LOADING_VIDEO_KEY = 'pref.loadingVideo';
-export function getLoadingVideoEnabled(): boolean {
-  try { const v = (SecureStore as any).getItem?.(LOADING_VIDEO_KEY); return v == null ? true : v === '1'; } catch { return true; }
+// 로딩(인트로) 화면 모드 — 'video'(호랑이 영상) | 'text'(八字 한자) | 'off'(없음·바로 앱). 기본 video. daniel 07-03 / 07-15(off 추가).
+const LOADING_MODE_KEY = 'pref.loadingMode';
+const LOADING_VIDEO_KEY = 'pref.loadingVideo'; // 하위호환(옛 boolean '1'/'0')
+export type LoadingMode = 'video' | 'text' | 'off';
+export function getLoadingMode(): LoadingMode {
+  try {
+    const v = (SecureStore as any).getItem?.(LOADING_MODE_KEY);
+    if (v === 'video' || v === 'text' || v === 'off') return v;
+    const old = (SecureStore as any).getItem?.(LOADING_VIDEO_KEY); // 옛 '0'=text(八字)
+    return old === '0' ? 'text' : 'video';
+  } catch { return 'video'; }
 }
-export function setLoadingVideoEnabled(on: boolean) {
-  try { (SecureStore as any).setItem?.(LOADING_VIDEO_KEY, on ? '1' : '0'); } catch { /* noop */ }
-  SecureStore.setItemAsync(LOADING_VIDEO_KEY, on ? '1' : '0').catch(() => {});
+export function setLoadingMode(m: LoadingMode) {
+  try { (SecureStore as any).setItem?.(LOADING_MODE_KEY, m); } catch { /* noop */ }
+  SecureStore.setItemAsync(LOADING_MODE_KEY, m).catch(() => {});
 }
 
 // 풀이 로딩(생성 중 자물쇠 화면) 테마 영상 on/off — daniel 07-13. 끄면 영상 대신 링+자물쇠 애니만(즉시 반영·인트로와 별개 축). 기본 on.
