@@ -10,6 +10,7 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { PressableScale } from '../../components/PressableScale';
 import { ElementBalance } from '../../components/ElementBalance';
+import { OhaengEnergy } from '../../components/OhaengEnergy'; // 오행 에너지 구슬 인포그래픽(친근한 첫인상·daniel 기획서①)
 import { loadRepChart } from '../../lib/engine/myChart';
 import { computeChart } from '../../lib/engine/engine';
 import { egenTeto } from '../../lib/content/egenTeto';
@@ -113,6 +114,8 @@ export default function SelfAnalysisRoute() {
       {/* ④ 오행 밸런스(신규 분석 축) */}
       <View style={styles.card}>
         <Text style={styles.cardLabel}>{t('selfAnalysis.elements', '오행 밸런스 — 나를 이루는 다섯 기운')}</Text>
+        {/* 오행 에너지 구슬(친근한 첫인상) → 아래 ElementBalance(분석용 막대)와 상호보완 */}
+        <View style={{ marginTop: space(2) }}><OhaengEnergy saju={saju} /></View>
         <View style={{ marginTop: space(2) }}><ElementBalance saju={saju} /></View>
       </View>
 

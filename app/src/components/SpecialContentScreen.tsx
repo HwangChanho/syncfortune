@@ -24,6 +24,7 @@ import { waitForCreditGrant, type CreditKind } from '../lib/billing/coupons'; //
 import { isUnlocked, markUnlocked } from '../lib/billing/unlocks'; // isUnlocked=무차감 재열람 힌트 / markUnlocked=생성 성공 후 캐시 힌트(C3 part2 — 게이트 아님)
 import { ShareReadingButton } from './ShareReadingButton'; // 이슈17: 풀이 결과 공유
 import { TTSButton } from './TTSButton'; // daniel: 풀이 음성 읽기(온디바이스 TTS·무료)
+import { RelatedContent } from './RelatedContent'; // 연관 콘텐츠 자동 추천(하단 크로스셀·API 0·daniel 기획서)
 import { purchaseCreditRC, purchasesEnabled } from '../lib/billing/purchases'; // 즉시 구매(마켓 안 거치고 바로)
 import { isAdmin } from '../lib/core/admin';                  // 스페셜 = 관리자 바로 / 그 외 쿠폰(크레딧)
 import { requireLoginForPurchase } from '../lib/billing/requireLogin';
@@ -429,6 +430,8 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
           ) : null}
         </View>
       )}
+      {/* 연관 콘텐츠 자동 추천(daniel 기획서) — 잠김/열림 무관 하단 크로스셀(API 0) */}
+      <RelatedContent kind={kind} />
     </ScrollView>
   );
 }

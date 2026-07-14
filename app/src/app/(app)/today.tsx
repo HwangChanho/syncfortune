@@ -37,6 +37,7 @@ import { ContentHero } from '../../components/SpecialContentScreen'; // 이미�
 import { ChartPicker } from '../../components/ChartPicker'; // 명식 선택(대표 전환) — 명식별 오늘 운세(daniel)
 import { ShareReadingButton } from '../../components/ShareReadingButton'; // 이슈17: 풀이 결과 공유(가드 내장)
 import { TTSButton } from '../../components/TTSButton'; // daniel: 풀이 음성 읽기(온디바이스 TTS·무료)
+import { RelatedContent } from '../../components/RelatedContent'; // 오늘운세 하단 연관 콘텐츠 추천(개운·애정 동선·API 0)
 import { useLogContentVisit } from '../../lib/backend/contentVisit'; // 콘텐츠 방문 집계(daniel 2026-07-06) — 진입 1회 기록
 
 export default function TodayScreen() {
@@ -239,6 +240,8 @@ export default function TodayScreen() {
         )}
 
         <Text style={styles.sub}>{t('today.note')}</Text>
+        {/* 오늘운세 하단 → 연관 콘텐츠 추천(개운·애정·직업 동선·daniel 기획서②-피드백) */}
+        <RelatedContent kind="daily" />
       </ScrollView>
     </View>
   );

@@ -17,6 +17,7 @@ import type { ChartInput, PillarPos } from '@spec/chart';
 import { colors, radius, space, shadow, font, gradients } from '../lib/theme';
 import { GlassCard } from '../components/GlassCard';
 import { OhaengIcon } from '../components/OhaengIcon';
+import { OhaengEnergy } from '../components/OhaengEnergy'; // 오행 에너지 구슬 인포그래픽(팔자 앞·이탈률↓·daniel 기획서①)
 import { stemElement, branchElement, elementColor, elementText, stemReading, branchReading, stemYinYang, branchYinYang, eumYangSkew, johuSkew } from '../lib/engine/ohaeng';
 import { ELEMENT_SKEW, tengodSkew, YINYANG_SKEW, JOHU_SKEW, CONCEPT_INFO, type SkewItem } from '../lib/content/skewKnowledge';
 import { useFontScale } from '../lib/ui/fontScale'; // 글자 크기(설정) — 명식 글자까지 모든 텍스트에 적용(daniel)
@@ -417,6 +418,8 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
         {/* ── 사주원국 1: 팔자 그리드 + 12신살(원국) ── */}
         {activeTab === 'wonguk' && (
         <>
+          {/* ★오행 에너지 구슬 인포그래픽(daniel 기획서①) — 팔자(한자) '앞'에 색 에너지로 먼저 시각화(대중 이탈률↓). */}
+          <OhaengEnergy saju={c.saju} />
           <View style={styles.headerArea}>
             {/* 누구 명식인지 제목에 표기(daniel 07-05) — 헤더 ChartPicker(변경 가능)와 함께 '누구의 사주 원국'인지 명확히. */}
             <Text style={styles.h}>{whoName ? `${whoName} · ${t('myeongsik.palja')}` : t('myeongsik.palja')}</Text>

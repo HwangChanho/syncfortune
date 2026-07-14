@@ -27,7 +27,7 @@ import { ensureServerChartIdForSaved } from '../../lib/backend/prewarmReadings';
 import { colors, radius, space, shadow, font } from '../../lib/theme';
 
 // 이용권 kind → 적용할 풀이 화면(선택 명식을 대표로 둔 뒤 진입 — 대표 기준 캐시)
-const ROUTE: Record<CreditKind, { pathname: string; kind?: string }> = {
+export const ROUTE: Record<CreditKind, { pathname: string; kind?: string }> = { // export: 연관 콘텐츠 추천(RelatedContent)이 단일 소스로 재사용
   reading: { pathname: '/reading' },                  // 사주 원국 풀이
   ziwei: { pathname: '/reading', kind: 'ziwei' },     // 자미두수 풀이
   timeline: { pathname: '/timeline' },                // 인생 타임라인

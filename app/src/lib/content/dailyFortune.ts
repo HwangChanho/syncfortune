@@ -15,6 +15,7 @@ import { twelveStage } from '@engine/twelve';
 import { analyzeSinsal, gongmang, twelveSinsalAt } from '@engine/sinsal';
 import { appLang } from '../i18n';
 import type { SajuChart, Stem, Branch, PillarPos, ChartPosition, TenGod } from '@spec/chart';
+import { stemElement } from '../engine/ohaeng'; // 일운 알림 팁 — 그날 일진 천간 오행
 
 export function getDailyFortune(offsetDays = 0) {
   const d = new Date();
@@ -205,6 +206,42 @@ export function dailyScore(saju: SajuChart, todayStem: Stem, todayBranch: Branch
 
 // ── 점수 흐름 그래프용 데이터(그제~모레 / 지지난달~다다음달) — ScoreFlowGraph 에 넘김. 온디바이스·결정론. ──
 /** 이번달 기준 monthOffset(±) 이동한 달의 월운 간지(그래프 월축용). */
+// ★일운 아침 알림 한 줄 팁(온디바이스·결정론·daniel 기획서② 2026-07-14). 그날 일진 천간 오행 → 라이프 액션 팁.
+//   §4 안전: 긍정·관리축(수분·휴식·기분전환)만 · 의료 단정 금지. ★DAY_TIP 매핑 = daniel 검수 후보(오행→일상 행동).
+const DAY_TIP: Record<string, Record<string, string>> = {
+  ko: {
+    木: '화사한 색 옷으로 기분을 새로 채우기 좋은 날이에요.',
+    火: '열이 오르기 쉬워요 — 물 자주 마시고 잠깐씩 쉬어가세요.',
+    土: '느긋하게 정리하고 마무리하기 좋은 날이에요.',
+    金: '결단이 잘 서는 날 — 미뤄둔 일을 매듭지어 보세요.',
+    水: '생각이 깊어지는 날 — 배우거나 편하게 소통해 보세요.',
+  },
+  en: {
+    木: 'A great day to refresh your mood with brighter colors.',
+    火: 'Heat runs high today — hydrate well and take short breaks.',
+    土: 'A good day to tidy up and wrap things up at your own pace.',
+    金: 'Decisions come easily — tie up what you’ve put off.',
+    水: 'A reflective day — learn something or connect gently.',
+  },
+  ja: {
+    木: '明るい色の服で気分を新しくするのに良い日です。',
+    火: '熱がこもりやすい日 — こまめに水分をとって休みましょう。',
+    土: 'ゆったり片づけて仕上げるのに良い日です。',
+    金: '決断がつきやすい日 — 先延ばしを片づけてみて。',
+    水: '思索が深まる日 — 学びや気軽な対話に良い日です。',
+  },
+};
+const GOOD_PREFIX: Record<string, string> = { ko: '오늘은 흐름이 좋아요 — ', en: 'Good flow today — ', ja: '今日は流れの良い日 — ' };
+
+/** 일운 아침 알림 한 줄 팁 — 그날 일진 오행 → 라이프 액션(결정론). 좋은 날(score≥66)이면 긍정 프리픽스. */
+export function dailyAlarmTip(saju: SajuChart, dayStem: Stem, dayBranch: Branch): string {
+  const lang = appLang();
+  const tips = DAY_TIP[lang] ?? DAY_TIP.ko;
+  const base = tips[stemElement(dayStem)] ?? tips['土'];
+  const good = dailyScore(saju, dayStem, dayBranch) >= 66;
+  return good ? (GOOD_PREFIX[lang] ?? GOOD_PREFIX.ko) + base : base;
+}
+
 export function getMonthGanZhi(monthOffset = 0): string {
   const d = new Date();
   d.setDate(15);                              // 월 중앙(월경계 오차 안전)
