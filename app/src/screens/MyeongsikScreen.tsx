@@ -18,8 +18,8 @@ import { colors, radius, space, shadow, font, gradients } from '../lib/theme';
 import { GlassCard } from '../components/GlassCard';
 import { OhaengIcon } from '../components/OhaengIcon';
 import { OhaengEnergy } from '../components/OhaengEnergy'; // 오행 에너지 구슬 인포그래픽(팔자 앞·이탈률↓·daniel 기획서①)
-import { stemElement, branchElement, elementColor, elementText, stemReading, branchReading, stemYinYang, branchYinYang, eumYangSkew, johuSkew } from '../lib/engine/ohaeng';
-import { ELEMENT_SKEW, tengodSkew, YINYANG_SKEW, JOHU_SKEW, CONCEPT_INFO, type SkewItem } from '../lib/content/skewKnowledge';
+import { stemElement, branchElement, elementColor, elementText, stemReading, branchReading, stemYinYang, branchYinYang, eumYangSkew, johuSkew, joSeupSkew } from '../lib/engine/ohaeng';
+import { ELEMENT_SKEW, tengodSkew, YINYANG_SKEW, JOHU_SKEW, JOSEUP_SKEW, CONCEPT_INFO, type SkewItem } from '../lib/content/skewKnowledge';
 import { useFontScale } from '../lib/ui/fontScale'; // 글자 크기(설정) — 명식 글자까지 모든 텍스트에 적용(daniel)
 import { emph } from '../lib/ui/richText'; // 콘텐츠 *별표 강조* → bold 렌더(CONCEPT_INFO 개념설명, daniel 2026-07-07)
 // ⚠️ 전환 지연(useDeferredReady/ChartSkeleton)은 이 컴포넌트 *내부에서 조기 return* 하면 안 된다 —
@@ -70,9 +70,6 @@ const STRENGTH_INFO: { key: '신강' | '신약'; title: string; traits: string; 
 
 // 간지 한 칸(오행색 배경 + 한자 + 한글음) — 대운·세운·월운 타임라인/확장명식 공용. sm=대운/원국, xs=세운/월운.
 //   onPress 주면 글자 탭 = 물상 설명(확장명식용). 타임라인 카드(선택 기능)에는 onPress 미전달(카드 탭=드릴다운 유지).
-// R21 유형/무형 글자 테두리 색(daniel) — 유형(실체·통근/온전)=연파랑 / 무형(부유·공망)=연빨강.
-const TANG_Y = '#7DB0FF';
-const TANG_N = '#FF8A8A';
 
 function GzCell({ char, kind, size, scale = 1, onPress }: { char: string; kind: 'stem' | 'branch'; size: 'sm' | 'xs'; scale?: number; onPress?: () => void }) {
   const { fs } = useFontScale();
@@ -143,8 +140,6 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
     const he = new Set(P[p].hiddenStems.map((h) => stemElement(h.stem))); // 이 지지 지장간 오행
     return Array.from(new Set(allGan.filter((g) => he.has(stemElement(g))))); // 통근한 투출 천간
   };
-  // R21 유형/무형(daniel) — 만세력 글자 테두리. 천간: 통근=유형(연파랑)·무통근(부유)=무형(연빨강). 지지: 공망=무형·그 외=유형.
-  const rootedGan = new Set(visiblePos.flatMap((q) => rootsOf(q)));
   // 오행 분포 (천간+지지 카운트) — daniel: elemHidden 토글 시 각 지지의 지장간(支藏干) 오행도 합산(숨은 기운까지 본 분포)
   const elem: Record<string, number> = { 木: 0, 火: 0, 土: 0, 金: 0, 水: 0 };
   visiblePos.forEach((p) => {
@@ -308,7 +303,6 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
   });
 
   const [showAdvanced, setShowAdvanced] = useState(true); // daniel: 디폴트 상세분석 ON(지장간·12운성·통근)
-  const [showTango, setShowTango] = useState(false); // 유형(파랑)·무형(빨강) 글자 테두리 토글 — daniel: 기본 OFF
   const toggleAdvanced = () => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setShowAdvanced(!showAdvanced);
@@ -351,13 +345,13 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
               <PressableScale onPress={() => setGlossary({ kind: 'tengod', key: P[p].stemTenGod })}>
                 <Text style={[styles.pillarTenGod, { color: colors.inkSoft }]}>{P[p].stemTenGod}</Text>
               </PressableScale>
-              <PressableScale style={[styles.pillarMain, { borderWidth: 1.5, borderRadius: 6, borderColor: !showTango ? 'transparent' : rootedGan.has(P[p].stem) ? TANG_Y : TANG_N }]} onPress={() => setGlossary({ kind: 'stem', key: P[p].stem })}>
+              <PressableScale style={styles.pillarMain} onPress={() => setGlossary({ kind: 'stem', key: P[p].stem })}>
                 <Text style={[styles.pillarChar, { color: elementColor[elStem] }]}>{P[p].stem}</Text>
                 <Text style={[styles.pillarReading, { color: colors.inkFaint }]}>{stemReading(P[p].stem)} · {stemYinYang(P[p].stem)}</Text>
               </PressableScale>
 
 
-              <PressableScale style={[styles.pillarMain, { borderWidth: 1.5, borderRadius: 6, borderColor: !showTango ? 'transparent' : c.sinsal.gongmangHits.includes(p) ? TANG_N : TANG_Y }]} onPress={() => setGlossary({ kind: 'branch', key: P[p].branch })}>
+              <PressableScale style={styles.pillarMain} onPress={() => setGlossary({ kind: 'branch', key: P[p].branch })}>
                 <Text style={[styles.pillarChar, { color: elementColor[elBranch] }]}>{P[p].branch}</Text>
                 <Text style={[styles.pillarReading, { color: colors.inkFaint }]}>{branchReading(P[p].branch)} · {branchYinYang(P[p].branch)}</Text>
               </PressableScale>
@@ -429,19 +423,6 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
           </View>
 
           {renderArcs(activeGanP, 'above')}
-          {/* 유형(파랑)·무형(빨강) 테두리 토글 + 범례 — daniel: 기본 OFF, 켜면 글자 테두리 색 + 설명 */}
-          <View style={styles.tangoBar}>
-            <PressableScale style={styles.tangoToggle} onPress={() => { LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut); setShowTango((v) => !v); haptic(); }}>
-              <View style={[styles.tangoTrack, showTango && styles.tangoTrackOn]}><View style={[styles.tangoThumb, showTango && styles.tangoThumbOn]} /></View>
-              <Text style={styles.tangoLabel}>유형·무형 보기</Text>
-            </PressableScale>
-            {showTango && (
-              <View style={styles.tangoLegend}>
-                <View style={styles.tangoLegendItem}><View style={[styles.tangoSwatch, { borderColor: TANG_Y }]} /><Text style={styles.tangoLegendTx}>유형 — 뿌리 있고 온전</Text></View>
-                <View style={styles.tangoLegendItem}><View style={[styles.tangoSwatch, { borderColor: TANG_N }]} /><Text style={styles.tangoLegendTx}>무형 — 떠 있거나 공망</Text></View>
-              </View>
-            )}
-          </View>
           {renderPillars()}
           {renderArcs(activeJiP, 'below')}
 
@@ -585,10 +566,10 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
       </PressableScale>
       {/* 조후·음양 쏠림(daniel) — 탭하면 설명·문제점·대응법(개운법) */}
       {(() => {
-        const ey = eumYangSkew(P, input?.sex); const jh = johuSkew(P);
+        const ey = eumYangSkew(P, input?.sex); const jh = johuSkew(P); const js = joSeupSkew(P);
         return (
           <PressableScale style={styles.strDetailBtn} onPress={() => setJohuOpen(true)}>
-            <Text style={styles.strDetailBtnTx}>조후 {jh.skew} · 음양 {ey.skew.replace('양', '+').replace('음', '-')}  — 문제점·대응법 ›</Text>
+            <Text style={styles.strDetailBtnTx}>한난조습 {jh.skew.replace(' 쏠림', '')}·{js.skew.replace(' 쏠림', '')} · 음양 {ey.skew.replace('양', '+').replace('음', '-')}  — 문제점·대응법 ›</Text>
           </PressableScale>
         );
       })()}
@@ -1151,7 +1132,7 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
           <Text style={styles.sheetKind}>조후 · 음양 쏠림</Text>
           <ScrollView style={{ flexShrink: 1 }} showsVerticalScrollIndicator={true}>
             {(() => {
-              const ey = eumYangSkew(P, input?.sex); const jh = johuSkew(P);
+              const ey = eumYangSkew(P, input?.sex); const jh = johuSkew(P); const js = joSeupSkew(P);
               const elc: Record<string, number> = {};
               for (const p of (['년', '월', '일', '시'] as const)) { const d = P[p]; if (!d) continue; const se = stemElement(d.stem), be = branchElement(d.branch); elc[se] = (elc[se] || 0) + 1; elc[be] = (elc[be] || 0) + (p === '월' ? 2 : 1); }
               const domEl = Object.entries(elc).sort((a, b) => b[1] - a[1])[0];
@@ -1165,7 +1146,8 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
                 </View>
               );
               return (<>
-                {block('조후', `${jh.skew} (따뜻 ${jh.warm}·차가움 ${jh.cold})`, CONCEPT_INFO.조후, jh.skew !== '중화' ? JOHU_SKEW[jh.skew] : null)}
+                {block('한난(조후)', `${jh.skew} (따뜻 ${jh.warm}·차가움 ${jh.cold})`, CONCEPT_INFO.조후, jh.skew !== '중화' ? JOHU_SKEW[jh.skew] : null)}
+                {block('조습', `${js.skew} (습함 ${js.wet}·건조 ${js.dry})`, CONCEPT_INFO.조습, js.skew !== '중화' ? JOSEUP_SKEW[js.skew] : null)}
                 {block('음양', `${ey.skew.replace('양', '+').replace('음', '-')} (+ ${ey.yang}·- ${ey.yin})`, CONCEPT_INFO.음양, ey.skew !== '균형' ? YINYANG_SKEW[ey.skew] : null)}
                 {domEl && domEl[1] >= 4 ? block('오행 쏠림', `${domEl[0]} 강함`, '', ELEMENT_SKEW[domEl[0]]) : null}
                 {tgSkew ? block('기운(십성) 쏠림', `${tgSkew.god} 강함`, '', tgSkew.item, tgSkew.favorable) : null}
@@ -1322,18 +1304,6 @@ const makeStyles = (fs: (n: number) => number) => { const f = scaledFont(fs); re
   calGz: { fontSize: fs(13), fontWeight: '700', marginTop: 1 },
   row: { flexDirection: 'row', gap: space(2) },
   pillarContainer: { flexDirection: 'row', gap: space(2), marginTop: space(2), marginBottom: space(4) },
-  // 유형·무형 테두리 토글 + 범례(daniel)
-  tangoBar: { marginTop: space(1), marginBottom: space(1) },
-  tangoToggle: { flexDirection: 'row', alignItems: 'center', gap: space(2), alignSelf: 'flex-start' },
-  tangoTrack: { width: 36, height: 20, borderRadius: 10, backgroundColor: colors.line, paddingHorizontal: 2, justifyContent: 'center' },
-  tangoTrackOn: { backgroundColor: colors.ju },
-  tangoThumb: { width: 16, height: 16, borderRadius: 8, backgroundColor: '#FFFFFF' },
-  tangoThumbOn: { alignSelf: 'flex-end' },
-  tangoLabel: { fontSize: fs(13), fontWeight: '700', color: colors.inkSoft },
-  tangoLegend: { flexDirection: 'row', flexWrap: 'wrap', gap: space(4), marginTop: space(2.5), paddingLeft: space(1) },
-  tangoLegendItem: { flexDirection: 'row', alignItems: 'center', gap: space(1.5) },
-  tangoSwatch: { width: 16, height: 16, borderRadius: 4, borderWidth: 1.5, backgroundColor: 'transparent' },
-  tangoLegendTx: { fontSize: fs(11.5), color: colors.inkSoft },
   pillarWrapper: { flex: 1 },
   pillarGlass: { paddingVertical: space(3), paddingHorizontal: 0, alignItems: 'center' },
   pillarDayGlass: { borderColor: colors.ju, borderWidth: 1.5 },

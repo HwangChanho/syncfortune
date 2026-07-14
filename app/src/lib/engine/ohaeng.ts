@@ -75,3 +75,21 @@ export function johuSkew(pillars: any): { warm: number; cold: number; skew: '더
   const diff = warm - cold;
   return { warm, cold, skew: diff >= 2 ? '더움 쏠림' : diff <= -2 ? '추움 쏠림' : '중화' };
 }
+
+// 조습(燥濕) 쏠림 — 濕(水·습토 辰丑) vs 燥(火·조토 未戌). 한난(johuSkew)과 함께 '한난조습'을 이룸.
+//   ★단순화 산출 — 명리 stance 정교화(木생발·金수렴 반영 등)는 daniel 검수 슬롯.
+export function joSeupSkew(pillars: any): { wet: number; dry: number; skew: '습함 쏠림' | '건조 쏠림' | '중화' } {
+  let wet = 0, dry = 0;
+  const WET_BR = new Set(['辰', '丑']); // 습토(濕土)
+  const DRY_BR = new Set(['未', '戌']); // 조토(燥土)
+  for (const p of ['년', '월', '일', '시']) {
+    const d = pillars?.[p]; if (!d) continue;
+    const w = p === '월' ? 2 : 1; // 월지=계절 본령 가중
+    if (stemElement(d.stem) === '水') wet++; else if (stemElement(d.stem) === '火') dry++;
+    const be = branchElement(d.branch);
+    if (be === '水') wet += w; else if (be === '火') dry += w;
+    if (WET_BR.has(d.branch)) wet += w; else if (DRY_BR.has(d.branch)) dry += w; // 습토/조토(土 지지라 위 火水 미해당분 가산)
+  }
+  const diff = wet - dry;
+  return { wet, dry, skew: diff >= 2 ? '습함 쏠림' : diff <= -2 ? '건조 쏠림' : '중화' };
+}
