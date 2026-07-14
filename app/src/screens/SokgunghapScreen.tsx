@@ -5,7 +5,7 @@
 //   §4: 부정 증폭 금지·처방 동반·의료/심리 단정 금지. 성적 주제를 솔직히 다루되 노골/외설 배제.
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useEffect } from 'react';
-import { View, Text, ScrollView, StyleSheet, Modal, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Modal, ActivityIndicator, Pressable } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import { useTranslation } from 'react-i18next';
 import { PressableScale } from '../components/PressableScale';
@@ -40,6 +40,7 @@ export function SokgunghapScreen({ me }: { me: ChartInput }) {
   const [repId, setRepId] = useState<string | null>(null);
   const [partner, setPartner] = useState<SavedChart | null>(null);
   const [otherReg, setOtherReg] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false); // 상대 선택 드롭다운(바텀시트)
   const [result, setResult] = useState<SokResult | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -101,18 +102,14 @@ export function SokgunghapScreen({ me }: { me: ChartInput }) {
       <Text style={styles.h1}>{t('sok.title', '속궁합')}</Text>
       <Text style={styles.sub}>{t('sok.sub', '두 사람의 성적 궁합을 사주로 — 재미로 보는 성인 콘텐츠')}</Text>
 
-      {/* 상대 선택 */}
+      {/* 상대 선택 — 드롭다운(탭 → 바텀시트 목록에서 보고 선택). 명식 많아도 화면 안 채움. */}
       <Text style={styles.section}>{t('sok.pickPartner', '상대 선택')}</Text>
-      <View style={styles.chips}>
-        {partners.map((c) => (
-          <PressableScale key={c.id} style={[styles.chip, partner?.id === c.id && styles.chipOn]} onPress={() => runWith(c.input, c)}>
-            <Text style={[styles.chipTx, partner?.id === c.id && styles.chipTxOn]}>{c.label || c.input.birthDateTime?.slice(0, 10) || '상대'}</Text>
-          </PressableScale>
-        ))}
-        <PressableScale style={styles.chipAdd} onPress={() => setOtherReg(true)}>
-          <Text style={styles.chipAddTx}>＋ {t('sok.newPartner', '새 상대 입력')}</Text>
-        </PressableScale>
-      </View>
+      <PressableScale style={styles.dropTrigger} onPress={() => setPickerOpen(true)}>
+        <Text style={[styles.dropTx, !partner && styles.dropTxEmpty]} numberOfLines={1}>
+          {partner ? (partner.label || partner.input.birthDateTime?.slice(0, 10) || '상대') : t('sok.pickHint', '탭해서 상대 선택')}
+        </Text>
+        <Text style={styles.dropChevron}>▾</Text>
+      </PressableScale>
 
       {busy && <ActivityIndicator color={colors.ju} style={{ marginTop: space(6) }} />}
 
@@ -125,6 +122,23 @@ export function SokgunghapScreen({ me }: { me: ChartInput }) {
             <Text style={styles.heroLabel}>{(result.tier as any)[lang] ?? result.tier.ko}</Text>
             <View style={styles.gaugeTrack}><View style={[styles.gaugeFill, { width: `${result.score}%` }]} /></View>
             <Text style={styles.heroScore}>{result.score}<Text style={styles.heroScoreUnit}> / 100</Text></Text>
+          </View>
+
+          {/* 하위 점수 — 키스궁합 · 관계(밤)궁합 */}
+          <View style={styles.subScores}>
+            {[{ ic: '💋', label: t('sok.kiss', '키스궁합'), v: result.kissScore }, { ic: '🔥', label: t('sok.bed', '관계궁합'), v: result.bedScore }].map((s) => (
+              <View key={s.label} style={styles.subScore}>
+                <Text style={styles.subScoreLabel}>{s.ic} {s.label}</Text>
+                <View style={styles.subGaugeTrack}><View style={[styles.subGaugeFill, { width: `${s.v}%` }]} /></View>
+                <Text style={styles.subScoreVal}>{s.v}</Text>
+              </View>
+            ))}
+          </View>
+
+          {/* 관계 스타일(리드×템포×강도) */}
+          <View style={[styles.card, styles.styleCard]}>
+            <Text style={styles.styleLabel}>{t('sok.styleLabel', '두 사람의 케미 스타일')}</Text>
+            <Text style={styles.styleTx}>{reading.style}</Text>
           </View>
 
           {/* 결정론 신호 칩(근거 투명성) */}
@@ -142,6 +156,28 @@ export function SokgunghapScreen({ me }: { me: ChartInput }) {
       )}
 
       <Text style={styles.disclaimer}>{t('sok.disclaimer', '※ 사주로 보는 재미 콘텐츠예요. 실제 관계는 두 사람이 만들어갑니다. 성인(19세 이상) 전용.')}</Text>
+
+      {/* 상대 선택 바텀시트 — 불투명 시트 + 탭아웃 닫힘([[toggle-view-auto-dismiss]]) */}
+      <Modal visible={pickerOpen} transparent animationType="slide" onRequestClose={() => setPickerOpen(false)}>
+        <Pressable style={styles.sheetDim} onPress={() => setPickerOpen(false)}>
+          <Pressable style={styles.sheet} onPress={() => { /* 시트 내부 탭은 닫힘 방지 */ }}>
+            <View style={styles.sheetHandle} />
+            <Text style={styles.sheetTitle}>{t('sok.pickPartner', '상대 선택')}</Text>
+            <ScrollView style={styles.sheetList} contentContainerStyle={{ paddingBottom: space(2) }} keyboardShouldPersistTaps="handled">
+              {partners.length === 0 && <Text style={styles.sheetEmpty}>{t('sok.noPartner', '저장된 상대가 없어요. 새 상대를 입력해 주세요.')}</Text>}
+              {partners.map((c) => (
+                <PressableScale key={c.id} style={[styles.sheetRow, partner?.id === c.id && styles.sheetRowOn]} onPress={() => { setPickerOpen(false); runWith(c.input, c); }}>
+                  <Text style={[styles.sheetRowTx, partner?.id === c.id && styles.sheetRowTxOn]} numberOfLines={1}>{c.label || '상대'}</Text>
+                  <Text style={styles.sheetRowSub}>{String(c.input.birthDateTime ?? '').replace('T', ' ').slice(0, 10)}</Text>
+                </PressableScale>
+              ))}
+            </ScrollView>
+            <PressableScale style={styles.sheetAdd} onPress={() => { setPickerOpen(false); setOtherReg(true); }}>
+              <Text style={styles.sheetAddTx}>＋ {t('sok.newPartner', '새 상대 입력')}</Text>
+            </PressableScale>
+          </Pressable>
+        </Pressable>
+      </Modal>
 
       {/* 신규 상대 등록 폼 */}
       <Modal visible={otherReg} animationType="slide" onRequestClose={() => setOtherReg(false)}>
@@ -171,14 +207,25 @@ const styles = StyleSheet.create({
   gateDesc: { ...font.body, color: colors.inkSoft, textAlign: 'center', marginTop: space(3), marginBottom: space(6), lineHeight: 22 },
   gateBtn: { backgroundColor: colors.ju, borderRadius: radius.pill, paddingHorizontal: space(7), paddingVertical: space(3.5) },
   gateBtnTx: { color: colors.bg, fontSize: 15, fontWeight: '800' },
-  // 상대 칩
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space(2.5) },
-  chip: { backgroundColor: colors.sunk, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.line, paddingHorizontal: space(4), paddingVertical: space(2.5) },
-  chipOn: { backgroundColor: colors.ju, borderColor: colors.ju },
-  chipTx: { color: colors.inkSoft, fontWeight: '700', fontSize: 13 },
-  chipTxOn: { color: colors.bg },
-  chipAdd: { backgroundColor: 'transparent', borderRadius: radius.pill, borderWidth: 1, borderColor: colors.ju, borderStyle: 'dashed', paddingHorizontal: space(4), paddingVertical: space(2.5) },
-  chipAddTx: { color: colors.ju, fontWeight: '800', fontSize: 13 },
+  // 상대 선택 드롭다운 트리거(탭 → 바텀시트)
+  dropTrigger: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.juLine, paddingHorizontal: space(4), paddingVertical: space(3.5), ...shadow.card },
+  dropTx: { ...font.body, color: colors.ink, fontWeight: '700', flex: 1 },
+  dropTxEmpty: { color: colors.inkFaint, fontWeight: '600' },
+  dropChevron: { color: colors.ju, fontSize: 16, fontWeight: '800', marginLeft: space(2) },
+  // 상대 선택 바텀시트(불투명·탭아웃 닫힘)
+  sheetDim: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  sheet: { backgroundColor: colors.card, borderTopLeftRadius: radius.lg, borderTopRightRadius: radius.lg, paddingHorizontal: space(5), paddingTop: space(2.5), paddingBottom: space(9), maxHeight: '72%' },
+  sheetHandle: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: colors.line, marginBottom: space(3) },
+  sheetTitle: { ...font.heading, color: colors.ink, marginBottom: space(3) },
+  sheetList: { flexGrow: 0 },
+  sheetEmpty: { ...font.caption, color: colors.inkFaint, textAlign: 'center', paddingVertical: space(6) },
+  sheetRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: space(3.5), paddingHorizontal: space(3), borderRadius: radius.sm, borderBottomWidth: 1, borderBottomColor: colors.line },
+  sheetRowOn: { backgroundColor: colors.sunk },
+  sheetRowTx: { ...font.body, color: colors.ink, fontWeight: '700', flex: 1 },
+  sheetRowTxOn: { color: colors.ju },
+  sheetRowSub: { ...font.caption, color: colors.inkFaint, fontSize: 12, marginLeft: space(2) },
+  sheetAdd: { marginTop: space(3), borderRadius: radius.pill, borderWidth: 1, borderColor: colors.ju, borderStyle: 'dashed', paddingVertical: space(3.25), alignItems: 'center' },
+  sheetAddTx: { color: colors.ju, fontWeight: '800', fontSize: 14 },
   // 결과
   result: { marginTop: space(6), gap: space(4) },
   heroCard: { backgroundColor: colors.card, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.juLine, padding: space(6), alignItems: 'center', ...shadow.card },
@@ -188,6 +235,17 @@ const styles = StyleSheet.create({
   gaugeFill: { height: '100%', borderRadius: 5, backgroundColor: colors.ju },
   heroScore: { ...font.display, color: colors.ju, marginTop: space(3) },
   heroScoreUnit: { ...font.caption, color: colors.inkFaint },
+  // 하위 점수(키스·관계)
+  subScores: { flexDirection: 'row', gap: space(3) },
+  subScore: { flex: 1, backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.juLine, padding: space(4), ...shadow.card },
+  subScoreLabel: { ...font.caption, color: colors.inkSoft, fontWeight: '800', marginBottom: space(2.5) },
+  subGaugeTrack: { height: 7, borderRadius: 4, backgroundColor: colors.sunk, overflow: 'hidden', marginBottom: space(2) },
+  subGaugeFill: { height: '100%', borderRadius: 4, backgroundColor: colors.ju },
+  subScoreVal: { ...font.heading, color: colors.ju },
+  // 관계 스타일
+  styleCard: { borderColor: colors.ju },
+  styleLabel: { ...font.label, color: colors.ju, marginBottom: space(2) },
+  styleTx: { ...font.body, color: colors.ink, lineHeight: 24 },
   sigWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: space(2) },
   sig: { backgroundColor: colors.sunk, borderRadius: radius.sm, paddingHorizontal: space(2.5), paddingVertical: space(1.5) },
   sigTx: { ...font.caption, color: colors.inkSoft, fontSize: 11 },

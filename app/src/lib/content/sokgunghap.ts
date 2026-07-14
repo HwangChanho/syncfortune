@@ -68,7 +68,9 @@ export function sokTierLabel(tier: SokTier, lang: 'ko' | 'en' | 'ja'): string {
 }
 
 export type SokResult = {
-  score: number;                 // 0~100([18,96] 클램프 — 극단 회피)
+  score: number;                 // 끌림 총점 0~100([18,96] 클램프 — 극단 회피)
+  kissScore: number;             // 키스궁합(감정·설렘 축) — 일간 케미+음양+매력
+  bedScore: number;              // 관계(밤)궁합(신체 축) — 배우자궁 일지+홍염+음양+매력
   tier: SokTier;
   myCharm: Charm;
   partnerCharm: Charm;
@@ -79,6 +81,8 @@ export type SokResult = {
   tension: number;
   signals: string[];             // 결정론 근거(화면 칩)
 };
+
+const clamp = (x: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, Math.round(x)));
 
 // 일지 관계 → 점수 가중(★daniel 검수 슬롯). 육합=깊은 몸궁합, 충=격정이나 소진, 형=마찰, 해=엇박.
 const SPOUSE_W: Record<SpousePalaceRel, number> = { 육합: 16, 충: 8, 형: -4, 해: -6, 무: 0 };
@@ -111,6 +115,12 @@ export function analyzeSokgunghap(me: SokSide, other: SokSide): SokResult {
   let s = 52 + charmW + bothCharmed + SPOUSE_W[spouse] + DM_W[dmType] + (yinyangComplement ? 6 : 0) + (harmony - tension) * 3;
   s = Math.max(18, Math.min(96, Math.round(s)));
 
+  // 하위 점수(★daniel 검수 슬롯) — 끌림 총점과 별개 축.
+  //   키스궁합(감정·설렘) = 일간 케미 + 음양 상보 + 매력. / 관계(밤)궁합(신체) = 배우자궁 일지 + 홍염(성적 매력) + 음양 + 매력.
+  const hongyeomSum = myCharm.hongyeom + partnerCharm.hongyeom;
+  const kissScore = clamp(52 + DM_W[dmType] * 1.6 + (yinyangComplement ? 10 : 0) + Math.min(16, charmSum * 3), 20, 97);
+  const bedScore = clamp(50 + SPOUSE_W[spouse] * 1.4 + Math.min(14, hongyeomSum * 4) + (yinyangComplement ? 8 : 0) + Math.min(10, charmSum * 2), 20, 97);
+
   // 결정론 근거 칩(화면 표시·근거 투명성)
   const signals: string[] = [];
   if (spouse !== '무') signals.push(`배우자궁 일지 ${aB}·${bB} ${spouse}`);
@@ -121,5 +131,5 @@ export function analyzeSokgunghap(me: SokSide, other: SokSide): SokResult {
   if (harmony) signals.push(`조화 ${harmony}`);
   if (tension) signals.push(`긴장 ${tension}`);
 
-  return { score: s, tier: sokTierOf(s), myCharm, partnerCharm, spouse, dmType, yinyangComplement, harmony, tension, signals };
+  return { score: s, kissScore, bedScore, tier: sokTierOf(s), myCharm, partnerCharm, spouse, dmType, yinyangComplement, harmony, tension, signals };
 }
