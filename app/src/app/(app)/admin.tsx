@@ -15,6 +15,7 @@ import { colors, radius, space, shadow, font } from '../../lib/theme';
 import { useRouter } from 'expo-router'; // 비용분석 화면 이동
 import { supabase } from '../../lib/supabase'; // 테스트/관리자 모드 RPC + 프로필 로드
 import { setAdTestMode } from '../../lib/core/ads'; // 테스트모드 → 테스트광고 즉시 반영
+import { sendDailyTipNow } from '../../lib/backend/notifications'; // ★일운 아침 알림 즉시 발송(관리자 테스트·daniel 07-14)
 import { isOnboardingEnabled, setOnboardingEnabled } from '../../components/Onboarding'; // ★관리자 온보딩 토글(daniel 07-12)
 import { useSubscription } from '../../lib/billing/subscription'; // 관리자모드 토글 후 프리미엄 새로고침
 
@@ -294,6 +295,17 @@ export default function AdminRoute() {
         const next = !onbOn; setOnboardingEnabled(next); setOnbOn(next); // on=이력삭제+즉시 재노출 / off=봤음 처리
       }}>
         <Text style={styles.adminLinkTx}>온보딩 {onbOn ? '— 켜짐 (지금 재노출·다음 실행에도)' : '— 꺼짐 (숨김)'}</Text>
+      </PressableScale>
+      {/* ★일운 아침 알림 테스트(daniel 07-14) — 9시 예약 대기 없이 오늘 일운 팁을 지금 즉시 발송해 확인(실제 아침 알림과 동일 로직). */}
+      <PressableScale style={styles.adminLink} onPress={async () => {
+        const r = await sendDailyTipNow();
+        Alert.alert('일운 알림 테스트',
+          r === 'sent' ? '오늘의 일운 알림을 지금 발송했어요. 잠시 후 알림을 확인해 보세요(탭 → 오늘의 운세).'
+          : r === 'no-chart' ? '대표 명식이 없어요 — 명식을 먼저 등록해 주세요.'
+          : r === 'no-perm' ? '알림 권한이 꺼져 있어요 — 설정에서 알림을 켜 주세요.'
+          : '이 빌드에선 알림 모듈을 쓸 수 없어요(재빌드 후 작동).');
+      }}>
+        <Text style={styles.adminLinkTx}>일운 아침 알림 — 지금 발송(테스트)</Text>
       </PressableScale>
       {/* 전체 현황 대시보드(daniel 07-07 대폭 확장) — 규모·매출/원가/순익 실측·풀이분포·인기콘텐츠·일별추이·상위사용자 */}
       {stats && <Dashboard stats={stats} />}

@@ -208,6 +208,31 @@ export async function cancelDailyFortune(): Promise<void> {
 }
 
 /**
+ * ★관리자 테스트(daniel 2026-07-14) — 오늘의 '일운 아침 팁'을 지금 즉시 발송(9시 예약 대기 없이 바로 확인).
+ *   실제 아침 알림(scheduleDailyFortune 9시 슬롯)과 *동일 로직*(dailyAlarmTip)으로 만들어 발송. 탭→오늘운세.
+ *   반환: 'sent' | 'no-chart'(대표명식 없음) | 'no-perm'(권한 없음) | 'unavailable'(모듈/웹).
+ */
+export async function sendDailyTipNow(): Promise<'sent' | 'no-chart' | 'no-perm' | 'unavailable'> {
+  if (!Notif || Platform.OS === 'web') return 'unavailable';
+  if (!(await ensurePermission())) return 'no-perm';
+  const rep = await loadRepChart();
+  if (!rep) return 'no-chart';
+  let body = '';
+  try {
+    const saju = computeChart(rep.input).saju;
+    const f = getDailyFortune(0);                        // 오늘 일진
+    body = dailyAlarmTip(saju, f.dayGanZhi[0] as any, f.dayGanZhi[1] as any);
+  } catch { return 'unavailable'; }
+  try {
+    await Notif.scheduleNotificationAsync({
+      content: { title: MORNING_TITLE[appLang()] ?? MORNING_TITLE.ko, body, data: { route: '/today' } },
+      trigger: null,                                     // 즉시 발송
+    });
+    return 'sent';
+  } catch { return 'unavailable'; }
+}
+
+/**
  * 풀이 생성 완료 즉시 로컬 알림 — daniel: 풀이 생성 중 다른 작업을 하다가 완료되면 푸시로 알림.
  *   생성은 서버 캐시되므로 화면을 떠나도 진행·보관됨 → 완료 시 이 알림으로 통지(탭하면 route 로 복귀).
  *   모듈/권한 없으면 no-op(재빌드 후 작동·무료 로컬 알림).
