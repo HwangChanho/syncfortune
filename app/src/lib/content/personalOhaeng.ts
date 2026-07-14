@@ -43,6 +43,56 @@ export interface PersonalOhaeng {
   neededIsYongsin: boolean;     // needed 가 용신 산출값인지(참) / 부족 오행 폴백인지(거짓)
 }
 
+// ── ★퍼스널 컬러 웜톤/쿨톤(daniel 2026-07-15) — 원국 조후 한난 기반 ─────────
+//   火土=따뜻(웜)·水金=차가움(쿨)·木=중간. warm/cool 세력 비교로 웜톤/쿨톤/뉴트럴 판정.
+//   ★stance(가중치·톤별 팔레트/문구) = daniel 검수 슬롯. 뷰티 퍼스널컬러(웜=노란기·쿨=푸른기)를 오행에 대응.
+export type ToneKey = 'warm' | 'cool' | 'neutral';
+export interface ToneProfile {
+  emoji: string;
+  ko: string; en: string; ja: string;          // 라벨(웜톤/쿨톤/뉴트럴)
+  hex: string[];                                 // 어울리는 대표 컬러(스와치)
+  descKo: string; descEn: string; descJa: string;
+}
+export const TONE_PROFILE: Record<ToneKey, ToneProfile> = {
+  warm: {
+    emoji: '🔥', ko: '웜톤', en: 'Warm tone', ja: 'ウォーム',
+    hex: ['#E8956B', '#D9A441', '#C6763E', '#E7D6A6', '#8A9A5B'],
+    descKo: '노란빛이 도는 따뜻한 색이 얼굴을 화사하게 살려요. 코랄·피치·카멜·올리브·골드가 잘 어울려요.',
+    descEn: 'Warm, yellow-based colors light up your face. Coral, peach, camel, olive and gold suit you.',
+    descJa: '黄みのある暖色が顔を明るく見せます。コーラル·ピーチ·キャメル·オリーブ·ゴールドが好相性。',
+  },
+  cool: {
+    emoji: '❄️', ko: '쿨톤', en: 'Cool tone', ja: 'クール',
+    hex: ['#C8577A', '#7A6FB0', '#2C4A7A', '#8E2B45', '#AEB7C4'],
+    descKo: '푸른빛이 도는 시원한 색이 또렷하게 어울려요. 로즈·라벤더·네이비·버건디·실버가 잘 맞아요.',
+    descEn: 'Cool, blue-based colors bring you into focus. Rose, lavender, navy, burgundy and silver suit you.',
+    descJa: '青みのある寒色がくっきり映えます。ローズ·ラベンダー·ネイビー·バーガンディ·シルバーが好相性。',
+  },
+  neutral: {
+    emoji: '🌗', ko: '뉴트럴', en: 'Neutral', ja: 'ニュートラル',
+    hex: ['#B98E6E', '#A8967D', '#7F8A8C', '#C9BBA4', '#6E7E7A'],
+    descKo: '웜·쿨 양쪽을 다 소화하는 균형형이에요. 뮤트·중간 톤(뮤트베이지·세이지·토프)이 특히 잘 어울려요.',
+    descEn: 'You carry both warm and cool. Muted, mid tones (beige, sage, taupe) suit you especially well.',
+    descJa: 'ウォーム·クール両方をこなすバランス型。ミュート·中間トーン(ベージュ·セージ·トープ)が特に好相性。',
+  },
+};
+
+export interface PersonalTone { tone: ToneKey; warmScore: number; coolScore: number; profile: ToneProfile }
+/** 팔자 오행 밸런스 → 웜톤/쿨톤/뉴트럴(결정론). 火土=웜·水金=쿨·木=약웜. ★가중치=daniel 검수 슬롯. */
+export function personalTone(saju: SajuChart): PersonalTone | null {
+  if (!saju?.pillars) return null;
+  const counts: Record<string, number> = { 木: 0, 火: 0, 土: 0, 金: 0, 水: 0 };
+  for (const p of ['년', '월', '일', '시'] as const) {
+    const pd = saju.pillars[p]; if (!pd) continue;
+    if (stemElement(pd.stem) in counts) counts[stemElement(pd.stem)]++;
+    if (branchElement(pd.branch) in counts) counts[branchElement(pd.branch)]++;
+  }
+  const warm = counts['火'] * 1.2 + counts['土'] * 0.8 + counts['木'] * 0.5; // 火=따뜻·土=황(웜)·木=약웜
+  const cool = counts['水'] * 1.2 + counts['金'] * 0.8;                      // 水=푸름·金=백(쿨)
+  const tone: ToneKey = warm > cool * 1.12 ? 'warm' : cool > warm * 1.12 ? 'cool' : 'neutral';
+  return { tone, warmScore: Math.round(warm * 10) / 10, coolScore: Math.round(cool * 10) / 10, profile: TONE_PROFILE[tone] };
+}
+
 /** 팔자 오행 밸런스 → 퍼스널 컬러·코디·메이크업·자동차 추천(결정론). saju = computeChart(...).saju */
 export function personalOhaeng(saju: SajuChart): PersonalOhaeng | null {
   if (!saju?.pillars) return null;

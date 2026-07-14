@@ -13,8 +13,9 @@ import { ChartPicker } from '../../components/ChartPicker';
 import { RelatedContent } from '../../components/RelatedContent';
 import { loadRepChart } from '../../lib/engine/myChart';
 import { computeChart } from '../../lib/engine/engine';
-import { personalOhaeng, EL_KO, EL_VIBE, type OhaengProfile } from '../../lib/content/personalOhaeng';
+import { personalOhaeng, personalTone, EL_KO, EL_VIBE, type OhaengProfile } from '../../lib/content/personalOhaeng';
 import { useLogContentVisit } from '../../lib/backend/contentVisit';
+import { appLang } from '../../lib/i18n';
 import { colors, space, radius, font } from '../../lib/theme';
 
 // 색 스와치 3개 + 색 이름
@@ -53,6 +54,12 @@ export default function PersonalRoute() {
     if (!input) return null;
     try { return personalOhaeng(computeChart(input).saju); } catch { return null; }
   }, [input]);
+  // ★퍼스널 컬러 웜/쿨 톤(daniel 2026-07-15) — 원국 조후 한난 기반(computeChart 메모됨).
+  const tone = useMemo(() => {
+    if (!input) return null;
+    try { return personalTone(computeChart(input).saju); } catch { return null; }
+  }, [input]);
+  const lang = appLang() as 'ko' | 'en' | 'ja';
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>
@@ -68,6 +75,18 @@ export default function PersonalRoute() {
         </View>
       ) : (
         <>
+          {/* ⓪ 퍼스널 컬러 웜톤/쿨톤 — 헤드라인(원국 조후 한난) */}
+          {tone && (
+            <View style={[styles.card, styles.toneCard]}>
+              <Text style={styles.cardCap}>{t('personal.toneCap', '나의 퍼스널 컬러')}</Text>
+              <Text style={styles.toneLabel}>{tone.profile.emoji} {(tone.profile as any)[lang] ?? tone.profile.ko}</Text>
+              <View style={styles.toneSwRow}>
+                {tone.profile.hex.map((h, i) => (<View key={i} style={[styles.toneSw, { backgroundColor: h }]} />))}
+              </View>
+              <Text style={styles.toneDesc}>{lang === 'en' ? tone.profile.descEn : lang === 'ja' ? tone.profile.descJa : tone.profile.descKo}</Text>
+            </View>
+          )}
+
           {/* ① 나를 살리는 색(강조 = 강한 오행) */}
           <View style={styles.card}>
             <Text style={styles.cardCap}>{t('personal.activate', '나를 살리는 색')}</Text>
@@ -113,6 +132,12 @@ const styles = StyleSheet.create({
   emptyBtnTx: { color: colors.bg, fontWeight: '800' },
   card: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.line, padding: space(4), marginTop: space(3) },
   cardCap: { ...font.caption, color: colors.inkSoft, marginBottom: space(2) },
+  // ★퍼스널 컬러 웜/쿨 톤
+  toneCard: { borderColor: colors.ju, borderWidth: 1.5 },
+  toneLabel: { ...font.title, color: colors.ink, marginBottom: space(3) },
+  toneSwRow: { flexDirection: 'row', gap: space(2), marginBottom: space(3) },
+  toneSw: { flex: 1, height: 40, borderRadius: radius.sm, borderWidth: 1, borderColor: colors.line },
+  toneDesc: { ...font.body, color: colors.ink, lineHeight: 23 },
   elLine: { ...font.body, color: colors.ink, marginBottom: space(3) },
   elGlyph: { fontWeight: '900' },
   swatchRow: { flexDirection: 'row', justifyContent: 'space-around' },
