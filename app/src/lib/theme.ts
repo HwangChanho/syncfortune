@@ -7,7 +7,7 @@
 //   - SecureStore.getItem(동기)로 로드 시점에 즉시 결정(첫 렌더부터 올바른 테마).
 //   - 토글 변경은 *재시작 후 적용*(StyleSheet 캐시 특성 — 설정에서 안내). 시스템 변경도 재시작 시 반영.
 // ─────────────────────────────────────────────────────────────────────────
-import { Appearance, DevSettings } from 'react-native';
+import { DevSettings } from 'react-native'; // ★다크/라이트 제거(daniel 2026-07-15) — Appearance 불필요(소프트 클레이 단일 테마)
 import * as SecureStore from 'expo-secure-store';
 // ⚠️ expo-updates = 네이티브 모듈. theme.ts 는 거의 모든 화면이 import → *정적 import* 하면 런치 시 로드되어,
 //   모듈/설정 이슈 시 JS 로거 설치 전 네이티브 크래시 위험(purchases.ts·ads.ts 와 동일 패턴 위반).
@@ -37,7 +37,8 @@ const DARK = {
 // ── 라이트 팔레트(한지 — 따뜻한 베이지 + 먹 + 깊은 골드) ──────────
 const LIGHT = {
   // 전반 채도↓ + 이미지(미드나잇 네이비·골드 #C9A14A)와 조화(daniel 06-28). 노란기·탁함·순백대비 완화.
-  bg: '#F2EFE7', card: '#FBF5E8', sunk: '#EFE7D6', // 카드=흰색(#FBFAF6)→따뜻한 연베이지(daniel 07-02: 글 적힌 부분 베이지)
+  // ★소프트 클레이(daniel 2026-07-15): 따뜻한 점토 톤. bg=클레이 그라운드 / card=살짝 떠 보이는 밝은 클레이(부드러운 그림자로 리프트).
+  bg: '#EAE2D2', card: '#F6EFDF', sunk: '#E0D7C3',
   glass: 'rgba(251, 245, 232, 0.78)', glassLight: 'rgba(43, 38, 32, 0.05)',
   ink: '#2B2722', inkSoft: '#6A645B', inkFaint: '#9A938A', line: '#CDC3AF', // 카드 테두리 더 또렷(한지 배경 위 필드 분리, daniel 07-03)
   // ★리디자인(daniel 2026-07-14 '심플하면서 조화롭게' → 먹선 미니멀): 액센트 = 뮤트 골드 하나(조화로운 단일 포인트, daniel 선택).
@@ -84,15 +85,9 @@ function resolveAccent(): Accent | null {
 }
 
 // 로드 시점 동기 결정: 저장 오버라이드(다크/라이트) > 시스템(Appearance). 실패 시 다크.
-function resolveScheme(): Scheme {
-  // ★리디자인 C(daniel 2026-07-14): 기본 정체성 = 한지 라이트. 미설정/기본 = light, 명시 'dark' 또는 'system'(기기 따라감)만 예외.
-  let pref: ThemePref = 'light';
-  try { pref = ((SecureStore as any).getItem?.(PREF_KEY) as ThemePref) || 'light'; } catch { /* 동기 미지원/오류 → light */ }
-  if (pref === 'dark') return 'dark';
-  if (pref === 'light') return 'light';
-  // pref === 'system' (유저가 명시적으로 '기기 따라가기' 선택) → 기기 스킴 따라감.
-  try { return Appearance.getColorScheme() === 'dark' ? 'dark' : 'light'; } catch { return 'light'; }
-}
+// ★다크/라이트 테마 제거(daniel 2026-07-15) — 소프트 클레이 단일 테마. 항상 light(클레이) 팔레트.
+//   (DARK 팔레트/setThemePref는 미사용으로 남겨둠 — 제거 시 churn만 큼. 설정 토글은 UI에서 삭제.)
+function resolveScheme(): Scheme { return 'light'; }
 
 export const activeScheme: Scheme = resolveScheme();
 
@@ -185,16 +180,17 @@ export const gradients = activeScheme === 'light'
       glass: ['rgba(255,255,255,0.12)', 'rgba(255,255,255,0.03)'],
     };
 
-// ── 라운드(모서리) ───────────────────────────────────────────
-export const radius = { sm: 10, md: 16, lg: 22, pill: 999 } as const;
+// ── 라운드(모서리) — ★소프트 클레이(daniel 2026-07-15): 더 푹신하게 ──
+export const radius = { sm: 12, md: 20, lg: 28, pill: 999 } as const;
 
 // ── 간격(4pt 그리드) ─────────────────────────────────────────
 export const space = (n: number) => n * 4;
 
 // ── 그림자 ───────────────────────────────────────────────────
+// ★소프트 클레이(daniel 2026-07-15): 따뜻한 색 + 크고 부드러운 그림자로 말랑하게 떠 보이는 리프트.
 export const shadow = {
-  card: { shadowColor: '#000', shadowOpacity: 0.11, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 3 }, // 라이트=한지 배경 위 카드 리프트 강화(muddy 필드 분리, daniel 07-03)
-  soft: { shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, shadowOffset: { width: 0, height: 1 }, elevation: 1 },
+  card: { shadowColor: '#7A6644', shadowOpacity: 0.22, shadowRadius: 16, shadowOffset: { width: 0, height: 7 }, elevation: 6 },
+  soft: { shadowColor: '#7A6644', shadowOpacity: 0.12, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 2 },
 } as const;
 
 // ── 타이포 (colors 결정 후라 활성 테마 색 반영) ───────────────
