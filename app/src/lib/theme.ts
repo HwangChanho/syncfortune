@@ -40,7 +40,8 @@ const LIGHT = {
   bg: '#F2EFE7', card: '#FBF5E8', sunk: '#EFE7D6', // 카드=흰색(#FBFAF6)→따뜻한 연베이지(daniel 07-02: 글 적힌 부분 베이지)
   glass: 'rgba(251, 245, 232, 0.78)', glassLight: 'rgba(43, 38, 32, 0.05)',
   ink: '#2B2722', inkSoft: '#6A645B', inkFaint: '#9A938A', line: '#CDC3AF', // 카드 테두리 더 또렷(한지 배경 위 필드 분리, daniel 07-03)
-  ju: '#A08948', juDeep: '#84703B', juSoft: '#EFEBE0', juLine: '#C9C0A6',
+  // ★리디자인 C '한지 라이트'(daniel 2026-07-14): 주 액센트 = 주(朱) 버밀리언(도장·단청의 붉은 포인트). 골드는 gold/badgeGold로 프리미엄 디테일에 유지.
+  ju: '#C0392B', juDeep: '#9A2D22', juSoft: '#F6E9E4', juLine: '#E3C4BD',
   gold: '#A08948', white: '#FFFFFF',
   badgeGold: '#C9A14A', // ★배지 전용 금색 — 라이트에서도 다크 금색(밝은 #C9A14A) 사용. daniel 07-07(배지만 예외적 채도↑).
   // ★어두운 히어로 이미지 위 텍스트/스크림 — DARK와 동일값(이미지가 어두우므로 라이트모드에서도 밝은 글씨·어두운 스크림이라야 보임).
@@ -52,11 +53,13 @@ const LIGHT = {
 
 // 로드 시점 동기 결정: 저장 오버라이드(다크/라이트) > 시스템(Appearance). 실패 시 다크.
 function resolveScheme(): Scheme {
-  let pref: ThemePref = 'system';
-  try { pref = ((SecureStore as any).getItem?.(PREF_KEY) as ThemePref) || 'system'; } catch { /* 동기 미지원/오류 → system */ }
+  // ★리디자인 C(daniel 2026-07-14): 기본 정체성 = 한지 라이트. 미설정/기본 = light, 명시 'dark' 또는 'system'(기기 따라감)만 예외.
+  let pref: ThemePref = 'light';
+  try { pref = ((SecureStore as any).getItem?.(PREF_KEY) as ThemePref) || 'light'; } catch { /* 동기 미지원/오류 → light */ }
   if (pref === 'dark') return 'dark';
   if (pref === 'light') return 'light';
-  try { return Appearance.getColorScheme() === 'light' ? 'light' : 'dark'; } catch { return 'dark'; }
+  // pref === 'system' (유저가 명시적으로 '기기 따라가기' 선택) → 기기 스킴 따라감.
+  try { return Appearance.getColorScheme() === 'dark' ? 'dark' : 'light'; } catch { return 'light'; }
 }
 
 export const activeScheme: Scheme = resolveScheme();
@@ -79,7 +82,7 @@ export function setThemePref(p: ThemePref) {
   else { try { Updates?.reloadAsync?.().catch(() => {}); } catch { /* 모듈/설정 없으면 재시작 후 적용 */ } }
 }
 export function getThemePref(): ThemePref {
-  try { return ((SecureStore as any).getItem?.(PREF_KEY) as ThemePref) || 'system'; } catch { return 'system'; }
+  try { return ((SecureStore as any).getItem?.(PREF_KEY) as ThemePref) || 'light'; } catch { return 'light'; } // 기본 = 한지 라이트(리디자인 C)
 }
 
 // 로딩(인트로) 영상 on/off — daniel 07-03. 끄면 八字 한자 스플래시만. 기본 on. 다음 실행부터 반영(스플래시는 실행 시 1회).
