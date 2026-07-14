@@ -9,7 +9,7 @@
 //   영상이 시각적 주인공이므로 이때는 링·자물쇠 이모지를 생략(중복 연출 제거). VideoSplash 와 동일한 expo-video 패턴.
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useRef, useState } from 'react';
-import { Modal, View, Text, Animated, Easing, StyleSheet, Pressable } from 'react-native';
+import { View, Text, Animated, Easing, StyleSheet, Pressable } from 'react-native'; // ★Modal 제거(VideoView Modal내 iOS 렌더실패)
 import { useVideoPlayer, VideoView } from 'expo-video'; // 번들 mp4 재생(이미 VideoSplash 에서 사용 — 신규 네이티브 의존 없음)
 import { PressableScale } from './PressableScale';
 import { useRouter } from 'expo-router';
@@ -85,9 +85,9 @@ export function UnlockOverlay({ visible, message, allowBackground = true, videoK
   const scale = pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.12] });
 
   return (
-    <Modal visible transparent animationType="fade" statusBarTranslucent>
-      {/* 영상 모드에선 컨테이너 배경을 미드나잇으로(영상 로드 전 밝은 플래시 방지 — VideoSplash 와 동일 톤) */}
-      <View style={[styles.overlay, videoKey && styles.overlayVideo]}>
+    // ★VideoView 는 RN Modal 안에서 iOS 렌더 실패(오디오만 남·영상 안 뜸)→ Modal 대신 전체화면 absolute View로.
+    //   작동하는 VideoSplash 와 동일 패턴(absoluteFill). daniel 2026-07-15 '영상 켰는데 소리만·자물쇠 안보임' 수정.
+    <View style={[StyleSheet.absoluteFill, styles.overlay, videoKey && styles.overlayVideo, styles.rootZ]}>
         {videoKey ? (
           // ── 영상 배경 모드: ① 전체화면 테마 영상(cover·루프) → ② 그 위 어둠막(텍스트 가독성) ──
           //   레이어 순서(뒤→앞): VideoView(absoluteFill) < scrim(absoluteFill) < 아래 메시지/버튼(정상 흐름·중앙).
@@ -114,12 +114,13 @@ export function UnlockOverlay({ visible, message, allowBackground = true, videoK
           </PressableScale>
         )}
       </View>
-    </Modal>
   );
 }
 
 const styles = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: colors.overlayStrong, alignItems: 'center', justifyContent: 'center' },
+  rootZ: { zIndex: 1000, elevation: 1000 }, // Modal 대체 전체화면 오버레이 — 화면 최상단에(생성 중 콘텐츠 위 덮기)
+
   overlayVideo: { backgroundColor: '#0B0A1A' }, // 영상 로드 전/레터박스 시 미드나잇(밝은 플래시 방지)
   videoScrim: { backgroundColor: 'rgba(0,0,0,0.45)' }, // 영상 위 어둠막 — 메시지/버튼 가독성(daniel 가시성 QA 톤)
   center: { width: 140, height: 140, alignItems: 'center', justifyContent: 'center', marginBottom: space(6) },
