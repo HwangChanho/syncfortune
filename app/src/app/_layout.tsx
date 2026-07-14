@@ -8,6 +8,7 @@ import 'intl-pluralrules'; // Intl.PluralRules polyfill (Hermes) — iztro i18ne
 import '../lib/i18n'; // 다국어(한·영·일) init
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { Stack } from 'expo-router';
+import { useFonts } from 'expo-font'; // 트렌디 폰트(Pretendard) 런타임 로드 — 네이티브 ExpoFont pod
 import { View, ActivityIndicator, StyleSheet, LogBox, AppState, InteractionManager } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler'; // 이슈20 드래그 reorder(gesture-handler) — 루트 래핑 필수
 import { useAuth, whenAuthCleanupIdle } from '../lib/useAuth'; // whenAuthCleanupIdle: 로그아웃 클린업 완료 게이트(L3 — sync 전 대기)
@@ -28,13 +29,25 @@ import { BusyOverlay } from '../components/BusyOverlay'; // 인증 전환(로그
 import { subscribeAuthBusy, getAuthBusy } from '../lib/ui/authBusy';
 import { ChartConfirmHost } from '../lib/ui/chartConfirm'; // 풀이/구매 전 명식 확인 모달(드롭다운 변경)
 import { Onboarding } from '../components/Onboarding'; // ★첫 실행 자기이해 온보딩(App Store 4.3: '운세앱'→'AI 자기이해 도구' 인상 전환)
+import { applyGlobalFont } from '../lib/ui/globalFont'; // 전역 Pretendard 폰트 — Text/TextInput 렌더 패치(트렌디, daniel 기획서 UX)
 
 // i18next 26.x가 Hermes에서 Intl.PluralRules 를 인식 못 해 내는 dev 경고(동작은 v3 fallback 정상,
 //   한·영·일 복수형 단순해 영향 0) 억제. 프로덕션 빌드엔 LogBox 자체가 없어 무영향.
 LogBox.ignoreLogs([/i18next::pluralResolver/]);
 
+// ★전역 폰트 패치(모듈 로드 1회, RootLayout 렌더 전) — 모든 Text·TextInput의 fontWeight → Pretendard 웨이트 주입.
+//   실제 폰트 파일은 RootLayout의 useFonts로 로드(로드 완료 전엔 시스템 폰트로 우아하게 폴백).
+applyGlobalFont();
+
 export default function RootLayout() {
   const { session, loading } = useAuth();
+  // 트렌디 폰트(Pretendard) 3웨이트 로드 — globalFont 패치가 참조하는 키명과 일치해야 함.
+  //   에러 시(fontError)엔 게이트하지 않고 시스템 폰트로 진행(폰트 문제로 앱이 막히지 않게).
+  const [fontsLoaded, fontError] = useFonts({
+    'Pretendard-Regular': require('../../assets/fonts/Pretendard-Regular.ttf'),
+    'Pretendard-SemiBold': require('../../assets/fonts/Pretendard-SemiBold.ttf'),
+    'Pretendard-Bold': require('../../assets/fonts/Pretendard-Bold.ttf'),
+  });
   const authBusy = useSyncExternalStore(subscribeAuthBusy, getAuthBusy); // 로그아웃/로그인 전환 중 전역 블로킹 오버레이(먹통 방지)
   const [splash, setSplash] = useState(true); // 앱 실행 인트로(緣) 1회 — 끝나면 언마운트
 
@@ -90,7 +103,7 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <FontScaleProvider>
-        {loading ? (
+        {(loading || (!fontsLoaded && !fontError)) ? (
           <View style={styles.center}><ActivityIndicator size="large" color={colors.ju} /></View>
         ) : (
           <Stack screenOptions={{ headerShown: false }}>
