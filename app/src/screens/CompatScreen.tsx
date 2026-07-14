@@ -97,7 +97,7 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
   // 통변(관계별) + 결정론 비교
   const [rel, setRel] = useState('love');                        // 선택 관계 유형(기본 연애)
   const [year, setYear] = useState('');                          // '' = 원국(관계 본바탕) / 'YYYY' = 그 해 흐름
-  const [compatTab, setCompatTab] = useState<'saju' | 'ziwei'>('saju'); // 사주로 본 궁합 / 자미두수로 본 궁합(daniel: 분리 탭, 결제 쌍당 1회 공유)
+  const [compatTab] = useState<'saju' | 'ziwei'>('saju'); // ★탭 제거(daniel 2026-07-15) — 항상 'saju'(=사주+자미 합친 'compat' 통변). setter 미사용.
   const [readings, setReadings] = useState<Record<string, CompatReading>>({});
   const [busy, setBusy] = useState<string | null>(null);         // 생성 중 키(rel 또는 rel_yYYYY)
   const [loading, setLoading] = useState(false);                 // 재진입 시 캐시 로딩 중 — 자물쇠 대신 스피너(daniel ⑦ 완료 감지)
@@ -198,11 +198,10 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
     const key = `${compatTab}:${relKey}${yr ? '_y' + yr : ''}`;
     if (readings[key]) return;
     const relName = t(COMPAT_RELS.find((r) => r.key === relKey)?.tk ?? '');
-    const tabName = compatTab === 'ziwei' ? '자미두수로 본' : '사주로 본';
-    const pairOwned = Object.keys(readings).length > 0; // 이 쌍을 이미 구매했으면(어느 탭이든) 추가 비용 0(쌍당 1회 결제)
+    const pairOwned = Object.keys(readings).length > 0; // 이 쌍을 이미 구매했으면 추가 비용 0(쌍당 1회 결제)
     Alert.alert(
       t('compat.genTitle', '풀이 만들기'),
-      `${tabName} ${relName}${yr ? ' ' + yr + '년' : ''} 궁합 풀이를 만들까요?\n${pairOwned ? '추가 비용 없이 생성돼요.' : '이용권 1회 또는 결제가 필요해요.'}`,
+      `${relName}${yr ? ' ' + yr + '년' : ''} 궁합 풀이를 만들까요?\n${pairOwned ? '추가 비용 없이 생성돼요.' : '이용권 1회 또는 결제가 필요해요.'}`,
       [
         { text: t('common.cancel'), style: 'cancel' },
         { text: t('compat.genConfirm', '생성'), onPress: () => runCompatGen(relKey, yr, key) },
@@ -322,16 +321,9 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
               </PressableScale>
             ))}
           </View>
-          {/* ③ 무엇으로 볼까? — 사주/자미 관점(결제 쌍당 1회 공유·자미 온디맨드) + 년도 */}
-          <Text style={[styles.stepLabel, { marginTop: space(4) }]}>{t('compat.step3', '③ 무엇으로 볼까요?')}</Text>
-          <View style={styles.compatTabBar}>
-            {([['saju', '사주로 본 궁합'], ['ziwei', '자미두수로 본 궁합']] as const).map(([id, label]) => (
-              <PressableScale key={id} style={[styles.compatTab, compatTab === id && styles.compatTabOn]} onPress={() => setCompatTab(id)}>
-                <Text style={[styles.compatTabTx, compatTab === id && styles.compatTabTxOn]} numberOfLines={1}>{label}</Text>
-              </PressableScale>
-            ))}
-          </View>
+          {/* ★사주/자미 탭 제거(daniel 2026-07-15 '구분짓지 말고 같이풀어') — 'compat' 통변이 이미 사주 주축+자미 보조교차로 합쳐 나옴(규칙2·R46). 항상 compatTab='saju'(=합친 통변). */}
           {/* 연도별 — 전체(원국 본바탕) / 그 해 흐름(세운). 연도 탭 시 그 관계×연도 통변 생성 */}
+          <Text style={[styles.stepLabel, { marginTop: space(4) }]}>{t('compat.step3year', '③ 언제로 볼까요?')}</Text>
           <View style={styles.yearChips}>
             <PressableScale style={[styles.yearChip, !year && styles.yearChipOn]} onPress={() => setYear('')}>
               <Text style={[styles.yearChipTx, !year && styles.yearChipTxOn]}>{t('compat.yearAll')}</Text>
