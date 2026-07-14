@@ -31,6 +31,7 @@ import { ChartConfirmHost } from '../lib/ui/chartConfirm'; // 풀이/구매 전 
 import { Onboarding } from '../components/Onboarding'; // ★첫 실행 자기이해 온보딩(App Store 4.3: '운세앱'→'AI 자기이해 도구' 인상 전환)
 import { applyGlobalFont } from '../lib/ui/globalFont'; // 전역 Pretendard 폰트 — Text/TextInput 렌더 패치(트렌디, daniel 기획서 UX)
 import { loadFeatures } from '../lib/core/features'; // ★신규 기능 노출 게이트(원격 플래그+관리자) — 속궁합/커뮤니티/위젯 재제출 안전판
+import { syncThemeElement } from '../lib/ui/themeElement'; // ★대표명식 일간 오행 → 테마 강조색 소스 저장(자동 강조색)
 
 // i18next 26.x가 Hermes에서 Intl.PluralRules 를 인식 못 해 내는 dev 경고(동작은 v3 fallback 정상,
 //   한·영·일 복수형 단순해 영향 0) 억제. 프로덕션 빌드엔 LogBox 자체가 없어 무영향.
@@ -72,7 +73,8 @@ export default function RootLayout() {
     }).catch(() => {});
   }, [session]);
   // 앱 실행 시 대표 명식을 '본인'으로(daniel) — 로컬 명식 기준 즉시(로그인 동기화 후엔 syncChartsFromServer가 한 번 더 보정).
-  useEffect(() => { preferSelfAsRep().catch(() => {}); }, []);
+  //   대표명식 확정 후 일간 오행을 테마 강조색 소스로 저장(auto 강조 모드면 다음 로드에 일간 색 반영).
+  useEffect(() => { preferSelfAsRep().then(() => syncThemeElement()).catch(() => { syncThemeElement().catch(() => {}); }); }, []);
   // ★신규 기능 노출 게이트 로드(세션 변경 시) — 원격 플래그(app_flags)+내 관리자 여부. 속궁합/커뮤니티/위젯 게이트.
   useEffect(() => { loadFeatures().catch(() => {}); }, [session?.user?.id]);
   // 앱 사용 세션 시간 추적(daniel: 관리자 계정별 평균 사용시간) — 포그라운드 구간 길이를 app_session 으로 기록.
@@ -87,6 +89,7 @@ export default function RootLayout() {
         // ★L3: 로그아웃 클린업이 진행 중이면 완료 후 sync — 이전 계정 명식이 새 계정 blob 으로 새는 것 방지(배리어 없으면 즉시).
         void whenAuthCleanupIdle().then(() => syncChartsFromServer());
         hydrateGenProgress().catch(() => {});
+        syncThemeElement().catch(() => {}); // 대표명식 바뀌었으면 일간 오행 갱신(다음 로드 반영)
         return;
       }
       const sec = Math.round((Date.now() - start) / 1000);   // 백그라운드/비활성 → 이번 구간 길이

@@ -52,6 +52,37 @@ const LIGHT = {
   overlay: 'rgba(242,239,231,0.45)', overlaySoft: 'rgba(242,239,231,0.2)', overlayStrong: 'rgba(251,250,246,0.82)', labelScrim: 'rgba(249,247,241,0.97)',
 };
 
+// ── ★일간 오행 강조색(daniel 2026-07-15) ─────────────────────────
+// 대표명식 *일간의 오행색*(오방색)을 앱 액센트(ju 계열)로. 설정에서 변경 가능: 자동(일간) / 오행 직접 / 골드.
+//   ju·juDeep·juSoft·juLine 만 덮어씀 — gold·badgeGold(프리미엄 배지)는 골드로 유지. 색은 라이트 종이 기준 튜닝.
+//   ※theme.ts는 저장된 오행 문자열만 읽음(엔진 의존 X). 대표명식→오행 산출·저장은 ui/themeElement.ts(_layout에서).
+export type Accent = { ju: string; juDeep: string; juSoft: string; juLine: string };
+const EL_ACCENT: Record<string, Accent> = {
+  木: { ju: '#3E8E5A', juDeep: '#2F6E46', juSoft: '#E7F0EA', juLine: '#BFD9C9' }, // 청록(목)
+  火: { ju: '#C0392B', juDeep: '#9A2D22', juSoft: '#F7E8E5', juLine: '#E4C2BC' }, // 적(화)
+  土: { ju: '#A8862F', juDeep: '#846A28', juSoft: '#F1EBDB', juLine: '#D9CCA2' }, // 황·금(토)
+  金: { ju: '#7E8C9E', juDeep: '#5E6B7C', juSoft: '#ECEEF2', juLine: '#C9CED7' }, // 백·강철(금)
+  水: { ju: '#3A4E7A', juDeep: '#2A3A5E', juSoft: '#E8EBF2', juLine: '#C1C9DB' }, // 청흑·남(수)
+};
+// 설정 강조색 픽커 스와치(오행 대표색 + 골드). 'auto'는 activeAccentElement 색으로 표시.
+export const ACCENT_SWATCH: Record<string, string> = {
+  木: EL_ACCENT.木.ju, 火: EL_ACCENT.火.ju, 土: EL_ACCENT.土.ju, 金: EL_ACCENT.金.ju, 水: EL_ACCENT.水.ju, gold: '#A08948',
+};
+const ACCENT_KEY = 'pref.themeAccent';   // 'auto' | '木'|'火'|'土'|'金'|'水' | 'gold'
+const ELEMENT_KEY = 'pref.themeElement'; // 대표명식 일간 오행(자동 액센트 소스) — themeElement.ts가 저장
+const ELS = ['木', '火', '土', '金', '水'];
+
+/** 강조색 결정 — 설정 모드 + 저장된 일간 오행. null = 골드(현행 팔레트 유지). */
+function resolveAccent(): Accent | null {
+  let mode = 'auto';
+  try { mode = ((SecureStore as any).getItem?.(ACCENT_KEY) as string) || 'auto'; } catch { /* → auto */ }
+  if (mode === 'gold') return null;                          // 골드 고정(오행 강조 끔)
+  let el = '';
+  if (ELS.includes(mode)) el = mode;                         // 오행 직접 선택
+  else { try { el = ((SecureStore as any).getItem?.(ELEMENT_KEY) as string) || ''; } catch { /* 미저장 */ } } // auto=일간
+  return (el && EL_ACCENT[el]) ? EL_ACCENT[el] : null;       // 오행 미결정 시 골드 폴백
+}
+
 // 로드 시점 동기 결정: 저장 오버라이드(다크/라이트) > 시스템(Appearance). 실패 시 다크.
 function resolveScheme(): Scheme {
   // ★리디자인 C(daniel 2026-07-14): 기본 정체성 = 한지 라이트. 미설정/기본 = light, 명시 'dark' 또는 'system'(기기 따라감)만 예외.
@@ -67,6 +98,19 @@ export const activeScheme: Scheme = resolveScheme();
 
 // 전 화면이 import 하는 색 토큰 — 활성 팔레트로 채움(첫 렌더부터 올바른 테마).
 export const colors = { ...(activeScheme === 'light' ? LIGHT : DARK) };
+
+// ★일간 오행 강조색 적용 — ju 계열만 덮어씀(auto=일간 / 오행 / gold). 미결정 시 골드 유지.
+const _accent = resolveAccent();
+if (_accent) { colors.ju = _accent.ju; colors.juDeep = _accent.juDeep; colors.juSoft = _accent.juSoft; colors.juLine = _accent.juLine; }
+// 활성 강조 오행(설정 UI 표시용) — auto면 저장된 일간 오행, 직접선택이면 그 오행, gold면 ''.
+export const activeAccentElement: string = (() => {
+  try {
+    const m = ((SecureStore as any).getItem?.(ACCENT_KEY) as string) || 'auto';
+    if (m === 'gold') return '';
+    if (ELS.includes(m)) return m;
+    return ((SecureStore as any).getItem?.(ELEMENT_KEY) as string) || '';
+  } catch { return ''; }
+})();
 
 // 전 화면 배경 이미지 — 다크=밤하늘, 라이트=한지(daniel #다크모드). 둘 다 번들에 포함.
 export const bgSource = activeScheme === 'light'
@@ -84,6 +128,28 @@ export function setThemePref(p: ThemePref) {
 }
 export function getThemePref(): ThemePref {
   try { return ((SecureStore as any).getItem?.(PREF_KEY) as ThemePref) || 'light'; } catch { return 'light'; } // 기본 = 한지 라이트(리디자인 C)
+}
+
+// ── ★일간 오행 강조색 설정 ──────────────────────────────────────
+export type AccentMode = 'auto' | '木' | '火' | '土' | '金' | '水' | 'gold';
+export function getThemeAccent(): AccentMode {
+  try { return ((SecureStore as any).getItem?.(ACCENT_KEY) as AccentMode) || 'auto'; } catch { return 'auto'; }
+}
+/** 강조색 모드 변경(자동=일간 / 오행 직접 / 골드). 저장 후 즉시 반영(재시작). */
+export function setThemeAccent(mode: AccentMode) {
+  try { (SecureStore as any).setItem?.(ACCENT_KEY, mode); } catch { /* noop */ }
+  SecureStore.setItemAsync(ACCENT_KEY, mode).catch(() => {});
+  if (__DEV__) { try { DevSettings.reload(); } catch { /* noop */ } }
+  else { try { Updates?.reloadAsync?.().catch(() => {}); } catch { /* 재시작 후 적용 */ } }
+}
+/** 대표명식 일간 오행 저장(themeElement.ts가 rep 변경/시작 시 호출). auto 모드면 다음 로드에 반영. */
+export function storeChartElement(el: string) {
+  if (!ELS.includes(el)) return;
+  let prev = '';
+  try { prev = ((SecureStore as any).getItem?.(ELEMENT_KEY) as string) || ''; } catch { /* noop */ }
+  if (prev === el) return;
+  try { (SecureStore as any).setItem?.(ELEMENT_KEY, el); } catch { /* noop */ }
+  SecureStore.setItemAsync(ELEMENT_KEY, el).catch(() => {});
 }
 
 // 로딩(인트로) 영상 on/off — daniel 07-03. 끄면 八字 한자 스플래시만. 기본 on. 다음 실행부터 반영(스플래시는 실행 시 1회).
