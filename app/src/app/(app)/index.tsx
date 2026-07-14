@@ -88,6 +88,9 @@ const SECTIONS: Section[] = [
     // daniel 07-06: 인기에 연애스타일·반려동물 추가(무료 온디바이스, light 원본과 동일·hot* 고유키로 React 키 충돌 방지).
     { key: 'hotLovestyle', labelKey: 'menu.lovestyle', descKey: 'menu.lovestyleTileDesc', image: require('../../../assets/icons/lovestyle.jpg'), route: '/lovestyle', ready: true, content: true },
     { key: 'hotPet', labelKey: 'menu.pet', descKey: 'menu.petDesc', image: require('../../../assets/icons/pet.jpg'), route: '/pet', ready: true, content: true },
+    // 신규(daniel 2026-07-14): 커뮤니티(게시판형 UGC). ★원격 플래그(features.community)로 게이트 — 관리자만 노출(재제출 안전판), 심사 통과 후 공개.
+    //   전용 이미지 추후(현재 이미지 생략 → 리스트 placeholder 글리프). 렌더 시 useFeatureOn('community')로 필터.
+    { key: 'community', labelKey: 'menu.community', descKey: 'menu.communityDesc', image: require('../../../assets/icons/lovestyle.jpg'), route: '/community', ready: true, content: true },
   ] },
   // 스페셜 = 유료 LLM 콘텐츠(애정흐름·인생그래프·신년 등). 골드 라인아트 타일 이미지(Recraft). (옛 '가장 많이 찾는' → daniel 07-05 스페셜로 개칭)
   { key: 'special', titleKey: 'menu.secSpecial', descKey: 'menu.secContentDesc', items: [
@@ -214,12 +217,13 @@ export default function Home() {
   const { session, isRegistered } = useAuth();
   const { isPremium } = useSubscription();
   const [admin, setAdmin] = useState(false);
-  // ★신규 기능 노출 게이트 — 속궁합은 관리자(daniel) 또는 원격 플래그 ON 일 때만 홈에 노출(재제출 안전판).
+  // ★신규 기능 노출 게이트 — 속궁합·커뮤니티는 관리자(daniel) 또는 원격 플래그 ON 일 때만 홈에 노출(재제출 안전판).
   const sokOn = useFeatureOn('sokgunghap');
+  const commOn = useFeatureOn('community');
   // 원격 플래그로 숨길 항목 필터 — 카드/리스트 뷰 공용(SECTIONS.map 단일 지점만 sections 로 교체).
   const sections = useMemo(
-    () => SECTIONS.map((sec) => ({ ...sec, items: sec.items.filter((m) => m.key !== 'sokgunghap' || sokOn) })),
-    [sokOn],
+    () => SECTIONS.map((sec) => ({ ...sec, items: sec.items.filter((m) => (m.key !== 'sokgunghap' || sokOn) && (m.key !== 'community' || commOn)) })),
+    [sokOn, commOn],
   );
   const [repServerChartId, setRepServerChartId] = useState<string | null>(null); // 현재 대표 명식 serverChartId(홈 카드 프리미엄 판정 — 명식 전환 시 재평가)
   // 홈 유료 카드 배지(명식별 상태·daniel 07-08) — 현 대표 명식의 쿠폰 잔량 + 이미 생성된 풀이(카테고리·생성일).

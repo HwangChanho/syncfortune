@@ -311,6 +311,10 @@ export default function AdminRoute() {
           <Text style={styles.adminLinkTx}>{label} {flags[k] ? '— 공개 (전 유저)' : '— 숨김 (관리자만)'}</Text>
         </PressableScale>
       ))}
+      {/* ★커뮤니티 신고 관리(모더레이션 대시보드·Apple 1.2 조치) 진입 */}
+      <PressableScale style={styles.adminLink} onPress={() => router.push('/communityMod')}>
+        <Text style={styles.adminLinkTx}>커뮤니티 신고 관리 →</Text>
+      </PressableScale>
       {/* ★일운 아침 알림 테스트(daniel 07-14) — 9시 예약 대기 없이 오늘 일운 팁을 지금 즉시 발송해 확인(실제 아침 알림과 동일 로직). */}
       <PressableScale style={styles.adminLink} onPress={async () => {
         const r = await sendDailyTipNow();
