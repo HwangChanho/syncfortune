@@ -137,7 +137,7 @@ export function setThemeAccent(mode: AccentMode) {
   if (__DEV__) { try { DevSettings.reload(); } catch { /* noop */ } }
   else { try { Updates?.reloadAsync?.().catch(() => {}); } catch { /* 재시작 후 적용 */ } }
 }
-/** 대표명식 일간 오행 저장(themeElement.ts가 rep 변경/시작 시 호출). auto 모드면 다음 로드에 반영. */
+/** 대표명식 일간 오행 저장(themeElement.ts가 rep 변경/시작 시 호출). auto 모드면 색 반영. */
 export function storeChartElement(el: string) {
   if (!ELS.includes(el)) return;
   let prev = '';
@@ -145,6 +145,16 @@ export function storeChartElement(el: string) {
   if (prev === el) return;
   try { (SecureStore as any).setItem?.(ELEMENT_KEY, el); } catch { /* noop */ }
   SecureStore.setItemAsync(ELEMENT_KEY, el).catch(() => {});
+  // ★첫 결정(이전 값 없음) + auto 모드 → 일간 색을 *즉시* 반영(1회 리로드). 이후 명식 전환은 다음 로드에(잦은 리로드 방지).
+  //   activeScheme/colors 는 모듈 로드 시점 결정이라, 첫 실행에 이 리로드가 있어야 일간 색이 바로 보인다(daniel 2026-07-15).
+  if (!prev) {
+    let mode = 'auto';
+    try { mode = ((SecureStore as any).getItem?.(ACCENT_KEY) as string) || 'auto'; } catch { /* noop */ }
+    if (mode === 'auto') {
+      if (__DEV__) { try { DevSettings.reload(); } catch { /* noop */ } }
+      else { try { Updates?.reloadAsync?.().catch(() => {}); } catch { /* 재시작 후 반영 */ } }
+    }
+  }
 }
 
 // 로딩(인트로) 영상 on/off — daniel 07-03. 끄면 八字 한자 스플래시만. 기본 on. 다음 실행부터 반영(스플래시는 실행 시 1회).
