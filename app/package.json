@@ -12,6 +12,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@bacons/apple-targets": "^4.0.7",
     "@expo/metro-runtime": "~4.0.1",
     "@opentelemetry/api": "^1.9.1",
     "@react-navigation/native": "^7.0.0",
