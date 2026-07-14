@@ -17,6 +17,7 @@ import { supabase } from '../../lib/supabase'; // 테스트/관리자 모드 RPC
 import { setAdTestMode } from '../../lib/core/ads'; // 테스트모드 → 테스트광고 즉시 반영
 import { sendDailyTipNow } from '../../lib/backend/notifications'; // ★일운 아침 알림 즉시 발송(관리자 테스트·daniel 07-14)
 import { isOnboardingEnabled, setOnboardingEnabled } from '../../components/Onboarding'; // ★관리자 온보딩 토글(daniel 07-12)
+import { remoteFlagValue, setAppFlag, loadFeatures, type FeatureKey } from '../../lib/core/features'; // ★신규 기능 공개 토글(속궁합/커뮤니티/위젯 — 심사 통과 후 전 유저 공개)
 import { useSubscription } from '../../lib/billing/subscription'; // 관리자모드 토글 후 프리미엄 새로고침
 
 // 초 → 사람이 읽는 시간(평균 사용시간 표시).
@@ -212,6 +213,7 @@ export default function AdminRoute() {
   const [testMode, setTestMode] = useState(false); // 통변 mock(API 미호출)
   const [adminMode, setAdminMode] = useState(true); // god ON / 일반계정 OFF
   const [onbOn, setOnbOn] = useState(false); // 온보딩 노출 여부(관리자 토글·로컬 SecureStore FLAG, daniel 07-12)
+  const [flags, setFlags] = useState<Record<string, boolean>>({}); // ★신규 기능 원격 플래그(속궁합/커뮤니티/위젯 — 공개 여부)
 
   async function reload() { setUsers(await adminListUsers()); }
   useEffect(() => { isAdmin().then((a) => { setAllowed(a); if (a) { reload(); adminStats().then(setStats); } }); }, []);
@@ -220,6 +222,8 @@ export default function AdminRoute() {
   // 테스트/관리자 모드 현재값 로드(프로필) — 설정에서 이동(daniel 07-01)
   useEffect(() => { supabase.auth.getUser().then(({ data }) => { if (data.user) supabase.from('profiles').select('test_mode, admin_mode').eq('id', data.user.id).maybeSingle().then(({ data: p }) => { setTestMode(!!p?.test_mode); setAdminMode(p?.admin_mode !== false); }); }).catch(() => {}); }, []);
   useEffect(() => { isOnboardingEnabled().then(setOnbOn).catch(() => {}); }, []); // 온보딩 노출 여부 로드(관리자 토글)
+  // ★신규 기능 플래그 로드(원격 app_flags) — 공개 토글 초기 상태.
+  useEffect(() => { loadFeatures().then(() => setFlags({ sokgunghap: remoteFlagValue('sokgunghap'), community: remoteFlagValue('community'), widget: remoteFlagValue('widget') })).catch(() => {}); }, []);
 
   if (allowed === null) return <View style={styles.center}><ActivityIndicator color={colors.ju} /></View>;
   if (allowed === false && !__DEV__) return <View style={styles.center}><Text style={styles.denied}>관리자만 접근할 수 있어요.</Text></View>;
@@ -296,6 +300,17 @@ export default function AdminRoute() {
       }}>
         <Text style={styles.adminLinkTx}>온보딩 {onbOn ? '— 켜짐 (지금 재노출·다음 실행에도)' : '— 꺼짐 (숨김)'}</Text>
       </PressableScale>
+      {/* ★신규 기능 공개 토글(daniel 07-14·관리자 전용) — 심사 반려 복구 중엔 '숨김'(관리자만 노출), 심사 통과 후 여기서 '공개'로 전환하면
+          재빌드 없이 전 유저에게 노출(app_flags 원격 플래그). 리스크 큰 3종(속궁합 17+·커뮤니티 UGC·위젯). */}
+      {([['sokgunghap', '속궁합'], ['community', '커뮤니티'], ['widget', '위젯']] as [FeatureKey, string][]).map(([k, label]) => (
+        <PressableScale key={k} style={[styles.adminLink, flags[k] && styles.adminLinkOn]} onPress={async () => {
+          const next = !flags[k];
+          try { await setAppFlag(k, next); setFlags((f) => ({ ...f, [k]: next })); }
+          catch { Alert.alert('!', '토글 실패 — 관리자 권한을 확인하세요.'); }
+        }}>
+          <Text style={styles.adminLinkTx}>{label} {flags[k] ? '— 공개 (전 유저)' : '— 숨김 (관리자만)'}</Text>
+        </PressableScale>
+      ))}
       {/* ★일운 아침 알림 테스트(daniel 07-14) — 9시 예약 대기 없이 오늘 일운 팁을 지금 즉시 발송해 확인(실제 아침 알림과 동일 로직). */}
       <PressableScale style={styles.adminLink} onPress={async () => {
         const r = await sendDailyTipNow();

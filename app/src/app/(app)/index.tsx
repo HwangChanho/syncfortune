@@ -12,6 +12,7 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../lib/useAuth';
 import { useEffect, useRef, useMemo, useState, useCallback } from 'react';
+import { useFeatureOn } from '../../lib/core/features'; // 신규 기능 노출 게이트(속궁합 등 — 원격 플래그+관리자, 재제출 안전판)
 import { supabase } from '../../lib/supabase';
 import { showRewardedAd, adTestMode } from '../../lib/core/ads'; // 무료 온디바이스 콘텐츠 진입 보상형 광고(오늘/이달 제외)
 import { isAdmin } from '../../lib/core/admin'; // 관리자·프리미엄 = 무료 진입 광고 제외
@@ -93,6 +94,9 @@ const SECTIONS: Section[] = [
     // daniel(2026-06-24): 신년운세 = 시즌 콘텐츠라 리스트 제일 앞.
     { key: 'newyear', labelKey: 'menu.newyear', descKey: 'menu.newyearTileDesc', image: require('../../../assets/icons/newyear.jpg'), route: '/newyear', ready: true, content: true, creditKey: 'newyear' },
     { key: 'love', labelKey: 'menu.love', descKey: 'menu.loveDesc', image: require('../../../assets/icons/love.jpg'), route: '/love', ready: true, content: true, creditKey: 'love' },
+    // 신규(daniel 2026-07-14): 속궁합(성적 궁합·17+·온디바이스 무료). ★원격 플래그(features.sokgunghap)로 게이트 — 관리자만 노출(재제출 안전판),
+    //   심사 통과 후 공개. love.jpg 아이콘 재사용(전용 이미지 추후). 렌더 시 useFeatureOn('sokgunghap')로 필터.
+    { key: 'sokgunghap', labelKey: 'menu.sokgunghap', descKey: 'menu.sokgunghapDesc', image: require('../../../assets/icons/love.jpg'), route: '/sokgunghap', ready: true, content: true },
     // 신규(daniel 2026-07-05): 재회·짝사랑·취업 유료 깊은 풀이 = '가장 많이 찾는'에 가격 노출. 무료 '질문형' 진입은
     //   '가볍게 보기' 섹션(reunionAsk/crushAsk/jobAsk)에서 결정론 미리보기 → 이 유료로 유도(daniel 모델).
     { key: 'reunion', labelKey: 'menu.reunion', descKey: 'menu.reunionDesc', image: require('../../../assets/icons/reunion.jpg'), route: '/reunion', ready: true, content: true, creditKey: 'reunion' },
@@ -210,6 +214,13 @@ export default function Home() {
   const { session, isRegistered } = useAuth();
   const { isPremium } = useSubscription();
   const [admin, setAdmin] = useState(false);
+  // ★신규 기능 노출 게이트 — 속궁합은 관리자(daniel) 또는 원격 플래그 ON 일 때만 홈에 노출(재제출 안전판).
+  const sokOn = useFeatureOn('sokgunghap');
+  // 원격 플래그로 숨길 항목 필터 — 카드/리스트 뷰 공용(SECTIONS.map 단일 지점만 sections 로 교체).
+  const sections = useMemo(
+    () => SECTIONS.map((sec) => ({ ...sec, items: sec.items.filter((m) => m.key !== 'sokgunghap' || sokOn) })),
+    [sokOn],
+  );
   const [repServerChartId, setRepServerChartId] = useState<string | null>(null); // 현재 대표 명식 serverChartId(홈 카드 프리미엄 판정 — 명식 전환 시 재평가)
   // 홈 유료 카드 배지(명식별 상태·daniel 07-08) — 현 대표 명식의 쿠폰 잔량 + 이미 생성된 풀이(카테고리·생성일).
   const [credits, setCredits] = useState<Record<string, number>>({});                            // creditKey별 쿠폰 잔량('쿠폰 N장')
@@ -522,7 +533,7 @@ export default function Home() {
         </View>
 
         {/* 무료 / 프리미엄 / 콘텐츠 3범주 — 큰 섹션 헤더 + 좌우 가로 스크롤 카드(daniel) */}
-        {SECTIONS.map((sec, secIdx) => {
+        {sections.map((sec, secIdx) => {
           const isLight = sec.key === 'light'; // '가볍게 보기' = 항목이 많아 가로 스크롤 대신 2열 줄바꿈(daniel)
           const isDeep = sec.key === 'deep';   // '나에 대해 알기' = 5개 넘어 2줄(컬럼 정렬) 가로 스크롤(daniel 2026-06-23)
           // 섹션 헤더(밴드/타이틀 + 설명) — 카드뷰·리스트뷰가 동일하게 재사용(중복 제거·정합).
