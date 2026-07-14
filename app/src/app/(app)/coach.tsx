@@ -126,7 +126,8 @@ export default function CoachScreen() {
       <ScrollView ref={scrollRef} style={styles.overlay} contentContainerStyle={[styles.wrap, { paddingBottom: 84 + lift }]} keyboardShouldPersistTaps="handled">
         <ChartPicker onChange={() => setReloadKey((k) => k + 1)} />
         {/* 아기 백호 마스코트 — 코치 아바타. busy(답 생성)면 active=true 로 광채·움직임 강화(반응하는 느낌). */}
-        <TigerMascot size={76} active={busy} style={{ alignSelf: 'center', marginTop: space(1), marginBottom: space(1) }} />
+        {/* marginTop = 후광(halo, size×1.72=~131px)이 76px 박스 위로 ~27px 삐져나오므로 명식 바와 그만큼 띄움(겹침 방지, daniel 07-14). */}
+        <TigerMascot size={76} active={busy} style={{ alignSelf: 'center', marginTop: space(8), marginBottom: space(2) }} />
         <Text style={[styles.title, { fontSize: fs(23) }]}>{t('coach.title', 'AI 자기이해 코치')}</Text>
         <Text style={[styles.sub, { fontSize: fs(13) }]}>{t('coach.sub2', '나와 내 삶에 대해 물어보세요. 사주와 자미두수로 함께 답해 드려요.')}</Text>
 
