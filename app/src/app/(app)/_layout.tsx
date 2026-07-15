@@ -48,17 +48,17 @@ export default function AppLayout() {
         animation: 'fade', // ★카드 진입 애니(홈 카드가 화면 채움) 뒤에 슬라이드가 또 나와 이상하던 것 → 페이드로 통일(카드 fill이 전환, daniel 07-01)
       }}>
         <Stack.Screen name="index" options={{ headerShown: false }} />
-        <Stack.Screen name="register" options={{ title: '차트 등록', headerLargeTitle: true }} />
+        <Stack.Screen name="register" options={{ title: '차트 등록' }} />
         <Stack.Screen name="myeongsik" options={{ headerTitle: '' }} />
         <Stack.Screen name="sinsal" options={{ headerTitle: '' }} />
         <Stack.Screen name="reading" options={{ headerTitle: '' }} />
         <Stack.Screen name="timeline" options={{ headerTitle: '' }} />
-        <Stack.Screen name="settings" options={{ title: '설정', headerLargeTitle: true }} />
+        <Stack.Screen name="settings" options={{ title: '설정' }} />
         <Stack.Screen name="compat" options={{ headerTitle: '' }} />
         <Stack.Screen name="taro" options={{ headerTitle: '' }} />
         <Stack.Screen name="today" options={{ headerTitle: '' }} />
         <Stack.Screen name="month" options={{ headerTitle: '' }} />
-        <Stack.Screen name="charts" options={{ title: '만세력', headerLargeTitle: true }} />
+        <Stack.Screen name="charts" options={{ title: '만세력' }} />
         <Stack.Screen name="traits" options={{ headerTitle: '' }} />
         <Stack.Screen name="dayPillar" options={{ headerTitle: '' }} />
         <Stack.Screen name="pet" options={{ headerTitle: '' }} />
@@ -98,10 +98,10 @@ export default function AppLayout() {
         <Stack.Screen name="name" options={{ headerTitle: '' }} />
         <Stack.Screen name="dream" options={{ headerTitle: '' }} />
         {/* 프리미엄 허브 제거 — 홈 사주/자미 → 원국풀이(/reading·/ziwei) 직접 진입(daniel 07-01) */}
-        <Stack.Screen name="market" options={{ title: '마켓', headerLargeTitle: true }} />
-        <Stack.Screen name="shared/[id]" options={{ title: '공유받은 풀이', headerLargeTitle: true }} />
-        <Stack.Screen name="admin" options={{ title: '관리자', headerLargeTitle: true }} />
-        <Stack.Screen name="coststable" options={{ title: '비용·수익 분석', headerLargeTitle: true }} />
+        <Stack.Screen name="market" options={{ title: '마켓' }} />
+        <Stack.Screen name="shared/[id]" options={{ title: '공유받은 풀이' }} />
+        <Stack.Screen name="admin" options={{ title: '관리자' }} />
+        <Stack.Screen name="coststable" options={{ title: '비용·수익 분석' }} />
       </Stack>
       {/* 무료=하단 배너 고정 / 프리미엄=숨김 (AdBanner 내부에서 isPremium 분기) */}
       <AdBanner />

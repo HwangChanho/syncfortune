@@ -41,7 +41,7 @@ const LIGHT = {
   //   bg=옅은 시스템 그레이 / card=순백(계층으로 깊이, 그림자 아닌 대비) / line=iOS separator(연한 회색).
   bg: '#F2F2F7', card: '#FFFFFF', sunk: '#EAEAEF',
   glass: 'rgba(255, 255, 255, 0.72)', glassLight: 'rgba(60, 60, 67, 0.05)',
-  ink: '#1C1C1E', inkSoft: '#6C6C70', inkFaint: '#AEAEB2', line: '#E3E3E8', // iOS label/secondaryLabel/tertiaryLabel/separator
+  ink: '#1C1C1E', inkSoft: '#48484A', inkFaint: '#8A8A8F', line: '#E3E3E8', // iOS label/secondaryLabel/tertiaryLabel/separator
   // ★리디자인(daniel 2026-07-14 '심플하면서 조화롭게' → 먹선 미니멀): 액센트 = 뮤트 골드 하나(조화로운 단일 포인트, daniel 선택).
   //   거창한 색 대신 여백·타이포·절제로 승부 — 색은 종이(bg)·먹(ink)·은은한 금(ju) 3톤으로 통일.
   ju: '#A08948', juDeep: '#84703B', juSoft: '#EFEBE0', juLine: '#C9C0A6',
@@ -64,11 +64,11 @@ export type ElTheme = { bg: string; card: string; sunk: string; ink: string; ink
 // ★Apple 디자인 + 일간 오행 tint(daniel 2026-07-15): 배경=iOS 시스템 그레이에 오행 색조 아주 옅게 / 카드=순백 / ink=뉴트럴 라벨 /
 //   ju=오행 tint(iOS accent color 개념·vivid). 그림자 대신 배경↔카드 대비로 깊이(Apple HIG).
 const EL_THEME: Record<string, ElTheme> = {
-  木: { bg: '#EFF3EE', card: '#FFFFFF', sunk: '#E6EBE4', ink: '#1C1C1E', inkSoft: '#6C6C70', inkFaint: '#AEAEB2', line: '#E0E6DE', ju: '#34A853', juDeep: '#278044', juSoft: '#EAF5EC', juLine: '#CDE7D3' }, // 나무=연한 그린그레이+iOS그린
-  火: { bg: '#F5EFEE', card: '#FFFFFF', sunk: '#EDE4E2', ink: '#1C1C1E', inkSoft: '#6C6C70', inkFaint: '#AEAEB2', line: '#EBE0DE', ju: '#E1483A', juDeep: '#B4372C', juSoft: '#FCEBE9', juLine: '#F3D3CE' }, // 불=옅은 웜그레이+iOS레드
-  土: { bg: '#F4F1EA', card: '#FFFFFF', sunk: '#ECE7DC', ink: '#1C1C1E', inkSoft: '#6C6C70', inkFaint: '#AEAEB2', line: '#E9E3D8', ju: '#C79A2E', juDeep: '#9E7A24', juSoft: '#F7F0DE', juLine: '#E9DCBB' }, // 흙=옅은 샌드그레이+골드
-  金: { bg: '#F1F2F4', card: '#FFFFFF', sunk: '#E6E8EC', ink: '#1C1C1E', inkSoft: '#6C6C70', inkFaint: '#AEAEB2', line: '#E1E4E8', ju: '#8A97A8', juDeep: '#66717F', juSoft: '#EEF1F4', juLine: '#D6DBE1' }, // 쇠=쿨 라이트그레이+강철빛
-  水: { bg: '#EEF1F5', card: '#FFFFFF', sunk: '#E2E7EE', ink: '#1C1C1E', inkSoft: '#6C6C70', inkFaint: '#AEAEB2', line: '#DEE4EC', ju: '#3B6EC4', juDeep: '#2C5497', juSoft: '#E9F0FA', juLine: '#CDDBF0' }, // 물=옅은 블루그레이+iOS블루
+  木: { bg: '#EFF3EE', card: '#FFFFFF', sunk: '#E6EBE4', ink: '#1C1C1E', inkSoft: '#48484A', inkFaint: '#8A8A8F', line: '#E0E6DE', ju: '#34A853', juDeep: '#278044', juSoft: '#EAF5EC', juLine: '#CDE7D3' }, // 나무=연한 그린그레이+iOS그린
+  火: { bg: '#F5EFEE', card: '#FFFFFF', sunk: '#EDE4E2', ink: '#1C1C1E', inkSoft: '#48484A', inkFaint: '#8A8A8F', line: '#EBE0DE', ju: '#E1483A', juDeep: '#B4372C', juSoft: '#FCEBE9', juLine: '#F3D3CE' }, // 불=옅은 웜그레이+iOS레드
+  土: { bg: '#F4F1EA', card: '#FFFFFF', sunk: '#ECE7DC', ink: '#1C1C1E', inkSoft: '#48484A', inkFaint: '#8A8A8F', line: '#E9E3D8', ju: '#C79A2E', juDeep: '#9E7A24', juSoft: '#F7F0DE', juLine: '#E9DCBB' }, // 흙=옅은 샌드그레이+골드
+  金: { bg: '#F1F2F4', card: '#FFFFFF', sunk: '#E6E8EC', ink: '#1C1C1E', inkSoft: '#48484A', inkFaint: '#8A8A8F', line: '#E1E4E8', ju: '#5E6B7C', juDeep: '#47525F', juSoft: '#EEF1F4', juLine: '#D6DBE1' }, // 쇠=쿨 라이트그레이+강철빛
+  水: { bg: '#EEF1F5', card: '#FFFFFF', sunk: '#E2E7EE', ink: '#1C1C1E', inkSoft: '#48484A', inkFaint: '#8A8A8F', line: '#DEE4EC', ju: '#3B6EC4', juDeep: '#2C5497', juSoft: '#E9F0FA', juLine: '#CDDBF0' }, // 물=옅은 블루그레이+iOS블루
 };
 // 설정 강조색 픽커 스와치(오행 대표색 + 골드). 'auto'는 activeAccentElement 색으로 표시.
 export const ACCENT_SWATCH: Record<string, string> = {
