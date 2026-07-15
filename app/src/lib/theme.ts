@@ -57,31 +57,33 @@ const LIGHT = {
 // 대표명식 *일간의 오행색*(오방색)을 앱 액센트(ju 계열)로. 설정에서 변경 가능: 자동(일간) / 오행 직접 / 골드.
 //   ju·juDeep·juSoft·juLine 만 덮어씀 — gold·badgeGold(프리미엄 배지)는 골드로 유지. 색은 라이트 종이 기준 튜닝.
 //   ※theme.ts는 저장된 오행 문자열만 읽음(엔진 의존 X). 대표명식→오행 산출·저장은 ui/themeElement.ts(_layout에서).
-export type Accent = { ju: string; juDeep: string; juSoft: string; juLine: string };
-const EL_ACCENT: Record<string, Accent> = {
-  木: { ju: '#3E8E5A', juDeep: '#2F6E46', juSoft: '#E7F0EA', juLine: '#BFD9C9' }, // 청록(목)
-  火: { ju: '#C0392B', juDeep: '#9A2D22', juSoft: '#F7E8E5', juLine: '#E4C2BC' }, // 적(화)
-  土: { ju: '#A8862F', juDeep: '#846A28', juSoft: '#F1EBDB', juLine: '#D9CCA2' }, // 황·금(토)
-  金: { ju: '#7E8C9E', juDeep: '#5E6B7C', juSoft: '#ECEEF2', juLine: '#C9CED7' }, // 백·강철(금)
-  水: { ju: '#3A4E7A', juDeep: '#2A3A5E', juSoft: '#E8EBF2', juLine: '#C1C9DB' }, // 청흑·남(수)
+// ★배경까지 오행별로(daniel 2026-07-15 '배경색도 오행에 맞춰') — 코어 팔레트 전체를 일간 오행으로.
+//   배경=은은한 동색 톤(소프트 클레이) / 강조(ju)=진한 오행색. gold/badgeGold(프리미엄)·overlay·scrim은 베이스 유지.
+export type ElTheme = { bg: string; card: string; sunk: string; ink: string; inkSoft: string; inkFaint: string; line: string; ju: string; juDeep: string; juSoft: string; juLine: string };
+const EL_THEME: Record<string, ElTheme> = {
+  木: { bg: '#E6EBE1', card: '#F2F5EC', sunk: '#DDE4D3', ink: '#2E332A', inkSoft: '#5F6455', inkFaint: '#8E9482', line: '#D3DAC8', ju: '#3E8E5A', juDeep: '#2F6E46', juSoft: '#E1EDE5', juLine: '#BFD9C9' }, // 나무=연한 세이지+청록
+  火: { bg: '#EEE3DB', card: '#F9F0E8', sunk: '#E6D9CF', ink: '#332A25', inkSoft: '#6E6157', inkFaint: '#9C8E82', line: '#E0CDC2', ju: '#C0392B', juDeep: '#9A2D22', juSoft: '#F6E5E0', juLine: '#E4C2BC' }, // 불=따뜻한 피치+적
+  土: { bg: '#EAE2D2', card: '#F6EFDF', sunk: '#E0D7C3', ink: '#2B2722', inkSoft: '#6A645B', inkFaint: '#9A938A', line: '#D8CFBB', ju: '#A8862F', juDeep: '#846A28', juSoft: '#F0E9D8', juLine: '#D9CCA2' }, // 흙=클레이(기본)+골드
+  金: { bg: '#E7E9EC', card: '#F3F4F6', sunk: '#DCE0E4', ink: '#2A2D31', inkSoft: '#5E636B', inkFaint: '#8B9098', line: '#D3D7DC', ju: '#7E8C9E', juDeep: '#5A6675', juSoft: '#ECEEF2', juLine: '#C9CED7' }, // 쇠=포슬린 그레이+강철빛
+  水: { bg: '#E2E6EB', card: '#EFF1F5', sunk: '#D8DDE4', ink: '#262A31', inkSoft: '#5A6070', inkFaint: '#888F9C', line: '#CDD4DE', ju: '#3A5A96', juDeep: '#2A3A5E', juSoft: '#E7EBF3', juLine: '#C1C9DB' }, // 물=슬레이트 블루+남
 };
 // 설정 강조색 픽커 스와치(오행 대표색 + 골드). 'auto'는 activeAccentElement 색으로 표시.
 export const ACCENT_SWATCH: Record<string, string> = {
-  木: EL_ACCENT.木.ju, 火: EL_ACCENT.火.ju, 土: EL_ACCENT.土.ju, 金: EL_ACCENT.金.ju, 水: EL_ACCENT.水.ju, gold: '#A08948',
+  木: EL_THEME.木.ju, 火: EL_THEME.火.ju, 土: EL_THEME.土.ju, 金: EL_THEME.金.ju, 水: EL_THEME.水.ju, gold: '#A08948',
 };
 const ACCENT_KEY = 'pref.themeAccent';   // 'auto' | '木'|'火'|'土'|'金'|'水' | 'gold'
 const ELEMENT_KEY = 'pref.themeElement'; // 대표명식 일간 오행(자동 액센트 소스) — themeElement.ts가 저장
 const ELS = ['木', '火', '土', '金', '水'];
 
-/** 강조색 결정 — 설정 모드 + 저장된 일간 오행. null = 골드(현행 팔레트 유지). */
-function resolveAccent(): Accent | null {
+/** 일간 오행 테마 결정 — 설정 모드 + 저장된 일간 오행. null = 기본(土/클레이 팔레트 유지). */
+function resolveAccent(): ElTheme | null {
   let mode = 'auto';
   try { mode = ((SecureStore as any).getItem?.(ACCENT_KEY) as string) || 'auto'; } catch { /* → auto */ }
-  if (mode === 'gold') return null;                          // 골드 고정(오행 강조 끔)
+  if (mode === 'gold') return null;                          // 기본(土 클레이) 고정 — 오행 강조 끔
   let el = '';
   if (ELS.includes(mode)) el = mode;                         // 오행 직접 선택
   else { try { el = ((SecureStore as any).getItem?.(ELEMENT_KEY) as string) || ''; } catch { /* 미저장 */ } } // auto=일간
-  return (el && EL_ACCENT[el]) ? EL_ACCENT[el] : null;       // 오행 미결정 시 골드 폴백
+  return (el && EL_THEME[el]) ? EL_THEME[el] : null;         // 오행 미결정 시 기본 폴백
 }
 
 // 로드 시점 동기 결정: 저장 오버라이드(다크/라이트) > 시스템(Appearance). 실패 시 다크.
@@ -94,9 +96,10 @@ export const activeScheme: Scheme = resolveScheme();
 // 전 화면이 import 하는 색 토큰 — 활성 팔레트로 채움(첫 렌더부터 올바른 테마).
 export const colors = { ...(activeScheme === 'light' ? LIGHT : DARK) };
 
-// ★일간 오행 강조색 적용 — ju 계열만 덮어씀(auto=일간 / 오행 / gold). 미결정 시 골드 유지.
+// ★일간 오행 테마 적용 — 코어 팔레트 전체 덮어씀(bg·card·sunk·ink·line + 강조 ju계열). auto=일간 / 오행 / gold(기본).
+//   gold·badgeGold(프리미엄)·onImage·scrim·overlay는 베이스 유지(EL_THEME에 없어 미덮음). font는 아래에서 갱신된 colors.ink 참조.
 const _accent = resolveAccent();
-if (_accent) { colors.ju = _accent.ju; colors.juDeep = _accent.juDeep; colors.juSoft = _accent.juSoft; colors.juLine = _accent.juLine; }
+if (_accent) Object.assign(colors, _accent);
 // 활성 강조 오행(설정 UI 표시용) — auto면 저장된 일간 오행, 직접선택이면 그 오행, gold면 ''.
 export const activeAccentElement: string = (() => {
   try {
