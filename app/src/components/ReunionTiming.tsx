@@ -11,50 +11,23 @@
 // ▶ 결정론: 각 원국 도화의 충 짝(역시 왕지)이 위치한 월건(節氣 월)을 월건표로 산출 —
 //   월운 지지는 해마다 같은 절기 위치라 그 달들이 매년 결정론적으로 열린다(Edge buildReunionPrompt와 동일 결과).
 //   ★한자·용어는 화면 텍스트에 노출 금지(일상어). 표준 합충 테이블은 표준 통설(engine과 동일 값·로컬 정의).
+// ▶ 산출 로직(도화 탐지·충 판정·월건 계산)은 app/src/lib/content/timingSignals.ts 의 reunionTiming()으로 이관(단일 출처) — 이 파일은 렌더만 담당.
 // ─────────────────────────────────────────────────────────────────────────
 import { View, Text, StyleSheet } from 'react-native';
-import type { SajuChart, Branch, PillarPos } from '@spec/chart';
+import type { SajuChart } from '@spec/chart';
 import { colors, radius, space, font } from '../lib/theme';
-
-// 도화 = 왕지(표준 통설) — 子午卯酉. 4지지에 깔린 것이 원국 도화.
-const DOHWA: Branch[] = ['子', '午', '卯', '酉'];
-// 6충(七冲) — 표준 통설. 재회에선 도화 쌍(子↔午, 卯↔酉)만 실질 사용.
-const CHONG: [Branch, Branch][] = [['子', '午'], ['丑', '未'], ['寅', '申'], ['卯', '酉'], ['辰', '戌'], ['巳', '亥']];
-// 지지 → 월건(節氣) 월 번호: 寅월=1월 … 丑월=12월. daniel 예 午→5월·酉→8월과 일치.
-const BRANCH_MONTH: Record<Branch, number> = { 寅: 1, 卯: 2, 辰: 3, 巳: 4, 午: 5, 未: 6, 申: 7, 酉: 8, 戌: 9, 亥: 10, 子: 11, 丑: 12 };
-// 이 지지가 충하는 짝(없으면 null)
-const chongPartner = (b: Branch): Branch | null => {
-  const p = CHONG.find(([x, y]) => x === b || y === b);
-  return p ? (p[0] === b ? p[1] : p[0]) : null;
-};
+import { reunionTiming } from '../lib/content/timingSignals';
 
 /**
  * 재회 타이밍(도화-충) 무료 티저.
  * @param saju 본인 사주(원국). 결정론 산출값. (timeUnknown은 SpecialContentScreen이 관례대로 병합해 넘김 → 시각 미상 시 시주 제외.)
  */
 export function ReunionTiming({ saju }: { saju: SajuChart }) {
-  // 시각 미상이면 시주(時支)를 도화 탐지에서 제외(잘못된 timing 방지) — 관례상 saju에 병합돼 옴.
-  const timeUnknown = (saju as any)?.timeUnknown === true;
-  const posList: PillarPos[] = timeUnknown ? ['년', '월', '일'] : ['년', '월', '일', '시'];
-
-  // 올해(현재 세운) 연도 — 엔진 산출값(computeChart가 '오늘' 기준이라 해가 바뀌면 자동 갱신).
-  //   daniel 07-05: 진입 시 '월'뿐 아니라 '올해 년도'도 보여야 함(무료 = 올해꺼만).
-  //   annual.year가 없으면(엔진 미채움) 연도 표기를 생략(크래시 방지) — 잘못된 연도 발명 금지.
-  const annualYear: number | undefined = (saju as any)?.annual?.year;
-
-  // 1) 원국 도화 탐지 — 4지지(시각 미상=시주 제외) 중 왕지.
-  const natalBranches = posList
-    .map((p) => saju.pillars?.[p]?.branch)
-    .filter(Boolean) as Branch[];
-  const natalDohwa = DOHWA.filter((d) => natalBranches.includes(d));
-
-  // 2) 재회 연락이 열리는 달 — 각 원국 도화의 충 짝 월지 → 월건 번호(그 달에 도화 발동).
-  const monthSet = new Set<number>();
-  natalDohwa.forEach((d) => { const p = chongPartner(d); if (p) monthSet.add(BRANCH_MONTH[p]); });
-  const months = [...monthSet].sort((a, b) => a - b);
+  // 산출(원국 도화 탐지 + 재회 연락이 열리는 달)은 lib/content/timingSignals.ts 로 이관 — 여기선 결과만 소비.
+  const { year: annualYear, months, hasNatalDohwa } = reunionTiming(saju);
 
   // 도화가 없으면 월 단위 콕이 약함 → 배우자 자리가 열리는 해·큰 흐름(유료)으로 안내.
-  if (!natalDohwa.length || !months.length) {
+  if (!hasNatalDohwa || !months.length) {
     return (
       <View style={styles.box}>
         <Text style={styles.title}>재회가 열리는 달 <Text style={styles.titleSub}>(도화 흐름)</Text></Text>

@@ -38,6 +38,7 @@ import { BusyOverlay } from '../../components/BusyOverlay'; // 로그아웃 등 
 import { PressableScale } from '../../components/PressableScale'; // 탭 피드백(눌림 표시)
 import { CREDIT_KINDS, loadCredits, type CreditKind } from '../../lib/billing/coupons'; // 유료 카드 가격/상태 배지 + 쿠폰 잔량
 import { appLang } from '../../lib/i18n'; // 대표 명식에 이 콘텐츠 풀이가 이미 있는지 조회(배지 '풀이있음')
+import { homeTeaser, type HomeTeaser } from '../../lib/content/homeTeaser'; // 홈 카드 개인화 티저 — 카드 설명을 '내 얘기' 한 줄로(결정론·API 0, daniel 07-16)
 
 type MenuItem = { key: string; labelKey: string; descKey?: string; image?: any; route: string; ready: boolean; premium?: boolean; content?: boolean; creditKey?: CreditKind };
 type Section = { key: string; titleKey: string; descKey?: string; items: MenuItem[] };
@@ -87,9 +88,7 @@ const SECTIONS: Section[] = [
     // daniel 07-06: 인기에 연애스타일·반려동물 추가(무료 온디바이스, light 원본과 동일·hot* 고유키로 React 키 충돌 방지).
     { key: 'hotLovestyle', labelKey: 'menu.lovestyle', descKey: 'menu.lovestyleTileDesc', image: require('../../../assets/icons/lovestyle.jpg'), route: '/lovestyle', ready: true, content: true },
     { key: 'hotPet', labelKey: 'menu.pet', descKey: 'menu.petDesc', image: require('../../../assets/icons/pet.jpg'), route: '/pet', ready: true, content: true },
-    // 신규(daniel 2026-07-14): 커뮤니티(게시판형 UGC). ★원격 플래그(features.community)로 게이트 — 관리자만 노출(재제출 안전판), 심사 통과 후 공개.
-    //   전용 이미지 추후(현재 이미지 생략 → 리스트 placeholder 글리프). 렌더 시 useFeatureOn('community')로 필터.
-    { key: 'community', labelKey: 'menu.community', descKey: 'menu.communityDesc', image: require('../../../assets/icons/lovestyle.jpg'), route: '/community', ready: true, content: true },
+    // 커뮤니티는 하단 탭바(BottomNav)로 이동 — 홈 카드에서 제거, 탭에서 상시 접근(원격 플래그 게이트는 BottomNav 쪽).
   ] },
   // 스페셜 = 유료 LLM 콘텐츠(애정흐름·인생그래프·신년 등). 골드 라인아트 타일 이미지(Recraft). (옛 '가장 많이 찾는' → daniel 07-05 스페셜로 개칭)
   { key: 'special', titleKey: 'menu.secSpecial', descKey: 'menu.secContentDesc', items: [
@@ -216,13 +215,13 @@ export default function Home() {
   const { session, isRegistered } = useAuth();
   const { isPremium } = useSubscription();
   const [admin, setAdmin] = useState(false);
-  // ★신규 기능 노출 게이트 — 속궁합·커뮤니티는 관리자(daniel) 또는 원격 플래그 ON 일 때만 홈에 노출(재제출 안전판).
+  // ★신규 기능 노출 게이트 — 속궁합은 관리자(daniel) 또는 원격 플래그 ON 일 때만 홈에 노출(재제출 안전판).
+  //   ※커뮤니티는 하단 탭바(BottomNav.tsx)에서 자체 게이트(commOn=useFeatureOn('community')) — 홈 카드에서는 제거.
   const sokOn = useFeatureOn('sokgunghap');
-  const commOn = useFeatureOn('community');
   // 원격 플래그로 숨길 항목 필터 — 카드/리스트 뷰 공용(SECTIONS.map 단일 지점만 sections 로 교체).
   const sections = useMemo(
-    () => SECTIONS.map((sec) => ({ ...sec, items: sec.items.filter((m) => (m.key !== 'sokgunghap' || sokOn) && (m.key !== 'community' || commOn)) })),
-    [sokOn, commOn],
+    () => SECTIONS.map((sec) => ({ ...sec, items: sec.items.filter((m) => m.key !== 'sokgunghap' || sokOn) })),
+    [sokOn],
   );
   const [repServerChartId, setRepServerChartId] = useState<string | null>(null); // 현재 대표 명식 serverChartId(홈 카드 프리미엄 판정 — 명식 전환 시 재평가)
   // 홈 유료 카드 배지(명식별 상태·daniel 07-08) — 현 대표 명식의 쿠폰 잔량 + 이미 생성된 풀이(카테고리·생성일).
@@ -244,6 +243,9 @@ export default function Home() {
   const [dayData, setDayData] = useState<{ headline: string | null; prose: string | null }[]>([{ headline: null, prose: null }, { headline: null, prose: null }]);
   const [flow, setFlow] = useState<{ scores: number[]; labels: string[]; currentIndex: number } | null>(null); // 오늘 점수 흐름(그래프, daniel 07-13)
   const [hasChart, setHasChart] = useState<boolean>(true); // H1(daniel): 대표 명식 유무 — 없으면 오늘/내일 배너를 '명식 등록 안내'로(탭→등록)
+  // 홈 카드 개인화 티저(daniel 07-16 "나열만 되어 가시성이 떨어진다") — 카드 key → '내 얘기' 한 줄({i18n키, 변수}).
+  //   대표 명식 변경 시에만 재계산(아래 effect·결정론이라 API 0). 미지원 카드는 키 자체가 없어 기존 정적 설명이 그대로 나온다.
+  const [teasers, setTeasers] = useState<Record<string, HomeTeaser>>({});
   const [reloadKey, setReloadKey] = useState(0); // 명식 변경(전환·수정) 감지 — 포커스마다 오늘의 기운 재계산(daniel: 명식 수정 시 id 동일이라 갱신 안 되던 버그)
   const [loggingOut, setLoggingOut] = useState(false); // 로그아웃 콜백 동안 오버레이
   // 카드 이미지 순차 공개(daniel) — 위→아래로 한 장씩 mount. 전역 순번 < revealCount 인 카드만 이미지 로드.
@@ -282,9 +284,15 @@ export default function Home() {
       if (!alive) return;
       setHasChart(!!rep); // H1: 명식 유무 → 오늘/내일 배너 분기(등록안내 vs 운세)
       setRepServerChartId(rep?.serverChartId ?? null); // 홈 카드 프리미엄 판정용(명식 전환 시 reloadKey로 이 effect 재실행=재평가)
-      if (!rep) { setDayData([{ headline: null, prose: null }, { headline: null, prose: null }]); setFlow(null); return; }
+      if (!rep) { setDayData([{ headline: null, prose: null }, { headline: null, prose: null }]); setFlow(null); setTeasers({}); return; } // 명식 없음 → 티저도 비움(카드는 정적 설명)
       const saju = buildSajuChart(rep.input);
       try { setFlow(scoreFlow(saju, 'day')); } catch { setFlow(null); } // 오늘 점수 흐름(그제~모레)
+      // 홈 카드 티저 — 대표 명식으로 1회 계산(결정론·동기·API 0). 명식 전환·수정 시 reloadKey 로 이 effect 가 다시 돌아 재계산된다.
+      //   homeTeaser 는 throw 하지 않고 미지원 카드·산출 실패를 null 로 주므로, 여기서 개별 try/catch 가 필요 없다.
+      const tUnknown = (rep.input as any)?.timeAccuracy === '미상'; // 시주 미상 힌트(시에 기대는 산출의 정확도)
+      const tz: Record<string, HomeTeaser> = {};
+      for (const sec of SECTIONS) for (const m of sec.items) { const x = homeTeaser(m.key, saju, tUnknown); if (x) tz[m.key] = x; }
+      setTeasers(tz);
       const calc = (f: typeof fortunes[number]) => ({
         // 미리보기 본문 = 조합형(매일·오늘≠내일 다르게, API 0). 상세 화면은 전체 풀이(dailyChartReadings) 별도.
         prose: dailyPreview(saju, f.dayGanZhi[0] as Stem, f.dayGanZhi[1] as Branch),
@@ -388,6 +396,14 @@ export default function Home() {
   //   ③ 이 creditKey 쿠폰 잔량 > 0 = '쿠폰 {n}장'.
   //   ④ 그 외 = 개별 가격(priceLabel, 기존). creditKey 없으면 null(배지 없이 › 셰브런).
   //   리스트뷰·카드뷰가 이 헬퍼 하나만 쓴다(단일 출처). 데이터는 위 useEffect가 대표 명식 기준으로 적재.
+  // 카드 설명 한 줄 — ★대표 명식 티저('내 얘기')가 있으면 그것, 없으면 기존 정적 설명(menu.*Desc).
+  //   카드뷰·텍스트카드·리스트뷰 3곳의 단일 출처(badgeFor 와 같은 결). 티저·명식이 없으면 기존 동작 그대로라 무해.
+  function descOf(m: MenuItem): string | null {
+    const tz = teasers[m.key];
+    if (tz) return t(tz.key, tz.vars) as string; // 문구 소유=i18n(ko/en/ja) · 계산 소유=homeTeaser(결정론)
+    return m.descKey ? t(m.descKey) : null;
+  }
+
   function badgeFor(m: MenuItem): string | null {
     const ck = m.creditKey;
     if (!ck) return null;                                                                  // 무료 콘텐츠 = 배지 없음
@@ -568,6 +584,7 @@ export default function Home() {
                     const prem = !!m.premium;
                     // 배지 텍스트 = 카드뷰와 동일 규칙(badgeFor 단일 출처: 무제한/풀이있음·만료일/쿠폰/금액). creditKey 없으면 › 셰브런.
                     const priceTxt = badgeFor(m);
+                    const desc = descOf(m); // ★티저('내 얘기') 우선 → 없으면 기존 정적 설명(카드뷰와 동일 출처)
                     return (
                       <PressableScale key={m.key} style={styles.listRow} onPress={() => onPress(m)}>
                         {m.image ? (
@@ -581,7 +598,7 @@ export default function Home() {
                         )}
                         <View style={styles.listTextCol}>
                           <Text style={[styles.listLabel, prem && styles.listLabelPrem]} numberOfLines={1}>{t(m.labelKey)}</Text>
-                          {m.descKey ? <Text style={styles.listDesc} numberOfLines={2}>{t(m.descKey)}</Text> : null}
+                          {desc ? <Text style={styles.listDesc} numberOfLines={2}>{desc}</Text> : null}
                         </View>
                         {priceTxt ? (
                           <View style={styles.listPriceTag}><Text style={styles.listPriceTx}>{priceTxt}</Text></View>
@@ -600,6 +617,7 @@ export default function Home() {
           const cards = sec.items.map((m, itemIdx) => {
             const prem = !!m.premium;
             const badge = badgeFor(m); // 유료 카드 배지(명식별 상태: 무제한/풀이있음/쿠폰/금액) — 텍스트·이미지 카드 공용 단일 출처
+            const desc = descOf(m);    // 카드 설명 — ★티저('내 얘기') 우선 → 없으면 기존 정적 설명. 리스트뷰와 동일 출처
             // 순차 공개 — 이 카드의 전역 순번(섹션 오프셋 + 항목 인덱스 = 화면 위→아래 순서)이 공개분에 들어왔는지.
             //   revealed=false면 이미지 대신 미드나잇 빈 박스만 렌더(디코드 미발생) → 차례가 오면 KenBurnsCard로 교체.
             const revealed = CARD_REVEAL_OFFSETS[secIdx] + itemIdx < revealCount;
@@ -613,7 +631,7 @@ export default function Home() {
                     </View>
                   )}
                   <Text style={styles.textCardLabel}>{t(m.labelKey)}</Text>
-                  {m.descKey ? <Text style={styles.textCardDesc}>{t(m.descKey)}</Text> : null}
+                  {desc ? <Text style={styles.textCardDesc}>{desc}</Text> : null}
                 </PressableScale>
               );
             }
@@ -634,7 +652,7 @@ export default function Home() {
                   {/* 하단 라벨 바(반투명 남색) — 라벨 + 간략 설명(daniel: 콘텐츠별 설명) */}
                   <View style={styles.labelBar}>
                     <Text style={[styles.cardLabel, prem && styles.cardLabelPrem]}>{t(m.labelKey)}</Text>
-                    {m.descKey ? <Text style={styles.cardDesc} numberOfLines={2}>{t(m.descKey)}</Text> : null}
+                    {desc ? <Text style={styles.cardDesc} numberOfLines={2}>{desc}</Text> : null}
                   </View>
                 </View>
               </PressableScale>

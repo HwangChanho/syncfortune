@@ -2,7 +2,8 @@
 // ─────────────────────────────────────────────────────────────────────────
 // daniel 프리미엄 퍼널: 유료 '나의 사명' 딥리포트 '위'에 결정론 무료 '나아갈 방향 결'을 먼저 보여줘 전환 유도.
 //   신호 = 용신(用神) 오행 = '내게 필요한 기운' = 나아갈 방향. 온디바이스 computeYongsinApprox(daniel 검수 억부근사).
-// ★★daniel 검수 슬롯: 아래 YONG_MISSION 매핑(용신 오행→사명 방향 일상어)은 *후보 초안* — Boss 검수/수정.
+// YONG_MISSION 매핑(용신 오행→사명 방향 일상어)은 daniel 검수 확정본(2026-07-16) — lib/content/elementPhrases.ts에서
+//   가져온다(홈 카드 티저와 단일 출처 — 상세 검수 코멘트는 그 파일 참조).
 //   §4 안전: 전향적('방향'이지 우열 아님)·단정 금지.
 // ─────────────────────────────────────────────────────────────────────────
 import { useMemo } from 'react';
@@ -10,16 +11,9 @@ import { View, Text, StyleSheet } from 'react-native';
 import type { SajuChart } from '@spec/chart';
 import { elementColor } from '../lib/engine/ohaeng';
 import { computeYongsinApprox } from '../lib/content/yongsinApprox';
+import { YONG_MISSION } from '../lib/content/elementPhrases';
 import { colors, radius, space, font } from '../lib/theme';
 
-// ★daniel 검수 후보 — 용신 오행 → 사명(나아갈 방향) 일상어. daniel stance(용신=필요기운) 기반 초안.
-const YONG_MISSION: Record<string, string> = {
-  木: '새로 시작하고 키우는 방향',
-  火: '드러내고 이끄는 방향',
-  土: '품고 이어주는 방향',
-  金: '다듬고 완성하는 방향',
-  水: '배우고 통찰하는 방향',
-};
 const EL_KO: Record<string, string> = { 木: '나무', 火: '불', 土: '흙', 金: '쇠', 水: '물' };
 
 /** '나의 사명' 무료 티저 — SpecialContentScreen freeHook. 용신 오행 → 나아갈 방향(결정론). */

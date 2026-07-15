@@ -55,7 +55,10 @@ const dohwaActivation = (unB: Branch, natalDohwa: Branch[]): number => {
   return Math.min(1, s);
 };
 // 배우자궁(일지) vs 운지지 상태 — 충(열림)/합(맺힘)/형(마찰). 각각 독립 판정.
-const gungState = (dayB: Branch, unB: Branch) => ({
+//   ★export(2026-07-16): 짝사랑 timing(timingSignals.crushTiming)이 **이 함수를 그대로 재사용**한다.
+//     daniel 지시 = "재회/짝사랑 판정 기준이 미묘하게 어긋나면 유저가 두 기능을 비교했을 때 모순으로 보인다 →
+//     이미 있는 일지 개폐 판정 함수를 import 해 쓸 것". 운지지 자리에 **월운 지지**를 넣어도 판정 규칙은 동일하다.
+export const gungState = (dayB: Branch, unB: Branch) => ({
   open: inPair(CHONG, dayB, unB),
   bond: inPair(SIXHE, dayB, unB) || halfSanhe(dayB, unB),
   friction: inHyeong(dayB, unB),
