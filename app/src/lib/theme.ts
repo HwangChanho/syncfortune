@@ -37,10 +37,11 @@ const DARK = {
 // ── 라이트 팔레트(한지 — 따뜻한 베이지 + 먹 + 깊은 골드) ──────────
 const LIGHT = {
   // 전반 채도↓ + 이미지(미드나잇 네이비·골드 #C9A14A)와 조화(daniel 06-28). 노란기·탁함·순백대비 완화.
-  // ★소프트 클레이(daniel 2026-07-15): 따뜻한 점토 톤. bg=클레이 그라운드 / card=살짝 떠 보이는 밝은 클레이(부드러운 그림자로 리프트).
-  bg: '#EAE2D2', card: '#F6EFDF', sunk: '#E0D7C3',
-  glass: 'rgba(251, 245, 232, 0.78)', glassLight: 'rgba(43, 38, 32, 0.05)',
-  ink: '#2B2722', inkSoft: '#6A645B', inkFaint: '#9A938A', line: '#CDC3AF', // 카드 테두리 더 또렷(한지 배경 위 필드 분리, daniel 07-03)
+  // ★Apple 디자인(daniel 2026-07-15): iOS 클린 — 밝은 시스템 배경(systemGroupedBackground) + 순백 카드 + 뉴트럴 라벨.
+  //   bg=옅은 시스템 그레이 / card=순백(계층으로 깊이, 그림자 아닌 대비) / line=iOS separator(연한 회색).
+  bg: '#F2F2F7', card: '#FFFFFF', sunk: '#EAEAEF',
+  glass: 'rgba(255, 255, 255, 0.72)', glassLight: 'rgba(60, 60, 67, 0.05)',
+  ink: '#1C1C1E', inkSoft: '#6C6C70', inkFaint: '#AEAEB2', line: '#E3E3E8', // iOS label/secondaryLabel/tertiaryLabel/separator
   // ★리디자인(daniel 2026-07-14 '심플하면서 조화롭게' → 먹선 미니멀): 액센트 = 뮤트 골드 하나(조화로운 단일 포인트, daniel 선택).
   //   거창한 색 대신 여백·타이포·절제로 승부 — 색은 종이(bg)·먹(ink)·은은한 금(ju) 3톤으로 통일.
   ju: '#A08948', juDeep: '#84703B', juSoft: '#EFEBE0', juLine: '#C9C0A6',
@@ -60,12 +61,14 @@ const LIGHT = {
 // ★배경까지 오행별로(daniel 2026-07-15 '배경색도 오행에 맞춰') — 코어 팔레트 전체를 일간 오행으로.
 //   배경=은은한 동색 톤(소프트 클레이) / 강조(ju)=진한 오행색. gold/badgeGold(프리미엄)·overlay·scrim은 베이스 유지.
 export type ElTheme = { bg: string; card: string; sunk: string; ink: string; inkSoft: string; inkFaint: string; line: string; ju: string; juDeep: string; juSoft: string; juLine: string };
+// ★Apple 디자인 + 일간 오행 tint(daniel 2026-07-15): 배경=iOS 시스템 그레이에 오행 색조 아주 옅게 / 카드=순백 / ink=뉴트럴 라벨 /
+//   ju=오행 tint(iOS accent color 개념·vivid). 그림자 대신 배경↔카드 대비로 깊이(Apple HIG).
 const EL_THEME: Record<string, ElTheme> = {
-  木: { bg: '#E6EBE1', card: '#F2F5EC', sunk: '#DDE4D3', ink: '#2E332A', inkSoft: '#5F6455', inkFaint: '#8E9482', line: '#D3DAC8', ju: '#3E8E5A', juDeep: '#2F6E46', juSoft: '#E1EDE5', juLine: '#BFD9C9' }, // 나무=연한 세이지+청록
-  火: { bg: '#EEE3DB', card: '#F9F0E8', sunk: '#E6D9CF', ink: '#332A25', inkSoft: '#6E6157', inkFaint: '#9C8E82', line: '#E0CDC2', ju: '#C0392B', juDeep: '#9A2D22', juSoft: '#F6E5E0', juLine: '#E4C2BC' }, // 불=따뜻한 피치+적
-  土: { bg: '#EAE2D2', card: '#F6EFDF', sunk: '#E0D7C3', ink: '#2B2722', inkSoft: '#6A645B', inkFaint: '#9A938A', line: '#D8CFBB', ju: '#A8862F', juDeep: '#846A28', juSoft: '#F0E9D8', juLine: '#D9CCA2' }, // 흙=클레이(기본)+골드
-  金: { bg: '#E7E9EC', card: '#F3F4F6', sunk: '#DCE0E4', ink: '#2A2D31', inkSoft: '#5E636B', inkFaint: '#8B9098', line: '#D3D7DC', ju: '#7E8C9E', juDeep: '#5A6675', juSoft: '#ECEEF2', juLine: '#C9CED7' }, // 쇠=포슬린 그레이+강철빛
-  水: { bg: '#E2E6EB', card: '#EFF1F5', sunk: '#D8DDE4', ink: '#262A31', inkSoft: '#5A6070', inkFaint: '#888F9C', line: '#CDD4DE', ju: '#3A5A96', juDeep: '#2A3A5E', juSoft: '#E7EBF3', juLine: '#C1C9DB' }, // 물=슬레이트 블루+남
+  木: { bg: '#EFF3EE', card: '#FFFFFF', sunk: '#E6EBE4', ink: '#1C1C1E', inkSoft: '#6C6C70', inkFaint: '#AEAEB2', line: '#E0E6DE', ju: '#34A853', juDeep: '#278044', juSoft: '#EAF5EC', juLine: '#CDE7D3' }, // 나무=연한 그린그레이+iOS그린
+  火: { bg: '#F5EFEE', card: '#FFFFFF', sunk: '#EDE4E2', ink: '#1C1C1E', inkSoft: '#6C6C70', inkFaint: '#AEAEB2', line: '#EBE0DE', ju: '#E1483A', juDeep: '#B4372C', juSoft: '#FCEBE9', juLine: '#F3D3CE' }, // 불=옅은 웜그레이+iOS레드
+  土: { bg: '#F4F1EA', card: '#FFFFFF', sunk: '#ECE7DC', ink: '#1C1C1E', inkSoft: '#6C6C70', inkFaint: '#AEAEB2', line: '#E9E3D8', ju: '#C79A2E', juDeep: '#9E7A24', juSoft: '#F7F0DE', juLine: '#E9DCBB' }, // 흙=옅은 샌드그레이+골드
+  金: { bg: '#F1F2F4', card: '#FFFFFF', sunk: '#E6E8EC', ink: '#1C1C1E', inkSoft: '#6C6C70', inkFaint: '#AEAEB2', line: '#E1E4E8', ju: '#8A97A8', juDeep: '#66717F', juSoft: '#EEF1F4', juLine: '#D6DBE1' }, // 쇠=쿨 라이트그레이+강철빛
+  水: { bg: '#EEF1F5', card: '#FFFFFF', sunk: '#E2E7EE', ink: '#1C1C1E', inkSoft: '#6C6C70', inkFaint: '#AEAEB2', line: '#DEE4EC', ju: '#3B6EC4', juDeep: '#2C5497', juSoft: '#E9F0FA', juLine: '#CDDBF0' }, // 물=옅은 블루그레이+iOS블루
 };
 // 설정 강조색 픽커 스와치(오행 대표색 + 골드). 'auto'는 activeAccentElement 색으로 표시.
 export const ACCENT_SWATCH: Record<string, string> = {
@@ -201,17 +204,17 @@ export const gradients = activeScheme === 'light'
       glass: ['rgba(255,255,255,0.12)', 'rgba(255,255,255,0.03)'],
     };
 
-// ── 라운드(모서리) — ★소프트 클레이(daniel 2026-07-15): 더 푹신하게 ──
-export const radius = { sm: 12, md: 20, lg: 28, pill: 999 } as const;
+// ── 라운드(모서리) — ★Apple 디자인(daniel 2026-07-15): iOS continuous corner 감성(과하지 않게) ──
+export const radius = { sm: 10, md: 14, lg: 20, pill: 999 } as const;
 
 // ── 간격(4pt 그리드) ─────────────────────────────────────────
 export const space = (n: number) => n * 4;
 
 // ── 그림자 ───────────────────────────────────────────────────
-// ★소프트 클레이(daniel 2026-07-15): 따뜻한 색 + 크고 부드러운 그림자로 말랑하게 떠 보이는 리프트.
+// ★Apple 디자인(daniel 2026-07-15): 그림자 절제 — 순백 카드 vs 시스템 그레이 배경의 '대비'로 깊이(iOS HIG). 아주 미묘한 그림자만.
 export const shadow = {
-  card: { shadowColor: '#7A6644', shadowOpacity: 0.22, shadowRadius: 16, shadowOffset: { width: 0, height: 7 }, elevation: 6 },
-  soft: { shadowColor: '#7A6644', shadowOpacity: 0.12, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 2 },
+  card: { shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 1 },
+  soft: { shadowColor: '#000', shadowOpacity: 0.03, shadowRadius: 4, shadowOffset: { width: 0, height: 1 }, elevation: 1 },
 } as const;
 
 // ── 타이포 (colors 결정 후라 활성 테마 색 반영) ───────────────

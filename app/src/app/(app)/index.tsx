@@ -4,7 +4,7 @@
 // 로그인 게이트 없음(ADR-037). 메뉴 = daniel 제작 카드 이미지(assets/icons/{key}.jpg, 남색·골드, 라벨 없음).
 //   라벨은 코드 t()로 하단 오버레이 → 영·일 다국어 유지(ADR-049).
 // ─────────────────────────────────────────────────────────────────────────
-import { View, Text, Pressable, ScrollView, StyleSheet, ImageBackground, Animated, AppState, Dimensions, Easing } from 'react-native';
+import { View, Text, Pressable, ScrollView, StyleSheet, Animated, AppState, Dimensions, Easing } from 'react-native';
 import { Image as ExpoImage } from 'expo-image'; // 이미지 자동 다운샘플(표시 크기로 디코딩) — 홈 카드 24장 메모리·랙 해결
 import { Alert } from '../../lib/ui/alert'; // 커스텀 알림(앱 디자인)
 import { useRouter, useFocusEffect } from 'expo-router';
@@ -408,8 +408,8 @@ export default function Home() {
   }
 
   return (
-    <ImageBackground source={bgSource} style={styles.bgImage} resizeMode="cover">
-    {/* ★배경 심플화(daniel 2026-07-15) — 홈 태양광선+걷는 선비 제거, 전역 단색 클레이(ContentBackdrop)로 통일 */}
+    // ★홈도 투명(daniel 2026-07-15 '홈은 테마 적용 안돼') — bgSource 이미지 제거, 전역 ContentBackdrop(오행 배경색)이 비치게. 다른 화면과 동일 처리.
+    <View style={styles.bgImage}>
     <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>
       <Animated.View style={{ opacity: fadeAnim }}>
         {/* 헤더 — 타이틀 옆에 계정(사람) 아이콘: 탭 → 계정 관리·프리미엄 구매(설정)(daniel) */}
@@ -679,13 +679,13 @@ export default function Home() {
     </ScrollView>
     <BusyOverlay visible={loggingOut} message={t('common.loggingOut')} />
     {/* 카드 확대 진입 오버레이 제거(daniel 07-02 "확대 별로") — PressableScale 누른 느낌 + 화면 페이드 전환으로 대체 */}
-    </ImageBackground>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  bgImage: { flex: 1, backgroundColor: colors.bg },
-  screen: { backgroundColor: colors.overlaySoft },
+  bgImage: { flex: 1, backgroundColor: 'transparent' }, // 전역 ContentBackdrop(오행 배경) 투과
+  screen: { backgroundColor: 'transparent' }, // 오행 배경(ContentBackdrop) 투과
  // 별밤 배경 위 반투명 남색 — 카드·텍스트 가독
   wrap: { padding: space(5), paddingTop: space(12), paddingBottom: space(10) }, // 헤더 숨김 → status bar 여백 확보
   topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: space(2) },
