@@ -251,7 +251,9 @@ export function classifyStrength(saju: SajuChart): {
   //   ※ 실제 종격/가종/신약 확정은 지장간·합화·운까지 봐야 하므로 온디바이스에서 확정 않고 Edge(유료 LLM)로 위임한다.
   //     favorCnt(비겁+인성 자리 수)를 재사용 — 전무 판정은 엄격히 0(오검출 최소화, ★조정 슬롯).
   const rootless = mainRoots.length === 0;                 // 일간 무근
-  const jonggyeokCandidate = rootless && favorCnt === 0;   // 무근 + 인비 전무 = 종격 후보(판정 보류→Edge)
+  // ★전문가 검수 2026-07-14 (daniel 전량 반영): 종격은 안 본다 — 종격 후보 감지 폐기(항상 false).
+  //   태왕·태약도 억부로 처리(종왕·종격 게이트 제거). 구 조건(rootless && favorCnt===0)은 미적용.
+  const jonggyeokCandidate = false;
   const ev = { deukryeong, deukji, deukse, mainRoots, gangyakAxis: verdict, jonggyeokCandidate };
   if (verdict === '신약') return { type: '신약', driver: '약', reason: `score ${score} ≤ -${THRESHOLD}`, ...ev };
   if (verdict === '중화') return { type: '중화', driver: '혼합', reason: `score ${score} (임계 내)`, ...ev };
@@ -323,9 +325,10 @@ export function detectPattern(saju: SajuChart): { candidates: string[]; basis: s
   return { candidates, basis };
 }
 
-// ── 시간층 용신 (ADR-012, R7): 대운/세운 천간 오행 → dynamicUsefulGod 모드 → 그 시기 용신·처리 ──
-// 용신은 원국 지향축(정적)이 아니라 운별로 전환된다. 들어오는 천간 오행을 원국이 정한
-// 동태적 용신 표(dynamicUsefulGod)에 적용해 *그 시기*의 실질 처리 모드를 결정한다(결정론).
+// ⛔ 폐기(전문가 검수 2026-07-14, daniel 전량 반영): 용신은 평생 고정 — 운은 세기만 조절(희신강화/기신무력화).
+//   구 '동태 용신(dynamicUsefulGod)' 개념 폐기. 이 함수는 dynamicUsefulGod이 있는 골든에서만 동작(없으면 null),
+//   신규 산출엔 미사용. 고정 용신은 structure.usefulGod(단일). 하위호환 위해 시그니처만 유지.
+// ── (구) 시간층 용신 (ADR-012, R7 폐기): dynamicUsefulGod 있는 골든 한정 ──
 export function luckUsefulGod(structure: StructureDx, stem: Stem): { element: Element; mode: string } | null {
   const elem = STEM_ELEM[stem];
   const mode = structure.dynamicUsefulGod?.byIncomingStemElement[elem];
