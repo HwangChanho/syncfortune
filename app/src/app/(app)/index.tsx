@@ -6,7 +6,6 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { View, Text, Pressable, ScrollView, StyleSheet, ImageBackground, Animated, AppState, Dimensions, Easing } from 'react-native';
 import { Image as ExpoImage } from 'expo-image'; // 이미지 자동 다운샘플(표시 크기로 디코딩) — 홈 카드 24장 메모리·랙 해결
-import { HomeBackdrop } from '../../components/HomeBackdrop'; // 홈 배경 애니(별/태양 + 걷는 선비) — 스플래시와 공유
 import { Alert } from '../../lib/ui/alert'; // 커스텀 알림(앱 디자인)
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -410,7 +409,7 @@ export default function Home() {
 
   return (
     <ImageBackground source={bgSource} style={styles.bgImage} resizeMode="cover">
-    <HomeBackdrop />
+    {/* ★배경 심플화(daniel 2026-07-15) — 홈 태양광선+걷는 선비 제거, 전역 단색 클레이(ContentBackdrop)로 통일 */}
     <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>
       <Animated.View style={{ opacity: fadeAnim }}>
         {/* 헤더 — 타이틀 옆에 계정(사람) 아이콘: 탭 → 계정 관리·프리미엄 구매(설정)(daniel) */}
