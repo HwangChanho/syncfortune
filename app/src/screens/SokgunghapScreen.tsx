@@ -11,7 +11,8 @@ import { useTranslation } from 'react-i18next';
 import { PressableScale } from '../components/PressableScale';
 import { Alert } from '../lib/ui/alert';
 import { computeChart } from '../lib/engine/engine';
-import { listCharts, addChart, getRepresentativeId, ChartLimitError, type SavedChart } from '../lib/engine/myChart';
+import { ChartPicker } from '../components/ChartPicker'; // 대표명식(나) 변경 — 다른 화면과 동일(daniel 2026-07-15)
+import { listCharts, addChart, getRepresentativeId, loadRepChart, ChartLimitError, type SavedChart } from '../lib/engine/myChart';
 import { useSubscription } from '../lib/billing/subscription';
 import { ChartRegisterScreen } from './ChartRegisterScreen';
 import { analyzeSokgunghap, SOK_TIERS, type SokResult } from '../lib/content/sokgunghap';
@@ -30,7 +31,8 @@ function markGate17() {
   SecureStore.setItemAsync(GATE_KEY, '1').catch(() => {});
 }
 
-export function SokgunghapScreen({ me }: { me: ChartInput }) {
+export function SokgunghapScreen({ me: meInit }: { me: ChartInput }) {
+  const [me, setMe] = useState<ChartInput>(meInit); // 대표명식(나) — ChartPicker로 변경 가능
   useLogContentVisit('sokgunghap');
   const { t } = useTranslation();
   const lang = appLang();
@@ -45,12 +47,20 @@ export function SokgunghapScreen({ me }: { me: ChartInput }) {
   const [busy, setBusy] = useState(false);
 
   // 저장 명식 로드(상대 후보) — 대표(나)는 상대 목록에서 제외.
-  useEffect(() => {
-    (async () => {
-      const [list, rid] = await Promise.all([listCharts(), getRepresentativeId()]);
-      setSaved(list); setRepId(rid);
-    })().catch(() => {});
-  }, []);
+  useEffect(() => { void reloadCharts(); }, []);
+  async function reloadCharts() {
+    const [list, rid] = await Promise.all([listCharts(), getRepresentativeId()]);
+    setSaved(list); setRepId(rid);
+  }
+  // ChartPicker로 대표(나) 변경 시 — 새 대표 input으로 me 갱신 + 목록/결과 리셋.
+  async function onChangeRep() {
+    try {
+      const rep = await loadRepChart();
+      if (rep?.input) setMe(rep.input);
+      setPartner(null); setResult(null);   // 나가 바뀌면 이전 궁합 결과 무효
+      await reloadCharts();
+    } catch { /* 무시 */ }
+  }
 
   // 상대 선택 → 두 명식 결정론 계산 → 속궁합 산출.
   function runWith(pInput: ChartInput, p: SavedChart | null) {
@@ -99,6 +109,8 @@ export function SokgunghapScreen({ me }: { me: ChartInput }) {
 
   return (
     <ScrollView style={styles.bg} contentContainerStyle={styles.wrap}>
+      {/* 대표명식(나) 변경 — 다른 화면과 동일 ChartPicker(daniel 2026-07-15). 바꾸면 '나'가 그 명식으로. */}
+      <ChartPicker onChange={onChangeRep} />
       <Text style={styles.h1}>{t('sok.title', '속궁합')}</Text>
       <Text style={styles.sub}>{t('sok.sub', '두 사람의 성적 궁합을 사주로 — 재미로 보는 성인 콘텐츠')}</Text>
 

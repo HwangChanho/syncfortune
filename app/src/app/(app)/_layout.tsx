@@ -36,7 +36,10 @@ export default function AppLayout() {
         headerStyle: { backgroundColor: colors.card }, // 헤더 배경 = 카드 서피스(라이트=연베이지 #FBF5E8) — 배경 위 도드라지게(daniel 07-03)
         headerTintColor: colors.ink,                 // 먹 — 뒤로가기·타이틀
         headerTitleStyle: { color: colors.ink, fontWeight: '700', fontSize: fs(17) }, // 글자크기 반응
-        headerShadowVisible: false,                  // 한지 무드 — 헤더 그림자 제거
+        // ★Apple 디자인(daniel 2026-07-15): iOS Large Title 스타일 — title 있는 화면(아래 headerLargeTitle)에서 큰 타이틀.
+        headerLargeTitleStyle: { color: colors.ink, fontWeight: '700' },
+        headerLargeTitleShadowVisible: false,
+        headerShadowVisible: false,                  // iOS 무드 — 헤더 그림자 제거(구분선/대비로 깊이)
         // 뒤로버튼 = iOS 네이티브(daniel #9: iOS26 글래스 버튼 안에서 커스텀 '‹뒤로'가 왼쪽에 붙던 문제 →
         //   네이티브가 글래스 안 가운데 정렬·표준 처리). headerBackTitle 로 '뒤로' 텍스트만 지정.
         headerBackButtonDisplayMode: 'default',
@@ -45,17 +48,17 @@ export default function AppLayout() {
         animation: 'fade', // ★카드 진입 애니(홈 카드가 화면 채움) 뒤에 슬라이드가 또 나와 이상하던 것 → 페이드로 통일(카드 fill이 전환, daniel 07-01)
       }}>
         <Stack.Screen name="index" options={{ headerShown: false }} />
-        <Stack.Screen name="register" options={{ title: '차트 등록' }} />
+        <Stack.Screen name="register" options={{ title: '차트 등록', headerLargeTitle: true }} />
         <Stack.Screen name="myeongsik" options={{ headerTitle: '' }} />
         <Stack.Screen name="sinsal" options={{ headerTitle: '' }} />
         <Stack.Screen name="reading" options={{ headerTitle: '' }} />
         <Stack.Screen name="timeline" options={{ headerTitle: '' }} />
-        <Stack.Screen name="settings" options={{ title: '설정' }} />
+        <Stack.Screen name="settings" options={{ title: '설정', headerLargeTitle: true }} />
         <Stack.Screen name="compat" options={{ headerTitle: '' }} />
         <Stack.Screen name="taro" options={{ headerTitle: '' }} />
         <Stack.Screen name="today" options={{ headerTitle: '' }} />
         <Stack.Screen name="month" options={{ headerTitle: '' }} />
-        <Stack.Screen name="charts" options={{ title: '만세력' }} />
+        <Stack.Screen name="charts" options={{ title: '만세력', headerLargeTitle: true }} />
         <Stack.Screen name="traits" options={{ headerTitle: '' }} />
         <Stack.Screen name="dayPillar" options={{ headerTitle: '' }} />
         <Stack.Screen name="pet" options={{ headerTitle: '' }} />
@@ -95,10 +98,10 @@ export default function AppLayout() {
         <Stack.Screen name="name" options={{ headerTitle: '' }} />
         <Stack.Screen name="dream" options={{ headerTitle: '' }} />
         {/* 프리미엄 허브 제거 — 홈 사주/자미 → 원국풀이(/reading·/ziwei) 직접 진입(daniel 07-01) */}
-        <Stack.Screen name="market" options={{ title: '마켓' }} />
-        <Stack.Screen name="shared/[id]" options={{ title: '공유받은 풀이' }} />
-        <Stack.Screen name="admin" options={{ title: '관리자' }} />
-        <Stack.Screen name="coststable" options={{ title: '비용·수익 분석' }} />
+        <Stack.Screen name="market" options={{ title: '마켓', headerLargeTitle: true }} />
+        <Stack.Screen name="shared/[id]" options={{ title: '공유받은 풀이', headerLargeTitle: true }} />
+        <Stack.Screen name="admin" options={{ title: '관리자', headerLargeTitle: true }} />
+        <Stack.Screen name="coststable" options={{ title: '비용·수익 분석', headerLargeTitle: true }} />
       </Stack>
       {/* 무료=하단 배너 고정 / 프리미엄=숨김 (AdBanner 내부에서 isPremium 분기) */}
       <AdBanner />
