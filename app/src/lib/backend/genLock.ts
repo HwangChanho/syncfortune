@@ -1,7 +1,8 @@
 // app/src/lib/backend/genLock.ts — 콘텐츠 풀이 생성 중복 잠금(모듈 레벨·크로스마운트)
 // ─────────────────────────────────────────────────────────────────────────
-// ReadingScreen.tsx 의 `genActive: Set<string>`(:80) 패턴을 *단일 유료 콘텐츠 화면*에서 공유(DRY).
-//   대상: love · career · newyear · lifegraph · gaeun · SpecialContentScreen · CompatScreen · TimelineScreen.
+// 생성 중복 잠금을 *모든 유료 콘텐츠 화면*이 공유(DRY).
+//   대상: love · career · newyear · lifegraph · gaeun · SpecialContentScreen · CompatScreen · TimelineScreen
+//        · ReadingScreen(saju/ziwei — daniel 07-16부터 통일, 아래 참고).
 //
 // 왜(문제):
 //   풀이 생성 루프(invoke)는 컴포넌트 언마운트와 무관하게 계속 돈다(서버 Edge 가 결과를 캐시). 그래서
@@ -10,8 +11,11 @@
 //
 // 해결:
 //   키(`${kind}:${chartId}` 계열)로 이미 생성 중이면 두 번째 진입은 생성하지 않는다(자물쇠도 안 띄우고 캐시만).
-//   ReadingScreen 이 자기 모듈에 둔 Set 과 동일한 계약 — 다만 여러 화면이 공유하도록 util 로 뺐다.
-//   ★ReadingScreen(saju/ziwei) 은 자체 Set 을 그대로 유지(건드리지 않음). 키 네임스페이스(kind)가 달라 충돌 없음.
+//   ★daniel 07-16: ReadingScreen(saju/ziwei) 도 이 모듈로 통일했다(그동안 예외였던 자체
+//   `genActive: Set<string>` 제거 — 감사로 최고 위험 확인). 자체 Set 은 타임스탬프가 없어 Edge interpret
+//   invoke 가 hang 하면 finally(release)가 영영 안 돌아 락이 *세션 내내* 누수 → 이후 "생성"을 눌러도 조용히
+//   return(사주 ₩19,900·자미 ₩14,900 이 먹통처럼 보임, 앱 완전 종료로만 풀림). 아래 STALE_MS(150초)로
+//   이 화면도 죽은 락을 자동 회수한다.
 //
 // 사용:
 //   import { acquireGen, releaseGen } from '../lib/backend/genLock';
