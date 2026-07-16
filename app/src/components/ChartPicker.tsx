@@ -5,7 +5,7 @@
 // 명식이 없으면 등록 유도. 화면 복귀 시 useFocusEffect 로 목록 갱신.
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { View, Text, Pressable, Modal, StyleSheet, Dimensions, ActivityIndicator, InteractionManager, Animated } from 'react-native';
+import { View, Text, Pressable, Modal, StyleSheet, Dimensions, ActivityIndicator, InteractionManager, Animated, ScrollView } from 'react-native';
 import { PressableScale } from './PressableScale';
 import { Image as ExpoImage } from 'expo-image'; // 자동 다운샘플(메모리) + 엠블럼 탭 풀스크린 뷰어
 import DraggableFlatList, { ScaleDecorator } from 'react-native-draggable-flatlist'; // 이슈20 롱프레스 드래그 reorder
@@ -47,6 +47,7 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
   const [loadedEmblems, setLoadedEmblems] = useState<Set<string>>(new Set()); // 엠블럼 이미지 디코드 완료 — 로딩 인디케이터용(daniel: 명식변경 리스트 이미지 로딩 표시)
   const [actionsFor, setActionsFor] = useState<string | null>(null); // 수정/삭제 펼친 행(daniel: 한 버튼 ⋯ 탭 → 수정·삭제 분리)
   const [premChartId, setPremChartId] = useState<string | null>(getPremiumChartIdSnapshot()); // 프리미엄 지정 명식 serverChartId(👑·삭제경고)
+  const [catFilter, setCatFilter] = useState<string | null>(null); // 카테고리(관계) 필터 — null=전체보기(daniel: 전체보기+카테고리별 보기)
 
   const reload = useCallback(async () => {
     setCharts(await listCharts());
@@ -62,6 +63,20 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
   useEffect(() => subscribePremium(() => setPremChartId(getPremiumChartIdSnapshot())), []); // 프리미엄 지정 변경 시 👑 갱신
 
   const rep = charts.find((c) => c.id === repId) ?? charts[0];
+  // ── 카테고리(관계)별 보기 ──────────────────────────────────────────────
+  //   relation 은 자유 문자열('self'·'가족'·'연인'·'기타'…)이라 고정 목록 대신 *저장된 명식에서 동적 추출*.
+  //   → 관계 옵션이 나중에 바뀌어도 자동 반영. 등장 순서 보존(첫 등장 순).
+  const relOf = (c: SavedChart) => c.relation || 'self';
+  const relLabel = useCallback((r: string) => (r === 'self' ? t('register.selfLabel', '본인') : r), [t]);
+  const categories = charts.reduce<string[]>((acc, c) => { const r = relOf(c); if (!acc.includes(r)) acc.push(r); return acc; }, []);
+  // 필터 바는 카테고리가 2종 이상일 때만(전부 같은 관계면 필터가 무의미 — 예: 본인 명식만 있는 경우).
+  const showFilter = categories.length >= 2;
+  // 선택된 필터로 표시 목록을 좁힌다(null=전체). 필터 중이면 드래그 순서변경은 막는다(부분집합 드래그가 전체 순서를 꼬이게 함).
+  const shown = catFilter ? charts.filter((c) => relOf(c) === catFilter) : charts;
+  const filtering = catFilter != null;
+  // 필터한 카테고리의 명식이 모두 삭제되면(유령 필터) 전체로 되돌린다. 모달 닫히면 필터도 초기화.
+  useEffect(() => { if (catFilter && !categories.includes(catFilter)) setCatFilter(null); }, [charts, catFilter, categories]);
+  useEffect(() => { if (!open) setCatFilter(null); }, [open]);
   // 각 명식의 일주 엠블럼(일간 오행색 + 일지 동물 = "은빛 소" 등) — 명식 리스트 시각 정체성(daniel)
   // ⚡성능(daniel "모든 로딩 느려"): 엠블럼은 명식 목록 모달 열 때만 보임(접힌 바엔 없음). 매 화면 마운트마다
   //   명식 N개를 풀 엔진(사주+자미)으로 계산하던 것을 open=true 일 때만으로 → 매 화면 비용 제거.(computeChart도 메모됨)
@@ -148,21 +163,37 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
               <Text style={styles.sheetTitle}>{t('manse.myChart')}</Text>
               {/* 디바이스 명식 무제한(daniel 2026-06-23) — 사용량/한도(15/10) 배지 제거 */}
             </View>
-            {charts.length > 1 && <Text style={{ ...font.caption, color: colors.inkFaint, marginBottom: space(2) }}>명식을 길게 눌러 끌면 순서가 바뀌어요</Text>}
+            {/* 카테고리(관계) 필터 — 관계가 2종 이상일 때만. [전체] + 각 카테고리 칩(daniel: 전체보기+카테고리별). */}
+            {showFilter && (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.catBar} contentContainerStyle={styles.catRow}>
+                <PressableScale style={[styles.catChip, !filtering && styles.catChipOn]} onPress={() => setCatFilter(null)}>
+                  <Text style={[styles.catChipTx, !filtering && styles.catChipTxOn]}>{t('community.all', '전체')}</Text>
+                </PressableScale>
+                {categories.map((r) => (
+                  <PressableScale key={r} style={[styles.catChip, catFilter === r && styles.catChipOn]} onPress={() => setCatFilter(r)}>
+                    <Text style={[styles.catChipTx, catFilter === r && styles.catChipTxOn]} numberOfLines={1}>{relLabel(r)}</Text>
+                  </PressableScale>
+                ))}
+              </ScrollView>
+            )}
+            {/* 순서 변경 안내 — 전체보기에서만 드래그 가능(필터 중엔 부분집합이라 순서 저장이 꼬임). */}
+            {charts.length > 1 && !filtering && <Text style={{ ...font.caption, color: colors.inkFaint, marginBottom: space(2) }}>명식을 길게 눌러 끌면 순서가 바뀌어요</Text>}
+            {filtering && <Text style={{ ...font.caption, color: colors.inkFaint, marginBottom: space(2) }}>‘{relLabel(catFilter!)}’ {shown.length}개 · 순서 변경은 ‘전체’에서</Text>}
             {/* 이슈20: 롱프레스→드래그 reorder. 끌어 놓으면 onDragEnd가 저장·계정동기화(별도 모드/저장버튼 없음). */}
             {/* daniel: 무거운 리스트 마운트 전까지 스피너 — 명식 버튼 누르면 모달 즉시 열려 로딩 표시 */}
             {!listReady ? (
               <View style={{ height: 200, alignItems: 'center', justifyContent: 'center' }}><ActivityIndicator color={colors.ju} /></View>
             ) : (
             <DraggableFlatList
-              data={charts}
+              data={shown}
               keyExtractor={(c) => c.id}
               style={styles.list}
               // 마지막 행 ⋯ 메뉴(수정/삭제)가 하단에 잘리지 않도록 여유(daniel 07-02)
               contentContainerStyle={{ paddingBottom: space(14) }}
               showsVerticalScrollIndicator={false}
               activationDistance={14}
-              onDragEnd={({ data }) => onDragEnd(data)}
+              // 필터 중(부분집합)엔 순서 저장이 전체 순서를 꼬이게 하므로 드래그 결과를 무시(renderItem에서 drag 자체도 비활성).
+              onDragEnd={({ data }) => { if (!filtering) onDragEnd(data); }}
               renderItem={({ item: c, drag, isActive }) => {
                 const on = c.id === repId;
                 const em = emblems[c.id];
@@ -184,7 +215,7 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
                           <Text style={[styles.emblemTx, { color: em.textColor, fontSize: fs(13) }]}>{em.animal}</Text>
                         </View>
                       )}
-                      <PressableScale style={styles.rowMain} onPress={() => choose(c.id)} onLongPress={drag} delayLongPress={250}>
+                      <PressableScale style={styles.rowMain} onPress={() => choose(c.id)} onLongPress={filtering ? undefined : drag} delayLongPress={250}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: space(1.5) }}>
                           <Text style={[styles.rowName, on && styles.rowOn, { fontSize: fs(15) }]} numberOfLines={1}>{c.label}</Text>
                           {/* ★프리미엄 지정 명식 배지(daniel 07-02: 명식 옆에 프리미엄 여부) — 골드 왕관 배지 */}
@@ -280,6 +311,13 @@ const styles = StyleSheet.create({
   usage: { ...font.caption, color: colors.inkSoft, fontWeight: '700' },
   usageMax: { color: colors.ju }, // 한도 도달 = 주색(업그레이드 신호)
 
+  // 카테고리(관계) 필터 바 — 커뮤니티 catBar 와 동일 톤(전체 + 각 관계 칩). daniel: 전체보기+카테고리별.
+  catBar: { flexGrow: 0, marginBottom: space(2.5) },
+  catRow: { gap: space(2), paddingRight: space(2) },
+  catChip: { backgroundColor: colors.sunk, borderRadius: radius.pill, paddingHorizontal: space(3.5), paddingVertical: space(1.5), borderWidth: 1, borderColor: colors.line },
+  catChipOn: { backgroundColor: colors.ju, borderColor: colors.ju },
+  catChipTx: { ...font.caption, color: colors.inkSoft, fontWeight: '700' },
+  catChipTxOn: { color: colors.bg },
   list: { maxHeight: Dimensions.get('window').height * 0.5 }, // 드래그 리스트(FlatList) 바운드 높이 — 시트 내 스크롤
   row: { flexDirection: 'row', alignItems: 'center', paddingVertical: space(3.5), borderBottomWidth: 1, borderBottomColor: colors.line, gap: space(2) },
   rowActive: { backgroundColor: colors.card, borderRadius: radius.md, borderBottomColor: 'transparent' }, // 드래그 중 행 강조(들어올림)
