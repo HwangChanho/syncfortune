@@ -8,6 +8,7 @@ import { View, Text, ScrollView, StyleSheet, TextInput, ActivityIndicator, Keybo
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { PressableScale } from '../../components/PressableScale';
+import { SharedChart } from '../../components/SharedChart';
 import { Alert } from '../../lib/ui/alert';
 import { useAuth } from '../../lib/useAuth';
 import { getPost, listComments, addComment, toggleLike, likedPostIds, reportContent, blockUser, deletePost, deleteComment,
@@ -107,6 +108,16 @@ export default function CommunityPostScreen() {
         <Text style={styles.cat}>{t(`community.cat.${post.category}`, post.category)}</Text>
         <Text style={styles.title}>{post.title}</Text>
         <Text style={styles.meta}>{post.author_name} · {String(post.created_at).slice(0, 10)}</Text>
+
+        {/* 첨부 명식 — 작성자가 자기 명식을 함께 올린 글에만(daniel: "글 볼 때 상단에 사주 원국 노출").
+            본문보다 위에 두는 이유: 사주 Q&A·고민 글은 '이 명식을 두고 하는 이야기'라 명식이 전제다.
+            대운·세운은 작성자가 공개를 선택한 경우에만 실려 온다(show_luck·toSharedSaju). */}
+        {post.chart_saju && (
+          <View style={styles.chartWrap}>
+            <SharedChart saju={post.chart_saju} ziwei={post.chart_ziwei} showLuck={post.show_luck} />
+          </View>
+        )}
+
         <Text style={styles.body}>{post.body}</Text>
 
         {/* 액션 */}
@@ -158,6 +169,7 @@ const styles = StyleSheet.create({
   cat: { ...font.caption, color: colors.ju, fontWeight: '800', fontSize: 12 },
   title: { ...font.title, color: colors.ink, marginTop: space(1) },
   meta: { ...font.caption, color: colors.inkFaint, marginTop: space(1.5), marginBottom: space(4) },
+  chartWrap: { marginBottom: space(5) }, // 첨부 명식 카드 ↔ 본문 간격
   body: { ...font.body, color: colors.ink, lineHeight: 25 },
   actions: { flexDirection: 'row', gap: space(2), marginTop: space(5), marginBottom: space(4), flexWrap: 'wrap' },
   actBtn: { backgroundColor: colors.sunk, borderRadius: radius.pill, paddingHorizontal: space(4), paddingVertical: space(2), borderWidth: 1, borderColor: colors.line },

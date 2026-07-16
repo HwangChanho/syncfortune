@@ -5,15 +5,20 @@
 //   ChartInput(생년월일시 원시 PII)을 받아 내부에서 computeChart()로 계산하는 구조라 그대로 못 쓴다
 //   — 그대로 쓰면 글을 보는 모든 사람에게 작성자의 생년월일시가 그대로 넘어간다.
 //
-// ★그래서 이 컴포넌트는 '계산이 끝난 결과'만 받는다: saju: SajuChart(=spec/chart.ts, 글자·자리·
-//   지장간·합충만 남은 정규화 구조 — PII 없음, ADR-005 §6.1 서버 전송 가능 계약). ChartInput 타입도
+// ★그래서 이 컴포넌트는 '계산이 끝나고 공유용으로 추려진 결과'만 받는다: SharedSaju/SharedZiwei
+//   (lib/backend/community.ts — 게시물에 실리는 필드를 화이트리스트로 못박은 계약). ChartInput 타입도
 //   ChartInput→SajuChart 변환 함수인 computeChart도 이 파일은 import하지 않는다(원시 생년월일시는
-//   작성자 기기에서 계산이 끝난 뒤 SajuChart 형태로만 게시물에 실려야 한다 — 변환은 이 컴포넌트의 책임이 아니다).
+//   작성자 기기에서 계산이 끝난 뒤 추려진 형태로만 게시물에 실려야 한다 — 변환은 이 컴포넌트의 책임이 아니다).
+//   ※ SajuChart 원본이 아니라 SharedSaju 를 받는 이유: 원본에는 luckCycles(전 생애 대운 = 성별 순역·
+//     시작나이로 생일 역산이 가능한 재료, 실측 99KB)가 들어 있다. 그걸 받는 타입이면 호출부가 원본을
+//     그대로 넘기는 실수를 타입이 막지 못한다. 좁은 타입이 곧 방어선이다.
 //
 // ★showLuck: 대운·세운 공개 여부 플래그. 원국(타고난 여덟 글자)보다 '지금 이 사람이 어떤 시기를
 //   지나는지'(대운·세운)가 한 단계 더 사적인 정보라, 작성자가 글 작성 시 공개를 선택한 경우에만
 //   호출부가 true로 넘겨준다고 가정한다(기본은 원국만 표시). true여도 *현재* 대운·세운만 보여준다
 //   — 월운·일운까지는 보여주지 않는다(요약 카드는 간결해야 한다. 전체 시간축 드릴다운은 MyeongsikScreen 몫).
+//   ※ 단 이 플래그는 **표시 스위치일 뿐 방어가 아니다**. 미공개 선택 시 시간축 필드는 애초에 저장되지
+//     않는다(toSharedSaju) — 화면에서 안 그리는 것만으로는 REST 조회를 막을 수 없기 때문.
 //
 // ★이 컴포넌트는 게시물 상단에 얹는 '요약 카드'다. MyeongsikScreen에 있는 탭 전환·사운드·햅틱·
 //   글로서리 바텀시트·가로 스크롤 타임라인 드릴다운 같은 상호작용은 의도적으로 가져오지 않았다.
@@ -23,7 +28,8 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import type { SajuChart, PillarPos } from '@spec/chart';
+import type { PillarPos } from '@spec/chart';
+import type { SharedSaju, SharedZiwei } from '../lib/backend/community'; // 타입만(import type) — 런타임 의존 없음
 import { colors, radius, space } from '../lib/theme';
 import { useFontScale } from '../lib/ui/fontScale';
 import { GzCell } from './GzCell';
@@ -41,7 +47,7 @@ const ZI_LAYOUT: (string | null)[][] = [
   ['寅', '丑', '子', '亥'],
 ];
 
-export function SharedChart({ saju, ziwei, showLuck }: { saju: SajuChart; ziwei?: any; showLuck?: boolean }) {
+export function SharedChart({ saju, ziwei, showLuck }: { saju: SharedSaju; ziwei?: SharedZiwei | null; showLuck?: boolean }) {
   const { fs } = useFontScale(); // 앱 전역 글자 크기 설정 — 명식 글자까지 일관 적용(daniel 접근성 컨벤션)
   const styles = useMemo(() => makeStyles(fs), [fs]);
 

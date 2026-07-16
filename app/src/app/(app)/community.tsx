@@ -11,8 +11,11 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { PressableScale } from '../../components/PressableScale';
 import { Alert } from '../../lib/ui/alert';
+import { useAuth } from '../../lib/useAuth';
 import { useLogContentVisit } from '../../lib/backend/contentVisit';
-import { listPosts, createPost, COMMUNITY_CATEGORIES, type CommunityPost, type CommunityCategory } from '../../lib/backend/community';
+import { listCharts, subscribeRepChange, type SavedChart } from '../../lib/engine/myChart';
+import { computeChart } from '../../lib/engine/engine';
+import { listPosts, createPost, toSharedSaju, toSharedZiwei, COMMUNITY_CATEGORIES, type CommunityPost, type CommunityCategory } from '../../lib/backend/community';
 import { colors, radius, space, shadow, font } from '../../lib/theme';
 
 const EULA_KEY = 'pref.communityEula'; // 이용약관 동의 1회 플래그(Apple 1.2)
@@ -21,6 +24,7 @@ export default function CommunityScreen() {
   useLogContentVisit('community');
   const { t } = useTranslation();
   const router = useRouter();
+  const { isRegistered } = useAuth(); // 익명 세션이 상시 존재하므로 session 이 아닌 isRegistered 로 판정
   const [cat, setCat] = useState<CommunityCategory | undefined>(undefined); // undefined=전체
   const [posts, setPosts] = useState<CommunityPost[]>([]);
   const [loading, setLoading] = useState(true);
@@ -33,6 +37,10 @@ export default function CommunityScreen() {
   const [body, setBody] = useState('');
   const [wcat, setWcat] = useState<CommunityCategory>('free'); // 작성 카테고리
   const [posting, setPosting] = useState(false);
+  // 첨부 가능한 명식 = **본인(relation='self')만**. attachId=null 이면 첨부 없이 글만 올린다(기본).
+  const [selfCharts, setSelfCharts] = useState<SavedChart[]>([]);
+  const [attachId, setAttachId] = useState<string | null>(null);
+  const [showLuck, setShowLuck] = useState(false); // 대운·세운까지 공개할지(기본 꺼짐 = 원국만)
 
   const load = useCallback(async () => {
     try { setPosts(await listPosts(cat)); } catch { /* 목록 로드 실패=빈 목록 */ } finally { setLoading(false); setRefreshing(false); }
@@ -40,12 +48,44 @@ export default function CommunityScreen() {
   useEffect(() => { setLoading(true); load(); }, [load]);
   // 약관 동의 플래그 프리로드 — 탭 시점의 동기 SecureStore 호출(JS 스레드 블록)을 없애기 위해 미리 읽어 둔다.
   useEffect(() => { SecureStore.getItemAsync(EULA_KEY).then((v) => setEulaAgreed(v === '1')).catch(() => setEulaAgreed(false)); }, []);
+  // 첨부용 본인 명식 프리로드 — 명식도 SecureStore(PII 암호화 저장)라 글쓰기 탭 시점에 읽으면 또 창이 늦게 뜬다.
+  //   ★relation='self' 필터: 가족·연인·지인 명식을 올리면 **당사자 동의 없이 남의 생년월일**(여덟 글자로 역산 가능)을
+  //     공개하게 된다(CLAUDE.md 규칙8). 관계 필드가 이미 있으니 필드 하나로 원천 차단한다.
+  //   명식 추가·삭제·수정 시 전역 알림(subscribeRepChange)으로 목록을 동기화한다.
+  useEffect(() => {
+    const reload = () => {
+      listCharts().then((cs) => {
+        const selves = cs.filter((c) => c.relation === 'self');
+        setSelfCharts(selves);
+        // 고른 명식이 사라졌으면(삭제되거나 관계가 '본인'에서 바뀜) 선택을 해제한다. 안 그러면 attachId 가
+        //   없는 명식을 가리킨 채 남아 — 어느 칩도 켜지지 않은 화면에서 제출하면 **조용히 첨부 없이** 올라간다.
+        setAttachId((cur) => (cur && selves.some((c) => c.id === cur) ? cur : null));
+      }).catch(() => setSelfCharts([]));
+    };
+    reload();
+    return subscribeRepChange(reload);
+  }, []);
 
-  // 글쓰기 진입 — 이용약관 미동의면 약관부터.
+  // 글쓰기 진입 — ①로그인 ②이용약관 순으로 게이트.
   //   ★약관 동의 여부는 마운트 시 1회 **비동기 프리로드**(아래 effect)해 두고, 탭 시엔 메모리 값만 본다.
   //     구 코드는 탭 시점에 `SecureStore.getItem`(**동기 네이티브 브리지 = JS 스레드 블록**·라이브러리 문서 명시)을
   //     호출해 글쓰기 창이 늦게 떴다(daniel 07-16 "글쓰기 창 뜨는 게 너무 오래 걸려").
   function onCompose() {
+    // ★로그인 게이트(읽기는 익명 허용·쓰기만 요구). 근거는 법이 아니라 **어뷰징 대응**: 익명 세션은 앱을
+    //   지웠다 깔면 새로 발급돼 차단이 무력화된다(Apple 1.2의 '차단' 요건이 형해화). 게다가 명식은 생일이
+    //   역산되는 개인정보라 게시 책임 소재가 필요하다. 5.1.1 과는 무충돌 — 그 조항은 *비계정형 IAP* 대상이고
+    //   커뮤니티는 계정형 기능이라 Apple 도 로그인 요구를 허용한다.
+    if (!isRegistered) {
+      Alert.alert(
+        t('community.loginTitle', '로그인이 필요해요'),
+        t('community.loginDesc', '글쓰기는 로그인 후 이용할 수 있어요. 읽기는 로그인 없이 그대로 가능합니다.'),
+        [
+          { text: t('community.goLogin', '로그인'), onPress: () => router.push('/login') },
+          { text: t('common.cancel', '취소'), style: 'cancel' as const },
+        ],
+      );
+      return;
+    }
     // 프리로드 전(null)이면 동기 폴백 — 마운트 직후 극히 짧은 창에서만 발생.
     const agreed = eulaAgreed ?? (() => { try { return (SecureStore as any).getItem?.(EULA_KEY) === '1'; } catch { return false; } })();
     if (!agreed) { setEula(true); return; }
@@ -64,8 +104,23 @@ export default function CommunityScreen() {
     if (!title.trim() || !body.trim() || posting) return;
     setPosting(true);
     try {
-      await createPost(wcat, title, body);
-      setCompose(false); setTitle(''); setBody(''); setWcat('free');
+      // 첨부 명식 → 공유 스냅샷. ★계산을 여기(제출 시)서 하는 이유: 모달을 열 때 계산하면 자미두수(iztro)가
+      //   무거워 글쓰기 창이 다시 느려진다(07-16에 고친 바로 그 증상). 제출은 이미 진행 표시가 있는 지점이다.
+      //   computeChart 는 세션 캐시라 이 명식을 이미 본 적 있으면 재계산하지 않는다.
+      //   ★toSharedSaju/toSharedZiwei 를 반드시 거친다 — 원본 SajuChart 에는 전 생애 대운(luckCycles)이
+      //     들어 있어 그대로 올리면 시기 미공개를 골라도 API 로 읽힌다.
+      let chart: Parameters<typeof createPost>[3];
+      const sc = attachId ? selfCharts.find((c) => c.id === attachId) : undefined;
+      if (sc) {
+        const computed = computeChart(sc.input);
+        chart = {
+          saju: toSharedSaju(computed.saju, showLuck),
+          ziwei: toSharedZiwei(computed.ziwei), // 명반(12궁·주성) 요약 — daniel: "자미두수 명반도 동일"
+          showLuck,
+        };
+      }
+      await createPost(wcat, title, body, chart);
+      setCompose(false); setTitle(''); setBody(''); setWcat('free'); setAttachId(null); setShowLuck(false);
       await load();
     } catch (e) {
       const msg = (e as Error).message === 'PROFANITY'
@@ -149,6 +204,40 @@ export default function CommunityScreen() {
             </View>
             <TextInput style={styles.titleInput} value={title} onChangeText={setTitle} placeholder={t('community.titlePh', '제목')} placeholderTextColor={colors.inkFaint} maxLength={100} />
             <TextInput style={styles.bodyInput} value={body} onChangeText={setBody} placeholder={t('community.bodyPh', '내용을 입력하세요 (욕설·혐오·성적 콘텐츠 금지)')} placeholderTextColor={colors.inkFaint} maxLength={4000} multiline textAlignVertical="top" />
+
+            {/* 명식 첨부(daniel: "글 쓸 때 명식 지정해서 쓰게") — 본인 명식만 고를 수 있다.
+                on/off 는 이 화면의 기존 칩 패턴(catChipOn)을 그대로 쓴다. */}
+            <View style={styles.attachBox}>
+              <Text style={styles.attachHead}>{t('community.attach', '내 명식 첨부')}</Text>
+              {selfCharts.length === 0 ? (
+                // 본인 명식이 없으면 첨부만 불가 — 글쓰기 자체는 막지 않는다(첨부는 어디까지나 선택).
+                <Text style={styles.attachNone}>{t('community.attachNone', '‘본인’으로 등록된 명식이 없어요. 첨부 없이 글을 올릴 수 있어요.')}</Text>
+              ) : (
+                <View style={styles.attachRow}>
+                  <PressableScale style={[styles.wcatChip, !attachId && styles.catChipOn]} onPress={() => { setAttachId(null); setShowLuck(false); }}>
+                    <Text style={[styles.catChipTx, !attachId && styles.catChipTxOn]}>{t('community.attachOff', '첨부 안 함')}</Text>
+                  </PressableScale>
+                  {selfCharts.map((c) => (
+                    <PressableScale key={c.id} style={[styles.wcatChip, attachId === c.id && styles.catChipOn]} onPress={() => setAttachId(c.id)}>
+                      <Text style={[styles.catChipTx, attachId === c.id && styles.catChipTxOn]} numberOfLines={1}>{c.label}</Text>
+                    </PressableScale>
+                  ))}
+                </View>
+              )}
+              {/* 시기 공개 + 고지 — 실제로 명식을 붙일 때만 노출 */}
+              {!!attachId && (
+                <>
+                  <PressableScale style={[styles.wcatChip, styles.luckChip, showLuck && styles.catChipOn]} onPress={() => setShowLuck((v) => !v)}>
+                    <Text style={[styles.catChipTx, showLuck && styles.catChipTxOn]}>
+                      {showLuck ? '✓ ' : ''}{t('community.attachLuck', '대운·세운도 함께 공개')}
+                    </Text>
+                  </PressableScale>
+                  <Text style={styles.attachWarn}>
+                    {t('community.attachWarn', '원국 여덟 글자가 이 글을 보는 모두에게 공개돼요. 여덟 글자로 생년월일을 역산할 수 있으니 확인 후 올려 주세요.')}
+                  </Text>
+                </>
+              )}
+            </View>
           </ScrollView>
         </View>
       </Modal>
@@ -197,4 +286,11 @@ const styles = StyleSheet.create({
   wcatChip: { backgroundColor: colors.sunk, borderRadius: radius.pill, paddingHorizontal: space(3.5), paddingVertical: space(1.75), borderWidth: 1, borderColor: colors.line },
   titleInput: { ...font.heading, color: colors.ink, borderBottomWidth: 1, borderBottomColor: colors.line, paddingVertical: space(3) },
   bodyInput: { ...font.body, color: colors.ink, minHeight: 220, lineHeight: 24 },
+  // 명식 첨부
+  attachBox: { borderTopWidth: 1, borderTopColor: colors.line, paddingTop: space(4), gap: space(2.5) },
+  attachHead: { ...font.label, color: colors.ink },
+  attachNone: { ...font.caption, color: colors.inkFaint, lineHeight: 19 },
+  attachRow: { flexDirection: 'row', flexWrap: 'wrap', gap: space(2) },
+  luckChip: { alignSelf: 'flex-start' },
+  attachWarn: { ...font.caption, color: colors.inkFaint, lineHeight: 18, fontSize: 12 },
 });
