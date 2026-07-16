@@ -29,7 +29,7 @@
 import { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import type { PillarPos } from '@spec/chart';
-import type { SharedSaju, SharedZiwei } from '../lib/backend/community'; // 타입만(import type) — 런타임 의존 없음
+import type { SharedSaju, SharedZiwei } from '../lib/backend/communityChart'; // 계약(의존 없는 순수 모듈)
 import { colors, radius, space } from '../lib/theme';
 import { useFontScale } from '../lib/ui/fontScale';
 import { GzCell } from './GzCell';

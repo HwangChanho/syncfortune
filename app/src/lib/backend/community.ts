@@ -4,80 +4,14 @@
 //   Apple 1.2 준수 UI 축(화면에서 사용): ①신고 ②차단 ③비속어 필터(제출 차단) ④본인 삭제 ⑤이용약관 동의.
 //   작성자 uid = 익명세션 포함 authenticated. author_name = 서버 트리거가 profiles.display_name 스냅샷.
 // ─────────────────────────────────────────────────────────────────────────
-import type { SajuChart, LuckCycle, AnnualPillar } from '@spec/chart';
+import type { SharedSaju, SharedZiwei } from './communityChart';
 import { supabase } from '../supabase';
 
-// ── 게시물 첨부 명식(공유 스냅샷) ─────────────────────────────────────────
-// ★여기가 보안 경계다. 게시물 읽기 권한 = authenticated 전원이고, 이 앱은 익명 세션을 상시 발급하므로
-//   (Apple 5.1.1 대응) 실질적으로 **앱 설치자 누구나** 게시물 JSON 을 REST 로 그대로 읽는다.
-//   그래서 "무엇을 넣는가"가 아니라 **"무엇만 넣는가"** 를 아래 타입·변환 함수가 화이트리스트로 강제한다.
-//   화면에서 안 그리는 것은 방어가 아니다 — 안 올리는 것만이 방어다.
-//
-// 제외 대상과 이유:
-//   - **원시 ChartInput(생년월일시·성별·출생지)**: 절대 금지. 계산이 끝난 결과만 싣는다(CLAUDE.md 규칙8).
-//   - **luckCycles(전 생애 대운)**: ①대운은 성별에 따라 순행/역행이 갈리고 시작 나이가 절기까지의 일수로
-//     정해져 **생일 역산의 재료**가 된다 ②대운 12 × 세운 10 × 월운 12 = 시간축 객체 1,440개 =
-//     **실측 99KB/건**(pillars 는 0.9KB)이라 응답을 통째로 부풀린다. 화면이 그리는 건 *현재* 대운·세운뿐.
-//   - **show_luck=false 면 currentLuck·annual 자체를 넣지 않는다**: 작성자가 시기 공개를 선택하지 않았는데
-//     데이터만 실려 가면 화면에 안 보여도 API 로 읽힌다.
-//   - **structure(격국·용신·병약·문파 판정 = 인코딩된 전문가 레이어)**: 앱 온디바이스 buildSajuChart 는
-//     애초에 채우지 않지만(실측 확인), 나중에 채워지더라도 게시물로 새지 않도록 화이트리스트가 막는다.
-//   - **ziwei.decades(자미 대한)·minorStars·brightness·사화**: 명반 요약 표시에 불필요.
-// ⚠️ 그래도 **원국 여덟 글자만으로 생년월일 역산이 가능**하다(연주=60갑자·월일시주로 날짜 특정).
-//   → 첨부는 relation='self'(본인) 명식만 허용하고, 작성 화면에서 이 사실을 고지한 뒤 동의받는다.
-export type SharedSaju = {
-  pillars: SajuChart['pillars'];           // 원국 여덟 글자(지장간·통근 포함 — 날것 보존, 규칙3)
-  dayMaster: SajuChart['dayMaster'];       // 일간 = '나'
-  interactions: SajuChart['interactions']; // 원국 내 합충형해
-  currentLuck?: Omit<LuckCycle, 'annuals'>; // show_luck=true 일 때만. annuals(세운 10 × 월운 12) 절단
-  annual?: Omit<AnnualPillar, 'months'>;    // show_luck=true 일 때만. months(월운 12) 절단
-};
-export type SharedZiwei = {
-  bureau: string;
-  lifePalaceBranch: string;
-  palaces: { name: string; branch: string; majorStars: { name: string }[] }[];
-};
-
-/**
- * 온디바이스 계산 결과 → 게시물 첨부용 사주 스냅샷(화이트리스트).
- * @param saju computeChart(input).saju — 작성자 기기에서 계산이 끝난 SajuChart
- * @param showLuck 작성자가 대운·세운 공개를 선택했는가. false 면 시간축 필드를 **아예 만들지 않는다**.
- * @returns 서버에 올려도 되는 필드만 담은 객체(원시 PII·전 생애 시간축·해자 판정 없음)
- */
-export function toSharedSaju(saju: SajuChart, showLuck: boolean): SharedSaju {
-  const out: SharedSaju = {
-    pillars: saju.pillars,
-    dayMaster: saju.dayMaster,
-    interactions: saju.interactions ?? [],
-  };
-  if (showLuck && saju.currentLuck) {
-    const { annuals: _drop, ...luck } = saju.currentLuck; // 이 대운의 세운 10년(각각 월운 12) 절단
-    out.currentLuck = luck;
-  }
-  if (showLuck && saju.annual) {
-    const { months: _drop, ...ann } = saju.annual;        // 이 세운의 월운 12 절단
-    out.annual = ann;
-  }
-  return out;
-}
-
-/**
- * 자미두수 산출물 → 게시물 첨부용 명반 스냅샷(화이트리스트).
- * @param ziwei computeChart(input).ziwei — iztro 산출물이라 any 로 방어적으로 다룬다
- * @returns 12궁 × (궁 이름·지지·주성 이름)만. 명반이 아니면(palaces 없음) null.
- */
-export function toSharedZiwei(ziwei: any): SharedZiwei | null {
-  if (!ziwei || !Array.isArray(ziwei.palaces)) return null;
-  return {
-    bureau: String(ziwei.bureau ?? ''),
-    lifePalaceBranch: String(ziwei.lifePalaceBranch ?? ''),
-    palaces: ziwei.palaces.map((p: any) => ({
-      name: String(p?.name ?? ''),
-      branch: String(p?.branch ?? ''),
-      majorStars: (p?.majorStars ?? []).map((s: any) => ({ name: String(s?.name ?? '') })),
-    })),
-  };
-}
+// 게시물 첨부 명식의 **계약·화이트리스트 변환은 communityChart.ts** 에 있다(의존 없는 순수 모듈 —
+//   그래야 `npm run check:sharedchart` 가 supabase/react-native 없이 실제 함수를 호출해 유출을 잡는다).
+//   호출부 편의를 위해 여기서 re-export 한다: 글쓰기 화면은 createPost 와 변환 함수를 같이 쓴다.
+export type { SharedSaju, SharedZiwei } from './communityChart';
+export { toSharedSaju, toSharedZiwei } from './communityChart';
 
 export type CommunityPost = {
   id: string; author_id: string; author_name: string; category: string;
