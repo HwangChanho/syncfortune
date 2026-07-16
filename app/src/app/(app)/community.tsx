@@ -26,6 +26,8 @@ export default function CommunityScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [compose, setCompose] = useState(false);
+  // 이용약관 동의 여부(Apple 1.2) — null=프리로드 전. 마운트 effect 에서 비동기로 채운다(동기 SecureStore 블록 회피).
+  const [eulaAgreed, setEulaAgreed] = useState<boolean | null>(null);
   const [eula, setEula] = useState(false);       // 이용약관 모달
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
@@ -36,17 +38,26 @@ export default function CommunityScreen() {
     try { setPosts(await listPosts(cat)); } catch { /* 목록 로드 실패=빈 목록 */ } finally { setLoading(false); setRefreshing(false); }
   }, [cat]);
   useEffect(() => { setLoading(true); load(); }, [load]);
+  // 약관 동의 플래그 프리로드 — 탭 시점의 동기 SecureStore 호출(JS 스레드 블록)을 없애기 위해 미리 읽어 둔다.
+  useEffect(() => { SecureStore.getItemAsync(EULA_KEY).then((v) => setEulaAgreed(v === '1')).catch(() => setEulaAgreed(false)); }, []);
 
   // 글쓰기 진입 — 이용약관 미동의면 약관부터.
+  //   ★약관 동의 여부는 마운트 시 1회 **비동기 프리로드**(아래 effect)해 두고, 탭 시엔 메모리 값만 본다.
+  //     구 코드는 탭 시점에 `SecureStore.getItem`(**동기 네이티브 브리지 = JS 스레드 블록**·라이브러리 문서 명시)을
+  //     호출해 글쓰기 창이 늦게 떴다(daniel 07-16 "글쓰기 창 뜨는 게 너무 오래 걸려").
   function onCompose() {
-    const agreed = (() => { try { return (SecureStore as any).getItem?.(EULA_KEY) === '1'; } catch { return false; } })();
+    // 프리로드 전(null)이면 동기 폴백 — 마운트 직후 극히 짧은 창에서만 발생.
+    const agreed = eulaAgreed ?? (() => { try { return (SecureStore as any).getItem?.(EULA_KEY) === '1'; } catch { return false; } })();
     if (!agreed) { setEula(true); return; }
     setCompose(true);
   }
   function agreeEula() {
-    try { (SecureStore as any).setItem?.(EULA_KEY, '1'); } catch { /* noop */ }
-    SecureStore.setItemAsync(EULA_KEY, '1').catch(() => {});
-    setEula(false); setCompose(true);
+    SecureStore.setItemAsync(EULA_KEY, '1').catch(() => {}); // 구 코드의 동기 setItem 중복 호출 제거(블록 요인)
+    setEulaAgreed(true);
+    setEula(false);
+    // ★EULA 모달이 닫히는 애니메이션과 글쓰기 모달 슬라이드-인이 **겹치면** iOS 에서 버벅이거나 아예 안 뜬다.
+    //   같은 함정 선례: confirmReadingChart → UnlockOverlay(380ms 지연으로 해결). 닫힘이 끝난 뒤 띄운다.
+    setTimeout(() => setCompose(true), 380);
   }
 
   async function submit() {
