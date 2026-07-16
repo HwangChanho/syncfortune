@@ -18,7 +18,8 @@ import { colors, radius, space, shadow, font, gradients } from '../lib/theme';
 import { GlassCard } from '../components/GlassCard';
 import { OhaengIcon } from '../components/OhaengIcon';
 import { OhaengEnergy } from '../components/OhaengEnergy'; // 오행 에너지 구슬 인포그래픽(팔자 앞·이탈률↓·daniel 기획서①)
-import { stemElement, branchElement, elementColor, elementText, stemReading, branchReading, stemYinYang, branchYinYang, eumYangSkew, johuSkew, joSeupSkew } from '../lib/engine/ohaeng';
+import { GzCell } from '../components/GzCell'; // 간지 한 칸(오행색+한자+한글음) — 2026-07-16 추출(커뮤니티 SharedChart와 공유하는 단일 출처)
+import { stemElement, branchElement, elementColor, stemReading, branchReading, stemYinYang, branchYinYang, eumYangSkew, johuSkew, joSeupSkew } from '../lib/engine/ohaeng';
 import { ELEMENT_SKEW, tengodSkew, YINYANG_SKEW, JOHU_SKEW, JOSEUP_SKEW, CONCEPT_INFO, type SkewItem } from '../lib/content/skewKnowledge';
 import { useFontScale } from '../lib/ui/fontScale'; // 글자 크기(설정) — 명식 글자까지 모든 텍스트에 적용(daniel)
 import { emph } from '../lib/ui/richText'; // 콘텐츠 *별표 강조* → bold 렌더(CONCEPT_INFO 개념설명, daniel 2026-07-07)
@@ -67,29 +68,6 @@ const STRENGTH_INFO: { key: '신강' | '신약'; title: string; traits: string; 
     caution: '힘이 너무 빠지면 의존적이거나 우유부단해지고 자신감이 약해질 수 있습니다.',
     yongsin: '인성·비겁으로 보강하는 게 관건 — 배움·휴식·내 편(동료)을 통해 힘을 채울 때 안정됩니다.' },
 ];
-
-// 간지 한 칸(오행색 배경 + 한자 + 한글음) — 대운·세운·월운 타임라인/확장명식 공용. sm=대운/원국, xs=세운/월운.
-//   onPress 주면 글자 탭 = 물상 설명(확장명식용). 타임라인 카드(선택 기능)에는 onPress 미전달(카드 탭=드릴다운 유지).
-
-function GzCell({ char, kind, size, scale = 1, onPress }: { char: string; kind: 'stem' | 'branch'; size: 'sm' | 'xs'; scale?: number; onPress?: () => void }) {
-  const { fs } = useFontScale();
-  const styles = useMemo(() => makeStyles(fs), [fs]); // 글자 크기 적용(명식 간지 글자)
-  const el = kind === 'stem' ? stemElement(char) : branchElement(char);
-  const ko = kind === 'stem' ? stemReading(char) : branchReading(char);
-  const txt = { color: elementText[el] };
-  // scale=1 → 정적 스타일(타임라인 카드). scale>1 → 확장명식 반응형(층 끄면 칸·글자 비례 확대). fs=설정 글자크기(칸·글자 동시 확대).
-  const baseW = fs(size === 'sm' ? 38 : 34), baseF = fs(size === 'sm' ? 19 : 16), baseLH = fs(size === 'sm' ? 22 : 19);
-  const cellDyn = scale !== 1 ? { width: Math.round(baseW * scale) } : { width: Math.round(baseW) };
-  const textDyn = scale !== 1 ? { fontSize: Math.round(baseF * scale), lineHeight: Math.round(baseLH * scale) } : null;
-  const koDyn = scale !== 1 ? { fontSize: Math.round(fs(9) * scale), lineHeight: Math.round(fs(11) * scale) } : null;
-  const inner = (
-    <View style={[size === 'sm' ? styles.gzCellSm : styles.gzCellXs, cellDyn, { backgroundColor: elementColor[el] }]}>
-      <Text style={[size === 'sm' ? styles.gzTextSm : styles.gzTextXs, textDyn, txt]}>{char}</Text>
-      <Text style={[styles.gzKo, koDyn, txt]}>{ko}</Text>
-    </View>
-  );
-  return onPress ? <PressableScale onPress={onPress}>{inner}</PressableScale> : inner;
-}
 
 export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }: { input: ChartInput | null; onReading?: () => void; onSinsal?: () => void; header?: ReactNode; whoName?: string | null }) {
   const { t } = useTranslation();
@@ -1268,11 +1246,7 @@ const makeStyles = (fs: (n: number) => number) => { const f = scaledFont(fs); re
   seunGz: { fontSize: fs(14), fontWeight: '700' },
   seunTg: { fontSize: fs(8), color: colors.inkSoft },
   seunStage: { fontSize: fs(8), color: colors.inkFaint, fontWeight: '600' },   // 12운성
-  gzCellSm: { width: 38, borderRadius: 6, alignItems: 'center', justifyContent: 'center', paddingVertical: 3, marginVertical: 1.5 },
-  gzTextSm: { fontSize: fs(19), fontWeight: '800', lineHeight: fs(22) },
-  gzCellXs: { width: 34, borderRadius: 6, alignItems: 'center', justifyContent: 'center', paddingVertical: 2, marginVertical: 1.5 },
-  gzTextXs: { fontSize: fs(16), fontWeight: '700', lineHeight: fs(19) },
-  gzKo: { fontSize: fs(9), fontWeight: '700', lineHeight: fs(11), opacity: 0.85 },   // 한자 아래 한글음
+  // gzCellSm/gzTextSm/gzCellXs/gzTextXs/gzKo — GzCell 전용 스타일은 components/GzCell.tsx로 이전(단일 출처, 2026-07-16)
   expCol: { alignItems: 'center', paddingHorizontal: space(0.75), paddingVertical: space(0.5) },
   expCol2: { width: 50, alignItems: 'center', paddingVertical: space(0.5) },   // 고정폭(합충 호 좌표용)
   expColLuck: { backgroundColor: colors.juSoft, borderRadius: radius.sm },
