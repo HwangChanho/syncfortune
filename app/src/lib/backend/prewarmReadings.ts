@@ -51,7 +51,7 @@ export async function ensureServerChartId(
     //   birth(ChartInput)는 평문으로 두지 않고 RPC가 서버에서 pgp 암호화 저장(규칙8·ADR-005: 관리자 복호화용 birth_enc).
     const { data, error } = await supabase.rpc('insert_chart_enc', {
       p_relation: 'self',
-      p_saju: { ...c.saju, sensitivity: c.sensitivity, timeUnknown: input.timeAccuracy === '미상' }, // R35 예민보스(민감도)·辛金=날카로운 전문성 — 전체 통변 참고(daniel)
+      p_saju: { ...c.saju, timeUnknown: input.timeAccuracy === '미상' }, // R35 민감도는 엔진 판정 제거(생극제화=LLM 통변 판정) — buildUserPrompt 관법 가이드
       p_ziwei: c.ziwei ?? null,
       p_birth: JSON.stringify(input),     // 서버에서 즉시 암호화 → birth_enc (관리자만 복호화)
       p_label: savedChart.label ?? null,  // 라벨도 동일 키로 암호화 → label_enc

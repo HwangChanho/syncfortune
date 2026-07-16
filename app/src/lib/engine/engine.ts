@@ -8,7 +8,6 @@ import { buildSajuChart } from '@engine/saju';
 import { detectInteractions, scoreStrength, classifyStrength, analyzeTenGods, detectPattern } from '@engine/structure';
 import { dayMasterStages } from '@engine/twelve';
 import { analyzeSinsal } from '@engine/sinsal';
-import { sensitivityBoss } from '@engine/sensitivity'; // R35 예민보스(민감도) 결정론 — 전체 통변 참고(daniel 2026-06-23)
 import { buildZiweiChart } from '@engine/ziwei';
 import type { ChartInput, NormalizedChart } from '@spec/chart';
 
@@ -25,7 +24,8 @@ function buildFullChart(input: ChartInput) {
     pattern: detectPattern(saju),    // 격국 후보
     stages: dayMasterStages(saju),   // 12운성
     sinsal: analyzeSinsal(saju),     // 신살·공망
-    sensitivity: sensitivityBoss(saju), // R35 예민보스(민감도)·辛金=날카로운 전문성 — 통변 참고
+    // R35 민감도(예민)는 결정론 판정을 제거했다(2026-07-16): 생극제화 관법(생이 잘 되나·극이 도움되나)은
+    //   주변 글자 전체+조후 종합이라 룰로 환원 불가 → LLM 통변이 buildUserPrompt 관법 가이드로 직접 판정.
     // ⚡지연(성능·daniel "만세력 느림"): 자미두수(iztro)는 무겁고 사주-only 화면(만세력·신살)엔 불필요 →
     //   c.ziwei 접근 시에만 1회 계산(자미/궁합 화면만 비용). 메모 객체 내 _ziwei 캐시.
     get ziwei() { return _ziwei ?? (_ziwei = buildZiweiChart(input)); },
