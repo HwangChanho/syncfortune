@@ -9,6 +9,7 @@ import { View, Text, ScrollView, FlatList, StyleSheet, Modal, TextInput, Refresh
 import * as SecureStore from 'expo-secure-store';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import { useSafeAreaInsets } from 'react-native-safe-area-context'; // 전체화면 Modal 헤더 상단 안전영역(다이나믹아일랜드) — reunion.tsx 패턴
 import { PressableScale } from '../../components/PressableScale';
 import { Alert } from '../../lib/ui/alert';
 import { useAuth } from '../../lib/useAuth';
@@ -24,6 +25,7 @@ export default function CommunityScreen() {
   useLogContentVisit('community');
   const { t } = useTranslation();
   const router = useRouter();
+  const insets = useSafeAreaInsets(); // 글쓰기 모달 헤더가 상단 안전영역(노치·다이나믹아일랜드)에 가려 버튼이 안 눌리던 것 방지
   const { isRegistered } = useAuth(); // 익명 세션이 상시 존재하므로 session 이 아닌 isRegistered 로 판정
   const [cat, setCat] = useState<CommunityCategory | undefined>(undefined); // undefined=전체
   const [posts, setPosts] = useState<CommunityPost[]>([]);
@@ -187,12 +189,14 @@ export default function CommunityScreen() {
       {/* 글쓰기 모달 */}
       <Modal visible={compose} animationType="slide" onRequestClose={() => setCompose(false)}>
         <View style={styles.composeBg}>
-          <View style={styles.composeHead}>
-            <PressableScale onPress={() => setCompose(false)}><Text style={styles.composeX}>✕</Text></PressableScale>
-            <Text style={styles.composeTitle}>{t('community.write', '글쓰기')}</Text>
-            <PressableScale onPress={submit} disabled={!title.trim() || !body.trim() || posting}>
+          {/* ✕(닫기)·올리기는 양끝(space-between), 타이틀은 화면 정중앙(absolute·pointerEvents none으로 버튼 탭 통과).
+              ★paddingTop = insets.top: 다이나믹아일랜드/노치에 헤더 버튼이 가려 안 눌리던 버그 수정(reunion.tsx 패턴). hitSlop 으로 탭 영역 확대. */}
+          <View style={[styles.composeHead, { paddingTop: insets.top + space(3) }]}>
+            <PressableScale onPress={() => setCompose(false)} hitSlop={14}><Text style={styles.composeX}>✕</Text></PressableScale>
+            <PressableScale onPress={submit} disabled={!title.trim() || !body.trim() || posting} hitSlop={14}>
               <Text style={[styles.composeSubmit, (!title.trim() || !body.trim() || posting) && styles.composeSubmitOff]}>{posting ? '…' : t('community.post', '올리기')}</Text>
             </PressableScale>
+            <Text style={[styles.composeTitle, { top: insets.top + space(3) }]}>{t('community.write', '글쓰기')}</Text>
           </View>
           <ScrollView contentContainerStyle={styles.composeForm} keyboardShouldPersistTaps="handled">
             <View style={styles.wcatRow}>
@@ -276,9 +280,11 @@ const styles = StyleSheet.create({
   eulaCancelTx: { color: colors.inkSoft, fontWeight: '600' },
   // 글쓰기
   composeBg: { flex: 1, backgroundColor: colors.bg },
-  composeHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: space(5), paddingTop: space(12), paddingBottom: space(3), borderBottomWidth: 1, borderBottomColor: colors.line },
+  // paddingTop 은 인라인(insets.top) — 고정값이면 다이나믹아일랜드에 버튼이 가림. position relative = 타이틀 absolute 기준.
+  composeHead: { position: 'relative', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: space(5), paddingBottom: space(3), borderBottomWidth: 1, borderBottomColor: colors.line },
   composeX: { fontSize: 20, color: colors.inkSoft },
-  composeTitle: { ...font.heading, color: colors.ink },
+  // 타이틀 = 화면 정중앙(좌우 0·textAlign center). top 은 인라인(insets.top)으로 버튼과 같은 라인. pointerEvents none 이라 뒤 버튼 탭 통과.
+  composeTitle: { ...font.heading, color: colors.ink, position: 'absolute', left: 0, right: 0, textAlign: 'center', pointerEvents: 'none' },
   composeSubmit: { color: colors.ju, fontWeight: '800', fontSize: 16 },
   composeSubmitOff: { color: colors.inkFaint },
   composeForm: { padding: space(5), gap: space(3) },
