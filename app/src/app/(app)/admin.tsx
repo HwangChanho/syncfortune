@@ -4,11 +4,11 @@
 //   유저 검색·확인 + 특정 유저에게 이용권 선물(grant)·프리미엄 토글. 권한은 서버 RPC(is_caller_admin)가 강제.
 //   ⚠️ 이메일=PII — 관리자만 노출(규칙8). 비관리자는 접근 차단(서버 RPC + 아래 allowed 게이트).
 // ─────────────────────────────────────────────────────────────────────────
-import { View, Text, ScrollView, Pressable, TextInput, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, Pressable, TextInput, StyleSheet, ActivityIndicator, Platform } from 'react-native';
 import { PressableScale } from '../../components/PressableScale';
 import { Alert } from '../../lib/ui/alert'; // 커스텀 알림(앱 디자인)
 import { useEffect, useState } from 'react';
-import { isAdmin, adminListUsers, adminGrantCredit, adminSetPremium, adminUserDetail, adminStats, adminUserUsage, adminUserContentVisits, type AdminUser, type AdminUserDetail, type AdminStats, type AdminUsage, type AdminContentVisit, type DayPoint } from '../../lib/core/admin';
+import { isAdmin, adminListUsers, adminGrantCredit, adminSetPremium, adminUserDetail, adminStats, adminUserUsage, adminUserContentVisits, adminSchedulePush, adminListPushCampaigns, adminCancelPush, type AdminUser, type AdminUserDetail, type AdminStats, type AdminUsage, type AdminContentVisit, type DayPoint, type PushCampaign } from '../../lib/core/admin';
 import { CREDIT_KINDS, type CreditKind } from '../../lib/billing/coupons';
 import { logEvent } from '../../lib/backend/logger'; // DB 로그(app_logs) — 선물/프리미엄 단계 추적
 import { colors, radius, space, shadow, font } from '../../lib/theme';
@@ -19,6 +19,7 @@ import { sendDailyTipNow } from '../../lib/backend/notifications'; // ★일운 
 import { isOnboardingEnabled, setOnboardingEnabled } from '../../components/Onboarding'; // ★관리자 온보딩 토글(daniel 07-12)
 import { remoteFlagValue, setAppFlag, loadFeatures, type FeatureKey } from '../../lib/core/features'; // ★신규 기능 공개 토글(속궁합/커뮤니티/위젯 — 심사 통과 후 전 유저 공개)
 import { useSubscription } from '../../lib/billing/subscription'; // 관리자모드 토글 후 프리미엄 새로고침
+import DateTimePicker from '@react-native-community/datetimepicker'; // ★예약 푸시 발송 시각 선택(daniel 07-17)
 
 // 초 → 사람이 읽는 시간(평균 사용시간 표시).
 const fmtDur = (sec?: number | null) => {
@@ -27,6 +28,10 @@ const fmtDur = (sec?: number | null) => {
   const m = Math.round(s / 60);
   return m < 60 ? `${m}분` : `${Math.floor(m / 60)}시간 ${m % 60}분`;
 };
+
+// 예약 푸시(daniel 07-17): 발송 시각 표시(M/D HH:mm) + 상태 한글 라벨(관리자 화면 한국어 전용).
+const fmtWhen = (d: Date) => `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+const PUSH_STATUS: Record<string, string> = { pending: '예약', sending: '발송 중', sent: '발송 완료', canceled: '취소됨', failed: '실패' };
 
 // 콘텐츠 kind → 한글 라벨(콘텐츠 방문 내역 표시용, daniel 2026-07-06). 앱 홈 menu 라벨(i18n ko menu.*)과 동일 결로 맞춤.
 //   ※ 관리자 화면은 한국어 전용(daniel)이라 i18n 대신 로컬 맵 — 미등록 kind 는 raw kind 그대로 노출(신규 콘텐츠 누락이 눈에 띄게).
@@ -214,6 +219,13 @@ export default function AdminRoute() {
   const [adminMode, setAdminMode] = useState(true); // god ON / 일반계정 OFF
   const [onbOn, setOnbOn] = useState(false); // 온보딩 노출 여부(관리자 토글·로컬 SecureStore FLAG, daniel 07-12)
   const [flags, setFlags] = useState<Record<string, boolean>>({}); // ★신규 기능 원격 플래그(속궁합/커뮤니티/위젯 — 공개 여부)
+  // ── 예약 푸시(daniel 07-17): 제목·본문·시각 정해 전체 유저에게 브로드캐스트 ──
+  const [pushTitle, setPushTitle] = useState('');
+  const [pushBody, setPushBody] = useState('');
+  const [pushDate, setPushDate] = useState<Date>(() => new Date(Date.now() + 3600_000)); // 기본 1시간 뒤
+  const [showPushPicker, setShowPushPicker] = useState(false);
+  const [campaigns, setCampaigns] = useState<PushCampaign[]>([]);
+  const [pushBusy, setPushBusy] = useState(false);
 
   async function reload() { setUsers(await adminListUsers()); }
   useEffect(() => { isAdmin().then((a) => { setAllowed(a); if (a) { reload(); adminStats().then(setStats); } }); }, []);
@@ -224,6 +236,7 @@ export default function AdminRoute() {
   useEffect(() => { isOnboardingEnabled().then(setOnbOn).catch(() => {}); }, []); // 온보딩 노출 여부 로드(관리자 토글)
   // ★신규 기능 플래그 로드(원격 app_flags) — 공개 토글 초기 상태.
   useEffect(() => { loadFeatures().then(() => setFlags({ sokgunghap: remoteFlagValue('sokgunghap'), community: remoteFlagValue('community'), widget: remoteFlagValue('widget') })).catch(() => {}); }, []);
+  useEffect(() => { if (allowed) adminListPushCampaigns().then(setCampaigns).catch(() => {}); }, [allowed]); // 예약 푸시 내역(daniel 07-17)
 
   if (allowed === null) return <View style={styles.center}><ActivityIndicator color={colors.ju} /></View>;
   if (allowed === false && !__DEV__) return <View style={styles.center}><Text style={styles.denied}>관리자만 접근할 수 있어요.</Text></View>;
@@ -231,6 +244,29 @@ export default function AdminRoute() {
   const filtered = q ? users.filter((u) => u.email?.toLowerCase().includes(q.toLowerCase())) : users;
   // 선택 유저 풀이 분야 막대의 최대값(비율 기준) — detail 없으면 1(0 나눗셈 방지).
   const maxUserRk = detail?.readings_by_kind?.length ? Math.max(1, ...detail.readings_by_kind.map((x) => x.n)) : 1;
+
+  // ── 예약 푸시(daniel 07-17) ──
+  async function reloadCampaigns() { setCampaigns(await adminListPushCampaigns()); }
+  // now=true 즉시 발송(scheduled_at=now → cron 최대 1분 내), false=예약(pushDate).
+  async function submitPush(now: boolean) {
+    if (pushBusy) return;
+    if (!pushTitle.trim() || !pushBody.trim()) { Alert.alert('예약 푸시', '제목과 내용을 모두 입력해 주세요.'); return; }
+    const when = now ? new Date() : pushDate;
+    if (!now && when.getTime() < Date.now() - 60_000) { Alert.alert('예약 푸시', '발송 시각이 과거예요 — 미래 시각으로 정해 주세요.'); return; }
+    setPushBusy(true);
+    try {
+      await adminSchedulePush(pushTitle.trim(), pushBody.trim(), null, when);
+      setPushTitle(''); setPushBody('');
+      await reloadCampaigns();
+      Alert.alert('예약 완료', now ? '곧 발송됩니다(최대 1분 이내).' : `${fmtWhen(when)} 에 발송 예약됐어요.`);
+    } catch (e) {
+      Alert.alert('예약 실패', String((e as Error)?.message ?? e));
+    } finally { setPushBusy(false); }
+  }
+  async function cancelPush(id: string) {
+    try { await adminCancelPush(id); await reloadCampaigns(); }
+    catch (e) { Alert.alert('취소 실패', String((e as Error)?.message ?? e)); }
+  }
 
   // 이용권 선물(+1) — 지급 전 확인
   function gift(kind: CreditKind, ko: string) {
@@ -326,6 +362,56 @@ export default function AdminRoute() {
       }}>
         <Text style={styles.adminLinkTx}>일운 아침 알림 — 지금 발송(테스트)</Text>
       </PressableScale>
+
+      {/* ★예약 푸시(daniel 07-17) — 제목·본문·시각 정해 전체 유저에게 브로드캐스트. push_campaigns(0013) + push-dispatch Edge(pg_cron). */}
+      <View style={styles.pushBox}>
+        <Text style={styles.pushHead}>📣 예약 푸시 · 전체 유저</Text>
+        <TextInput style={styles.pushInput} value={pushTitle} onChangeText={setPushTitle} placeholder="알림 제목" placeholderTextColor={colors.inkFaint} maxLength={60} />
+        <TextInput style={[styles.pushInput, styles.pushBodyInput]} value={pushBody} onChangeText={setPushBody} placeholder="알림 내용" placeholderTextColor={colors.inkFaint} multiline maxLength={180} />
+        <PressableScale style={styles.pushDateBtn} onPress={() => setShowPushPicker((v) => !v)}>
+          <Text style={styles.pushDateTx}>🕑 발송 시각 · {fmtWhen(pushDate)}{showPushPicker ? '  ▲' : '  ▼'}</Text>
+        </PressableScale>
+        {showPushPicker && (
+          <DateTimePicker
+            value={pushDate}
+            mode="datetime"
+            minimumDate={new Date()}
+            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+            onChange={(_e, d) => { if (Platform.OS !== 'ios') setShowPushPicker(false); if (d) setPushDate(d); }}
+          />
+        )}
+        <View style={styles.pushBtnRow}>
+          <PressableScale style={[styles.pushBtn, styles.pushBtnGhost]} disabled={pushBusy} onPress={() => submitPush(false)}>
+            <Text style={styles.pushBtnGhostTx}>예약하기</Text>
+          </PressableScale>
+          <PressableScale style={[styles.pushBtn, styles.pushBtnPrimary]} disabled={pushBusy} onPress={() => submitPush(true)}>
+            <Text style={styles.pushBtnPrimaryTx}>지금 발송</Text>
+          </PressableScale>
+        </View>
+        {pushBusy && <ActivityIndicator color={colors.ju} style={{ marginTop: space(2) }} />}
+        {campaigns.length > 0 && (
+          <View style={styles.pushList}>
+            {campaigns.map((c) => (
+              <View key={c.id} style={styles.pushItem}>
+                <View style={styles.pushItemMain}>
+                  <Text style={styles.pushItemTitle} numberOfLines={1}>{c.title}</Text>
+                  <Text style={styles.pushItemMeta}>
+                    {fmtWhen(new Date(c.scheduled_at))} · {PUSH_STATUS[c.status] ?? c.status}
+                    {c.status === 'sent' ? ` · ${c.sent_count}명` : ''}
+                    {c.status === 'failed' && c.error ? ` · ${c.error}` : ''}
+                  </Text>
+                </View>
+                {c.status === 'pending' && (
+                  <PressableScale style={styles.pushCancel} onPress={() => cancelPush(c.id)}>
+                    <Text style={styles.pushCancelTx}>취소</Text>
+                  </PressableScale>
+                )}
+              </View>
+            ))}
+          </View>
+        )}
+      </View>
+
       {/* 전체 현황 대시보드(daniel 07-07 대폭 확장) — 규모·매출/원가/순익 실측·풀이분포·인기콘텐츠·일별추이·상위사용자 */}
       {stats && <Dashboard stats={stats} />}
       <Text style={styles.h}>유저 ({users.length})</Text>
@@ -471,6 +557,27 @@ const styles = StyleSheet.create({
   adminLink: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.ju, padding: space(3.5), alignItems: 'center', marginBottom: space(2) },
   adminLinkOn: { borderColor: colors.ju, backgroundColor: colors.juSoft },
   adminLinkTx: { color: colors.ju, fontWeight: '800', fontSize: 14 },
+
+  // ── 예약 푸시(daniel 07-17) ──
+  pushBox: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.line, padding: space(4), marginBottom: space(2), gap: space(2.5) },
+  pushHead: { ...font.body, color: colors.ink, fontWeight: '800' },
+  pushInput: { ...font.body, backgroundColor: colors.sunk, borderRadius: radius.sm, paddingHorizontal: space(3), paddingVertical: space(2.75), color: colors.ink },
+  pushBodyInput: { minHeight: 76, textAlignVertical: 'top' },
+  pushDateBtn: { backgroundColor: colors.juSoft, borderRadius: radius.sm, paddingVertical: space(2.75), alignItems: 'center' },
+  pushDateTx: { color: colors.ju, fontWeight: '700', fontSize: 14 },
+  pushBtnRow: { flexDirection: 'row', gap: space(2) },
+  pushBtn: { flex: 1, paddingVertical: space(3.25), borderRadius: radius.sm, alignItems: 'center' },
+  pushBtnGhost: { backgroundColor: colors.sunk },
+  pushBtnGhostTx: { color: colors.ink, fontWeight: '700', fontSize: 14 },
+  pushBtnPrimary: { backgroundColor: colors.ju },
+  pushBtnPrimaryTx: { color: colors.bg, fontWeight: '800', fontSize: 14 },
+  pushList: { gap: space(1.5), marginTop: space(1) },
+  pushItem: { flexDirection: 'row', alignItems: 'center', gap: space(2), backgroundColor: colors.sunk, borderRadius: radius.sm, paddingVertical: space(2.5), paddingHorizontal: space(3) },
+  pushItemMain: { flex: 1 },
+  pushItemTitle: { ...font.caption, color: colors.ink, fontWeight: '700' },
+  pushItemMeta: { ...font.caption, color: colors.inkFaint, marginTop: 2 },
+  pushCancel: { paddingHorizontal: space(3), paddingVertical: space(1.75), borderRadius: radius.sm, backgroundColor: colors.line },
+  pushCancelTx: { color: colors.inkSoft, fontWeight: '700', fontSize: 12 },
 
   // ── 대시보드 카드/시각화(daniel 07-07: 정보밀도·가시성) ──
   card: { marginTop: space(3), padding: space(4), borderRadius: radius.md, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, ...shadow.card },

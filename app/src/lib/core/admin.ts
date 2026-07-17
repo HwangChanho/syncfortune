@@ -111,3 +111,34 @@ export async function adminUserContentVisits(owner: string): Promise<AdminConten
   const { data, error } = await supabase.rpc('admin_user_content_visits', { p_owner: owner });
   return error ? [] : ((data ?? []) as AdminContentVisit[]);
 }
+
+// ── 예약 푸시 브로드캐스트(daniel 2026-07-17) — 관리자가 제목·본문·시각을 정해 전체 유저에게 발송 ──
+//   push_campaigns(0013)에 쌓고 push-dispatch Edge(pg_cron 매분)가 due 를 집어 Expo 발송. 대상=전체.
+//   ⚠️ '지금 발송'도 scheduled_at=now 로 예약 → cron 폴링(최대 1분 뒤 발송). 관리자 공지라 허용.
+export type PushCampaign = {
+  id: string; title: string; body: string; route: string | null; target: string;
+  scheduled_at: string; status: 'pending' | 'sending' | 'sent' | 'canceled' | 'failed';
+  sent_count: number; total_count: number | null; error: string | null;
+  created_at: string; sent_at: string | null;
+};
+
+/** 푸시 예약 생성(즉시 발송 = scheduledAt 을 now 로). 실패 시 사유 throw. 반환 = 캠페인 id. */
+export async function adminSchedulePush(title: string, body: string, route: string | null, scheduledAt: Date): Promise<string> {
+  const { data, error } = await supabase.rpc('admin_schedule_push', {
+    p_title: title, p_body: body, p_route: route, p_scheduled_at: scheduledAt.toISOString(),
+  });
+  if (error) throw new Error(error.message);
+  return data as string;
+}
+
+/** 예약/발송 캠페인 목록(최근 예정순 50건) — 관리자만. 비관리자·오류 시 빈 배열. */
+export async function adminListPushCampaigns(): Promise<PushCampaign[]> {
+  const { data, error } = await supabase.rpc('admin_list_push_campaigns');
+  return error ? [] : ((data ?? []) as PushCampaign[]);
+}
+
+/** 아직 안 보낸(pending) 예약 취소 — 관리자만. 실패 시 사유 throw. */
+export async function adminCancelPush(id: string): Promise<void> {
+  const { error } = await supabase.rpc('admin_cancel_push', { p_id: id });
+  if (error) throw new Error(error.message);
+}
