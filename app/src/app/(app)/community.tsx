@@ -5,7 +5,7 @@
 //   글 탭 → /communityPost?id=... (상세=댓글·좋아요·신고·차단).
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useState, useCallback } from 'react';
-import { View, Text, ScrollView, FlatList, StyleSheet, Modal, TextInput, RefreshControl, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, FlatList, StyleSheet, Modal, TextInput, RefreshControl, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -191,7 +191,8 @@ export default function CommunityScreen() {
 
       {/* 글쓰기 모달 */}
       <Modal visible={compose} animationType="slide" onRequestClose={() => setCompose(false)}>
-        <View style={styles.composeBg}>
+        {/* ★KeyboardAvoidingView: 키보드가 올라오면 하단(명식 첨부·본문)이 가리던 것 방지(daniel 07-17). */}
+        <KeyboardAvoidingView style={styles.composeBg} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           {/* ✕(닫기)·올리기는 양끝(space-between), 타이틀은 화면 정중앙(absolute·pointerEvents none으로 버튼 탭 통과).
               ★paddingTop = insets.top: 다이나믹아일랜드/노치에 헤더 버튼이 가려 안 눌리던 버그 수정(reunion.tsx 패턴). hitSlop 으로 탭 영역 확대. */}
           <View style={[styles.composeHead, { paddingTop: insets.top + space(3) }]}>
@@ -252,7 +253,7 @@ export default function CommunityScreen() {
               )}
             </View>
           </ScrollView>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );

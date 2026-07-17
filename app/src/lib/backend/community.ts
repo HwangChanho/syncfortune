@@ -38,10 +38,16 @@ const PROFANITY: string[] = [
   '씨발', '시발', '병신', '지랄', '개새끼', '좆', '보지', '자지', '꺼져', '섹스',
   'fuck', 'shit', 'bitch', 'asshole', 'cunt',
 ];
-/** 명백한 비속어 포함 여부(제출 차단용). 공백·특수문자 제거 후 부분일치. */
+/** 명백한 비속어 포함 여부(제출 차단용). 공백·특수문자만 제거 후 부분일치. */
 export function containsProfanity(text: string): boolean {
-  const norm = (text || '').toLowerCase().replace(/[\s\W_]+/g, '');
-  return PROFANITY.some((w) => norm.includes(w.replace(/[\s\W_]+/g, '')));
+  // ⚠️★한글 보존(치명 버그 수정 2026-07-17): 기존 `\W`(=[^A-Za-z0-9_])는 **한글도 non-word 라 제거**해서
+  //   "하이" → "" (빈 문자열)이 되고, 한글 비속어 "씨발"도 → "" → ""(빈).includes("")(빈) = **항상 true**
+  //   → **모든 한글 게시물이 비속어로 오탐·차단**됐다(커뮤니티 글이 한 번도 등록 안 되던 근본 원인).
+  //   → 문자(\p{L})·숫자(\p{N})만 남기고 공백·구두점·기호만 제거한다(우회 방지 의도는 유지, 한글은 보존).
+  //   ※ \p{L} 유니코드 프로퍼티는 Hermes 호환이 불확실 → 영숫자(\w)+한글(완성형·자모) 명시 범위로.
+  const strip = (s: string) => (s || '').toLowerCase().replace(/[^\w가-힣ㄱ-ㅎㅏ-ㅣ]+/g, '');
+  const norm = strip(text);
+  return PROFANITY.some((w) => { const ws = strip(w); return ws.length > 0 && norm.includes(ws); });
 }
 
 async function uid(): Promise<string | null> {
