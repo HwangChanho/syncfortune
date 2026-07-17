@@ -29,8 +29,11 @@ export function ChartRegisterScreen({ onSubmit, defaultRelation, submitLabel, sh
   const initSijinIdx = initTime ? SIJIN.findIndex((s) => s.hm === initTime) : -1;
   const [sijinIdx, setSijinIdx] = useState<number>(initSijinIdx); // -1 = 시각 모름(또는 정확시각 모드)
   const [sijinOpen, setSijinOpen] = useState(false);     // 시각 선택 바텀시트
-  // 정확한 시각(시:분) — daniel: 진태양시 보정은 2시간 시진 블록이 아니라 정확 시각이라야 의미. 알면 우선(출생지 경도로 시주 정밀).
-  const [exactH, setExactH] = useState(initTime && initSijinIdx < 0 ? (initTime.split(':')[0] ?? '') : '');
+  // 정확한 시각 — 12시간제(오전/오후 + 1~12시). daniel 07-17: 24h 만 있어 12:30이 낮/밤 헷갈림 → 오전/오후 토글.
+  //   저장(birthDateTime)은 24시간제 유지(호환) — 아래 exH24 로 변환. 기존 명식(24h)은 12h+오전/오후로 역변환해 로드.
+  const init24H = initTime && initSijinIdx < 0 ? parseInt(initTime.split(':')[0] ?? '', 10) : NaN;
+  const [ampm, setAmpm] = useState<'오전' | '오후'>(!isNaN(init24H) && init24H >= 12 ? '오후' : '오전');
+  const [exactH, setExactH] = useState(!isNaN(init24H) ? String(init24H % 12 === 0 ? 12 : init24H % 12) : ''); // 0/12시→12, 13시→1
   const [exactM, setExactM] = useState(initTime && initSijinIdx < 0 ? (initTime.split(':')[1] ?? '') : '');
   const [calendar, setCalendar] = useState<'양' | '음'>(initial?.calendar ?? '양');
   const [isLeap, setIsLeap] = useState<boolean>((initial as any)?.isLeap ?? false); // ⑧ 윤달(daniel) — 음력 윤달 구분
@@ -48,11 +51,12 @@ export function ChartRegisterScreen({ onSubmit, defaultRelation, submitLabel, sh
   const [note, setNote] = useState(initial?.context?.note ?? '');
 
   const sj = sijinIdx >= 0 ? SIJIN[sijinIdx] : null;
-  // 정확 시각이 유효(시 0~23·분 0~59)하면 우선 — 이게 진태양시 보정 대상 시각.
-  const exH = parseInt(exactH, 10), exM = parseInt(exactM, 10);
-  const exactStr = (exactH !== '' && exactM !== '' && exH >= 0 && exH <= 23 && exM >= 0 && exM <= 59)
-    ? `${exH}:${String(exM).padStart(2, '0')}` : null;
-  const timeLabel = exactStr ? `${String(exH).padStart(2, '0')}:${String(exM).padStart(2, '0')}`
+  // 정확 시각(12시간제 입력: 오전/오후 + 1~12시) → 24시간제(exH24)로 변환해 진태양시 보정·저장에 사용.
+  const exH12 = parseInt(exactH, 10), exM = parseInt(exactM, 10);
+  const exactValid = exactH !== '' && exactM !== '' && exH12 >= 1 && exH12 <= 12 && exM >= 0 && exM <= 59;
+  const exH24 = !exactValid ? NaN : ampm === '오전' ? (exH12 === 12 ? 0 : exH12) : (exH12 === 12 ? 12 : exH12 + 12); // 오전12=0시, 오후12=12시, 그 외 오후=+12
+  const exactStr = exactValid ? `${exH24}:${String(exM).padStart(2, '0')}` : null;
+  const timeLabel = exactStr ? `${ampm} ${exH12}:${String(exM).padStart(2, '0')}`
     : sj ? `${sj.gz} ${sj.ko} (${sj.range})` : t('register.timeUnknown');
 
   function pickSijin(i: number) { setSijinIdx(i); setExactH(''); setExactM(''); setSijinOpen(false); } // 시진/모름 선택 = 정확시각 해제
@@ -64,8 +68,8 @@ export function ChartRegisterScreen({ onSubmit, defaultRelation, submitLabel, sh
     const [by, bm, bd] = birthDate.split('-').map((x) => parseInt(x, 10));
     if (!by || !bm || !bd) return null;
     const input = { birthDateTime: `${birthDate} ${exactStr}`, calendar, sex, birthPlace, birthLon: birthPlaceLon ?? undefined } as any;
-    const offset = Math.round(trueSolarOffsetMin(input, by, bm, bd, exH, exM));
-    const solarMin = (((exH * 60 + exM + offset) % 1440) + 1440) % 1440;             // 진태양시 분(0~1439)
+    const offset = Math.round(trueSolarOffsetMin(input, by, bm, bd, exH24, exM));
+    const solarMin = (((exH24 * 60 + exM + offset) % 1440) + 1440) % 1440;           // 진태양시 분(0~1439)
     const fromStart = (((solarMin - 1380) % 120) + 120) % 120;                       // 시진 블록(子 23:00 시작, 2h) 경계로부터
     const toBoundary = Math.min(fromStart, 120 - fromStart);                         // 가까운 시진 경계까지(분)
     const blockIdx = Math.floor(((((solarMin - 1380) % 1440) + 1440) % 1440) / 120); // 0=자..11=해
@@ -75,7 +79,7 @@ export function ChartRegisterScreen({ onSubmit, defaultRelation, submitLabel, sh
       solarTime: `${String(Math.floor(solarMin / 60)).padStart(2, '0')}:${String(solarMin % 60).padStart(2, '0')}`,
       siji: SIJI[blockIdx], toBoundary, warn: toBoundary <= 20,
     };
-  }, [exactStr, birthDate, calendar, sex, birthPlace, birthPlaceLon, exH, exM]);
+  }, [exactStr, birthDate, calendar, sex, birthPlace, birthPlaceLon, exH24, exM]);
 
   // input 구성 — 수동 제출·자동저장 공용. label/relation 은 메타(ChartInput PII 계약 외).
   function buildInput() {
@@ -223,8 +227,16 @@ export function ChartRegisterScreen({ onSubmit, defaultRelation, submitLabel, sh
             {/* 정확한 시각(시:분) — 알면 우선(진태양시 보정). 출생지 경도로 시주 정밀 산출(daniel). */}
             <View style={styles.exactBox}>
               <Text style={styles.exactLabel}>{t('register.exactTime', '정확한 시각을 알아요 (출생지 경도로 진태양시 보정)')}</Text>
+              {/* 오전/오후(daniel 07-17) — 12:30이 낮/밤 헷갈리지 않게. 밤 12:30 = 오전 12:30. */}
+              <View style={styles.ampmRow}>
+                {(['오전', '오후'] as const).map((ap) => (
+                  <PressableScale key={ap} style={[styles.ampmBtn, ampm === ap && styles.ampmBtnOn]} onPress={() => setAmpm(ap)}>
+                    <Text style={[styles.ampmTx, ampm === ap && styles.ampmTxOn]}>{t(ap === '오전' ? 'register.am' : 'register.pm', ap)}</Text>
+                  </PressableScale>
+                ))}
+              </View>
               <View style={styles.exactRow}>
-                <TextInput style={styles.exactInput} value={exactH} onChangeText={(v) => setExactH(v.replace(/[^0-9]/g, '').slice(0, 2))} placeholder={t('register.hour', '시')} placeholderTextColor={colors.inkFaint} keyboardType="number-pad" maxLength={2} />
+                <TextInput style={styles.exactInput} value={exactH} onChangeText={(v) => setExactH(v.replace(/[^0-9]/g, '').slice(0, 2))} placeholder={t('register.hour12', '시(1~12)')} placeholderTextColor={colors.inkFaint} keyboardType="number-pad" maxLength={2} />
                 <Text style={styles.exactColon}>:</Text>
                 <TextInput style={styles.exactInput} value={exactM} onChangeText={(v) => setExactM(v.replace(/[^0-9]/g, '').slice(0, 2))} placeholder={t('register.minute', '분')} placeholderTextColor={colors.inkFaint} keyboardType="number-pad" maxLength={2} />
                 <PressableScale style={[styles.exactBtn, !exactStr && styles.exactBtnOff]} onPress={confirmExact} disabled={!exactStr}>
@@ -321,6 +333,12 @@ const styles = StyleSheet.create({
   exactBtn: { marginLeft: 'auto', backgroundColor: colors.ju, borderRadius: radius.sm, paddingVertical: space(2.5), paddingHorizontal: space(4) },
   exactBtnOff: { backgroundColor: colors.line },
   exactBtnTx: { color: colors.bg, fontWeight: '700', fontSize: 14 },
+  // 오전/오후 토글(daniel 07-17)
+  ampmRow: { flexDirection: 'row', gap: space(2), marginBottom: space(2.5) },
+  ampmBtn: { flex: 1, alignItems: 'center', paddingVertical: space(2), borderRadius: radius.sm, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.bg },
+  ampmBtnOn: { backgroundColor: colors.juSoft, borderColor: colors.ju },
+  ampmTx: { ...font.label, fontSize: 14, color: colors.inkSoft, fontWeight: '700' },
+  ampmTxOn: { color: colors.ju },
   sheetDivider: { ...font.caption, color: colors.inkFaint, textAlign: 'center', marginBottom: space(2) },
   sheetList: { flexGrow: 0 },
   optionRow: {

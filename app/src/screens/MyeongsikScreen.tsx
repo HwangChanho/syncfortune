@@ -649,8 +649,10 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
           {/* 대운·세운 타임라인 (원국·지장간 바로 아래) — 대운 탭 → 세운(과거~100세) → 월운 드릴다운 */}
           {luckCycles.length > 0 && (() => {
         const lc = luckCycles[selLuck];
-        // 대운수(행운수)+순역 — 명식당 하나(첫 입운 나이·순행/역행). daniel: 대운 옆 표기
-        const daeunsu: number | undefined = luckCycles[0]?.startAge;
+        // 대운수(행운수)+순역 — 명식당 하나. daniel 07-17: 표준 대운수(절기까지 일수÷3, 1~10)로 표기.
+        //   라이브러리(lunar-javascript)의 startAge 는 '입운 세는나이'(=순수 대운수 + 1)라 그대로 쓰면 11처럼 큼.
+        //   순수 대운수 = getStartYear − 출생연도 = startAge − 1 (재현 검증: 1992-08-09 남 startAge11→대운수10).
+        const daeunsu: number | undefined = luckCycles[0]?.startAge != null ? Math.max(1, luckCycles[0].startAge - 1) : undefined;
         const sx = input?.sex;
         const luckDir = sx ? (daeunForward(P['년'].stem, sx) ? '순행' : '역행') : null;
         const an = lc?.annuals?.[selSeun];
