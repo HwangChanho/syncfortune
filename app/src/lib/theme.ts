@@ -151,9 +151,11 @@ export function storeChartElement(el: string) {
   if (prev === el) return;
   try { (SecureStore as any).setItem?.(ELEMENT_KEY, el); } catch { /* noop */ }
   SecureStore.setItemAsync(ELEMENT_KEY, el).catch(() => {});
-  // ★첫 결정(이전 값 없음) + auto 모드 → 일간 색을 *즉시* 반영(1회 리로드). 이후 명식 전환은 다음 로드에(잦은 리로드 방지).
-  //   activeScheme/colors 는 모듈 로드 시점 결정이라, 첫 실행에 이 리로드가 있어야 일간 색이 바로 보인다(daniel 2026-07-15).
-  if (!prev) {
+  // ★auto 모드면 대표명식 오행이 바뀔 때마다 *즉시* 반영(1회 리로드). 여기 도달 = 오행이 실제로 변경됨(위 prev===el 은 return).
+  //   daniel 2026-07-17: 기존엔 첫 결정(!prev)만 리로드해서, 대표명식을 바꿔도 테마가 안 따라왔다("대표명식 기준으로 잡혀야지").
+  //   → 오행 변경 시 auto면 리로드. 리로드 후 재호출은 prev===el 이라 루프 없음. 수동 오행선택(ACCENT_KEY≠auto)은 존중(리로드 안 함).
+  //   activeScheme/colors 는 모듈 로드 시점 결정이라, 이 리로드가 있어야 새 일간 색이 바로 보인다(daniel 2026-07-15).
+  {
     let mode = 'auto';
     try { mode = ((SecureStore as any).getItem?.(ACCENT_KEY) as string) || 'auto'; } catch { /* noop */ }
     if (mode === 'auto') {
