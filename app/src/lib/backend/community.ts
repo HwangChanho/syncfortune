@@ -45,8 +45,11 @@ export function containsProfanity(text: string): boolean {
 }
 
 async function uid(): Promise<string | null> {
-  const { data } = await supabase.auth.getUser();
-  return data?.user?.id ?? null;
+  // ★getSession(로컬 세션 = insert 요청에 실제로 실리는 그 토큰)에서 uid를 얻는다.
+  //   getUser()는 서버 재검증이라 insert 세션과 미묘하게 어긋날 수 있고, 그러면 넣은 author_id ≠ 서버 auth.uid()
+  //   → RLS(author_id = auth.uid()) 위반으로 insert 실패(community_posts 0 rows·에러가 모달에 가려 '무반응'으로 보임).
+  const { data } = await supabase.auth.getSession();
+  return data?.session?.user?.id ?? null;
 }
 
 /** 게시글 목록(카테고리 필터·최신순·페이지). 숨김·차단 유저 글은 RLS가 제외. 첨부 명식은 제외(LIST_COLS). */

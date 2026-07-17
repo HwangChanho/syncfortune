@@ -43,6 +43,7 @@ export default function CommunityScreen() {
   const [selfCharts, setSelfCharts] = useState<SavedChart[]>([]);
   const [attachId, setAttachId] = useState<string | null>(null);
   const [showLuck, setShowLuck] = useState(false); // 대운·세운까지 공개할지(기본 꺼짐 = 원국만)
+  const [composeErr, setComposeErr] = useState<string | null>(null); // 등록 에러를 모달 안에 인라인 표시(Alert 가 글쓰기 Modal 위에 안 떠 '무반응'처럼 보이던 것 해결)
 
   const load = useCallback(async () => {
     try { setPosts(await listPosts(cat)); } catch { /* 목록 로드 실패=빈 목록 */ } finally { setLoading(false); setRefreshing(false); }
@@ -105,6 +106,7 @@ export default function CommunityScreen() {
   async function submit() {
     if (!title.trim() || !body.trim() || posting) return;
     setPosting(true);
+    setComposeErr(null); // 재시도 시 이전 에러 지움
     try {
       // 첨부 명식 → 공유 스냅샷. ★계산을 여기(제출 시)서 하는 이유: 모달을 열 때 계산하면 자미두수(iztro)가
       //   무거워 글쓰기 창이 다시 느려진다(07-16에 고친 바로 그 증상). 제출은 이미 진행 표시가 있는 지점이다.
@@ -128,7 +130,8 @@ export default function CommunityScreen() {
       const msg = (e as Error).message === 'PROFANITY'
         ? t('community.profanity', '부적절한 표현이 포함돼 있어요. 수정 후 다시 올려 주세요.')
         : (e as Error).message;
-      Alert.alert('!', msg);
+      setComposeErr(msg);   // 모달 안 인라인(항상 보임)
+      Alert.alert('!', msg); // 보조(모달 위에 뜨면)
     } finally { setPosting(false); }
   }
 
@@ -192,13 +195,19 @@ export default function CommunityScreen() {
           {/* ✕(닫기)·올리기는 양끝(space-between), 타이틀은 화면 정중앙(absolute·pointerEvents none으로 버튼 탭 통과).
               ★paddingTop = insets.top: 다이나믹아일랜드/노치에 헤더 버튼이 가려 안 눌리던 버그 수정(reunion.tsx 패턴). hitSlop 으로 탭 영역 확대. */}
           <View style={[styles.composeHead, { paddingTop: insets.top + space(3) }]}>
-            <PressableScale onPress={() => setCompose(false)} hitSlop={14}><Text style={styles.composeX}>✕</Text></PressableScale>
+            <PressableScale onPress={() => { setCompose(false); setComposeErr(null); }} hitSlop={14}><Text style={styles.composeX}>✕</Text></PressableScale>
             <PressableScale onPress={submit} disabled={!title.trim() || !body.trim() || posting} hitSlop={14}>
               <Text style={[styles.composeSubmit, (!title.trim() || !body.trim() || posting) && styles.composeSubmitOff]}>{posting ? '…' : t('community.post', '올리기')}</Text>
             </PressableScale>
             <Text style={[styles.composeTitle, { top: insets.top + space(3) }]}>{t('community.write', '글쓰기')}</Text>
           </View>
           <ScrollView contentContainerStyle={styles.composeForm} keyboardShouldPersistTaps="handled">
+            {/* 등록 에러 인라인(모달 위 Alert 이 안 뜨는 경우 대비 — 항상 보인다) */}
+            {!!composeErr && (
+              <View style={styles.composeErrBox}>
+                <Text style={styles.composeErrTx}>⚠️ {composeErr}</Text>
+              </View>
+            )}
             <View style={styles.wcatRow}>
               {COMMUNITY_CATEGORIES.map((c) => (
                 <PressableScale key={c} style={[styles.wcatChip, wcat === c && styles.catChipOn]} onPress={() => setWcat(c)}>
@@ -292,6 +301,9 @@ const styles = StyleSheet.create({
   wcatChip: { backgroundColor: colors.sunk, borderRadius: radius.pill, paddingHorizontal: space(3.5), paddingVertical: space(1.75), borderWidth: 1, borderColor: colors.line },
   titleInput: { ...font.heading, color: colors.ink, borderBottomWidth: 1, borderBottomColor: colors.line, paddingVertical: space(3) },
   bodyInput: { ...font.body, color: colors.ink, minHeight: 220, lineHeight: 24 },
+  // 등록 에러 인라인
+  composeErrBox: { backgroundColor: '#3a1a1a', borderRadius: radius.md, borderWidth: 1, borderColor: '#E5484D', padding: space(3) },
+  composeErrTx: { ...font.caption, color: '#ff9a9a', lineHeight: 18 },
   // 명식 첨부
   attachBox: { borderTopWidth: 1, borderTopColor: colors.line, paddingTop: space(4), gap: space(2.5) },
   attachHead: { ...font.label, color: colors.ink },
