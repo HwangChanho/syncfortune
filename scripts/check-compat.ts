@@ -32,7 +32,7 @@ const build = (input: ChartInput) => { const c = buildSajuChart(input); c.intera
 // 검증용 상대(비PII 예시). 각기 다른 축을 자극하도록 고른 날짜.
 const A = build({ birthDateTime: '1996-05-20 14:30', calendar: '양', timeAccuracy: '정확', sex: '여', birthPlace: '서울' }); // 丁巳日 관성·배우자궁 깨끗
 const B = build({ birthDateTime: '1988-11-03 09:00', calendar: '양', timeAccuracy: '정확', sex: '여', birthPlace: '부산' }); // 壬戌日 계절상보·식상·배우자궁 형
-const C = build({ birthDateTime: '1993-07-12 22:00', calendar: '양', timeAccuracy: '정확', sex: '여', birthPlace: '대구' }); // 甲午日 재성이나 배우자궁 해·원진·귀문 3종
+const C = build({ birthDateTime: '1993-07-12 22:00', calendar: '양', timeAccuracy: '정확', sex: '여', birthPlace: '대구' }); // 甲午日 재성이나 배우자궁 해·원진 2종(귀문은 daniel 관법상 결정론 제외)
 
 const dxA = analyzeCompatibility(me, A), sA = compatScore(dxA);
 const dxB = analyzeCompatibility(me, B), sB = compatScore(dxB);
@@ -53,11 +53,11 @@ console.log('\n[3] ① 계절 한난 상보(월지 봄여름↔가을겨울)');
 ok(sB.seasonComplement === true, `B: 내 卯(봄여름) ↔ 상대 戌(가을겨울) = 상보`);
 ok(sA.seasonComplement === false && sC.seasonComplement === false, `A·C: 둘 다 봄여름군 = 상보 아님`);
 
-console.log('\n[4] ⑥ 배우자궁(일지) 형충파해원진귀문 감점 — daniel "일지에 …없어야"');
+console.log('\n[4] ⑥ 배우자궁(일지) 형충파해원진 감점 — daniel "일지에 …없어야"(귀문은 LLM 판정이라 결정론 제외)');
 ok(dxA.spousePalace.clean === true, `A: 일지 丑·巳 충돌 없음(clean)`);
 ok(dxB.spousePalace.afflictions.includes('형'), `B: 일지 丑·戌 = 형 [${dxB.spousePalace.afflictions.join('·')}]`);
-ok(dxC.spousePalace.afflictions.length >= 3, `C: 일지 丑·午 = ${dxC.spousePalace.afflictions.join('·')}(3종+)`);
-// C 는 재성·결핍이 좋아도(A 와 유사) 배우자궁 3종 감점으로 A 보다 낮아야 = 감점이 실제로 먹는다
+ok(dxC.spousePalace.afflictions.length >= 2 && !dxC.spousePalace.afflictions.includes('귀문' as any), `C: 일지 丑·午 = ${dxC.spousePalace.afflictions.join('·')}(2종+·귀문 제외 확인)`);
+// C 는 재성·결핍이 좋아도(A 와 유사) 배우자궁 감점으로 A 보다 낮아야 = 감점이 실제로 먹는다
 ok(sC.score < sA.score, `C(${sC.score}) < A(${sA.score}) — 배우자궁 흉이 재/관·결핍 이점을 눌렀다`);
 
 console.log('\n[5] ③ 결핍 지지 보완(상대가 내게 없는 지지 글자)');

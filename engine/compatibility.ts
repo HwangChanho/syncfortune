@@ -17,14 +17,14 @@ const SIXHE: [Branch, Branch, Element][] = [['子', '丑', '土'], ['寅', '亥'
 const CHONG: [Branch, Branch][] = [['子', '午'], ['丑', '未'], ['寅', '申'], ['卯', '酉'], ['辰', '戌'], ['巳', '亥']];
 
 // ─── 배우자궁(일지) 충돌 판정용 지지 관계 표준 테이블 (daniel 궁합 기준 2026-07-17) ───
-// ⚠️발명 금지: 명리 표준 테이블만. 형/파/해/원진은 통용 판본, 귀문만 문파차라 잠정(노션 질문 대기).
+// ⚠️발명 금지: 명리 표준 테이블만. 형/파/해/원진은 통용 판본. 귀문은 daniel 관법상 결정론 제외(사주별 LLM 판정·2026-07-17).
 const HYEONG: [Branch, Branch][] = [['寅', '巳'], ['巳', '申'], ['寅', '申'], ['丑', '戌'], ['戌', '未'], ['丑', '未'], ['子', '卯']]; // 삼형(寅巳申·丑戌未)+상형(子卯)
 const SELF_HYEONG: Branch[] = ['辰', '午', '酉', '亥']; // 자형(같은 글자끼리 — 두 사람 일지가 동일)
 const PA: [Branch, Branch][] = [['子', '酉'], ['午', '卯'], ['申', '巳'], ['寅', '亥'], ['辰', '丑'], ['戌', '未']]; // 六破
 const HAE: [Branch, Branch][] = [['子', '未'], ['丑', '午'], ['寅', '巳'], ['卯', '辰'], ['申', '亥'], ['酉', '戌']]; // 六害
 const WONJIN: [Branch, Branch][] = [['子', '未'], ['丑', '午'], ['寅', '酉'], ['卯', '申'], ['辰', '亥'], ['巳', '戌']]; // 원진(표준)
-// 귀문관살 — ★문파마다 매핑이 갈린다(노션 질문 대기). 잠정 = 널리 쓰이는 판본(원진과 卯申·辰亥·巳戌 겹침).
-const GWIMUN: [Branch, Branch][] = [['子', '酉'], ['丑', '午'], ['寅', '未'], ['卯', '申'], ['辰', '亥'], ['巳', '戌']];
+// 귀문관살 — ★daniel 관법(2026-07-17 노션): "귀문 만드는 글자·해소 글자를 **사주별로** 판정, 대체로 발동하는 사주는 없다."
+//   = 단순 지지쌍 테이블 자동 감점은 부적절 → **결정론 궁합에서 제외**(LLM 통변 판정 영역·R35 예민보스와 같은 결). 배우자궁 감점은 형·충·파·해·원진까지만.
 
 // 계절(월지) 한난(寒暖) 상보 — daniel: "월지 계절이 다른지, 봄여름이면 가을겨울". 봄여름(暖) vs 가을겨울(寒)이 다르면 상보.
 const WARM: Branch[] = ['寅', '卯', '辰', '巳', '午', '未']; // 봄(寅卯辰)·여름(巳午未)
@@ -62,7 +62,7 @@ export interface CompatibilityDx {
   // ── daniel 궁합 기준(2026-07-17) — 결정론 재료. 점수 가중치는 compatScore.ts(★검수 슬롯). ──
   seasonComplement: { mineGroup: '봄여름' | '가을겨울'; theirsGroup: '봄여름' | '가을겨울'; complementary: boolean; detail: string }; // 월지 한난 상보
   partnerToMe: { tenGod: '비겁' | '식상' | '재성' | '인성' | '관성'; favorable: boolean; detail: string }; // 상대 일간이 나에게 재/관(내 관점)
-  spousePalace: { afflictions: ('형' | '충' | '파' | '해' | '원진' | '귀문')[]; clean: boolean; detail: string }; // 두 사람 일지(배우자궁) 충돌
+  spousePalace: { afflictions: ('형' | '충' | '파' | '해' | '원진')[]; clean: boolean; detail: string }; // 두 사람 일지(배우자궁) 충돌(귀문은 daniel 관법상 LLM 판정 → 제외)
   missingFill: { chars: Branch[]; detail: string }; // 상대가 채워주는 내 결핍 지지 글자
   note: string;
 }
@@ -138,7 +138,7 @@ export function analyzeCompatibility(me: SajuChart, other: SajuChart): Compatibi
     tenGod: tg, favorable: tg === '재성' || tg === '관성',
     detail: `상대 일간 ${dmB}(${eB})는 내 일간 ${dmA}(${eA}) 기준 ${tg}` + (tg === '재성' || tg === '관성' ? ' — 내 재/관(끌림·성취)' : ''),
   };
-  // 5-c) 배우자궁(두 사람 일지) 형충파해원진귀문 — 없어야 좋음
+  // 5-c) 배우자궁(두 사람 일지) 형충파해원진 — 없어야 좋음(귀문은 daniel 관법상 LLM 판정 → 결정론 제외)
   const dbA = me.pillars['일'].branch, dbB = other.pillars['일'].branch;
   const affl: CompatibilityDx['spousePalace']['afflictions'] = [];
   if (pair(HYEONG, dbA, dbB) || (dbA === dbB && SELF_HYEONG.includes(dbA))) affl.push('형');
@@ -146,7 +146,6 @@ export function analyzeCompatibility(me: SajuChart, other: SajuChart): Compatibi
   if (pair(PA, dbA, dbB)) affl.push('파');
   if (pair(HAE, dbA, dbB)) affl.push('해');
   if (pair(WONJIN, dbA, dbB)) affl.push('원진');
-  if (pair(GWIMUN, dbA, dbB)) affl.push('귀문');
   const spousePalace: CompatibilityDx['spousePalace'] = {
     afflictions: affl, clean: affl.length === 0,
     detail: affl.length ? `일지 ${dbA}·${dbB} → ${affl.join('·')}(배우자궁 충돌)` : `일지 ${dbA}·${dbB} — 충돌 없음(안정)`,
