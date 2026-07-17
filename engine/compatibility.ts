@@ -16,10 +16,33 @@ const STEM_CLASH: [Stem, Stem][] = [['甲', '庚'], ['乙', '辛'], ['丙', '壬
 const SIXHE: [Branch, Branch, Element][] = [['子', '丑', '土'], ['寅', '亥', '木'], ['卯', '戌', '火'], ['辰', '酉', '金'], ['巳', '申', '水'], ['午', '未', '土']];
 const CHONG: [Branch, Branch][] = [['子', '午'], ['丑', '未'], ['寅', '申'], ['卯', '酉'], ['辰', '戌'], ['巳', '亥']];
 
+// ─── 배우자궁(일지) 충돌 판정용 지지 관계 표준 테이블 (daniel 궁합 기준 2026-07-17) ───
+// ⚠️발명 금지: 명리 표준 테이블만. 형/파/해/원진은 통용 판본, 귀문만 문파차라 잠정(노션 질문 대기).
+const HYEONG: [Branch, Branch][] = [['寅', '巳'], ['巳', '申'], ['寅', '申'], ['丑', '戌'], ['戌', '未'], ['丑', '未'], ['子', '卯']]; // 삼형(寅巳申·丑戌未)+상형(子卯)
+const SELF_HYEONG: Branch[] = ['辰', '午', '酉', '亥']; // 자형(같은 글자끼리 — 두 사람 일지가 동일)
+const PA: [Branch, Branch][] = [['子', '酉'], ['午', '卯'], ['申', '巳'], ['寅', '亥'], ['辰', '丑'], ['戌', '未']]; // 六破
+const HAE: [Branch, Branch][] = [['子', '未'], ['丑', '午'], ['寅', '巳'], ['卯', '辰'], ['申', '亥'], ['酉', '戌']]; // 六害
+const WONJIN: [Branch, Branch][] = [['子', '未'], ['丑', '午'], ['寅', '酉'], ['卯', '申'], ['辰', '亥'], ['巳', '戌']]; // 원진(표준)
+// 귀문관살 — ★문파마다 매핑이 갈린다(노션 질문 대기). 잠정 = 널리 쓰이는 판본(원진과 卯申·辰亥·巳戌 겹침).
+const GWIMUN: [Branch, Branch][] = [['子', '酉'], ['丑', '午'], ['寅', '未'], ['卯', '申'], ['辰', '亥'], ['巳', '戌']];
+
+// 계절(월지) 한난(寒暖) 상보 — daniel: "월지 계절이 다른지, 봄여름이면 가을겨울". 봄여름(暖) vs 가을겨울(寒)이 다르면 상보.
+const WARM: Branch[] = ['寅', '卯', '辰', '巳', '午', '未']; // 봄(寅卯辰)·여름(巳午未)
+const seasonGroup = (b: Branch): '봄여름' | '가을겨울' => (WARM.includes(b) ? '봄여름' : '가을겨울');
+
 const SHENG: Record<Element, Element> = { 水: '木', 木: '火', 火: '土', 土: '金', 金: '水' }; // X생Y
 const KE: Record<Element, Element> = { 木: '土', 土: '水', 水: '火', 火: '金', 金: '木' };     // X극Y
 const POS: PillarPos[] = ['년', '월', '일', '시'];
 const ELEMS: Element[] = ['木', '火', '土', '金', '水'];
+
+/** 상대 일간(오행 otherElem)이 내 일간(meElem) 기준 무슨 십신인가. daniel: 재성·관성이면 좋은 궁합(양방향 동일 점수). */
+function tenGodOf(meElem: Element, otherElem: Element): '비겁' | '식상' | '재성' | '인성' | '관성' {
+  if (otherElem === meElem) return '비겁';        // 동일 오행
+  if (SHENG[meElem] === otherElem) return '식상'; // 내가 생하는
+  if (SHENG[otherElem] === meElem) return '인성'; // 나를 생하는
+  if (KE[meElem] === otherElem) return '재성';    // 내가 극하는(財)
+  return '관성';                                   // 나를 극하는(官) = KE[otherElem]===meElem
+}
 
 const pair = <T extends string>(list: [T, T][], a: T, b: T) => list.some(([x, y]) => (x === a && y === b) || (x === b && y === a));
 
@@ -36,6 +59,11 @@ export interface CompatibilityDx {
   usefulGodSupply: { element: Element | null; supply: '강' | '중' | '약' | '없음'; detail: string };
   harmony: string[];  // 조화(합·상생)
   tension: string[];  // 긴장(충·상극)
+  // ── daniel 궁합 기준(2026-07-17) — 결정론 재료. 점수 가중치는 compatScore.ts(★검수 슬롯). ──
+  seasonComplement: { mineGroup: '봄여름' | '가을겨울'; theirsGroup: '봄여름' | '가을겨울'; complementary: boolean; detail: string }; // 월지 한난 상보
+  partnerToMe: { tenGod: '비겁' | '식상' | '재성' | '인성' | '관성'; favorable: boolean; detail: string }; // 상대 일간이 나에게 재/관(내 관점)
+  spousePalace: { afflictions: ('형' | '충' | '파' | '해' | '원진' | '귀문')[]; clean: boolean; detail: string }; // 두 사람 일지(배우자궁) 충돌
+  missingFill: { chars: Branch[]; detail: string }; // 상대가 채워주는 내 결핍 지지 글자
   note: string;
 }
 
@@ -96,22 +124,66 @@ export function analyzeCompatibility(me: SajuChart, other: SajuChart): Compatibi
   if (dmRel.type === '합' || dmRel.type === '상생') harmony.unshift(`일간: ${dmRel.detail}`);
   if (dmRel.type === '충' || dmRel.type === '상극') tension.unshift(`일간: ${dmRel.detail}`);
 
+  // 5) daniel 궁합 기준 4축(결정론 재료)
+  // 5-a) 계절 한난 상보 — 두 사람 월지가 봄여름 vs 가을겨울로 갈리면 상보
+  const myMonth = me.pillars['월'].branch, otMonth = other.pillars['월'].branch;
+  const mg = seasonGroup(myMonth), og = seasonGroup(otMonth);
+  const seasonComplement: CompatibilityDx['seasonComplement'] = {
+    mineGroup: mg, theirsGroup: og, complementary: mg !== og,
+    detail: mg !== og ? `내 월지 ${myMonth}(${mg}) ↔ 상대 ${otMonth}(${og}) — 한난 상보` : `둘 다 ${mg}(${myMonth}·${otMonth}) — 같은 계절군`,
+  };
+  // 5-b) 상대 일간이 나에게 재/관인가(내 관점 — 재관 동일 점수)
+  const tg = tenGodOf(eA, eB);
+  const partnerToMe: CompatibilityDx['partnerToMe'] = {
+    tenGod: tg, favorable: tg === '재성' || tg === '관성',
+    detail: `상대 일간 ${dmB}(${eB})는 내 일간 ${dmA}(${eA}) 기준 ${tg}` + (tg === '재성' || tg === '관성' ? ' — 내 재/관(끌림·성취)' : ''),
+  };
+  // 5-c) 배우자궁(두 사람 일지) 형충파해원진귀문 — 없어야 좋음
+  const dbA = me.pillars['일'].branch, dbB = other.pillars['일'].branch;
+  const affl: CompatibilityDx['spousePalace']['afflictions'] = [];
+  if (pair(HYEONG, dbA, dbB) || (dbA === dbB && SELF_HYEONG.includes(dbA))) affl.push('형');
+  if (pair(CHONG, dbA, dbB)) affl.push('충');
+  if (pair(PA, dbA, dbB)) affl.push('파');
+  if (pair(HAE, dbA, dbB)) affl.push('해');
+  if (pair(WONJIN, dbA, dbB)) affl.push('원진');
+  if (pair(GWIMUN, dbA, dbB)) affl.push('귀문');
+  const spousePalace: CompatibilityDx['spousePalace'] = {
+    afflictions: affl, clean: affl.length === 0,
+    detail: affl.length ? `일지 ${dbA}·${dbB} → ${affl.join('·')}(배우자궁 충돌)` : `일지 ${dbA}·${dbB} — 충돌 없음(안정)`,
+  };
+  // 5-d) 상대가 내 결핍 지지 글자를 채우는가(글자 기준)
+  const myBranches = new Set<Branch>(POS.map((p) => me.pillars[p].branch));
+  const otherBranches = [...new Set<Branch>(POS.map((p) => other.pillars[p].branch))];
+  const fillChars = otherBranches.filter((b) => !myBranches.has(b));
+  const missingFill: CompatibilityDx['missingFill'] = {
+    chars: fillChars,
+    detail: fillChars.length ? `상대가 내게 없는 지지 ${fillChars.join('·')} 보유 — 결핍 보완` : '상대 지지가 모두 내 원국에 이미 있음',
+  };
+
   return {
     dayMasterRelation: dmRel, crossInteractions: cross, usefulGodSupply: supply, harmony, tension,
+    seasonComplement, partnerToMe, spousePalace, missingFill,
     note: '사주 단독 궁합(규칙2) — 자미·MBTI는 독립 평가 후 C2에서 수렴. 깊은 통변은 LLM 패스 + daniel 검수.',
   };
 }
 
-/** 1:N — 나 1 + 상대 N → 각 궁합 + 간이 점수 랭킹(조화−긴장+용신공급) */
+/** 1:N — 나 1 + 상대 N → 각 궁합 + 간이 점수 랭킹. daniel 기준(계절·재관·결핍·일간관계·용신·배우자궁)과 정합. */
 export function analyzeOneToMany(
   me: SajuChart,
   others: { id: string; chart: SajuChart }[],
 ): { id: string; dx: CompatibilityDx; score: number }[] {
-  const supplyW = { 강: 2, 중: 1, 약: 0, 없음: 0 } as const;
+  const supplyW = { 강: 3, 중: 2, 약: 1, 없음: 0 } as const;
+  const dmW = { 충: 4, 상생: 3, 합: 2, 비화: 1, 상극: 0 } as const; // 일간충=발전형(compatScore와 동일 서열)
   return others
     .map((o) => {
       const dx = analyzeCompatibility(me, o.chart);
-      const score = dx.harmony.length - dx.tension.length + supplyW[dx.usefulGodSupply.supply];
+      const score =
+        (dx.seasonComplement.complementary ? 3 : 0) +   // 계절 한난 상보
+        (dx.partnerToMe.favorable ? 4 : 0) +            // 상대→나 재/관
+        Math.min(dx.missingFill.chars.length, 3) +      // 결핍 지지 보완
+        dmW[dx.dayMasterRelation.type] +                // 일간관계
+        supplyW[dx.usefulGodSupply.supply] -            // 용신공급
+        Math.min(dx.spousePalace.afflictions.length, 3) * 2; // 배우자궁 흉
       return { id: o.id, dx, score };
     })
     .sort((a, b) => b.score - a.score);
