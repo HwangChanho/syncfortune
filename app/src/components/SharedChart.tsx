@@ -26,8 +26,9 @@
 //   그대로 재사용한다. 합충·격국·용신 같은 새 명리 판정은 여기서 계산하지 않고, saju/ziwei 객체가
 //   이미 들고 있는 값(십신·간지·궁 이름 등)을 그대로 읽어 보여주기만 한다.
 // ─────────────────────────────────────────────────────────────────────────
-import { useMemo } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { useMemo, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { PressableScale } from './PressableScale';
 import type { PillarPos } from '@spec/chart';
 import type { SharedSaju, SharedZiwei } from '../lib/backend/communityChart'; // 계약(의존 없는 순수 모듈)
 import { colors, radius, space } from '../lib/theme';
@@ -50,6 +51,10 @@ const ZI_LAYOUT: (string | null)[][] = [
 export function SharedChart({ saju, ziwei, showLuck }: { saju: SharedSaju; ziwei?: SharedZiwei | null; showLuck?: boolean }) {
   const { fs } = useFontScale(); // 앱 전역 글자 크기 설정 — 명식 글자까지 일관 적용(daniel 접근성 컨벤션)
   const styles = useMemo(() => makeStyles(fs), [fs]);
+  // ★대운 넘겨보기(daniel 07-17 (b)): luckCycles(전 생애 대운)를 탭하면 세운이 바뀐다. 초기 = 현재 대운(isCurrent).
+  const luckList = saju.luckCycles ?? [];
+  const [luckIdx, setLuckIdx] = useState(() => { const i = luckList.findIndex((lc) => lc.isCurrent); return i >= 0 ? i : 0; });
+  const selLuck = luckList[luckIdx];
 
   // 자미 궁을 지지(branch)로 바로 찾기 위한 맵. ziwei는 any(iztro 산출물)이라 방어적으로 다룬다.
   const palacesByBranch: Record<string, any> = {};
@@ -77,8 +82,44 @@ export function SharedChart({ saju, ziwei, showLuck }: { saju: SharedSaju; ziwei
         })}
       </View>
 
-      {/* 대운·세운 — 작성자가 공개를 선택한 경우만(showLuck). 현재 대운·세운만(월운 이하 생략 — 요약이라 간결하게) */}
-      {showLuck && saju.currentLuck && saju.annual && (
+      {/* 대운·세운 — showLuck 시. luckCycles(전 생애) 있으면 탭 넘겨보기(daniel 07-17 (b)), 없으면(구 게시물) 현재 대운·세운만. */}
+      {showLuck && luckList.length > 0 ? (
+        <View style={styles.luckBrowser}>
+          {/* 대운 = 가로 스크롤·탭 선택(●=현재) */}
+          <Text style={styles.luckHead}>대운 <Text style={styles.luckHint}>· 탭하여 시기 변경</Text></Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.luckScroll}>
+            {luckList.map((lc, i) => (
+              <PressableScale key={lc.startAge} onPress={() => setLuckIdx(i)} style={[styles.luckChip, i === luckIdx && styles.luckChipOn]}>
+                <Text style={[styles.luckChipAge, i === luckIdx && styles.luckChipTxOn]}>{lc.startAge}세{lc.isCurrent ? ' ●' : ''}</Text>
+                <View style={styles.luckGz}>
+                  <GzCell char={lc.stem} kind="stem" size="xs" />
+                  <GzCell char={lc.branch} kind="branch" size="xs" />
+                </View>
+                <Text style={[styles.luckChipTg, i === luckIdx && styles.luckChipTxOn]}>{lc.stemTenGod}</Text>
+              </PressableScale>
+            ))}
+          </ScrollView>
+          {/* 선택 대운의 세운 = 가로 스크롤 */}
+          {selLuck?.annuals && selLuck.annuals.length > 0 && (
+            <>
+              <Text style={styles.luckHead}>세운 <Text style={styles.luckHint}>· {selLuck.startAge}세 대운</Text></Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.luckScroll}>
+                {selLuck.annuals.map((a) => (
+                  <View key={a.year} style={styles.yearCell}>
+                    <Text style={styles.yearNum}>{a.year}</Text>
+                    <View style={styles.luckGz}>
+                      <GzCell char={a.stem} kind="stem" size="xs" />
+                      <GzCell char={a.branch} kind="branch" size="xs" />
+                    </View>
+                    <Text style={styles.yearTg}>{a.stemTenGod}</Text>
+                  </View>
+                ))}
+              </ScrollView>
+            </>
+          )}
+        </View>
+      ) : showLuck && saju.currentLuck && saju.annual ? (
+        /* 폴백(구 게시물 — luckCycles 미저장): 현재 대운·세운만 위아래 */
         <View style={styles.luckRow}>
           <View style={styles.luckCol}>
             <Text style={styles.luckLabel}>대운 · {saju.currentLuck.startAge}세</Text>
@@ -97,7 +138,7 @@ export function SharedChart({ saju, ziwei, showLuck }: { saju: SharedSaju; ziwei
             <Text style={styles.luckSub}>{saju.annual.stemTenGod}</Text>
           </View>
         </View>
-      )}
+      ) : null}
 
       {/* 자미두수 명반(12궁) — ziwei가 있을 때만 표시. 별 밝기·생년사화 색·소성 등 디테일은 생략(요약) */}
       {ziwei && Array.isArray(ziwei.palaces) && (
@@ -150,6 +191,19 @@ const makeStyles = (fs: (n: number) => number) => StyleSheet.create({
   luckLabel: { fontSize: fs(11), fontWeight: '700', color: colors.ju, minWidth: 74 },
   luckGz: { flexDirection: 'row', gap: space(1) },
   luckSub: { fontSize: fs(10), fontWeight: '600', color: colors.inkSoft, marginLeft: 'auto' },
+  // 대운/세운 넘겨보기(daniel 07-17 (b)) — 대운 가로 탭 선택 → 세운 가로.
+  luckBrowser: { marginTop: space(4), gap: space(1) },
+  luckHead: { fontSize: fs(11), fontWeight: '700', color: colors.inkSoft, marginTop: space(1) },
+  luckHint: { fontSize: fs(10), fontWeight: '500', color: colors.inkFaint },
+  luckScroll: { gap: space(1.5), paddingVertical: space(1), paddingRight: space(2) },
+  luckChip: { alignItems: 'center', paddingVertical: space(1.5), paddingHorizontal: space(2.5), borderRadius: radius.sm, backgroundColor: colors.sunk, borderWidth: 1, borderColor: colors.line, gap: 2 },
+  luckChipOn: { backgroundColor: colors.juSoft, borderColor: colors.ju },
+  luckChipAge: { fontSize: fs(9), fontWeight: '700', color: colors.inkFaint },
+  luckChipTg: { fontSize: fs(9), fontWeight: '600', color: colors.inkSoft },
+  luckChipTxOn: { color: colors.ju },
+  yearCell: { alignItems: 'center', paddingVertical: space(1.5), paddingHorizontal: space(2.5), borderRadius: radius.sm, backgroundColor: colors.sunk, gap: 2 },
+  yearNum: { fontSize: fs(9), fontWeight: '700', color: colors.inkFaint },
+  yearTg: { fontSize: fs(9), fontWeight: '600', color: colors.inkSoft },
   sectionLabel: { fontSize: fs(12), fontWeight: '700', color: colors.inkSoft, marginBottom: space(2) },
   ziWrap: { marginTop: space(4) },
   ziGrid: { borderWidth: 1, borderColor: colors.line, borderRadius: radius.sm, overflow: 'hidden' },

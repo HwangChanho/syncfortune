@@ -29,8 +29,11 @@ export type SharedSaju = {
   pillars: SajuChart['pillars'];           // 원국 여덟 글자(지장간·통근 포함 — 날것 보존, 규칙3)
   dayMaster: SajuChart['dayMaster'];       // 일간 = '나'
   interactions: SajuChart['interactions']; // 원국 내 합충형해
-  currentLuck?: Omit<LuckCycle, 'annuals'>; // show_luck=true 일 때만. annuals(세운 10 × 월운 12) 절단
-  annual?: Omit<AnnualPillar, 'months'>;    // show_luck=true 일 때만. months(월운 12) 절단
+  currentLuck?: Omit<LuckCycle, 'annuals'>; // show_luck=true 일 때만. 현재 대운(초기 표시용)
+  annual?: Omit<AnnualPillar, 'months' | 'interactionsWithLuck'>; // show_luck=true 일 때만. 현재 세운(초기 표시용)
+  // ★(b) 여러 시기 대운/세운 넘겨보기(daniel 07-17): show_luck=true 면 전 생애 대운 + 각 대운의 세운 10년.
+  //   ⚠️월운(months)·대운세운 상호작용(interactionsWithLuck)은 계속 제외 — 크기·세밀 시간축 관리(넘겨보기엔 간지·십신·연도면 충분).
+  luckCycles?: (Omit<LuckCycle, 'annuals'> & { annuals?: Omit<AnnualPillar, 'months' | 'interactionsWithLuck'>[] })[];
 };
 export type SharedZiwei = {
   bureau: string;
@@ -51,12 +54,22 @@ export function toSharedSaju(saju: SajuChart, showLuck: boolean): SharedSaju {
     interactions: saju.interactions ?? [],
   };
   if (showLuck && saju.currentLuck) {
-    const { annuals: _drop, ...luck } = saju.currentLuck; // 이 대운의 세운 10년(각각 월운 12) 절단
+    const { annuals: _drop, ...luck } = saju.currentLuck; // 현재 대운(초기 표시). 이 대운의 세운은 luckCycles 에 있음
     out.currentLuck = luck;
   }
   if (showLuck && saju.annual) {
-    const { months: _drop, ...ann } = saju.annual;        // 이 세운의 월운 12 절단
+    const { months: _m, interactionsWithLuck: _i, ...ann } = saju.annual; // 현재 세운(초기 표시)·월운·상호작용 제외
     out.annual = ann;
+  }
+  if (showLuck) {
+    // ★(b) 전 생애 대운 + 각 대운 세운(월운·상호작용 제외). SharedChart 넘겨보기용.
+    out.luckCycles = (saju.luckCycles ?? []).map((lc) => {
+      const { annuals, ...rest } = lc;
+      return {
+        ...rest,
+        annuals: (annuals ?? []).map((a) => { const { months: _m, interactionsWithLuck: _i, ...ann } = a; return ann; }),
+      };
+    });
   }
   return out;
 }
