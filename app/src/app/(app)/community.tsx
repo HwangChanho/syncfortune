@@ -104,7 +104,10 @@ export default function CommunityScreen() {
   }
 
   async function submit() {
-    if (!title.trim() || !body.trim() || posting) return;
+    if (posting) return;
+    // ★제목·내용 미입력 = 조용히 먹통(구 disabled) 대신 '무엇이 없는지' 명확히 안내(daniel 07-17).
+    if (!title.trim()) { setComposeErr(t('community.needTitle', '제목을 입력해 주세요.')); return; }
+    if (!body.trim()) { setComposeErr(t('community.needBody', '내용을 입력해 주세요.')); return; }
     setPosting(true);
     setComposeErr(null); // 재시도 시 이전 에러 지움
     try {
@@ -127,9 +130,15 @@ export default function CommunityScreen() {
       setCompose(false); setTitle(''); setBody(''); setWcat('free'); setAttachId(null); setShowLuck(false);
       await load();
     } catch (e) {
-      const msg = (e as Error).message === 'PROFANITY'
+      const em = (e as Error).message || '';
+      // ★에러 상황별 사용자 친화 메시지 + 원본 병기(원인 진단·daniel 07-17: 에러 알럿 정비).
+      const msg = em === 'PROFANITY'
         ? t('community.profanity', '부적절한 표현이 포함돼 있어요. 수정 후 다시 올려 주세요.')
-        : (e as Error).message;
+        : /세션|session|jwt|auth|rls|row-level/i.test(em)
+        ? t('community.errSession', '로그인이 필요해요. 다시 로그인 후 시도해 주세요.') + `\n(${em})`
+        : /network|fetch|timeout|failed to|offline/i.test(em)
+        ? t('community.errNet', '네트워크 연결을 확인하고 다시 시도해 주세요.')
+        : t('community.errPost', '올리지 못했어요. 잠시 후 다시 시도해 주세요.') + (em ? `\n(${em})` : '');
       setComposeErr(msg);   // 모달 안 인라인(항상 보임)
       Alert.alert('!', msg); // 보조(모달 위에 뜨면)
     } finally { setPosting(false); }
@@ -197,8 +206,9 @@ export default function CommunityScreen() {
               ★paddingTop = insets.top: 다이나믹아일랜드/노치에 헤더 버튼이 가려 안 눌리던 버그 수정(reunion.tsx 패턴). hitSlop 으로 탭 영역 확대. */}
           <View style={[styles.composeHead, { paddingTop: insets.top + space(3) }]}>
             <PressableScale onPress={() => { setCompose(false); setComposeErr(null); }} hitSlop={14}><Text style={styles.composeX}>✕</Text></PressableScale>
-            <PressableScale onPress={submit} disabled={!title.trim() || !body.trim() || posting} hitSlop={14}>
-              <Text style={[styles.composeSubmit, (!title.trim() || !body.trim() || posting) && styles.composeSubmitOff]}>{posting ? '…' : t('community.post', '올리기')}</Text>
+            {/* ★버튼은 posting 때만 비활성 — 제목·내용 없어도 눌러서 안내를 받도록(구: disabled 라 조용히 먹통). */}
+            <PressableScale onPress={submit} disabled={posting} hitSlop={14}>
+              <Text style={[styles.composeSubmit, posting && styles.composeSubmitOff]}>{posting ? '…' : t('community.post', '올리기')}</Text>
             </PressableScale>
             <Text style={[styles.composeTitle, { top: insets.top + space(3) }]}>{t('community.write', '글쓰기')}</Text>
           </View>
@@ -253,6 +263,13 @@ export default function CommunityScreen() {
               )}
             </View>
           </ScrollView>
+          {/* ★등록 중 = 전체 차단 오버레이(daniel 07-17: 로딩 인디케이터로 다른 작업 막기). pointerEvents 기본=터치 흡수. */}
+          {posting && (
+            <View style={styles.postingOverlay}>
+              <ActivityIndicator size="large" color={colors.ju} />
+              <Text style={styles.postingTx}>{t('community.posting', '올리는 중…')}</Text>
+            </View>
+          )}
         </KeyboardAvoidingView>
       </Modal>
     </View>
@@ -305,6 +322,9 @@ const styles = StyleSheet.create({
   // 등록 에러 인라인
   composeErrBox: { backgroundColor: '#3a1a1a', borderRadius: radius.md, borderWidth: 1, borderColor: '#E5484D', padding: space(3) },
   composeErrTx: { ...font.caption, color: '#ff9a9a', lineHeight: 18 },
+  // 등록 중 차단 오버레이(로딩)
+  postingOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.35)', alignItems: 'center', justifyContent: 'center', gap: space(3) },
+  postingTx: { ...font.body, color: colors.white, fontWeight: '700' },
   // 명식 첨부
   attachBox: { borderTopWidth: 1, borderTopColor: colors.line, paddingTop: space(4), gap: space(2.5) },
   attachHead: { ...font.label, color: colors.ink },
