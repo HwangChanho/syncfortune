@@ -15,7 +15,7 @@ import { useAuth, whenAuthCleanupIdle } from '../lib/useAuth'; // whenAuthCleanu
 import { configurePurchases } from '../lib/billing/purchases'; // 인앱결제(RevenueCat) 초기화
 import { refreshPremium } from '../lib/billing/premiumStore'; // 세션 변경(로그인/로그아웃/계정전환) 시 프리미엄 전역 재평가 → 광고 즉시 토글(daniel 2026-06-24)
 import { migrateLocalCreditsOnLogin } from '../lib/billing/migrateCredits'; // 로그인 시 디바이스 구매 이관(H)
-import { preferSelfAsRep, syncChartsFromServer } from '../lib/engine/myChart'; // 대표 명식=본인 + 명식 멀티기기 동기화(포그라운드 복귀 시)
+import { preferSelfAsRep, syncChartsFromServer, subscribeRepChange } from '../lib/engine/myChart'; // 대표 명식=본인 + 명식 멀티기기 동기화(포그라운드 복귀 시) + 대표 변경 구독(테마 반영)
 import { hydrateGenProgress } from '../lib/backend/genProgress'; // 앱 시작 시 진행중/미확인 풀이 복원 → 홈 배너(daniel: 강제종료 생존)
 import { initAds, setAdTestMode } from '../lib/core/ads'; // AdMob 초기화 + 테스트광고 모드(관리자/테스트=실 유닛 서빙 전이라 구글 테스트광고로, daniel)
 import { supabase } from '../lib/supabase'; // 세션 유저 test_mode·is_admin → 테스트광고 게이트
@@ -75,6 +75,8 @@ export default function RootLayout() {
   // 앱 실행 시 대표 명식을 '본인'으로(daniel) — 로컬 명식 기준 즉시(로그인 동기화 후엔 syncChartsFromServer가 한 번 더 보정).
   //   대표명식 확정 후 일간 오행을 테마 강조색 소스로 저장(auto 강조 모드면 다음 로드에 일간 색 반영).
   useEffect(() => { preferSelfAsRep().then(() => syncThemeElement()).catch(() => { syncThemeElement().catch(() => {}); }); }, []);
+  // ★대표명식을 실제로 *바꿨을 때만* 테마 즉시 반영(리로드). 포그라운드 복귀·앱시작(위 77)은 reload 없이 저장만 → 새로고침 방지(daniel 07-18).
+  useEffect(() => subscribeRepChange(() => syncThemeElement(true)), []);
   // ★신규 기능 노출 게이트 로드(세션 변경 시) — 원격 플래그(app_flags)+내 관리자 여부. 속궁합/커뮤니티/위젯 게이트.
   useEffect(() => { loadFeatures().catch(() => {}); }, [session?.user?.id]);
   // 앱 사용 세션 시간 추적(daniel: 관리자 계정별 평균 사용시간) — 포그라운드 구간 길이를 app_session 으로 기록.

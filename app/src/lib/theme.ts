@@ -143,19 +143,20 @@ export function setThemeAccent(mode: AccentMode) {
   if (__DEV__) { try { DevSettings.reload(); } catch { /* noop */ } }
   else { try { Updates?.reloadAsync?.().catch(() => {}); } catch { /* 재시작 후 적용 */ } }
 }
-/** 대표명식 일간 오행 저장(themeElement.ts가 rep 변경/시작 시 호출). auto 모드면 색 반영. */
-export function storeChartElement(el: string) {
+/** 대표명식 일간 오행 저장(themeElement.ts가 rep 변경/시작 시 호출). reload=true(대표명식 *변경*)일 때만 auto 모드 즉시 리로드. */
+export function storeChartElement(el: string, reload = false) {
   if (!ELS.includes(el)) return;
   let prev = '';
   try { prev = ((SecureStore as any).getItem?.(ELEMENT_KEY) as string) || ''; } catch { /* noop */ }
   if (prev === el) return;
   try { (SecureStore as any).setItem?.(ELEMENT_KEY, el); } catch { /* noop */ }
   SecureStore.setItemAsync(ELEMENT_KEY, el).catch(() => {});
-  // ★auto 모드면 대표명식 오행이 바뀔 때마다 *즉시* 반영(1회 리로드). 여기 도달 = 오행이 실제로 변경됨(위 prev===el 은 return).
-  //   daniel 2026-07-17: 기존엔 첫 결정(!prev)만 리로드해서, 대표명식을 바꿔도 테마가 안 따라왔다("대표명식 기준으로 잡혀야지").
-  //   → 오행 변경 시 auto면 리로드. 리로드 후 재호출은 prev===el 이라 루프 없음. 수동 오행선택(ACCENT_KEY≠auto)은 존중(리로드 안 함).
-  //   activeScheme/colors 는 모듈 로드 시점 결정이라, 이 리로드가 있어야 새 일간 색이 바로 보인다(daniel 2026-07-15).
-  {
+  // ★리로드는 reload=true(대표명식을 실제로 *변경*했을 때)만. 앱 시작·포그라운드 복귀(reload=false)는 저장만 한다.
+  //   daniel 2026-07-18: 포그라운드 복귀마다 _layout 이 syncThemeElement 를 불러 여기 도달하는데, SecureStore 동기
+  //   getItem 이 실패하면 prev='' 가 되어 prev!==el 로 오판 → **매 복귀 리로드**("백그라운드 갔다오면 새로고침")됐다.
+  //   colors 는 모듈 로드 시 ELEMENT_KEY 를 읽으므로 저장만 해두면 *다음 실행*엔 자동 반영(리로드 불필요). 즉시 반영이
+  //   필요한 대표명식 변경만 reload=true 로 리로드. 수동 오행선택(ACCENT_KEY≠auto)은 존중(리로드 안 함).
+  if (reload) {
     let mode = 'auto';
     try { mode = ((SecureStore as any).getItem?.(ACCENT_KEY) as string) || 'auto'; } catch { /* noop */ }
     if (mode === 'auto') {

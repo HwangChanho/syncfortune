@@ -10,12 +10,14 @@ import { computeChart } from '../engine/engine';
 import { stemElement } from '../engine/ohaeng';
 import { storeChartElement } from '../theme';
 
-/** 대표명식 일간 오행을 산출해 theme 강조색 소스로 저장. 실패/명식없음=무시. */
-export async function syncThemeElement(): Promise<void> {
+/** 대표명식 일간 오행을 산출해 theme 강조색 소스로 저장.
+ *  @param reload true=대표명식을 실제로 *변경*했을 때만(즉시 리로드로 색 반영). 앱시작·포그라운드 복귀는 false(저장만·리로드 없음).
+ *  실패/명식없음=무시. */
+export async function syncThemeElement(reload = false): Promise<void> {
   try {
     const rep = await loadRepChart();
     if (!rep?.input) return;
     const stem = computeChart(rep.input).saju?.dayMaster?.stem;
-    if (stem) storeChartElement(stemElement(stem));
+    if (stem) storeChartElement(stemElement(stem), reload);
   } catch { /* 무시(테마는 다음 로드에 반영) */ }
 }
