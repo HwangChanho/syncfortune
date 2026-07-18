@@ -133,7 +133,8 @@ export function ChartRegisterScreen({ onSubmit, defaultRelation, submitLabel, sh
     const id = setTimeout(() => onAutoSave(buildInput()), 600);
     return () => clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [label, birthDate, sijinIdx, calendar, isLeap, sex, birthPlace, birthPlaceLon, relation, makeRep, job, relationship, concern, note, autoSave]);
+  }, [label, birthDate, sijinIdx, exactStr, calendar, isLeap, sex, birthPlace, birthPlaceLon, birthPlaceLat, relation, makeRep, job, relationship, concern, note, autoSave]);
+  // ★exactStr(정확시각·오전/오후)·birthPlaceLat 를 deps 에 포함 — 빠져 있어서 시각·위도 수정이 자동저장 안 됐다(daniel 07-18 "확인 안 눌러도 반영").
 
   return (
     <>
