@@ -61,12 +61,16 @@ function MonthGrid({ year, month, byDate, goodT, bestT, sel, onSel, todayStr }: 
           const best = !!d && d.score >= bestT;
           const good = !!d && d.score >= goodT;
           const past = date < todayStr;
+          const isToday = date === todayStr; // ★오늘 표시(daniel 07-18) — 2년 달력이라 오늘이 어디인지 안 보이면 기준점이 없다
           const on = sel === date;
           return (
             <PressableScale key={i} style={styles.cell} onPress={() => good && onSel(date)} disabled={!good}>
               <View style={[styles.dot, best && styles.dotBest, good && !best && styles.dotGood, on && styles.dotSel]}>
-                <Text style={[styles.dayNum, past && styles.dayPast, good && styles.dayGood]}>{day}</Text>
+                <Text style={[styles.dayNum, past && styles.dayPast, good && styles.dayGood, isToday && styles.dayToday]}>{day}</Text>
               </View>
+              {/* ★오늘 = 칸 아래 골드 점(iOS 캘린더 관례). 링으로 하면 '아주 좋음'(골드 채움)과 겹쳐 안 보이고,
+                  선택 테두리와도 헷갈린다 → 점은 dot 바깥이라 어떤 상태와도 충돌하지 않는다. */}
+              {isToday && <View style={styles.todayMark} />}
             </PressableScale>
           );
         })}
@@ -212,6 +216,8 @@ const styles = StyleSheet.create({
   dayNum: { fontSize: 14, fontWeight: '600', color: colors.inkSoft },
   dayPast: { color: colors.inkFaint, opacity: 0.5 },             // 과거 = 흐림
   dayGood: { color: colors.ink, fontWeight: '800' },             // 좋은 날 = 진하게
+  dayToday: { fontWeight: '900' },                               // 오늘 = 더 굵게(색은 안 바꿈 — 골드 배경 위 대비 유지)
+  todayMark: { position: 'absolute', bottom: 1, width: 5, height: 5, borderRadius: 2.5, backgroundColor: colors.ju }, // 오늘 표시(daniel 07-18)
   // 선택 상세
   detailCard: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.ju, padding: space(4.5), marginBottom: space(3), ...shadow.card },
   dayHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: space(2) },
