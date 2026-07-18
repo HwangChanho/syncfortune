@@ -4,7 +4,8 @@
 //   신고 → 서버가 report_count 증가, 임계 5 자동 숨김. 차단 → 이후 그 유저 콘텐츠 RLS 제외.
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useState, useCallback } from 'react';
-import { View, Text, ScrollView, StyleSheet, TextInput, ActivityIndicator, Keyboard } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TextInput, ActivityIndicator, Keyboard, Platform } from 'react-native';
+import { getNavBarHeight } from '../../components/BottomNav'; // 전역 네비바 높이 — 키보드 위 입력바 정확 위치용(coach.tsx 와 동일 패턴)
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { PressableScale } from '../../components/PressableScale';
@@ -28,6 +29,18 @@ export default function CommunityPostScreen() {
   const [loading, setLoading] = useState(true);
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
+  const [kbH, setKbH] = useState(0); // 키보드 높이(px) — 댓글 입력바를 키보드 바로 위로 올림(전역 네비바 보정)
+
+  // 키보드 높이 추적(daniel 07-18 "댓글 입력할때 키보드가 입력창을 가려").
+  //   원인: 입력바가 flex 하단에 있을 뿐이라 키보드가 올라오면 그대로 덮인다. 전역 BottomNav 가 이 화면 밖(_layout)에
+  //   있어 표준 KeyboardAvoidingView 로는 네비바 높이만큼 어긋나므로, coach.tsx 와 동일하게 리스너로 직접 올린다.
+  useEffect(() => {
+    const showEvt = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvt = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const s = Keyboard.addListener(showEvt, (e) => setKbH(e.endCoordinates?.height ?? 0));
+    const h = Keyboard.addListener(hideEvt, () => setKbH(0));
+    return () => { s.remove(); h.remove(); };
+  }, []);
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -101,9 +114,12 @@ export default function CommunityPostScreen() {
   if (!post) return <View style={styles.center}><Text style={styles.gone}>{t('community.gone', '삭제되었거나 볼 수 없는 글이에요.')}</Text></View>;
 
   const mine = post.author_id === myId;
+  // 입력바 lift = 키보드 높이 − 전역 네비바 높이(네비바가 입력바 아래에 있으니 그만큼만 올리면 키보드 바로 위·틈 없음).
+  const lift = kbH > 0 ? Math.max(0, kbH - getNavBarHeight()) : 0;
   return (
     <View style={styles.bg}>
-      <ScrollView contentContainerStyle={styles.wrap} keyboardShouldPersistTaps="handled">
+      {/* 입력바가 absolute 라 스크롤 본문이 그 아래로 숨지 않도록 바 높이(≈84)+lift 만큼 하단 여백(coach.tsx 와 동일). */}
+      <ScrollView contentContainerStyle={[styles.wrap, { paddingBottom: 84 + lift }]} keyboardShouldPersistTaps="handled">
         {/* 글 */}
         <Text style={styles.cat}>{t(`community.cat.${post.category}`, post.category)}</Text>
         <Text style={styles.title}>{post.title}</Text>
@@ -150,8 +166,8 @@ export default function CommunityPostScreen() {
         {comments.length === 0 && <Text style={styles.cEmpty}>{t('community.noComments', '첫 댓글을 남겨보세요.')}</Text>}
       </ScrollView>
 
-      {/* 댓글 입력 */}
-      <View style={styles.inputBar}>
+      {/* 댓글 입력 — 키보드가 뜨면 그 높이만큼 위로(bottom: lift). 키보드 없으면 lift=0 = 화면 하단 고정. */}
+      <View style={[styles.inputBar, { bottom: lift }]}>
         <TextInput style={styles.input} value={input} onChangeText={setInput} placeholder={t('community.commentPh', '댓글 입력 (예의를 지켜주세요)')} placeholderTextColor={colors.inkFaint} maxLength={1000} multiline />
         <PressableScale style={[styles.send, (!input.trim() || busy) && styles.sendOff]} onPress={onComment} disabled={!input.trim() || busy}>
           <Text style={styles.sendTx}>{t('community.send', '등록')}</Text>
@@ -184,7 +200,9 @@ const styles = StyleSheet.create({
   cActions: { flexDirection: 'row', gap: space(4), marginTop: space(2.5) },
   cAct: { ...font.caption, color: colors.inkFaint, fontSize: 12, fontWeight: '700' },
   cEmpty: { ...font.caption, color: colors.inkFaint, textAlign: 'center', marginTop: space(4) },
-  inputBar: { flexDirection: 'row', alignItems: 'flex-end', gap: space(2.5), paddingHorizontal: space(5), paddingTop: space(3), paddingBottom: space(8), backgroundColor: colors.card, borderTopWidth: 1, borderTopColor: colors.juLine },
+  // ★absolute 고정(daniel 07-18 키보드 가림 수정) — flex 하단이면 키보드가 그대로 덮는다.
+  //   bottom 은 렌더에서 lift(키보드 높이−네비바)로 덮어써 키보드 바로 위에 붙인다.
+  inputBar: { position: 'absolute', left: 0, right: 0, bottom: 0, flexDirection: 'row', alignItems: 'flex-end', gap: space(2.5), paddingHorizontal: space(5), paddingTop: space(3), paddingBottom: space(8), backgroundColor: colors.card, borderTopWidth: 1, borderTopColor: colors.juLine },
   input: { flex: 1, maxHeight: 100, backgroundColor: colors.sunk, borderRadius: radius.md, borderWidth: 1, borderColor: colors.line, paddingHorizontal: space(3.5), paddingVertical: space(2.5), color: colors.ink },
   send: { backgroundColor: colors.ju, borderRadius: radius.md, paddingHorizontal: space(4), paddingVertical: space(3) },
   sendOff: { opacity: 0.4 },
