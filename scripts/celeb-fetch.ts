@@ -86,6 +86,45 @@ async function runQuery(query: string): Promise<any[]> {
 }
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+// ── supabase 인제스트(--ingest) ──────────────────────────────────────────────
+//   ★연도 단위로 수집하는 즉시 upsert 한다 — 전 구간이 6시간+ 라, 중간에 끊겨도 그때까지 넣은 건 남는다.
+//   재실행 시 같은 Q-id 는 merge-duplicates 로 갱신되므로 중복 걱정 없이 이어서 돌리면 된다.
+//   실행: npx tsx --env-file-if-exists=.env scripts/celeb-fetch.ts --ingest
+const SB_URL = process.env.SUPABASE_URL ?? '';
+const SB_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? '';
+
+/** CelebRow[] → celebrities 테이블 컬럼명으로 변환(snake_case). */
+const toDbRow = (r: CelebRow) => ({
+  id: r.id, name_ko: r.nameKo, name_en: r.nameEn, country_code: r.countryCode, role: r.role,
+  birth_date: r.birth, sex: r.sex, fame: r.fame,
+  day_stem: r.dayStem, day_branch: r.dayBranch, year_stem: r.yearStem, year_branch: r.yearBranch,
+  month_stem: r.monthStem, month_branch: r.monthBranch, elem_dist: r.elemDist, tengod_dist: r.tenGodDist,
+});
+
+/** 500행씩 upsert. 실패해도 던지지 않고 개수만 돌려준다(장시간 실행이 한 배치로 죽지 않게). */
+async function upsert(rows: CelebRow[]): Promise<number> {
+  if (!SB_URL || !SB_KEY) throw new Error('SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY 없음 — --env-file-if-exists=.env 로 실행하세요');
+  let ok = 0;
+  for (let i = 0; i < rows.length; i += 500) {
+    const chunk = rows.slice(i, i + 500).map(toDbRow);
+    try {
+      const res = await fetch(`${SB_URL}/rest/v1/celebrities`, {
+        method: 'POST',
+        headers: {
+          apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`,
+          'Content-Type': 'application/json', Prefer: 'resolution=merge-duplicates,return=minimal',
+        },
+        body: JSON.stringify(chunk),
+      });
+      if (res.ok) ok += chunk.length;
+      else console.error(`  ⚠️ upsert ${res.status}: ${(await res.text()).slice(0, 160)}`);
+    } catch (e) {
+      console.error(`  ⚠️ upsert 예외: ${(e as Error).message}`);
+    }
+  }
+  return ok;
+}
 const NO_TIME: PillarPos[] = ['년', '월', '일'];   // 시주 제외(출생 시각 미상)
 
 /** 위키데이터 바인딩 1건 → 사주 파생값까지 채운 행. 계산 불가·필수값 결측이면 null. */
@@ -172,11 +211,20 @@ async function main() {
     await sleep(300);   // 외부 서비스 예절(초당 3~4건 이하)
   };
 
+  const ingest = process.argv.includes('--ingest');
+  let pushed = 0;
   for (const occ of OCCUPATIONS) {
     for (let year = from; year <= to; year++) {
+      const before = seen.size;
       await collect(`${occ.role} ${year} 전역`, sparql(occ.qid, year, limit, GLOBAL_MIN), occ.role);
       for (const cc of COUNTRIES) {
         await collect(`${occ.role} ${year} ${cc}`, sparql(occ.qid, year, limit, COUNTRY_MIN, cc), occ.role);
+      }
+      // ★연도 하나가 끝날 때마다 그 증분만 즉시 저장(장시간 실행 중단 대비).
+      if (ingest && seen.size > before) {
+        const fresh = [...seen.values()].slice(before);
+        pushed += await upsert(fresh);
+        console.log(`  ↑ ${occ.role} ${year} 저장 — 누적 ${pushed}명 DB 반영`);
       }
     }
   }
