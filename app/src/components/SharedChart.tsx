@@ -51,10 +51,17 @@ const ZI_LAYOUT: (string | null)[][] = [
 export function SharedChart({ saju, ziwei, showLuck }: { saju: SharedSaju; ziwei?: SharedZiwei | null; showLuck?: boolean }) {
   const { fs } = useFontScale(); // 앱 전역 글자 크기 설정 — 명식 글자까지 일관 적용(daniel 접근성 컨벤션)
   const styles = useMemo(() => makeStyles(fs), [fs]);
-  // ★대운 넘겨보기(daniel 07-17 (b)): luckCycles(전 생애 대운)를 탭하면 세운이 바뀐다. 초기 = 현재 대운(isCurrent).
+  // ★대운·세운 넘겨보기(daniel 07-17 (b)·07-18 재설계): 큰 간지 칸으로 대운·세운 좌우 배치. 대운 칸 탭=다음 대운, 세운 칸 탭=다음 세운(순환).
   const luckList = saju.luckCycles ?? [];
+  const thisYear = new Date().getFullYear();
+  // 그 대운의 '현재 연도' 세운 인덱스(없으면 0) — 초기·대운 변경 시 현재 세운부터 보이게
+  const seunInitFor = (li: number) => { const anns = luckList[li]?.annuals ?? []; const i = anns.findIndex((a) => a.year === thisYear); return i >= 0 ? i : 0; };
   const [luckIdx, setLuckIdx] = useState(() => { const i = luckList.findIndex((lc) => lc.isCurrent); return i >= 0 ? i : 0; });
+  const [seunIdx, setSeunIdx] = useState(() => { const i = luckList.findIndex((lc) => lc.isCurrent); return seunInitFor(i >= 0 ? i : 0); });
   const selLuck = luckList[luckIdx];
+  const selAnnual = selLuck?.annuals?.[seunIdx];
+  const pickNextLuck = () => { const ni = (luckIdx + 1) % luckList.length; setLuckIdx(ni); setSeunIdx(seunInitFor(ni)); }; // 다음 대운 + 그 대운 현재 세운
+  const pickNextSeun = () => { const n = selLuck?.annuals?.length ?? 0; if (n > 0) setSeunIdx((seunIdx + 1) % n); };
 
   // 자미 궁을 지지(branch)로 바로 찾기 위한 맵. ziwei는 any(iztro 산출물)이라 방어적으로 다룬다.
   const palacesByBranch: Record<string, any> = {};
@@ -82,41 +89,32 @@ export function SharedChart({ saju, ziwei, showLuck }: { saju: SharedSaju; ziwei
         })}
       </View>
 
-      {/* 대운·세운 — showLuck 시. luckCycles(전 생애) 있으면 탭 넘겨보기(daniel 07-17 (b)), 없으면(구 게시물) 현재 대운·세운만. */}
-      {showLuck && luckList.length > 0 ? (
+      {/* 대운·세운 — showLuck 시. 큰 간지 칸 2개 좌우(daniel 07-18): 대운 칸 탭=다음 대운, 세운 칸 탭=다음 세운(순환). 구 게시물은 아래 폴백. */}
+      {showLuck && luckList.length > 0 && selLuck ? (
         <View style={styles.luckBrowser}>
-          {/* 대운 = 가로 스크롤·탭 선택(●=현재) */}
-          <Text style={styles.luckHead}>대운 <Text style={styles.luckHint}>· 탭하여 시기 변경</Text></Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.luckScroll}>
-            {luckList.map((lc, i) => (
-              <PressableScale key={lc.startAge} onPress={() => setLuckIdx(i)} style={[styles.luckChip, i === luckIdx && styles.luckChipOn]}>
-                <Text style={[styles.luckChipAge, i === luckIdx && styles.luckChipTxOn]}>{lc.startAge}세{lc.isCurrent ? ' ●' : ''}</Text>
-                <View style={styles.luckGz}>
-                  <GzCell char={lc.stem} kind="stem" size="xs" />
-                  <GzCell char={lc.branch} kind="branch" size="xs" />
+          <Text style={styles.luckHint}>대운·세운을 탭하면 다른 시기로 넘겨볼 수 있어요</Text>
+          <View style={styles.luckPairRow}>
+            {/* 대운 칸 — 천간(위)·지지(아래) 세로. 탭하면 다음 대운(현재 세운으로 이동) */}
+            <PressableScale style={styles.luckBigCell} onPress={pickNextLuck}>
+              <Text style={styles.luckBigLabel}>대운 · {selLuck.startAge}세{selLuck.isCurrent ? ' ●' : ''}</Text>
+              <View style={styles.luckGzBig}>
+                <GzCell char={selLuck.stem} kind="stem" size="sm" />
+                <GzCell char={selLuck.branch} kind="branch" size="sm" />
+              </View>
+              <Text style={styles.luckBigTg}>{selLuck.stemTenGod}</Text>
+            </PressableScale>
+            {/* 세운 칸 — 천간·지지 세로. 탭하면 다음 세운(그 대운 안에서 순환) */}
+            {selAnnual ? (
+              <PressableScale style={styles.luckBigCell} onPress={pickNextSeun}>
+                <Text style={styles.luckBigLabel}>세운 · {selAnnual.year}</Text>
+                <View style={styles.luckGzBig}>
+                  <GzCell char={selAnnual.stem} kind="stem" size="sm" />
+                  <GzCell char={selAnnual.branch} kind="branch" size="sm" />
                 </View>
-                <Text style={[styles.luckChipTg, i === luckIdx && styles.luckChipTxOn]}>{lc.stemTenGod}</Text>
+                <Text style={styles.luckBigTg}>{selAnnual.stemTenGod}</Text>
               </PressableScale>
-            ))}
-          </ScrollView>
-          {/* 선택 대운의 세운 = 가로 스크롤 */}
-          {selLuck?.annuals && selLuck.annuals.length > 0 && (
-            <>
-              <Text style={styles.luckHead}>세운 <Text style={styles.luckHint}>· {selLuck.startAge}세 대운</Text></Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.luckScroll}>
-                {selLuck.annuals.map((a) => (
-                  <View key={a.year} style={styles.yearCell}>
-                    <Text style={styles.yearNum}>{a.year}</Text>
-                    <View style={styles.luckGz}>
-                      <GzCell char={a.stem} kind="stem" size="xs" />
-                      <GzCell char={a.branch} kind="branch" size="xs" />
-                    </View>
-                    <Text style={styles.yearTg}>{a.stemTenGod}</Text>
-                  </View>
-                ))}
-              </ScrollView>
-            </>
-          )}
+            ) : <View style={styles.luckBigCell} />}
+          </View>
         </View>
       ) : showLuck && saju.currentLuck && saju.annual ? (
         /* 폴백(구 게시물 — luckCycles 미저장): 현재 대운·세운만 위아래 */
@@ -193,6 +191,12 @@ const makeStyles = (fs: (n: number) => number) => StyleSheet.create({
   luckSub: { fontSize: fs(10), fontWeight: '600', color: colors.inkSoft, marginLeft: 'auto' },
   // 대운/세운 넘겨보기(daniel 07-17 (b)) — 대운 가로 탭 선택 → 세운 가로.
   luckBrowser: { marginTop: space(4), gap: space(1) },
+  // 대운·세운 큰 간지 칸 좌우(daniel 07-18) — 각 칸은 천간(위)·지지(아래) 세로
+  luckPairRow: { flexDirection: 'row', gap: space(2), marginTop: space(1.5) },
+  luckBigCell: { flex: 1, alignItems: 'center', gap: space(1), paddingVertical: space(3), borderRadius: radius.sm, backgroundColor: colors.sunk, borderWidth: 1, borderColor: colors.line },
+  luckBigLabel: { fontSize: fs(10), fontWeight: '700', color: colors.inkSoft },
+  luckGzBig: { flexDirection: 'column', gap: space(0.5), alignItems: 'center' },
+  luckBigTg: { fontSize: fs(10), fontWeight: '600', color: colors.inkFaint },
   luckHead: { fontSize: fs(11), fontWeight: '700', color: colors.inkSoft, marginTop: space(1) },
   luckHint: { fontSize: fs(10), fontWeight: '500', color: colors.inkFaint },
   luckScroll: { gap: space(1.5), paddingVertical: space(1), paddingRight: space(2) },
