@@ -11,7 +11,7 @@
 //   ⚠️ Edge invoke=프로덕션(개발 미배포=호출 실패=비용0·절대0). charts insert/readings select 는 직접 호출이라 개발에서도 동작.
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useMemo, useEffect, useRef, type ReactNode } from 'react';
-import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator, Modal, TextInput, Keyboard, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator, Modal, TextInput, Keyboard, KeyboardAvoidingView, Platform, AppState } from 'react-native';
 import { PressableScale } from '../components/PressableScale';
 import { ExpiryNote } from '../components/ExpiryNote'; // 보유 만료일 공통(프리미엄 가드 한 곳)
 import { TTSButton } from '../components/TTSButton'; // daniel: 풀이 음성 읽기(온디바이스 TTS·무료)
@@ -409,6 +409,23 @@ export function ReadingScreen({
     })) { autoRan.current = true; void autoGenWithChartConfirm({ creditKind: kind === 'ziwei' ? 'ziwei' : 'reading', onConfirm: () => runAll() }); } // 명식 2개+ 면 '어느 명식?' 먼저(daniel 07-13)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isPremium, isRep, cacheLoaded, readings, cats, progress, session, chartId, readingsChartId]);
+
+  // ★백그라운드 복귀 시 미완 생성 이어가기(daniel 2026-07-18) — iOS 는 백그라운드에서 생성 루프(fetch)를 멈춰,
+  //   progress 가 유실되고 autoRan=true 라 자물쇠(로딩)가 사라지고 '재생성' 버튼만 남았다. 자격(지정 프리미엄/언락)이
+  //   있고 미완이면 복귀 시 이어서 runAll — genLock(runAll 앞단·150초 stale)이 이중생성을 막고, 이미 결제/프리미엄이라
+  //   추가 과금은 없다. 미결제(자물쇠 미해제)면 자동재개하지 않는다(entitled 조건).
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (s) => {
+      if (s !== 'active' || !savedChart || !cacheLoaded || progress) return;
+      const hasMissing = cats.some((cat) => !readings[cat.key]);
+      if (hasMissing && (isPremiumForChart(savedChart.id) || unlocked)) {
+        autoRan.current = false;    // 1회 가드 해제(복귀 = 이어갈 기회)
+        void runAll(savedChart.id); // 이어서 생성(genLock 이 중복 차단)
+      }
+    });
+    return () => sub.remove();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [savedChart, cacheLoaded, progress, cats, readings, unlocked]);
 
   // 미리보기 자동 생성 — 미프리미엄·미완성 시 '첫 분야 1개'만 맛보기(나머지는 showStart 로 unlock).
   //   이미 맛보기/전체 캐시가 있으면 skip(멱등). 오프라인·미로그인 보류.
