@@ -95,9 +95,7 @@ const SECTIONS: Section[] = [
     // daniel(2026-06-24): 신년운세 = 시즌 콘텐츠라 리스트 제일 앞.
     { key: 'newyear', labelKey: 'menu.newyear', descKey: 'menu.newyearTileDesc', image: require('../../../assets/icons/newyear.jpg'), route: '/newyear', ready: true, content: true, creditKey: 'newyear' },
     { key: 'love', labelKey: 'menu.love', descKey: 'menu.loveDesc', image: require('../../../assets/icons/love.jpg'), route: '/love', ready: true, content: true, creditKey: 'love' },
-    // 신규(daniel 2026-07-14): 속궁합(성적 궁합·17+·온디바이스 무료). ★원격 플래그(features.sokgunghap)로 게이트 — 관리자만 노출(재제출 안전판),
-    //   심사 통과 후 공개. love.jpg 아이콘 재사용(전용 이미지 추후). 렌더 시 useFeatureOn('sokgunghap')로 필터.
-    { key: 'sokgunghap', labelKey: 'menu.sokgunghap', descKey: 'menu.sokgunghapDesc', image: require('../../../assets/icons/love.jpg'), route: '/sokgunghap', ready: true, content: true },
+    // ※속궁합(sokgunghap)은 결정론(온디바이스·API 0)이라 무료 → '가볍게 보기'(light) 섹션으로 이동(daniel 07-18). 원격 플래그 게이트는 유지.
     // 신규(daniel 2026-07-05): 재회·짝사랑·취업 유료 깊은 풀이 = '가장 많이 찾는'에 가격 노출. 무료 '질문형' 진입은
     //   '가볍게 보기' 섹션(reunionAsk/crushAsk/jobAsk)에서 결정론 미리보기 → 이 유료로 유도(daniel 모델).
     { key: 'reunion', labelKey: 'menu.reunion', descKey: 'menu.reunionDesc', image: require('../../../assets/icons/reunion.jpg'), route: '/reunion', ready: true, content: true, creditKey: 'reunion' },
@@ -128,6 +126,9 @@ const SECTIONS: Section[] = [
   { key: 'light', titleKey: 'menu.secLight', descKey: 'menu.secLightDesc', items: [
     // 세계 인물 매칭 — 무료·결정론(온디바이스 사주 유사도·API 0). daniel 07-18: 유료 배지(creditKey) 제거·가볍게 보기로 이동.
     { key: 'celeb', labelKey: 'menu.celeb', descKey: 'menu.celebDesc', image: require('../../../assets/icons/celeb.jpg'), route: '/celeb', ready: true, content: true },
+    // 속궁합(성적 궁합·17+·온디바이스 결정론 무료). daniel 07-18: special→light 이동(결정론이라 무료). ★원격 플래그(features.sokgunghap)로 게이트 —
+    //   관리자만 노출(재제출 안전판), 심사 통과 후 공개. 렌더 시 useFeatureOn('sokgunghap')로 필터(아래 sokOn). love.jpg 아이콘 재사용.
+    { key: 'sokgunghap', labelKey: 'menu.sokgunghap', descKey: 'menu.sokgunghapDesc', image: require('../../../assets/icons/love.jpg'), route: '/sokgunghap', ready: true, content: true },
     // 신규(daniel 2026-07-13·4.3 자기분석): 나 분석 종합 + 관계 패턴 — 무료 온디바이스(사주 엔진). '자기분석 도구' 정체성.
     { key: 'selfAnalysis', labelKey: 'menu.selfAnalysis', descKey: 'menu.selfAnalysisDesc', image: require('../../../assets/icons/persona.jpg'), route: '/selfanalysis', ready: true, content: true },
     { key: 'relationPattern', labelKey: 'menu.relationPattern', descKey: 'menu.relationPatternDesc', image: require('../../../assets/icons/compat.jpg'), route: '/relationpattern', ready: true, content: true },
