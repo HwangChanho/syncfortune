@@ -121,13 +121,13 @@ const SECTIONS: Section[] = [
     { key: 'career', labelKey: 'menu.career', descKey: 'menu.careerDesc', image: require('../../../assets/icons/career.jpg'), route: '/career', ready: true, content: true, creditKey: 'career' },
     // 신규(daniel 2026-07-13): 나에게 어울리는 직업(직업 적성 딥리포트 EEL — career 사업가vs직장인과 별개). 나에 대해 알기 섹션.
     { key: 'jobfit', labelKey: 'menu.jobfit', descKey: 'menu.jobfitDesc', image: require('../../../assets/icons/jobfit.jpg'), route: '/jobfit', ready: true, content: true, creditKey: 'jobfit' },
-    // daniel #B(2026-06-24): 세계를 움직이는 사람들 — 유명인 사주 ↔ 나 매칭(재미·추정, 투자/정치 단정 금지). 유료(1회로 전 인물).
-    { key: 'celeb', labelKey: 'menu.celeb', descKey: 'menu.celebDesc', image: require('../../../assets/icons/celeb.jpg'), route: '/celeb', ready: true, content: true, creditKey: 'celeb' },
     // daniel #18(2026-06-24): 맞춤 개운법(원국+지금 운 → 구체 처방·살풀이). 부적/만다라 이미지.
     { key: 'gaeun', labelKey: 'menu.gaeun', descKey: 'menu.gaeunDesc', image: require('../../../assets/icons/gaeun.jpg'), route: '/gaeun', ready: true, content: true, creditKey: 'gaeun' },
   ] },
   // 가볍게 = 무료·온디바이스 재미(펫·성격유형·택일·행운·띠별자리·이름풀이·꿈해몽). API 0(daniel: 스페셜 아래 무료 따로).
   { key: 'light', titleKey: 'menu.secLight', descKey: 'menu.secLightDesc', items: [
+    // 세계 인물 매칭 — 무료·결정론(온디바이스 사주 유사도·API 0). daniel 07-18: 유료 배지(creditKey) 제거·가볍게 보기로 이동.
+    { key: 'celeb', labelKey: 'menu.celeb', descKey: 'menu.celebDesc', image: require('../../../assets/icons/celeb.jpg'), route: '/celeb', ready: true, content: true },
     // 신규(daniel 2026-07-13·4.3 자기분석): 나 분석 종합 + 관계 패턴 — 무료 온디바이스(사주 엔진). '자기분석 도구' 정체성.
     { key: 'selfAnalysis', labelKey: 'menu.selfAnalysis', descKey: 'menu.selfAnalysisDesc', image: require('../../../assets/icons/persona.jpg'), route: '/selfanalysis', ready: true, content: true },
     { key: 'relationPattern', labelKey: 'menu.relationPattern', descKey: 'menu.relationPatternDesc', image: require('../../../assets/icons/compat.jpg'), route: '/relationpattern', ready: true, content: true },
