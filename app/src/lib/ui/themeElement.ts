@@ -5,7 +5,7 @@
 //   _layout 시작 + 대표명식 변경 시 호출. auto 강조 모드일 때 다음 앱 로드에 일간 색이 반영된다.
 //   (theme.ts 는 모듈 로드 시점 결정이라 실시간 아님 — 다음 실행/재시작에 적용. 설정에서 즉시 변경도 가능.)
 // ─────────────────────────────────────────────────────────────────────────
-import { loadRepChart } from '../engine/myChart';
+import { loadRepChart, listCharts } from '../engine/myChart';
 import { computeChart } from '../engine/engine';
 import { stemElement } from '../engine/ohaeng';
 import { storeChartElement } from '../theme';
@@ -15,9 +15,14 @@ import { storeChartElement } from '../theme';
  *  실패/명식없음=무시. */
 export async function syncThemeElement(reload = false): Promise<void> {
   try {
-    const rep = await loadRepChart();
-    if (!rep?.input) return;
-    const stem = computeChart(rep.input).saju?.dayMaster?.stem;
+    // ★테마 소스 = '본인(self)' 명식 오행 고정(daniel 2026-07-18). 이유: loadRepChart(대표)는 만세력 '보기'
+    //   (viewManse → setRepresentative)로 **마지막 본 명식**으로 오염된다 → 앱 시작 테마가 대표명식(본인)이
+    //   아니라 마지막 본 명식 색이 됐다. self 명식은 안 바뀌므로 ELEMENT_KEY 가 항상 본인 오행 → 앱 시작 colors 가
+    //   대표(본인) 테마. self 가 없으면(타인만 등록) 대표로 폴백.
+    const charts = await listCharts();
+    const src = charts.find((c) => c.relation === 'self') ?? (await loadRepChart());
+    if (!src?.input) return;
+    const stem = computeChart(src.input).saju?.dayMaster?.stem;
     if (stem) storeChartElement(stemElement(stem), reload);
   } catch { /* 무시(테마는 다음 로드에 반영) */ }
 }
