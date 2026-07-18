@@ -123,7 +123,12 @@ export function solarYmd(input: ChartInput): [number, number, number] {
   return [y, mo, d];
 }
 
-export function buildSajuChart(input: ChartInput, nowYear = 2026): SajuChart {
+// ⚠️ nowYear 기본값(2026-07-18 수정): 예전엔 리터럴 `2026` 이 박혀 있어, **호출부가 연도를 안 넘기면
+//   해가 바뀌어도 영원히 2026 기준**으로 현재 대운(isCurrent)·세운(annual)을 잡았다.
+//   실제로 홈(`app/(app)/index.tsx` 오늘 점수 흐름)·펫이 인자 없이 호출해 2027년이면 틀린 세운이 될 상태였다.
+//   → 기본값을 '오늘'로 바꿔 호출부 누락이 곧 버그가 되지 않게 한다(명시 인자는 그대로 우선).
+//   ※ 특정 연도 재현이 필요한 검증·골든은 nowYear 를 **명시적으로** 넘길 것.
+export function buildSajuChart(input: ChartInput, nowYear = new Date().getFullYear()): SajuChart {
   const [y, mo, d] = solarYmd(input);                          // 음력 생일이면 양력으로 변환(만세력 음력 오류 수정)
   const timePart = input.birthDateTime.split(' ')[1] ?? '0:0';
   const [h, mi = 0] = timePart.split(':').map(Number);
