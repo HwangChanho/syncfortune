@@ -16,6 +16,7 @@ import { supabase } from '../../lib/supabase';
 import { ChartPicker } from '../../components/ChartPicker';
 import { SelfUnderstandingHero } from '../../components/SelfUnderstandingHero'; // ★4.3: 홈 최상단 자기이해 히어로(성향분석 첫 경험)
 import { PersonaTypeHero } from '../../components/PersonaTypeHero'; // ★홈 주인공 ①: 성격유형 120종(daniel 07-18 IA 개편)
+import { TodayEnergyCard } from '../../components/TodayEnergyCard'; // ★홈 주인공 ②: 오늘 기운 × 내 원국(근거·등급·점수)
 import { TigerMascot } from '../../components/TigerMascot'; // 아기 백호 브랜드 마스코트(모션) — 홈 헤더 타이틀 좌측
 import { getDailyFortune, dailyHeadline, dailyPreview, scoreFlow } from '../../lib/content/dailyFortune';
 import { ScoreFlowGraph } from '../../components/ScoreFlowGraph'; // 오늘 기운 점수 흐름 그래프(홈, daniel 07-13)
@@ -182,6 +183,11 @@ export default function Home() {
         {/* ★홈 주인공 ①: 나의 성격유형 120종(daniel 2026-07-18) — 카드 그리드를 '풀이' 탭으로 보내고 이 자리를 주인공으로.
             일간10×월지12 온디바이스 결정론(API 0). 명식이 없으면 스스로 렌더하지 않는다(아래 히어로가 등록 유도). */}
         <PersonaTypeHero reloadKey={reloadKey} />
+
+        {/* ★홈 주인공 ②: 오늘 기운 × 내 원국(daniel 2026-07-18) — 유형명·근거·주의 등급·총운 점수.
+            아래 '오늘/내일 기운 배너'와 역할이 다르다: 저쪽은 '어떤 하루인가(서술)', 이쪽은 '왜 그런가(근거)·몇 점인가'.
+            dateKey 를 함께 넘겨 자정이 지나 앱에 돌아와도(포커스 없이 AppState 만 바뀌는 경우 포함) 오늘 것으로 갱신된다. */}
+        <TodayEnergyCard reloadKey={reloadKey} dateKey={dateKey} />
 
         {/* ★자기이해 히어로(App Store 4.3 · daniel 2026-07-12) — 홈 첫 화면을 '운세 목록'이 아니라 '나를 분석하는 도구'로 각인.
             에겐·테토 성향을 온디바이스 즉시 산출해 게이지+한줄요약 + 성격유형/MBTI/특징 클러스터. 오늘 기운 배너 *위*. */}

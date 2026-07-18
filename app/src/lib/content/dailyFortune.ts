@@ -166,7 +166,24 @@ export function dailyHeadline(saju: SajuChart, todayStem: Stem, todayBranch: Bra
 /** 오늘의 기운 점수(0~100) — dailyHeadline과 *동일한 길흉 factor*를 숫자로 정량화(발명 아님·daniel 승인 로직 재사용).
  *   기준 50 ± 억부 우호(주축) ± 신살/작용(천을귀인·합·도화·역마 / 충형·공망) ± 일진시드 미세변동. 22~92 클램프(극단 회피).
  *   ★가중치는 daniel 튜닝 슬롯(그래프 감각 조정). 같은 명식·같은 날 = 같은 점수(결정론·온디바이스). period='month'면 월운 간지로 동일 산출. */
-export function dailyScore(saju: SajuChart, todayStem: Stem, todayBranch: Branch): number {
+// ── 오늘 기운 카드(홈 주인공 ② · daniel 2026-07-18) ────────────────────────
+// daniel 스펙(경쟁앱 참고): 유형명 + 근거 + 주의 등급 + 총운 점수를 결정론으로.
+//   ★새 명리 판정을 만들지 않는다 — 아래 dailyEnergy 는 **기존 dailyScore 의 계산 그대로**이고,
+//     점수만 남기고 버리던 재료(십신 그룹·억부 우호·충합·신살)를 함께 반환하도록 넓힌 것뿐이다.
+//     dailyScore 는 dailyEnergy().score 로 위임 → 기존 호출부(scoreFlow 등) 결과는 100% 동일.
+export type TgGroupPublic = TgGroup;
+export type DailySignal = { key: string; label: string; kind: 'good' | 'care' };
+export type DailyEnergy = {
+  score: number;            // 총운 점수(22~92)
+  group: TgGroup;           // 오늘 들어온 기운 = 일진 천간의 십신 그룹
+  favorGood: boolean;       // 그 기운이 내 신강약에 우호적인가(억부 — 판정의 주축)
+  strengthType: string;     // 내 원국 강약(신왕/신강/중화/신약 …) — 근거 문장에 씀
+  signals: DailySignal[];   // 근거 칩(천을귀인·합·충형·공망·도화·역마)
+  caution: 'low' | 'mid' | 'high'; // 주의 등급(점수 구간)
+};
+
+/** 오늘 기운 = 그날 일진 × 내 원국(결정론·API 0). 점수와 그 근거를 함께 준다. */
+export function dailyEnergy(saju: SajuChart, todayStem: Stem, todayBranch: Branch): DailyEnergy {
   const me = saju.dayMaster.stem;
   const P = saju.pillars;
   const group = GROUP[tenGod(me, todayStem)];
@@ -201,7 +218,52 @@ export function dailyScore(saju: SajuChart, todayStem: Stem, todayBranch: Branch
   if (hasChung) s -= 12;                       // 충/형(부딪힘·흔들림)
   if (isGm) s -= 8;                            // 공망(비움·붕 뜸)
   s += (hlHash(`${todayStem}${todayBranch}${me}`) % 5) - 2; // 일진 시드 ±2 미세변동(매일 다른 곡선감·결정론)
-  return Math.max(22, Math.min(92, Math.round(s)));
+  const score = Math.max(22, Math.min(92, Math.round(s)));
+
+  // 근거 칩 — 위에서 이미 판정한 것만 문장화(새 판정 없음). §4: '조심'도 공포 없이 전향적으로.
+  const signals: DailySignal[] = [];
+  if (hasCheonEul) signals.push({ key: 'cheoneul', label: '천을귀인 — 도와주는 사람이 붙는 날', kind: 'good' });
+  if (hasHap) signals.push({ key: 'hap', label: '합 — 어우러지고 매듭이 지어지는 결', kind: 'good' });
+  if (tw.has('도화')) signals.push({ key: 'dohwa', label: '도화 — 눈에 띄고 사람이 모이는 결', kind: 'good' });
+  if (tw.has('역마')) signals.push({ key: 'yeokma', label: '역마 — 움직임·이동이 생기는 결', kind: 'good' });
+  if (hasChung) signals.push({ key: 'chung', label: '충·형 — 부딪힘이 있어 서두르지 않는 게 좋아요', kind: 'care' });
+  if (isGm) signals.push({ key: 'gongmang', label: '공망 — 붕 뜨는 자리라 큰 결정은 미루면 좋아요', kind: 'care' });
+
+  return {
+    score, group, favorGood,
+    strengthType: sc.type,
+    signals,
+    // 주의 등급 = 점수 구간(별도 판정 아님). 68↑ 순조 / 46~67 보통 / 46↓ 조심.
+    caution: score >= 68 ? 'low' : score >= 46 ? 'mid' : 'high',
+  };
+}
+
+/** 총운 점수만 필요할 때(그래프 등). ★dailyEnergy 와 동일 계산 — 하위호환 래퍼. */
+export function dailyScore(saju: SajuChart, todayStem: Stem, todayBranch: Branch): number {
+  return dailyEnergy(saju, todayStem, todayBranch).score;
+}
+
+// 오늘 들어온 기운의 이름표(홈 카드 타이틀·설명).
+//   ★이건 명리 '판정'이 아니라 이미 판정된 group 에 붙이는 **이름**이다(어휘 = Claude Code 초안 · daniel 검수 슬롯).
+//   근거는 GATE_AREAS 주석의 기존 stance 와 같은 결: 비겁=겁재 지출 / 식상=설기 / 재성=재다신약 / 관성=관살 압박 / 인성=인다 지연.
+export const ENERGY_LABEL: Record<TgGroup, { name: string; desc: string }> = {
+  비겁: { name: '나를 세우는 기운', desc: '나와 같은 힘이 들어오는 날 — 주체·경쟁·동료가 움직여요' },
+  식상: { name: '풀어내는 기운',   desc: '안에 있던 걸 밖으로 내놓는 힘 — 표현·활동·만들기' },
+  재성: { name: '거두는 기운',     desc: '결과와 실속을 챙기는 힘 — 재물·성과·관계' },
+  관성: { name: '조이는 기운',     desc: '책임과 규범이 들어오는 힘 — 일·자리·질서' },
+  인성: { name: '채우는 기운',     desc: '받아서 쌓는 힘 — 배움·회복·기댈 곳' },
+};
+
+/**
+ * 오늘 기운이 내 원국에 어떻게 작용하는지 한 줄(카드의 '근거').
+ * ★억부(신강약 × 들어온 기운)라는 이미 있는 판정을 문장으로 옮긴 것뿐 — 새 관법 없음.
+ * §4 안전: 버거운 날도 부정 증폭 없이 '어떻게 쓰면 되는지'로 닫는다.
+ */
+export function energyReason(e: DailyEnergy): string {
+  const g = e.group;
+  return e.favorGood
+    ? `${e.strengthType}인 내 사주에 ${g}(${ENERGY_LABEL[g].name})이 들어와 힘이 되어 주는 흐름이에요.`
+    : `${e.strengthType}인 내 사주에 ${g}(${ENERGY_LABEL[g].name})이 들어와 조금 버거울 수 있어요. 무리해서 벌이기보다 하던 걸 지키면 무난한 날이에요.`;
 }
 
 // ── 점수 흐름 그래프용 데이터(그제~모레 / 지지난달~다다음달) — ScoreFlowGraph 에 넘김. 온디바이스·결정론. ──

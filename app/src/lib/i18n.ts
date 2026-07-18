@@ -219,6 +219,8 @@ const ko = {
   month: { title: '이달의 운세', monthPillar: '이번 달 기운', flowTitle: '이번 달 흐름 (상순·중순·하순)', note: '이번 달의 큰 흐름이에요. 구체적인 날은 오늘의 운세에서 봐요.', heroSub: '이번 달 월건으로 보는 흐름', generating: '이번 달 흐름을 풀어내는 중…', gateTitle: '이달의 운세 보기', gateDesc: '타고난 사주에 지금의 큰 흐름·올해·이번 달 기운을 더해, 이달 생길 수 있는 일과 대처를 풀어 드려요.', seePremium: '이달의 운세 보기' },
   nav: { home: '홈', contents: '풀이', community: '커뮤니티', coach: '코치', market: '마켓' },
   contents: { sub: '보고 싶은 주제를 골라 보세요' }, // 하단탭 '풀이'(콘텐츠 목록) 화면 서브타이틀
+  // 오늘 기운 카드(홈 주인공 ② · daniel 07-18). ⚠️유형명·근거 본문은 dailyFortune.ts 가 만들며 현재 한국어 고정.
+  todayEnergy: { kicker: '오늘의 기운', point: '점', more: '오늘 운세 자세히' },
   // 성격유형 120종(홈 주인공 · daniel 07-18). ⚠️유형명·요약 본문은 engine/personaType.ts 가 만들며 현재 한국어 고정 —
   //   여기 키는 UI 라벨만 다국어. 본문 다국어화는 엔진 어휘 테이블(22항목) 번역이 선행돼야 한다(백로그).
   persona120: {
@@ -478,6 +480,7 @@ const en = {
   month: { title: 'Monthly Fortune', monthPillar: "This month's energy", flowTitle: "This month's flow (early · mid · late)", note: "The broad flow for this month. For specific days, see the Daily Fortune.", heroSub: "The flow of this month's energy", generating: "Reading this month's flow…", gateTitle: "View This Month's Fortune", gateDesc: "We combine the nature you were born with, the big flow you're in now, this year, and this month's energy to share what may come up this month and how to handle it.", seePremium: "View This Month's Fortune" },
   nav: { home: 'Home', contents: 'Readings', community: 'Community', coach: 'Coach', market: 'Market' },
   contents: { sub: 'Pick a topic you want to explore' },
+  todayEnergy: { kicker: "Today's energy", point: 'pts', more: "See today's reading" },
   persona120: {
     kicker: 'My personality type', count: 'of 120', more: 'See details',
     title: 'My personality type', sub: '10 day stems × 12 month branches = 120 types',
@@ -735,6 +738,7 @@ const ja = {
   month: { title: '今月の運勢', monthPillar: '今月の気', flowTitle: '今月の流れ（上旬·中旬·下旬）', note: '今月の大きな流れです。具体的な日は今日の運勢で。', heroSub: '今月のめぐりで読む流れ', generating: '今月の流れを読み解いています…', gateTitle: '今月の運勢を見る', gateDesc: '生まれ持った気質に、いまの大きな流れ・今年・今月のめぐりを重ねて、今月起こりそうなことと対処の仕方をお伝えします。', seePremium: '今月の運勢を見る' },
   nav: { home: 'ホーム', contents: '占い', community: 'コミュニティ', coach: 'コーチ', market: 'マーケット' },
   contents: { sub: '見たいテーマを選んでください' },
+  todayEnergy: { kicker: '今日の気運', point: '点', more: '今日の運勢を詳しく' },
   persona120: {
     kicker: '私の性格タイプ', count: '120種のうち', more: '詳しく見る',
     title: '私の性格タイプ', sub: '日干10 × 月支12 = 120タイプのうち私は',
