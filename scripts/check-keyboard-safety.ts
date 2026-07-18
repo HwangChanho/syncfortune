@@ -91,7 +91,10 @@ const absBarNoListener: string[] = [];
 for (const f of files) {
   const src = readFileSync(`${ROOT}/${f}`, 'utf8');
   const hasListener = HAS_LISTENER.test(src) || HAS_LISTENER_LOOSE.test(src);
-  const onShell = healthyShells.some((sh) => new RegExp(`\\b${sh}\\b`).test(src)); // 검증된 셸 위에 얹힌 화면
+  // 검증된 셸 위에 얹힌 화면 — ★`<SpecialContentScreen` **렌더**만 인정한다(import 문자열이 아니라).
+  //   이유: 이 셸 파일은 ContentHero 도 함께 export 해서, 히어로만 가져다 쓰는 화면(27개 중 대부분)도
+  //   파일에 셸 이름 문자열은 갖는다. 이름만 보면 자체 ScrollView 를 쓰는 무방비 화면이 거짓 통과한다.
+  const onShell = healthyShells.some((sh) => new RegExp(`<${sh}[\\s/>]`).test(src));
   if (onShell && !hasListener && !HAS_KAV.test(src) && !HAS_AUTO_INSET.test(src)) viaShell.push(f);
   const ok = hasListener || HAS_KAV.test(src) || HAS_AUTO_INSET.test(src) || onShell;
   if (ok) {
