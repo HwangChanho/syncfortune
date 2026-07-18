@@ -344,6 +344,15 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
               <Text style={styles.scoreTier}>{dispTier.emoji} {tierLabel(dispTier, appLang() as 'ko' | 'en' | 'ja')}</Text>
               <ScoreReveal score={dispScore} />
               {compat && <Text style={styles.scoreSub}>{t('compat.scoreHarmony', '조화')} {compat.harmony} · {t('compat.scoreTension', '긴장')} {compat.tension}</Text>}
+              {/* 궁합 6기준 근거 칩(daniel 07-18) — 계절 상보·상대→나 재/관·결핍 보완·배우자궁 충돌 */}
+              {compat && (
+                <View style={styles.scoreSignals}>
+                  {compat.seasonComplement && <Text style={styles.sigChip}>🌗 계절 상보</Text>}
+                  {compat.jaegwan && <Text style={styles.sigChip}>💫 상대 = 내 {compat.jaegwan}</Text>}
+                  {compat.fillChars.length > 0 && <Text style={styles.sigChip}>🧩 결핍 보완 {compat.fillChars.join('·')}</Text>}
+                  {compat.spouseAfflictions.length > 0 && <Text style={[styles.sigChip, styles.sigWarn]}>⚠️ 배우자궁 {compat.spouseAfflictions.join('·')}</Text>}
+                </View>
+              )}
             </View>
           )}
           {cur ? (
@@ -601,6 +610,10 @@ const styles = StyleSheet.create({
   scoreBar: { width: '80%', height: 8, borderRadius: 4, backgroundColor: colors.line, marginTop: space(3), overflow: 'hidden' },
   scoreBarFill: { height: '100%', borderRadius: 4, backgroundColor: colors.ju },
   scoreSub: { ...font.caption, color: colors.inkSoft, marginTop: space(2) },
+  // 궁합 6기준 근거 칩(daniel 07-18)
+  scoreSignals: { flexDirection: 'row', flexWrap: 'wrap', gap: space(1.5), marginTop: space(2.5), justifyContent: 'center' },
+  sigChip: { ...font.caption, color: colors.ju, backgroundColor: colors.juSoft, paddingHorizontal: space(2.5), paddingVertical: space(1), borderRadius: radius.pill, overflow: 'hidden', fontWeight: '700' },
+  sigWarn: { color: colors.inkSoft, backgroundColor: colors.sunk },
   catBanner: { width: '100%', height: 190, alignSelf: 'center', borderRadius: radius.md, marginTop: space(3), marginBottom: space(5) },  // 이미지↔컨텐츠 간격 넓힘(daniel: 너무 가까움)
   slotLabel: { ...font.caption, color: colors.ju, fontWeight: '800', marginBottom: space(2), letterSpacing: 0.3 },
   // 내 명식 골드 슬롯
