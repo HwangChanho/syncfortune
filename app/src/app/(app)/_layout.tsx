@@ -87,6 +87,8 @@ export default function AppLayout() {
         <Stack.Screen name="persona" options={{ headerTitle: '' }} />
         <Stack.Screen name="egenteto" options={{ headerTitle: '' }} />
         <Stack.Screen name="coach" options={{ headerShown: false }} />
+        {/* 하단탭 '풀이'(콘텐츠 목록) — 홈·코치처럼 탭 화면이라 자체 타이틀을 그린다(헤더 숨김, daniel 07-18 IA 개편). */}
+        <Stack.Screen name="contents" options={{ headerShown: false }} />
         <Stack.Screen name="joseonjob" options={{ headerTitle: '' }} />
         <Stack.Screen name="lovestyle" options={{ headerTitle: '' }} />
         <Stack.Screen name="bok" options={{ headerTitle: '' }} />

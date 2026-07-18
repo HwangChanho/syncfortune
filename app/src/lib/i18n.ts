@@ -217,7 +217,8 @@ const ko = {
     timing: '애정이 무르익는 시기', cautionPartner: '특히 조심할 상대', caution: '조심할 점', advice: '좋은 인연을 가꾸는 법', needPay: '이용권이 필요해요. 다시 시도해 주세요.',
   },
   month: { title: '이달의 운세', monthPillar: '이번 달 기운', flowTitle: '이번 달 흐름 (상순·중순·하순)', note: '이번 달의 큰 흐름이에요. 구체적인 날은 오늘의 운세에서 봐요.', heroSub: '이번 달 월건으로 보는 흐름', generating: '이번 달 흐름을 풀어내는 중…', gateTitle: '이달의 운세 보기', gateDesc: '타고난 사주에 지금의 큰 흐름·올해·이번 달 기운을 더해, 이달 생길 수 있는 일과 대처를 풀어 드려요.', seePremium: '이달의 운세 보기' },
-  nav: { home: '홈', community: '커뮤니티', coach: '코치', market: '마켓' },
+  nav: { home: '홈', contents: '풀이', community: '커뮤니티', coach: '코치', market: '마켓' },
+  contents: { sub: '보고 싶은 주제를 골라 보세요' }, // 하단탭 '풀이'(콘텐츠 목록) 화면 서브타이틀
   market: { intro: '이용권을 적용할 명식을 고른 뒤, 보고 싶은 풀이를 누르세요.', applyTo: '적용할 명식', openApply: '열기', noChart: '저장된 명식이 없어요', have: '보유 {{n}}장', owned: '보유', notOwned: '미보유', buy: '구매', note: '풀이는 명식별로 저장돼요. 무료 이용권(쿠폰)은 아래에서 등록하세요.', doneTitle: '구매 완료', doneMsg: '이용권이 지급되었어요.', payPending: '결제 준비 중', buyFailTitle: '구매 실패' },
   dayPillar: {
     title: '일주론', sub: '태어난 날의 간지(일주)로 보는 타고난 기질이에요.',
@@ -466,7 +467,8 @@ const en = {
     timing: 'When love ripens', cautionPartner: 'Types to be especially mindful of', caution: 'What to watch for', advice: 'How to nurture a good connection', needPay: 'You need a pass to continue. Please try again.',
   },
   month: { title: 'Monthly Fortune', monthPillar: "This month's energy", flowTitle: "This month's flow (early · mid · late)", note: "The broad flow for this month. For specific days, see the Daily Fortune.", heroSub: "The flow of this month's energy", generating: "Reading this month's flow…", gateTitle: "View This Month's Fortune", gateDesc: "We combine the nature you were born with, the big flow you're in now, this year, and this month's energy to share what may come up this month and how to handle it.", seePremium: "View This Month's Fortune" },
-  nav: { home: 'Home', community: 'Community', coach: 'Coach', market: 'Market' },
+  nav: { home: 'Home', contents: 'Readings', community: 'Community', coach: 'Coach', market: 'Market' },
+  contents: { sub: 'Pick a topic you want to explore' },
   market: { intro: 'Pick the chart to apply to, then tap a reading.', applyTo: 'Apply to', openApply: 'Open', noChart: 'No saved chart', have: 'You have {{n}}', owned: 'Owned', notOwned: 'Not owned', buy: 'Buy', note: 'Readings are saved per chart. Redeem free passes (coupons) below.', doneTitle: 'Purchased', doneMsg: 'Your pass has been added.', payPending: 'Payment not ready', buyFailTitle: 'Purchase failed' },
   dayPillar: {
     title: 'Day Pillar', sub: 'Your innate nature, seen through your birth-day pillar (ilju).',
@@ -715,7 +717,8 @@ const ja = {
     timing: '恋が深まる時期', cautionPartner: '特に気をつけたい相手', caution: '気をつけること', advice: '良い縁を育てる方法', needPay: '利用券が必要です。もう一度お試しください。',
   },
   month: { title: '今月の運勢', monthPillar: '今月の気', flowTitle: '今月の流れ（上旬·中旬·下旬）', note: '今月の大きな流れです。具体的な日は今日の運勢で。', heroSub: '今月のめぐりで読む流れ', generating: '今月の流れを読み解いています…', gateTitle: '今月の運勢を見る', gateDesc: '生まれ持った気質に、いまの大きな流れ・今年・今月のめぐりを重ねて、今月起こりそうなことと対処の仕方をお伝えします。', seePremium: '今月の運勢を見る' },
-  nav: { home: 'ホーム', community: 'コミュニティ', coach: 'コーチ', market: 'マーケット' },
+  nav: { home: 'ホーム', contents: '占い', community: 'コミュニティ', coach: 'コーチ', market: 'マーケット' },
+  contents: { sub: '見たいテーマを選んでください' },
   market: { intro: '適用する命式を選んでから、見たい鑑定をタップしてください。', applyTo: '適用する命式', openApply: '開く', noChart: '保存された命式がありません', have: '保有 {{n}}枚', owned: '保有', notOwned: '未保有', buy: '購入', note: '鑑定は命式ごとに保存されます。無料チケット（クーポン）は下で登録。', doneTitle: '購入完了', doneMsg: 'チケットが付与されました。', payPending: '決済準備中', buyFailTitle: '購入失敗' },
   dayPillar: {
     title: '日柱論', sub: '生まれた日の干支（日柱）でみる、生まれもった気質です。',

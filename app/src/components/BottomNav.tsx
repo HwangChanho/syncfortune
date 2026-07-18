@@ -16,9 +16,12 @@ import { useTranslation } from 'react-i18next';
 import { useFeatureOn } from '../lib/core/features'; // 원격 플래그 + 관리자 오버라이드 게이트(커뮤니티 탭 노출용)
 import { colors, space } from '../lib/theme';
 
-// 탭 전체 정의(순서 = 홈 → 커뮤니티 → 코치 → 마켓). 커뮤니티는 렌더 시 플래그로 필터링(아래 BottomNav 참고).
+// 탭 전체 정의(순서 = 홈 → 풀이 → 커뮤니티 → 코치 → 마켓). 커뮤니티는 렌더 시 플래그로 필터링(아래 BottomNav 참고).
+//   ★'풀이'(daniel 2026-07-18) = 홈에 쌓여 있던 콘텐츠 카드 그리드 35장을 옮긴 탭.
+//     라우트가 /contents 인 이유는 기존 /reading(사주 원국풀이)과 혼동을 피하려는 것(contents.tsx 주석 참고).
 const ALL_TABS = [
   { key: 'home', route: '/' },
+  { key: 'contents', route: '/contents' },
   { key: 'community', route: '/community' },
   { key: 'coach', route: '/coach' },
   { key: 'market', route: '/market' },
@@ -41,6 +44,7 @@ export function BottomNav() {
         const on = tb.key === 'market' ? path.startsWith('/market')
           : tb.key === 'coach' ? path.startsWith('/coach')
           : tb.key === 'community' ? path.startsWith('/community')
+          : tb.key === 'contents' ? path.startsWith('/contents')
           : (path === '/' || path === '/index');
         return (
           <PressableScale key={tb.key} style={styles.tab} onPress={() => { if (!on) router.replace(tb.route); }} hitSlop={6}>
