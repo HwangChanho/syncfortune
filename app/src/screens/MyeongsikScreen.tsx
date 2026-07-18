@@ -49,8 +49,8 @@ const POS: PillarPos[] = ['시', '일', '월', '년'];
 type MyeongTab = 'wonguk' | 'rel' | 'elem' | 'ziwei';  // rel = 운세 전용(구 '사주관계' → 운세). 합충·신살은 wonguk으로 흡수.
 const MYEONG_TABS: { id: MyeongTab; label: string; desc: string }[] = [
   { id: 'wonguk', label: '사주원국', desc: '태어난 연·월·일·시를 천간·지지 여덟 글자로 세운 것(팔자)과 그 속에 숨은 기운(지장간), 글자끼리 끌어당기고(합) 부딪히는(충·형·해·파) 관계, 그리고 신살·길성까지 한자리에서 봐요.' },
-  { id: 'rel', label: '운세', desc: '대운·세운·월운·일운으로 지금과 앞으로의 시기별 흐름(운세)을 봐요.' },
   { id: 'elem', label: '오행·강약', desc: '내 글자들이 목·화·토·금·수 다섯 기운 중 무엇에 쏠렸는지·그게 나에게 어떤 역할(십성)인지, 그리고 내 힘(일간)이 강한지 약한지·무엇으로 균형을 잡으면 좋은지 함께 봐요.' },
+  { id: 'rel', label: '운세', desc: '대운·세운·월운·일운으로 지금과 앞으로의 시기별 흐름(운세)을 봐요.' },
   { id: 'ziwei', label: '자미두수', desc: '사주와는 별개의 운명 체계예요. 태어난 시각으로 열두 자리(명궁·재물·관록·배우자 등)에 여러 별을 배치해, 삶의 각 영역에 어떤 기운이 드는지 봅니다. 사주를 보조해 교차로 참고해요(시각을 알아야 정확).' },
 ];
 let lastMyeongTab: MyeongTab = 'wonguk';   // 선택 탭 기억(세션 내 — 나갔다 와도 분류 유지, daniel)
@@ -151,7 +151,7 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
   const [expW, setExpW] = useState(0); // 확장명식 가용폭 — 컬럼 수에 맞춰 칸·글자 반응형(daniel)
   const [glossary, setGlossary] = useState<{ kind: GlossaryKind; key?: string } | null>(null); // 클릭 설명 바텀시트
   const [showLinks, setShowLinks] = useState(true); // 팔자 합충형해 카드 펼침 — 관계 탭 전용이 됐으니 기본 펼침(daniel: 합충 탭 비어보임)
-  const [showExpandLinks, setShowExpandLinks] = useState(true); // 대운/세운 관계 펼침(daniel 07-08: 3자 국[삼합/삼형 ★]을 메인으로 + 개별 2자도 함께 기본 노출)
+  const [showExpandLinks, setShowExpandLinks] = useState(false); // 운 합충형해(대운/세운 관계) 기본 접힘(daniel 07-18) — 펼치면 3자 국[삼합/삼형]+개별 2자 노출
   const [activePalja, setActivePalja] = useState<Set<string>>(() => new Set());   // 클릭으로 켠 팔자 합충(명식 강조용)
   const [activeExpand, setActiveExpand] = useState<Set<string>>(() => new Set());  // 클릭으로 켠 대운/세운 합충
   const posIndex: Record<string, number> = { 시: 0, 일: 1, 월: 2, 년: 3 };
