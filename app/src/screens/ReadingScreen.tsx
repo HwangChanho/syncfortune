@@ -124,6 +124,11 @@ export function ReadingScreen({
   const [detail, setDetail] = useState<string | null>(null); // 상세로 펼친 항목 key
   const [stale, setStale] = useState<Set<string>>(new Set()); // ADR-055 P3: 분석 버전이 낮아 갱신 가능한 영역(opt-in)
   const [renewable, setRenewable] = useState<Set<string>>(new Set()); // ★재통변(daniel 07-08): 운세형 & 생성 1년 경과 영역
+  // ★세운 배지(daniel 판정 2026-07-18 '라이브 주입 + 서빙 배지'): 저장된 풀이는 **생성 시점의 세운**으로 쓰였는데
+  //   charts.saju 의 시간축이 박제돼(insert_chart_enc 가 기존 row 면 saju 무시) 해가 바뀌어도 내용이 그대로다.
+  //   전면 재생성은 입춘마다 전 유저 재호출이라 비용이 폭증 → **몇 년도 기준인지 알려주는 것**으로 오인만 막는다.
+  //   (신규 생성분은 Edge 가 오늘 세운을 라이브 주입하므로 이 배지가 붙지 않는다.)
+  const [pastYear, setPastYear] = useState<Map<string, number>>(new Map()); // 영역 → 그 풀이가 쓰인 해
   const [expiry, setExpiry] = useState<string | null>(null); // 풀이 보유 만료일(가장 먼저 만료=최초 생성+1년) — 소모성 제외 모든 풀이 1년(daniel #25)
   // 추가 질문(Q&A) — 영역별 누적 + 입력/전송 상태(프리미엄 2회 무료 + 건당)
   const [followups, setFollowups] = useState<Record<string, Followup[]>>({});
@@ -190,6 +195,7 @@ export function ReadingScreen({
       const loaded: Record<string, any> = {};
       const st = new Set<string>();                   // ADR-055 P3: 분리본(l2_ver≥1)인데 옛 버전 → 갱신 가능
       const rn = new Set<string>();                   // ★재통변(daniel 07-08): 운세형 & 생성 1년 경과 영역
+      const py = new Map<string, number>();           // ★세운 배지: 생성 연도가 올해와 다른 영역 → 그 해를 표시
       const renewCk = kind === 'ziwei' ? 'ziwei' : 'reading'; // 이 화면 credit kind(SET_KIND — saju→reading)
       const nowD = new Date();
       let minCreated: string | null = null; // 보유 만료 = 최초 생성+1년(가장 먼저 만료되는 영역 기준)
@@ -199,11 +205,13 @@ export function ReadingScreen({
         if (r.created_at && (!minCreated || r.created_at < minCreated)) minCreated = r.created_at;
         if ((r.l2_ver ?? 0) >= 1 && (r.l2_ver ?? 0) < READING_L2_VER) st.add(r.category);
         if (needsContentRenewal(renewCk, r.created_at, nowD)) rn.add(r.category); // 운세형 1년 경과 → 재통변 노출
+        if (r.created_at) { const wy = new Date(r.created_at).getFullYear(); if (wy !== nowD.getFullYear()) py.set(r.category, wy); } // 지난 해에 쓰인 풀이 → 세운 배지
       });
       setReadings(loaded);
       setReadingsChartId(id); // 이 readings는 id(현재 resolved 명식) 기준 — 자동생성 가드가 stale 로드 구분에 사용
       setStale(st);
       setRenewable(rn);
+      setPastYear(py);
       if (minCreated) { const d = new Date(minCreated); d.setFullYear(d.getFullYear() + 1); setExpiry(`${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`); }
       setCacheLoaded(true);
       loadFollowups(id).then((f) => { if (alive) setFollowups(f); }).catch(() => {}); // 추가 질문 누적 로드
@@ -657,6 +665,13 @@ export function ReadingScreen({
             <Text style={styles.detailTitle}>{cats.find((x) => x.key === detail)?.label}</Text>
             {/* 자미두수 등 — 이 항목(궁)이 뭘 보는지 설명 */}
             {cats.find((x) => x.key === detail)?.desc ? <Text style={styles.detailDesc}>{cats.find((x) => x.key === detail)?.desc}</Text> : null}
+            {/* ★세운 배지 — 지난 해에 쓰인 풀이임을 알려 '지금 일어날 일'로 오인하는 것을 막는다(daniel 판정 07-18).
+                내용을 바꾸려면 재통변이 필요하므로, 여기서는 기준 연도만 고지한다(추가 비용 0). */}
+            {pastYear.has(detail) && (
+              <Text style={styles.pastYearBadge}>
+                {t('reading.pastYearBadge', '이 풀이는 {{y}}년 운(세운) 기준으로 쓰였어요 — 올해 흐름은 재통변하면 새로 반영돼요.').replace('{{y}}', String(pastYear.get(detail)))}
+              </Text>
+            )}
             {renderSections(detail)}
             {/* ADR-055 P3: 분석 버전이 낮은 풀이만 '최신 해석으로 갱신'(opt-in·cap). 최신이면 미노출. */}
             {(stale.has(detail) || renewable.has(detail)) && (
@@ -723,6 +738,8 @@ const styles = StyleSheet.create({
   detailWrap: { padding: space(5), paddingTop: space(2), paddingBottom: space(10) },
   detailTitle: { ...font.title, fontSize: 26, color: colors.ink, marginBottom: space(1) },
   detailDesc: { ...font.body, color: colors.inkSoft, marginBottom: space(3) },
+  // 세운 배지 — 경고가 아니라 '기준 연도 고지'라 톤을 낮춘다(부정 증폭 금지·§4).
+  pastYearBadge: { ...font.caption, color: colors.inkSoft, backgroundColor: colors.sunk, borderRadius: 8, paddingVertical: space(2), paddingHorizontal: space(3), marginBottom: space(3) },
   err: { fontSize: 13, color: colors.ju },
   // 추가 질문(Q&A)
   askWrap: { marginTop: space(7), paddingTop: space(5), borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.line },
