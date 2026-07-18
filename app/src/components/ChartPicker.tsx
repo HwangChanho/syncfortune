@@ -312,9 +312,9 @@ const styles = StyleSheet.create({
   usageMax: { color: colors.ju }, // 한도 도달 = 주색(업그레이드 신호)
 
   // 카테고리(관계) 필터 바 — 커뮤니티 catBar 와 동일 톤(전체 + 각 관계 칩). daniel: 전체보기+카테고리별.
-  catBar: { flexGrow: 0, height: 40, marginBottom: space(2.5) }, // ★height 필수 — horizontal ScrollView는 미지정 시 세로로 짜부라져 칩이 잘려 안 보임(daniel 07-17 "짤려서 안 보여")
+  catBar: { flexGrow: 0, flexShrink: 0, height: 40, marginBottom: space(2.5) }, // ★flexShrink:0 필수 — 부모 flex 공간 부족 시 ScrollView 가 세로로 눌려(height 줘도) 칩이 짜부라짐(daniel 07-18 "계속 안 보임"). flexGrow:0=안 늘고, flexShrink:0=안 줄고, height 고정.
   catRow: { gap: space(2), paddingRight: space(2), alignItems: 'center' }, // 칩 세로 중앙(catBar 고정높이 안에서)
-  catChip: { backgroundColor: colors.sunk, borderRadius: radius.pill, paddingHorizontal: space(3.5), paddingVertical: space(1.5), borderWidth: 1, borderColor: colors.line },
+  catChip: { height: 32, justifyContent: 'center', backgroundColor: colors.sunk, borderRadius: radius.pill, paddingHorizontal: space(3.5), borderWidth: 1, borderColor: colors.line }, // 명시적 높이+세로중앙(paddingVertical 대신 — 짜부라짐 이중 방어)
   catChipOn: { backgroundColor: colors.ju, borderColor: colors.ju },
   catChipTx: { ...font.caption, color: colors.inkSoft, fontWeight: '700' },
   catChipTxOn: { color: colors.bg },
