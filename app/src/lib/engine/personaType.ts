@@ -32,18 +32,25 @@ export type PersonaType = {
 
 // ── ① 일간 물상(R23) ─────────────────────────────────────────────────────
 //   image = 그 천간의 형상. tone = 기질 어휘. 이미지 생성 프롬프트의 주 피사체가 된다.
-const STEM: Record<Stem, { elem: string; image: string; tone: string; trait: string; art: string }> = {
-  甲: { elem: '木', image: '큰 나무', tone: '곧고 위로 뻗는', trait: '시작하는 힘과 명분이 분명해 앞장서는 결', art: 'a tall straight ancient tree' },
-  乙: { elem: '木', image: '화초·덩굴', tone: '유연하고 감기는', trait: '부드럽게 파고들어 끝내 자리를 잡는 끈질긴 결', art: 'a slender flowering vine' },
-  丙: { elem: '火', image: '태양', tone: '밝고 널리 퍼지는', trait: '드러내고 비추는 힘이 커 사람이 모이는 결', art: 'a radiant sun over open sky' },
-  丁: { elem: '火', image: '등불·촛불', tone: '따뜻하고 섬세한', trait: '가까운 곳을 깊이 밝히는 정교하고 다정한 결', art: 'a warm lantern flame in darkness' },
-  戊: { elem: '土', image: '큰 산·제방', tone: '두텁고 움직이지 않는', trait: '버티고 품어 기준이 되어 주는 묵직한 결', art: 'a vast mountain ridge' },
-  己: { elem: '土', image: '논밭·기름진 흙', tone: '낮고 부드럽게 품는', trait: '남을 키워 내며 실속을 챙기는 세심한 결', art: 'fertile terraced farmland' },
-  庚: { elem: '金', image: '무쇠·도끼', tone: '단단하고 거침없는', trait: '끊고 밀어붙여 판을 정리하는 결단의 결', art: 'a forged iron blade' },
-  辛: { elem: '金', image: '보석·잘 벼린 칼', tone: '예리하고 정갈한', trait: '정밀하게 다듬어 값을 만드는 전문성의 결', art: 'a polished gemstone catching light' },
-  壬: { elem: '水', image: '큰 강·바다', tone: '넓고 끊임없이 흐르는', trait: '멀리 보고 크게 굴리는 활동의 결', art: 'a wide flowing river at dusk' },
-  癸: { elem: '水', image: '이슬·빗물', tone: '맑고 스며드는', trait: '조용히 살펴 속을 읽어 내는 총명의 결', art: 'soft rain on still water' },
+const STEM: Record<Stem, { elem: string; image: string; chip: string; tone: string; trait: string; art: string }> = {
+  甲: { elem: '木', image: '큰 나무', chip: '곧음', tone: '곧고 위로 뻗는', trait: '시작하는 힘과 명분이 분명해 앞장서는 결', art: 'a tall straight ancient tree' },
+  乙: { elem: '木', image: '덩굴꽃', chip: '유연함', tone: '유연하게 감기는', trait: '부드럽게 파고들어 끝내 자리를 잡는 끈질긴 결', art: 'a slender flowering vine' },
+  丙: { elem: '火', image: '태양', chip: '밝음', tone: '밝고 널리 퍼지는', trait: '드러내고 비추는 힘이 커 사람이 모이는 결', art: 'a radiant sun over open sky' },
+  丁: { elem: '火', image: '등불', chip: '섬세함', tone: '따뜻하고 섬세한', trait: '가까운 곳을 깊이 밝히는 정교하고 다정한 결', art: 'a warm lantern flame in darkness' },
+  戊: { elem: '土', image: '큰 산', chip: '묵직함', tone: '두텁고 흔들리지 않는', trait: '버티고 품어 기준이 되어 주는 묵직한 결', art: 'a vast mountain ridge' },
+  己: { elem: '土', image: '기름진 밭', chip: '보살핌', tone: '낮고 부드럽게 품는', trait: '남을 키워 내며 실속을 챙기는 세심한 결', art: 'fertile terraced farmland' },
+  庚: { elem: '金', image: '무쇠 도끼', chip: '결단', tone: '단단하고 거침없는', trait: '끊고 밀어붙여 판을 정리하는 결단의 결', art: 'a forged iron blade' },
+  辛: { elem: '金', image: '벼린 칼', chip: '예리함', tone: '예리하고 정갈한', trait: '정밀하게 다듬어 값을 만드는 전문성의 결', art: 'a polished gemstone catching light' },
+  壬: { elem: '水', image: '큰 강', chip: '스케일', tone: '넓고 끊임없이 흐르는', trait: '멀리 보고 크게 굴리는 활동의 결', art: 'a wide flowing river at dusk' },
+  癸: { elem: '水', image: '이슬비', chip: '총명함', tone: '맑고 스며드는', trait: '조용히 살펴 속을 읽어 내는 총명의 결', art: 'soft rain on still water' },
 };
+
+/** 받침 유무로 목적격 조사(을/를) 선택 — '기회을/돌파을' 같은 비문 방지. */
+function eul(word: string): string {
+  const last = word.charCodeAt(word.length - 1);
+  if (last < 0xac00 || last > 0xd7a3) return '를';        // 한글이 아니면 기본값
+  return (last - 0xac00) % 28 === 0 ? '를' : '을';        // 받침 없음 → 를
+}
 
 // ── ② 월지 계절·기운(조후의 출발점) ──────────────────────────────────────
 const BRANCH: Record<Branch, { season: string; mood: string; scene: string }> = {
@@ -85,11 +92,11 @@ const GYEOK: Record<string, { label: string; axis: string; kw: string }> = {
 export function personaOf(dayStem: Stem, monthBranch: Branch, gyeok?: string): PersonaType {
   const s = STEM[dayStem], b = BRANCH[monthBranch];
   const g = gyeok ? GYEOK[gyeok] : undefined;
-  const name = `${b.season} ${s.image}`;                       // 예: '한봄 보석·잘 벼린 칼'
-  const keywords = [s.tone.split(' ')[0], b.season, g?.kw ?? s.elem].filter(Boolean).slice(0, 3);
+  const name = `${b.season}의 ${s.image}`;                     // 예: '한봄의 벼린 칼'
+  const keywords = [s.chip, b.season, g?.kw ?? s.elem].filter(Boolean).slice(0, 3);
   const summary = g
-    ? `${b.season}의 ${s.image} 같은 사람이에요. ${b.mood} 계절에 태어나 ${s.trait}을 타고났고, 삶의 무게중심은 ${g.axis} 쪽(${g.label})에 놓여 있어요. 그래서 ${s.tone} 방식으로 ${g.label}을 풀어 갑니다.`
-    : `${b.season}의 ${s.image} 같은 사람이에요. ${b.mood} 계절에 태어나 ${s.trait}을 타고났어요.`;
+    ? `${b.season}의 ${s.image} 같은 사람이에요. ${b.mood} 계절에 태어나 ${s.trait}${eul(s.trait)} 타고났고, 삶의 무게중심은 ${g.axis} 쪽(${g.label})에 놓여 있어요. 그래서 ${s.tone} 방식으로 ${g.label}${eul(g.label)} 풀어 갑니다.`
+    : `${b.season}의 ${s.image} 같은 사람이에요. ${b.mood} 계절에 태어나 ${s.trait}${eul(s.trait)} 타고났어요.`;
   return {
     key: `${dayStem}${monthBranch}`,
     name, keywords, summary,
