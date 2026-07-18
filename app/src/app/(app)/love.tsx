@@ -56,6 +56,11 @@ const SECTIONS: { key: string; tk: string }[] = [
   { key: 'howWeMeet', tk: 'love.howWeMeet' },
   { key: 'elementMatch', tk: 'love.elementMatch' },
   { key: 'dynamic', tk: 'love.dynamic' },
+  // ★내가 더 좋아하는 연애 vs 상대가 더 좋아하는 연애(daniel 2026-07-18) — 두 관계 시나리오에서 이 사람이 어떻게 되는지 *대조*.
+  //   근거는 기존 규칙만(R21 무형=집착·R32 재성 12운성 사랑방식·R41 배우자성 자좌·R42④ 신강약 감당·R51 도화) — stance daniel 검수 슬롯.
+  //   cautionPartner 선례와 동일: 기존 캐시 응답엔 이 키가 없어 렌더 가드로 자동 미노출 → 재생성분부터 노출된다.
+  { key: 'iLoveMore', tk: 'love.iLoveMore' },
+  { key: 'theyLoveMore', tk: 'love.theyLoveMore' },
   { key: 'timing', tk: 'love.timing' },
   // ★특히 조심할 상대 — 기존 배우자 stance(잘 맞는 축)의 역(逆) + §4 웰빙 완충(2026-07-07 초안 · stance daniel 검수 필요).
   //   Edge 미배포(초안) 동안은 응답에 cautionPartner 키가 없어 렌더 가드로 자동 미노출(무해). daniel 검수·배포 후 노출.

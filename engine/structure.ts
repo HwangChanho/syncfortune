@@ -311,18 +311,36 @@ export function analyzeTenGods(saju: SajuChart): {
   return { distribution, detail, absent, excess, notes };
 }
 
-// ── 격국 후보 (결정론 절차: 월령 지장간 중 천간 투출 → 격). 최종 격 확정은 daniel stance. ──
-export function detectPattern(saju: SajuChart): { candidates: string[]; basis: string } {
+// ── 격국 (R55 · daniel stance 2026-07-18) ────────────────────────────────────
+//   ★격은 **월지 지장간 '본기'의 십신**으로 잡는다 — *투출한 글자 우선이 아니라 본기 고정*.
+//     (구 로직은 '월령 지장간 중 투출분'을 격으로 삼아, 본기가 아닌 여기/중기가 투출하면 격이 갈렸다.)
+//     그리고 **그 격의 글자(=본기 글자)가 천간에 투출했는지**를 *별도로* 노출한다:
+//       투출 = 드러난 격(실체) / 미투출 = 잠복.
+//     ※투출 판정 자리는 **년·월·시 천간**(daniel 명시) — 일간은 '나 자신'이라 투출 대상에서 제외한다.
+//   ⚠️ 순용/역용·성격(成格)/파격(破格)은 daniel stance 미공급 → **판정하지 않는다**(명리 발명 금지).
+//   ※ `candidates` 는 하위호환 필드(verify-fixture·앱 기존 소비처) — 이제 `name` 이 주(主)다.
+export function detectPattern(saju: SajuChart): {
+  name: string;             // 격 이름 = 월지 본기 십신 + '격'
+  basis: string;            // 근거 문장(본기·투출 여부·동거 투출분)
+  revealed: boolean;        // 격의 글자가 천간(년·월·시)에 투출했는가 = 드러난 격
+  revealedAt: PillarPos[];  // 투출한 자리
+  candidates: string[];     // 하위호환: [격] + 월령 지장간 중 투출한 다른 십신격
+} {
   const month = saju.pillars['월'];
-  const stems = (['년','월','일','시'] as PillarPos[]).map((p) => saju.pillars[p].stem);
-  const tou = month.hiddenStems.filter((h) => stems.includes(h.stem)); // 월령 지장간 중 천간 투출분
-  const candidates = tou.length
-    ? Array.from(new Set(tou.map((h) => `${h.tenGod}격`)))
-    : [`${month.branchMainTenGod}격`]; // 투출 없으면 월령 본기로
-  const basis = tou.length
-    ? `월지 ${month.branch} 지장간 중 ${tou.map((h) => `${h.stem}(${h.tenGod})`).join('·')} 투출`
-    : `월지 ${month.branch} 본기 ${month.branchMainTenGod}(투출 없음)`;
-  return { candidates, basis };
+  const outer = (['년', '월', '시'] as PillarPos[]);                     // 투출을 볼 천간 자리(일간 제외)
+  const bongi = month.hiddenStems.find((h) => h.role === '본기');
+  const name = `${month.branchMainTenGod}격`;                            // R55: 격 = 월지 본기 십신
+  const revealedAt = outer.filter((p) => !!bongi && saju.pillars[p].stem === bongi.stem);
+  const revealed = revealedAt.length > 0;
+  // 본기가 아닌 지장간(여기·중기)이 천간에 나온 경우 — 격을 바꾸지는 않지만 통변 재료라 근거에 남긴다.
+  const others = month.hiddenStems.filter(
+    (h) => h.role !== '본기' && outer.some((p) => saju.pillars[p].stem === h.stem),
+  );
+  const basis = `월지 ${month.branch} 본기 ${bongi?.stem ?? '?'}(${month.branchMainTenGod})`
+    + (revealed ? ` · 천간 ${revealedAt.join('·')}에 투출(드러난 격)` : ' · 천간 미투출(잠복)')
+    + (others.length ? ` · 지장간 ${others.map((h) => `${h.stem}(${h.tenGod})`).join('·')} 투출` : '');
+  const candidates = Array.from(new Set([name, ...others.map((h) => `${h.tenGod}격`)]));
+  return { name, basis, revealed, revealedAt, candidates };
 }
 
 // ⛔ 폐기(전문가 검수 2026-07-14, daniel 전량 반영): 용신은 평생 고정 — 운은 세기만 조절(희신강화/기신무력화).

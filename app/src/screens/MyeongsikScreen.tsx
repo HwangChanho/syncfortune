@@ -457,7 +457,7 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
         <>
       {/* 일간·신강약·격국 */}
       <Text style={styles.kv}>{t('myeongsik.dayMaster')}: <Text style={styles.kvAccent}>{c.saju.dayMaster.stem}({c.saju.dayMaster.element})</Text></Text>
-      <Text style={styles.kv}>{t('myeongsik.dayMaster')} {c.saju.dayMaster.stem}  ·  {t('myeongsik.pattern')}: {c.pattern.candidates.join(', ')}</Text>
+      <Text style={styles.kv}>{t('myeongsik.dayMaster')} {c.saju.dayMaster.stem}  ·  {t('myeongsik.pattern')}: {c.pattern.name} ({t(c.pattern.revealed ? 'myeongsik.patternRevealed' : 'myeongsik.patternHidden')})</Text>
       {timeUnknown && <Text style={styles.warn}>{t('myeongsik.timeUnknownNote')}</Text>}
 
       {/* ★핵심 격(格, 동적 구조) — 살인상생·식신제살·상관패인 등(daniel). B5: 월령(월지 본기/투출) 중심으로 발화 게이트. 명리 정제 = daniel 검수 슬롯 */}
