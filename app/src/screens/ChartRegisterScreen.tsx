@@ -138,7 +138,13 @@ export function ChartRegisterScreen({ onSubmit, defaultRelation, submitLabel, sh
 
   return (
     <>
-      <ScrollView style={styles.screen} contentContainerStyle={styles.form}>
+      <ScrollView
+        style={styles.screen} contentContainerStyle={styles.form}
+        // ★명식 등록 = 입력이 많고 아래쪽(관계·직업)은 키보드에 정확히 덮이는 자리다.
+        //   iOS 자동 인셋으로 입력창이 항상 보이게(daniel 07-18 표준 · check:keyboard 가 강제).
+        automaticallyAdjustKeyboardInsets
+        keyboardShouldPersistTaps="handled"
+      >
         {/* 이름·별칭 */}
         <Text style={styles.label}>{t('register.name')}</Text>
         <TextInput style={styles.input} value={label} onChangeText={setLabel}

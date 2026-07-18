@@ -110,7 +110,12 @@ export default function PetScreen() {
 
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>
+    <ScrollView
+      style={styles.screen} contentContainerStyle={styles.wrap}
+      // 키보드가 이름·생일 입력을 덮지 않게 iOS 자동 인셋(daniel 07-18 표준 · check:keyboard).
+      automaticallyAdjustKeyboardInsets
+      keyboardShouldPersistTaps="handled"
+    >
       <ContentHero image={require('../../../assets/icons/pet.jpg')} title={t('pet.title')} sub={t('pet.sub')} />
 
       {/* 저장된 아이들 — 칩으로 전환 + 추가 */}

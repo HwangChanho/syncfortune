@@ -339,7 +339,13 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
   );
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>
+    <ScrollView
+      style={styles.screen} contentContainerStyle={styles.wrap}
+      // ★공통 콘텐츠 틀이라 여기 한 줄이 이 틀을 쓰는 모든 화면을 덮는다(재회 '지금의 고민' 등 하단 입력).
+      //   키보드가 입력창을 가리지 않게 iOS 자동 인셋(daniel 07-18 표준 · check:keyboard 가 강제).
+      automaticallyAdjustKeyboardInsets
+      keyboardShouldPersistTaps="handled"
+    >
       {/* 상단 명식 헤더 — 현재 적용된 대표 명식 표시·전환(daniel: 모든 콘텐츠 상단). 전환 시 그 명식 기준 재로드 */}
       <ChartPicker onChange={() => setReloadKey((k) => k + 1)} />
       {/* child/child_couple(자녀운)만 전용 테마 영상 — 그 외 스페셜(roots·image·mission·talent·astrology·future10 등)은 videoKey 미지정=기본 링+자물쇠 */}

@@ -23,7 +23,11 @@ export default function NameScreen() {
 
   return (
     <ImageBackground source={bgSource} style={styles.bg} resizeMode="cover">
-      <ScrollView style={styles.overlay} contentContainerStyle={styles.wrap} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        style={styles.overlay} contentContainerStyle={styles.wrap} keyboardShouldPersistTaps="handled"
+        // 키보드가 이름 입력을 덮지 않게 iOS 자동 인셋(daniel 07-18 표준 · check:keyboard).
+        automaticallyAdjustKeyboardInsets
+      >
         <ContentHero image={require('../../../assets/icons/name.jpg')} title={t('name.title', '이름풀이')} sub={t('name.sub', '이름 속 소리의 기운(오행)으로 결을 봐요.')} />
 
         <TextInput

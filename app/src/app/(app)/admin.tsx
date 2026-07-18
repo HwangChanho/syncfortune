@@ -313,7 +313,13 @@ export default function AdminRoute() {
   }
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>
+    <ScrollView
+      style={styles.screen} contentContainerStyle={styles.wrap}
+      // 키보드가 입력창(알림 제목·내용·이메일 검색)을 덮지 않게 iOS 자동 인셋.
+      //   daniel 07-18 '댓글 입력창 가림' 사건 후 표준 — check:keyboard 하네스가 강제한다.
+      automaticallyAdjustKeyboardInsets
+      keyboardShouldPersistTaps="handled"
+    >
       {/* ── 관리자 제어(설정에서 이동, daniel 07-01): 비용분석·테스트모드·관리자모드 ── */}
       <PressableScale style={styles.adminLink} onPress={() => router.push('/coststable')}>
         <Text style={styles.adminLinkTx}>📊 비용·수익 분석 (실측)</Text>

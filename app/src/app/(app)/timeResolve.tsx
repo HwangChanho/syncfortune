@@ -116,7 +116,11 @@ export default function TimeResolveScreen() {
   };
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.wrap} keyboardShouldPersistTaps="handled">
+    <ScrollView
+      style={styles.screen} contentContainerStyle={styles.wrap} keyboardShouldPersistTaps="handled"
+      // 키보드가 생년월일·연도 입력을 덮지 않게 iOS 자동 인셋(daniel 07-18 표준 · check:keyboard).
+      automaticallyAdjustKeyboardInsets
+    >
       <Stack.Screen options={{ headerTitle: '' }} />{/* 상단 타이틀 제거(daniel: 콘텐츠 헤더 타이틀 X) — 히어로·리드가 대신 */}
       {/* 전용 히어로(daniel ⑥) — 천체 시계 모티프. 도구 화면이라 폼을 가리지 않게 컴팩트 높이. */}
       <ExpoImage source={require('../../../assets/icons/timeResolve-hero.jpg')} style={styles.hero} contentFit="cover" contentPosition="center" cachePolicy="memory-disk" transition={150} />

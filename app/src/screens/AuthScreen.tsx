@@ -8,7 +8,7 @@
 // ※ 애플 OAuth 는 스토어 심사 전 추가(애플은 타 소셜 있으면 Sign in with Apple 필수).
 // ─────────────────────────────────────────────────────────────────────────
 import { useState } from 'react';
-import { View, Text, TextInput, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, Pressable, StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
 import { PressableScale } from '../components/PressableScale';
 import Svg, { Path } from 'react-native-svg'; // 애플 로고(글리프 U+F8FF 미전송·미렌더 이슈 → SVG로 안정 렌더)
 import { Alert } from '../lib/ui/alert'; // 커스텀 알림(앱 디자인)
@@ -123,7 +123,11 @@ export function AuthScreen() {
   }
 
   return (
-    <View style={styles.wrap}>
+    // ★KeyboardAvoidingView: wrap 이 세로 중앙 정렬(justifyContent:'center')이라 키보드가 올라오면
+    //   심사용 히든 로그인(이메일·비번) 입력창이 정확히 덮인다. 리뷰어가 로그인 못 하면 심사 반려로 이어지는 자리라
+    //   반드시 회피한다. 이 화면은 전역 BottomNav 밖(로그인)이라 표준 KAV 가 정상 동작한다.
+    //   (daniel 07-18 표준 · check:keyboard 가 강제)
+    <KeyboardAvoidingView style={styles.wrap} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       {/* 타이틀 롱프레스(0.8s) = 심사용 히든 로그인 노출(App Store 리뷰어 전용 — SNS 전용 앱의 데모계정 접근, daniel 07-07) */}
       <Pressable onLongPress={() => setReviewMode(true)} delayLongPress={800}>
         <Text style={styles.title}>{t('appName')}</Text>
@@ -157,7 +161,7 @@ export function AuthScreen() {
         <Text style={styles.naverN}>N</Text>
         <Text style={styles.naverText}>{t('auth.naver')}</Text>
       </PressableScale>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
