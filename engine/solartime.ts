@@ -80,7 +80,14 @@ export function equationOfTime(y: number, m: number, d: number): number {
  * @param hh/mi 출생 시·분 — 1987~88 DST 경계(02:00/03:00) 정밀 판정용. 생략 시 자정(00:00) 가정.
  */
 export function trueSolarOffsetMin(input: ChartInput, y: number, m: number, d: number, hh = 0, mi = 0): number {
-  return dstOffsetMin(y, m, d, hh, mi)
-    + (lonOf(input.birthPlace, input.birthLon) - kstMeridianAt(y, m, d)) * 4
+  const lon = lonOf(input.birthPlace, input.birthLon);
+  // ★해외 출생 지원(daniel 07-18): 한반도 경도대(124~132°E)면 한국 공인 자오선(시대별), 그 외는 해외로 보고
+  //   경도를 15°(=1시간) 단위로 근사한 그 지역 표준시 자오선을 쓴다(예: LA −118→−120=PST, 도쿄 139.7→135).
+  //   기존엔 표준자오선을 한국(135)으로 고정해 해외가 크게 틀어졌다(주석 '확장 슬롯' 실현). 유저 입력=출생지 로컬 표준시 가정.
+  const isKorea = lon >= 124 && lon <= 132;
+  const meridian = isKorea ? kstMeridianAt(y, m, d) : Math.round(lon / 15) * 15;
+  // 서머타임 환원은 한국 기록만 보유 → 해외는 미적용(그 나라 DST 는 확장 슬롯). 균시차(equationOfTime)는 위치 무관 동일.
+  return (isKorea ? dstOffsetMin(y, m, d, hh, mi) : 0)
+    + (lon - meridian) * 4
     + equationOfTime(y, m, d);
 }
