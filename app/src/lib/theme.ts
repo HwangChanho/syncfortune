@@ -216,7 +216,7 @@ export const space = (n: number) => n * 4;
 // ── 그림자 ───────────────────────────────────────────────────
 // ★Apple 디자인(daniel 2026-07-15): 그림자 절제 — 순백 카드 vs 시스템 그레이 배경의 '대비'로 깊이(iOS HIG). 아주 미묘한 그림자만.
 export const shadow = {
-  card: { shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 1 },
+  card: { shadowColor: '#000', shadowOpacity: 0.13, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 4 }, // 음영 강화(daniel 07-18): 라이트 배경(#F2F2F7)에 카드가 묻혀 경계 안 보임 → 카드 개별 인지되게 진하게
   soft: { shadowColor: '#000', shadowOpacity: 0.03, shadowRadius: 4, shadowOffset: { width: 0, height: 1 }, elevation: 1 },
 } as const;
 
