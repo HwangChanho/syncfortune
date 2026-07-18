@@ -15,6 +15,7 @@ import { useEffect, useRef, useMemo, useState, useCallback } from 'react';
 import { supabase } from '../../lib/supabase';
 import { ChartPicker } from '../../components/ChartPicker';
 import { SelfUnderstandingHero } from '../../components/SelfUnderstandingHero'; // ★4.3: 홈 최상단 자기이해 히어로(성향분석 첫 경험)
+import { PersonaTypeHero } from '../../components/PersonaTypeHero'; // ★홈 주인공 ①: 성격유형 120종(daniel 07-18 IA 개편)
 import { TigerMascot } from '../../components/TigerMascot'; // 아기 백호 브랜드 마스코트(모션) — 홈 헤더 타이틀 좌측
 import { getDailyFortune, dailyHeadline, dailyPreview, scoreFlow } from '../../lib/content/dailyFortune';
 import { ScoreFlowGraph } from '../../components/ScoreFlowGraph'; // 오늘 기운 점수 흐름 그래프(홈, daniel 07-13)
@@ -177,6 +178,10 @@ export default function Home() {
             <Text style={{ color: colors.ju, fontWeight: '700', fontSize: fs(13) }}>이어보기 ›</Text>
           </PressableScale>
         )))}
+
+        {/* ★홈 주인공 ①: 나의 성격유형 120종(daniel 2026-07-18) — 카드 그리드를 '풀이' 탭으로 보내고 이 자리를 주인공으로.
+            일간10×월지12 온디바이스 결정론(API 0). 명식이 없으면 스스로 렌더하지 않는다(아래 히어로가 등록 유도). */}
+        <PersonaTypeHero reloadKey={reloadKey} />
 
         {/* ★자기이해 히어로(App Store 4.3 · daniel 2026-07-12) — 홈 첫 화면을 '운세 목록'이 아니라 '나를 분석하는 도구'로 각인.
             에겐·테토 성향을 온디바이스 즉시 산출해 게이지+한줄요약 + 성격유형/MBTI/특징 클러스터. 오늘 기운 배너 *위*. */}

@@ -219,6 +219,15 @@ const ko = {
   month: { title: '이달의 운세', monthPillar: '이번 달 기운', flowTitle: '이번 달 흐름 (상순·중순·하순)', note: '이번 달의 큰 흐름이에요. 구체적인 날은 오늘의 운세에서 봐요.', heroSub: '이번 달 월건으로 보는 흐름', generating: '이번 달 흐름을 풀어내는 중…', gateTitle: '이달의 운세 보기', gateDesc: '타고난 사주에 지금의 큰 흐름·올해·이번 달 기운을 더해, 이달 생길 수 있는 일과 대처를 풀어 드려요.', seePremium: '이달의 운세 보기' },
   nav: { home: '홈', contents: '풀이', community: '커뮤니티', coach: '코치', market: '마켓' },
   contents: { sub: '보고 싶은 주제를 골라 보세요' }, // 하단탭 '풀이'(콘텐츠 목록) 화면 서브타이틀
+  // 성격유형 120종(홈 주인공 · daniel 07-18). ⚠️유형명·요약 본문은 engine/personaType.ts 가 만들며 현재 한국어 고정 —
+  //   여기 키는 UI 라벨만 다국어. 본문 다국어화는 엔진 어휘 테이블(22항목) 번역이 선행돼야 한다(백로그).
+  persona120: {
+    kicker: '나의 성격유형', count: '120종 중', more: '자세히 보기',
+    title: '나의 성격유형', sub: '일간 10 × 월지 12 = 120가지 중 나는 어떤 유형일까',
+    empty: '명식을 등록하면 120가지 중 내 유형을 보여드려요.',
+    axisStem: '나라는 재료', axisSeason: '내가 놓인 계절', axisGyeok: '삶의 무게중심',
+    note: '※ 일간(나 자신)과 월지(태어난 계절)로 나눈 120가지 결이에요. 타고난 결을 보는 것이라 좋고 나쁨이 아니고, 같은 유형이어도 나머지 글자와 지금 운에 따라 쓰임이 달라져요.',
+  },
   market: { intro: '이용권을 적용할 명식을 고른 뒤, 보고 싶은 풀이를 누르세요.', applyTo: '적용할 명식', openApply: '열기', noChart: '저장된 명식이 없어요', have: '보유 {{n}}장', owned: '보유', notOwned: '미보유', buy: '구매', note: '풀이는 명식별로 저장돼요. 무료 이용권(쿠폰)은 아래에서 등록하세요.', doneTitle: '구매 완료', doneMsg: '이용권이 지급되었어요.', payPending: '결제 준비 중', buyFailTitle: '구매 실패' },
   dayPillar: {
     title: '일주론', sub: '태어난 날의 간지(일주)로 보는 타고난 기질이에요.',
@@ -469,6 +478,13 @@ const en = {
   month: { title: 'Monthly Fortune', monthPillar: "This month's energy", flowTitle: "This month's flow (early · mid · late)", note: "The broad flow for this month. For specific days, see the Daily Fortune.", heroSub: "The flow of this month's energy", generating: "Reading this month's flow…", gateTitle: "View This Month's Fortune", gateDesc: "We combine the nature you were born with, the big flow you're in now, this year, and this month's energy to share what may come up this month and how to handle it.", seePremium: "View This Month's Fortune" },
   nav: { home: 'Home', contents: 'Readings', community: 'Community', coach: 'Coach', market: 'Market' },
   contents: { sub: 'Pick a topic you want to explore' },
+  persona120: {
+    kicker: 'My personality type', count: 'of 120', more: 'See details',
+    title: 'My personality type', sub: '10 day stems × 12 month branches = 120 types',
+    empty: 'Register your chart to see which of the 120 types you are.',
+    axisStem: 'What I am made of', axisSeason: 'The season I was born into', axisGyeok: 'Where my life leans',
+    note: '※ 120 textures divided by day stem (yourself) and month branch (the season you were born into). This is about your natural grain, not good or bad — the same type plays out differently depending on your other characters and current cycle.',
+  },
   market: { intro: 'Pick the chart to apply to, then tap a reading.', applyTo: 'Apply to', openApply: 'Open', noChart: 'No saved chart', have: 'You have {{n}}', owned: 'Owned', notOwned: 'Not owned', buy: 'Buy', note: 'Readings are saved per chart. Redeem free passes (coupons) below.', doneTitle: 'Purchased', doneMsg: 'Your pass has been added.', payPending: 'Payment not ready', buyFailTitle: 'Purchase failed' },
   dayPillar: {
     title: 'Day Pillar', sub: 'Your innate nature, seen through your birth-day pillar (ilju).',
@@ -719,6 +735,13 @@ const ja = {
   month: { title: '今月の運勢', monthPillar: '今月の気', flowTitle: '今月の流れ（上旬·中旬·下旬）', note: '今月の大きな流れです。具体的な日は今日の運勢で。', heroSub: '今月のめぐりで読む流れ', generating: '今月の流れを読み解いています…', gateTitle: '今月の運勢を見る', gateDesc: '生まれ持った気質に、いまの大きな流れ・今年・今月のめぐりを重ねて、今月起こりそうなことと対処の仕方をお伝えします。', seePremium: '今月の運勢を見る' },
   nav: { home: 'ホーム', contents: '占い', community: 'コミュニティ', coach: 'コーチ', market: 'マーケット' },
   contents: { sub: '見たいテーマを選んでください' },
+  persona120: {
+    kicker: '私の性格タイプ', count: '120種のうち', more: '詳しく見る',
+    title: '私の性格タイプ', sub: '日干10 × 月支12 = 120タイプのうち私は',
+    empty: '命式を登録すると120タイプの中からあなたのタイプをお見せします。',
+    axisStem: '私という素材', axisSeason: '私が置かれた季節', axisGyeok: '人生の重心',
+    note: '※ 日干(自分自身)と月支(生まれた季節)で分けた120の質です。持って生まれた質を見るもので良し悪しではなく、同じタイプでも他の字や今の運によって使われ方が変わります。',
+  },
   market: { intro: '適用する命式を選んでから、見たい鑑定をタップしてください。', applyTo: '適用する命式', openApply: '開く', noChart: '保存された命式がありません', have: '保有 {{n}}枚', owned: '保有', notOwned: '未保有', buy: '購入', note: '鑑定は命式ごとに保存されます。無料チケット（クーポン）は下で登録。', doneTitle: '購入完了', doneMsg: 'チケットが付与されました。', payPending: '決済準備中', buyFailTitle: '購入失敗' },
   dayPillar: {
     title: '日柱論', sub: '生まれた日の干支（日柱）でみる、生まれもった気質です。',

@@ -28,6 +28,21 @@ export type PersonaType = {
   season: string;       // 월지 계절
   gyeok: TenGod | '?';  // 격(월지 본기 십신) — R55
   imagePrompt: string;  // 120장 이미지 생성용 프롬프트 씨앗(scripts/persona-images)
+  dayStem: string;      // 일간 글자(폴백 카드에 크게 표시 — 이미지 120장 생성 전까지의 시각 앵커)
+  monthBranch: string;  // 월지 글자(위와 같음)
+  /**
+   * 상세 화면이 쓰는 **조합 원재료** — 3축(일간 물상 / 월지 계절 / 격)을 따로 보여주기 위한 것.
+   * ★상세 화면에서 명리 어휘를 새로 지어내지 않으려고 노출한다. 여기 담긴 문구는 전부 아래
+   *   STEM·BRANCH·GYEOK 22개 항목에서 그대로 온 값이다(= daniel 검수 대상이 22개로 유지된다).
+   */
+  parts: {
+    stemImage: string;  // 일간 물상('벼린 칼')
+    stemTrait: string;  // 일간 기질 문장
+    stemTone: string;   // 일간 결('예리하고 정갈한')
+    seasonMood: string; // 월지 계절 기운
+    gyeokLabel: string; // 격 이름표('기회') — 격을 못 구하면 빈 문자열
+    gyeokAxis: string;  // 격의 무게중심 문장 — 격을 못 구하면 빈 문자열
+  };
 };
 
 // ── ① 일간 물상(R23) ─────────────────────────────────────────────────────
@@ -103,6 +118,13 @@ export function personaOf(dayStem: Stem, monthBranch: Branch, gyeok?: string): P
     element: s.elem, season: b.season, gyeok: (gyeok as TenGod) ?? '?',
     // 이미지 생성 씨앗 — 주 피사체(일간 물상) + 배경(월지 계절). scripts 가 톤 레시피를 덧붙인다.
     imagePrompt: `${s.art}, ${b.scene}, oriental ink and gold accent, mystical, no text`,
+    dayStem, monthBranch,
+    // 상세 화면용 원재료(3축을 따로 렌더) — 전부 위 22개 항목에서 온 값. 격이 없으면 격 칸만 빈 문자열.
+    parts: {
+      stemImage: s.image, stemTrait: s.trait, stemTone: s.tone,
+      seasonMood: b.mood,
+      gyeokLabel: g?.label ?? '', gyeokAxis: g?.axis ?? '',
+    },
   };
 }
 
