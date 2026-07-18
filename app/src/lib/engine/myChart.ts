@@ -308,6 +308,17 @@ export async function updateChart(id: string, input: any): Promise<void> {
   pushChartsDebounced(); // 계정 동기화
 }
 
+/** 특정 relation(카테고리)의 명식들을 다른 relation 으로 일괄 변경 — 카테고리 삭제 시 소속 명식 → '기타'(daniel 2026-07-18). */
+export async function reassignRelation(from: string, to: string): Promise<void> {
+  const charts = await listCharts();
+  let changed = false;
+  const next = charts.map((c) => {
+    if ((c.relation || 'self') === from) { changed = true; return { ...c, relation: to }; }
+    return c;
+  });
+  if (changed) { await setRaw(KEY, JSON.stringify(next)); notifyRepChange(); pushChartsDebounced(); } // 저장 + 전역 알림 + 계정 동기화
+}
+
 /** 명식 삭제. 대표를 지우면 남은 첫 명식이 대표가 된다. */
 export async function deleteChart(id: string): Promise<void> {
   const charts = await listCharts();

@@ -15,9 +15,9 @@ import { colors, radius, space, shadow, font } from '../lib/theme';
 import { SIJIN, formatBirthDate } from '../lib/engine/sijin';
 import { trueSolarOffsetMin } from '@engine/solartime'; // 진태양시 보정(거주지 경도·서머타임·균시차) — 경계시 경고용
 import { BirthPlacePicker } from '../components/BirthPlacePicker';
+import { getCategories, addCategory, removeCategory, OTHER_CATEGORY, isRemovable } from '../lib/core/categories'; // ★카테고리 관리(생성·삭제·명식 재배치·daniel 07-18)
+import { Alert } from '../lib/ui/alert'; // 카테고리 삭제 확인
 
-// 관계 프리셋 — 'self'(본인)은 내 차트 기준. 마지막 '직접입력'은 자유 텍스트 모드 트리거.
-const RELATION_PRESETS = ['self', '가족', '지인', '연인', '관심', '반려동물', '공인'] as const;
 
 // defaultRelation/submitLabel = 궁합 상대 등록 등 재사용 시 기본 관계·CTA 문구 주입(옵션, 기존 호출 영향 0).
 export function ChartRegisterScreen({ onSubmit, defaultRelation, submitLabel, showMakeRep = true, initial, autoSave, onAutoSave }: { onSubmit: (input: any) => void; defaultRelation?: string; submitLabel?: string; showMakeRep?: boolean; initial?: any; autoSave?: boolean; onAutoSave?: (input: any) => void }) {
@@ -42,7 +42,8 @@ export function ChartRegisterScreen({ onSubmit, defaultRelation, submitLabel, sh
   const [birthPlaceLon, setBirthPlaceLon] = useState<number | null>(initial?.birthLon ?? null); // 진태양시 경도(ADR-008 준비)
   const [birthPlaceLat, setBirthPlaceLat] = useState<number | null>(initial?.birthLat ?? null); // 점성술 상승궁 위도(daniel: 출생지에서 추출)
   const [relation, setRelation] = useState<string>(initial?.relation ?? defaultRelation ?? 'self');
-  const [relationCustom, setRelationCustom] = useState(false); // 직접입력 모드
+  const [relationCustom, setRelationCustom] = useState(false); // 신규 카테고리 입력 모드
+  const [cats, setCats] = useState<string[]>(() => getCategories()); // 관리 카테고리 목록(프리셋+커스텀+기타·self 제외)
   const [makeRep, setMakeRep] = useState(false); // 이 명식을 대표로 설정(register 전용)
   // 풀이 grounding 기본정보(선택, daniel) — 하는 일·관계상태·관심/고민·메모. 입력 시 통변이 더 정확(특히 R25: 현재 배우자 유무가 연애·결혼·궁합 풀이를 좌우).
   const [job, setJob] = useState(initial?.context?.job ?? '');
@@ -61,6 +62,31 @@ export function ChartRegisterScreen({ onSubmit, defaultRelation, submitLabel, sh
 
   function pickSijin(i: number) { setSijinIdx(i); setExactH(''); setExactM(''); setSijinOpen(false); } // 시진/모름 선택 = 정확시각 해제
   function confirmExact() { if (exactStr) { setSijinIdx(-1); setSijinOpen(false); } }                 // 정확시각 확정(시진 무시)
+
+  // ── 카테고리 관리(daniel 07-18): 신규 생성 → 목록·선택 반영 / 길게 눌러 삭제 → 소속 명식 '기타'로 ──
+  async function addNewCat() {
+    const n = relation.trim();
+    if (!n) return;
+    await addCategory(n);
+    setCats(getCategories());
+    setRelationCustom(false);
+    setRelation(n); // 방금 만든 카테고리를 이 명식에 선택
+  }
+  function confirmRemoveCat(r: string) {
+    if (!isRemovable(r)) return; // self·기타는 삭제 불가
+    Alert.alert(
+      t('register.catDeleteTitle', '카테고리 삭제'),
+      t('register.catDeleteMsg', `‘${r}’ 카테고리를 삭제할까요? 이 카테고리의 명식들은 ‘기타’로 옮겨집니다.`),
+      [
+        { text: t('common.cancel', '취소'), style: 'cancel' },
+        { text: t('common.delete', '삭제'), style: 'destructive', onPress: async () => {
+          await removeCategory(r);
+          setCats(getCategories());
+          if (relation === r) setRelation(OTHER_CATEGORY); // 선택 중이던 카테고리면 기타로
+        } },
+      ],
+    );
+  }
 
   // 경계시 보정(daniel) — 정확시각 입력 시 진태양시 = 시계 + 거주지 보정. 시진 경계 ±20분이면 경고(시주가 바뀔 수 있음).
   const boundaryInfo = useMemo(() => {
@@ -150,28 +176,41 @@ export function ChartRegisterScreen({ onSubmit, defaultRelation, submitLabel, sh
         <Text style={styles.label}>{t('register.birthPlace')}</Text>
         <BirthPlacePicker value={birthPlace} onSelect={(p) => { setBirthPlace(p.name); setBirthPlaceLon(p.lon); setBirthPlaceLat(p.lat); }} />
 
-        {/* 관계 — 프리셋 칩 + 직접 입력(자유 텍스트) */}
+        {/* 관계(카테고리) — 본인 고정 + 관리 카테고리(길게 눌러 삭제) + 신규 생성. daniel 07-18 */}
         <Text style={styles.label}>{t('register.relation')}</Text>
         <View style={styles.chipRow}>
-          {RELATION_PRESETS.map((r) => {
+          {/* 본인(self) — 고정(삭제 불가) */}
+          <PressableScale key="self" style={[styles.chip, !relationCustom && relation === 'self' && styles.chipOn]}
+            onPress={() => { setRelationCustom(false); setRelation('self'); }}>
+            <Text style={!relationCustom && relation === 'self' ? styles.chipOnText : styles.chipText}>{t('register.selfLabel')}</Text>
+          </PressableScale>
+          {/* 관리 카테고리 — 탭 선택 / 길게 눌러 삭제(기타는 삭제 불가) */}
+          {cats.map((r) => {
             const on = !relationCustom && relation === r;
             return (
               <PressableScale key={r} style={[styles.chip, on && styles.chipOn]}
-                onPress={() => { setRelationCustom(false); setRelation(r); }}>
-                <Text style={on ? styles.chipOnText : styles.chipText}>{r === 'self' ? t('register.selfLabel') : r}</Text>
+                onPress={() => { setRelationCustom(false); setRelation(r); }}
+                onLongPress={() => confirmRemoveCat(r)}>
+                <Text style={on ? styles.chipOnText : styles.chipText}>{r}</Text>
               </PressableScale>
             );
           })}
-          {/* 직접입력 토글 */}
+          {/* 신규 카테고리 생성 */}
           <PressableScale style={[styles.chip, relationCustom && styles.chipOn]}
             onPress={() => { setRelationCustom(true); setRelation(''); }}>
-            <Text style={relationCustom ? styles.chipOnText : styles.chipText}>＋ {t('register.relationCustom')}</Text>
+            <Text style={relationCustom ? styles.chipOnText : styles.chipText}>＋ {t('register.newCategory', '새 카테고리')}</Text>
           </PressableScale>
         </View>
         {relationCustom && (
-          <TextInput style={[styles.input, { marginTop: space(2) }]} value={relation} onChangeText={setRelation}
-            placeholder={t('register.relationCustomPh')} placeholderTextColor={colors.inkFaint} autoFocus />
+          <View style={{ flexDirection: 'row', gap: space(2), marginTop: space(2) }}>
+            <TextInput style={[styles.input, { flex: 1 }]} value={relation} onChangeText={setRelation}
+              placeholder={t('register.newCategoryPh', '새 카테고리 이름')} placeholderTextColor={colors.inkFaint} autoFocus />
+            <PressableScale style={[styles.addCatBtn, !relation.trim() && styles.addCatBtnOff]} onPress={addNewCat} disabled={!relation.trim()}>
+              <Text style={styles.addCatBtnTx}>{t('common.add', '추가')}</Text>
+            </PressableScale>
+          </View>
         )}
+        {cats.length > 1 && !relationCustom && <Text style={styles.catHint}>{t('register.catHint', '카테고리를 길게 누르면 삭제돼요 (그 명식들은 기타로 이동)')}</Text>}
 
         {/* 내 상황(선택) — 풀이 grounding 기본정보. R25: 현재 배우자 유무가 연애·결혼·궁합 풀이를 좌우 */}
         <View style={styles.ctxBox}>
@@ -359,6 +398,11 @@ const styles = StyleSheet.create({
   },
   chipOn: { backgroundColor: colors.ju, borderColor: colors.ju },
   chipText: { color: colors.inkSoft, fontSize: 14 },
+  // 카테고리 신규 추가 버튼 + 삭제 힌트(daniel 07-18)
+  addCatBtn: { paddingHorizontal: space(4), justifyContent: 'center', borderRadius: radius.sm, backgroundColor: colors.ju },
+  addCatBtnOff: { backgroundColor: colors.line },
+  addCatBtnTx: { color: colors.bg, fontWeight: '700', fontSize: 14 },
+  catHint: { ...font.caption, color: colors.inkFaint, marginTop: space(2) },
   chipOnText: { color: colors.bg, fontSize: 14, fontWeight: '700' },
   // 세그먼트
   segment: { flexDirection: 'row', gap: space(2), marginTop: space(1) },
