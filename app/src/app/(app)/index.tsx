@@ -166,6 +166,12 @@ export default function Home() {
           </PressableScale>
         </View>
         <View style={styles.divider} />
+
+        {/* ★대표 명식 선택/전환 — 홈 **최상단**(daniel 2026-07-19 "홈도 가장 상단에 오게").
+            아래 히어로·오늘기운·운세가 전부 '지금 적용된 명식' 기준이라, 무엇을 보고 있는지가 먼저 보여야 한다.
+            전환 시 reloadKey 를 올려 아래 카드가 즉시 재계산된다. */}
+        <ChartPicker onChange={() => setReloadKey((k) => k + 1)} />
+
         {/* 통변 생성 진행률(daniel) — 여러 개 동시 풀이 가능 → route별 배너 여러 개. 탭=그 화면 이동 + 그 배너만 닫기. */}
         {gen.map((g) => (g.total > 0 && g.done >= g.total ? (
           // 완료(daniel 이슈13): '풀이 보기' — 탭하면 그 화면 이동 + 그 배너만 닫기(다른 풀이 배너는 유지).
@@ -263,8 +269,7 @@ export default function Home() {
           </>)}
         </View>
 
-        {/* 대표 명식 선택/전환 (등록한 다른 명식으로 변경) — 전환 시 오늘의 기운 즉시 재계산(daniel) */}
-        <ChartPicker onChange={() => setReloadKey((k) => k + 1)} />
+        {/* ※ChartPicker 는 위 최상단으로 이동(daniel 07-19) — 여기서 다시 그리지 않는다. */}
 
         {/* ★콘텐츠 카드 그리드는 하단탭 '풀이'(/contents)로 이동(daniel 07-18 IA 개편).
             여기서 목록을 다시 그리지 않는다 — 두 곳에 두면 카드 추가 시 드리프트가 난다. */}

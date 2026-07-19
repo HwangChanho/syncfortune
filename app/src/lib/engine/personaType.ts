@@ -46,18 +46,44 @@ export type PersonaType = {
 };
 
 // ── ① 일간 물상(R23) ─────────────────────────────────────────────────────
-//   image = 그 천간의 형상. tone = 기질 어휘. 이미지 생성 프롬프트의 주 피사체가 된다.
-const STEM: Record<Stem, { elem: string; image: string; chip: string; tone: string; trait: string; art: string }> = {
-  甲: { elem: '木', image: '큰 나무', chip: '곧음', tone: '곧고 위로 뻗는', trait: '시작하는 힘과 명분이 분명해 앞장서는 결', art: 'a tall straight ancient tree' },
-  乙: { elem: '木', image: '덩굴꽃', chip: '유연함', tone: '유연하게 감기는', trait: '부드럽게 파고들어 끝내 자리를 잡는 끈질긴 결', art: 'a slender flowering vine' },
-  丙: { elem: '火', image: '태양', chip: '밝음', tone: '밝고 널리 퍼지는', trait: '드러내고 비추는 힘이 커 사람이 모이는 결', art: 'a radiant sun over open sky' },
-  丁: { elem: '火', image: '등불', chip: '섬세함', tone: '따뜻하고 섬세한', trait: '가까운 곳을 깊이 밝히는 정교하고 다정한 결', art: 'a warm lantern flame in darkness' },
-  戊: { elem: '土', image: '큰 산', chip: '묵직함', tone: '두텁고 흔들리지 않는', trait: '버티고 품어 기준이 되어 주는 묵직한 결', art: 'a vast mountain ridge' },
-  己: { elem: '土', image: '기름진 밭', chip: '보살핌', tone: '낮고 부드럽게 품는', trait: '남을 키워 내며 실속을 챙기는 세심한 결', art: 'fertile terraced farmland' },
-  庚: { elem: '金', image: '무쇠 도끼', chip: '결단', tone: '단단하고 거침없는', trait: '끊고 밀어붙여 판을 정리하는 결단의 결', art: 'a forged iron blade' },
-  辛: { elem: '金', image: '벼린 칼', chip: '예리함', tone: '예리하고 정갈한', trait: '정밀하게 다듬어 값을 만드는 전문성의 결', art: 'a polished gemstone catching light' },
-  壬: { elem: '水', image: '큰 강', chip: '스케일', tone: '넓고 끊임없이 흐르는', trait: '멀리 보고 크게 굴리는 활동의 결', art: 'a wide flowing river at dusk' },
-  癸: { elem: '水', image: '이슬비', chip: '총명함', tone: '맑고 스며드는', trait: '조용히 살펴 속을 읽어 내는 총명의 결', art: 'soft rain on still water' },
+//   image = 그 천간의 형상. tone = 기질 어휘. art/char/symbol = 이미지 생성 재료.
+//
+// ★char/symbol (daniel 2026-07-19 "케릭터화 · 상징성 강하게" 확정 = D4 톤):
+//   성격유형 카드는 '사물 그림'이 아니라 **그 물상의 성격을 가진 인물 캐릭터**로 간다.
+//   · char   = 캐릭터 아키타입(어떤 사람인가). 천간 음양을 결에 반영 — 양간(甲丙戊庚壬)=당당·전면,
+//              음간(乙丁己辛癸)=섬세·정교. ★성별은 지정하지 않는다(사용자 성별과 무관해야 하므로).
+//   · symbol = 화면을 지배할 핵심 상징물. **따로 떼어 '크게'를 강제**하는 게 핵심 —
+//              캐릭터 묘사 안에 상징을 섞어 넣었더니 丙(태양)이 '그냥 붉은 머리 소녀'로 나왔다(실측 실패).
+//   ⚠️어휘는 시각 표현이라 명리 판정이 아니지만, 물상 해석은 R23 기반이므로 daniel 검수 슬롯이다.
+const STEM: Record<Stem, {
+  elem: string; image: string; chip: string; tone: string; trait: string; art: string;
+  char: string; symbol: string;
+}> = {
+  甲: { elem: '木', image: '큰 나무', chip: '곧음', tone: '곧고 위로 뻗는', trait: '시작하는 힘과 명분이 분명해 앞장서는 결', art: 'a tall straight ancient tree',
+        char: 'an upright noble guardian with a calm commanding presence', symbol: 'a great ancient tree with vast spreading branches' },
+  乙: { elem: '木', image: '덩굴꽃', chip: '유연함', tone: '유연하게 감기는', trait: '부드럽게 파고들어 끝내 자리를 잡는 끈질긴 결', art: 'a slender flowering vine',
+        char: 'a graceful supple figure with a quietly persistent air', symbol: 'lush flowering vines curling and blossoming' },
+  丙: { elem: '火', image: '태양', chip: '밝음', tone: '밝고 널리 퍼지는', trait: '드러내고 비추는 힘이 커 사람이 모이는 결', art: 'a radiant sun over open sky',
+        char: 'a radiant figure crowned with light, warm and outgoing', symbol: 'a blazing golden sun disc radiating rays' },
+  丁: { elem: '火', image: '등불', chip: '섬세함', tone: '따뜻하고 섬세한', trait: '가까운 곳을 깊이 밝히는 정교하고 다정한 결', art: 'a warm lantern flame in darkness',
+        char: 'a gentle attentive figure with a soft glowing warmth', symbol: 'a large ornate lantern with a living flame' },
+  戊: { elem: '土', image: '큰 산', chip: '묵직함', tone: '두텁고 흔들리지 않는', trait: '버티고 품어 기준이 되어 주는 묵직한 결', art: 'a vast mountain ridge',
+        char: 'a steadfast broad-shouldered figure, immovable and protective', symbol: 'a towering mountain ridge and great boulders' },
+  己: { elem: '土', image: '기름진 밭', chip: '보살핌', tone: '낮고 부드럽게 품는', trait: '남을 키워 내며 실속을 챙기는 세심한 결', art: 'fertile terraced farmland',
+        char: 'a nurturing warm figure with an unhurried caring air', symbol: 'golden ripening grain fields and fertile earth' },
+  庚: { elem: '金', image: '무쇠 도끼', chip: '결단', tone: '단단하고 거침없는', trait: '끊고 밀어붙여 판을 정리하는 결단의 결', art: 'a forged iron blade',
+        char: 'a resolute warrior figure with an unflinching gaze', symbol: 'a massive forged iron axe and sparking anvil' },
+  辛: { elem: '金', image: '벼린 칼', chip: '예리함', tone: '예리하고 정갈한', trait: '정밀하게 다듬어 값을 만드는 전문성의 결', art: 'a polished gemstone catching light',
+        char: 'an elegant precise figure with a refined poised bearing', symbol: 'a gleaming polished blade and brilliant cut gemstones' },
+  壬: { elem: '水', image: '큰 강', chip: '스케일', tone: '넓고 끊임없이 흐르는', trait: '멀리 보고 크게 굴리는 활동의 결', art: 'a wide flowing river at dusk',
+        char: 'a bold far-gazing voyager with a wide open bearing', symbol: 'a vast flowing river and surging waves' },
+  癸: { elem: '水', image: '이슬비', chip: '총명함', tone: '맑고 스며드는', trait: '조용히 살펴 속을 읽어 내는 총명의 결', art: 'soft rain on still water',
+        char: 'a serene perceptive mystic with quiet knowing eyes', symbol: 'fine silver rain, drifting mist and still water ripples' },
+};
+
+// 일간 오행 → 이미지 색조. 앱의 '일간 오행별 앱색'(2026-07-15 리디자인)과 같은 결로 맞춘다.
+const ELEM_COLOR: Record<string, string> = {
+  木: 'jade green', 火: 'warm crimson', 土: 'golden ochre', 金: 'silver white', 水: 'deep indigo',
 };
 
 /** 받침 유무로 목적격 조사(을/를) 선택 — '기회을/돌파을' 같은 비문 방지. */
@@ -116,8 +142,18 @@ export function personaOf(dayStem: Stem, monthBranch: Branch, gyeok?: string): P
     key: `${dayStem}${monthBranch}`,
     name, keywords, summary,
     element: s.elem, season: b.season, gyeok: (gyeok as TenGod) ?? '?',
-    // 이미지 생성 씨앗 — 주 피사체(일간 물상) + 배경(월지 계절). scripts 가 톤 레시피를 덧붙인다.
-    imagePrompt: `${s.art}, ${b.scene}, oriental ink and gold accent, mystical, no text`,
+    // 이미지 생성 씨앗(daniel 2026-07-19 확정 톤) — 캐릭터(일간) + 거대 상징(일간) + 배경(월지 계절).
+    //   ★두 가지가 실측 실패에서 나온 필수 조건이다:
+    //   ① 상징을 캐릭터 묘사와 **분리해 '거대하게'** 걸어야 한다 — 섞으면 丙(태양)이 '그냥 소녀'가 된다.
+    //   ② **허리 위 구도 + 소매 안에 손** — SDXL 은 손가락·발을 자주 기형으로 그린다(daniel: "막 손가락 6개").
+    //      발은 프레임 밖으로 빼서 원천 제거하고, 손은 한복 긴 소매에 감춘다(한복이라 자연스럽다).
+    imagePrompt: `stylized oriental fantasy character portrait, ${s.char}, wearing hanbok-inspired robes, `
+      // ※symbol 은 이미 관사와 크기 형용사(great/blazing/towering/massive/vast…)를 품고 있다.
+      //   앞에 'a huge' 를 덧대면 'a huge a blazing …' 처럼 관사가 겹치므로 그대로 쓰고 위치만 지정한다.
+      + `${s.symbol} looming large behind them, ${b.scene} softly in the background, `
+      + `${ELEM_COLOR[s.elem]} color atmosphere with gold accents, `
+      + `upper body composition from the waist up, hands hidden inside long sleeves, `
+      + `painterly digital art, centered single character, no text`,
     dayStem, monthBranch,
     // 상세 화면용 원재료(3축을 따로 렌더) — 전부 위 22개 항목에서 온 값. 격이 없으면 격 칸만 빈 문자열.
     parts: {

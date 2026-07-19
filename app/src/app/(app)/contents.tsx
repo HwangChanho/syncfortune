@@ -11,13 +11,16 @@
 // 목록 데이터 = lib/content/contentSections.ts / 렌더·진입 게이트 = components/ContentGrid.tsx (단일 출처).
 // 이 파일은 화면 껍데기(스크롤·타이틀)만 담당한다.
 // ─────────────────────────────────────────────────────────────────────────
+import { useState } from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { ContentGrid } from '../../components/ContentGrid';
+import { ChartPicker } from '../../components/ChartPicker';
 import { colors, space, font } from '../../lib/theme';
 
 export default function ContentsScreen() {
   const { t } = useTranslation();
+  const [, setReloadKey] = useState(0); // 명식 전환 시 그리드(배지·티저) 재계산 트리거
   return (
     // 전역 ContentBackdrop(오행 배경색)이 비치게 투명(홈과 동일 처리).
     <View style={styles.bg}>
@@ -25,6 +28,10 @@ export default function ContentsScreen() {
         <Text style={styles.title}>{t('nav.contents', '풀이')}</Text>
         <Text style={styles.sub}>{t('contents.sub', '보고 싶은 주제를 골라 보세요')}</Text>
         <View style={styles.divider} />
+        {/* ★대표 명식 — 이 탭에서도 최상단(daniel 2026-07-19 "풀이탭에도 명식 제일 상단에").
+            카드 배지('풀이있음'·'무제한')와 티저가 전부 적용 명식 기준이라, 어떤 명식으로 보고 있는지가 먼저 와야 한다.
+            ※ContentGrid 는 자체적으로 명식 변경(subscribeRepChange)을 구독해 재계산한다. */}
+        <ChartPicker onChange={() => setReloadKey((k) => k + 1)} />
         <ContentGrid />
       </ScrollView>
     </View>

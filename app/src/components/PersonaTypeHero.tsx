@@ -18,7 +18,7 @@ import { PressableScale } from './PressableScale';
 import { loadRepChart } from '../lib/engine/myChart';
 import { computeChart } from '../lib/engine/engine';
 import { personaOf, type PersonaType } from '../lib/engine/personaType';
-import { elementColor, elementText } from '../lib/engine/ohaeng';
+import { stemElement, branchElement, elementColor, elementText } from '../lib/engine/ohaeng';
 import { colors, radius, space, shadow, font } from '../lib/theme';
 import { useFontScale } from '../lib/ui/fontScale';
 import type { Stem, Branch } from '@spec/chart';
@@ -58,9 +58,10 @@ export function PersonaTypeHero({ reloadKey }: { reloadKey?: number }) {
   //   같은 유도를 두 번 쌓지 않기 위함(daniel: 홈이 안내문으로 도배되지 않게).
   if (!persona) return null;
 
-  const el = persona.element;                      // 일간 오행 — 간지 네모 색
-  const bg = elementColor[el] ?? colors.ju;
-  const fg = elementText[el] ?? '#15132E';
+  // ★글자마다 자기 오행색(daniel 2026-07-19 "글자별로 색이 안맞아") — 앞 글자 색을 뒤 글자에도 쓰고
+  //   투명도만 달리하던 버그. 일간은 천간 오행, 월지는 **지지 오행**으로 각각 칠한다(만세력·오늘의 기운과 동일 규칙).
+  const stemEl = stemElement(persona.dayStem);
+  const branchEl = branchElement(persona.monthBranch);
   return (
     <PressableScale style={styles.card} onPress={() => router.push('/personatype')}>
       {/* 머리말 + 희소성(120종 중 하나) — '나에 대한 분석'이라는 프레이밍(App Store 4.3 결) */}
@@ -72,8 +73,8 @@ export function PersonaTypeHero({ reloadKey }: { reloadKey?: number }) {
       <View style={styles.row}>
         {/* 폴백 시각 = 일간·월지 오행색 네모(만세력·오늘의 기운과 같은 언어). 이미지 120장 생기면 이 View 를 교체. */}
         <View style={styles.gzRow}>
-          <View style={[styles.gzBox, { backgroundColor: bg }]}><Text style={[styles.gzTx, { color: fg }]}>{persona.dayStem}</Text></View>
-          <View style={[styles.gzBox, { backgroundColor: bg, opacity: 0.82 }]}><Text style={[styles.gzTx, { color: fg }]}>{persona.monthBranch}</Text></View>
+          <View style={[styles.gzBox, { backgroundColor: elementColor[stemEl] }]}><Text style={[styles.gzTx, { color: elementText[stemEl] }]}>{persona.dayStem}</Text></View>
+          <View style={[styles.gzBox, { backgroundColor: elementColor[branchEl] }]}><Text style={[styles.gzTx, { color: elementText[branchEl] }]}>{persona.monthBranch}</Text></View>
         </View>
         <View style={styles.titleCol}>
           <Text style={[styles.name, { fontSize: fs(19) }]} numberOfLines={2}>{persona.name}</Text>

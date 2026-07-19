@@ -13,7 +13,7 @@ import { useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { loadMyChart } from '../../lib/engine/myChart';
 import { personaFromRepChart } from '../../components/PersonaTypeHero'; // 명식 → 유형 산출(홈 히어로와 동일 경로 = 정합)
-import { elementColor, elementText } from '../../lib/engine/ohaeng';
+import { stemElement, branchElement, elementColor, elementText } from '../../lib/engine/ohaeng';
 import { bgSource, colors, radius, space, shadow, font } from '../../lib/theme';
 import { useFontScale } from '../../lib/ui/fontScale';
 import { ContentHero } from '../../components/SpecialContentScreen';
@@ -36,8 +36,9 @@ export default function PersonaTypeScreen() {
   }, []));
 
   const p = useMemo(() => (me ? personaFromRepChart(me) : null), [me]);
-  const bg = p ? (elementColor[p.element] ?? colors.ju) : colors.ju;
-  const fg = p ? (elementText[p.element] ?? '#15132E') : '#15132E';
+  // ★글자마다 자기 오행색(daniel 2026-07-19) — 일간=천간 오행 / 월지=지지 오행. 앞 글자 색을 뒤에 재사용하지 않는다.
+  const stemEl = p ? stemElement(p.dayStem) : '土';
+  const branchEl = p ? branchElement(p.monthBranch) : '土';
 
   // 3축 카드 — 일간(나라는 재료) / 월지(내가 놓인 계절) / 격(삶의 무게중심).
   //   격은 못 구할 수 있어(구버전 차트) 값이 있을 때만 넣는다 — 없는 걸 지어내지 않는다.
@@ -66,8 +67,8 @@ export default function PersonaTypeScreen() {
               <View style={styles.typeCard}>
                 {/* 간지 네모 2글자 = 일간·월지(만세력·오늘의 기운과 같은 시각 언어). 이미지 120장 생기면 이 자리 교체. */}
                 <View style={styles.gzRow}>
-                  <View style={[styles.gzBox, { backgroundColor: bg }]}><Text style={[styles.gzTx, { color: fg }]}>{p.dayStem}</Text></View>
-                  <View style={[styles.gzBox, { backgroundColor: bg, opacity: 0.82 }]}><Text style={[styles.gzTx, { color: fg }]}>{p.monthBranch}</Text></View>
+                  <View style={[styles.gzBox, { backgroundColor: elementColor[stemEl] }]}><Text style={[styles.gzTx, { color: elementText[stemEl] }]}>{p.dayStem}</Text></View>
+                  <View style={[styles.gzBox, { backgroundColor: elementColor[branchEl] }]}><Text style={[styles.gzTx, { color: elementText[branchEl] }]}>{p.monthBranch}</Text></View>
                 </View>
                 <Text style={[styles.typeName, { fontSize: fs(24) }]}>{p.name}</Text>
                 <View style={styles.chips}>
