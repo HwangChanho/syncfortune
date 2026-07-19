@@ -142,17 +142,17 @@ export function personaOf(dayStem: Stem, monthBranch: Branch, gyeok?: string): P
     key: `${dayStem}${monthBranch}`,
     name, keywords, summary,
     element: s.elem, season: b.season, gyeok: (gyeok as TenGod) ?? '?',
-    // 이미지 생성 씨앗(daniel 2026-07-19 확정 톤) — 캐릭터(일간) + 거대 상징(일간) + 배경(월지 계절).
-    //   ★두 가지가 실측 실패에서 나온 필수 조건이다:
-    //   ① 상징을 캐릭터 묘사와 **분리해 '거대하게'** 걸어야 한다 — 섞으면 丙(태양)이 '그냥 소녀'가 된다.
-    //   ② **허리 위 구도 + 소매 안에 손** — SDXL 은 손가락·발을 자주 기형으로 그린다(daniel: "막 손가락 6개").
-    //      발은 프레임 밖으로 빼서 원천 제거하고, 손은 한복 긴 소매에 감춘다(한복이라 자연스럽다).
-    imagePrompt: `stylized oriental fantasy character portrait, ${s.char}, wearing hanbok-inspired robes, `
-      // ※symbol 은 이미 관사와 크기 형용사(great/blazing/towering/massive/vast…)를 품고 있다.
-      //   앞에 'a huge' 를 덧대면 'a huge a blazing …' 처럼 관사가 겹치므로 그대로 쓰고 위치만 지정한다.
-      + `${s.symbol} looming large behind them, ${b.scene} softly in the background, `
+    // 이미지 생성 씨앗(daniel 2026-07-19 확정 톤 = 동양 판타지 인물 흉상). 실측 실패 3건에서 도출한 필수 조건:
+    //   ① **구도를 맨 앞에** 둔다 — 뒤에 두면 SDXL 이 무시한다(허리위 지시가 씹혀 전신·팔벌린 그림이 나왔다).
+    //   ② **흉상(가슴 위) 크롭** — 손·발을 프레임 밖으로 빼 기형을 원천 차단(daniel "막 손가락 6개").
+    //      허리 위 + 소매 감춤도 시도했으나, 도끼·칼을 '드는' 유형에서 손이 다시 나와 뭉개졌다(庚申 실측).
+    //   ③ 상징은 **손에 들리지 않고 배경에 크게 떠 있게** — 들게 하면 손이 필연적으로 등장한다.
+    //      또 캐릭터 묘사에 상징을 섞으면 상징이 묻힌다(丙=태양이 '그냥 소녀'로 나온 실패).
+    //   ※symbol 은 이미 관사·크기 형용사(great/blazing/towering…)를 품으므로 'a huge' 를 덧대지 않는다(관사 중복).
+    imagePrompt: `close-up bust portrait, head and shoulders only, tightly cropped at the chest, `
+      + `stylized oriental fantasy character, ${s.char}, wearing hanbok-inspired robes, `
+      + `${s.symbol} floating large in the background behind them, ${b.scene} softly beyond, `
       + `${ELEM_COLOR[s.elem]} color atmosphere with gold accents, `
-      + `upper body composition from the waist up, hands hidden inside long sleeves, `
       + `painterly digital art, centered single character, no text`,
     dayStem, monthBranch,
     // 상세 화면용 원재료(3축을 따로 렌더) — 전부 위 22개 항목에서 온 값. 격이 없으면 격 칸만 빈 문자열.
@@ -163,6 +163,19 @@ export function personaOf(dayStem: Stem, monthBranch: Branch, gyeok?: string): P
     },
   };
 }
+
+/**
+ * 이미지 생성용 공통 negative 프롬프트 — imagePrompt 와 **한 쌍**이라 여기 함께 둔다.
+ * (프롬프트만 정본화하고 negative 를 스크립트에 흘리면, 나중에 재생성할 때 손 기형이 다시 살아난다.)
+ * 손·발 항목이 앞쪽에 몰려 있는 이유: 흉상 크롭으로 1차 차단하고 여기서 2차로 막는 이중 방어.
+ */
+export const IMAGE_NEGATIVE_PROMPT =
+  'hands, fingers, extra fingers, six fingers, fused fingers, malformed hands, bad hands, '
+  + 'poorly drawn hands, mutated hands, extra limbs, extra arms, deformed feet, bad feet, '
+  + 'bad anatomy, disfigured, long neck, full body, legs, feet, '
+  + 'text, letters, words, numbers, watermark, signature, logo, '
+  + 'blurry, low quality, cluttered, multiple characters, crowd, nsfw, photo, 3d render, '
+  + 'tarot card, crescent moon, zodiac symbols';
 
 /** 120종 전체 키(이미지 배치 생성·관리자 화면용). */
 export function allPersonaKeys(): string[] {

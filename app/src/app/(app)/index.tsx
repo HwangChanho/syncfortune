@@ -32,6 +32,7 @@ import { useFontScale } from '../../lib/ui/fontScale';
 import { BusyOverlay } from '../../components/BusyOverlay'; // 로그아웃 등 긴 콜백 로딩
 import { PressableScale } from '../../components/PressableScale';
 import { appLang } from '../../lib/i18n';
+import { useHomeOrder } from '../../lib/ui/homeOrder'; // 홈 블록 배치 순서(계정별 저장·daniel 07-19)
 
 // 주의 등급 라벨·색 — dailyEnergy.caution(점수 구간)에 붙는 이름표.
 //   ★'조심'에 빨강을 쓰지 않는다(§4 부정 증폭 금지) — 골드/중립 톤으로 낮춰 표시한다.
@@ -59,6 +60,7 @@ export default function Home() {
     : Math.min(95, Math.max(3, Math.round(((Date.now() - startedAt) / 20000) * 100)));
   const { session, isRegistered } = useAuth();
   const { isPremium } = useSubscription();
+  const { order } = useHomeOrder(); // 홈 블록 순서(계정별 — 설정에서 변경)
   const [dayOffset, setDayOffset] = useState(0); // 0=오늘·1=내일(오늘의 기운 카드 토글)
   // 날짜 키 — 홈을 켜둔 채 자정이 지나도 갱신되게(③). 포커스·앱 복귀 시 재확인.
   const [dateKey, setDateKey] = useState(() => new Date().toDateString());
@@ -180,12 +182,8 @@ export default function Home() {
         </View>
         <View style={styles.divider} />
 
-        {/* ★대표 명식 선택/전환 — 홈 **최상단**(daniel 2026-07-19 "홈도 가장 상단에 오게").
-            아래 히어로·오늘기운·운세가 전부 '지금 적용된 명식' 기준이라, 무엇을 보고 있는지가 먼저 보여야 한다.
-            전환 시 reloadKey 를 올려 아래 카드가 즉시 재계산된다. */}
-        <ChartPicker onChange={() => setReloadKey((k) => k + 1)} />
-
-        {/* 통변 생성 진행률(daniel) — 여러 개 동시 풀이 가능 → route별 배너 여러 개. 탭=그 화면 이동 + 그 배너만 닫기. */}
+        {/* 통변 생성 진행률(daniel) — 여러 개 동시 풀이 가능 → route별 배너 여러 개. 탭=그 화면 이동 + 그 배너만 닫기.
+            ★이 배너는 '알림'이라 배치 순서 대상이 아니다(항상 최상단 고정). */}
         {gen.map((g) => (g.total > 0 && g.done >= g.total ? (
           // 완료(daniel 이슈13): '풀이 보기' — 탭하면 그 화면 이동 + 그 배너만 닫기(다른 풀이 배너는 유지).
           <PressableScale key={g.route} onPress={() => { clearGenProgress(g.route); router.navigate(g.route as any); }} style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.ju, borderRadius: radius.md, paddingVertical: space(2.5), paddingHorizontal: space(4), marginBottom: space(3), gap: space(2) }}>
@@ -199,29 +197,30 @@ export default function Home() {
           </PressableScale>
         )))}
 
-        {/* ★홈 주인공 ①: 나의 성격유형 120종(daniel 2026-07-18) — 카드 그리드를 '풀이' 탭으로 보내고 이 자리를 주인공으로.
-            일간10×월지12 온디바이스 결정론(API 0). 명식이 없으면 스스로 렌더하지 않는다(아래 히어로가 등록 유도). */}
-        <PersonaTypeHero reloadKey={reloadKey} />
-
-        {/* ※'오늘 기운' 별도 카드는 제거하고 아래 오늘/내일 배너에 통합(daniel 2026-07-19 "오늘의 기운이 겹쳐 둘이 통합해 아래꺼로").
-            같은 날 정보가 화면에 두 번 나오던 중복 해소 — 유형명·점수·등급·근거·신살 칩이 전부 배너 안으로 들어갔다. */}
-
-        {/* ★자기이해 히어로(App Store 4.3 · daniel 2026-07-12) — 홈 첫 화면을 '운세 목록'이 아니라 '나를 분석하는 도구'로 각인.
-            에겐·테토 성향을 온디바이스 즉시 산출해 게이지+한줄요약 + 성격유형/MBTI/특징 클러스터. 오늘 기운 배너 *위*. */}
-        <SelfUnderstandingHero reloadKey={reloadKey} />
-
-        {/* ★AI 자기이해 코치(App Store 4.3 · daniel 2026-07-12) — 대화형 도구 진입. '운세 피드'가 아니라 물어보는 도구 = 차별화. */}
-        <PressableScale style={styles.coachBanner} onPress={() => router.push('/coach')}>
-          <Text style={styles.coachBannerEmoji}>💬</Text>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.coachBannerTitle}>{t('coach.title', 'AI 자기이해 코치')}</Text>
-            <Text style={styles.coachBannerSub} numberOfLines={1}>{t('coach.sub', '나에 대해 궁금한 걸 물어보세요')}</Text>
-          </View>
-          <Text style={styles.coachBannerArrow}>›</Text>
-        </PressableScale>
-
-        {/* 오늘/내일 기운 — 토글 또는 좌우 슬라이드(가로 페이징·daniel). 본문 탭 → 상세(분야별, 같은 offset). */}
-        <View style={styles.fortuneBanner}>
+        {/* ★홈 블록 배치 — 순서는 **계정별 설정**(useHomeOrder · profiles.home_order). daniel 2026-07-19.
+            기본 순서 = 명식 → AI 코치 → 오늘의 기운 → 나의 성격유형 → 나는 어떤 사람인가.
+            ※위 진행률 배너와 아래 로그인 링크는 '알림·고정'이라 순서 대상이 아니다(설정 화면에서도 안 보인다). */}
+        {order.map((k) => {
+          // 명식 선택/전환 — 아래 블록이 전부 '지금 적용된 명식' 기준이라 기본 순서에선 맨 위.
+          if (k === 'chart') return <ChartPicker key={k} onChange={() => setReloadKey((n) => n + 1)} />;
+          // 성격유형 120종(일간10×월지12·온디바이스 결정론) — 명식이 없으면 스스로 렌더하지 않는다.
+          if (k === 'persona') return <PersonaTypeHero key={k} reloadKey={reloadKey} />;
+          // 자기이해 히어로 — 에겐·테토 게이지 + 성격유형/MBTI/특징 클러스터(App Store 4.3 결).
+          if (k === 'self') return <SelfUnderstandingHero key={k} reloadKey={reloadKey} />;
+          // AI 자기이해 코치 — 대화형 도구 진입('운세 피드'가 아니라 물어보는 도구 = 차별화).
+          if (k === 'coach') return (
+            <PressableScale key={k} style={styles.coachBanner} onPress={() => router.push('/coach')}>
+              <Text style={styles.coachBannerEmoji}>💬</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.coachBannerTitle}>{t('coach.title', 'AI 자기이해 코치')}</Text>
+                <Text style={styles.coachBannerSub} numberOfLines={1}>{t('coach.sub', '나에 대해 궁금한 걸 물어보세요')}</Text>
+              </View>
+              <Text style={styles.coachBannerArrow}>›</Text>
+            </PressableScale>
+          );
+          // 오늘/내일 기운 — 토글·좌우 슬라이드(가로 페이징). 별도 카드였던 유형명·점수·등급·근거·신살 칩이 여기 통합됐다.
+          return (
+        <View key={k} style={styles.fortuneBanner}>
           {!hasChart ? (
             // H1(daniel): 명식 미등록 → 오늘/내일 운세 대신 등록 안내(탭하면 등록창)
             <PressableScale onPress={() => router.push('/register')} style={{ alignItems: 'center', paddingVertical: space(5), gap: space(2) }}>
@@ -309,8 +308,8 @@ export default function Home() {
           </View>
           </>)}
         </View>
-
-        {/* ※ChartPicker 는 위 최상단으로 이동(daniel 07-19) — 여기서 다시 그리지 않는다. */}
+          );
+        })}
 
         {/* ★콘텐츠 카드 그리드는 하단탭 '풀이'(/contents)로 이동(daniel 07-18 IA 개편).
             여기서 목록을 다시 그리지 않는다 — 두 곳에 두면 카드 추가 시 드리프트가 난다. */}

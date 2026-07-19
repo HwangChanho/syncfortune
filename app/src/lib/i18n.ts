@@ -162,6 +162,7 @@ const ko = {
     genFail: '풀이 생성에 실패했어요. 잠시 후 다시 시도해 주세요.', title: '오늘의 운세', heroSub: '오늘 일진으로 보는 하루 흐름', generating: '오늘의 흐름을 풀어내는 중…', gateTitle: '오늘의 운세 보기', gateDesc: '타고난 사주에 지금의 큰 흐름·올해·오늘 기운을 더해, 오늘 생길 수 있는 일과 대처를 풀어 드려요.', seePremium: '오늘의 운세 보기', seeAd: '광고 보고 무료로 보기', adFail: '광고를 불러오지 못했어요. 잠시 후 다시 시도하거나, 프리미엄으로 광고 없이 보실 수 있어요.',
   },
   settings: {
+    homeOrder: '홈 배치 순서', homeOrderNote: '홈 화면에 보이는 순서예요. 위/아래로 옮겨 보세요.', homeOrderReset: '기본 순서로 되돌리기',
     account: '계정', loginCta: '로그인 / 회원가입', premium: '프리미엄',
     premiumActive: '✓ 프리미엄 적용됨', premiumBuy: '평생 프리미엄', premiumDesc: '지금과 앞으로 추가될 모든 프리미엄 콘텐츠 무료 · 광고 없음 · 한 번 결제로 평생 소장 · 유료 콘텐츠 재통변 30% 할인(일반 10%)', premiumScope: '※ 앞으로 새로 나오는 프리미엄 콘텐츠까지 모두 무료로 보실 수 있어요. 단, 프리미엄 콘텐츠에 한하며 꿈해몽·추가 질문 등 개별 이용권은 별도예요.',
     premiumOkTitle: '프리미엄', premiumOk: '프리미엄이 적용됐어요.', premiumTitle: '프리미엄',
@@ -423,6 +424,7 @@ const en = {
     genFail: "We couldn't create your reading. Please try again in a moment.", title: "Today's Fortune", heroSub: 'How your day is shaping up today', generating: "Reading today's flow for you…", gateTitle: "See Today's Fortune", gateDesc: "Combining who you are with your bigger picture right now, this year, and today's mood, we'll walk you through what might come up today and how to handle it.", seePremium: "See Today's Fortune", seeAd: 'Watch an ad to view for free', adFail: "Couldn't load the ad. Please try again later, or go ad-free with Premium.",
   },
   settings: {
+    homeOrder: 'Home layout order', homeOrderNote: 'The order shown on your home screen. Move items up or down.', homeOrderReset: 'Reset to default order',
     account: 'Account', loginCta: 'Log in / Sign up', premium: 'Premium',
     premiumActive: '✓ Premium active', premiumBuy: 'Lifetime Premium', premiumDesc: 'All premium content — now & future — free · no ads · one-time, yours forever · 30% off yearly re-readings (10% for others)', premiumScope: '※ Includes every premium content added in the future. Premium content only — consumables like Dream Reading and follow-up questions are separate.',
     premiumOkTitle: 'Premium', premiumOk: 'Premium is now active.', premiumTitle: 'Premium',
@@ -681,6 +683,7 @@ const ja = {
     genFail: '占い結果の作成に失敗しました。しばらくしてからもう一度お試しください。', title: '今日の運勢', heroSub: '今日一日の流れを見てみましょう', generating: '今日の流れを読み解いています…', gateTitle: '今日の運勢を見る', gateDesc: 'あなたの生まれ持った性質に、今の大きな流れ・今年・今日の雰囲気を重ねて、今日起こりそうなことと対処法をお伝えします。', seePremium: '今日の運勢を見る', seeAd: '広告を見て無料で見る', adFail: '広告を読み込めませんでした。しばらくして再度お試しいただくか、プレミアムで広告なしでご覧いただけます。',
   },
   settings: {
+    homeOrder: 'ホームの並び順', homeOrderNote: 'ホーム画面に表示される順番です。上下に移動できます。', homeOrderReset: '既定の順番に戻す',
     account: 'アカウント', loginCta: 'ログイン / 新規登録', premium: 'プレミアム',
     premiumActive: '✓ プレミアム適用中', premiumBuy: '買い切りプレミアム', premiumDesc: '今後追加分も含む全プレミアムコンテンツが無料 · 広告なし · 一度の購入で永久 · 有料コンテンツの再鑑定30%割引(一般10%)', premiumScope: '※ 今後新しく追加されるプレミアムコンテンツもすべて無料。ただしプレミアムコンテンツに限り、夢占い・追加質問などの個別利用券は別途です。',
     premiumOkTitle: 'プレミアム', premiumOk: 'プレミアムが適用されました。', premiumTitle: 'プレミアム',

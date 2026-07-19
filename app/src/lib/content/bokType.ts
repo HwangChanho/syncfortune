@@ -107,7 +107,7 @@ const DATA: Record<G5, Record<Pol, Variant>> = {
 //   신강·중화일 때만 위 '승부복(+나눔 처방)'을 쓰고, 신약일 때 이 조력복으로 교체(scoreStrength verdict 소비).
 const GEOBJAE_WEAK: Variant = {
   emoji: '🤲',
-  ko: { bok: '조력복(든든한 내 편)', desc: '나를 받쳐 주는 든든한 조력의 복을 타고났어요. 혼자 버겁던 일도 함께 밀어 주는 사람들이 있어, 힘을 얻고 다시 일어서는 저력이 있습니다.', how: '기대는 걸 미안해 말고 손을 맞잡으세요 — 함께할수록 약한 데가 채워져 복이 커져요.' },
+  ko: { bok: '조력복(든든한 내 편)', desc: '나를 받쳐 주는 든든한 조력의 복을 타고났어요. 혼자 버겁던 일도 함께 밀어 주는 사람들이 있어, 힘을 얻고 다시 일어서는 저력이 있습니다.', how: '기대는 걸 미안해 말고 손을 맞잡으세요. 함께할수록 약한 데가 채워져 복이 커져요.' },
   en: { bok: 'Support Fortune', desc: 'Born with a fortune of solid support — even what felt too heavy alone gets pushed along by people beside you, giving you the resilience to rise again.', how: 'Don’t feel bad leaning on others — join hands, and what’s weak gets filled, so fortune grows.' },
   ja: { bok: '助力の福（頼れる味方）', desc: '自分を支えてくれる頼もしい助力の福。一人では手に余ることも共に押してくれる人がいて、力を得て立ち直る底力があります。', how: '頼るのを申し訳なく思わず手を取り合って——共にいるほど弱さが埋まり、福が大きくなります。' },
 };

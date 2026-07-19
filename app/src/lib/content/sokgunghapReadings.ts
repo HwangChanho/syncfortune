@@ -67,22 +67,22 @@ const SPOUSE_NOTE: Record<SpousePalaceRel, L> = {
   충:   { ko: '배우자궁이 충 — 강렬하게 끌리지만 쉽게 소진돼요. 격정 뒤 회복 시간을 서로 존중해 주세요.', en: 'Spouse palaces clash—intense pull, but easily drained. Respect each other’s recovery after the heat.', ja: '配偶者宮が冲 — 強烈に惹かれるが消耗しやすい。情熱の後の回復時間を尊重して。' },
   형:   { ko: '배우자궁이 형 — 미묘한 마찰이 있어요. 원하는 걸 말로 분명히 하면 마찰이 케미로 바뀝니다.', en: 'Spouse palaces in 형 (friction)—say what you want clearly and friction becomes chemistry.', ja: '配偶者宮が刑 — 微妙な摩擦あり。望みを言葉で明確にすれば摩擦が相性に変わる。' },
   해:   { ko: '배우자궁이 해 — 가끔 엇박이 나요. 서두르지 말고 신호를 읽어주면 잘 맞아갑니다.', en: 'Spouse palaces in 해 (off-beat)—don’t rush; reading each other’s signals brings you in sync.', ja: '配偶者宮が害 — たまにすれ違う。焦らず信号を読めば噛み合う。' },
-  무:   { ko: '배우자궁은 직접 작용은 없어요 — 매력·오행 궁합이 케미를 이끕니다.', en: 'No direct spouse-palace tie—charm and element harmony lead the chemistry.', ja: '配偶者宮の直接作用はなし — 魅力と五行の相性が導く。' },
+  무:   { ko: '배우자궁은 직접 작용은 없어요. 매력·오행 궁합이 케미를 이끕니다.', en: 'No direct spouse-palace tie—charm and element harmony lead the chemistry.', ja: '配偶者宮の直接作用はなし — 魅力と五行の相性が導く。' },
 };
 
 // ── 처방(가드5·진단엔 처방 동반) — 매력 온도차별 ──
 const ADVICE: { cond: (r: SokResult) => boolean; text: L }[] = [
   {
     cond: (r) => r.myCharm.total > 0 && r.partnerCharm.total === 0,
-    text: { ko: '내 끌림이 더 앞서요 — 상대의 속도를 기다려 주면 상대도 마음을 엽니다.', en: 'You run ahead—wait for their pace and they open up too.', ja: '自分の惹かれが先行 — 相手の速度を待てば相手も心を開く。' },
+    text: { ko: '내 끌림이 더 앞서요. 상대의 속도를 기다려 주면 상대도 마음을 엽니다.', en: 'You run ahead—wait for their pace and they open up too.', ja: '自分の惹かれが先行 — 相手の速度を待てば相手も心を開く。' },
   },
   {
     cond: (r) => r.partnerCharm.total > 0 && r.myCharm.total === 0,
-    text: { ko: '상대가 더 적극적이에요 — 솔직하게 반응해 주면 관계가 훨씬 편해져요.', en: 'They’re more forward—responding honestly makes it much easier.', ja: '相手が積極的 — 素直に反応すれば関係がずっと楽に。' },
+    text: { ko: '상대가 더 적극적이에요. 솔직하게 반응해 주면 관계가 훨씬 편해져요.', en: 'They’re more forward—responding honestly makes it much easier.', ja: '相手が積極的 — 素直に反応すれば関係がずっと楽に。' },
   },
   {
     cond: (r) => r.tension > r.harmony,
-    text: { ko: '긴장이 조화보다 커요 — 분위기·타이밍을 맞추는 대화가 케미를 살립니다.', en: 'Tension outweighs harmony—talking about mood and timing revives the chemistry.', ja: '緊張が調和より大きい — 雰囲気・タイミングの会話が相性を生かす。' },
+    text: { ko: '긴장이 조화보다 커요. 분위기·타이밍을 맞추는 대화가 케미를 살립니다.', en: 'Tension outweighs harmony—talking about mood and timing revives the chemistry.', ja: '緊張が調和より大きい — 雰囲気・タイミングの会話が相性を生かす。' },
   },
   {
     cond: () => true, // 기본 처방
