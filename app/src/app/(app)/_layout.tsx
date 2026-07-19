@@ -84,8 +84,7 @@ export default function AppLayout() {
         <Stack.Screen name="impression" options={{ headerTitle: '' }} />
         <Stack.Screen name="timeResolve" options={{ headerTitle: '' }} />
         <Stack.Screen name="mission" options={{ headerTitle: '' }} />
-        <Stack.Screen name="persona" options={{ headerTitle: '' }} />
-        <Stack.Screen name="personatype" options={{ headerTitle: '' }} /> {/* 성격유형 120종(홈 주인공 상세, daniel 07-18) */}
+        <Stack.Screen name="personatype" options={{ headerTitle: '' }} /> {/* 성격유형 120종(홈 주인공 상세 · 64종 /persona 통합, daniel 07-20) */}
         <Stack.Screen name="lookback" options={{ headerTitle: '' }} />   {/* 되돌아보기 — 내 기록 × 그날 운세(리텐션 Phase 1) */}
         <Stack.Screen name="egenteto" options={{ headerTitle: '' }} />
         <Stack.Screen name="coach" options={{ headerShown: false }} />

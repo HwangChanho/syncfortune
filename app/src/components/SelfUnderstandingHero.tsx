@@ -33,7 +33,7 @@ function EgenBar({ score }: { score: number }) {
 
 // 자기이해 클러스터 빠른 진입(전부 무료·온디바이스). 라우트·라벨키는 index.tsx SECTIONS 와 동일. ★이모지 미사용(daniel).
 const CLUSTER: { route: string; labelKey: string; fallback: string }[] = [
-  { route: '/persona', labelKey: 'menu.persona', fallback: '성격유형' },
+  { route: '/personatype', labelKey: 'menu.persona', fallback: '성격유형' }, // 성격유형=120종 단일화(daniel 2026-07-20)
   { route: '/mbti', labelKey: 'menu.mbti', fallback: '사주 MBTI' },
   { route: '/traits', labelKey: 'menu.traits', fallback: '나의 특징' },
 ];
