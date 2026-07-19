@@ -16,9 +16,8 @@ import { supabase } from '../../lib/supabase';
 import { ChartPicker } from '../../components/ChartPicker';
 import { SelfUnderstandingHero } from '../../components/SelfUnderstandingHero'; // ★4.3: 홈 최상단 자기이해 히어로(성향분석 첫 경험)
 import { PersonaTypeHero } from '../../components/PersonaTypeHero'; // ★홈 주인공 ①: 성격유형 120종(daniel 07-18 IA 개편)
-import { TodayEnergyCard } from '../../components/TodayEnergyCard'; // ★홈 주인공 ②: 오늘 기운 × 내 원국(근거·등급·점수)
 import { TigerMascot } from '../../components/TigerMascot'; // 아기 백호 브랜드 마스코트(모션) — 홈 헤더 타이틀 좌측
-import { getDailyFortune, dailyHeadline, dailyPreview, scoreFlow } from '../../lib/content/dailyFortune';
+import { getDailyFortune, dailyHeadline, dailyPreview, scoreFlow, dailyEnergy, energyReason, ENERGY_LABEL, type DailyEnergy } from '../../lib/content/dailyFortune';
 import { ScoreFlowGraph } from '../../components/ScoreFlowGraph'; // 오늘 기운 점수 흐름 그래프(홈, daniel 07-13)
 import { stemElement, branchElement, elementColor, elementText } from '../../lib/engine/ohaeng'; // 오늘의 기운 = 오행색 네모 한자
 import { useGenProgress, clearGenProgress } from '../../lib/backend/genProgress'; // 풀이 진행률(다중·route별, 풀이중 홈 나가도 % — daniel)
@@ -33,6 +32,14 @@ import { useFontScale } from '../../lib/ui/fontScale';
 import { BusyOverlay } from '../../components/BusyOverlay'; // 로그아웃 등 긴 콜백 로딩
 import { PressableScale } from '../../components/PressableScale';
 import { appLang } from '../../lib/i18n';
+
+// 주의 등급 라벨·색 — dailyEnergy.caution(점수 구간)에 붙는 이름표.
+//   ★'조심'에 빨강을 쓰지 않는다(§4 부정 증폭 금지) — 골드/중립 톤으로 낮춰 표시한다.
+const CAUTION: Record<DailyEnergy['caution'], { label: string; tone: string }> = {
+  low: { label: '순조', tone: colors.ju },
+  mid: { label: '보통', tone: colors.inkSoft },
+  high: { label: '조심', tone: colors.inkSoft },
+};
 
 export default function Home() {
   const router = useRouter();
@@ -65,6 +72,8 @@ export default function Home() {
   // 오늘·내일 각각의 한 줄 풀이(글)+캐치 타이틀 — 대표 명식 일간 × 그날 일진(온디바이스). [0]=오늘 [1]=내일.
   const [dayData, setDayData] = useState<{ headline: string | null; prose: string | null }[]>([{ headline: null, prose: null }, { headline: null, prose: null }]);
   const [flow, setFlow] = useState<{ scores: number[]; labels: string[]; currentIndex: number } | null>(null); // 오늘 점수 흐름(그래프, daniel 07-13)
+  // 오늘·내일 기운 판정(유형명·총운점수·주의등급·근거·신살) — 별도 카드였던 것을 이 배너로 통합(daniel 07-19).
+  const [energies, setEnergies] = useState<(DailyEnergy | null)[]>([null, null]);
   const [hasChart, setHasChart] = useState<boolean>(true); // H1(daniel): 대표 명식 유무 — 없으면 오늘/내일 배너를 '명식 등록 안내'로(탭→등록)
   const [reloadKey, setReloadKey] = useState(0); // 명식 변경(전환·수정) 감지 — 포커스마다 오늘의 기운 재계산(daniel: 명식 수정 시 id 동일이라 갱신 안 되던 버그)
   const [loggingOut, setLoggingOut] = useState(false); // 로그아웃 콜백 동안 오버레이
@@ -88,9 +97,13 @@ export default function Home() {
       const rep = await loadRepChart();
       if (!alive) return;
       setHasChart(!!rep); // H1: 명식 유무 → 오늘/내일 배너 분기(등록안내 vs 운세)
-      if (!rep) { setDayData([{ headline: null, prose: null }, { headline: null, prose: null }]); setFlow(null); return; }
+      if (!rep) { setDayData([{ headline: null, prose: null }, { headline: null, prose: null }]); setFlow(null); setEnergies([null, null]); return; }
       const saju = buildSajuChart(rep.input);
       try { setFlow(scoreFlow(saju, 'day')); } catch { setFlow(null); } // 오늘 점수 흐름(그제~모레)
+      // 오늘·내일 각각의 기운 판정(결정론·API 0). 실패해도 배너 나머지는 그대로 보이게 null 유지.
+      try {
+        setEnergies(fortunes.map((f) => dailyEnergy(saju, f.dayGanZhi[0] as Stem, f.dayGanZhi[1] as Branch)));
+      } catch { setEnergies([null, null]); }
       const calc = (f: typeof fortunes[number]) => ({
         // 미리보기 본문 = 조합형(매일·오늘≠내일 다르게, API 0). 상세 화면은 전체 풀이(dailyChartReadings) 별도.
         prose: dailyPreview(saju, f.dayGanZhi[0] as Stem, f.dayGanZhi[1] as Branch),
@@ -190,10 +203,8 @@ export default function Home() {
             일간10×월지12 온디바이스 결정론(API 0). 명식이 없으면 스스로 렌더하지 않는다(아래 히어로가 등록 유도). */}
         <PersonaTypeHero reloadKey={reloadKey} />
 
-        {/* ★홈 주인공 ②: 오늘 기운 × 내 원국(daniel 2026-07-18) — 유형명·근거·주의 등급·총운 점수.
-            아래 '오늘/내일 기운 배너'와 역할이 다르다: 저쪽은 '어떤 하루인가(서술)', 이쪽은 '왜 그런가(근거)·몇 점인가'.
-            dateKey 를 함께 넘겨 자정이 지나 앱에 돌아와도(포커스 없이 AppState 만 바뀌는 경우 포함) 오늘 것으로 갱신된다. */}
-        <TodayEnergyCard reloadKey={reloadKey} dateKey={dateKey} />
+        {/* ※'오늘 기운' 별도 카드는 제거하고 아래 오늘/내일 배너에 통합(daniel 2026-07-19 "오늘의 기운이 겹쳐 둘이 통합해 아래꺼로").
+            같은 날 정보가 화면에 두 번 나오던 중복 해소 — 유형명·점수·등급·근거·신살 칩이 전부 배너 안으로 들어갔다. */}
 
         {/* ★자기이해 히어로(App Store 4.3 · daniel 2026-07-12) — 홈 첫 화면을 '운세 목록'이 아니라 '나를 분석하는 도구'로 각인.
             에겐·테토 성향을 온디바이스 즉시 산출해 게이지+한줄요약 + 성격유형/MBTI/특징 클러스터. 오늘 기운 배너 *위*. */}
@@ -240,6 +251,8 @@ export default function Home() {
               {([0, 1] as const).map((off) => {
                 const f = fortunes[off];
                 const d = dayData[off];
+                const e = energies[off];                        // 그 날 기운 판정(유형·점수·등급·근거·신살)
+                const cau = e ? CAUTION[e.caution] : null;      // 주의 등급 라벨·색
                 return (
                   <PressableScale key={off} style={{ width: pageW }} onPress={() => router.push(`/today?offset=${off}`)}>
                     <Text style={styles.bannerDate}>{f.date} ({t('today.weekdaysShort').split(',')[new Date(f.date + 'T00:00:00').getDay()] ?? ''})</Text>
@@ -255,11 +268,39 @@ export default function Home() {
                           );
                         })}
                       </View>
+                      {/* 총운 점수 + 주의 등급 — 우측 정렬(통합 전 카드의 핵심 정보) */}
+                      {e && cau && (
+                        <View style={styles.scoreWrap}>
+                          <Text style={[styles.scoreTx, { color: cau.tone }]}>{e.score}</Text>
+                          <Text style={styles.scoreUnit}>{t('todayEnergy.point', '점')}</Text>
+                          <View style={[styles.cautionPill, { borderColor: cau.tone }]}>
+                            <Text style={[styles.cautionTx, { color: cau.tone }]}>{cau.label}</Text>
+                          </View>
+                        </View>
+                      )}
                     </View>
+                    {/* 기운 유형명 + 한 줄 설명 */}
+                    {e && (
+                      <View style={{ marginTop: space(2) }}>
+                        <Text style={[styles.energyName, { fontSize: fs(16) }]}>{ENERGY_LABEL[e.group].name}</Text>
+                        <Text style={[styles.energyDesc, { fontSize: fs(12.5) }]} numberOfLines={2}>{ENERGY_LABEL[e.group].desc}</Text>
+                      </View>
+                    )}
                     {/* 점수 흐름 그래프(그제~모레) — off(오늘/내일)에 맞춰 강조점 이동(daniel 07-13) */}
                     {flow ? <View style={{ marginTop: space(2), marginBottom: space(1) }}><ScoreFlowGraph scores={flow.scores} labels={flow.labels} currentIndex={flow.currentIndex + off} height={112} /></View> : null}
                     {d.headline && <Text style={[styles.bannerHeadline, { fontSize: fs(16) }]}>{d.headline}</Text>}
                     {d.prose && <Text style={[styles.bannerProse, { fontSize: fs(15), lineHeight: fs(22) }]} numberOfLines={3}>{d.prose}</Text>}
+                    {/* 근거(억부: 내 강약 × 그 날 기운) + 작용·신살 칩 */}
+                    {e && <Text style={[styles.energyReason, { fontSize: fs(13), lineHeight: fs(19) }]}>{energyReason(e)}</Text>}
+                    {e && e.signals.length > 0 && (
+                      <View style={styles.chips}>
+                        {e.signals.map((s) => (
+                          <View key={s.key} style={[styles.chip, s.kind === 'good' ? styles.chipGood : styles.chipCare]}>
+                            <Text style={[styles.chipTx, s.kind === 'good' && styles.chipTxGood]} numberOfLines={1}>{s.label}</Text>
+                          </View>
+                        ))}
+                      </View>
+                    )}
                     {d.prose && <Text style={styles.bannerMore}>{t('today.more')}</Text>}
                   </PressableScale>
                 );
@@ -325,6 +366,21 @@ const styles = StyleSheet.create({
   bannerHeadline: { ...font.body, color: colors.ju, fontWeight: '800', fontSize: 16, marginTop: space(3) }, // 오늘의 기운을 아우르는 캐치 타이틀
   bannerProse: { ...font.body, color: colors.inkSoft, marginTop: space(1.5), lineHeight: 22 },
   bannerMore: { ...font.caption, color: colors.ju, fontWeight: '700', marginTop: space(2) },
+  // ── 기운 판정(별도 카드에서 통합·daniel 07-19): 점수·등급·유형명·근거·신살 칩 ──
+  scoreWrap: { flexDirection: 'row', alignItems: 'baseline', gap: space(1), marginLeft: 'auto' }, // 우측 정렬
+  scoreTx: { fontSize: 24, fontWeight: '900', letterSpacing: -0.5 },
+  scoreUnit: { ...font.caption, color: colors.inkFaint, marginRight: space(1) },
+  cautionPill: { borderWidth: 1, borderRadius: radius.pill, paddingHorizontal: space(2), paddingVertical: space(0.5), alignSelf: 'center' },
+  cautionTx: { fontSize: 11, fontWeight: '800' },
+  energyName: { color: colors.ink, fontWeight: '900' },
+  energyDesc: { color: colors.inkSoft, marginTop: 2, lineHeight: 17 },
+  energyReason: { ...font.body, color: colors.inkSoft, marginTop: space(2) },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space(1.5), marginTop: space(2) },
+  chip: { borderRadius: radius.pill, borderWidth: 1, paddingHorizontal: space(2.5), paddingVertical: space(1), maxWidth: '100%' },
+  chipGood: { backgroundColor: colors.juSoft, borderColor: colors.juLine },
+  chipCare: { backgroundColor: colors.overlay, borderColor: colors.line },
+  chipTx: { fontSize: 11.5, fontWeight: '700', color: colors.inkSoft },
+  chipTxGood: { color: colors.ju },
   authRow: { marginTop: space(8), marginBottom: space(4), alignItems: 'center' },
   linkText: { color: colors.ju, fontSize: 14 },
 });

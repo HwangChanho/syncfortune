@@ -170,26 +170,54 @@ export function storeChartElement(el: string, reload = false) {
 // 로딩(인트로) 화면 모드 — 'video'(호랑이 영상) | 'text'(八字 한자) | 'off'(없음·바로 앱). 기본 video. daniel 07-03 / 07-15(off 추가).
 const LOADING_MODE_KEY = 'pref.loadingMode';
 const LOADING_VIDEO_KEY = 'pref.loadingVideo'; // 하위호환(옛 boolean '1'/'0')
+// 풀이 로딩(생성 중 자물쇠 화면) 테마 영상 on/off — daniel 07-13. 아래 부팅 캐시 로더가 참조하므로 여기서 선언한다.
+const READING_VIDEO_KEY = 'pref.readingVideo';
 export type LoadingMode = 'video' | 'text' | 'off';
+// ★★SecureStore 동기 읽기 함정(daniel 2026-07-19 "설정에서 풀이영상 온오프가 적용 안되는거 같아"):
+//   `(SecureStore as any).getItem?.(k)` 는 **동기 API 자체가 없어서 undefined** 인 경우와
+//   **값이 저장 안 돼서 null** 인 경우를 구분하지 못한다. 둘 다 기본값으로 떨어지므로,
+//   유저가 끈 설정이 매번 '켜짐'으로 되살아났다(저장은 되는데 읽기가 안 되는 형태라 더 헷갈림).
+//   → ①동기 API 유무를 먼저 판별하고 ②없으면 부팅 시 비동기로 채운 캐시를 쓰고 ③설정 변경 시 캐시를 즉시 갱신한다.
+//   ※같은 뿌리의 사고 전례: 포그라운드 복귀마다 앱이 새로고침되던 건(check:reload 하네스).
+/** 동기 읽기 결과: string=값 / null=값 없음(정상) / undefined=동기 API 불가(캐시로 폴백해야 함). */
+function _syncGet(key: string): string | null | undefined {
+  const f = (SecureStore as any).getItem;
+  if (typeof f !== 'function') return undefined;
+  try { return f.call(SecureStore, key); } catch { return undefined; }
+}
+let _loadingMode: LoadingMode | null = null; // 비동기 부팅 캐시
+let _readingVideo: boolean | null = null;
+// 부팅 시 1회 비동기 복원 — 동기 API 가 없는 환경에서도 다음 접근부터는 실제 저장값이 쓰인다.
+SecureStore.getItemAsync(LOADING_MODE_KEY).then((v) => {
+  if (v === 'video' || v === 'text' || v === 'off') { _loadingMode = v; return; }
+  return SecureStore.getItemAsync(LOADING_VIDEO_KEY).then((old) => { if (old != null) _loadingMode = old === '0' ? 'text' : 'video'; });
+}).catch(() => { /* 실패 시 기본값 유지 */ });
+SecureStore.getItemAsync(READING_VIDEO_KEY).then((v) => { if (v != null) _readingVideo = v === '1'; }).catch(() => {});
+
 export function getLoadingMode(): LoadingMode {
-  try {
-    const v = (SecureStore as any).getItem?.(LOADING_MODE_KEY);
+  const v = _syncGet(LOADING_MODE_KEY);
+  if (v !== undefined) {                                    // 동기 읽기 가능한 환경
     if (v === 'video' || v === 'text' || v === 'off') return v;
-    const old = (SecureStore as any).getItem?.(LOADING_VIDEO_KEY); // 옛 '0'=text(八字)
-    return old === '0' ? 'text' : 'video';
-  } catch { return 'video'; }
+    const old = _syncGet(LOADING_VIDEO_KEY);                // 옛 '0'=text(八字) 하위호환
+    if (old !== undefined) return old === '0' ? 'text' : 'video';
+  }
+  return _loadingMode ?? 'video';                           // 비동기 캐시 → 아직 미로드면 기본값
 }
 export function setLoadingMode(m: LoadingMode) {
+  _loadingMode = m;                                         // ★즉시 반영(같은 세션에서 바로 적용)
   try { (SecureStore as any).setItem?.(LOADING_MODE_KEY, m); } catch { /* noop */ }
   SecureStore.setItemAsync(LOADING_MODE_KEY, m).catch(() => {});
 }
 
-// 풀이 로딩(생성 중 자물쇠 화면) 테마 영상 on/off — daniel 07-13. 끄면 영상 대신 링+자물쇠 애니만(즉시 반영·인트로와 별개 축). 기본 on.
-const READING_VIDEO_KEY = 'pref.readingVideo';
+// 풀이 로딩 영상 — 끄면 영상 대신 링+자물쇠 애니만(즉시 반영·인트로와 별개 축). 기본 on. (키 선언은 위 부팅 캐시 블록 참고)
 export function getReadingVideoEnabled(): boolean {
-  try { const v = (SecureStore as any).getItem?.(READING_VIDEO_KEY); return v == null ? true : v === '1'; } catch { return true; }
+  const v = _syncGet(READING_VIDEO_KEY);
+  if (v !== undefined) return v == null ? true : v === '1';   // 동기 읽기 성공(값 없으면 기본 on)
+  if (_readingVideo != null) return _readingVideo;            // 비동기 부팅 캐시
+  return true;                                               // 아직 미로드 → 기본 on
 }
 export function setReadingVideoEnabled(on: boolean) {
+  _readingVideo = on;                                        // ★즉시 반영(끄면 바로 다음 풀이부터 영상 없음)
   try { (SecureStore as any).setItem?.(READING_VIDEO_KEY, on ? '1' : '0'); } catch { /* noop */ }
   SecureStore.setItemAsync(READING_VIDEO_KEY, on ? '1' : '0').catch(() => {});
 }
