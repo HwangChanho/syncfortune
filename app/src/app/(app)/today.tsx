@@ -36,6 +36,7 @@ import { stemElement, branchElement, elementColor, elementText, stemReading, bra
 import { ContentHero } from '../../components/SpecialContentScreen'; // 이미지 히어로(보는 맛)
 import { ChartPicker } from '../../components/ChartPicker'; // 명식 선택(대표 전환) — 명식별 오늘 운세(daniel)
 import { ShareReadingButton } from '../../components/ShareReadingButton'; // 이슈17: 풀이 결과 공유(가드 내장)
+import { DailyLogCard } from '../../components/DailyLogCard'; // 리텐션: 오늘의 미션 체크 + 적중 회고(daniel 07-19)
 import { TTSButton } from '../../components/TTSButton'; // daniel: 풀이 음성 읽기(온디바이스 TTS·무료)
 import { RelatedContent } from '../../components/RelatedContent'; // 오늘운세 하단 연관 콘텐츠 추천(개운·애정 동선·API 0)
 import { useLogContentVisit } from '../../lib/backend/contentVisit'; // 콘텐츠 방문 집계(daniel 2026-07-06) — 진입 1회 기록
@@ -141,7 +142,12 @@ export default function TodayScreen() {
 
   return (
     <View style={styles.bgImage}>
-      <ScrollView style={styles.overlay} contentContainerStyle={styles.wrap}>
+      <ScrollView
+        style={styles.overlay} contentContainerStyle={styles.wrap}
+        // 하단 DailyLogCard 의 회고 입력창이 키보드에 덮이지 않게(iOS 자동 인셋) — daniel 07-18 표준 · check:keyboard.
+        automaticallyAdjustKeyboardInsets
+        keyboardShouldPersistTaps="handled"
+      >
         <ContentHero image={require('../../../assets/icons/today.jpg')} title={t('today.title', '오늘의 운세')} sub={t('today.heroSub', '오늘 일진으로 보는 하루 흐름')} />
         {/* 명식 선택 — 대표 전환 시 그 명식 기준으로 오늘의 운세 재로드(daniel: 명식별 적용) */}
         <ChartPicker onChange={() => setReloadKey((k) => k + 1)} />
@@ -213,6 +219,19 @@ export default function TodayScreen() {
             {/* TTS·공유 — 생성 중(로딩)엔 숨김(daniel 07-06 이중표시 정리) */}
             {!(busy && !reading) && <TTSButton reading={shown} />}
             {!(busy && !reading) && session ? <ShareReadingButton kind="daily" title={t('today.title', '오늘의 운세')} content={shown} /> : null}
+            {/* ★리텐션 Phase 1(daniel 07-19) — 오늘의 한 가지(미션 체크) + 오늘 어땠어요(적중 회고).
+                오늘 탭에서만 노출한다: 내일 것을 미리 체크·회고하는 건 말이 안 되고, 기록 날짜가 흐려진다. */}
+            {dayOffset === 0 && saved ? (
+              <DailyLogCard
+                saju={computeChart(saved.input).saju}
+                chartId={chartId}
+                date={f.date}
+                stem={stem}
+                branch={branch}
+                headline={headline}
+                loggedIn={!!session}
+              />
+            ) : null}
             {/* AI 정밀 풀이 업셀 — LLM 없고 생성 중도 아닐 때만(생성 중 로딩은 위 풀이 카드가 처리, daniel 07-06) */}
             {!reading && !busy && (
               !session ? (

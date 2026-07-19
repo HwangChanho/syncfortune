@@ -36,9 +36,12 @@ const warn = (m: string) => console.log(`  ⚠️  ${m}`);
 console.log('■ check:keyboard — 텍스트 입력창이 키보드에 가려지지 않는지');
 
 // ── 대상 수집: TextInput 을 실제로 렌더하는 파일 ─────────────────────
+// ★`--untracked` 필수(2026-07-19 구멍 수정): git grep 은 기본적으로 **커밋된 파일만** 본다.
+//   그래서 방금 만든 새 화면(아직 add 전)이 검사에서 통째로 빠졌다 — 정작 새로 만드는 화면이
+//   가장 실수하기 쉬운데 하네스가 침묵했다(DailyLogCard.tsx 가 실제로 그렇게 빠져나갔다).
 function grep(pattern: string, paths = "'app/src/**/*.tsx'"): string[] {
   try {
-    return execSync(`git grep -lE ${JSON.stringify(pattern)} -- ${paths}`, { cwd: ROOT }).toString().trim().split('\n').filter(Boolean);
+    return execSync(`git grep --untracked -lE ${JSON.stringify(pattern)} -- ${paths}`, { cwd: ROOT }).toString().trim().split('\n').filter(Boolean);
   } catch (e: any) {
     // git grep 은 매치 0건이면 exit 1 → stdout 비어 있음
     const out = e?.stdout?.toString().trim();
@@ -88,8 +91,15 @@ const exempt: string[] = [];
 const missing: string[] = [];
 const absBarNoListener: string[] = [];
 
+// ★주석을 걷어낸 뒤 '실제 코드'에서만 대응 수단을 찾는다(2026-07-19 오탐 수정).
+//   주석에 `automaticallyAdjustKeyboardInsets` 를 언급만 해도 통과되던 구멍이 있었다 —
+//   실제로 이 카드가 "호스트가 처리한다"는 설명 주석만으로 '직접 대응'으로 잘못 분류됐다.
+//   면제 주석(keyboard-safe)만 원본에서 찾는다(그건 주석이 본체이므로).
+const stripComments = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+
 for (const f of files) {
-  const src = readFileSync(`${ROOT}/${f}`, 'utf8');
+  const raw = readFileSync(`${ROOT}/${f}`, 'utf8');
+  const src = stripComments(raw);
   const hasListener = HAS_LISTENER.test(src) || HAS_LISTENER_LOOSE.test(src);
   // 검증된 셸 위에 얹힌 화면 — ★`<SpecialContentScreen` **렌더**만 인정한다(import 문자열이 아니라).
   //   이유: 이 셸 파일은 ContentHero 도 함께 export 해서, 히어로만 가져다 쓰는 화면(27개 중 대부분)도
@@ -101,7 +111,7 @@ for (const f of files) {
     covered.push(f);
     // R2: absolute 하단 입력바인데 리스너가 아니면(KAV·자동인셋만) 못 올린다.
     if (ABS_BOTTOM_INPUT_BAR.test(src) && !hasListener) absBarNoListener.push(f);
-  } else if (HAS_EXEMPT.test(src)) {
+  } else if (HAS_EXEMPT.test(raw)) {
     exempt.push(f);
   } else {
     missing.push(f);
