@@ -86,6 +86,7 @@ export default function AppLayout() {
         <Stack.Screen name="mission" options={{ headerTitle: '' }} />
         <Stack.Screen name="persona" options={{ headerTitle: '' }} />
         <Stack.Screen name="personatype" options={{ headerTitle: '' }} /> {/* 성격유형 120종(홈 주인공 상세, daniel 07-18) */}
+        <Stack.Screen name="lookback" options={{ headerTitle: '' }} />   {/* 되돌아보기 — 내 기록 × 그날 운세(리텐션 Phase 1) */}
         <Stack.Screen name="egenteto" options={{ headerTitle: '' }} />
         <Stack.Screen name="coach" options={{ headerShown: false }} />
         {/* 하단탭 '풀이'(콘텐츠 목록) — 홈·코치처럼 탭 화면이라 자체 타이틀을 그린다(헤더 숨김, daniel 07-18 IA 개편). */}

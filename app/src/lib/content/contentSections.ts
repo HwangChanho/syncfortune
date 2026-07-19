@@ -63,6 +63,8 @@ export const SECTIONS: Section[] = [
     { key: 'today', labelKey: 'menu.today', descKey: 'menu.todayTileDesc', image: require('../../../assets/icons/today.jpg'), route: '/today', ready: true },
     { key: 'month', labelKey: 'menu.month', descKey: 'menu.monthTileDesc', image: require('../../../assets/icons/month.jpg'), route: '/month', ready: true },
     { key: 'dayPillar', labelKey: 'menu.dayPillar', descKey: 'menu.dayPillarDesc', image: require('../../../assets/icons/dayPillar.jpg'), route: '/dayPillar', ready: true },
+    // 되돌아보기(리텐션 Phase 1·daniel 07-19) — 그날 운세 × 내가 남긴 기록. 무료·기록 조회라 광고(content) 대상 아님.
+    { key: 'lookback', labelKey: 'menu.lookback', descKey: 'menu.lookbackDesc', image: require('../../../assets/icons/today.jpg'), route: '/lookback', ready: true },
   ] },
   // ★인기(daniel 07-06: '가장 많이 찾는'→'인기'로 개칭·서브타이틀 제거). 유료 유도(재회/짝사랑/취업) + 인기 무료(연애스타일·반려동물) 혼합.
   //   무료 '질문형' 원본은 '가볍게 보기'에도 그대로 있다(의도된 중복) — ★키는 고유(hot*)로 React 키 충돌 방지.

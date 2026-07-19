@@ -25,6 +25,7 @@ import { useSubscription } from '../../lib/billing/subscription';
 import { loadRepChart, subscribeRepChange } from '../../lib/engine/myChart';
 import { prewarmReadings, prewarmDaily } from '../../lib/backend/prewarmReadings';
 import { scheduleDailyFortune } from '../../lib/backend/notifications'; // 매일 9시 오늘의 운세 알림
+import { scheduleLuckAlerts } from '../../lib/backend/luckAlerts'; // 시기 예고(대운 교체·세운 전환) 로컬 알림 — 리텐션 Phase 2
 import { buildSajuChart } from '@engine/saju';
 import type { Stem, Branch } from '@spec/chart';
 import { colors, radius, space, shadow, font } from '../../lib/theme';
@@ -144,6 +145,21 @@ export default function Home() {
 
   // 매일 9시 '오늘의 운세' 알림 스케줄(향후 14일치, 진입마다 갱신). 네이티브 모듈/권한 없으면 no-op.
   useEffect(() => { scheduleDailyFortune().catch(() => {}); }, []);
+
+  // ★시기 예고 알림(리텐션 Phase 2·daniel 07-19) — 대운 교체 1개월 전 / 세운 전환(입춘) 3일 전.
+  //   ★서버 푸시가 아니라 로컬 예약: 시점 계산이 완전한 결정론이라 기기에서 뽑아 예약하면 되고,
+  //   그래야 생년월일이 서버로 나가지 않는다(PII 경계 ADR-005). 연 1~2회만 울려 스팸이 되지 않는다.
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      const rep = await loadRepChart();
+      if (!alive || !rep) return;
+      const b = new Date(rep.input.birthDateTime);             // 대운 교체 나이를 날짜로 환산하는 데 필요
+      if (isNaN(b.getTime())) return;
+      await scheduleLuckAlerts(buildSajuChart(rep.input), b);
+    })().catch(() => {});
+    return () => { alive = false; };
+  }, [reloadKey]);
 
   // 프로 구독자 풀이 선생성(daniel: "구독하면 통변 1회는 미리 돌아가게") — 홈 진입 시
   //   대표 명식의 전 영역(사주16+자미12)을 백그라운드 생성. 멱등(캐시된 영역 skip = 재과금 0).
