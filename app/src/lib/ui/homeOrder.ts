@@ -16,16 +16,17 @@ import * as SecureStore from 'expo-secure-store';
 import { supabase } from '../supabase';
 
 /** 홈에서 순서를 바꿀 수 있는 블록. (헤더·풀이 진행률 배너·로그인 링크는 고정이라 제외) */
-export type HomeBlockKey = 'chart' | 'coach' | 'today' | 'persona' | 'self';
+export type HomeBlockKey = 'chart' | 'coach' | 'today' | 'relation' | 'persona' | 'self';
 
-/** daniel 확정 기본 순서(2026-07-19). */
-export const DEFAULT_HOME_ORDER: HomeBlockKey[] = ['chart', 'coach', 'today', 'persona', 'self'];
+/** daniel 확정 기본 순서(2026-07-19) + 오늘의 관계(07-20 리텐션 재기획)를 오늘 기운 바로 뒤에. */
+export const DEFAULT_HOME_ORDER: HomeBlockKey[] = ['chart', 'coach', 'today', 'relation', 'persona', 'self'];
 
 /** 블록 라벨 — 설정의 순서 편집 화면에 표시. */
 export const HOME_BLOCK_LABEL: Record<HomeBlockKey, string> = {
   chart: '명식 선택',
   coach: 'AI 자기이해 코치',
   today: '오늘의 기운',
+  relation: '오늘의 관계',
   persona: '나의 성격유형',
   self: '나는 어떤 사람인가',
 };

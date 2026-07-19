@@ -1,13 +1,14 @@
-// src/app/(app)/lookback.tsx — 되돌아보기(내 기록 × 그날 운세)
+// src/app/(app)/lookback.tsx — 되돌아보기(오늘의 한 가지 실천 기록)
 // ─────────────────────────────────────────────────────────────────────────
-// 리텐션 Phase 1(daniel 2026-07-19 승인) ① 의 회수 지점 — 기록만 받고 안 돌려주면 쌓을 이유가 없다.
-//   "○월○일 이렇게 나왔고, 당신은 이렇게 적었어요"를 나란히 보여 준다.
+// 미션(오늘의 한 가지)을 며칠이나 해냈는지 돌아보는 화면. 체크만 받고 안 돌려주면 쌓을 이유가 없다.
 //
-// ★사용자 가치: 운세앱을 쓰는 진짜 동기는 '맞나 확인'인데 지금까진 확인할 방법이 없었다.
-// ★★앱 가치: 여기서 사용자가 스스로 매긴 적중/miss 가 골든셋이 된다(CLAUDE.md §3 축적 워크플로).
-//
-// ⚠️§3.2 검증 정직성: 적중률을 **성과처럼 과시하지 않는다**. "N일 중 M일"이라는 사실만 보여주고
-//   해석은 사용자에게 맡긴다(자기평가라 base-rate·확증편향이 섞인 값 — 앱이 '정확도 M%'로 못 박으면 기만).
+// ★2026-07-20 설계 변경(daniel 판단으로 축소): 원래는 '적중 회고'(맞음/아님·메모)를 모아
+//   골든셋으로 쓰려 했으나 **폐기**했다. 사용자의 체감 평가는 명리 적중과 다른 것을 재기 때문이다 —
+//   ①기분≠사건 ②개인 baseline(우울/낙천이 명리 신호를 덮음) ③확증편향(운세를 먼저 읽고 해석)
+//   ④'아무 일 없던 날'은 기록되지 않음(생존 편향). 사건 기록으로 바꿔도 "무엇을 사건으로 볼지"가 주관이라 남는다.
+//   → CLAUDE.md §3.2 "모호한 '맞는 것 같다'를 검증으로 인정하지 말 것"에 정면으로 걸린다.
+//   ⚠️여기에 **적중률을 절대 표시하지 말 것.** 지난 데이터의 hit/note 컬럼도 화면에 쓰지 않는다.
+//   리텐션은 사용자 입력에 기대지 않는 축(오늘의 관계·시기 예고)으로 옮겼다.
 // ⚠️로그인 필요(RLS). 비로그인은 안내만.
 // ─────────────────────────────────────────────────────────────────────────
 import { useCallback, useState } from 'react';
@@ -18,17 +19,10 @@ import { PressableScale } from '../../components/PressableScale';
 import { ChartPicker } from '../../components/ChartPicker';
 import { useAuth } from '../../lib/useAuth';
 import { loadRepChart } from '../../lib/engine/myChart';
-import { listDailyLogs, summarizeHits, type DailyLog } from '../../lib/backend/dailyLog';
+import { listDailyLogs, type DailyLog } from '../../lib/backend/dailyLog';
 import { colors, radius, space, shadow, font, bgSource } from '../../lib/theme';
 import { useFontScale } from '../../lib/ui/fontScale';
 import { ImageBackground } from 'react-native';
-
-/** 적중 평가 라벨·색 — DailyLogCard 와 같은 값(1/0/-1). */
-const HIT_LABEL: Record<string, { tx: string; tone: string }> = {
-  '1': { tx: '맞았어요', tone: colors.ju },
-  '0': { tx: '그저 그랬어요', tone: colors.inkSoft },
-  '-1': { tx: '아니었어요', tone: colors.inkFaint },
-};
 
 export default function LookbackScreen() {
   const { t } = useTranslation();
@@ -54,15 +48,18 @@ export default function LookbackScreen() {
   }, []);
   useFocusEffect(load); // 오늘 기록하고 돌아오면 바로 반영
 
-  const sum = summarizeHits(logs);
-  const written = logs.filter((l) => l.note || l.hit !== null || l.mission_done);
+  // ★2026-07-20: 적중 회고(hit/note) 수집을 중단해 미션 실천 기록만 남긴다.
+  //   이유 = 사용자의 체감 평가는 명리 적중과 다른 것을 재고(기분·개인 baseline·확증편향), 그걸 '적중률'로
+  //   보여주면 §3.2 검증 정직성에 어긋난다. 지난 기록의 hit/note 는 남아 있어도 화면에 쓰지 않는다.
+  const written = logs.filter((l) => l.mission_done);
+  const streak = written.length; // 실천한 날 수(연속 계산은 다음 단계 — 지금은 누적)
 
   return (
     <ImageBackground source={bgSource} style={styles.bg} resizeMode="cover">
       <ScrollView style={styles.overlay} contentContainerStyle={styles.wrap}>
         <ChartPicker onChange={load} />
         <Text style={[styles.title, { fontSize: fs(22) }]}>{t('lookback.title', '되돌아보기')}</Text>
-        <Text style={styles.sub}>{t('lookback.sub', '그날 운세와 내가 남긴 기록을 나란히 봐요.')}</Text>
+        <Text style={styles.sub}>{t('lookback.sub2', '오늘의 한 가지를 해낸 날들이에요.')}</Text>
 
         {!session ? (
           <View style={styles.card}>
@@ -75,43 +72,28 @@ export default function LookbackScreen() {
           <ActivityIndicator color={colors.ju} style={{ marginTop: space(8) }} />
         ) : written.length === 0 ? (
           <View style={styles.card}>
-            <Text style={[styles.empty, { fontSize: fs(14) }]}>{t('lookback.empty', '아직 남긴 기록이 없어요. 오늘의 운세 아래에서 "오늘 어땠어요?"에 한 줄 남겨 보세요.')}</Text>
+            <Text style={[styles.empty, { fontSize: fs(14) }]}>{t('lookback.empty2', '아직 기록이 없어요. 오늘의 운세 아래 "오늘의 한 가지"를 해내고 체크해 보세요.')}</Text>
             <PressableScale style={styles.cta} onPress={() => router.push('/today')}>
               <Text style={styles.ctaTx}>{t('lookback.goToday', '오늘의 운세 보기')}</Text>
             </PressableScale>
           </View>
         ) : (
           <>
-            {/* 요약 — ★'정확도 N%'로 단정하지 않는다(자기평가라 base-rate 가 섞인다·§3.2 검증 정직성). */}
-            {sum.rated > 0 && (
-              <View style={styles.summary}>
-                <Text style={[styles.summaryBig, { fontSize: fs(15) }]}>
-                  {t('lookback.summary', '평가한 {{rated}}일 중 {{hit}}일을 "맞았다"고 하셨어요', { rated: sum.rated, hit: sum.hit })}
-                </Text>
-                <Text style={styles.summaryNote}>{t('lookback.summaryNote', '※ 스스로 매긴 기록이라 참고용이에요. 빗나간 날이 있으면 그게 더 값진 단서예요.')}</Text>
-              </View>
-            )}
+            {/* 요약 — 실천한 날 수만. ★'적중률'은 보여주지 않는다(위 주석 참고). */}
+            <View style={styles.summary}>
+              <Text style={[styles.summaryBig, { fontSize: fs(15) }]}>
+                {t('lookback.streak', '지금까지 {{n}}일, 오늘의 한 가지를 해내셨어요', { n: streak })}
+              </Text>
+            </View>
 
             {written.map((l) => (
               <View key={l.log_date} style={styles.card}>
                 <View style={styles.rowTop}>
                   <Text style={styles.date}>{l.log_date}</Text>
                   {l.score != null && <Text style={styles.score}>{l.score}점</Text>}
-                  {l.hit !== null && l.hit !== undefined && (
-                    <View style={[styles.hitPill, { borderColor: HIT_LABEL[String(l.hit)]?.tone }]}>
-                      <Text style={[styles.hitTx, { color: HIT_LABEL[String(l.hit)]?.tone }]}>{HIT_LABEL[String(l.hit)]?.tx}</Text>
-                    </View>
-                  )}
                 </View>
                 {/* 그날 운세(박제) */}
                 {l.headline && <Text style={[styles.headline, { fontSize: fs(14) }]}>{l.headline}</Text>}
-                {/* 내가 남긴 것 */}
-                {l.note ? (
-                  <View style={styles.noteBox}>
-                    <Text style={styles.noteLabel}>{t('lookback.myNote', '내 기록')}</Text>
-                    <Text style={[styles.noteTx, { fontSize: fs(13.5), lineHeight: fs(20) }]}>{l.note}</Text>
-                  </View>
-                ) : null}
                 {l.mission_done && <Text style={styles.mission}>{t('lookback.missionDone', '✓ 그날의 한 가지를 했어요')}</Text>}
               </View>
             ))}
@@ -130,17 +112,11 @@ const styles = StyleSheet.create({
   sub: { ...font.caption, color: colors.inkSoft, marginTop: space(1), marginBottom: space(4) },
   summary: { backgroundColor: colors.juSoft, borderRadius: radius.md, borderWidth: 1, borderColor: colors.juLine, padding: space(4), marginBottom: space(3) },
   summaryBig: { ...font.body, color: colors.ink, fontWeight: '800' },
-  summaryNote: { ...font.caption, color: colors.inkFaint, marginTop: space(1.5), lineHeight: 17 },
   card: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.line, padding: space(4), marginBottom: space(2.5), ...shadow.card },
   rowTop: { flexDirection: 'row', alignItems: 'center', gap: space(2) },
   date: { ...font.caption, color: colors.inkSoft, fontWeight: '700' },
   score: { ...font.caption, color: colors.ju, fontWeight: '800' },
-  hitPill: { marginLeft: 'auto', borderWidth: 1, borderRadius: radius.pill, paddingHorizontal: space(2), paddingVertical: space(0.5) },
-  hitTx: { fontSize: 11, fontWeight: '800' },
   headline: { ...font.body, color: colors.ink, fontWeight: '700', marginTop: space(2) },
-  noteBox: { marginTop: space(2.5), backgroundColor: colors.overlay, borderRadius: radius.sm, padding: space(3) },
-  noteLabel: { ...font.caption, color: colors.ju, fontWeight: '800', marginBottom: 2 },
-  noteTx: { color: colors.inkSoft },
   mission: { ...font.caption, color: colors.ju, fontWeight: '700', marginTop: space(2) },
   empty: { ...font.body, color: colors.inkSoft, lineHeight: 22 },
   cta: { alignSelf: 'flex-start', marginTop: space(3), backgroundColor: colors.ju, borderRadius: radius.md, paddingVertical: space(2.5), paddingHorizontal: space(5) },
