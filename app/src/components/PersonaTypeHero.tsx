@@ -18,7 +18,7 @@ import { PressableScale } from './PressableScale';
 import { loadRepChart } from '../lib/engine/myChart';
 import { computeChart } from '../lib/engine/engine';
 import { personaOf, type PersonaType } from '../lib/engine/personaType';
-import { stemElement, branchElement, elementColor, elementText } from '../lib/engine/ohaeng';
+import { PersonaImage } from './PersonaImage'; // 성격유형 카드 이미지(서버 fetch·실패 시 오행색 폴백)
 import { colors, radius, space, shadow, font } from '../lib/theme';
 import { useFontScale } from '../lib/ui/fontScale';
 import type { Stem, Branch } from '@spec/chart';
@@ -43,6 +43,7 @@ export function PersonaTypeHero({ reloadKey }: { reloadKey?: number }) {
   const { t } = useTranslation();
   const { fs } = useFontScale();
   const [persona, setPersona] = useState<PersonaType | null>(null);
+  const [sex, setSex] = useState<'남' | '여' | undefined>(undefined); // 성별 → PersonaImage 가 URL 조립
 
   useEffect(() => {
     let alive = true;
@@ -50,7 +51,8 @@ export function PersonaTypeHero({ reloadKey }: { reloadKey?: number }) {
       const ch = await loadRepChart();
       if (!alive) return;
       setPersona(ch ? personaFromRepChart(ch.input) : null);
-    })().catch(() => { if (alive) setPersona(null); });
+      setSex((ch?.input as any)?.sex); // 성별 → 성별맞춤 카드 이미지(없으면 폴백)
+    })().catch(() => { if (alive) { setPersona(null); setSex(undefined); } });
     return () => { alive = false; };
   }, [reloadKey]);
 
@@ -58,10 +60,6 @@ export function PersonaTypeHero({ reloadKey }: { reloadKey?: number }) {
   //   같은 유도를 두 번 쌓지 않기 위함(daniel: 홈이 안내문으로 도배되지 않게).
   if (!persona) return null;
 
-  // ★글자마다 자기 오행색(daniel 2026-07-19 "글자별로 색이 안맞아") — 앞 글자 색을 뒤 글자에도 쓰고
-  //   투명도만 달리하던 버그. 일간은 천간 오행, 월지는 **지지 오행**으로 각각 칠한다(만세력·오늘의 기운과 동일 규칙).
-  const stemEl = stemElement(persona.dayStem);
-  const branchEl = branchElement(persona.monthBranch);
   return (
     <PressableScale style={styles.card} onPress={() => router.push('/personatype')}>
       {/* 머리말 + 희소성(120종 중 하나) — '나에 대한 분석'이라는 프레이밍(App Store 4.3 결) */}
@@ -71,11 +69,8 @@ export function PersonaTypeHero({ reloadKey }: { reloadKey?: number }) {
       </View>
 
       <View style={styles.row}>
-        {/* 폴백 시각 = 일간·월지 오행색 네모(만세력·오늘의 기운과 같은 언어). 이미지 120장 생기면 이 View 를 교체. */}
-        <View style={styles.gzRow}>
-          <View style={[styles.gzBox, { backgroundColor: elementColor[stemEl] }]}><Text style={[styles.gzTx, { color: elementText[stemEl] }]}>{persona.dayStem}</Text></View>
-          <View style={[styles.gzBox, { backgroundColor: elementColor[branchEl] }]}><Text style={[styles.gzTx, { color: elementText[branchEl] }]}>{persona.monthBranch}</Text></View>
-        </View>
+        {/* 성별맞춤 카드 이미지(서버 fetch) — URL 없음/로드 실패 시 오행색 네모 폴백(PersonaImage 내부 처리) */}
+        <PersonaImage dayStem={persona.dayStem} monthBranch={persona.monthBranch} sex={sex} width={60} height={77} />
         <View style={styles.titleCol}>
           <Text style={[styles.name, { fontSize: fs(19) }]} numberOfLines={2}>{persona.name}</Text>
           <View style={styles.chips}>
@@ -99,9 +94,6 @@ const styles = StyleSheet.create({
   countPill: { backgroundColor: colors.juSoft, borderRadius: radius.pill, paddingHorizontal: space(2.5), paddingVertical: space(0.5) },
   countTx: { fontSize: 10.5, fontWeight: '800', color: colors.ju, letterSpacing: 0.2 },
   row: { flexDirection: 'row', alignItems: 'center', gap: space(3.5) },
-  gzRow: { flexDirection: 'row', gap: space(1) },
-  gzBox: { width: 38, height: 46, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center' },
-  gzTx: { fontSize: 24, fontWeight: '800', lineHeight: 30 },
   titleCol: { flex: 1 },
   name: { ...font.heading, color: colors.ink, fontWeight: '900' },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space(1.5), marginTop: space(2) },

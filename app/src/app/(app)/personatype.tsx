@@ -13,7 +13,7 @@ import { useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { loadMyChart } from '../../lib/engine/myChart';
 import { personaFromRepChart } from '../../components/PersonaTypeHero'; // 명식 → 유형 산출(홈 히어로와 동일 경로 = 정합)
-import { stemElement, branchElement, elementColor, elementText } from '../../lib/engine/ohaeng';
+import { PersonaImage } from '../../components/PersonaImage'; // 성격유형 카드 이미지(서버 fetch·실패 시 오행색 폴백)
 import { bgSource, colors, radius, space, shadow, font } from '../../lib/theme';
 import { useFontScale } from '../../lib/ui/fontScale';
 import { ContentHero } from '../../components/SpecialContentScreen';
@@ -36,9 +36,6 @@ export default function PersonaTypeScreen() {
   }, []));
 
   const p = useMemo(() => (me ? personaFromRepChart(me) : null), [me]);
-  // ★글자마다 자기 오행색(daniel 2026-07-19) — 일간=천간 오행 / 월지=지지 오행. 앞 글자 색을 뒤에 재사용하지 않는다.
-  const stemEl = p ? stemElement(p.dayStem) : '土';
-  const branchEl = p ? branchElement(p.monthBranch) : '土';
 
   // 3축 카드 — 일간(나라는 재료) / 월지(내가 놓인 계절) / 격(삶의 무게중심).
   //   격은 못 구할 수 있어(구버전 차트) 값이 있을 때만 넣는다 — 없는 걸 지어내지 않는다.
@@ -65,11 +62,8 @@ export default function PersonaTypeScreen() {
           <>
             <Reveal delay={0}>
               <View style={styles.typeCard}>
-                {/* 간지 네모 2글자 = 일간·월지(만세력·오늘의 기운과 같은 시각 언어). 이미지 120장 생기면 이 자리 교체. */}
-                <View style={styles.gzRow}>
-                  <View style={[styles.gzBox, { backgroundColor: elementColor[stemEl] }]}><Text style={[styles.gzTx, { color: elementText[stemEl] }]}>{p.dayStem}</Text></View>
-                  <View style={[styles.gzBox, { backgroundColor: elementColor[branchEl] }]}><Text style={[styles.gzTx, { color: elementText[branchEl] }]}>{p.monthBranch}</Text></View>
-                </View>
+                {/* 성별맞춤 카드 이미지(서버 fetch) — URL 없음/로드 실패 시 오행색 네모 폴백(PersonaImage 내부) */}
+                <PersonaImage dayStem={p.dayStem} monthBranch={p.monthBranch} sex={me?.sex} width={224} height={288} />
                 <Text style={[styles.typeName, { fontSize: fs(24) }]}>{p.name}</Text>
                 <View style={styles.chips}>
                   {p.keywords.map((k) => <View key={k} style={styles.chip}><Text style={styles.chipTx}>{k}</Text></View>)}
@@ -106,9 +100,6 @@ const styles = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: colors.overlay },
   wrap: { padding: space(6), paddingBottom: space(12) },
   typeCard: { alignItems: 'center', backgroundColor: colors.card, borderRadius: radius.lg, borderWidth: 1.5, borderColor: colors.ju, padding: space(6), marginBottom: space(4), ...shadow.card },
-  gzRow: { flexDirection: 'row', gap: space(1.5), marginBottom: space(3) },
-  gzBox: { width: 46, height: 56, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center' },
-  gzTx: { fontSize: 30, fontWeight: '800', lineHeight: 38 },
   typeName: { fontWeight: '900', color: colors.ju, letterSpacing: 0.5, textAlign: 'center' },
   chips: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: space(1.5), marginTop: space(2.5) },
   chip: { backgroundColor: colors.juSoft, borderWidth: 1, borderColor: colors.juLine, borderRadius: radius.pill, paddingHorizontal: space(3), paddingVertical: space(1) },
