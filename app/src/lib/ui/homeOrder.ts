@@ -1,17 +1,20 @@
-// src/lib/ui/homeOrder.ts — 홈 블록 배치 순서(계정별 저장·복원)
+// src/lib/ui/homeOrder.ts — 홈 블록 배치 순서(계정별 저장·복원) · **전역 스토어**
 // ─────────────────────────────────────────────────────────────────────────
-// daniel 2026-07-19: "홈 배치순서를 계정별로 수정 가능하게 하고싶어" +
-//   기본 순서 = 명식 → AI 코치 배너 → 오늘의 기운 → 나의 성격유형 → 나는 어떤 사람인가.
+// daniel 2026-07-19: "홈 배치순서를 계정별로 수정 가능하게" +
+//   기본 순서 = 명식 → AI 코치 → 오늘의 기운 → 오늘의 관계 → 나의 성격유형 → 나는 어떤 사람인가.
+//
+// ★07-20 수정(daniel "홈 커스텀 안됨"): 기존 구현은 화면마다 useState 가 **독립**이라,
+//   설정에서 순서를 바꿔 setOrder 해도 홈 화면의 훅 인스턴스는 stale → 홈에 반영이 안 됐다
+//   (premiumStore 와 같은 부류의 버그: 화면별 독립 상태). → **모듈 전역 단일 상태 + useSyncExternalStore**
+//   로 전환해 setHomeOrder 한 번이 설정·홈 전 구독자에 즉시 반영되게 한다.
 //
 // 저장 위치:
-//   · 로그인  = `profiles.home_order`(jsonb) — **계정별**이라 기기를 바꿔도 따라온다.
+//   · 로그인  = `profiles.home_order`(jsonb) — 계정별이라 기기를 바꿔도 따라온다.
 //   · 비로그인 = SecureStore 로컬. 로그인하면 서버 값이 우선(서버가 정본).
-//   두 경우 모두 로컬에 캐시해 두어 앱 시작 직후 첫 렌더에서 순서가 튀지 않게 한다.
-//
-// ★알 수 없는 키·빠진 키 방어: 저장된 배열에 지금 없는 키가 있으면 버리고, 새로 생긴 블록은 뒤에 붙인다.
-//   (블록이 추가·삭제돼도 유저 설정이 깨지지 않는다 — 마이그레이션 불필요.)
+//   두 경우 모두 로컬 캐시 → 앱 시작 직후 첫 렌더에서 순서가 튀지 않게.
+// ★알 수 없는 키·빠진 키 방어(normalizeOrder): 블록이 추가·삭제돼도 유저 설정이 깨지지 않는다.
 // ─────────────────────────────────────────────────────────────────────────
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useSyncExternalStore } from 'react';
 import * as SecureStore from 'expo-secure-store';
 import { supabase } from '../supabase';
 
@@ -42,7 +45,6 @@ export function normalizeOrder(raw: unknown): HomeBlockKey[] {
   const valid = new Set(DEFAULT_HOME_ORDER);
   const arr = Array.isArray(raw) ? raw.filter((k): k is HomeBlockKey => typeof k === 'string' && valid.has(k as HomeBlockKey)) : [];
   const seen = new Set(arr);
-  // 새로 생긴 블록(저장 당시엔 없던 것)은 기본 순서를 따라 뒤에 붙인다 — 사라지지 않게.
   return [...arr, ...DEFAULT_HOME_ORDER.filter((k) => !seen.has(k))];
 }
 
@@ -57,48 +59,52 @@ async function writeLocal(order: HomeBlockKey[]): Promise<void> {
   try { await SecureStore.setItemAsync(LOCAL_KEY, JSON.stringify(order)); } catch { /* noop */ }
 }
 
+// ── 전역 단일 상태(모든 화면 공유) ─────────────────────────────────────────
+let _order: HomeBlockKey[] = DEFAULT_HOME_ORDER;
+let _ready = false;
+const listeners = new Set<() => void>();
+function emit(): void { for (const l of listeners) l(); }
+function subscribe(cb: () => void): () => void { listeners.add(cb); return () => { listeners.delete(cb); }; }
+const getOrder = (): HomeBlockKey[] => _order;   // useSyncExternalStore: 값 미변경 시 동일 참조(안정)
+const getReady = (): boolean => _ready;
+function sameOrder(a: HomeBlockKey[], b: HomeBlockKey[]): boolean { return a.length === b.length && a.every((x, i) => x === b[i]); }
+/** 순서 반영(내용이 실제로 바뀔 때만 새 참조·emit — 동일 순서 재로드로 인한 불필요 리렌더 방지). */
+function pushOrder(next: HomeBlockKey[]): void { if (!sameOrder(_order, next)) { _order = next; emit(); } }
+
+/** 로컬 캐시 → (로그인 시)서버 순으로 읽어 전역 상태에 반영. 훅 마운트마다 호출(계정 전환·최신값 반영). */
+export async function loadHomeOrder(): Promise<void> {
+  const local = await readLocal();
+  if (local) pushOrder(local);                       // 1차: 로컬 캐시 즉시(깜빡임 방지)
+  try {
+    const { data: u } = await supabase.auth.getUser();
+    if (u?.user) {
+      const { data } = await supabase.from('profiles').select('home_order').eq('id', u.user.id).maybeSingle();
+      if (data?.home_order) { const norm = normalizeOrder(data.home_order); pushOrder(norm); void writeLocal(norm); }
+    }
+  } catch { /* 서버 실패 시 로컬/기본값 유지 */ }
+  if (!_ready) { _ready = true; emit(); }
+}
+
+/** 순서 저장 — 전역 즉시 반영(설정·홈 동시) + 로컬 + 서버(로그인 시). */
+export async function setHomeOrder(next: HomeBlockKey[]): Promise<void> {
+  const norm = normalizeOrder(next);
+  pushOrder(norm);                                   // ★설정에서 바꾸면 홈도 즉시 반영(전역 스토어)
+  await writeLocal(norm);
+  try {
+    const { data: u } = await supabase.auth.getUser();
+    if (u?.user) await supabase.from('profiles').update({ home_order: norm }).eq('id', u.user.id);
+  } catch { /* 오프라인 등 — 화면은 이미 반영, 로컬 저장됨 */ }
+}
+
 /**
- * 홈 블록 순서를 읽고 저장하는 훅.
- * @returns order = 현재 순서 / setOrder = 저장(서버+로컬) / reset = 기본값으로 / ready = 로드 완료 여부
+ * 홈 블록 순서 훅 — 전역 상태를 구독한다(설정·홈 어디서 바꿔도 동시 반영).
+ * @returns order = 현재 순서 / setOrder = 저장(전역+로컬+서버) / reset = 기본값 / ready = 로드 완료 여부
  */
 export function useHomeOrder() {
-  const [order, setOrderState] = useState<HomeBlockKey[]>(DEFAULT_HOME_ORDER);
-  const [ready, setReady] = useState(false);
-
-  useEffect(() => {
-    let alive = true;
-    (async () => {
-      const local = await readLocal();
-      if (alive && local) setOrderState(local);      // 1차: 로컬 캐시로 즉시 반영(깜빡임 방지)
-      // 2차: 로그인 상태면 서버가 정본 — 계정을 바꿔 로그인해도 그 계정 순서가 나온다.
-      try {
-        const { data: u } = await supabase.auth.getUser();
-        if (!u?.user) { if (alive) setReady(true); return; }
-        const { data } = await supabase.from('profiles').select('home_order').eq('id', u.user.id).maybeSingle();
-        if (!alive) return;
-        if (data?.home_order) {
-          const norm = normalizeOrder(data.home_order);
-          setOrderState(norm);
-          writeLocal(norm);                          // 다음 시작을 위해 캐시
-        }
-      } catch { /* 서버 실패 시 로컬/기본값 유지 */ }
-      if (alive) setReady(true);
-    })();
-    return () => { alive = false; };
-  }, []);
-
-  /** 순서 저장 — 로컬 즉시 + 서버(로그인 시). 서버 실패해도 로컬은 유지된다. */
-  const setOrder = useCallback(async (next: HomeBlockKey[]) => {
-    const norm = normalizeOrder(next);
-    setOrderState(norm);
-    await writeLocal(norm);
-    try {
-      const { data: u } = await supabase.auth.getUser();
-      if (u?.user) await supabase.from('profiles').update({ home_order: norm }).eq('id', u.user.id);
-    } catch { /* 오프라인 등 — 로컬엔 남아 다음 접속 때 다시 시도되지 않지만, 화면은 이미 반영됨 */ }
-  }, []);
-
-  const reset = useCallback(() => setOrder(DEFAULT_HOME_ORDER), [setOrder]);
-
+  const order = useSyncExternalStore(subscribe, getOrder);
+  const ready = useSyncExternalStore(subscribe, getReady);
+  useEffect(() => { void loadHomeOrder(); }, []);    // 마운트 시 최신값 로드(계정 전환 반영)
+  const setOrder = useCallback((next: HomeBlockKey[]) => setHomeOrder(next), []);
+  const reset = useCallback(() => setHomeOrder(DEFAULT_HOME_ORDER), []);
   return { order, setOrder, reset, ready };
 }
