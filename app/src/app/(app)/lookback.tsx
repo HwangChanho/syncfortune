@@ -4,11 +4,11 @@
 //
 // ★2026-07-20 설계 변경(daniel 판단으로 축소): 원래는 '적중 회고'(맞음/아님·메모)를 모아
 //   골든셋으로 쓰려 했으나 **폐기**했다. 사용자의 체감 평가는 명리 적중과 다른 것을 재기 때문이다 —
-//   ①기분≠사건 ②개인 baseline(우울/낙천이 명리 신호를 덮음) ③확증편향(운세를 먼저 읽고 해석)
-//   ④'아무 일 없던 날'은 기록되지 않음(생존 편향). 사건 기록으로 바꿔도 "무엇을 사건으로 볼지"가 주관이라 남는다.
-//   → CLAUDE.md §3.2 "모호한 '맞는 것 같다'를 검증으로 인정하지 말 것"에 정면으로 걸린다.
+//   ①기분≠사건 ②개인 baseline ③확증편향 ④'아무 일 없던 날'은 기록 안 됨(생존편향).
 //   ⚠️여기에 **적중률을 절대 표시하지 말 것.** 지난 데이터의 hit/note 컬럼도 화면에 쓰지 않는다.
-//   리텐션은 사용자 입력에 기대지 않는 축(오늘의 관계·시기 예고)으로 옮겼다.
+//
+// ★2026-07-20 보강(daniel QA '기획 부실'): 내용이 streak 숫자뿐이라 빈약 → ①요약에 격려 문구(연속일수별)
+//   ②그날의 미션 문장을 mission_key 로 복원해 표시 ③배경을 옛 bgSource(베이지) → 투명(전역 오행색 비침)으로 통일.
 // ⚠️로그인 필요(RLS). 비로그인은 안내만.
 // ─────────────────────────────────────────────────────────────────────────
 import { useCallback, useState } from 'react';
@@ -20,9 +20,17 @@ import { ChartPicker } from '../../components/ChartPicker';
 import { useAuth } from '../../lib/useAuth';
 import { loadRepChart } from '../../lib/engine/myChart';
 import { listDailyLogs, type DailyLog } from '../../lib/backend/dailyLog';
-import { colors, radius, space, shadow, font, bgSource } from '../../lib/theme';
+import { missionTextFromKey } from '../../lib/content/dailyMission';
+import { colors, radius, space, shadow, font } from '../../lib/theme';
 import { useFontScale } from '../../lib/ui/fontScale';
-import { ImageBackground } from 'react-native';
+
+/** 연속(누적) 실천일수별 격려 문구 — 사용자 입력에 기대지 않는 결정론 문구(daniel 07-20). */
+function encourage(n: number): string {
+  if (n >= 14) return '2주 넘게 이어가고 있어요. 이 꾸준함이 곧 힘이 돼요.';
+  if (n >= 7) return '일주일을 넘겼어요. 작은 실천이 쌓이고 있어요.';
+  if (n >= 3) return '며칠째 이어가는 중이에요. 좋은 흐름이에요.';
+  return '시작이 반이에요. 오늘의 한 가지도 가볍게 이어가 보세요.';
+}
 
 export default function LookbackScreen() {
   const { t } = useTranslation();
@@ -31,7 +39,6 @@ export default function LookbackScreen() {
   const { session } = useAuth();
   const [logs, setLogs] = useState<DailyLog[]>([]);
   const [loading, setLoading] = useState(true);
-  const [chartId, setChartId] = useState<string | null>(null);
 
   const load = useCallback(() => {
     let alive = true;
@@ -40,7 +47,6 @@ export default function LookbackScreen() {
       const rep = await loadRepChart();
       const id = rep?.serverChartId ?? null;
       if (!alive) return;
-      setChartId(id);
       const rows = await listDailyLogs(id, 60); // 최근 60일
       if (alive) { setLogs(rows); setLoading(false); }
     })().catch(() => { if (alive) setLoading(false); });
@@ -48,14 +54,12 @@ export default function LookbackScreen() {
   }, []);
   useFocusEffect(load); // 오늘 기록하고 돌아오면 바로 반영
 
-  // ★2026-07-20: 적중 회고(hit/note) 수집을 중단해 미션 실천 기록만 남긴다.
-  //   이유 = 사용자의 체감 평가는 명리 적중과 다른 것을 재고(기분·개인 baseline·확증편향), 그걸 '적중률'로
-  //   보여주면 §3.2 검증 정직성에 어긋난다. 지난 기록의 hit/note 는 남아 있어도 화면에 쓰지 않는다.
+  // ★2026-07-20: 미션 실천 기록만 남긴다(적중 회고 hit/note 는 화면에 쓰지 않음 — 위 주석).
   const written = logs.filter((l) => l.mission_done);
-  const streak = written.length; // 실천한 날 수(연속 계산은 다음 단계 — 지금은 누적)
+  const streak = written.length; // 실천한 날 수(누적)
 
   return (
-    <ImageBackground source={bgSource} style={styles.bg} resizeMode="cover">
+    <View style={styles.bg}>
       <ScrollView style={styles.overlay} contentContainerStyle={styles.wrap}>
         <ChartPicker onChange={load} />
         <Text style={[styles.title, { fontSize: fs(22) }]}>{t('lookback.title', '되돌아보기')}</Text>
@@ -79,45 +83,60 @@ export default function LookbackScreen() {
           </View>
         ) : (
           <>
-            {/* 요약 — 실천한 날 수만. ★'적중률'은 보여주지 않는다(위 주석 참고). */}
+            {/* 요약 — 실천한 날 수 + 격려(연속일수별). ★'적중률'은 보여주지 않는다(위 주석 참고). */}
             <View style={styles.summary}>
-              <Text style={[styles.summaryBig, { fontSize: fs(15) }]}>
+              <Text style={[styles.summaryBig, { fontSize: fs(16) }]}>
                 {t('lookback.streak', '지금까지 {{n}}일, 오늘의 한 가지를 해내셨어요', { n: streak })}
               </Text>
+              <Text style={[styles.summaryEnc, { fontSize: fs(13), lineHeight: fs(19) }]}>{encourage(streak)}</Text>
             </View>
 
-            {written.map((l) => (
-              <View key={l.log_date} style={styles.card}>
-                <View style={styles.rowTop}>
-                  <Text style={styles.date}>{l.log_date}</Text>
-                  {l.score != null && <Text style={styles.score}>{l.score}점</Text>}
+            {written.map((l) => {
+              const mission = missionTextFromKey(l.mission_key); // 그날의 한 가지(복원)
+              return (
+                <View key={l.log_date} style={styles.card}>
+                  <View style={styles.rowTop}>
+                    <Text style={styles.date}>{l.log_date}</Text>
+                    {l.score != null && <Text style={styles.score}>{l.score}점</Text>}
+                  </View>
+                  {/* 그날 운세(박제) */}
+                  {l.headline && <Text style={[styles.headline, { fontSize: fs(14) }]}>{l.headline}</Text>}
+                  {/* 그날의 한 가지 — 무엇을 했는지 구체 문구(daniel 07-20 내용 보강) */}
+                  {mission && (
+                    <View style={styles.missionBox}>
+                      <Text style={styles.missionCap}>{t('lookback.missionCap', '그날의 한 가지')}</Text>
+                      <Text style={[styles.missionTx, { fontSize: fs(13), lineHeight: fs(19) }]}>{mission}</Text>
+                    </View>
+                  )}
+                  <Text style={styles.done}>{t('lookback.missionDone', '✓ 해냈어요')}</Text>
                 </View>
-                {/* 그날 운세(박제) */}
-                {l.headline && <Text style={[styles.headline, { fontSize: fs(14) }]}>{l.headline}</Text>}
-                {l.mission_done && <Text style={styles.mission}>{t('lookback.missionDone', '✓ 그날의 한 가지를 했어요')}</Text>}
-              </View>
-            ))}
+              );
+            })}
           </>
         )}
       </ScrollView>
-    </ImageBackground>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  bg: { flex: 1, backgroundColor: colors.bg },
+  bg: { flex: 1, backgroundColor: 'transparent' }, // 전역 ContentBackdrop(오행 배경색)이 비치게(daniel 07-20 배경 통일)
   overlay: { flex: 1, backgroundColor: colors.overlay },
   wrap: { padding: space(6), paddingBottom: space(12) },
   title: { ...font.heading, color: colors.ink, fontWeight: '900', marginTop: space(2) },
   sub: { ...font.caption, color: colors.inkSoft, marginTop: space(1), marginBottom: space(4) },
   summary: { backgroundColor: colors.juSoft, borderRadius: radius.md, borderWidth: 1, borderColor: colors.juLine, padding: space(4), marginBottom: space(3) },
   summaryBig: { ...font.body, color: colors.ink, fontWeight: '800' },
+  summaryEnc: { ...font.body, color: colors.inkSoft, marginTop: space(1.5) },
   card: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.line, padding: space(4), marginBottom: space(2.5), ...shadow.card },
   rowTop: { flexDirection: 'row', alignItems: 'center', gap: space(2) },
   date: { ...font.caption, color: colors.inkSoft, fontWeight: '700' },
   score: { ...font.caption, color: colors.ju, fontWeight: '800' },
   headline: { ...font.body, color: colors.ink, fontWeight: '700', marginTop: space(2) },
-  mission: { ...font.caption, color: colors.ju, fontWeight: '700', marginTop: space(2) },
+  missionBox: { marginTop: space(2.5), padding: space(3), backgroundColor: colors.sunk, borderRadius: radius.sm, borderLeftWidth: 3, borderLeftColor: colors.ju },
+  missionCap: { ...font.caption, color: colors.ju, fontWeight: '800', marginBottom: space(1) },
+  missionTx: { ...font.body, color: colors.ink },
+  done: { ...font.caption, color: colors.ju, fontWeight: '700', marginTop: space(2) },
   empty: { ...font.body, color: colors.inkSoft, lineHeight: 22 },
   cta: { alignSelf: 'flex-start', marginTop: space(3), backgroundColor: colors.ju, borderRadius: radius.md, paddingVertical: space(2.5), paddingHorizontal: space(5) },
   ctaTx: { color: '#15132E', fontWeight: '800', fontSize: 14 },

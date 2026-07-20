@@ -151,10 +151,16 @@ export default function CoachScreen() {
                 {turn.pending ? (
                   // 답 생성 중 — 질문 아래에 '생각 중' 인디케이터(⑨a). 별도 하단 인디케이터는 제거해 중복 방지.
                   <View style={styles.thinking}><ActivityIndicator color={colors.ju} /><Text style={styles.thinkingTx}>{t('coach.thinking', '당신의 사주를 살펴보는 중…')}</Text></View>
-                ) : (
+                ) : turn.answer ? (
                   <View style={styles.aCard}>
                     <Text style={styles.aLabel}>{t('coach.coachLabel', '코치')}</Text>
                     <Text style={[styles.aTx, { fontSize: fs(15), lineHeight: fs(25) }]}>{turn.answer}</Text>
+                  </View>
+                ) : (
+                  // ⑨b: 서버에 질문은 남았으나 답이 빈 행(강종/생성 중단으로 답 못 받음) — 재진입 시 안내(질문은 보존됨).
+                  <View style={styles.aCard}>
+                    <Text style={styles.aLabel}>{t('coach.coachLabel', '코치')}</Text>
+                    <Text style={[styles.aTx, { fontSize: fs(14), lineHeight: fs(22), color: colors.inkSoft }]}>{t('coach.failedTurn', '답을 받지 못했어요. 다시 물어봐 주세요.')}</Text>
                   </View>
                 )}
               </View>

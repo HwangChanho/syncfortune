@@ -63,3 +63,12 @@ export function dailyMission(saju: SajuChart, stem: Stem, branch: Branch): Daily
     return { key: 'fallback', text: '오늘 하나만 정해서 끝내 보세요. 작은 것도 좋아요.' };
   }
 }
+
+/** 저장된 mission_key → 그날의 미션 문장(되돌아보기 표시용·daniel 07-20). 못 찾으면 null. */
+export function missionTextFromKey(key: string | null | undefined): string | null {
+  if (!key) return null;
+  if (key.startsWith('signal:')) return BY_SIGNAL[key.slice(7)] ?? null;
+  if (key.startsWith('group:')) return BY_GROUP[key.slice(6)] ?? null;
+  if (key === 'fallback') return '오늘 하나만 정해서 끝내기';
+  return null;
+}

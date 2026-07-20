@@ -22,6 +22,7 @@ export type TodayRelation = {
   tone: 'good' | 'mixed' | 'care';  // 카드 색·아이콘용
   title: string;                    // 한 줄 요약
   body: string;                     // 왜 그런지 + 오늘 쓰는 법(처방)
+  tip: string;                      // 오늘 구체적으로 해볼 한 가지(daniel 07-20 '내용 더') — 행동 처방
   signals: string[];                // 근거 칩(합/충 등)
 };
 
@@ -72,6 +73,7 @@ export function todayRelation(me: SajuChart, other: SajuChart, stem: Stem, branc
       tone: 'care',
       title: '둘 다 예민할 수 있는 날이에요',
       body: '오늘은 서로 자기 일로 신경이 곤두서기 쉬워요. 중요한 얘기는 하루 미루고, 가벼운 안부만 주고받아도 충분한 날이에요.',
+      tip: '오늘은 짧은 안부 한 줄이면 충분해요. 진지한 얘기는 내일로 미뤄 두세요.',
       signals,
     };
   }
@@ -81,6 +83,7 @@ export function todayRelation(me: SajuChart, other: SajuChart, stem: Stem, branc
       tone: 'care',
       title: `오늘은 ${who} 쪽 컨디션을 먼저 살펴 주세요`,
       body: `한쪽이 흔들리는 날이라 말이 평소보다 날카롭게 들릴 수 있어요. 지적보다 확인("무슨 일 있었어?")으로 시작하면 훨씬 매끄러워요.`,
+      tip: '지적 대신 "무슨 일 있었어?" 한마디로 먼저 문을 열어 보세요.',
       signals,
     };
   }
@@ -89,6 +92,7 @@ export function todayRelation(me: SajuChart, other: SajuChart, stem: Stem, branc
       tone: 'good',
       title: '오늘은 말이 잘 통하는 날이에요',
       body: '둘 다 오늘 기운과 어우러지는 날이라, 미뤄 뒀던 이야기를 꺼내기 좋아요. 약속을 잡거나 매듭을 지어야 할 일이 있으면 오늘이 수월해요.',
+      tip: '미뤄 뒀던 약속이나 하고 싶던 말을 오늘 꺼내 보세요.',
       signals,
     };
   }
@@ -97,15 +101,16 @@ export function todayRelation(me: SajuChart, other: SajuChart, stem: Stem, branc
       tone: 'good',
       title: '한 사람이 먼저 다가가면 잘 풀리는 날',
       body: '오늘 기운이 한쪽에 더 잘 맞아요. 그쪽에서 먼저 연락하거나 자리를 만들면 자연스럽게 흘러갑니다.',
+      tip: '여유 있는 쪽이 먼저 연락하거나 자리를 만들면 술술 풀려요.',
       signals,
     };
   }
   // 합·충이 없는 평범한 날 = 각자 기운(억부)으로 결
   if (favorCount === 2) {
-    return { tone: 'good', title: '둘 다 컨디션이 무난한 날', body: '특별한 사건은 없지만 서로 여유가 있는 날이에요. 함께 뭔가 시작하기엔 오히려 이런 날이 좋아요.', signals };
+    return { tone: 'good', title: '둘 다 컨디션이 무난한 날', body: '특별한 사건은 없지만 서로 여유가 있는 날이에요. 함께 뭔가 시작하기엔 오히려 이런 날이 좋아요.', tip: '새로운 걸 함께 시작하기 좋은 날 — 가벼운 제안을 건네 보세요.', signals };
   }
   if (favorCount === 0) {
-    return { tone: 'mixed', title: '각자 자기 일에 바쁜 날', body: '오늘은 둘 다 자기 몫이 무거운 편이에요. 서로 기대를 조금 낮추고, 각자 할 일을 끝낸 뒤에 보는 편이 편합니다.', signals };
+    return { tone: 'mixed', title: '각자 자기 일에 바쁜 날', body: '오늘은 둘 다 자기 몫이 무거운 편이에요. 서로 기대를 조금 낮추고, 각자 할 일을 끝낸 뒤에 보는 편이 편합니다.', tip: '기대를 조금 낮추고, 각자 할 일을 끝낸 저녁에 보는 게 편해요.', signals };
   }
-  return { tone: 'mixed', title: '한쪽이 여유로운 날', body: '한 사람은 가볍고 한 사람은 바쁜 날이에요. 여유 있는 쪽이 속도를 맞춰 주면 무리 없이 지나갑니다.', signals };
+  return { tone: 'mixed', title: '한쪽이 여유로운 날', body: '한 사람은 가볍고 한 사람은 바쁜 날이에요. 여유 있는 쪽이 속도를 맞춰 주면 무리 없이 지나갑니다.', tip: '여유로운 쪽이 상대 속도에 맞춰 주면 무리 없이 지나가요.', signals };
 }
