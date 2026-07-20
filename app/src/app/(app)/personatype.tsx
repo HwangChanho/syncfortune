@@ -8,13 +8,14 @@
 // ⚠️§4 안전: 단정·부정 증폭 금지. '이런 결을 타고났다 + 그래서 이렇게 쓴다'까지만.
 // ─────────────────────────────────────────────────────────────────────────
 import { useMemo, useState, useCallback } from 'react';
-import { View, Text, ScrollView, StyleSheet, ImageBackground } from 'react-native';
+import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { loadMyChart } from '../../lib/engine/myChart';
 import { personaFromRepChart } from '../../components/PersonaTypeHero'; // 명식 → 유형 산출(홈 히어로와 동일 경로 = 정합)
 import { PersonaImage } from '../../components/PersonaImage'; // 성격유형 카드 이미지(서버 fetch·실패 시 오행색 폴백)
-import { bgSource, colors, radius, space, shadow, font } from '../../lib/theme';
+import { personaImageUrl } from '../../lib/content/personaImages'; // 공유 카드용 이미지 URL(daniel 07-20)
+import { colors, radius, space, shadow, font } from '../../lib/theme';
 import { useFontScale } from '../../lib/ui/fontScale';
 import { ContentHero } from '../../components/SpecialContentScreen';
 import { Reveal } from '../../components/Reveal'; // 카드 순차 등장(daniel 재미)
@@ -46,12 +47,12 @@ export default function PersonaTypeScreen() {
   ] : [];
 
   return (
-    <ImageBackground source={bgSource} style={styles.bg} resizeMode="cover">
+    <View style={styles.bg}>
       <ScrollView style={styles.overlay} contentContainerStyle={styles.wrap}>
         {/* 상단 명식 헤더 — 현재 적용 명식 표시·전환 */}
         <ChartPicker onChange={() => loadMyChart().then(setMe)} />
+        {/* 타로풍 배너(persona.jpg) 제거(daniel 2026-07-20) — 아래 성격유형 카드 이미지가 주인공이라 중복·이질. 타이틀만 유지. */}
         <ContentHero
-          image={require('../../../assets/icons/persona.jpg')}
           title={t('persona120.title', '나의 성격유형')}
           sub={t('persona120.sub', '일간 10 × 월지 12 = 120가지 중 나는 어떤 유형일까')}
         />
@@ -83,7 +84,7 @@ export default function PersonaTypeScreen() {
               </Reveal>
             ))}
 
-            <ShareReadingButton kind="personatype" title="나의 성격유형" content={{ name: p.name, keywords: p.keywords.join(' · '), summary: p.summary }} />
+            <ShareReadingButton kind="personatype" title="나의 성격유형" image={personaImageUrl(p.dayStem, p.monthBranch, me?.sex) ?? undefined} content={{ name: p.name, keywords: p.keywords.join(' · '), summary: p.summary }} />
           </>
         )}
 
@@ -91,12 +92,12 @@ export default function PersonaTypeScreen() {
           {t('persona120.note', '※ 일간(나 자신)과 월지(태어난 계절)로 나눈 120가지 결이에요. 타고난 결을 보는 것이라 좋고 나쁨이 아니고, 같은 유형이어도 나머지 글자와 지금 운에 따라 쓰임이 달라져요.')}
         </Text>
       </ScrollView>
-    </ImageBackground>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  bg: { flex: 1, backgroundColor: colors.bg },
+  bg: { flex: 1, backgroundColor: 'transparent' }, // 전역 ContentBackdrop(오행 배경색)이 비치게(daniel 07-20 배경 통일) — 옛 bgSource 종이질감 제거
   overlay: { flex: 1, backgroundColor: colors.overlay },
   wrap: { padding: space(6), paddingBottom: space(12) },
   typeCard: { alignItems: 'center', backgroundColor: colors.card, borderRadius: radius.lg, borderWidth: 1.5, borderColor: colors.ju, padding: space(6), marginBottom: space(4), ...shadow.card },

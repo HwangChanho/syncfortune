@@ -9,15 +9,17 @@ import { useRef } from 'react';
 import { Pressable, Text, View, StyleSheet, Share, Platform, type StyleProp, type ViewStyle } from 'react-native';
 import { PressableScale } from './PressableScale';
 import ViewShot, { captureRef } from 'react-native-view-shot';
+import { Image as ExpoImage } from 'expo-image'; // 공유 카드에 성격유형 사진 등 함께 넣기(daniel 07-20)
 import { Alert } from '../lib/ui/alert';
 import { APP_STORE_URL, createSharedLink } from '../lib/ui/share';
 import { colors, radius, space } from '../lib/theme';
 
-export function ShareReadingButton({ kind, category, title, content, style }: {
+export function ShareReadingButton({ kind, category, title, content, image, style }: {
   kind: string;
   category?: string;
   title?: string;
   content: any;
+  image?: string; // 공유 카드 상단에 함께 넣을 이미지 URL(성격유형 카드 등·daniel 07-20 '공유 시 사진도')
   style?: StyleProp<ViewStyle>;
 }) {
   const shotRef = useRef<ViewShot>(null);
@@ -35,6 +37,9 @@ export function ShareReadingButton({ kind, category, title, content, style }: {
 
   const onShare = async () => {
     try {
+      // 공유 카드에 이미지가 있으면 캡처 전에 미리 로드(캐시)해 빈 이미지로 찍히지 않게 함(daniel 07-20).
+      //   off-screen 카드의 ExpoImage 가 디스크캐시에서 그려질 시간을 준다(prefetch + 짧은 지연).
+      if (image) { try { await ExpoImage.prefetch(image); } catch { /* 실패해도 진행 */ } await new Promise((r) => setTimeout(r, 350)); }
       // off-screen 카드 캡처 → 이미지 파일 uri
       const uri = await captureRef(shotRef, { format: 'jpg', quality: 0.95, result: 'tmpfile' });
       // 받는 사람이 앱에서 풀이를 *직접 열어볼* 스마트링크(딥링크) 생성 — shared_readings 스냅샷(daniel #18)
@@ -60,6 +65,7 @@ export function ShareReadingButton({ kind, category, title, content, style }: {
         <ViewShot ref={shotRef} options={{ format: 'jpg', quality: 0.95 }}>
           <View style={styles.card}>
             <Text style={styles.brand}>✨ 팔자(八字)</Text>
+            {image ? <ExpoImage source={{ uri: image }} style={styles.cardImg} contentFit="cover" transition={0} /> : null}
             {title ? <Text style={styles.cardTitle}>{title}</Text> : null}
             {headline ? <Text style={styles.cardHeadline}>{headline}</Text> : null}
             {excerpt ? <Text style={styles.cardBody}>{excerpt}…</Text> : null}
@@ -80,6 +86,7 @@ const styles = StyleSheet.create({
   // 공유 이미지 카드(세로) — 앱 톤(미드나잇+골드)
   card: { width: 720, backgroundColor: colors.bg, paddingVertical: 56, paddingHorizontal: 48, borderWidth: 3, borderColor: colors.ju },
   brand: { color: colors.ju, fontSize: 30, fontWeight: '900', marginBottom: 28, letterSpacing: 1 },
+  cardImg: { width: '100%', height: 620, borderRadius: 20, marginBottom: 28, backgroundColor: colors.sunk }, // 공유 카드 상단 이미지(성격유형 등·daniel 07-20)
   cardTitle: { color: colors.ink, fontSize: 40, fontWeight: '900', marginBottom: 18, lineHeight: 50 },
   cardHeadline: { color: colors.ju, fontSize: 28, fontWeight: '800', marginBottom: 24, lineHeight: 40 },
   cardBody: { color: colors.inkSoft, fontSize: 26, lineHeight: 42 },

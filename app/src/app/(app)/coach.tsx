@@ -101,6 +101,10 @@ export default function CoachScreen() {
       setChartId(id);
     }
     setInput(''); setBusy(true); lastQ.current = question;
+    // ⑨a(daniel 07-20): 보낸 질문을 *즉시* 말풍선으로 올린다(답은 pending=생성 중). busy 가드로 동시 전송이 없어 pending 은 항상 1개.
+    //   질문이 채팅에 바로 남아 '보냈는데 안 뜬다'가 사라진다. (강종 시 서버 이력 보존은 ⑨b=Edge 별도.)
+    setHistory((h) => [...h, { question, answer: '', pending: true }]);
+    setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 60);
     // 비프리미엄 무료 = 보상형 광고(daniel 07-13: 광고 보고 하루 1회 무료). 오늘 이미 봤으면 재노출 안 함(서버가 실제 카운트 판정).
     //   프리미엄(월5)·이용권 차감은 광고 없음. 광고 미시청/실패해도 진행(서버가 무료/needCredit 판정).
     if (!isPremium && !coachAdSeenToday()) {
@@ -110,12 +114,12 @@ export default function CoachScreen() {
     const res = await askCoach(id, question);
     setBusy(false);
     if (res.kind === 'answer') {
-      setHistory((h) => [...h, { question, answer: res.answer }]);
+      setHistory((h) => h.map((t) => (t.pending ? { question: t.question, answer: res.answer } : t))); // pending 턴에 답 채움
       setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 120);
-    } else if (res.kind === 'needCredit') {
-      setGate({ isPremium: res.isPremium, used: res.used, freeLimit: res.freeLimit, period: res.period });
     } else {
-      Alert.alert('!', res.message);
+      setHistory((h) => h.filter((t) => !t.pending)); // 실패(게이트/오류) → 질문 말풍선 회수(lastQ 로 재전송 가능)
+      if (res.kind === 'needCredit') setGate({ isPremium: res.isPremium, used: res.used, freeLimit: res.freeLimit, period: res.period });
+      else Alert.alert('!', res.message);
     }
   }
 
@@ -144,13 +148,17 @@ export default function CoachScreen() {
             {history.map((turn, i) => (
               <View key={i} style={styles.turn}>
                 <View style={styles.qBubble}><Text style={[styles.qTx, { fontSize: fs(14) }]}>{turn.question}</Text></View>
-                <View style={styles.aCard}>
-                  <Text style={styles.aLabel}>{t('coach.coachLabel', '코치')}</Text>
-                  <Text style={[styles.aTx, { fontSize: fs(15), lineHeight: fs(25) }]}>{turn.answer}</Text>
-                </View>
+                {turn.pending ? (
+                  // 답 생성 중 — 질문 아래에 '생각 중' 인디케이터(⑨a). 별도 하단 인디케이터는 제거해 중복 방지.
+                  <View style={styles.thinking}><ActivityIndicator color={colors.ju} /><Text style={styles.thinkingTx}>{t('coach.thinking', '당신의 사주를 살펴보는 중…')}</Text></View>
+                ) : (
+                  <View style={styles.aCard}>
+                    <Text style={styles.aLabel}>{t('coach.coachLabel', '코치')}</Text>
+                    <Text style={[styles.aTx, { fontSize: fs(15), lineHeight: fs(25) }]}>{turn.answer}</Text>
+                  </View>
+                )}
               </View>
             ))}
-            {busy ? <View style={styles.thinking}><ActivityIndicator color={colors.ju} /><Text style={styles.thinkingTx}>{t('coach.thinking', '당신의 사주를 살펴보는 중…')}</Text></View> : null}
 
             {/* 무료 일일 소진 게이트 → 프리미엄 유도 */}
             {gate ? (

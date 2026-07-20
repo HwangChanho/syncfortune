@@ -81,9 +81,10 @@ export function SelfUnderstandingHero({ reloadKey }: { reloadKey?: number }) {
 
   return (
     <View style={styles.hero}>
-      <Text style={styles.kicker}>{t('selfHero.kicker', '나는 어떤 사람인가')}</Text>
       {result ? (
         <PressableScale style={styles.card} onPress={() => router.push('/selfanalysis')}>
+          {/* 카드 헤더(daniel 07-20 '카드 안에 넣어줘') — 타이틀이 카드 밖 떠 있던 걸 카드 내부로 이동(오늘의 관계 카드와 통일) */}
+          <Text style={styles.cardKicker}>{t('selfHero.kicker', '나는 어떤 사람인가')}</Text>
           <View style={styles.badgeRow}>
             <Text style={styles.badge}>{typeLabel}</Text>
             <Text style={styles.pctTx}>{result.type === 'teto' ? t('egen.scaleTeto', '테토') : t('egen.scaleEgen', '에겐')} {pct}%</Text>
@@ -112,6 +113,7 @@ export function SelfUnderstandingHero({ reloadKey }: { reloadKey?: number }) {
 const styles = StyleSheet.create({
   hero: { marginBottom: space(4) },
   kicker: { fontSize: 12, fontWeight: '800', color: colors.ju, letterSpacing: 0.5, marginBottom: space(2), textAlign: 'center' },
+  cardKicker: { fontSize: 12, fontWeight: '800', color: colors.ju, letterSpacing: 0.4, marginBottom: space(2.5) }, // 카드 내부 헤더(좌측 정렬) — 오늘의 관계 카드 라벨과 같은 톤(daniel 07-20)
   card: { backgroundColor: colors.card, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.juLine, padding: space(4.5), ...shadow.card },
   badgeRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   badge: { fontSize: 13, fontWeight: '800', color: colors.bg, backgroundColor: colors.badgeGold, paddingHorizontal: space(3), paddingVertical: space(1), borderRadius: radius.pill, overflow: 'hidden' },

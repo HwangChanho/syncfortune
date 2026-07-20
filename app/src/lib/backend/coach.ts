@@ -8,7 +8,7 @@ import { supabase } from '../supabase';
 import { appLang } from '../i18n';
 import { invokeFail } from './interpretResult'; // 방어: 일시적 불가/오류 친화 처리
 
-export type CoachTurn = { question: string; answer: string };
+export type CoachTurn = { question: string; answer: string; pending?: boolean }; // pending=답 생성 중(질문만 먼저 표시·daniel 07-20)
 
 // Edge 코치 응답: 답변 or 게이트(무료 소진 → coach 이용권 유도)
 export type CoachResult =
