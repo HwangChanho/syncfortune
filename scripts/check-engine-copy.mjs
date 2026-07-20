@@ -26,6 +26,7 @@ function normalize(src) {
     .filter((l) => !/^\s*import\s/.test(l)) // `import ...` 시작 줄
     .filter((l) => !/^\s*export\s.*\sfrom\s+['"]/.test(l)) // re-export(`export { x } from '...'`) — ★`export function` 은 코드라 남긴다
     .filter((l) => !/^\s*\}\s*from\s+['"]/.test(l)) // ★멀티라인 import 의 닫는 줄(`} from "./x"`) — Deno 는 여기만 '.ts' 가 붙는다
+    .filter((l) => !/^\s*(export\s+)?type\s+Branch\s*=/.test(l)) // Branch 타입 선언줄(정본=@spec import / Edge·앱코어=인라인 — 로직 아님·동등)
     .filter((l) => !/^\s*(\/\*|\*|\*\/)/.test(l)) // 블록 주석 본문
     .map((l) => l.trimEnd())
     .filter((l) => l.trim() !== '')
@@ -33,22 +34,31 @@ function normalize(src) {
 }
 
 // canonical 에 있고 Edge 에도 같은 이름이 있는 파일 = 복사본 쌍(.validate/.goldenset/.audit 는 검증 스크립트라 제외)
-const pairs = readdirSync(CANON_DIR)
+const dirPairs = readdirSync(CANON_DIR)
   .filter((f) => f.endsWith('.ts') && !/\.(validate|goldenset|audit|test)\.ts$/.test(f))
-  .filter((f) => existsSync(join(EDGE_DIR, f)));
+  .filter((f) => existsSync(join(EDGE_DIR, f)))
+  .map((f) => ({ label: f, aPath: join(CANON_DIR, f), bPath: join(EDGE_DIR, f) }));
+
+// canonical 이 interpretation/engine 밖(앱)에 있는 복사본 쌍 — 명시 경로. 정본=앱(그쪽 골든이 검증).
+//   R-SPOUSE-DUAL 순수 코어: app/src/lib/love/spouseDualCore.ts(check:spouse-dual 골든이 辛丑 §3.2 라벨로 검증) ↔ Edge 복사본.
+//   Deno 가 app/·@spec 을 import 못 해 복사본을 둔다 → 이 쌍이 유료 재회 세운 라벨과 무료(앱) 라벨의 드리프트를 막는다.
+const EXTRA_PAIRS = [
+  { label: 'spouseDualCore.ts', aPath: 'app/src/lib/love/spouseDualCore.ts', bPath: join(EDGE_DIR, 'spouseDualCore.ts') },
+];
+const entries = [...dirPairs, ...EXTRA_PAIRS.filter((p) => existsSync(p.aPath) && existsSync(p.bPath))];
 
 console.log('\n🔎 엔진 복사본 동일성(check-engine-copy) — canonical ↔ Edge\n');
-if (!pairs.length) {
+if (!entries.length) {
   console.log('   대조할 복사본 쌍 없음 — 스킵.');
   process.exit(0);
 }
 
 let bad = 0;
-for (const f of pairs) {
-  const a = normalize(readFileSync(join(CANON_DIR, f), 'utf8'));
-  const b = normalize(readFileSync(join(EDGE_DIR, f), 'utf8'));
+for (const { label, aPath, bPath } of entries) {
+  const a = normalize(readFileSync(aPath, 'utf8'));
+  const b = normalize(readFileSync(bPath, 'utf8'));
   if (a === b) {
-    console.log(`   ✅ ${f}`);
+    console.log(`   ✅ ${label}`);
     continue;
   }
   bad++;
@@ -57,7 +67,7 @@ for (const f of pairs) {
   const lb = b.split('\n');
   let i = 0;
   while (i < Math.min(la.length, lb.length) && la[i] === lb[i]) i++;
-  console.log(`   ❌ ${f} — 코드 본문 불일치(정규화 후 ${la.length} vs ${lb.length}줄)`);
+  console.log(`   ❌ ${label} — 코드 본문 불일치(정규화 후 ${la.length} vs ${lb.length}줄)`);
   console.log(`      첫 차이 ≈ ${i + 1}번째 코드 줄`);
   console.log(`      canonical: ${(la[i] ?? '(EOF)').trim().slice(0, 100)}`);
   console.log(`      edge     : ${(lb[i] ?? '(EOF)').trim().slice(0, 100)}`);
@@ -68,4 +78,4 @@ if (bad) {
   console.log('   ⚠️ 방치하면 유료(Edge) 통변과 무료(앱·canonical) 산출이 서로 다른 답을 낸다.\n');
   process.exit(1);
 }
-console.log(`\n✅ 복사본 ${pairs.length}쌍 전부 일치 — 드리프트 0건.\n`);
+console.log(`\n✅ 복사본 ${entries.length}쌍 전부 일치 — 드리프트 0건.\n`);
