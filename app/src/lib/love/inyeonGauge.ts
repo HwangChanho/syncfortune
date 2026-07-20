@@ -4,19 +4,21 @@
 //   원래 ReunionRich(재회 무료 리치)에 인라인돼 있던 '인연 게이지' 산출 로직을 이 모듈로 단일화한다.
 //   → 재회(ReunionRich)와 애정흐름(love.tsx)이 같은 신호·같은 가중치로 게이지를 산출(중복 제거·단일 소스).
 //
-// ▶ 게이지가 합산하는 신호(전부 결정론, daniel APPROVED = love-timing-baeuja 스탠스):
-//   ① 원국 도화(끌림 기질)               — 원국 지지의 도화(왕지) 개수.
-//   ② 대운(10년 배경)의 도화 발동         — 현재 대운 지지가 원국 도화를 충/합/자체 왕지로 얼마나 깨우나.
-//   ③ 세운(올해)의 도화 발동              — 올해 세운 지지의 도화 발동(올해 트리거 = 가중 높게).
-//   ④ 올해 '인연이 열리는 달' 수          — 원국 도화의 충 짝 월건(절기 고정 = 매년 결정론).
-//   ⑤ 배우자궁(일지) 개폐                 — 일지 vs 현재 대운·세운의 충(열림)/합(맺힘)/형(마찰). ★핵심 지렛대.
-//   ⑥ 인연星(남명 재성/여명 관성) 발동    — 현재 대운·세운 천간/지장간에 배우자성이 뜨는가 + 강약.
+// ▶ 게이지가 합산하는 신호(전부 결정론, daniel APPROVED = love-timing-baeuja + 07-20 도화 관법 재설계):
+//   ⑤ 배우자궁(일지) 개폐   — 일지 vs 현재 대운·세운의 충(열림)/합(맺힘)/형(마찰). ★핵심 지렛대(W 50).
+//   ★ 배우자성 개폐         — 배우자성(남 재성/여 관성) 지지 vs 대운·세운의 합(활성)/충(발동). R-SPOUSE-DUAL 정합(W 25).
+//   ⑥ 인연星 발동           — 현재 대운·세운 천간/지장간에 배우자성이 뜨는가(W 25).
 //
-// ▶ 결정론 근거: 표준 합충/형/도화 테이블(통설) + 엔진 tenGod·HIDDEN(지장간) 재사용. 발명 아님(룰 산출만).
-//   ★가중치는 아래 W 블록(daniel 검수/튜닝 슬롯) — ReunionRich가 쓰던 값 그대로 이관(결과 동일 보장).
+// ▶ ★2026-07-20 도화 걷어냄(daniel 노션): "도화는 타고나는 것 · 세운으로 발동하는 '시점'이 없다" →
+//   구 신호 ①원국도화·②대운도화발동·③세운도화발동·④도화충월 전부 제거(발동 '시점' 산출은 명리적으로 성립 안 함).
+//   원국 도화값(natalDohwa)은 점수엔 안 쓰고 '기질' 문구(개운 티저 방향·계절)용으로만 잔존.
+//
+// ▶ 결정론 근거: 표준 합충/형 테이블(통설) + 엔진 tenGod·HIDDEN(지장간) + spouseStarBranch(R-SPOUSE-DUAL) 재사용. 발명 아님.
+//   ★가중치 = 아래 W 블록(daniel 검수 07-20 확정 = 배우자궁 50 / 배우자성 25 / 인연星 25).
 // ─────────────────────────────────────────────────────────────────────────
 import { tenGod, HIDDEN } from '@engine/saju';                        // 십신·지장간 표준표(엔진 재사용)
 import type { SajuChart, Branch, Stem, Element, PillarPos, TenGod } from '@spec/chart';
+import { spouseStarBranch } from './spouseDual';                     // 배우자성 위치(R-SPOUSE-DUAL) — 배우자성 개폐 신호용(daniel 07-20)
 
 // ── 표준 통설 테이블 (engine/structure 비공개 → 로컬 정의. LoveFlowGraph/ReunionRich와 동일 값·결). ★daniel 검수 ──
 export const DOHWA: Branch[] = ['子', '午', '卯', '酉'];                                                          // 도화 = 왕지(끌림의 기운)
@@ -30,8 +32,6 @@ const HYEONG_PAIR: [Branch, Branch][] = [['子', '卯']];
 const SELF_HYEONG: Branch[] = ['辰', '午', '酉', '亥'];
 // 오행 상극(A극B) — 배우자성 오행 산출용(재성=일간이 극 / 관성=일간을 극).
 const CONTROLS: Record<Element, Element> = { 木: '土', 火: '金', 土: '水', 金: '木', 水: '火' };
-// 지지 → 월건(節氣) 월 번호(월운 발동 달 계산 — ReunionTiming과 동일 결정론).
-const BRANCH_MONTH: Record<Branch, number> = { 寅: 1, 卯: 2, 辰: 3, 巳: 4, 午: 5, 未: 6, 申: 7, 酉: 8, 戌: 9, 亥: 10, 子: 11, 丑: 12 };
 
 // 두 글자가 테이블의 한 쌍(순서 무관)인가
 const inPair = <T extends string>(list: [T, T][], a: T, b: T) => list.some(([x, y]) => (x === a && y === b) || (x === b && y === a));
@@ -45,15 +45,6 @@ const inHyeong = (a: Branch, b: Branch): boolean => {
 };
 const clamp = (x: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, x));
 
-// 운(대운·세운) 지지 하나가 원국 도화를 얼마나 '발동'시키는가 → 0~1 정규화 강도.
-//   운지지 자체가 왕지(도화)면 배경 끌림장 + 원국 도화를 충하면 강한 열림 + 합하면 맺힘.
-const dohwaActivation = (unB: Branch, natalDohwa: Branch[]): number => {
-  let s = 0;
-  if (DOHWA.includes(unB)) s += 0.5;                                              // 운지지 자체가 도화(끌림장)
-  if (natalDohwa.some((d) => inPair(CHONG, d, unB))) s += 1.0;                    // 원국 도화를 충(강한 발동)
-  if (natalDohwa.some((d) => inPair(SIXHE, d, unB) || halfSanhe(d, unB))) s += 0.6; // 합(맺힘)
-  return Math.min(1, s);
-};
 // 배우자궁(일지) vs 운지지 상태 — 충(열림)/합(맺힘)/형(마찰). 각각 독립 판정.
 //   ★export(2026-07-16): 짝사랑 timing(timingSignals.crushTiming)이 **이 함수를 그대로 재사용**한다.
 //     daniel 지시 = "재회/짝사랑 판정 기준이 미묘하게 어긋나면 유저가 두 기능을 비교했을 때 모순으로 보인다 →
@@ -64,16 +55,13 @@ export const gungState = (dayB: Branch, unB: Branch) => ({
   friction: inHyeong(dayB, unB),
 });
 
-// ══ ★daniel 검수: 인연 게이지 가중치(스탠스 · 전부 튜닝 슬롯). 각 항의 만점(부분점수). 합계 = 100 ══
-//   기질(원국)보다 '지금 운'이 크게 움직이도록 배분(무료 훅 = "지금 열려요"가 살아있게).
+// ══ ★daniel 검수 07-20: 인연 게이지 가중치(스탠스 · 튜닝 슬롯). 각 항의 만점(부분점수). 합계 = 100 ══
+//   도화 발동 '시점' 없음(daniel 07-20) → 도화 신호 ①②③④ 제거하고 배우자궁·배우자성·인연星으로 재배분(50/25/25).
 //   배우자궁 개폐(gungOpen)를 최대 가중 = daniel 애정/결혼 timing 핵심 스탠스(배우자궁 형충회합 개폐).
 const W = {
-  natalDohwa: 18,   // ① 원국 끌림 기질(도화 개수) — 곡선의 기저(있으면 문이 태생적으로 조금 더 열림)
-  daeunDohwa: 16,   // ② 대운(10년 배경)이 도화를 발동
-  seunDohwa: 22,    // ③ 올해 세운이 도화를 발동(올해 트리거 — 무료 = 올해 기준이라 가중 높게)
-  wolunActive: 12,  // ④ 올해 '연락이 열리는 달' 수(달력 금색 달 개수)
-  gungOpen: 24,     // ⑤ 배우자궁(일지) 개폐 — daniel 핵심 스탠스(가장 큰 지렛대)
-  inyeonStar: 8,    // ⑥ 재/관 인연星이 현재 운(대운·세운)에 발동
+  gungOpen: 50,       // ⑤ 배우자궁(일지) 개폐 — daniel "가장 큰 지렛대"(충=열림/합=맺힘/형=마찰)
+  spouseStarOpen: 25, // 배우자성(재/관 위치) 개폐 — 세운/대운이 배우자성과 합(활성)/충(발동)(R-SPOUSE-DUAL 정합)
+  inyeonStar: 25,     // ⑥ 재/관 인연星이 현재 운(천간·지장간)에 발동
 };
 // ══════════════════════════════════════════════════════════════════════════════════════════════
 
@@ -131,17 +119,7 @@ export function computeInyeonSignals(saju: SajuChart, opts?: Opts): InyeonSignal
   const daeun = saju.currentLuck;  // 현재 대운(엔진 산출, 폴백 포함 non-null)
   const seun = saju.annual;        // 현재 세운(올해)
 
-  // ④ 올해 '인연이 열리는 달' 수 — 각 원국 도화의 충 짝 월건(절기 고정 = 매년 결정론, ReunionTiming과 동일).
-  const monthSet = new Set<number>();
-  natalDohwa.forEach((x) => {
-    const partner = CHONG.find(([a, b]) => a === x || b === x);
-    if (partner) { const p = partner[0] === x ? partner[1] : partner[0]; monthSet.add(BRANCH_MONTH[p]); }
-  });
-  const activeMonths = monthSet.size;
-
-  // ②③ 운 도화 발동 강도 + ⑤ 배우자궁 개폐
-  const daeunAct = dohwaActivation(daeun.branch, natalDohwa);
-  const seunAct = dohwaActivation(seun.branch, natalDohwa);
+  // ⑤ 배우자궁(일지) 개폐 — 세운/대운 vs 일지 충(열림)/합(맺힘)/형(마찰). daniel 핵심 지렛대(W 50).
   const gSeun = gungState(dayBranch, seun.branch);
   const gDaeun = gungState(dayBranch, daeun.branch);
   // 배우자궁 종합 상태(우선순위 열림>맺힘>마찰>잠잠) — 세운/대운 중 하나라도 성립하면 그 결.
@@ -149,24 +127,29 @@ export function computeInyeonSignals(saju: SajuChart, opts?: Opts): InyeonSignal
   const gungBond = !gungOpen && (gSeun.bond || gDaeun.bond);
   const gungFriction = !gungOpen && !gungBond && (gSeun.friction || gDaeun.friction);
 
-  // ⑥ 인연星 발동(현재 대운·세운 천간/지장간)
-  let inyeon = 0;
-  if (isTarget(daeun.stem)) inyeon += 4;
-  if (isTarget(seun.stem)) inyeon += 4;
-  if (branchHasTarget(daeun.branch)) inyeon += 3;
-  if (branchHasTarget(seun.branch)) inyeon += 3;
+  // 배우자성(재/관 위치) 개폐 — 세운/대운이 배우자성 지지와 합(활성)/충(발동). R-SPOUSE-DUAL 정합(도화-충 대체·W 25).
+  const starB = spouseStarBranch(saju, opts?.sex ?? (saju as any)?.sex, timeUnknown)?.branch ?? null;
+  const stSeun = starB ? gungState(starB, seun.branch) : null;
+  const stDaeun = starB ? gungState(starB, daeun.branch) : null;
 
-  // ── 게이지 점수 합산(각 항 부분점수 → 만점 클램프 → 0~100) ──
-  const sNatal = Math.min(W.natalDohwa, natalDohwa.length * 9);          // 도화 1개=9, 2개=18(cap)
-  const sDaeun = W.daeunDohwa * daeunAct;
-  const sSeun = W.seunDohwa * seunAct;
-  const sWolun = Math.min(W.wolunActive, activeMonths * 5);              // 달 1개=5 …
-  let sGung = 0;                                                         // 세운 개폐 > 대운 개폐(올해 트리거 우선)
-  if (gSeun.open) sGung += 14; else if (gSeun.bond) sGung += 12; else if (gSeun.friction) sGung += 6;
-  if (gDaeun.open) sGung += 10; else if (gDaeun.bond) sGung += 9; else if (gDaeun.friction) sGung += 5;
+  // ⑥ 인연星 발동(현재 대운·세운 천간/지장간에 배우자성이 뜨는가·W 25)
+  let inyeon = 0;
+  if (isTarget(daeun.stem)) inyeon += 8;
+  if (isTarget(seun.stem)) inyeon += 8;
+  if (branchHasTarget(daeun.branch)) inyeon += 5;
+  if (branchHasTarget(seun.branch)) inyeon += 5;
+
+  // ── 게이지 점수 합산(★도화 발동 제거·daniel 07-20 재배분 50/25/25 → 클램프 0~100) ──
+  let sGung = 0;                                                         // ⑤ 배우자궁 개폐(세운>대운·max 50)
+  if (gSeun.open) sGung += 30; else if (gSeun.bond) sGung += 25; else if (gSeun.friction) sGung += 12;
+  if (gDaeun.open) sGung += 20; else if (gDaeun.bond) sGung += 18; else if (gDaeun.friction) sGung += 10;
   sGung = Math.min(W.gungOpen, sGung);
+  let sStar = 0;                                                         // 배우자성 개폐(합=활성 > 충=발동·max 25)
+  if (stSeun?.bond) sStar += 15; else if (stSeun?.open) sStar += 12; else if (stSeun?.friction) sStar += 6;
+  if (stDaeun?.bond) sStar += 10; else if (stDaeun?.open) sStar += 8; else if (stDaeun?.friction) sStar += 4;
+  sStar = Math.min(W.spouseStarOpen, sStar);
   const sInyeon = Math.min(W.inyeonStar, inyeon);
-  const score = clamp(Math.round(sNatal + sDaeun + sSeun + sWolun + sGung + sInyeon), 0, 100);
+  const score = clamp(Math.round(sGung + sStar + sInyeon), 0, 100);
 
   return { score, tone: toneFromScore(score), natalDohwa, gungOpen, gungBond, gungFriction, inyeonEl, dm };
 }
