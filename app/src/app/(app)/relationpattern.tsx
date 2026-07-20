@@ -79,9 +79,9 @@ export default function RelationPatternRoute() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.bg },
+  screen: { flex: 1, backgroundColor: 'transparent' }, // 전역 ContentBackdrop 비쳐 보이게(07-21 배경통일)
   wrap: { padding: space(5), paddingBottom: space(10) },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: space(6), backgroundColor: colors.bg },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: space(6), backgroundColor: 'transparent' },
   kicker: { ...font.caption, color: colors.ju, fontWeight: '800', letterSpacing: 0.5, marginBottom: space(1) },
   title: { fontSize: 24, fontWeight: '900', color: colors.ink, marginBottom: space(2) },
   sub: { ...font.body, color: colors.inkSoft, lineHeight: 21, marginBottom: space(5) },

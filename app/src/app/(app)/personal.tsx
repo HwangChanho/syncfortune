@@ -124,7 +124,7 @@ export default function PersonalRoute() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.bg },
+  screen: { flex: 1, backgroundColor: 'transparent' }, // 전역 ContentBackdrop 비쳐 보이게(07-21 배경통일)
   wrap: { padding: space(4), paddingBottom: space(16) },
   center: { alignItems: 'center', paddingVertical: space(10), gap: space(3) },
   emptyMsg: { ...font.body, color: colors.inkSoft, textAlign: 'center' },

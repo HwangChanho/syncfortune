@@ -507,9 +507,9 @@ export function FreeBasics({ title, rows, color = colors.ju }: { title: string; 
 }
 
 const styles = StyleSheet.create({
-  screen: { backgroundColor: colors.bg },
+  screen: { backgroundColor: 'transparent' }, // 전역 ContentBackdrop 비쳐 보이게(07-21 배경통일 — 이 셸 쓰는 11화면 일괄)
   wrap: { padding: space(6), paddingBottom: space(12) }, // 콘텐츠 화면 좌우여백 통일(daniel) — space(6)
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: space(7), backgroundColor: colors.bg },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: space(7), backgroundColor: 'transparent' },
   // 히어로
   hero: { borderRadius: radius.lg, overflow: 'hidden', marginBottom: space(5), aspectRatio: 1.5, backgroundColor: colors.sunk },
   // 이미지 히어로 = 단일 스타일(hero와 병합 금지 — aspectRatio 이중지정이 Yoga 폭 계산을 깨 좌치우침 유발). width 100%로 전폭·중앙(daniel 시뮬 실측 확인: 좌72=우72).

@@ -104,10 +104,10 @@ export function FreeFunnel({ heroImage, question, sub, paidRoute, paidCta, rende
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.bg },
+  screen: { flex: 1, backgroundColor: 'transparent' }, // 전역 ContentBackdrop 비쳐 보이게(07-21 배경통일 — 이 셸 쓰는 3화면 일괄)
   wrap: { padding: space(6), paddingBottom: space(12) }, // 넉넉한 여백(콘텐츠 좌우 space(6) 통일)
   // 명식 없음 — 전면 중앙 안내
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: space(7), backgroundColor: colors.bg },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: space(7), backgroundColor: 'transparent' },
   emptyMsg: { ...font.body, color: colors.ink, textAlign: 'center', marginBottom: space(5) },
   registerBtn: { backgroundColor: colors.ju, borderRadius: radius.md, paddingVertical: space(3.25), paddingHorizontal: space(6), ...shadow.card },
   registerTx: { color: colors.bg, fontSize: 15, fontWeight: '800' },
