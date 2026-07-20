@@ -6,7 +6,7 @@
 import { useState, useMemo, useCallback } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, Pressable,
-  ActivityIndicator, ImageBackground,
+  ActivityIndicator,
 } from 'react-native';
 import { PressableScale } from '../../../components/PressableScale';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -18,7 +18,7 @@ import { loadMyChart } from '../../../lib/engine/myChart';
 import { CELEB_DB, celebChartInput } from '../../../lib/content/celebData';
 import { rankCelebs, matchHeadline, matchGrade, type CelebMatchResult } from '../../../lib/content/celebMatch';
 import { stemElement } from '../../../lib/engine/ohaeng';
-import { bgSource, colors, radius, space, shadow, font } from '../../../lib/theme';
+import { colors, radius, space, shadow, font } from '../../../lib/theme';
 import { ChartPicker } from '../../../components/ChartPicker';
 import type { ChartInput } from '@spec/chart';
 
@@ -104,7 +104,7 @@ export default function CelebDetail() {
   const cExcess = cTg ? (cTg.excess.join('·') || '없음') : '-';
 
   return (
-    <ImageBackground source={bgSource} style={styles.bg} resizeMode="cover">
+    <View style={styles.bg}>
       <ScrollView style={styles.overlay} contentContainerStyle={styles.wrap}>
 
         {/* 상단 명식 헤더 — 다른 명식으로 전환 가능 */}
@@ -216,12 +216,12 @@ export default function CelebDetail() {
           투자·정치·진로 판단의 근거로 사용하지 마세요.
         </Text>
       </ScrollView>
-    </ImageBackground>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  bg: { flex: 1, backgroundColor: colors.bg },
+  bg: { flex: 1, backgroundColor: 'transparent' }, // 전역 ContentBackdrop 비쳐 보이게(07-20 배경통일 누락분)
   overlay: { flex: 1, backgroundColor: colors.overlay },
   wrap: { padding: space(6), paddingBottom: space(12) },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: space(7), backgroundColor: colors.bg },

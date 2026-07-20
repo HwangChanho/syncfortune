@@ -17,7 +17,7 @@ import {
 } from '../../lib/tarot';
 import { loadTodayTaro, saveTodayTaro } from '../../lib/content/tarotStore';
 import { playSound } from '../../lib/ui/sounds';
-import { bgSource, colors, radius, space, shadow, font, gradients } from '../../lib/theme';
+import { colors, radius, space, shadow, font, gradients } from '../../lib/theme';
 import { GlassCard } from '../../components/GlassCard';
 import { useLogContentVisit } from '../../lib/backend/contentVisit'; // 콘텐츠 방문 집계(daniel 2026-07-06) — 진입 1회 기록
 
@@ -117,7 +117,7 @@ export default function TaroScreen() {
 
 
   return (
-    <ImageBackground source={bgSource} style={styles.bg} resizeMode="cover">
+    <View style={styles.bg}>
       <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>
         <View style={styles.headerArea}>
           <Text style={styles.title}>{t('menu.taro')}</Text>
@@ -238,7 +238,7 @@ export default function TaroScreen() {
           )}
         </Pressable>
       </Modal>
-    </ImageBackground>
+    </View>
   );
 }
 
@@ -250,7 +250,7 @@ const scaledFont = (fs: (n: number) => number) => ({
   caption: { ...font.caption, fontSize: fs(12) },
 });
 const makeStyles = (fs: (n: number) => number) => { const f = scaledFont(fs); return StyleSheet.create({
-  bg: { flex: 1, backgroundColor: colors.bg },
+  bg: { flex: 1, backgroundColor: 'transparent' }, // 전역 ContentBackdrop 비쳐 보이게(07-20 배경통일 누락분)
   screen: { backgroundColor: colors.overlay },
   wrap: { padding: space(5), paddingTop: space(8), paddingBottom: space(10) },
   headerArea: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: space(4) },

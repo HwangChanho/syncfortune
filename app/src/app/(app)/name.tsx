@@ -4,10 +4,10 @@
 //   규칙5: 무료=온디바이스(API 0). §4: 가벼운 재미·전향적.
 // ─────────────────────────────────────────────────────────────────────────
 import { useMemo, useState } from 'react';
-import { View, Text, ScrollView, TextInput, StyleSheet, ImageBackground } from 'react-native';
+import { View, Text, ScrollView, TextInput, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { analyzeName } from '../../lib/content/nameReading';
-import { bgSource, colors, radius, space, shadow, font } from '../../lib/theme';
+import { colors, radius, space, shadow, font } from '../../lib/theme';
 import { useFontScale } from '../../lib/ui/fontScale';
 import { ContentHero } from '../../components/SpecialContentScreen'; // 이미지 히어로(보는 맛)
 import { ShareReadingButton } from '../../components/ShareReadingButton'; // 이슈17: 풀이 결과 공유(앱게이트)
@@ -22,7 +22,7 @@ export default function NameScreen() {
 
 
   return (
-    <ImageBackground source={bgSource} style={styles.bg} resizeMode="cover">
+    <View style={styles.bg}>
       <ScrollView
         style={styles.overlay} contentContainerStyle={styles.wrap} keyboardShouldPersistTaps="handled"
         // 키보드가 이름 입력을 덮지 않게 iOS 자동 인셋(daniel 07-18 표준 · check:keyboard).
@@ -66,12 +66,12 @@ export default function NameScreen() {
 
         <Text style={styles.note}>{t('name.note', '※ 소리의 오행으로 보는 가벼운 풀이예요. 한자·획수까지 보는 정식 작명과는 달라요.')}</Text>
       </ScrollView>
-    </ImageBackground>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  bg: { flex: 1, backgroundColor: colors.bg },
+  bg: { flex: 1, backgroundColor: 'transparent' }, // 전역 ContentBackdrop 이 비쳐 보이게(daniel 07-02 · 07-20 배경통일에서 name.tsx 누락분)
   overlay: { flex: 1, backgroundColor: colors.overlay },
   wrap: { padding: space(6), paddingBottom: space(12) },
   h: { ...font.title, color: colors.ink, marginBottom: space(1) },

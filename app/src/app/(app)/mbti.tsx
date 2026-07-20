@@ -4,13 +4,13 @@
 //   ⚠️ 매핑·문구 stance = daniel★ 검수(sajuMbti.ts 주석 참고).
 // ─────────────────────────────────────────────────────────────────────────
 import { useMemo, useState, useCallback, useEffect, useRef } from 'react';
-import { View, Text, ScrollView, StyleSheet, ImageBackground, Animated, Easing } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Animated, Easing } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { loadMyChart } from '../../lib/engine/myChart';
 import { computeChart } from '../../lib/engine/engine';
 import { sajuMbti } from '../../lib/content/sajuMbti';
-import { bgSource, colors, radius, space, shadow, font } from '../../lib/theme';
+import { colors, radius, space, shadow, font } from '../../lib/theme';
 import { useFontScale } from '../../lib/ui/fontScale';
 import { ContentHero } from '../../components/SpecialContentScreen';
 import { Reveal } from '../../components/Reveal'; // 카드 순차 등장(daniel 재미)
@@ -47,7 +47,7 @@ export default function MbtiScreen() {
 
 
   return (
-    <ImageBackground source={bgSource} style={styles.bg} resizeMode="cover">
+    <View style={styles.bg}>
       <ScrollView style={styles.overlay} contentContainerStyle={styles.wrap}>
         {/* 상단 명식 헤더 — 현재 적용 명식 표시·전환 */}
         <ChartPicker onChange={() => loadMyChart().then(setMe)} />
@@ -88,12 +88,12 @@ export default function MbtiScreen() {
 
         <Text style={styles.note}>{t('mbti.note', '※ 사주 구조(지장간·현재 운 포함)로 본 성향이라 시기에 따라 조금씩 달라져요. 심리검사 MBTI와 다를 수 있어요.')}</Text>
       </ScrollView>
-    </ImageBackground>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  bg: { flex: 1, backgroundColor: colors.bg },
+  bg: { flex: 1, backgroundColor: 'transparent' }, // 전역 ContentBackdrop 비쳐 보이게(07-20 배경통일 누락분)
   overlay: { flex: 1, backgroundColor: colors.overlay },
   wrap: { padding: space(6), paddingBottom: space(12) },
   typeCard: { alignItems: 'center', backgroundColor: colors.card, borderRadius: radius.lg, borderWidth: 1.5, borderColor: colors.ju, padding: space(6), marginBottom: space(4), ...shadow.card },
