@@ -211,9 +211,13 @@ export function setLoadingMode(m: LoadingMode) {
 
 // 풀이 로딩 영상 — 끄면 영상 대신 링+자물쇠 애니만(즉시 반영·인트로와 별개 축). 기본 on. (키 선언은 위 부팅 캐시 블록 참고)
 export function getReadingVideoEnabled(): boolean {
-  const v = _syncGet(READING_VIDEO_KEY);
-  if (v !== undefined) return v == null ? true : v === '1';   // 동기 읽기 성공(값 없으면 기본 on)
-  if (_readingVideo != null) return _readingVideo;            // 비동기 부팅 캐시
+  // ★07-20 재수정(daniel "끔 했는데 자꾸 떠"): 07-19 수정이 _syncGet(동기 읽기) 값을 우선했는데, iOS SecureStore 의
+  //   동기 getItem 이 setItemAsync 로 저장한 값을 곧바로/일관되게 못 읽는 경우(동기 setItem 부재 등)가 있어
+  //   *끈 뒤에도 옛 값('켜짐')* 을 돌려줬다. → setter 가 즉시 갱신 + 부팅 async 캐시로 채우는 _readingVideo 를
+  //   **신뢰 소스로 우선**하고, 동기 읽기는 부팅 캐시 미로드 초기 순간의 폴백으로만 쓴다.
+  if (_readingVideo != null) return _readingVideo;            // 설정 저장·부팅 캐시(신뢰) 우선
+  const v = _syncGet(READING_VIDEO_KEY);                      // 부팅 캐시 미로드 초기 순간만
+  if (v !== undefined && v != null) return v === '1';
   return true;                                               // 아직 미로드 → 기본 on
 }
 export function setReadingVideoEnabled(on: boolean) {
