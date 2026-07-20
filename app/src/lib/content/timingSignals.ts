@@ -8,7 +8,8 @@
 //   → 기존 화면(CrushTiming 등) 산출과 **동일해야 정상**이다. 달라지면 그건 회귀다.
 //
 // ▶ 스탠스 출처(daniel 인코딩 · 표준 통설):
-//   · **재회** = 원국 도화(왕지 子午卯酉)의 **충 짝** 월(흔들어 깨움).
+//   · **재회** = **배우자궁(일지) 충(열림)** 월(흔들어 깨움). ★daniel 2026-07-20 도화 관법 재설계: "도화 발동 '시점' 없음"
+//     → 도화-충 월 산출 폐기, 배우자궁 개폐로 이관(짝사랑과 단일 기준). 구=원국 도화(왕지)의 충 짝 월.
 //   · **짝사랑** = **부처궁(일지) ↔ 월지 육합/반합(맺힘) · 충이 끼면 제외** (daniel 2026-07-16 재판정).
 //     구 로직('4지지 도화 자체+충+합')은 실측 12달 중 10달 발동 = 변별력 0 이라 폐기 — 상세는 crushTiming JSDoc.
 //     판정 함수는 `inyeonGauge.gungState` 재사용(재회·애정 게이지와 단일 기준).
@@ -22,17 +23,11 @@ import type { SajuChart, Branch, PillarPos, TenGod } from '@spec/chart';
 import { gungState } from '../love/inyeonGauge';
 
 // ── 표준 통설 테이블(engine·Edge 프롬프트와 동일 값) ──────────────────────────
-const DOHWA: Branch[] = ['子', '午', '卯', '酉']; // 도화 = 왕지. 원국 지지에 깔린 것이 타고난 끌림의 기운.
-const CHONG: [Branch, Branch][] = [['子', '午'], ['丑', '未'], ['寅', '申'], ['卯', '酉'], ['辰', '戌'], ['巳', '亥']]; // 6충 — 재회(도화의 충 짝)용
-// ※ 육합·삼합 테이블은 여기서 보유하지 않는다 — 짝사랑 판정이 inyeonGauge.gungState(육합/반합 = 맺힘)로 이관됐다(단일 출처).
+const DOHWA: Branch[] = ['子', '午', '卯', '酉']; // 도화 = 왕지. 리드 문구 분기(hasNatalDohwa) 전용 — ★timing 판정엔 안 씀(daniel 07-20 도화 발동 시점 없음).
+// ※ 충·육합·삼합 테이블은 여기서 보유하지 않는다 — 재회(충 열림)·짝사랑(합 맺힘) 판정 모두 inyeonGauge.gungState 로 이관(단일 출처).
 // 지지 → 월건(節氣) 월 번호: 寅월=1월 … 丑월=12월.
 const BRANCH_MONTH: Record<Branch, number> = { 寅: 1, 卯: 2, 辰: 3, 巳: 4, 午: 5, 未: 6, 申: 7, 酉: 8, 戌: 9, 亥: 10, 子: 11, 丑: 12 };
 
-/** 이 지지가 충하는 짝(없으면 null). */
-const chongPartner = (b: Branch): Branch | null => {
-  const p = CHONG.find(([x, y]) => x === b || y === b);
-  return p ? (p[0] === b ? p[1] : p[0]) : null;
-};
 /**
  * 원국 도화 탐지 — 4지지(시각 미상이면 시주 제외) 중 왕지.
  * @param saju 본인 사주. timeUnknown 은 관례상 saju 에 병합돼 온다(SpecialContentScreen).
@@ -97,13 +92,23 @@ export function crushTiming(saju: SajuChart): MonthTiming {
 }
 
 /**
- * 재회 '연락이 닿기 좋은 달' — 각 원국 도화의 **충 짝** 월지(그 달에 도화 발동).
- *   ★짝사랑과 달리 합은 쓰지 않는다(재회 스탠스 = 흔들어 깨우는 충).
+ * 재회 '연락이 닿기 좋은 달' — ★**배우자궁(일지) 충(열림)** 월(daniel 2026-07-20 도화 관법 재설계).
+ *
+ * ▶ 구 로직 폐기(daniel 07-20 노션): 종전엔 원국 도화(왕지)의 충 짝 월을 발동으로 봤으나, daniel 확정 =
+ *   **"도화는 타고나는 것 · 세운으로 발동하는 '시점'이 없다"** → 도화-충 시점 산출은 성립 안 함.
+ *   → 재회도 짝사랑과 같은 **배우자궁(일지) 개폐**로. 재회 스탠스="흔들어 깨우는 충"=배우자궁 충(열림).
+ *   판정은 `inyeonGauge.gungState` 재사용(재회·짝사랑·애정 게이지와 단일 기준 = 어긋날 수 없음).
  */
 export function reunionTiming(saju: SajuChart): MonthTiming {
-  const natalDohwa = natalDohwaOf(saju);
+  const dayB = saju.pillars?.['일']?.branch as Branch | undefined; // 일지 = 배우자궁(고정 앵커)
+  const natalDohwa = natalDohwaOf(saju); // 발동 판정엔 쓰지 않음 — 화면 리드 문구 분기용 flag
+  if (!dayB) return { year: (saju as any)?.annual?.year, months: [], hasNatalDohwa: !!natalDohwa.length };
   const monthSet = new Set<number>();
-  natalDohwa.forEach((d) => { const p = chongPartner(d); if (p) monthSet.add(BRANCH_MONTH[p]); });
+  currentYearMonths(saju).forEach((m) => {
+    const b = m.branch;
+    if (!b) return;
+    if (gungState(dayB, b).open) monthSet.add(BRANCH_MONTH[b]); // 배우자궁 충(열림) = 재회(짝사랑은 합/맺힘)
+  });
   return { year: (saju as any)?.annual?.year, months: [...monthSet].sort((a, b) => a - b), hasNatalDohwa: !!natalDohwa.length };
 }
 
