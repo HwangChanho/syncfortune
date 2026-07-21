@@ -160,7 +160,8 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
           <Pressable style={styles.sheet} onPress={() => {}}>
             <View style={styles.handle} />
             <View style={styles.sheetHead}>
-              <Text style={styles.sheetTitle}>{t('manse.myChart')}</Text>
+              {/* ★'명식' 옆에 등록 수(daniel 07-21) — 필터 무관 총 등록 명식 개수 */}
+              <Text style={styles.sheetTitle}>{t('manse.myChart')} <Text style={{ color: colors.inkFaint, fontWeight: '700' }}>{charts.length}</Text></Text>
               {/* 디바이스 명식 무제한(daniel 2026-06-23) — 사용량/한도(15/10) 배지 제거 */}
             </View>
             {/* 카테고리(관계) 필터 — 관계가 2종 이상일 때만. [전체] + 각 카테고리 칩(daniel: 전체보기+카테고리별). */}
@@ -303,7 +304,7 @@ const styles = StyleSheet.create({
   backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' },
   sheet: {
     backgroundColor: colors.bg, borderTopLeftRadius: radius.lg, borderTopRightRadius: radius.lg,
-    paddingHorizontal: space(5), paddingTop: space(2.5), paddingBottom: space(6), maxHeight: '70%',
+    paddingHorizontal: space(5), paddingTop: space(2.5), paddingBottom: space(6), maxHeight: '88%',
   },
   handle: { width: 40, height: 4, borderRadius: 2, backgroundColor: colors.line, alignSelf: 'center', marginBottom: space(3) },
   sheetHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: space(2) },
@@ -318,7 +319,7 @@ const styles = StyleSheet.create({
   catChipOn: { backgroundColor: colors.ju, borderColor: colors.ju },
   catChipTx: { ...font.caption, color: colors.inkSoft, fontWeight: '700' },
   catChipTxOn: { color: colors.bg },
-  list: { maxHeight: Dimensions.get('window').height * 0.5 }, // 드래그 리스트(FlatList) 바운드 높이 — 시트 내 스크롤
+  list: { flexShrink: 1, maxHeight: Dimensions.get('window').height * 0.62 }, // ★flexShrink=시트가 꽉 차면 리스트가 줄어 마지막 명식·＋등록 버튼이 안 잘림(daniel 07-21). maxHeight=상한(시트 내 스크롤)
   row: { flexDirection: 'row', alignItems: 'center', paddingVertical: space(3.5), borderBottomWidth: 1, borderBottomColor: colors.line, gap: space(2) },
   rowActive: { backgroundColor: colors.card, borderRadius: radius.md, borderBottomColor: 'transparent' }, // 드래그 중 행 강조(들어올림)
   rowMain: { flex: 1 },
