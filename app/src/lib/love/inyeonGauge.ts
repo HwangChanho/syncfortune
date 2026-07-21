@@ -149,7 +149,10 @@ export function computeInyeonSignals(saju: SajuChart, opts?: Opts): InyeonSignal
   if (stDaeun?.bond) sStar += 10; else if (stDaeun?.open) sStar += 8; else if (stDaeun?.friction) sStar += 4;
   sStar = Math.min(W.spouseStarOpen, sStar);
   const sInyeon = Math.min(W.inyeonStar, inyeon);
-  const score = clamp(Math.round(sGung + sStar + sInyeon), 0, 100);
+  // ★baseline floor(daniel 07-21 '애정흐름 0점 과함') — 원국의 타고난 애정 잠재(배우자궁·배우자성 자리·도화 기질)로,
+  //   지금 운에 개폐·발동이 없어도 게이지가 0으로 떨어지지 않게 한다. 도화는 발동'시점'이 아니라 '기질'로서의 baseline(daniel 07-20 정합).
+  const sBase = 8 + (starB ? 6 : 0) + Math.min(8, natalDohwa.length * 5); // 8~22 : 배우자궁 기본8 + 배우자성 자리6 + 도화(왕지) 기질8
+  const score = clamp(Math.round(sBase + sGung + sStar + sInyeon), 0, 100);
 
   return { score, tone: toneFromScore(score), natalDohwa, gungOpen, gungBond, gungFriction, inyeonEl, dm };
 }
