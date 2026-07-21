@@ -20,7 +20,7 @@ import { View, Text, ScrollView, StyleSheet, Animated, AppState, Dimensions } fr
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../lib/useAuth';
-import { useEffect, useRef, useMemo, useState, useCallback, type ReactNode } from 'react';
+import { useEffect, useRef, useMemo, useState, useCallback } from 'react';
 import { supabase } from '../../lib/supabase';
 import { ChartPicker } from '../../components/ChartPicker';
 import { SelfUnderstandingHero } from '../../components/SelfUnderstandingHero'; // ★4.3: 홈 최상단 자기이해 히어로(성향분석 첫 경험)
@@ -44,8 +44,8 @@ import { BusyOverlay } from '../../components/BusyOverlay'; // 로그아웃 등 
 import { PressableScale } from '../../components/PressableScale';
 import { appLang } from '../../lib/i18n';
 import { useHomeOrder, type HomeBlockKey } from '../../lib/ui/homeOrder'; // 홈 블록 배치 순서(계정별 저장·daniel 07-19)
-import DraggableFlatList, { ScaleDecorator, type RenderItemParams } from 'react-native-draggable-flatlist'; // 홈 길게눌러 드래그 재정렬(daniel 07-21)
-import { TouchableOpacity } from 'react-native-gesture-handler'; // ★DFL 공식 패턴(README): RNGH Touchable의 onLongPress={drag}가 DFL 내부 pan과 협조해 손가락 추적. (구 Gesture.LongPress는 pan을 막아 '아래로만·느림·안따라옴' 버그 — daniel 07-21 신고)
+import DraggableFlatList, { type RenderItemParams } from 'react-native-draggable-flatlist'; // 홈 블록 리스트(드래그는 '배치 편집' 모달에서 — daniel 07-21 '편집 모드')
+import { HomeOrderEditModal } from '../../components/HomeOrderEditModal'; // 홈 배치 편집 모달(간단 목록 드래그·제스처 충돌 0)
 
 // 주의 등급 라벨·색 — dailyEnergy.caution(점수 구간)에 붙는 이름표.
 //   ★'조심'에 빨강을 쓰지 않는다(§4 부정 증폭 금지) — 골드/중립 톤으로 낮춰 표시한다.
@@ -54,24 +54,6 @@ const CAUTION: Record<DailyEnergy['caution'], { label: string; tone: string }> =
   mid: { label: '보통', tone: colors.inkSoft },
   high: { label: '조심', tone: colors.inkSoft },
 };
-
-// 홈 드래그 행 — ★DFL 공식 패턴(RNGH TouchableOpacity onLongPress={drag})으로 '손잡이(⠿)'만 길게 눌러 이동.
-//   블록 전체를 RNGH로 감싸면 내부 RN Pressable 탭(명식선택·코치진입·오늘이동)이 막힌다(PressableScale=RN Pressable) →
-//   작은 손잡이만 드래그 트리거로. 손잡이 onLongPress={drag} → DFL 내부 pan 이 손가락 추적(구 Gesture.LongPress는 pan 막음).
-//   빈 블록(persona/relation 미등록 = null 렌더, 높이 0)은 onLayout 으로 감지해 손잡이 숨김(떠다니는 손잡이 방지).
-function HomeDragRow({ item, drag, isActive, render }: RenderItemParams<HomeBlockKey> & { render: (k: HomeBlockKey) => ReactNode }) {
-  const [hasContent, setHasContent] = useState(false);
-  return (
-    <View style={isActive ? styles.dragActive : undefined} onLayout={(e) => setHasContent(e.nativeEvent.layout.height > 12)}>
-      {render(item)}
-      {hasContent && (
-        <TouchableOpacity onLongPress={drag} disabled={isActive} delayLongPress={180} hitSlop={12} style={styles.grip} accessibilityLabel="길게 눌러 순서 이동">
-          <Text style={styles.gripTx}>⠿</Text>
-        </TouchableOpacity>
-      )}
-    </View>
-  );
-}
 
 export default function Home() {
   const router = useRouter();
@@ -110,6 +92,7 @@ export default function Home() {
   const [hasChart, setHasChart] = useState<boolean>(true); // H1(daniel): 대표 명식 유무 — 없으면 오늘/내일 배너를 '명식 등록 안내'로(탭→등록)
   const [reloadKey, setReloadKey] = useState(0); // 명식 변경(전환·수정) 감지 — 포커스마다 오늘의 기운 재계산(daniel: 명식 수정 시 id 동일이라 갱신 안 되던 버그)
   const [loggingOut, setLoggingOut] = useState(false); // 로그아웃 콜백 동안 오버레이
+  const [editOpen, setEditOpen] = useState(false); // 홈 배치 편집 모달(daniel 07-21 '편집 모드')
 
   // 홈 포커스 시(명식 변경 후 복귀 포함) 날짜·대표 명식 재확인 → 오늘의 기운 갱신(①③)
   useFocusEffect(useCallback(() => {
@@ -323,12 +306,8 @@ export default function Home() {
     );
   };
 
-  // ── 드래그 재정렬 renderItem — 손잡이(⠿)를 길게 눌러 이동(HomeDragRow). 블록 내부 탭은 그대로 통과. ──
-  const renderItem = (params: RenderItemParams<HomeBlockKey>) => (
-    <ScaleDecorator activeScale={1.03}>
-      <HomeDragRow {...params} render={renderBlock} />
-    </ScaleDecorator>
-  );
+  // ── 홈 블록 렌더 — 순서대로 표시(홈에서 드래그 없음). 순서 변경은 '배치 편집' 버튼 → HomeOrderEditModal(간단 목록 드래그). ──
+  const renderItem = ({ item }: RenderItemParams<HomeBlockKey>) => <View>{renderBlock(item)}</View>;
 
   // 리스트 고정 헤더 = 브랜드 헤더 + 구분선 + 통변 진행률 배너(알림·순서 대상 아님·항상 최상단).
   const listHeader = (
@@ -347,6 +326,10 @@ export default function Home() {
         </PressableScale>
       </View>
       <View style={styles.divider} />
+      {/* 홈 배치 편집 진입 — 블록 순서를 간단 목록에서 드래그(daniel 07-21 '편집 모드'). 홈 블록 자체는 내부 탭 충돌로 인플레이스 드래그 대신 모달. */}
+      <PressableScale onPress={() => setEditOpen(true)} style={styles.editBtn} hitSlop={8}>
+        <Text style={styles.editBtnTx}>⠿ 홈 배치 편집</Text>
+      </PressableScale>
 
       {/* 통변 생성 진행률(daniel) — 여러 개 동시 풀이 가능 → route별 배너 여러 개. 탭=그 화면 이동 + 그 배너만 닫기.
           ★이 배너는 '알림'이라 배치 순서 대상이 아니다(항상 최상단 고정). */}
@@ -398,6 +381,7 @@ export default function Home() {
         />
       </Animated.View>
       <BusyOverlay visible={loggingOut} message={t('common.loggingOut')} />
+      <HomeOrderEditModal visible={editOpen} onClose={() => setEditOpen(false)} />
     </View>
   );
 }
@@ -406,11 +390,9 @@ const styles = StyleSheet.create({
   bgImage: { flex: 1, backgroundColor: 'transparent' }, // 전역 ContentBackdrop(오행 배경) 투과
   screen: { backgroundColor: 'transparent' },
   wrap: { padding: space(5), paddingTop: space(12), paddingBottom: space(10) }, // 헤더 숨김 → status bar 여백 확보
-  // 드래그 중인 블록 — 살짝 떠 보이게(그림자/불투명 낮춤). ScaleDecorator 가 확대는 담당.
-  dragActive: { opacity: 0.92, ...shadow.card },
-  // 드래그 손잡이(⠿) — 각 블록 우상단. 길게 눌러 위아래 이동. 내부 탭을 막지 않게 작게.
-  grip: { position: 'absolute', top: 6, right: 6, width: 34, height: 28, borderRadius: 9, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(235,207,138,0.16)', borderWidth: 1, borderColor: colors.juLine, zIndex: 20 },
-  gripTx: { color: colors.ju, fontSize: 15, fontWeight: '900', letterSpacing: -2, marginTop: -1 },
+  // 홈 배치 편집 진입 버튼(구분선 아래·subtle). 탭 → HomeOrderEditModal(간단 목록 드래그).
+  editBtn: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: space(1.5), backgroundColor: colors.overlay, borderWidth: 1, borderColor: colors.line, borderRadius: radius.pill, paddingVertical: space(1.5), paddingHorizontal: space(3.5), marginTop: -space(2), marginBottom: space(5) },
+  editBtnTx: { color: colors.inkSoft, fontSize: 12, fontWeight: '700' },
   title: { ...font.display, textAlign: 'left' as const }, // ★좌측 못박기(daniel 07-02)
   // 헤더 행 — 전체를 살짝 아래로(타이틀 너무 위 방지), 👤 아이콘만 좌측 타이틀·서브 컬럼 기준 y축 가운데(daniel 07-02)
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: space(4) },
