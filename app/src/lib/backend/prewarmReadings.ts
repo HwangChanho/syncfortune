@@ -93,21 +93,15 @@ export async function prewarmReadings(savedChart: SavedChart, session: Session):
     const { data } = await supabase.from('readings').select('category').eq('chart_id', id).eq('lang', appLang());
     const have = new Set((data ?? []).map((r: any) => r.category));
     const missing = all.filter((x) => !have.has(x.key));
-    // 사주·자미 *병렬* 두 체인(각 체인은 순차) — 자미가 사주 16개 뒤로 밀려 한쪽 화면이
-    //   통째로 미생성 상태가 되는 것 방지(daniel: 자미 화면 열었더니 그제야 풀고 있음).
-    const runChain = async (items: typeof missing) => {
-      for (const m of items) {
-        try {
-          // 자미는 운한(대한 비성사화) 포함 최신 명반을 body 로(저장본 구버전 대비 — Edge 우선 사용).
-          const { data } = await supabase.functions.invoke('interpret', { body: { chartId: id, category: m.key, kind: m.kind, tier: 'paid', lang: appLang(), ...(m.kind === 'ziwei' ? { ziwei: c.ziwei } : {}) } });
-          // 방어(daniel): 일시적 불가(사용량 한도 등)면 남은 항목(16+)을 계속 때리지 말고 조용히 중단(사용자 노출 없음).
-          if ((data as any)?.unavailable) { logEvent('prewarm_unavailable', { category: m.key, retryAt: (data as any)?.retryAt }, 'warn'); return; }
-        } catch { /* 개별 실패 무시 — 풀이 화면 생성 버튼이 폴백 */ }
-      }
-    };
+    const sajuTodo = missing.filter((m) => m.kind === 'saju').map((m) => ({ key: m.key, label: m.key }));
+    const ziweiTodo = missing.filter((m) => m.kind === 'ziwei').map((m) => ({ key: m.key, label: m.key }));
+    // ★UI 표출만(daniel 2026-07-21 · Option C): 프리워밍도 **서버(generate_set)** 에 위임한다 — 종전엔 여기서
+    //   interpret 를 직접 16+12개 순차 호출해 ReadingScreen 의 생성과 **이중 생성**(genLock 우회·Agent B #6.1)이 났다.
+    //   generate_set 이 gen_jobs(chart_id,kind unique)로 서버측 중복차단하므로, 화면 진입 생성과 프리워밍이 겹쳐도
+    //   생성은 **1회**. 서버가 강제종료·백그라운드 무관하게 끝까지 생성(대운/세운 최신 명반은 Edge 가 저장본 우선 사용).
     await Promise.all([
-      runChain(missing.filter((m) => m.kind === 'saju')),
-      runChain(missing.filter((m) => m.kind === 'ziwei')),
+      sajuTodo.length ? supabase.functions.invoke('generate_set', { body: { chartId: id, kind: 'saju', categories: sajuTodo, lang: appLang(), savedChartId: savedChart.id } }) : Promise.resolve(),
+      ziweiTodo.length ? supabase.functions.invoke('generate_set', { body: { chartId: id, kind: 'ziwei', categories: ziweiTodo, lang: appLang(), ziwei: c.ziwei, savedChartId: savedChart.id } }) : Promise.resolve(),
     ]);
   } catch { /* 프리워밍은 보조 — 어떤 실패도 앱 흐름을 막지 않는다 */ }
   finally { running = false; }

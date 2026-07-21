@@ -235,7 +235,40 @@ export function ReadingScreen({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [genDone, chartId]);
 
-  // (G 서버위임 gen_jobs realtime 구독은 무한반복 버그로 제거됨 — daniel 2026-06-30. 현재 runAllLocal 직접 생성. 재설계 시 재도입.)
+  // ★UI 표출만(daniel 2026-07-21 · Option C): gen_jobs(서버 생성 상태) 구독 — 서버(generate_set)가 관리하는
+  //   진행·완료를 화면 오버레이/홈 배너에 *표시만* 한다. 서버가 백그라운드/강제종료와 무관하게 생성하므로 클라는
+  //   생성 로직 0 · done/total/status 를 받아 표시하고 done 증가마다 readings 를 재조회해 채운다.
+  //   ★2026-06-30 무한반복 버그(gen_jobs done↔autoGen 재호출) 재발 방지 = 이 구독은 **표시·재조회만**, 절대 생성을
+  //     트리거하지 않는다(생성 트리거는 autoGen/resume/버튼 → runAll → generate_set 한 방향뿐).
+  useEffect(() => {
+    if (!chartId || !savedChart) return;
+    let alive = true;
+    const gpRoute = `/reading?kind=${kind === 'ziwei' ? 'ziwei' : 'saju'}&chartId=${savedChart.id}`;
+    const refetch = () => supabase.from('readings').select('category, content').eq('chart_id', chartId).eq('lang', appLang()).then(({ data }) => {
+      if (!alive || !data) return;
+      setReadings((prev) => { const u = { ...prev }; (data as any[]).forEach((r) => { if (cats.some((cc) => cc.key === r.category)) u[r.category] = r.content; }); return u; });
+    });
+    const apply = (row: any) => {
+      if (!alive || !row || row.kind !== kind) return;
+      if (row.status === 'running') {
+        setProgress({ done: row.done ?? 0, total: row.total ?? cats.length });
+        setGenProgress({ active: true, done: row.done ?? 0, total: row.total ?? cats.length, label: kind === 'ziwei' ? t('reading.ziweiTitle', '자미두수') : t('reading.sajuTitle', '사주 풀이'), chartLabel: savedChart.label, route: gpRoute });
+      } else {
+        setProgress(null); // done/error/idle → 오버레이 내림(다시 캐시/버튼 UI 로)
+        // ★완료 = 이 화면(구독은 마운트 중에만 돎)에서 보고 있으므로 홈 배너만 제거. 완료 푸시는 **서버(generate_set)** 가
+        //   담당한다(강제종료·백그라운드 대비) → 여기서 setGenProgress(done=total)로 로컬 푸시를 또 쏘면 이중 알림.
+        if (row.status === 'done') clearGenProgress(gpRoute);
+      }
+      refetch(); // done 증가/완료마다 새로 저장된 풀이를 채움
+    };
+    // 진입/명식전환 시 현재 서버 job 상태 1회 반영(realtime 이 놓친 사이 상태 복원)
+    supabase.from('gen_jobs').select('done, total, status, kind').eq('chart_id', chartId).eq('kind', kind).maybeSingle().then(({ data }) => apply(data));
+    const ch = supabase.channel(`genjobs:${chartId}:${kind}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'gen_jobs', filter: `chart_id=eq.${chartId}` }, (payload) => apply(payload.new))
+      .subscribe();
+    return () => { alive = false; supabase.removeChannel(ch); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chartId, kind, cats, savedChart]);
 
   // ★daniel(2026-06-30): '○○ 풀이가 완성됐어요' 배너를 탭해 진입했는데 안 사라지던 것 —
   //   이 화면 항목이 전부 캐시(완성)이고 생성 진행 중이 아니면 홈 배너를 확실히 제거(진입=이미 봄).
@@ -271,33 +304,38 @@ export function ReadingScreen({
     return error || !data ? null : (data as string);
   }
 
-  // 아직 없는 항목만 생성(캐시된 건 skip — 비용 방어). chart_id 는 재사용 우선.
+  // 아직 없는 항목만 생성. ★UI 표출만(daniel 2026-07-21): 생성은 **서버(generate_set)** 가 한다 —
+  //   EdgeRuntime.waitUntil 로 앱 백그라운드/강제종료와 무관하게 끝까지 생성하고 gen_jobs(chart_id,kind unique=중복락)로
+  //   진행상태를 관리·완료 푸시. 클라는 **위임 1회 + gen_jobs 구독 표시**만(생성 루프·중복·초기화 근본 제거).
+  //   서버 위임 실패(오프라인·Edge 미배포·오류)면 runAllLocal 로 폴백(genLock).
   async function runAll(preId?: string | null) {
     if (!c || !session) return;
     setGlobalError(null);
-    // ★자물쇠(chart race) 계보(daniel 07-03): 호출처(doStart)가 canonical id를 넘기면 그대로 신뢰한다(이미 재해석됨).
-    //   자동생성(autoGen effect)은 canonical 확정 뒤에만 fire되도록 가드돼 있어 chartId가 곧 canonical이다.
-    let id = preId ?? chartId;
-    if (!id) {
-      id = savedChart ? await ensureServerChart() : await insertChart();
-      if (!id) { setGlobalError(t('reading.saveFail')); return; }
-      setChartId(id);
-    }
+    // ★canonical server id 로 교정 — resume/홈배너가 local savedChart.id 를 넘겨도 server id 로 해석한다
+    //   (Agent B 확인 #6 중복버그: 종전 preId 를 그대로 신뢰해 local id 로 락키·interpret 가 나가 중복/캐시미스). generate_set 은 server chart_id 필요.
+    const id = (preId && preId !== savedChart?.id) ? preId : (savedChart ? await ensureServerChart() : await insertChart());
+    if (!id) { setGlobalError(t('reading.saveFail')); return; }
+    if (id !== chartId) setChartId(id);
     const todo = cats.filter((cat) => !readings[cat.key]);
-    if (!todo.length) return;                              // 전부 캐시됨 → 생성 불필요(자물쇠·진행 X, 바로 노출)
-    // ★중복 생성 방지(daniel: 로딩바 타고 재진입 시 1/12 재시작) — 같은 차트·종류가 이미 생성 중이면
-    //   두 번째는 생성하지 않는다. runAllLocal 이 이어서 남은 영역을 채운다.
-    const lockKey = `${kind}:${id}`;
-    if (!acquireGen(lockKey)) return;                      // genLock 공유 — stale(150초) 락은 자동 회수(daniel 07-16)
-    const gDone = cats.length - todo.length;               // 이미 완료된 영역(홈 진행률 시작값)
-    // 홈 배너/푸시 route — ★chartId를 담아야 진입 시 *그 명식*을 로드(안 담으면 대표로 가서 캐시 미스→재생성 버그, daniel G).
+    if (!todo.length) return;                              // 전부 캐시됨 → 생성 불필요(바로 노출)
+    const gDone = cats.length - todo.length;
     const gpRoute = `/reading?kind=${kind === 'ziwei' ? 'ziwei' : 'saju'}${savedChart ? `&chartId=${savedChart.id}` : ''}`;
+    // 낙관적 표시(즉시 오버레이) — 곧 아래 gen_jobs 구독이 서버 실측 done/total 로 대체한다.
     setProgress({ done: gDone, total: cats.length, current: todo[0].label });
-    setGenProgress({ active: true, done: gDone, total: cats.length, label: kind === 'ziwei' ? t('reading.ziweiTitle', '자미두수') : t('reading.sajuTitle', '사주 풀이'), chartLabel: savedChart?.label, route: gpRoute }); // 어느 명식 풀이인지 배너·푸시에(daniel 07-02)
-    // ★G 서버위임 롤백(daniel 2026-06-30: 무한반복 버그 — gen_jobs done↔autoGen 재호출↔재생성↔푸시 루프).
-    //   클라 직접 생성으로 복귀(기존 안정 경로). 완료(todo 없음)면 위에서 이미 return → 자물쇠 안 뜸.
-    //   서버측 generate_set 위임(+gen_jobs 구독)은 현재 휴면 — 무한반복 없이 재설계 후 재도입.
-    await runAllLocal(id, todo, gDone, gpRoute);
+    setGenProgress({ active: true, done: gDone, total: cats.length, label: kind === 'ziwei' ? t('reading.ziweiTitle', '자미두수') : t('reading.sajuTitle', '사주 풀이'), chartLabel: savedChart?.label, route: gpRoute });
+    try {
+      // ★서버 위임 — 서버가 gen_jobs 로 중복차단(running/done 이면 already) → 여러 트리거(autoGen·resume·홈배너)가 겹쳐도 생성은 1회.
+      const { error } = await supabase.functions.invoke('generate_set', {
+        body: { chartId: id, kind, categories: todo.map((x) => ({ key: x.key, label: x.label })), lang: appLang(), savedChartId: savedChart?.id, ...(kind === 'ziwei' ? { ziwei: c.ziwei } : {}), ...(savedChart?.context ? { context: savedChart.context } : {}) },
+      });
+      if (error) throw error;
+      // 성공 → 서버가 생성(강제종료 무관). gen_jobs 구독이 진행·완료를 표시하고 readings 를 채운다. 여기서 클라 루프 없음.
+    } catch {
+      // 서버 위임 실패 → 클라 직접 생성 폴백(genLock 중복차단·기존 안정 경로)
+      const lockKey = `${kind}:${id}`;
+      if (!acquireGen(lockKey)) return;
+      await runAllLocal(id, todo, gDone, gpRoute);
+    }
   }
 
   // 클라가 직접 항목별 interpret 를 호출(현재 유일 경로 — generate_set 서버위임은 휴면). 재도입 시 이 함수는 미배포·오류·1회용 명식 폴백으로 강등.
