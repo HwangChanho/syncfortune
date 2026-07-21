@@ -13,6 +13,7 @@ import { PressableScale } from '../components/PressableScale';
 import { useTranslation } from 'react-i18next';
 import * as Haptics from 'expo-haptics';
 import { computeChart } from '../lib/engine/engine';
+import { YongsinCard } from '../components/YongsinCard'; // 만세력 용신(canonical 엔진·억부/병약/조후+희신/기신·Boss 07-22)
 import type { ChartInput, PillarPos } from '@spec/chart';
 import { colors, radius, space, shadow, font, gradients } from '../lib/theme';
 import { GlassCard } from '../components/GlassCard';
@@ -486,6 +487,9 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
           </View>
         );
       })()}
+
+      {/* ★용신(Boss 07-22) — canonical 엔진 산출: 용신·희신·기신 + 관점(method=억부/병약/조후/종격/통관). 격국용신은 관법 대기. */}
+      <YongsinCard saju={c.saju} timeUnknown={timeUnknown} />
 
       {/* 대표 오행(일간)·대표 십성(격국) — 탭→설명 */}
       <View style={styles.repRow}>
