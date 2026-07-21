@@ -197,9 +197,11 @@ export default function CoachScreen() {
                   : t('coach.gateDescDay', { count: gate.freeLimit, defaultValue: '무료는 하루 {{count}}번(광고 시청)이에요. 이용권으로 더 물어보거나 프리미엄으로 매달 넉넉히 쓸 수 있어요.' })}</Text>
                 {/* 이용권으로 물어보기 — 즉시 구매 후 마지막 질문 재전송 */}
                 <PressableScale style={styles.gateBtn} onPress={async () => {
-                  const ok = await purchaseCreditRC('coach'); if (!ok) return; // 취소=조용히
-                  setGate(null);
-                  if (lastQ.current) void send(lastQ.current); // 구매 성공 → 그 질문 재전송(서버가 이용권 차감)
+                  try {
+                    const ok = await purchaseCreditRC('coach'); if (!ok) return; // 취소=조용히
+                    setGate(null);
+                    if (lastQ.current) void send(lastQ.current); // 구매 성공 → 그 질문 재전송(서버가 이용권 차감)
+                  } catch (e) { Alert.alert('!', (e as Error).message); } // ★결제 미준비·오프라인·풀이 불가(헬스 게이트) 친화 표출(throw 미포장 결함 수정)
                 }}>
                   <Text style={styles.gateBtnTx}>{t('coach.gateBuy', '이용권으로 물어보기')}</Text>
                 </PressableScale>
