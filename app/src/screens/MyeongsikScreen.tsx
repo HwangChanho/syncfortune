@@ -489,7 +489,7 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
       })()}
 
       {/* ★용신(Boss 07-22) — canonical 엔진 산출: 용신·희신·기신 + 관점(method=억부/병약/조후/종격/통관). 격국용신은 관법 대기. */}
-      <YongsinCard saju={c.saju} timeUnknown={timeUnknown} />
+      <YongsinCard saju={c.saju} pattern={c.pattern} timeUnknown={timeUnknown} />
 
       {/* 대표 오행(일간)·대표 십성(격국) — 탭→설명 */}
       <View style={styles.repRow}>
