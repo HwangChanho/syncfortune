@@ -25,6 +25,7 @@ import { supabase } from '../../lib/supabase';
 import { ChartPicker } from '../../components/ChartPicker';
 import { SelfUnderstandingHero } from '../../components/SelfUnderstandingHero'; // ★4.3: 홈 최상단 자기이해 히어로(성향분석 첫 경험)
 import { PersonaTypeHero } from '../../components/PersonaTypeHero'; // ★홈 주인공 ①: 성격유형 120종(daniel 07-18 IA 개편)
+import { BiorhythmCard } from '../../components/BiorhythmCard'; // 홈 블록: 바이오리듬(07-21 코드큐·온디바이스·부가 재미·API 0)
 import { TodayRelationCard } from '../../components/TodayRelationCard'; // 오늘의 관계 — 궁합을 매일 여는 화면으로(리텐션 07-20)
 import { TigerMascot } from '../../components/TigerMascot'; // 아기 백호 브랜드 마스코트(모션) — 홈 헤더 타이틀 좌측
 import { getDailyFortune, dailyHeadline, dailyPreview, scoreFlow, dailyEnergy, energyReason, ENERGY_LABEL, type DailyEnergy } from '../../lib/content/dailyFortune';
@@ -200,6 +201,8 @@ export default function Home() {
     if (k === 'persona') return <PersonaTypeHero reloadKey={reloadKey} />;
     // 자기이해 히어로 — 에겐·테토 게이지 + 성격유형/MBTI/특징 클러스터(App Store 4.3 결).
     if (k === 'self') return <SelfUnderstandingHero reloadKey={reloadKey} />;
+    // 바이오리듬 — 생년월일 3주기(신체23/감정28/지성33일) sine(온디바이스·사주 무관 부가 재미). 명식 없으면 미노출.
+    if (k === 'biorhythm') return <BiorhythmCard reloadKey={reloadKey} />;
     // 오늘의 관계 — 등록한 상대 × 오늘 일진(결정론). 상대가 없으면 스스로 렌더하지 않는다.
     if (k === 'relation') return <TodayRelationCard reloadKey={reloadKey} dateKey={dateKey} />;
     // AI 자기이해 코치 — 대화형 도구 진입('운세 피드'가 아니라 물어보는 도구 = 차별화).
