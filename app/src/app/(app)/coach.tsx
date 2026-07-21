@@ -18,7 +18,7 @@ import { loadRepChart } from '../../lib/engine/myChart';
 import { ensureServerChartId } from '../../lib/backend/prewarmReadings';
 import { useAuth } from '../../lib/useAuth';
 import { useFontScale } from '../../lib/ui/fontScale';
-import { askCoach, loadCoachHistory, type CoachTurn } from '../../lib/backend/coach';
+import { askCoach, loadCoachHistory, deleteCoachHistory, type CoachTurn } from '../../lib/backend/coach';
 import { useSubscription } from '../../lib/billing/subscription'; // 프리미엄=월 5회 무료
 import { showRewardedAd } from '../../lib/core/ads';               // 비프리미엄 무료=보상형 광고(daniel 07-13)
 import { purchaseCreditRC } from '../../lib/billing/purchases';    // coach 이용권 즉시 구매
@@ -134,6 +134,28 @@ export default function CoachScreen() {
         <TigerMascot size={76} active={busy} style={{ alignSelf: 'center', marginTop: space(8), marginBottom: space(2) }} />
         <Text style={[styles.title, { fontSize: fs(23) }]}>{t('coach.title', 'AI 자기이해 코치')}</Text>
         <Text style={[styles.sub, { fontSize: fs(13) }]}>{t('coach.sub2', '나와 내 삶에 대해 물어보세요. 사주와 자미두수로 함께 답해 드려요.')}</Text>
+
+        {/* 대화 삭제(daniel 07-21) — 히스토리 있을 때만. ★삭제 전 얼랏으로 확인(되돌릴 수 없음). */}
+        {history.length > 0 && (
+          <PressableScale
+            style={{ alignSelf: 'flex-end', paddingVertical: space(2), paddingHorizontal: space(3), marginBottom: space(1) }}
+            onPress={() => Alert.alert(
+              t('coach.clearTitle', '대화 삭제'),
+              t('coach.clearMsg', '이 코치 대화를 모두 지울까요? 되돌릴 수 없어요.'),
+              [
+                { text: t('common.cancel', '취소'), style: 'cancel' },
+                { text: t('coach.clearConfirm', '삭제'), style: 'destructive', onPress: async () => {
+                  if (!chartId) return;
+                  const ok = await deleteCoachHistory(chartId);
+                  if (ok) setHistory([]);
+                  else Alert.alert('!', t('coach.clearFail', '삭제하지 못했어요. 잠시 후 다시 시도해 주세요.'));
+                } },
+              ],
+            )}
+          >
+            <Text style={{ fontSize: fs(12), color: colors.inkFaint, fontWeight: '700' }}>🗑 {t('coach.clear', '대화 삭제')}</Text>
+          </PressableScale>
+        )}
 
         {hasChart === false ? (
           <View style={styles.card}>

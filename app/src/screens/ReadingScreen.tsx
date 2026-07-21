@@ -12,6 +12,8 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useMemo, useEffect, useRef, type ReactNode } from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator, Modal, TextInput, Keyboard, KeyboardAvoidingView, Platform, AppState } from 'react-native';
+import { Image as ExpoImage } from 'expo-image'; // 추천 콘텐츠 썸네일(다운샘플·디스크캐시)
+import { SECTIONS } from '../lib/content/contentSections'; // 추천 '이런 콘텐츠도 좋아하실 거예요'(하단·daniel 07-21) — 콘텐츠 단일출처
 import { PressableScale } from '../components/PressableScale';
 import { ExpiryNote } from '../components/ExpiryNote'; // 보유 만료일 공통(프리미엄 가드 한 곳)
 import { TTSButton } from '../components/TTSButton'; // daniel: 풀이 음성 읽기(온디바이스 TTS·무료)
@@ -178,6 +180,14 @@ export function ReadingScreen({
     if (etc.length) out.push({ label: '기타', items: etc });
     return out;
   }, [cats, kind, readings]);
+
+  // ★추천 콘텐츠(daniel 07-21 '이런 콘텐츠도 좋아하실 거예요') — 상세 하단에 이미지 리스트로. 현재 리딩 화면(사주/자미)은 제외.
+  const recommend = useMemo(() => {
+    const cur = kind === 'ziwei' ? '/ziwei' : '/reading';
+    return SECTIONS.flatMap((s) => s.items)
+      .filter((it) => it.ready && it.image && it.route !== cur && it.route !== '/reading' && it.route !== '/ziwei')
+      .slice(0, 6);
+  }, [kind]);
 
   // 진입 시: 서버 chart_id 확보 + 저장된 풀이(캐시) 로드 → 생성 없이 즉시 표시.
   //   savedChart 가 있어야 chart_id 안정화(재사용). 없으면(input-param 경로) 캐시 생략 → 버튼 생성.
@@ -723,6 +733,22 @@ export function ReadingScreen({
               <TTSButton key={detail} reading={readings[detail]} />{/* key=카테고리 → 이동 시 옛 TTSButton 언마운트=옛 음성 정지(daniel: 다른 카테고리 읽힘) */}
               <ShareReadingButton kind={kind} category={detail} title={cats.find((x) => x.key === detail)?.label} content={readings[detail]} />
             </>) : null}
+            {/* ★이런 콘텐츠도 좋아하실 거예요(daniel 07-21) — 이미지 리스트 크로스셀. 탭 시 상세 닫고 해당 콘텐츠로 이동. */}
+            {recommend.length > 0 && (
+              <View style={styles.recWrap}>
+                <Text style={[styles.recTitle, { fontSize: fs(15) }]}>{t('reading.recommend', '이런 콘텐츠도 좋아하실 거예요')}</Text>
+                {recommend.map((it) => (
+                  <PressableScale key={it.key} style={styles.recRow} onPress={() => { closeDetail(); router.push(it.route as any); }}>
+                    <ExpoImage source={it.image} style={styles.recImg} contentFit="cover" cachePolicy="memory-disk" transition={100} />
+                    <View style={styles.recTexts}>
+                      <Text style={[styles.recLabel, { fontSize: fs(14) }]} numberOfLines={1}>{t(it.labelKey)}</Text>
+                      {it.descKey ? <Text style={[styles.recDesc, { fontSize: fs(11) }]} numberOfLines={1}>{t(it.descKey)}</Text> : null}
+                    </View>
+                    <Text style={[styles.recArrow, { fontSize: fs(20) }]}>›</Text>
+                  </PressableScale>
+                ))}
+              </View>
+            )}
           </ScrollView>
         )}
       </KeyboardAvoidingView>
@@ -776,6 +802,15 @@ const styles = StyleSheet.create({
   detailWrap: { padding: space(5), paddingTop: space(2), paddingBottom: space(10) },
   detailTitle: { ...font.title, fontSize: 26, color: colors.ink, marginBottom: space(1) },
   detailDesc: { ...font.body, color: colors.inkSoft, marginBottom: space(3) },
+  // 추천 콘텐츠 리스트(상세 하단·daniel 07-21 '이런 콘텐츠도 좋아하실 거예요')
+  recWrap: { marginTop: space(8), borderTopWidth: 1, borderTopColor: colors.juLine, paddingTop: space(5) },
+  recTitle: { ...font.heading, color: colors.ink, fontWeight: '800', marginBottom: space(3) },
+  recRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.juLine, padding: space(2.5), marginBottom: space(2), ...shadow.card },
+  recImg: { width: 52, height: 52, borderRadius: radius.md, marginRight: space(3), backgroundColor: colors.overlay },
+  recTexts: { flex: 1 },
+  recLabel: { ...font.body, color: colors.ink, fontWeight: '700' },
+  recDesc: { ...font.caption, color: colors.inkSoft, marginTop: 2 },
+  recArrow: { color: colors.inkFaint, fontWeight: '700', marginLeft: space(2) },
   // 세운 배지 — 경고가 아니라 '기준 연도 고지'라 톤을 낮춘다(부정 증폭 금지·§4).
   pastYearBadge: { ...font.caption, color: colors.inkSoft, backgroundColor: colors.sunk, borderRadius: 8, paddingVertical: space(2), paddingHorizontal: space(3), marginBottom: space(3) },
   err: { fontSize: 13, color: colors.ju },

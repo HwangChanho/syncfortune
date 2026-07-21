@@ -41,3 +41,9 @@ export async function loadCoachHistory(chartId: string): Promise<CoachTurn[]> {
     .order('created_at', { ascending: true });
   return (data ?? []).map((r: any) => ({ question: r.question, answer: r.answer }));
 }
+
+/** 이 차트의 코치 대화 전체 삭제(RLS 본인만·category='coach'). ★삭제 전 확인(Alert)은 호출부 책임(daniel 07-21). */
+export async function deleteCoachHistory(chartId: string): Promise<boolean> {
+  const { error } = await supabase.from('reading_followups').delete().eq('chart_id', chartId).eq('category', 'coach');
+  return !error;
+}
