@@ -5,6 +5,15 @@
 //   daniel 지시: "풀이 넘어가는 리스트만 옮기고 오늘의 운세나 이런건 다 그대로 둘꺼야."
 //   목록 데이터/렌더는 lib/content/contentSections.ts · components/ContentGrid.tsx 로 이관(단일 출처).
 //
+// ★2026-07-21 홈 in-place 드래그(daniel "실제 홈에서 길게 탭해 위아래로 이동해 배치 조절"):
+//   블록 배치 순서를 **홈에서 직접** 길게 눌러 드래그해 바꾼다(설정 화면에서도 여전히 가능).
+//   구현: 블록 6개(order)를 DraggableFlatList 로. 헤더/통변 진행률 배너/로그인 링크는 '고정'(순서 대상 아님)이라
+//     ListHeaderComponent/ListFooterComponent 로 뺀다.
+//   ★블록들이 PressableScale(짧은 탭=화면 이동)이라 RN <Pressable onLongPress> 로는 drag 가 안 걸린다
+//     → gesture-handler Gesture.LongPress 로 길게 누르면 drag() 발동(짧은 탭은 그대로 통과=이동). drag 는 JS 함수라 runOnJS.
+//   ※ DraggableFlatList 가 스크롤 컨테이너가 되므로 기존 바깥 ScrollView 는 없앤다(리스트가 세로 스크롤 담당).
+//     'today' 블록 내부의 가로 페이저(ScrollView)는 세로 드래그와 직교라 공존(그대로 둔다).
+//
 // 로그인 게이트 없음(ADR-037).
 // ─────────────────────────────────────────────────────────────────────────
 import { View, Text, ScrollView, StyleSheet, Animated, AppState, Dimensions } from 'react-native';
@@ -34,7 +43,10 @@ import { useFontScale } from '../../lib/ui/fontScale';
 import { BusyOverlay } from '../../components/BusyOverlay'; // 로그아웃 등 긴 콜백 로딩
 import { PressableScale } from '../../components/PressableScale';
 import { appLang } from '../../lib/i18n';
-import { useHomeOrder } from '../../lib/ui/homeOrder'; // 홈 블록 배치 순서(계정별 저장·daniel 07-19)
+import { useHomeOrder, type HomeBlockKey } from '../../lib/ui/homeOrder'; // 홈 블록 배치 순서(계정별 저장·daniel 07-19)
+import DraggableFlatList, { ScaleDecorator, type RenderItemParams } from 'react-native-draggable-flatlist'; // 홈 길게눌러 드래그 재정렬(daniel 07-21)
+import { Gesture, GestureDetector } from 'react-native-gesture-handler'; // PressableScale이 onLongPress를 삼켜서 RNGH LongPress로 drag 발동
+import { runOnJS } from 'react-native-reanimated'; // 제스처 worklet → JS drag() 호출
 
 // 주의 등급 라벨·색 — dailyEnergy.caution(점수 구간)에 붙는 이름표.
 //   ★'조심'에 빨강을 쓰지 않는다(§4 부정 증폭 금지) — 골드/중립 톤으로 낮춰 표시한다.
@@ -62,7 +74,7 @@ export default function Home() {
     : Math.min(95, Math.max(3, Math.round(((Date.now() - startedAt) / 20000) * 100)));
   const { session, isRegistered } = useAuth();
   const { isPremium } = useSubscription();
-  const { order } = useHomeOrder(); // 홈 블록 순서(계정별 — 설정에서 변경)
+  const { order, setOrder } = useHomeOrder(); // 홈 블록 순서(계정별 — 설정·홈 드래그에서 변경)
   const [dayOffset, setDayOffset] = useState(0); // 0=오늘·1=내일(오늘의 기운 카드 토글)
   // 날짜 키 — 홈을 켜둔 채 자정이 지나도 갱신되게(③). 포커스·앱 복귀 시 재확인.
   const [dateKey, setDateKey] = useState(() => new Date().toDateString());
@@ -179,171 +191,202 @@ export default function Home() {
     finally { setLoggingOut(false); }
   }
 
+  // ── 홈 블록 하나를 렌더 — order 의 각 키 → 해당 컴포넌트/배너. (드래그 재정렬 renderItem 에서 호출) ──
+  //   key 는 DraggableFlatList(keyExtractor)·renderItem 래퍼가 담당하므로 여기선 붙이지 않는다.
+  const renderBlock = (k: HomeBlockKey) => {
+    // 명식 선택/전환 — 아래 블록이 전부 '지금 적용된 명식' 기준이라 기본 순서에선 맨 위.
+    if (k === 'chart') return <ChartPicker onChange={() => setReloadKey((n) => n + 1)} />;
+    // 성격유형 120종(일간10×월지12·온디바이스 결정론) — 명식이 없으면 스스로 렌더하지 않는다.
+    if (k === 'persona') return <PersonaTypeHero reloadKey={reloadKey} />;
+    // 자기이해 히어로 — 에겐·테토 게이지 + 성격유형/MBTI/특징 클러스터(App Store 4.3 결).
+    if (k === 'self') return <SelfUnderstandingHero reloadKey={reloadKey} />;
+    // 오늘의 관계 — 등록한 상대 × 오늘 일진(결정론). 상대가 없으면 스스로 렌더하지 않는다.
+    if (k === 'relation') return <TodayRelationCard reloadKey={reloadKey} dateKey={dateKey} />;
+    // AI 자기이해 코치 — 대화형 도구 진입('운세 피드'가 아니라 물어보는 도구 = 차별화).
+    if (k === 'coach') return (
+      <PressableScale style={styles.coachBanner} onPress={() => router.push('/coach')}>
+        <Text style={styles.coachBannerEmoji}>💬</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.coachBannerTitle}>{t('coach.title', 'AI 자기이해 코치')}</Text>
+          <Text style={styles.coachBannerSub} numberOfLines={1}>{t('coach.sub', '나에 대해 궁금한 걸 물어보세요')}</Text>
+        </View>
+        <Text style={styles.coachBannerArrow}>›</Text>
+      </PressableScale>
+    );
+    // 오늘/내일 기운 — 토글·좌우 슬라이드(가로 페이징). 별도 카드였던 유형명·점수·등급·근거·신살 칩이 여기 통합됐다.
+    return (
+      <View style={styles.fortuneBanner}>
+        {!hasChart ? (
+          // H1(daniel): 명식 미등록 → 오늘/내일 운세 대신 등록 안내(탭하면 등록창)
+          <PressableScale onPress={() => router.push('/register')} style={{ alignItems: 'center', paddingVertical: space(5), gap: space(2) }}>
+            <Text style={{ color: colors.ju, fontWeight: '900', fontSize: fs(16), textAlign: 'center' }}>{t('home.noChartTitle', 'AI가 분석하는 나 — 여기서 시작')}</Text>
+            <Text style={{ color: colors.inkSoft, fontSize: fs(13), textAlign: 'center' }}>{t('home.noChartSub', '생년월일시를 넣으면 성격·반복되는 관계·적성·올해 흐름을 사주 엔진으로 개인 분석해요')}</Text>
+            <View style={{ backgroundColor: colors.ju, borderRadius: radius.md, paddingVertical: space(2.5), paddingHorizontal: space(6), marginTop: space(2) }}>
+              <Text style={{ color: colors.bg, fontWeight: '800', fontSize: fs(14) }}>{t('home.noChartCta', '+ 명식 등록')}</Text>
+            </View>
+          </PressableScale>
+        ) : (<>
+        <View style={styles.dayToggle}>
+          {([0, 1] as const).map((off) => (
+            <PressableScale key={off} style={[styles.dayTogChip, dayOffset === off && styles.dayTogChipOn]} onPress={() => goDay(off)}>
+              <Text style={[styles.dayTogTx, dayOffset === off && styles.dayTogTxOn]}>{t(off === 0 ? 'today.today' : 'today.tomorrow')}</Text>
+            </PressableScale>
+          ))}
+        </View>
+        {/* 가로 페이징 = 손가락 따라 슬라이드. onLayout 으로 페이지 폭 확정 → 한 페이지씩 스냅. */}
+        <View onLayout={(e) => setPageW(e.nativeEvent.layout.width)}>
+          <ScrollView
+            ref={fortunePager}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            onMomentumScrollEnd={(e) => setDayOffset(Math.round(e.nativeEvent.contentOffset.x / Math.max(1, pageW)))}
+          >
+            {([0, 1] as const).map((off) => {
+              const f = fortunes[off];
+              const d = dayData[off];
+              const e = energies[off];                        // 그 날 기운 판정(유형·점수·등급·근거·신살)
+              const cau = e ? CAUTION[e.caution] : null;      // 주의 등급 라벨·색
+              return (
+                <PressableScale key={off} style={{ width: pageW }} onPress={() => router.push(`/today?offset=${off}`)}>
+                  <Text style={styles.bannerDate}>{f.date} ({t('today.weekdaysShort').split(',')[new Date(f.date + 'T00:00:00').getDay()] ?? ''})</Text>
+                  <View style={styles.bannerPillarRow}>
+                    <Text style={styles.bannerPillar}>{off === 0 ? t('today.dayPillar') : t('today.energyTomorrow')}</Text>
+                    <View style={styles.gzBoxRow}>
+                      {[f.dayGanZhi[0], f.dayGanZhi[1]].map((ch, i) => {
+                        const el = i === 0 ? stemElement(ch) : branchElement(ch); // 천간·지지 오행
+                        return (
+                          <View key={i} style={[styles.gzBox, { backgroundColor: elementColor[el] }]}>
+                            <Text style={[styles.gzBoxTx, { color: elementText[el] }]}>{ch}</Text>
+                          </View>
+                        );
+                      })}
+                    </View>
+                    {/* 총운 점수 + 주의 등급 — 우측 정렬(통합 전 카드의 핵심 정보) */}
+                    {e && cau && (
+                      <View style={styles.scoreWrap}>
+                        <Text style={[styles.scoreTx, { color: cau.tone }]}>{e.score}</Text>
+                        <Text style={styles.scoreUnit}>{t('todayEnergy.point', '점')}</Text>
+                        <View style={[styles.cautionPill, { borderColor: cau.tone }]}>
+                          <Text style={[styles.cautionTx, { color: cau.tone }]}>{cau.label}</Text>
+                        </View>
+                      </View>
+                    )}
+                  </View>
+                  {/* 기운 유형명 + 한 줄 설명 */}
+                  {e && (
+                    <View style={{ marginTop: space(2) }}>
+                      <Text style={[styles.energyName, { fontSize: fs(16) }]}>{ENERGY_LABEL[e.group].name}</Text>
+                      <Text style={[styles.energyDesc, { fontSize: fs(12.5) }]} numberOfLines={2}>{ENERGY_LABEL[e.group].desc}</Text>
+                    </View>
+                  )}
+                  {/* 점수 흐름 그래프(그제~모레) — off(오늘/내일)에 맞춰 강조점 이동(daniel 07-13) */}
+                  {flow ? <View style={{ marginTop: space(2), marginBottom: space(1) }}><ScoreFlowGraph scores={flow.scores} labels={flow.labels} currentIndex={flow.currentIndex + off} height={112} /></View> : null}
+                  {d.headline && <Text style={[styles.bannerHeadline, { fontSize: fs(16) }]}>{d.headline}</Text>}
+                  {d.prose && <Text style={[styles.bannerProse, { fontSize: fs(15), lineHeight: fs(22) }]} numberOfLines={3}>{d.prose}</Text>}
+                  {/* 근거(억부: 내 강약 × 그 날 기운) + 작용·신살 칩 */}
+                  {e && <Text style={[styles.energyReason, { fontSize: fs(13), lineHeight: fs(19) }]}>{energyReason(e)}</Text>}
+                  {e && e.signals.length > 0 && (
+                    <View style={styles.chips}>
+                      {e.signals.map((s) => (
+                        <View key={s.key} style={[styles.chip, s.kind === 'good' ? styles.chipGood : styles.chipCare]}>
+                          <Text style={[styles.chipTx, s.kind === 'good' && styles.chipTxGood]} numberOfLines={1}>{s.label}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  )}
+                  {d.prose && <Text style={styles.bannerMore}>{t('today.more')}</Text>}
+                </PressableScale>
+              );
+            })}
+          </ScrollView>
+        </View>
+        </>)}
+      </View>
+    );
+  };
+
+  // ── 드래그 재정렬 renderItem — 길게 누르면(Gesture.LongPress) drag() 발동. 짧은 탭은 내부 PressableScale 로 통과(=화면 이동). ──
+  const renderItem = ({ item, drag, isActive }: RenderItemParams<HomeBlockKey>) => {
+    // drag 는 DraggableFlatList 가 준 JS 함수 → worklet(onStart)에서 runOnJS 로 호출. 250ms 홀드면 발동.
+    const hold = Gesture.LongPress().minDuration(250).onStart(() => runOnJS(drag)());
+    return (
+      <ScaleDecorator activeScale={1.03}>
+        <GestureDetector gesture={hold}>
+          <View style={isActive ? styles.dragActive : undefined}>{renderBlock(item)}</View>
+        </GestureDetector>
+      </ScaleDecorator>
+    );
+  };
+
+  // 리스트 고정 헤더 = 브랜드 헤더 + 구분선 + 통변 진행률 배너(알림·순서 대상 아님·항상 최상단).
+  const listHeader = (
+    <>
+      {/* 헤더 — 타이틀 옆에 계정(사람) 아이콘: 탭 → 계정 관리·프리미엄 구매(설정)(daniel) */}
+      <View style={styles.headerRow}>
+        {/* 브랜드 마스코트(아기 백호·모션) — 타이틀 좌측. 헤더가 조밀해 후광은 끔(bob/sway만). */}
+        <TigerMascot size={40} glow={false} style={{ marginRight: space(2.5), marginBottom: space(1) }} />
+        {/* 타이틀·서브타이틀 = 좌측 컬럼. ★왼쪽 못박기(daniel 07-02): 컬럼 alignItems:flex-start + 텍스트 textAlign:left. 👤만 우측 y축 가운데 */}
+        <View style={{ flex: 1, alignItems: 'flex-start' }}>
+          <Text style={styles.title}>{t('appName')}</Text>
+          <Text style={styles.sub}>{t('tagline')}</Text>
+        </View>
+        <PressableScale onPress={() => router.push('/settings')} hitSlop={10} style={styles.accountBtn}>
+          <Text style={styles.accountIcon}>👤</Text>
+        </PressableScale>
+      </View>
+      <View style={styles.divider} />
+
+      {/* 통변 생성 진행률(daniel) — 여러 개 동시 풀이 가능 → route별 배너 여러 개. 탭=그 화면 이동 + 그 배너만 닫기.
+          ★이 배너는 '알림'이라 배치 순서 대상이 아니다(항상 최상단 고정). */}
+      {gen.map((g) => (g.total > 0 && g.done >= g.total ? (
+        // 완료(daniel 이슈13): '풀이 보기' — 탭하면 그 화면 이동 + 그 배너만 닫기(다른 풀이 배너는 유지).
+        <PressableScale key={g.route} onPress={() => { clearGenProgress(g.route); router.navigate(g.route as any); }} style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.ju, borderRadius: radius.md, paddingVertical: space(2.5), paddingHorizontal: space(4), marginBottom: space(3), gap: space(2) }}>
+          <Text style={{ color: colors.bg, fontWeight: '800', fontSize: fs(13), flex: 1 }}>{g.chartLabel ? g.chartLabel + ' — ' : ''}{g.label} 풀이가 완성됐어요!</Text>
+          <Text style={{ color: colors.bg, fontWeight: '800', fontSize: fs(13) }}>풀이 보기 ›</Text>
+        </PressableScale>
+      ) : (
+        <PressableScale key={g.route} onPress={() => router.navigate(g.route as any)} style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.juSoft, borderColor: colors.ju, borderWidth: 1, borderRadius: radius.md, paddingVertical: space(2.5), paddingHorizontal: space(4), marginBottom: space(3), gap: space(2) }}>
+          <Text style={{ color: colors.ju, fontWeight: '700', fontSize: fs(13), flex: 1 }}>{g.restored ? `이전에 진행중이던 ${g.chartLabel ? g.chartLabel + ' — ' : ''}${g.label} 풀이가 있어요` : `${g.chartLabel ? g.chartLabel + ' — ' : ''}${g.label} 풀이 중… ${g.total > 1 ? `${g.done}/${g.total} ` : ''}${genPct(g.done, g.total, g.startedAt)}%`}</Text>
+          <Text style={{ color: colors.ju, fontWeight: '700', fontSize: fs(13) }}>이어보기 ›</Text>
+        </PressableScale>
+      )))}
+    </>
+  );
+
+  // 리스트 고정 푸터 = 로그인 링크(선택·순서 대상 아님).
+  //   ★익명 세션 상시라 !session 아닌 !isRegistered — 익명/미로그인에 로그인 유도 노출.
+  const listFooter = (
+    <View style={styles.authRow}>
+      {!isRegistered && (
+        <PressableScale onPress={() => router.push('/login')}>
+          <Text style={styles.linkText}>{t('common.loginOptional')}</Text>
+        </PressableScale>
+      )}
+    </View>
+  );
+
   return (
     // ★홈도 투명(daniel 2026-07-15 '홈은 테마 적용 안돼') — bgSource 이미지 제거, 전역 ContentBackdrop(오행 배경색)이 비치게.
     <View style={styles.bgImage}>
-    <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>
-      <Animated.View style={{ opacity: fadeAnim }}>
-        {/* 헤더 — 타이틀 옆에 계정(사람) 아이콘: 탭 → 계정 관리·프리미엄 구매(설정)(daniel) */}
-        <View style={styles.headerRow}>
-          {/* 브랜드 마스코트(아기 백호·모션) — 타이틀 좌측. 홈 첫인상에 캐릭터성 부여(daniel 07-13). 헤더가 조밀해 후광은 끔(bob/sway만). */}
-          <TigerMascot size={40} glow={false} style={{ marginRight: space(2.5), marginBottom: space(1) }} />
-          {/* 타이틀·서브타이틀 = 좌측 컬럼. ★왼쪽 못박기(daniel 07-02: 여전히 가운데로 보임 → 명시 좌측): 컬럼 alignItems:flex-start + 텍스트 textAlign:left. 👤만 우측 y축 가운데 */}
-          <View style={{ flex: 1, alignItems: 'flex-start' }}>
-            <Text style={styles.title}>{t('appName')}</Text>
-            <Text style={styles.sub}>{t('tagline')}</Text>
-          </View>
-          <PressableScale onPress={() => router.push('/settings')} hitSlop={10} style={styles.accountBtn}>
-            <Text style={styles.accountIcon}>👤</Text>
-          </PressableScale>
-        </View>
-        <View style={styles.divider} />
-
-        {/* 통변 생성 진행률(daniel) — 여러 개 동시 풀이 가능 → route별 배너 여러 개. 탭=그 화면 이동 + 그 배너만 닫기.
-            ★이 배너는 '알림'이라 배치 순서 대상이 아니다(항상 최상단 고정). */}
-        {gen.map((g) => (g.total > 0 && g.done >= g.total ? (
-          // 완료(daniel 이슈13): '풀이 보기' — 탭하면 그 화면 이동 + 그 배너만 닫기(다른 풀이 배너는 유지).
-          <PressableScale key={g.route} onPress={() => { clearGenProgress(g.route); router.navigate(g.route as any); }} style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.ju, borderRadius: radius.md, paddingVertical: space(2.5), paddingHorizontal: space(4), marginBottom: space(3), gap: space(2) }}>
-            <Text style={{ color: colors.bg, fontWeight: '800', fontSize: fs(13), flex: 1 }}>{g.chartLabel ? g.chartLabel + ' — ' : ''}{g.label} 풀이가 완성됐어요!</Text>
-            <Text style={{ color: colors.bg, fontWeight: '800', fontSize: fs(13) }}>풀이 보기 ›</Text>
-          </PressableScale>
-        ) : (
-          <PressableScale key={g.route} onPress={() => router.navigate(g.route as any)} style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.juSoft, borderColor: colors.ju, borderWidth: 1, borderRadius: radius.md, paddingVertical: space(2.5), paddingHorizontal: space(4), marginBottom: space(3), gap: space(2) }}>
-            <Text style={{ color: colors.ju, fontWeight: '700', fontSize: fs(13), flex: 1 }}>{g.restored ? `이전에 진행중이던 ${g.chartLabel ? g.chartLabel + ' — ' : ''}${g.label} 풀이가 있어요` : `${g.chartLabel ? g.chartLabel + ' — ' : ''}${g.label} 풀이 중… ${g.total > 1 ? `${g.done}/${g.total} ` : ''}${genPct(g.done, g.total, g.startedAt)}%`}</Text>
-            <Text style={{ color: colors.ju, fontWeight: '700', fontSize: fs(13) }}>이어보기 ›</Text>
-          </PressableScale>
-        )))}
-
-        {/* ★홈 블록 배치 — 순서는 **계정별 설정**(useHomeOrder · profiles.home_order). daniel 2026-07-19.
-            기본 순서 = 명식 → AI 코치 → 오늘의 기운 → 나의 성격유형 → 나는 어떤 사람인가.
-            ※위 진행률 배너와 아래 로그인 링크는 '알림·고정'이라 순서 대상이 아니다(설정 화면에서도 안 보인다). */}
-        {order.map((k) => {
-          // 명식 선택/전환 — 아래 블록이 전부 '지금 적용된 명식' 기준이라 기본 순서에선 맨 위.
-          if (k === 'chart') return <ChartPicker key={k} onChange={() => setReloadKey((n) => n + 1)} />;
-          // 성격유형 120종(일간10×월지12·온디바이스 결정론) — 명식이 없으면 스스로 렌더하지 않는다.
-          if (k === 'persona') return <PersonaTypeHero key={k} reloadKey={reloadKey} />;
-          // 자기이해 히어로 — 에겐·테토 게이지 + 성격유형/MBTI/특징 클러스터(App Store 4.3 결).
-          if (k === 'self') return <SelfUnderstandingHero key={k} reloadKey={reloadKey} />;
-          // 오늘의 관계 — 등록한 상대 × 오늘 일진(결정론). 상대가 없으면 스스로 렌더하지 않는다.
-          if (k === 'relation') return <TodayRelationCard key={k} reloadKey={reloadKey} dateKey={dateKey} />;
-          // AI 자기이해 코치 — 대화형 도구 진입('운세 피드'가 아니라 물어보는 도구 = 차별화).
-          if (k === 'coach') return (
-            <PressableScale key={k} style={styles.coachBanner} onPress={() => router.push('/coach')}>
-              <Text style={styles.coachBannerEmoji}>💬</Text>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.coachBannerTitle}>{t('coach.title', 'AI 자기이해 코치')}</Text>
-                <Text style={styles.coachBannerSub} numberOfLines={1}>{t('coach.sub', '나에 대해 궁금한 걸 물어보세요')}</Text>
-              </View>
-              <Text style={styles.coachBannerArrow}>›</Text>
-            </PressableScale>
-          );
-          // 오늘/내일 기운 — 토글·좌우 슬라이드(가로 페이징). 별도 카드였던 유형명·점수·등급·근거·신살 칩이 여기 통합됐다.
-          return (
-        <View key={k} style={styles.fortuneBanner}>
-          {!hasChart ? (
-            // H1(daniel): 명식 미등록 → 오늘/내일 운세 대신 등록 안내(탭하면 등록창)
-            <PressableScale onPress={() => router.push('/register')} style={{ alignItems: 'center', paddingVertical: space(5), gap: space(2) }}>
-              <Text style={{ color: colors.ju, fontWeight: '900', fontSize: fs(16), textAlign: 'center' }}>{t('home.noChartTitle', 'AI가 분석하는 나 — 여기서 시작')}</Text>
-              <Text style={{ color: colors.inkSoft, fontSize: fs(13), textAlign: 'center' }}>{t('home.noChartSub', '생년월일시를 넣으면 성격·반복되는 관계·적성·올해 흐름을 사주 엔진으로 개인 분석해요')}</Text>
-              <View style={{ backgroundColor: colors.ju, borderRadius: radius.md, paddingVertical: space(2.5), paddingHorizontal: space(6), marginTop: space(2) }}>
-                <Text style={{ color: colors.bg, fontWeight: '800', fontSize: fs(14) }}>{t('home.noChartCta', '+ 명식 등록')}</Text>
-              </View>
-            </PressableScale>
-          ) : (<>
-          <View style={styles.dayToggle}>
-            {([0, 1] as const).map((off) => (
-              <PressableScale key={off} style={[styles.dayTogChip, dayOffset === off && styles.dayTogChipOn]} onPress={() => goDay(off)}>
-                <Text style={[styles.dayTogTx, dayOffset === off && styles.dayTogTxOn]}>{t(off === 0 ? 'today.today' : 'today.tomorrow')}</Text>
-              </PressableScale>
-            ))}
-          </View>
-          {/* 가로 페이징 = 손가락 따라 슬라이드. onLayout 으로 페이지 폭 확정 → 한 페이지씩 스냅. */}
-          <View onLayout={(e) => setPageW(e.nativeEvent.layout.width)}>
-            <ScrollView
-              ref={fortunePager}
-              horizontal
-              pagingEnabled
-              showsHorizontalScrollIndicator={false}
-              onMomentumScrollEnd={(e) => setDayOffset(Math.round(e.nativeEvent.contentOffset.x / Math.max(1, pageW)))}
-            >
-              {([0, 1] as const).map((off) => {
-                const f = fortunes[off];
-                const d = dayData[off];
-                const e = energies[off];                        // 그 날 기운 판정(유형·점수·등급·근거·신살)
-                const cau = e ? CAUTION[e.caution] : null;      // 주의 등급 라벨·색
-                return (
-                  <PressableScale key={off} style={{ width: pageW }} onPress={() => router.push(`/today?offset=${off}`)}>
-                    <Text style={styles.bannerDate}>{f.date} ({t('today.weekdaysShort').split(',')[new Date(f.date + 'T00:00:00').getDay()] ?? ''})</Text>
-                    <View style={styles.bannerPillarRow}>
-                      <Text style={styles.bannerPillar}>{off === 0 ? t('today.dayPillar') : t('today.energyTomorrow')}</Text>
-                      <View style={styles.gzBoxRow}>
-                        {[f.dayGanZhi[0], f.dayGanZhi[1]].map((ch, i) => {
-                          const el = i === 0 ? stemElement(ch) : branchElement(ch); // 천간·지지 오행
-                          return (
-                            <View key={i} style={[styles.gzBox, { backgroundColor: elementColor[el] }]}>
-                              <Text style={[styles.gzBoxTx, { color: elementText[el] }]}>{ch}</Text>
-                            </View>
-                          );
-                        })}
-                      </View>
-                      {/* 총운 점수 + 주의 등급 — 우측 정렬(통합 전 카드의 핵심 정보) */}
-                      {e && cau && (
-                        <View style={styles.scoreWrap}>
-                          <Text style={[styles.scoreTx, { color: cau.tone }]}>{e.score}</Text>
-                          <Text style={styles.scoreUnit}>{t('todayEnergy.point', '점')}</Text>
-                          <View style={[styles.cautionPill, { borderColor: cau.tone }]}>
-                            <Text style={[styles.cautionTx, { color: cau.tone }]}>{cau.label}</Text>
-                          </View>
-                        </View>
-                      )}
-                    </View>
-                    {/* 기운 유형명 + 한 줄 설명 */}
-                    {e && (
-                      <View style={{ marginTop: space(2) }}>
-                        <Text style={[styles.energyName, { fontSize: fs(16) }]}>{ENERGY_LABEL[e.group].name}</Text>
-                        <Text style={[styles.energyDesc, { fontSize: fs(12.5) }]} numberOfLines={2}>{ENERGY_LABEL[e.group].desc}</Text>
-                      </View>
-                    )}
-                    {/* 점수 흐름 그래프(그제~모레) — off(오늘/내일)에 맞춰 강조점 이동(daniel 07-13) */}
-                    {flow ? <View style={{ marginTop: space(2), marginBottom: space(1) }}><ScoreFlowGraph scores={flow.scores} labels={flow.labels} currentIndex={flow.currentIndex + off} height={112} /></View> : null}
-                    {d.headline && <Text style={[styles.bannerHeadline, { fontSize: fs(16) }]}>{d.headline}</Text>}
-                    {d.prose && <Text style={[styles.bannerProse, { fontSize: fs(15), lineHeight: fs(22) }]} numberOfLines={3}>{d.prose}</Text>}
-                    {/* 근거(억부: 내 강약 × 그 날 기운) + 작용·신살 칩 */}
-                    {e && <Text style={[styles.energyReason, { fontSize: fs(13), lineHeight: fs(19) }]}>{energyReason(e)}</Text>}
-                    {e && e.signals.length > 0 && (
-                      <View style={styles.chips}>
-                        {e.signals.map((s) => (
-                          <View key={s.key} style={[styles.chip, s.kind === 'good' ? styles.chipGood : styles.chipCare]}>
-                            <Text style={[styles.chipTx, s.kind === 'good' && styles.chipTxGood]} numberOfLines={1}>{s.label}</Text>
-                          </View>
-                        ))}
-                      </View>
-                    )}
-                    {d.prose && <Text style={styles.bannerMore}>{t('today.more')}</Text>}
-                  </PressableScale>
-                );
-              })}
-            </ScrollView>
-          </View>
-          </>)}
-        </View>
-          );
-        })}
-
-        {/* ★콘텐츠 카드 그리드는 하단탭 '풀이'(/contents)로 이동(daniel 07-18 IA 개편).
-            여기서 목록을 다시 그리지 않는다 — 두 곳에 두면 카드 추가 시 드리프트가 난다. */}
-
-        {/* 로그인 = 선택 (로그아웃은 설정에서 — daniel: 홈 하단 로그아웃 버튼 제거). ★익명 세션 상시라 !session 아닌 !isRegistered — 익명/미로그인에 로그인 유도 노출 */}
-        <View style={styles.authRow}>
-          {!isRegistered && (
-            <PressableScale onPress={() => router.push('/login')}>
-              <Text style={styles.linkText}>{t('common.loginOptional')}</Text>
-            </PressableScale>
-          )}
-        </View>
+      {/* fade-in — DraggableFlatList 가 스크롤 컨테이너라 이 Animated.View 로 감싸 opacity 만 준다(flex:1). */}
+      <Animated.View style={{ flex: 1, opacity: fadeAnim }}>
+        {/* ★홈 블록 배치 — 순서는 계정별(useHomeOrder · profiles.home_order). 홈에서 길게 눌러 드래그 or 설정에서 변경(daniel).
+            기본 순서 = 명식 → AI 코치 → 오늘의 기운 → 오늘의 관계 → 나의 성격유형 → 나는 어떤 사람인가.
+            헤더/진행률 배너/로그인 링크는 '고정'이라 ListHeaderComponent/ListFooterComponent 로 뺀다(드래그 대상 아님). */}
+        <DraggableFlatList
+          data={order}
+          keyExtractor={(k) => k}
+          renderItem={renderItem}
+          onDragEnd={({ data }) => setOrder(data)}
+          ListHeaderComponent={listHeader}
+          ListFooterComponent={listFooter}
+          style={styles.screen}
+          contentContainerStyle={styles.wrap}
+          showsVerticalScrollIndicator={false}
+        />
       </Animated.View>
-    </ScrollView>
-    <BusyOverlay visible={loggingOut} message={t('common.loggingOut')} />
+      <BusyOverlay visible={loggingOut} message={t('common.loggingOut')} />
     </View>
   );
 }
@@ -352,6 +395,8 @@ const styles = StyleSheet.create({
   bgImage: { flex: 1, backgroundColor: 'transparent' }, // 전역 ContentBackdrop(오행 배경) 투과
   screen: { backgroundColor: 'transparent' },
   wrap: { padding: space(5), paddingTop: space(12), paddingBottom: space(10) }, // 헤더 숨김 → status bar 여백 확보
+  // 드래그 중인 블록 — 살짝 떠 보이게(그림자/불투명 낮춤). ScaleDecorator 가 확대는 담당.
+  dragActive: { opacity: 0.92, ...shadow.card },
   title: { ...font.display, textAlign: 'left' as const }, // ★좌측 못박기(daniel 07-02)
   // 헤더 행 — 전체를 살짝 아래로(타이틀 너무 위 방지), 👤 아이콘만 좌측 타이틀·서브 컬럼 기준 y축 가운데(daniel 07-02)
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: space(4) },
