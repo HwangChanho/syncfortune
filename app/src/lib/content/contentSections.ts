@@ -105,6 +105,8 @@ export const SECTIONS: Section[] = [
     { key: 'career', labelKey: 'menu.career', descKey: 'menu.careerDesc', image: require('../../../assets/icons/career.jpg'), route: '/career', ready: true, content: true, creditKey: 'career' },
     // 신규(daniel 2026-07-13): 나에게 어울리는 직업(직업 적성 딥리포트 EEL — career 사업가vs직장인과 별개).
     { key: 'jobfit', labelKey: 'menu.jobfit', descKey: 'menu.jobfitDesc', image: require('../../../assets/icons/jobfit.jpg'), route: '/jobfit', ready: true, content: true, creditKey: 'jobfit' },
+    // 신규(daniel 2026-07-22): 재물 딥리포트(재물 *전체* 딥리포트 EEL — 그릇/유형/시기/처방 4축·R44/R54. 재물영역 단발풀이와 별개). ★전용 히어로 이미지=백로그(현재 텍스트 카드).
+    { key: 'wealth', labelKey: 'menu.wealth', descKey: 'menu.wealthDesc', route: '/wealth', ready: true, content: true, creditKey: 'wealth' },
     // daniel #18(2026-06-24): 맞춤 개운법(원국+지금 운 → 구체 처방·살풀이). 부적/만다라 이미지.
     { key: 'gaeun', labelKey: 'menu.gaeun', descKey: 'menu.gaeunDesc', image: require('../../../assets/icons/gaeun.jpg'), route: '/gaeun', ready: true, content: true, creditKey: 'gaeun' },
   ] },

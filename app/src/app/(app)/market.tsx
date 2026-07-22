@@ -53,6 +53,7 @@ export const ROUTE: Record<CreditKind, { pathname: string; kind?: string }> = { 
   crush: { pathname: '/crush' },                       // 짝사랑 인연운(인연星·도화 발동 timing)
   job: { pathname: '/job' },                           // 취업·이직운(관성·인성 발동 timing)
   jobfit: { pathname: '/jobfit' },                     // 나에게 어울리는 직업(직업 적성 딥리포트 EEL)
+  wealth: { pathname: '/wealth' },                     // 재물 딥리포트(그릇/유형/시기/처방 4축 EEL·jobfit 동형)
   coach: { pathname: '/coach' },                       // AI 코치 질문권 — 코치 화면 내에서 구매(마켓 단독카드는 숨김)
 };
 

@@ -20,6 +20,7 @@ const RELATED: Record<string, string[]> = {
   love: ['compat', 'crush', 'reunion'],
   career: ['jobfit', 'talent', 'job'],
   jobfit: ['career', 'talent', 'mission'],
+  wealth: ['career', 'jobfit', 'future10'], // 재물 딥리포트 → 사업가·직업적성·10년뒤(재물 동선)
   talent: ['jobfit', 'mission', 'personal'],
   mission: ['talent', 'roots', 'image'],
   roots: ['mission', 'image', 'talent'],

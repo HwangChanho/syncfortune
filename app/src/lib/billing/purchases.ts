@@ -54,6 +54,7 @@ export const CREDIT_PRODUCT: Record<CreditKind, string> = {
   crush: 'credit_crush',         // 짝사랑 인연운(인연星·도화 발동 timing) ₩4,900 — ⚠️ASC/RC 상품 등록 필요(daniel)
   job: 'credit_job',             // 취업·이직운(관성·인성 발동 timing) ₩4,900 — ⚠️ASC/RC 상품 등록 필요(daniel)
   jobfit: 'credit_jobfit',       // 나에게 어울리는 직업(직업 적성 딥리포트 EEL) ₩4,900 — ⚠️ASC/RC 상품 등록 필요(daniel)
+  wealth: 'credit_wealth',       // 재물 딥리포트(그릇/유형/시기/처방 4축 EEL) ₩4,900 — ⚠️ASC/RC 상품 등록 필요(daniel)
   coach: 'credit_coach',         // AI 코치 질문권(무료 소진 초과 시 1질문·사주+자미) ₩990 — ⚠️ASC/RC 상품 등록 필요(daniel)
 };
 
