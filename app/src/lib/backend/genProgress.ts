@@ -95,6 +95,21 @@ export function clearGenByPath(path: string) {
   for (const k of Object.keys(items)) { if (k === path || k.split('?')[0] === path) { delete items[k]; changed = true; } }
   if (changed) emit();
 }
+/**
+ * base 경로 + chartId(쿼리) 매칭 제거 — kind/쿼리순서/유무와 무관하게 그 차트의 배너를 확실히 닫는다.
+ * ★배너 안 사라짐 근본수정(daniel 2026-07-22): 정확 route 매칭(clearGenProgress)은 복원배너·다른 kind·쿼리순서
+ *   차이로 놓칠 수 있어 '완성됐어요'가 계속 떠 있었다. 화면(그 차트)에 진입하면 이걸로 확실히 제거.
+ * @param basePath 예 '/reading'  @param chartId 그 화면이 보고 있는 차트 id(SavedChart.id)
+ */
+export function clearGenByChart(basePath: string, chartId: string) {
+  let changed = false;
+  for (const k of Object.keys(items)) {
+    if (k.split('?')[0] !== basePath) continue;             // base 경로 일치
+    const m = k.match(/[?&]chartId=([^&]+)/);                // 쿼리 순서·kind 무관하게 chartId 파싱
+    if (m && m[1] === chartId) { delete items[k]; changed = true; } // 이 차트(사주/자미 배너 모두)
+  }
+  if (changed) emit();
+}
 /** 전부 제거 — 로그아웃 정리 등. */
 export function clearAllGenProgress() { if (Object.keys(items).length) { items = {}; emit(); } }
 /** 단건 조회(생성 루프의 증분 갱신용 — 직전 done 값 읽기). */

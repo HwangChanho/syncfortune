@@ -26,7 +26,7 @@ import { computeChart } from '../lib/engine/engine';
 import { useAuth } from '../lib/useAuth';
 import { supabase } from '../lib/supabase';
 // 완료 푸시는 genProgress(setGenProgress 완료 전이)에서 중앙 처리(daniel ⑨ — 모든 풀이 공통)
-import { setGenProgress, useGenProgress, clearGenProgress } from '../lib/backend/genProgress'; // 홈 진행률 + 완료 구독 + 진입 시 배너 제거(daniel: 완성 배너 안 사라짐)
+import { setGenProgress, useGenProgress, clearGenProgress, clearGenByChart } from '../lib/backend/genProgress'; // 홈 진행률 + 완료 구독 + 진입 시 배너 제거(daniel: 완성 배너 안 사라짐). clearGenByChart=쿼리 무관 robust 제거(07-22 근본수정)
 import { isReadingUnlocked } from '../lib/billing/unlocks'; // 서버 권위 세트 언락(P3) — 이미 열렸으면 무료 재생성
 import { isPremiumForChart } from '../lib/billing/premiumStore'; // 명식별 프리미엄 판정(#1 — 비지정 명식/무료모드 페이월)
 import { computeEntitled, computeLocked, showUnlockOverlay, computeShouldAutoGen } from '../lib/billing/readingGate'; // 게이트 순수로직(하네스 시나리오 테스트 대상)
@@ -283,17 +283,16 @@ export function ReadingScreen({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chartId, kind, cats, savedChart]);
 
-  // ★daniel(2026-06-30): '○○ 풀이가 완성됐어요' 배너를 탭해 진입했는데 안 사라지던 것 —
-  //   이 화면 항목이 전부 캐시(완성)이고 생성 진행 중이 아니면 홈 배너를 확실히 제거(진입=이미 봄).
-  //   (생성 진행 중이면 progress 로 유지 → 홈 나가도 진행률 표시.) charts stale 로 배너 키가 어긋났어도 차단.
+  // ★'○○ 풀이가 완성됐어요' 배너 안 사라짐 근본수정(daniel 2026-06-30 → 07-22 강화):
+  //   예전엔 (a)정확 route 매칭 + (b)'전 영역 캐시' 조건이라, route 불일치(복원 배너·다른 kind·쿼리순서)나
+  //   부분 캐시(일부 영역만 생성)면 배너가 계속 떠 있었다. → 진입(생성 진행 중 아님)하면 이 차트의 /reading 배너를
+  //   chartId 기준(쿼리 무관·사주/자미 모두)으로 확실히 제거. 캐시 완성 여부와 무관(진입=이미 봄).
+  //   (생성 진행 중이면 progress 가 세팅돼 여기서 return → 배너 유지 = 홈 나가도 진행률 표시.)
   useEffect(() => {
-    if (!savedChart || !cacheLoaded || progress) return;
-    if (cats.length && cats.every((cat) => readings[cat.key])) {
-      const k = kind === 'ziwei' ? 'ziwei' : 'saju';
-      clearGenProgress(`/reading?kind=${k}&chartId=${savedChart.id}`);
-    }
+    if (!savedChart || !cacheLoaded || progress) return; // 진행 중이면 유지
+    clearGenByChart('/reading', savedChart.id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [savedChart, cacheLoaded, readings, cats, progress, kind]);
+  }, [savedChart, cacheLoaded, progress, kind]);
 
   if (!c) return <View style={styles.center}><Text style={font.body}>{t('myeongsik.noChart')}</Text></View>;
 
