@@ -123,6 +123,8 @@ export const SECTIONS: Section[] = [
     { key: 'relationPattern', labelKey: 'menu.relationPattern', descKey: 'menu.relationPatternDesc', image: require('../../../assets/icons/compat.jpg'), route: '/relationpattern', ready: true, content: true },
     // 신규(daniel 기획서 Phase2 2026-07-14): 퍼스널 오행 — 오행 컬러/코디/메이크업/자동차(무료 온디바이스·결정론). BM(뷰티/패션 제휴) 토대.
     { key: 'personal', labelKey: 'menu.personal', descKey: 'menu.personalDesc', image: require('../../../assets/icons/personal.jpg'), route: '/personal', ready: true, content: true },
+    // 신규(daniel R-GEM v0.1): 내 사주 보석 — 용신 기반 보석 추천 + "생일 보석 vs 내 보석" 대조(무료 온디바이스·결정론·API 0). 바이럴 공유카드→유료 심층분석 퍼널. ★전용 타일 이미지 없음(백로그)→텍스트 카드로 렌더.
+    { key: 'gem', labelKey: 'menu.gem', descKey: 'menu.gemDesc', route: '/gem', ready: true, content: true },
     // 신규(daniel 2026-07-05): 재회·짝사랑·취업 무료 '질문형'(올해 결정론 미리보기) → 화면 CTA로 유료 깊은 풀이 유도.
     { key: 'reunionAsk', labelKey: 'menu.reunionAsk', descKey: 'menu.reunionAskDesc', image: require('../../../assets/icons/reunion.jpg'), route: '/reunionAsk', ready: true, content: true },
     { key: 'crushAsk', labelKey: 'menu.crushAsk', descKey: 'menu.crushAskDesc', image: require('../../../assets/icons/crush.jpg'), route: '/crushAsk', ready: true, content: true },

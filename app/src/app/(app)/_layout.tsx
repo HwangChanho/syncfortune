@@ -82,6 +82,7 @@ export default function AppLayout() {
         <Stack.Screen name="roots" options={{ headerTitle: '' }} />
         <Stack.Screen name="image" options={{ headerTitle: '' }} />
         <Stack.Screen name="impression" options={{ headerTitle: '' }} />
+        <Stack.Screen name="gem" options={{ headerTitle: '' }} />
         <Stack.Screen name="timeResolve" options={{ headerTitle: '' }} />
         <Stack.Screen name="mission" options={{ headerTitle: '' }} />
         <Stack.Screen name="personatype" options={{ headerTitle: '' }} /> {/* 성격유형 120종(홈 주인공 상세 · 64종 /persona 통합, daniel 07-20) */}
