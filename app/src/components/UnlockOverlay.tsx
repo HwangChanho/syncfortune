@@ -39,14 +39,20 @@ export function UnlockOverlay({ visible, message, allowBackground = true, videoK
   const [open, setOpen] = useState(false);               // 🔒 → 🔓 전환(0.6초 후 열림)
 
   // A(daniel 2026-07-08 '영상먼저'): 한 번 뜨면 최소 minMs 동안 유지 → 캐시/빠른 완료여도 로딩 연출이 '깜빡'하지 않고 온전히 재생 후 뷰 공개.
+  // ★버그수정(daniel 2026-07-22 '풀이 끝났는데 자물쇠 계속 안 사라짐'): 예전엔 effect cleanup 이 visible→false 마다
+  //   minMs 타이머를 clearTimeout 해서, 생성이 minMs 안에 끝나면(캐시·빠른 완료) setHeld(false) 가 영영 안 불려
+  //   held 가 true 로 굳고 → show=true 로 오버레이가 100%에서 안 닫혔다. → 타이머를 ref 로 잡아 '뜨는 순간
+  //   (상승엣지)'에만 걸고, visible 이 내려가도 취소하지 않는다(minMs 뒤 자연 종료 → held=false → dismiss).
   const [held, setHeld] = useState(false);
+  const heldTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
-    if (!visible) return;              // 뜰 때만 타이머 시작(내려갈 땐 held 가 minMs 까지 표시 유지)
+    if (!visible) return;              // 상승엣지에서만 타이머 시작(하강엣지엔 손대지 않음 = 타이머 유지)
     setHeld(true);
-    const t = setTimeout(() => setHeld(false), minMs);
-    return () => clearTimeout(t);
+    if (heldTimer.current) clearTimeout(heldTimer.current);   // 재-오픈 시 중복 타이머 방지
+    heldTimer.current = setTimeout(() => { setHeld(false); heldTimer.current = null; }, minMs);
   }, [visible, minMs]);
-  const show = visible || held;        // 부모가 busy=false 로 내려도 minMs 전이면 계속 표시
+  useEffect(() => () => { if (heldTimer.current) clearTimeout(heldTimer.current); }, []); // 언마운트 시에만 정리(누수 방지)
+  const show = visible || held;        // 부모가 busy=false 로 내려도 minMs 전이면 계속 표시(minMs 뒤 held=false → 닫힘)
 
   // 진행률 %(daniel 2026-07-13): LLM 생성은 실제 진행신호가 없어 *완만 램프*(0→95% 점근) + 완료(visible=false) 시 100%.
   //   자물쇠 로딩('영상먼저' 대기)이 죽은 대기처럼 안 느껴지게 — 대략적 진척감. 285ms마다 남은거리의 4.5%씩(초반 빠르고 후반 느림).

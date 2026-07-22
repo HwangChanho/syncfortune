@@ -91,14 +91,20 @@ const BIO_LINE: Record<'physical' | 'emotional' | 'intellectual', Record<ReturnT
 export function bioReading(v: BioValues): { physical: string; emotional: string; intellectual: string; summary: string } {
   const sP = bioState(v.physical), sE = bioState(v.emotional), sI = bioState(v.intellectual);
   // 요약 — 가장 높은 축은 활용, 가장 낮은(전환/저조) 축은 관리. 셋 다 좋으면 종합 긍정.
+  // 카드 라벨과 동일하게 신체/감정/지성으로 통일(요약도 — daniel 07-22 '몸→신체'). 카드 행은 신체/감정/지성인데 요약만 몸/마음/생각이라 불일치였다.
   const axes = [
-    { key: '몸', v: v.physical }, { key: '마음', v: v.emotional }, { key: '생각', v: v.intellectual },
+    { key: '신체', v: v.physical }, { key: '감정', v: v.emotional }, { key: '지성', v: v.intellectual },
   ].sort((a, b) => b.v - a.v);
   const top = axes[0], bottom = axes[2];
+  // 받침 유무로 조사 선택('이(가)' 병기 제거) — 신체=받침없음→가/는, 감정·지성=받침→이/은.
+  const josa = (w: string, withB: string, noB: string) => {
+    const c = w.charCodeAt(w.length - 1);
+    return (c >= 0xac00 && c <= 0xd7a3 && (c - 0xac00) % 28 !== 0) ? withB : noB;
+  };
   const summary = bottom.v >= 15
     ? `세 리듬이 다 올라 컨디션이 좋은 날이에요 — 하고 싶던 걸 밀어붙이기 좋아요.`
     : top.v < -15
     ? `세 리듬이 낮은 편이에요 — 오늘은 무리 없이 쉬어가는 날로 두세요.`
-    : `오늘은 ‘${top.key}’이(가) 가장 올라 있고 ‘${bottom.key}’은(는) 낮은 편이에요 — ${top.key} 쪽 일을 앞세우고 ${bottom.key}은 무리하지 마세요.`;
+    : `오늘은 ‘${top.key}’${josa(top.key, '이', '가')} 가장 올라 있고 ‘${bottom.key}’${josa(bottom.key, '은', '는')} 낮은 편이에요 — ${top.key} 쪽 일을 앞세우고 ${bottom.key}${josa(bottom.key, '은', '는')} 무리하지 마세요.`;
   return { physical: BIO_LINE.physical[sP], emotional: BIO_LINE.emotional[sE], intellectual: BIO_LINE.intellectual[sI], summary };
 }
