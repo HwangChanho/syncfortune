@@ -16,7 +16,7 @@ import { PressableScale } from './PressableScale';
 import { listCharts, loadRepChart, type SavedChart } from '../lib/engine/myChart';
 import { buildSajuChart } from '@engine/saju';
 import { getDailyFortune } from '../lib/content/dailyFortune';
-import { todayRelation, type TodayRelation } from '../lib/content/todayRelation';
+import { todayRelation, todayGyeol, type TodayRelation } from '../lib/content/todayRelation';
 import { colors, radius, space, shadow, font } from '../lib/theme';
 import { useFontScale } from '../lib/ui/fontScale';
 import type { Stem, Branch } from '@spec/chart';
@@ -37,6 +37,7 @@ export function TodayRelationCard({ reloadKey, dateKey }: { reloadKey?: number; 
   const [cat, setCat] = useState<string>(ALL);   // 카테고리 필터(daniel 07-20) — ALL=전체
   const [idx, setIdx] = useState(0);              // 필터된 목록 안의 선택 인덱스
   const [rel, setRel] = useState<TodayRelation | null>(null);
+  const [detail, setDetail] = useState<{ mine: string; other: string } | null>(null); // 오늘 일진이 각자에게 준 결(십신·디테일)
 
   // 대표 명식 외 나머지 = 상대 후보
   useEffect(() => {
@@ -70,14 +71,15 @@ export function TodayRelationCard({ reloadKey, dateKey }: { reloadKey?: number; 
     let alive = true;
     (async () => {
       const rep = await loadRepChart();
-      if (!alive || !rep || !other) { setRel(null); return; }
+      if (!alive || !rep || !other) { setRel(null); setDetail(null); return; }
       try {
         const f = getDailyFortune(0);
-        setRel(todayRelation(
-          buildSajuChart(rep.input), buildSajuChart(other.input),
-          f.dayGanZhi[0] as Stem, f.dayGanZhi[1] as Branch,
-        ));
-      } catch { if (alive) setRel(null); }
+        const meC = buildSajuChart(rep.input), otC = buildSajuChart(other.input);
+        const day = f.dayGanZhi[0] as Stem;
+        setRel(todayRelation(meC, otC, day, f.dayGanZhi[1] as Branch));
+        // 오늘 일진이 각자에게 어떤 결인가(십신·디테일 확장) — 기존 엔진(tenGod) 재사용
+        setDetail({ mine: todayGyeol(meC.dayMaster.stem as Stem, day), other: todayGyeol(otC.dayMaster.stem as Stem, day) });
+      } catch { if (alive) { setRel(null); setDetail(null); } }
     })().catch(() => { if (alive) setRel(null); });
     return () => { alive = false; };
   }, [other?.id, reloadKey, dateKey]);
@@ -119,6 +121,14 @@ export function TodayRelationCard({ reloadKey, dateKey }: { reloadKey?: number; 
       <Text style={[styles.title, { fontSize: fs(16) }]}>{rel.title}</Text>
       <Text style={[styles.body, { fontSize: fs(13.5), lineHeight: fs(20) }]}>{rel.body}</Text>
 
+      {/* 오늘 각자의 결 — 오늘 일진이 각자에게 준 십신 결(디테일 확장 daniel 07-22) */}
+      {detail && (detail.mine || detail.other) && (
+        <View style={styles.detailBox}>
+          {detail.mine ? <Text style={[styles.detailLine, { fontSize: fs(12.5), lineHeight: fs(18) }]}><Text style={styles.detailWho}>오늘 나</Text>  {detail.mine}</Text> : null}
+          {detail.other ? <Text style={[styles.detailLine, { fontSize: fs(12.5), lineHeight: fs(18) }]}><Text style={styles.detailWho}>오늘 {other.label || '상대'}</Text>  {detail.other}</Text> : null}
+        </View>
+      )}
+
       {/* 오늘 이렇게(처방) — daniel 07-20 콘텐츠 확장 */}
       <View style={styles.tipRow}>
         <Text style={styles.tipCap}>오늘 이렇게</Text>
@@ -155,6 +165,10 @@ const styles = StyleSheet.create({
   who: { ...font.caption, color: colors.inkSoft, fontWeight: '700', marginTop: space(2) },
   title: { ...font.heading, color: colors.ink, fontWeight: '900', marginTop: space(2) },
   body: { ...font.body, color: colors.inkSoft, marginTop: space(1.5) },
+  // 오늘 각자의 결(십신 디테일)
+  detailBox: { marginTop: space(2.5), gap: space(1), paddingLeft: space(2), borderLeftWidth: 2, borderLeftColor: colors.juLine },
+  detailLine: { ...font.caption, color: colors.inkSoft },
+  detailWho: { fontWeight: '800', color: colors.ju },
   // 오늘 이렇게(처방)
   tipRow: { marginTop: space(3), padding: space(3), backgroundColor: colors.sunk, borderRadius: radius.sm, borderLeftWidth: 3, borderLeftColor: colors.ju },
   tipCap: { ...font.caption, color: colors.ju, fontWeight: '800', marginBottom: space(1) },

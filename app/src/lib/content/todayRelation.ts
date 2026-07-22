@@ -15,8 +15,23 @@
 //   (사람 사이를 흉하게 못 박으면 실제 관계에 해가 된다 — 진단엔 반드시 처방을 붙인다.)
 // ─────────────────────────────────────────────────────────────────────────
 import { detectInteractionsAmong } from '@engine/structure';
+import { tenGod } from '@engine/saju'; // 오늘 일진 干 → 각자에게 십신(디테일 확장·새 관법 X·기존 엔진)
 import { dailyEnergy } from './dailyFortune';
 import type { SajuChart, Stem, Branch } from '@spec/chart';
+
+// ── 오늘 일진이 '이 사람'에게 어떤 결인가(십신 → 일상어) — daniel 07-22 디테일 확장·검수 슬롯 ──
+const TG_GROUP: Record<string, string> = { 비견: '비겁', 겁재: '비겁', 식신: '식상', 상관: '식상', 정재: '재성', 편재: '재성', 정관: '관살', 편관: '관살', 정인: '인성', 편인: '인성' };
+const TG_GYEOL: Record<string, string> = {
+  비겁: '자기 페이스가 서는 날 (고집·경쟁심이 올라와요)',
+  식상: '표현·활동이 활발한 날 (말이 많아지고 하고 싶은 게 많아요)',
+  재성: '실속·현실을 챙기는 날 (돈·성과에 신경 써요)',
+  관살: '책임·긴장이 서는 날 (진지하거나 예민해져요)',
+  인성: '쉬고 채우고 싶은 날 (혼자 있거나 배우는 걸 찾아요)',
+};
+/** 오늘 일진 천간이 이 사람(일간)에게 십신으로 어떤 결인지(일상어). 실패 시 빈 문자열. */
+export function todayGyeol(dayStem: Stem, todayStem: Stem): string {
+  try { return TG_GYEOL[TG_GROUP[tenGod(dayStem, todayStem)]] ?? ''; } catch { return ''; }
+}
 
 export type TodayRelation = {
   tone: 'good' | 'mixed' | 'care';  // 카드 색·아이콘용

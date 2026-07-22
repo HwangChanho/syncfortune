@@ -64,3 +64,41 @@ export function bioState(v: number): '고조' | '양호' | '전환' | '저조' {
   if (v > -15) return '전환';
   return '저조';
 }
+
+// 축×상태 → 가벼운 결 문구(일상어·사주 무관 부가 재미·daniel 검수 슬롯).
+const BIO_LINE: Record<'physical' | 'emotional' | 'intellectual', Record<ReturnType<typeof bioState>, string>> = {
+  physical: {
+    고조: '몸이 가볍고 활력이 넘쳐요 — 운동·활동·도전에 좋은 때예요.',
+    양호: '체력이 무난해요 — 평소 페이스로 움직이기 좋아요.',
+    전환: '컨디션 기복이 있는 때예요 — 무리 말고 페이스를 조절하세요.',
+    저조: '체력이 떨어지는 때예요 — 휴식·회복을 먼저 챙기세요.',
+  },
+  emotional: {
+    고조: '기분이 밝고 표현이 잘 돼요 — 만남·대화에 좋아요.',
+    양호: '정서가 안정적이에요 — 마음이 편안한 때예요.',
+    전환: '감정 기복·예민함이 있을 수 있어요 — 상하는 말은 흘려 보내요.',
+    저조: '마음이 가라앉기 쉬운 때예요 — 혼자 재충전하는 게 좋아요.',
+  },
+  intellectual: {
+    고조: '머리가 맑고 판단이 빨라요 — 공부·기획·결정에 좋아요.',
+    양호: '사고가 무난해요 — 하던 일을 이어가기 좋아요.',
+    전환: '집중이 흐트러지기 쉬운 때예요 — 중요한 결정은 잠시 미뤄요.',
+    저조: '판단이 둔해지기 쉬운 때예요 — 큰 결정은 보류하세요.',
+  },
+};
+
+/** 오늘 3주기 값 → 가벼운 풀이(축별 결 + 요약 한 줄). 사주 무관·문구=daniel 검수 슬롯. */
+export function bioReading(v: BioValues): { physical: string; emotional: string; intellectual: string; summary: string } {
+  const sP = bioState(v.physical), sE = bioState(v.emotional), sI = bioState(v.intellectual);
+  // 요약 — 가장 높은 축은 활용, 가장 낮은(전환/저조) 축은 관리. 셋 다 좋으면 종합 긍정.
+  const axes = [
+    { key: '몸', v: v.physical }, { key: '마음', v: v.emotional }, { key: '생각', v: v.intellectual },
+  ].sort((a, b) => b.v - a.v);
+  const top = axes[0], bottom = axes[2];
+  const summary = bottom.v >= 15
+    ? `세 리듬이 다 올라 컨디션이 좋은 날이에요 — 하고 싶던 걸 밀어붙이기 좋아요.`
+    : top.v < -15
+    ? `세 리듬이 낮은 편이에요 — 오늘은 무리 없이 쉬어가는 날로 두세요.`
+    : `오늘은 ‘${top.key}’이(가) 가장 올라 있고 ‘${bottom.key}’은(는) 낮은 편이에요 — ${top.key} 쪽 일을 앞세우고 ${bottom.key}은 무리하지 마세요.`;
+  return { physical: BIO_LINE.physical[sP], emotional: BIO_LINE.emotional[sE], intellectual: BIO_LINE.intellectual[sI], summary };
+}

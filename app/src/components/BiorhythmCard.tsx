@@ -9,7 +9,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import Svg, { Path, Line as SvgLine, Circle } from 'react-native-svg';
 import { useTranslation } from 'react-i18next';
 import { loadRepChart } from '../lib/engine/myChart';
-import { solarBirth, bioAt, bioSeries, bioState, type BioValues } from '../lib/content/biorhythm';
+import { solarBirth, bioAt, bioSeries, bioState, bioReading, type BioValues } from '../lib/content/biorhythm';
 import { colors, radius, space, shadow, font } from '../lib/theme';
 import { useFontScale } from '../lib/ui/fontScale';
 
@@ -41,6 +41,7 @@ export function BiorhythmCard({ reloadKey }: { reloadKey?: number }) {
 
   // 명식 없음/생일 파싱 실패 = 미노출(홈이 안내문으로 도배되지 않게 — PersonaTypeHero 와 동일 원칙).
   if (!birth || !today) return null;
+  const reading = bioReading(today); // 오늘 값 → 가벼운 풀이(사주 무관·검수 슬롯)
 
   return (
     <View style={styles.card}>
@@ -66,6 +67,17 @@ export function BiorhythmCard({ reloadKey }: { reloadKey?: number }) {
           );
         })}
       </View>
+      {/* 가벼운 풀이 — 오늘 3값 기반 결(사주 무관·검수 슬롯) */}
+      <View style={styles.readingBox}>
+        <Text style={[styles.summary, { fontSize: fs(13.5) }]}>{reading.summary}</Text>
+        {AXES.map((ax) => (
+          <Text key={ax.key} style={[styles.rLine, { fontSize: fs(12.5) }]}>
+            <Text style={{ color: ax.color, fontWeight: '800' }}>{t(`bio.${ax.key}`, ax.label)}</Text>
+            {'  '}{reading[ax.key]}
+          </Text>
+        ))}
+      </View>
+
       <Text style={styles.note}>{t('bio.note', '※ 사주와 무관한 참고용 리듬이에요. 0 부근은 컨디션이 바뀌는 전환일.')}</Text>
     </View>
   );
@@ -112,5 +124,8 @@ const styles = StyleSheet.create({
   rowLabel: { color: colors.inkSoft, fontWeight: '700', width: 40 },
   rowVal: { fontWeight: '900', width: 52 },
   rowState: { color: colors.inkFaint, fontWeight: '700' },
+  readingBox: { marginTop: space(3), paddingTop: space(3), borderTopWidth: 1, borderTopColor: colors.line, gap: space(1.5) },
+  summary: { ...font.body, color: colors.ink, fontWeight: '700', lineHeight: 20 },
+  rLine: { ...font.caption, color: colors.inkSoft, lineHeight: 18 },
   note: { ...font.caption, color: colors.inkFaint, fontSize: 11, marginTop: space(2.5), lineHeight: 16 },
 });
