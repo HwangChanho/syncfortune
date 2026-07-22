@@ -38,6 +38,7 @@ import { TTSButton } from '../../components/TTSButton'; // 풀이 음성 읽기(
 import { LoveThread } from '../../components/contentMotifs'; // 인연의 실 모티프
 import { LoveFlowGraph } from '../../components/LoveFlowGraph'; // 애정(재성) 흐름 곡선(daniel B·R29)
 import { SpouseDualCards } from '../../components/SpouseDualCards'; // R-SPOUSE-DUAL 배우자 이원 궁위 무료 카드(§5·결정론·API 0)
+import { InyeonYieojimCard } from '../../components/InyeonYieojimCard'; // 애정 '이어짐' 카드(§8·짝사랑/대시 성사 시기·결정론)
 import { PossibilityGauge } from '../../components/PossibilityGauge'; // 공용 인연 가능성 게이지(재회와 공유 — 애니 미터)
 import { loveInyeonGauge } from '../../lib/love/inyeonGauge'; // 인연 가능성 점수(결정론·온디바이스·재회와 동일 신호)
 import { useLogContentVisit } from '../../lib/backend/contentVisit'; // 콘텐츠 방문 집계(daniel 2026-07-06) — 진입 1회 기록
@@ -294,6 +295,8 @@ export default function LoveScreen() {
       {c?.saju && <LoveFlowGraph saju={c.saju} gender={savedChart?.input?.sex} />}
       {/* R-SPOUSE-DUAL 배우자 이원 궁위(§5·무료 결정론) — 이상형↔실배우자·괴리·시기 타임라인. 지지별 상세 통변은 아래 유료 리딩. */}
       {c?.saju && <SpouseDualCards saju={c.saju} sex={savedChart?.input?.sex} timeUnknown={savedChart?.input?.timeAccuracy === '미상'} accent={LOVE_PINK} />}
+      {/* 애정 '이어짐'(§8·짝사랑/대시 성사 시기·결정론) — 배우자궁 개폐×식상/배우자성. 지지별 상세는 유료 리딩. */}
+      {c?.saju && <InyeonYieojimCard saju={c.saju} sex={savedChart?.input?.sex} accent={LOVE_PINK} />}
 
       {reading?.error ? (
         <View style={styles.card}><Text style={styles.err}>{String(reading.error)}</Text></View>
