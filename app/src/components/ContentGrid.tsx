@@ -30,6 +30,7 @@ import { buildSajuChart } from '@engine/saju';
 import { appLang } from '../lib/i18n';
 import { homeTeaser, type HomeTeaser } from '../lib/content/homeTeaser'; // 카드 설명을 '내 얘기' 한 줄로(결정론·API 0, daniel 07-16)
 import { SECTIONS, CARD_REVEAL_OFFSETS, TOTAL_CARDS, HOME_INDIVIDUAL, priceLabel, type MenuItem } from '../lib/content/contentSections';
+import { isNewContent } from '../lib/content/newBadge'; // 신규 콘텐츠 NEW 배지(출시일+21일 자동 만료·우측 상단 연한 빨강)
 import { useHomeViewMode } from '../lib/ui/homeView'; // 보기 방식(카드/리스트) 저장·토글(daniel)
 import { playSound } from '../lib/ui/sounds';
 import { PressableScale } from './PressableScale';
@@ -264,6 +265,7 @@ export function ContentGrid({ showViewToggle = true }: { showViewToggle?: boolea
         const cards = sec.items.map((m, itemIdx) => {
           const prem = !!m.premium;
           const badge = badgeFor(m);
+          const isNew = isNewContent(m.key); // 신규 콘텐츠 = 우측 상단 연한 빨강 NEW(출시일+21일)
           const desc = descOf(m);
           // 순차 공개 — 이 카드의 전역 순번이 공개분에 들어왔는지. 아직이면 빈 박스(디코드 미발생).
           const revealed = CARD_REVEAL_OFFSETS[secIdx] + itemIdx < revealCount;
@@ -271,7 +273,8 @@ export function ContentGrid({ showViewToggle = true }: { showViewToggle?: boolea
           if (!m.image) {
             return (
               <PressableScale key={m.key} style={[styles.card, styles.textCard]} onPress={() => onPress(m)}>
-                {badge && <View style={styles.priceTag}><Text style={styles.priceTagText}>{badge}</Text></View>}
+                {badge && <View style={[styles.priceTag, isNew && styles.priceTagLeft]}><Text style={styles.priceTagText}>{badge}</Text></View>}
+                {isNew && <View style={styles.newTag}><Text style={styles.newTagTx}>NEW</Text></View>}
                 <Text style={styles.textCardLabel}>{t(m.labelKey)}</Text>
                 {desc ? <Text style={styles.textCardDesc}>{desc}</Text> : null}
               </PressableScale>
@@ -284,7 +287,8 @@ export function ContentGrid({ showViewToggle = true }: { showViewToggle?: boolea
                 {revealed
                   ? <KenBurnsCard source={m.image} />
                   : <View style={[StyleSheet.absoluteFill, styles.cardImgInner, styles.cardPlaceholder]} />}
-                {badge && <View style={styles.priceTag}><Text style={styles.priceTagText}>{badge}</Text></View>}
+                {badge && <View style={[styles.priceTag, isNew && styles.priceTagLeft]}><Text style={styles.priceTagText}>{badge}</Text></View>}
+                {isNew && <View style={styles.newTag}><Text style={styles.newTagTx}>NEW</Text></View>}
                 {/* 하단 라벨 바(반투명) — 라벨 + 간략 설명(daniel: 콘텐츠별 설명) */}
                 <View style={styles.labelBar}>
                   <Text style={[styles.cardLabel, prem && styles.cardLabelPrem]}>{t(m.labelKey)}</Text>
@@ -353,6 +357,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: space(2), paddingVertical: space(0.5),
   },
   priceTagText: { color: '#15132E', fontSize: 10, fontWeight: '700', letterSpacing: 0.3 },
+  priceTagLeft: { right: undefined, left: space(2.5) }, // 신규(NEW)가 우측 상단을 쓰면 가격은 좌측 상단으로 비켜난다
+  // 신규 콘텐츠 NEW 배지 — 우측 상단·연한 빨강(daniel 07-22). newBadge.NEW_SINCE 로 출시+21일 자동 노출.
+  newTag: {
+    position: 'absolute', top: space(2.5), right: space(2.5), zIndex: 2,
+    backgroundColor: '#F16C6C', borderRadius: radius.pill,
+    paddingHorizontal: space(2), paddingVertical: space(0.5),
+    shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 3, shadowOffset: { width: 0, height: 1 }, elevation: 2,
+  },
+  newTagTx: { color: '#FFFFFF', fontSize: 9.5, fontWeight: '800', letterSpacing: 0.6 },
   // 카드 비율 3:4 고정폭(가로 스크롤). 이미지 cover + 하단 라벨 오버레이.
   card: { width: 162, aspectRatio: 0.72, borderRadius: radius.md, overflow: 'hidden', ...shadow.card },
   cardImg: { flex: 1, justifyContent: 'flex-end' },

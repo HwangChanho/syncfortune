@@ -12,6 +12,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { CREDIT_KINDS, loadCredits, redeemCoupon, waitForCreditGrant, PREMIUM_PRICE, type CreditKind } from '../../lib/billing/coupons';
+import { isNewContent } from '../../lib/content/newBadge'; // 신규 콘텐츠 NEW 배지(출시일+21일 자동 만료)
 import { requireLoginForPurchase } from '../../lib/billing/requireLogin'; // C1: 결제=계정 귀속(웹훅 적립엔 로그인 필수)
 import { listCharts, getRepresentativeId, setRepresentative, loadRepChart, type SavedChart } from '../../lib/engine/myChart';
 import { requestChartConfirm } from '../../lib/ui/chartConfirm'; // 구매 전 명식 확인(드롭다운으로 변경 가능)
@@ -67,7 +68,7 @@ const MARKET_HIDDEN = new Set<CreditKind>(['child_couple', 'celeb', 'coach']); /
 
 // ★가장 많이 찾는 콘텐츠(daniel 07-05) — 수요 폭발 카테고리에 ★★★ 배지로 구미를 당긴다(전환 유도).
 //   재회·애정·궁합·신년 = 사람들이 가장 많이 검색·구매하는 연애/시즌 콘텐츠(시장 조사 기반).
-const HOT_KINDS = new Set<CreditKind>(['reunion', 'crush', 'love', 'compat', 'newyear', 'jobfit']); // crush(짝사랑)=최다 수요(daniel 07-05) · jobfit=나에게 어울리는 직업(신규 유료 딥리포트, 인기 섹션 노출·daniel 07-13)
+const HOT_KINDS = new Set<CreditKind>(['reunion', 'crush', 'love', 'compat', 'newyear', 'jobfit', 'wealth']); // crush(짝사랑)=최다 수요(daniel 07-05) · jobfit·wealth=신규 유료 딥리포트(인기 섹션 노출·daniel 07-13/07-22)
 
 // 이용권 kind → 카드 이미지 + 설명키(홈 카드와 동일 재사용, daniel: 마켓 리스트에도 작게+설명).
 //   followup(추가질문)은 standalone 카드가 아니라(풀이 내부) 생략 — 없으면 이미지·설명 미표시(graceful).
@@ -251,6 +252,7 @@ export default function MarketRoute() {
     if (premInc && isPremium) {
       return (
         <PressableScale key={c.key} style={styles.card} onPress={() => apply(c.key)} disabled={!sel}>
+          {isNewContent(c.key) && <View style={styles.newTag}><Text style={styles.newTagTx}>NEW</Text></View>}
           {card && <Image source={card.img} style={styles.thumb} />}
           <View style={{ flex: 1 }}>
             <Text style={styles.name}>{c.ko}</Text>
@@ -268,7 +270,8 @@ export default function MarketRoute() {
     // 기존 동작(현행 그대로): 보유 시 열기(apply) / 미보유 시 개별 구매(buy)
     return (
       <View key={c.key} style={styles.card}>
-        {card && <Image source={card.img} style={styles.thumb} />}
+        {isNewContent(c.key) && <View style={styles.newTag}><Text style={styles.newTagTx}>NEW</Text></View>}
+          {card && <Image source={card.img} style={styles.thumb} />}
         <View style={{ flex: 1 }}>
           <Text style={styles.name}>{c.ko}</Text>
           {card && <Text style={styles.desc} numberOfLines={2}>{t(card.desc)}</Text>}
@@ -418,6 +421,9 @@ const styles = StyleSheet.create({
   hotBadge: { alignSelf: 'flex-start', backgroundColor: colors.badgeGold, borderRadius: radius.pill, paddingHorizontal: space(2), paddingVertical: 1, marginBottom: 3, overflow: 'hidden' },
   hotBadgeTx: { color: colors.bg, fontSize: 10, fontWeight: '900', letterSpacing: 0.2 },
   thumb: { width: 46, height: 64, borderRadius: radius.md, marginRight: space(3), backgroundColor: colors.sunk }, // 마켓 리스트 카드 썸네일(작게·daniel)
+  // 신규 콘텐츠 NEW 배지 — 우측 상단·연한 빨강(daniel 07-22). newBadge.NEW_SINCE 출시+21일 자동.
+  newTag: { position: 'absolute', top: space(2), right: space(2), zIndex: 3, backgroundColor: '#F16C6C', borderRadius: radius.pill, paddingHorizontal: space(1.75), paddingVertical: space(0.25) },
+  newTagTx: { color: '#FFFFFF', fontSize: 9, fontWeight: '800', letterSpacing: 0.5 },
   desc: { ...font.caption, color: colors.inkSoft, marginTop: 2, marginBottom: 1, lineHeight: 16 }, // 설명 아랫줄(홈과 동일)
   price: { ...font.caption, color: colors.ju, fontWeight: '800', marginTop: 2 },
   have: { ...font.caption, color: colors.inkFaint, marginTop: 2 },

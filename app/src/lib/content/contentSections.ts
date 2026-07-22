@@ -90,6 +90,8 @@ export const SECTIONS: Section[] = [
     { key: 'lifegraph', labelKey: 'menu.lifegraph', descKey: 'menu.lifegraphDesc', image: require('../../../assets/icons/lifegraph.jpg'), route: '/lifegraph', ready: true, content: true, creditKey: 'lifegraph' },
     // 신규(daniel 2026-07-02): 10년 뒤 나의 모습(대운·세운 스페셜, 개별 유료).
     { key: 'future10', labelKey: 'menu.future10', descKey: 'menu.future10Desc', image: require('../../../assets/icons/future10.jpg'), route: '/future10', ready: true, content: true, creditKey: 'future10' },
+    // 신규(daniel 2026-07-22): 재물 딥리포트(EEL — 그릇/유형/시기/처방 4축·R44/R54). ★스페셜(유료 딥리포트)에 배치 = daniel 07-22 '인기 스페셜에 넣고 나에대해알기에서 빼'.
+    { key: 'wealth', labelKey: 'menu.wealth', descKey: 'menu.wealthDesc', image: require('../../../assets/icons/wealth.jpg'), route: '/wealth', ready: true, content: true, creditKey: 'wealth' },
   ] },
   // 심층 분석(daniel 2026-06) — 사주/자미 깊은 해석 유료. timeResolve(태어난 시 찾기)도 자기이해 진입점으로 배치.
   { key: 'deep', titleKey: 'menu.secDeep', descKey: 'menu.secDeepDesc', items: [
@@ -105,8 +107,7 @@ export const SECTIONS: Section[] = [
     { key: 'career', labelKey: 'menu.career', descKey: 'menu.careerDesc', image: require('../../../assets/icons/career.jpg'), route: '/career', ready: true, content: true, creditKey: 'career' },
     // 신규(daniel 2026-07-13): 나에게 어울리는 직업(직업 적성 딥리포트 EEL — career 사업가vs직장인과 별개).
     { key: 'jobfit', labelKey: 'menu.jobfit', descKey: 'menu.jobfitDesc', image: require('../../../assets/icons/jobfit.jpg'), route: '/jobfit', ready: true, content: true, creditKey: 'jobfit' },
-    // 신규(daniel 2026-07-22): 재물 딥리포트(재물 *전체* 딥리포트 EEL — 그릇/유형/시기/처방 4축·R44/R54. 재물영역 단발풀이와 별개). ★전용 히어로 이미지=백로그(현재 텍스트 카드).
-    { key: 'wealth', labelKey: 'menu.wealth', descKey: 'menu.wealthDesc', image: require('../../../assets/icons/wealth.jpg'), route: '/wealth', ready: true, content: true, creditKey: 'wealth' },
+    // (재물 딥리포트 wealth = 스페셜 섹션으로 이동, daniel 07-22)
     // daniel #18(2026-06-24): 맞춤 개운법(원국+지금 운 → 구체 처방·살풀이). 부적/만다라 이미지.
     { key: 'gaeun', labelKey: 'menu.gaeun', descKey: 'menu.gaeunDesc', image: require('../../../assets/icons/gaeun.jpg'), route: '/gaeun', ready: true, content: true, creditKey: 'gaeun' },
   ] },
