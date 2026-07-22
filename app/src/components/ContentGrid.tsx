@@ -12,6 +12,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { View, Text, ScrollView, StyleSheet, Animated, Easing } from 'react-native';
 import { Image as ExpoImage } from 'expo-image'; // 이미지 자동 다운샘플(표시 크기로 디코딩) — 카드 35장 메모리·랙 해결
+import { LinearGradient } from 'expo-linear-gradient'; // 카드 하단 다크 그라데이션(라벨 가독·카드 경계 — daniel 07-22 '카드인지도 모르겠고')
 import { useEffect, useRef, useMemo, useState, useCallback } from 'react';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -289,11 +290,11 @@ export function ContentGrid({ showViewToggle = true }: { showViewToggle?: boolea
                   : <View style={[StyleSheet.absoluteFill, styles.cardImgInner, styles.cardPlaceholder]} />}
                 {badge && <View style={[styles.priceTag, isNew && styles.priceTagLeft]}><Text style={styles.priceTagText}>{badge}</Text></View>}
                 {isNew && <View style={styles.newTag}><Text style={styles.newTagTx}>NEW</Text></View>}
-                {/* 하단 라벨 바(반투명) — 라벨 + 간략 설명(daniel: 콘텐츠별 설명) */}
-                <View style={styles.labelBar}>
-                  <Text style={[styles.cardLabel, prem && styles.cardLabelPrem]}>{t(m.labelKey)}</Text>
+                {/* 하단 라벨 — 이미지 위 다크 그라데이션 오버레이(흰 글씨). 이미지가 카드를 채우고 아래만 어두워져 '미디어 카드'로 또렷해진다. */}
+                <LinearGradient colors={['transparent', 'rgba(11,10,26,0.55)', 'rgba(11,10,26,0.94)']} locations={[0, 0.45, 1]} style={styles.labelBar}>
+                  <Text style={[styles.cardLabel, prem && styles.cardLabelPrem]} numberOfLines={1}>{t(m.labelKey)}</Text>
                   {desc ? <Text style={styles.cardDesc} numberOfLines={2}>{desc}</Text> : null}
-                </View>
+                </LinearGradient>
               </View>
             </PressableScale>
           );
@@ -367,15 +368,17 @@ const styles = StyleSheet.create({
   },
   newTagTx: { color: '#FFFFFF', fontSize: 9.5, fontWeight: '800', letterSpacing: 0.6 },
   // 카드 비율 3:4 고정폭(가로 스크롤). 이미지 cover + 하단 라벨 오버레이.
-  card: { width: 162, aspectRatio: 0.72, borderRadius: radius.md, overflow: 'hidden', ...shadow.card },
+  // ★미디어 카드(daniel 07-22 '카드인지도 모르겠고') — 이미지가 카드를 꽉 채우고, 하단 다크 그라데이션 위 흰 글씨.
+  //   라이트 페이지 위에서 어두운 카드 + 테두리 + 그림자로 경계가 또렷해진다(예전 연한 라벨바 blend 문제 해소).
+  card: { width: 168, aspectRatio: 0.72, borderRadius: radius.md, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(20,19,46,0.10)', ...shadow.card },
   cardImg: { flex: 1, justifyContent: 'flex-end' },
   cardImgInner: { borderRadius: radius.md },
   // 순차 공개 전 자리 — 빈 박스(디코드 전). 카드와 같은 크기·모서리 유지(레이아웃 안 흔들림).
   cardPlaceholder: { backgroundColor: colors.juSoft },
-  labelBar: { backgroundColor: colors.labelScrim, paddingVertical: space(2.5), alignItems: 'center' }, // 라이트=거의 불투명(이미지 비침 차단·daniel)
-  cardLabel: { color: colors.ink, fontSize: 15, fontWeight: '700', letterSpacing: 0.3 },
-  cardDesc: { color: colors.inkSoft, fontSize: 10.5, lineHeight: 13.5, textAlign: 'center', marginTop: 3, paddingHorizontal: space(1.5) },
-  cardLabelPrem: { color: colors.ju }, // 프리미엄 = 골드 라벨
+  labelBar: { paddingTop: space(7), paddingBottom: space(3), paddingHorizontal: space(3.5), alignItems: 'flex-start' }, // 그라데이션 위 좌측정렬 라벨(paddingTop=페이드 여백)
+  cardLabel: { color: '#FFFFFF', fontSize: 15.5, fontWeight: '800', letterSpacing: 0.2 },
+  cardDesc: { color: 'rgba(255,255,255,0.82)', fontSize: 11, lineHeight: 14.5, textAlign: 'left', marginTop: 3 },
+  cardLabelPrem: { color: '#FFE6A6' }, // 프리미엄 = 밝은 골드(다크 오버레이 위 가독)
   // ── 리스트뷰 — 세로 행: 썸네일 + 텍스트 + 가격/셰브런 ──
   listBody: { paddingHorizontal: space(5), gap: space(2), marginTop: space(1) }, // section 의 -space(5) 상쇄해 폭 정렬
   listRow: {
