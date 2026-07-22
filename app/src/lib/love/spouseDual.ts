@@ -11,7 +11,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { tenGod, HIDDEN } from '@engine/saju';
 import type { SajuChart, Branch, Stem, TenGod, PillarPos } from '@spec/chart';
-import { relationOf, yearLabels, seunBranchOfYear, ageTendencyOf, type SpouseRelation, type SpouseLabel } from './spouseDualCore';
+import { relationOf, yearLabels, seunBranchOfYear, seunStemOfYear, ageTendencyOf, yieojimOf, type SpouseRelation, type SpouseLabel } from './spouseDualCore';
 
 export { relationOf, yearLabels, seunBranchOfYear } from './spouseDualCore';
 export type { SpouseRelation, SpouseLabel } from './spouseDualCore';
@@ -73,4 +73,58 @@ export function analyzeSpouseDual(saju: SajuChart, sex: string | undefined, from
   const yearB = saju.pillars?.['년']?.branch as Branch | undefined;
   const hourB = timeUnknown ? undefined : (saju.pillars?.['시']?.branch as Branch | undefined);
   return { star, gung, base, age: ageTendencyOf(star ? star.branch : null, yearB, gung, hourB), timeline, settleProbability };
+}
+
+// ── §8 이어짐 관법(daniel 07-22 ground truth) — 짝사랑/대시 '성사·발전' 판정 ──────────────────
+//   차트→오행 플래그를 계산해 spouseDualCore.yieojimOf(순수 결정)에 넘긴다(골든 검증 = check:spouse-dual).
+//   ★남/여 비대칭: 남명=식상生財(배우자성 파괴 안 됨) / 여명=상관견관→재성 통관 필요. 공통 게이트=배우자궁 합.
+const STEM_EL: Record<string, string> = { 甲: '木', 乙: '木', 丙: '火', 丁: '火', 戊: '土', 己: '土', 庚: '金', 辛: '金', 壬: '水', 癸: '水' };
+const BR_EL: Record<string, string> = { 寅: '木', 卯: '木', 巳: '火', 午: '火', 辰: '土', 戌: '土', 丑: '土', 未: '土', 申: '金', 酉: '金', 亥: '水', 子: '水' };
+const GEN_EL: Record<string, string> = { 木: '火', 火: '土', 土: '金', 金: '水', 水: '木' };   // 생(식상)
+const CTRL_EL: Record<string, string> = { 木: '土', 土: '水', 水: '火', 火: '金', 金: '木' };  // 극(재성)
+
+export type YieojimYear = {
+  year: number; seun: Branch;
+  gungOpen: boolean; gungShaken: boolean; starActive: boolean; sikSang: boolean;
+  mine: boolean;   // 내가좋아함(짝사랑) 이어짐
+  theirs: boolean; // 상대가좋아함(대시) 이어짐
+};
+
+/**
+ * §8 이어짐 관법 — 세운별 '내가 좋아함/상대가 좋아함' 성사 판정(결정론·온디바이스·API 0).
+ * @param sex '남'|'여'(배우자성=남 재성/여 관성). 미상=남 기본.
+ */
+export function inyeonYieojim(saju: SajuChart, sex: string | undefined, fromYear: number, years = 8): YieojimYear[] {
+  const timeUnknown = (saju as any)?.timeUnknown === true;
+  const star = spouseStarBranch(saju, sex, timeUnknown);
+  const gung = saju.pillars['일'].branch as Branch;
+  const dayEl = STEM_EL[saju.dayMaster.stem] ?? '';
+  const sikEl = GEN_EL[dayEl];   // 식상 오행(일간 생)
+  const jaeEl = CTRL_EL[dayEl];  // 재성 오행(일간 극)
+  const starEl = star ? BR_EL[star.branch] : null;
+  const isFemale = sex === '여' || sex === 'F' || sex === 'female';
+  // 원국 재성 존재(여명 통관용) — 천간 or 지지 본기 오행 = 재성 오행.
+  const pos: PillarPos[] = timeUnknown ? ['년', '월', '일'] : ['년', '월', '일', '시'];
+  const natalJae = pos.some((p) => { const d = saju.pillars?.[p]; return !!d && (STEM_EL[d.stem] === jaeEl || BR_EL[d.branch] === jaeEl); });
+
+  const out: YieojimYear[] = [];
+  for (let i = 0; i < years; i++) {
+    const year = fromYear + i;
+    const seun = seunBranchOfYear(year);
+    const seEl = STEM_EL[seunStemOfYear(year)], sbEl = BR_EL[seun];
+    const gRel = relationOf(gung, seun);
+    const gungOpen = gRel.sixhe || gRel.banhap || gRel.banghap;
+    const gungShaken = gRel.chong || gRel.pa || gRel.wonjin;
+    const sRel = star ? relationOf(star.branch, seun) : null;
+    const starActive = !!(sRel && (sRel.sixhe || sRel.banhap || sRel.banghap));
+    // 배우자성 파괴(남명 가드) = 충 OR 세운(천간/지지) 오행이 배우자성 오행 극.
+    const starHurt = !!(sRel && sRel.chong) || (!!starEl && (CTRL_EL[seEl] === starEl || CTRL_EL[sbEl] === starEl));
+    // 세운 식상 발동 = 세운 천간 or 지지 본기 오행 = 식상.
+    const sikSang = seEl === sikEl || sbEl === sikEl;
+    // (여명) 재성 통관 = 원국 재성 존재 AND 그 해 재성 파괴 안 됨(세운이 재성 오행 극 안 함).
+    const jaeTonggwan = natalJae && !(CTRL_EL[seEl] === jaeEl || CTRL_EL[sbEl] === jaeEl);
+    const { mine, theirs } = yieojimOf({ gungOpen, gungShaken, starActive, sikSang, starHurt, jaeTonggwan, isFemale });
+    out.push({ year, seun, gungOpen, gungShaken, starActive, sikSang, mine, theirs });
+  }
+  return out;
 }

@@ -9,6 +9,7 @@
 import type { Branch } from '@spec/chart'; // 타입 전용(런타임 제거 — tsx 안전)
 
 const ORDER: Branch[] = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'];
+const STEM_ORDER: string[] = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸']; // 세운 천간(§8·string=Edge 타입 인라인 회피)
 const CHONG: [Branch, Branch][] = [['子', '午'], ['丑', '未'], ['寅', '申'], ['卯', '酉'], ['辰', '戌'], ['巳', '亥']];   // 6충
 const SIXHE: [Branch, Branch][] = [['子', '丑'], ['寅', '亥'], ['卯', '戌'], ['辰', '酉'], ['巳', '申'], ['午', '未']];   // 육합
 const SANHE: Branch[][] = [['申', '子', '辰'], ['寅', '午', '戌'], ['巳', '酉', '丑'], ['亥', '卯', '未']];               // 삼합 3국
@@ -69,6 +70,30 @@ export function yearLabels(starB: Branch | null, gungB: Branch, seunB: Branch): 
 
 /** 세운 지지(연도 → 지지). 子=서기 (year-4)%12==0. */
 export function seunBranchOfYear(year: number): Branch { return ORDER[(((year - 4) % 12) + 12) % 12]; }
+/** 세운 천간(연도 → 천간). 甲=서기 (year-4)%10==0. §8 이어짐 관법의 세운 식상 발동 판정용. */
+export function seunStemOfYear(year: number): string { return STEM_ORDER[(((year - 4) % 10) + 10) % 10]; }
+
+/**
+ * §8 이어짐 판정(순수 결정론·daniel 2026-07-22 ground truth). 미리 계산된 세운 관계·오행 플래그 → {mine, theirs}.
+ *   ★공통 게이트 = 배우자궁(일지) 합 열림 & 흔들림 아님. 주도권(식상 vs 배우자성)은 발생 경로만 다름.
+ *   ★남/여 비대칭: 남명=식상生財(배우자성 파괴 안 됨) / 여명=상관견관→재성 통관 필요.
+ * @param gungOpen    배우자궁 세운 합(육합/삼합)
+ * @param gungShaken  배우자궁 충·파·원진(흔들림→미성사)
+ * @param starActive  배우자성 세운 합(상대가 좋아함 활성)
+ * @param sikSang     세운 식상 발동(천간 or 지지 본기)
+ * @param starHurt    (남명) 배우자성 충/극당함 — 식상生財 기운이 흩어짐
+ * @param jaeTonggwan (여명) 재성 통관 존재(원국 재성 & 그 해 파괴 안 됨)
+ * @param isFemale    여명 여부
+ */
+export function yieojimOf(inp: {
+  gungOpen: boolean; gungShaken: boolean; starActive: boolean; sikSang: boolean;
+  starHurt: boolean; jaeTonggwan: boolean; isFemale: boolean;
+}): { mine: boolean; theirs: boolean } {
+  const gate = inp.gungOpen && !inp.gungShaken;                                    // §8.1 최종 게이트
+  const mine = gate && inp.sikSang && (inp.isFemale ? inp.jaeTonggwan : !inp.starHurt); // §8.2 남/여 분기
+  const theirs = gate && inp.starActive;                                          // §8.3
+  return { mine, theirs };
+}
 
 /** 나이대 경향(§7.3) — 배우자성-년지 합=연상 / 배우자궁-시지 합=연하·케어. */
 export function ageTendencyOf(starB: Branch | null, yearB: Branch | undefined, gungB: Branch, hourB: Branch | undefined): { elder: number; younger: number } {
