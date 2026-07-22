@@ -96,6 +96,7 @@ const CARD: Partial<Record<CreditKind, { img: any; desc: string }>> = {
   crush: { img: require('../../../assets/icons/crush.jpg'), desc: 'menu.crushDesc' }, // 짝사랑 인연운(전용 히어로)
   job: { img: require('../../../assets/icons/job.jpg'), desc: 'menu.jobDesc' }, // 취업·이직운(전용 히어로)
   jobfit: { img: require('../../../assets/icons/jobfit.jpg'), desc: 'menu.jobfitDesc' }, // 나에게 어울리는 직업(전용 히어로 — 갈림길에서 어울리는 길, 미드나잇+골드 톤)
+  wealth: { img: require('../../../assets/icons/wealth.jpg'), desc: 'menu.wealthDesc' }, // 재물 딥리포트(전용 히어로 — 재물 그릇에 빛·재물 유입, 미드나잇+골드 톤)
 };
 
 export default function MarketRoute() {

@@ -19,6 +19,7 @@ export default function WealthRoute() {
       kind="wealth"
       showExpiry
       themeColor={colors.ju}
+      heroImage={require('../../../assets/icons/wealth.jpg')}
       title={t('wealth.title', '재물 딥리포트')}
       sub={t('wealth.sub', '타고난 재물 그릇과 유형, 언제 크게 들어오고 어떻게 지키는지까지 짚어 드려요')}
       genMsg={t('wealth.generating', '타고난 재물 그릇과 흐름을 읽는 중…')}
