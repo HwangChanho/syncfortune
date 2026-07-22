@@ -19,6 +19,7 @@ import { ensureServerChartId } from '../../lib/backend/prewarmReadings';
 import { useAuth } from '../../lib/useAuth';
 import { useFontScale } from '../../lib/ui/fontScale';
 import { askCoach, loadCoachHistory, deleteCoachHistory, type CoachTurn } from '../../lib/backend/coach';
+import { coachSuggestionGroups, type CoachPromptCat } from '../../lib/content/coachPrompts'; // 추천 질문(주제별 프리셋·온디바이스·API 0)
 import { useSubscription } from '../../lib/billing/subscription'; // 프리미엄=월 5회 무료
 import { showRewardedAd } from '../../lib/core/ads';               // 비프리미엄 무료=보상형 광고(daniel 07-13)
 import { purchaseCreditRC } from '../../lib/billing/purchases';    // coach 이용권 즉시 구매
@@ -63,8 +64,11 @@ export default function CoachScreen() {
     return () => { s.remove(); h.remove(); };
   }, []);
 
-  // 제안 질문(자기이해) — 탭하면 바로 전송. 대화 시작 문턱↓.
-  const SUGGESTIONS = [t('coach.q1'), t('coach.q2'), t('coach.q3'), t('coach.q4')];
+  // 추천 질문(주제별 프리셋) — 탭하면 바로 전송. 대화 시작 문턱↓ + 코치가 답하는 '범위'(자기이해·관계·일·시기)를 노출.
+  //   온디바이스 정적(coachPrompts) — 언어 바뀌면 리마운트되므로 렌더마다 해석해도 저렴.
+  const groups = coachSuggestionGroups();
+  const [qCat, setQCat] = useState<CoachPromptCat>('self'); // 선택된 추천 질문 카테고리(기본=자기이해)
+  const activeGroup = groups.find((g) => g.key === qCat) ?? groups[0];
 
   // 대표 명식 → serverChartId + 지난 대화 로드(명식 전환·포커스 시 재로드)
   useEffect(() => {
@@ -176,7 +180,11 @@ export default function CoachScreen() {
                 ) : turn.answer ? (
                   <View style={styles.aCard}>
                     <Text style={styles.aLabel}>{t('coach.coachLabel', '코치')}</Text>
-                    <Text style={[styles.aTx, { fontSize: fs(15), lineHeight: fs(25) }]}>{turn.answer}</Text>
+                    {/* 가독성 — 답변을 문단 단위로 나눠 간격을 준다(COACH_SYSTEM 은 2~4문단 평문 출력).
+                        빈 줄(\n\n)·단일 줄바꿈 모두 문단 경계로 보고 빈 문단은 버린다. 포맷만 손대는 것이라 통변 내용/API 무관. */}
+                    {turn.answer.split(/\n+/).map((p) => p.trim()).filter(Boolean).map((para, pi) => (
+                      <Text key={pi} style={[styles.aTx, { fontSize: fs(15), lineHeight: fs(25) }, pi > 0 && { marginTop: space(2.5) }]}>{para}</Text>
+                    ))}
                   </View>
                 ) : (
                   // ⑨b: 서버에 질문은 남았으나 답이 빈 행(강종/생성 중단으로 답 못 받음) — 재진입 시 안내(질문은 보존됨).
@@ -213,10 +221,19 @@ export default function CoachScreen() {
               </View>
             ) : (
               <>
-                {/* 제안 질문(첫 진입/대화 사이) */}
+                {/* 추천 질문(첫 진입/대화 사이) — 주제 칩(범위 노출) + 그 주제의 질문 칩. 탭=바로 전송. */}
                 {!busy && (
                   <View style={styles.suggest}>
-                    {SUGGESTIONS.map((q, i) => (
+                    {/* 주제 선택 — 코치가 답하는 범위(자기이해·관계·일·시기)를 한눈에 */}
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.catRow}>
+                      {groups.map((g) => (
+                        <PressableScale key={g.key} style={[styles.catChip, g.key === qCat && styles.catChipOn]} onPress={() => setQCat(g.key)}>
+                          <Text style={[styles.catTx, g.key === qCat && styles.catTxOn, { fontSize: fs(12.5) }]}>{g.label}</Text>
+                        </PressableScale>
+                      ))}
+                    </ScrollView>
+                    {/* 선택 주제의 질문 프리셋 */}
+                    {activeGroup?.questions.map((q, i) => (
                       <PressableScale key={i} style={styles.chip} onPress={() => send(q)}>
                         <Text style={[styles.chipTx, { fontSize: fs(13) }]}>{q}</Text>
                       </PressableScale>
@@ -273,8 +290,15 @@ const styles = StyleSheet.create({
   aTx: { ...font.body, color: colors.ink },
   thinking: { flexDirection: 'row', alignItems: 'center', gap: space(2.5), paddingVertical: space(3), paddingHorizontal: space(2) },
   thinkingTx: { ...font.caption, color: colors.inkSoft },
-  // 제안 질문
+  // 추천 질문
   suggest: { marginTop: space(2), gap: space(2.5) },
+  // 주제(카테고리) 칩 — 코치 답변 범위 노출(TodayRelationCard 카테고리 칩과 동일 톤)
+  catRow: { gap: space(1.5), paddingBottom: space(1) },
+  catChip: { paddingVertical: space(1.5), paddingHorizontal: space(3), borderRadius: radius.pill, borderWidth: 1, borderColor: colors.juLine, backgroundColor: colors.juSoft },
+  catChipOn: { backgroundColor: colors.ju, borderColor: colors.ju },
+  catTx: { fontWeight: '800', color: colors.ju },
+  catTxOn: { color: '#15132E' },
+  // 질문 칩
   chip: { backgroundColor: colors.sunk, borderRadius: radius.md, borderWidth: 1, borderColor: colors.line, paddingVertical: space(3), paddingHorizontal: space(4) },
   chipTx: { color: colors.inkSoft, fontWeight: '700' },
   // 게이트
