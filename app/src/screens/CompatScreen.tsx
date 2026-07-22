@@ -106,6 +106,9 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
   const [ctx, setCtx] = useState<{ chartId: string; sig: string; cross: string[]; dayRel: string; meZiwei: any; otherZiwei: any; numMe?: any; numOther?: any } | null>(null); // 연도별 추가 생성 컨텍스트(+수비학 보조)
   const YEARS = Array.from({ length: 43 }, (_, i) => new Date().getFullYear() - 2 + i); // 연도별 옵션(올해-2~+40 전체 — 드롭다운 스크롤·daniel K)
   const [yearOpen, setYearOpen] = useState(false);              // 년도 선택 드롭다운(전체 년도 스크롤 리스트)
+  const [relOpen, setRelOpen] = useState(false);                // ② 관계 선택 드롭다운(관계별 개별 결제·daniel 2026-07-22)
+  // 이미 구매(생성)된 관계 집합 — readings 키 `{tab}:{rel}[_y{YYYY}]` 에서 rel 추출(연도 무관). 서버도 (rel+sig)로 게이트(같은 관계 무료).
+  const ownedRels = new Set(Object.keys(readings).map((k) => (k.split(':')[1] ?? '').replace(/_y\d+$/, '')).filter(Boolean));
   const [showDetail, setShowDetail] = useState(false);           // 글자 작용 상세 접이식
   const [active, setActive] = useState<Set<string>>(new Set());
   // 궁합 추가질문(관계유형/연도 키별) — 사주·자미 풀이와 동일(무료 1회 + 건당 결제)
@@ -198,10 +201,10 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
     const key = `${compatTab}:${relKey}${yr ? '_y' + yr : ''}`;
     if (readings[key]) return;
     const relName = t(COMPAT_RELS.find((r) => r.key === relKey)?.tk ?? '');
-    const pairOwned = Object.keys(readings).length > 0; // 이 쌍을 이미 구매했으면 추가 비용 0(쌍당 1회 결제)
+    const relOwned = ownedRels.has(relKey) || isPremium; // 이 관계를 이미 구매(또는 프리미엄 무제한)면 추가 비용 0(관계별 개별 결제·daniel 2026-07-22). 연도 변형은 같은 관계라 무료.
     Alert.alert(
       t('compat.genTitle', '풀이 만들기'),
-      `${relName}${yr ? ' ' + yr + '년' : ''} 궁합 풀이를 만들까요?\n${pairOwned ? '추가 비용 없이 생성돼요.' : '이용권 1회 또는 결제가 필요해요.'}`,
+      `${relName}${yr ? ' ' + yr + '년' : ''} 궁합 풀이를 만들까요?\n${relOwned ? '추가 비용 없이 생성돼요.' : '이 관계는 이용권 1회 또는 결제가 필요해요.'}`,
       [
         { text: t('common.cancel'), style: 'cancel' },
         { text: t('compat.genConfirm', '생성'), onPress: () => runCompatGen(relKey, yr, key) },
@@ -312,15 +315,18 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
       {/* ── 관계 유형별 통변 ── */}
       {pair && (
         <>
-          {/* ② 어떤 사이? — 관계 유형 */}
+          {/* ② 어떤 사이? — 관계 유형(드롭박스·③ 년도와 동일 UX·daniel 2026-07-22). 관계마다 별도 유료 풀이 → 선택칸에 소유(✓)/가격 표시. */}
           <Text style={styles.stepLabel}>{t('compat.step2', '② 어떤 사이인가요?')}</Text>
-          <View style={styles.relChips}>
-            {COMPAT_RELS.map((r) => (
-              <PressableScale key={r.key} style={[styles.relChip, rel === r.key && styles.relChipOn]} onPress={() => setRel(r.key)}>
-                <Text style={[styles.relChipTx, rel === r.key && styles.relChipTxOn]}>{t(r.tk)}</Text>
-              </PressableScale>
-            ))}
-          </View>
+          <PressableScale style={styles.relDropBtn} onPress={() => setRelOpen(true)}>
+            <Text style={styles.relDropTx}>{t(COMPAT_RELS.find((r) => r.key === rel)?.tk ?? '')}</Text>
+            <View style={styles.relDropRight}>
+              {ownedRels.has(rel)
+                ? <Text style={styles.relOwnedTag}>✓ 보유</Text>
+                : (!isPremium ? <Text style={styles.relPriceTag}>{formatKrw(creditPrice('compat'))}</Text> : null)}
+              <Text style={styles.relDropCaret}>▾</Text>
+            </View>
+          </PressableScale>
+          <Text style={styles.relHint}>{isPremium ? '관계마다 별도 풀이예요 · 프리미엄은 무제한' : '관계마다 별도로 풀어 드려요 — 고른 관계만 결제돼요'}</Text>
           {/* ★사주/자미 탭 제거(daniel 2026-07-15 '구분짓지 말고 같이풀어') — 'compat' 통변이 이미 사주 주축+자미 보조교차로 합쳐 나옴(규칙2·R46). 항상 compatTab='saju'(=합친 통변). */}
           {/* 연도별 — 전체(원국 본바탕) / 그 해 흐름(세운). 연도 탭 시 그 관계×연도 통변 생성 */}
           <Text style={[styles.stepLabel, { marginTop: space(4) }]}>{t('compat.step3year', '③ 언제로 볼까요?')}</Text>
@@ -458,6 +464,26 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
               <PressableScale key={ys} style={[styles.pickRow, on && styles.pickRowOn]} onPress={() => { setYear(ys); setYearOpen(false); }}>
                 <Text style={[styles.pickRowTx, on && styles.pickRowTxOn]}>{ys}년</Text>
                 {on ? <Text style={styles.pickCheck}>✓</Text> : null}
+              </PressableScale>
+            ); })}
+          </ScrollView>
+        </Pressable>
+      </Pressable>
+    </Modal>
+
+    {/* ② 관계 선택 드롭다운(관계별 개별 결제·소유/가격 표시·daniel 2026-07-22) — ③ 년도 Modal 동일 패턴 */}
+    <Modal visible={relOpen} transparent animationType="fade" onRequestClose={() => setRelOpen(false)}>
+      <Pressable style={styles.pickBackdrop} onPress={() => setRelOpen(false)}>
+        <Pressable style={[styles.pickSheet, { paddingBottom: insets.bottom + space(4) }]} onPress={() => {}}>
+          <Text style={styles.pickHead}>{t('compat.step2', '② 어떤 사이인가요?')}</Text>
+          <ScrollView style={{ maxHeight: 420 }} showsVerticalScrollIndicator>
+            {COMPAT_RELS.map((r) => { const on = rel === r.key; const owned = ownedRels.has(r.key); return (
+              <PressableScale key={r.key} style={[styles.pickRow, on && styles.pickRowOn]} onPress={() => { setRel(r.key); setRelOpen(false); }}>
+                <Text style={[styles.pickRowTx, on && styles.pickRowTxOn]}>{t(r.tk)}</Text>
+                <View style={styles.relRowRight}>
+                  {owned ? <Text style={styles.relOwnedTag}>✓ 보유</Text> : (!isPremium ? <Text style={styles.relPriceTag}>{formatKrw(creditPrice('compat'))}</Text> : null)}
+                  {on ? <Text style={styles.pickCheck}>✓</Text> : null}
+                </View>
               </PressableScale>
             ); })}
           </ScrollView>
@@ -657,6 +683,15 @@ const styles = StyleSheet.create({
   yearChipTx: { fontSize: 12, fontWeight: '700', color: colors.inkSoft },
   yearChipTxOn: { color: colors.ju },
   relChip: { paddingHorizontal: space(3.5), paddingVertical: space(2), borderRadius: radius.pill, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line },
+  // ★관계 드롭박스(② 어떤 사이 — 관계별 개별 결제·소유/가격 표시·daniel 2026-07-22)
+  relDropBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: space(4), paddingVertical: space(3), borderRadius: radius.md, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line },
+  relDropTx: { color: colors.ink, fontSize: 15, fontWeight: '700' },
+  relDropRight: { flexDirection: 'row', alignItems: 'center', gap: space(2) },
+  relDropCaret: { color: colors.inkSoft, fontSize: 13, fontWeight: '700' },
+  relOwnedTag: { color: colors.ju, fontSize: 11.5, fontWeight: '800' },
+  relPriceTag: { color: '#15132E', fontSize: 11, fontWeight: '800', backgroundColor: colors.badgeGold, borderRadius: radius.pill, paddingHorizontal: space(2), paddingVertical: space(0.5), overflow: 'hidden' },
+  relHint: { color: colors.inkSoft, fontSize: 11.5, marginTop: space(1.5), marginBottom: space(3) },
+  relRowRight: { flexDirection: 'row', alignItems: 'center', gap: space(2) },
   // 사주/자미 궁합 2탭(daniel)
   compatTabBar: { flexDirection: 'row', backgroundColor: colors.sunk, borderRadius: radius.md, padding: 3, marginBottom: space(3) },
   compatTab: { flex: 1, paddingVertical: space(2.5), alignItems: 'center', borderRadius: radius.sm },
