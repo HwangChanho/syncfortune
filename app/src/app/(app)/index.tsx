@@ -383,7 +383,7 @@ export default function Home() {
       {/* fade-in — DraggableFlatList 가 스크롤 컨테이너라 이 Animated.View 로 감싸 opacity 만 준다(flex:1). */}
       <Animated.View style={{ flex: 1, opacity: fadeAnim }}>
         {/* ★홈 블록 배치 — 순서는 계정별(useHomeOrder · profiles.home_order). 홈에서 길게 눌러 드래그 or 설정에서 변경(daniel).
-            기본 순서 = 명식 → AI 코치 → 오늘의 기운 → 오늘의 관계 → 나의 성격유형 → 나는 어떤 사람인가.
+            기본 순서(daniel 07-23) = 명식 → 만세력 → AI 코치 → 오늘의 기운 → 나는 어떤 사람인가 → 나의 성격유형 → 오늘의 관계 → 바이오리듬 → 오늘의 행운.
             헤더/진행률 배너/로그인 링크는 '고정'이라 ListHeaderComponent/ListFooterComponent 로 뺀다(드래그 대상 아님). */}
         <DraggableFlatList
           data={order}

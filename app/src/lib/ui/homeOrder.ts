@@ -1,7 +1,7 @@
 // src/lib/ui/homeOrder.ts — 홈 블록 배치 순서(계정별 저장·복원) · **전역 스토어**
 // ─────────────────────────────────────────────────────────────────────────
 // daniel 2026-07-19: "홈 배치순서를 계정별로 수정 가능하게" +
-//   기본 순서 = 명식 → AI 코치 → 오늘의 기운 → 오늘의 관계 → 나의 성격유형 → 나는 어떤 사람인가.
+//   기본 순서(daniel 07-23 확정) = 명식 → 만세력 → AI 코치 → 오늘의 기운 → 나는 어떤 사람인가 → 나의 성격유형 → 오늘의 관계 → 바이오리듬 → 오늘의 행운.
 //
 // ★07-20 수정(daniel "홈 커스텀 안됨"): 기존 구현은 화면마다 useState 가 **독립**이라,
 //   설정에서 순서를 바꿔 setOrder 해도 홈 화면의 훅 인스턴스는 stale → 홈에 반영이 안 됐다
@@ -23,7 +23,7 @@ export type HomeBlockKey = 'chart' | 'manse' | 'coach' | 'today' | 'relation' | 
 
 /** daniel 확정 기본 순서(2026-07-19) + 오늘의 관계(07-20) + 바이오리듬(07-21) + 오늘의 행운(07-22 코드큐).
  *  ★신규 블록(luck)은 '맨 아래' 기본(daniel 홈 길이·순서 민감) — 기존 사용자는 normalizeOrder 가 저장 순서 끝에 자동 덧붙인다. */
-export const DEFAULT_HOME_ORDER: HomeBlockKey[] = ['chart', 'manse', 'coach', 'today', 'relation', 'persona', 'self', 'biorhythm', 'luck'];
+export const DEFAULT_HOME_ORDER: HomeBlockKey[] = ['chart', 'manse', 'coach', 'today', 'self', 'persona', 'relation', 'biorhythm', 'luck'];
 
 /** 블록 라벨 — 설정의 순서 편집 화면에 표시. */
 export const HOME_BLOCK_LABEL: Record<HomeBlockKey, string> = {
