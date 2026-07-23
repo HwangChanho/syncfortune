@@ -198,6 +198,17 @@ export default function Home() {
   const renderBlock = (k: HomeBlockKey) => {
     // 명식 선택/전환 — 아래 블록이 전부 '지금 적용된 명식' 기준이라 기본 순서에선 맨 위.
     if (k === 'chart') return <ChartPicker onChange={() => setReloadKey((n) => n + 1)} />;
+    // 만세력 바로가기(daniel 07-23) — 내 사주 명식 전체(/charts). 명식 있을 때만 노출·코치 배너와 동일 크롬(다른 이모지).
+    if (k === 'manse') return hasChart ? (
+      <PressableScale style={styles.coachBanner} onPress={() => router.push('/charts')}>
+        <Text style={styles.coachBannerEmoji}>📜</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.coachBannerTitle}>{t('menu.manse', '만세력')}</Text>
+          <Text style={styles.coachBannerSub} numberOfLines={1}>{t('home.manseSub', '내 사주 명식 전체 보기')}</Text>
+        </View>
+        <Text style={styles.coachBannerArrow}>›</Text>
+      </PressableScale>
+    ) : null;
     // 성격유형 120종(일간10×월지12·온디바이스 결정론) — 명식이 없으면 스스로 렌더하지 않는다.
     if (k === 'persona') return <PersonaTypeHero reloadKey={reloadKey} />;
     // 자기이해 히어로 — 에겐·테토 게이지 + 성격유형/MBTI/특징 클러스터(App Store 4.3 결).
