@@ -68,6 +68,8 @@ export const SECTIONS: Section[] = [
   // ★인기(daniel 07-06: '가장 많이 찾는'→'인기'로 개칭·서브타이틀 제거). 유료 유도(재회/짝사랑/취업) + 인기 무료(연애스타일·반려동물) 혼합.
   //   무료 '질문형' 원본은 '가볍게 보기'에도 그대로 있다(의도된 중복) — ★키는 고유(hot*)로 React 키 충돌 방지.
   { key: 'hot', titleKey: 'menu.secContent', items: [
+    // 재물 딥리포트(유료 EEL 딥리포트) — 인기로 배치(daniel 07-23 '재물 딥리포트도 인기로 옮겨'). NEW 배지+NEW-우선 정렬로 상단 노출.
+    { key: 'wealth', labelKey: 'menu.wealth', descKey: 'menu.wealthDesc', image: require('../../../assets/icons/wealth.jpg'), route: '/wealth', ready: true, content: true, creditKey: 'wealth' },
     { key: 'hotReunionAsk', labelKey: 'menu.reunionAsk', descKey: 'menu.reunionAskDesc', image: require('../../../assets/icons/reunion.jpg'), route: '/reunionAsk', ready: true, content: true },
     { key: 'hotCrushAsk', labelKey: 'menu.crushAsk', descKey: 'menu.crushAskDesc', image: require('../../../assets/icons/crush.jpg'), route: '/crushAsk', ready: true, content: true },
     { key: 'hotJobAsk', labelKey: 'menu.jobAsk', descKey: 'menu.jobAskDesc', image: require('../../../assets/icons/job.jpg'), route: '/jobAsk', ready: true, content: true },
@@ -89,8 +91,7 @@ export const SECTIONS: Section[] = [
     { key: 'lifegraph', labelKey: 'menu.lifegraph', descKey: 'menu.lifegraphDesc', image: require('../../../assets/icons/lifegraph.jpg'), route: '/lifegraph', ready: true, content: true, creditKey: 'lifegraph' },
     // 신규(daniel 2026-07-02): 10년 뒤 나의 모습(대운·세운 스페셜, 개별 유료).
     { key: 'future10', labelKey: 'menu.future10', descKey: 'menu.future10Desc', image: require('../../../assets/icons/future10.jpg'), route: '/future10', ready: true, content: true, creditKey: 'future10' },
-    // 신규(daniel 2026-07-22): 재물 딥리포트(EEL — 그릇/유형/시기/처방 4축·R44/R54). ★스페셜(유료 딥리포트)에 배치 = daniel 07-22 '인기 스페셜에 넣고 나에대해알기에서 빼'.
-    { key: 'wealth', labelKey: 'menu.wealth', descKey: 'menu.wealthDesc', image: require('../../../assets/icons/wealth.jpg'), route: '/wealth', ready: true, content: true, creditKey: 'wealth' },
+    // (재물 딥리포트 wealth → 인기(hot) 섹션으로 이동, daniel 07-23)
   ] },
   // 심층 분석(daniel 2026-06) — 사주/자미 깊은 해석 유료. timeResolve(태어난 시 찾기)도 자기이해 진입점으로 배치.
   { key: 'deep', titleKey: 'menu.secDeep', descKey: 'menu.secDeepDesc', items: [
