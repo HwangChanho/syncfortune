@@ -64,8 +64,7 @@ export function PersonaTypeHero({ reloadKey }: { reloadKey?: number }) {
     <PressableScale style={styles.card} onPress={() => router.push('/personatype')}>
       {/* 머리말 + 희소성(120종 중 하나) — '나에 대한 분석'이라는 프레이밍(App Store 4.3 결) */}
       <View style={styles.head}>
-        <Text style={styles.kicker}>{t('persona120.kicker', '나의 성격유형')}</Text>
-        <View style={styles.countPill}><Text style={styles.countTx}>{t('persona120.count', '120종 중')}</Text></View>
+        <Text style={styles.kicker} numberOfLines={1}>{t('persona120.kicker', '120가지 유형 중 나는 어떤 유형일까')}</Text>
       </View>
 
       <View style={styles.row}>
@@ -81,7 +80,7 @@ export function PersonaTypeHero({ reloadKey }: { reloadKey?: number }) {
         </View>
       </View>
 
-      <Text style={[styles.summary, { fontSize: fs(13.5), lineHeight: fs(20) }]} numberOfLines={3}>{persona.summary}</Text>
+      <Text style={[styles.summary, { fontSize: fs(13.5), lineHeight: fs(22) }]} numberOfLines={3}>{persona.summary}</Text>
       <Text style={styles.more}>{t('persona120.more', '자세히 보기')} ›</Text>
     </PressableScale>
   );
@@ -99,6 +98,6 @@ const styles = StyleSheet.create({
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space(1.5), marginTop: space(2) },
   chip: { backgroundColor: colors.overlay, borderWidth: 1, borderColor: colors.line, borderRadius: radius.pill, paddingHorizontal: space(2.5), paddingVertical: space(0.5) },
   chipTx: { fontSize: 11.5, fontWeight: '700', color: colors.inkSoft },
-  summary: { ...font.body, color: colors.inkSoft, marginTop: space(3) },
+  summary: { ...font.body, color: colors.inkSoft, marginTop: space(3), letterSpacing: 0.2 },
   more: { ...font.caption, color: colors.ju, fontWeight: '800', marginTop: space(2.5), textAlign: 'right' },
 });

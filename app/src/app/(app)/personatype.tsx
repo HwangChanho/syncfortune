@@ -53,8 +53,8 @@ export default function PersonaTypeScreen() {
         <ChartPicker onChange={() => loadMyChart().then(setMe)} />
         {/* 타로풍 배너(persona.jpg) 제거(daniel 2026-07-20) — 아래 성격유형 카드 이미지가 주인공이라 중복·이질. 타이틀만 유지. */}
         <ContentHero
-          title={t('persona120.title', '나의 성격유형')}
-          sub={t('persona120.sub', '일간 10 × 월지 12 = 120가지 중 나는 어떤 유형일까')}
+          title={t('persona120.title', '120가지 유형 중 나는 어떤 유형일까')}
+          sub={t('persona120.sub', '일간 10 × 월지 12로 나눈 120가지 결')}
         />
 
         {!p ? (
@@ -69,7 +69,7 @@ export default function PersonaTypeScreen() {
                 <View style={styles.chips}>
                   {p.keywords.map((k) => <View key={k} style={styles.chip}><Text style={styles.chipTx}>{k}</Text></View>)}
                 </View>
-                <Text style={[styles.typeSummary, { fontSize: fs(14), lineHeight: fs(21) }]}>{p.summary}</Text>
+                <Text style={[styles.typeSummary, { fontSize: fs(14), lineHeight: fs(24) }]}>{p.summary}</Text>
               </View>
             </Reveal>
 
@@ -101,11 +101,11 @@ const styles = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: colors.overlay },
   wrap: { padding: space(6), paddingBottom: space(12) },
   typeCard: { alignItems: 'center', backgroundColor: colors.card, borderRadius: radius.lg, borderWidth: 1.5, borderColor: colors.ju, padding: space(6), marginBottom: space(4), ...shadow.card },
-  typeName: { fontWeight: '900', color: colors.ju, letterSpacing: 0.5, textAlign: 'center' },
+  typeName: { fontWeight: '900', color: colors.ju, letterSpacing: 0.5, textAlign: 'center', marginTop: space(3.5) },
   chips: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: space(1.5), marginTop: space(2.5) },
   chip: { backgroundColor: colors.juSoft, borderWidth: 1, borderColor: colors.juLine, borderRadius: radius.pill, paddingHorizontal: space(3), paddingVertical: space(1) },
   chipTx: { fontSize: 12, fontWeight: '800', color: colors.ju },
-  typeSummary: { ...font.body, color: colors.inkSoft, textAlign: 'center', marginTop: space(3) },
+  typeSummary: { ...font.body, color: colors.inkSoft, textAlign: 'center', marginTop: space(3.5), letterSpacing: 0.2 },
   axisCard: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.juLine, padding: space(4), marginBottom: space(2.5), ...shadow.card },
   axisLabel: { ...font.caption, color: colors.ju, fontWeight: '800', letterSpacing: 0.3 },
   axisHead: { fontWeight: '900', color: colors.ink, marginTop: space(1) },
