@@ -35,6 +35,14 @@ const ko = {
     l1: '나는 어떤 사람인가 — 성격·강점', l2: '왜 내 관계는 반복되는가', l3: '어떤 일이 나에게 맞는가', l4: '올해 무엇을 준비할까',
     t4: '이렇게 분석해 드려요', pvBadge: '예시', pvType: '테토형', pvScale: '테토 63%', pvLine: '결단력 있고 주도적. 다만 가끔은 쉬어가는 여유가 큰 힘이 돼요.', pvNote: '생년월일시만 넣으면 당신만의 분석이 나와요',
   },
+  // ★App Store 4.3(스팸/중복) 대응 — '계산됨(computed)' 가시화(ComputedNote 컴포넌트가 참조).
+  //   이 앱 분석이 제네릭 호로스코프가 아니라 유저 생년월일로 알고리즘 계산된 개인 결과임을 화면에서 바로 보이게.
+  computed: {
+    title: '당신의 생년월일로 계산한 개인 명식',
+    body: '진태양시·경도·역사적 서머타임까지 보정해 만세력을 계산하고, 40여 개 고전 규칙을 이 명식에 적용해요. 누구와도 같지 않은 결과예요.',
+    badge: '내 생년월일로 계산됨',
+    more: '지장간·충·합·형, 신살, 대운(운의 흐름)까지 계산하고, 사주와 자미두수 두 전통을 교차검증해요.',
+  },
   menu: {
     lookback: '되돌아보기', lookbackDesc: '그날 운세와 내 기록을 나란히',
     myeongsik: '명식 등록', myeongsikDesc: '생년월일로 내 명식 등록·관리',
@@ -303,6 +311,14 @@ const en = {
     l1: 'Who you are — traits & strengths', l2: 'Why your relationships repeat', l3: 'What work fits you', l4: 'What to prepare this year',
     t4: "Here's how we analyze you", pvBadge: 'Sample', pvType: 'Teto type', pvScale: 'Teto 63%', pvLine: 'Decisive and driven — though a little rest now and then is your real strength.', pvNote: 'Just enter your birth details for your own analysis',
   },
+  // ★App Store 4.3 (spam/duplicate) — surface that results are COMPUTED (used by ComputedNote).
+  //   Reviewer sees the app in English, so this block must read clearly on its own.
+  computed: {
+    title: 'Computed from your exact birth data',
+    body: 'A perpetual-calendar engine (true solar time, longitude, historical DST) builds your individual chart, then 40+ codified classical rules are applied to it — no two people get the same result.',
+    badge: 'Computed from your birth data',
+    more: 'It also computes hidden stems, clashes/combinations/punishments, sinsal, and luck cycles, then cross-validates two traditions — Saju and Zi Wei Dou Shu.',
+  },
   menu: {
     lookback: 'Look back', lookbackDesc: 'Your notes next to that day\'s reading',
     myeongsik: 'Register Chart', myeongsikDesc: 'Add & manage your chart',
@@ -565,6 +581,13 @@ const ja = {
     t3: 'こんなことがわかります',
     l1: '私はどんな人か — 性格・強み', l2: 'なぜ関係が繰り返すのか', l3: 'どんな仕事が合うか', l4: '今年何を準備するか',
     t4: 'こんなふうに分析します', pvBadge: '例', pvType: 'テト型', pvScale: 'テト 63%', pvLine: '決断力があり主導的。ただ、時には休む余裕が大きな力になります。', pvNote: '生年月日時を入れるだけであなただけの分析が出ます',
+  },
+  // ★App Store 4.3(スパム/重複)対応 — 「計算されている(computed)」を可視化(ComputedNote が参照)。
+  computed: {
+    title: 'あなたの生年月日から計算した個人の命式',
+    body: '真太陽時・経度・歴史的なサマータイムまで補正して万歳暦を計算し、40あまりの古典ルールをこの命式に適用します。誰とも同じでない結果です。',
+    badge: '私の生年月日から計算',
+    more: '蔵干・冲・合・刑、神殺、大運(運の流れ)まで計算し、四柱推命と紫微斗数の二つの伝統を照らし合わせて検証します。',
   },
   menu: {
     lookback: '振り返り', lookbackDesc: 'その日の運勢と自分の記録を並べて',

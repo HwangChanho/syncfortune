@@ -16,6 +16,7 @@ import { Image as ExpoImage } from 'expo-image'; // 추천 콘텐츠 썸네일(�
 import { SECTIONS } from '../lib/content/contentSections'; // 추천 '이런 콘텐츠도 좋아하실 거예요'(하단·daniel 07-21) — 콘텐츠 단일출처
 import { PressableScale } from '../components/PressableScale';
 import { ExpiryNote } from '../components/ExpiryNote'; // 보유 만료일 공통(프리미엄 가드 한 곳)
+import { ComputedNote } from '../components/ComputedNote'; // '내 생년월일로 계산됨' 배지(App Store 4.3 대응)
 import { TTSButton } from '../components/TTSButton'; // daniel: 풀이 음성 읽기(온디바이스 TTS·무료)
 import { ShareReadingButton } from '../components/ShareReadingButton'; // daniel: 공유는 풀이 맨 끝에 균일하게(콘텐츠 화면과 동일)
 import { Alert } from '../lib/ui/alert'; // 커스텀 알림(앱 디자인)
@@ -648,6 +649,8 @@ export function ReadingScreen({
     <DoorReveal visible={doorPlaying} onDone={() => setDoorPlaying(false)} />
     <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>
       {header}
+      {/* ★상단 '계산됨' 배지 — 이 풀이가 유저 명식(생년월일 계산)에 근거함을 표시(한 줄·과밀 방지) */}
+      <ComputedNote compact />
       {/* 풀이 보유 만료일 — 공통 컴포넌트(프리미엄 가드·문구 한 곳, daniel 07-01). 생성된 풀이 있을 때만. */}
       <ExpiryNote expiry={Object.keys(readings).length > 0 ? expiry : null} chartId={chartId} />
       {/* 상단 타이틀·설명 제거(daniel: 카드뷰만) — 화면 헤더(네비)로 충분 */}

@@ -20,6 +20,7 @@ import { useFontScale } from '../../lib/ui/fontScale';
 import { ContentHero } from '../../components/SpecialContentScreen';
 import { Reveal } from '../../components/Reveal'; // 카드 순차 등장(daniel 재미)
 import { ChartPicker } from '../../components/ChartPicker';
+import { ComputedNote } from '../../components/ComputedNote'; // '내 생년월일로 계산됨' 배지(App Store 4.3 대응)
 import { ShareReadingButton } from '../../components/ShareReadingButton';
 import type { ChartInput } from '@spec/chart';
 import { useLogContentVisit } from '../../lib/backend/contentVisit'; // 콘텐츠 방문 집계 — 진입 1회 기록
@@ -56,6 +57,8 @@ export default function PersonaTypeScreen() {
           title={t('persona120.title', '120가지 유형 중 나는 어떤 유형일까')}
           sub={t('persona120.sub', '일간 10 × 월지 12로 나눈 120가지 결')}
         />
+        {/* ★타이틀 근처 '계산됨' 배지 — 이 유형이 생년월일로 계산된 개인 결과임을 표시(과밀 방지·한 줄) */}
+        <ComputedNote compact />
 
         {!p ? (
           <Text style={styles.note}>{t('persona120.empty', '명식을 등록하면 120가지 중 내 유형을 보여드려요.')}</Text>

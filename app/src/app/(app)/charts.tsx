@@ -11,6 +11,7 @@ import { useTranslation } from 'react-i18next';
 import { MyeongsikScreen } from '../../screens/MyeongsikScreen';
 import { loadMyChart, listCharts, getRepresentativeId } from '../../lib/engine/myChart';
 import { ChartPicker } from '../../components/ChartPicker';
+import { ComputedNote } from '../../components/ComputedNote'; // '내 생년월일로 계산됨' 배너(App Store 4.3 대응·가장 강한 계산 증거)
 import { ChartSkeleton } from '../../components/Skeleton'; // 로딩 중 명식 형태 스켈레톤(daniel 2026-06-28)
 import { useDeferredReady } from '../../lib/ui/useDeferredReady'; // 전환 끝난 뒤 MyeongsikScreen 마운트(멈칫 제거)
 import { colors, radius, space, font } from '../../lib/theme';
@@ -50,7 +51,11 @@ export default function ChartsScreen() {
   return (
     <MyeongsikScreen
       input={me}
-      header={<ChartPicker onChange={() => { loadMyChart().then(setMe); refreshRepName(); }} />}
+      header={<>
+        {/* ★만세력 최상단 '계산됨' 배너 — MyeongsikScreen 스크롤 콘텐츠 맨 위(header 슬롯)에 렌더. 화면당 1개. */}
+        <ComputedNote />
+        <ChartPicker onChange={() => { loadMyChart().then(setMe); refreshRepName(); }} />
+      </>}
       whoName={repName}
       onReading={() => router.navigate({ pathname: '/reading', params: { input: JSON.stringify(me) } })}
     />

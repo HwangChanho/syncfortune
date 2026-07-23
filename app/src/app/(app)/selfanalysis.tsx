@@ -17,6 +17,7 @@ import { egenTeto } from '../../lib/content/egenTeto';
 import { personaFromRepChart } from '../../components/PersonaTypeHero'; // 성격유형=120종 단일화(daniel 2026-07-20) — 홈 히어로와 같은 함수 재사용(드리프트 0·computeChart 캐시히트)
 import { sajuMbti } from '../../lib/content/sajuMbti';
 import { colors, space, radius, font, shadow } from '../../lib/theme';
+import { ComputedNote } from '../../components/ComputedNote'; // '내 생년월일로 계산됨' 배지(App Store 4.3 대응)
 
 // 에겐↔테토 게이지(egenteto.tsx EgenBar 동일 톤)
 function EgenBar({ score }: { score: number }) {
@@ -78,6 +79,8 @@ export default function SelfAnalysisRoute() {
       <Text style={styles.kicker}>{t('selfAnalysis.kicker', '사주 엔진이 분석한 나')}</Text>
       <Text style={styles.title}>{label ? `${label}${t('selfAnalysis.titleSuffix', '님 분석')}` : t('selfAnalysis.title', '나 분석')}</Text>
       <Text style={styles.sub}>{t('selfAnalysis.sub', '타고난 사주를 엔진으로 계산한 다섯 갈래 자기분석 — 운세가 아니라 나를 이해하는 지표예요.')}</Text>
+      {/* ★타이틀 근처 '계산됨' 배지 — 이 자기분석이 생년월일로 계산된 개인 결과임을 표시(한 줄·과밀 방지) */}
+      <ComputedNote compact />
 
       {/* ① 에겐 ↔ 테토 성향 */}
       <PressableScale style={styles.card} onPress={() => router.push('/egenteto')}>
