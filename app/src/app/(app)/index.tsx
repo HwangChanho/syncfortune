@@ -22,6 +22,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../lib/useAuth';
 import { useEffect, useRef, useMemo, useState, useCallback } from 'react';
 import { supabase } from '../../lib/supabase';
+import { excludeMock } from '../../lib/core/testMode'; // ★홈 배너 daily 캐시서 목업 제외(OFF) — 실모드서 '목업 자리표시' 노출 방지(daniel 07-23 신고)
 import { ChartPicker } from '../../components/ChartPicker';
 import { SelfUnderstandingHero } from '../../components/SelfUnderstandingHero'; // ★4.3: 홈 최상단 자기이해 히어로(성향분석 첫 경험)
 import { PersonaTypeHero } from '../../components/PersonaTypeHero'; // ★홈 주인공 ①: 성격유형 120종(daniel 07-18 IA 개편)
@@ -138,8 +139,8 @@ export default function Home() {
       if (session && rep.serverChartId) {
         try {
           const cats = fortunes.map((f) => `daily_${f.date.replace(/-/g, '')}`);
-          const { data } = await supabase.from('readings')
-            .select('category, content').eq('chart_id', rep.serverChartId).eq('lang', appLang()).in('category', cats);
+          const { data } = await excludeMock(supabase.from('readings')
+            .select('category, content').eq('chart_id', rep.serverChartId).eq('lang', appLang()).in('category', cats));
           if (!alive || !data?.length) return;
           const byCat: Record<string, Record<string, string>> = {};
           for (const r of data as { category: string; content: Record<string, string> }[]) byCat[r.category] = r.content;

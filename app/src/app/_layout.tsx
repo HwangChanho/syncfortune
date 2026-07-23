@@ -18,6 +18,7 @@ import { migrateLocalCreditsOnLogin } from '../lib/billing/migrateCredits'; // �
 import { preferSelfAsRep, syncChartsFromServer, subscribeRepChange } from '../lib/engine/myChart'; // 대표 명식=본인 + 명식 멀티기기 동기화(포그라운드 복귀 시) + 대표 변경 구독(테마 반영)
 import { hydrateGenProgress } from '../lib/backend/genProgress'; // 앱 시작 시 진행중/미확인 풀이 복원 → 홈 배너(daniel: 강제종료 생존)
 import { initAds, setAdTestMode } from '../lib/core/ads'; // AdMob 초기화 + 테스트광고 모드(관리자/테스트=실 유닛 서빙 전이라 구글 테스트광고로, daniel)
+import { setClientTestMode } from '../lib/core/testMode'; // ★클라 테스트모드 캐시 → readings 목업(tier='mock') 필터 판정(OFF서 목업 새어나감 방지, daniel 07-23)
 import { supabase } from '../lib/supabase'; // 세션 유저 test_mode·is_admin → 테스트광고 게이트
 import { FontScaleProvider } from '../lib/ui/fontScale'; // 전역 글자 크기(설정에서 조절)
 import { colors, getLoadingMode } from '../lib/theme'; // getLoadingMode: 인트로 화면 모드 video(호랑이)/text(八字)/off(없음, daniel 07-15)
@@ -62,12 +63,13 @@ export default function RootLayout() {
   // ★테스트광고 게이트(daniel) — 관리자/테스트 계정은 실 AdMob 유닛 서빙 전이라 구글 테스트광고를 보게(배너·보상형·전면 동작 확인용).
   //   세션 바뀔 때마다 test_mode·is_admin 재평가. 일반 유저는 false(실 유닛, 앱 출시 후 서빙).
   useEffect(() => {
-    if (!session) { setAdTestMode(false); setLogTestContext(false); return; }
+    if (!session) { setAdTestMode(false); setClientTestMode(false); setLogTestContext(false); return; }
     supabase.auth.getUser().then(({ data }) => {
-      if (!data.user) { setAdTestMode(false); setLogTestContext(false); return; }
+      if (!data.user) { setAdTestMode(false); setClientTestMode(false); setLogTestContext(false); return; }
       supabase.from('profiles').select('test_mode, is_admin, admin_mode').eq('id', data.user.id).maybeSingle()
         .then(({ data: p }) => {
           setAdTestMode(!!p?.test_mode); // 테스트모드 토글 ON 시에만 테스트광고+게이트(평소 관리자 편의)
+          setClientTestMode(!!p?.test_mode); // ★readings 목업 필터 소스 — OFF면 direct 로드가 tier='mock' 제외(실모드 목업 서빙 차단)
           setLogTestContext(!!p?.test_mode || !!p?.is_admin || !!p?.admin_mode); // ★로그 test 태그 = 관리자/테스트 계정(실사용자 로그와 분리)
         });
     }).catch(() => {});

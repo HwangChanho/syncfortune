@@ -17,6 +17,7 @@ import { useFontScale } from '../lib/ui/fontScale';
 import { setGenProgress } from '../lib/backend/genProgress'; // 일회성 진행도(daniel 이슈15)
 import { acquireGen, releaseGen, isGenActive } from '../lib/backend/genLock'; // 크로스마운트 이중 생성 잠금(② 이중 LLM 방지)
 import { supabase } from '../lib/supabase';
+import { excludeMock } from '../lib/core/testMode'; // ★목업(tier='mock') 제외(테스트모드 OFF) — 실모드 목업 서빙 차단
 import { ensureServerChartId } from '../lib/backend/prewarmReadings';
 import { invokeFail } from '../lib/backend/interpretResult'; // 방어: 일시적 불가/오류 친화 처리
 import { getRepresentativeId } from '../lib/engine/myChart'; // 대표 명식 여부(자동생성 한정)
@@ -135,7 +136,7 @@ export function TimelineScreen({ input, savedChart }: { input: ChartInput | null
       if (!alive || !id) return;
       setChartId(id);
       chartIdRef.current = id;   // ① 현재 명식 확정 — 이후 gen 결과의 명식 대조 기준
-      const { data } = await supabase.from('readings').select('category, content, created_at').eq('chart_id', id).eq('lang', appLang());
+      const { data } = await excludeMock(supabase.from('readings').select('category, content, created_at').eq('chart_id', id).eq('lang', appLang()));
       if (!alive) return;
       const loaded: Record<string, any> = {};
       const created: Record<string, string> = {}; // 기간별 생성일(보유 만료일 계산용·daniel #25)

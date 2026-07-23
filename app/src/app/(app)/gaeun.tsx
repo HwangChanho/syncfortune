@@ -23,6 +23,7 @@ import { isAdmin } from '../../lib/core/admin';
 import { requireLoginForPurchase } from '../../lib/billing/requireLogin';
 import { assertOnline } from '../../lib/backend/network';
 import { supabase } from '../../lib/supabase';
+import { excludeMock } from '../../lib/core/testMode'; // ★목업(tier='mock') 제외(테스트모드 OFF) — 실모드 목업 서빙 차단
 import { appLang } from '../../lib/i18n';
 import { readingFromInvoke } from '../../lib/backend/interpretResult';
 import { logEvent } from '../../lib/backend/logger';
@@ -95,7 +96,7 @@ export default function GaeunScreen() {
       if (!alive || !id) { setLoaded(true); return; }
       setChartId(id);
       chartIdRef.current = id;   // ① 현재 명식 확정 — 이후 도착하는 generate 결과의 명식 대조 기준
-      const { data } = await supabase.from('readings').select('content').eq('chart_id', id).eq('category', 'gaeun').eq('lang', appLang()).maybeSingle();
+      const { data } = await excludeMock(supabase.from('readings').select('content').eq('chart_id', id).eq('category', 'gaeun').eq('lang', appLang())).maybeSingle();
       if (!alive) return;
       setReading(data?.content ?? null);
       setLoaded(true);

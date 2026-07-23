@@ -10,6 +10,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from '../supabase';
+import { excludeMock } from '../core/testMode'; // ★존재체크서 목업(tier='mock') 제외(OFF) — 목업을 '이미 있음'으로 오인해 실 생성 스킵 방지
 import { computeChart } from '../engine/engine';
 import { setServerChartId, type SavedChart } from '../engine/myChart';
 import { appLang } from '../i18n'; // 통변 출력 언어(앱 언어)
@@ -90,7 +91,7 @@ export async function prewarmReadings(savedChart: SavedChart, session: Session):
       ...((c.ziwei?.palaces as any[]) ?? []).map((p) => ({ key: p.name as string, kind: 'ziwei' as const })),
     ];
     // 이미 캐시된 영역 제외(멱등 — 비용 방어. Edge 도 요청마다 캐시 선확인 = 이중 생성 없음)
-    const { data } = await supabase.from('readings').select('category').eq('chart_id', id).eq('lang', appLang());
+    const { data } = await excludeMock(supabase.from('readings').select('category').eq('chart_id', id).eq('lang', appLang()));
     const have = new Set((data ?? []).map((r: any) => r.category));
     const missing = all.filter((x) => !have.has(x.key));
     const sajuTodo = missing.filter((m) => m.kind === 'saju').map((m) => ({ key: m.key, label: m.key }));
@@ -125,7 +126,7 @@ export async function prewarmDaily(savedChart: SavedChart, session: Session): Pr
     for (let off = 0; off < 2; off++) {                          // 오늘(0)·내일(1)
       const f = getDailyFortune(off);
       const category = `daily_${f.date.replace(/-/g, '')}`;       // today.tsx와 동일 캐시 키(daily_YYYYMMDD)
-      const { data: have } = await supabase.from('readings').select('category').eq('chart_id', id).eq('category', category).eq('lang', appLang()).maybeSingle();
+      const { data: have } = await excludeMock(supabase.from('readings').select('category').eq('chart_id', id).eq('category', category).eq('lang', appLang())).maybeSingle();
       if (have) continue;                                         // 이미 캐시 — 재생성 안 함(비용 0)
       const { data: res } = await supabase.functions.invoke('interpret', {
         body: { chartId: id, category, kind: 'daily', gz: f.dayGanZhi, tier: 'paid', lang: appLang(), ...(savedChart.context ? { context: savedChart.context } : {}) },

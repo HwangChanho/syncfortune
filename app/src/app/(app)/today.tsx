@@ -25,6 +25,7 @@ import { useSubscription } from '../../lib/billing/subscription';
 import { autoGenWithChartConfirm } from '../../lib/ui/confirmChart'; // 자동생성 전 명식 확인(명식 2개+ 일 때, daniel 07-13)
 import { showRewardedAd } from '../../lib/core/ads'; // 보상형 광고 1회 = 그날 통변 생성(무료)
 import { supabase } from '../../lib/supabase';
+import { excludeMock } from '../../lib/core/testMode'; // ★목업(tier='mock') 제외(테스트모드 OFF) — 실모드 목업 서빙 차단
 import { appLang } from '../../lib/i18n';
 import { logEvent } from '../../lib/backend/logger';
 import { invokeFail } from '../../lib/backend/interpretResult'; // 방어: 일시적 불가/오류 친화 처리
@@ -85,7 +86,7 @@ export default function TodayScreen() {
       const id = await ensureServerChartId(c, ch.input, session, ch);
       if (!alive || !id) { setLoaded(true); return; }
       setChartId(id);
-      const { data } = await supabase.from('readings').select('content').eq('chart_id', id).eq('category', category).eq('lang', appLang()).maybeSingle();
+      const { data } = await excludeMock(supabase.from('readings').select('content').eq('chart_id', id).eq('category', category).eq('lang', appLang())).maybeSingle();
       if (!alive) return;
       const cached = (data?.content as Record<string, string> | undefined) ?? null;
       setReading(cached);

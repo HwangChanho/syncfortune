@@ -5,6 +5,7 @@
 //   교차작용(cross)·일간관계(dayRel)는 온디바이스(engine)에서 계산해 body로 전달(Edge는 engine 미보유).
 // ─────────────────────────────────────────────────────────────────────────
 import { supabase } from '../supabase';
+import { excludeMock } from '../core/testMode'; // ★목업(tier='mock') 제외(테스트모드 OFF) — 실모드 목업 서빙 차단
 import { appLang } from '../i18n'; // 궁합 통변 언어(앱 언어)
 import { invokeFail } from '../backend/interpretResult'; // 방어: LLM 일시적 불가 메시지 정규화
 
@@ -143,7 +144,7 @@ export function otherSig(otherSaju: any): string {
 /** 이 상대(sig)에 대해 이미 생성된 관계별 통변 로드 → rel 별 맵. */
 export async function loadCompatReadings(chartId: string, sig: string): Promise<Record<string, CompatReading>> {
   // 사주(compat_) + 자미(compatzw_) 둘 다 로드 → 키에 탭 접두(daniel: 사주/자미 분리 탭). 키 = `${tab}:${rel}[_y{YYYY}]`
-  const { data } = await supabase.from('readings').select('category, content').eq('chart_id', chartId).like('category', 'compat%').eq('lang', appLang());
+  const { data } = await excludeMock(supabase.from('readings').select('category, content').eq('chart_id', chartId).like('category', 'compat%').eq('lang', appLang()));
   const out: Record<string, CompatReading> = {};
   (data ?? []).forEach((r: any) => {
     const parts = String(r.category).split('_');               // compat|compatzw _ rel _ sig [_ y{YYYY}=연도별]

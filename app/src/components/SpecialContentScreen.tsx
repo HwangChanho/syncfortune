@@ -31,6 +31,7 @@ import { requireLoginForPurchase } from '../lib/billing/requireLogin';
 import { confirmReadingChart, autoGenWithChartConfirm } from '../lib/ui/confirmChart'; // 생성 전 명식 확인(수동=항상 / 자동=명식 2개+ 일 때)
 import { assertOnline } from '../lib/backend/network';
 import { supabase } from '../lib/supabase';
+import { excludeMock } from '../lib/core/testMode'; // ★목업(tier='mock') 제외(테스트모드 OFF) — 실모드 목업 서빙 차단
 import { appLang } from '../lib/i18n';
 import { readingFromInvoke } from '../lib/backend/interpretResult'; // 방어: Edge 응답 정규화(일시적 불가·결제필요·오류)
 import { logEvent } from '../lib/backend/logger';
@@ -140,7 +141,7 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
       //   ★premiumCovered(자식운 등 프리미엄 포함 콘텐츠)만 프리미엄을 소유로 인정 — 스페셜(astrology/mission 등 기본값)은 프리미엄 무관(관리자/크레딧 전용) 그대로.
       const prem = premiumCovered && isPremiumForChart(id);
       const own = prem || (await isAdmin()) || (await isUnlocked(id, kind));
-      const { data } = await supabase.from('readings').select('content, created_at').eq('chart_id', id).eq('category', category).eq('lang', appLang()).maybeSingle();
+      const { data } = await excludeMock(supabase.from('readings').select('content, created_at').eq('chart_id', id).eq('category', category).eq('lang', appLang())).maybeSingle();
       if (!alive) return;
       const cached = data?.content ?? null;
       setOwned(own);
@@ -187,7 +188,7 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
     const deadline = Date.now() + maxMs;
     while (Date.now() < deadline) {
       await new Promise((r) => setTimeout(r, everyMs));
-      const { data } = await supabase.from('readings').select('content').eq('chart_id', id).eq('category', category).eq('lang', appLang()).maybeSingle();
+      const { data } = await excludeMock(supabase.from('readings').select('content').eq('chart_id', id).eq('category', category).eq('lang', appLang())).maybeSingle();
       if (data?.content) return data.content;
     }
     return null;

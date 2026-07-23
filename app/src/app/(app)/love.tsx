@@ -23,6 +23,7 @@ import { requireLoginForPurchase } from '../../lib/billing/requireLogin';
 import { confirmReadingChart } from '../../lib/ui/confirmChart'; // 생성 전 명식 확인 + 보유 이용권 안내(daniel)
 import { assertOnline } from '../../lib/backend/network';
 import { supabase } from '../../lib/supabase';
+import { excludeMock } from '../../lib/core/testMode'; // ★목업(tier='mock') 제외(테스트모드 OFF) — 실모드 목업 서빙 차단
 import { appLang } from '../../lib/i18n';
 import { readingFromInvoke } from '../../lib/backend/interpretResult'; // 방어: Edge 응답 정규화(일시적 불가·결제필요·오류 친화 처리)
 import { logEvent } from '../../lib/backend/logger'; // DB 로그(app_logs) — 단계별 추적(네이티브 크래시 직전 지점)
@@ -131,7 +132,7 @@ export default function LoveScreen() {
       setChartId(id);
       chartIdRef.current = id;   // ① 현재 명식 확정 — 이후 도착하는 generate 결과의 명식 대조 기준
 
-      const { data } = await supabase.from('readings').select('content, created_at').eq('chart_id', id).eq('category', 'love').eq('lang', appLang()).maybeSingle();
+      const { data } = await excludeMock(supabase.from('readings').select('content, created_at').eq('chart_id', id).eq('category', 'love').eq('lang', appLang())).maybeSingle();
       if (!alive) return;
       // 방어(daniel: 풀이가 'true'로 뜨던 버그) — 캐시 content가 정상 통변 '객체'가 아니거나(boolean·배열·문자열),
       //   error 플래그가 박힌 비정상 저장분이면 무효 처리 → 재생성 유도(이전 실패 응답이 캐시에 굳어 String(error)='true'로 노출되던 것 차단).
@@ -163,7 +164,7 @@ export default function LoveScreen() {
     const deadline = Date.now() + maxMs;
     while (Date.now() < deadline) {
       await new Promise((r) => setTimeout(r, everyMs));
-      const { data } = await supabase.from('readings').select('content').eq('chart_id', id).eq('category', 'love').eq('lang', appLang()).maybeSingle();
+      const { data } = await excludeMock(supabase.from('readings').select('content').eq('chart_id', id).eq('category', 'love').eq('lang', appLang())).maybeSingle();
       if (data?.content) return data.content;
     }
     return null;

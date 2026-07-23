@@ -15,6 +15,7 @@ import { colors, radius, space, shadow, font } from '../../lib/theme';
 import { useRouter } from 'expo-router'; // 비용분석 화면 이동
 import { supabase } from '../../lib/supabase'; // 테스트/관리자 모드 RPC + 프로필 로드
 import { setAdTestMode } from '../../lib/core/ads'; // 테스트모드 → 테스트광고 즉시 반영
+import { setClientTestMode } from '../../lib/core/testMode'; // 테스트모드 토글 → readings 목업 필터 즉시 반영(OFF서 mock 제외)
 import { sendDailyTipNow } from '../../lib/backend/notifications'; // ★일운 아침 알림 즉시 발송(관리자 테스트·daniel 07-14)
 import { isOnboardingEnabled, setOnboardingEnabled } from '../../components/Onboarding'; // ★관리자 온보딩 토글(daniel 07-12)
 import { remoteFlagValue, setAppFlag, loadFeatures, type FeatureKey } from '../../lib/core/features'; // ★신규 기능 공개 토글(속궁합/커뮤니티/위젯 — 심사 통과 후 전 유저 공개)
@@ -326,7 +327,7 @@ export default function AdminRoute() {
       </PressableScale>
       <PressableScale style={[styles.adminLink, testMode && styles.adminLinkOn]} onPress={async () => {
         const next = !testMode;
-        try { const { data } = await supabase.rpc('set_my_test_mode', { p_on: next }); if (data === true) { setTestMode(next); setAdTestMode(next); } } catch { /* 무시 */ }
+        try { const { data } = await supabase.rpc('set_my_test_mode', { p_on: next }); if (data === true) { setTestMode(next); setAdTestMode(next); setClientTestMode(next); } } catch { /* 무시 */ }
       }}>
         <Text style={styles.adminLinkTx}>테스트 모드 {testMode ? '— 켜짐 (통변 mock·API 미호출)' : '— 꺼짐'}</Text>
       </PressableScale>

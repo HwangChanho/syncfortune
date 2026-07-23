@@ -26,6 +26,7 @@ import { useTranslation } from 'react-i18next';
 import { computeChart } from '../lib/engine/engine';
 import { useAuth } from '../lib/useAuth';
 import { supabase } from '../lib/supabase';
+import { excludeMock } from '../lib/core/testMode'; // ★16영역 캐시 로드서 목업 제외(OFF)/유지(ON) — test ON은 generate_set 구조표시 보존
 // 완료 푸시는 genProgress(setGenProgress 완료 전이)에서 중앙 처리(daniel ⑨ — 모든 풀이 공통)
 import { setGenProgress, useGenProgress, clearGenProgress, clearGenByChart } from '../lib/backend/genProgress'; // 홈 진행률 + 완료 구독 + 진입 시 배너 제거(daniel: 완성 배너 안 사라짐). clearGenByChart=쿼리 무관 robust 제거(07-22 근본수정)
 import { isReadingUnlocked } from '../lib/billing/unlocks'; // 서버 권위 세트 언락(P3) — 이미 열렸으면 무료 재생성
@@ -203,7 +204,7 @@ export function ReadingScreen({
       if (!alive || !id) { if (alive) setCacheLoaded(true); return; }
       setChartId(id);
       isReadingUnlocked(id, kind === 'ziwei' ? 'ziwei' : 'reading').then((u) => { if (alive) { setUnlocked(u); setUnlockedLoaded(true); } }).catch(() => { if (alive) setUnlockedLoaded(true); }); // #1 표시 게이트용 세트 언락 로드(+완료 플래그)
-      const { data } = await supabase.from('readings').select('category, content, l2_ver, created_at').eq('chart_id', id).eq('lang', appLang());
+      const { data } = await excludeMock(supabase.from('readings').select('category, content, l2_ver, created_at').eq('chart_id', id).eq('lang', appLang()));
       if (!alive) return;
       const keys = new Set(cats.map((x) => x.key));   // 이 화면 항목(사주/자미)만 반영
       const loaded: Record<string, any> = {};
@@ -239,7 +240,7 @@ export function ReadingScreen({
   useEffect(() => {
     if (!chartId) return;
     let alive = true;
-    supabase.from('readings').select('category, content').eq('chart_id', chartId).eq('lang', appLang()).then(({ data }) => {
+    excludeMock(supabase.from('readings').select('category, content').eq('chart_id', chartId).eq('lang', appLang())).then(({ data }) => {
       if (!alive) return;
       const upd: Record<string, any> = {};
       (data ?? []).forEach((r: any) => { if (cats.some((c) => c.key === r.category)) upd[r.category] = r.content; });
@@ -258,7 +259,7 @@ export function ReadingScreen({
     if (!chartId || !savedChart) return;
     let alive = true;
     const gpRoute = `/reading?kind=${kind === 'ziwei' ? 'ziwei' : 'saju'}&chartId=${savedChart.id}`;
-    const refetch = () => supabase.from('readings').select('category, content').eq('chart_id', chartId).eq('lang', appLang()).then(({ data }) => {
+    const refetch = () => excludeMock(supabase.from('readings').select('category, content').eq('chart_id', chartId).eq('lang', appLang())).then(({ data }) => {
       if (!alive || !data) return;
       setReadings((prev) => { const u = { ...prev }; (data as any[]).forEach((r) => { if (cats.some((cc) => cc.key === r.category)) u[r.category] = r.content; }); return u; });
     });

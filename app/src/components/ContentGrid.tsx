@@ -20,6 +20,7 @@ import { Alert } from '../lib/ui/alert';
 import { useAuth } from '../lib/useAuth';
 import { useFeatureOn } from '../lib/core/features'; // 신규 기능 노출 게이트(속궁합 등 — 원격 플래그+관리자, 재제출 안전판)
 import { supabase } from '../lib/supabase';
+import { excludeMock } from '../lib/core/testMode'; // ★풀이 배지(기존 풀이 유무)서 목업 제외(OFF) — 목업을 '풀이함'으로 오인 방지
 import { showRewardedAd, adTestMode } from '../lib/core/ads'; // 무료 온디바이스 콘텐츠 진입 보상형 광고
 import { isAdmin } from '../lib/core/admin';                  // 관리자·프리미엄 = 무료 진입 광고 제외
 import { useSubscription } from '../lib/billing/subscription';
@@ -111,9 +112,9 @@ export function ContentGrid({ showViewToggle = true }: { showViewToggle?: boolea
     let alive = true;
     (async () => {
       const cr = await loadCredits().catch((): Record<string, number> => ({}));
-      const { data } = await supabase
+      const { data } = await excludeMock(supabase
         .from('readings').select('category, created_at')
-        .eq('chart_id', repServerChartId).eq('lang', appLang());
+        .eq('chart_id', repServerChartId).eq('lang', appLang()));
       if (!alive) return;
       setCredits(cr);
       setReadingRows((data ?? []) as { category: string; created_at: string }[]);
