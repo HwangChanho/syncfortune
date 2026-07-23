@@ -29,7 +29,7 @@ import { BiorhythmCard } from '../../components/BiorhythmCard'; // 홈 블록: �
 import { LuckyTodayCard } from '../../components/LuckyTodayCard'; // 홈 블록: 오늘의 행운(07-22 코드큐·온디바이스·luckyItem 재사용·API 0)
 import { TodayRelationCard } from '../../components/TodayRelationCard'; // 오늘의 관계 — 궁합을 매일 여는 화면으로(리텐션 07-20)
 import { TigerMascot } from '../../components/TigerMascot'; // 아기 백호 브랜드 마스코트(모션) — 홈 헤더 타이틀 좌측
-import { getDailyFortune, dailyHeadline, dailyPreview, scoreFlow, dailyEnergy, energyReason, ENERGY_LABEL, type DailyEnergy } from '../../lib/content/dailyFortune';
+import { getDailyFortune, dailyHeadline, getDailyReading, scoreFlow, dailyEnergy, energyReason, ENERGY_LABEL, type DailyEnergy } from '../../lib/content/dailyFortune';
 import { ScoreFlowGraph } from '../../components/ScoreFlowGraph'; // 오늘 기운 점수 흐름 그래프(홈, daniel 07-13)
 import { stemElement, branchElement, elementColor, elementText } from '../../lib/engine/ohaeng'; // 오늘의 기운 = 오행색 네모 한자
 import { useGenProgress, clearGenProgress } from '../../lib/backend/genProgress'; // 풀이 진행률(다중·route별, 풀이중 홈 나가도 % — daniel)
@@ -122,9 +122,12 @@ export default function Home() {
       try {
         setEnergies(fortunes.map((f) => dailyEnergy(saju, f.dayGanZhi[0] as Stem, f.dayGanZhi[1] as Branch)));
       } catch { setEnergies([null, null]); }
+      // ★홈 배너 본문 = 상세(/today)와 동일 소스(getDailyReading 통합 첫문장)로 통일 — 주제/내용 정합(daniel 07-23).
+      //   기존 dailyPreview(별도 2문장 조합 풀)는 상세 본문(getDailyReading 5분야)과 달라 '홈≠상세' 어긋남 → 상세 통합의 teaser로 교체.
+      //   룰·LLM 두 경우 모두 general(통합) 첫문장을 쓰므로 홈은 언제나 상세의 미리보기가 된다. firstSentence 는 아래 LLM 병합과 공용.
+      const firstSentence = (s: string) => { const tx = (s || '').trim(); const m = tx.match(/^[\s\S]*?[.!?。]\s/); return (m ? m[0] : tx).trim(); };
       const calc = (f: typeof fortunes[number]) => ({
-        // 미리보기 본문 = 조합형(매일·오늘≠내일 다르게, API 0). 상세 화면은 전체 풀이(dailyChartReadings) 별도.
-        prose: dailyPreview(saju, f.dayGanZhi[0] as Stem, f.dayGanZhi[1] as Branch),
+        prose: firstSentence(getDailyReading(saju, f.dayGanZhi[0] as Stem, f.dayGanZhi[1] as Branch, 'day').general),
         headline: dailyHeadline(saju, f.dayGanZhi[0] as Stem, f.dayGanZhi[1] as Branch),
       });
       const base = [calc(fortunes[0]), calc(fortunes[1])];
@@ -140,8 +143,7 @@ export default function Home() {
           if (!alive || !data?.length) return;
           const byCat: Record<string, Record<string, string>> = {};
           for (const r of data as { category: string; content: Record<string, string> }[]) byCat[r.category] = r.content;
-          // 통합(general) 첫 문장만 뽑아 배너 teaser 로(상세 본문과 같은 소스 → 톤 정합). numberOfLines=3 이 넘치면 클램프.
-          const firstSentence = (s: string) => { const tx = (s || '').trim(); const m = tx.match(/^[\s\S]*?[.!?。]\s/); return (m ? m[0] : tx).trim(); };
+          // 통합(general) 첫 문장만 뽑아 배너 teaser 로(상세 본문과 같은 소스 → 톤 정합·firstSentence 는 위에서 정의). numberOfLines=3 이 넘치면 클램프.
           const merged = fortunes.map((f, i) => {
             const c = byCat[`daily_${f.date.replace(/-/g, '')}`];
             if (!c?.headline) return base[i]; // 그 날 LLM 통변 없으면 룰 유지(오늘만 있고 내일은 보통 없음)
