@@ -99,16 +99,23 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
   const [year, setYear] = useState('');                          // '' = 원국(관계 본바탕) / 'YYYY' = 그 해 흐름
   const [compatTab] = useState<'saju' | 'ziwei'>('saju'); // ★탭 제거(daniel 2026-07-15) — 항상 'saju'(=사주+자미 합친 'compat' 통변). setter 미사용.
   const [readings, setReadings] = useState<Record<string, CompatReading>>({});
+  // ★pay-once-per-pair(daniel 2026-07-22): 이 페어를 *반대 방향*으로 이미 결제한 관계(대표를 바꿔 A×B→B×A 로 본 경우).
+  //   서버가 결제 권위(역방향 무료 인식)라 표시용 readings 엔 안 섞고(반대 방향 통변은 나/상대 관점이 뒤집힘), '보유' 배지 정합에만 쓴다.
+  const [pairOwnedRels, setPairOwnedRels] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState<string | null>(null);         // 생성 중 키(rel 또는 rel_yYYYY)
   const [loading, setLoading] = useState(false);                 // 재진입 시 캐시 로딩 중 — 자물쇠 대신 스피너(daniel ⑦ 완료 감지)
   const [pair, setPair] = useState<{ me: any; other: any } | null>(null);
   const [compat, setCompat] = useState<CompatScoreResult | null>(null); // 궁합 점수·등급(결정론 — 통변과 별개로 항상)
-  const [ctx, setCtx] = useState<{ chartId: string; sig: string; cross: string[]; dayRel: string; meZiwei: any; otherZiwei: any; numMe?: any; numOther?: any } | null>(null); // 연도별 추가 생성 컨텍스트(+수비학 보조)
+  const [ctx, setCtx] = useState<{ chartId: string; sig: string; cross: string[]; dayRel: string; meZiwei: any; otherZiwei: any; numMe?: any; numOther?: any; otherChartId?: string } | null>(null); // 연도별 추가 생성 컨텍스트(+수비학 보조) · otherChartId=상대 서버 명식(pay-once-per-pair 역방향 결제 인식)
   const YEARS = Array.from({ length: 43 }, (_, i) => new Date().getFullYear() - 2 + i); // 연도별 옵션(올해-2~+40 전체 — 드롭다운 스크롤·daniel K)
   const [yearOpen, setYearOpen] = useState(false);              // 년도 선택 드롭다운(전체 년도 스크롤 리스트)
   const [relOpen, setRelOpen] = useState(false);                // ② 관계 선택 드롭다운(관계별 개별 결제·daniel 2026-07-22)
   // 이미 구매(생성)된 관계 집합 — readings 키 `{tab}:{rel}[_y{YYYY}]` 에서 rel 추출(연도 무관). 서버도 (rel+sig)로 게이트(같은 관계 무료).
-  const ownedRels = new Set(Object.keys(readings).map((k) => (k.split(':')[1] ?? '').replace(/_y\d+$/, '')).filter(Boolean));
+  //   + pay-once-per-pair: 반대 방향으로 이미 결제한 관계(pairOwnedRels)도 '보유'로(대표를 바꿔도 재결제 안 됨 — 서버가 무료 인식).
+  const ownedRels = new Set([
+    ...Object.keys(readings).map((k) => (k.split(':')[1] ?? '').replace(/_y\d+$/, '')).filter(Boolean),
+    ...pairOwnedRels,
+  ]);
   const [showDetail, setShowDetail] = useState(false);           // 글자 작용 상세 접이식
   const [active, setActive] = useState<Set<string>>(new Set());
   // 궁합 추가질문(관계유형/연도 키별) — 사주·자미 풀이와 동일(무료 1회 + 건당 결제)
@@ -183,10 +190,29 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
     if (!chartId) { setLoading(false); return; }
     const sig = otherSig(otherC.saju);
     const cross = crossDetails(meC.saju, otherC.saju);          // 교차작용(통변 근거 — 쉬운 말로 번역)
-    setCtx({ chartId, sig, cross, dayRel: dx.dayMasterRelation.detail, meZiwei: meC.ziwei, otherZiwei: otherC.ziwei, numMe, numOther }); // 연도별 추가 생성용(+수비학 보조)
+    setCtx({ chartId, sig, cross, dayRel: dx.dayMasterRelation.detail, meZiwei: meC.ziwei, otherZiwei: otherC.ziwei, numMe, numOther }); // 연도별 추가 생성용(+수비학 보조) · otherChartId는 아래 백그라운드에서 채움
     const cached = await loadCompatReadings(chartId, sig);
     setReadings(cached);
+    setPairOwnedRels(new Set()); // 새 페어 진입 — 역방향 보유는 아래 백그라운드에서 다시 채운다(이전 페어 배지 잔존 방지)
     setLoading(false); // 캐시 로드 완료 — 준비된 관계는 바로 표시(나머지는 genAll이 백그라운드)
+
+    // ★pay-once-per-pair(daniel 2026-07-22) — 상대 서버 chart_id + 역방향 보유관계를 백그라운드로 확보(초기 표시 지연 없음).
+    //   · otherChartId: Edge 가 역방향(대표를 바꿔 본 같은 페어) 결제를 인식하도록 runCompatGen 에서 전달.
+    //     ensureServerChartId 는 (owner·relation·natal 지문) canonical → '상대'로 부를 때도 그 명식이 '대표'였을 때와 같은 id → 같은 페어 매칭.
+    //   · reverseOwned: 반대 방향 카테고리(상대 chart_id 에 '나' 서명으로 저장)로 이미 결제한 관계 → '보유' 배지 정합.
+    //     ⚠️ 반대 방향 통변 content 는 표시용 readings 에 넣지 않는다(나/상대 관점이 뒤집혀 있음 — 결제 배지만).
+    const myGen = genSeq.current; // 쌍 전환 감지(도중 pair 바뀌면 폐기)
+    (async () => {
+      try {
+        const otherChartId = otherSel ? ((await ensureServerChartId(otherC, otherInput, session, otherSel)) ?? undefined) : undefined;
+        if (myGen !== genSeq.current) return;                           // 쌍 전환됨 → 폐기(옛 페어 결과 오염 방지)
+        const myServerSig = otherSig(meC.saju);                         // 상대 chart 에 '나'가 저장된 서명(= 반대 방향 카테고리의 sig)
+        const reverseOwned = otherChartId ? await loadCompatReadings(otherChartId, myServerSig) : {};
+        if (myGen !== genSeq.current) return;
+        setCtx((c) => (c ? { ...c, otherChartId } : c));               // 생성 시 Edge 로 전달할 상대 명식 id 보관
+        setPairOwnedRels(new Set(Object.keys(reverseOwned).map((k) => (k.split(':')[1] ?? '').replace(/_y\d+$/, '')).filter(Boolean)));
+      } catch { /* 역방향 배선 실패 = 정방향만(서버가 결제 권위라 무료 오인 없음) */ }
+    })();
 
     // ★비용 보호(daniel J/L): 진입 시 9종을 자동 생성하지 않는다(genAll 제거 = 비용 폭탄 차단).
     //   캐시된 관계는 위에서 로드돼 바로 보이고, 미생성 관계는 탭→'생성' 버튼→alert 확인 후 1건씩(genOne).
@@ -232,7 +258,7 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
     setGenProgress({ active: true, total: 1, done: 0, label: tab === 'ziwei' ? '자미 궁합' : '궁합', chartLabel: meSel?.label, route: gpRoute });
     try {
       const gz = yr ? yearGanZhi(Number(yr)) : undefined;
-      const res = await genCompatReading(ctx.chartId, relKey, ctx.sig, pair.other, ctx.cross, ctx.dayRel, ctx.meZiwei, ctx.otherZiwei, yr || undefined, gz, meSel?.context, ctx.numMe, ctx.numOther, tab);
+      const res = await genCompatReading(ctx.chartId, relKey, ctx.sig, pair.other, ctx.cross, ctx.dayRel, ctx.meZiwei, ctx.otherZiwei, yr || undefined, gz, meSel?.context, ctx.numMe, ctx.numOther, tab, ctx.otherChartId); // ★otherChartId=역방향(pay-once-per-pair) 결제 인식
       if (isStale()) return;   // ① 생성 사이 쌍 전환됨 → 폐기(옛 쌍 결과가 새 쌍 readings 에 섞이지 않게)
       setBusy(null);
       if (res.kind === 'answer') { setReadings((prev) => ({ ...prev, [key]: res.reading })); setGenProgress({ route: gpRoute, done: 1, total: 1 }); return; }
