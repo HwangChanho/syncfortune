@@ -237,6 +237,7 @@ export function ContentGrid({ showViewToggle = true }: { showViewToggle?: boolea
                   const prem = !!m.premium;
                   const priceTxt = badgeFor(m);
                   const desc = descOf(m);
+                  const isNew = isNewContent(m.key); // 신규 콘텐츠 = 라벨 옆 NEW(카드뷰와 동일 기준 — 리스트뷰 누락 수정·daniel 07-23)
                   return (
                     <PressableScale key={m.key} style={styles.listRow} onPress={() => onPress(m)}>
                       {m.image ? (
@@ -248,7 +249,10 @@ export function ContentGrid({ showViewToggle = true }: { showViewToggle?: boolea
                         </View>
                       )}
                       <View style={styles.listTextCol}>
-                        <Text style={[styles.listLabel, prem && styles.listLabelPrem]} numberOfLines={1}>{t(m.labelKey)}</Text>
+                        <View style={styles.listLabelRow}>
+                          <Text style={[styles.listLabel, prem && styles.listLabelPrem]} numberOfLines={1}>{t(m.labelKey)}</Text>
+                          {isNew && <View style={styles.listNewTag}><Text style={styles.newTagTx}>NEW</Text></View>}
+                        </View>
                         {desc ? <Text style={styles.listDesc} numberOfLines={2}>{desc}</Text> : null}
                       </View>
                       {priceTxt ? (
@@ -394,7 +398,9 @@ const styles = StyleSheet.create({
   listThumbPlaceholder: { alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.juLine },
   listThumbGlyph: { fontSize: 22, fontWeight: '800', color: colors.ju },
   listTextCol: { flex: 1, justifyContent: 'center' }, // 남는 폭 차지 → 가격/셰브런 우측 고정
-  listLabel: { fontSize: 16, fontWeight: '800', color: colors.ink, letterSpacing: 0.2 },
+  listLabel: { flexShrink: 1, fontSize: 16, fontWeight: '800', color: colors.ink, letterSpacing: 0.2 },
+  listLabelRow: { flexDirection: 'row', alignItems: 'center' }, // 라벨 + NEW 배지 한 줄(라벨 flexShrink 로 길면 …, NEW 는 고정)
+  listNewTag: { backgroundColor: '#F16C6C', borderRadius: radius.pill, paddingHorizontal: space(1.5), paddingVertical: 1, marginLeft: space(1.5) }, // 리스트뷰 인라인 NEW(카드뷰 newTag 와 같은 색)
   listLabelPrem: { color: colors.ju },
   listDesc: { fontSize: 12.5, color: colors.inkSoft, lineHeight: 17, marginTop: 2 },
   listPriceTag: { flexShrink: 0, backgroundColor: colors.badgeGold, borderRadius: radius.pill, paddingHorizontal: space(2.5), paddingVertical: space(1) },
