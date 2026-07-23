@@ -21,7 +21,7 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { PressableScale } from './PressableScale';
 import { loadRepChart } from '../lib/engine/myChart';
-import { buildSajuChart } from '@engine/saju';
+import { computeChart } from '../lib/engine/engine'; // canonical 빌더 단일화(daniel 07-23·drift 방지)
 import { luckyToday, weakElementColor } from '../lib/content/luckyItem';
 import { colors, radius, space, shadow, font } from '../lib/theme';
 import { useFontScale } from '../lib/ui/fontScale';
@@ -46,8 +46,8 @@ export function LuckyTodayCard({ reloadKey }: { reloadKey?: number }) {
       const rep = await loadRepChart();
       if (!alive) return;
       setHasChart(!!rep);
-      // buildSajuChart(rep.input) = index.tsx·BiorhythmCard 와 동일한 명식 산출 경로. pillars 로 부족 오행 계산.
-      setWeak(rep ? weakElementColor(buildSajuChart(rep.input)) : null);
+      // computeChart(rep.input).saju = index.tsx 등과 동일한 canonical 명식 산출 경로(빌더 통일·daniel 07-23). pillars 로 부족 오행 계산.
+      setWeak(rep ? weakElementColor(computeChart(rep.input).saju) : null);
     })().catch(() => { if (alive) { setHasChart(false); setWeak(null); } });
     return () => { alive = false; };
   }, [reloadKey]);

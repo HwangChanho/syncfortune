@@ -14,7 +14,7 @@ import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { PressableScale } from './PressableScale';
 import { listCharts, loadRepChart, type SavedChart } from '../lib/engine/myChart';
-import { buildSajuChart } from '@engine/saju';
+import { computeChart } from '../lib/engine/engine'; // canonical 빌더 단일화(daniel 07-23·drift 방지)
 import { getDailyFortune } from '../lib/content/dailyFortune';
 import { todayRelation, todayGyeol, type TodayRelation } from '../lib/content/todayRelation';
 import { colors, radius, space, shadow, font } from '../lib/theme';
@@ -74,7 +74,7 @@ export function TodayRelationCard({ reloadKey, dateKey }: { reloadKey?: number; 
       if (!alive || !rep || !other) { setRel(null); setDetail(null); return; }
       try {
         const f = getDailyFortune(0);
-        const meC = buildSajuChart(rep.input), otC = buildSajuChart(other.input);
+        const meC = computeChart(rep.input).saju, otC = computeChart(other.input).saju;
         const day = f.dayGanZhi[0] as Stem;
         setRel(todayRelation(meC, otC, day, f.dayGanZhi[1] as Branch));
         // 오늘 일진이 각자에게 어떤 결인가(십신·디테일 확장) — 기존 엔진(tenGod) 재사용

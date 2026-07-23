@@ -38,7 +38,7 @@ import { loadRepChart, subscribeRepChange } from '../../lib/engine/myChart';
 import { prewarmReadings, prewarmDaily } from '../../lib/backend/prewarmReadings';
 import { scheduleDailyFortune } from '../../lib/backend/notifications'; // 매일 9시 오늘의 운세 알림
 import { scheduleLuckAlerts } from '../../lib/backend/luckAlerts'; // 시기 예고(대운 교체·세운 전환) 로컬 알림 — 리텐션 Phase 2
-import { buildSajuChart } from '@engine/saju';
+import { computeChart } from '../../lib/engine/engine'; // ★canonical 명식 빌더 단일화(daniel 07-23) — 홈이 raw buildSajuChart 직접호출 시 세운·interactions 누락→신강약 드리프트(홈 33 vs 상세 59)
 import type { Stem, Branch } from '@spec/chart';
 import { colors, radius, space, shadow, font } from '../../lib/theme';
 import { useFontScale } from '../../lib/ui/fontScale';
@@ -116,7 +116,7 @@ export default function Home() {
       if (!alive) return;
       setHasChart(!!rep); // H1: 명식 유무 → 오늘/내일 배너 분기(등록안내 vs 운세)
       if (!rep) { setDayData([{ headline: null, prose: null }, { headline: null, prose: null }]); setFlow(null); setEnergies([null, null]); return; }
-      const saju = buildSajuChart(rep.input);
+      const saju = computeChart(rep.input).saju; // ★상세(today.tsx)와 동일 빌더 — 세운·interactions 포함해 classifyStrength 일치(favorGood 뒤집힘 방지)
       try { setFlow(scoreFlow(saju, 'day')); } catch { setFlow(null); } // 오늘 점수 흐름(그제~모레)
       // 오늘·내일 각각의 기운 판정(결정론·API 0). 실패해도 배너 나머지는 그대로 보이게 null 유지.
       try {
@@ -171,7 +171,7 @@ export default function Home() {
       if (!alive || !rep) return;
       const b = new Date(rep.input.birthDateTime);             // 대운 교체 나이를 날짜로 환산하는 데 필요
       if (isNaN(b.getTime())) return;
-      await scheduleLuckAlerts(buildSajuChart(rep.input), b);
+      await scheduleLuckAlerts(computeChart(rep.input).saju, b);
     })().catch(() => {});
     return () => { alive = false; };
   }, [reloadKey]);

@@ -9,7 +9,7 @@ import { PressableScale } from '../../components/PressableScale';
 import { Alert } from '../../lib/ui/alert'; // 커스텀 알림(앱 디자인)
 import { useTranslation } from 'react-i18next';
 import { useFocusEffect } from 'expo-router';
-import { buildSajuChart } from '@engine/saju';
+import { computeChart } from '../../lib/engine/engine'; // canonical 빌더 단일화(daniel 07-23·drift 방지)
 import { SIJIN } from '../../lib/engine/sijin';                  // 12시진(자시·축시…) 피커 데이터
 import { listPets, addPet, updatePet, deletePet, PET_TYPES, type SavedPet, type PetType } from '../../lib/content/petChart';
 import { getPetTraits } from '../../lib/content/petTraits';
@@ -56,7 +56,7 @@ export default function PetScreen() {
   const reading = useMemo(() => {
     if (!sel) return null;
     try {
-      const saju: any = buildSajuChart(sel.input);
+      const saju: any = computeChart(sel.input).saju;
       saju.timeUnknown = sel.input.timeAccuracy === '미상';
       return getPetTraits(saju, sel.petType, sel.name);
     } catch { return null; }
