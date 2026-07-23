@@ -12,7 +12,7 @@ import * as SecureStore from 'expo-secure-store';
 
 const ko = {
   appName: '팔자(八字)',
-  tagline: '나와 타인을 알고, 운명의 방향을 알려주는 나침반',
+  tagline: '나와 타인을 이해하는 AI 나침반',
   // 홈 카드 개인화 티저 — 대표 명식으로 계산한 '내 얘기' 한 줄(계산=lib/content/homeTeaser.ts, 문구=여기).
   //   카드의 정적 설명(menu.*Desc) 자리를 이 문장이 대체한다(명식 없으면 정적 설명으로 폴백).
   teaser: {
@@ -290,7 +290,7 @@ const ko = {
 
 const en = {
   appName: '팔자(八字)',
-  tagline: 'Know yourself and others — your compass to destiny',
+  tagline: 'Your AI compass for understanding yourself and others',
   // 홈 카드 개인화 티저 — ko 와 동일 키(계산=homeTeaser.ts). ※ newyear.keyword 값 자체는 엔진이 한국어로 산출(기존 티저 전반과 동일).
   teaser: {
     career: 'Founder {{biz}}% · Employee {{org}}%',
@@ -561,7 +561,7 @@ const en = {
 
 const ja = {
   appName: '팔자(八字)',
-  tagline: '自分と他人を知り、運命の方向を示す羅針盤',
+  tagline: '自分と他人を理解するAIの羅針盤',
   // 홈 카드 개인화 티저 — ko 와 동일 키(계산=homeTeaser.ts). ※ newyear.keyword 값 자체는 엔진이 한국어로 산출.
   teaser: {
     career: '事業家型 {{biz}}% · 組織型 {{org}}%',
