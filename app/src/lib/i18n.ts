@@ -190,6 +190,7 @@ const ko = {
     lockedTitle: '잠긴 시기', lockedSub: '현재 대운과 올해는 무료, 다른 시기는 이용권으로 열어 카테고리별로 자세히 풀어 드려요.',
     unlock: '이 시기 열기', unlockTitle: '이 시기 열기',
     unlockMsg: '타임라인 이용권으로 이 시기를 카테고리별로 자세히 풀어 드려요. (이용권은 설정에서 쿠폰 등록 · 건당 결제 준비 중)',
+    buy5: '세운 5개 {{price}}', buy10: '이 대운 전체(10년) {{price}}', // 세운 번들(daniel 07-23) — 잠긴 시기 락 카드 구매 버튼. price=CREDIT_KINDS 실가 주입
     freeBadge: '무료', usedCredit: '이용권으로 열었어요',
   },
   premiumHub: {
@@ -227,8 +228,8 @@ const ko = {
   // 성격유형 120종(홈 주인공 · daniel 07-18). ⚠️유형명·요약 본문은 engine/personaType.ts 가 만들며 현재 한국어 고정 —
   //   여기 키는 UI 라벨만 다국어. 본문 다국어화는 엔진 어휘 테이블(22항목) 번역이 선행돼야 한다(백로그).
   persona120: {
-    kicker: '나의 성격유형', count: '120종 중', more: '자세히 보기',
-    title: '나의 성격유형', sub: '일간 10 × 월지 12 = 120가지 중 나는 어떤 유형일까',
+    kicker: '120가지 유형 중 나는 어떤 유형일까', count: '120종 중', more: '자세히 보기',
+    title: '120가지 유형 중 나는 어떤 유형일까', sub: '일간 10 × 월지 12로 나눈 120가지 결',
     empty: '명식을 등록하면 120가지 중 내 유형을 보여드려요.',
     axisStem: '나라는 재료', axisSeason: '내가 놓인 계절', axisGyeok: '삶의 무게중심',
     note: '※ 일간(나 자신)과 월지(태어난 계절)로 나눈 120가지 결이에요. 타고난 결을 보는 것이라 좋고 나쁨이 아니고, 같은 유형이어도 나머지 글자와 지금 운에 따라 쓰임이 달라져요.',
@@ -455,6 +456,7 @@ const en = {
     lockedTitle: 'Locked period', lockedSub: 'Your current decade and this year are free; open other periods with a pass for a category-by-category reading.',
     unlock: 'Open this period', unlockTitle: 'Open this period',
     unlockMsg: 'A timeline pass opens this period with a detailed category reading. (Get passes via coupons in Settings · per-use payment coming soon)',
+    buy5: '5 yearly readings {{price}}', buy10: 'Full decade · 10 yrs {{price}}', // yearly (세운) bundles — lock-card buy buttons (daniel 07-23)
     freeBadge: 'Free', usedCredit: 'Opened with a pass',
   },
   premiumHub: {
@@ -717,6 +719,7 @@ const ja = {
     lockedTitle: 'ロック中の時期', lockedSub: '現在の大運と今年は無料、ほかの時期はパスでカテゴリ別に詳しく読み解きます。',
     unlock: 'この時期を開く', unlockTitle: 'この時期を開く',
     unlockMsg: 'タイムラインパスでこの時期をカテゴリ別に詳しく読み解きます。(パスは設定のクーポンで取得・都度課金は準備中)',
+    buy5: '歳運5回 {{price}}', buy10: 'この大運まるごと(10年) {{price}}', // 歳運(세운) バンドル — ロックカードの購入ボタン(daniel 07-23)
     freeBadge: '無料', usedCredit: 'パスで開きました',
   },
   premiumHub: {

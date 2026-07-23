@@ -99,6 +99,11 @@ if (!src.coupons || !TYPE.size || !SELLABLE.length) {
 const GATE_ALLOW = new Map([
   ['timeresolve', '온디바이스 결정론 도구(TPR) — LLM(interpret) 미경유. 클라 useCredit 로 1회 결제=도구 영구 해제.'],
   ['celeb', '온디바이스 무료 전환(07-07) — 결정론(computeChart·rankCelebs)·API 0·마켓 미노출(MARKET_HIDDEN). interpret 는 kind=celeb 하드 거부(비용 벡터 차단). CREDIT_KINDS 타입은 파급 최소화로 유지.'],
+  // 인생 타임라인 세운 *번들*(daniel 2026-07-23) — 구매 전용 kind. 결제 시 rc-webhook 이 fungible 'timeline' 크레딧을 5·10개 적립하고,
+  //   세운 생성은 항상 kind='timeline' 로 interpret 를 호출해 그 풀에서 1개 차감(SET_KIND: timeline→timeline). 즉 timeline5/10 자체로는
+  //   interpret 를 타지 않으므로 서버 게이트 불요(차감은 'timeline' 게이트가 담당). ★소비 경로는 단건 credit_timeline 과 완전 동일.
+  ['timeline5', '세운 5회 번들 — fungible \'timeline\' 풀로 적립·소비(rc-webhook BUNDLE). interpret 는 kind=\'timeline\' 로만 차감(SET_KIND) → 자체 게이트 불요.'],
+  ['timeline10', '세운 10회(한 대운) 번들 — timeline5 와 동일하게 fungible \'timeline\' 풀로 적립·소비. interpret 게이트 불요.'],
 ]);
 //   TYPE_ONLY = CreditKind 타입엔 있으나 CREDIT_KINDS(판매목록)엔 없는 kind(=타입 잔존). 게이트/스토어에 있으면 경고.
 const TYPE_ONLY = new Map([

@@ -56,11 +56,19 @@ export const CREDIT_PRODUCT: Record<CreditKind, string> = {
   jobfit: 'credit_jobfit',       // 나에게 어울리는 직업(직업 적성 딥리포트 EEL) ₩4,900 — ⚠️ASC/RC 상품 등록 필요(daniel)
   wealth: 'credit_wealth',       // 재물 딥리포트(그릇/유형/시기/처방 4축 EEL) ₩4,900 — ⚠️ASC/RC 상품 등록 필요(daniel)
   coach: 'credit_coach',         // AI 코치 질문권(무료 소진 초과 시 1질문·사주+자미) ₩990 — ⚠️ASC/RC 상품 등록 필요(daniel)
+  // 인생 타임라인 세운 번들(daniel 2026-07-23) — 결제 1건이 fungible 'timeline' 크레딧을 5·10개 적립(rc-webhook BUNDLE). ⚠️ASC/RC 상품 등록 필요(daniel)
+  timeline5: 'credit_timeline5',   // 세운 5회 묶음(₩4,900) → 'timeline' 풀 +5
+  timeline10: 'credit_timeline10', // 세운 10회=한 대운 전체(₩9,800) → 'timeline' 풀 +10
 };
 
 // AI 꿈해몽: 단건 ₩500이 Apple IAP 최저가(~₩1,200) 미만이라 **5회 번들**(₩2,500, ≈₩500/회)로 판매(daniel 06-28).
 //   구매 1회 = DREAM_BUNDLE_QTY 크레딧 적립(다른 이용권은 1:1, dream만 번들). grantCredit('dream', DREAM_BUNDLE_QTY).
 export const DREAM_BUNDLE_QTY = 5;
+
+// 인생 타임라인 세운 번들(daniel 2026-07-23) — 구매 1건이 fungible 'timeline' 크레딧을 N개 적립(timeline5=5·timeline10=10).
+//   ★적립 authority = 서버(rc-webhook 의 BUNDLE 맵) — 클라는 grant 하지 않고 waitForCreditGrant('timeline') 로 반영만 폴링(dream 과 동일한 C1 패턴).
+//   아래 상수는 클라 문서/참조용(실제 수량은 서버가 결정) — DREAM_BUNDLE_QTY 와 같은 취지(수량 SSoT 는 rc-webhook).
+export const TIMELINE_BUNDLE_QTY: Record<'timeline5' | 'timeline10', number> = { timeline5: 5, timeline10: 10 };
 
 // ⚠️ deprecated(구 단일가 건당) — 영역별 CREDIT_PRODUCT 로 이행. entitlement.ts 하위호환 위해 유지.
 export const PRODUCT_UNLOCK_2500 = 'unlock_2500';

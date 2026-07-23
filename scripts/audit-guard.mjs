@@ -77,6 +77,10 @@ if (!coupons || !interpret) {
   const ALLOW = new Map([
     ['timeresolve', '온디바이스 결정론 도구(TPR) — LLM(interpret) 미경유. 클라 useCredit 로 1회 결제=도구 영구 해제.'],
     ['celeb', '온디바이스 무료 전환(07-07) — 결정론(computeChart·rankCelebs)·API 0·마켓 미노출. interpret 는 kind=celeb 하드 거부. CREDIT_KINDS 타입은 파급 최소화로 유지.'],
+    // 인생 타임라인 세운 *번들*(daniel 2026-07-23) — 구매 전용 kind. 결제 시 rc-webhook 이 fungible 'timeline' 크레딧을 5·10개 적립하고,
+    //   세운 생성은 항상 kind='timeline' 로 interpret 를 호출해 그 풀에서 1개 차감(SET_KIND: timeline). timeline5/10 자체로는 interpret 를 안 타므로 게이트 불요(차감은 'timeline' 게이트가 담당).
+    ['timeline5', '세운 5회 번들 — fungible \'timeline\' 풀로 적립·소비(rc-webhook BUNDLE). interpret 는 kind=\'timeline\' 로만 차감 → 자체 게이트 불요.'],
+    ['timeline10', '세운 10회(한 대운) 번들 — timeline5 와 동일하게 fungible \'timeline\' 풀로 적립·소비. interpret 게이트 불요.'],
   ]);
   for (const k of kinds) {
     if (gated.has(k) || ALLOW.has(k)) continue;

@@ -226,6 +226,23 @@ export function TimelineScreen({ input, savedChart }: { input: ChartInput | null
     void confirmReadingChart({ chartLabel: savedChart?.label, creditKind: 'timeline', t, onConfirm: () => { void gen(key); } });
   }
 
+  // 세운 번들 구매(비프리미엄 잠긴 시기) — credit_timeline5/10 결제 → rc-webhook 이 fungible 'timeline' 풀에 5·10개 적립 → 이 시기 생성.
+  //   ★단건(startGen→gen 게이트 Alert: 취소+₩1,900 2버튼)과 별도의 진입점 = 락 카드 버튼. 이유: 안드로이드 Alert 는 버튼 3개 한계라
+  //     '취소+단건+5묶음+10묶음' 4버튼을 못 담는다 → 5·10 묶음은 카드에 직접(가격도 병렬 노출). 결제 함수(purchaseCreditRC)·폴링은 그대로 재사용.
+  //   ★반영 폴링은 항상 waitForCreditGrant('timeline') — 번들은 timeline5/10 잔여가 아니라 'timeline' 풀로 적립되므로(단건과 같은 풀에서 소비).
+  async function buyBundle(key: string, bundleKind: 'timeline5' | 'timeline10') {
+    if (!key || readings[key] || busy === key) return; // 이미 열림/생성 중이면 결제 진입 차단(중복 과금 방지)
+    if (!assertOnline(t)) return;                        // 오프라인 = 결제·생성 차단(결제만 되고 미반영되는 상태 방지)
+    const cid = await resolveChartId();                  // 자물쇠 계보: canonical serverChartId 재해석(stale 시드 방지)
+    if (!cid) return;
+    try {
+      const ok = await purchaseCreditRC(bundleKind); if (!ok) return;           // 결제(취소=false)
+      const { granted } = await waitForCreditGrant('timeline');                 // ★fungible 'timeline' 풀 반영 폴링(번들도 여기로 적립)
+      if (granted) await gen(key, cid);                                         // Edge 가 timeline 1개 차감하며 이 시기 생성(남은 크레딧은 다른 시기에)
+      else Alert.alert(t('timeline.unlockTitle'), t('reading.applyPending', '결제가 완료됐어요. 적용까지 잠시 걸릴 수 있어요. 잠시 후 다시 시도해 주세요.'));
+    } catch (e) { Alert.alert('!', (e as Error).message); }
+  }
+
   // picker에서 선택 → 무료/이미 캐시된 기간만 자동 생성. 잠긴 기간은 카드의 '열기' 버튼으로 명시적 결제.
   function pick(key: string) {
     if (key.startsWith('life_')) setSelDecade(key); else setSelYear(key);
@@ -278,6 +295,17 @@ export function TimelineScreen({ input, savedChart }: { input: ChartInput | null
           <PressableScale style={styles.unlockBtn} onPress={() => startGen(key)}>
             <Text style={[styles.unlockBtnTx, { fontSize: fs(15) }]}>{t('timeline.unlock')}</Text>
           </PressableScale>
+          {/* 세운 번들(daniel 07-23) — 이 대운을 여러 시기 볼 사람용 5·10 묶음. 비프리미엄만 노출(프리미엄/지정명식은 무료). 위 '이 시기 열기'=보유 크레딧/단건, 여기=묶음 결제 */}
+          {!isPremiumForChart(chartId) && (
+            <View style={styles.bundleRow}>
+              <PressableScale style={styles.bundleBtn} onPress={() => buyBundle(key, 'timeline5')}>
+                <Text style={[styles.bundleBtnTx, { fontSize: fs(12) }]}>{t('timeline.buy5', { price: formatKrw(creditPrice('timeline5')), defaultValue: '세운 5개 {{price}}' })}</Text>
+              </PressableScale>
+              <PressableScale style={styles.bundleBtn} onPress={() => buyBundle(key, 'timeline10')}>
+                <Text style={[styles.bundleBtnTx, { fontSize: fs(12) }]}>{t('timeline.buy10', { price: formatKrw(creditPrice('timeline10')), defaultValue: '이 대운 전체(10년) {{price}}' })}</Text>
+              </PressableScale>
+            </View>
+          )}
         </View>
       );
     }
@@ -441,6 +469,10 @@ const styles = StyleSheet.create({
   lockSub: { ...font.caption, color: colors.inkSoft, textAlign: 'center', lineHeight: 19, marginBottom: space(4) },
   unlockBtn: { backgroundColor: colors.ju, borderRadius: radius.md, paddingVertical: space(3), paddingHorizontal: space(7) },
   unlockBtnTx: { color: colors.bg, fontWeight: '800', fontSize: 15 },
+  // 세운 번들(5·10 묶음) 버튼 — 락 카드 하단, 단건 '이 시기 열기' 아래 나란히 2개(테두리형 = 보조 CTA). daniel 07-23
+  bundleRow: { flexDirection: 'row', gap: space(2), marginTop: space(3), alignSelf: 'stretch' },
+  bundleBtn: { flex: 1, backgroundColor: colors.bg, borderWidth: 1, borderColor: colors.ju, borderRadius: radius.md, paddingVertical: space(2.5), paddingHorizontal: space(2), alignItems: 'center', justifyContent: 'center' },
+  bundleBtnTx: { color: colors.ju, fontWeight: '800', textAlign: 'center' },
   readBtn: { backgroundColor: colors.ju, borderRadius: radius.md, paddingVertical: space(3.5), alignItems: 'center', marginTop: space(3), ...shadow.card }, // 이 시기 풀이 생성 버튼(daniel)
   readBtnTx: { color: colors.bg, fontWeight: '800' },
   busyTx: { ...font.caption, color: colors.inkSoft, marginTop: space(2), textAlign: 'center' },

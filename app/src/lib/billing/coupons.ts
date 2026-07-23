@@ -14,7 +14,8 @@ async function hasSession(): Promise<boolean> {
   return !!data.session;
 }
 
-export type CreditKind = 'reading' | 'ziwei' | 'compat' | 'timeline' | 'followup' | 'love' | 'newyear' | 'lifegraph' | 'roots' | 'image' | 'mission' | 'career' | 'talent' | 'astrology' | 'dream' | 'gaeun' | 'celeb' | 'timeresolve' | 'future10' | 'child' | 'child_couple' | 'reunion' | 'crush' | 'job' | 'jobfit' | 'wealth' | 'coach';
+export type CreditKind = 'reading' | 'ziwei' | 'compat' | 'timeline' | 'followup' | 'love' | 'newyear' | 'lifegraph' | 'roots' | 'image' | 'mission' | 'career' | 'talent' | 'astrology' | 'dream' | 'gaeun' | 'celeb' | 'timeresolve' | 'future10' | 'child' | 'child_couple' | 'reunion' | 'crush' | 'job' | 'jobfit' | 'wealth' | 'coach' | 'timeline5' | 'timeline10';
+// timeline5/timeline10 = 인생 타임라인 세운(연도별) *번들* 구매 kind(daniel 2026-07-23). ★소비는 fungible — 실제 적립·차감은 단건과 같은 'timeline' 풀(rc-webhook BUNDLE 매핑). 이 두 kind 는 '구매 상품' 식별용일 뿐 자체 잔여를 만들지 않는다(entitlement_credits.kind CHECK 에도 불요 = timeline 은 이미 허용).
 // price = 건당 가격(원). daniel 확정(2026-06): 원가(opus, 영구캐시 1회)×~3, 소액(타임라인·질문)=₩990, 애정 ₩4,900.
 export const CREDIT_KINDS: { key: CreditKind; ko: string; price: number }[] = [
   { key: 'reading', ko: '사주 풀이', price: 19900 }, { key: 'ziwei', ko: '자미두수', price: 14900 }, { key: 'compat', ko: '궁합', price: 2900 }, // 궁합 ₩2,900: ★관계별 개별 결제 전환(daniel 07-22 — 쌍당1회→관계별 건당이라 단가 4900→2900 인하). 같은 관계는 사주+자미·연도 공유. ASC 실가는 fastlane(daniel)
@@ -54,6 +55,10 @@ export const CREDIT_KINDS: { key: CreditKind; ko: string; price: number }[] = [
   { key: 'wealth', ko: '재물 딥리포트', price: 4900 }, // 가격 daniel 확정(jobfit 동형·Sonnet 원가~370원). ASC=credit_wealth
   // 신규(daniel 2026-07-13): AI 코치 질문권 — 무료 소진(비프리미엄 일1광고·프리미엄 월5) 초과 시 1질문. 사주+자미 종합(Sonnet 원가~35원).
   { key: 'coach', ko: 'AI 코치 질문', price: 990 }, // 가격 daniel 조정슬롯(원가~35원·마진 큼). ASC=credit_coach
+  // 신규(daniel 2026-07-23): 인생 타임라인 세운(연도별) *번들* — fungible 'timeline' 크레딧을 묶음으로 적립(단건 credit_timeline ₩1,900 은 유지, 이건 5·10회 묶음).
+  //   ★price = *번들 총가*(건당 아님 — 이 kind 는 묶음 상품이라 상품가를 그대로 TimelineScreen 버튼에 노출). 실효 단가 ≈₩980/세운(단건 대비 ~48% 할인).
+  //   ★적립·소비 kind 는 'timeline'(rc-webhook BUNDLE 매핑) — timeline10 10개면 한 대운(10년) 세운 전부 열람. 마켓 단독판매 X(market MARKET_HIDDEN)·TimelineScreen 잠긴 시기에서만 구매.
+  { key: 'timeline5', ko: '세운 5회 묶음', price: 4900 }, { key: 'timeline10', ko: '세운 10회(대운 전체)', price: 9800 },
 ];
 export const PREMIUM_PRICE = 49900; // 평생 프리미엄(대표명식 전부 무제한). daniel: 사업가 등 헤비유저(궁합 반복) 타겟 — 일반은 건당/쿠폰. 프리미엄은 소수 기대.
 
