@@ -16,6 +16,7 @@ export const NEW_WINDOW_DAYS = 21;
 /** 콘텐츠 키 → 출시일(YYYY-MM-DD). 신규 콘텐츠 낼 때 여기 한 줄 추가. */
 export const NEW_SINCE: Record<string, string> = {
   wealth: '2026-07-22', // 재물 딥리포트(신규 유료)
+  gem: '2026-07-23',    // 내 사주 보석(R-GEM·신규 무료·daniel 07-23)
 };
 
 /**

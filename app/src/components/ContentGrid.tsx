@@ -27,7 +27,7 @@ import { loadRepChart, subscribeRepChange } from '../lib/engine/myChart';
 import { isPremiumForChart } from '../lib/billing/premiumStore';  // 명식별 프리미엄('이용중' 표시)
 import { needsYearRepurchase } from '../lib/billing/repurchase';  // 지난 해 연도 풀이 → '재구매' 배지(daniel 07-08)
 import { loadCredits } from '../lib/billing/coupons';             // 쿠폰 잔량
-import { buildSajuChart } from '@engine/saju';
+import { computeChart } from '../lib/engine/engine'; // canonical 빌더 단일화(daniel 07-23·drift 방지)
 import { appLang } from '../lib/i18n';
 import { homeTeaser, type HomeTeaser } from '../lib/content/homeTeaser'; // 카드 설명을 '내 얘기' 한 줄로(결정론·API 0, daniel 07-16)
 import { SECTIONS, CARD_REVEAL_OFFSETS, TOTAL_CARDS, HOME_INDIVIDUAL, priceLabel, type MenuItem } from '../lib/content/contentSections';
@@ -95,7 +95,7 @@ export function ContentGrid({ showViewToggle = true }: { showViewToggle?: boolea
       if (!alive) return;
       setRepServerChartId(rep?.serverChartId ?? null);
       if (!rep) { setTeasers({}); return; } // 명식 없음 → 카드는 기존 정적 설명
-      const saju = buildSajuChart(rep.input);
+      const saju = computeChart(rep.input).saju;
       // homeTeaser 는 throw 하지 않고 미지원 카드·산출 실패를 null 로 주므로 개별 try/catch 불필요.
       const tUnknown = (rep.input as any)?.timeAccuracy === '미상'; // 시주 미상 힌트(시에 기대는 산출의 정확도)
       const tz: Record<string, HomeTeaser> = {};
@@ -207,6 +207,8 @@ export function ContentGrid({ showViewToggle = true }: { showViewToggle?: boolea
       {sections.map((sec, secIdx) => {
         const isLight = sec.key === 'light'; // '가볍게 보기' = 항목이 많아 2줄 가로 스크롤(daniel)
         const isDeep = sec.key === 'deep';   // '나에 대해 알기' = 5개 넘어 2줄(컬럼 정렬) 가로 스크롤
+        // ★NEW 배지 콘텐츠를 섹션 앞으로(daniel 07-23 "new 붙어있는걸 제일 앞으로"·카드/리스트 공통). JS sort 안정 → 그 외 순서 유지.
+        const items = [...sec.items].sort((a, b) => (isNewContent(b.key) ? 1 : 0) - (isNewContent(a.key) ? 1 : 0));
         // 섹션 헤더 — 카드뷰·리스트뷰가 동일하게 재사용(중복 제거·정합).
         const sectionHeader = (
           <>
@@ -231,7 +233,7 @@ export function ContentGrid({ showViewToggle = true }: { showViewToggle?: boolea
             <View key={sec.key} style={styles.section}>
               {sectionHeader}
               <View style={styles.listBody}>
-                {sec.items.map((m) => {
+                {items.map((m) => {
                   const prem = !!m.premium;
                   const priceTxt = badgeFor(m);
                   const desc = descOf(m);
@@ -263,7 +265,7 @@ export function ContentGrid({ showViewToggle = true }: { showViewToggle?: boolea
         }
 
         // ── 카드뷰(기본) — 순차 공개 + 켄번스 가로 스크롤 ──────────────────────────
-        const cards = sec.items.map((m, itemIdx) => {
+        const cards = items.map((m, itemIdx) => {
           const prem = !!m.premium;
           const badge = badgeFor(m);
           const isNew = isNewContent(m.key); // 신규 콘텐츠 = 우측 상단 연한 빨강 NEW(출시일+21일)
