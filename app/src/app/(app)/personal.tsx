@@ -116,6 +116,10 @@ export default function PersonalRoute() {
           </View>
 
           <Text style={styles.note}>{t('personal.note', '※ 오행 기운에 맞춘 컬러 제안이에요. 취향과 함께 재미로 참고하세요.')}</Text>
+          {/* 전문가 상담 권유(daniel 2026-07) — 퍼스널 오행은 사주 오행 기반 '참고'일 뿐,
+              실제 퍼스널컬러 진단·스타일링은 전문가 영역임을 명시(오해·과신 방지).
+              톤·형식은 coach.note 등 기존 '※ …전문가와 상담' 캡션 관용구와 통일. inkSoft로 살짝 더 또렷하게. */}
+          <Text style={styles.expertNote}>{t('personal.expertNote', '※ 퍼스널 오행은 사주 오행을 바탕으로 한 참고용 제안이에요. 실제 퍼스널컬러 진단·스타일링은 전문가와 상담해 보세요.')}</Text>
           <RelatedContent kind="personal" />
         </>
       )}
@@ -147,4 +151,6 @@ const styles = StyleSheet.create({
   secTitle: { ...font.heading, color: colors.ju, marginBottom: space(1.5) },
   secBody: { ...font.body, color: colors.ink, lineHeight: 23 },
   note: { ...font.caption, color: colors.inkFaint, textAlign: 'center', marginTop: space(4), lineHeight: 18 },
+  // 전문가 상담 권유 캡션 — 기본 note(inkFaint)보다 살짝 또렷한 inkSoft로 '안내'임을 인지시키되 톤은 은은하게 유지.
+  expertNote: { ...font.caption, color: colors.inkSoft, textAlign: 'center', marginTop: space(2), lineHeight: 18 },
 });

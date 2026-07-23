@@ -59,9 +59,30 @@ export default function TimeResolveScreen() {
     return () => { alive = false; };
   }, [isPremium]);
 
+  // 사건 추가 — 연도 검증(미래·범위 밖 차단) 후 등록. TPR은 '태어난 시' 역추론이라
+  //   *출생 이후 ~ 올해* 사이의 사건만 의미가 있다(태어나기 전·미래 사건은 시 추정에 무효).
+  //   · 하한 = 생년월일이 입력됐으면 그 출생연도, 없으면 1900(값이 이상하면 1900으로 폴백).
+  //   · 상한 = 올해(new Date().getFullYear()) — 미래 연도 거부.
+  //   부적합하면 Alert 로 안내하고 등록을 거부(기존 결제 안내 Alert 와 같은 커스텀 알림·톤).
   const addEvent = () => {
+    const thisYear = new Date().getFullYear();
+    // 생년월일 'YYYY-MM-DD' 앞 4자리 = 출생연도. 미입력/이상값이면 0 → 아래에서 1900 하한으로 폴백.
+    const by = /^\d{4}/.test(date) ? parseInt(date.slice(0, 4), 10) : 0;
+    const minYear = by >= 1900 && by <= thisYear ? by : 1900; // 하한 = 출생연도(정상범위일 때) or 1900
     const y = parseInt(yr, 10);
-    if (y > 1900 && y < 2100) { setEvents((p) => [...p, { year: y, type: ty }]); setYr(''); }
+    const title = t('timeResolve.title', '태어난 시 찾기');
+    // (a) 4자리 숫자가 아니거나(자릿수 부족·오타) 하한 미만 → 범위 안내 후 거부.
+    if (!/^\d{4}$/.test(yr) || y < minYear) {
+      Alert.alert(title, t('timeResolve.yearRange', '연도를 다시 확인해 주세요(예: 1990~올해).'));
+      return;
+    }
+    // (b) 미래 연도(올해 초과) → 거부.
+    if (y > thisYear) {
+      Alert.alert(title, t('timeResolve.yearFuture', '미래 연도는 입력할 수 없어요.'));
+      return;
+    }
+    setEvents((p) => [...p, { year: y, type: ty }]);
+    setYr('');
   };
   const removeEvent = (i: number) => setEvents((p) => p.filter((_, idx) => idx !== i));
 
@@ -142,7 +163,7 @@ export default function TimeResolveScreen() {
       <BirthPlacePicker value={place} onSelect={(p) => { setPlace(p.name); setPlaceLon(p.lon); }} />
 
       <Text style={styles.label}>인생 사건 (연도 + 유형)</Text>
-      <TextInput value={yr} onChangeText={setYr} placeholder="연도 (예: 2023)" placeholderTextColor={colors.inkFaint} keyboardType="number-pad" style={styles.input} />
+      <TextInput value={yr} onChangeText={setYr} placeholder="연도 (예: 2023)" placeholderTextColor={colors.inkFaint} keyboardType="number-pad" maxLength={4} style={styles.input} />
       {/* 연도 입력과 카테고리 선택 사이 — 다른 label→input 간격(space(2))과 균일하게 */}
       <View style={[styles.chipRow, { marginTop: space(2) }]}>
         {EVENT_TYPES.map((t) => (
@@ -152,11 +173,27 @@ export default function TimeResolveScreen() {
         ))}
       </View>
       <PressableScale onPress={addEvent} style={styles.addBtn}><Text style={styles.addTx}>+ 사건 추가</Text></PressableScale>
-      {events.map((e, i) => (
-        <PressableScale key={`${e.year}-${e.type}-${i}`} onPress={() => removeEvent(i)} style={styles.evItem}>
-          <Text style={styles.evTx}>· {e.year}년 · {e.type}</Text><Text style={styles.evDel}>✕</Text>
-        </PressableScale>
-      ))}
+      {/* 추가된 사건 = 배지형 칩(색점 + 연도 + 유형 + 정돈된 ✕ 버튼). 여러 개면 flexWrap 로 줄바꿈. */}
+      {events.length > 0 && (
+        <View style={styles.evWrap}>
+          {events.map((e, i) => (
+            <View key={`${e.year}-${e.type}-${i}`} style={styles.evChip}>
+              <View style={styles.evDot} />
+              <Text style={styles.evChipYr}>{e.year}년</Text>
+              <Text style={styles.evChipTy}>{e.type}</Text>
+              <PressableScale
+                onPress={() => removeEvent(i)}
+                hitSlop={8}
+                style={styles.evDelBtn}
+                accessibilityRole="button"
+                accessibilityLabel={t('timeResolve.removeEvent', '사건 삭제')}
+              >
+                <Text style={styles.evDelTx}>✕</Text>
+              </PressableScale>
+            </View>
+          ))}
+        </View>
+      )}
 
       <PressableScale onPress={run} style={styles.runBtn}>
         <Text style={styles.runTx}>{unlocked ? '후보 좁히기' : `후보 좁히기 · ${TPR_PRICE_LABEL}`}</Text>
@@ -225,9 +262,14 @@ const styles = StyleSheet.create({
   chipTxOn: { fontSize: 14, color: colors.bg, fontWeight: '800' },
   addBtn: { marginTop: space(3), alignSelf: 'flex-start', paddingHorizontal: space(4), paddingVertical: space(2.5), borderRadius: radius.pill, borderWidth: 1, borderColor: colors.ju },
   addTx: { color: colors.ju, fontWeight: '800', fontSize: 14 },
-  evItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: space(2) },
-  evTx: { color: colors.inkSoft, fontSize: 14 },
-  evDel: { color: colors.inkFaint, fontSize: 14, paddingHorizontal: space(2) },
+  // ── 추가된 인생 사건 = 배지형 칩(유형 선택 칩과 같은 pill 계열로 시각 통일·연한 accent 배경). ──
+  evWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: space(2), marginTop: space(3) }, // 여러 개면 줄바꿈
+  evChip: { flexDirection: 'row', alignItems: 'center', gap: space(1.5), paddingLeft: space(3), paddingRight: space(1.5), paddingVertical: space(1.5), borderRadius: radius.pill, backgroundColor: colors.juSoft, borderWidth: 1, borderColor: colors.juLine },
+  evDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: colors.ju }, // 유형 색점(앱 accent)
+  evChipYr: { fontSize: 13, fontWeight: '800', color: colors.juDeep }, // 연도 = 강조(accent deep)
+  evChipTy: { fontSize: 13, fontWeight: '700', color: colors.ink },     // 유형 = 본문 먹색
+  evDelBtn: { width: 20, height: 20, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.card }, // 우측 정돈된 원형 삭제 버튼
+  evDelTx: { fontSize: 11, fontWeight: '800', color: colors.inkFaint, lineHeight: 12 },
   runBtn: { marginTop: space(6), backgroundColor: colors.ju, borderRadius: radius.md, paddingVertical: space(4), alignItems: 'center' },
   runTx: { color: colors.bg, fontWeight: '800', fontSize: 16 },
   payHint: { ...font.caption, color: colors.inkFaint, marginTop: space(2.5), textAlign: 'center', lineHeight: 18 },

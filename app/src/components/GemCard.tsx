@@ -11,6 +11,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useRef } from 'react';
 import { View, Text, StyleSheet, Share, type StyleProp, type ViewStyle } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import ViewShot, { captureRef } from 'react-native-view-shot';
 import { PressableScale } from './PressableScale';
 import { Alert } from '../lib/ui/alert';
@@ -43,6 +44,7 @@ export function GemCard({ rec, copy, title, style }: {
   title?: string;
   style?: StyleProp<ViewStyle>;
 }) {
+  const { t } = useTranslation();
   const shotRef = useRef<ViewShot>(null);
 
   const primaryEl = rec.primaryGem.element;
@@ -114,6 +116,14 @@ export function GemCard({ rec, copy, title, style }: {
             <ElementSwatch el={primaryEl} size={40} />
             <Text style={[styles.compareGem, { color: colors.ju }]}>{rep.ko}</Text>
           </View>
+        </View>
+
+        {/* 탄생석 풀이 — 생일 보석(위 대조)의 전통 의미 + 내 보석과의 대조(온디바이스·결정론·API 0) */}
+        <View style={styles.stoneBox}>
+          <Text style={styles.stoneTitle}>{t('gem.birthstoneTitle', '탄생석, 어떤 의미일까')}</Text>
+          <Text style={styles.stoneSymbol}>{copy.birthstone.symbol}</Text>
+          <Text style={styles.stoneText}>{copy.birthstone.tradition}</Text>
+          <Text style={styles.stoneText}>{copy.birthstone.contrast}</Text>
         </View>
 
         {/* 보조석(희신) — 있을 때만 */}
@@ -191,6 +201,11 @@ const styles = StyleSheet.create({
   compareCap: { ...font.caption, color: colors.inkSoft },
   compareGem: { ...font.label, color: colors.ink },
   vs: { ...font.body, color: colors.inkFaint, fontWeight: '800', marginHorizontal: space(2) },
+  // 탄생석 풀이 섹션 — 생일 보석의 전통 의미 + 내 보석 대조
+  stoneBox: { backgroundColor: colors.sunk, borderRadius: radius.md, padding: space(4), gap: space(1.5), marginTop: space(1), borderWidth: 1, borderColor: colors.line },
+  stoneTitle: { ...font.caption, color: colors.inkSoft, fontWeight: '700' },
+  stoneSymbol: { ...font.label, color: colors.ju, fontWeight: '800' },
+  stoneText: { ...font.body, color: colors.ink, lineHeight: 22 },
   secondary: { ...font.body, color: colors.ink, marginTop: space(1) },
   secondaryEl: { ...font.caption, color: colors.inkFaint },
   shareBtn: { alignSelf: 'center', borderColor: colors.ju, borderWidth: 1, borderRadius: radius.md, paddingVertical: space(2.5), paddingHorizontal: space(6), marginTop: space(4) },
