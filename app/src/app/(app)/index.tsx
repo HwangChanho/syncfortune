@@ -26,6 +26,7 @@ import { excludeMock } from '../../lib/core/testMode'; // ★홈 배너 daily �
 import { ChartPicker } from '../../components/ChartPicker';
 import { SelfUnderstandingHero } from '../../components/SelfUnderstandingHero'; // ★4.3: 홈 최상단 자기이해 히어로(성향분석 첫 경험)
 import { PersonaTypeHero } from '../../components/PersonaTypeHero'; // ★홈 주인공 ①: 성격유형 120종(daniel 07-18 IA 개편)
+import { HouseAdBanner } from '../../components/HouseAdBanner'; // 홈 상단 내부 프로모 배너(하우스 광고·daniel 07-24)
 import { BiorhythmCard } from '../../components/BiorhythmCard'; // 홈 블록: 바이오리듬(07-21 코드큐·온디바이스·부가 재미·API 0)
 import { LuckyTodayCard } from '../../components/LuckyTodayCard'; // 홈 블록: 오늘의 행운(07-22 코드큐·온디바이스·luckyItem 재사용·API 0)
 import { TodayRelationCard } from '../../components/TodayRelationCard'; // 오늘의 관계 — 궁합을 매일 여는 화면으로(리텐션 07-20)
@@ -365,6 +366,8 @@ export default function Home() {
           <Text style={{ color: colors.ju, fontWeight: '700', fontSize: fs(13) }}>이어보기 ›</Text>
         </PressableScale>
       )))}
+      {/* ★홈 상단 내부 프로모 배너(하우스 광고·daniel 07-24) — 인기 콘텐츠를 궁금증 훅으로. 고정 헤더라 항상 최상단(순서 대상 아님). */}
+      <HouseAdBanner />
     </>
   );
 
