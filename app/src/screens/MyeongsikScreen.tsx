@@ -49,9 +49,9 @@ const POS: PillarPos[] = ['시', '일', '월', '년'];
 // 만세력 카테고리 탭(daniel 07-13 재편) — 사주원국(팔자+지장간+합충+신살길성 통합)/운세(대운·세운·월운·일운)/오행·강약/자미두수.
 type MyeongTab = 'wonguk' | 'rel' | 'elem' | 'ziwei';  // rel = 운세 전용(구 '사주관계' → 운세). 합충·신살은 wonguk으로 흡수.
 const MYEONG_TABS: { id: MyeongTab; label: string; desc: string }[] = [
-  { id: 'wonguk', label: '사주원국', desc: '태어난 연·월·일·시를 천간·지지 여덟 글자로 세운 것(팔자)과 그 속에 숨은 기운(지장간), 글자끼리 끌어당기고(합) 부딪히는(충·형·해·파) 관계, 그리고 신살·길성까지 한자리에서 봐요.' },
+  // ★사주원국 + 운세 통합(daniel 2026-07-24) — 원국(팔자·지장간·합충·신살)과 운세(대운·세운·월운·일운)를 한 탭에서. 겹치던 원국 표시 중복 제거.
+  { id: 'wonguk', label: '원국·운세', desc: '팔자(연·월·일·시 여덟 글자)와 숨은 기운(지장간), 글자끼리의 합·충·형·해·파 관계·신살·길성, 그리고 대운·세운·월운·일운으로 보는 시기별 흐름(운세)까지 한자리에서 봐요.' },
   { id: 'elem', label: '오행·강약', desc: '내 글자들이 목·화·토·금·수 다섯 기운 중 무엇에 쏠렸는지·그게 나에게 어떤 역할(십성)인지, 그리고 내 힘(일간)이 강한지 약한지·무엇으로 균형을 잡으면 좋은지 함께 봐요.' },
-  { id: 'rel', label: '운세', desc: '대운·세운·월운·일운으로 지금과 앞으로의 시기별 흐름(운세)을 봐요.' },
   { id: 'ziwei', label: '자미두수', desc: '사주와는 별개의 운명 체계예요. 태어난 시각으로 열두 자리(명궁·재물·관록·배우자 등)에 여러 별을 배치해, 삶의 각 영역에 어떤 기운이 드는지 봅니다. 사주를 보조해 교차로 참고해요(시각을 알아야 정확).' },
 ];
 let lastMyeongTab: MyeongTab = 'wonguk';   // 선택 탭 기억(세션 내 — 나갔다 와도 분류 유지, daniel)
@@ -72,7 +72,7 @@ const STRENGTH_INFO: { key: '신강' | '신약'; title: string; traits: string; 
 
 export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }: { input: ChartInput | null; onReading?: () => void; onSinsal?: () => void; header?: ReactNode; whoName?: string | null }) {
   const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState<MyeongTab>(lastMyeongTab);
+  const [activeTab, setActiveTab] = useState<MyeongTab>(lastMyeongTab === 'rel' ? 'wonguk' : lastMyeongTab); // 'rel'(구 운세 탭)은 wonguk 으로 통합(daniel 07-24) — 저장값 방어
   const [catDescOpen, setCatDescOpen] = useState(false); // 카테고리 ? 설명 시트(daniel: 설명도 나오게)
   useEffect(() => { lastMyeongTab = activeTab; }, [activeTab]); // 선택 탭 기억 — 나갔다 와도 유지(daniel)
   const [strengthOpen, setStrengthOpen] = useState(false); // 신강·신약 특징 시트
@@ -148,7 +148,7 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
   const [selSeun, setSelSeun] = useState(curSeunIdx);                 // 선택된 세운(기본=올해)
   const [selMonth, setSelMonth] = useState(now.getMonth());           // 선택된 월운(기본=이번 달)
   const [selDay, setSelDay] = useState(now.getDate());                // 선택된 일운(기본=오늘) — 일진 달력 탭으로 변경
-  const [showLayers, setShowLayers] = useState({ luck: true, year: true, month: true, day: true }); // 운세 확장명식 시간층 토글(대운·년운·월운·일운 — 끄면 남은 칸 넓어지고 글자 커짐)
+  const [showLayers, setShowLayers] = useState({ luck: false, year: false, month: false, day: false }); // 운세 확장명식 시간층 토글 — ★통합 후 기본 OFF(daniel 07-24: 원국+운세 통합 시 대운·세운·월운·일운 꺼진 게 기본, 원국만). 켜면 그 층↔원국 확장명식 노출
   const [expW, setExpW] = useState(0); // 확장명식 가용폭 — 컬럼 수에 맞춰 칸·글자 반응형(daniel)
   const [glossary, setGlossary] = useState<{ kind: GlossaryKind; key?: string } | null>(null); // 클릭 설명 바텀시트
   const [showLinks, setShowLinks] = useState(true); // 팔자 합충형해 카드 펼침 — 관계 탭 전용이 됐으니 기본 펼침(daniel: 합충 탭 비어보임)
@@ -282,6 +282,7 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
   });
 
   const [showAdvanced, setShowAdvanced] = useState(true); // daniel: 디폴트 상세분석 ON(지장간·12운성·통근)
+  const [hangeul, setHangeul] = useState(false); // ★한자↔한글 토글(daniel 2026-07-24) — 켜면 명식 간지를 한글음(갑·자)으로 주 표기, 한자는 작게.
   const toggleAdvanced = () => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setShowAdvanced(!showAdvanced);
@@ -325,14 +326,14 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
                 <Text style={[styles.pillarTenGod, { color: colors.inkSoft }]}>{P[p].stemTenGod}</Text>
               </PressableScale>
               <PressableScale style={styles.pillarMain} onPress={() => setGlossary({ kind: 'stem', key: P[p].stem })}>
-                <Text style={[styles.pillarChar, { color: elementColor[elStem] }]}>{P[p].stem}</Text>
-                <Text style={[styles.pillarReading, { color: colors.inkFaint }]}>{stemReading(P[p].stem)} · {stemYinYang(P[p].stem)}</Text>
+                <Text style={[styles.pillarChar, { color: elementColor[elStem] }]}>{hangeul ? stemReading(P[p].stem) : P[p].stem}</Text>
+                <Text style={[styles.pillarReading, { color: colors.inkFaint }]}>{hangeul ? P[p].stem : stemReading(P[p].stem)} · {stemYinYang(P[p].stem)}</Text>
               </PressableScale>
 
 
               <PressableScale style={styles.pillarMain} onPress={() => setGlossary({ kind: 'branch', key: P[p].branch })}>
-                <Text style={[styles.pillarChar, { color: elementColor[elBranch] }]}>{P[p].branch}</Text>
-                <Text style={[styles.pillarReading, { color: colors.inkFaint }]}>{branchReading(P[p].branch)} · {branchYinYang(P[p].branch)}</Text>
+                <Text style={[styles.pillarChar, { color: elementColor[elBranch] }]}>{hangeul ? branchReading(P[p].branch) : P[p].branch}</Text>
+                <Text style={[styles.pillarReading, { color: colors.inkFaint }]}>{hangeul ? P[p].branch : branchReading(P[p].branch)} · {branchYinYang(P[p].branch)}</Text>
               </PressableScale>
               {/* 지지 십신 — 개별 클릭 시 십신 설명 */}
               <PressableScale onPress={() => setGlossary({ kind: 'tengod', key: P[p].branchMainTenGod })}>
@@ -401,9 +402,15 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
           <View style={styles.headerArea}>
             {/* 누구 명식인지 제목에 표기(daniel 07-05) — 헤더 ChartPicker(변경 가능)와 함께 '누구의 사주 원국'인지 명확히. */}
             <Text style={styles.h}>{whoName ? `${whoName} · ${t('myeongsik.palja')}` : t('myeongsik.palja')}</Text>
-            <PressableScale style={styles.advancedBtn} onPress={toggleAdvanced}>
-              <Text style={styles.advancedBtnTx}>{showAdvanced ? '간략히' : '상세 분석'}</Text>
-            </PressableScale>
+            <View style={{ flexDirection: 'row', gap: space(2) }}>
+              {/* ★한자↔한글 토글(daniel 07-24) — 사주 모르는 사람도 한글음으로 명식 보기 */}
+              <PressableScale style={styles.advancedBtn} onPress={() => setHangeul((v) => !v)}>
+                <Text style={styles.advancedBtnTx}>{hangeul ? '漢 한자' : '가 한글'}</Text>
+              </PressableScale>
+              <PressableScale style={styles.advancedBtn} onPress={toggleAdvanced}>
+                <Text style={styles.advancedBtnTx}>{showAdvanced ? '간략히' : '상세 분석'}</Text>
+              </PressableScale>
+            </View>
           </View>
 
           {renderArcs(activeGanP, 'above')}
@@ -646,7 +653,8 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
       )}
 
       {/* ── 운세 탭(대운/세운/월운/일진) — daniel 07-13: 기존 '사주관계' 탭을 운세 전용으로 전환 ── */}
-      {activeTab === 'rel' && (
+      {/* ★운세(대운·세운·월운·일운) — 사주원국 탭에 통합(daniel 2026-07-24). 원국 아래 이어짐. */}
+      {activeTab === 'wonguk' && (
         <>
           {/* ★현재운세 보기(daniel 2026-07-08): 대운/세운/월운/일운을 모두 오늘자 인덱스로 리셋 → 오늘 기준 운세 바로 표시 */}
           <PressableScale
@@ -762,6 +770,8 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
               </PressableScale>
             ))}
           </View>
+          {/* ★확장명식(원국+대운/세운/월운/일운) = 시간층을 하나라도 켰을 때만 노출(daniel 2026-07-24 통합): 다 끄면 원국은 위 팔자표에 있으니 중복 렌더 안 함. */}
+          {hasLuckCol && (<>
           {/* 원국 + 대운·세운 확장 명식 (합충선은 아래 토글로 펼침) */}
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.luckScroll} onLayout={(e) => setExpW(e.nativeEvent.layout.width)}>
             <View>
@@ -773,8 +783,8 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
                     {/* 대운수(입운 나이) — 대운 컬럼만 표기, 나머지 컬럼은 빈 줄로 세로 정렬 유지 */}
                     <Text style={[styles.expAge, { fontSize: Math.round(fs(9) * scale) }]}>{col.label === '대운' && lc ? `${lc.startAge}세` : col.label === '세운' && seunAge != null ? `만 ${seunAge}세` : ' '}</Text>
                     <Text style={[styles.expTg, { fontSize: Math.round(fs(11) * scale) }]}>{col.tg}</Text>
-                    <GzCell char={col.stem} kind="stem" size="sm" scale={scale} onPress={() => setGlossary({ kind: 'stem', key: col.stem })} />
-                    <GzCell char={col.branch} kind="branch" size="sm" scale={scale} onPress={() => setGlossary({ kind: 'branch', key: col.branch })} />
+                    <GzCell char={col.stem} kind="stem" size="sm" scale={scale} hangeul={hangeul} onPress={() => setGlossary({ kind: 'stem', key: col.stem })} />
+                    <GzCell char={col.branch} kind="branch" size="sm" scale={scale} hangeul={hangeul} onPress={() => setGlossary({ kind: 'branch', key: col.branch })} />
                     <Text style={[styles.expTg, { fontSize: Math.round(fs(11) * scale) }]}>{branchTenGod(dm, col.branch)}</Text>
                     <PressableScale onPress={() => setGlossary({ kind: 'stage', key: twelveStage(dm, col.branch) })}>
                       <Text style={[styles.expStage, { fontSize: Math.round(fs(10) * scale) }]}>{twelveStage(dm, col.branch)}</Text>
@@ -809,6 +819,7 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
               {renderByStrength(normEx as any[], activeExpand, (k) => toggleKey(setActiveExpand, k))}
             </View>
           )}
+          </>)}
           {/* 대운 타임라인 — 제목 옆 대운수(행운수)·순역 표기(daniel) */}
           <Text style={styles.luckSub}>
             대운{daeunsu != null ? <Text style={{ fontWeight: '700' }}> · 대운수 {daeunsu}{luckDir ? ` ${luckDir}` : ''}</Text> : null} (탭하면 그 대운의 세운 펼침)
@@ -1299,14 +1310,14 @@ const makeStyles = (fs: (n: number) => number) => { const f = scaledFont(fs); re
   pillarPos: { ...f.caption, fontWeight: '700', color: colors.inkFaint, marginBottom: space(1.5) },
   pillarPosDay: { color: colors.ju },
   pillarMain: { alignItems: 'center', width: '100%', paddingVertical: space(0.5) },
-  pillarChar: { fontSize: fs(26), fontWeight: '800', lineHeight: fs(32) },
-  pillarTenGod: { fontSize: fs(10), fontWeight: '600' },
-  pillarReading: { fontSize: fs(9), fontWeight: '400' },
+  pillarChar: { fontSize: fs(31), fontWeight: '800', lineHeight: fs(38) },  // ★크기↑(daniel 07-24) 26→31
+  pillarTenGod: { fontSize: fs(12), fontWeight: '600' },                    // 10→12
+  pillarReading: { fontSize: fs(11), fontWeight: '400' },                   // 9→11
   pillarIcon: { marginVertical: space(2) },
   advancedInfo: { width: '100%', alignItems: 'center' },
-  pillarStage: { fontSize: fs(10), color: colors.inkSoft, fontWeight: '600', marginTop: space(1) },
+  pillarStage: { fontSize: fs(12), color: colors.inkSoft, fontWeight: '600', marginTop: space(1) },  // 10→12(크기↑)
   pillarHidden: { flexDirection: 'row', gap: 2, marginTop: space(1) },
-  pillarHiddenChar: { fontSize: fs(11), fontWeight: '700' },
+  pillarHiddenChar: { fontSize: fs(13), fontWeight: '700' },  // 11→13(크기↑)
   pillarHiddenItem: { width: 15, height: 15, alignItems: 'center', justifyContent: 'center' }, // 지장간 1자 칸
   pillarHiddenRooted: { borderWidth: 1, borderColor: colors.ju, borderRadius: 8 }, // 투출(통근) = 동그라미
   headerArea: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: space(4) },
