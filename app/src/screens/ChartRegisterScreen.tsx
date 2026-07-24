@@ -38,9 +38,10 @@ export function ChartRegisterScreen({ onSubmit, defaultRelation, submitLabel, sh
   const [calendar, setCalendar] = useState<'양' | '음'>(initial?.calendar ?? '양');
   const [isLeap, setIsLeap] = useState<boolean>((initial as any)?.isLeap ?? false); // ⑧ 윤달(daniel) — 음력 윤달 구분
   const [sex, setSex] = useState<'남' | '여'>(initial?.sex ?? '남');
-  const [birthPlace, setBirthPlace] = useState(initial?.birthPlace ?? '');
-  const [birthPlaceLon, setBirthPlaceLon] = useState<number | null>(initial?.birthLon ?? null); // 진태양시 경도(ADR-008 준비)
-  const [birthPlaceLat, setBirthPlaceLat] = useState<number | null>(initial?.birthLat ?? null); // 점성술 상승궁 위도(daniel: 출생지에서 추출)
+  // ★기본 출생지 = 대한민국 서울(daniel 2026-07-24) — 대다수 사용자 편의로 미리 채움(진태양시 경도·위도 포함). 신규 등록만(편집=기존값 우선).
+  const [birthPlace, setBirthPlace] = useState(initial?.birthPlace ?? '서울특별시');
+  const [birthPlaceLon, setBirthPlaceLon] = useState<number | null>(initial?.birthLon ?? 126.9780); // 진태양시 경도(ADR-008) — 서울 기본
+  const [birthPlaceLat, setBirthPlaceLat] = useState<number | null>(initial?.birthLat ?? 37.5665);  // 점성술 상승궁 위도 — 서울 기본
   const [relation, setRelation] = useState<string>(initial?.relation ?? defaultRelation ?? 'self');
   const [relationCustom, setRelationCustom] = useState(false); // 신규 카테고리 입력 모드
   const [cats, setCats] = useState<string[]>(() => getCategories()); // 관리 카테고리 목록(프리셋+커스텀+기타·self 제외)
