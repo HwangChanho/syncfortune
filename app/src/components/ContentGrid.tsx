@@ -58,11 +58,16 @@ function KenBurnsCard({ source }: { source: any }) {
   );
 }
 
+// ★풀이 3대 카테고리 시스템 매핑(daniel 2026-07-24) — 자미두수=ziwei(자미 원국풀이)·타로=taro, 그 외 전부 사주.
+const ZIWEI_KEYS = new Set(['ziwei']);
+const TARO_KEYS = new Set(['taro']);
+
 /**
  * 콘텐츠 카드 그리드. 화면(/contents)이 이걸 그대로 얹기만 하면 된다.
  * @param showViewToggle 카드/리스트 토글 노출 여부(기본 true)
+ * @param category 풀이 3대 카테고리 필터(사주/자미두수/타로 — daniel 07-24). 기본 'saju'.
  */
-export function ContentGrid({ showViewToggle = true }: { showViewToggle?: boolean }) {
+export function ContentGrid({ showViewToggle = true, category = 'saju' }: { showViewToggle?: boolean; category?: 'saju' | 'ziwei' | 'taro' }) {
   const router = useRouter();
   const { t } = useTranslation();
   const { viewMode, setViewMode } = useHomeViewMode();
@@ -71,9 +76,18 @@ export function ContentGrid({ showViewToggle = true }: { showViewToggle?: boolea
   const [admin, setAdmin] = useState(false);
   // ★신규 기능 노출 게이트 — 속궁합은 관리자(daniel) 또는 원격 플래그 ON 일 때만 노출(재제출 안전판).
   const sokOn = useFeatureOn('sokgunghap');
+  // ★풀이 3대 카테고리(daniel 2026-07-24): category(사주/자미두수/타로)로 항목 필터 + 빈 섹션 제거. 세그먼트는 화면(contents.tsx).
   const sections = useMemo(
-    () => SECTIONS.map((sec) => ({ ...sec, items: sec.items.filter((m) => m.key !== 'sokgunghap' || sokOn) })),
-    [sokOn],
+    () => SECTIONS.map((sec) => ({
+      ...sec,
+      items: sec.items.filter((m) => {
+        if (m.key === 'sokgunghap' && !sokOn) return false;          // 속궁합 노출 게이트 유지
+        if (category === 'ziwei') return ZIWEI_KEYS.has(m.key);      // 자미두수 탭
+        if (category === 'taro') return TARO_KEYS.has(m.key);        // 타로 탭
+        return !ZIWEI_KEYS.has(m.key) && !TARO_KEYS.has(m.key);      // 사주 탭 = 나머지 전부
+      }),
+    })).filter((sec) => sec.items.length > 0),
+    [sokOn, category],
   );
   const [repServerChartId, setRepServerChartId] = useState<string | null>(null); // 현재 대표 명식(프리미엄·배지 판정)
   const [credits, setCredits] = useState<Record<string, number>>({});                            // creditKey별 쿠폰 잔량

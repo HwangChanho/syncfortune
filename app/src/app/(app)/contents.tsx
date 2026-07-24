@@ -16,11 +16,13 @@ import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { ContentGrid } from '../../components/ContentGrid';
 import { ChartPicker } from '../../components/ChartPicker';
-import { colors, space, font } from '../../lib/theme';
+import { PressableScale } from '../../components/PressableScale';
+import { colors, space, font, radius } from '../../lib/theme';
 
 export default function ContentsScreen() {
   const { t } = useTranslation();
   const [, setReloadKey] = useState(0); // 명식 전환 시 그리드(배지·티저) 재계산 트리거
+  const [cat, setCat] = useState<'saju' | 'ziwei' | 'taro'>('saju'); // ★풀이 3대 카테고리(daniel 2026-07-24)
   return (
     // 전역 ContentBackdrop(오행 배경색)이 비치게 투명(홈과 동일 처리).
     <View style={styles.bg}>
@@ -28,11 +30,19 @@ export default function ContentsScreen() {
         <Text style={styles.title}>{t('nav.contents', '풀이')}</Text>
         <Text style={styles.sub}>{t('contents.sub', '보고 싶은 주제를 골라 보세요')}</Text>
         <View style={styles.divider} />
-        {/* ★대표 명식 — 이 탭에서도 최상단(daniel 2026-07-19 "풀이탭에도 명식 제일 상단에").
-            카드 배지('풀이있음'·'무제한')와 티저가 전부 적용 명식 기준이라, 어떤 명식으로 보고 있는지가 먼저 와야 한다.
-            ※ContentGrid 는 자체적으로 명식 변경(subscribeRepChange)을 구독해 재계산한다. */}
+        {/* ★풀이 3대 카테고리(daniel 2026-07-24) — 사주·자미두수·타로를 메인으로. 탭으로 그리드 필터. */}
+        <View style={styles.catSeg}>
+          {([['saju', '사주'], ['ziwei', '자미두수'], ['taro', '타로']] as const).map(([k, l]) => (
+            <PressableScale key={k} style={[styles.catChip, cat === k && styles.catChipOn]} onPress={() => setCat(k)}>
+              <Text style={[styles.catChipTx, cat === k && styles.catChipTxOn]}>{l}</Text>
+            </PressableScale>
+          ))}
+        </View>
+        {cat === 'ziwei' ? <Text style={styles.catIntro}>사주와는 별개의 운명 체계 — 태어난 시각으로 12궁(명궁·재물·관록·배우자 등)에 별을 배치해 삶의 각 영역을 봐요.</Text> : null}
+        {cat === 'taro' ? <Text style={styles.catIntro}>78장 타로 카드로 오늘의 질문에 답을 얻어요(주제별 하루 1회).</Text> : null}
+        {/* ★대표 명식 — 이 탭에서도 최상단(daniel 2026-07-19). 카드 배지·티저가 적용 명식 기준. */}
         <ChartPicker onChange={() => setReloadKey((k) => k + 1)} />
-        <ContentGrid />
+        <ContentGrid category={cat} />
       </ScrollView>
     </View>
   );
@@ -46,4 +56,11 @@ const styles = StyleSheet.create({
   title: { ...font.display, textAlign: 'left' as const },
   sub: { ...font.body, color: colors.inkSoft, marginTop: space(2), textAlign: 'left' as const },
   divider: { width: 44, height: 3, borderRadius: 2, backgroundColor: colors.ju, marginTop: space(4), marginBottom: space(6) },
+  // ★풀이 3대 카테고리 세그먼트(daniel 07-24) — 사주/자미두수/타로
+  catSeg: { flexDirection: 'row', gap: space(2), marginBottom: space(4) },
+  catChip: { flex: 1, alignItems: 'center', paddingVertical: space(2.5), borderRadius: radius.md, backgroundColor: colors.sunk, borderWidth: 1, borderColor: colors.line },
+  catChipOn: { backgroundColor: colors.ju, borderColor: colors.ju },
+  catChipTx: { fontSize: 15, fontWeight: '800', color: colors.inkSoft, letterSpacing: 0.3 },
+  catChipTxOn: { color: '#15132E' },
+  catIntro: { ...font.caption, color: colors.inkSoft, lineHeight: 18, marginBottom: space(5), marginTop: -space(2) },
 });
