@@ -349,7 +349,10 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
                 <Animated.View style={styles.advancedInfo}>
                   <View style={styles.pillarDivider} />
                   <View style={styles.pillarHidden}>
-                    {P[p].hiddenStems.map((h, i) => {
+                    {/* ★지장간 3슬롯 고정(여기·중기·본기) — 중기 없는 지지(왕지 등)는 가운데 빈칸으로 정렬(daniel 2026-07-24). */}
+                    {(['여기', '중기', '본기'] as const).map((role, i) => {
+                      const h = P[p].hiddenStems.find((x) => x.role === role);
+                      if (!h) return <View key={i} style={styles.pillarHiddenItem}><Text style={[styles.pillarHiddenChar, { color: colors.line }]}>·</Text></View>;
                       const rooted = allGan.includes(h.stem); // 지장간이 원국 천간에 투출 = 통근(동그라미 표시)
                       return (
                         <View key={i} style={[styles.pillarHiddenItem, rooted && styles.pillarHiddenRooted]}>
@@ -777,9 +780,13 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
                       <Text style={[styles.expStage, { fontSize: Math.round(fs(10) * scale) }]}>{twelveStage(dm, col.branch)}</Text>
                     </PressableScale>
                     <View style={styles.expHidden}>
-                      {col.hidden.map((h: any, k: number) => (
-                        <Text key={k} style={[styles.expHiddenTx, { fontSize: Math.round(fs(12) * scale), lineHeight: Math.round(fs(15) * scale) }, { color: elementColor[stemElement(h.stem)] }]}>{h.stem}</Text>
-                      ))}
+                      {/* ★지장간 = 여기·중기·본기 3슬롯 고정(daniel 2026-07-24): 중기 없는 지지(왕지 卯·酉 등)는 가운데를 비워 세로 정렬(빈 슬롯 = faint '·'). */}
+                      {(['여기', '중기', '본기'] as const).map((role, k) => {
+                        const h = col.hidden.find((x: any) => x.role === role);
+                        return (
+                          <Text key={k} style={[styles.expHiddenTx, { fontSize: Math.round(fs(12) * scale), lineHeight: Math.round(fs(15) * scale) }, h ? { color: elementColor[stemElement(h.stem)] } : { color: colors.line }]}>{h ? h.stem : '·'}</Text>
+                        );
+                      })}
                     </View>
                   </View>
                 ))}
