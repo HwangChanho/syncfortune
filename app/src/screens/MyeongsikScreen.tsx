@@ -380,12 +380,14 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
         </PressableScale>
       ))}
     </View>
-    {/* 카테고리 ? 설명(daniel: 설명도 나오게) — 탭하면 이 분류가 무엇을 보는지 시트로 */}
-    <PressableScale style={styles.catDescBtn} onPress={() => setCatDescOpen(true)}>
-      <Text style={styles.catDescBtnTx}>ⓘ 이 분류는 무엇을 보나요?</Text>
-    </PressableScale>
-
     <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>
+      {/* 카테고리 ? 설명(daniel: 설명도 나오게) — 탭하면 이 분류가 무엇을 보는지 시트로.
+          ★ScrollView 안으로 이동(daniel 2026-07-24 '글자 짤려'): 예전엔 고정 탭바 아래 '투명 영역'에 떠 있어,
+          운세 탭 기둥 등을 위로 스크롤하면 그 투명 경계에서 상단 라벨(기둥명·나이·천간십신)이 지저분하게 잘려 보였다.
+          콘텐츠와 함께 스크롤되게 옮겨, 기둥은 불투명 테두리 탭바 아래로 깔끔히 스크롤되게 함. */}
+      <PressableScale style={styles.catDescBtn} onPress={() => setCatDescOpen(true)}>
+        <Text style={styles.catDescBtnTx}>ⓘ 이 분류는 무엇을 보나요?</Text>
+      </PressableScale>
       {header}
       <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
         {/* ── 사주원국 1: 팔자 그리드 + 12신살(원국) ── */}
