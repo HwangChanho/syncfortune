@@ -6,7 +6,7 @@
 //   needsZiwei=true 면 자미두수 명반을 body 로 전달(사명=사주 主 + 자미 보조 교차).
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useMemo, useState, useRef, type ReactNode } from 'react';
-import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator, Animated, Easing } from 'react-native';
+import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator, Animated, Easing, Modal } from 'react-native';
 import { PressableScale } from './PressableScale';
 import { ExpiryNote } from './ExpiryNote'; // 보유 만료일 공통(프리미엄 가드 한 곳)
 import { Image as ExpoImage } from 'expo-image'; // 콘텐츠 배너 — 자동 다운샘플·디스크캐시(daniel: 이미지 프리로드/캐시). 홈카드와 같은 파일 캐시 공유 → 콘텐츠 진입 즉시
@@ -20,7 +20,7 @@ import { useAuth } from '../lib/useAuth';
 import { useSubscription } from '../lib/billing/subscription';   // 프리미엄=자동 생성
 import { isPremiumForChart } from '../lib/billing/premiumStore'; // 명식별 프리미엄(premiumCovered 콘텐츠 = 프리미엄 무료해제·자동생성)
 import { useFontScale } from '../lib/ui/fontScale';
-import { waitForCreditGrant, type CreditKind } from '../lib/billing/coupons'; // C1: 결제 후 웹훅 적립 폴링(차감은 Edge 서버 게이트)
+import { waitForCreditGrant, loadCredits, type CreditKind } from '../lib/billing/coupons'; // C1: 결제 후 웹훅 적립 폴링(차감은 Edge 서버 게이트) · loadCredits=게이트 사전 확인(자물쇠 번쩍임 방지)
 import { isUnlocked, markUnlocked } from '../lib/billing/unlocks'; // isUnlocked=무차감 재열람 힌트 / markUnlocked=생성 성공 후 캐시 힌트(C3 part2 — 게이트 아님)
 import { ShareReadingButton } from './ShareReadingButton'; // 이슈17: 풀이 결과 공유
 import { TTSButton } from './TTSButton'; // daniel: 풀이 음성 읽기(온디바이스 TTS·무료)
@@ -92,6 +92,7 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
   const [reading, setReading] = useState<any>(null);
   const [expiry, setExpiry] = useState<string | null>(null); // 보유 만료일(생성일+1년) — showExpiry(유료 단일)일 때 캐시 created_at으로 채움(daniel #25)
   const [busy, setBusy] = useState(false);
+  const [purchasing, setPurchasing] = useState(false); // ★결제 오버레이(daniel 07-24) — '바로 구매' 탭 후 애플 결제창 뜨기까지·웹훅 적립까지 무피드백 방지(성격급한 유저 이탈)
   const [loaded, setLoaded] = useState(false);
   const [owned, setOwned] = useState(false); // 소유(프리미엄/관리자/차감 unlock) — 미구매 차트 풀이 노출 차단(daniel ⓐ). 명식 변경 시 재판정.
   const [reloadKey, setReloadKey] = useState(0); // ChartPicker 로 대표 전환 시 재로드 트리거
@@ -288,12 +289,20 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
     gatingRef.current = true;
     let proceed = false;
     try {
-      // 관리자 = 무료(Edge god 도 통과) / 그 외 = 로그인만 보장(결제=계정 귀속). 차감·판정은 Edge.
+      // 관리자 = 무료(Edge god 도 통과) / 프리미엄 명식 = Edge effPrem 바이패스(크레딧 불요) / 그 외 = 로그인 보장 + 크레딧 사전 확인.
       if (await isAdmin()) proceed = true;
-      else proceed = requireLoginForPurchase(session, () => router.push('/login'), t);
+      else if (!requireLoginForPurchase(session, () => router.push('/login'), t)) proceed = false; // 미로그인 → 로그인 유도(생성 안 함)
+      else if (isPremiumForChart(chartId)) proceed = true;                                          // 프리미엄 = 서버 무게이트 통과 → 바로 생성
+      else {
+        // ★크레딧 사전 확인(daniel 07-24): 비프리미엄이 크레딧 0이면 자물쇠(UnlockOverlay)가 번쩍였다가 needPayment 로 구매 모달이 뜨던
+        //   혼란을 없앤다 — 잔여 0이면 오버레이 없이 바로 구매 모달. (Edge 가 여전히 차감 권위 — 이 peek 은 UX 용. peek>0 이어도 Edge needPayment 면 generate 가 재유도.)
+        const bal = await loadCredits();
+        if ((bal[kind] ?? 0) > 0) proceed = true;
+        else promptPurchase(chartId); // 크레딧 없음 → 구매 유도(오버레이 없이)
+      }
     } catch (e) { logEvent(`${kind}_gate_error`, { message: (e as Error).message }, 'error'); }
     finally { gatingRef.current = false; }
-    if (proceed) generate(chartId); // Edge 가 이용권 차감/판정 → 없으면 generate 안에서 needPayment → promptPurchase
+    if (proceed) generate(chartId); // Edge 가 이용권 차감/판정 → (드묾) 없으면 generate 안에서 needPayment → promptPurchase 폴백
   }
 
   // 구매 유도 — 서버 게이트(Edge)가 needPayment 를 반환했을 때만 호출(클라 차감 없음).
@@ -302,6 +311,7 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
     Alert.alert(title, t('special.needPayMsg', '이용권이 필요해요. 바로 구매하거나 마켓에서 받을 수 있어요.'), [
       { text: t('special.buyNow', '바로 구매'), onPress: async () => {
           if (!purchasesEnabled()) { Alert.alert(title, t('market.payPending', '결제 준비 중이에요. 쿠폰을 이용하거나 잠시 후 다시 시도해 주세요.')); return; }
+          setPurchasing(true); // ★애플 결제창 뜨기까지 + 웹훅 적립까지 로딩 표시(daniel 07-24: 무피드백 구간에 성격급한 유저 이탈)
           try {
             const ok = await purchaseCreditRC(kind); if (!ok) return;   // 결제 취소=false(조용히)
             // ★C1 보안(daniel 07-03): 클라 grant/차감 폐지 → 영수증 검증된 웹훅이 적립. 반영까지 폴링 후 재생성(Edge 가 1회 차감).
@@ -309,6 +319,7 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
             if (granted) generate(id, undefined, refresh); // refresh 유지(재회 상대 재등록 후 결제=캐시 덮어쓰기)
             else Alert.alert(title, t('special.applyPending', '결제가 완료됐어요. 적용까지 잠시 걸릴 수 있어요. 잠시 후 다시 시도해 주세요.'));
           } catch (e) { Alert.alert('!', (e as Error).message); }
+          finally { setPurchasing(false); } // 결제 완료/취소/오류/적립 후 해제 — generate 가 이어받으면 busy(UnlockOverlay)로 매끄럽게 전환
         } },
       { text: t('special.goMarket', '마켓에서 보기'), onPress: () => router.push('/market') },
       { text: t('common.cancel'), style: 'cancel' },
@@ -353,6 +364,13 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
       <UnlockOverlay visible={busy} message={genMsg} videoKey={(kind === 'child' || kind === 'child_couple') ? 'child' : undefined} />
       {/* 풀이 공개(revealed) 순간 골드 명조 문 열림 영상 — 1회 재생 후 페이드아웃하며 풀이 노출(daniel 07-06) */}
       <DoorReveal visible={doorPlaying} onDone={() => setDoorPlaying(false)} />
+      {/* ★결제 준비 오버레이(daniel 07-24) — '바로 구매' 탭 후 애플 결제창 뜨기까지·웹훅 적립까지 무피드백 방지(자물쇠는 생성 단계에서) */}
+      <Modal visible={purchasing} transparent animationType="fade" statusBarTranslucent>
+        <View style={styles.payWrap}><View style={styles.payCard}>
+          <ActivityIndicator color={colors.gold} size="large" />
+          <Text style={[styles.payTx, { fontSize: fs(15) }]}>{t('special.preparingPayment', '결제 준비 중…')}</Text>
+        </View></View>
+      </Modal>
       <ContentHero motif={heroMotif} image={heroImage ?? HERO_BY_KIND[kind]} title={title} sub={sub} themeColor={themeColor} />
 
       {/* ★무료 온디바이스 티저(재회 도화-충 달력 등) — 히어로 바로 아래·항상 노출(잠김/열림 무관). 유료 풀이는 이 아래.
@@ -545,4 +563,8 @@ const styles = StyleSheet.create({
   previewItem: { ...font.body, color: colors.inkSoft, lineHeight: 24, fontSize: 14 },
   cta: { backgroundColor: colors.ju, borderRadius: radius.md, paddingVertical: space(3.5), paddingHorizontal: space(7) },
   ctaTx: { color: colors.bg, fontWeight: '800', fontSize: 16 },
+  // 결제 준비 오버레이(daniel 07-24) — '바로 구매' 후 애플 결제창/웹훅 적립 대기 로딩(무피드백 방지)
+  payWrap: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center' },
+  payCard: { backgroundColor: colors.card, borderRadius: radius.lg, paddingVertical: space(7), paddingHorizontal: space(9), alignItems: 'center', ...shadow.card },
+  payTx: { ...font.body, color: colors.ink, marginTop: space(4), fontWeight: '700' },
 });
