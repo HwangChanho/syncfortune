@@ -373,9 +373,10 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
       </Modal>
       <ContentHero motif={heroMotif} image={heroImage ?? HERO_BY_KIND[kind]} title={title} sub={sub} themeColor={themeColor} />
 
-      {/* ★무료 온디바이스 티저(재회 도화-충 달력 등) — 히어로 바로 아래·항상 노출(잠김/열림 무관). 유료 풀이는 이 아래.
-          love.tsx가 <LoveFlowGraph>를 히어로 아래 항상 노출하는 배치를 공용화. c.saju에 timeUnknown을 코드베이스 관례(prewarm/Reading)와 동일하게 병합해 전달(클라 computeChart 산출물엔 timeUnknown이 없음). */}
-      {freeHook && c?.saju ? freeHook({ ...c.saju, timeUnknown: savedChart?.input?.timeAccuracy === '미상' }) : null}
+      {/* ★무료 온디바이스 티저(재회 도화-충 달력 등) — 히어로 바로 아래. ★유료 전환 후크라 '미소유(잠김)'일 때만 노출(daniel 2026-07-24 재개정):
+          유료로 열린 뒤에도 티저의 "무료로 짚어 봤어요/지금은 미리보기예요/아래에서 열 수 있어요" 문구가 남아 구매 상태와 모순됐다(IMG_8168·freeHook 쓰는 12개 유료콘텐츠 공통).
+          owned(구매·프리미엄·관리자)면 숨김 → 전체 풀이만 노출(전환 후크는 미소유일 때만 의미). c.saju에 timeUnknown 을 코드베이스 관례(prewarm/Reading)와 동일하게 병합해 전달. */}
+      {freeHook && c?.saju && !owned ? freeHook({ ...c.saju, timeUnknown: savedChart?.input?.timeAccuracy === '미상' }) : null}
 
       {/* 콘텐츠별 상단 커스텀 컨트롤(옵션) — 히어로 아래·상태 뷰/게이트 위. ★풀이를 실제로 공개(revealed)한 뒤엔 숨김 — 상태 뷰·게이트(공개 前)에서는 계속 노출(자식운 COUPLE 토글은 생성 前에만 의미, daniel 07-03).
           단 keepHeaderExtra(재회)=공개 후에도 계속 노출: 잠긴 상대 표시·'상대 바꾸기'를 풀이 보면서도 쓸 수 있게(daniel 07-05). */}

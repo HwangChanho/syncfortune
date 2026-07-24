@@ -245,10 +245,10 @@ export default function NewYearScreen() {
         <DoorReveal visible={doorPlaying} onDone={() => setDoorPlaying(false)} />
         <ContentHero motif={<NewyearWheel />} image={require('../../../assets/icons/newyear-hero.jpg')} title={`${year}${t('newyear.title', '년 신년운세')}`} sub={t('newyear.heroSub', '올 한 해의 큰 흐름을 한눈에')} themeColor={colors.ju} />
 
-        {/* ★무료 온디바이스 티저(내년 신수 3층 곱연산 산식 + 큰 삼재 배지 + 길월 달력) — 히어로 아래·잠김/열림 무관 항상 노출.
-            love.tsx가 게이지/곡선을 히어로 아래 항상 노출하는 배치를 신년에 적용(유료 전환 후크). 내년(curYear+1) 기준.
+        {/* ★무료 온디바이스 티저(내년 신수 3층 곱연산 산식 + 큰 삼재 배지 + 길월 달력) — 히어로 아래. ★유료 전환 후크라 '미소유(전체 풀이 없음)'일 때만(daniel 2026-07-24):
+            유료로 열린 뒤에도 "깊은 풀이에서 (콕/달별로) 짚어 드려요" 티저 문구가 남아 구매 상태와 모순(IMG_8168 계열·freeHook 12종과 동일 원인). data(전체 풀이) 있으면 숨김.
             시각 미상은 강도(원국↔세운 합충) 판정에서 시주를 빼도록 timeUnknown 병합해 전달(코드베이스 관례). */}
-        {c?.saju && <NewyearTeaser saju={c.saju} timeUnknown={saved?.input?.timeAccuracy === '미상'} />}
+        {c?.saju && !data && <NewyearTeaser saju={c.saju} timeUnknown={saved?.input?.timeAccuracy === '미상'} />}
 
         {!loaded ? (
           <View style={styles.card}><ActivityIndicator color={colors.ju} /></View>

@@ -463,7 +463,13 @@ export function ReadingScreen({
     }
   }
 
-  const banner = isPremium ? t('reading.bannerPremium') : t('reading.bannerPerUse', { price: formatKrw(creditPrice(kind === 'ziwei' ? 'ziwei' : 'reading')) }); // 실가 주입(사주 19,900·자미 14,900) — 하드코딩 근절
+  // ★배너 3분기(daniel 2026-07-24): 프리미엄=무제한 / **결제 언락=이미 냈으니 업셀 금지**(전체 생성 안내) / 미결제=업셀(가격).
+  //   기존엔 isPremium 만 봐서, 결제 언락한 비프리미엄이 미완 생성 시 "전체 풀이는 ₩19,900"(재과금 안내)이 떠 모순이었다(IMG_8168 계열·유료 오픈 후 티저문구 잔존).
+  const banner = isPremium
+    ? t('reading.bannerPremium')
+    : (unlocked || isPremiumForChart(chartId))
+      ? t('reading.bannerUnlocked', '✨ 결제 완료 — 전체 풀이를 생성해요')
+      : t('reading.bannerPerUse', { price: formatKrw(creditPrice(kind === 'ziwei' ? 'ziwei' : 'reading')) }); // 실가 주입(사주 19,900·자미 14,900)
   const haveAll = cats.every((cat) => readings[cat.key]);
   // 명식별 프리미엄(#1): 이 명식이 프리미엄 지정이거나 결제 언락돼야 '전부 보기'. 아니면(무료모드·비지정 명식) 캐시가 있어도 페이월.
   const entitled = computeEntitled(isPremium, isPremiumForChart(chartId), unlocked); // 권한=전역프리미엄/이명식지정/결제언락(readingGate·테스트됨)
