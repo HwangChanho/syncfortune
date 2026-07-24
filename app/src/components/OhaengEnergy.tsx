@@ -66,18 +66,24 @@ export function OhaengEnergy({ saju }: { saju: SajuChart }) {
         ))}
       </View>
 
-      {/* ③ 지배 에너지 오브 + 성향(전향적) */}
-      <View style={styles.summary}>
-        <View style={[styles.orb, glow(dominant), { backgroundColor: elementColor[dominant] }]}>
-          <Text style={[styles.orbGlyph, { color: onColor(dominant) }]}>{dominant}</Text>
-        </View>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.sumHead}>
-            지금 가장 강한 에너지는 <Text style={[styles.sumEl, { color: elementColor[dominant] }]}>{dominant}({EL_KO[dominant]})</Text>
-          </Text>
-          <Text style={styles.sumTrait}>{EL_TRAIT[dominant]}</Text>
-          {lacking ? <Text style={styles.sumLack}>채우면 좋은 기운 · {lacking}({EL_KO[lacking]})</Text> : null}
-        </View>
+      {/* ③ 대표기운 순위 1~5(daniel 2026-07-24 '2~5순위까지 다 나오게') — 세력 순으로 다섯 기운 전부 + 성향. 1위 강조. */}
+      <View style={styles.rankCard}>
+        {sorted.map((e, i) => (
+          <View key={e} style={[styles.rankRow, i > 0 && styles.rankRowBorder]}>
+            <Text style={[styles.rankNum, i === 0 && styles.rankNumTop]}>{i + 1}</Text>
+            <View style={[styles.rankOrb, glow(e), { backgroundColor: elementColor[e] }, i === 0 && styles.rankOrbTop]}>
+              <Text style={[styles.rankOrbGlyph, { color: onColor(e) }, i === 0 && styles.rankOrbGlyphTop]}>{e}</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.rankEl, i === 0 && styles.rankElTop]}>
+                {e}({EL_KO[e]}){i === 0 ? <Text style={styles.rankBadge}>  · 가장 강함</Text> : null}
+              </Text>
+              <Text style={styles.rankTrait}>{EL_TRAIT[e]}</Text>
+            </View>
+            <Text style={[styles.rankCnt, { color: elementColor[e] }]}>{counts[e]}</Text>
+          </View>
+        ))}
+        {lacking ? <Text style={styles.sumLack}>채우면 좋은 기운 · {lacking}({EL_KO[lacking]})</Text> : null}
       </View>
     </View>
   );
@@ -107,11 +113,20 @@ const styles = StyleSheet.create({
   legend: { flexDirection: 'row', alignItems: 'center', gap: space(1) },
   dot: { width: 9, height: 9, borderRadius: 5 },
   legendTx: { ...font.caption, color: colors.inkSoft, fontSize: 11 },
-  summary: { flexDirection: 'row', alignItems: 'center', gap: space(3), backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.line, padding: space(3) },
-  orb: { width: 52, height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center' },
-  orbGlyph: { fontSize: 24, fontWeight: '900' },
-  sumHead: { ...font.body, color: colors.ink },
-  sumEl: { fontWeight: '900' },
-  sumTrait: { ...font.caption, color: colors.inkSoft, marginTop: space(0.5) },
-  sumLack: { ...font.caption, color: colors.inkFaint, marginTop: space(1) },
+  // 대표기운 1~5 랭킹 리스트(daniel 07-24) — 1위는 오브·글자 키워 강조.
+  rankCard: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.line, paddingHorizontal: space(4), paddingVertical: space(1) },
+  rankRow: { flexDirection: 'row', alignItems: 'center', gap: space(3), paddingVertical: space(2.5) },
+  rankRowBorder: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.line },
+  rankNum: { width: 18, textAlign: 'center', color: colors.inkFaint, fontWeight: '800', fontSize: 14 },
+  rankNumTop: { color: colors.ju, fontSize: 16 },
+  rankOrb: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
+  rankOrbTop: { width: 48, height: 48, borderRadius: 24 },
+  rankOrbGlyph: { fontSize: 17, fontWeight: '900' },
+  rankOrbGlyphTop: { fontSize: 22 },
+  rankEl: { ...font.body, color: colors.ink, fontWeight: '700', fontSize: 15 },
+  rankElTop: { fontWeight: '900', fontSize: 17 },
+  rankBadge: { color: colors.ju, fontWeight: '800', fontSize: 12 },
+  rankTrait: { ...font.caption, color: colors.inkSoft, marginTop: 2, fontSize: 12 },
+  rankCnt: { fontWeight: '900', fontSize: 19, minWidth: 22, textAlign: 'right' },
+  sumLack: { ...font.caption, color: colors.inkFaint, textAlign: 'center', paddingVertical: space(2.5), borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.line },
 });
