@@ -7,6 +7,8 @@
     "doc": "docs"
   },
   "scripts": {
+    "golden:status": "node scripts/golden-status.mjs",
+    "golden:ingest": "node scripts/golden-ingest.mjs",
     "test": "echo \"Error: no test specified\" && exit 1",
     "typecheck": "tsc --noEmit",
     "typecheck:app": "cd app && npx tsc --noEmit",
