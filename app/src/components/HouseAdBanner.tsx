@@ -78,7 +78,7 @@ export function HouseAdBanner() {
               />
               <View style={styles.body}>
                 <Text style={[styles.eyebrow, { color: p.accent }]}>✨ 이런 건 어때요?</Text>
-                <Text style={[styles.hook, { fontSize: fs(22) }]} numberOfLines={2}>{p.hook}</Text>
+                <Text style={[styles.hook, { fontSize: fs(24) }]} numberOfLines={2}>{p.hook}</Text>
                 <Text style={[styles.sub, { fontSize: fs(13) }]} numberOfLines={1}>{p.sub}</Text>
                 <View style={styles.ctaRow}>
                   <Text style={[styles.cta, { color: p.accent }]}>보러 가기</Text>
@@ -100,10 +100,10 @@ export function HouseAdBanner() {
 const styles = StyleSheet.create({
   wrap: { marginBottom: space(5) },
   // 이미지 배너 — 와이드(가로 3.0:1 근처), 큼직하게(daniel 07-24 '더 크게'). 이미지 cover + 좌측 다크 오버레이.
-  card: { width: '100%', height: 150, borderRadius: radius.lg, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(20,19,46,0.12)', ...shadow.card },
+  card: { width: '100%', height: 200, borderRadius: radius.lg, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(20,19,46,0.12)', ...shadow.card }, // ★아래로 더 크게(daniel 2026-07-25 150→200)
   body: { flex: 1, justifyContent: 'center', paddingLeft: space(6), paddingRight: space(5), maxWidth: '78%' },
   eyebrow: { fontSize: 13, fontWeight: '800', letterSpacing: 0.3, marginBottom: 6 },
-  hook: { color: colors.white, fontWeight: '900', letterSpacing: -0.3, lineHeight: 27 },
+  hook: { color: colors.white, fontWeight: '900', letterSpacing: -0.3, lineHeight: 30 },
   sub: { color: 'rgba(255,255,255,0.9)', marginTop: 5, fontWeight: '500' },
   ctaRow: { flexDirection: 'row', alignItems: 'center', marginTop: 10 },
   cta: { fontSize: 13.5, fontWeight: '800' },

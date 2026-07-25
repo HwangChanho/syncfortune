@@ -23,7 +23,7 @@ import { useAuth } from '../../lib/useAuth';
 import { useEffect, useRef, useMemo, useState, useCallback } from 'react';
 import { supabase } from '../../lib/supabase';
 import { excludeMock } from '../../lib/core/testMode'; // ★홈 배너 daily 캐시서 목업 제외(OFF) — 실모드서 '목업 자리표시' 노출 방지(daniel 07-23 신고)
-import { ChartPicker } from '../../components/ChartPicker';
+// ChartPicker(명식 선택)는 홈에서 제거(daniel 2026-07-25 '명식 선택은 홈에서 빼자') — 풀이 탭·만세력·설정에서 전환.
 import { SelfUnderstandingHero } from '../../components/SelfUnderstandingHero'; // ★4.3: 홈 최상단 자기이해 히어로(성향분석 첫 경험)
 import { PersonaTypeHero } from '../../components/PersonaTypeHero'; // ★홈 주인공 ①: 성격유형 120종(daniel 07-18 IA 개편)
 import { HouseAdBanner } from '../../components/HouseAdBanner'; // 홈 상단 내부 프로모 배너(하우스 광고·daniel 07-24)
@@ -201,8 +201,7 @@ export default function Home() {
   // ── 홈 블록 하나를 렌더 — order 의 각 키 → 해당 컴포넌트/배너. (드래그 재정렬 renderItem 에서 호출) ──
   //   key 는 DraggableFlatList(keyExtractor)·renderItem 래퍼가 담당하므로 여기선 붙이지 않는다.
   const renderBlock = (k: HomeBlockKey) => {
-    // 명식 선택/전환 — 아래 블록이 전부 '지금 적용된 명식' 기준이라 기본 순서에선 맨 위.
-    if (k === 'chart') return <ChartPicker onChange={() => setReloadKey((n) => n + 1)} />;
+    // 명식 선택(ChartPicker)은 홈에서 제거(daniel 2026-07-25) — 홈은 대표 명식 기준 자동 표시. reloadKey 는 포커스/repChange 로 갱신(105·108).
     // 만세력·AI 코치 = 홈 블록에서 제거(daniel 2026-07-25 J) → 상단 '🧭 바로가기' 메뉴로 분기(order·renderBlock 미처리).
     // 성격유형 120종(일간10×월지12·온디바이스 결정론) — 명식이 없으면 스스로 렌더하지 않는다.
     if (k === 'persona') return <PersonaTypeHero reloadKey={reloadKey} />;
@@ -335,7 +334,7 @@ export default function Home() {
           <Text style={styles.editBtnTx}>⠿ 홈 배치 편집</Text>
         </PressableScale>
         <PressableScale onPress={() => setQuickOpen(true)} style={styles.editBtn} hitSlop={8}>
-          <Text style={styles.editBtnTx}>🧭 바로가기</Text>
+          <Text style={styles.editBtnTx}>⚡ 바로가기</Text>
         </PressableScale>
       </View>
 
