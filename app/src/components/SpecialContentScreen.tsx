@@ -388,21 +388,25 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
         // ★상태 뷰(daniel 07-03): 소유(프리미엄/구매/관리자) 풀이라도 바로 노출하지 않고
         //   '이미 열려 있음 + (일반 계정) 만료일' 상태를 먼저 보여준 뒤 '풀이 보기'로 공개(관리 편의·구매이력 인지).
         //   reading 유무와 무관하게 진입 — 캐시가 있으면 '풀이 보기'가 즉시 공개, 없으면 생성까지 트리거(소유 경로라 재차감 없음).
-        <View style={[styles.card, styles.gate, { borderColor: themeColor }]}>
-          <Text style={[styles.gateTitle, dynStyles.gateTitle]}>{t('special.ownedTitle', '이미 열려 있는 풀이예요')}</Text>
-          {/* 상태 라인 — 프리미엄 명식=무제한(골드) / 그 외(구매·관리자)=만료일(showExpiry+expiry 있으면) 또는 '구매한 풀이'. 만료 포맷=ExpiryNote와 동일한 expiry 값(생성일+1년 YYYY.MM.DD) 재사용. */}
-          {/* 프리미엄(지정 명식)은 서버 effPrem이 모든 유료 kind를 바이패스 = 전 콘텐츠 무제한 → premiumCovered 여부와 무관하게
-              이 명식이 프리미엄이면 '무제한'. (daniel 07-05: 프리미엄 계정인데 신규 3종 등에서 만료일 뜨던 문제 — premiumCovered 미전달이 원인) */}
+        // ★소유 진입 카드 리디자인(daniel 2026-07-25 IMG_8183 '풀이로 넘어가는 부분') — 점선(미완성 느낌)→솔리드 프리미엄 카드.
+        //   ✓ 소유 뱃지 + 제목 + 상태 한 줄(제목과 중복되던 '구매한 풀이예요' 문구 교체) + 풀 폭 '풀이 보기 ›' CTA. themeColor=콘텐츠 정체색.
+        <View style={[styles.ownedCard, { borderColor: themeColor + '55' }]}>
+          <View style={[styles.ownedBadge, { backgroundColor: themeColor + '22', borderColor: themeColor + '66' }]}>
+            <Text style={[styles.ownedBadgeTx, { color: themeColor }]}>✓</Text>
+          </View>
+          <Text style={[styles.ownedTitle, dynStyles.gateTitle]}>{t('special.ownedTitle', '이미 열려 있는 풀이예요')}</Text>
+          {/* 상태 한 줄 — 프리미엄 명식=무제한(골드) / 그 외=만료일 또는 구매완료. (effPrem 이 모든 유료 kind 바이패스 → 이 명식 프리미엄이면 '무제한') */}
           {isPremiumForChart(chartId) ? (
-            <Text style={[styles.ownedStatus, dynStyles.gateDesc, { color: colors.gold }]}>{t('special.ownedUnlimited', '프리미엄 · 무제한 이용')}</Text>
+            <Text style={[styles.ownedStatus2, dynStyles.gateDesc, { color: colors.gold }]}>{t('special.ownedUnlimited', '프리미엄 · 무제한 이용')}</Text>
           ) : (showExpiry && expiry) ? (
-            <Text style={[styles.ownedStatus, dynStyles.gateDesc]}>{t('special.ownedUntil', { date: expiry, defaultValue: '{{date}}까지 볼 수 있어요' })}</Text>
+            <Text style={[styles.ownedStatus2, dynStyles.gateDesc]}>{t('special.ownedUntil', { date: expiry, defaultValue: '{{date}}까지 볼 수 있어요' })}</Text>
           ) : (
-            <Text style={[styles.ownedStatus, dynStyles.gateDesc]}>{t('special.ownedBought', '구매한 풀이예요')}</Text>
+            <Text style={[styles.ownedStatus2, dynStyles.gateDesc]}>{t('special.ownedBoughtV2', '구매 완료 · 언제든 다시 볼 수 있어요')}</Text>
           )}
-          {/* '풀이 보기' — revealed 전환(캐시 즉시 공개). 캐시 없으면 onStart(소유 경로: 프리미엄/unlock/관리자 → generate만, 재차감 없음)로 생성까지 트리거. */}
-          <PressableScale style={[styles.cta, { backgroundColor: themeColor }]} onPress={() => { setRevealed(true); if (!reading) onStart(); }}>
+          {/* 풀 폭 '풀이 보기 ›' — revealed 전환(캐시 즉시 공개). 캐시 없으면 onStart(소유 경로: 프리미엄/unlock/관리자 → generate만, 재차감 없음). */}
+          <PressableScale style={[styles.ownedCta, { backgroundColor: themeColor }]} onPress={() => { setRevealed(true); if (!reading) onStart(); }}>
             <Text style={[styles.ctaTx, dynStyles.ctaTx]}>{t('special.viewCta', '풀이 보기')}</Text>
+            <Text style={[styles.ctaTx, dynStyles.ctaTx, styles.ownedCtaArrow]}>›</Text>
           </PressableScale>
         </View>
       ) : (reading && owned && revealed) ? (
@@ -558,6 +562,14 @@ const styles = StyleSheet.create({
   goMarketBtn: { marginTop: space(3), paddingVertical: space(2.5), paddingHorizontal: space(6), borderRadius: radius.md, borderWidth: 1, borderColor: colors.ju, backgroundColor: colors.sunk, alignItems: 'center' },
   goMarketTx: { ...font.body, color: colors.ju, fontWeight: '700' },
   ownedStatus: { ...font.body, color: colors.ink, fontWeight: '700', textAlign: 'center', marginBottom: space(5), lineHeight: 22 }, // 상태 뷰(daniel 07-03) 상태 라인 — 구매이력/만료일/무제한. 게이트 설명(inkSoft)보다 또렷하게(ink·700).
+  // ★소유 진입 카드 리디자인(daniel 2026-07-25 IMG_8183 '풀이로 넘어가는 부분') — 점선→솔리드 프리미엄. ✓뱃지·제목·상태 한줄·풀폭 CTA.
+  ownedCard: { backgroundColor: colors.card, borderRadius: radius.lg, borderWidth: 1.5, alignItems: 'center', paddingVertical: space(6), paddingHorizontal: space(5), marginBottom: space(4), ...shadow.card },
+  ownedBadge: { width: 48, height: 48, borderRadius: 24, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', marginBottom: space(3) }, // ✓ 소유 뱃지(themeColor 틴트)
+  ownedBadgeTx: { fontSize: 24, fontWeight: '900', lineHeight: 28 },
+  ownedTitle: { ...font.heading, color: colors.ink, fontWeight: '900', marginBottom: space(1.5), textAlign: 'center' },
+  ownedStatus2: { ...font.body, color: colors.inkSoft, fontWeight: '700', textAlign: 'center', marginBottom: space(5), lineHeight: 22 },
+  ownedCta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space(1), alignSelf: 'stretch', borderRadius: radius.md, paddingVertical: space(4), ...shadow.card }, // 풀 폭 CTA(카드 안에서 stretch)
+  ownedCtaArrow: { fontSize: 18 },
   // 미리보기 박스(잠긴 콘텐츠의 핵심 항목 목록)
   previewBox: { width: '100%', backgroundColor: colors.sunk, borderRadius: radius.md, padding: space(4), marginBottom: space(5) },
   previewHead: { fontSize: 13, fontWeight: '800', marginBottom: space(2), letterSpacing: 0.5 },
