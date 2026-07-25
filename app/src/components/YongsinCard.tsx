@@ -149,11 +149,17 @@ export function YongsinCard({ saju, pattern, timeUnknown }: { saju: SajuChart; p
       ) : null)}
       {METHOD_DESC[ys.method] ? <Text style={styles.desc}>{METHOD_DESC[ys.method]}</Text> : null}
 
-      {/* 격국용신(상신) — 표준 자평진전. 주용신과 관점이 달라 다를 수 있음. */}
+      {/* 격국용신(상신) — 병약용신처럼 '배지 + 동일 정렬 행'으로 표시(daniel 2026-07-25 IMG_8182). 주용신과 관점이 달라 다를 수 있음. */}
       {gyeokguk ? (
         <View style={styles.gyeokBox}>
+          {/* head = 주용신 카드 상단과 동일 구조(좌 제목 '용신' + 우측 배지 '격국용신') */}
+          <View style={styles.head}>
+            <Text style={styles.title}>용신</Text>
+            <View style={styles.methodPill}><Text style={styles.methodTx}>격국용신</Text></View>
+          </View>
+          {/* 상신 행 — 병약용신 행(용신/희신/기신)과 완전히 같은 정렬(라벨 40폭·닷·오행·십성) */}
           <View style={styles.row}>
-            <Text style={styles.rowLabel}>격국{'\n'}용신</Text>
+            <Text style={styles.rowLabel}>용신</Text>
             <View style={[styles.elDot, { backgroundColor: elementColor[gyeokguk.el] ?? colors.inkFaint }]} />
             <Text style={[styles.elTx, { color: elementColor[gyeokguk.el] ?? colors.ink }]}>{gyeokguk.el}({EL_KO[gyeokguk.el] ?? gyeokguk.el})</Text>
             <Text style={styles.sipsin}>{gyeokguk.group}{gyeokguk.inChart ? '' : ' ·원국無'}</Text>

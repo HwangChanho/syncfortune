@@ -151,7 +151,7 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
   const [showLayers, setShowLayers] = useState({ luck: false, year: false, month: false, day: false }); // 운세 확장명식 시간층 토글 — ★통합 후 기본 OFF(daniel 07-24: 원국+운세 통합 시 대운·세운·월운·일운 꺼진 게 기본, 원국만). 켜면 그 층↔원국 확장명식 노출
   const [expW, setExpW] = useState(0); // 확장명식 가용폭 — 컬럼 수에 맞춰 칸·글자 반응형(daniel)
   const [glossary, setGlossary] = useState<{ kind: GlossaryKind; key?: string } | null>(null); // 클릭 설명 바텀시트
-  const [showLinks, setShowLinks] = useState(true); // 팔자 합충형해 카드 펼침 — 관계 탭 전용이 됐으니 기본 펼침(daniel: 합충 탭 비어보임)
+  const [showLinks, setShowLinks] = useState(false); // ★관계분석(합충형해) 기본 접힘(daniel 2026-07-24) — 펼치면 관계 리스트 + 12신살
   const [showExpandLinks, setShowExpandLinks] = useState(false); // 운 합충형해(대운/세운 관계) 기본 접힘(daniel 07-18) — 펼치면 3자 국[삼합/삼형]+개별 2자 노출
   const [activePalja, setActivePalja] = useState<Set<string>>(() => new Set());   // 클릭으로 켠 팔자 합충(명식 강조용)
   const [activeExpand, setActiveExpand] = useState<Set<string>>(() => new Set());  // 클릭으로 켠 대운/세운 합충
@@ -281,7 +281,7 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
     );
   });
 
-  const [showAdvanced, setShowAdvanced] = useState(true); // daniel: 디폴트 상세분석 ON(지장간·12운성·통근)
+  const [showAdvanced, setShowAdvanced] = useState(false); // ★기본 '간략히'(daniel 2026-07-24) — 상세(지장간·통근)는 버튼으로. 12운성은 상시 표시라 영향 적음.
   const [hangeul, setHangeul] = useState(false); // ★한자↔한글 토글(daniel 2026-07-24) — 켜면 명식 간지를 한글음(갑·자)으로 주 표기, 한자는 작게.
   const toggleAdvanced = () => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -417,25 +417,40 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
           {renderPillars()}
           {renderArcs(activeJiP, 'below')}
 
-          {/* 12신살(원국) — 자리별 요약. 상세·기준지(년/일)·길신은 '신살' 탭에서(daniel: 원국에도 포함) */}
-          <View style={styles.twelveRow}>
-            <Text style={styles.twelveRowLabel}>12신살</Text>
-            {visiblePos.map((p) => {
-              const names = Array.from(new Set((c.sinsal.twelve[p] ?? []).map((tw: any) => tw.name)));
-              return (
-                <View key={p} style={styles.twelveCell}>
-                  {names.length ? names.map((n, i) => (
-                    <PressableScale key={i} onPress={() => setGlossary({ kind: 'sinsal', key: n })}><Text style={styles.twelveCellTx}>{n}</Text></PressableScale>
-                  )) : <Text style={styles.twelveDim}>—</Text>}
-                </View>
-              );
-            })}
-          </View>
+          {/* ★신살·공망(원국) — 12신살 있던 자리로 이동(daniel 2026-07-25). 자리별 적중만: 운에서 오는 신살 제외 · 12신살 요약은 관계분석으로. */}
+          <Text style={styles.hint}>신살·공망 (자리별 적중)</Text>
+          {(() => {
+            const byName = new Map<string, { name: string; glyphs: string[]; hits: any[] }>();
+            c.sinsal.sinsal.forEach((s) => {
+              if (!byName.has(s.name)) byName.set(s.name, { name: s.name, glyphs: [], hits: [] });
+              const e = byName.get(s.name)!;
+              s.glyphs.forEach((g) => { if (!e.glyphs.includes(g)) e.glyphs.push(g); });
+              e.hits.push(...s.hits);
+            });
+            if (c.sinsal.goegang) byName.set('괴강', { name: '괴강', glyphs: [`${P['일'].stem}${P['일'].branch}`], hits: [{ pos: '일', side: 'stem' }] });
+            if (c.sinsal.baekhoHits.length) byName.set('백호', { name: '백호', glyphs: ['白虎'], hits: c.sinsal.baekhoHits.map((p) => ({ pos: p, side: 'stem' })) });
+            const atSide = (p: PillarPos, side: string) => [...byName.values()].filter((s) => s.hits.some((h) => h.pos === p && h.side === side)).map((s) => s.name);
+            const tag = (name: string, onPress: () => void, key: any) => { const g = (SINSAL_GLOSSARY as any)[name]; return <PressableScale key={key} onPress={onPress}><Text style={styles.ssTagLink}>{g?.ko ?? name}</Text></PressableScale>; };
+            const cellTags = (names: string[]) => names.length ? names.map((n, i) => tag(n, () => setGlossary({ kind: 'sinsal', key: n }), i)) : <Text style={styles.ssDim}>—</Text>;
+            return (
+              <View style={styles.ssTable}>
+                <View style={styles.ssTableRow}><Text style={styles.ssRowLabel} />{visiblePos.map((p) => <Text key={p} style={styles.ssColHead}>{p}주</Text>)}</View>
+                <View style={styles.ssTableRow}><Text style={styles.ssRowLabel}>천간</Text>{visiblePos.map((p) => <View key={p} style={styles.ssCell}>{cellTags(atSide(p, 'stem'))}</View>)}</View>
+                <View style={styles.ssTableRow}><Text style={styles.ssRowLabel}>지지</Text>{visiblePos.map((p) => <View key={p} style={styles.ssCell}>{cellTags(atSide(p, 'branch'))}</View>)}</View>
+                <View style={styles.ssTableRow}><Text style={styles.ssRowLabel}>공망</Text>{visiblePos.map((p) => <View key={p} style={styles.ssCell}>{c.sinsal.gongmangHits.includes(p) ? tag('공망', () => setGlossary({ kind: 'gongmang' }), 'gm') : <Text style={styles.ssDim}>—</Text>}</View>)}</View>
+              </View>
+            );
+          })()}
+          {onSinsal && (
+            <PressableScale style={styles.sinsalDetailBtn} onPress={onSinsal}>
+              <Text style={styles.sinsalDetailTx}>{t('myeongsik.sinsalDetail')}</Text>
+            </PressableScale>
+          )}
 
         </>
       )}
-      {/* ── 사주원국 2: 천간과 지지(합충) 관계 — daniel 07-13: 원국 탭에 통합(차트는 위 part1이 이미 arcs로 렌더, 여기선 관계 리스트만) ── */}
-      {activeTab === 'wonguk' && (
+      {/* ── 사주원국 2: 천간과 지지(합충) 관계 + 12신살 — 관계분석은 '상세 분석'일 때만 노출(daniel 2026-07-25 R). ── */}
+      {activeTab === 'wonguk' && showAdvanced && (
         <>
           {/* 합충형해 토글 — 위 명식 차트의 합충선(arcs)에 대응하는 관계 분석 리스트 */}
           {(ganLinks.length + jiLinks.length) > 0 && (
@@ -462,6 +477,20 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
           {renderGroups(normPalja, activePalja, (k) => toggleKey(setActivePalja, k))}
         </View>
       )}
+          {/* 12신살(원국) — 관계분석 안으로 이동(daniel 2026-07-25 N). 상세 분석 전용(이 블록이 showAdvanced 게이트). 합충 유무와 무관하게 항상 표시. */}
+          <View style={styles.twelveRow}>
+            <Text style={styles.twelveRowLabel}>12신살</Text>
+            {visiblePos.map((p) => {
+              const names = Array.from(new Set((c.sinsal.twelve[p] ?? []).map((tw: any) => tw.name)));
+              return (
+                <View key={p} style={styles.twelveCell}>
+                  {names.length ? names.map((n, i) => (
+                    <PressableScale key={i} onPress={() => setGlossary({ kind: 'sinsal', key: n })}><Text style={styles.twelveCellTx}>{n}</Text></PressableScale>
+                  )) : <Text style={styles.twelveDim}>—</Text>}
+                </View>
+              );
+            })}
+          </View>
 
         </>
       )}
@@ -621,36 +650,7 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
 
         </>
       )}
-      {/* ── 사주원국 2: 지장간 상세 ── */}
-      {activeTab === 'wonguk' && (
-        <>
-      {/* 지장간 상세 — 숨은 기운(지장간)과 강약(본기=상시 강 / 중기·여기=잠재, 투출 시 드러나 강) */}
-      <Text style={styles.h}>{t('myeongsik.hidden')}</Text>
-      <Text style={styles.hiddenHint}>진한 칸 = 드러나 작용하는 힘(본기·뿌리내린 기운) · 흐린 칸 = 아직 숨은 잠재 기운</Text>
-      {visiblePos.map((p) => {
-        const d = P[p];
-        return (
-          <View key={p} style={styles.hiddenDetailRow}>
-            <Text style={styles.hiddenRowLabel}>{p}주 {d.branch}</Text>
-            <View style={styles.hiddenChips}>
-              {d.hiddenStems.map((h, i) => {
-                const rooted = allGan.includes(h.stem);            // 투출=통근(원국 천간에 드러나 뿌리내림)
-                const strong = h.role === '본기' || rooted;         // 본기=상시 강 / 중기·여기는 투출(통근) 시 강 발현
-                return (
-                  <View key={i} style={[styles.hiddenChip, strong ? styles.hiddenChipStrong : styles.hiddenChipWeak]}>
-                    <Text style={[styles.hiddenChipChar, { color: elementColor[stemElement(h.stem)] }, !strong && styles.hiddenDim]}>{h.stem}</Text>
-                    <Text style={[styles.hiddenChipTg, !strong && styles.hiddenDim]}>{h.tenGod}</Text>
-                    <Text style={styles.hiddenChipRole}>{h.role}{rooted ? '·뿌리' : ''}</Text>
-                  </View>
-                );
-              })}
-            </View>
-          </View>
-        );
-      })}
-
-        </>
-      )}
+      {/* 지장간 상세(숨은 기운 표)는 제거(daniel 2026-07-25 '관계분석 아래 지장간 필드 빼') — 지장간은 위 팔자 칸에 이미 표시됨. */}
 
       {/* ── 운세 탭(대운/세운/월운/일진) — daniel 07-13: 기존 '사주관계' 탭을 운세 전용으로 전환 ── */}
       {/* ★운세(대운·세운·월운·일운) — 사주원국 탭에 통합(daniel 2026-07-24). 원국 아래 이어짐. */}
@@ -829,8 +829,8 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
               <PressableScale key={i} onPress={() => { setSelLuck(i); setSelSeun(0); }} onLayout={l.isCurrent ? (e) => { centerM.current.luck.x = e.nativeEvent.layout.x; centerM.current.luck.w = e.nativeEvent.layout.width; recenter('luck', luckScrollRef); } : undefined} style={[styles.luckCard, l.isCurrent && styles.luckCardCur, selLuck === i && styles.luckCardSel]}>
                 <Text style={styles.luckAge}>{l.startAge}세</Text>
                 <Text style={styles.luckTg}>{l.stemTenGod}</Text>
-                <GzCell char={l.stem} kind="stem" size="sm" />
-                <GzCell char={l.branch} kind="branch" size="sm" />
+                <GzCell char={l.stem} kind="stem" size="sm" hangeul={hangeul} />
+                <GzCell char={l.branch} kind="branch" size="sm" hangeul={hangeul} />
                 <Text style={styles.luckTg}>{branchTenGod(dm, l.branch)}</Text>
                 <Text style={styles.luckStage}>{twelveStage(dm, l.branch)}</Text>
               </PressableScale>
@@ -849,8 +849,8 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
                     <Text style={styles.seunYear}>{a.year}</Text>
                     {seunAgeJ != null && <Text style={styles.seunAge}>{seunAgeJ}세</Text>}
                     <Text style={styles.seunTg}>{a.stemTenGod}</Text>
-                    <GzCell char={a.stem} kind="stem" size="xs" />
-                    <GzCell char={a.branch} kind="branch" size="xs" />
+                    <GzCell char={a.stem} kind="stem" size="xs" hangeul={hangeul} />
+                    <GzCell char={a.branch} kind="branch" size="xs" hangeul={hangeul} />
                     <Text style={styles.seunTg}>{branchTenGod(dm, a.branch)}</Text>
                     <Text style={styles.seunStage}>{twelveStage(dm, a.branch)}</Text>
                   </PressableScale>
@@ -871,8 +871,8 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
                   <PressableScale key={k} onPress={() => setSelMonth(k)} onLayout={selMonth === k ? (e) => { centerM.current.month.x = e.nativeEvent.layout.x; centerM.current.month.w = e.nativeEvent.layout.width; recenter('month', monthScrollRef); } : undefined} style={[styles.seunCard, selMonth === k && styles.luckCardSel]}>
                     <Text style={styles.seunYear}>{k + 1}월</Text>
                     <Text style={styles.seunTg}>{m.stemTenGod}</Text>
-                    <GzCell char={m.stem} kind="stem" size="xs" />
-                    <GzCell char={m.branch} kind="branch" size="xs" />
+                    <GzCell char={m.stem} kind="stem" size="xs" hangeul={hangeul} />
+                    <GzCell char={m.branch} kind="branch" size="xs" hangeul={hangeul} />
                     <Text style={styles.seunTg}>{branchTenGod(dm, m.branch)}</Text>
                     <Text style={styles.seunStage}>{twelveStage(dm, m.branch)}</Text>
                   </PressableScale>
@@ -900,8 +900,8 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
                         <Text style={[styles.calDay, isToday && styles.calDayToday]}>{dd.day}{isToday ? ' ·오늘' : ''}</Text>
                         {/* ★일진 달력 오행색(daniel 07-07): 간지 전체를 stem 색 하나로 칠하던 것 → 천간·지지 각각 제 오행색(壬=水파랑·午=火빨강). */}
                         <Text style={styles.calGz}>
-                          <Text style={{ color: elementColor[stemElement(dd.stem)] }}>{dd.stem}</Text>
-                          <Text style={{ color: elementColor[branchElement(dd.branch)] }}>{dd.branch}</Text>
+                          <Text style={{ color: elementColor[stemElement(dd.stem)] }}>{hangeul ? stemReading(dd.stem) : dd.stem}</Text>
+                          <Text style={{ color: elementColor[branchElement(dd.branch)] }}>{hangeul ? branchReading(dd.branch) : dd.branch}</Text>
                         </Text>
                       </PressableScale>
                     );
@@ -916,71 +916,7 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
         </>
       )}
 
-      {/* ── 사주원국 3: 신살과 길성 — daniel 07-13: 원국 탭에 통합(지장간 아래) ── */}
-      {activeTab === 'wonguk' && (
-        <>
-          {/* 신살·공망 — 원국 적중은 자리별 표(팔자처럼 칸), 운에서 오는 건 별도 분리 */}
-          <Text style={styles.h}>{t('myeongsik.sinsal')}</Text>
-      <Text style={styles.hint}>{t('myeongsik.sinsalHint')}</Text>
-      {/* 전용 상세 화면(분류·의미·활용)으로 — 명식 표는 요약, 깊은 디테일은 따로 */}
-      {onSinsal && (
-        <PressableScale style={styles.sinsalDetailBtn} onPress={onSinsal}>
-          <Text style={styles.sinsalDetailTx}>{t('myeongsik.sinsalDetail')}</Text>
-        </PressableScale>
-      )}
-      {(() => {
-        // 적중(원국) 길신·흉살 병합(천을귀인 등 다중) + 괴강·백호
-        const byName = new Map<string, { name: string; glyphs: string[]; hits: any[] }>();
-        c.sinsal.sinsal.forEach((s) => {
-          if (!byName.has(s.name)) byName.set(s.name, { name: s.name, glyphs: [], hits: [] });
-          const e = byName.get(s.name)!;
-          s.glyphs.forEach((g) => { if (!e.glyphs.includes(g)) e.glyphs.push(g); });
-          e.hits.push(...s.hits);
-        });
-        if (c.sinsal.goegang) byName.set('괴강', { name: '괴강', glyphs: [`${P['일'].stem}${P['일'].branch}`], hits: [{ pos: '일', side: 'stem' }] });
-        if (c.sinsal.baekhoHits.length) byName.set('백호', { name: '백호', glyphs: ['白虎'], hits: c.sinsal.baekhoHits.map((p) => ({ pos: p, side: 'stem' })) });
-        const atSide = (p: PillarPos, side: string) => [...byName.values()].filter((s) => s.hits.some((h) => h.pos === p && h.side === side)).map((s) => s.name);
-        const luckOnly = [...byName.values()].filter((s) => !s.hits.some((h) => (visiblePos as string[]).includes(h.pos)));
-        const noGm = c.sinsal.gongmangHits.filter((p) => (visiblePos as string[]).includes(p)).length === 0;
-        const tag = (name: string, onPress: () => void, key: any) => {
-          const g = (SINSAL_GLOSSARY as any)[name];
-          return <PressableScale key={key} onPress={onPress}><Text style={styles.ssTagLink}>{g?.ko ?? name}</Text></PressableScale>;
-        };
-        const cellTags = (names: string[]) => names.length ? names.map((n, i) => tag(n, () => setGlossary({ kind: 'sinsal', key: n }), i)) : <Text style={styles.ssDim}>—</Text>;
-        const detailRow = (name: string, glyphs: string, hanja: string, kw: string, onPress: () => void) => (
-          <PressableScale onPress={onPress} style={styles.ssDRow}>
-            <Text style={styles.ssDName} numberOfLines={1}>{name}<Text style={styles.ssDHanja}>{hanja ? ` ${hanja}` : ''}</Text></Text>
-            <Text style={styles.ssDGlyph}>{glyphs}</Text>
-            <Text style={styles.ssDDim}>운에서</Text>
-            <Text style={styles.ssDKw} numberOfLines={1}>{kw}</Text>
-          </PressableScale>
-        );
-        return (
-          <>
-            <Text style={styles.ssSubHead}>원국 (자리별 적중)</Text>
-            <View style={styles.ssTable}>
-              <View style={styles.ssTableRow}><Text style={styles.ssRowLabel} />{visiblePos.map((p) => <Text key={p} style={styles.ssColHead}>{p}주</Text>)}</View>
-              <View style={styles.ssTableRow}><Text style={styles.ssRowLabel}>천간</Text>{visiblePos.map((p) => <View key={p} style={styles.ssCell}>{cellTags(atSide(p, 'stem'))}</View>)}</View>
-              <View style={styles.ssTableRow}><Text style={styles.ssRowLabel}>지지</Text>{visiblePos.map((p) => <View key={p} style={styles.ssCell}>{cellTags(atSide(p, 'branch'))}</View>)}</View>
-              <View style={styles.ssTableRow}><Text style={styles.ssRowLabel}>12신살</Text>{visiblePos.map((p) => <View key={p} style={styles.ssCell}>{(c.sinsal.twelve[p] ?? []).filter((tw: any) => tw.bases.some((b: string) => (visiblePos as string[]).includes(b))).map((tw: any, i: number) => tag(tw.name, () => setGlossary({ kind: 'sinsal', key: tw.name }), i))}</View>)}</View>
-              <View style={styles.ssTableRow}><Text style={styles.ssRowLabel}>공망</Text>{visiblePos.map((p) => <View key={p} style={styles.ssCell}>{c.sinsal.gongmangHits.includes(p) ? tag('공망', () => setGlossary({ kind: 'gongmang' }), 'gm') : <Text style={styles.ssDim}>—</Text>}</View>)}</View>
-            </View>
-            {(luckOnly.length > 0 || noGm) && (
-              <>
-                <Text style={styles.ssSubHead}>운에서 오는 신살 (원국 미적중 — 대운·세운에서 작동)</Text>
-                {luckOnly.map((s, idx) => {
-                  const g = (SINSAL_GLOSSARY as any)[s.name];
-                  return <View key={idx}>{detailRow(g?.ko ?? s.name, s.glyphs.join(''), g?.hanja ?? '', g?.keywords?.join('·') ?? '', () => setGlossary({ kind: 'sinsal', key: s.name }))}</View>;
-                })}
-                {noGm && <View>{detailRow('공망', c.sinsal.gongmang.join(''), '空亡', '비움·정신·종교', () => setGlossary({ kind: 'gongmang' }))}</View>}
-              </>
-            )}
-            {!byName.has('양인') && <Text style={styles.ssLuckLine}>양인(羊刃): 음간 일간({P['일'].stem}) — 표준 양인 없음(이설).</Text>}
-          </>
-        );
-      })()}
-        </>
-      )}
+      {/* 신살·공망 = 팔자 바로 아래로 이동(daniel 2026-07-25 T) · 운에서 오는 신살 제거(S). 여기 있던 '신살과 길성' 블록은 삭제. */}
       {/* ── 자미두수: 사주관계 신살탭에서 별도 탭으로 분리(daniel) ── */}
       {activeTab === 'ziwei' && (
         <>
