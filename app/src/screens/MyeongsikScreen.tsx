@@ -1128,7 +1128,8 @@ const makeStyles = (fs: (n: number) => number) => { const f = scaledFont(fs); re
   subTabBtnOn: { borderBottomColor: colors.ju },
   subTabLabel: { color: colors.inkFaint, fontWeight: '700', fontSize: 13 },
   subTabLabelOn: { color: colors.ju },
-  catDescBtn: { alignSelf: 'flex-start', marginHorizontal: space(4), marginTop: space(2.5), marginBottom: space(1), paddingVertical: space(1.5), paddingHorizontal: space(3), borderRadius: 999, backgroundColor: colors.sunk },
+  // ★좌상단으로(daniel 2026-07-25 '더 왼쪽 위로') — wrap padding(space5) 위에 얹던 추가 들여쓰기(marginHorizontal space4)·상단여백 제거.
+  catDescBtn: { alignSelf: 'flex-start', marginHorizontal: 0, marginTop: -space(1), marginBottom: space(2), paddingVertical: space(1.5), paddingHorizontal: space(3), borderRadius: 999, backgroundColor: colors.sunk },
   catDescBtnTx: { color: colors.ju, fontWeight: '600', fontSize: 12 },
   // 핵심 격(살인상생 등) 카드 — daniel
   gyeokWrap: { marginTop: space(3), marginBottom: space(1) },

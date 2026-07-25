@@ -16,7 +16,7 @@
 //
 // 로그인 게이트 없음(ADR-037).
 // ─────────────────────────────────────────────────────────────────────────
-import { View, Text, ScrollView, StyleSheet, Animated, AppState, Dimensions } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Animated, AppState, Dimensions, Modal, Pressable } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../lib/useAuth';
@@ -97,6 +97,7 @@ export default function Home() {
   const [reloadKey, setReloadKey] = useState(0); // 명식 변경(전환·수정) 감지 — 포커스마다 오늘의 기운 재계산(daniel: 명식 수정 시 id 동일이라 갱신 안 되던 버그)
   const [loggingOut, setLoggingOut] = useState(false); // 로그아웃 콜백 동안 오버레이
   const [editOpen, setEditOpen] = useState(false); // 홈 배치 편집 모달(daniel 07-21 '편집 모드')
+  const [quickOpen, setQuickOpen] = useState(false); // 🧭 바로가기 메뉴(만세력·AI코치 분기 — daniel 2026-07-25 J)
 
   // 홈 포커스 시(명식 변경 후 복귀 포함) 날짜·대표 명식 재확인 → 오늘의 기운 갱신(①③)
   useFocusEffect(useCallback(() => {
@@ -202,17 +203,7 @@ export default function Home() {
   const renderBlock = (k: HomeBlockKey) => {
     // 명식 선택/전환 — 아래 블록이 전부 '지금 적용된 명식' 기준이라 기본 순서에선 맨 위.
     if (k === 'chart') return <ChartPicker onChange={() => setReloadKey((n) => n + 1)} />;
-    // 만세력 바로가기(daniel 07-23) — 내 사주 명식 전체(/charts). 명식 있을 때만 노출·코치 배너와 동일 크롬(다른 이모지).
-    if (k === 'manse') return hasChart ? (
-      <PressableScale style={styles.coachBanner} onPress={() => router.push('/charts')}>
-        <Text style={styles.coachBannerEmoji}>📜</Text>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.coachBannerTitle}>{t('menu.manse', '만세력')}</Text>
-          <Text style={styles.coachBannerSub} numberOfLines={1}>{t('home.manseSub', '내 사주 명식 전체 보기')}</Text>
-        </View>
-        <Text style={styles.coachBannerArrow}>›</Text>
-      </PressableScale>
-    ) : null;
+    // 만세력·AI 코치 = 홈 블록에서 제거(daniel 2026-07-25 J) → 상단 '🧭 바로가기' 메뉴로 분기(order·renderBlock 미처리).
     // 성격유형 120종(일간10×월지12·온디바이스 결정론) — 명식이 없으면 스스로 렌더하지 않는다.
     if (k === 'persona') return <PersonaTypeHero reloadKey={reloadKey} />;
     // 자기이해 히어로 — 에겐·테토 게이지 + 성격유형/MBTI/특징 클러스터(App Store 4.3 결).
@@ -223,17 +214,7 @@ export default function Home() {
     if (k === 'luck') return <LuckyTodayCard reloadKey={reloadKey} />;
     // 오늘의 관계 — 등록한 상대 × 오늘 일진(결정론). 상대가 없으면 스스로 렌더하지 않는다.
     if (k === 'relation') return <TodayRelationCard reloadKey={reloadKey} dateKey={dateKey} />;
-    // AI 자기이해 코치 — 대화형 도구 진입('운세 피드'가 아니라 물어보는 도구 = 차별화).
-    if (k === 'coach') return (
-      <PressableScale style={styles.coachBanner} onPress={() => router.push('/coach')}>
-        <Text style={styles.coachBannerEmoji}>💬</Text>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.coachBannerTitle}>{t('coach.title', 'AI 자기이해 코치')}</Text>
-          <Text style={styles.coachBannerSub} numberOfLines={1}>{t('coach.sub', '나에 대해 궁금한 걸 물어보세요')}</Text>
-        </View>
-        <Text style={styles.coachBannerArrow}>›</Text>
-      </PressableScale>
-    );
+    // (AI 자기이해 코치 블록은 상단 🧭 바로가기로 이동 — daniel 2026-07-25 J)
     // 오늘/내일 기운 — 토글·좌우 슬라이드(가로 페이징). 별도 카드였던 유형명·점수·등급·근거·신살 칩이 여기 통합됐다.
     return (
       <View style={styles.fortuneBanner}>
@@ -347,10 +328,16 @@ export default function Home() {
         </PressableScale>
       </View>
       <View style={styles.divider} />
-      {/* 홈 배치 편집 진입 — 블록 순서를 간단 목록에서 드래그(daniel 07-21 '편집 모드'). 홈 블록 자체는 내부 탭 충돌로 인플레이스 드래그 대신 모달. */}
-      <PressableScale onPress={() => setEditOpen(true)} style={styles.editBtn} hitSlop={8}>
-        <Text style={styles.editBtnTx}>⠿ 홈 배치 편집</Text>
-      </PressableScale>
+      {/* 홈 상단 컨트롤 행(daniel 2026-07-25 J): [⠿ 홈 배치 편집] + [🧭 바로가기](만세력·AI코치 분기 메뉴).
+          배치 편집 = 블록 순서 드래그(모달·내부 탭 충돌 회피). 바로가기 = 블록에서 뺀 만세력/코치로 진입. */}
+      <View style={styles.topCtrlRow}>
+        <PressableScale onPress={() => setEditOpen(true)} style={styles.editBtn} hitSlop={8}>
+          <Text style={styles.editBtnTx}>⠿ 홈 배치 편집</Text>
+        </PressableScale>
+        <PressableScale onPress={() => setQuickOpen(true)} style={styles.editBtn} hitSlop={8}>
+          <Text style={styles.editBtnTx}>🧭 바로가기</Text>
+        </PressableScale>
+      </View>
 
       {/* 통변 생성 진행률(daniel) — 여러 개 동시 풀이 가능 → route별 배너 여러 개. 탭=그 화면 이동 + 그 배너만 닫기.
           ★이 배너는 '알림'이라 배치 순서 대상이 아니다(항상 최상단 고정). */}
@@ -389,7 +376,7 @@ export default function Home() {
       {/* fade-in — DraggableFlatList 가 스크롤 컨테이너라 이 Animated.View 로 감싸 opacity 만 준다(flex:1). */}
       <Animated.View style={{ flex: 1, opacity: fadeAnim }}>
         {/* ★홈 블록 배치 — 순서는 계정별(useHomeOrder · profiles.home_order). 홈에서 길게 눌러 드래그 or 설정에서 변경(daniel).
-            기본 순서(daniel 07-23) = 명식 → 만세력 → AI 코치 → 오늘의 기운 → 나는 어떤 사람인가 → 나의 성격유형 → 오늘의 관계 → 바이오리듬 → 오늘의 행운.
+            기본 순서(daniel 07-25) = 명식 → 오늘의 기운 → 나는 어떤 사람인가 → 나의 성격유형 → 오늘의 관계 → 바이오리듬 → 오늘의 행운. (만세력·AI코치는 상단 🧭 바로가기 메뉴)
             헤더/진행률 배너/로그인 링크는 '고정'이라 ListHeaderComponent/ListFooterComponent 로 뺀다(드래그 대상 아님). */}
         <DraggableFlatList
           data={order}
@@ -405,6 +392,32 @@ export default function Home() {
       </Animated.View>
       <BusyOverlay visible={loggingOut} message={t('common.loggingOut')} />
       <HomeOrderEditModal visible={editOpen} onClose={() => setEditOpen(false)} />
+      {/* 🧭 바로가기 메뉴(daniel 2026-07-25 J) — 만세력·AI 코치를 홈 블록에서 빼고 여기서 분기 진입. 배경 탭=닫힘(모달·리스트내 absolute 금지). */}
+      <Modal visible={quickOpen} transparent animationType="fade" onRequestClose={() => setQuickOpen(false)}>
+        <Pressable style={styles.quickBackdrop} onPress={() => setQuickOpen(false)}>
+          <Pressable style={styles.quickSheet} onPress={() => {}}>
+            <Text style={styles.quickSheetTitle}>바로가기</Text>
+            {hasChart && (
+              <PressableScale style={styles.quickItem} onPress={() => { setQuickOpen(false); router.push('/charts'); }}>
+                <Text style={styles.coachBannerEmoji}>📜</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.coachBannerTitle}>{t('menu.manse', '만세력')}</Text>
+                  <Text style={styles.coachBannerSub} numberOfLines={1}>{t('home.manseSub', '내 사주 명식 전체 보기')}</Text>
+                </View>
+                <Text style={styles.coachBannerArrow}>›</Text>
+              </PressableScale>
+            )}
+            <PressableScale style={styles.quickItem} onPress={() => { setQuickOpen(false); router.push('/coach'); }}>
+              <Text style={styles.coachBannerEmoji}>💬</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.coachBannerTitle}>{t('coach.title', 'AI 자기이해 코치')}</Text>
+                <Text style={styles.coachBannerSub} numberOfLines={1}>{t('coach.sub', '나에 대해 궁금한 걸 물어보세요')}</Text>
+              </View>
+              <Text style={styles.coachBannerArrow}>›</Text>
+            </PressableScale>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -413,9 +426,16 @@ const styles = StyleSheet.create({
   bgImage: { flex: 1, backgroundColor: 'transparent' }, // 전역 ContentBackdrop(오행 배경) 투과
   screen: { backgroundColor: 'transparent' },
   wrap: { padding: space(5), paddingTop: space(12), paddingBottom: space(10) }, // 헤더 숨김 → status bar 여백 확보
-  // 홈 배치 편집 진입 버튼(구분선 아래·subtle). 탭 → HomeOrderEditModal(간단 목록 드래그).
-  editBtn: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: space(1.5), backgroundColor: colors.overlay, borderWidth: 1, borderColor: colors.line, borderRadius: radius.pill, paddingVertical: space(1.5), paddingHorizontal: space(3.5), marginTop: -space(2), marginBottom: space(5) },
+  // 홈 상단 컨트롤 행(배치 편집 + 바로가기) — 구분선 아래·subtle. marginBottom 은 행에서 한 번만.
+  topCtrlRow: { flexDirection: 'row', alignItems: 'center', gap: space(2), flexWrap: 'wrap', marginTop: -space(2), marginBottom: space(5) },
+  // 홈 배치 편집/바로가기 버튼(pill). 탭 → HomeOrderEditModal(드래그) / 바로가기 메뉴.
+  editBtn: { flexDirection: 'row', alignItems: 'center', gap: space(1.5), backgroundColor: colors.overlay, borderWidth: 1, borderColor: colors.line, borderRadius: radius.pill, paddingVertical: space(1.5), paddingHorizontal: space(3.5) },
   editBtnTx: { color: colors.inkSoft, fontSize: 12, fontWeight: '700' },
+  // 🧭 바로가기 메뉴(모달 시트) — 만세력·AI코치 분기(daniel 2026-07-25 J)
+  quickBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'center', paddingHorizontal: space(6) },
+  quickSheet: { backgroundColor: colors.bg, borderRadius: radius.lg, padding: space(5), gap: space(3), ...shadow.card },
+  quickSheetTitle: { ...font.heading, color: colors.ink, fontWeight: '900', marginBottom: space(1) },
+  quickItem: { flexDirection: 'row', alignItems: 'center', gap: space(3), backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.ju, paddingVertical: space(3.5), paddingHorizontal: space(4) },
   title: { ...font.display, textAlign: 'left' as const }, // ★좌측 못박기(daniel 07-02)
   // 헤더 행 — 전체를 살짝 아래로(타이틀 너무 위 방지), 👤 아이콘만 좌측 타이틀·서브 컬럼 기준 y축 가운데(daniel 07-02)
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: space(4) },
