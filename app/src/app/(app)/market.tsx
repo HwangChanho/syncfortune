@@ -73,6 +73,20 @@ const MARKET_HIDDEN = new Set<CreditKind>(['child_couple', 'celeb', 'coach', 'ti
 //   재회·애정·궁합·신년 = 사람들이 가장 많이 검색·구매하는 연애/시즌 콘텐츠(시장 조사 기반).
 const HOT_KINDS = new Set<CreditKind>(['reunion', 'crush', 'love', 'compat', 'newyear', 'jobfit', 'wealth']); // crush(짝사랑)=최다 수요(daniel 07-05) · jobfit·wealth=신규 유료 딥리포트(인기 섹션 노출·daniel 07-13/07-22)
 
+// ★마켓 주제 필터(daniel 2026-07-25 L '대분류·소분류로 찾기 쉽게') — 프리미엄/개별(대분류)은 유지하고,
+//   주제(소분류)로 걸러 '너무 나열됨'을 해소. 각 kind 를 한 주제에 배정(UI 그룹핑·명리 판정 아님·daniel 조정 슬롯).
+type MarketTopic = 'love' | 'job' | 'self' | 'time' | 'etc';
+const TOPIC_OF: Partial<Record<CreditKind, MarketTopic>> = {
+  love: 'love', compat: 'love', crush: 'love', reunion: 'love', child: 'love',                         // 애정·궁합
+  career: 'job', jobfit: 'job', job: 'job', wealth: 'job', talent: 'job',                               // 직업·재물
+  reading: 'self', ziwei: 'self', roots: 'self', image: 'self', mission: 'self', astrology: 'self',     // 성격·자기이해(종합 원국 포함)
+  future10: 'time', timeline: 'time', newyear: 'time', lifegraph: 'time', gaeun: 'time', timeresolve: 'time', // 시기·미래
+  dream: 'etc', followup: 'etc',                                                                         // 기타
+};
+const MARKET_TOPICS: [('all' | MarketTopic), string][] = [
+  ['all', '전체'], ['love', '애정·궁합'], ['job', '직업·재물'], ['self', '성격·자기이해'], ['time', '시기·미래'], ['etc', '기타'],
+];
+
 // 이용권 kind → 카드 이미지 + 설명키(홈 카드와 동일 재사용, daniel: 마켓 리스트에도 작게+설명).
 //   followup(추가질문)은 standalone 카드가 아니라(풀이 내부) 생략 — 없으면 이미지·설명 미표시(graceful).
 const CARD: Partial<Record<CreditKind, { img: any; desc: string }>> = {
@@ -115,6 +129,7 @@ export default function MarketRoute() {
   const [redeeming, setRedeeming] = useState(false);
   const [busy, setBusy] = useState<CreditKind | null>(null); // 구매 진행 중 kind
   const [prices, setPrices] = useState<Record<string, string>>({}); // 현지통화 가격(RC) — 미설정 시 ₩ 폴백
+  const [topic, setTopic] = useState<'all' | MarketTopic>('all'); // ★마켓 주제 필터(daniel 2026-07-25 L)
   const { isPremium, purchasePremium, refresh } = useSubscription(); // 프리미엄 상태·구매
   // 프리미엄이 '어느 명식에' 적용 중인지(premium_chart_id 매칭 명식) — 카드에 표기(daniel 07-04). null=미지정(모든 명식 유예).
   const premChartId = getPremiumChartIdSnapshot();
@@ -297,6 +312,12 @@ export default function MarketRoute() {
   // ★첫 진입 즉시 마켓뷰 전환 + 로딩까지 스켈레톤(daniel 07-02) — 전환 애니 끝난 뒤 무거운 카드·RC 가격 마운트.
   if (!ready) return <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}><ListSkeleton rows={6} /></ScrollView>;
 
+  // ★주제 필터 적용 목록(daniel 2026-07-25 L) — 프리미엄/개별(대분류) 안에서 주제(소분류)로 거른다. 빈 섹션은 헤더째 숨김.
+  const inTopic = (c: (typeof CREDIT_KINDS)[number]) => topic === 'all' || TOPIC_OF[c.key] === topic;
+  const premList = CREDIT_KINDS.filter((c) => PREMIUM_KINDS.has(c.key) && !MARKET_HIDDEN.has(c.key) && inTopic(c));
+  const hotList = CREDIT_KINDS.filter((c) => HOT_KINDS.has(c.key) && !PREMIUM_KINDS.has(c.key) && !MARKET_HIDDEN.has(c.key) && inTopic(c));
+  const restList = CREDIT_KINDS.filter((c) => !PREMIUM_KINDS.has(c.key) && !MARKET_HIDDEN.has(c.key) && !HOT_KINDS.has(c.key) && inTopic(c));
+
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.wrap} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
       <Text style={styles.intro}>{t('market.intro')}</Text>
@@ -338,20 +359,44 @@ export default function MarketRoute() {
         <Text style={styles.chartSelChevron}>▾</Text>
       </PressableScale>
 
-      {/* ── 섹션 A: 프리미엄에 포함 ── 프리미엄=무제한 이용 중 배지 / 비프리미엄=가격+개별구매(기존). 타임라인도 여기 포함(daniel 2026-07-01, 사주+자미 종합). */}
-      <Text style={styles.sectionH}>{t('market.sectionIncluded', '✦ 프리미엄에 포함')}</Text>
-      <Text style={styles.sectionSub}>{t('market.sectionIncludedSub', '프리미엄 가입 시 아래 풀이를 명식 수 제한 없이 무제한 이용해요(개별 구매도 가능).')}</Text>
-      {CREDIT_KINDS.filter((c) => PREMIUM_KINDS.has(c.key) && !MARKET_HIDDEN.has(c.key)).map((c) => renderCard(c, true))}
+      {/* ★주제 필터 칩(daniel 2026-07-25 L) — 전체/애정·궁합/직업·재물/성격·자기이해/시기·미래/기타. 프리미엄·개별(대분류)은 유지, 주제로 거른다. */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.topicRow} contentContainerStyle={styles.topicRowC}>
+        {MARKET_TOPICS.map(([k, l]) => (
+          <PressableScale key={k} style={[styles.topicChip, topic === k && styles.topicChipOn]} onPress={() => setTopic(k)}>
+            <Text style={[styles.topicChipTx, topic === k && styles.topicChipTxOn]}>{l}</Text>
+          </PressableScale>
+        ))}
+      </ScrollView>
 
-      {/* ── 섹션 B: 개별 구매 전용(프리미엄 미포함) ── isPremium 무관 항상 개별 구매(기존) */}
-      <Text style={styles.sectionH}>{t('market.sectionIndividual', '◆ 개별 구매 전용 · 프리미엄 미포함')}</Text>
-      <Text style={styles.sectionSub}>{t('market.sectionIndividualSub', '아래 항목은 프리미엄에 포함되지 않아 개별 구매해야 합니다.')}</Text>
-      {/* ★인기 외곽칸(daniel 07-08) — 개별 섹션 상단에 수요 많은 유료 콘텐츠를 박스로 강조(홈 '인기'와 동일 개념). 아래 목록에선 중복 제외. */}
-      <View style={styles.hotBox}>
-        <Text style={styles.hotBoxH}>{t('market.hotSection', '🔥 인기')}</Text>
-        {CREDIT_KINDS.filter((c) => HOT_KINDS.has(c.key) && !PREMIUM_KINDS.has(c.key) && !MARKET_HIDDEN.has(c.key)).map((c) => renderCard(c, false))}
-      </View>
-      {CREDIT_KINDS.filter((c) => !PREMIUM_KINDS.has(c.key) && !MARKET_HIDDEN.has(c.key) && !HOT_KINDS.has(c.key)).map((c) => renderCard(c, false))}
+      {/* ── 섹션 A: 프리미엄에 포함(주제 필터·비면 헤더째 숨김) ── 타임라인도 여기 포함(daniel 2026-07-01, 사주+자미 종합). */}
+      {premList.length > 0 && (
+        <>
+          <Text style={styles.sectionH}>{t('market.sectionIncluded', '✦ 프리미엄에 포함')}</Text>
+          <Text style={styles.sectionSub}>{t('market.sectionIncludedSub', '프리미엄 가입 시 아래 풀이를 명식 수 제한 없이 무제한 이용해요(개별 구매도 가능).')}</Text>
+          {premList.map((c) => renderCard(c, true))}
+        </>
+      )}
+
+      {/* ── 섹션 B: 개별 구매 전용(프리미엄 미포함·주제 필터) ── isPremium 무관 항상 개별 구매(기존) */}
+      {(hotList.length + restList.length) > 0 && (
+        <>
+          <Text style={styles.sectionH}>{t('market.sectionIndividual', '◆ 개별 구매 전용 · 프리미엄 미포함')}</Text>
+          <Text style={styles.sectionSub}>{t('market.sectionIndividualSub', '아래 항목은 프리미엄에 포함되지 않아 개별 구매해야 합니다.')}</Text>
+          {/* ★인기 외곽칸(daniel 07-08) — 개별 섹션 상단에 수요 많은 유료 콘텐츠를 박스로 강조. 주제 필터 시 해당 주제의 인기만. */}
+          {hotList.length > 0 && (
+            <View style={styles.hotBox}>
+              <Text style={styles.hotBoxH}>{t('market.hotSection', '🔥 인기')}</Text>
+              {hotList.map((c) => renderCard(c, false))}
+            </View>
+          )}
+          {restList.map((c) => renderCard(c, false))}
+        </>
+      )}
+
+      {/* 주제 필터 결과 0건 안내(모든 주제가 최소 1개라 실제론 거의 안 뜸·방어) */}
+      {premList.length + hotList.length + restList.length === 0 && (
+        <Text style={styles.emptyTopic}>{t('market.emptyTopic', '이 주제의 콘텐츠가 준비 중이에요. 다른 주제를 골라 보세요.')}</Text>
+      )}
 
       {/* 쿠폰 등록(무료 이용권) — 설정에서 이동 */}
       <Text style={styles.couponH}>{t('settings.coupon')}</Text>
@@ -437,6 +482,14 @@ const styles = StyleSheet.create({
   buyBtnBusy: { opacity: 0.5 },
   buyTx: { color: colors.bg, fontWeight: '800', fontSize: 14 },
   // 마켓 섹션 제목·설명(프리미엄 포함 / 개별 구매 전용 구분 — daniel) — 골드 톤 heading + 보조 caption
+  // ★마켓 주제 필터 칩(daniel 2026-07-25 L)
+  topicRow: { marginTop: space(3), marginBottom: space(2) },
+  topicRowC: { gap: space(2), paddingRight: space(4) },
+  topicChip: { paddingVertical: space(2), paddingHorizontal: space(3.5), borderRadius: radius.pill, backgroundColor: colors.sunk, borderWidth: 1, borderColor: colors.line },
+  topicChipOn: { backgroundColor: colors.ju, borderColor: colors.ju },
+  topicChipTx: { fontSize: 13, fontWeight: '700', color: colors.inkSoft },
+  topicChipTxOn: { color: '#15132E', fontWeight: '800' },
+  emptyTopic: { ...font.caption, color: colors.inkSoft, textAlign: 'center', marginTop: space(6), lineHeight: 18 },
   sectionH: { ...font.heading, color: colors.ju, marginTop: space(5), marginBottom: space(1) },
   // ★인기 외곽칸(daniel 07-08) — juSoft 배경 + gold 테두리로 개별섹션 상단 강조.
   hotBox: { borderWidth: 1, borderColor: colors.ju, borderRadius: radius.md, backgroundColor: colors.juSoft, paddingHorizontal: space(2), paddingTop: space(2), paddingBottom: space(1), marginBottom: space(3) },
