@@ -94,3 +94,6 @@ age_gap_rule.md
 # Claude Code 작업 산출물(세션 로컬) — 워크트리·설정은 저장소에 넣지 않는다
 .claude/
 scratchpad/
+
+# 이미지 톤 파일럿 산출물(daniel 검토용·원본 교체 전) — 공개 repo 에 대용량 PNG 를 넣지 않는다
+app/assets/icons/_pilot/
