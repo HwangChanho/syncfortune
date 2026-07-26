@@ -15,10 +15,19 @@
 //   L4 저장·서버 호출 0 — 규칙5(무료=온디바이스). addChart/supabase 사용 금지.
 //   L5 전환 경로 실재 — /register 로 생년월일을 넘기고(preDate), register 가 그 값을 실제로 읽는다.
 //   L6 canonical 빌더 사용 — computeChart 로만 계산(엔진 드리프트 방지).
+//   ── 아래는 공유(L2·웹 노출) 계약 ─────────────────────────────────────
+//   L7 Edge 표 드리프트 0 — supabase/functions/_shared/personaShare.ts 가 정본(personaType.ts)과 전수 일치.
+//      (틀어지면 웹 공유 페이지가 **앱과 다른 문구**를 보여준다 — daniel 검수 문구가 웹에서만 옛 값이 된다.)
+//   L8 공유 링크에 PII 없음 — 생년월일·시각·이름을 URL 로 넘기지 않는다(생일 역산 차단).
+//   L9 위조 불가 — 표시 문구를 URL 에서 읽지 않는다. share 함수는 표에서만 문구를 꺼낸다.
+//   L10 유료 경로 불변 — share 함수의 ?id= 갈래는 여전히 내용을 렌더하지 않는다(해자·규칙5).
+//   L11 noindex — 공유 페이지는 검색에 실리지 않는다('친구에게 보낸 링크' ≠ '웹 게시').
 //
 // 실행: npm run check:light
 // ─────────────────────────────────────────────────────────────────────────
 import { readFileSync } from 'node:fs';
+import { shareRowOf } from './gen-persona-share';                 // 정본에서 뽑는 같은 함수(중복 정의 없음)
+import { allPersonaKeys } from '../app/src/lib/engine/personaType';
 
 const ROOT = new URL('..', import.meta.url).pathname;
 const LIGHT = 'app/src/app/(app)/light.tsx';
@@ -99,5 +108,77 @@ console.log('\n[L6] canonical 빌더(computeChart)로만 계산');
 if (/\bcomputeChart\s*\(/.test(src)) ok('computeChart 사용');
 else bad('computeChart 미사용 — 엔진 드리프트 위험(직접 buildFullChart/자체 계산 금지)');
 
-console.log(fail ? `\n❌ check:light 실패 ${fail}건` : '\n✅ check:light 통과 — 시주의존금지·콘텐츠실재·미상고정·무저장·전환배선·canonical OK');
+// ── L7 Edge 표 드리프트(정본 ↔ 생성물 전수 비교) ──────────────────────────
+console.log('\n[L7] Edge 성격유형 표가 정본과 일치(웹 공유 문구 = 앱 문구)');
+{
+  const edgeSrc = readFileSync(`${ROOT}supabase/functions/_shared/personaShare.ts`, 'utf8');
+  const keys = allPersonaKeys();
+  let drift = 0;
+  for (const k of keys) {
+    const r = shareRowOf(k);
+    const line = `  '${k}': { n: ${JSON.stringify(r.n)}, k: ${JSON.stringify(r.k)}, s: ${JSON.stringify(r.s)} },`;
+    if (!edgeSrc.includes(line)) { if (drift < 3) bad(`${k} 이 Edge 표와 다름 — npm run gen:persona-share 를 실행해라`); drift++; }
+  }
+  if (drift > 3) console.error(`  ✗ … 그 외 ${drift - 3}종 더 불일치`);
+  if (!drift) ok(`${keys.length}종 전부 일치`);
+  // 역검증 — 표가 실제로 채워져 있나(빈 파일이면 위 include 검사가 전부 통과해 버릴 수는 없지만 명시적으로 센다)
+  const rows = (edgeSrc.match(/^\s{2}'[^']{2}':/gm) ?? []).length;
+  if (rows !== keys.length) bad(`Edge 표 행 수 ${rows} ≠ 정본 ${keys.length}종`);
+  else ok(`Edge 표 행 수 ${rows}종`);
+}
+
+// ── L8~L11 공유 계약 ────────────────────────────────────────────────────
+{
+  const shareLib = readFileSync(`${ROOT}app/src/lib/ui/share.ts`, 'utf8');
+  const fn = readFileSync(`${ROOT}supabase/functions/share/index.ts`, 'utf8');
+  const fnCode = fn.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+
+  console.log('\n[L8] 공유 링크에 PII 없음(생일 역산 차단)');
+  // personaShareUrl 본문만 떼어 검사 — 이 함수가 URL 을 만드는 유일한 지점이다
+  const m = shareLib.match(/export function personaShareUrl[\s\S]*?\n\}/);
+  if (!m) bad('personaShareUrl 이 없다 — 무료 공유 링크 빌더가 사라졌다');
+  else {
+    const b = m[0];
+    for (const leak of ['birthDate', 'birthDateTime', 'label', 'name', 'timeAccuracy', 'calendar']) {
+      if (new RegExp(`\\b${leak}\\b`).test(b)) bad(`personaShareUrl 이 ${leak} 를 URL 에 담는다 — PII/역산 위험`);
+    }
+    if (/dayStem/.test(b) && /monthBranch/.test(b) && /sex/.test(b)) ok('유형 키(일간+월지)+성별만 — 연도 없음 ⇒ 생일 역산 불가');
+    else bad('personaShareUrl 이 유형 키를 넘기지 않는다');
+  }
+  // 일주 60갑자는 웹에 안 내보낸다(앱 전용) — 공유 함수에 일주 데이터가 없어야 한다
+  if (/DAY_PILLAR|dayPillar/.test(fnCode)) bad('share 함수가 일주(60갑자)를 다룬다 — 웹엔 안 내보내기로 했다(앱 전용)');
+  else ok('일주 60갑자는 웹 미노출(앱 전용)');
+
+  console.log('\n[L9] 위조 불가 — 표시 문구를 URL 에서 읽지 않는다');
+  // 쿼리에서 읽는 파라미터는 p·s·id 세 개뿐이어야 한다(문구 파라미터가 생기면 위조 가능)
+  // searchParams 를 담은 변수명을 먼저 찾아 그 변수의 .get() 만 센다.
+  //   ★처음엔 `searchParams.get(` 만 봤는데 실제 코드가 `const q = …searchParams; q.get('p')` 형태여서
+  //     파라미터를 0개로 읽고 오탐을 냈다(하네스 자체 결함). 변수명을 따라간다.
+  const varName = fnCode.match(/const\s+(\w+)\s*=\s*new URL\([^)]*\)\.searchParams/)?.[1];
+  const getRe = varName ? new RegExp(`(?:${varName}|searchParams)\\.get\\(\\s*['"]([^'"]+)['"]`, 'g')
+                        : /searchParams\.get\(\s*['"]([^'"]+)['"]/g;
+  const params = [...new Set([...fnCode.matchAll(getRe)].map((x) => x[1]))].sort();
+  const allowed = ['id', 'p', 's'];
+  if (JSON.stringify(params) === JSON.stringify(allowed)) ok(`쿼리 파라미터 = ${params.join(', ')} (문구 파라미터 없음)`);
+  else bad(`쿼리 파라미터가 ${JSON.stringify(params)} — 허용은 ${JSON.stringify(allowed)}. 문구를 URL 로 받으면 브랜드 페이지 위조가 가능하다`);
+  if (/PERSONA_SHARE\[/.test(fnCode)) ok('문구는 서버 표(PERSONA_SHARE)에서만 꺼낸다');
+  else bad('share 함수가 PERSONA_SHARE 를 쓰지 않는다 — 문구 출처가 서버가 아니다');
+  if (/function esc\(/.test(fnCode) && /esc\(/.test(fnCode)) ok('HTML 이스케이프 존재');
+  else bad('HTML 이스케이프가 없다');
+
+  console.log('\n[L10] 유료 경로 불변 — ?id= 갈래는 내용을 렌더하지 않는다');
+  if (/syncfortune:\/\/shared\//.test(fnCode)) ok('앱 게이트 리다이렉트 유지');
+  else bad('?id= 갈래의 앱 리다이렉트가 사라졌다 — 기존 공유가 깨진다');
+  // 유료 내용을 웹에 그리려면 DB 를 읽어야 한다. 이 함수는 DB 를 아예 안 만진다 = 구조적으로 불가능.
+  for (const dbish of ['get_shared_reading', 'createClient', 'SERVICE_ROLE', 'shared_readings']) {
+    if (new RegExp(dbish).test(fnCode)) bad(`share 함수가 ${dbish} 를 참조한다 — 저장된 풀이(유료 포함)를 웹에 그릴 경로가 열린다`);
+  }
+  if (!/get_shared_reading|createClient|SERVICE_ROLE|shared_readings/.test(fnCode)) ok('DB 접근 0 — 유료 내용을 웹에 그릴 경로가 구조적으로 없음');
+
+  console.log('\n[L11] noindex — 검색 미노출');
+  if (/robots["'][^>]*noindex|noindex,nofollow/.test(fn)) ok('robots noindex,nofollow');
+  else bad("noindex 가 없다 — 공유 링크가 검색에 실리면 '친구에게 보낸 링크'가 '웹 게시'가 된다");
+}
+
+console.log(fail ? `\n❌ check:light 실패 ${fail}건` : '\n✅ check:light 통과 — 시주의존금지·콘텐츠실재·미상고정·무저장·전환배선·canonical + 공유(표일치·PII0·위조불가·유료불변·noindex) OK');
 process.exit(fail ? 1 : 0);

@@ -27,6 +27,7 @@
     "check:purchase-gate": "tsx scripts/check-purchase-gate.ts",
     "check:gem": "tsx --tsconfig app/tsconfig.json scripts/check-gem.ts",
     "check:prose": "tsx scripts/check-prose.ts",
+    "gen:persona-share": "tsx scripts/gen-persona-share.ts",
     "check:light": "tsx scripts/check-light.ts",
     "check:decision": "tsx scripts/check-decision.ts",
     "check:nextstep": "tsx scripts/check-nextstep.ts",

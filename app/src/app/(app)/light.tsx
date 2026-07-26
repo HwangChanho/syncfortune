@@ -27,6 +27,7 @@ import { personaOf, type PersonaType } from '../../lib/engine/personaType';
 import { DAY_PILLAR, dayPillarKey, type DayPillarTrait } from '../../lib/engine/dayPillar';
 import { iljuImage } from '../../lib/dayPillarEmblem';            // 60갑자 일러스트
 import { PersonaImage } from '../../components/PersonaImage';     // 성격유형 240장(서버 fetch·폴백 내장)
+import { sharePersona } from '../../lib/ui/share';                // ★무료 공유 — 웹에서 보이는 유일한 경로(L2)
 import { useFontScale } from '../../lib/ui/fontScale';
 import { colors, radius, space, shadow, font } from '../../lib/theme';
 
@@ -127,6 +128,14 @@ export default function LightScreen() {
                 </View>
               </View>
               <Text style={[styles.body, { fontSize: fs(14), lineHeight: fs(22) }]}>{result.persona.summary}</Text>
+              {/* ★공유 — 받는 사람이 **웹에서 바로 결과를 본다**(유료 풀이 공유와 다른 경로).
+                  생년월일·이름·시각은 링크에 담기지 않는다(유형 키+성별뿐 — 생일 역산 차단). */}
+              <PressableScale style={styles.shareBtn} onPress={() => {
+                sharePersona({ dayStem: result.dayStem, monthBranch: result.monthBranch, sex, name: result.persona.name })
+                  .catch(() => {});   // 공유 시트를 닫은 것도 여기로 온다 — 실패로 알리지 않는다
+              }}>
+                <Text style={[styles.shareTx, { fontSize: fs(14) }]}>친구에게 보내기</Text>
+              </PressableScale>
             </View>
 
             {/* ② 일주론 60갑자 — 일간 + 일지(시주 무관·정확) */}
@@ -218,6 +227,8 @@ const styles = StyleSheet.create({
   chip: { borderWidth: 1, borderColor: colors.juLine, backgroundColor: colors.juSoft, borderRadius: 999, paddingVertical: space(1), paddingHorizontal: space(2.5) },
   chipTx: { ...font.caption, color: colors.ju, fontWeight: '800' },
   body: { ...font.body, color: colors.inkSoft },
+  shareBtn: { marginTop: space(4), borderWidth: 1, borderColor: colors.juLine, backgroundColor: colors.juSoft, borderRadius: radius.md, paddingVertical: space(3), alignItems: 'center' },
+  shareTx: { ...font.body, color: colors.ju, fontWeight: '800' },
   iljuHero: { height: 148, borderRadius: radius.md, overflow: 'hidden', justifyContent: 'center', alignItems: 'center', marginBottom: space(1) },
   iljuHeroImg: { borderRadius: radius.md },
   scrim: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.30)' }, // 글자 대비 확보(라이트 테마에서도 흰 글자가 읽히게)
