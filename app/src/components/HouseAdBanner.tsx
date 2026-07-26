@@ -100,7 +100,7 @@ export function HouseAdBanner() {
 const styles = StyleSheet.create({
   wrap: { marginBottom: space(5) },
   // 이미지 배너 — 와이드(가로 3.0:1 근처), 큼직하게(daniel 07-24 '더 크게'). 이미지 cover + 좌측 다크 오버레이.
-  card: { width: '100%', height: 200, borderRadius: radius.lg, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(20,19,46,0.12)', ...shadow.card }, // ★아래로 더 크게(daniel 2026-07-25 150→200)
+  card: { width: '100%', height: 250, borderRadius: radius.lg, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(20,19,46,0.12)', ...shadow.card }, // ★아래로 더 크게(daniel 2026-07-25 150→200 → 07-26 200→250)
   body: { flex: 1, justifyContent: 'center', paddingLeft: space(6), paddingRight: space(5), maxWidth: '78%' },
   eyebrow: { fontSize: 13, fontWeight: '800', letterSpacing: 0.3, marginBottom: 6 },
   hook: { color: colors.white, fontWeight: '900', letterSpacing: -0.3, lineHeight: 30 },
