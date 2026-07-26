@@ -138,5 +138,33 @@ console.log('=== 표준자오선 시대보정 · 서머타임 ===');
   check('1987-07-15 13:20 서울(DST) → 시지 午 (보정 ≈11:42 — DST 미반영이면 未)', buildSajuChart(seoul('1987-07-15 13:20')).pillars['시'].branch === '午');
 }
 
+// ── 대운 전환 시점(감사 H1 off-by-one 회귀 방지 · 2026-07-26) ───────────────
+// 버그였던 것: lunar-javascript 의 `getStartAge()` 는 **세는나이**(= startYear − birthYear + 1)인데
+//   엔진은 연도차(`nowYear − birthYear`)와 비교해, 현재 대운이 **정확히 1년 늦게** 전환됐다.
+//   → 대운이 바뀌는 해 1년 내내 직전 대운으로 통변('지금의 흐름' 오답). 연도 기준 판정으로 수정.
+// 이 테스트가 지키는 불변식: **대운은 자기 startYear 가 되는 해에 즉시 전환된다**(그 전해엔 아직 이전 대운).
+console.log('\n=== 대운 전환 시점 (감사 H1 — 나이 규약 off-by-one) ===');
+{
+  const subj = (dt: string, sex: '남' | '여'): ChartInput => ({ birthDateTime: dt, calendar: '양', timeAccuracy: '정확', sex, birthPlace: '서울', birthLon: 126.98 });
+  // 케이스별로 '전환 연도'와 그 전해의 현재 대운을 비교 — 같으면 전환이 밀린 것(=버그 재발).
+  for (const [dt, sex] of [['1991-12-16 23:00', '남'], ['2000-01-05 10:00', '여'], ['1987-07-15 13:20', '남']] as const) {
+    const base = buildSajuChart(subj(dt, sex), 2026);
+    const birthYear = Number(dt.slice(0, 4));
+    // 표시용 startAge(세는나이)로부터 이 대운의 시작 연도를 역산 = startYear
+    // ⚠️ 첫 대운(index 0)은 제외 — 입운 전에는 어떤 대운도 current 가 아니라 `luckCycles[0]` 로 폴백하는
+    //    의도된 동작이라, '전해엔 아직 아님' 불변식이 성립하지 않는다(버그 아님).
+    for (const lc of base.luckCycles.slice(1, 4)) {
+      const startYear = birthYear + lc.startAge - 1;
+      if (startYear <= birthYear) continue;
+      const at = buildSajuChart(subj(dt, sex), startYear);       // 전환 해
+      const before = buildSajuChart(subj(dt, sex), startYear - 1); // 그 전해
+      const gz = (c: any) => `${c.currentLuck.stem}${c.currentLuck.branch}`;
+      const want = `${lc.stem}${lc.branch}`;
+      check(`${dt.slice(0, 10)} — ${startYear}년(${lc.startAge}세)에 ${want} 로 전환, ${startYear - 1}년엔 아직 아님`,
+        gz(at) === want && gz(before) !== want);
+    }
+  }
+}
+
 if (!ok) { console.log('\n❌ 정확도 게이트 실패 — 공식/테이블 점검'); process.exitCode = 1; }
 else console.log('\n🎯 결정론 정확도 통과 — 12운성·공망·합충·신살·진태양시 일반화 확인');

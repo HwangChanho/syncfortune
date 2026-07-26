@@ -152,7 +152,14 @@ export function buildSajuChart(input: ChartInput, nowYear = new Date().getFullYe
 
   // 대운 (gender: 남=1, 여=0). getDaYun()[0]은 미입운(빈 간지)이라 제외.
   const daYunRaw: any[] = ec.getYun(input.sex === '남' ? 1 : 0).getDaYun(13); // 13개(미입운 [0] 제외 12) → 대운 110세+까지(daniel: 만세력 대운 110세까지)
-  const age = nowYear - y; // 근사 나이(세운 연도 − 출생 연도)
+  // ★현재 대운 판정은 **나이가 아니라 연도**로 한다(2026-07-26 감사 H1 off-by-one 수정).
+  //   버그: 예전엔 `age = nowYear - y`(연도차)를 `dy.getStartAge()` 와 비교했는데, lunar-javascript 의
+  //   startAge 는 **세는나이(虛歲)** 라 항상 `startYear - birthYear + 1` 이다(실측 확인: 1991년생 己亥 대운
+  //   startAge=4 / startYear=1994 → 차이 정확히 1, 전 케이스 동일). 두 규약을 맞비교하니 전환 조건이
+  //   `nowYear >= startYear + 1` 이 되어 **현재 대운이 정확히 1년 늦게 전환**됐다(대운 전환 해 1년 동안
+  //   직전 대운으로 통변 = '지금의 흐름' 오답). 라이브러리가 주는 startYear 를 그대로 쓰면 나이 규약 문제
+  //   자체가 사라진다. ※ 표시용 startAge 값은 건드리지 않는다(만세력 UI 세는나이 표기 유지 = 회귀 0).
+  const startYears: number[] = []; // luckCycles 와 같은 인덱스(아래 map 에서 함께 채움)
   const luckCycles: LuckCycle[] = daYunRaw
     .filter((dy) => dy.getGanZhi && dy.getGanZhi())
     .map((dy) => {
@@ -184,6 +191,8 @@ export function buildSajuChart(input: ChartInput, nowYear = new Date().getFullYe
         };
       }).filter(Boolean) as AnnualPillar[];
       // 대운 간지 이상이면 이 대운을 건너뜀 — 위 filter 전에도 gz 검사 실행됨
+      // 이 대운이 시작하는 *연도*(현재 대운 판정용). 구버전 라이브러리 대비 폴백 = 세는나이 → 연도 역산.
+      startYears.push(dy.getStartYear?.() ?? (y + dy.getStartAge() - 1));
       return {
         startAge: dy.getStartAge(),
         stem: gz[0] as Stem, branch: gz[1] as Branch,
@@ -193,8 +202,9 @@ export function buildSajuChart(input: ChartInput, nowYear = new Date().getFullYe
       };
     });
   luckCycles.forEach((cur, i) => {
-    const nxt = luckCycles[i + 1];
-    if (age >= cur.startAge && (!nxt || age < nxt.startAge)) cur.isCurrent = true;
+    const nxtStart = startYears[i + 1];
+    // 이 대운이 시작한 해 이상 && 다음 대운 시작 전 = 지금 흐르는 대운(연도 기준 — 나이 규약 무관)
+    if (nowYear >= startYears[i] && (nxtStart == null || nowYear < nxtStart)) cur.isCurrent = true;
   });
   // luckCycles가 빈 배열(라이브러리가 대운을 전혀 계산 못한 경우)에도 크래시 방지.
   // · find → luckCycles[0] → 최후 폴백(더미 대운) 순으로 안전하게 처리.
