@@ -47,7 +47,10 @@ export default function AppLayout() {
         contentStyle: { backgroundColor: 'transparent' }, // ★씬 투명 — 전역 ContentBackdrop 이 비쳐 보이게(daniel 07-02). 흰 깜빡임은 루트 View bg + 배경 레이어가 방지.
         animation: 'fade', // ★카드 진입 애니(홈 카드가 화면 채움) 뒤에 슬라이드가 또 나와 이상하던 것 → 페이드로 통일(카드 fill이 전환, daniel 07-01)
       }}>
-        <Stack.Screen name="index" options={{ headerShown: false }} />
+        {/* ★탭 라우트 5개(index·contents·community·coach·market)는 전환 애니 없음(daniel 2026-07-26 "탭바 넘길 때 애니메이션 빼줘").
+            BottomNav 는 router.replace 로 이동하므로 전역 screenOptions 의 animation:'fade' 를 타고 있었다.
+            전역 fade 는 콘텐츠 화면 진입용으로 07-01 에 의도된 것이라 유지하고, **탭만** 'none' 으로 덮어쓴다. */}
+        <Stack.Screen name="index" options={{ headerShown: false, animation: 'none' }} />
         <Stack.Screen name="register" options={{ title: '차트 등록' }} />
         <Stack.Screen name="myeongsik" options={{ headerTitle: '' }} />
         <Stack.Screen name="sinsal" options={{ headerTitle: '' }} />
@@ -88,9 +91,10 @@ export default function AppLayout() {
         <Stack.Screen name="personatype" options={{ headerTitle: '' }} /> {/* 성격유형 120종(홈 주인공 상세 · 64종 /persona 통합, daniel 07-20) */}
         {/* 되돌아보기(lookback) 제거 — daniel 07-23. 화면 파일·라우트 삭제. */}
         <Stack.Screen name="egenteto" options={{ headerTitle: '' }} />
-        <Stack.Screen name="coach" options={{ headerShown: false }} />
+        <Stack.Screen name="coach" options={{ headerShown: false, animation: 'none' }} />
         {/* 하단탭 '풀이'(콘텐츠 목록) — 홈·코치처럼 탭 화면이라 자체 타이틀을 그린다(헤더 숨김, daniel 07-18 IA 개편). */}
-        <Stack.Screen name="contents" options={{ headerShown: false }} />
+        <Stack.Screen name="contents" options={{ headerShown: false, animation: 'none' }} />
+        <Stack.Screen name="community" options={{ animation: 'none' }} />
         <Stack.Screen name="joseonjob" options={{ headerTitle: '' }} />
         <Stack.Screen name="lovestyle" options={{ headerTitle: '' }} />
         <Stack.Screen name="bok" options={{ headerTitle: '' }} />
@@ -102,7 +106,7 @@ export default function AppLayout() {
         <Stack.Screen name="name" options={{ headerTitle: '' }} />
         <Stack.Screen name="dream" options={{ headerTitle: '' }} />
         {/* 프리미엄 허브 제거 — 홈 사주/자미 → 원국풀이(/reading·/ziwei) 직접 진입(daniel 07-01) */}
-        <Stack.Screen name="market" options={{ title: '마켓' }} />
+        <Stack.Screen name="market" options={{ title: '마켓', animation: 'none' }} />
         <Stack.Screen name="shared/[id]" options={{ title: '공유받은 풀이' }} />
         <Stack.Screen name="admin" options={{ title: '관리자' }} />
         <Stack.Screen name="coststable" options={{ title: '비용·수익 분석' }} />
