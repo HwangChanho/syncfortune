@@ -83,6 +83,16 @@ for (const score of SCORES) {
         if (!VERDICT_STYLE[it.verdict]) bad(`INV3 알 수 없는 verdict "${it.verdict}": ${at}`);
       }
 
+      // ★INV7 판정 그룹 정렬(daniel 2026-07-26 "좋아요랑 미루기를 같이 묶어놔야지") —
+      //   items 는 go→hold→wait 로 묶여 나와야 한다(좋아요/미루기가 번갈아 나오면 실패).
+      {
+        const ord = { go: 0, hold: 1, wait: 2 } as Record<string, number>;
+        const seq = r1.items.map((i) => ord[i.verdict]);
+        for (let k = 1; k < seq.length; k++) {
+          if (seq[k] < seq[k - 1]) { bad(`INV7 판정이 섞여 나옴(${r1.items.map((i) => i.verdict).join('>')}): ${at}`); break; }
+        }
+      }
+
       // INV4 안전 어휘
       const text = [r1.title, r1.reason, ...r1.items.map((i) => i.tip)].join(' ');
       for (const w of BANNED) if (text.includes(w)) bad(`INV4 금지 어휘 "${w}": ${at}`);
@@ -127,5 +137,5 @@ for (const score of SCORES) {
 for (const k of ['go', 'hold', 'wait']) if (!dist[k]) bad(`INV5 '${k}' 판정이 한 번도 안 나옴 — 사실상 고정값`);
 
 console.log(`\n검사 ${checked}건 · 판정 분포 go=${dist.go} hold=${dist.hold} wait=${dist.wait}`);
-console.log(fail ? `\n❌ check:decision 실패 ${fail}건` : '\n✅ check:decision 통과 — 결정론·입력통과·공망보류·완결성·안전어휘·분포·모먼트 OK');
+console.log(fail ? `\n❌ check:decision 실패 ${fail}건` : '\n✅ check:decision 통과 — 결정론·입력통과·공망보류·완결성·안전어휘·분포·모먼트·판정그룹 OK');
 process.exit(fail ? 1 : 0);

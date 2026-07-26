@@ -95,6 +95,7 @@ export default function AppLayout() {
         {/* 하단탭 '풀이'(콘텐츠 목록) — 홈·코치처럼 탭 화면이라 자체 타이틀을 그린다(헤더 숨김, daniel 07-18 IA 개편). */}
         <Stack.Screen name="contents" options={{ headerShown: false, animation: 'none' }} />
         <Stack.Screen name="community" options={{ animation: 'none' }} />
+        <Stack.Screen name="moment" options={{ title: '모먼트' }} />
         <Stack.Screen name="joseonjob" options={{ headerTitle: '' }} />
         <Stack.Screen name="lovestyle" options={{ headerTitle: '' }} />
         <Stack.Screen name="bok" options={{ headerTitle: '' }} />

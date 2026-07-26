@@ -132,6 +132,12 @@ export function decisionFromEnergy(e: DailyEnergy): DecisionToday {
     return { kind, label, verdict: v, tip };
   });
 
+  // ★판정별로 묶어서 반환(daniel 2026-07-26 "좋아요랑 미루기를 같이 묶어놔야지 — 번갈아가면서 안 나오게").
+  //   좋아요 → 보통 → 미루기 순. 같은 판정 안에서는 KINDS 선언 순서가 유지된다(JS sort 는 안정 소트).
+  //   ⚠️홈 카드·상세 화면이 둘 다 이 배열을 그대로 렌더하므로 정렬을 여기 한 곳에서만 한다(드리프트 0).
+  const VORDER: Record<DecisionVerdict, number> = { go: 0, hold: 1, wait: 2 };
+  items.sort((a, b) => VORDER[a.verdict] - VORDER[b.verdict]);
+
   return { verdict, title, reason, score: e.score, signals: e.signals, items };
 }
 

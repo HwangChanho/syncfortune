@@ -12,6 +12,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { PressableScale } from './PressableScale';
+import { useRouter } from 'expo-router'; // 카드 탭 → 모먼트 상세(/moment)로(daniel 07-26: 오늘의 행운처럼 타고 들어가 명식 변경)
 import { loadRepChart } from '../lib/engine/myChart';
 import { computeChart } from '../lib/engine/engine';       // canonical 빌더 단일화(drift 방지)
 import { getDailyFortune, dailyEnergy } from '../lib/content/dailyFortune'; // 오늘 일진(干支)·오늘 기운 — 다른 홈 블록과 같은 출처
@@ -26,10 +27,10 @@ import type { Stem, Branch } from '@spec/chart';
  * @param reloadKey 대표 명식 전환/포커스 시 홈이 올려 재산출(다른 홈 블록과 동일 계약).
  */
 export function DecisionTodayCard({ reloadKey }: { reloadKey?: number }) {
+  const router = useRouter();
   const { fs } = useFontScale();
   const [data, setData] = useState<DecisionToday | null>(null);
   const [moment, setMoment] = useState<MomentPick | null>(null); // ★모먼트 — 설레는 제안 한 줄(daniel 07-26)
-  const [expanded, setExpanded] = useState(false); // 유형별 세부는 접어 둔다(홈이 길어지지 않게)
 
   // 오늘 일진 — 하루 고정이라 마운트당 1회
   const today = useMemo(() => getDailyFortune(0), []);
@@ -60,7 +61,7 @@ export function DecisionTodayCard({ reloadKey }: { reloadKey?: number }) {
   const vs = VERDICT_STYLE[data.verdict];
 
   return (
-    <PressableScale style={styles.card} onPress={() => setExpanded((v) => !v)}>
+    <PressableScale style={styles.card} onPress={() => router.push('/moment')}>
       {/* 헤더 — 좌: 타이틀, 우: 판정 배지 */}
       <View style={styles.head}>
         <Text style={[styles.kicker, { fontSize: fs(12) }]}>모먼트</Text>
@@ -82,37 +83,19 @@ export function DecisionTodayCard({ reloadKey }: { reloadKey?: number }) {
         </View>
       ) : null}
 
-      {/* 유형별 요약 줄 — 접혀 있을 땐 판정만 한눈에(칩), 펼치면 조언까지 */}
-      {!expanded ? (
-        <View style={styles.chipRow}>
-          {data.items.map((it) => {
-            const s = VERDICT_STYLE[it.verdict];
-            return (
-              <View key={it.kind} style={[styles.chip, { borderColor: s.hex + '55' }]}>
-                <Text style={[styles.chipTx, { fontSize: fs(11) }]}>{it.label}</Text>
-                <View style={[styles.dot, { backgroundColor: s.hex }]} />
-              </View>
-            );
-          })}
-        </View>
-      ) : (
-        <View style={styles.list}>
-          {data.items.map((it) => {
-            const s = VERDICT_STYLE[it.verdict];
-            return (
-              <View key={it.kind} style={styles.row}>
-                <View style={[styles.rowBadge, { backgroundColor: s.hex + '1F', borderColor: s.hex + '55' }]}>
-                  <Text style={[styles.rowBadgeTx, { color: s.hex, fontSize: fs(10) }]}>{s.label}</Text>
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.rowLabel, { fontSize: fs(13) }]}>{it.label}</Text>
-                  <Text style={[styles.rowTip, { fontSize: fs(12), lineHeight: fs(18) }]}>{it.tip}</Text>
-                </View>
-              </View>
-            );
-          })}
-        </View>
-      )}
+      {/* 유형별 요약 — 홈 카드는 **판정 칩만**(전체 조언·근거는 상세 /moment).
+          ★판정별로 묶여서 온다(decisionFromEnergy 가 go→hold→wait 로 정렬) — 좋아요/미루기가 번갈아 나오지 않게. */}
+      <View style={styles.chipRow}>
+        {data.items.map((it) => {
+          const s = VERDICT_STYLE[it.verdict];
+          return (
+            <View key={it.kind} style={[styles.chip, { borderColor: s.hex + '55' }]}>
+              <Text style={[styles.chipTx, { fontSize: fs(11) }]}>{it.label}</Text>
+              <View style={[styles.dot, { backgroundColor: s.hex }]} />
+            </View>
+          );
+        })}
+      </View>
 
       {/* ★오늘의 추천(daniel 2026-07-26 "음식 추천 코디 추천 같은 추천 컨텐츠 더 넣자") —
           결정 판정과 성격이 달라(좋다/나쁘다가 아니라 '무엇을') 아래 구획으로 분리한다.
@@ -139,7 +122,8 @@ export function DecisionTodayCard({ reloadKey }: { reloadKey?: number }) {
         </View>
       ) : null}
 
-      <Text style={[styles.more, { fontSize: fs(11) }]}>{expanded ? '접기 ▴' : '무엇을 결정할지 골라 보기 ▾'}</Text>
+      {/* 상세(/moment)에서 명식 전환·전체 판정·근거 신호까지 볼 수 있다(daniel 07-26) */}
+      <Text style={[styles.more, { fontSize: fs(11) }]}>자세히 보고 명식 바꾸기 ›</Text>
     </PressableScale>
   );
 }
