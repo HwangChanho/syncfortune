@@ -15,6 +15,9 @@
       },
       "infoPlist": {
         "NSPhotoLibraryAddUsageDescription": "운세 이미지를 사진에 저장하기 위해 사진 접근이 필요합니다."
+      },
+      "entitlements": {
+        "aps-environment": "production"
       }
     },
     "android": {
