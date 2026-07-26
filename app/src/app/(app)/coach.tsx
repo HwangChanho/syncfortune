@@ -10,6 +10,7 @@ import { useTranslation } from 'react-i18next';
 import { useRouter } from 'expo-router';
 import { Alert } from '../../lib/ui/alert';
 import { PressableScale } from '../../components/PressableScale';
+import { CoachTarotCard } from '../../components/CoachTarotCard'; // ★코치 답 아래 '가볍게 뽑은 카드'(daniel IMG_8198)
 import { ChartPicker } from '../../components/ChartPicker';
 import { TigerMascot } from '../../components/TigerMascot'; // 아기 백호 마스코트(모션) — 코치 아바타(생각 중=active)
 import { getNavBarHeight } from '../../components/BottomNav'; // 전역 네비바 높이 — 키보드 위 입력바 정확 위치용
@@ -185,6 +186,10 @@ export default function CoachScreen() {
                     {turn.answer.split(/\n+/).map((p) => p.trim()).filter(Boolean).map((para, pi) => (
                       <Text key={pi} style={[styles.aTx, { fontSize: fs(15), lineHeight: fs(25) }, pi > 0 && { marginTop: space(2.5) }]}>{para}</Text>
                     ))}
+                    {/* ★가볍게 뽑은 카드(daniel IMG_8198) — 위 사주·자미 답과 **분리된** 재미 레이어.
+                        섞지 않는 이유 = 기획서 §9 규칙2(체계 블렌딩 금지)의 취지. LLM 프롬프트에 들어가지 않고
+                        온디바이스 결정론(질문+날짜 시드)이라 서버 왕복·비용 0. */}
+                    <CoachTarotCard seed={turn.question} />
                   </View>
                 ) : (
                   // ⑨b: 서버에 질문은 남았으나 답이 빈 행(강종/생성 중단으로 답 못 받음) — 재진입 시 안내(질문은 보존됨).
