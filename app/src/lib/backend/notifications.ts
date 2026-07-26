@@ -8,6 +8,8 @@
 import { Platform } from 'react-native';
 import Constants from 'expo-constants'; // EAS projectId(Expo 푸시 토큰 발급)
 import { supabase } from '../supabase'; // push_token 저장(set_push_token RPC)
+import { dailyEnergy } from '../content/dailyFortune';            // 12·18시 티저 개인화(홈 모먼트와 동일 출처)
+import { momentFromEnergy, decisionFromEnergy } from '../content/decisionToday';
 import { router } from 'expo-router'; // 알림 탭 딥링크(컴포넌트 밖 전역 navigate)
 import { loadRepChart } from '../engine/myChart';
 import { computeChart } from '../engine/engine'; // 대표 명식 saju 산출(아침 개인화 팁용)
@@ -161,6 +163,13 @@ export async function requestNotifPermission(): Promise<NotifStatus> {
  *   대표 명식 없으면 개인화 앱 특성상 스케줄 안 함. 모듈 없으면 no-op(재빌드 후 작동).
  *   앱 진입마다 호출: 기존 취소 후 재생성 = 멱등·갱신. 권한 없으면 1회 요청.
  */
+/** 티저 꼬리 — '내용은 앱에서'로 궁금증을 남긴다(daniel: 내용 일부만 궁금하게). */
+const TEASER_TAIL: Record<string, string> = {
+  ko: '눌러서 오늘 흐름을 확인해 보세요.',
+  en: 'Tap to see today’s flow.',
+  ja: 'タップして今日の流れを確認。',
+};
+
 export async function scheduleDailyFortune(): Promise<void> {
   if (!Notif || Platform.OS === 'web') return;
   try {
@@ -187,9 +196,30 @@ export async function scheduleDailyFortune(): Promise<void> {
           title = MORNING_TITLE[appLang()] ?? MORNING_TITLE.ko;
           try { body = dailyAlarmTip(saju, f.dayGanZhi[0] as any, f.dayGanZhi[1] as any); }
           catch { const p = slotPool[hour]; const tt = p[i % p.length]; title = tt.title; body = tt.body; }
+        } else if (saju) {
+          // ★12·18시도 **대표 명식 기준**(daniel 2026-07-26 "시간별로 가는 알림은 홈에 있는 대표명식 기준으로
+          //   랜덤으로 내용 일부를 궁금하게"). 예전엔 고정 티저 풀이라 누구에게나 같은 문구였다.
+          //   ★새 명리 판정 0 — 홈 '모먼트' 카드와 **같은 함수**(dailyEnergy → momentFromEnergy / decisionFromEnergy)를
+          //     쓴다. 알림에서 본 문구와 앱에서 보는 카드가 어긋날 수 없다.
+          //   '랜덤'은 Math.random 이 아니라 **날짜·슬롯 시드**로 고른다(결정론 — 같은 날 같은 슬롯이면 같은 문구,
+          //   날마다 바뀜. 재스케줄해도 흔들리지 않아야 하므로).
+          const f = getDailyFortune(i);
+          const e = dailyEnergy(saju, f.dayGanZhi[0] as any, f.dayGanZhi[1] as any);
+          if (hour === 12) {
+            const m = momentFromEnergy(e);               // 설레는 제안 — 제목만 보여 궁금하게
+            title = m.title;
+            body = TEASER_TAIL[appLang()] ?? TEASER_TAIL.ko;
+          } else {
+            const d = decisionFromEnergy(e);
+            // 신호가 있으면 그중 하나를 시드로 골라 '무슨 신호가 왔는지'만(내용은 앱에서)
+            const sig = d.signals.length ? d.signals[(i + hour) % d.signals.length] : null;
+            title = d.title;                              // 오늘 결정 한 줄(판정)
+            body = sig ? `${sig.label.split(' — ')[0]} 신호가 들어왔어요. ${TEASER_TAIL[appLang()] ?? TEASER_TAIL.ko}`
+                       : (TEASER_TAIL[appLang()] ?? TEASER_TAIL.ko);
+          }
         } else {
           const pool = slotPool[hour];
-          const tt = pool[i % pool.length];              // 날짜 index로 로테이션 → 문구가 매번 달라짐
+          const tt = pool[i % pool.length];              // 명식 없음 → 일반 티저 폴백
           title = tt.title; body = tt.body;
         }
         await Notif.scheduleNotificationAsync({
@@ -289,4 +319,70 @@ export async function registerPushToken(): Promise<void> {
     const { data: token } = await Notif.getExpoPushTokenAsync({ projectId });
     if (token) await supabase.rpc('set_push_token', { p_token: token }); // 본인 row 갱신(security definer)
   } catch { /* 권한·모듈·네트워크 문제 시 조용히 무시 */ }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// ★관리자 확인 수단(daniel 2026-07-26 "2번은 어떻게 확인해") — 시간별 알림은 **미리 예약된 로컬 알림**이라
+//   9·12·18시가 되기 전에는 확인할 방법이 없었다(관리자 테스트 버튼은 9시 아침 팁 1종뿐).
+//   ① 실제 예약 목록을 그대로 읽어 보여준다(시각·제목·본문) → 스케줄이 걸렸는지·문구가 뭔지 즉시 확인
+//   ② 슬롯 문구를 지금 즉시 발송 → 실물 알림으로 문구 확인(예약 시각까지 기다리지 않고)
+// ─────────────────────────────────────────────────────────────────────────
+
+/** 예약된 알림 1건(관리자 표시용). */
+export type ScheduledPeek = { when: string; title: string; body: string };
+
+/**
+ * 지금 예약돼 있는 로컬 알림 목록(시각 오름차순). 관리자 화면에서 스케줄 실재 여부·문구 확인용.
+ * @param limit 최대 개수(기본 12 — 앞으로 4일치 정도)
+ */
+export async function listScheduledNotifications(limit = 12): Promise<ScheduledPeek[]> {
+  if (!Notif || Platform.OS === 'web') return [];
+  try {
+    const all = await Notif.getAllScheduledNotificationsAsync();
+    const rows: ScheduledPeek[] = (all ?? []).map((n: any) => {
+      const d = n?.trigger?.date ?? n?.trigger?.value;   // DATE 트리거(플랫폼별 형태 차이 방어)
+      const dt = d ? new Date(typeof d === 'number' ? d : String(d)) : null;
+      const when = dt && !isNaN(dt.getTime())
+        ? `${dt.getMonth() + 1}/${dt.getDate()} ${String(dt.getHours()).padStart(2, '0')}:${String(dt.getMinutes()).padStart(2, '0')}`
+        : '(시각 미확인)';
+      return { when, title: String(n?.content?.title ?? ''), body: String(n?.content?.body ?? '') };
+    });
+    rows.sort((a, b) => a.when.localeCompare(b.when));
+    return rows.slice(0, limit);
+  } catch { return []; }
+}
+
+/**
+ * 슬롯 티저를 **지금 즉시** 발송(관리자 테스트) — 예약 시각까지 기다리지 않고 실물 문구를 확인한다.
+ *   실제 스케줄과 **같은 로직**(9=일운 팁 / 12=모먼트 / 18=오늘 결정+신호)으로 만든다.
+ * @param hour 9 | 12 | 18
+ */
+export async function sendSlotTeaserNow(hour: 9 | 12 | 18): Promise<'sent' | 'no-chart' | 'no-perm' | 'unavailable'> {
+  if (!Notif || Platform.OS === 'web') return 'unavailable';
+  if (!(await ensurePermission())) return 'no-perm';
+  const rep = await loadRepChart();
+  if (!rep) return 'no-chart';
+  try {
+    const saju = computeChart(rep.input).saju;
+    const f = getDailyFortune(0);
+    let title = '', body = '';
+    if (hour === 9) {
+      title = MORNING_TITLE[appLang()] ?? MORNING_TITLE.ko;
+      body = dailyAlarmTip(saju, f.dayGanZhi[0] as any, f.dayGanZhi[1] as any);
+    } else {
+      const e = dailyEnergy(saju, f.dayGanZhi[0] as any, f.dayGanZhi[1] as any);
+      if (hour === 12) {
+        title = momentFromEnergy(e).title;
+        body = TEASER_TAIL[appLang()] ?? TEASER_TAIL.ko;
+      } else {
+        const d = decisionFromEnergy(e);
+        const sig = d.signals.length ? d.signals[hour % d.signals.length] : null;
+        title = d.title;
+        body = sig ? `${sig.label.split(' — ')[0]} 신호가 들어왔어요. ${TEASER_TAIL[appLang()] ?? TEASER_TAIL.ko}`
+                   : (TEASER_TAIL[appLang()] ?? TEASER_TAIL.ko);
+      }
+    }
+    await Notif.scheduleNotificationAsync({ content: { title, body, data: { route: '/today' } }, trigger: null });
+    return 'sent';
+  } catch { return 'unavailable'; }
 }

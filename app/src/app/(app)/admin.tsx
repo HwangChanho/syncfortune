@@ -16,7 +16,7 @@ import { useRouter } from 'expo-router'; // 비용분석 화면 이동
 import { supabase } from '../../lib/supabase'; // 테스트/관리자 모드 RPC + 프로필 로드
 import { setAdTestMode } from '../../lib/core/ads'; // 테스트모드 → 테스트광고 즉시 반영
 import { setClientTestMode } from '../../lib/core/testMode'; // 테스트모드 토글 → readings 목업 필터 즉시 반영(OFF서 mock 제외)
-import { sendDailyTipNow } from '../../lib/backend/notifications'; // ★일운 아침 알림 즉시 발송(관리자 테스트·daniel 07-14)
+import { sendDailyTipNow, sendSlotTeaserNow, listScheduledNotifications, type ScheduledPeek } from '../../lib/backend/notifications'; // 알림 즉시 발송·예약 목록 확인(관리자 테스트)
 import { isOnboardingEnabled, setOnboardingEnabled } from '../../components/Onboarding'; // ★관리자 온보딩 토글(daniel 07-12)
 import { remoteFlagValue, setAppFlag, loadFeatures, type FeatureKey } from '../../lib/core/features'; // ★신규 기능 공개 토글(속궁합/커뮤니티/위젯 — 심사 통과 후 전 유저 공개)
 import { useSubscription } from '../../lib/billing/subscription'; // 관리자모드 토글 후 프리미엄 새로고침
@@ -217,6 +217,7 @@ export default function AdminRoute() {
   const router = useRouter();
   const { refresh } = useSubscription();
   const [testMode, setTestMode] = useState(false); // 통변 mock(API 미호출)
+  const [sched, setSched] = useState<ScheduledPeek[] | null>(null); // ★예약 알림 목록(daniel 07-26 '어떻게 확인해')
   const [adminMode, setAdminMode] = useState(true); // god ON / 일반계정 OFF
   const [onbOn, setOnbOn] = useState(false); // 온보딩 노출 여부(관리자 토글·로컬 SecureStore FLAG, daniel 07-12)
   const [flags, setFlags] = useState<Record<string, boolean>>({}); // ★신규 기능 원격 플래그(속궁합/커뮤니티/위젯 — 공개 여부)
@@ -362,6 +363,42 @@ export default function AdminRoute() {
         <Text style={styles.adminLinkTx}>커뮤니티 신고 관리 →</Text>
       </PressableScale>
       {/* ★일운 아침 알림 테스트(daniel 07-14) — 9시 예약 대기 없이 오늘 일운 팁을 지금 즉시 발송해 확인(실제 아침 알림과 동일 로직). */}
+      {/* ★시간별 알림 확인(daniel 2026-07-26 "2번은 어떻게 확인해") — 9·12·18시 슬롯은 미리 예약된 로컬 알림이라
+          시각이 되기 전엔 확인 불가였다. ①슬롯 문구를 지금 발송 ②실제 예약 목록을 그대로 조회. */}
+      <View style={styles.slotRow}>
+        {([9, 12, 18] as const).map((h) => (
+          <PressableScale key={h} style={styles.slotBtn} onPress={async () => {
+            const r = await sendSlotTeaserNow(h);
+            Alert.alert(`${h}시 알림 테스트`,
+              r === 'sent' ? `${h}시 슬롯 문구를 지금 발송했어요. 알림을 확인해 보세요.`
+              : r === 'no-chart' ? '대표 명식이 없어요(명식 기준 문구라 필요).'
+              : r === 'no-perm' ? '알림 권한이 꺼져 있어요.' : '알림 모듈을 쓸 수 없어요(재빌드 필요).');
+          }}>
+            <Text style={styles.slotTx}>{h}시 문구 발송</Text>
+          </PressableScale>
+        ))}
+      </View>
+      <PressableScale style={styles.adminLink} onPress={async () => {
+        const rows = await listScheduledNotifications(12);
+        setSched(rows);
+        if (!rows.length) Alert.alert('예약 알림', '예약된 알림이 없어요. 알림 권한·대표 명식을 확인하고 앱을 다시 열어 보세요(진입 시 재스케줄).');
+      }}>
+        <Text style={styles.adminLinkTx}>예약된 알림 목록 보기 ({sched ? sched.length : '?'})</Text>
+      </PressableScale>
+      {sched && sched.length > 0 && (
+        <View style={styles.card}>
+          <Text style={styles.cardHead}>예약된 알림 (앞으로 {sched.length}건)</Text>
+          {sched.map((r, i) => (
+            <View key={i} style={styles.schedRow}>
+              <Text style={styles.schedWhen}>{r.when}</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.schedTitle} numberOfLines={1}>{r.title}</Text>
+                <Text style={styles.schedBody} numberOfLines={2}>{r.body}</Text>
+              </View>
+            </View>
+          ))}
+        </View>
+      )}
       <PressableScale style={styles.adminLink} onPress={async () => {
         const r = await sendDailyTipNow();
         Alert.alert('일운 알림 테스트',
@@ -566,6 +603,13 @@ const styles = StyleSheet.create({
   giftMsg: { ...font.body, color: colors.ju, fontWeight: '700', marginTop: space(3), textAlign: 'center' },
   adminLink: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.ju, padding: space(3.5), alignItems: 'center', marginBottom: space(2) },
   adminLinkOn: { borderColor: colors.ju, backgroundColor: colors.juSoft },
+  slotRow: { flexDirection: 'row', gap: space(2), marginBottom: space(2) },
+  slotBtn: { flex: 1, alignItems: 'center', paddingVertical: space(2.5), borderRadius: radius.md, borderWidth: 1, borderColor: colors.juLine, backgroundColor: colors.sunk },
+  slotTx: { ...font.caption, color: colors.ju, fontWeight: '800' },
+  schedRow: { flexDirection: 'row', gap: space(3), paddingVertical: space(2), borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.line },
+  schedWhen: { ...font.caption, color: colors.ju, fontWeight: '800', width: 62 },
+  schedTitle: { ...font.body, color: colors.ink, fontWeight: '700', fontSize: 13 },
+  schedBody: { ...font.caption, color: colors.inkSoft, marginTop: 1 },
   adminLinkTx: { color: colors.ju, fontWeight: '800', fontSize: 14 },
 
   // ── 예약 푸시(daniel 07-17) ──
