@@ -31,7 +31,8 @@ import { RelatedContent } from './RelatedContent'; // 연관 콘텐츠 자동 �
 import { purchaseCreditRC, purchasesEnabled } from '../lib/billing/purchases'; // 즉시 구매(마켓 안 거치고 바로)
 import { isAdminActing } from '../lib/core/admin';                  // 스페셜 = 관리자 바로 / 그 외 쿠폰(크레딧)
 import { requireLoginForPurchase } from '../lib/billing/requireLogin';
-import { confirmReadingChart, autoGenWithChartConfirm } from '../lib/ui/confirmChart'; // 생성 전 명식 확인(수동=항상 / 자동=명식 2개+ 일 때)
+import { autoGenWithChartConfirm } from '../lib/ui/confirmChart'; // 자동생성 전 명식 확인(명식 2개+ 일 때)
+import { requestChartConfirm } from '../lib/ui/chartConfirm'; // 명식 확인 모달을 await — 수동 경로는 runFlow 가 순서를 직접 제어(daniel 07-26)
 import { assertOnline } from '../lib/backend/network';
 import { supabase } from '../lib/supabase';
 import { excludeMock } from '../lib/core/testMode'; // ★목업(tier='mock') 제외(테스트모드 OFF) — 실모드 목업 서빙 차단
@@ -61,6 +62,9 @@ const HERO_BY_KIND: Record<string, any> = {
   taegil: require('../../assets/icons/taegil.jpg'), talent: require('../../assets/icons/talent.jpg'), zodiac: require('../../assets/icons/zodiac.jpg'),
   child: require('../../assets/icons/child.jpg'), future10: require('../../assets/icons/future10.jpg'),
 };
+
+/** 열람 플로우 잠금의 stale 회수 시간(ms). 결제창·웹훅 폴링을 포함해 넉넉히 — genLock(150초)보다 길게 둔다. */
+const FLOW_STALE_MS = 180_000;
 
 export function SpecialContentScreen({ kind, category = kind, title, sub, sections, needsZiwei = false, genMsg, heroMotif, themeColor = colors.ju, heroImage, buildBody, freePreview, freeHook, showExpiry = false, premiumCovered = false, headerExtra, autoGen = true, keepHeaderExtra = false, onChartResolved, regenToken }: {
   kind: CreditKind;        // 이용권/unlock 키(roots·image·mission). 크레딧 단위.
@@ -101,7 +105,12 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
   const [reloadKey, setReloadKey] = useState(0); // ChartPicker 로 대표 전환 시 재로드 트리거
   const [revealed, setRevealed] = useState(false); // 상태 뷰 경유(daniel 07-03): 소유(프리미엄/구매/관리자) 풀이도 바로 노출하지 않고 '이미 열려 있음' 상태 뷰를 먼저 보여준 뒤 '풀이 보기'로 공개. 명식/카테고리 변경 시 false 리셋 → 전환할 때마다 상태 뷰 재노출.
   const c = useMemo(() => (savedChart ? computeChart(savedChart.input) : null), [savedChart]);
-  const gatingRef = useRef(false); // 게이트(모달) 연타 차단
+  const gatingRef = useRef(false); // 게이트(모달) 연타 차단(레거시 — promptPurchase 폴백 경로에서만)
+  // ★열람 플로우 잠금(daniel 07-26 "진행중일땐 다른행동 못하게") — 값 = 시작 시각(ms), 0 = 유휴.
+  //   시각을 담는 이유: Alert 가 콜백 없이 닫히면(안드로이드 백버튼) await 가 영구 대기해 잠금이 누수될 수 있어
+  //   genLock 과 동일한 stale 타임아웃으로 회수한다.
+  const flowRef = useRef(0);
+  const [flowBusy, setFlowBusy] = useState(false); // 렌더 잠금(CTA 비활성) — ref 는 동기 차단, state 는 표시용
   const lastAppliedChartId = useRef<string | null>(null); // ★M1 적용한 chartId param 추적(재진입 중복 setRepresentative 방지·reading.tsx 38-43)
   const genSeq = useRef(0);        // ① 생성 세대 토큰 — 명식 전환/재로드 시 ++ 로 진행 중 gen 무효화(stale setReading 폐기)
   const chartIdRef = useRef<string | null>(null); // ① 현재 로드된 serverChartId — generate 결과 명식 대조(남의 풀이 표시 차단)
@@ -272,43 +281,121 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
     }
     if (isStale()) return;   // ① 완료 처리도 현재 명식일 때만
     // ★L2: 실제 성공만 완료 전이(배너+완료 푸시). 실패(오류·폴링실패·unavailable)면 배너 제거 → 오완료 '완성' 푸시 방지(needPayment 처리와 통일).
-    if (ok) setGenProgress({ route: gpRoute, done: 1, total: 1 }); // 완료 → 홈 배너 '풀이 보기' 이동버튼(daniel 이슈15)
+    if (ok) {
+      setGenProgress({ route: gpRoute, done: 1, total: 1 }); // 완료 → 홈 배너 '풀이 보기' 이동버튼(daniel 이슈15)
+      // ★생성 성공 = 바로 공개(daniel 07-26 순서 이상 ②): 예전엔 revealed 가 false 로 남아 방금 결제·생성한
+      //   직후에도 "이미 열려 있는 풀이예요" 상태 뷰가 다시 뜨고 '풀이 보기'를 또 눌러야 했다.
+      //   상태 뷰는 *재방문*에서만 의미가 있다.
+      setRevealed(true);
+    }
     else setGenProgress({ route: gpRoute, active: false });
     setBusy(false);
   }
 
-  // 생성 전 '이 명식으로 풀이할지' 확인(+보유 이용권) → 확인 시 doStart(daniel 07-02).
-  function onStart() {
-    if (!chartId || busy || gatingRef.current) return;
-    void confirmReadingChart({ chartLabel: savedChart?.label, creditKind: kind as any, t, onConfirm: () => { void doStart(); } });
+  // ─────────────────────────────────────────────────────────────────────────
+  // ★열람 플로우 재설계(daniel 2026-07-26 IMG_8190~8192 "순서가 이상해 / 진행 중일 땐 다른 행동 못하게 /
+  //   결제 취소·실패·앱 강제종료·네트워크 끊김도 대응")
+  //
+  // 예전 순서의 문제 3가지:
+  //   ①**순서 역전** — 미구매인데 `onStart` 가 *명식 확인 모달부터* 띄우고, 확인 후 `doStart` 에서야 크레딧을
+  //     보고 구매 모달을 띄웠다 → 살지 말지도 안 정한 사람에게 명식을 먼저 묻고 **모달 2연타**.
+  //   ②**불필요한 1탭** — 결제·생성이 끝나도 `revealed` 가 false 라 "이미 열려 있는 풀이예요" 상태 뷰가 다시
+  //     뜨고 '풀이 보기'를 또 눌러야 했다.
+  //   ③**문구 모순** — 이미 소유한 사람의 확인 모달에도 "보유 이용권 0개"가 떴다.
+  //
+  // 새 순서: **소유 판정 → (미소유면) 구매 → 명식 확인 → 생성 → 즉시 공개.**
+  //   전 구간을 하나의 async 플로우로 직렬화하고 `flowRef` 로 잠근다 → 진행 중 다른 조작이 끼어들지 못한다.
+  //   ⚠️차감·게이트의 권위는 여전히 **Edge**(consume_credit). 클라 판정은 UX 순서용이며, 서버가 needPayment 를
+  //     주면 generate 가 promptPurchase 로 되돌린다(이중차감 없음·멱등).
+  // ─────────────────────────────────────────────────────────────────────────
+  function onStart() { void runFlow(); }
+
+  /** 커스텀 Alert(콜백 기반)를 await 가능하게 — 버튼 선택을 Promise 로 돌려준다. */
+  function askPurchase(): Promise<'buy' | 'market' | 'cancel'> {
+    return new Promise((resolve) => {
+      Alert.alert(title, t('special.needPayMsg', '이용권이 필요해요. 바로 구매하거나 마켓에서 받을 수 있어요.'), [
+        { text: t('special.buyNow', '바로 구매'), onPress: () => resolve('buy') },
+        { text: t('special.goMarket', '마켓에서 보기'), onPress: () => resolve('market') },
+        { text: t('common.cancel'), style: 'cancel', onPress: () => resolve('cancel') },
+      ]);
+    });
   }
-  // 게이트(★C3 part2·daniel 2026-07-03 — Edge 단일 권위): 프리미엄=바로 / 관리자=바로 / 이미 언락=바로 / 그 외=로그인 후 생성.
-  //   ⚠️ 클라는 더 이상 useCredit 로 차감하지 않는다 — Edge(SERVER_GATED)가 이용권을 1회 차감/판정(이중차감 제거).
-  //   크레딧 있으면 Edge 가 차감·생성 / 없으면 needPayment → generate 가 구매 플로우(promptPurchase)로 유도.
-  async function doStart() {
-    if (!chartId || busy || gatingRef.current) return;
-    logEvent(`${kind}_generate_tap`, { chartId });
-    if (!assertOnline(t)) return;
-    // 무차감 통과: 프리미엄(premiumCovered 명식) / 이미 언락(구매·생성 완료) → 바로 생성(재차감 없음).
-    if (premiumCovered && isPremiumForChart(chartId)) { generate(chartId); return; }
-    if (await isUnlocked(chartId, kind)) { generate(chartId); return; }
-    gatingRef.current = true;
-    let proceed = false;
+
+  /**
+   * 결제 1건 — 성공(크레딧 적립 확인)만 true.
+   * **취소·마켓이동·미적립·오류를 전부 false 로 정규화**해 호출부가 한 갈래로 처리한다(실패 경로 누락 방지).
+   */
+  async function buyCredit(): Promise<boolean> {
+    const choice = await askPurchase();
+    if (choice === 'market') { router.push('/market'); return false; }
+    if (choice !== 'buy') return false;                                     // 사용자 취소
+    if (!purchasesEnabled()) { Alert.alert(title, t('market.payPending', '결제 준비 중이에요. 쿠폰을 이용하거나 잠시 후 다시 시도해 주세요.')); return false; }
+    setPurchasing(true); // 애플 결제창 뜨기까지 + 웹훅 적립까지 무피드백 구간 로딩(daniel 07-24)
     try {
-      // 관리자 = 무료(Edge god 도 통과) / 프리미엄 명식 = Edge effPrem 바이패스(크레딧 불요) / 그 외 = 로그인 보장 + 크레딧 사전 확인.
-      if (await isAdminActing()) proceed = true;
-      else if (!requireLoginForPurchase(session, () => router.push('/login'), t)) proceed = false; // 미로그인 → 로그인 유도(생성 안 함)
-      else if (isPremiumForChart(chartId)) proceed = true;                                          // 프리미엄 = 서버 무게이트 통과 → 바로 생성
-      else {
-        // ★크레딧 사전 확인(daniel 07-24): 비프리미엄이 크레딧 0이면 자물쇠(UnlockOverlay)가 번쩍였다가 needPayment 로 구매 모달이 뜨던
-        //   혼란을 없앤다 — 잔여 0이면 오버레이 없이 바로 구매 모달. (Edge 가 여전히 차감 권위 — 이 peek 은 UX 용. peek>0 이어도 Edge needPayment 면 generate 가 재유도.)
-        const bal = await loadCredits();
-        if ((bal[kind] ?? 0) > 0) proceed = true;
-        else promptPurchase(chartId); // 크레딧 없음 → 구매 유도(오버레이 없이)
+      // purchaseCreditRC: 사용자 취소=false / 오프라인·미준비·LLM 다운=throw(과금 전 차단)
+      const ok = await purchaseCreditRC(kind);
+      if (!ok) { logEvent(`${kind}_purchase_cancel`, { chartId }); return false; }
+      // ★C1: 클라 grant 없음 — 영수증 검증된 웹훅이 적립한다. 반영까지 폴링.
+      const { granted } = await waitForCreditGrant(kind);
+      if (!granted) {
+        // 결제는 됐고 적립만 지연 — **돈은 유실되지 않는다**(웹훅 멱등). 재진입해 다시 누르면 이어진다.
+        Alert.alert(title, t('special.applyPending', '결제가 완료됐어요. 적용까지 잠시 걸릴 수 있어요. 잠시 후 다시 시도해 주세요.'));
+        logEvent(`${kind}_grant_pending`, { chartId }, 'error');
+        return false;
       }
-    } catch (e) { logEvent(`${kind}_gate_error`, { message: (e as Error).message }, 'error'); }
-    finally { gatingRef.current = false; }
-    if (proceed) generate(chartId); // Edge 가 이용권 차감/판정 → (드묾) 없으면 generate 안에서 needPayment → promptPurchase 폴백
+      return true;
+    } catch (e) {
+      Alert.alert('!', (e as Error).message);                                // 오프라인·결제 실패·LLM 다운
+      logEvent(`${kind}_purchase_fail`, { message: (e as Error).message }, 'error');
+      return false;
+    } finally { setPurchasing(false); }
+  }
+
+  /**
+   * 진입 CTA('구매하고 보기' / '풀이 보기' / '이어서 풀이 만들기')의 **단일 경로**.
+   * 소유 판정 → (미소유) 구매 → 명식 확인 → 생성 → 공개. 어느 단계에서 빠져나가도 잠금은 finally 에서 해제.
+   */
+  async function runFlow(): Promise<void> {
+    // 진행 중이면 무시 — 단, 오래 걸려 있으면(Alert 콜백 유실 등) stale 로 보고 회수한다.
+    if (flowRef.current && Date.now() - flowRef.current < FLOW_STALE_MS) return;
+    if (busy) return;                                                        // 이미 생성 중(자물쇠)
+    flowRef.current = Date.now();
+    setFlowBusy(true);
+    try {
+      if (!chartId) return;
+      logEvent(`${kind}_generate_tap`, { chartId });
+      if (!assertOnline(t)) return;                                          // 네트워크 없음 → 사전 차단(경고)
+      if (!requireLoginForPurchase(session, () => router.push('/login'), t)) return;
+
+      // ① 소유 판정을 **가장 먼저** — 소유자에게는 결제 얘기를 꺼내지 않는다(문구 모순 ③ 제거).
+      //    isAdminActing = 관리자 모드 ON 일 때만(모드 OFF 는 일반계정처럼 — Edge god 과 동일 규칙).
+      const ownedNow = isPremiumForChart(chartId)
+        || (await isAdminActing())
+        || (await isUnlocked(chartId, kind));
+
+      // ② 미소유면 크레딧을 보고, 없으면 **구매부터**(순서 역전 ① 제거 — 명식은 결제 후에 묻는다).
+      if (!ownedNow) {
+        const bal = await loadCredits().catch((): Record<string, number> => ({}));
+        if ((bal[kind] ?? 0) <= 0) {
+          const bought = await buyCredit();
+          if (!bought) return;                                               // 취소·실패·미적립 → 조용히 종료
+        }
+      }
+
+      // ③ 이제 명식 확인. ★소유 경로면 creditKind 를 넘기지 않아 "보유 이용권 N개" 문구가 뜨지 않는다.
+      const ok = await requestChartConfirm({ creditKind: ownedNow ? undefined : (kind as any) });
+      if (!ok) return;
+      // 확인 모달 dismiss 완료 후 생성 시작 — iOS 는 Modal 을 한 번에 하나만 present(자물쇠가 안 뜨던 문제).
+      await new Promise((r) => setTimeout(r, 380));
+
+      // ④ 생성 — 차감·게이트 권위는 Edge. 여기서 크레딧을 깎지 않는다.
+      await generate(chartId);
+    } catch (e) {
+      logEvent(`${kind}_flow_error`, { message: (e as Error).message }, 'error');
+    } finally {
+      flowRef.current = 0;
+      setFlowBusy(false);
+    }
   }
 
   // 구매 유도 — 서버 게이트(Edge)가 needPayment 를 반환했을 때만 호출(클라 차감 없음).
@@ -365,7 +452,8 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
       keyboardShouldPersistTaps="handled"
     >
       {/* 상단 명식 헤더 — 현재 적용된 대표 명식 표시·전환(daniel: 모든 콘텐츠 상단). 전환 시 그 명식 기준 재로드 */}
-      <ChartPicker onChange={() => setReloadKey((k) => k + 1)} />
+      {/* ★진행 중 명식 전환 차단 — 결제/생성 대상이 도중에 바뀌면 어긋난다(genSeq 가 폐기하긴 하나 혼란). */}
+      <ChartPicker onChange={() => { if (!flowBusy && !busy) setReloadKey((k) => k + 1); }} />
       {/* child/child_couple(자녀운)만 전용 테마 영상 — 그 외 스페셜(roots·image·mission·talent·astrology·future10 등)은 videoKey 미지정=기본 링+자물쇠 */}
       <UnlockOverlay visible={busy} message={genMsg} videoKey={(kind === 'child' || kind === 'child_couple') ? 'child' : undefined} />
       {/* 풀이 공개(revealed) 순간 골드 명조 문 열림 영상 — 1회 재생 후 페이드아웃하며 풀이 노출(daniel 07-06) */}
@@ -400,9 +488,15 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
           <View style={[styles.ownedBadge, { backgroundColor: themeColor + '22', borderColor: themeColor + '66' }]}>
             <Text style={[styles.ownedBadgeTx, { color: themeColor }]}>✓</Text>
           </View>
-          <Text style={[styles.ownedTitle, dynStyles.gateTitle]}>{t('special.ownedTitle', '이미 열려 있는 풀이예요')}</Text>
+          {/* ★중단 감지(daniel 07-26 "앱 강제종료·네트워크 끊김도 대응"): 소유인데 풀이가 없으면 = 결제는 됐고
+              생성이 끊긴 상태. 문구를 바꿔 "또 결제해야 하나?" 오해를 없애고 재차감 없이 이어감을 명시한다. */}
+          <Text style={[styles.ownedTitle, dynStyles.gateTitle]}>
+            {reading ? t('special.ownedTitle', '이미 열려 있는 풀이예요') : t('special.ownedResumeTitle', '결제는 끝났어요 — 풀이만 남았어요')}
+          </Text>
           {/* 상태 한 줄 — 프리미엄 명식=무제한(골드) / 그 외=만료일 또는 구매완료. (effPrem 이 모든 유료 kind 바이패스 → 이 명식 프리미엄이면 '무제한') */}
-          {isPremiumForChart(chartId) ? (
+          {!reading ? (
+            <Text style={[styles.ownedStatus2, dynStyles.gateDesc]}>{t('special.ownedResumeSub', '생성이 중단됐어요. 추가 결제 없이 이어서 만들어 드려요')}</Text>
+          ) : isPremiumForChart(chartId) ? (
             <Text style={[styles.ownedStatus2, dynStyles.gateDesc, { color: colors.gold }]}>{t('special.ownedUnlimited', '프리미엄 · 무제한 이용')}</Text>
           ) : (showExpiry && expiry) ? (
             <Text style={[styles.ownedStatus2, dynStyles.gateDesc]}>{t('special.ownedUntil', { date: expiry, defaultValue: '{{date}}까지 볼 수 있어요' })}</Text>
@@ -410,9 +504,16 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
             <Text style={[styles.ownedStatus2, dynStyles.gateDesc]}>{t('special.ownedBoughtV2', '구매 완료 · 언제든 다시 볼 수 있어요')}</Text>
           )}
           {/* 풀 폭 '풀이 보기 ›' — revealed 전환(캐시 즉시 공개). 캐시 없으면 onStart(소유 경로: 프리미엄/unlock/관리자 → generate만, 재차감 없음). */}
-          <PressableScale style={[styles.ownedCta, { backgroundColor: themeColor }]} onPress={() => { setRevealed(true); if (!reading) onStart(); }}>
-            <Text style={[styles.ctaTx, dynStyles.ctaTx]}>{t('special.viewCta', '풀이 보기')}</Text>
-            <Text style={[styles.ctaTx, dynStyles.ctaTx, styles.ownedCtaArrow]}>›</Text>
+          {/* ★flowBusy 동안 비활성 — 진행 중 재탭으로 플로우가 겹치지 않게(daniel: 진행중일 땐 다른 행동 못하게). */}
+          <PressableScale
+            style={[styles.ownedCta, { backgroundColor: themeColor }, flowBusy && styles.ctaDisabled]}
+            disabled={flowBusy}
+            onPress={() => { setRevealed(true); if (!reading) onStart(); }}
+          >
+            <Text style={[styles.ctaTx, dynStyles.ctaTx]}>
+              {flowBusy ? t('special.working', '진행 중…') : reading ? t('special.viewCta', '풀이 보기') : t('special.resumeCta', '이어서 풀이 만들기')}
+            </Text>
+            {!flowBusy && <Text style={[styles.ctaTx, dynStyles.ctaTx, styles.ownedCtaArrow]}>›</Text>}
           </PressableScale>
         </View>
       ) : (reading && owned && revealed) ? (
@@ -458,7 +559,10 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
             {sections.filter((s) => s.key !== 'summary').map((s) => <Text key={s.key} style={[styles.previewItem, dynStyles.previewItem]}>· {s.label}</Text>)}
           </View>
           {/* owned(프리미엄/관리자/unlock)면 '풀이 보기'(구매 아님) — 자식운은 위 토글로 단일/부부 고른 뒤 이 버튼으로 생성(daniel 07-03) */}
-          <PressableScale style={[styles.cta, { backgroundColor: themeColor }]} onPress={onStart}><Text style={[styles.ctaTx, dynStyles.ctaTx]}>{owned ? t('special.viewCta', '풀이 보기') : t('special.unlockCta', '구매하고 보기')}</Text></PressableScale>
+          {/* ★flowBusy 동안 비활성(daniel 07-26) — 결제·확인·생성 플로우가 겹쳐 시작되지 않게. */}
+          <PressableScale style={[styles.cta, { backgroundColor: themeColor }, flowBusy && styles.ctaDisabled]} disabled={flowBusy} onPress={onStart}>
+            <Text style={[styles.ctaTx, dynStyles.ctaTx]}>{flowBusy ? t('special.working', '진행 중…') : owned ? t('special.viewCta', '풀이 보기') : t('special.unlockCta', '구매하고 보기')}</Text>
+          </PressableScale>
           {!owned ? (
             <>
               <Text style={[styles.gateNote, dynStyles.gateNote]}>{t('special.unlockHint', '이용권 구매 또는 쿠폰으로 열려요')}</Text>
@@ -590,6 +694,7 @@ const styles = StyleSheet.create({
   previewItem: { ...font.body, color: colors.inkSoft, lineHeight: 24, fontSize: 14 },
   cta: { backgroundColor: colors.ju, borderRadius: radius.md, paddingVertical: space(3.5), paddingHorizontal: space(7) },
   ctaTx: { color: colors.bg, fontWeight: '800', fontSize: 16 },
+  ctaDisabled: { opacity: 0.55 }, // 플로우 진행 중 CTA 비활성 표시(daniel 07-26)
   // 결제 준비 오버레이(daniel 07-24) — '바로 구매' 후 애플 결제창/웹훅 적립 대기 로딩(무피드백 방지)
   payWrap: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center' },
   payCard: { backgroundColor: colors.card, borderRadius: radius.lg, paddingVertical: space(7), paddingHorizontal: space(9), alignItems: 'center', ...shadow.card },
