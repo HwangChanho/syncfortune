@@ -59,19 +59,21 @@ function KenBurnsCard({ source }: { source: any }) {
 }
 
 // ★풀이 3대 카테고리 시스템 매핑(daniel 2026-07-24) — 자미두수=ziwei(자미 원국풀이)·타로=taro, 그 외 전부 사주.
-const ZIWEI_KEYS = new Set(['ziwei']);
-const TARO_KEYS = new Set(['taro']);
 
 /**
  * 콘텐츠 카드 그리드. 화면(/contents)이 이걸 그대로 얹기만 하면 된다.
  * @param showViewToggle 카드/리스트 토글 노출 여부(기본 true)
- * @param category 풀이 3대 카테고리 필터(사주/자미두수/타로 — daniel 07-24). 기본 'saju'.
+ * ★2026-07-26(daniel "상단에 사주 타로 자미두수도 별로야 빼던가 다르게하자"): **카테고리 필터 제거**.
+ *   실측 근거 = `ZIWEI_KEYS`·`TARO_KEYS` 가 각각 **항목 1개**('ziwei'·'taro')뿐이었다. 큰 세그먼트 버튼 3개가
+ *   상단을 차지하는데 그중 둘은 눌러도 카드 1장만 나오는 구조 → 공간 낭비이자 '체계로 고르라'는 요구가
+ *   사용자 사고(“궁합 보고 싶다”)와도 어긋났다. 이제 전 항목을 한 목록으로 보이고 섹션으로만 구분한다
+ *   (자미두수·타로도 목록에 자연히 포함 — 예전엔 사주 탭에서 아예 빠져 있었다).
  */
 /** 리스트뷰에서 섹션당 기본 노출 개수 — 나머지는 '더 보기'로 접는다(daniel 2026-07-26 나열 개선).
  *  4 = 스크린 한 화면에 섹션 헤더+4행이 들어가 '섹션이 여러 개 있다'는 구조가 보이는 최소치. */
 const LIST_PREVIEW = 4;
 
-export function ContentGrid({ showViewToggle = true, category = 'saju' }: { showViewToggle?: boolean; category?: 'saju' | 'ziwei' | 'taro' }) {
+export function ContentGrid({ showViewToggle = true }: { showViewToggle?: boolean }) {
   const router = useRouter();
   const { t } = useTranslation();
   const { viewMode, setViewMode } = useHomeViewMode();
@@ -86,12 +88,10 @@ export function ContentGrid({ showViewToggle = true, category = 'saju' }: { show
       ...sec,
       items: sec.items.filter((m) => {
         if (m.key === 'sokgunghap' && !sokOn) return false;          // 속궁합 노출 게이트 유지
-        if (category === 'ziwei') return ZIWEI_KEYS.has(m.key);      // 자미두수 탭
-        if (category === 'taro') return TARO_KEYS.has(m.key);        // 타로 탭
-        return !ZIWEI_KEYS.has(m.key) && !TARO_KEYS.has(m.key);      // 사주 탭 = 나머지 전부
+        return true;                                                  // ★필터 없음 — 전 항목 한 목록(위 주석 참조)
       }),
     })).filter((sec) => sec.items.length > 0),
-    [sokOn, category],
+    [sokOn],
   );
   const [repServerChartId, setRepServerChartId] = useState<string | null>(null); // 현재 대표 명식(프리미엄·배지 판정)
   const [credits, setCredits] = useState<Record<string, number>>({});                            // creditKey별 쿠폰 잔량
