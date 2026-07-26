@@ -4,6 +4,7 @@
 //   테이블 오류·역행 방향 실수를 게이트로 차단. (신살 매핑은 고정 테이블이라 부차 — run-sinsal로 확인.)
 // 실행: npm run verify:engine
 // ─────────────────────────────────────────────────────────────────────────
+import _lunar from 'lunar-javascript';
 import { twelveStage } from './twelve';
 import { gongmang, analyzeSinsal } from './sinsal';
 import { detectInteractions } from './structure';
@@ -136,6 +137,34 @@ console.log('=== 표준자오선 시대보정 · 서머타임 ===');
   check(`127.5° 시대(1955) 서울 보정 ${off55.toFixed(1)}분 ↔ 135° 시대(1994) ${off94.toFixed(1)}분 = 정확히 30분 차`, Math.abs(off94 + 30 - off55) < 0.001);
   // 시주 영향: 1987-07-15 13:20 서울(DST 중) → −60(DST) −32(경도) −6(균시차) ≈ 11:42 → 午시
   check('1987-07-15 13:20 서울(DST) → 시지 午 (보정 ≈11:42 — DST 미반영이면 未)', buildSajuChart(seoul('1987-07-15 13:20')).pillars['시'].branch === '午');
+}
+
+// ── 절기 경계 = 북경시 기준(감사 C1 회귀 방지 · 2026-07-26) ─────────────────
+// 버그였던 것: lunar-javascript 의 절입 시각은 **북경시(UTC+8)** 기준인데(lunar.js 절기 계산의
+//   `ONE_THIRD = 8/24`), 엔진은 진태양시 보정한 한국 시계시를 그대로 넣어 비교 축이 어긋났다
+//   → 월주가 절입 표기시각 +35~47분에 바뀜(정답 +60분) = **13~25분 일찍 전환**.
+// 불변식: **월주는 "절입 표기시각 + 60분"(=KST 환산) 을 지나야 바뀐다.**
+//   ※ 절입 초(秒)가 0이 아니면 그 분에는 아직 안 넘어가므로 +61분에 바뀐다(입춘 04:02:08 사례) — 둘 다 정답.
+console.log('\n=== 절기 경계 타임존 (감사 C1 — 절입은 북경시 기준) ===');
+{
+  const Solar = (_lunar as any).Solar ?? (_lunar as any).default?.Solar;
+  const table = Solar.fromYmd(2026, 6, 1).getLunar().getJieQiTable();
+  for (const [term, city, lon] of [['立春', '서울', 126.98], ['立春', '부산', 129.08], ['清明', '서울', 126.98]] as const) {
+    const jq = table[term];
+    if (!jq) continue;
+    const [Y, M, D, H, Mi, S] = [jq.getYear(), jq.getMonth(), jq.getDay(), jq.getHour(), jq.getMinute(), jq.getSecond?.() ?? 0];
+    const monthGz = (min: number) => {
+      const t = new Date(Y, M - 1, D, H, Mi + min, 0);
+      const dt = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')} ${String(t.getHours()).padStart(2, '0')}:${String(t.getMinutes()).padStart(2, '0')}`;
+      const c = buildSajuChart({ birthDateTime: dt, calendar: '양', timeAccuracy: '정확', sex: '남', birthPlace: city, birthLon: lon } as ChartInput, 2026);
+      return `${c.pillars['월'].stem}${c.pillars['월'].branch}`;
+    };
+    const flipAt = S > 0 ? 61 : 60;          // 절입 초가 남아 있으면 그 다음 분에 넘어간다
+    check(`${term}/${city} — 절입표기+${flipAt - 1}분엔 아직 이전 월주, +${flipAt}분에 전환(북경시→KST 60분)`,
+      monthGz(flipAt - 1) === monthGz(0) && monthGz(flipAt) !== monthGz(0));
+    // 일찍 전환하던 예전 동작(+35~47분)이 되살아나면 잡힌다
+    check(`${term}/${city} — 절입표기+45분엔 아직 안 바뀜(예전 버그: 13~25분 일찍 전환)`, monthGz(45) === monthGz(0));
+  }
 }
 
 // ── 대운 전환 시점(감사 H1 off-by-one 회귀 방지 · 2026-07-26) ───────────────

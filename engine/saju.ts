@@ -9,7 +9,7 @@ import _lunar from 'lunar-javascript';
 import type {
   ChartInput, SajuChart, PillarData, PillarPos, Stem, Branch, TenGod, HiddenStem, Element, LuckCycle, AnnualPillar, MonthPillar,
 } from '../spec/chart';
-import { trueSolarOffsetMin } from './solartime';
+import { trueSolarOffsetMin, kstMeridianAt, dstOffsetMin } from './solartime'; // kstMeridianAt·dstOffsetMin = 절기용 북경시 변환(감사 C1)
 
 const Lunar: any = _lunar;
 const Solar = Lunar.Solar;
@@ -143,15 +143,36 @@ export function buildSajuChart(input: ChartInput, nowYear = new Date().getFullYe
   const ec = Solar.fromYmdHms(cy, cmo, cd, ch, cmi, 0).getLunar().getEightChar();
   const dayStem = ec.getDayGan() as Stem;
 
+  // ★절기 판정용 팔자 = **북경시(UTC+8)** 기준 (2026-07-26 감사 C1 수정).
+  //   왜 따로 계산하나: lunar-javascript 의 절입 시각은 **북경시 기준**이다(lunar.js 절기 계산에
+  //   `ONE_THIRD = 1/3` = 8/24 가 들어감 — 소스 확인). 그런데 엔진은 *진태양시 보정한 한국 시계시*를
+  //   그대로 넣어 왔다 → 비교 축이 어긋나, 월주가 라이브러리 절입 표기시각 +35~47분에 바뀌었다.
+  //   물리적으로 옳은 시점은 +60분(=북경시→KST)이므로 **13~25분 일찍** 전환되고 있었다
+  //   (실측: 입춘/서울 13분·입춘/부산 21분·청명/서울 25분 → 그 창에 태어나면 년주·월주가 한 칸 앞섬).
+  //   ※ 문파 문제가 아니다: 절입·출생 양쪽에 같은 경도·균시차 보정이 들어가 상쇄되므로, 진태양시 기준으로
+  //     따져도 정답은 동일하게 "시계시 ≥ 절입표기 + 60분"이다. 즉 순수한 타임존 축 불일치.
+  //   ※ 한 번의 입력으로 두 기준을 동시에 만족시킬 수 없어(시주는 지방 진태양시, 절기는 물리적 순간)
+  //     라이브러리를 두 번 호출한다 — **년·월주·대운 = 이 ecTerm / 일·시주 = 위 ec(진태양시)**.
+  //   보정량 = (표준자오선 − 120°)×4분 + 서머타임분. 시대별 자오선(135°/127.5°)·DST 를 그대로 반영하므로
+  //     1954~61 127.5° 시대는 −30분, 서머타임 기간은 60분이 더 빠진다.
+  const meridian = kstMeridianAt(y, mo, d);
+  const toBeijingMin = -Math.round((meridian - 120) * 4) + dstOffsetMin(y, mo, d, h, mi);
+  const bj = new Date(y, mo - 1, d, h, mi, 0);
+  bj.setMinutes(bj.getMinutes() + toBeijingMin);
+  const ecTerm = Solar.fromYmdHms(bj.getFullYear(), bj.getMonth() + 1, bj.getDate(), bj.getHours(), bj.getMinutes(), 0).getLunar().getEightChar();
+
   const pillars = {
-    '년': buildPillar('년', ec.getYear(), dayStem),
-    '월': buildPillar('월', ec.getMonth(), dayStem),
+    // 년·월주 = 절기 경계에 의존 → 북경시 기준(ecTerm). 십신은 그대로 일간(dayStem) 기준.
+    '년': buildPillar('년', ecTerm.getYear(), dayStem),
+    '월': buildPillar('월', ecTerm.getMonth(), dayStem),
+    // 일·시주 = 지방시(진태양시) 기준 → 기존 ec 유지(일주 자시 경계·시주는 지방시가 맞다).
     '일': buildPillar('일', ec.getDay(), dayStem),
     '시': buildPillar('시', ec.getTime(), dayStem),
   } as Record<PillarPos, PillarData>;
 
   // 대운 (gender: 남=1, 여=0). getDaYun()[0]은 미입운(빈 간지)이라 제외.
-  const daYunRaw: any[] = ec.getYun(input.sex === '남' ? 1 : 0).getDaYun(13); // 13개(미입운 [0] 제외 12) → 대운 110세+까지(daniel: 만세력 대운 110세까지)
+  //   ★대운도 **절기 의존**(월주에서 순역 + 절입까지의 일수로 시작 나이 산출) → ecTerm 기준이라야 정확.
+  const daYunRaw: any[] = ecTerm.getYun(input.sex === '남' ? 1 : 0).getDaYun(13); // 13개(미입운 [0] 제외 12) → 대운 110세+까지(daniel: 만세력 대운 110세까지)
   // ★현재 대운 판정은 **나이가 아니라 연도**로 한다(2026-07-26 감사 H1 off-by-one 수정).
   //   버그: 예전엔 `age = nowYear - y`(연도차)를 `dy.getStartAge()` 와 비교했는데, lunar-javascript 의
   //   startAge 는 **세는나이(虛歲)** 라 항상 `startYear - birthYear + 1` 이다(실측 확인: 1991년생 己亥 대운
