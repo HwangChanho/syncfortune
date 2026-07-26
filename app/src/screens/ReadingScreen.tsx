@@ -15,6 +15,7 @@ import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator, Modal
 import { Image as ExpoImage } from 'expo-image'; // 추천 콘텐츠 썸네일(다운샘플·디스크캐시)
 import { SECTIONS } from '../lib/content/contentSections'; // 추천 '이런 콘텐츠도 좋아하실 거예요'(하단·daniel 07-21) — 콘텐츠 단일출처
 import { PressableScale } from '../components/PressableScale';
+import { ReadingProse, ReadingHeadline } from '../components/ReadingProse'; // 풀이 본문 공통 렌더(가독성 P0 — 문단화·강조·접이식). 3개 렌더지점 단일출처
 import { ExpiryNote } from '../components/ExpiryNote'; // 보유 만료일 공통(프리미엄 가드 한 곳)
 import { ComputedNote } from '../components/ComputedNote'; // '내 생년월일로 계산됨' 배지(App Store 4.3 대응)
 import { TTSButton } from '../components/TTSButton'; // daniel: 풀이 음성 읽기(온디바이스 TTS·무료)
@@ -607,44 +608,48 @@ export function ReadingScreen({
     if (!r || typeof r !== 'object') return <Text style={styles.err}>{'풀이를 불러오는 중…'}</Text>;
     const base = asText(r.base), past = asText(r.past), overlay = asText(r.overlay), future = asText(r.future), remedy = asText(r.remedy);
     if (r.error) return <Text style={styles.err}>{r.error}</Text>;
-    const bodyDyn = { fontSize: fs(15), lineHeight: fs(26) }; // 설정 글자 크기 반영
+    // ★가독성 P0(2026-07-26): 통짜 <Text> → ReadingProse(문단화·시기/명리어 강조·행간). 내용·프롬프트 불변, 표현만.
+    //   처방(remedy)은 §4 가드(진단엔 반드시 처방 동반)라 항상 펼침. past(지나온 흐름)만 접이식 —
+    //   07-21에 '지금 이후' 중심으로 축소된 맥락 섹션이라 접기 1순위(축3 부담↓).
+    // ⚠️ content 에 종종 섞여 있는 `timing` 은 **렌더하지 않는다**(의도된 제외). 사주 영역 출력 스키마는
+    //    prompts.ts 의 {base,past,overlay,future,remedy} 뿐이고, timing 은 모델이 스키마 밖으로 낸 잉여
+    //    메타 라벨이다(실측값: "원국 상수"·"평생 기본 결" 등 5~32자). 섹션으로 띄우면 오히려 의미 없는 카드가 된다.
+    //    (정식 timing 필드를 쓰는 건 wealth 등 별도 프롬프트 상품 → SpecialContentScreen 이 sections 로 렌더.)
     return (
       <>
-        {/* 이슈19 소제목 — 이 카테고리 통변의 headline 있으면 상세 내용 맨 위에 한 줄 강조 */}
-        {typeof r.headline === 'string' && r.headline.trim() ? (
-          <Text style={{ fontSize: fs(19), fontWeight: '800', color: colors.ju, marginBottom: space(3), lineHeight: fs(26) }}>{r.headline}</Text>
-        ) : null}
+        {/* 이슈19 소제목 → ★한 줄 결론 배지(P0 축2 (b) '핵심 미돌출'): 본문에 묻히던 headline 을 좌측바+틴트 카드로 */}
+        {typeof r.headline === 'string' ? <ReadingHeadline text={r.headline} accent={colors.ju} /> : null}
         {base ? (
           <View style={styles.section}>
             <Text style={styles.secLabel}>{t('reading.base')}</Text>
-            <Text style={[styles.secBody, bodyDyn]}>{base}</Text>
+            <ReadingProse text={base} accent={colors.ju} />
           </View>
         ) : null}
         {past ? (
           <View style={styles.section}>
             <Text style={styles.secLabel}>{t('reading.past')}</Text>
-            <Text style={[styles.secBody, bodyDyn]}>{past}</Text>
+            <ReadingProse text={past} accent={colors.ju} collapsible />
           </View>
         ) : null}
         {overlay ? (
           <View style={styles.section}>
             <Text style={styles.secLabel}>{t('reading.overlay')}</Text>
-            <Text style={[styles.secBody, bodyDyn]}>{overlay}</Text>
+            <ReadingProse text={overlay} accent={colors.ju} />
           </View>
         ) : null}
         {future ? (
           <View style={styles.section}>
             <Text style={styles.secLabel}>{t('reading.future', '앞날·다가올 흐름')}</Text>
-            <Text style={[styles.secBody, bodyDyn]}>{future}</Text>
+            <ReadingProse text={future} accent={colors.ju} />
           </View>
         ) : null}
         {remedy ? (
           <View style={[styles.section, styles.remedySection]}>
             <Text style={styles.secLabel}>{t('reading.remedy')}</Text>
-            <Text style={[styles.secBody, bodyDyn]}>{remedy}</Text>
+            <ReadingProse text={remedy} accent={colors.ju} />
           </View>
         ) : null}
-        {!base && !overlay && !remedy && <Text style={[styles.secBody, bodyDyn]}>{asText(r)}</Text>}
+        {!base && !overlay && !remedy && <ReadingProse text={asText(r)} accent={colors.ju} />}
       </>
     );
   };
@@ -855,7 +860,8 @@ const styles = StyleSheet.create({
   qaItem: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.juLine, padding: space(4), marginBottom: space(3) },
   qaQ: { ...font.body, fontWeight: '800', color: colors.ju, marginBottom: space(2) },
   qaA: { ...font.body, color: colors.ink, lineHeight: 24 },
-  askQuota: { ...font.caption, color: colors.inkFaint, marginBottom: space(2) },
+  // ★대비(가독성 P0 축5): 남은 무료 횟수·결제 안내는 '읽어야 하는 정보' → inkFaint(3.4:1·AA미달) → inkSoft(8.9:1)
+  askQuota: { ...font.caption, color: colors.inkSoft, marginBottom: space(2) },
   askRow: { flexDirection: 'row', alignItems: 'flex-end', gap: space(2) },
   // 좌상단 정렬(daniel: 가운데 X — 위·왼쪽으로) + minHeight로 충분한 높이
   askInput: { ...font.body, flex: 1, minHeight: 44, maxHeight: 120, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, borderRadius: radius.md, paddingHorizontal: space(3), paddingVertical: space(2.5), color: colors.ink, textAlign: 'left', textAlignVertical: 'top' },

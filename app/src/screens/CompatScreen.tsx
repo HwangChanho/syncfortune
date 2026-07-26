@@ -8,6 +8,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator, Modal, TextInput, Keyboard, Image, Animated, Easing } from 'react-native';
 import { PressableScale } from '../components/PressableScale';
+import { ReadingProse, ReadingHeadline } from '../components/ReadingProse'; // 풀이 본문 공통 렌더(가독성 P0 — 문단화·강조·접이식)
 import { useSafeAreaInsets } from 'react-native-safe-area-context'; // 모달 상단 노치/상태바 침범 방지(J)
 import { Alert } from '../lib/ui/alert'; // 커스텀 알림(앱 디자인)
 import { useTranslation } from 'react-i18next';
@@ -389,13 +390,12 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
           )}
           {cur ? (
             <View style={styles.readCard}>
-              {/* 이슈19 소제목 — 이 관계 통변의 headline 있으면 섹션들 맨 위에 한 줄 강조 */}
-              {typeof cur.headline === 'string' && cur.headline.trim() ? (
-                <Text style={{ fontSize: fs(19), fontWeight: '800', color: colors.ju, marginBottom: space(3), lineHeight: fs(26) }}>{cur.headline}</Text>
-              ) : null}
+              {/* 이슈19 소제목 → ★한 줄 결론 배지(가독성 P0 축2 — 본문에 묻히던 headline 을 좌측바+틴트 카드로) */}
+              {typeof cur.headline === 'string' ? <ReadingHeadline text={cur.headline} accent={colors.ju} /> : null}
               {/* ★근본 '풀이 안 보임'(daniel 07-11): 관계별 섹션셋에 base 키가 없어 base 프로즈만 오면(JSON 파싱 폴백) 본문 공백(headline만) → base 통째로 표시. */}
+              {/* ★가독성 P0(2026-07-26): 통짜 <Text> → ReadingProse(문단화·강조·행간). 폴백 base 는 섹션이 뭉친 최장 본문이라 접이식. */}
               {typeof cur.base === 'string' && cur.base.trim() ? (
-                <Text style={[styles.secBody, { fontSize: fs(15), lineHeight: fs(25) }]}>{cur.base}</Text>
+                <ReadingProse text={cur.base} accent={colors.ju} collapsible />
               ) : null}
               {/* 관계별 동적 섹션(daniel 2026-06): 연애=속궁합·썸·짝사랑 등 / 결혼=속궁합·시댁·자녀 등 / 동업=투자 등. 연도별은 기본 4항목. */}
               {compatSections(rel, !!year).map((s) => {
@@ -405,7 +405,7 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
                 return (
                   <View key={s.key} style={[styles.sec, (s.key === 'advice' || s.key === 'remedy') && styles.remedySec]}>
                     <Text style={styles.secLabel}>{compatSectionLabel(s)}</Text>
-                    <Text style={[styles.secBody, { fontSize: fs(15), lineHeight: fs(25) }]}>{v}</Text>
+                    <ReadingProse text={v} accent={colors.ju} />
                   </View>
                 );
               })}
@@ -754,7 +754,8 @@ const styles = StyleSheet.create({
   qaItem: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.juLine, padding: space(4), marginBottom: space(3) },
   qaQ: { ...font.body, fontWeight: '800', color: colors.ju, marginBottom: space(2) },
   qaA: { ...font.body, color: colors.ink, lineHeight: 24 },
-  askQuota: { ...font.caption, color: colors.inkFaint, marginBottom: space(2) },
+  // ★대비(가독성 P0 축5): 남은 무료 횟수·결제 안내는 '읽어야 하는 정보' → inkFaint(3.4:1·AA미달) → inkSoft(8.9:1)
+  askQuota: { ...font.caption, color: colors.inkSoft, marginBottom: space(2) },
   askRow: { flexDirection: 'row', alignItems: 'center', gap: space(2) },
   // 좌상단 정렬(daniel: 가운데 X — 위·왼쪽으로)
   askInput: { ...font.body, flex: 1, height: 44, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, borderRadius: radius.md, paddingHorizontal: space(3), color: colors.ink, textAlign: 'left' },

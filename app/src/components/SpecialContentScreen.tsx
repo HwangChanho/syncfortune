@@ -8,6 +8,7 @@
 import { useEffect, useMemo, useState, useRef, type ReactNode } from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator, Animated, Easing, Modal } from 'react-native';
 import { PressableScale } from './PressableScale';
+import { ReadingProse, ReadingHeadline } from './ReadingProse'; // 풀이 본문 공통 렌더(가독성 P0 — 문단화·강조·접이식). 이 셸을 쓰는 유료 콘텐츠 29종에 일괄 적용
 import { ExpiryNote } from './ExpiryNote'; // 보유 만료일 공통(프리미엄 가드 한 곳)
 import { Image as ExpoImage } from 'expo-image'; // 콘텐츠 배너 — 자동 다운샘플·디스크캐시(daniel: 이미지 프리로드/캐시). 홈카드와 같은 파일 캐시 공유 → 콘텐츠 진입 즉시
 import { Alert } from '../lib/ui/alert'; // 커스텀 알림(앱 디자인)
@@ -413,20 +414,22 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
         <>
         {/* 풀이 보유 만료일(daniel #25) — 캐시(생성된 풀이) + 유료 단일(showExpiry)일 때만. 소모성·무료는 showExpiry 미전달이라 미노출. */}
         <ExpiryNote expiry={showExpiry ? expiry : null} chartId={chartId} />
-        {/* 이슈19 소제목 — 통변 결과 headline 있으면 섹션들 맨 위에 한 줄 강조(콘텐츠 테마색) */}
-        {typeof reading.headline === 'string' && reading.headline.trim() ? (
-          <Text style={{ fontSize: fs(19), fontWeight: '800', color: themeColor, marginBottom: space(3), lineHeight: fs(26) }}>{reading.headline}</Text>
-        ) : null}
+        {/* 이슈19 소제목 → ★한 줄 결론 배지(가독성 P0 축2 — 본문에 묻히던 headline 을 좌측바+틴트 카드로·콘텐츠 테마색) */}
+        {typeof reading.headline === 'string' ? <ReadingHeadline text={reading.headline} accent={themeColor} /> : null}
         {/* ★근본 '풀이 안 보임'(daniel 07-11): LLM이 구조화 JSON을 못 내면 Edge가 {base:텍스트}로 폴백 → 구조화 섹션 키가 비어 화면이 텅 빔. base 있으면 통째로 표시(무표시 방지). */}
+        {/* ★가독성 P0(2026-07-26): 통짜 <Text> → ReadingProse(문단화·시기/명리어 강조·행간 1.75). 내용 불변, 표현만.
+            폴백 base 는 여러 섹션이 한 덩어리로 뭉친 *가장 긴* 본문이라 접이식(collapsible)을 켠다. */}
         {typeof reading.base === 'string' && reading.base.trim() ? (
-          <Animated.View style={[styles.card, { borderLeftColor: themeColor }, styles.cardAccent, cardAnim(reveal, 0, 1)]}><Text style={[styles.body, bodyDyn]}>{reading.base}</Text></Animated.View>
+          <Animated.View style={[styles.card, { borderLeftColor: themeColor }, styles.cardAccent, cardAnim(reveal, 0, 1)]}>
+            <ReadingProse text={reading.base} accent={themeColor} collapsible />
+          </Animated.View>
         ) : sections.map((s, i) => (typeof reading[s.key] === 'string' && reading[s.key] ? (
           <View key={s.key}>
             {/* 그룹 구분 헤더(daniel: 별자리/점성술 섹터 분리) — groupTitle 있으면 카드 위 divider+제목 */}
             {s.groupTitle ? <Text style={[styles.groupTitle, { color: themeColor }, dynStyles.groupTitle]}>{s.groupTitle}</Text> : null}
             <Animated.View style={[styles.card, { borderLeftColor: themeColor }, styles.cardAccent, cardAnim(reveal, i, n)]}>
               <Text style={[styles.secLabel, { color: themeColor }, dynStyles.secLabel]}>{s.label}</Text>
-              <Text style={[styles.body, bodyDyn]}>{reading[s.key]}</Text>
+              <ReadingProse text={reading[s.key]} accent={themeColor} />
             </Animated.View>
           </View>
         ) : null))}
@@ -557,7 +560,9 @@ const styles = StyleSheet.create({
   gate: { alignItems: 'center', borderStyle: 'dashed', paddingVertical: space(7) },
   gateTitle: { ...font.heading, color: colors.ink, marginBottom: space(2) },
   gateDesc: { ...font.body, color: colors.inkSoft, textAlign: 'center', marginBottom: space(5), lineHeight: 22 },
-  gateNote: { ...font.caption, color: colors.inkFaint, marginTop: space(3) },
+  // ★대비(가독성 P0 축5·2026-07-26): inkFaint(#8A8A8F on #FFF ≈ 3.4:1)는 WCAG AA(4.5:1) 미달 —
+  //   화살표·카운터 같은 chrome 엔 의도적 약한 위계라 그대로 두되, **읽어야 하는 안내문**은 inkSoft(≈8.9:1)로 올린다.
+  gateNote: { ...font.caption, color: colors.inkSoft, marginTop: space(3) },
   // 상점 이동 버튼(daniel 07-07) — 게이트 안내 아래 서브 버튼(마켓으로). 주 CTA(구매하고 보기)와 구분되게 아웃라인.
   goMarketBtn: { marginTop: space(3), paddingVertical: space(2.5), paddingHorizontal: space(6), borderRadius: radius.md, borderWidth: 1, borderColor: colors.ju, backgroundColor: colors.sunk, alignItems: 'center' },
   goMarketTx: { ...font.body, color: colors.ju, fontWeight: '700' },
