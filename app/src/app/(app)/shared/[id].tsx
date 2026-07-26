@@ -6,6 +6,7 @@
 import { useEffect, useState } from 'react';
 import { View, Text, ScrollView, Pressable, ActivityIndicator, StyleSheet } from 'react-native';
 import { PressableScale } from '../../../components/PressableScale';
+import { ReadingPoints } from '../../../components/ReadingProse'; // 핵심 3줄(가독성 P1) — 앱 내 풀이 화면과 같은 위계로
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { fetchSharedReading, type ShareReadingInput } from '../../../lib/ui/share';
 import { colors, radius, space, font, shadow } from '../../../lib/theme';
@@ -18,7 +19,8 @@ function flattenContent(node: any, out: { label?: string; text: string }[] = [])
   if (Array.isArray(node)) { node.forEach((it) => flattenContent(it, out)); return out; }
   if (typeof node === 'object') {
     if (typeof node.label === 'string' && typeof node.text === 'string') { out.push({ label: node.label, text: node.text }); return out; } // {label,text} 섹션
-    const SKIP = new Set(['emoji', 'hex', 'error', 'headline', 'score', 'date', 'code', 'name', 'title']); // 표시 부적합/제목 중복 키
+    // points(가독성 P1 핵심3줄)는 상단에 ReadingPoints 로 따로 그린다 → 본문 블록으로 또 평탄화되면 중복 노출된다.
+    const SKIP = new Set(['emoji', 'hex', 'error', 'headline', 'points', 'score', 'date', 'code', 'name', 'title']); // 표시 부적합/제목 중복 키
     for (const [k, v] of Object.entries(node)) { if (!SKIP.has(k)) flattenContent(v, out); }
     return out;
   }
@@ -59,6 +61,9 @@ export default function SharedReadingScreen() {
           <View style={styles.badge}><Text style={styles.badgeTx}>🔗 공유받은 풀이</Text></View>
           {reading?.title ? <Text style={styles.title}>{reading.title}</Text> : null}
           {headline ? <Text style={styles.headline}>{headline}</Text> : null}
+          {/* 핵심 3줄(가독성 P1) — 공유받은 풀이도 같은 위계로. 없으면(구 스냅샷) 미표시 */}
+          <ReadingPoints points={content?.points} />
+
           {blocks.map((b, i) => (
             <View key={i} style={styles.card}>
               {b.label ? <Text style={styles.secLabel}>{b.label}</Text> : null}

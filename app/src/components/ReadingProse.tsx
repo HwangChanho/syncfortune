@@ -91,6 +91,37 @@ export function ReadingHeadline({ text, accent = colors.ju }: { text: string; ac
   );
 }
 
+/**
+ * 핵심 3줄(points) — 가독성 P1(축1 구조화 출력)의 표시부.
+ *
+ * 목표① '열고 3초 안에 핵심'. headline(한 줄 제목) 바로 아래에서 풀이의 뼈대를 2~3줄로 먼저 보여준다.
+ * Edge 의 pointsDirective 가 만든 `points: string[]` 를 받는다.
+ *
+ * @param points 문자열 배열. **없거나 비어 있으면 아무것도 그리지 않는다** — 2026-07-26 이전에 저장된
+ *               모든 풀이엔 이 필드가 없다(하위호환: 강제 재생성·캐시 무효 없이 신규 생성분부터 자연히 나타남).
+ * @remarks 방어: 문자열이 아닌 원소·빈 문자열은 걸러낸다(LLM 이 객체를 넣어도 크래시하지 않게).
+ */
+export function ReadingPoints({ points, accent = colors.ju }: { points: unknown; accent?: string }) {
+  const { fs } = useFontScale();
+  const list = Array.isArray(points)
+    ? points.map((p) => (typeof p === 'string' ? p.trim() : '')).filter(Boolean).slice(0, 3)
+    : [];
+  if (!list.length) return null;
+  return (
+    <View style={[styles.pointsWrap, { borderColor: accent + '33' }]}>
+      {list.map((p, i) => (
+        <View key={i} style={[styles.pointRow, i > 0 && { marginTop: space(2.5) }]}>
+          {/* 번호 배지 — 불릿보다 '몇 개짜리 요약인지'가 한눈에 들어온다 */}
+          <View style={[styles.pointNum, { backgroundColor: accent + '1F', borderColor: accent + '55' }]}>
+            <Text style={[styles.pointNumTx, { color: accent, fontSize: fs(11) }]}>{i + 1}</Text>
+          </View>
+          <Text style={[styles.pointTx, { fontSize: fs(14), lineHeight: Math.round(fs(14) * 1.6) }]}>{p}</Text>
+        </View>
+      ))}
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   para: { ...font.body, color: colors.ink },
   // 강조 — 굵기로만(색 사용 금지: 링크 오인·과밀 방지). ink 는 이미 최고 대비(#1C1C1E on #FFF).
@@ -101,4 +132,10 @@ const styles = StyleSheet.create({
   // 한 줄 결론 배지 — 좌측 컬러바 + 틴트. 본문(카드)보다 한 단 위 위계.
   headWrap: { borderLeftWidth: 3, borderRadius: radius.md, paddingVertical: space(3.5), paddingHorizontal: space(4), marginBottom: space(4) },
   headTx: { ...font.heading, color: colors.ink, fontWeight: '800' },
+  // 핵심 3줄 — headline(틴트 배지) 과 본문(카드) 사이 위계. 테두리만 둬서 headline 보다 가볍게.
+  pointsWrap: { borderWidth: 1, borderRadius: radius.md, paddingVertical: space(4), paddingHorizontal: space(4), marginBottom: space(4), backgroundColor: colors.sunk },
+  pointRow: { flexDirection: 'row', alignItems: 'flex-start', gap: space(2.5) },
+  pointNum: { width: 20, height: 20, borderRadius: 10, borderWidth: 1, alignItems: 'center', justifyContent: 'center', marginTop: 2 },
+  pointNumTx: { fontWeight: '800' },
+  pointTx: { ...font.body, color: colors.ink, flex: 1, fontWeight: '600' },
 });

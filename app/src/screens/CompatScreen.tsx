@@ -8,7 +8,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator, Modal, TextInput, Keyboard, Image, Animated, Easing } from 'react-native';
 import { PressableScale } from '../components/PressableScale';
-import { ReadingProse, ReadingHeadline } from '../components/ReadingProse'; // 풀이 본문 공통 렌더(가독성 P0 — 문단화·강조·접이식)
+import { ReadingProse, ReadingHeadline, ReadingPoints } from '../components/ReadingProse'; // 풀이 본문 공통 렌더(P0 문단화·강조·접이식 + P1 핵심3줄)
 import { useSafeAreaInsets } from 'react-native-safe-area-context'; // 모달 상단 노치/상태바 침범 방지(J)
 import { Alert } from '../lib/ui/alert'; // 커스텀 알림(앱 디자인)
 import { useTranslation } from 'react-i18next';
@@ -392,6 +392,8 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
             <View style={styles.readCard}>
               {/* 이슈19 소제목 → ★한 줄 결론 배지(가독성 P0 축2 — 본문에 묻히던 headline 을 좌측바+틴트 카드로) */}
               {typeof cur.headline === 'string' ? <ReadingHeadline text={cur.headline} accent={colors.ju} /> : null}
+              {/* ★핵심 3줄(가독성 P1) — 신규 생성분에만 있는 points. 없으면 미표시(기존 저장 풀이 하위호환) */}
+              <ReadingPoints points={cur.points} accent={colors.ju} />
               {/* ★근본 '풀이 안 보임'(daniel 07-11): 관계별 섹션셋에 base 키가 없어 base 프로즈만 오면(JSON 파싱 폴백) 본문 공백(headline만) → base 통째로 표시. */}
               {/* ★가독성 P0(2026-07-26): 통짜 <Text> → ReadingProse(문단화·강조·행간). 폴백 base 는 섹션이 뭉친 최장 본문이라 접이식. */}
               {typeof cur.base === 'string' && cur.base.trim() ? (

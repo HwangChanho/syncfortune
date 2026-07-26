@@ -8,7 +8,7 @@
 import { useEffect, useMemo, useState, useRef, type ReactNode } from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator, Animated, Easing, Modal } from 'react-native';
 import { PressableScale } from './PressableScale';
-import { ReadingProse, ReadingHeadline } from './ReadingProse'; // 풀이 본문 공통 렌더(가독성 P0 — 문단화·강조·접이식). 이 셸을 쓰는 유료 콘텐츠 29종에 일괄 적용
+import { ReadingProse, ReadingHeadline, ReadingPoints } from './ReadingProse'; // 풀이 본문 공통 렌더(P0 문단화·강조·접이식 + P1 핵심3줄). 이 셸을 쓰는 유료 콘텐츠 29종에 일괄 적용
 import { ExpiryNote } from './ExpiryNote'; // 보유 만료일 공통(프리미엄 가드 한 곳)
 import { Image as ExpoImage } from 'expo-image'; // 콘텐츠 배너 — 자동 다운샘플·디스크캐시(daniel: 이미지 프리로드/캐시). 홈카드와 같은 파일 캐시 공유 → 콘텐츠 진입 즉시
 import { Alert } from '../lib/ui/alert'; // 커스텀 알림(앱 디자인)
@@ -416,6 +416,8 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
         <ExpiryNote expiry={showExpiry ? expiry : null} chartId={chartId} />
         {/* 이슈19 소제목 → ★한 줄 결론 배지(가독성 P0 축2 — 본문에 묻히던 headline 을 좌측바+틴트 카드로·콘텐츠 테마색) */}
         {typeof reading.headline === 'string' ? <ReadingHeadline text={reading.headline} accent={themeColor} /> : null}
+        {/* ★핵심 3줄(가독성 P1) — 신규 생성분에만 있는 points. 없으면 미표시(기존 저장 풀이 하위호환) */}
+        <ReadingPoints points={reading.points} accent={themeColor} />
         {/* ★근본 '풀이 안 보임'(daniel 07-11): LLM이 구조화 JSON을 못 내면 Edge가 {base:텍스트}로 폴백 → 구조화 섹션 키가 비어 화면이 텅 빔. base 있으면 통째로 표시(무표시 방지). */}
         {/* ★가독성 P0(2026-07-26): 통짜 <Text> → ReadingProse(문단화·시기/명리어 강조·행간 1.75). 내용 불변, 표현만.
             폴백 base 는 여러 섹션이 한 덩어리로 뭉친 *가장 긴* 본문이라 접이식(collapsible)을 켠다. */}

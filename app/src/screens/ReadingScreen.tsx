@@ -15,7 +15,7 @@ import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator, Modal
 import { Image as ExpoImage } from 'expo-image'; // 추천 콘텐츠 썸네일(다운샘플·디스크캐시)
 import { SECTIONS } from '../lib/content/contentSections'; // 추천 '이런 콘텐츠도 좋아하실 거예요'(하단·daniel 07-21) — 콘텐츠 단일출처
 import { PressableScale } from '../components/PressableScale';
-import { ReadingProse, ReadingHeadline } from '../components/ReadingProse'; // 풀이 본문 공통 렌더(가독성 P0 — 문단화·강조·접이식). 3개 렌더지점 단일출처
+import { ReadingProse, ReadingHeadline, ReadingPoints } from '../components/ReadingProse'; // 풀이 본문 공통 렌더(가독성 P0 문단화·강조·접이식 + P1 핵심3줄). 3개 렌더지점 단일출처
 import { ExpiryNote } from '../components/ExpiryNote'; // 보유 만료일 공통(프리미엄 가드 한 곳)
 import { ComputedNote } from '../components/ComputedNote'; // '내 생년월일로 계산됨' 배지(App Store 4.3 대응)
 import { TTSButton } from '../components/TTSButton'; // daniel: 풀이 음성 읽기(온디바이스 TTS·무료)
@@ -619,6 +619,8 @@ export function ReadingScreen({
       <>
         {/* 이슈19 소제목 → ★한 줄 결론 배지(P0 축2 (b) '핵심 미돌출'): 본문에 묻히던 headline 을 좌측바+틴트 카드로 */}
         {typeof r.headline === 'string' ? <ReadingHeadline text={r.headline} accent={colors.ju} /> : null}
+        {/* ★핵심 3줄(가독성 P1) — 신규 생성분에만 있는 points. 없으면 미표시(기존 저장 풀이 하위호환) */}
+        <ReadingPoints points={r.points} accent={colors.ju} />
         {base ? (
           <View style={styles.section}>
             <Text style={styles.secLabel}>{t('reading.base')}</Text>
