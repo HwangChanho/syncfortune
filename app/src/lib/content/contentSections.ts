@@ -28,18 +28,20 @@ export type Section = { key: string; titleKey: string; descKey?: string; items: 
 // ── 가격 배지 ────────────────────────────────────────────────────────────
 // 유료 콘텐츠 가격 배지 — 정가(19,900) 대비 할인율 + 건당 할인가(₩). 건당가는 CREDIT_KINDS(coupons) 단일 출처.
 //   무료(온디바이스) 콘텐츠는 creditKey 없음 → 배지 미표시.
-const LIST_PRICE_ORIG = 19900; // 사주·자미 정가(할인율 표시 기준, daniel 06-28)
+// ★가짜 할인율 제거(daniel 2026-07-26 "네 판단대로 바꿔").
+//   기존: `LIST_PRICE_ORIG = 19900`(사주 정가) **하나를 기준으로 모든 콘텐츠의 할인율**을 계산 →
+//   궁합 ₩2,900 이 "85%", 자식운 ₩4,900 이 "75%" 로 표시됐다. 그런데 두 상품이 19,900 이었던 적은 없다.
+//   · 사실과 다름: CREDIT_KINDS 에는 애초에 '정가' 필드가 없다(price 하나뿐) = 할인율의 근거 데이터가 없음
+//   · 리스크: 종전 거래가격 없는 할인율 표시는 표시광고법 위반 소지 + 심사에서 걸릴 여지
+//   · 일관성: 사주(19,900)만 할인율이 없고 나머지는 다 붙어 배지 형식도 제각각이었다
+//   → 실제 할인이 생기면 그때 CREDIT_KINDS 에 정가 필드를 두고 **상품별 실제 종전가** 기준으로 되살릴 것.
 const CREDIT_PRICE: Record<string, number> = Object.fromEntries(CREDIT_KINDS.map((c) => [c.key, c.price]));
 /** 천단위 콤마(Hermes Intl 비의존). @example wonFmt(4900) → '₩4,900' */
 export const wonFmt = (n: number) => '₩' + n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 /** 프리미엄 미포함(개별구매 전용) — 프리미엄 명식이어도 '무제한' 배지를 주지 않는다. */
 export const HOME_INDIVIDUAL = new Set(['dream', 'followup', 'timeresolve']);
-/** 개별 가격 배지 문구. 정가(할인 0/음수)면 금액만. @param key creditKey */
-export const priceLabel = (key: string) => {
-  const p = CREDIT_PRICE[key] ?? 0;
-  const disc = Math.round((1 - p / LIST_PRICE_ORIG) * 100);
-  return disc > 0 ? `${disc}% · ${wonFmt(p)}` : wonFmt(p);
-};
+/** 개별 가격 배지 문구 — **금액만**(할인율 미표시. 위 주석 참조). @param key creditKey */
+export const priceLabel = (key: string) => wonFmt(CREDIT_PRICE[key] ?? 0);
 
 // ── 콘텐츠 카드 목록 ─────────────────────────────────────────────────────
 // 무료 / 프리미엄 / 콘텐츠 3범주(daniel 기획, docs/기획_정보구조_v0.1.md).
