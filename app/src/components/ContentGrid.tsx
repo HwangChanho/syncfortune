@@ -228,7 +228,13 @@ export function ContentGrid({ showViewToggle = true, category = 'saju' }: { show
         const isLight = sec.key === 'light'; // '가볍게 보기' = 항목이 많아 2줄 가로 스크롤(daniel)
         const isDeep = sec.key === 'deep';   // '나에 대해 알기' = 5개 넘어 2줄(컬럼 정렬) 가로 스크롤
         // ★NEW 배지 콘텐츠를 섹션 앞으로(daniel 07-23 "new 붙어있는걸 제일 앞으로"·카드/리스트 공통). JS sort 안정 → 그 외 순서 유지.
-        const items = [...sec.items].sort((a, b) => (isNewContent(b.key) ? 1 : 0) - (isNewContent(a.key) ? 1 : 0));
+        // ★정렬 = ①보유 이용권 ②NEW ③원래 순서.
+        //   ①(daniel 2026-07-26 "유저별로 이용권이 있으면 풀이 목록에서 상단에 올라오게") — 이미 산 이용권을
+        //   못 찾아 헤매지 않게 맨 위로. ②는 07-23 daniel 요청("new 붙어있는걸 제일 앞으로"). JS sort 는 안정 소트라
+        //   같은 등급 안에서는 선언 순서가 유지된다.
+        const hasCredit = (m: MenuItem) => (m.creditKey && (credits[m.creditKey] ?? 0) > 0 ? 1 : 0);
+        const items = [...sec.items].sort((a, b) =>
+          (hasCredit(b) - hasCredit(a)) || ((isNewContent(b.key) ? 1 : 0) - (isNewContent(a.key) ? 1 : 0)));
         // 섹션 헤더 — 카드뷰·리스트뷰가 동일하게 재사용(중복 제거·정합).
         const sectionHeader = (
           <>
