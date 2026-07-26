@@ -4,7 +4,13 @@
 //   생길 이슈와 대처까지 일반인도 쉽게 — Edge kind='daily'(DAILY_READING_SYSTEM).
 // 접근(하이브리드·절대규칙5 무료=룰 복원 / API 역마진 제거):
 //   · 무료 기본 = 온디바이스 룰 5분야(getDailyReading) *즉시* 표시 — interpret 호출 0(광고·로그인도 불필요).
-//   · 프리미엄 = 무광고 LLM 자동 생성(유료·비용 정합). · 무료 AI 정밀 = 보상형 광고 1회 → LLM(opt-in 업셀).
+//   · 프리미엄 = 무광고 LLM 자동 생성(유료·비용 정합).
+//   ★2026-07-26(daniel "이미 풀이가 나와있는데 ai정밀 풀이는 빼"): **무료 'AI 정밀 풀이' 보상형 광고 업셀 제거.**
+//     이유 ①이미 온디바이스 룰 풀이가 화면에 나와 있는데 그 아래 "AI가 더 깊게 풀어 드려요"가 또 떠서
+//     사용자가 "지금 보고 있는 건 뭔가?" 혼란 ②광고 no-fill 시 "광고를 불러오지 못했어요" 실패 문구가
+//     그대로 노출돼 첫 화면 인상이 나빠짐 ③무엇보다 **"유료(비용발생) 통변은 보상형 광고로 무료 생성하지
+//     않는다"가 이미 daniel 방침**(2026-07)이라 이 경로는 그 방침 이전의 잔존물이었다.
+//     → 무료 = 온디바이스 룰 풀이로 완결 / 더 깊은 건 프리미엄·유료 콘텐츠(하단 RelatedContent 크로스셀).
 //   → LLM(reading)이 있으면 그것, 없으면 룰(ruleReading)을 표시(shown = reading ?? ruleReading).
 // 캐시: readings(chart_id × 'daily_YYYYMMDD' × lang) — 하루 1회만 생성(재방문 비용 0).
 //   ★본문은 일상어만(한자·명리 용어 미노출 — 프롬프트가 강제). 명식 없으면 등록 유도.
@@ -23,7 +29,6 @@ import { computeChart } from '../../lib/engine/engine';
 import { useAuth } from '../../lib/useAuth';
 import { useSubscription } from '../../lib/billing/subscription';
 import { autoGenWithChartConfirm } from '../../lib/ui/confirmChart'; // 자동생성 전 명식 확인(명식 2개+ 일 때, daniel 07-13)
-import { showRewardedAd } from '../../lib/core/ads'; // 보상형 광고 1회 = 그날 통변 생성(무료)
 import { supabase } from '../../lib/supabase';
 import { excludeMock } from '../../lib/core/testMode'; // ★목업(tier='mock') 제외(테스트모드 OFF) — 실모드 목업 서빙 차단
 import { appLang } from '../../lib/i18n';
@@ -114,18 +119,6 @@ export default function TodayScreen() {
       else setReading((data?.reading as Record<string, string>) ?? null);
     } catch (e: any) { logEvent('daily_throw', { message: String(e?.message ?? e) }, 'error'); setErr(t('today.genFail', '풀이 생성에 실패했어요. 잠시 후 다시 시도해 주세요.')); }
     setBusy(false);
-  }
-
-  // 무료 = 보상형 광고 1회 시청 후 생성 / 프리미엄 = 바로(이미 자동이나 버튼도 허용).
-  async function onStart() {
-    if (!chartId || busy) return;
-    if (isPremium) { generate(chartId); return; }
-    setBusy(true); setErr(null);                            // 광고 로딩 표시 — 무반응(daniel) 방지
-    let earned = false;
-    try { earned = await showRewardedAd(); } catch { /* 미시청/닫기 */ }
-    setBusy(false);
-    if (earned) generate(chartId);
-    else setErr(t('today.adFail', '광고를 불러오지 못했어요. 잠시 후 다시 시도하거나, 프리미엄으로 광고 없이 보실 수 있어요.'));
   }
 
   // 일진 미니 칩(오행색)
@@ -233,29 +226,6 @@ export default function TodayScreen() {
                 loggedIn={!!session}
               />
             ) : null}
-            {/* AI 정밀 풀이 업셀 — LLM 없고 생성 중도 아닐 때만(생성 중 로딩은 위 풀이 카드가 처리, daniel 07-06) */}
-            {!reading && !busy && (
-              !session ? (
-                // 로그아웃: 무료 룰은 이미 보임 → AI 정밀(LLM·계정 필요)만 로그인 유도
-                <View style={styles.gateCard}>
-                  <Text style={styles.gateTitle}>{t('today.aiTitle', 'AI 정밀 풀이')}</Text>
-                  <Text style={styles.gateDesc}>{t('today.aiLogin', '로그인하면 AI가 오늘의 흐름을 더 깊게 풀어 드려요.')}</Text>
-                  <PressableScale style={styles.gateBtn} onPress={() => router.push('/login')}>
-                    <Text style={styles.gateBtnTx}>{t('login.go', '로그인')}</Text>
-                  </PressableScale>
-                </View>
-              ) : !isPremium ? (
-                // 무료·로그인: 보상형 광고 1회로 AI 정밀 풀이 해제(opt-in) — interpret 는 오직 이 경로에서만(광고로 비용 커버)
-                <View style={styles.gateCard}>
-                  <Text style={styles.gateTitle}>{t('today.aiTitle', 'AI 정밀 풀이')}</Text>
-                  <Text style={styles.gateDesc}>{t('today.aiDesc', '타고난 사주에 지금의 큰 흐름·올해·오늘 기운을 더해, 오늘 생길 수 있는 일과 대처까지 AI가 더 깊게 풀어 드려요.')}</Text>
-                  {err ? <Text style={styles.err}>{err}</Text> : null}
-                  <PressableScale style={styles.gateBtn} onPress={onStart}>
-                    <Text style={styles.gateBtnTx}>{t('today.seeAd', '광고 보고 무료로 보기')}</Text>
-                  </PressableScale>
-                </View>
-              ) : null // 프리미엄 = 위 useEffect 자동 생성(busy 로 처리) → 여기 도달 X
-            )}
           </>
         )}
 
