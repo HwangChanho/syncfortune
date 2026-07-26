@@ -23,7 +23,13 @@ export default function RegisterRoute() {
   const { t } = useTranslation();
   const { session } = useAuth();
   const { isPremium } = useSubscription(); // 프로 = 무제한 등록
-  const { editId } = useLocalSearchParams<{ editId?: string }>(); // 있으면 편집모드(명식 수정)
+  // editId = 편집모드(명식 수정). preDate/preCal/preSex = **가볍게 보기**(/light)에서 넘어온 값 prefill —
+  //   거기서 이미 받은 걸 또 묻는 순간이 이탈 지점이라 그대로 옮겨 담는다(docs/PLAN_light_mode.md L1).
+  const { editId, preDate, preCal, preSex } = useLocalSearchParams<{ editId?: string; preDate?: string; preCal?: string; preSex?: string }>();
+  // 시각은 **일부러 비운다**(timeAccuracy 미상) — 사용자가 채워야 오늘 기운·궁합이 정확해지고, 그게 이 전환의 이유다.
+  const prefill = !editId && preDate
+    ? { birthDateTime: `${preDate} 0:0`, calendar: (preCal === '음' ? '음' : '양'), sex: (preSex === '여' ? '여' : '남'), timeAccuracy: '미상' as const }
+    : undefined;
   const [editing, setEditing] = useState<SavedChart | null>(null);
   const [editReady, setEditReady] = useState(!editId); // 편집모드면 명식 로드 완료까지 폼 마운트 보류(초기값 prefill 보장)
   useEffect(() => { if (editId) listCharts().then((l) => { setEditing(l.find((c) => c.id === editId) ?? null); setEditReady(true); }); }, [editId]);
@@ -67,7 +73,7 @@ export default function RegisterRoute() {
   return (
     <ChartRegisterScreen
       // 편집모드 = 기존 값 prefill + '수정 저장' 라벨. input 의 label/relation 은 메타로 합쳐 전달.
-      initial={editing ? { ...editing.input, label: editing.label, relation: editing.relation } : undefined}
+      initial={editing ? { ...editing.input, label: editing.label, relation: editing.relation } : prefill}
       submitLabel={editId ? t('register.editDone', '완료') : undefined}
       autoSave={!!editId}
       onAutoSave={editId ? async (input) => { // 편집 = 필드 변경 시 자동 갱신(이동 없음, daniel "저장 따로 안눌러도")

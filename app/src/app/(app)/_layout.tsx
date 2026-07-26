@@ -96,6 +96,8 @@ export default function AppLayout() {
         <Stack.Screen name="contents" options={{ headerShown: false, animation: 'none' }} />
         <Stack.Screen name="community" options={{ animation: 'none' }} />
         <Stack.Screen name="moment" options={{ title: '모먼트' }} />
+        {/* 가볍게 보기 — 명식 없이 생년월일만으로 즉시 결과(신규 유입 · docs/PLAN_light_mode.md L1) */}
+        <Stack.Screen name="light" options={{ title: '가볍게 보기' }} />
         <Stack.Screen name="joseonjob" options={{ headerTitle: '' }} />
         <Stack.Screen name="lovestyle" options={{ headerTitle: '' }} />
         <Stack.Screen name="bok" options={{ headerTitle: '' }} />

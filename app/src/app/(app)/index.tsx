@@ -223,14 +223,21 @@ export default function Home() {
     return (
       <View style={styles.fortuneBanner}>
         {!hasChart ? (
-          // H1(daniel): 명식 미등록 → 오늘/내일 운세 대신 등록 안내(탭하면 등록창)
-          <PressableScale onPress={() => router.push('/register')} style={{ alignItems: 'center', paddingVertical: space(5), gap: space(2) }}>
+          // H1(daniel): 명식 미등록 → 오늘/내일 운세 대신 안내.
+          //   ★2026-07-26: **주 CTA 를 '가볍게 보기'로 바꿈**(docs/PLAN_light_mode.md L1). 이유 =
+          //     앱 화면 49개가 대표 명식 게이트라 신규는 **아무것도 보기 전에 등록 폼**(이름·생년월일·양음윤달·
+          //     시진/정확시각·출생지 + 선택 4항목)을 만난다. 먼저 결과를 보여주고 등록은 그다음이다.
+          //     등록 링크는 남겨 둔다 — 이미 마음먹은 사람의 길을 막지 않게.
+          <View style={{ alignItems: 'center', paddingVertical: space(5), gap: space(2) }}>
             <Text style={{ color: colors.ju, fontWeight: '900', fontSize: fs(16), textAlign: 'center' }}>{t('home.noChartTitle', 'AI가 분석하는 나 — 여기서 시작')}</Text>
-            <Text style={{ color: colors.inkSoft, fontSize: fs(13), textAlign: 'center' }}>{t('home.noChartSub', '생년월일시를 넣으면 성격·반복되는 관계·적성·올해 흐름을 사주 엔진으로 개인 분석해요')}</Text>
-            <View style={{ backgroundColor: colors.ju, borderRadius: radius.md, paddingVertical: space(2.5), paddingHorizontal: space(6), marginTop: space(2) }}>
-              <Text style={{ color: colors.bg, fontWeight: '800', fontSize: fs(14) }}>{t('home.noChartCta', '+ 명식 등록')}</Text>
-            </View>
-          </PressableScale>
+            <Text style={{ color: colors.inkSoft, fontSize: fs(13), textAlign: 'center' }}>{t('home.noChartSub2', '생년월일만 넣으면 성격유형과 일주를 바로 볼 수 있어요. 가입도, 저장도 안 해요.')}</Text>
+            <PressableScale onPress={() => router.push('/light')} style={{ backgroundColor: colors.ju, borderRadius: radius.md, paddingVertical: space(2.5), paddingHorizontal: space(6), marginTop: space(2) }}>
+              <Text style={{ color: colors.bg, fontWeight: '800', fontSize: fs(14) }}>{t('home.lightCta', '가볍게 보기')}</Text>
+            </PressableScale>
+            <PressableScale onPress={() => router.push('/register')} style={{ paddingVertical: space(2), paddingHorizontal: space(4) }}>
+              <Text style={{ color: colors.inkSoft, fontWeight: '700', fontSize: fs(13) }}>{t('home.noChartCta', '+ 명식 등록')}</Text>
+            </PressableScale>
+          </View>
         ) : (<>
         <View style={styles.dayToggle}>
           {([0, 1] as const).map((off) => (
