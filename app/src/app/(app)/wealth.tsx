@@ -32,6 +32,9 @@ export default function WealthRoute() {
         { key: 'howEarn', label: t('wealth.howEarn', '돈이 들어오는 결') }, // 만드는 힘 vs 운용하는 힘
         { key: 'timing', label: t('wealth.timing', '재물 시기') },        // ③ 언제 크게 유입되는지
         { key: 'flow', label: t('wealth.flow', '재물 인생 흐름') },       // 초·중·말 흐름
+        // ★동업/협업 축(daniel 2026-07-26 "어떤 사람이랑 같이 일하면 좋은지, 동업말고 혼자하는게 좋은지")
+        //   L1 엔진이 이미 내는 신호(군겁쟁재=경쟁·동업 재물다툼 / 감당 CONDITIONAL=신약)를 서술로만 노출 — 새 명리 판정 0.
+        { key: 'partner', label: t('wealth.partner', '혼자 vs 함께') },
         { key: 'remedy', label: t('wealth.remedy', '재물 지킴·개운') },   // ④ 새지 않게 지키는 법
       ]}
     />

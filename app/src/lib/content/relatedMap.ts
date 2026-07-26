@@ -18,7 +18,7 @@ export const RELATED: Record<string, string[]> = {
   love: ['compat', 'crush', 'reunion'],
   career: ['jobfit', 'talent', 'job'],
   jobfit: ['career', 'talent', 'mission'],
-  wealth: ['career', 'jobfit', 'future10'], // 재물 딥리포트 → 사업가·직업적성·10년뒤(재물 동선)
+  wealth: ['career', 'compat', 'jobfit'], // ★compat 추가(07-26): '혼자 vs 함께' 섹션을 읽은 뒤 실제 상대 궁합으로 잇는 동선 // 재물 딥리포트 → 사업가·직업적성·10년뒤(재물 동선)
   talent: ['jobfit', 'mission', 'personal'],
   mission: ['talent', 'roots', 'image'],
   roots: ['mission', 'image', 'talent'],
