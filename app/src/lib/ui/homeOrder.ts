@@ -37,7 +37,7 @@ export const HOME_BLOCK_LABEL: Record<HomeBlockKey, string> = {
   self: '나는 어떤 사람인가',
   biorhythm: '바이오리듬',
   luck: '오늘의 행운',
-  decision: '오늘의 결정',
+  decision: '모먼트', // ★이름 변경(daniel 2026-07-26): 오늘의 결정 → 모먼트(결정 판정 + 설레는 제안)
 };
 
 const LOCAL_KEY = 'pref.homeOrder';

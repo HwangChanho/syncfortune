@@ -15,7 +15,7 @@ import { PressableScale } from './PressableScale';
 import { loadRepChart } from '../lib/engine/myChart';
 import { computeChart } from '../lib/engine/engine';       // canonical 빌더 단일화(drift 방지)
 import { getDailyFortune, dailyEnergy } from '../lib/content/dailyFortune'; // 오늘 일진(干支)·오늘 기운 — 다른 홈 블록과 같은 출처
-import { decisionFromEnergy, VERDICT_STYLE, type DecisionToday } from '../lib/content/decisionToday';
+import { decisionFromEnergy, momentFromEnergy, VERDICT_STYLE, type DecisionToday, type MomentPick } from '../lib/content/decisionToday';
 import { luckyToday, type LuckyToday } from '../lib/content/luckyItem'; // 오늘 기운(일진 오행) → 코디·음식·소품 추천(daniel 07-26)
 import { colors, radius, space, shadow, font } from '../lib/theme';
 import { useFontScale } from '../lib/ui/fontScale';
@@ -28,6 +28,7 @@ import type { Stem, Branch } from '@spec/chart';
 export function DecisionTodayCard({ reloadKey }: { reloadKey?: number }) {
   const { fs } = useFontScale();
   const [data, setData] = useState<DecisionToday | null>(null);
+  const [moment, setMoment] = useState<MomentPick | null>(null); // ★모먼트 — 설레는 제안 한 줄(daniel 07-26)
   const [expanded, setExpanded] = useState(false); // 유형별 세부는 접어 둔다(홈이 길어지지 않게)
 
   // 오늘 일진 — 하루 고정이라 마운트당 1회
@@ -46,7 +47,10 @@ export function DecisionTodayCard({ reloadKey }: { reloadKey?: number }) {
       const gz = String(today?.dayGanZhi ?? '');
       if (gz.length < 2) { setData(null); return; }
       // 오늘 기운(daniel 승인 로직) 산출 → 결정 관점으로 재배열(순수 함수). 새 명리 판정 0.
-      setData(decisionFromEnergy(dailyEnergy(saju, gz[0] as Stem, gz[1] as Branch)));
+      //   ★같은 energy 로 모먼트(설레는 제안)까지 뽑는다 — 재계산 없음, 둘이 같은 신호를 근거로 함.
+      const energy = dailyEnergy(saju, gz[0] as Stem, gz[1] as Branch);
+      setData(decisionFromEnergy(energy));
+      setMoment(momentFromEnergy(energy));
     })().catch(() => { if (alive) setData(null); });
     return () => { alive = false; };
   }, [reloadKey, today]);
@@ -59,7 +63,7 @@ export function DecisionTodayCard({ reloadKey }: { reloadKey?: number }) {
     <PressableScale style={styles.card} onPress={() => setExpanded((v) => !v)}>
       {/* 헤더 — 좌: 타이틀, 우: 판정 배지 */}
       <View style={styles.head}>
-        <Text style={[styles.kicker, { fontSize: fs(12) }]}>오늘의 결정</Text>
+        <Text style={[styles.kicker, { fontSize: fs(12) }]}>모먼트</Text>
         <View style={[styles.badge, { backgroundColor: vs.hex + '1F', borderColor: vs.hex + '66' }]}>
           <Text style={[styles.badgeTx, { color: vs.hex, fontSize: fs(12) }]}>{vs.label}</Text>
         </View>
@@ -68,6 +72,15 @@ export function DecisionTodayCard({ reloadKey }: { reloadKey?: number }) {
       {/* 한 줄 결론 + 근거 */}
       <Text style={[styles.title, { fontSize: fs(17), lineHeight: fs(24) }]}>{data.title}</Text>
       <Text style={[styles.reason, { fontSize: fs(13), lineHeight: fs(20) }]}>{data.reason}</Text>
+
+      {/* ★오늘의 모먼트(daniel 2026-07-26 "달달한 걸 추가") — 판정보다 먼저 눈에 들어오게 상단에.
+          근거는 결정 판정과 **같은 dailyEnergy 신호**(도화·합·천을귀인·역마 / 충형·공망)라 서로 어긋나지 않는다. */}
+      {moment ? (
+        <View style={styles.momentBox}>
+          <Text style={[styles.momentTitle, { fontSize: fs(14), lineHeight: fs(20) }]}>{moment.title}</Text>
+          <Text style={[styles.momentBody, { fontSize: fs(12.5), lineHeight: fs(19) }]}>{moment.body}</Text>
+        </View>
+      ) : null}
 
       {/* 유형별 요약 줄 — 접혀 있을 땐 판정만 한눈에(칩), 펼치면 조언까지 */}
       {!expanded ? (
@@ -139,6 +152,10 @@ const styles = StyleSheet.create({
   badgeTx: { fontWeight: '800' },
   title: { ...font.heading, color: colors.ink, fontWeight: '900', marginBottom: space(1.5) },
   reason: { ...font.body, color: colors.inkSoft, marginBottom: space(3) },
+  // 모먼트 — 카드 안에서 살짝 도드라지게(연한 골드 틴트). 결정 판정과 성격이 달라 블록으로 분리.
+  momentBox: { backgroundColor: colors.juSoft, borderRadius: radius.md, paddingVertical: space(3.5), paddingHorizontal: space(4), marginBottom: space(3.5) },
+  momentTitle: { ...font.body, color: colors.ink, fontWeight: '800' },
+  momentBody: { ...font.caption, color: colors.inkSoft, marginTop: space(1) },
   // 접힘 — 유형별 판정을 점(dot)으로 한눈에
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: space(2) },
   chip: { flexDirection: 'row', alignItems: 'center', gap: space(1.5), borderWidth: 1, borderRadius: 999, paddingVertical: space(1), paddingHorizontal: space(2.5), backgroundColor: colors.sunk },

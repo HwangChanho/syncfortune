@@ -16,7 +16,7 @@
 //
 // 실행: npm run check:decision
 // ─────────────────────────────────────────────────────────────────────────
-import { decisionFromEnergy, VERDICT_STYLE } from '../app/src/lib/content/decisionToday';
+import { decisionFromEnergy, momentFromEnergy, VERDICT_STYLE } from '../app/src/lib/content/decisionToday';
 
 let fail = 0;
 const bad = (m: string) => { console.error(`  ✗ ${m}`); fail++; };
@@ -90,9 +90,42 @@ for (const score of SCORES) {
   }
 }
 
+// ── INV6 모먼트(daniel 2026-07-26 "달달한 걸 추가") ─────────────────────────
+//   계약: ①항상 1건 반환(빈 카드 금지) ②결정론 ③빈 문구 금지 ④§4 안전어휘
+//         ⑤**음주 권유 금지** — daniel 예시('혼술바 한잔') 톤은 살리되 술을 권하지 않는다(연령·건강)
+//         ⑥조심 신호(공망·충형)가 있으면 톤을 낮춘 제안이어야 한다(설렘을 부담으로 만들지 않게)
+{
+  const BOOZE = ['술', '음주', '취하', '만취', '한잔하기', '소주', '맥주', '와인 한'];
+  let checkedM = 0;
+  const keys = new Set<string>();
+  for (const score of SCORES) {
+    for (const sig of SIGNAL_SETS) {
+      for (const favor of [true, false]) {
+        const e = mkEnergy(score, sig, favor);
+        const a = momentFromEnergy(e);
+        const b = momentFromEnergy(e);
+        checkedM++;
+        const at = `score=${score} sig=[${sig.join(',')}]`;
+        if (!a) { bad(`INV6 모먼트가 null: ${at}`); continue; }
+        if (JSON.stringify(a) !== JSON.stringify(b)) bad(`INV6 비결정론: ${at}`);
+        if (!a.title.trim() || !a.body.trim()) bad(`INV6 빈 문구: ${at}`);
+        keys.add(a.key);
+        const text = `${a.title} ${a.body}`;
+        for (const w of BANNED) if (text.includes(w)) bad(`INV6 금지 어휘 "${w}": ${at}`);
+        for (const w of BOOZE) if (text.includes(w)) bad(`INV6 음주 권유 어휘 "${w}": ${at} — §4(연령·건강) 위반`);
+        // 조심 신호 우선 — 공망/충형이면 톤 낮춘 전용 제안이어야 한다
+        if (sig.includes('gongmang') && a.key !== 'gongmang') bad(`INV6 공망인데 톤 낮춤 제안이 아님(key=${a.key}): ${at}`);
+        else if (!sig.includes('gongmang') && sig.includes('chung') && a.key !== 'chung') bad(`INV6 충형인데 톤 낮춤 제안이 아님(key=${a.key}): ${at}`);
+      }
+    }
+  }
+  console.log(`  모먼트 ${checkedM}건 검사 · 제안 종류 ${keys.size}가지(${[...keys].join(', ')})`);
+  if (keys.size < 4) bad(`INV6 제안이 ${keys.size}가지뿐 — 신호별 분기가 살아있지 않다(사실상 고정 문구)`);
+}
+
 // INV5 분포
 for (const k of ['go', 'hold', 'wait']) if (!dist[k]) bad(`INV5 '${k}' 판정이 한 번도 안 나옴 — 사실상 고정값`);
 
 console.log(`\n검사 ${checked}건 · 판정 분포 go=${dist.go} hold=${dist.hold} wait=${dist.wait}`);
-console.log(fail ? `\n❌ check:decision 실패 ${fail}건` : '\n✅ check:decision 통과 — 결정론·입력통과·공망보류·완결성·안전어휘·분포 OK');
+console.log(fail ? `\n❌ check:decision 실패 ${fail}건` : '\n✅ check:decision 통과 — 결정론·입력통과·공망보류·완결성·안전어휘·분포·모먼트 OK');
 process.exit(fail ? 1 : 0);

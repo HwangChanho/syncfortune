@@ -139,6 +139,67 @@ export function decisionFromEnergy(e: DailyEnergy): DecisionToday {
 //   이 모듈이 다시 RN 체인에 묶여 하네스가 돌지 못한다. 호출부에서
 //   `decisionFromEnergy(dailyEnergy(saju, stem, branch))` 로 조립한다(DecisionTodayCard 참고).
 
+// ─────────────────────────────────────────────────────────────────────────
+// ★모먼트(daniel 2026-07-26): "오늘의 결정" → 이름을 **모먼트**로. 그리고 판정만 있던 카드에
+//   "오늘은 이런 게 좋아요" 같은 **설레는 제안 한 줄**을 얹는다(daniel 예시: "혼술바 가서 이성과 한잔").
+//
+// ★새 명리 판정 0 — 여기서도 `dailyEnergy` 가 이미 낸 신호만 쓴다:
+//   · 도화   = 이미 "눈에 띄고 사람이 모이는 결"로 판정·문장화돼 있다 → 만남·새 인연의 축
+//   · 합     = "어우러지고 매듭이 지어지는 결" → 관계를 잇는 축
+//   · 천을귀인 = "도와주는 사람이 붙는 날" → 소개·자리
+//   · 역마   = "움직임·이동이 생기는 결" → 나들이
+//   · 충형/공망 = 이미 조심 신호 → 톤을 낮춘 제안으로
+//   신호가 없으면 오늘 들어온 기운(group)의 성격으로 제안한다(ENERGY_LABEL 과 같은 결).
+//
+// ⚠️§4 안전: **음주를 권하지 않는다.** daniel 예시의 '한잔' 톤은 살리되 "분위기 좋은 자리"처럼
+//   장소·분위기로 표현한다(연령 등급·건강 문제 회피). 단정·부담 금지 — '좋아요' 권유까지만.
+// ⚠️문구 = Claude 초안 → ★daniel 검수 슬롯.
+// ─────────────────────────────────────────────────────────────────────────
+
+/** 오늘의 모먼트 — 설레는 제안 한 줄. */
+export type MomentPick = {
+  key: string;    // 어떤 신호에서 나왔는지(하네스·디버그용)
+  title: string;  // 한 줄 제안
+  body: string;   // 왜/어떻게
+};
+
+/**
+ * 오늘 기운 → 모먼트 제안 1건. 신호 우선순위로 하나만 고른다(결정론).
+ * @param e dailyEnergy 산출물
+ */
+export function momentFromEnergy(e: DailyEnergy): MomentPick {
+  const has = (k: string) => e.signals.some((s) => s.key === k);
+
+  // 조심 신호가 강한 날은 먼저 톤을 낮춘다 — 설렘을 권하다 부담이 되지 않게(§4).
+  if (has('gongmang')) {
+    return { key: 'gongmang', title: '오늘은 가볍게, 부담 없이', body: '붕 뜨는 자리라 큰 고백·큰 약속은 미루고 짧은 차 한잔 정도가 좋아요.' };
+  }
+  if (has('chung')) {
+    return { key: 'chung', title: '조용한 자리에서 둘이서', body: '말이 날카로워지기 쉬운 날이라 시끄러운 곳보다 조용한 데서 천천히 얘기하는 게 좋아요.' };
+  }
+  // 길신 — 사람이 붙고 어우러지는 날
+  if (has('dohwa')) {
+    return { key: 'dohwa', title: '오늘은 눈에 띄는 날 — 나가 보세요', body: '사람이 모이고 시선이 붙는 결이라, 분위기 좋은 바나 카페에서 새 인연이 스칠 만해요.' };
+  }
+  if (has('cheoneul')) {
+    return { key: 'cheoneul', title: '소개받기 좋은 날', body: '도와주는 사람이 붙어요. 누가 자리를 만들어 준다면 마다하지 말고 나가 보세요.' };
+  }
+  if (has('hap')) {
+    return { key: 'hap', title: '미뤄둔 사람에게 먼저 연락', body: '어우러지는 결이라, 연락이 끊겼던 사람과도 오늘은 말이 잘 붙어요.' };
+  }
+  if (has('yeokma')) {
+    return { key: 'yeokma', title: '짧게라도 나가는 날', body: '움직임이 붙어요. 가까운 데라도 함께 다녀오면 기분이 확 풀립니다.' };
+  }
+  // 신호 없음 — 오늘 들어온 기운의 성격으로(새 판정 아님)
+  switch (e.group) {
+    case '비겁': return { key: 'group-비겁', title: '아는 사람과 편한 한잔', body: '나와 결이 같은 기운이 들어와요. 오래 본 사람과 편한 자리가 잘 맞습니다.' };
+    case '식상': return { key: 'group-식상', title: '취향을 보여주는 자리', body: '표현이 살아나는 날이라, 좋아하는 걸 함께 하며 얘기 나누기 좋아요.' };
+    case '재성': return { key: 'group-재성', title: '맛있는 걸 함께', body: '누리는 기운이 들어와요. 좋은 곳에서 잘 먹는 데 쓰면 만족이 큽니다.' };
+    case '관성': return { key: 'group-관성', title: '단정한 자리가 잘 맞아요', body: '격이 잡히는 날이라, 차분하고 예의 있는 만남에서 좋은 인상이 남아요.' };
+    default:     return { key: 'group-인성', title: '조용한 공간에서 깊은 대화', body: '마음이 차분해지는 기운이라, 소란한 곳보다 이야기가 남는 자리가 좋아요.' };
+  }
+}
+
 /** 판정 → 표시 색상 키(테마색 대신 의미색). 카드·칩 공용. */
 export const VERDICT_STYLE: Record<DecisionVerdict, { label: string; hex: string }> = {
   go: { label: '좋아요', hex: '#2E9E5B' },
