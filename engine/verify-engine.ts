@@ -139,6 +139,18 @@ console.log('=== 표준자오선 시대보정 · 서머타임 ===');
   check('1987-07-15 13:20 서울(DST) → 시지 午 (보정 ≈11:42 — DST 미반영이면 未)', buildSajuChart(seoul('1987-07-15 13:20')).pillars['시'].branch === '午');
 }
 
+// ── 시각 미상 플래그(감사 H5 · 2026-07-26) ─────────────────────────────────
+// 문제: 시각을 모르면 birthDateTime 이 '0:0' 으로 들어와 엔진이 **유령 子시 시주**를 만든다.
+//   예전엔 엔진이 `timeAccuracy === '미상'` 을 알고도 버려서, 소비자들이 호출처마다
+//   `{...c.saju, timeUnknown}` 로 다시 병합해야 했고 빠뜨린 곳은 가짜 시주를 실재처럼 계산했다.
+// 불변식: 미상이면 SajuChart 가 **스스로** timeUnknown=true 를 들고 다닌다(소비자 병합 불필요).
+console.log('\n=== 시각 미상 플래그 (감사 H5) ===');
+{
+  const mkc = (acc: '정확' | '미상') => buildSajuChart({ birthDateTime: '1991-12-16 0:0', calendar: '양', timeAccuracy: acc, sex: '남', birthPlace: '서울', birthLon: 126.98 } as ChartInput, 2026);
+  check('시각 미상 → saju.timeUnknown === true (엔진이 정보를 버리지 않음)', mkc('미상').timeUnknown === true);
+  check('시각 정확 → timeUnknown 없음(기존 소비자·저장본 하위호환)', !mkc('정확').timeUnknown);
+}
+
 // ── 생년월일 유효성(감사 H3/H4/H6 회귀 방지 · 2026-07-26) ───────────────────
 // 버그였던 것: 입력 검증이 전혀 없어 **조용히 틀린 사주**가 나왔다 — 없는 날짜(2/30·월13)는 JS Date 가
 //   롤오버해 그대로 팔자를 만들고, 없는 윤달은 음력→양력 변환 실패 후 *양력으로 폴백*했다.

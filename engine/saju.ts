@@ -334,6 +334,11 @@ export function buildSajuChart(input: ChartInput, nowYear = new Date().getFullYe
     luckCycles,
     currentLuck,
     annual,
+    // ★시각 미상 플래그(감사 H5) — 엔진이 아는 사실을 버리지 않고 계약에 실어 보낸다.
+    //   true 면 pillars['시'] 는 '0:0' 에서 만들어진 **유령 子시**라 실재 시주가 아니다.
+    //   (예전엔 소비자들이 호출처마다 `{...c.saju, timeUnknown}` 로 다시 병합해야 했고, 빠뜨린 곳은
+    //    가짜 시주를 실재처럼 계산에 넣는 사각지대였다.)
+    ...(input.timeAccuracy === '미상' ? { timeUnknown: true } : {}),
     // structure: WS3/골든 영역 — 엔진은 채우지 않음
   };
 }

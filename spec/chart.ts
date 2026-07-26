@@ -92,6 +92,19 @@ export interface SajuChart {
   currentLuck: LuckCycle;
   annual: AnnualPillar;               // 현재 세운
   structure?: StructureDx;            // ← encoded expert layer가 채움
+  /**
+   * 출생 시각 미상(감사 H5 · 2026-07-26 추가).
+   *
+   * ⚠️ **true 면 `pillars['시']` 는 실제 시주가 아니다** — 시각을 모르면 birthDateTime 이 '0:0' 으로
+   *    들어와 엔진이 子시 시주를 만들어 낸다(유령 子시). 신살·합충·강약이 이 가짜 시주를 실재처럼
+   *    쓰지 않도록 소비자는 반드시 이 플래그를 확인해야 한다.
+   *
+   * 왜 여기 싣나: 예전엔 엔진이 `input.timeAccuracy === '미상'` 을 알고도 **버렸고**, 소비자들이
+   *   호출처마다 `{ ...c.saju, timeUnknown: ... }` 로 다시 병합하는 관례로 메웠다(reunion·love·newyear·
+   *   pet·저장 경로). 병합을 빠뜨린 곳은 조용히 유령 子시로 계산되는 사각지대였다 → 엔진이 아는 사실을
+   *   계약에 담아 사각지대를 없앤다. optional 이라 기존 소비자·저장본과 하위호환.
+   */
+  timeUnknown?: boolean;
 }
 
 // ── 구조 진단 (encoded expert layer 산출, = 우리만의 레이어 핵심) ──
