@@ -236,7 +236,8 @@ export default function AdminRoute() {
   useEffect(() => { supabase.auth.getUser().then(({ data }) => { if (data.user) supabase.from('profiles').select('test_mode, admin_mode').eq('id', data.user.id).maybeSingle().then(({ data: p }) => { setTestMode(!!p?.test_mode); setAdminMode(p?.admin_mode !== false); }); }).catch(() => {}); }, []);
   useEffect(() => { isOnboardingEnabled().then(setOnbOn).catch(() => {}); }, []); // 온보딩 노출 여부 로드(관리자 토글)
   // ★신규 기능 플래그 로드(원격 app_flags) — 공개 토글 초기 상태.
-  useEffect(() => { loadFeatures().then(() => setFlags({ sokgunghap: remoteFlagValue('sokgunghap'), community: remoteFlagValue('community'), widget: remoteFlagValue('widget') })).catch(() => {}); }, []);
+  // 속궁합·위젯은 전체공개 고정(features.ts ALWAYS_ON)이라 토글·조회 대상에서 제외 — 커뮤니티만 원격 플래그.
+  useEffect(() => { loadFeatures().then(() => setFlags({ community: remoteFlagValue('community') })).catch(() => {}); }, []);
   useEffect(() => { if (allowed) adminListPushCampaigns().then(setCampaigns).catch(() => {}); }, [allowed]); // 예약 푸시 내역(daniel 07-17)
 
   if (allowed === null) return <View style={styles.center}><ActivityIndicator color={colors.ju} /></View>;
@@ -344,8 +345,10 @@ export default function AdminRoute() {
         <Text style={styles.adminLinkTx}>온보딩 {onbOn ? '— 켜짐 (지금 재노출·다음 실행에도)' : '— 꺼짐 (숨김)'}</Text>
       </PressableScale>
       {/* ★신규 기능 공개 토글(daniel 07-14·관리자 전용) — 심사 반려 복구 중엔 '숨김'(관리자만 노출), 심사 통과 후 여기서 '공개'로 전환하면
-          재빌드 없이 전 유저에게 노출(app_flags 원격 플래그). 리스크 큰 3종(속궁합 17+·커뮤니티 UGC·위젯). */}
-      {([['sokgunghap', '속궁합'], ['community', '커뮤니티'], ['widget', '위젯']] as [FeatureKey, string][]).map(([k, label]) => (
+          재빌드 없이 전 유저에게 노출(app_flags 원격 플래그).
+          ★2026-07-26(daniel "속궁합 위젯은 전체공개로, 관리자에서 on off는 빼줘"): 속궁합·위젯은 features.ts 의
+            ALWAYS_ON 으로 **전체공개 고정** → 토글 제거. 남는 건 커뮤니티(UGC) 하나뿐. */}
+      {([['community', '커뮤니티']] as [FeatureKey, string][]).map(([k, label]) => (
         <PressableScale key={k} style={[styles.adminLink, flags[k] && styles.adminLinkOn]} onPress={async () => {
           const next = !flags[k];
           try { await setAppFlag(k, next); setFlags((f) => ({ ...f, [k]: next })); }

@@ -12,6 +12,14 @@ import { supabase } from '../supabase';
 
 export type FeatureKey = 'sokgunghap' | 'community' | 'widget';
 
+// ★전체 공개 확정(daniel 2026-07-26 "속궁합 위젯은 전체공개로, 관리자에서 on off는 빼줘").
+//   원격 플래그·관리자 오버라이드와 무관하게 **항상 ON**. 관리자 화면의 해당 토글도 제거했다.
+//   · sokgunghap — ContentGrid 카드 필터가 이 키를 본다(전 유저 노출로 전환)
+//   · widget — 실제 게이트 소비자가 0개다(iOS 위젯이 prebuild 블로커로 inert 상태). 즉 이 키를 켜도
+//     노출되는 UI 가 없어 동작상 변화는 없고, 관리자 화면에서 의미 없는 토글만 사라진다.
+//   ⚠️속궁합은 17+ 성격의 콘텐츠다 — 심사 제출 시 연령 등급·설명이 이 노출 상태와 맞는지 확인 필요.
+const ALWAYS_ON: ReadonlySet<FeatureKey> = new Set<FeatureKey>(['sokgunghap', 'widget']);
+
 let remoteFlags: Record<string, boolean> = {};
 let isAdminCache = false;
 const subs = new Set<() => void>();
@@ -33,8 +41,9 @@ export async function loadFeatures(): Promise<void> {
   emit();
 }
 
-/** 동기 판정 — 관리자면 항상 ON(테스트), 아니면 원격 플래그. 기본 OFF(안전판). */
+/** 동기 판정 — 전체공개 확정 기능은 항상 ON / 그 외는 관리자 오버라이드 또는 원격 플래그(기본 OFF·안전판). */
 export function isFeatureOn(key: FeatureKey): boolean {
+  if (ALWAYS_ON.has(key)) return true; // 플래그·관리자 무관(daniel 07-26 전체공개 확정)
   return isAdminCache || remoteFlags[key] === true;
 }
 

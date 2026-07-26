@@ -16,6 +16,7 @@ import { loadRepChart } from '../lib/engine/myChart';
 import { computeChart } from '../lib/engine/engine';       // canonical 빌더 단일화(drift 방지)
 import { getDailyFortune, dailyEnergy } from '../lib/content/dailyFortune'; // 오늘 일진(干支)·오늘 기운 — 다른 홈 블록과 같은 출처
 import { decisionFromEnergy, VERDICT_STYLE, type DecisionToday } from '../lib/content/decisionToday';
+import { luckyToday, type LuckyToday } from '../lib/content/luckyItem'; // 오늘 기운(일진 오행) → 코디·음식·소품 추천(daniel 07-26)
 import { colors, radius, space, shadow, font } from '../lib/theme';
 import { useFontScale } from '../lib/ui/fontScale';
 import type { Stem, Branch } from '@spec/chart';
@@ -31,6 +32,8 @@ export function DecisionTodayCard({ reloadKey }: { reloadKey?: number }) {
 
   // 오늘 일진 — 하루 고정이라 마운트당 1회
   const today = useMemo(() => getDailyFortune(0), []);
+  // 오늘 기운(일진 오행) 상징 → 코디·음식·소품 추천. 명식 불필요·하루 고정(오늘의 행운 카드와 같은 출처).
+  const lucky = useMemo<LuckyToday | null>(() => { try { return luckyToday(); } catch { return null; } }, [today]);
 
   useEffect(() => {
     let alive = true;
@@ -73,7 +76,7 @@ export function DecisionTodayCard({ reloadKey }: { reloadKey?: number }) {
             const s = VERDICT_STYLE[it.verdict];
             return (
               <View key={it.kind} style={[styles.chip, { borderColor: s.hex + '55' }]}>
-                <Text style={[styles.chipTx, { fontSize: fs(11) }]}>{it.emoji} {it.label}</Text>
+                <Text style={[styles.chipTx, { fontSize: fs(11) }]}>{it.label}</Text>
                 <View style={[styles.dot, { backgroundColor: s.hex }]} />
               </View>
             );
@@ -89,7 +92,7 @@ export function DecisionTodayCard({ reloadKey }: { reloadKey?: number }) {
                   <Text style={[styles.rowBadgeTx, { color: s.hex, fontSize: fs(10) }]}>{s.label}</Text>
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={[styles.rowLabel, { fontSize: fs(13) }]}>{it.emoji} {it.label}</Text>
+                  <Text style={[styles.rowLabel, { fontSize: fs(13) }]}>{it.label}</Text>
                   <Text style={[styles.rowTip, { fontSize: fs(12), lineHeight: fs(18) }]}>{it.tip}</Text>
                 </View>
               </View>
@@ -97,6 +100,31 @@ export function DecisionTodayCard({ reloadKey }: { reloadKey?: number }) {
           })}
         </View>
       )}
+
+      {/* ★오늘의 추천(daniel 2026-07-26 "음식 추천 코디 추천 같은 추천 컨텐츠 더 넣자") —
+          결정 판정과 성격이 달라(좋다/나쁘다가 아니라 '무엇을') 아래 구획으로 분리한다.
+          데이터는 luckyToday()(일진 오행 상징) **단일 출처** 재사용 — 오늘의 행운 카드와 값이 어긋나지 않게. */}
+      {lucky ? (
+        <View style={styles.recWrap}>
+          <Text style={[styles.recHead, { fontSize: fs(11) }]}>오늘 어울리는 것</Text>
+          <View style={styles.recRow}>
+            {/* 색 스와치로 '코디'를 글자 없이도 알아보게(오늘의 행운과 같은 hex) */}
+            <View style={[styles.swatch, { backgroundColor: lucky.hex }]} />
+            <Text style={[styles.recLabel, { fontSize: fs(12) }]}>코디</Text>
+            <Text style={[styles.recTx, { fontSize: fs(12), lineHeight: fs(18) }]} numberOfLines={2}>{lucky.wear}</Text>
+          </View>
+          <View style={styles.recRow}>
+            <View style={[styles.swatch, styles.swatchGhost]} />
+            <Text style={[styles.recLabel, { fontSize: fs(12) }]}>음식</Text>
+            <Text style={[styles.recTx, { fontSize: fs(12), lineHeight: fs(18) }]} numberOfLines={2}>{lucky.food}</Text>
+          </View>
+          <View style={styles.recRow}>
+            <View style={[styles.swatch, styles.swatchGhost]} />
+            <Text style={[styles.recLabel, { fontSize: fs(12) }]}>소품</Text>
+            <Text style={[styles.recTx, { fontSize: fs(12), lineHeight: fs(18) }]} numberOfLines={2}>{lucky.item}</Text>
+          </View>
+        </View>
+      ) : null}
 
       <Text style={[styles.more, { fontSize: fs(11) }]}>{expanded ? '접기 ▴' : '무엇을 결정할지 골라 보기 ▾'}</Text>
     </PressableScale>
@@ -124,4 +152,12 @@ const styles = StyleSheet.create({
   rowLabel: { ...font.body, color: colors.ink, fontWeight: '800' },
   rowTip: { ...font.caption, color: colors.inkSoft, marginTop: 2 },
   more: { ...font.caption, color: colors.inkFaint, textAlign: 'center', marginTop: space(3), fontWeight: '700' },
+  // 오늘의 추천(코디·음식·소품) — 결정 판정과 구분되게 상단 구분선 + 낮은 채도
+  recWrap: { marginTop: space(4), paddingTop: space(4), borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.line, gap: space(2) },
+  recHead: { ...font.caption, color: colors.ju, fontWeight: '800', letterSpacing: 0.5, marginBottom: space(1) },
+  recRow: { flexDirection: 'row', alignItems: 'center', gap: space(2.5) },
+  swatch: { width: 10, height: 10, borderRadius: 5 },
+  swatchGhost: { backgroundColor: colors.line }, // 색이 의미 없는 항목(음식·소품)은 중립 점으로 정렬만 맞춘다
+  recLabel: { ...font.caption, color: colors.inkSoft, fontWeight: '800', width: 34 },
+  recTx: { ...font.caption, color: colors.ink, flex: 1 },
 });

@@ -32,7 +32,6 @@ export type DecisionKind = 'contract' | 'spend' | 'talk' | 'start' | 'move';
 export type DecisionAdvice = {
   kind: DecisionKind;
   label: string;      // 표시명
-  emoji: string;
   verdict: DecisionVerdict;
   tip: string;        // 한 줄 조언(§4 전향적)
 };
@@ -46,13 +45,13 @@ export type DecisionToday = {
   items: DecisionAdvice[];    // 유형별 세부
 };
 
-/** 유형 정의 — 라벨·이모지. */
-const KINDS: { kind: DecisionKind; label: string; emoji: string }[] = [
-  { kind: 'contract', label: '계약·서명', emoji: '📝' },
-  { kind: 'spend', label: '큰 지출', emoji: '💳' },
-  { kind: 'talk', label: '대화·담판', emoji: '💬' },
-  { kind: 'start', label: '새로 시작', emoji: '🚀' },
-  { kind: 'move', label: '이동·약속', emoji: '🚗' },
+/** 유형 정의 — 라벨만(★이모지 제거·daniel 2026-07-26 "이모지는 다 빼고"). */
+const KINDS: { kind: DecisionKind; label: string }[] = [
+  { kind: 'contract', label: '계약·서명' },
+  { kind: 'spend', label: '큰 지출' },
+  { kind: 'talk', label: '대화·담판' },
+  { kind: 'start', label: '새로 시작' },
+  { kind: 'move', label: '이동·약속' },
 ];
 
 /**
@@ -103,7 +102,7 @@ export function decisionFromEnergy(e: DailyEnergy): DecisionToday {
   const down = (v: DecisionVerdict): DecisionVerdict => (v === 'go' ? 'hold' : 'wait');
   const up = (v: DecisionVerdict): DecisionVerdict => (v === 'wait' ? 'hold' : 'go');
 
-  const items: DecisionAdvice[] = KINDS.map(({ kind, label, emoji }) => {
+  const items: DecisionAdvice[] = KINDS.map(({ kind, label }) => {
     let v = verdict;
     let tip = '';
     if (kind === 'contract') {
@@ -130,7 +129,7 @@ export function decisionFromEnergy(e: DailyEnergy): DecisionToday {
       else if (chung) { v = down(v); tip = '동선이 꼬이기 쉬워요. 여유 있게 출발하세요.'; }
       else tip = v === 'go' ? '약속을 잡거나 움직이기 좋아요.' : '무리한 일정은 줄이는 게 좋아요.';
     }
-    return { kind, label, emoji, verdict: v, tip };
+    return { kind, label, verdict: v, tip };
   });
 
   return { verdict, title, reason, score: e.score, signals: e.signals, items };

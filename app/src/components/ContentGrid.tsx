@@ -67,6 +67,10 @@ const TARO_KEYS = new Set(['taro']);
  * @param showViewToggle 카드/리스트 토글 노출 여부(기본 true)
  * @param category 풀이 3대 카테고리 필터(사주/자미두수/타로 — daniel 07-24). 기본 'saju'.
  */
+/** 리스트뷰에서 섹션당 기본 노출 개수 — 나머지는 '더 보기'로 접는다(daniel 2026-07-26 나열 개선).
+ *  4 = 스크린 한 화면에 섹션 헤더+4행이 들어가 '섹션이 여러 개 있다'는 구조가 보이는 최소치. */
+const LIST_PREVIEW = 4;
+
 export function ContentGrid({ showViewToggle = true, category = 'saju' }: { showViewToggle?: boolean; category?: 'saju' | 'ziwei' | 'taro' }) {
   const router = useRouter();
   const { t } = useTranslation();
@@ -94,6 +98,7 @@ export function ContentGrid({ showViewToggle = true, category = 'saju' }: { show
   const [readingRows, setReadingRows] = useState<{ category: string; created_at: string }[]>([]); // 이 명식의 기존 풀이
   const [teasers, setTeasers] = useState<Record<string, HomeTeaser>>({});                         // 카드별 '내 얘기' 한 줄
   const [reloadKey, setReloadKey] = useState(0); // 명식 변경(전환·수정) 감지 — 포커스마다 재계산
+  const [openSec, setOpenSec] = useState<Record<string, boolean>>({}); // 리스트뷰 섹션 펼침(기본 접힘·상위 N개만)
 
   // session 반응형 — 로그아웃 즉시 관리자 상태 해제.
   useEffect(() => { if (!session) { setAdmin(false); return; } isAdmin().then(setAdmin).catch(() => {}); }, [session]);
@@ -244,11 +249,19 @@ export function ContentGrid({ showViewToggle = true, category = 'saju' }: { show
         //   썸네일이 작아(≈54px) expo-image 다운샘플로 전량 즉시 로드해도 가볍다.
         //   가격/프리미엄 판정·진입(onPress)은 카드뷰와 완전히 동일한 헬퍼를 재사용(단일 출처).
         if (viewMode === 'list') {
+          // ★섹션별 미리보기 + '더 보기'(daniel 2026-07-26 "리스트형식 너무 나열되어 있어서 보기 힘들어").
+          //   원인: 리스트뷰는 전 항목을 세로로 그대로 나열한다 — 특히 '가볍게 보기' 25개 때문에 총 56행이
+          //   한 줄씩 쌓여 스캔이 불가능했다(카드뷰는 2줄 가로 스크롤로 압축되지만 리스트뷰엔 그 장치가 없었다).
+          //   → 섹션마다 상위 LIST_PREVIEW 개만 펼치고 나머지는 접는다. 스크롤 길이가 1/3 수준으로 줄고,
+          //     찾는 사람은 '더 보기'로 즉시 전체를 본다(정보 삭제 아님).
+          const secOpen = openSec[sec.key] ?? false;
+          const shown = secOpen ? items : items.slice(0, LIST_PREVIEW);
+          const restN = items.length - shown.length;
           return (
             <View key={sec.key} style={styles.section}>
               {sectionHeader}
               <View style={styles.listBody}>
-                {items.map((m) => {
+                {shown.map((m) => {
                   const prem = !!m.premium;
                   const priceTxt = badgeFor(m);
                   const desc = descOf(m);
@@ -268,7 +281,8 @@ export function ContentGrid({ showViewToggle = true, category = 'saju' }: { show
                           <Text style={[styles.listLabel, prem && styles.listLabelPrem]} numberOfLines={1}>{t(m.labelKey)}</Text>
                           {isNew && <View style={styles.listNewTag}><Text style={styles.newTagTx}>NEW</Text></View>}
                         </View>
-                        {desc ? <Text style={styles.listDesc} numberOfLines={2}>{desc}</Text> : null}
+                        {/* 설명 1줄(daniel 07-26 나열 개선) — 리스트는 스캔이 목적이라 2줄이면 행이 두꺼워진다 */}
+                        {desc ? <Text style={styles.listDesc} numberOfLines={1}>{desc}</Text> : null}
                       </View>
                       {priceTxt ? (
                         <View style={styles.listPriceTag}><Text style={styles.listPriceTx}>{priceTxt}</Text></View>
@@ -278,6 +292,12 @@ export function ContentGrid({ showViewToggle = true, category = 'saju' }: { show
                     </PressableScale>
                   );
                 })}
+                {/* 더 보기 / 접기 — 항목이 미리보기 수를 넘을 때만 */}
+                {items.length > LIST_PREVIEW && (
+                  <PressableScale style={styles.listMore} onPress={() => setOpenSec((o) => ({ ...o, [sec.key]: !secOpen }))}>
+                    <Text style={styles.listMoreTx}>{secOpen ? '접기 ▴' : `${restN}개 더 보기 ▾`}</Text>
+                  </PressableScale>
+                )}
               </View>
             </View>
           );
@@ -418,6 +438,9 @@ const styles = StyleSheet.create({
   listNewTag: { backgroundColor: '#F16C6C', borderRadius: radius.pill, paddingHorizontal: space(1.5), paddingVertical: 1, marginLeft: space(1.5) }, // 리스트뷰 인라인 NEW(카드뷰 newTag 와 같은 색)
   listLabelPrem: { color: colors.ju },
   listDesc: { fontSize: 12.5, color: colors.inkSoft, lineHeight: 17, marginTop: 2 },
+  // '더 보기/접기' — 섹션 끝 가운데 정렬 소형 버튼(행과 구분되게 배경 없음)
+  listMore: { alignSelf: 'center', paddingVertical: space(2.5), paddingHorizontal: space(4) },
+  listMoreTx: { ...font.caption, color: colors.ju, fontWeight: '800' },
   listPriceTag: { flexShrink: 0, backgroundColor: colors.badgeGold, borderRadius: radius.pill, paddingHorizontal: space(2.5), paddingVertical: space(1) },
   listPriceTx: { color: '#15132E', fontSize: 11, fontWeight: '800', letterSpacing: 0.2 },
   listChevron: { flexShrink: 0, fontSize: 24, fontWeight: '700', color: colors.inkFaint, paddingHorizontal: space(1) },
