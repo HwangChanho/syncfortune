@@ -107,6 +107,76 @@ function buildPillar(position: PillarPos, ganZhi: string, dayStem: Stem): Pillar
 // 음력 입력이면 양력 [y,mo,d] 로 변환(lunar-javascript). 양력이면 그대로.
 //   ※ 만세력 음력 생일 오류 수정 — 기존엔 calendar='음'을 무시하고 양력처럼 계산했음.
 //   ※ ⑧ 윤달(daniel): isLeap=true면 음수 month로 변환한다(lunar-javascript 윤달 규약 — 윤4월=fromYmd(y,-4,d)). 입력 폼 윤달 토글에서 isLeap 전달.
+/**
+ * 생년월일시 입력 유효성 검증 (감사 H3/H4/H6 · 2026-07-26) — **순수 함수, 아무것도 던지지 않는다.**
+ *
+ * 왜 필요한가(실측): 엔진은 지금까지 입력을 전혀 검증하지 않아 **조용히 틀린 사주**를 냈다.
+ *   · `1991-02-30`(없는 날) → 에러 없이 팔자 산출(JS Date 가 3월 2일로 롤오버)
+ *   · `1991-13-05`(월 13)   → 에러 없이 팔자 산출(다음 해로 롤오버)
+ *   · 음력 *없는 윤달*      → 라이브러리 throw → catch → **양력으로 조용히 폴백**(음력 입력인데 양력 사주)
+ *   사주는 하루만 어긋나도 일주가 통째로 달라진다 → 입구에서 막는 것이 근본이다.
+ *
+ * 설계: 던지지 않고 **문제 목록을 돌려준다**. 이유 = 이미 저장된 명식 중 이런 입력이 있을 수 있어
+ *   엔진이 throw 로 바뀌면 앱이 깨진다. 등록 폼이 이 함수로 *저장 전에* 걸러 주면 새 오염은 0이 되고,
+ *   기존 데이터는 그대로 열람된다(회귀 0).
+ *
+ * @param input 엔진 입력. birthDateTime = "YYYY-MM-DD HH:mm"(시각 생략 허용).
+ * @returns 사람이 읽을 수 있는 문제 설명 배열. **빈 배열이면 유효**.
+ */
+export function validateBirthInput(input: ChartInput): string[] {
+  const problems: string[] = [];
+  const raw = (input?.birthDateTime ?? '').trim();
+  if (!raw) return ['생년월일이 없어요.'];
+
+  const [datePart, timePart] = raw.split(' ');
+  const dm = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(datePart ?? '');
+  if (!dm) return [`생년월일 형식이 올바르지 않아요(YYYY-MM-DD): "${datePart ?? raw}"`];
+  const [y, mo, d] = [Number(dm[1]), Number(dm[2]), Number(dm[3])];
+
+  // 시각 — 생략은 허용(0시로 간주)하되, 있으면 범위를 지킨다.
+  if (timePart) {
+    const tm = /^(\d{1,2}):(\d{1,2})$/.exec(timePart);
+    if (!tm) problems.push(`시각 형식이 올바르지 않아요(HH:mm): "${timePart}"`);
+    else {
+      const [hh, mi] = [Number(tm[1]), Number(tm[2])];
+      if (hh < 0 || hh > 23) problems.push(`시(hour)는 0~23 이어야 해요: ${hh}`);
+      if (mi < 0 || mi > 59) problems.push(`분(minute)은 0~59 이어야 해요: ${mi}`);
+    }
+  }
+
+  // 연도 범위 — lunar-javascript 지원 범위를 크게 벗어나면 계산이 무의미하다.
+  if (y < 1900 || y > 2100) problems.push(`연도가 지원 범위(1900~2100)를 벗어났어요: ${y}`);
+  if (mo < 1 || mo > 12) problems.push(`월은 1~12 여야 해요: ${mo}`);
+  if (d < 1 || d > 31) problems.push(`일은 1~31 이어야 해요: ${d}`);
+  if (problems.length) return problems;
+
+  if ((input as any).calendar === '음') {
+    // 음력: **round-trip 으로 실재 여부를 검증**한다. 없는 윤달·그 달에 없는 날짜(예: 30일 없는 달의 30일)는
+    //   변환이 실패하거나 다른 날짜로 흡수되는데, 되돌려 비교하면 둘 다 잡힌다.
+    const lm = (input as any).isLeap ? -mo : mo;
+    try {
+      const solar = Lunar.Lunar.fromYmd(y, lm, d).getSolar();
+      const back = solar.getLunar();
+      if (back.getYear() !== y || back.getMonth() !== lm || back.getDay() !== d) {
+        problems.push((input as any).isLeap
+          ? `${y}년에는 윤${mo}월 ${d}일이 없어요. 윤달 여부와 날짜를 확인해 주세요.`
+          : `${y}년 음력 ${mo}월 ${d}일은 없는 날짜예요.`);
+      }
+    } catch {
+      problems.push((input as any).isLeap
+        ? `${y}년에는 윤${mo}월이 없어요. 윤달 표시를 해제하거나 날짜를 확인해 주세요.`
+        : `${y}년 음력 ${mo}월 ${d}일로 변환할 수 없어요. 날짜를 확인해 주세요.`);
+    }
+  } else {
+    // 양력: JS Date 는 없는 날짜를 조용히 롤오버(2/30 → 3/2)하므로 되돌려 같은지 본다.
+    const dt = new Date(y, mo - 1, d);
+    if (dt.getFullYear() !== y || dt.getMonth() + 1 !== mo || dt.getDate() !== d) {
+      problems.push(`${y}년 ${mo}월 ${d}일은 없는 날짜예요.`);
+    }
+  }
+  return problems;
+}
+
 export function solarYmd(input: ChartInput): [number, number, number] {
   const [datePart] = input.birthDateTime.split(' ');
   const [y, mo, d] = datePart.split('-').map(Number);

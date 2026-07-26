@@ -14,6 +14,7 @@ import { useTranslation } from 'react-i18next';
 import { colors, radius, space, shadow, font } from '../lib/theme';
 import { SIJIN, formatBirthDate } from '../lib/engine/sijin';
 import { trueSolarOffsetMin } from '@engine/solartime'; // 진태양시 보정(거주지 경도·서머타임·균시차) — 경계시 경고용
+import { validateBirthInput } from '@engine/saju'; // 생년월일 유효성(감사 H3/H4/H6) — 없는 날짜·없는 윤달을 저장 입구에서 차단
 import { BirthPlacePicker } from '../components/BirthPlacePicker';
 import { getCategories, addCategory, removeCategory, OTHER_CATEGORY, isRemovable } from '../lib/core/categories'; // ★카테고리 관리(생성·삭제·명식 재배치·daniel 07-18)
 import { Alert } from '../lib/ui/alert'; // 카테고리 삭제 확인
@@ -124,14 +125,25 @@ export function ChartRegisterScreen({ onSubmit, defaultRelation, submitLabel, sh
       ...(calendar === '음' && isLeap ? { isLeap: true } : {}), // ⑧ 윤달 — 음력 윤달일 때만 전달(saju.ts solarYmd가 음수 month로 변환)
     };
   }
-  function handleSubmit() { onSubmit(buildInput()); }
+  function handleSubmit() {
+    const input = buildInput();
+    // ★생년월일 유효성 게이트(감사 H3/H4/H6 · 2026-07-26). 엔진은 지금까지 입력을 검증하지 않아
+    //   없는 날짜(2월 30일·월 13)를 조용히 롤오버해 팔자를 만들고, 없는 윤달은 음력→양력 변환에
+    //   실패한 채 *양력으로 폴백*했다(음력 입력인데 양력 사주). 사주는 하루만 어긋나도 일주가
+    //   통째로 달라지므로 **저장 입구에서 막는다** — 이미 저장된 명식은 그대로 열람(회귀 0).
+    const problems = validateBirthInput(input as any);
+    if (problems.length) { Alert.alert(t('register.invalidDateTitle', '생년월일을 확인해 주세요'), problems.join('\n')); return; }
+    onSubmit(input);
+  }
 
   // 자동저장(편집모드) — 필드 변경 600ms 후 저장(저장 버튼 따로 안 눌러도 됨, daniel). 초기 prefill 은 skip(불필요 저장 방지).
   const firstAuto = useRef(true);
   useEffect(() => {
     if (!autoSave || !onAutoSave) return;
     if (firstAuto.current) { firstAuto.current = false; return; }
-    const id = setTimeout(() => onAutoSave(buildInput()), 600);
+    // ★유효하지 않은 입력은 **조용히 저장 스킵**(감사 H3/H4/H6). 편집 중에는 타이핑 도중 일시적으로
+    //   날짜가 불완전해지는 게 정상이라 여기서 Alert 을 띄우면 방해만 된다 — 경고는 수동 저장(handleSubmit)에서.
+    const id = setTimeout(() => { const inp = buildInput(); if (!validateBirthInput(inp as any).length) onAutoSave(inp); }, 600);
     return () => clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [label, birthDate, sijinIdx, exactStr, calendar, isLeap, sex, birthPlace, birthPlaceLon, birthPlaceLat, relation, makeRep, job, relationship, concern, note, autoSave]);

@@ -8,7 +8,7 @@ import _lunar from 'lunar-javascript';
 import { twelveStage } from './twelve';
 import { gongmang, analyzeSinsal } from './sinsal';
 import { detectInteractions } from './structure';
-import { buildSajuChart } from './saju';
+import { buildSajuChart, validateBirthInput } from './saju';
 import { trueSolarOffsetMin, kstMeridianAt, dstOffsetMin } from './solartime';
 import type { Stem, Branch, PillarPos, SajuChart, ChartInput } from '../spec/chart';
 
@@ -137,6 +137,30 @@ console.log('=== 표준자오선 시대보정 · 서머타임 ===');
   check(`127.5° 시대(1955) 서울 보정 ${off55.toFixed(1)}분 ↔ 135° 시대(1994) ${off94.toFixed(1)}분 = 정확히 30분 차`, Math.abs(off94 + 30 - off55) < 0.001);
   // 시주 영향: 1987-07-15 13:20 서울(DST 중) → −60(DST) −32(경도) −6(균시차) ≈ 11:42 → 午시
   check('1987-07-15 13:20 서울(DST) → 시지 午 (보정 ≈11:42 — DST 미반영이면 未)', buildSajuChart(seoul('1987-07-15 13:20')).pillars['시'].branch === '午');
+}
+
+// ── 생년월일 유효성(감사 H3/H4/H6 회귀 방지 · 2026-07-26) ───────────────────
+// 버그였던 것: 입력 검증이 전혀 없어 **조용히 틀린 사주**가 나왔다 — 없는 날짜(2/30·월13)는 JS Date 가
+//   롤오버해 그대로 팔자를 만들고, 없는 윤달은 음력→양력 변환 실패 후 *양력으로 폴백*했다.
+// 불변식: 실재하는 날짜는 통과하고, 실재하지 않는 날짜는 반드시 문제로 잡힌다(윤년·실제 윤달 오탐 없이).
+console.log('\n=== 생년월일 유효성 (감사 H3/H4/H6) ===');
+{
+  const v = (dt: string, extra: Record<string, unknown> = {}) =>
+    validateBirthInput({ birthDateTime: dt, calendar: '양', timeAccuracy: '정확', sex: '남', birthPlace: '서울', ...extra } as ChartInput);
+  // 통과해야 하는 것(오탐 금지 — 여기서 걸리면 정상 유저가 저장을 못 한다)
+  check('정상 양력 1991-12-16 23:00 통과', v('1991-12-16 23:00').length === 0);
+  check('시각 생략 허용(0시로 간주)', v('1991-12-16').length === 0);
+  check('윤년 1992-02-29 통과', v('1992-02-29 10:00').length === 0);
+  check('음력 정상 통과', v('1991-11-11 10:00', { calendar: '음' }).length === 0);
+  check('실제 윤달(2020 윤4월) 통과', v('2020-04-11 10:00', { calendar: '음', isLeap: true }).length === 0);
+  // 잡아야 하는 것
+  check('없는 날 1991-02-30 차단(예전: 3/2 로 롤오버해 팔자 산출)', v('1991-02-30 10:00').length > 0);
+  check('비윤년 1991-02-29 차단', v('1991-02-29 10:00').length > 0);
+  check('월 13 차단(예전: 다음 해로 롤오버)', v('1991-13-05 10:00').length > 0);
+  check('형식 불량 차단', v('abc').length > 0);
+  check('시각 25시 차단', v('1991-12-16 25:00').length > 0);
+  check('지원 범위 밖 연도(1800) 차단', v('1800-01-01 10:00').length > 0);
+  check('없는 윤달(1991 윤11월) 차단(예전: 양력으로 조용히 폴백)', v('1991-11-11 10:00', { calendar: '음', isLeap: true }).length > 0);
 }
 
 // ── 절기 경계 = 북경시 기준(감사 C1 회귀 방지 · 2026-07-26) ─────────────────
