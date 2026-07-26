@@ -211,7 +211,27 @@ export function buildSajuChart(input: ChartInput, nowYear = new Date().getFullYe
     cy = corr.getFullYear(); cmo = corr.getMonth() + 1; cd = corr.getDate(); ch = corr.getHours(); cmi = corr.getMinutes();
   }
   const ec = Solar.fromYmdHms(cy, cmo, cd, ch, cmi, 0).getLunar().getEightChar();
-  const dayStem = ec.getDayGan() as Stem;
+
+  // ★야자시 처리 = **자시일수설**(daniel 문파 확정 2026-07-26: "야자시·조자시 구분 안 한다" · 감사 C2).
+  //   즉 子시(23:00~01:00)는 나누지 않고 **통째로 다음날**로 본다.
+  //
+  //   고치는 것(실측한 내부 모순): 라이브러리는 **시주 천간을 이미 다음날 일간 기준**으로 내면서
+  //   **일주는 자정 기준**으로 둔다 → 진태양시 23:22 출생이 `일주 庚申 + 시주 戊子` 로 나왔다.
+  //   오자둔법상 庚일의 子시는 丙子이고 戊子는 **辛일(다음날)** 의 子시다 → 두 기둥이 서로 다른 날을
+  //   가리키는 모순. 어느 문파를 택하든 이 상태는 틀렸다.
+  //   → 자시일수설로 일관화: 23시 이후면 **일주(와 일간)도 다음날**로 옮긴다. 그러면 시주(戊子)와
+  //     일간(辛)이 오자둔법상 맞아떨어진다(辛일 子시 = 戊子). 시주 계산은 손대지 않는다(이미 A안과 동일).
+  //   ※ 날짜만 옮기고 시각은 정오로 두는 이유 = 일주는 시각과 무관한 연속 60갑자라, 정오로 두면
+  //     경계(자정·절입) 흔들림 없이 '그 날의 일주'만 안전하게 얻는다.
+  //   ※ 시각 미상은 보정 자체를 생략해 ch=0 이므로 이 분기에 걸리지 않는다.
+  let dayEc = ec;
+  if (ch >= 23) {
+    const nx = new Date(cy, cmo - 1, cd, 12, 0, 0);
+    nx.setDate(nx.getDate() + 1);
+    dayEc = Solar.fromYmdHms(nx.getFullYear(), nx.getMonth() + 1, nx.getDate(), 12, 0, 0).getLunar().getEightChar();
+  }
+  // 일간 = 십신·시주천간·신살의 기준축 → 자시일수설을 적용한 일주에서 뽑는다.
+  const dayStem = dayEc.getDayGan() as Stem;
 
   // ★절기 판정용 팔자 = **북경시(UTC+8)** 기준 (2026-07-26 감사 C1 수정).
   //   왜 따로 계산하나: lunar-javascript 의 절입 시각은 **북경시 기준**이다(lunar.js 절기 계산에
@@ -235,8 +255,9 @@ export function buildSajuChart(input: ChartInput, nowYear = new Date().getFullYe
     // 년·월주 = 절기 경계에 의존 → 북경시 기준(ecTerm). 십신은 그대로 일간(dayStem) 기준.
     '년': buildPillar('년', ecTerm.getYear(), dayStem),
     '월': buildPillar('월', ecTerm.getMonth(), dayStem),
-    // 일·시주 = 지방시(진태양시) 기준 → 기존 ec 유지(일주 자시 경계·시주는 지방시가 맞다).
-    '일': buildPillar('일', ec.getDay(), dayStem),
+    // 일·시주 = 지방시(진태양시) 기준. 일주는 자시일수설 적용본(dayEc — 23시 이후면 다음날),
+    //   시주는 라이브러리 값 그대로(이미 다음날 일간 기준이라 자시일수설과 일치).
+    '일': buildPillar('일', dayEc.getDay(), dayStem),
     '시': buildPillar('시', ec.getTime(), dayStem),
   } as Record<PillarPos, PillarData>;
 

@@ -139,6 +139,41 @@ console.log('=== 표준자오선 시대보정 · 서머타임 ===');
   check('1987-07-15 13:20 서울(DST) → 시지 午 (보정 ≈11:42 — DST 미반영이면 未)', buildSajuChart(seoul('1987-07-15 13:20')).pillars['시'].branch === '午');
 }
 
+// ── 야자시 = 자시일수설(감사 C2 · daniel 문파 확정 2026-07-26) ──────────────
+// 확정 stance: **야자시/조자시를 구분하지 않는다** → 子시(23~01시)는 통째로 다음날.
+// 고쳤던 모순: 라이브러리가 시주 천간은 다음날 일간 기준으로 내면서 일주는 자정 기준이라,
+//   진태양시 23:22 출생이 `일주 庚申 + 시주 戊子` 로 나왔다(庚일 子시는 丙子, 戊子는 辛일 것).
+// 불변식 ①(강함): **모든 시각에서 시주 천간은 일간의 오자둔법(五鼠遁) 값과 일치**한다.
+//   → 일주와 시주가 서로 다른 날을 가리키면 반드시 깨진다.
+// 불변식 ②: 23시 이후와 그 다음날 새벽 子시가 **같은 일주**를 가리킨다(자시일수설).
+console.log('\n=== 야자시 = 자시일수설 (감사 C2 · 오자둔법 정합) ===');
+{
+  const STEMS10: Stem[] = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'];
+  const BR12: Branch[] = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'];
+  // 오자둔 — 일간 → 子시 천간(甲己=甲 / 乙庚=丙 / 丙辛=戊 / 丁壬=庚 / 戊癸=壬)
+  const ZI: Record<string, Stem> = { 甲: '甲', 己: '甲', 乙: '丙', 庚: '丙', 丙: '戊', 辛: '戊', 丁: '庚', 壬: '庚', 戊: '壬', 癸: '壬' };
+  const at = (dt: string) => buildSajuChart({ birthDateTime: dt, calendar: '양', timeAccuracy: '정확', sex: '남', birthPlace: '서울', birthLon: 126.98 } as ChartInput, 2026);
+  let mismatch = 0, tested = 0;
+  // 여러 날짜 × 0~23시 전 시각에서 오자둔 정합 확인(야자시 경계가 어긋나면 여기서 깨진다)
+  for (const day of ['1991-12-16', '1992-02-29', '2020-06-21', '1987-07-15']) {
+    for (let hh = 0; hh <= 23; hh++) {
+      const c = at(`${day} ${hh}:30`);
+      const ilgan = c.pillars['일'].stem, sBranch = c.pillars['시'].branch, sStem = c.pillars['시'].stem;
+      const want = STEMS10[(STEMS10.indexOf(ZI[ilgan]) + BR12.indexOf(sBranch)) % 10];
+      tested++;
+      if (want !== sStem) { mismatch++; if (mismatch <= 3) console.log(`     ↳ ${day} ${hh}:30 일간 ${ilgan} · 시지 ${sBranch} → 시주천간 ${sStem}(기대 ${want})`); }
+    }
+  }
+  check(`오자둔법 정합 — ${tested}개 시각 전부 일간↔시주천간 일치(어긋나면 일주·시주가 다른 날을 가리킴)`, mismatch === 0);
+  // 자시일수설: 23시대와 다음날 00시대가 같은 일주
+  const a = at('1991-12-16 23:50'), b = at('1991-12-17 00:30');
+  check('자시일수설 — 23시대와 다음날 00시대가 같은 일주(子시를 나누지 않음)',
+    `${a.pillars['일'].stem}${a.pillars['일'].branch}` === `${b.pillars['일'].stem}${b.pillars['일'].branch}`);
+  // 22시대(亥시)는 아직 당일이어야 한다(경계가 23시임을 고정)
+  const p = at('1991-12-16 22:00');
+  check('22시대(亥시)는 아직 당일 일주 — 경계는 23시', `${p.pillars['일'].stem}${p.pillars['일'].branch}` !== `${a.pillars['일'].stem}${a.pillars['일'].branch}`);
+}
+
 // ── 시각 미상 플래그(감사 H5 · 2026-07-26) ─────────────────────────────────
 // 문제: 시각을 모르면 birthDateTime 이 '0:0' 으로 들어와 엔진이 **유령 子시 시주**를 만든다.
 //   예전엔 엔진이 `timeAccuracy === '미상'` 을 알고도 버려서, 소비자들이 호출처마다
