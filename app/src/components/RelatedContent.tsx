@@ -15,35 +15,11 @@ import { PressableScale } from './PressableScale';
 import { ROUTE } from '../app/(app)/market';
 import { CREDIT_KINDS, type CreditKind } from '../lib/billing/coupons';
 import { SECTIONS } from '../lib/content/contentSections';
+import { RELATED } from '../lib/content/relatedMap'; // 연관 큐레이션 단일 출처(풀이 탭 '다음 단계'와 공유)
 import { colors, radius, space, font, shadow } from '../lib/theme';
 
 // kind → 연관 콘텐츠(큐레이션 2~3). 자기 자신·미구현(속궁합 등)은 제외. daniel 조정 슬롯.
 //   값은 유료 CreditKind 또는 무료 콘텐츠 키(personal 등) 혼합 가능 — 아래 FREE_ROUTE/FREE_LABEL 로 해석.
-const RELATED: Record<string, string[]> = {
-  reading: ['love', 'career', 'talent'],
-  ziwei: ['mission', 'reading', 'astrology'],
-  compat: ['love', 'crush', 'reunion'],
-  love: ['compat', 'crush', 'reunion'],
-  career: ['jobfit', 'talent', 'job'],
-  jobfit: ['career', 'talent', 'mission'],
-  wealth: ['career', 'jobfit', 'future10'], // 재물 딥리포트 → 사업가·직업적성·10년뒤(재물 동선)
-  talent: ['jobfit', 'mission', 'personal'],
-  mission: ['talent', 'roots', 'image'],
-  roots: ['mission', 'image', 'talent'],
-  image: ['personal', 'mission', 'talent'], // 비치는 나 → 퍼스널 오행(첫인상·컬러 동선)
-  newyear: ['lifegraph', 'gaeun', 'love'],
-  lifegraph: ['newyear', 'roots', 'career'],
-  gaeun: ['personal', 'newyear', 'love'],   // 개운법 → 퍼스널 오행(컬러 보완 동선)
-  astrology: ['reading', 'love', 'compat'],
-  future10: ['career', 'timeline', 'gaeun'],
-  child: ['love', 'compat', 'reading'],
-  crush: ['love', 'compat', 'reunion'],
-  reunion: ['love', 'crush', 'compat'],
-  job: ['jobfit', 'career', 'talent'],
-  timeline: ['lifegraph', 'newyear', 'roots'],
-  daily: ['personal', 'gaeun', 'love'],     // 오늘의 운세 하단 → 퍼스널 오행(코디)·개운·애정 동선(daniel 기획서②-피드백)
-  personal: ['gaeun', 'lovestyle', 'love'], // 퍼스널 오행 → 개운·연애스타일·애정
-};
 
 // 유료 콘텐츠 라벨(CreditKind) + 무료 콘텐츠(비-CreditKind) 라우트·라벨.
 const LABEL: Record<string, string> = Object.fromEntries(CREDIT_KINDS.map((c) => [c.key, c.ko]));
