@@ -23,7 +23,7 @@ import { ComputedNote } from '../components/ComputedNote'; // '내 생년월일�
 import { TTSButton } from '../components/TTSButton'; // daniel: 풀이 음성 읽기(온디바이스 TTS·무료)
 import { ShareReadingButton } from '../components/ShareReadingButton'; // daniel: 공유는 풀이 맨 끝에 균일하게(콘텐츠 화면과 동일)
 import { Alert } from '../lib/ui/alert'; // 커스텀 알림(앱 디자인)
-import { isAdmin } from '../lib/core/admin'; // 관리자 여부 — 풀이 초기화 버튼 게이트(07-21 코드큐)
+import { isAdminActing } from '../lib/core/admin'; // 관리자 여부 — 풀이 초기화 버튼 게이트(07-21 코드큐)
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { computeChart } from '../lib/engine/engine';
@@ -130,7 +130,7 @@ export function ReadingScreen({
   const genDone = useGenProgress().reduce((s, g) => s + g.done, 0); // 풀이 완료 누적 — 변할 때마다 캐시 재조회(G: 백그라운드 생성분을 이 화면에 라이브 반영, 무한로딩/씽크 어긋남 제거)
   const [chartId, setChartId] = useState<string | null>(savedChart?.serverChartId ?? null);
   const [admin, setAdmin] = useState(false); // 관리자면 '풀이 초기화' 버튼 노출(07-21 코드큐·admin_reset_reading RPC)
-  useEffect(() => { isAdmin().then(setAdmin).catch(() => {}); }, []);
+  useEffect(() => { isAdminActing().then(setAdmin).catch(() => {}); }, []);
   const [detail, setDetail] = useState<string | null>(null); // 상세로 펼친 항목 key
   // 명리 용어 설명 시트(가독성 P2) — 풀이 본문의 용어를 탭하면 기존 글로서리(daniel 검수본)에서 뜻을 띄운다.
   const [term, setTerm] = useState<GlossaryTarget>(null);

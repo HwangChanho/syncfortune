@@ -22,7 +22,7 @@ import { useFeatureOn } from '../lib/core/features'; // 신규 기능 노출 게
 import { supabase } from '../lib/supabase';
 import { excludeMock } from '../lib/core/testMode'; // ★풀이 배지(기존 풀이 유무)서 목업 제외(OFF) — 목업을 '풀이함'으로 오인 방지
 import { showRewardedAd, adTestMode } from '../lib/core/ads'; // 무료 온디바이스 콘텐츠 진입 보상형 광고
-import { isAdmin } from '../lib/core/admin';                  // 관리자·프리미엄 = 무료 진입 광고 제외
+import { isAdminActing } from '../lib/core/admin';                  // 관리자·프리미엄 = 무료 진입 광고 제외
 import { useSubscription } from '../lib/billing/subscription';
 import { loadRepChart, subscribeRepChange } from '../lib/engine/myChart';
 import { isPremiumForChart } from '../lib/billing/premiumStore';  // 명식별 프리미엄('이용중' 표시)
@@ -101,7 +101,7 @@ export function ContentGrid({ showViewToggle = true, category = 'saju' }: { show
   const [openSec, setOpenSec] = useState<Record<string, boolean>>({}); // 리스트뷰 섹션 펼침(기본 접힘·상위 N개만)
 
   // session 반응형 — 로그아웃 즉시 관리자 상태 해제.
-  useEffect(() => { if (!session) { setAdmin(false); return; } isAdmin().then(setAdmin).catch(() => {}); }, [session]);
+  useEffect(() => { if (!session) { setAdmin(false); return; } isAdminActing().then(setAdmin).catch(() => {}); }, [session]);
   // 탭 포커스 복귀 시 재계산(명식 전환·수정 반영 — 명식 수정은 id가 같아 이것 없이는 갱신이 안 된다).
   useFocusEffect(useCallback(() => { setReloadKey((k) => k + 1); }, []));
   // 명식 전역 변경(전환·수정·로그아웃 클리어) 구독.

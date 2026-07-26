@@ -11,7 +11,7 @@ import { Stack } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { computeChart } from '../../lib/engine/engine';
 import { loadRepChart, listCharts, type SavedChart } from '../../lib/engine/myChart';
-import { isAdmin } from '../../lib/core/admin';
+import { isAdminActing } from '../../lib/core/admin';
 import { DAY_PILLAR, STRESS, dayPillarKey, compatibleIlju, type DayPillarTrait } from '../../lib/engine/dayPillar';
 import { DAY_PILLAR_LIVE } from '../../lib/engine/dayPillarLive'; // 일주별 '어떻게 살아야 하나' 실천 4계명(별도 파일·daniel 검수 슬롯)
 import { stemReading, branchReading } from '../../lib/engine/ohaeng';
@@ -65,7 +65,7 @@ export default function DayPillarScreen() {
         const ch = await loadRepChart();
         setRep(ch);
         if (ch) setSex(ch.input.sex); // 내 성별로 기본 보기 설정
-        isAdmin().then(setAdmin).catch(() => {}); // 관리자면 전체 60·남녀 토글 노출
+        isAdminActing().then(setAdmin).catch(() => {}); // 관리자면 전체 60·남녀 토글 노출
         // 등록된 모든 명식의 일주 + 성별(일반 유저 목록용). 같은 일주 중복은 명식 단위로 허용(label 로 구분).
         const charts = await listCharts();
         const items = charts.map((c) => {

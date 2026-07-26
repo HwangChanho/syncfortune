@@ -18,7 +18,7 @@ import { useAuth } from '../../lib/useAuth';
 import { useFontScale } from '../../lib/ui/fontScale';
 import { useSubscription } from '../../lib/billing/subscription'; // 프리미엄=자동 생성(타 스페셜과 통일)
 import { loadCredits } from '../../lib/billing/coupons';
-import { isAdmin } from '../../lib/core/admin'; // 스페셜 = 관리자 바로 진입 / 그 외 쿠폰(크레딧)만 unlock(결제 미연동)
+import { isAdminActing } from '../../lib/core/admin'; // 스페셜 = 관리자 바로 진입 / 그 외 쿠폰(크레딧)만 unlock(결제 미연동)
 import { requireLoginForPurchase } from '../../lib/billing/requireLogin';
 import { confirmReadingChart } from '../../lib/ui/confirmChart'; // 생성 전 명식 확인 + 보유 이용권 안내(daniel)
 import { assertOnline } from '../../lib/backend/network';
@@ -256,7 +256,7 @@ export default function LoveScreen() {
     if (!assertOnline(t)) { logEvent('love_offline'); return; }                    // 오프라인 = 생성 차단
     gatingRef.current = true;                                                       // 게이트 구간 연타 차단
     try {
-      const admin = await isAdmin();                                               // 관리자 = 바로 진입(테스트)
+      const admin = await isAdminActing();                                               // 관리자 = 바로 진입(테스트)
       if (!admin) {
         if (!requireLoginForPurchase(session, () => router.push('/login'), t)) { logEvent('love_need_login'); return; }
         const credits = await loadCredits();                                       // 쿠폰(이용권) 크레딧만 unlock — 결제 미연동

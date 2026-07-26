@@ -15,6 +15,24 @@ export async function isAdmin(): Promise<boolean> {
   return !error && data === true;
 }
 
+/**
+ * 관리자 **특권 적용** 여부 — `is_admin && admin_mode ≠ false`(Edge interpret 의 god 판정과 동일 규칙).
+ *
+ * ★왜 isAdmin() 과 따로 두나(daniel 2026-07-26 버그): 클라가 소유·무료통과 판정에 `isAdmin()`(=is_admin 만)을
+ *   써서, '관리자 모드 꺼짐(일반계정처럼)'으로 테스트하면 **클라는 "이미 열려 있는 풀이예요"로 표시하는데
+ *   Edge 는 god 아님 → needPayment → 구매 모달**이 떴다(+자물쇠가 떴다 사라지는 반복).
+ *   daniel: "관리자 모드가 꺼져있으면 일반 계정 테스트로 잘 되어야지" → 특권 판정은 전부 이걸 쓴다.
+ *
+ * ⚠️ 반대로 **관리자 화면 접근·관리 기능 게이트는 계속 `isAdmin()`** 을 써야 한다. 여기에 admin_mode 를
+ *    섞으면 모드를 끈 동안 관리자 화면이 잠겨 **다시 켤 수 없다**(토글이 그 화면 안에 있음 = 자기잠금).
+ *
+ * @returns 특권 적용 시 true. 비관리자·모드 OFF·조회 실패 = false(안전).
+ */
+export async function isAdminActing(): Promise<boolean> {
+  const { data, error } = await supabase.rpc('is_caller_god');
+  return !error && data === true;
+}
+
 /** 유저 목록(관리자 전용, 최근 가입순). 비관리자 호출 시 서버가 차단 → 빈 배열. */
 export async function adminListUsers(): Promise<AdminUser[]> {
   const { data, error } = await supabase.rpc('admin_list_users');

@@ -21,7 +21,7 @@ import { useAuth } from '../../lib/useAuth';
 import { useSubscription } from '../../lib/billing/subscription';
 import { Alert } from '../../lib/ui/alert';
 import { loadCredits } from '../../lib/billing/coupons';
-import { isAdmin } from '../../lib/core/admin'; // 스페셜 = 관리자 바로 / 그 외 쿠폰(크레딧)만
+import { isAdminActing } from '../../lib/core/admin'; // 스페셜 = 관리자 바로 / 그 외 쿠폰(크레딧)만
 import { requireLoginForPurchase } from '../../lib/billing/requireLogin';
 import { confirmReadingChart } from '../../lib/ui/confirmChart'; // 생성 전 명식 확인 + 보유 이용권 안내(daniel)
 import { supabase } from '../../lib/supabase';
@@ -222,7 +222,7 @@ export default function NewYearScreen() {
     if (!chartId || busy || gatingRef.current) return;
     gatingRef.current = true;                                                       // 게이트 구간 연타 차단
     try {
-      const admin = await isAdmin();                                                // 관리자 = 바로 진입
+      const admin = await isAdminActing();                                                // 관리자 = 바로 진입
       if (!admin) {
         if (!requireLoginForPurchase(session, () => router.push('/login'), t)) return;
         const credits = await loadCredits();                                        // 쿠폰(이용권)만 unlock — 결제 미연동

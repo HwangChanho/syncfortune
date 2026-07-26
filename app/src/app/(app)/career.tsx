@@ -21,7 +21,7 @@ import { useFontScale } from '../../lib/ui/fontScale';
 import { useSubscription } from '../../lib/billing/subscription'; // 프리미엄=자동 생성(타 스페셜과 통일)
 import { autoGenWithChartConfirm } from '../../lib/ui/confirmChart'; // 자동생성 전 명식 확인(명식 2개+ 일 때, daniel 07-13)
 import { loadCredits } from '../../lib/billing/coupons';
-import { isAdmin } from '../../lib/core/admin'; // 스페셜 = 관리자 바로 진입 / 그 외 쿠폰(크레딧)만 unlock(결제 미연동)
+import { isAdminActing } from '../../lib/core/admin'; // 스페셜 = 관리자 바로 진입 / 그 외 쿠폰(크레딧)만 unlock(결제 미연동)
 import { requireLoginForPurchase } from '../../lib/billing/requireLogin';
 import { assertOnline } from '../../lib/backend/network';
 import { supabase } from '../../lib/supabase';
@@ -183,7 +183,7 @@ export default function CareerScreen() {
     if (isPremium) { generate(chartId); return; }
     gatingRef.current = true;
     try {
-      const admin = await isAdmin();
+      const admin = await isAdminActing();
       if (!admin) {
         if (!requireLoginForPurchase(session, () => router.push('/login'), t)) { logEvent('career_need_login'); return; }
         const credits = await loadCredits();

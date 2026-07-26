@@ -19,7 +19,7 @@ import { colors, radius, space, font } from '../../lib/theme';
 import { Alert } from '../../lib/ui/alert';                         // 커스텀 알림(앱 디자인)
 import { useAuth } from '../../lib/useAuth';
 import { useSubscription } from '../../lib/billing/subscription';        // 프리미엄=무료
-import { isAdmin } from '../../lib/core/admin';                       // 관리자=무료
+import { isAdminActing } from '../../lib/core/admin';                       // 관리자=무료
 import { useCredit, waitForCreditGrant } from '../../lib/billing/coupons';      // 서버 크레딧 차감 + 결제 후 웹훅 적립 폴링(C1)
 import { isUnlocked, markUnlocked } from '../../lib/billing/unlocks';    // 1회 해제 후 영구(재차감 방지)
 import { purchaseCreditRC, purchasesEnabled } from '../../lib/billing/purchases'; // 즉시 구매
@@ -53,7 +53,7 @@ export default function TimeResolveScreen() {
     let alive = true;
     (async () => {
       if (isPremium) { if (alive) setUnlocked(true); return; }
-      const u = (await isUnlocked(TPR_UNLOCK, 'timeresolve')) || (await isAdmin());
+      const u = (await isUnlocked(TPR_UNLOCK, 'timeresolve')) || (await isAdminActing());
       if (alive) setUnlocked(u);
     })().catch(() => {});
     return () => { alive = false; };
@@ -113,7 +113,7 @@ export default function TimeResolveScreen() {
     try {
       if (isPremium) { setUnlocked(true); compute(); return; }
       if (await isUnlocked(TPR_UNLOCK, 'timeresolve')) { setUnlocked(true); compute(); return; } // 이전 구매(영구)
-      if (await isAdmin()) { setUnlocked(true); compute(); return; }
+      if (await isAdminActing()) { setUnlocked(true); compute(); return; }
       if (!requireLoginForPurchase(session, () => router.push('/login'), t)) return; // 미로그인 → 로그인 유도
       // 보유 크레딧 차감(쿠폰/선물/이전 구매분) → 영구 해제
       if (await useCredit('timeresolve')) { await markUnlocked(TPR_UNLOCK, 'timeresolve'); setUnlocked(true); compute(); return; }

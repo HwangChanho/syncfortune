@@ -16,7 +16,7 @@ import { Alert } from '../../lib/ui/alert';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../lib/useAuth';
 import { useSubscription } from '../../lib/billing/subscription';
-import { isAdmin } from '../../lib/core/admin';
+import { isAdminActing } from '../../lib/core/admin';
 import { waitForCreditGrant } from '../../lib/billing/coupons';          // C1: 결제 후 웹훅 적립 폴링(차감·게이트는 Edge 서버 권위)
 import { purchaseCreditRC, purchasesEnabled } from '../../lib/billing/purchases'; // 꿈해몽 5회 번들 결제
 import { requireLoginForPurchase } from '../../lib/billing/requireLogin';
@@ -110,7 +110,7 @@ export default function DreamScreen() {
     // ★C3b/C1(daniel 07-03): dream 게이트를 서버(Edge)로 이관 — 클라 useCredit 차감 제거(서버 이중차감 방지).
     //   프리미엄/관리자는 무료(Edge 도 동일 바이패스) / 그 외는 Edge 가 'dream' 이용권 차감 → 없으면 needPayment(runAI 가 구매 제안).
     if (!isPremium) {
-      const admin = await isAdmin().catch(() => false);
+      const admin = await isAdminActing().catch(() => false);
       if (!admin && !requireLoginForPurchase(session, () => router.push('/login'), t)) return; // 로그인만 보장(결제=계정 귀속)
     }
     runAI(text);

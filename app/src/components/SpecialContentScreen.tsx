@@ -29,7 +29,7 @@ import { ShareReadingButton } from './ShareReadingButton'; // 이슈17: 풀이 �
 import { TTSButton } from './TTSButton'; // daniel: 풀이 음성 읽기(온디바이스 TTS·무료)
 import { RelatedContent } from './RelatedContent'; // 연관 콘텐츠 자동 추천(하단 크로스셀·API 0·daniel 기획서)
 import { purchaseCreditRC, purchasesEnabled } from '../lib/billing/purchases'; // 즉시 구매(마켓 안 거치고 바로)
-import { isAdmin } from '../lib/core/admin';                  // 스페셜 = 관리자 바로 / 그 외 쿠폰(크레딧)
+import { isAdminActing } from '../lib/core/admin';                  // 스페셜 = 관리자 바로 / 그 외 쿠폰(크레딧)
 import { requireLoginForPurchase } from '../lib/billing/requireLogin';
 import { confirmReadingChart, autoGenWithChartConfirm } from '../lib/ui/confirmChart'; // 생성 전 명식 확인(수동=항상 / 자동=명식 2개+ 일 때)
 import { assertOnline } from '../lib/backend/network';
@@ -147,7 +147,7 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
       // 소유 판정(daniel ⓐⓒ): (premiumCovered면 프리미엄 명식) / 관리자 / 이 차트×종류 unlock(차감 완료) 중 하나여야 풀이 노출. 아니면 설명창(게이트).
       //   ★premiumCovered(자식운 등 프리미엄 포함 콘텐츠)만 프리미엄을 소유로 인정 — 스페셜(astrology/mission 등 기본값)은 프리미엄 무관(관리자/크레딧 전용) 그대로.
       const prem = premiumCovered && isPremiumForChart(id);
-      const own = prem || (await isAdmin()) || (await isUnlocked(id, kind));
+      const own = prem || (await isAdminActing()) || (await isUnlocked(id, kind));
       const { data } = await excludeMock(supabase.from('readings').select('content, created_at').eq('chart_id', id).eq('category', category).eq('lang', appLang())).maybeSingle();
       if (!alive) return;
       const cached = data?.content ?? null;
@@ -296,7 +296,7 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
     let proceed = false;
     try {
       // 관리자 = 무료(Edge god 도 통과) / 프리미엄 명식 = Edge effPrem 바이패스(크레딧 불요) / 그 외 = 로그인 보장 + 크레딧 사전 확인.
-      if (await isAdmin()) proceed = true;
+      if (await isAdminActing()) proceed = true;
       else if (!requireLoginForPurchase(session, () => router.push('/login'), t)) proceed = false; // 미로그인 → 로그인 유도(생성 안 함)
       else if (isPremiumForChart(chartId)) proceed = true;                                          // 프리미엄 = 서버 무게이트 통과 → 바로 생성
       else {
