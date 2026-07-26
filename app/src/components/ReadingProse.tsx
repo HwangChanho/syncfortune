@@ -26,13 +26,15 @@ const COLLAPSED_PARAS = 2;
 const COLLAPSE_MIN_LEN = 300;
 
 export function ReadingProse({
-  text, accent = colors.ju, collapsible = false, baseSize = 15, style,
+  text, accent = colors.ju, collapsible = false, baseSize = 15, style, onTermPress,
 }: {
   text: string;                       // 본문 원문(통짜 허용)
   accent?: string;                    // 강조색 — 콘텐츠별 themeColor(정체성 유지)
   collapsible?: boolean;              // 긴 본문 '더 보기' 접기(기본 false)
   baseSize?: number;                  // 기준 글자 크기(fs 배율 적용 전). 기본 15 = 기존 본문과 동일
   style?: StyleProp<ViewStyle>;
+  /** 명리 용어 탭(가독성 P2). 주면 용어가 점선 밑줄+탭 가능해진다. 없으면 굵게만(기존 동작). */
+  onTermPress?: (term: string) => void;
 }) {
   const { fs } = useFontScale();
   const [open, setOpen] = useState(false);
@@ -58,12 +60,20 @@ export function ReadingProse({
     <View style={style}>
       {shown.map((segments, i) => (
         <Text key={i} style={[styles.para, bodyDyn, i > 0 && { marginTop: space(3.5) }]}>
-          {segments.map((sg, j) =>
-            sg.em
-              // 강조 = 색이 아니라 **굵기 + 살짝 짙은 먹**. 색으로 칠하면 링크로 오인되고 과밀해 보인다.
-              ? <Text key={j} style={styles.em}>{sg.t}</Text>
-              : <Text key={j}>{sg.t}</Text>,
-          )}
+          {segments.map((sg, j) => {
+            if (!sg.em) return <Text key={j}>{sg.t}</Text>;
+            // ★명리 용어(term)면 **탭하면 뜻이 뜨는** 안내 표시(가독성 P2 축4).
+            //   점선 밑줄로 '누를 수 있다'를 알리되, 링크처럼 색을 칠하지는 않는다(과밀·오인 방지).
+            if (sg.term && onTermPress) {
+              return (
+                <Text key={j} style={[styles.em, styles.termLink, { textDecorationColor: accent }]} onPress={() => onTermPress(sg.term!)} suppressHighlighting>
+                  {sg.t}
+                </Text>
+              );
+            }
+            // 강조 = 색이 아니라 **굵기 + 살짝 짙은 먹**. 색으로 칠하면 링크로 오인되고 과밀해 보인다.
+            return <Text key={j} style={styles.em}>{sg.t}</Text>;
+          })}
         </Text>
       ))}
       {canCollapse && (
@@ -126,6 +136,8 @@ const styles = StyleSheet.create({
   para: { ...font.body, color: colors.ink },
   // 강조 — 굵기로만(색 사용 금지: 링크 오인·과밀 방지). ink 는 이미 최고 대비(#1C1C1E on #FFF).
   em: { fontWeight: '800', color: colors.ink },
+  // 탭 가능한 명리 용어 — 점선 밑줄로만 신호(색 칠하지 않음). 색 대신 형태로 구분해 과밀을 피한다.
+  termLink: { textDecorationLine: 'underline', textDecorationStyle: 'dotted' },
   // '더 보기' — 본문 흐름을 끊지 않게 좌측 정렬 소형 아웃라인
   moreBtn: { alignSelf: 'flex-start', marginTop: space(3), paddingVertical: space(1.5), paddingHorizontal: space(3), borderRadius: radius.md, borderWidth: 1 },
   moreTx: { fontWeight: '800' },

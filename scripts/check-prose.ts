@@ -71,5 +71,27 @@ for (const { name, text } of SAMPLES) {
   console.log(`  문단 ${paras.length}개 · 문단길이 [${paras.map((p) => p.length).join(', ')}] · 강조 ${emphasized.length}개 ${JSON.stringify(emphasized)} (${(ratio * 100).toFixed(1)}%)`);
 }
 
-console.log(fail ? `\n❌ check:prose 실패 ${fail}건` : '\n✅ check:prose 통과 — 무손실·문장경계·과밀 불변식 OK');
+// ── INV5 용어 커버리지(가독성 P2) ────────────────────────────────────────────
+// 풀이 본문에서 강조되는 **명리 용어는 전부 탭하면 뜻이 나와야** 한다.
+//   강조만 되고 설명이 없으면 "굵게 칠해놓고 무슨 말인지 안 알려주는" 상태라 P2 목적(용어 장벽 제거)에 역행한다.
+//   TERM_WORDS 에 새 용어를 추가하고 사전을 빠뜨리면 여기서 잡힌다.
+// ※ 사전 파일은 순수 데이터라 RN 의존이 없어 정규식 파싱 없이 그대로 읽어 대조한다.
+{
+  console.log('\n▸ 용어 커버리지(P2) — 강조 용어 ↔ 글로서리');
+  const fs = await import('node:fs');
+  const emSrc = fs.readFileSync('app/src/lib/ui/readingEmphasis.ts', 'utf8');
+  const m = emSrc.match(/const TERM_WORDS: string\[\] = \[([\s\S]*?)\];/);
+  const terms = m ? (m[1].match(/'([^']+)'/g) ?? []).map((s) => s.replace(/'/g, '')) : [];
+  const gSrc = fs.readFileSync('app/src/lib/content/myeongriGlossary.ts', 'utf8');
+  const keys = new Set<string>();
+  for (const b of gSrc.matchAll(/export const \w+_GLOSSARY[^=]*=\s*\{([\s\S]*?)\n\};/g)) {
+    for (const k of b[1].matchAll(/^\s{2}([가-힣A-Za-z]+):\s*\{/gm)) keys.add(k[1]);
+  }
+  if (!terms.length) bad('INV5 TERM_WORDS 파싱 실패 — 하네스가 무력화됨');
+  const missing = terms.filter((t) => !keys.has(t));
+  if (missing.length) bad(`INV5 강조되는데 설명이 없는 용어 ${missing.length}개: ${missing.join(', ')} — myeongriGlossary 에 추가 필요`);
+  else console.log(`  강조 용어 ${terms.length}개 전부 글로서리에 존재 ✓`);
+}
+
+console.log(fail ? `\n❌ check:prose 실패 ${fail}건` : '\n✅ check:prose 통과 — 무손실·문장경계·과밀·용어커버리지 OK');
 process.exit(fail ? 1 : 0);

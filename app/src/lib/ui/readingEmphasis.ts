@@ -102,8 +102,25 @@ const TERM_PATTERN = new RegExp(
   'g',
 );
 
-/** 강조 세그먼트 — em=true 면 볼드 렌더. */
-export type Segment = { t: string; em: boolean };
+/**
+ * 강조 세그먼트 — em=true 면 볼드 렌더.
+ * `term` 이 있으면 **글로서리에 뜻이 있는 명리 용어**라 탭하면 설명을 띄울 수 있다(가독성 P2).
+ *   · 시기 표현(9~10월 등)은 강조만 하고 term 은 없다(설명할 게 없음).
+ *   · term 값 = myeongriGlossary 의 조회 키. kind 는 소비자가 정한다(십신 10성 → 'tengod' / 그 외 → 'basic').
+ */
+export type Segment = { t: string; em: boolean; term?: string };
+
+/**
+ * 십신 10성(+칠살) — 기존 TENGOD_GLOSSARY 가 커버하는 키.
+ * 나머지 명리어(용신 계열·묶음어·구조어)는 BASIC_GLOSSARY 소관이라 kind 가 다르다.
+ * ※ 여기서 사전을 직접 import 하지 않는 이유: 이 모듈은 순수 문자열 처리(하네스가 RN 없이 돈다)를 유지한다.
+ */
+const TENGOD_KEYS = new Set(['정인', '편인', '정관', '편관', '칠살', '정재', '편재', '식신', '상관', '비견', '겁재']);
+
+/** 용어 → 글로서리 kind. 소비자가 lookupGlossary(kind, term) 로 조회한다. */
+export function glossaryKindOf(term: string): 'tengod' | 'basic' {
+  return TENGOD_KEYS.has(term) ? 'tengod' : 'basic';
+}
 
 /**
  * 문단 텍스트를 강조 세그먼트로 쪼갠다.
@@ -119,18 +136,18 @@ export function emphasize(text: string, seen: Set<string>): Segment[] {
   if (!text) return [];
 
   // ① 후보 매치 수집(시기 + 명리어)
-  type Hit = { start: number; end: number; s: string };
+  type Hit = { start: number; end: number; s: string; term?: boolean };
   const hits: Hit[] = [];
-  const collect = (re: RegExp) => {
+  const collect = (re: RegExp, isTerm = false) => {
     re.lastIndex = 0; // g 플래그 정규식 재사용 시 상태 초기화(누락 버그 방지)
     let m: RegExpExecArray | null;
     while ((m = re.exec(text)) !== null) {
       if (!m[0]) { re.lastIndex++; continue; } // 빈 매치 방어(무한루프 차단)
-      hits.push({ start: m.index, end: m.index + m[0].length, s: m[0] });
+      hits.push({ start: m.index, end: m.index + m[0].length, s: m[0], term: isTerm });
     }
   };
-  TIME_PATTERNS.forEach(collect);
-  collect(TERM_PATTERN);
+  TIME_PATTERNS.forEach((re) => collect(re));
+  collect(TERM_PATTERN, true); // 명리어만 term 표시 → 탭하면 글로서리(가독성 P2)
   if (!hits.length) return [{ t: text, em: false }];
 
   // ② 시작 위치 오름차순 · 같은 시작이면 긴 것 우선 → 겹치는 짧은 매치 제거
@@ -152,7 +169,8 @@ export function emphasize(text: string, seen: Set<string>): Segment[] {
   let pos = 0;
   for (const h of picked) {
     if (h.start > pos) out.push({ t: text.slice(pos, h.start), em: false });
-    out.push({ t: text.slice(h.start, h.end), em: true });
+    // 명리어면 term 을 실어 보낸다 → 렌더러가 탭 가능하게 만들고 글로서리를 띄운다(P2).
+    out.push(h.term ? { t: text.slice(h.start, h.end), em: true, term: h.s } : { t: text.slice(h.start, h.end), em: true });
     pos = h.end;
   }
   if (pos < text.length) out.push({ t: text.slice(pos), em: false });

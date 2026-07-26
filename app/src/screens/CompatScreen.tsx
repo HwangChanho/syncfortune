@@ -8,7 +8,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator, Modal, TextInput, Keyboard, Image, Animated, Easing } from 'react-native';
 import { PressableScale } from '../components/PressableScale';
-import { ReadingProse, ReadingHeadline, ReadingPoints } from '../components/ReadingProse'; // 풀이 본문 공통 렌더(P0 문단화·강조·접이식 + P1 핵심3줄)
+import { ReadingProse, ReadingHeadline, ReadingPoints } from '../components/ReadingProse';
+import { GlossarySheet, type GlossaryTarget } from '../components/GlossarySheet'; // 명리 용어 탭 → 뜻(가독성 P2)
+import { glossaryKindOf } from '../lib/ui/readingEmphasis'; // 용어 → 글로서리 kind // 풀이 본문 공통 렌더(P0 문단화·강조·접이식 + P1 핵심3줄)
 import { useSafeAreaInsets } from 'react-native-safe-area-context'; // 모달 상단 노치/상태바 침범 방지(J)
 import { Alert } from '../lib/ui/alert'; // 커스텀 알림(앱 디자인)
 import { useTranslation } from 'react-i18next';
@@ -100,6 +102,9 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
   const [year, setYear] = useState('');                          // '' = 원국(관계 본바탕) / 'YYYY' = 그 해 흐름
   const [compatTab] = useState<'saju' | 'ziwei'>('saju'); // ★탭 제거(daniel 2026-07-15) — 항상 'saju'(=사주+자미 합친 'compat' 통변). setter 미사용.
   const [readings, setReadings] = useState<Record<string, CompatReading>>({});
+  // 명리 용어 설명 시트(가독성 P2) — 본문 용어 탭 → 기존 글로서리(daniel 검수본)에서 뜻을 띄운다.
+  const [term, setTerm] = useState<GlossaryTarget>(null);
+  const openTerm = (t: string) => setTerm({ kind: glossaryKindOf(t), key: t });
   // ★pay-once-per-pair(daniel 2026-07-22): 이 페어를 *반대 방향*으로 이미 결제한 관계(대표를 바꿔 A×B→B×A 로 본 경우).
   //   서버가 결제 권위(역방향 무료 인식)라 표시용 readings 엔 안 섞고(반대 방향 통변은 나/상대 관점이 뒤집힘), '보유' 배지 정합에만 쓴다.
   const [pairOwnedRels, setPairOwnedRels] = useState<Set<string>>(new Set());
@@ -397,7 +402,7 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
               {/* ★근본 '풀이 안 보임'(daniel 07-11): 관계별 섹션셋에 base 키가 없어 base 프로즈만 오면(JSON 파싱 폴백) 본문 공백(headline만) → base 통째로 표시. */}
               {/* ★가독성 P0(2026-07-26): 통짜 <Text> → ReadingProse(문단화·강조·행간). 폴백 base 는 섹션이 뭉친 최장 본문이라 접이식. */}
               {typeof cur.base === 'string' && cur.base.trim() ? (
-                <ReadingProse text={cur.base} accent={colors.ju} collapsible />
+                <ReadingProse text={cur.base} accent={colors.ju} collapsible onTermPress={openTerm} />
               ) : null}
               {/* 관계별 동적 섹션(daniel 2026-06): 연애=속궁합·썸·짝사랑 등 / 결혼=속궁합·시댁·자녀 등 / 동업=투자 등. 연도별은 기본 4항목. */}
               {compatSections(rel, !!year).map((s) => {
@@ -407,7 +412,7 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
                 return (
                   <View key={s.key} style={[styles.sec, (s.key === 'advice' || s.key === 'remedy') && styles.remedySec]}>
                     <Text style={styles.secLabel}>{compatSectionLabel(s)}</Text>
-                    <ReadingProse text={v} accent={colors.ju} />
+                    <ReadingProse text={v} accent={colors.ju} onTermPress={openTerm} />
                   </View>
                 );
               })}
@@ -518,6 +523,8 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
         </Pressable>
       </Pressable>
     </Modal>
+    {/* 명리 용어 설명(가독성 P2) — 다른 모달들과 형제로 배치 */}
+    <GlossarySheet target={term} onClose={() => setTerm(null)} />
     </>
   );
 

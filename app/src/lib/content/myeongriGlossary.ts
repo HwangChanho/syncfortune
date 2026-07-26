@@ -123,6 +123,50 @@ export const GANGYAK_GLOSSARY: Record<string, GlossaryEntry> = {
     meaning: '일간(나)의 기운이 약한 상태. ★좋고 나쁨이 아니라 에너지의 방향 차이 — 약하면 도와 받치는 쪽(배움·동료의 힘)이 나를 살리는 용신이 된다.' },
 };
 
+// ── 기본 용어(基本) — 풀이 본문에 새어 나오는 구조어·용신 계열·십신 묶음어 ────────────
+// ★가독성 P2(2026-07-26): 유료 통변 프롬프트는 본문에 전문어를 **한 글자도 쓰지 말라**고 지시하지만,
+//   실측하면 새어 나온다(예: "정관이 두 곳에 투출"). 그때 독자가 막히지 않도록 **탭하면 뜻이 뜨는 안전망**을 둔다.
+//   기존 사전은 십신 10성·신살 등 '명식 화면'용이라, 풀이 본문에 흔한 아래 16개가 비어 있었다(실측 대조).
+// ★stance: 표준 교과서 수준의 *용어 설명 초안*(Claude) — 판정이 아니라 '이 말이 무슨 뜻인지'. **daniel 검수 슬롯(§3.3)**.
+// ★§4 가드: 길흉 단정 금지 — 용신 계열도 "좋다/나쁘다"가 아니라 **균형의 방향**으로 서술(GANGYAK_GLOSSARY 와 같은 결).
+export const BASIC_GLOSSARY: Record<string, GlossaryEntry> = {
+  // 용신 계열 — ★"좋은 글자/나쁜 글자"로 읽히지 않게 '균형추' 프레임을 첫 문장에 둔다.
+  용신: { ko: '용신', hanja: '用神', keywords: ['균형추', '보완', '방향'],
+    meaning: '내 사주에서 **균형을 잡아 주는 기운**. 강하면 덜어 주고 약하면 받쳐 주는 쪽이라, 좋은 글자라기보다 *지금 나에게 필요한 방향*으로 이해하면 정확하다.' },
+  희신: { ko: '희신', hanja: '喜神', keywords: ['조력', '보조'],
+    meaning: '균형추(용신)를 옆에서 도와주는 기운. 용신만큼 결정적이진 않아도 흐름을 부드럽게 거든다.' },
+  기신: { ko: '기신', hanja: '忌神', keywords: ['과함', '조절'],
+    meaning: '지금의 균형을 흐트러뜨리는 쪽의 기운. 나쁜 글자가 아니라 **이미 넘치는 것을 더 보태는** 방향이라 조절이 필요하다는 뜻이다.' },
+  구신: { ko: '구신', hanja: '仇神', keywords: ['견제', '간접'],
+    meaning: '균형추(용신)를 직접 치는 기운. 기신을 돕는 자리라 간접적으로 흐름을 무겁게 한다.' },
+  한신: { ko: '한신', hanja: '閑神', keywords: ['중립', '대기'],
+    meaning: '균형에 크게 관여하지 않는 중립적 기운. 운의 흐름에 따라 도움도 부담도 될 수 있어 상황을 보고 판단한다.' },
+  // 십신 묶음어 — 개별 십신(TENGOD_GLOSSARY)의 상위 묶음. 통변이 묶음으로 말할 때가 많다.
+  비겁: { ko: '비겁', hanja: '比劫', keywords: ['나·동료', '주체', '경쟁'],
+    meaning: '비견과 겁재를 함께 부르는 말. **나와 같은 힘** — 주체성·동료·경쟁의 축이다.' },
+  식상: { ko: '식상', hanja: '食傷', keywords: ['표현', '재능', '생산'],
+    meaning: '식신과 상관을 함께 부르는 말. **내가 밖으로 내보내는 힘** — 표현·재능·생산의 축이다.' },
+  재성: { ko: '재성', hanja: '財星', keywords: ['재물', '결실', '활동'],
+    meaning: '정재와 편재를 함께 부르는 말. **내가 다루는 대상** — 재물·결실·활동 무대의 축이다.' },
+  관성: { ko: '관성', hanja: '官星', keywords: ['역할', '책임', '평가'],
+    meaning: '정관과 편관을 함께 부르는 말. **나를 다잡는 힘** — 맡은 역할·책임·주변의 평가 축이다.' },
+  인성: { ko: '인성', hanja: '印星', keywords: ['배움', '후원', '충전'],
+    meaning: '정인과 편인을 함께 부르는 말. **나를 받쳐 주는 힘** — 배움·후원·마음의 충전 축이다.' },
+  // 구조어 — 사실 설명(어느 자리를 가리키는 말인지). 판정 아님.
+  원국: { ko: '원국', hanja: '原局', keywords: ['타고난 판', '평생'],
+    meaning: '태어난 순간의 사주 여덟 글자 그 자체 — **평생 바뀌지 않는 바탕**이다. 운(대운·세운)은 이 바탕 위로 흘러간다.' },
+  대운: { ko: '대운', hanja: '大運', keywords: ['10년', '큰 흐름'],
+    meaning: '약 10년 단위로 바뀌는 **큰 환경의 흐름**. 원국이 무대라면 대운은 그 무대의 계절이 바뀌는 것에 가깝다.' },
+  세운: { ko: '세운', hanja: '歲運', keywords: ['한 해', '올해'],
+    meaning: '한 해 단위의 흐름(그 해의 간지). 대운이라는 계절 안에서 **올해의 날씨**에 해당한다.' },
+  일간: { ko: '일간', hanja: '日干', keywords: ['나 자신', '기준'],
+    meaning: '태어난 날의 천간 = **나 자신을 가리키는 글자**. 사주의 모든 관계(십신)는 이 글자를 기준으로 정해진다.' },
+  월지: { ko: '월지', hanja: '月支', keywords: ['계절', '중심축'],
+    meaning: '태어난 달의 지지. **계절의 기운**을 담고 있어 사주 전체의 강약과 격을 가르는 중심축으로 본다.' },
+  일지: { ko: '일지', hanja: '日支', keywords: ['배우자궁', '가장 가까운 자리'],
+    meaning: '태어난 날의 지지. 나(일간) 바로 아래 붙은 **가장 가까운 자리**라, 배우자·가정 등 밀접한 관계의 자리로 본다.' },
+};
+
 // ── 12운성(十二運星) — 일간이 각 지지에서 갖는 기운의 강약·단계 ──
 export const STAGE_GLOSSARY: Record<string, GlossaryEntry> = {
   장생: { ko: '장생', hanja: '長生', keywords: ['시작', '성장', '순수'], meaning: '갓 태어난 기운 — 시작·성장·순수함·인덕. 새로 출발하는 자리에서 힘이 살아난다.' },
@@ -265,12 +309,13 @@ export const BRANCH_GLOSSARY: Record<string, GlossaryEntry> = {
     meaning: '돼지 — 해월(≈11월), 초겨울의 수(水). 순수·포용·지혜의 기운 — 너그러움·끈기. 역마이자 천문(天門)의 자리.' },
 };
 
-export type GlossaryKind = 'tengod' | 'sinsal' | 'gongmang' | 'stage' | 'palace' | 'star' | 'interaction' | 'element' | 'stem' | 'branch' | 'gangyak';
+export type GlossaryKind = 'tengod' | 'sinsal' | 'gongmang' | 'stage' | 'palace' | 'star' | 'interaction' | 'element' | 'stem' | 'branch' | 'gangyak' | 'basic';
 
 export const GLOSSARY_KIND_LABEL: Record<GlossaryKind, string> = {
   tengod: '십신 (十神)', sinsal: '신살 (神煞)', gongmang: '공망 (空亡)', stage: '12운성 (十二運星)',
   palace: '자미두수 궁 (宮)', star: '자미두수 성요 (星曜)', interaction: '합충형해 (合冲刑害)', element: '오행 (五行)',
   stem: '천간 물상 (天干)', branch: '지지 물상 (地支)', gangyak: '강약 (强弱)',
+  basic: '기본 용어',
 };
 
 /** 종류+키로 글로서리 엔트리 조회. 없으면 null. */
@@ -286,5 +331,6 @@ export function lookupGlossary(kind: GlossaryKind, key?: string): GlossaryEntry 
   if (kind === 'stem') return (key && STEM_GLOSSARY[key]) || null;
   if (kind === 'branch') return (key && BRANCH_GLOSSARY[key]) || null;
   if (kind === 'gangyak') return (key && GANGYAK_GLOSSARY[key]) || null;
+  if (kind === 'basic') return (key && BASIC_GLOSSARY[key]) || null;
   return null;
 }

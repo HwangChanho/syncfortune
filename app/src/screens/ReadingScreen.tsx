@@ -15,7 +15,9 @@ import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator, Modal
 import { Image as ExpoImage } from 'expo-image'; // 추천 콘텐츠 썸네일(다운샘플·디스크캐시)
 import { SECTIONS } from '../lib/content/contentSections'; // 추천 '이런 콘텐츠도 좋아하실 거예요'(하단·daniel 07-21) — 콘텐츠 단일출처
 import { PressableScale } from '../components/PressableScale';
-import { ReadingProse, ReadingHeadline, ReadingPoints } from '../components/ReadingProse'; // 풀이 본문 공통 렌더(가독성 P0 문단화·강조·접이식 + P1 핵심3줄). 3개 렌더지점 단일출처
+import { ReadingProse, ReadingHeadline, ReadingPoints } from '../components/ReadingProse';
+import { GlossarySheet, type GlossaryTarget } from '../components/GlossarySheet'; // 명리 용어 탭 → 뜻(가독성 P2)
+import { glossaryKindOf } from '../lib/ui/readingEmphasis'; // 용어 → 글로서리 kind(십신/기본) // 풀이 본문 공통 렌더(가독성 P0 문단화·강조·접이식 + P1 핵심3줄). 3개 렌더지점 단일출처
 import { ExpiryNote } from '../components/ExpiryNote'; // 보유 만료일 공통(프리미엄 가드 한 곳)
 import { ComputedNote } from '../components/ComputedNote'; // '내 생년월일로 계산됨' 배지(App Store 4.3 대응)
 import { TTSButton } from '../components/TTSButton'; // daniel: 풀이 음성 읽기(온디바이스 TTS·무료)
@@ -130,6 +132,9 @@ export function ReadingScreen({
   const [admin, setAdmin] = useState(false); // 관리자면 '풀이 초기화' 버튼 노출(07-21 코드큐·admin_reset_reading RPC)
   useEffect(() => { isAdmin().then(setAdmin).catch(() => {}); }, []);
   const [detail, setDetail] = useState<string | null>(null); // 상세로 펼친 항목 key
+  // 명리 용어 설명 시트(가독성 P2) — 풀이 본문의 용어를 탭하면 기존 글로서리(daniel 검수본)에서 뜻을 띄운다.
+  const [term, setTerm] = useState<GlossaryTarget>(null);
+  const openTerm = (t: string) => setTerm({ kind: glossaryKindOf(t), key: t });
   const [stale, setStale] = useState<Set<string>>(new Set()); // ADR-055 P3: 분석 버전이 낮아 갱신 가능한 영역(opt-in)
   const [renewable, setRenewable] = useState<Set<string>>(new Set()); // ★재통변(daniel 07-08): 운세형 & 생성 1년 경과 영역
   // ★세운 배지(daniel 판정 2026-07-18 '라이브 주입 + 서빙 배지'): 저장된 풀이는 **생성 시점의 세운**으로 쓰였는데
@@ -624,34 +629,34 @@ export function ReadingScreen({
         {base ? (
           <View style={styles.section}>
             <Text style={styles.secLabel}>{t('reading.base')}</Text>
-            <ReadingProse text={base} accent={colors.ju} />
+            <ReadingProse text={base} accent={colors.ju} onTermPress={openTerm} />
           </View>
         ) : null}
         {past ? (
           <View style={styles.section}>
             <Text style={styles.secLabel}>{t('reading.past')}</Text>
-            <ReadingProse text={past} accent={colors.ju} collapsible />
+            <ReadingProse text={past} accent={colors.ju} collapsible onTermPress={openTerm} />
           </View>
         ) : null}
         {overlay ? (
           <View style={styles.section}>
             <Text style={styles.secLabel}>{t('reading.overlay')}</Text>
-            <ReadingProse text={overlay} accent={colors.ju} />
+            <ReadingProse text={overlay} accent={colors.ju} onTermPress={openTerm} />
           </View>
         ) : null}
         {future ? (
           <View style={styles.section}>
             <Text style={styles.secLabel}>{t('reading.future', '앞날·다가올 흐름')}</Text>
-            <ReadingProse text={future} accent={colors.ju} />
+            <ReadingProse text={future} accent={colors.ju} onTermPress={openTerm} />
           </View>
         ) : null}
         {remedy ? (
           <View style={[styles.section, styles.remedySection]}>
             <Text style={styles.secLabel}>{t('reading.remedy')}</Text>
-            <ReadingProse text={remedy} accent={colors.ju} />
+            <ReadingProse text={remedy} accent={colors.ju} onTermPress={openTerm} />
           </View>
         ) : null}
-        {!base && !overlay && !remedy && <ReadingProse text={asText(r)} accent={colors.ju} />}
+        {!base && !overlay && !remedy && <ReadingProse text={asText(r)} accent={colors.ju} onTermPress={openTerm} />}
       </>
     );
   };
@@ -793,6 +798,8 @@ export function ReadingScreen({
         )}
       </KeyboardAvoidingView>
     </Modal>
+    {/* 명리 용어 설명(가독성 P2) — 상세 모달 위에 뜨도록 형제로 배치(모달 안에 두면 iOS 에서 중첩 모달 이슈) */}
+    <GlossarySheet target={term} onClose={() => setTerm(null)} />
     </>
   );
 }

@@ -9,6 +9,8 @@ import { useEffect, useMemo, useState, useRef, type ReactNode } from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator, Animated, Easing, Modal } from 'react-native';
 import { PressableScale } from './PressableScale';
 import { ReadingProse, ReadingHeadline, ReadingPoints } from './ReadingProse'; // 풀이 본문 공통 렌더(P0 문단화·강조·접이식 + P1 핵심3줄). 이 셸을 쓰는 유료 콘텐츠 29종에 일괄 적용
+import { GlossarySheet, type GlossaryTarget } from './GlossarySheet'; // 명리 용어 탭 → 뜻(가독성 P2)
+import { glossaryKindOf } from '../lib/ui/readingEmphasis'; // 용어 → 글로서리 kind(십신/기본)
 import { ExpiryNote } from './ExpiryNote'; // 보유 만료일 공통(프리미엄 가드 한 곳)
 import { Image as ExpoImage } from 'expo-image'; // 콘텐츠 배너 — 자동 다운샘플·디스크캐시(daniel: 이미지 프리로드/캐시). 홈카드와 같은 파일 캐시 공유 → 콘텐츠 진입 즉시
 import { Alert } from '../lib/ui/alert'; // 커스텀 알림(앱 디자인)
@@ -105,6 +107,9 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
   const chartIdRef = useRef<string | null>(null); // ① 현재 로드된 serverChartId — generate 결과 명식 대조(남의 풀이 표시 차단)
   const reveal = useRef(new Animated.Value(0)).current; // 섹션 순차 등장
   const [doorPlaying, setDoorPlaying] = useState(false); // 풀이 공개 순간 골드 명조 문 열림 영상(daniel 07-06)
+  // 명리 용어 설명 시트(가독성 P2) — 본문 용어 탭 → 기존 글로서리(daniel 검수본)에서 뜻을 띄운다.
+  const [term, setTerm] = useState<GlossaryTarget>(null);
+  const openTerm = (t: string) => setTerm({ kind: glossaryKindOf(t), key: t });
   const prevRevealed = useRef(false);                    // revealed false→true 전환 감지(문 1회 재생)
   // 콘텐츠 방문 집계(daniel 2026-07-06) — 이 공통 화면을 쓰는 전 콘텐츠(roots/image/mission/crush/job/reunion/future10/child/talent/astrology 등)를 kind 기준 진입 1회 기록.
   useLogContentVisit(kind);
@@ -423,7 +428,7 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
             폴백 base 는 여러 섹션이 한 덩어리로 뭉친 *가장 긴* 본문이라 접이식(collapsible)을 켠다. */}
         {typeof reading.base === 'string' && reading.base.trim() ? (
           <Animated.View style={[styles.card, { borderLeftColor: themeColor }, styles.cardAccent, cardAnim(reveal, 0, 1)]}>
-            <ReadingProse text={reading.base} accent={themeColor} collapsible />
+            <ReadingProse text={reading.base} accent={themeColor} collapsible onTermPress={openTerm} />
           </Animated.View>
         ) : sections.map((s, i) => (typeof reading[s.key] === 'string' && reading[s.key] ? (
           <View key={s.key}>
@@ -431,7 +436,7 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
             {s.groupTitle ? <Text style={[styles.groupTitle, { color: themeColor }, dynStyles.groupTitle]}>{s.groupTitle}</Text> : null}
             <Animated.View style={[styles.card, { borderLeftColor: themeColor }, styles.cardAccent, cardAnim(reveal, i, n)]}>
               <Text style={[styles.secLabel, { color: themeColor }, dynStyles.secLabel]}>{s.label}</Text>
-              <ReadingProse text={reading[s.key]} accent={themeColor} />
+              <ReadingProse text={reading[s.key]} accent={themeColor} onTermPress={openTerm} />
             </Animated.View>
           </View>
         ) : null))}
@@ -467,6 +472,8 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
       )}
       {/* 연관 콘텐츠 자동 추천(daniel 기획서) — 잠김/열림 무관 하단 크로스셀(API 0) */}
       <RelatedContent kind={kind} />
+      {/* 명리 용어 설명(가독성 P2) */}
+      <GlossarySheet target={term} onClose={() => setTerm(null)} />
     </ScrollView>
   );
 }
