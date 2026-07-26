@@ -29,7 +29,7 @@ import { PersonaTypeHero } from '../../components/PersonaTypeHero'; // ★홈 �
 import { HouseAdBanner } from '../../components/HouseAdBanner'; // 홈 상단 내부 프로모 배너(하우스 광고·daniel 07-24)
 import { BiorhythmCard } from '../../components/BiorhythmCard'; // 홈 블록: 바이오리듬(07-21 코드큐·온디바이스·부가 재미·API 0)
 import { LuckyTodayCard } from '../../components/LuckyTodayCard'; // 홈 블록: 오늘의 행운(07-22 코드큐·온디바이스·luckyItem 재사용·API 0)
-import { CommunityPulseCard } from '../../components/CommunityPulseCard'; // 홈 상단 소셜 프루프(실측 집계·임계값 미만 자동 숨김)
+import { CommunityPulseInline } from '../../components/CommunityPulseCard'; // 상단 컨트롤 행 우측 소셜 프루프(실측 집계·임계값 미만 자동 숨김)
 import { DecisionTodayCard } from '../../components/DecisionTodayCard'; // 홈 블록: 오늘의 결정(07-25 코드큐·dailyEnergy 재배열·새 판정 0·API 0)
 import { TodayRelationCard } from '../../components/TodayRelationCard'; // 오늘의 관계 — 궁합을 매일 여는 화면으로(리텐션 07-20)
 import { TigerMascot } from '../../components/TigerMascot'; // 아기 백호 브랜드 마스코트(모션) — 홈 헤더 타이틀 좌측
@@ -348,6 +348,9 @@ export default function Home() {
         <PressableScale onPress={() => setQuickOpen(true)} style={styles.editBtn} hitSlop={8}>
           <Text style={styles.editBtnTx}>⚡ 바로가기</Text>
         </PressableScale>
+        {/* ★소셜 프루프(daniel 2026-07-27 IMG_8205 "바로가기 라인 우측에 작게") — 카드였던 걸 이 행 우측 한 줄로.
+            카드는 블록 하나를 통째로 쓰면서 아래가 비어 균형이 깨져 있었다. 규모가 작으면 스스로 숨는다. */}
+        <CommunityPulseInline />
       </View>
 
       {/* 통변 생성 진행률(daniel) — 여러 개 동시 풀이 가능 → route별 배너 여러 개. 탭=그 화면 이동 + 그 배너만 닫기.
@@ -366,10 +369,6 @@ export default function Home() {
       )))}
       {/* ★홈 상단 내부 프로모 배너(하우스 광고·daniel 07-24) — 인기 콘텐츠를 궁금증 훅으로. 고정 헤더라 항상 최상단(순서 대상 아님). */}
       <HouseAdBanner />
-      {/* ★함께 보는 사람들(daniel 2026-07-26 "하단에 인원을 상단으로 올려줘 / today 방문자수 느낌으로") —
-          홈 최상단 소셜 프루프. ★★수치는 부풀리지 않는다: 실측 누적 열람이 주 수치이고,
-          오늘 방문자는 규모가 붙었을 때만 보조 칩. 전체 규모가 작으면 카드가 스스로 숨는다. */}
-      <CommunityPulseCard />
     </>
   );
 
