@@ -129,7 +129,7 @@ export default function TimeResolveScreen() {
               else if (!granted) Alert.alert(t('timeResolve.title', '태어난 시 찾기'), t('special.applyPending', '결제가 완료됐어요. 적용까지 잠시 걸릴 수 있어요. 잠시 후 다시 시도해 주세요.'));
             } catch (e) { Alert.alert('!', (e as Error).message); }
           } },
-        { text: t('special.goMarket', '마켓에서 보기'), onPress: () => router.push('/market') },
+        { text: t('special.goMarket', '마켓에서 보기'), onPress: () => router.push({ pathname: '/market', params: { focus: 'timeresolve' } }) },   // ★'태어난 시 찾기' 카드로 바로(daniel 07-27)
         { text: t('common.cancel', '취소'), style: 'cancel' },
       ]);
     } catch { /* 게이트 실패는 조용히(크래시 방지) */ }

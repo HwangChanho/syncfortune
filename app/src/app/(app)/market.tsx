@@ -8,8 +8,8 @@
 import { View, Text, ScrollView, Pressable, TextInput, StyleSheet, Modal, Image } from 'react-native';
 import { PressableScale } from '../../components/PressableScale';
 import { Alert } from '../../lib/ui/alert'; // 커스텀 알림(앱 디자인)
-import { useEffect, useState } from 'react';
-import { useRouter } from 'expo-router';
+import { useEffect, useRef, useState } from 'react';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { CREDIT_KINDS, loadCredits, redeemCoupon, waitForCreditGrant, PREMIUM_PRICE, type CreditKind } from '../../lib/billing/coupons';
 import { isNewContent } from '../../lib/content/newBadge'; // 신규 콘텐츠 NEW 배지(출시일+21일 자동 만료)
@@ -130,6 +130,27 @@ export default function MarketRoute() {
   const [busy, setBusy] = useState<CreditKind | null>(null); // 구매 진행 중 kind
   const [prices, setPrices] = useState<Record<string, string>>({}); // 현지통화 가격(RC) — 미설정 시 ₩ 폴백
   const [topic, setTopic] = useState<'all' | MarketTopic>('all'); // ★마켓 주제 필터(daniel 2026-07-25 L)
+  // ★'상점으로 이동' 딥링크(daniel 2026-07-27 "상점으로 이동하기 하면 바로 그거 구매 위치로 이동돼야 해")
+  //   기존엔 /market 으로만 보내서 사용자가 35개 목록에서 그 상품을 **다시 찾아야** 했다(주제 필터까지 걸려 있으면 더 어렵다).
+  //   이제 호출측이 `?focus=<CreditKind>` 를 넘기고, 여기서 ①그 상품의 주제로 필터 전환 ②카드까지 스크롤 ③잠깐 강조한다.
+  const { focus } = useLocalSearchParams<{ focus?: string }>();
+  //   ⚠️MARKET_HIDDEN 5종(child_couple·celeb·coach·timeline5·timeline10)은 **마켓에 카드가 없다**(각 화면 안에서만 구매).
+  //     그쪽으로 focus 가 와도 스크롤할 대상이 없으므로 아예 무시한다(2초 헛도는 재시도 방지 · 기존 동작으로 자연 폴백).
+  const focusKey = (focus
+    && (CREDIT_KINDS as readonly { key: CreditKind }[]).some((c) => c.key === focus)
+    && !MARKET_HIDDEN.has(focus as CreditKind)
+    ? focus as CreditKind : null);
+  const scrollRef = useRef<ScrollView>(null);
+  const cardY = useRef<Partial<Record<CreditKind, number>>>({});   // 카드별 y(onLayout 로 수집) — 스크롤 목표
+  const [hi, setHi] = useState<CreditKind | null>(null);           // 강조 중인 카드
+  const didFocus = useRef(false);                                  // 1회만 — 사용자가 스크롤한 뒤 다시 끌어당기지 않게
+
+  // focus 상품의 주제로 필터를 먼저 옮긴다(필터에 걸려 카드가 아예 렌더되지 않으면 스크롤할 대상이 없다).
+  useEffect(() => {
+    if (!focusKey) return;
+    const tp = TOPIC_OF[focusKey];
+    if (tp) setTopic(tp);
+  }, [focusKey]);
   const { isPremium, purchasePremium, refresh } = useSubscription(); // 프리미엄 상태·구매
   // 프리미엄이 '어느 명식에' 적용 중인지(premium_chart_id 매칭 명식) — 카드에 표기(daniel 07-04). null=미지정(모든 명식 유예).
   const premChartId = getPremiumChartIdSnapshot();
@@ -269,7 +290,8 @@ export default function MarketRoute() {
     // 프리미엄 포함 섹션 + 프리미엄 가입 = 무제한(가격/구매 숨김, 카드 전체가 열기 버튼)
     if (premInc && isPremium) {
       return (
-        <PressableScale key={c.key} style={styles.card} onPress={() => apply(c.key)} disabled={!sel}>
+        <PressableScale key={c.key} onLayout={(e) => { cardY.current[c.key] = e.nativeEvent.layout.y; }}
+          style={[styles.card, hi === c.key && styles.cardFocus]} onPress={() => apply(c.key)} disabled={!sel}>
           {isNewContent(c.key) && <View style={styles.newTag}><Text style={styles.newTagTx}>NEW</Text></View>}
           {card && <Image source={card.img} style={styles.thumb} />}
           <View style={{ flex: 1 }}>
@@ -287,7 +309,8 @@ export default function MarketRoute() {
 
     // 기존 동작(현행 그대로): 보유 시 열기(apply) / 미보유 시 개별 구매(buy)
     return (
-      <View key={c.key} style={styles.card}>
+      <View key={c.key} onLayout={(e) => { cardY.current[c.key] = e.nativeEvent.layout.y; }}
+        style={[styles.card, hi === c.key && styles.cardFocus]}>
         {isNewContent(c.key) && <View style={styles.newTag}><Text style={styles.newTagTx}>NEW</Text></View>}
           {card && <Image source={card.img} style={styles.thumb} />}
         <View style={{ flex: 1 }}>
@@ -310,6 +333,28 @@ export default function MarketRoute() {
   }
 
   // ★첫 진입 즉시 마켓뷰 전환 + 로딩까지 스켈레톤(daniel 07-02) — 전환 애니 끝난 뒤 무거운 카드·RC 가격 마운트.
+  // focus 카드로 스크롤 + 강조. ★`ready` 이후에만 — 그 전엔 스켈레톤이라 카드가 없어 onLayout y 가 안 잡힌다.
+  //   레이아웃이 한 프레임 뒤에 확정되므로 짧게 재시도한다(첫 시도에 y 가 아직 없을 수 있다).
+  useEffect(() => {
+    if (!ready || !focusKey || didFocus.current) return;
+    let tries = 0;
+    const tick = setInterval(() => {
+      const y = cardY.current[focusKey];
+      if (y != null) {
+        clearInterval(tick);
+        didFocus.current = true;
+        // 헤더 여백만큼 위로 띄워 카드가 화면 상단에 딱 붙지 않게(-24)
+        scrollRef.current?.scrollTo({ y: Math.max(0, y - 24), animated: true });
+        setHi(focusKey);
+        setTimeout(() => setHi(null), 2200);   // 강조는 잠깐만 — 계속 켜두면 '선택된 상태'로 오해된다
+      } else if (++tries > 20) {               // 약 2초. 못 찾으면 조용히 포기(목록 상단 그대로 — 기존 동작)
+        clearInterval(tick);
+        didFocus.current = true;
+      }
+    }, 100);
+    return () => clearInterval(tick);
+  }, [ready, focusKey, topic]);
+
   if (!ready) return <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}><ListSkeleton rows={6} /></ScrollView>;
 
   // ★주제 필터 적용 목록(daniel 2026-07-25 L) — 프리미엄/개별(대분류) 안에서 주제(소분류)로 거른다. 빈 섹션은 헤더째 숨김.
@@ -480,6 +525,8 @@ const styles = StyleSheet.create({
   //   flex:1 컨테이너가 이 여백만큼 줄어들어 긴 설명(numberOfLines=2)이 버튼에 닿지 않고 그 안에서 줄바꿈된다(daniel 07-07 IMG_7980: '별자리 운세' 긴 설명↔구매 버튼 밀착 수정).
   buyBtn: { backgroundColor: colors.ju, borderRadius: radius.pill, paddingHorizontal: space(5), paddingVertical: space(2.5), minWidth: 84, alignItems: 'center', marginLeft: space(4) },
   buyBtnBusy: { opacity: 0.5 },
+  // ★focus 도착 강조 — '여기가 그 상품' 신호. 색이 아니라 테두리+틴트로(색맹 대비·액센트 남용 방지).
+  cardFocus: { borderColor: colors.ju, borderWidth: 2, backgroundColor: colors.juSoft },
   buyTx: { color: colors.bg, fontWeight: '800', fontSize: 14 },
   // 마켓 섹션 제목·설명(프리미엄 포함 / 개별 구매 전용 구분 — daniel) — 골드 톤 heading + 보조 caption
   // ★마켓 주제 필터 칩(daniel 2026-07-25 L)

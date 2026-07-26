@@ -128,9 +128,37 @@ if (!edgeSrc) {
   }
 }
 
+// ── R8 '상점으로 이동'은 그 상품 위치로 (daniel 2026-07-27) ────────────────────────────
+//   증상: 게이트에서 '상점으로 이동 ›' 를 눌러도 마켓 **최상단**으로만 가서, 35개 목록에서 그 상품을
+//   다시 찾아야 했다(주제 필터가 걸려 있으면 더 어려움). 이제 `?focus=<CreditKind>` 를 실어 보낸다.
+//   ★프리미엄 유도(coach·settings)는 제외 — 프리미엄 카드는 마켓 최상단이라 focus 가 불필요하다.
+{
+  const marketNav = /router\.push\(\s*['"]\/market['"]\s*\)/g;         // 파라미터 없는 맨 이동
+  const PREMIUM_CTA_FILES = ['app/src/app/(app)/coach.tsx', 'app/src/app/(app)/settings.tsx'];
+  const scan = [
+    'app/src/components/SpecialContentScreen.tsx',
+    'app/src/app/(app)/timeResolve.tsx',
+  ];
+  for (const f of scan) {
+    const src = fs.readFileSync(path.join(ROOT, f), 'utf8').replace(/^\s*\/\/.*$/gm, '');
+    const bare = src.match(marketNav);
+    if (bare) fails.push(`[R8] ${f} 에 파라미터 없는 router.push('/market') ${bare.length}건 — 상품 위치로 못 간다. { pathname:'/market', params:{ focus: <CreditKind> } } 로 보내라.`);
+  }
+  // 마켓이 focus 를 실제로 처리하는지(반쪽 배선 방지 — 보내는 쪽만 고치면 아무 일도 안 일어난다)
+  const mk = fs.readFileSync(path.join(ROOT, 'app/src/app/(app)/market.tsx'), 'utf8');
+  if (!/useLocalSearchParams<\{\s*focus/.test(mk)) fails.push('[R8] market.tsx 가 focus 파라미터를 읽지 않음 — 보내도 무시된다.');
+  if (!/scrollTo\(/.test(mk)) fails.push('[R8] market.tsx 에 scrollTo 가 없음 — focus 를 받아도 그 카드로 이동하지 않는다.');
+  if (!/MARKET_HIDDEN\.has\(focus/.test(mk)) fails.push('[R8] market.tsx 가 MARKET_HIDDEN 을 걸러내지 않음 — 카드가 없는 상품(celeb·coach 등)에서 재시도가 헛돈다.');
+  // 프리미엄 유도 지점은 focus 없이 그대로여야 한다(의도 기록 — 나중에 일괄치환으로 망가지는 것 방지)
+  for (const f of PREMIUM_CTA_FILES) {
+    const src = fs.readFileSync(path.join(ROOT, f), 'utf8');
+    if (/params:\s*\{\s*focus/.test(src)) fails.push(`[R8] ${f} 는 프리미엄(마켓 최상단) 유도라 focus 가 필요 없다 — 잘못된 상품으로 스크롤된다.`);
+  }
+}
+
 // ── 출력(다른 check:* 관례: FAIL 시 exit 1) ──────────────────────────────────────────────
 if (fails.length) {
   console.error('❌ check:purchase-gate FAIL — 결제 전 헬스 게이트 배선 문제 ' + fails.length + '건\n' + fails.map((f) => '  - ' + f).join('\n'));
   process.exit(1);
 }
-console.log('✓ check:purchase-gate PASS — 결제 전 헬스 게이트(R1~R3) + 열람 플로우 순서·잠금(R4~R7) 배선 확인.');
+console.log('✓ check:purchase-gate PASS — 헬스 게이트(R1~R3) + 열람 플로우 순서·잠금(R4~R7) + 상점 이동 상품 지정(R8) 확인.');

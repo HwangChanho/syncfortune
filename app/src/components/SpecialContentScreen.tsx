@@ -327,7 +327,7 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
    */
   async function buyCredit(): Promise<boolean> {
     const choice = await askPurchase();
-    if (choice === 'market') { router.push('/market'); return false; }
+    if (choice === 'market') { router.push({ pathname: '/market', params: { focus: kind } }); return false; }   // ★그 상품 위치로(daniel 07-27)
     if (choice !== 'buy') return false;                                     // 사용자 취소
     if (!purchasesEnabled()) { Alert.alert(title, t('market.payPending', '결제 준비 중이에요. 쿠폰을 이용하거나 잠시 후 다시 시도해 주세요.')); return false; }
     setPurchasing(true); // 애플 결제창 뜨기까지 + 웹훅 적립까지 무피드백 구간 로딩(daniel 07-24)
@@ -414,7 +414,7 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
           } catch (e) { Alert.alert('!', (e as Error).message); }
           finally { setPurchasing(false); } // 결제 완료/취소/오류/적립 후 해제 — generate 가 이어받으면 busy(UnlockOverlay)로 매끄럽게 전환
         } },
-      { text: t('special.goMarket', '마켓에서 보기'), onPress: () => router.push('/market') },
+      { text: t('special.goMarket', '마켓에서 보기'), onPress: () => router.push({ pathname: '/market', params: { focus: kind } }) },   // ★그 상품 위치로
       { text: t('common.cancel'), style: 'cancel' },
     ]);
   }
@@ -566,8 +566,10 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
           {!owned ? (
             <>
               <Text style={[styles.gateNote, dynStyles.gateNote]}>{t('special.unlockHint', '이용권 구매 또는 쿠폰으로 열려요')}</Text>
-              {/* 상점 이동 버튼(daniel 07-07): 쿠폰 없을 때 마켓으로 바로 이동 — 안내만 있고 버튼 없던 것 보완 */}
-              <PressableScale style={styles.goMarketBtn} onPress={() => router.push('/market')}>
+              {/* 상점 이동 버튼(daniel 07-07): 쿠폰 없을 때 마켓으로 바로 이동 — 안내만 있고 버튼 없던 것 보완.
+                  ★2026-07-27: `focus=kind` 를 실어 **그 상품 카드까지 스크롤·강조**(daniel "바로 그거 구매 위치로 이동돼야 해").
+                  이전엔 마켓 최상단으로만 가서 35개 목록에서 다시 찾아야 했다(주제 필터가 걸려 있으면 더 어려움). */}
+              <PressableScale style={styles.goMarketBtn} onPress={() => router.push({ pathname: '/market', params: { focus: kind } })}>
                 <Text style={[styles.goMarketTx, dynStyles.ctaTx]}>{t('special.goMarketBtn', '상점으로 이동 ›')}</Text>
               </PressableScale>
             </>
