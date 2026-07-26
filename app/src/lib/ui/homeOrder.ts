@@ -21,12 +21,13 @@ import { supabase } from '../supabase';
 /** 홈에서 순서를 바꿀 수 있는 블록. (헤더·풀이 진행률 배너·로그인 링크는 고정이라 제외)
  *  ★manse(만세력)·coach(AI 코치)는 상단 '⚡ 바로가기' 메뉴로 / chart(명식 선택)는 홈에서 제거(daniel 2026-07-25) — 홈은 대표 명식 기준 자동 표시.
  *    (normalizeOrder 가 valid=DEFAULT 기준으로 필터하므로, 기존 사용자 저장값의 manse/coach/chart 는 자동 제거된다.) */
-export type HomeBlockKey = 'today' | 'relation' | 'persona' | 'self' | 'biorhythm' | 'luck';
+export type HomeBlockKey = 'today' | 'relation' | 'persona' | 'self' | 'biorhythm' | 'luck' | 'decision';
 
 /** daniel 확정 기본 순서 + 오늘의 관계(07-20) + 바이오리듬(07-21) + 오늘의 행운(07-22).
  *  ★07-25: manse·coach → 바로가기 메뉴 / chart(명식 선택) 제거. 오늘의 기운 → 나는 어떤 사람 → 성격유형 → 오늘의 관계 → 바이오리듬 → 오늘의 행운.
  *  ★신규 블록(luck)은 '맨 아래' 기본 — 기존 사용자는 normalizeOrder 가 저장 순서 끝에 자동 덧붙인다. */
-export const DEFAULT_HOME_ORDER: HomeBlockKey[] = ['today', 'self', 'persona', 'relation', 'biorhythm', 'luck'];
+//  ★07-26: 오늘의 결정(decision) 추가 — 신규 블록이라 '맨 아래' 기본(기존 사용자는 normalizeOrder 가 저장 순서 끝에 자동 덧붙임).
+export const DEFAULT_HOME_ORDER: HomeBlockKey[] = ['today', 'self', 'persona', 'relation', 'biorhythm', 'luck', 'decision'];
 
 /** 블록 라벨 — 설정의 순서 편집 화면에 표시. */
 export const HOME_BLOCK_LABEL: Record<HomeBlockKey, string> = {
@@ -36,6 +37,7 @@ export const HOME_BLOCK_LABEL: Record<HomeBlockKey, string> = {
   self: '나는 어떤 사람인가',
   biorhythm: '바이오리듬',
   luck: '오늘의 행운',
+  decision: '오늘의 결정',
 };
 
 const LOCAL_KEY = 'pref.homeOrder';

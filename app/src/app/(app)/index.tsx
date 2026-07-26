@@ -29,6 +29,7 @@ import { PersonaTypeHero } from '../../components/PersonaTypeHero'; // ★홈 �
 import { HouseAdBanner } from '../../components/HouseAdBanner'; // 홈 상단 내부 프로모 배너(하우스 광고·daniel 07-24)
 import { BiorhythmCard } from '../../components/BiorhythmCard'; // 홈 블록: 바이오리듬(07-21 코드큐·온디바이스·부가 재미·API 0)
 import { LuckyTodayCard } from '../../components/LuckyTodayCard'; // 홈 블록: 오늘의 행운(07-22 코드큐·온디바이스·luckyItem 재사용·API 0)
+import { DecisionTodayCard } from '../../components/DecisionTodayCard'; // 홈 블록: 오늘의 결정(07-25 코드큐·dailyEnergy 재배열·새 판정 0·API 0)
 import { TodayRelationCard } from '../../components/TodayRelationCard'; // 오늘의 관계 — 궁합을 매일 여는 화면으로(리텐션 07-20)
 import { TigerMascot } from '../../components/TigerMascot'; // 아기 백호 브랜드 마스코트(모션) — 홈 헤더 타이틀 좌측
 import { getDailyFortune, dailyHeadline, getDailyReading, scoreFlow, dailyEnergy, energyReason, ENERGY_LABEL, type DailyEnergy } from '../../lib/content/dailyFortune';
@@ -211,6 +212,9 @@ export default function Home() {
     if (k === 'biorhythm') return <BiorhythmCard reloadKey={reloadKey} />;
     // 오늘의 행운 — 오늘 일진 오행 → 색·방향·숫자·아이템 + 부족 오행 보완색(온디바이스·luckyItem 재사용). 명식 없으면 미노출. 탭 → /luck.
     if (k === 'luck') return <LuckyTodayCard reloadKey={reloadKey} />;
+    // 오늘의 결정 — "오늘 이거 결정해도 될까?"(계약·지출·대화·시작·이동). ★새 명리 판정 0 = dailyEnergy 재배열
+    //   (공망='큰 결정 미루기'·충형='서두르지 않기' 등 이미 판정된 신호를 '결정' 질문으로 재배치). 명식 없으면 미노출.
+    if (k === 'decision') return <DecisionTodayCard reloadKey={reloadKey} />;
     // 오늘의 관계 — 등록한 상대 × 오늘 일진(결정론). 상대가 없으면 스스로 렌더하지 않는다.
     if (k === 'relation') return <TodayRelationCard reloadKey={reloadKey} dateKey={dateKey} />;
     // (AI 자기이해 코치 블록은 상단 🧭 바로가기로 이동 — daniel 2026-07-25 J)
