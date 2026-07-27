@@ -30,7 +30,9 @@ const CONTENT_VIDEOS: Record<VideoKey, any> = {
 
 // allowBackground=true(기본): API 생성처럼 시간이 걸리는 콘텐츠 — '홈으로 나가기' 노출(나가도 백그라운드 진행·완료 시 푸시).
 // videoKey: 지정 시 해당 콘텐츠 테마 영상을 로딩 배경으로 재생(미지정=기존 링+자물쇠).
-export function UnlockOverlay({ visible, message, allowBackground = true, videoKey: videoKeyProp, minMs = 3200 }: { visible: boolean; message?: string; allowBackground?: boolean; videoKey?: VideoKey; minMs?: number }) {
+export function UnlockOverlay({ visible, message, allowBackground = true, videoKey: videoKeyProp, minMs = 3200, done, total }: { visible: boolean; message?: string; allowBackground?: boolean; videoKey?: VideoKey; minMs?: number;
+  /** ★실제 진행(daniel 2026-07-28 "사주는 하나도 안 풀렸는데 퍼센트가 왜 저래") — 있으면 이 값으로 %를 낸다. */
+  done?: number; total?: number }) {
   // 풀이 로딩영상 on/off(daniel 07-13·설정) — OFF면 테마영상 무시하고 링+자물쇠 연출로 폴백(아래 videoKey 로직 자동 반영).
   const videoKey = getReadingVideoEnabled() ? videoKeyProp : undefined;
   const router = useRouter();
@@ -54,15 +56,23 @@ export function UnlockOverlay({ visible, message, allowBackground = true, videoK
   useEffect(() => () => { if (heldTimer.current) clearTimeout(heldTimer.current); }, []); // 언마운트 시에만 정리(누수 방지)
   const show = visible || held;        // 부모가 busy=false 로 내려도 minMs 전이면 계속 표시(minMs 뒤 held=false → 닫힘)
 
-  // 진행률 %(daniel 2026-07-13): LLM 생성은 실제 진행신호가 없어 *완만 램프*(0→95% 점근) + 완료(visible=false) 시 100%.
-  //   자물쇠 로딩('영상먼저' 대기)이 죽은 대기처럼 안 느껴지게 — 대략적 진척감. 285ms마다 남은거리의 4.5%씩(초반 빠르고 후반 느림).
+  // 진행률 %(daniel 2026-07-13): LLM 생성은 실제 진행신호가 없어 *완만 램프*(0→95% 점근) + 완료 시 100%.
+  //
+  // ★★2026-07-28 수정(daniel "사주는 하나도 안 풀렸는데 퍼센트가 왜 저래"):
+  //   램프는 **경과 시간만** 보고 오르기 때문에, 실제로 0개 생성된 상태에서도 95% 를 표시했다.
+  //   같은 화면에 실제 값 "(0/16)" 이 함께 떠서 **서로 모순되는 숫자 두 개**가 보였다 — 신뢰를 정면으로 깎는다.
+  //   ⇒ 실제 진행(done/total)이 주어지면 **그 값으로만** 계산한다. 램프는 진짜로 신호가 없을 때(단건 생성)만.
+  //   ※ 홈 배너의 genPct 도 같은 규칙이다(multi=실제값 / single=시간추정) — 두 곳이 이제 같은 기준을 쓴다.
+  const hasReal = typeof total === 'number' && total > 1 && typeof done === 'number';
+  const realPct = hasReal ? Math.round((Math.max(0, Math.min(done!, total!)) / total!) * 100) : 0;
   const [pct, setPct] = useState(0);
   useEffect(() => {
     if (!show) { setPct(0); return; }            // 닫히면 리셋
     if (!visible) { setPct(100); return; }        // 생성 완료(부모 busy=false) → 100%, held 동안 잠깐 노출 후 페이드
+    if (hasReal) { setPct(realPct); return; }     // ★실제 진행이 있으면 램프를 돌리지 않는다(모순 방지)
     const id = setInterval(() => setPct((p) => (p >= 95 ? 95 : Math.min(95, p + Math.max(0.6, (95 - p) * 0.045)))), 285);
     return () => clearInterval(id);
-  }, [show, visible]);
+  }, [show, visible, hasReal, realPct]);
 
   // ★테마 영상 플레이어 — 훅 규칙상 *항상* 호출(조건부 금지). 실제 보일 때(show && videoKey)만 소스를 넘겨
   //   그때만 재생/오디오가 나게 한다. show=false 면 소스를 null 로 → 재생 중지·이전 플레이어 릴리스.

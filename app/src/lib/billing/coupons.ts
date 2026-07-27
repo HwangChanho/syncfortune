@@ -81,8 +81,25 @@ export async function redeemCoupon(code: string): Promise<RedeemResult> {
 
 /** 보유 크레딧(파트별 잔여 수) — 설정 표시·게이트 사전 확인용(RLS 본인만). */
 export async function loadCredits(): Promise<Record<string, number>> {
+  return (await loadCreditsOrNull()) ?? {};
+}
+
+/**
+ * 크레딧 조회 — **실패를 '없음'과 구분해서** 돌려준다.
+ * @returns 성공 시 보유표 / **조회 실패 시 null**
+ *
+ * ★★2026-07-28 이중 결제 근본수정(daniel "결제하고 바로 백그라운드로 나가면 … 다시 들어가면 결제는 됐다고
+ *   나오고 풀이는 안 뜨고 다시 구매해야 해"):
+ *   기존 `loadCredits` 는 `const { data } = ...` 로 **error 를 버렸다.** 네트워크 실패면 data=null → `{}` 반환 →
+ *   호출측은 그걸 "크레딧 없음"으로 읽고 **결제창을 다시 띄웠다.** 이미 결제한 사용자에게 재결제를 유도하는
+ *   경로다(돈이 실제로 두 번 나갈 수 있다).
+ *   ⇒ 결제 여부를 가르는 자리에서는 반드시 이 함수를 써서 **'없음'과 '확인 불가'를 구분**할 것.
+ *     확인 불가면 결제를 제안하지 말고 재시도를 안내해야 한다.
+ */
+export async function loadCreditsOrNull(): Promise<Record<string, number> | null> {
   if (!(await hasSession())) return localCreditsAll();    // 비로그인 = 디바이스 로컬(H)
-  const { data } = await supabase.from('entitlement_credits').select('kind, remaining');
+  const { data, error } = await supabase.from('entitlement_credits').select('kind, remaining');
+  if (error) return null;                                  // ★조회 실패 — 절대 '없음'으로 취급하지 않는다
   const out: Record<string, number> = {};
   (data ?? []).forEach((r: any) => { if (r.remaining > 0) out[r.kind] = r.remaining; });
   return out;

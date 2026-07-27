@@ -49,6 +49,7 @@ import { PALACE_DESC } from '../lib/content/palaceDesc'; // 자미두수 궁 설
 import { shareReading } from '../lib/ui/share'; // 이슈17: 풀이 결과 공유(앱 설치자만 열람)
 import { loadCredits, waitForCreditGrant, creditPrice, formatKrw } from '../lib/billing/coupons'; // 크레딧 보유확인(UX) + 결제 후 웹훅 반영 폴링 + 실가 주입(하드코딩 가격 근절·daniel 2026-07-12)
 import { confirmReadingChart, autoGenWithChartConfirm } from '../lib/ui/confirmChart'; // 생성 전 명식 확인(수동=항상 / 자동=명식 2개+ 일 때, daniel 07-13)
+import { loadCreditsOrNull } from '../lib/billing/coupons';   // ★'없음' vs '확인 불가' 구분(재결제 방지)
 import { purchaseCreditRC } from '../lib/billing/purchases'; // 추가질문 건당 결제 = credit_followup(서버 consume)
 import { requireLoginForPurchase } from '../lib/billing/requireLogin'; // 결제/저장 전 로그인 안내
 import { assertOnline, isOnline, notifyNetworkError } from '../lib/backend/network'; // 오프라인 차단 + ★호출 실패 알림(daniel 07-27)
@@ -157,6 +158,10 @@ export function ReadingScreen({
 
   const autoRan = useRef(false);                          // 프리미엄 진입 시 자동 생성 1회 가드
   const previewRan = useRef(false);                       // 미리보기(첫 분야 맛보기) 1회 가드 — 무료 진입용
+  // ★결제 준비 중 표시(daniel 2026-07-28 "결제창 뜨는데까지 너무 오래 걸리는데 로딩 표시도 안 떠서 모르겠고").
+  //   결제 전 헬스 프로브(llm-health)와 스토어 호출이 수 초 걸리는데 그동안 화면이 **아무 반응이 없었다** →
+  //   사용자는 눌린 건지 몰라 다시 누르고, 그게 이중 결제 시도로 이어진다.
+  const [payBusy, setPayBusy] = useState(false);
   const startingRef = useRef(false);                      // onStart(생성 시작) 연타 가드(동기 ref) — 이중 결제·중복 API 호출 차단(daniel). runAll의 genLock(모듈락) 앞단에서 동기 차단.
   // ★풀이 진입 문 열림(daniel 07-06): 풀이가 준비돼 보이는 순간(캐시/생성완료·생성중 아님) 골드 명조 문 1회 연출. 명식 전환=부모 key 리마운트라 매 진입 재생.
   const [doorPlaying, setDoorPlaying] = useState(false);
@@ -498,6 +503,7 @@ export function ReadingScreen({
   async function doStart() {
     if (startingRef.current) return;                       // ★연타 가드(동기): 이미 시작 처리 중이면 무시 — 게이트(언락·크레딧 조회) 비동기 구간 사이로 새는 이중 결제·중복 생성 차단
     startingRef.current = true;
+    setPayBusy(true);
     try {
       // 풀이는 계정에 저장·캐시됨(서버차트 귀속) → 미로그인 시 '저장용' 안내 후 로그인 유도(daniel)
       if (!requireLoginForPurchase(session, () => router.push('/login'), t)) return;
@@ -514,15 +520,23 @@ export function ReadingScreen({
       // ★서버 권위 세트 게이트(보안 P3·daniel): 차감·언락은 Edge가 한다(이중차감 제거). 클라는 UX 사전확인만.
       //   ① 이미 세트 언락됨 → 무료 재생성  ② 크레딧 보유 → 바로 생성(Edge가 1회 차감+언락)  ③ 없음 → 건당 결제로 부여
       if (id && await isReadingUnlocked(id, ck)) { setUnlocked(true); await runAll(id); return; } // ★언락됨 → 표시상태 즉시 해제(자물쇠 누른 뒤 안 풀리던 것 수정)
-      if (((await loadCredits())[ck] ?? 0) > 0) { await runAll(id); return; }
+      // ★'없음'과 '확인 불가'를 반드시 구분한다(daniel 2026-07-28 재결제 신고).
+      //   조회가 실패했는데 결제창을 띄우면, 이미 결제한 사용자가 또 결제하게 된다.
+      const creds = await loadCreditsOrNull();
+      if (creds === null) {
+        notifyNetworkError('reading.loadCredits', new Error('credits unavailable'), t);
+        return;                                            // ★결제 제안 금지 — 확인이 안 됐을 뿐이다
+      }
+      if ((creds[ck] ?? 0) > 0) { await runAll(id); return; }
       // ★유료 통변은 보상형 광고로 무료 생성하지 않는다(daniel: 비용발생 콘텐츠=결제/프리미엄만) → 건당 결제로만 크레딧 부여 후 생성(Edge가 차감+세트 언락).
       Alert.alert(t('reading.premiumAlert'), t('reading.premiumAlertMsg', { price: formatKrw(creditPrice(ck)) }), [
         // ★C1(daniel 07-03): 결제 상품을 credit_{reading|ziwei}(웹훅이 적립 가능)로 통일 + 클라 grant 폐지 → 웹훅 반영 폴링 후 생성(Edge 세트게이트가 1회 차감·언락).
         //   (기존 purchaseReading=deprecated unlock_2500 은 credit_* 아님 → 웹훅이 적립할 수 없어 교체. 가격은 스토어의 credit_reading/credit_ziwei 값.)
-        { text: t('reading.payPerUse', { price: formatKrw(creditPrice(ck)) }), onPress: async () => { try { const ok = await purchaseCreditRC(ck); if (!ok) return; const { granted } = await waitForCreditGrant(ck); if (granted) await runAll(id); else Alert.alert(t('reading.premiumAlert'), t('reading.applyPending', '결제가 완료됐어요. 적용까지 잠시 걸릴 수 있어요. 잠시 후 다시 시도해 주세요.')); } catch (e) { Alert.alert('!', (e as Error).message); } } },
+        { text: t('reading.payPerUse', { price: formatKrw(creditPrice(ck)) }), onPress: async () => { setPayBusy(true); try { const ok = await purchaseCreditRC(ck); if (!ok) return; const { granted } = await waitForCreditGrant(ck); if (granted) await runAll(id); else Alert.alert(t('reading.premiumAlert'), t('reading.applyPending', '결제가 완료됐어요. 적용까지 잠시 걸릴 수 있어요. 잠시 후 다시 시도해 주세요.')); } catch (e) { Alert.alert('!', (e as Error).message); } finally { setPayBusy(false); } } },
         { text: t('common.cancel'), style: 'cancel' },
       ]);
     } finally {
+      setPayBusy(false);
       startingRef.current = false;                           // 해제 — 생성(runAll)은 위에서 await되어 끝까지 잠금 유지, 결제 alert 분기는 모달이 추가 탭을 막음
     }
   }
@@ -721,7 +735,7 @@ export function ReadingScreen({
 
   return (
     <>
-    <UnlockOverlay visible={showUnlockOverlay(!!progress, Object.keys(readings).length) /* 생성중+캐시0일 때만 — 기존 풀이 위 자물쇠 방지(readingGate·테스트됨) */} message={progress?.current ? t('reading.progress', { current: progress.current, done: progress.done, total: progress.total }) : t('reading.generating', '풀이를 정성껏 그리는 중…')} videoKey={kind === 'ziwei' ? 'ziwei' : 'saju'} /* 사주=saju / 자미두수=ziwei 테마 로딩 영상(ReadingScreen 은 kind prop 로 두 종류 공용) */ />
+    <UnlockOverlay visible={showUnlockOverlay(!!progress, Object.keys(readings).length) /* 생성중+캐시0일 때만 — 기존 풀이 위 자물쇠 방지(readingGate·테스트됨) */} message={progress?.current ? t('reading.progress', { current: progress.current, done: progress.done, total: progress.total }) : t('reading.generating', '풀이를 정성껏 그리는 중…')} videoKey={kind === 'ziwei' ? 'ziwei' : 'saju'} /* 사주=saju / 자미두수=ziwei 테마 로딩 영상 */ done={progress?.done} total={progress?.total} /* ★실제 진행 전달 — 없으면 오버레이가 시간추정 램프로 95%를 띄워 (0/16)과 모순됐다 */ />
     {/* 풀이 진입 순간 골드 명조 문 열림 영상 — 1회 재생 후 페이드아웃(daniel 07-06) */}
     <DoorReveal visible={doorPlaying} onDone={() => setDoorPlaying(false)} />
     <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>
@@ -734,7 +748,7 @@ export function ReadingScreen({
       {/* 생성 버튼 + 과금 안내(미생성 항목이 있을 때만) */}
       {showStart && (
         <>
-          <PressableScale style={styles.startBtn} onPress={onStart}>
+          <PressableScale style={[styles.startBtn, payBusy && { opacity: 0.6 }]} onPress={onStart} disabled={payBusy}>
             <Text style={styles.startBtnText}>{t('reading.runAll', { count: cats.length })}</Text>
           </PressableScale>
           <Text style={styles.bannerText}>{banner}</Text>
