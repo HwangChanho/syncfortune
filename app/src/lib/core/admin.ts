@@ -45,6 +45,17 @@ export async function adminGrantCredit(owner: string, kind: CreditKind, qty = 1)
   if (error) throw new Error(error.message); // generic 'false' 대신 사유 전달(예: check 위반·권한)
 }
 
+/**
+ * 특정 유저에게 **코인 선물**(daniel 2026-07-28 "관리자는 선물 기능 코인선물로 다 바꾸고").
+ * @param owner 대상 유저 · @param amount 코인 수(양수)
+ * ★권한은 서버(admin_grant_coins → is_caller_god)가 강제한다 — 클라 판정은 UI 편의일 뿐이다.
+ * ★적립은 coin_ledger 에 reason='admin_gift' 로 남는다(누가 언제 얼마를 줬는지 추적).
+ */
+export async function adminGrantCoins(owner: string, amount: number): Promise<void> {
+  const { error } = await supabase.rpc('admin_grant_coins', { p_owner: owner, p_amount: amount });
+  if (error) throw new Error(error.message);
+}
+
 /** 특정 유저 프리미엄 선물/해제. 실패 시 사유를 throw. */
 export async function adminSetPremium(owner: string, val: boolean): Promise<void> {
   const { error } = await supabase.rpc('admin_set_premium', { p_owner: owner, p_val: val });

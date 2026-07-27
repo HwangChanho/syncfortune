@@ -10,7 +10,8 @@ import { Alert } from '../../lib/ui/alert'; // 커스텀 알림(앱 디자인)
 import { useEffect, useState } from 'react';
 import { isAdmin, adminListUsers, adminGrantCredit, adminSetPremium, adminUserDetail, adminStats, adminUserUsage, adminUserContentVisits, adminSchedulePush, adminListPushCampaigns, adminCancelPush, type AdminUser, type AdminUserDetail, type AdminStats, type AdminUsage, type AdminContentVisit, type DayPoint, type PushCampaign } from '../../lib/core/admin';
 import { CREDIT_KINDS, type CreditKind } from '../../lib/billing/coupons';
-import { logEvent } from '../../lib/backend/logger'; // DB 로그(app_logs) — 선물/프리미엄 단계 추적
+import { logEvent } from '../../lib/backend/logger';
+import { adminGrantCoins } from '../../lib/core/admin';   // ★코인 선물(daniel 07-28) // DB 로그(app_logs) — 선물/프리미엄 단계 추적
 import { colors, radius, space, shadow, font } from '../../lib/theme';
 import { useRouter } from 'expo-router'; // 비용분석 화면 이동
 import { supabase } from '../../lib/supabase'; // 테스트/관리자 모드 RPC + 프로필 로드
@@ -271,23 +272,25 @@ export default function AdminRoute() {
     catch (e) { Alert.alert('취소 실패', String((e as Error)?.message ?? e)); }
   }
 
-  // 이용권 선물(+1) — 지급 전 확인
-  function gift(kind: CreditKind, ko: string) {
+  // ★코인 선물(daniel 2026-07-28 "관리자는 선물 기능 코인선물로 다 바꾸고") — 이용권 선물을 대체.
+  //   코인이 화폐가 됐으므로 '어느 콘텐츠의 이용권'을 고를 이유가 없다. 액수만 고르면 무엇에든 쓸 수 있다.
+  //   ★결과는 inline 표시(모달 X) — 확인 모달과 연속 present 충돌(크래시) 원천 차단(기존 결정 유지).
+  function giftCoins(amount: number) {
     if (!sel || busy) return;
     const u = sel;
-    Alert.alert('이용권 선물', `${u.email} 에게\n‘${ko}’ 이용권 1장을 지급할까요?`, [
+    Alert.alert('코인 선물', `${u.email} 에게\n${amount.toLocaleString('ko-KR')}코인을 지급할까요?`, [
       { text: '취소', style: 'cancel' },
       { text: '지급', onPress: async () => {
         setBusy(true); setGiftMsg(null);
-        logEvent('admin_gift_tap', { owner: u.id, kind });
+        logEvent('admin_gift_coin_tap', { owner: u.id, amount });
         try {
-          await adminGrantCredit(u.id, kind);                               // 실패 시 throw → catch 에서 사유 노출
-          if (detail) adminUserDetail(u.id).then(setDetail).catch(() => {}); // 보유 +1 갱신(상세 즉시 반영)
-          setGiftMsg(`✓ ‘${ko}’ 이용권 1장 지급 완료`);                     // ★결과는 inline(모달 X) — 확인 모달과 연속 present 충돌(크래시) 원천 차단
-          logEvent('admin_gift_ok', { owner: u.id, kind });
+          await adminGrantCoins(u.id, amount);                              // 권한은 서버가 강제(is_caller_god)
+          if (detail) adminUserDetail(u.id).then(setDetail).catch(() => {});
+          setGiftMsg(`✓ ${amount.toLocaleString('ko-KR')}코인 지급 완료`);
+          logEvent('admin_gift_coin_ok', { owner: u.id, amount });
         } catch (e: any) {
-          setGiftMsg(`✗ 지급 실패: ${String(e?.message ?? e)}`);             // 실패 사유(예: check 위반)까지 노출
-          logEvent('admin_gift_error', { owner: u.id, kind, message: String(e?.message ?? e) }, 'error');
+          setGiftMsg(`✗ 지급 실패: ${String(e?.message ?? e)}`);
+          logEvent('admin_gift_coin_error', { owner: u.id, amount, message: String(e?.message ?? e) }, 'error');
         } finally { setBusy(false); }
       } },
     ]);
@@ -554,11 +557,14 @@ export default function AdminRoute() {
           <PressableScale style={[styles.premToggle, sel.is_premium && styles.premToggleOn]} onPress={togglePremium} disabled={busy}>
             <Text style={styles.premToggleTx}>{sel.is_premium ? '프리미엄 해제' : '프리미엄 선물'}</Text>
           </PressableScale>
-          <Text style={styles.giftSub}>이용권 선물 (+1)</Text>
+          {/* ★코인 선물(daniel 2026-07-28) — 콘텐츠별 이용권 28종 나열을 액수 선택으로 대체.
+              코인이 화폐가 됐으므로 '어느 콘텐츠'를 고를 이유가 없다(받는 쪽이 원하는 데 쓴다).
+              액수는 실제 콘텐츠 가격에 맞춘 눈금이다 — 10=코치 질문 · 50=4,900원대 · 200=사주 풀이. */}
+          <Text style={styles.giftSub}>코인 선물</Text>
           <View style={styles.giftGrid}>
-            {CREDIT_KINDS.map((c) => (
-              <PressableScale key={c.key} style={styles.giftBtn} onPress={() => gift(c.key, c.ko)} disabled={busy}>
-                <Text style={styles.giftBtnTx}>{c.ko}</Text>
+            {[10, 30, 50, 100, 150, 200, 300, 600].map((amt) => (
+              <PressableScale key={amt} style={styles.giftBtn} onPress={() => giftCoins(amt)} disabled={busy}>
+                <Text style={styles.giftBtnTx}>+{amt.toLocaleString('ko-KR')}</Text>
               </PressableScale>
             ))}
           </View>
