@@ -16,6 +16,7 @@ import { ROUTE } from '../app/(app)/market';
 import { CREDIT_KINDS, type CreditKind } from '../lib/billing/coupons';
 import { SECTIONS } from '../lib/content/contentSections';
 import { RELATED } from '../lib/content/relatedMap'; // 연관 큐레이션 단일 출처(풀이 탭 '다음 단계'와 공유)
+import { SignupNudge } from './SignupNudge'; // 비로그인 → 계정 연결 안내(막지 않음·하루 1회)
 import { colors, radius, space, font, shadow } from '../lib/theme';
 
 // kind → 연관 콘텐츠(큐레이션 2~3). 자기 자신·미구현(속궁합 등)은 제외. daniel 조정 슬롯.
@@ -50,7 +51,11 @@ export function RelatedContent({ kind }: { kind: string }) {
   const { t } = useTranslation();
   // 유료(ROUTE/LABEL) 또는 무료(FREE_ROUTE/FREE_LABEL) 어느 쪽으로든 해석 가능한 항목만.
   const items = (RELATED[kind] ?? []).filter((k) => (ROUTE[k as CreditKind] && LABEL[k]) || (FREE_ROUTE[k] && FREE_LABEL[k]));
-  if (items.length === 0) return null;
+  // ★가입 유도(daniel 2026-07-27 "비로그인 상태에서도 컨텐츠 이용이 가능한데 회원가입 유도를 해야 해")
+  //   콘텐츠를 **다 본 직후**가 계정 필요를 가장 실감하는 순간이다. 이 컴포넌트는 이미 34개 화면 하단에
+  //   붙어 있으므로 부착 지점을 새로 만들지 않는다(같은 편집을 34번 반복하면 또 어긋난다 — 오늘 겪은 문제).
+  //   ★추천 목록이 없어도 안내는 떠야 하므로 early-return 보다 앞에 둔다.
+  if (items.length === 0) return <SignupNudge />;
 
   const go = (k: string) => {
     const r = ROUTE[k as CreditKind];
@@ -81,6 +86,8 @@ export function RelatedContent({ kind }: { kind: string }) {
           </PressableScale>
         );
       })}
+      {/* 목록을 다 본 뒤 = 계정 필요를 가장 실감하는 자리 */}
+      <SignupNudge />
     </View>
   );
 }
