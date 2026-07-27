@@ -164,6 +164,18 @@ WAVES = {
                 "blossoms, green leaves, autumn leaves, bare branches, deep indigo trunk with gold division lines on cream",
                 "four separate trees, grid, panels, mandala"),
   },
+  # ── w1y — 2차 리롤(w1x 에서도 실패한 2종) ─────────────────────────────────
+  "w1y": {
+    # ⚠️사주: 얼굴 금지 네거티브를 **두 번** 뚫었다 → 사람 소재를 아예 버린다.
+    #   사주=四柱(네 기둥)의 '기둥'을 쓰되 개수를 세지 않게 **하나의 큰 기둥**으로(R6).
+    "premium": ("one tall carved stone pillar standing upright, small gold stars orbiting near its top, "
+                "deep indigo pillar on cream, clean and monumental",
+                "person, people, human, figure, silhouette, face, portrait, head, body"),
+    # ❌만세력: 사계절 분할이 안 되고 그냥 나무 → roots(뿌리)와 소재 충돌. 시간 계산 도구인 **해시계**로.
+    "manse":   ("one round sundial disc with a triangular gnomon casting a shadow across it, "
+                "deep indigo dial with gold gnomon and hour lines on cream",
+                "tree, plant, leaves, clock face, numbers, mandala"),
+  },
   # w1r — 웨이브1 잔여분(중단 재개용). w1 과 **같은 문구**를 쓴다(가족 일관성).
   "w1r": {
     "taro":      "a fan of blank playing cards spread in an arc, backs facing viewer, "
