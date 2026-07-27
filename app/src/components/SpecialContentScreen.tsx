@@ -29,6 +29,8 @@ import { isUnlocked, markUnlocked } from '../lib/billing/unlocks'; // isUnlocked
 import { ShareReadingButton } from './ShareReadingButton'; // 이슈17: 풀이 결과 공유
 import { TTSButton } from './TTSButton'; // daniel: 풀이 음성 읽기(온디바이스 TTS·무료)
 import { RelatedContent } from './RelatedContent'; // 연관 콘텐츠 자동 추천(하단 크로스셀·API 0·daniel 기획서)
+import { coinPriceOf, coinBalanceOrNull } from '../lib/billing/coins';   // ★코인 전환(daniel 07-28)
+import { notifyNetworkError } from '../lib/backend/network';
 import { purchaseCreditRC, purchasesEnabled } from '../lib/billing/purchases'; // 즉시 구매(마켓 안 거치고 바로)
 import { isAdminActing } from '../lib/core/admin';                  // 스페셜 = 관리자 바로 / 그 외 쿠폰(크레딧)
 import { requireLoginForPurchase } from '../lib/billing/requireLogin';
@@ -330,6 +332,39 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
    * **취소·마켓이동·미적립·오류를 전부 false 로 정규화**해 호출부가 한 갈래로 처리한다(실패 경로 누락 방지).
    */
   async function buyCredit(): Promise<boolean> {
+    // ★★코인 전환(daniel 2026-07-28): 코인가가 있으면 **스토어 결제 없이 보유 코인으로** 연다.
+    //   결제 왕복(결제창 지연·적립 폴링·재결제 유도)이 통째로 사라진다. 차감은 서버(Edge)가 한다.
+    const coinCost = coinPriceOf(kind);
+    if (coinCost != null) {
+      const bal = await coinBalanceOrNull();
+      if (bal === null) {                                  // ★'확인 불가'를 '부족'으로 읽으면 재결제를 유도하게 된다
+        notifyNetworkError(`${kind}.coinBalance`, new Error('balance unavailable'), t);
+        return false;
+      }
+      if (bal < coinCost) {
+        return await new Promise<boolean>((resolve) => {
+          Alert.alert(
+            t('coins.needTitle', '코인이 부족해요'),
+            t('coins.needMsg', { need: coinCost, have: bal, defaultValue: '이 풀이는 {{need}}코인이 필요해요. 지금 {{have}}코인 있어요.' }),
+            [
+              { text: t('common.cancel'), style: 'cancel', onPress: () => resolve(false) },
+              { text: t('coins.charge', '충전하기'), onPress: () => { router.push('/coins'); resolve(false); } },
+            ],
+          );
+        });
+      }
+      return await new Promise<boolean>((resolve) => {
+        Alert.alert(
+          title,
+          t('coins.spendMsg', { cost: coinCost, have: bal, defaultValue: '{{cost}}코인을 사용해 풀이를 시작할까요? (보유 {{have}}코인)' }),
+          [
+            { text: t('coins.spend', '코인 사용'), onPress: () => resolve(true) },   // 차감은 Edge 가(이중차감 방지)
+            { text: t('common.cancel'), style: 'cancel', onPress: () => resolve(false) },
+          ],
+        );
+      });
+    }
+    // 코인가 미등록(신규 콘텐츠 누락 — check:coins 가 잡는다) → 종전 건당 결제 폴백
     const choice = await askPurchase();
     if (choice === 'market') { router.push({ pathname: '/market', params: { focus: kind } }); return false; }   // ★그 상품 위치로(daniel 07-27)
     if (choice !== 'buy') return false;                                     // 사용자 취소

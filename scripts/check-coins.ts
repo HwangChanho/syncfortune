@@ -64,14 +64,15 @@ console.log(`\n[K2] 코인가 × ${WON_PER_COIN} 이 기존 원화가와 일치(
 // ── K3 클라 적립 금지 ────────────────────────────────────────────────────
 console.log('\n[K3] 클라에서 코인을 적립하지 않는다(결제 우회 차단)');
 {
-  const src = readFileSync(`${ROOT}app/src/lib/billing/coins.ts`, 'utf8').replace(/^\s*\/\/.*$/gm, '');
+  const strip = (x: string) => x.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');   // ★블록 주석(JSDoc)까지 — 설명에 함수명이 나오는 건 정상이다(오탐 실제 발생)
+  const src = strip(readFileSync(`${ROOT}app/src/lib/billing/coins.ts`, 'utf8'));
   if (/grant_coins|rpc\(\s*['"]grant_coins/.test(src)) bad('coins.ts 에 grant_coins 호출이 있다 — 클라가 잔액을 올릴 수 있으면 결제 우회가 된다');
   else ok('coins.ts 에 적립 호출 없음');
   // 앱 전체로 확대 — 어디서든 적립하면 안 된다
   let hit = 0;
   for (const f of ['app/src/lib/billing/purchases.ts', 'app/src/lib/billing/coupons.ts']) {
     try {
-      const s = readFileSync(`${ROOT}${f}`, 'utf8').replace(/^\s*\/\/.*$/gm, '');
+      const s = strip(readFileSync(`${ROOT}${f}`, 'utf8'));
       if (/grant_coins/.test(s)) { bad(`${f} 에 grant_coins 호출`); hit++; }
     } catch { /* 없으면 통과 */ }
   }

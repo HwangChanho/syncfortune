@@ -155,6 +155,18 @@ export async function purchaseCreditRC(kind: CreditKind): Promise<boolean> {
   return purchaseConsumableRC(CREDIT_PRODUCT[kind]);
 }
 
+/**
+ * 코인 팩 구매(daniel 2026-07-28 코인 전환) — 성공 시 true, 사용자가 취소하면 false.
+ * @param packId ASC 에 등록한 소비형 상품 id(coin_100·coin_300·coin_600·coin_1200)
+ *
+ * ★적립은 이 함수가 하지 않는다 — RevenueCat 웹훅이 영수증 검증 후 `grant_coins` 로 적립한다.
+ *   클라가 잔액을 올릴 수 있으면 그 자체가 결제 우회다(2026-07-03 C1 취약점과 같은 형태).
+ *   그래서 호출측은 구매 성공 후 **잔액을 다시 조회**해 반영을 확인한다.
+ */
+export async function purchaseCoinPack(packId: string): Promise<boolean> {
+  return purchaseConsumableRC(packId);
+}
+
 // ★재통변 할인 상품ID(daniel 07-08 통일 모델·ⓑ 콘텐츠별): 기존 이용권 SKU + 티어 접미(_r30 프리미엄 30% / _r10 일반 10%).
 //   rc-webhook 이 접미를 떼어 같은 kind 로 적립 → 재생성. ★가격은 스토어 등록가(정가×0.7/0.9) — asc-iap.js 가 정가에서 파생 생성(가격 변동 대비).
 export function renewalCreditProductId(kind: CreditKind, isPremium: boolean): string {

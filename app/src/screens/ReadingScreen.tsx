@@ -49,7 +49,8 @@ import { PALACE_DESC } from '../lib/content/palaceDesc'; // 자미두수 궁 설
 import { shareReading } from '../lib/ui/share'; // 이슈17: 풀이 결과 공유(앱 설치자만 열람)
 import { loadCredits, waitForCreditGrant, creditPrice, formatKrw } from '../lib/billing/coupons'; // 크레딧 보유확인(UX) + 결제 후 웹훅 반영 폴링 + 실가 주입(하드코딩 가격 근절·daniel 2026-07-12)
 import { confirmReadingChart, autoGenWithChartConfirm } from '../lib/ui/confirmChart'; // 생성 전 명식 확인(수동=항상 / 자동=명식 2개+ 일 때, daniel 07-13)
-import { loadCreditsOrNull } from '../lib/billing/coupons';   // ★'없음' vs '확인 불가' 구분(재결제 방지)
+import { loadCreditsOrNull } from '../lib/billing/coupons';
+import { coinPriceOf, coinBalanceOrNull } from '../lib/billing/coins';   // ★코인 전환(daniel 07-28)   // ★'없음' vs '확인 불가' 구분(재결제 방지)
 import { purchaseCreditRC } from '../lib/billing/purchases'; // 추가질문 건당 결제 = credit_followup(서버 consume)
 import { requireLoginForPurchase } from '../lib/billing/requireLogin'; // 결제/저장 전 로그인 안내
 import { assertOnline, isOnline, notifyNetworkError } from '../lib/backend/network'; // 오프라인 차단 + ★호출 실패 알림(daniel 07-27)
@@ -528,7 +529,34 @@ export function ReadingScreen({
         return;                                            // ★결제 제안 금지 — 확인이 안 됐을 뿐이다
       }
       if ((creds[ck] ?? 0) > 0) { await runAll(id); return; }
-      // ★유료 통변은 보상형 광고로 무료 생성하지 않는다(daniel: 비용발생 콘텐츠=결제/프리미엄만) → 건당 결제로만 크레딧 부여 후 생성(Edge가 차감+세트 언락).
+      // ★★코인 전환(daniel 2026-07-28): 스토어 결제 대신 **보유 코인**으로 연다.
+      //   종전엔 여기서 곧바로 스토어 결제가 나갔고, 그 왕복이 반복해서 깨졌다(결제창 지연·무표시,
+      //   결제 후 백그라운드 시 적립 폴링 실패, 조회 실패를 '없음'으로 오해한 재결제 유도).
+      //   이제 결제는 충전 화면에서 1회, 여기서는 **차감만** 한다(서버 원자적·폴링 없음).
+      const coinCost = coinPriceOf(ck);
+      if (coinCost != null) {
+        const bal = await coinBalanceOrNull();
+        if (bal === null) { notifyNetworkError('reading.coinBalance', new Error('balance unavailable'), t); return; }  // ★확인 불가 ≠ 부족
+        if (bal < coinCost) {
+          Alert.alert(
+            t('coins.needTitle', '코인이 부족해요'),
+            t('coins.needMsg', { need: coinCost, have: bal, defaultValue: '이 풀이는 {{need}}코인이 필요해요. 지금 {{have}}코인 있어요.' }),
+            [{ text: t('common.cancel'), style: 'cancel' }, { text: t('coins.charge', '충전하기'), onPress: () => router.push('/coins') }],
+          );
+          return;
+        }
+        Alert.alert(
+          t('reading.premiumAlert'),
+          t('coins.spendMsg', { cost: coinCost, have: bal, defaultValue: '{{cost}}코인을 사용해 풀이를 시작할까요? (보유 {{have}}코인)' }),
+          [
+            // ★차감은 서버(Edge interpret)가 한다 — 여기서 미리 빼지 않는다(이중차감·우회 방지, 보안 P3 유지).
+            { text: t('coins.spend', '코인 사용'), onPress: () => { void runAll(id); } },
+            { text: t('common.cancel'), style: 'cancel' },
+          ],
+        );
+        return;
+      }
+      // 코인가 미등록(신규 콘텐츠 등록 누락 — check:coins 가 잡는다) → 종전 건당 결제로 폴백.
       Alert.alert(t('reading.premiumAlert'), t('reading.premiumAlertMsg', { price: formatKrw(creditPrice(ck)) }), [
         // ★C1(daniel 07-03): 결제 상품을 credit_{reading|ziwei}(웹훅이 적립 가능)로 통일 + 클라 grant 폐지 → 웹훅 반영 폴링 후 생성(Edge 세트게이트가 1회 차감·언락).
         //   (기존 purchaseReading=deprecated unlock_2500 은 credit_* 아님 → 웹훅이 적립할 수 없어 교체. 가격은 스토어의 credit_reading/credit_ziwei 값.)
