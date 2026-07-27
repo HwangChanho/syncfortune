@@ -9,6 +9,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Animated, Easing } from 'react-native';
 import { PressableScale } from '../../components/PressableScale';
+import { RelatedContent } from '../../components/RelatedContent';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { loadRepChart, type SavedChart } from '../../lib/engine/myChart';
@@ -121,7 +122,10 @@ export default function EgenTetoScreen() {
         ) : null}
 
         <Text style={styles.note}>{t('egen.note', '※ 사주로 가볍게 보는 성향 테스트예요. 재미로 즐겨 주세요.')}</Text>
-      </ScrollView>
+              {/* ★이어서 보면 좋은 콘텐츠(daniel 2026-07-27 "전부 붙여") — 화면마다 하단이 달라 보이던 것 통일.
+            큐레이션 출처는 RELATED 단일(중복 하드코딩 0). 매핑이 없으면 스스로 아무것도 안 그린다. */}
+        <RelatedContent kind="egenteto" />
+</ScrollView>
     </View>
   );
 }

@@ -8,6 +8,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator, Modal, TextInput, Keyboard, Image, Animated, Easing } from 'react-native';
 import { PressableScale } from '../components/PressableScale';
+import { RelatedContent } from '../components/RelatedContent';
 import { ReadingProse, ReadingHeadline, ReadingPoints } from '../components/ReadingProse';
 import { GlossarySheet, type GlossaryTarget } from '../components/GlossarySheet'; // 명리 용어 탭 → 뜻(가독성 P2)
 import { glossaryKindOf } from '../lib/ui/readingEmphasis'; // 용어 → 글로서리 kind // 풀이 본문 공통 렌더(P0 문단화·강조·접이식 + P1 핵심3줄)
@@ -519,7 +520,9 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
                 </View>
               </PressableScale>
             ); })}
-          </ScrollView>
+                {/* ★이어서 보면 좋은 콘텐츠(daniel 2026-07-27 "전부 붙여") — 큐레이션 출처 RELATED 단일. */}
+      <RelatedContent kind="compat" />
+</ScrollView>
         </Pressable>
       </Pressable>
     </Modal>

@@ -18,6 +18,7 @@ export default function CrushAskScreen() {
       question={t('crushAsk.q', '그 사람과 이어질까?')}
       sub={t('crushAsk.sub', '짝사랑·썸이 무르익어 마음이 통하기 좋은 달을 무료로 미리 짚어 드려요')}
       paidRoute="/crush"
+      relatedKind="crushAsk"
       paidCta={t('crushAsk.cta', '깊은 짝사랑 풀이 보기')}
       render={(saju) => <CrushRich saju={saju} />}
     />

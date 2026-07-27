@@ -7,6 +7,7 @@
 import { useMemo, useState, useEffect } from 'react';
 import { View, Text, ScrollView, StyleSheet, Pressable } from 'react-native';
 import { PressableScale } from '../../components/PressableScale';
+import { RelatedContent } from '../../components/RelatedContent';
 import { useTranslation } from 'react-i18next';
 import { useRouter } from 'expo-router';
 import { computeChart } from '../../lib/engine/engine';
@@ -97,7 +98,10 @@ export default function ImpressionScreen() {
         </>
       )}
       <Text style={styles.note}>{t('impression.note', '※ 천간(밖으로 드러나는 기운)의 흐름이 남에게 비치는 이미지, 월지(타고난 자리)의 기운이 알고 보면 진짜 모습이에요.')}</Text>
-    </ScrollView>
+            {/* ★이어서 보면 좋은 콘텐츠(daniel 2026-07-27 "전부 붙여") — 화면마다 하단이 달라 보이던 것 통일.
+            큐레이션 출처는 RELATED 단일(중복 하드코딩 0). 매핑이 없으면 스스로 아무것도 안 그린다. */}
+        <RelatedContent kind="impression" />
+</ScrollView>
   );
 }
 

@@ -10,6 +10,7 @@
 import { useMemo, useState, useEffect, useRef, type ReactNode } from 'react';
 import { View, Text, ScrollView, StyleSheet, Pressable, Modal, Animated, LayoutAnimation, Platform, UIManager } from 'react-native';
 import { PressableScale } from '../components/PressableScale';
+import { RelatedContent } from '../components/RelatedContent';
 import { useTranslation } from 'react-i18next';
 import * as Haptics from 'expo-haptics';
 import { computeChart } from '../lib/engine/engine';
@@ -1094,7 +1095,9 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
               </>);
             })()}
             <Text style={styles.sheetMeaning}>* 쏠림 경향 안내예요(대응법=개운법). 정확한 풀이는 원국 전체로 봐야 합니다.</Text>
-          </ScrollView>
+                {/* ★이어서 보면 좋은 콘텐츠(daniel 2026-07-27 "전부 붙여") — 큐레이션 출처 RELATED 단일. */}
+      <RelatedContent kind="charts" />
+</ScrollView>
           <PressableScale style={styles.sheetClose} onPress={() => setJohuOpen(false)}>
             <Text style={styles.sheetCloseText}>닫기</Text>
           </PressableScale>

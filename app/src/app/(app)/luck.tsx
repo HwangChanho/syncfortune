@@ -5,6 +5,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useMemo, useState, useCallback, useRef, useEffect } from 'react';
 import { View, Text, ScrollView, StyleSheet, Animated } from 'react-native';
+import { RelatedContent } from '../../components/RelatedContent';
 import { useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { luckyToday, weakElementColor } from '../../lib/content/luckyItem';
@@ -102,7 +103,10 @@ export default function LuckScreen() {
         )}
 
         <Text style={styles.note}>{t('luck.note', '※ 가볍게 즐기는 오늘의 길잡이예요.')}</Text>
-      </ScrollView>
+              {/* ★이어서 보면 좋은 콘텐츠(daniel 2026-07-27 "전부 붙여") — 화면마다 하단이 달라 보이던 것 통일.
+            큐레이션 출처는 RELATED 단일(중복 하드코딩 0). 매핑이 없으면 스스로 아무것도 안 그린다. */}
+        <RelatedContent kind="luck" />
+</ScrollView>
     </View>
   );
 }

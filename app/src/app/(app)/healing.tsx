@@ -6,6 +6,7 @@
 import { useState, useMemo, useCallback } from 'react';
 import { View, Text, Pressable, ActivityIndicator, ScrollView, StyleSheet, Image } from 'react-native';
 import { PressableScale } from '../../components/PressableScale';
+import { RelatedContent } from '../../components/RelatedContent';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { computeChart } from '../../lib/engine/engine';
@@ -109,7 +110,10 @@ export default function HealingScreen() {
         {/* 이슈17: 힐링 방법 결과 공유(앱게이트) */}
         <ShareReadingButton kind="healing" title="나만의 힐링 방법" content={r} />
         <Text style={styles.note}>{t('healing.note', '※ 사주 오행으로 가볍게 본 자기돌봄 가이드예요. 마음 챙김에 참고만 하세요.')}</Text>
-      </ScrollView>
+              {/* ★이어서 보면 좋은 콘텐츠(daniel 2026-07-27 "전부 붙여") — 화면마다 하단이 달라 보이던 것 통일.
+            큐레이션 출처는 RELATED 단일(중복 하드코딩 0). 매핑이 없으면 스스로 아무것도 안 그린다. */}
+        <RelatedContent kind="healing" />
+</ScrollView>
     </View>
   );
 }

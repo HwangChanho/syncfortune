@@ -5,6 +5,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useMemo, useState } from 'react';
 import { View, Text, ScrollView, TextInput, StyleSheet } from 'react-native';
+import { RelatedContent } from '../../components/RelatedContent';
 import { useTranslation } from 'react-i18next';
 import { analyzeName } from '../../lib/content/nameReading';
 import { colors, radius, space, shadow, font } from '../../lib/theme';
@@ -65,7 +66,10 @@ export default function NameScreen() {
         ) : null}
 
         <Text style={styles.note}>{t('name.note', '※ 소리의 오행으로 보는 가벼운 풀이예요. 한자·획수까지 보는 정식 작명과는 달라요.')}</Text>
-      </ScrollView>
+              {/* ★이어서 보면 좋은 콘텐츠(daniel 2026-07-27 "전부 붙여") — 화면마다 하단이 달라 보이던 것 통일.
+            큐레이션 출처는 RELATED 단일(중복 하드코딩 0). 매핑이 없으면 스스로 아무것도 안 그린다. */}
+        <RelatedContent kind="name" />
+</ScrollView>
     </View>
   );
 }

@@ -8,6 +8,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { View, Text, Pressable, ScrollView, Image, StyleSheet, ImageBackground, Modal, Animated, Easing } from 'react-native';
 import { PressableScale } from '../../components/PressableScale';
+import { RelatedContent } from '../../components/RelatedContent';
 import { useFontScale } from '../../lib/ui/fontScale';
 import { useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -209,7 +210,10 @@ export default function TaroScreen() {
             )}
           </>
         )}
-      </ScrollView>
+              {/* ★이어서 보면 좋은 콘텐츠(daniel 2026-07-27 "전부 붙여") — 화면마다 하단이 달라 보이던 것 통일.
+            큐레이션 출처는 RELATED 단일(중복 하드코딩 0). 매핑이 없으면 스스로 아무것도 안 그린다. */}
+        <RelatedContent kind="taro" />
+</ScrollView>
 
       {/* 선택 카드 확대 — 탭 시 떠오르고, 빈 곳 탭=내려가며 닫힘 */}
       <Modal visible={sel != null} transparent animationType="none" onRequestClose={closeCard}>

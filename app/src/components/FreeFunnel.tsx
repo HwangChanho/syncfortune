@@ -9,6 +9,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { View, Text, ScrollView, ActivityIndicator, ImageBackground, StyleSheet } from 'react-native';
 import { PressableScale } from './PressableScale';
+import { RelatedContent } from './RelatedContent';
 import { useRouter } from 'expo-router';
 import { loadRepChart } from '../lib/engine/myChart';   // 대표 명식(SavedChart) — 온디바이스, 로그인 불필요
 import { computeChart } from '../lib/engine/engine';      // 만세력 결정론 산출(엔진) — API 0
@@ -23,13 +24,16 @@ import { colors, radius, space, shadow, font } from '../lib/theme';
  * @param paidCta   골드 CTA 버튼 라벨(예: '깊은 재회 풀이 보기').
  * @param render    대표 명식의 saju 로 렌더할 결정론 타이밍(예: <ReunionTiming saju={saju} />). saju=any(엔진 산출물).
  */
-export function FreeFunnel({ heroImage, question, sub, paidRoute, paidCta, render }: {
+export function FreeFunnel({ heroImage, question, sub, paidRoute, paidCta, render, relatedKind }: {
   heroImage: any;
   question: string;
   sub?: string;
   paidRoute: string;
   paidCta: string;
   render: (saju: any) => ReactNode;
+  /** ★'이어서 보면 좋은 콘텐츠' 큐레이션 키(daniel 2026-07-27 "전부 붙여").
+   *  이 셸을 쓰는 퍼널 3종(재회·짝사랑·취업)이 한 번에 붙는다 — 화면마다 따로 붙이면 또 어긋난다. */
+  relatedKind?: string;
 }) {
   const router = useRouter();
   const [saju, setSaju] = useState<any>(null); // 대표 명식의 사주(결정론). null=아직 로드 전 or 명식 없음.
@@ -99,6 +103,7 @@ export function FreeFunnel({ heroImage, question, sub, paidRoute, paidCta, rende
 
       {/* 은은한 힌트 — 무료는 '언제', 유료는 '왜·상대 마음·개운법'까지임을 살짝 안내. */}
       <Text style={styles.hint}>더 깊은 이유·상대 마음·개운법은 깊은 풀이에서 볼 수 있어요</Text>
+      {relatedKind ? <RelatedContent kind={relatedKind} /> : null}
     </ScrollView>
   );
 }

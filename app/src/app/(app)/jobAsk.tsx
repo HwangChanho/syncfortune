@@ -19,6 +19,7 @@ export default function JobAskScreen() {
       question={t('jobAsk.q', '취업·이직, 언제 잘 풀릴까?')}
       sub={t('jobAsk.sub', '취업·이직·합격의 문이 열리기 좋은 시기를 무료로 미리 짚어 드려요')}
       paidRoute="/job"
+      relatedKind="jobAsk"
       paidCta={t('jobAsk.cta', '깊은 취업 풀이 보기')}
       render={(saju) => <JobRich saju={saju} />}
     />

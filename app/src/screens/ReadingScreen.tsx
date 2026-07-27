@@ -15,6 +15,7 @@ import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator, Modal
 import { Image as ExpoImage } from 'expo-image'; // 추천 콘텐츠 썸네일(다운샘플·디스크캐시)
 import { SECTIONS } from '../lib/content/contentSections'; // 추천 '이런 콘텐츠도 좋아하실 거예요'(하단·daniel 07-21) — 콘텐츠 단일출처
 import { PressableScale } from '../components/PressableScale';
+import { RelatedContent } from '../components/RelatedContent';
 import { ReadingProse, ReadingHeadline, ReadingPoints } from '../components/ReadingProse';
 import { GlossarySheet, type GlossaryTarget } from '../components/GlossarySheet'; // 명리 용어 탭 → 뜻(가독성 P2)
 import { glossaryKindOf } from '../lib/ui/readingEmphasis'; // 용어 → 글로서리 kind(십신/기본) // 풀이 본문 공통 렌더(가독성 P0 문단화·강조·접이식 + P1 핵심3줄). 3개 렌더지점 단일출처
@@ -846,7 +847,9 @@ export function ReadingScreen({
                 ))}
               </View>
             )}
-          </ScrollView>
+                {/* ★이어서 보면 좋은 콘텐츠(daniel 2026-07-27 "전부 붙여") — 큐레이션 출처 RELATED 단일. */}
+      <RelatedContent kind="reading" />
+</ScrollView>
         )}
       </KeyboardAvoidingView>
     </Modal>

@@ -6,6 +6,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, Pressable } from 'react-native';
 import { PressableScale } from '../../components/PressableScale';
+import { RelatedContent } from '../../components/RelatedContent';
 import { Image as ExpoImage } from 'expo-image'; // 상단 히어로 — 자동 다운샘플·디스크캐시(daniel: 이미지 노출)
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -76,7 +77,10 @@ export default function CountryScreen() {
             <Text style={styles.disclaimer}>* 기운 보완 관점의 안내예요(이주·이민 조언 아님). 정확한 풀이는 원국 전체로.</Text>
           </>
         ) : null}
-    </ScrollView>
+            {/* ★이어서 보면 좋은 콘텐츠(daniel 2026-07-27 "전부 붙여") — 화면마다 하단이 달라 보이던 것 통일.
+            큐레이션 출처는 RELATED 단일(중복 하드코딩 0). 매핑이 없으면 스스로 아무것도 안 그린다. */}
+        <RelatedContent kind="country" />
+</ScrollView>
   );
 }
 

@@ -18,6 +18,7 @@ import { personaImageUrl } from '../../lib/content/personaImages'; // 공유 카
 import { colors, radius, space, shadow, font } from '../../lib/theme';
 import { useFontScale } from '../../lib/ui/fontScale';
 import { ContentHero } from '../../components/SpecialContentScreen';
+import { RelatedContent } from '../../components/RelatedContent';
 import { Reveal } from '../../components/Reveal'; // 카드 순차 등장(daniel 재미)
 import { ChartPicker } from '../../components/ChartPicker';
 import { ComputedNote } from '../../components/ComputedNote'; // '내 생년월일로 계산됨' 배지(App Store 4.3 대응)
@@ -94,7 +95,10 @@ export default function PersonaTypeScreen() {
         <Text style={styles.note}>
           {t('persona120.note', '※ 일간(나 자신)과 월지(태어난 계절)로 나눈 120가지 결이에요. 타고난 결을 보는 것이라 좋고 나쁨이 아니고, 같은 유형이어도 나머지 글자와 지금 운에 따라 쓰임이 달라져요.')}
         </Text>
-      </ScrollView>
+              {/* ★이어서 보면 좋은 콘텐츠(daniel 2026-07-27 "전부 붙여") — 화면마다 하단이 달라 보이던 것 통일.
+            큐레이션 출처는 RELATED 단일(중복 하드코딩 0). 매핑이 없으면 스스로 아무것도 안 그린다. */}
+        <RelatedContent kind="personatype" />
+</ScrollView>
     </View>
   );
 }

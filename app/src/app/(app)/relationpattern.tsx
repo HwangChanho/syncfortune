@@ -8,6 +8,7 @@ import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-nat
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { PressableScale } from '../../components/PressableScale';
+import { RelatedContent } from '../../components/RelatedContent';
 import { loadRepChart } from '../../lib/engine/myChart';
 import { computeChart } from '../../lib/engine/engine';
 import { relationPattern } from '../../lib/content/relationPattern';
@@ -74,7 +75,10 @@ export default function RelationPatternRoute() {
       </PressableScale>
 
       <Text style={styles.footNote}>{t('relPattern.footNote', '※ 배우자궁(일지)·인연星·도화 등 원국 구조를 사주 엔진으로 계산한 온디바이스 분석이에요. 예언이 아니라 나를 이해하는 참고예요.')}</Text>
-    </ScrollView>
+            {/* ★이어서 보면 좋은 콘텐츠(daniel 2026-07-27 "전부 붙여") — 화면마다 하단이 달라 보이던 것 통일.
+            큐레이션 출처는 RELATED 단일(중복 하드코딩 0). 매핑이 없으면 스스로 아무것도 안 그린다. */}
+        <RelatedContent kind="relationpattern" />
+</ScrollView>
   );
 }
 

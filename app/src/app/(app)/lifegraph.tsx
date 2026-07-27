@@ -7,6 +7,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { View, Text, ScrollView, Pressable, ActivityIndicator, StyleSheet, Dimensions, Animated, Easing } from 'react-native';
 import { PressableScale } from '../../components/PressableScale';
+import { RelatedContent } from '../../components/RelatedContent';
 import { ExpiryNote } from '../../components/ExpiryNote'; // 보유 만료일 공통(프리미엄 가드 한 곳)
 import { Image as ExpoImage } from 'expo-image'; // hero 배너 — 다운샘플·디스크캐시(daniel: 이미지 캐시·로딩 가속)
 import Svg, { Polyline, Circle, Line, Rect, Text as SvgText } from 'react-native-svg';
@@ -368,7 +369,10 @@ export default function LifeGraphScreen() {
           </View>
         </>
       )}
-    </ScrollView>
+            {/* ★이어서 보면 좋은 콘텐츠(daniel 2026-07-27 "전부 붙여") — 화면마다 하단이 달라 보이던 것 통일.
+            큐레이션 출처는 RELATED 단일(중복 하드코딩 0). 매핑이 없으면 스스로 아무것도 안 그린다. */}
+        <RelatedContent kind="lifegraph" />
+</ScrollView>
   );
 }
 

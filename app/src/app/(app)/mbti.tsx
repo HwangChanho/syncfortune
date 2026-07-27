@@ -13,6 +13,7 @@ import { sajuMbti } from '../../lib/content/sajuMbti';
 import { colors, radius, space, shadow, font } from '../../lib/theme';
 import { useFontScale } from '../../lib/ui/fontScale';
 import { ContentHero } from '../../components/SpecialContentScreen';
+import { RelatedContent } from '../../components/RelatedContent';
 import { Reveal } from '../../components/Reveal'; // 카드 순차 등장(daniel 재미)
 import { ChartPicker } from '../../components/ChartPicker';
 import { ShareReadingButton } from '../../components/ShareReadingButton';
@@ -87,7 +88,10 @@ export default function MbtiScreen() {
         )}
 
         <Text style={styles.note}>{t('mbti.note', '※ 사주 구조(지장간·현재 운 포함)로 본 성향이라 시기에 따라 조금씩 달라져요. 심리검사 MBTI와 다를 수 있어요.')}</Text>
-      </ScrollView>
+              {/* ★이어서 보면 좋은 콘텐츠(daniel 2026-07-27 "전부 붙여") — 화면마다 하단이 달라 보이던 것 통일.
+            큐레이션 출처는 RELATED 단일(중복 하드코딩 0). 매핑이 없으면 스스로 아무것도 안 그린다. */}
+        <RelatedContent kind="mbti" />
+</ScrollView>
     </View>
   );
 }

@@ -36,4 +36,34 @@ export const RELATED: Record<string, string[]> = {
   timeline: ['lifegraph', 'newyear', 'roots'],
   daily: ['personal', 'gaeun', 'love'],     // 오늘의 운세 하단 → 퍼스널 오행(코디)·개운·애정 동선(daniel 기획서②-피드백)
   personal: ['gaeun', 'lovestyle', 'love'], // 퍼스널 오행 → 개운·연애스타일·애정
+
+  // ── 2026-07-27 전면 부착(daniel "전부 붙여") — 추천이 없던 화면들의 큐레이션 ────────
+  //   ⚠️추천 '대상'은 CreditKind 또는 personal/lovestyle 만 해석된다(그 외는 RelatedContent 가 걸러 낸다).
+  //     그래서 무료 콘텐츠(행운·펫·타로 등)는 *출발지*로만 쓰고, 도착지는 유효 키로만 골랐다.
+  //   ⚠️큐레이션 = 마케팅/UX 판단(명리 아님) — ★daniel 조정 슬롯.
+  bok: ['gaeun', 'mission', 'roots'],
+  charts: ['reading', 'ziwei', 'timeline'],
+  country: ['roots', 'celeb', 'image'],
+  crushAsk: ['crush', 'love', 'compat'],
+  dayPillar: ['reading', 'love', 'career'],
+  dream: ['gaeun', 'mission', 'image'],
+  egenteto: ['personal', 'lovestyle', 'image'],
+  healing: ['gaeun', 'mission', 'personal'],
+  impression: ['image', 'personal', 'celeb'],
+  jobAsk: ['job', 'career', 'jobfit'],
+  joseonjob: ['career', 'jobfit', 'talent'],
+  luck: ['gaeun', 'mission', 'dream'],
+  mbti: ['personal', 'lovestyle', 'image'],
+  month: ['timeline', 'gaeun', 'future10'],
+  name: ['roots', 'reading', 'image'],
+  pastlife: ['roots', 'celeb', 'image'],
+  personatype: ['personal', 'lovestyle', 'image'],
+  pet: ['child', 'compat', 'love'],
+  relationpattern: ['compat', 'love', 'crush'],
+  reunionAsk: ['reunion', 'love', 'compat'],
+  selfanalysis: ['reading', 'talent', 'career'],
+  sokgunghap: ['compat', 'love', 'lovestyle'],
+  taegil: ['gaeun', 'newyear', 'mission'],
+  taro: ['dream', 'gaeun', 'mission'],
+  timeResolve: ['reading', 'ziwei', 'timeline'],
 };

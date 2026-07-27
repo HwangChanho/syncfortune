@@ -18,6 +18,7 @@ export default function ReunionAskScreen() {
       question={t('reunionAsk.q', '재회, 다시 이어질까?')}
       sub={t('reunionAsk.sub', '옛 인연과 다시 이어질 가능성·시기·방향을 무료로 짚어 드려요')}
       paidRoute="/reunion"
+      relatedKind="reunionAsk"
       paidCta={t('reunionAsk.cta', '깊은 재회 풀이 보기')}
       render={(saju) => <ReunionRich saju={saju} />}
     />

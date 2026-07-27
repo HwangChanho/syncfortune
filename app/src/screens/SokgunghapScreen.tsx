@@ -9,6 +9,7 @@ import { View, Text, ScrollView, StyleSheet, Modal, ActivityIndicator, Pressable
 import * as SecureStore from 'expo-secure-store';
 import { useTranslation } from 'react-i18next';
 import { PressableScale } from '../components/PressableScale';
+import { RelatedContent } from '../components/RelatedContent';
 import { Alert } from '../lib/ui/alert';
 import { computeChart } from '../lib/engine/engine';
 import { ChartPicker } from '../components/ChartPicker'; // 대표명식(나) 변경 — 다른 화면과 동일(daniel 2026-07-15)
@@ -201,7 +202,9 @@ export function SokgunghapScreen({ me: meInit }: { me: ChartInput }) {
           <ChartRegisterScreen defaultRelation="지인" submitLabel={t('sok.registerSubmit', '이 상대로 속궁합 보기')} showMakeRep={false} onSubmit={onRegisterOther} />
         </View>
       </Modal>
-    </ScrollView>
+          {/* ★이어서 보면 좋은 콘텐츠(daniel 2026-07-27 "전부 붙여") — 큐레이션 출처 RELATED 단일. */}
+      <RelatedContent kind="sokgunghap" />
+</ScrollView>
   );
 }
 

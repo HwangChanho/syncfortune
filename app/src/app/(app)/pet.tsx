@@ -6,6 +6,7 @@
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { View, Text, TextInput, Pressable, ScrollView, StyleSheet, Modal } from 'react-native';
 import { PressableScale } from '../../components/PressableScale';
+import { RelatedContent } from '../../components/RelatedContent';
 import { Alert } from '../../lib/ui/alert'; // 커스텀 알림(앱 디자인)
 import { useTranslation } from 'react-i18next';
 import { useFocusEffect } from 'expo-router';
@@ -215,7 +216,10 @@ export default function PetScreen() {
           </Pressable>
         </Pressable>
       </Modal>
-    </ScrollView>
+            {/* ★이어서 보면 좋은 콘텐츠(daniel 2026-07-27 "전부 붙여") — 화면마다 하단이 달라 보이던 것 통일.
+            큐레이션 출처는 RELATED 단일(중복 하드코딩 0). 매핑이 없으면 스스로 아무것도 안 그린다. */}
+        <RelatedContent kind="pet" />
+</ScrollView>
   );
 }
 

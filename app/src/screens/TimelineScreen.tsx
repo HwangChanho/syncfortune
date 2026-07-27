@@ -7,6 +7,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator, Modal } from 'react-native';
 import { PressableScale } from '../components/PressableScale';
+import { RelatedContent } from '../components/RelatedContent';
 import { ExpiryNote } from '../components/ExpiryNote'; // 보유 만료일 공통(프리미엄 가드 한 곳)
 import { Alert } from '../lib/ui/alert'; // 커스텀 알림(앱 디자인)
 import { useTranslation } from 'react-i18next';
@@ -433,7 +434,9 @@ export function TimelineScreen({ input, savedChart }: { input: ChartInput | null
           </Pressable>
         </Pressable>
       </Modal>
-    </ScrollView>
+          {/* ★이어서 보면 좋은 콘텐츠(daniel 2026-07-27 "전부 붙여") — 큐레이션 출처 RELATED 단일. */}
+      <RelatedContent kind="timeline" />
+</ScrollView>
   );
 }
 

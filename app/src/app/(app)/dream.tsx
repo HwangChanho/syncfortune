@@ -5,6 +5,7 @@
 import { useMemo, useState, useEffect, useRef } from 'react';
 import { View, Text, ScrollView, TextInput, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
 import { PressableScale } from '../../components/PressableScale';
+import { RelatedContent } from '../../components/RelatedContent';
 import { useTranslation } from 'react-i18next';
 import { searchDreams, DREAM_POPULAR, dreamTitle, dreamMeaning, popularLabel } from '../../lib/content/dreamDict';
 import { supabase } from '../../lib/supabase';        // 사전 miss → LLM 폴백(전역 캐시)
@@ -301,7 +302,10 @@ export default function DreamScreen() {
         ) : null}
 
         <Text style={styles.note}>{t('dream.note', '※ 가볍게 즐기는 전통 해몽이에요.')}</Text>
-      </ScrollView>
+              {/* ★이어서 보면 좋은 콘텐츠(daniel 2026-07-27 "전부 붙여") — 화면마다 하단이 달라 보이던 것 통일.
+            큐레이션 출처는 RELATED 단일(중복 하드코딩 0). 매핑이 없으면 스스로 아무것도 안 그린다. */}
+        <RelatedContent kind="dream" />
+</ScrollView>
     </View>
   );
 }

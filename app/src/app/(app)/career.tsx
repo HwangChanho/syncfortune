@@ -8,6 +8,7 @@
 import { useEffect, useMemo, useState, useRef } from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
 import { PressableScale } from '../../components/PressableScale';
+import { RelatedContent } from '../../components/RelatedContent';
 import { ExpiryNote } from '../../components/ExpiryNote'; // 보유 만료일 공통(프리미엄 가드 한 곳)
 import { Image as ExpoImage } from 'expo-image'; // 콘텐츠 이미지 — 자동 다운샘플·디스크캐시(랙 방지·타 콘텐츠와 통일, daniel)
 import { Alert } from '../../lib/ui/alert';
@@ -266,7 +267,10 @@ export default function CareerScreen() {
             <Text style={styles.gateNote}>{t('special.couponHint', '관리자 계정 또는 쿠폰(이용권)으로 열려요')}</Text>
           </View>
         )}
-      </ScrollView>
+              {/* ★이어서 보면 좋은 콘텐츠(daniel 2026-07-27 "전부 붙여") — 화면마다 하단이 달라 보이던 것 통일.
+            큐레이션 출처는 RELATED 단일(중복 하드코딩 0). 매핑이 없으면 스스로 아무것도 안 그린다. */}
+        <RelatedContent kind="career" />
+</ScrollView>
     </View>
   );
 }
