@@ -8,6 +8,7 @@ import { PressableScale } from '../../components/PressableScale';
 import { RelatedContent } from '../../components/RelatedContent';
 import { useTranslation } from 'react-i18next';
 import { searchDreams, DREAM_POPULAR, dreamTitle, dreamMeaning, popularLabel } from '../../lib/content/dreamDict';
+import { ensureCoinsFor } from '../../lib/billing/coinGate';   // ★코인 단일 경로(daniel 07-28)
 import { supabase } from '../../lib/supabase';        // 사전 miss → LLM 폴백(전역 캐시)
 import { appLang } from '../../lib/i18n';
 import { colors, radius, space, shadow, font } from '../../lib/theme';
@@ -127,7 +128,8 @@ export default function DreamScreen() {
         { text: t('common.cancel', '취소'), style: 'cancel' },
         { text: t('dream.buy5', '5회 구매'), onPress: async () => {
           try {
-            const bought = await purchaseCreditRC('dream'); if (!bought) return;  // 결제(취소 시 false)
+            const g = await ensureCoinsFor('dream', { title: t('dream.title', 'AI 꿈해몽'), t, goCharge: () => router.push('/coins') });
+            if (g !== 'ok') return;   // ★코인 전환(daniel 2026-07-28)
             // ★C1(daniel 07-03): 클라 grant 폐지 → 영수증 검증된 웹훅이 5회 적립. 반영까지 폴링 후 재시도(Edge 가 1회 차감).
             const { granted } = await waitForCreditGrant('dream');
             if (granted) runAI(text);

@@ -12,6 +12,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { CREDIT_KINDS, loadCredits, redeemCoupon, waitForCreditGrant, PREMIUM_PRICE, type CreditKind } from '../../lib/billing/coupons';
+import { coinPriceOf } from '../../lib/billing/coins';   // ★코인 표기(daniel 07-28)
 import { isNewContent } from '../../lib/content/newBadge'; // 신규 콘텐츠 NEW 배지(출시일+21일 자동 만료)
 import { requireLoginForPurchase } from '../../lib/billing/requireLogin'; // C1: 결제=계정 귀속(웹훅 적립엔 로그인 필수)
 import { listCharts, getRepresentativeId, setRepresentative, loadRepChart, type SavedChart } from '../../lib/engine/myChart';
@@ -298,7 +299,7 @@ export default function MarketRoute() {
             <Text style={styles.name}>{c.ko}</Text>
             {card && <Text style={styles.desc} numberOfLines={2}>{t(card.desc)}</Text>}
             {/* 개별 구매가 노출(daniel 07-03: 프리미엄 상품도 개별구매 가능하니 금액 표시) — 프리미엄 유저는 무제한이라 참조용 */}
-            <Text style={styles.price}>{prices[c.key] ?? `₩${c.price.toLocaleString()}`} {t('market.perItem', '개별')}</Text>
+            <Text style={styles.price}>{coinPriceOf(c.key) != null ? `${coinPriceOf(c.key)} 코인` : (prices[c.key] ?? `₩${c.price.toLocaleString()}`)}</Text>
           </View>
           <View style={styles.unlimitedBadge}>
             <Text style={styles.unlimitedTx}>{t('market.unlimited', '무제한 이용 중')}</Text>
@@ -316,18 +317,15 @@ export default function MarketRoute() {
         <View style={{ flex: 1 }}>
           <Text style={styles.name}>{c.ko}</Text>
           {card && <Text style={styles.desc} numberOfLines={2}>{t(card.desc)}</Text>}
-          <Text style={styles.price}>{prices[c.key] ?? `₩${c.price.toLocaleString()}`}</Text>
+          <Text style={styles.price}>{coinPriceOf(c.key) != null ? `${coinPriceOf(c.key)} 코인` : (prices[c.key] ?? `₩${c.price.toLocaleString()}`)}</Text>
           <Text style={[styles.have, owned && styles.haveOn]}>{owned ? `${t('market.owned')} ×${credits[c.key]}` : t('market.notOwned')}</Text>
         </View>
-        {owned ? (
-          <PressableScale style={styles.buyBtn} onPress={() => apply(c.key)} disabled={!sel}>
-            <Text style={styles.buyTx}>{t('market.openApply')}</Text>
-          </PressableScale>
-        ) : (
-          <PressableScale style={[styles.buyBtn, busy === c.key && styles.buyBtnBusy]} onPress={() => buy(c.key)} disabled={busy !== null}>
-            <Text style={styles.buyTx}>{busy === c.key ? '…' : t('market.buy')}</Text>
-          </PressableScale>
-        )}
+        {/* ★코인 전환(daniel 2026-07-28 "기존 단건 결제는 다 없애") — 마켓에서 개별 결제하지 않는다.
+            코인이 화폐이므로 **콘텐츠를 열고 거기서 코인을 쓴다**(게이트가 잔액 확인·부족 시 충전 유도).
+            마켓은 카탈로그 + 충전 입구 역할만 한다. 보유/미보유는 라벨로만 구분한다. */}
+        <PressableScale style={styles.buyBtn} onPress={() => apply(c.key)} disabled={!sel}>
+          <Text style={styles.buyTx}>{owned ? t('market.openApply') : t('market.open', '열기')}</Text>
+        </PressableScale>
       </View>
     );
   }
@@ -525,6 +523,8 @@ const styles = StyleSheet.create({
   //   flex:1 컨테이너가 이 여백만큼 줄어들어 긴 설명(numberOfLines=2)이 버튼에 닿지 않고 그 안에서 줄바꿈된다(daniel 07-07 IMG_7980: '별자리 운세' 긴 설명↔구매 버튼 밀착 수정).
   buyBtn: { backgroundColor: colors.ju, borderRadius: radius.pill, paddingHorizontal: space(5), paddingVertical: space(2.5), minWidth: 84, alignItems: 'center', marginLeft: space(4) },
   buyBtnBusy: { opacity: 0.5 },
+  chargeBtn: { backgroundColor: colors.ju, borderRadius: radius.md, paddingVertical: space(3.5), alignItems: 'center', marginBottom: space(4) },
+  chargeTx: { color: colors.bg, fontWeight: '900', fontSize: 15 },
   // ★focus 도착 강조 — '여기가 그 상품' 신호. 색이 아니라 테두리+틴트로(색맹 대비·액센트 남용 방지).
   cardFocus: { borderColor: colors.ju, borderWidth: 2, backgroundColor: colors.juSoft },
   buyTx: { color: colors.bg, fontWeight: '800', fontSize: 14 },

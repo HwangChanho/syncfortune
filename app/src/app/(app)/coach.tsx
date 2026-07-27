@@ -10,6 +10,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'; // ★상단
 import { useTranslation } from 'react-i18next';
 import { useRouter } from 'expo-router';
 import { Alert } from '../../lib/ui/alert';
+import { ensureCoinsFor } from '../../lib/billing/coinGate';   // ★코인 단일 경로(daniel 07-28)
 import { PressableScale } from '../../components/PressableScale';
 import { CoachRouteHint } from '../../components/CoachRouteHint';   // ★코치 → 콘텐츠 안내(daniel 07-27)
 import { CoachTarotCard } from '../../components/CoachTarotCard'; // ★코치 답 아래 '가볍게 뽑은 카드'(daniel IMG_8198)
@@ -219,7 +220,9 @@ export default function CoachScreen() {
                 {/* 이용권으로 물어보기 — 즉시 구매 후 마지막 질문 재전송 */}
                 <PressableScale style={styles.gateBtn} onPress={async () => {
                   try {
-                    const ok = await purchaseCreditRC('coach'); if (!ok) return; // 취소=조용히
+                    // ★코인 전환(daniel 2026-07-28 "기존 단건 결제는 다 없애") — 스토어 결제 대신 보유 코인.
+                    const g = await ensureCoinsFor('coach', { title: t('coach.title', 'AI 코치'), t, goCharge: () => router.push('/coins') });
+                    if (g !== 'ok') return;   // 부족·취소·조회실패는 게이트가 안내까지 마쳤다
                     setGate(null);
                     if (lastQ.current) void send(lastQ.current); // 구매 성공 → 그 질문 재전송(서버가 이용권 차감)
                   } catch (e) { Alert.alert('!', (e as Error).message); } // ★결제 미준비·오프라인·풀이 불가(헬스 게이트) 친화 표출(throw 미포장 결함 수정)

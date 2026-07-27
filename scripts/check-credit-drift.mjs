@@ -206,7 +206,17 @@ for (const [name, set] of Object.entries(stores)) {
       fail('스토어', `${name}: 상품 '${p}' 누락 — 스토어 등록 스크립트에 추가(미등록 시 결제창 미표시/RC 미연결).`);
   }
   // 역방향: 스토어에만 있는 잔재 상품.
+  // ★코인 팩(daniel 2026-07-28 코인 전환)은 **콘텐츠 상품이 아니다** — CREDIT_PRODUCT 매핑이 없는 게 정상이다.
+  //   대신 앱의 COIN_PACKS(coinPrices.ts) 와 스토어 등록이 일치하는지 검사한다(그게 이 범주의 드리프트).
+  const COIN_PACK_IDS = new Set(
+    [...(read('app/src/lib/billing/coinPrices.ts') ?? '')
+      .matchAll(/id:\s*'(coin_\d+)'/g)].map((m) => m[1]),
+  );
   for (const p of set) {
+    if (p.startsWith('coin_')) {
+      if (!COIN_PACK_IDS.has(p)) fail('스토어', `${name}: 코인 팩 '${p}' 가 앱 COIN_PACKS 에 없음 — 스토어에만 있는 잔재(사용자가 살 수 없는 상품).`);
+      continue;
+    }
     if (EXPECTED_STORE.has(p)) continue;
     const k = kindOfProduct.get(p);
     if (k && TYPE_ONLY.has(k))

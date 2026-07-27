@@ -13,6 +13,7 @@ import { Stack, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import type { ChartInput } from '@spec/chart';
 import { scoreTimePillars, type LifeEvent, type BigEventType } from '../../lib/engine/timePillarScore';
+import { ensureCoinsFor } from '../../lib/billing/coinGate';   // ★코인 단일 경로(daniel 07-28)
 import { BirthPlacePicker } from '../../components/BirthPlacePicker'; // 출생지 = 지역 검색(명식 등록과 동일·Nominatim, daniel #21)
 import { stemReading, branchReading } from '../../lib/engine/ohaeng';
 import { colors, radius, space, font } from '../../lib/theme';
@@ -123,7 +124,8 @@ export default function TimeResolveScreen() {
         { text: t('special.buyNow', '바로 구매'), onPress: async () => {
             if (!purchasesEnabled()) { Alert.alert(t('timeResolve.title', '태어난 시 찾기'), t('market.payPending', '결제 준비 중이에요. 쿠폰을 이용하거나 잠시 후 다시 시도해 주세요.')); return; }
             try {
-              const ok = await purchaseCreditRC('timeresolve'); if (!ok) return; // 취소=false(조용히)
+              const g = await ensureCoinsFor('timeresolve', { title: t('timeResolve.title', '태어난 시 찾기'), t, goCharge: () => router.push('/coins') });
+              if (g !== 'ok') return;   // ★코인 전환(daniel 2026-07-28)
               // ★C1(daniel 07-03): 클라 grant 폐지 → 영수증 검증된 웹훅이 적립. 반영까지 폴링 후 차감·영구 해제.
               const { granted } = await waitForCreditGrant('timeresolve');
               if (granted && await useCredit('timeresolve')) { await markUnlocked(TPR_UNLOCK, 'timeresolve'); setUnlocked(true); compute(); }
