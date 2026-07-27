@@ -73,6 +73,9 @@ if (!coupons || !interpret) {
   for (const m of objBody('SERVER_GATED').matchAll(/(\w+):\s*'(\w+)'/g)) gated.add(m[2]); // 값 = credit kind
   for (const m of objBody('SET_KIND').matchAll(/(\w+):\s*'(\w+)'/g)) gated.add(m[2]);      // saju:'reading' → reading
   for (const m of interpret.matchAll(/p_kind:\s*'(\w+)'/g)) gated.add(m[1]);               // consume_credit 직접 리터럴
+  // ★2026-07-28 코인 전환: 차감이 `spendForKind(supabase, owner, 'kind')` 로 바뀌었다.
+  //   이 패턴을 안 보면 게이트가 살아 있는데 '없음'으로 잡혀(오탐 4건 실제 발생) 가드가 무력화된다.
+  for (const m of interpret.matchAll(/spendForKind\([^)]*?['"](\w+)['"]\s*\)/g)) gated.add(m[1]);
   // ALLOWLIST — 서버(interpret) 게이트가 불요한 유료 kind. *추가는 의식적 결정*이어야 하므로 사유 필수.
   const ALLOW = new Map([
     ['timeresolve', '온디바이스 결정론 도구(TPR) — LLM(interpret) 미경유. 클라 useCredit 로 1회 결제=도구 영구 해제.'],
