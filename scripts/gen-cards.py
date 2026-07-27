@@ -93,17 +93,103 @@ WAVES = {
     "persona":   "a single human silhouette seen from behind facing a tall oval mirror, "
                  "deep indigo silhouette, gold mirror rim, cream background",
   },
+  # ── w2 — 나머지 세로 타일 41종 ────────────────────────────────────────────
+  #   설계 원칙(R4): 그 콘텐츠를 한 단어로 줄였을 때 떠오르는 **물건/장면 하나**.
+  #   ★사람이 필요하면 실루엣(얼굴 금지) · 개수 세는 소재 회피(R6) · 글자 나오는 소재 금지(R5).
+  #   ★색을 항목마다 명시해 65종이 한 가족으로 보이게 한다(인디고/틸/감/자주/청록 계열 + 금선).
+  "w2": {
+    "astrology":   "one large circular zodiac wheel disc with a ring of constellation marks, deep indigo disc with gold ring on cream",
+    "bok":         "one plump traditional Korean silk fortune pouch with a drawstring, deep persimmon pouch with gold cord on cream",
+    "career":      "one tall wooden ladder leaning and rising upward, deep teal ladder with gold rungs on cream",
+    "celeb":       "one human silhouette standing under a single bright spotlight beam, deep indigo silhouette, gold light beam, cream background",
+    "country":     "one large globe on a stand, continents in flat shapes, deep teal globe with gold meridian on cream",
+    "crush":       "one human silhouette with a single red thread reaching out from the chest toward the edge, deep indigo silhouette on cream",
+    "dayPillar":   "one round jade medallion with a simple engraved pattern, deep jade green medallion with gold rim on cream",
+    "dream":       "one softly glowing doorway standing among round clouds, deep indigo clouds with gold doorway on cream",
+    "egen":        "one human silhouette split down the middle into two contrasting colors, deep indigo and warm persimmon halves on cream",
+    "followup":    "one large rounded speech bubble with a small gold spark inside, deep indigo bubble on cream",
+    "future10":    "one long straight road receding toward a distant glowing gate, deep teal road with gold gate on cream",
+    "gaeun":       "one ornate old key lying diagonally, deep indigo key with gold bow on cream",
+    "gem":         "one large faceted gemstone, clean geometric facets, deep sapphire blue stone with gold outline on cream",
+    "healing":     "one warm teacup with gentle steam curling upward, deep teal cup with gold steam lines on cream",
+    "image":       "one human silhouette above its own reflection in still water, deep indigo silhouette on cream",
+    "impression":  "one human silhouette standing in a beam of light through a narrow opening, deep indigo silhouette, gold light on cream",
+    "job":         "one open door with bright light spilling through it, deep teal door with gold light on cream",
+    "joseonjob":   "one silhouette wearing a traditional Korean wide-brimmed hat, no facial features, deep indigo silhouette on cream",
+    "lifegraph":   "one continuous mountain ridge line rising and falling across, deep indigo ridge with a gold peak marker on cream",
+    "lovestyle":   "one round paper lantern with a heart cut-out glowing inside, deep crimson lantern with gold glow on cream",
+    "luck":        "one large four-leaf clover, deep jade green clover with gold veins on cream",
+    "mbti":        "one human silhouette standing where a path forks into two, deep indigo silhouette and teal paths on cream",
+    "mission":     "one archery target with a single arrow in the center, deep persimmon target with gold arrow on cream",
+    "month":       "one large full moon with a few small clouds beneath, deep indigo moon with gold rim on cream",
+    "name":        "one carved stone seal stamp standing upright, deep persimmon seal with gold top on cream",
+    "newyear":     "one large sky lantern rising with a warm glow, deep persimmon lantern with gold light on cream",
+    "numerology":  "one traditional wooden abacus with round beads, deep teal frame with gold beads on cream",
+    "pastlife":    "one still water surface reflecting a different silhouette than the one above it, deep indigo on cream",
+    "pet":         "one sitting cat silhouette seen from the side, deep indigo silhouette with a gold collar on cream",
+    "relationPattern": "several thin threads converging into one central knot, deep indigo threads with a gold knot on cream",
+    "reunion":     "one red thread that was cut and is now rejoined with a knot at the break, deep crimson thread on cream",
+    "roots":       "one large tree with its deep root system spreading below, deep indigo roots with gold tips on cream",
+    "selfAnalysis": "one large magnifying glass held upright over a small star, deep teal handle with gold lens rim on cream",
+    "sokgunghap":  "one red silk ribbon tied around two joined rings, deep crimson ribbon with gold rings on cream, tasteful and restrained",
+    "taegil":      "one elegant hourglass with sand falling, deep indigo frame with gold sand on cream",
+    "talent":      "one bare branch with a single gold blossom opening at its tip, deep indigo branch on cream",
+    "taro-health": "one single tarot card standing upright with a green leaf motif on its back, deep jade card with gold edges on cream",
+    "taro-money":  "one single tarot card standing upright with a gold coin motif on its back, deep indigo card with gold edges on cream",
+    "taro-work":   "one single tarot card standing upright with a compass motif on its back, deep teal card with gold edges on cream",
+    "timeResolve": "one round pocket watch with its lid open, deep indigo watch with gold hands on cream",
+    "zodiac":      "one round medallion with a single animal profile carved in it, deep persimmon medallion with gold rim on cream",
+  },
+  # ── w1x — 웨이브1 리롤(daniel 12종 검수 결과: 실패 2·약함 3) ──────────────
+  #   실제 카드 크기 판정에서 걸린 것만 소재를 바꿔 다시 뽑는다. 통과 7종은 **건드리지 않는다**.
+  "w1x": {
+    # ❌자식운: '새싹'을 시켰는데 **아이가 화분 안에 앉은** 기괴한 그림이 나왔다 → 사람 금지 + 소재를 어린나무로
+    "child":   ("one young tree seedling with a few broad leaves growing from a round ceramic pot, "
+                "one tiny gold star above it, deep jade green leaves on cream",
+                "person, people, child, kid, baby, human, face, doll"),
+    # ❌자미두수: 만다라 장식으로 흘러 '성반'이 안 읽힘 → 큰 별 하나 + 궤도 링으로 단순화
+    "ziwei":   ("one large eight-pointed star with two thin orbit rings circling around it, "
+                "deep indigo star with gold rings on cream, clean and simple",
+                "mandala, flower, floral, kaleidoscope, ornament"),
+    # ⚠️사주: 큰 얼굴이 떠 있고 실루엣은 하단으로 내려가 라벨에 먹힘 → **실루엣 하나 안에 별하늘**로 통합
+    "premium": ("one head-and-shoulders silhouette filled with a starry night sky inside it, "
+                "no facial features at all, deep indigo silhouette with small gold stars, cream background",
+                "face, facial features, eyes, nose, mouth, portrait, two figures, floating head"),
+    # ⚠️애정: 붉은 천 추상으로 흘러 '인연'이 안 읽힘 → 하나의 붉은 끈이 **하트 매듭**으로 묶인 형태
+    "love":    ("one single red cord tied into one heart-shaped knot, "
+                "the cord ends trailing down, deep crimson cord on cream, clean and simple",
+                "fabric, cloth, drapery, ribbon banner, abstract swirl"),
+    # ⚠️만세력: 반원 추상 → 절기의 순환을 **사계절로 나뉜 나무 한 그루**로(시간의 이치)
+    "manse":   ("one single tree whose round canopy is divided into four seasonal quarters — "
+                "blossoms, green leaves, autumn leaves, bare branches, deep indigo trunk with gold division lines on cream",
+                "four separate trees, grid, panels, mandala"),
+  },
+  # w1r — 웨이브1 잔여분(중단 재개용). w1 과 **같은 문구**를 쓴다(가족 일관성).
+  "w1r": {
+    "taro":      "a fan of blank playing cards spread in an arc, backs facing viewer, "
+                 "deep indigo card backs with gold edges on cream",
+    "manse":     "one large circular disc split into a sun half and a moon half, "
+                 "deep indigo and gold on cream, clean geometric",
+    "persona":   "a single human silhouette seen from behind facing a tall oval mirror, "
+                 "deep indigo silhouette, gold mirror rim, cream background",
+  },
 }
 
 W, H = 832, 1216
 CROP = 0.05   # R7 — 가장자리 5% 잘라 액자 제거
 
 
-def gen(name: str, subject: str) -> None:
-    """한 장 생성 → 가장자리 크롭 → `_pilot/<name>.png`. 구도 → 피사체 → 톤 순서 고정(07-19 교훈 ⓒ)."""
+def gen(name: str, spec) -> None:
+    """
+    한 장 생성 → 가장자리 크롭 → `_pilot/<name>.png`. 구도 → 피사체 → 톤 순서 고정(07-19 교훈 ⓒ).
+    @param spec 문자열(피사체) 또는 (피사체, 추가네거티브) 튜플.
+      ★추가 네거티브를 **항목별**로 두는 이유: 전역 NEG 에 넣으면 이미 통과한 7종까지 흔들려 회귀한다.
+        예) 자식운은 '아이가 화분 안에 앉는' 드리프트가 났으므로 그 항목에만 사람 금지를 건다.
+    """
+    subject, extra = (spec if isinstance(spec, tuple) else (spec, ""))
     payload = {
         "prompt": f"{COMP}{subject}, {TONE}",
-        "negative_prompt": NEG,
+        "negative_prompt": NEG + (", " + extra if extra else ""),
         "steps": 28, "cfg_scale": 7.0, "width": W, "height": H,
         "sampler_name": "DPM++ 2M Karras", "batch_size": 1,
     }
