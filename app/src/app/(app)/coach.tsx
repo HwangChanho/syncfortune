@@ -22,7 +22,7 @@ import { useAuth } from '../../lib/useAuth';
 import { useFontScale } from '../../lib/ui/fontScale';
 import { askCoach, loadCoachHistory, deleteCoachHistory, type CoachTurn } from '../../lib/backend/coach';
 import { coachSuggestionGroups, type CoachPromptCat } from '../../lib/content/coachPrompts'; // 추천 질문(주제별 프리셋·온디바이스·API 0)
-import { useSubscription } from '../../lib/billing/subscription'; // 프리미엄=월 5회 무료
+import { useSubscription } from '../../lib/billing/subscription'; // 프리미엄=월 10회 무료(서버 COACH_PREMIUM_MONTHLY 가 정본 — 화면은 응답의 freeLimit 을 그대로 표시)
 import { showRewardedAd } from '../../lib/core/ads';               // 비프리미엄 무료=보상형 광고(daniel 07-13)
 import { purchaseCreditRC } from '../../lib/billing/purchases';    // coach 이용권 즉시 구매
 import * as SecureStore from 'expo-secure-store';
@@ -50,7 +50,7 @@ export default function CoachScreen() {
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
   const [gate, setGate] = useState<{ isPremium: boolean; used: number; freeLimit: number; period: 'day' | 'month' } | null>(null); // 무료 소진 → 이용권
-  const { isPremium } = useSubscription(); // 프리미엄=월 5회 무료(광고 없음)
+  const { isPremium } = useSubscription(); // 프리미엄=월 10회 무료(서버 COACH_PREMIUM_MONTHLY 가 정본 — 화면은 응답의 freeLimit 을 그대로 표시)(광고 없음)
   const lastQ = useRef<string>(''); // 이용권 구매 후 재전송용
   const [reloadKey, setReloadKey] = useState(0);
   const [kbH, setKbH] = useState(0); // 키보드 높이(px) — 입력바를 키보드 바로 위로 올림(전역 네비바 보정)
