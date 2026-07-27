@@ -53,6 +53,7 @@ import { purchaseCreditRC } from '../lib/billing/purchases'; // 추가질문 건
 import { requireLoginForPurchase } from '../lib/billing/requireLogin'; // 결제/저장 전 로그인 안내
 import { assertOnline, isOnline, notifyNetworkError } from '../lib/backend/network'; // 오프라인 차단 + ★호출 실패 알림(daniel 07-27)
 import { logEvent } from '../lib/backend/logger';   // 자동 복구 시도 기록(사고 재구성용)
+import { promptSignupOnReadingEnter } from '../lib/ui/signupPrompt'; // ★유료 풀이 진입 시 계정 연결 안내(daniel 07-27)
 import { colors, radius, space, shadow, font } from '../lib/theme';
 import type { ChartInput, CategoryKey } from '@spec/chart';
 
@@ -150,6 +151,10 @@ export function ReadingScreen({
   const [askInput, setAskInput] = useState('');
   const [asking, setAsking] = useState(false);
   const [cacheLoaded, setCacheLoaded] = useState(false);  // 캐시 로드 완료(자동 생성 판단 기준)
+  // ★유료 풀이 진입 안내(daniel 2026-07-27 "실제 풀이까지 진입할 때 뜨게 해줘") — 비회원에게만, 앱 실행당 1회.
+  //   ⚠️차단이 아니라 안내다('나중에'로 그대로 진행) — 5.1.1 리젝 이력(07-08) 때문에 이 경계를 지킨다.
+  useEffect(() => { promptSignupOnReadingEnter(() => router.push('/login'), t); }, []);   // eslint-disable-line react-hooks/exhaustive-deps
+
   const autoRan = useRef(false);                          // 프리미엄 진입 시 자동 생성 1회 가드
   const previewRan = useRef(false);                       // 미리보기(첫 분야 맛보기) 1회 가드 — 무료 진입용
   const startingRef = useRef(false);                      // onStart(생성 시작) 연타 가드(동기 ref) — 이중 결제·중복 API 호출 차단(daniel). runAll의 genLock(모듈락) 앞단에서 동기 차단.

@@ -23,6 +23,7 @@ import { useAuth } from '../lib/useAuth';
 import { useSubscription } from '../lib/billing/subscription';   // 프리미엄=자동 생성
 import { isPremiumForChart } from '../lib/billing/premiumStore'; // 명식별 프리미엄(premiumCovered 콘텐츠 = 프리미엄 무료해제·자동생성)
 import { useFontScale } from '../lib/ui/fontScale';
+import { promptSignupOnReadingEnter } from '../lib/ui/signupPrompt'; // ★유료 콘텐츠 진입 시 계정 연결 안내(daniel 07-27)
 import { waitForCreditGrant, loadCredits, type CreditKind } from '../lib/billing/coupons'; // C1: 결제 후 웹훅 적립 폴링(차감은 Edge 서버 게이트) · loadCredits=게이트 사전 확인(자물쇠 번쩍임 방지)
 import { isUnlocked, markUnlocked } from '../lib/billing/unlocks'; // isUnlocked=무차감 재열람 힌트 / markUnlocked=생성 성공 후 캐시 힌트(C3 part2 — 게이트 아님)
 import { ShareReadingButton } from './ShareReadingButton'; // 이슈17: 풀이 결과 공유
@@ -89,6 +90,9 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
   regenToken?: number;      // 값이 바뀌면 '그 상대로 다시 풀기' 재생성 트리거(옵션). ★재회: 상대 등록/변경 시 reunion.tsx 가 증가 → 캐시(본인만) 있으면 refresh 로 덮어씀, 없으면 정식 게이트(onStart).
 }) {
   const { t } = useTranslation();
+  // ★유료 콘텐츠 진입 안내(daniel 2026-07-27) — 비회원·앱 실행당 1회. 차단 아님('나중에' 가능·5.1.1).
+  useEffect(() => { promptSignupOnReadingEnter(() => router.push('/login'), t); }, []);   // eslint-disable-line react-hooks/exhaustive-deps
+
   const router = useRouter();
   const { chartId: chartIdParam } = useLocalSearchParams<{ chartId?: string }>(); // ★M1 재진입 바인딩(배너/푸시 route 의 chartId — 소비 라우트 공통)
   const { session } = useAuth();
