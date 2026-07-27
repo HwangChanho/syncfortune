@@ -10,6 +10,7 @@ import { useTranslation } from 'react-i18next';
 import { useRouter } from 'expo-router';
 import { Alert } from '../../lib/ui/alert';
 import { PressableScale } from '../../components/PressableScale';
+import { CoachRouteHint } from '../../components/CoachRouteHint';   // ★코치 → 콘텐츠 안내(daniel 07-27)
 import { CoachTarotCard } from '../../components/CoachTarotCard'; // ★코치 답 아래 '가볍게 뽑은 카드'(daniel IMG_8198)
 import { ChartPicker } from '../../components/ChartPicker';
 import { TigerMascot } from '../../components/TigerMascot'; // 아기 백호 마스코트(모션) — 코치 아바타(생각 중=active)
@@ -189,6 +190,9 @@ export default function CoachScreen() {
                     {/* ★가볍게 뽑은 카드(daniel IMG_8198) — 위 사주·자미 답과 **분리된** 재미 레이어.
                         섞지 않는 이유 = 기획서 §9 규칙2(체계 블렌딩 금지)의 취지. LLM 프롬프트에 들어가지 않고
                         온디바이스 결정론(질문+날짜 시드)이라 서버 왕복·비용 0. */}
+                    {/* ★콘텐츠 안내(daniel 07-27 "코치가 컨텐츠로 안내하고") — 질문에 실제로 나온 말에만 반응.
+                        온디바이스 결정론이라 없는 콘텐츠로 안내할 수 없고 토큰 비용도 0. */}
+                    <CoachRouteHint question={turn.question} />
                     <CoachTarotCard seed={turn.question} />
                   </View>
                 ) : (
