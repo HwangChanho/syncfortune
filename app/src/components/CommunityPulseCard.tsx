@@ -7,11 +7,11 @@
 //       아래쪽이 비어 균형이 깨져 있었다(실물 스크린샷으로 확인).
 //
 // ★★수치는 부풀리지 않는다 — 07-26 에 "×10 정도 부풀리자" 요청을 거절하고 daniel 승인받은 원칙.
-//   ⚠️**단위를 '명'으로 쓰지 않는 이유(07-27 실측)**: daniel 요청 문구는 "몇 명 방문"이었지만
-//     실제 값은 `visitors_total=6` · `visitors_today=2` 다. 큰 숫자 351 은 **열람 횟수**(사람 수 아님).
-//     그래서 351 에 '명' 을 붙이면 **58배 부풀린 허위 표시**가 된다 → 단위를 '회'로 정확히 쓴다.
-//     (사람 수를 그대로 쓰면 "6명"이라 초라해 소셜 프루프 효과가 없다. 숫자를 고르는 게 아니라
-//      *큰 값에 맞는 정직한 단위*를 쓰는 것이 답이다.)
+//   ⚠️단, 07-27 에 내가 **요청 자체를 바꿔 놓는 실수**를 했다: daniel 은 "오늘 방문자를 우측 상단에
+//     작게" 라고 했는데, 나는 '오늘 2명은 초라해 보인다'는 내 판단으로 **누적 열람(351회)** 로 바꿔 달았다.
+//     정직성 원칙이 지켜야 할 건 '숫자를 부풀리지 않는 것'이지 '작은 숫자를 감추는 것'이 아니다.
+//     작아 보이는 것은 daniel 이 판단할 몫 → 요청대로 **오늘 방문자(명)** 를 그대로 표시한다.
+//     (0명일 때만 숨긴다 — "오늘 0명"은 정보가 아니라 공백이라서.)
 //
 // 데이터: `get_public_stats()` RPC(집계 숫자만·개인정보 0·anon 허용). 실패하면 조용히 미표시.
 // ⚠️문구 = Claude 초안 → ★daniel 검수 슬롯.
@@ -22,8 +22,6 @@ import { supabase } from '../lib/supabase';
 import { useFontScale } from '../lib/ui/fontScale';
 import { colors, space, font } from '../lib/theme';
 
-/** 이 미만이면 아예 숨긴다 — 작은 수는 신뢰를 깎는다(부풀리는 대신 '숨긴다'). */
-const MIN_VIEWS = 100;
 
 type Stats = { readings_total: number; views_total: number; visitors_today: number };
 
@@ -54,20 +52,20 @@ function usePublicStats(): Stats | null {
 }
 
 /**
- * 상단 컨트롤 행(홈 배치 편집·바로가기) **우측에 붙는 한 줄** 소셜 프루프.
- * 규모가 작으면(MIN_VIEWS 미만) 아무것도 그리지 않는다 → 행 레이아웃이 그대로 유지된다.
- * ★단위는 '회'(열람 횟수) — 위 §수치 원칙 참조. '명'으로 바꾸려면 사람 수 값을 써야 한다.
+ * 상단 컨트롤 행(홈 배치 편집·바로가기) **우측에 붙는 한 줄** — 오늘 방문자 수.
+ * daniel 요청(07-27): "오늘 방문자 우측 상단에 작게".
+ * 0명이면 그리지 않는다(공백 표시 방지) → 그 경우 행 레이아웃은 그대로 유지된다.
  */
 export function CommunityPulseInline() {
   const { fs } = useFontScale();
   const s = usePublicStats();
-  if (!s || s.views_total < MIN_VIEWS) return null;
+  if (!s || s.visitors_today < 1) return null;
   return (
     <View style={styles.inline}>
       {/* 라이브 점 — '지금도 돌아간다'는 신호(방문자 카운터 관례). 의미색이라 액센트와 별개. */}
       <View style={styles.dot} />
       <Text style={[styles.inlineTx, { fontSize: fs(11.5) }]} numberOfLines={1}>
-        {s.views_total.toLocaleString('ko-KR')}회 열람
+        오늘 {s.visitors_today.toLocaleString('ko-KR')}명
       </Text>
     </View>
   );
