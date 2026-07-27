@@ -6,6 +6,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useState, useRef } from 'react';
 import { View, Text, ScrollView, StyleSheet, TextInput, ActivityIndicator, Keyboard, Platform } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context'; // ★상단 안전영역 — 고정 여백은 글자확대 시 잘린다(daniel 07-27)
 import { useTranslation } from 'react-i18next';
 import { useRouter } from 'expo-router';
 import { Alert } from '../../lib/ui/alert';
@@ -40,6 +41,9 @@ function markCoachAdToday() {
 }
 
 export default function CoachScreen() {
+  // ★고정 상단여백(space(12) 등)은 **글자 크기를 키우면 헤더가 상태바 위로 잘린다**(daniel 07-27 IMG_8215).
+  //   상수는 기기 노치·다이내믹아일랜드·글자배율 어느 것도 반영하지 못한다 → 실제 안전영역을 쓴다.
+  const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const { fs } = useFontScale();
   const router = useRouter();
@@ -133,7 +137,7 @@ export default function CoachScreen() {
   const lift = kbH > 0 ? Math.max(0, kbH - getNavBarHeight()) : 0;
   return (
     <View style={styles.bg}>
-      <ScrollView ref={scrollRef} style={styles.overlay} contentContainerStyle={[styles.wrap, { paddingBottom: 84 + lift }]} keyboardShouldPersistTaps="handled">
+      <ScrollView ref={scrollRef} style={styles.overlay} contentContainerStyle={[styles.wrap, { paddingBottom: 84 + lift }, { paddingTop: insets.top + space(2) }]} keyboardShouldPersistTaps="handled">
         <ChartPicker onChange={() => setReloadKey((k) => k + 1)} />
         {/* 아기 백호 마스코트 — 코치 아바타. busy(답 생성)면 active=true 로 광채·움직임 강화(반응하는 느낌). */}
         {/* marginTop = 후광(halo, size×1.72=~131px)이 76px 박스 위로 ~27px 삐져나오므로 명식 바와 그만큼 띄움(겹침 방지, daniel 07-14). */}
@@ -283,7 +287,7 @@ export default function CoachScreen() {
 const styles = StyleSheet.create({
   bg: { flex: 1, backgroundColor: 'transparent' }, // 전역 ContentBackdrop 비침
   overlay: { flex: 1, backgroundColor: colors.overlay },
-  wrap: { paddingHorizontal: space(6), paddingTop: space(12), paddingBottom: space(6) }, // ★헤더 숨김(탭) → status bar 여백 확보(홈과 동일·daniel 07-12 '위 짤림')
+  wrap: { paddingHorizontal: space(6), paddingBottom: space(6) }, // ★헤더 숨김(탭) → status bar 여백 확보(홈과 동일·daniel 07-12 '위 짤림')
   title: { fontWeight: '900', color: colors.ink, textAlign: 'center', marginTop: space(2) },
   sub: { ...font.caption, color: colors.inkSoft, textAlign: 'center', marginTop: space(1), marginBottom: space(5) },
   card: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.juLine, padding: space(5), ...shadow.card, alignItems: 'center' },

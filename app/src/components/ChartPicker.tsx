@@ -21,7 +21,12 @@ import { iljuEmblem, iljuImage, type IljuEmblem } from '../lib/dayPillarEmblem';
 import { colors, radius, space, shadow, font } from '../lib/theme';
 
 // 엠블럼 로딩 스켈레톤 — 펄스(opacity 0.4↔0.85) 애니(daniel: 스켈레톤도 살아있게).
-function SkeletonDot() {
+/** 엠블럼 지름 — 글자 배율에 비례(최소 46 · 상한 72). 행 높이와 텍스트 칸이 함께 커지도록. */
+function embSize(fs: (n: number) => number): number {
+  return Math.max(46, Math.min(72, Math.round(fs(46))));
+}
+
+function SkeletonDot({ d }: { d: number }) {
   const a = useRef(new Animated.Value(0.4)).current;
   useEffect(() => {
     const loop = Animated.loop(Animated.sequence([
@@ -31,14 +36,15 @@ function SkeletonDot() {
     loop.start();
     return () => loop.stop();
   }, [a]);
-  return <Animated.View style={[styles.emblem, styles.emblemSkel, { opacity: a }]} />;
+  return <Animated.View style={[styles.emblem, styles.emblemSkel, { width: d, height: d, borderRadius: d / 2, opacity: a }]} />;
 }
 
 export function ChartPicker({ onChange }: { onChange?: () => void }) {
   const { t } = useTranslation();
   const router = useRouter();
   const { isPremium } = useSubscription(); // 프로 = 무제한(사용량 배지 숨김)
-  const { fs } = useFontScale();           // 명식 헤더 글자크기(설정 반영)
+  const { fs } = useFontScale();
+  const EMB = embSize(fs);   // 엠블럼 지름 — 글자 배율 연동(행 높이와 어긋나지 않게)           // 명식 헤더 글자크기(설정 반영)
   const [charts, setCharts] = useState<SavedChart[]>([]);
   const [repId, setRepId] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
@@ -203,16 +209,16 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
                   <ScaleDecorator>
                     <View style={[styles.row, isActive && styles.rowActive, actionsFor === c.id && styles.rowMenuOpen]}>
                       {!em ? (
-                        <SkeletonDot /> /* 펄스 스켈레톤 — 엠블럼 계산 전(딜레이 가림) */
+                        <SkeletonDot d={EMB} /> /* 펄스 스켈레톤 — 엠블럼 계산 전(딜레이 가림) */
                       ) : iljuImg ? (
-                        <PressableScale onPress={() => setViewImg(iljuImg)} hitSlop={6} style={styles.emblemImg}>
-                          <ExpoImage source={iljuImg} style={[StyleSheet.absoluteFill, { borderRadius: 23 }]} contentFit="cover" cachePolicy="memory-disk" transition={250}
+                        <PressableScale onPress={() => setViewImg(iljuImg)} hitSlop={6} style={[styles.emblemImg, { width: EMB, height: EMB, borderRadius: EMB / 2 }]}>
+                          <ExpoImage source={iljuImg} style={[StyleSheet.absoluteFill, { borderRadius: EMB / 2 }]} contentFit="cover" cachePolicy="memory-disk" transition={250}
                             onLoadEnd={() => setLoadedEmblems((s) => { const n = new Set(s); n.add(c.id); return n; })} />
                           {/* 이미지 디코드 중 로딩 인디케이터(daniel: 명식변경 리스트 이미지 로딩 표시) — 로드되면 사라짐 */}
                           {!loadedEmblems.has(c.id) && <ActivityIndicator size="small" color={colors.ju} style={StyleSheet.absoluteFill} />}
                         </PressableScale>
                       ) : (
-                        <View style={[styles.emblem, { backgroundColor: em.color }]}>
+                        <View style={[styles.emblem, { backgroundColor: em.color, width: EMB, height: EMB, borderRadius: EMB / 2 }]}>
                           <Text style={[styles.emblemTx, { color: em.textColor, fontSize: fs(13) }]}>{em.animal}</Text>
                         </View>
                       )}
@@ -323,9 +329,12 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', paddingVertical: space(3.5), borderBottomWidth: 1, borderBottomColor: colors.line, gap: space(2) },
   rowActive: { backgroundColor: colors.card, borderRadius: radius.md, borderBottomColor: 'transparent' }, // 드래그 중 행 강조(들어올림)
   rowMain: { flex: 1 },
-  emblem: { width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center', marginRight: space(3) }, // 색+동물 폴백(일러스트 없을 때)
+  // ★크기는 스타일 상수가 아니라 **글자 배율에 비례**해야 한다(daniel 2026-07-27 "글씨가 커지면 명식 리스트에서 칸 크기가 안 맞아").
+  //   고정 46 은 글자를 키웠을 때 옆 텍스트 칸(fs(15)+fs(12)+fs(11))보다 작아져 행이 어긋나 보인다.
+  //   → 아래 EMB(fs) 로 계산해 인라인 적용하고, 여기 상수는 공통 모양(원형·정렬)만 남긴다.
+  emblem: { alignItems: 'center', justifyContent: 'center', marginRight: space(3) }, // 색+동물 폴백(일러스트 없을 때)
   emblemSkel: { backgroundColor: colors.sunk, opacity: 0.55 }, // 스켈레톤(엠블럼 계산 전 — 리스트는 즉시 표시, 딜레이 가림)
-  emblemImg: { width: 46, height: 46, borderRadius: 23, marginRight: space(3), backgroundColor: colors.sunk }, // 60갑자 AI 일러스트(원형 크롭)
+  emblemImg: { marginRight: space(3), backgroundColor: colors.sunk }, // 60갑자 AI 일러스트(원형 크롭) — 크기는 EMB(fs) 인라인
   emblemTx: { fontWeight: '800' },
   iljuName: { color: colors.ju, fontWeight: '700', marginTop: 1 }, // 일주 이름 "은빛 소"
   rowAct: { fontSize: 13, fontWeight: '700', color: colors.ju, paddingHorizontal: space(1.5) }, // 수정·삭제 글자

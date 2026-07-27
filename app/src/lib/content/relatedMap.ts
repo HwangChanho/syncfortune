@@ -15,6 +15,7 @@ export const RELATED: Record<string, string[]> = {
   reading: ['love', 'career', 'talent'],
   ziwei: ['mission', 'reading', 'astrology'],
   compat: ['love', 'crush', 'reunion'],
+  lovestyle: ['love', 'compat', 'crush'],   // 연애 스타일 → 애정흐름·궁합·짝사랑(daniel 07-27: 화면마다 추천이 달랐다)
   love: ['compat', 'crush', 'reunion'],
   career: ['jobfit', 'talent', 'job'],
   jobfit: ['career', 'talent', 'mission'],

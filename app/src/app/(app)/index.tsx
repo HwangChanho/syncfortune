@@ -17,6 +17,7 @@
 // 로그인 게이트 없음(ADR-037).
 // ─────────────────────────────────────────────────────────────────────────
 import { View, Text, ScrollView, StyleSheet, Animated, AppState, Dimensions, Modal, Pressable } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context'; // ★상단 안전영역 — 고정 여백은 글자확대 시 잘린다(daniel 07-27)
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../lib/useAuth';
@@ -62,6 +63,9 @@ const CAUTION: Record<DailyEnergy['caution'], { label: string; tone: string }> =
 };
 
 export default function Home() {
+  // ★고정 상단여백(space(12) 등)은 **글자 크기를 키우면 헤더가 상태바 위로 잘린다**(daniel 07-27 IMG_8215).
+  //   상수는 기기 노치·다이내믹아일랜드·글자배율 어느 것도 반영하지 못한다 → 실제 안전영역을 쓴다.
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const { t } = useTranslation();
   const { fs } = useFontScale(); // 오늘의 기운 배너 본문(읽는 글) 글자 크기 반영
@@ -400,7 +404,7 @@ export default function Home() {
           ListHeaderComponent={listHeader}
           ListFooterComponent={listFooter}
           style={styles.screen}
-          contentContainerStyle={styles.wrap}
+          contentContainerStyle={[styles.wrap, { paddingTop: insets.top + space(2) }]}
           showsVerticalScrollIndicator={false}
         />
       </Animated.View>
@@ -453,7 +457,7 @@ export default function Home() {
 const styles = StyleSheet.create({
   bgImage: { flex: 1, backgroundColor: 'transparent' }, // 전역 ContentBackdrop(오행 배경) 투과
   screen: { backgroundColor: 'transparent' },
-  wrap: { padding: space(5), paddingTop: space(12), paddingBottom: space(10) }, // 헤더 숨김 → status bar 여백 확보
+  wrap: { padding: space(5), paddingBottom: space(10) }, // 헤더 숨김 → status bar 여백 확보
   // 홈 상단 컨트롤 행(배치 편집 + 바로가기) — 구분선 아래·subtle. marginBottom 은 행에서 한 번만.
   topCtrlRow: { flexDirection: 'row', alignItems: 'center', gap: space(2), flexWrap: 'wrap', marginTop: -space(2), marginBottom: space(5) },
   // 홈 배치 편집/바로가기 버튼(pill). 탭 → HomeOrderEditModal(드래그) / 바로가기 메뉴.

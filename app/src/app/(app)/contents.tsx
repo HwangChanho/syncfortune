@@ -13,6 +13,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useState } from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context'; // ★상단 안전영역 — 고정 여백은 글자확대 시 잘린다(daniel 07-27)
 import { useTranslation } from 'react-i18next';
 import { ContentGrid } from '../../components/ContentGrid';
 import { NextStepCard } from '../../components/NextStepCard'; // '다음 단계' 퍼널 히어로(나열→저니)
@@ -20,12 +21,15 @@ import { ChartPicker } from '../../components/ChartPicker';
 import { colors, space, font } from '../../lib/theme';
 
 export default function ContentsScreen() {
+  // ★고정 상단여백(space(12) 등)은 **글자 크기를 키우면 헤더가 상태바 위로 잘린다**(daniel 07-27 IMG_8215).
+  //   상수는 기기 노치·다이내믹아일랜드·글자배율 어느 것도 반영하지 못한다 → 실제 안전영역을 쓴다.
+  const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const [reload, setReloadKey] = useState(0); // 명식 전환 시 그리드(배지·티저)·다음단계 카드 재계산 트리거
   return (
     // 전역 ContentBackdrop(오행 배경색)이 비치게 투명(홈과 동일 처리).
     <View style={styles.bg}>
-      <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>
+      <ScrollView style={styles.screen} contentContainerStyle={[styles.wrap, { paddingTop: insets.top + space(1) }]}>
         <Text style={styles.title}>{t('nav.contents', '풀이')}</Text>
         <Text style={styles.sub}>{t('contents.sub', '보고 싶은 주제를 골라 보세요')}</Text>
         {/* ★장식 구분선 제거(daniel 2026-07-26 IMG_8186) — 타이틀·부제·구분선·세그먼트·명식·뷰토글이
@@ -48,7 +52,7 @@ const styles = StyleSheet.create({
   bg: { flex: 1, backgroundColor: 'transparent' },
   screen: { backgroundColor: 'transparent' },
   // padding space(5) = ContentGrid 의 section marginHorizontal:-space(5) 와 짝(가로 스크롤이 화면 끝까지 닿게).
-  wrap: { padding: space(5), paddingTop: space(9), paddingBottom: space(10) }, // ★paddingTop 12→9(daniel 07-26: 콘텐츠가 늦게 나옴)
+  wrap: { padding: space(5), paddingBottom: space(10) }, // ★paddingTop 12→9(daniel 07-26: 콘텐츠가 늦게 나옴)
   title: { ...font.display, textAlign: 'left' as const },
   sub: { ...font.body, color: colors.inkSoft, marginTop: space(2), marginBottom: space(5), textAlign: 'left' as const }, // 구분선 제거분 간격 흡수
   // ★풀이 3대 카테고리 세그먼트(daniel 07-24) — 사주/자미두수/타로
