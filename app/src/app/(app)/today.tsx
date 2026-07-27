@@ -213,17 +213,13 @@ export default function TodayScreen() {
             {/* TTS·공유 — 생성 중(로딩)엔 숨김(daniel 07-06 이중표시 정리) */}
             {!(busy && !reading) && <TTSButton reading={shown} />}
             {!(busy && !reading) && session ? <ShareReadingButton kind="daily" title={t('today.title', '오늘의 운세')} content={shown} /> : null}
-            {/* ★리텐션 Phase 1(daniel 07-19) — 오늘의 한 가지(미션 체크) + 오늘 어땠어요(적중 회고).
-                오늘 탭에서만 노출한다: 내일 것을 미리 체크·회고하는 건 말이 안 되고, 기록 날짜가 흐려진다. */}
+            {/* 오늘의 한 가지 — 결정론으로 뽑은 행동 한 줄. 오늘 탭에서만(내일 것을 미리 보여줄 이유가 없다).
+                ★체크 버튼('했어요')은 daniel 2026-07-27 요청으로 제거 — 사용자 입력에 기대는 장치를 걷어냄. */}
             {dayOffset === 0 && saved ? (
               <DailyLogCard
                 saju={computeChart(saved.input).saju}
-                chartId={chartId}
-                date={f.date}
                 stem={stem}
                 branch={branch}
-                headline={headline}
-                loggedIn={!!session}
               />
             ) : null}
           </>

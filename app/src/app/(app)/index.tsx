@@ -429,6 +429,20 @@ export default function Home() {
               </View>
               <Text style={styles.coachBannerArrow}>›</Text>
             </PressableScale>
+            {/* ★명식 등록(daniel 2026-07-27 "홈에서도 명식 등록 할 수 있으면 좋겠어").
+                홈 상단 ChartPicker 는 daniel 이 07-25 에 직접 뺐으므로 되돌리지 않는다 —
+                대신 그때 만든 이 바로가기 메뉴(홈 블록에서 뺀 것들의 집합소)에 등록 동선을 둔다.
+                ★명식이 없을 땐 홈 배너 CTA 가 이미 등록으로 보내므로 여기선 중복 표시하지 않는다. */}
+            {hasChart && (
+              <PressableScale style={styles.quickItem} onPress={() => { setQuickOpen(false); router.push('/register'); }}>
+                <Text style={styles.coachBannerEmoji}>＋</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.coachBannerTitle}>{t('home.quickRegister', '명식 등록')}</Text>
+                  <Text style={styles.coachBannerSub} numberOfLines={1}>{t('home.quickRegisterSub', '가족·연인·친구의 명식을 추가해요')}</Text>
+                </View>
+                <Text style={styles.coachBannerArrow}>›</Text>
+              </PressableScale>
+            )}
           </Pressable>
         </Pressable>
       </Modal>

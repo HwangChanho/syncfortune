@@ -11,63 +11,33 @@
 //   ⚠️여기서 모은 값을 '적중률'로 쓰지 말 것. CLAUDE.md §3.2 "모호한 '맞는 것 같다'를 검증으로 인정하지 말 것".
 //   리텐션은 사용자 입력에 기대지 않는 쪽(오늘의 관계·시기 예고)으로 옮겼다.
 //
-// keyboard-safe: 입력창이 없다(체크 버튼만). TextInput 을 다시 넣게 되면 호스트 화면 스크롤에
-//   automaticallyAdjustKeyboardInsets 가 있는지 확인할 것(check:keyboard R1).
-// ⚠️로그인 필요(계정 귀속·RLS). 비로그인은 미션은 보여 주되 저장은 막고 로그인을 유도한다.
+// ★2026-07-27 설계 변경(daniel "오늘의 한 가지에서 '했어요'는 빼버리자"): **체크 버튼 제거.**
+//   07-20 에 적중 회고를 접은 것과 같은 결의 정리다 — 사용자 입력에 기대는 리텐션 장치를 걷어낸다.
+//   체크가 사라지면 `daily_logs` 쓰기 경로도 함께 죽는다(이 카드가 유일한 소비자였다).
+//   그래서 상태·토글·조회·저장·로그인 유도까지 같이 걷어냈다. 남는 건 **결정론으로 뽑은 행동 한 줄**뿐.
+//   ⚠️`lib/backend/dailyLog.ts` 는 남겨 둔다(테이블·RPC 는 그대로) — 다시 쓸 수 있고, 지우는 건 요청 범위 밖.
+//     단 현재 소비자는 0이다: listDailyLogs·summarizeHits 는 07-20 회고 폐기 때부터 이미 미사용이었다.
+//
+// keyboard-safe: 입력창이 없다(이제 버튼도 없다).
 // ─────────────────────────────────────────────────────────────────────────
-import { useEffect, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { useRouter } from 'expo-router';
-import { PressableScale } from './PressableScale';
 import { dailyMission } from '../lib/content/dailyMission';
-import { dailyEnergy } from '../lib/content/dailyFortune';
-import { getDailyLog, saveDailyLog } from '../lib/backend/dailyLog';
 import { colors, radius, space, shadow, font } from '../lib/theme';
 import { useFontScale } from '../lib/ui/fontScale';
 import type { SajuChart, Stem, Branch } from '@spec/chart';
 
-export function DailyLogCard({ saju, chartId, date, stem, branch, headline, loggedIn }: {
+export function DailyLogCard({ saju, stem, branch }: {
   saju: SajuChart;
-  chartId: string | null;
-  date: string;            // 'YYYY-MM-DD'
   stem: Stem;
   branch: Branch;
-  headline: string | null; // 그날 캐치 타이틀(기록에 함께 남김)
-  loggedIn: boolean;
 }) {
-  const router = useRouter();
   const { fs } = useFontScale();
-  const [done, setDone] = useState(false);
-
-  const mission = dailyMission(saju, stem, branch);
-
-  // 같은 날 다시 들어와도 체크 상태가 이어지게
-  useEffect(() => {
-    let alive = true;
-    if (!loggedIn) return;
-    getDailyLog(chartId, date).then((log) => {
-      if (alive && log) setDone(!!log.mission_done);
-    }).catch(() => {});
-    return () => { alive = false; };
-  }, [chartId, date, loggedIn]);
-
-  async function toggle() {
-    if (!loggedIn) { router.push('/login'); return; }
-    const next = !done;
-    setDone(next);
-    let score: number | undefined; let group: string | undefined;
-    try { const e = dailyEnergy(saju, stem, branch); score = e.score; group = e.group; } catch { /* 무시 */ }
-    await saveDailyLog(chartId, date, { score, headline, energy_group: group, mission_key: mission.key, mission_done: next });
-  }
+  const mission = dailyMission(saju, stem, branch);   // 결정론 — 같은 날·같은 명식이면 같은 행동
 
   return (
     <View style={styles.card}>
       <Text style={styles.kicker}>오늘의 한 가지</Text>
       <Text style={[styles.mission, { fontSize: fs(15), lineHeight: fs(23) }]}>{mission.text}</Text>
-      <PressableScale style={[styles.checkBtn, done && styles.checkBtnOn]} onPress={toggle}>
-        <Text style={[styles.checkTx, done && styles.checkTxOn]}>{done ? '✓ 했어요' : '해볼게요'}</Text>
-      </PressableScale>
-      {!loggedIn && <Text style={styles.needLogin}>로그인하면 기록이 계정에 저장돼요.</Text>}
     </View>
   );
 }
@@ -76,9 +46,4 @@ const styles = StyleSheet.create({
   card: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.line, padding: space(4), marginTop: space(4), ...shadow.card },
   kicker: { ...font.caption, color: colors.ju, fontWeight: '800', letterSpacing: 0.3 },
   mission: { ...font.body, color: colors.ink, marginTop: space(2) },
-  checkBtn: { alignSelf: 'flex-start', marginTop: space(3), paddingVertical: space(2), paddingHorizontal: space(4), borderRadius: radius.pill, borderWidth: 1, borderColor: colors.juLine, backgroundColor: colors.juSoft },
-  checkBtnOn: { backgroundColor: colors.ju, borderColor: colors.ju },
-  checkTx: { fontSize: 13, fontWeight: '800', color: colors.ju },
-  checkTxOn: { color: '#15132E' },
-  needLogin: { ...font.caption, color: colors.inkFaint, marginTop: space(2) },
 });
