@@ -46,6 +46,37 @@ export function useOnline(): boolean {
   return online;
 }
 
+// ★네트워크 '오류' 알림(daniel 2026-07-27 "네트워크 오류가 발생했으면 얼럿을 띄워야지")
+//   기존 assertOnline 은 **호출 전 오프라인**만 잡는다. 정작 사용자가 겪는 건
+//   *호출은 나갔는데 실패/타임아웃* 인 경우이고, 그건 지금까지 catch 안에서 조용히 삼켜졌다
+//   (풀이 생성 서버위임 실패 → 말없이 로컬 폴백, 폴백도 실패하면 아무 일도 안 일어남).
+//   ⇒ 실패 지점에서 이걸 부르면 ①app_logs 에 남고 ②사용자에게 한 번 알린다.
+//   ★같은 오류가 연달아 나도 얼럿은 THROTTLE_MS 에 한 번만 — 배치 실패 때 얼럿 폭탄을 막는다.
+const ERR_THROTTLE_MS = 10_000;
+let lastErrAt = 0;
+
+/**
+ * 네트워크/서버 호출 실패를 사용자에게 알리고 로그에 남긴다.
+ * @param where 어디서 났는지(로그 식별자 — 예: 'reading.generate', 'coach.ask')
+ * @param err 원인(Error·PostgrestError·문자열 무엇이든)
+ * @param t i18n
+ * @param opts silent=true 면 얼럿 없이 로깅만(폴백이 아직 남아 있을 때)
+ */
+export function notifyNetworkError(where: string, err: unknown, t: (k: any, d?: any) => string, opts?: { silent?: boolean }): void {
+  const message = (err as any)?.message ?? String(err ?? '');
+  try { require('./logger').logEvent('net_error', { where, message: String(message).slice(0, 500), online: _online }, 'error'); } catch { /* 로깅 실패 무시 */ }
+  if (opts?.silent) return;
+  const now = Date.now();
+  if (now - lastErrAt < ERR_THROTTLE_MS) return;   // 연속 실패 시 얼럿 1회만
+  lastErrAt = now;
+  Alert.alert(
+    t('net.errTitle', '연결에 문제가 있어요'),
+    _online
+      ? t('net.errMsg', '잠시 후 다시 시도해 주세요. 계속되면 잠시 뒤에 다시 열어 주세요.')
+      : t('offline.msg'),
+  );
+}
+
 /** Edge/API 호출 전 게이트 — 오프라인이면 경고 후 false(=호출 막음). */
 export function assertOnline(t: (k: string) => string): boolean {
   if (isOnline()) return true;

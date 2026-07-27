@@ -50,7 +50,8 @@ import { loadCredits, waitForCreditGrant, creditPrice, formatKrw } from '../lib/
 import { confirmReadingChart, autoGenWithChartConfirm } from '../lib/ui/confirmChart'; // 생성 전 명식 확인(수동=항상 / 자동=명식 2개+ 일 때, daniel 07-13)
 import { purchaseCreditRC } from '../lib/billing/purchases'; // 추가질문 건당 결제 = credit_followup(서버 consume)
 import { requireLoginForPurchase } from '../lib/billing/requireLogin'; // 결제/저장 전 로그인 안내
-import { assertOnline, isOnline } from '../lib/backend/network'; // 오프라인 시 신규 생성 차단
+import { assertOnline, isOnline, notifyNetworkError } from '../lib/backend/network'; // 오프라인 차단 + ★호출 실패 알림(daniel 07-27)
+import { logEvent } from '../lib/backend/logger';   // 자동 복구 시도 기록(사고 재구성용)
 import { colors, radius, space, shadow, font } from '../lib/theme';
 import type { ChartInput, CategoryKey } from '@spec/chart';
 
@@ -290,6 +291,57 @@ export function ReadingScreen({
     return () => { alive = false; supabase.removeChannel(ch); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chartId, kind, cats, savedChart]);
+
+  // ★★자동 복구 워치독(daniel 2026-07-27 "네트워크 오류나면 자동으로 다시 복구해야지. 돈 주고 구매한 거잖아")
+  //   문제: 위 gen_jobs 구독은 **표시 전용**이라(06-30 무한루프 방지) 서버 체인이 끊기면 아무도 재개하지 않는다.
+  //         사용자는 결제를 마쳤는데 화면만 보고 기다리다 끝난다.
+  //   설계: 구독(이벤트)이 아니라 **타이머**로 돈다 → 'gen_jobs 변화 → 트리거 → 변화' 되먹임이 구조적으로 불가능
+  //         = 06-30 무한루프를 되살리지 않는다.
+  //   발동 조건(전부 만족해야 재시도):
+  //     ①아직 안 채워진 영역이 있고 ②온라인이며 ③서버 job 이 **정말 멈춰 있음**
+  //        (job 없음 / status='error' / status='running' 인데 updated_at 이 STALL_MS 넘게 안 움직임)
+  //     ④시도 횟수 상한(MAX_TRY) — 무한 재시도로 과금·부하가 늘지 않게. 소진되면 사용자에게 알린다.
+  const wdTry = useRef(0);
+  const wdBusy = useRef(false);
+  useEffect(() => {
+    if (!chartId || !session) return;
+    const STALL_MS = 150_000;   // interpret 1건이 ~90초 → 2.5분 정지면 '멈춤'으로 본다(정상 진행을 건드리지 않는 여유)
+    const TICK_MS = 30_000;
+    const MAX_TRY = 3;
+    let alive = true;
+
+    const tick = async () => {
+      if (!alive || wdBusy.current) return;
+      const missing = cats.filter((cat) => !readings[cat.key]).length;
+      if (missing === 0) { wdTry.current = 0; return; }        // 다 찼으면 시도 카운터도 리셋
+      if (!isOnline()) return;                                  // 오프라인은 재시도해도 소용없다(온라인 복귀 시 재평가)
+      try {
+        const { data: job } = await supabase.from('gen_jobs')
+          .select('status, updated_at').eq('chart_id', chartId).eq('kind', kind).maybeSingle();
+        const st = (job as any)?.status as string | undefined;
+        const upd = (job as any)?.updated_at ? Date.parse((job as any).updated_at) : 0;
+        const stalled = !st || st === 'error' || (st === 'running' && Date.now() - upd > STALL_MS);
+        if (!stalled) return;                                   // 정상 진행 중 → 절대 건드리지 않는다
+        if (wdTry.current >= MAX_TRY) {
+          notifyNetworkError('reading.autoResume.exhausted', new Error(`missing=${missing}`), t);
+          return;
+        }
+        wdTry.current += 1;
+        wdBusy.current = true;
+        logEvent('reading_auto_resume', { chartId, kind, missing, status: st ?? 'none', try: wdTry.current });
+        await runAll(chartId);                                  // 남은 영역만 다시 위임(runAll 이 todo 를 재계산)
+      } catch (e) {
+        notifyNetworkError('reading.autoResume', e, t, { silent: true });
+      } finally { wdBusy.current = false; }
+    };
+
+    const timer = setInterval(tick, TICK_MS);
+    // 포그라운드 복귀 = 네트워크가 살아났을 가능성이 가장 큰 시점 → 즉시 한 번 점검(타이머를 기다리지 않는다)
+    const sub = AppState.addEventListener('change', (stt) => { if (stt === 'active') void tick(); });
+    void tick();
+    return () => { alive = false; clearInterval(timer); sub.remove(); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chartId, kind, cats, readings, session]);
 
   // ★'○○ 풀이가 완성됐어요' 배너 안 사라짐 근본수정(daniel 2026-06-30 → 07-22 강화):
   //   예전엔 (a)정확 route 매칭 + (b)'전 영역 캐시' 조건이라, route 불일치(복원 배너·다른 kind·쿼리순서)나
