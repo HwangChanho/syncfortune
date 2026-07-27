@@ -215,6 +215,16 @@ WAVES = {
     "numerology":  ("one wooden abacus seen straight from the front, rows of round beads, "
                     "deep teal frame with gold beads on cream, nothing else", PN),
   },
+  # ── w4 — 홈 블록 전용 이미지(daniel 07-27 "홈을 이미지 위주로") ──────────
+  #   홈이 이미지 카드 목록이 되면서 전용 이미지가 없던 2종이 임시 이미지를 쓰고 있다 → 전용으로 채운다.
+  "w4": {
+    # 바이오리듬 = 세 개의 파동이 겹쳐 흐르는 결(신체·감정·지성 3주기)
+    "biorhythm": ("three smooth wave lines of different lengths flowing across and overlapping, "
+                  "deep indigo, teal and gold waves on cream, clean and calm", PN),
+    # 모먼트 = 하루 중 '지금'을 짚는 한 점 — 길 위의 작은 표식
+    "moment":    ("one small gold marker pin standing on a simple curved path, "
+                  "deep teal path with a gold pin on cream, clean and simple", PN),
+  },
   # ── w1y — 2차 리롤(w1x 에서도 실패한 2종) ─────────────────────────────────
   "w1y": {
     # ⚠️사주: 얼굴 금지 네거티브를 **두 번** 뚫었다 → 사람 소재를 아예 버린다.

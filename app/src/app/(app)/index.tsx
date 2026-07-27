@@ -27,7 +27,18 @@ import { excludeMock } from '../../lib/core/testMode'; // ★홈 배너 daily �
 // ChartPicker(명식 선택)는 홈에서 제거(daniel 2026-07-25 '명식 선택은 홈에서 빼자') — 풀이 탭·만세력·설정에서 전환.
 import { SelfUnderstandingHero } from '../../components/SelfUnderstandingHero'; // ★4.3: 홈 최상단 자기이해 히어로(성향분석 첫 경험)
 import { PersonaTypeHero } from '../../components/PersonaTypeHero'; // ★홈 주인공 ①: 성격유형 120종(daniel 07-18 IA 개편)
-import { HomeCollapsedRow } from '../../components/HomeCollapsedRow'; // ★홈 접힘 줄(daniel 07-27)
+import { HomeImageCard } from '../../components/HomeImageCard'; // ★홈 = 이미지 카드(daniel 07-27 "이미지 위주로")
+
+// 홈 블록 이미지 — 전용 에셋이 없는 블록(바이오리듬·모먼트)은 결이 가장 가까운 것을 임시로 쓴다.
+//   ⚠️전용 이미지 생성은 별도 작업(현재 카드 이미지 리롤 진행 중) — 확정되면 여기만 바꾸면 된다.
+const IMG = {
+  persona: require('../../../assets/icons/persona.jpg'),
+  self: require('../../../assets/icons/selfAnalysis.jpg'),
+  bio: require('../../../assets/icons/mission.jpg'),        // ★임시(바이오리듬 전용 이미지 없음)
+  luck: require('../../../assets/icons/luck.jpg'),
+  moment: require('../../../assets/icons/gaeun.jpg'),        // ★임시(모먼트 전용 이미지 없음)
+  relation: require('../../../assets/icons/compat.jpg'),
+};
 import { HouseAdBanner } from '../../components/HouseAdBanner'; // 홈 상단 내부 프로모 배너(하우스 광고·daniel 07-24)
 import { BiorhythmCard } from '../../components/BiorhythmCard'; // 홈 블록: 바이오리듬(07-21 코드큐·온디바이스·부가 재미·API 0)
 import { LuckyTodayCard } from '../../components/LuckyTodayCard'; // 홈 블록: 오늘의 행운(07-22 코드큐·온디바이스·luckyItem 재사용·API 0)
@@ -226,12 +237,14 @@ export default function Home() {
       if (k === 'decision') return <DecisionTodayCard reloadKey={reloadKey} />;
       if (k === 'relation') return <TodayRelationCard reloadKey={reloadKey} dateKey={dateKey} />;
     } else {
-      if (k === 'persona') return <HomeCollapsedRow title={t('persona120.title', '나의 성격유형')} hint={t('home.collapse.persona', '120가지 유형 중 나는')} route="/personatype" />;
-      if (k === 'self') return <HomeCollapsedRow title={t('self.title', '자기이해')} hint={t('home.collapse.self', '기질·성향 한눈에')} route="/selfanalysis" />;
-      if (k === 'biorhythm') return <HomeCollapsedRow title={t('bio.kicker', '바이오리듬')} hint={t('home.collapse.bio', '오늘의 신체·감정·지성 리듬')} route="/biorhythm" />;
-      if (k === 'luck') return <HomeCollapsedRow title={t('luck.title', '오늘의 행운')} hint={t('home.collapse.luck', '색·숫자·방향·소품')} route="/luck" />;
-      if (k === 'decision') return <HomeCollapsedRow title={t('home.collapse.momentTitle', '모먼트')} hint={t('home.collapse.moment', '오늘 뭘 하면 좋을까')} route="/moment" />;
-      if (k === 'relation') return <HomeCollapsedRow title={t('home.collapse.relationTitle', '오늘의 관계')} hint={t('home.collapse.relationHint', '등록한 상대와 오늘의 결')} route="/compat" />;
+      // ★홈 = **이미지 카드 목록**. 카드에는 제목 한 줄만 두고 설명·본문은 상세 화면에서 읽는다.
+      //   (성격유형만 개인화 일러스트를 그대로 쓴다 — 그 사람 카드라 대표성이 가장 높다.)
+      if (k === 'persona') return <HomeImageCard title={t('persona120.title', '나의 성격유형')} route="/personatype" image={IMG.persona} />;
+      if (k === 'self') return <HomeImageCard title={t('self.title', '자기이해')} route="/selfanalysis" image={IMG.self} />;
+      if (k === 'biorhythm') return <HomeImageCard title={t('bio.kicker', '바이오리듬')} route="/biorhythm" image={IMG.bio} />;
+      if (k === 'luck') return <HomeImageCard title={t('luck.title', '오늘의 행운')} route="/luck" image={IMG.luck} />;
+      if (k === 'decision') return <HomeImageCard title={t('home.collapse.momentTitle', '모먼트')} route="/moment" image={IMG.moment} />;
+      if (k === 'relation') return <HomeImageCard title={t('home.collapse.relationTitle', '오늘의 관계')} route="/compat" image={IMG.relation} />;
     }
     // (AI 자기이해 코치 블록은 상단 🧭 바로가기로 이동 — daniel 2026-07-25 J)
     // 오늘/내일 기운 — 토글·좌우 슬라이드(가로 페이징). 별도 카드였던 유형명·점수·등급·근거·신살 칩이 여기 통합됐다.
