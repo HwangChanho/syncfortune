@@ -53,6 +53,9 @@ NEG = (
 # ── 소재 = 콘텐츠 표지판(R4). 키 = 교체할 에셋 파일명(확장자 제외) ──────────
 #   ★설계 원칙: 그 콘텐츠를 한 단어로 줄였을 때 떠오르는 **물건/장면**을 고른다.
 #     사람이 필요하면 **뒷모습·얼굴 없음**(손발 기형 미해결 — 07-19). 쌍이 필요하면 하나의 형태로(R6).
+# 인물 침범 방지 네거티브 — **항목별로만** 쓴다(전역에 넣으면 실루엣이 정답인 항목이 회귀한다).
+PN = "person, people, human, man, woman, figure, portrait, face, facial features, eyes, head, body, silhouette of a person"
+
 WAVES = {
   # 웨이브1 — 가장 많이 보이는 12종(프리미엄 5 + 인기·상시 7)
   "w1": {
@@ -163,6 +166,54 @@ WAVES = {
     "manse":   ("one single tree whose round canopy is divided into four seasonal quarters — "
                 "blossoms, green leaves, autumn leaves, bare branches, deep indigo trunk with gold division lines on cream",
                 "four separate trees, grid, panels, mandala"),
+  },
+  # ── w3 — 53종 실물 판정 후 리롤(daniel 검수용 대조표 기준) ────────────────
+  #   ★근인 하나로 수렴: 832×1216 세로 + "poster-like clarity" 가 SDXL 의 **인물 포스터 편향**을 깨운다.
+  #     소재를 사물로 줘도 인물화로 대체된다(타로 3종·띠·이름·재회·시각찾기·속궁합이 전부 같은 증상).
+  #   ★검증된 처방 = **항목별 인물 금지 네거티브**(자식운의 '아이가 화분에 앉는' 문제와 사주의 얼굴을 이걸로 잡았다).
+  #     전역 NEG 에 넣지 않는 이유: 인물 실루엣이 정답인 항목(취업·이미지·전생 등)이 회귀한다.
+  "w3": {
+    # ① 인물 침범 — 사물이 인물화로 대체된 것들
+    "taro-health": ("the back side of one single playing card standing upright, a simple green leaf pattern printed on the back, "
+                    "deep jade card with gold edges on cream", PN),
+    "taro-money":  ("the back side of one single playing card standing upright, a simple gold coin pattern printed on the back, "
+                    "deep indigo card with gold edges on cream", PN),
+    "taro-work":   ("the back side of one single playing card standing upright, a simple compass rose pattern printed on the back, "
+                    "deep teal card with gold edges on cream", PN),
+    "zodiac":      ("one round metal medallion with a horse head carved in relief on it, "
+                    "deep persimmon medallion with gold rim on cream", PN),
+    "name":        ("one square red stone seal stamp standing upright on a table, its carved base visible, "
+                    "deep persimmon seal with a gold top knob on cream", PN + ", letters, characters, engraved text"),
+    "reunion":     ("one red cord that was cut and is rejoined by a single knot at the break, lying on plain ground, "
+                    "deep crimson cord on cream, nothing else", PN),
+    "timeResolve": ("one round pocket watch lying flat with its lid open, "
+                    "deep indigo case with gold hands on cream", PN),
+    "sokgunghap":  ("two interlocking gold rings wrapped once by a red silk ribbon, nothing else, "
+                    "gold rings and deep crimson ribbon on cream, tasteful and restrained", PN),
+    # ② 소재가 아예 안 나온 것
+    "mission":     ("one archery target with concentric rings and a single arrow stuck in the bullseye, "
+                    "deep persimmon rings with a gold arrow on cream", PN),
+    "mbti":        ("one road seen from above that splits into two diverging paths, "
+                    "deep teal roads on cream, clean and simple", PN),
+    "manse":       ("one flat round dial plate lying at an angle with a single triangular gnomon standing at its center casting one shadow, "
+                    "deep indigo plate with gold gnomon on cream", PN + ", clock, clock face, numbers, tree, plant"),
+    # ③ 글자 발생
+    "future10":    ("one long straight road receding toward a distant glowing gate, empty sky above, "
+                    "deep teal road with a gold gate on cream",
+                    "sign, signage, lettering, engraved text, banner, plaque, inscription"),
+    # ④ 부적절(나체 인체처럼 보임) — 사람을 빼고 빛만 남긴다
+    "impression":  ("one narrow doorway with warm light spilling through it onto the floor, no one present, "
+                    "deep indigo doorway with gold light on cream", PN),
+    # ⑤ 대비 부족(흰 위에 흰)
+    "relationPattern": ("several thin threads converging into one central knot, "
+                        "**deep indigo** threads and knot on a pale cream ground, strong contrast", PN + ", white on white, pale subject, low contrast"),
+    # ⑥ 의미 애매
+    "egen":        ("one circle split down the middle into a warm persimmon half and a deep indigo half, "
+                    "clean flat geometric shape on cream", PN),
+    "month":       ("one large full moon above a simple low horizon line, a few small stars, "
+                    "deep indigo moon with a gold rim on cream", PN),
+    "numerology":  ("one wooden abacus seen straight from the front, rows of round beads, "
+                    "deep teal frame with gold beads on cream, nothing else", PN),
   },
   # ── w1y — 2차 리롤(w1x 에서도 실패한 2종) ─────────────────────────────────
   "w1y": {
