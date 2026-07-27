@@ -125,6 +125,11 @@ if (!src.interpret) {
   for (const m of objBody(src.interpret, 'SERVER_GATED').matchAll(/(\w+):\s*'(\w+)'/g)) gated.add(m[2]); // 값 = credit kind
   for (const m of objBody(src.interpret, 'SET_KIND').matchAll(/(\w+):\s*'(\w+)'/g)) gated.add(m[2]);      // saju:'reading' → reading(세트 과금)
   for (const m of src.interpret.matchAll(/p_kind:\s*'(\w+)'/g)) gated.add(m[1]);                          // consume_credit 직접 리터럴(compat/dream/followup)
+  // ★2026-07-28 코인 전환: 차감이 `consume_credit` 직접 호출에서 **spendForKind(supabase, owner, 'kind')** 로 바뀌었다.
+  //   이 패턴을 추가하지 않으면 게이트가 살아 있는데도 '없음'으로 잡혀(오탐), 결국 하네스가 무시당해
+  //   **진짜 누락을 못 잡게 된다** — 실제로 이 커밋에서 4건 오탐이 났다.
+  for (const m of src.interpret.matchAll(/spendForKind\([^)]*?['"](\w+)['"]\s*\)/g)) gated.add(m[1]);
+  // 변수로 넘기는 형태(gateCk·setCk·renewCk)는 위 SERVER_GATED/SET_KIND 스캔이 이미 커버한다.
 
   // 정방향: 판매 유료 kind 전부 게이트되나(GATE_ALLOW 제외).
   for (const k of SELLABLE) {
