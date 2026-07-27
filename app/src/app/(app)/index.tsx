@@ -34,9 +34,9 @@ import { HomeImageCard } from '../../components/HomeImageCard'; // ★홈 = 이�
 const IMG = {
   persona: require('../../../assets/icons/persona.jpg'),
   self: require('../../../assets/icons/selfAnalysis.jpg'),
-  bio: require('../../../assets/icons/mission.jpg'),        // ★임시(바이오리듬 전용 이미지 없음)
+  bio: require('../../../assets/icons/biorhythm.jpg'),      // 전용(2026-07-27 생성 — 세 파동)
   luck: require('../../../assets/icons/luck.jpg'),
-  moment: require('../../../assets/icons/gaeun.jpg'),        // ★임시(모먼트 전용 이미지 없음)
+  moment: require('../../../assets/icons/moment.jpg'),      // 전용(2026-07-27 생성 — 길 위의 표식)
   relation: require('../../../assets/icons/compat.jpg'),
 };
 import { HouseAdBanner } from '../../components/HouseAdBanner'; // 홈 상단 내부 프로모 배너(하우스 광고·daniel 07-24)

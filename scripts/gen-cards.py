@@ -225,6 +225,29 @@ WAVES = {
     "moment":    ("one small gold marker pin standing on a simple curved path, "
                   "deep teal path with a gold pin on cream, clean and simple", PN),
   },
+  # ── w5 — 최종 보류 5종(인물 침범·의미 불명) ────────────────────────────
+  #   ★세 번째로 확인된 패턴: **모델이 반복해서 뚫는 요소는 네거티브를 더 세게 쓰는 게 아니라 소재를 바꾼다.**
+  #     책=글자(3/3 실패) · 사주=얼굴(2/2 뚫림) · 그리고 타로재물·속궁합·관계패턴=인물(PN 을 걸었는데도 뚫림).
+  #     '타로'·'궁합'·'관계'는 학습 데이터에서 인물화와 너무 강하게 묶여 있다 → **사람을 연상시키지 않는 정물**로 교체.
+  "w5": {
+    # ❌타로재물: '카드'가 인물화로 바뀜 → 카드를 빼고 **금화 더미 위 한 장**이라는 정물로
+    "taro-money":  ("a small stack of gold coins with one plain rectangular card lying flat on top of it, "
+                    "deep indigo card back with gold edge, gold coins, cream background, still life",
+                    PN + ", tarot, illustration on card, portrait card, face on card"),
+    # ❌속궁합: 반지+리본이 마네킹 얼굴로 → **매듭 하나**(재회에서 이미 성공한 소재)로 통일
+    "sokgunghap":  ("one red silk cord tied into a single tight knot, resting on plain ground, nothing else, "
+                    "deep crimson cord on cream, tasteful and restrained", PN + ", ring, jewelry, mannequin"),
+    # ❌관계패턴: '관계'가 얼굴을 부름 → **실타래**(사람 연상 0)로
+    "relationPattern": ("one ball of yarn with several threads running out from it and meeting again, "
+                        "deep indigo yarn and threads on cream, strong contrast", PN + ", ring, jewelry"),
+    # ⚠️만세력: 해시계가 추상 도형으로 → **달력 대신 24절기 눈금 원반**(글자 없이 눈금만)
+    "manse":       ("one large round bronze disc with evenly spaced tick marks around its rim and a single pointer, "
+                    "deep indigo disc with gold ticks on cream, clean instrument",
+                    PN + ", numbers, letters, clock face, mandala, flower"),
+    # ⚠️에겐: 반반 분할이 의미 불명 → **두 색 물방울이 맞닿은 형태**(성향 대비를 형태로)
+    "egen":        ("two large teardrop shapes meeting tip to tip, one warm persimmon and one deep indigo, "
+                    "clean flat geometric on cream", PN),
+  },
   # ── w1y — 2차 리롤(w1x 에서도 실패한 2종) ─────────────────────────────────
   "w1y": {
     # ⚠️사주: 얼굴 금지 네거티브를 **두 번** 뚫었다 → 사람 소재를 아예 버린다.
