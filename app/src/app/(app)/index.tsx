@@ -27,6 +27,7 @@ import { excludeMock } from '../../lib/core/testMode'; // ★홈 배너 daily �
 // ChartPicker(명식 선택)는 홈에서 제거(daniel 2026-07-25 '명식 선택은 홈에서 빼자') — 풀이 탭·만세력·설정에서 전환.
 import { SelfUnderstandingHero } from '../../components/SelfUnderstandingHero'; // ★4.3: 홈 최상단 자기이해 히어로(성향분석 첫 경험)
 import { PersonaTypeHero } from '../../components/PersonaTypeHero'; // ★홈 주인공 ①: 성격유형 120종(daniel 07-18 IA 개편)
+import { HomeCollapsedRow } from '../../components/HomeCollapsedRow'; // ★홈 접힘 줄(daniel 07-27)
 import { HouseAdBanner } from '../../components/HouseAdBanner'; // 홈 상단 내부 프로모 배너(하우스 광고·daniel 07-24)
 import { BiorhythmCard } from '../../components/BiorhythmCard'; // 홈 블록: 바이오리듬(07-21 코드큐·온디바이스·부가 재미·API 0)
 import { LuckyTodayCard } from '../../components/LuckyTodayCard'; // 홈 블록: 오늘의 행운(07-22 코드큐·온디바이스·luckyItem 재사용·API 0)
@@ -210,18 +211,28 @@ export default function Home() {
     // 명식 선택(ChartPicker)은 홈에서 제거(daniel 2026-07-25) — 홈은 대표 명식 기준 자동 표시. reloadKey 는 포커스/repChange 로 갱신(105·108).
     // 만세력·AI 코치 = 홈 블록에서 제거(daniel 2026-07-25 J) → 상단 '🧭 바로가기' 메뉴로 분기(order·renderBlock 미처리).
     // 성격유형 120종(일간10×월지12·온디바이스 결정론) — 명식이 없으면 스스로 렌더하지 않는다.
-    if (k === 'persona') return <PersonaTypeHero reloadKey={reloadKey} />;
-    // 자기이해 히어로 — 에겐·테토 게이지 + 성격유형/MBTI/특징 클러스터(App Store 4.3 결).
-    if (k === 'self') return <SelfUnderstandingHero reloadKey={reloadKey} />;
-    // 바이오리듬 — 생년월일 3주기(신체23/감정28/지성33일) sine(온디바이스·사주 무관 부가 재미). 명식 없으면 미노출.
-    if (k === 'biorhythm') return <BiorhythmCard reloadKey={reloadKey} />;
-    // 오늘의 행운 — 오늘 일진 오행 → 색·방향·숫자·아이템 + 부족 오행 보완색(온디바이스·luckyItem 재사용). 명식 없으면 미노출. 탭 → /luck.
-    if (k === 'luck') return <LuckyTodayCard reloadKey={reloadKey} />;
-    // 오늘의 결정 — "오늘 이거 결정해도 될까?"(계약·지출·대화·시작·이동). ★새 명리 판정 0 = dailyEnergy 재배열
-    //   (공망='큰 결정 미루기'·충형='서두르지 않기' 등 이미 판정된 신호를 '결정' 질문으로 재배치). 명식 없으면 미노출.
-    if (k === 'decision') return <DecisionTodayCard reloadKey={reloadKey} />;
-    // 오늘의 관계 — 등록한 상대 × 오늘 일진(결정론). 상대가 없으면 스스로 렌더하지 않는다.
-    if (k === 'relation') return <TodayRelationCard reloadKey={reloadKey} dateKey={dateKey} />;
+    // ★2026-07-27(daniel "홈에 글씨들은 다 숨기고 타고 들어가야 볼 수 있게" → "홈은 모든 컨텐츠 다, 오늘의 운세 빼고"):
+    //   오늘의 운세만 펼치고 **나머지 6블록은 제목 한 줄로 접는다.** 홈이 글로 도배되지 않게 하는 것이 목적이라
+    //   힌트 문구도 '내용'이 아니라 *무엇을 볼 수 있는지*만 적는다(내용을 적으면 접는 의미가 없다).
+    //   ⚠️접기 전 상세 화면 존재를 전수 확인했다 — 바이오리듬만 없어서 `/biorhythm` 을 새로 만들었다
+    //     (상세가 없는 블록을 접으면 그 콘텐츠가 도달 불가가 된다).
+    //   ★원래 카드 컴포넌트는 그대로 둔다 — 각자의 상세 화면에서 재사용된다(중복 구현 0).
+    if (!hasChart) {
+      // 명식이 없으면 접힘 줄도 의미가 없다(빈 화면으로 들어가게 된다) → 종전대로 각 카드가 스스로 판단해 미노출.
+      if (k === 'persona') return <PersonaTypeHero reloadKey={reloadKey} />;
+      if (k === 'self') return <SelfUnderstandingHero reloadKey={reloadKey} />;
+      if (k === 'biorhythm') return <BiorhythmCard reloadKey={reloadKey} />;
+      if (k === 'luck') return <LuckyTodayCard reloadKey={reloadKey} />;
+      if (k === 'decision') return <DecisionTodayCard reloadKey={reloadKey} />;
+      if (k === 'relation') return <TodayRelationCard reloadKey={reloadKey} dateKey={dateKey} />;
+    } else {
+      if (k === 'persona') return <HomeCollapsedRow title={t('persona120.title', '나의 성격유형')} hint={t('home.collapse.persona', '120가지 유형 중 나는')} route="/personatype" />;
+      if (k === 'self') return <HomeCollapsedRow title={t('self.title', '자기이해')} hint={t('home.collapse.self', '기질·성향 한눈에')} route="/selfanalysis" />;
+      if (k === 'biorhythm') return <HomeCollapsedRow title={t('bio.kicker', '바이오리듬')} hint={t('home.collapse.bio', '오늘의 신체·감정·지성 리듬')} route="/biorhythm" />;
+      if (k === 'luck') return <HomeCollapsedRow title={t('luck.title', '오늘의 행운')} hint={t('home.collapse.luck', '색·숫자·방향·소품')} route="/luck" />;
+      if (k === 'decision') return <HomeCollapsedRow title={t('home.collapse.momentTitle', '모먼트')} hint={t('home.collapse.moment', '오늘 뭘 하면 좋을까')} route="/moment" />;
+      if (k === 'relation') return <HomeCollapsedRow title={t('home.collapse.relationTitle', '오늘의 관계')} hint={t('home.collapse.relationHint', '등록한 상대와 오늘의 결')} route="/compat" />;
+    }
     // (AI 자기이해 코치 블록은 상단 🧭 바로가기로 이동 — daniel 2026-07-25 J)
     // 오늘/내일 기운 — 토글·좌우 슬라이드(가로 페이징). 별도 카드였던 유형명·점수·등급·근거·신살 칩이 여기 통합됐다.
     return (
