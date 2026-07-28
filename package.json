@@ -9,6 +9,7 @@
   "scripts": {
     "golden:status": "node scripts/golden-status.mjs",
     "golden:ingest": "node scripts/golden-ingest.mjs",
+    "golden:fromverify": "node scripts/verify-to-ingest.mjs",
     "test": "echo \"Error: no test specified\" && exit 1",
     "typecheck": "tsc --noEmit",
     "typecheck:app": "cd app && npx tsc --noEmit",
