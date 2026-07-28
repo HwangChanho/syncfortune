@@ -6,6 +6,11 @@
 // ─────────────────────────────────────────────────────────────────────────
 import 'intl-pluralrules'; // Intl.PluralRules polyfill (Hermes) — iztro i18next 보조(ERROR 폴백, 무해)
 import '../lib/i18n'; // 다국어(한·영·일) init
+// ★전역 최소 줄간격(daniel 2026-07-28 "글자가 클때 줄간 간격이 너무 좁아") — import 시점에 1회 설치.
+//   테마 프리셋에 lineHeight 가 없어 대부분의 텍스트가 RN 기본(약 1.2배)으로 그려지고 있었다.
+//   화면 291곳을 고치는 대신 바닥값을 여기서 깐다(자세한 근거는 모듈 주석).
+import { installMinLineHeight } from '../lib/ui/textLineHeight';
+installMinLineHeight();
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { Stack } from 'expo-router';
 import { useFonts } from 'expo-font'; // 트렌디 폰트(Pretendard) 런타임 로드 — 네이티브 ExpoFont pod
