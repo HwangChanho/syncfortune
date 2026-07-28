@@ -39,3 +39,12 @@ export const COIN_PACKS: { id: string; coins: number; won: number; bonusPct: num
   { id: 'coin_1200', coins: 1200, won: 89900, bonusPct: 32 },
 ];
 
+// ★광고 제거 상품(daniel 2026-07-28 "광고 제거를 코인으로 살수있게 하자")
+//   프리미엄을 없애면서 광고 제거 수단이 같이 사라졌다 — 코인으로 되살린다.
+//   ⚠️여기 값은 **표기용**이다. 실제 차감액은 서버 RPC(buy_ad_free)가 정한다
+//     (클라가 금액을 넘기면 '1코인 내고 광고 제거'가 가능해지므로). 둘의 일치는 check:coins K6 이 강제.
+//   ⚠️가격은 ★daniel 검수 슬롯 — 30일 30코인(₩3,000) / 영구 100코인(₩10,000, 3.3개월 손익분기).
+export const AD_FREE_PLANS: { id: 'adfree_30' | 'adfree_forever'; coins: number; days: number | null }[] = [
+  { id: 'adfree_30',      coins: 30,  days: 30 },
+  { id: 'adfree_forever', coins: 100, days: null },   // null = 영구
+];

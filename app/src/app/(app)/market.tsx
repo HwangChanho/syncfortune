@@ -7,6 +7,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { View, Text, ScrollView, Pressable, TextInput, StyleSheet, Modal, Image } from 'react-native';
 import { PressableScale } from '../../components/PressableScale';
+import { AdFreeSection } from '../../components/AdFreeSection';   // ★광고 제거(코인 구매) 공용 블록
 import { Alert } from '../../lib/ui/alert'; // 커스텀 알림(앱 디자인)
 import { useEffect, useRef, useState } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -328,6 +329,9 @@ export default function MarketRoute() {
 
       {/* ★코인 충전 팩 — 마켓에서 바로 고르게(daniel "마켓에 코인 충전하기 해서 300개 등 나눠놔 한번에 충전할 수 있게").
           충전 화면까지 들어가지 않고 여기서 끝낼 수 있어야 흐름이 끊기지 않는다. */}
+      {/* ★광고 제거(daniel 07-28) — 충전 바로 위. 코인을 왜 사는지 가장 즉물적인 이유 하나를 먼저 보인다. */}
+      <AdFreeSection onDone={() => void coinBalanceOrNull().then(setCoins)} onNeedCoins={() => router.push('/coins')} />
+
       <Text style={styles.sectionH}>◈ 코인 충전</Text>
       <View style={styles.packRow}>
         {COIN_PACKS.map((p) => (

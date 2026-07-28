@@ -24,7 +24,8 @@ import { useAuth } from '../../lib/useAuth';
 import { useFontScale } from '../../lib/ui/fontScale';
 import { askCoach, loadCoachHistory, deleteCoachHistory, type CoachTurn } from '../../lib/backend/coach';
 import { coachSuggestionGroups, type CoachPromptCat } from '../../lib/content/coachPrompts'; // 추천 질문(주제별 프리셋·온디바이스·API 0)
-import { useSubscription } from '../../lib/billing/subscription'; // 프리미엄=월 10회 무료(서버 COACH_PREMIUM_MONTHLY 가 정본 — 화면은 응답의 freeLimit 을 그대로 표시)
+import { useSubscription } from '../../lib/billing/subscription';
+import { useAdFree } from '../../lib/billing/adFree'; // 프리미엄=월 10회 무료(서버 COACH_PREMIUM_MONTHLY 가 정본 — 화면은 응답의 freeLimit 을 그대로 표시)
 import { showRewardedAd } from '../../lib/core/ads';               // 비프리미엄 무료=보상형 광고(daniel 07-13)
 import { purchaseCreditRC } from '../../lib/billing/purchases';    // coach 이용권 즉시 구매
 import * as SecureStore from 'expo-secure-store';
@@ -55,7 +56,8 @@ export default function CoachScreen() {
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
   const [gate, setGate] = useState<{ isPremium: boolean; used: number; freeLimit: number; period: 'day' | 'month' } | null>(null); // 무료 소진 → 이용권
-  const { isPremium } = useSubscription(); // 프리미엄=월 10회 무료(서버 COACH_PREMIUM_MONTHLY 가 정본 — 화면은 응답의 freeLimit 을 그대로 표시)(광고 없음)
+  const { isPremium } = useSubscription();
+  const adFree = useAdFree();   // ★광고 제거 구매자 = 보상형 광고 스킵(07-28) // 프리미엄=월 10회 무료(서버 COACH_PREMIUM_MONTHLY 가 정본 — 화면은 응답의 freeLimit 을 그대로 표시)(광고 없음)
   const lastQ = useRef<string>(''); // 이용권 구매 후 재전송용
   const [reloadKey, setReloadKey] = useState(0);
   const [kbH, setKbH] = useState(0); // 키보드 높이(px) — 입력바를 키보드 바로 위로 올림(전역 네비바 보정)
@@ -116,9 +118,11 @@ export default function CoachScreen() {
     //   질문이 채팅에 바로 남아 '보냈는데 안 뜬다'가 사라진다. (강종 시 서버 이력 보존은 ⑨b=Edge 별도.)
     setHistory((h) => [...h, { question, answer: '', pending: true }]);
     setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 60);
-    // 비프리미엄 무료 = 보상형 광고(daniel 07-13: 광고 보고 하루 1회 무료). 오늘 이미 봤으면 재노출 안 함(서버가 실제 카운트 판정).
-    //   프리미엄(월5)·이용권 차감은 광고 없음. 광고 미시청/실패해도 진행(서버가 무료/needCredit 판정).
-    if (!isPremium && !coachAdSeenToday()) {
+    // 무료 사용 = 보상형 광고(daniel 07-13: 광고 보고 하루 1회 무료). 오늘 이미 봤으면 재노출 안 함(서버가 실제 카운트 판정).
+    //   ★광고 제거를 산 사용자에겐 광고를 띄우지 않는다(daniel 07-28) — 돈 내고 없앤 광고를
+    //     '무료 사용의 대가'로 다시 보게 하면 산 의미가 없다. 무료 1회는 그대로 준다(서버가 판정).
+    //   광고 미시청/실패해도 진행(서버가 무료/needCredit 판정).
+    if (!isPremium && !adFree && !coachAdSeenToday()) {
       const rewarded = await showRewardedAd().catch(() => false);
       if (rewarded) markCoachAdToday();
     }

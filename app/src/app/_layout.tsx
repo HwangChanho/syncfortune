@@ -13,7 +13,8 @@ import { View, ActivityIndicator, StyleSheet, LogBox, AppState, InteractionManag
 import { GestureHandlerRootView } from 'react-native-gesture-handler'; // 이슈20 드래그 reorder(gesture-handler) — 루트 래핑 필수
 import { useAuth, whenAuthCleanupIdle } from '../lib/useAuth'; // whenAuthCleanupIdle: 로그아웃 클린업 완료 게이트(L3 — sync 전 대기)
 import { configurePurchases } from '../lib/billing/purchases'; // 인앱결제(RevenueCat) 초기화
-import { refreshPremium } from '../lib/billing/premiumStore'; // 세션 변경(로그인/로그아웃/계정전환) 시 프리미엄 전역 재평가 → 광고 즉시 토글(daniel 2026-06-24)
+import { refreshPremium } from '../lib/billing/premiumStore';
+import { refreshAdFree } from '../lib/billing/adFree';   // ★광고 제거(코인) 전역 재평가 — 배너가 전 화면에 있어 단일 소스가 필요 // 세션 변경(로그인/로그아웃/계정전환) 시 프리미엄 전역 재평가 → 광고 즉시 토글(daniel 2026-06-24)
 import { migrateLocalCreditsOnLogin } from '../lib/billing/migrateCredits'; // 로그인 시 디바이스 구매 이관(H)
 import { preferSelfAsRep, syncChartsFromServer, subscribeRepChange } from '../lib/engine/myChart'; // 대표 명식=본인 + 명식 멀티기기 동기화(포그라운드 복귀 시) + 대표 변경 구독(테마 반영)
 import { hydrateGenProgress } from '../lib/backend/genProgress'; // 앱 시작 시 진행중/미확인 풀이 복원 → 홈 배너(daniel: 강제종료 생존)
@@ -106,6 +107,9 @@ export default function RootLayout() {
   useEffect(() => {
     configurePurchases(session?.user?.id);
     void refreshPremium(session?.user?.id ?? null); // ★세션 변경 시 프리미엄 재평가 → 전 화면 광고(하단 배너·보상형 게이트) 즉시 반영
+    // ★광고 제거(코인 구매) 재평가(daniel 07-28) — 계정마다 값이 다르므로 세션이 바뀌면 반드시 다시 읽는다.
+    //   안 읽으면 A 계정이 산 무광고가 B 계정에 그대로 남는다(반대로도 마찬가지).
+    void refreshAdFree();
     if (session?.user) InteractionManager.runAfterInteractions(() => { migrateLocalCreditsOnLogin(); }); // 로그인 시 구매분 이관 — 상호작용 후로(#2 진입 지연 완화, daniel)
   }, [session?.user?.id]);
 

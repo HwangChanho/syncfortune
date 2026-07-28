@@ -15,6 +15,7 @@ import { useCallback, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { PressableScale } from '../../components/PressableScale';
+import { AdFreeSection } from '../../components/AdFreeSection';   // ★광고 제거(코인 구매) 공용 블록
 import { Alert } from '../../lib/ui/alert';
 import { COIN_PACKS, coinBalanceOrNull } from '../../lib/billing/coins';
 import { purchaseCoinPack } from '../../lib/billing/purchases';
@@ -94,6 +95,12 @@ export default function CoinsScreen() {
             </Text>
           </PressableScale>
         ))}
+
+        {/* ★광고 제거(daniel 2026-07-28) — 코인의 '사용처'라 잔액 바로 아래가 자연스럽다.
+            공용 컴포넌트(AdFreeSection)라 마켓과 문구·가격이 갈라지지 않는다. */}
+        <View style={{ marginTop: space(6) }}>
+          <AdFreeSection onDone={() => void reload()} />
+        </View>
 
         <Text style={[styles.note, { fontSize: fs(12), lineHeight: fs(19) }]}>
           {t('coins.note', '· 코인은 모든 유료 풀이에 쓸 수 있어요.\n· 충전한 코인은 계정에 보관돼요 — 기기를 바꿔도 그대로예요.\n· 코인은 사용 기한이 없어요.')}

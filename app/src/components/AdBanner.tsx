@@ -1,4 +1,4 @@
-// app/src/components/AdBanner.tsx — 무료 하단 고정 배너 광고 (AdMob). 프리미엄은 숨김.
+// app/src/components/AdBanner.tsx — 무료 하단 고정 배너 광고 (AdMob). 광고 제거 구매자는 숨김.
 // ─────────────────────────────────────────────────────────────────────────
 // 무료 사용자 = 하단 배너 고정 / 프리미엄(구독) = 광고 없음(ADR-043 수익 구조).
 // react-native-google-mobile-ads 는 *네이티브 모듈* — 재빌드(npm run ios) 전의 dev client 에는
@@ -11,7 +11,7 @@
 import { useState } from 'react';
 import { View, Text, StyleSheet, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useSubscription } from '../lib/billing/subscription';
+import { useAdFree } from '../lib/billing/adFree';   // ★광고 제거(코인 구매) — 프리미엄 폐지 후 유일한 무광고 경로
 import { colors } from '../lib/theme';
 import { adTestMode } from '../lib/core/ads'; // 테스트광고 모드(daniel: 관리자/테스트는 TestFlight서도 구글 테스트광고)
 
@@ -26,7 +26,7 @@ const PROD_UNIT: Record<string, string> = {
 };
 
 export function AdBanner() {
-  const { isPremium } = useSubscription();
+  const adFree = useAdFree();   // 코인으로 산 광고 제거가 유효한가(서버 profiles.ad_free_until)
   const insets = useSafeAreaInsets();
   const [failed, setFailed] = useState(false); // 로드 실패 → 접기
 
@@ -38,7 +38,8 @@ export function AdBanner() {
   //   onAdFailedToLoad → failed=true → 배너가 숨겨지는 레이스 조건이 생긴다.
   //   (버그: 2026-06-28 발견·제거)
 
-  if (isPremium) return null;  // 프리미엄 = 광고 제거
+  // ★프리미엄 폐지(daniel 07-28) → 광고 제거는 **코인 구매**로만. 30일/영구 상품(buy_ad_free).
+  if (adFree) return null;
   if (failed) return null;     // 광고 없음 = 자리도 접음
 
   // 재빌드 전(모듈 없음): 개발에선 자리 확인용 플레이스홀더, 프로덕션은 숨김.
