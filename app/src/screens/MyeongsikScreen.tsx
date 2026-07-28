@@ -1322,7 +1322,16 @@ const makeStyles = (fs: (n: number) => number) => { const f = scaledFont(fs); re
   ptGzKo: { fontSize: fs(9), fontWeight: '700', lineHeight: fs(10), opacity: 0.85 },
   ptHidWrap: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 2 },
   ptHid: { fontSize: fs(12), fontWeight: '700', textDecorationLine: 'none', textDecorationStyle: 'dotted' },
-  ptHidRooted: { borderWidth: 1, borderColor: colors.ju, borderRadius: 9, paddingHorizontal: 3, paddingVertical: 0.5, textDecorationLine: 'none', overflow: 'hidden' }, // 투출(透出) 지장간 = 동그라미 강조
+  // ★동그라미를 글자 크기에서 파생시킨다(daniel 2026-07-28 IMG_8266 "글씨 크기에 따라 동그라미 사이즈도 안맞아").
+  //   종전엔 글자만 fs(12) 로 커지고 원은 borderRadius 9·padding 3 으로 **고정**이라,
+  //   글자 크기를 키우면 한자가 원 밖으로 삐져나왔다(overflow:'hidden' 이라 잘려 보이기까지 했다).
+  //   원 = 글자 높이 + 여백으로 계산 → 어떤 배율에서도 글자를 감싼다.
+  ptHidRooted: {
+    borderWidth: 1, borderColor: colors.ju, textDecorationLine: 'none',
+    minWidth: fs(12) + 8, height: fs(12) + 8, borderRadius: (fs(12) + 8) / 2,
+    lineHeight: fs(12) + 8,          // 세로 중앙 정렬(Text 에 height 를 줄 때의 정석)
+    textAlign: 'center', paddingHorizontal: 2,
+  }, // 투출(透出) 지장간 = 동그라미 강조
   ptStageLink: { fontSize: fs(11), color: colors.inkSoft, fontWeight: '600', textAlign: 'center', textDecorationLine: 'none', textDecorationStyle: 'dotted' },
   ptSsLink: { fontSize: fs(9), color: colors.ju, fontWeight: '600', lineHeight: fs(13), textAlign: 'center', textDecorationLine: 'none', textDecorationStyle: 'dotted' },
   ptSsBase: { fontSize: fs(7), color: colors.inkFaint, fontWeight: '400', textDecorationLine: 'none' },

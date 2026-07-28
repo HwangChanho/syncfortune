@@ -11,6 +11,7 @@
 import { View, Text, StyleSheet, Platform } from 'react-native';
 import { stemElement, branchElement, elementColor } from '../lib/engine/ohaeng';
 import type { SajuChart } from '@spec/chart';
+import { useFontScale } from '../lib/ui/fontScale';   // ★원 크기를 글자 배율에서 파생(daniel 07-28)
 import { colors, space, radius, font } from '../lib/theme';
 
 const EL = ['木', '火', '土', '金', '水'] as const;
@@ -21,6 +22,12 @@ const EL_TRAIT: Record<string, string> = {
 
 /** 오행 에너지 구슬 인포그래픽. saju = computeChart(...).saju. 만세력/명식·자기분석 상단용. */
 export function OhaengEnergy({ saju }: { saju: SajuChart }) {
+  // ★원(orb)·글자를 같은 배율에서 만든다(daniel 2026-07-28 IMG_8266 "글씨 크기에 따라 동그라미 사이즈도 안맞아").
+  //   종전엔 원 38/48px·글자 17/22px 이 **전부 고정**이라 앱 글자 배율을 바꿔도 이 카드만 따라오지 않았다.
+  //   원 지름 = 글자 크기 × 2.2 로 묶어 두면 어떤 배율에서도 비율이 유지된다.
+  const { fs } = useFontScale();
+  const orbGlyph = fs(17), orbGlyphTop = fs(22);
+  const orb = Math.round(orbGlyph * 2.2), orbTop = Math.round(orbGlyphTop * 2.2);
   const counts: Record<string, number> = { 木: 0, 火: 0, 土: 0, 金: 0, 水: 0 };
   for (const p of ['년', '월', '일', '시'] as const) {
     const pd = saju?.pillars?.[p];
@@ -71,14 +78,15 @@ export function OhaengEnergy({ saju }: { saju: SajuChart }) {
         {sorted.map((e, i) => (
           <View key={e} style={[styles.rankRow, i > 0 && styles.rankRowBorder]}>
             <Text style={[styles.rankNum, i === 0 && styles.rankNumTop]}>{i + 1}</Text>
-            <View style={[styles.rankOrb, glow(e), { backgroundColor: elementColor[e] }, i === 0 && styles.rankOrbTop]}>
-              <Text style={[styles.rankOrbGlyph, { color: onColor(e) }, i === 0 && styles.rankOrbGlyphTop]}>{e}</Text>
+            <View style={[styles.rankOrb, glow(e), { backgroundColor: elementColor[e] },
+              i === 0 ? { width: orbTop, height: orbTop, borderRadius: orbTop / 2 } : { width: orb, height: orb, borderRadius: orb / 2 }]}>
+              <Text style={[styles.rankOrbGlyph, { color: onColor(e), fontSize: i === 0 ? orbGlyphTop : orbGlyph }]} numberOfLines={1}>{e}</Text>
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={[styles.rankEl, i === 0 && styles.rankElTop]}>
+              <Text style={[styles.rankEl, { fontSize: fs(15) }, i === 0 && styles.rankElTop, i === 0 && { fontSize: fs(17) }]}>
                 {e}({EL_KO[e]}){i === 0 ? <Text style={styles.rankBadge}>  · 가장 강함</Text> : null}
               </Text>
-              <Text style={styles.rankTrait}>{EL_TRAIT[e]}</Text>
+              <Text style={[styles.rankTrait, { fontSize: fs(12) }]}>{EL_TRAIT[e]}</Text>
             </View>
             <Text style={[styles.rankCnt, { color: elementColor[e] }]}>{counts[e]}</Text>
           </View>
@@ -119,10 +127,8 @@ const styles = StyleSheet.create({
   rankRowBorder: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.line },
   rankNum: { width: 18, textAlign: 'center', color: colors.inkFaint, fontWeight: '800', fontSize: 14 },
   rankNumTop: { color: colors.ju, fontSize: 16 },
-  rankOrb: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
-  rankOrbTop: { width: 48, height: 48, borderRadius: 24 },
-  rankOrbGlyph: { fontSize: 17, fontWeight: '900' },
-  rankOrbGlyphTop: { fontSize: 22 },
+  rankOrb: { alignItems: 'center', justifyContent: 'center' },   // 크기 = 인라인(글자 배율 파생)
+  rankOrbGlyph: { fontWeight: '900' },   // fontSize = 인라인
   rankEl: { ...font.body, color: colors.ink, fontWeight: '700', fontSize: 15 },
   rankElTop: { fontWeight: '900', fontSize: 17 },
   rankBadge: { color: colors.ju, fontWeight: '800', fontSize: 12 },
