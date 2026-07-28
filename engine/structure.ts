@@ -3,6 +3,7 @@
 // 결정론으로 가능한 것만: 합·충·형·해·파·반합·삼합국·방합국 검출 + R1 화성립 1차판정(화기 천간 투출).
 // 신강약 점수·격국·용신 판정 = 명리 stance → daniel ground truth 필요(미착수, 검토1 점수체계).
 // ─────────────────────────────────────────────────────────────────────────
+import { twelveStage } from './twelve';   // ★건록 판정 = 12운성(록지 표를 새로 만들지 않는다)
 import type { SajuChart, Interaction, ChartPosition, Branch, Element, Stem, PillarPos, StructureDx } from '../spec/chart';
 
 const STEM_ELEM: Record<Stem, Element> = { 甲:'木',乙:'木',丙:'火',丁:'火',戊:'土',己:'土',庚:'金',辛:'金',壬:'水',癸:'水' };
@@ -320,27 +321,66 @@ export function analyzeTenGods(saju: SajuChart): {
 //   ⚠️ 순용/역용·성격(成格)/파격(破格)은 daniel stance 미공급 → **판정하지 않는다**(명리 발명 금지).
 //   ※ `candidates` 는 하위호환 필드(verify-fixture·앱 기존 소비처) — 이제 `name` 이 주(主)다.
 export function detectPattern(saju: SajuChart): {
-  name: string;             // 격 이름 = 월지 본기 십신 + '격'
-  basis: string;            // 근거 문장(본기·투출 여부·동거 투출분)
-  revealed: boolean;        // 격의 글자가 천간(년·월·시)에 투출했는가 = 드러난 격
+  name: string;             // 격 이름
+  basis: string;            // 근거 문장
+  revealed: boolean;        // 격의 글자가 천간(년·월·시)에 투출했는가
   revealedAt: PillarPos[];  // 투출한 자리
   candidates: string[];     // 하위호환: [격] + 월령 지장간 중 투출한 다른 십신격
 } {
   const month = saju.pillars['월'];
-  const outer = (['년', '월', '시'] as PillarPos[]);                     // 투출을 볼 천간 자리(일간 제외)
+  const outer = (['년', '월', '시'] as PillarPos[]);           // 투출을 볼 천간 자리(일간 제외)
   const bongi = month.hiddenStems.find((h) => h.role === '본기');
-  const name = `${month.branchMainTenGod}격`;                            // R55: 격 = 월지 본기 십신
-  const revealedAt = outer.filter((p) => !!bongi && saju.pillars[p].stem === bongi.stem);
-  const revealed = revealedAt.length > 0;
-  // 본기가 아닌 지장간(여기·중기)이 천간에 나온 경우 — 격을 바꾸지는 않지만 통변 재료라 근거에 남긴다.
-  const others = month.hiddenStems.filter(
-    (h) => h.role !== '본기' && outer.some((p) => saju.pillars[p].stem === h.stem),
-  );
-  const basis = `월지 ${month.branch} 본기 ${bongi?.stem ?? '?'}(${month.branchMainTenGod})`
-    + (revealed ? ` · 천간 ${revealedAt.join('·')}에 투출(드러난 격)` : ' · 천간 미투출(잠복)')
-    + (others.length ? ` · 지장간 ${others.map((h) => `${h.stem}(${h.tenGod})`).join('·')} 투출` : '');
-  const candidates = Array.from(new Set([name, ...others.map((h) => `${h.tenGod}격`)]));
-  return { name, basis, revealed, revealedAt, candidates };
+  const dm = saju.dayMaster.stem;
+
+  // ── 월지 지장간 중 천간에 투출한 것 = 격 후보(본기 > 중기 > 여기 순으로 세력) ──
+  const ROLE_ORDER: Record<string, number> = { 본기: 0, 중기: 1, 여기: 2 };
+  const revealedStems = month.hiddenStems
+    .map((h) => ({ h, at: outer.filter((p) => saju.pillars[p].stem === h.stem) }))
+    .filter((x) => x.at.length > 0)
+    .sort((a, b) => (ROLE_ORDER[a.h.role] ?? 9) - (ROLE_ORDER[b.h.role] ?? 9));
+
+  // ── ①비겁 특칙(daniel 2026-07-28 stance): 월지 본기가 비겁이면 팔격 이름을 쓰지 않는다 ──
+  //   비견 = 건록격 / 겁재 = 월겁격.
+  //   ★'건록'은 **12운성 판정**(twelveStage)으로 확인한다 — "본기 십신이 비견"과 건록(록지)은 같지 않다.
+  //     예: 己 일간 未월 → 未 본기 己 = 비견이지만 己의 록지는 午라 건록이 아니다.
+  //     록지 표를 여기서 새로 만들면 발명이 되므로, 이미 결정론으로 있는 12운성을 근거로 쓴다.
+  const stageOfMonth = twelveStage(dm, month.branch);
+  const bongiTg = month.branchMainTenGod;                      // 월지 본기 십신
+  if (bongiTg === '비견' || bongiTg === '겁재') {
+    const isRok = stageOfMonth === '건록';
+    const name = bongiTg === '비견' ? (isRok ? '건록격' : '월겁격') : '월겁격';
+    const others = revealedStems.filter((x) => x.h.role !== '본기');
+    const basis = `월지 ${month.branch} 본기 ${bongi?.stem ?? '?'}(${bongiTg}) · 일간 ${dm} 기준 ${stageOfMonth}`
+      + ` → ${name}(비겁 월지는 팔격으로 잡지 않는다)`
+      + (others.length ? ` · 지장간 ${others.map((x) => `${x.h.stem}(${x.h.tenGod})`).join('·')} 투출` : ' · 다른 지장간 투출 없음');
+    return {
+      name,
+      basis,
+      revealed: revealedStems.some((x) => x.h.role === '본기'),
+      revealedAt: revealedStems.find((x) => x.h.role === '본기')?.at ?? [],
+      candidates: Array.from(new Set([name, ...others.map((x) => `${x.h.tenGod}격`)])),
+    };
+  }
+
+  // ── ②투출 우선(daniel 2026-07-28 stance): 월지 지장간 중 **천간에 투출한 것**으로 격을 잡는다 ──
+  //   본기가 투출했으면 본기(세력이 가장 크다). 본기가 잠복이고 중기·여기만 투출했으면 그쪽으로 **격이 바뀐다**.
+  //   ⚠️투출한 것이 비겁이면 격으로 삼지 않는다(①과 같은 이유) — 그다음 후보로 넘어간다.
+  const pick = revealedStems.find((x) => x.h.tenGod !== '비견' && x.h.tenGod !== '겁재');
+  if (pick) {
+    const name = `${pick.h.tenGod}격`;
+    const byBongi = pick.h.role === '본기';
+    const basis = `월지 ${month.branch} ${pick.h.role} ${pick.h.stem}(${pick.h.tenGod}) 천간 ${pick.at.join('·')}에 투출`
+      + (byBongi ? ' (본기 투출 = 드러난 격)' : ` → 투출 우선(본기 ${bongi?.stem ?? '?'}(${bongiTg})은 잠복)`);
+    return {
+      name, basis, revealed: true, revealedAt: pick.at,
+      candidates: Array.from(new Set([name, ...revealedStems.filter((x) => x !== pick).map((x) => `${x.h.tenGod}격`)])),
+    };
+  }
+
+  // ── ③아무것도 투출하지 않음 → 본기로 잡되 '잠복'으로 표기 ──
+  const name = `${bongiTg}격`;
+  const basis = `월지 ${month.branch} 본기 ${bongi?.stem ?? '?'}(${bongiTg}) · 천간 미투출(잠복)`;
+  return { name, basis, revealed: false, revealedAt: [], candidates: [name] };
 }
 
 // ⛔ 폐기(전문가 검수 2026-07-14, daniel 전량 반영): 용신은 평생 고정 — 운은 세기만 조절(희신강화/기신무력화).
