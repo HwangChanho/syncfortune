@@ -16,6 +16,9 @@
 //   K5 '0 vs 확인불가' 구분 — 잔액 조회가 실패를 null 로 구분한다(오늘 재결제 사고의 근인).
 //   K6 광고 제거 가격 정합 — 앱 표기(AD_FREE_PLANS) == 서버 RPC(buy_ad_free) 실제 차감액.
 //   K7 광고 제거 반영 — 배너가 adFree 를 본다(안 보면 산 사람에게 광고가 계속 나온다 = 환불 사유).
+//   K9 클라 직접 차감 — Edge 생성이 없는 도구는 서버 권위 RPC 로 실제 차감한다(무료 구멍 방지).
+//   K8 반쪽 전환 금지 — ensureCoinsFor 통과 뒤에 waitForCreditGrant 를 기다리지 않는다.
+//      (코인을 썼는데 '크레딧 적립'을 폴링하면 영영 안 와서 흐름이 막다른 길이 된다 — 07-28 실제 발생)
 //
 // 실행: npm run check:coins
 // ─────────────────────────────────────────────────────────────────────────
@@ -142,6 +145,68 @@ console.log('\n[K7] 배너가 광고 제거 상태를 본다');
   const banner = stripSrc(readFileSync(`${ROOT}app/src/components/AdBanner.tsx`, 'utf8'));
   if (/useAdFree\(\)/.test(banner) && /if \(adFree\) return null/.test(banner)) ok('AdBanner 가 adFree 로 숨김');
   else bad('AdBanner 가 광고 제거를 보지 않는다 — 돈 내고 산 사용자에게 광고가 계속 나온다(환불 사유)');
+}
+
+// ── K8 반쪽 전환(코인 게이트 + 크레딧 폴링 혼용) ─────────────────────────
+// ★실제로 났던 사고: 화면 6곳을 코인으로 옮기면서 ensureCoinsFor 로 게이트만 바꾸고
+//   그 뒤의 `waitForCreditGrant(kind)` 를 지우지 않은 곳이 3곳 남았다.
+//   ensureCoinsFor 는 **차감하지 않는다**(서버가 생성 직전에 뺀다). 그래서 크레딧 적립은
+//   영원히 오지 않고, 사용자는 "결제됐어요, 잠시 후 다시" 만 보고 갇힌다.
+//   타입도 통과하고 에러도 없다 — 그래서 하네스가 아니면 못 잡는다.
+console.log('\n[K8] 코인 게이트 뒤에 크레딧 적립 폴링이 남아 있지 않다');
+{
+  const { readdirSync } = await import('node:fs');
+  const scan = (dir: string): string[] => {
+    const out: string[] = [];
+    for (const e of readdirSync(`${ROOT}${dir}`, { withFileTypes: true })) {
+      if (e.isDirectory()) out.push(...scan(`${dir}/${e.name}`));
+      else if (/\.tsx?$/.test(e.name)) out.push(`${dir}/${e.name}`);
+    }
+    return out;
+  };
+  const strip2 = (x: string) => x.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+  let hit = 0;
+  for (const f of scan('app/src')) {
+    const src = strip2(readFileSync(`${ROOT}${f}`, 'utf8'));
+    if (!/ensureCoinsFor\(/.test(src)) continue;
+    // 같은 파일에서 ensureCoinsFor 이후 600자 안에 waitForCreditGrant 가 나오면 반쪽 전환
+    for (const m of src.matchAll(/ensureCoinsFor\(/g)) {
+      const after = src.slice(m.index ?? 0, (m.index ?? 0) + 600);
+      if (/waitForCreditGrant\(/.test(after)) {
+        bad(`${f}: 코인 게이트 통과 뒤 waitForCreditGrant 대기 — 적립이 오지 않아 흐름이 막힌다(코인은 서버가 생성 시 차감)`);
+        hit++;
+        break;
+      }
+    }
+  }
+  if (!hit) ok('반쪽 전환 없음');
+}
+
+// ── K9 클라 직접 차감(도구) — 앱 표기 == 서버 RPC 금액 ────────────────────
+// ★실제로 났던 구멍: '태어난 시 찾기'는 결정론 도구라 Edge 생성 단계가 없다.
+//   코인 전환 때 게이트만 통과시키고 **아무도 차감하지 않아** 사실상 무료가 됐다
+//   (종전엔 useCredit 이 서버 크레딧을 깎고 있었다). 타입도 통과하고 에러도 없다.
+console.log('\n[K9] 클라 직접 차감: 앱 표기 == 서버 RPC 금액');
+{
+  let sql: string | null = null;
+  try { sql = readFileSync(`${ROOT}supabase/migrations/0016_spend_coins_fixed.sql`, 'utf8'); } catch { sql = null; }
+  if (!sql) {
+    console.log('  – supabase/migrations 없음 — 스킵(gitignore 대상)');
+  } else {
+    const server = new Map<string, number>();
+    for (const m of sql.matchAll(/p_kind\s*=\s*'([a-z_0-9]+)'\s*then\s*v_cost\s*:=\s*(\d+)/g)) server.set(m[1], Number(m[2]));
+    if (server.size === 0) bad('마이그레이션에서 직접차감 가격을 못 읽었다 — 패턴이 바뀌어 하네스가 헛돈다(역검증 실패)');
+    for (const [k, sv] of server) {
+      const app = (COIN_PRICE as Record<string, number>)[k];
+      if (app == null) bad(`${k}: 서버 RPC 엔 있는데 앱 가격표에 없다`);
+      else if (app !== sv) bad(`${k}: 앱 표기 ${app}코인 ≠ 서버 차감 ${sv}코인 — 표기와 다른 금액이 빠진다`);
+    }
+    // 화면이 실제로 차감을 부르는지 — 게이트만 통과시키고 차감을 빼먹은 게 이 항목이 생긴 이유다
+    const tr = readFileSync(`${ROOT}app/src/app/(app)/timeResolve.tsx`, 'utf8')
+      .replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+    if (/spendCoinsFixed\('timeresolve'\)/.test(tr)) ok(`서버 권위 차감 호출 확인(${[...server].map(([k, v]) => `${k}=${v}`).join(' · ')})`);
+    else bad("timeResolve 가 코인을 차감하지 않는다 — Edge 생성이 없는 도구라 아무도 안 깎으면 **무료로 풀린다**");
+  }
 }
 
 console.log(fail ? `\n❌ check:coins 실패 ${fail}건` : '\n✅ check:coins 통과 — 가격표 완전·환산정합·적립금지·팩단조·조회실패 구분·광고제거 정합 OK');

@@ -19,7 +19,6 @@ import { useRouter } from 'expo-router';
 import { useAuth } from '../../lib/useAuth';
 import { useSubscription } from '../../lib/billing/subscription';
 import { isAdminActing } from '../../lib/core/admin';
-import { waitForCreditGrant } from '../../lib/billing/coupons';          // C1: 결제 후 웹훅 적립 폴링(차감·게이트는 Edge 서버 권위)
 import { purchaseCreditRC, purchasesEnabled } from '../../lib/billing/purchases'; // 꿈해몽 5회 번들 결제
 import { requireLoginForPurchase } from '../../lib/billing/requireLogin';
 import { confirmReadingChart } from '../../lib/ui/confirmChart'; // 생성 전 확인 + 보유 이용권 안내(daniel)
@@ -130,10 +129,11 @@ export default function DreamScreen() {
           try {
             const g = await ensureCoinsFor('dream', { title: t('dream.title', 'AI 꿈해몽'), t, goCharge: () => router.push('/coins') });
             if (g !== 'ok') return;   // ★코인 전환(daniel 2026-07-28)
-            // ★C1(daniel 07-03): 클라 grant 폐지 → 영수증 검증된 웹훅이 5회 적립. 반영까지 폴링 후 재시도(Edge 가 1회 차감).
-            const { granted } = await waitForCreditGrant('dream');
-            if (granted) runAI(text);
-            else Alert.alert(t('dream.aiTitle', 'AI 꿈해몽'), t('dream.applyPending', '결제가 완료됐어요. 이용권 적용까지 잠시 걸릴 수 있어요. 잠시 후 다시 시도해 주세요.'));
+            // ★코인 전환 마무리(daniel 2026-07-28) — 종전엔 여기서 waitForCreditGrant('dream') 로
+            //   *크레딧 적립*을 기다렸다. 코인은 적립이 아니라 **Edge 가 생성 직전에 차감**하므로
+            //   그 폴링은 영원히 오지 않고 "잠시 후 다시 시도"에서 막다른 길이 됐다(반쪽 전환).
+            //   게이트를 통과했으면 바로 생성으로 간다.
+            runAI(text);
           } catch (e) { Alert.alert(t('dream.aiTitle', 'AI 꿈해몽'), (e as Error).message); }
         } },
       ],

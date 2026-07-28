@@ -35,7 +35,7 @@ import { ensureCoinsFor } from '../../lib/billing/coinGate';   // ★코인 단�
 import type { SavedChart } from '../../lib/engine/myChart';
 import { loadReunionOther, saveReunionOther, clearReunionOther } from '../../lib/content/reunionOther'; // 상대 잠금 로컬 영속(대표 명식별)
 import { isPremiumForChart } from '../../lib/billing/premiumStore';   // 명식별 프리미엄(무제한 = 바꾸기 무료)
-import { loadCredits, waitForCreditGrant } from '../../lib/billing/coupons'; // 보유 이용권 확인 · 결제 후 웹훅 적립 대기
+import { loadCredits } from '../../lib/billing/coupons'; // 보유 이용권 확인(쿠폰·선물분 — 코인 이전 잔여)
 import { purchaseCreditRC, purchasesEnabled } from '../../lib/billing/purchases'; // 재구매(바로 결제)
 import { requireLoginForPurchase } from '../../lib/billing/requireLogin'; // 결제 전 로그인 게이트
 import { colors, radius, space, font, shadow } from '../../lib/theme';
@@ -137,9 +137,8 @@ export default function ReunionRoute() {
             try {
               const g = await ensureCoinsFor('reunion', { title: t('reunion.title', '재회운'), t, goCharge: () => router.push('/coins') });
               if (g !== 'ok') return;   // ★코인 전환(daniel 2026-07-28)
-              const { granted } = await waitForCreditGrant('reunion');       // 웹훅 적립 반영 폴링(C1)
-              if (granted) openChangeRegister();
-              else Alert.alert(t('reunion.title', '재회운'), t('special.applyPending', '결제가 완료됐어요. 적용까지 잠시 걸릴 수 있어요. 잠시 후 다시 시도해 주세요.'));
+              // ★코인 전환 마무리(07-28): 코인은 적립이 아니라 생성 시 서버 차감 → 폴링 없이 바로 진행.
+              openChangeRegister();
             } catch (e) { Alert.alert('!', (e as Error).message); }
           } },
       ]);

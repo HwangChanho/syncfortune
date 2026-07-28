@@ -44,6 +44,22 @@ export async function spendCoins(kind: string, cost: number): Promise<boolean> {
   return !error && data === true;
 }
 
+/**
+ * 클라가 직접 차감하는 경우(= Edge 생성 단계가 없는 '도구') 전용.
+ * @param kind 서버 화이트리스트에 등록된 kind 만 허용(현재 'timeresolve')
+ * @returns 성공 여부 + 실패 사유. **금액은 서버가 정한다**(클라가 비용을 보내지 않는다).
+ *
+ * ★왜 spendCoins 를 안 쓰나: spend_coins(kind, cost) 는 비용을 인자로 받는다 — Edge 전용이라 안전하지만,
+ *   클라가 직접 부르는 자리에 쓰면 "1코인 내고 해제"가 된다(buy_ad_free 와 같은 원칙).
+ */
+export async function spendCoinsFixed(kind: string): Promise<{ ok: boolean; reason?: string; balance?: number; cost?: number }> {
+  const { data, error } = await supabase.rpc('spend_coins_fixed', { p_kind: kind });
+  if (error) return { ok: false, reason: 'error' };
+  const r = data as any;
+  return r?.ok ? { ok: true, cost: r.cost, balance: r.balance }
+               : { ok: false, reason: String(r?.error ?? 'error'), balance: r?.balance, cost: r?.cost };
+}
+
 /** 하네스·화면용 — 유료 kind 전체(가격표 대조 기준). */
 export function allPaidKinds(): CreditKind[] {
   return CREDIT_KINDS.map((c) => c.key);

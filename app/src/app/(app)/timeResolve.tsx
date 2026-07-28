@@ -22,7 +22,8 @@ import { Alert } from '../../lib/ui/alert';                         // 커스텀
 import { useAuth } from '../../lib/useAuth';
 import { useSubscription } from '../../lib/billing/subscription';        // 프리미엄=무료
 import { isAdminActing } from '../../lib/core/admin';                       // 관리자=무료
-import { useCredit, waitForCreditGrant } from '../../lib/billing/coupons';      // 서버 크레딧 차감 + 결제 후 웹훅 적립 폴링(C1)
+import { useCredit } from '../../lib/billing/coupons';      // 쿠폰·선물로 받은 잔여 크레딧 차감(코인 이전분)
+import { spendCoinsFixed } from '../../lib/billing/coins';   // ★코인 차감(금액=서버 권위)
 import { isUnlocked, markUnlocked } from '../../lib/billing/unlocks';    // 1회 해제 후 영구(재차감 방지)
 import { purchaseCreditRC, purchasesEnabled } from '../../lib/billing/purchases'; // 즉시 구매
 import { requireLoginForPurchase } from '../../lib/billing/requireLogin';
@@ -126,10 +127,13 @@ export default function TimeResolveScreen() {
             try {
               const g = await ensureCoinsFor('timeresolve', { title: t('timeResolve.title', '태어난 시 찾기'), t, goCharge: () => router.push('/coins') });
               if (g !== 'ok') return;   // ★코인 전환(daniel 2026-07-28)
-              // ★C1(daniel 07-03): 클라 grant 폐지 → 영수증 검증된 웹훅이 적립. 반영까지 폴링 후 차감·영구 해제.
-              const { granted } = await waitForCreditGrant('timeresolve');
-              if (granted && await useCredit('timeresolve')) { await markUnlocked(TPR_UNLOCK, 'timeresolve'); setUnlocked(true); compute(); }
-              else if (!granted) Alert.alert(t('timeResolve.title', '태어난 시 찾기'), t('special.applyPending', '결제가 완료됐어요. 적용까지 잠시 걸릴 수 있어요. 잠시 후 다시 시도해 주세요.'));
+              // ★코인 전환 마무리(daniel 2026-07-28) — 이 화면은 **결정론 도구**라 Edge 생성 단계가 없다.
+              //   그래서 게이트만 통과시키면 *아무도 차감하지 않는다*(= 사실상 무료). 종전엔 useCredit 이 깎았다.
+              //   금액을 클라가 정하면 '1코인 해제'가 되므로, 서버가 금액을 정하는 전용 RPC 로 차감한다.
+              const paid = await spendCoinsFixed('timeresolve');
+              if (paid.ok) { await markUnlocked(TPR_UNLOCK, 'timeresolve'); setUnlocked(true); compute(); }
+              else if (paid.reason === 'insufficient') Alert.alert(t('coins.needTitle', '코인이 부족해요'), `${paid.cost ?? ''}코인이 필요해요. 지금 ${paid.balance ?? 0}코인 있어요.`);
+              else Alert.alert(t('timeResolve.title', '태어난 시 찾기'), t('common.retryLater', '잠시 후 다시 시도해 주세요. 코인은 차감되지 않았어요.'));
             } catch (e) { Alert.alert('!', (e as Error).message); }
           } },
         { text: t('special.goMarket', '마켓에서 보기'), onPress: () => router.push({ pathname: '/market', params: { focus: 'timeresolve' } }) },   // ★'태어난 시 찾기' 카드로 바로(daniel 07-27)
