@@ -16,6 +16,9 @@
 //   A4 광고 — AdMob 안드로이드 앱ID
 //   A5 상품 — 코인 팩 4종이 Play 등록 스크립트에도 있다(iOS 와 동수)
 //   A6 패키지 — app.json android.package 와 gradle applicationId 일치
+//   A7 EAS 빌드 환경 — EXPO_PUBLIC_* 가 eas.json 또는 EAS 환경변수에 있다
+//      (★로컬 .env 는 **EAS 클라우드 빌드에 자동으로 안 들어간다** — 실측으로 확인.
+//       그대로 두면 빌드는 성공하는데 앱에서 결제·백엔드가 통째로 죽는다)
 //
 // 실행: npm run check:android
 // ⚠️이 하네스는 **안드로이드 빌드 전에만** 의미가 있다 — iOS 전용 릴리스에서는 실패해도 무방하도록
@@ -106,6 +109,24 @@ console.log('\n[A6] 패키지명 일치');
   if (!pkgJson || !appId) bad(`패키지명을 읽지 못했다(app.json=${pkgJson} · gradle=${appId})`);
   else if (pkgJson !== appId) bad(`불일치: app.json ${pkgJson} ≠ gradle ${appId} — RC·Play 상품이 붙지 않는다`);
   else ok(`일치(${appId})`);
+}
+
+// ── A7 EAS 빌드 환경변수 ──────────────────────────────────────────────────
+// ★실측 사고 직전(2026-07-28): EAS 빌드 로그에
+//   "No environment variables with visibility Plain text and Sensitive found for the production environment"
+//   → 로컬 .env 는 클라우드 빌드에 **자동 반영되지 않는다.** 그대로 빌드했으면
+//   RC 키·Supabase URL 이 빈 채로 나와 결제도 백엔드도 죽은 앱이 지인 손에 갔을 것이다(에러 없이).
+console.log('\n[A7] EAS 빌드 환경변수');
+{
+  const NEEDED = ['EXPO_PUBLIC_SUPABASE_URL', 'EXPO_PUBLIC_SUPABASE_ANON_KEY', 'EXPO_PUBLIC_RC_IOS_KEY', 'EXPO_PUBLIC_RC_ANDROID_KEY'];
+  const eas = read('app/eas.json') ?? '';
+  const inEasJson = NEEDED.filter((k) => eas.includes(k));
+  // eas.json 에 없으면 **EAS 서버 환경변수**에 있어야 한다 — 이건 오프라인에서 확인 불가라 안내만 한다.
+  if (inEasJson.length === NEEDED.length) ok('eas.json 에 4종 전부 선언');
+  else {
+    wrn(`eas.json 에 없음(${NEEDED.length - inEasJson.length}종) — EAS 서버 환경변수(production)에 등록돼 있어야 한다.`
+      + ' 확인: npx eas-cli env:list --environment production');
+  }
 }
 
 console.log(fail
