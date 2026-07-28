@@ -48,6 +48,10 @@ export function ChartRegisterScreen({ onSubmit, defaultRelation, submitLabel, sh
   const [cats, setCats] = useState<string[]>(() => getCategories()); // 관리 카테고리 목록(프리셋+커스텀+기타·self 제외)
   const [makeRep, setMakeRep] = useState(false); // 이 명식을 대표로 설정(register 전용)
   // 풀이 grounding 기본정보(선택, daniel) — 하는 일·관계상태·관심/고민·메모. 입력 시 통변이 더 정확(특히 R25: 현재 배우자 유무가 연애·결혼·궁합 풀이를 좌우).
+  // ★상황(daniel 2026-07-28 "풀이가 너무 직장인에만 포커스") — **고정 키** 칩.
+  //   자유 텍스트('하는 일')는 사람마다 표기가 제각각이라(회사원/직딩/백수…) 모델이 일관되게 못 쓴다.
+  //   또 자유 텍스트를 프롬프트에 그대로 넣는 건 인젝션 표면이다 — 키는 서버가 화이트리스트로 라벨링한다.
+  const [situation, setSituation] = useState<string>(initial?.context?.situation ?? '');
   const [job, setJob] = useState(initial?.context?.job ?? '');
   const [relationship, setRelationship] = useState<string>(initial?.context?.relationship ?? '');
   const [concern, setConcern] = useState(initial?.context?.concern ?? '');
@@ -119,8 +123,8 @@ export function ChartRegisterScreen({ onSubmit, defaultRelation, submitLabel, sh
       timeAccuracy: (exactStr || sj) ? '정확' : '미상', // 정확시각 또는 시진 알면 시주 확정 → 정확
       makeRep, // 대표 설정 여부 — register 라우트가 처리(궁합 상대 등록 시 showMakeRep=false 라 무시)
       // 풀이 grounding 기본정보(선택) — 하나라도 채워졌을 때만 context 전달(빈 값은 undefined로 정리).
-      context: (job.trim() || relationship || concern.trim() || note.trim())
-        ? { job: job.trim() || undefined, relationship: relationship || undefined, concern: concern.trim() || undefined, note: note.trim() || undefined }
+      context: (situation || job.trim() || relationship || concern.trim() || note.trim())
+        ? { situation: situation || undefined, job: job.trim() || undefined, relationship: relationship || undefined, concern: concern.trim() || undefined, note: note.trim() || undefined }
         : undefined,
       ...(calendar === '음' && isLeap ? { isLeap: true } : {}), // ⑧ 윤달 — 음력 윤달일 때만 전달(saju.ts solarYmd가 음수 month로 변환)
     };
@@ -146,7 +150,7 @@ export function ChartRegisterScreen({ onSubmit, defaultRelation, submitLabel, sh
     const id = setTimeout(() => { const inp = buildInput(); if (!validateBirthInput(inp as any).length) onAutoSave(inp); }, 600);
     return () => clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [label, birthDate, sijinIdx, exactStr, calendar, isLeap, sex, birthPlace, birthPlaceLon, birthPlaceLat, relation, makeRep, job, relationship, concern, note, autoSave]);
+  }, [label, birthDate, sijinIdx, exactStr, calendar, isLeap, sex, birthPlace, birthPlaceLon, birthPlaceLat, relation, makeRep, situation, job, relationship, concern, note, autoSave]);
   // ★exactStr(정확시각·오전/오후)·birthPlaceLat 를 deps 에 포함 — 빠져 있어서 시각·위도 수정이 자동저장 안 됐다(daniel 07-18 "확인 안 눌러도 반영").
 
   return (
@@ -236,6 +240,22 @@ export function ChartRegisterScreen({ onSubmit, defaultRelation, submitLabel, sh
         <View style={styles.ctxBox}>
           <Text style={styles.ctxTitle}>{t('register.ctxTitle')}</Text>
           <Text style={styles.ctxDesc}>{t('register.ctxDesc')}</Text>
+
+          {/* ★상황 칩 — 자유 입력보다 위에 둔다. 한 번 눌러 끝나므로 채워질 확률이 훨씬 높고,
+              고정 키라 모델이 일관되게 쓴다(자유 텍스트는 보조 설명 역할로 남긴다). */}
+          <Text style={styles.ctxLabel}>{t('register.ctxSit')}</Text>
+          <Text style={styles.ctxHint}>{t('register.ctxSitDesc')}</Text>
+          <View style={styles.chipRow}>
+            {([['study', t('register.sitStudy')], ['work', t('register.sitWork')], ['biz', t('register.sitBiz')], ['free', t('register.sitFree')],
+               ['home', t('register.sitHome')], ['seek', t('register.sitSeek')], ['retire', t('register.sitRetire')], ['etc', t('register.sitEtc')]] as const).map(([v, lbl]) => {
+              const on = situation === v;
+              return (
+                <PressableScale key={v} style={[styles.chip, on && styles.chipOn]} onPress={() => setSituation(on ? '' : v)}>
+                  <Text style={on ? styles.chipOnText : styles.chipText}>{lbl}</Text>
+                </PressableScale>
+              );
+            })}
+          </View>
 
           <Text style={styles.ctxLabel}>{t('register.ctxJob')}</Text>
           <TextInput style={styles.input} value={job} onChangeText={setJob}
@@ -443,6 +463,7 @@ const styles = StyleSheet.create({
   ctxBox: { marginTop: space(5), padding: space(4), backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.line, ...shadow.soft },
   ctxTitle: { ...font.heading, fontSize: 15 },
   ctxDesc: { ...font.body, fontSize: 12, color: colors.inkSoft, marginTop: space(1), marginBottom: space(1) },
+  ctxHint: { ...font.caption, color: colors.inkFaint, marginTop: -2, marginBottom: space(1.5) },
   ctxLabel: { ...font.label, marginTop: space(3.5), marginBottom: space(1) },
   inputMulti: { minHeight: 60, textAlignVertical: 'top', paddingTop: space(2.5) },
   // 제출 CTA (주색)
