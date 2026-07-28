@@ -16,7 +16,8 @@
 //   K5 '0 vs 확인불가' 구분 — 잔액 조회가 실패를 null 로 구분한다(오늘 재결제 사고의 근인).
 //   K6 광고 제거 가격 정합 — 앱 표기(AD_FREE_PLANS) == 서버 RPC(buy_ad_free) 실제 차감액.
 //   K7 광고 제거 반영 — 배너가 adFree 를 본다(안 보면 산 사람에게 광고가 계속 나온다 = 환불 사유).
-//   K9 클라 직접 차감 — Edge 생성이 없는 도구는 서버 권위 RPC 로 실제 차감한다(무료 구멍 방지).
+//   K9  클라 직접 차감 — Edge 생성이 없는 도구는 서버 권위 RPC 로 실제 차감한다(무료 구멍 방지).
+//   K10 잔액 노출 — 잔액 뷰가 RLS 를 우회하지 않고(security_invoker), 홈·마켓에 실제로 렌더된다.
 //   K8 반쪽 전환 금지 — ensureCoinsFor 통과 뒤에 waitForCreditGrant 를 기다리지 않는다.
 //      (코인을 썼는데 '크레딧 적립'을 폴링하면 영영 안 와서 흐름이 막다른 길이 된다 — 07-28 실제 발생)
 //
@@ -207,6 +208,31 @@ console.log('\n[K9] 클라 직접 차감: 앱 표기 == 서버 RPC 금액');
     if (/spendCoinsFixed\('timeresolve'\)/.test(tr)) ok(`서버 권위 차감 호출 확인(${[...server].map(([k, v]) => `${k}=${v}`).join(' · ')})`);
     else bad("timeResolve 가 코인을 차감하지 않는다 — Edge 생성이 없는 도구라 아무도 안 깎으면 **무료로 풀린다**");
   }
+}
+
+// ── K10 잔액이 실제로 보이는가 ────────────────────────────────────────────
+// ★두 가지 사고가 한꺼번에 났던 자리다(2026-07-28):
+//   ① coin_balance 뷰에 security_invoker 가 없어 **RLS 를 우회** → 전 사용자 행이 나오고
+//      클라의 .maybeSingle() 이 에러 → 잔액 null → 배지가 숨고 마켓이 '—'.
+//      화면 버그처럼 보였지만 **남의 잔액이 조회되는 정보 노출**이기도 했다.
+//   ② 마켓의 보유 코인 카드가 프리미엄 카드를 정규식으로 걷어낼 때 **JSX 만 함께 지워졌다**
+//      (스타일은 남아 있어서 grep 으로는 멀쩡해 보였다).
+console.log('\n[K10] 잔액 뷰 RLS + 화면 렌더');
+{
+  let sql: string | null = null;
+  try { sql = readFileSync(`${ROOT}supabase/migrations/0017_coin_balance_security_invoker.sql`, 'utf8'); } catch { sql = null; }
+  if (!sql) console.log('  – supabase/migrations 없음 — 스킵(gitignore 대상)');
+  else if (/alter view public\.coin_balance set \(security_invoker = on\)/.test(sql)) ok('coin_balance = security_invoker(뷰가 RLS 를 우회하지 않는다)');
+  else bad('coin_balance 뷰에 security_invoker 설정이 없다 — RLS 우회 + 남의 잔액 노출');
+
+  const stripJsx = (x: string) => x.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+  const mk = stripJsx(readFileSync(`${ROOT}app/src/app/(app)/market.tsx`, 'utf8'));
+  if (/styles\.coinCard/.test(mk) && /coins == null/.test(mk)) ok('마켓에 보유 코인 카드 렌더');
+  else bad('마켓에 보유 코인 카드가 없다 — 스타일만 남고 JSX 가 지워진 적이 있다(2026-07-28)');
+
+  const home = stripJsx(readFileSync(`${ROOT}app/src/app/(app)/index.tsx`, 'utf8'));
+  if (/<CoinBadge\s*\/>/.test(home)) ok('홈 상단에 코인 배지 렌더');
+  else bad('홈 상단에 코인 배지가 없다 — 유료 풀이를 열기 전에 잔액을 알 수 없다');
 }
 
 console.log(fail ? `\n❌ check:coins 실패 ${fail}건` : '\n✅ check:coins 통과 — 가격표 완전·환산정합·적립금지·팩단조·조회실패 구분·광고제거 정합 OK');

@@ -324,22 +324,30 @@ export default function MarketRoute() {
       {/* ★보유기한 1년 명시(daniel: 법적 — 약관 제4조 3항과 일치) — 비프리미엄에게만(프리미엄=무제한 보유라 불필요) */}
       <Text style={styles.retention}>{t('market.retentionNote', '구매한 풀이는 구매일로부터 1년간 보유되며, 1년이 지나면 자동 삭제됩니다. 이후 다시 보려면 재구매가 필요해요.')}</Text>
 
-      {/* ★프리미엄 폐지(daniel 2026-07-28 "프리미엄도 빼버려") — 마켓의 프리미엄 카드 제거.
-          과금은 코인 하나로 통일한다. 아래 충전 팩이 그 자리를 대신한다. */}
+      {/* ★프리미엄 폐지(daniel 2026-07-28) — 프리미엄 카드가 있던 자리를 **보유 코인**이 대신한다.
+          ⚠️이 카드는 프리미엄 카드를 정규식으로 걷어낼 때 함께 지워져 있었다(스타일만 남아 있었다).
+          daniel "마켓에서 보유코인이 보여야지" 로 확인 — 카드마다 코인가가 붙으니 잔액이 옆에 있어야 비교가 된다. */}
+      <PressableScale style={styles.coinCard} onPress={() => router.push('/coins')}>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.coinLabel}>보유 코인</Text>
+          {/* null=조회 실패 → '—'. 0 으로 표시하면 이미 충전한 사용자를 혼란시킨다. */}
+          <Text style={styles.coinNum}>{coins == null ? '—' : coins.toLocaleString('ko-KR')}</Text>
+        </View>
+        <View style={styles.chargePill}><Text style={styles.chargeTx}>충전하기</Text></View>
+      </PressableScale>
 
-      {/* ★코인 충전 팩 — 마켓에서 바로 고르게(daniel "마켓에 코인 충전하기 해서 300개 등 나눠놔 한번에 충전할 수 있게").
-          충전 화면까지 들어가지 않고 여기서 끝낼 수 있어야 흐름이 끊기지 않는다. */}
       {/* ★광고 제거(daniel 07-28) — 충전 바로 위. 코인을 왜 사는지 가장 즉물적인 이유 하나를 먼저 보인다. */}
       <AdFreeSection onDone={() => void coinBalanceOrNull().then(setCoins)} onNeedCoins={() => router.push('/coins')} />
 
       <Text style={styles.sectionH}>◈ 코인 충전</Text>
       <View style={styles.packRow}>
         {COIN_PACKS.map((p) => (
+          // ★칸 축소(daniel 2026-07-28) — 2열 큰 박스(4줄)를 **4열 한 줄**로.
+          //   충전 팩은 '고르는' 화면이지 '읽는' 화면이 아니라 한눈에 비교되는 편이 낫다.
           <PressableScale key={p.id} style={styles.packBtn} onPress={() => void buyPack(p.id, p.coins)} disabled={packBusy !== null}>
-            <Text style={styles.packCoins}>{packBusy === p.id ? '…' : p.coins.toLocaleString('ko-KR')}</Text>
-            <Text style={styles.packUnit}>코인</Text>
-            <Text style={styles.packWon}>₩{p.won.toLocaleString('ko-KR')}</Text>
             {p.bonusPct > 0 ? <Text style={styles.packBonus}>+{p.bonusPct}%</Text> : null}
+            <Text style={styles.packCoins}>{packBusy === p.id ? '…' : p.coins.toLocaleString('ko-KR')}</Text>
+            <Text style={styles.packWon}>₩{(p.won / 1000).toFixed(1).replace('.0', '')}천</Text>
           </PressableScale>
         ))}
       </View>
@@ -446,12 +454,11 @@ const styles = StyleSheet.create({
   retention: { ...font.caption, color: colors.inkFaint, marginBottom: space(4), lineHeight: 18 }, // 보유기한 1년 안내(daniel 법적)
   // 프리미엄 가입 카드(골드 강조)
   sectionH2: {},
-  packRow: { flexDirection: 'row', flexWrap: 'wrap', gap: space(2.5), marginBottom: space(5) },
-  packBtn: { flexGrow: 1, minWidth: '46%', alignItems: 'center', backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.juLine, paddingVertical: space(4) },
-  packCoins: { ...font.display, color: colors.ju, fontWeight: '900', fontSize: 24 },
-  packUnit: { ...font.caption, color: colors.inkSoft, marginTop: -2 },
-  packWon: { ...font.body, color: colors.ink, fontWeight: '800', marginTop: space(1.5) },
-  packBonus: { ...font.caption, color: colors.ju, fontWeight: '800', marginTop: 2 },
+  packRow: { flexDirection: 'row', gap: space(2), marginBottom: space(4) },
+  packBtn: { flex: 1, alignItems: 'center', backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.juLine, paddingVertical: space(2.5), paddingHorizontal: space(1) },
+  packCoins: { ...font.body, color: colors.ju, fontWeight: '900', fontSize: 17 },
+  packWon: { ...font.caption, color: colors.inkSoft, fontWeight: '700', marginTop: 1 },
+  packBonus: { ...font.caption, color: colors.ju, fontWeight: '800', fontSize: 10 },
   premCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.ju, borderRadius: radius.md, padding: space(4), marginBottom: space(4), ...shadow.card },
   premTitle: { fontSize: 16, fontWeight: '900', color: colors.bg },
   premSub: { fontSize: 12, color: colors.bg, opacity: 0.85, marginTop: 2 },
@@ -484,11 +491,11 @@ const styles = StyleSheet.create({
   //   flex:1 컨테이너가 이 여백만큼 줄어들어 긴 설명(numberOfLines=2)이 버튼에 닿지 않고 그 안에서 줄바꿈된다(daniel 07-07 IMG_7980: '별자리 운세' 긴 설명↔구매 버튼 밀착 수정).
   buyBtn: { backgroundColor: colors.ju, borderRadius: radius.pill, paddingHorizontal: space(5), paddingVertical: space(2.5), minWidth: 84, alignItems: 'center', marginLeft: space(4) },
   buyBtnBusy: { opacity: 0.5 },
-  coinCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.card, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.juLine, paddingVertical: space(4), paddingHorizontal: space(5), marginBottom: space(4), ...shadow.card },
+  coinCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.card, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.juLine, paddingVertical: space(3), paddingHorizontal: space(4), marginBottom: space(3), ...shadow.card },
   coinLabel: { ...font.caption, color: colors.inkSoft, fontWeight: '800', letterSpacing: 0.4 },
-  coinNum: { ...font.display, color: colors.ju, fontWeight: '900', fontSize: 28, marginTop: 2 },
-  chargePill: { backgroundColor: colors.ju, borderRadius: radius.pill, paddingVertical: space(2.5), paddingHorizontal: space(4) },
-  chargeTx: { color: colors.bg, fontWeight: '900', fontSize: 14 },
+  coinNum: { ...font.display, color: colors.ju, fontWeight: '900', fontSize: 22, marginTop: 1 },
+  chargePill: { backgroundColor: colors.ju, borderRadius: radius.pill, paddingVertical: space(2), paddingHorizontal: space(3.5) },
+  chargeTx: { color: colors.bg, fontWeight: '900', fontSize: 13 },
   // ★focus 도착 강조 — '여기가 그 상품' 신호. 색이 아니라 테두리+틴트로(색맹 대비·액센트 남용 방지).
   cardFocus: { borderColor: colors.ju, borderWidth: 2, backgroundColor: colors.juSoft },
   buyTx: { color: colors.bg, fontWeight: '800', fontSize: 14 },

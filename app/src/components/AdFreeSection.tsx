@@ -83,32 +83,33 @@ export function AdFreeSection({ onDone, onNeedCoins }: { onDone?: () => void; on
       {isAdFreeForever() ? null : (
         <View style={styles.row}>
           {AD_FREE_PLANS.map((p) => (
+            // ★칸 축소(daniel 2026-07-28 "칸이 너무 큰거 같아") — 3줄 세로 카드를 **한 줄**로.
+            //   기간·가격이 한눈에 붙어 있으면 비교가 오히려 쉽고, 목록 전체가 짧아진다.
             <PressableScale key={p.id} style={styles.btn} onPress={() => void buy(p.id, p.coins, p.days)} disabled={busy !== null}>
-              <Text style={[styles.btnTitle, { fontSize: fs(15) }]}>{p.days == null ? '영구' : `${p.days}일`}</Text>
-              <Text style={[styles.btnCoins, { fontSize: fs(18) }]}>{busy === p.id ? '…' : `${p.coins} 코인`}</Text>
-              {p.days == null ? <Text style={[styles.btnNote, { fontSize: fs(11) }]}>한 번만 사면 끝</Text> : null}
+              <Text style={[styles.btnTitle, { fontSize: fs(13) }]}>{p.days == null ? '영구' : `${p.days}일`}</Text>
+              <Text style={[styles.btnCoins, { fontSize: fs(14) }]}>{busy === p.id ? '…' : `${p.coins}코인`}</Text>
             </PressableScale>
           ))}
         </View>
       )}
 
-      <Text style={[styles.note, { fontSize: fs(12), lineHeight: fs(18) }]}>
-        · 하단 배너와 AI 코치의 보상형 광고가 함께 사라져요.{'\n'}
-        · 기간제를 다시 사면 남은 기간 뒤에 이어붙어요.
+      {/* ★안내 2줄 → 1줄(칸 축소). 이어붙기 규칙은 실제로 살 때 알림에서 다시 알려 준다. */}
+      <Text style={[styles.note, { fontSize: fs(11.5), lineHeight: fs(16) }]}>
+        하단 배너와 AI 코치 보상형 광고가 함께 사라져요. 기간제는 남은 기간 뒤에 이어붙어요.
       </Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  wrap: { marginBottom: space(6) },
-  h: { ...font.caption, color: colors.ju, fontWeight: '800', letterSpacing: 0.5, marginBottom: space(3) },
-  onCard: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.juLine, paddingVertical: space(3.5), paddingHorizontal: space(4), marginBottom: space(3) },
+  wrap: { marginBottom: space(4) },
+  h: { ...font.caption, color: colors.ju, fontWeight: '800', letterSpacing: 0.5, marginBottom: space(2) },
+  onCard: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.juLine, paddingVertical: space(2.5), paddingHorizontal: space(3.5), marginBottom: space(2) },
   onTx: { ...font.body, color: colors.ju, fontWeight: '800' },
-  row: { flexDirection: 'row', gap: space(3) },
-  btn: { flex: 1, alignItems: 'center', backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.juLine, paddingVertical: space(4) },
+  row: { flexDirection: 'row', gap: space(2) },
+  btn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space(1.5), backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.juLine, paddingVertical: space(2.5) },
   btnTitle: { ...font.body, color: colors.inkSoft, fontWeight: '700' },
-  btnCoins: { ...font.title, color: colors.ink, fontWeight: '900', marginTop: 2 },
+  btnCoins: { ...font.body, color: colors.ju, fontWeight: '900' },
   btnNote: { ...font.caption, color: colors.ju, fontWeight: '700', marginTop: 2 },
-  note: { ...font.caption, color: colors.inkFaint, marginTop: space(3) },
+  note: { ...font.caption, color: colors.inkFaint, marginTop: space(2) },
 });
