@@ -10,6 +10,7 @@
 //   ④ 유료면 coupons.ts CREDIT_KINDS + Edge interpret SERVER_GATED 등록 → ⑤ 유료면 homeTeaser freeHook 티저
 // ─────────────────────────────────────────────────────────────────────────
 import { CREDIT_KINDS, type CreditKind } from '../billing/coupons';
+import { COIN_PRICE } from '../billing/coinPrices';   // ★가격 표기를 코인으로(daniel 07-28)
 
 /** 콘텐츠 카드 1장. premium=프리미엄 허브(사주·자미 등), content=무료 온디바이스 진입 광고 대상, creditKey=유료 결제 키. */
 export type MenuItem = {
@@ -41,7 +42,17 @@ export const wonFmt = (n: number) => '₩' + n.toString().replace(/\B(?=(\d{3})+
 /** 프리미엄 미포함(개별구매 전용) — 프리미엄 명식이어도 '무제한' 배지를 주지 않는다. */
 export const HOME_INDIVIDUAL = new Set(['dream', 'followup', 'timeresolve']);
 /** 개별 가격 배지 문구 — **금액만**(할인율 미표시. 위 주석 참조). @param key creditKey */
-export const priceLabel = (key: string) => wonFmt(CREDIT_PRICE[key] ?? 0);
+/**
+ * 콘텐츠 카드에 표시할 가격.
+ * ★2026-07-28 코인 전환(daniel "풀이탭에는 금액 말고 코인으로 나와야지"):
+ *   결제 수단이 코인이 됐으므로 **보이는 가격도 코인**이어야 한다. 원화로 보이면 사용자가
+ *   '원화로 결제하는 줄' 알고 들어갔다가 코인 확인 창을 만난다(기대와 실제가 어긋남).
+ *   코인가가 없는 항목(신규 등록 누락 — check:coins 가 잡는다)만 원화로 폴백한다.
+ */
+export const priceLabel = (key: string) => {
+  const coin = COIN_PRICE[key as keyof typeof COIN_PRICE];
+  return coin != null ? `${coin} 코인` : wonFmt(CREDIT_PRICE[key] ?? 0);
+};
 
 // ── 콘텐츠 카드 목록 ─────────────────────────────────────────────────────
 // 무료 / 프리미엄 / 콘텐츠 3범주(daniel 기획, docs/기획_정보구조_v0.1.md).

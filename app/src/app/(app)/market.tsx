@@ -11,18 +11,16 @@ import { Alert } from '../../lib/ui/alert'; // 커스텀 알림(앱 디자인)
 import { useEffect, useRef, useState } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { CREDIT_KINDS, loadCredits, redeemCoupon, waitForCreditGrant, PREMIUM_PRICE, type CreditKind } from '../../lib/billing/coupons';
-import { coinPriceOf } from '../../lib/billing/coins';   // ★코인 표기(daniel 07-28)
+import { CREDIT_KINDS, loadCredits, redeemCoupon, waitForCreditGrant, type CreditKind } from '../../lib/billing/coupons';
+import { coinPriceOf, coinBalanceOrNull, COIN_PACKS } from '../../lib/billing/coins';   // ★코인 표기·잔액·충전팩(daniel 07-28)
 import { isNewContent } from '../../lib/content/newBadge'; // 신규 콘텐츠 NEW 배지(출시일+21일 자동 만료)
 import { requireLoginForPurchase } from '../../lib/billing/requireLogin'; // C1: 결제=계정 귀속(웹훅 적립엔 로그인 필수)
 import { listCharts, getRepresentativeId, setRepresentative, loadRepChart, type SavedChart } from '../../lib/engine/myChart';
 import { requestChartConfirm } from '../../lib/ui/chartConfirm'; // 구매 전 명식 확인(드롭다운으로 변경 가능)
 import { ListSkeleton } from '../../components/Skeleton'; // 첫 진입 로딩 스켈레톤(daniel 07-02: 마켓 즉시 전환+스켈레톤)
 import { useDeferredReady } from '../../lib/ui/useDeferredReady'; // 전환 즉시 스켈레톤 → 전환 후 콘텐츠 마운트(멈칫 제거)
-import { purchaseCreditRC, purchasesEnabled, priceStringsRC, priceStringRC, CREDIT_PRODUCT, PRODUCT_PREMIUM } from '../../lib/billing/purchases';
-import { waitForPremium, markPremiumOwnedNow } from '../../lib/billing/premiumStore'; // 구매 후: 낙관 즉시표시(markPremiumOwnedNow) + 서버 is_premium 확인(waitForPremium) 병행(#6)
+import { purchaseCoinPack, purchaseCreditRC, purchasesEnabled, priceStringsRC, priceStringRC, CREDIT_PRODUCT } from '../../lib/billing/purchases';
 import { useSubscription } from '../../lib/billing/subscription'; // 프리미엄 가입 루트(전체 무제한)
-import { getPremiumChartIdSnapshot } from '../../lib/billing/premiumStore'; // 프리미엄 지정 명식(어느 명식에 적용 중인지 표기, daniel 07-04)
 import { useAuth } from '../../lib/useAuth';              // 세션(프리미엄 명식 지정 시 serverChartId 발급)
 import { supabase } from '../../lib/supabase';            // set_premium_chart RPC(구매 명식 지정)
 import { ensureServerChartIdForSaved } from '../../lib/backend/prewarmReadings'; // 구매 명식 serverChartId 확보
@@ -128,7 +126,11 @@ export default function MarketRoute() {
   const [credits, setCredits] = useState<Record<string, number>>({});
   const [code, setCode] = useState('');
   const [redeeming, setRedeeming] = useState(false);
-  const [busy, setBusy] = useState<CreditKind | null>(null); // 구매 진행 중 kind
+  const [busy, setBusy] = useState<CreditKind | null>(null);
+  // ★보유 코인(daniel 2026-07-28 "마켓에 본인 보유코인도 나와야지") — 충전 화면에 들어가지 않고도
+  //   지금 얼마 있는지 알아야 '이걸 열 수 있나'를 판단할 수 있다. null=조회 실패(0으로 표시하지 않는다).
+  const [coins, setCoins] = useState<number | null>(null);   // 보유 코인(null=조회 실패 — 0으로 표시하지 않는다)
+  const [packBusy, setPackBusy] = useState<string | null>(null);
   const [prices, setPrices] = useState<Record<string, string>>({}); // 현지통화 가격(RC) — 미설정 시 ₩ 폴백
   const [topic, setTopic] = useState<'all' | MarketTopic>('all'); // ★마켓 주제 필터(daniel 2026-07-25 L)
   // ★'상점으로 이동' 딥링크(daniel 2026-07-27 "상점으로 이동하기 하면 바로 그거 구매 위치로 이동돼야 해")
@@ -152,11 +154,6 @@ export default function MarketRoute() {
     const tp = TOPIC_OF[focusKey];
     if (tp) setTopic(tp);
   }, [focusKey]);
-  const { isPremium, purchasePremium, refresh } = useSubscription(); // 프리미엄 상태·구매
-  // 프리미엄이 '어느 명식에' 적용 중인지(premium_chart_id 매칭 명식) — 카드에 표기(daniel 07-04). null=미지정(모든 명식 유예).
-  const premChartId = getPremiumChartIdSnapshot();
-  const premChart = premChartId ? saved.find((c) => String(c.serverChartId) === String(premChartId)) : null;
-  const [premPrice, setPremPrice] = useState(''); // 프리미엄 현지통화 가격(RC)
   const [buyingPrem, setBuyingPrem] = useState(false);
   const ready = useDeferredReady(); // 네비 전환 완료 후 콘텐츠 마운트 — 그 전엔 스켈레톤(첫 진입 즉시 전환·멈칫 제거)
 
@@ -174,57 +171,33 @@ export default function MarketRoute() {
   }, []);
 
   // 프리미엄 현지통화 가격(RC) — 미설정 시 ₩ 폴백
-  useEffect(() => { priceStringRC(PRODUCT_PREMIUM, `₩${PREMIUM_PRICE.toLocaleString()}`).then(setPremPrice).catch(() => {}); }, []);
+  // 보유 코인 로드 — 카드마다 코인가가 붙으므로 잔액을 함께 보여야 비교가 된다(daniel 07-28)
+  useEffect(() => { void coinBalanceOrNull().then(setCoins); }, []);
 
 
   // 프리미엄 가입(평생·전체 무제한) — 결제 미연동 시 '준비 중'. 성공 시 상태 갱신. 취소는 조용히.
   //   daniel: 결제 진행 전 '적용 명식'을 확인 Alert 로 한 번 더 보여준다(오결제 방지). 실제 구매 로직은 내부 함수로 분리.
-  async function buyPremium() {
-    // 실제 프리미엄 구매(명식 확인 통과 후 호출). target = 확인창에서 고른(변경 가능) 명식.
-    async function doBuyPremium(target: SavedChart | null) {
-      if (buyingPrem) return;
-      if (!purchasesEnabled()) { Alert.alert(t('market.payPending')); return; }
-      setBuyingPrem(true);
-      try {
-        await purchasePremium();
-        // ★#6 구매 성공 직후 낙관적 즉시 반영(daniel: '구매했는데 프리미엄이 바로 안 뜸' 체감 제거).
-        //   purchasePremium()이 throw 없이 끝났으면 RC 결제가 확정된 것(미결제 아님) → owns=true 로 전 화면(배너·배지·페이월)을
-        //   즉시 켠다. 이어지는 waitForPremium(서버 is_premium 폴링)이 서버 권위로 재확인 = 확정되면 유지, 웹훅 미도달이면
-        //   다음 refreshPremium(포그라운드 복귀·재로그인)에서 서버값(false)으로 정정된다. 서버가 최종 진실이라 오적용은 자정.
-        markPremiumOwnedNow();
-        const uid = session?.user?.id;
-        const confirmed = uid ? await waitForPremium(uid) : false;
-        if (confirmed) {
-          // 서버 확인(is_premium=true) → 지정 명식 바인딩(이제 set_premium_chart 성공, 최초 1회·변경은 재결제) + 반영.
-          try {
-            if (target && session) {
-              const scid = await ensureServerChartIdForSaved(target, session);
-              if (scid) await supabase.rpc('set_premium_chart', { p_chart_id: scid });
-            }
-          } catch { /* 지정 실패해도 프리미엄은 확정(유예=전 명식, 추후 재시도) */ }
-          await refresh(); // 서버값으로 재평가 — 낙관표시 유지 + pcid(지정 명식) 확정
-          Alert.alert(t('settings.premiumOkTitle'), t('settings.premiumOk'));
-        } else {
-          // 웹훅 미도달(타임아웃) — 낙관표시(markPremiumOwnedNow)는 *유지*한다(결제는 완료). 여기서 refresh() 로 덮지 않는다:
-          //   서버 미반영 상태라 refresh 하면 owns=false 로 도로 꺼져 '구매 직후 안 뜸'이 재발한다. 곧 자동 반영
-          //   (포그라운드 재평가·다음 진입 시 refreshPremium 이 서버 is_premium 확인 → 유지/정정).
-          Alert.alert(t('settings.premiumTitle'), t('market.premiumPending', '결제가 완료됐어요. 반영까지 잠시 걸릴 수 있어요 — 곧 자동으로 적용됩니다.'));
-        }
-      } catch (e: any) {
-        if (e?.message === 'cancelled') return;
-        Alert.alert(t('settings.premiumTitle'), e?.message ?? '');
-      } finally { setBuyingPrem(false); }
-    }
-    // 명식이 하나도 없으면(=등록 0개) 먼저 등록 안내 — 명식 기준으로 적용·진입하므로.
-    if (!sel) { Alert.alert(t('market.noChart'), t('market.registerChartFirst', '명식을 먼저 등록해 주세요')); return; }
-    // ★진행 전 적용 명식 확인 — 드롭다운으로 *다른 명식으로 변경 가능*(daniel 07-02). 확인 시 (변경된) 대표 명식으로 구매.
-    //   프리미엄 구매용 문구(daniel 07-03: 풀이 문구 '풀이할까요/볼게요'가 뜨던 버그 → 구매 문구로).
-    const ok = await requestChartConfirm({ title: '이 명식에 프리미엄을 적용할까요?', sub: '명식을 눌러 변경할 수 있어요 · 확인하면 결제가 진행돼요', okLabel: '네, 구매할게요' });
-    if (!ok) return;
-    const target = await loadRepChart();      // 모달에서 고른 명식(대표) = 프리미엄 적용 명식
-    if (target) setSel(target);               // 마켓 표시 동기화
-    void doBuyPremium(target ?? sel);
+  /** 코인 팩 구매 — 적립은 웹훅(서버)이 한다. 성공 후 잔액을 다시 읽어 반영을 확인한다. */
+  async function buyPack(packId: string, coins: number) {
+    if (!requireLoginForPurchase(session, () => router.push('/login'), t)) return;
+    if (packBusy) return;
+    setPackBusy(packId);
+    try {
+      const ok = await purchaseCoinPack(packId);
+      if (!ok) return;                                   // 취소 — 조용히
+      await new Promise((r) => setTimeout(r, 1500));      // 웹훅 적립 반영 여유
+      const after = await coinBalanceOrNull();
+      setCoins(after);
+      Alert.alert('충전됐어요', after == null ? '결제가 완료됐어요. 잔액 반영이 잠시 걸릴 수 있어요.' : `${coins.toLocaleString('ko-KR')}코인이 충전됐어요.`);
+    } catch (e: any) {
+      Alert.alert(t('market.buyFailTitle'), e?.message ?? '');
+    } finally { setPackBusy(null); }
   }
+
+  // ★buyPremium 제거(daniel 2026-07-28 "프리미엄도 빼버려 … 기존 결제관련해서는 코드 정리하고").
+  //   프리미엄 구매 → 낙관표시 → 서버 is_premium 폴링 → 명식 바인딩까지 이어지던 흐름을 통째로 삭제.
+  //   이 왕복(스토어 결제 + 웹훅 폴링)이 곧 코인 시스템으로 넘어온 문제의 원형이었다.
+
 
   // 이용권 적용 — 선택 명식을 대표로 설정 후 해당 풀이 화면으로(거기서 이용권/프리미엄/구매로 열림).
   async function apply(kind: CreditKind) {
@@ -288,25 +261,8 @@ export default function MarketRoute() {
     const owned = (credits[c.key] ?? 0) > 0; // 1회성 소모 — 보유/미보유로만
     const card = CARD[c.key];                // 카드 이미지+설명(홈과 동일·daniel: 마켓 리스트에도)
 
-    // 프리미엄 포함 섹션 + 프리미엄 가입 = 무제한(가격/구매 숨김, 카드 전체가 열기 버튼)
-    if (premInc && isPremium) {
-      return (
-        <PressableScale key={c.key} onLayout={(e) => { cardY.current[c.key] = e.nativeEvent.layout.y; }}
-          style={[styles.card, hi === c.key && styles.cardFocus]} onPress={() => apply(c.key)} disabled={!sel}>
-          {isNewContent(c.key) && <View style={styles.newTag}><Text style={styles.newTagTx}>NEW</Text></View>}
-          {card && <Image source={card.img} style={styles.thumb} />}
-          <View style={{ flex: 1 }}>
-            <Text style={styles.name}>{c.ko}</Text>
-            {card && <Text style={styles.desc} numberOfLines={2}>{t(card.desc)}</Text>}
-            {/* 개별 구매가 노출(daniel 07-03: 프리미엄 상품도 개별구매 가능하니 금액 표시) — 프리미엄 유저는 무제한이라 참조용 */}
-            <Text style={styles.price}>{coinPriceOf(c.key) != null ? `${coinPriceOf(c.key)} 코인` : (prices[c.key] ?? `₩${c.price.toLocaleString()}`)}</Text>
-          </View>
-          <View style={styles.unlimitedBadge}>
-            <Text style={styles.unlimitedTx}>{t('market.unlimited', '무제한 이용 중')}</Text>
-          </View>
-        </PressableScale>
-      );
-    }
+    // ★프리미엄 폐지(daniel 2026-07-28) — '프리미엄이면 무제한' 분기를 제거했다.
+    //   이제 모든 카드가 같은 규칙(보유=열기 / 미보유=코인 결제)으로 렌더된다. premInc 는 섹션 분류에만 쓰인다.
 
     // 기존 동작(현행 그대로): 보유 시 열기(apply) / 미보유 시 개별 구매(buy)
     return (
@@ -365,30 +321,24 @@ export default function MarketRoute() {
     <ScrollView style={styles.screen} contentContainerStyle={styles.wrap} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
       <Text style={styles.intro}>{t('market.intro')}</Text>
       {/* ★보유기한 1년 명시(daniel: 법적 — 약관 제4조 3항과 일치) — 비프리미엄에게만(프리미엄=무제한 보유라 불필요) */}
-      {!isPremium && <Text style={styles.retention}>{t('market.retentionNote', '구매한 풀이는 구매일로부터 1년간 보유되며, 1년이 지나면 자동 삭제됩니다. 이후 다시 보려면 재구매가 필요해요.')}</Text>}
+      <Text style={styles.retention}>{t('market.retentionNote', '구매한 풀이는 구매일로부터 1년간 보유되며, 1년이 지나면 자동 삭제됩니다. 이후 다시 보려면 재구매가 필요해요.')}</Text>
 
-      {/* 프리미엄 — 명식 무관(전체 무제한). 비프리미엄=가입 카드 / 프리미엄=이용 중 표시(항상 노출) */}
-      {isPremium ? (
-        <View style={styles.premCard}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.premTitle}>{t('market.premiumActive', '프리미엄 이용 중')}</Text>
-            <Text style={styles.premSub}>{t('market.premiumActiveSub', '모든 콘텐츠 무제한 · 광고 제거 적용 중')}</Text>
-            {/* ★프리미엄이 어느 명식에 적용 중인지 표기(daniel 07-04) — premium_chart_id 매칭 명식. 미지정이면 모든 명식(유예). */}
-            <Text style={styles.premChart}>{t('market.appliedChart', '적용 명식')}: {premChart?.label ?? t('market.allChartsGrace', '모든 명식(미지정)')}</Text>
-          </View>
-          <Text style={styles.premPrice}>✓</Text>
-        </View>
-      ) : (
-        <PressableScale style={styles.premCard} onPress={buyPremium} disabled={buyingPrem}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.premTitle}>{t('settings.premiumBuy', '평생 프리미엄')}</Text>
-            <Text style={styles.premSub}>{t('settings.premiumDesc', '모든 콘텐츠 무제한 · 광고 제거')}</Text>
-            {/* 적용 명식 안내(daniel) — 결제 전 어느 명식으로 진행되는지 작은 글씨로 노출 */}
-            <Text style={styles.premChart}>{t('market.appliedChart', '적용 명식')}: {sel?.label ?? t('market.noChart')}</Text>
-          </View>
-          <Text style={styles.premPrice}>{buyingPrem ? '…' : (premPrice || `₩${PREMIUM_PRICE.toLocaleString()}`)}</Text>
-        </PressableScale>
-      )}
+      {/* ★프리미엄 폐지(daniel 2026-07-28 "프리미엄도 빼버려") — 마켓의 프리미엄 카드 제거.
+          과금은 코인 하나로 통일한다. 아래 충전 팩이 그 자리를 대신한다. */}
+
+      {/* ★코인 충전 팩 — 마켓에서 바로 고르게(daniel "마켓에 코인 충전하기 해서 300개 등 나눠놔 한번에 충전할 수 있게").
+          충전 화면까지 들어가지 않고 여기서 끝낼 수 있어야 흐름이 끊기지 않는다. */}
+      <Text style={styles.sectionH}>◈ 코인 충전</Text>
+      <View style={styles.packRow}>
+        {COIN_PACKS.map((p) => (
+          <PressableScale key={p.id} style={styles.packBtn} onPress={() => void buyPack(p.id, p.coins)} disabled={packBusy !== null}>
+            <Text style={styles.packCoins}>{packBusy === p.id ? '…' : p.coins.toLocaleString('ko-KR')}</Text>
+            <Text style={styles.packUnit}>코인</Text>
+            <Text style={styles.packWon}>₩{p.won.toLocaleString('ko-KR')}</Text>
+            {p.bonusPct > 0 ? <Text style={styles.packBonus}>+{p.bonusPct}%</Text> : null}
+          </PressableScale>
+        ))}
+      </View>
 
       {/* ★프리미엄 '갱신'은 마켓 카드에서 제거(daniel 07-08) — 풀이 화면의 '최신 해석으로 갱신' 버튼(맥락상 인지적)에만 노출.
           갱신 흐름은 lib/billing/renewal.ts(runPremiumRenewal) + interpret renewRequired 게이트가 담당. */}
@@ -491,6 +441,13 @@ const styles = StyleSheet.create({
   intro: { ...font.body, color: colors.inkSoft, marginBottom: space(2) },
   retention: { ...font.caption, color: colors.inkFaint, marginBottom: space(4), lineHeight: 18 }, // 보유기한 1년 안내(daniel 법적)
   // 프리미엄 가입 카드(골드 강조)
+  sectionH2: {},
+  packRow: { flexDirection: 'row', flexWrap: 'wrap', gap: space(2.5), marginBottom: space(5) },
+  packBtn: { flexGrow: 1, minWidth: '46%', alignItems: 'center', backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.juLine, paddingVertical: space(4) },
+  packCoins: { ...font.display, color: colors.ju, fontWeight: '900', fontSize: 24 },
+  packUnit: { ...font.caption, color: colors.inkSoft, marginTop: -2 },
+  packWon: { ...font.body, color: colors.ink, fontWeight: '800', marginTop: space(1.5) },
+  packBonus: { ...font.caption, color: colors.ju, fontWeight: '800', marginTop: 2 },
   premCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.ju, borderRadius: radius.md, padding: space(4), marginBottom: space(4), ...shadow.card },
   premTitle: { fontSize: 16, fontWeight: '900', color: colors.bg },
   premSub: { fontSize: 12, color: colors.bg, opacity: 0.85, marginTop: 2 },
@@ -523,8 +480,11 @@ const styles = StyleSheet.create({
   //   flex:1 컨테이너가 이 여백만큼 줄어들어 긴 설명(numberOfLines=2)이 버튼에 닿지 않고 그 안에서 줄바꿈된다(daniel 07-07 IMG_7980: '별자리 운세' 긴 설명↔구매 버튼 밀착 수정).
   buyBtn: { backgroundColor: colors.ju, borderRadius: radius.pill, paddingHorizontal: space(5), paddingVertical: space(2.5), minWidth: 84, alignItems: 'center', marginLeft: space(4) },
   buyBtnBusy: { opacity: 0.5 },
-  chargeBtn: { backgroundColor: colors.ju, borderRadius: radius.md, paddingVertical: space(3.5), alignItems: 'center', marginBottom: space(4) },
-  chargeTx: { color: colors.bg, fontWeight: '900', fontSize: 15 },
+  coinCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.card, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.juLine, paddingVertical: space(4), paddingHorizontal: space(5), marginBottom: space(4), ...shadow.card },
+  coinLabel: { ...font.caption, color: colors.inkSoft, fontWeight: '800', letterSpacing: 0.4 },
+  coinNum: { ...font.display, color: colors.ju, fontWeight: '900', fontSize: 28, marginTop: 2 },
+  chargePill: { backgroundColor: colors.ju, borderRadius: radius.pill, paddingVertical: space(2.5), paddingHorizontal: space(4) },
+  chargeTx: { color: colors.bg, fontWeight: '900', fontSize: 14 },
   // ★focus 도착 강조 — '여기가 그 상품' 신호. 색이 아니라 테두리+틴트로(색맹 대비·액센트 남용 방지).
   cardFocus: { borderColor: colors.ju, borderWidth: 2, backgroundColor: colors.juSoft },
   buyTx: { color: colors.bg, fontWeight: '800', fontSize: 14 },

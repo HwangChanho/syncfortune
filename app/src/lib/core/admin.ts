@@ -57,6 +57,11 @@ export async function adminGrantCoins(owner: string, amount: number): Promise<vo
 }
 
 /** 특정 유저 프리미엄 선물/해제. 실패 시 사유를 throw. */
+/**
+ * ★사용처 0(daniel 2026-07-28 프리미엄 폐지) — UI 에서 제거했다. 서버 RPC 는 남겨 둔다:
+ *   과거 구매자 이력을 되돌려야 할 일(환불 처리 등)이 생기면 SQL 로 쓸 수 있어야 하기 때문.
+ *   ⚠️지금 켜도 **아무 콘텐츠가 열리지 않는다**(Edge effPrem 이 god 외 프리미엄을 인정하지 않음).
+ */
 export async function adminSetPremium(owner: string, val: boolean): Promise<void> {
   const { error } = await supabase.rpc('admin_set_premium', { p_owner: owner, p_val: val });
   if (error) throw new Error(error.message);
@@ -70,6 +75,10 @@ export type AdminUserDetail = {
   is_admin: boolean;                // 관리자 여부
   admin_mode: boolean;              // 관리자 모드(관리자 계정 한정 — false=일반계정처럼)
   premium_chart_id: string | null;  // 프리미엄이 바인딩된 단일 명식(NULL=미지정/유예)
+  // ★코인(daniel 2026-07-28 코인 전환) — 잔액 + 최근 원장 30건.
+  //   원장을 만든 이유가 "결제했는데 안 들어왔다/두 번 빠졌다" 추적인데, 볼 화면이 없으면 원장의 값어치가 0이다.
+  coins: number;
+  coin_ledger: { amount: number; reason: string; kind: string | null; at: string }[];
   reading_count: number; followup_count: number; chart_count: number;
   // 풀이 kind별 분해(정규화) — 자미 궁·사주 영역·프리픽스형을 대표 kind 로 집계(방문 많은 순).
   readings_by_kind: { kind: string; n: number }[];

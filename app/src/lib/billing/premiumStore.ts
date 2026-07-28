@@ -57,7 +57,11 @@ export function getAdminModeSnapshot(): boolean { return _adminMode; }
  *   god(관리자 모드 ON)=전부 / 일반전환=전부 X / 그 외=소유 && (미지정[유예] || 지정 명식 일치).
  */
 export function isPremiumForChart(serverChartId: string | null | undefined): boolean {
-  const god = _isAdmin && _adminMode;
+  // ★2026-07-28 프리미엄 폐지(daniel) — 명식별 프리미엄도 함께 끈다.
+  //   ★관리자(god)는 남긴다: 테스트·검수에 필요하고 결제와 무관하다(목업·관리자 게이트와 같은 취급).
+  const godOnly = _isAdmin && _adminMode;
+  if (!godOnly) return false;
+  const god = godOnly;
   if (god) return true;
   const actingNormal = _isAdmin && !_adminMode;
   if (actingNormal || !_owns) return false;

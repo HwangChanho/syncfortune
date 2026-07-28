@@ -8,7 +8,7 @@ import { View, Text, ScrollView, Pressable, TextInput, StyleSheet, ActivityIndic
 import { PressableScale } from '../../components/PressableScale';
 import { Alert } from '../../lib/ui/alert'; // 커스텀 알림(앱 디자인)
 import { useEffect, useState } from 'react';
-import { isAdmin, adminListUsers, adminGrantCredit, adminSetPremium, adminUserDetail, adminStats, adminUserUsage, adminUserContentVisits, adminSchedulePush, adminListPushCampaigns, adminCancelPush, type AdminUser, type AdminUserDetail, type AdminStats, type AdminUsage, type AdminContentVisit, type DayPoint, type PushCampaign } from '../../lib/core/admin';
+import { isAdmin, adminListUsers, adminGrantCredit, adminUserDetail, adminStats, adminUserUsage, adminUserContentVisits, adminSchedulePush, adminListPushCampaigns, adminCancelPush, type AdminUser, type AdminUserDetail, type AdminStats, type AdminUsage, type AdminContentVisit, type DayPoint, type PushCampaign } from '../../lib/core/admin';
 import { CREDIT_KINDS, type CreditKind } from '../../lib/billing/coupons';
 import { logEvent } from '../../lib/backend/logger';
 import { adminGrantCoins } from '../../lib/core/admin';   // ★코인 선물(daniel 07-28) // DB 로그(app_logs) — 선물/프리미엄 단계 추적
@@ -295,28 +295,10 @@ export default function AdminRoute() {
       } },
     ]);
   }
-  // 프리미엄 선물/해제 — 적용 전 확인
-  function togglePremium() {
-    if (!sel || busy) return;
-    const u = sel;
-    const next = !u.is_premium;
-    Alert.alert(next ? '프리미엄 선물' : '프리미엄 해제', `${u.email}\n${next ? '프리미엄을 지급할까요?' : '프리미엄을 해제할까요?'}`, [
-      { text: '취소', style: 'cancel' },
-      { text: next ? '지급' : '해제', style: next ? 'default' : 'destructive', onPress: async () => {
-        setBusy(true); setGiftMsg(null);
-        logEvent('admin_premium_tap', { owner: u.id, next });
-        try {
-          await adminSetPremium(u.id, next);                                 // 실패 시 throw
-          setSel({ ...u, is_premium: next }); reload();
-          setGiftMsg(next ? '✓ 프리미엄 지급 완료' : '✓ 프리미엄 해제 완료'); // 결과 inline(모달 연속 충돌 회피)
-          logEvent('admin_premium_ok', { owner: u.id, next });
-        } catch (e: any) {
-          setGiftMsg(`✗ ${next ? '프리미엄 지급' : '프리미엄 해제'} 실패: ${String(e?.message ?? e)}`);
-          logEvent('admin_premium_error', { owner: u.id, next, message: String(e?.message ?? e) }, 'error');
-        } finally { setBusy(false); }
-      } },
-    ]);
-  }
+  // ★togglePremium 제거(daniel 2026-07-28 "관리자에서 프리미엄선물도 빼버리고").
+  //   프리미엄은 폐지됐고 서버(effPrem)도 god 외엔 인정하지 않으므로, 지급해도 아무 효과가 없다 —
+  //   효과 없는 버튼을 남겨 두면 관리자가 "선물했는데 왜 안 열리지"로 헤매게 된다. 코인 선물이 대체.
+
 
   return (
     <ScrollView
@@ -489,11 +471,25 @@ export default function AdminRoute() {
               {/* 계정 메타(daniel 07-07): 가입·최근활동·상태 pill */}
               <Text style={styles.detailLine}>가입 {detail.created_at ? String(detail.created_at).split('T')[0] : '?'}{detail.last_seen ? ` · 최근활동 ${String(detail.last_seen).split('T')[0]}` : ''}</Text>
               <View style={styles.pillRow}>
-                <Text style={[styles.miniPill, detail.is_premium ? styles.miniPillOn : styles.miniPillOff]}>{detail.is_premium ? '프리미엄' : '일반'}</Text>
+                {/* ★프리미엄 pill → 코인 잔액(07-28). 프리미엄은 지급해도 효과가 없으므로 상태로 보여 주면 오해를 부른다.
+                    과거 구매자였다면 '(구)프리미엄'으로만 표기 — 이력은 남기되 현재 권한이 아님을 분명히. */}
+                <Text style={[styles.miniPill, styles.miniPillOn]}>{(detail.coins ?? 0).toLocaleString('ko-KR')} 코인</Text>
+                {detail.is_premium ? <Text style={[styles.miniPill, styles.miniPillOff]}>(구)프리미엄</Text> : null}
                 {detail.is_admin ? <Text style={[styles.miniPill, styles.miniPillAdmin]}>{detail.admin_mode ? '관리자' : '관리자·모드OFF'}</Text> : null}
               </View>
               <Text style={styles.detailLine}>통변 {detail.reading_count}회 · 추가질문 {detail.followup_count}회</Text>
               <Text style={styles.detailLine}>원가(실측)는 비용·수익 분석 화면 참고</Text>
+              {/* ★코인 원장(07-28) — 언제 얼마가 들어오고 나갔는지. "결제했는데 안 들어왔다" 문의를 여기서 바로 확인한다. */}
+              {(detail.coin_ledger?.length ?? 0) > 0 && (
+                <>
+                  <Text style={styles.detailSub}>코인 내역(최근 {detail.coin_ledger.length}건)</Text>
+                  {detail.coin_ledger.slice(0, 8).map((l, i) => (
+                    <Text key={i} style={styles.detailLine}>
+                      {String(l.at).slice(0, 10)} {l.amount > 0 ? '+' : ''}{l.amount} · {l.reason}{l.kind ? `(${l.kind})` : ''}
+                    </Text>
+                  ))}
+                </>
+              )}
               {usage && usage.sessions > 0 ? <Text style={styles.detailLine}>평균 사용 {fmtDur(usage.avg_sec)} · {usage.sessions}세션 · 총 {fmtDur(usage.total_sec)}{usage.last_seen ? ` · 최근 ${String(usage.last_seen).split('T')[0]}` : ''}</Text> : null}
               {/* 풀이 kind별 분해(daniel 07-07) — 어떤 분야를 얼마나 생성했는지 막대로(방문 많은 순 Top 8) */}
               {(detail.readings_by_kind?.length ?? 0) > 0 && (
@@ -554,9 +550,8 @@ export default function AdminRoute() {
               ))
             ) : <Text style={styles.detailLine}>방문 기록 없음</Text>}
           </View>
-          <PressableScale style={[styles.premToggle, sel.is_premium && styles.premToggleOn]} onPress={togglePremium} disabled={busy}>
-            <Text style={styles.premToggleTx}>{sel.is_premium ? '프리미엄 해제' : '프리미엄 선물'}</Text>
-          </PressableScale>
+          {/* ★프리미엄 선물 제거(daniel 2026-07-28 "관리자에서 프리미엄선물도 빼버리고") —
+              과금이 코인으로 통일돼 프리미엄 자체가 폐지됐다. 아래 코인 선물이 대체한다. */}
           {/* ★코인 선물(daniel 2026-07-28) — 콘텐츠별 이용권 28종 나열을 액수 선택으로 대체.
               코인이 화폐가 됐으므로 '어느 콘텐츠'를 고를 이유가 없다(받는 쪽이 원하는 데 쓴다).
               액수는 실제 콘텐츠 가격에 맞춘 눈금이다 — 10=코치 질문 · 50=4,900원대 · 200=사주 풀이. */}

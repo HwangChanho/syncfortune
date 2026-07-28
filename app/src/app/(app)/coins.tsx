@@ -96,7 +96,7 @@ export default function CoinsScreen() {
         ))}
 
         <Text style={[styles.note, { fontSize: fs(12), lineHeight: fs(19) }]}>
-          {t('coins.note', '· 코인은 모든 유료 풀이에 쓸 수 있어요.\n· 충전한 코인은 계정에 보관돼요 — 기기를 바꿔도 그대로예요.\n· 프리미엄을 이용 중이면 코인을 쓰지 않고 무제한으로 보실 수 있어요.')}
+          {t('coins.note', '· 코인은 모든 유료 풀이에 쓸 수 있어요.\n· 충전한 코인은 계정에 보관돼요 — 기기를 바꿔도 그대로예요.\n· 코인은 사용 기한이 없어요.')}
         </Text>
       </ScrollView>
     </View>

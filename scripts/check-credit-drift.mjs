@@ -180,10 +180,18 @@ if (!src.purchases) {
 // ══════════════════════════════════════════════════════════════════════════════════
 // [3] 스토어 등록(fastlane) 정합 — asc-price·asc-iap·rc-setup 각각 상품 존재
 // ══════════════════════════════════════════════════════════════════════════════════
-// 스토어에 있어야 할 상품 = 판매 유료 kind 의 상품 id 전부 + 평생 프리미엄.
-const EXPECTED_STORE = new Set([...SELLABLE.map((k) => productOf.get(k)).filter(Boolean), PRODUCT_PREMIUM]);
+// 스토어에 있어야 할 상품 = 판매 유료 kind 의 상품 id 전부.
+// ★프리미엄 제외(daniel 2026-07-28 "프리미엄도 빼버려") — 판매 종료 상품이라 **신규 등록 대상이 아니다.**
+//   기존 구매자(daniel 본인 1건)의 영수증 때문에 ASC/RC 쪽 상품 자체는 남겨 두되,
+//   등록 스크립트(asc-iap)에는 없어야 정상이다. 아래 [3b] 가 되살아나는 걸 감시한다.
+const EXPECTED_STORE = new Set([...SELLABLE.map((k) => productOf.get(k)).filter(Boolean)]);
 // 상품 id → kind 역매핑(잔재 상품이 어떤 kind 인지 되짚어 경고/차단 구분).
 const kindOfProduct = new Map([...productOf].map(([k, p]) => [p, k]));
+// ★코인 팩 id(앱 단일 출처) — 스토어 3종과 양방향 대조한다(누락=결제 불가 / 잔재=살 수 없는 상품).
+const COIN_PACK_IDS = new Set(
+  [...(read('app/src/lib/billing/coinPrices.ts') ?? '')
+    .matchAll(/id:\s*'(coin_\d+)'/g)].map((m) => m[1]),
+);
 
 // 각 스토어 스크립트의 상품 id 집합 추출.
 const stores = {
@@ -192,6 +200,7 @@ const stores = {
   // rc-setup.js: CREDITS 배열 + PREMIUM 상수.
   'rc-setup.js':  src.rcSetup  ? (() => {
     const s = new Set(quoted(arrBody(src.rcSetup, 'CREDITS')));
+    for (const c of quoted(arrBody(src.rcSetup, 'COINS'))) s.add(c);   // ★코인 팩(07-28) — CREDITS 와 별도 배열이라 함께 읽어야 한다
     const pm = src.rcSetup.match(/const PREMIUM\s*=\s*'([^']+)'/);
     if (pm) s.add(pm[1]);
     return s;
@@ -208,16 +217,22 @@ for (const [name, set] of Object.entries(stores)) {
   // 역방향: 스토어에만 있는 잔재 상품.
   // ★코인 팩(daniel 2026-07-28 코인 전환)은 **콘텐츠 상품이 아니다** — CREDIT_PRODUCT 매핑이 없는 게 정상이다.
   //   대신 앱의 COIN_PACKS(coinPrices.ts) 와 스토어 등록이 일치하는지 검사한다(그게 이 범주의 드리프트).
-  const COIN_PACK_IDS = new Set(
-    [...(read('app/src/lib/billing/coinPrices.ts') ?? '')
-      .matchAll(/id:\s*'(coin_\d+)'/g)].map((m) => m[1]),
-  );
+  // 정방향(앱→스토어): 앱이 파는 코인 팩이 이 스크립트에 등록돼 있나.
+  //   ★누락되면 결제창이 아예 안 뜬다(가격 없는 상품은 StoreKit 이 반환하지 않음 — 프리미엄에서 실제로 겪은 사고).
+  for (const p of COIN_PACK_IDS) {
+    if (!set.has(p)) fail('스토어', `${name}: 코인 팩 '${p}' 미등록 — 앱 COIN_PACKS 엔 있는데 스토어 등록 스크립트에 없다(결제창 미표시).`);
+  }
   for (const p of set) {
     if (p.startsWith('coin_')) {
       if (!COIN_PACK_IDS.has(p)) fail('스토어', `${name}: 코인 팩 '${p}' 가 앱 COIN_PACKS 에 없음 — 스토어에만 있는 잔재(사용자가 살 수 없는 상품).`);
       continue;
     }
     if (EXPECTED_STORE.has(p)) continue;
+    // ★판매 종료 상품(프리미엄) — 기존 구매자의 복원 때문에 스토어엔 남겨 둔다. 단 **신규 등록(asc-iap)엔 없어야** 한다.
+    if (p === PRODUCT_PREMIUM) {
+      if (name === 'asc-iap.js') fail('스토어', `${name}: '${p}' 가 되살아났다 — 프리미엄은 판매 종료(07-28)라 신규 등록 대상이 아니다. 주석 처리 유지.`);
+      continue;
+    }
     const k = kindOfProduct.get(p);
     if (k && TYPE_ONLY.has(k))
       warn('스토어', `${name}: '${p}' 존재 — ${k}(${TYPE_ONLY.get(k)}) 상품이라 스토어에서 제외 권장.`);
