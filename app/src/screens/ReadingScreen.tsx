@@ -33,6 +33,7 @@ import { supabase } from '../lib/supabase';
 import { excludeMock } from '../lib/core/testMode'; // ★16영역 캐시 로드서 목업 제외(OFF)/유지(ON) — test ON은 generate_set 구조표시 보존
 // 완료 푸시는 genProgress(setGenProgress 완료 전이)에서 중앙 처리(daniel ⑨ — 모든 풀이 공통)
 import { setGenProgress, useGenProgress, clearGenProgress, clearGenByChart } from '../lib/backend/genProgress'; // 홈 진행률 + 완료 구독 + 진입 시 배너 제거(daniel: 완성 배너 안 사라짐). clearGenByChart=쿼리 무관 robust 제거(07-22 근본수정)
+import { ensureCoinsFor } from '../lib/billing/coinGate';   // ★코인 단일 경로(추가질문 포함)
 import { isReadingUnlocked } from '../lib/billing/unlocks'; // 서버 권위 세트 언락(P3) — 이미 열렸으면 무료 재생성
 import { isPremiumForChart } from '../lib/billing/premiumStore'; // 명식별 프리미엄 판정(#1 — 비지정 명식/무료모드 페이월)
 import { computeEntitled, computeLocked, showUnlockOverlay, computeShouldAutoGen } from '../lib/billing/readingGate'; // 게이트 순수로직(하네스 시나리오 테스트 대상)
@@ -47,11 +48,10 @@ import { readingFromInvoke } from '../lib/backend/interpretResult'; // 방어: E
 import { acquireGen, releaseGen } from '../lib/backend/genLock'; // 생성 중복 잠금(크로스마운트 공유·150초 stale-timeout) — daniel 07-16: 자체 Set 폐기, 다른 유료 화면과 통일(락 누수로 사주·자미 먹통 방지)
 import { PALACE_DESC } from '../lib/content/palaceDesc'; // 자미두수 궁 설명(궁 옆 표시)
 import { shareReading } from '../lib/ui/share'; // 이슈17: 풀이 결과 공유(앱 설치자만 열람)
-import { loadCredits, waitForCreditGrant, creditPrice, formatKrw } from '../lib/billing/coupons'; // 크레딧 보유확인(UX) + 결제 후 웹훅 반영 폴링 + 실가 주입(하드코딩 가격 근절·daniel 2026-07-12)
+import { loadCredits, creditPrice, formatKrw } from '../lib/billing/coupons'; // 크레딧 보유확인(UX) + 결제 후 웹훅 반영 폴링 + 실가 주입(하드코딩 가격 근절·daniel 2026-07-12)
 import { confirmReadingChart, autoGenWithChartConfirm } from '../lib/ui/confirmChart'; // 생성 전 명식 확인(수동=항상 / 자동=명식 2개+ 일 때, daniel 07-13)
 import { loadCreditsOrNull } from '../lib/billing/coupons';
 import { coinPriceOf, coinBalanceOrNull } from '../lib/billing/coins';   // ★코인 전환(daniel 07-28)   // ★'없음' vs '확인 불가' 구분(재결제 방지)
-import { purchaseCreditRC } from '../lib/billing/purchases'; // 추가질문 건당 결제 = credit_followup(서버 consume)
 import { requireLoginForPurchase } from '../lib/billing/requireLogin'; // 결제/저장 전 로그인 안내
 import { assertOnline, isOnline, notifyNetworkError } from '../lib/backend/network'; // 오프라인 차단 + ★호출 실패 알림(daniel 07-27)
 import { logEvent } from '../lib/backend/logger';   // 자동 복구 시도 기록(사고 재구성용)
@@ -556,13 +556,10 @@ export function ReadingScreen({
         );
         return;
       }
-      // 코인가 미등록(신규 콘텐츠 등록 누락 — check:coins 가 잡는다) → 종전 건당 결제로 폴백.
-      Alert.alert(t('reading.premiumAlert'), t('reading.premiumAlertMsg', { price: formatKrw(creditPrice(ck)) }), [
-        // ★C1(daniel 07-03): 결제 상품을 credit_{reading|ziwei}(웹훅이 적립 가능)로 통일 + 클라 grant 폐지 → 웹훅 반영 폴링 후 생성(Edge 세트게이트가 1회 차감·언락).
-        //   (기존 purchaseReading=deprecated unlock_2500 은 credit_* 아님 → 웹훅이 적립할 수 없어 교체. 가격은 스토어의 credit_reading/credit_ziwei 값.)
-        { text: t('reading.payPerUse', { price: formatKrw(creditPrice(ck)) }), onPress: async () => { setPayBusy(true); try { const ok = await purchaseCreditRC(ck); if (!ok) return; const { granted } = await waitForCreditGrant(ck); if (granted) await runAll(id); else Alert.alert(t('reading.premiumAlert'), t('reading.applyPending', '결제가 완료됐어요. 적용까지 잠시 걸릴 수 있어요. 잠시 후 다시 시도해 주세요.')); } catch (e) { Alert.alert('!', (e as Error).message); } finally { setPayBusy(false); } } },
-        { text: t('common.cancel'), style: 'cancel' },
-      ]);
+      // ★코인가 미등록 = **등록 누락 버그**다(check:coins K1 이 모든 유료 kind 에 코인가를 강제하므로
+      //   정상 상태에서는 여기 도달하지 않는다). 예전엔 스토어 결제로 폴백했는데 그러면 코인 단일 경로가
+      //   조용히 깨진다 — 카드엔 코인가가 적혀 있는데 누르면 원화 결제창이 뜬다. 폴백 대신 막고 알린다.
+      Alert.alert(t('reading.premiumAlert'), t('special.priceMissing', '지금은 이 콘텐츠를 열 수 없어요. 잠시 후 다시 시도해 주세요.'));
     } finally {
       setPayBusy(false);
       startingRef.current = false;                           // 해제 — 생성(runAll)은 위에서 await되어 끝까지 잠금 유지, 결제 alert 분기는 모달이 추가 탭을 막음
@@ -639,14 +636,16 @@ export function ReadingScreen({
     } else if (res.kind === 'needPremium') {
       Alert.alert(t('reading.askPremiumTitle'), t('reading.askPremiumMsg'));
     } else if (res.kind === 'needPayment') {
-      // 무료 한도 소진 → 건당 결제 안내 → 결제 성공 시 paid 로 재시도(RevenueCat 미연동 시 '준비 중')
-      Alert.alert(t('reading.askPayTitle'), t('reading.askPayMsg', { price: formatKrw(creditPrice('followup')) }), [
-        { text: t('common.cancel'), style: 'cancel' },
-        { text: t('reading.askPayBtn', { price: formatKrw(creditPrice('followup')) }), onPress: async () => {
-          try { const ok = await purchaseCreditRC('followup'); if (!ok) return; const { granted } = await waitForCreditGrant('followup'); if (granted) await submitFollowup(); else Alert.alert(t('reading.askPayTitle'), t('reading.applyPending', '결제가 완료됐어요. 적용까지 잠시 걸릴 수 있어요. 잠시 후 다시 시도해 주세요.')); } // ★C1: 클라 grant 폐지 → 웹훅 적립 폴링 후 서버 consume(followup)
-          catch (e) { Alert.alert(t('reading.payPending'), (e as Error).message); }
-        } },
-      ]);
+      // ★코인 전환 누락 수정(daniel 2026-07-28) — 여기만 예전 건당 결제(purchaseCreditRC + 적립 폴링)가
+      //   남아 있었다. 코인은 적립이 아니라 **서버가 생성 직전에 차감**하므로 그 폴링은 영영 오지 않고
+      //   "결제됐어요, 잠시 후 다시"에서 막다른 길이 된다(dream·reunion 과 같은 유형).
+      //   부족하면 충전 화면으로 보낸다(daniel "코인 부족하면 코인충전 페이지로 이동시켜").
+      const g = await ensureCoinsFor('followup', {
+        title: t('reading.askPayTitle'),
+        t,
+        goCharge: () => router.push('/coins'),
+      });
+      if (g === 'ok') await submitFollowup();
     } else {
       Alert.alert(t('common.error'), res.message);
     }

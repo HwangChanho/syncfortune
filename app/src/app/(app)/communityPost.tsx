@@ -168,7 +168,7 @@ export default function CommunityPostScreen() {
 
       {/* 댓글 입력 — 키보드가 뜨면 그 높이만큼 위로(bottom: lift). 키보드 없으면 lift=0 = 화면 하단 고정. */}
       <View style={[styles.inputBar, { bottom: lift }]}>
-        <TextInput style={styles.input} value={input} onChangeText={setInput} placeholder={t('community.commentPh', '댓글 입력 (예의를 지켜주세요)')} placeholderTextColor={colors.inkFaint} maxLength={1000} multiline />
+        <TextInput style={styles.input} value={input} onChangeText={setInput} placeholder={t('community.commentPh', '댓글 입력')} placeholderTextColor={colors.inkFaint} maxLength={1000} multiline />
         <PressableScale style={[styles.send, (!input.trim() || busy) && styles.sendOff]} onPress={onComment} disabled={!input.trim() || busy}>
           <Text style={styles.sendTx}>{t('community.send', '등록')}</Text>
         </PressableScale>

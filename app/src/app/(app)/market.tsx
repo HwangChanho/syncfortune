@@ -13,14 +13,15 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { CREDIT_KINDS, loadCredits, redeemCoupon, waitForCreditGrant, type CreditKind } from '../../lib/billing/coupons';
-import { coinPriceOf, coinBalanceOrNull, COIN_PACKS } from '../../lib/billing/coins';   // ★코인 표기·잔액·충전팩(daniel 07-28)
+import { coinPriceOf, coinBalanceOrNull } from '../../lib/billing/coins';
+import { ensureCoinsFor } from '../../lib/billing/coinGate';   // ★코인 단일 경로(daniel 07-28)   // ★코인 표기·잔액(충전은 /coins 전용)
 import { isNewContent } from '../../lib/content/newBadge'; // 신규 콘텐츠 NEW 배지(출시일+21일 자동 만료)
 import { requireLoginForPurchase } from '../../lib/billing/requireLogin'; // C1: 결제=계정 귀속(웹훅 적립엔 로그인 필수)
 import { listCharts, getRepresentativeId, setRepresentative, loadRepChart, type SavedChart } from '../../lib/engine/myChart';
 import { requestChartConfirm } from '../../lib/ui/chartConfirm'; // 구매 전 명식 확인(드롭다운으로 변경 가능)
 import { ListSkeleton } from '../../components/Skeleton'; // 첫 진입 로딩 스켈레톤(daniel 07-02: 마켓 즉시 전환+스켈레톤)
 import { useDeferredReady } from '../../lib/ui/useDeferredReady'; // 전환 즉시 스켈레톤 → 전환 후 콘텐츠 마운트(멈칫 제거)
-import { purchaseCoinPack, purchaseCreditRC, purchasesEnabled, priceStringsRC, priceStringRC, CREDIT_PRODUCT } from '../../lib/billing/purchases';
+import { purchasesEnabled, priceStringsRC, priceStringRC, CREDIT_PRODUCT } from '../../lib/billing/purchases';
 import { useSubscription } from '../../lib/billing/subscription'; // 프리미엄 가입 루트(전체 무제한)
 import { useAuth } from '../../lib/useAuth';              // 세션(프리미엄 명식 지정 시 serverChartId 발급)
 import { supabase } from '../../lib/supabase';            // set_premium_chart RPC(구매 명식 지정)
@@ -131,7 +132,6 @@ export default function MarketRoute() {
   // ★보유 코인(daniel 2026-07-28 "마켓에 본인 보유코인도 나와야지") — 충전 화면에 들어가지 않고도
   //   지금 얼마 있는지 알아야 '이걸 열 수 있나'를 판단할 수 있다. null=조회 실패(0으로 표시하지 않는다).
   const [coins, setCoins] = useState<number | null>(null);   // 보유 코인(null=조회 실패 — 0으로 표시하지 않는다)
-  const [packBusy, setPackBusy] = useState<string | null>(null);
   const [prices, setPrices] = useState<Record<string, string>>({}); // 현지통화 가격(RC) — 미설정 시 ₩ 폴백
   const [topic, setTopic] = useState<'all' | MarketTopic>('all'); // ★마켓 주제 필터(daniel 2026-07-25 L)
   // ★'상점으로 이동' 딥링크(daniel 2026-07-27 "상점으로 이동하기 하면 바로 그거 구매 위치로 이동돼야 해")
@@ -178,22 +178,9 @@ export default function MarketRoute() {
 
   // 프리미엄 가입(평생·전체 무제한) — 결제 미연동 시 '준비 중'. 성공 시 상태 갱신. 취소는 조용히.
   //   daniel: 결제 진행 전 '적용 명식'을 확인 Alert 로 한 번 더 보여준다(오결제 방지). 실제 구매 로직은 내부 함수로 분리.
-  /** 코인 팩 구매 — 적립은 웹훅(서버)이 한다. 성공 후 잔액을 다시 읽어 반영을 확인한다. */
-  async function buyPack(packId: string, coins: number) {
-    if (!requireLoginForPurchase(session, () => router.push('/login'), t)) return;
-    if (packBusy) return;
-    setPackBusy(packId);
-    try {
-      const ok = await purchaseCoinPack(packId);
-      if (!ok) return;                                   // 취소 — 조용히
-      await new Promise((r) => setTimeout(r, 1500));      // 웹훅 적립 반영 여유
-      const after = await coinBalanceOrNull();
-      setCoins(after);
-      Alert.alert('충전됐어요', after == null ? '결제가 완료됐어요. 잔액 반영이 잠시 걸릴 수 있어요.' : `${coins.toLocaleString('ko-KR')}코인이 충전됐어요.`);
-    } catch (e: any) {
-      Alert.alert(t('market.buyFailTitle'), e?.message ?? '');
-    } finally { setPackBusy(null); }
-  }
+  // ★코인 팩 구매 로직 제거(daniel 07-28) — 충전은 /coins 전용 페이지 한 곳에서만.
+  //   두 화면에 결제 코드가 있으면 고칠 곳이 둘이 되고, 오늘 겪은 '반쪽 전환'이 또 난다.
+
 
   // ★buyPremium 제거(daniel 2026-07-28 "프리미엄도 빼버려 … 기존 결제관련해서는 코드 정리하고").
   //   프리미엄 구매 → 낙관표시 → 서버 is_premium 폴링 → 명식 바인딩까지 이어지던 흐름을 통째로 삭제.
@@ -209,24 +196,26 @@ export default function MarketRoute() {
 
   // 이용권 구매(결제) — RevenueCat 소비성 결제 성공 → 크레딧 +1(웹훅 전 클라 반영) → 보유 갱신.
   //   RC 미설정(키/네이티브 미포함) 시 '준비 중' 안내. 사용자 취소는 조용히 무시.
+  /**
+   * 마켓 카드 '열기' — ★코인 단일 경로(daniel 2026-07-28 "기존 단건 결제는 다 없애").
+   * 종전엔 여기서 스토어 결제가 나갔다(구매 → 웹훅 적립 폴링). 그 왕복이 오늘 하루에만 여러 번 깨졌고,
+   * 무엇보다 카드에는 **코인가**가 적혀 있는데 누르면 원화 결제창이 뜨는 모순이 있었다.
+   * 이제 여기서는 **잔액 확인·동의만** 받고, 실제 차감은 콘텐츠를 생성할 때 서버가 한다.
+   * (마켓에서 미리 차감하면 생성 전에 돈만 빠지는 구간이 생긴다 — 그래서 차감하지 않는다.)
+   */
   async function buy(kind: CreditKind) {
     if (busy) return;
-    if (!purchasesEnabled()) { Alert.alert(t('market.payPending')); return; }
-    // ★C1: 결제는 계정에 귀속(웹훅이 그 계정에 적립) → 로그인 필수. 비로그인 결제는 웹훅이 적립할 수 없어 유실.
     if (!requireLoginForPurchase(session, () => router.push('/login'), t)) return;
     setBusy(kind);
     try {
-      const before = credits[kind] ?? 0;         // 결제 전 잔여(웹훅 반영 판정 기준 — 마켓 buy 는 미보유에서만 진입해 보통 0)
-      const ok = await purchaseCreditRC(kind);   // 결제 성공 시 true(취소=false)
-      if (ok) {
-        // ★C1 보안(daniel 07-03): 클라 grant_credit 직접 적립 폐지(위변조 차단) — 영수증 검증된 RC 웹훅만 적립.
-        //   결제 성공 → 웹훅이 서버에 적립할 때까지 폴링(loadCredits). 반영되면 보유 갱신, 지연되면 '적용 중' 안내.
-        const { granted, credits: fresh } = await waitForCreditGrant(kind, { baseline: before });
-        setCredits(fresh);
-        Alert.alert(t('market.doneTitle'), granted
-          ? t('market.doneMsg')
-          : t('market.applyPending', '결제가 완료됐어요. 이용권 적용까지 잠시 걸릴 수 있어요. 잠시 후 새로고침해 주세요.'));
-      }
+      const g = await ensureCoinsFor(kind, {
+        title: t('market.doneTitle', '이용 안내'),
+        t,
+        goCharge: () => router.push('/coins'),
+      });
+      if (g !== 'ok') return;                       // 부족(충전 화면으로)·취소·오류는 여기서 끝
+      // 코인이 충분하다 = 바로 열 수 있다. 해당 콘텐츠 화면으로 보내고 거기서 생성·차감된다.
+      apply(kind);
     } catch (e: any) {
       Alert.alert(t('market.buyFailTitle'), e?.message ?? '');
     } finally {
@@ -339,18 +328,12 @@ export default function MarketRoute() {
       {/* ★광고 제거(daniel 07-28) — 충전 바로 위. 코인을 왜 사는지 가장 즉물적인 이유 하나를 먼저 보인다. */}
       <AdFreeSection onDone={() => void coinBalanceOrNull().then(setCoins)} onNeedCoins={() => router.push('/coins')} />
 
-      <Text style={styles.sectionH}>◈ 코인 충전</Text>
-      <View style={styles.packRow}>
-        {COIN_PACKS.map((p) => (
-          // ★칸 축소(daniel 2026-07-28) — 2열 큰 박스(4줄)를 **4열 한 줄**로.
-          //   충전 팩은 '고르는' 화면이지 '읽는' 화면이 아니라 한눈에 비교되는 편이 낫다.
-          <PressableScale key={p.id} style={styles.packBtn} onPress={() => void buyPack(p.id, p.coins)} disabled={packBusy !== null}>
-            {p.bonusPct > 0 ? <Text style={styles.packBonus}>+{p.bonusPct}%</Text> : null}
-            <Text style={styles.packCoins}>{packBusy === p.id ? '…' : p.coins.toLocaleString('ko-KR')}</Text>
-            <Text style={styles.packWon}>₩{(p.won / 1000).toFixed(1).replace('.0', '')}천</Text>
-          </PressableScale>
-        ))}
-      </View>
+      {/* ★충전은 전용 페이지로 분리(daniel 2026-07-28 "마켓에 코인충전 페이지 분리하고").
+          마켓은 '무엇을 살까'를 고르는 곳이고 충전은 '얼마를 넣을까'라 판단이 섞이면 둘 다 흐려진다.
+          여기엔 진입점만 두고 실제 충전은 /coins 한 곳에서만 일어나게 한다(결제 경로 단일화). */}
+      <PressableScale style={styles.chargeCta} onPress={() => router.push('/coins')}>
+        <Text style={styles.chargeCtaTx}>코인 충전하러 가기 ›</Text>
+      </PressableScale>
 
       {/* ★프리미엄 '갱신'은 마켓 카드에서 제거(daniel 07-08) — 풀이 화면의 '최신 해석으로 갱신' 버튼(맥락상 인지적)에만 노출.
           갱신 흐름은 lib/billing/renewal.ts(runPremiumRenewal) + interpret renewRequired 게이트가 담당. */}
@@ -454,6 +437,8 @@ const styles = StyleSheet.create({
   retention: { ...font.caption, color: colors.inkFaint, marginBottom: space(4), lineHeight: 18 }, // 보유기한 1년 안내(daniel 법적)
   // 프리미엄 가입 카드(골드 강조)
   sectionH2: {},
+  chargeCta: { alignItems: 'center', backgroundColor: colors.ju, borderRadius: radius.md, paddingVertical: space(3.5), marginBottom: space(4) },
+  chargeCtaTx: { ...font.body, color: colors.bg, fontWeight: '900' },
   packRow: { flexDirection: 'row', gap: space(2), marginBottom: space(4) },
   packBtn: { flex: 1, alignItems: 'center', backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.juLine, paddingVertical: space(2.5), paddingHorizontal: space(1) },
   packCoins: { ...font.body, color: colors.ju, fontWeight: '900', fontSize: 17 },

@@ -5,7 +5,7 @@
 //   글 탭 → /communityPost?id=... (상세=댓글·좋아요·신고·차단).
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useState, useCallback } from 'react';
-import { View, Text, ScrollView, FlatList, StyleSheet, Modal, TextInput, RefreshControl, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, Pressable, ScrollView, FlatList, StyleSheet, Modal, TextInput, RefreshControl, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -38,6 +38,7 @@ export default function CommunityScreen() {
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [wcat, setWcat] = useState<CommunityCategory>('free'); // 작성 카테고리
+  const [wcatOpen, setWcatOpen] = useState(false);   // ★카테고리 드롭다운 열림(daniel 07-28)
   const [posting, setPosting] = useState(false);
   // 첨부 가능한 명식 = **본인(relation='self')만**. attachId=null 이면 첨부 없이 글만 올린다(기본).
   const [selfCharts, setSelfCharts] = useState<SavedChart[]>([]);
@@ -219,12 +220,28 @@ export default function CommunityScreen() {
                 <Text style={styles.composeErrTx}>⚠️ {composeErr}</Text>
               </View>
             )}
-            <View style={styles.wcatRow}>
-              {COMMUNITY_CATEGORIES.map((c) => (
-                <PressableScale key={c} style={[styles.wcatChip, wcat === c && styles.catChipOn]} onPress={() => setWcat(c)}>
-                  <Text style={[styles.catChipTx, wcat === c && styles.catChipTxOn]}>{t(`community.cat.${c}`)}</Text>
-                </PressableScale>
-              ))}
+            {/* ★카테고리 = 버튼 탭 → 드롭다운(daniel 2026-07-28). 칩을 5개 나열하면 제목·내용보다
+                먼저 눈에 들어와 정작 쓸 것을 밀어낸다. 고른 값만 보이고 누를 때만 펼친다.
+                ⚠️드롭다운은 '닫힘 지점'이 있어야 한다 — 배경 탭으로 닫는다(토글뷰 규칙). */}
+            <View style={styles.wcatWrap}>
+              <PressableScale style={styles.wcatBtn} onPress={() => setWcatOpen((v) => !v)}>
+                <Text style={styles.wcatBtnTx}>{t(`community.cat.${wcat}`)}</Text>
+                <Text style={styles.wcatCaret}>{wcatOpen ? '▲' : '▼'}</Text>
+              </PressableScale>
+              {wcatOpen && (
+                <>
+                  {/* 바깥 탭 = 닫기(리스트 안에 absolute 로 띄우지 않고 형제로 둔다) */}
+                  <Pressable style={styles.wcatBackdrop} onPress={() => setWcatOpen(false)} />
+                  <View style={styles.wcatMenu}>
+                    {COMMUNITY_CATEGORIES.map((c) => (
+                      <PressableScale key={c} style={[styles.wcatItem, wcat === c && styles.wcatItemOn]}
+                        onPress={() => { setWcat(c); setWcatOpen(false); }}>
+                        <Text style={[styles.wcatItemTx, wcat === c && styles.wcatItemTxOn]}>{t(`community.cat.${c}`)}</Text>
+                      </PressableScale>
+                    ))}
+                  </View>
+                </>
+              )}
             </View>
             <TextInput style={styles.titleInput} value={title} onChangeText={setTitle} placeholder={t('community.titlePh', '제목')} placeholderTextColor={colors.inkFaint} maxLength={100} />
             <TextInput style={styles.bodyInput} value={body} onChangeText={setBody} placeholder={t('community.bodyPh', '내용을 입력하세요 (욕설·혐오·성적 콘텐츠 금지)')} placeholderTextColor={colors.inkFaint} maxLength={4000} multiline textAlignVertical="top" />
@@ -315,6 +332,16 @@ const styles = StyleSheet.create({
   composeSubmit: { color: colors.ju, fontWeight: '800', fontSize: 16 },
   composeSubmitOff: { color: colors.inkFaint },
   composeForm: { padding: space(5), gap: space(3) },
+  wcatWrap: { marginBottom: space(2), zIndex: 10 },
+  wcatBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, borderRadius: radius.md, paddingVertical: space(3), paddingHorizontal: space(4) },
+  wcatBtnTx: { ...font.body, color: colors.ink, fontWeight: '800' },
+  wcatCaret: { ...font.caption, color: colors.inkSoft },
+  wcatBackdrop: { position: 'absolute', top: -1000, left: -1000, right: -1000, bottom: -1000 },
+  wcatMenu: { marginTop: space(1.5), backgroundColor: colors.card, borderWidth: 1, borderColor: colors.juLine, borderRadius: radius.md, overflow: 'hidden' },
+  wcatItem: { paddingVertical: space(3), paddingHorizontal: space(4) },
+  wcatItemOn: { backgroundColor: colors.juSoft },
+  wcatItemTx: { ...font.body, color: colors.inkSoft },
+  wcatItemTxOn: { color: colors.ju, fontWeight: '800' },
   wcatRow: { flexDirection: 'row', flexWrap: 'wrap', gap: space(2) },
   wcatChip: { backgroundColor: colors.sunk, borderRadius: radius.pill, paddingHorizontal: space(3.5), paddingVertical: space(1.75), borderWidth: 1, borderColor: colors.line },
   titleInput: { ...font.heading, color: colors.ink, borderBottomWidth: 1, borderBottomColor: colors.line, paddingVertical: space(3) },

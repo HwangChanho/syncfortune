@@ -7,6 +7,8 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useEffect, useRef } from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator, Modal, TextInput, Keyboard, Image, Animated, Easing } from 'react-native';
+import { useRouter } from 'expo-router';                    // ★코인 부족 → 충전 화면(daniel 07-28)
+import { ensureCoinsFor } from '../lib/billing/coinGate';   // ★코인 단일 경로
 import { PressableScale } from '../components/PressableScale';
 import { RelatedContent } from '../components/RelatedContent';
 import { ReadingProse, ReadingHeadline, ReadingPoints } from '../components/ReadingProse';
@@ -88,6 +90,7 @@ function ScoreReveal({ score }: { score: number }) {
 }
 
 export function CompatScreen({ me }: { me: ChartInput | null }) {
+  const router = useRouter();   // ★코인 부족 시 /coins 이동(daniel 07-28)
   const { t } = useTranslation();
   const { session } = useAuth();
   const { isPremium } = useSubscription();
@@ -273,13 +276,10 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
       if (res.kind === 'needPremium') { Alert.alert(t('compat.premiumTitle'), t('compat.premiumMsg')); return; }
       if (res.kind === 'unavailable') { Alert.alert(t('common.error'), res.message); return; } // 방어: LLM 일시적 불가 — 재시도 안내
       if (res.kind === 'needPayment') {
-        Alert.alert(t('compat.payTitle'), t('compat.payMsg'), [
-          { text: t('common.cancel'), style: 'cancel' },
-          { text: t('compat.payBtn'), onPress: async () => {
-            try { const ok = await purchaseCreditRC('compat'); if (!ok) return; const { granted } = await waitForCreditGrant('compat'); if (granted) await runCompatGen(relKey, yr, key); else Alert.alert(t('compat.payTitle'), t('reading.applyPending', '결제가 완료됐어요. 적용까지 잠시 걸릴 수 있어요. 잠시 후 다시 시도해 주세요.')); } // ★C1: 결제→웹훅 적립 폴링→서버 consume→재생성(새 lock 획득)
-            catch (e) { Alert.alert(t('reading.payPending'), (e as Error).message); }
-          } },
-        ]);
+        // ★코인 단일 경로(daniel 2026-07-28) — 스토어 결제 대신 보유 코인. 부족하면 충전 화면으로.
+        //   ※이 블록은 finally 의 releaseGen 뒤에 재생성하므로 새 lock 으로 다시 들어간다(기존 주석 유지).
+        const g = await ensureCoinsFor('compat', { title: t('compat.payTitle'), t, goCharge: () => router.push('/coins') });
+        if (g === 'ok') await runCompatGen(relKey, yr, key);
       }
     } finally {
       releaseGen(lockKey);   // ② 완료·중단·오류·폐기·구매유도 모두 해제(구매 후 재시도는 새 lock)
@@ -545,13 +545,9 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
     } else if (res.kind === 'needPremium') {
       Alert.alert(t('reading.askPremiumTitle'), t('reading.askPremiumMsg'));
     } else if (res.kind === 'needPayment') {
-      Alert.alert(t('reading.askPayTitle'), t('reading.askPayMsg', { price: formatKrw(creditPrice('followup')) }), [
-        { text: t('common.cancel'), style: 'cancel' },
-        { text: t('reading.askPayBtn', { price: formatKrw(creditPrice('followup')) }), onPress: async () => {
-          try { const ok = await purchaseCreditRC('followup'); if (!ok) return; const { granted } = await waitForCreditGrant('followup'); if (granted) await submitFollowup(); else Alert.alert(t('reading.askPayTitle'), t('reading.applyPending', '결제가 완료됐어요. 적용까지 잠시 걸릴 수 있어요. 잠시 후 다시 시도해 주세요.')); } // ★C1: 결제→웹훅 적립 폴링→서버 consume(followup)
-          catch (e) { Alert.alert(t('reading.payPending'), (e as Error).message); }
-        } },
-      ]);
+      // ★코인 단일 경로(daniel 2026-07-28) — 추가질문도 코인으로.
+      const g = await ensureCoinsFor('followup', { title: t('reading.askPayTitle'), t, goCharge: () => router.push('/coins') });
+      if (g === 'ok') await submitFollowup();
     } else { Alert.alert(t('common.error'), res.message); }
   }
 

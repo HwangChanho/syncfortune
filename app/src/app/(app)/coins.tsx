@@ -86,7 +86,7 @@ export default function CoinsScreen() {
               <Text style={[styles.packCoins, { fontSize: fs(19) }]}>{p.coins.toLocaleString('ko-KR')} 코인</Text>
               {p.bonusPct > 0 ? (
                 <Text style={[styles.packBonus, { fontSize: fs(12) }]}>
-                  {t('coins.bonus', { pct: p.bonusPct, defaultValue: '코인당 {{pct}}% 이득' })}
+                  {t('coins.bonus', { pct: p.bonusPct, defaultValue: '코인당 {{pct}}% 더' })}
                 </Text>
               ) : null}
             </View>

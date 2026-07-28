@@ -31,6 +31,7 @@ import { TTSButton } from './TTSButton'; // daniel: 풀이 음성 읽기(온디�
 import { RelatedContent } from './RelatedContent'; // 연관 콘텐츠 자동 추천(하단 크로스셀·API 0·daniel 기획서)
 import { coinPriceOf, coinBalanceOrNull } from '../lib/billing/coins';   // ★코인 전환(daniel 07-28)
 import { notifyNetworkError } from '../lib/backend/network';
+import { ensureCoinsFor } from '../lib/billing/coinGate';   // ★코인 단일 경로(daniel 07-28)
 import { purchaseCreditRC, purchasesEnabled } from '../lib/billing/purchases'; // 즉시 구매(마켓 안 거치고 바로)
 import { isAdminActing } from '../lib/core/admin';                  // 스페셜 = 관리자 바로 / 그 외 쿠폰(크레딧)
 import { requireLoginForPurchase } from '../lib/billing/requireLogin';
@@ -364,30 +365,12 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
         );
       });
     }
-    // 코인가 미등록(신규 콘텐츠 누락 — check:coins 가 잡는다) → 종전 건당 결제 폴백
-    const choice = await askPurchase();
-    if (choice === 'market') { router.push({ pathname: '/market', params: { focus: kind } }); return false; }   // ★그 상품 위치로(daniel 07-27)
-    if (choice !== 'buy') return false;                                     // 사용자 취소
-    if (!purchasesEnabled()) { Alert.alert(title, t('market.payPending', '결제 준비 중이에요. 쿠폰을 이용하거나 잠시 후 다시 시도해 주세요.')); return false; }
-    setPurchasing(true); // 애플 결제창 뜨기까지 + 웹훅 적립까지 무피드백 구간 로딩(daniel 07-24)
-    try {
-      // purchaseCreditRC: 사용자 취소=false / 오프라인·미준비·LLM 다운=throw(과금 전 차단)
-      const ok = await purchaseCreditRC(kind);
-      if (!ok) { logEvent(`${kind}_purchase_cancel`, { chartId }); return false; }
-      // ★C1: 클라 grant 없음 — 영수증 검증된 웹훅이 적립한다. 반영까지 폴링.
-      const { granted } = await waitForCreditGrant(kind);
-      if (!granted) {
-        // 결제는 됐고 적립만 지연 — **돈은 유실되지 않는다**(웹훅 멱등). 재진입해 다시 누르면 이어진다.
-        Alert.alert(title, t('special.applyPending', '결제가 완료됐어요. 적용까지 잠시 걸릴 수 있어요. 잠시 후 다시 시도해 주세요.'));
-        logEvent(`${kind}_grant_pending`, { chartId }, 'error');
-        return false;
-      }
-      return true;
-    } catch (e) {
-      Alert.alert('!', (e as Error).message);                                // 오프라인·결제 실패·LLM 다운
-      logEvent(`${kind}_purchase_fail`, { message: (e as Error).message }, 'error');
-      return false;
-    } finally { setPurchasing(false); }
+    // ★코인가 미등록 = **등록 누락 버그**다(check:coins K1 이 모든 유료 kind 에 코인가를 강제하므로
+    //   정상 상태에서는 여기 도달하지 않는다). 예전엔 스토어 결제로 폴백했는데, 그러면 코인 단일 경로가
+    //   조용히 깨진다 — 사용자에게 코인 대신 원화 결제창이 뜬다. 폴백 대신 **막고 알린다**.
+    Alert.alert(title, t('special.priceMissing', '지금은 이 콘텐츠를 열 수 없어요. 잠시 후 다시 시도해 주세요.'));
+    logEvent(`${kind}_coinprice_missing`, { chartId }, 'error');
+    return false;
   }
 
   /**
@@ -441,17 +424,11 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
   //   바로 구매: 결제 → 웹훅 적립 폴링(C1) → 재생성(Edge 가 1회 차감) / 또는 마켓 이동. id = 재생성 대상 명식.
   function promptPurchase(id?: string, refresh = false) {
     Alert.alert(title, t('special.needPayMsg', '이용권이 필요해요. 바로 구매하거나 마켓에서 받을 수 있어요.'), [
-      { text: t('special.buyNow', '바로 구매'), onPress: async () => {
-          if (!purchasesEnabled()) { Alert.alert(title, t('market.payPending', '결제 준비 중이에요. 쿠폰을 이용하거나 잠시 후 다시 시도해 주세요.')); return; }
-          setPurchasing(true); // ★애플 결제창 뜨기까지 + 웹훅 적립까지 로딩 표시(daniel 07-24: 무피드백 구간에 성격급한 유저 이탈)
-          try {
-            const ok = await purchaseCreditRC(kind); if (!ok) return;   // 결제 취소=false(조용히)
-            // ★C1 보안(daniel 07-03): 클라 grant/차감 폐지 → 영수증 검증된 웹훅이 적립. 반영까지 폴링 후 재생성(Edge 가 1회 차감).
-            const { granted } = await waitForCreditGrant(kind);
-            if (granted) generate(id, undefined, refresh); // refresh 유지(재회 상대 재등록 후 결제=캐시 덮어쓰기)
-            else Alert.alert(title, t('special.applyPending', '결제가 완료됐어요. 적용까지 잠시 걸릴 수 있어요. 잠시 후 다시 시도해 주세요.'));
-          } catch (e) { Alert.alert('!', (e as Error).message); }
-          finally { setPurchasing(false); } // 결제 완료/취소/오류/적립 후 해제 — generate 가 이어받으면 busy(UnlockOverlay)로 매끄럽게 전환
+      { text: t('coins.spend', '코인 사용'), onPress: async () => {
+          // ★코인 단일 경로(daniel 2026-07-28 "기존 단건 결제는 다 없애") — 스토어 결제 왕복 제거.
+          //   차감은 서버(Edge)가 생성 직전에 한다. 부족하면 충전 화면으로 보낸다.
+          const g = await ensureCoinsFor(kind, { title, t, goCharge: () => router.push('/coins') });
+          if (g === 'ok') generate(id, undefined, refresh);   // refresh 유지(재회 상대 재등록 후 캐시 덮어쓰기)
         } },
       { text: t('special.goMarket', '마켓에서 보기'), onPress: () => router.push({ pathname: '/market', params: { focus: kind } }) },   // ★그 상품 위치로
       { text: t('common.cancel'), style: 'cancel' },

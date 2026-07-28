@@ -23,10 +23,11 @@ import { ensureServerChartId } from '../lib/backend/prewarmReadings';
 import { invokeFail } from '../lib/backend/interpretResult'; // 방어: 일시적 불가/오류 친화 처리
 import { getRepresentativeId } from '../lib/engine/myChart'; // 대표 명식 여부(자동생성 한정)
 import { assertOnline, isOnline } from '../lib/backend/network'; // 오프라인 시 신규 생성 차단
-import { loadCredits, waitForCreditGrant, creditPrice, formatKrw } from '../lib/billing/coupons'; // 크레딧 보유확인 + 웹훅 폴링 + 실가 주입(하드코딩 근절)
+import { loadCredits, creditPrice, formatKrw } from '../lib/billing/coupons'; // 크레딧 보유확인(쿠폰·선물 잔여) + 실가 주입
+import { useRouter } from 'expo-router';                     // ★코인 부족 → 충전 화면 이동(daniel 07-28)
+import { ensureCoinsFor } from '../lib/billing/coinGate';    // ★코인 단일 경로
 import { isReadingUnlocked } from '../lib/billing/unlocks'; // 서버 세트 언락(timeline)
 import { isPremiumForChart } from '../lib/billing/premiumStore'; // 명식별 프리미엄 판정(#1 — 비지정 명식/무료모드 게이트)
-import { purchaseCreditRC } from '../lib/billing/purchases'; // timeline 개별 구매(비프리미엄)
 import { appLang } from '../lib/i18n'; // 통변 출력 언어(앱 언어)
 import { confirmReadingChart } from '../lib/ui/confirmChart'; // 생성 전 명식 확인 + 보유 이용권 안내(daniel)
 import { stemElement, branchElement, elementColor, elementText, stemYinYang, branchYinYang } from '../lib/engine/ohaeng';
@@ -78,6 +79,8 @@ export function TimelineScreen({ input, savedChart }: { input: ChartInput | null
       .map((a) => ({ key: `year_${a.year}`, year: a.year, age: a.age, gz: `${a.stem}${a.branch}`, stem: a.stem }));
     return { decades, years, curDecadeKey: cur?.key ?? decades[0]?.key ?? '' };
   }, [c, birthYear, curAge]);
+
+  const router = useRouter();
 
   const [readings, setReadings] = useState<Record<string, any>>({});
   const [createdAt, setCreatedAt] = useState<Record<string, string>>({}); // 기간(life_/year_)별 생성일 — 보유 만료일(생성일+1년) 계산용(daniel #25)
@@ -179,10 +182,16 @@ export function TimelineScreen({ input, savedChart }: { input: ChartInput | null
     if (!isPremiumForChart(cid) && !isFree(key)) { // 지정 프리미엄 명식만 무게이트(#1). 계정 프리미엄이라도 비지정 명식은 개별 결제
       const has = (cid ? await isReadingUnlocked(cid, 'timeline') : false) || ((await loadCredits())['timeline'] ?? 0) > 0;
       if (!has) {
-        Alert.alert(t('timeline.unlockTitle'), t('timeline.unlockMsg'), [
-          { text: t('common.cancel'), style: 'cancel' },
-          { text: t('reading.payPerUse', { price: formatKrw(creditPrice('timeline')) }), onPress: async () => { try { const ok = await purchaseCreditRC('timeline'); if (!ok) return; const { granted } = await waitForCreditGrant('timeline'); if (granted) await gen(key, cid); else Alert.alert(t('timeline.unlockTitle'), t('reading.applyPending', '결제가 완료됐어요. 적용까지 잠시 걸릴 수 있어요. 잠시 후 다시 시도해 주세요.')); } catch (e) { Alert.alert('!', (e as Error).message); } } }, // ★C1: 결제→웹훅 적립 폴링→Edge 세트게이트 차감
-        ]);
+        // ★코인 단일 경로(daniel 2026-07-28 "기존 단건 결제는 다 없애") — 종전엔 여기서 스토어 결제가 나갔다.
+        //   동작은 했지만 사용자에게 코인 대신 원화 결제창이 뜨고, 결제 왕복(지연·백그라운드 실패)이 그대로 남았다.
+        //   부족하면 충전 화면으로(daniel "코인 부족하면 코인충전 페이지로 이동시켜"). 차감은 서버(Edge).
+        const g = await ensureCoinsFor('timeline', {
+          title: t('timeline.unlockTitle'),
+          t,
+          goCharge: () => router.push('/coins'),
+        });
+        if (g !== 'ok') return;
+        await gen(key, cid);
         return;
       }
     }
@@ -228,22 +237,8 @@ export function TimelineScreen({ input, savedChart }: { input: ChartInput | null
     void confirmReadingChart({ chartLabel: savedChart?.label, creditKind: 'timeline', t, onConfirm: () => { void gen(key); } });
   }
 
-  // 세운 번들 구매(비프리미엄 잠긴 시기) — credit_timeline5/10 결제 → rc-webhook 이 fungible 'timeline' 풀에 5·10개 적립 → 이 시기 생성.
-  //   ★단건(startGen→gen 게이트 Alert: 취소+₩1,900 2버튼)과 별도의 진입점 = 락 카드 버튼. 이유: 안드로이드 Alert 는 버튼 3개 한계라
-  //     '취소+단건+5묶음+10묶음' 4버튼을 못 담는다 → 5·10 묶음은 카드에 직접(가격도 병렬 노출). 결제 함수(purchaseCreditRC)·폴링은 그대로 재사용.
-  //   ★반영 폴링은 항상 waitForCreditGrant('timeline') — 번들은 timeline5/10 잔여가 아니라 'timeline' 풀로 적립되므로(단건과 같은 풀에서 소비).
-  async function buyBundle(key: string, bundleKind: 'timeline5' | 'timeline10') {
-    if (!key || readings[key] || busy === key) return; // 이미 열림/생성 중이면 결제 진입 차단(중복 과금 방지)
-    if (!assertOnline(t)) return;                        // 오프라인 = 결제·생성 차단(결제만 되고 미반영되는 상태 방지)
-    const cid = await resolveChartId();                  // 자물쇠 계보: canonical serverChartId 재해석(stale 시드 방지)
-    if (!cid) return;
-    try {
-      const ok = await purchaseCreditRC(bundleKind); if (!ok) return;           // 결제(취소=false)
-      const { granted } = await waitForCreditGrant('timeline');                 // ★fungible 'timeline' 풀 반영 폴링(번들도 여기로 적립)
-      if (granted) await gen(key, cid);                                         // Edge 가 timeline 1개 차감하며 이 시기 생성(남은 크레딧은 다른 시기에)
-      else Alert.alert(t('timeline.unlockTitle'), t('reading.applyPending', '결제가 완료됐어요. 적용까지 잠시 걸릴 수 있어요. 잠시 후 다시 시도해 주세요.'));
-    } catch (e) { Alert.alert('!', (e as Error).message); }
-  }
+  // ★buyBundle 제거(daniel 2026-07-28) — 번들 결제 경로 폐지. 위 UI 주석 참조.
+
 
   // picker에서 선택 → 무료/이미 캐시된 기간만 자동 생성. 잠긴 기간은 카드의 '열기' 버튼으로 명시적 결제.
   function pick(key: string) {
@@ -297,17 +292,11 @@ export function TimelineScreen({ input, savedChart }: { input: ChartInput | null
           <PressableScale style={styles.unlockBtn} onPress={() => startGen(key)}>
             <Text style={[styles.unlockBtnTx, { fontSize: fs(15) }]}>{t('timeline.unlock')}</Text>
           </PressableScale>
-          {/* 세운 번들(daniel 07-23) — 이 대운을 여러 시기 볼 사람용 5·10 묶음. 비프리미엄만 노출(프리미엄/지정명식은 무료). 위 '이 시기 열기'=보유 크레딧/단건, 여기=묶음 결제 */}
-          {!isPremiumForChart(chartId) && (
-            <View style={styles.bundleRow}>
-              <PressableScale style={styles.bundleBtn} onPress={() => buyBundle(key, 'timeline5')}>
-                <Text style={[styles.bundleBtnTx, { fontSize: fs(12) }]}>{t('timeline.buy5', { price: formatKrw(creditPrice('timeline5')), defaultValue: '세운 5개 {{price}}' })}</Text>
-              </PressableScale>
-              <PressableScale style={styles.bundleBtn} onPress={() => buyBundle(key, 'timeline10')}>
-                <Text style={[styles.bundleBtnTx, { fontSize: fs(12) }]}>{t('timeline.buy10', { price: formatKrw(creditPrice('timeline10')), defaultValue: '이 대운 전체(10년) {{price}}' })}</Text>
-              </PressableScale>
-            </View>
-          )}
+          {/* ★세운 번들(5·10 묶음) 제거(daniel 2026-07-28 "기존 단건 결제는 다 없애").
+              코인 전환 후 이 묶음은 **개념이 겹친다** — '많이 사면 유리'는 이미 코인 충전 팩이 한다.
+              게다가 번들은 스토어 결제 → 웹훅이 크레딧 N개 적립 구조라, 코인 단일 경로를 정면으로 깬다
+              (카드엔 코인가가 적혀 있는데 여기만 원화 결제창이 떴다).
+              시기별로 필요할 때 코인으로 열면 되고, 대량 이용자는 큰 충전 팩으로 이득을 본다. */}
         </View>
       );
     }

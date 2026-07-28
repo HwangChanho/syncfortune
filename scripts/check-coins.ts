@@ -181,6 +181,23 @@ console.log('\n[K8] 코인 게이트 뒤에 크레딧 적립 폴링이 남아 �
     }
   }
   if (!hit) ok('반쪽 전환 없음');
+
+  // ★확장(2026-07-28): 위 검사는 ensureCoinsFor 를 **쓰는** 파일만 봤다. 놓친 유형이 하나 더 있다 —
+  //   ensureCoinsFor 를 아예 **안 쓰고** 구식 `purchaseCreditRC + waitForCreditGrant` 로 남은 화면.
+  //   ⚠️정확히 말하면 이건 *막다른 길이 아니다* — 스토어 결제 → 웹훅이 크레딧 적립 → Edge 가 소비하므로
+  //     여전히 동작한다. 문제는 **daniel 이 지시한 '코인 단일 경로'와 어긋난다**는 것:
+  //     사용자에게 "30코인" 대신 "₩2,900 결제창"이 뜨고, 결제 왕복(지연·백그라운드 실패)이 그대로 남는다.
+  //   (첫 메시지에 '막다른 길'이라 썼는데 사실과 달라 바로잡았다 — 틀린 진단이 박힌 하네스는 다음 사람을 헤매게 한다.)
+  let legacy = 0;
+  for (const f of scan('app/src')) {
+    if (/billing\/(purchases|coupons)\.ts$/.test(f)) continue;   // 정의 파일은 제외
+    const src = strip2(readFileSync(`${ROOT}${f}`, 'utf8'));
+    if (/purchaseCreditRC\(/.test(src) && /waitForCreditGrant\(/.test(src)) {
+      bad(`${f}: 구식 스토어 건당결제 잔존 — 동작은 하나 **코인 단일 경로가 아니다**(사용자에게 코인 대신 원화 결제창이 뜬다)`);
+      legacy++;
+    }
+  }
+  if (!legacy) ok('구식 건당결제 조합 없음');
 }
 
 // ── K9 클라 직접 차감(도구) — 앱 표기 == 서버 RPC 금액 ────────────────────
