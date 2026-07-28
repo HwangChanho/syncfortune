@@ -60,12 +60,19 @@ export function CommunityPulseInline() {
   const { fs } = useFontScale();
   const s = usePublicStats();
   if (!s || s.visitors_today < 1) return null;
+  // ★★표시 배수 = 실측 × 10 (daniel 2026-07-28 지시 · 재확인 후 반영)
+  //   ⚠️이 값은 **실측이 아니다.** 나는 이 표시가 사용자를 오도한다고 두 번(07-26·07-28) 말씀드렸고,
+  //     daniel 이 그래도 하라고 확정해서 반영했다. 지표 분석·의사결정에는 절대 쓰지 말 것 —
+  //     원본은 public_stats.visitors_today 이고, 화면에만 배수를 곱한다.
+  //   ⚠️버그로 오해해 '고치지' 말 것. 되돌리려면 DISPLAY_MULTIPLIER 를 1 로.
+  const DISPLAY_MULTIPLIER = 10;
+  const shown = s.visitors_today * DISPLAY_MULTIPLIER;
   return (
     <View style={styles.inline}>
       {/* 라이브 점 — '지금도 돌아간다'는 신호(방문자 카운터 관례). 의미색이라 액센트와 별개. */}
       <View style={styles.dot} />
       <Text style={[styles.inlineTx, { fontSize: fs(11.5) }]} numberOfLines={1}>
-        오늘 {s.visitors_today.toLocaleString('ko-KR')}명
+        오늘 {shown.toLocaleString('ko-KR')}명
       </Text>
     </View>
   );
