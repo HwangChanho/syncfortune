@@ -32,7 +32,9 @@ export function personaFromRepChart(input: any): PersonaType | null {
     const c = computeChart(input);
     const dayStem = c.saju.pillars['일'].stem as Stem;
     const monthBranch = c.saju.pillars['월'].branch as Branch;
-    const gyeok = c.pattern?.name?.replace('격', '') || undefined; // '편재격' → '편재'
+    // ★접미 '격'(투간)·'국'(미투간) 둘 다 제거(daniel stance 2026-07-28). '격'만 떼면 '정관국'이 남아
+    //   GYEOK 조회가 실패하고 **성격유형 카드의 격 라벨이 조용히 사라진다**.
+    const gyeok = c.pattern?.name?.replace(/[격국]$/, '') || undefined; // '편재격'·'편재국' → '편재'
     return personaOf(dayStem, monthBranch, gyeok);
   } catch { return null; } // 구버전 차트 등 — 홈이 깨지지 않게 조용히 미노출
 }

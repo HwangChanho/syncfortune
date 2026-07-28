@@ -127,7 +127,8 @@ const GYEOK: Record<string, { label: string; axis: string; kw: string }> = {
   //   기질은 각각 비견(자립)·겁재(경쟁)와 같은 축이라 그 결을 그대로 쓴다.
   //   ⚠️라벨·문장 = Claude 초안 → ★daniel 검수 슬롯.
   건록: { label: '자립', axis: '제 자리를 스스로 세우는', kw: '주체' },
-  월겁: { label: '경쟁', axis: '겨루고 나누며 몰아치는', kw: '승부' },
+  양인: { label: '돌파', axis: '날을 세워 밀어붙이는', kw: '기세' },
+  월겁: { label: '경쟁', axis: '겨루고 나누며 몰아치는', kw: '승부' },   // 구 이름(하위호환)
 };
 
 /**

@@ -16,7 +16,8 @@ const Solar = Lunar.Solar;
 
 // ── 명리 상수 ──
 const STEM_ELEM: Record<Stem, Element> = { 甲:'木',乙:'木',丙:'火',丁:'火',戊:'土',己:'土',庚:'金',辛:'金',壬:'水',癸:'水' };
-const STEM_YANG: Record<Stem, boolean> = { 甲:true,乙:false,丙:true,丁:false,戊:true,己:false,庚:true,辛:false,壬:true,癸:false };
+/** 천간 음양(甲丙戊庚壬=양). ★단일 출처 — 격국(비겁 월지 이름)·대운 순역이 함께 쓴다. */
+export const STEM_YANG: Record<Stem, boolean> = { 甲:true,乙:false,丙:true,丁:false,戊:true,己:false,庚:true,辛:false,壬:true,癸:false };
 const BRANCH_MAIN: Record<Branch, Stem> = { 子:'癸',丑:'己',寅:'甲',卯:'乙',辰:'戊',巳:'丙',午:'丁',未:'己',申:'庚',酉:'辛',戌:'戊',亥:'壬' };
 
 // 지장간 표준표 (여기 → 중기 → 본기). 골든 학설 기준(卯=甲乙, 酉=庚辛 포함).

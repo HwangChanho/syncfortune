@@ -3,7 +3,7 @@
 // 결정론으로 가능한 것만: 합·충·형·해·파·반합·삼합국·방합국 검출 + R1 화성립 1차판정(화기 천간 투출).
 // 신강약 점수·격국·용신 판정 = 명리 stance → daniel ground truth 필요(미착수, 검토1 점수체계).
 // ─────────────────────────────────────────────────────────────────────────
-import { twelveStage } from './twelve';   // ★건록 판정 = 12운성(록지 표를 새로 만들지 않는다)
+import { STEM_YANG } from './saju';   // ★천간 음양 단일 출처(표를 새로 만들지 않는다)
 import type { SajuChart, Interaction, ChartPosition, Branch, Element, Stem, PillarPos, StructureDx } from '../spec/chart';
 
 const STEM_ELEM: Record<Stem, Element> = { 甲:'木',乙:'木',丙:'火',丁:'火',戊:'土',己:'土',庚:'金',辛:'金',壬:'水',癸:'水' };
@@ -321,65 +321,68 @@ export function analyzeTenGods(saju: SajuChart): {
 //   ⚠️ 순용/역용·성격(成格)/파격(破格)은 daniel stance 미공급 → **판정하지 않는다**(명리 발명 금지).
 //   ※ `candidates` 는 하위호환 필드(verify-fixture·앱 기존 소비처) — 이제 `name` 이 주(主)다.
 export function detectPattern(saju: SajuChart): {
-  name: string;             // 격 이름
+  name: string;             // 격 이름(투간=◯◯격 / 미투간=◯◯국)
   basis: string;            // 근거 문장
-  revealed: boolean;        // 격의 글자가 천간(년·월·시)에 투출했는가
-  revealedAt: PillarPos[];  // 투출한 자리
-  candidates: string[];     // 하위호환: [격] + 월령 지장간 중 투출한 다른 십신격
+  revealed: boolean;        // 격을 세운 글자가 천간(년·월·시)에 투간했는가
+  revealedAt: PillarPos[];  // 투간한 자리
+  candidates: string[];     // 하위호환: [격] + 월령 지장간 중 투간한 다른 십신
 } {
   const month = saju.pillars['월'];
-  const outer = (['년', '월', '시'] as PillarPos[]);           // 투출을 볼 천간 자리(일간 제외)
+  const outer = (['년', '월', '시'] as PillarPos[]);           // 투간을 볼 천간 자리(일간 제외 — 일간은 격의 주체)
   const bongi = month.hiddenStems.find((h) => h.role === '본기');
   const dm = saju.dayMaster.stem;
+  const yangDay = STEM_YANG[dm];                              // 일간 음양 — 겁재 월지의 이름을 가른다(표는 saju.ts 단일 출처)
 
-  // ── 월지 지장간 중 천간에 투출한 것 = 격 후보(본기 > 중기 > 여기 순으로 세력) ──
+  // ── 월지 지장간 중 천간에 투간한 것(본기 > 중기 > 여기 = 지장간 세력 순) ──
   const ROLE_ORDER: Record<string, number> = { 본기: 0, 중기: 1, 여기: 2 };
   const revealedStems = month.hiddenStems
     .map((h) => ({ h, at: outer.filter((p) => saju.pillars[p].stem === h.stem) }))
     .filter((x) => x.at.length > 0)
     .sort((a, b) => (ROLE_ORDER[a.h.role] ?? 9) - (ROLE_ORDER[b.h.role] ?? 9));
 
-  // ── ①비겁 특칙(daniel 2026-07-28 stance): 월지 본기가 비겁이면 팔격 이름을 쓰지 않는다 ──
-  //   비견 = 건록격 / 겁재 = 월겁격.
-  //   ★'건록'은 **12운성 판정**(twelveStage)으로 확인한다 — "본기 십신이 비견"과 건록(록지)은 같지 않다.
-  //     예: 己 일간 未월 → 未 본기 己 = 비견이지만 己의 록지는 午라 건록이 아니다.
-  //     록지 표를 여기서 새로 만들면 발명이 되므로, 이미 결정론으로 있는 12운성을 근거로 쓴다.
-  const stageOfMonth = twelveStage(dm, month.branch);
-  const bongiTg = month.branchMainTenGod;                      // 월지 본기 십신
+  // ★daniel stance 2026-07-28 — 접미는 투간 여부가 정한다: **투간하면 '격', 못하면 '국'**.
+  const suffix = (tuganned: boolean) => (tuganned ? '격' : '국');
+
+  // ── ① 비겁 월지(daniel stance) ─────────────────────────────────────────
+  //   · 월지 본기가 **비견** → 건록  (양·음 공통 — 록은 음간에도 있다)
+  //   · 월지 본기가 **겁재** → 양일간은 **양인** / 음일간은 **겁재**(음간엔 양인이 없다)
+  //   ⚠️이 규칙은 **십신 + 일간 음양**으로만 판정한다(daniel 지시 그대로). 12운성 록지 조건을 걸지 않는다
+  //     → 己 일간 未월(본기 己=비견, 12운성 관대)도 '건록'으로 간다. 이 귀결은 골든에 케이스로 박아 뒀다.
+  const bongiTg = month.branchMainTenGod;
   if (bongiTg === '비견' || bongiTg === '겁재') {
-    const isRok = stageOfMonth === '건록';
-    const name = bongiTg === '비견' ? (isRok ? '건록격' : '월겁격') : '월겁격';
+    const base = bongiTg === '비견' ? '건록' : (yangDay ? '양인' : '겁재');
+    const self = revealedStems.find((x) => x.h.role === '본기');            // 본기 글자가 천간에 또 있나
+    const name = `${base}${suffix(!!self)}`;
     const others = revealedStems.filter((x) => x.h.role !== '본기');
-    const basis = `월지 ${month.branch} 본기 ${bongi?.stem ?? '?'}(${bongiTg}) · 일간 ${dm} 기준 ${stageOfMonth}`
-      + ` → ${name}(비겁 월지는 팔격으로 잡지 않는다)`
-      + (others.length ? ` · 지장간 ${others.map((x) => `${x.h.stem}(${x.h.tenGod})`).join('·')} 투출` : ' · 다른 지장간 투출 없음');
+    const basis = `월지 ${month.branch} 본기 ${bongi?.stem ?? '?'}(${bongiTg}) · 일간 ${dm}(${yangDay ? '양' : '음'})`
+      + ` → ${name}`
+      + (self ? ` · 천간 ${self.at.join('·')}에 투간` : ' · 천간 미투간(국)')
+      + (others.length ? ` · 지장간 ${others.map((x) => `${x.h.stem}(${x.h.tenGod})`).join('·')} 투간` : '');
     return {
-      name,
-      basis,
-      revealed: revealedStems.some((x) => x.h.role === '본기'),
-      revealedAt: revealedStems.find((x) => x.h.role === '본기')?.at ?? [],
+      name, basis,
+      revealed: !!self,
+      revealedAt: self?.at ?? [],
       candidates: Array.from(new Set([name, ...others.map((x) => `${x.h.tenGod}격`)])),
     };
   }
 
-  // ── ②투출 우선(daniel 2026-07-28 stance): 월지 지장간 중 **천간에 투출한 것**으로 격을 잡는다 ──
-  //   본기가 투출했으면 본기(세력이 가장 크다). 본기가 잠복이고 중기·여기만 투출했으면 그쪽으로 **격이 바뀐다**.
-  //   ⚠️투출한 것이 비겁이면 격으로 삼지 않는다(①과 같은 이유) — 그다음 후보로 넘어간다.
+  // ── ② 투간 우선(daniel stance) — 투간한 지장간으로 격을 잡는다 ──────────
+  //   본기가 잠복이고 중기·여기만 투간했으면 **격이 그쪽으로 바뀐다**.
+  //   ⚠️투간한 것이 비겁이면 격으로 삼지 않는다(①과 같은 이유) → 다음 후보로.
   const pick = revealedStems.find((x) => x.h.tenGod !== '비견' && x.h.tenGod !== '겁재');
   if (pick) {
-    const name = `${pick.h.tenGod}격`;
-    const byBongi = pick.h.role === '본기';
-    const basis = `월지 ${month.branch} ${pick.h.role} ${pick.h.stem}(${pick.h.tenGod}) 천간 ${pick.at.join('·')}에 투출`
-      + (byBongi ? ' (본기 투출 = 드러난 격)' : ` → 투출 우선(본기 ${bongi?.stem ?? '?'}(${bongiTg})은 잠복)`);
+    const name = `${pick.h.tenGod}격`;                                       // 투간했으므로 '격'
+    const basis = `월지 ${month.branch} ${pick.h.role} ${pick.h.stem}(${pick.h.tenGod}) 천간 ${pick.at.join('·')}에 투간`
+      + (pick.h.role === '본기' ? ' (본기 투간)' : ` → 투간 우선(본기 ${bongi?.stem ?? '?'}(${bongiTg})은 잠복)`);
     return {
       name, basis, revealed: true, revealedAt: pick.at,
       candidates: Array.from(new Set([name, ...revealedStems.filter((x) => x !== pick).map((x) => `${x.h.tenGod}격`)])),
     };
   }
 
-  // ── ③아무것도 투출하지 않음 → 본기로 잡되 '잠복'으로 표기 ──
-  const name = `${bongiTg}격`;
-  const basis = `월지 ${month.branch} 본기 ${bongi?.stem ?? '?'}(${bongiTg}) · 천간 미투출(잠복)`;
+  // ── ③ 아무것도 투간하지 않음 → 본기 십신 + '국' ─────────────────────────
+  const name = `${bongiTg}국`;
+  const basis = `월지 ${month.branch} 본기 ${bongi?.stem ?? '?'}(${bongiTg}) · 천간 미투간 → ${name}`;
   return { name, basis, revealed: false, revealedAt: [], candidates: [name] };
 }
 

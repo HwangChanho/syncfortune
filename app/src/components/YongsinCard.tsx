@@ -57,8 +57,9 @@ function gyeokKindOf(sip: string): GyeokKind | null {
   if (sip === '정인' || sip === '편인' || sip === '인수') return '인수격';
   if (sip === '식신') return '식신격';
   if (sip === '상관') return '상관격';
-  if (sip === '비견' || sip === '건록' || sip === '녹겁' || sip === '월겁') return '건록격';
-  if (sip === '겁재' || sip === '양인') return '양인격';
+  if (sip === '비견' || sip === '건록' || sip === '녹겁') return '건록격';
+  // ★daniel 2026-07-28 "양인격으로 보내" — 겁재 계열(양인·겁재·구 월겁)은 전부 양인격 상신(역용)으로.
+  if (sip === '겁재' || sip === '양인' || sip === '월겁') return '양인격';
   return null;
 }
 /**
@@ -110,7 +111,9 @@ export function YongsinCard({ saju, pattern, timeUnknown }: { saju: SajuChart; p
   // 격국용신(상신) — 격(pattern.name 십신) + 원국 present 십신 + 신강.
   const gyeokguk = useMemo(() => {
     try {
-      const sip = String(pattern?.name ?? '').replace('격', '');
+      // ★접미가 '격'(투간) / '국'(미투간) 둘로 갈렸다(daniel stance 2026-07-28) — 둘 다 떼야 한다.
+      //   '격'만 떼면 '정관국'이 그대로 남아 kind=null → **격국용신 섹션이 통째로 사라진다**(에러 없이).
+      const sip = String(pattern?.name ?? '').replace(/[격국]$/, '');
       const kind = gyeokKindOf(sip);
       if (!kind || !ys) return null;
       const POS: PillarPos[] = timeUnknown ? ['년', '월', '일'] : ['년', '월', '일', '시'];
