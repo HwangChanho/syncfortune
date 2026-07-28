@@ -16,6 +16,7 @@
 //   V4 생성 후 검수 배선(verifyReading → mustCoverFor · interpret 가 category 를 넘긴다)
 //   V5 모든 질문에 검수 키워드가 있다(빈 배열 = 검수 무력화)
 //   V6 건강 영역 안전(§4) — 의료 단정·질병 예측을 요구하는 문구가 없다
+//   V7 **사주·자미 양쪽** 커버 — 같은 질문에 두 관점이 답해야 한다(daniel 2026-07-28)
 //
 // 실행: npm run check:coverage
 // ─────────────────────────────────────────────────────────────────────────
@@ -62,6 +63,7 @@ const REQUIRED: { group: string; topic: string; anyOf: string[] }[] = [
   { group: '3.인연', topic: '언제 헤어지나', anyOf: ['헤어', '흔들'] },
   { group: '3.인연', topic: '이성에게 어필하는 방법', anyOf: ['어필'] },
   { group: '3.인연', topic: '내 매력', anyOf: ['매력'] },
+  { group: '3.인연', topic: '재회 가능한지', anyOf: ['재회', '다시 이어'] },
   { group: '4.건강', topic: '주의해야 하는 점', anyOf: ['주의'] },
   { group: '4.건강', topic: '건강검진 시기', anyOf: ['검진', '점검'] },
   { group: '4.건강', topic: '개운·맞는 운동', anyOf: ['운동', '개운'] },
@@ -82,14 +84,20 @@ console.log('\n[V1] daniel 지정 질문이 전부 표에 있다');
 // ── V2 영역명이 실재하나(오타=조용한 무효) ────────────────────────────────
 console.log('\n[V2] 표의 영역명이 실재하는 사주 영역이다');
 {
+  // 사주 16영역 = i18n category 블록 / 자미 12궁 = engine/ziwei.ts PALACE_NAME (각 정본에서 읽는다)
   const i18n = read('app/src/lib/i18n.ts') ?? '';
   const block = i18n.slice(i18n.indexOf('  category: {'), i18n.indexOf('  today: {'));
   const real = new Set([...block.matchAll(/([가-힣]+):\s*'/g)].map((m) => m[1]));
+  const zw = read('engine/ziwei.ts') ?? '';
+  const zwBlock = zw.slice(zw.indexOf('const PALACE_NAME'), zw.indexOf('const STAR_NAME'));
+  const palaces = [...zwBlock.matchAll(/'([가-힣]+궁)'/g)].map((m) => m[1]);
+  for (const p of palaces) real.add(p);
+  if (palaces.length < 10) bad(`engine/ziwei.ts 에서 궁 이름을 ${palaces.length}개밖에 못 읽었다 — 하네스가 헛돈다`);
   if (real.size < 10) bad(`i18n 에서 영역명을 ${real.size}개밖에 못 읽었다 — 하네스가 헛돈다`);
   else {
     const ghost = [...table.keys()].filter((k) => !real.has(k));
     if (ghost.length) bad(`실재하지 않는 영역명: ${ghost.join(', ')} — 매칭이 안 돼 **아무 일도 안 일어난다**(오타 의심)`);
-    else ok(`${table.size}개 영역 전부 실재(전체 ${real.size}종 중)`);
+    else ok(`${table.size}개 영역 전부 실재(사주 영역 + 자미 ${palaces.length}궁 = ${real.size}종 중)`);
   }
 }
 
@@ -135,6 +143,44 @@ console.log('\n[V6] 건강 영역이 의료 단정을 요구하지 않는다(§4
     if (/SAFETY_NOTE[\s\S]{0,400}건강:/.test(mc)) ok('건강 안전 주석(§4)이 프롬프트에 별도로 붙는다');
     else bad('건강 안전 주석이 없다 — 병명·진단 금지 지시가 프롬프트에 도달하지 않는다(§4)');
   }
+}
+
+// ── V7 사주·자미 양쪽에 적용되나 ──────────────────────────────────────────
+// daniel 2026-07-28: "저 카테고리는 기본 사주풀이 자미두수 풀이에도 적용돼야 해"
+// ★한쪽에만 있으면 조용히 반쪽이 된다 — 자미 풀이를 열었을 때만 답이 없고, 아무 에러도 안 난다.
+console.log('\n[V7] 사주 영역과 자미 12궁 **양쪽**에 적용된다');
+{
+  const ZIWEI = ['재백궁', '관록궁', '부처궁', '명궁', '질액궁', '노복궁', '자녀궁'];
+  const sajuQ = [...table.entries()].filter(([k]) => !k.endsWith('궁')).flatMap(([, v]) => v.map((x) => x.q)).join(' | ');
+  const ziweiQ = [...table.entries()].filter(([k]) => k.endsWith('궁')).flatMap(([, v]) => v.map((x) => x.q)).join(' | ');
+
+  const missZ = ZIWEI.filter((z) => !table.has(z));
+  if (missZ.length) bad(`자미 궁 누락: ${missZ.join(', ')} — 자미 풀이에서만 답이 빠진다(에러 없음)`);
+  else ok(`자미 ${ZIWEI.length}궁 등록`);
+
+  // 5묶음 주제가 양쪽에 모두 있나(주제 단위 — 궁·영역 이름이 달라도 질문은 같아야 한다)
+  const TOPICS = [['재물 시기', ['모이', '언제']], ['버는 방법', ['버는', '벌']], ['투자', ['투자']],
+    ['취업·이직', ['취업', '이직']], ['천직', ['천직']], ['승진', ['승진']],
+    ['배우자', ['배우자']], ['궁합', ['궁합']], ['재회', ['재회']], ['매력', ['매력']],
+    ['건강 주의', ['주의']], ['점검 시기', ['점검', '검진']], ['운동·개운', ['운동', '개운']],
+    ['대인 장단점', ['장점']], ['귀인', ['귀인']], ['자녀 교육', ['교육']]] as [string, string[]][];
+  const onlyOne: string[] = [];
+  for (const [name, keys] of TOPICS) {
+    const inS = keys.some((k) => sajuQ.includes(k));
+    const inZ = keys.some((k) => ziweiQ.includes(k));
+    if (inS !== inZ) onlyOne.push(`${name}(${inS ? '사주만' : '자미만'})`);
+  }
+  if (onlyOne.length) bad(`한쪽에만 있는 주제: ${onlyOne.join(', ')} — 반대쪽 풀이에서 답이 빠진다`);
+  else ok(`${TOPICS.length}개 주제 전부 사주·자미 양쪽 반영`);
+
+  // 자미 프롬프트 주입 배선
+  const b = strip(read('supabase/functions/_shared/buildUserPrompt.ts') ?? '');
+  if (/mustCoverBlock\(palaceName\)/.test(b)) ok('buildZiweiPrompt 가 mustCoverBlock(palaceName) 주입');
+  else bad('자미 프롬프트에 주입이 없다 — 표만 있고 자미 풀이엔 효과 0');
+
+  // 자미 건강 궁(질액궁)에도 §4 안전 주석
+  if (/질액궁:\s*HEALTH_NOTE/.test(mc)) ok('질액궁에도 건강 안전 주석(§4)');
+  else bad('질액궁에 건강 안전 주석이 없다 — 자미 건강 통변에 §4 가드가 도달하지 않는다');
 }
 
 console.log(fail ? `\n❌ check:coverage 실패 ${fail}건` : '\n✅ check:coverage 통과 — 지정질문 반영·영역실재·주입·검수·키워드·건강안전 OK');
