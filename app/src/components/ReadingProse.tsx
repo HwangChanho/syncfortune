@@ -132,7 +132,55 @@ export function ReadingPoints({ points, accent = colors.ju }: { points: unknown;
   );
 }
 
+/**
+ * ★질문별 소제목 답(daniel 2026-07-29 "질문별 소제목으로 끊어서 보여주는 방식으로 해줘").
+ *
+ * 왜 필요했나: daniel 이 지정한 5개 묶음(재물·직장·인연·건강·인간관계)의 필수질문은 이미
+ * 프롬프트로 주입돼 **답이 실제로 본문에 들어가 있었다**(DB 실측 확인). 그런데 산문에 녹아 있어
+ * 독자가 "내 질문의 답이 어디 있는지" 찾지 못했다 = "카테고리별로 풀이가 안나오는데".
+ * → 본문은 그대로 두고, 질문을 **소제목으로 세워** 그 아래 답을 붙인다.
+ *
+ * @param qa  [{q, a}] 배열. 신규 생성분·L3 재렌더분에만 있다 → 없으면 **미표시**(기존 저장 풀이 하위호환).
+ * @param accent  일간 오행 강조색(화면과 동일 계열)
+ * ⚠️ q 는 프롬프트에 별표(**)가 섞인 문구라 렌더 전에 제거한다(모델이 그대로 흘리는 경우 대비).
+ */
+export function ReadingQA({ qa, accent = colors.ju, onTermPress }: {
+  qa: unknown; accent?: string; onTermPress?: (term: string) => void;
+}) {
+  const { fs } = useFontScale();
+  const list = Array.isArray(qa)
+    ? qa
+        .map((x: any) => ({
+          q: typeof x?.q === 'string' ? x.q.replace(/\*\*/g, '').trim() : '',
+          a: typeof x?.a === 'string' ? x.a.trim() : '',
+        }))
+        .filter((x) => x.q && x.a)
+    : [];
+  if (!list.length) return null;
+  return (
+    <View style={styles.qaWrap}>
+      {list.map((it, i) => (
+        <View key={i} style={[styles.qaItem, i > 0 && { marginTop: space(4) }]}>
+          <View style={styles.qaQRow}>
+            <View style={[styles.qaBar, { backgroundColor: accent }]} />
+            <Text style={[styles.qaQ, { color: accent, fontSize: fs(15), lineHeight: Math.round(fs(15) * 1.45) }]}>
+              {it.q}
+            </Text>
+          </View>
+          <ReadingProse text={it.a} accent={accent} onTermPress={onTermPress} />
+        </View>
+      ))}
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
+  // 질문별 소제목(ReadingQA) — 좌측 컬러바 + 굵은 질문, 그 아래 본문 톤 답
+  qaWrap: { marginTop: space(2) },
+  qaItem: {},
+  qaQRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: space(1.5) },
+  qaBar: { width: 3, alignSelf: 'stretch', borderRadius: 2, marginRight: space(2), minHeight: 18 },
+  qaQ: { ...font.body, fontWeight: '800', flex: 1 },
   para: { ...font.body, color: colors.ink },
   // 강조 — 굵기로만(색 사용 금지: 링크 오인·과밀 방지). ink 는 이미 최고 대비(#1C1C1E on #FFF).
   em: { fontWeight: '800', color: colors.ink },

@@ -5,6 +5,7 @@
 import { useState, useMemo, useCallback } from 'react';
 import { View, Text, Pressable, ActivityIndicator, ScrollView, StyleSheet, Image } from 'react-native';
 import { PressableScale } from '../../components/PressableScale';
+import { DeepDiveCta } from '../../components/DeepDiveCta';   // 유도 CTA = 이미지 카드(daniel 07-29)
 import { RelatedContent } from '../../components/RelatedContent';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -79,7 +80,7 @@ export default function LoveStyleScreen() {
         {/* 이슈17: 연애 스타일 결과 공유(앱게이트) */}
         <ShareReadingButton kind="lovestyle" title="내 연애 스타일" content={result} />
         <Text style={styles.note}>{t('lovestyle.note', '※ 사주 십신으로 가볍게 본 연애 스타일이에요. 재미로 즐겨 주세요.')}</Text>
-        <PressableScale style={styles.cta} onPress={() => router.push('/love')}><Text style={styles.ctaText}>{t('lovestyle.detail', '내 애정 흐름 깊이 보기')}</Text></PressableScale>
+        <DeepDiveCta kind="love" label={t('lovestyle.detail', '내 애정 흐름 깊이 보기')} onPress={() => router.push('/love')} />
         {/* ★'이어서 보면 좋은 콘텐츠'(daniel 2026-07-27 "두 개가 다르잖아 컨텐츠 추천이") —
             SpecialContentScreen 을 타는 화면들은 이게 자동으로 붙는데, 이 화면은 자체 화면이라 빠져 있었다.
             같은 성격의 화면끼리 하단이 달라 보이면 사용자는 '다른 앱'처럼 느낀다. 큐레이션 출처는 RELATED 단일. */}

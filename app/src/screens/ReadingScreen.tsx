@@ -16,7 +16,7 @@ import { Image as ExpoImage } from 'expo-image'; // 추천 콘텐츠 썸네일(�
 import { SECTIONS } from '../lib/content/contentSections'; // 추천 '이런 콘텐츠도 좋아하실 거예요'(하단·daniel 07-21) — 콘텐츠 단일출처
 import { PressableScale } from '../components/PressableScale';
 import { RelatedContent } from '../components/RelatedContent';
-import { ReadingProse, ReadingHeadline, ReadingPoints } from '../components/ReadingProse';
+import { ReadingProse, ReadingHeadline, ReadingPoints, ReadingQA } from '../components/ReadingProse';
 import { GlossarySheet, type GlossaryTarget } from '../components/GlossarySheet'; // 명리 용어 탭 → 뜻(가독성 P2)
 import { glossaryKindOf } from '../lib/ui/readingEmphasis'; // 용어 → 글로서리 kind(십신/기본) // 풀이 본문 공통 렌더(가독성 P0 문단화·강조·접이식 + P1 핵심3줄). 3개 렌더지점 단일출처
 import { ExpiryNote } from '../components/ExpiryNote'; // 보유 만료일 공통(프리미엄 가드 한 곳)
@@ -759,6 +759,10 @@ export function ReadingScreen({
         {typeof r.headline === 'string' ? <ReadingHeadline text={r.headline} accent={colors.ju} /> : null}
         {/* ★핵심 3줄(가독성 P1) — 신규 생성분에만 있는 points. 없으면 미표시(기존 저장 풀이 하위호환) */}
         <ReadingPoints points={r.points} accent={colors.ju} />
+        {/* ★질문별 소제목 답(daniel 2026-07-29) — daniel 지정 필수질문을 소제목으로 세워 답을 붙인다.
+            본문 위에 둔다: 독자가 찾던 답이 맨 먼저 보이고, 그 아래 전체 서사를 읽는 흐름.
+            신규 생성분·L3 재렌더분에만 qa 가 있다 → 없으면 미표시(기존 풀이 하위호환·비용 0) */}
+        <ReadingQA qa={(r as any).qa} accent={colors.ju} onTermPress={openTerm} />
         {base ? (
           <View style={styles.section}>
             <Text style={styles.secLabel}>{t('reading.base')}</Text>

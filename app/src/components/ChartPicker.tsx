@@ -6,6 +6,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { View, Text, Pressable, Modal, StyleSheet, Dimensions, ActivityIndicator, InteractionManager, Animated, ScrollView } from 'react-native';
+import { CoinBadge } from './CoinBadge';   // 보유 코인 배지(단일 구현 재사용)
 import { PressableScale } from './PressableScale';
 import { Image as ExpoImage } from 'expo-image'; // 자동 다운샘플(메모리) + 엠블럼 탭 풀스크린 뷰어
 import DraggableFlatList, { ScaleDecorator } from 'react-native-draggable-flatlist'; // 이슈20 롱프레스 드래그 reorder
@@ -158,7 +159,13 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
     <>
       <PressableScale style={styles.bar} onPress={() => setOpen(true)}>
         <Text style={[styles.barLabel, { fontSize: fs(12) }]}>{t('manse.myChart')}</Text>
-        <Text style={[styles.barName, { fontSize: fs(15) }]}>{rep?.label} ▾</Text>
+        {/* ★이름 왼쪽 보유코인(daniel 2026-07-29) — 풀이는 **명식마다** 따로 결제된다(reading_unlocks 가
+            chart_id 단위). 그래서 명식을 바꾸는 바로 그 자리에서 잔액이 보여야 "다른 명식은 또 내야 하나"를
+            누르기 전에 안다. CoinBadge 재사용(신규 발명 아님) — 탭하면 충전으로 간다. */}
+        <View style={styles.barRight}>
+          <CoinBadge />
+          <Text style={[styles.barName, { fontSize: fs(15) }]}>{rep?.label} ▾</Text>
+        </View>
       </PressableScale>
 
       <Modal visible={open} transparent animationType="slide" onRequestClose={() => setOpen(false)}>
@@ -298,6 +305,7 @@ const styles = StyleSheet.create({
   imgViewerBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.92)', alignItems: 'center', justifyContent: 'center' },
   imgViewerImg: { width: Dimensions.get('window').width, height: Dimensions.get('window').height * 0.8 },
   imgViewerHint: { position: 'absolute', bottom: space(10), color: 'rgba(255,255,255,0.55)', fontSize: 13 },
+  barRight: { flexDirection: 'row', alignItems: 'center', gap: space(2), flexShrink: 1 },
   bar: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line,

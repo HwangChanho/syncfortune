@@ -68,7 +68,9 @@
     "example": "tsx engine/example.ts",
     "ziwei": "tsx engine/run-ziwei.ts",
     "check:tabpad": "npx tsx scripts/check-tabpad.ts",
-    "check:setbadge": "npx tsx scripts/check-setbadge.ts"
+    "check:setbadge": "npx tsx scripts/check-setbadge.ts",
+    "check:qa": "npx tsx scripts/check-qa.ts",
+    "check:cta": "npx tsx scripts/check-cta.ts"
   },
   "keywords": [],
   "author": "",

@@ -5,6 +5,7 @@
 import { useState, useMemo, useCallback } from 'react';
 import { View, Text, Pressable, ActivityIndicator, ScrollView, StyleSheet, Image } from 'react-native';
 import { PressableScale } from '../../components/PressableScale';
+import { DeepDiveCta } from '../../components/DeepDiveCta';   // 유도 CTA = 이미지 카드(daniel 07-29)
 import { RelatedContent } from '../../components/RelatedContent';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -70,7 +71,7 @@ export default function BokScreen() {
         {/* 이슈17: 타고난 복 결과 공유(앱게이트) */}
         <ShareReadingButton kind="bok" title="내 타고난 복" content={result} />
         <Text style={styles.note}>{t('bok.note', '※ 사주 십신으로 가볍게 본 타고난 복이에요. 재미로 즐겨 주세요.')}</Text>
-        <PressableScale style={styles.cta} onPress={() => router.navigate({ pathname: '/reading', params: { input: JSON.stringify(me) } })}><Text style={styles.ctaText}>{t('bok.detail', '내 사주 깊이 보기 (프리미엄)')}</Text></PressableScale>
+        <DeepDiveCta kind="reading" label={t('bok.detail', '내 사주 깊이 보기 (프리미엄)')} onPress={() => router.navigate({ pathname: '/reading', params: { input: JSON.stringify(me) } })} />
               {/* ★이어서 보면 좋은 콘텐츠(daniel 2026-07-27 "전부 붙여") — 화면마다 하단이 달라 보이던 것 통일.
             큐레이션 출처는 RELATED 단일(중복 하드코딩 0). 매핑이 없으면 스스로 아무것도 안 그린다. */}
         <RelatedContent kind="bok" />
