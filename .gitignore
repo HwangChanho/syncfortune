@@ -55,6 +55,8 @@ docs/*
 !docs/_config.yml
 !docs/index.md
 !docs/s/
+!docs/s/*
+!docs/s/p/*
 # 명리 검증 화면(ADR-060) — 비밀 없음(토큰은 URL·데이터는 Edge API). ⚠️gitignore 는 줄끝 주석 불가
 !docs/review/
 !docs/review/*

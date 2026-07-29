@@ -13,6 +13,8 @@ export const APP_STORE_URL = 'https://apps.apple.com/app/id6779321930';
 // Supabase Edge Function 스마트링크(깃헙 제거·daniel 2026-06): 앱 설치 시 syncfortune://shared/<id>(1회성 뷰어),
 //   미설치 시 App Store 유도. 내용 페이지 아님(최소 리다이렉트). 함수 share(no-verify-jwt 공개).
 const SHARE_LINK_BASE = 'https://zpslflbcxzalaikbbdzk.supabase.co/functions/v1/share';
+// ★공유 페이지는 GitHub Pages 에서 서빙한다 — Supabase 는 HTML 을 렌더링시키지 않는다(text/plain + sandbox 강제).
+const PAGES_BASE = 'https://hwangchanho.github.io/syncfortune';
 
 // 앱 게이트 공유라 충분히 unguessable 한 랜덤 id(22자). expo-crypto 미설치 → Math.random 조합.
 function randomShareId(): string {
@@ -35,9 +37,20 @@ function randomShareId(): string {
  * @param dayStem 일간 한자 · @param monthBranch 월지 한자 · @param sex 성별(이미지 선택용)
  * @returns 공유 링크 URL
  */
+// 일간·월지 한자 → 로마자(파일명용). ★서버 표(_shared/personaShare.ts)와 **같은 값**이어야 한다 — check:share 가 지킨다.
+const GAN_ROMA: Record<string, string> = { '甲': 'gap', '乙': 'eul', '丙': 'byeong', '丁': 'jeong', '戊': 'mu', '己': 'gi', '庚': 'gyeong', '辛': 'sin', '壬': 'im', '癸': 'gye' };
+const JI_ROMA: Record<string, string> = { '子': 'ja', '丑': 'chuk', '寅': 'in', '卯': 'myo', '辰': 'jin', '巳': 'sa', '午': 'o', '未': 'mi', '申': 'sin', '酉': 'yu', '戌': 'sul', '亥': 'hae' };
+
 export function personaShareUrl(dayStem: string, monthBranch: string, sex: '남' | '여'): string {
-  const p = encodeURIComponent(`${dayStem}${monthBranch}`);
-  return `${SHARE_LINK_BASE}?p=${p}&s=${sex === '여' ? 'f' : 'm'}`;
+  // ★★GitHub Pages 정적 페이지로 보낸다(daniel 2026-07-29 검증에서 발견).
+  //   종전 Edge `share?p=` 는 **브라우저에서 열리지 않았다** — Supabase 가 응답을 text/plain +
+  //   CSP sandbox 로 강제해 HTML 이 글자로 보였다(에러가 없어 여태 몰랐다).
+  //   또 카톡 미리보기는 **크롤러가 OG 태그를 읽어** 만드는데, 크롤러는 JS 를 실행하지 않는다
+  //   → 유형별 그림·이름이 뜨려면 유형마다 **정적 HTML**이 있어야 한다(scripts/build-share-pages.mjs 로 240종 생성).
+  const g = GAN_ROMA[dayStem], j = JI_ROMA[monthBranch];
+  const sx = sex === '여' ? 'f' : 'm';
+  if (!g || !j) return `${SHARE_LINK_BASE}?p=${encodeURIComponent(`${dayStem}${monthBranch}`)}&s=${sx}`; // 미지의 글자 = 종전 경로(안내 페이지)
+  return `${PAGES_BASE}/s/p/${g}-${j}-${sx}.html`;
 }
 
 /**
@@ -69,7 +82,7 @@ export async function createSharedLink(p: ShareReadingInput): Promise<string | n
       id, kind: p.kind, category: p.category ?? null, title: p.title ?? null, content: p.content, created_by: auth?.user?.id ?? null,
     });
     if (error) return null;
-    return `${SHARE_LINK_BASE}?id=${id}`;
+    return `${PAGES_BASE}/s/?id=${id}`;
   } catch { return null; }
 }
 
@@ -90,7 +103,7 @@ export async function shareReading(p: ShareReadingInput): Promise<string> {
     created_by: auth?.user?.id ?? null,
   });
   if (error) throw error;
-  const url = `${SHARE_LINK_BASE}?id=${id}`;
+  const url = `${PAGES_BASE}/s/?id=${id}`;
   await Share.share({
     message: `${p.title ?? '내 운세 풀이'} — 팔자(八字)\n${url}`,
     url, // iOS: 링크 카드로 공유
