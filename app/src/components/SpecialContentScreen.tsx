@@ -29,6 +29,7 @@ import { isUnlocked, markUnlocked } from '../lib/billing/unlocks'; // isUnlocked
 import { ShareReadingButton } from './ShareReadingButton'; // 이슈17: 풀이 결과 공유
 import { TTSButton } from './TTSButton'; // daniel: 풀이 음성 읽기(온디바이스 TTS·무료)
 import { RelatedContent } from './RelatedContent'; // 연관 콘텐츠 자동 추천(하단 크로스셀·API 0·daniel 기획서)
+import { buildRomanceMirror } from '../lib/engine/romanceMirror';   // R60 애정 이원분석(온디바이스 판정)
 import { coinPriceOf, coinBalanceOrNull } from '../lib/billing/coins';   // ★코인 전환(daniel 07-28)
 import { notifyNetworkError } from '../lib/backend/network';
 import { ensureCoinsFor } from '../lib/billing/coinGate';   // ★코인 단일 경로(daniel 07-28)
@@ -251,6 +252,13 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
       const body: any = { chartId: id, category, kind, tier: 'paid', lang: appLang() };
       if (refreshArg) body.refresh = true; // ★캐시(본인만) 덮어쓰기(daniel 07-05 재회 상대 재등록) — Edge 가 REGEN_CAP 내 재생성(프리미엄=무료 / 비프리미엄=재차감). refresh 계약은 ReadingScreen 갱신과 동일.
       if (needsZiwei) body.ziwei = ziweiArg ?? c?.ziwei; // 사명 = 자미 보조 교차
+      // ★R60 애정 이원분석(daniel 스펙 v0.2.0) — 온디바이스 판정 결과를 body 로.
+      //   판정은 앱 엔진이 끝내고 Edge 는 서술만 한다(엔진 사본을 Edge 에 두면 표가 두 벌이 된다).
+      //   게이트가 STAR_PALACE_ONLY 면 buildRomanceMirror 가 경상 프로파일을 **빼고** 준다.
+      if (['love', 'reunion', 'crush'].includes(kind) && c?.saju) {
+        const rm = buildRomanceMirror(c.saju, savedChart?.input?.sex === '여' ? '여' : '남');
+        if (rm) body.romance = rm;
+      }
       if (buildBody && savedChart) Object.assign(body, buildBody(savedChart)); // 수비학/점성술 = 앱 산출 차트(numerologyChart/natalChart)
       const { data, error } = await supabase.functions.invoke('interpret', { body });
       if (isStale()) return;   // ① 생성 사이 명식 전환됨 → 폐기(promptPurchase·setReading 모두 안 함)

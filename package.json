@@ -75,7 +75,8 @@
     "check:share": "npx tsx scripts/check-share.ts",
     "build:share": "node scripts/build-share-pages.mjs",
     "golden:fromdb": "node scripts/verifydb-to-ingest.mjs",
-    "check:qa-sweep": "npx tsx scripts/check-qa-sweep.ts"
+    "check:qa-sweep": "npx tsx scripts/check-qa-sweep.ts",
+    "check:r60wiring": "npx tsx scripts/check-r60wiring.ts"
   },
   "keywords": [],
   "author": "",

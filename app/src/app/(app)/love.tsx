@@ -13,6 +13,7 @@ import { Alert } from '../../lib/ui/alert'; // 커스텀 알림(앱 디자인)
 import { useTranslation } from 'react-i18next';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { computeChart } from '../../lib/engine/engine';
+import { buildRomanceMirror } from '../../lib/engine/romanceMirror';   // R60 애정 이원분석
 import { loadRepChart, listCharts, setRepresentative, getRepresentativeId, type SavedChart } from '../../lib/engine/myChart';
 import { ensureServerChartId } from '../../lib/backend/prewarmReadings';
 import { useAuth } from '../../lib/useAuth';
@@ -203,8 +204,12 @@ export default function LoveScreen() {
     logEvent('love_invoke_start', { chartId: id });
     let ok = false; // ★L2: 실제 성공(정상 reading 객체) 여부 — 완료 배너·푸시는 이때만(오완료 '완성' 푸시 방지)
     try {
+      // ★R60 애정 이원분석 — 온디바이스 판정 결과(없으면 undefined = 미첨부)
+
+      const romance = c?.saju ? buildRomanceMirror(c.saju, savedChart?.input?.sex === '여' ? '여' : '남') : null;
       const { data, error } = await supabase.functions.invoke('interpret', {
-        body: { chartId: id, category: 'love', kind: 'love', tier: 'paid', ziwei: zw, lang: appLang(), sex: savedChart?.input?.sex, ...(savedChart?.context ? { context: savedChart.context } : {}) }, // sex=배우자성(남재성/여관성, refined timing)
+        body: {
+          ...(romance ? { romance } : {}), chartId: id, category: 'love', kind: 'love', tier: 'paid', ziwei: zw, lang: appLang(), sex: savedChart?.input?.sex, ...(savedChart?.context ? { context: savedChart.context } : {}) }, // sex=배우자성(남재성/여관성, refined timing)
       });
       if (error || !data) {
         // ★클라 invoke가 끊겨도(무거운 풀이 타임아웃) Edge는 서버에서 완료·캐시 → 캐시 폴링으로 회수(로딩 유지).
