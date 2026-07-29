@@ -18,7 +18,7 @@ import {
 import { profileOf, gapOf } from './mirrorProfile';
 import { analyzeStarPalace } from './starPalace';                 // v0.2.0 성궁론(정통·상위 판정자)
 import { concordanceOf, R60_THRESHOLDS } from './mirrorConcordance'; // v0.2.0 D0 게이트
-import { buildMirrorRomanceBlock, MIRROR_GUARDRAILS } from '../supabase/functions/_shared/mirrorRomancePrompt.ts'; // v0.2.0 L2
+import { buildMirrorRomanceBlock, MIRROR_GUARDRAILS } from '../supabase/functions/_shared/mirrorRomancePrompt'; // v0.2.0 L2
 import type { Stem, Branch, PillarPos } from '../spec/chart';
 
 const STEMS: Stem[] = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'];
