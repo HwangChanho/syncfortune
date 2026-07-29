@@ -328,12 +328,11 @@ export default function MarketRoute() {
       {/* ★광고 제거(daniel 07-28) — 충전 바로 위. 코인을 왜 사는지 가장 즉물적인 이유 하나를 먼저 보인다. */}
       <AdFreeSection onDone={() => void coinBalanceOrNull().then(setCoins)} onNeedCoins={() => router.push('/coins')} />
 
-      {/* ★충전은 전용 페이지로 분리(daniel 2026-07-28 "마켓에 코인충전 페이지 분리하고").
-          마켓은 '무엇을 살까'를 고르는 곳이고 충전은 '얼마를 넣을까'라 판단이 섞이면 둘 다 흐려진다.
-          여기엔 진입점만 두고 실제 충전은 /coins 한 곳에서만 일어나게 한다(결제 경로 단일화). */}
-      <PressableScale style={styles.chargeCta} onPress={() => router.push('/coins')}>
-        <Text style={styles.chargeCtaTx}>코인 충전하러 가기 ›</Text>
-      </PressableScale>
+      {/* ★충전 진입점은 **위 보유코인 카드 하나로 통일**(daniel 2026-07-29 "마켓탭에 코인충전이 따로 페이지로 분리 안돼있는데").
+          종전엔 [보유코인 카드 → 광고제거 → '코인 충전하러 가기' 버튼]으로 진입점이 **3개 연속**이었다.
+          분리가 안 된 게 아니라(전용 /coins 페이지는 07-28 부터 있었다) **중복 노출 때문에 충전이 마켓에
+          섞여 보였다.** 마켓은 '무엇을 살까'를 고르는 곳, /coins 는 '얼마를 넣을까'를 정하는 곳으로
+          역할을 갈라야 둘 다 선명해진다 → 카드의 '충전하기' 필 하나만 남긴다(결제 경로는 여전히 /coins 단일). */}
 
       {/* ★프리미엄 '갱신'은 마켓 카드에서 제거(daniel 07-08) — 풀이 화면의 '최신 해석으로 갱신' 버튼(맥락상 인지적)에만 노출.
           갱신 흐름은 lib/billing/renewal.ts(runPremiumRenewal) + interpret renewRequired 게이트가 담당. */}

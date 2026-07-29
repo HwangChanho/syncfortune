@@ -18,6 +18,7 @@ import {
 import { profileOf, gapOf } from './mirrorProfile';
 import { analyzeStarPalace } from './starPalace';                 // v0.2.0 성궁론(정통·상위 판정자)
 import { concordanceOf, R60_THRESHOLDS } from './mirrorConcordance'; // v0.2.0 D0 게이트
+import { buildMirrorRomanceBlock, MIRROR_GUARDRAILS } from '../supabase/functions/_shared/mirrorRomancePrompt.ts'; // v0.2.0 L2
 import type { Stem, Branch, PillarPos } from '../spec/chart';
 
 const STEMS: Stem[] = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'];
@@ -193,6 +194,53 @@ console.log('\n[⑦] v0.2.0 D0 교차검증 (스펙 §7.1)');
   //   나는 **합경 일간의 음양**(양=드러남·주도 / 음=수렴)으로 읽었다. 다른 해석도 가능하다
   //   (예: 격국의 정/편, D4 편중군). 이 축이 바뀌면 concordance 가 0.15 만큼 움직인다.
   console.log('      ↳ ⚠️A2 "합경 프로파일 성질" = **일간 음양**으로 해석(내 판단 · daniel 검수 필요)');
+}
+
+
+// ── ⑧ v0.2.0 L2 프롬프트 — 게이트 모드가 실제로 지켜지는가(§4.2·§9) ─────────
+console.log('\n[⑧] v0.2.0 L2 프롬프트 게이트 분기');
+{
+  const P = chartOf('甲戌 / 丁卯 / 辛丑 / 丁酉') as any;
+  const ns = ['甲', '丁', '辛', '丁'] as Stem[];
+  const sp = analyzeStarPalace(P, '남');
+  const ideal = profileOf(deriveHapMirror(P), ns);
+  const real = profileOf(deriveChungMirror(P).chart, ns);
+  const base = {
+    star: sp.star as any, palace: sp.palace as any, dualRelation: sp.dualRelation, flags: sp.flags,
+    ideal: { ilgan: ideal.ilgan, element: ideal.ilganElement, role: ideal.D2_ROLE, temp: ideal.D3_TEMP, top2: ideal.D4_TOP2 as string[] },
+    real: { ilgan: real.ilgan, element: real.ilganElement, role: real.D2_ROLE, temp: real.D3_TEMP, top2: real.D4_TOP2 as string[] },
+  };
+
+  // STAR_PALACE_ONLY = 경상 미노출. 프로파일 값이 새어 나가면 게이트가 무의미하다.
+  const only = buildMirrorRomanceBlock({ ...base, render: 'STAR_PALACE_ONLY', concordance: 0.2 });
+  if (/사용하지 마라/.test(only) && !only.includes('이상형(합경)')) ok('STAR_PALACE_ONLY = 경상 프로파일 미노출');
+  else bad('STAR_PALACE_ONLY 인데 경상 프로파일이 프롬프트에 들어갔다 — 게이트 무력화');
+
+  // DESCRIPTIVE_ONLY = 값은 주되 '결론 금지'를 명시해야 한다
+  const desc = buildMirrorRomanceBlock({ ...base, render: 'DESCRIPTIVE_ONLY', concordance: 0.5 });
+  if (/결론을 경상에서 내지 마라/.test(desc)) ok('DESCRIPTIVE_ONLY = 결론 금지 명시');
+  else bad('DESCRIPTIVE_ONLY 인데 결론 사용을 막지 않는다');
+
+  // FULL = 병렬 렌더 + 파생 고지
+  const full = buildMirrorRomanceBlock({ ...base, render: 'FULL', concordance: 1 });
+  if (full.includes('이상형(합경)') && /원전 기법이 아님/.test(full)) ok('FULL = 병렬 렌더 + 파생 기법 고지(§9-3)');
+  else bad('FULL 렌더에 경상 프로파일 또는 파생 고지가 빠졌다');
+
+  // S5 이중관계는 서사 최상단 지시가 있어야(§5)
+  if (/서사 맨 앞에 놓아라/.test(full)) ok('S5 이중관계 = 서사 최상단 지시');
+  else bad('S5 가 있는데 최상단 지시가 없다');
+
+  // §9 가드레일 7종
+  const g = MIRROR_GUARDRAILS;
+  const need = ['인물 특정 금지', '결정론 금지', '파생 기법 고지', '부정 서술 완화', '기혼', '단독 노출 금지', '외모 절제'];
+  const miss = need.filter((k) => !g.includes(k));
+  if (!miss.length) ok('§9 가드레일 7종 전부 포함');
+  else bad(`가드레일 누락: ${miss.join(', ')}`);
+
+  // 기혼 분기(§9-5)
+  const wed = buildMirrorRomanceBlock({ ...base, render: 'FULL', concordance: 1, married: true });
+  if (/새 인연 예고 금지/.test(wed)) ok('기혼 분기 = 새 인연 예고 금지');
+  else bad('기혼 입력인데 새 인연 예고를 막지 않는다');
 }
 
 console.log(fail
