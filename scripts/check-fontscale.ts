@@ -127,5 +127,21 @@ else bad('③ 줄간격을 원본 크기로 판정한다 — 키운 글자에 �
   else bad(`⑥ 고정 치수 상자에 배율 글자 — 큰 글자에서 넘친다: ${offenders.join(', ')}`);
 }
 
+
+// ── ⑦ 폭 제약이 다른 두 용도가 같은 치수를 공유하는가(daniel IMG_8304) ────
+//   GzCell 은 ①확장명식 표(화면 폭을 5~8칸이 나눠 씀)와 ②대운·세운 가로 스크롤 카드에서 같이 쓰인다.
+//   ②를 넓히려고 폭을 키웠더니 ①에서 칸이 서로 붙어 화면을 넘었다 → **grid prop 으로 분리**해야 한다.
+{
+  const gz = strip(read('app/src/components/GzCell.tsx') ?? '');
+  if (/grid\s*\?\s*fs\(/.test(gz)) ok('⑦ GzCell 이 grid(표) / 스크롤 카드 폭을 분리한다');
+  else bad('⑦ GzCell 폭이 한 값이다 — 표를 넓히면 칸이 붙고, 카드를 좁히면 빠듯해진다');
+
+  const ms = strip(read('app/src/screens/MyeongsikScreen.tsx') ?? '');
+  const gridUses = (ms.match(/<GzCell[^>]*\bgrid\b/g) ?? []).length;
+  const scaleUses = (ms.match(/<GzCell[^>]*scale=\{scale\}/g) ?? []).length;
+  if (gridUses >= scaleUses && scaleUses > 0) ok(`⑦ 확장명식 GzCell ${scaleUses}곳 전부 grid 지정`);
+  else bad(`⑦ 확장명식 GzCell 중 grid 누락(${scaleUses - gridUses}곳) — 그 칸이 화면 폭을 넘는다`);
+}
+
 console.log(fail ? `\n❌ check:fontscale 실패 ${fail}건` : '\n✅ check:fontscale 통과 — 배율이 한 곳에서만 적용된다');
 process.exit(fail ? 1 : 0);

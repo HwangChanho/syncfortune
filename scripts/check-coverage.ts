@@ -183,5 +183,22 @@ console.log('\n[V7] 사주 영역과 자미 12궁 **양쪽**에 적용된다');
   else bad('질액궁에 건강 안전 주석이 없다 — 자미 건강 통변에 §4 가드가 도달하지 않는다');
 }
 
+
+// ── 애정 3종(love·reunion·crush)에도 필수질문이 **실제로 주입**되는가 ──────
+//   daniel 2026-07-30 IMG_8305: 애정 딥리포트에 '인연' 묶음 답이 안 나왔다.
+//   원인 = MUST_COVER 에 키가 없었고, 키를 넣어도 **빌더가 mustCoverBlock 을 안 부르면 무효**다
+//   (오늘 R60 에서 같은 유형을 겪었다: 모듈만 만들고 호출 안 함).
+{
+  const mc = read('supabase/functions/_shared/mustCover.ts') ?? '';
+  const bp = read('supabase/functions/_shared/buildUserPrompt.ts') ?? '';
+  for (const k of ['love', 'reunion', 'crush']) {
+    const hasKey = new RegExp(`^\\s{2}${k}:\\s*\\[`, 'm').test(mc);
+    const wired = new RegExp(`mustCoverBlock\\('${k}'\\)`).test(bp);
+    if (hasKey && wired) ok(`${k} — 필수질문 정의 + 프롬프트 주입`);
+    else if (!hasKey) bad(`${k} — MUST_COVER 에 정의가 없다(애정 풀이에 필수답이 안 나온다)`);
+    else bad(`${k} — 정의는 있는데 **빌더가 mustCoverBlock 을 안 부른다**(있으나 마나)`);
+  }
+}
+
 console.log(fail ? `\n❌ check:coverage 실패 ${fail}건` : '\n✅ check:coverage 통과 — 지정질문 반영·영역실재·주입·검수·키워드·건강안전 OK');
 process.exit(fail ? 1 : 0);

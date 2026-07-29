@@ -797,8 +797,8 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
                     {/* 대운수(입운 나이) — 대운 컬럼만 표기, 나머지 컬럼은 빈 줄로 세로 정렬 유지 */}
                     <Text style={[styles.expAge, { fontSize: Math.round(fs(9) * scale) }]}>{col.label === '대운' && lc ? `${lc.startAge}세` : col.label === '세운' && seunAge != null ? `만 ${seunAge}세` : ' '}</Text>
                     <Text style={[styles.expTg, { fontSize: Math.round(fs(11) * scale) }]}>{col.tg}</Text>
-                    <GzCell char={col.stem} kind="stem" size="sm" scale={scale} hangeul={hangeul} onPress={() => setGlossary({ kind: 'stem', key: col.stem })} />
-                    <GzCell char={col.branch} kind="branch" size="sm" scale={scale} hangeul={hangeul} onPress={() => setGlossary({ kind: 'branch', key: col.branch })} />
+                    <GzCell char={col.stem} kind="stem" size="sm" scale={scale} grid hangeul={hangeul} onPress={() => setGlossary({ kind: 'stem', key: col.stem })} />
+                    <GzCell char={col.branch} kind="branch" size="sm" scale={scale} grid hangeul={hangeul} onPress={() => setGlossary({ kind: 'branch', key: col.branch })} />
                     <Text style={[styles.expTg, { fontSize: Math.round(fs(11) * scale) }]}>{branchTenGod(dm, col.branch)}</Text>
                     <PressableScale onPress={() => setGlossary({ kind: 'stage', key: twelveStage(dm, col.branch) })}>
                       <Text style={[styles.expStage, { fontSize: Math.round(fs(10) * scale) }]}>{twelveStage(dm, col.branch)}</Text>

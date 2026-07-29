@@ -13,7 +13,7 @@ import { PressableScale } from './PressableScale';
 import { useFontScale } from '../lib/ui/fontScale';
 import { stemElement, branchElement, elementColor, elementText, stemReading, branchReading } from '../lib/engine/ohaeng';
 
-export function GzCell({ char, kind, size, scale = 1, onPress, hangeul }: { char: string; kind: 'stem' | 'branch'; size: 'sm' | 'xs'; scale?: number; onPress?: () => void; hangeul?: boolean }) {
+export function GzCell({ char, kind, size, scale = 1, onPress, hangeul, grid }: { char: string; kind: 'stem' | 'branch'; size: 'sm' | 'xs'; scale?: number; onPress?: () => void; hangeul?: boolean; grid?: boolean }) {
   const { fs, ls } = useFontScale();
   const styles = useMemo(() => makeStyles(fs), [fs]); // 글자 크기 적용(명식 간지 글자)
   const el = kind === 'stem' ? stemElement(char) : branchElement(char);
@@ -25,7 +25,12 @@ export function GzCell({ char, kind, size, scale = 1, onPress, hangeul }: { char
   //   ⚠️종전엔 `fs(43)` 이었는데 fs 는 2026-07-29 부터 **항등**이라 칸이 43 에 고정됐다 —
   //     글자는 전역 패치로 커지는데 칸은 그대로여서 좁아 보이고 넘쳤다. → ls() 로 배율을 받는다.
   //   가로는 한자 여유를 위해 **높이보다 넉넉히**(옆으로 길게).
-  const baseW = ls(size === 'sm' ? 52 : 47), baseF = fs(size === 'sm' ? 22 : 19), baseLH = fs(size === 'sm' ? 26 : 22); // ★크기↑(daniel 07-24) · 폭 43/39 → 52/47(07-30)
+  //   ★★용도가 둘이라 폭을 나눈다(daniel 2026-07-30 IMG_8304 "여긴 왜 이렇게 되는거야"):
+  //     · grid=true  = **확장명식 표** — 화면 폭을 5~8칸이 나눠 쓴다. 폭을 키우면 칸이 서로 붙고 넘친다.
+  //       (실제로 52 로 키웠더니 색 블록이 화면 끝까지 붙어버렸다.) → 종전 폭 유지 + 자체 scale 반응형.
+  //     · grid=false = **대운·세운·월운 스크롤 카드** — 가로 스크롤이라 여유가 있다 → 넓게 + 글자 배율 연동.
+  const baseW = grid ? fs(size === 'sm' ? 43 : 39) : ls(size === 'sm' ? 52 : 47);
+  const baseF = fs(size === 'sm' ? 22 : 19), baseLH = fs(size === 'sm' ? 26 : 22); // ★크기↑(daniel 07-24)
   const cellDyn = scale !== 1 ? { width: Math.round(baseW * scale) } : { width: Math.round(baseW) };
   const textDyn = scale !== 1 ? { fontSize: Math.round(baseF * scale), lineHeight: Math.round(baseLH * scale) } : null;
   const koDyn = scale !== 1 ? { fontSize: ls(11), lineHeight: ls(13) } : null; // 한글음도 크기↑(daniel 07-24)
