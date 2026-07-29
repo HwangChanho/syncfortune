@@ -47,6 +47,9 @@ export type MirrorProfile = {
   D5_RISK: string[];
   /** D7 — 결핍 투영: 원국에 천간 부재였던 오행이 경상 천간에 뜬 것(스펙 §7 관측·§9 승격 검토) */
   D7_DEFICIT_PROJECTION: Element[];
+  /** ★천간(일간 제외) 십신 — v0.2.0 D0 대조(A4·A6)가 **천간 기준**이다.
+   *   스펙 §7.1: "丑중 편인·식신 ↔ 癸水 편인 兩透" — 지지까지 합산하면 이 대조가 흐려진다. */
+  stemTenGods: TenGod[];
 };
 
 /** 경상명식 4주 → 프로파일(결정론). @param natalStems 원국 천간(결핍 투영 판정용) */
@@ -95,6 +98,7 @@ export function profileOf(c: MirrorChart, natalStems?: Stem[]): MirrorProfile {
     D4_TOP2,
     D5_RISK: D5,
     D7_DEFICIT_PROJECTION: D7,
+    stemTenGods: POS.filter((q) => q !== '일').map((q) => tenGod(day, c[q].stem)),
   };
 }
 

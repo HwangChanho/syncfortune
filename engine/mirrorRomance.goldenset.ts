@@ -16,6 +16,8 @@ import {
   hapStem, hapBranch, chungStem, chungBranch, type MirrorChart,
 } from './mirrorRomance';
 import { profileOf, gapOf } from './mirrorProfile';
+import { analyzeStarPalace } from './starPalace';                 // v0.2.0 성궁론(정통·상위 판정자)
+import { concordanceOf, R60_THRESHOLDS } from './mirrorConcordance'; // v0.2.0 D0 게이트
 import type { Stem, Branch, PillarPos } from '../spec/chart';
 
 const STEMS: Stem[] = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'];
@@ -139,6 +141,58 @@ console.log('\n[⑤] PILOT_01 프로파일·GAP (스펙 §7)');
   if (g.narrative_key === 'TENSIONED') ok(`narrative_key ${g.narrative_key} (현재 구현 · 스펙은 INVERTED 기대)`);
   else bad(`narrative_key ${g.narrative_key} — 현재 구현 기준 TENSIONED 에서 바뀌었다`);
   console.log(`      ↳ ⚠️조후 식 미확정: 이상형 ${ideal.D3_TEMP} vs 실배우자 ${real.D3_TEMP}(차 ${Math.abs(ideal.D3_TEMP - real.D3_TEMP).toFixed(2)}) — 스펙 §4 예시는 차 1.0`);
+}
+
+
+// ── ⑥ v0.2.0 성궁론(星宮論) 1차 판정 — PILOT_01 §7 픽스처 ──────────────────
+console.log('\n[⑥] v0.2.0 성궁론 S1~S5 (스펙 §7)');
+{
+  const P = chartOf('甲戌 / 丁卯 / 辛丑 / 丁酉') as any;
+  const sp = analyzeStarPalace(P, '남');
+  // 星
+  if (sp.star.primaryBranch === '卯') ok('星 = 卯(편재)');
+  else bad(`星 ${sp.star.primaryBranch}(기대 卯)`);
+  if (sp.star.transformedTo === '火' && sp.star.transformedTenGod === '편관') ok('S1 卯戌합화 火 = 편관(원국 丁 기준)');
+  else bad(`S1 합화 ${sp.star.transformedTo}=${sp.star.transformedTenGod}(기대 火=편관)`);
+  if (sp.star.contaminatedBy.includes('정인')) ok('S2 재인합 오염(정인)');
+  else bad(`S2 오염 ${sp.star.contaminatedBy.join(',')}(기대 정인)`);
+  // 宮
+  if (sp.palace.hasSpouseStar === false) ok('S3 宮 배우자성 부재(丑중 癸辛己 = 재성 없음)');
+  else bad('S3 宮에 배우자성이 있다고 판정(기대 부재)');
+  if (sp.palace.johu === -0.6) ok('宮 조후 -0.6(丑 습토·한랭)');
+  else bad(`宮 조후 ${sp.palace.johu}(기대 -0.6)`);
+  if (sp.palace.chungOpensTo.includes('乙')) ok('S4 丑未충 개고 → 乙(편재)');
+  else bad(`S4 개고 ${sp.palace.chungOpensTo.join(',')}(기대 乙)`);
+  // S5 — 최고 서사가치
+  const d = sp.dualRelation;
+  if (d && d.pivot === '酉' && d.toStar === 'chung' && d.toPalace === 'hap') ok('S5 이중관계 酉 — 星은 충·宮은 합');
+  else bad(`S5 ${JSON.stringify(d)}(기대 酉 chung/hap)`);
+}
+
+// ── ⑦ v0.2.0 D0_CONCORDANCE 게이트 — §7.1 6축 ────────────────────────────
+console.log('\n[⑦] v0.2.0 D0 교차검증 (스펙 §7.1)');
+{
+  const P = chartOf('甲戌 / 丁卯 / 辛丑 / 丁酉') as any;
+  const ns = ['甲', '丁', '辛', '丁'] as Stem[];
+  const sp = analyzeStarPalace(P, '남');
+  const c = concordanceOf(sp, profileOf(deriveHapMirror(P), ns), profileOf(deriveChungMirror(P).chart, ns));
+  for (const a of c.axes) {
+    if (a.match === 1) ok(`${a.key} = 1.0`);
+    else bad(`${a.key} = ${a.match} · ${a.note}`);
+  }
+  if (c.score >= 0.95) ok(`concordance ${c.score} (스펙 기대 >= 0.95)`);
+  else bad(`concordance ${c.score} — 스펙 기대 >= 0.95`);
+  if (c.render === 'FULL') ok('render = FULL(경상 정식 채택)');
+  else bad(`render = ${c.render}(기대 FULL)`);
+
+  // ⚠️★임계값은 **잠정값**이다(스펙 §4.3). 30개 명식 분포 측정 전까지 확정 아님.
+  //   중앙값이 T_LOW 아래로 나오면 **임계값을 낮추지 말고 경상명식 기법 자체를 재검토**한다(보상해킹 금지).
+  console.log(`      ↳ ⚠️T_HIGH=${R60_THRESHOLDS.T_HIGH} / T_LOW=${R60_THRESHOLDS.T_LOW} = PILOT_01 단일샘플 잠정값(30샘플 측정 선행)`);
+  // ⚠️★A2 축의 해석은 **내 판단이 들어갔다 — daniel 검수 대상.**
+  //   스펙 §4.1 은 "星의 정/편 ↔ 합경 프로파일 **성질**"이라고만 했고 '성질'의 정의가 없다.
+  //   나는 **합경 일간의 음양**(양=드러남·주도 / 음=수렴)으로 읽었다. 다른 해석도 가능하다
+  //   (예: 격국의 정/편, D4 편중군). 이 축이 바뀌면 concordance 가 0.15 만큼 움직인다.
+  console.log('      ↳ ⚠️A2 "합경 프로파일 성질" = **일간 음양**으로 해석(내 판단 · daniel 검수 필요)');
 }
 
 console.log(fail
