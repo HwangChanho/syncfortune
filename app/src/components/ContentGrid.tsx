@@ -32,6 +32,7 @@ import { computeChart } from '../lib/engine/engine'; // canonical 빌더 단일�
 import { appLang } from '../lib/i18n';
 import { homeTeaser, type HomeTeaser } from '../lib/content/homeTeaser'; // 카드 설명을 '내 얘기' 한 줄로(결정론·API 0, daniel 07-16)
 import { SECTIONS, CARD_REVEAL_OFFSETS, TOTAL_CARDS, HOME_INDIVIDUAL, priceLabel, type MenuItem } from '../lib/content/contentSections';
+import { SAJU_READING_CATEGORIES } from '../lib/backend/prewarmReadings'; // 세트(사주16) 카테고리 단일출처
 import { isNewContent } from '../lib/content/newBadge'; // 신규 콘텐츠 NEW 배지(출시일+21일 자동 만료·우측 상단 연한 빨강)
 import { useHomeViewMode } from '../lib/ui/homeView'; // 보기 방식(카드/리스트) 저장·토글(daniel)
 import { playSound } from '../lib/ui/sounds';
@@ -184,6 +185,13 @@ export function ContentGrid({ showViewToggle = true }: { showViewToggle?: boolea
     return m.descKey ? t(m.descKey) : null;
   }
 
+  // 세트형 creditKey → 그 세트가 저장하는 category 목록.
+  //   자미 12궁은 iztro 성반에서 오는 고정 이름이라 목록으로 둔다(사주는 단일출처 import).
+  const SET_CATEGORIES: Record<string, string[] | undefined> = {
+    reading: SAJU_READING_CATEGORIES as unknown as string[],
+    ziwei: ['명궁', '형제궁', '부처궁', '자녀궁', '재백궁', '질액궁', '천이궁', '노복궁', '관록궁', '전택궁', '복덕궁', '부모궁'],
+  };
+
   // ★유료 카드 배지(daniel 07-08) — 가격 대신 '명식별 상태'. 우선순위대로 첫 매칭 반환:
   //   ① 프리미엄(대표 명식) = '무제한' — 단 개별전용 3종(dream/followup/timeresolve)은 커버 밖이라 제외.
   //   ② 이 명식에 풀이가 이미 있음 = '풀이있음 · {만료일}'(생성일+1년) / 지난 해 연도 풀이만 있으면 '재구매'.
@@ -193,7 +201,14 @@ export function ContentGrid({ showViewToggle = true }: { showViewToggle?: boolea
     if (!ck) return null;                                                                  // 무료 콘텐츠 = 배지 없음
     if (isPremiumForChart(repServerChartId) && !HOME_INDIVIDUAL.has(ck)) return '무제한';   // ①
     const nowD = new Date();
-    const matched = readingRows.filter((r) => r.category === ck || r.category.startsWith(ck + '_'));
+    // ★세트형(사주16영역·자미12궁)은 category 체계가 creditKey 와 **다르다**(daniel 2026-07-29
+    //   "풀이탭에서 보유중이나 이런건 알수가 없는데"). 사주 카드의 creditKey 는 'reading' 인데
+    //   저장된 category 는 '금전소득운'·'연애운'… 이라 `r.category === ck` 가 **구조적으로 0건**이었다.
+    //   → 세트는 자기 영역 목록으로 매칭한다. 개별 콘텐츠(love·career…)는 종전대로 키가 곧 category 다.
+    const setCats = SET_CATEGORIES[ck];
+    const matched = setCats
+      ? readingRows.filter((r) => setCats.includes(r.category))
+      : readingRows.filter((r) => r.category === ck || r.category.startsWith(ck + '_'));
     const cur = matched.find((r) => !needsYearRepurchase(r.category, nowD)); // 현재연도 or 연도무관 풀이
     if (cur?.created_at) {
       const d = new Date(cur.created_at);

@@ -300,7 +300,17 @@ export function ReadingScreen({
     const ch = supabase.channel(`genjobs:${chartId}:${kind}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'gen_jobs', filter: `chart_id=eq.${chartId}` }, (payload) => apply(payload.new))
       .subscribe();
-    return () => { alive = false; supabase.removeChannel(ch); };
+    // ★폴링 폴백(daniel 2026-07-29 "여전히 퍼센트가 안올라가서 알수가없어").
+    //   realtime 만 믿으면 **조용히 멈춘다** — 실제로 gen_jobs 의 REPLICA IDENTITY 가 DEFAULT 라
+    //   RLS 정책 평가가 안 돼 UPDATE 이벤트가 통째로 드롭됐고(서버 4/12 ↔ 화면 0/12), 에러가 없어 더 안 보였다.
+    //   그 원인은 FULL 로 고쳤지만, 구독 끊김·백그라운드 복귀·네트워크 전환에서도 같은 증상이 재발할 수 있다.
+    //   → 8초 폴링으로 진행률을 **항상** 따라잡는다. 표시 전용이라 생성을 트리거하지 않는다(06-30 무한루프 불가).
+    const poll = setInterval(() => {
+      supabase.from('gen_jobs').select('done, total, status, kind')
+        .eq('chart_id', chartId).eq('kind', kind).maybeSingle()
+        .then(({ data }) => { if (data) apply(data); });
+    }, 8000);
+    return () => { alive = false; clearInterval(poll); supabase.removeChannel(ch); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chartId, kind, cats, savedChart]);
 

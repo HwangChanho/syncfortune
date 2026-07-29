@@ -67,7 +67,8 @@
     "trillm": "tsx --env-file-if-exists=.env interpretation/run-tri-llm.ts",
     "example": "tsx engine/example.ts",
     "ziwei": "tsx engine/run-ziwei.ts",
-    "check:tabpad": "npx tsx scripts/check-tabpad.ts"
+    "check:tabpad": "npx tsx scripts/check-tabpad.ts",
+    "check:setbadge": "npx tsx scripts/check-setbadge.ts"
   },
   "keywords": [],
   "author": "",
