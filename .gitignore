@@ -55,7 +55,9 @@ docs/*
 !docs/_config.yml
 !docs/index.md
 !docs/s/
-!docs/review/          # 명리 검증 화면(ADR-060) — 비밀은 없다(토큰은 URL·데이터는 Edge API)
+# 명리 검증 화면(ADR-060) — 비밀 없음(토큰은 URL·데이터는 Edge API). ⚠️gitignore 는 줄끝 주석 불가
+!docs/review/
+!docs/review/*
 # ↑ 이슈17 공유 스마트링크 stub(docs/s) — GitHub Pages 공개 필요(앱 열기/설치 유도, 풀이 내용은 노출 X)
 # 명리 지식 레이어·물상 (moat 콘텐츠)
 knowledge/
