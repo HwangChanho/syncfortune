@@ -4,3 +4,4 @@ theme: jekyll-theme-cayman
 # docs/legal 의 마크다운을 GitHub Pages(Jekyll)로 렌더
 include:
   - legal
+  - review          # 명리 검증 화면(ADR-060) — 정적 HTML 그대로 서빙
