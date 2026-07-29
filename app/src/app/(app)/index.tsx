@@ -298,7 +298,7 @@ export default function Home() {
                       {[f.dayGanZhi[0], f.dayGanZhi[1]].map((ch, i) => {
                         const el = i === 0 ? stemElement(ch) : branchElement(ch); // 천간·지지 오행
                         return (
-                          <View key={i} style={[styles.gzBox, { backgroundColor: elementColor[el] }]}>
+                          <View key={i} style={[styles.gzBox, { minWidth: ls(30), minHeight: ls(34) }, { backgroundColor: elementColor[el] }]}>
                             <Text style={[styles.gzBoxTx, { color: elementText[el] }]}>{ch}</Text>
                           </View>
                         );
@@ -527,7 +527,7 @@ const styles = StyleSheet.create({
   // ★큰 글자에서 한 줄에 다 못 들어가 밀려 잘리던 행 — 줄바꿈 허용 + 라벨 축소 가능(daniel 07-28)
   bannerPillarRow: { flexDirection: 'row', alignItems: 'center', gap: space(2), marginTop: space(1.5), flexWrap: 'wrap' },
   gzBoxRow: { flexDirection: 'row', gap: space(1) },
-  gzBox: { width: 30, height: 34, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center' },
+  gzBox: { borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center' },
   gzBoxTx: { fontSize: 20, fontWeight: '800', lineHeight: 24 },
   bannerHeadline: { ...font.body, color: colors.ju, fontWeight: '800', fontSize: 16, marginTop: space(3) }, // 오늘의 기운을 아우르는 캐치 타이틀
   bannerProse: { ...font.body, color: colors.inkSoft, marginTop: space(1.5), lineHeight: 22 },

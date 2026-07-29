@@ -24,6 +24,16 @@ const ROOT = new URL('..', import.meta.url).pathname;
 const read = (p: string) => readFileSync(`${ROOT}${p}`, 'utf8');
 const strip = (s: string) => s.replace(/\/\/.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, '');
 
+const walkAll = (): string[] => {
+  const out: string[] = [];
+  const rec = (d: string) => {
+    let ents: any[]; try { ents = require('node:fs').readdirSync(`${ROOT}${d}`, { withFileTypes: true }); } catch { return; }
+    for (const e of ents) { const p = `${d}/${e.name}`; if (e.isDirectory()) rec(p); else if (/\.tsx?$/.test(e.name)) out.push(p); }
+  };
+  rec('app/src');
+  return out;
+};
+
 let fail = 0;
 const bad = (m: string) => { console.error(`  ✗ ${m}`); fail++; };
 const ok = (m: string) => console.log(`  ✓ ${m}`);
@@ -92,6 +102,29 @@ else bad('③ 줄간격을 원본 크기로 판정한다 — 키운 글자에 �
   const dim = files.filter((f) => /(minWidth|width|height|borderRadius):\s*fs\(/.test(strip(read(f) ?? '')));
   if (!dim.length) ok('⑤ 치수를 fs() 로 계산하는 곳 없음');
   else bad(`⑤ 치수에 fs() 사용(안 커진다 — 글자가 넘친다): ${dim.map((f) => f.split('/').pop()).join(', ')}`);
+}
+
+
+// ── ⑥ 고정 치수 상자 + 배율 글자 = 넘침(daniel IMG_8302 "아직도 깨지잖아") ──
+//   원인 유형: 상자는 `width/height: 15` 고정인데 글자는 전역 패치로 커진다 →
+//   배율 1.45 에서 한자가 원 밖으로 삐져나온다. **글자를 담는 상자는 ls() 로 파생**시켜야 한다.
+//   ⚠️전부를 실패로 만들지 않는다 — 아이콘·체크박스처럼 글자를 안 담는 상자가 대부분이고,
+//     그것까지 건드리면 오히려 레이아웃이 깨진다. **한자/숫자를 담는 것**만 목록으로 남겨 눈으로 잡게 한다.
+{
+  const KNOWN_TEXT_BOX = ['pillarHiddenItem', 'gzBox', 'ptGz', 'cmCell', 'numBadge', 'monthBadge'];
+  const offenders: string[] = [];
+  for (const f of walkAll()) {
+    const code = strip(read(f) ?? '');
+    const i = code.indexOf('StyleSheet.create(');
+    if (i < 0) continue;
+    for (const m of code.slice(i).matchAll(/(\w+):\s*\{([^{}]*)\}/g)) {
+      if (!KNOWN_TEXT_BOX.includes(m[1])) continue;
+      const w = /\bwidth:\s*\d+/.test(m[2]), h = /\bheight:\s*\d+/.test(m[2]);
+      if (w && h) offenders.push(`${f.split('/').pop()}::${m[1]}`);
+    }
+  }
+  if (!offenders.length) ok('⑥ 글자 담는 상자가 전부 배율 파생(ls)');
+  else bad(`⑥ 고정 치수 상자에 배율 글자 — 큰 글자에서 넘친다: ${offenders.join(', ')}`);
 }
 
 console.log(fail ? `\n❌ check:fontscale 실패 ${fail}건` : '\n✅ check:fontscale 통과 — 배율이 한 곳에서만 적용된다');

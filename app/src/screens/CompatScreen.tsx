@@ -613,8 +613,8 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
             return (
               <View key={i} style={[styles.cmCol, (x.label === '대운' || x.label === '세운') && styles.cmColLuck]}>
                 <Text style={styles.cmLabel}>{x.label}</Text>
-                <View style={[styles.cmCell, { backgroundColor: elementColor[stemElement(x.stem)] }, stemOn && styles.cmCellHL]}><Text style={[styles.cmTx, { color: elementText[stemElement(x.stem)] }]}>{x.stem}</Text></View>
-                <View style={[styles.cmCell, { backgroundColor: elementColor[branchElement(x.branch)] }, branchOn && styles.cmCellHL]}><Text style={[styles.cmTx, { color: elementText[branchElement(x.branch)] }]}>{x.branch}</Text></View>
+                <View style={[styles.cmCell, { minWidth: ls(30), minHeight: ls(30) }, { backgroundColor: elementColor[stemElement(x.stem)] }, stemOn && styles.cmCellHL]}><Text style={[styles.cmTx, { color: elementText[stemElement(x.stem)] }]}>{x.stem}</Text></View>
+                <View style={[styles.cmCell, { minWidth: ls(30), minHeight: ls(30) }, { backgroundColor: elementColor[branchElement(x.branch)] }, branchOn && styles.cmCellHL]}><Text style={[styles.cmTx, { color: elementText[branchElement(x.branch)] }]}>{x.branch}</Text></View>
               </View>
             );
           })}
@@ -782,7 +782,7 @@ const styles = StyleSheet.create({
   cmCol: { alignItems: 'center', width: 38 },
   cmColLuck: { backgroundColor: colors.juSoft, borderRadius: radius.sm },
   cmLabel: { fontSize: 9, color: colors.inkFaint, marginBottom: 2 },
-  cmCell: { width: 30, height: 30, borderRadius: 5, alignItems: 'center', justifyContent: 'center', marginVertical: 1 },
+  cmCell: { borderRadius: 5, alignItems: 'center', justifyContent: 'center', marginVertical: 1 },
   // 강조 테두리 = 밝은 청록(오행 5색에 없는 색) — 土(골드 #C9A14A)·金 배경에서도 또렷이 보이게(daniel)
   cmCellHL: { borderWidth: 3, borderColor: '#19E3E3' },
   cmTx: { fontSize: 17, fontWeight: '800' },

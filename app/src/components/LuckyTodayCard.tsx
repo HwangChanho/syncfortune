@@ -33,7 +33,7 @@ import { useFontScale } from '../lib/ui/fontScale';
 export function LuckyTodayCard({ reloadKey }: { reloadKey?: number }) {
   const router = useRouter();
   const { t } = useTranslation();
-  const { fs } = useFontScale();
+  const { fs, ls } = useFontScale();
   // 오늘의 행운(색·방향·숫자·아이템) — 명식 불필요·오늘 일진 기준. 하루 동안 고정이라 마운트당 1회 계산.
   const lucky = useMemo(() => luckyToday(), []);
   // 내게 보탬이 되는 색(부족 오행 보완) — 명식 있을 때만. 명식 유무 게이트도 이 값으로 판정.
@@ -76,7 +76,7 @@ export function LuckyTodayCard({ reloadKey }: { reloadKey?: number }) {
         {/* 행운의 숫자 — 원형 배지(전체 화면과 동일 색 강조) */}
         <View style={styles.numWrap}>
           {lucky.nums.map((n) => (
-            <View key={n} style={[styles.numBadge, { borderColor: lucky.hex }]}>
+            <View key={n} style={[styles.numBadge, { minWidth: ls(28), minHeight: ls(28) }, { borderColor: lucky.hex }]}>
               <Text style={[styles.numTx, { color: lucky.hex, fontSize: fs(13) }]}>{n}</Text>
             </View>
           ))}
@@ -120,7 +120,7 @@ const styles = StyleSheet.create({
   swatchLabel: { ...font.caption, color: colors.inkSoft },
   swatchValue: { fontWeight: '900', color: colors.ink, marginTop: 1 },
   numWrap: { flexDirection: 'row', gap: space(1.5) },
-  numBadge: { width: 28, height: 28, borderRadius: 14, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
+  numBadge: { borderRadius: 14, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
   numTx: { fontWeight: '900' },
   // 방향·아이템 한 줄
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: space(3), marginTop: space(3), flexWrap: 'wrap' },

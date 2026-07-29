@@ -369,7 +369,7 @@ export default function NewYearScreen() {
                 <Text style={styles.sectH}>{t('newyear.months', '달별 캘린더')}</Text>
                 {months.map((m, i) => (
                   <View key={i} style={styles.monthRow}>
-                    <View style={styles.monthBadge}><Text style={styles.monthBadgeTx}>{i + 1}</Text></View>
+                    <View style={[styles.monthBadge, { minWidth: ls(28), minHeight: ls(28) }, { minWidth: ls(28), minHeight: ls(28) }]}><Text style={styles.monthBadgeTx}>{i + 1}</Text></View>
                     <Text style={[styles.monthText, { fontSize: fs(14), lineHeight: ls(21) }]}>{m.replace(/^\s*\d+\s*월\s*[—\-–·]\s*/, '')}</Text>
                   </View>
                 ))}
@@ -472,7 +472,7 @@ const styles = StyleSheet.create({
   areaTitle: { fontSize: 18, fontWeight: '900', color: colors.ink },
   // 12달 캘린더 — 월 배지 + 내용 행
   monthRow: { flexDirection: 'row', alignItems: 'flex-start', gap: space(3), marginBottom: space(3) },
-  monthBadge: { width: 28, height: 28, borderRadius: 14, backgroundColor: colors.badgeGold, alignItems: 'center', justifyContent: 'center', marginTop: space(0.5) },
+  monthBadge: { borderRadius: 14, backgroundColor: colors.badgeGold, alignItems: 'center', justifyContent: 'center', marginTop: space(0.5) },
   monthBadgeTx: { color: colors.bg, fontSize: 13, fontWeight: '900' },
   monthText: { flex: 1, ...font.body, color: colors.ink },
   wait: { ...font.caption, color: colors.inkSoft, marginTop: space(2), textAlign: 'center' },

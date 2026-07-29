@@ -22,7 +22,7 @@ import { useLogContentVisit } from '../../lib/backend/contentVisit'; // 콘텐�
 export default function LuckScreen() {
   useLogContentVisit('luck'); // 진입 1회 방문 기록(daniel 2026-07-06)
   const { t } = useTranslation();
-  const { fs } = useFontScale();
+  const { fs, ls } = useFontScale();
   const lucky = useMemo(() => luckyToday(), []);
   const [me, setMe] = useState<ChartInput | null>(null);
 
@@ -79,7 +79,7 @@ export default function LuckScreen() {
             <Text style={styles.rowLabel}>{t('luck.numbers', '행운의 숫자')}</Text>
             <View style={styles.numWrap}>
               {lucky.nums.map((n) => (
-                <View key={n} style={[styles.numBadge, { borderColor: lucky.hex }]}><Text style={[styles.numTx, { color: lucky.hex }]}>{n}</Text></View>
+                <View key={n} style={[styles.numBadge, { minWidth: ls(34), minHeight: ls(34) }, { borderColor: lucky.hex }]}><Text style={[styles.numTx, { color: lucky.hex }]}>{n}</Text></View>
               ))}
             </View>
           </View>
@@ -122,7 +122,7 @@ const styles = StyleSheet.create({
   swatchGlow: { position: 'absolute', width: 64, height: 64, borderRadius: radius.md }, // 펄스 글로우(뒤에서 번짐)
   swatch: { width: 64, height: 64, borderRadius: radius.md, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
   numWrap: { flexDirection: 'row', gap: space(2) },
-  numBadge: { width: 34, height: 34, borderRadius: 17, borderWidth: 2, alignItems: 'center', justifyContent: 'center' }, // 행운 숫자 원형 배지
+  numBadge: { borderRadius: 17, borderWidth: 2, alignItems: 'center', justifyContent: 'center' }, // 행운 숫자 원형 배지
   numTx: { fontSize: 16, fontWeight: '900' },
   swatchText: { flex: 1 },
   swatchLabel: { ...font.caption, color: colors.inkSoft, marginBottom: space(1) },

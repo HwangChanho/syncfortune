@@ -107,7 +107,13 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
   }, [activeTab]);
 
   const c = useMemo(() => (input ? computeChart(input) : null), [input]);
-  const { fs, ls } = useFontScale();                          // 글자 크기(설정)
+  const { fs, ls } = useFontScale();
+  // ★지장간 동그라미는 **글자 크기에서 파생**시킨다(daniel 2026-07-29 IMG_8302 "아직도 깨지잖아").
+  //   원인: 원이 `width/height: 15` **고정**인데 글자는 전역 배율로 커진다(fs 는 2026-07-29 부터 항등).
+  //   배율 1.45 에서 글자 13→19px 인데 상자는 15px 그대로라 한자가 원 밖으로 삐져나왔다.
+  //   ⚠️StyleSheet 안에서는 훅을 못 쓰므로 **렌더에서 인라인**으로 덮는다.
+  const HID_D = ls(13) + 6;                       // 글자(13) + 여백 — 어떤 배율에서도 감싼다
+  const HID_BOX = { width: HID_D, height: HID_D };                          // 글자 크기(설정)
   const styles = useMemo(() => makeStyles(fs), [fs]);     // fs 적용 스타일 — 명식 글자 포함 모든 텍스트 스케일
   if (!c) return <View style={styles.center}><Text style={font.body}>{t('myeongsik.noChart')}</Text></View>;
 
@@ -356,11 +362,11 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
                     {/* ★지장간 3슬롯 고정(여기·중기·본기) — 중기 없는 지지(왕지 등)는 가운데 빈칸으로 정렬(daniel 2026-07-24). */}
                     {(['여기', '중기', '본기'] as const).map((role, i) => {
                       const h = P[p].hiddenStems.find((x) => x.role === role);
-                      if (!h) return <View key={i} style={styles.pillarHiddenItem}><Text style={[styles.pillarHiddenChar, { color: colors.line }]}>·</Text></View>;
+                      if (!h) return <View key={i} style={[styles.pillarHiddenItem, HID_BOX]}><Text numberOfLines={1} style={[styles.pillarHiddenChar, { color: colors.line }]}>·</Text></View>;
                       const rooted = allGan.includes(h.stem); // 지장간이 원국 천간에 투출 = 통근(동그라미 표시)
                       return (
-                        <View key={i} style={[styles.pillarHiddenItem, rooted && styles.pillarHiddenRooted]}>
-                          <Text style={[styles.pillarHiddenChar, { color: elementColor[stemElement(h.stem)] }]}>{h.stem}</Text>
+                        <View key={i} style={[styles.pillarHiddenItem, HID_BOX, rooted && [styles.pillarHiddenRooted, { borderRadius: HID_BOX.width / 2 }]]}>
+                          <Text numberOfLines={1} style={[styles.pillarHiddenChar, { color: elementColor[stemElement(h.stem)] }]}>{h.stem}</Text>
                         </View>
                       );
                     })}
@@ -1262,7 +1268,7 @@ const makeStyles = (fs: (n: number) => number) => { const f = scaledFont(fs); re
   pillarStage: { fontSize: fs(12), color: colors.inkSoft, fontWeight: '600', marginTop: space(1) },  // 10→12(크기↑)
   pillarHidden: { flexDirection: 'row', gap: 2, marginTop: space(1) },
   pillarHiddenChar: { fontSize: fs(13), fontWeight: '700' },  // 11→13(크기↑)
-  pillarHiddenItem: { width: 15, height: 15, alignItems: 'center', justifyContent: 'center' }, // 지장간 1자 칸
+  pillarHiddenItem: { alignItems: 'center', justifyContent: 'center' }, // 지장간 1자 칸
   pillarHiddenRooted: { borderWidth: 1, borderColor: colors.ju, borderRadius: 8 }, // 투출(통근) = 동그라미
   headerArea: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: space(4) },
   advancedBtn: { paddingHorizontal: space(2), paddingVertical: space(1), borderRadius: radius.sm, backgroundColor: colors.sunk },
@@ -1321,7 +1327,7 @@ const makeStyles = (fs: (n: number) => number) => { const f = scaledFont(fs); re
   ptHead: { ...f.caption, color: colors.inkFaint, fontWeight: '700' },
   ptHeadDay: { color: colors.ju },
   ptTgLink: { fontSize: fs(11), color: colors.inkSoft, fontWeight: '600', textAlign: 'center', textDecorationLine: 'none', textDecorationStyle: 'dotted' },
-  ptGz: { width: 40, height: 40, borderRadius: 6, alignItems: 'center', justifyContent: 'center', marginVertical: 1 },
+  // ⚠️ptGz 제거(daniel 2026-07-29) — 사용처 0(죽은 스타일). 되살릴 거면 치수는 ls() 로.
   ptGzTx: { fontSize: fs(22), fontWeight: '800', lineHeight: fs(24) },
   ptGzKo: { fontSize: fs(9), fontWeight: '700', lineHeight: fs(10), opacity: 0.85 },
   ptHidWrap: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 2 },
