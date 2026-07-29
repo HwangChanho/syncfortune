@@ -65,7 +65,14 @@ export default function NewYearScreen() {
   const { session } = useAuth();
   const { isPremium } = useSubscription();
   const f = useMemo(() => getDailyFortune(), []);
-  const year = Number(f.date.slice(0, 4));
+  const thisYear = Number(f.date.slice(0, 4));
+  // ★연도 선택(daniel 2026-07-29 "26년도꺼도 보여줘야지").
+  //   종전엔 연도가 **오늘 기준 하나뿐**이라 올해·내년을 골라 볼 수 없었다.
+  //   캐시(category=newyear_YYYY)와 재구매 판정(needsYearRepurchase)은 이미 **연도별로 분리**돼 있어
+  //   구조는 준비돼 있었다 — 고를 UI 만 없었다.
+  //   ⚠️연도마다 별도 풀이다(category 가 다르면 캐시 미스 = 새 생성 = 별도 결제). 그래서 배지로 소유 여부를 보여준다.
+  const [year, setYear] = useState(thisYear);
+  const YEARS = [thisYear, thisYear + 1];
   const yearBranch = f.yearGanZhi[1]; // 올해 지지(삼재 판정용)
   const [saved, setSaved] = useState<SavedChart | null>(null);
   const [chartId, setChartId] = useState<string | null>(null);
@@ -246,6 +253,20 @@ export default function NewYearScreen() {
         <DoorReveal visible={doorPlaying} onDone={() => setDoorPlaying(false)} />
         <ContentHero motif={<NewyearWheel />} image={require('../../../assets/icons/newyear-hero.jpg')} title={`${year}${t('newyear.title', '년 신년운세')}`} sub={t('newyear.heroSub', '올 한 해의 큰 흐름을 한눈에')} themeColor={colors.ju} />
 
+        {/* ★연도 선택 — 올해/내년(daniel 2026-07-29). 연도별로 캐시·결제가 분리된다. */}
+        <View style={styles.yearRow}>
+          {YEARS.map((y) => {
+            const on = y === year;
+            return (
+              <PressableScale key={y} style={[styles.yearChip, on && styles.yearChipOn]} onPress={() => { if (y !== year) { setYear(y); setReloadKey((k) => k + 1); } }}>
+                <Text style={[styles.yearChipTx, on && styles.yearChipTxOn, { fontSize: fs(14) }]}>
+                  {y}년{y === thisYear ? ' (올해)' : ' (내년)'}
+                </Text>
+              </PressableScale>
+            );
+          })}
+        </View>
+
         {/* ★무료 온디바이스 티저(내년 신수 3층 곱연산 산식 + 큰 삼재 배지 + 길월 달력) — 히어로 아래. ★유료 전환 후크라 '미소유(전체 풀이 없음)'일 때만(daniel 2026-07-24):
             유료로 열린 뒤에도 "깊은 풀이에서 (콕/달별로) 짚어 드려요" 티저 문구가 남아 구매 상태와 모순(IMG_8168 계열·freeHook 12종과 동일 원인). data(전체 풀이) 있으면 숨김.
             시각 미상은 강도(원국↔세운 합충) 판정에서 시주를 빼도록 timeUnknown 병합해 전달(코드베이스 관례). */}
@@ -413,6 +434,12 @@ export default function NewYearScreen() {
 }
 
 const styles = StyleSheet.create({
+  // 연도 선택 칩 — 올해/내년(연도별 캐시·결제 분리)
+  yearRow: { flexDirection: 'row', gap: space(2), marginTop: space(3), marginBottom: space(1) },
+  yearChip: { flex: 1, paddingVertical: space(2.5), borderRadius: radius.md, borderWidth: 1.5, borderColor: colors.line, backgroundColor: colors.card, alignItems: 'center' },
+  yearChipOn: { borderColor: colors.ju, backgroundColor: colors.juSoft },
+  yearChipTx: { ...font.body, color: colors.inkSoft, fontWeight: '700' },
+  yearChipTxOn: { color: colors.ju, fontWeight: '800' },
   bg: { flex: 1, backgroundColor: 'transparent' }, // 전역 ContentBackdrop 비쳐 보이게(07-20 배경통일 누락분)
   overlay: { flex: 1, backgroundColor: colors.overlay },
   wrap: { padding: space(6), paddingBottom: space(12) },
