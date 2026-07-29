@@ -112,8 +112,13 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
   //   원인: 원이 `width/height: 15` **고정**인데 글자는 전역 배율로 커진다(fs 는 2026-07-29 부터 항등).
   //   배율 1.45 에서 글자 13→19px 인데 상자는 15px 그대로라 한자가 원 밖으로 삐져나왔다.
   //   ⚠️StyleSheet 안에서는 훅을 못 쓰므로 **렌더에서 인라인**으로 덮는다.
-  const HID_D = ls(13) + 6;                       // 글자(13) + 여백 — 어떤 배율에서도 감싼다
-  const HID_BOX = { width: HID_D, height: HID_D };                          // 글자 크기(설정)
+  //   높이는 글자에 딱 맞추고, **가로는 더 넉넉히**(daniel 2026-07-30 "한자 칸을 옆으로 더 길게해줘").
+  //   한자는 폭이 넓어 정사각 원에 넣으면 좌우가 빠듯하다 → 알약(pill) 형태로 여유를 준다.
+  const HID_H = ls(13) + 6;                       // 높이 = 글자(13) + 여백
+  //   ★가로는 **고정폭을 주지 않는다**(daniel 2026-07-30 "한자 칸을 옆으로 더 길게해줘").
+  //   기둥은 flex:1 로 4등분이라 칸당 여유가 ~26pt 뿐 — 고정폭(글자+16)을 주면 큰 배율에서 3칸이 **넘친다**.
+  //   → 칸을 flex:1 로 **3등분**하면 기둥 폭을 최대한 쓰면서(=옆으로 길어지고) 절대 넘치지 않는다.
+  const HID_BOX = { height: HID_H };
   const styles = useMemo(() => makeStyles(fs), [fs]);     // fs 적용 스타일 — 명식 글자 포함 모든 텍스트 스케일
   if (!c) return <View style={styles.center}><Text style={font.body}>{t('myeongsik.noChart')}</Text></View>;
 
@@ -365,7 +370,7 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
                       if (!h) return <View key={i} style={[styles.pillarHiddenItem, HID_BOX]}><Text numberOfLines={1} style={[styles.pillarHiddenChar, { color: colors.line }]}>·</Text></View>;
                       const rooted = allGan.includes(h.stem); // 지장간이 원국 천간에 투출 = 통근(동그라미 표시)
                       return (
-                        <View key={i} style={[styles.pillarHiddenItem, HID_BOX, rooted && [styles.pillarHiddenRooted, { borderRadius: HID_BOX.width / 2 }]]}>
+                        <View key={i} style={[styles.pillarHiddenItem, HID_BOX, rooted && [styles.pillarHiddenRooted, { borderRadius: HID_H / 2 }]]}>
                           <Text numberOfLines={1} style={[styles.pillarHiddenChar, { color: elementColor[stemElement(h.stem)] }]}>{h.stem}</Text>
                         </View>
                       );
@@ -1266,9 +1271,9 @@ const makeStyles = (fs: (n: number) => number) => { const f = scaledFont(fs); re
   pillarIcon: { marginVertical: space(2) },
   advancedInfo: { width: '100%', alignItems: 'center' },
   pillarStage: { fontSize: fs(12), color: colors.inkSoft, fontWeight: '600', marginTop: space(1) },  // 10→12(크기↑)
-  pillarHidden: { flexDirection: 'row', gap: 2, marginTop: space(1) },
+  pillarHidden: { flexDirection: 'row', gap: 2, marginTop: space(1), width: '100%', paddingHorizontal: space(1) }, // 폭 100% 라야 flex 3등분이 성립
   pillarHiddenChar: { fontSize: fs(13), fontWeight: '700' },  // 11→13(크기↑)
-  pillarHiddenItem: { alignItems: 'center', justifyContent: 'center' }, // 지장간 1자 칸
+  pillarHiddenItem: { flex: 1, alignItems: 'center', justifyContent: 'center' }, // 지장간 1자 칸 — flex 로 기둥 폭 3등분(가로 최대)
   pillarHiddenRooted: { borderWidth: 1, borderColor: colors.ju, borderRadius: 8 }, // 투출(통근) = 동그라미
   headerArea: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: space(4) },
   advancedBtn: { paddingHorizontal: space(2), paddingVertical: space(1), borderRadius: radius.sm, backgroundColor: colors.sunk },
