@@ -237,6 +237,20 @@ console.log('\n[⑧] v0.2.0 L2 프롬프트 게이트 분기');
   if (!miss.length) ok('§9 가드레일 7종 전부 포함');
   else bad(`가드레일 누락: ${miss.join(', ')}`);
 
+
+  // ★★daniel stance(2026-07-29) — "치환해서 나온 명식의 **풀이로 나온 사람의 느낌**을 보는 거지
+  //   그 글자를 그대로 보고 대입하는 게 아니다."
+  //   종전 프롬프트는 코드값(일간/상/온도/행동)을 나열해 LLM 이 **원국 해석 용어로 대입**하게 만들었다.
+  {
+    const full2 = buildMirrorRomanceBlock({ ...base, render: 'FULL', concordance: 1 });
+    if (/각각 독립된 한 사람의 사주/.test(full2) && /본인 원국에 글자를 대입하지 말고/.test(full2)) {
+      ok('daniel stance — 경상은 "사람으로 풀라"(글자 대입 금지)');
+    } else bad('경상명식을 코드값으로만 넘긴다 — LLM 이 원국에 대입한다(daniel stance 위반)');
+    if (/십신·오행 이름은 노출하지 마라/.test(full2)) ok('십신·오행 코드 비노출 지시');
+    else bad('십신·오행 코드가 그대로 노출될 수 있다');
+    if (/경상명식의 글자를 본인 사주에 대입해 해석하지 마라/.test(MIRROR_GUARDRAILS)) ok('가드레일 0번 = 글자 대입 금지(최상위)');
+    else bad('가드레일에 글자 대입 금지가 없다');
+  }
   // 기혼 분기(§9-5)
   const wed = buildMirrorRomanceBlock({ ...base, render: 'FULL', concordance: 1, married: true });
   if (/새 인연 예고 금지/.test(wed)) ok('기혼 분기 = 새 인연 예고 금지');
