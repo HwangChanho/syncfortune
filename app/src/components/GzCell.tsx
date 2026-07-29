@@ -20,7 +20,12 @@ export function GzCell({ char, kind, size, scale = 1, onPress, hangeul }: { char
   const ko = kind === 'stem' ? stemReading(char) : branchReading(char);
   const txt = { color: elementText[el] };
   // scale=1 → 정적 스타일(타임라인 카드). scale>1 → 확장명식 반응형(층 끄면 칸·글자 비례 확대). fs=설정 글자크기(칸·글자 동시 확대).
-  const baseW = fs(size === 'sm' ? 43 : 39), baseF = fs(size === 'sm' ? 22 : 19), baseLH = fs(size === 'sm' ? 26 : 22); // ★크기↑(daniel 07-24)
+  // ★칸 폭을 **글자 크기 설정에 연동**한다(daniel 2026-07-30 "칸 크기도 글씨크기에 영향 받으면 좋겠는데"
+  //   · "아래 대운세운월운도 동일하게 옆으로 커져야해").
+  //   ⚠️종전엔 `fs(43)` 이었는데 fs 는 2026-07-29 부터 **항등**이라 칸이 43 에 고정됐다 —
+  //     글자는 전역 패치로 커지는데 칸은 그대로여서 좁아 보이고 넘쳤다. → ls() 로 배율을 받는다.
+  //   가로는 한자 여유를 위해 **높이보다 넉넉히**(옆으로 길게).
+  const baseW = ls(size === 'sm' ? 52 : 47), baseF = fs(size === 'sm' ? 22 : 19), baseLH = fs(size === 'sm' ? 26 : 22); // ★크기↑(daniel 07-24) · 폭 43/39 → 52/47(07-30)
   const cellDyn = scale !== 1 ? { width: Math.round(baseW * scale) } : { width: Math.round(baseW) };
   const textDyn = scale !== 1 ? { fontSize: Math.round(baseF * scale), lineHeight: Math.round(baseLH * scale) } : null;
   const koDyn = scale !== 1 ? { fontSize: ls(11), lineHeight: ls(13) } : null; // 한글음도 크기↑(daniel 07-24)

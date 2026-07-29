@@ -840,7 +840,7 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
           </Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} ref={luckScrollRef} onLayout={(e) => { centerM.current.luck.v = e.nativeEvent.layout.width; recenter('luck', luckScrollRef); }} onContentSizeChange={() => recenter('luck', luckScrollRef)} style={styles.luckScroll} contentContainerStyle={styles.luckScrollC}>
             {luckCycles.map((l, i) => (
-              <PressableScale key={i} onPress={() => { setSelLuck(i); setSelSeun(0); }} onLayout={l.isCurrent ? (e) => { centerM.current.luck.x = e.nativeEvent.layout.x; centerM.current.luck.w = e.nativeEvent.layout.width; recenter('luck', luckScrollRef); } : undefined} style={[styles.luckCard, l.isCurrent && styles.luckCardCur, selLuck === i && styles.luckCardSel]}>
+              <PressableScale key={i} onPress={() => { setSelLuck(i); setSelSeun(0); }} onLayout={l.isCurrent ? (e) => { centerM.current.luck.x = e.nativeEvent.layout.x; centerM.current.luck.w = e.nativeEvent.layout.width; recenter('luck', luckScrollRef); } : undefined} style={[styles.luckCard, { minWidth: ls(58) }, l.isCurrent && styles.luckCardCur, selLuck === i && styles.luckCardSel]}>
                 <Text style={styles.luckAge}>{l.startAge}세</Text>
                 <Text style={styles.luckTg}>{l.stemTenGod}</Text>
                 <GzCell char={l.stem} kind="stem" size="sm" hangeul={hangeul} />
@@ -1208,7 +1208,9 @@ const makeStyles = (fs: (n: number) => number) => { const f = scaledFont(fs); re
   layerChipTxOn: { color: colors.ju },
   luckScroll: { marginTop: space(2) },
   luckScrollC: { gap: space(1.5), flexDirection: 'row-reverse', paddingHorizontal: space(2) },
-  luckCard: { alignItems: 'center', paddingVertical: space(2), paddingHorizontal: space(2.5), borderRadius: radius.sm, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, minWidth: 58 },
+  // ★minWidth 는 렌더에서 ls() 로 덮는다(daniel 2026-07-30 "대운세운월운도 옆으로 커져야").
+  //   가로 스크롤 안이라 넓어져도 잘리지 않는다 — 고정 58 이면 큰 글자에서 칸이 빠듯해진다.
+  luckCard: { alignItems: 'center', paddingVertical: space(2), paddingHorizontal: space(2.5), borderRadius: radius.sm, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line },
   luckCardCur: { borderColor: colors.ju },
   luckCardSel: { backgroundColor: colors.juSoft, borderColor: colors.ju, borderWidth: 1.5 },
   luckAge: { fontSize: fs(9), color: colors.inkFaint },
