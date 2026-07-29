@@ -5,6 +5,7 @@
 // 무료 등록 한도(FREE_CHART_LIMIT=10): 저장소가 ChartLimitError 로 강제 → 여기서 잡아
 //   업그레이드 유도(프로=무제한, ADR-051). 한도 초과면 저장·네비 모두 일어나지 않는다.
 // ─────────────────────────────────────────────────────────────────────────
+import { logEvent } from '../../lib/backend/logger';
 import { useState, useEffect } from 'react';
 import { View, ActivityIndicator } from 'react-native';
 import { Alert } from '../../lib/ui/alert'; // 커스텀 알림(앱 디자인)
@@ -77,7 +78,12 @@ export default function RegisterRoute() {
       submitLabel={editId ? t('register.editDone', '완료') : undefined}
       autoSave={!!editId}
       onAutoSave={editId ? async (input) => { // 편집 = 필드 변경 시 자동 갱신(이동 없음, daniel "저장 따로 안눌러도")
-        try { await updateChart(editId, input); if (input.makeRep) await setRepresentative(editId); } catch {}
+        // ★자동저장 실패를 삼키지 않는다(daniel 2026-07-29 QA 전수검수).
+        //   종전 `catch {}` 는 저장이 실패해도 화면이 그대로여서 **사용자는 저장된 줄 안다**.
+        //   자동저장이라 매번 Alert 을 띄우면 성가시므로, 원인 추적이 되게 **로그로 남긴다**
+        //   (같은 유형: 푸시 토큰 등록 실패를 catch 가 삼켜 '한 번도 작동 안 함'을 몰랐던 사고).
+        try { await updateChart(editId, input); if (input.makeRep) await setRepresentative(editId); }
+        catch (e) { logEvent('chart_autosave_fail', { editId, msg: String((e as Error)?.message ?? e).slice(0, 200) }); }
       } : undefined}
       onSubmit={async (input) => {
         if (editId) { // 편집 = 한도 무관 갱신(추가 아님). 대표 체크 시 대표 전환.

@@ -185,7 +185,7 @@ const styles = StyleSheet.create({
   col: { width: COL_W, alignItems: 'center' },
   glyph: { height: 18, lineHeight: 18, fontSize: 15, fontWeight: '900', textAlign: 'center' },
   // 노드 행: [좌 세그][점][우 세그] — 인접 칸 세그먼트가 이어져 연속선처럼 보인다.
-  nodeRow: { height: 26, flexDirection: 'row', alignItems: 'center', alignSelf: 'stretch' },
+  nodeRow: { minHeight: 26, flexDirection: 'row', alignItems: 'center', alignSelf: 'stretch' },
   seg: { flex: 1, height: 2, backgroundColor: colors.juLine },
   segHidden: { opacity: 0 }, // 첫/끝 칸의 바깥쪽 선만 숨김(레이아웃 유지 → 점 중앙 정렬 보존)
   dotWrap: { width: 26, height: 26, alignItems: 'center', justifyContent: 'center' },

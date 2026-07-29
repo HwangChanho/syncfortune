@@ -140,7 +140,7 @@ const styles = StyleSheet.create({
   toneCard: { borderColor: colors.ju, borderWidth: 1.5 },
   toneLabel: { ...font.title, color: colors.ink, marginBottom: space(3) },
   toneSwRow: { flexDirection: 'row', gap: space(2), marginBottom: space(3) },
-  toneSw: { flex: 1, height: 40, borderRadius: radius.sm, borderWidth: 1, borderColor: colors.line },
+  toneSw: { flex: 1, minHeight: 40, borderRadius: radius.sm, borderWidth: 1, borderColor: colors.line },
   toneDesc: { ...font.body, color: colors.ink, lineHeight: 23 },
   elLine: { ...font.body, color: colors.ink, marginBottom: space(3) },
   elGlyph: { fontWeight: '900' },

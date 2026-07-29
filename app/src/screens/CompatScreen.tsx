@@ -766,9 +766,9 @@ const styles = StyleSheet.create({
   askQuota: { ...font.caption, color: colors.inkSoft, marginBottom: space(2) },
   askRow: { flexDirection: 'row', alignItems: 'center', gap: space(2) },
   // 좌상단 정렬(daniel: 가운데 X — 위·왼쪽으로)
-  askInput: { ...font.body, flex: 1, height: 44, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, borderRadius: radius.md, paddingHorizontal: space(3), color: colors.ink, textAlign: 'left' },
+  askInput: { ...font.body, flex: 1, minHeight: 44, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, borderRadius: radius.md, paddingHorizontal: space(3), color: colors.ink, textAlign: 'left' },
   askLen: { fontSize: 11, color: colors.inkFaint },
-  askSend: { backgroundColor: colors.ju, borderRadius: radius.md, paddingHorizontal: space(4), height: 44, alignItems: 'center', justifyContent: 'center' },
+  askSend: { backgroundColor: colors.ju, borderRadius: radius.md, paddingHorizontal: space(4), minHeight: 44, alignItems: 'center', justifyContent: 'center' },
   askSendOff: { opacity: 0.4 },
   askSendTx: { color: colors.bg, fontWeight: '800', fontSize: 14 },
   askLock: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.ju, borderRadius: radius.md, paddingVertical: space(4), alignItems: 'center' },
