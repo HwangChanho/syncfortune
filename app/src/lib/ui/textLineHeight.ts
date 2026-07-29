@@ -24,6 +24,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { Text, StyleSheet } from 'react-native';
 import { resolveLineHeight } from './lineHeightRule';   // ★판정은 순수 모듈에(하네스가 런타임 없이 검증)
+import { getFontScale } from './fontScale';             // ★전역 글자 배율(단일 출처 · 훅 밖에서 읽는다)
 
 let installed = false;
 
@@ -40,10 +41,31 @@ export function installMinLineHeight(): void {
   if (typeof original !== 'function') return;   // RN 내부 구조 변경 시 조용히 무시(크래시 방지)
 
   TextAny.render = function patchedRender(props: any, ref: any) {
-    if (!props?.style) return original.call(this, props, ref);
-    const flat = StyleSheet.flatten(props.style) as { fontSize?: number; lineHeight?: number } | undefined;
-    const next = resolveLineHeight(flat?.fontSize, flat?.lineHeight, props.numberOfLines);
-    if (next == null) return original.call(this, props, ref);
-    return original.call(this, { ...props, style: [props.style, { lineHeight: next }] }, ref);
+    const scale = getFontScale();
+    const flat = StyleSheet.flatten(props?.style) as { fontSize?: number; lineHeight?: number } | undefined;
+
+    // ★★글자 배율을 **모든 텍스트에** 적용한다(daniel 2026-07-29
+    //   "글씨크기가 ui랑 전부다 반영돼야해" · "전체 다 자동반영되게 코드구조를 미리 모듈화").
+    //   실측: 앱에 고정 `fontSize: 13` 같은 곳이 **670건**, `fs()` 를 쓰는 곳이 440건이었다.
+    //   즉 60% 가 설정을 무시했다 — 그래서 "최대인데도 작다"가 나온다.
+    //   670건을 일일이 고치는 대신 **여기 한 곳**에서 곱한다. 새 화면이 생겨도 자동으로 따라온다.
+    //   ⚠️fs() 는 같은 개편에서 **항등 함수**가 됐다(이중 적용 방지).
+    //   ⚠️fontSize 가 없는 텍스트(RN 기본 14)는 건드리지 않는다 — 기본값을 임의로 키우면
+    //     서드파티/시스템 컴포넌트 레이아웃까지 흔든다. 명시된 크기만 존중해 키운다.
+    const size = typeof flat?.fontSize === 'number' ? flat.fontSize : undefined;
+    const scaled = size != null && scale !== 1 ? Math.round(size * scale) : undefined;
+
+    // 줄간격은 **스케일된 크기 기준**으로 판정해야 정합이 맞는다(키운 글자에 옛 줄높이면 잘린다).
+    const baseLh = typeof flat?.lineHeight === 'number' && scale !== 1
+      ? Math.round(flat.lineHeight * scale)      // 지정돼 있으면 같은 비율로 함께 키운다
+      : flat?.lineHeight;
+    const nextLh = resolveLineHeight(scaled ?? size, baseLh, props?.numberOfLines);
+
+    if (scaled == null && nextLh == null) return original.call(this, props, ref);
+    const patch: { fontSize?: number; lineHeight?: number } = {};
+    if (scaled != null) patch.fontSize = scaled;
+    if (nextLh != null) patch.lineHeight = nextLh;
+    else if (baseLh != null && baseLh !== flat?.lineHeight) patch.lineHeight = baseLh;
+    return original.call(this, { ...props, style: [props?.style, patch] }, ref);
   };
 }

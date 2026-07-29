@@ -40,6 +40,14 @@ function SkeletonDot({ d }: { d: number }) {
   return <Animated.View style={[styles.emblem, styles.emblemSkel, { width: d, height: d, borderRadius: d / 2, opacity: a }]} />;
 }
 
+// ★일주 엠블럼 캐시(daniel 2026-07-29 "명식 리스트 이미지 로딩 너무 오래걸리는데").
+//   원인: 모달을 **닫을 때마다 setEmblems({}) 로 전부 버려서**, 다시 열면 N개 명식을
+//   computeChart 로 처음부터 순차 재계산했다(명식 29개면 29틱 + 엔진 29회).
+//   → 컴포넌트 **밖**(모듈 레벨)에 캐시를 두면 언마운트·재열기에도 살아남아 두 번째부터 즉시 뜬다.
+//   ⚠️키에 input 을 포함한다 — 명식을 **수정하면 id 는 같고 내용만 바뀌므로**, id 만 쓰면 옛 엠블럼이 굳는다.
+const emblemCache = new Map<string, IljuEmblem>();
+const emblemKey = (c: { id: string; input: unknown }) => `${c.id}:${JSON.stringify(c.input)}`;
+
 export function ChartPicker({ onChange }: { onChange?: () => void }) {
   const { t } = useTranslation();
   const router = useRouter();
@@ -91,16 +99,33 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
   //   → setTimeout(0)으로 다음 틱에 계산 → 리스트는 즉시 올라오고(엠블럼은 스켈레톤 원), 계산 끝나면 채워짐.
   const [emblems, setEmblems] = useState<Record<string, IljuEmblem>>({});
   useEffect(() => {
-    if (!open) { setEmblems({}); return; }                       // 닫히면 초기화(다음 열 때 다시 스켈레톤→계산)
+    if (!open) return;              // ★닫아도 계산 결과를 **버리지 않는다**(아래 캐시) — 다시 열면 즉시 뜬다
+    // ① 캐시에 있는 건 **한 번에** 반영(스켈레톤 없이 즉시). 두 번째 열기부터는 여기서 끝난다.
+    const cached: Record<string, IljuEmblem> = {};
+    const todo: typeof charts = [];
+    for (const c of charts) {
+      const hit = emblemCache.get(emblemKey(c));
+      if (hit) cached[c.id] = hit; else todo.push(c);
+    }
+    if (Object.keys(cached).length) setEmblems((prev) => ({ ...prev, ...cached }));
+    if (!todo.length) return;
+
     let alive = true;
     let ti: ReturnType<typeof setTimeout>;
-    // ★순차 로딩(daniel 07-01): 한 번에 N개를 계산·렌더하면 무거워 이미지 로딩이 느림 →
-    //   한 명식씩 계산해 setEmblems 로 *즉시* 반영(엠블럼·이미지가 위에서부터 하나씩 채워짐).
+    // ② 아직 없는 것만 순차 계산(daniel 07-01): 한 번에 N개를 계산·렌더하면 무거워 로딩이 느리다 →
+    //    한 명식씩 계산해 setEmblems 로 *즉시* 반영(위에서부터 하나씩 채워짐).
     let i = 0;
     const step = () => {
-      if (!alive || i >= charts.length) return;
-      const c = charts[i++];
-      try { const p = computeChart(c.input).saju.pillars['일']; if (p) setEmblems((prev) => ({ ...prev, [c.id]: iljuEmblem(p.stem, p.branch) })); } catch { /* 계산 실패 무시 */ }
+      if (!alive || i >= todo.length) return;
+      const c = todo[i++];
+      try {
+        const p = computeChart(c.input).saju.pillars['일'];
+        if (p) {
+          const em = iljuEmblem(p.stem, p.branch);
+          emblemCache.set(emblemKey(c), em);                     // ★캐시에 적재 — 다음 열기부터 계산 0
+          setEmblems((prev) => ({ ...prev, [c.id]: em }));
+        }
+      } catch { /* 계산 실패 무시 */ }
       ti = setTimeout(step, 0);                                  // 다음 명식은 다음 틱에(순차·뷰 즉시 갱신)
     };
     ti = setTimeout(step, 0);                                    // 0ms = 모달 렌더 이후로 미룸
