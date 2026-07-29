@@ -33,7 +33,7 @@ function remainLabel(until: number | null): string {
  * @param onNeedCoins 잔액 부족 시 호출(충전 화면으로 보낼 때). 없으면 안내만.
  */
 export function AdFreeSection({ onDone, onNeedCoins }: { onDone?: () => void; onNeedCoins?: () => void }) {
-  const { fs } = useFontScale();
+  const { fs, ls } = useFontScale();
   const adFree = useAdFree();
   const until = useAdFreeUntil();
   const [busy, setBusy] = useState<string | null>(null);
@@ -94,7 +94,7 @@ export function AdFreeSection({ onDone, onNeedCoins }: { onDone?: () => void; on
       )}
 
       {/* ★안내 2줄 → 1줄(칸 축소). 이어붙기 규칙은 실제로 살 때 알림에서 다시 알려 준다. */}
-      <Text style={[styles.note, { fontSize: fs(11.5), lineHeight: fs(16) }]}>
+      <Text style={[styles.note, { fontSize: fs(11.5), lineHeight: ls(16) }]}>
         하단 배너와 AI 코치 보상형 광고가 함께 사라져요. 기간제는 남은 기간 뒤에 이어붙어요.
       </Text>
     </View>

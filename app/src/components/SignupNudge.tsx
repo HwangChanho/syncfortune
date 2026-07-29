@@ -30,7 +30,7 @@ const SEEN_KEY = 'signup_nudge_day_v1';   // 마지막으로 보여 준 날짜(Y
 export function SignupNudge() {
   const { isRegistered } = useAuth();
   const { t } = useTranslation();
-  const { fs } = useFontScale();
+  const { fs, ls } = useFontScale();
   const router = useRouter();
   const [show, setShow] = useState(false);
 
@@ -56,10 +56,10 @@ export function SignupNudge() {
 
   return (
     <View style={styles.card}>
-      <Text style={[styles.title, { fontSize: fs(14.5), lineHeight: fs(21) }]}>
+      <Text style={[styles.title, { fontSize: fs(14.5), lineHeight: ls(21) }]}>
         {t('signup.title', '지금 본 풀이, 이 기기에만 남아 있어요')}
       </Text>
-      <Text style={[styles.body, { fontSize: fs(13), lineHeight: fs(20) }]}>
+      <Text style={[styles.body, { fontSize: fs(13), lineHeight: ls(20) }]}>
         {t('signup.body', '구매한 이용권과 풀이는 지금 쓰는 임시 계정에 묶여 있어요. 앱을 지우거나 기기를 바꾸면 되찾기 어려워요. 계정을 연결해 두면 그대로 이어서 볼 수 있어요.')}
       </Text>
       <PressableScale style={styles.cta} onPress={() => router.push('/login')}>

@@ -45,7 +45,7 @@ export default function SettingsScreen() {
   // 보유 코인 — 화면 진입마다 새로 읽는다(충전 후 돌아왔을 때 최신값). null=조회 실패
   const [coins, setCoins] = useState<number | null>(null);
   useFocusEffect(useCallback(() => { void coinBalanceOrNull().then(setCoins); }, []));
-  const { scale, setScale, fs } = useFontScale();
+  const { scale, setScale, fs, ls } = useFontScale();
   const [busy, setBusy] = useState<string | null>(null); // 전체화면 로딩 오버레이 메시지(긴 콜백)
   const [admin, setAdmin] = useState(false); // 관리자 — 메뉴 노출용(실제 권한은 서버 RPC). 제어(비용분석·테스트/관리자모드)는 /admin 내부로 통합(daniel 07-01)
   const [premPrice, setPremPrice] = useState(''); // 프리미엄 현지통화 가격(RC) — 미설정 시 ₩ 폴백
@@ -204,7 +204,7 @@ export default function SettingsScreen() {
       </View>
       {/* 미리보기 — 현재 배율이 통변 본문에 어떻게 보이는지 */}
       <View style={styles.preview}>
-        <Text style={[styles.previewBody, { fontSize: fs(15), lineHeight: fs(25) }]}>{t('settings.preview')}</Text>
+        <Text style={[styles.previewBody, { fontSize: fs(15), lineHeight: ls(25) }]}>{t('settings.preview')}</Text>
       </View>
 
       {/* ── 언어 ── */}

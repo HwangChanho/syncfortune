@@ -75,5 +75,13 @@ export function FontScaleProvider({ children }: { children: ReactNode }) {
 export function useFontScale() {
   const { scale, setScale } = useContext(FontScaleContext);
   const fs = (px: number) => px;   // 항등 — 실제 배율은 전역 패치가 적용
-  return { scale, setScale, fs };
+  /**
+   * ★레이아웃 치수 스케일(daniel 2026-07-29 "글자크기 중간·큰 사이즈인데 둘다 짤려").
+   *   fs() 를 항등으로 바꾼 뒤 **글자만 커지고 그 글자를 담는 상자는 그대로**여서 넘쳤다
+   *   (지장간 원: 글자는 전역 패치로 12→17px 인데 원 지름은 fs(12)+8=20 에 고정).
+   *   → **fontSize 는 fs(전역 패치가 곱함) · width/height/borderRadius 등 치수는 ls(여기서 곱함)** 로 나눈다.
+   *   ⚠️치수에 fs() 를 쓰면 안 커진다. 글자를 담는 상자는 반드시 ls().
+   */
+  const ls = (px: number) => Math.round(px * scale);
+  return { scale, setScale, fs, ls };
 }

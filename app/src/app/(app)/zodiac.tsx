@@ -22,7 +22,7 @@ import { useLogContentVisit } from '../../lib/backend/contentVisit'; // 콘텐�
 export default function ZodiacScreen() {
   useLogContentVisit('zodiac'); // 진입 1회 방문 기록(daniel 2026-07-06)
   const { t } = useTranslation();
-  const { fs } = useFontScale();
+  const { fs, ls } = useFontScale();
   const [tab, setTab] = useState<'animal' | 'sign'>('animal');
   const [me, setMe] = useState<ChartInput | null>(null);
 
@@ -70,7 +70,7 @@ export default function ZodiacScreen() {
                 <Text style={[styles.cardLabel, mine && styles.cardLabelMine]}>{it.label}</Text>
                 {mine && <Text style={styles.mineBadge}>{t('zodiac.mine', '내 운세')}</Text>}
               </View>
-              <Text style={[styles.cardText, { fontSize: fs(14), lineHeight: fs(22) }]}>{it.text}</Text>
+              <Text style={[styles.cardText, { fontSize: fs(14), lineHeight: ls(22) }]}>{it.text}</Text>
             </View>
           );
         })}

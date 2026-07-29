@@ -107,7 +107,7 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
   }, [activeTab]);
 
   const c = useMemo(() => (input ? computeChart(input) : null), [input]);
-  const { fs } = useFontScale();                          // 글자 크기(설정)
+  const { fs, ls } = useFontScale();                          // 글자 크기(설정)
   const styles = useMemo(() => makeStyles(fs), [fs]);     // fs 적용 스타일 — 명식 글자 포함 모든 텍스트 스케일
   if (!c) return <View style={styles.center}><Text style={font.body}>{t('myeongsik.noChart')}</Text></View>;
 
@@ -525,7 +525,7 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
             {gyeok.map((g, i) => (
               <View key={i} style={styles.gyeokCard}>
                 <Text style={styles.gyeokName}>{g.name} <Text style={styles.gyeokHanja}>{g.hanja}</Text></Text>
-                <Text style={[styles.gyeokDesc, { fontSize: fs(13), lineHeight: fs(19) }]}>{g.desc}</Text>
+                <Text style={[styles.gyeokDesc, { fontSize: fs(13), lineHeight: ls(19) }]}>{g.desc}</Text>
               </View>
             ))}
           </View>
@@ -797,7 +797,7 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
                       {(['여기', '중기', '본기'] as const).map((role, k) => {
                         const h = col.hidden.find((x: any) => x.role === role);
                         return (
-                          <Text key={k} style={[styles.expHiddenTx, { fontSize: Math.round(fs(12) * scale), lineHeight: Math.round(fs(15) * scale) }, h ? { color: elementColor[stemElement(h.stem)] } : { color: colors.line }]}>{h ? h.stem : '·'}</Text>
+                          <Text key={k} style={[styles.expHiddenTx, { fontSize: ls(12), lineHeight: ls(15) }, h ? { color: elementColor[stemElement(h.stem)] } : { color: colors.line }]}>{h ? h.stem : '·'}</Text>
                         );
                       })}
                     </View>
@@ -1326,16 +1326,9 @@ const makeStyles = (fs: (n: number) => number) => { const f = scaledFont(fs); re
   ptGzKo: { fontSize: fs(9), fontWeight: '700', lineHeight: fs(10), opacity: 0.85 },
   ptHidWrap: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 2 },
   ptHid: { fontSize: fs(12), fontWeight: '700', textDecorationLine: 'none', textDecorationStyle: 'dotted' },
-  // ★동그라미를 글자 크기에서 파생시킨다(daniel 2026-07-28 IMG_8266 "글씨 크기에 따라 동그라미 사이즈도 안맞아").
-  //   종전엔 글자만 fs(12) 로 커지고 원은 borderRadius 9·padding 3 으로 **고정**이라,
-  //   글자 크기를 키우면 한자가 원 밖으로 삐져나왔다(overflow:'hidden' 이라 잘려 보이기까지 했다).
-  //   원 = 글자 높이 + 여백으로 계산 → 어떤 배율에서도 글자를 감싼다.
-  ptHidRooted: {
-    borderWidth: 1, borderColor: colors.ju, textDecorationLine: 'none',
-    minWidth: fs(12) + 8, height: fs(12) + 8, borderRadius: (fs(12) + 8) / 2,
-    lineHeight: fs(12) + 8,          // 세로 중앙 정렬(Text 에 height 를 줄 때의 정석)
-    textAlign: 'center', paddingHorizontal: 2,
-  }, // 투출(透出) 지장간 = 동그라미 강조
+  // ⚠️ptHidRooted 제거(daniel 2026-07-29) — **어디서도 쓰이지 않는 죽은 스타일**이었다(grep 0건).
+  //   게다가 치수를 fs() 로 계산해 배율을 못 받는 형태였다(fs 는 2026-07-29 부터 항등 —
+  //   글자는 전역 패치로 커지는데 상자는 그대로여서 넘친다). 살릴 거면 ls() 로 다시 쓴다.
   ptStageLink: { fontSize: fs(11), color: colors.inkSoft, fontWeight: '600', textAlign: 'center', textDecorationLine: 'none', textDecorationStyle: 'dotted' },
   ptSsLink: { fontSize: fs(9), color: colors.ju, fontWeight: '600', lineHeight: fs(13), textAlign: 'center', textDecorationLine: 'none', textDecorationStyle: 'dotted' },
   ptSsBase: { fontSize: fs(7), color: colors.inkFaint, fontWeight: '400', textDecorationLine: 'none' },

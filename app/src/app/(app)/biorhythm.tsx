@@ -16,14 +16,14 @@ import { colors, space, font } from '../../lib/theme';
 
 export default function BiorhythmScreen() {
   useLogContentVisit('biorhythm');
-  const { fs } = useFontScale();
+  const { fs, ls } = useFontScale();
   return (
     <View style={styles.bg}>
       <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>
         <Text style={[styles.h, { fontSize: fs(26) }]}>바이오리듬</Text>
         <Text style={[styles.sub, { fontSize: fs(13) }]}>태어난 날부터 이어지는 신체·감정·지성의 주기예요.</Text>
         <BiorhythmCard />
-        <Text style={[styles.note, { fontSize: fs(12), lineHeight: fs(19) }]}>
+        <Text style={[styles.note, { fontSize: fs(12), lineHeight: ls(19) }]}>
           ※ 바이오리듬은 생년월일의 고정 주기(신체 23일·감정 28일·지성 33일)로 계산하는 부가 콘텐츠예요.
           사주 풀이와는 별개이니 가볍게 참고해 주세요.
         </Text>

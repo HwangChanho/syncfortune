@@ -50,7 +50,7 @@ import { useLogContentVisit } from '../../lib/backend/contentVisit'; // 콘텐�
 export default function TodayScreen() {
   useLogContentVisit('daily'); // 진입 1회 방문 기록(daniel 2026-07-06)
   const { t } = useTranslation();
-  const { fs } = useFontScale();
+  const { fs, ls } = useFontScale();
   const router = useRouter();
   const { session } = useAuth();
   const { isPremium } = useSubscription();
@@ -205,7 +205,7 @@ export default function TodayScreen() {
                   <><ActivityIndicator color={colors.ju} /><Text style={styles.genWait}>{t('today.generating', '오늘의 흐름을 풀어내는 중…')}</Text></>
                 ) : (
                   // daniel #17: 신규 '투자' 영역이 구(舊) 캐시엔 없을 수 있음 → '실패' 대신 중립 안내
-                  <Text style={[styles.readTx, { fontSize: fs(15), lineHeight: fs(26) }]}>{shown?.[area] || t('today.areaSoon', '이 분야 풀이는 다음 운세부터 채워져요.')}</Text>
+                  <Text style={[styles.readTx, { fontSize: fs(15), lineHeight: ls(26) }]}>{shown?.[area] || t('today.areaSoon', '이 분야 풀이는 다음 운세부터 채워져요.')}</Text>
                 )}
               </View>
             </Reveal>

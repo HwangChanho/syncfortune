@@ -22,7 +22,7 @@ import { useLogContentVisit } from '../../lib/backend/contentVisit'; // 콘텐�
 export default function CountryScreen() {
   useLogContentVisit('country'); // 진입 1회 방문 기록(daniel 2026-07-06)
   const { t } = useTranslation();
-  const { fs } = useFontScale();
+  const { fs, ls } = useFontScale();
   const router = useRouter();
   const [saved, setSaved] = useState<SavedChart | null>(null);
   const [loaded, setLoaded] = useState(false);
@@ -42,7 +42,7 @@ export default function CountryScreen() {
       <Text style={styles.flag}>{c.flag}</Text>
       <View style={{ flex: 1 }}>
         <Text style={styles.name}>{c.name}</Text>
-        <Text style={[styles.reason, { fontSize: fs(13), lineHeight: fs(19) }]}>{c.reason}</Text>
+        <Text style={[styles.reason, { fontSize: fs(13), lineHeight: ls(19) }]}>{c.reason}</Text>
       </View>
     </View>
   );
@@ -65,7 +65,7 @@ export default function CountryScreen() {
           <>
             <View style={[styles.card, styles.headCard]}>
               <Text style={styles.johuBadge}>조후: {fit.johu} (따뜻 {fit.warm} · 차가움 {fit.cold})</Text>
-              {emph(fit.headline, [styles.headline, { fontSize: fs(15), lineHeight: fs(24) }])}
+              {emph(fit.headline, [styles.headline, { fontSize: fs(15), lineHeight: ls(24) }])}
             </View>
             <Text style={styles.h}>살기 좋은 곳</Text>
             <View style={styles.card}>{fit.recommend.map((c) => card(c, 'rec'))}</View>

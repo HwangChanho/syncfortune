@@ -27,7 +27,7 @@ import { colors, radius, space, font, shadow } from '../../lib/theme';
 import { useTranslation } from 'react-i18next';
 
 export default function CoinsScreen() {
-  const { fs } = useFontScale();
+  const { fs, ls } = useFontScale();
   const { t } = useTranslation();
   const router = useRouter();
   const { session } = useAuth();
@@ -102,7 +102,7 @@ export default function CoinsScreen() {
           <AdFreeSection onDone={() => void reload()} />
         </View>
 
-        <Text style={[styles.note, { fontSize: fs(12), lineHeight: fs(19) }]}>
+        <Text style={[styles.note, { fontSize: fs(12), lineHeight: ls(19) }]}>
           {t('coins.note', '· 코인은 모든 유료 풀이에 쓸 수 있어요.\n· 충전한 코인은 계정에 보관돼요 — 기기를 바꿔도 그대로예요.\n· 코인은 사용 기한이 없어요.')}
         </Text>
       </ScrollView>

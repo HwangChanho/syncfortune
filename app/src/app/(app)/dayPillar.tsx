@@ -48,7 +48,7 @@ function sectionList(sex: '남' | '여'): { tk: string; field: keyof DayPillarTr
 export default function DayPillarScreen() {
   useLogContentVisit('dayPillar'); // 진입 1회 방문 기록(daniel 2026-07-06)
   const { t } = useTranslation();
-  const { fs } = useFontScale();
+  const { fs, ls } = useFontScale();
   const [rep, setRep] = useState<SavedChart | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [sex, setSex] = useState<'남' | '여'>('남');       // 보기 성별 — 대표 명식 성별로 초기화
@@ -95,7 +95,7 @@ export default function DayPillarScreen() {
   }, [myKey, emblemIn]);
 
   const toggle = (k: string) => setOpen((prev) => { const n = new Set(prev); n.has(k) ? n.delete(k) : n.add(k); return n; });
-  const bodyDyn = { fontSize: fs(15), lineHeight: fs(25) };
+  const bodyDyn = { fontSize: fs(15), lineHeight: ls(25) };
 
   // 한 일주의 전체 섹션 렌더. sx = 성별 기준(관리자=토글 sex / 일반=각 명식 성별).
   const renderSections = (k: string, sx: '남' | '여' = sex) => {

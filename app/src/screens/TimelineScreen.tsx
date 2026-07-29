@@ -57,7 +57,7 @@ export function TimelineScreen({ input, savedChart }: { input: ChartInput | null
   const { t } = useTranslation();
   const { session } = useAuth();
   const { isPremium } = useSubscription();
-  const { fs } = useFontScale();
+  const { fs, ls } = useFontScale();
   const c = useMemo(() => (input ? computeChart(input) : null), [input]);
   const nowYear = new Date().getFullYear();
   const birthYear = input ? parseInt(String(input.birthDateTime).slice(0, 4), 10) : 0;
@@ -250,7 +250,7 @@ export function TimelineScreen({ input, savedChart }: { input: ChartInput | null
   // 카드의 카테고리 칩 선택값(기본 general)
   const catOf = (key: string): CatKey => catByKey[key] ?? 'general';
 
-  const bodyDyn = { fontSize: fs(15), lineHeight: fs(25) };
+  const bodyDyn = { fontSize: fs(15), lineHeight: ls(25) };
   const decadeLabel = decades.find((d) => d.key === selDecade)?.label ?? '';
   const yearLabel = selYear.startsWith('year_') ? `${selYear.slice(5)}년` : '';
 
@@ -288,7 +288,7 @@ export function TimelineScreen({ input, savedChart }: { input: ChartInput | null
       return (
         <View style={[styles.card, styles.lockCard]}>
           <Text style={[styles.lockH, { fontSize: fs(15) }]}>🔒 {t('timeline.lockedTitle')}</Text>
-          <Text style={[styles.lockSub, { fontSize: fs(12), lineHeight: fs(19) }]}>{t('timeline.lockedSub')}</Text>
+          <Text style={[styles.lockSub, { fontSize: fs(12), lineHeight: ls(19) }]}>{t('timeline.lockedSub')}</Text>
           <PressableScale style={styles.unlockBtn} onPress={() => startGen(key)}>
             <Text style={[styles.unlockBtnTx, { fontSize: fs(15) }]}>{t('timeline.unlock')}</Text>
           </PressableScale>
@@ -328,7 +328,7 @@ export function TimelineScreen({ input, savedChart }: { input: ChartInput | null
         {expiryNote}
         {/* 이슈19 소제목 — 이 시기 통변의 headline 있으면 통변 표시 맨 위에 한 줄 강조 */}
         {typeof r.headline === 'string' && r.headline.trim() ? (
-          <Text style={{ fontSize: fs(19), fontWeight: '800', color: colors.ju, marginBottom: space(3), lineHeight: fs(26) }}>{r.headline}</Text>
+          <Text style={{ fontSize: fs(19), fontWeight: '800', color: colors.ju, marginBottom: space(3), lineHeight: ls(26) }}>{r.headline}</Text>
         ) : null}
         {/* 카테고리 칩 — 대운 5 / 연운 8 */}
         <View style={styles.chips}>
@@ -378,7 +378,7 @@ export function TimelineScreen({ input, savedChart }: { input: ChartInput | null
       {/* 풀이 공개 순간 골드 명조 문 열림 영상 — 1회 재생 후 페이드아웃하며 풀이 노출(daniel 07-06) */}
       <DoorReveal visible={doorPlaying} onDone={() => setDoorPlaying(false)} />
       <Text style={[styles.h, { fontSize: fs(22) }]}>{t('reading.timelineTitle')}</Text>
-      <Text style={[styles.sub, { fontSize: fs(12), lineHeight: fs(19) }]}>{t('reading.timelineSub')}</Text>
+      <Text style={[styles.sub, { fontSize: fs(12), lineHeight: ls(19) }]}>{t('reading.timelineSub')}</Text>
 
       {/* 무료 결정론 티저 — 유료 연도별 풀이 '위'에 대운 흐름 스트립(온디바이스·API 0). 아래 유료 카드로 자연 유도 */}
       {c.saju ? <TimelineTeaser saju={c.saju} /> : null}

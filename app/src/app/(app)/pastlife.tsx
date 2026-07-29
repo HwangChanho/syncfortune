@@ -56,7 +56,7 @@ export default function PastLifeScreen() {
   useLogContentVisit('pastlife'); // 진입 1회 방문 기록(daniel 2026-07-06)
   const router = useRouter();
   const { t } = useTranslation();
-  const { fs } = useFontScale();
+  const { fs, ls } = useFontScale();
   const [me, setMe] = useState<ChartInput | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -88,10 +88,10 @@ export default function PastLifeScreen() {
           <Text style={styles.title}>{result.role}</Text>
           <Text style={styles.sub}>{result.era}</Text>
         </View>
-        <View style={styles.card}><Text style={[styles.body, { fontSize: fs(15), lineHeight: fs(26) }]}>{result.story}</Text></View>
+        <View style={styles.card}><Text style={[styles.body, { fontSize: fs(15), lineHeight: ls(26) }]}>{result.story}</Text></View>
         <View style={styles.card}>
           <Text style={styles.cardHead}>{t('pastlife.hint', '지금의 당신에게')}</Text>
-          <Text style={[styles.body, { fontSize: fs(15), lineHeight: fs(25) }]}>{result.hint}</Text>
+          <Text style={[styles.body, { fontSize: fs(15), lineHeight: ls(25) }]}>{result.hint}</Text>
         </View>
         {/* 풀이 음성 읽기(온디바이스 TTS·무료) — 전생 이야기·지금의 당신에게를 읽음 */}
         <TTSButton reading={result} />

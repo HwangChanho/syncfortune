@@ -40,7 +40,7 @@ type LightResult = {
 };
 
 export default function LightScreen() {
-  const { fs } = useFontScale();
+  const { fs, ls } = useFontScale();
   const router = useRouter();
   const [birthDate, setBirthDate] = useState('');
   const [calendar, setCalendar] = useState<'양' | '음'>('양');
@@ -119,7 +119,7 @@ export default function LightScreen() {
               <View style={styles.personaRow}>
                 <PersonaImage dayStem={result.dayStem} monthBranch={result.monthBranch} sex={sex} width={96} height={123} />
                 <View style={{ flex: 1 }}>
-                  <Text style={[styles.resName, { fontSize: fs(19), lineHeight: fs(26) }]}>{result.persona.name}</Text>
+                  <Text style={[styles.resName, { fontSize: fs(19), lineHeight: ls(26) }]}>{result.persona.name}</Text>
                   <View style={styles.chips}>
                     {result.persona.keywords.slice(0, 3).map((k) => (
                       <View key={k} style={styles.chip}><Text style={[styles.chipTx, { fontSize: fs(11.5) }]}>{k}</Text></View>
@@ -127,7 +127,7 @@ export default function LightScreen() {
                   </View>
                 </View>
               </View>
-              <Text style={[styles.body, { fontSize: fs(14), lineHeight: fs(22) }]}>{result.persona.summary}</Text>
+              <Text style={[styles.body, { fontSize: fs(14), lineHeight: ls(22) }]}>{result.persona.summary}</Text>
               {/* ★공유 — 받는 사람이 **웹에서 바로 결과를 본다**(유료 풀이 공유와 다른 경로).
                   생년월일·이름·시각은 링크에 담기지 않는다(유형 키+성별뿐 — 생일 역산 차단). */}
               <PressableScale style={styles.shareBtn} onPress={() => {
@@ -158,15 +158,15 @@ export default function LightScreen() {
                     <View key={k} style={styles.chip}><Text style={[styles.chipTx, { fontSize: fs(11.5) }]}>{k}</Text></View>
                   ))}
                 </View>
-                <Text style={[styles.body, { fontSize: fs(14), lineHeight: fs(22) }]}>{result.ilju.trait.personality}</Text>
+                <Text style={[styles.body, { fontSize: fs(14), lineHeight: ls(22) }]}>{result.ilju.trait.personality}</Text>
               </View>
             ) : null}
 
             {/* ③ 전환 — ★이 문구는 마케팅이 아니라 **사실**이다(위 §명리 제약).
                 오늘 기운·궁합·시기는 4주 전부를 보기 때문에 시주 없이는 정확할 수 없다. */}
             <View style={styles.moreCard}>
-              <Text style={[styles.moreH, { fontSize: fs(15.5), lineHeight: fs(23) }]}>태어난 시간까지 넣으면 더 정확해져요</Text>
-              <Text style={[styles.moreBody, { fontSize: fs(13.5), lineHeight: fs(21) }]}>
+              <Text style={[styles.moreH, { fontSize: fs(15.5), lineHeight: ls(23) }]}>태어난 시간까지 넣으면 더 정확해져요</Text>
+              <Text style={[styles.moreBody, { fontSize: fs(13.5), lineHeight: ls(21) }]}>
                 여기까지는 태어난 날만으로 볼 수 있는 부분이에요. 오늘의 기운·궁합·시기 흐름은 태어난 시간이 있어야 제대로 나와요.
               </Text>
               <PressableScale style={styles.moreCta} onPress={toRegister}>

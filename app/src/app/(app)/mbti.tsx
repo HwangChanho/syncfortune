@@ -35,7 +35,7 @@ function AxisBar({ score }: { score: number }) {
 export default function MbtiScreen() {
   useLogContentVisit('mbti'); // 진입 1회 방문 기록(daniel 2026-07-06)
   const { t } = useTranslation();
-  const { fs } = useFontScale();
+  const { fs, ls } = useFontScale();
   const [me, setMe] = useState<ChartInput | null>(null);
 
   useFocusEffect(useCallback(() => {
@@ -62,7 +62,7 @@ export default function MbtiScreen() {
               <View style={styles.typeCard}>
                 <Text style={styles.typeBig}>{r.type}</Text>
                 <Text style={styles.typeNick}>{r.nickname}</Text>
-                <Text style={[styles.typeSummary, { fontSize: fs(14), lineHeight: fs(21) }]}>{r.summary}</Text>
+                <Text style={[styles.typeSummary, { fontSize: fs(14), lineHeight: ls(21) }]}>{r.summary}</Text>
               </View>
             </Reveal>
 
@@ -76,7 +76,7 @@ export default function MbtiScreen() {
                       <AxisBar score={a.score} />
                       <Text style={[styles.axisEnd, a.letter === R && styles.axisOn]}>{R}</Text>
                     </View>
-                    <Text style={[styles.axisReason, { fontSize: fs(13), lineHeight: fs(20) }]}>{a.reason}</Text>
+                    <Text style={[styles.axisReason, { fontSize: fs(13), lineHeight: ls(20) }]}>{a.reason}</Text>
                   </View>
                 </Reveal>
               );

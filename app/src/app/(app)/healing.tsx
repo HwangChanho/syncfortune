@@ -34,7 +34,7 @@ export default function HealingScreen() {
   useLogContentVisit('healing'); // 진입 1회 방문 기록(daniel 2026-07-06)
   const router = useRouter();
   const { t } = useTranslation();
-  const { fs } = useFontScale();
+  const { fs, ls } = useFontScale();
   const [me, setMe] = useState<ChartInput | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -47,7 +47,7 @@ export default function HealingScreen() {
 
   const r: HealingResult | null = useMemo(() => (me ? healingMethod(computeChart(me).saju) : null), [me]);
 
-  const bodyDyn = { fontSize: fs(15), lineHeight: fs(25) };
+  const bodyDyn = { fontSize: fs(15), lineHeight: ls(25) };
 
   if (loading) return <View style={styles.center}><ActivityIndicator color={colors.ju} /></View>;
   if (!r) return (

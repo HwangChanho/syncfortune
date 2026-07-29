@@ -22,7 +22,7 @@ export type GlossaryTarget = { kind: GlossaryKind; key: string } | null;
  * @param onClose 닫기 콜백
  */
 export function GlossarySheet({ target, onClose }: { target: GlossaryTarget; onClose: () => void }) {
-  const { fs } = useFontScale();
+  const { fs, ls } = useFontScale();
   const entry = target ? lookupGlossary(target.kind, target.key) : null;
   return (
     <Modal visible={!!target} transparent animationType="slide" onRequestClose={onClose}>
@@ -34,7 +34,7 @@ export function GlossarySheet({ target, onClose }: { target: GlossaryTarget; onC
             <>
               <Text style={[styles.kind, { fontSize: fs(12) }]}>{GLOSSARY_KIND_LABEL[target!.kind]}</Text>
               <Text style={[styles.title, { fontSize: fs(20) }]}>{entry.ko}{entry.hanja ? `   ${entry.hanja}` : ''}</Text>
-              <Text style={[styles.meaning, { fontSize: fs(15), lineHeight: Math.round(fs(15) * 1.7) }]}>{entry.meaning}</Text>
+              <Text style={[styles.meaning, { fontSize: fs(15), lineHeight: Math.round(ls(15) * 1.7) }]}>{entry.meaning}</Text>
               {entry.keywords?.length ? (
                 <View style={styles.chips}>
                   {entry.keywords.map((k, i) => <Text key={i} style={[styles.chip, { fontSize: fs(12) }]}>{k}</Text>)}

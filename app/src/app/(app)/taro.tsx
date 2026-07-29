@@ -56,7 +56,7 @@ export default function TaroScreen() {
   const flips = useRef<Record<number, Animated.Value>>({}).current;
   const flipped = useRef<Set<number>>(new Set()).current;
   const today = todayStr();
-  const { fs } = useFontScale();
+  const { fs, ls } = useFontScale();
   const styles = useMemo(() => makeStyles(fs), [fs]);
 
   // 주제 선택: 그 주제의 오늘 결과가 있으면 복원(고정), 없으면 새로 섞는다.

@@ -23,7 +23,7 @@ import { useLogContentVisit } from '../../lib/backend/contentVisit'; // 콘텐�
 export default function PetScreen() {
   useLogContentVisit('pet'); // 진입 1회 방문 기록(daniel 2026-07-06)
   const { t } = useTranslation();
-  const { fs } = useFontScale();
+  const { fs, ls } = useFontScale();
   const [pets, setPets] = useState<SavedPet[]>([]);
   const [selId, setSelId] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
@@ -107,7 +107,7 @@ export default function PetScreen() {
     ]);
   }
 
-  const bodyDyn = { fontSize: fs(15), lineHeight: fs(24) };
+  const bodyDyn = { fontSize: fs(15), lineHeight: ls(24) };
 
 
   return (

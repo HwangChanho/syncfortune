@@ -38,7 +38,7 @@ function EgenBar({ score }: { score: number }) {
 export default function EgenTetoScreen() {
   useLogContentVisit('egen'); // 진입 1회 방문 기록(daniel 2026-07-06)
   const { t } = useTranslation();
-  const { fs } = useFontScale();
+  const { fs, ls } = useFontScale();
   const router = useRouter();
   const [saved, setSaved] = useState<SavedChart | null>(null);
   const [result, setResult] = useState<EgenTetoResult | null>(null); // 온디바이스 점수(즉시)
@@ -110,7 +110,7 @@ export default function EgenTetoScreen() {
                   reading[k] ? (
                     <View key={k} style={styles.secCard}>
                       <Text style={styles.secTitle}>{t(`egen.${lk}`)}</Text>
-                      <Text style={[styles.readTx, { fontSize: fs(15), lineHeight: fs(25) }]}>{reading[k]}</Text>
+                      <Text style={[styles.readTx, { fontSize: fs(15), lineHeight: ls(25) }]}>{reading[k]}</Text>
                     </View>
                   ) : null,
                 )}

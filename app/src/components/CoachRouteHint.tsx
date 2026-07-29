@@ -42,7 +42,7 @@ const META: Record<string, { route: string; labelKey: string }> = (() => {
  */
 export function CoachRouteHint({ question, reloadKey }: { question: string; reloadKey?: number }) {
   const { t } = useTranslation();
-  const { fs } = useFontScale();
+  const { fs, ls } = useFontScale();
   const router = useRouter();
   const [route, setRoute] = useState<CoachRoute | null>(null);
 
@@ -77,7 +77,7 @@ export function CoachRouteHint({ question, reloadKey }: { question: string; relo
     <PressableScale style={styles.wrap} onPress={() => router.push(meta.route as any)}>
       <View style={{ flex: 1 }}>
         <Text style={[styles.reason, { fontSize: fs(11.5) }]}>{route.reason}</Text>
-        <Text style={[styles.title, { fontSize: fs(14), lineHeight: fs(20) }]}>
+        <Text style={[styles.title, { fontSize: fs(14), lineHeight: ls(20) }]}>
           {route.owned
             ? `${label} 이어서 보기`
             : `${label} 에서 더 깊이 볼 수 있어요`}

@@ -14,7 +14,7 @@ import { useFontScale } from '../lib/ui/fontScale';
 import { stemElement, branchElement, elementColor, elementText, stemReading, branchReading } from '../lib/engine/ohaeng';
 
 export function GzCell({ char, kind, size, scale = 1, onPress, hangeul }: { char: string; kind: 'stem' | 'branch'; size: 'sm' | 'xs'; scale?: number; onPress?: () => void; hangeul?: boolean }) {
-  const { fs } = useFontScale();
+  const { fs, ls } = useFontScale();
   const styles = useMemo(() => makeStyles(fs), [fs]); // 글자 크기 적용(명식 간지 글자)
   const el = kind === 'stem' ? stemElement(char) : branchElement(char);
   const ko = kind === 'stem' ? stemReading(char) : branchReading(char);
@@ -23,14 +23,19 @@ export function GzCell({ char, kind, size, scale = 1, onPress, hangeul }: { char
   const baseW = fs(size === 'sm' ? 43 : 39), baseF = fs(size === 'sm' ? 22 : 19), baseLH = fs(size === 'sm' ? 26 : 22); // ★크기↑(daniel 07-24)
   const cellDyn = scale !== 1 ? { width: Math.round(baseW * scale) } : { width: Math.round(baseW) };
   const textDyn = scale !== 1 ? { fontSize: Math.round(baseF * scale), lineHeight: Math.round(baseLH * scale) } : null;
-  const koDyn = scale !== 1 ? { fontSize: Math.round(fs(11) * scale), lineHeight: Math.round(fs(13) * scale) } : null; // 한글음도 크기↑(daniel 07-24)
+  const koDyn = scale !== 1 ? { fontSize: ls(11), lineHeight: ls(13) } : null; // 한글음도 크기↑(daniel 07-24)
   // ★한글 모드(daniel 2026-07-24) = 한글음(갑·자)을 주(主)로, 한자는 아래 작게(스왑). 기본=한자 주.
   const main = hangeul ? ko : char;
   const subv = hangeul ? char : ko;
   const inner = (
     <View style={[size === 'sm' ? styles.gzCellSm : styles.gzCellXs, cellDyn, { backgroundColor: elementColor[el] }]}>
-      <Text style={[size === 'sm' ? styles.gzTextSm : styles.gzTextXs, textDyn, txt]}>{main}</Text>
-      <Text style={[styles.gzKo, koDyn, txt]}>{subv}</Text>
+      {/* ★numberOfLines={1} 필수(daniel 2026-07-29 "글자크기가 너무 위아래로 길어").
+          전역 줄간격 보정(installMinLineHeight)은 **줄이 감기는 텍스트**를 위한 것이라
+          fontSize 의 1.25~1.5 배를 바닥값으로 깐다. 그런데 간지는 **한 글자**라 줄간격이 필요 없고,
+          그 보정이 그대로 셀 높이가 되어 상자가 세로로 길쭉해졌다.
+          numberOfLines={1} 이면 보정이 **건너뛴다**(그 규칙이 이미 들어 있다). */}
+      <Text numberOfLines={1} style={[size === 'sm' ? styles.gzTextSm : styles.gzTextXs, textDyn, txt]}>{main}</Text>
+      <Text numberOfLines={1} style={[styles.gzKo, koDyn, txt]}>{subv}</Text>
     </View>
   );
   return onPress ? <PressableScale onPress={onPress}>{inner}</PressableScale> : inner;

@@ -40,7 +40,7 @@ export default function JoseonJobScreen() {
   useLogContentVisit('joseonjob'); // 진입 1회 방문 기록(daniel 2026-07-06)
   const router = useRouter();
   const { t } = useTranslation();
-  const { fs } = useFontScale(); // 본문(읽는 글) 글자 크기 전역 배율
+  const { fs, ls } = useFontScale(); // 본문(읽는 글) 글자 크기 전역 배율
   const [me, setMe] = useState<ChartInput | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -80,7 +80,7 @@ export default function JoseonJobScreen() {
             : <Text style={styles.emoji}>{result.emoji}</Text>}
           <Text style={styles.job}>{result.job}</Text>
           <Text style={styles.rank}>{result.rank}</Text>
-          <Text style={[styles.tagline, { fontSize: fs(15), lineHeight: fs(25) }]}>{result.tagline}</Text>
+          <Text style={[styles.tagline, { fontSize: fs(15), lineHeight: ls(25) }]}>{result.tagline}</Text>
         </View>
 
         {/* 타고난 강점 */}

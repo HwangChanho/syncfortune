@@ -33,7 +33,7 @@ export default function BokScreen() {
   useLogContentVisit('bok'); // 진입 1회 방문 기록(daniel 2026-07-06)
   const router = useRouter();
   const { t } = useTranslation();
-  const { fs } = useFontScale();
+  const { fs, ls } = useFontScale();
   const [me, setMe] = useState<ChartInput | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -63,10 +63,10 @@ export default function BokScreen() {
             : <Text style={styles.emoji}>{result.emoji}</Text>}
           <Text style={styles.title}>{result.bok}</Text>
         </View>
-        <View style={styles.card}><Text style={[styles.body, { fontSize: fs(15), lineHeight: fs(25) }]}>{result.desc}</Text></View>
+        <View style={styles.card}><Text style={[styles.body, { fontSize: fs(15), lineHeight: ls(25) }]}>{result.desc}</Text></View>
         <View style={styles.card}>
           <Text style={styles.cardHead}>{t('bok.how', '복을 키우는 법')}</Text>
-          <Text style={[styles.body, { fontSize: fs(15), lineHeight: fs(25) }]}>{result.how}</Text>
+          <Text style={[styles.body, { fontSize: fs(15), lineHeight: ls(25) }]}>{result.how}</Text>
         </View>
         {/* 이슈17: 타고난 복 결과 공유(앱게이트) */}
         <ShareReadingButton kind="bok" title="내 타고난 복" content={result} />

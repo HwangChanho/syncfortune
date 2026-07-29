@@ -43,7 +43,7 @@ export function personaFromRepChart(input: any): PersonaType | null {
 export function PersonaTypeHero({ reloadKey }: { reloadKey?: number }) {
   const router = useRouter();
   const { t } = useTranslation();
-  const { fs } = useFontScale();
+  const { fs, ls } = useFontScale();
   const [persona, setPersona] = useState<PersonaType | null>(null);
   const [sex, setSex] = useState<'남' | '여' | undefined>(undefined); // 성별 → PersonaImage 가 URL 조립
 
@@ -82,7 +82,7 @@ export function PersonaTypeHero({ reloadKey }: { reloadKey?: number }) {
         </View>
       </View>
 
-      <Text style={[styles.summary, { fontSize: fs(13.5), lineHeight: fs(22) }]} numberOfLines={3}>{persona.summary}</Text>
+      <Text style={[styles.summary, { fontSize: fs(13.5), lineHeight: ls(22) }]} numberOfLines={3}>{persona.summary}</Text>
       <Text style={styles.more}>{t('persona120.more', '자세히 보기')} ›</Text>
     </PressableScale>
   );

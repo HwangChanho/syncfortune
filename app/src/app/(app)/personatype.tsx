@@ -29,7 +29,7 @@ import { useLogContentVisit } from '../../lib/backend/contentVisit'; // 콘텐�
 export default function PersonaTypeScreen() {
   useLogContentVisit('personatype');
   const { t } = useTranslation();
-  const { fs } = useFontScale();
+  const { fs, ls } = useFontScale();
   const [me, setMe] = useState<ChartInput | null>(null);
 
   useFocusEffect(useCallback(() => {
@@ -73,7 +73,7 @@ export default function PersonaTypeScreen() {
                 <View style={styles.chips}>
                   {p.keywords.map((k) => <View key={k} style={styles.chip}><Text style={styles.chipTx}>{k}</Text></View>)}
                 </View>
-                <Text style={[styles.typeSummary, { fontSize: fs(14), lineHeight: fs(24) }]}>{p.summary}</Text>
+                <Text style={[styles.typeSummary, { fontSize: fs(14), lineHeight: ls(24) }]}>{p.summary}</Text>
               </View>
             </Reveal>
 
@@ -83,7 +83,7 @@ export default function PersonaTypeScreen() {
                 <View style={styles.axisCard}>
                   <Text style={styles.axisLabel}>{a.label}</Text>
                   <Text style={[styles.axisHead, { fontSize: fs(17) }]}>{a.head}</Text>
-                  <Text style={[styles.axisBody, { fontSize: fs(13.5), lineHeight: fs(20) }]}>{a.body}</Text>
+                  <Text style={[styles.axisBody, { fontSize: fs(13.5), lineHeight: ls(20) }]}>{a.body}</Text>
                 </View>
               </Reveal>
             ))}

@@ -46,7 +46,7 @@ export function DeepDiveCta({ kind, label, sub, onPress }: {
   kind: string; label: string; sub?: string; onPress: () => void;
 }) {
   const { t } = useTranslation();
-  const { fs } = useFontScale();
+  const { fs, ls } = useFontScale();
   const meta = META_BY_KIND[kind];
   const subTx = sub ?? (meta?.descKey ? (t(meta.descKey) as string) : undefined);
 
@@ -63,8 +63,8 @@ export function DeepDiveCta({ kind, label, sub, onPress }: {
     <PressableScale style={styles.card} onPress={onPress}>
       <ExpoImage source={meta.image} style={styles.thumb} contentFit="cover" cachePolicy="memory-disk" transition={120} />
       <View style={styles.body}>
-        <Text style={[styles.label, { fontSize: fs(15), lineHeight: Math.round(fs(15) * 1.4) }]} numberOfLines={2}>{label}</Text>
-        {subTx ? <Text style={[styles.sub, { fontSize: fs(12), lineHeight: Math.round(fs(12) * 1.4) }]} numberOfLines={2}>{subTx}</Text> : null}
+        <Text style={[styles.label, { fontSize: fs(15), lineHeight: Math.round(ls(15) * 1.4) }]} numberOfLines={2}>{label}</Text>
+        {subTx ? <Text style={[styles.sub, { fontSize: fs(12), lineHeight: Math.round(ls(12) * 1.4) }]} numberOfLines={2}>{subTx}</Text> : null}
       </View>
       <Text style={[styles.arrow, { fontSize: fs(20) }]}>›</Text>
     </PressableScale>

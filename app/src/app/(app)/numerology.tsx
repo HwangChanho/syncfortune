@@ -22,7 +22,7 @@ import { useLogContentVisit } from '../../lib/backend/contentVisit'; // 콘텐�
 export default function NumerologyScreen() {
   useLogContentVisit('numerology'); // 진입 1회 방문 기록(daniel 2026-07-06)
   const { t } = useTranslation();
-  const { fs } = useFontScale();
+  const { fs, ls } = useFontScale();
   const [rep, setRep] = useState<SavedChart | null>(null);
 
   // 대표 명식 로드(포커스마다 — 명식 전환 반영)
@@ -90,7 +90,7 @@ function NumCard({ label, big, kw, text, fs, hi }: { label: string; big: number;
         <Text style={[styles.bigNum, hi && { color: colors.ju, borderColor: colors.ju }]}>{disp}</Text>
         <View style={{ flex: 1 }}>
           <Text style={[styles.kw, { fontSize: fs(16) }]}>{kw}</Text>
-          <Text style={[styles.text, { fontSize: fs(14), lineHeight: fs(21) }]}>{text}</Text>
+          <Text style={[styles.text, { fontSize: fs(14), lineHeight: 21 }]}>{text}</Text>
         </View>
       </View>
     </View>

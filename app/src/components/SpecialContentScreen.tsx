@@ -101,7 +101,7 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
   const { chartId: chartIdParam } = useLocalSearchParams<{ chartId?: string }>(); // ★M1 재진입 바인딩(배너/푸시 route 의 chartId — 소비 라우트 공통)
   const { session } = useAuth();
   const { isPremium } = useSubscription();
-  const { fs } = useFontScale();
+  const { fs, ls } = useFontScale();
   const [savedChart, setSavedChart] = useState<SavedChart | null>(null);
   const [chartId, setChartId] = useState<string | null>(null);
   const [reading, setReading] = useState<any>(null);
@@ -443,18 +443,18 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
     ]);
   }
 
-  const bodyDyn = { fontSize: fs(15), lineHeight: fs(25) };
+  const bodyDyn = { fontSize: fs(15), lineHeight: ls(25) };
   // 동적 폰트 스케일이 필요한 StyleSheet 정적값 대체 — StyleSheet.create는 렌더 밖이라 fs()를 직접 쓸 수 없음.
   const dynStyles = {
     secLabel:    { fontSize: fs(16) },
-    groupTitle:  { fontSize: fs(18), lineHeight: fs(26) },
+    groupTitle:  { fontSize: fs(18), lineHeight: ls(26) },
     err:         { fontSize: fs(13) },
     msg:         { fontSize: fs(15) },                       // font.body 기본값
     gateTitle:   { fontSize: fs(17) },                       // font.heading 기본값
-    gateDesc:    { fontSize: fs(15), lineHeight: fs(22) },   // font.body + lineHeight
+    gateDesc:    { fontSize: fs(15), lineHeight: ls(22) },   // font.body + lineHeight
     gateNote:    { fontSize: fs(12) },                       // font.caption 기본값
     previewHead: { fontSize: fs(13) },
-    previewItem: { fontSize: fs(14), lineHeight: fs(24) },
+    previewItem: { fontSize: fs(14), lineHeight: ls(24) },
     ctaTx:       { fontSize: fs(16) },
   };
   const n = sections.length;
@@ -619,7 +619,7 @@ export function cardAnim(reveal: Animated.Value, i: number, n: number) {
 
 // 상단 히어로 — SVG 모티프(+선택적 이미지 배경) + 타이틀/부제 페이드인. love/newyear 등 다른 화면도 재사용(export).
 export function ContentHero({ motif, image, title, sub, themeColor = colors.ju }: { motif?: ReactNode; image?: any; title: string; sub: string; themeColor?: string }) {
-  const { fs } = useFontScale();
+  const { fs, ls } = useFontScale();
   const a = useRef(new Animated.Value(0)).current;
   const kb = useRef(new Animated.Value(0)).current; // 히어로 켄번스(느린 줌 인↔아웃) — 정적 이미지에 생동(daniel 재미)
   useEffect(() => { Animated.timing(a, { toValue: 1, duration: 700, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start(); }, [a]);
@@ -640,7 +640,7 @@ export function ContentHero({ motif, image, title, sub, themeColor = colors.ju }
     <View style={styles.heroInner}>
       {!image && motif}
       <Animated.Text style={[styles.heroTitle, { fontSize: fs(22) }, onImg && { color: colors.onImage }, titleAnim]}>{title}</Animated.Text>
-      <Animated.Text style={[styles.heroSub, { fontSize: fs(12), lineHeight: fs(19), opacity: a }, onImg && { color: colors.onImageSoft }]}>{sub}</Animated.Text>
+      <Animated.Text style={[styles.heroSub, { fontSize: fs(12), lineHeight: ls(19), opacity: a }, onImg && { color: colors.onImageSoft }]}>{sub}</Animated.Text>
     </View>
   );
   if (image) return (
@@ -658,7 +658,7 @@ export function ContentHero({ motif, image, title, sub, themeColor = colors.ju }
 
 // 무료 티어 미리보기 카드 — 온디바이스 결정론 기본값(수비학 생명수·점성술 빅3)을 키:값 줄로. 유료=LLM 심층(하이브리드 hook).
 export function FreeBasics({ title, rows, color = colors.ju }: { title: string; rows: [string, string | number][]; color?: string }) {
-  const { fs } = useFontScale();
+  const { fs, ls } = useFontScale();
   return (
     <View style={{ width: '100%', backgroundColor: colors.sunk, borderRadius: radius.md, padding: space(4), marginBottom: space(4) }}>
       <Text style={{ fontSize: fs(13), fontWeight: '800', color, marginBottom: space(2), letterSpacing: 0.5 }}>{title}</Text>

@@ -40,7 +40,7 @@ const CARD_H = 158;   // 타로 비율(≈0.58)
  * @param seed 이 카드를 고정할 키 — 보통 질문 원문. 같은 seed = 같은 날 = 같은 카드.
  */
 export function CoachTarotCard({ seed }: { seed: string }) {
-  const { fs } = useFontScale();
+  const { fs, ls } = useFontScale();
   const [open, setOpen] = useState(false);
   const flip = useRef(new Animated.Value(0)).current;
 
@@ -98,12 +98,12 @@ export function CoachTarotCard({ seed }: { seed: string }) {
               <Text style={[styles.name, { fontSize: fs(14) }]}>
                 {pick.card.ko}{pick.reversed ? ' (역방향)' : ''}
               </Text>
-              <Text style={[styles.meaning, { fontSize: fs(13), lineHeight: fs(20) }]}>{meaning}</Text>
+              <Text style={[styles.meaning, { fontSize: fs(13), lineHeight: ls(20) }]}>{meaning}</Text>
               {/* 성격을 분명히 — 위 코치 답(사주·자미)과 **다른 재미 레이어**임을 감춘 채 섞지 않는다 */}
               <Text style={[styles.note, { fontSize: fs(11) }]}>위 이야기와 별개로, 오늘 재미로 뽑은 한 장이에요.</Text>
             </>
           ) : (
-            <Text style={[styles.hint, { fontSize: fs(13), lineHeight: fs(20) }]}>카드를 눌러 뒤집어 보세요.</Text>
+            <Text style={[styles.hint, { fontSize: fs(13), lineHeight: ls(20) }]}>카드를 눌러 뒤집어 보세요.</Text>
           )}
         </View>
       </View>

@@ -33,7 +33,7 @@ export default function TraitsScreen() {
   }, []));
 
   const c = useMemo(() => (me ? computeChart(me) : null), [me]);
-  const { fs } = useFontScale();                       // 글자 크기(설정)
+  const { fs, ls } = useFontScale();                       // 글자 크기(설정)
   const styles = useMemo(() => makeStyles(fs), [fs]);  // fs 적용 — 모든 글자 스케일
 
   if (loading) return <View style={styles.center}><ActivityIndicator color={colors.ju} /></View>;

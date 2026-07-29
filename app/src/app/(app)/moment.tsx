@@ -24,7 +24,7 @@ import type { Stem, Branch } from '@spec/chart';
 
 export default function MomentScreen() {
   useLogContentVisit('moment');
-  const { fs } = useFontScale();
+  const { fs, ls } = useFontScale();
   const today = useMemo(() => getDailyFortune(0), []);
   const lucky = useMemo<LuckyToday | null>(() => { try { return luckyToday(); } catch { return null; } }, [today]);
   const [data, setData] = useState<DecisionToday | null>(null);
@@ -72,8 +72,8 @@ export default function MomentScreen() {
             {moment ? (
               <View style={styles.momentCard}>
                 <Text style={[styles.momentKicker, { fontSize: fs(11) }]}>오늘의 모먼트</Text>
-                <Text style={[styles.momentTitle, { fontSize: fs(19), lineHeight: fs(27) }]}>{moment.title}</Text>
-                <Text style={[styles.momentBody, { fontSize: fs(14), lineHeight: fs(22) }]}>{moment.body}</Text>
+                <Text style={[styles.momentTitle, { fontSize: fs(19), lineHeight: ls(27) }]}>{moment.title}</Text>
+                <Text style={[styles.momentBody, { fontSize: fs(14), lineHeight: ls(22) }]}>{moment.body}</Text>
               </View>
             ) : null}
 
@@ -87,8 +87,8 @@ export default function MomentScreen() {
                   </View>
                 ) : null}
               </View>
-              <Text style={[styles.title, { fontSize: fs(17), lineHeight: fs(24) }]}>{data.title}</Text>
-              <Text style={[styles.reason, { fontSize: fs(13.5), lineHeight: fs(21) }]}>{data.reason}</Text>
+              <Text style={[styles.title, { fontSize: fs(17), lineHeight: ls(24) }]}>{data.title}</Text>
+              <Text style={[styles.reason, { fontSize: fs(13.5), lineHeight: ls(21) }]}>{data.reason}</Text>
 
               {/* 유형별 — 상세 화면이라 처음부터 전부 펼침(홈 카드는 접힘) */}
               <View style={styles.list}>
@@ -101,7 +101,7 @@ export default function MomentScreen() {
                       </View>
                       <View style={{ flex: 1 }}>
                         <Text style={[styles.rowLabel, { fontSize: fs(14) }]}>{it.label}</Text>
-                        <Text style={[styles.rowTip, { fontSize: fs(12.5), lineHeight: fs(19) }]}>{it.tip}</Text>
+                        <Text style={[styles.rowTip, { fontSize: fs(12.5), lineHeight: ls(19) }]}>{it.tip}</Text>
                       </View>
                     </View>
                   );
@@ -114,7 +114,7 @@ export default function MomentScreen() {
               <View style={styles.card}>
                 <Text style={[styles.cardH, { fontSize: fs(15), marginBottom: space(2) }]}>오늘 걸린 신호</Text>
                 {data.signals.map((sg) => (
-                  <Text key={sg.key} style={[styles.signal, { fontSize: fs(13), lineHeight: fs(20) }, sg.kind === 'care' && styles.signalCare]}>· {sg.label}</Text>
+                  <Text key={sg.key} style={[styles.signal, { fontSize: fs(13), lineHeight: ls(20) }, sg.kind === 'care' && styles.signalCare]}>· {sg.label}</Text>
                 ))}
               </View>
             ) : null}
@@ -127,7 +127,7 @@ export default function MomentScreen() {
                   <View key={label} style={styles.recRow}>
                     <View style={[styles.swatch, hex ? { backgroundColor: hex } : styles.swatchGhost]} />
                     <Text style={[styles.recLabel, { fontSize: fs(13) }]}>{label}</Text>
-                    <Text style={[styles.recTx, { fontSize: fs(13), lineHeight: fs(20) }]}>{val}</Text>
+                    <Text style={[styles.recTx, { fontSize: fs(13), lineHeight: ls(20) }]}>{val}</Text>
                   </View>
                 ))}
               </View>

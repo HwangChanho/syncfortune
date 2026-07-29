@@ -81,7 +81,7 @@ export default function Home() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { t } = useTranslation();
-  const { fs, scale } = useFontScale(); // 오늘의 기운 배너 본문 글자 크기 + 배율(줄 수 완화 판단용)
+  const { fs, scale, ls } = useFontScale(); // 오늘의 기운 배너 본문 글자 크기 + 배율(줄 수 완화 판단용)
   const gen = useGenProgress(); // 통변 생성 진행률(풀이중 홈 나가면 여기 배너로 %)
   // I(daniel): %가 움직이도록 — 진행 중 풀이가 있으면 주기 리렌더(단일 콜의 추정 % 갱신). 진행 없으면 타이머 미동작.
   const [, setTick] = useState(0);
@@ -310,7 +310,7 @@ export default function Home() {
                         <Text style={[styles.scoreTx, { color: cau.tone }]}>{e.score}</Text>
                         <Text style={styles.scoreUnit}>{t('todayEnergy.point', '점')}</Text>
                         <View style={[styles.cautionPill, { borderColor: cau.tone }]}>
-                          <Text style={[styles.cautionTx, { color: cau.tone, fontSize: fs(11), lineHeight: fs(15) }]}>{cau.label}</Text>
+                          <Text style={[styles.cautionTx, { color: cau.tone, fontSize: fs(11), lineHeight: ls(15) }]}>{cau.label}</Text>
                         </View>
                       </View>
                     )}
@@ -322,20 +322,20 @@ export default function Home() {
                       {/* ★lineHeight 를 함께 스케일(daniel 2026-07-28 '아주 크게에서 아직 잘림') —
                           fontSize 만 fs() 로 키우고 lineHeight 는 17 로 고정돼 있어 글자 위아래가 잘렸다.
                           줄 수도 완화: 큰 글자에서 2줄이면 문장이 중간에 끊긴다. */}
-                      <Text style={[styles.energyDesc, { fontSize: fs(12.5), lineHeight: fs(18) }]} numberOfLines={scale >= 1.45 ? 3 : 2}>{ENERGY_LABEL[e.group].desc}</Text>
+                      <Text style={[styles.energyDesc, { fontSize: fs(12.5), lineHeight: ls(18) }]} numberOfLines={scale >= 1.45 ? 3 : 2}>{ENERGY_LABEL[e.group].desc}</Text>
                     </View>
                   )}
                   {/* 점수 흐름 그래프(그제~모레) — off(오늘/내일)에 맞춰 강조점 이동(daniel 07-13) */}
                   {flow ? <View style={{ marginTop: space(2), marginBottom: space(1) }}><ScoreFlowGraph scores={flow.scores} labels={flow.labels} currentIndex={flow.currentIndex + off} height={112} /></View> : null}
                   {d.headline && <Text style={[styles.bannerHeadline, { fontSize: fs(16) }]}>{d.headline}</Text>}
-                  {d.prose && <Text style={[styles.bannerProse, { fontSize: fs(15), lineHeight: fs(22) }]} numberOfLines={scale >= 1.45 ? 4 : 3}>{d.prose}</Text>}
+                  {d.prose && <Text style={[styles.bannerProse, { fontSize: fs(15), lineHeight: ls(22) }]} numberOfLines={scale >= 1.45 ? 4 : 3}>{d.prose}</Text>}
                   {/* 근거(억부: 내 강약 × 그 날 기운) + 작용·신살 칩 */}
-                  {e && <Text style={[styles.energyReason, { fontSize: fs(13), lineHeight: fs(19) }]}>{energyReason(e)}</Text>}
+                  {e && <Text style={[styles.energyReason, { fontSize: fs(13), lineHeight: ls(19) }]}>{energyReason(e)}</Text>}
                   {e && e.signals.length > 0 && (
                     <View style={styles.chips}>
                       {e.signals.map((s) => (
                         <View key={s.key} style={[styles.chip, s.kind === 'good' ? styles.chipGood : styles.chipCare]}>
-                          <Text style={[styles.chipTx, s.kind === 'good' && styles.chipTxGood, { fontSize: fs(11.5), lineHeight: fs(16) }]} numberOfLines={1}>{s.label}</Text>
+                          <Text style={[styles.chipTx, s.kind === 'good' && styles.chipTxGood, { fontSize: fs(11.5), lineHeight: ls(16) }]} numberOfLines={1}>{s.label}</Text>
                         </View>
                       ))}
                     </View>

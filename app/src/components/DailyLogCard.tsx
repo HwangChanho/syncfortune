@@ -31,13 +31,13 @@ export function DailyLogCard({ saju, stem, branch }: {
   stem: Stem;
   branch: Branch;
 }) {
-  const { fs } = useFontScale();
+  const { fs, ls } = useFontScale();
   const mission = dailyMission(saju, stem, branch);   // 결정론 — 같은 날·같은 명식이면 같은 행동
 
   return (
     <View style={styles.card}>
       <Text style={styles.kicker}>오늘의 한 가지</Text>
-      <Text style={[styles.mission, { fontSize: fs(15), lineHeight: fs(23) }]}>{mission.text}</Text>
+      <Text style={[styles.mission, { fontSize: fs(15), lineHeight: ls(23) }]}>{mission.text}</Text>
     </View>
   );
 }

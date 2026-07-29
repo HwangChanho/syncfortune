@@ -47,7 +47,7 @@ export default function CoachScreen() {
   //   상수는 기기 노치·다이내믹아일랜드·글자배율 어느 것도 반영하지 못한다 → 실제 안전영역을 쓴다.
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
-  const { fs } = useFontScale();
+  const { fs, ls } = useFontScale();
   const router = useRouter();
   const { session } = useAuth();
   const [chartId, setChartId] = useState<string | null>(null);
@@ -194,7 +194,7 @@ export default function CoachScreen() {
                     {/* 가독성 — 답변을 문단 단위로 나눠 간격을 준다(COACH_SYSTEM 은 2~4문단 평문 출력).
                         빈 줄(\n\n)·단일 줄바꿈 모두 문단 경계로 보고 빈 문단은 버린다. 포맷만 손대는 것이라 통변 내용/API 무관. */}
                     {turn.answer.split(/\n+/).map((p) => p.trim()).filter(Boolean).map((para, pi) => (
-                      <Text key={pi} style={[styles.aTx, { fontSize: fs(15), lineHeight: fs(25) }, pi > 0 && { marginTop: space(2.5) }]}>{para}</Text>
+                      <Text key={pi} style={[styles.aTx, { fontSize: fs(15), lineHeight: ls(25) }, pi > 0 && { marginTop: space(2.5) }]}>{para}</Text>
                     ))}
                     {/* ★가볍게 뽑은 카드(daniel IMG_8198) — 위 사주·자미 답과 **분리된** 재미 레이어.
                         섞지 않는 이유 = 기획서 §9 규칙2(체계 블렌딩 금지)의 취지. LLM 프롬프트에 들어가지 않고
@@ -208,7 +208,7 @@ export default function CoachScreen() {
                   // ⑨b: 서버에 질문은 남았으나 답이 빈 행(강종/생성 중단으로 답 못 받음) — 재진입 시 안내(질문은 보존됨).
                   <View style={styles.aCard}>
                     <Text style={styles.aLabel}>{t('coach.coachLabel', '코치')}</Text>
-                    <Text style={[styles.aTx, { fontSize: fs(14), lineHeight: fs(22), color: colors.inkSoft }]}>{t('coach.failedTurn', '답을 받지 못했어요. 다시 물어봐 주세요.')}</Text>
+                    <Text style={[styles.aTx, { fontSize: fs(14), lineHeight: ls(22), color: colors.inkSoft }]}>{t('coach.failedTurn', '답을 받지 못했어요. 다시 물어봐 주세요.')}</Text>
                   </View>
                 )}
               </View>

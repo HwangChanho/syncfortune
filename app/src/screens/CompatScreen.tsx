@@ -94,7 +94,7 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
   const { t } = useTranslation();
   const { session } = useAuth();
   const { isPremium } = useSubscription();
-  const { fs } = useFontScale(); // 통변 본문 글자 크기(설정에서 조절)
+  const { fs, ls } = useFontScale(); // 통변 본문 글자 크기(설정에서 조절)
   const insets = useSafeAreaInsets(); // 상대 등록 모달 헤더가 노치/상태바에 가리지 않게(daniel J)
   const [saved, setSaved] = useState<SavedChart[]>([]);
   const [meSel, setMeSel] = useState<SavedChart | null>(null);   // '내 명식' 슬롯(기본=대표). 저장 명식에서 변경 가능.
@@ -409,7 +409,7 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
               {compatSections(rel, !!year).map((s) => {
                 const v = cur[s.key];
                 if (typeof v !== 'string' || !v) return null;
-                if (s.key === 'core') return <Text key="core" style={[styles.coreTx, { fontSize: fs(16), lineHeight: fs(24) }]}>{v}</Text>;
+                if (s.key === 'core') return <Text key="core" style={[styles.coreTx, { fontSize: fs(16), lineHeight: ls(24) }]}>{v}</Text>;
                 return (
                   <View key={s.key} style={[styles.sec, (s.key === 'advice' || s.key === 'remedy') && styles.remedySec]}>
                     <Text style={styles.secLabel}>{compatSectionLabel(s)}</Text>

@@ -127,7 +127,7 @@ export function ReadingScreen({
   const { t } = useTranslation();
   const { session } = useAuth();
   const { isPremium } = useSubscription();
-  const { fs } = useFontScale(); // 통변 본문 글자 크기(설정에서 조절)
+  const { fs, ls } = useFontScale(); // 통변 본문 글자 크기(설정에서 조절)
   const [readings, setReadings] = useState<Record<string, any>>({});
   const [readingsChartId, setReadingsChartId] = useState<string | null>(null); // 지금 readings가 *어느 chartId 기준*으로 로드됐나 — 자동생성 가드(stale 로드로 재생성 방지, daniel 07-02)
   const [progress, setProgress] = useState<{ done: number; total: number; current?: string } | null>(null);
@@ -711,7 +711,7 @@ export function ReadingScreen({
             </Text>
             <View style={styles.askRow}>
               <TextInput
-                style={[styles.askInput, { fontSize: fs(15), lineHeight: fs(20), minHeight: fs(20) + space(5) }]}
+                style={[styles.askInput, { fontSize: fs(15), lineHeight: ls(20), minHeight: ls(20) + space(5) }]}
                 value={askInput}
                 onChangeText={setAskInput}
                 placeholder={t('reading.askPh')}
@@ -722,7 +722,7 @@ export function ReadingScreen({
               />
               <Text style={styles.askLen}>{askInput.length}/50</Text>
               <PressableScale
-                style={[styles.askSend, { minHeight: fs(20) + space(5) }, (!askInput.trim() || asking) && styles.askSendOff]}
+                style={[styles.askSend, { minHeight: ls(20) + space(5) }, (!askInput.trim() || asking) && styles.askSendOff]}
                 onPress={() => submitFollowup()}
                 disabled={!askInput.trim() || asking}
               >
@@ -852,7 +852,7 @@ export function ReadingScreen({
           {(() => {
             const r0 = normalizeReading(readings[cats[0]?.key]);
             const tease = r0 && typeof r0 === 'object' && !(r0 as any).error ? asText((r0 as any).base) : null;
-            return tease ? <Text style={[styles.secBody, { fontSize: fs(15), lineHeight: fs(26) }]} numberOfLines={4}>{tease}</Text> : null;
+            return tease ? <Text style={[styles.secBody, { fontSize: fs(15), lineHeight: ls(26) }]} numberOfLines={4}>{tease}</Text> : null;
           })()}
           <Text style={{ ...font.caption, color: colors.inkSoft, marginTop: space(3) }}>{t('reading.lockedNote', '위 버튼으로 열어 전부 보실 수 있어요.')}</Text>
         </View>

@@ -86,7 +86,7 @@ export default function LoveScreen() {
   const router = useRouter();
   const { chartId: chartIdParam } = useLocalSearchParams<{ chartId?: string }>(); // ★M1 재진입 바인딩(배너/푸시 route 의 chartId)
   const { session } = useAuth();
-  const { fs } = useFontScale();
+  const { fs, ls } = useFontScale();
   const { isPremium } = useSubscription();
   const [savedChart, setSavedChart] = useState<SavedChart | null>(null);
   const [chartId, setChartId] = useState<string | null>(null);
@@ -274,7 +274,7 @@ export default function LoveScreen() {
     generate(chartId);                                                              // 관리자·크레딧 통과 → 생성(서버 차감)
   }
 
-  const bodyDyn = { fontSize: fs(15), lineHeight: fs(25) };
+  const bodyDyn = { fontSize: fs(15), lineHeight: ls(25) };
 
   if (!loaded) return <View style={styles.center}><ActivityIndicator color={colors.ju} /></View>;
   if (!savedChart) {
@@ -314,7 +314,7 @@ export default function LoveScreen() {
           <ExpiryNote expiry={expiry} chartId={chartId} />
           {/* 이슈19 소제목 — 통변 결과 headline 있으면 섹션들 맨 위에 한 줄 강조 */}
           {typeof reading.headline === 'string' && reading.headline.trim() ? (
-            <Text style={{ fontSize: fs(19), fontWeight: '800', color: colors.ju, marginBottom: space(3), lineHeight: fs(26) }}>{reading.headline}</Text>
+            <Text style={{ fontSize: fs(19), fontWeight: '800', color: colors.ju, marginBottom: space(3), lineHeight: ls(26) }}>{reading.headline}</Text>
           ) : null}
           {/* ★근본 '풀이 안 보임'(daniel 07-11): LLM이 구조화 JSON(idealType 등)을 못 내면(길이초과 등 파싱 실패) Edge가 {base:텍스트}로
               폴백하는데, 옛 코드는 base 를 안 그려 결정론 게이지·그래프만 뜨고 본문이 통째로 비었다. base 있으면 통째로 표시(무표시 방지·ReadingScreen 동일 패턴), 없으면 구조화 섹션. */}
