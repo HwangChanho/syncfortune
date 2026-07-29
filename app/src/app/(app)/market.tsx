@@ -432,7 +432,7 @@ export default function MarketRoute() {
 
 const styles = StyleSheet.create({
   screen: { backgroundColor: 'transparent' }, // 전역 배경 투과(ContentBackdrop)
-  wrap: { padding: space(5), paddingBottom: space(20) },
+  wrap: { padding: space(5), paddingBottom: space(24) },
   intro: { ...font.body, color: colors.inkSoft, marginBottom: space(2) },
   retention: { ...font.caption, color: colors.inkFaint, marginBottom: space(4), lineHeight: 18 }, // 보유기한 1년 안내(daniel 법적)
   // 프리미엄 가입 카드(골드 강조)

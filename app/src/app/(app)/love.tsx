@@ -257,7 +257,7 @@ export default function LoveScreen() {
     if (!assertOnline(t)) { logEvent('love_offline'); return; }                    // 오프라인 = 생성 차단
     gatingRef.current = true;                                                       // 게이트 구간 연타 차단
     try {
-      const admin = await isAdminActing();                                               // 관리자 = 바로 진입(테스트)
+      const admin = false;   // ★관리자 전체오픈 폐지(daniel 2026-07-29) — 관리자도 코인을 쓴다(결제 경로를 관리자 계정으로 실제 검증하기 위해)
       if (!admin) {
         if (!requireLoginForPurchase(session, () => router.push('/login'), t)) { logEvent('love_need_login'); return; }
         const credits = await loadCredits();                                       // 쿠폰(이용권) 크레딧만 unlock — 결제 미연동

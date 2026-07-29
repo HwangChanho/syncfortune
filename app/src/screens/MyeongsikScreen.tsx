@@ -16,6 +16,7 @@ import * as Haptics from 'expo-haptics';
 import { computeChart } from '../lib/engine/engine';
 import { YongsinCard } from '../components/YongsinCard'; // 만세력 용신(canonical 엔진·억부/병약/조후+희신/기신·Boss 07-22)
 import type { ChartInput, PillarPos } from '@spec/chart';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';   // ★하단 탭바·홈 인디케이터 여백(daniel 07-29 잘림)
 import { colors, radius, space, shadow, font, gradients } from '../lib/theme';
 import { GlassCard } from '../components/GlassCard';
 import { OhaengIcon } from '../components/OhaengIcon';
@@ -73,6 +74,7 @@ const STRENGTH_INFO: { key: '신강' | '신약'; title: string; traits: string; 
 
 export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }: { input: ChartInput | null; onReading?: () => void; onSinsal?: () => void; header?: ReactNode; whoName?: string | null }) {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<MyeongTab>(lastMyeongTab === 'rel' ? 'wonguk' : lastMyeongTab); // 'rel'(구 운세 탭)은 wonguk 으로 통합(daniel 07-24) — 저장값 방어
   const [catDescOpen, setCatDescOpen] = useState(false); // 카테고리 ? 설명 시트(daniel: 설명도 나오게)
   useEffect(() => { lastMyeongTab = activeTab; }, [activeTab]); // 선택 탭 기억 — 나갔다 와도 유지(daniel)
@@ -385,7 +387,7 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
         </PressableScale>
       ))}
     </View>
-    <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>
+    <ScrollView style={styles.screen} contentContainerStyle={[styles.wrap, { paddingBottom: insets.bottom + space(24) }]}>
       {/* 카테고리 ? 설명(daniel: 설명도 나오게) — 탭하면 이 분류가 무엇을 보는지 시트로.
           ★ScrollView 안으로 이동(daniel 2026-07-24 '글자 짤려'): 예전엔 고정 탭바 아래 '투명 영역'에 떠 있어,
           운세 탭 기둥 등을 위로 스크롤하면 그 투명 경계에서 상단 라벨(기둥명·나이·천간십신)이 지저분하게 잘려 보였다.
@@ -1119,7 +1121,9 @@ const scaledFont = (fs: (n: number) => number) => ({
 // makeStyles(fs): 아래 fontSize/lineHeight 리터럴은 sed로 fs()로 감쌈, ...font.X 는 ...f.X(scaledFont) 로 치환됨.
 const makeStyles = (fs: (n: number) => number) => { const f = scaledFont(fs); return StyleSheet.create({
   screen: { backgroundColor: 'transparent' }, // 전역 배경 투과(ContentBackdrop)
-  wrap: { padding: space(5), paddingBottom: space(10) },
+  // ★하단 여백은 인라인에서 safe-area + 탭바만큼 준다(daniel 2026-07-29 "여전히 글자 짤려").
+  //   고정 40pt 로는 **탭바(≈49) + 홈 인디케이터(≈34)** 를 못 덮어 표 마지막 행이 잘렸다.
+  wrap: { padding: space(5) },
   tabBar: { flexDirection: 'row', backgroundColor: colors.card, borderBottomWidth: 1, borderBottomColor: colors.line },
   tabBtn: { flex: 1, paddingVertical: space(3.5), alignItems: 'center', borderBottomWidth: 2, borderBottomColor: 'transparent' },
   tabBtnOn: { borderBottomColor: colors.ju },

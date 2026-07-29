@@ -488,7 +488,7 @@ export default function Home() {
 const styles = StyleSheet.create({
   bgImage: { flex: 1, backgroundColor: 'transparent' }, // 전역 ContentBackdrop(오행 배경) 투과
   screen: { backgroundColor: 'transparent' },
-  wrap: { padding: space(5), paddingBottom: space(10) }, // 헤더 숨김 → status bar 여백 확보
+  wrap: { padding: space(5), paddingBottom: space(24) }, // 헤더 숨김 → status bar 여백 확보
   // 홈 상단 컨트롤 행(배치 편집 + 바로가기) — 구분선 아래·subtle. marginBottom 은 행에서 한 번만.
   topCtrlRow: { flexDirection: 'row', alignItems: 'center', gap: space(2), flexWrap: 'wrap', marginTop: -space(2), marginBottom: space(5) },
   // 홈 배치 편집/바로가기 버튼(pill). 탭 → HomeOrderEditModal(드래그) / 바로가기 메뉴.

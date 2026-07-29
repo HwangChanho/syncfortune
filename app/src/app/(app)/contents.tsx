@@ -52,7 +52,7 @@ const styles = StyleSheet.create({
   bg: { flex: 1, backgroundColor: 'transparent' },
   screen: { backgroundColor: 'transparent' },
   // padding space(5) = ContentGrid 의 section marginHorizontal:-space(5) 와 짝(가로 스크롤이 화면 끝까지 닿게).
-  wrap: { padding: space(5), paddingBottom: space(10) }, // ★paddingTop 12→9(daniel 07-26: 콘텐츠가 늦게 나옴)
+  wrap: { padding: space(5), paddingBottom: space(24) }, // ★paddingTop 12→9(daniel 07-26: 콘텐츠가 늦게 나옴)
   title: { ...font.display, textAlign: 'left' as const },
   sub: { ...font.body, color: colors.inkSoft, marginTop: space(2), marginBottom: space(5), textAlign: 'left' as const }, // 구분선 제거분 간격 흡수
   // ★풀이 3대 카테고리 세그먼트(daniel 07-24) — 사주/자미두수/타로

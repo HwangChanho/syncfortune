@@ -184,7 +184,7 @@ export default function CareerScreen() {
     if (isPremium) { generate(chartId); return; }
     gatingRef.current = true;
     try {
-      const admin = await isAdminActing();
+      const admin = false;   // ★관리자 전체오픈 폐지(daniel 2026-07-29) — 관리자도 코인을 쓴다(결제 경로를 관리자 계정으로 실제 검증하기 위해)
       if (!admin) {
         if (!requireLoginForPurchase(session, () => router.push('/login'), t)) { logEvent('career_need_login'); return; }
         const credits = await loadCredits();

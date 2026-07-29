@@ -56,7 +56,7 @@ export default function TimeResolveScreen() {
     let alive = true;
     (async () => {
       if (isPremium) { if (alive) setUnlocked(true); return; }
-      const u = (await isUnlocked(TPR_UNLOCK, 'timeresolve')) || (await isAdminActing());
+      const u = await isUnlocked(TPR_UNLOCK, 'timeresolve');   // ★관리자 전체오픈 폐지(daniel 07-29)
       if (alive) setUnlocked(u);
     })().catch(() => {});
     return () => { alive = false; };
@@ -116,7 +116,7 @@ export default function TimeResolveScreen() {
     try {
       if (isPremium) { setUnlocked(true); compute(); return; }
       if (await isUnlocked(TPR_UNLOCK, 'timeresolve')) { setUnlocked(true); compute(); return; } // 이전 구매(영구)
-      if (await isAdminActing()) { setUnlocked(true); compute(); return; }
+      // ★관리자 무료 진입 제거(daniel 07-29) — 관리자도 코인으로 연다.
       if (!requireLoginForPurchase(session, () => router.push('/login'), t)) return; // 미로그인 → 로그인 유도
       // 보유 크레딧 차감(쿠폰/선물/이전 구매분) → 영구 해제
       if (await useCredit('timeresolve')) { await markUnlocked(TPR_UNLOCK, 'timeresolve'); setUnlocked(true); compute(); return; }

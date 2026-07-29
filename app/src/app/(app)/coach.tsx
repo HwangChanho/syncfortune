@@ -294,7 +294,7 @@ export default function CoachScreen() {
 const styles = StyleSheet.create({
   bg: { flex: 1, backgroundColor: 'transparent' }, // 전역 ContentBackdrop 비침
   overlay: { flex: 1, backgroundColor: colors.overlay },
-  wrap: { paddingHorizontal: space(6), paddingBottom: space(6) }, // ★헤더 숨김(탭) → status bar 여백 확보(홈과 동일·daniel 07-12 '위 짤림')
+  wrap: { paddingHorizontal: space(6), paddingBottom: space(24) }, // ★헤더 숨김(탭) → status bar 여백 확보(홈과 동일·daniel 07-12 '위 짤림')
   title: { fontWeight: '900', color: colors.ink, textAlign: 'center', marginTop: space(2) },
   sub: { ...font.caption, color: colors.inkSoft, textAlign: 'center', marginTop: space(1), marginBottom: space(5) },
   card: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.juLine, padding: space(5), ...shadow.card, alignItems: 'center' },

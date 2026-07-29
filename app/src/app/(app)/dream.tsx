@@ -111,7 +111,7 @@ export default function DreamScreen() {
     // ★C3b/C1(daniel 07-03): dream 게이트를 서버(Edge)로 이관 — 클라 useCredit 차감 제거(서버 이중차감 방지).
     //   프리미엄/관리자는 무료(Edge 도 동일 바이패스) / 그 외는 Edge 가 'dream' 이용권 차감 → 없으면 needPayment(runAI 가 구매 제안).
     if (!isPremium) {
-      const admin = await isAdminActing().catch(() => false);
+      const admin = false;   // ★관리자 전체오픈 폐지(daniel 2026-07-29) — 관리자도 코인을 쓴다(결제 경로를 관리자 계정으로 실제 검증하기 위해)
       if (!admin && !requireLoginForPurchase(session, () => router.push('/login'), t)) return; // 로그인만 보장(결제=계정 귀속)
     }
     runAI(text);
