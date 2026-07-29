@@ -73,7 +73,8 @@
     "check:cta": "npx tsx scripts/check-cta.ts",
     "check:fontscale": "npx tsx scripts/check-fontscale.ts",
     "check:share": "npx tsx scripts/check-share.ts",
-    "build:share": "node scripts/build-share-pages.mjs"
+    "build:share": "node scripts/build-share-pages.mjs",
+    "golden:fromdb": "node scripts/verifydb-to-ingest.mjs"
   },
   "keywords": [],
   "author": "",
