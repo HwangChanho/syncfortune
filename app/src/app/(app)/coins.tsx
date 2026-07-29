@@ -83,7 +83,7 @@ export default function CoinsScreen() {
         {COIN_PACKS.map((p) => (
           <PressableScale key={p.id} style={[styles.pack, busy === p.id && styles.packBusy]} onPress={() => void buy(p.id, p.coins)} disabled={!!busy}>
             <View style={{ flex: 1 }}>
-              <Text style={[styles.packCoins, { fontSize: fs(19) }]}>{p.coins.toLocaleString('ko-KR')} 코인</Text>
+              <Text style={[styles.packCoins, { fontSize: fs(19) }]}>◉ {p.coins.toLocaleString('ko-KR')}</Text>
               {p.bonusPct > 0 ? (
                 <Text style={[styles.packBonus, { fontSize: fs(12) }]}>
                   {t('coins.bonus', { pct: p.bonusPct, defaultValue: '코인당 {{pct}}% 더' })}

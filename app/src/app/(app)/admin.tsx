@@ -473,7 +473,7 @@ export default function AdminRoute() {
               <View style={styles.pillRow}>
                 {/* ★프리미엄 pill → 코인 잔액(07-28). 프리미엄은 지급해도 효과가 없으므로 상태로 보여 주면 오해를 부른다.
                     과거 구매자였다면 '(구)프리미엄'으로만 표기 — 이력은 남기되 현재 권한이 아님을 분명히. */}
-                <Text style={[styles.miniPill, styles.miniPillOn]}>{(detail.coins ?? 0).toLocaleString('ko-KR')} 코인</Text>
+                <Text style={[styles.miniPill, styles.miniPillOn]}>◉ {(detail.coins ?? 0).toLocaleString('ko-KR')}</Text>
                 {detail.is_premium ? <Text style={[styles.miniPill, styles.miniPillOff]}>(구)프리미엄</Text> : null}
                 {detail.is_admin ? <Text style={[styles.miniPill, styles.miniPillAdmin]}>{detail.admin_mode ? '관리자' : '관리자·모드OFF'}</Text> : null}
               </View>

@@ -314,6 +314,8 @@ export function ReadingScreen({
   //        (job 없음 / status='error' / status='running' 인데 updated_at 이 STALL_MS 넘게 안 움직임)
   //     ④시도 횟수 상한(MAX_TRY) — 무한 재시도로 과금·부하가 늘지 않게. 소진되면 사용자에게 알린다.
   const wdTry = useRef(0);
+  const wdStopped = useRef(false);   // ★결제 필요 확정 → watchdog 영구 정지(daniel 07-29)
+  const wdLogged = useRef(false);    // 소진 로그 1회만(로그 폭탄 방지)
   const wdBusy = useRef(false);
   useEffect(() => {
     if (!chartId || !session) return;
@@ -324,6 +326,12 @@ export function ReadingScreen({
 
     const tick = async () => {
       if (!alive || wdBusy.current) return;
+      // ★★자동 재개는 **이미 연 세트를 복구**하는 장치다 — 아직 안 연 세트를 대신 사 주는 장치가 아니다.
+      //   (daniel 2026-07-29 "코인이 없는데도 풀이에 진입이 되는데?" · "첫 진입에 코인부터 확인해야지")
+      //   종전엔 권한 확인 없이 runAll 을 걸어, 코인이 없어도 16영역을 서버로 쏘고
+      //   전부 needPayment 로 튕긴 뒤 '연결에 문제가 있어요'만 반복해서 떴다.
+      if (!unlockedLoaded) return;                              // 권한 조회 전에는 판단하지 않는다(깜빡임·오판 방지)
+      if (!computeEntitled(isPremium, isPremiumForChart(chartId), unlocked)) return;   // 미결제 = 자동 재개 안 함
       const missing = cats.filter((cat) => !readings[cat.key]).length;
       if (missing === 0) { wdTry.current = 0; return; }        // 다 찼으면 시도 카운터도 리셋
       if (!isOnline()) return;                                  // 오프라인은 재시도해도 소용없다(온라인 복귀 시 재평가)
@@ -334,8 +342,12 @@ export function ReadingScreen({
         const upd = (job as any)?.updated_at ? Date.parse((job as any).updated_at) : 0;
         const stalled = !st || st === 'error' || (st === 'running' && Date.now() - upd > STALL_MS);
         if (!stalled) return;                                   // 정상 진행 중 → 절대 건드리지 않는다
+        if (wdStopped.current) return;                          // 결제 필요로 확정 정지 — 재시도해도 같다
         if (wdTry.current >= MAX_TRY) {
-          notifyNetworkError('reading.autoResume.exhausted', new Error(`missing=${missing}`), t);
+          // ★사용자 알림을 띄우지 않는다(daniel 2026-07-29 "시도때도 없이 네트워크 문제 뜬다").
+          //   여기 도달하는 흔한 이유는 네트워크가 아니라 **결제 게이트**다(로그 실측: online:true).
+          //   화면엔 이미 잠금/시작 버튼이 있으므로 사용자가 할 일은 명확하다 → 로그만 남기고 조용히 멈춘다.
+          if (!wdLogged.current) { wdLogged.current = true; logEvent('reading_auto_resume_exhausted', { chartId, kind, missing, online: true }, 'error'); }
           return;
         }
         wdTry.current += 1;
@@ -353,7 +365,7 @@ export function ReadingScreen({
     void tick();
     return () => { alive = false; clearInterval(timer); sub.remove(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [chartId, kind, cats, readings, session]);
+  }, [chartId, kind, cats, readings, session, unlocked, unlockedLoaded, isPremium]);
 
   // ★'○○ 풀이가 완성됐어요' 배너 안 사라짐 근본수정(daniel 2026-06-30 → 07-22 강화):
   //   예전엔 (a)정확 route 매칭 + (b)'전 영역 캐시' 조건이라, route 불일치(복원 배너·다른 kind·쿼리순서)나
@@ -432,6 +444,18 @@ export function ReadingScreen({
         try {
           // 자미는 운한(대한 비성사화)이 포함된 최신 명반을 body 로 전달(저장본은 구버전일 수 있음 → Edge가 우선 사용).
           const { data, error } = await supabase.functions.invoke('interpret', { body: { chartId: id, category: cat.key, kind, tier: 'paid', lang: appLang(), ...(kind === 'ziwei' ? { ziwei: c!.ziwei } : {}), ...(savedChart?.context ? { context: savedChart.context } : {}) } });
+          // ★결제 필요(코인 부족) 감지 — daniel 2026-07-29 신고의 근인이었다.
+          //   종전엔 needPayment 를 그냥 '풀이'로 취급해 화면에 넣고 **남은 영역을 계속 호출**했다.
+          //   그러면 ①캐시가 안 채워지니 아래 watchdog 이 missing 을 계속 보고 재시도하고
+          //   ②재시도가 소진되면 '네트워크 오류' 알림이 뜬다(실제론 결제 문제인데).
+          //   → 즉시 중단하고 watchdog 을 **영구 정지**한다(재시도해도 결과가 같다).
+          if ((data as any)?.needPayment || (data as any)?.needCredit) {
+            wdStopped.current = true;
+            setProgress(null);
+            setGenProgress({ route: gpRoute, active: false });
+            logEvent('reading_gen_need_payment', { chartId: id, kind, category: cat.key });
+            return;
+          }
           setReadings((prev) => ({ ...prev, [cat.key]: readingFromInvoke(data, error) })); // 방어: 일시적 불가·오류 친화 처리
           if ((data as any)?.unavailable) { setProgress(null); setGenProgress({ route: gpRoute, active: false }); return; } // 방어: 사용량 한도 등 → 남은 영역 연속 호출·과금 방지(중단)
         } catch (err) {
@@ -767,6 +791,20 @@ export function ReadingScreen({
     <DoorReveal visible={doorPlaying} onDone={() => setDoorPlaying(false)} />
     <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>
       {header}
+      {/* ★생성 진행 바(daniel 2026-07-29 "풀이 눌렀는데 풀이중인지 뭐 어쩐지 아무것도 모르겠는데").
+          자물쇠 오버레이는 **캐시 0개일 때만** 뜬다(showUnlockOverlay) — 한 영역이라도 채워지면 사라져
+          그 뒤로는 아무 표시가 없었다. 진행 중이면 여기서 항상 보이게 한다. */}
+      {progress ? (
+        <View style={styles.genBar}>
+          <ActivityIndicator size="small" color={colors.ju} />
+          <Text style={[styles.genBarTx, { fontSize: fs(13) }]} numberOfLines={1}>
+            {progress.current
+              ? t('reading.progress', { current: progress.current, done: progress.done, total: progress.total })
+              : t('reading.generating', '풀이를 정성껏 그리는 중…')}
+          </Text>
+          <Text style={[styles.genBarCnt, { fontSize: fs(12) }]}>{progress.done}/{progress.total}</Text>
+        </View>
+      ) : null}
       {/* ★상단 '계산됨' 배지 — 이 풀이가 유저 명식(생년월일 계산)에 근거함을 표시(한 줄·과밀 방지) */}
       <ComputedNote compact />
       {/* 풀이 보유 만료일 — 공통 컴포넌트(프리미엄 가드·문구 한 곳, daniel 07-01). 생성된 풀이 있을 때만. */}
@@ -906,6 +944,10 @@ export function ReadingScreen({
 }
 
 const styles = StyleSheet.create({
+  // ★생성 진행 바 — 캐시가 일부 찬 뒤에도 '지금 돌고 있다'를 계속 보여 준다(daniel 07-29)
+  genBar: { flexDirection: 'row', alignItems: 'center', gap: space(2.5), backgroundColor: colors.juSoft, borderWidth: 1, borderColor: colors.juLine, borderRadius: radius.md, paddingVertical: space(2.5), paddingHorizontal: space(3.5), marginBottom: space(3) },
+  genBarTx: { ...font.body, color: colors.ju, fontWeight: '700', flex: 1 },
+  genBarCnt: { ...font.caption, color: colors.ju, fontWeight: '900' },
   screen: { backgroundColor: 'transparent' }, // 전역 배경 투과(ContentBackdrop)
   wrap: { padding: space(5), paddingBottom: space(10) },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'transparent' }, // 전역 배경 투과(ContentBackdrop)

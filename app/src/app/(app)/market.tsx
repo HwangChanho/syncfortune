@@ -263,7 +263,7 @@ export default function MarketRoute() {
         <View style={{ flex: 1 }}>
           <Text style={styles.name}>{c.ko}</Text>
           {card && <Text style={styles.desc} numberOfLines={2}>{t(card.desc)}</Text>}
-          <Text style={styles.price}>{coinPriceOf(c.key) != null ? `${coinPriceOf(c.key)} 코인` : (prices[c.key] ?? `₩${c.price.toLocaleString()}`)}</Text>
+          <Text style={styles.price}>{coinPriceOf(c.key) != null ? `◉ ${coinPriceOf(c.key)}` : (prices[c.key] ?? `₩${c.price.toLocaleString()}`)}</Text>
           <Text style={[styles.have, owned && styles.haveOn]}>{owned ? `${t('market.owned')} ×${credits[c.key]}` : t('market.notOwned')}</Text>
         </View>
         {/* ★코인 전환(daniel 2026-07-28 "기존 단건 결제는 다 없애") — 마켓에서 개별 결제하지 않는다.

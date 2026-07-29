@@ -87,7 +87,7 @@ export function AdFreeSection({ onDone, onNeedCoins }: { onDone?: () => void; on
             //   기간·가격이 한눈에 붙어 있으면 비교가 오히려 쉽고, 목록 전체가 짧아진다.
             <PressableScale key={p.id} style={styles.btn} onPress={() => void buy(p.id, p.coins, p.days)} disabled={busy !== null}>
               <Text style={[styles.btnTitle, { fontSize: fs(13) }]}>{p.days == null ? '영구' : `${p.days}일`}</Text>
-              <Text style={[styles.btnCoins, { fontSize: fs(14) }]}>{busy === p.id ? '…' : `${p.coins}코인`}</Text>
+              <Text style={[styles.btnCoins, { fontSize: fs(14) }]}>{busy === p.id ? '…' : `◉ ${p.coins}`}</Text>
             </PressableScale>
           ))}
         </View>
