@@ -30,9 +30,39 @@ export function coinPriceOf(kind: string): number | null {
  *   (조회 실패를 '없음'으로 읽고 결제창을 다시 띄웠다). 실패면 충전을 권하지 말고 재시도를 안내할 것.
  */
 export async function coinBalanceOrNull(): Promise<number | null> {
-  const { data, error } = await supabase.from('coin_balance').select('balance').maybeSingle();
-  if (error) return null;
+  const r = await withTimeout(
+    supabase.from('coin_balance').select('balance').maybeSingle(),
+    BALANCE_TIMEOUT_MS,
+  );
+  if (!r) return null;                                       // 타임아웃 = 확인 불가(0 아님)
+  const { data, error } = r;
+  if (error) return null;                                    // ★조회 실패 — 절대 '없음'으로 취급하지 않는다
   return Number((data as { balance?: number } | null)?.balance ?? 0);
+}
+
+/**
+ * 잔액 조회 상한(ms). ★★2026-07-30 '멈춤' 근본수정(daniel IMG_8313 "쿠폰으로 열기 눌렀는데 멈췄어").
+ *
+ * 무엇이 멈췄나: 유료 화면들은 게이트 진입 시 `gatingRef.current = true`(연타 차단) 로 잠그고
+ *   잔액/이용권을 **await** 한다. supabase-js 요청에는 기본 타임아웃이 없어서, 회선이 어정쩡하면
+ *   그 await 가 **영원히 안 끝난다** → `finally` 가 실행되지 않아 잠금이 풀리지 않는다 →
+ *   그 뒤로는 버튼을 눌러도 첫 줄 `if (gatingRef.current) return` 에서 즉시 반환 = **버튼이 영구 사망**.
+ *   화면은 아무 반응이 없으니 사용자에게는 '앱이 멈춘' 것으로 보인다.
+ *
+ * ⇒ 상한을 둬서 반드시 끝나게 한다. 결과는 null(=확인 불가)이고, 호출측(coinGate)은 이미
+ *   '확인 불가'를 '부족'과 구분해 **충전을 권하지 않고 재시도를 안내**한다(재결제 유도 방지 규칙 유지).
+ */
+const BALANCE_TIMEOUT_MS = 8000;
+
+/** 어떤 thenable 이든 상한 시간 안에 끝나게 한다. 초과하면 undefined(호출측이 '확인 불가'로 해석). */
+async function withTimeout<T>(p: PromiseLike<T>, ms: number): Promise<T | undefined> {
+  let timer: any;
+  try {
+    return await Promise.race([
+      Promise.resolve(p),
+      new Promise<undefined>((res) => { timer = setTimeout(() => res(undefined), ms); }),
+    ]);
+  } finally { clearTimeout(timer); }
 }
 
 /**

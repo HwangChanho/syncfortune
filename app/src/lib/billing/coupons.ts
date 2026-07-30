@@ -98,7 +98,16 @@ export async function loadCredits(): Promise<Record<string, number>> {
  */
 export async function loadCreditsOrNull(): Promise<Record<string, number> | null> {
   if (!(await hasSession())) return localCreditsAll();    // 비로그인 = 디바이스 로컬(H)
-  const { data, error } = await supabase.from('entitlement_credits').select('kind, remaining');
+  // ★★상한(2026-07-30 '멈춤' 근본수정) — supabase-js 는 기본 타임아웃이 없다.
+  //   게이트가 `gatingRef` 로 잠근 뒤 이 await 가 안 끝나면 잠금이 영구히 남아 **버튼이 죽는다**
+  //   (daniel IMG_8313 "쿠폰으로 열기 눌렀는데 멈췄어"의 정체). 자세한 설명은 coins.ts 의 BALANCE_TIMEOUT_MS.
+  let timer: any;
+  const res = await Promise.race([
+    Promise.resolve(supabase.from('entitlement_credits').select('kind, remaining')),
+    new Promise<undefined>((r) => { timer = setTimeout(() => r(undefined), 8000); }),
+  ]).finally(() => clearTimeout(timer));
+  if (!res) return null;                                   // 타임아웃 = 확인 불가
+  const { data, error } = res as { data: any; error: any };
   if (error) return null;                                  // ★조회 실패 — 절대 '없음'으로 취급하지 않는다
   const out: Record<string, number> = {};
   (data ?? []).forEach((r: any) => { if (r.remaining > 0) out[r.kind] = r.remaining; });

@@ -163,5 +163,46 @@ console.log("\n[S6] 사용자에게 보이는 화폐 단위가 '운' 이다(코�
   else bad(`구 화폐 기호 잔존: ${sym.map((f) => f.replace(ROOT, '')).join(', ')}`);
 }
 
-console.log(fail ? `\n❌ check:store 실패 ${fail}건` : '\n✅ check:store 통과 — 결제 진입점·구매대상·잔재·조회낭비·재통변정합·화폐명 OK');
+// ── S7 유료 콘텐츠 게이트 전수(daniel 2026-07-30 "모든 컨텐츠 점검해") ─────────
+// ★실사고: 07-28 코인 전환에서 **전용 화면 5개가 누락**됐다(love·gaeun·career·newyear·lifegraph).
+//   그 화면들은 구 쿠폰 잔여가 0 이면 Alert 만 띄우고 끝냈다 — 프리미엄 폐지·관리자 개방 폐지 이후
+//   **운을 아무리 많이 들고 있어도 열 수 없는 상태**였다(마켓 '열기' → 같은 화면 → "쿠폰 필요" 무한).
+//   화면별로 결제를 각자 구현하면 이런 누락이 반복된다 → 게이트가 한 곳(coinGate)인지 기계로 본다.
+console.log('\n[S7] 유료 콘텐츠 화면이 전부 운 게이트(coinGate)를 쓴다');
+{
+  // 유료 kind 전용 화면 = `credits['<kind>'] ?? 0) <= 0` 로 **차단**하는 패턴이 남아 있으면 누락이다.
+  const blockers: string[] = [];
+  for (const f of files) {
+    const src = strip(readFileSync(f, 'utf8'));
+    // 쿠폰 0 → Alert 후 return 하는 '막는' 형태만 잡는다(있으면 통과시키는 형태는 정상).
+    if (/credits\['[a-z_0-9]+'\]\s*\?\?\s*0\)\s*<=\s*0\)\s*\{\s*Alert\.alert/.test(src)) blockers.push(f.replace(ROOT, ''));
+  }
+  if (!blockers.length) ok('쿠폰 0 → 차단 패턴 0건(운으로 열 수 있다)');
+  else bad(`구 쿠폰 게이트로 막는 화면: ${blockers.join(', ')} — 운 보유자가 열 수 없다`);
+
+  // 전용 게이트를 가진 화면은 ensureCoinsFor 를 쓰고 있어야 한다
+  const dedicated = ['love', 'gaeun', 'career', 'newyear', 'lifegraph', 'reunion', 'dream', 'timeResolve'];
+  const missing = dedicated.filter((n) => {
+    const f = files.find((x) => x.endsWith(`/${n}.tsx`));
+    return !f || !/ensureCoinsFor\s*\(/.test(strip(readFileSync(f, 'utf8')));
+  });
+  if (!missing.length) ok(`전용 화면 ${dedicated.length}개 전부 coinGate 경유`);
+  else bad(`coinGate 미사용 전용 화면: ${missing.join(', ')}`);
+}
+
+// ── S8 게이트 멈춤 방지(잔액/이용권 조회 상한) ───────────────────────────
+// ★실사고(daniel IMG_8313 "쿠폰으로 열기 눌렀는데 멈췄어"): 화면들은 `gatingRef` 로 잠그고 잔액을 await 한다.
+//   supabase-js 에는 기본 타임아웃이 없어 회선이 어정쩡하면 그 await 가 **영원히 안 끝나고**,
+//   finally 가 실행되지 않아 잠금이 남아 **버튼이 영구 사망**한다(화면은 '멈춘' 것으로 보인다).
+console.log('\n[S8] 잔액·이용권 조회에 상한(타임아웃)이 있다 — 게이트가 영구 잠기지 않게');
+{
+  const coins = strip(readFileSync(join(ROOT, 'app/src/lib/billing/coins.ts'), 'utf8'));
+  const coupons = strip(readFileSync(join(ROOT, 'app/src/lib/billing/coupons.ts'), 'utf8'));
+  if (/BALANCE_TIMEOUT_MS/.test(coins) && /Promise\.race/.test(coins)) ok('coinBalanceOrNull 상한 있음');
+  else bad('coinBalanceOrNull 에 타임아웃이 없다 — 조회가 멈추면 게이트가 영구 잠긴다');
+  if (/Promise\.race/.test(coupons)) ok('loadCreditsOrNull 상한 있음');
+  else bad('loadCreditsOrNull 에 타임아웃이 없다 — 같은 멈춤 경로');
+}
+
+console.log(fail ? `\n❌ check:store 실패 ${fail}건` : '\n✅ check:store 통과 — 결제 진입점·구매대상·잔재·조회낭비·재통변정합·화폐명·게이트전수·멈춤방지 OK');
 process.exit(fail ? 1 : 0);

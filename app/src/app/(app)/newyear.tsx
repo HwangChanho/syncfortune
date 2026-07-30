@@ -21,6 +21,7 @@ import { samjaeStatus } from '../../lib/engine/samjae';
 import { useAuth } from '../../lib/useAuth';
 import { useSubscription } from '../../lib/billing/subscription';
 import { Alert } from '../../lib/ui/alert';
+import { ensureCoinsFor } from '../../lib/billing/coinGate';   // ★운 단일 경로(daniel 07-28 · 이 화면은 07-30 에 누락 발견)
 import { loadCredits } from '../../lib/billing/coupons';
 import { isAdminActing } from '../../lib/core/admin'; // 스페셜 = 관리자 바로 / 그 외 쿠폰(크레딧)만
 import { requireLoginForPurchase } from '../../lib/billing/requireLogin';
@@ -233,8 +234,14 @@ export default function NewYearScreen() {
       const admin = false;   // ★관리자 전체오픈 폐지(daniel 2026-07-29) — 관리자도 운을 쓴다(결제 경로를 관리자 계정으로 실제 검증하기 위해)
       if (!admin) {
         if (!requireLoginForPurchase(session, () => router.push('/login'), t)) return;
-        const credits = await loadCredits();                                        // 쿠폰(이용권)만 unlock — 결제 미연동
-        if ((credits['newyear'] ?? 0) <= 0) { Alert.alert(t('newyear.title', '신년운세'), t('special.couponOnly', '쿠폰(이용권)으로 열 수 있어요. 설정에서 쿠폰을 등록하거나 관리자에게 문의하세요.')); return; }
+        // ★★운 게이트로 전환(daniel 2026-07-30 "왜 쿠폰으로 열기가 나오지 코인으로 열수있는데").
+        //   07-28 코인 단일화폐 전환에서 **이 화면이 누락**됐다 — 구 쿠폰(크레딧) 잔여가 없으면
+        //   운을 아무리 많이 갖고 있어도 통과할 수 없었다(프리미엄 폐지·관리자 개방 폐지로 우회로도 전멸).
+        //   ⇒ 마켓에서 '열기'를 눌러도 이 화면으로 와서 "쿠폰이 필요하다"만 반복됐다.
+        //   차감은 여기서 하지 않는다 — 서버(Edge interpret)가 생성 직전에 원자적으로 뺀다.
+        const g = await ensureCoinsFor('newyear', { title: t('newyear.title', '신년운세'), t, goCharge: () => router.push('/coins') });
+        logEvent('newyear_coin_gate', { result: g });
+        if (g !== 'ok') return;   // insufficient=충전 안내 / cancel=사용자 취소 / error=조회 실패(부족으로 오해 금지)
       }
     } catch (e: any) { logEvent('newyear_gate_error', { message: String(e?.message ?? e) }, 'error'); return; }
     finally { gatingRef.current = false; }
