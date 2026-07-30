@@ -848,7 +848,7 @@ export function ReadingScreen({
       {/* #1: 미권한 명식(무료모드·비지정 프리미엄)은 캐시 풀이 대신 페이월 — 첫 영역만 맛보기 */}
       {locked && (
         <View style={styles.card}>
-          <Text style={{ ...font.heading, color: colors.ju, marginBottom: space(3), fontSize: fs(16) }}>🔒 {t('reading.lockedTitle', '이 명식의 풀이는 프리미엄 또는 결제로 열려요')}</Text>
+          <Text style={{ ...font.heading, color: colors.ju, marginBottom: space(3), fontSize: fs(16) }}>🔒 {t('reading.lockedTitle', '이 명식의 풀이는 코인으로 열려요')}</Text>
           {(() => {
             const r0 = normalizeReading(readings[cats[0]?.key]);
             const tease = r0 && typeof r0 === 'object' && !(r0 as any).error ? asText((r0 as any).base) : null;

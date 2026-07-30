@@ -76,7 +76,9 @@
     "build:share": "node scripts/build-share-pages.mjs",
     "golden:fromdb": "node scripts/verifydb-to-ingest.mjs",
     "check:qa-sweep": "npx tsx scripts/check-qa-sweep.ts",
-    "check:r60wiring": "npx tsx scripts/check-r60wiring.ts"
+    "check:r60wiring": "npx tsx scripts/check-r60wiring.ts",
+    "check:android": "npx tsx scripts/check-android.ts",
+    "check:premium-gone": "npx tsx scripts/check-premium-gone.ts"
   },
   "keywords": [],
   "author": "",

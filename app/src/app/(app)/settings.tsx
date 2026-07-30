@@ -176,7 +176,7 @@ export default function SettingsScreen() {
       )}
 
       {/* ── 코인 ──
-          ★프리미엄 폐지(daniel 2026-07-28) — 이 자리에 있던 '프리미엄 보기'를 코인 잔액·충전으로 교체했다.
+          ★프리미엄 폐지(daniel 2026-07-28) — 이 자리에 있던 '코인 충전하기'를 코인 잔액·충전으로 교체했다.
             계정 화면에서 지금 얼마 있는지 바로 보이는 게 결제 이해에 가장 직접적이다. */}
       <Text style={[styles.h, { marginTop: space(7) }]}>{t('settings.coins', '코인')}</Text>
       <PressableScale style={styles.coinRow} onPress={() => router.push('/coins')}>

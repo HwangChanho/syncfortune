@@ -359,7 +359,7 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
               <Text style={styles.relDropCaret}>▾</Text>
             </View>
           </PressableScale>
-          <Text style={styles.relHint}>{isPremium ? '관계마다 별도 풀이예요 · 프리미엄은 무제한' : '관계마다 별도로 풀어 드려요 — 고른 관계만 결제돼요'}</Text>
+          <Text style={styles.relHint}>{isPremium ? '관계마다 별도 풀이예요' : '관계마다 별도로 풀어 드려요 — 고른 관계만 결제돼요'}</Text>
           {/* ★사주/자미 탭 제거(daniel 2026-07-15 '구분짓지 말고 같이풀어') — 'compat' 통변이 이미 사주 주축+자미 보조교차로 합쳐 나옴(규칙2·R46). 항상 compatTab='saju'(=합친 통변). */}
           {/* 연도별 — 전체(원국 본바탕) / 그 해 흐름(세운). 연도 탭 시 그 관계×연도 통변 생성 */}
           <Text style={[styles.stepLabel, { marginTop: space(4) }]}>{t('compat.step3year', '③ 언제로 볼까요?')}</Text>

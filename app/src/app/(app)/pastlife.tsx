@@ -98,7 +98,7 @@ export default function PastLifeScreen() {
         {/* 이슈17: 전생 이야기 결과 공유(앱게이트) */}
         <ShareReadingButton kind="pastlife" title="나의 전생" content={result} />
         <Text style={styles.note}>{t('pastlife.note', '※ 사주로 가볍게 그려 본 전생 이야기예요. 재미로 즐겨 주세요.')}</Text>
-        <DeepDiveCta kind="reading" label={t('pastlife.detail', '내 사주 깊이 보기 (프리미엄)')} onPress={() => router.navigate({ pathname: '/reading', params: { input: JSON.stringify(me) } })} />
+        <DeepDiveCta kind="reading" label={t('pastlife.detail', '내 사주 깊이 보기')} onPress={() => router.navigate({ pathname: '/reading', params: { input: JSON.stringify(me) } })} />
               {/* ★이어서 보면 좋은 콘텐츠(daniel 2026-07-27 "전부 붙여") — 화면마다 하단이 달라 보이던 것 통일.
             큐레이션 출처는 RELATED 단일(중복 하드코딩 0). 매핑이 없으면 스스로 아무것도 안 그린다. */}
         <RelatedContent kind="pastlife" />

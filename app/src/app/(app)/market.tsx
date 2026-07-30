@@ -358,8 +358,8 @@ export default function MarketRoute() {
       {/* ── 섹션 A: 프리미엄에 포함(주제 필터·비면 헤더째 숨김) ── 타임라인도 여기 포함(daniel 2026-07-01, 사주+자미 종합). */}
       {premList.length > 0 && (
         <>
-          <Text style={styles.sectionH}>{t('market.sectionIncluded', '✦ 프리미엄에 포함')}</Text>
-          <Text style={styles.sectionSub}>{t('market.sectionIncludedSub', '프리미엄 가입 시 아래 풀이를 명식 수 제한 없이 무제한 이용해요(개별 구매도 가능).')}</Text>
+          <Text style={styles.sectionH}>{t('market.sectionIncluded', '✦ 코인으로 열기')}</Text>
+          <Text style={styles.sectionSub}>{t('market.sectionIncludedSub', '아래 풀이는 코인으로 하나씩 열 수 있어요. 명식마다 따로 열립니다.')}</Text>
           {premList.map((c) => renderCard(c, true))}
         </>
       )}
@@ -367,8 +367,8 @@ export default function MarketRoute() {
       {/* ── 섹션 B: 개별 구매 전용(프리미엄 미포함·주제 필터) ── isPremium 무관 항상 개별 구매(기존) */}
       {(hotList.length + restList.length) > 0 && (
         <>
-          <Text style={styles.sectionH}>{t('market.sectionIndividual', '◆ 개별 구매 전용 · 프리미엄 미포함')}</Text>
-          <Text style={styles.sectionSub}>{t('market.sectionIndividualSub', '아래 항목은 프리미엄에 포함되지 않아 개별 구매해야 합니다.')}</Text>
+          <Text style={styles.sectionH}>{t('market.sectionIndividual', '◆ 개별 구매 전용')}</Text>
+          <Text style={styles.sectionSub}>{t('market.sectionIndividualSub', '아래 항목은 하나씩 따로 구매해요.')}</Text>
           {/* ★인기 외곽칸(daniel 07-08) — 개별 섹션 상단에 수요 많은 유료 콘텐츠를 박스로 강조. 주제 필터 시 해당 주제의 인기만. */}
           {hotList.length > 0 && (
             <View style={styles.hotBox}>

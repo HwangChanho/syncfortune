@@ -162,7 +162,7 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
     const isPrem = !!premChartId && charts.find((c) => c.id === id)?.serverChartId === premChartId;
     Alert.alert(
       t('manse.deleteTitle', '명식 삭제'),
-      (isPrem ? '⚠️ 이 명식은 프리미엄이 적용된 명식이에요.\n삭제하면 프리미엄 혜택이 사라지니 신중히 결정하세요.\n\n' : '') + (t('manse.deleteMsg', { label, defaultValue: `'${label}' 명식을 삭제할까요? 되돌릴 수 없어요.` }) as string),
+      (isPrem ? '⚠️ 이 명식에는 열어 둔 풀이가 있어요.\n삭제하면 그 풀이도 함께 사라지니 신중히 결정하세요.\n\n' : '') + (t('manse.deleteMsg', { label, defaultValue: `'${label}' 명식을 삭제할까요? 되돌릴 수 없어요.` }) as string),
       [
         { text: t('common.cancel', '취소'), style: 'cancel' },
         { text: t('common.delete', '삭제'), style: 'destructive', onPress: async () => { await deleteChart(id); await reload(); onChange?.(); } },

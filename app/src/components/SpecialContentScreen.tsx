@@ -521,7 +521,7 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
           {!reading ? (
             <Text style={[styles.ownedStatus2, dynStyles.gateDesc]}>{t('special.ownedResumeSub', '생성이 중단됐어요. 추가 결제 없이 이어서 만들어 드려요')}</Text>
           ) : isPremiumForChart(chartId) ? (
-            <Text style={[styles.ownedStatus2, dynStyles.gateDesc, { color: colors.gold }]}>{t('special.ownedUnlimited', '프리미엄 · 무제한 이용')}</Text>
+            <Text style={[styles.ownedStatus2, dynStyles.gateDesc, { color: colors.gold }]}>{t('special.ownedUnlimited', '코인으로 열림')}</Text>
           ) : (showExpiry && expiry) ? (
             <Text style={[styles.ownedStatus2, dynStyles.gateDesc]}>{t('special.ownedUntil', { date: expiry, defaultValue: '{{date}}까지 볼 수 있어요' })}</Text>
           ) : (
