@@ -29,7 +29,8 @@ import { supabase } from '../lib/supabase'; // 세션 유저 test_mode·is_admin
 import { FontScaleProvider } from '../lib/ui/fontScale'; // 전역 글자 크기(설정에서 조절)
 import { colors, getLoadingMode } from '../lib/theme'; // getLoadingMode: 인트로 화면 모드 video(호랑이)/text(八字)/off(없음, daniel 07-15)
 import { AppAlert } from '../components/AppAlert'; // 커스텀 알림 호스트(시스템 Alert 대체)
-import { installCrashLogger, logEvent, setLogTestContext } from '../lib/backend/logger'; // 전역 JS 크래시 → app_logs(DB 로그) + 앱 사용 세션 시간 로깅 + 테스트/배포 로그 태그
+import { installCrashLogger, logEvent, setLogTestContext } from '../lib/backend/logger';
+import { installAdminTrace, setAdminTrace } from '../lib/backend/adminTrace'; // ★Edge·RPC 자동 추적(관리자 상세 / 일반은 실패만) // 전역 JS 크래시 → app_logs(DB 로그) + 앱 사용 세션 시간 로깅 + 테스트/배포 로그 태그
 import { VideoSplash } from '../components/VideoSplash'; // 앱 실행 인트로 영상(왕궁 문→웅장한 호랑이→으르렁, 폴백=이미지)
 import { TextSplash } from '../components/TextSplash'; // 로딩 영상 OFF 시(설정) 八字 한자 스플래시
 import { BusyOverlay } from '../components/BusyOverlay'; // 인증 전환(로그아웃/로그인) 중 전역 블로킹 로딩(먹통 방지)
@@ -61,7 +62,10 @@ export default function RootLayout() {
   const [splash, setSplash] = useState(() => getLoadingMode() !== 'off'); // 앱 실행 인트로 1회 — 끝나면 언마운트. off=처음부터 없음(바로 앱)
 
   // 전역 크래시 로거 등록(앱 시작 1회) — JS 치명 에러를 app_logs 에 기록(daniel: DB 로그).
-  useEffect(() => { installCrashLogger(); }, []);
+  useEffect(() => {
+    installCrashLogger();
+    installAdminTrace();   // ★Edge·RPC 를 한 곳에서 가로채 로깅(호출 지점 24곳을 고치지 않는다)
+  }, []);
   // AdMob SDK 초기화(앱 시작 1회) — 이게 없으면 ad.load()가 실패해 무료 보상형 광고가 안 뜬다(daniel 버그). 모듈 없는 빌드는 no-op.
   useEffect(() => { initAds().catch(() => {}); }, []);
   // 진행중/완료-미확인 풀이 복원(daniel: 풀이 중 강제종료해도 홈에 '이전에 진행중인 풀이' 배너 → 탭하여 이어보기).
@@ -69,14 +73,14 @@ export default function RootLayout() {
   // ★테스트광고 게이트(daniel) — 관리자/테스트 계정은 실 AdMob 유닛 서빙 전이라 구글 테스트광고를 보게(배너·보상형·전면 동작 확인용).
   //   세션 바뀔 때마다 test_mode·is_admin 재평가. 일반 유저는 false(실 유닛, 앱 출시 후 서빙).
   useEffect(() => {
-    if (!session) { setAdTestMode(false); setClientTestMode(false); setLogTestContext(false); return; }
+    if (!session) { setAdTestMode(false); setClientTestMode(false); setLogTestContext(false); setAdminTrace(false); return; }
     supabase.auth.getUser().then(({ data }) => {
-      if (!data.user) { setAdTestMode(false); setClientTestMode(false); setLogTestContext(false); return; }
+      if (!data.user) { setAdTestMode(false); setClientTestMode(false); setLogTestContext(false); setAdminTrace(false); return; }
       supabase.from('profiles').select('test_mode, is_admin, admin_mode').eq('id', data.user.id).maybeSingle()
         .then(({ data: p }) => {
           setAdTestMode(!!p?.test_mode); // 테스트모드 토글 ON 시에만 테스트광고+게이트(평소 관리자 편의)
           setClientTestMode(!!p?.test_mode); // ★readings 목업 필터 소스 — OFF면 direct 로드가 tier='mock' 제외(실모드 목업 서빙 차단)
-          setLogTestContext(!!p?.test_mode || !!p?.is_admin || !!p?.admin_mode); // ★로그 test 태그 = 관리자/테스트 계정(실사용자 로그와 분리)
+          setLogTestContext(!!p?.test_mode || !!p?.is_admin || !!p?.admin_mode); setAdminTrace(!!p?.test_mode || !!p?.is_admin || !!p?.admin_mode); // ★로그 test 태그 = 관리자/테스트 계정(실사용자 로그와 분리)
         });
     }).catch(() => {});
   }, [session]);
