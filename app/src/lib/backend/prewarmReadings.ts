@@ -57,7 +57,19 @@ export async function ensureServerChartId(
       p_birth: JSON.stringify(input),     // 서버에서 즉시 암호화 → birth_enc (관리자만 복호화)
       p_label: savedChart.label ?? null,  // 라벨도 동일 키로 암호화 → label_enc
     });
-    if (error || !data) return savedChart.serverChartId ?? null; // RPC 실패(오프라인 등) = 기존 매핑 폴백(있으면)
+    // ★실패 원인을 남긴다(daniel 2026-07-30 "ai 코치 계속 네트워크 에러떠").
+    //   종전엔 에러를 **통째로 삼키고** null 만 돌려줘, 화면엔 "명식을 불러오지 못했어요"만 뜨고
+    //   원인을 알 방법이 없었다(서버 로그에도 안 남는다 — RPC 에러는 Edge 를 안 거친다).
+    //   ⚠️같은 유형: 푸시 토큰 등록 실패를 catch 가 삼켜 '한 번도 작동 안 함'을 몰랐던 사고.
+    if (error || !data) {
+      logEvent('ensure_chart_fail', {
+        localId: savedChart.id,
+        hasFallback: !!savedChart.serverChartId,
+        code: (error as any)?.code ?? null,
+        msg: String((error as any)?.message ?? '').slice(0, 200),
+      });
+      return savedChart.serverChartId ?? null;   // 기존 매핑 폴백(있으면)
+    }
     const newId = data as string;        // RPC 반환 = canonical charts.id(uuid)
     if (newId !== savedChart.serverChartId) await setServerChartId(savedChart.id, newId); // 바뀌었을 때만 온디바이스 매핑 갱신
     return newId;

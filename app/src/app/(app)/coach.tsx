@@ -20,6 +20,7 @@ import { getNavBarHeight } from '../../components/BottomNav'; // 전역 네비�
 import { computeChart } from '../../lib/engine/engine';
 import { loadRepChart } from '../../lib/engine/myChart';
 import { ensureServerChartId } from '../../lib/backend/prewarmReadings';
+import { logEvent } from '../../lib/backend/logger';
 import { useAuth } from '../../lib/useAuth';
 import { useFontScale } from '../../lib/ui/fontScale';
 import { askCoach, loadCoachHistory, deleteCoachHistory, type CoachTurn } from '../../lib/backend/coach';
@@ -109,8 +110,20 @@ export default function CoachScreen() {
       const ch = await loadRepChart();
       if (!ch) { setHasChart(false); return; }
       if (!session) { Alert.alert('!', t('coach.loadFail', '명식을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.')); return; }
-      try { const cc = computeChart(ch.input); id = await ensureServerChartId(cc, ch.input, session, ch); } catch { id = null; }
-      if (!id) { Alert.alert('!', t('coach.loadFail', '명식을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.')); return; }
+      // ★1회 재시도(daniel 2026-07-30 "ai 코치 계속 네트워크 에러떠").
+      //   ensureServerChartId 는 서버 RPC 다 — 일시적 네트워크·콜드스타트로 실패할 수 있는데
+      //   종전엔 **한 번 실패하면 바로 포기**하고 "명식을 불러오지 못했어요"를 띄웠다.
+      //   사용자는 질문을 다시 입력해야 했고, 원인도 알 수 없었다(실패가 로그에도 안 남았다 — 지금은 남는다).
+      for (let attempt = 0; attempt < 2 && !id; attempt++) {
+        if (attempt) await new Promise((r) => setTimeout(r, 700));   // 짧은 백오프 후 1회만 재시도
+        try { const cc = computeChart(ch.input); id = await ensureServerChartId(cc, ch.input, session, ch); }
+        catch { id = null; }
+      }
+      if (!id) {
+        logEvent('coach_chartid_fail', { hasSession: !!session });
+        Alert.alert('!', t('coach.loadFail', '명식을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.'));
+        return;
+      }
       setChartId(id);
     }
     setInput(''); setBusy(true); lastQ.current = question;
