@@ -152,16 +152,11 @@ export async function purchaseCoinPack(packId: string): Promise<boolean> {
   return purchaseConsumableRC(packId);
 }
 
-// ★재통변 할인 상품ID(daniel 07-08 통일 모델·ⓑ 콘텐츠별): 기존 이용권 SKU + 티어 접미(_r30 프리미엄 30% / _r10 일반 10%).
-//   rc-webhook 이 접미를 떼어 같은 kind 로 적립 → 재생성. ★가격은 스토어 등록가(정가×0.7/0.9) — asc-iap.js 가 정가에서 파생 생성(가격 변동 대비).
-export function renewalCreditProductId(kind: CreditKind, isPremium: boolean): string {
-  return `${CREDIT_PRODUCT[kind]}${isPremium ? '_r30' : '_r10'}`;
-}
-
-/** 운세형 콘텐츠 구매 1년 후 재통변(할인) 구매 — 성공 시 true. 웹훅이 kind 이용권 적립 → 호출처가 최신 모델로 재생성. */
-export async function purchaseContentRenewalRC(kind: CreditKind, isPremium: boolean): Promise<boolean> {
-  return purchaseConsumableRC(renewalCreditProductId(kind, isPremium));
-}
+// ★renewalCreditProductId · purchaseContentRenewalRC 제거(daniel 2026-07-30 "재통변은 코인으로 바꿔").
+//   `credit_<kind>_r30/_r10` 할인 SKU 를 스토어에서 사던 경로다. 두 가지 이유로 성립하지 않았다:
+//   ①그 SKU 는 **Play 에 등록조차 없다**(07-30 코인 단일화폐로 확정 — 등록 안 함)
+//   ②할인율이 프리미엄 티어로 갈렸는데 프리미엄은 07-28 폐지됐다(PREMIUM_ENABLED=false)
+//   → 재통변은 코인으로 낸다: 청구·차감은 **Edge interpret**(renewConfirm 동의 필요), 흐름은 `billing/renewal.ts`.
 
 /** 구매 복원(App Store 필수) → 프리미엄 활성 여부 반환. */
 export async function restorePurchasesRC(): Promise<boolean> {

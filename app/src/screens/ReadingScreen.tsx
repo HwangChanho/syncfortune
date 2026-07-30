@@ -509,18 +509,32 @@ export function ReadingScreen({
     Alert.alert('관리자', '초기화했어요. 다시 열거나 생성하면 새로 만들어져요.');
   }
 
-  async function refreshReading(key: string) {
+  /**
+   * 풀이 재생성(갱신).
+   * @param renewConfirm ★재통변(1년 경과) **코인 청구 동의**. 사용자가 가격을 보고 동의했을 때만 true —
+   *   서버는 이 플래그 없이는 절대 차감하지 않는다(무단 차감 방지 · daniel 2026-07-30 코인 전환).
+   */
+  async function refreshReading(key: string, renewConfirm = false) {
     if (!chartId || progress) return;
     const label = cats.find((x) => x.key === key)?.label ?? '';
     setProgress({ done: 0, total: 1, current: label });
     try {
       const { data, error } = await supabase.functions.invoke('interpret', {
-        body: { chartId, category: key, kind, tier: 'paid', refresh: true, lang: appLang(), ...(kind === 'ziwei' ? { ziwei: c!.ziwei } : {}) },
+        body: { chartId, category: key, kind, tier: 'paid', refresh: true, ...(renewConfirm ? { renewConfirm: true } : {}), lang: appLang(), ...(kind === 'ziwei' ? { ziwei: c!.ziwei } : {}) },
       });
       if (error) Alert.alert(t('common.error'), t('common.genFailed', '풀이를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.')); // 방어: 원문 대신 친화 문구
       else if (data?.unavailable) Alert.alert(t('common.error'), (data as any).message || t('common.llmBusy', '지금 통변 생성이 일시적으로 어려워요. 잠시 후 다시 시도해 주세요.')); // 방어: LLM 일시적 불가
       else if (data?.refreshDenied) Alert.alert(t('reading.refreshDeniedTitle', '갱신 한도'), t('reading.refreshDenied', { cap: data.cap, defaultValue: '이 풀이는 최대 {{cap}}번까지 갱신할 수 있어요.' }));
-      else if (data?.renewRequired) await runContentRenewal({ kind: data.kind, isPremium, onDone: () => void refreshReading(key) }); // 운세형 1년 경과 → 재통변 할인(프리미엄30%/일반10%) 구매 후 재생성 재시도(daniel 07-08)
+      // 운세형 1년 경과 → 재통변(코인 · daniel 2026-07-30). 서버가 준 `coins` 가 권위 가격이고,
+      //   동의를 받으면 **renewConfirm:true** 로 재시도한다(그 요청에서만 서버가 차감한다).
+      //   ★insufficient=true 면 동의 후 잔액이 부족했던 경우 → runContentRenewal 이 충전 화면으로 안내한다.
+      else if (data?.renewRequired) {
+        await runContentRenewal({
+          kind: data.kind, coins: data.coins, t,
+          goCharge: () => router.push('/coins'),
+          onDone: () => void refreshReading(key, true),
+        });
+      }
       else if (data?.reading) {
         setReadings((prev) => ({ ...prev, [key]: data.reading }));
         setStale((prev) => { const n = new Set(prev); n.delete(key); return n; });

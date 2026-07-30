@@ -62,18 +62,11 @@ console.log('\n[S2] 앱이 사려는 상품 = 코인 팩뿐(Play 등록분과 �
   //     '이름'이 아니라 '무엇을 하는가'로 판정해야 한다(이 프로젝트 반복 교훈).
   const buyers = [...src.matchAll(/export async function (\w*[Pp]urchase\w*)\s*\(/g)].map((m) => m[1])
     .filter((b) => !['logoutPurchases', 'restorePurchasesRC'].includes(b));
+  // ★2026-07-30 재통변까지 코인으로 전환 → **예외 없이** 코인 팩뿐이어야 한다(종전 KNOWN_PENDING 해소).
   const ALLOWED = new Set(['purchaseConsumableRC', 'purchaseCoinPack']);
-  // ★알려진 예외(daniel 판단 대기 · 2026-07-30): 운세형 1년 경과 '재통변' 할인 구매.
-  //   `credit_<kind>_r30/_r10` 을 사는데 이 상품군은 **Play 에 등록하지 않기로 했다**(코인 단일화폐).
-  //   지금은 도달 불가에 가깝다(앱 출시 1년 미만 = 1년 경과 구매가 존재하지 않는다).
-  //   그래도 남겨 두는 이유: 코인으로 바꾸려면 **재통변 할인가**를 정해야 하고 그건 daniel 의 결정이다.
-  //   → 실패로 막지 않고 **경고로 계속 보이게** 한다(조용히 사라지면 1년 뒤 사고가 된다).
-  const KNOWN_PENDING = new Set(['purchaseContentRenewalRC']);
-  const extra = buyers.filter((b) => !ALLOWED.has(b) && !KNOWN_PENDING.has(b));
-  const pending = buyers.filter((b) => KNOWN_PENDING.has(b));
+  const extra = buyers.filter((b) => !ALLOWED.has(b));
   if (!extra.length) ok(`구매 함수 = ${buyers.join(', ')}`);
   else bad(`허용되지 않은 구매 함수: ${extra.join(', ')} — 코인 팩 외 결제 경로가 생겼다(스토어 미등록 상품일 가능성)`);
-  for (const p of pending) console.log(`  ⚠️ ${p} — 재통변 할인 구매(credit_*_r30/_r10)는 Play 미등록. ★daniel 결정 대기(코인 전환 or 제거)`);
 
   // purchaseConsumableRC 호출부는 purchaseCoinPack 뿐이어야 한다(임의 상품 id 결제 차단)
   const callers = files.filter((f) => {
@@ -90,6 +83,8 @@ console.log('\n[S3] 07-30 에 걷어낸 것이 되살아나지 않았다');
   const gone: Array<[string, RegExp | null, string]> = [
     ['purchaseCreditRC', /export async function purchaseCreditRC/, '건당 결제(코인 전환으로 폐지 · 실호출 0이었다)'],
     ['purchasePremiumRC', /export async function purchasePremiumRC/, '프리미엄 구매(폐지 · 상품 미등록)'],
+    ['purchaseContentRenewalRC', /export async function purchaseContentRenewalRC/, '재통변 할인 SKU 구매(코인으로 전환 · credit_*_r30/_r10 는 Play 미등록)'],
+    ['renewalCreditProductId', /export function renewalCreditProductId/, '재통변 SKU id 파생(같이 폐지)'],
   ];
   for (const [name, re, why] of gone) {
     if (re && re.test(src)) bad(`${name} 부활 — ${why}`);
@@ -115,5 +110,29 @@ console.log('\n[S4] 등록하지 않기로 한 상품군을 스토어에 묻지 
   else bad(`스토어 조회 잔존: ${askers.map((f) => f.replace(ROOT, '')).join(', ')} — 항상 빈 결과(헛된 왕복)`);
 }
 
-console.log(fail ? `\n❌ check:store 실패 ${fail}건` : '\n✅ check:store 통과 — 결제 진입점·구매대상·잔재·조회낭비 OK');
+// ── S5 재통변 코인가 정합(앱 ↔ 서버) ────────────────────────────────────
+// ★같은 식이 두 곳에 복제돼 있다(앱 표시가 · 서버 실청구). 갈리면 **본 가격과 청구가 어긋난다** —
+//   사용자 신뢰를 가장 빨리 깎는 종류의 버그라 기계로 못 박는다.
+console.log('\n[S5] 재통변 코인 할인율·계산식이 앱과 서버에서 같다');
+{
+  const appSrc = strip(readFileSync(join(ROOT, 'app/src/lib/billing/repurchase.ts'), 'utf8'));
+  const edgeSrc = strip(readFileSync(join(ROOT, 'supabase/functions/interpret/index.ts'), 'utf8'));
+  const pctOf = (src: string) => Number(/RENEWAL_COIN_DISCOUNT_PCT\s*=\s*(\d+)/.exec(src)?.[1] ?? NaN);
+  const a = pctOf(appSrc), e = pctOf(edgeSrc);
+  if (Number.isFinite(a) && Number.isFinite(e) && a === e) ok(`할인율 ${a}% 일치`);
+  else bad(`할인율 불일치/미발견 — 앱 ${a} vs 서버 ${e}`);
+  // 계산식: 내림 + 최소 1코인(반올림이면 정가 5코인에서 할인이 사라진다)
+  for (const [name, src] of [['앱', appSrc], ['서버', edgeSrc]] as const) {
+    const fn = /function renewalCoinCost[\s\S]{0,240}?\}/.exec(src)?.[0] ?? '';
+    if (/Math\.floor/.test(fn) && /Math\.max\(1/.test(fn)) ok(`${name} 계산식 = 내림 + 최소 1코인`);
+    else bad(`${name} renewalCoinCost 가 내림/최소1 규칙이 아니다 — 할인이 0 이 되는 구간이 생긴다`);
+  }
+  // ★무단 차감 방지: 서버는 renewConfirm 없이는 청구하지 않아야 한다
+  if (/renewConfirm\s*!==\s*true/.test(edgeSrc)) ok('서버가 renewConfirm 동의 없이는 차감하지 않는다');
+  else bad('서버에 renewConfirm 가드가 없다 — 새로고침만으로 코인이 빠진다(무단 차감)');
+  if (/refreshReading\(key,\s*true\)/.test(strip(readFileSync(join(ROOT, 'app/src/screens/ReadingScreen.tsx'), 'utf8')))) ok('앱이 동의 후 renewConfirm:true 로 재시도');
+  else bad('앱이 동의 후에도 renewConfirm 을 안 보낸다 — 재통변이 영원히 안 된다(무한 안내)');
+}
+
+console.log(fail ? `\n❌ check:store 실패 ${fail}건` : '\n✅ check:store 통과 — 결제 진입점·구매대상·잔재·조회낭비·재통변정합 OK');
 process.exit(fail ? 1 : 0);

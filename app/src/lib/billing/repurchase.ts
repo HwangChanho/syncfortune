@@ -62,8 +62,39 @@ export const RENEWABLE_KINDS: ReadonlySet<string> = new Set([
   'reading', 'ziwei', 'compat', 'love', 'newyear', 'reunion', 'crush', 'job', 'timeline', 'lifegraph', 'future10',
 ]);
 
-/** 계정 티어별 재구매 할인율(daniel: 프리미엄 0.30 / 일반 0.10). */
+/** 계정 티어별 재구매 할인율(daniel: 프리미엄 0.30 / 일반 0.10). ⚠️원화 시절 SKU 파생용 — 코인 전환 후에는 아래 코인 할인율을 쓴다. */
 export function renewalDiscountRate(isPremium: boolean): number { return isPremium ? 0.30 : 0.10; }
+
+// ─────────────────────────────────────────────────────────────────────────
+// ★재통변 = 코인 결제(daniel 2026-07-30 "재통변은 코인으로 바꿔")
+//   종전엔 할인 SKU(`credit_<kind>_r30/_r10`)를 스토어에서 사게 했다. 그런데
+//   ①07-28 코인 단일화폐 전환으로 현금 경로는 코인 충전 하나로 정리됐고
+//   ②그 할인 SKU 는 **Play 에 등록조차 없어**(등록 안 하기로 확정) 안드로이드에선 영원히 실패할 코드였다.
+//   → 재통변도 코인으로 낸다. 청구·차감은 **서버(Edge interpret)** 가 한다(클라 선차감 금지).
+// ─────────────────────────────────────────────────────────────────────────
+
+/**
+ * 재통변 코인 할인율(%). ★daniel 가격 검수 슬롯.
+ *
+ * 10 을 고른 근거(발명 아님): 종전 규칙은 프리미엄 30% / 일반 10% 였고 프리미엄은 07-28 폐지됐다.
+ *   즉 **현재 모든 실사용자에게 적용되던 값이 10%** 다 → 관측 가능한 동작을 그대로 보존한다.
+ *   재구매 유인을 더 주려면 이 숫자만 올리면 된다(앱·서버가 같은 규칙을 공유하도록 하네스가 대조).
+ */
+export const RENEWAL_COIN_DISCOUNT_PCT = 10;
+
+/**
+ * 재통변 코인가 = 정가 코인 × (1 − 할인율), **내림**(사용자에게 유리) · 최소 1코인.
+ * @param fullCoins 그 콘텐츠의 정가 코인(COIN_PRICE[kind])
+ *
+ * ⚠️내림을 쓰는 이유: 코인은 정수라 반올림하면 할인이 0 이 되는 구간이 생긴다
+ *   (예: 정가 5코인 × 0.9 = 4.5 → 반올림 5 = 할인 없음). 내림이면 4 로 실제 할인이 된다.
+ * ⚠️서버(Edge interpret)에 **같은 식이 복제**돼 있다 — 값이 갈리면 클라 표시가와 실제 청구가 어긋난다.
+ *   `npm run check:store` S5 가 두 곳을 대조한다.
+ */
+export function renewalCoinCost(fullCoins: number): number {
+  if (!(fullCoins > 0)) return 0;
+  return Math.max(1, Math.floor(fullCoins * (1 - RENEWAL_COIN_DISCOUNT_PCT / 100)));
+}
 
 /** 재구매 표시가 = 정가 × (1−할인율), 100원 반올림. ★정가 단일소스에서 파생(가격 변동 대비). */
 export function contentRenewalPrice(listPrice: number, isPremium: boolean): number {
