@@ -93,11 +93,22 @@ export default function CoachScreen() {
       try {
         const cc = computeChart(ch.input);
         const id = await ensureServerChartId(cc, ch.input, session, ch);
-        if (!alive || !id) return;
+        if (!alive) return;
+        if (!id) { logEvent('coach_load_noid', {}, 'warn'); return; }   // RPC 는 성공했는데 id 가 없다 = 별개 원인
         setChartId(id);
         const h = await loadCoachHistory(id);
         if (alive) setHistory(h);
-      } catch { /* 로드 실패 = 빈 대화로 시작 */ }
+      } catch (e) {
+        // ★침묵 catch 제거(daniel 2026-07-30 "ai 코치 새로받은 버전으로도 안돼").
+        //   ⚠️여기가 **진짜 사각지대**였다: computeChart 가 던지면 ensureServerChartId 는 **호출조차 안 되므로**
+        //     내가 앞서 넣은 `ensure_chart_fail` 로그도 안 남는다 — 실제 관측(로그 0건)과 정확히 일치한다.
+        //     그래서 "명식을 불러오지 못했어요"만 뜨고 원인을 알 수 없었다.
+        logEvent('coach_load_fail', {
+          where: 'computeChart|ensureServerChartId',
+          msg: String((e as Error)?.message ?? e).slice(0, 200),
+          name: String((e as Error)?.name ?? ''),
+        }, 'error');
+      }
     })().catch(() => { if (alive) setHasChart(false); });
     return () => { alive = false; };
   }, [reloadKey, session]);
