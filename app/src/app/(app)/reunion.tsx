@@ -36,7 +36,7 @@ import type { SavedChart } from '../../lib/engine/myChart';
 import { loadReunionOther, saveReunionOther, clearReunionOther } from '../../lib/content/reunionOther'; // 상대 잠금 로컬 영속(대표 명식별)
 import { isPremiumForChart } from '../../lib/billing/premiumStore';   // 명식별 프리미엄(무제한 = 바꾸기 무료)
 import { loadCredits } from '../../lib/billing/coupons'; // 보유 이용권 확인(쿠폰·선물분 — 코인 이전 잔여)
-import { purchaseCreditRC, purchasesEnabled } from '../../lib/billing/purchases'; // 재구매(바로 결제)
+import { purchasesEnabled } from '../../lib/billing/purchases';
 import { requireLoginForPurchase } from '../../lib/billing/requireLogin'; // 결제 전 로그인 게이트
 import { colors, radius, space, font, shadow } from '../../lib/theme';
 

@@ -21,7 +21,7 @@ import { listCharts, getRepresentativeId, setRepresentative, loadRepChart, type 
 import { requestChartConfirm } from '../../lib/ui/chartConfirm'; // 구매 전 명식 확인(드롭다운으로 변경 가능)
 import { ListSkeleton } from '../../components/Skeleton'; // 첫 진입 로딩 스켈레톤(daniel 07-02: 마켓 즉시 전환+스켈레톤)
 import { useDeferredReady } from '../../lib/ui/useDeferredReady'; // 전환 즉시 스켈레톤 → 전환 후 콘텐츠 마운트(멈칫 제거)
-import { purchasesEnabled, priceStringsRC, priceStringRC, CREDIT_PRODUCT } from '../../lib/billing/purchases';
+import { purchasesEnabled } from '../../lib/billing/purchases';
 import { useSubscription } from '../../lib/billing/subscription'; // 프리미엄 가입 루트(전체 무제한)
 import { useAuth } from '../../lib/useAuth';              // 세션(프리미엄 명식 지정 시 serverChartId 발급)
 import { supabase } from '../../lib/supabase';            // set_premium_chart RPC(구매 명식 지정)
@@ -132,7 +132,6 @@ export default function MarketRoute() {
   // ★보유 코인(daniel 2026-07-28 "마켓에 본인 보유코인도 나와야지") — 충전 화면에 들어가지 않고도
   //   지금 얼마 있는지 알아야 '이걸 열 수 있나'를 판단할 수 있다. null=조회 실패(0으로 표시하지 않는다).
   const [coins, setCoins] = useState<number | null>(null);   // 보유 코인(null=조회 실패 — 0으로 표시하지 않는다)
-  const [prices, setPrices] = useState<Record<string, string>>({}); // 현지통화 가격(RC) — 미설정 시 ₩ 폴백
   const [topic, setTopic] = useState<'all' | MarketTopic>('all'); // ★마켓 주제 필터(daniel 2026-07-25 L)
   // ★'상점으로 이동' 딥링크(daniel 2026-07-27 "상점으로 이동하기 하면 바로 그거 구매 위치로 이동돼야 해")
   //   기존엔 /market 으로만 보내서 사용자가 35개 목록에서 그 상품을 **다시 찾아야** 했다(주제 필터까지 걸려 있으면 더 어렵다).
@@ -164,10 +163,10 @@ export default function MarketRoute() {
       const repId = await getRepresentativeId();
       setSel(list.find((c) => c.id === repId) ?? list[0] ?? null);
       loadCredits().then(setCredits).catch(() => {});
-      // 현지 통화 가격(RC) 일괄 로드 — USD 기준 등록 시 사용자 지역 통화로 자동 표시. 미설정/실패 시 ₩ 폴백.
-      priceStringsRC(CREDIT_KINDS.map((c) => CREDIT_PRODUCT[c.key])).then((m) => {
-        setPrices(Object.fromEntries(CREDIT_KINDS.map((c) => [c.key, m[CREDIT_PRODUCT[c.key]] ?? `₩${c.price.toLocaleString()}`])));
-      }).catch(() => {});
+      // ★현지통화 가격(RC) 조회 제거(daniel 2026-07-30 전수조사).
+      //   카드가 실제로 그리는 값은 **코인가**(coinPriceOf)이고, RC 가격은 코인가가 없을 때의 폴백일 뿐이다.
+      //   게다가 `credit_*` 20종은 **Play 에 등록하지 않기로 확정**했으므로(코인 단일화폐) 영원히 빈 결과다
+      //   → 마켓에 들어올 때마다 없는 상품 20개를 스토어에 묻는 헛된 왕복이었다. 폴백은 ₩(CREDIT_KINDS)로 충분하다.
     })();
   }, []);
 
@@ -263,7 +262,7 @@ export default function MarketRoute() {
         <View style={{ flex: 1 }}>
           <Text style={styles.name}>{c.ko}</Text>
           {card && <Text style={styles.desc} numberOfLines={2}>{t(card.desc)}</Text>}
-          <Text style={styles.price}>{coinPriceOf(c.key) != null ? `◉ ${coinPriceOf(c.key)}` : (prices[c.key] ?? `₩${c.price.toLocaleString()}`)}</Text>
+          <Text style={styles.price}>{coinPriceOf(c.key) != null ? `◉ ${coinPriceOf(c.key)}` : `₩${c.price.toLocaleString()}`}</Text>
           <Text style={[styles.have, owned && styles.haveOn]}>{owned ? `${t('market.owned')} ×${credits[c.key]}` : t('market.notOwned')}</Text>
         </View>
         {/* ★코인 전환(daniel 2026-07-28 "기존 단건 결제는 다 없애") — 마켓에서 개별 결제하지 않는다.

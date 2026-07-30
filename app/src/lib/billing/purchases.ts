@@ -109,25 +109,11 @@ export async function isPremiumActiveRC(): Promise<boolean> {
   } catch { return false; }
 }
 
-/** 프리미엄(평생) 구매 → 활성 성공 시 true. 사용자 취소 시 false. */
-export async function purchasePremiumRC(): Promise<boolean> {
-  if (!purchasesEnabled()) throw new Error('결제가 아직 준비 중이에요.');
-  if (!isOnline()) throw new Error('인터넷 연결이 필요해요. 연결한 뒤 다시 시도해 주세요.'); // daniel: 오프라인 구매 차단(결제만 되고 미반영되는 상태 방지)
-  // ★상품 직접 구매(오퍼링/패키지 경유 X) — RC 오퍼링의 Lifetime 패키지가 placeholder 상품(lifetime)에
-  //   묶여 있어 평생 프리미엄 구매가 실패하던 문제 우회(rc-setup 404). 이용권과 동일하게 premium_lifetime 직접.
-  const products = await Purchases.getProducts([PRODUCT_PREMIUM]);
-  if (!products.length) throw new Error('상품을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.');
-  try {
-    const { customerInfo } = await Purchases.purchaseStoreProduct(products[0]);
-    const ok = !!customerInfo.entitlements.active[ENTITLEMENT_PREMIUM];
-    logEvent('purchase_premium', { product: PRODUCT_PREMIUM, ok }); // 결제 성공 로그(배포 필수)
-    return ok;
-  } catch (e: any) {
-    if (e?.userCancelled) { logEvent('purchase_premium_cancel', { product: PRODUCT_PREMIUM }); return false; }
-    logEvent('purchase_premium_fail', { product: PRODUCT_PREMIUM, message: String(e?.message ?? e) }, 'error');
-    throw e;
-  }
-}
+// ★purchasePremiumRC 제거(daniel 2026-07-30 전수조사).
+//   프리미엄은 07-28 폐지됐고(`PREMIUM_ENABLED=false`), 상품 `premium_lifetime` 은 **Play 에 등록돼 있지도 않다**.
+//   그런데 register.tsx '업그레이드' 버튼이 이 함수를 **실제로 호출**하고 있었다 → 누르면 "상품을 불러오지 못했어요".
+//   즉 죽은 코드가 아니라 **살아 있는 깨진 결제 경로**였다. 구매 경로만 지우고, 과거 구매자 판정
+//   (isPremiumActiveRC·ENTITLEMENT_PREMIUM)과 복원(restorePurchasesRC)은 그대로 둔다(이력 보존).
 
 /** 소비성(상품 id) 구매 — 성공 시 true(결제 완료). 취소 시 false. */
 export async function purchaseConsumableRC(productId: string): Promise<boolean> {
@@ -150,10 +136,9 @@ export async function purchaseConsumableRC(productId: string): Promise<boolean> 
   }
 }
 
-/** 영역별 이용권(소비성) 구매 — 성공 시 true. 호출처가 성공 시 grantCredit(kind)로 크레딧 반영(웹훅 전 MVP). */
-export async function purchaseCreditRC(kind: CreditKind): Promise<boolean> {
-  return purchaseConsumableRC(CREDIT_PRODUCT[kind]);
-}
+// ★purchaseCreditRC 제거(daniel 2026-07-30 전수조사) — **실제 호출부 0건**이었다(import 만 6개 파일에 남아 있었다).
+//   07-28 코인 단일화폐 전환으로 콘텐츠는 전부 코인(ensureCoinsFor)으로 열린다. 스토어 건당 결제 경로는 없다.
+//   ⚠️`CREDIT_PRODUCT` 맵 자체는 남긴다 — `check:credit`(드리프트 하네스)와 rc-webhook 적립 매핑의 참조점이다.
 
 /**
  * 코인 팩 구매(daniel 2026-07-28 코인 전환) — 성공 시 true, 사용자가 취소하면 false.

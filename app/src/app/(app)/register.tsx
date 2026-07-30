@@ -13,7 +13,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { ChartRegisterScreen } from '../../screens/ChartRegisterScreen';
 import { addChart, saveMyChart, ChartLimitError, setRepresentative, updateChart, listCharts, type SavedChart } from '../../lib/engine/myChart';
-import { useSubscription, purchasePremium } from '../../lib/billing/subscription';
+import { useSubscription } from '../../lib/billing/subscription';
 import { useAuth } from '../../lib/useAuth';
 import { requireLoginForPurchase } from '../../lib/billing/requireLogin'; // 구매 전 로그인 게이트(계정 귀속)
 import { showRewardedAd } from '../../lib/core/ads'; // 보상형 광고 → 한도 1건 우회
@@ -40,7 +40,10 @@ export default function RegisterRoute() {
     router.replace({ pathname: '/myeongsik', params: { input: JSON.stringify(input) } });
   }
 
-  // 한도(10개) 초과 안내 → ① 보상형 광고 1회 보고 1건 추가 / ② 프리미엄(무제한, daniel).
+  // 한도(10개) 초과 안내 → 보상형 광고 1회 보고 1건 추가.
+  // ★'업그레이드(프리미엄)' 선택지 제거(daniel 2026-07-30 전수조사).
+  //   프리미엄은 07-28 폐지됐고 상품 `premium_lifetime` 은 Play 에 등록조차 없다 →
+  //   누르면 "상품을 불러오지 못했어요"만 떴다. **살아 있는 깨진 결제 경로**였다.
   function showLimit(limit: number, input: any) {
     Alert.alert(
       t('register.limitTitle'),
@@ -55,13 +58,6 @@ export default function RegisterRoute() {
             if (!earned) { Alert.alert(t('register.limitTitle'), t('register.adNotFinished')); return; }
             try { await saveMyChart(input, { bypassLimit: true }); proceed(input); }
             catch (e) { Alert.alert('!', (e as Error).message); }
-          },
-        },
-        {
-          text: t('register.upgrade'),
-          onPress: () => {
-            if (!requireLoginForPurchase(session, () => router.push('/login'), t)) return; // 미로그인 → 안내 후 중단
-            purchasePremium().catch((e) => Alert.alert('!', e.message));
           },
         },
       ],

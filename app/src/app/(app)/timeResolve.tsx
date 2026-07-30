@@ -25,7 +25,7 @@ import { isAdminActing } from '../../lib/core/admin';                       // �
 import { useCredit } from '../../lib/billing/coupons';      // 쿠폰·선물로 받은 잔여 크레딧 차감(코인 이전분)
 import { spendCoinsFixed } from '../../lib/billing/coins';   // ★코인 차감(금액=서버 권위)
 import { isUnlocked, markUnlocked } from '../../lib/billing/unlocks';    // 1회 해제 후 영구(재차감 방지)
-import { purchaseCreditRC, purchasesEnabled } from '../../lib/billing/purchases'; // 즉시 구매
+import { purchasesEnabled } from '../../lib/billing/purchases';
 import { requireLoginForPurchase } from '../../lib/billing/requireLogin';
 import { assertOnline } from '../../lib/backend/network';
 

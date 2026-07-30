@@ -19,7 +19,7 @@ import { useSubscription } from '../../lib/billing/subscription';  // 프리미�
 import { waitForPremium, markPremiumOwnedNow } from '../../lib/billing/premiumStore';   // 복원=서버 is_premium 확정(단일소스·07-07) + 웹훅 실패 시 영수증 검증분 낙관표시(#2)
 import { requireLoginForPurchase } from '../../lib/billing/requireLogin'; // 결제 전 로그인 게이트
 import { coinBalanceOrNull } from '../../lib/billing/coins';   // ★코인 잔액(프리미엄 자리 대체, daniel 07-28)
-import { priceStringRC, PRODUCT_PREMIUM, restorePurchasesRC } from '../../lib/billing/purchases';  // 프리미엄 현지가 + 구매 복원(3.1.1 필수)
+import { restorePurchasesRC } from '../../lib/billing/purchases';  // 구매 복원(App Store 3.1.1 필수)
 import { PREMIUM_PRICE, loadCredits } from '../../lib/billing/coupons';  // 프리미엄 폴백 가격(₩) + 이용권 잔여 재로딩(복원 후)
 import { supabase } from '../../lib/supabase';             // 로그아웃
 import { BusyOverlay } from '../../components/BusyOverlay'; // 긴 콜백(로그아웃·삭제) 로딩 오버레이
@@ -41,14 +41,13 @@ export default function SettingsScreen() {
   const { t, i18n } = useTranslation();
   const router = useRouter();
   const { session, isRegistered } = useAuth();
-  const { isPremium, purchasePremium, refresh } = useSubscription();
+  const { isPremium, refresh } = useSubscription();
   // 보유 코인 — 화면 진입마다 새로 읽는다(충전 후 돌아왔을 때 최신값). null=조회 실패
   const [coins, setCoins] = useState<number | null>(null);
   useFocusEffect(useCallback(() => { void coinBalanceOrNull().then(setCoins); }, []));
   const { scale, setScale, fs, ls } = useFontScale();
   const [busy, setBusy] = useState<string | null>(null); // 전체화면 로딩 오버레이 메시지(긴 콜백)
   const [admin, setAdmin] = useState(false); // 관리자 — 메뉴 노출용(실제 권한은 서버 RPC). 제어(비용분석·테스트/관리자모드)는 /admin 내부로 통합(daniel 07-01)
-  const [premPrice, setPremPrice] = useState(''); // 프리미엄 현지통화 가격(RC) — 미설정 시 ₩ 폴백
   const [accent, setAccentState] = useState<AccentMode>(getThemeAccent()); // ★테마 강조색(자동=일간 오행 / 오행 직접 / 골드)
   const [loadingMode, setLoadingModeState] = useState<LoadingMode>(getLoadingMode()); // 로딩(인트로) 화면 video(호랑이)/text(八字)/off(없음, daniel 07-15)
   const [readingVid, setReadingVid] = useState<boolean>(getReadingVideoEnabled()); // 풀이 로딩(자물쇠 화면) 테마영상 on/off — off=링+자물쇠만(daniel 07-13)
@@ -61,7 +60,8 @@ export default function SettingsScreen() {
   // 관리자/테스트모드 노출 = session 반응형. 로그아웃(session=null) 즉시 false로 내려 관리자 메뉴가 바로 사라지게(daniel) — 빈 deps면 마운트 1회라 창 전환 전까지 살아있었음.
   useEffect(() => { if (!session) { setAdmin(false); return; } isAdmin().then(setAdmin).catch(() => {}); }, [session]);
   // 프리미엄 현지 통화 가격(RC) 로드 — USD 기준 등록 시 사용자 지역 통화로 자동 표시.
-  useEffect(() => { priceStringRC(PRODUCT_PREMIUM, `₩${PREMIUM_PRICE.toLocaleString()}`).then(setPremPrice).catch(() => {}); }, []);
+  // ★프리미엄 현지가 조회 제거(daniel 2026-07-30) — setState 만 하고 **화면에 그리는 곳이 0** 이었다.
+  //   게다가 premium_lifetime 은 스토어에 등록조차 없어 매 진입마다 헛된 스토어 왕복이었다.
 
   // 로그아웃 — 토큰 폐기(네트워크) 동안 오버레이. 완료 시 세션 변경으로 화면 전환.
   async function doLogout() {

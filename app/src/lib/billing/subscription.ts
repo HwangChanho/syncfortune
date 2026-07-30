@@ -8,7 +8,6 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useSyncExternalStore, useCallback } from 'react';
 import { useAuth } from '../useAuth';
-import { purchasePremiumRC } from './purchases';
 import { subscribePremium, getPremiumSnapshot, getPremiumLoadingSnapshot, refreshPremium } from './premiumStore';
 
 // ★★2026-07-28 프리미엄 폐지(daniel "프리미엄도 빼버려") — 코인 단일 과금으로 통일.
@@ -26,13 +25,9 @@ export function useSubscription() {
   const loading = useSyncExternalStore(subscribePremium, getPremiumLoadingSnapshot);
   // 수동 갱신(구매 직후 등) — 현재 로그인 유저 기준 재평가. 세션 변경에 따른 자동 갱신은 _layout 이 담당.
   const refresh = useCallback(() => refreshPremium(session?.user?.id ?? null), [session]);
-  return { isPremium: PREMIUM_ENABLED && isPremium, loading, purchasePremium, refresh };
+  return { isPremium: PREMIUM_ENABLED && isPremium, loading, refresh };
 }
 
-// 프리미엄 구매 — RevenueCat 구독. 성공 시 웹훅이 profiles.is_premium 갱신(서버 권위) + RC가 즉시 반영.
-//   ※ 로그인 게이트는 호출처(requireLoginForPurchase) — 구매는 계정(appUserID)에 귀속돼야 저장됨.
-//   취소는 'cancelled' throw → 호출처에서 조용히 무시. 성공 후 호출처가 refresh() 로 전역 반영.
-export async function purchasePremium(): Promise<void> {
-  const ok = await purchasePremiumRC();        // 키 미설정 시 '준비 중' throw
-  if (!ok) throw new Error('cancelled');
-}
+// ★purchasePremium 제거(daniel 2026-07-30 전수조사) — 프리미엄 폐지(PREMIUM_ENABLED=false) 이후
+//   유일한 호출부였던 register.tsx '업그레이드'가 **등록도 안 된 상품**을 사려 해 항상 실패했다.
+//   과거 구매자 판정(isPremium 읽기)과 복원은 남긴다 — 이력 보존.

@@ -19,7 +19,7 @@ import { useRouter } from 'expo-router';
 import { useAuth } from '../../lib/useAuth';
 import { useSubscription } from '../../lib/billing/subscription';
 import { isAdminActing } from '../../lib/core/admin';
-import { purchaseCreditRC, purchasesEnabled } from '../../lib/billing/purchases'; // 꿈해몽 5회 번들 결제
+import { purchasesEnabled } from '../../lib/billing/purchases';
 import { requireLoginForPurchase } from '../../lib/billing/requireLogin';
 import { confirmReadingChart } from '../../lib/ui/confirmChart'; // 생성 전 확인 + 보유 이용권 안내(daniel)
 import { setGenProgress } from '../../lib/backend/genProgress'; // 일회성 진행도(daniel·docs/CONTENT_API_INVENTORY.md)

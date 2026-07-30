@@ -26,9 +26,8 @@ import { listCharts, getRepresentativeId, addChart, ChartLimitError, type SavedC
 import { buildNumerology } from '../lib/content/numerology'; // 수비학 보조 교차(궁합, daniel 2026-06-23)
 import { ChartRegisterScreen } from './ChartRegisterScreen'; // 상대 명식 = 정식 등록 폼으로 입력
 import { useAuth } from '../lib/useAuth';
-import { useSubscription, purchasePremium } from '../lib/billing/subscription';
+import { useSubscription } from '../lib/billing/subscription';
 import { assertOnline } from '../lib/backend/network'; // 오프라인 시 신규 생성 차단
-import { purchaseCreditRC } from '../lib/billing/purchases'; // 궁합 건당 결제 = credit_compat(서버 consume)
 import { waitForCreditGrant, creditPrice, formatKrw } from '../lib/billing/coupons'; // C1 웹훅 폴링 + 실가 주입(하드코딩 근절)
 import { ensureServerChartId } from '../lib/backend/prewarmReadings';
 import { useFontScale } from '../lib/ui/fontScale';

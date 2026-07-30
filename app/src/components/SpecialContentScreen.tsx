@@ -33,7 +33,7 @@ import { buildRomanceMirror } from '../lib/engine/romanceMirror';   // R60 애�
 import { coinPriceOf, coinBalanceOrNull } from '../lib/billing/coins';   // ★코인 전환(daniel 07-28)
 import { notifyNetworkError } from '../lib/backend/network';
 import { ensureCoinsFor } from '../lib/billing/coinGate';   // ★코인 단일 경로(daniel 07-28)
-import { purchaseCreditRC, purchasesEnabled } from '../lib/billing/purchases'; // 즉시 구매(마켓 안 거치고 바로)
+import { purchasesEnabled } from '../lib/billing/purchases';
 import { isAdminActing } from '../lib/core/admin';                  // 스페셜 = 관리자 바로 / 그 외 쿠폰(크레딧)
 import { requireLoginForPurchase } from '../lib/billing/requireLogin';
 import { autoGenWithChartConfirm } from '../lib/ui/confirmChart'; // 자동생성 전 명식 확인(명식 2개+ 일 때)
