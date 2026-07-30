@@ -1,72 +1,79 @@
-// app/src/app/(app)/coach.tsx — AI 자기이해 코치(daniel 2026-07-12·App Store 4.3)
+// app/src/app/(app)/coach.tsx — 팔자 도우미(콘텐츠 안내 챗봇 · API 0원)
 // ─────────────────────────────────────────────────────────────────────────
-// 독립 대화형 도구 — 사용자가 자신에 대해 궁금한 점을 물으면 그 사람의 사주 차트에 근거해 답한다.
-//   '운세 콘텐츠 피드'가 아니라 *상호작용하는 자기이해 도구* = 4.3(스팸) 차별화. Edge coach 분기 사용.
-//   무료 일일 N회(비프리미엄)·프리미엄 무제한(서버 판정). 지난 대화는 히스토리로 복원.
+// daniel 2026-07-30: "ai 코치를 컨텐츠 유도 용도로만 쓰자 ai 챗봇 느낌으로. 풀이말고,
+//   직접 클릭해서 타고가기 귀찮은 사람들이 **api 진짜 비용 최소한으로** 쓸 수 있게.
+//   사주·타로·자미두수 기준으로 먼저 잡고 그다음 하위 카테고리 콘텐츠들 안내·설명·이동.
+//   이름도 '팔자 도우미'."
+//
+// ★무엇이 바뀌었나(종전 = AI 자기이해 코치):
+//   종전: 질문마다 **Sonnet + 원국 전체 + 보유 풀이**를 실어 보내 답을 생성(앱에서 가장 비싼 경로).
+//         게이트도 있었다(월 10회/일 1회 무료 → 초과 시 코인 차감).
+//   지금: 답을 **생성하지 않는다.** 사용자가 원하는 콘텐츠까지 데려다주는 안내만 한다.
+//         → LLM 호출 0 · 서버 왕복 0 · 코인 차감 0 · 광고 0. 오프라인에서도 동작한다.
+//         → 게이트가 사라져 **무료**다. 도우미는 콘텐츠로 들어가는 관문(퍼널)이므로
+//           여기서 돈을 받으면 정작 팔아야 할 콘텐츠 앞에 문을 하나 더 세우는 셈이다.
+//
+// ★안내 트리·문구는 `lib/content/assistant.ts` 단일 출처. 콘텐츠 이미지·설명·라우트는
+//   `contentSections`(SECTIONS)에서 온다 — 여기서 하드코딩하면 콘텐츠 추가 때 또 갈라진다.
+// ★`npm run check:assistant` 가 ①죽은 링크 ②라우트 부재 ③이미지 부재 ④**이 화면의 LLM 호출 0**을 매번 검사한다.
+//
+// ⚠️명식이 없어도 쓸 수 있다(종전은 명식 필수였다) — 안내는 차트를 읽지 않는다.
+//   콘텐츠 화면에 들어가면 거기서 명식을 요구한다(각 화면이 이미 그 게이트를 갖고 있다).
 // ─────────────────────────────────────────────────────────────────────────
-import { useEffect, useState, useRef } from 'react';
-import { View, Text, ScrollView, StyleSheet, TextInput, ActivityIndicator, Keyboard, Platform } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context'; // ★상단 안전영역 — 고정 여백은 글자확대 시 잘린다(daniel 07-27)
+import { useState, useRef } from 'react';
+import { View, Text, ScrollView, StyleSheet, TextInput, Keyboard, Platform } from 'react-native';
+import { useEffect } from 'react';
+import { useSafeAreaInsets } from 'react-native-safe-area-context'; // 고정 여백은 글자확대 시 잘린다(daniel 07-27)
 import { useTranslation } from 'react-i18next';
 import { useRouter } from 'expo-router';
-import { Alert } from '../../lib/ui/alert';
-import { ensureCoinsFor } from '../../lib/billing/coinGate';   // ★코인 단일 경로(daniel 07-28)
 import { PressableScale } from '../../components/PressableScale';
-import { CoachRouteHint } from '../../components/CoachRouteHint';   // ★코치 → 콘텐츠 안내(daniel 07-27)
-import { CoachTarotCard } from '../../components/CoachTarotCard'; // ★코치 답 아래 '가볍게 뽑은 카드'(daniel IMG_8198)
+import { DeepDiveCta } from '../../components/DeepDiveCta';      // 안내 카드(이미지 · SECTIONS 단일 출처)
+import { CoachTarotCard } from '../../components/CoachTarotCard'; // '가볍게 뽑은 카드' — 타로 안내에만(온디바이스·비용 0)
 import { ChartPicker } from '../../components/ChartPicker';
-import { TigerMascot } from '../../components/TigerMascot'; // 아기 백호 마스코트(모션) — 코치 아바타(생각 중=active)
-import { getNavBarHeight } from '../../components/BottomNav'; // 전역 네비바 높이 — 키보드 위 입력바 정확 위치용
-import { computeChart } from '../../lib/engine/engine';
-import { loadRepChart } from '../../lib/engine/myChart';
-import { ensureServerChartId } from '../../lib/backend/prewarmReadings';
+import { TigerMascot } from '../../components/TigerMascot';      // 도우미 아바타
+import { getNavBarHeight } from '../../components/BottomNav';
 import { logEvent } from '../../lib/backend/logger';
-import { useAuth } from '../../lib/useAuth';
 import { useFontScale } from '../../lib/ui/fontScale';
-import { askCoach, loadCoachHistory, deleteCoachHistory, type CoachTurn } from '../../lib/backend/coach';
-import { coachSuggestionGroups, type CoachPromptCat } from '../../lib/content/coachPrompts'; // 추천 질문(주제별 프리셋·온디바이스·API 0)
-import { useSubscription } from '../../lib/billing/subscription';
-import { useAdFree } from '../../lib/billing/adFree'; // 프리미엄=월 10회 무료(서버 COACH_PREMIUM_MONTHLY 가 정본 — 화면은 응답의 freeLimit 을 그대로 표시)
-import { showRewardedAd } from '../../lib/core/ads';               // 비프리미엄 무료=보상형 광고(daniel 07-13)
-import { purchaseCreditRC } from '../../lib/billing/purchases';    // coach 이용권 즉시 구매
-import * as SecureStore from 'expo-secure-store';
+import {
+  ASSIST_DOMAINS, ASSIST_EXAMPLES, matchAssist, topicsOf,
+  type AssistDomain, type AssistTopic,
+} from '../../lib/content/assistant';
+import { SECTIONS } from '../../lib/content/contentSections';
 import { colors, radius, space, shadow, font } from '../../lib/theme';
 
-// 오늘 이미 무료 광고를 봤는지(하루 1회 무료 게이트용 로컬 플래그) — 서버가 실제 카운트 판정, 이건 광고 노출 UX만.
-const COACH_AD_KEY = 'pref.coachAdDate';
-function coachAdSeenToday(): boolean {
-  try { return (SecureStore as any).getItem?.(COACH_AD_KEY) === new Date().toISOString().slice(0, 10); } catch { return false; }
-}
-function markCoachAdToday() {
-  const d = new Date().toISOString().slice(0, 10);
-  try { (SecureStore as any).setItem?.(COACH_AD_KEY, d); } catch { /* noop */ }
-  SecureStore.setItemAsync(COACH_AD_KEY, d).catch(() => {});
-}
+/** 콘텐츠 키 → 라우트·라벨(SECTIONS 단일 출처). DeepDiveCta 와 같은 조회 규칙(key + creditKey). */
+const META: Record<string, { route: string; labelKey: string }> = (() => {
+  const m: Record<string, { route: string; labelKey: string }> = {};
+  for (const s of SECTIONS) {
+    for (const it of s.items) {
+      const e = { route: it.route, labelKey: it.labelKey };
+      if (!m[it.key]) m[it.key] = e;
+      if (it.creditKey && !m[it.creditKey]) m[it.creditKey] = e;
+    }
+  }
+  return m;
+})();
 
-export default function CoachScreen() {
-  // ★고정 상단여백(space(12) 등)은 **글자 크기를 키우면 헤더가 상태바 위로 잘린다**(daniel 07-27 IMG_8215).
-  //   상수는 기기 노치·다이내믹아일랜드·글자배율 어느 것도 반영하지 못한다 → 실제 안전영역을 쓴다.
+/**
+ * 대화 한 턴.
+ * ★서버에 저장하지 않는다 — 안내는 일회성이고, 저장하면 DB 쓰기·RLS·삭제 UI 까지 딸려 온다.
+ *   (종전 코치는 reading_followups 에 누적했다. 안내에는 그럴 이유가 없다.)
+ */
+type Turn =
+  | { role: 'me'; text: string }
+  | { role: 'bot'; text: string; domains?: boolean; topics?: AssistTopic[]; items?: string[]; tarot?: string };
+
+export default function AssistantScreen() {
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const { fs, ls } = useFontScale();
   const router = useRouter();
-  const { session } = useAuth();
-  const [chartId, setChartId] = useState<string | null>(null);
-  const [chartName, setChartName] = useState<string | null>(null); // 코치 호칭용(명식 이름) — 서버 DB엔 평문이 없어 클라가 전달
-  const [hasChart, setHasChart] = useState<boolean | null>(null); // null=로딩
-  const [history, setHistory] = useState<CoachTurn[]>([]);
+  const [turns, setTurns] = useState<Turn[]>([]);
   const [input, setInput] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [gate, setGate] = useState<{ isPremium: boolean; used: number; freeLimit: number; period: 'day' | 'month' } | null>(null); // 무료 소진 → 이용권
-  const { isPremium } = useSubscription();
-  const adFree = useAdFree();   // ★광고 제거 구매자 = 보상형 광고 스킵(07-28) // 프리미엄=월 10회 무료(서버 COACH_PREMIUM_MONTHLY 가 정본 — 화면은 응답의 freeLimit 을 그대로 표시)(광고 없음)
-  const lastQ = useRef<string>(''); // 이용권 구매 후 재전송용
-  const [reloadKey, setReloadKey] = useState(0);
-  const [kbH, setKbH] = useState(0); // 키보드 높이(px) — 입력바를 키보드 바로 위로 올림(전역 네비바 보정)
+  const [kbH, setKbH] = useState(0);
   const scrollRef = useRef<ScrollView>(null);
 
-  // 키보드 높이 추적 — 전역 BottomNav 가 KAV 밖(하단)이라 표준 KeyboardAvoidingView 로는 네비바 높이만큼 틈이 생김.
-  //   리스너로 키보드 높이를 받아 입력바를 절대위치로 정확히 키보드 위에 붙인다(daniel 07-12 '입력바 뜬 뷰 껴있음').
+  // 키보드 높이 추적 — 입력바를 키보드 바로 위에 붙인다(전역 네비바 높이 보정).
   useEffect(() => {
     const showEvt = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
     const hideEvt = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
@@ -75,291 +82,222 @@ export default function CoachScreen() {
     return () => { s.remove(); h.remove(); };
   }, []);
 
-  // 추천 질문(주제별 프리셋) — 탭하면 바로 전송. 대화 시작 문턱↓ + 코치가 답하는 '범위'(자기이해·관계·일·시기)를 노출.
-  //   온디바이스 정적(coachPrompts) — 언어 바뀌면 리마운트되므로 렌더마다 해석해도 저렴.
-  const groups = coachSuggestionGroups();
-  const [qCat, setQCat] = useState<CoachPromptCat>('self'); // 선택된 추천 질문 카테고리(기본=자기이해)
-  const activeGroup = groups.find((g) => g.key === qCat) ?? groups[0];
+  const scrollDown = () => setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 80);
+  const push = (...add: Turn[]) => { setTurns((ts) => [...ts, ...add]); scrollDown(); };
 
-  // 대표 명식 → serverChartId + 지난 대화 로드(명식 전환·포커스 시 재로드)
-  useEffect(() => {
-    let alive = true;
-    setHistory([]); setGate(null); setChartId(null);
-    (async () => {
-      const ch = await loadRepChart();
-      if (!alive) return;
-      if (!ch) { setHasChart(false); return; }
-      setHasChart(true);
-      setChartName(ch.label ?? null);   // 호칭용 이름 — 서버는 label_enc(암호화)라 못 읽는다 → 클라가 보낸다
-      if (!session) return; // 세션(익명 포함) 준비 후 재시도 — session 이 dep 라 준비되면 재실행
-      try {
-        const cc = computeChart(ch.input);
-        const id = await ensureServerChartId(cc, ch.input, session, ch);
-        if (!alive) return;
-        if (!id) { logEvent('coach_load_noid', {}, 'warn'); return; }   // RPC 는 성공했는데 id 가 없다 = 별개 원인
-        setChartId(id);
-        const h = await loadCoachHistory(id);
-        if (alive) setHistory(h);
-      } catch (e) {
-        // ★침묵 catch 제거(daniel 2026-07-30 "ai 코치 새로받은 버전으로도 안돼").
-        //   ⚠️여기가 **진짜 사각지대**였다: computeChart 가 던지면 ensureServerChartId 는 **호출조차 안 되므로**
-        //     내가 앞서 넣은 `ensure_chart_fail` 로그도 안 남는다 — 실제 관측(로그 0건)과 정확히 일치한다.
-        //     그래서 "명식을 불러오지 못했어요"만 뜨고 원인을 알 수 없었다.
-        logEvent('coach_load_fail', {
-          where: 'computeChart|ensureServerChartId',
-          msg: String((e as Error)?.message ?? e).slice(0, 200),
-          name: String((e as Error)?.name ?? ''),
-        }, 'error');
-      }
-    })().catch(() => { if (alive) setHasChart(false); });
-    return () => { alive = false; };
-  }, [reloadKey, session]);
+  /** 도메인 선택 → 그 축의 주제들을 내민다. */
+  function chooseDomain(d: AssistDomain) {
+    const meta = ASSIST_DOMAINS.find((x) => x.key === d)!;
+    const tops = topicsOf(d);
+    logEvent('assist_domain', { domain: d });   // 어느 축을 많이 찾는지(퍼널 분석) — 개인정보 없음
+    push(
+      { role: 'me', text: meta.label },
+      { role: 'bot', text: `${meta.line}\n어떤 걸 볼까요?`, topics: tops },
+    );
+  }
 
-  async function send(q: string) {
-    const question = q.trim();
-    if (!question || busy) return;
-    let id = chartId;
-    if (!id) { // 아직 미해석 시 즉석 해석
-      const ch = await loadRepChart();
-      if (!ch) { setHasChart(false); return; }
-      setChartName(ch.label ?? null);
-      if (!session) { Alert.alert('!', t('coach.loadFail', '명식을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.')); return; }
-      // ★1회 재시도(daniel 2026-07-30 "ai 코치 계속 네트워크 에러떠").
-      //   ensureServerChartId 는 서버 RPC 다 — 일시적 네트워크·콜드스타트로 실패할 수 있는데
-      //   종전엔 **한 번 실패하면 바로 포기**하고 "명식을 불러오지 못했어요"를 띄웠다.
-      //   사용자는 질문을 다시 입력해야 했고, 원인도 알 수 없었다(실패가 로그에도 안 남았다 — 지금은 남는다).
-      for (let attempt = 0; attempt < 2 && !id; attempt++) {
-        if (attempt) await new Promise((r) => setTimeout(r, 700));   // 짧은 백오프 후 1회만 재시도
-        try { const cc = computeChart(ch.input); id = await ensureServerChartId(cc, ch.input, session, ch); }
-        catch { id = null; }
-      }
-      if (!id) {
-        logEvent('coach_chartid_fail', { hasSession: !!session });
-        Alert.alert('!', t('coach.loadFail', '명식을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.'));
-        return;
-      }
-      setChartId(id);
-    }
-    setInput(''); setBusy(true); lastQ.current = question;
-    // ⑨a(daniel 07-20): 보낸 질문을 *즉시* 말풍선으로 올린다(답은 pending=생성 중). busy 가드로 동시 전송이 없어 pending 은 항상 1개.
-    //   질문이 채팅에 바로 남아 '보냈는데 안 뜬다'가 사라진다. (강종 시 서버 이력 보존은 ⑨b=Edge 별도.)
-    setHistory((h) => [...h, { question, answer: '', pending: true }]);
-    setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 60);
-    // 무료 사용 = 보상형 광고(daniel 07-13: 광고 보고 하루 1회 무료). 오늘 이미 봤으면 재노출 안 함(서버가 실제 카운트 판정).
-    //   ★광고 제거를 산 사용자에겐 광고를 띄우지 않는다(daniel 07-28) — 돈 내고 없앤 광고를
-    //     '무료 사용의 대가'로 다시 보게 하면 산 의미가 없다. 무료 1회는 그대로 준다(서버가 판정).
-    //   광고 미시청/실패해도 진행(서버가 무료/needCredit 판정).
-    if (!isPremium && !adFree && !coachAdSeenToday()) {
-      const rewarded = await showRewardedAd().catch(() => false);
-      if (rewarded) markCoachAdToday();
-    }
-    const res = await askCoach(id, question, chartName);
-    setBusy(false);
-    if (res.kind === 'answer') {
-      setHistory((h) => h.map((t) => (t.pending ? { question: t.question, answer: res.answer } : t))); // pending 턴에 답 채움
-      setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 120);
+  /** 주제 선택 → 그 주제의 콘텐츠 카드(이미지)를 내민다. */
+  function chooseTopic(topic: AssistTopic) {
+    logEvent('assist_topic', { topic: topic.key });
+    push(
+      { role: 'me', text: topic.label },
+      // 타로 주제에는 '가볍게 뽑은 카드'를 곁들인다 — 온디바이스 결정론이라 비용 0이고,
+      // 안내만 하는 화면에 유일하게 '지금 바로 뭔가 나오는' 재미를 준다(daniel IMG_8198 카드 유지).
+      { role: 'bot', text: topic.line, items: topic.items, tarot: topic.domain === 'tarot' ? topic.key : undefined },
+    );
+  }
+
+  /**
+   * 자유 입력 처리 — **온디바이스 매칭만**(LLM 없음).
+   * 못 알아들으면 지어내지 않고 선택지를 다시 내민다(엉뚱한 콘텐츠로 보내는 것보다 낫다).
+   */
+  function send(raw: string) {
+    const q = raw.trim();
+    if (!q) return;
+    setInput('');
+    Keyboard.dismiss();
+    const m = matchAssist(q);
+    logEvent('assist_ask', { hit: m.kind });   // 질문 원문은 남기지 않는다(PII) — 적중 여부만
+    if (m.kind === 'topic') {
+      push({ role: 'me', text: q }, { role: 'bot', text: m.topic.line, items: m.topic.items });
+    } else if (m.kind === 'domain') {
+      const meta = ASSIST_DOMAINS.find((x) => x.key === m.domain)!;
+      push({ role: 'me', text: q }, { role: 'bot', text: `${meta.line}\n어떤 걸 볼까요?`, topics: topicsOf(m.domain) });
     } else {
-      setHistory((h) => h.filter((t) => !t.pending)); // 실패(게이트/오류) → 질문 말풍선 회수(lastQ 로 재전송 가능)
-      if (res.kind === 'needCredit') setGate({ isPremium: res.isPremium, used: res.used, freeLimit: res.freeLimit, period: res.period });
-      else Alert.alert('!', res.message);
+      push(
+        { role: 'me', text: q },
+        { role: 'bot', text: t('assist.miss', '제가 아직 그 말은 못 알아들었어요. 아래에서 골라 주시면 바로 안내해 드릴게요.'), domains: true },
+      );
     }
   }
 
-  // 입력바 lift = 키보드 높이 − 전역 네비바 높이(네비바가 입력바 아래에 있으니 그만큼만 올리면 키보드 바로 위·틈 없음).
   const lift = kbH > 0 ? Math.max(0, kbH - getNavBarHeight()) : 0;
   return (
     <View style={styles.bg}>
-      <ScrollView ref={scrollRef} style={styles.overlay} contentContainerStyle={[styles.wrap, { paddingBottom: 84 + lift }, { paddingTop: insets.top + space(2) }]} keyboardShouldPersistTaps="handled">
-        <ChartPicker onChange={() => setReloadKey((k) => k + 1)} />
-        {/* 아기 백호 마스코트 — 코치 아바타. busy(답 생성)면 active=true 로 광채·움직임 강화(반응하는 느낌). */}
-        {/* marginTop = 후광(halo, size×1.72=~131px)이 76px 박스 위로 ~27px 삐져나오므로 명식 바와 그만큼 띄움(겹침 방지, daniel 07-14). */}
-        <TigerMascot size={76} active={busy} style={{ alignSelf: 'center', marginTop: space(8), marginBottom: space(2) }} />
-        <Text style={[styles.title, { fontSize: fs(23) }]}>{t('coach.title', 'AI 자기이해 코치')}</Text>
-        <Text style={[styles.sub, { fontSize: fs(13) }]}>{t('coach.sub2', '나와 내 삶에 대해 물어보세요. 사주와 자미두수로 함께 답해 드려요.')}</Text>
+      <ScrollView
+        ref={scrollRef}
+        style={styles.overlay}
+        contentContainerStyle={[styles.wrap, { paddingBottom: 84 + lift, paddingTop: insets.top + space(2) }]}
+        keyboardShouldPersistTaps="handled"
+      >
+        <ChartPicker />
+        <TigerMascot size={76} style={{ alignSelf: 'center', marginTop: space(8), marginBottom: space(2) }} />
+        <Text style={[styles.title, { fontSize: fs(23) }]}>{t('assist.title', '팔자 도우미')}</Text>
+        <Text style={[styles.sub, { fontSize: fs(13) }]}>
+          {t('assist.sub', '보고 싶은 걸 말해 주세요. 바로 그 자리로 데려다 드려요.')}
+        </Text>
 
-        {/* 대화 삭제(daniel 07-21) — 히스토리 있을 때만. ★삭제 전 얼랏으로 확인(되돌릴 수 없음). */}
-        {history.length > 0 && (
-          <PressableScale
-            style={{ alignSelf: 'flex-end', paddingVertical: space(2), paddingHorizontal: space(3), marginBottom: space(1) }}
-            onPress={() => Alert.alert(
-              t('coach.clearTitle', '대화 삭제'),
-              t('coach.clearMsg', '이 코치 대화를 모두 지울까요? 되돌릴 수 없어요.'),
-              [
-                { text: t('common.cancel', '취소'), style: 'cancel' },
-                { text: t('coach.clearConfirm', '삭제'), style: 'destructive', onPress: async () => {
-                  if (!chartId) return;
-                  const ok = await deleteCoachHistory(chartId);
-                  if (ok) setHistory([]);
-                  else Alert.alert('!', t('coach.clearFail', '삭제하지 못했어요. 잠시 후 다시 시도해 주세요.'));
-                } },
-              ],
-            )}
-          >
-            <Text style={{ fontSize: fs(12), color: colors.inkFaint, fontWeight: '700' }}>🗑 {t('coach.clear', '대화 삭제')}</Text>
-          </PressableScale>
+        {/* 첫 인사 — 도메인 3축(daniel 지정)부터. 대화가 시작되면 사라진다. */}
+        {turns.length === 0 && (
+          <View style={styles.botCard}>
+            <Text style={styles.botLabel}>{t('assist.label', '도우미')}</Text>
+            <Text style={[styles.botTx, { fontSize: fs(15), lineHeight: Math.round(15 * 1.6) }]}>
+              {t('assist.hello', '무엇을 보고 싶으세요? 세 가지 중에 고르셔도 되고, 그냥 편하게 말해 주셔도 돼요.')}
+            </Text>
+            <DomainChips onPick={chooseDomain} fs={fs} />
+            <Text style={[styles.egLabel, { fontSize: fs(11.5) }]}>{t('assist.egLabel', '이렇게 말해도 알아들어요')}</Text>
+            <View style={styles.egRow}>
+              {ASSIST_EXAMPLES.map((e) => (
+                <PressableScale key={e} style={styles.eg} onPress={() => send(e)}>
+                  <Text style={[styles.egTx, { fontSize: fs(12.5) }]}>{e}</Text>
+                </PressableScale>
+              ))}
+            </View>
+          </View>
         )}
 
-        {hasChart === false ? (
-          <View style={styles.card}>
-            <Text style={[styles.readTx, { fontSize: fs(15) }]}>{t('coach.needChart', '먼저 명식을 등록해 주세요.')}</Text>
-            <PressableScale style={styles.regBtn} onPress={() => router.push('/register')}>
-              <Text style={styles.regBtnTx}>{t('coach.registerBtn', '명식 등록하기')}</Text>
-            </PressableScale>
+        {/* 대화 */}
+        {turns.map((turn, i) => turn.role === 'me' ? (
+          <View key={i} style={styles.qBubble}>
+            <Text style={[styles.qTx, { fontSize: fs(14) }]}>{turn.text}</Text>
           </View>
         ) : (
-          <>
-            {/* 대화 히스토리 — 질문(오른쪽) + 코치 답(카드) */}
-            {history.map((turn, i) => (
-              <View key={i} style={styles.turn}>
-                <View style={styles.qBubble}><Text style={[styles.qTx, { fontSize: fs(14) }]}>{turn.question}</Text></View>
-                {turn.pending ? (
-                  // 답 생성 중 — 질문 아래에 '생각 중' 인디케이터(⑨a). 별도 하단 인디케이터는 제거해 중복 방지.
-                  <View style={styles.thinking}><ActivityIndicator color={colors.ju} /><Text style={styles.thinkingTx}>{t('coach.thinking', '당신의 사주를 살펴보는 중…')}</Text></View>
-                ) : turn.answer ? (
-                  <View style={styles.aCard}>
-                    <Text style={styles.aLabel}>{t('coach.coachLabel', '코치')}</Text>
-                    {/* 가독성 — 답변을 문단 단위로 나눠 간격을 준다(COACH_SYSTEM 은 2~4문단 평문 출력).
-                        빈 줄(\n\n)·단일 줄바꿈 모두 문단 경계로 보고 빈 문단은 버린다. 포맷만 손대는 것이라 통변 내용/API 무관. */}
-                    {turn.answer.split(/\n+/).map((p) => p.trim()).filter(Boolean).map((para, pi) => (
-                      <Text key={pi} style={[styles.aTx, { fontSize: fs(15), lineHeight: ls(25) }, pi > 0 && { marginTop: space(2.5) }]}>{para}</Text>
-                    ))}
-                    {/* ★가볍게 뽑은 카드(daniel IMG_8198) — 위 사주·자미 답과 **분리된** 재미 레이어.
-                        섞지 않는 이유 = 기획서 §9 규칙2(체계 블렌딩 금지)의 취지. LLM 프롬프트에 들어가지 않고
-                        온디바이스 결정론(질문+날짜 시드)이라 서버 왕복·비용 0. */}
-                    {/* ★콘텐츠 안내(daniel 07-27 "코치가 컨텐츠로 안내하고") — 질문에 실제로 나온 말에만 반응.
-                        온디바이스 결정론이라 없는 콘텐츠로 안내할 수 없고 토큰 비용도 0. */}
-                    <CoachRouteHint question={turn.question} />
-                    <CoachTarotCard seed={turn.question} />
-                  </View>
-                ) : (
-                  // ⑨b: 서버에 질문은 남았으나 답이 빈 행(강종/생성 중단으로 답 못 받음) — 재진입 시 안내(질문은 보존됨).
-                  <View style={styles.aCard}>
-                    <Text style={styles.aLabel}>{t('coach.coachLabel', '코치')}</Text>
-                    <Text style={[styles.aTx, { fontSize: fs(14), lineHeight: ls(22), color: colors.inkSoft }]}>{t('coach.failedTurn', '답을 받지 못했어요. 다시 물어봐 주세요.')}</Text>
-                  </View>
-                )}
-              </View>
-            ))}
+          <View key={i} style={styles.botCard}>
+            <Text style={styles.botLabel}>{t('assist.label', '도우미')}</Text>
+            <Text style={[styles.botTx, { fontSize: fs(15), lineHeight: Math.round(15 * 1.6) }]}>{turn.text}</Text>
 
-            {/* 무료 일일 소진 게이트 → 프리미엄 유도 */}
-            {gate ? (
-              <View style={styles.gateCard}>
-                <Text style={styles.gateTitle}>{gate.isPremium ? t('coach.gateTitleMonth', '이번 달 무료 질문을 다 쓰셨어요') : t('coach.gateTitle', '오늘 무료 질문을 다 쓰셨어요')}</Text>
-                <Text style={styles.gateDesc}>{gate.isPremium
-                  ? t('coach.gateDescMonth', { count: gate.freeLimit, defaultValue: '코인으로 더 물어볼 수 있어요.' })
-                  : t('coach.gateDescDay', { count: gate.freeLimit, defaultValue: '무료는 하루 {{count}}번(광고 시청)이에요. 코인으로 더 물어볼 수 있어요.' })}</Text>
-                {/* 이용권으로 물어보기 — 즉시 구매 후 마지막 질문 재전송 */}
-                <PressableScale style={styles.gateBtn} onPress={async () => {
-                  try {
-                    // ★코인 전환(daniel 2026-07-28 "기존 단건 결제는 다 없애") — 스토어 결제 대신 보유 코인.
-                    const g = await ensureCoinsFor('coach', { title: t('coach.title', 'AI 코치'), t, goCharge: () => router.push('/coins') });
-                    if (g !== 'ok') return;   // 부족·취소·조회실패는 게이트가 안내까지 마쳤다
-                    setGate(null);
-                    if (lastQ.current) void send(lastQ.current); // 구매 성공 → 그 질문 재전송(서버가 이용권 차감)
-                  } catch (e) { Alert.alert('!', (e as Error).message); } // ★결제 미준비·오프라인·풀이 불가(헬스 게이트) 친화 표출(throw 미포장 결함 수정)
-                }}>
-                  <Text style={styles.gateBtnTx}>{t('coach.gateBuy', '이용권으로 물어보기')}</Text>
-                </PressableScale>
-                {!gate.isPremium && (
-                  <PressableScale style={styles.gatePrem} onPress={() => router.push('/market')}>
-                    <Text style={styles.gatePremTx}>{t('coach.gateCta', '코인 충전하기')}</Text>
+            {turn.domains && <DomainChips onPick={chooseDomain} fs={fs} />}
+
+            {turn.topics?.length ? (
+              <View style={styles.topicRow}>
+                {turn.topics.map((tp) => (
+                  <PressableScale key={tp.key} style={styles.topic} onPress={() => chooseTopic(tp)}>
+                    <Text style={[styles.topicTx, { fontSize: fs(13.5) }]}>{tp.label}</Text>
                   </PressableScale>
-                )}
+                ))}
               </View>
-            ) : (
-              <>
-                {/* 추천 질문(첫 진입/대화 사이) — 주제 칩(범위 노출) + 그 주제의 질문 칩. 탭=바로 전송. */}
-                {!busy && (
-                  <View style={styles.suggest}>
-                    {/* 주제 선택 — 코치가 답하는 범위(자기이해·관계·일·시기)를 한눈에 */}
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.catRow}>
-                      {groups.map((g) => (
-                        <PressableScale key={g.key} style={[styles.catChip, g.key === qCat && styles.catChipOn]} onPress={() => setQCat(g.key)}>
-                          <Text style={[styles.catTx, g.key === qCat && styles.catTxOn, { fontSize: fs(12.5) }]}>{g.label}</Text>
-                        </PressableScale>
-                      ))}
-                    </ScrollView>
-                    {/* 선택 주제의 질문 프리셋 */}
-                    {activeGroup?.questions.map((q, i) => (
-                      <PressableScale key={i} style={styles.chip} onPress={() => send(q)}>
-                        <Text style={[styles.chipTx, { fontSize: fs(13) }]}>{q}</Text>
-                      </PressableScale>
-                    ))}
-                  </View>
-                )}
-              </>
-            )}
-          </>
-        )}
-        <Text style={styles.note}>{t('coach.note', '※ 사주로 나를 이해하는 참고예요. 의료·법률·투자 결정은 전문가와 상의하세요.')}</Text>
+            ) : null}
+
+            {/* 타로 안내에만 곁들이는 카드 — 시드는 그날 고정(리렌더마다 카드가 바뀌지 않게) */}
+            {turn.tarot ? <CoachTarotCard seed={turn.tarot} /> : null}
+
+            {/* 콘텐츠 안내 = 이미지 카드(daniel IMG_8311). 라우트·이미지·설명은 SECTIONS 단일 출처. */}
+            {turn.items?.map((k) => {
+              const meta = META[k];
+              if (!meta) return null;                        // 죽은 키는 그리지 않는다(check:assistant 가 사전 차단)
+              return (
+                <DeepDiveCta
+                  key={k}
+                  compact
+                  kind={k}
+                  label={t(meta.labelKey) as string}
+                  onPress={() => { logEvent('assist_go', { key: k }); router.push(meta.route as any); }}
+                />
+              );
+            })}
+          </View>
+        ))}
+
+        <Text style={[styles.note, { fontSize: fs(11.5) }]}>
+          {t('assist.note', '※ 도우미는 콘텐츠를 찾아 주는 안내예요. 풀이 내용은 각 콘텐츠에서 볼 수 있어요.')}
+        </Text>
       </ScrollView>
 
-      {/* 입력바 — 절대위치, 키보드 위에 정확히(전역 네비바 높이 보정). 명식 있을 때만. */}
-      {hasChart !== false && !gate ? (
-        <View style={[styles.inputBar, { bottom: lift }]}>
-          <TextInput
-            style={[styles.input, { fontSize: fs(15) }]}
-            value={input}
-            onChangeText={setInput}
-            placeholder={t('coach.placeholder', '나에 대해 물어보세요')}
-            placeholderTextColor={colors.inkFaint}
-            maxLength={120}
-            multiline
-            editable={!busy}
-            onSubmitEditing={() => send(input)}
-            returnKeyType="send"
-          />
-          <PressableScale style={[styles.sendBtn, (!input.trim() || busy) && styles.sendBtnOff]} onPress={() => send(input)} disabled={!input.trim() || busy}>
-            <Text style={styles.sendTx}>{t('coach.send', '보내기')}</Text>
-          </PressableScale>
-        </View>
-      ) : null}
+      {/* 입력바 — 절대위치, 키보드 위에 정확히(전역 네비바 높이 보정) */}
+      <View style={[styles.inputBar, { bottom: lift }]}>
+        <TextInput
+          style={[styles.input, { fontSize: fs(15), minHeight: ls(40) }]}
+          value={input}
+          onChangeText={setInput}
+          placeholder={t('assist.placeholder', '무엇을 보고 싶으세요?')}
+          placeholderTextColor={colors.inkFaint}
+          maxLength={120}
+          multiline
+          onSubmitEditing={() => send(input)}
+          returnKeyType="send"
+        />
+        <PressableScale style={[styles.sendBtn, !input.trim() && styles.sendBtnOff]} onPress={() => send(input)} disabled={!input.trim()}>
+          <Text style={styles.sendTx}>{t('assist.send', '보내기')}</Text>
+        </PressableScale>
+      </View>
+    </View>
+  );
+}
+
+/** 도메인 3칩 — 첫 인사와 '못 알아들었을 때' 두 곳에서 같은 모양으로 쓴다(한 곳에 정의). */
+function DomainChips({ onPick, fs }: { onPick: (d: AssistDomain) => void; fs: (n: number) => number }) {
+  return (
+    <View style={styles.domRow}>
+      {ASSIST_DOMAINS.map((d) => (
+        <PressableScale key={d.key} style={styles.dom} onPress={() => onPick(d.key)}>
+          <Text style={[styles.domTx, { fontSize: fs(14.5) }]}>{d.label}</Text>
+        </PressableScale>
+      ))}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  bg: { flex: 1, backgroundColor: 'transparent' }, // 전역 ContentBackdrop 비침
+  bg: { flex: 1, backgroundColor: 'transparent' },  // 전역 ContentBackdrop 비침
   overlay: { flex: 1, backgroundColor: colors.overlay },
-  wrap: { paddingHorizontal: space(6), paddingBottom: space(24) }, // ★헤더 숨김(탭) → status bar 여백 확보(홈과 동일·daniel 07-12 '위 짤림')
+  wrap: { paddingHorizontal: space(6), paddingBottom: space(24) },
   title: { fontWeight: '900', color: colors.ink, textAlign: 'center', marginTop: space(2) },
   sub: { ...font.caption, color: colors.inkSoft, textAlign: 'center', marginTop: space(1), marginBottom: space(5) },
-  card: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.juLine, padding: space(5), ...shadow.card, alignItems: 'center' },
-  readTx: { ...font.body, color: colors.ink, textAlign: 'center' },
-  regBtn: { marginTop: space(4), backgroundColor: colors.ju, borderRadius: radius.pill, paddingHorizontal: space(5), paddingVertical: space(2.5) },
-  regBtnTx: { color: colors.bg, fontSize: 14, fontWeight: '800' },
-  // 대화
-  turn: { marginBottom: space(4) },
-  qBubble: { alignSelf: 'flex-end', maxWidth: '85%', backgroundColor: colors.ju, borderRadius: radius.lg, borderBottomRightRadius: 4, paddingHorizontal: space(4), paddingVertical: space(2.75), marginBottom: space(2.5) },
+  // 도우미 말풍선(카드)
+  botCard: {
+    backgroundColor: colors.card, borderRadius: radius.lg, borderBottomLeftRadius: 4,
+    borderWidth: 1, borderColor: colors.juLine, padding: space(4.5), marginBottom: space(4), ...shadow.card,
+  },
+  botLabel: { fontSize: 11, fontWeight: '800', color: colors.ju, marginBottom: space(2) },
+  botTx: { ...font.body, color: colors.ink },
+  // 내 말풍선
+  qBubble: {
+    alignSelf: 'flex-end', maxWidth: '85%', backgroundColor: colors.ju,
+    borderRadius: radius.lg, borderBottomRightRadius: 4,
+    paddingHorizontal: space(4), paddingVertical: space(2.75), marginBottom: space(2.5),
+  },
   qTx: { color: colors.bg, fontWeight: '700' },
-  aCard: { backgroundColor: colors.card, borderRadius: radius.lg, borderBottomLeftRadius: 4, borderWidth: 1, borderColor: colors.juLine, padding: space(4.5), ...shadow.card },
-  aLabel: { fontSize: 11, fontWeight: '800', color: colors.ju, marginBottom: space(2) },
-  aTx: { ...font.body, color: colors.ink },
-  thinking: { flexDirection: 'row', alignItems: 'center', gap: space(2.5), paddingVertical: space(3), paddingHorizontal: space(2) },
-  thinkingTx: { ...font.caption, color: colors.inkSoft },
-  // 추천 질문
-  suggest: { marginTop: space(2), gap: space(2.5) },
-  // 주제(카테고리) 칩 — 코치 답변 범위 노출(TodayRelationCard 카테고리 칩과 동일 톤)
-  catRow: { gap: space(1.5), paddingBottom: space(1) },
-  catChip: { paddingVertical: space(1.5), paddingHorizontal: space(3), borderRadius: radius.pill, borderWidth: 1, borderColor: colors.juLine, backgroundColor: colors.juSoft },
-  catChipOn: { backgroundColor: colors.ju, borderColor: colors.ju },
-  catTx: { fontWeight: '800', color: colors.ju },
-  catTxOn: { color: '#15132E' },
-  // 질문 칩
-  chip: { backgroundColor: colors.sunk, borderRadius: radius.md, borderWidth: 1, borderColor: colors.line, paddingVertical: space(3), paddingHorizontal: space(4) },
-  chipTx: { color: colors.inkSoft, fontWeight: '700' },
-  // 게이트
-  gateCard: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1.5, borderColor: colors.ju, borderStyle: 'dashed', padding: space(6), alignItems: 'center', marginTop: space(3), ...shadow.card },
-  gateTitle: { ...font.heading, color: colors.ink, textAlign: 'center' },
-  gateDesc: { ...font.body, color: colors.inkSoft, textAlign: 'center', marginTop: space(2.5), marginBottom: space(5), lineHeight: 22 },
-  gateBtn: { backgroundColor: colors.ju, borderRadius: radius.pill, paddingHorizontal: space(6), paddingVertical: space(3.25) },
-  gateBtnTx: { color: colors.bg, fontSize: 15, fontWeight: '800' },
-  gatePrem: { marginTop: space(3), paddingVertical: space(2) },
-  gatePremTx: { color: colors.ju, fontSize: 13, fontWeight: '700' },
-  note: { ...font.caption, color: colors.inkFaint, textAlign: 'center', lineHeight: 19, marginTop: space(6) },
+  // 도메인 칩(사주·타로·자미두수) — 최상위 축이라 크게
+  domRow: { flexDirection: 'row', gap: space(2), marginTop: space(3.5) },
+  dom: {
+    flex: 1, alignItems: 'center', paddingVertical: space(3.25),
+    backgroundColor: colors.ju, borderRadius: radius.md,
+  },
+  domTx: { color: colors.bg, fontWeight: '800' },
+  // 주제 칩 — 여러 개라 감기게(wrap)
+  topicRow: { flexDirection: 'row', flexWrap: 'wrap', gap: space(2), marginTop: space(3.5) },
+  topic: {
+    paddingVertical: space(2.25), paddingHorizontal: space(3.5),
+    borderRadius: radius.pill, borderWidth: 1, borderColor: colors.juLine, backgroundColor: colors.juSoft,
+  },
+  topicTx: { color: colors.ju, fontWeight: '800' },
+  // 예시 질문
+  egLabel: { ...font.caption, color: colors.inkFaint, marginTop: space(4), marginBottom: space(2), fontWeight: '700' },
+  egRow: { flexDirection: 'row', flexWrap: 'wrap', gap: space(2) },
+  eg: { backgroundColor: colors.sunk, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.line, paddingVertical: space(2), paddingHorizontal: space(3.25) },
+  egTx: { color: colors.inkSoft, fontWeight: '700' },
+  note: { ...font.caption, color: colors.inkFaint, textAlign: 'center', marginTop: space(4) },
   // 입력바
-  inputBar: { position: 'absolute', left: 0, right: 0, bottom: 0, flexDirection: 'row', alignItems: 'flex-end', gap: space(2.5), paddingHorizontal: space(5), paddingVertical: space(3), backgroundColor: colors.card, borderTopWidth: 1, borderTopColor: colors.juLine },
-  input: { flex: 1, maxHeight: 100, backgroundColor: colors.sunk, borderRadius: radius.md, borderWidth: 1, borderColor: colors.line, paddingHorizontal: space(3.5), paddingVertical: space(2.5), color: colors.ink },
+  inputBar: {
+    position: 'absolute', left: 0, right: 0, bottom: 0,
+    flexDirection: 'row', alignItems: 'flex-end', gap: space(2.5),
+    paddingHorizontal: space(5), paddingVertical: space(3),
+    backgroundColor: colors.card, borderTopWidth: 1, borderTopColor: colors.juLine,
+  },
+  input: {
+    flex: 1, maxHeight: 100, backgroundColor: colors.sunk, borderRadius: radius.md,
+    borderWidth: 1, borderColor: colors.line, paddingHorizontal: space(3.5), paddingVertical: space(2.5), color: colors.ink,
+  },
   sendBtn: { backgroundColor: colors.ju, borderRadius: radius.md, paddingHorizontal: space(4), paddingVertical: space(3) },
   sendBtnOff: { opacity: 0.4 },
   sendTx: { color: colors.bg, fontWeight: '800', fontSize: 14 },

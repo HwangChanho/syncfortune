@@ -71,15 +71,15 @@ export function DecisionTodayCard({ reloadKey }: { reloadKey?: number }) {
       </View>
 
       {/* 한 줄 결론 + 근거 */}
-      <Text style={[styles.title, { fontSize: fs(17), lineHeight: ls(24) }]}>{data.title}</Text>
-      <Text style={[styles.reason, { fontSize: fs(13), lineHeight: ls(20) }]}>{data.reason}</Text>
+      <Text style={[styles.title, { fontSize: fs(17), lineHeight: 24 }]}>{data.title}</Text>
+      <Text style={[styles.reason, { fontSize: fs(13), lineHeight: 20 }]}>{data.reason}</Text>
 
       {/* ★오늘의 모먼트(daniel 2026-07-26 "달달한 걸 추가") — 판정보다 먼저 눈에 들어오게 상단에.
           근거는 결정 판정과 **같은 dailyEnergy 신호**(도화·합·천을귀인·역마 / 충형·공망)라 서로 어긋나지 않는다. */}
       {moment ? (
         <View style={styles.momentBox}>
-          <Text style={[styles.momentTitle, { fontSize: fs(14), lineHeight: ls(20) }]}>{moment.title}</Text>
-          <Text style={[styles.momentBody, { fontSize: fs(12.5), lineHeight: ls(19) }]}>{moment.body}</Text>
+          <Text style={[styles.momentTitle, { fontSize: fs(14), lineHeight: 20 }]}>{moment.title}</Text>
+          <Text style={[styles.momentBody, { fontSize: fs(12.5), lineHeight: 19 }]}>{moment.body}</Text>
         </View>
       ) : null}
 
@@ -107,17 +107,17 @@ export function DecisionTodayCard({ reloadKey }: { reloadKey?: number }) {
             {/* 색 스와치로 '코디'를 글자 없이도 알아보게(오늘의 행운과 같은 hex) */}
             <View style={[styles.swatch, { backgroundColor: lucky.hex }]} />
             <Text style={[styles.recLabel, { fontSize: fs(12) }]}>코디</Text>
-            <Text style={[styles.recTx, { fontSize: fs(12), lineHeight: ls(18) }]} numberOfLines={2}>{lucky.wear}</Text>
+            <Text style={[styles.recTx, { fontSize: fs(12), lineHeight: 18 }]} numberOfLines={2}>{lucky.wear}</Text>
           </View>
           <View style={styles.recRow}>
             <View style={[styles.swatch, styles.swatchGhost]} />
             <Text style={[styles.recLabel, { fontSize: fs(12) }]}>음식</Text>
-            <Text style={[styles.recTx, { fontSize: fs(12), lineHeight: ls(18) }]} numberOfLines={2}>{lucky.food}</Text>
+            <Text style={[styles.recTx, { fontSize: fs(12), lineHeight: 18 }]} numberOfLines={2}>{lucky.food}</Text>
           </View>
           <View style={styles.recRow}>
             <View style={[styles.swatch, styles.swatchGhost]} />
             <Text style={[styles.recLabel, { fontSize: fs(12) }]}>소품</Text>
-            <Text style={[styles.recTx, { fontSize: fs(12), lineHeight: ls(18) }]} numberOfLines={2}>{lucky.item}</Text>
+            <Text style={[styles.recTx, { fontSize: fs(12), lineHeight: 18 }]} numberOfLines={2}>{lucky.item}</Text>
           </View>
         </View>
       ) : null}

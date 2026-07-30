@@ -196,7 +196,7 @@ export default function CareerScreen() {
     generate(chartId);
   }
 
-  const bodyDyn = { fontSize: fs(15), lineHeight: ls(25) };
+  const bodyDyn = { fontSize: fs(15), lineHeight: 25 };
 
   if (!loaded) return <View style={styles.center}><ActivityIndicator color={colors.ju} /></View>;
   if (!savedChart) {
@@ -237,7 +237,7 @@ export default function CareerScreen() {
           <ExpiryNote expiry={expiry} chartId={chartId} />
           {/* 이슈19 소제목 — 통변 결과 headline 있으면 섹션들 맨 위에 한 줄 강조 */}
           {typeof reading.headline === 'string' && reading.headline.trim() ? (
-            <Text style={{ fontSize: fs(19), fontWeight: '800', color: colors.ju, marginBottom: space(3), lineHeight: ls(26) }}>{reading.headline}</Text>
+            <Text style={{ fontSize: fs(19), fontWeight: '800', color: colors.ju, marginBottom: space(3), lineHeight: 26 }}>{reading.headline}</Text>
           ) : null}
           {/* ★근본 '풀이 안 보임'(daniel 07-11): base 폴백 형식이면 구조화 섹션 키가 비어 화면이 텅 빔 → base 있으면 통째로 표시. */}
           {typeof reading.base === 'string' && reading.base.trim() ? (

@@ -409,7 +409,7 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
               {compatSections(rel, !!year).map((s) => {
                 const v = cur[s.key];
                 if (typeof v !== 'string' || !v) return null;
-                if (s.key === 'core') return <Text key="core" style={[styles.coreTx, { fontSize: fs(16), lineHeight: ls(24) }]}>{v}</Text>;
+                if (s.key === 'core') return <Text key="core" style={[styles.coreTx, { fontSize: fs(16), lineHeight: 24 }]}>{v}</Text>;
                 return (
                   <View key={s.key} style={[styles.sec, (s.key === 'advice' || s.key === 'remedy') && styles.remedySec]}>
                     <Text style={styles.secLabel}>{compatSectionLabel(s)}</Text>

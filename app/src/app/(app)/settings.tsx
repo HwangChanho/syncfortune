@@ -204,7 +204,7 @@ export default function SettingsScreen() {
       </View>
       {/* 미리보기 — 현재 배율이 통변 본문에 어떻게 보이는지 */}
       <View style={styles.preview}>
-        <Text style={[styles.previewBody, { fontSize: fs(15), lineHeight: ls(25) }]}>{t('settings.preview')}</Text>
+        <Text style={[styles.previewBody, { fontSize: fs(15), lineHeight: 25 }]}>{t('settings.preview')}</Text>
       </View>
 
       {/* ── 언어 ── */}

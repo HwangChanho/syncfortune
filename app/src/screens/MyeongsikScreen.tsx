@@ -536,7 +536,7 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
             {gyeok.map((g, i) => (
               <View key={i} style={styles.gyeokCard}>
                 <Text style={styles.gyeokName}>{g.name} <Text style={styles.gyeokHanja}>{g.hanja}</Text></Text>
-                <Text style={[styles.gyeokDesc, { fontSize: fs(13), lineHeight: ls(19) }]}>{g.desc}</Text>
+                <Text style={[styles.gyeokDesc, { fontSize: fs(13), lineHeight: 19 }]}>{g.desc}</Text>
               </View>
             ))}
           </View>
@@ -808,7 +808,7 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
                       {(['여기', '중기', '본기'] as const).map((role, k) => {
                         const h = col.hidden.find((x: any) => x.role === role);
                         return (
-                          <Text key={k} style={[styles.expHiddenTx, { fontSize: ls(12), lineHeight: ls(15) }, h ? { color: elementColor[stemElement(h.stem)] } : { color: colors.line }]}>{h ? h.stem : '·'}</Text>
+                          <Text key={k} style={[styles.expHiddenTx, { fontSize: ls(12), lineHeight: 15 }, h ? { color: elementColor[stemElement(h.stem)] } : { color: colors.line }]}>{h ? h.stem : '·'}</Text>
                         );
                       })}
                     </View>

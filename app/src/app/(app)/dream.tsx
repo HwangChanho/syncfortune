@@ -223,7 +223,7 @@ export default function DreamScreen() {
           results.map((e, i) => (
             <View key={i} style={styles.card}>
               <Text style={styles.cardTitle}>{dreamTitle(e)}</Text>
-              <Text style={[styles.cardBody, { fontSize: fs(15), lineHeight: ls(25) }]}>{dreamMeaning(e)}</Text>
+              <Text style={[styles.cardBody, { fontSize: fs(15), lineHeight: 25 }]}>{dreamMeaning(e)}</Text>
             </View>
           ))
         ) : q.trim() ? (
@@ -231,7 +231,7 @@ export default function DreamScreen() {
           llm ? (
             <View style={styles.card}>
               <Text style={styles.cardTitle}>{llm.title}</Text>
-              <Text style={[styles.cardBody, { fontSize: fs(15), lineHeight: ls(25) }]}>{llm.meaning}</Text>
+              <Text style={[styles.cardBody, { fontSize: fs(15), lineHeight: 25 }]}>{llm.meaning}</Text>
             </View>
           ) : llmBusy ? (
             <View style={styles.card}><ActivityIndicator color={colors.ju} /><Text style={[styles.empty, { marginTop: space(2) }]}>{t('dream.generating', 'AI가 해몽을 풀어내는 중…')}</Text></View>
@@ -268,7 +268,7 @@ export default function DreamScreen() {
           {aiResult ? (
             <View style={styles.aiOut}>
               <Text style={styles.cardTitle}>{aiResult.title}</Text>
-              <Text style={[styles.cardBody, { fontSize: fs(15), lineHeight: ls(25) }]}>{aiResult.meaning}</Text>
+              <Text style={[styles.cardBody, { fontSize: fs(15), lineHeight: 25 }]}>{aiResult.meaning}</Text>
               {/* 풀이 음성 읽기(온디바이스 TTS·무료) — 제목+해몽 본문 읽음 */}
               <TTSButton reading={aiResult} />
             </View>
@@ -292,7 +292,7 @@ export default function DreamScreen() {
                   </PressableScale>
                   {open ? (
                     <View style={styles.histBody}>
-                      <Text style={[styles.cardBody, { fontSize: fs(15), lineHeight: ls(25) }]}>{d.meaning}</Text>
+                      <Text style={[styles.cardBody, { fontSize: fs(15), lineHeight: 25 }]}>{d.meaning}</Text>
                       {/* 저장분도 음성 읽기(온디바이스 TTS·무료) */}
                       <TTSButton reading={{ title: d.title, meaning: d.meaning }} />
                     </View>

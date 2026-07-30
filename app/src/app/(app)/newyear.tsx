@@ -285,11 +285,11 @@ export default function NewYearScreen() {
             <ExpiryNote expiry={expiry} chartId={chartId} />
             {/* 이슈19 소제목 — 통변 결과 headline 있으면 섹션들 맨 위에 한 줄 강조(keyword와 별개 필드) */}
             {typeof data.headline === 'string' && data.headline.trim() ? (
-              <Text style={{ fontSize: fs(19), fontWeight: '800', color: colors.ju, marginBottom: space(3), lineHeight: ls(26) }}>{data.headline}</Text>
+              <Text style={{ fontSize: fs(19), fontWeight: '800', color: colors.ju, marginBottom: space(3), lineHeight: 26 }}>{data.headline}</Text>
             ) : null}
             {/* ★근본 '풀이 안 보임'(daniel 07-11): base 프로즈만 오면(JSON 파싱 폴백) 명명 키(keyword/yearNature/분야…)가 전부 비어 본문 텅 빔 → base 통째로 표시. */}
             {typeof data.base === 'string' && data.base.trim() ? (
-              <View style={styles.card}><Text style={[styles.body, { fontSize: fs(15), lineHeight: ls(26) }]}>{data.base}</Text></View>
+              <View style={styles.card}><Text style={[styles.body, { fontSize: fs(15), lineHeight: 26 }]}>{data.base}</Text></View>
             ) : null}
             {/* 올해의 키워드 + 총평 */}
             {typeof data.keyword === 'string' && (
@@ -299,34 +299,34 @@ export default function NewYearScreen() {
               </View>
             )}
             {typeof data.summary === 'string' && (
-              <View style={styles.card}><Text style={[styles.body, { fontSize: fs(15), lineHeight: ls(26) }]}>{data.summary}</Text></View>
+              <View style={styles.card}><Text style={[styles.body, { fontSize: fs(15), lineHeight: 26 }]}>{data.summary}</Text></View>
             )}
             {/* ★올해 간지 특성 + 대운·원국 작용(daniel 07-08) — 상세 분야 전에 '올해는 어떤 해'를 먼저 설명. */}
             {typeof data.yearNature === 'string' && (
               <View style={styles.card}>
                 <Text style={styles.sectH}>🗓️ {t('newyear.yearNature', '올해는 어떤 해')}</Text>
-                <Text style={[styles.body, { fontSize: fs(15), lineHeight: ls(26) }]}>{data.yearNature}</Text>
+                <Text style={[styles.body, { fontSize: fs(15), lineHeight: 26 }]}>{data.yearNature}</Text>
               </View>
             )}
             {/* 올해의 나 — 올 한 해 어떤 사람으로 살아가는지(daniel 07-01) */}
             {typeof data.thisYearSelf === 'string' && (
               <View style={[styles.card, styles.luckyCard]}>
                 <Text style={styles.sectH}>🧭 {t('newyear.thisYearSelf', '올해의 나')}</Text>
-                <Text style={[styles.body, { fontSize: fs(15), lineHeight: ls(26) }]}>{data.thisYearSelf}</Text>
+                <Text style={[styles.body, { fontSize: fs(15), lineHeight: 26 }]}>{data.thisYearSelf}</Text>
               </View>
             )}
             {/* ★올해 좋은 시기 — 콕 집어(daniel: 정확한 시점/날짜). 가장 눈에 띄게 강조 */}
             {typeof data.timing === 'string' && (
               <View style={[styles.card, styles.timingCard]}>
                 <Text style={[styles.sectH, { color: colors.bg }]}>📅 {t('newyear.timing', '올해 좋은 시기')}</Text>
-                <Text style={[styles.body, { fontSize: fs(15), lineHeight: ls(26), color: colors.bg }]}>{data.timing}</Text>
+                <Text style={[styles.body, { fontSize: fs(15), lineHeight: 26, color: colors.bg }]}>{data.timing}</Text>
               </View>
             )}
             {/* 올해의 행운 포인트 */}
             {typeof data.luckyPoints === 'string' && (
               <View style={[styles.card, styles.luckyCard]}>
                 <Text style={styles.sectH}>{t('newyear.lucky', '올해의 행운 포인트')}</Text>
-                <Text style={[styles.body, { fontSize: fs(15), lineHeight: ls(26) }]}>{data.luckyPoints}</Text>
+                <Text style={[styles.body, { fontSize: fs(15), lineHeight: 26 }]}>{data.luckyPoints}</Text>
               </View>
             )}
 
@@ -351,15 +351,15 @@ export default function NewYearScreen() {
                     : t('newyear.flowNote', '※ 위=오르는 달 · 아래=다지는 달 · 숫자=절기 기준 달')}</Text>
                 </View>
               )}
-              <Text style={[styles.body, { fontSize: fs(15), lineHeight: ls(27) }]}>{typeof data[area] === 'string' ? data[area] : t('today.genFail', '생성 실패')}</Text>
+              <Text style={[styles.body, { fontSize: fs(15), lineHeight: 27 }]}>{typeof data[area] === 'string' ? data[area] : t('today.genFail', '생성 실패')}</Text>
             </View>
 
             {/* 상·하반기 흐름 */}
             {(typeof data.firstHalf === 'string' || typeof data.secondHalf === 'string') && (
               <View style={styles.card}>
                 <Text style={styles.sectH}>{t('newyear.halves', '상반기 · 하반기')}</Text>
-                {typeof data.firstHalf === 'string' && <Text style={[styles.halfTx, { fontSize: fs(14), lineHeight: ls(23) }]}><Text style={styles.halfLabel}>상반기  </Text>{data.firstHalf}</Text>}
-                {typeof data.secondHalf === 'string' && <Text style={[styles.halfTx, { fontSize: fs(14), lineHeight: ls(23), marginTop: space(2.5) }]}><Text style={styles.halfLabel}>하반기  </Text>{data.secondHalf}</Text>}
+                {typeof data.firstHalf === 'string' && <Text style={[styles.halfTx, { fontSize: fs(14), lineHeight: 23 }]}><Text style={styles.halfLabel}>상반기  </Text>{data.firstHalf}</Text>}
+                {typeof data.secondHalf === 'string' && <Text style={[styles.halfTx, { fontSize: fs(14), lineHeight: 23, marginTop: space(2.5) }]}><Text style={styles.halfLabel}>하반기  </Text>{data.secondHalf}</Text>}
               </View>
             )}
 
@@ -370,7 +370,7 @@ export default function NewYearScreen() {
                 {months.map((m, i) => (
                   <View key={i} style={styles.monthRow}>
                     <View style={[styles.monthBadge, { minWidth: ls(28), minHeight: ls(28) }, { minWidth: ls(28), minHeight: ls(28) }]}><Text style={styles.monthBadgeTx}>{i + 1}</Text></View>
-                    <Text style={[styles.monthText, { fontSize: fs(14), lineHeight: ls(21) }]}>{m.replace(/^\s*\d+\s*월\s*[—\-–·]\s*/, '')}</Text>
+                    <Text style={[styles.monthText, { fontSize: fs(14), lineHeight: 21 }]}>{m.replace(/^\s*\d+\s*월\s*[—\-–·]\s*/, '')}</Text>
                   </View>
                 ))}
               </View>
@@ -380,14 +380,14 @@ export default function NewYearScreen() {
             {typeof data.remedy === 'string' && (
               <View style={[styles.card, styles.luckyCard]}>
                 <Text style={styles.sectH}>🍀 {t('newyear.remedy', '올해 개운법')}</Text>
-                <Text style={[styles.body, { fontSize: fs(15), lineHeight: ls(26) }]}>{data.remedy}</Text>
+                <Text style={[styles.body, { fontSize: fs(15), lineHeight: 26 }]}>{data.remedy}</Text>
               </View>
             )}
             {/* 삼재 대처(LLM) */}
             {typeof data.samjaeAdvice === 'string' && (
               <View style={styles.card}>
                 <Text style={styles.sectH}>{t('newyear.samjaeAdvice', '올해 특히 챙길 점')}</Text>
-                <Text style={[styles.body, { fontSize: fs(15), lineHeight: ls(26) }]}>{data.samjaeAdvice}</Text>
+                <Text style={[styles.body, { fontSize: fs(15), lineHeight: 26 }]}>{data.samjaeAdvice}</Text>
               </View>
             )}
 
@@ -395,14 +395,14 @@ export default function NewYearScreen() {
             {typeof data.resolution === 'string' && (
               <View style={[styles.card, styles.resoCard]}>
                 <Text style={styles.sectH}>{t('newyear.resolution', '올해를 이렇게')}</Text>
-                <Text style={[styles.body, { fontSize: fs(15), lineHeight: ls(26) }]}>{data.resolution}</Text>
+                <Text style={[styles.body, { fontSize: fs(15), lineHeight: 26 }]}>{data.resolution}</Text>
               </View>
             )}
             {/* 올해의 대응전략(daniel 07-01) — 흐름·과제·기회에 어떻게 대응할지 */}
             {typeof data.strategy === 'string' && (
               <View style={[styles.card, styles.luckyCard]}>
                 <Text style={styles.sectH}>♟️ {t('newyear.strategy', '올해의 대응전략')}</Text>
-                <Text style={[styles.body, { fontSize: fs(15), lineHeight: ls(26) }]}>{data.strategy}</Text>
+                <Text style={[styles.body, { fontSize: fs(15), lineHeight: 26 }]}>{data.strategy}</Text>
               </View>
             )}
             {/* 풀이 음성 읽기(온디바이스 TTS·무료) — 전체 신년 통변을 순서대로 읽음(months 배열은 자동 제외) */}

@@ -82,7 +82,7 @@ export function PersonaTypeHero({ reloadKey }: { reloadKey?: number }) {
         </View>
       </View>
 
-      <Text style={[styles.summary, { fontSize: fs(13.5), lineHeight: ls(22) }]} numberOfLines={3}>{persona.summary}</Text>
+      <Text style={[styles.summary, { fontSize: fs(13.5), lineHeight: 22 }]} numberOfLines={3}>{persona.summary}</Text>
       <Text style={styles.more}>{t('persona120.more', '자세히 보기')} ›</Text>
     </PressableScale>
   );

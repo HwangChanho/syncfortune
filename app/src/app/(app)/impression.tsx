@@ -75,8 +75,8 @@ export default function ImpressionScreen() {
                   {bl ? <View style={[styles.badge, { backgroundColor: col }]}><Text style={[styles.badgeTx, { color: elementText[st.element] ?? '#fff' }]}>{bl.animal}</Text></View> : null}
                 </View>
                 <Text style={[styles.stageSub, { fontSize: fs(12) }]}>{stage.sub}</Text>
-                <Text style={[styles.body, { fontSize: fs(15), lineHeight: ls(25) }]}>{st.trait}</Text>
-                {bl ? <Text style={[styles.look, { fontSize: fs(13), lineHeight: ls(20) }]}>{bl.look}</Text> : null}
+                <Text style={[styles.body, { fontSize: fs(15), lineHeight: 25 }]}>{st.trait}</Text>
+                {bl ? <Text style={[styles.look, { fontSize: fs(13), lineHeight: 20 }]}>{bl.look}</Text> : null}
               </View>
             );
           })}
@@ -84,9 +84,9 @@ export default function ImpressionScreen() {
             <>
               <Text style={[styles.sectionTitle, { fontSize: fs(16), marginTop: space(5) }]}>{t('impression.inner', '막상 알고 보면 — 진짜 내 모습')}</Text>
               <View style={[styles.card, styles.innerCard]}>
-                <Text style={[styles.body, { fontSize: fs(15), lineHeight: ls(25) }]}>알고 보면 {inner.essence}이에요.</Text>
+                <Text style={[styles.body, { fontSize: fs(15), lineHeight: 25 }]}>알고 보면 {inner.essence}이에요.</Text>
                 <View style={styles.gapBox}>
-                  <Text style={[styles.gapTx, { fontSize: fs(14), lineHeight: ls(22) }]}>
+                  <Text style={[styles.gapTx, { fontSize: fs(14), lineHeight: 22 }]}>
                     {inner.gap
                       ? t('impression.gapBig', '겉으로 비치는 모습과 알고 난 뒤의 모습이 꽤 달라요. 처음엔 몰랐던 반전 매력이 있는 사람이에요.')
                       : t('impression.gapSmall', '겉으로 비치는 모습과 속이 비교적 한결같아요. 보이는 그대로 믿음이 가는 사람이에요.')}

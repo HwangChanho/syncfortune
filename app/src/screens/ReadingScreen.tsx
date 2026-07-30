@@ -711,7 +711,7 @@ export function ReadingScreen({
             </Text>
             <View style={styles.askRow}>
               <TextInput
-                style={[styles.askInput, { fontSize: fs(15), lineHeight: ls(20), minHeight: ls(20) + space(5) }]}
+                style={[styles.askInput, { fontSize: fs(15), lineHeight: 20, minHeight: ls(20) + space(5) }]}
                 value={askInput}
                 onChangeText={setAskInput}
                 placeholder={t('reading.askPh')}
@@ -852,7 +852,7 @@ export function ReadingScreen({
           {(() => {
             const r0 = normalizeReading(readings[cats[0]?.key]);
             const tease = r0 && typeof r0 === 'object' && !(r0 as any).error ? asText((r0 as any).base) : null;
-            return tease ? <Text style={[styles.secBody, { fontSize: fs(15), lineHeight: ls(26) }]} numberOfLines={4}>{tease}</Text> : null;
+            return tease ? <Text style={[styles.secBody, { fontSize: fs(15), lineHeight: 26 }]} numberOfLines={4}>{tease}</Text> : null;
           })()}
           <Text style={{ ...font.caption, color: colors.inkSoft, marginTop: space(3) }}>{t('reading.lockedNote', '위 버튼으로 열어 전부 보실 수 있어요.')}</Text>
         </View>

@@ -54,10 +54,10 @@ export default function NameScreen() {
               ))}
             </View>
             <View style={styles.card}>
-              <Text style={[styles.summary, { fontSize: fs(15), lineHeight: ls(25) }]}>{result.summary}</Text>
+              <Text style={[styles.summary, { fontSize: fs(15), lineHeight: 25 }]}>{result.summary}</Text>
             </View>
             {/* B6(daniel): 발음오행 기준 한 줄 명시 — 학파마다 ㅇ·ㅎ 오행이 갈려(土/水), 어느 기준인지 밝혀 신뢰를 준다 */}
-            <Text style={[styles.criterion, { fontSize: fs(12), lineHeight: ls(17) }]}>{result.criterionNote}</Text>
+            <Text style={[styles.criterion, { fontSize: fs(12), lineHeight: 17 }]}>{result.criterionNote}</Text>
             {/* 이슈17: 이름풀이 결과 공유(앱게이트) */}
             <ShareReadingButton kind="name" title={`${name} 이름풀이`} content={{ summary: result.summary }} />
           </>

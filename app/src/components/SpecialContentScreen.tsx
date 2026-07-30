@@ -443,18 +443,18 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
     ]);
   }
 
-  const bodyDyn = { fontSize: fs(15), lineHeight: ls(25) };
+  const bodyDyn = { fontSize: fs(15), lineHeight: 25 };
   // 동적 폰트 스케일이 필요한 StyleSheet 정적값 대체 — StyleSheet.create는 렌더 밖이라 fs()를 직접 쓸 수 없음.
   const dynStyles = {
     secLabel:    { fontSize: fs(16) },
-    groupTitle:  { fontSize: fs(18), lineHeight: ls(26) },
+    groupTitle:  { fontSize: fs(18), lineHeight: 26 },
     err:         { fontSize: fs(13) },
     msg:         { fontSize: fs(15) },                       // font.body 기본값
     gateTitle:   { fontSize: fs(17) },                       // font.heading 기본값
-    gateDesc:    { fontSize: fs(15), lineHeight: ls(22) },   // font.body + lineHeight
+    gateDesc:    { fontSize: fs(15), lineHeight: 22 },   // font.body + lineHeight
     gateNote:    { fontSize: fs(12) },                       // font.caption 기본값
     previewHead: { fontSize: fs(13) },
-    previewItem: { fontSize: fs(14), lineHeight: ls(24) },
+    previewItem: { fontSize: fs(14), lineHeight: 24 },
     ctaTx:       { fontSize: fs(16) },
   };
   const n = sections.length;
@@ -640,7 +640,7 @@ export function ContentHero({ motif, image, title, sub, themeColor = colors.ju }
     <View style={styles.heroInner}>
       {!image && motif}
       <Animated.Text style={[styles.heroTitle, { fontSize: fs(22) }, onImg && { color: colors.onImage }, titleAnim]}>{title}</Animated.Text>
-      <Animated.Text style={[styles.heroSub, { fontSize: fs(12), lineHeight: ls(19), opacity: a }, onImg && { color: colors.onImageSoft }]}>{sub}</Animated.Text>
+      <Animated.Text style={[styles.heroSub, { fontSize: fs(12), lineHeight: 19, opacity: a }, onImg && { color: colors.onImageSoft }]}>{sub}</Animated.Text>
     </View>
   );
   if (image) return (

@@ -107,7 +107,7 @@ export default function PetScreen() {
     ]);
   }
 
-  const bodyDyn = { fontSize: fs(15), lineHeight: ls(24) };
+  const bodyDyn = { fontSize: fs(15), lineHeight: 24 };
 
 
   return (

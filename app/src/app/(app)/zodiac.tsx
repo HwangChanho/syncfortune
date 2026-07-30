@@ -70,7 +70,7 @@ export default function ZodiacScreen() {
                 <Text style={[styles.cardLabel, mine && styles.cardLabelMine]}>{it.label}</Text>
                 {mine && <Text style={styles.mineBadge}>{t('zodiac.mine', '내 운세')}</Text>}
               </View>
-              <Text style={[styles.cardText, { fontSize: fs(14), lineHeight: ls(22) }]}>{it.text}</Text>
+              <Text style={[styles.cardText, { fontSize: fs(14), lineHeight: 22 }]}>{it.text}</Text>
             </View>
           );
         })}

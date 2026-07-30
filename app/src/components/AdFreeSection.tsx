@@ -94,7 +94,7 @@ export function AdFreeSection({ onDone, onNeedCoins }: { onDone?: () => void; on
       )}
 
       {/* ★안내 2줄 → 1줄(칸 축소). 이어붙기 규칙은 실제로 살 때 알림에서 다시 알려 준다. */}
-      <Text style={[styles.note, { fontSize: fs(11.5), lineHeight: ls(16) }]}>
+      <Text style={[styles.note, { fontSize: fs(11.5), lineHeight: 16 }]}>
         하단 배너와 AI 코치 보상형 광고가 함께 사라져요. 기간제는 남은 기간 뒤에 이어붙어요.
       </Text>
     </View>

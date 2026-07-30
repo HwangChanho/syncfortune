@@ -12,6 +12,23 @@ export function lineHeightRatio(size: number): number {
   return 1.5;
 }
 
+/**
+ * ★글자 크기대별 **최대** 줄높이 비율(daniel 2026-07-30 IMG_8311 "행간 좀 줄여주고").
+ *
+ * 왜 최소만으로는 부족했나: 최소는 '너무 붙는 것'만 막는다. 큰 배율에서는 반대 방향이 문제였다 —
+ *   ①화면들이 `lineHeight: 25`(15px 기준 1.67배)처럼 **작은 글자를 기준으로 넉넉히** 잡아 뒀고
+ *   ②그 값이 배율만큼 함께 커지면서 큰 글자에서는 문단이 성기게 흩어졌다(한 화면에 6~7줄).
+ *   글자가 커지면 필요한 *상대* 줄간격은 오히려 **줄어든다**(같은 비율이면 여백이 절대적으로 과해진다).
+ *
+ * ⚠️이 상한은 이중적용(ls()로 이미 배율을 먹인 lineHeight 를 전역 패치가 또 곱하던 127곳)에 대한
+ *   **2차 방어선**도 된다. 1차 방어는 `npm run check:lineheight`(lineHeight 에 ls() 금지).
+ */
+export function lineHeightMaxRatio(size: number): number {
+  if (size >= 24) return 1.35;
+  if (size >= 19) return 1.5;
+  return 1.7;
+}
+
 /** 이 비율보다 촘촘하면 '의도한 디자인'이 아니라 짝(fontSize↔lineHeight)이 어긋난 것으로 본다. */
 export const TOO_TIGHT_RATIO = 1.15;
 
@@ -33,10 +50,11 @@ export function resolveLineHeight(
   if (numberOfLines === 1) return null;
   if (typeof size !== 'number' || !(size > 0)) return null;
   const min = Math.round(size * lineHeightRatio(size));
+  const max = Math.round(size * lineHeightMaxRatio(size));
   if (typeof current === 'number') {
-    if (current >= min) return null;                       // 이미 넉넉 — 존중
-    if (current >= size * TOO_TIGHT_RATIO) return min;     // 조금 좁음 — 바닥값까지 올림
-    return min;                                            // 명백히 좁음(짝 어긋남) — 바닥값
+    if (current > max) return max;                          // ★너무 성김(큰 배율) — 상한까지 내림
+    if (current >= min) return null;                        // 적정 — 디자인 의도 존중
+    return min;                                             // 좁음(짝 어긋남 포함) — 바닥값
   }
-  return min;                                              // 지정 없음 — 바닥값(대부분 여기)
+  return min;                                               // 지정 없음 — 바닥값(대부분 여기)
 }

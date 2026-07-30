@@ -37,7 +37,7 @@ export function DailyLogCard({ saju, stem, branch }: {
   return (
     <View style={styles.card}>
       <Text style={styles.kicker}>오늘의 한 가지</Text>
-      <Text style={[styles.mission, { fontSize: fs(15), lineHeight: ls(23) }]}>{mission.text}</Text>
+      <Text style={[styles.mission, { fontSize: fs(15), lineHeight: 23 }]}>{mission.text}</Text>
     </View>
   );
 }

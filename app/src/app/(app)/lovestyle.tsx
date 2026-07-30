@@ -66,14 +66,14 @@ export default function LoveStyleScreen() {
             : <Text style={styles.emoji}>{result.emoji}</Text>}
           <Text style={styles.title}>{result.style}</Text>
         </View>
-        <View style={styles.card}><Text style={[styles.body, { fontSize: fs(15), lineHeight: ls(25) }]}>{result.desc}</Text></View>
+        <View style={styles.card}><Text style={[styles.body, { fontSize: fs(15), lineHeight: 25 }]}>{result.desc}</Text></View>
         <View style={styles.card}>
           <Text style={styles.cardHead}>{t('lovestyle.inLove', '연애할 때')}</Text>
-          <Text style={[styles.body, { fontSize: fs(15), lineHeight: ls(25) }]}>{result.inLove}</Text>
+          <Text style={[styles.body, { fontSize: fs(15), lineHeight: 25 }]}>{result.inLove}</Text>
         </View>
         <View style={styles.card}>
           <Text style={styles.cardHead}>{t('lovestyle.tip', '이런 점만 더하면')}</Text>
-          <Text style={[styles.body, { fontSize: fs(15), lineHeight: ls(25) }]}>{result.tip}</Text>
+          <Text style={[styles.body, { fontSize: fs(15), lineHeight: 25 }]}>{result.tip}</Text>
         </View>
         {/* 풀이 음성 읽기(온디바이스 TTS·무료) — 연애 스타일 설명을 읽음 */}
         <TTSButton reading={result} />

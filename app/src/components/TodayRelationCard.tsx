@@ -119,20 +119,20 @@ export function TodayRelationCard({ reloadKey, dateKey }: { reloadKey?: number; 
       )}
 
       <Text style={[styles.title, { fontSize: fs(16) }]}>{rel.title}</Text>
-      <Text style={[styles.body, { fontSize: fs(13.5), lineHeight: ls(20) }]}>{rel.body}</Text>
+      <Text style={[styles.body, { fontSize: fs(13.5), lineHeight: 20 }]}>{rel.body}</Text>
 
       {/* 오늘 각자의 결 — 오늘 일진이 각자에게 준 십신 결(디테일 확장 daniel 07-22) */}
       {detail && (detail.mine || detail.other) && (
         <View style={styles.detailBox}>
-          {detail.mine ? <Text style={[styles.detailLine, { fontSize: fs(12.5), lineHeight: ls(18) }]}><Text style={styles.detailWho}>오늘 나</Text>  {detail.mine}</Text> : null}
-          {detail.other ? <Text style={[styles.detailLine, { fontSize: fs(12.5), lineHeight: ls(18) }]}><Text style={styles.detailWho}>오늘 {other.label || '상대'}</Text>  {detail.other}</Text> : null}
+          {detail.mine ? <Text style={[styles.detailLine, { fontSize: fs(12.5), lineHeight: 18 }]}><Text style={styles.detailWho}>오늘 나</Text>  {detail.mine}</Text> : null}
+          {detail.other ? <Text style={[styles.detailLine, { fontSize: fs(12.5), lineHeight: 18 }]}><Text style={styles.detailWho}>오늘 {other.label || '상대'}</Text>  {detail.other}</Text> : null}
         </View>
       )}
 
       {/* 오늘 이렇게(처방) — daniel 07-20 콘텐츠 확장 */}
       <View style={styles.tipRow}>
         <Text style={styles.tipCap}>오늘 이렇게</Text>
-        <Text style={[styles.tipTx, { fontSize: fs(13), lineHeight: ls(19) }]}>{rel.tip}</Text>
+        <Text style={[styles.tipTx, { fontSize: fs(13), lineHeight: 19 }]}>{rel.tip}</Text>
       </View>
 
       {rel.signals.length > 0 && (

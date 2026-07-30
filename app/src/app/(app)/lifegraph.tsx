@@ -259,19 +259,19 @@ export default function LifeGraphScreen() {
           <ExpiryNote expiry={expiry} chartId={chartId} />
           {/* 이슈19 소제목 — 통변 결과 headline 있으면 그래프·섹션 맨 위에 한 줄 강조 */}
           {typeof data.headline === 'string' && data.headline.trim() ? (
-            <Text style={{ fontSize: fs(19), fontWeight: '800', color: colors.ju, marginBottom: space(3), lineHeight: ls(26) }}>{data.headline}</Text>
+            <Text style={{ fontSize: fs(19), fontWeight: '800', color: colors.ju, marginBottom: space(3), lineHeight: 26 }}>{data.headline}</Text>
           ) : null}
           {/* ★근본 '풀이 안 보임'(daniel 07-11): 구조화(decades) 없이 base 프로즈만 오면(파싱 폴백) 게이트가 탈락해 유료결제자가
               잠금화면을 다시 봤다. 게이트에 base 포함 + 여기서 base 를 통째로 표시(그래프는 decades 없어 비어도 무해). */}
           {!n && typeof data.base === 'string' && data.base.trim() ? (
-            <View style={styles.card}><Text style={[styles.summary, { fontSize: fs(15), lineHeight: ls(24) }]}>{data.base}</Text></View>
+            <View style={styles.card}><Text style={[styles.summary, { fontSize: fs(15), lineHeight: 24 }]}>{data.base}</Text></View>
           ) : null}
-          <Text style={[styles.summary, { fontSize: fs(15), lineHeight: ls(24) }]}>{data.summary}</Text>
+          <Text style={[styles.summary, { fontSize: fs(15), lineHeight: 24 }]}>{data.summary}</Text>
           {/* 나에게 필요한 기운(용신) */}
           {data.yongsin ? (
             <View style={styles.yongsinCard}>
               <Text style={styles.yongsinLabel}>{t('life.yongsin', '나에게 필요한 기운')}</Text>
-              <Text style={[styles.yongsinTx, { fontSize: fs(15), lineHeight: ls(23) }]}>{data.yongsin}</Text>
+              <Text style={[styles.yongsinTx, { fontSize: fs(15), lineHeight: 23 }]}>{data.yongsin}</Text>
             </View>
           ) : null}
           {/* 곡선 차트 */}
@@ -320,7 +320,7 @@ export default function LifeGraphScreen() {
               <View style={styles.noteCard}>
                 <Text style={styles.noteAge}>{pick.startAge}~{pick.startAge + 9}세 · {pick.score}점{pick.turning ? ' · 전환점' : ''}</Text>
                 {pick.keyword ? <Text style={styles.noteKeyword}>{pick.keyword}</Text> : null}
-                <Text style={[styles.noteTx, { fontSize: fs(15), lineHeight: ls(23) }]}>{pick.note}</Text>
+                <Text style={[styles.noteTx, { fontSize: fs(15), lineHeight: 23 }]}>{pick.note}</Text>
                 {pick.focus ? <Text style={styles.noteFocus}>{t('life.focus', '집중')}: {pick.focus}</Text> : null}
               </View>
             );
@@ -330,19 +330,19 @@ export default function LifeGraphScreen() {
           {data.peak ? (
             <View style={[styles.infoCard, styles.peakCard]}>
               <Text style={styles.infoLabel}>✦ {t('life.peak', '가장 빛나는 시기')}</Text>
-              <Text style={[styles.infoTx, { fontSize: fs(15), lineHeight: ls(23) }]}>{data.peak}</Text>
+              <Text style={[styles.infoTx, { fontSize: fs(15), lineHeight: 23 }]}>{data.peak}</Text>
             </View>
           ) : null}
           {data.caution ? (
             <View style={[styles.infoCard, styles.cautionCard]}>
               <Text style={[styles.infoLabel, { color: '#E5484D' }]}>● {t('life.caution', '다지고 조심할 시기')}</Text>
-              <Text style={[styles.infoTx, { fontSize: fs(15), lineHeight: ls(23) }]}>{data.caution}</Text>
+              <Text style={[styles.infoTx, { fontSize: fs(15), lineHeight: 23 }]}>{data.caution}</Text>
             </View>
           ) : null}
           {data.advice ? (
             <View style={styles.infoCard}>
               <Text style={styles.infoLabel}>{t('life.advice', '평생 이렇게')}</Text>
-              <Text style={[styles.infoTx, { fontSize: fs(15), lineHeight: ls(23) }]}>{data.advice}</Text>
+              <Text style={[styles.infoTx, { fontSize: fs(15), lineHeight: 23 }]}>{data.advice}</Text>
             </View>
           ) : null}
           {/* 풀이 음성 읽기(온디바이스 TTS·무료) — 요약·시기별 해설을 순서대로 읽음(decades 배열은 text 없어 자동 제외) */}

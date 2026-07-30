@@ -95,7 +95,7 @@ export default function DayPillarScreen() {
   }, [myKey, emblemIn]);
 
   const toggle = (k: string) => setOpen((prev) => { const n = new Set(prev); n.has(k) ? n.delete(k) : n.add(k); return n; });
-  const bodyDyn = { fontSize: fs(15), lineHeight: ls(25) };
+  const bodyDyn = { fontSize: fs(15), lineHeight: 25 };
 
   // 한 일주의 전체 섹션 렌더. sx = 성별 기준(관리자=토글 sex / 일반=각 명식 성별).
   const renderSections = (k: string, sx: '남' | '여' = sex) => {

@@ -95,8 +95,8 @@ export function NextStepCard({ reloadKey }: { reloadKey?: number }) {
       <View style={styles.scrim} />
       <View style={styles.inner}>
         <Text style={[styles.kicker, { fontSize: fs(11) }]}>다음 단계</Text>
-        <Text style={[styles.title, { fontSize: fs(22), lineHeight: Math.round(ls(22) * 1.3) }]} numberOfLines={2}>{label}</Text>
-        <Text style={[styles.reason, { fontSize: fs(13), lineHeight: Math.round(ls(13) * 1.5) }]} numberOfLines={2}>{step.reason}</Text>
+        <Text style={[styles.title, { fontSize: fs(22), lineHeight: Math.round(22 * 1.3) }]} numberOfLines={2}>{label}</Text>
+        <Text style={[styles.reason, { fontSize: fs(13), lineHeight: Math.round(13 * 1.5) }]} numberOfLines={2}>{step.reason}</Text>
         <View style={styles.ctaRow}>
           <View style={styles.cta}><Text style={[styles.ctaTx, { fontSize: fs(14) }]}>보러 가기 ›</Text></View>
           {price ? <Text style={[styles.price, { fontSize: fs(12) }]}>{price}</Text> : null}

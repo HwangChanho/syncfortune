@@ -168,7 +168,7 @@ export default function TaegilScreen() {
                   <Text style={[styles.badgeTx, selDay.score >= bestT ? styles.badgeTxBest : styles.badgeTxGood]}>{selDay.score >= bestT ? t('taegil.best', '아주 좋음') : t('taegil.good', '좋음')}</Text>
                 </View>
               </View>
-              {selDay.reasons.map((r, i) => <Text key={i} style={[styles.reason, { fontSize: fs(14), lineHeight: ls(21) }]}>· {r}</Text>)}
+              {selDay.reasons.map((r, i) => <Text key={i} style={[styles.reason, { fontSize: fs(14), lineHeight: 21 }]}>· {r}</Text>)}
             </View>
             {/* 풀이 음성 읽기(온디바이스 TTS·무료) — 선택한 길일의 추천 이유를 읽음(공유 카드와 동일 내용·ganzhi 등 내부값 제외) */}
             <TTSButton reading={{ date: selDay.date, score: selDay.score, reasons: selDay.reasons }} />
@@ -177,7 +177,7 @@ export default function TaegilScreen() {
           </>
         )}
 
-        <Text style={[styles.note, { fontSize: fs(12), lineHeight: ls(18) }]}>{t('taegil.note', '※ 사주에 맞춘 참고용 길일이에요. 실제 일정은 형편에 맞게 정하세요.')}</Text>
+        <Text style={[styles.note, { fontSize: fs(12), lineHeight: 18 }]}>{t('taegil.note', '※ 사주에 맞춘 참고용 길일이에요. 실제 일정은 형편에 맞게 정하세요.')}</Text>
               {/* ★이어서 보면 좋은 콘텐츠(daniel 2026-07-27 "전부 붙여") — 화면마다 하단이 달라 보이던 것 통일.
             큐레이션 출처는 RELATED 단일(중복 하드코딩 0). 매핑이 없으면 스스로 아무것도 안 그린다. */}
         <RelatedContent kind="taegil" />

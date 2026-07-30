@@ -110,7 +110,7 @@ export default function EgenTetoScreen() {
                   reading[k] ? (
                     <View key={k} style={styles.secCard}>
                       <Text style={styles.secTitle}>{t(`egen.${lk}`)}</Text>
-                      <Text style={[styles.readTx, { fontSize: fs(15), lineHeight: ls(25) }]}>{reading[k]}</Text>
+                      <Text style={[styles.readTx, { fontSize: fs(15), lineHeight: 25 }]}>{reading[k]}</Text>
                     </View>
                   ) : null,
                 )}

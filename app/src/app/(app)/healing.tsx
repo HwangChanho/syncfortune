@@ -47,7 +47,7 @@ export default function HealingScreen() {
 
   const r: HealingResult | null = useMemo(() => (me ? healingMethod(computeChart(me).saju) : null), [me]);
 
-  const bodyDyn = { fontSize: fs(15), lineHeight: ls(25) };
+  const bodyDyn = { fontSize: fs(15), lineHeight: 25 };
 
   if (loading) return <View style={styles.center}><ActivityIndicator color={colors.ju} /></View>;
   if (!r) return (

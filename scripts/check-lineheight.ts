@@ -17,7 +17,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { readFileSync } from 'node:fs';
 // ★순수 모듈만 import — textLineHeight.ts 는 react-native 를 끌어와 tsx 가 파싱하지 못한다.
-import { resolveLineHeight, lineHeightRatio, TOO_TIGHT_RATIO } from '../app/src/lib/ui/lineHeightRule';
+import { resolveLineHeight, lineHeightRatio, lineHeightMaxRatio, TOO_TIGHT_RATIO } from '../app/src/lib/ui/lineHeightRule';
 
 const ROOT = new URL('..', import.meta.url).pathname;
 const strip = (x: string) => x.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
@@ -83,5 +83,46 @@ console.log('\n[L5] fontSize 만 커지고 lineHeight 가 고정인 경우를 �
   else bad(`과밀 기준 비율이 이상하다: ${TOO_TIGHT_RATIO}`);
 }
 
-console.log(fail ? `\n❌ check:lineheight 실패 ${fail}건` : '\n✅ check:lineheight 통과 — 설치·비율·한줄예외·의도존중·짝교정 OK');
+// ── L6 상한(성김 방지) ───────────────────────────────────────────────────
+// daniel 2026-07-30 IMG_8311 "글자 제일 큰 상태인데 ai코치나 일반 풀이에서 행간 좀 줄여주고"
+console.log('\n[L6] 큰 배율에서 줄간격이 과하게 벌어지지 않는다(상한)');
+{
+  // 실제 사고: 코치 답변 = fontSize 15 · lineHeight 25(1.67배). 최대 배율(1.45)에서 22px/36 이 된다.
+  const got = resolveLineHeight(22, 36, undefined);
+  const want = Math.round(22 * lineHeightMaxRatio(22)); // 33
+  if (got === want) ok(`22px/36 → ${want} 로 조임(1.64배 → ${(want / 22).toFixed(2)}배)`);
+  else bad(`22px/36 → ${got}(기대 ${want}) — 큰 글자에서 문단이 성기게 흩어진다`);
+  // 상한이 하한보다 커야 한다(구간이 뒤집히면 매 렌더 값이 튄다)
+  let inv = 0;
+  for (const s of [12, 15, 18, 19, 22, 24, 30, 36]) if (lineHeightMaxRatio(s) <= lineHeightRatio(s)) { bad(`${s}px: 상한 ${lineHeightMaxRatio(s)} <= 하한 ${lineHeightRatio(s)}`); inv++; }
+  if (!inv) ok('모든 구간에서 상한 > 하한');
+}
+
+// ── L7 이중적용 금지(lineHeight 에 ls()) ─────────────────────────────────
+// ★★이 프로젝트에서 **세 번** 반복된 사고다: ls() 는 배율을 곱하는 함수인데,
+//   전역 패치도 lineHeight 에 배율을 곱한다 → 1.45² ≈ 2.1배. 코드는 멀쩡해 보이고 타입도 통과한다.
+//   그래서 '눈'이 아니라 하네스로 잡는다(07-26 교훈).
+console.log('\n[L7] lineHeight 에 ls() 를 쓰지 않는다(전역 패치와 이중적용)');
+{
+  const files: string[] = [];
+  const { readdirSync, statSync } = await import('node:fs');
+  (function walk(d: string) {
+    for (const e of readdirSync(d)) {
+      const p = `${d}/${e}`;
+      if (statSync(p).isDirectory()) walk(p); else if (/\.(ts|tsx)$/.test(e)) files.push(p);
+    }
+  })(`${ROOT}app/src`);
+  const hits: string[] = [];
+  for (const f of files) {
+    const src = strip(readFileSync(f, 'utf8'));
+    src.split('\n').forEach((ln, i) => {
+      // lineHeight 값 안에서 ls( 가 나오면 이중적용. (width/height 등 **치수**에는 ls() 가 맞다.)
+      if (/lineHeight:\s*[^,}]*\bls\(/.test(ln)) hits.push(`${f.replace(ROOT, '')}:${i + 1}`);
+    });
+  }
+  if (!hits.length) ok(`${files.length}개 파일에 이중적용 0건`);
+  else { bad(`lineHeight 에 ls() ${hits.length}건 — 배율이 두 번 곱해진다(1.45² ≈ 2.1배)`); hits.slice(0, 10).forEach((h) => console.error(`      ${h}`)); }
+}
+
+console.log(fail ? `\n❌ check:lineheight 실패 ${fail}건` : '\n✅ check:lineheight 통과 — 설치·비율·한줄예외·의도존중·짝교정·상한·이중적용금지 OK');
 process.exit(fail ? 1 : 0);

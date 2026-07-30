@@ -80,7 +80,7 @@ export default function JoseonJobScreen() {
             : <Text style={styles.emoji}>{result.emoji}</Text>}
           <Text style={styles.job}>{result.job}</Text>
           <Text style={styles.rank}>{result.rank}</Text>
-          <Text style={[styles.tagline, { fontSize: fs(15), lineHeight: ls(25) }]}>{result.tagline}</Text>
+          <Text style={[styles.tagline, { fontSize: fs(15), lineHeight: 25 }]}>{result.tagline}</Text>
         </View>
 
         {/* 타고난 강점 */}

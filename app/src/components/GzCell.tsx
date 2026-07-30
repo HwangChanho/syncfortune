@@ -33,7 +33,7 @@ export function GzCell({ char, kind, size, scale = 1, onPress, hangeul, grid }: 
   const baseF = fs(size === 'sm' ? 22 : 19), baseLH = fs(size === 'sm' ? 26 : 22); // ★크기↑(daniel 07-24)
   const cellDyn = scale !== 1 ? { width: Math.round(baseW * scale) } : { width: Math.round(baseW) };
   const textDyn = scale !== 1 ? { fontSize: Math.round(baseF * scale), lineHeight: Math.round(baseLH * scale) } : null;
-  const koDyn = scale !== 1 ? { fontSize: ls(11), lineHeight: ls(13) } : null; // 한글음도 크기↑(daniel 07-24)
+  const koDyn = scale !== 1 ? { fontSize: ls(11), lineHeight: 13 } : null; // 한글음도 크기↑(daniel 07-24)
   // ★한글 모드(daniel 2026-07-24) = 한글음(갑·자)을 주(主)로, 한자는 아래 작게(스왑). 기본=한자 주.
   const main = hangeul ? ko : char;
   const subv = hangeul ? char : ko;

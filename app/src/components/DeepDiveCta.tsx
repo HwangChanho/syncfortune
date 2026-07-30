@@ -41,9 +41,13 @@ const META_BY_KIND: Record<string, { image: any; descKey?: string }> = (() => {
  * @param label  버튼 문구(예: '내 애정 흐름 깊이 보기'). 카드 제목으로 쓴다.
  * @param sub    보조 설명. 없으면 SECTIONS 의 descKey 를 쓴다.
  * @param onPress 이동 동작(호출측이 라우팅을 소유 — 기존 CTA 의 목적지를 그대로 유지하려고).
+ * @param compact 한 급 낮춘 보조 안내용(daniel 2026-07-30 IMG_8311 — AI 코치 답변 안에 들어간다).
+ *   ★왜 프롭 하나로 처리하나: 코치용 카드를 따로 만들면 **같은 카드가 두 벌**이 되고,
+ *   콘텐츠가 늘 때 한쪽만 갱신되는 게 이 프로젝트의 반복 사고 유형이다(이미지 하드코딩 분기).
+ *   코치 답변 안에서는 주 CTA 만큼 강조하면 광고로 읽히므로(원 설계 의도) 테두리·썸네일만 낮춘다.
  */
-export function DeepDiveCta({ kind, label, sub, onPress }: {
-  kind: string; label: string; sub?: string; onPress: () => void;
+export function DeepDiveCta({ kind, label, sub, onPress, compact = false }: {
+  kind: string; label: string; sub?: string; onPress: () => void; compact?: boolean;
 }) {
   const { t } = useTranslation();
   const { fs, ls } = useFontScale();
@@ -59,14 +63,16 @@ export function DeepDiveCta({ kind, label, sub, onPress }: {
     );
   }
 
+  // 썸네일은 **치수**라서 ls()(글자 배율 연동) — 고정 64 로 두면 큰 글자 옆에서 그림만 작아 보인다.
+  const side = ls(compact ? 48 : 64);
   return (
-    <PressableScale style={styles.card} onPress={onPress}>
-      <ExpoImage source={meta.image} style={styles.thumb} contentFit="cover" cachePolicy="memory-disk" transition={120} />
+    <PressableScale style={[styles.card, compact && styles.cardCompact]} onPress={onPress}>
+      <ExpoImage source={meta.image} style={[styles.thumb, { width: side, height: side }]} contentFit="cover" cachePolicy="memory-disk" transition={120} />
       <View style={styles.body}>
-        <Text style={[styles.label, { fontSize: fs(15), lineHeight: Math.round(ls(15) * 1.4) }]} numberOfLines={2}>{label}</Text>
-        {subTx ? <Text style={[styles.sub, { fontSize: fs(12), lineHeight: Math.round(ls(12) * 1.4) }]} numberOfLines={2}>{subTx}</Text> : null}
+        <Text style={[styles.label, { fontSize: fs(compact ? 14 : 15), lineHeight: Math.round((compact ? 14 : 15) * 1.4) }]} numberOfLines={2}>{label}</Text>
+        {subTx ? <Text style={[styles.sub, { fontSize: fs(12), lineHeight: Math.round(12 * 1.4) }]} numberOfLines={2}>{subTx}</Text> : null}
       </View>
-      <Text style={[styles.arrow, { fontSize: fs(20) }]}>›</Text>
+      <Text style={[styles.arrow, { fontSize: fs(compact ? 16 : 20) }]}>›</Text>
     </PressableScale>
   );
 }
@@ -78,7 +84,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.juSoft, borderRadius: radius.md, borderWidth: 1.5, borderColor: colors.ju,
     padding: space(3), gap: space(3), marginTop: space(2), ...shadow.card,
   },
-  thumb: { width: 64, height: 64, borderRadius: radius.sm, backgroundColor: colors.sunk },
+  // ★한 급 낮춤(compact) — 코치 답변 안의 보조 안내. 강조 테두리·그림자를 빼 광고처럼 읽히지 않게 한다.
+  cardCompact: {
+    borderWidth: 1, borderColor: colors.juLine, marginTop: space(3.5),
+    shadowOpacity: 0, elevation: 0,   // 주 CTA 의 그림자를 끈다(theme 에 none 프리셋은 없다)
+  },
+  thumb: { borderRadius: radius.sm, backgroundColor: colors.sunk },   // 치수는 인라인(ls 배율)
   body: { flex: 1, gap: 3 },
   label: { ...font.body, color: colors.ju, fontWeight: '800' },
   sub: { ...font.caption, color: colors.inkSoft },
