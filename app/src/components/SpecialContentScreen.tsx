@@ -30,9 +30,9 @@ import { ShareReadingButton } from './ShareReadingButton'; // 이슈17: 풀이 �
 import { TTSButton } from './TTSButton'; // daniel: 풀이 음성 읽기(온디바이스 TTS·무료)
 import { RelatedContent } from './RelatedContent'; // 연관 콘텐츠 자동 추천(하단 크로스셀·API 0·daniel 기획서)
 import { buildRomanceMirror } from '../lib/engine/romanceMirror';   // R60 애정 이원분석(온디바이스 판정)
-import { coinPriceOf, coinBalanceOrNull } from '../lib/billing/coins';   // ★코인 전환(daniel 07-28)
+import { coinPriceOf, coinBalanceOrNull } from '../lib/billing/coins';   // ★운 전환(daniel 07-28)
 import { notifyNetworkError } from '../lib/backend/network';
-import { ensureCoinsFor } from '../lib/billing/coinGate';   // ★코인 단일 경로(daniel 07-28)
+import { ensureCoinsFor } from '../lib/billing/coinGate';   // ★운 단일 경로(daniel 07-28)
 import { purchasesEnabled } from '../lib/billing/purchases';
 import { isAdminActing } from '../lib/core/admin';                  // 스페셜 = 관리자 바로 / 그 외 쿠폰(크레딧)
 import { requireLoginForPurchase } from '../lib/billing/requireLogin';
@@ -353,8 +353,8 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
       if (bal < coinCost) {
         return await new Promise<boolean>((resolve) => {
           Alert.alert(
-            t('coins.needTitle', '코인이 부족해요'),
-            t('coins.needMsg', { need: coinCost, have: bal, defaultValue: '이 풀이는 {{need}}코인이 필요해요. 지금 {{have}}코인 있어요.' }),
+            t('coins.needTitle', '운이 부족해요'),
+            t('coins.needMsg', { need: coinCost, have: bal, defaultValue: '이 풀이는 {{need}}운이 필요해요. 지금 {{have}}운 있어요.' }),
             [
               { text: t('common.cancel'), style: 'cancel', onPress: () => resolve(false) },
               { text: t('coins.charge', '충전하기'), onPress: () => { router.push('/coins'); resolve(false); } },
@@ -365,9 +365,9 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
       return await new Promise<boolean>((resolve) => {
         Alert.alert(
           title,
-          t('coins.spendMsg', { cost: coinCost, have: bal, defaultValue: '{{cost}}코인을 사용해 풀이를 시작할까요? (보유 {{have}}코인)' }),
+          t('coins.spendMsg', { cost: coinCost, have: bal, defaultValue: '{{cost}}운을 사용해 풀이를 시작할까요? (보유 {{have}}운)' }),
           [
-            { text: t('coins.spend', '코인 사용'), onPress: () => resolve(true) },   // 차감은 Edge 가(이중차감 방지)
+            { text: t('coins.spend', '운 사용'), onPress: () => resolve(true) },   // 차감은 Edge 가(이중차감 방지)
             { text: t('common.cancel'), style: 'cancel', onPress: () => resolve(false) },
           ],
         );
@@ -432,7 +432,7 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
   //   바로 구매: 결제 → 웹훅 적립 폴링(C1) → 재생성(Edge 가 1회 차감) / 또는 마켓 이동. id = 재생성 대상 명식.
   function promptPurchase(id?: string, refresh = false) {
     Alert.alert(title, t('special.needPayMsg', '이용권이 필요해요. 바로 구매하거나 마켓에서 받을 수 있어요.'), [
-      { text: t('coins.spend', '코인 사용'), onPress: async () => {
+      { text: t('coins.spend', '운 사용'), onPress: async () => {
           // ★코인 단일 경로(daniel 2026-07-28 "기존 단건 결제는 다 없애") — 스토어 결제 왕복 제거.
           //   차감은 서버(Edge)가 생성 직전에 한다. 부족하면 충전 화면으로 보낸다.
           const g = await ensureCoinsFor(kind, { title, t, goCharge: () => router.push('/coins') });
@@ -521,7 +521,7 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
           {!reading ? (
             <Text style={[styles.ownedStatus2, dynStyles.gateDesc]}>{t('special.ownedResumeSub', '생성이 중단됐어요. 추가 결제 없이 이어서 만들어 드려요')}</Text>
           ) : isPremiumForChart(chartId) ? (
-            <Text style={[styles.ownedStatus2, dynStyles.gateDesc, { color: colors.gold }]}>{t('special.ownedUnlimited', '코인으로 열림')}</Text>
+            <Text style={[styles.ownedStatus2, dynStyles.gateDesc, { color: colors.gold }]}>{t('special.ownedUnlimited', '운으로 열림')}</Text>
           ) : (showExpiry && expiry) ? (
             <Text style={[styles.ownedStatus2, dynStyles.gateDesc]}>{t('special.ownedUntil', { date: expiry, defaultValue: '{{date}}까지 볼 수 있어요' })}</Text>
           ) : (

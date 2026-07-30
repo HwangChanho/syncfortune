@@ -47,8 +47,8 @@ export async function ensureCoinsFor(
   if (bal < cost) {
     return await new Promise<CoinGateResult>((resolve) => {
       Alert.alert(
-        t('coins.needTitle', '코인이 부족해요'),
-        t('coins.needMsg', { need: cost, have: bal, defaultValue: '이 풀이는 {{need}}코인이 필요해요. 지금 {{have}}코인 있어요.' }),
+        t('coins.needTitle', '운이 부족해요'),
+        t('coins.needMsg', { need: cost, have: bal, defaultValue: '이 풀이는 {{need}}운이 필요해요. 지금 {{have}}운 있어요.' }),
         [
           { text: t('common.cancel'), style: 'cancel', onPress: () => resolve('cancel') },
           { text: t('coins.charge', '충전하기'), onPress: () => { goCharge(); resolve('insufficient'); } },
@@ -60,9 +60,9 @@ export async function ensureCoinsFor(
   return await new Promise<CoinGateResult>((resolve) => {
     Alert.alert(
       title,
-      t('coins.spendMsg', { cost, have: bal, defaultValue: '{{cost}}코인을 사용해 풀이를 시작할까요? (보유 {{have}}코인)' }),
+      t('coins.spendMsg', { cost, have: bal, defaultValue: '{{cost}}운을 사용해 풀이를 시작할까요? (보유 {{have}}운)' }),
       [
-        { text: t('coins.spend', '코인 사용'), onPress: () => resolve('ok') },
+        { text: t('coins.spend', '운 사용'), onPress: () => resolve('ok') },
         { text: t('common.cancel'), style: 'cancel', onPress: () => resolve('cancel') },
       ],
     );

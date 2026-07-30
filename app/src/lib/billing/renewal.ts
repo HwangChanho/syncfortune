@@ -40,7 +40,7 @@ export async function runContentRenewal(opts: {
   const { kind, t, goCharge, onDone } = opts;
   // 가격은 **서버 값이 권위**다. 서버가 안 줬을 때만 같은 식으로 파생한다.
   const cost = opts.coins ?? renewalCoinCost(coinPriceOf(kind) ?? 0);
-  if (!(cost > 0)) return;   // 코인가 미등록(check:coins 가 잡는다) — 사용자를 막지 않고 조용히 종료
+  if (!(cost > 0)) return;   // 운가 미등록(check:coins 가 잡는다) — 사용자를 막지 않고 조용히 종료
 
   // ★잔액 '0'과 '조회 실패'를 구분한다 — 실패를 부족으로 읽으면 이미 충전한 사용자에게 재충전을 유도한다.
   const bal = await coinBalanceOrNull();
@@ -51,8 +51,8 @@ export async function runContentRenewal(opts: {
 
   if (bal < cost) {
     Alert.alert(
-      t('renewal.needTitle', '코인이 부족해요'),
-      t('renewal.needMsg', { need: cost, have: bal, defaultValue: '재통변에는 {{need}}코인이 필요해요. 지금 {{have}}코인 있어요.' }),
+      t('renewal.needTitle', '운이 부족해요'),
+      t('renewal.needMsg', { need: cost, have: bal, defaultValue: '재통변에는 {{need}}운이 필요해요. 지금 {{have}}운 있어요.' }),
       [
         { text: t('common.cancel', '취소'), style: 'cancel' },
         { text: t('coins.charge', '충전하기'), onPress: goCharge },
@@ -66,7 +66,7 @@ export async function runContentRenewal(opts: {
       t('renewal.title', '최신 통변으로 다시 받기'),
       t('renewal.msg', {
         pct: RENEWAL_COIN_DISCOUNT_PCT, coins: cost, have: bal,
-        defaultValue: '이 풀이를 받은 지 1년이 지났어요.\n\n{{pct}}% 할인된 {{coins}}코인으로 지금 시점 기준으로 다시 풀어 드려요. (보유 {{have}}코인)',
+        defaultValue: '이 풀이를 받은 지 1년이 지났어요.\n\n{{pct}}% 할인된 {{coins}}운으로 지금 시점 기준으로 다시 풀어 드려요. (보유 {{have}}운)',
       }),
       [
         { text: t('renewal.later', '다음에'), style: 'cancel', onPress: () => resolve(false) },

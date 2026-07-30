@@ -99,7 +99,7 @@ export default function AppLayout() {
         {/* 가볍게 보기 — 명식 없이 생년월일만으로 즉시 결과(신규 유입 · docs/PLAN_light_mode.md L1) */}
         <Stack.Screen name="light" options={{ title: '가볍게 보기' }} />
         <Stack.Screen name="biorhythm" options={{ title: '바이오리듬' }} />
-        <Stack.Screen name="coins" options={{ title: '코인 충전' }} />
+        <Stack.Screen name="coins" options={{ title: '운 충전' }} />
         <Stack.Screen name="joseonjob" options={{ headerTitle: '' }} />
         <Stack.Screen name="lovestyle" options={{ headerTitle: '' }} />
         <Stack.Screen name="bok" options={{ headerTitle: '' }} />

@@ -33,7 +33,7 @@ import { supabase } from '../lib/supabase';
 import { excludeMock } from '../lib/core/testMode'; // ★16영역 캐시 로드서 목업 제외(OFF)/유지(ON) — test ON은 generate_set 구조표시 보존
 // 완료 푸시는 genProgress(setGenProgress 완료 전이)에서 중앙 처리(daniel ⑨ — 모든 풀이 공통)
 import { setGenProgress, useGenProgress, clearGenProgress, clearGenByChart } from '../lib/backend/genProgress'; // 홈 진행률 + 완료 구독 + 진입 시 배너 제거(daniel: 완성 배너 안 사라짐). clearGenByChart=쿼리 무관 robust 제거(07-22 근본수정)
-import { ensureCoinsFor } from '../lib/billing/coinGate';   // ★코인 단일 경로(추가질문 포함)
+import { ensureCoinsFor } from '../lib/billing/coinGate';   // ★운 단일 경로(추가질문 포함)
 import { isReadingUnlocked } from '../lib/billing/unlocks'; // 서버 권위 세트 언락(P3) — 이미 열렸으면 무료 재생성
 import { isPremiumForChart } from '../lib/billing/premiumStore'; // 명식별 프리미엄 판정(#1 — 비지정 명식/무료모드 페이월)
 import { computeEntitled, computeLocked, showUnlockOverlay, computeShouldAutoGen } from '../lib/billing/readingGate'; // 게이트 순수로직(하네스 시나리오 테스트 대상)
@@ -51,7 +51,7 @@ import { shareReading } from '../lib/ui/share'; // 이슈17: 풀이 결과 공�
 import { loadCredits, creditPrice, formatKrw } from '../lib/billing/coupons'; // 크레딧 보유확인(UX) + 결제 후 웹훅 반영 폴링 + 실가 주입(하드코딩 가격 근절·daniel 2026-07-12)
 import { confirmReadingChart, autoGenWithChartConfirm } from '../lib/ui/confirmChart'; // 생성 전 명식 확인(수동=항상 / 자동=명식 2개+ 일 때, daniel 07-13)
 import { loadCreditsOrNull } from '../lib/billing/coupons';
-import { coinPriceOf, coinBalanceOrNull } from '../lib/billing/coins';   // ★코인 전환(daniel 07-28)   // ★'없음' vs '확인 불가' 구분(재결제 방지)
+import { coinPriceOf, coinBalanceOrNull } from '../lib/billing/coins';   // ★운 전환(daniel 07-28)   // ★'없음' vs '확인 불가' 구분(재결제 방지)
 import { requireLoginForPurchase } from '../lib/billing/requireLogin'; // 결제/저장 전 로그인 안내
 import { assertOnline, isOnline, notifyNetworkError } from '../lib/backend/network'; // 오프라인 차단 + ★호출 실패 알림(daniel 07-27)
 import { logEvent } from '../lib/backend/logger';   // 자동 복구 시도 기록(사고 재구성용)
@@ -587,18 +587,18 @@ export function ReadingScreen({
         if (bal === null) { notifyNetworkError('reading.coinBalance', new Error('balance unavailable'), t); return; }  // ★확인 불가 ≠ 부족
         if (bal < coinCost) {
           Alert.alert(
-            t('coins.needTitle', '코인이 부족해요'),
-            t('coins.needMsg', { need: coinCost, have: bal, defaultValue: '이 풀이는 {{need}}코인이 필요해요. 지금 {{have}}코인 있어요.' }),
+            t('coins.needTitle', '운이 부족해요'),
+            t('coins.needMsg', { need: coinCost, have: bal, defaultValue: '이 풀이는 {{need}}운이 필요해요. 지금 {{have}}운 있어요.' }),
             [{ text: t('common.cancel'), style: 'cancel' }, { text: t('coins.charge', '충전하기'), onPress: () => router.push('/coins') }],
           );
           return;
         }
         Alert.alert(
           t('reading.premiumAlert'),
-          t('coins.spendMsg', { cost: coinCost, have: bal, defaultValue: '{{cost}}코인을 사용해 풀이를 시작할까요? (보유 {{have}}코인)' }),
+          t('coins.spendMsg', { cost: coinCost, have: bal, defaultValue: '{{cost}}운을 사용해 풀이를 시작할까요? (보유 {{have}}운)' }),
           [
             // ★차감은 서버(Edge interpret)가 한다 — 여기서 미리 빼지 않는다(이중차감·우회 방지, 보안 P3 유지).
-            { text: t('coins.spend', '코인 사용'), onPress: () => { void runAll(id); } },
+            { text: t('coins.spend', '운 사용'), onPress: () => { void runAll(id); } },
             { text: t('common.cancel'), style: 'cancel' },
           ],
         );
@@ -862,7 +862,7 @@ export function ReadingScreen({
       {/* #1: 미권한 명식(무료모드·비지정 프리미엄)은 캐시 풀이 대신 페이월 — 첫 영역만 맛보기 */}
       {locked && (
         <View style={styles.card}>
-          <Text style={{ ...font.heading, color: colors.ju, marginBottom: space(3), fontSize: fs(16) }}>🔒 {t('reading.lockedTitle', '이 명식의 풀이는 코인으로 열려요')}</Text>
+          <Text style={{ ...font.heading, color: colors.ju, marginBottom: space(3), fontSize: fs(16) }}>🔒 {t('reading.lockedTitle', '이 명식의 풀이는 운으로 열려요')}</Text>
           {(() => {
             const r0 = normalizeReading(readings[cats[0]?.key]);
             const tease = r0 && typeof r0 === 'object' && !(r0 as any).error ? asText((r0 as any).base) : null;

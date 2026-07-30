@@ -6,7 +6,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { View, Text, Pressable, Modal, StyleSheet, Dimensions, ActivityIndicator, InteractionManager, Animated, ScrollView } from 'react-native';
-import { CoinBadge } from './CoinBadge';   // 보유 코인 배지(단일 구현 재사용)
+import { CoinBadge } from './CoinBadge';   // 보유 운 배지(단일 구현 재사용)
 import { PressableScale } from './PressableScale';
 import { Image as ExpoImage } from 'expo-image'; // 자동 다운샘플(메모리) + 엠블럼 탭 풀스크린 뷰어
 import DraggableFlatList, { ScaleDecorator } from 'react-native-draggable-flatlist'; // 이슈20 롱프레스 드래그 reorder

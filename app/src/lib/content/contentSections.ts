@@ -10,7 +10,7 @@
 //   ④ 유료면 coupons.ts CREDIT_KINDS + Edge interpret SERVER_GATED 등록 → ⑤ 유료면 homeTeaser freeHook 티저
 // ─────────────────────────────────────────────────────────────────────────
 import { CREDIT_KINDS, type CreditKind } from '../billing/coupons';
-import { COIN_PRICE } from '../billing/coinPrices';   // ★가격 표기를 코인으로(daniel 07-28)
+import { COIN_PRICE } from '../billing/coinPrices';   // ★가격 표기를 운으로(daniel 07-28)
 
 /** 콘텐츠 카드 1장. premium=프리미엄 허브(사주·자미 등), content=무료 온디바이스 진입 광고 대상, creditKey=유료 결제 키. */
 export type MenuItem = {
@@ -51,7 +51,7 @@ export const HOME_INDIVIDUAL = new Set(['dream', 'followup', 'timeresolve']);
  */
 export const priceLabel = (key: string) => {
   const coin = COIN_PRICE[key as keyof typeof COIN_PRICE];
-  return coin != null ? `◉ ${coin}` : wonFmt(CREDIT_PRICE[key] ?? 0);
+  return coin != null ? `${coin}운` : wonFmt(CREDIT_PRICE[key] ?? 0);
 };
 
 // ── 콘텐츠 카드 목록 ─────────────────────────────────────────────────────

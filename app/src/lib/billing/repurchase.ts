@@ -62,7 +62,7 @@ export const RENEWABLE_KINDS: ReadonlySet<string> = new Set([
   'reading', 'ziwei', 'compat', 'love', 'newyear', 'reunion', 'crush', 'job', 'timeline', 'lifegraph', 'future10',
 ]);
 
-/** 계정 티어별 재구매 할인율(daniel: 프리미엄 0.30 / 일반 0.10). ⚠️원화 시절 SKU 파생용 — 코인 전환 후에는 아래 코인 할인율을 쓴다. */
+/** 계정 티어별 재구매 할인율(daniel: 프리미엄 0.30 / 일반 0.10). ⚠️원화 시절 SKU 파생용 — 운 전환 후에는 아래 운 할인율을 쓴다. */
 export function renewalDiscountRate(isPremium: boolean): number { return isPremium ? 0.30 : 0.10; }
 
 // ─────────────────────────────────────────────────────────────────────────

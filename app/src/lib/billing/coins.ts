@@ -18,7 +18,7 @@ import { CREDIT_KINDS, type CreditKind } from './coupons';
 export { WON_PER_COIN, COIN_PRICE, COIN_PACKS } from './coinPrices';   // ★가격표는 순수 파일에(하네스가 런타임 없이 검증)
 import { COIN_PRICE } from './coinPrices';
 
-/** 이 콘텐츠의 코인 가격(미등록이면 null — 화면은 '가격 미정'으로 안전 처리). */
+/** 이 콘텐츠의 운 가격(미등록이면 null — 화면은 '가격 미정'으로 안전 처리). */
 export function coinPriceOf(kind: string): number | null {
   return (COIN_PRICE as Record<string, number>)[kind] ?? null;
 }

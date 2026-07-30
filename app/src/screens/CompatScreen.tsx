@@ -7,8 +7,8 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useEffect, useRef } from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator, Modal, TextInput, Keyboard, Image, Animated, Easing } from 'react-native';
-import { useRouter } from 'expo-router';                    // ★코인 부족 → 충전 화면(daniel 07-28)
-import { ensureCoinsFor } from '../lib/billing/coinGate';   // ★코인 단일 경로
+import { useRouter } from 'expo-router';                    // ★운 부족 → 충전 화면(daniel 07-28)
+import { ensureCoinsFor } from '../lib/billing/coinGate';   // ★운 단일 경로
 import { PressableScale } from '../components/PressableScale';
 import { RelatedContent } from '../components/RelatedContent';
 import { ReadingProse, ReadingHeadline, ReadingPoints } from '../components/ReadingProse';
@@ -89,7 +89,7 @@ function ScoreReveal({ score }: { score: number }) {
 }
 
 export function CompatScreen({ me }: { me: ChartInput | null }) {
-  const router = useRouter();   // ★코인 부족 시 /coins 이동(daniel 07-28)
+  const router = useRouter();   // ★운 부족 시 /coins 이동(daniel 07-28)
   const { t } = useTranslation();
   const { session } = useAuth();
   const { isPremium } = useSubscription();

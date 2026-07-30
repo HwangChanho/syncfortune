@@ -11,7 +11,7 @@
 import { useState } from 'react';
 import { View, Text, StyleSheet, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useAdFree } from '../lib/billing/adFree';   // ★광고 제거(코인 구매) — 프리미엄 폐지 후 유일한 무광고 경로
+import { useAdFree } from '../lib/billing/adFree';   // ★광고 제거(운 구매) — 프리미엄 폐지 후 유일한 무광고 경로
 import { colors } from '../lib/theme';
 import { adTestMode } from '../lib/core/ads'; // 테스트광고 모드(daniel: 관리자/테스트는 TestFlight서도 구글 테스트광고)
 
@@ -26,7 +26,7 @@ const PROD_UNIT: Record<string, string> = {
 };
 
 export function AdBanner() {
-  const adFree = useAdFree();   // 코인으로 산 광고 제거가 유효한가(서버 profiles.ad_free_until)
+  const adFree = useAdFree();   // 운으로 산 광고 제거가 유효한가(서버 profiles.ad_free_until)
   const insets = useSafeAreaInsets();
   const [failed, setFailed] = useState(false); // 로드 실패 → 접기
 

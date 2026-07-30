@@ -8,7 +8,7 @@ import { PressableScale } from '../../components/PressableScale';
 import { RelatedContent } from '../../components/RelatedContent';
 import { useTranslation } from 'react-i18next';
 import { searchDreams, DREAM_POPULAR, dreamTitle, dreamMeaning, popularLabel } from '../../lib/content/dreamDict';
-import { ensureCoinsFor } from '../../lib/billing/coinGate';   // ★코인 단일 경로(daniel 07-28)
+import { ensureCoinsFor } from '../../lib/billing/coinGate';   // ★운 단일 경로(daniel 07-28)
 import { supabase } from '../../lib/supabase';        // 사전 miss → LLM 폴백(전역 캐시)
 import { appLang } from '../../lib/i18n';
 import { colors, radius, space, shadow, font } from '../../lib/theme';
@@ -111,7 +111,7 @@ export default function DreamScreen() {
     // ★C3b/C1(daniel 07-03): dream 게이트를 서버(Edge)로 이관 — 클라 useCredit 차감 제거(서버 이중차감 방지).
     //   프리미엄/관리자는 무료(Edge 도 동일 바이패스) / 그 외는 Edge 가 'dream' 이용권 차감 → 없으면 needPayment(runAI 가 구매 제안).
     if (!isPremium) {
-      const admin = false;   // ★관리자 전체오픈 폐지(daniel 2026-07-29) — 관리자도 코인을 쓴다(결제 경로를 관리자 계정으로 실제 검증하기 위해)
+      const admin = false;   // ★관리자 전체오픈 폐지(daniel 2026-07-29) — 관리자도 운을 쓴다(결제 경로를 관리자 계정으로 실제 검증하기 위해)
       if (!admin && !requireLoginForPurchase(session, () => router.push('/login'), t)) return; // 로그인만 보장(결제=계정 귀속)
     }
     runAI(text);
@@ -128,7 +128,7 @@ export default function DreamScreen() {
         { text: t('dream.buy5', '5회 구매'), onPress: async () => {
           try {
             const g = await ensureCoinsFor('dream', { title: t('dream.title', 'AI 꿈해몽'), t, goCharge: () => router.push('/coins') });
-            if (g !== 'ok') return;   // ★코인 전환(daniel 2026-07-28)
+            if (g !== 'ok') return;   // ★운 전환(daniel 2026-07-28)
             // ★코인 전환 마무리(daniel 2026-07-28) — 종전엔 여기서 waitForCreditGrant('dream') 로
             //   *크레딧 적립*을 기다렸다. 코인은 적립이 아니라 **Edge 가 생성 직전에 차감**하므로
             //   그 폴링은 영원히 오지 않고 "잠시 후 다시 시도"에서 막다른 길이 됐다(반쪽 전환).

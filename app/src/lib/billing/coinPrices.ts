@@ -7,7 +7,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import type { CreditKind } from './coupons';
 
-/** 1코인 = ₩100 — 표시·환산의 기준. */
+/** 1운 = ₩100 — 표시·환산의 기준. */
 export const WON_PER_COIN = 100;
 
 /**
@@ -31,7 +31,7 @@ export const COIN_PRICE: Partial<Record<CreditKind, number>> = {
   reading: 200,
 };
 
-/** 충전 팩 — 많이 살수록 코인당 단가가 내려간다(충전 유인). 상품 id 는 ASC 등록값과 일치해야 한다. */
+/** 충전 팩 — 많이 살수록 운당 단가가 내려간다(충전 유인). 상품 id 는 ASC 등록값과 일치해야 한다. */
 export const COIN_PACKS: { id: string; coins: number; won: number; bonusPct: number }[] = [
   { id: 'coin_100', coins: 100, won: 9900, bonusPct: 0 },
   { id: 'coin_300', coins: 300, won: 27900, bonusPct: 6 },

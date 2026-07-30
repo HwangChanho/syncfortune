@@ -24,8 +24,8 @@ import { invokeFail } from '../lib/backend/interpretResult'; // 방어: 일시�
 import { getRepresentativeId } from '../lib/engine/myChart'; // 대표 명식 여부(자동생성 한정)
 import { assertOnline, isOnline } from '../lib/backend/network'; // 오프라인 시 신규 생성 차단
 import { loadCredits, creditPrice, formatKrw } from '../lib/billing/coupons'; // 크레딧 보유확인(쿠폰·선물 잔여) + 실가 주입
-import { useRouter } from 'expo-router';                     // ★코인 부족 → 충전 화면 이동(daniel 07-28)
-import { ensureCoinsFor } from '../lib/billing/coinGate';    // ★코인 단일 경로
+import { useRouter } from 'expo-router';                     // ★운 부족 → 충전 화면 이동(daniel 07-28)
+import { ensureCoinsFor } from '../lib/billing/coinGate';    // ★운 단일 경로
 import { isReadingUnlocked } from '../lib/billing/unlocks'; // 서버 세트 언락(timeline)
 import { isPremiumForChart } from '../lib/billing/premiumStore'; // 명식별 프리미엄 판정(#1 — 비지정 명식/무료모드 게이트)
 import { appLang } from '../lib/i18n'; // 통변 출력 언어(앱 언어)

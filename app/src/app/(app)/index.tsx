@@ -27,7 +27,7 @@ import { excludeMock } from '../../lib/core/testMode'; // ★홈 배너 daily �
 // ChartPicker(명식 선택)는 홈에서 제거(daniel 2026-07-25 '명식 선택은 홈에서 빼자') — 풀이 탭·만세력·설정에서 전환.
 import { SelfUnderstandingHero } from '../../components/SelfUnderstandingHero'; // ★4.3: 홈 최상단 자기이해 히어로(성향분석 첫 경험)
 import { PersonaTypeHero } from '../../components/PersonaTypeHero'; // ★홈 주인공 ①: 성격유형 120종(daniel 07-18 IA 개편)
-import { CoinBadge } from '../../components/CoinBadge';   // ★코인 잔액 배지(daniel 07-28)
+import { CoinBadge } from '../../components/CoinBadge';   // ★운 잔액 배지(daniel 07-28)
 import { HomeImageCard } from '../../components/HomeImageCard'; // ★홈 = 이미지 카드(daniel 07-27 "이미지 위주로")
 
 // 홈 블록 이미지 — 전용 에셋이 없는 블록(바이오리듬·모먼트)은 결이 가장 가까운 것을 임시로 쓴다.

@@ -31,11 +31,11 @@ import { ChartRegisterScreen } from '../../screens/ChartRegisterScreen'; // 상�
 import { Alert } from '../../lib/ui/alert'; // 커스텀 알림(앱 디자인) — 바꾸기 확인/결제 유도
 import { useAuth } from '../../lib/useAuth'; // 결제 게이트 로그인 확인(session)
 import { computeChart } from '../../lib/engine/engine';
-import { ensureCoinsFor } from '../../lib/billing/coinGate';   // ★코인 단일 경로(daniel 07-28)
+import { ensureCoinsFor } from '../../lib/billing/coinGate';   // ★운 단일 경로(daniel 07-28)
 import type { SavedChart } from '../../lib/engine/myChart';
 import { loadReunionOther, saveReunionOther, clearReunionOther } from '../../lib/content/reunionOther'; // 상대 잠금 로컬 영속(대표 명식별)
 import { isPremiumForChart } from '../../lib/billing/premiumStore';   // 명식별 프리미엄(무제한 = 바꾸기 무료)
-import { loadCredits } from '../../lib/billing/coupons'; // 보유 이용권 확인(쿠폰·선물분 — 코인 이전 잔여)
+import { loadCredits } from '../../lib/billing/coupons'; // 보유 이용권 확인(쿠폰·선물분 — 운 이전 잔여)
 import { purchasesEnabled } from '../../lib/billing/purchases';
 import { requireLoginForPurchase } from '../../lib/billing/requireLogin'; // 결제 전 로그인 게이트
 import { colors, radius, space, font, shadow } from '../../lib/theme';
@@ -136,7 +136,7 @@ export default function ReunionRoute() {
             if (!purchasesEnabled()) { Alert.alert(t('reunion.title', '재회운'), t('market.payPending', '결제 준비 중이에요. 쿠폰을 이용하거나 잠시 후 다시 시도해 주세요.')); return; }
             try {
               const g = await ensureCoinsFor('reunion', { title: t('reunion.title', '재회운'), t, goCharge: () => router.push('/coins') });
-              if (g !== 'ok') return;   // ★코인 전환(daniel 2026-07-28)
+              if (g !== 'ok') return;   // ★운 전환(daniel 2026-07-28)
               // ★코인 전환 마무리(07-28): 코인은 적립이 아니라 생성 시 서버 차감 → 폴링 없이 바로 진행.
               openChangeRegister();
             } catch (e) { Alert.alert('!', (e as Error).message); }

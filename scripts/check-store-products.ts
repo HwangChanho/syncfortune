@@ -134,5 +134,34 @@ console.log('\n[S5] 재통변 코인 할인율·계산식이 앱과 서버에서
   else bad('앱이 동의 후에도 renewConfirm 을 안 보낸다 — 재통변이 영원히 안 된다(무한 안내)');
 }
 
-console.log(fail ? `\n❌ check:store 실패 ${fail}건` : '\n✅ check:store 통과 — 결제 진입점·구매대상·잔재·조회낭비·재통변정합 OK');
+// ── S6 화폐명 = '운'(daniel 2026-07-30 "거래하는 화폐 단위를 woon(운)으로") ──────────
+// ★내부 식별자는 그대로 `coin`이다 — Play 상품 id 는 **변경 불가(immutable)** 이고
+//   DB 테이블(coin_balance·coin_ledger)·RPC(spend_coins_owner·grant_coins)까지 개명하면
+//   마이그레이션·상품 재생성이 필요한데 사용자가 얻는 건 없다. **표시명만** 바꾼다.
+//   그래서 하네스는 '코드'가 아니라 **사용자에게 보이는 문자열**만 본다.
+console.log("\n[S6] 사용자에게 보이는 화폐 단위가 '운' 이다(코인 잔재 0)");
+{
+  const bad2: string[] = [];
+  for (const f of files) {
+    const raw = readFileSync(f, 'utf8');
+    let inBlock = false;
+    raw.split('\n').forEach((ln, i) => {
+      if (inBlock) { if (ln.includes('*/')) inBlock = false; return; }
+      const tr = ln.trimStart();
+      if (tr.startsWith('//') || tr.startsWith('*')) return;
+      let head = ln;
+      if ((ln.split('/*').length - 1) > (ln.split('*/').length - 1)) { inBlock = true; head = ln.slice(0, ln.indexOf('/*')); }
+      // 주석 밖에서 '코인'·'コイン' 이 보이면 사용자 노출 문구다(변수명엔 한글을 쓰지 않는다)
+      if (/코인|コイン/.test(head)) bad2.push(`${f.replace(ROOT, '')}:${i + 1}  ${head.trim().slice(0, 90)}`);
+    });
+  }
+  if (!bad2.length) ok(`${files.length}개 파일에 노출용 '코인' 0건`);
+  else { bad2.slice(0, 12).forEach((b) => console.error(`      ${b}`)); bad2.length && bad(`노출 문구에 '코인' ${bad2.length}건 남음 — 화폐명이 두 개로 갈린다`); }
+  // 가격 표시 기호(◉·◈)도 제거됐는지 — 단위는 텍스트 '운' 으로 통일
+  const sym = files.filter((f) => /[◈]/.test(readFileSync(f, 'utf8')));
+  if (!sym.length) ok('구 화폐 기호(◈) 잔존 0');
+  else bad(`구 화폐 기호 잔존: ${sym.map((f) => f.replace(ROOT, '')).join(', ')}`);
+}
+
+console.log(fail ? `\n❌ check:store 실패 ${fail}건` : '\n✅ check:store 통과 — 결제 진입점·구매대상·잔재·조회낭비·재통변정합·화폐명 OK');
 process.exit(fail ? 1 : 0);

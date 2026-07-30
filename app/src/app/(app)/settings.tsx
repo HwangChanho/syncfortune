@@ -18,7 +18,7 @@ import { useAuth } from '../../lib/useAuth';               // 계정(세션)
 import { useSubscription } from '../../lib/billing/subscription';  // 프리미엄 상태·구매
 import { waitForPremium, markPremiumOwnedNow } from '../../lib/billing/premiumStore';   // 복원=서버 is_premium 확정(단일소스·07-07) + 웹훅 실패 시 영수증 검증분 낙관표시(#2)
 import { requireLoginForPurchase } from '../../lib/billing/requireLogin'; // 결제 전 로그인 게이트
-import { coinBalanceOrNull } from '../../lib/billing/coins';   // ★코인 잔액(프리미엄 자리 대체, daniel 07-28)
+import { coinBalanceOrNull } from '../../lib/billing/coins';   // ★운 잔액(프리미엄 자리 대체, daniel 07-28)
 import { restorePurchasesRC } from '../../lib/billing/purchases';  // 구매 복원(App Store 3.1.1 필수)
 import { PREMIUM_PRICE, loadCredits } from '../../lib/billing/coupons';  // 프리미엄 폴백 가격(₩) + 이용권 잔여 재로딩(복원 후)
 import { supabase } from '../../lib/supabase';             // 로그아웃
@@ -178,11 +178,11 @@ export default function SettingsScreen() {
       {/* ── 코인 ──
           ★프리미엄 폐지(daniel 2026-07-28) — 이 자리에 있던 '코인 충전하기'를 코인 잔액·충전으로 교체했다.
             계정 화면에서 지금 얼마 있는지 바로 보이는 게 결제 이해에 가장 직접적이다. */}
-      <Text style={[styles.h, { marginTop: space(7) }]}>{t('settings.coins', '코인')}</Text>
+      <Text style={[styles.h, { marginTop: space(7) }]}>{t('settings.coins', '운')}</Text>
       <PressableScale style={styles.coinRow} onPress={() => router.push('/coins')}>
-        <Text style={[styles.coinLabel, { fontSize: fs(14) }]}>{t('coins.balance', '보유 코인')}</Text>
+        <Text style={[styles.coinLabel, { fontSize: fs(14) }]}>{t('coins.balance', '보유 운')}</Text>
         {/* null=조회 실패 → '—'. 0으로 표시하면 이미 충전한 사용자를 혼란시킨다(07-28 재결제 사고와 같은 유형) */}
-        <Text style={[styles.coinNum, { fontSize: fs(17) }]}>{coins == null ? '—' : coins.toLocaleString('ko-KR')}</Text>
+        <Text style={[styles.coinNum, { fontSize: fs(17) }]}>{coins == null ? '—' : `${coins.toLocaleString('ko-KR')}운`}</Text>
         <Text style={[styles.coinGo, { fontSize: fs(13) }]}>{t('coins.charge', '충전하기')} ›</Text>
       </PressableScale>
       {/* 구매 복원 — App Store 3.1.1 필수(비소모성 평생 프리미엄 복구). 로그인/프리미엄 여부와 무관하게 항상 노출·접근 가능. */}
