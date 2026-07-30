@@ -56,9 +56,6 @@ export const ROUTE: Record<CreditKind, { pathname: string; kind?: string }> = { 
   job: { pathname: '/job' },                           // 취업·이직운(관성·인성 발동 timing)
   jobfit: { pathname: '/jobfit' },                     // 나에게 어울리는 직업(직업 적성 딥리포트 EEL)
   wealth: { pathname: '/wealth' },                     // 재물 딥리포트(그릇/유형/시기/처방 4축 EEL·jobfit 동형)
-  coach: { pathname: '/coach' },                       // AI 코치 질문권 — 코치 화면 내에서 구매(마켓 단독카드는 숨김)
-  timeline5: { pathname: '/timeline' },                // 세운 5회 묶음 — TimelineScreen 잠긴 시기에서만 구매(마켓 단독카드 X·아래 MARKET_HIDDEN). 타입 총망라 위해 라우트만 둠
-  timeline10: { pathname: '/timeline' },               // 세운 10회(대운 전체) 묶음 — 위와 동일
 };
 
 // 마켓 목록에서 숨길 이용권(kind) — 아래 섹션 A·B 렌더 필터에서 제외한다(!MARKET_HIDDEN.has).
@@ -68,7 +65,7 @@ export const ROUTE: Record<CreditKind, { pathname: string; kind?: string }> = { 
 //   celeb(세계 인물 매칭) = 온디바이스 결정론·API 0 → 완전 무료 전환(daniel 07-07). 이용권을 사도 화면이 이미 무료라
 //     '아무것도 안 주는 유료 판매' = App Store 3.1.1 리젝 리스크 → 마켓 판매 제거(화면은 무료 공개). CreditKind 타입엔 남김(파급 최소).
 //   timeline5/timeline10(세운 번들) = fungible 'timeline' 크레딧 묶음. 인생 타임라인의 *잠긴 시기*에서만 구매(TimelineScreen) — 마켓에 단독 타일로 노출하면 맥락 없이 팔려 혼란(어느 시기에 쓰는지 불명) → 목록 제외.
-const MARKET_HIDDEN = new Set<CreditKind>(['child_couple', 'celeb', 'coach', 'timeline5', 'timeline10']); // coach=AI 코치 질문권은 코치 화면 내에서 구매(마켓 단독카드 X)
+const MARKET_HIDDEN = new Set<CreditKind>(['child_couple', 'celeb']); // coach=AI 코치 질문권은 코치 화면 내에서 구매(마켓 단독카드 X)
 
 // ★가장 많이 찾는 콘텐츠(daniel 07-05) — 수요 폭발 카테고리에 ★★★ 배지로 구미를 당긴다(전환 유도).
 //   재회·애정·궁합·신년 = 사람들이 가장 많이 검색·구매하는 연애/시즌 콘텐츠(시장 조사 기반).
@@ -137,7 +134,7 @@ export default function MarketRoute() {
   //   기존엔 /market 으로만 보내서 사용자가 35개 목록에서 그 상품을 **다시 찾아야** 했다(주제 필터까지 걸려 있으면 더 어렵다).
   //   이제 호출측이 `?focus=<CreditKind>` 를 넘기고, 여기서 ①그 상품의 주제로 필터 전환 ②카드까지 스크롤 ③잠깐 강조한다.
   const { focus } = useLocalSearchParams<{ focus?: string }>();
-  //   ⚠️MARKET_HIDDEN 5종(child_couple·celeb·coach·timeline5·timeline10)은 **마켓에 카드가 없다**(각 화면 안에서만 구매).
+  //   ⚠️MARKET_HIDDEN 2종(child_couple·celeb)은 **마켓에 카드가 없다**. coach·timeline5/10 은 2026-07-31 폐지.
   //     그쪽으로 focus 가 와도 스크롤할 대상이 없으므로 아예 무시한다(2초 헛도는 재시도 방지 · 기존 동작으로 자연 폴백).
   const focusKey = (focus
     && (CREDIT_KINDS as readonly { key: CreditKind }[]).some((c) => c.key === focus)

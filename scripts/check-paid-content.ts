@@ -110,8 +110,8 @@ const CARD_EXEMPT: Record<string, RegExp> = {
   followup: /ensureCoinsFor\(\s*'followup'/,   // 풀이·궁합 화면 안의 '추가 질문'
 };
 
-// ⚠️★판매 경로가 실제로 **0** 인 것들(2026-07-31 전수조사에서 드러남). 사용자에게 노출되진 않지만
-//   판매목록(CREDIT_KINDS)에는 남아 있어 '파는 물건'처럼 보인다 → daniel 결정 대기.
+// ★2026-07-31 폐지 완료(daniel "ai코치 죽었으면 질문권 빼"). 목록에 남겨 두는 이유 =
+//   **되살아나면 즉시 보이게** 하려고. 판매목록에서 사라졌으면 '정리 완료'로 통과한다.
 const KNOWN_DEAD: Record<string, string> = {
   coach: '팔자 도우미 무료 전환(07-30)으로 소비처 0 — 상품 자체가 죽었다',
   timeline5: '앱에 구매 진입점 0(주석은 TimelineScreen 이라 하나 그 코드가 없다)',

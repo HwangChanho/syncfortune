@@ -18,15 +18,15 @@ export const WON_PER_COIN = 100;
 //   타입에만 남아 있다(Edge 호환). 판매하지 않는 것에 가격을 두면 하네스가 유령 항목으로 잡는다.
 export const COIN_PRICE: Partial<Record<CreditKind, number>> = {
   dream: 5,
-  coach: 10, followup: 10, timeresolve: 10,
+  followup: 10, timeresolve: 10,
   celeb: 12,
   timeline: 20,
   compat: 30,
   lifegraph: 40,
   astrology: 50, career: 50, child: 50, crush: 50, future10: 50,
-  gaeun: 50, image: 50, job: 50, jobfit: 50, roots: 50, talent: 50, timeline5: 50, wealth: 50,
+  gaeun: 50, image: 50, job: 50, jobfit: 50, roots: 50, talent: 50, wealth: 50,
   mission: 70,
-  timeline10: 100, love: 100, newyear: 100, reunion: 100,
+  love: 100, newyear: 100, reunion: 100,
   ziwei: 150,
   reading: 200,
 };
