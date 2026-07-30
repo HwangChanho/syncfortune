@@ -52,6 +52,7 @@ export default function CoachScreen() {
   const router = useRouter();
   const { session } = useAuth();
   const [chartId, setChartId] = useState<string | null>(null);
+  const [chartName, setChartName] = useState<string | null>(null); // 코치 호칭용(명식 이름) — 서버 DB엔 평문이 없어 클라가 전달
   const [hasChart, setHasChart] = useState<boolean | null>(null); // null=로딩
   const [history, setHistory] = useState<CoachTurn[]>([]);
   const [input, setInput] = useState('');
@@ -89,6 +90,7 @@ export default function CoachScreen() {
       if (!alive) return;
       if (!ch) { setHasChart(false); return; }
       setHasChart(true);
+      setChartName(ch.label ?? null);   // 호칭용 이름 — 서버는 label_enc(암호화)라 못 읽는다 → 클라가 보낸다
       if (!session) return; // 세션(익명 포함) 준비 후 재시도 — session 이 dep 라 준비되면 재실행
       try {
         const cc = computeChart(ch.input);
@@ -120,6 +122,7 @@ export default function CoachScreen() {
     if (!id) { // 아직 미해석 시 즉석 해석
       const ch = await loadRepChart();
       if (!ch) { setHasChart(false); return; }
+      setChartName(ch.label ?? null);
       if (!session) { Alert.alert('!', t('coach.loadFail', '명식을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.')); return; }
       // ★1회 재시도(daniel 2026-07-30 "ai 코치 계속 네트워크 에러떠").
       //   ensureServerChartId 는 서버 RPC 다 — 일시적 네트워크·콜드스타트로 실패할 수 있는데
@@ -150,7 +153,7 @@ export default function CoachScreen() {
       const rewarded = await showRewardedAd().catch(() => false);
       if (rewarded) markCoachAdToday();
     }
-    const res = await askCoach(id, question);
+    const res = await askCoach(id, question, chartName);
     setBusy(false);
     if (res.kind === 'answer') {
       setHistory((h) => h.map((t) => (t.pending ? { question: t.question, answer: res.answer } : t))); // pending 턴에 답 채움

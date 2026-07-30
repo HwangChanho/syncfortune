@@ -16,11 +16,16 @@ export type CoachResult =
   | { kind: 'needCredit'; isPremium: boolean; used: number; freeLimit: number; period: 'day' | 'month' }
   | { kind: 'error'; message: string };
 
-/** 코치 질문 전송 → Edge(coach 분기). chartId=서버 chart_id(본인 차트). */
-export async function askCoach(chartId: string, question: string): Promise<CoachResult> {
+/**
+ * 코치 질문 전송 → Edge(coach 분기). chartId=서버 chart_id(본인 차트).
+ * @param chartName 명식에 붙인 이름(호칭용·선택). ★서버는 이 이름을 **DB 에서 읽을 수 없다** —
+ *   charts.label 은 평문 컬럼이 아니라 label_enc(Vault 암호화, ADR-056)다. 그래서 클라가 실어 보낸다.
+ *   (07-26~30 코치 전면 404 의 원인이 바로 없는 `label` 컬럼 select 였다.)
+ */
+export async function askCoach(chartId: string, question: string, chartName?: string | null): Promise<CoachResult> {
   try {
     const { data, error } = await supabase.functions.invoke('interpret', {
-      body: { chartId, coach: true, question, lang: appLang() },
+      body: { chartId, coach: true, question, chartName: chartName ?? undefined, lang: appLang() },
     });
     if (data?.needCredit) return { kind: 'needCredit', isPremium: !!data.isPremium, used: data.used ?? 0, freeLimit: data.freeLimit ?? 0, period: data.period === 'month' ? 'month' : 'day' };
     const fail = invokeFail(data, error); // 일시적 불가·오류 → 친화 메시지(원문 non-2xx 노출 방지)
