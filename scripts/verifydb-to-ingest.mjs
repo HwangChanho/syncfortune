@@ -15,7 +15,10 @@
 //   node scripts/verifydb-to-ingest.mjs verify-003 --tag chart-003 > golden/ingest-003.json
 //   npm run golden:ingest -- golden/ingest-003.json --replace
 // ─────────────────────────────────────────────────────────────────────────
+// ★문자열 조립·적재자격 규칙은 scripts/lib/golden-content.mjs 가 단일 출처다.
+//   대조 하네스(check-golden-sync.mjs)와 **같은 모듈**을 써야 규칙 변경 시 오탐이 안 생긴다.
 import { readFileSync } from 'node:fs';
+import { goldenContent, ingestEligibility } from './lib/golden-content.mjs';
 
 const args = process.argv.slice(2);
 const slug = args.find((a) => !a.startsWith('--'));
@@ -47,14 +50,12 @@ const items = await q(`rag_validation_items?set_id=eq.${sets[0].id}&select=seq,s
 
 const kept = [], dropped = [];
 for (const it of items) {
-  if (it.verdict !== 'O') { dropped.push(`#${it.seq} 판정 '${it.verdict ?? '미판정'}'${it.expert_note ? ` — ${it.expert_note}` : ''}`); continue; }
-  if (String(it.base_rate ?? '').trim() === '예') { dropped.push(`#${it.seq} base-rate(누구에게나 참) 제외`); continue; }
-  const claim = String(it.claim).replace(/\*\*/g, '').trim();
-  const basis = String(it.basis ?? '').replace(/\*\*/g, '').trim();
-  kept.push({
-    kind: 'golden',
-    content: `[${tag} 골든 · ${it.section ?? '판정'}] ${claim}${basis ? ` — 근거: ${basis}` : ''}`,
-  });
+  const gate = ingestEligibility(it);          // ①O 판정만 ②base-rate 제외 — 규칙은 공용 모듈
+  if (!gate.ok) {
+    dropped.push(`#${it.seq} ${gate.reason}${it.expert_note ? ` — ${it.expert_note}` : ''}`);
+    continue;
+  }
+  kept.push({ kind: 'golden', content: goldenContent(tag, it) });
 }
 
 // ③ 빈 적재 금지
