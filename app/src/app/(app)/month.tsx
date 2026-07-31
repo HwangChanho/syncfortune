@@ -114,7 +114,7 @@ export default function MonthScreen() {
     try { earned = await showRewardedAd(); } catch { /* 미시청/닫기 */ }
     setBusy(false);
     if (earned) generate(chartId);
-    else setErr(t('today.adFail', '광고를 불러오지 못했어요. 잠시 후 다시 시도하거나, 운으로 광고를 없앨 수 있어요.'));
+    else setErr(t('today.adFail', '광고를 불러오지 못했어요. 잠시 후 다시 시도하거나, woon으로 광고를 없앨 수 있어요.'));
   }
 
   const gzChip = (g: string, kind: 'stem' | 'branch') => {

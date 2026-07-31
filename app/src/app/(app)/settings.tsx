@@ -178,11 +178,11 @@ export default function SettingsScreen() {
       {/* ── 코인 ──
           ★프리미엄 폐지(daniel 2026-07-28) — 이 자리에 있던 '코인 충전하기'를 코인 잔액·충전으로 교체했다.
             계정 화면에서 지금 얼마 있는지 바로 보이는 게 결제 이해에 가장 직접적이다. */}
-      <Text style={[styles.h, { marginTop: space(7) }]}>{t('settings.coins', '운')}</Text>
+      <Text style={[styles.h, { marginTop: space(7) }]}>{t('settings.coins', 'woon')}</Text>
       <PressableScale style={styles.coinRow} onPress={() => router.push('/coins')}>
-        <Text style={[styles.coinLabel, { fontSize: fs(14) }]}>{t('coins.balance', '보유 운')}</Text>
+        <Text style={[styles.coinLabel, { fontSize: fs(14) }]}>{t('coins.balance', '보유 woon')}</Text>
         {/* null=조회 실패 → '—'. 0으로 표시하면 이미 충전한 사용자를 혼란시킨다(07-28 재결제 사고와 같은 유형) */}
-        <Text style={[styles.coinNum, { fontSize: fs(17) }]}>{coins == null ? '—' : `${coins.toLocaleString('ko-KR')}운`}</Text>
+        <Text style={[styles.coinNum, { fontSize: fs(17) }]}>{coins == null ? '—' : `${coins.toLocaleString('ko-KR')} woon`}</Text>
         <Text style={[styles.coinGo, { fontSize: fs(13) }]}>{t('coins.charge', '충전하기')} ›</Text>
       </PressableScale>
       {/* 구매 복원 — App Store 3.1.1 필수(비소모성 평생 프리미엄 복구). 로그인/프리미엄 여부와 무관하게 항상 노출·접근 가능. */}

@@ -21,7 +21,7 @@ export function CoinBadge() {
   if (bal === null) return null;   // 로딩·조회 실패 = 조용히 미표시
   return (
     <PressableScale style={styles.badge} onPress={() => router.push('/coins')} hitSlop={8}>
-      <Text style={[styles.tx, { fontSize: fs(12) }]} numberOfLines={1}>{bal.toLocaleString('ko-KR')}운</Text>
+      <Text style={[styles.tx, { fontSize: fs(12) }]} numberOfLines={1}>{bal.toLocaleString('ko-KR')} woon</Text>
     </PressableScale>
   );
 }

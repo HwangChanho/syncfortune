@@ -128,7 +128,7 @@ export default function MarketRoute() {
   const [busy, setBusy] = useState<CreditKind | null>(null);
   // ★보유 코인(daniel 2026-07-28 "마켓에 본인 보유코인도 나와야지") — 충전 화면에 들어가지 않고도
   //   지금 얼마 있는지 알아야 '이걸 열 수 있나'를 판단할 수 있다. null=조회 실패(0으로 표시하지 않는다).
-  const [coins, setCoins] = useState<number | null>(null);   // 보유 운(null=조회 실패 — 0으로 표시하지 않는다)
+  const [coins, setCoins] = useState<number | null>(null);   // 보유 woon(null=조회 실패 — 0으로 표시하지 않는다)
   const [topic, setTopic] = useState<'all' | MarketTopic>('all'); // ★마켓 주제 필터(daniel 2026-07-25 L)
   // ★'상점으로 이동' 딥링크(daniel 2026-07-27 "상점으로 이동하기 하면 바로 그거 구매 위치로 이동돼야 해")
   //   기존엔 /market 으로만 보내서 사용자가 35개 목록에서 그 상품을 **다시 찾아야** 했다(주제 필터까지 걸려 있으면 더 어렵다).
@@ -259,7 +259,7 @@ export default function MarketRoute() {
         <View style={{ flex: 1 }}>
           <Text style={styles.name}>{c.ko}</Text>
           {card && <Text style={styles.desc} numberOfLines={2}>{t(card.desc)}</Text>}
-          <Text style={styles.price}>{coinPriceOf(c.key) != null ? `${coinPriceOf(c.key)}운` : `₩${c.price.toLocaleString()}`}</Text>
+          <Text style={styles.price}>{coinPriceOf(c.key) != null ? `${coinPriceOf(c.key)} woon` : `₩${c.price.toLocaleString()}`}</Text>
           <Text style={[styles.have, owned && styles.haveOn]}>{owned ? `${t('market.owned')} ×${credits[c.key]}` : t('market.notOwned')}</Text>
         </View>
         {/* ★코인 전환(daniel 2026-07-28 "기존 단건 결제는 다 없애") — 마켓에서 개별 결제하지 않는다.
@@ -314,9 +314,9 @@ export default function MarketRoute() {
           daniel "마켓에서 보유코인이 보여야지" 로 확인 — 카드마다 코인가가 붙으니 잔액이 옆에 있어야 비교가 된다. */}
       <PressableScale style={styles.coinCard} onPress={() => router.push('/coins')}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.coinLabel}>보유 운</Text>
+          <Text style={styles.coinLabel}>보유 woon</Text>
           {/* null=조회 실패 → '—'. 0 으로 표시하면 이미 충전한 사용자를 혼란시킨다. */}
-          <Text style={styles.coinNum}>{coins == null ? '—' : `${coins.toLocaleString('ko-KR')}운`}</Text>
+          <Text style={styles.coinNum}>{coins == null ? '—' : `${coins.toLocaleString('ko-KR')} woon`}</Text>
         </View>
         <View style={styles.chargePill}><Text style={styles.chargeTx}>충전하기</Text></View>
       </PressableScale>
@@ -354,8 +354,8 @@ export default function MarketRoute() {
       {/* ── 섹션 A: 프리미엄에 포함(주제 필터·비면 헤더째 숨김) ── 타임라인도 여기 포함(daniel 2026-07-01, 사주+자미 종합). */}
       {premList.length > 0 && (
         <>
-          <Text style={styles.sectionH}>{t('market.sectionIncluded', '✦ 운으로 열기')}</Text>
-          <Text style={styles.sectionSub}>{t('market.sectionIncludedSub', '아래 풀이는 운으로 하나씩 열 수 있어요. 명식마다 따로 열립니다.')}</Text>
+          <Text style={styles.sectionH}>{t('market.sectionIncluded', '✦ woon으로 열기')}</Text>
+          <Text style={styles.sectionSub}>{t('market.sectionIncludedSub', '아래 풀이는 woon으로 하나씩 열 수 있어요. 명식마다 따로 열립니다.')}</Text>
           {premList.map((c) => renderCard(c, true))}
         </>
       )}

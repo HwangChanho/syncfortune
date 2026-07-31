@@ -139,7 +139,7 @@ console.log('\n[S5] 재통변 코인 할인율·계산식이 앱과 서버에서
 //   DB 테이블(coin_balance·coin_ledger)·RPC(spend_coins_owner·grant_coins)까지 개명하면
 //   마이그레이션·상품 재생성이 필요한데 사용자가 얻는 건 없다. **표시명만** 바꾼다.
 //   그래서 하네스는 '코드'가 아니라 **사용자에게 보이는 문자열**만 본다.
-console.log("\n[S6] 사용자에게 보이는 화폐 단위가 '운' 이다(코인 잔재 0)");
+console.log("\n[S6] 화폐 단위 = 'woon'(코인 잔재 0 · 대운/세운/기운 오염 0)");
 {
   const bad2: string[] = [];
   for (const f of files) {
@@ -161,6 +161,23 @@ console.log("\n[S6] 사용자에게 보이는 화폐 단위가 '운' 이다(코�
   const sym = files.filter((f) => /[◈]/.test(readFileSync(f, 'utf8')));
   if (!sym.length) ok('구 화폐 기호(◈) 잔존 0');
   else bad(`구 화폐 기호 잔존: ${sym.map((f) => f.replace(ROOT, '')).join(', ')}`);
+
+  // ★★'운' 은 화폐만이 아니다 — 대운·세운·기운·운세·12운성에도 들어간다.
+  //   화폐명을 일괄 치환할 때 이 단어들이 깨지면 명리 용어가 망가진다(사용자에겐 오타로 보인다).
+  //   기계로 못 박아 둔다: 'woon' 이 명리 용어에 붙어 버린 흔적을 찾는다.
+  const corrupt: string[] = [];
+  for (const f of files) {
+    const raw = readFileSync(f, 'utf8');
+    if (/대woon|세woon|기woon|woon세|12woon|woon성|행woon/.test(raw)) corrupt.push(f.replace(ROOT, ''));
+  }
+  if (!corrupt.length) ok('명리 용어(대운·세운·기운·운세·12운성) 오염 0');
+  else bad(`화폐 치환이 명리 용어를 깨뜨렸다: ${corrupt.join(', ')}`);
+
+  // 잔액·가격 표기가 화폐명을 달고 있는지(단위 없는 숫자만 노출되면 무슨 값인지 모른다)
+  const balFiles = ['app/src/components/CoinBadge.tsx', 'app/src/app/(app)/coins.tsx'];
+  const noUnit = balFiles.filter((rel) => !/woon/.test(readFileSync(join(ROOT, rel), 'utf8')));
+  if (!noUnit.length) ok('잔액·팩 표기에 단위(woon) 부착');
+  else bad(`단위 없는 금액 표기: ${noUnit.join(', ')}`);
 }
 
 // ── S7 유료 콘텐츠 게이트 전수(daniel 2026-07-30 "모든 컨텐츠 점검해") ─────────

@@ -52,7 +52,7 @@ export default function CoinsScreen() {
         t('coins.doneTitle', '충전됐어요'),
         after == null
           ? t('coins.donePending', '결제가 완료됐어요. 잔액 반영이 잠시 걸릴 수 있어요.')
-          : t('coins.doneMsg', { coins, defaultValue: '{{coins}}운이 충전됐어요.' }),
+          : t('coins.doneMsg', { coins, defaultValue: '{{coins}} woon이 충전됐어요.' }),
       );
     } catch (e) {
       notifyNetworkError('coins.purchase', e, t);
@@ -64,7 +64,7 @@ export default function CoinsScreen() {
       <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>
         {/* 잔액 — 로딩/실패/정상 3상태를 분명히 구분해 보여 준다 */}
         <View style={styles.balCard}>
-          <Text style={[styles.balLabel, { fontSize: fs(12) }]}>{t('coins.balance', '보유 운')}</Text>
+          <Text style={[styles.balLabel, { fontSize: fs(12) }]}>{t('coins.balance', '보유 woon')}</Text>
           {balance === undefined ? (
             <ActivityIndicator color={colors.ju} style={{ marginTop: space(2) }} />
           ) : balance === null ? (
@@ -83,10 +83,10 @@ export default function CoinsScreen() {
         {COIN_PACKS.map((p) => (
           <PressableScale key={p.id} style={[styles.pack, busy === p.id && styles.packBusy]} onPress={() => void buy(p.id, p.coins)} disabled={!!busy}>
             <View style={{ flex: 1 }}>
-              <Text style={[styles.packCoins, { fontSize: fs(19) }]}>{p.coins.toLocaleString('ko-KR')}운</Text>
+              <Text style={[styles.packCoins, { fontSize: fs(19) }]}>{p.coins.toLocaleString('ko-KR')} woon</Text>
               {p.bonusPct > 0 ? (
                 <Text style={[styles.packBonus, { fontSize: fs(12) }]}>
-                  {t('coins.bonus', { pct: p.bonusPct, defaultValue: '운당 {{pct}}% 더' })}
+                  {t('coins.bonus', { pct: p.bonusPct, defaultValue: 'woon당 {{pct}}% 더' })}
                 </Text>
               ) : null}
             </View>
@@ -103,7 +103,7 @@ export default function CoinsScreen() {
         </View>
 
         <Text style={[styles.note, { fontSize: fs(12), lineHeight: 19 }]}>
-          {t('coins.note', '· 운은 모든 유료 풀이에 쓸 수 있어요.\n· 충전한 운은 계정에 보관돼요 — 기기를 바꿔도 그대로예요.\n· 운은 사용 기한이 없어요.')}
+          {t('coins.note', '· woon은 모든 유료 풀이에 쓸 수 있어요.\n· 충전한 woon은 계정에 보관돼요 — 기기를 바꿔도 그대로예요.\n· woon은 사용 기한이 없어요.')}
         </Text>
       </ScrollView>
     </View>

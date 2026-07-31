@@ -587,18 +587,18 @@ export function ReadingScreen({
         if (bal === null) { notifyNetworkError('reading.coinBalance', new Error('balance unavailable'), t); return; }  // ★확인 불가 ≠ 부족
         if (bal < coinCost) {
           Alert.alert(
-            t('coins.needTitle', '운이 부족해요'),
-            t('coins.needMsg', { need: coinCost, have: bal, defaultValue: '이 풀이는 {{need}}운이 필요해요. 지금 {{have}}운 있어요.' }),
+            t('coins.needTitle', 'woon이 부족해요'),
+            t('coins.needMsg', { need: coinCost, have: bal, defaultValue: '이 풀이는 {{need}} woon이 필요해요. 지금 {{have}} woon 있어요.' }),
             [{ text: t('common.cancel'), style: 'cancel' }, { text: t('coins.charge', '충전하기'), onPress: () => router.push('/coins') }],
           );
           return;
         }
         Alert.alert(
           t('reading.premiumAlert'),
-          t('coins.spendMsg', { cost: coinCost, have: bal, defaultValue: '{{cost}}운을 사용해 풀이를 시작할까요? (보유 {{have}}운)' }),
+          t('coins.spendMsg', { cost: coinCost, have: bal, defaultValue: '{{cost}} woon을 사용해 풀이를 시작할까요? (보유 {{have}} woon)' }),
           [
             // ★차감은 서버(Edge interpret)가 한다 — 여기서 미리 빼지 않는다(이중차감·우회 방지, 보안 P3 유지).
-            { text: t('coins.spend', '운 사용'), onPress: () => { void runAll(id); } },
+            { text: t('coins.spend', 'woon 사용'), onPress: () => { void runAll(id); } },
             { text: t('common.cancel'), style: 'cancel' },
           ],
         );
@@ -862,7 +862,7 @@ export function ReadingScreen({
       {/* #1: 미권한 명식(무료모드·비지정 프리미엄)은 캐시 풀이 대신 페이월 — 첫 영역만 맛보기 */}
       {locked && (
         <View style={styles.card}>
-          <Text style={{ ...font.heading, color: colors.ju, marginBottom: space(3), fontSize: fs(16) }}>🔒 {t('reading.lockedTitle', '이 명식의 풀이는 운으로 열려요')}</Text>
+          <Text style={{ ...font.heading, color: colors.ju, marginBottom: space(3), fontSize: fs(16) }}>🔒 {t('reading.lockedTitle', '이 명식의 풀이는 woon으로 열려요')}</Text>
           {(() => {
             const r0 = normalizeReading(readings[cats[0]?.key]);
             const tease = r0 && typeof r0 === 'object' && !(r0 as any).error ? asText((r0 as any).base) : null;
