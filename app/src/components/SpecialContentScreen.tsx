@@ -32,7 +32,8 @@ import { RelatedContent } from './RelatedContent'; // 연관 콘텐츠 자동 �
 import { buildRomanceMirror } from '../lib/engine/romanceMirror';   // R60 애정 이원분석(온디바이스 판정)
 import { coinPriceOf, coinBalanceOrNull } from '../lib/billing/coins';   // ★운 전환(daniel 07-28)
 import { notifyNetworkError } from '../lib/backend/network';
-import { ensureCoinsFor } from '../lib/billing/coinGate';   // ★운 단일 경로(daniel 07-28)
+import { ensureCoinsFor } from '../lib/billing/coinGate';
+import { withTimeout } from '../lib/core/withTimeout';   // ★게이트·생성 대기 상한(멈춤 방지)   // ★운 단일 경로(daniel 07-28)
 import { purchasesEnabled } from '../lib/billing/purchases';
 import { isAdminActing } from '../lib/core/admin';                  // 스페셜 = 관리자 바로 / 그 외 쿠폰(크레딧)
 import { requireLoginForPurchase } from '../lib/billing/requireLogin';
@@ -70,6 +71,9 @@ const HERO_BY_KIND: Record<string, any> = {
 
 /** 열람 플로우 잠금의 stale 회수 시간(ms). 결제창·웹훅 폴링을 포함해 넉넉히 — genLock(150초)보다 길게 둔다. */
 const FLOW_STALE_MS = 180_000;
+
+/** 통변 생성 대기 상한(ms) — 실제 20~40초 걸리므로 넉넉히. 초과하면 캐시 폴링으로 회수한다. */
+const GEN_TIMEOUT_MS = 120_000;
 
 export function SpecialContentScreen({ kind, category = kind, title, sub, sections, needsZiwei = false, genMsg, heroMotif, themeColor = colors.ju, heroImage, buildBody, freePreview, freeHook, showExpiry = false, premiumCovered = false, headerExtra, autoGen = true, keepHeaderExtra = false, onChartResolved, regenToken }: {
   kind: CreditKind;        // 이용권/unlock 키(roots·image·mission). 크레딧 단위.
@@ -260,7 +264,13 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
         if (rm) body.romance = rm;
       }
       if (buildBody && savedChart) Object.assign(body, buildBody(savedChart)); // 수비학/점성술 = 앱 산출 차트(numerologyChart/natalChart)
-      const { data, error } = await supabase.functions.invoke('interpret', { body });
+      // ★★상한(2026-07-31): `functions.invoke` 도 기본 타임아웃이 없다. 회선이 끊긴 채로 응답이 안 오면
+      //   이 await 가 영원히 안 끝나 `finally` 가 실행되지 않고 → 버튼이 '진행 중…'에 붙박인다(멈춤).
+      //   ⚠️짧게 끊으면 안 된다 — 실제 통변은 20~40초 걸린다. 넉넉히 두되 **반드시 끝나게** 한다.
+      //   초과하면 아래 `error || !data` 분기로 떨어져 **이미 있는 캐시 폴링 회수**를 탄다
+      //   (Edge 는 클라 연결과 무관하게 서버에서 끝까지 실행되므로 결과는 캐시에 남는다) = 사용자 손해 0.
+      const inv = await withTimeout(supabase.functions.invoke('interpret', { body }), GEN_TIMEOUT_MS);
+      const { data, error } = inv ?? { data: null, error: { message: 'client timeout' } as any };
       if (isStale()) return;   // ① 생성 사이 명식 전환됨 → 폐기(promptPurchase·setReading 모두 안 함)
       // ★C3 part2: 서버 게이트가 이용권 없음 판정 → needPayment(200) → 소유 되돌리고 구매 플로우(에러 표시 아님).
       if ((data as any)?.needPayment || (data as any)?.needPremium) {

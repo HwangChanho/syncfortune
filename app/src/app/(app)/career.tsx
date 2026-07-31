@@ -27,6 +27,7 @@ import { isAdminActing } from '../../lib/core/admin'; // 스페셜 = 관리자 �
 import { requireLoginForPurchase } from '../../lib/billing/requireLogin';
 import { assertOnline } from '../../lib/backend/network';
 import { supabase } from '../../lib/supabase';
+import { withTimeout } from '../../lib/core/withTimeout';   // ★대기 상한(멈춤 방지·2026-07-31)
 import { excludeMock } from '../../lib/core/testMode'; // ★목업(tier='mock') 제외(테스트모드 OFF) — 실모드 목업 서빙 차단
 import { appLang } from '../../lib/i18n';
 import { readingFromInvoke } from '../../lib/backend/interpretResult'; // 방어: Edge 응답 정규화(일시적 불가·결제필요·오류)
@@ -152,10 +153,10 @@ export default function CareerScreen() {
     logEvent('career_invoke_start', { chartId: id });
     let ok = false; // ★L2: 실제 성공(정상 reading 객체) 여부 — 완료 배너·푸시는 이때만(오완료 '완성' 푸시 방지)
     try {
-      const { data, error } = await supabase.functions.invoke('interpret', {
+      const __inv = await withTimeout(supabase.functions.invoke('interpret', {
         body: { chartId: id, category: 'career', kind: 'career', tier: 'paid', lang: appLang() },
-      });
-      if (isStale()) return;   // ① 생성 사이 명식 전환됨 → 남의 화면에 쓰지 않음(폐기)
+      }));
+      const { data, error } = __inv ?? { data: null, error: { message: 'client timeout' } as any };      if (isStale()) return;   // ① 생성 사이 명식 전환됨 → 남의 화면에 쓰지 않음(폐기)
       if (error) logEvent('career_invoke_error', { message: error.message }, 'error');
       else if ((data as any)?.unavailable) logEvent('career_unavailable', { retryAt: (data as any)?.retryAt }, 'error'); // 방어: LLM 일시적 불가
       else if ((data as any)?.needPayment) logEvent('career_need_payment', {}, 'error');

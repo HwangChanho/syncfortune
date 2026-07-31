@@ -13,6 +13,7 @@
 // ⚠️가격 조정은 daniel 슬롯. 여기가 **단일 출처**이고 하네스(check:coins)가 누락·불일치를 잡는다.
 // ─────────────────────────────────────────────────────────────────────────
 import { supabase } from '../supabase';
+import { withTimeout, GATE_TIMEOUT_MS as BALANCE_TIMEOUT_MS } from '../core/withTimeout';   // ★상한 정의는 한 곳(core/withTimeout)
 import { CREDIT_KINDS, type CreditKind } from './coupons';
 
 export { WON_PER_COIN, COIN_PRICE, COIN_PACKS } from './coinPrices';   // ★가격표는 순수 파일에(하네스가 런타임 없이 검증)
@@ -38,31 +39,6 @@ export async function coinBalanceOrNull(): Promise<number | null> {
   const { data, error } = r;
   if (error) return null;                                    // ★조회 실패 — 절대 '없음'으로 취급하지 않는다
   return Number((data as { balance?: number } | null)?.balance ?? 0);
-}
-
-/**
- * 잔액 조회 상한(ms). ★★2026-07-30 '멈춤' 근본수정(daniel IMG_8313 "쿠폰으로 열기 눌렀는데 멈췄어").
- *
- * 무엇이 멈췄나: 유료 화면들은 게이트 진입 시 `gatingRef.current = true`(연타 차단) 로 잠그고
- *   잔액/이용권을 **await** 한다. supabase-js 요청에는 기본 타임아웃이 없어서, 회선이 어정쩡하면
- *   그 await 가 **영원히 안 끝난다** → `finally` 가 실행되지 않아 잠금이 풀리지 않는다 →
- *   그 뒤로는 버튼을 눌러도 첫 줄 `if (gatingRef.current) return` 에서 즉시 반환 = **버튼이 영구 사망**.
- *   화면은 아무 반응이 없으니 사용자에게는 '앱이 멈춘' 것으로 보인다.
- *
- * ⇒ 상한을 둬서 반드시 끝나게 한다. 결과는 null(=확인 불가)이고, 호출측(coinGate)은 이미
- *   '확인 불가'를 '부족'과 구분해 **충전을 권하지 않고 재시도를 안내**한다(재결제 유도 방지 규칙 유지).
- */
-const BALANCE_TIMEOUT_MS = 8000;
-
-/** 어떤 thenable 이든 상한 시간 안에 끝나게 한다. 초과하면 undefined(호출측이 '확인 불가'로 해석). */
-async function withTimeout<T>(p: PromiseLike<T>, ms: number): Promise<T | undefined> {
-  let timer: any;
-  try {
-    return await Promise.race([
-      Promise.resolve(p),
-      new Promise<undefined>((res) => { timer = setTimeout(() => res(undefined), ms); }),
-    ]);
-  } finally { clearTimeout(timer); }
 }
 
 /**

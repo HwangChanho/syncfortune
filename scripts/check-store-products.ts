@@ -215,10 +215,18 @@ console.log('\n[S8] 잔액·이용권 조회에 상한(타임아웃)이 있다 �
 {
   const coins = strip(readFileSync(join(ROOT, 'app/src/lib/billing/coins.ts'), 'utf8'));
   const coupons = strip(readFileSync(join(ROOT, 'app/src/lib/billing/coupons.ts'), 'utf8'));
-  if (/BALANCE_TIMEOUT_MS/.test(coins) && /Promise\.race/.test(coins)) ok('coinBalanceOrNull 상한 있음');
+  // ★판정 기준 = '상한이 실제로 걸리는가'(구현 방식이 아니라). 2026-07-31 에 공용 유틸
+  //   `lib/core/withTimeout` 로 통일했으므로 Promise.race 문자열은 더 이상 이 파일들에 없다.
+  //   ⚠️하네스를 느슨하게 푼 게 아니라, **불변식을 정확히** 보게 바꾼 것이다(상한 통과 여부).
+  const bounded = (src: string) => /withTimeout\s*\(/.test(src) || /Promise\.race\s*\(/.test(src);
+  if (bounded(coins)) ok('coinBalanceOrNull 상한 있음');
   else bad('coinBalanceOrNull 에 타임아웃이 없다 — 조회가 멈추면 게이트가 영구 잠긴다');
-  if (/Promise\.race/.test(coupons)) ok('loadCreditsOrNull 상한 있음');
+  if (bounded(coupons)) ok('loadCreditsOrNull 상한 있음');
   else bad('loadCreditsOrNull 에 타임아웃이 없다 — 같은 멈춤 경로');
+  // 상한 유틸 자체가 살아 있는지(파일이 사라지면 위 검사가 무의미해진다)
+  const util = strip(readFileSync(join(ROOT, 'app/src/lib/core/withTimeout.ts'), 'utf8'));
+  if (/Promise\.race/.test(util) && /GATE_TIMEOUT_MS/.test(util)) ok('공용 상한 유틸(core/withTimeout) 정상');
+  else bad('core/withTimeout 이 상한 구현을 잃었다 — 전 화면의 멈춤 방지가 무력화된다');
 }
 
 console.log(fail ? `\n❌ check:store 실패 ${fail}건` : '\n✅ check:store 통과 — 결제 진입점·구매대상·잔재·조회낭비·재통변정합·화폐명·게이트전수·멈춤방지 OK');

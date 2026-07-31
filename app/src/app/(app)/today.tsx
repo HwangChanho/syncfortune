@@ -30,6 +30,7 @@ import { useAuth } from '../../lib/useAuth';
 import { useSubscription } from '../../lib/billing/subscription';
 import { autoGenWithChartConfirm } from '../../lib/ui/confirmChart'; // 자동생성 전 명식 확인(명식 2개+ 일 때, daniel 07-13)
 import { supabase } from '../../lib/supabase';
+import { withTimeout } from '../../lib/core/withTimeout';   // ★대기 상한(멈춤 방지·2026-07-31)
 import { excludeMock } from '../../lib/core/testMode'; // ★목업(tier='mock') 제외(테스트모드 OFF) — 실모드 목업 서빙 차단
 import { appLang } from '../../lib/i18n';
 import { logEvent } from '../../lib/backend/logger';
@@ -110,10 +111,10 @@ export default function TodayScreen() {
     // 오늘/이달 운세는 홈 풀이 진행률 배너에 띄우지 않는다(daniel 07-05 — 저비용 단발이라 노티 불필요).
     logEvent('daily_generate', { chartId: id, category });
     try {
-      const { data, error } = await supabase.functions.invoke('interpret', {
+      const __inv = await withTimeout(supabase.functions.invoke('interpret', {
         body: { chartId: id, category, kind: 'daily', gz: f.dayGanZhi, tier: 'paid', lang: appLang(), ...(saved?.context ? { context: saved.context } : {}) },
-      });
-      // 방어: 일시적 불가(200+unavailable)/오류 모두 친화 메시지로 처리(원문 'non-2xx' 노출 방지)
+      }));
+      const { data, error } = __inv ?? { data: null, error: { message: 'client timeout' } as any };      // 방어: 일시적 불가(200+unavailable)/오류 모두 친화 메시지로 처리(원문 'non-2xx' 노출 방지)
       const fail = invokeFail(data, error);
       if (fail) { logEvent(fail.kind === 'unavailable' ? 'daily_unavailable' : 'daily_error', { message: fail.message, retryAt: fail.retryAt }, 'error'); setErr(fail.message); }
       else setReading((data?.reading as Record<string, string>) ?? null);

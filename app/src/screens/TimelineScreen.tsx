@@ -18,6 +18,7 @@ import { useFontScale } from '../lib/ui/fontScale';
 import { setGenProgress } from '../lib/backend/genProgress'; // 일회성 진행도(daniel 이슈15)
 import { acquireGen, releaseGen, isGenActive } from '../lib/backend/genLock'; // 크로스마운트 이중 생성 잠금(② 이중 LLM 방지)
 import { supabase } from '../lib/supabase';
+import { withTimeout } from '../lib/core/withTimeout';   // ★대기 상한(멈춤 방지·2026-07-31)
 import { excludeMock } from '../lib/core/testMode'; // ★목업(tier='mock') 제외(테스트모드 OFF) — 실모드 목업 서빙 차단
 import { ensureServerChartId } from '../lib/backend/prewarmReadings';
 import { invokeFail } from '../lib/backend/interpretResult'; // 방어: 일시적 불가/오류 친화 처리
@@ -215,8 +216,8 @@ export function TimelineScreen({ input, savedChart }: { input: ChartInput | null
     try {
       // 사주 大運 주축 + 자미두수 운한(대한) 보조 교차(daniel: 타임라인은 사주+자미 종합) — love 화면처럼 최신 자미 명반(운한 포함)을 body로 전달.
       //   시각 미상 차트는 c.ziwei가 子시(0시) 기반이라 부실하지만, 서버 빌더가 timeUnknown 게이트로 무시(사주만 폴백). 자미 계산은 지연 — 이 호출 시 1회만.
-      const { data, error } = await supabase.functions.invoke('interpret', { body: { chartId: cid, category: key, kind: 'timeline', tier: 'paid', lang: appLang(), ziwei: c?.ziwei } });
-      if (isStale()) return;   // ① 생성 사이 명식 전환됨 → 폐기(옛 명식 시기통변이 새 명식 readings 에 섞이지 않게)
+      const __inv = await withTimeout(supabase.functions.invoke('interpret', { body: { chartId: cid, category: key, kind: 'timeline', tier: 'paid', lang: appLang(), ziwei: c?.ziwei } }));
+      const { data, error } = __inv ?? { data: null, error: { message: 'client timeout' } as any };      if (isStale()) return;   // ① 생성 사이 명식 전환됨 → 폐기(옛 명식 시기통변이 새 명식 readings 에 섞이지 않게)
       // 방어: 일시적 불가/오류는 원문 대신 친화 메시지로(예전 'non-2xx' 노출 방지)
       const f = invokeFail(data, error);
       setReadings((prev) => ({ ...prev, [key]: f ? { error: f.message } : data?.reading }));

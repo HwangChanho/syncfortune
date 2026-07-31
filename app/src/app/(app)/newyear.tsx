@@ -27,6 +27,7 @@ import { isAdminActing } from '../../lib/core/admin'; // 스페셜 = 관리자 �
 import { requireLoginForPurchase } from '../../lib/billing/requireLogin';
 import { confirmReadingChart } from '../../lib/ui/confirmChart'; // 생성 전 명식 확인 + 보유 이용권 안내(daniel)
 import { supabase } from '../../lib/supabase';
+import { withTimeout } from '../../lib/core/withTimeout';   // ★대기 상한(멈춤 방지)
 import { excludeMock } from '../../lib/core/testMode'; // ★목업(tier='mock') 제외(테스트모드 OFF) — 실모드 목업 서빙 차단
 import { appLang } from '../../lib/i18n';
 import { invokeFail } from '../../lib/backend/interpretResult'; // 방어: Edge 실패(일시적 불가·결제필요·오류) 정규화
@@ -186,10 +187,11 @@ export default function NewYearScreen() {
     let ok = false; // ★L2: 실제 성공(정상 통변 데이터) 여부 — 완료 배너·푸시는 이때만(오완료 '완성' 푸시 방지)
     try {
       // 신년 전용 — kind='newyear' + 삼재(온디바이스 계산값) body 전달
-      const { data: res, error } = await supabase.functions.invoke('interpret', {
+      // ★상한(2026-07-31 멈춤 전수조사) — 응답이 안 오면 로딩 잠금이 영구히 남는다.
+      const __inv = await withTimeout(supabase.functions.invoke('interpret', {
         body: { chartId: id, category, kind: 'newyear', samjae: samjae ?? undefined, tier: 'paid', lang: appLang(), ...(saved?.context ? { context: saved.context } : {}) },
-      });
-      const f = invokeFail(res, error); // 방어: 일시적 불가→재시도 안내 / 결제필요·오류 일관 처리
+      }));
+      const { data: res, error } = __inv ?? { data: null, error: { message: 'client timeout' } as any };      const f = invokeFail(res, error); // 방어: 일시적 불가→재시도 안내 / 결제필요·오류 일관 처리
       if (f && f.kind !== 'error') {
         // unavailable/needPayment = 200 빠른 실패(Edge가 긴 생성을 시작 안 함) → 폴링 없이 즉시 친화 문구
         logEvent('newyear_fail', { kind: f.kind, message: error?.message }, 'error');

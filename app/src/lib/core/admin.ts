@@ -5,6 +5,7 @@
 //   ⚠️ 모든 권한 판정은 서버 RPC(is_caller_admin)에서 — 클라 isAdmin 은 UI 표시용일 뿐(우회 불가).
 // ─────────────────────────────────────────────────────────────────────────
 import { supabase } from '../supabase';
+import { withTimeout } from './withTimeout';   // ★게이트 경로 네트워크 대기 상한(공용)
 import type { CreditKind } from '../billing/coupons';
 
 export type AdminUser = { id: string; email: string; is_premium: boolean; is_admin: boolean; created_at: string; chart_count: number; reading_count: number; paid_total: number; credits: number };
@@ -29,7 +30,13 @@ export async function isAdmin(): Promise<boolean> {
  * @returns 특권 적용 시 true. 비관리자·모드 OFF·조회 실패 = false(안전).
  */
 export async function isAdminActing(): Promise<boolean> {
-  const { data, error } = await supabase.rpc('is_caller_god');
+  // ★★상한 필수(2026-07-31 IMG_8314 '명식의 뿌리 진행 중… 멈춤'의 **직접 원인**).
+  //   이 함수는 유료 콘텐츠를 열 때마다 `setFlowBusy(true)` 잠금 **안에서** 호출된다.
+  //   응답이 안 오면 잠금이 영구히 남아 버튼이 죽는다 → 화면은 '진행 중…'에 붙박인다.
+  //   타임아웃 = **false(관리자 아님)** 로 본다 — 보수적(권한을 확인 못 했으면 주지 않는다).
+  const r = await withTimeout(supabase.rpc('is_caller_god'));
+  if (!r) return false;
+  const { data, error } = r as { data: any; error: any };
   return !error && data === true;
 }
 

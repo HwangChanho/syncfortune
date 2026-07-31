@@ -15,6 +15,7 @@ import { colors, radius, space, shadow, font } from '../../lib/theme';
 import { useFontScale } from '../../lib/ui/fontScale';
 import { ContentHero } from '../../components/SpecialContentScreen'; // 이미지 히어로(보는 맛)
 import { Alert } from '../../lib/ui/alert';
+import { withTimeout } from '../../lib/core/withTimeout';   // ★대기 상한(멈춤 방지·2026-07-31)
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../lib/useAuth';
 import { useSubscription } from '../../lib/billing/subscription';
@@ -90,8 +91,8 @@ export default function DreamScreen() {
     if (!kw || llmBusy) return;
     setLlmBusy(true);
     try {
-      const { data, error } = await supabase.functions.invoke('interpret', { body: { kind: 'dream', keyword: kw, lang: appLang() } });
-      // 방어: 일시적 불가/오류면 친화 메시지를 meaning 자리에(원문 'non-2xx' 노출 방지)
+      const __inv = await withTimeout(supabase.functions.invoke('interpret', { body: { kind: 'dream', keyword: kw, lang: appLang() } }));
+      const { data, error } = __inv ?? { data: null, error: { message: 'client timeout' } as any };      // 방어: 일시적 불가/오류면 친화 메시지를 meaning 자리에(원문 'non-2xx' 노출 방지)
       const fail = invokeFail(data, error);
       setLlm(fail ? { title: kw, meaning: fail.message } : ((data?.dream as any) ?? { title: kw, meaning: t('dream.fail', '해몽을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.') }));
     } catch { setLlm({ title: kw, meaning: t('dream.fail', '해몽을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.') }); }
@@ -156,8 +157,8 @@ export default function DreamScreen() {
     setGenProgress({ active: true, total: 1, done: 0, label: 'AI 꿈해몽', route: '/dream' }); // 일회성 진행도(daniel)
     let ok = false; // ★L2: 실제 해몽 성공 여부 — 완료 배너·푸시는 이때만(친화 폴백·오류에 '완성' 오푸시 방지)
     try {
-      const { data, error } = await supabase.functions.invoke('interpret', { body: { kind: 'dream', dreamText: text, lang: appLang() } });
-      // ★C3b 서버 게이트: 'dream' 이용권 없음 → needPayment. 결과 표시 대신 5회 번들 구매 제안(구매·웹훅 반영 후 재시도).
+      const __inv = await withTimeout(supabase.functions.invoke('interpret', { body: { kind: 'dream', dreamText: text, lang: appLang() } }));
+      const { data, error } = __inv ?? { data: null, error: { message: 'client timeout' } as any };      // ★C3b 서버 게이트: 'dream' 이용권 없음 → needPayment. 결과 표시 대신 5회 번들 구매 제안(구매·웹훅 반영 후 재시도).
       if ((data as any)?.needPayment) { setGenProgress({ route: '/dream', active: false }); setAiBusy(false); promptBuyDream(text); return; }
       // 방어: 일시적 불가/오류면 친화 메시지를 meaning 자리에(원문 'non-2xx' 노출 방지)
       const fail = invokeFail(data, error);
