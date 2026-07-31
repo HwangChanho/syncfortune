@@ -21,7 +21,7 @@
 // ⚠️ Supabase 조회/갱신만 — Anthropic/LLM API 무관(ABSOLUTE-0 무관).
 // ─────────────────────────────────────────────────────────────────────────
 import { readFileSync } from 'node:fs';
-import { goldenContent, ingestEligibility, tagForSlug } from './lib/golden-content.mjs';
+import { goldenContent, goldenBody, ingestEligibility, tagForSlug, crossChartTemplateBodies } from './lib/golden-content.mjs';
 
 const SYNC = process.argv.includes('--sync');
 
@@ -69,6 +69,15 @@ for (const it of items) {
   itemsBySet.get(it.set_id).push(it);
 }
 
+// 명식 무관(템플릿) 문장 — 적재본 생성기와 **같은 규칙**으로 계산해야 기대값이 어긋나지 않는다.
+const slugById = new Map(sets.map((s) => [s.id, s.slug]));
+const templateBodies = crossChartTemplateBodies(
+  items
+    .filter((it) => ingestEligibility(it).ok)
+    .map((it) => ({ tag: tagForSlug(slugById.get(it.set_id)), item: it }))
+    .filter((x) => x.tag),
+);
+
 console.log('\n🔎 골든 동기화 대조  (전문가 판정 DB ↔ RAG 코퍼스)\n');
 
 let pendingTotal = 0, orphanTotal = 0, unjudgedTotal = 0;
@@ -90,9 +99,13 @@ for (const s of sets) {
   }
   dbTags.add(tag);
 
-  // 기대(expected) = 적재 자격을 통과한 판정들의 content 집합
+  // 기대(expected) = 적재 자격을 통과하고 **명식 무관 템플릿이 아닌** 판정들의 content 집합
   const expected = new Map();  // content → item
-  for (const it of own) { if (ingestEligibility(it).ok) expected.set(goldenContent(tag, it), it); }
+  for (const it of own) {
+    if (!ingestEligibility(it).ok) continue;
+    if (templateBodies.has(goldenBody(it))) continue;   // 여러 차트에 똑같이 들어가는 문장 = 이 명식의 골든 아님
+    expected.set(goldenContent(tag, it), it);
+  }
   const actual = corpusByTag.get(tag) ?? new Set();
 
   const pending = [...expected].filter(([c]) => !actual.has(c));
@@ -120,6 +133,31 @@ if (manual.length) {
   for (const t of manual) console.log(`   · ${t.padEnd(22)} ${corpusByTag.get(t).size}건 — 수기 엔트리(DB 판정 밖 · 대조 제외)`);
 }
 
+// ── 코퍼스 검색 변별력(RPC golden_corpus_quality) ──
+//    벡터 **수**만 세면 ADR-060 의 목적(동질 코퍼스 탈출) 달성 여부를 알 수 없다.
+//    다른 차트끼리 코사인이 0.97 을 넘으면 아무리 넣어도 검색이 안 갈린다 = 문장 설계 문제(수량 문제 아님).
+try {
+  const r = await fetch(`${BASE}/rest/v1/rpc/golden_corpus_quality`, {
+    method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' }, body: '{}',
+  });
+  if (r.ok) {
+    const q = await r.json();
+    console.log(`\n   ── 검색 변별력 ──`);
+    console.log(`   벡터 ${q.total_vectors} · 태그 ${q.tags} · 다른 차트와 코사인 ≥0.97 인 벡터 ${q.near_dupe_097}건(≥0.95 ${q.near_dupe_095}건)`);
+    console.log(`   top-3 검색 결과 중 다른 차트에서 오는 비율 ${q.top3_cross_pct}%`);
+    if (q.exact_dupe_groups > 0) {
+      console.log(`   ⚠️ **완전중복** ${q.exact_dupe_groups}종 / ${q.exact_dupe_vectors}벡터 — 태그만 다르고 본문이 같습니다.`);
+      for (const d of q.exact_dupes ?? []) console.log(`      · [${d.tags}] ${d.body.slice(0, 70)}…`);
+      console.log(`      → 여러 명식에 똑같이 들어가는 문장은 그 명식의 골든이 아닙니다(전역 규칙 자리).`);
+      console.log(`        해당 태그를 재적재하면 자동 제외됩니다(생성기 ④ 게이트).`);
+    }
+    if (q.near_dupe_097 > q.total_vectors * 0.2) {
+      console.log(`   ⚠️ 준중복 비율이 높습니다 — 검증 세트의 claim 이 **템플릿**이라 干支만 갈리고 문장이 같다는 뜻입니다.`);
+      console.log(`      벡터를 더 넣어도 변별력은 안 오릅니다. 다음 세트의 문항을 명식 고유 서술로 바꾸세요.`);
+    }
+  }
+} catch { /* 품질 측정 실패는 대조 결과를 막지 않는다(부가 정보) */ }
+
 // ── 플래그 동기화 ──
 if (SYNC && (promoteTrue.length || promoteFalse.length)) {
   const patch = async (ids, value) => {
@@ -143,7 +181,8 @@ if (SYNC && (promoteTrue.length || promoteFalse.length)) {
 console.log(`\n   ── 요약 ──`);
 console.log(`   미적재(PENDING) ${pendingTotal}건 · 고아(ORPHAN) ${orphanTotal}건 · 미판정(전문가 대기) ${unjudgedTotal}건`);
 if (orphanTotal) {
-  console.log(`   ⚠️ 고아 = 판정이 번복·수정됐는데 옛 문장이 코퍼스에 남아 있다는 뜻(RAG 오염).`);
+  console.log(`   ⚠️ 고아 = 지금 기준으로는 적재되면 안 되는 문장이 코퍼스에 남아 있다는 뜻(RAG 오염).`);
+  console.log(`      원인은 셋 중 하나 — ①판정 O→X 번복 ②claim 문구 수정 ③명식 무관(템플릿) 문장 게이트에 걸림.`);
   console.log(`      해당 세트를 재적재하세요: node scripts/verifydb-to-ingest.mjs <slug> --tag <tag> > golden/ingest-XXX.json`);
   console.log(`                              npm run golden:ingest -- golden/ingest-XXX.json --replace`);
 }

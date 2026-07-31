@@ -11,6 +11,18 @@
 const plain = (s) => String(s ?? '').replace(/\*\*/g, '').trim();
 
 /**
+ * 검증 항목 → **본문**(태그 접두를 뗀 부분). 차트 정보가 실제로 담기는 자리다.
+ * 서로 다른 명식에서 이 문자열이 같으면 = 그 문장은 명식 고유 정보가 없다는 뜻(아래 참조).
+ * @param {{claim:string, basis?:string}} item
+ * @returns {string}
+ */
+export function goldenBody(item) {
+  const claim = plain(item.claim);
+  const basis = plain(item.basis);
+  return `${claim}${basis ? ` — 근거: ${basis}` : ''}`;
+}
+
+/**
  * 검증 항목 1건 → 코퍼스 content 문자열.
  * 형식: `[<tag> 골든 · <영역>] <주장> — 근거: <근거>`
  * ★접두 `[<tag> 골든 ·` 는 golden-ingest.mjs 의 --replace(멱등 삭제) 기준이라 절대 바꾸지 말 것.
@@ -19,9 +31,36 @@ const plain = (s) => String(s ?? '').replace(/\*\*/g, '').trim();
  * @returns {string} 코퍼스에 저장될 content
  */
 export function goldenContent(tag, item) {
-  const claim = plain(item.claim);
-  const basis = plain(item.basis);
-  return `[${tag} 골든 · ${item.section ?? '판정'}] ${claim}${basis ? ` — 근거: ${basis}` : ''}`;
+  return `[${tag} 골든 · ${item.section ?? '판정'}] ${goldenBody(item)}`;
+}
+
+/**
+ * **명식 무관(템플릿) 문장 찾기** — 여러 차트에 글자 하나 안 바뀌고 들어가는 본문.
+ *
+ * 왜 필요한가(2026-07-31 실측):
+ *   코퍼스를 39→50 벡터로 늘렸는데도 **다른 차트끼리 코사인 0.99** 인 벡터가 남았다.
+ *   원인은 검증 세트의 claim 이 템플릿이라 干支만 갈리고 문장이 같다는 것 —
+ *   실제로 `2026 세운 丙午는 … 세운이 조후 축 자체를 바꾸지는 못한다` 가 chart-101·108·110 에
+ *   **완전히 동일하게** 3벌 들어가 있었다. 이런 문장은 어떤 쿼리에도 똑같이 걸려
+ *   top-3 자리만 차지하고 **명식 고유 근거를 밀어낸다**(검색 변별력 = ADR-060 의 목적 그 자체).
+ *
+ * ★판정 기준은 기계적이다 — "여러 명식에 똑같이 쓰이는 문장 = 그 명식의 골든이 아니다."
+ *   명리 판단이 아니라 정보이론이다. 내용이 틀렸다는 게 아니라(상담가가 O 를 준 참인 문장이다)
+ *   **자리가 틀렸다**는 것 — 그런 문장은 전역 규칙(knowledge/rules)에 있어야 한다.
+ *
+ * @param {Array<{tag:string, item:object}>} tagged  명식 세트의 적재 자격 통과 항목 전부(태그 포함)
+ * @returns {Set<string>} 2개 이상 태그에 걸쳐 동일하게 나타나는 본문 집합
+ */
+export function crossChartTemplateBodies(tagged) {
+  const tagsByBody = new Map();
+  for (const { tag, item } of tagged) {
+    const body = goldenBody(item);
+    if (!tagsByBody.has(body)) tagsByBody.set(body, new Set());
+    tagsByBody.get(body).add(tag);
+  }
+  const out = new Set();
+  for (const [body, tags] of tagsByBody) if (tags.size > 1) out.add(body);
+  return out;
 }
 
 /**

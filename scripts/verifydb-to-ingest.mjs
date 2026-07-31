@@ -18,7 +18,7 @@
 // ★문자열 조립·적재자격 규칙은 scripts/lib/golden-content.mjs 가 단일 출처다.
 //   대조 하네스(check-golden-sync.mjs)와 **같은 모듈**을 써야 규칙 변경 시 오탐이 안 생긴다.
 import { readFileSync } from 'node:fs';
-import { goldenContent, ingestEligibility } from './lib/golden-content.mjs';
+import { goldenContent, goldenBody, ingestEligibility, tagForSlug, crossChartTemplateBodies } from './lib/golden-content.mjs';
 
 const args = process.argv.slice(2);
 const slug = args.find((a) => !a.startsWith('--'));
@@ -44,15 +44,33 @@ const q = async (path) => {
   return r.json();
 };
 
-const sets = await q(`rag_validation_sets?slug=eq.${encodeURIComponent(slug)}&select=id,title`);
-if (!sets.length) { console.error(`❌ 검증 세트 '${slug}' 가 없습니다.`); process.exit(1); }
-const items = await q(`rag_validation_items?set_id=eq.${sets[0].id}&select=seq,section,claim,basis,verdict,base_rate,expert_note&order=seq`);
+// ★전(全) 세트를 읽는다 — 대상 세트만 봐서는 "이 문장이 다른 명식에도 똑같이 들어가는가"를 알 수 없다(④).
+const allSets = await q(`rag_validation_sets?select=id,slug,title`);
+const target = allSets.find((s) => s.slug === slug);
+if (!target) { console.error(`❌ 검증 세트 '${slug}' 가 없습니다.`); process.exit(1); }
+const allItems = await q(`rag_validation_items?select=set_id,seq,section,claim,basis,verdict,base_rate,expert_note&order=seq`);
+const items = allItems.filter((it) => it.set_id === target.id);
+
+// ④ 명식 무관(템플릿) 문장 = 여러 차트에 글자 하나 안 바뀌고 들어가는 본문 → 코퍼스에서 제외.
+//    참인 문장이어도(상담가 O) **자리가 틀렸다** — 그런 문장은 전역 규칙이지 이 명식의 골든이 아니다.
+//    남겨 두면 어떤 쿼리에도 똑같이 걸려 top-3 자리만 먹고 명식 고유 근거를 밀어낸다.
+const slugById = new Map(allSets.map((s) => [s.id, s.slug]));
+const templateBodies = crossChartTemplateBodies(
+  allItems
+    .filter((it) => ingestEligibility(it).ok)
+    .map((it) => ({ tag: tagForSlug(slugById.get(it.set_id)), item: it }))
+    .filter((x) => x.tag),                     // 규칙(stance) 세트는 애초에 코퍼스 대상이 아님
+);
 
 const kept = [], dropped = [];
 for (const it of items) {
   const gate = ingestEligibility(it);          // ①O 판정만 ②base-rate 제외 — 규칙은 공용 모듈
   if (!gate.ok) {
     dropped.push(`#${it.seq} ${gate.reason}${it.expert_note ? ` — ${it.expert_note}` : ''}`);
+    continue;
+  }
+  if (templateBodies.has(goldenBody(it))) {    // ④
+    dropped.push(`#${it.seq} 명식 무관(다른 차트에도 똑같이 들어가는 문장) — 규칙 후보로 분리`);
     continue;
   }
   kept.push({ kind: 'golden', content: goldenContent(tag, it) });
@@ -65,6 +83,6 @@ if (!kept.length) {
   process.exit(1);
 }
 
-console.error(`✅ ${sets[0].title}\n   적재 ${kept.length}건 / 전체 ${items.length}건`);
+console.error(`✅ ${target.title}\n   적재 ${kept.length}건 / 전체 ${items.length}건`);
 if (dropped.length) console.error('   제외:\n   - ' + dropped.join('\n   - '));
 process.stdout.write(JSON.stringify({ tag, items: kept }, null, 2) + '\n');
