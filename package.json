@@ -83,7 +83,8 @@
     "check:store": "npx tsx scripts/check-store-products.ts",
     "check:paid": "npx tsx scripts/check-paid-content.ts",
     "check:hang": "npx tsx scripts/check-hang.ts",
-    "check:goldensync": "node scripts/check-golden-sync.mjs"
+    "check:goldensync": "node scripts/check-golden-sync.mjs",
+    "check:paygate": "npx tsx scripts/check-paygate.ts"
   },
   "keywords": [],
   "author": "",

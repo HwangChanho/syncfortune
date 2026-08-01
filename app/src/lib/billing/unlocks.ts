@@ -12,12 +12,27 @@ import { supabase } from '../supabase';
 
 const key = (chartId: string, kind: string) => `unlock_${chartId}_${kind}`;
 
-/** (차트×종류) unlock(차감 완료) 여부 — true 면 재차감 없이 무료 생성/재생성. */
+// 서버 조회 대상 판별 — reading_unlocks.chart_id 는 uuid 다. 'timeresolve' 처럼 차트가 아닌 키로 부르는
+//   호출자가 있어(TPR_UNLOCK), uuid 가 아니면 서버를 때리지 않는다(불필요한 400·왕복 제거).
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * (차트×종류) unlock(차감 완료) 여부 — true 면 재차감 없이 무료 생성/재생성.
+ * ★로컬 우선, 없으면 **서버 권위**(reading_unlocks)까지 확인한다.
+ *   왜(daniel 2026-08-01 신고 "구매 → 풀이 도중 홈으로 → 배너로 재진입하면 또 결제"):
+ *   로컬 스탬프(markUnlocked)는 **생성 성공 후에만** 찍힌다. 결제 직후 생성이 중단되면 로컬은 비어 있어
+ *   로컬만 보는 게이트가 **결제창을 다시 띄운다**. Edge 는 차감 즉시 reading_unlocks 에 기록하므로 그걸 읽는다.
+ *   (실제 차감은 서버가 하니 돈은 안 빠졌지만, 사용자에겐 '또 사라'로 보였다 — 그 화면을 없앤다.)
+ */
 export async function isUnlocked(chartId: string, kind: string): Promise<boolean> {
   try {
-    if (Platform.OS === 'web') return (globalThis as any).localStorage?.getItem(key(chartId, kind)) === '1';
-    return (await SecureStore.getItemAsync(key(chartId, kind))) === '1';
-  } catch { return false; } // 저장소 접근 실패 = 잠김(보수적)
+    const local = Platform.OS === 'web'
+      ? (globalThis as any).localStorage?.getItem(key(chartId, kind)) === '1'
+      : (await SecureStore.getItemAsync(key(chartId, kind))) === '1';
+    if (local) return true;
+  } catch { /* 저장소 접근 실패 → 서버로 폴백(잠금 단정하지 않는다) */ }
+  if (!UUID_RE.test(chartId)) return false;      // 차트 id 가 아닌 키는 로컬 전용
+  return isReadingUnlocked(chartId, kind);        // 서버 권위(조회 실패 = false, Edge 가 최종 판정)
 }
 
 /** 차감(쿠폰·광고·결제) 성공 직후 호출 — 그 (차트×종류)를 영구 unlock 으로 도장. */
