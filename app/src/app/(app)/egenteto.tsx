@@ -23,14 +23,18 @@ import { ShareReadingButton } from '../../components/ShareReadingButton'; // 이
 import { useLogContentVisit } from '../../lib/backend/contentVisit'; // 콘텐츠 방문 집계(daniel 2026-07-06) — 진입 1회 기록
 
 // 에겐↔테토 게이지 — fill·dot이 0→score로 차오르고 이동(daniel #13: 실제 인디케이터 애니).
+// ★에겐(빨강) ↔ 테토(파랑) — 우세한 쪽 색으로 채운다(daniel 2026-08-01).
+const EGEN_C = '#D14343';
+const TETO_C = '#2F6BD8';
 function EgenBar({ score }: { score: number }) {
+  const side = score >= 50 ? TETO_C : EGEN_C;
   const a = useRef(new Animated.Value(0)).current;
   useEffect(() => { Animated.timing(a, { toValue: score, duration: 950, delay: 200, easing: Easing.out(Easing.cubic), useNativeDriver: false }).start(); }, [a, score]);
   const w = a.interpolate({ inputRange: [0, 100], outputRange: ['0%', '100%'] });
   return (
     <View style={styles.track}>
-      <Animated.View style={[styles.fill, { width: w }]} />
-      <Animated.View style={[styles.dot, { left: w }]} />
+      <Animated.View style={[styles.fill, { width: w, backgroundColor: side }]} />
+      <Animated.View style={[styles.dot, { left: w, backgroundColor: side }]} />
     </View>
   );
 }
@@ -96,9 +100,9 @@ export default function EgenTetoScreen() {
               {/* daniel: '테토력' 표기 대신 50% 기준 판정 타입(에겐/테토)의 강도% */}
               <Text style={styles.scoreNum}>{result.type === 'teto' ? t('egen.scaleTeto', '테토') : t('egen.scaleEgen', '에겐')} {result.type === 'teto' ? result.tetoScore : 100 - result.tetoScore}<Text style={styles.scoreNumUnit}>%</Text></Text>
               <View style={styles.barRow}>
-                <Text style={[styles.barEnd, result.type === 'egen' && styles.barEndOn]}>{t('egen.scaleEgen', '에겐')}</Text>
+                <Text style={[styles.barEnd, result.type === 'egen' && styles.barEndOn, { color: EGEN_C }]}>{t('egen.scaleEgen', '에겐')}</Text>
                 <EgenBar score={result.tetoScore} />
-                <Text style={[styles.barEnd, styles.barEndRight, result.type === 'teto' && styles.barEndOn]}>{t('egen.scaleTeto', '테토')}</Text>
+                <Text style={[styles.barEnd, styles.barEndRight, result.type === 'teto' && styles.barEndOn, { color: TETO_C }]}>{t('egen.scaleTeto', '테토')}</Text>
               </View>
             </View>
 

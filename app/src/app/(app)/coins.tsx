@@ -34,6 +34,8 @@ export default function CoinsScreen() {
   const [balance, setBalance] = useState<number | null | undefined>(undefined); // undefined=로딩 / null=조회실패
   const [busy, setBusy] = useState<string | null>(null);
 
+  // ★충전 화면은 **충전 직후 즉시** 갱신이 필요해 직접 reload 를 유지한다(웹훅 적립 폴링과 짝).
+  //   그 외 표시 화면(마켓·설정·배지)은 공용 훅 useCoinBalance 로 통일했다 — 규칙이 갈리지 않게.
   const reload = useCallback(async () => { setBalance(await coinBalanceOrNull()); }, []);
   useFocusEffect(useCallback(() => { void reload(); }, [reload]));
 

@@ -18,7 +18,7 @@ import { useAuth } from '../../lib/useAuth';               // 계정(세션)
 import { useSubscription } from '../../lib/billing/subscription';  // 프리미엄 상태·구매
 import { waitForPremium, markPremiumOwnedNow } from '../../lib/billing/premiumStore';   // 복원=서버 is_premium 확정(단일소스·07-07) + 웹훅 실패 시 영수증 검증분 낙관표시(#2)
 import { requireLoginForPurchase } from '../../lib/billing/requireLogin'; // 결제 전 로그인 게이트
-import { coinBalanceOrNull } from '../../lib/billing/coins';   // ★운 잔액(프리미엄 자리 대체, daniel 07-28)
+import { useCoinBalance } from '../../lib/billing/coins';   // ★운 잔액 — 공용 훅(표시 규칙 단일화)
 import { restorePurchasesRC } from '../../lib/billing/purchases';  // 구매 복원(App Store 3.1.1 필수)
 import { PREMIUM_PRICE, loadCredits } from '../../lib/billing/coupons';  // 프리미엄 폴백 가격(₩) + 이용권 잔여 재로딩(복원 후)
 import { supabase } from '../../lib/supabase';             // 로그아웃
@@ -42,9 +42,7 @@ export default function SettingsScreen() {
   const router = useRouter();
   const { session, isRegistered } = useAuth();
   const { isPremium, refresh } = useSubscription();
-  // 보유 코인 — 화면 진입마다 새로 읽는다(충전 후 돌아왔을 때 최신값). null=조회 실패
-  const [coins, setCoins] = useState<number | null>(null);
-  useFocusEffect(useCallback(() => { void coinBalanceOrNull().then(setCoins); }, []));
+  const coins = useCoinBalance(session);   // 보유 운(null=미로그인·조회 실패). 표시 규칙은 훅 한 곳에.
   const { scale, setScale, fs, ls } = useFontScale();
   const [busy, setBusy] = useState<string | null>(null); // 전체화면 로딩 오버레이 메시지(긴 콜백)
   const [admin, setAdmin] = useState(false); // 관리자 — 메뉴 노출용(실제 권한은 서버 RPC). 제어(비용분석·테스트/관리자모드)는 /admin 내부로 통합(daniel 07-01)

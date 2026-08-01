@@ -9,15 +9,16 @@ import { useCallback, useState } from 'react';
 import { Text, StyleSheet } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { PressableScale } from './PressableScale';
-import { coinBalanceOrNull } from '../lib/billing/coins';
+import { useCoinBalance } from '../lib/billing/coins'; // ★표시 규칙 단일화(포커스 재조회 + 세션 변경 시 비움)
+import { useAuth } from '../lib/useAuth';
 import { useFontScale } from '../lib/ui/fontScale';
 import { colors, radius, space, font } from '../lib/theme';
 
 export function CoinBadge() {
   const { fs } = useFontScale();
   const router = useRouter();
-  const [bal, setBal] = useState<number | null>(null);
-  useFocusEffect(useCallback(() => { let alive = true; void (async () => { const b = await coinBalanceOrNull(); if (alive) setBal(b); })(); return () => { alive = false; }; }, []));
+  const { session } = useAuth();
+  const bal = useCoinBalance(session);
   if (bal === null) return null;   // 로딩·조회 실패 = 조용히 미표시
   return (
     <PressableScale style={styles.badge} onPress={() => router.push('/coins')} hitSlop={8}>

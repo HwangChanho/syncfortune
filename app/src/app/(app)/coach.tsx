@@ -141,11 +141,20 @@ export default function AssistantScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <ChartPicker />
-        <TigerMascot size={76} style={{ alignSelf: 'center', marginTop: space(8), marginBottom: space(2) }} />
+        <TigerMascot size={76} style={{ alignSelf: 'flex-start', marginTop: space(8), marginBottom: space(2) }} />
         <Text style={[styles.title, { fontSize: fs(23) }]}>{t('assist.title', '우니')}</Text>
         <Text style={[styles.sub, { fontSize: fs(13) }]}>
           {t('assist.sub', '보고 싶은 걸 말해 주세요. 바로 그 자리로 데려다 드려요.')}
         </Text>
+
+        {/* ★'처음으로'(daniel 2026-08-01 "하나 선택하면 다시 처음 메뉴로 돌아갈 수가 없네")
+            주제를 한 번 고르면 첫 인사(3축 선택지)가 사라져 되돌아갈 길이 없었다.
+            대화가 있을 때만 뜨고, 누르면 첫 화면으로 되돌린다(기록만 비우므로 부작용 없음). */}
+        {turns.length > 0 && (
+          <PressableScale style={styles.resetBtn} onPress={() => { setTurns([]); setInput(''); }}>
+            <Text style={[styles.resetTx, { fontSize: fs(12.5) }]}>{t('assist.reset', '↺ 처음으로')}</Text>
+          </PressableScale>
+        )}
 
         {/* 첫 인사 — 도메인 3축(daniel 지정)부터. 대화가 시작되면 사라진다. */}
         {turns.length === 0 && (
@@ -251,14 +260,19 @@ const styles = StyleSheet.create({
   bg: { flex: 1, backgroundColor: 'transparent' },  // 전역 ContentBackdrop 비침
   overlay: { flex: 1, backgroundColor: colors.overlay },
   wrap: { paddingHorizontal: space(6), paddingBottom: space(24) },
-  title: { fontWeight: '900', color: colors.ink, textAlign: 'center', marginTop: space(2) },
-  sub: { ...font.caption, color: colors.inkSoft, textAlign: 'center', marginTop: space(1), marginBottom: space(5) },
+  // ★정렬 = 왼쪽(daniel 2026-08-01 "가운데 말고 왼쪽정렬, 왼쪽 여백은 약간").
+  //   대화가 전부 좌/우 정렬인데 머리말만 가운데라 축이 어긋나 보였다. 여백은 wrap 의 paddingHorizontal 이 준다.
+  title: { fontWeight: '900', color: colors.ink, textAlign: 'left', marginTop: space(2) },
+  sub: { ...font.caption, color: colors.inkSoft, textAlign: 'left', marginTop: space(1), marginBottom: space(5) },
   // 도우미 말풍선(카드)
   botCard: {
     backgroundColor: colors.card, borderRadius: radius.lg, borderBottomLeftRadius: 4,
     borderWidth: 1, borderColor: colors.juLine, padding: space(4.5), marginBottom: space(4), ...shadow.card,
   },
   botLabel: { fontSize: 11, fontWeight: '800', color: colors.ju, marginBottom: space(2) },
+  // '처음으로' — 눈에 띄되 대화를 가리지 않게 작은 알약. 왼쪽 정렬(머리말과 축을 맞춘다).
+  resetBtn: { alignSelf: 'flex-start', backgroundColor: colors.sunk, borderWidth: 1, borderColor: colors.line, borderRadius: radius.pill, paddingVertical: space(1.5), paddingHorizontal: space(3.5), marginBottom: space(4) },
+  resetTx: { ...font.caption, color: colors.inkSoft, fontWeight: '700' },
   botTx: { ...font.body, color: colors.ink },
   // 내 말풍선
   qBubble: {

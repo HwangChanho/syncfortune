@@ -19,14 +19,18 @@ import { colors, radius, space, shadow, font } from '../lib/theme';
 import { useFontScale } from '../lib/ui/fontScale';
 
 // 에겐↔테토 게이지 — fill·dot이 0→score로 차오른다(egenteto.tsx EgenBar 동일 톤).
+// ★에겐(빨강) ↔ 테토(파랑) — 우세한 쪽 색으로 채운다(daniel 2026-08-01).
+const EGEN_C = '#D14343';
+const TETO_C = '#2F6BD8';
 function EgenBar({ score }: { score: number }) {
+  const side = score >= 50 ? TETO_C : EGEN_C;
   const a = useRef(new Animated.Value(0)).current;
   useEffect(() => { Animated.timing(a, { toValue: score, duration: 950, delay: 200, easing: Easing.out(Easing.cubic), useNativeDriver: false }).start(); }, [a, score]);
   const w = a.interpolate({ inputRange: [0, 100], outputRange: ['0%', '100%'] });
   return (
     <View style={styles.track}>
-      <Animated.View style={[styles.fill, { width: w }]} />
-      <Animated.View style={[styles.dot, { left: w }]} />
+      <Animated.View style={[styles.fill, { width: w, backgroundColor: side }]} />
+      <Animated.View style={[styles.dot, { left: w, backgroundColor: side }]} />
     </View>
   );
 }
@@ -94,9 +98,9 @@ export function SelfUnderstandingHero({ reloadKey }: { reloadKey?: number }) {
             <Text style={styles.pctTx}>{result.type === 'teto' ? t('egen.scaleTeto', '테토') : t('egen.scaleEgen', '에겐')} {pct}%</Text>
           </View>
           <View style={styles.barRow}>
-            <Text style={[styles.barEnd, result.type === 'egen' && styles.barEndOn]}>{t('egen.scaleEgen', '에겐')}</Text>
+            <Text style={[styles.barEnd, result.type === 'egen' && styles.barEndOn, { color: EGEN_C }]}>{t('egen.scaleEgen', '에겐')}</Text>
             <EgenBar score={result.tetoScore} />
-            <Text style={[styles.barEnd, styles.barEndRight, result.type === 'teto' && styles.barEndOn]}>{t('egen.scaleTeto', '테토')}</Text>
+            <Text style={[styles.barEnd, styles.barEndRight, result.type === 'teto' && styles.barEndOn, { color: TETO_C }]}>{t('egen.scaleTeto', '테토')}</Text>
           </View>
           {reading?.headline ? <Text style={[styles.headline, { fontSize: fs(15) }]} numberOfLines={2}>{reading.headline}</Text> : null}
           <Text style={styles.more}>{t('selfHero.more', '나 분석 종합 보기 ›')}</Text>

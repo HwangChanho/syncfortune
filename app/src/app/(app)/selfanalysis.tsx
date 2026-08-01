@@ -136,7 +136,9 @@ export default function SelfAnalysisRoute() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: 'transparent' }, // 전역 ContentBackdrop 비쳐 보이게(07-21 배경통일)
-  wrap: { padding: space(5), paddingBottom: space(10) },
+  // ★하단 여백 확대(daniel 2026-08-01 "여기 짤려") — 마지막 섹션(이어서 보면 좋은 콘텐츠)이
+  //   하단 탭바에 바짝 붙어 잘린 것처럼 보였다. 탭바 실측 높이가 약 84pt 라 40pt 로는 모자란다.
+  wrap: { padding: space(5), paddingBottom: space(24) },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: space(6), backgroundColor: 'transparent' },
   kicker: { ...font.caption, color: colors.ju, fontWeight: '800', letterSpacing: 0.5, marginBottom: space(1) },
   title: { fontSize: 24, fontWeight: '900', color: colors.ink, marginBottom: space(2) },

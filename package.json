@@ -86,7 +86,8 @@
     "check:goldensync": "node scripts/check-golden-sync.mjs",
     "check:paygate": "npx tsx scripts/check-paygate.ts",
     "check:singleflight": "npx tsx scripts/check-singleflight.ts",
-    "check:sections": "npx tsx scripts/check-sections.ts"
+    "check:sections": "npx tsx scripts/check-sections.ts",
+    "check:coinbalance": "npx tsx scripts/check-coinbalance.ts"
   },
   "keywords": [],
   "author": "",

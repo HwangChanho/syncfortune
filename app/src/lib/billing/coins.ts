@@ -70,3 +70,34 @@ export async function spendCoinsFixed(kind: string): Promise<{ ok: boolean; reas
 export function allPaidKinds(): CreditKind[] {
   return CREDIT_KINDS.map((c) => c.key);
 }
+
+// ─────────────────────────────────────────────────────────────────────────
+// ★잔액 표시의 **단일 훅**(daniel 2026-08-01 신고 2건의 공통 원인)
+//   ① "로그아웃했는데 이전 아이디 금액이 남아있어"
+//   ② "운 충전했는데 이 화면만 안 바뀌었어"(마켓)
+//
+//   왜 계속 어긋났나: 잔액을 읽는 화면이 넷인데 **각자 다른 방식**이었다 —
+//     마켓 `useEffect(…, [])`(최초 1회만) · 설정/배지 `useFocusEffect(…, [])`(세션 무시).
+//   그래서 화면마다 다른 순간에 멈춘 값이 남았다. 표시 규칙을 한 곳으로 모은다.
+//     · 화면에 **다시 들어올 때마다** 다시 읽는다(충전하고 돌아오면 최신)
+//     · **세션이 바뀌면 즉시 비운다**(남의 잔액이 내 화면에 남지 않게)
+//     · 조회 실패는 null 그대로 — 0으로 보이면 불필요한 충전을 유도한다(07-28 재결제 사고와 같은 유형)
+// ─────────────────────────────────────────────────────────────────────────
+import { useCallback, useState } from 'react';
+import { useFocusEffect } from 'expo-router';
+
+/**
+ * 보유 운 잔액(표시용).
+ * @param session 현재 세션(useAuth().session) — 바뀌면 즉시 비우고 다시 읽는다.
+ * @returns 잔액 / null(미로그인·조회 실패·로딩)
+ */
+export function useCoinBalance(session: unknown): number | null {
+  const [bal, setBal] = useState<number | null>(null);
+  useFocusEffect(useCallback(() => {
+    let alive = true;
+    if (!session) { setBal(null); return () => { alive = false; }; }
+    void coinBalanceOrNull().then((b) => { if (alive) setBal(b); });
+    return () => { alive = false; };
+  }, [session]));
+  return bal;
+}

@@ -15,7 +15,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { CREDIT_KINDS, loadCredits, redeemCoupon, waitForCreditGrant, type CreditKind } from '../../lib/billing/coupons';
-import { coinPriceOf, coinBalanceOrNull } from '../../lib/billing/coins';
+import { coinPriceOf, coinBalanceOrNull, useCoinBalance } from '../../lib/billing/coins'; // ★잔액 표시는 공용 훅 하나로(daniel 08-01 '운 표시하는 모든 항목이 동일하게 갱신')
 import { ensureCoinsFor } from '../../lib/billing/coinGate';   // ★운 단일 경로(daniel 07-28)   // ★운 표기·잔액(충전은 /coins 전용)
 import { isNewContent } from '../../lib/content/newBadge'; // 신규 콘텐츠 NEW 배지(출시일+21일 자동 만료)
 import { requireLoginForPurchase } from '../../lib/billing/requireLogin'; // C1: 결제=계정 귀속(웹훅 적립엔 로그인 필수)
@@ -131,7 +131,9 @@ export default function MarketRoute() {
   const [busy, setBusy] = useState<CreditKind | null>(null);
   // ★보유 코인(daniel 2026-07-28 "마켓에 본인 보유코인도 나와야지") — 충전 화면에 들어가지 않고도
   //   지금 얼마 있는지 알아야 '이걸 열 수 있나'를 판단할 수 있다. null=조회 실패(0으로 표시하지 않는다).
-  const [coins, setCoins] = useState<number | null>(null);   // 보유 운(null=조회 실패 — 0으로 표시하지 않는다)
+  // ★보유 운 — 공용 훅(포커스마다 재조회 + 세션 변경 시 즉시 비움). 종전 `useEffect(…, [])` 는
+  //   **최초 1회만** 읽어서 충전하고 돌아와도 옛 값이 남았다(daniel 신고).
+  const coins = useCoinBalance(session);
   const [topic, setTopic] = useState<'all' | MarketTopic>('all'); // ★마켓 주제 필터(daniel 2026-07-25 L)
   // ★'상점으로 이동' 딥링크(daniel 2026-07-27 "상점으로 이동하기 하면 바로 그거 구매 위치로 이동돼야 해")
   //   기존엔 /market 으로만 보내서 사용자가 35개 목록에서 그 상품을 **다시 찾아야** 했다(주제 필터까지 걸려 있으면 더 어렵다).
@@ -172,7 +174,6 @@ export default function MarketRoute() {
 
   // 프리미엄 현지통화 가격(RC) — 미설정 시 ₩ 폴백
   // 보유 코인 로드 — 카드마다 코인가가 붙으므로 잔액을 함께 보여야 비교가 된다(daniel 07-28)
-  useEffect(() => { void coinBalanceOrNull().then(setCoins); }, []);
 
 
   // 프리미엄 가입(평생·전체 무제한) — 결제 미연동 시 '준비 중'. 성공 시 상태 갱신. 취소는 조용히.
@@ -339,7 +340,7 @@ export default function MarketRoute() {
       </PressableScale>
 
       {/* ★광고 제거(daniel 07-28) — 충전 바로 위. 운을 왜 사는지 가장 즉물적인 이유 하나를 먼저 보인다. */}
-      <AdFreeSection onDone={() => void coinBalanceOrNull().then(setCoins)} onNeedCoins={() => router.push('/coins')} />
+      <AdFreeSection onDone={() => { /* 잔액은 useCoinBalance 가 포커스 복귀 때 다시 읽는다 */ }} onNeedCoins={() => router.push('/coins')} />
 
       {/* ★충전 진입점은 **위 보유코인 카드 하나로 통일**(daniel 2026-07-29 "마켓탭에 코인충전이 따로 페이지로 분리 안돼있는데").
           종전엔 [보유코인 카드 → 광고제거 → '코인 충전하러 가기' 버튼]으로 진입점이 **3개 연속**이었다.
