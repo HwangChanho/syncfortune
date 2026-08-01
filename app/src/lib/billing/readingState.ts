@@ -18,7 +18,11 @@ import { withTimeout } from '../core/withTimeout'; // ★게이트 경로 = 반�
 /** 서버가 정하는 상태. 앱은 이 넷 중 하나를 그대로 렌더한다. */
 export type ReadingState =
   | { status: 'ready'; done: number; total: number; data?: unknown; createdAt?: string | null }  // 완료(단건이면 data·생성일 동봉)
-  | { status: 'running'; done: number; total: number }                 // 만들어지는 중 — 진행률만
+  // 샀는데 아직 다 안 만들어졌다. ★live 가 이 상태를 둘로 가른다(2026-08-01):
+  //   live=true  = 지금 서버 워커가 돌고 있다 → 앱은 **기다리기만** 한다(생성을 또 걸면 그게 이중호출이다)
+  //   live=false = 끊겨서 멈췄다 → 앱이 이어서 만들어도 된다(이미 결제된 건이라 추가 과금 없음)
+  //   ⚠️구버전 서버는 live 를 안 보낸다 → undefined. 그때는 종전처럼 '이어서 만들기'로 동작한다(안전측).
+  | { status: 'running'; done: number; total: number; live?: boolean }
   | { status: 'purchase'; cost: number; balance: number }              // 미구매 · 잔액 충분
   | { status: 'topup'; cost: number; balance: number }                 // 미구매 · 잔액 부족
   | { status: 'free' }                                                 // 가격 없는 무료 콘텐츠

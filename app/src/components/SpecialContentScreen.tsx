@@ -183,7 +183,15 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
       //   새 기준은 daniel 이 말한 그대로다 — "구매 이력 기준으로 추가 구매 또는 **대기**".
       //   이미 결제된 건이라 추가 과금이 없다(서버가 언락을 보고 무료로 만든다).
       //   ★autoGen=false(자식운)면 자동생성 안 함. 명식 2개 이상이면 '어느 명식?' 확인 먼저(daniel 07-13).
-      if (alive && autoGen && st.status === 'running' && !cached) void autoGenWithChartConfirm({ creditKind: kind as any, onConfirm: () => generate(id, cc.ziwei) });
+      //
+      // ★★'대기'와 '이어서 만들기'를 가른다(2026-08-01 · daniel "진행 중에 나갔다 들어오면…").
+      //   종전엔 running 이면 **무조건** 자동생성을 걸었다. 그런데 running 에는 '지금 만들어지는 중'도
+      //   포함돼 있어서, 재진입할 때마다 **이미 도는 생성 위에 생성을 또 걸었다**(명식 확인 모달까지 다시 떴다).
+      //   이제 서버가 live 로 알려준다 — 살아 있으면 손대지 않고 결과만 기다린다(waitForServerGen).
+      if (alive && autoGen && st.status === 'running' && !cached) {
+        if (st.live) void waitForServerGen(id);   // 서버가 만드는 중 → 트리거하지 말고 로딩만 띄우고 기다린다
+        else void autoGenWithChartConfirm({ creditKind: kind as any, onConfirm: () => generate(id, cc.ziwei) }); // 멈춤 → 이어서 만들기
+      }
     })().catch(() => { if (alive) setLoaded(true); });
     return () => { alive = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -224,6 +232,26 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
       if (data?.content) return data.content;
     }
     return null;
+  }
+
+  /**
+   * 서버가 **이미 만들고 있는** 풀이를 기다린다 — 생성을 트리거하지 않는다(2026-08-01).
+   *
+   * 왜 필요한가(daniel: "진행중에 홈으로 나가기 누른 다음 다시 진입하면 로딩화면 초기화되고 api 이중으로 호출"):
+   *   재진입은 아주 흔한 동작인데, 그때마다 앱이 생성을 다시 걸면 같은 풀이를 두 번 만들게 된다.
+   *   서버가 live=true 로 "지금 내가 만드는 중"이라고 알려주므로, 앱이 할 일은 **로딩을 띄우고 기다리는 것**뿐이다.
+   *   결과는 기존 캐시 폴링 경로를 그대로 재사용한다(새 통로를 만들면 또 갈라진다).
+   * @param id 서버 명식 id
+   */
+  async function waitForServerGen(id: string) {
+    const myGen = genSeq.current;                                   // 이 대기의 세대(명식 전환 시 폐기 판정)
+    const isStale = () => myGen !== genSeq.current || id !== chartIdRef.current;
+    setBusy(true);                                                  // 로딩(자물쇠) — 사용자에겐 '만드는 중'으로 보인다
+    logEvent(`${kind}_wait_server_gen`, { chartId: id });
+    const cached = await pollCachedReading(id);
+    if (isStale()) return;                                          // 기다리는 사이 명식이 바뀜 → 폐기
+    if (cached) { setReading(cached); setRevealed(true); await markUnlocked(id, kind); }
+    setBusy(false);                                                 // 못 받았으면 로딩만 걷는다 — 소유 상태 뷰('이어서 만들기')로 돌아간다
   }
 
   // 순수 생성(LLM) — 게이트는 Edge(SERVER_GATED consume_credit / effPrem)가 권위. idArg/ziweiArg = 자동생성용(state 갱신 전 직접 전달).
@@ -289,6 +317,15 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
         const cached = await pollCachedReading(id);
         if (isStale()) return;   // ① 폴링 사이 명식 전환됨 → 폐기
         if (cached) { setReading(cached); await markUnlocked(id, kind); ok = true; } // 서버가 완료·캐시 = 생성 성공(차감됨) → 캐시 힌트
+        else setReading(readingFromInvoke(data, error));
+      } else if ((data as any)?.code === 'llm_busy') {
+        // ★서버 단일화 락에 걸렸다 = **다른 워커가 지금 이 풀이를 만들고 있다**(2026-08-01).
+        //   이건 오류가 아니라 '조금만 기다리면 나온다'는 뜻이다. 오류 문구를 띄우면
+        //   사용자는 실패한 줄 알고 다시 누른다 → 그게 또 트리거가 된다. 조용히 결과를 기다린다.
+        logEvent(`${kind}_llm_busy`, { chartId: id });
+        const cached2 = await pollCachedReading(id);
+        if (isStale()) return;
+        if (cached2) { setReading(cached2); await markUnlocked(id, kind); ok = true; }
         else setReading(readingFromInvoke(data, error));
       } else if ((data as any)?.unavailable) {
         logEvent(`${kind}_unavailable`, { retryAt: (data as any)?.retryAt }, 'error'); // 방어: LLM 일시적 불가(미차감·재시도)
@@ -432,6 +469,9 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
         );
         return;
       }
+      // ★서버가 이미 만들고 있으면 **또 만들지 않는다**(2026-08-01). 명식 확인도 묻지 않는다 —
+      //   물어봐야 할 게 없다. 이미 결정된 생성이 돌고 있으니 로딩을 띄우고 결과만 받으면 된다.
+      if (st.status === 'running' && st.live) { await waitForServerGen(chartId); return; }
       const ownedNow = st.status !== 'purchase';                             // purchase 일 때만 결제를 묻는다
 
       // ③ 이제 명식 확인. ★소유 경로면 creditKind 를 넘기지 않아 "보유 이용권 N개" 문구가 뜨지 않는다.

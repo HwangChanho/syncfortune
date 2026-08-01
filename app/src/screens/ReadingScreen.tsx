@@ -154,6 +154,12 @@ export function ReadingScreen({
   const [askInput, setAskInput] = useState('');
   const [asking, setAsking] = useState(false);
   const [cacheLoaded, setCacheLoaded] = useState(false);  // 캐시 로드 완료(자동 생성 판단 기준)
+  // ★서버 생성상태(gen_jobs) 1회 조회 완료 여부 — **판단을 서두르지 않기 위한 플래그**(2026-08-01).
+  //   daniel: "진행중에 홈으로 나가기 누른 다음 다시 진입하면 로딩화면 초기화되고".
+  //   근인: 재진입 직후 progress 는 null 이고 gen_jobs 왕복은 아직 안 끝났는데, 그 사이에 화면이
+  //   "생성 중 아님"으로 단정해 **'생성' 버튼을 띄웠다**. 사용자가 그 순간 누르면 이미 도는 생성 위에
+  //   또 트리거가 걸린다. 서버 답을 받기 전엔 아무것도 단정하지 않는다(ADR-061 그대로 — 판단은 서버가).
+  const [jobLoaded, setJobLoaded] = useState(false);
   // ★유료 풀이 진입 안내(daniel 2026-07-27 "실제 풀이까지 진입할 때 뜨게 해줘") — 비회원에게만, 앱 실행당 1회.
   //   ⚠️차단이 아니라 안내다('나중에'로 그대로 진행) — 5.1.1 리젝 이력(07-08) 때문에 이 경계를 지킨다.
   useEffect(() => { promptSignupOnReadingEnter(() => router.push('/login'), t); }, []);   // eslint-disable-line react-hooks/exhaustive-deps
@@ -276,8 +282,11 @@ export function ReadingScreen({
   //   ★2026-06-30 무한반복 버그(gen_jobs done↔autoGen 재호출) 재발 방지 = 이 구독은 **표시·재조회만**, 절대 생성을
   //     트리거하지 않는다(생성 트리거는 autoGen/resume/버튼 → runAll → generate_set 한 방향뿐).
   useEffect(() => {
-    if (!chartId || !savedChart) return;
+    // ★서버에 물어볼 수 없는 경로(1회용 명식 등)는 **기다리지 않는다**. 여기서 true 로 두지 않으면
+    //   showStart 게이트가 영영 안 열려 '생성' 버튼이 사라진 채로 멈춘다(게이트를 만들 때마다 생기는 함정).
+    if (!chartId || !savedChart) { setJobLoaded(true); return; }
     let alive = true;
+    setJobLoaded(false);   // 명식/종류 전환 = 서버 상태를 다시 물어봐야 한다(이전 답으로 단정 금지)
     const gpRoute = `/reading?kind=${kind === 'ziwei' ? 'ziwei' : 'saju'}&chartId=${savedChart.id}`;
     const refetch = () => excludeMock(supabase.from('readings').select('category, content').eq('chart_id', chartId).eq('lang', appLang())).then(({ data }) => {
       if (!alive || !data) return;
@@ -297,7 +306,10 @@ export function ReadingScreen({
       refetch(); // done 증가/완료마다 새로 저장된 풀이를 채움
     };
     // 진입/명식전환 시 현재 서버 job 상태 1회 반영(realtime 이 놓친 사이 상태 복원)
-    supabase.from('gen_jobs').select('done, total, status, kind').eq('chart_id', chartId).eq('kind', kind).maybeSingle().then(({ data }) => apply(data));
+    //   ★이 답이 오기 전까지 화면은 '생성 중인지'를 단정하지 않는다(jobLoaded) — 재진입 시 '생성' 버튼 깜빡임 차단.
+    //     실패해도 반드시 true 로 둔다. 안 그러면 네트워크가 나쁠 때 버튼이 영영 안 나온다(멈춤).
+    supabase.from('gen_jobs').select('done, total, status, kind').eq('chart_id', chartId).eq('kind', kind).maybeSingle()
+      .then(({ data }) => { apply(data); if (alive) setJobLoaded(true); }, () => { if (alive) setJobLoaded(true); });
     const ch = supabase.channel(`genjobs:${chartId}:${kind}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'gen_jobs', filter: `chart_id=eq.${chartId}` }, (payload) => apply(payload.new))
       .subscribe();
@@ -427,6 +439,14 @@ export function ReadingScreen({
     if (!todo.length) return;                              // 전부 캐시됨 → 생성 불필요(바로 노출)
     const gDone = cats.length - todo.length;
     const gpRoute = `/reading?kind=${kind === 'ziwei' ? 'ziwei' : 'saju'}${savedChart ? `&chartId=${savedChart.id}` : ''}`;
+    // ★★잠금을 **위임 경로까지** 확장(2026-08-01 이중호출 근본수정 L1).
+    //   종전엔 acquireGen 이 아래 catch(폴백) 안에만 있었다. 즉 **정상 경로(서버 위임)는 무잠금**이라
+    //   재진입·워치독·AppState 복귀·자동생성이 겹치면 generate_set 이 여러 번 날아갔고,
+    //   서버의 중복 차단은 read-then-write 라 그 동시 요청에 뚫렸다(실측: 자미 12궁 전부 2회 LLM).
+    //   ⚠️락은 3중 방어의 첫 겹일 뿐이다 — 앱 재시작·다기기는 이걸로 못 막는다.
+    //     최종 방어는 서버(claim_gen_job · interpret 의 gen_locks)에 있다.
+    const lockKey = `${kind}:${id}`;
+    if (!acquireGen(lockKey)) return;                      // 이미 이 명식·이 종류를 생성 트리거 중 → 아무것도 하지 않는다
     // 낙관적 표시(즉시 오버레이) — 곧 아래 gen_jobs 구독이 서버 실측 done/total 로 대체한다.
     setProgress({ done: gDone, total: cats.length, current: todo[0].label });
     setGenProgress({ active: true, done: gDone, total: cats.length, label: kind === 'ziwei' ? t('reading.ziweiTitle', '자미두수') : t('reading.sajuTitle', '사주 풀이'), chartLabel: savedChart?.label, route: gpRoute });
@@ -441,52 +461,54 @@ export function ReadingScreen({
       if (error) throw error;
       // 성공 → 서버가 생성(강제종료 무관). gen_jobs 구독이 진행·완료를 표시하고 readings 를 채운다. 여기서 클라 루프 없음.
     } catch {
-      // 서버 위임 실패 → 클라 직접 생성 폴백(genLock 중복차단·기존 안정 경로)
-      const lockKey = `${kind}:${id}`;
-      // ★잠금을 못 얻으면(다른 트리거가 이미 생성 중) **낙관적 진행률을 되돌린다**(2026-07-31).
-      //   종전엔 그냥 return 해서, 위임도 실패하고 폴백도 못 잡은 경우 오버레이가 영구히 남았다.
-      if (!acquireGen(lockKey)) { setProgress(null); setGenProgress({ route: gpRoute, active: false }); return; }
-      try { await runAllLocal(id, todo, gDone, gpRoute); }
-      finally { releaseGen(lockKey); }   // 폴백이 예외로 끝나도 잠금·오버레이가 남지 않게
+      // 서버 위임 실패 → 클라 직접 생성 폴백. ★락은 이미 위에서 잡았다(중복 acquire 금지 — 자기 락에 자기가 막힌다).
+      await runAllLocal(id, todo, gDone, gpRoute);
+    } finally {
+      // ★위임 성공이든 폴백이든 여기서 놓는다. 이 락의 역할은 **같은 순간에 몰리는 트리거**
+      //   (워치독 tick·AppState 복귀·자동생성·사용자 버튼)를 하나로 합치는 것이다.
+      //   위임이 성공하면 서버가 몇 분간 계속 생성하지만 그동안 락을 붙들 필요는 없다 —
+      //   그 구간의 중복은 서버가 원자적으로 막는다(claim_gen_job).
+      releaseGen(lockKey);
     }
   }
 
-  // 클라가 직접 항목별 interpret 를 호출(현재 유일 경로 — generate_set 서버위임은 휴면). 재도입 시 이 함수는 미배포·오류·1회용 명식 폴백으로 강등.
+  // 클라가 직접 항목별 interpret 를 호출 — **서버 위임(generate_set) 실패 시의 폴백**이다(미배포·오프라인·오류·1회용 명식).
+  //   ⚠️호출자(runAll)가 이미 genLock 을 잡고 있다. 여기서 다시 잡거나 놓지 않는다(해제는 runAll 의 finally 한 곳).
   async function runAllLocal(id: string, todo: ReadingCategory[], gDone0: number, gpRoute: string) {
     let gDone = gDone0;
-    const lockKey = `${kind}:${id}`;
-    try {
-      for (const cat of todo) {
-        setProgress((p) => (p ? { ...p, current: cat.label } : null)); // 지금 풀이 중인 영역
-        try {
-          // 자미는 운한(대한 비성사화)이 포함된 최신 명반을 body 로 전달(저장본은 구버전일 수 있음 → Edge가 우선 사용).
-          const __inv = await withTimeout(supabase.functions.invoke('interpret', { body: { chartId: id, category: cat.key, kind, tier: 'paid', lang: appLang(), ...(kind === 'ziwei' ? { ziwei: c!.ziwei } : {}), ...(savedChart?.context ? { context: savedChart.context } : {}) } }));
-          const { data, error } = __inv ?? { data: null, error: { message: 'client timeout' } as any };          // ★결제 필요(운 부족) 감지 — daniel 2026-07-29 신고의 근인이었다.
-          //   종전엔 needPayment 를 그냥 '풀이'로 취급해 화면에 넣고 **남은 영역을 계속 호출**했다.
-          //   그러면 ①캐시가 안 채워지니 아래 watchdog 이 missing 을 계속 보고 재시도하고
-          //   ②재시도가 소진되면 '네트워크 오류' 알림이 뜬다(실제론 결제 문제인데).
-          //   → 즉시 중단하고 watchdog 을 **영구 정지**한다(재시도해도 결과가 같다).
-          if ((data as any)?.needPayment || (data as any)?.needCredit) {
-            wdStopped.current = true;
-            setProgress(null);
-            setGenProgress({ route: gpRoute, active: false });
-            logEvent('reading_gen_need_payment', { chartId: id, kind, category: cat.key });
-            return;
-          }
-          setReadings((prev) => ({ ...prev, [cat.key]: readingFromInvoke(data, error) })); // 방어: 일시적 불가·오류 친화 처리
-          if ((data as any)?.unavailable) { setProgress(null); setGenProgress({ route: gpRoute, active: false }); return; } // 방어: 사용량 한도 등 → 남은 영역 연속 호출·과금 방지(중단)
-        } catch (err) {
-          setReadings((prev) => ({ ...prev, [cat.key]: { error: (err as Error).message } }));
+    for (const cat of todo) {
+      setProgress((p) => (p ? { ...p, current: cat.label } : null)); // 지금 풀이 중인 영역
+      try {
+        // 자미는 운한(대한 비성사화)이 포함된 최신 명반을 body 로 전달(저장본은 구버전일 수 있음 → Edge가 우선 사용).
+        const __inv = await withTimeout(supabase.functions.invoke('interpret', { body: { chartId: id, category: cat.key, kind, tier: 'paid', lang: appLang(), ...(kind === 'ziwei' ? { ziwei: c!.ziwei } : {}), ...(savedChart?.context ? { context: savedChart.context } : {}) } }));
+        const { data, error } = __inv ?? { data: null, error: { message: 'client timeout' } as any };
+        // ★결제 필요(운 부족) 감지 — daniel 2026-07-29 신고의 근인이었다.
+        //   종전엔 needPayment 를 그냥 '풀이'로 취급해 화면에 넣고 **남은 영역을 계속 호출**했다.
+        //   그러면 ①캐시가 안 채워지니 아래 watchdog 이 missing 을 계속 보고 재시도하고
+        //   ②재시도가 소진되면 '네트워크 오류' 알림이 뜬다(실제론 결제 문제인데).
+        //   → 즉시 중단하고 watchdog 을 **영구 정지**한다(재시도해도 결과가 같다).
+        if ((data as any)?.needPayment || (data as any)?.needCredit) {
+          wdStopped.current = true;
+          setProgress(null);
+          setGenProgress({ route: gpRoute, active: false });
+          logEvent('reading_gen_need_payment', { chartId: id, kind, category: cat.key });
+          return;
         }
-        setProgress((p) => (p ? { done: p.done + 1, total: p.total, current: p.current } : null));
-        setGenProgress({ route: gpRoute, done: ++gDone }); // 홈 진행률 갱신(영역 1개 완료)
+        // ★llm_busy = 다른 워커가 그 영역을 만드는 중(2026-08-01 단일화 락). 실패가 아니다 —
+        //   이 영역은 곧 저장되고 gen_jobs 구독/캐시 재조회가 채운다. 오류로 그리지 말고 **다음 영역으로 넘어간다**.
+        //   (여기서 unavailable 로 뭉뚱그리면 잘 돌고 있는 세트를 통째로 중단시킨다.)
+        if ((data as any)?.code === 'llm_busy') continue;
+        setReadings((prev) => ({ ...prev, [cat.key]: readingFromInvoke(data, error) })); // 방어: 일시적 불가·오류 친화 처리
+        if ((data as any)?.unavailable) { setProgress(null); setGenProgress({ route: gpRoute, active: false }); return; } // 방어: 사용량 한도 등 → 남은 영역 연속 호출·과금 방지(중단)
+      } catch (err) {
+        setReadings((prev) => ({ ...prev, [cat.key]: { error: (err as Error).message } }));
       }
-      setProgress(null);
-      setGenProgress({ route: gpRoute, done: cats.length, total: cats.length }); // 완료 — 홈 배너에 '풀이 보기'(active 유지·탭하면 이동+닫기, daniel 이슈13)
-      // (완료 푸시는 setGenProgress 완료 전이에서 중앙 발송 — 중복 방지)
-    } finally {
-      releaseGen(lockKey);                                 // 완료·중단·오류 모두 잠금 해제(genLock 공유)
+      setProgress((p) => (p ? { done: p.done + 1, total: p.total, current: p.current } : null));
+      setGenProgress({ route: gpRoute, done: ++gDone }); // 홈 진행률 갱신(영역 1개 완료)
     }
+    setProgress(null);
+    setGenProgress({ route: gpRoute, done: cats.length, total: cats.length }); // 완료 — 홈 배너에 '풀이 보기'(active 유지·탭하면 이동+닫기, daniel 이슈13)
+    // (완료 푸시는 setGenProgress 완료 전이에서 중앙 발송 — 중복 방지)
   }
 
   // 미리보기(daniel 2026-06): 무료 진입 시 '첫 분야 1개만' 맛보기 생성 → 나머지는 잠김(unlock 유도).
@@ -634,7 +656,9 @@ export function ReadingScreen({
   // 미권한 = 잠금 — 단 ①캐시된 풀이가 하나도 없을 때만(이미 생성된 풀이는 절대 가리지 않음=자물쇠 근본수정) ②언락 조회 끝난 뒤(race 깜빡임 방지). daniel 07-01
   const locked = computeLocked({ cacheLoaded, unlockedLoaded, entitled, hasProgress: !!progress, readingsCount: Object.keys(readings).length }); // ★캐시 있으면 잠금 X(readingGate·테스트됨)
   // 생성/결제 버튼: 잠금(미권한)이거나, 미완성 + (비프리미엄 or 대표 아님)일 때.
-  const showStart = progress === null && (locked || (!haveAll && (!isPremium || !isRep)));
+  //   ★jobLoaded 전엔 띄우지 않는다(2026-08-01): 서버에 "지금 만드는 중"이라고 물어보기도 전에
+  //     '생성' 버튼을 보여주면, 재진입한 사용자가 그걸 눌러 **이미 도는 생성 위에 또 트리거**를 건다.
+  const showStart = jobLoaded && progress === null && (locked || (!haveAll && (!isPremium || !isRep)));
 
   // 프리미엄 자동 생성 — 캐시 로드 후 미생성 영역이 있으면 1회 자동 runAll(버튼 없이).
   //   ★대표 명식에만(비용통제): 다른 명식은 프리미엄이라도 자동 생성하지 않는다(수동 버튼).

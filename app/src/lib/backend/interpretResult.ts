@@ -17,7 +17,8 @@ const tr = (key: string, fallback: string): string => {
   return s && s !== key ? s : fallback;
 };
 
-export type InvokeFailKind = 'unavailable' | 'needPayment' | 'needPremium' | 'error';
+//   'busy' = 실패가 아니라 **진행 중**이다(서버 단일화 락). 화면은 오류가 아니라 '기다리는 중'으로 그린다.
+export type InvokeFailKind = 'unavailable' | 'busy' | 'needPayment' | 'needPremium' | 'error';
 
 // 화면이 setReading(...)에 그대로 넣을 값.
 //   성공 → reading 객체(없으면 null) / 실패 → { error, ... 플래그 }. 화면은 reading?.error 로 분기.
@@ -38,6 +39,13 @@ export function invokeFail(
   error: any,
 ): { kind: InvokeFailKind; message: string; retryAt?: string | null } | null {
   if (error) return { kind: 'error', message: tr('common.genFailed', '풀이를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.') };
+  // ★llm_busy = 실패가 아니다(2026-08-01 생성 단일화). "같은 풀이를 이미 만들고 있으니 곧 나온다"는 뜻이다.
+  //   ⚠️여기서 갈라 주는 이유 = **길목**이기 때문이다. 이 헬퍼를 쓰는 화면이 14곳인데 각각 고치면
+  //     반드시 몇 개를 빠뜨린다(전에 그렇게 새어 나갔다). 문구를 한 곳에서 정확히 바꾼다.
+  //   실패 문구('생성이 어려워요')를 띄우면 사용자는 실패한 줄 알고 다시 누르고, 그 재시도가 또 트리거가 된다.
+  if (data?.unavailable && data?.code === 'llm_busy') {
+    return { kind: 'busy', message: tr('common.llmMaking', data?.message || '같은 풀이가 이미 만들어지는 중이에요. 잠시 후 다시 확인해 주세요.'), retryAt: null };
+  }
   if (data?.unavailable) {
     // 클라 로캘 메시지 우선, 없으면 Edge가 준 메시지(ko) fallback.
     return { kind: 'unavailable', message: tr('common.llmBusy', data?.message || '지금 통변 생성이 일시적으로 어려워요. 잠시 후 다시 시도해 주세요.'), retryAt: data?.retryAt ?? null };

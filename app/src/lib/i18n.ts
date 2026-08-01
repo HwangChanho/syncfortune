@@ -81,6 +81,7 @@ const ko = {
     comingSoon: '준비 중입니다.', error: '오류', loginOptional: '로그인 / 회원가입 (유료·저장 기능용 — 선택)',
     cancel: '취소', none: '없음',
     llmBusy: '지금 통변 생성이 일시적으로 어려워요. 잠시 후 다시 시도해 주세요.', // 방어: LLM 일시적 불가(사용량 한도·혼잡)
+    llmMaking: '같은 풀이가 이미 만들어지는 중이에요. 잠시 후 다시 확인해 주세요.', // 생성 단일화(2026-08-01): 실패가 아니라 진행 중 — 재시도를 권하지 않는다
     genFailed: '풀이를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.',           // 방어: 일반 생성 실패(원문 숨김)
   },
   auth: {
@@ -362,6 +363,7 @@ const en = {
     comingSoon: 'Coming soon.', error: 'Error', loginOptional: 'Log in / Sign up (for paid & saving — optional)',
     cancel: 'Cancel', none: 'None',
     llmBusy: 'Readings are temporarily unavailable right now. Please try again in a little while.',
+    llmMaking: 'This reading is already being prepared. Please check back in a moment.',
     genFailed: 'Could not load the reading. Please try again in a little while.',
   },
   auth: {
@@ -637,6 +639,7 @@ const ja = {
     comingSoon: '準備中です。', error: 'エラー', loginOptional: 'ログイン / 新規登録（有料·保存機能用 — 任意）',
     cancel: 'キャンセル', none: 'なし',
     llmBusy: '今は鑑定の生成が一時的に難しいようです。しばらくしてからもう一度お試しください。',
+    llmMaking: '同じ鑑定をただいま作成中です。少し経ってからご確認ください。',
     genFailed: '鑑定を読み込めませんでした。しばらくしてからもう一度お試しください。',
   },
   auth: {

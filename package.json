@@ -84,7 +84,8 @@
     "check:paid": "npx tsx scripts/check-paid-content.ts",
     "check:hang": "npx tsx scripts/check-hang.ts",
     "check:goldensync": "node scripts/check-golden-sync.mjs",
-    "check:paygate": "npx tsx scripts/check-paygate.ts"
+    "check:paygate": "npx tsx scripts/check-paygate.ts",
+    "check:singleflight": "npx tsx scripts/check-singleflight.ts"
   },
   "keywords": [],
   "author": "",
