@@ -142,7 +142,7 @@ export default function AssistantScreen() {
       >
         <ChartPicker />
         <TigerMascot size={76} style={{ alignSelf: 'center', marginTop: space(8), marginBottom: space(2) }} />
-        <Text style={[styles.title, { fontSize: fs(23) }]}>{t('assist.title', '운이 도우미')}</Text>
+        <Text style={[styles.title, { fontSize: fs(23) }]}>{t('assist.title', '우니')}</Text>
         <Text style={[styles.sub, { fontSize: fs(13) }]}>
           {t('assist.sub', '보고 싶은 걸 말해 주세요. 바로 그 자리로 데려다 드려요.')}
         </Text>

@@ -460,7 +460,7 @@ export default function Home() {
               <Text style={styles.coachBannerEmoji}>💬</Text>
               <View style={{ flex: 1 }}>
                 {/* 팔자 도우미로 전환(daniel 2026-07-30) — 종전 'AI 자기이해 코치'(LLM 생성)에서 콘텐츠 안내로 */}
-                <Text style={styles.coachBannerTitle}>{t('assist.title', '운이 도우미')}</Text>
+                <Text style={styles.coachBannerTitle}>{t('assist.title', '우니')}</Text>
                 <Text style={styles.coachBannerSub} numberOfLines={1}>{t('assist.sub', '보고 싶은 걸 말해 주세요. 바로 그 자리로 데려다 드려요.')}</Text>
               </View>
               <Text style={styles.coachBannerArrow}>›</Text>

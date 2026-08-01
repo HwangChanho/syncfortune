@@ -76,11 +76,19 @@ export default function RootLayout() {
     if (!session) { setAdTestMode(false); setClientTestMode(false); setLogTestContext(false); setAdminTrace(false); return; }
     supabase.auth.getUser().then(({ data }) => {
       if (!data.user) { setAdTestMode(false); setClientTestMode(false); setLogTestContext(false); setAdminTrace(false); return; }
-      supabase.from('profiles').select('test_mode, is_admin, admin_mode').eq('id', data.user.id).maybeSingle()
-        .then(({ data: p }) => {
-          setAdTestMode(!!p?.test_mode); // 테스트모드 토글 ON 시에만 테스트광고+게이트(평소 관리자 편의)
-          setClientTestMode(!!p?.test_mode); // ★readings 목업 필터 소스 — OFF면 direct 로드가 tier='mock' 제외(실모드 목업 서빙 차단)
-          setLogTestContext(!!p?.test_mode || !!p?.is_admin || !!p?.admin_mode); setAdminTrace(!!p?.test_mode || !!p?.is_admin || !!p?.admin_mode); // ★로그 test 태그 = 관리자/테스트 계정(실사용자 로그와 분리)
+      // ★★전역 테스트모드(daniel 2026-08-01)를 **함께** 읽는다.
+      //   서버(interpret)만 전역으로 켜면 목업이 저장되는데, 클라의 `excludeMock` 이 그걸 걸러내
+      //   화면이 통째로 빈다(개인 test_mode 가 false 이므로). 두 소스를 OR 로 묶어야 짝이 맞는다.
+      //   ⚠️이 짝을 깨면 "테스트모드 켰는데 풀이가 안 보인다"가 된다 — 서버·클라 어느 한쪽만 고치지 말 것.
+      Promise.all([
+        supabase.from('profiles').select('test_mode, is_admin, admin_mode').eq('id', data.user.id).maybeSingle(),
+        supabase.from('app_flags').select('enabled').eq('key', 'global_test_mode').maybeSingle(),
+      ]).then(([{ data: p }, { data: gf }]) => {
+          const globalTest = (gf as { enabled?: boolean } | null)?.enabled === true;
+          const mockOn = !!p?.test_mode || globalTest;   // 개인(관리자) OR 전역
+          setAdTestMode(mockOn); // 테스트모드 ON 시에만 테스트광고+게이트(평소 관리자 편의)
+          setClientTestMode(mockOn); // ★readings 목업 필터 소스 — OFF면 direct 로드가 tier='mock' 제외(실모드 목업 서빙 차단)
+          setLogTestContext(mockOn || !!p?.is_admin || !!p?.admin_mode); setAdminTrace(mockOn || !!p?.is_admin || !!p?.admin_mode); // ★로그 test 태그 = 관리자/테스트 계정(실사용자 로그와 분리)
         });
     }).catch(() => {});
   }, [session]);

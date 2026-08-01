@@ -235,7 +235,12 @@ export default function AdminRoute() {
   // 유저 선택 시 상세(사용량·명식·이용권) 로드
   useEffect(() => { setDetail(null); setGiftMsg(null); setUsage(null); setVisits([]); setShowCharts(false); if (sel) { adminUserDetail(sel.id).then(setDetail).catch(() => {}); adminUserUsage(sel.id).then(setUsage).catch(() => {}); adminUserContentVisits(sel.id).then(setVisits).catch(() => {}); } }, [sel]);
   // 테스트/관리자 모드 현재값 로드(프로필) — 설정에서 이동(daniel 07-01)
+  // ★전역 테스트모드(daniel 2026-08-01) — 개인 test_mode 와 **별개**다.
+  //   개인은 관리자 본인에게만 걸린다(07-24 개정). 테스터에게 앱을 돌리면 실 통변이 그대로 나가고,
+  //   잔액 0이어도 무료 LLM 경로(오늘/이달·미리보기)는 안 막힌다 → 전역 스위치로 한 번에 끊는다.
+  const [globalTest, setGlobalTest] = useState(false);
   useEffect(() => { supabase.auth.getUser().then(({ data }) => { if (data.user) supabase.from('profiles').select('test_mode, admin_mode').eq('id', data.user.id).maybeSingle().then(({ data: p }) => { setTestMode(!!p?.test_mode); setAdminMode(p?.admin_mode !== false); }); }).catch(() => {}); }, []);
+  useEffect(() => { supabase.from('app_flags').select('enabled').eq('key', 'global_test_mode').maybeSingle().then(({ data }) => setGlobalTest((data as { enabled?: boolean } | null)?.enabled === true), () => {}); }, []);
   useEffect(() => { isOnboardingEnabled().then(setOnbOn).catch(() => {}); }, []); // 온보딩 노출 여부 로드(관리자 토글)
   // ★신규 기능 플래그 로드(원격 app_flags) — 공개 토글 초기 상태.
   // 속궁합·위젯은 전체공개 고정(features.ts ALWAYS_ON)이라 토글·조회 대상에서 제외 — 커뮤니티만 원격 플래그.
@@ -317,6 +322,22 @@ export default function AdminRoute() {
         try { const { data } = await supabase.rpc('set_my_test_mode', { p_on: next }); if (data === true) { setTestMode(next); setAdTestMode(next); setClientTestMode(next); } } catch { /* 무시 */ }
       }}>
         <Text style={styles.adminLinkTx}>테스트 모드 {testMode ? '— 켜짐 (통변 mock·API 미호출)' : '— 꺼짐'}</Text>
+      </PressableScale>
+      {/* ★★전역 테스트 모드 — **모든 사용자**(테스터 포함)의 통변을 목업으로. Anthropic 호출 0.
+          개인 테스트모드는 관리자 본인만 적용되므로, 테스터 배포 중 API 를 막으려면 이걸 켠다.
+          ⚠️켜면 실 통변이 안 나온다 — 테스터 테스트가 끝나면 반드시 다시 끌 것. */}
+      <PressableScale style={[styles.adminLink, globalTest && styles.adminLinkOn]} onPress={async () => {
+        const next = !globalTest;
+        try {
+          const { data } = await supabase.rpc('set_global_test_mode', { p_on: next });
+          if (data === true) {
+            setGlobalTest(next);
+            setClientTestMode(next || testMode);   // ★클라 목업 필터도 즉시 동기(안 하면 화면이 빈다)
+            setAdTestMode(next || testMode);
+          }
+        } catch { /* 무시 */ }
+      }}>
+        <Text style={styles.adminLinkTx}>🌐 전역 테스트 모드 {globalTest ? '— 켜짐 (모든 사용자 mock · API 0)' : '— 꺼짐 (실 통변)'}</Text>
       </PressableScale>
       <PressableScale style={[styles.adminLink, adminMode && styles.adminLinkOn]} onPress={async () => {
         const next = !adminMode;
