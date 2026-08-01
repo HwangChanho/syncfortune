@@ -134,12 +134,15 @@ console.log('\n[S5] 재통변 코인 할인율·계산식이 앱과 서버에서
   else bad('앱이 동의 후에도 renewConfirm 을 안 보낸다 — 재통변이 영원히 안 된다(무한 안내)');
 }
 
-// ── S6 화폐명 = '운'(daniel 2026-07-30 "거래하는 화폐 단위를 woon(운)으로") ──────────
+// ── S6 화폐명 = '운'(daniel 2026-08-01 "woon도 운으로 다시 변경") ──────────
+// ⚠️07-30 엔 'woon' 이었다가 08-01 에 **'운'으로 되돌렸다.** 이 되돌림은 안전장치를 하나 잃는다:
+//   'woon' 일 때는 화폐명이 명리 용어(대운·세운·기운)와 **글자가 달라** 일괄 치환 사고를 기계로 잡을 수 있었다.
+//   '운' 은 글자가 같아서 그 방식이 안 통한다 ⇒ 아래에서 **명리 용어가 온전한지**를 직접 확인한다(반대 방향 검사).
 // ★내부 식별자는 그대로 `coin`이다 — Play 상품 id 는 **변경 불가(immutable)** 이고
 //   DB 테이블(coin_balance·coin_ledger)·RPC(spend_coins_owner·grant_coins)까지 개명하면
 //   마이그레이션·상품 재생성이 필요한데 사용자가 얻는 건 없다. **표시명만** 바꾼다.
 //   그래서 하네스는 '코드'가 아니라 **사용자에게 보이는 문자열**만 본다.
-console.log("\n[S6] 화폐 단위 = 'woon'(코인 잔재 0 · 대운/세운/기운 오염 0)");
+console.log("\n[S6] 화폐 단위 = '운'(코인 잔재 0 · 명리 용어 온전 · 잔액 단위 부착)");
 {
   const bad2: string[] = [];
   for (const f of files) {
@@ -165,18 +168,27 @@ console.log("\n[S6] 화폐 단위 = 'woon'(코인 잔재 0 · 대운/세운/기�
   // ★★'운' 은 화폐만이 아니다 — 대운·세운·기운·운세·12운성에도 들어간다.
   //   화폐명을 일괄 치환할 때 이 단어들이 깨지면 명리 용어가 망가진다(사용자에겐 오타로 보인다).
   //   기계로 못 박아 둔다: 'woon' 이 명리 용어에 붙어 버린 흔적을 찾는다.
+  //   ①'woon' 잔재가 명리 용어에 붙은 흔적(07-30 치환의 후유증) ②명리 용어 자체가 살아 있는지.
   const corrupt: string[] = [];
   for (const f of files) {
     const raw = readFileSync(f, 'utf8');
     if (/대woon|세woon|기woon|woon세|12woon|woon성|행woon/.test(raw)) corrupt.push(f.replace(ROOT, ''));
   }
-  if (!corrupt.length) ok('명리 용어(대운·세운·기운·운세·12운성) 오염 0');
+  if (!corrupt.length) ok("명리 용어에 'woon' 잔재 0");
   else bad(`화폐 치환이 명리 용어를 깨뜨렸다: ${corrupt.join(', ')}`);
+
+  // ★반대 방향 검사 — 화폐명을 '운'으로 되돌리면서 명리 용어를 같이 갈아엎지 않았는가.
+  //   i18n 은 앱의 모든 표시 문구 원본이라, 여기서 이 단어들이 사라졌다면 치환이 과했다는 뜻이다.
+  const i18nRaw = readFileSync(join(ROOT, 'app/src/lib/i18n.ts'), 'utf8');
+  const mustKeep = ['대운', '세운', '운세'];
+  const lost = mustKeep.filter((w) => !i18nRaw.includes(w));
+  if (!lost.length) ok(`명리 용어 온전(${mustKeep.join('·')})`);
+  else bad(`치환이 명리 용어를 지웠다: ${lost.join(', ')} — 화폐명과 글자가 같아 생기는 사고다`);
 
   // 잔액·가격 표기가 화폐명을 달고 있는지(단위 없는 숫자만 노출되면 무슨 값인지 모른다)
   const balFiles = ['app/src/components/CoinBadge.tsx', 'app/src/app/(app)/coins.tsx'];
-  const noUnit = balFiles.filter((rel) => !/woon/.test(readFileSync(join(ROOT, rel), 'utf8')));
-  if (!noUnit.length) ok('잔액·팩 표기에 단위(woon) 부착');
+  const noUnit = balFiles.filter((rel) => !/운/.test(readFileSync(join(ROOT, rel), 'utf8')));
+  if (!noUnit.length) ok("잔액·팩 표기에 단위('운') 부착");
   else bad(`단위 없는 금액 표기: ${noUnit.join(', ')}`);
 }
 

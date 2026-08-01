@@ -51,8 +51,8 @@ export async function runContentRenewal(opts: {
 
   if (bal < cost) {
     Alert.alert(
-      t('renewal.needTitle', 'woon이 부족해요'),
-      t('renewal.needMsg', { need: cost, have: bal, defaultValue: '재통변에는 {{need}} woon이 필요해요. 지금 {{have}} woon 있어요.' }),
+      t('renewal.needTitle', '운이 부족해요'),
+      t('renewal.needMsg', { need: cost, have: bal, defaultValue: '재통변에는 {{need}} 운이 필요해요. 지금 {{have}} 운 있어요.' }),
       [
         { text: t('common.cancel', '취소'), style: 'cancel' },
         { text: t('coins.charge', '충전하기'), onPress: goCharge },
@@ -66,7 +66,7 @@ export async function runContentRenewal(opts: {
       t('renewal.title', '최신 통변으로 다시 받기'),
       t('renewal.msg', {
         pct: RENEWAL_COIN_DISCOUNT_PCT, coins: cost, have: bal,
-        defaultValue: '이 풀이를 받은 지 1년이 지났어요.\n\n{{pct}}% 할인된 {{coins}} woon으로 지금 시점 기준으로 다시 풀어 드려요. (보유 {{have}} woon)',
+        defaultValue: '이 풀이를 받은 지 1년이 지났어요.\n\n{{pct}}% 할인된 {{coins}} 운으로 지금 시점 기준으로 다시 풀어 드려요. (보유 {{have}} 운)',
       }),
       [
         { text: t('renewal.later', '다음에'), style: 'cancel', onPress: () => resolve(false) },

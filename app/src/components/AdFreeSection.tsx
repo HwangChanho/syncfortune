@@ -43,7 +43,7 @@ export function AdFreeSection({ onDone, onNeedCoins }: { onDone?: () => void; on
     const label = days == null ? '영구' : `${days}일`;
     Alert.alert(
       '광고 제거',
-      `${coins} woon을 사용해 광고를 ${label} 없앨까요?`,
+      `${coins} 운을 사용해 광고를 ${label} 없앨까요?`,
       [
         { text: '취소', style: 'cancel' },
         { text: '사용', onPress: async () => {
@@ -55,12 +55,12 @@ export function AdFreeSection({ onDone, onNeedCoins }: { onDone?: () => void; on
               onDone?.();
             } else if (r.reason === 'insufficient') {
               // ★부족 = 충전 유도. '조회 실패'와 구분된 서버 판정이라 여기선 안심하고 권할 수 있다.
-              Alert.alert('woon이 부족해요', `${coins} woon이 필요해요. 지금 ${r.balance} woon 있어요.`, [
+              Alert.alert('운이 부족해요', `${coins} 운이 필요해요. 지금 ${r.balance} 운 있어요.`, [
                 { text: '취소', style: 'cancel' },
                 ...(onNeedCoins ? [{ text: '충전하기', onPress: onNeedCoins }] : []),
               ]);
             } else {
-              Alert.alert('잠시 후 다시 시도해 주세요', '구매를 처리하지 못했어요. woon은 차감되지 않았어요.');
+              Alert.alert('잠시 후 다시 시도해 주세요', '구매를 처리하지 못했어요. 운은 차감되지 않았어요.');
             }
           } finally { setBusy(null); }
         } },
@@ -87,7 +87,7 @@ export function AdFreeSection({ onDone, onNeedCoins }: { onDone?: () => void; on
             //   기간·가격이 한눈에 붙어 있으면 비교가 오히려 쉽고, 목록 전체가 짧아진다.
             <PressableScale key={p.id} style={styles.btn} onPress={() => void buy(p.id, p.coins, p.days)} disabled={busy !== null}>
               <Text style={[styles.btnTitle, { fontSize: fs(13) }]}>{p.days == null ? '영구' : `${p.days}일`}</Text>
-              <Text style={[styles.btnCoins, { fontSize: fs(14) }]}>{busy === p.id ? '…' : `${p.coins} woon`}</Text>
+              <Text style={[styles.btnCoins, { fontSize: fs(14) }]}>{busy === p.id ? '…' : `${p.coins} 운`}</Text>
             </PressableScale>
           ))}
         </View>

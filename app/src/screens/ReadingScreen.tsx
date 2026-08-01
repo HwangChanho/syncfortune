@@ -461,7 +461,7 @@ export function ReadingScreen({
         try {
           // 자미는 운한(대한 비성사화)이 포함된 최신 명반을 body 로 전달(저장본은 구버전일 수 있음 → Edge가 우선 사용).
           const __inv = await withTimeout(supabase.functions.invoke('interpret', { body: { chartId: id, category: cat.key, kind, tier: 'paid', lang: appLang(), ...(kind === 'ziwei' ? { ziwei: c!.ziwei } : {}), ...(savedChart?.context ? { context: savedChart.context } : {}) } }));
-          const { data, error } = __inv ?? { data: null, error: { message: 'client timeout' } as any };          // ★결제 필요(woon 부족) 감지 — daniel 2026-07-29 신고의 근인이었다.
+          const { data, error } = __inv ?? { data: null, error: { message: 'client timeout' } as any };          // ★결제 필요(운 부족) 감지 — daniel 2026-07-29 신고의 근인이었다.
           //   종전엔 needPayment 를 그냥 '풀이'로 취급해 화면에 넣고 **남은 영역을 계속 호출**했다.
           //   그러면 ①캐시가 안 채워지니 아래 watchdog 이 missing 을 계속 보고 재시도하고
           //   ②재시도가 소진되면 '네트워크 오류' 알림이 뜬다(실제론 결제 문제인데).
@@ -594,18 +594,18 @@ export function ReadingScreen({
         if (bal === null) { notifyNetworkError('reading.coinBalance', new Error('balance unavailable'), t); return; }  // ★확인 불가 ≠ 부족
         if (bal < coinCost) {
           Alert.alert(
-            t('coins.needTitle', 'woon이 부족해요'),
-            t('coins.needMsg', { need: coinCost, have: bal, defaultValue: '이 풀이는 {{need}} woon이 필요해요. 지금 {{have}} woon 있어요.' }),
+            t('coins.needTitle', '운이 부족해요'),
+            t('coins.needMsg', { need: coinCost, have: bal, defaultValue: '이 풀이는 {{need}} 운이 필요해요. 지금 {{have}} 운 있어요.' }),
             [{ text: t('common.cancel'), style: 'cancel' }, { text: t('coins.charge', '충전하기'), onPress: () => router.push('/coins') }],
           );
           return;
         }
         Alert.alert(
           t('reading.premiumAlert'),
-          t('coins.spendMsg', { cost: coinCost, have: bal, defaultValue: '{{cost}} woon을 사용해 풀이를 시작할까요? (보유 {{have}} woon)' }),
+          t('coins.spendMsg', { cost: coinCost, have: bal, defaultValue: '{{cost}} 운을 사용해 풀이를 시작할까요? (보유 {{have}} 운)' }),
           [
             // ★차감은 서버(Edge interpret)가 한다 — 여기서 미리 빼지 않는다(이중차감·우회 방지, 보안 P3 유지).
-            { text: t('coins.spend', 'woon 사용'), onPress: () => { void runAll(id); } },
+            { text: t('coins.spend', '운 사용'), onPress: () => { void runAll(id); } },
             { text: t('common.cancel'), style: 'cancel' },
           ],
         );
@@ -869,7 +869,7 @@ export function ReadingScreen({
       {/* #1: 미권한 명식(무료모드·비지정 프리미엄)은 캐시 풀이 대신 페이월 — 첫 영역만 맛보기 */}
       {locked && (
         <View style={styles.card}>
-          <Text style={{ ...font.heading, color: colors.ju, marginBottom: space(3), fontSize: fs(16) }}>🔒 {t('reading.lockedTitle', '이 명식의 풀이는 woon으로 열려요')}</Text>
+          <Text style={{ ...font.heading, color: colors.ju, marginBottom: space(3), fontSize: fs(16) }}>🔒 {t('reading.lockedTitle', '이 명식의 풀이는 운으로 열려요')}</Text>
           {(() => {
             const r0 = normalizeReading(readings[cats[0]?.key]);
             const tease = r0 && typeof r0 === 'object' && !(r0 as any).error ? asText((r0 as any).base) : null;

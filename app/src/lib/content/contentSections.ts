@@ -51,7 +51,7 @@ export const HOME_INDIVIDUAL = new Set(['dream', 'followup', 'timeresolve']);
  */
 export const priceLabel = (key: string) => {
   const coin = COIN_PRICE[key as keyof typeof COIN_PRICE];
-  return coin != null ? `${coin} woon` : wonFmt(CREDIT_PRICE[key] ?? 0);
+  return coin != null ? `${coin} 운` : wonFmt(CREDIT_PRICE[key] ?? 0);
 };
 
 // ── 콘텐츠 카드 목록 ─────────────────────────────────────────────────────

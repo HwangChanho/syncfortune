@@ -11,7 +11,7 @@ import { useEffect, useState } from 'react';
 import { isAdmin, adminListUsers, adminGrantCredit, adminUserDetail, adminStats, adminUserUsage, adminUserContentVisits, adminSchedulePush, adminListPushCampaigns, adminCancelPush, type AdminUser, type AdminUserDetail, type AdminStats, type AdminUsage, type AdminContentVisit, type DayPoint, type PushCampaign } from '../../lib/core/admin';
 import { CREDIT_KINDS, type CreditKind } from '../../lib/billing/coupons';
 import { logEvent } from '../../lib/backend/logger';
-import { adminGrantCoins } from '../../lib/core/admin';   // ★woon 선물(daniel 07-28) // DB 로그(app_logs) — 선물/프리미엄 단계 추적
+import { adminGrantCoins } from '../../lib/core/admin';   // ★운 선물(daniel 07-28) // DB 로그(app_logs) — 선물/프리미엄 단계 추적
 import { colors, radius, space, shadow, font } from '../../lib/theme';
 import { useRouter } from 'expo-router'; // 비용분석 화면 이동
 import { supabase } from '../../lib/supabase'; // 테스트/관리자 모드 RPC + 프로필 로드
@@ -278,7 +278,7 @@ export default function AdminRoute() {
   function giftCoins(amount: number) {
     if (!sel || busy) return;
     const u = sel;
-    Alert.alert('woon 선물', `${u.email} 에게\n${amount.toLocaleString('ko-KR')} woon을 지급할까요?`, [
+    Alert.alert('운 선물', `${u.email} 에게\n${amount.toLocaleString('ko-KR')} 운을 지급할까요?`, [
       { text: '취소', style: 'cancel' },
       { text: '지급', onPress: async () => {
         setBusy(true); setGiftMsg(null);
@@ -286,7 +286,7 @@ export default function AdminRoute() {
         try {
           await adminGrantCoins(u.id, amount);                              // 권한은 서버가 강제(is_caller_god)
           if (detail) adminUserDetail(u.id).then(setDetail).catch(() => {});
-          setGiftMsg(`✓ ${amount.toLocaleString('ko-KR')} woon 지급 완료`);
+          setGiftMsg(`✓ ${amount.toLocaleString('ko-KR')} 운 지급 완료`);
           logEvent('admin_gift_coin_ok', { owner: u.id, amount });
         } catch (e: any) {
           setGiftMsg(`✗ 지급 실패: ${String(e?.message ?? e)}`);
@@ -473,7 +473,7 @@ export default function AdminRoute() {
               <View style={styles.pillRow}>
                 {/* ★프리미엄 pill → 코인 잔액(07-28). 프리미엄은 지급해도 효과가 없으므로 상태로 보여 주면 오해를 부른다.
                     과거 구매자였다면 '(구)프리미엄'으로만 표기 — 이력은 남기되 현재 권한이 아님을 분명히. */}
-                <Text style={[styles.miniPill, styles.miniPillOn]}>{(detail.coins ?? 0).toLocaleString('ko-KR')} woon</Text>
+                <Text style={[styles.miniPill, styles.miniPillOn]}>{(detail.coins ?? 0).toLocaleString('ko-KR')} 운</Text>
                 {detail.is_premium ? <Text style={[styles.miniPill, styles.miniPillOff]}>(구)프리미엄</Text> : null}
                 {detail.is_admin ? <Text style={[styles.miniPill, styles.miniPillAdmin]}>{detail.admin_mode ? '관리자' : '관리자·모드OFF'}</Text> : null}
               </View>
@@ -555,7 +555,7 @@ export default function AdminRoute() {
           {/* ★코인 선물(daniel 2026-07-28) — 콘텐츠별 이용권 28종 나열을 액수 선택으로 대체.
               코인이 화폐가 됐으므로 '어느 콘텐츠'를 고를 이유가 없다(받는 쪽이 원하는 데 쓴다).
               액수는 실제 콘텐츠 가격에 맞춘 눈금이다 — 10=코치 질문 · 50=4,900원대 · 200=사주 풀이. */}
-          <Text style={styles.giftSub}>woon 선물</Text>
+          <Text style={styles.giftSub}>운 선물</Text>
           <View style={styles.giftGrid}>
             {[10, 30, 50, 100, 150, 200, 300, 600].map((amt) => (
               <PressableScale key={amt} style={styles.giftBtn} onPress={() => giftCoins(amt)} disabled={busy}>

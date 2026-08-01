@@ -270,8 +270,8 @@ export default function CareerScreen() {
               <Text style={styles.previewHead}>{t('special.previewHead', '이런 걸 풀어드려요')}</Text>
               {SECTIONS.map((s) => <Text key={s.key} style={styles.previewItem}>· {t(s.tk, s.def)}</Text>)}
             </View>
-            <PressableScale style={[styles.cta, styles.ctaTeal]} onPress={onStart}><Text style={styles.ctaTx}>{t('special.unlock', 'woon으로 열기')}</Text></PressableScale>
-            <Text style={styles.gateNote}>{t('special.couponHint', 'woon으로 열 수 있어요')}</Text>
+            <PressableScale style={[styles.cta, styles.ctaTeal]} onPress={onStart}><Text style={styles.ctaTx}>{t('special.unlock', '운으로 열기')}</Text></PressableScale>
+            <Text style={styles.gateNote}>{t('special.couponHint', '운으로 열 수 있어요')}</Text>
           </View>
         )}
               {/* ★이어서 보면 좋은 콘텐츠(daniel 2026-07-27 "전부 붙여") — 화면마다 하단이 달라 보이던 것 통일.
