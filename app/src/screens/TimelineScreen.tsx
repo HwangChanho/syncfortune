@@ -148,11 +148,11 @@ export function TimelineScreen({ input, savedChart }: { input: ChartInput | null
       (data ?? []).forEach((r: any) => { if (/^(life|year)_/.test(r.category)) { loaded[r.category] = r.content; if (r.created_at) created[r.category] = r.created_at; } });
       setReadings(loaded);
       setCreatedAt(created);
-      // 프리미엄 자동 생성은 '무료' 기간(현재 대운·올해)만 + ★대표 명식에만(비용통제). 오프라인=보류.
-      if (isRep && isOnline()) { // 현재 대운·올해는 전원 무료 → 자동 생성(daniel)
-        if (curDecadeKey && !loaded[curDecadeKey]) gen(curDecadeKey, id);
-        if (!loaded[`year_${nowYear}`]) gen(`year_${nowYear}`, id);
-      }
+      // ★★자동 생성 제거(daniel 2026-08-01 "풀이보기 누르지도 않았는데 바로 풀려").
+      //   종전엔 현재 대운·올해가 '전원 무료'라 **진입만 해도** 두 건을 생성했다.
+      //   코인은 안 깎이지만 **LLM 은 호출된다** — 사용자가 원한 적 없는 생성이고,
+      //   잔액 0인 테스터도 진입만으로 API 를 태우는 경로였다(08-01 전역 테스트모드를 만든 이유와 같은 문제).
+      //   ⇒ 무료여도 **버튼을 눌러야** 생성한다. 카드에 이미 '이 시기 풀이 보기' 가 있어 도달성은 그대로다.
     })().catch(() => {});
     return () => { alive = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -242,11 +242,11 @@ export function TimelineScreen({ input, savedChart }: { input: ChartInput | null
   // ★buyBundle 제거(daniel 2026-07-28) — 번들 결제 경로 폐지. 위 UI 주석 참조.
 
 
-  // picker에서 선택 → 무료/이미 캐시된 기간만 자동 생성. 잠긴 기간은 카드의 '열기' 버튼으로 명시적 결제.
+  // picker에서 선택 = **표시 전환만**. 생성은 카드 버튼으로만(자동 생성 없음·daniel 08-01).
   function pick(key: string) {
     if (key.startsWith('life_')) setSelDecade(key); else setSelYear(key);
     setPicker(null);
-    if (!readings[key] && isFree(key)) gen(key); // 무료시기(현재 대운·올해)만 자동 — 유료 시기는 카드에서 직접
+    // ★선택만으로 생성하지 않는다(daniel 08-01) — 무료 시기도 카드의 '이 시기 풀이 보기' 로만 생성.
   }
 
   // 카드의 카테고리 칩 선택값(기본 general)

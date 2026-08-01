@@ -125,7 +125,7 @@ export function LifeGraphTeaser({ saju }: { saju: SajuChart }) {
         </Svg>
         {/* 범례(일상어 — 한자/용어 없음) */}
         <Text style={styles.legend}>
-          큰 금색 점 = 올라서는 전환점 · 큰 붉은 점 = 다지고 조심할 전환점 · 테두리만 있는 점 = 지금 나이
+          크게 찬 점 = 올라서는 전환점 · 큰 붉은 점 = 다지고 조심할 전환점 · 테두리만 있는 점 = 지금 나이
         </Text>
       </View>
 

@@ -151,8 +151,8 @@ export function TimelineTeaser({ saju }: { saju: SajuChart }) {
         {/* 범례(일상어) — 흐름 화살표 뜻(점수 있을 때만). 고름(·)은 자명해 생략. */}
         <Text style={styles.legend}>
           {hasFlow
-            ? '↗ 올라서는 흐름 · ↘ 다지고 조심할 때 · 금색 점 = 지금 지나는 챕터'
-            : '금색 점 = 지금 지나고 있는 챕터예요'}
+            ? '↗ 올라서는 흐름 · ↘ 다지고 조심할 때 · 진하게 찬 점 = 지금 지나는 챕터'
+            : '진하게 찬 점 = 지금 지나고 있는 챕터예요'}
         </Text>
       </View>
 

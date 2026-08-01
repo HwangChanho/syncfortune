@@ -85,7 +85,7 @@ export function NewyearTeaser({ saju, timeUnknown }: { saju: SajuChart; timeUnkn
         {d.monthScores.length === 12 && <MonthFlowGraph scores={d.monthScores} goodSet={goodSet} />}
         <Text style={styles.calNote}>
           {d.goodMonths.length
-            ? `곡선이 높은 달에 기운이 나와 잘 통해요(금색 점). 어떤 일에 좋은지는 깊은 풀이에서 달별로 짚어 드려요.`
+            ? `곡선이 높은 달에 기운이 나와 잘 통해요(진하게 찬 점). 어떤 일에 좋은지는 깊은 풀이에서 달별로 짚어 드려요.`
             : `내년 좋은 달은 깊은 풀이에서 달별로 콕 짚어 드려요.`}
         </Text>
       </View>

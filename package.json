@@ -87,7 +87,8 @@
     "check:paygate": "npx tsx scripts/check-paygate.ts",
     "check:singleflight": "npx tsx scripts/check-singleflight.ts",
     "check:sections": "npx tsx scripts/check-sections.ts",
-    "check:coinbalance": "npx tsx scripts/check-coinbalance.ts"
+    "check:coinbalance": "npx tsx scripts/check-coinbalance.ts",
+    "check:accentcopy": "npx tsx scripts/check-accentcopy.ts"
   },
   "keywords": [],
   "author": "",
