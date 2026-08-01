@@ -204,10 +204,16 @@ export default function MarketRoute() {
     if (!requireLoginForPurchase(session, () => router.push('/login'), t)) return;
     setBusy(kind);
     try {
+      // ★이미 산 콘텐츠면 결제 얘기를 꺼내지 않는다(daniel 2026-08-01) — 대표 명식의 **서버 ID**로 소유를 본다.
+      //   이게 없으면 "이미 샀는데 잔액이 모자라서 못 여는" 상태가 된다(마켓에서 '열기'가 충전 안내로 막힘).
+      //   서버 ID 해석은 실패해도 무해하다(null → 종전 흐름 그대로).
+      const repForOwn = await loadRepChart().catch(() => null);
+      const ownChartId = repForOwn && session ? await ensureServerChartIdForSaved(repForOwn, session) : null;
       const g = await ensureCoinsFor(kind, {
         title: t('market.doneTitle', '이용 안내'),
         t,
         goCharge: () => router.push('/coins'),
+        chartId: ownChartId,
       });
       if (g !== 'ok') return;                       // 부족(충전 화면으로)·취소·오류는 여기서 끝
       // 코인이 충분하다 = 바로 열 수 있다. 해당 콘텐츠 화면으로 보내고 거기서 생성·차감된다.

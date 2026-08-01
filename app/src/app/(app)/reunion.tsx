@@ -135,7 +135,7 @@ export default function ReunionRoute() {
         { text: t('reunion.changeBuy', '구매하고 바꾸기'), onPress: async () => {
             if (!purchasesEnabled()) { Alert.alert(t('reunion.title', '재회운'), t('market.payPending', '결제 준비 중이에요. 쿠폰을 이용하거나 잠시 후 다시 시도해 주세요.')); return; }
             try {
-              const g = await ensureCoinsFor('reunion', { title: t('reunion.title', '재회운'), t, goCharge: () => router.push('/coins') });
+              const g = await ensureCoinsFor('reunion', { title: t('reunion.title', '재회운'), t, goCharge: () => router.push('/coins'), chartId: serverChartId });
               if (g !== 'ok') return;   // ★운 전환(daniel 2026-07-28)
               // ★코인 전환 마무리(07-28): 코인은 적립이 아니라 생성 시 서버 차감 → 폴링 없이 바로 진행.
               openChangeRegister();

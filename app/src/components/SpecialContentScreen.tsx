@@ -445,7 +445,7 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
       { text: t('coins.spend', 'woon 사용'), onPress: async () => {
           // ★코인 단일 경로(daniel 2026-07-28 "기존 단건 결제는 다 없애") — 스토어 결제 왕복 제거.
           //   차감은 서버(Edge)가 생성 직전에 한다. 부족하면 충전 화면으로 보낸다.
-          const g = await ensureCoinsFor(kind, { title, t, goCharge: () => router.push('/coins') });
+          const g = await ensureCoinsFor(kind, { title, t, goCharge: () => router.push('/coins'), chartId });
           if (g === 'ok') generate(id, undefined, refresh);   // refresh 유지(재회 상대 재등록 후 캐시 덮어쓰기)
         } },
       { text: t('special.goMarket', '마켓에서 보기'), onPress: () => router.push({ pathname: '/market', params: { focus: kind } }) },   // ★그 상품 위치로

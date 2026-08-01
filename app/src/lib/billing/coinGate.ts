@@ -17,6 +17,7 @@
 import { Alert } from '../ui/alert';
 import { coinPriceOf, coinBalanceOrNull } from './coins';
 import { notifyNetworkError } from '../backend/network';
+import { isUnlocked } from './unlocks'; // ★이미 산 콘텐츠인지(로컬 스탬프 + 서버 reading_unlocks)
 
 export type CoinGateResult = 'ok' | 'insufficient' | 'cancel' | 'error' | 'noprice';
 
@@ -31,9 +32,18 @@ export type CoinGateResult = 'ok' | 'insufficient' | 'cancel' | 'error' | 'nopri
  */
 export async function ensureCoinsFor(
   kind: string,
-  opts: { title: string; t: (k: any, d?: any) => string; goCharge: () => void },
+  opts: { title: string; t: (k: any, d?: any) => string; goCharge: () => void; chartId?: string | null },
 ): Promise<CoinGateResult> {
-  const { title, t, goCharge } = opts;
+  const { title, t, goCharge, chartId } = opts;
+
+  // ★★①이미 산 콘텐츠면 아무것도 묻지 않고 통과한다(daniel 2026-08-01 신고).
+  //   종전엔 이 확인이 없어서, 결제하고 풀이 도중에 나갔다가 돌아오면 **또 결제창**이 떴다.
+  //   더 나쁜 건 그 다음 줄의 잔액 검사다 — 이미 산 콘텐츠인데 잔액이 모자라면
+  //   "woon이 부족해요 · 충전하기"로 막혀 **자기가 산 걸 못 여는** 상태가 된다.
+  //   ⇒ 소유 확인을 가격·잔액보다 **먼저** 둔다. (서버 reading_unlocks 가 권위 · 실제 차감도 서버가 한다.)
+  //   chartId 를 안 주는 호출(꿈해몽·추가질문·궁합처럼 명식에 귀속되지 않는 kind)은 종전대로 진행한다.
+  if (chartId && await isUnlocked(chartId, kind)) return 'ok';
+
   const cost = coinPriceOf(kind);
   if (cost == null) return 'noprice';
 

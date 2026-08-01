@@ -190,6 +190,7 @@ export function TimelineScreen({ input, savedChart }: { input: ChartInput | null
           title: t('timeline.unlockTitle'),
           t,
           goCharge: () => router.push('/coins'),
+          chartId: cid,   // ★이미 산 세트면 결제창 없이 통과(재진입 재결제 방지)
         });
         if (g !== 'ok') return;
         await gen(key, cid);

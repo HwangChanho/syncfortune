@@ -272,7 +272,7 @@ export default function LoveScreen() {
         //   운을 아무리 많이 갖고 있어도 통과할 수 없었다(프리미엄 폐지·관리자 개방 폐지로 우회로도 전멸).
         //   ⇒ 마켓에서 '열기'를 눌러도 이 화면으로 와서 "쿠폰이 필요하다"만 반복됐다.
         //   차감은 여기서 하지 않는다 — 서버(Edge interpret)가 생성 직전에 원자적으로 뺀다.
-        const g = await ensureCoinsFor('love', { title: t('love.gateTitle'), t, goCharge: () => router.push('/coins') });
+        const g = await ensureCoinsFor('love', { title: t('love.gateTitle'), t, goCharge: () => router.push('/coins'), chartId });
         logEvent('love_coin_gate', { result: g });
         if (g !== 'ok') return;   // insufficient=충전 안내 / cancel=사용자 취소 / error=조회 실패(부족으로 오해 금지)
       }
