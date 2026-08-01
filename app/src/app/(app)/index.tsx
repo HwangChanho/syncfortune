@@ -230,24 +230,21 @@ export default function Home() {
     //   ⚠️접기 전 상세 화면 존재를 전수 확인했다 — 바이오리듬만 없어서 `/biorhythm` 을 새로 만들었다
     //     (상세가 없는 블록을 접으면 그 콘텐츠가 도달 불가가 된다).
     //   ★원래 카드 컴포넌트는 그대로 둔다 — 각자의 상세 화면에서 재사용된다(중복 구현 0).
-    if (!hasChart) {
-      // 명식이 없으면 접힘 줄도 의미가 없다(빈 화면으로 들어가게 된다) → 종전대로 각 카드가 스스로 판단해 미노출.
-      if (k === 'persona') return <PersonaTypeHero reloadKey={reloadKey} />;
-      if (k === 'self') return <SelfUnderstandingHero reloadKey={reloadKey} />;
-      if (k === 'biorhythm') return <BiorhythmCard reloadKey={reloadKey} />;
-      if (k === 'luck') return <LuckyTodayCard reloadKey={reloadKey} />;
-      if (k === 'decision') return <DecisionTodayCard reloadKey={reloadKey} />;
-      if (k === 'relation') return <TodayRelationCard reloadKey={reloadKey} dateKey={dateKey} />;
-    } else {
-      // ★홈 = **이미지 카드 목록**. 카드에는 제목 한 줄만 두고 설명·본문은 상세 화면에서 읽는다.
-      //   (성격유형만 개인화 일러스트를 그대로 쓴다 — 그 사람 카드라 대표성이 가장 높다.)
-      if (k === 'persona') return <HomeImageCard title={t('persona120.title', '나의 성격유형')} route="/personatype" image={IMG.persona} />;
-      if (k === 'self') return <HomeImageCard title={t('self.title', '자기이해')} route="/selfanalysis" image={IMG.self} />;
-      if (k === 'biorhythm') return <HomeImageCard title={t('bio.kicker', '바이오리듬')} route="/biorhythm" image={IMG.bio} />;
-      if (k === 'luck') return <HomeImageCard title={t('luck.title', '오늘의 행운')} route="/luck" image={IMG.luck} />;
-      if (k === 'decision') return <HomeImageCard title={t('home.collapse.momentTitle', '모먼트')} route="/moment" image={IMG.moment} />;
-      if (k === 'relation') return <HomeImageCard title={t('home.collapse.relationTitle', '오늘의 관계')} route="/compat" image={IMG.relation} />;
-    }
+    // ★★2026-08-01 daniel "홈 이미지들 오늘의 기운처럼 바꿔" — **정보 카드로 되돌린다.**
+    //   07-27 엔 반대로 갔었다("홈에 글씨들은 다 숨기고 타고 들어가야 볼 수 있게"). 실물을 보고 나온 판단이
+    //   바뀐 것이고, 지금 화면은 **제목 한 줄뿐인 큰 그림**이 줄줄이라 정보 밀도가 0이었다.
+    //   오늘의 기운 카드처럼 **들어가지 않아도 내 얘기가 보이는** 카드로 통일한다.
+    //
+    //   ★고칠 게 거의 없었다 — 정보 카드 컴포넌트(BiorhythmCard·LuckyTodayCard…)는 처음부터 다 있었고,
+    //     `명식 있음 → 이미지 카드 / 없음 → 정보 카드` 로 **게이트가 거꾸로** 걸려 있었을 뿐이다.
+    //     (각 카드는 명식이 없으면 스스로 미노출을 판단하므로 분기 자체가 불필요했다.)
+    //   ⚡부수 효과: 홈의 `ImageBackground`(원본 풀 디코딩)가 사라져 갤럭시 랙의 큰 축 하나가 없어진다.
+    if (k === 'persona') return <PersonaTypeHero reloadKey={reloadKey} />;
+    if (k === 'self') return <SelfUnderstandingHero reloadKey={reloadKey} />;
+    if (k === 'biorhythm') return <BiorhythmCard reloadKey={reloadKey} />;
+    if (k === 'luck') return <LuckyTodayCard reloadKey={reloadKey} />;
+    if (k === 'decision') return <DecisionTodayCard reloadKey={reloadKey} />;
+    if (k === 'relation') return <TodayRelationCard reloadKey={reloadKey} dateKey={dateKey} />;
     // (AI 자기이해 코치 블록은 상단 🧭 바로가기로 이동 — daniel 2026-07-25 J)
     // 오늘/내일 기운 — 토글·좌우 슬라이드(가로 페이징). 별도 카드였던 유형명·점수·등급·근거·신살 칩이 여기 통합됐다.
     return (
