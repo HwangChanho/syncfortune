@@ -17,7 +17,7 @@ import { withTimeout } from '../core/withTimeout'; // ★게이트 경로 = 반�
 
 /** 서버가 정하는 상태. 앱은 이 넷 중 하나를 그대로 렌더한다. */
 export type ReadingState =
-  | { status: 'ready'; done: number; total: number; data?: unknown }   // 완료(단건이면 data 동봉)
+  | { status: 'ready'; done: number; total: number; data?: unknown; createdAt?: string | null }  // 완료(단건이면 data·생성일 동봉)
   | { status: 'running'; done: number; total: number }                 // 만들어지는 중 — 진행률만
   | { status: 'purchase'; cost: number; balance: number }              // 미구매 · 잔액 충분
   | { status: 'topup'; cost: number; balance: number }                 // 미구매 · 잔액 부족

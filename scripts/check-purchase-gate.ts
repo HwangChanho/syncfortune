@@ -15,8 +15,10 @@
 //   R2) llmHealth.ts 는 서버 프로브('llm-health')를 호출하고, 확정 불가(ok===false)면 throw 로 결제를 막아야 한다.
 //   R3) Edge llm-health 는 존재하고 ① Anthropic 프로브(messages.create) ② 수동 킬스위치(llm_paused)를 갖춰야 한다.
 //   ★R4~R7) 열람 플로우 **순서**(daniel 2026-07-26 IMG_8190~8192 "순서가 이상해"):
-//       R4) 소유 판정(isUnlocked/isAdminActing)이 **구매(buyCredit)보다 먼저** — 소유자에게 결제를 묻지 않는다.
-//       R5) 크레딧 확인(loadCredits)이 **명식 확인(requestChartConfirm)보다 먼저** — 살지 정하기 전에 명식을
+//       R4) ★2026-08-01 개편(ADR-061): 소유·가격·잔액 판정은 **서버(fetchReadingState)** 가 한다.
+//           runFlow 는 생성 전에 상태를 받아야 하고, **앱이 소유를 직접 판정하면 안 된다**
+//           (isUnlocked/isAdminActing/isPremiumForChart 는 판단자를 늘려 멈춤·오판을 만든 원인).
+//       R5) 상태 확인이 **명식 확인(requestChartConfirm)보다 먼저** — 살지 정하기 전에 명식을
 //           먼저 묻던 순서 역전(모달 2연타) 재발 방지.
 //       R6) generate 성공 시 setRevealed(true) — 결제·생성 직후 상태 뷰가 다시 떠 '풀이 보기'를 또 누르게 하던 것.
 //       R7) 플로우 잠금(flowRef)과 finally 해제 + stale 타임아웃 — 진행 중 중복 조작 차단, 잠금 누수 회수.
@@ -100,17 +102,24 @@ if (!edgeSrc) {
     fails.push('[R4] SpecialContentScreen.tsx 를 찾을 수 없음 — 유료 콘텐츠 29종의 열람 플로우 검증 불가.');
   } else {
     const at = (needle: string) => src.indexOf(needle);
-    const iOwned = Math.max(at('await isUnlocked(chartId, kind)'), at('await isAdminActing()'));
-    const iBuy = at('await buyCredit()');
-    const iCredits = at('await loadCredits()');
+    const iState = at('await fetchReadingState(');
     const iConfirm = at('await requestChartConfirm(');
     const iGen = at('await generate(chartId)');
 
-    if (iOwned < 0 || iBuy < 0) fails.push('[R4] runFlow 에서 소유 판정 또는 buyCredit 호출을 찾지 못함(플로우가 리팩터로 흩어졌는지 확인).');
-    else if (!(iOwned < iBuy)) fails.push('[R4] 소유 판정이 구매(buyCredit)보다 뒤에 있음 → 이미 산 사람에게 결제를 묻게 된다.');
+    // R4 — 상태는 서버에서 받는다 + 앱이 소유를 직접 판정하지 않는다(ADR-061).
+    if (iState < 0) {
+      fails.push('[R4] runFlow 가 fetchReadingState 로 서버 상태를 받지 않음 — 앱이 다시 판단자가 되면 멈춤·오판이 돌아온다.');
+    }
+    const localJudge = ['await isUnlocked(', 'await isAdminActing()', 'isPremiumForChart(chartId)']
+      .filter((n) => src.includes(n));
+    if (localJudge.length) {
+      fails.push(`[R4] 앱이 소유를 직접 판정한다: ${localJudge.join(', ')} — 판단은 서버 한 곳(ADR-061).`);
+    }
 
-    if (iCredits < 0 || iConfirm < 0) fails.push('[R5] loadCredits 또는 requestChartConfirm 호출을 찾지 못함.');
-    else if (!(iCredits < iConfirm)) fails.push('[R5] 명식 확인이 크레딧 확인보다 먼저 옴 → 살지 정하기 전에 명식을 묻는 순서 역전(모달 2연타) 재발.');
+    // R5 — 상태 확인이 명식 확인보다 먼저(살지 정하기 전에 명식을 묻던 순서 역전 방지)
+    if (iState >= 0 && iConfirm >= 0 && !(iState < iConfirm)) {
+      fails.push('[R5] 명식 확인이 상태 확인보다 먼저 옴 → 살지 정하기 전에 명식을 묻는 순서 역전(모달 2연타) 재발.');
+    }
 
     if (iConfirm >= 0 && iGen >= 0 && !(iConfirm < iGen)) fails.push('[R5] 생성이 명식 확인보다 먼저 옴 → 어느 명식으로 만드는지 확인 없이 과금/생성.');
 

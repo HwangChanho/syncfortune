@@ -17,7 +17,7 @@
 import { Alert } from '../ui/alert';
 import { coinPriceOf, coinBalanceOrNull } from './coins';
 import { notifyNetworkError } from '../backend/network';
-import { isUnlocked } from './unlocks'; // ★이미 산 콘텐츠인지(로컬 스탬프 + 서버 reading_unlocks)
+import { fetchReadingState } from './readingState'; // ★ADR-061 — 소유·가격·잔액을 서버가 정한다
 
 export type CoinGateResult = 'ok' | 'insufficient' | 'cancel' | 'error' | 'noprice';
 
@@ -36,14 +36,47 @@ export async function ensureCoinsFor(
 ): Promise<CoinGateResult> {
   const { title, t, goCharge, chartId } = opts;
 
-  // ★★①이미 산 콘텐츠면 아무것도 묻지 않고 통과한다(daniel 2026-08-01 신고).
-  //   종전엔 이 확인이 없어서, 결제하고 풀이 도중에 나갔다가 돌아오면 **또 결제창**이 떴다.
-  //   더 나쁜 건 그 다음 줄의 잔액 검사다 — 이미 산 콘텐츠인데 잔액이 모자라면
-  //   "운이 부족해요 · 충전하기"로 막혀 **자기가 산 걸 못 여는** 상태가 된다.
-  //   ⇒ 소유 확인을 가격·잔액보다 **먼저** 둔다. (서버 reading_unlocks 가 권위 · 실제 차감도 서버가 한다.)
-  //   chartId 를 안 주는 호출(꿈해몽·추가질문·궁합처럼 명식에 귀속되지 않는 kind)은 종전대로 진행한다.
-  if (chartId && await isUnlocked(chartId, kind)) return 'ok';
+  // ★★①명식에 귀속되는 콘텐츠는 **서버가 상태를 정한다**(ADR-061 · daniel "모바일은 그대로 표출만").
+  //   여기서 앱이 하던 판단(소유·가격·잔액)이 전부 서버로 넘어갔다. 앱은 받은 status 로 UI 만 고른다.
+  //   ⇒ 화면 5곳(love·gaeun·career·newyear·lifegraph)은 **한 줄도 안 고쳐도** 같이 이관된다.
+  if (chartId) {
+    const st = await fetchReadingState(chartId, kind);
+    // 이미 샀다(완료·생성중) 또는 무료 → 결제 얘기를 꺼내지 않는다.
+    if (st.status === 'ready' || st.status === 'running' || st.status === 'free') return 'ok';
+    if (st.status === 'error') {
+      // ★확인 불가 ≠ 부족. 충전을 권하면 이미 산 사람에게 재결제를 유도하게 된다.
+      notifyNetworkError(`${kind}.state`, new Error(st.reason), t);
+      return 'error';
+    }
+    if (st.status === 'topup') {
+      return await new Promise<CoinGateResult>((resolve) => {
+        Alert.alert(
+          t('coins.needTitle', '운이 부족해요'),
+          t('coins.needMsg', { need: st.cost, have: st.balance, defaultValue: '이 풀이는 {{need}} 운이 필요해요. 지금 {{have}} 운 있어요.' }),
+          [
+            { text: t('common.cancel'), style: 'cancel', onPress: () => resolve('cancel') },
+            { text: t('coins.charge', '충전하기'), onPress: () => { goCharge(); resolve('insufficient'); } },
+          ],
+          () => resolve('cancel'),   // ★뒤로가기로 닫아도 반드시 풀린다
+        );
+      });
+    }
+    // status==='purchase' — 잔액 충분. 사용 동의만 받는다(차감은 서버가 생성 직전에).
+    return await new Promise<CoinGateResult>((resolve) => {
+      Alert.alert(
+        title,
+        t('coins.spendMsg', { cost: st.cost, have: st.balance, defaultValue: '{{cost}} 운을 사용해 풀이를 시작할까요? (보유 {{have}} 운)' }),
+        [
+          { text: t('coins.spend', '운 사용'), onPress: () => resolve('ok') },
+          { text: t('common.cancel'), style: 'cancel', onPress: () => resolve('cancel') },
+        ],
+        () => resolve('cancel'),     // ★뒤로가기로 닫아도 반드시 풀린다
+      );
+    });
+  }
 
+  // ── ②명식에 귀속되지 않는 kind(dream·followup·compat·timeresolve) — 종전 경로 ──────────
+  //   이들은 (명식 × 종류) 로 표현되지 않아 서버 상태 계약의 대상이 아니다(횟수형·쌍 단위).
   const cost = coinPriceOf(kind);
   if (cost == null) return 'noprice';
 

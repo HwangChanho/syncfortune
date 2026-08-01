@@ -21,11 +21,11 @@ import { loadRepChart, listCharts, setRepresentative, getRepresentativeId, type 
 import { ensureServerChartId } from '../lib/backend/prewarmReadings';
 import { useAuth } from '../lib/useAuth';
 import { useSubscription } from '../lib/billing/subscription';   // 프리미엄=자동 생성
-import { isPremiumForChart } from '../lib/billing/premiumStore'; // 명식별 프리미엄(premiumCovered 콘텐츠 = 프리미엄 무료해제·자동생성)
 import { useFontScale } from '../lib/ui/fontScale';
 import { promptSignupOnReadingEnter } from '../lib/ui/signupPrompt'; // ★유료 콘텐츠 진입 시 계정 연결 안내(daniel 07-27)
 import { waitForCreditGrant, loadCredits, type CreditKind } from '../lib/billing/coupons'; // C1: 결제 후 웹훅 적립 폴링(차감은 Edge 서버 게이트) · loadCredits=게이트 사전 확인(자물쇠 번쩍임 방지)
-import { isUnlocked, markUnlocked } from '../lib/billing/unlocks'; // isUnlocked=무차감 재열람 힌트 / markUnlocked=생성 성공 후 캐시 힌트(C3 part2 — 게이트 아님)
+import { isUnlocked, markUnlocked } from '../lib/billing/unlocks';
+import { fetchReadingState } from '../lib/billing/readingState'; // ★ADR-061 서버가 상태를 정한다(앱은 표출만) // isUnlocked=무차감 재열람 힌트 / markUnlocked=생성 성공 후 캐시 힌트(C3 part2 — 게이트 아님)
 import { ShareReadingButton } from './ShareReadingButton'; // 이슈17: 풀이 결과 공유
 import { TTSButton } from './TTSButton'; // daniel: 풀이 음성 읽기(온디바이스 TTS·무료)
 import { RelatedContent } from './RelatedContent'; // 연관 콘텐츠 자동 추천(하단 크로스셀·API 0·daniel 기획서)
@@ -165,21 +165,25 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
       setChartId(id);
       chartIdRef.current = id;   // ① 현재 명식 확정 — 이후 도착하는 generate 결과의 명식 대조 기준
       onChartResolved?.(id); // ★해석된 서버차트ID 통지(재회: 이 명식의 잠긴 상대를 로드/저장)
-      // 소유 판정(daniel ⓐⓒ): (premiumCovered면 프리미엄 명식) / 관리자 / 이 차트×종류 unlock(차감 완료) 중 하나여야 풀이 노출. 아니면 설명창(게이트).
-      //   ★premiumCovered(자식운 등 프리미엄 포함 콘텐츠)만 프리미엄을 소유로 인정 — 스페셜(astrology/mission 등 기본값)은 프리미엄 무관(관리자/크레딧 전용) 그대로.
-      const prem = premiumCovered && isPremiumForChart(id);
-      const own = prem || (await isAdminActing()) || (await isUnlocked(id, kind));
-      const { data } = await excludeMock(supabase.from('readings').select('content, created_at').eq('chart_id', id).eq('category', category).eq('lang', appLang())).maybeSingle();
+      // ★★소유·캐시·만료를 **서버 상태 한 번**으로 받는다(ADR-061 · daniel "모바일은 그대로 표출만").
+      //   종전엔 여기서 프리미엄·관리자·로컬 언락을 각각 await 하고 readings 도 따로 읽었다 —
+      //   판단자가 넷이라 하나가 늦거나 틀리면 화면이 어긋났고, 그중 isAdminActing 은 상한이 없어
+      //   07-31 '명식의 뿌리 진행 중…' 멈춤의 범인이었다. 이제 앱은 판단하지 않는다.
+      const st = await fetchReadingState(id, kind, category);
       if (!alive) return;
-      const cached = data?.content ?? null;
-      setOwned(own);
+      const cached = st.status === 'ready' ? ((st.data as string) ?? null) : null;
+      setOwned(st.status === 'ready' || st.status === 'running' || st.status === 'free'); // 결제를 물어볼 상태가 아니면 소유
       setReading(cached);
-      // 보유 만료일(daniel #25): 생성(구매)일 + 1년. 유료 단일 풀이(showExpiry)이고 캐시 created_at 있을 때만.
-      if (showExpiry && data?.created_at) { const d = new Date(data.created_at); d.setFullYear(d.getFullYear() + 1); setExpiry(`${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`); }
+      // 보유 만료일(daniel #25): 생성(구매)일 + 1년. 생성일도 서버가 같이 준다(별도 조회 없음).
+      const ca = st.status === 'ready' ? st.createdAt : null;
+      if (showExpiry && ca) { const d = new Date(ca); d.setFullYear(d.getFullYear() + 1); setExpiry(`${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`); }
       setLoaded(true);
-      // 프리미엄=자동 생성(premiumCovered 한정): 프리미엄 명식이고 캐시 없으면 생성. ★단 autoGen=false(자식운)면 자동생성 안 함.
-      //   ★daniel 07-13: 명식 2개 이상이면 생성(로딩영상) 전에 '어느 명식?' 확인 먼저(단일이면 바로).
-      if (alive && autoGen && prem && !cached) void autoGenWithChartConfirm({ creditKind: kind as any, onConfirm: () => generate(id, cc.ziwei) });
+      // ★이어서 만들기(ADR-061): **이미 샀는데 아직 안 만들어진** 상태(running)면 자동으로 생성한다.
+      //   종전 조건은 `prem`(프리미엄 명식)이었는데 프리미엄이 폐지돼(07-28) 늘 false = 죽은 코드였다.
+      //   새 기준은 daniel 이 말한 그대로다 — "구매 이력 기준으로 추가 구매 또는 **대기**".
+      //   이미 결제된 건이라 추가 과금이 없다(서버가 언락을 보고 무료로 만든다).
+      //   ★autoGen=false(자식운)면 자동생성 안 함. 명식 2개 이상이면 '어느 명식?' 확인 먼저(daniel 07-13).
+      if (alive && autoGen && st.status === 'running' && !cached) void autoGenWithChartConfirm({ creditKind: kind as any, onConfirm: () => generate(id, cc.ziwei) });
     })().catch(() => { if (alive) setLoaded(true); });
     return () => { alive = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -409,20 +413,26 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
       if (!assertOnline(t)) return;                                          // 네트워크 없음 → 사전 차단(경고)
       if (!requireLoginForPurchase(session, () => router.push('/login'), t)) return;
 
-      // ① 소유 판정을 **가장 먼저** — 소유자에게는 결제 얘기를 꺼내지 않는다(문구 모순 ③ 제거).
-      //    isAdminActing = 관리자 모드 ON 일 때만(모드 OFF 는 일반계정처럼 — Edge god 과 동일 규칙).
-      const ownedNow = isPremiumForChart(chartId)
-        || (await isAdminActing())
-        || (await isUnlocked(chartId, kind));
-
-      // ② 미소유면 크레딧을 보고, 없으면 **구매부터**(순서 역전 ① 제거 — 명식은 결제 후에 묻는다).
-      if (!ownedNow) {
-        const bal = await loadCredits().catch((): Record<string, number> => ({}));
-        if ((bal[kind] ?? 0) <= 0) {
-          const bought = await buyCredit();
-          if (!bought) return;                                               // 취소·실패·미적립 → 조용히 종료
-        }
+      // ★★①상태는 **서버가 정한다**(ADR-061). 앱은 그 결과로 분기만 한다.
+      //   종전엔 프리미엄·관리자·로컬언락·잔액을 앱이 각각 조회해 판단했다 — 그 네 개의 await 가
+      //   전부 멈춤 후보였고, 실제로 여러 번 멈췄다. 지금은 왕복 한 번이고 실패도 값으로 온다.
+      const st = await fetchReadingState(chartId, kind, category);
+      if (st.status === 'error') {                                           // 확인 불가 ≠ 미구매. 결제를 권하지 않는다.
+        logEvent(`${kind}_state_error`, { reason: st.reason }, 'error');
+        Alert.alert(t('common.error'), t('common.retryLater', '잠시 후 다시 시도해 주세요.'));
+        return;
       }
+      if (st.status === 'topup') {                                           // 잔액 부족 — 서버 판정
+        Alert.alert(
+          t('coins.needTitle', '운이 부족해요'),
+          t('coins.needMsg', { need: st.cost, have: st.balance, defaultValue: '이 풀이는 {{need}} 운이 필요해요. 지금 {{have}} 운 있어요.' }),
+          [{ text: t('common.cancel'), style: 'cancel' },
+           { text: t('coins.charge', '충전하기'), onPress: () => router.push('/coins') }],
+          () => {},                                                          // 뒤로가기로 닫아도 안전(대기 Promise 없음)
+        );
+        return;
+      }
+      const ownedNow = st.status !== 'purchase';                             // purchase 일 때만 결제를 묻는다
 
       // ③ 이제 명식 확인. ★소유 경로면 creditKind 를 넘기지 않아 "보유 이용권 N개" 문구가 뜨지 않는다.
       const ok = await requestChartConfirm({ creditKind: ownedNow ? undefined : (kind as any) });
@@ -529,11 +539,11 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
           <Text style={[styles.ownedTitle, dynStyles.gateTitle]}>
             {reading ? t('special.ownedTitle', '이미 열려 있는 풀이예요') : t('special.ownedResumeTitle', '결제는 끝났어요 — 풀이만 남았어요')}
           </Text>
-          {/* 상태 한 줄 — 프리미엄 명식=무제한(골드) / 그 외=만료일 또는 구매완료. (effPrem 이 모든 유료 kind 바이패스 → 이 명식 프리미엄이면 '무제한') */}
+          {/* 상태 한 줄 — 만료일이 있으면 만료일, 없으면 구매완료.
+              ★프리미엄 분기 제거(ADR-061): 프리미엄은 07-28 에 폐지돼 늘 false 였고(죽은 분기),
+                무엇보다 **앱이 소유를 판정하는 코드**라 새 구조와 충돌한다(판단은 서버 한 곳). */}
           {!reading ? (
             <Text style={[styles.ownedStatus2, dynStyles.gateDesc]}>{t('special.ownedResumeSub', '생성이 중단됐어요. 추가 결제 없이 이어서 만들어 드려요')}</Text>
-          ) : isPremiumForChart(chartId) ? (
-            <Text style={[styles.ownedStatus2, dynStyles.gateDesc, { color: colors.gold }]}>{t('special.ownedUnlimited', '운으로 열림')}</Text>
           ) : (showExpiry && expiry) ? (
             <Text style={[styles.ownedStatus2, dynStyles.gateDesc]}>{t('special.ownedUntil', { date: expiry, defaultValue: '{{date}}까지 볼 수 있어요' })}</Text>
           ) : (
