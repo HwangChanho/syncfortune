@@ -4,6 +4,7 @@
 //   규칙5: 무료=온디바이스(API 0). §4: 가벼운 재미·전향적.
 // ─────────────────────────────────────────────────────────────────────────
 import { useMemo, useState } from 'react';
+import { A } from '../../lib/ui/remoteAsset'; // ★이미지 원격화(daniel 08-01) — 번들에서 걷어내고 Storage 에서 받는다
 import { View, Text, ScrollView, TextInput, StyleSheet } from 'react-native';
 import { RelatedContent } from '../../components/RelatedContent';
 import { useTranslation } from 'react-i18next';
@@ -29,7 +30,7 @@ export default function NameScreen() {
         // 키보드가 이름 입력을 덮지 않게 iOS 자동 인셋(daniel 07-18 표준 · check:keyboard).
         automaticallyAdjustKeyboardInsets
       >
-        <ContentHero image={require('../../../assets/icons/name.jpg')} title={t('name.title', '이름풀이')} sub={t('name.sub', '이름 속 소리의 기운(오행)으로 결을 봐요.')} />
+        <ContentHero image={A('icons/name.jpg')} title={t('name.title', '이름풀이')} sub={t('name.sub', '이름 속 소리의 기운(오행)으로 결을 봐요.')} />
 
         <TextInput
           style={styles.input}

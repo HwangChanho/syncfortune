@@ -5,6 +5,7 @@
 //   i18n 미등록이어도 렌더되게 t(key, 한글 fallback) 사용.
 // ─────────────────────────────────────────────────────────────────────────
 import { useTranslation } from 'react-i18next';
+import { A } from '../../lib/ui/remoteAsset'; // ★이미지 원격화(daniel 08-01) — 번들에서 걷어내고 Storage 에서 받는다
 import { FreeFunnel } from '../../components/FreeFunnel';
 import { ReunionRich } from '../../components/ReunionRich';
 import { useLogContentVisit } from '../../lib/backend/contentVisit'; // 콘텐츠 방문 집계(daniel 2026-07-06) — 진입 1회 기록
@@ -14,7 +15,7 @@ export default function ReunionAskScreen() {
   const { t } = useTranslation();
   return (
     <FreeFunnel
-      heroImage={require('../../../assets/icons/reunion.jpg')}
+      heroImage={A('icons/reunion.jpg')}
       question={t('reunionAsk.q', '재회, 다시 이어질까?')}
       sub={t('reunionAsk.sub', '옛 인연과 다시 이어질 가능성·시기·방향을 무료로 짚어 드려요')}
       paidRoute="/reunion"

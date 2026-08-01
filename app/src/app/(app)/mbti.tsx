@@ -4,6 +4,7 @@
 //   ⚠️ 매핑·문구 stance = daniel★ 검수(sajuMbti.ts 주석 참고).
 // ─────────────────────────────────────────────────────────────────────────
 import { useMemo, useState, useCallback, useEffect, useRef } from 'react';
+import { A } from '../../lib/ui/remoteAsset'; // ★이미지 원격화(daniel 08-01) — 번들에서 걷어내고 Storage 에서 받는다
 import { View, Text, ScrollView, StyleSheet, Animated, Easing } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -52,7 +53,7 @@ export default function MbtiScreen() {
       <ScrollView style={styles.overlay} contentContainerStyle={styles.wrap}>
         {/* 상단 명식 헤더 — 현재 적용 명식 표시·전환 */}
         <ChartPicker onChange={() => loadMyChart().then(setMe)} />
-        <ContentHero image={require('../../../assets/icons/mbti.jpg')} title={t('mbti.title', '사주로 보는 내 MBTI')} sub={t('mbti.sub', '내 사주 구조로 풀어본 성향 유형')} />
+        <ContentHero image={A('icons/mbti.jpg')} title={t('mbti.title', '사주로 보는 내 MBTI')} sub={t('mbti.sub', '내 사주 구조로 풀어본 성향 유형')} />
 
         {!r ? (
           <Text style={styles.note}>{t('mbti.empty', '명식을 등록하면 사주로 본 MBTI를 보여드려요.')}</Text>

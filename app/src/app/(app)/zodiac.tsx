@@ -4,6 +4,7 @@
 //   규칙5: 무료=온디바이스(API 0). §4: 가벼운 재미.
 // ─────────────────────────────────────────────────────────────────────────
 import { useMemo, useState, useCallback } from 'react';
+import { A } from '../../lib/ui/remoteAsset'; // ★이미지 원격화(daniel 08-01) — 번들에서 걷어내고 Storage 에서 받는다
 import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native';
 import { PressableScale } from '../../components/PressableScale';
 import { useFocusEffect } from 'expo-router';
@@ -51,7 +52,7 @@ export default function ZodiacScreen() {
       <ScrollView style={styles.overlay} contentContainerStyle={styles.wrap}>
         {/* 상단 명식 헤더 — 현재 적용된 대표 명식 표시·전환(daniel: 모든 콘텐츠 상단) */}
         <ChartPicker onChange={() => loadMyChart().then(setMe)} />
-        <ContentHero image={require('../../../assets/icons/zodiac.jpg')} title={t('zodiac.title', '띠·별자리 오늘운세')} sub={animal.date} />
+        <ContentHero image={A('icons/zodiac.jpg')} title={t('zodiac.title', '띠·별자리 오늘운세')} sub={animal.date} />
 
         {/* 토글 */}
         <View style={styles.toggle}>

@@ -4,6 +4,7 @@
 //   ※ '이주 권유'가 아니라 기운 보완 관점의 재미 안내. 국가 매핑 stance = daniel 검수 슬롯.
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useMemo, useState } from 'react';
+import { A } from '../../lib/ui/remoteAsset'; // ★이미지 원격화(daniel 08-01) — 번들에서 걷어내고 Storage 에서 받는다
 import { View, Text, ScrollView, StyleSheet, Pressable } from 'react-native';
 import { PressableScale } from '../../components/PressableScale';
 import { RelatedContent } from '../../components/RelatedContent';
@@ -52,7 +53,7 @@ export default function CountryScreen() {
     <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>
       <ChartPicker onChange={() => setReloadKey((k) => k + 1)} />
       {/* 전용 히어로(daniel ⑥) — 달·나침반·산수 모티프. 어두운 풀배경 대신 밝게 보이는 배너로(다른 콘텐츠와 일관). */}
-      <ExpoImage source={require('../../../assets/icons/country.jpg')} style={styles.hero} contentFit="cover" contentPosition="center" cachePolicy="memory-disk" transition={150} />
+      <ExpoImage source={A('icons/country.jpg')} style={styles.hero} contentFit="cover" contentPosition="center" cachePolicy="memory-disk" transition={150} />
       <Text style={styles.title}>{t('country.title', '내가 살기 좋은 곳')}</Text>
       <Text style={styles.sub}>{t('country.sub', '타고난 기운(조후)을 보완해 줄 기후·방위의 나라를 짚어 드려요')}</Text>
 

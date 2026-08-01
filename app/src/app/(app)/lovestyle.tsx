@@ -3,6 +3,8 @@
 // 사주 십신 → 연애 유형(lib/loveStyle.ts, Claude stance·daniel 검수). 규칙5: 무료=온디바이스(API 0).
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useMemo, useCallback } from 'react';
+import { Image as ExpoImage } from 'expo-image'; // ★뷰 크기 다운샘플 + 디스크 캐시(RN Image 는 원본 풀 디코딩 — 갤럭시 랙 원인)
+import { A } from '../../lib/ui/remoteAsset'; // ★이미지 원격화(daniel 08-01) — 번들에서 걷어내고 Storage 에서 받는다
 import { View, Text, Pressable, ActivityIndicator, ScrollView, StyleSheet, Image } from 'react-native';
 import { PressableScale } from '../../components/PressableScale';
 import { DeepDiveCta } from '../../components/DeepDiveCta';   // 유도 CTA = 이미지 카드(daniel 07-29)
@@ -24,11 +26,11 @@ import { useLogContentVisit } from '../../lib/backend/contentVisit'; // 콘텐�
 // 들어온 것만 require하고, 없으면 이모지로 자동 폴백(점진 적용). 키 = loveStyle 십신군(한글).
 const LOVE_IMG: Record<string, any> = {
   // slug: 비겁=bigeop·식상=siksang·재성=jaeseong·관성=gwanseong·인성=inseong (daniel 생성)
-  비겁: require('../../../assets/icons/lovestyle/bigeop.jpg'),
-  식상: require('../../../assets/icons/lovestyle/siksang.jpg'),
-  재성: require('../../../assets/icons/lovestyle/jaeseong.jpg'),
-  관성: require('../../../assets/icons/lovestyle/gwanseong.jpg'),
-  인성: require('../../../assets/icons/lovestyle/inseong.jpg'),
+  비겁: A('icons/lovestyle/bigeop.jpg'),
+  식상: A('icons/lovestyle/siksang.jpg'),
+  재성: A('icons/lovestyle/jaeseong.jpg'),
+  관성: A('icons/lovestyle/gwanseong.jpg'),
+  인성: A('icons/lovestyle/inseong.jpg'),
 };
 
 export default function LoveStyleScreen() {
@@ -62,7 +64,7 @@ export default function LoveStyleScreen() {
         <ChartPicker onChange={() => loadMyChart().then(setMe)} />
         <View style={styles.hero}>
           {LOVE_IMG[result.group]
-            ? <Image source={LOVE_IMG[result.group]} style={styles.heroImg} resizeMode="cover" />
+            ? <ExpoImage source={LOVE_IMG[result.group]} style={styles.heroImg} contentFit="cover" />
             : <Text style={styles.emoji}>{result.emoji}</Text>}
           <Text style={styles.title}>{result.style}</Text>
         </View>

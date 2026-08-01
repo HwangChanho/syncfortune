@@ -6,6 +6,8 @@
 // 결정론(일간관계·교차합충)은 온디바이스 → 통변의 근거로 Edge에 전달(규칙2 사주 단독). 상대 PII=동의(규칙8).
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useEffect, useRef } from 'react';
+import { Image as ExpoImage } from 'expo-image'; // ★뷰 크기 다운샘플 + 디스크 캐시(RN Image 는 원본 풀 디코딩 — 갤럭시 랙 원인)
+import { A } from '../lib/ui/remoteAsset'; // ★이미지 원격화(daniel 08-01) — 번들에서 걷어내고 Storage 에서 받는다
 import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator, Modal, TextInput, Keyboard, Image, Animated, Easing } from 'react-native';
 import { useRouter } from 'expo-router';                    // ★운 부족 → 충전 화면(daniel 07-28)
 import { ensureCoinsFor } from '../lib/billing/coinGate';   // ★운 단일 경로
@@ -42,24 +44,24 @@ import { appLang } from '../lib/i18n';
 
 // 궁합 등급별 이미지 — assets/icons/compat/{tier.key}.jpg. 없으면 이모지 폴백(이미지 생성 후 require 연결).
 const COMPAT_IMG: Record<string, any> = {
-  soulmate: require('../../assets/icons/compat/soulmate.jpg'),
-  great: require('../../assets/icons/compat/great.jpg'),
-  good: require('../../assets/icons/compat/good.jpg'),
-  steady: require('../../assets/icons/compat/steady.jpg'),
-  spark: require('../../assets/icons/compat/spark.jpg'),
-  opposite: require('../../assets/icons/compat/opposite.jpg'),
+  soulmate: A('icons/compat/soulmate.jpg'),
+  great: A('icons/compat/great.jpg'),
+  good: A('icons/compat/good.jpg'),
+  steady: A('icons/compat/steady.jpg'),
+  spark: A('icons/compat/spark.jpg'),
+  opposite: A('icons/compat/opposite.jpg'),
 };
 
 // 관계 카테고리별 이미지(daniel: 각 카테고리에 맞는 이미지) — assets/icons/compat-rel/{rel}.jpg. 선택 관계 배너.
 const CAT_IMG: Record<string, any> = {
-  friend: require('../../assets/icons/compat-rel/friend.jpg'),
-  family: require('../../assets/icons/compat-rel/family.jpg'),
-  love: require('../../assets/icons/compat-rel/love.jpg'),
-  marriage: require('../../assets/icons/compat-rel/marriage.jpg'),
-  coworker: require('../../assets/icons/compat-rel/coworker.jpg'),
-  senior: require('../../assets/icons/compat-rel/senior.jpg'),
-  staff: require('../../assets/icons/compat-rel/staff.jpg'),
-  business: require('../../assets/icons/compat-rel/business.jpg'),
+  friend: A('icons/compat-rel/friend.jpg'),
+  family: A('icons/compat-rel/family.jpg'),
+  love: A('icons/compat-rel/love.jpg'),
+  marriage: A('icons/compat-rel/marriage.jpg'),
+  coworker: A('icons/compat-rel/coworker.jpg'),
+  senior: A('icons/compat-rel/senior.jpg'),
+  staff: A('icons/compat-rel/staff.jpg'),
+  business: A('icons/compat-rel/business.jpg'),
 };
 import { UnlockOverlay } from '../components/UnlockOverlay'; // 생성 중 화면 가림 로딩(daniel)
 import { DoorReveal } from '../components/DoorReveal'; // 풀이 공개 순간 골드 명조 문 열림 영상(daniel 07-06)
@@ -376,12 +378,12 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
             </PressableScale>
           </View>
           {/* 선택한 관계 카테고리 배너(daniel: 카테고리별 이미지) */}
-          {CAT_IMG[rel] && <Image source={CAT_IMG[rel]} style={styles.catBanner} resizeMode="cover" />}
+          {CAT_IMG[rel] && <ExpoImage source={CAT_IMG[rel]} style={styles.catBanner} contentFit="cover" />}
           {/* 궁합 점수 — 풀이 '위로'(daniel 변경: 점수 먼저, 풀이 앞). LLM 산출 score 우선, 생성 전 결정론 임시값. */}
           {cur && dispTier && dispScore != null && (
             <View style={styles.scoreCard}>
               {COMPAT_IMG[dispTier.key]
-                ? <Image source={COMPAT_IMG[dispTier.key]} style={styles.scoreImg} resizeMode="cover" />
+                ? <ExpoImage source={COMPAT_IMG[dispTier.key]} style={styles.scoreImg} contentFit="cover" />
                 : <Text style={styles.scoreEmoji}>{dispTier.emoji}</Text>}
               <Text style={styles.scoreTier}>{dispTier.emoji} {tierLabel(dispTier, appLang() as 'ko' | 'en' | 'ja')}</Text>
               <ScoreReveal score={dispScore} />

@@ -3,6 +3,8 @@
 // 사주 십신 → 타고난 복(lib/bokType.ts, Claude stance·daniel 검수). 규칙5: 무료=온디바이스(API 0). 처방(살리는 법) 동반.
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useMemo, useCallback } from 'react';
+import { Image as ExpoImage } from 'expo-image'; // ★뷰 크기 다운샘플 + 디스크 캐시(RN Image 는 원본 풀 디코딩 — 갤럭시 랙 원인)
+import { A } from '../../lib/ui/remoteAsset'; // ★이미지 원격화(daniel 08-01) — 번들에서 걷어내고 Storage 에서 받는다
 import { View, Text, Pressable, ActivityIndicator, ScrollView, StyleSheet, Image } from 'react-native';
 import { PressableScale } from '../../components/PressableScale';
 import { DeepDiveCta } from '../../components/DeepDiveCta';   // 유도 CTA = 이미지 카드(daniel 07-29)
@@ -22,11 +24,11 @@ import { useLogContentVisit } from '../../lib/backend/contentVisit'; // 콘텐�
 // 복 유형별 이미지(daniel: 종류별 이미지) — assets/icons/bok/{slug}.jpg. 들어온 것만 require, 없으면 이모지 폴백.
 // slug: 재물복=jaeseong·귀인복=inseong·식복=siksang·관복=gwanseong·인복=bigeop (loveStyle과 동일 G5)
 const BOK_IMG: Record<string, any> = {
-  재성: require('../../../assets/icons/bok/jaeseong.jpg'),
-  인성: require('../../../assets/icons/bok/inseong.jpg'),
-  식상: require('../../../assets/icons/bok/siksang.jpg'),
-  관성: require('../../../assets/icons/bok/gwanseong.jpg'),
-  비겁: require('../../../assets/icons/bok/bigeop.jpg'),
+  재성: A('icons/bok/jaeseong.jpg'),
+  인성: A('icons/bok/inseong.jpg'),
+  식상: A('icons/bok/siksang.jpg'),
+  관성: A('icons/bok/gwanseong.jpg'),
+  비겁: A('icons/bok/bigeop.jpg'),
 };
 
 export default function BokScreen() {
@@ -59,7 +61,7 @@ export default function BokScreen() {
         <ChartPicker onChange={() => loadMyChart().then(setMe)} />
         <View style={styles.hero}>
           {BOK_IMG[result.group]
-            ? <Image source={BOK_IMG[result.group]} style={styles.heroImg} resizeMode="cover" />
+            ? <ExpoImage source={BOK_IMG[result.group]} style={styles.heroImg} contentFit="cover" />
             : <Text style={styles.emoji}>{result.emoji}</Text>}
           <Text style={styles.title}>{result.bok}</Text>
         </View>

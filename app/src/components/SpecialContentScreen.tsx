@@ -6,6 +6,7 @@
 //   needsZiwei=true 면 자미두수 명반을 body 로 전달(사명=사주 主 + 자미 보조 교차).
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useMemo, useState, useRef, type ReactNode } from 'react';
+import { A } from '../lib/ui/remoteAsset'; // ★이미지 원격화(daniel 08-01) — 번들에서 걷어내고 Storage 에서 받는다
 import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator, Animated, Easing, Modal } from 'react-native';
 import { PressableScale } from './PressableScale';
 import { ReadingProse, ReadingHeadline, ReadingPoints } from './ReadingProse'; // 풀이 본문 공통 렌더(P0 문단화·강조·접이식 + P1 핵심3줄). 이 셸을 쓰는 유료 콘텐츠 29종에 일괄 적용
@@ -58,15 +59,15 @@ export type Section = { key: string; label: string; groupTitle?: string }; // gr
 // kind별 기본 히어로 이미지(daniel: 모든 콘텐츠 히어로에 이미지 — 세로 카드아트도 1.75 박스 cover-crop 시 중앙 띠가 꽉 참, 시뮬 확인).
 //   heroImage prop 명시 시 그게 우선(roots/image/mission = 전용 가로 hero-*.jpg). 없으면 이 맵 폴백.
 const HERO_BY_KIND: Record<string, any> = {
-  daily: require('../../assets/icons/today.jpg'), monthly: require('../../assets/icons/month.jpg'), dayPillar: require('../../assets/icons/dayPillar.jpg'),
-  astrology: require('../../assets/icons/astrology.jpg'), bok: require('../../assets/icons/bok.jpg'), career: require('../../assets/icons/career.jpg'), celeb: require('../../assets/icons/celeb.jpg'),
-  dream: require('../../assets/icons/dream.jpg'), egen: require('../../assets/icons/egen.jpg'), healing: require('../../assets/icons/healing.jpg'),
-  joseonjob: require('../../assets/icons/joseonjob.jpg'), lifegraph: require('../../assets/icons/lifegraph-hero.jpg'), love: require('../../assets/icons/love-hero.jpg'),
-  lovestyle: require('../../assets/icons/lovestyle.jpg'), luck: require('../../assets/icons/luck.jpg'), mbti: require('../../assets/icons/mbti.jpg'),
-  name: require('../../assets/icons/name.jpg'), newyear: require('../../assets/icons/newyear-hero.jpg'), numerology: require('../../assets/icons/numerology.jpg'),
-  pastlife: require('../../assets/icons/pastlife.jpg'), persona: require('../../assets/icons/persona.jpg'), pet: require('../../assets/icons/pet.jpg'),
-  taegil: require('../../assets/icons/taegil.jpg'), talent: require('../../assets/icons/talent.jpg'), zodiac: require('../../assets/icons/zodiac.jpg'),
-  child: require('../../assets/icons/child.jpg'), future10: require('../../assets/icons/future10.jpg'),
+  daily: A('icons/today.jpg'), monthly: A('icons/month.jpg'), dayPillar: A('icons/dayPillar.jpg'),
+  astrology: A('icons/astrology.jpg'), bok: A('icons/bok.jpg'), career: A('icons/career.jpg'), celeb: A('icons/celeb.jpg'),
+  dream: A('icons/dream.jpg'), egen: A('icons/egen.jpg'), healing: A('icons/healing.jpg'),
+  joseonjob: A('icons/joseonjob.jpg'), lifegraph: A('icons/lifegraph-hero.jpg'), love: A('icons/love-hero.jpg'),
+  lovestyle: A('icons/lovestyle.jpg'), luck: A('icons/luck.jpg'), mbti: A('icons/mbti.jpg'),
+  name: A('icons/name.jpg'), newyear: A('icons/newyear-hero.jpg'), numerology: A('icons/numerology.jpg'),
+  pastlife: A('icons/pastlife.jpg'), persona: A('icons/persona.jpg'), pet: A('icons/pet.jpg'),
+  taegil: A('icons/taegil.jpg'), talent: A('icons/talent.jpg'), zodiac: A('icons/zodiac.jpg'),
+  child: A('icons/child.jpg'), future10: A('icons/future10.jpg'),
 };
 
 /** 열람 플로우 잠금의 stale 회수 시간(ms). 결제창·웹훅 폴링을 포함해 넉넉히 — genLock(150초)보다 길게 둔다. */

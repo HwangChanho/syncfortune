@@ -5,6 +5,7 @@
 //   Edge kind='love'(category='love'), 운한 포함 최신 자미명반은 body로 전달.
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useMemo, useState, useRef } from 'react';
+import { A } from '../../lib/ui/remoteAsset'; // ★이미지 원격화(daniel 08-01) — 번들에서 걷어내고 Storage 에서 받는다
 import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator, Animated } from 'react-native';
 import { PressableScale } from '../../components/PressableScale';
 import { RelatedContent } from '../../components/RelatedContent';
@@ -300,7 +301,7 @@ export default function LoveScreen() {
       <UnlockOverlay visible={busy} message={t('love.generating', '애정 흐름을 풀어내는 중…')} />
       {/* 풀이 공개 순간 골드 명조 문 열림 영상 — 1회 재생 후 페이드아웃하며 풀이 노출(daniel 07-06) */}
       <DoorReveal visible={doorPlaying} onDone={() => setDoorPlaying(false)} />
-      <ContentHero motif={<LoveThread />} image={require('../../../assets/icons/love-hero.jpg')} title={t('love.title')} sub={t('love.sub')} themeColor={LOVE_PINK} />
+      <ContentHero motif={<LoveThread />} image={A('icons/love-hero.jpg')} title={t('love.title')} sub={t('love.sub')} themeColor={LOVE_PINK} />
       {/* 인연 가능성 게이지(무료·결정론) — 흐름 곡선 '위'에 얹는 핵심 훅. 지금 인연 기운을 0~100 + 한 줄 일상어로. */}
       {loveGauge && (
         <PossibilityGauge score={loveGauge.score} label={loveGauge.label} tone={loveGauge.tone} title="인연이 무르익는 흐름" caption={loveGauge.caption} accent={LOVE_PINK} />

@@ -3,6 +3,8 @@
 // 사주 = 일간 오행(시대) × 십신군(신분) → 전생 이야기(lib/pastLife.ts, Claude stance·daniel 검수). 재미 판타지.
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useMemo, useCallback } from 'react';
+import { Image as ExpoImage } from 'expo-image'; // ★뷰 크기 다운샘플 + 디스크 캐시(RN Image 는 원본 풀 디코딩 — 갤럭시 랙 원인)
+import { A } from '../../lib/ui/remoteAsset'; // ★이미지 원격화(daniel 08-01) — 번들에서 걷어내고 Storage 에서 받는다
 import { View, Text, Pressable, ActivityIndicator, ScrollView, StyleSheet, Image } from 'react-native';
 import { PressableScale } from '../../components/PressableScale';
 import { DeepDiveCta } from '../../components/DeepDiveCta';   // 유도 CTA = 이미지 카드(daniel 07-29)
@@ -25,31 +27,31 @@ import { useLogContentVisit } from '../../lib/backend/contentVisit'; // 콘텐�
 const ELEM_SLUG: Record<string, string> = { 木: 'wood', 火: 'fire', 土: 'earth', 金: 'metal', 水: 'water' };
 const GROUP_SLUG: Record<string, string> = { 관성: 'gwanseong', 인성: 'inseong', 식상: 'siksang', 재성: 'jaeseong', 비겁: 'bigeop' };
 const PASTLIFE_IMG: Record<string, any> = {
-  wood_gwanseong: require('../../../assets/icons/pastlife/wood_gwanseong.jpg'),
-  wood_inseong: require('../../../assets/icons/pastlife/wood_inseong.jpg'),
-  wood_siksang: require('../../../assets/icons/pastlife/wood_siksang.jpg'),
-  wood_jaeseong: require('../../../assets/icons/pastlife/wood_jaeseong.jpg'),
-  wood_bigeop: require('../../../assets/icons/pastlife/wood_bigeop.jpg'),
-  fire_gwanseong: require('../../../assets/icons/pastlife/fire_gwanseong.jpg'),
-  fire_inseong: require('../../../assets/icons/pastlife/fire_inseong.jpg'),
-  fire_siksang: require('../../../assets/icons/pastlife/fire_siksang.jpg'),
-  fire_jaeseong: require('../../../assets/icons/pastlife/fire_jaeseong.jpg'),
-  fire_bigeop: require('../../../assets/icons/pastlife/fire_bigeop.jpg'),
-  earth_gwanseong: require('../../../assets/icons/pastlife/earth_gwanseong.jpg'),
-  earth_inseong: require('../../../assets/icons/pastlife/earth_inseong.jpg'),
-  earth_siksang: require('../../../assets/icons/pastlife/earth_siksang.jpg'),
-  earth_jaeseong: require('../../../assets/icons/pastlife/earth_jaeseong.jpg'),
-  earth_bigeop: require('../../../assets/icons/pastlife/earth_bigeop.jpg'),
-  metal_gwanseong: require('../../../assets/icons/pastlife/metal_gwanseong.jpg'),
-  metal_inseong: require('../../../assets/icons/pastlife/metal_inseong.jpg'),
-  metal_siksang: require('../../../assets/icons/pastlife/metal_siksang.jpg'),
-  metal_jaeseong: require('../../../assets/icons/pastlife/metal_jaeseong.jpg'),
-  metal_bigeop: require('../../../assets/icons/pastlife/metal_bigeop.jpg'),
-  water_gwanseong: require('../../../assets/icons/pastlife/water_gwanseong.jpg'),
-  water_inseong: require('../../../assets/icons/pastlife/water_inseong.jpg'),
-  water_siksang: require('../../../assets/icons/pastlife/water_siksang.jpg'),
-  water_jaeseong: require('../../../assets/icons/pastlife/water_jaeseong.jpg'),
-  water_bigeop: require('../../../assets/icons/pastlife/water_bigeop.jpg'),
+  wood_gwanseong: A('icons/pastlife/wood_gwanseong.jpg'),
+  wood_inseong: A('icons/pastlife/wood_inseong.jpg'),
+  wood_siksang: A('icons/pastlife/wood_siksang.jpg'),
+  wood_jaeseong: A('icons/pastlife/wood_jaeseong.jpg'),
+  wood_bigeop: A('icons/pastlife/wood_bigeop.jpg'),
+  fire_gwanseong: A('icons/pastlife/fire_gwanseong.jpg'),
+  fire_inseong: A('icons/pastlife/fire_inseong.jpg'),
+  fire_siksang: A('icons/pastlife/fire_siksang.jpg'),
+  fire_jaeseong: A('icons/pastlife/fire_jaeseong.jpg'),
+  fire_bigeop: A('icons/pastlife/fire_bigeop.jpg'),
+  earth_gwanseong: A('icons/pastlife/earth_gwanseong.jpg'),
+  earth_inseong: A('icons/pastlife/earth_inseong.jpg'),
+  earth_siksang: A('icons/pastlife/earth_siksang.jpg'),
+  earth_jaeseong: A('icons/pastlife/earth_jaeseong.jpg'),
+  earth_bigeop: A('icons/pastlife/earth_bigeop.jpg'),
+  metal_gwanseong: A('icons/pastlife/metal_gwanseong.jpg'),
+  metal_inseong: A('icons/pastlife/metal_inseong.jpg'),
+  metal_siksang: A('icons/pastlife/metal_siksang.jpg'),
+  metal_jaeseong: A('icons/pastlife/metal_jaeseong.jpg'),
+  metal_bigeop: A('icons/pastlife/metal_bigeop.jpg'),
+  water_gwanseong: A('icons/pastlife/water_gwanseong.jpg'),
+  water_inseong: A('icons/pastlife/water_inseong.jpg'),
+  water_siksang: A('icons/pastlife/water_siksang.jpg'),
+  water_jaeseong: A('icons/pastlife/water_jaeseong.jpg'),
+  water_bigeop: A('icons/pastlife/water_bigeop.jpg'),
 };
 
 export default function PastLifeScreen() {
@@ -83,7 +85,7 @@ export default function PastLifeScreen() {
         <ChartPicker onChange={() => loadMyChart().then(setMe)} />
         <View style={styles.hero}>
           {PASTLIFE_IMG[`${ELEM_SLUG[result.elem] ?? ''}_${GROUP_SLUG[result.group] ?? ''}`]
-            ? <Image source={PASTLIFE_IMG[`${ELEM_SLUG[result.elem]}_${GROUP_SLUG[result.group]}`]} style={styles.heroImg} resizeMode="cover" />
+            ? <ExpoImage source={PASTLIFE_IMG[`${ELEM_SLUG[result.elem]}_${GROUP_SLUG[result.group]}`]} style={styles.heroImg} contentFit="cover" />
             : <Text style={styles.emoji}>{result.emoji}</Text>}
           <Text style={styles.title}>{result.role}</Text>
           <Text style={styles.sub}>{result.era}</Text>

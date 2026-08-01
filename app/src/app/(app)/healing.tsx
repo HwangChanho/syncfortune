@@ -4,6 +4,8 @@
 //   규칙5: 무료=온디바이스(API 0). §4: 의료 단정 금지·다독임 톤. 상단 명식 헤더로 전환.
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useMemo, useCallback } from 'react';
+import { Image as ExpoImage } from 'expo-image'; // ★뷰 크기 다운샘플 + 디스크 캐시(RN Image 는 원본 풀 디코딩 — 갤럭시 랙 원인)
+import { A } from '../../lib/ui/remoteAsset'; // ★이미지 원격화(daniel 08-01) — 번들에서 걷어내고 Storage 에서 받는다
 import { View, Text, Pressable, ActivityIndicator, ScrollView, StyleSheet, Image } from 'react-native';
 import { PressableScale } from '../../components/PressableScale';
 import { RelatedContent } from '../../components/RelatedContent';
@@ -23,11 +25,11 @@ import { useLogContentVisit } from '../../lib/backend/contentVisit'; // 콘텐�
 // 일간 오행별 이미지(daniel O: 종류별 이미지) — assets/icons/healing/{wood|fire|earth|metal|water}.jpg.
 //   들어온 것만 require, 없으면 이모지(HEAL_EMOJI)로 자동 폴백(점진 적용). 키 = 오행 한자.
 const HEAL_IMG: Record<string, any> = {
-  木: require('../../../assets/icons/healing/wood.jpg'),
-  火: require('../../../assets/icons/healing/fire.jpg'),
-  土: require('../../../assets/icons/healing/earth.jpg'),
-  金: require('../../../assets/icons/healing/metal.jpg'),
-  水: require('../../../assets/icons/healing/water.jpg'),
+  木: A('icons/healing/wood.jpg'),
+  火: A('icons/healing/fire.jpg'),
+  土: A('icons/healing/earth.jpg'),
+  金: A('icons/healing/metal.jpg'),
+  水: A('icons/healing/water.jpg'),
 };
 
 export default function HealingScreen() {
@@ -66,7 +68,7 @@ export default function HealingScreen() {
         {/* 히어로 — 일간 오행 이미지(없으면 이모지) + 타이틀 */}
         <View style={styles.hero}>
           {HEAL_IMG[r.dayElem]
-            ? <Image source={HEAL_IMG[r.dayElem]} style={styles.heroImg} resizeMode="cover" />
+            ? <ExpoImage source={HEAL_IMG[r.dayElem]} style={styles.heroImg} contentFit="cover" />
             : <Text style={styles.emoji}>{HEAL_EMOJI[r.dayElem]}</Text>}
           <Text style={styles.title}>{t('menu.healing', '나만의 힐링 방법')}</Text>
           <Text style={styles.subtitle}>{t('healing.elemLead', '내 기운')}: {r.dayLabel}</Text>

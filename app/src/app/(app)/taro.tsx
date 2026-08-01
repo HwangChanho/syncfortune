@@ -6,6 +6,8 @@
 // ③ 공개 카드 부채꼴+탭 확대 ④ 5장 다 뽑으면 '그 주제에 연관된 하나의 흐름'으로 풀이. 무제한 무료.
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useEffect, useRef, useMemo } from 'react';
+import { Image as ExpoImage } from 'expo-image'; // ★뷰 크기 다운샘플 + 디스크 캐시(RN Image 는 원본 풀 디코딩 — 갤럭시 랙 원인)
+import { A } from '../../lib/ui/remoteAsset'; // ★이미지 원격화(daniel 08-01) — 번들에서 걷어내고 Storage 에서 받는다
 import { View, Text, Pressable, ScrollView, Image, StyleSheet, ImageBackground, Modal, Animated, Easing } from 'react-native';
 import { PressableScale } from '../../components/PressableScale';
 import { RelatedContent } from '../../components/RelatedContent';
@@ -28,11 +30,11 @@ const hNotify = (n: Haptics.NotificationFeedbackType) => { try { Haptics.notific
 
 // 주제별 생성 이미지(이모지 대체) — key→png. 미드나잇·골드 테마 통일(Recraft 생성).
 const TARO_IMAGES: Record<string, any> = {
-  love: require('../../../assets/icons/taro-love.jpg'),
-  work: require('../../../assets/icons/taro-work.jpg'),
-  money: require('../../../assets/icons/taro-money.jpg'),
-  health: require('../../../assets/icons/taro-health.jpg'),
-  general: require('../../../assets/icons/taro-general.jpg'),
+  love: A('icons/taro-love.jpg'),
+  work: A('icons/taro-work.jpg'),
+  money: A('icons/taro-money.jpg'),
+  health: A('icons/taro-health.jpg'),
+  general: A('icons/taro-general.jpg'),
 };
 
 type Category = (typeof TARO_CATEGORIES)[number];
@@ -137,7 +139,7 @@ export default function TaroScreen() {
               {TARO_CATEGORIES.map((c) => (
                 <PressableScale key={c.key} style={styles.catBtnNew} onPress={() => start(c)}>
                   <GlassCard style={styles.catGlass} intensity={20}>
-                    <Image source={TARO_IMAGES[c.key]} style={styles.catImgNew} resizeMode="contain" />
+                    <ExpoImage source={TARO_IMAGES[c.key]} style={styles.catImgNew} contentFit="contain" />
                     <Text style={styles.catKoNew}>{c.ko}</Text>
                   </GlassCard>
                 </PressableScale>
@@ -148,7 +150,7 @@ export default function TaroScreen() {
           <>
             <View style={styles.spreadHeadNew}>
               <GlassCard style={styles.spreadTitleNew} intensity={30}>
-                <Image source={TARO_IMAGES[category?.key ?? 'general']} style={styles.spreadThumb} />
+                <ExpoImage source={TARO_IMAGES[category?.key ?? 'general']} style={styles.spreadThumb} />
                 <Text style={styles.spreadCat}>{category?.ko} · {drawn}/{spread.length}</Text>
               </GlassCard>
             </View>
@@ -172,7 +174,7 @@ export default function TaroScreen() {
                       ]}
                     >
                       <PressableScale onPress={() => openCard(i)}>
-                        <Image source={cardImage(card.id)} style={[styles.fanImg, card.reversed && styles.revImg]} resizeMode="contain" />
+                        <ExpoImage source={cardImage(card.id)} style={[styles.fanImg, card.reversed && styles.revImg]} contentFit="contain" />
                       </PressableScale>
                     </Animated.View>
                   );
@@ -229,7 +231,7 @@ export default function TaroScreen() {
               }]}
             >
               <GlassCard intensity={60} style={styles.bigGlass}>
-                <Image source={cardImage(spread[sel].id)} style={[styles.bigImgNew, spread[sel].reversed && styles.revImg]} resizeMode="contain" />
+                <ExpoImage source={cardImage(spread[sel].id)} style={[styles.bigImgNew, spread[sel].reversed && styles.revImg]} contentFit="contain" />
                 <View style={styles.bigInfo}>
                   <Text style={styles.bigPos}>{sel + 1}. {spread[sel].position}</Text>
                   <Text style={styles.bigName}>{spread[sel].ko}{spread[sel].reversed ? ' (뒤집힘)' : ''}</Text>

@@ -5,6 +5,7 @@
 //   career.tsx 게이트/생성 패턴 차용. 이미지(hero)는 배치 생성 후 연결(현재 텍스트 히어로).
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useMemo, useState, useRef } from 'react';
+import { A } from '../../lib/ui/remoteAsset'; // ★이미지 원격화(daniel 08-01) — 번들에서 걷어내고 Storage 에서 받는다
 import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
 import { PressableScale } from '../../components/PressableScale';
 import { RelatedContent } from '../../components/RelatedContent';
@@ -202,7 +203,7 @@ export default function GaeunScreen() {
         {/* 풀이 공개 순간 골드 명조 문 열림 영상 — 1회 재생 후 페이드아웃하며 풀이 노출(daniel 07-06) */}
         <DoorReveal visible={doorPlaying} onDone={() => setDoorPlaying(false)} />
         <View style={styles.hero}>
-          <ExpoImage source={require('../../../assets/icons/gaeun.jpg')} style={styles.heroImg} contentFit="cover" cachePolicy="memory-disk" transition={150} />
+          <ExpoImage source={A('icons/gaeun.jpg')} style={styles.heroImg} contentFit="cover" cachePolicy="memory-disk" transition={150} />
           <Text style={styles.title}>{t('gaeun.title', '맞춤 개운법')}</Text>
           <Text style={styles.sub}>{t('gaeun.sub', '지금 운(대운·세운)에 맞춰 운을 살리는 구체적인 방법을 짚어 드려요')}</Text>
         </View>

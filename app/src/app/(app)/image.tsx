@@ -2,6 +2,7 @@
 // 천간(특히 일간) → 남에게 보이는 첫인상·풍기는 분위기·관계에서 비치는 모습.
 // 시각: 오행 5색 오라 모티프(빛/거울) + 보라 테마.
 import { useTranslation } from 'react-i18next';
+import { A } from '../../lib/ui/remoteAsset'; // ★이미지 원격화(daniel 08-01) — 번들에서 걷어내고 Storage 에서 받는다
 import { SpecialContentScreen } from '../../components/SpecialContentScreen';
 import { ImageTeaser } from '../../components/ImageTeaser'; // 무료 온디바이스 첫인상 티저(일간 오행·API 0)
 import { ImageAura } from '../../components/contentMotifs';
@@ -14,7 +15,7 @@ export default function ImageRoute() {
       kind="image"
       showExpiry
       themeColor="#A78BFA"
-      heroImage={require('../../../assets/icons/hero-image.jpg')}
+      heroImage={A('icons/hero-image.jpg')}
       heroMotif={<ImageAura />}
       title={t('image.title', '비치는 나')}
       sub={t('image.sub', '남에게 비치는 첫인상과 분위기, 관계 속 내 모습을 짚어 드려요')}

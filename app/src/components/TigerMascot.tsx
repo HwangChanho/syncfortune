@@ -10,12 +10,13 @@
 //   원형 메달리온 + 골드 링(colors.ju #C9A14A) → 배경이 안 맞는 라이트 테마에서도 '포트레잇'으로 의도적.
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useRef } from 'react';
+import { A } from '../lib/ui/remoteAsset'; // ★이미지 원격화(daniel 08-01) — 번들에서 걷어내고 Storage 에서 받는다
 import { Animated, View, Easing, type ViewStyle } from 'react-native';
 import { Image } from 'expo-image'; // 정적 png·애니메이티드 webp 모두 재생 + 다운샘플(디코딩 랙 방지)
 import { colors } from '../lib/theme';
 
 // 마스코트 이미지 = AI img2vid(SVD) 애니메이티드 webp(호랑이가 숨쉬듯 움직임). expo-image 가 자동 재생·루프.
-const SRC = require('../../assets/icons/mascot-tiger.webp');
+const SRC = A('icons/mascot-tiger.webp');
 
 type Props = {
   size?: number;    // 원형 메달리온 지름(px). 기본 64. 코치=72, 홈 헤더=40 권장.

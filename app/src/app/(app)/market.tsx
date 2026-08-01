@@ -6,6 +6,8 @@
 //   무료 이용권(쿠폰) 등록도 여기로 이동(설정→마켓). ★1회성 소모 — 보유/미보유로만 표시.
 // ─────────────────────────────────────────────────────────────────────────
 import { View, Text, ScrollView, Pressable, TextInput, StyleSheet, Modal, Image } from 'react-native';
+import { Image as ExpoImage } from 'expo-image'; // ★뷰 크기 다운샘플 + 디스크 캐시(RN Image 는 원본 풀 디코딩 — 갤럭시 랙 원인)
+import { A } from '../../lib/ui/remoteAsset'; // ★이미지 원격화(daniel 08-01) — 번들에서 걷어내고 Storage 에서 받는다
 import { PressableScale } from '../../components/PressableScale';
 import { AdFreeSection } from '../../components/AdFreeSection';   // ★광고 제거(운 구매) 공용 블록
 import { Alert } from '../../lib/ui/alert'; // 커스텀 알림(앱 디자인)
@@ -89,31 +91,31 @@ const MARKET_TOPICS: [('all' | MarketTopic), string][] = [
 // 이용권 kind → 카드 이미지 + 설명키(홈 카드와 동일 재사용, daniel: 마켓 리스트에도 작게+설명).
 //   followup(추가질문)은 standalone 카드가 아니라(풀이 내부) 생략 — 없으면 이미지·설명 미표시(graceful).
 const CARD: Partial<Record<CreditKind, { img: any; desc: string }>> = {
-  reading: { img: require('../../../assets/icons/premium.jpg'), desc: 'menu.sajuDesc' },
-  ziwei: { img: require('../../../assets/icons/ziwei.jpg'), desc: 'menu.ziweiHubDesc' },
-  compat: { img: require('../../../assets/icons/compat.jpg'), desc: 'menu.compatDesc' },
-  timeline: { img: require('../../../assets/icons/timeline.jpg'), desc: 'menu.timelineDesc' },
-  love: { img: require('../../../assets/icons/love.jpg'), desc: 'menu.loveDesc' },
-  newyear: { img: require('../../../assets/icons/newyear.jpg'), desc: 'menu.newyearTileDesc' },
-  lifegraph: { img: require('../../../assets/icons/lifegraph.jpg'), desc: 'menu.lifegraphDesc' },
-  roots: { img: require('../../../assets/icons/roots.jpg'), desc: 'menu.rootsDesc' },
-  image: { img: require('../../../assets/icons/image.jpg'), desc: 'menu.imageDesc' },
-  mission: { img: require('../../../assets/icons/mission.jpg'), desc: 'menu.missionDesc' },
-  career: { img: require('../../../assets/icons/career.jpg'), desc: 'menu.careerDesc' },
-  talent: { img: require('../../../assets/icons/talent.jpg'), desc: 'menu.talentDesc' },
-  astrology: { img: require('../../../assets/icons/astrology.jpg'), desc: 'menu.astrologyDesc' },
-  dream: { img: require('../../../assets/icons/dream.jpg'), desc: 'menu.dreamDesc' },
-  gaeun: { img: require('../../../assets/icons/gaeun.jpg'), desc: 'menu.gaeunDesc' }, // 맞춤 개운법(daniel #18)
-  celeb: { img: require('../../../assets/icons/celeb.jpg'), desc: 'menu.celebDesc' }, // 세계 인물 매칭(daniel B)
-  timeresolve: { img: require('../../../assets/icons/timeResolve.jpg'), desc: 'menu.timeResolveDesc' }, // 태어난 시 찾기(TPR — daniel 06-28)
-  followup: { img: require('../../../assets/icons/followup.jpg'), desc: 'menu.followupDesc' }, // 추가 질문(daniel: 마켓에도 이미지)
-  future10: { img: require('../../../assets/icons/future10.jpg'), desc: 'menu.future10Desc' }, // 10년 뒤 나의 모습(전용 아이콘)
-  child: { img: require('../../../assets/icons/child.jpg'), desc: 'menu.childDesc' }, // 자식운(전용 아이콘)
-  reunion: { img: require('../../../assets/icons/reunion.jpg'), desc: 'menu.reunionDesc' }, // 재회운(전용 아이콘 — 부모가 reunion.jpg 추가)
-  crush: { img: require('../../../assets/icons/crush.jpg'), desc: 'menu.crushDesc' }, // 짝사랑 인연운(전용 히어로)
-  job: { img: require('../../../assets/icons/job.jpg'), desc: 'menu.jobDesc' }, // 취업·이직운(전용 히어로)
-  jobfit: { img: require('../../../assets/icons/jobfit.jpg'), desc: 'menu.jobfitDesc' }, // 나에게 어울리는 직업(전용 히어로 — 갈림길에서 어울리는 길, 미드나잇+골드 톤)
-  wealth: { img: require('../../../assets/icons/wealth.jpg'), desc: 'menu.wealthDesc' }, // 재물 딥리포트(전용 히어로 — 재물 그릇에 빛·재물 유입, 미드나잇+골드 톤)
+  reading: { img: A('icons/premium.jpg'), desc: 'menu.sajuDesc' },
+  ziwei: { img: A('icons/ziwei.jpg'), desc: 'menu.ziweiHubDesc' },
+  compat: { img: A('icons/compat.jpg'), desc: 'menu.compatDesc' },
+  timeline: { img: A('icons/timeline.jpg'), desc: 'menu.timelineDesc' },
+  love: { img: A('icons/love.jpg'), desc: 'menu.loveDesc' },
+  newyear: { img: A('icons/newyear.jpg'), desc: 'menu.newyearTileDesc' },
+  lifegraph: { img: A('icons/lifegraph.jpg'), desc: 'menu.lifegraphDesc' },
+  roots: { img: A('icons/roots.jpg'), desc: 'menu.rootsDesc' },
+  image: { img: A('icons/image.jpg'), desc: 'menu.imageDesc' },
+  mission: { img: A('icons/mission.jpg'), desc: 'menu.missionDesc' },
+  career: { img: A('icons/career.jpg'), desc: 'menu.careerDesc' },
+  talent: { img: A('icons/talent.jpg'), desc: 'menu.talentDesc' },
+  astrology: { img: A('icons/astrology.jpg'), desc: 'menu.astrologyDesc' },
+  dream: { img: A('icons/dream.jpg'), desc: 'menu.dreamDesc' },
+  gaeun: { img: A('icons/gaeun.jpg'), desc: 'menu.gaeunDesc' }, // 맞춤 개운법(daniel #18)
+  celeb: { img: A('icons/celeb.jpg'), desc: 'menu.celebDesc' }, // 세계 인물 매칭(daniel B)
+  timeresolve: { img: A('icons/timeResolve.jpg'), desc: 'menu.timeResolveDesc' }, // 태어난 시 찾기(TPR — daniel 06-28)
+  followup: { img: A('icons/followup.jpg'), desc: 'menu.followupDesc' }, // 추가 질문(daniel: 마켓에도 이미지)
+  future10: { img: A('icons/future10.jpg'), desc: 'menu.future10Desc' }, // 10년 뒤 나의 모습(전용 아이콘)
+  child: { img: A('icons/child.jpg'), desc: 'menu.childDesc' }, // 자식운(전용 아이콘)
+  reunion: { img: A('icons/reunion.jpg'), desc: 'menu.reunionDesc' }, // 재회운(전용 아이콘 — 부모가 reunion.jpg 추가)
+  crush: { img: A('icons/crush.jpg'), desc: 'menu.crushDesc' }, // 짝사랑 인연운(전용 히어로)
+  job: { img: A('icons/job.jpg'), desc: 'menu.jobDesc' }, // 취업·이직운(전용 히어로)
+  jobfit: { img: A('icons/jobfit.jpg'), desc: 'menu.jobfitDesc' }, // 나에게 어울리는 직업(전용 히어로 — 갈림길에서 어울리는 길, 미드나잇+골드 톤)
+  wealth: { img: A('icons/wealth.jpg'), desc: 'menu.wealthDesc' }, // 재물 딥리포트(전용 히어로 — 재물 그릇에 빛·재물 유입, 미드나잇+골드 톤)
 };
 
 export default function MarketRoute() {
@@ -269,7 +271,7 @@ export default function MarketRoute() {
       <View key={c.key} onLayout={(e) => { cardY.current[c.key] = e.nativeEvent.layout.y; }}
         style={[styles.card, hi === c.key && styles.cardFocus]}>
         {isNewContent(c.key) && <View style={styles.newTag}><Text style={styles.newTagTx}>NEW</Text></View>}
-          {card && <Image source={card.img} style={styles.thumb} />}
+          {card && <ExpoImage source={card.img} style={styles.thumb} />}
         <View style={{ flex: 1 }}>
           <Text style={styles.name}>{c.ko}</Text>
           {card && <Text style={styles.desc} numberOfLines={2}>{t(card.desc)}</Text>}

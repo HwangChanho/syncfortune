@@ -5,6 +5,7 @@
 //   lib/impression.ts 사전 조회 → API 0. 시각 미상이면 시주(깊은 사이) 생략.
 // ─────────────────────────────────────────────────────────────────────────
 import { useMemo, useState, useEffect } from 'react';
+import { A } from '../../lib/ui/remoteAsset'; // ★이미지 원격화(daniel 08-01) — 번들에서 걷어내고 Storage 에서 받는다
 import { View, Text, ScrollView, StyleSheet, Pressable } from 'react-native';
 import { PressableScale } from '../../components/PressableScale';
 import { RelatedContent } from '../../components/RelatedContent';
@@ -48,7 +49,7 @@ export default function ImpressionScreen() {
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>
       <ChartPicker onChange={() => setReloadKey((k) => k + 1)} />
-      <ContentHero image={require('../../../assets/icons/impression.jpg')}
+      <ContentHero image={A('icons/impression.jpg')}
         title={t('impression.title', '사람들이 보는 나의 인상')}
         sub={t('impression.sub', '겉으로 비치는 모습과 알고 보면 다른 진짜 나')} />
       {!saved || !c ? (

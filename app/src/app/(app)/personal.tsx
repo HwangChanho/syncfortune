@@ -4,6 +4,7 @@
 //   전부 온디바이스 룰(personalOhaeng)·API 0·무료. BM(뷰티/패션 제휴 링크)의 토대. 매핑=daniel ★검수(personalOhaeng.ts).
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useMemo, useState } from 'react';
+import { A } from '../../lib/ui/remoteAsset'; // ★이미지 원격화(daniel 08-01) — 번들에서 걷어내고 Storage 에서 받는다
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -64,7 +65,7 @@ export default function PersonalRoute() {
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>
       <ChartPicker onChange={() => setReloadKey((k) => k + 1)} />
-      <ContentHero image={require('../../../assets/icons/personal.jpg')} title={t('personal.title', '퍼스널 오행')} sub={t('personal.sub', '내 오행에 맞는 컬러·코디·메이크업·자동차 색')} />
+      <ContentHero image={A('icons/personal.jpg')} title={t('personal.title', '퍼스널 오행')} sub={t('personal.sub', '내 오행에 맞는 컬러·코디·메이크업·자동차 색')} />
 
       {loading ? (
         <View style={styles.center}><ActivityIndicator color={colors.ju} /></View>

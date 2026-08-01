@@ -8,6 +8,7 @@
 //   캐시: readings(chart_id × 'monthly_YYYYMM' × lang).
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useMemo, useState } from 'react';
+import { A } from '../../lib/ui/remoteAsset'; // ★이미지 원격화(daniel 08-01) — 번들에서 걷어내고 Storage 에서 받는다
 import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator } from 'react-native';
 import { PressableScale } from '../../components/PressableScale';
 import { RelatedContent } from '../../components/RelatedContent';
@@ -134,7 +135,7 @@ export default function MonthScreen() {
   return (
     <View style={styles.bgImage}>
       <ScrollView style={styles.overlay} contentContainerStyle={styles.wrap}>
-        <ContentHero image={require('../../../assets/icons/month.jpg')} title={t('month.title', '이달의 운세')} sub={t('month.heroSub', '이번 달 월건으로 보는 흐름')} />
+        <ContentHero image={A('icons/month.jpg')} title={t('month.title', '이달의 운세')} sub={t('month.heroSub', '이번 달 월건으로 보는 흐름')} />
         {/* 이번 달 월건 헤더 */}
         <View style={styles.pillarRow}>
           {gzChip(stem, 'stem')}

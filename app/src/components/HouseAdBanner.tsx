@@ -8,6 +8,7 @@
 //   · 문구(hook/sub)는 마케팅 카피라 daniel 검수 슬롯(★). i18n 은 추후(현재 ko 단일 스토어).
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useRef, useEffect } from 'react';
+import { A } from '../lib/ui/remoteAsset'; // ★이미지 원격화(daniel 08-01) — 번들에서 걷어내고 Storage 에서 받는다
 import { View, Text, ScrollView, StyleSheet, type NativeSyntheticEvent, type NativeScrollEvent } from 'react-native';
 import { Image as ExpoImage } from 'expo-image'; // 자동 다운샘플·디스크캐시(콘텐츠 카드와 동일)
 import { LinearGradient } from 'expo-linear-gradient';
@@ -19,11 +20,11 @@ import { colors, radius, space, shadow } from '../lib/theme';
 // ★프로모 목록(daniel 검수 슬롯) — 인기 콘텐츠를 궁금증 훅으로. image = 그 콘텐츠의 기존 타일(단일 출처: contentSections 와 동일 파일).
 type Promo = { key: string; hook: string; sub: string; route: string; accent: string; image: any };
 const PROMOS: Promo[] = [
-  { key: 'love',     hook: '나의 인연은 어디에?',        sub: '애정 흐름과 인연이 무르익는 시기를 사주로', route: '/love',     accent: '#F4A6B8', image: require('../../assets/icons/love.jpg') },
-  { key: 'wealth',   hook: '내 재물 그릇은 얼마나 클까?', sub: '타고난 재물과 크게 들어오는 시기',          route: '/wealth',   accent: '#EBCF8A', image: require('../../assets/icons/wealth.jpg') },
-  { key: 'jobfit',   hook: '나에게 딱 맞는 직업은?',      sub: '타고난 적성으로 찾는 나의 天職',            route: '/jobfit',   accent: '#8FBEEC', image: require('../../assets/icons/jobfit.jpg') },
-  { key: 'future10', hook: '10년 뒤, 나는 어떤 모습일까?', sub: '대운·세운으로 보는 나의 미래',              route: '/future10', accent: '#8FD8BA', image: require('../../assets/icons/future10.jpg') },
-  { key: 'crush',    hook: '그 사람도 내 마음 같을까?',   sub: '짝사랑이 이뤄질 시기와 다가가는 법',        route: '/crushAsk', accent: '#CBA6E6', image: require('../../assets/icons/crush.jpg') },
+  { key: 'love',     hook: '나의 인연은 어디에?',        sub: '애정 흐름과 인연이 무르익는 시기를 사주로', route: '/love',     accent: '#F4A6B8', image: A('icons/love.jpg') },
+  { key: 'wealth',   hook: '내 재물 그릇은 얼마나 클까?', sub: '타고난 재물과 크게 들어오는 시기',          route: '/wealth',   accent: '#EBCF8A', image: A('icons/wealth.jpg') },
+  { key: 'jobfit',   hook: '나에게 딱 맞는 직업은?',      sub: '타고난 적성으로 찾는 나의 天職',            route: '/jobfit',   accent: '#8FBEEC', image: A('icons/jobfit.jpg') },
+  { key: 'future10', hook: '10년 뒤, 나는 어떤 모습일까?', sub: '대운·세운으로 보는 나의 미래',              route: '/future10', accent: '#8FD8BA', image: A('icons/future10.jpg') },
+  { key: 'crush',    hook: '그 사람도 내 마음 같을까?',   sub: '짝사랑이 이뤄질 시기와 다가가는 법',        route: '/crushAsk', accent: '#CBA6E6', image: A('icons/crush.jpg') },
 ];
 
 export function HouseAdBanner() {

@@ -17,6 +17,7 @@
 // 로그인 게이트 없음(ADR-037).
 // ─────────────────────────────────────────────────────────────────────────
 import { View, Text, ScrollView, StyleSheet, Animated, AppState, Dimensions, Modal, Pressable } from 'react-native';
+import { A } from '../../lib/ui/remoteAsset'; // ★이미지 원격화(daniel 08-01) — 번들에서 걷어내고 Storage 에서 받는다
 import { useSafeAreaInsets } from 'react-native-safe-area-context'; // ★상단 안전영역 — 고정 여백은 글자확대 시 잘린다(daniel 07-27)
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -33,12 +34,12 @@ import { HomeImageCard } from '../../components/HomeImageCard'; // ★홈 = 이�
 // 홈 블록 이미지 — 전용 에셋이 없는 블록(바이오리듬·모먼트)은 결이 가장 가까운 것을 임시로 쓴다.
 //   ⚠️전용 이미지 생성은 별도 작업(현재 카드 이미지 리롤 진행 중) — 확정되면 여기만 바꾸면 된다.
 const IMG = {
-  persona: require('../../../assets/icons/persona.jpg'),
-  self: require('../../../assets/icons/selfAnalysis.jpg'),
-  bio: require('../../../assets/icons/biorhythm.jpg'),      // 전용(2026-07-27 생성 — 세 파동)
-  luck: require('../../../assets/icons/luck.jpg'),
-  moment: require('../../../assets/icons/moment.jpg'),      // 전용(2026-07-27 생성 — 길 위의 표식)
-  relation: require('../../../assets/icons/compat.jpg'),
+  persona: A('icons/persona.jpg'),
+  self: A('icons/selfAnalysis.jpg'),
+  bio: A('icons/biorhythm.jpg'),      // 전용(2026-07-27 생성 — 세 파동)
+  luck: A('icons/luck.jpg'),
+  moment: A('icons/moment.jpg'),      // 전용(2026-07-27 생성 — 길 위의 표식)
+  relation: A('icons/compat.jpg'),
 };
 import { HouseAdBanner } from '../../components/HouseAdBanner'; // 홈 상단 내부 프로모 배너(하우스 광고·daniel 07-24)
 import { BiorhythmCard } from '../../components/BiorhythmCard'; // 홈 블록: 바이오리듬(07-21 코드큐·온디바이스·부가 재미·API 0)

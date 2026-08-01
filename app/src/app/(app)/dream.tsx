@@ -3,6 +3,7 @@
 // 키워드 검색 → 해몽(lib/dreamDict). 인기 키워드 칩. 규칙5: 무료=온디바이스(API 0). §4: 전향적.
 // ─────────────────────────────────────────────────────────────────────────
 import { useMemo, useState, useEffect, useRef } from 'react';
+import { A } from '../../lib/ui/remoteAsset'; // ★이미지 원격화(daniel 08-01) — 번들에서 걷어내고 Storage 에서 받는다
 import { View, Text, ScrollView, TextInput, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
 import { PressableScale } from '../../components/PressableScale';
 import { RelatedContent } from '../../components/RelatedContent';
@@ -197,7 +198,7 @@ export default function DreamScreen() {
       {/* 유료 AI 해몽 공개 순간 골드 명조 문 열림 영상 — 1회 재생 후 페이드아웃(daniel 07-06) */}
       <DoorReveal visible={doorPlaying} onDone={() => setDoorPlaying(false)} />
       <ScrollView style={styles.overlay} contentContainerStyle={styles.wrap} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets keyboardDismissMode="interactive">
-        <ContentHero image={require('../../../assets/icons/dream.jpg')} title={t('dream.title', '꿈해몽')} sub={t('dream.sub', '꿈에 나온 것을 검색해 보세요.')} />
+        <ContentHero image={A('icons/dream.jpg')} title={t('dream.title', '꿈해몽')} sub={t('dream.sub', '꿈에 나온 것을 검색해 보세요.')} />
 
         <TextInput
           style={styles.input}

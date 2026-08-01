@@ -6,6 +6,7 @@
 //   ⚠️ 의미 문구 tone = daniel★ 검수 슬롯(numerology.ts 주석 참고).
 // ─────────────────────────────────────────────────────────────────────────
 import { useMemo, useState, useCallback, useEffect } from 'react';
+import { A } from '../../lib/ui/remoteAsset'; // ★이미지 원격화(daniel 08-01) — 번들에서 걷어내고 Storage 에서 받는다
 import { View, Text, ScrollView, StyleSheet, Animated, Easing } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -51,7 +52,7 @@ export default function NumerologyScreen() {
       <ScrollView style={styles.overlay} contentContainerStyle={styles.wrap}>
         {/* 상단 명식 헤더 — 현재 명식 표시·전환 */}
         <ChartPicker onChange={() => loadRepChart().then(setRep)} />
-        <ContentHero image={require('../../../assets/icons/numerology.jpg')} title={t('numerology.title', '수비학')} sub={t('numerology.sub', '생년월일에 담긴 수로 보는 인생 방향·재능·올해 흐름')} />
+        <ContentHero image={A('icons/numerology.jpg')} title={t('numerology.title', '수비학')} sub={t('numerology.sub', '생년월일에 담긴 수로 보는 인생 방향·재능·올해 흐름')} />
 
         {!n ? (
           <Text style={styles.note}>{t('numerology.empty', '명식을 등록하면 생년월일로 수비학을 보여드려요.')}</Text>

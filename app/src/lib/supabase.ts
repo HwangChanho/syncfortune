@@ -20,6 +20,10 @@ const url =
   process.env.EXPO_PUBLIC_SUPABASE_URL ||
   (extra.supabaseUrl as string) ||
   'https://YOUR_PROJECT_REF.supabase.co';
+/** ★프로젝트 URL 을 **한 곳에서** 내보낸다 — Storage 이미지 URL(remoteAsset)이 사본을 만들지 않게.
+ *  사본을 두면 환경(dev/prod)이 갈릴 때 이미지가 조용히 깨진다. */
+export const SUPABASE_URL = url;
+
 const anonKey =
   process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ||
   (extra.supabaseAnonKey as string) ||

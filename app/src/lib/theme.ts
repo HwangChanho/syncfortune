@@ -9,6 +9,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { DevSettings } from 'react-native'; // ★다크/라이트 제거(daniel 2026-07-15) — Appearance 불필요(소프트 클레이 단일 테마)
 import * as SecureStore from 'expo-secure-store';
+import { A } from '../lib/ui/remoteAsset'; // ★이미지 원격화(daniel 08-01) — 번들에서 걷어내고 Storage 에서 받는다
 // ⚠️ expo-updates = 네이티브 모듈. theme.ts 는 거의 모든 화면이 import → *정적 import* 하면 런치 시 로드되어,
 //   모듈/설정 이슈 시 JS 로거 설치 전 네이티브 크래시 위험(purchases.ts·ads.ts 와 동일 패턴 위반).
 //   → lazy require 가드(setThemePref 호출 시에만 로드). 모듈 없으면 조용히 no-op(테마는 재시작 후 적용).
@@ -115,8 +116,8 @@ export const activeAccentElement: string = (() => {
 
 // 전 화면 배경 이미지 — 다크=밤하늘, 라이트=한지(daniel #다크모드). 둘 다 번들에 포함.
 export const bgSource = activeScheme === 'light'
-  ? require('../../assets/icons/bg-paper.jpg')
-  : require('../../assets/icons/bg-night.png');
+  ? A('icons/bg-paper.jpg')
+  : A('icons/bg-night.png');
 
 // 설정 토글 — 저장(재시작 후 적용). 동기/비동기 모두 시도.
 export function setThemePref(p: ThemePref) {

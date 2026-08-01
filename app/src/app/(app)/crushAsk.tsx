@@ -5,6 +5,7 @@
 //   ★재회 퍼널(reunionAsk→ReunionRich)과 동일 틀(규칙6·유지보수). i18n 미등록이어도 렌더되게 t(key, 한글 fallback) 사용.
 // ─────────────────────────────────────────────────────────────────────────
 import { useTranslation } from 'react-i18next';
+import { A } from '../../lib/ui/remoteAsset'; // ★이미지 원격화(daniel 08-01) — 번들에서 걷어내고 Storage 에서 받는다
 import { FreeFunnel } from '../../components/FreeFunnel';
 import { CrushRich } from '../../components/CrushRich';   // 짝사랑 무료 리치 본문(CrushTiming 달력을 내부에 품음)
 import { useLogContentVisit } from '../../lib/backend/contentVisit'; // 콘텐츠 방문 집계(daniel 2026-07-06) — 진입 1회 기록
@@ -14,7 +15,7 @@ export default function CrushAskScreen() {
   const { t } = useTranslation();
   return (
     <FreeFunnel
-      heroImage={require('../../../assets/icons/crush.jpg')}
+      heroImage={A('icons/crush.jpg')}
       question={t('crushAsk.q', '그 사람과 이어질까?')}
       sub={t('crushAsk.sub', '짝사랑·썸이 무르익어 마음이 통하기 좋은 달을 무료로 미리 짚어 드려요')}
       paidRoute="/crush"

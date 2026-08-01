@@ -2,6 +2,7 @@
 // 지지 속 기운이 천간에 드러났나(투출)·뿌리내려 단단한가(통근) → 겉의 나·품은 힘·진짜 힘.
 // 시각: 나무 모티프(가지=드러난 나 / 뿌리=품은 힘) + 초록(목) 테마.
 import { useTranslation } from 'react-i18next';
+import { A } from '../../lib/ui/remoteAsset'; // ★이미지 원격화(daniel 08-01) — 번들에서 걷어내고 Storage 에서 받는다
 import { SpecialContentScreen } from '../../components/SpecialContentScreen';
 import { RootsTree } from '../../components/contentMotifs';
 import { RootsTeaser } from '../../components/RootsTeaser'; // 무료 온디바이스 티저(통근·투출 강도) → 유료 전환 퍼널
@@ -15,7 +16,7 @@ export default function RootsRoute() {
       kind="roots"
       showExpiry
       themeColor={elementColor['木']}
-      heroImage={require('../../../assets/icons/hero-roots.jpg')}
+      heroImage={A('icons/hero-roots.jpg')}
       heroMotif={<RootsTree />}
       // ★무료 온디바이스 티저 — 히어로 아래·잠김/열림 무관 항상 노출(재회/애정/인생그래프와 동일 퍼널).
       //   4기둥(근묘화실) 통근·투출 강도 막대 + 전체 단단함 → 아래 유료 깊은 풀이로 유도. saju 는 SpecialContentScreen 이 병합해 넘김.

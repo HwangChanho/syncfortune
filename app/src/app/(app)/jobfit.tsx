@@ -7,6 +7,7 @@
 // §4 안전: 부정 증폭 금지·전향적(갭도 잇는 법으로)·기신 방향은 '피할 방향'으로 건설적·의료/투자 단정 금지 — CAREERFIT_SYSTEM(LLM).
 // ─────────────────────────────────────────────────────────────────────────
 import { useTranslation } from 'react-i18next';
+import { A } from '../../lib/ui/remoteAsset'; // ★이미지 원격화(daniel 08-01) — 번들에서 걷어내고 Storage 에서 받는다
 import { SpecialContentScreen } from '../../components/SpecialContentScreen';
 import { JobfitTeaser } from '../../components/JobfitTeaser'; // 무료 온디바이스 적성 강점 티저(유료 전환 후크·API 0)
 import { colors } from '../../lib/theme';
@@ -19,7 +20,7 @@ export default function JobfitRoute() {
       kind="jobfit"
       showExpiry
       themeColor={colors.ju}
-      heroImage={require('../../../assets/icons/jobfit.jpg')}
+      heroImage={A('icons/jobfit.jpg')}
       title={t('jobfit.title', '나에게 어울리는 직업')}
       sub={t('jobfit.sub', '타고난 적성으로 어떤 직업이 어울리는지, 끌림과 능력의 간극까지 짚어 드려요')}
       genMsg={t('jobfit.generating', '타고난 적성과 어울리는 직업을 읽는 중…')}

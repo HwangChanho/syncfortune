@@ -6,6 +6,7 @@
 // §4 안전: 스토킹성·집착 조장 금지, 상대 사생활 단정 금지 — 결·시기는 CRUSH_SYSTEM(LLM)이 경향·조언 톤으로.
 // ─────────────────────────────────────────────────────────────────────────
 import { useTranslation } from 'react-i18next';
+import { A } from '../../lib/ui/remoteAsset'; // ★이미지 원격화(daniel 08-01) — 번들에서 걷어내고 Storage 에서 받는다
 import { SpecialContentScreen } from '../../components/SpecialContentScreen';
 import { CrushTiming } from '../../components/CrushTiming';
 import { colors } from '../../lib/theme';
@@ -18,7 +19,7 @@ export default function CrushRoute() {
       kind="crush"
       showExpiry
       themeColor={colors.ju}
-      heroImage={require('../../../assets/icons/crush.jpg')}
+      heroImage={A('icons/crush.jpg')}
       // ★무료 온디바이스 훅 — 도화 발동 '매력·인연이 도는 달' 달력(히어로 아래·항상 노출). 깊은 통변은 이 아래 유료.
       freeHook={(saju) => <CrushTiming saju={saju} />}
       title={t('crush.title', '짝사랑 인연운')}

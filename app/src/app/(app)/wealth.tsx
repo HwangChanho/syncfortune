@@ -7,6 +7,7 @@
 // §4 안전: 부자/가난 단정·부정 증폭 금지·투자조언 금지 · ★감당 CONDITIONAL(재관강=신약)이면 '관리·지킴' 프레임 — WEALTH_SYSTEM(LLM).
 // ─────────────────────────────────────────────────────────────────────────
 import { useTranslation } from 'react-i18next';
+import { A } from '../../lib/ui/remoteAsset'; // ★이미지 원격화(daniel 08-01) — 번들에서 걷어내고 Storage 에서 받는다
 import { SpecialContentScreen } from '../../components/SpecialContentScreen';
 import { WealthTeaser } from '../../components/WealthTeaser'; // 무료 온디바이스 재물 밑그림 티저(유료 전환 후크·API 0)
 import { colors } from '../../lib/theme';
@@ -19,7 +20,7 @@ export default function WealthRoute() {
       kind="wealth"
       showExpiry
       themeColor={colors.ju}
-      heroImage={require('../../../assets/icons/wealth.jpg')}
+      heroImage={A('icons/wealth.jpg')}
       title={t('wealth.title', '재물 딥리포트')}
       sub={t('wealth.sub', '타고난 재물 그릇과 유형, 언제 크게 들어오고 어떻게 지키는지까지 짚어 드려요')}
       genMsg={t('wealth.generating', '타고난 재물 그릇과 흐름을 읽는 중…')}

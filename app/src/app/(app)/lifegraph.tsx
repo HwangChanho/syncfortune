@@ -5,6 +5,7 @@
 // 접근: 프리미엄=무광고 자동 / 비프리미엄=결제(이용권·관리자)만 — 유료 콘텐츠라 보상형 광고 무료 생성 없음(daniel). 캐시: readings(chart_id × 'lifegraph' × lang).
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useEffect, useMemo, useRef } from 'react';
+import { A } from '../../lib/ui/remoteAsset'; // ★이미지 원격화(daniel 08-01) — 번들에서 걷어내고 Storage 에서 받는다
 import { View, Text, ScrollView, Pressable, ActivityIndicator, StyleSheet, Dimensions, Animated, Easing } from 'react-native';
 import { PressableScale } from '../../components/PressableScale';
 import { RelatedContent } from '../../components/RelatedContent';
@@ -251,7 +252,7 @@ export default function LifeGraphScreen() {
       {/* 상단 명식 헤더 — 현재 적용된 대표 명식 표시·전환(daniel: 모든 콘텐츠 상단). 전환 시 그 명식 기준 재로드 */}
       <ChartPicker onChange={() => setReloadKey((k) => k + 1)} />
       {/* 상단 hero 배너(daniel: 인생그래프 썰렁 → 이미지). 가로 1344×768 cover */}
-      <ExpoImage source={require('../../../assets/icons/lifegraph-hero.jpg')} style={{ width: '100%', height: 190, borderRadius: radius.lg, marginBottom: space(4) }} contentFit="cover" cachePolicy="memory-disk" transition={150} />
+      <ExpoImage source={A('icons/lifegraph-hero.jpg')} style={{ width: '100%', height: 190, borderRadius: radius.lg, marginBottom: space(4) }} contentFit="cover" cachePolicy="memory-disk" transition={150} />
       <UnlockOverlay visible={busy} message={t('life.generating', '인생 흐름을 그리는 중…')} />
       {/* 풀이 공개 순간 골드 명조 문 열림 영상 — 1회 재생 후 페이드아웃하며 풀이 노출(daniel 07-06) */}
       <DoorReveal visible={doorPlaying} onDone={() => setDoorPlaying(false)} />

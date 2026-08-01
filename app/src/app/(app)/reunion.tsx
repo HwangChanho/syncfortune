@@ -20,6 +20,7 @@
 //   폼을 먼저 채우도록 autoGen={false}. keepHeaderExtra 로 잠긴 상대 표시·'상대 바꾸기'를 풀이 보면서도 접근.
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useMemo, useCallback, useEffect } from 'react';
+import { A } from '../../lib/ui/remoteAsset'; // ★이미지 원격화(daniel 08-01) — 번들에서 걷어내고 Storage 에서 받는다
 import { View, Text, TextInput, StyleSheet, Modal } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useRouter } from 'expo-router';
@@ -213,7 +214,7 @@ export default function ReunionRoute() {
         onChartResolved={setServerChartId} // 대표 명식 서버ID → 상대 잠금 로드/저장 키
         regenToken={regenTok}    // 상대 등록/변경 시 그 상대로 재생성
         themeColor={colors.ju}
-        heroImage={require('../../../assets/icons/reunion.jpg')}
+        heroImage={A('icons/reunion.jpg')}
         // ★무료 온디바이스 훅 — 도화-충 '재회가 열리는 달' 달력(히어로 아래·항상 노출). 깊은 통변은 이 아래 유료.
         freeHook={(saju) => <ReunionTiming saju={saju} />}
         title={t('reunion.title', '재회운')}

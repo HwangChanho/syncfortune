@@ -5,6 +5,7 @@
 //   60갑자 AI 일러스트(assets/ilju/{간지}.jpg)는 ILJU_IMG 맵으로 추후 연결 — 없으면 색+동물 폴백.
 // ─────────────────────────────────────────────────────────────────────────
 import { stemElement, elementColor, elementText } from './engine/ohaeng';
+import { A } from '../lib/ui/remoteAsset'; // ★이미지 원격화(daniel 08-01) — 번들에서 걷어내고 Storage 에서 받는다
 
 // 지지 → 띠 동물(한글). zodiac.ts ANIMAL 과 동일 셋(독립 보관 — 엠블럼 전용·간결).
 export const ILJU_ANIMAL: Record<string, string> = {
@@ -42,36 +43,36 @@ export function iljuEmblem(stem: string, branch: string): IljuEmblem {
 const _STEMS = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'];
 const _BRANCHES = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'];
 const ILJU_IMGS: any[] = [
-  require('../../assets/ilju/ilju_00.jpg'), require('../../assets/ilju/ilju_01.jpg'),
-  require('../../assets/ilju/ilju_02.jpg'), require('../../assets/ilju/ilju_03.jpg'),
-  require('../../assets/ilju/ilju_04.jpg'), require('../../assets/ilju/ilju_05.jpg'),
-  require('../../assets/ilju/ilju_06.jpg'), require('../../assets/ilju/ilju_07.jpg'),
-  require('../../assets/ilju/ilju_08.jpg'), require('../../assets/ilju/ilju_09.jpg'),
-  require('../../assets/ilju/ilju_10.jpg'), require('../../assets/ilju/ilju_11.jpg'),
-  require('../../assets/ilju/ilju_12.jpg'), require('../../assets/ilju/ilju_13.jpg'),
-  require('../../assets/ilju/ilju_14.jpg'), require('../../assets/ilju/ilju_15.jpg'),
-  require('../../assets/ilju/ilju_16.jpg'), require('../../assets/ilju/ilju_17.jpg'),
-  require('../../assets/ilju/ilju_18.jpg'), require('../../assets/ilju/ilju_19.jpg'),
-  require('../../assets/ilju/ilju_20.jpg'), require('../../assets/ilju/ilju_21.jpg'),
-  require('../../assets/ilju/ilju_22.jpg'), require('../../assets/ilju/ilju_23.jpg'),
-  require('../../assets/ilju/ilju_24.jpg'), require('../../assets/ilju/ilju_25.jpg'),
-  require('../../assets/ilju/ilju_26.jpg'), require('../../assets/ilju/ilju_27.jpg'),
-  require('../../assets/ilju/ilju_28.jpg'), require('../../assets/ilju/ilju_29.jpg'),
-  require('../../assets/ilju/ilju_30.jpg'), require('../../assets/ilju/ilju_31.jpg'),
-  require('../../assets/ilju/ilju_32.jpg'), require('../../assets/ilju/ilju_33.jpg'),
-  require('../../assets/ilju/ilju_34.jpg'), require('../../assets/ilju/ilju_35.jpg'),
-  require('../../assets/ilju/ilju_36.jpg'), require('../../assets/ilju/ilju_37.jpg'),
-  require('../../assets/ilju/ilju_38.jpg'), require('../../assets/ilju/ilju_39.jpg'),
-  require('../../assets/ilju/ilju_40.jpg'), require('../../assets/ilju/ilju_41.jpg'),
-  require('../../assets/ilju/ilju_42.jpg'), require('../../assets/ilju/ilju_43.jpg'),
-  require('../../assets/ilju/ilju_44.jpg'), require('../../assets/ilju/ilju_45.jpg'),
-  require('../../assets/ilju/ilju_46.jpg'), require('../../assets/ilju/ilju_47.jpg'),
-  require('../../assets/ilju/ilju_48.jpg'), require('../../assets/ilju/ilju_49.jpg'),
-  require('../../assets/ilju/ilju_50.jpg'), require('../../assets/ilju/ilju_51.jpg'),
-  require('../../assets/ilju/ilju_52.jpg'), require('../../assets/ilju/ilju_53.jpg'),
-  require('../../assets/ilju/ilju_54.jpg'), require('../../assets/ilju/ilju_55.jpg'),
-  require('../../assets/ilju/ilju_56.jpg'), require('../../assets/ilju/ilju_57.jpg'),
-  require('../../assets/ilju/ilju_58.jpg'), require('../../assets/ilju/ilju_59.jpg'),
+  A('ilju/ilju_00.jpg'), A('ilju/ilju_01.jpg'),
+  A('ilju/ilju_02.jpg'), A('ilju/ilju_03.jpg'),
+  A('ilju/ilju_04.jpg'), A('ilju/ilju_05.jpg'),
+  A('ilju/ilju_06.jpg'), A('ilju/ilju_07.jpg'),
+  A('ilju/ilju_08.jpg'), A('ilju/ilju_09.jpg'),
+  A('ilju/ilju_10.jpg'), A('ilju/ilju_11.jpg'),
+  A('ilju/ilju_12.jpg'), A('ilju/ilju_13.jpg'),
+  A('ilju/ilju_14.jpg'), A('ilju/ilju_15.jpg'),
+  A('ilju/ilju_16.jpg'), A('ilju/ilju_17.jpg'),
+  A('ilju/ilju_18.jpg'), A('ilju/ilju_19.jpg'),
+  A('ilju/ilju_20.jpg'), A('ilju/ilju_21.jpg'),
+  A('ilju/ilju_22.jpg'), A('ilju/ilju_23.jpg'),
+  A('ilju/ilju_24.jpg'), A('ilju/ilju_25.jpg'),
+  A('ilju/ilju_26.jpg'), A('ilju/ilju_27.jpg'),
+  A('ilju/ilju_28.jpg'), A('ilju/ilju_29.jpg'),
+  A('ilju/ilju_30.jpg'), A('ilju/ilju_31.jpg'),
+  A('ilju/ilju_32.jpg'), A('ilju/ilju_33.jpg'),
+  A('ilju/ilju_34.jpg'), A('ilju/ilju_35.jpg'),
+  A('ilju/ilju_36.jpg'), A('ilju/ilju_37.jpg'),
+  A('ilju/ilju_38.jpg'), A('ilju/ilju_39.jpg'),
+  A('ilju/ilju_40.jpg'), A('ilju/ilju_41.jpg'),
+  A('ilju/ilju_42.jpg'), A('ilju/ilju_43.jpg'),
+  A('ilju/ilju_44.jpg'), A('ilju/ilju_45.jpg'),
+  A('ilju/ilju_46.jpg'), A('ilju/ilju_47.jpg'),
+  A('ilju/ilju_48.jpg'), A('ilju/ilju_49.jpg'),
+  A('ilju/ilju_50.jpg'), A('ilju/ilju_51.jpg'),
+  A('ilju/ilju_52.jpg'), A('ilju/ilju_53.jpg'),
+  A('ilju/ilju_54.jpg'), A('ilju/ilju_55.jpg'),
+  A('ilju/ilju_56.jpg'), A('ilju/ilju_57.jpg'),
+  A('ilju/ilju_58.jpg'), A('ilju/ilju_59.jpg'),
 ];
 // 간지 → 이미지(모듈 로드 시 1회 구성). i%10=천간 인덱스, i%12=지지 인덱스 = 60갑자 정의.
 export const ILJU_IMG: Record<string, any> = (() => {

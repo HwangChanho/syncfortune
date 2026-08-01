@@ -15,6 +15,7 @@
 // ⚠️문구 = Claude 초안 → ★daniel 검수 슬롯.
 // ─────────────────────────────────────────────────────────────────────────
 import { useMemo, useRef, useState } from 'react';
+import { Image as ExpoImage } from 'expo-image'; // ★뷰 크기 다운샘플 + 디스크 캐시(RN Image 는 원본 풀 디코딩 — 갤럭시 랙 원인)
 import { View, Text, Image, StyleSheet, Animated, Easing } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { PressableScale } from './PressableScale';
@@ -84,7 +85,7 @@ export function CoachTarotCard({ seed }: { seed: string }) {
             {/* 앞면 — 78장 덱 이미지. 역방향이면 뒤집어 보여준다(관례) */}
             <Animated.View style={[styles.face, { opacity: frontOpacity, transform: [{ perspective: 800 }, { rotateY: frontRot }] }]}>
               {img ? (
-                <Image source={img} style={[styles.img, pick.reversed && styles.imgRev]} resizeMode="cover" />
+                <ExpoImage source={img} style={[styles.img, pick.reversed && styles.imgRev]} contentFit="cover" />
               ) : (
                 <View style={[styles.img, styles.imgFallback]} />
               )}

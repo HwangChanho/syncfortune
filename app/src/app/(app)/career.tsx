@@ -6,6 +6,7 @@
 //   ※ 화면 문구는 t() 기본값(ko)으로 i18n 키 없이도 동작 — en/ja career 블록은 점진 추가(daniel).
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useMemo, useState, useRef } from 'react';
+import { A } from '../../lib/ui/remoteAsset'; // ★이미지 원격화(daniel 08-01) — 번들에서 걷어내고 Storage 에서 받는다
 import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
 import { PressableScale } from '../../components/PressableScale';
 import { RelatedContent } from '../../components/RelatedContent';
@@ -56,13 +57,13 @@ const SECTIONS: { key: string; tk: string; def: string }[] = [
 // 카테고리별 이미지(daniel 자산, assets/icons/career/{key}.jpg) — 들어온 것만 require, 없으면 텍스트만.
 //   ⚠️ 정적 require는 파일 없으면 빌드 에러 → 이미지 생성·배치 후 아래 require 주석 해제(hero 포함 7장).
 const CAREER_IMG: Record<string, any> = {
-  hero: require('../../../assets/icons/career/hero.jpg'),
-  overview: require('../../../assets/icons/career/overview.jpg'),
-  entrepreneur: require('../../../assets/icons/career/entrepreneur.jpg'),
-  employee: require('../../../assets/icons/career/employee.jpg'),
-  lean: require('../../../assets/icons/career/lean.jpg'),
-  timing: require('../../../assets/icons/career/timing.jpg'),
-  strategy: require('../../../assets/icons/career/strategy.jpg'),
+  hero: A('icons/career/hero.jpg'),
+  overview: A('icons/career/overview.jpg'),
+  entrepreneur: A('icons/career/entrepreneur.jpg'),
+  employee: A('icons/career/employee.jpg'),
+  lean: A('icons/career/lean.jpg'),
+  timing: A('icons/career/timing.jpg'),
+  strategy: A('icons/career/strategy.jpg'),
 };
 
 const CAREER_TEAL = '#3FA7A0'; // 테마색(독립↔조직)

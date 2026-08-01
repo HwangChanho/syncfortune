@@ -4,6 +4,8 @@
 //   규칙5: 무료=온디바이스(API 0). 직업명·특징·신분 + 공유(바이럴). persona 패턴 차용.
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useMemo, useCallback } from 'react';
+import { Image as ExpoImage } from 'expo-image'; // ★뷰 크기 다운샘플 + 디스크 캐시(RN Image 는 원본 풀 디코딩 — 갤럭시 랙 원인)
+import { A } from '../../lib/ui/remoteAsset'; // ★이미지 원격화(daniel 08-01) — 번들에서 걷어내고 Storage 에서 받는다
 import { View, Text, Pressable, ActivityIndicator, ScrollView, StyleSheet, Image } from 'react-native';
 import { PressableScale } from '../../components/PressableScale';
 import { DeepDiveCta } from '../../components/DeepDiveCta';   // 유도 CTA = 이미지 카드(daniel 07-29)
@@ -24,16 +26,16 @@ import { useLogContentVisit } from '../../lib/backend/contentVisit'; // 콘텐�
 // 직업 결과 이미지 — daniel 자산(assets/icons/joseon/). 파일 추가 후 해당 require 주석을 해제하면 자동 표시.
 //   없는 직업은 이모지로 폴백(정적 require라 파일 없으면 빌드 에러 → 파일 넣은 것만 활성화).
 const JOB_IMG: Record<string, any> = {
-  정관: require('../../../assets/icons/joseon/mungwan.jpg'),    // 문관
-  편관: require('../../../assets/icons/joseon/mugwan.jpg'),     // 무관·장수
-  정인: require('../../../assets/icons/joseon/hakja.jpg'),      // 학자·선비
-  편인: require('../../../assets/icons/joseon/uiwon.jpg'),      // 의원
-  식신: require('../../../assets/icons/joseon/myeongjang.jpg'), // 명장(장인)
-  상관: require('../../../assets/icons/joseon/yein.jpg'),       // 예인·화공
-  정재: require('../../../assets/icons/joseon/jiju.jpg'),       // 지주·대농
-  편재: require('../../../assets/icons/joseon/geosang.jpg'),    // 거상
-  비견: require('../../../assets/icons/joseon/uibyeong.jpg'),   // 의병장·무사
-  겁재: require('../../../assets/icons/joseon/bobusang.jpg'),   // 보부상
+  정관: A('icons/joseon/mungwan.jpg'),    // 문관
+  편관: A('icons/joseon/mugwan.jpg'),     // 무관·장수
+  정인: A('icons/joseon/hakja.jpg'),      // 학자·선비
+  편인: A('icons/joseon/uiwon.jpg'),      // 의원
+  식신: A('icons/joseon/myeongjang.jpg'), // 명장(장인)
+  상관: A('icons/joseon/yein.jpg'),       // 예인·화공
+  정재: A('icons/joseon/jiju.jpg'),       // 지주·대농
+  편재: A('icons/joseon/geosang.jpg'),    // 거상
+  비견: A('icons/joseon/uibyeong.jpg'),   // 의병장·무사
+  겁재: A('icons/joseon/bobusang.jpg'),   // 보부상
 };
 
 export default function JoseonJobScreen() {
@@ -76,7 +78,7 @@ export default function JoseonJobScreen() {
         <View style={styles.hero}>
           {/* 직업 일러스트(daniel 자산) — 없으면 이모지 폴백 */}
           {JOB_IMG[result.tenGod]
-            ? <Image source={JOB_IMG[result.tenGod]} style={styles.heroImg} resizeMode="cover" />
+            ? <ExpoImage source={JOB_IMG[result.tenGod]} style={styles.heroImg} contentFit="cover" />
             : <Text style={styles.emoji}>{result.emoji}</Text>}
           <Text style={styles.job}>{result.job}</Text>
           <Text style={styles.rank}>{result.rank}</Text>

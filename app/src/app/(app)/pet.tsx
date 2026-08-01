@@ -4,6 +4,7 @@
 //   사람 명식과 분리 보관(petChart). 통변 = 온디바이스 템플릿(petTraits) → 무료·API 0.
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useMemo, useState, useCallback } from 'react';
+import { A } from '../../lib/ui/remoteAsset'; // ★이미지 원격화(daniel 08-01) — 번들에서 걷어내고 Storage 에서 받는다
 import { View, Text, TextInput, Pressable, ScrollView, StyleSheet, Modal } from 'react-native';
 import { PressableScale } from '../../components/PressableScale';
 import { RelatedContent } from '../../components/RelatedContent';
@@ -117,7 +118,7 @@ export default function PetScreen() {
       automaticallyAdjustKeyboardInsets
       keyboardShouldPersistTaps="handled"
     >
-      <ContentHero image={require('../../../assets/icons/pet.jpg')} title={t('pet.title')} sub={t('pet.sub')} />
+      <ContentHero image={A('icons/pet.jpg')} title={t('pet.title')} sub={t('pet.sub')} />
 
       {/* 저장된 아이들 — 칩으로 전환 + 추가 */}
       {pets.length > 0 && (

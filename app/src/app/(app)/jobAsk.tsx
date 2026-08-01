@@ -6,6 +6,7 @@
 //     기존엔 JobTiming(달력)만 얇게 노출했으나, 무료를 결정론+비주얼로 풍부하게 해 유료 전환을 자연스럽게 유도(daniel 모델).
 // ─────────────────────────────────────────────────────────────────────────
 import { useTranslation } from 'react-i18next';
+import { A } from '../../lib/ui/remoteAsset'; // ★이미지 원격화(daniel 08-01) — 번들에서 걷어내고 Storage 에서 받는다
 import { FreeFunnel } from '../../components/FreeFunnel';
 import { JobRich } from '../../components/JobRich';   // 취업 무료 리치 본문(JobTiming 달력을 내부에 품음)
 import { useLogContentVisit } from '../../lib/backend/contentVisit'; // 콘텐츠 방문 집계(daniel 2026-07-06) — 진입 1회 기록
@@ -15,7 +16,7 @@ export default function JobAskScreen() {
   const { t } = useTranslation();
   return (
     <FreeFunnel
-      heroImage={require('../../../assets/icons/job.jpg')}
+      heroImage={A('icons/job.jpg')}
       question={t('jobAsk.q', '취업·이직, 언제 잘 풀릴까?')}
       sub={t('jobAsk.sub', '취업·이직·합격의 문이 열리기 좋은 시기를 무료로 미리 짚어 드려요')}
       paidRoute="/job"

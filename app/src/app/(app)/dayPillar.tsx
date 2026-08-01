@@ -5,6 +5,7 @@
 //   태그(키워드)↔본문 간격 넉넉히(daniel). 하단 면책 필수. API 0.
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useMemo, useState, useRef } from 'react';
+import { A } from '../../lib/ui/remoteAsset'; // ★이미지 원격화(daniel 08-01) — 번들에서 걷어내고 Storage 에서 받는다
 import { View, Text, Pressable, ScrollView, StyleSheet, ImageBackground, Animated, Easing, InteractionManager } from 'react-native';
 import { PressableScale } from '../../components/PressableScale';
 import { RelatedContent } from '../../components/RelatedContent';
@@ -148,7 +149,7 @@ export default function DayPillarScreen() {
     <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>
       {/* 헤더 타이틀 — 화면에서 직접 박아 확실하게(+다국어) */}
       <Stack.Screen options={{ headerTitle: '' }} />{/* 상단 타이틀 제거(daniel) — 히어로가 제목 표시 */}
-      <ContentHero image={require('../../../assets/icons/dayPillar.jpg')} title={t('dayPillar.title')} sub={t('dayPillar.sub')} />
+      <ContentHero image={A('icons/dayPillar.jpg')} title={t('dayPillar.title')} sub={t('dayPillar.sub')} />
       {/* daniel #20: 일주론은 '태어난 날(일주)' 기준 경향 — 정확한 풀이엔 사주 전체가 필요함을 설명 상단에 명시 */}
       <Text style={{ ...font.caption, color: colors.ju, marginBottom: space(4), lineHeight: 19 }}>
         {t('dayPillar.fullChartNote', '※ 일주론은 ‘태어난 날(일주)’ 하나로 보는 큰 경향이에요. 정확한 풀이는 사주 전체(원국)를 함께 봐야 해요.')}

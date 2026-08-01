@@ -10,6 +10,7 @@
 //   다른 단일 콘텐츠 래퍼(roots.tsx·image.tsx)와 동일한 최소 패턴: 헤더 prop + <SpecialContentScreen> 하나.
 // ─────────────────────────────────────────────────────────────────────────
 import { useTranslation } from 'react-i18next';
+import { A } from '../../lib/ui/remoteAsset'; // ★이미지 원격화(daniel 08-01) — 번들에서 걷어내고 Storage 에서 받는다
 import { SpecialContentScreen } from '../../components/SpecialContentScreen';
 import { ChildTeaser } from '../../components/ChildTeaser'; // 무료 티저(§4 민감 — 판정無 안전 퍼널·API 0)
 import { colors } from '../../lib/theme';
@@ -23,7 +24,7 @@ export default function ChildRoute() {
       kind="child"            // ★자식운 solo 고정 — SpecialContentScreen 이 이 kind 로 isUnlocked·useCredit·interpret 를 분기
       premiumCovered          // 프리미엄 명식이면 무료 해제
       autoGen={false}         // 프리미엄/관리자도 자동생성 대신 '풀이 보기'로 생성(소유 상태 뷰 → 공개)
-      heroImage={require('../../../assets/icons/child.jpg')}
+      heroImage={A('icons/child.jpg')}
       themeColor={colors.ju}
       title={t('child.title', '자식운')}
       sub={t('child.sub', '원국으로 보는 자녀 인연·기질·부모로서의 나')}
