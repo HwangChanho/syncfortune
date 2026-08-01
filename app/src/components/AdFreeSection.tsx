@@ -17,6 +17,7 @@ import { Alert } from '../lib/ui/alert';
 import { AD_FREE_PLANS } from '../lib/billing/coinPrices';
 import { buyAdFree, useAdFree, useAdFreeUntil, isAdFreeForever, type AdFreePlan } from '../lib/billing/adFree';
 import { useFontScale } from '../lib/ui/fontScale';
+import { withTimeout } from '../lib/core/withTimeout'; // ★잠금 구간 네트워크 상한(멈춤 방지)
 import { colors, radius, space, font } from '../lib/theme';
 
 /** 남은 기간 표기 — 영구/n일 남음. 하루 미만은 '오늘까지'. */
@@ -49,7 +50,12 @@ export function AdFreeSection({ onDone, onNeedCoins }: { onDone?: () => void; on
         { text: '사용', onPress: async () => {
           setBusy(plan);
           try {
-            const r = await buyAdFree(plan);
+            // ⚠️★상한 필수(daniel 2026-08-01 "구매하니깐 멈췄어") — 여기는 setBusy(plan) 으로 버튼을 잠근 뒤다.
+            //   buyAdFree 는 안에서 supabase 왕복을 하는데 기본 타임아웃이 없어, 응답이 안 오면
+            //   await 가 안 끝나고 finally 도 실행되지 않아 **버튼이 영구히 잠긴다**.
+            //   초과 = undefined → '지금은 확인이 어렵다'로 안내하고 잠금을 푼다(사용자를 가두지 않는다).
+            const r = await withTimeout(buyAdFree(plan));
+            if (!r) { Alert.alert('잠시 후 다시 시도해 주세요', '네트워크 응답이 늦어요. 운은 차감되지 않았어요.'); return; }
             if (r.ok) {
               Alert.alert('광고가 사라졌어요', r.already ? '이미 영구 이용 중이에요.' : `이제 ${days == null ? '영구히' : `${days}일간`} 광고가 보이지 않아요.`);
               onDone?.();

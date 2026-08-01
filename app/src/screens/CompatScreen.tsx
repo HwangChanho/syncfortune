@@ -21,6 +21,7 @@ import { computeChart } from '../lib/engine/engine';
 import { analyzeCompatibility } from '@engine/compatibility';
 import { detectInteractionsAmong } from '@engine/structure';
 import { stemElement, branchElement, elementColor, elementText } from '../lib/engine/ohaeng';
+import { withTimeout } from '../lib/core/withTimeout'; // ★잠금 구간 네트워크 상한(멈춤 방지)
 import { colors, radius, space, shadow, font } from '../lib/theme';
 import { listCharts, getRepresentativeId, addChart, ChartLimitError, type SavedChart } from '../lib/engine/myChart';
 import { buildNumerology } from '../lib/content/numerology'; // 수비학 보조 교차(궁합, daniel 2026-06-23)
@@ -267,9 +268,12 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
     setGenProgress({ active: true, total: 1, done: 0, label: tab === 'ziwei' ? '자미 궁합' : '궁합', chartLabel: meSel?.label, route: gpRoute });
     try {
       const gz = yr ? yearGanZhi(Number(yr)) : undefined;
-      const res = await genCompatReading(ctx.chartId, relKey, ctx.sig, pair.other, ctx.cross, ctx.dayRel, ctx.meZiwei, ctx.otherZiwei, yr || undefined, gz, meSel?.context, ctx.numMe, ctx.numOther, tab, ctx.otherChartId); // ★otherChartId=역방향(pay-once-per-pair) 결제 인식
+      // ⚠️★상한 필수 — 잠금 구간(멈춤 방지). 초과 = undefined → 아래 실패 분기로 흘러 잠금이 풀린다.
+      const res = await withTimeout(genCompatReading(ctx.chartId, relKey, ctx.sig, pair.other, ctx.cross, ctx.dayRel, ctx.meZiwei, ctx.otherZiwei, yr || undefined, gz, meSel?.context, ctx.numMe, ctx.numOther, tab, ctx.otherChartId)); // ★otherChartId=역방향(pay-once-per-pair) 결제 인식
       if (isStale()) return;   // ① 생성 사이 쌍 전환됨 → 폐기(옛 쌍 결과가 새 쌍 readings 에 섞이지 않게)
       setBusy(null);
+      // 상한 초과(undefined) = 서버가 계속 만들고 있을 수 있다 → 배너만 내리고 재시도를 안내한다(운은 서버가 판정).
+      if (!res) { setGenProgress({ route: gpRoute, active: false }); Alert.alert(t('common.error'), t('common.retryLater', '잠시 후 다시 시도해 주세요.')); return; }
       if (res.kind === 'answer') { setReadings((prev) => ({ ...prev, [key]: res.reading })); setGenProgress({ route: gpRoute, done: 1, total: 1 }); return; }
       setGenProgress({ route: gpRoute, active: false });
       if (res.kind === 'needPremium') { Alert.alert(t('compat.premiumTitle'), t('compat.premiumMsg')); return; }

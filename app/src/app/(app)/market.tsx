@@ -26,6 +26,7 @@ import { useSubscription } from '../../lib/billing/subscription'; // 프리미�
 import { useAuth } from '../../lib/useAuth';              // 세션(프리미엄 명식 지정 시 serverChartId 발급)
 import { supabase } from '../../lib/supabase';            // set_premium_chart RPC(구매 명식 지정)
 import { ensureServerChartIdForSaved } from '../../lib/backend/prewarmReadings'; // 구매 명식 serverChartId 확보
+import { withTimeout } from '../../lib/core/withTimeout'; // ★잠금 구간 네트워크 상한(멈춤 방지)
 import { colors, radius, space, shadow, font } from '../../lib/theme';
 
 // 이용권 kind → 적용할 풀이 화면(선택 명식을 대표로 둔 뒤 진입 — 대표 기준 캐시)
@@ -207,8 +208,15 @@ export default function MarketRoute() {
       // ★이미 산 콘텐츠면 결제 얘기를 꺼내지 않는다(daniel 2026-08-01) — 대표 명식의 **서버 ID**로 소유를 본다.
       //   이게 없으면 "이미 샀는데 잔액이 모자라서 못 여는" 상태가 된다(마켓에서 '열기'가 충전 안내로 막힘).
       //   서버 ID 해석은 실패해도 무해하다(null → 종전 흐름 그대로).
-      const repForOwn = await loadRepChart().catch(() => null);
-      const ownChartId = repForOwn && session ? await ensureServerChartIdForSaved(repForOwn, session) : null;
+      // ⚠️★**반드시 상한을 둔다**(daniel 2026-08-01 "이번엔 구매하니깐 멈췄어").
+      //   이 자리는 setBusy(kind) 로 버튼을 잠근 **뒤**다. ensureServerChartIdForSaved 는 supabase 왕복이고
+      //   기본 타임아웃이 없어서, 회선이 어정쩡하면 await 가 안 끝나고 → finally 가 실행되지 않아 →
+      //   버튼이 영구히 잠긴다(첫 줄 `if (busy) return` 에 걸려 눌러도 무반응). 이중과금을 고치다 멈춤을 심었다.
+      //   초과 시 undefined → null → 소유 확인만 건너뛰고 **종전 흐름 그대로 진행**(사용자가 갇히지 않는다).
+      const repForOwn = await withTimeout(loadRepChart().catch(() => null)) ?? null;
+      const ownChartId = repForOwn && session
+        ? (await withTimeout(ensureServerChartIdForSaved(repForOwn, session))) ?? null
+        : null;
       const g = await ensureCoinsFor(kind, {
         title: t('market.doneTitle', '이용 안내'),
         t,

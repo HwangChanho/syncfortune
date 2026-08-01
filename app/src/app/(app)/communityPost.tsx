@@ -14,6 +14,7 @@ import { Alert } from '../../lib/ui/alert';
 import { useAuth } from '../../lib/useAuth';
 import { getPost, listComments, addComment, toggleLike, likedPostIds, reportContent, blockUser, deletePost, deleteComment,
   type CommunityPost, type CommunityComment } from '../../lib/backend/community';
+import { withTimeout } from '../../lib/core/withTimeout'; // ★잠금 구간 네트워크 상한(멈춤 방지)
 import { colors, radius, space, shadow, font } from '../../lib/theme';
 
 export default function CommunityPostScreen() {
@@ -61,7 +62,8 @@ export default function CommunityPostScreen() {
     const body = input.trim();
     if (!body || !id || busy) return;
     setBusy(true); Keyboard.dismiss();
-    try { await addComment(id, body); setInput(''); await load(); }
+    // ⚠️★상한 필수 — 잠금 구간(멈춤 방지). 초과해도 잠금이 풀려 다시 시도할 수 있다.
+    try { await withTimeout(addComment(id, body)); setInput(''); await withTimeout(load()); }
     catch (e) {
       Alert.alert('!', (e as Error).message === 'PROFANITY' ? t('community.profanity', '부적절한 표현이 포함돼 있어요.') : (e as Error).message);
     } finally { setBusy(false); }

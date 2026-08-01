@@ -64,9 +64,35 @@ function bodies(src: string): { name: string; body: string }[] {
 }
 
 // 잠금을 거는 표현 · 네트워크 대기 표현
-const LOCK = /(set(?:Flow)?Busy\(true\)|\w*[Rr]ef\.current\s*=\s*true|acquireGen\()/;
+// ★LOCK 은 `setBusy(true)` 뿐 아니라 **값으로 잠그는 형태**(`setBusy(kind)`)도 잡아야 한다 —
+//   마켓 buy() 가 `setBusy(kind)` 라서 종전 규칙이 통째로 빠져나갔다(daniel 2026-08-01 "구매하니깐 멈췄어").
+//   해제(`setBusy(null|false)`)만 제외한다.
+const LOCK = /(set(?:Flow)?Busy\((?!null|false)|\w*[Rr]ef\.current\s*=\s*true|acquireGen\()/;
 const NET = /await\s+(supabase\.[\w.]*(?:from|rpc|functions|auth)|[\w.]*invoke\()/;
 const BOUNDED = /withTimeout\s*\(|Promise\.race\s*\(/;
+
+/**
+ * ★**네트워크를 내부에서 하는 헬퍼**를 자동으로 찾아낸다.
+ *
+ * 왜 필요한가(2026-08-01 실제 사고): 마켓 buy() 는 `await ensureServerChartIdForSaved(...)` 를 불렀다.
+ *   호출부만 보면 네트워크로 안 보이지만 그 함수는 안에서 supabase 왕복을 한다. 상한이 없어
+ *   회선이 어정쩡하면 await 가 안 끝나고 → finally 가 실행되지 않아 → 버튼이 영구히 잠긴다.
+ *   NET 정규식은 '직접 호출'만 보므로 이 부류를 통째로 놓쳤다.
+ * 어떻게: lib 의 export 된 async 함수 중 **본문에 네트워크가 있고 상한이 없는 것**을 모은다.
+ *   목록을 사람이 관리하지 않으므로(= 빠뜨릴 수 없다) 새 헬퍼가 생겨도 자동으로 포함된다.
+ */
+function unboundedNetHelpers(): Set<string> {
+  const names = new Set<string>();
+  for (const f of files) {
+    if (!f.includes('/lib/')) continue;                       // 화면이 아니라 공용 헬퍼만
+    const src = strip(readFileSync(f, 'utf8'));
+    for (const { name, body } of bodies(src)) {
+      if (!new RegExp(`export\\s+(?:async\\s+function\\s+${name}\\b|const\\s+${name}\\b)`).test(src)) continue;
+      if (NET.test(body) && !BOUNDED.test(body)) names.add(name);
+    }
+  }
+  return names;
+}
 
 // ── H1 잠금 해제 ─────────────────────────────────────────────────────────
 console.log('\n[H1] 잠금을 건 함수는 finally 로 반드시 푼다');
@@ -91,13 +117,18 @@ console.log('\n[H1] 잠금을 건 함수는 finally 로 반드시 푼다');
 // ── H2 대기 상한 ─────────────────────────────────────────────────────────
 console.log('\n[H2] 잠금 구간의 네트워크 대기에 상한이 있다 (★멈춤의 직접 원인)');
 {
+  const NET_HELPERS = unboundedNetHelpers();
   const unbounded: string[] = [];
   for (const f of files) {
     const src = strip(readFileSync(f, 'utf8'));
     for (const { name, body } of bodies(src)) {
       if (!LOCK.test(body)) continue;
-      // 잠금 구간에서 직접 네트워크를 기다리는데 상한 표현이 없다
-      if (NET.test(body) && !BOUNDED.test(body)) unbounded.push(`${rel(f)} · ${name}()`);
+      if (BOUNDED.test(body)) continue;                       // 상한 표현이 있으면 통과(오탐 억제 — 기존 규약 유지)
+      // ①잠금 구간에서 **직접** 네트워크를 기다린다
+      if (NET.test(body)) { unbounded.push(`${rel(f)} · ${name}()  [직접 호출]`); continue; }
+      // ②잠금 구간에서 **네트워크 헬퍼**를 기다린다(호출부만 보면 네트워크로 안 보이는 부류)
+      const via = [...NET_HELPERS].find((h) => new RegExp(`await\\s+${h}\\s*\\(`).test(body));
+      if (via) unbounded.push(`${rel(f)} · ${name}()  [${via}() 내부가 네트워크]`);
     }
   }
   if (!unbounded.length) ok('잠금 구간의 직접 네트워크 대기 전부 상한 통과');
