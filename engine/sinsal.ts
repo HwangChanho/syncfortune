@@ -81,8 +81,23 @@ export function gongmang(stem: Stem, branch: Branch): [Branch, Branch] {
   return [BR[(xunStart + 10) % 12], BR[(xunStart + 11) % 12]];
 }
 
+/**
+ * 신살을 **실제로 존재하는 기둥에서만** 산출한다(daniel 2026-08-01 "신살은 시주 없다는 가정하에").
+ * ─────────────────────────────────────────────────────────────────────────
+ * 시각이 미상이면 엔진은 자리를 비워 둘 수 없어 **유령 子시**를 채운다(라이브러리 기본값).
+ * 그 가짜 글자를 신살에 그대로 태우면 두 방향으로 거짓이 생긴다:
+ *   ① 유령 시지가 **적중 자리**로 잡힌다 — 없는 기둥에 천을귀인이 붙는다.
+ *   ② 유령 시지가 12신살의 **기준지(base)** 가 되어, 진짜 기둥(년·월·일)에
+ *      있지도 않은 신살을 만들어 낸다. ②가 더 위험하다 — 오염이 번진다.
+ * → 시각 미상이면 시주를 순회에서 뺀다. 소비처는 `twelve['시']` 가 없으면 '—' 를 그린다
+ *   (없는 걸 없다고 그리는 것 = 가짜 값을 그리는 것보다 정직하다).
+ * ※ 일간·일지·월지 기준(공망·천을귀인·월덕 등)은 시주와 무관하므로 그대로다.
+ */
+const posOf = (saju: SajuChart): PillarPos[] => (saju.timeUnknown ? ['년', '월', '일'] : POS);
+
 /** 신살·공망 결정론 산출 (일지·일간 기준) */
 export function analyzeSinsal(saju: SajuChart): SinsalResult {
+  const POS = posOf(saju); // ★이 함수 안에서는 '실재하는 자리'만 가리킨다(시각 미상이면 3주)
   const dayStem = saju.pillars['일'].stem;
   const dayBranch = saju.pillars['일'].branch;
   const monthBranch = saju.pillars['월'].branch;
