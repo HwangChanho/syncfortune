@@ -146,6 +146,13 @@ const POS_WEIGHT: Record<PillarPos, number> = { 월: 3, 일: 2, 시: 2, 년: 1.5
 //   THRESHOLD ±2 확정(중화 26.5%): ±3(39.6%)은 판정 유보 40%=회피에 가깝고, 진짜 중화명은 귀하다는 정설·30% 기준선 초과라 정상화.
 //   ▷ v2 백로그(지금 X): 경계 감쇠 — THRESHOLD 근처 ±1 구간(약신강/약신약)은 5분류 진폭 ×0.75 선형 완충(경계값 컴플레인 시 도입).
 const STEM_W = 1, ROOT_BONUS = 1.5, THRESHOLD = 2, GUK_BONUS = 1.5, CHUNG_MULT = 0.5; // ★동결 슬롯(합충 가중 포함)
+// ★3주(시각 미상) 임계 — daniel 2026-08-01 "B로 가되 임계값은 실측해서 4주랑 중화 비율 맞춰줘".
+//   시주(가중 2.0)가 빠지면 총점 진폭이 줄어 임계 ±2 를 그대로 쓰면 중화로 몰린다.
+//   실측으로 4주의 중화 비율에 맞춘 값(측정 근거는 engine/strength3.calibrate.ts).
+const THRESHOLD_3 = 1.25;  // ★실측 확정(2026-08-01, 표본 3000): 4주 중화 18.9% ↔ 3주 22.2%(가장 근접).
+//   점수가 0.5 단위로 떨어져 완전 일치는 불가 — ±1.25 와 ±1.50 은 같은 결과이고 그보다 넓히면 30%대로 뛴다.
+//   재측정: `npx tsx engine/strength3.calibrate.ts` (코드값과 실측 최적이 어긋나면 실패한다)
+const THRESHOLD_FOR = (noHour: boolean) => (noHour ? THRESHOLD_3 : THRESHOLD);
 // D1(daniel 2026-07-06 승인): 삼합 완합(3자)=GUK_BONUS 그대로 / 반합(2자, 왕지 포함)=×0.6 차등.
 //   ★배경: 완합과 반합이 동률(±GUK_BONUS)로 찍히던 문제(酉丑 반합 금국이 완성국과 동일 세력으로 계산됨) → 반합 세력을 0.6으로 감쇄.
 const BANHAP_MULT = 0.6; // ★조정 슬롯 — 반합 세력 계수(완합 대비)
@@ -163,7 +170,11 @@ export function scoreStrength(saju: SajuChart): { score: number; verdict: '신�
   //   충(沖): 충 맞은 지지 = 뿌리 흔들림 → 지지 가중 절반 + 통근 보너스 무효.
   //   삼합·방합국(3자 완성=완합): 화기 오행이 우호(비겁·인성)면 세력 결집(+), 비우호면 일간 약화(-). 반합(2자)=완합×0.6(D1).
   //   원국끼리(년월일시)만 — 운(대운·세운) 충합은 시간층에서 별도 처리.
-  const POS4: PillarPos[] = ['년', '월', '일', '시'];
+  // ★시각 미상이면 **시주를 뺀다**(daniel 2026-08-01). 미상의 pillars['시'] 는 '0:0' 으로 만든
+  //   유령 子시라(saju.ts), 없는 기둥을 세력에 넣으면 강약이 통째로 틀린다.
+  //   ⇒ 대신 **임계값을 3주에 맞게 낮춘다**(아래 THRESHOLD_FOR) — 안 그러면 진폭이 줄어 중화로 몰린다.
+  const noHour = (saju as { timeUnknown?: boolean }).timeUnknown === true;
+  const POS4: PillarPos[] = noHour ? ['년', '월', '일'] : ['년', '월', '일', '시'];
   const chung = new Set<string>();           // 충 맞은 원국 지지 position
   const hyeong = new Set<string>();          // ★형(刑) 맞은 원국 지지 — 통근 손상(daniel 2026-07-14: 형도 뿌리 흔듦)
   let gukAdj = 0; const gukBd: string[] = [];
@@ -204,7 +215,8 @@ export function scoreStrength(saju: SajuChart): { score: number; verdict: '신�
   }
   score += gukAdj; bd.push(...gukBd);
   score = Math.round(score * 10) / 10;
-  const verdict = score >= THRESHOLD ? '신강' : score <= -THRESHOLD ? '신약' : '중화';
+  const th = THRESHOLD_FOR(noHour);
+  const verdict = score >= th ? '신강' : score <= -th ? '신약' : '중화';
   return { score, verdict, breakdown: bd };
 }
 
