@@ -62,8 +62,8 @@ export function GemCard({ rec, copy, title, style }: {
         content: { headline: copy.hook, insight: copy.insight, basis: copy.basis },
       });
       const msg = link
-        ? `${title ?? '내 사주 보석'} — 팔자(八字)\n앱에서 내 보석 보기 ▸ ${link}`
-        : `${title ?? '내 사주 보석'} — 팔자(八字)\n앱에서 내 운세 보기 ${APP_STORE_URL}`;
+        ? `${title ?? '내 사주 보석'} — 운이\n앱에서 내 보석 보기 ▸ ${link}`
+        : `${title ?? '내 사주 보석'} — 운이\n앱에서 내 운세 보기 ${APP_STORE_URL}`;
       await Share.share({ url: uri, message: msg });
     } catch (e) {
       Alert.alert('!', (e as Error).message);
@@ -144,7 +144,7 @@ export function GemCard({ rec, copy, title, style }: {
       <View style={styles.offscreen} pointerEvents="none">
         <ViewShot ref={shotRef} options={{ format: 'jpg', quality: 0.95 }}>
           <View style={styles.shareCard}>
-            <Text style={styles.shareBrand}>✨ 팔자(八字) · 내 사주 보석</Text>
+            <Text style={styles.shareBrand}>✨ 운이 · 내 사주 보석</Text>
             <Text style={styles.shareHook}>{copy.hook}</Text>
             <View style={styles.shareGemRow}>
               <ElementSwatch el={primaryEl} size={140} />

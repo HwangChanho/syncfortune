@@ -120,11 +120,11 @@ export default function SettingsScreen() {
     if (cur === 'undetermined') { // 프롬프트 가능 → 시스템 권한창
       const after = await requestNotifPermission();
       setNotifStatus(after);
-      if (after !== 'granted') Alert.alert(t('settings.notif', '알림'), t('settings.notifDeniedMsg', '알림을 받으려면 기기 설정에서 팔자 알림을 켜 주세요.'), [cancel, openIosSettings]);
+      if (after !== 'granted') Alert.alert(t('settings.notif', '알림'), t('settings.notifDeniedMsg', '알림을 받으려면 기기 설정에서 운이 알림을 켜 주세요.'), [cancel, openIosSettings]);
       return;
     }
     // denied → iOS는 재프롬프트 불가 → 기기 설정으로
-    Alert.alert(t('settings.notif', '알림'), t('settings.notifDeniedMsg', '알림을 받으려면 기기 설정에서 팔자 알림을 켜 주세요.'), [cancel, openIosSettings]);
+    Alert.alert(t('settings.notif', '알림'), t('settings.notifDeniedMsg', '알림을 받으려면 기기 설정에서 운이 알림을 켜 주세요.'), [cancel, openIosSettings]);
   }
 
   // 계정 삭제 — 이중 확인 → Edge(service role)가 데이터+계정 삭제 → 로그아웃(App Store 5.1.1 필수).
@@ -297,7 +297,7 @@ export default function SettingsScreen() {
         <PressableScale style={styles.infoRow} onPress={() => Linking.openURL(PRIVACY_URL).catch(() => {})}><Text style={styles.infoLabel}>{t('settings.privacy', '개인정보처리방침')}</Text><Text style={styles.infoArrow}>›</Text></PressableScale>
         {/* 버그 제보·문의(daniel 07-08) — 메일 프리필(앱 버전 포함=디버그). 메일 앱 없으면 주소 안내 폴백 */}
         <PressableScale style={styles.infoRow} onPress={() => {
-          const subject = encodeURIComponent('[팔자] 버그 제보 · 문의');
+          const subject = encodeURIComponent('[운이] 버그 제보 · 문의');
           const body = encodeURIComponent(`\n\n\n──────────\n앱 버전: ${APP_VERSION}\n(위에 버그 내용이나 문의를 적어 주세요)`);
           Linking.openURL(`mailto:${SUPPORT_EMAIL}?subject=${subject}&body=${body}`).catch(() =>
             Alert.alert(t('settings.bugReport', '버그 제보 · 문의'), `${t('settings.bugReportFail', '메일 앱을 열 수 없어요. 아래 주소로 보내 주세요.')}\n${SUPPORT_EMAIL}`));

@@ -11,7 +11,7 @@ import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 
 const ko = {
-  appName: '팔자(八字)',
+  appName: '운이',
   tagline: '나와 타인을 이해하는 AI 나침반',
   // 홈 카드 개인화 티저 — 대표 명식으로 계산한 '내 얘기' 한 줄(계산=lib/content/homeTeaser.ts, 문구=여기).
   //   카드의 정적 설명(menu.*Desc) 자리를 이 문장이 대체한다(명식 없으면 정적 설명으로 폴백).
@@ -28,7 +28,7 @@ const ko = {
   onb: {
     skip: '건너뛰기', next: '다음', start: '내 분석 시작하기',
     t1: "AI가 분석하는 '나'",
-    b1: '팔자는 운세 앱이 아닙니다. 사주를 엔진으로, 당신이 어떤 사람인지 분석하는 자기이해 도구입니다.',
+    b1: '운이는 운세 앱이 아닙니다. 사주를 엔진으로, 당신이 어떤 사람인지 분석하는 자기이해 도구입니다.',
     t2: '당신만의 명식을 계산합니다',
     b2: '생년월일시를 정밀 만세력(진태양시·시대보정)으로 계산해, 누구와도 같지 않은 당신만의 분석을 만듭니다.',
     t3: '이런 걸 알게 됩니다',
@@ -279,7 +279,7 @@ const ko = {
   // 팔자 도우미(콘텐츠 안내 · API 0 · daniel 2026-07-30) — 종전 'AI 자기이해 코치'를 대체
   // 재통변(1년 경과 → 코인 결제 · daniel 2026-07-30)
   renewal: { title: '최신 통변으로 다시 받기', msg: '이 풀이를 받은 지 1년이 지났어요.\n\n{{pct}}% 할인된 {{coins}} 운으로 지금 시점 기준으로 다시 풀어 드려요. (보유 {{have}} 운)', later: '다음에', go: '재통변하기', needTitle: '운이 부족해요', needMsg: '재통변에는 {{need}} 운이 필요해요. 지금 {{have}} 운 있어요.' },
-  assist: { title: '팔자 도우미', sub: '보고 싶은 걸 말해 주세요. 바로 그 자리로 데려다 드려요.', label: '도우미', hello: '무엇을 보고 싶으세요? 세 가지 중에 고르셔도 되고, 그냥 편하게 말해 주셔도 돼요.', egLabel: '이렇게 말해도 알아들어요', miss: '제가 아직 그 말은 못 알아들었어요. 아래에서 골라 주시면 바로 안내해 드릴게요.', placeholder: '무엇을 보고 싶으세요?', send: '보내기', note: '※ 도우미는 콘텐츠를 찾아 주는 안내예요. 풀이 내용은 각 콘텐츠에서 볼 수 있어요.' },
+  assist: { title: '운이 도우미', sub: '보고 싶은 걸 말해 주세요. 바로 그 자리로 데려다 드려요.', label: '도우미', hello: '무엇을 보고 싶으세요? 세 가지 중에 고르셔도 되고, 그냥 편하게 말해 주셔도 돼요.', egLabel: '이렇게 말해도 알아들어요', miss: '제가 아직 그 말은 못 알아들었어요. 아래에서 골라 주시면 바로 안내해 드릴게요.', placeholder: '무엇을 보고 싶으세요?', send: '보내기', note: '※ 도우미는 콘텐츠를 찾아 주는 안내예요. 풀이 내용은 각 콘텐츠에서 볼 수 있어요.' },
   coach: { title: 'AI 자기이해 코치', sub: '나에 대해 궁금한 걸 물어보세요. 당신의 사주로 답해 드려요.', coachLabel: '코치', thinking: '당신의 사주를 살펴보는 중…', placeholder: '나에 대해 물어보세요', send: '보내기', needChart: '먼저 명식을 등록해 주세요.', registerBtn: '명식 등록하기', loadFail: '명식을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.', gateTitle: '오늘 무료 질문을 다 쓰셨어요', gateDesc: '무료로 하루 {{count}}번까지 물어볼 수 있어요. 운으로 더 대화할 수 있어요.', gateCta: '운 충전하기', note: '※ 사주로 나를 이해하는 참고예요. 의료·법률·투자 결정은 전문가와 상의하세요.', q1: '나는 어떤 사람인가요?', q2: '왜 제 관계는 비슷하게 반복될까요?', q3: '제 강점을 어떻게 살리면 좋을까요?', q4: '요즘 제 흐름은 어떤가요?' },
   selfHero: { kicker: '나는 어떤 사람인가', emptyTitle: '나를 분석해 드릴게요', emptySub: '생년월일시를 넣으면 사주 엔진이 성격·기질·강점을 분석해요', emptyCta: '+ 나를 분석받기', more: '성향 분석 자세히 보기 ›' },
   personal: { title: '퍼스널 오행', sub: '내 오행에 맞는 컬러·코디·메이크업·자동차 색', activate: '나를 살리는 색', balance: '채우면 좋은 색', yongsin: ' (내게 필요한 기운)', cody: '코디', makeup: '메이크업', car: '자동차 색', note: '※ 오행 기운에 맞춘 컬러 제안이에요. 취향과 함께 재미로 참고하세요.', empty: '명식을 등록하면 내 오행에 맞는 컬러를 찾아드려요', emptyCta: '+ 명식 등록', expertNote: '※ 퍼스널 오행은 사주 오행을 바탕으로 한 참고용 제안이에요. 실제 퍼스널컬러 진단·스타일링은 전문가와 상담해 보세요.' },
@@ -297,7 +297,7 @@ const ko = {
 };
 
 const en = {
-  appName: '팔자(八字)',
+  appName: '운이',
   tagline: 'Your AI compass for understanding yourself and others',
   // 홈 카드 개인화 티저 — ko 와 동일 키(계산=homeTeaser.ts). ※ newyear.keyword 값 자체는 엔진이 한국어로 산출(기존 티저 전반과 동일).
   teaser: {
@@ -556,7 +556,7 @@ const en = {
   dream: { fail: "We couldn't load the dream meaning. Please try again in a moment.", title: 'Dream Meanings', sub: 'Search for what appeared in your dream.', placeholder: 'e.g. pig, snake, water…', generating: 'AI is interpreting your dream…', notInDict: "This dream isn't in our list. Get an AI interpretation instead.", aiSee: 'See AI Interpretation', note: '* A traditional dream reading just for fun.', history: 'Past Dream Readings' },
   luck: { title: "Today's Luck", todayEnergy: "Today's Vibe", color: 'Lucky Color', direction: 'Lucky Direction', numbers: 'Lucky Numbers', item: 'Lucky Item', weakHead: 'A Color That Supports You', weakTail: ' — this is an energy you tend to be short on, so keeping it close helps you feel more balanced.', note: '* Just a little guide to enjoy your day.' },
   renewal: { title: 'Get an updated reading', msg: "It's been a year since this reading.\n\nFor {{coins}} woon ({{pct}}% off) we'll read it again for where you are now. (You have {{have}})", later: 'Later', go: 'Read again', needTitle: 'Not enough woon', needMsg: 'This needs {{need}} woon. You have {{have}}.' },
-  assist: { title: 'Palja Guide', sub: "Tell me what you want to see — I'll take you straight there.", label: 'Guide', hello: 'What would you like to look at? Pick one of the three, or just tell me in your own words.', egLabel: 'You can also say things like', miss: "I didn't catch that yet. Pick one below and I'll take you there.", placeholder: 'What would you like to see?', send: 'Send', note: '* The guide helps you find content. Readings themselves live inside each content page.' },
+  assist: { title: 'Wooni Guide', sub: "Tell me what you want to see — I'll take you straight there.", label: 'Guide', hello: 'What would you like to look at? Pick one of the three, or just tell me in your own words.', egLabel: 'You can also say things like', miss: "I didn't catch that yet. Pick one below and I'll take you there.", placeholder: 'What would you like to see?', send: 'Send', note: '* The guide helps you find content. Readings themselves live inside each content page.' },
   coach: { title: 'AI Self-Understanding Coach', sub: 'Ask anything about yourself — we answer from your Saju chart.', coachLabel: 'Coach', thinking: 'Reading your chart…', placeholder: 'Ask about yourself', send: 'Send', needChart: 'Please register your chart first.', registerBtn: 'Register chart', loadFail: "Couldn't load your chart. Please try again in a moment.", gateTitle: "You've used today's free questions", gateDesc: 'You can ask up to {{count}} times a day for free. With Premium, chat with the coach without limits.', gateCta: 'See Premium', note: '* A reflective aid, not advice. For medical, legal, or financial decisions, consult a professional.', q1: 'What kind of person am I?', q2: 'Why do my relationships keep repeating?', q3: 'How can I make the most of my strengths?', q4: "How's my current flow?" },
   selfHero: { kicker: 'Who am I', emptyTitle: 'Let us analyze you', emptySub: 'Enter your birth details and the Saju engine analyzes your character, temperament, and strengths', emptyCta: '+ Analyze me', more: 'See full personality analysis ›' },
   personal: { title: 'Personal Element', sub: 'Colors, style, makeup & car colors for your element', activate: 'Colors that bring you alive', balance: 'Colors worth adding', yongsin: ' (the energy you need)', cody: 'Style', makeup: 'Makeup', car: 'Car color', note: '※ Color suggestions tuned to your element energy. Enjoy alongside your own taste.', empty: 'Register a chart to find colors for your element', emptyCta: '+ Add chart', expertNote: '* Personal Five Elements are a reference based on your saju — for real personal-color or styling, consult a professional.' },
@@ -574,7 +574,7 @@ const en = {
 };
 
 const ja = {
-  appName: '팔자(八字)',
+  appName: '운이',
   tagline: '自分と他人を理解するAIの羅針盤',
   // 홈 카드 개인화 티저 — ko 와 동일 키(계산=homeTeaser.ts). ※ newyear.keyword 값 자체는 엔진이 한국어로 산출.
   teaser: {
@@ -832,7 +832,7 @@ const ja = {
   dream: { fail: '夢の意味を読み込めませんでした。しばらくしてからもう一度お試しください。', title: '夢占い', sub: '夢に出てきたものを検索してみましょう。', placeholder: '例：豚、ヘビ、水…', generating: 'AIが夢を読み解いています…', notInDict: '辞書にない夢です。AIの夢占いを受けてみましょう。', aiSee: 'AIの夢占いを見る', note: '※ 気軽に楽しむ伝統的な夢占いです。', history: '過去の夢占い' },
   luck: { title: '今日の幸運', todayEnergy: '今日の気分', color: 'ラッキーカラー', direction: 'ラッキーな方角', numbers: 'ラッキーナンバー', item: 'ラッキーアイテム', weakHead: 'あなたを支えてくれる色', weakTail: ' — あなたに不足しがちな気分なので、そばに置くとバランスが整いますよ。', note: '※ 気軽に楽しむ今日のヒントです。' },
   renewal: { title: '最新の内容で読み直す', msg: 'この占いから1年が過ぎました。\n\n{{pct}}%割引の{{coins}} woonで、今の時点で読み直します。（保有{{have}} woon）', later: 'あとで', go: '読み直す', needTitle: 'woonが足りません', needMsg: '読み直しには{{need}} woon必要です。現在{{have}} woonです。' },
-  assist: { title: '八字ガイド', sub: '見たいものを教えてください。そこまでご案内します。', label: 'ガイド', hello: '何をご覧になりますか？ 三つから選んでも、そのまま話しかけても大丈夫です。', egLabel: 'こんな風に言っても大丈夫', miss: 'まだその言葉は分かりませんでした。下から選んでいただければすぐご案内します。', placeholder: '何を見たいですか？', send: '送信', note: '※ ガイドはコンテンツを探す案内です。占いの内容は各コンテンツでご覧いただけます。' },
+  assist: { title: 'ウォニガイド', sub: '見たいものを教えてください。そこまでご案内します。', label: 'ガイド', hello: '何をご覧になりますか？ 三つから選んでも、そのまま話しかけても大丈夫です。', egLabel: 'こんな風に言っても大丈夫', miss: 'まだその言葉は分かりませんでした。下から選んでいただければすぐご案内します。', placeholder: '何を見たいですか？', send: '送信', note: '※ ガイドはコンテンツを探す案内です。占いの内容は各コンテンツでご覧いただけます。' },
   coach: { title: 'AI自己理解コーチ', sub: '自分について気になることを聞いてください。あなたの四柱で答えます。', coachLabel: 'コーチ', thinking: 'あなたの四柱を見ています…', placeholder: '自分について聞く', send: '送信', needChart: 'まず命式を登録してください。', registerBtn: '命式を登録', loadFail: '命式を読み込めませんでした。少し時間をおいてお試しください。', gateTitle: '今日の無料質問を使い切りました', gateDesc: '無料では1日{{count}}回まで聞けます。プレミアムなら制限なくコーチと話せます。', gateCta: 'プレミアムを見る', note: '※ 自己理解の参考です。医療·法律·投資の判断は専門家にご相談ください。', q1: '私はどんな人ですか？', q2: 'なぜ私の関係は似たように繰り返すのでしょう？', q3: '私の強みをどう活かせばいいですか？', q4: '最近の私の流れはどうですか？' },
   selfHero: { kicker: '私はどんな人か', emptyTitle: 'あなたを分析します', emptySub: '生年月日時を入れると四柱エンジンが性格·気質·強みを分析します', emptyCta: '+ 私を分析する', more: '性向分析を詳しく見る ›' },
   personal: { title: 'パーソナル五行', sub: '五行に合うカラー·コーデ·メイク·車の色', activate: '私を活かす色', balance: '補うと良い色', yongsin: '（私に必要な気）', cody: 'コーデ', makeup: 'メイク', car: '車の色', note: '※ 五行の気に合わせたカラー提案です。好みと一緒に楽しんでご参考に。', empty: '命式を登録すると五行に合う色を見つけます', emptyCta: '+ 命式登録', expertNote: '※ パーソナル五行は四柱の五行をもとにした参考提案です。実際のパーソナルカラー診断やスタイリングは専門家にご相談ください。' },

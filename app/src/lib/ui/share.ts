@@ -59,7 +59,7 @@ export function personaShareUrl(dayStem: string, monthBranch: string, sex: '남'
  */
 export async function sharePersona(p: { dayStem: string; monthBranch: string; sex: '남' | '여'; name: string }): Promise<string> {
   const url = personaShareUrl(p.dayStem, p.monthBranch, p.sex);
-  await Share.share({ message: `내 성격유형은 '${p.name}' — 팔자(八字)\n${url}`, url });
+  await Share.share({ message: `내 성격유형은 '${p.name}' — 운이\n${url}`, url });
   return url;
 }
 
@@ -105,7 +105,7 @@ export async function shareReading(p: ShareReadingInput): Promise<string> {
   if (error) throw error;
   const url = `${PAGES_BASE}/s/?id=${id}`;
   await Share.share({
-    message: `${p.title ?? '내 운세 풀이'} — 팔자(八字)\n${url}`,
+    message: `${p.title ?? '내 운세 풀이'} — 운이\n${url}`,
     url, // iOS: 링크 카드로 공유
   });
   return url;
