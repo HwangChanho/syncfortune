@@ -314,7 +314,8 @@ export function analyzeTenGods(saju: SajuChart): {
 
 // ── 격국 (R55 · daniel stance 2026-07-18) ────────────────────────────────────
 //   ★격은 **월지 지장간 '본기'의 십신**으로 잡는다 — *투출한 글자 우선이 아니라 본기 고정*.
-//     (구 로직은 '월령 지장간 중 투출분'을 격으로 삼아, 본기가 아닌 여기/중기가 투출하면 격이 갈렸다.)
+//     (daniel 2026-08-01 재확인 "월지로 잡아야지". 07-28~08-01 사이 코드가 '투간 우선'으로 드리프트해
+//      이 주석과 실제 동작이 **서로 모순**이었다 — 그게 daniel 이 '왜 격이 저렇게' 라고 물은 원인이다.)
 //     그리고 **그 격의 글자(=본기 글자)가 천간에 투출했는지**를 *별도로* 노출한다:
 //       투출 = 드러난 격(실체) / 미투출 = 잠복.
 //     ※투출 판정 자리는 **년·월·시 천간**(daniel 명시) — 일간은 '나 자신'이라 투출 대상에서 제외한다.
@@ -328,7 +329,11 @@ export function detectPattern(saju: SajuChart): {
   candidates: string[];     // 하위호환: [격] + 월령 지장간 중 투간한 다른 십신
 } {
   const month = saju.pillars['월'];
-  const outer = (['년', '월', '시'] as PillarPos[]);           // 투간을 볼 천간 자리(일간 제외 — 일간은 격의 주체)
+  // ★투간을 볼 천간 자리(일간 제외 — 일간은 격의 주체).
+  //   ⚠️**시각 미상이면 시주를 뺀다**(daniel 2026-08-01 문의로 드러남): 미상일 때 pillars['시'] 는
+  //     '0:0' 으로 만든 **유령 子시**다(saju.ts 주석). 없는 글자를 '투간했다'고 세면 격이 바뀔 수 있다.
+  //     — 없는 데이터를 쓰지 않는다는 뜻이지, 3주 판정법을 새로 만든 것이 아니다(stance 발명 금지).
+  const outer = ((saju as { timeUnknown?: boolean }).timeUnknown ? ['년', '월'] : ['년', '월', '시']) as PillarPos[];
   const bongi = month.hiddenStems.find((h) => h.role === '본기');
   const dm = saju.dayMaster.stem;
   const yangDay = STEM_YANG[dm];                              // 일간 음양 — 겁재 월지의 이름을 가른다(표는 saju.ts 단일 출처)
@@ -366,24 +371,23 @@ export function detectPattern(saju: SajuChart): {
     };
   }
 
-  // ── ② 투간 우선(daniel stance) — 투간한 지장간으로 격을 잡는다 ──────────
-  //   본기가 잠복이고 중기·여기만 투간했으면 **격이 그쪽으로 바뀐다**.
-  //   ⚠️투간한 것이 비겁이면 격으로 삼지 않는다(①과 같은 이유) → 다음 후보로.
-  const pick = revealedStems.find((x) => x.h.tenGod !== '비견' && x.h.tenGod !== '겁재');
-  if (pick) {
-    const name = `${pick.h.tenGod}격`;                                       // 투간했으므로 '격'
-    const basis = `월지 ${month.branch} ${pick.h.role} ${pick.h.stem}(${pick.h.tenGod}) 천간 ${pick.at.join('·')}에 투간`
-      + (pick.h.role === '본기' ? ' (본기 투간)' : ` → 투간 우선(본기 ${bongi?.stem ?? '?'}(${bongiTg})은 잠복)`);
-    return {
-      name, basis, revealed: true, revealedAt: pick.at,
-      candidates: Array.from(new Set([name, ...revealedStems.filter((x) => x !== pick).map((x) => `${x.h.tenGod}격`)])),
-    };
-  }
-
-  // ── ③ 아무것도 투간하지 않음 → 본기 십신 + '국' ─────────────────────────
-  const name = `${bongiTg}국`;
-  const basis = `월지 ${month.branch} 본기 ${bongi?.stem ?? '?'}(${bongiTg}) · 천간 미투간 → ${name}`;
-  return { name, basis, revealed: false, revealedAt: [], candidates: [name] };
+  // ── ② 격의 십신 = **월지 본기 고정**(daniel 2026-08-01 "월지로 잡아야지") ──
+  //   ★stance 변경 기록: 07-28 에는 '투간 우선'(본기가 잠복이고 중기·여기만 투간하면 격이 그쪽으로
+  //     바뀐다)이었다. 2026-08-01 daniel 이 실물 명식을 보고 **월지로 잡는다**로 정정했다.
+  //     예) 월지 未(본기 己=정재) · 여기 丁(상관)이 월간 투간 → 구 규칙 '상관격' / **신 규칙 '정재…'**
+  //   접미는 종전 규칙 유지(daniel 07-28): **본기 글자가 투간했으면 '격' · 못했으면 '국'**.
+  const selfTugan = revealedStems.find((x) => x.h.role === '본기');   // 본기 글자가 천간에 떴나
+  const others = revealedStems.filter((x) => x.h.role !== '본기');
+  const name = `${bongiTg}${suffix(!!selfTugan)}`;
+  const basis = `월지 ${month.branch} 본기 ${bongi?.stem ?? '?'}(${bongiTg}) → ${name}`
+    + (selfTugan ? ` · 천간 ${selfTugan.at.join('·')}에 투간` : ' · 천간 미투간(국)')
+    + (others.length ? ` · 지장간 ${others.map((x) => `${x.h.stem}(${x.h.tenGod})`).join('·')} 투간(격은 월지 본기로 고정)` : '');
+  return {
+    name, basis,
+    revealed: !!selfTugan,
+    revealedAt: selfTugan?.at ?? [],
+    candidates: Array.from(new Set([name, ...others.map((x) => `${x.h.tenGod}격`)])),
+  };
 }
 
 // ⛔ 폐기(전문가 검수 2026-07-14, daniel 전량 반영): 용신은 평생 고정 — 운은 세기만 조절(희신강화/기신무력화).
