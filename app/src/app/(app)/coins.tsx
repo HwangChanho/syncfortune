@@ -59,6 +59,29 @@ export default function CoinsScreen() {
     } finally { setBusy(null); }
   }
 
+  // ★★로그아웃이면 **충전 화면을 보여주기 전에** 로그인부터 받는다(daniel 2026-08-01).
+  //   왜 여기 한 곳인가: 충전 진입점이 여러 개다(설정·마켓 카드·홈 배지·잔액부족 알림의 '운 충전하기').
+  //   진입점마다 로그인 검사를 붙이면 반드시 하나를 빠뜨린다 — 모두 이 화면으로 오므로 여기서 막는다.
+  //   ★왜 로그인이 필요한가: 적립은 RevenueCat 웹훅이 **계정에 귀속**해서 넣는다(C1). 비로그인으로 사면
+  //   돈은 나가고 운은 어디에도 안 쌓인다. 그래서 '살 수 있게 두고 나중에 묻기'가 아니라 **먼저 막는다**.
+  if (!session) {
+    return (
+      <View style={styles.bg}>
+        <View style={[styles.screen, { flex: 1, alignItems: 'center', justifyContent: 'center', padding: space(7) }]}>
+          <Text style={[styles.balLabel, { fontSize: fs(15), textAlign: 'center' }]}>
+            {t('coins.needLoginTitle', '로그인이 필요해요')}
+          </Text>
+          <Text style={[styles.note, { fontSize: fs(14), textAlign: 'center', marginTop: space(3) }]}>
+            {t('coins.needLoginDesc', '충전한 운은 계정에 보관돼요. 로그인해야 기기를 바꿔도 그대로 남습니다.')}
+          </Text>
+          <PressableScale style={[styles.retry, { marginTop: space(6) }]} onPress={() => router.push('/login')}>
+            <Text style={[styles.retryTx, { fontSize: fs(15) }]}>{t('common.login', '로그인')}</Text>
+          </PressableScale>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.bg}>
       <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>
@@ -79,7 +102,7 @@ export default function CoinsScreen() {
           )}
         </View>
 
-        <Text style={[styles.h, { fontSize: fs(15) }]}>{t('coins.packs', '충전하기')}</Text>
+        <Text style={[styles.h, { fontSize: fs(15) }]}>{t('coins.packs', '운 충전하기')}</Text>
         {COIN_PACKS.map((p) => (
           <PressableScale key={p.id} style={[styles.pack, busy === p.id && styles.packBusy]} onPress={() => void buy(p.id, p.coins)} disabled={!!busy}>
             <View style={{ flex: 1 }}>

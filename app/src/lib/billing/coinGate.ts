@@ -55,7 +55,7 @@ export async function ensureCoinsFor(
           t('coins.needMsg', { need: st.cost, have: st.balance, defaultValue: '이 풀이는 {{need}} 운이 필요해요. 지금 {{have}} 운 있어요.' }),
           [
             { text: t('common.cancel'), style: 'cancel', onPress: () => resolve('cancel') },
-            { text: t('coins.charge', '충전하기'), onPress: () => { goCharge(); resolve('insufficient'); } },
+            { text: t('coins.charge', '운 충전하기'), onPress: () => { goCharge(); resolve('insufficient'); } },
           ],
           () => resolve('cancel'),   // ★뒤로가기로 닫아도 반드시 풀린다
         );
@@ -94,7 +94,7 @@ export async function ensureCoinsFor(
         t('coins.needMsg', { need: cost, have: bal, defaultValue: '이 풀이는 {{need}} 운이 필요해요. 지금 {{have}} 운 있어요.' }),
         [
           { text: t('common.cancel'), style: 'cancel', onPress: () => resolve('cancel') },
-          { text: t('coins.charge', '충전하기'), onPress: () => { goCharge(); resolve('insufficient'); } },
+          { text: t('coins.charge', '운 충전하기'), onPress: () => { goCharge(); resolve('insufficient'); } },
         ],
         () => resolve('cancel'),   // ★뒤로가기로 닫아도 반드시 풀린다(안 그러면 화면 잠금이 남아 버튼이 죽는다)
       );

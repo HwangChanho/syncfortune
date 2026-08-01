@@ -371,7 +371,7 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
             t('coins.needMsg', { need: coinCost, have: bal, defaultValue: '이 풀이는 {{need}} 운이 필요해요. 지금 {{have}} 운 있어요.' }),
             [
               { text: t('common.cancel'), style: 'cancel', onPress: () => resolve(false) },
-              { text: t('coins.charge', '충전하기'), onPress: () => { router.push('/coins'); resolve(false); } },
+              { text: t('coins.charge', '운 충전하기'), onPress: () => { router.push('/coins'); resolve(false); } },
             ],
             () => resolve(false),   // ★뒤로가기로 닫아도 반드시 풀린다
           );
@@ -427,7 +427,7 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
           t('coins.needTitle', '운이 부족해요'),
           t('coins.needMsg', { need: st.cost, have: st.balance, defaultValue: '이 풀이는 {{need}} 운이 필요해요. 지금 {{have}} 운 있어요.' }),
           [{ text: t('common.cancel'), style: 'cancel' },
-           { text: t('coins.charge', '충전하기'), onPress: () => router.push('/coins') }],
+           { text: t('coins.charge', '운 충전하기'), onPress: () => router.push('/coins') }],
           () => {},                                                          // 뒤로가기로 닫아도 안전(대기 Promise 없음)
         );
         return;

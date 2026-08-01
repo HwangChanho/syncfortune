@@ -596,7 +596,7 @@ export function ReadingScreen({
           Alert.alert(
             t('coins.needTitle', '운이 부족해요'),
             t('coins.needMsg', { need: coinCost, have: bal, defaultValue: '이 풀이는 {{need}} 운이 필요해요. 지금 {{have}} 운 있어요.' }),
-            [{ text: t('common.cancel'), style: 'cancel' }, { text: t('coins.charge', '충전하기'), onPress: () => router.push('/coins') }],
+            [{ text: t('common.cancel'), style: 'cancel' }, { text: t('coins.charge', '운 충전하기'), onPress: () => router.push('/coins') }],
           );
           return;
         }

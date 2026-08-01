@@ -55,7 +55,7 @@ export async function runContentRenewal(opts: {
       t('renewal.needMsg', { need: cost, have: bal, defaultValue: '재통변에는 {{need}} 운이 필요해요. 지금 {{have}} 운 있어요.' }),
       [
         { text: t('common.cancel', '취소'), style: 'cancel' },
-        { text: t('coins.charge', '충전하기'), onPress: goCharge },
+        { text: t('coins.charge', '운 충전하기'), onPress: goCharge },
       ],
     );
     return;

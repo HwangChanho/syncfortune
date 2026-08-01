@@ -183,7 +183,7 @@ export default function SettingsScreen() {
         <Text style={[styles.coinLabel, { fontSize: fs(14) }]}>{t('coins.balance', '보유 운')}</Text>
         {/* null=조회 실패 → '—'. 0으로 표시하면 이미 충전한 사용자를 혼란시킨다(07-28 재결제 사고와 같은 유형) */}
         <Text style={[styles.coinNum, { fontSize: fs(17) }]}>{coins == null ? '—' : `${coins.toLocaleString('ko-KR')} 운`}</Text>
-        <Text style={[styles.coinGo, { fontSize: fs(13) }]}>{t('coins.charge', '충전하기')} ›</Text>
+        <Text style={[styles.coinGo, { fontSize: fs(13) }]}>{t('coins.charge', '운 충전하기')} ›</Text>
       </PressableScale>
       {/* 구매 복원 — App Store 3.1.1 필수(비소모성 평생 프리미엄 복구). 로그인/프리미엄 여부와 무관하게 항상 노출·접근 가능. */}
       <PressableScale style={[styles.restoreBtn, restoring && styles.restoreBtnOff]} onPress={onRestore} disabled={restoring}>
