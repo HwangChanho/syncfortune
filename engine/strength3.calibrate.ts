@@ -15,7 +15,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { buildSajuChart } from './saju';
 import { scoreStrength } from './structure';
-import type { ChartInput } from '@spec/chart';
+import type { ChartInput } from '../spec/chart';
 
 const N_YEARS = 60;      // 1955~2014
 const SAMPLES: ChartInput[] = [];
