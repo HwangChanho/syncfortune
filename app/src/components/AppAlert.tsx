@@ -16,13 +16,16 @@ export function AppAlert() {
   // 닫기 = 모달 내림 + (fade 끝난 뒤) 큐의 다음 알림 표시. 350ms = fade(약 300) 여유.
   //   ★연속/연타 Alert 가 transition 겹쳐 크래시 나는 걸 큐(alert.ts)로 순차화 — 여기서 dismiss 완료를 알린다.
   const close = () => { setOpts(null); setTimeout(alertDismissed, 350); };
+  // ★버튼을 누르지 않고 닫힘(안드로이드 뒤로가기) — 기다리는 Promise 를 반드시 풀어 준다.
+  //   이게 없으면 결제 게이트가 영원히 대기하고 화면 잠금이 남아 버튼이 죽는다(daniel 2026-08-01).
+  const dismiss = () => { const d = opts?.onDismiss; close(); d?.(); };
   const horizontal = (opts?.buttons.length ?? 0) <= 2;
 
   // ⚠️ Modal 은 항상 마운트하고 visible 로만 토글한다(이전엔 opts 없으면 return null → Modal unmount).
   //   '확인 → 지급 → 완료'처럼 Alert 가 연속될 때, 닫힘(fade) 애니메이션 도중 Modal 이 재마운트되면
   //   iOS 네이티브 모달이 프리징(앱 멈춤)한다. visible 토글 + 내용은 opts 있을 때만 → 재마운트 없이 내용만 교체.
   return (
-    <Modal transparent visible={!!opts} animationType="fade" onRequestClose={close}>
+    <Modal transparent visible={!!opts} animationType="fade" onRequestClose={dismiss}>
       {opts && (
         <View style={styles.backdrop}>
           <View style={styles.card}>

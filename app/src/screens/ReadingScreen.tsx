@@ -508,7 +508,7 @@ export function ReadingScreen({
     const ok = await new Promise<boolean>((res) => Alert.alert('풀이 초기화 (관리자)', '이 풀이를 삭제하고 다시 생성할 수 있게 초기화할까요?', [
       { text: t('common.cancel', '취소'), style: 'cancel', onPress: () => res(false) },
       { text: '초기화', style: 'destructive', onPress: () => res(true) },
-    ]));
+    ], () => res(false)));   // ★뒤로가기로 닫아도 반드시 풀린다
     if (!ok) return;
     const { error } = await supabase.rpc('admin_reset_reading', { p_chart_id: chartId, p_category: category });
     if (error) { Alert.alert('!', '초기화 실패: ' + error.message); return; }

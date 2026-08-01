@@ -342,7 +342,7 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
         { text: t('special.buyNow', '바로 구매'), onPress: () => resolve('buy') },
         { text: t('special.goMarket', '마켓에서 보기'), onPress: () => resolve('market') },
         { text: t('common.cancel'), style: 'cancel', onPress: () => resolve('cancel') },
-      ]);
+      ], () => resolve('cancel'));   // ★뒤로가기로 닫아도 반드시 풀린다
     });
   }
 
@@ -369,6 +369,7 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
               { text: t('common.cancel'), style: 'cancel', onPress: () => resolve(false) },
               { text: t('coins.charge', '충전하기'), onPress: () => { router.push('/coins'); resolve(false); } },
             ],
+            () => resolve(false),   // ★뒤로가기로 닫아도 반드시 풀린다
           );
         });
       }
@@ -380,6 +381,7 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
             { text: t('coins.spend', '운 사용'), onPress: () => resolve(true) },   // 차감은 Edge 가(이중차감 방지)
             { text: t('common.cancel'), style: 'cancel', onPress: () => resolve(false) },
           ],
+          () => resolve(false),   // ★뒤로가기로 닫아도 반드시 풀린다
         );
       });
     }

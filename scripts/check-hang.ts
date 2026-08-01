@@ -141,17 +141,30 @@ console.log('\n[H3] Alert 로 만든 Promise 는 모든 버튼이 resolve 한다
   const leak: string[] = [];
   for (const f of files) {
     const src = strip(readFileSync(f, 'utf8'));
-    // new Promise(...) { ... Alert.alert(...) } 블록을 잘라 버튼 배열을 본다
-    const re = /new Promise<[^>]*>\(\s*\((\w+)\)\s*=>\s*\{([\s\S]{0,1800}?)\}\s*\)/g;
+    // ★`new Promise(` 부터 **괄호 균형이 맞는 지점**까지를 블록으로 자른다.
+    //   종전엔 비탐욕 정규식으로 잘라서 본문이 중간에서 끊겼고, 그래서 마지막 인자(onDismiss)를 못 봤다.
+    const re = /new Promise(?:<[^>]*>)?\(\s*\((\w+)\)\s*=>/g;
     let m: RegExpExecArray | null;
     while ((m = re.exec(src))) {
-      const [, resolver, blk] = m;
+      const resolver = m[1];
+      const open = src.indexOf('(', m.index + 'new Promise'.length);
+      let depth = 0, i = open;
+      for (; i < src.length && i - open < 6000; i++) {
+        if (src[i] === '(') depth++;
+        else if (src[i] === ')') { depth--; if (!depth) break; }
+      }
+      const blk = src.slice(open, i + 1);
       if (!/Alert\.alert/.test(blk)) continue;
       const buttons = [...blk.matchAll(/\{\s*text:[\s\S]{0,220}?\}/g)].map((b) => b[0]);
       const noResolve = buttons.filter((b) => !new RegExp(`${resolver}\\(`).test(b) && !/goCharge|router\./.test(b));
-      if (noResolve.length) {
-        const line = src.slice(0, m.index).split('\n').length;
-        leak.push(`${rel(f)}:${line} — resolve 없는 버튼 ${noResolve.length}개`);
+      const line = src.slice(0, m.index).split('\n').length;
+      if (noResolve.length) leak.push(`${rel(f)}:${line} — resolve 없는 버튼 ${noResolve.length}개`);
+      // ★★버튼을 **누르지 않고** 닫는 길(안드로이드 뒤로가기 = Modal onRequestClose)도 resolve 해야 한다.
+      //   2026-08-01 실제 사고: 결제 게이트가 버튼 onPress 에서만 resolve 해서, 뒤로가기로 닫으면
+      //   Promise 가 영원히 안 풀리고 화면 잠금(gatingRef)이 남아 **모든 유료 풀이 버튼이 죽었다**.
+      //   판정: 버튼 배열 `]` 뒤에 4번째 인자(onDismiss) 화살표 함수가 붙어 있는가.
+      if (!/\]\s*,\s*\(\s*\)\s*=>/.test(blk)) {
+        leak.push(`${rel(f)}:${line} — onDismiss 없음(뒤로가기로 닫으면 영원히 대기)`);
       }
     }
   }

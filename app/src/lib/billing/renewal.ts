@@ -72,6 +72,7 @@ export async function runContentRenewal(opts: {
         { text: t('renewal.later', '다음에'), style: 'cancel', onPress: () => resolve(false) },
         { text: t('renewal.go', '재통변하기'), onPress: () => resolve(true) },
       ],
+      () => resolve(false),   // ★뒤로가기로 닫아도 반드시 풀린다
     );
   });
   if (!ok) return;
