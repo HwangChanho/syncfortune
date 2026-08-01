@@ -9,6 +9,7 @@
 import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import { supabase } from '../supabase';
+import { withTimeout } from '../core/withTimeout'; // ★게이트 경로 네트워크 상한 — 없으면 '앱이 멈춤'(07-30·07-31 재발 사고)
 
 const key = (chartId: string, kind: string) => `unlock_${chartId}_${kind}`;
 
@@ -49,8 +50,12 @@ export async function markUnlocked(chartId: string, kind: string): Promise<void>
 //   kind = 'reading'(saju) | 'ziwei' | 'timeline'.
 export async function isReadingUnlocked(chartId: string, kind: string): Promise<boolean> {
   try {
-    const { data } = await supabase
-      .from('reading_unlocks').select('chart_id').eq('chart_id', chartId).eq('kind', kind).maybeSingle();
-    return !!data;
+    // ★상한 필수 — 이 함수는 결제 게이트가 잠금을 건 뒤에 await 된다. supabase 는 기본 타임아웃이 없어
+    //   회선이 어정쩡하면 영원히 안 끝나고 잠금이 남아 "앱이 멈췄다"가 된다(withTimeout 주석의 재발 사고).
+    //   초과하면 undefined → false(잠김) 로 보수 판정. 최종 판정은 어차피 Edge 가 한다.
+    const res = await withTimeout(
+      supabase.from('reading_unlocks').select('chart_id').eq('chart_id', chartId).eq('kind', kind).maybeSingle(),
+    );
+    return !!res?.data;
   } catch { return false; } // 조회 실패 = 잠김(보수적, Edge 가 최종 판정)
 }
