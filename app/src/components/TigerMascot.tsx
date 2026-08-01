@@ -18,6 +18,18 @@ import { colors } from '../lib/theme';
 // 마스코트 이미지 = AI img2vid(SVD) 애니메이티드 webp(호랑이가 숨쉬듯 움직임). expo-image 가 자동 재생·루프.
 const SRC = A('icons/mascot-tiger.webp');
 
+/**
+ * 후광이 **레이아웃 박스 밖으로 삐져나가는 비율**(한쪽 기준, size 대비).
+ * ─────────────────────────────────────────────────────────────────────
+ * 컨테이너는 `size`인데 후광은 `size×1.72`를 `position:absolute`로 그리고,
+ * 맥동으로 최대 1.16배까지 커진다 → 한쪽 삐져나감 = (1.72×1.16 − 1)/2 ≈ 0.498.
+ * ★화면 좌/우 끝에 `alignSelf:'flex-start'|'flex-end'`로 붙일 때는
+ *   `size × 이 값`만큼 여백이 없으면 **후광이 잘린다**
+ *   (daniel 2026-08-02 "예 왜 왼쪽에 박혀있어" — 좌측정렬로 바꾸자 잘려 나갔다).
+ * 가운데 정렬일 땐 좌우 대칭이라 문제가 없어 눈에 안 띄었다.
+ */
+export const MASCOT_HALO_OVERHANG = (1.72 * 1.16 - 1) / 2;
+
 type Props = {
   size?: number;    // 원형 메달리온 지름(px). 기본 64. 코치=72, 홈 헤더=40 권장.
   active?: boolean; // true = '생각 중' 상태(코치 답 생성) → 광채·움직임 강화.

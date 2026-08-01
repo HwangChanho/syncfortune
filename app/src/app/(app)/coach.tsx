@@ -30,7 +30,7 @@ import { PressableScale } from '../../components/PressableScale';
 import { DeepDiveCta } from '../../components/DeepDiveCta';      // 안내 카드(이미지 · SECTIONS 단일 출처)
 import { CoachTarotCard } from '../../components/CoachTarotCard'; // '가볍게 뽑은 카드' — 타로 안내에만(온디바이스·비용 0)
 import { ChartPicker } from '../../components/ChartPicker';
-import { TigerMascot } from '../../components/TigerMascot';      // 도우미 아바타
+import { TigerMascot, MASCOT_HALO_OVERHANG } from '../../components/TigerMascot'; // 도우미 아바타(+후광 삐져나감 비율)
 import { getNavBarHeight } from '../../components/BottomNav';
 import { logEvent } from '../../lib/backend/logger';
 import { useFontScale } from '../../lib/ui/fontScale';
@@ -141,7 +141,17 @@ export default function AssistantScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <ChartPicker />
-        <TigerMascot size={76} style={{ alignSelf: 'flex-start', marginTop: space(8), marginBottom: space(2) }} />
+        {/* ★후광 잘림 방지(daniel 2026-08-02) — 후광은 레이아웃 박스보다 size×0.498 만큼 크다.
+            wrap 의 paddingHorizontal(24) 만으로는 모자라 화면 밖으로 잘렸다. 부족분만 왼쪽에 더 준다. */}
+        <TigerMascot
+          size={76}
+          style={{
+            alignSelf: 'flex-start',
+            marginLeft: Math.max(0, Math.round(76 * MASCOT_HALO_OVERHANG - space(6))),
+            marginTop: space(8),
+            marginBottom: space(2),
+          }}
+        />
         <Text style={[styles.title, { fontSize: fs(23) }]}>{t('assist.title', '우니')}</Text>
         <Text style={[styles.sub, { fontSize: fs(13) }]}>
           {t('assist.sub', '보고 싶은 걸 말해 주세요. 바로 그 자리로 데려다 드려요.')}

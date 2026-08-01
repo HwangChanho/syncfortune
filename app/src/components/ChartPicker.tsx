@@ -10,6 +10,7 @@ import { CoinBadge } from './CoinBadge';   // 보유 운 배지(단일 구현 �
 import { PressableScale } from './PressableScale';
 import { Image as ExpoImage } from 'expo-image'; // 자동 다운샘플(메모리) + 엠블럼 탭 풀스크린 뷰어
 import DraggableFlatList, { ScaleDecorator } from 'react-native-draggable-flatlist'; // 이슈20 롱프레스 드래그 reorder
+import type { FlatList as GHFlatList } from 'react-native-gesture-handler'; // DraggableFlatList 가 넘겨주는 ref 실체(scrollToOffset)
 import { Alert } from '../lib/ui/alert'; // 커스텀 알림(삭제 확인)
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -47,6 +48,15 @@ function SkeletonDot({ d }: { d: number }) {
 //   ⚠️키에 input 을 포함한다 — 명식을 **수정하면 id 는 같고 내용만 바뀌므로**, id 만 쓰면 옛 엠블럼이 굳는다.
 const emblemCache = new Map<string, IljuEmblem>();
 const emblemKey = (c: { id: string; input: unknown }) => `${c.id}:${JSON.stringify(c.input)}`;
+
+// ★리스트 이미지 **선(先)적재**(daniel 2026-08-02 "이미지 로드할 때 너무 오래 걸려").
+//   무엇이 달라졌나: 08-01 에 일러스트를 번들에서 Storage 로 옮겼다(앱 용량·디코딩 때문).
+//   그 대가로 **처음 여는 순간 N장을 네트워크로 받게** 됐다 — 캐시가 비어 있으니 스켈레톤이 오래 남는다.
+//   → 목록을 여는 건 사용자가 정하지만, *받아 두는 건 미리 할 수 있다*. 바가 떠 있는 동안
+//     한가한 틈에 엠블럼을 계산하고 이미지를 디스크 캐시에 밀어 넣는다. 그러면 열 때는 캐시 히트다.
+//   왜 모듈 레벨 플래그인가: ChartPicker 는 화면마다 마운트된다. 앱 세션당 **한 번만** 데우면 된다.
+//   ⚠️계산은 반드시 **틱을 나눠서** — 명식 29개를 한 루프에 돌리면 그게 곧 렉이다(고치려던 문제를 재현).
+let warmedOnce = false;
 
 export function ChartPicker({ onChange }: { onChange?: () => void }) {
   const { t } = useTranslation();
@@ -138,6 +148,63 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
     return () => h.cancel();
   }, [open]);
 
+  // ★엠블럼 이미지 선적재 — 위 warmedOnce 주석 참조. 모달을 열기 *전*에 디스크 캐시를 채운다.
+  //   순서: 인터랙션이 끝난 뒤 시작 → 명식 하나씩(틱 분리) 계산 → 이미지 URL 이 나오는 즉시 프리페치.
+  //   실패는 전부 무시한다(다음에 리스트에서 정상 경로로 다시 받는다) — 데우기는 **최적화지 정확성이 아니다**.
+  useEffect(() => {
+    if (warmedOnce || !charts.length) return;
+    warmedOnce = true;
+    const snapshot = charts;
+    let alive = true;
+    let ti: ReturnType<typeof setTimeout>;
+    const h = InteractionManager.runAfterInteractions(() => {
+      let i = 0;
+      const step = () => {
+        if (!alive || i >= snapshot.length) return;
+        const c = snapshot[i++];
+        try {
+          let em = emblemCache.get(emblemKey(c));
+          if (!em) {
+            const p = computeChart(c.input).saju.pillars['일'];
+            if (p) { em = iljuEmblem(p.stem, p.branch); emblemCache.set(emblemKey(c), em); }
+          }
+          // 원격 이미지면 `{ uri }` — 그 URL 만 디스크 캐시에 미리 받아 둔다(번들 require 면 uri 가 없어 건너뜀).
+          const img = em ? iljuImage(em.stem, em.branch) : null;
+          if (img?.uri) void ExpoImage.prefetch(img.uri as string).catch(() => {});
+        } catch { /* 계산·네트워크 실패는 무시 — 리스트에서 정상 경로로 다시 시도한다 */ }
+        ti = setTimeout(step, 0); // ★한 명식 = 한 틱. 한 루프에 몰면 그게 렉이다.
+      };
+      ti = setTimeout(step, 0);
+    });
+    return () => { alive = false; h.cancel(); clearTimeout(ti); };
+  }, [charts]);
+
+  // ★목록을 열면 **지금 보고 있는 명식 자리에서** 시작한다(daniel 2026-08-02
+  //   "명식창 들어가면 현재 설정된 명식 위치에서 시작해야 해, 좌표가 처음부터 아니고").
+  //   명식이 많으면 맨 위에서 열려 매번 찾아 내려가야 했다.
+  //   행 높이는 글자 배율·엠블럼 크기에 따라 달라져 **상수로 추정하면 어긋난다** → 첫 행의 실제
+  //   onLayout 높이를 재서 offset 을 계산한다(추정이 아니라 실측).
+  const listRef = useRef<GHFlatList<SavedChart> | null>(null);
+  const rowHRef = useRef(0);     // 실측 행 높이(첫 행 onLayout)
+  const scrolledRef = useRef(false); // 열림 1회당 한 번만 이동(사용자가 스크롤한 뒤 끌어올리지 않도록)
+  useEffect(() => { if (!open) { scrolledRef.current = false; } }, [open]);
+  const scrollToRep = useCallback(() => {
+    if (scrolledRef.current || !rowHRef.current) return;
+    const idx = shown.findIndex((c) => c.id === repId);
+    scrolledRef.current = true;
+    if (idx < 3) return; // 위쪽 3개는 이미 화면에 있다 — 굳이 움직이면 오히려 어색하다
+    // 선택한 행 바로 위 한 줄을 남겨 "여기서 이어진다"는 맥락을 준다.
+    try { listRef.current?.scrollToOffset({ offset: (idx - 1) * rowHRef.current, animated: false }); } catch { /* 리스트가 아직 준비 전이면 무시 */ }
+  }, [shown, repId]);
+  // ★두 번째 열기부터의 경로 — 행 높이는 이미 재 뒀으니 onLayout 의 `!rowHRef.current` 가 막아 스크롤이 안 걸린다.
+  //   리스트가 마운트되는 시점에 한 번 더 시도한다(첫 열기 땐 높이가 0이라 여기선 그냥 빠지고 onLayout 이 처리).
+  //   rAF = FlatList 가 내용을 붙인 다음 프레임에 이동(붙기 전에 부르면 offset 이 먹지 않는다).
+  useEffect(() => {
+    if (!open || !listReady) return;
+    const r = requestAnimationFrame(() => scrollToRep());
+    return () => cancelAnimationFrame(r);
+  }, [open, listReady, scrollToRep]);
+
   async function choose(id: string) {
     await setRepresentative(id);
     setRepId(id);
@@ -224,6 +291,7 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
               <View style={{ height: 200, alignItems: 'center', justifyContent: 'center' }}><ActivityIndicator color={colors.ju} /></View>
             ) : (
             <DraggableFlatList
+              ref={listRef}
               data={shown}
               keyExtractor={(c) => c.id}
               style={styles.list}
@@ -239,7 +307,11 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
                 const iljuImg = em ? iljuImage(em.stem, em.branch) : null; // 60갑자 AI 일러스트(없으면 색+동물 폴백)
                 return (
                   <ScaleDecorator>
-                    <View style={[styles.row, isActive && styles.rowActive, actionsFor === c.id && styles.rowMenuOpen]}>
+                    <View
+                      style={[styles.row, isActive && styles.rowActive, actionsFor === c.id && styles.rowMenuOpen]}
+                      // 첫 행의 실제 높이를 한 번만 재서 '현재 명식으로 이동'의 offset 기준으로 쓴다(상수 추정 금지).
+                      onLayout={(e) => { if (!rowHRef.current) { rowHRef.current = e.nativeEvent.layout.height; scrollToRep(); } }}
+                    >
                       {!em ? (
                         <SkeletonDot d={EMB} /> /* 펄스 스켈레톤 — 엠블럼 계산 전(딜레이 가림) */
                       ) : iljuImg ? (
@@ -257,6 +329,13 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
                       <PressableScale style={styles.rowMain} onPress={() => choose(c.id)} onLongPress={filtering ? undefined : drag} delayLongPress={250}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: space(1.5) }}>
                           <Text style={[styles.rowName, on && styles.rowOn, { fontSize: fs(15) }]} numberOfLines={1}>{c.label}</Text>
+                          {/* ★성별 배지(daniel 2026-08-02 "명식 리스트에서 여자인지 남자인지도 보이면 좋겠어")
+                              — 동명이인·가족 명식이 쌓이면 이름만으론 구분이 안 된다. 사주는 성별에 따라
+                              대운 방향(순행/역행)이 갈리므로 **명식의 정체성 정보**지 장식이 아니다.
+                              색으로 성별을 나누지 않고 중립 톤을 쓴다(테마 일관·고정관념 회피). */}
+                          {!!c.input.sex && (
+                            <Text style={[styles.sexBadge, { fontSize: fs(10.5) }]}>{c.input.sex}</Text>
+                          )}
                           {/* ★프리미엄 지정 명식 배지(daniel 07-02: 명식 옆에 프리미엄 여부) — 골드 왕관 배지 */}
                           {!!premChartId && c.serverChartId === premChartId && (
                             <View style={styles.premBadge}><Text style={styles.premBadgeTx}>👑 프리미엄</Text></View>
@@ -388,6 +467,8 @@ const styles = StyleSheet.create({
   // 프리미엄 지정 명식 배지(골드) — 명식 옆에 프리미엄 여부(daniel 07-02)
   premBadge: { backgroundColor: colors.badgeGold, borderRadius: radius.pill, paddingHorizontal: space(2), paddingVertical: 1, overflow: 'hidden' },
   premBadgeTx: { color: colors.bg, fontSize: 10, fontWeight: '900' },
+  // 성별 배지(남/여) — 중립 톤. overflow:hidden 이 있어야 안드로이드에서 borderRadius 가 먹는다.
+  sexBadge: { color: colors.inkSoft, backgroundColor: colors.sunk, borderWidth: 1, borderColor: colors.line, borderRadius: radius.pill, paddingHorizontal: space(1.75), paddingVertical: 1, overflow: 'hidden', fontWeight: '800' },
   rowName: { ...font.body, fontWeight: '600', color: colors.ink },
   rowOn: { color: colors.ju },
   rowMeta: { ...font.caption, flex: 1 },
