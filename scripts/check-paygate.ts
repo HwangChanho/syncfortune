@@ -23,8 +23,10 @@
 // 사용: npm run check:paygate   (드리프트 있으면 exit 1)
 // ─────────────────────────────────────────────────────────────────────────
 import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { execSync } from 'node:child_process';
 
+const ROOT = process.cwd();
 const FILE = 'supabase/functions/interpret/index.ts';
 const src = readFileSync(FILE, 'utf8');
 const lines = src.split('\n');
@@ -100,6 +102,47 @@ for (const f of clientFiles) {
       );
     }
   });
+}
+
+// ── (E) 서버 상태 판단자(reading-state)와 앱의 **정본 목록 대조** ─────────────────────
+//   2026-08-01 구조 개편: "이 풀이를 볼 수 있는가"를 서버가 혼자 정한다(Edge reading-state).
+//   그러려면 서버가 앱과 **같은 가격표·같은 영역 목록**을 봐야 한다. 어긋나면
+//   ①표시가 ≠ 실제 차감 ②진행률 분모/분자가 틀려 '안 만들었는데 완료'가 된다(실제로 냈던 버그).
+{
+  const pricing = readFileSync(join(ROOT, 'supabase/functions/_shared/pricing.ts'), 'utf8');
+  const appPrices = readFileSync(join(ROOT, 'app/src/lib/billing/coinPrices.ts'), 'utf8');
+
+  // ①가격 — 서버 표의 각 항목이 앱 표에 같은 값으로 있는가
+  // ★COIN_PRICE 블록만 잘라 본다 — 파일 전체를 훑으면 SET_TOTAL(reading:16·ziwei:12)까지
+  //   가격으로 오인해 없는 불일치를 만든다(오탐이 섞이면 하네스를 아무도 안 믿는다).
+  const priceBlock = /COIN_PRICE[^=]*=\s*\{([\s\S]*?)\n\};/.exec(pricing)?.[1] ?? '';
+  const srvPrices = [...priceBlock.matchAll(/(\w+):\s*(\d+)/g)]
+    .map(([, k, v]) => [k, Number(v)] as [string, number]);
+  const mismatch = srvPrices.filter(([k, v]) => {
+    const m = new RegExp(`\\b${k}\\s*:\\s*(\\d+)`).exec(appPrices);
+    return m ? Number(m[1]) !== v : false;   // 앱에 없는 키는 여기서 판단하지 않는다(check:coins 관할)
+  });
+  if (!mismatch.length) console.log(`   [서버↔앱] 가격 일치(서버 표 ${srvPrices.length}종)`);
+  else problems.push(`가격 불일치: ${mismatch.map(([k, v]) => `${k}(서버 ${v})`).join(', ')} — 표시가와 차감이 달라집니다.`);
+
+  // ②사주 16영역 — 서버 SET_CATEGORIES.reading 이 앱 SAJU_READING_CATEGORIES 와 같은 집합인가
+  const prewarm = readFileSync(join(ROOT, 'app/src/lib/backend/prewarmReadings.ts'), 'utf8');
+  const appCats = [...(/SAJU_READING_CATEGORIES[^=]*=\s*\[([\s\S]*?)\]/.exec(prewarm)?.[1] ?? '')
+    .matchAll(/'([^']+)'/g)].map((m) => m[1]);
+  const srvCats = [...(/reading:\s*\[([\s\S]*?)\]/.exec(pricing)?.[1] ?? '')
+    .matchAll(/'([^']+)'/g)].map((m) => m[1]);
+  const onlyApp = appCats.filter((c) => !srvCats.includes(c));
+  const onlySrv = srvCats.filter((c) => !appCats.includes(c));
+  if (appCats.length && !onlyApp.length && !onlySrv.length && appCats.length === srvCats.length) {
+    console.log(`   [서버↔앱] 사주 영역 목록 일치(${appCats.length}개)`);
+  } else {
+    problems.push(
+      `사주 영역 목록 불일치 — 앱 ${appCats.length}개 / 서버 ${srvCats.length}개` +
+      (onlyApp.length ? ` · 앱에만: ${onlyApp.join(',')}` : '') +
+      (onlySrv.length ? ` · 서버에만: ${onlySrv.join(',')}` : '') +
+      `\n      → 진행률 분자가 틀려 '안 만들었는데 완료'가 됩니다.`,
+    );
+  }
 }
 
 console.log(`\n💳 결제 게이트 불변식`);
