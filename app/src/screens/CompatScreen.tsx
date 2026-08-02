@@ -11,6 +11,7 @@ import { A } from '../lib/ui/remoteAsset'; // ★이미지 원격화(daniel 08-0
 import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator, Modal, TextInput, Keyboard, Animated, Easing } from 'react-native';
 import { useRouter } from 'expo-router';                    // ★운 부족 → 충전 화면(daniel 07-28)
 import { ensureCoinsFor } from '../lib/billing/coinGate';   // ★운 단일 경로
+import { coinPriceOf } from '../lib/billing/coins';   // ★표시 가격도 운으로(아래 COMPAT_COINS 주석)
 import { PressableScale } from '../components/PressableScale';
 import { RelatedContent } from '../components/RelatedContent';
 import { ReadingProse, ReadingHeadline, ReadingPoints } from '../components/ReadingProse';
@@ -31,7 +32,6 @@ import { ChartRegisterScreen } from './ChartRegisterScreen'; // 상대 명식 = 
 import { useAuth } from '../lib/useAuth';
 import { useSubscription } from '../lib/billing/subscription';
 import { assertOnline } from '../lib/backend/network'; // 오프라인 시 신규 생성 차단
-import { creditPrice, formatKrw } from '../lib/billing/coupons'; // C1 웹훅 폴링 + 실가 주입(하드코딩 근절)
 import { ensureServerChartId } from '../lib/backend/prewarmReadings';
 import { useFontScale } from '../lib/ui/fontScale';
 import { COMPAT_RELS, otherSig, loadCompatReadings, genCompatReading, compatSections, compatSectionLabel, type CompatReading } from '../lib/content/compatReadings';
@@ -90,6 +90,12 @@ function ScoreReveal({ score }: { score: number }) {
     </>
   );
 }
+
+// ★표시 문구는 **실제 차감과 같은 출처**를 본다(daniel 2026-08-02 스크린샷).
+//   화폐를 운으로 통일(07-28)했는데 이 화면 문구만 '이용권 1회 또는 결제'·원화 태그로 남아 있었다.
+//   게이트는 ensureCoinsFor('compat') 로 **운을 차감하고 있었으므로**, 표시가 결제 수단과 달랐다
+//   — 사용자는 무엇으로 사는지 알 수 없었다. 숫자를 손으로 적지 않고 가격표에서 읽는다.
+const COMPAT_COINS = coinPriceOf('compat') ?? 0;
 
 export function CompatScreen({ me }: { me: ChartInput | null }) {
   const router = useRouter();   // ★운 부족 시 /coins 이동(daniel 07-28)
@@ -242,7 +248,7 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
     const relOwned = ownedRels.has(relKey) || isPremium; // 이 관계를 이미 구매(또는 프리미엄 무제한)면 추가 비용 0(관계별 개별 결제·daniel 2026-07-22). 연도 변형은 같은 관계라 무료.
     Alert.alert(
       t('compat.genTitle', '풀이 만들기'),
-      `${relName}${yr ? ' ' + yr + '년' : ''} 궁합 풀이를 만들까요?\n${relOwned ? '추가 비용 없이 생성돼요.' : '이 관계는 이용권 1회 또는 결제가 필요해요.'}`,
+      `${relName}${yr ? ' ' + yr + '년' : ''} 궁합 풀이를 만들까요?\n${relOwned ? '추가 비용 없이 생성돼요.' : `이 관계는 ${COMPAT_COINS} 운이 필요해요.`}`,
       [
         { text: t('common.cancel'), style: 'cancel' },
         { text: t('compat.genConfirm', '생성'), onPress: () => runCompatGen(relKey, yr, key) },
@@ -359,11 +365,11 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
             <View style={styles.relDropRight}>
               {ownedRels.has(rel)
                 ? <Text style={styles.relOwnedTag}>✓ 보유</Text>
-                : (!isPremium ? <Text style={styles.relPriceTag}>{formatKrw(creditPrice('compat'))}</Text> : null)}
+                : (!isPremium ? <Text style={styles.relPriceTag}>{COMPAT_COINS} 운</Text> : null)}
               <Text style={styles.relDropCaret}>▾</Text>
             </View>
           </PressableScale>
-          <Text style={styles.relHint}>{isPremium ? '관계마다 별도 풀이예요' : '관계마다 별도로 풀어 드려요 — 고른 관계만 결제돼요'}</Text>
+          <Text style={styles.relHint}>{isPremium ? '관계마다 별도 풀이예요' : `관계마다 별도로 풀어 드려요 — 고른 관계만 ${COMPAT_COINS} 운이 들어요`}</Text>
           {/* ★사주/자미 탭 제거(daniel 2026-07-15 '구분짓지 말고 같이풀어') — 'compat' 통변이 이미 사주 주축+자미 보조교차로 합쳐 나옴(규칙2·R46). 항상 compatTab='saju'(=합친 통변). */}
           {/* 연도별 — 전체(원국 본바탕) / 그 해 흐름(세운). 연도 탭 시 그 관계×연도 통변 생성 */}
           <Text style={[styles.stepLabel, { marginTop: space(4) }]}>{t('compat.step3year', '③ 언제로 볼까요?')}</Text>
@@ -431,7 +437,7 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
             // 비용 보호(daniel J/L): 미생성 관계는 자동 호출 않고 '생성' 버튼 → alert 확인 후 1건만(genOne)
             <PressableScale onPress={() => genOne(rel, year)} style={{ alignItems: 'center', backgroundColor: colors.ju, borderRadius: radius.md, paddingVertical: space(4), paddingHorizontal: space(5), marginTop: space(4), gap: space(1) }}>
               <Text style={{ color: colors.bg, fontWeight: '900', fontSize: 16 }}>{t('compat.genCta', '이 관계 풀이 만들기')}</Text>
-              <Text style={{ color: colors.bg, opacity: 0.85, fontSize: 12, fontWeight: '600' }}>{t('compat.genCtaSub', '확인 후 이용권 1회 또는 결제')}</Text>
+              <Text style={{ color: colors.bg, opacity: 0.85, fontSize: 12, fontWeight: '600' }}>{t('compat.genCtaSub', `확인 후 ${COMPAT_COINS} 운 사용`)}</Text>
             </PressableScale>
           )}
 
@@ -519,7 +525,7 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
               <PressableScale key={r.key} style={[styles.pickRow, on && styles.pickRowOn]} onPress={() => { setRel(r.key); setRelOpen(false); }}>
                 <Text style={[styles.pickRowTx, on && styles.pickRowTxOn]}>{t(r.tk)}</Text>
                 <View style={styles.relRowRight}>
-                  {owned ? <Text style={styles.relOwnedTag}>✓ 보유</Text> : (!isPremium ? <Text style={styles.relPriceTag}>{formatKrw(creditPrice('compat'))}</Text> : null)}
+                  {owned ? <Text style={styles.relOwnedTag}>✓ 보유</Text> : (!isPremium ? <Text style={styles.relPriceTag}>{COMPAT_COINS} 운</Text> : null)}
                   {on ? <Text style={styles.pickCheck}>✓</Text> : null}
                 </View>
               </PressableScale>
@@ -570,7 +576,7 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
         ))}
         {isPremium ? (
           <>
-            <Text style={styles.askQuota}>{freeLeft > 0 ? t('reading.askFree', { n: freeLeft }) : t('reading.askPaid', { price: formatKrw(creditPrice('followup')) })}</Text>
+            <Text style={styles.askQuota}>{freeLeft > 0 ? t('reading.askFree', { n: freeLeft }) : t('reading.askPaid', { price: `${coinPriceOf('followup') ?? 0} 운` })}</Text>
             <View style={styles.askRow}>
               {/* singleline — 50자 제한이라 한 줄로 충분, iOS/Android 모두 텍스트가 칸 세로중앙 자동정렬(daniel: y축 한가운데) */}
               <TextInput style={styles.askInput} value={askInput} onChangeText={setAskInput} placeholder={t('reading.askPh')} placeholderTextColor={colors.inkFaint} maxLength={50} editable={!asking} returnKeyType="send" onSubmitEditing={() => submitFollowup()} />

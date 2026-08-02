@@ -193,6 +193,32 @@ console.log("\n[S6] 화폐 단위 = '운'(코인 잔재 0 · 명리 용어 온�
 }
 
 // ── S7 유료 콘텐츠 게이트 전수(daniel 2026-07-30 "모든 컨텐츠 점검해") ─────────
+// ★S6b 추가(daniel 2026-08-02 스크린샷 "연애 같은 경우는 운으로 구매하는 게 없고 저렇게 되어있는데"):
+//   궁합 화면은 `ensureCoinsFor('compat')` 로 **운을 차감하고 있었는데**, 화면 문구만
+//   "확인 후 이용권 1회 또는 결제"·원화(₩) 태그로 07-28 이전 상태였다.
+//   게이트가 맞아도 **표시가 결제 수단과 다르면** 사용자는 무엇으로 사는지 알 수 없다 —
+//   유료 화면에서 그건 오해를 넘어 오인 유도다. S6 는 '코인' 잔재만 봐서 이걸 놓쳤다.
+console.log("\n[S6b] 운으로 여는 화면의 문구가 옛 화폐(이용권/원화)로 남아 있지 않다");
+{
+  const stale: string[] = [];
+  for (const f of files) {
+    const raw = readFileSync(f, 'utf8');
+    if (!/ensureCoinsFor\(/.test(strip(raw))) continue;          // 운으로 여는 화면만 대상
+    raw.split('\n').forEach((ln, i) => {
+      const tr = ln.trimStart();
+      if (tr.startsWith('//') || tr.startsWith('*')) return;      // 주석은 대상 아님
+      const head = ln.includes('//') ? ln.slice(0, ln.indexOf('//')) : ln;
+      // 사용자에게 보이는 자리(따옴표/백틱 안)에서 옛 화폐 표현
+      if (/['\`][^'\`]*(이용권|결제가 필요|결제돼요)[^'\`]*['\`]/.test(head)
+          || /formatKrw\(\s*creditPrice\(/.test(head)) {
+        stale.push(`${f.replace(ROOT, '')}:${i + 1}  ${head.trim().slice(0, 88)}`);
+      }
+    });
+  }
+  if (stale.length) { stale.forEach((x) => bad(`옛 화폐 문구: ${x}`)); }
+  else ok('운 게이트 화면의 문구가 전부 운 기준');
+}
+
 // ★실사고: 07-28 코인 전환에서 **전용 화면 5개가 누락**됐다(love·gaeun·career·newyear·lifegraph).
 //   그 화면들은 구 쿠폰 잔여가 0 이면 Alert 만 띄우고 끝냈다 — 프리미엄 폐지·관리자 개방 폐지 이후
 //   **운을 아무리 많이 들고 있어도 열 수 없는 상태**였다(마켓 '열기' → 같은 화면 → "쿠폰 필요" 무한).

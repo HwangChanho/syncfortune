@@ -121,7 +121,7 @@ export default function TimeResolveScreen() {
       // 보유 크레딧 차감(쿠폰/선물/이전 구매분) → 영구 해제
       if (await useCredit('timeresolve')) { await markUnlocked(TPR_UNLOCK, 'timeresolve'); setUnlocked(true); compute(); return; }
       // 미보유 → 바로 구매 / 마켓 / 취소
-      Alert.alert(t('timeResolve.title', '태어난 시 찾기'), t('special.needPayMsg', '이용권이 필요해요. 바로 구매하거나 마켓에서 받을 수 있어요.'), [
+      Alert.alert(t('timeResolve.title', '태어난 시 찾기'), t('special.needPayMsg', '운이 필요해요. 지금 운으로 열거나, 마켓에서 충전할 수 있어요.'), [
         { text: t('special.buyNow', '바로 구매'), onPress: async () => {
             if (!purchasesEnabled()) { Alert.alert(t('timeResolve.title', '태어난 시 찾기'), t('market.payPending', '결제 준비 중이에요. 쿠폰을 이용하거나 잠시 후 다시 시도해 주세요.')); return; }
             try {

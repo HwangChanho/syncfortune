@@ -433,7 +433,7 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
   // 구매 유도 — 서버 게이트(Edge)가 needPayment 를 반환했을 때만 호출(클라 차감 없음).
   //   바로 구매: 결제 → 웹훅 적립 폴링(C1) → 재생성(Edge 가 1회 차감) / 또는 마켓 이동. id = 재생성 대상 명식.
   function promptPurchase(id?: string, refresh = false) {
-    Alert.alert(title, t('special.needPayMsg', '이용권이 필요해요. 바로 구매하거나 마켓에서 받을 수 있어요.'), [
+    Alert.alert(title, t('special.needPayMsg', '운이 필요해요. 지금 운으로 열거나, 마켓에서 충전할 수 있어요.'), [
       { text: t('coins.spend', '운 사용'), onPress: async () => {
           // ★코인 단일 경로(daniel 2026-07-28 "기존 단건 결제는 다 없애") — 스토어 결제 왕복 제거.
           //   차감은 서버(Edge)가 생성 직전에 한다. 부족하면 충전 화면으로 보낸다.
@@ -590,7 +590,7 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
           </PressableScale>
           {!owned ? (
             <>
-              <Text style={[styles.gateNote, dynStyles.gateNote]}>{t('special.unlockHint', '이용권 구매 또는 쿠폰으로 열려요')}</Text>
+              <Text style={[styles.gateNote, dynStyles.gateNote]}>{t('special.unlockHint', '운으로 열려요')}</Text>
               {/* 상점 이동 버튼(daniel 07-07): 쿠폰 없을 때 마켓으로 바로 이동 — 안내만 있고 버튼 없던 것 보완.
                   ★2026-07-27: `focus=kind` 를 실어 **그 상품 카드까지 스크롤·강조**(daniel "바로 그거 구매 위치로 이동돼야 해").
                   이전엔 마켓 최상단으로만 가서 35개 목록에서 다시 찾아야 했다(주제 필터가 걸려 있으면 더 어려움). */}

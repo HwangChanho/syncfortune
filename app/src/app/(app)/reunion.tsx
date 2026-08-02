@@ -124,14 +124,14 @@ export default function ReunionRoute() {
       // 보유 이용권 있으면 재구매 없이 그걸로(재생성 시 Edge 가 차감) — 이중구매 방지.
       const credits = await loadCredits();
       if ((credits['reunion'] ?? 0) >= 1) {
-        Alert.alert(t('reunion.title', '재회운'), t('reunion.changeConfirmCredit', '가진 재회운 이용권 1개로 상대를 바꿔 새로 풀어요. 바꾸시겠어요?'), [
+        Alert.alert(t('reunion.title', '재회운'), t('reunion.changeConfirmCredit', '가진 재회운 1회분으로 상대를 바꿔 새로 풀어요. 바꾸시겠어요?'), [
           { text: t('common.cancel', '취소'), style: 'cancel' },
           { text: t('reunion.changeGo', '바꾸기'), onPress: openChangeRegister },
         ]);
         return;
       }
       // 이용권 없음 → 구매(영수증 검증 웹훅 적립 대기) 후 잠금 해제·재등록.
-      Alert.alert(t('reunion.title', '재회운'), t('reunion.changeConfirmBuy', '상대를 바꾸려면 새로 풀어야 하고, 재회운 이용권이 필요해요. 구매하고 바꿀까요?'), [
+      Alert.alert(t('reunion.title', '재회운'), t('reunion.changeConfirmBuy', '상대를 바꾸려면 새로 풀어야 하고, 운이 필요해요. 진행할까요?'), [
         { text: t('common.cancel', '취소'), style: 'cancel' },
         { text: t('reunion.changeBuy', '구매하고 바꾸기'), onPress: async () => {
             if (!purchasesEnabled()) { Alert.alert(t('reunion.title', '재회운'), t('market.payPending', '결제 준비 중이에요. 쿠폰을 이용하거나 잠시 후 다시 시도해 주세요.')); return; }

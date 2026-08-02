@@ -120,13 +120,13 @@ export default function DreamScreen() {
 
   // 꿈해몽 5회 번들 구매 제안 — Apple IAP 최저가(₩1,200)=5회. 구매 성공 → 5 적립 → 1 차감 → 진행(daniel).
   function promptBuyDream(text: string) {
-    if (!purchasesEnabled()) { Alert.alert(t('dream.aiTitle', 'AI 꿈해몽'), t('dream.needCredit', '꿈해몽 이용권이 필요해요. 설정에서 쿠폰을 등록하거나 잠시 후 다시 시도해 주세요.')); return; }
+    if (!purchasesEnabled()) { Alert.alert(t('dream.aiTitle', 'AI 꿈해몽'), t('dream.needCredit', '지금은 열 수 없어요. 잠시 후 다시 시도해 주세요.')); return; }
     Alert.alert(
       t('dream.aiTitle', 'AI 꿈해몽'),
-      t('dream.buyBundle', '꿈해몽 5회 이용권을 구매할까요? (₩1,200)'),
+      t('dream.buyBundle', '꿈해몽을 5 운으로 볼까요?'),
       [
         { text: t('common.cancel', '취소'), style: 'cancel' },
-        { text: t('dream.buy5', '5회 구매'), onPress: async () => {
+        { text: t('dream.buy5', '운 사용'), onPress: async () => {
           try {
             const g = await ensureCoinsFor('dream', { title: t('dream.title', 'AI 꿈해몽'), t, goCharge: () => router.push('/coins') });
             if (g !== 'ok') return;   // ★운 전환(daniel 2026-07-28)

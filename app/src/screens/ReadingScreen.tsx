@@ -48,7 +48,6 @@ import { appLang } from '../lib/i18n'; // 통변 출력 언어(앱 언어)
 import { readingFromInvoke } from '../lib/backend/interpretResult'; // 방어: Edge 응답 정규화(일시적 불가·결제필요·오류)
 import { acquireGen, releaseGen } from '../lib/backend/genLock'; // 생성 중복 잠금(크로스마운트 공유·150초 stale-timeout) — daniel 07-16: 자체 Set 폐기, 다른 유료 화면과 통일(락 누수로 사주·자미 먹통 방지)
 import { PALACE_DESC } from '../lib/content/palaceDesc'; // 자미두수 궁 설명(궁 옆 표시)
-import { creditPrice, formatKrw } from '../lib/billing/coupons'; // 크레딧 보유확인(UX) + 결제 후 웹훅 반영 폴링 + 실가 주입(하드코딩 가격 근절·daniel 2026-07-12)
 import { confirmReadingChart, autoGenWithChartConfirm } from '../lib/ui/confirmChart'; // 생성 전 명식 확인(수동=항상 / 자동=명식 2개+ 일 때, daniel 07-13)
 import { loadCreditsOrNull } from '../lib/billing/coupons';
 import { coinPriceOf, coinBalanceOrNull } from '../lib/billing/coins';   // ★운 전환(daniel 07-28)   // ★'없음' vs '확인 불가' 구분(재결제 방지)
@@ -648,7 +647,7 @@ export function ReadingScreen({
     ? t('reading.bannerPremium')
     : (unlocked || isPremiumForChart(chartId))
       ? t('reading.bannerUnlocked', '✨ 결제 완료 — 전체 풀이를 생성해요')
-      : t('reading.bannerPerUse', { price: formatKrw(creditPrice(kind === 'ziwei' ? 'ziwei' : 'reading')) }); // 실가 주입(사주 19,900·자미 14,900)
+      : t('reading.bannerPerUse', { price: `${coinPriceOf(kind === 'ziwei' ? 'ziwei' : 'reading') ?? 0} 운` }); // 실가 주입(사주 19,900·자미 14,900)
   const haveAll = cats.every((cat) => readings[cat.key]);
   // 명식별 프리미엄(#1): 이 명식이 프리미엄 지정이거나 결제 언락돼야 '전부 보기'. 아니면(무료모드·비지정 명식) 캐시가 있어도 페이월.
   const entitled = computeEntitled(isPremium, isPremiumForChart(chartId), unlocked); // 권한=전역프리미엄/이명식지정/결제언락(readingGate·테스트됨)
@@ -751,7 +750,7 @@ export function ReadingScreen({
         {isPremium ? (
           <>
             <Text style={styles.askQuota}>
-              {freeLeft > 0 ? t('reading.askFree', { n: freeLeft }) : t('reading.askPaid', { price: formatKrw(creditPrice('followup')) })}
+              {freeLeft > 0 ? t('reading.askFree', { n: freeLeft }) : t('reading.askPaid', { price: `${coinPriceOf('followup') ?? 0} 운` })}
             </Text>
             <View style={styles.askRow}>
               <TextInput
