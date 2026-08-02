@@ -15,7 +15,7 @@ import { useAuth } from '../../lib/useAuth';
 import { getPost, listComments, addComment, toggleLike, likedPostIds, reportContent, blockUser, deletePost, deleteComment,
   type CommunityPost, type CommunityComment } from '../../lib/backend/community';
 import { withTimeout } from '../../lib/core/withTimeout'; // ★잠금 구간 네트워크 상한(멈춤 방지)
-import { colors, radius, space, shadow, font } from '../../lib/theme';
+import { colors, radius, space, font } from '../../lib/theme';
 
 export default function CommunityPostScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();

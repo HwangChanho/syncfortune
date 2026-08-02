@@ -17,7 +17,6 @@
 // 로그인 게이트 없음(ADR-037).
 // ─────────────────────────────────────────────────────────────────────────
 import { View, Text, ScrollView, StyleSheet, Animated, AppState, Dimensions, Modal, Pressable } from 'react-native';
-import { A } from '../../lib/ui/remoteAsset'; // ★이미지 원격화(daniel 08-01) — 번들에서 걷어내고 Storage 에서 받는다
 import { useSafeAreaInsets } from 'react-native-safe-area-context'; // ★상단 안전영역 — 고정 여백은 글자확대 시 잘린다(daniel 07-27)
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -29,18 +28,8 @@ import { excludeMock } from '../../lib/core/testMode'; // ★홈 배너 daily �
 import { SelfUnderstandingHero } from '../../components/SelfUnderstandingHero'; // ★4.3: 홈 최상단 자기이해 히어로(성향분석 첫 경험)
 import { PersonaTypeHero } from '../../components/PersonaTypeHero'; // ★홈 주인공 ①: 성격유형 120종(daniel 07-18 IA 개편)
 import { CoinBadge } from '../../components/CoinBadge';   // ★운 잔액 배지(daniel 07-28)
-import { HomeImageCard } from '../../components/HomeImageCard'; // ★홈 = 이미지 카드(daniel 07-27 "이미지 위주로")
 
-// 홈 블록 이미지 — 전용 에셋이 없는 블록(바이오리듬·모먼트)은 결이 가장 가까운 것을 임시로 쓴다.
-//   ⚠️전용 이미지 생성은 별도 작업(현재 카드 이미지 리롤 진행 중) — 확정되면 여기만 바꾸면 된다.
-const IMG = {
-  persona: A('icons/persona.jpg'),
-  self: A('icons/selfAnalysis.jpg'),
-  bio: A('icons/biorhythm.jpg'),      // 전용(2026-07-27 생성 — 세 파동)
-  luck: A('icons/luck.jpg'),
-  moment: A('icons/moment.jpg'),      // 전용(2026-07-27 생성 — 길 위의 표식)
-  relation: A('icons/compat.jpg'),
-};
+// 홈 블록 이미지 상수(IMG)는 홈이 정보 카드로 바뀌며(2026-08-01) 소비처가 사라져 제거했다.
 import { HouseAdBanner } from '../../components/HouseAdBanner'; // 홈 상단 내부 프로모 배너(하우스 광고·daniel 07-24)
 import { BiorhythmCard } from '../../components/BiorhythmCard'; // 홈 블록: 바이오리듬(07-21 코드큐·온디바이스·부가 재미·API 0)
 import { LuckyTodayCard } from '../../components/LuckyTodayCard'; // 홈 블록: 오늘의 행운(07-22 코드큐·온디바이스·luckyItem 재사용·API 0)
@@ -61,7 +50,6 @@ import { computeChart } from '../../lib/engine/engine'; // ★canonical 명식 �
 import type { Stem, Branch } from '@spec/chart';
 import { colors, radius, space, shadow, font } from '../../lib/theme';
 import { useFontScale } from '../../lib/ui/fontScale';
-import { BusyOverlay } from '../../components/BusyOverlay'; // 로그아웃 등 긴 콜백 로딩
 import { PressableScale } from '../../components/PressableScale';
 import { appLang } from '../../lib/i18n';
 import { useHomeOrder, type HomeBlockKey } from '../../lib/ui/homeOrder'; // 홈 블록 배치 순서(계정별 저장·daniel 07-19)
@@ -115,7 +103,6 @@ export default function Home() {
   const [energies, setEnergies] = useState<(DailyEnergy | null)[]>([null, null]);
   const [hasChart, setHasChart] = useState<boolean>(true); // H1(daniel): 대표 명식 유무 — 없으면 오늘/내일 배너를 '명식 등록 안내'로(탭→등록)
   const [reloadKey, setReloadKey] = useState(0); // 명식 변경(전환·수정) 감지 — 포커스마다 오늘의 기운 재계산(daniel: 명식 수정 시 id 동일이라 갱신 안 되던 버그)
-  const [loggingOut, setLoggingOut] = useState(false); // 로그아웃 콜백 동안 오버레이
   const [editOpen, setEditOpen] = useState(false); // 홈 배치 편집 모달(daniel 07-21 '편집 모드')
   const [quickOpen, setQuickOpen] = useState(false); // 🧭 바로가기 메뉴(만세력·AI코치 분기 — daniel 2026-07-25 J)
 
@@ -211,12 +198,6 @@ export default function Home() {
       if (rep) prewarmDaily(rep, session);    // H2(daniel): 오늘·내일 정확한 운세(LLM) 미리 생성 → /today 즉시(프리미엄만, 구독이 비용 커버)
     })();
   }, [session, isPremium]);
-
-  async function doLogout() {
-    setLoggingOut(true);
-    try { await supabase.auth.signOut(); }
-    finally { setLoggingOut(false); }
-  }
 
   // ── 홈 블록 하나를 렌더 — order 의 각 키 → 해당 컴포넌트/배너. (드래그 재정렬 renderItem 에서 호출) ──
   //   key 는 DraggableFlatList(keyExtractor)·renderItem 래퍼가 담당하므로 여기선 붙이지 않는다.
@@ -437,7 +418,6 @@ export default function Home() {
           showsVerticalScrollIndicator={false}
         />
       </Animated.View>
-      <BusyOverlay visible={loggingOut} message={t('common.loggingOut')} />
       <HomeOrderEditModal visible={editOpen} onClose={() => setEditOpen(false)} />
       {/* 🧭 바로가기 메뉴(daniel 2026-07-25 J) — 만세력·AI 코치를 홈 블록에서 빼고 여기서 분기 진입. 배경 탭=닫힘(모달·리스트내 absolute 금지). */}
       <Modal visible={quickOpen} transparent animationType="fade" onRequestClose={() => setQuickOpen(false)}>

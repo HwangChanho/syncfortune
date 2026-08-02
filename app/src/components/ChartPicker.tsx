@@ -15,7 +15,6 @@ import { Alert } from '../lib/ui/alert'; // 커스텀 알림(삭제 확인)
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { listCharts, setRepresentative, getRepresentativeId, deleteChart, reorderCharts, subscribeRepChange, type SavedChart } from '../lib/engine/myChart';
-import { useSubscription } from '../lib/billing/subscription';
 import { getPremiumChartIdSnapshot, subscribePremium } from '../lib/billing/premiumStore'; // 프리미엄 지정 명식(왕관·삭제경고, daniel 07-01)
 import { useFontScale } from '../lib/ui/fontScale'; // 명식 헤더 글자크기 반영(daniel)
 import { computeChart } from '../lib/engine/engine'; // 각 명식 일주 산출(엠블럼)
@@ -61,7 +60,6 @@ let warmedOnce = false;
 export function ChartPicker({ onChange }: { onChange?: () => void }) {
   const { t } = useTranslation();
   const router = useRouter();
-  const { isPremium } = useSubscription(); // 프로 = 무제한(사용량 배지 숨김)
   const { fs } = useFontScale();
   const EMB = embSize(fs);   // 엠블럼 지름 — 글자 배율 연동(행 높이와 어긋나지 않게)           // 명식 헤더 글자크기(설정 반영)
   const [charts, setCharts] = useState<SavedChart[]>([]);

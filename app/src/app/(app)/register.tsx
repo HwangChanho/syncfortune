@@ -14,15 +14,12 @@ import { useTranslation } from 'react-i18next';
 import { ChartRegisterScreen } from '../../screens/ChartRegisterScreen';
 import { addChart, saveMyChart, ChartLimitError, setRepresentative, updateChart, listCharts, type SavedChart } from '../../lib/engine/myChart';
 import { useSubscription } from '../../lib/billing/subscription';
-import { useAuth } from '../../lib/useAuth';
-import { requireLoginForPurchase } from '../../lib/billing/requireLogin'; // 구매 전 로그인 게이트(계정 귀속)
 import { showRewardedAd } from '../../lib/core/ads'; // 보상형 광고 → 한도 1건 우회
 import { colors } from '../../lib/theme';
 
 export default function RegisterRoute() {
   const router = useRouter();
   const { t } = useTranslation();
-  const { session } = useAuth();
   const { isPremium } = useSubscription(); // 프로 = 무제한 등록
   // editId = 편집모드(명식 수정). preDate/preCal/preSex = **가볍게 보기**(/light)에서 넘어온 값 prefill —
   //   거기서 이미 받은 걸 또 묻는 순간이 이탈 지점이라 그대로 옮겨 담는다(docs/PLAN_light_mode.md L1).

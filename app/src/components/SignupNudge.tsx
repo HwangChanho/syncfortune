@@ -30,7 +30,7 @@ const SEEN_KEY = 'signup_nudge_day_v1';   // 마지막으로 보여 준 날짜(Y
 export function SignupNudge() {
   const { isRegistered } = useAuth();
   const { t } = useTranslation();
-  const { fs, ls } = useFontScale();
+  const { fs } = useFontScale();
   const router = useRouter();
   const [show, setShow] = useState(false);
 

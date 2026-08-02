@@ -16,7 +16,7 @@ import { ChartPicker } from '../components/ChartPicker'; // 대표명식(나) �
 import { listCharts, addChart, getRepresentativeId, loadRepChart, ChartLimitError, type SavedChart } from '../lib/engine/myChart';
 import { useSubscription } from '../lib/billing/subscription';
 import { ChartRegisterScreen } from './ChartRegisterScreen';
-import { analyzeSokgunghap, SOK_TIERS, type SokResult } from '../lib/content/sokgunghap';
+import { analyzeSokgunghap, type SokResult } from '../lib/content/sokgunghap';
 import { sokgunghapReading } from '../lib/content/sokgunghapReadings';
 import { appLang } from '../lib/i18n';
 import { useLogContentVisit } from '../lib/backend/contentVisit';

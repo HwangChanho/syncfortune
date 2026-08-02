@@ -8,7 +8,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { Image as ExpoImage } from 'expo-image'; // ★뷰 크기 다운샘플 + 디스크 캐시(RN Image 는 원본 풀 디코딩 — 갤럭시 랙 원인)
 import { A } from '../../lib/ui/remoteAsset'; // ★이미지 원격화(daniel 08-01) — 번들에서 걷어내고 Storage 에서 받는다
-import { View, Text, Pressable, ScrollView, Image, StyleSheet, ImageBackground, Modal, Animated, Easing } from 'react-native';
+import { View, Text, Pressable, ScrollView, StyleSheet, ImageBackground, Modal, Animated, Easing } from 'react-native';
 import { PressableScale } from '../../components/PressableScale';
 import { RelatedContent } from '../../components/RelatedContent';
 import { useFontScale } from '../../lib/ui/fontScale';
@@ -20,7 +20,7 @@ import {
 } from '../../lib/tarot';
 import { loadTodayTaro, saveTodayTaro } from '../../lib/content/tarotStore';
 import { playSound } from '../../lib/ui/sounds';
-import { colors, radius, space, shadow, font, gradients } from '../../lib/theme';
+import { colors, radius, space, font } from '../../lib/theme';
 import { GlassCard } from '../../components/GlassCard';
 import { useLogContentVisit } from '../../lib/backend/contentVisit'; // 콘텐츠 방문 집계(daniel 2026-07-06) — 진입 1회 기록
 
@@ -58,7 +58,7 @@ export default function TaroScreen() {
   const flips = useRef<Record<number, Animated.Value>>({}).current;
   const flipped = useRef<Set<number>>(new Set()).current;
   const today = todayStr();
-  const { fs, ls } = useFontScale();
+  const { fs } = useFontScale();
   const styles = useMemo(() => makeStyles(fs), [fs]);
 
   // 주제 선택: 그 주제의 오늘 결과가 있으면 복원(고정), 없으면 새로 섞는다.

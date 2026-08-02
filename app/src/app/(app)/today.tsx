@@ -18,7 +18,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { A } from '../../lib/ui/remoteAsset'; // ★이미지 원격화(daniel 08-01) — 번들에서 걷어내고 Storage 에서 받는다
 import { Reveal } from '../../components/Reveal'; // 분야 전환 시 풀이 크로스페이드(daniel 재미)
-import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
 import { PressableScale } from '../../components/PressableScale';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -52,7 +52,7 @@ import { useLogContentVisit } from '../../lib/backend/contentVisit'; // 콘텐�
 export default function TodayScreen() {
   useLogContentVisit('daily'); // 진입 1회 방문 기록(daniel 2026-07-06)
   const { t } = useTranslation();
-  const { fs, ls } = useFontScale();
+  const { fs } = useFontScale();
   const router = useRouter();
   const { session } = useAuth();
   const { isPremium } = useSubscription();
@@ -60,12 +60,12 @@ export default function TodayScreen() {
   const [dayOffset, setDayOffset] = useState(params.offset === '1' ? 1 : 0); // 0=오늘·1=내일
   const f = useMemo(() => getDailyFortune(dayOffset), [dayOffset]);
   const [saved, setSaved] = useState<SavedChart | null>(null);
-  const [chartId, setChartId] = useState<string | null>(null);
+  const [, setChartId] = useState<string | null>(null);
   const [reading, setReading] = useState<Record<string, string> | null>(null); // 5분야 LLM 결과
   const [area, setArea] = useState<DailyAreaKey>('general');
   const [busy, setBusy] = useState(false);
   const [loaded, setLoaded] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
+  const [, setErr] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0); // ChartPicker 로 명식(대표) 전환 시 재로드 트리거
 
   const stem = f.dayGanZhi[0] as Stem;

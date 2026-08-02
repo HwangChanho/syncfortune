@@ -8,7 +8,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useMemo, useState, useRef } from 'react';
 import { A } from '../../lib/ui/remoteAsset'; // ★이미지 원격화(daniel 08-01) — 번들에서 걷어내고 Storage 에서 받는다
-import { View, Text, ScrollView, Pressable, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, ActivityIndicator, StyleSheet } from 'react-native';
 import { PressableScale } from '../../components/PressableScale';
 import { RelatedContent } from '../../components/RelatedContent';
 import { ExpiryNote } from '../../components/ExpiryNote'; // 보유 만료일 공통(프리미엄 가드 한 곳)
@@ -21,10 +21,7 @@ import { computeChart } from '../../lib/engine/engine';
 import { samjaeStatus } from '../../lib/engine/samjae';
 import { useAuth } from '../../lib/useAuth';
 import { useSubscription } from '../../lib/billing/subscription';
-import { Alert } from '../../lib/ui/alert';
 import { ensureCoinsFor } from '../../lib/billing/coinGate';   // ★운 단일 경로(daniel 07-28 · 이 화면은 07-30 에 누락 발견)
-import { loadCredits } from '../../lib/billing/coupons';
-import { isAdminActing } from '../../lib/core/admin'; // 스페셜 = 관리자 바로 / 그 외 쿠폰(크레딧)만
 import { requireLoginForPurchase } from '../../lib/billing/requireLogin';
 import { confirmReadingChart } from '../../lib/ui/confirmChart'; // 생성 전 명식 확인 + 보유 이용권 안내(daniel)
 import { supabase } from '../../lib/supabase';

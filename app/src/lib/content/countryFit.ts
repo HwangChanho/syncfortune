@@ -5,7 +5,7 @@
 // ⚠️ '이주 권유'가 아니라 *기운 보완 관점의 재미 안내*(법률·이민 조언 아님). ★국가 매핑 stance = daniel 검수 슬롯.
 // 무료(온디바이스·API 0) — 조후·오행은 만세력 엔진 산출값 사용.
 // ─────────────────────────────────────────────────────────────────────────
-import { johuSkew, eumYangSkew } from '../engine/ohaeng';
+import { johuSkew } from '../engine/ohaeng';
 
 export type CountryRec = { name: string; flag: string; reason: string };
 export type CountryFit = {
@@ -35,7 +35,6 @@ const MILD = [ // 중화 — 사계절 온화
 export function countryFit(saju: any, sex?: string): CountryFit {
   const P = saju?.pillars ?? {};
   const jh = johuSkew(P);
-  const ey = eumYangSkew(P, sex);
   if (jh.skew === '더움 쏠림') {
     return {
       johu: jh.skew, warm: jh.warm, cold: jh.cold,

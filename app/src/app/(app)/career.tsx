@@ -7,12 +7,11 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useMemo, useState, useRef } from 'react';
 import { A } from '../../lib/ui/remoteAsset'; // ★이미지 원격화(daniel 08-01) — 번들에서 걷어내고 Storage 에서 받는다
-import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
 import { PressableScale } from '../../components/PressableScale';
 import { RelatedContent } from '../../components/RelatedContent';
 import { ExpiryNote } from '../../components/ExpiryNote'; // 보유 만료일 공통(프리미엄 가드 한 곳)
 import { Image as ExpoImage } from 'expo-image'; // 콘텐츠 이미지 — 자동 다운샘플·디스크캐시(랙 방지·타 콘텐츠와 통일, daniel)
-import { Alert } from '../../lib/ui/alert';
 import { useTranslation } from 'react-i18next';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { computeChart } from '../../lib/engine/engine';
@@ -23,8 +22,6 @@ import { useFontScale } from '../../lib/ui/fontScale';
 import { useSubscription } from '../../lib/billing/subscription'; // 프리미엄=자동 생성(타 스페셜과 통일)
 import { autoGenWithChartConfirm } from '../../lib/ui/confirmChart'; // 자동생성 전 명식 확인(명식 2개+ 일 때, daniel 07-13)
 import { ensureCoinsFor } from '../../lib/billing/coinGate';   // ★운 단일 경로(daniel 07-28 · 이 화면은 07-30 에 누락 발견)
-import { loadCredits } from '../../lib/billing/coupons';
-import { isAdminActing } from '../../lib/core/admin'; // 스페셜 = 관리자 바로 진입 / 그 외 쿠폰(크레딧)만 unlock(결제 미연동)
 import { requireLoginForPurchase } from '../../lib/billing/requireLogin';
 import { assertOnline } from '../../lib/backend/network';
 import { supabase } from '../../lib/supabase';
@@ -74,7 +71,7 @@ export default function CareerScreen() {
   const router = useRouter();
   const { chartId: chartIdParam } = useLocalSearchParams<{ chartId?: string }>(); // ★M1 재진입 바인딩(배너/푸시 route 의 chartId)
   const { session } = useAuth();
-  const { fs, ls } = useFontScale();
+  const { fs } = useFontScale();
   const { isPremium } = useSubscription();
   const [savedChart, setSavedChart] = useState<SavedChart | null>(null);
   const [chartId, setChartId] = useState<string | null>(null);

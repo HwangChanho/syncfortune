@@ -6,7 +6,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useMemo, useState, useRef } from 'react';
 import { A } from '../../lib/ui/remoteAsset'; // ★이미지 원격화(daniel 08-01) — 번들에서 걷어내고 Storage 에서 받는다
-import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator, Animated } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, ActivityIndicator, Animated } from 'react-native';
 import { PressableScale } from '../../components/PressableScale';
 import { RelatedContent } from '../../components/RelatedContent';
 import { ExpiryNote } from '../../components/ExpiryNote'; // 보유 만료일 공통(프리미엄 가드 한 곳)
@@ -21,8 +21,6 @@ import { useAuth } from '../../lib/useAuth';
 import { useFontScale } from '../../lib/ui/fontScale';
 import { useSubscription } from '../../lib/billing/subscription'; // 프리미엄=자동 생성(타 스페셜과 통일)
 import { ensureCoinsFor } from '../../lib/billing/coinGate';   // ★운 단일 경로(daniel 07-28 · 이 화면은 07-30 에 누락 발견)
-import { loadCredits } from '../../lib/billing/coupons';
-import { isAdminActing } from '../../lib/core/admin'; // 스페셜 = 관리자 바로 진입 / 그 외 쿠폰(크레딧)만 unlock(결제 미연동)
 import { requireLoginForPurchase } from '../../lib/billing/requireLogin';
 import { confirmReadingChart } from '../../lib/ui/confirmChart'; // 생성 전 명식 확인 + 보유 이용권 안내(daniel)
 import { assertOnline } from '../../lib/backend/network';
@@ -89,7 +87,7 @@ export default function LoveScreen() {
   const router = useRouter();
   const { chartId: chartIdParam } = useLocalSearchParams<{ chartId?: string }>(); // ★M1 재진입 바인딩(배너/푸시 route 의 chartId)
   const { session } = useAuth();
-  const { fs, ls } = useFontScale();
+  const { fs } = useFontScale();
   const { isPremium } = useSubscription();
   const [savedChart, setSavedChart] = useState<SavedChart | null>(null);
   const [chartId, setChartId] = useState<string | null>(null);

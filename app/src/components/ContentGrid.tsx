@@ -24,7 +24,6 @@ import { excludeMock } from '../lib/core/testMode'; // ★풀이 배지(기존 �
 import { withTimeout } from '../lib/core/withTimeout';   // ★대기 상한(멈춤 방지)
 import { showRewardedAd, adTestMode } from '../lib/core/ads'; // 무료 온디바이스 콘텐츠 진입 보상형 광고
 import { isAdminActing } from '../lib/core/admin';                  // 관리자·프리미엄 = 무료 진입 광고 제외
-import { useSubscription } from '../lib/billing/subscription';
 import { useAdFree } from '../lib/billing/adFree'; // ★광고 제거(운 구매) — 폐지된 isPremium 을 대신하는 **살아 있는** 개념
 import { loadRepChart, subscribeRepChange } from '../lib/engine/myChart';
 import { isPremiumForChart } from '../lib/billing/premiumStore';  // 명식별 프리미엄('이용중' 표시)
@@ -84,7 +83,6 @@ export function ContentGrid({ showViewToggle = true }: { showViewToggle?: boolea
   const { t } = useTranslation();
   const { viewMode, setViewMode } = useHomeViewMode();
   const { session } = useAuth();
-  const { isPremium } = useSubscription();
   const adFree = useAdFree();   // ★광고 게이트 판정(아래 주석)
   const [admin, setAdmin] = useState(false);
   // ★신규 기능 노출 게이트 — 속궁합은 관리자(daniel) 또는 원격 플래그 ON 일 때만 노출(재제출 안전판).

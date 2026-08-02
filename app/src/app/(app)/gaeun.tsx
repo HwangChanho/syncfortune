@@ -4,13 +4,12 @@
 //   기존 풀이의 개운법은 '곁들임' → 여기선 개운법이 주인공(실천 중심). Edge kind='gaeun'. 건당 유료, 1회 생성→캐시(영구).
 //   career.tsx 게이트/생성 패턴 차용. 이미지(hero)는 배치 생성 후 연결(현재 텍스트 히어로).
 // ─────────────────────────────────────────────────────────────────────────
-import { useEffect, useMemo, useState, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { A } from '../../lib/ui/remoteAsset'; // ★이미지 원격화(daniel 08-01) — 번들에서 걷어내고 Storage 에서 받는다
-import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
 import { PressableScale } from '../../components/PressableScale';
 import { RelatedContent } from '../../components/RelatedContent';
 import { Image as ExpoImage } from 'expo-image';
-import { Alert } from '../../lib/ui/alert';
 import { useTranslation } from 'react-i18next';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { computeChart } from '../../lib/engine/engine';
@@ -21,8 +20,6 @@ import { useFontScale } from '../../lib/ui/fontScale';
 import { useSubscription } from '../../lib/billing/subscription';
 import { autoGenWithChartConfirm } from '../../lib/ui/confirmChart'; // 자동생성 전 명식 확인(명식 2개+ 일 때, daniel 07-13)
 import { ensureCoinsFor } from '../../lib/billing/coinGate';   // ★운 단일 경로(daniel 07-28 · 이 화면은 07-30 에 누락 발견)
-import { loadCredits } from '../../lib/billing/coupons';
-import { isAdminActing } from '../../lib/core/admin';
 import { requireLoginForPurchase } from '../../lib/billing/requireLogin';
 import { assertOnline } from '../../lib/backend/network';
 import { supabase } from '../../lib/supabase';
@@ -58,7 +55,7 @@ export default function GaeunScreen() {
   const router = useRouter();
   const { chartId: chartIdParam } = useLocalSearchParams<{ chartId?: string }>(); // ★M1 재진입 바인딩(배너/푸시 route 의 chartId)
   const { session } = useAuth();
-  const { fs, ls } = useFontScale();
+  const { fs } = useFontScale();
   const { isPremium } = useSubscription();
   const [savedChart, setSavedChart] = useState<SavedChart | null>(null);
   const [chartId, setChartId] = useState<string | null>(null);
@@ -66,7 +63,6 @@ export default function GaeunScreen() {
   const [busy, setBusy] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
-  const c = useMemo(() => (savedChart ? computeChart(savedChart.input) : null), [savedChart]);
   const gatingRef = useRef(false);
   const lastAppliedChartId = useRef<string | null>(null); // ★M1 적용한 chartId param 추적(재진입 중복 setRepresentative 방지·reading.tsx 38-43)
   const genSeq = useRef(0);        // ① 생성 세대 토큰 — 명식 전환/재로드 시 ++ 로 진행 중 gen 무효화(stale setReading 폐기)

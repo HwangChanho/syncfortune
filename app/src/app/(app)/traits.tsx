@@ -4,8 +4,8 @@
 //   격국·신강약·오행 강약을 간단 요약하고, 딥 분석은 프리미엄 풀이로 유도(건당).
 // ※ 텍스트 다국어는 추후(현재 한국어). 대표 명식 없으면 등록 유도.
 // ─────────────────────────────────────────────────────────────────────────
-import { useEffect, useState, useMemo } from 'react';
-import { View, Text, Pressable, ActivityIndicator, ScrollView, StyleSheet } from 'react-native';
+import { useState, useMemo } from 'react';
+import { View, Text, ActivityIndicator, ScrollView, StyleSheet } from 'react-native';
 import { PressableScale } from '../../components/PressableScale';
 import { DeepDiveCta } from '../../components/DeepDiveCta';   // 유도 CTA = 이미지 카드(daniel 07-29)
 import { useFontScale } from '../../lib/ui/fontScale';
@@ -33,7 +33,7 @@ export default function TraitsScreen() {
   }, []));
 
   const c = useMemo(() => (me ? computeChart(me) : null), [me]);
-  const { fs, ls } = useFontScale();                       // 글자 크기(설정)
+  const { fs } = useFontScale();                       // 글자 크기(설정)
   const styles = useMemo(() => makeStyles(fs), [fs]);  // fs 적용 — 모든 글자 스케일
 
   if (loading) return <View style={styles.center}><ActivityIndicator color={colors.ju} /></View>;

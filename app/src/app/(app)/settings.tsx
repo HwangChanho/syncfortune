@@ -4,7 +4,7 @@
 //   글자 크기는 즉시 반영(미리보기 문장으로 확인). 언어는 i18n.changeLanguage.
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useEffect, useCallback } from 'react';
-import { View, Text, Pressable, ScrollView, StyleSheet, Linking } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Linking } from 'react-native';
 import { PressableScale } from '../../components/PressableScale';
 import Constants from 'expo-constants'; // 앱 버전(app.json)
 import { Alert } from '../../lib/ui/alert'; // 커스텀 알림(앱 디자인)
@@ -17,10 +17,9 @@ import { isAdmin } from '../../lib/core/admin'; // 관리자 메뉴 노출 판�
 import { useAuth } from '../../lib/useAuth';               // 계정(세션)
 import { useSubscription } from '../../lib/billing/subscription';  // 프리미엄 상태·구매
 import { waitForPremium, markPremiumOwnedNow } from '../../lib/billing/premiumStore';   // 복원=서버 is_premium 확정(단일소스·07-07) + 웹훅 실패 시 영수증 검증분 낙관표시(#2)
-import { requireLoginForPurchase } from '../../lib/billing/requireLogin'; // 결제 전 로그인 게이트
 import { useCoinBalance } from '../../lib/billing/coins';   // ★운 잔액 — 공용 훅(표시 규칙 단일화)
 import { restorePurchasesRC } from '../../lib/billing/purchases';  // 구매 복원(App Store 3.1.1 필수)
-import { PREMIUM_PRICE, loadCredits } from '../../lib/billing/coupons';  // 프리미엄 폴백 가격(₩) + 이용권 잔여 재로딩(복원 후)
+import { loadCredits } from '../../lib/billing/coupons';  // 프리미엄 폴백 가격(₩) + 이용권 잔여 재로딩(복원 후)
 import { supabase } from '../../lib/supabase';             // 로그아웃
 import { BusyOverlay } from '../../components/BusyOverlay'; // 긴 콜백(로그아웃·삭제) 로딩 오버레이
 import { setAuthBusy } from '../../lib/ui/authBusy'; // 로그아웃 전환 전역 블로킹(먹통 방지)
@@ -41,9 +40,9 @@ export default function SettingsScreen() {
   const { t, i18n } = useTranslation();
   const router = useRouter();
   const { session, isRegistered } = useAuth();
-  const { isPremium, refresh } = useSubscription();
+  const { refresh } = useSubscription();
   const coins = useCoinBalance(session);   // 보유 운(null=미로그인·조회 실패). 표시 규칙은 훅 한 곳에.
-  const { scale, setScale, fs, ls } = useFontScale();
+  const { scale, setScale, fs } = useFontScale();
   const [busy, setBusy] = useState<string | null>(null); // 전체화면 로딩 오버레이 메시지(긴 콜백)
   const [admin, setAdmin] = useState(false); // 관리자 — 메뉴 노출용(실제 권한은 서버 RPC). 제어(비용분석·테스트/관리자모드)는 /admin 내부로 통합(daniel 07-01)
   const [accent, setAccentState] = useState<AccentMode>(getThemeAccent()); // ★테마 강조색(자동=일간 오행 / 오행 직접 / 골드)

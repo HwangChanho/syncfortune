@@ -24,7 +24,7 @@ import type { Stem, Branch } from '@spec/chart';
 
 export default function MomentScreen() {
   useLogContentVisit('moment');
-  const { fs, ls } = useFontScale();
+  const { fs } = useFontScale();
   const today = useMemo(() => getDailyFortune(0), []);
   const lucky = useMemo<LuckyToday | null>(() => { try { return luckyToday(); } catch { return null; } }, [today]);
   const [data, setData] = useState<DecisionToday | null>(null);

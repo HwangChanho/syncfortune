@@ -3,7 +3,7 @@
 // daniel: 운세보다 *특징·성격* 위주로 가볍게. 동물 종류 입력, 생년월일(시 옵션 — 모르면 시주 해석X).
 //   사람 명식과 분리 보관(petChart). 통변 = 온디바이스 템플릿(petTraits) → 무료·API 0.
 // ─────────────────────────────────────────────────────────────────────────
-import { useEffect, useMemo, useState, useCallback } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 import { A } from '../../lib/ui/remoteAsset'; // ★이미지 원격화(daniel 08-01) — 번들에서 걷어내고 Storage 에서 받는다
 import { View, Text, TextInput, Pressable, ScrollView, StyleSheet, Modal } from 'react-native';
 import { PressableScale } from '../../components/PressableScale';
@@ -24,7 +24,7 @@ import { useLogContentVisit } from '../../lib/backend/contentVisit'; // 콘텐�
 export default function PetScreen() {
   useLogContentVisit('pet'); // 진입 1회 방문 기록(daniel 2026-07-06)
   const { t } = useTranslation();
-  const { fs, ls } = useFontScale();
+  const { fs } = useFontScale();
   const [pets, setPets] = useState<SavedPet[]>([]);
   const [selId, setSelId] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);

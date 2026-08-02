@@ -11,7 +11,7 @@
 //   ⚠️ Edge invoke=프로덕션(개발 미배포=호출 실패=비용0·절대0). charts insert/readings select 는 직접 호출이라 개발에서도 동작.
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useMemo, useEffect, useRef, type ReactNode } from 'react';
-import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator, Modal, TextInput, Keyboard, KeyboardAvoidingView, Platform, AppState } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, ActivityIndicator, Modal, TextInput, Keyboard, KeyboardAvoidingView, Platform, AppState } from 'react-native';
 import { Image as ExpoImage } from 'expo-image'; // 추천 콘텐츠 썸네일(다운샘플·디스크캐시)
 import { SECTIONS } from '../lib/content/contentSections'; // 추천 '이런 콘텐츠도 좋아하실 거예요'(하단·daniel 07-21) — 콘텐츠 단일출처
 import { PressableScale } from '../components/PressableScale';
@@ -41,15 +41,14 @@ import { computeEntitled, computeLocked, showUnlockOverlay, computeShouldAutoGen
 import { useSubscription } from '../lib/billing/subscription';
 import { runContentRenewal } from '../lib/billing/renewal'; // 운세형 1년 경과 → 재통변 할인 구매 후 재생성(daniel 07-08 통일모델)
 import { needsContentRenewal } from '../lib/billing/repurchase'; // 운세형 1년 경과 판정(재통변 버튼 노출)
-import { setServerChartId, getRepresentativeId, type SavedChart } from '../lib/engine/myChart';
+import { getRepresentativeId, type SavedChart } from '../lib/engine/myChart';
 import { loadFollowups, askFollowup, type Followup } from '../lib/backend/followups';
 import { useFontScale } from '../lib/ui/fontScale';
 import { appLang } from '../lib/i18n'; // 통변 출력 언어(앱 언어)
 import { readingFromInvoke } from '../lib/backend/interpretResult'; // 방어: Edge 응답 정규화(일시적 불가·결제필요·오류)
 import { acquireGen, releaseGen } from '../lib/backend/genLock'; // 생성 중복 잠금(크로스마운트 공유·150초 stale-timeout) — daniel 07-16: 자체 Set 폐기, 다른 유료 화면과 통일(락 누수로 사주·자미 먹통 방지)
 import { PALACE_DESC } from '../lib/content/palaceDesc'; // 자미두수 궁 설명(궁 옆 표시)
-import { shareReading } from '../lib/ui/share'; // 이슈17: 풀이 결과 공유(앱 설치자만 열람)
-import { loadCredits, creditPrice, formatKrw } from '../lib/billing/coupons'; // 크레딧 보유확인(UX) + 결제 후 웹훅 반영 폴링 + 실가 주입(하드코딩 가격 근절·daniel 2026-07-12)
+import { creditPrice, formatKrw } from '../lib/billing/coupons'; // 크레딧 보유확인(UX) + 결제 후 웹훅 반영 폴링 + 실가 주입(하드코딩 가격 근절·daniel 2026-07-12)
 import { confirmReadingChart, autoGenWithChartConfirm } from '../lib/ui/confirmChart'; // 생성 전 명식 확인(수동=항상 / 자동=명식 2개+ 일 때, daniel 07-13)
 import { loadCreditsOrNull } from '../lib/billing/coupons';
 import { coinPriceOf, coinBalanceOrNull } from '../lib/billing/coins';   // ★운 전환(daniel 07-28)   // ★'없음' vs '확인 불가' 구분(재결제 방지)
@@ -58,7 +57,7 @@ import { assertOnline, isOnline, notifyNetworkError } from '../lib/backend/netwo
 import { logEvent } from '../lib/backend/logger';   // 자동 복구 시도 기록(사고 재구성용)
 import { promptSignupOnReadingEnter } from '../lib/ui/signupPrompt'; // ★유료 풀이 진입 시 계정 연결 안내(daniel 07-27)
 import { colors, radius, space, shadow, font } from '../lib/theme';
-import type { ChartInput, CategoryKey } from '@spec/chart';
+import type { ChartInput } from '@spec/chart';
 
 // 풀이 항목 = { key(=캐시 category·Edge 요청 키), label(표시명), desc(부가 설명 — 자미두수 궁이 뭘 보는지) }
 export type ReadingCategory = { key: string; label: string; desc?: string };

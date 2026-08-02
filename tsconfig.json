@@ -11,7 +11,11 @@
     "resolveJsonModule": true,
     "forceConsistentCasingInFileNames": true,
     "types": ["node"],
-    "noEmit": true
+    "noEmit": true,
+    // ★미사용 import·지역변수를 **컴파일러가** 잡는다(daniel 2026-08-02 "noUnusedLocals 켜서 진행해").
+    //   왜 컴파일러인가: 정규식 코드모드로 지우려다 헤더를 덮어써 58개 파일을 망가뜨렸다.
+    //   무엇이 쓰이는지는 타입 시스템만이 정확히 안다 — 판정도 수정 검증도 tsc 에 맡긴다.
+    "noUnusedLocals": true
   },
   "include": ["engine/**/*", "interpretation/**/*", "security/**/*", "spec/**/*"],
   "exclude": ["node_modules"]

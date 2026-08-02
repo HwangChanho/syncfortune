@@ -5,7 +5,7 @@
 //   다시 누르면 정지. 화면 벗어나면(언마운트) 자동 정지.
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useEffect, useRef } from 'react';
-import { View, Pressable, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { PressableScale } from './PressableScale';
 import * as Speech from 'expo-speech';
 import { appLang } from '../lib/i18n';

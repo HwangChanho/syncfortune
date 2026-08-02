@@ -3,7 +3,7 @@
 // 저장된 내 차트(self) 로드 → MyeongsikScreen 재사용. 없으면 등록 유도. (추후 N명 목록 확장)
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useState, useMemo } from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { PressableScale } from '../../components/PressableScale';
 import { useFontScale } from '../../lib/ui/fontScale';
 import { useRouter } from 'expo-router';

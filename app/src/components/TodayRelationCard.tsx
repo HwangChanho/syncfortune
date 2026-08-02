@@ -32,7 +32,7 @@ const ALL = '전체';
 /** 홈 블록. reloadKey = 대표 명식 전환/포커스 시 재산출, dateKey = 자정 넘어가면 갱신. */
 export function TodayRelationCard({ reloadKey, dateKey }: { reloadKey?: number; dateKey?: string }) {
   const router = useRouter();
-  const { fs, ls } = useFontScale();
+  const { fs } = useFontScale();
   const [others, setOthers] = useState<SavedChart[]>([]);
   const [cat, setCat] = useState<string>(ALL);   // 카테고리 필터(daniel 07-20) — ALL=전체
   const [idx, setIdx] = useState(0);              // 필터된 목록 안의 선택 인덱스

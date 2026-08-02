@@ -75,9 +75,14 @@ function gateOf(kind: string): string {
   for (const [f, s] of srcOf) {
     if (new RegExp(`ensureCoinsFor\\(\\s*'${kind}'`).test(s)) return f.replace(ROOT, '').replace('app/src/', '');
   }
-  // 공용 화면(동적 kind) — SpecialContentScreen 이 buyCredit(운) 으로 연다
+  // 공용 화면(동적 kind) — SpecialContentScreen 이 `ensureCoinsFor(kind, …)` 로 연다.
+  // ⚠️★2026-08-02 정정: 예전엔 `coinPriceOf(kind)` 로 판정했는데, 그 호출은 **호출처가 0인
+  //   죽은 함수(buyCredit) 안에만** 있었다. 즉 **죽은 코드가 하네스를 통과시키고 있었다** —
+  //   noUnusedLocals 로 죽은 코드를 걷어내자 14종이 한꺼번에 '게이트 없음'으로 떨어져 드러났다.
+  //   게이트가 없어진 게 아니라, 애초에 **판정이 실제 경로를 안 보고 있었다**.
+  //   ⇒ 판정은 실행되는 표현식으로: 진짜 게이트는 promptPurchase 안의 ensureCoinsFor(kind, …) 다.
   const spec = srcOf.get(join(ROOT, 'app/src/components/SpecialContentScreen.tsx')) ?? '';
-  if (/coinPriceOf\(kind\)/.test(spec)) return 'components/SpecialContentScreen.tsx (공용)';
+  if (/ensureCoinsFor\(\s*kind\b/.test(spec)) return 'components/SpecialContentScreen.tsx (공용)';
   return '';
 }
 

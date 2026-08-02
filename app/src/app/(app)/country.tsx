@@ -5,7 +5,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useMemo, useState } from 'react';
 import { A } from '../../lib/ui/remoteAsset'; // ★이미지 원격화(daniel 08-01) — 번들에서 걷어내고 Storage 에서 받는다
-import { View, Text, ScrollView, StyleSheet, Pressable } from 'react-native';
+import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { PressableScale } from '../../components/PressableScale';
 import { RelatedContent } from '../../components/RelatedContent';
 import { Image as ExpoImage } from 'expo-image'; // 상단 히어로 — 자동 다운샘플·디스크캐시(daniel: 이미지 노출)
@@ -23,7 +23,7 @@ import { useLogContentVisit } from '../../lib/backend/contentVisit'; // 콘텐�
 export default function CountryScreen() {
   useLogContentVisit('country'); // 진입 1회 방문 기록(daniel 2026-07-06)
   const { t } = useTranslation();
-  const { fs, ls } = useFontScale();
+  const { fs } = useFontScale();
   const router = useRouter();
   const [saved, setSaved] = useState<SavedChart | null>(null);
   const [loaded, setLoaded] = useState(false);

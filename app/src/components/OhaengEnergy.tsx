@@ -35,9 +35,7 @@ export function OhaengEnergy({ saju }: { saju: SajuChart }) {
     if (stemElement(pd.stem) in counts) counts[stemElement(pd.stem)]++;
     if (branchElement(pd.branch) in counts) counts[branchElement(pd.branch)]++;
   }
-  const total = EL.reduce((s, e) => s + counts[e], 0) || 1;
   const sorted = [...EL].sort((a, b) => counts[b] - counts[a]);
-  const dominant = sorted[0];
   const lacking = counts[sorted[sorted.length - 1]] === 0 ? sorted[sorted.length - 1] : null;
 
   if (!saju?.pillars) return null;

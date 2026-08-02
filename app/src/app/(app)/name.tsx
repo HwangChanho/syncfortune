@@ -18,7 +18,7 @@ import { useLogContentVisit } from '../../lib/backend/contentVisit'; // 콘텐�
 export default function NameScreen() {
   useLogContentVisit('name'); // 진입 1회 방문 기록(daniel 2026-07-06)
   const { t } = useTranslation();
-  const { fs, ls } = useFontScale();
+  const { fs } = useFontScale();
   const [name, setName] = useState('');
   const result = useMemo(() => (name.trim() ? analyzeName(name) : null), [name]);
 

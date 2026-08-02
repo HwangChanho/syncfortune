@@ -27,23 +27,9 @@ import { HIDDEN } from '@engine/saju';        // 지지 지장간(여기·중기
 import { twelveStage } from '@engine/twelve'; // 12운성(장생·건록) — 천간-지지 시너지(용신 투간이 뿌리 위)
 import type { SajuChart, Element, Stem, Branch } from '@spec/chart';
 
-const ELEMS = ['木', '火', '土', '金', '水'];
-const GEN: Record<string, string> = { 木: '火', 火: '土', 土: '金', 金: '水', 水: '木' }; // X 가 생하는 오행
-const CTRL: Record<string, string> = { 木: '土', 土: '水', 水: '火', 火: '金', 金: '木' }; // X 가 극하는 오행
 
 // 오행 역방향 헬퍼: X 를 '생하는' 오행(생 X, GEN 역) / X 를 '극하는' 오행(극 X, CTRL 역). 5분류·십신변환 공용.
-const genOf = (x: string): string => Object.keys(GEN).find((k) => GEN[k] === x) ?? x;   // 생 X (X 를 생하는 오행)
-const ctrlOf = (x: string): string => Object.keys(CTRL).find((k) => CTRL[k] === x) ?? x; // 극 X (X 를 극하는 오행)
 
-// 십신 → 오행(일간 기준). value 가 십신(TenGod)일 때 용신 오행으로 환산.
-function tenGodToElement(tg: string, dayEl: string): string {
-  if (tg.includes('비') || tg.includes('겁')) return dayEl;         // 비겁 = 일간
-  if (tg.includes('식') || tg.includes('상')) return GEN[dayEl];    // 식상 = 일간이 생
-  if (tg.includes('재')) return CTRL[dayEl];                        // 재성 = 일간이 극
-  if (tg.includes('관') || tg.includes('살')) return ctrlOf(dayEl); // 관성 = 일간을 극(= 극 일간)
-  if (tg.includes('인')) return genOf(dayEl);                       // 인성 = 일간을 생(= 생 일간)
-  return dayEl;
-}
 
 // ── (b) R2 5단 희기신 ──────────────────────────────────────────────────────
 // daniel stance: 용신 = usefulGod 오행 · 희신 = 용신을 생하는 오행 · 기신 = 용신을 극하는 오행 ·
@@ -52,16 +38,6 @@ type HuiGi = '용신' | '희신' | '한신' | '구신' | '기신';
 // (b)+(c) 대칭 점수표: 용신 +3 / 희신 +1.5 / 한신 0 / 구신 −1.5 / 기신 −3 → 한신(0) 기준 완전 대칭.
 const HUIGI_SCORE: Record<HuiGi, number> = { 용신: 3, 희신: 1.5, 한신: 0, 구신: -1.5, 기신: -3 };
 
-// 용신 오행 → 5개 오행 각각의 희기신 분류표(오행→HuiGi). '용신 상대' 분류라 명식(용신)마다 재산출.
-function huiGiClasses(useEl: string): Record<string, HuiGi> {
-  const yong = useEl;       // 용신
-  const hui = genOf(yong);  // 희신 = 용신을 생하는 오행
-  const gi = ctrlOf(yong);  // 기신 = 용신을 극하는 오행
-  const gu = genOf(gi);     // 구신 = 기신을 생하는 오행
-  const map: Record<string, HuiGi> = { [yong]: '용신', [hui]: '희신', [gi]: '기신', [gu]: '구신' };
-  for (const e of ELEMS) if (!(e in map)) map[e] = '한신'; // 남은 하나(= 용신이 생하는 설기 오행) = 한신
-  return map;
-}
 
 // ── (a) 대운/세운 천간·지지 가중치 ─────────────────────────────────────────
 // 각 가중치 합 = 1.0 → 干支 결합 점수가 [−3,+3] 대칭 유지((c)). 대운 = 지지 우위 / 세운 = 천간 소폭 우위.

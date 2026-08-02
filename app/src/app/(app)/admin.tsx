@@ -4,12 +4,11 @@
 //   유저 검색·확인 + 특정 유저에게 이용권 선물(grant)·프리미엄 토글. 권한은 서버 RPC(is_caller_admin)가 강제.
 //   ⚠️ 이메일=PII — 관리자만 노출(규칙8). 비관리자는 접근 차단(서버 RPC + 아래 allowed 게이트).
 // ─────────────────────────────────────────────────────────────────────────
-import { View, Text, ScrollView, Pressable, TextInput, StyleSheet, ActivityIndicator, Platform } from 'react-native';
+import { View, Text, ScrollView, TextInput, StyleSheet, ActivityIndicator, Platform } from 'react-native';
 import { PressableScale } from '../../components/PressableScale';
 import { Alert } from '../../lib/ui/alert'; // 커스텀 알림(앱 디자인)
 import { useEffect, useState } from 'react';
-import { isAdmin, adminListUsers, adminGrantCredit, adminUserDetail, adminStats, adminUserUsage, adminUserContentVisits, adminSchedulePush, adminListPushCampaigns, adminCancelPush, type AdminUser, type AdminUserDetail, type AdminStats, type AdminUsage, type AdminContentVisit, type DayPoint, type PushCampaign } from '../../lib/core/admin';
-import { CREDIT_KINDS, type CreditKind } from '../../lib/billing/coupons';
+import { isAdmin, adminListUsers, adminUserDetail, adminStats, adminUserUsage, adminUserContentVisits, adminSchedulePush, adminListPushCampaigns, adminCancelPush, type AdminUser, type AdminUserDetail, type AdminStats, type AdminUsage, type AdminContentVisit, type DayPoint, type PushCampaign } from '../../lib/core/admin';
 import { logEvent } from '../../lib/backend/logger';
 import { adminGrantCoins } from '../../lib/core/admin';   // ★운 선물(daniel 07-28) // DB 로그(app_logs) — 선물/프리미엄 단계 추적
 import { colors, radius, space, shadow, font } from '../../lib/theme';

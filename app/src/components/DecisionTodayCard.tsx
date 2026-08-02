@@ -28,7 +28,7 @@ import type { Stem, Branch } from '@spec/chart';
  */
 export function DecisionTodayCard({ reloadKey }: { reloadKey?: number }) {
   const router = useRouter();
-  const { fs, ls } = useFontScale();
+  const { fs } = useFontScale();
   const [data, setData] = useState<DecisionToday | null>(null);
   const [moment, setMoment] = useState<MomentPick | null>(null); // ★모먼트 — 설레는 제안 한 줄(daniel 07-26)
 

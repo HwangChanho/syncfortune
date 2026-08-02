@@ -4,7 +4,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useMemo, useState, useEffect, useRef } from 'react';
 import { A } from '../../lib/ui/remoteAsset'; // ★이미지 원격화(daniel 08-01) — 번들에서 걷어내고 Storage 에서 받는다
-import { View, Text, ScrollView, TextInput, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, TextInput, StyleSheet, ActivityIndicator } from 'react-native';
 import { PressableScale } from '../../components/PressableScale';
 import { RelatedContent } from '../../components/RelatedContent';
 import { useTranslation } from 'react-i18next';
@@ -20,7 +20,6 @@ import { withTimeout } from '../../lib/core/withTimeout';   // ★대기 상한(
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../lib/useAuth';
 import { useSubscription } from '../../lib/billing/subscription';
-import { isAdminActing } from '../../lib/core/admin';
 import { purchasesEnabled } from '../../lib/billing/purchases';
 import { requireLoginForPurchase } from '../../lib/billing/requireLogin';
 import { confirmReadingChart } from '../../lib/ui/confirmChart'; // 생성 전 확인 + 보유 이용권 안내(daniel)
@@ -45,7 +44,7 @@ function shortDate(iso: string): string {
 export default function DreamScreen() {
   useLogContentVisit('dream'); // 진입 1회 방문 기록(daniel 2026-07-06)
   const { t } = useTranslation();
-  const { fs, ls } = useFontScale();
+  const { fs } = useFontScale();
   const router = useRouter();
   const { session } = useAuth();
   const { isPremium } = useSubscription();

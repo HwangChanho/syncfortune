@@ -6,7 +6,7 @@
 //   미생성/오류 풀이는 버튼 숨김.
 // ─────────────────────────────────────────────────────────────────────────
 import { useRef } from 'react';
-import { Pressable, Text, View, StyleSheet, Share, Platform, type StyleProp, type ViewStyle } from 'react-native';
+import { Text, View, StyleSheet, Share, type StyleProp, type ViewStyle } from 'react-native';
 import { PressableScale } from './PressableScale';
 import ViewShot, { captureRef } from 'react-native-view-shot';
 import { Image as ExpoImage } from 'expo-image'; // 공유 카드에 성격유형 사진 등 함께 넣기(daniel 07-20)

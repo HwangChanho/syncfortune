@@ -8,7 +8,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useState, useRef } from 'react';
 import { LinearGradient } from 'expo-linear-gradient'; // 에겐(빨강)→테토(파랑) 축 그라디언트
-import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Animated, Easing } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Animated, Easing } from 'react-native';
 import { PressableScale } from '../../components/PressableScale';
 import { RelatedContent } from '../../components/RelatedContent';
 import { useRouter } from 'expo-router';
@@ -46,7 +46,7 @@ function EgenBar({ score }: { score: number }) {
 export default function EgenTetoScreen() {
   useLogContentVisit('egen'); // 진입 1회 방문 기록(daniel 2026-07-06)
   const { t } = useTranslation();
-  const { fs, ls } = useFontScale();
+  const { fs } = useFontScale();
   const router = useRouter();
   const [saved, setSaved] = useState<SavedChart | null>(null);
   const [result, setResult] = useState<EgenTetoResult | null>(null); // 온디바이스 점수(즉시)

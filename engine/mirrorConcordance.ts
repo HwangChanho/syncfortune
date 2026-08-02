@@ -92,8 +92,7 @@ export function concordanceOf(sp: StarPalaceReport, ideal: MirrorProfile, real: 
   // A4 — 宮 지장간 십신 ↔ 충경 천간 십신(어떤 결의 사람인가)
   {
     const palaceTg = new Set(sp.palace.hidden.map((h) => h.tenGod));
-    const realTop = new Set(real.D4_TOP2);
-    const GROUP: Record<string, string> = {
+      const GROUP: Record<string, string> = {
       비견: '비겁', 겁재: '비겁', 식신: '식상', 상관: '식상', 편재: '재성',
       정재: '재성', 편관: '관성', 정관: '관성', 편인: '인성', 정인: '인성',
     };

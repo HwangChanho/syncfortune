@@ -29,7 +29,7 @@ import { useLogContentVisit } from '../../lib/backend/contentVisit'; // 콘텐�
 export default function PersonaTypeScreen() {
   useLogContentVisit('personatype');
   const { t } = useTranslation();
-  const { fs, ls } = useFontScale();
+  const { fs } = useFontScale();
   const [me, setMe] = useState<ChartInput | null>(null);
 
   useFocusEffect(useCallback(() => {

@@ -4,7 +4,7 @@
 //   캐시 연결을 위해 대표 SavedChart(serverChartId)도 전달(ADR-052).
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useState, useRef } from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { PressableScale } from '../../components/PressableScale';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';

@@ -22,7 +22,7 @@ export type GlossaryTarget = { kind: GlossaryKind; key: string } | null;
  * @param onClose 닫기 콜백
  */
 export function GlossarySheet({ target, onClose }: { target: GlossaryTarget; onClose: () => void }) {
-  const { fs, ls } = useFontScale();
+  const { fs } = useFontScale();
   const entry = target ? lookupGlossary(target.kind, target.key) : null;
   return (
     <Modal visible={!!target} transparent animationType="slide" onRequestClose={onClose}>

@@ -3,6 +3,8 @@
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "strict": true,
+    // ★미사용 import·지역변수 = 컴파일 에러(daniel 2026-08-02). 죽은 코드를 사람 기억이 아니라 도구가 막는다.
+    "noUnusedLocals": true,
     "paths": {
       "@engine/*": ["../engine/*"],
       "@spec/*": ["../spec/*"]

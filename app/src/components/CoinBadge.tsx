@@ -5,9 +5,8 @@
 //   ★조회 실패는 0으로 표시하지 않는다 — 실패를 '없음'으로 보이면 불필요한 충전을 유도하게 된다
 //     (2026-07-28 재결제 사고와 같은 유형). 실패면 아무것도 그리지 않는다(조용히).
 // ─────────────────────────────────────────────────────────────────────────
-import { useCallback, useState } from 'react';
 import { Text, StyleSheet } from 'react-native';
-import { useFocusEffect, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { PressableScale } from './PressableScale';
 import { useCoinBalance } from '../lib/billing/coins'; // ★표시 규칙 단일화(포커스 재조회 + 세션 변경 시 비움)
 import { useAuth } from '../lib/useAuth';

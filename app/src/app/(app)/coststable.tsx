@@ -5,7 +5,7 @@
 //   가격=확정(앱 판매가). 광고=추정(보상형 eCPM·배너, 명시적 '추정' 라벨). 무료 온디바이스=API 0원.
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, Pressable } from 'react-native';
+import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { PressableScale } from '../../components/PressableScale';
 import { supabase } from '../../lib/supabase';
 import { colors, space, radius, font } from '../../lib/theme';

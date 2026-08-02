@@ -5,7 +5,7 @@
 //   (선택 명식을 대표로 설정 → 캐시·서버차트 연결, 거기서 이용권 use_credit·프리미엄·건당구매로 열림).
 //   무료 이용권(쿠폰) 등록도 여기로 이동(설정→마켓). ★1회성 소모 — 보유/미보유로만 표시.
 // ─────────────────────────────────────────────────────────────────────────
-import { View, Text, ScrollView, Pressable, TextInput, StyleSheet, Modal, Image } from 'react-native';
+import { View, Text, ScrollView, Pressable, TextInput, StyleSheet, Modal } from 'react-native';
 import { Image as ExpoImage } from 'expo-image'; // ★뷰 크기 다운샘플 + 디스크 캐시(RN Image 는 원본 풀 디코딩 — 갤럭시 랙 원인)
 import { A } from '../../lib/ui/remoteAsset'; // ★이미지 원격화(daniel 08-01) — 번들에서 걷어내고 Storage 에서 받는다
 import { PressableScale } from '../../components/PressableScale';
@@ -14,21 +14,13 @@ import { Alert } from '../../lib/ui/alert'; // 커스텀 알림(앱 디자인)
 import { useEffect, useRef, useState } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { CREDIT_KINDS, loadCredits, redeemCoupon, waitForCreditGrant, type CreditKind } from '../../lib/billing/coupons';
-import { coinPriceOf, coinBalanceOrNull, useCoinBalance } from '../../lib/billing/coins'; // ★잔액 표시는 공용 훅 하나로(daniel 08-01 '운 표시하는 모든 항목이 동일하게 갱신')
-import { ensureCoinsFor } from '../../lib/billing/coinGate';   // ★운 단일 경로(daniel 07-28)   // ★운 표기·잔액(충전은 /coins 전용)
+import { CREDIT_KINDS, loadCredits, redeemCoupon, type CreditKind } from '../../lib/billing/coupons';
+import { coinPriceOf, useCoinBalance } from '../../lib/billing/coins'; // ★잔액 표시는 공용 훅 하나로(daniel 08-01 '운 표시하는 모든 항목이 동일하게 갱신')
 import { isNewContent } from '../../lib/content/newBadge'; // 신규 콘텐츠 NEW 배지(출시일+21일 자동 만료)
-import { requireLoginForPurchase } from '../../lib/billing/requireLogin'; // C1: 결제=계정 귀속(웹훅 적립엔 로그인 필수)
-import { listCharts, getRepresentativeId, setRepresentative, loadRepChart, type SavedChart } from '../../lib/engine/myChart';
-import { requestChartConfirm } from '../../lib/ui/chartConfirm'; // 구매 전 명식 확인(드롭다운으로 변경 가능)
+import { listCharts, getRepresentativeId, setRepresentative, type SavedChart } from '../../lib/engine/myChart';
 import { ListSkeleton } from '../../components/Skeleton'; // 첫 진입 로딩 스켈레톤(daniel 07-02: 마켓 즉시 전환+스켈레톤)
 import { useDeferredReady } from '../../lib/ui/useDeferredReady'; // 전환 즉시 스켈레톤 → 전환 후 콘텐츠 마운트(멈칫 제거)
-import { purchasesEnabled } from '../../lib/billing/purchases';
-import { useSubscription } from '../../lib/billing/subscription'; // 프리미엄 가입 루트(전체 무제한)
 import { useAuth } from '../../lib/useAuth';              // 세션(프리미엄 명식 지정 시 serverChartId 발급)
-import { supabase } from '../../lib/supabase';            // set_premium_chart RPC(구매 명식 지정)
-import { ensureServerChartIdForSaved } from '../../lib/backend/prewarmReadings'; // 구매 명식 serverChartId 확보
-import { withTimeout } from '../../lib/core/withTimeout'; // ★잠금 구간 네트워크 상한(멈춤 방지)
 import { colors, radius, space, shadow, font } from '../../lib/theme';
 
 // 이용권 kind → 적용할 풀이 화면(선택 명식을 대표로 둔 뒤 진입 — 대표 기준 캐시)
@@ -128,7 +120,6 @@ export default function MarketRoute() {
   const [credits, setCredits] = useState<Record<string, number>>({});
   const [code, setCode] = useState('');
   const [redeeming, setRedeeming] = useState(false);
-  const [busy, setBusy] = useState<CreditKind | null>(null);
   // ★보유 코인(daniel 2026-07-28 "마켓에 본인 보유코인도 나와야지") — 충전 화면에 들어가지 않고도
   //   지금 얼마 있는지 알아야 '이걸 열 수 있나'를 판단할 수 있다. null=조회 실패(0으로 표시하지 않는다).
   // ★보유 운 — 공용 훅(포커스마다 재조회 + 세션 변경 시 즉시 비움). 종전 `useEffect(…, [])` 는
@@ -156,7 +147,6 @@ export default function MarketRoute() {
     const tp = TOPIC_OF[focusKey];
     if (tp) setTopic(tp);
   }, [focusKey]);
-  const [buyingPrem, setBuyingPrem] = useState(false);
   const ready = useDeferredReady(); // 네비 전환 완료 후 콘텐츠 마운트 — 그 전엔 스켈레톤(첫 진입 즉시 전환·멈칫 제거)
 
   useEffect(() => {
@@ -194,47 +184,6 @@ export default function MarketRoute() {
     router.navigate({ pathname: r.pathname, params: r.kind ? { kind: r.kind } : {} }); // navigate=정적 /reading 중복 스택 dedup(daniel 07-01)
   }
 
-  // 이용권 구매(결제) — RevenueCat 소비성 결제 성공 → 크레딧 +1(웹훅 전 클라 반영) → 보유 갱신.
-  //   RC 미설정(키/네이티브 미포함) 시 '준비 중' 안내. 사용자 취소는 조용히 무시.
-  /**
-   * 마켓 카드 '열기' — ★코인 단일 경로(daniel 2026-07-28 "기존 단건 결제는 다 없애").
-   * 종전엔 여기서 스토어 결제가 나갔다(구매 → 웹훅 적립 폴링). 그 왕복이 오늘 하루에만 여러 번 깨졌고,
-   * 무엇보다 카드에는 **코인가**가 적혀 있는데 누르면 원화 결제창이 뜨는 모순이 있었다.
-   * 이제 여기서는 **잔액 확인·동의만** 받고, 실제 차감은 콘텐츠를 생성할 때 서버가 한다.
-   * (마켓에서 미리 차감하면 생성 전에 돈만 빠지는 구간이 생긴다 — 그래서 차감하지 않는다.)
-   */
-  async function buy(kind: CreditKind) {
-    if (busy) return;
-    if (!requireLoginForPurchase(session, () => router.push('/login'), t)) return;
-    setBusy(kind);
-    try {
-      // ★이미 산 콘텐츠면 결제 얘기를 꺼내지 않는다(daniel 2026-08-01) — 대표 명식의 **서버 ID**로 소유를 본다.
-      //   이게 없으면 "이미 샀는데 잔액이 모자라서 못 여는" 상태가 된다(마켓에서 '열기'가 충전 안내로 막힘).
-      //   서버 ID 해석은 실패해도 무해하다(null → 종전 흐름 그대로).
-      // ⚠️★**반드시 상한을 둔다**(daniel 2026-08-01 "이번엔 구매하니깐 멈췄어").
-      //   이 자리는 setBusy(kind) 로 버튼을 잠근 **뒤**다. ensureServerChartIdForSaved 는 supabase 왕복이고
-      //   기본 타임아웃이 없어서, 회선이 어정쩡하면 await 가 안 끝나고 → finally 가 실행되지 않아 →
-      //   버튼이 영구히 잠긴다(첫 줄 `if (busy) return` 에 걸려 눌러도 무반응). 이중과금을 고치다 멈춤을 심었다.
-      //   초과 시 undefined → null → 소유 확인만 건너뛰고 **종전 흐름 그대로 진행**(사용자가 갇히지 않는다).
-      const repForOwn = await withTimeout(loadRepChart().catch(() => null)) ?? null;
-      const ownChartId = repForOwn && session
-        ? (await withTimeout(ensureServerChartIdForSaved(repForOwn, session))) ?? null
-        : null;
-      const g = await ensureCoinsFor(kind, {
-        title: t('market.doneTitle', '이용 안내'),
-        t,
-        goCharge: () => router.push('/coins'),
-        chartId: ownChartId,
-      });
-      if (g !== 'ok') return;                       // 부족(충전 화면으로)·취소·오류는 여기서 끝
-      // 코인이 충분하다 = 바로 열 수 있다. 해당 콘텐츠 화면으로 보내고 거기서 생성·차감된다.
-      apply(kind);
-    } catch (e: any) {
-      Alert.alert(t('market.buyFailTitle'), e?.message ?? '');
-    } finally {
-      setBusy(null);
-    }
-  }
 
   // 쿠폰 등록(설정→마켓 이동) — 서버 검증·부여 → 결과 안내 + 보유 갱신.
   async function onRedeem() {

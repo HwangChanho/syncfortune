@@ -6,7 +6,7 @@
 // 대표 명식조차 없을 때만 등록을 유도(이미 등록한 사용자에게 '다시 등록' 요구 안 함).
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useState, useRef } from 'react';
-import { View, Text, Pressable, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
 import { PressableScale } from '../../components/PressableScale';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';

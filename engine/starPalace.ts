@@ -13,7 +13,7 @@
 //
 // ★기존 엔진 표를 재사용한다(HIDDEN·SIXHE·CHONG·tenGod). 표를 새로 만들면 한쪽만 고쳐지는 날 갈라진다.
 // ─────────────────────────────────────────────────────────────────────────
-import { HIDDEN, BRANCH_MAIN, STEM_ELEM, tenGod } from './saju';
+import { HIDDEN, BRANCH_MAIN, tenGod } from './saju';
 import { SIXHE, CHONG, SANHE, WANGZHI } from './structure';
 import type { Stem, Branch, Element, TenGod, PillarPos } from '../spec/chart';
 

@@ -6,7 +6,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useMemo, useState, useEffect } from 'react';
 import { A } from '../../lib/ui/remoteAsset'; // ★이미지 원격화(daniel 08-01) — 번들에서 걷어내고 Storage 에서 받는다
-import { View, Text, ScrollView, StyleSheet, Pressable } from 'react-native';
+import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { PressableScale } from '../../components/PressableScale';
 import { RelatedContent } from '../../components/RelatedContent';
 import { useTranslation } from 'react-i18next';
@@ -25,7 +25,7 @@ export default function ImpressionScreen() {
   useLogContentVisit('impression'); // 진입 1회 방문 기록(daniel 2026-07-06)
   const { t } = useTranslation();
   const router = useRouter();
-  const { fs, ls } = useFontScale();
+  const { fs } = useFontScale();
   const [saved, setSaved] = useState<SavedChart | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
   useEffect(() => { let a = true; loadRepChart().then((x) => { if (a) setSaved(x); }).catch(() => {}); return () => { a = false; }; }, [reloadKey]);

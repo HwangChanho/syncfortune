@@ -31,7 +31,7 @@ interface ComputedNoteProps {
  */
 export function ComputedNote({ compact = false, style }: ComputedNoteProps) {
   const { t } = useTranslation();
-  const { fs, ls } = useFontScale();                 // 본문 글자 크기(설정)에 맞춰 텍스트 스케일
+  const { fs } = useFontScale();                 // 본문 글자 크기(설정)에 맞춰 텍스트 스케일
   const [open, setOpen] = useState(false);       // 배너 '?' — 엔진 상세(computed.more) 펼침 여부
   const s = useMemo(() => makeStyles(fs), [fs]); // fs 변경 시에만 스타일 재생성
 

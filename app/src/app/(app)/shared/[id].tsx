@@ -4,7 +4,7 @@
 //   풀이 스냅샷을 받아 표시한다. 앱에서만 열람(웹 랜딩 없음·daniel). 비로그인도 열람 가능(RPC anon 허용).
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useState } from 'react';
-import { View, Text, ScrollView, Pressable, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, ActivityIndicator, StyleSheet } from 'react-native';
 import { PressableScale } from '../../../components/PressableScale';
 import { ReadingPoints } from '../../../components/ReadingProse'; // 핵심 3줄(가독성 P1) — 앱 내 풀이 화면과 같은 위계로
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';

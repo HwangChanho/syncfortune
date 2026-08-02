@@ -31,7 +31,7 @@ export function DailyLogCard({ saju, stem, branch }: {
   stem: Stem;
   branch: Branch;
 }) {
-  const { fs, ls } = useFontScale();
+  const { fs } = useFontScale();
   const mission = dailyMission(saju, stem, branch);   // 결정론 — 같은 날·같은 명식이면 같은 행동
 
   return (

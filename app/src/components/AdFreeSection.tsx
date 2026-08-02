@@ -34,7 +34,7 @@ function remainLabel(until: number | null): string {
  * @param onNeedCoins 잔액 부족 시 호출(충전 화면으로 보낼 때). 없으면 안내만.
  */
 export function AdFreeSection({ onDone, onNeedCoins }: { onDone?: () => void; onNeedCoins?: () => void }) {
-  const { fs, ls } = useFontScale();
+  const { fs } = useFontScale();
   const adFree = useAdFree();
   const until = useAdFreeUntil();
   const [busy, setBusy] = useState<string | null>(null);

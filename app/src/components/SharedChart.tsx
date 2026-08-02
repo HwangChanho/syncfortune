@@ -27,7 +27,7 @@
 //   이미 들고 있는 값(십신·간지·궁 이름 등)을 그대로 읽어 보여주기만 한다.
 // ─────────────────────────────────────────────────────────────────────────
 import { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { PressableScale } from './PressableScale';
 import type { PillarPos } from '@spec/chart';
 import type { SharedSaju, SharedZiwei } from '../lib/backend/communityChart'; // 계약(의존 없는 순수 모듈)
@@ -49,7 +49,7 @@ const ZI_LAYOUT: (string | null)[][] = [
 ];
 
 export function SharedChart({ saju, ziwei, showLuck }: { saju: SharedSaju; ziwei?: SharedZiwei | null; showLuck?: boolean }) {
-  const { fs, ls } = useFontScale(); // 앱 전역 글자 크기 설정 — 명식 글자까지 일관 적용(daniel 접근성 컨벤션)
+  const { fs } = useFontScale(); // 앱 전역 글자 크기 설정 — 명식 글자까지 일관 적용(daniel 접근성 컨벤션)
   const styles = useMemo(() => makeStyles(fs), [fs]);
   // ★대운·세운 넘겨보기(daniel 07-17 (b)·07-18 재설계): 큰 간지 칸으로 대운·세운 좌우 배치. 대운 칸 탭=다음 대운, 세운 칸 탭=다음 세운(순환).
   const luckList = saju.luckCycles ?? [];

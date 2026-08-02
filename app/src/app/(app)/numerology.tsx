@@ -23,7 +23,7 @@ import { useLogContentVisit } from '../../lib/backend/contentVisit'; // 콘텐�
 export default function NumerologyScreen() {
   useLogContentVisit('numerology'); // 진입 1회 방문 기록(daniel 2026-07-06)
   const { t } = useTranslation();
-  const { fs, ls } = useFontScale();
+  const { fs } = useFontScale();
   const [rep, setRep] = useState<SavedChart | null>(null);
 
   // 대표 명식 로드(포커스마다 — 명식 전환 반영)

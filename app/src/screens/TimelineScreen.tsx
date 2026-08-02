@@ -9,11 +9,9 @@ import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator, Modal
 import { PressableScale } from '../components/PressableScale';
 import { RelatedContent } from '../components/RelatedContent';
 import { ExpiryNote } from '../components/ExpiryNote'; // 보유 만료일 공통(프리미엄 가드 한 곳)
-import { Alert } from '../lib/ui/alert'; // 커스텀 알림(앱 디자인)
 import { useTranslation } from 'react-i18next';
 import { computeChart } from '../lib/engine/engine';
 import { useAuth } from '../lib/useAuth';
-import { useSubscription } from '../lib/billing/subscription';
 import { useFontScale } from '../lib/ui/fontScale';
 import { setGenProgress } from '../lib/backend/genProgress'; // 일회성 진행도(daniel 이슈15)
 import { acquireGen, releaseGen, isGenActive } from '../lib/backend/genLock'; // 크로스마운트 이중 생성 잠금(② 이중 LLM 방지)
@@ -23,8 +21,8 @@ import { excludeMock } from '../lib/core/testMode'; // ★목업(tier='mock') �
 import { ensureServerChartId } from '../lib/backend/prewarmReadings';
 import { invokeFail } from '../lib/backend/interpretResult'; // 방어: 일시적 불가/오류 친화 처리
 import { getRepresentativeId } from '../lib/engine/myChart'; // 대표 명식 여부(자동생성 한정)
-import { assertOnline, isOnline } from '../lib/backend/network'; // 오프라인 시 신규 생성 차단
-import { loadCredits, creditPrice, formatKrw } from '../lib/billing/coupons'; // 크레딧 보유확인(쿠폰·선물 잔여) + 실가 주입
+import { assertOnline } from '../lib/backend/network'; // 오프라인 시 신규 생성 차단
+import { loadCredits } from '../lib/billing/coupons'; // 크레딧 보유확인(쿠폰·선물 잔여) + 실가 주입
 import { useRouter } from 'expo-router';                     // ★운 부족 → 충전 화면 이동(daniel 07-28)
 import { ensureCoinsFor } from '../lib/billing/coinGate';    // ★운 단일 경로
 import { isReadingUnlocked } from '../lib/billing/unlocks'; // 서버 세트 언락(timeline)
@@ -57,8 +55,7 @@ const catsFor = (key: string): CatKey[] => (key.startsWith('year_') ? YEAR_KEYS 
 export function TimelineScreen({ input, savedChart }: { input: ChartInput | null; savedChart?: SavedChart | null }) {
   const { t } = useTranslation();
   const { session } = useAuth();
-  const { isPremium } = useSubscription();
-  const { fs, ls } = useFontScale();
+  const { fs } = useFontScale();
   const c = useMemo(() => (input ? computeChart(input) : null), [input]);
   const nowYear = new Date().getFullYear();
   const birthYear = input ? parseInt(String(input.birthDateTime).slice(0, 4), 10) : 0;

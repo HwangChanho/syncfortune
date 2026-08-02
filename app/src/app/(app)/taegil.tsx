@@ -6,7 +6,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useMemo, useCallback } from 'react';
 import { A } from '../../lib/ui/remoteAsset'; // ★이미지 원격화(daniel 08-01) — 번들에서 걷어내고 Storage 에서 받는다
-import { View, Text, Pressable, ActivityIndicator, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, ActivityIndicator, ScrollView, StyleSheet } from 'react-native';
 import { PressableScale } from '../../components/PressableScale';
 import { RelatedContent } from '../../components/RelatedContent';
 import { useRouter, useFocusEffect } from 'expo-router';
@@ -85,7 +85,7 @@ export default function TaegilScreen() {
   useLogContentVisit('taegil'); // 진입 1회 방문 기록(daniel 2026-07-06)
   const router = useRouter();
   const { t } = useTranslation();
-  const { fs, ls } = useFontScale(); // 본문(읽는 글) 글자 크기 전역 배율
+  const { fs } = useFontScale(); // 본문(읽는 글) 글자 크기 전역 배율
   const [me, setMe] = useState<ChartInput | null>(null);
   const [loading, setLoading] = useState(true);
   const [purpose, setPurpose] = useState<Purpose>('wedding');

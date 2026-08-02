@@ -5,7 +5,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect } from 'react';
 import { Redirect, useRouter } from 'expo-router';
-import { View, Pressable, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { PressableScale } from '../components/PressableScale';
 import { useTranslation } from 'react-i18next';
 import { AuthScreen } from '../screens/AuthScreen';

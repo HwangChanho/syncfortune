@@ -17,9 +17,8 @@ import { computeChart } from '../lib/engine/engine';
 import { YongsinCard } from '../components/YongsinCard'; // 만세력 용신(canonical 엔진·억부/병약/조후+희신/기신·Boss 07-22)
 import type { ChartInput, PillarPos } from '@spec/chart';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';   // ★하단 탭바·홈 인디케이터 여백(daniel 07-29 잘림)
-import { colors, radius, space, shadow, font, gradients } from '../lib/theme';
+import { colors, radius, space, shadow, font } from '../lib/theme';
 import { GlassCard } from '../components/GlassCard';
-import { OhaengIcon } from '../components/OhaengIcon';
 import { OhaengEnergy } from '../components/OhaengEnergy'; // 오행 에너지 구슬 인포그래픽(팔자 앞·이탈률↓·daniel 기획서①)
 import { GzCell } from '../components/GzCell'; // 간지 한 칸(오행색+한자+한글음) — 2026-07-16 추출(커뮤니티 SharedChart와 공유하는 단일 출처)
 import { stemElement, branchElement, elementColor, stemReading, branchReading, stemYinYang, branchYinYang, eumYangSkew, johuSkew, joSeupSkew } from '../lib/engine/ohaeng';
@@ -129,10 +128,6 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
   const visiblePos = POS.filter((p) => !(p === '시' && timeUnknown)); // 시각 미상 시 시주 제외
   // 통근(通根): 투출 천간(일간 포함)이 어느 지지 지장간에 같은 오행으로 뿌리내렸나 (일간뿐 아니라 재관도)
   const allGan = visiblePos.map((p) => P[p].stem);
-  const rootsOf = (p: PillarPos) => {
-    const he = new Set(P[p].hiddenStems.map((h) => stemElement(h.stem))); // 이 지지 지장간 오행
-    return Array.from(new Set(allGan.filter((g) => he.has(stemElement(g))))); // 통근한 투출 천간
-  };
   // 오행 분포 (천간+지지 카운트) — daniel: elemHidden 토글 시 각 지지의 지장간(支藏干) 오행도 합산(숨은 기운까지 본 분포)
   const elem: Record<string, number> = { 木: 0, 火: 0, 土: 0, 金: 0, 水: 0 };
   visiblePos.forEach((p) => {

@@ -6,7 +6,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useEffect, useRef } from 'react';
 import { A } from '../../lib/ui/remoteAsset'; // ★이미지 원격화(daniel 08-01) — 번들에서 걷어내고 Storage 에서 받는다
-import { View, Text, TextInput, Pressable, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, TextInput, ScrollView, StyleSheet } from 'react-native';
 import { PressableScale } from '../../components/PressableScale';
 import { RelatedContent } from '../../components/RelatedContent';
 import { Image as ExpoImage } from 'expo-image'; // 상단 히어로 — 자동 다운샘플·디스크캐시(daniel ⑥ 전용 이미지)
@@ -22,7 +22,6 @@ import { colors, radius, space, font } from '../../lib/theme';
 import { Alert } from '../../lib/ui/alert';                         // 커스텀 알림(앱 디자인)
 import { useAuth } from '../../lib/useAuth';
 import { useSubscription } from '../../lib/billing/subscription';        // 프리미엄=무료
-import { isAdminActing } from '../../lib/core/admin';                       // 관리자=무료
 import { useCredit } from '../../lib/billing/coupons';      // 쿠폰·선물로 받은 잔여 크레딧 차감(운 이전분)
 import { spendCoinsFixed } from '../../lib/billing/coins';   // ★운 차감(금액=서버 권위)
 import { isUnlocked, markUnlocked } from '../../lib/billing/unlocks';    // 1회 해제 후 영구(재차감 방지)

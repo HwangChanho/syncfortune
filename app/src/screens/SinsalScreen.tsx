@@ -6,7 +6,7 @@
 // ★ stance: 신살 *의미*는 myeongriGlossary(daniel 검수 대상). 이 화면은 표시·분류만 담당(단일 책임).
 // ─────────────────────────────────────────────────────────────────────────
 import { useMemo } from 'react';
-import { View, Text, ScrollView, StyleSheet, Pressable } from 'react-native';
+import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { useFontScale } from '../lib/ui/fontScale';
 import { useDeferredReady } from '../lib/ui/useDeferredReady'; // 전환 멈칫 제거(daniel 2026-06-28)
 import { ChartSkeleton } from '../components/Skeleton';     // 그 사이 스켈레톤(스피너보다 빠른 체감)
@@ -40,7 +40,7 @@ const sideKo = (s: 'stem' | 'branch') => (s === 'stem' ? '천간' : '지지');
 /** 기준 글자 칩 — 오행색 배경 + 한자 + 한글음. 신살의 '근거 글자'를 시각화.
  *  괴강·백호처럼 간지 결합(2글자)은 단일 오행색이 없어 통짜 칩(중립)으로 표시. */
 function GlyphChip({ g }: { g: string }) {
-  const { fs, ls } = useFontScale();
+  const { fs } = useFontScale();
   const styles = useMemo(() => makeStyles(fs), [fs]);
   if (g.length > 1) { // 간지 결합(괴강·백호) — 천간+지지 한 덩어리
     return <View style={styles.glyphChipWide}><Text style={styles.glyphTxWide}>{g}</Text></View>;
@@ -57,7 +57,7 @@ function GlyphChip({ g }: { g: string }) {
 
 /** 신살 카드 — 명칭·기준글자·적중자리·의미·키워드를 한 장에 펼침(모달 탭 없이 바로 보이게 = '디테일'). */
 function SinsalCard({ row }: { row: Row }) {
-  const { fs, ls } = useFontScale();
+  const { fs } = useFontScale();
   const styles = useMemo(() => makeStyles(fs), [fs]);
   const g = (SINSAL_GLOSSARY as Record<string, any>)[row.name];
   const ko: string = g?.ko ?? row.name;
@@ -96,7 +96,7 @@ function SinsalCard({ row }: { row: Row }) {
 
 /** 신살 그룹 — 원국 적중과 '운에서 들어옴'을 서브헤더로 분리(daniel: 운에서 온 건 명확히 구분). */
 function SinsalGroup({ rows }: { rows: Row[] }) {
-  const { fs, ls } = useFontScale();
+  const { fs } = useFontScale();
   const styles = useMemo(() => makeStyles(fs), [fs]);
   const hitRows = rows.filter((r) => r.hit);
   const luckRows = rows.filter((r) => !r.hit);
@@ -115,7 +115,7 @@ export function SinsalScreen({ input }: { input: ChartInput | null }) {
   // 전환 멈칫 제거(daniel): 전환 끝나기 전엔 computeChart(신살 전수 산출) 미실행 + 스켈레톤만.
   const ready = useDeferredReady();
   const c = useMemo(() => (ready && input ? computeChart(input) : null), [input, ready]);
-  const { fs, ls } = useFontScale();
+  const { fs } = useFontScale();
   const styles = useMemo(() => makeStyles(fs), [fs]);
   if (!ready) return <ChartSkeleton />;                  // 전환 중 — 명식 형태 스켈레톤(즉시 페인트)
   if (!c) return <View style={styles.center}><Text style={font.body}>명식 정보가 없습니다.</Text></View>;

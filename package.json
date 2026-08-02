@@ -90,7 +90,8 @@
     "check:coinbalance": "npx tsx scripts/check-coinbalance.ts",
     "check:accentcopy": "npx tsx scripts/check-accentcopy.ts",
     "check:alertonce": "tsx scripts/check-alert-once.ts",
-    "check:linkage": "tsx scripts/check-linkage.ts"
+    "check:linkage": "tsx scripts/check-linkage.ts",
+    "audit:deadcode": "tsx scripts/audit-deadcode.ts"
   },
   "keywords": [],
   "author": "",

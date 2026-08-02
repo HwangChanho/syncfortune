@@ -40,7 +40,7 @@ type LightResult = {
 };
 
 export default function LightScreen() {
-  const { fs, ls } = useFontScale();
+  const { fs } = useFontScale();
   const router = useRouter();
   const [birthDate, setBirthDate] = useState('');
   const [calendar, setCalendar] = useState<'양' | '음'>('양');

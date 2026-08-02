@@ -6,7 +6,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useMemo, useState, useRef } from 'react';
 import { A } from '../../lib/ui/remoteAsset'; // ★이미지 원격화(daniel 08-01) — 번들에서 걷어내고 Storage 에서 받는다
-import { View, Text, Pressable, ScrollView, StyleSheet, ImageBackground, Animated, Easing, InteractionManager } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, ImageBackground, Animated, Easing, InteractionManager } from 'react-native';
 import { PressableScale } from '../../components/PressableScale';
 import { RelatedContent } from '../../components/RelatedContent';
 import { Stack } from 'expo-router';
@@ -49,7 +49,7 @@ function sectionList(sex: '남' | '여'): { tk: string; field: keyof DayPillarTr
 export default function DayPillarScreen() {
   useLogContentVisit('dayPillar'); // 진입 1회 방문 기록(daniel 2026-07-06)
   const { t } = useTranslation();
-  const { fs, ls } = useFontScale();
+  const { fs } = useFontScale();
   const [rep, setRep] = useState<SavedChart | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [sex, setSex] = useState<'남' | '여'>('남');       // 보기 성별 — 대표 명식 성별로 초기화

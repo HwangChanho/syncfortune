@@ -36,7 +36,7 @@ export function ReadingProse({
   /** 명리 용어 탭(가독성 P2). 주면 용어가 점선 밑줄+탭 가능해진다. 없으면 굵게만(기존 동작). */
   onTermPress?: (term: string) => void;
 }) {
-  const { fs, ls } = useFontScale();
+  const { fs } = useFontScale();
   const [open, setOpen] = useState(false);
 
   // 문단 분해 — text 가 바뀔 때만(렌더마다 정규식 재실행 방지)
@@ -92,7 +92,7 @@ export function ReadingProse({
  * 목표① '열고 3초 안에 핵심'의 주역. 좌측 강조바 + 옅은 틴트 배경으로 본문과 층을 분리한다.
  */
 export function ReadingHeadline({ text, accent = colors.ju }: { text: string; accent?: string }) {
-  const { fs, ls } = useFontScale();
+  const { fs } = useFontScale();
   if (!text || !text.trim()) return null;
   return (
     <View style={[styles.headWrap, { borderLeftColor: accent, backgroundColor: accent + '12' }]}>
@@ -112,7 +112,7 @@ export function ReadingHeadline({ text, accent = colors.ju }: { text: string; ac
  * @remarks 방어: 문자열이 아닌 원소·빈 문자열은 걸러낸다(LLM 이 객체를 넣어도 크래시하지 않게).
  */
 export function ReadingPoints({ points, accent = colors.ju }: { points: unknown; accent?: string }) {
-  const { fs, ls } = useFontScale();
+  const { fs } = useFontScale();
   const list = Array.isArray(points)
     ? points.map((p) => (typeof p === 'string' ? p.trim() : '')).filter(Boolean).slice(0, 3)
     : [];
@@ -147,7 +147,7 @@ export function ReadingPoints({ points, accent = colors.ju }: { points: unknown;
 export function ReadingQA({ qa, accent = colors.ju, onTermPress }: {
   qa: unknown; accent?: string; onTermPress?: (term: string) => void;
 }) {
-  const { fs, ls } = useFontScale();
+  const { fs } = useFontScale();
   const list = Array.isArray(qa)
     ? qa
         .map((x: any) => ({

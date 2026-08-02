@@ -16,7 +16,7 @@ import { colors, space, font } from '../../lib/theme';
 
 export default function BiorhythmScreen() {
   useLogContentVisit('biorhythm');
-  const { fs, ls } = useFontScale();
+  const { fs } = useFontScale();
   return (
     <View style={styles.bg}>
       <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>

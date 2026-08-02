@@ -13,7 +13,6 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { computeChart } from '../engine/engine';
 import { stemElement, branchElement } from '../engine/ohaeng';
-import { analyzeTenGods } from '@engine/structure';
 import type { ComputedChart } from '../engine/engine';
 import type { CelebEntry } from './celebData';
 import { celebChartInput } from './celebData';

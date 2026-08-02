@@ -36,7 +36,7 @@ function AxisBar({ score }: { score: number }) {
 export default function MbtiScreen() {
   useLogContentVisit('mbti'); // 진입 1회 방문 기록(daniel 2026-07-06)
   const { t } = useTranslation();
-  const { fs, ls } = useFontScale();
+  const { fs } = useFontScale();
   const [me, setMe] = useState<ChartInput | null>(null);
 
   useFocusEffect(useCallback(() => {

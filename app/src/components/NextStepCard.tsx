@@ -53,7 +53,7 @@ const META: Record<string, { image?: any; route: string; labelKey: string; descK
 export function NextStepCard({ reloadKey }: { reloadKey?: number }) {
   const router = useRouter();
   const { t } = useTranslation();
-  const { fs, ls } = useFontScale();
+  const { fs } = useFontScale();
   const { session } = useAuth();
   const [step, setStep] = useState<NextStep | null>(null);
 

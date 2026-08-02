@@ -10,9 +10,9 @@
 //   경상명식은 생년월일이 없고 4주 간지만 있으므로 buildSajuChart 를 쓸 수 없다 —
 //   대신 순수 함수만 조합해 필요한 축을 직접 계산한다.
 // ─────────────────────────────────────────────────────────────────────────
-import { tenGod, HIDDEN, STEM_ELEM, BRANCH_MAIN } from './saju';
+import { tenGod, STEM_ELEM, BRANCH_MAIN } from './saju';
 import { detectInteractionsAmong } from './structure';
-import type { Stem, Branch, Element, TenGod, PillarPos, ChartPosition } from '../spec/chart';
+import type { Stem, Element, TenGod, PillarPos, ChartPosition } from '../spec/chart';
 import type { MirrorChart } from './mirrorRomance';
 
 const POS: PillarPos[] = ['년', '월', '일', '시'];

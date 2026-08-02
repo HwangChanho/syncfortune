@@ -16,7 +16,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useMemo, useRef, useState } from 'react';
 import { Image as ExpoImage } from 'expo-image'; // ★뷰 크기 다운샘플 + 디스크 캐시(RN Image 는 원본 풀 디코딩 — 갤럭시 랙 원인)
-import { View, Text, Image, StyleSheet, Animated, Easing } from 'react-native';
+import { View, Text, StyleSheet, Animated, Easing } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { PressableScale } from './PressableScale';
 import { DECK, cardImage, cardMeaning } from '../lib/tarot';
@@ -41,7 +41,7 @@ const CARD_H = 158;   // 타로 비율(≈0.58)
  * @param seed 이 카드를 고정할 키 — 보통 질문 원문. 같은 seed = 같은 날 = 같은 카드.
  */
 export function CoachTarotCard({ seed }: { seed: string }) {
-  const { fs, ls } = useFontScale();
+  const { fs } = useFontScale();
   const [open, setOpen] = useState(false);
   const flip = useRef(new Animated.Value(0)).current;
 

@@ -5,7 +5,7 @@
 import { useState, useMemo, useCallback } from 'react';
 import { Image as ExpoImage } from 'expo-image'; // ★뷰 크기 다운샘플 + 디스크 캐시(RN Image 는 원본 풀 디코딩 — 갤럭시 랙 원인)
 import { A } from '../../lib/ui/remoteAsset'; // ★이미지 원격화(daniel 08-01) — 번들에서 걷어내고 Storage 에서 받는다
-import { View, Text, Pressable, ActivityIndicator, ScrollView, StyleSheet, Image } from 'react-native';
+import { View, Text, ActivityIndicator, ScrollView, StyleSheet } from 'react-native';
 import { PressableScale } from '../../components/PressableScale';
 import { DeepDiveCta } from '../../components/DeepDiveCta';   // 유도 CTA = 이미지 카드(daniel 07-29)
 import { RelatedContent } from '../../components/RelatedContent';
@@ -37,7 +37,7 @@ export default function LoveStyleScreen() {
   useLogContentVisit('lovestyle'); // 진입 1회 방문 기록(daniel 2026-07-06)
   const router = useRouter();
   const { t } = useTranslation();
-  const { fs, ls } = useFontScale();
+  const { fs } = useFontScale();
   const [me, setMe] = useState<ChartInput | null>(null);
   const [loading, setLoading] = useState(true);
 

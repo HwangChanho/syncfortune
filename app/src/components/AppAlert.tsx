@@ -3,7 +3,7 @@
 // root 레이아웃에 1개만 마운트 → lib/alert 의 host 로 등록. Alert.alert 호출 시 이 모달이 뜬다.
 //   버튼 style: cancel(가라앉은 회색)·destructive(빨강)·default(골드). 2개 이하=가로, 3개+=세로.
 // ─────────────────────────────────────────────────────────────────────────
-import { Modal, View, Text, Pressable, StyleSheet } from 'react-native';
+import { Modal, View, Text, StyleSheet } from 'react-native';
 import { PressableScale } from './PressableScale';
 import { useEffect, useRef, useState } from 'react';
 import { registerAlertHost, alertDismissed, type AlertOpts } from '../lib/ui/alert';

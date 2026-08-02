@@ -9,7 +9,7 @@
 //   영상이 시각적 주인공이므로 이때는 링·자물쇠 이모지를 생략(중복 연출 제거). VideoSplash 와 동일한 expo-video 패턴.
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useRef, useState } from 'react';
-import { View, Text, Animated, Easing, StyleSheet, Pressable } from 'react-native'; // ★Modal 제거(VideoView Modal내 iOS 렌더실패)
+import { View, Text, Animated, Easing, StyleSheet } from 'react-native'; // ★Modal 제거(VideoView Modal내 iOS 렌더실패)
 import { useVideoPlayer, VideoView } from 'expo-video'; // 번들 mp4 재생(이미 VideoSplash 에서 사용 — 신규 네이티브 의존 없음)
 import { PressableScale } from './PressableScale';
 import { useRouter } from 'expo-router';

@@ -5,7 +5,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useMemo, useState, useCallback } from 'react';
 import { A } from '../../lib/ui/remoteAsset'; // ★이미지 원격화(daniel 08-01) — 번들에서 걷어내고 Storage 에서 받는다
-import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { PressableScale } from '../../components/PressableScale';
 import { useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -23,7 +23,7 @@ import { useLogContentVisit } from '../../lib/backend/contentVisit'; // 콘텐�
 export default function ZodiacScreen() {
   useLogContentVisit('zodiac'); // 진입 1회 방문 기록(daniel 2026-07-06)
   const { t } = useTranslation();
-  const { fs, ls } = useFontScale();
+  const { fs } = useFontScale();
   const [tab, setTab] = useState<'animal' | 'sign'>('animal');
   const [me, setMe] = useState<ChartInput | null>(null);
 

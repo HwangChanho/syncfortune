@@ -7,7 +7,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useMemo, useState, useRef, type ReactNode } from 'react';
 import { A } from '../lib/ui/remoteAsset'; // ★이미지 원격화(daniel 08-01) — 번들에서 걷어내고 Storage 에서 받는다
-import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator, Animated, Easing, Modal } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, ActivityIndicator, Animated, Easing, Modal } from 'react-native';
 import { PressableScale } from './PressableScale';
 import { ReadingProse, ReadingHeadline, ReadingPoints } from './ReadingProse'; // 풀이 본문 공통 렌더(P0 문단화·강조·접이식 + P1 핵심3줄). 이 셸을 쓰는 유료 콘텐츠 29종에 일괄 적용
 import { GlossarySheet, type GlossaryTarget } from './GlossarySheet'; // 명리 용어 탭 → 뜻(가독성 P2)
@@ -24,19 +24,15 @@ import { useAuth } from '../lib/useAuth';
 import { useSubscription } from '../lib/billing/subscription';   // 프리미엄=자동 생성
 import { useFontScale } from '../lib/ui/fontScale';
 import { promptSignupOnReadingEnter } from '../lib/ui/signupPrompt'; // ★유료 콘텐츠 진입 시 계정 연결 안내(daniel 07-27)
-import { waitForCreditGrant, loadCredits, type CreditKind } from '../lib/billing/coupons'; // C1: 결제 후 웹훅 적립 폴링(차감은 Edge 서버 게이트) · loadCredits=게이트 사전 확인(자물쇠 번쩍임 방지)
-import { isUnlocked, markUnlocked } from '../lib/billing/unlocks';
+import { type CreditKind } from '../lib/billing/coupons'; // C1: 결제 후 웹훅 적립 폴링(차감은 Edge 서버 게이트) · loadCredits=게이트 사전 확인(자물쇠 번쩍임 방지)
+import { markUnlocked } from '../lib/billing/unlocks';
 import { fetchReadingState } from '../lib/billing/readingState'; // ★ADR-061 서버가 상태를 정한다(앱은 표출만) // isUnlocked=무차감 재열람 힌트 / markUnlocked=생성 성공 후 캐시 힌트(C3 part2 — 게이트 아님)
 import { ShareReadingButton } from './ShareReadingButton'; // 이슈17: 풀이 결과 공유
 import { TTSButton } from './TTSButton'; // daniel: 풀이 음성 읽기(온디바이스 TTS·무료)
 import { RelatedContent } from './RelatedContent'; // 연관 콘텐츠 자동 추천(하단 크로스셀·API 0·daniel 기획서)
 import { buildRomanceMirror } from '../lib/engine/romanceMirror';   // R60 애정 이원분석(온디바이스 판정)
-import { coinPriceOf, coinBalanceOrNull } from '../lib/billing/coins';   // ★운 전환(daniel 07-28)
-import { notifyNetworkError } from '../lib/backend/network';
 import { ensureCoinsFor } from '../lib/billing/coinGate';
 import { withTimeout } from '../lib/core/withTimeout';   // ★게이트·생성 대기 상한(멈춤 방지)   // ★운 단일 경로(daniel 07-28)
-import { purchasesEnabled } from '../lib/billing/purchases';
-import { isAdminActing } from '../lib/core/admin';                  // 스페셜 = 관리자 바로 / 그 외 쿠폰(크레딧)
 import { requireLoginForPurchase } from '../lib/billing/requireLogin';
 import { autoGenWithChartConfirm } from '../lib/ui/confirmChart'; // 자동생성 전 명식 확인(명식 2개+ 일 때)
 import { requestChartConfirm } from '../lib/ui/chartConfirm'; // 명식 확인 모달을 await — 수동 경로는 runFlow 가 순서를 직접 제어(daniel 07-26)
@@ -106,19 +102,18 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
   const { chartId: chartIdParam } = useLocalSearchParams<{ chartId?: string }>(); // ★M1 재진입 바인딩(배너/푸시 route 의 chartId — 소비 라우트 공통)
   const { session } = useAuth();
   const { isPremium } = useSubscription();
-  const { fs, ls } = useFontScale();
+  const { fs } = useFontScale();
   const [savedChart, setSavedChart] = useState<SavedChart | null>(null);
   const [chartId, setChartId] = useState<string | null>(null);
   const [reading, setReading] = useState<any>(null);
   const [expiry, setExpiry] = useState<string | null>(null); // 보유 만료일(생성일+1년) — showExpiry(유료 단일)일 때 캐시 created_at으로 채움(daniel #25)
   const [busy, setBusy] = useState(false);
-  const [purchasing, setPurchasing] = useState(false); // ★결제 오버레이(daniel 07-24) — '바로 구매' 탭 후 애플 결제창 뜨기까지·웹훅 적립까지 무피드백 방지(성격급한 유저 이탈)
+  const [purchasing] = useState(false); // ★결제 오버레이(daniel 07-24) — '바로 구매' 탭 후 애플 결제창 뜨기까지·웹훅 적립까지 무피드백 방지(성격급한 유저 이탈)
   const [loaded, setLoaded] = useState(false);
   const [owned, setOwned] = useState(false); // 소유(프리미엄/관리자/차감 unlock) — 미구매 차트 풀이 노출 차단(daniel ⓐ). 명식 변경 시 재판정.
   const [reloadKey, setReloadKey] = useState(0); // ChartPicker 로 대표 전환 시 재로드 트리거
   const [revealed, setRevealed] = useState(false); // 상태 뷰 경유(daniel 07-03): 소유(프리미엄/구매/관리자) 풀이도 바로 노출하지 않고 '이미 열려 있음' 상태 뷰를 먼저 보여준 뒤 '풀이 보기'로 공개. 명식/카테고리 변경 시 false 리셋 → 전환할 때마다 상태 뷰 재노출.
   const c = useMemo(() => (savedChart ? computeChart(savedChart.input) : null), [savedChart]);
-  const gatingRef = useRef(false); // 게이트(모달) 연타 차단(레거시 — promptPurchase 폴백 경로에서만)
   // ★열람 플로우 잠금(daniel 07-26 "진행중일땐 다른행동 못하게") — 값 = 시작 시각(ms), 0 = 유휴.
   //   시각을 담는 이유: Alert 가 콜백 없이 닫히면(안드로이드 백버튼) await 가 영구 대기해 잠금이 누수될 수 있어
   //   genLock 과 동일한 stale 타임아웃으로 회수한다.
@@ -377,63 +372,7 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
   // ─────────────────────────────────────────────────────────────────────────
   function onStart() { void runFlow(); }
 
-  /** 커스텀 Alert(콜백 기반)를 await 가능하게 — 버튼 선택을 Promise 로 돌려준다. */
-  function askPurchase(): Promise<'buy' | 'market' | 'cancel'> {
-    return new Promise((resolve) => {
-      Alert.alert(title, t('special.needPayMsg', '이용권이 필요해요. 바로 구매하거나 마켓에서 받을 수 있어요.'), [
-        { text: t('special.buyNow', '바로 구매'), onPress: () => resolve('buy') },
-        { text: t('special.goMarket', '마켓에서 보기'), onPress: () => resolve('market') },
-        { text: t('common.cancel'), style: 'cancel', onPress: () => resolve('cancel') },
-      ], () => resolve('cancel'));   // ★뒤로가기로 닫아도 반드시 풀린다
-    });
-  }
 
-  /**
-   * 결제 1건 — 성공(크레딧 적립 확인)만 true.
-   * **취소·마켓이동·미적립·오류를 전부 false 로 정규화**해 호출부가 한 갈래로 처리한다(실패 경로 누락 방지).
-   */
-  async function buyCredit(): Promise<boolean> {
-    // ★★코인 전환(daniel 2026-07-28): 코인가가 있으면 **스토어 결제 없이 보유 코인으로** 연다.
-    //   결제 왕복(결제창 지연·적립 폴링·재결제 유도)이 통째로 사라진다. 차감은 서버(Edge)가 한다.
-    const coinCost = coinPriceOf(kind);
-    if (coinCost != null) {
-      const bal = await coinBalanceOrNull();
-      if (bal === null) {                                  // ★'확인 불가'를 '부족'으로 읽으면 재결제를 유도하게 된다
-        notifyNetworkError(`${kind}.coinBalance`, new Error('balance unavailable'), t);
-        return false;
-      }
-      if (bal < coinCost) {
-        return await new Promise<boolean>((resolve) => {
-          Alert.alert(
-            t('coins.needTitle', '운이 부족해요'),
-            t('coins.needMsg', { need: coinCost, have: bal, defaultValue: '이 풀이는 {{need}} 운이 필요해요. 지금 {{have}} 운 있어요.' }),
-            [
-              { text: t('common.cancel'), style: 'cancel', onPress: () => resolve(false) },
-              { text: t('coins.charge', '운 충전하기'), onPress: () => { router.push('/coins'); resolve(false); } },
-            ],
-            () => resolve(false),   // ★뒤로가기로 닫아도 반드시 풀린다
-          );
-        });
-      }
-      return await new Promise<boolean>((resolve) => {
-        Alert.alert(
-          title,
-          t('coins.spendMsg', { cost: coinCost, have: bal, defaultValue: '{{cost}} 운을 사용해 풀이를 시작할까요? (보유 {{have}} 운)' }),
-          [
-            { text: t('coins.spend', '운 사용'), onPress: () => resolve(true) },   // 차감은 Edge 가(이중차감 방지)
-            { text: t('common.cancel'), style: 'cancel', onPress: () => resolve(false) },
-          ],
-          () => resolve(false),   // ★뒤로가기로 닫아도 반드시 풀린다
-        );
-      });
-    }
-    // ★코인가 미등록 = **등록 누락 버그**다(check:coins K1 이 모든 유료 kind 에 코인가를 강제하므로
-    //   정상 상태에서는 여기 도달하지 않는다). 예전엔 스토어 결제로 폴백했는데, 그러면 코인 단일 경로가
-    //   조용히 깨진다 — 사용자에게 코인 대신 원화 결제창이 뜬다. 폴백 대신 **막고 알린다**.
-    Alert.alert(title, t('special.priceMissing', '지금은 이 콘텐츠를 열 수 없어요. 잠시 후 다시 시도해 주세요.'));
-    logEvent(`${kind}_coinprice_missing`, { chartId }, 'error');
-    return false;
-  }
 
   /**
    * 진입 CTA('구매하고 보기' / '풀이 보기' / '이어서 풀이 만들기')의 **단일 경로**.
@@ -506,7 +445,6 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
     ]);
   }
 
-  const bodyDyn = { fontSize: fs(15), lineHeight: 25 };
   // 동적 폰트 스케일이 필요한 StyleSheet 정적값 대체 — StyleSheet.create는 렌더 밖이라 fs()를 직접 쓸 수 없음.
   const dynStyles = {
     secLabel:    { fontSize: fs(16) },
@@ -682,7 +620,7 @@ export function cardAnim(reveal: Animated.Value, i: number, n: number) {
 
 // 상단 히어로 — SVG 모티프(+선택적 이미지 배경) + 타이틀/부제 페이드인. love/newyear 등 다른 화면도 재사용(export).
 export function ContentHero({ motif, image, title, sub, themeColor = colors.ju }: { motif?: ReactNode; image?: any; title: string; sub: string; themeColor?: string }) {
-  const { fs, ls } = useFontScale();
+  const { fs } = useFontScale();
   const a = useRef(new Animated.Value(0)).current;
   const kb = useRef(new Animated.Value(0)).current; // 히어로 켄번스(느린 줌 인↔아웃) — 정적 이미지에 생동(daniel 재미)
   useEffect(() => { Animated.timing(a, { toValue: 1, duration: 700, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start(); }, [a]);
@@ -721,7 +659,7 @@ export function ContentHero({ motif, image, title, sub, themeColor = colors.ju }
 
 // 무료 티어 미리보기 카드 — 온디바이스 결정론 기본값(수비학 생명수·점성술 빅3)을 키:값 줄로. 유료=LLM 심층(하이브리드 hook).
 export function FreeBasics({ title, rows, color = colors.ju }: { title: string; rows: [string, string | number][]; color?: string }) {
-  const { fs, ls } = useFontScale();
+  const { fs } = useFontScale();
   return (
     <View style={{ width: '100%', backgroundColor: colors.sunk, borderRadius: radius.md, padding: space(4), marginBottom: space(4) }}>
       <Text style={{ fontSize: fs(13), fontWeight: '800', color, marginBottom: space(2), letterSpacing: 0.5 }}>{title}</Text>

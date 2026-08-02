@@ -8,7 +8,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Image as ExpoImage } from 'expo-image'; // ★뷰 크기 다운샘플 + 디스크 캐시(RN Image 는 원본 풀 디코딩 — 갤럭시 랙 원인)
 import { A } from '../lib/ui/remoteAsset'; // ★이미지 원격화(daniel 08-01) — 번들에서 걷어내고 Storage 에서 받는다
-import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator, Modal, TextInput, Keyboard, Image, Animated, Easing } from 'react-native';
+import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator, Modal, TextInput, Keyboard, Animated, Easing } from 'react-native';
 import { useRouter } from 'expo-router';                    // ★운 부족 → 충전 화면(daniel 07-28)
 import { ensureCoinsFor } from '../lib/billing/coinGate';   // ★운 단일 경로
 import { PressableScale } from '../components/PressableScale';
@@ -31,11 +31,11 @@ import { ChartRegisterScreen } from './ChartRegisterScreen'; // 상대 명식 = 
 import { useAuth } from '../lib/useAuth';
 import { useSubscription } from '../lib/billing/subscription';
 import { assertOnline } from '../lib/backend/network'; // 오프라인 시 신규 생성 차단
-import { waitForCreditGrant, creditPrice, formatKrw } from '../lib/billing/coupons'; // C1 웹훅 폴링 + 실가 주입(하드코딩 근절)
+import { creditPrice, formatKrw } from '../lib/billing/coupons'; // C1 웹훅 폴링 + 실가 주입(하드코딩 근절)
 import { ensureServerChartId } from '../lib/backend/prewarmReadings';
 import { useFontScale } from '../lib/ui/fontScale';
 import { COMPAT_RELS, otherSig, loadCompatReadings, genCompatReading, compatSections, compatSectionLabel, type CompatReading } from '../lib/content/compatReadings';
-import { setGenProgress, getGenItem } from '../lib/backend/genProgress'; // 다건 진행도(route='/compat', daniel·docs/CONTENT_API_INVENTORY.md)
+import { setGenProgress } from '../lib/backend/genProgress'; // 다건 진행도(route='/compat', daniel·docs/CONTENT_API_INVENTORY.md)
 import { acquireGen, releaseGen, isGenActive } from '../lib/backend/genLock'; // 크로스마운트 이중 생성 잠금(② 이중 LLM 방지)
 import { loadFollowups, askFollowup, type Followup } from '../lib/backend/followups'; // 궁합 추가질문(사주/자미 풀이와 동일 — 무료1 + 건당)
 import { yearGanZhi } from '../lib/content/dailyFortune'; // 연도별 궁합: 그 해 간지(세운)
@@ -311,7 +311,6 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
   const llmScore = (() => { const v: any = (cur as any)?.score; const n = typeof v === 'number' ? v : typeof v === 'string' ? parseInt(v, 10) : NaN; return Number.isFinite(n) ? Math.max(0, Math.min(100, Math.round(n))) : null; })();
   const dispScore = llmScore ?? compat?.score ?? null;
   const dispTier = llmScore != null ? tierOf(llmScore) : (compat?.tier ?? null);
-  const slotLine = (input: ChartInput | null) => input ? `${String(input.birthDateTime).split(' ')[0]} · ${input.sex}` : '미선택';
 
   // ★유료 궁합 통변(cur)이 실제로 공개되는 순간 = 골드 명조 문 열림 연출 1회(daniel 07-06). 캐시 로드/생성 완료로 처음 뜰 때만.
   //   ReadingScreen 선례처럼 마운트당 1회(관계/탭/연도 전환마다 재생 X). 무료 결정론 점수 티저(ScoreReveal)엔 재생 안 함.

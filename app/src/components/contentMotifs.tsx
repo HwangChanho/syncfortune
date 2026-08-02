@@ -8,7 +8,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useRef } from 'react';
 import { Animated, Easing } from 'react-native';
-import Svg, { Path, Circle, Line, G } from 'react-native-svg';
+import Svg, { Path, Circle, Line } from 'react-native-svg';
 import { colors } from '../lib/theme';
 import { elementColor } from '../lib/engine/ohaeng';
 

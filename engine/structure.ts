@@ -263,7 +263,6 @@ export function classifyStrength(saju: SajuChart): {
   //   조건: 일간 무근(4지지 어디에도 통근 없음) + 인비 전무(비겁·인성이 천간투출·지지본기에 0). = 종격 가능성.
   //   ※ 실제 종격/가종/신약 확정은 지장간·합화·운까지 봐야 하므로 온디바이스에서 확정 않고 Edge(유료 LLM)로 위임한다.
   //     favorCnt(비겁+인성 자리 수)를 재사용 — 전무 판정은 엄격히 0(오검출 최소화, ★조정 슬롯).
-  const rootless = mainRoots.length === 0;                 // 일간 무근
   // ★전문가 검수 2026-07-14 (daniel 전량 반영): 종격은 안 본다 — 종격 후보 감지 폐기(항상 false).
   //   태왕·태약도 억부로 처리(종왕·종격 게이트 제거). 구 조건(rootless && favorCnt===0)은 미적용.
   const jonggyeokCandidate = false;

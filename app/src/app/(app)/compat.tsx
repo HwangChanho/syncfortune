@@ -4,7 +4,7 @@
 // 상대는 화면 내 직접 입력(동의 게이트 — 규칙8). 결정론 궁합은 온디바이스.
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useState, useRef } from 'react';
-import { View, Text, Pressable, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
 import { PressableScale } from '../../components/PressableScale';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';

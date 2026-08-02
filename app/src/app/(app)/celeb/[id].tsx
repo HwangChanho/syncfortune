@@ -5,7 +5,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useMemo, useCallback } from 'react';
 import {
-  View, Text, ScrollView, StyleSheet, Pressable,
+  View, Text, ScrollView, StyleSheet, 
   ActivityIndicator,
 } from 'react-native';
 import { PressableScale } from '../../../components/PressableScale';

@@ -27,7 +27,7 @@ import { colors, radius, space, font, shadow } from '../../lib/theme';
 import { useTranslation } from 'react-i18next';
 
 export default function CoinsScreen() {
-  const { fs, ls } = useFontScale();
+  const { fs } = useFontScale();
   const { t } = useTranslation();
   const router = useRouter();
   const { session } = useAuth();
