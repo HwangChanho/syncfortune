@@ -7,6 +7,7 @@
 //   ★daniel: AdMob 콘솔 실 unit ID 를 app/.env 에 주입(.env.example 참조). app.json 의 app id(~) 도 실값 교체.
 // ─────────────────────────────────────────────────────────────────────────
 import { Platform } from 'react-native';
+import { getAdFreeSnapshot } from '../billing/adFree'; // ★광고 제거 구매자에겐 광고를 띄우지 않는다(아래 주석)
 
 // 네이티브 모듈 lazy require — 미포함 빌드에서 import 크래시 방지.
 let Ads: any = null;
@@ -77,6 +78,17 @@ export async function showInterstitialAd(): Promise<void> {
 //   만세력 추가 게이트·무료 통변 리워드에서 사용(true 일 때만 보상 지급).
 let rewardedShowing = false; // ★연타 중복 방지 — 이미 표시/로드 중이면 재호출 무시(광고 무한노출 버그 수정)
 export async function showRewardedAd(): Promise<boolean> {
+  // ★★광고 제거를 산 사용자에겐 **광고를 띄우지 않고 보상만 준다**(daniel 2026-08-02 발견).
+  // ─────────────────────────────────────────────────────────────────────
+  // 무엇이 문제였나: 광고 제거 안내에는 "하단 배너와 보상형 광고가 함께 사라져요"라고 적어 두고,
+  //   실제로는 `showRewardedAd` 호출처 3곳(월운·명식 한도·콘텐츠 진입)이 전부 **폐지된 `isPremium`**
+  //   만 보고 있었다. 프리미엄은 07-28 에 없앴으므로 그 분기는 아무도 참이 아니다
+  //   → **100 운 내고 '영구 광고 제거'를 산 사람도 보상형 광고를 계속 봤다.** 돈 받고 안 지킨 약속이다.
+  // 왜 false 가 아니라 true 인가: 호출처는 반환값을 '보상을 줄까'로 쓴다. false 면 돈 낸 사람이
+  //   오히려 기능을 못 쓴다 — 광고를 안 보는 대가로 **혜택을 잃는** 셈이라 정반대다.
+  //   광고를 봐서 얻는 것을, 돈을 냈으니 그냥 준다.
+  // 왜 여기(길목)인가: 호출처마다 분기를 달면 이번처럼 한 곳만 빠져도 약속이 깨진다.
+  if (getAdFreeSnapshot()) return true;
   if (!Ads?.RewardedAd) return false; // 재빌드 전 = 보상 없음(호출처가 폴백 판단)
   if (rewardedShowing) return false;  // 이미 진행 중(버튼 연타) — 무시
   rewardedShowing = true;

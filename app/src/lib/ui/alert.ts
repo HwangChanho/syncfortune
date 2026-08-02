@@ -33,7 +33,13 @@ function pump() {
 }
 
 // AppAlert 가 모달을 완전히 닫은(dismiss 애니메이션 끝) 뒤 호출 → 다음 알림 표시.
+// ★두 번 불려도 안전해야 한다(2026-08-02). 예전엔 무조건 current=null 후 pump() 라
+//   중복 호출이 곧 **모달 연속 present**(= iOS terminate)였다. 호스트 쪽에서도 막지만,
+//   '한 번 닫힘 = 한 번 pump' 라는 이 큐의 불변식은 **여기서도** 지켜야 한다(방어 이중화).
+//   current 가 이미 비었으면 = 닫힘이 이미 처리된 것 → 아무것도 하지 않는다.
+//   (대기 중인 알림은 Alert.alert 가 자기 자신을 pump 하므로 여기서 안 띄워도 유실되지 않는다.)
 export function alertDismissed() {
+  if (!current) return;
   current = null;
   pump();
 }

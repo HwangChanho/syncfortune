@@ -5,7 +5,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { Modal, View, Text, Pressable, StyleSheet } from 'react-native';
 import { PressableScale } from './PressableScale';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { registerAlertHost, alertDismissed, type AlertOpts } from '../lib/ui/alert';
 import { colors, radius, space, shadow, font } from '../lib/theme';
 
@@ -13,9 +13,27 @@ export function AppAlert() {
   const [opts, setOpts] = useState<AlertOpts | null>(null);
   useEffect(() => { registerAlertHost(setOpts); }, []);
 
-  // 닫기 = 모달 내림 + (fade 끝난 뒤) 큐의 다음 알림 표시. 350ms = fade(약 300) 여유.
-  //   ★연속/연타 Alert 가 transition 겹쳐 크래시 나는 걸 큐(alert.ts)로 순차화 — 여기서 dismiss 완료를 알린다.
-  const close = () => { setOpts(null); setTimeout(alertDismissed, 350); };
+  // ★★한 번 뜬 알림은 **정확히 한 번만** 닫힌다(daniel 2026-08-02 "광고제거 구매하면 앱 크래시").
+  // ─────────────────────────────────────────────────────────────────────
+  // 무엇이 문제였나: close() 는 setOpts(null) 만 한다. 상태 반영은 다음 렌더라
+  //   그 사이(같은 프레임) 모달 버튼은 **여전히 화면에 있고 눌린다.** 빠르게 두 번 닿으면
+  //     ① `cb()` 가 두 번 → 구매 RPC 가 두 번 = **중복 차감**
+  //        (실측: coin_ledger 에 adfree_30 −30 이 **0.653ms 간격**으로 2건 · 2026-08-02 02:05)
+  //     ② `setTimeout(alertDismissed, 350)` 이 두 번 → pump() 가 두 번 →
+  //        **다음 알림을 연달아 present** → 앞 모달 transition 중 present = iOS terminate.
+  //   즉 큐(alert.ts)가 막으려던 바로 그 크래시를, 닫기가 두 번 불리면서 되살렸다.
+  //
+  // 왜 여기서 막는가(길목): 확인 알림은 결제·삭제 등 **모든 위험한 동작의 공통 관문**이다.
+  //   호출처마다 busy 플래그를 다는 방식은 이번처럼 한 곳만 빠져도 돈이 샌다.
+  // 왜 boolean 이 아니라 opts 객체 동일성인가: 다음 알림이 뜨면 opts 가 새 객체라 자동으로
+  //   다시 열린다 — 리셋 타이밍(useEffect)에 기대지 않아 경합이 없다.
+  const handledRef = useRef<AlertOpts | null>(null);
+  const close = () => {
+    if (handledRef.current === opts) return;   // 이 알림은 이미 처리됐다 — 두 번째 탭은 버린다
+    handledRef.current = opts;
+    setOpts(null);
+    setTimeout(alertDismissed, 350);           // 350ms = fade(약 300) 여유
+  };
   // ★버튼을 누르지 않고 닫힘(안드로이드 뒤로가기) — 기다리는 Promise 를 반드시 풀어 준다.
   //   이게 없으면 결제 게이트가 영원히 대기하고 화면 잠금이 남아 버튼이 죽는다(daniel 2026-08-01).
   const dismiss = () => { const d = opts?.onDismiss; close(); d?.(); };

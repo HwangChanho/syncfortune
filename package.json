@@ -88,7 +88,8 @@
     "check:singleflight": "npx tsx scripts/check-singleflight.ts",
     "check:sections": "npx tsx scripts/check-sections.ts",
     "check:coinbalance": "npx tsx scripts/check-coinbalance.ts",
-    "check:accentcopy": "npx tsx scripts/check-accentcopy.ts"
+    "check:accentcopy": "npx tsx scripts/check-accentcopy.ts",
+    "check:alertonce": "tsx scripts/check-alert-once.ts"
   },
   "keywords": [],
   "author": "",
