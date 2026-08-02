@@ -13,6 +13,7 @@ import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator } from
 import { PressableScale } from '../../components/PressableScale';
 import { RelatedContent } from '../../components/RelatedContent';
 import { useRouter } from 'expo-router';
+import { useAdFree } from '../../lib/billing/adFree'; // ★광고 제거(운 구매) — 폐지된 isPremium 을 대신하는 **살아 있는** 개념
 import { useTranslation } from 'react-i18next';
 import { getDailyFortune, DAILY_AREA_KEYS, dailyHeadline, getDailyReading, scoreFlow, type DailyAreaKey } from '../../lib/content/dailyFortune';
 import { ScoreFlowGraph } from '../../components/ScoreFlowGraph'; // 점수 흐름 그래프(지지난달~다다음달, daniel 07-13)
@@ -46,6 +47,7 @@ export default function MonthScreen() {
   const router = useRouter();
   const { session } = useAuth();
   const { isPremium } = useSubscription();
+  const adFree = useAdFree();   // ★광고 판정은 여기로(아래 onStart 주석)
   const f = useMemo(() => getDailyFortune(), []); // monthGanZhi(이번 달 월건)
   const [saved, setSaved] = useState<SavedChart | null>(null);
   const [chartId, setChartId] = useState<string | null>(null);
@@ -110,7 +112,10 @@ export default function MonthScreen() {
 
   async function onStart() {
     if (!chartId || busy) return;
-    if (isPremium) { generate(chartId); return; }
+    // ★광고를 건너뛰는 판정은 **adFree**(daniel 2026-08-02). 예전엔 isPremium 이었는데
+    //   프리미엄은 07-28 에 폐지돼 **항상 false** — 즉 이 분기는 아무도 못 타는 죽은 게이트였다.
+    //   광고 제거를 산 사용자가 여기서 걸러지지 않아 광고 흐름으로 넘어갔다.
+    if (adFree) { generate(chartId); return; }
     setBusy(true); setErr(null);                            // 광고 로딩 표시 — 무반응(daniel) 방지
     let earned = false;
     // ★상한(2026-07-31): `catch` 는 거부만 잡는다 — SDK 가 무응답이면 busy 가 안 풀려 버튼이 죽는다.

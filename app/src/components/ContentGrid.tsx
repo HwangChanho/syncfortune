@@ -25,6 +25,7 @@ import { withTimeout } from '../lib/core/withTimeout';   // ★대기 상한(멈
 import { showRewardedAd, adTestMode } from '../lib/core/ads'; // 무료 온디바이스 콘텐츠 진입 보상형 광고
 import { isAdminActing } from '../lib/core/admin';                  // 관리자·프리미엄 = 무료 진입 광고 제외
 import { useSubscription } from '../lib/billing/subscription';
+import { useAdFree } from '../lib/billing/adFree'; // ★광고 제거(운 구매) — 폐지된 isPremium 을 대신하는 **살아 있는** 개념
 import { loadRepChart, subscribeRepChange } from '../lib/engine/myChart';
 import { isPremiumForChart } from '../lib/billing/premiumStore';  // 명식별 프리미엄('이용중' 표시)
 import { needsYearRepurchase } from '../lib/billing/repurchase';  // 지난 해 연도 풀이 → '재구매' 배지(daniel 07-08)
@@ -84,6 +85,7 @@ export function ContentGrid({ showViewToggle = true }: { showViewToggle?: boolea
   const { viewMode, setViewMode } = useHomeViewMode();
   const { session } = useAuth();
   const { isPremium } = useSubscription();
+  const adFree = useAdFree();   // ★광고 게이트 판정(아래 주석)
   const [admin, setAdmin] = useState(false);
   // ★신규 기능 노출 게이트 — 속궁합은 관리자(daniel) 또는 원격 플래그 ON 일 때만 노출(재제출 안전판).
   const sokOn = useFeatureOn('sokgunghap');
@@ -179,7 +181,9 @@ export function ContentGrid({ showViewToggle = true }: { showViewToggle?: boolea
     // ★상한(2026-07-31 '멈춤' 전수조사): `.catch()` 는 **거부**만 잡는다 — 광고 SDK 가 응답 없이 매달리면
     //   이 await 가 안 끝나고 아래 해제가 실행되지 않아 **카드 탭이 영구히 죽는다**(잠금이 남는다).
     //   광고는 부가 기능이므로 상한을 넘기면 그냥 진입시킨다(사용자를 막지 않는다).
-    if (m.content && !m.creditKey && !isPremium && (!admin || adTestMode())) {
+    // ★`!isPremium` → `!adFree`(daniel 2026-08-02): 프리미엄은 07-28 폐지로 **항상 false** 라
+    //   `!isPremium` 은 늘 참 = 광고 제거를 산 사용자도 이 광고 게이트로 들어왔다(죽은 게이트).
+    if (m.content && !m.creditKey && !adFree && (!admin || adTestMode())) {
       await withTimeout(showRewardedAd().catch(() => false), AD_TIMEOUT_MS);
     }
     router.navigate(m.route);
