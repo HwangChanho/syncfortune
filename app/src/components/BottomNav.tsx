@@ -78,8 +78,16 @@ function TabIcon({ name, color }: { name: TabKey; color: string }) {
 }
 
 let _navBarHeight = 82; // 실측 전 근사값. onLayout 으로 갱신(아이콘 추가로 높이가 바뀌어도 자동 반영).
+const NAV_MARGIN_BOTTOM = space(4); // ★styles.bar 의 marginBottom — onLayout 높이에 안 잡힌다(아래 getNavBarHeight 주석)
 /** 하단 네비바 실측 높이(px) — 키보드 입력바 위치 계산용(코치 등). 마운트 후 정확값. */
-export function getNavBarHeight(): number { return _navBarHeight; }
+/**
+ * 네비바가 **실제로 차지하는 세로 공간**(pt).
+ * ⚠️`onLayout` 높이는 **margin 을 포함하지 않는다** — bar 에 `marginBottom: space(4)` 가 있어
+ *   그만큼이 빠져 있었다. 이 값을 '키보드 위 입력바' 위치 계산에 쓰는 화면(coach)이 있어,
+ *   16pt 가 빠지면 입력바가 그만큼 **떠 보인다**(daniel 2026-08-04 IMG_8351).
+ *   ⇒ 레이아웃 높이에 margin 을 더해 '점유 높이'를 돌려준다.
+ */
+export function getNavBarHeight(): number { return _navBarHeight + NAV_MARGIN_BOTTOM; }
 
 export function BottomNav() {
   const router = useRouter();

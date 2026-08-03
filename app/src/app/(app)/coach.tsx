@@ -66,7 +66,7 @@ type Turn =
 export default function AssistantScreen() {
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
-  const { fs, ls } = useFontScale();
+  const { fs } = useFontScale();
   const router = useRouter();
   const [turns, setTurns] = useState<Turn[]>([]);
   const [input, setInput] = useState('');
@@ -235,7 +235,11 @@ export default function AssistantScreen() {
       {/* 입력바 — 절대위치, 키보드 위에 정확히(전역 네비바 높이 보정) */}
       <View style={[styles.inputBar, { bottom: lift }]}>
         <TextInput
-          style={[styles.input, { fontSize: fs(15), minHeight: ls(40) }]}
+          // ★minHeight 제거(daniel 2026-08-04 "텍스트필드 안에 글자 위치도 이상해").
+          //   multiline TextInput 은 iOS 에서 글자가 **위에 붙는다**(정상 동작). 거기에 한 줄보다 큰
+          //   minHeight 바닥값을 주면 아래가 비어 글자가 위로 쏠린 것처럼 보인다.
+          //   높이는 padding 이 정하게 두면 한 줄일 때 딱 맞고, 길어지면 maxHeight 까지 자연히 늘어난다.
+          style={[styles.input, { fontSize: fs(15) }]}
           value={input}
           onChangeText={setInput}
           placeholder={t('assist.placeholder', '무엇을 보고 싶으세요?')}
@@ -314,7 +318,8 @@ const styles = StyleSheet.create({
   // 입력바
   inputBar: {
     position: 'absolute', left: 0, right: 0, bottom: 0,
-    flexDirection: 'row', alignItems: 'flex-end', gap: space(2.5),
+    // 입력창과 '보내기'를 세로 가운데로(한 줄일 때 버튼만 아래로 처지지 않게).
+    flexDirection: 'row', alignItems: 'center', gap: space(2.5),
     paddingHorizontal: space(5), paddingVertical: space(3),
     backgroundColor: colors.card, borderTopWidth: 1, borderTopColor: colors.juLine,
   },
