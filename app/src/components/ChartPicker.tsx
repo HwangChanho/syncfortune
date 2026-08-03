@@ -73,8 +73,13 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
   const [catFilter, setCatFilter] = useState<string | null>(null); // 카테고리(관계) 필터 — null=전체보기(daniel: 전체보기+카테고리별 보기)
 
   const reload = useCallback(async () => {
-    setCharts(await listCharts());
-    setRepId(await getRepresentativeId());
+    // ★둘을 **함께** 세팅한다(daniel 2026-08-03 "몇 번을 말해도 그대로여").
+    //   종전엔 setCharts 뒤에 await 가 있어 **목록은 있는데 대표 id 는 아직 없는 프레임**이 생겼다.
+    //   그 프레임에서 첫 행 onLayout 이 돌아 '대표를 못 찾음'으로 판정하고, 아래 scrolledRef 가
+    //   이미 켜져 다시는 시도하지 않았다 — 그래서 늘 맨 위에서 열렸다.
+    const [cs, rid] = await Promise.all([listCharts(), getRepresentativeId()]);
+    setCharts(cs);
+    setRepId(rid);
   }, []);
   // 화면 복귀(등록 후 등) 때마다 갱신 + 화면 이탈 시 열린 시트·액션시트 강제 닫힘(daniel 07-05: 뷰 바뀌면 자동으로 사라져야).
   useFocusEffect(useCallback(() => { reload(); return () => { setOpen(false); setActionsFor(null); }; }, [reload]));
@@ -187,9 +192,13 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
   const scrolledRef = useRef(false); // 열림 1회당 한 번만 이동(사용자가 스크롤한 뒤 끌어올리지 않도록)
   useEffect(() => { if (!open) { scrolledRef.current = false; } }, [open]);
   const scrollToRep = useCallback(() => {
-    if (scrolledRef.current || !rowHRef.current) return;
+    if (scrolledRef.current) return;
+    // ★아직 판단할 재료가 없으면 **표시하지 않고 물러난다**(다음 기회에 다시 불린다).
+    //   종전엔 재료가 없어도 scrolledRef 를 켜 버려서, 첫 시도가 헛돌면 영영 안 움직였다.
+    if (!rowHRef.current || !repId || !shown.length) return;
     const idx = shown.findIndex((c) => c.id === repId);
-    scrolledRef.current = true;
+    if (idx < 0) return;                 // 필터 중이라 목록에 없다 — 이것도 '판단 못 함'이다
+    scrolledRef.current = true;          // 여기서부터가 진짜 '한 번 판단했다'
     if (idx < 3) return; // 위쪽 3개는 이미 화면에 있다 — 굳이 움직이면 오히려 어색하다
     // 선택한 행 바로 위 한 줄을 남겨 "여기서 이어진다"는 맥락을 준다.
     try { listRef.current?.scrollToOffset({ offset: (idx - 1) * rowHRef.current, animated: false }); } catch { /* 리스트가 아직 준비 전이면 무시 */ }
