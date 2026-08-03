@@ -26,7 +26,7 @@ import { withTimeout } from '../core/withTimeout';
 import type { CelebEntry } from './celebData';
 
 /** DB 행 → 기존 매칭 엔진이 먹는 형태. 필드 이름을 여기서 한 번만 맞춘다. */
-type Row = { id: string; name_ko: string | null; name_en: string | null; role: string | null; birth_date: string; sex: string | null };
+type Row = { id: string; name_ko: string | null; name_en: string | null; role: string | null; birth_date: string; sex: string | null; country_code: string | null };
 
 function toEntry(r: Row): CelebEntry | null {
   const name = (r.name_ko || r.name_en || '').trim();
@@ -34,19 +34,23 @@ function toEntry(r: Row): CelebEntry | null {
   return {
     id: r.id,
     name,
-    // 한 줄 소개 — 표에 있는 건 역할뿐이라 그것만 쓴다(없는 설명을 지어내지 않는다).
-    note: r.role ?? '',
-    input: {
-      birthDateTime: `${r.birth_date} 12:00`,   // 시각 미상 — 정오는 자리표시(아래 timeAccuracy 가 시주를 뺀다)
-      calendar: '양',
-      timeAccuracy: '미상',
-      sex: (r.sex === '여' ? '여' : '남'),
-      birthPlace: '',
-    },
-  } as CelebEntry;
+    flag: r.country_code === 'KR' ? '🇰🇷' : FLAG[r.country_code ?? ''] ?? '🌏',
+    role: r.role ?? '',
+    birth: r.birth_date,                       // YYYY-MM-DD (공개 정보 · 시각은 미상)
+    sex: r.sex === '여' ? '여' : '남',
+    // ★한 줄 소개는 **지어내지 않는다**. 표에 있는 건 역할뿐이라 그걸 그대로 쓴다 —
+    //   실존 인물에게 없는 서사를 붙이면 그게 곧 허위다(CLAUDE.md §4 명예 존중).
+    blurb: r.role ? `${r.role}` : '',
+  };
 }
 
-const SELECT = 'id, name_ko, name_en, role, birth_date, sex';
+/** 국기 — 자주 나오는 나라만. 없으면 🌏(모르면 모른다고 표시). */
+const FLAG: Record<string, string> = {
+  KR: '🇰🇷', US: '🇺🇸', JP: '🇯🇵', CN: '🇨🇳', GB: '🇬🇧', FR: '🇫🇷', DE: '🇩🇪',
+  IT: '🇮🇹', ES: '🇪🇸', CA: '🇨🇦', AU: '🇦🇺', IN: '🇮🇳', BR: '🇧🇷', RU: '🇷🇺',
+};
+
+const SELECT = 'id, name_ko, name_en, role, birth_date, sex, country_code';
 
 /**
  * 상단 노출용 — 한국 배우·가수를 지명도 순으로.

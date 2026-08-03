@@ -12,12 +12,13 @@
 //   재회(FreeFunnel/ReunionRich) 톤을 미러링: 미드나잇-골드·일상어·단정 금지(§4 재미·추정 프레임).
 // ⚠️ 재미·추정 콘텐츠. 투자/정치 단정 절대 금지. 명예 존중.
 // ─────────────────────────────────────────────────────────────────────────
-import { useState, useMemo, useCallback } from 'react';
-import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import { useState, useMemo, useCallback, useEffect } from 'react';
+import { View, Text, ScrollView, StyleSheet, TextInput } from 'react-native';
 import { PressableScale } from '../../../components/PressableScale';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { CELEB_DB } from '../../../lib/content/celebData';                 // 결정론 DB (celebData.ts)
+import { CELEB_DB } from '../../../lib/content/celebData';                 // 번들 폴백(DB 실패 시)
+import { listTrendingCelebs, searchCelebs } from '../../../lib/content/celebDb'; // ★연예인 기반 목록·검색(daniel 08-03)
 import { computeChart } from '../../../lib/engine/engine';                  // 만세력 결정론 산출(엔진) — API 0
 import { loadRepChart } from '../../../lib/engine/myChart';                 // 대표 명식(온디바이스, 로그인 불필요) — ReunionRich 와 동일 결
 import { rankCelebs, matchGrade, type CelebMatchResult } from '../../../lib/content/celebMatch'; // 유사도 랭킹·등급(재사용, 재계산 금지)
@@ -86,18 +87,41 @@ export default function CelebIndex() {
     return () => { alive = false; };
   }, []));
 
-  // ── 전체 랭킹(무료·결정론) — 대표 명식 있을 때 16인 전원을 유사도순으로 산출, repInput 바뀔 때만 재계산 ──
+  // ★인물 목록을 **서버 DB**에서 가져온다(daniel 2026-08-03 "연예인 기반으로 리스트업 … 검색도 가능해야").
+  //   종전엔 번들 16명(역사 인물 위주)이 전부였다. DB 는 생년월일이 공개 출처(위키데이터)라
+  //   내가 날짜를 지어내지 않아도 된다 — 실존 인물은 하루만 틀려도 사주가 통째로 달라진다.
+  //   실패하면 번들 목록으로 폴백한다(빈 화면 금지).
+  const [pool, setPool] = useState<typeof CELEB_DB>(CELEB_DB);
+  const [q, setQ] = useState('');
+  const [searching, setSearching] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    void listTrendingCelebs().then((list) => { if (alive && list.length) setPool(list); }).catch(() => {});
+    return () => { alive = false; };
+  }, []);
+  // 검색 — 디바운스 350ms(타이핑마다 서버를 두드리지 않게). 두 글자 미만이면 다시 인기 목록으로.
+  useEffect(() => {
+    const s2 = q.trim();
+    if (s2.length < 2) { setSearching(false); void listTrendingCelebs().then((l) => l.length && setPool(l)).catch(() => {}); return; }
+    setSearching(true);
+    const id = setTimeout(() => {
+      void searchCelebs(s2).then((l) => setPool(l.length ? l : [])).catch(() => {}).finally(() => setSearching(false));
+    }, 350);
+    return () => clearTimeout(id);
+  }, [q]);
+
+  // ── 전체 랭킹(무료·결정론) — 대표 명식 있을 때 목록 전원을 유사도순으로 산출, repInput 바뀔 때만 재계산 ──
   //   무료 전환(07-07)으로 예전 '유료 가치'였던 전체 순위를 그대로 공개: [0]=티저(가장 닮은 인물), 전체=그리드 정렬·점수.
   //   명식 없거나 엔진 실패 시 null → 그리드는 DB순서 폴백(정상 노출).
   const ranked: CelebMatchResult[] | null = useMemo(() => {
     if (!repInput) return null;
     try {
       const myChart = computeChart(repInput);
-      return rankCelebs(myChart, CELEB_DB);
+      return rankCelebs(myChart, pool);
     } catch {
       return null; // 엔진 산출 실패 시 티저·순위만 생략(그리드는 DB순서로 정상 노출)
     }
-  }, [repInput]);
+  }, [repInput, pool]);
 
   // 상위 1인(무료 티저 = 가장 닮은 인물) — ranked 재사용(재계산·재구현 없이).
   const top: CelebMatchResult | null = ranked?.[0] ?? null;
@@ -110,6 +134,22 @@ export default function CelebIndex() {
         <Text style={styles.title}>{t('celeb.title', '세계를 움직이는 사람들')}</Text>
         <Text style={styles.sub}>
           {t('celeb.sub', '내 사주와 유명인의 사주를 견주는 재미 — 일간·오행·십신 구조로 닮은꼴을 찾아요')}
+        </Text>
+
+        {/* ★이름 검색(daniel 2026-08-03) — 12만 명은 앱에 담을 수 없어 서버에서 찾는다.
+            두 글자 미만이면 다시 '많이 알려진 순' 목록으로 돌아간다.
+            keyboard-safe: 입력창이 스크롤 **최상단**(제목 바로 아래)이라 키보드가 올라와도 덮이지 않는다.
+              아래 결과 목록은 읽기 전용이고, 키보드는 결과를 가리더라도 스크롤로 볼 수 있다. */}
+        <TextInput
+          style={styles.search}
+          value={q}
+          onChangeText={setQ}
+          placeholder="이름으로 찾기 (예: 아이유)"
+          placeholderTextColor={colors.inkFaint}
+          returnKeyType="search"
+        />
+        <Text style={styles.searchHint}>
+          {searching ? '찾는 중…' : q.trim().length >= 2 ? `‘${q.trim()}’ 검색 결과 ${pool.length}명` : '많이 알려진 순으로 보여 드려요'}
         </Text>
 
         {/* ★무료 티저 — 나와 가장 닮은 인물 1명 + 유사도% (온디바이스·결정론·API 0). 탭 → 그 인물 상세 비교 */}
@@ -190,6 +230,8 @@ export default function CelebIndex() {
 }
 
 const styles = StyleSheet.create({
+  search: { marginTop: space(4), backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, borderRadius: radius.sm, paddingVertical: space(3), paddingHorizontal: space(3.5), fontSize: 15, color: colors.ink },
+  searchHint: { ...font.caption, color: colors.inkFaint, marginTop: space(1.5) },
   bg: { flex: 1, backgroundColor: 'transparent' }, // 전역 ContentBackdrop 비쳐 보이게(07-20 배경통일 누락분)
   overlay: { flex: 1, backgroundColor: colors.overlay },
   wrap: { padding: space(6), paddingBottom: space(12) },
