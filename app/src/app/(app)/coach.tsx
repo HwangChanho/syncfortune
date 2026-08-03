@@ -30,7 +30,7 @@ import { PressableScale } from '../../components/PressableScale';
 import { DeepDiveCta } from '../../components/DeepDiveCta';      // 안내 카드(이미지 · SECTIONS 단일 출처)
 import { CoachTarotCard } from '../../components/CoachTarotCard'; // '가볍게 뽑은 카드' — 타로 안내에만(온디바이스·비용 0)
 import { ChartPicker } from '../../components/ChartPicker';
-import { TigerMascot, MASCOT_HALO_OVERHANG } from '../../components/TigerMascot'; // 도우미 아바타(+후광 삐져나감 비율)
+import { TigerMascot } from '../../components/TigerMascot'; // 도우미 아바타
 import { getNavBarHeight } from '../../components/BottomNav';
 import { logEvent } from '../../lib/backend/logger';
 import { useFontScale } from '../../lib/ui/fontScale';
@@ -146,8 +146,9 @@ export default function AssistantScreen() {
         <TigerMascot
           size={76}
           style={{
-            alignSelf: 'flex-start',
-            marginLeft: Math.max(0, Math.round(76 * MASCOT_HALO_OVERHANG - space(6))),
+            // ★가운데 정렬(daniel 2026-08-04 "우니 이미지랑 아래 이름 그밑에 글까지 전부 가운데 정렬").
+            //   가운데로 오면서 잘림 문제도 함께 사라진다 — 좌우로 남는 폭이 후광(≈38px)보다 훨씬 크다.
+            alignSelf: 'center',
             marginTop: space(8),
             marginBottom: space(2),
           }}
@@ -227,10 +228,7 @@ export default function AssistantScreen() {
           </View>
         ))}
 
-        <Text style={[styles.note, { fontSize: fs(11.5) }]}>
-          {t('assist.note', '※ 도우미는 콘텐츠를 찾아 주는 안내예요. 풀이 내용은 각 콘텐츠에서 볼 수 있어요.')}
-        </Text>
-      </ScrollView>
+</ScrollView>
 
       {/* 입력바 — 절대위치, 키보드 위에 정확히(전역 네비바 높이 보정) */}
       <View style={[styles.inputBar, { bottom: lift }]}>
@@ -276,8 +274,8 @@ const styles = StyleSheet.create({
   wrap: { paddingHorizontal: space(6), paddingBottom: space(24) },
   // ★정렬 = 왼쪽(daniel 2026-08-01 "가운데 말고 왼쪽정렬, 왼쪽 여백은 약간").
   //   대화가 전부 좌/우 정렬인데 머리말만 가운데라 축이 어긋나 보였다. 여백은 wrap 의 paddingHorizontal 이 준다.
-  title: { fontWeight: '900', color: colors.ink, textAlign: 'left', marginTop: space(2) },
-  sub: { ...font.caption, color: colors.inkSoft, textAlign: 'left', marginTop: space(1), marginBottom: space(5) },
+  title: { fontWeight: '900', color: colors.ink, textAlign: 'center', marginTop: space(2) },
+  sub: { ...font.caption, color: colors.inkSoft, textAlign: 'center', marginTop: space(1), marginBottom: space(5) },
   // 도우미 말풍선(카드)
   botCard: {
     backgroundColor: colors.card, borderRadius: radius.lg, borderBottomLeftRadius: 4,

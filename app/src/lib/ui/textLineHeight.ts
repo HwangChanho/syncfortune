@@ -41,6 +41,14 @@ export function installMinLineHeight(): void {
   if (typeof original !== 'function') return;   // RN 내부 구조 변경 시 조용히 무시(크래시 방지)
 
   TextAny.render = function patchedRender(props: any, ref: any) {
+    // ★내용이 빈 텍스트는 **아예 그리지 않는다**(daniel 2026-08-04 "설명글은 싹다 빼").
+    //   ※ 안내문 31개를 지우면서 문구만 ''로 비웠다 — 렌더 지점 31곳을 손대는 대신 여기 한 곳에서 막는다.
+    //   빈 <Text> 를 남겨 두면 marginTop·lineHeight 만큼 **빈 줄이 그대로 남아** 간격이 벌어진다.
+    //   ⇒ 문구를 비우는 것만으로 그 자리가 깨끗이 사라진다. 새 안내문을 비워도 자동으로 따라온다.
+    //   ⚠️'' 만 판정한다. 공백 한 칸(' ')은 의도적으로 자리를 만드는 경우가 있어 건드리지 않는다.
+    const ch = props?.children;
+    if (ch === '' || (Array.isArray(ch) && ch.length > 0 && ch.every((c: unknown) => c === '' || c == null))) return null;
+
     const scale = getFontScale();
     const flat = StyleSheet.flatten(props?.style) as { fontSize?: number; lineHeight?: number } | undefined;
 

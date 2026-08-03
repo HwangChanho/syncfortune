@@ -83,7 +83,6 @@ export default function GemRoute() {
       ) : (
         <>
           <GemCard rec={data.rec} copy={data.copy} title={t('gem.title', '내 사주 보석')} style={styles.cardWrap} />
-          <Text style={styles.note}>{t('gem.note', '※ 오행 기운과 색이 통하는 보석 제안이에요. 재미로 참고하세요(효능을 단정하지 않아요).')}</Text>
           <RelatedContent kind="gem" />
         </>
       )}

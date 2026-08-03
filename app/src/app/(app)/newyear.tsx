@@ -353,9 +353,6 @@ export default function NewYearScreen() {
               {catFlow?.hasMonths && Array.isArray(catFlow.flows[area as NewyearCategory]) && (
                 <View style={styles.flowWrap}>
                   <MonthFlowGraph scores={catFlow.flows[area as NewyearCategory]} height={124} />
-                  <Text style={styles.flowNote}>{catFlow.lowConf.includes(area as NewyearCategory)
-                    ? t('newyear.flowNoteLow', '※ 건강은 전체 흐름 기반 근사예요 · 위=오르는 달 · 아래=다지는 달')
-                    : t('newyear.flowNote', '※ 위=오르는 달 · 아래=다지는 달 · 숫자=절기 기준 달')}</Text>
                 </View>
               )}
               <Text style={[styles.body, { fontSize: fs(15), lineHeight: 27 }]}>{typeof data[area] === 'string' ? data[area] : t('today.genFail', '풀이 생성에 실패했어요. 잠시 후 다시 시도해 주세요.')}</Text>
@@ -442,7 +439,12 @@ export default function NewYearScreen() {
 
 const styles = StyleSheet.create({
   // 연도 선택 칩 — 올해/내년(연도별 캐시·결제 분리)
-  yearRow: { flexDirection: 'row', gap: space(2), marginTop: space(3), marginBottom: space(1) },
+  // ★아래 간격을 4pt → 16pt(daniel 2026-08-04 IMG_8352 "년도 밑에 간격이 너무 좁아").
+  //   위(marginTop 12)와 아래(4)가 어긋나 탭이 아래 카드에 붙어 보였다 —
+  //   연도 탭은 '무엇을 볼지 고르는' 구획이라 아래와 확실히 떨어져야 선택이 읽힌다.
+  //   ⚠️바로 아래 티저 카드는 **탭 선택과 무관하게 '내년'** 기준이라(위 주석 277행),
+  //     붙어 있으면 '2026 선택인데 2027 내용'으로 오해를 준다. 간격이 그 구분도 돕는다.
+  yearRow: { flexDirection: 'row', gap: space(2), marginTop: space(3), marginBottom: space(4) },
   yearChip: { flex: 1, paddingVertical: space(2.5), borderRadius: radius.md, borderWidth: 1.5, borderColor: colors.line, backgroundColor: colors.card, alignItems: 'center' },
   yearChipOn: { borderColor: colors.ju, backgroundColor: colors.juSoft },
   yearChipTx: { ...font.body, color: colors.inkSoft, fontWeight: '700' },

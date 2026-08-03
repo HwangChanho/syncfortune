@@ -227,8 +227,7 @@ export default function TodayScreen() {
           </>
         )}
 
-        <Text style={styles.sub}>{t('today.note')}</Text>
-        {/* 오늘운세 하단 → 연관 콘텐츠 추천(개운·애정·직업 동선·daniel 기획서②-피드백) */}
+{/* 오늘운세 하단 → 연관 콘텐츠 추천(개운·애정·직업 동선·daniel 기획서②-피드백) */}
         <RelatedContent kind="daily" />
       </ScrollView>
     </View>

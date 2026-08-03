@@ -178,8 +178,7 @@ export default function TaegilScreen() {
           </>
         )}
 
-        <Text style={[styles.note, { fontSize: fs(12), lineHeight: 18 }]}>{t('taegil.note', '※ 사주에 맞춘 참고용 길일이에요. 실제 일정은 형편에 맞게 정하세요.')}</Text>
-              {/* ★이어서 보면 좋은 콘텐츠(daniel 2026-07-27 "전부 붙여") — 화면마다 하단이 달라 보이던 것 통일.
+{/* ★이어서 보면 좋은 콘텐츠(daniel 2026-07-27 "전부 붙여") — 화면마다 하단이 달라 보이던 것 통일.
             큐레이션 출처는 RELATED 단일(중복 하드코딩 0). 매핑이 없으면 스스로 아무것도 안 그린다. */}
         <RelatedContent kind="taegil" />
 </ScrollView>

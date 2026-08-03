@@ -478,12 +478,15 @@ const styles = StyleSheet.create({
   quickSheet: { backgroundColor: colors.bg, borderRadius: radius.lg, padding: space(5), gap: space(3), ...shadow.card },
   quickSheetTitle: { ...font.heading, color: colors.ink, fontWeight: '900', marginBottom: space(1) },
   quickItem: { flexDirection: 'row', alignItems: 'center', gap: space(3), backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.ju, paddingVertical: space(3.5), paddingHorizontal: space(4) },
-  title: { ...font.display, textAlign: 'left' as const }, // ★좌측 못박기(daniel 07-02)
+  // ★타이틀 줄높이를 못박는다(daniel 2026-08-04 "운이랑 아래 서브타이틀 사이 간격이 너무 커").
+  //   font.display 엔 lineHeight 가 없어 전역 보정이 넉넉한 기본 줄높이(≈fontSize×1.5)를 넣었고,
+  //   그 여백이 글자 아래에 그대로 남아 서브타이틀과 벌어져 보였다. 간격은 marginTop 으로만 준다.
+  title: { ...font.display, lineHeight: 34, textAlign: 'left' as const }, // ★좌측 못박기(daniel 07-02)
   // 헤더 행 — 전체를 살짝 아래로(타이틀 너무 위 방지), 👤 아이콘만 좌측 타이틀·서브 컬럼 기준 y축 가운데(daniel 07-02)
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: space(4) },
   accountBtn: { width: 40, height: 40, borderRadius: 20, borderWidth: 1.5, borderColor: colors.ju, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.juSoft, marginRight: space(2), marginBottom: space(1) },
   accountIcon: { fontSize: 20 },
-  sub: { ...font.body, color: colors.inkSoft, marginTop: space(2), textAlign: 'left' as const }, // ★좌측 못박기(daniel 07-02)
+  sub: { ...font.body, color: colors.inkSoft, marginTop: space(1), textAlign: 'left' as const }, // ★좌측 못박기(daniel 07-02)
   divider: { width: 44, height: 3, borderRadius: 2, backgroundColor: colors.ju, marginTop: space(4), marginBottom: space(6) },
   fortuneBanner: {
     backgroundColor: colors.juSoft, padding: space(4), borderRadius: radius.md,

@@ -468,7 +468,14 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
     </View>
   );
 
+  // ★전체화면 오버레이(자물쇠·문열림·결제준비)는 **ScrollView 밖**에 둔다
+  //   (daniel 2026-08-04 "풀이할 때 자물쇠가 가운데로 가게 스크롤 옮겨야지").
+  //   종전엔 ScrollView **안**에 있었다 — StyleSheet.absoluteFill 은 스크롤 *콘텐츠* 기준이라
+  //   자물쇠가 콘텐츠 맨 위에 붙었다. 아래로 스크롤해 '구매하고 보기'를 누른 뒤라면
+  //   자물쇠는 화면 위쪽 바깥에 그려져 **보이지도 않았다**(가운데가 아니라 아예 안 보임).
+  //   부모 View 의 자식으로 빼면 뷰포트를 덮어 언제나 화면 한가운데에 뜬다.
   return (
+    <View style={{ flex: 1 }}>
     <ScrollView
       style={styles.screen} contentContainerStyle={styles.wrap}
       // ★공통 콘텐츠 틀이라 여기 한 줄이 이 틀을 쓰는 모든 화면을 덮는다(재회 '지금의 고민' 등 하단 입력).
@@ -479,10 +486,6 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
       {/* 상단 명식 헤더 — 현재 적용된 대표 명식 표시·전환(daniel: 모든 콘텐츠 상단). 전환 시 그 명식 기준 재로드 */}
       {/* ★진행 중 명식 전환 차단 — 결제/생성 대상이 도중에 바뀌면 어긋난다(genSeq 가 폐기하긴 하나 혼란). */}
       <ChartPicker onChange={() => { if (!flowBusy && !busy) setReloadKey((k) => k + 1); }} />
-      {/* child/child_couple(자녀운)만 전용 테마 영상 — 그 외 스페셜(roots·image·mission·talent·astrology·future10 등)은 videoKey 미지정=기본 링+자물쇠 */}
-      <UnlockOverlay visible={busy} message={genMsg} videoKey={(kind === 'child' || kind === 'child_couple') ? 'child' : undefined} />
-      {/* 풀이 공개(revealed) 순간 골드 명조 문 열림 영상 — 1회 재생 후 페이드아웃하며 풀이 노출(daniel 07-06) */}
-      <DoorReveal visible={doorPlaying} onDone={() => setDoorPlaying(false)} />
       {/* ★결제 준비 오버레이(daniel 07-24) — '바로 구매' 탭 후 애플 결제창 뜨기까지·웹훅 적립까지 무피드백 방지(자물쇠는 생성 단계에서) */}
       <Modal visible={purchasing} transparent animationType="fade" statusBarTranslucent>
         <View style={styles.payWrap}><View style={styles.payCard}>
@@ -606,6 +609,12 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
       {/* 명리 용어 설명(가독성 P2) */}
       <GlossarySheet target={term} onClose={() => setTerm(null)} />
     </ScrollView>
+    {/* ↓ 스크롤 밖 = 뷰포트 기준. 자물쇠·문열림이 항상 화면 한가운데에 뜬다. */}
+    {/* child/child_couple(자녀운)만 전용 테마 영상 — 그 외 스페셜(roots·image·mission·talent·astrology·future10 등)은 videoKey 미지정=기본 링+자물쇠 */}
+    <UnlockOverlay visible={busy} message={genMsg} videoKey={(kind === 'child' || kind === 'child_couple') ? 'child' : undefined} />
+    {/* 풀이 공개(revealed) 순간 골드 명조 문 열림 영상 — 1회 재생 후 페이드아웃하며 풀이 노출(daniel 07-06) */}
+    <DoorReveal visible={doorPlaying} onDone={() => setDoorPlaying(false)} />
+    </View>
   );
 }
 

@@ -51,8 +51,7 @@ export function InyeonYieojimCard({ saju, sex, accent = colors.ju }: { saju: Saj
         {popularYears.length ? <Text style={styles.hint}>{t('yieojim.popular', '관심·인기는 오지만 정착까진 약한 해')}: {yrs(popularYears)}</Text> : null}
       </View>
 
-      <Text style={styles.note}>{t('yieojim.note', '※ 참고 경향이에요. 실제 인연은 만나는 사람에 따라 달라져요. 어느 쪽이든 최종적으로 이어지려면 ‘인연 자리’가 열리는 해가 열쇠예요.')}</Text>
-    </View>
+</View>
   );
 }
 

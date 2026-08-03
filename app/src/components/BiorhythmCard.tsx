@@ -78,8 +78,7 @@ export function BiorhythmCard({ reloadKey }: { reloadKey?: number }) {
         ))}
       </View>
 
-      <Text style={styles.note}>{t('bio.note', '※ 사주와 무관한 참고용 리듬이에요. 0 부근은 컨디션이 바뀌는 전환일.')}</Text>
-    </View>
+</View>
   );
 }
 

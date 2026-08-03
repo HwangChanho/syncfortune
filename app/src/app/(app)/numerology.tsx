@@ -68,7 +68,6 @@ export default function NumerologyScreen() {
             <ShareReadingButton kind="numerology" title="수비학" content={{ lifePath: n.lifePath, keyword: lp!.keyword, summary: lp!.text }} />
           </>
         )}
-        <Text style={styles.note}>{t('numerology.note', '※ 피타고리안 수비학(서양 표준)으로 산출했어요. 이름 기반 수(표현·영혼수)는 추후 추가됩니다.')}</Text>
       </ScrollView>
     </View>
   );

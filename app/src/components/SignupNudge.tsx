@@ -65,10 +65,7 @@ export function SignupNudge() {
       <PressableScale style={styles.cta} onPress={() => router.push('/login')}>
         <Text style={[styles.ctaTx, { fontSize: fs(14) }]}>{t('signup.cta', '계정 연결하기')}</Text>
       </PressableScale>
-      <Text style={[styles.note, { fontSize: fs(11.5) }]}>
-        {t('signup.note', '연결하지 않아도 지금처럼 계속 이용할 수 있어요.')}
-      </Text>
-    </View>
+</View>
   );
 }
 

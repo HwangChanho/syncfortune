@@ -127,10 +127,7 @@ export default function CoinsScreen() {
           <AdFreeSection onDone={() => void reload()} />
         </View>
 
-        <Text style={[styles.note, { fontSize: fs(12), lineHeight: 19 }]}>
-          {t('coins.note', '· 운은 모든 유료 풀이에 쓸 수 있어요.\n· 충전한 운은 계정에 보관돼요 — 기기를 바꿔도 그대로예요.\n· 운은 사용 기한이 없어요.')}
-        </Text>
-      </ScrollView>
+</ScrollView>
     </View>
   );
 }

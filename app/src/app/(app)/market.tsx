@@ -366,9 +366,7 @@ export default function MarketRoute() {
         </PressableScale>
       </View>
 
-      <Text style={styles.note}>{t('market.note')}</Text>
-
-      {/* 명식 선택 모달 */}
+{/* 명식 선택 모달 */}
       <Modal visible={pick} transparent animationType="slide" onRequestClose={() => setPick(false)}>
         <Pressable style={styles.backdrop} onPress={() => setPick(false)}>
           <Pressable style={styles.sheet} onPress={() => {}}>

@@ -85,8 +85,7 @@ export default function ZodiacScreen() {
             : null}
         />
 
-        <Text style={styles.note}>{t('zodiac.note', '※ 가볍게 즐기는 오늘의 운세예요. 자세한 풀이는 내 사주에서 보세요.')}</Text>
-      </ScrollView>
+</ScrollView>
     </View>
   );
 }

@@ -284,9 +284,7 @@ export default function SettingsScreen() {
         <Text style={[styles.notifState, notifStatus === 'granted' && { color: colors.ju }]}>{notifStatus === 'granted' ? 'ON' : 'OFF'}</Text>
       </PressableScale>
 
-      <Text style={styles.note}>{t('settings.note')}</Text>
-
-      {/* ── 앱 정보(버전·약관·개인정보·오픈소스) — 출시 준비 ── */}
+{/* ── 앱 정보(버전·약관·개인정보·오픈소스) — 출시 준비 ── */}
       <Text style={[styles.h, { marginTop: space(7) }]}>{t('settings.appInfo', '앱 정보')}</Text>
       <View style={styles.infoCard}>
         <View style={styles.infoRow}><Text style={styles.infoLabel}>{t('settings.version', '버전')}</Text><Text style={styles.infoVal}>{APP_VERSION}</Text></View>

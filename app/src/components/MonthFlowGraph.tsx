@@ -14,15 +14,24 @@ import { colors } from '../lib/theme';
  * @param height 그래프 높이(기본 116).
  */
 export function MonthFlowGraph({ scores, goodSet, height = 116 }: { scores: number[]; goodSet?: Set<number>; height?: number }) {
-  const W = 320, H = height, padX = 16, padY = 14;
+  // ★월 숫자 라벨 자리를 **따로 확보**한다(daniel 2026-08-04 IMG_8353 "그래프 위치가 이상해").
+  //   종전엔 라벨을 y=H−2 에 그리면서 곡선도 H−padY(=H−14)까지 내려왔다 —
+  //   낮은 달(점 r=2.5 + 면적)이 숫자와 **겹쳐** 1·2·4·5·7·8월이 뭉개져 보였다.
+  //   ⇒ 아래 LABEL_H 만큼을 라벨 전용 띠로 빼고, 곡선은 그 위에서만 그린다.
+  // ⚠️눈금(−4~+4)은 **고정**으로 둔다. 데이터 범위에 맞춰 자동 확대하면 차이가 작은 해도
+  //   출렁이는 것처럼 보여 과장이 된다(§4 흉 단정 금지와 같은 결).
+  const W = 320, H = height, padX = 16, padY = 12;
+  const LABEL_H = 14;                       // 하단 월 숫자 전용 띠
+  const plotH = H - padY - LABEL_H;         // 곡선이 쓸 수 있는 높이
   const n = scores.length;
   if (n < 2) return null;
   const good = goodSet ?? new Set<number>();
   const x = (i: number) => padX + (i / (n - 1)) * (W - 2 * padX);
-  const y = (md: number) => padY + (1 - (md + 4) / 8) * (H - 2 * padY); // +4=위 / −4=아래 / 0=중앙(중립선)
+  const y = (md: number) => padY + (1 - (md + 4) / 8) * (plotH - padY); // +4=위 / −4=아래 / 0=중앙(중립선)
   const pts = scores.map((md, i) => [x(i), y(md)] as const);
   const line = pts.map(([px, py], i) => `${i === 0 ? 'M' : 'L'} ${px.toFixed(1)},${py.toFixed(1)}`).join(' ');
-  const area = `${line} L ${x(n - 1).toFixed(1)},${(H - padY).toFixed(1)} L ${padX.toFixed(1)},${(H - padY).toFixed(1)} Z`;
+  const floor = plotH;                       // 면적 그래프 바닥 = 라벨 띠 바로 위
+  const area = `${line} L ${x(n - 1).toFixed(1)},${floor.toFixed(1)} L ${padX.toFixed(1)},${floor.toFixed(1)} Z`;
   const y0 = y(0);
   return (
     <Svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`}>
@@ -40,7 +49,7 @@ export function MonthFlowGraph({ scores, goodSet, height = 116 }: { scores: numb
         return <Circle key={i} cx={px} cy={py} r={g ? 5 : 2.5} fill={g ? colors.ju : colors.card} stroke={colors.ju} strokeWidth={g ? 0 : 1.5} />;
       })}
       {pts.map(([px], i) => (
-        <SvgText key={`t${i}`} x={px} y={H - 2} fontSize="9" fill={good.has(i + 1) ? colors.ju : colors.inkFaint} fontWeight={good.has(i + 1) ? '800' : '500'} textAnchor="middle">{i + 1}</SvgText>
+        <SvgText key={`t${i}`} x={px} y={H - 3} fontSize="9" fill={good.has(i + 1) ? colors.ju : colors.inkFaint} fontWeight={good.has(i + 1) ? '800' : '500'} textAnchor="middle">{i + 1}</SvgText>
       ))}
     </Svg>
   );

@@ -175,8 +175,7 @@ export function SpouseDualCards({
             <>
               <Text style={[styles.frameLabel, { color: colors.inkSoft, fontSize: 15 }]}>{ageTend.tone}</Text>
               <Text style={styles.frameDesc}>{ageTend.desc}</Text>
-              <Text style={styles.ageNote}>{t('spouseDual.ageNote', '※ 경향일 뿐이에요. 실제 상대 사주가 있으면 궁합이 우선해요.')}</Text>
-            </>
+</>
           ) : null}
         </View>
       ) : null}
