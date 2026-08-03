@@ -84,8 +84,11 @@ console.log('\n[V1] daniel 지정 질문이 전부 표에 있다');
 // ── V2 영역명이 실재하나(오타=조용한 무효) ────────────────────────────────
 console.log('\n[V2] 표의 영역명이 실재하는 사주 영역이다');
 {
-  // 사주 16영역 = i18n category 블록 / 자미 12궁 = engine/ziwei.ts PALACE_NAME (각 정본에서 읽는다)
-  const i18n = read('app/src/lib/i18n.ts') ?? '';
+  // 사주 16영역 = 문구 정본의 category 블록 / 자미 12궁 = engine/ziwei.ts PALACE_NAME (각 정본에서 읽는다)
+  // ★2026-08-03: 문구가 i18n.ts → app/src/copy/ko.ts 로 분리됐다(기획자 편집용).
+  //   i18n.ts 만 읽던 이 규칙이 영역명을 하나도 못 읽어 **16영역 전부를 '실재하지 않음'** 으로 신고했다.
+  //   경로 가정이 낡은 것이지 영역이 사라진 게 아니다 → 정본을 따라간다(구 경로도 폴백으로 유지).
+  const i18n = read('app/src/copy/ko.ts') || read('app/src/lib/i18n.ts') || '';
   const block = i18n.slice(i18n.indexOf('  category: {'), i18n.indexOf('  today: {'));
   const real = new Set([...block.matchAll(/([가-힣]+):\s*'/g)].map((m) => m[1]));
   const zw = read('engine/ziwei.ts') ?? '';
