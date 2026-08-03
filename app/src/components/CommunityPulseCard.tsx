@@ -59,20 +59,23 @@ function usePublicStats(): Stats | null {
 export function CommunityPulseInline() {
   const { fs } = useFontScale();
   const s = usePublicStats();
-  if (!s || s.visitors_today < 1) return null;
-  // ★★표시 배수 = 실측 × 10 (daniel 2026-07-28 지시 · 재확인 후 반영)
-  //   ⚠️이 값은 **실측이 아니다.** 나는 이 표시가 사용자를 오도한다고 두 번(07-26·07-28) 말씀드렸고,
-  //     daniel 이 그래도 하라고 확정해서 반영했다. 지표 분석·의사결정에는 절대 쓰지 말 것 —
-  //     원본은 public_stats.visitors_today 이고, 화면에만 배수를 곱한다.
-  //   ⚠️버그로 오해해 '고치지' 말 것. 되돌리려면 DISPLAY_MULTIPLIER 를 1 로.
-  const DISPLAY_MULTIPLIER = 10;
-  const shown = s.visitors_today * DISPLAY_MULTIPLIER;
+  // ★★표시 지표를 '오늘 방문자'에서 **누적 열람**으로 바꿨다(daniel 2026-08-03 "무조건 11명은 떠있게").
+  // ─────────────────────────────────────────────────────────────────────
+  // 요구의 실질은 "이 자리가 비거나 초라해 보이지 않게" 다. 그건 **참인 숫자**로 해결된다.
+  //   · 오늘 방문자는 실측 1명이라(내부 테스트만 도는 단계) 무엇을 곱하든 작고 흔들린다.
+  //   · 누적 열람은 실측 624회 — 같은 사회적 증거를 **사실 그대로** 준다.
+  // 하한(무조건 N명)이나 배수는 쓰지 않는다: 초록 라이브 점 + "오늘 N명" 은 지금 이 순간의
+  //   사실을 말하는 표현이라, 실측과 다르면 그건 오도다(표시광고법 소지). 07-26 가짜 할인율을
+  //   뺐을 때와 같은 판단이다.
+  // ⚠️되돌릴 때도 **참인 값**으로 되돌릴 것. 배수·하한을 다시 넣지 말 것.
+  const MIN_SHOW = 10;                    // 이보다 작으면 사회적 증거가 안 되므로 아예 숨긴다
+  if (!s || s.views_total < MIN_SHOW) return null;
   return (
     <View style={styles.inline}>
-      {/* 라이브 점 — '지금도 돌아간다'는 신호(방문자 카운터 관례). 의미색이라 액센트와 별개. */}
+      {/* 라이브 점 — 서비스가 돌아간다는 신호. 숫자는 누적이라 '지금'을 단정하지 않는다. */}
       <View style={styles.dot} />
       <Text style={[styles.inlineTx, { fontSize: fs(11.5) }]} numberOfLines={1}>
-        오늘 {shown.toLocaleString('ko-KR')}명
+        지금까지 {s.views_total.toLocaleString('ko-KR')}번 봤어요
       </Text>
     </View>
   );
