@@ -72,6 +72,43 @@ export const SECTIONS: Section[] = [
     { key: 'child', labelKey: 'menu.child', descKey: 'menu.childDesc', image: A('icons/child.jpg'), route: '/child', ready: true, premium: true, creditKey: 'child' },
   ] },
   // 오늘·명식(만세력·오늘/이달의 운세·일주) — 자기이해 섹션 아래로(daniel 07-11).
+  { key: 'light', titleKey: 'menu.secLight', descKey: 'menu.secLightDesc', items: [
+    // 세계 인물 매칭 — 무료·결정론(온디바이스 사주 유사도·API 0). daniel 07-18: 유료 배지 제거·가볍게 보기로 이동.
+    { key: 'celeb', labelKey: 'menu.celeb', descKey: 'menu.celebDesc', image: A('icons/celeb.jpg'), route: '/celeb', ready: true, content: true },
+    // 속궁합(성적 궁합·17+·온디바이스 결정론 무료). daniel 07-18: special→light 이동. ★원격 플래그(features.sokgunghap)로 게이트 —
+    //   관리자만 노출(재제출 안전판), 심사 통과 후 공개. 렌더 시 ContentGrid 가 useFeatureOn('sokgunghap')로 필터.
+    { key: 'sokgunghap', labelKey: 'menu.sokgunghap', descKey: 'menu.sokgunghapDesc', image: A('icons/sokgunghap.jpg'), route: '/sokgunghap', ready: true, content: true },
+    // 신규(daniel 2026-07-13·4.3 자기분석): 나 분석 종합 + 관계 패턴 — 무료 온디바이스(사주 엔진).
+    { key: 'selfAnalysis', labelKey: 'menu.selfAnalysis', descKey: 'menu.selfAnalysisDesc', image: A('icons/selfAnalysis.jpg'), route: '/selfanalysis', ready: true, content: true },
+    { key: 'relationPattern', labelKey: 'menu.relationPattern', descKey: 'menu.relationPatternDesc', image: A('icons/relationPattern.jpg'), route: '/relationpattern', ready: true, content: true },
+    // 신규(daniel 기획서 Phase2 2026-07-14): 퍼스널 오행 — 오행 컬러/코디/메이크업/자동차(무료 온디바이스·결정론). BM(뷰티/패션 제휴) 토대.
+    { key: 'personal', labelKey: 'menu.personal', descKey: 'menu.personalDesc', image: A('icons/personal.jpg'), route: '/personal', ready: true, content: true },
+    // 신규(daniel R-GEM v0.1): 내 사주 보석 — 용신 기반 보석 추천 + "생일 보석 vs 내 보석" 대조(무료 온디바이스·결정론·API 0). 바이럴 공유카드→유료 심층분석 퍼널. ★전용 타일 이미지 없음(백로그)→텍스트 카드로 렌더.
+    { key: 'gem', labelKey: 'menu.gem', descKey: 'menu.gemDesc', image: A('icons/gem.jpg'), route: '/gem', ready: true, content: true },
+    // 신규(daniel 2026-07-05): 재회·짝사랑·취업 무료 '질문형'(올해 결정론 미리보기) → 화면 CTA로 유료 깊은 풀이 유도.
+    { key: 'reunionAsk', labelKey: 'menu.reunionAsk', descKey: 'menu.reunionAskDesc', image: A('icons/reunion.jpg'), route: '/reunionAsk', ready: true, content: true },
+    { key: 'crushAsk', labelKey: 'menu.crushAsk', descKey: 'menu.crushAskDesc', image: A('icons/crush.jpg'), route: '/crushAsk', ready: true, content: true },
+    { key: 'jobAsk', labelKey: 'menu.jobAsk', descKey: 'menu.jobAskDesc', image: A('icons/job.jpg'), route: '/jobAsk', ready: true, content: true },
+    { key: 'taro', labelKey: 'menu.taro', descKey: 'menu.taroDesc', image: A('icons/taro.jpg'), route: '/taro', ready: true, content: true },
+    { key: 'pet', labelKey: 'menu.pet', descKey: 'menu.petDesc', image: A('icons/pet.jpg'), route: '/pet', ready: true, content: true },
+    { key: 'persona', labelKey: 'menu.persona', descKey: 'menu.personaTileDesc', image: A('icons/persona.jpg'), route: '/personatype', ready: true, content: true }, // route=120종 통합(daniel 2026-07-20)
+    { key: 'impression', labelKey: 'menu.impression', descKey: 'menu.impressionDesc', image: A('icons/impression.jpg'), route: '/impression', ready: true, content: true },
+    { key: 'egen', labelKey: 'menu.egen', descKey: 'menu.egenTileDesc', image: A('icons/egen.jpg'), route: '/egenteto', ready: true, content: true },
+    { key: 'mbti', labelKey: 'menu.mbti', descKey: 'menu.mbtiTileDesc', image: A('icons/mbti.jpg'), route: '/mbti', ready: true, content: true }, // 사주로 보는 MBTI(무료·온디바이스, daniel 2026-06-23)
+    // 수비학은 별자리·점성술 콘텐츠로 병합(daniel 2026-06-24 재유료·디테일) — 별도 무료 메뉴 제거.
+    { key: 'joseonjob', labelKey: 'menu.joseonjob', descKey: 'menu.joseonjobTileDesc', image: A('icons/joseonjob.jpg'), route: '/joseonjob', ready: true, content: true },
+    { key: 'lovestyle', labelKey: 'menu.lovestyle', descKey: 'menu.lovestyleTileDesc', image: A('icons/lovestyle.jpg'), route: '/lovestyle', ready: true, content: true },
+    { key: 'bok', labelKey: 'menu.bok', descKey: 'menu.bokTileDesc', image: A('icons/bok.jpg'), route: '/bok', ready: true, content: true },
+    { key: 'pastlife', labelKey: 'menu.pastlife', descKey: 'menu.pastlifeTileDesc', image: A('icons/pastlife.jpg'), route: '/pastlife', ready: true, content: true },
+    { key: 'healing', labelKey: 'menu.healing', descKey: 'menu.healingTileDesc', image: A('icons/healing.jpg'), route: '/healing', ready: true, content: true },
+    { key: 'taegil', labelKey: 'menu.taegil', descKey: 'menu.taegilTileDesc', image: A('icons/taegil.jpg'), route: '/taegil', ready: true, content: true },
+    // daniel #A(2026-06-24): 내가 살기 좋은 곳(원국 조후→기후/방위·국기, 무료·온디바이스).
+    { key: 'country', labelKey: 'menu.country', descKey: 'menu.countryDesc', image: A('icons/country.jpg'), route: '/country', ready: true, content: true },
+    { key: 'luck', labelKey: 'menu.luck', descKey: 'menu.luckTileDesc', image: A('icons/luck.jpg'), route: '/luck', ready: true, content: true },
+    // 별자리(/zodiac)는 점성술 콘텐츠로 병합(daniel 2026-06-23) — 별도 카드 제거. /zodiac 라우트는 유지(딥링크 안전).
+    { key: 'name', labelKey: 'menu.name', descKey: 'menu.nameTileDesc', image: A('icons/name.jpg'), route: '/name', ready: true, content: true },
+    { key: 'dream', labelKey: 'menu.dream', descKey: 'menu.dreamTileDesc', image: A('icons/dream.jpg'), route: '/dream', ready: true, content: true },
+  ] },
   { key: 'free', titleKey: 'menu.secFree', items: [
     { key: 'manse', labelKey: 'menu.manse', descKey: 'menu.manseDesc', image: A('icons/manse.jpg'), route: '/charts', ready: true },
     { key: 'today', labelKey: 'menu.today', descKey: 'menu.todayTileDesc', image: A('icons/today.jpg'), route: '/today', ready: true },
@@ -126,43 +163,6 @@ export const SECTIONS: Section[] = [
     { key: 'gaeun', labelKey: 'menu.gaeun', descKey: 'menu.gaeunDesc', image: A('icons/gaeun.jpg'), route: '/gaeun', ready: true, content: true, creditKey: 'gaeun' },
   ] },
   // 가볍게 = 무료·온디바이스 재미(펫·성격유형·택일·행운·띠별자리·이름풀이·꿈해몽). API 0(daniel: 스페셜 아래 무료 따로).
-  { key: 'light', titleKey: 'menu.secLight', descKey: 'menu.secLightDesc', items: [
-    // 세계 인물 매칭 — 무료·결정론(온디바이스 사주 유사도·API 0). daniel 07-18: 유료 배지 제거·가볍게 보기로 이동.
-    { key: 'celeb', labelKey: 'menu.celeb', descKey: 'menu.celebDesc', image: A('icons/celeb.jpg'), route: '/celeb', ready: true, content: true },
-    // 속궁합(성적 궁합·17+·온디바이스 결정론 무료). daniel 07-18: special→light 이동. ★원격 플래그(features.sokgunghap)로 게이트 —
-    //   관리자만 노출(재제출 안전판), 심사 통과 후 공개. 렌더 시 ContentGrid 가 useFeatureOn('sokgunghap')로 필터.
-    { key: 'sokgunghap', labelKey: 'menu.sokgunghap', descKey: 'menu.sokgunghapDesc', image: A('icons/sokgunghap.jpg'), route: '/sokgunghap', ready: true, content: true },
-    // 신규(daniel 2026-07-13·4.3 자기분석): 나 분석 종합 + 관계 패턴 — 무료 온디바이스(사주 엔진).
-    { key: 'selfAnalysis', labelKey: 'menu.selfAnalysis', descKey: 'menu.selfAnalysisDesc', image: A('icons/selfAnalysis.jpg'), route: '/selfanalysis', ready: true, content: true },
-    { key: 'relationPattern', labelKey: 'menu.relationPattern', descKey: 'menu.relationPatternDesc', image: A('icons/relationPattern.jpg'), route: '/relationpattern', ready: true, content: true },
-    // 신규(daniel 기획서 Phase2 2026-07-14): 퍼스널 오행 — 오행 컬러/코디/메이크업/자동차(무료 온디바이스·결정론). BM(뷰티/패션 제휴) 토대.
-    { key: 'personal', labelKey: 'menu.personal', descKey: 'menu.personalDesc', image: A('icons/personal.jpg'), route: '/personal', ready: true, content: true },
-    // 신규(daniel R-GEM v0.1): 내 사주 보석 — 용신 기반 보석 추천 + "생일 보석 vs 내 보석" 대조(무료 온디바이스·결정론·API 0). 바이럴 공유카드→유료 심층분석 퍼널. ★전용 타일 이미지 없음(백로그)→텍스트 카드로 렌더.
-    { key: 'gem', labelKey: 'menu.gem', descKey: 'menu.gemDesc', image: A('icons/gem.jpg'), route: '/gem', ready: true, content: true },
-    // 신규(daniel 2026-07-05): 재회·짝사랑·취업 무료 '질문형'(올해 결정론 미리보기) → 화면 CTA로 유료 깊은 풀이 유도.
-    { key: 'reunionAsk', labelKey: 'menu.reunionAsk', descKey: 'menu.reunionAskDesc', image: A('icons/reunion.jpg'), route: '/reunionAsk', ready: true, content: true },
-    { key: 'crushAsk', labelKey: 'menu.crushAsk', descKey: 'menu.crushAskDesc', image: A('icons/crush.jpg'), route: '/crushAsk', ready: true, content: true },
-    { key: 'jobAsk', labelKey: 'menu.jobAsk', descKey: 'menu.jobAskDesc', image: A('icons/job.jpg'), route: '/jobAsk', ready: true, content: true },
-    { key: 'taro', labelKey: 'menu.taro', descKey: 'menu.taroDesc', image: A('icons/taro.jpg'), route: '/taro', ready: true, content: true },
-    { key: 'pet', labelKey: 'menu.pet', descKey: 'menu.petDesc', image: A('icons/pet.jpg'), route: '/pet', ready: true, content: true },
-    { key: 'persona', labelKey: 'menu.persona', descKey: 'menu.personaTileDesc', image: A('icons/persona.jpg'), route: '/personatype', ready: true, content: true }, // route=120종 통합(daniel 2026-07-20)
-    { key: 'impression', labelKey: 'menu.impression', descKey: 'menu.impressionDesc', image: A('icons/impression.jpg'), route: '/impression', ready: true, content: true },
-    { key: 'egen', labelKey: 'menu.egen', descKey: 'menu.egenTileDesc', image: A('icons/egen.jpg'), route: '/egenteto', ready: true, content: true },
-    { key: 'mbti', labelKey: 'menu.mbti', descKey: 'menu.mbtiTileDesc', image: A('icons/mbti.jpg'), route: '/mbti', ready: true, content: true }, // 사주로 보는 MBTI(무료·온디바이스, daniel 2026-06-23)
-    // 수비학은 별자리·점성술 콘텐츠로 병합(daniel 2026-06-24 재유료·디테일) — 별도 무료 메뉴 제거.
-    { key: 'joseonjob', labelKey: 'menu.joseonjob', descKey: 'menu.joseonjobTileDesc', image: A('icons/joseonjob.jpg'), route: '/joseonjob', ready: true, content: true },
-    { key: 'lovestyle', labelKey: 'menu.lovestyle', descKey: 'menu.lovestyleTileDesc', image: A('icons/lovestyle.jpg'), route: '/lovestyle', ready: true, content: true },
-    { key: 'bok', labelKey: 'menu.bok', descKey: 'menu.bokTileDesc', image: A('icons/bok.jpg'), route: '/bok', ready: true, content: true },
-    { key: 'pastlife', labelKey: 'menu.pastlife', descKey: 'menu.pastlifeTileDesc', image: A('icons/pastlife.jpg'), route: '/pastlife', ready: true, content: true },
-    { key: 'healing', labelKey: 'menu.healing', descKey: 'menu.healingTileDesc', image: A('icons/healing.jpg'), route: '/healing', ready: true, content: true },
-    { key: 'taegil', labelKey: 'menu.taegil', descKey: 'menu.taegilTileDesc', image: A('icons/taegil.jpg'), route: '/taegil', ready: true, content: true },
-    // daniel #A(2026-06-24): 내가 살기 좋은 곳(원국 조후→기후/방위·국기, 무료·온디바이스).
-    { key: 'country', labelKey: 'menu.country', descKey: 'menu.countryDesc', image: A('icons/country.jpg'), route: '/country', ready: true, content: true },
-    { key: 'luck', labelKey: 'menu.luck', descKey: 'menu.luckTileDesc', image: A('icons/luck.jpg'), route: '/luck', ready: true, content: true },
-    // 별자리(/zodiac)는 점성술 콘텐츠로 병합(daniel 2026-06-23) — 별도 카드 제거. /zodiac 라우트는 유지(딥링크 안전).
-    { key: 'name', labelKey: 'menu.name', descKey: 'menu.nameTileDesc', image: A('icons/name.jpg'), route: '/name', ready: true, content: true },
-    { key: 'dream', labelKey: 'menu.dream', descKey: 'menu.dreamTileDesc', image: A('icons/dream.jpg'), route: '/dream', ready: true, content: true },
-  ] },
 ];
 
 // ── 카드 순차 로딩 오프셋 ────────────────────────────────────────────────
