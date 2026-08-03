@@ -54,8 +54,8 @@ export default function ImpressionScreen() {
         sub={t('impression.sub', '겉으로 비치는 모습과 알고 보면 다른 진짜 나')} />
       {!saved || !c ? (
         <View style={styles.emptyBox}>
-          <Text style={styles.empty}>{t('manse.empty', '먼저 명식을 등록해 주세요.')}</Text>
-          <PressableScale style={styles.cta} onPress={() => router.push('/register')}><Text style={styles.ctaTx}>{t('compat.registerMyChart', '내 명식 등록')}</Text></PressableScale>
+          <Text style={styles.empty}>{t('manse.empty', '등록된 명식이 없습니다.')}</Text>
+          <PressableScale style={styles.cta} onPress={() => router.push('/register')}><Text style={styles.ctaTx}>{t('compat.registerMyChart', '명식 등록')}</Text></PressableScale>
         </View>
       ) : (
         <>

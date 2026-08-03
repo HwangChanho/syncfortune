@@ -258,8 +258,8 @@ export default function LifeGraphScreen() {
         <View style={styles.card}><ActivityIndicator color={colors.ju} /></View>
       ) : !saved ? (
         <View style={styles.card}>
-          <Text style={styles.body}>{t('manse.empty', '먼저 명식을 등록해 주세요.')}</Text>
-          <PressableScale style={styles.cta} onPress={() => router.push('/register')}><Text style={styles.ctaTx}>{t('compat.registerMyChart', '내 명식 등록')}</Text></PressableScale>
+          <Text style={styles.body}>{t('manse.empty', '등록된 명식이 없습니다.')}</Text>
+          <PressableScale style={styles.cta} onPress={() => router.push('/register')}><Text style={styles.ctaTx}>{t('compat.registerMyChart', '명식 등록')}</Text></PressableScale>
         </View>
       ) : data && (n || (typeof data.base === 'string' && data.base.trim())) ? (
         <>

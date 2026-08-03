@@ -134,7 +134,7 @@ export default function ReunionRoute() {
       Alert.alert(t('reunion.title', '재회운'), t('reunion.changeConfirmBuy', '상대를 바꾸려면 새로 풀어야 하고, 운이 필요해요. 진행할까요?'), [
         { text: t('common.cancel', '취소'), style: 'cancel' },
         { text: t('reunion.changeBuy', '구매하고 바꾸기'), onPress: async () => {
-            if (!purchasesEnabled()) { Alert.alert(t('reunion.title', '재회운'), t('market.payPending', '결제 준비 중이에요. 쿠폰을 이용하거나 잠시 후 다시 시도해 주세요.')); return; }
+            if (!purchasesEnabled()) { Alert.alert(t('reunion.title', '재회운'), t('market.payPending', '결제 준비 중')); return; }
             try {
               const g = await ensureCoinsFor('reunion', { title: t('reunion.title', '재회운'), t, goCharge: () => router.push('/coins'), chartId: serverChartId });
               if (g !== 'ok') return;   // ★운 전환(daniel 2026-07-28)

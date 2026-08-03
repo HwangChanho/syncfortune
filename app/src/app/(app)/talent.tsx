@@ -15,7 +15,7 @@ export default function TalentRoute() {
       showExpiry
       themeColor={colors.ju}
       title={t('talent.title', '나의 타고난 재능')}
-      sub={t('talent.sub', '무엇을 타고났는지, 좋아하는 일·해야 하는 일 중 어디서 빛나는지, 돈을 어떻게 다뤄야 하는지 짚어 드려요')}
+      sub={t('talent.sub', '무엇을 타고났는지, 좋아하는 일·해야 하는 일 중 어디서 빛나는지, 돈을 어떻게 다뤄야 하는지')}
       genMsg={t('talent.generating', '타고난 재능을 읽는 중…')}
       // 무료 재능 티저(최강 오행·결정론·API 0)
       freeHook={(saju) => <TalentTeaser saju={saju} />}

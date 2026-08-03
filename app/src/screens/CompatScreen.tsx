@@ -327,7 +327,7 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
   return (
     <>
     {/* 보고 있는 관계 풀이가 이미 준비됐으면(cur) 전체 잠금 오버레이로 막지 않음 — 나머지 관계는 홈 배너로 백그라운드 진행(daniel: 완료 감지·이어보기 개선) */}
-    <UnlockOverlay visible={!!busy && !cur} message={t('compat.generating', '궁합을 풀어내는 중…')} videoKey="compat" />
+    <UnlockOverlay visible={!!busy && !cur} message={t('compat.generating', '두 분의 궁합을 풀이하는 중…')} videoKey="compat" />
     {/* 풀이 공개 순간 골드 명조 문 열림 영상 — 1회 재생 후 페이드아웃하며 풀이 노출(daniel 07-06) */}
     <DoorReveal visible={doorPlaying} onDone={() => setDoorPlaying(false)} />
     <ScrollView style={styles.screen} contentContainerStyle={styles.wrap} automaticallyAdjustKeyboardInsets keyboardShouldPersistTaps="handled">
@@ -335,12 +335,12 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
       {/* 나 ❤ 상대 — 한 줄 컴팩트 헤더(각자 탭하면 변경/선택). 큰 슬롯·갈색 분석버튼 제거 */}
       <View style={styles.wizPair}>
         <PressableScale style={styles.wizPerson} onPress={() => setPickFor('me')}>
-          <Text style={styles.wizRole}>{t('compat.mySlot', '나')}</Text>
-          <Text style={styles.wizName} numberOfLines={1}>{meSel?.label ?? t('compat.mySlot', '나')}</Text>
+          <Text style={styles.wizRole}>{t('compat.mySlot', '내 명식')}</Text>
+          <Text style={styles.wizName} numberOfLines={1}>{meSel?.label ?? t('compat.mySlot', '내 명식')}</Text>
         </PressableScale>
         <Text style={styles.wizHeart}>↔</Text>{/* daniel: 하트 X(연애 전용 아님) → 중립 상호관계 기호 */}
         <PressableScale style={[styles.wizPerson, !otherSel && styles.wizPersonEmpty]} onPress={() => setPickFor('other')}>
-          <Text style={styles.wizRole}>{t('compat.otherSlot', '상대')}</Text>
+          <Text style={styles.wizRole}>{t('compat.otherSlot', '상대 명식')}</Text>
           <Text style={[styles.wizName, !otherSel && styles.wizNameEmpty]} numberOfLines={1}>{otherSel?.label ?? t('compat.wizPickShort', '탭해서 선택')}</Text>
         </PressableScale>
       </View>

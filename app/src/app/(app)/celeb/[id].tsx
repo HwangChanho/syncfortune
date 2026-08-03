@@ -71,9 +71,9 @@ export default function CelebDetail() {
   if (!myInput) {
     return (
       <View style={styles.center}>
-        <Text style={styles.msg}>{t('compat.needChart', '먼저 명식을 등록해 주세요.')}</Text>
+        <Text style={styles.msg}>{t('compat.needChart', '궁합을 보려면 먼저 내 명식을 등록하세요.')}</Text>
         <PressableScale style={styles.btn} onPress={() => router.push('/register')}>
-          <Text style={styles.btnTx}>{t('compat.registerMyChart', '내 명식 등록')}</Text>
+          <Text style={styles.btnTx}>{t('compat.registerMyChart', '명식 등록')}</Text>
         </PressableScale>
       </View>
     );

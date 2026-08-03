@@ -52,13 +52,13 @@ export default function NumerologyScreen() {
       <ScrollView style={styles.overlay} contentContainerStyle={styles.wrap}>
         {/* 상단 명식 헤더 — 현재 명식 표시·전환 */}
         <ChartPicker onChange={() => loadRepChart().then(setRep)} />
-        <ContentHero image={A('icons/numerology.jpg')} title={t('numerology.title', '수비학')} sub={t('numerology.sub', '생년월일에 담긴 수로 보는 인생 방향·재능·올해 흐름')} />
+        <ContentHero image={A('icons/numerology.jpg')} title={t('numerology.title', '수비학')} sub={t('numerology.sub', '생년월일에 담긴 수로 보는 나의 인생 방향·재능·올해 흐름')} />
 
         {!n ? (
           <Text style={styles.note}>{t('numerology.empty', '명식을 등록하면 생년월일로 수비학을 보여드려요.')}</Text>
         ) : (
           <>
-            <Reveal delay={0}><NumCard hi label={t('numerology.lifePath', '생명수 — 인생의 큰 줄기')} big={n.lifePath} kw={lp!.keyword} text={lp!.text} fs={fs} /></Reveal>
+            <Reveal delay={0}><NumCard hi label={t('numerology.lifePath', '생명수 — 인생 방향')} big={n.lifePath} kw={lp!.keyword} text={lp!.text} fs={fs} /></Reveal>
             <Reveal delay={110}><NumCard label={t('numerology.birthday', '생일수 — 타고난 재능')} big={n.birthday} kw={bd!.keyword} text={bd!.text} fs={fs} /></Reveal>
             <Reveal delay={220}><NumCard label={`${thisYear} · ${t('numerology.personalYear', '개인해 — 올해 흐름')}`} big={n.personalYear} kw={py!.keyword} text={py!.text} fs={fs} /></Reveal>
             {n.masterNumbers.length > 0 && (

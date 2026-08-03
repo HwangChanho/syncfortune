@@ -60,7 +60,7 @@ export default function CountryScreen() {
         {!loaded ? null : !saved ? (
           <View style={styles.card}>
             <Text style={styles.body}>{t('country.needChart', '먼저 명식을 등록해 주세요.')}</Text>
-            <PressableScale style={styles.cta} onPress={() => router.push('/register')}><Text style={styles.ctaTx}>{t('compat.registerMyChart', '명식 등록하기')}</Text></PressableScale>
+            <PressableScale style={styles.cta} onPress={() => router.push('/register')}><Text style={styles.ctaTx}>{t('compat.registerMyChart', '명식 등록')}</Text></PressableScale>
           </View>
         ) : fit ? (
           <>

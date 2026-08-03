@@ -294,7 +294,7 @@ export function ReadingScreen({
       if (!alive || !row || row.kind !== kind) return;
       if (row.status === 'running') {
         setProgress({ done: row.done ?? 0, total: row.total ?? cats.length });
-        setGenProgress({ active: true, done: row.done ?? 0, total: row.total ?? cats.length, label: kind === 'ziwei' ? t('reading.ziweiTitle', '자미두수') : t('reading.sajuTitle', '사주 풀이'), chartLabel: savedChart.label, route: gpRoute });
+        setGenProgress({ active: true, done: row.done ?? 0, total: row.total ?? cats.length, label: kind === 'ziwei' ? t('reading.ziweiTitle', '자미두수 12궁 풀이') : t('reading.sajuTitle', '사주 풀이'), chartLabel: savedChart.label, route: gpRoute });
       } else {
         setProgress(null); // done/error/idle → 오버레이 내림(다시 캐시/버튼 UI 로)
         // ★완료 = 이 화면(구독은 마운트 중에만 돎)에서 보고 있으므로 홈 배너만 제거. 완료 푸시는 **서버(generate_set)** 가
@@ -447,7 +447,7 @@ export function ReadingScreen({
     if (!acquireGen(lockKey)) return;                      // 이미 이 명식·이 종류를 생성 트리거 중 → 아무것도 하지 않는다
     // 낙관적 표시(즉시 오버레이) — 곧 아래 gen_jobs 구독이 서버 실측 done/total 로 대체한다.
     setProgress({ done: gDone, total: cats.length, current: todo[0].label });
-    setGenProgress({ active: true, done: gDone, total: cats.length, label: kind === 'ziwei' ? t('reading.ziweiTitle', '자미두수') : t('reading.sajuTitle', '사주 풀이'), chartLabel: savedChart?.label, route: gpRoute });
+    setGenProgress({ active: true, done: gDone, total: cats.length, label: kind === 'ziwei' ? t('reading.ziweiTitle', '자미두수 12궁 풀이') : t('reading.sajuTitle', '사주 풀이'), chartLabel: savedChart?.label, route: gpRoute });
     try {
       // ★서버 위임 — 서버가 gen_jobs 로 중복차단(running/done 이면 already) → 여러 트리거(autoGen·resume·홈배너)가 겹쳐도 생성은 1회.
       // ★상한(2026-07-31): 위임 호출이 안 끝나면 진행률 오버레이가 영구히 남는다.

@@ -107,7 +107,7 @@ export function SelfUnderstandingHero({ reloadKey }: { reloadKey?: number }) {
             <Text style={[styles.barEnd, styles.barEndRight, result.type === 'teto' && styles.barEndOn, { color: TETO_C }]}>{t('egen.scaleTeto', '테토')}</Text>
           </View>
           {reading?.headline ? <Text style={[styles.headline, { fontSize: fs(15) }]} numberOfLines={2}>{reading.headline}</Text> : null}
-          <Text style={styles.more}>{t('selfHero.more', '나 분석 종합 보기 ›')}</Text>
+          <Text style={styles.more}>{t('selfHero.more', '성향 분석 자세히 보기 ›')}</Text>
         </PressableScale>
       ) : null}
       {/* 자기이해 클러스터 — 성격유형·MBTI·특징(무료·온디바이스). 카드 '안'으로 이동(붕 뜬 칩 → 한 세트) */}

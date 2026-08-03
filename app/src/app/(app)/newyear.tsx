@@ -201,7 +201,7 @@ export default function NewYearScreen() {
         const cached = await pollCachedReading(id, category);
         if (isStale()) return;   // ① 폴링 사이 명식 전환됨 → 폐기
         if (cached) { setData(cached); ok = true; } // 서버 완료·캐시 = 성공
-        else setErr(f?.message ?? t('today.genFail', '생성에 실패했어요. 잠시 후 다시 시도해 주세요.'));
+        else setErr(f?.message ?? t('today.genFail', '풀이 생성에 실패했어요. 잠시 후 다시 시도해 주세요.'));
       } else { if (isStale()) return; const rd = (res?.reading as Record<string, any>) ?? null; setData(rd); ok = !!rd; }
     } catch (e: any) {
       // fetch throw(타임아웃 등)도 동일 — 서버가 완료·캐시했으면 폴링으로 회수, 아니면 오류 표시.
@@ -209,7 +209,7 @@ export default function NewYearScreen() {
       const cached = await pollCachedReading(id, category);
       if (isStale()) return;
       if (cached) { setData(cached); ok = true; } // 서버 완료·캐시 = 성공
-      else setErr(t('today.genFail', '생성에 실패했어요. 잠시 후 다시 시도해 주세요.'));
+      else setErr(t('today.genFail', '풀이 생성에 실패했어요. 잠시 후 다시 시도해 주세요.'));
     } finally {
       releaseGen(lockKey);   // ② 완료·중단·오류·폐기 모두 잠금 해제
     }
@@ -258,7 +258,7 @@ export default function NewYearScreen() {
         <UnlockOverlay visible={busy} message={t('newyear.generating', '올 한 해를 풀어내는 중…')} />
         {/* 풀이 공개 순간 골드 명조 문 열림 영상 — 1회 재생 후 페이드아웃하며 풀이 노출(daniel 07-06) */}
         <DoorReveal visible={doorPlaying} onDone={() => setDoorPlaying(false)} />
-        <ContentHero motif={<NewyearWheel />} image={A('icons/newyear-hero.jpg')} title={`${year}${t('newyear.title', '년 신년운세')}`} sub={t('newyear.heroSub', '올 한 해의 큰 흐름을 한눈에')} themeColor={colors.ju} />
+        <ContentHero motif={<NewyearWheel />} image={A('icons/newyear-hero.jpg')} title={`${year}${t('newyear.title', '신년운세')}`} sub={t('newyear.heroSub', '올 한 해의 큰 흐름을 한눈에')} themeColor={colors.ju} />
 
         {/* ★연도 선택 — 올해/내년(daniel 2026-07-29). 연도별로 캐시·결제가 분리된다. */}
         <View style={styles.yearRow}>
@@ -283,8 +283,8 @@ export default function NewYearScreen() {
           <View style={styles.card}><ActivityIndicator color={colors.ju} /></View>
         ) : !saved ? (
           <View style={styles.card}>
-            <Text style={styles.body}>{t('manse.empty', '먼저 명식을 등록해 주세요.')}</Text>
-            <PressableScale style={styles.cta} onPress={() => router.push('/register')}><Text style={styles.ctaTx}>{t('compat.registerMyChart', '내 명식 등록')}</Text></PressableScale>
+            <Text style={styles.body}>{t('manse.empty', '등록된 명식이 없습니다.')}</Text>
+            <PressableScale style={styles.cta} onPress={() => router.push('/register')}><Text style={styles.ctaTx}>{t('compat.registerMyChart', '명식 등록')}</Text></PressableScale>
           </View>
         ) : data ? (
           <>
@@ -358,7 +358,7 @@ export default function NewYearScreen() {
                     : t('newyear.flowNote', '※ 위=오르는 달 · 아래=다지는 달 · 숫자=절기 기준 달')}</Text>
                 </View>
               )}
-              <Text style={[styles.body, { fontSize: fs(15), lineHeight: 27 }]}>{typeof data[area] === 'string' ? data[area] : t('today.genFail', '생성 실패')}</Text>
+              <Text style={[styles.body, { fontSize: fs(15), lineHeight: 27 }]}>{typeof data[area] === 'string' ? data[area] : t('today.genFail', '풀이 생성에 실패했어요. 잠시 후 다시 시도해 주세요.')}</Text>
             </View>
 
             {/* 상·하반기 흐름 */}
@@ -419,7 +419,7 @@ export default function NewYearScreen() {
           </>
         ) : (
           <View style={styles.gate}>
-            <Text style={styles.gateTitle}>{year}{t('newyear.title', '년 신년운세')}</Text>
+            <Text style={styles.gateTitle}>{year}{t('newyear.title', '신년운세')}</Text>
             <Text style={styles.gateDesc}>{t('newyear.gateDesc', '올해의 키워드부터 분야별 운, 열두 달 캘린더, 새해 다짐까지 한 번에 정리해 드려요.')}</Text>
             <View style={styles.previewBox}>
               <Text style={styles.previewHead}>{t('special.previewHead', '이런 걸 풀어드려요')}</Text>
@@ -431,7 +431,7 @@ export default function NewYearScreen() {
             </PressableScale>
           </View>
         )}
-        <Text style={styles.note}>{t('newyear.bottomNote', '※ 올 한 해의 큰 흐름이에요. 매일의 운세는 \'오늘의 운세\'에서 확인하세요.')}</Text>
+        <Text style={styles.note}>{t('newyear.bottomNote', "※ 올 한 해의 큰 흐름이에요. 매일의 운세는 '오늘의 운세'에서 확인하세요.")}</Text>
               {/* ★이어서 보면 좋은 콘텐츠(daniel 2026-07-27 "전부 붙여") — 화면마다 하단이 달라 보이던 것 통일.
             큐레이션 출처는 RELATED 단일(중복 하드코딩 0). 매핑이 없으면 스스로 아무것도 안 그린다. */}
         <RelatedContent kind="newyear" />

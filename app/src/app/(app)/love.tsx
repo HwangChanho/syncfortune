@@ -296,7 +296,7 @@ export default function LoveScreen() {
     <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>
       {/* 상단 명식 헤더 — 현재 적용된 대표 명식 표시·전환(daniel: 모든 콘텐츠 상단). 전환 시 그 명식 기준 재로드 */}
       <ChartPicker onChange={() => setReloadKey((k) => k + 1)} />
-      <UnlockOverlay visible={busy} message={t('love.generating', '애정 흐름을 풀어내는 중…')} />
+      <UnlockOverlay visible={busy} message={t('love.generating', '두 명반을 교차해 애정의 결을 풀이하는 중…')} />
       {/* 풀이 공개 순간 골드 명조 문 열림 영상 — 1회 재생 후 페이드아웃하며 풀이 노출(daniel 07-06) */}
       <DoorReveal visible={doorPlaying} onDone={() => setDoorPlaying(false)} />
       <ContentHero motif={<LoveThread />} image={A('icons/love-hero.jpg')} title={t('love.title')} sub={t('love.sub')} themeColor={LOVE_PINK} />

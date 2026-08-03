@@ -73,8 +73,8 @@ export default function PastLifeScreen() {
   if (loading) return <View style={styles.center}><ActivityIndicator color={colors.ju} /></View>;
   if (!result) return (
     <View style={styles.center}>
-      <Text style={styles.msg}>{t('compat.needChart', '먼저 명식을 등록해 주세요.')}</Text>
-      <PressableScale style={styles.btn} onPress={() => router.push('/register')}><Text style={styles.btnText}>{t('compat.registerMyChart', '내 명식 등록')}</Text></PressableScale>
+      <Text style={styles.msg}>{t('compat.needChart', '궁합을 보려면 먼저 내 명식을 등록하세요.')}</Text>
+      <PressableScale style={styles.btn} onPress={() => router.push('/register')}><Text style={styles.btnText}>{t('compat.registerMyChart', '명식 등록')}</Text></PressableScale>
     </View>
   );
 

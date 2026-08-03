@@ -20,9 +20,9 @@ export default function AstrologyRoute() {
     <SpecialContentScreen
       kind="astrology"
       themeColor={colors.ju}
-      title={t('astrology.title', '별자리·점성술·수비학')}
+      title={t('astrology.title', '별자리·점성술')}
       sub={t('astrology.sub2', '별자리(태양)·점성술(네이탈)·수비학(생명수)을 한 번에 — 세 관점으로 깊이 풀이')}
-      genMsg={t('astrology.generating', '별자리를 읽는 중…')}
+      genMsg={t('astrology.generating', '별자리·점성술을 읽는 중…')}
       // 출생 일시 + 위경도 → 네이탈 차트. 위도 없으면 서울 기본(daniel: 출생지 피커서 추출하도록 보강함)
       buildBody={(ch) => {
         const [datePart, timePart] = (ch.input.birthDateTime ?? '').split(' ');

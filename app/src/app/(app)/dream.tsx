@@ -128,7 +128,7 @@ export default function DreamScreen() {
         { text: t('common.cancel', '취소'), style: 'cancel' },
         { text: t('dream.buy5', '운 사용'), onPress: async () => {
           try {
-            const g = await ensureCoinsFor('dream', { title: t('dream.title', 'AI 꿈해몽'), t, goCharge: () => router.push('/coins') });
+            const g = await ensureCoinsFor('dream', { title: t('dream.title', '꿈해몽'), t, goCharge: () => router.push('/coins') });
             if (g !== 'ok') return;   // ★운 전환(daniel 2026-07-28)
             // ★코인 전환 마무리(daniel 2026-07-28) — 종전엔 여기서 waitForCreditGrant('dream') 로
             //   *크레딧 적립*을 기다렸다. 코인은 적립이 아니라 **Edge 가 생성 직전에 차감**하므로

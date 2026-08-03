@@ -65,7 +65,7 @@ export default function CommunityPostScreen() {
     // ⚠️★상한 필수 — 잠금 구간(멈춤 방지). 초과해도 잠금이 풀려 다시 시도할 수 있다.
     try { await withTimeout(addComment(id, body)); setInput(''); await withTimeout(load()); }
     catch (e) {
-      Alert.alert('!', (e as Error).message === 'PROFANITY' ? t('community.profanity', '부적절한 표현이 포함돼 있어요.') : (e as Error).message);
+      Alert.alert('!', (e as Error).message === 'PROFANITY' ? t('community.profanity', '부적절한 표현이 포함돼 있어요. 수정 후 다시 올려 주세요.') : (e as Error).message);
     } finally { setBusy(false); }
   }
 

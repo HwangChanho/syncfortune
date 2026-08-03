@@ -169,7 +169,7 @@ export default function AssistantScreen() {
         {/* 첫 인사 — 도메인 3축(daniel 지정)부터. 대화가 시작되면 사라진다. */}
         {turns.length === 0 && (
           <View style={styles.botCard}>
-            <Text style={styles.botLabel}>{t('assist.label', '도우미')}</Text>
+            <Text style={styles.botLabel}>{t('assist.label', '우니')}</Text>
             <Text style={[styles.botTx, { fontSize: fs(15), lineHeight: Math.round(15 * 1.6) }]}>
               {t('assist.hello', '무엇을 보고 싶으세요? 세 가지 중에 고르셔도 되고, 그냥 편하게 말해 주셔도 돼요.')}
             </Text>
@@ -192,7 +192,7 @@ export default function AssistantScreen() {
           </View>
         ) : (
           <View key={i} style={styles.botCard}>
-            <Text style={styles.botLabel}>{t('assist.label', '도우미')}</Text>
+            <Text style={styles.botLabel}>{t('assist.label', '우니')}</Text>
             <Text style={[styles.botTx, { fontSize: fs(15), lineHeight: Math.round(15 * 1.6) }]}>{turn.text}</Text>
 
             {turn.domains && <DomainChips onPick={chooseDomain} fs={fs} />}
