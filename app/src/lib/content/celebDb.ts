@@ -60,21 +60,37 @@ const SELECT = 'id, name_ko, name_en, role, birth_date, sex, country_code';
  * ★실패하면 빈 배열 — 화면은 번들 목록(celebData)으로 폴백한다(빈 화면 금지).
  */
 export async function listTrendingCelebs(limit = 40): Promise<CelebEntry[]> {
-  const res = await withTimeout(
-    supabase.from('celebrities').select(SELECT)
-      .eq('country_code', 'KR').in('role', ['배우', '가수'])
-      .not('name_ko', 'is', null).gte('birth_date', '1975-01-01')
-      // ★정렬 기준 = **최근 30일 위키백과 조회수**(daniel 2026-08-03 승인 후 수집).
-      //   fame(위키데이터 문서 연결 수)은 '역사적 유명함'이라 지금 뜨는 사람과 어긋났다 —
-      //   실측: 노출 1위였던 싸이가 조회수로는 9위, 공유는 fame 49 인데 조회수 1위(11,261).
-      //   아직 수집 안 된 사람은 뒤로(nullsFirst:false) 보내고, 화면은 fame 폴백 없이 그대로 둔다.
-      .order('views_30d', { ascending: false, nullsFirst: false })
-      .order('fame', { ascending: false })
-      .limit(limit),
-    8000,
-  );
-  const rows = (res as { data?: Row[] } | undefined)?.data ?? [];
-  return rows.map(toEntry).filter(Boolean) as CelebEntry[];
+  // ★배우·가수를 **각각 뽑아 번갈아 배치**한다(daniel 2026-08-03 "아이돌 가수를 더 섞어줘").
+  // ─────────────────────────────────────────────────────────────────────
+  // 왜 그냥 조회수 정렬로는 안 되나: 두 직군의 **자릿수가 다르다**.
+  //   배우 상위 = 소지섭 52,516 · 김민하 21,077 · 양세종 19,804 …
+  //   가수 상위 = 한로로 11,771 · 안희연 9,315 · 장원영 9,147 …
+  //   한 줄로 세우면 배우가 위를 다 먹어 가수가 한참 아래로 밀린다(실측: 상위 12명 중 가수 1명).
+  //   조회수가 낮아서가 아니라 **비교 대상이 아닌 것을 한 자로 재서** 생긴 왜곡이다.
+  // ⇒ 직군 안에서 각각 '요즘 많이 찾아본 순'을 뽑고, 위에서부터 번갈아 놓는다.
+  //   각 목록의 순서(=트렌드)는 그대로 보존되고, 노출만 균형을 맞춘다.
+  const half = Math.ceil(limit / 2);
+  const byRole = async (role: '배우' | '가수') => {
+    const res = await withTimeout(
+      supabase.from('celebrities').select(SELECT)
+        .eq('country_code', 'KR').eq('role', role)
+        .not('name_ko', 'is', null).gte('birth_date', '1975-01-01')
+        // 정렬 기준 = 최근 30일 위키백과 조회수(수집기 celeb-trend). 미수집은 뒤로.
+        .order('views_30d', { ascending: false, nullsFirst: false })
+        .order('fame', { ascending: false })
+        .limit(half),
+      8000,
+    );
+    return ((res as { data?: Row[] } | undefined)?.data ?? []).map(toEntry).filter(Boolean) as CelebEntry[];
+  };
+  const [actors, singers] = await Promise.all([byRole('배우'), byRole('가수')]);
+  // 번갈아 — 한쪽이 짧으면 나머지는 그대로 이어 붙인다(둘 다 비면 빈 배열 → 화면이 번들로 폴백).
+  const out: CelebEntry[] = [];
+  for (let i = 0; i < half; i++) {
+    if (actors[i]) out.push(actors[i]);
+    if (singers[i]) out.push(singers[i]);
+  }
+  return out.slice(0, limit);
 }
 
 /**
