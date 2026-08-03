@@ -53,7 +53,12 @@ export function ElementBalance({ saju }: { saju: SajuChart }) {
 }
 
 const styles = StyleSheet.create({
-  barsRow: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-around', height: 116, marginBottom: space(2) },
+  // ★고정 높이 제거(daniel 2026-08-03 "나 분석 컨텐츠 여기 여전히 짤려").
+  //   이 행은 **글자를 담는 상자**다 — 안에 count(텍스트)·track(78)·elGlyph·elKo(텍스트)가 세로로 쌓인다.
+  //   기본 배율에서도 합이 116 을 넘었고(78 + 글자 3줄), 글자 크기를 키우면 더 넘쳐 아래 라벨이 잘렸다.
+  //   전역 패치는 fontSize·lineHeight 만 키운다 — **상자는 안 커진다**(fontScale.tsx 의 ls() 주석).
+  //   높이를 ls(116) 로 키우는 대신 **아예 없앤다**: 내용이 정하게 두면 어떤 배율에서도 안 잘린다.
+  barsRow: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-around', marginBottom: space(2) },
   barCol: { alignItems: 'center', flex: 1 },
   count: { ...font.caption, color: colors.inkSoft, fontWeight: '800', marginBottom: space(1) },
   track: { width: 22, height: 78, backgroundColor: colors.sunk, borderRadius: radius.sm, justifyContent: 'flex-end', overflow: 'hidden' },
