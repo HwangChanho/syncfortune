@@ -4,8 +4,8 @@
 //   *하나의 리치한 분석 프로필*로 모아 성격분석 앱(16Personalities류)처럼 읽히게. 전부 온디바이스 결정론(사주 엔진)·API 0·무료.
 //   ★신설 로직 아님 — 기존 egenTeto/personaFromRepChart(성격유형 120종·daniel 07-20 통합)/sajuMbti 재사용, 오행밸런스만 신규 시각화. 각 축의 상세는 전용 화면으로.
 // ─────────────────────────────────────────────────────────────────────────
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Animated, Easing } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { PressableScale } from '../../components/PressableScale';
@@ -18,20 +18,9 @@ import { egenTeto } from '../../lib/content/egenTeto';
 import { personaFromRepChart } from '../../components/PersonaTypeHero'; // 성격유형=120종 단일화(daniel 2026-07-20) — 홈 히어로와 같은 함수 재사용(드리프트 0·computeChart 캐시히트)
 import { sajuMbti } from '../../lib/content/sajuMbti';
 import { colors, space, radius, font, shadow } from '../../lib/theme';
-import { ComputedNote } from '../../components/ComputedNote'; // '내 생년월일로 계산됨' 배지(App Store 4.3 대응)
+import { EgenTetoBar } from '../../components/EgenTetoBar'; // ★에겐↔테토 막대 = 단일 출처(화면마다 색이 달라지던 것 통일)
 
 // 에겐↔테토 게이지(egenteto.tsx EgenBar 동일 톤)
-function EgenBar({ score }: { score: number }) {
-  const a = useRef(new Animated.Value(0)).current;
-  useEffect(() => { Animated.timing(a, { toValue: score, duration: 900, delay: 150, easing: Easing.out(Easing.cubic), useNativeDriver: false }).start(); }, [a, score]);
-  const w = a.interpolate({ inputRange: [0, 100], outputRange: ['0%', '100%'] });
-  return (
-    <View style={styles.track}>
-      <Animated.View style={[styles.fill, { width: w }]} />
-      <Animated.View style={[styles.dot, { left: w }]} />
-    </View>
-  );
-}
 
 export default function SelfAnalysisRoute() {
   const { t } = useTranslation();
@@ -81,14 +70,12 @@ export default function SelfAnalysisRoute() {
       <Text style={styles.title}>{label ? `${label}${t('selfAnalysis.titleSuffix', '님 분석')}` : t('selfAnalysis.title', '나 분석')}</Text>
       <Text style={styles.sub}>{t('selfAnalysis.sub', '타고난 사주를 엔진으로 계산한 다섯 갈래 자기분석 — 운세가 아니라 나를 이해하는 지표예요.')}</Text>
       {/* ★타이틀 근처 '계산됨' 배지 — 이 자기분석이 생년월일로 계산된 개인 결과임을 표시(한 줄·과밀 방지) */}
-      <ComputedNote compact />
-
       {/* ① 에겐 ↔ 테토 성향 */}
       <PressableScale style={styles.card} onPress={() => router.push('/egenteto')}>
         <View style={styles.cardHead}><Text style={styles.cardLabel}>{t('menu.egenteto', '에겐·테토 성향')}</Text><Text style={styles.badge}>{egenLabel} {egenPct}%</Text></View>
         <View style={styles.barRow}>
           <Text style={[styles.barEnd, egen.type === 'egen' && styles.barEndOn]}>{t('egen.scaleEgen', '에겐')}</Text>
-          <EgenBar score={egen.tetoScore} />
+          <EgenTetoBar score={egen.tetoScore} />
           <Text style={[styles.barEnd, styles.barEndRight, egen.type === 'teto' && styles.barEndOn]}>{t('egen.scaleTeto', '테토')}</Text>
         </View>
         <Text style={styles.more}>{t('selfAnalysis.more', '자세히 보기 ›')}</Text>
@@ -126,7 +113,6 @@ export default function SelfAnalysisRoute() {
         <Text style={styles.traitsArrow}>›</Text>
       </PressableScale>
 
-      <Text style={styles.footNote}>{t('selfAnalysis.footNote', '※ 모두 사주 엔진(만세력)으로 계산한 온디바이스 분석이에요. 예언이 아니라 나를 이해하는 참고예요.')}</Text>
             {/* ★이어서 보면 좋은 콘텐츠(daniel 2026-07-27 "전부 붙여") — 화면마다 하단이 달라 보이던 것 통일.
             큐레이션 출처는 RELATED 단일(중복 하드코딩 0). 매핑이 없으면 스스로 아무것도 안 그린다. */}
         <RelatedContent kind="selfanalysis" />

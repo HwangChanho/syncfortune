@@ -40,13 +40,6 @@ function sipsinGroup(D: string, T: string): string {
 }
 
 // 관점(method) 일상어 설명 — daniel 검수 슬롯.
-const METHOD_DESC: Record<string, string> = {
-  억부: '일간의 강약을 조절하는 관점 — 강하면 덜어내고, 약하면 보강해요.',
-  병약: '일간을 치는 병(病)을 다스리는 관점 — 관살을 인성으로 받아 돌리는 살인상생 등.',
-  조후: '계절의 한난조습을 맞추는 관점 — 추우면 따뜻하게, 더우면 시원하게.',
-  종격: '거스를 수 없는 한쪽 세력을 따르는 관점.',
-  통관: '대립하는 두 세력을 이어주는 관점.',
-};
 
 // ── 격국용신(상신) — 표준 자평진전(daniel 07-22 "표준으로"·분기조건 검수 슬롯) ──────────────
 type GyeokKind = '재격' | '정관격' | '칠살격' | '인수격' | '식신격' | '상관격' | '건록격' | '양인격';
@@ -150,7 +143,6 @@ export function YongsinCard({ saju, pattern, timeUnknown }: { saju: SajuChart; p
           <Text style={styles.sipsin}>{sipsinGroup(dayEl, r.el)}</Text>
         </View>
       ) : null)}
-      {METHOD_DESC[ys.method] ? <Text style={styles.desc}>{METHOD_DESC[ys.method]}</Text> : null}
 
       {/* 격국용신(상신) — 병약용신처럼 '배지 + 동일 정렬 행'으로 표시(daniel 2026-07-25 IMG_8182). 주용신과 관점이 달라 다를 수 있음. */}
       {gyeokguk ? (
@@ -167,11 +159,9 @@ export function YongsinCard({ saju, pattern, timeUnknown }: { saju: SajuChart; p
             <Text style={[styles.elTx, { color: elementColor[gyeokguk.el] ?? colors.ink }]}>{gyeokguk.el}({EL_KO[gyeokguk.el] ?? gyeokguk.el})</Text>
             <Text style={styles.sipsin}>{gyeokguk.group}{gyeokguk.inChart ? '' : ' ·원국無'}</Text>
           </View>
-          <Text style={styles.gyeokNote}>{gyeokguk.kind}(자평진전 상신) — {gyeokguk.note}{gyeokguk.inChart ? '' : ' · 상신이 원국에 없어 격이 약함'}</Text>
         </View>
       ) : null}
 
-      <Text style={styles.note}>※ 주용신 = 실제 ‘써야 하는 기운’ · 격국용신 = 격을 이루는 상신(관점이 달라 다를 수 있어요). 문구·상신 규칙은 검수 예정.</Text>
     </View>
   );
 }
@@ -187,8 +177,5 @@ const styles = StyleSheet.create({
   elDot: { width: 12, height: 12, borderRadius: 6 },
   elTx: { fontSize: 15, fontWeight: '900', width: 78 },
   sipsin: { ...font.body, color: colors.inkSoft, fontWeight: '700', flexShrink: 1 },
-  desc: { ...font.caption, color: colors.inkSoft, marginTop: space(2), lineHeight: 18 },
   gyeokBox: { marginTop: space(3), paddingTop: space(3), borderTopWidth: 1, borderTopColor: colors.line },
-  gyeokNote: { ...font.caption, color: colors.inkSoft, marginTop: space(1), lineHeight: 18 },
-  note: { ...font.caption, color: colors.inkFaint, fontSize: 11, marginTop: space(2.5), lineHeight: 16 },
 });

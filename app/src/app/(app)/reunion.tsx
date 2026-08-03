@@ -185,7 +185,6 @@ export default function ReunionRoute() {
         </>
       )}
       {/* 동의·프라이버시(규칙8) — 상대 정보는 이 재회 풀이에만, 바꾸기 전까지 이 기기에만 잠금 보관(명식 목록엔 안 남음) */}
-      <Text style={styles.privacy}>{t('reunion.otherPrivacy2', '※ 상대 정보는 이 재회 풀이에만 쓰여요. 바꾸기 전까지 이 기기에만 잠겨 보관되고, 명식 목록엔 남지 않아요. 동의를 얻은 경우에만 입력해 주세요.')}</Text>
 
       {/* (b) 고민 — 선택. 자유 텍스트(그대로 편집 가능) */}
       <Text style={styles.fieldLabel}>{t('reunion.concernLabel', '지금의 고민')}</Text>

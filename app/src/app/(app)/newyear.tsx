@@ -428,7 +428,6 @@ export default function NewYearScreen() {
             </PressableScale>
           </View>
         )}
-        <Text style={styles.note}>{t('newyear.bottomNote', "※ 올 한 해의 큰 흐름이에요. 매일의 운세는 '오늘의 운세'에서 확인하세요.")}</Text>
               {/* ★이어서 보면 좋은 콘텐츠(daniel 2026-07-27 "전부 붙여") — 화면마다 하단이 달라 보이던 것 통일.
             큐레이션 출처는 RELATED 단일(중복 하드코딩 0). 매핑이 없으면 스스로 아무것도 안 그린다. */}
         <RelatedContent kind="newyear" />

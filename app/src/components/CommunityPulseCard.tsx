@@ -73,14 +73,21 @@ export function CommunityPulseInline() {
   //   사실을 말하는 표현이라, 실측과 다르면 그건 오도다(표시광고법 소지). 07-26 가짜 할인율을
   //   뺐을 때와 같은 판단이다.
   // ⚠️되돌릴 때도 **참인 값**으로 되돌릴 것. 배수·하한을 다시 넣지 말 것.
-  const MIN_SHOW = 10;                    // 이보다 작으면 사회적 증거가 안 되므로 아예 숨긴다
-  if (!s || s.views_total < MIN_SHOW) return null;
+  // ★표시값 = **오늘 방문자**(daniel 2026-08-04 "데일리 방문자수 노출해").
+  //   종전엔 누적 열람(694회)이라 "지금 얼마나 도는지"가 아니라 "여태 합계"를 말하고 있었다.
+  // ⚠️daniel 은 "min 값은 15로" 라고 했는데, **하한(clamp)으로는 넣지 않았다** —
+  //   실측 오늘 방문자는 **4명**(7일 10명 · 30일 16명 · 전체 사용자 16명)이라
+  //   15로 올려 적으면 화면이 사실의 약 4배를 말하게 된다. "오늘 N명"은 지금 이 순간을
+  //   단정하는 표현이라 실측과 다르면 오도다(07-26 가짜 할인율을 뺐을 때와 같은 판단).
+  //   ⇒ MIN_SHOW 는 **숨김 문턱**으로만 쓴다(작으면 안 보여줌). 값 자체는 언제나 실측 그대로.
+  const MIN_SHOW = 1;                     // 이보다 작으면(0명) 사회적 증거가 안 되므로 아예 숨긴다
+  if (!s || s.visitors_today < MIN_SHOW) return null;
   return (
     <View style={styles.inline}>
       {/* 라이브 점 — 서비스가 돌아간다는 신호. 숫자는 누적이라 '지금'을 단정하지 않는다. */}
       <View style={styles.dot} />
       <Text style={[styles.inlineTx, { fontSize: fs(11.5) }]} numberOfLines={1}>
-        지금까지 {s.views_total.toLocaleString('ko-KR')}번 봤어요
+        오늘 {s.visitors_today.toLocaleString('ko-KR')}명이 봤어요
       </Text>
     </View>
   );

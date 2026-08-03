@@ -404,9 +404,6 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
           ★ScrollView 안으로 이동(daniel 2026-07-24 '글자 짤려'): 예전엔 고정 탭바 아래 '투명 영역'에 떠 있어,
           운세 탭 기둥 등을 위로 스크롤하면 그 투명 경계에서 상단 라벨(기둥명·나이·천간십신)이 지저분하게 잘려 보였다.
           콘텐츠와 함께 스크롤되게 옮겨, 기둥은 불투명 테두리 탭바 아래로 깔끔히 스크롤되게 함. */}
-      <PressableScale style={styles.catDescBtn} onPress={() => setCatDescOpen(true)}>
-        <Text style={styles.catDescBtnTx}>ⓘ 이 분류는 무엇을 보나요?</Text>
-      </PressableScale>
       {header}
       <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
         {/* ── 사주원국 1: 팔자 그리드 + 12신살(원국) ── */}
@@ -624,7 +621,12 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
         </PressableScale>
       </View>
       {(() => {
+        // 도넛(원 그리기)은 오행 상생 순서를 지켜야 한다 — 목생화·화생토… 가 눈에 보여야 해서.
         const order = ['木', '火', '土', '金', '水'] as const;
+        // ★범례(목록)는 **갯수 내림차순**으로 세운다(daniel 2026-08-04 "갯수 내림차순으로 노출시켜").
+        //   순서를 고정하면 어느 기운이 많은지 숫자를 하나하나 읽어야 안다 — 많은 것부터 놓으면 한눈에 보인다.
+        //   같은 개수면 원래 오행 순서를 유지한다(흔들리지 않게).
+        const legendOrder = [...order].sort((a, b) => elem[b] - elem[a] || order.indexOf(a) - order.indexOf(b));
         const total = order.reduce((a, el) => a + elem[el], 0) || 1;
         const R = 40, CX = 50, CY = 50, SW = 13, circ = 2 * Math.PI * R;
         // 누적 오프셋으로 세그먼트 배치(12시 시작). 강한 오행 순이 아니라 상생순(목화토금수) 고정.
@@ -649,7 +651,7 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
               <SvgText x={CX} y={CY + 15} fill={colors.inkSoft} fontSize={9} textAnchor="middle">최강</SvgText>
             </Svg>
             <View style={styles.elemLegend}>
-              {order.map((el) => (
+              {legendOrder.map((el) => (
                 <View key={el} style={styles.elemLegendRow}>
                   <View style={[styles.elemDot, { backgroundColor: elementColor[el] }]} />
                   <Text style={[styles.elemLegendEl, { color: elementColor[el] }]}>{el} <Text style={{ fontSize: 11, color: colors.inkFaint, fontWeight: '600' }}>({elemTenGod(el)})</Text></Text>
@@ -992,6 +994,33 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
           </View>
         );
       })()}
+
+      {/* ── 자미두수 운흐름(대한) ── daniel 2026-08-04 "만세력에 자미두수에 자미두수 운흐름도 표출해".
+          엔진(iztro)이 이미 `ziwei.decades` 로 대한 구간·비성사화를 계산해 두고 있었는데 **어디서도 안 그리고 있었다**.
+          ⚠️여기서 새로 판정하는 건 없다 — 결정론 산출을 표로 옮길 뿐(CLAUDE.md §3.3: 자미두수는 보조·수렴까지).
+          사화 색은 위 명반과 **같은 팔레트**를 쓴다(따로 정의하면 또 갈린다). */}
+      {Array.isArray((c.ziwei as any).decades) && (c.ziwei as any).decades.length > 0 && (() => {
+        const SIHWA_COL: Record<string, string> = { '化祿': '#3E8E5A', '化權': '#C0392B', '化科': '#3A6EA5', '化忌': '#7A7A7A' };
+        return (
+          <>
+            <Text style={styles.h}>자미두수 운흐름</Text>
+            <Text style={styles.luckSub}>대한(10년) · 그 시기 천간이 일으키는 비성사화</Text>
+            {((c.ziwei as any).decades as any[]).map((d: any, i: number) => (
+              <View key={i} style={styles.ziDecRow}>
+                <Text style={styles.ziDecAge}>{d.startAge}~{d.startAge + 9}세</Text>
+                <Text style={styles.ziDecBr}>{d.palaceBranch}</Text>
+                <View style={styles.ziDecSihwa}>
+                  {(d.flyingSihwa ?? []).map((fs2: any, j: number) => (
+                    <Text key={j} style={[styles.ziDecTx, { color: SIHWA_COL[fs2.type] ?? colors.ink }]}>
+                      {fs2.star}{String(fs2.type).slice(-1)}{fs2.intoPalace ? `→${fs2.intoPalace}` : ''}{j < ((d.flyingSihwa?.length ?? 0) - 1) ? ' · ' : ''}
+                    </Text>
+                  ))}
+                </View>
+              </View>
+            ))}
+          </>
+        );
+      })()}
         </>
       )}
 
@@ -1216,6 +1245,12 @@ const makeStyles = (fs: (n: number) => number) => { const f = scaledFont(fs); re
   luckTg: { fontSize: fs(9), color: colors.inkSoft },
   luckStage: { fontSize: fs(9), color: colors.inkFaint, fontWeight: '600' },   // 12운성
   luckSub: { ...f.caption, color: colors.ju, marginTop: space(3), marginBottom: space(1) },
+  // 자미두수 운흐름(대한) 행 — 나이 | 궁 지지 | 비성사화
+  ziDecRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: space(2), borderBottomWidth: 1, borderBottomColor: colors.line, gap: space(2) },
+  ziDecAge: { ...f.caption, color: colors.inkSoft, width: 74 },
+  ziDecBr: { ...f.body, color: colors.ink, fontWeight: '700', width: 24 },
+  ziDecSihwa: { flex: 1, flexDirection: 'row', flexWrap: 'wrap' },
+  ziDecTx: { ...f.caption },
   seunCard: { alignItems: 'center', paddingVertical: space(1.5), paddingHorizontal: space(2), borderRadius: radius.sm, backgroundColor: colors.sunk, minWidth: 52 },
   todayBtn: { alignSelf: 'center', flexDirection: 'row', alignItems: 'center', gap: 5, paddingVertical: space(1.5), paddingHorizontal: space(4), borderRadius: radius.sm, borderWidth: 1, borderColor: colors.ju, backgroundColor: colors.sunk, marginTop: space(2), marginBottom: space(1) }, // 현재운세 보기(daniel 07-08)
   todayBtnTx: { ...f.caption, color: colors.ju, fontWeight: '700' },

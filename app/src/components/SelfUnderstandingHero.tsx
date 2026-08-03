@@ -6,9 +6,8 @@
 //   성격유형·사주 MBTI·나의 특징(자기이해 클러스터)으로 빠르게 잇는다. 명식 없으면 '나를 분석받기' 등록 유도.
 //   ★로직 신설 아님 — egenteto.tsx 산출 패턴(loadRepChart→computeChart→egenTeto→buildEgenReading) 재사용, 노출만 최상단으로.
 // ─────────────────────────────────────────────────────────────────────────
-import { useEffect, useRef, useState } from 'react';
-import { LinearGradient } from 'expo-linear-gradient'; // 에겐(빨강)→테토(파랑) 축 그라디언트
-import { View, Text, StyleSheet, Animated, Easing } from 'react-native';
+import { useEffect, useState } from 'react';
+import { View, Text, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { PressableScale } from './PressableScale';
@@ -18,6 +17,7 @@ import { egenTeto, type EgenTetoResult } from '../lib/content/egenTeto';
 import { buildEgenReading, type EgenReading } from '../lib/content/egenReading';
 import { colors, radius, space, shadow, font } from '../lib/theme';
 import { useFontScale } from '../lib/ui/fontScale';
+import { EgenTetoBar } from './EgenTetoBar'; // ★에겐↔테토 막대 = 단일 출처(화면마다 색이 달라지던 것 통일)
 
 // 에겐↔테토 게이지 — **바 자체가 왼쪽 붉은색 → 오른쪽 푸른색**(daniel 2026-08-01 지시).
 //   ★한 색 채움에서 바꾼 이유: 채움만 색을 주면 '내 위치'는 보여도 **축의 양 끝이 무엇인지**가 안 읽힌다.
@@ -25,19 +25,6 @@ import { useFontScale } from '../lib/ui/fontScale';
 //   점(dot)은 내 점수 위치에 서고, 우세한 쪽 색을 띤다.
 const EGEN_C = '#D14343';   // 에겐 = 붉은색
 const TETO_C = '#2F6BD8';   // 테토 = 푸른색
-function EgenBar({ score }: { score: number }) {
-  const side = score >= 50 ? TETO_C : EGEN_C;
-  const a = useRef(new Animated.Value(0)).current;
-  useEffect(() => { Animated.timing(a, { toValue: score, duration: 950, delay: 200, easing: Easing.out(Easing.cubic), useNativeDriver: false }).start(); }, [a, score]);
-  const w = a.interpolate({ inputRange: [0, 100], outputRange: ['0%', '100%'] });
-  return (
-    <View style={styles.track}>
-      {/* 축 전체를 빨강→파랑으로. 내 점수와 무관하게 항상 같은 그라디언트(축의 의미를 색으로 고정) */}
-      <LinearGradient colors={[EGEN_C, TETO_C]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={StyleSheet.absoluteFill} />
-      <Animated.View style={[styles.dot, { left: w, backgroundColor: side }]} />
-    </View>
-  );
-}
 
 // 자기이해 클러스터 빠른 진입(전부 무료·온디바이스). 라우트·라벨키는 index.tsx SECTIONS 와 동일. ★이모지 미사용(daniel).
 const CLUSTER: { route: string; labelKey: string; fallback: string }[] = [
@@ -103,7 +90,7 @@ export function SelfUnderstandingHero({ reloadKey }: { reloadKey?: number }) {
           </View>
           <View style={styles.barRow}>
             <Text style={[styles.barEnd, result.type === 'egen' && styles.barEndOn, { color: EGEN_C }]}>{t('egen.scaleEgen', '에겐')}</Text>
-            <EgenBar score={result.tetoScore} />
+            <EgenTetoBar score={result.tetoScore} />
             <Text style={[styles.barEnd, styles.barEndRight, result.type === 'teto' && styles.barEndOn, { color: TETO_C }]}>{t('egen.scaleTeto', '테토')}</Text>
           </View>
           {reading?.headline ? <Text style={[styles.headline, { fontSize: fs(15) }]} numberOfLines={2}>{reading.headline}</Text> : null}

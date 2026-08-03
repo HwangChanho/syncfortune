@@ -6,9 +6,8 @@
 //      kind='egen' LLM 제거 → API 0·무료·광고 게이트 제거). EGEN_SYSTEM 톤을 룰로 이관(stance 동일).
 //   점수·설명 모두 명식만 있으면 비로그인·오프라인에서도 즉시(서버·캐시 불요). 같은 명식·점수=같은 설명(결정론).
 // ─────────────────────────────────────────────────────────────────────────
-import { useEffect, useState, useRef } from 'react';
-import { LinearGradient } from 'expo-linear-gradient'; // 에겐(빨강)→테토(파랑) 축 그라디언트
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Animated, Easing } from 'react-native';
+import { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
 import { PressableScale } from '../../components/PressableScale';
 import { RelatedContent } from '../../components/RelatedContent';
 import { useRouter } from 'expo-router';
@@ -22,6 +21,7 @@ import { useFontScale } from '../../lib/ui/fontScale';
 import { ChartPicker } from '../../components/ChartPicker'; // 명식 선택(대표 전환) — 명식별 성향(daniel)
 import { ShareReadingButton } from '../../components/ShareReadingButton'; // 이슈17: 풀이 결과 공유(앱게이트)
 import { useLogContentVisit } from '../../lib/backend/contentVisit'; // 콘텐츠 방문 집계(daniel 2026-07-06) — 진입 1회 기록
+import { EgenTetoBar } from '../../components/EgenTetoBar'; // ★에겐↔테토 막대 = 단일 출처(화면마다 색이 달라지던 것 통일)
 
 // 에겐↔테토 게이지 — **바 자체가 왼쪽 붉은색 → 오른쪽 푸른색**(daniel 2026-08-01 지시).
 //   ★한 색 채움에서 바꾼 이유: 채움만 색을 주면 '내 위치'는 보여도 **축의 양 끝이 무엇인지**가 안 읽힌다.
@@ -29,19 +29,6 @@ import { useLogContentVisit } from '../../lib/backend/contentVisit'; // 콘텐�
 //   점(dot)은 내 점수 위치에 서고, 우세한 쪽 색을 띤다.
 const EGEN_C = '#D14343';   // 에겐 = 붉은색
 const TETO_C = '#2F6BD8';   // 테토 = 푸른색
-function EgenBar({ score }: { score: number }) {
-  const side = score >= 50 ? TETO_C : EGEN_C;
-  const a = useRef(new Animated.Value(0)).current;
-  useEffect(() => { Animated.timing(a, { toValue: score, duration: 950, delay: 200, easing: Easing.out(Easing.cubic), useNativeDriver: false }).start(); }, [a, score]);
-  const w = a.interpolate({ inputRange: [0, 100], outputRange: ['0%', '100%'] });
-  return (
-    <View style={styles.track}>
-      {/* 축 전체를 빨강→파랑으로. 내 점수와 무관하게 항상 같은 그라디언트(축의 의미를 색으로 고정) */}
-      <LinearGradient colors={[EGEN_C, TETO_C]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={StyleSheet.absoluteFill} />
-      <Animated.View style={[styles.dot, { left: w, backgroundColor: side }]} />
-    </View>
-  );
-}
 
 export default function EgenTetoScreen() {
   useLogContentVisit('egen'); // 진입 1회 방문 기록(daniel 2026-07-06)
@@ -105,7 +92,7 @@ export default function EgenTetoScreen() {
               <Text style={styles.scoreNum}>{result.type === 'teto' ? t('egen.scaleTeto', '테토') : t('egen.scaleEgen', '에겐')} {result.type === 'teto' ? result.tetoScore : 100 - result.tetoScore}<Text style={styles.scoreNumUnit}>%</Text></Text>
               <View style={styles.barRow}>
                 <Text style={[styles.barEnd, result.type === 'egen' && styles.barEndOn, { color: EGEN_C }]}>{t('egen.scaleEgen', '에겐')}</Text>
-                <EgenBar score={result.tetoScore} />
+                <EgenTetoBar score={result.tetoScore} />
                 <Text style={[styles.barEnd, styles.barEndRight, result.type === 'teto' && styles.barEndOn, { color: TETO_C }]}>{t('egen.scaleTeto', '테토')}</Text>
               </View>
             </View>
