@@ -133,7 +133,7 @@ export default function TimeResolveScreen() {
               const paid = await spendCoinsFixed('timeresolve');
               if (paid.ok) { await markUnlocked(TPR_UNLOCK, 'timeresolve'); setUnlocked(true); compute(); }
               else if (paid.reason === 'insufficient') Alert.alert(t('coins.needTitle', '운이 부족해요'), `${paid.cost ?? ''} 운이 필요해요. 지금 ${paid.balance ?? 0} 운 있어요.`);
-              else Alert.alert(t('timeResolve.title', '태어난 시 찾기'), t('common.retryLater', '잠시 후 다시 시도해 주세요. 운은 차감되지 않았어요.'));
+              else Alert.alert(t('timeResolve.title', '태어난 시 찾기'), t('common.retryLaterNoCharge', '잠시 후 다시 시도해 주세요. 운은 차감되지 않았어요.'));
             } catch (e) { Alert.alert('!', (e as Error).message); }
           } },
         { text: t('special.goMarket', '마켓에서 보기'), onPress: () => router.push({ pathname: '/market', params: { focus: 'timeresolve' } }) },   // ★'태어난 시 찾기' 카드로 바로(daniel 07-27)

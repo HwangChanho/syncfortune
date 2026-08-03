@@ -19,6 +19,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler'; // 이슈
 import { useAuth, whenAuthCleanupIdle } from '../lib/useAuth'; // whenAuthCleanupIdle: 로그아웃 클린업 완료 게이트(L3 — sync 전 대기)
 import { configurePurchases } from '../lib/billing/purchases'; // 인앱결제(RevenueCat) 초기화
 import { refreshPremium } from '../lib/billing/premiumStore';
+import { applyCopyOverrides } from '../lib/ui/copyOverrides';   // ★빌드 없이 문구 수정(기획자 경로)
 import { refreshAdFree } from '../lib/billing/adFree';   // ★광고 제거(운) 전역 재평가 — 배너가 전 화면에 있어 단일 소스가 필요 // 세션 변경(로그인/로그아웃/계정전환) 시 프리미엄 전역 재평가 → 광고 즉시 토글(daniel 2026-06-24)
 import { migrateLocalCreditsOnLogin } from '../lib/billing/migrateCredits'; // 로그인 시 디바이스 구매 이관(H)
 import { preferSelfAsRep, syncChartsFromServer, subscribeRepChange } from '../lib/engine/myChart'; // 대표 명식=본인 + 명식 멀티기기 동기화(포그라운드 복귀 시) + 대표 변경 구독(테마 반영)
@@ -68,6 +69,9 @@ export default function RootLayout() {
   }, []);
   // AdMob SDK 초기화(앱 시작 1회) — 이게 없으면 ad.load()가 실패해 무료 보상형 광고가 안 뜬다(daniel 버그). 모듈 없는 빌드는 no-op.
   useEffect(() => { initAds().catch(() => {}); }, []);
+  // ★문구 오버라이드(daniel 2026-08-03) — 앱 재빌드 없이 기획자가 고친 문구를 번들 위에 덮는다.
+  //   실패·지연은 무시(내부에서 5초 상한) — 문구는 부가라 번들 값으로 정상 동작한다.
+  useEffect(() => { void applyCopyOverrides(); }, []);
   // 진행중/완료-미확인 풀이 복원(daniel: 풀이 중 강제종료해도 홈에 '이전에 진행중인 풀이' 배너 → 탭하여 이어보기).
   useEffect(() => { hydrateGenProgress().catch(() => {}); }, []);
   // ★테스트광고 게이트(daniel) — 관리자/테스트 계정은 실 AdMob 유닛 서빙 전이라 구글 테스트광고를 보게(배너·보상형·전면 동작 확인용).

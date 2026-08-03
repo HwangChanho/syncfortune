@@ -21,6 +21,7 @@ import { isOnboardingEnabled, setOnboardingEnabled } from '../../components/Onbo
 import { remoteFlagValue, setAppFlag, loadFeatures, type FeatureKey } from '../../lib/core/features'; // ★신규 기능 공개 토글(속궁합/커뮤니티/위젯 — 심사 통과 후 전 유저 공개)
 import { useSubscription } from '../../lib/billing/subscription'; // 관리자모드 토글 후 프리미엄 새로고침
 import DateTimePicker from '@react-native-community/datetimepicker'; // ★예약 푸시 발송 시각 선택(daniel 07-17)
+import { CopyEditor } from '../../components/CopyEditor'; // ★문구 수정(빌드 없이) — 기획자 경로(daniel 08-03)
 
 // 초 → 사람이 읽는 시간(평균 사용시간 표시).
 const fmtDur = (sec?: number | null) => {
@@ -588,6 +589,8 @@ export default function AdminRoute() {
           {giftMsg ? <Text style={styles.giftMsg}>{giftMsg}</Text> : null}
         </View>
       )}
+      {/* ★문구 수정(daniel 2026-08-03) — 앱을 다시 빌드하지 않고 고친다. 쓰기 권한은 서버 RLS 가 강제. */}
+      <CopyEditor />
     </ScrollView>
   );
 }
