@@ -157,7 +157,13 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
   const [selSeun, setSelSeun] = useState(curSeunIdx);                 // 선택된 세운(기본=올해)
   const [selMonth, setSelMonth] = useState(now.getMonth());           // 선택된 월운(기본=이번 달)
   const [selDay, setSelDay] = useState(now.getDate());                // 선택된 일운(기본=오늘) — 일진 달력 탭으로 변경
-  const [showLayers, setShowLayers] = useState({ luck: false, year: false, month: false, day: false }); // 운세 확장명식 시간층 토글 — ★통합 후 기본 OFF(daniel 07-24: 원국+운세 통합 시 대운·세운·월운·일운 꺼진 게 기본, 원국만). 켜면 그 층↔원국 확장명식 노출
+  // 운세 확장명식 시간층 — ★**기본 ON**(daniel 2026-08-03 "만세력에 디폴트가 오늘 기준
+  //   대운·세운·월운·일운으로 잡혀 있어야지"). 07-24 엔 통합하며 기본 OFF(원국만)로 뒀는데,
+  //   만세력을 여는 이유가 대개 '지금 내 운이 어떤가' 라서 매번 네 칩을 눌러야 했다.
+  //   선택값은 이미 오늘 기준이다(아래 selLuck/selSeun/selMonth/selDay = 현재 대운·올해·이번 달·오늘)
+  //   — 켜져 있지 않았을 뿐이라, 기본을 켜면 **열자마자 오늘 기준 네 층**이 원국 옆에 붙는다.
+  //   ⚠️끄고 원국만 보고 싶으면 칩을 눌러 끄면 된다(토글은 그대로).
+  const [showLayers, setShowLayers] = useState({ luck: true, year: true, month: true, day: true });
   const [expW, setExpW] = useState(0); // 확장명식 가용폭 — 컬럼 수에 맞춰 칸·글자 반응형(daniel)
   const [glossary, setGlossary] = useState<{ kind: GlossaryKind; key?: string } | null>(null); // 클릭 설명 바텀시트
   const [showLinks, setShowLinks] = useState(false); // ★관계분석(합충형해) 기본 접힘(daniel 2026-07-24) — 펼치면 관계 리스트 + 12신살
