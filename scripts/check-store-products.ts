@@ -178,8 +178,12 @@ console.log("\n[S6] 화폐 단위 = '운'(코인 잔재 0 · 명리 용어 온�
   else bad(`화폐 치환이 명리 용어를 깨뜨렸다: ${corrupt.join(', ')}`);
 
   // ★반대 방향 검사 — 화폐명을 '운'으로 되돌리면서 명리 용어를 같이 갈아엎지 않았는가.
-  //   i18n 은 앱의 모든 표시 문구 원본이라, 여기서 이 단어들이 사라졌다면 치환이 과했다는 뜻이다.
-  const i18nRaw = readFileSync(join(ROOT, 'app/src/lib/i18n.ts'), 'utf8');
+  //   앱의 모든 표시 문구 원본이라, 여기서 이 단어들이 사라졌다면 치환이 과했다는 뜻이다.
+  //   ★2026-08-03: 문구가 i18n.ts → app/src/copy/{ko,en,ja}.ts 로 분리됐다(기획자 편집용).
+  //     i18n.ts 만 읽던 이 규칙이 그 이관으로 '대운·세운이 사라졌다'고 오탐했다 —
+  //     옛 구조를 되살리지 말고 **불변식을 새 구조로 다시 쓴다**(문구가 어디 있든 원본 전체를 본다).
+  const i18nRaw = ['app/src/copy/ko.ts', 'app/src/copy/en.ts', 'app/src/copy/ja.ts', 'app/src/lib/i18n.ts']
+    .map((f) => { try { return readFileSync(join(ROOT, f), 'utf8'); } catch { return ''; } }).join('\n');
   const mustKeep = ['대운', '세운', '운세'];
   const lost = mustKeep.filter((w) => !i18nRaw.includes(w));
   if (!lost.length) ok(`명리 용어 온전(${mustKeep.join('·')})`);
