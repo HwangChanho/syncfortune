@@ -65,8 +65,9 @@ export async function runContentRenewal(opts: {
     Alert.alert(
       t('renewal.title', '최신 통변으로 다시 받기'),
       t('renewal.msg', {
-        pct: RENEWAL_COIN_DISCOUNT_PCT, coins: cost, have: bal,
-        defaultValue: '이 풀이를 받은 지 1년이 지났어요.\n\n{{pct}}% 할인된 {{coins}} 운으로 지금 시점 기준으로 다시 풀어 드려요. (보유 {{have}} 운)',
+        // ★차감 전·후 잔액을 함께(daniel 2026-08-04) — 결제 확인은 어디서든 같은 형식이어야 한다.
+        pct: RENEWAL_COIN_DISCOUNT_PCT, coins: cost.toLocaleString('ko-KR'), have: bal.toLocaleString('ko-KR'), after: Math.max(0, bal - cost).toLocaleString('ko-KR'),
+        defaultValue: '이 풀이를 받은 지 1년이 지났어요.\n\n{{pct}}% 할인된 {{coins}} 운으로 지금 시점 기준으로 다시 풀어 드려요.\n보유 {{have}} 운 → 사용 후 {{after}} 운',
       }),
       [
         { text: t('renewal.later', '다음에'), style: 'cancel', onPress: () => resolve(false) },

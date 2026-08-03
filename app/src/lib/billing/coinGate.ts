@@ -30,6 +30,9 @@ export type CoinGateResult = 'ok' | 'insufficient' | 'cancel' | 'error' | 'nopri
  * ⚠️'noprice'(코인가 미등록)는 **신규 콘텐츠 등록 누락** 신호다 — check:coins 가 잡지만,
  *   런타임에서는 막지 말고 호출측이 종전 경로로 폴백하게 둔다(사용자가 갇히지 않도록).
  */
+/** 운 표기 — 천 단위 구분자(대시보드 잔액이 다섯 자리라 없으면 읽기 어렵다). */
+const won = (n: number | null | undefined) => (n ?? 0).toLocaleString('ko-KR');
+
 export async function ensureCoinsFor(
   kind: string,
   opts: { title: string; t: (k: any, d?: any) => string; goCharge: () => void; chartId?: string | null },
@@ -52,7 +55,7 @@ export async function ensureCoinsFor(
       return await new Promise<CoinGateResult>((resolve) => {
         Alert.alert(
           t('coins.needTitle', '운이 부족해요'),
-          t('coins.needMsg', { need: st.cost, have: st.balance, defaultValue: '이 풀이는 {{need}} 운이 필요해요. 지금 {{have}} 운 있어요.' }),
+          t('coins.needMsg', { need: won(st.cost), have: won(st.balance), defaultValue: '이 풀이는 {{need}} 운이 필요해요. 지금 {{have}} 운 있어요.' }),
           [
             { text: t('common.cancel'), style: 'cancel', onPress: () => resolve('cancel') },
             { text: t('coins.charge', '운 충전하기'), onPress: () => { goCharge(); resolve('insufficient'); } },
@@ -65,7 +68,14 @@ export async function ensureCoinsFor(
     return await new Promise<CoinGateResult>((resolve) => {
       Alert.alert(
         title,
-        t('coins.spendMsg', { cost: st.cost, have: st.balance, defaultValue: '{{cost}} 운을 사용해 풀이를 시작할까요? (보유 {{have}} 운)' }),
+        // ★차감 **전·후 잔액을 함께** 보여 준다(daniel 2026-08-04 "실제 보유 운이랑 차감된 다음 운이랑 노출해줘야해").
+        //   종전엔 보유액만 보였다 — 얼마가 남는지는 사용자가 직접 빼야 했고,
+        //   유료 결정을 그렇게 시키면 안 된다. 숫자는 서버가 준 값 그대로 쓴다(앱이 다시 계산하지 않는다).
+        t('coins.spendMsg', {
+          // ★천 단위 구분자를 붙여 넘긴다 — i18n 은 숫자를 자동 포맷하지 않아 '99549 운'처럼 읽기 어려워진다.
+          cost: won(st.cost), have: won(st.balance), after: won(Math.max(0, (st.balance ?? 0) - (st.cost ?? 0))),
+          defaultValue: '{{cost}} 운을 사용해 풀이를 시작할까요?\n보유 {{have}} 운 → 사용 후 {{after}} 운',
+        }),
         [
           { text: t('coins.spend', '운 사용'), onPress: () => resolve('ok') },
           { text: t('common.cancel'), style: 'cancel', onPress: () => resolve('cancel') },
@@ -91,7 +101,7 @@ export async function ensureCoinsFor(
     return await new Promise<CoinGateResult>((resolve) => {
       Alert.alert(
         t('coins.needTitle', '운이 부족해요'),
-        t('coins.needMsg', { need: cost, have: bal, defaultValue: '이 풀이는 {{need}} 운이 필요해요. 지금 {{have}} 운 있어요.' }),
+        t('coins.needMsg', { need: won(cost), have: won(bal), defaultValue: '이 풀이는 {{need}} 운이 필요해요. 지금 {{have}} 운 있어요.' }),
         [
           { text: t('common.cancel'), style: 'cancel', onPress: () => resolve('cancel') },
           { text: t('coins.charge', '운 충전하기'), onPress: () => { goCharge(); resolve('insufficient'); } },
@@ -104,7 +114,11 @@ export async function ensureCoinsFor(
   return await new Promise<CoinGateResult>((resolve) => {
     Alert.alert(
       title,
-      t('coins.spendMsg', { cost, have: bal, defaultValue: '{{cost}} 운을 사용해 풀이를 시작할까요? (보유 {{have}} 운)' }),
+      // ★위 서버 경로와 **같은 키·같은 형식**(두 경로가 다르게 보이면 그게 곧 혼란이다).
+      t('coins.spendMsg', {
+        cost: won(cost), have: won(bal), after: won(Math.max(0, bal - cost)),
+        defaultValue: '{{cost}} 운을 사용해 풀이를 시작할까요?\n보유 {{have}} 운 → 사용 후 {{after}} 운',
+      }),
       [
         { text: t('coins.spend', '운 사용'), onPress: () => resolve('ok') },
         { text: t('common.cancel'), style: 'cancel', onPress: () => resolve('cancel') },

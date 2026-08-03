@@ -422,6 +422,7 @@ export const en = {
     'topLabel': '나와 가장 닮은 인물',
   },
   coins: {
+    spendMsg: 'Use {{cost}} woon to start this reading?\nYou have {{have}} → {{after}} after',
     'balFail': '잔액을 불러오지 못했어요',
     'balance': '보유 운',
     'charge': '운 충전하기',
