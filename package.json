@@ -92,7 +92,8 @@
     "check:alertonce": "tsx scripts/check-alert-once.ts",
     "check:linkage": "tsx scripts/check-linkage.ts",
     "audit:deadcode": "tsx scripts/audit-deadcode.ts",
-    "check:copy": "tsx scripts/check-copy.ts"
+    "check:copy": "tsx scripts/check-copy.ts",
+    "snap:cols": "node scripts/snap-columns.mjs"
   },
   "keywords": [],
   "author": "",
