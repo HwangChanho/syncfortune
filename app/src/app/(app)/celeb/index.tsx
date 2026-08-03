@@ -149,7 +149,7 @@ export default function CelebIndex() {
           returnKeyType="search"
         />
         <Text style={styles.searchHint}>
-          {searching ? '찾는 중…' : q.trim().length >= 2 ? `‘${q.trim()}’ 검색 결과 ${pool.length}명` : '많이 알려진 순으로 보여 드려요'}
+          {searching ? '찾는 중…' : q.trim().length >= 2 ? `‘${q.trim()}’ 검색 결과 ${pool.length}명` : '요즘 많이 찾아본 순으로 보여 드려요'}
         </Text>
 
         {/* ★무료 티저 — 나와 가장 닮은 인물 1명 + 유사도% (온디바이스·결정론·API 0). 탭 → 그 인물 상세 비교 */}

@@ -12,9 +12,11 @@
 // ■ '요즘 유행'을 어떻게 근사하나 (정직하게)
 //   이 표에는 **실시간 인기 신호가 없다.** fame 은 위키데이터 문서 연결 수에 가까운 지명도 지표다.
 //   그래서 '지금 뜨는'을 진짜로는 알 수 없고, 다음 세 조건으로 **근사**한다:
-//     ① 한국(country_code='KR')  ② 배우·가수  ③ 1975년 이후 출생(현역 세대)  → fame 내림차순
-//   실측하면 싸이·로제·이민호·제니·송중기·아이유·정국… 순으로 나온다(의도한 결과).
-//   ⚠️'실시간 트렌드'라고 부르지 않는다 — 화면에도 '많이 알려진 순'으로 적는다.
+//     ① 한국(country_code='KR')  ② 배우·가수  ③ 1975년 이후 출생(현역 세대)
+//   ★정렬은 **최근 30일 위키백과 조회수**(views_30d) — daniel 승인 후 수집기(celeb-trend)를 붙였다.
+//     fame 은 '역사적 유명함'이라 지금 뜨는 사람과 어긋났다(실측: 싸이 fame 1위·조회수 9위 /
+//     공유 fame 49·조회수 1위). 조회수는 '지금 사람들이 실제로 찾아본 정도'다.
+//   ⚠️드라마 방영·사건에 출렁인다 — 그게 트렌드의 정의라 의도된 성질이다.
 //
 // ■ 사주는 온디바이스로 계산한다(비용 0)
 //   표에 사주 기둥이 미리 들어 있지만 **쓰지 않는다** — 매칭은 기존 결정론 엔진(celebMatch)이
@@ -62,7 +64,13 @@ export async function listTrendingCelebs(limit = 40): Promise<CelebEntry[]> {
     supabase.from('celebrities').select(SELECT)
       .eq('country_code', 'KR').in('role', ['배우', '가수'])
       .not('name_ko', 'is', null).gte('birth_date', '1975-01-01')
-      .order('fame', { ascending: false }).limit(limit),
+      // ★정렬 기준 = **최근 30일 위키백과 조회수**(daniel 2026-08-03 승인 후 수집).
+      //   fame(위키데이터 문서 연결 수)은 '역사적 유명함'이라 지금 뜨는 사람과 어긋났다 —
+      //   실측: 노출 1위였던 싸이가 조회수로는 9위, 공유는 fame 49 인데 조회수 1위(11,261).
+      //   아직 수집 안 된 사람은 뒤로(nullsFirst:false) 보내고, 화면은 fame 폴백 없이 그대로 둔다.
+      .order('views_30d', { ascending: false, nullsFirst: false })
+      .order('fame', { ascending: false })
+      .limit(limit),
     8000,
   );
   const rows = (res as { data?: Row[] } | undefined)?.data ?? [];
