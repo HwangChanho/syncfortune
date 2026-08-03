@@ -16,7 +16,8 @@
 // 데이터: `get_public_stats()` RPC(집계 숫자만·개인정보 0·anon 허용). 실패하면 조용히 미표시.
 // ⚠️문구 = Claude 초안 → ★daniel 검수 슬롯.
 // ─────────────────────────────────────────────────────────────────────────
-import { useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
+import { useFocusEffect } from 'expo-router';
 import { View, Text, StyleSheet } from 'react-native';
 import { supabase } from '../lib/supabase';
 import { useFontScale } from '../lib/ui/fontScale';
@@ -31,7 +32,11 @@ type Stats = { readings_total: number; views_total: number; visitors_today: numb
  */
 function usePublicStats(): Stats | null {
   const [s, setStats] = useState<Stats | null>(null);
-  useEffect(() => {
+  // ★포커스마다 다시 읽는다(daniel 2026-08-03 "홈에 바로바로 갱신이 안 되어 있던데").
+  //   종전엔 `useEffect(…, [])` 라 **마운트 때 한 번**만 읽었다 — 홈은 탭이라 한 번 뜨면
+  //   계속 살아 있어서, 다른 화면에서 뭘 하고 돌아와도 이 숫자가 그대로 굳어 있었다.
+  //   잔액 배지(useCoinBalance)는 이미 포커스 재조회라 여기만 규칙이 달랐다 — 맞춘다.
+  useFocusEffect(useCallback(() => {
     let alive = true;
     // PostgrestBuilder 는 PromiseLike(.catch 없음) → async IIFE + try/catch 로 감싼다.
     (async () => {
@@ -47,7 +52,7 @@ function usePublicStats(): Stats | null {
       } catch { /* 통계는 부가 정보 — 실패해도 홈에 영향 없음 */ }
     })();
     return () => { alive = false; };
-  }, []);
+  }, []));
   return s;
 }
 
