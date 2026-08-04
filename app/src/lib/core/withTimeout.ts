@@ -18,6 +18,17 @@
 export const GATE_TIMEOUT_MS = 8000;
 
 /**
+ * ★LLM 생성(interpret/generate_set) 전용 상한(ms).
+ * daniel 2026-08-04 "궁합 풀이하면 자꾸 오류 발생해" 의 근본 원인이 여기 없던 것 —
+ * 07-31 무한대기 근절 스윕이 생성 호출 15곳을 **게이트용 기본 8초**로 감쌌는데,
+ * 실측 interpret 는 궁합 58초·사랑 27~34초다. 8초에 '오류' 알림이 뜨고
+ * 서버는 뒤에서 성공(200)하니 "자꾸 오류 + 운은 나감"으로 보였다.
+ * ⇒ 생성은 이 상한으로. Edge 유휴 벽 150초 안쪽 + 여유(120초, SpecialContentScreen 실전값과 통일).
+ * ⚠️게이트(잔액·권한 조회)는 계속 기본 8초 — 이 상수를 게이트에 쓰면 멈춤 사고가 되살아난다.
+ */
+export const GEN_TIMEOUT_MS = 120_000;
+
+/**
  * thenable 을 상한 시간 안에 끝낸다.
  * @param p  기다릴 대상(Promise 또는 PostgrestBuilder 같은 thenable)
  * @param ms 상한(기본 8초)

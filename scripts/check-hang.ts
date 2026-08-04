@@ -198,5 +198,38 @@ console.log('\n[H5] 잠금 구간의 SDK 대기(광고)에도 상한이 있다')
   else { risky.forEach((m) => console.error(`      ${m}`)); bad(`상한 없는 광고 대기 ${risky.length}건 — SDK 무응답 시 잠금이 안 풀린다`); }
 }
 
+// ── H6 LLM 생성 호출은 게이트용 기본 8초를 쓰면 안 된다 ─────────────────────
+// daniel 2026-08-04 "궁합 풀이하면 자꾸 오류 발생해" — 07-31 상한 스윕이 생성 호출 15곳을
+// **게이트 기본 8초**로 감쌌다. 실측 interpret = 궁합 58초·사랑 27~34초 → 8초에 '오류' 알림,
+// 서버는 뒤에서 성공(200) = "자꾸 오류 + 운은 나감"으로 보였다.
+// 규칙: withTimeout(…invoke('interpret'|'generate_set')…) 과 withTimeout(gen*)는 **ms 인자 필수**.
+// 음성테스트: CompatScreen 의 GEN_TIMEOUT_MS 인자를 지우면 이 규칙이 문다(2026-08-04 확인).
+console.log('\n[H6] LLM 생성 대기에 생성용 상한(GEN_TIMEOUT_MS)이 명시돼 있다');
+{
+  const risky: string[] = [];
+  for (const f of files) {
+    const src = strip(readFileSync(f, 'utf8'));
+    let m: RegExpExecArray | null;
+    const re = /withTimeout\(/g;
+    while ((m = re.exec(src))) {
+      let i = m.index + m[0].length, depth = 1;
+      while (i < src.length && depth > 0) { if (src[i] === '(') depth++; else if (src[i] === ')') depth--; i++; }
+      const arg = src.slice(m.index + m[0].length, i - 1);
+      const isGen = /invoke\(\s*['"](interpret|generate_set)['"]/.test(arg) || /genCompatReading\(/.test(arg);
+      if (!isGen) continue;
+      // 최상위 콤마(= ms 인자) 존재 여부
+      let d = 0, hasMs = false;
+      for (const ch of arg) {
+        if ('([{'.includes(ch)) d++;
+        else if (')]}'.includes(ch)) d--;
+        else if (ch === ',' && d === 0) { hasMs = true; break; }
+      }
+      if (!hasMs) risky.push(`${rel(f)}: withTimeout(${arg.slice(0, 48).replace(/\s+/g, ' ')}…) — ms 인자 없음`);
+    }
+  }
+  if (!risky.length) ok('생성 호출 전부 ms 명시(기본 8초에 안 걸림)');
+  else { risky.forEach((m) => console.error(`      ${m}`)); bad(`기본 8초로 감싼 LLM 생성 ${risky.length}건 — 8초에 가짜 오류가 뜬다`); }
+}
+
 console.log(fail ? `\n❌ check:hang 실패 ${fail}건` : '\n✅ check:hang 통과 — 잠금해제·대기상한·약속누수·유틸단일화·SDK상한 OK');
 process.exit(fail ? 1 : 0);

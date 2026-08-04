@@ -32,7 +32,7 @@ import { TTSButton } from './TTSButton'; // daniel: 풀이 음성 읽기(온디�
 import { RelatedContent } from './RelatedContent'; // 연관 콘텐츠 자동 추천(하단 크로스셀·API 0·daniel 기획서)
 import { buildRomanceMirror } from '../lib/engine/romanceMirror';   // R60 애정 이원분석(온디바이스 판정)
 import { ensureCoinsFor } from '../lib/billing/coinGate';
-import { withTimeout } from '../lib/core/withTimeout';   // ★게이트·생성 대기 상한(멈춤 방지)   // ★운 단일 경로(daniel 07-28)
+import { withTimeout, GEN_TIMEOUT_MS } from '../lib/core/withTimeout';   // ★게이트·생성 대기 상한(멈춤 방지)   // ★운 단일 경로(daniel 07-28)
 import { requireLoginForPurchase } from '../lib/billing/requireLogin';
 import { autoGenWithChartConfirm } from '../lib/ui/confirmChart'; // 자동생성 전 명식 확인(명식 2개+ 일 때)
 import { requestChartConfirm } from '../lib/ui/chartConfirm'; // 명식 확인 모달을 await — 수동 경로는 runFlow 가 순서를 직접 제어(daniel 07-26)
@@ -70,7 +70,7 @@ const HERO_BY_KIND: Record<string, any> = {
 const FLOW_STALE_MS = 180_000;
 
 /** 통변 생성 대기 상한(ms) — 실제 20~40초 걸리므로 넉넉히. 초과하면 캐시 폴링으로 회수한다. */
-const GEN_TIMEOUT_MS = 120_000;
+
 
 export function SpecialContentScreen({ kind, category = kind, title, sub, sections, needsZiwei = false, genMsg, heroMotif, themeColor = colors.ju, heroImage, buildBody, freePreview, freeHook, showExpiry = false, premiumCovered = false, headerExtra, autoGen = true, keepHeaderExtra = false, onChartResolved, regenToken }: {
   kind: CreditKind;        // 이용권/unlock 키(roots·image·mission). 크레딧 단위.

@@ -29,7 +29,7 @@ import { useTranslation } from 'react-i18next';
 import { computeChart } from '../lib/engine/engine';
 import { useAuth } from '../lib/useAuth';
 import { supabase } from '../lib/supabase';
-import { withTimeout } from '../lib/core/withTimeout';   // ★대기 상한(멈춤 방지·2026-07-31)
+import { withTimeout, GEN_TIMEOUT_MS } from '../lib/core/withTimeout';   // ★대기 상한(멈춤 방지·2026-07-31)
 import { excludeMock } from '../lib/core/testMode'; // ★16영역 캐시 로드서 목업 제외(OFF)/유지(ON) — test ON은 generate_set 구조표시 보존
 // 완료 푸시는 genProgress(setGenProgress 완료 전이)에서 중앙 처리(daniel ⑨ — 모든 풀이 공통)
 import { setGenProgress, useGenProgress, clearGenProgress, clearGenByChart } from '../lib/backend/genProgress'; // 홈 진행률 + 완료 구독 + 진입 시 배너 제거(daniel: 완성 배너 안 사라짐). clearGenByChart=쿼리 무관 robust 제거(07-22 근본수정)
@@ -453,7 +453,7 @@ export function ReadingScreen({
       //   초과는 error 로 흘려 **기존 폴백**(클라 직접 생성·genLock)을 그대로 타게 한다.
       const __set = await withTimeout(supabase.functions.invoke('generate_set', {
         body: { chartId: id, kind, categories: todo.map((x) => ({ key: x.key, label: x.label })), lang: appLang(), savedChartId: savedChart?.id, ...(kind === 'ziwei' ? { ziwei: c.ziwei } : {}), ...(savedChart?.context ? { context: savedChart.context } : {}) },
-      }));
+      }), GEN_TIMEOUT_MS);
       const { error } = __set ?? { error: { message: 'client timeout' } as any };
       if (error) throw error;
       // 성공 → 서버가 생성(강제종료 무관). gen_jobs 구독이 진행·완료를 표시하고 readings 를 채운다. 여기서 클라 루프 없음.
@@ -477,7 +477,7 @@ export function ReadingScreen({
       setProgress((p) => (p ? { ...p, current: cat.label } : null)); // 지금 풀이 중인 영역
       try {
         // 자미는 운한(대한 비성사화)이 포함된 최신 명반을 body 로 전달(저장본은 구버전일 수 있음 → Edge가 우선 사용).
-        const __inv = await withTimeout(supabase.functions.invoke('interpret', { body: { chartId: id, category: cat.key, kind, tier: 'paid', lang: appLang(), ...(kind === 'ziwei' ? { ziwei: c!.ziwei } : {}), ...(savedChart?.context ? { context: savedChart.context } : {}) } }));
+        const __inv = await withTimeout(supabase.functions.invoke('interpret', { body: { chartId: id, category: cat.key, kind, tier: 'paid', lang: appLang(), ...(kind === 'ziwei' ? { ziwei: c!.ziwei } : {}), ...(savedChart?.context ? { context: savedChart.context } : {}) } }), GEN_TIMEOUT_MS);
         const { data, error } = __inv ?? { data: null, error: { message: 'client timeout' } as any };
         // ★결제 필요(운 부족) 감지 — daniel 2026-07-29 신고의 근인이었다.
         //   종전엔 needPayment 를 그냥 '풀이'로 취급해 화면에 넣고 **남은 영역을 계속 호출**했다.
@@ -514,7 +514,7 @@ export function ReadingScreen({
     let id = chartId;
     if (!id) { id = savedChart ? await ensureServerChart() : await insertChart(); if (!id) return; setChartId(id); }
     try {
-      const __inv = await withTimeout(supabase.functions.invoke('interpret', { body: { chartId: id, category: key, kind, tier: 'paid', preview: true, lang: appLang(), ...(kind === 'ziwei' ? { ziwei: c!.ziwei } : {}), ...(savedChart?.context ? { context: savedChart.context } : {}) } }));
+      const __inv = await withTimeout(supabase.functions.invoke('interpret', { body: { chartId: id, category: key, kind, tier: 'paid', preview: true, lang: appLang(), ...(kind === 'ziwei' ? { ziwei: c!.ziwei } : {}), ...(savedChart?.context ? { context: savedChart.context } : {}) } }), GEN_TIMEOUT_MS);
       const { data, error } = __inv ?? { data: null, error: { message: 'client timeout' } as any };      setReadings((prev) => ({ ...prev, [key]: readingFromInvoke(data, error) })); // 방어: 일시적 불가·오류 친화 처리(미리보기=preview)
     } catch (e) { setReadings((prev) => ({ ...prev, [key]: { error: (e as Error).message } })); }
   }
@@ -547,7 +547,7 @@ export function ReadingScreen({
     try {
       const __inv = await withTimeout(supabase.functions.invoke('interpret', {
         body: { chartId, category: key, kind, tier: 'paid', refresh: true, ...(renewConfirm ? { renewConfirm: true } : {}), lang: appLang(), ...(kind === 'ziwei' ? { ziwei: c!.ziwei } : {}) },
-      }));
+      }), GEN_TIMEOUT_MS);
       const { data, error } = __inv ?? { data: null, error: { message: 'client timeout' } as any };      if (error) Alert.alert(t('common.error'), t('common.genFailed', '풀이를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.')); // 방어: 원문 대신 친화 문구
       else if (data?.unavailable) Alert.alert(t('common.error'), (data as any).message || t('common.llmBusy', '지금 통변 생성이 일시적으로 어려워요. 잠시 후 다시 시도해 주세요.')); // 방어: LLM 일시적 불가
       else if (data?.refreshDenied) Alert.alert(t('reading.refreshDeniedTitle', '갱신 한도'), t('reading.refreshDenied', { cap: data.cap, defaultValue: '이 풀이는 최대 {{cap}}번까지 갱신할 수 있어요.' }));

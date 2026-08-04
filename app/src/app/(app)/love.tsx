@@ -25,7 +25,7 @@ import { requireLoginForPurchase } from '../../lib/billing/requireLogin';
 import { confirmReadingChart } from '../../lib/ui/confirmChart'; // 생성 전 명식 확인 + 보유 이용권 안내(daniel)
 import { assertOnline } from '../../lib/backend/network';
 import { supabase } from '../../lib/supabase';
-import { withTimeout } from '../../lib/core/withTimeout';   // ★대기 상한(멈춤 방지·2026-07-31)
+import { withTimeout, GEN_TIMEOUT_MS } from '../../lib/core/withTimeout';   // ★대기 상한(멈춤 방지·2026-07-31)
 import { excludeMock } from '../../lib/core/testMode'; // ★목업(tier='mock') 제외(테스트모드 OFF) — 실모드 목업 서빙 차단
 import { appLang } from '../../lib/i18n';
 import { readingFromInvoke } from '../../lib/backend/interpretResult'; // 방어: Edge 응답 정규화(일시적 불가·결제필요·오류 친화 처리)
@@ -211,7 +211,7 @@ export default function LoveScreen() {
       const __inv = await withTimeout(supabase.functions.invoke('interpret', {
         body: {
           ...(romance ? { romance } : {}), chartId: id, category: 'love', kind: 'love', tier: 'paid', ziwei: zw, lang: appLang(), sex: savedChart?.input?.sex, ...(savedChart?.context ? { context: savedChart.context } : {}) }, // sex=배우자성(남재성/여관성, refined timing)
-      }));
+      }), GEN_TIMEOUT_MS);
       const { data, error } = __inv ?? { data: null, error: { message: 'client timeout' } as any };      if (error || !data) {
         // ★클라 invoke가 끊겨도(무거운 풀이 타임아웃) Edge는 서버에서 완료·캐시 → 캐시 폴링으로 회수(로딩 유지).
         logEvent('love_invoke_error', { message: error?.message ?? 'no data', polling: true }, 'error');
