@@ -386,6 +386,10 @@ export const DAILY_AREA_KEYS: DailyAreaKey[] = ['general', 'work', 'money', 'lov
 // ── 언어별 템플릿 묶음 (ko/en/ja) — 본문은 앱 언어로. group/stage/type/pos 키는 내부(엔진 산출) 고정. ──
 type Lang = 'ko' | 'en' | 'ja';
 type Bundle = {
+  /** 애정 3갈래 라벨(솔로/커플/기혼) — daniel 2026-08-05 */
+  loveTag: { solo: string; couple: string; married: string };
+  /** 십신 그룹별 × 상태별 애정 기조 — 판정은 기존 그룹 그대로, 서술만 상태별 */
+  loveBy: Record<TgGroup, { solo: string; couple: string; married: string }>;
   area: Record<'general' | 'work' | 'money' | 'love' | 'health', Record<TgGroup, string>>; // 온디바이스 템플릿 5분야(투자는 재물+주의로 파생 — daniel #17)
   stage: Record<string, string>;                             // 12운성 → 에너지 결
   posArea: Record<string, string>;                           // 궁위 → 삶의 영역 라벨
@@ -438,6 +442,38 @@ const KO: Bundle = {
       재성: '에너지 소모가 큰 날이에요. 일정 사이사이 짧은 휴식을 끼워 넣어야 페이스가 유지돼요. 커피로 버티기보다 10분 눈 감는 쪽이 효과적이에요.',
       관성: '긴장이 몸에 쌓이기 쉬운 날이에요. 어깨와 목을 자주 풀어 주고, 압박감이 느껴질 땐 천천히 호흡을 골라 보세요. 퇴근 후엔 일 생각을 내려놓는 연습이 필요해요.',
       인성: '쉼이 보약인 날이에요. 잠과 휴식의 질을 챙기기 좋은 흐름이라, 일찍 쉬는 것이 내일의 능률로 돌아와요. 따뜻한 차 한 잔과 함께 하루를 정리해 보세요.',
+    },
+  },
+  // ★애정 = 솔로/커플/기혼 3갈래(daniel 2026-08-05 "오늘·내일의 운세 애정은 솔로 커플 기혼자 나눠서").
+  //   같은 십신 신호를 상태별 삶의 맥락으로만 옮긴 것 — 판정(그룹·합충·도화)은 기존 그대로다.
+  //   ★문구 stance = daniel 검수 슬롯(전향적·일상어·흉 단정 금지·처방 동반).
+  //   ⚠️'날이에요/오늘' 관용구 유지 — dayToMonth 치환으로 이달의 운세에도 그대로 쓰인다.
+  loveTag: { solo: '솔로', couple: '커플', married: '기혼' },
+  loveBy: {
+    비겁: {
+      solo: '친구 모임에서 인연의 씨앗이 생기기 쉬운 날이에요. 소개나 겹치는 지인 자리라면 편하게 나가 보세요. 다만 기싸움처럼 보이는 말투는 첫인상을 깎아요.',
+      couple: '친구처럼 편안한 기류가 흐르는 날이에요. 함께 보내는 시간 자체가 관계를 단단하게 해요. 이기려 드는 말투만 조심하면 충분히 좋은 하루예요.',
+      married: '동지 같은 하루예요. 집안일이나 할 일을 같이 나누면 손발이 잘 맞아요. 사소한 자존심 대결만 내려놓으면 웃으며 마무리돼요.',
+    },
+    식상: {
+      solo: '표현이 자연스러워지는 날이라 새로운 만남에 유리해요. 모임·앱·소개 어디든 먼저 인사를 건네 보세요. 밝은 첫마디가 오늘의 무기예요.',
+      couple: '마음 표현이 자연스러워지는 날이에요. 먼저 연락하고 먼저 말해 보세요. 표현한 만큼 가까워져요.',
+      married: '대화가 잘 풀리는 날이에요. 평소 못 꺼낸 이야기를 가볍게 꺼내기 좋아요. 배우자에게 고마움을 말로 표현하면 집안 공기가 달라져요.',
+    },
+    재성: {
+      solo: '실속 있는 매력이 통하는 날이에요. 만남 전 옷차림·자리 준비 같은 작은 정성이 인상을 좌우해요. 허세보다 담백한 모습이 더 매력적이에요.',
+      couple: '챙겨 주는 마음이 통하는 날이에요. 거창한 이벤트보다 작은 선물이나 실질적인 배려가 상대의 마음을 움직여요. 말보다 행동으로 보여 주세요.',
+      married: '생활을 챙기는 손길이 사랑으로 읽히는 날이에요. 장보기·가계 이야기 같은 현실 대화가 부드럽게 풀려요. 작은 선물 하나가 큰 점수가 돼요.',
+    },
+    관성: {
+      solo: '가벼운 만남보다 진지한 인연에 눈이 가는 날이에요. 내가 원하는 관계의 기준을 정리해 보기 좋아요. 소개받은 자리라면 예의 있는 모습이 특히 돋보여요.',
+      couple: '관계의 무게를 확인하게 되는 날이에요. 약속을 지키고 책임 있는 모습을 보이는 것이 가장 큰 매력이 돼요. 애매했던 사이라면 진심을 확인하기 좋은 타이밍이에요.',
+      married: '책임이 사랑으로 보이는 날이에요. 미뤄 둔 집안 약속이나 가족 일정을 챙기면 신뢰가 깊어져요. 무게를 나눠 지는 한마디가 큰 힘이 돼요.',
+    },
+    인성: {
+      solo: '서두르지 않는 신중함이 매력이 되는 날이에요. 새 인연보다 나를 돌아보며 준비하는 쪽이 이로워요. 주변 어른이나 지인의 소개 이야기는 흘려듣지 마세요.',
+      couple: '들어주는 것이 사랑이 되는 날이에요. 상대의 이야기를 끝까지 들어주는 것만으로 신뢰가 깊어져요. 오래된 추억을 함께 꺼내 보는 것도 좋아요.',
+      married: '말없이 들어주는 품이 큰 하루예요. 배우자의 고민을 판단 없이 들어주면 마음의 거리가 훌쩍 줄어요. 부모님 이야기도 오늘은 부드럽게 오가요.',
     },
   },
   stage: {
@@ -552,6 +588,34 @@ const EN: Bundle = {
       인성: 'A day when rest is the best medicine. The flow favors quality sleep and rest, and turning in early returns as tomorrow\'s efficiency. Wind down the day with a warm cup of tea.',
     },
   },
+  loveTag: { solo: 'Single', couple: 'Couple', married: 'Married' },
+  loveBy: {
+    비겁: {
+      solo: 'Seeds of connection sprout among friends today. Say yes to group hangouts or a mutual-friend intro. Just don\'t let banter turn into one-upmanship.',
+      couple: 'An easy, friend-like current runs through today. Time together itself firms up the bond. Watch the urge to win an argument and the day stays warm.',
+      married: 'A comrade kind of day. Splitting chores and errands together goes smoothly. Set aside small pride battles and it ends with a smile.',
+    },
+    식상: {
+      solo: 'Expression flows today — good for meeting someone new. Wherever it is, offer the first hello. A bright opening line is your edge.',
+      couple: 'Expressing how you feel comes naturally today. Reach out first, say it first — you grow closer in proportion to what you express.',
+      married: 'Conversation flows at home today. Bring up what you\'ve been holding back, lightly. Saying thanks out loud changes the air of the house.',
+    },
+    재성: {
+      solo: 'Practical charm works today. Small preparations — what you wear, where you meet — shape the impression. Understated beats showy.',
+      couple: 'Caring gestures land today. A small gift or a practical kindness moves them more than a grand event. Show it through action.',
+      married: 'Everyday care reads as love today. Groceries, budgets — practical talk goes smoothly. One small gift earns big points.',
+    },
+    관성: {
+      solo: 'Your eyes turn to serious bonds over casual ones today. Good for clarifying what you want in a relationship. On a set-up, courtesy stands out.',
+      couple: 'A day to feel the weight of the relationship. Keeping promises and showing responsibility is your greatest charm. Good timing to confirm true feelings.',
+      married: 'Responsibility looks like love today. Tending a postponed family promise deepens trust. One word that shares the load means a lot.',
+    },
+    인성: {
+      solo: 'Unhurried steadiness is your charm today. Better to prepare yourself than chase something new. Don\'t brush off an introduction from an elder or friend.',
+      couple: 'A day when listening becomes love. Hearing them out to the end deepens trust. Revisiting old memories together also warms the bond.',
+      married: 'Quiet listening carries the day. Hear your spouse\'s worries without judging and the distance shrinks fast. Even in-law talk goes softly today.',
+    },
+  },
   stage: {
     장생: 'Your overall condition is on the rise — fresh starts gain energy.',
     관대: 'Your overall condition is on the rise — good momentum to start things and step forward.',
@@ -660,6 +724,34 @@ const JA: Bundle = {
       재성: 'エネルギーの消耗が大きい日です。予定の合間に短い休憩を挟んでこそペースが保てる。コーヒーで耐えるより、10分目を閉じるほうが効果的。',
       관성: '緊張が体にたまりやすい日です。肩と首をこまめにほぐし、プレッシャーを感じたらゆっくり呼吸を整えて。退勤後は仕事の考えを手放す練習を。',
       인성: '休みが薬の日です。睡眠と休息の質を整えるのに良い流れで、早めに休むのが明日の能率に返ってくる。温かいお茶と一緒に一日を整えて。',
+    },
+  },
+  loveTag: { solo: 'ソロ', couple: 'カップル', married: '既婚' },
+  loveBy: {
+    비겁: {
+      solo: '友人の集まりに縁の種がある日です。紹介や共通の知人の席なら気軽に出てみて。ただ張り合うような口調は第一印象を下げます。',
+      couple: '友達のように気楽な空気が流れる日です。一緒に過ごす時間そのものが関係を固めます。勝とうとする口調だけ気をつけて。',
+      married: '同志のような一日です。家事や用事を分け合うと息が合います。小さな意地の張り合いを下ろせば、笑って締めくくれます。',
+    },
+    식상: {
+      solo: '表現が自然になる日で、新しい出会いに有利です。どこでも先に挨拶を。明るい第一声が今日の武器です。',
+      couple: '気持ちの表現が自然になる日です。先に連絡し、先に言ってみて——表したぶん近づきます。',
+      married: '会話がよく回る日です。普段言えなかった話を軽く出してみて。感謝を言葉にすると家の空気が変わります。',
+    },
+    재성: {
+      solo: '実のある魅力が通じる日です。服装や席の準備など小さな心がけが印象を決めます。見栄より淡々とした姿が魅力的。',
+      couple: '気遣う心が通じる日です。大げさなイベントより、小さな贈り物や実質的な配慮が心を動かす。言葉より行動で。',
+      married: '暮らしを整える手つきが愛と読まれる日です。買い物や家計の話など現実的な会話が柔らかく進みます。小さな贈り物が大きな点数に。',
+    },
+    관성: {
+      solo: '軽い出会いより真剣な縁に目が向く日です。自分が望む関係の基準を整理するのに良い。紹介の席なら礼儀正しさが際立ちます。',
+      couple: '関係の重みを確かめる日です。約束を守り、責任ある姿を見せることが最大の魅力に。本心を確かめるのに良いタイミング。',
+      married: '責任が愛に見える日です。後回しにした家の約束や家族の予定を整えると信頼が深まります。重さを分かち合う一言が力に。',
+    },
+    인성: {
+      solo: '急がない慎重さが魅力になる日です。新しい縁より自分を整えるほうが得。年長者や知人からの紹介話は聞き流さないで。',
+      couple: '聞くことが愛になる日です。最後まで聞くだけで信頼が深まる。古い思い出を一緒に出してみるのも良い。',
+      married: '黙って聞く懐の深さが効く一日です。判断せず配偶者の悩みを聞けば心の距離がぐっと縮まる。親の話も今日は柔らかく運びます。',
     },
   },
   stage: {
@@ -827,7 +919,16 @@ export function dailyChartReadings(saju: SajuChart, todayStem: Stem, todayBranch
   // 투자(daniel #17) = 재물 흐름 관점 + 표준 주의(흐름·타이밍만, 종목·매수 조언 아님). ※ 십신별 투자 stance 정교화는 daniel 검수 슬롯.
   const invest: string[] = [tt.area.money[group], ...(!favorGood && GATE_AREAS[group].includes('money') ? [tt.gate.money] : []), tt.investCaution]; // ★테마A + 반반 보정
 
-  const love: string[] = [tt.area.love[group], ...loveLines];
+  // ★애정 3갈래(daniel 2026-08-05) — 「솔로」「커플」「기혼」 라벨 문단으로 나눠 풀고,
+  //   공통 신호(일지 합충 loveLines·도화·게이트)는 상태 무관이라 꼬리에 함께 둔다.
+  //   기존 tt.area.love(통짜)는 더 안 쓴다 — 신호·판정은 그대로, 서술만 상태별로 갈랐다.
+  const lb = tt.loveBy[group];
+  const love: string[] = [
+    `「${tt.loveTag.solo}」 ${lb.solo}`,
+    `「${tt.loveTag.couple}」 ${lb.couple}`,
+    `「${tt.loveTag.married}」 ${lb.married}`,
+    ...loveLines,
+  ];
   if (tw.has('도화')) love.push(tt.dohwa);
   if (!favorGood && GATE_AREAS[group].includes('love')) love.push(tt.gate.love); // ★테마A + 반반 보정
 
@@ -957,6 +1058,7 @@ export function getDailyReading(
   // 문단 배열 → 한 문단 문자열. ja 는 문장부호(。)로 이미 끝나 붙임(공백 없음), ko/en 은 공백 조인.
   const sep = appLang() === 'ja' ? '' : ' ';
   const out = {} as Record<DailyAreaKey, string>;
-  for (const a of areas) out[a.key] = a.paragraphs.join(sep);
+  // ★애정은 문단 사이 빈 줄 — 솔로/커플/기혼 라벨 문단이 한 덩어리로 붙으면 벽이 된다(daniel 3갈래).
+  for (const a of areas) out[a.key] = a.paragraphs.join(a.key === 'love' ? '\n\n' : sep);
   return out;
 }
