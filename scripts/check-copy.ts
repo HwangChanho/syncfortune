@@ -80,6 +80,7 @@ console.log('\n📝 check:copy — 문구 단일 출처\n');
   })(join(ROOT, 'app/src'));
 
   const mismatch: string[] = [];
+  const missing: string[] = [];   // C4: 화면이 쓰는데 copy 에 없는 키(=en/ja 가 한국어로 뜬다)
   // t('a.b', '문구')  ·  따옴표/백틱 모두. 템플릿(${})이 든 기본값은 동적이라 제외.
   const RE = /\bt\(\s*['"]([\w.]+)['"]\s*,\s*(['"`])((?:(?!\2)[^\\]|\\.)*)\2/g;
   for (const f of files) {
@@ -87,7 +88,11 @@ console.log('\n📝 check:copy — 문구 단일 출처\n');
     for (const m of src.matchAll(RE)) {
       const [, key, , def] = m;
       if (def.includes('${')) continue;                 // 동적 기본값
-      if (!koMap.has(key)) continue;                    // copy 에 없는 키는 C1 밖(별도 정리 대상)
+      // ★C4 화면이 쓰는데 사전에 **없는** 키 — 종전엔 여기서 `continue` 로 조용히 넘겼다.
+      //   그래서 personal.expertNote 가 ko/en/ja 에서 통째로 지워졌는데도 하네스가 통과했다
+      //   (한국어는 인라인 기본값으로 그대로 떠서 눈에도 안 띈다 —
+      //    ⚠️망가지는 건 **영어·일본어 사용자**로, 그들에게 한국어가 뜬다).
+      if (!koMap.has(key)) { missing.push(`${relative(ROOT, f)}:${src.slice(0, m.index!).split('\n').length}  ${key}`); continue; }
       const cur = koMap.get(key);
       if (typeof cur !== 'string') continue;
       const norm = (s: string) => s.replace(/\\n/g, '\n').trim();
@@ -102,6 +107,12 @@ console.log('\n📝 check:copy — 문구 단일 출처\n');
     mismatch.slice(0, 12).forEach((x) => console.log(`      · ${x}`));
     if (mismatch.length > 12) console.log(`      … 외 ${mismatch.length - 12}건`);
   } else ok('[C2] 인라인 기본값이 전부 copy/ko.ts 와 일치');
+
+  if (missing.length) {
+    bad(`[C4] 화면이 쓰는데 copy/ko.ts 에 없는 키 ${missing.length}건 — en/ja 사용자에게 한국어가 뜬다`);
+    missing.slice(0, 12).forEach((x) => console.log(`      · ${x}`));
+    if (missing.length > 12) console.log(`      … 외 ${missing.length - 12}건`);
+  } else ok('[C4] 화면이 쓰는 키가 전부 copy 에 있다');
 }
 
 if (problems.length) { console.error(`\n❌ check:copy 실패 ${problems.length}건\n`); process.exit(1); }

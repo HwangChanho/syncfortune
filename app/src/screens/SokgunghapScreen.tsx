@@ -169,6 +169,7 @@ export function SokgunghapScreen({ me: meInit }: { me: ChartInput }) {
       )}
 
 
+      <Text style={styles.disclaimer}>{t('sok.disclaimer', '※ 사주로 보는 재미 콘텐츠예요. 실제 관계는 두 사람이 만들어갑니다. 성인(19세 이상) 전용.')}</Text>
       {/* 상대 선택 바텀시트 — 불투명 시트 + 탭아웃 닫힘([[toggle-view-auto-dismiss]]) */}
       <Modal visible={pickerOpen} transparent animationType="slide" onRequestClose={() => setPickerOpen(false)}>
         <Pressable style={styles.sheetDim} onPress={() => setPickerOpen(false)}>

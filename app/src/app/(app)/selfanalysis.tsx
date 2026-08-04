@@ -113,6 +113,7 @@ export default function SelfAnalysisRoute() {
         <Text style={styles.traitsArrow}>›</Text>
       </PressableScale>
 
+      <Text style={styles.footNote}>{t('selfAnalysis.footNote', '※ 모두 사주 엔진(만세력)으로 계산한 온디바이스 분석이에요. 예언이 아니라 나를 이해하는 참고예요.')}</Text>
             {/* ★이어서 보면 좋은 콘텐츠(daniel 2026-07-27 "전부 붙여") — 화면마다 하단이 달라 보이던 것 통일.
             큐레이션 출처는 RELATED 단일(중복 하드코딩 0). 매핑이 없으면 스스로 아무것도 안 그린다. */}
         <RelatedContent kind="selfanalysis" />
