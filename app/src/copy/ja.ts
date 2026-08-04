@@ -326,7 +326,7 @@ export const ja = {
   taro: { draw: 'カードを引く', reshuffle: '引き直す', reversed: '逆位置' },
   manse: {
     'deleteTitle': '명식 삭제',
-    'viewManse': '만세력 보기', empty: '登録された命式がありません。', myChart: '命式' },
+    'viewManse': '만세력 보기', empty: '登録された命式がありません。', myChart: '命式', searchChart: '名前で探す' },
   sinsal: { 도화: '桃花', 역마: '駅馬', 화개: '華蓋', 천을귀인: '天乙貴人', 문창: '文昌', 양인: '羊刃', 홍염: '紅艶', 괴강: '魁罡', 백호: '白虎' },
   special: {
     'freeBasics2': '먼저 무료로 — 빅3 + 생명수',

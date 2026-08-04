@@ -5,7 +5,7 @@
 // 명식이 없으면 등록 유도. 화면 복귀 시 useFocusEffect 로 목록 갱신.
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { View, Text, Pressable, Modal, StyleSheet, Dimensions, ActivityIndicator, InteractionManager, Animated, ScrollView } from 'react-native';
+import { View, Text, Pressable, Modal, StyleSheet, Dimensions, ActivityIndicator, InteractionManager, Animated, ScrollView, TextInput } from 'react-native';
 import { CoinBadge } from './CoinBadge';   // 보유 운 배지(단일 구현 재사용)
 import { PressableScale } from './PressableScale';
 import { Image as ExpoImage } from 'expo-image'; // 자동 다운샘플(메모리) + 엠블럼 탭 풀스크린 뷰어
@@ -71,6 +71,7 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
   const [actionsFor, setActionsFor] = useState<string | null>(null); // 수정/삭제 펼친 행(daniel: 한 버튼 ⋯ 탭 → 수정·삭제 분리)
   const [premChartId, setPremChartId] = useState<string | null>(getPremiumChartIdSnapshot()); // 프리미엄 지정 명식 serverChartId(👑·삭제경고)
   const [catFilter, setCatFilter] = useState<string | null>(null); // 카테고리(관계) 필터 — null=전체보기(daniel: 전체보기+카테고리별 보기)
+  const [query, setQuery] = useState(''); // ★이름 검색(daniel 2026-08-04 "명식 리스트에서 검색으로도 찾을 수 있게") — 이름(label)만 대조
 
   const reload = useCallback(async () => {
     // ★둘을 **함께** 세팅한다(daniel 2026-08-03 "몇 번을 말해도 그대로여").
@@ -100,10 +101,15 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
   // 필터 바는 카테고리가 2종 이상일 때만(전부 같은 관계면 필터가 무의미 — 예: 본인 명식만 있는 경우).
   const showFilter = categories.length >= 2;
   // 선택된 필터로 표시 목록을 좁힌다(null=전체). 필터 중이면 드래그 순서변경은 막는다(부분집합 드래그가 전체 순서를 꼬이게 함).
-  const shown = catFilter ? charts.filter((c) => relOf(c) === catFilter) : charts;
-  const filtering = catFilter != null;
+  // 검색은 공백·대소문자 무시(한글엔 대소문자가 없지만 영문 이름 등록도 있다).
+  const q = query.trim().toLowerCase();
+  const byCat = catFilter ? charts.filter((c) => relOf(c) === catFilter) : charts;
+  const shown = q ? byCat.filter((c) => (c.label ?? '').toLowerCase().includes(q)) : byCat;
+  // ★검색 중에도 '부분집합' — 드래그 저장이 전체 순서를 꼬이게 하는 건 카테고리 필터와 동일하므로 같은 게이트를 탄다.
+  const filtering = catFilter != null || q.length > 0;
   // 필터한 카테고리의 명식이 모두 삭제되면(유령 필터) 전체로 되돌린다. 모달 닫히면 필터도 초기화.
   useEffect(() => { if (catFilter && !categories.includes(catFilter)) setCatFilter(null); }, [charts, catFilter, categories]);
+  useEffect(() => { if (!open) setQuery(''); }, [open]); // 닫으면 검색 초기화 — 다음에 열 때 '명식이 줄어든' 것처럼 보이는 오인 방지
   useEffect(() => { if (!open) setCatFilter(null); }, [open]);
   // 각 명식의 일주 엠블럼(일간 오행색 + 일지 동물 = "은빛 소" 등) — 명식 리스트 시각 정체성(daniel)
   // ⚡성능(daniel "모든 로딩 느려"): 엠블럼은 명식 목록 모달 열 때만 보임(접힌 바엔 없음). 매 화면 마운트마다
@@ -276,6 +282,34 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
               <Text style={styles.sheetTitle}>{t('manse.myChart')} <Text style={{ color: colors.inkFaint, fontWeight: '700' }}>{charts.length}</Text></Text>
               {/* 디바이스 명식 무제한(daniel 2026-06-23) — 사용량/한도(15/10) 배지 제거 */}
             </View>
+            {/* ★이름 검색(daniel 2026-08-04) — 명식이 6개 이상일 때만 노출(적을 땐 눈으로 찾는 게 빠르다). */}
+            {charts.length >= 6 && (
+              <View style={styles.searchWrap}>
+                <Text style={styles.searchIcon}>🔍</Text>
+                {/* keyboard-safe: 검색창은 바텀시트 '상단'(제목 바로 아래)에 고정 — 키보드는 화면 하단을
+                    덮으므로 입력창 자체는 가려질 수 없다(가려지는 건 리스트 하부 행뿐·스크롤로 접근 가능). */}
+                <TextInput
+                  style={styles.searchInput}
+                  value={query}
+                  onChangeText={setQuery}
+                  placeholder={t('manse.searchChart', '이름으로 찾기')}
+                  placeholderTextColor={colors.inkFaint}
+                  autoCorrect={false}
+                  autoCapitalize="none"
+                  returnKeyType="search"
+                  clearButtonMode="while-editing"
+                />
+                {/* Android 는 clearButtonMode 미지원 → 수동 지우기 버튼 */}
+                {query.length > 0 && (
+                  <PressableScale onPress={() => setQuery('')} hitSlop={8}><Text style={styles.searchClear}>✕</Text></PressableScale>
+                )}
+              </View>
+            )}
+            {query.trim().length > 0 && (
+              <Text style={{ ...font.caption, color: colors.inkFaint, marginBottom: space(2) }}>
+                {shown.length ? `검색 결과 ${shown.length}개` : '검색 결과가 없어요'} · 순서 변경은 검색을 지우고
+              </Text>
+            )}
             {/* 카테고리(관계) 필터 — 관계가 2종 이상일 때만. [전체] + 각 카테고리 칩(daniel: 전체보기+카테고리별). */}
             {showFilter && (
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.catBar} contentContainerStyle={styles.catRow}>
@@ -305,6 +339,7 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
               // 마지막 행 ⋯ 메뉴(수정/삭제)가 하단에 잘리지 않도록 여유(daniel 07-02)
               contentContainerStyle={{ paddingBottom: space(14) }}
               showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"  // 검색 키보드가 열린 채로도 명식 탭이 첫 터치에 먹게
               activationDistance={14}
               // 필터 중(부분집합)엔 순서 저장이 전체 순서를 꼬이게 하므로 드래그 결과를 무시(renderItem에서 drag 자체도 비활성).
               onDragEnd={({ data }) => { if (!filtering) onDragEnd(data); }}
@@ -437,6 +472,11 @@ const styles = StyleSheet.create({
   usage: { ...font.caption, color: colors.inkSoft, fontWeight: '700' },
   usageMax: { color: colors.ju }, // 한도 도달 = 주색(업그레이드 신호)
 
+  // 이름 검색줄 — 칩과 같은 sunk 톤. ★fontSize 는 fs() 없이 고정(전역 배율 패치가 곱한다)
+  searchWrap: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.sunk, borderRadius: radius.md, borderWidth: 1, borderColor: colors.line, paddingHorizontal: space(3), marginBottom: space(2.5), gap: space(2) },
+  searchIcon: { fontSize: 13 },
+  searchInput: { flex: 1, paddingVertical: space(2.5), fontSize: 14, lineHeight: 18, color: colors.ink },
+  searchClear: { fontSize: 14, color: colors.inkFaint, paddingHorizontal: space(1) },
   // 카테고리(관계) 필터 바 — 커뮤니티 catBar 와 동일 톤(전체 + 각 관계 칩). daniel: 전체보기+카테고리별.
   catBar: { flexGrow: 0, flexShrink: 0, minHeight: 40, marginBottom: space(2.5) }, // ★flexShrink:0 필수 — 부모 flex 공간 부족 시 ScrollView 가 세로로 눌려(height 줘도) 칩이 짜부라짐(daniel 07-18 "계속 안 보임"). flexGrow:0=안 늘고, flexShrink:0=안 줄고, height 고정.
   catRow: { gap: space(2), paddingRight: space(2), alignItems: 'center' }, // 칩 세로 중앙(catBar 고정높이 안에서)

@@ -352,7 +352,7 @@ export const ko = {
   taro: { draw: '카드 뽑기', reshuffle: '다시 뽑기', reversed: '역방향' },
   manse: {
     'deleteTitle': '명식 삭제',
-    'viewManse': '만세력 보기', empty: '등록된 명식이 없습니다.', myChart: '명식' },
+    'viewManse': '만세력 보기', empty: '등록된 명식이 없습니다.', myChart: '명식', searchChart: '이름으로 찾기' },
   sinsal: { 도화: '도화', 역마: '역마', 화개: '화개', 천을귀인: '천을귀인', 문창: '문창', 양인: '양인', 홍염: '홍염', 괴강: '괴강', 백호: '백호' },
   special: {
     'freeBasics2': '먼저 무료로 — 빅3 + 생명수',

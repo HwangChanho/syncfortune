@@ -327,7 +327,7 @@ export const en = {
   taro: { draw: 'Draw a card', reshuffle: 'Reshuffle', reversed: 'Reversed' },
   manse: {
     'deleteTitle': '명식 삭제',
-    'viewManse': '만세력 보기', empty: 'No saved chart.', myChart: 'Chart' },
+    'viewManse': '만세력 보기', empty: 'No saved chart.', myChart: 'Chart', searchChart: 'Search by name' },
   sinsal: { 도화: 'Peach Blossom', 역마: 'Travel Horse', 화개: 'Canopy', 천을귀인: 'Nobleman', 문창: 'Academic', 양인: 'Blade', 홍염: 'Romance', 괴강: 'Goegang', 백호: 'White Tiger' },
   special: {
     'freeBasics2': '먼저 무료로 — 빅3 + 생명수',
