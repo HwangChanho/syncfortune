@@ -57,7 +57,7 @@ export function ChartConfirmHost() {
   const pick = async (id: string) => { setRepId(id); try { await setRepresentative(id); } catch { /* 전환 실패 무시 */ } }; // 대표 전환 → 화면 재로드
 
   return (
-    <Modal transparent animationType="fade" visible onRequestClose={() => close(false)}>
+    <Modal statusBarTranslucent transparent animationType="fade" visible onRequestClose={() => close(false)}>
       <Pressable style={styles.backdrop} onPress={() => close(false)}>
         <Pressable style={styles.card} onPress={() => {}}>
           <Text style={styles.title}>{state.opts.title ?? (chartless ? '풀이 확인' : '이 명식으로 풀이할까요?')}</Text>

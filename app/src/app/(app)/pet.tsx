@@ -197,7 +197,7 @@ export default function PetScreen() {
       )}
 
       {/* 시진 선택 바텀시트(명식과 동일) — 12시진 스크롤 선택 */}
-      <Modal visible={sijinOpen} transparent animationType="slide" onRequestClose={() => setSijinOpen(false)}>
+      <Modal statusBarTranslucent visible={sijinOpen} transparent animationType="slide" onRequestClose={() => setSijinOpen(false)}>
         <Pressable style={styles.backdrop} onPress={() => setSijinOpen(false)}>
           <Pressable style={styles.sheet} onPress={() => {}}>
             <View style={styles.sheetHandle} />

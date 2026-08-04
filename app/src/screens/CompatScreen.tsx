@@ -464,7 +464,7 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
       </View>
     </Modal>
     {/* 명식 선택 드롭다운(내/상대 공용) — 버블 대신 세로 리스트 스크롤 선택(daniel) */}
-    <Modal visible={!!pickFor} transparent animationType="fade" onRequestClose={() => setPickFor(null)}>
+    <Modal statusBarTranslucent visible={!!pickFor} transparent animationType="fade" onRequestClose={() => setPickFor(null)}>
       <Pressable style={styles.pickBackdrop} onPress={() => setPickFor(null)}>
         <Pressable style={[styles.pickSheet, { paddingBottom: insets.bottom + space(4) }]} onPress={() => {}}>
           <Text style={styles.pickHead}>{pickFor === 'me' ? t('compat.mySlot') : t('compat.otherSlot')}</Text>
@@ -495,7 +495,7 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
     </Modal>
 
     {/* K(daniel): 년도 선택 드롭다운 — 전체 년도 스크롤 리스트 */}
-    <Modal visible={yearOpen} transparent animationType="fade" onRequestClose={() => setYearOpen(false)}>
+    <Modal statusBarTranslucent visible={yearOpen} transparent animationType="fade" onRequestClose={() => setYearOpen(false)}>
       <Pressable style={styles.pickBackdrop} onPress={() => setYearOpen(false)}>
         <Pressable style={[styles.pickSheet, { paddingBottom: insets.bottom + space(4) }]} onPress={() => {}}>
           <Text style={styles.pickHead}>{t('compat.yearPick', '년도 선택')}</Text>
@@ -516,7 +516,7 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
     </Modal>
 
     {/* ② 관계 선택 드롭다운(관계별 개별 결제·소유/가격 표시·daniel 2026-07-22) — ③ 년도 Modal 동일 패턴 */}
-    <Modal visible={relOpen} transparent animationType="fade" onRequestClose={() => setRelOpen(false)}>
+    <Modal statusBarTranslucent visible={relOpen} transparent animationType="fade" onRequestClose={() => setRelOpen(false)}>
       <Pressable style={styles.pickBackdrop} onPress={() => setRelOpen(false)}>
         <Pressable style={[styles.pickSheet, { paddingBottom: insets.bottom + space(4) }]} onPress={() => {}}>
           <Text style={styles.pickHead}>{t('compat.step2', '② 어떤 사이인가요?')}</Text>

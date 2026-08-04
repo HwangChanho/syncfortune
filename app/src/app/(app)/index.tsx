@@ -420,7 +420,7 @@ export default function Home() {
       </Animated.View>
       <HomeOrderEditModal visible={editOpen} onClose={() => setEditOpen(false)} />
       {/* 🧭 바로가기 메뉴(daniel 2026-07-25 J) — 만세력·AI 코치를 홈 블록에서 빼고 여기서 분기 진입. 배경 탭=닫힘(모달·리스트내 absolute 금지). */}
-      <Modal visible={quickOpen} transparent animationType="fade" onRequestClose={() => setQuickOpen(false)}>
+      <Modal statusBarTranslucent visible={quickOpen} transparent animationType="fade" onRequestClose={() => setQuickOpen(false)}>
         <Pressable style={styles.quickBackdrop} onPress={() => setQuickOpen(false)}>
           <Pressable style={styles.quickSheet} onPress={() => {}}>
             <Text style={styles.quickSheetTitle}>바로가기</Text>

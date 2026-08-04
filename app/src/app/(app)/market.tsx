@@ -367,7 +367,7 @@ export default function MarketRoute() {
       </View>
 
 {/* 명식 선택 모달 */}
-      <Modal visible={pick} transparent animationType="slide" onRequestClose={() => setPick(false)}>
+      <Modal statusBarTranslucent visible={pick} transparent animationType="slide" onRequestClose={() => setPick(false)}>
         <Pressable style={styles.backdrop} onPress={() => setPick(false)}>
           <Pressable style={styles.sheet} onPress={() => {}}>
             <View style={styles.sheetHandle} />

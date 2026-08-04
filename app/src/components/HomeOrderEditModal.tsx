@@ -36,7 +36,7 @@ export function HomeOrderEditModal({ visible, onClose }: { visible: boolean; onC
   );
 
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+    <Modal statusBarTranslucent visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       {/* ★GestureHandlerRootView 필수 — 없으면 모달 안에서 드래그가 안 먹는다. */}
       <GestureHandlerRootView style={styles.root}>
         <View style={styles.backdrop}>

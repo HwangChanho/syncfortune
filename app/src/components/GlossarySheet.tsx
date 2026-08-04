@@ -25,7 +25,7 @@ export function GlossarySheet({ target, onClose }: { target: GlossaryTarget; onC
   const { fs } = useFontScale();
   const entry = target ? lookupGlossary(target.kind, target.key) : null;
   return (
-    <Modal visible={!!target} transparent animationType="slide" onRequestClose={onClose}>
+    <Modal statusBarTranslucent visible={!!target} transparent animationType="slide" onRequestClose={onClose}>
       {/* 바깥 탭 = 닫기 / 안쪽 탭은 전파 차단(만세력 시트와 동일 관례) */}
       <Pressable style={styles.overlay} onPress={onClose}>
         <Pressable style={styles.sheet} onPress={() => {}}>

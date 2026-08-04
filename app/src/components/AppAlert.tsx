@@ -43,7 +43,7 @@ export function AppAlert() {
   //   '확인 → 지급 → 완료'처럼 Alert 가 연속될 때, 닫힘(fade) 애니메이션 도중 Modal 이 재마운트되면
   //   iOS 네이티브 모달이 프리징(앱 멈춤)한다. visible 토글 + 내용은 opts 있을 때만 → 재마운트 없이 내용만 교체.
   return (
-    <Modal transparent visible={!!opts} animationType="fade" onRequestClose={dismiss}>
+    <Modal statusBarTranslucent transparent visible={!!opts} animationType="fade" onRequestClose={dismiss}>
       {opts && (
         <View style={styles.backdrop}>
           <View style={styles.card}>

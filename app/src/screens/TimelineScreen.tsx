@@ -395,7 +395,7 @@ export function TimelineScreen({ input, savedChart }: { input: ChartInput | null
       {card(selYear)}
 
       {/* picker 모달(대운/연도 공용) */}
-      <Modal visible={picker !== null} transparent animationType="slide" onRequestClose={() => setPicker(null)}>
+      <Modal statusBarTranslucent visible={picker !== null} transparent animationType="slide" onRequestClose={() => setPicker(null)}>
         <Pressable style={styles.backdrop} onPress={() => setPicker(null)}>
           <Pressable style={styles.sheet} onPress={() => {}}>
             <Text style={[styles.sheetH, { fontSize: fs(17) }]}>{picker === 'decade' ? t('timeline.pickDecade') : t('timeline.pickYear')}</Text>

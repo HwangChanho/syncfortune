@@ -15,10 +15,11 @@
 //   · active = 골드(colors.ju) 선·글자 + 상단 짧은 골드 바, inactive = 흐린 잉크.
 // ─────────────────────────────────────────────────────────────────────────
 import { useMemo } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Platform } from 'react-native';
 import Svg, { Path, Circle } from 'react-native-svg';
 import { PressableScale } from './PressableScale';
 import { useRouter, usePathname } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { useFeatureOn } from '../lib/core/features'; // 원격 플래그 + 관리자 오버라이드 게이트(커뮤니티 탭 노출용)
 import { colors, space } from '../lib/theme';
@@ -79,6 +80,11 @@ function TabIcon({ name, color }: { name: TabKey; color: string }) {
 
 let _navBarHeight = 82; // 실측 전 근사값. onLayout 으로 갱신(아이콘 추가로 높이가 바뀌어도 자동 반영).
 const NAV_MARGIN_BOTTOM = space(4); // ★styles.bar 의 marginBottom — onLayout 높이에 안 잡힌다(아래 getNavBarHeight 주석)
+// ★Android 시스템 내비 회피(daniel 2026-08-04 "안드로이드/iOS 다를 수 있는 부분 찾아서 고쳐").
+//   iOS 는 marginBottom 16 고정 모양을 daniel 이 승인했지만, Android 는 edge-to-edge 라
+//   3버튼 내비(인셋 ~48)가 고정 16 여백을 **덮는다**(배너 틈과 같은 뿌리 — 인셋을 아무도 안 받던 문제).
+//   Android 만 max(16, 인셋)로 띄우고, getNavBarHeight() 도 같은 값을 쓰게 모듈 변수로 공유한다.
+let _navMarginBottom = NAV_MARGIN_BOTTOM;
 /** 하단 네비바 실측 높이(px) — 키보드 입력바 위치 계산용(코치 등). 마운트 후 정확값. */
 /**
  * 네비바가 **실제로 차지하는 세로 공간**(pt).
@@ -87,17 +93,21 @@ const NAV_MARGIN_BOTTOM = space(4); // ★styles.bar 의 marginBottom — onLayo
  *   16pt 가 빠지면 입력바가 그만큼 **떠 보인다**(daniel 2026-08-04 IMG_8351).
  *   ⇒ 레이아웃 높이에 margin 을 더해 '점유 높이'를 돌려준다.
  */
-export function getNavBarHeight(): number { return _navBarHeight + NAV_MARGIN_BOTTOM; }
+export function getNavBarHeight(): number { return _navBarHeight + _navMarginBottom; }
 
 export function BottomNav() {
   const router = useRouter();
   const path = usePathname();
+  const insets = useSafeAreaInsets();
+  // Android 만 시스템 내비 인셋 반영(iOS 는 승인된 고정 여백 유지). 렌더마다 모듈 변수 동기화.
+  const marginBottom = Platform.OS === 'android' ? Math.max(NAV_MARGIN_BOTTOM, insets.bottom) : NAV_MARGIN_BOTTOM;
+  _navMarginBottom = marginBottom;
   const { t } = useTranslation();
   // 커뮤니티는 원격 플래그(features.community) ON 일 때만 노출 = 관리자 전용, 심사 통과 후 공개.
   const commOn = useFeatureOn('community');
   const tabs = useMemo(() => ALL_TABS.filter((tb) => tb.key !== 'community' || commOn), [commOn]);
   return (
-    <View style={styles.bar} onLayout={(e) => { _navBarHeight = e.nativeEvent.layout.height; }}>
+    <View style={[styles.bar, { marginBottom }]} onLayout={(e) => { _navBarHeight = e.nativeEvent.layout.height; }}>
       {tabs.map((tb) => {
         const on = tb.key === 'market' ? path.startsWith('/market')
           : tb.key === 'coach' ? path.startsWith('/coach')
@@ -118,7 +128,7 @@ export function BottomNav() {
 
 const styles = StyleSheet.create({
   // 네비바 배경 = 카드 서피스(라이트=연베이지, 다크=#221F44) — 배경(한지/달밤) 위에서 바로 도드라지게(daniel 07-03)
-  bar: { flexDirection: 'row', borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.line, backgroundColor: colors.card, paddingBottom: space(6), paddingTop: space(4), marginBottom: space(4) },
+  bar: { flexDirection: 'row', borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.line, backgroundColor: colors.card, paddingBottom: space(6), paddingTop: space(4) }, // marginBottom 은 렌더에서(Android 인셋 반영)
 
   tab: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 3 },
   // active 상단 짧은 골드 바

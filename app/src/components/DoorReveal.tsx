@@ -45,7 +45,7 @@ export function DoorReveal({ visible, onDone }: { visible: boolean; onDone: () =
 
   if (!visible || !enabled) return null;
   return (
-    <Modal visible transparent statusBarTranslucent>
+    <Modal visible transparent statusBarTranslucent onRequestClose={() => {}}>{/* Android 뒤로가기 무시(연출 중 닫힘 방지) — 의도 */}
       {/* 미드나잇 배경(영상 로드 전 밝은 플래시 방지) + 문 영상(cover) */}
       <Animated.View style={[styles.overlay, { opacity: fade }]}>
         <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="cover" nativeControls={false} />

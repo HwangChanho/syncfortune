@@ -1033,7 +1033,7 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
     </ScrollView>
 
     {/* 클릭 설명 바텀시트 — 십신·신살·공망 의미 (탭한 항목) */}
-    <Modal visible={!!glossary} transparent animationType="slide" onRequestClose={() => setGlossary(null)}>
+    <Modal statusBarTranslucent visible={!!glossary} transparent animationType="slide" onRequestClose={() => setGlossary(null)}>
       <Pressable style={styles.sheetOverlay} onPress={() => setGlossary(null)}>
         <Pressable style={styles.sheet} onPress={() => {}}>
           {glossary && (() => {
@@ -1059,7 +1059,7 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
     </Modal>
 
     {/* 카테고리 ? 설명 시트(daniel: 설명도 나오게) — 지금 보는 분류가 무엇을 보는지 쉬운 말로 */}
-    <Modal visible={catDescOpen} transparent animationType="slide" onRequestClose={() => setCatDescOpen(false)}>
+    <Modal statusBarTranslucent visible={catDescOpen} transparent animationType="slide" onRequestClose={() => setCatDescOpen(false)}>
       <Pressable style={styles.sheetOverlay} onPress={() => setCatDescOpen(false)}>
         <Pressable style={styles.sheet} onPress={() => {}}>
           <View style={styles.sheetHandle} />
@@ -1073,7 +1073,7 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
     </Modal>
 
     {/* 신강·신약 특징 시트 — 내 유형 강조 + 성향·강점·주의·용신 방향 */}
-    <Modal visible={strengthOpen} transparent animationType="slide" onRequestClose={() => setStrengthOpen(false)}>
+    <Modal statusBarTranslucent visible={strengthOpen} transparent animationType="slide" onRequestClose={() => setStrengthOpen(false)}>
       <Pressable style={styles.sheetOverlay} onPress={() => setStrengthOpen(false)}>
         <Pressable style={styles.sheet} onPress={() => {}}>
           <View style={styles.sheetHandle} />
@@ -1105,7 +1105,7 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
     </Modal>
 
     {/* 조후·음양·오행·십성 쏠림 → 문제점·대응법(daniel 2026-06-24) */}
-    <Modal visible={johuOpen} transparent animationType="slide" onRequestClose={() => setJohuOpen(false)}>
+    <Modal statusBarTranslucent visible={johuOpen} transparent animationType="slide" onRequestClose={() => setJohuOpen(false)}>
       <Pressable style={styles.sheetOverlay} onPress={() => setJohuOpen(false)}>
         <Pressable style={styles.sheet} onPress={() => {}}>
           <View style={styles.sheetHandle} />

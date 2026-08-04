@@ -218,7 +218,7 @@ export default function TaroScreen() {
 </ScrollView>
 
       {/* 선택 카드 확대 — 탭 시 떠오르고, 빈 곳 탭=내려가며 닫힘 */}
-      <Modal visible={sel != null} transparent animationType="none" onRequestClose={closeCard}>
+      <Modal statusBarTranslucent visible={sel != null} transparent animationType="none" onRequestClose={closeCard}>
         <Pressable style={styles.backdrop} onPress={closeCard}>
           {sel != null && spread && (
             <Animated.View

@@ -188,7 +188,7 @@ export default function CommunityScreen() {
       <PressableScale style={styles.fab} onPress={onCompose}><Text style={styles.fabTx}>✎</Text></PressableScale>
 
       {/* 이용약관 동의(Apple 1.2 — zero tolerance) */}
-      <Modal visible={eula} transparent animationType="fade" onRequestClose={() => setEula(false)}>
+      <Modal statusBarTranslucent visible={eula} transparent animationType="fade" onRequestClose={() => setEula(false)}>
         <View style={styles.modalDim}>
           <View style={styles.eulaCard}>
             <Text style={styles.eulaTitle}>{t('community.eulaTitle', '커뮤니티 이용약관')}</Text>

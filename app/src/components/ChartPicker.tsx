@@ -273,7 +273,7 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
         </View>
       </PressableScale>
 
-      <Modal visible={open} transparent animationType="slide" onRequestClose={() => setOpen(false)}>
+      <Modal statusBarTranslucent visible={open} transparent animationType="slide" onRequestClose={() => setOpen(false)}>
         <Pressable style={styles.backdrop} onPress={() => setOpen(false)}>
           <Pressable style={styles.sheet} onPress={() => {}}>
             <View style={styles.handle} />
@@ -436,7 +436,7 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
       </Modal>
 
       {/* 엠블럼 풀스크린 뷰어(daniel) — 일주 일러스트 탭 → 큰 화면, 다시 탭하면 닫힘 */}
-      <Modal visible={!!viewImg} transparent animationType="fade" onRequestClose={() => setViewImg(null)}>
+      <Modal statusBarTranslucent visible={!!viewImg} transparent animationType="fade" onRequestClose={() => setViewImg(null)}>
         <Pressable style={styles.imgViewerBackdrop} onPress={() => setViewImg(null)}>
           {viewImg ? <ExpoImage source={viewImg} style={styles.imgViewerImg} contentFit="contain" cachePolicy="memory-disk" transition={150} /> : null}
           <Text style={styles.imgViewerHint}>{t('common.tapToClose', '탭하여 닫기')}</Text>

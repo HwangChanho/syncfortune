@@ -297,7 +297,7 @@ export function ChartRegisterScreen({ onSubmit, defaultRelation, submitLabel, sh
       </ScrollView>
 
       {/* 시진 선택 바텀시트 — 클릭 시 슬라이드 업, 스크롤로 12시진+모름 선택 */}
-      <Modal visible={sijinOpen} transparent animationType="slide" onRequestClose={() => setSijinOpen(false)}>
+      <Modal statusBarTranslucent visible={sijinOpen} transparent animationType="slide" onRequestClose={() => setSijinOpen(false)}>
         <Pressable style={styles.backdrop} onPress={() => setSijinOpen(false)}>
           {/* 시트 영역 탭은 닫히지 않게(빈 onPress 로 전파 차단) */}
           <Pressable style={styles.sheet} onPress={() => {}}>

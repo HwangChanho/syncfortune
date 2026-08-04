@@ -92,7 +92,7 @@ export function BirthPlacePicker({ value, onSelect }: { value: string; onSelect:
         <Text style={styles.icon}>🔍</Text>
       </PressableScale>
 
-      <Modal visible={open} transparent animationType="slide" onRequestClose={() => setOpen(false)}>
+      <Modal statusBarTranslucent visible={open} transparent animationType="slide" onRequestClose={() => setOpen(false)}>
         {/* 키보드가 시트(입력·결과)를 가리지 않게 위로 올림(daniel) */}
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <Pressable style={styles.backdrop} onPress={() => setOpen(false)}>

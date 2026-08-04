@@ -487,7 +487,7 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
       {/* ★진행 중 명식 전환 차단 — 결제/생성 대상이 도중에 바뀌면 어긋난다(genSeq 가 폐기하긴 하나 혼란). */}
       <ChartPicker onChange={() => { if (!flowBusy && !busy) setReloadKey((k) => k + 1); }} />
       {/* ★결제 준비 오버레이(daniel 07-24) — '바로 구매' 탭 후 애플 결제창 뜨기까지·웹훅 적립까지 무피드백 방지(자물쇠는 생성 단계에서) */}
-      <Modal visible={purchasing} transparent animationType="fade" statusBarTranslucent>
+      <Modal visible={purchasing} transparent animationType="fade" statusBarTranslucent onRequestClose={() => {}}>{/* Android 뒤로가기 무시(결제 진행 중 닫힘 방지) — 의도 */}
         <View style={styles.payWrap}><View style={styles.payCard}>
           <ActivityIndicator color={colors.gold} size="large" />
           <Text style={[styles.payTx, { fontSize: fs(15) }]}>{t('special.preparingPayment', '결제 준비 중…')}</Text>

@@ -117,7 +117,7 @@ export default function ZiweiRoute() {
         <RelatedContent kind="ziwei" />
 </ScrollView>
 
-      <Modal visible={!!glossary} transparent animationType="slide" onRequestClose={() => setGlossary(null)}>
+      <Modal statusBarTranslucent visible={!!glossary} transparent animationType="slide" onRequestClose={() => setGlossary(null)}>
         <Pressable style={styles.sheetOverlay} onPress={() => setGlossary(null)}>
           <Pressable style={styles.sheet} onPress={() => {}}>
             {glossary && (() => {

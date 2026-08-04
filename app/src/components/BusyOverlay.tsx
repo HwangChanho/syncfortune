@@ -8,7 +8,7 @@ import { colors, radius, space, font } from '../lib/theme';
 
 export function BusyOverlay({ visible, message }: { visible: boolean; message?: string }) {
   return (
-    <Modal visible={visible} transparent animationType="fade" statusBarTranslucent>
+    <Modal visible={visible} transparent animationType="fade" statusBarTranslucent onRequestClose={() => {}}>{/* Android 뒤로가기 무시(작업 중 닫힘 방지) — 의도 */}
       <View style={styles.backdrop}>
         <View style={styles.card}>
           <ActivityIndicator size="large" color={colors.ju} />
