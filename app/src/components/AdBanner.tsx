@@ -10,7 +10,6 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useState } from 'react';
 import { View, Text, StyleSheet, Platform } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAdFree } from '../lib/billing/adFree';   // ★광고 제거(운 구매) — 프리미엄 폐지 후 유일한 무광고 경로
 import { colors } from '../lib/theme';
 import { adTestMode } from '../lib/core/ads'; // 테스트광고 모드(daniel: 관리자/테스트는 TestFlight서도 구글 테스트광고)
@@ -27,7 +26,6 @@ const PROD_UNIT: Record<string, string> = {
 
 export function AdBanner() {
   const adFree = useAdFree();   // 운으로 산 광고 제거가 유효한가(서버 profiles.ad_free_until)
-  const insets = useSafeAreaInsets();
   const [failed, setFailed] = useState(false); // 로드 실패 → 접기
 
   // ★비프리미엄 = 모든 화면에서 하단 배너 상시 노출(daniel 07-02: 프리미엄 아니면 어떤 뷰든 배너 계속).
@@ -46,7 +44,7 @@ export function AdBanner() {
   if (!Ads?.BannerAd) {
     if (!__DEV__) return null;
     return (
-      <View style={[styles.placeholderBar, { paddingBottom: insets.bottom }]}>
+      <View style={styles.placeholderBar}>
         <Text style={styles.placeholder}>AD (재빌드 후 실 배너)</Text>
       </View>
     );
@@ -56,7 +54,11 @@ export function AdBanner() {
   // 개발 = 항상 테스트 unit(실 unit 클릭은 계정 정지 사유) / 프로덕션 = PROD_UNIT(현재 테스트값, daniel 교체).
   const unitId = (__DEV__ || adTestMode()) ? TestIds.ADAPTIVE_BANNER : (PROD_UNIT[Platform.OS] ?? TestIds.ADAPTIVE_BANNER);
   return (
-    <View style={{ backgroundColor: colors.bg, paddingBottom: insets.bottom }}>
+    // ★paddingBottom: insets.bottom 제거(daniel 2026-08-04 "안드로이드에서 배너가 탭바에 안 붙어").
+    //   이 인셋은 배너가 화면 '맨 아래'였던 시절의 잔재 — 지금은 아래에 BottomNav 가 있어
+    //   제스처 내비 안드로이드(insets.bottom>0)에서 배너↔탭바 사이 빈 띠가 됐다.
+    //   화면 최하단 인셋은 BottomNav 가 자기 여백으로 처리한다(여기서 또 주면 이중).
+    <View style={{ backgroundColor: colors.bg }}>
       <BannerAd
         unitId={unitId}
         size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
