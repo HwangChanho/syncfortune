@@ -21,7 +21,8 @@ import { colors, radius, space, shadow, font } from '../lib/theme';
 import { GlassCard } from '../components/GlassCard';
 import { OhaengEnergy } from '../components/OhaengEnergy'; // 오행 에너지 구슬 인포그래픽(팔자 앞·이탈률↓·daniel 기획서①)
 import { GzCell } from '../components/GzCell'; // 간지 한 칸(오행색+한자+한글음) — 2026-07-16 추출(커뮤니티 SharedChart와 공유하는 단일 출처)
-import { elementPower } from '@engine/elementPower'; // ★오행 세력 2모드(합화·조후궁성) — daniel 2026-08-05
+import { elementPower } from '@engine/elementPower';
+import { LuckNest } from '../components/LuckNest'; // ★운 중첩(벤다이어그램식) — 원국 안쪽·일운→대운 바깥(daniel 2026-08-05) // ★오행 세력 2모드(합화·조후궁성) — daniel 2026-08-05
 import { stemElement, branchElement, elementColor, stemReading, branchReading, stemYinYang, branchYinYang, eumYangSkew, johuSkew, joSeupSkew } from '../lib/engine/ohaeng';
 import { ELEMENT_SKEW, tengodSkew, YINYANG_SKEW, JOHU_SKEW, JOSEUP_SKEW, CONCEPT_INFO, type SkewItem } from '../lib/content/skewKnowledge';
 import { useFontScale } from '../lib/ui/fontScale'; // 글자 크기(설정) — 명식 글자까지 모든 텍스트에 적용(daniel)
@@ -703,8 +704,11 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
           >
             <Text style={styles.todayBtnTx}>⊙ 오늘 기준 현재운세 보기</Text>
           </PressableScale>
-          {/* 대운·세운 타임라인 (원국·지장간 바로 아래) — 대운 탭 → 세운(과거~100세) → 월운 드릴다운 */}
-          {luckCycles.length > 0 && (() => {
+          {/* 대운·세운 타임라인 (원국·지장간 바로 아래) — 대운 탭 → 세운(과거~100세) → 월운 드릴다운
+              ★게이트 해제(daniel 2026-08-05 "대운 세운 월운 일운 표시 없어도 원국은 뜨게") —
+              종전엔 luckCycles 가 비면 이 블록 전체(원국 기둥 포함)가 사라졌다. 운 컬럼·대운/세운 목록은
+              각자 lc/an 가드가 있으므로, 바깥은 항상 열고 안쪽에서 조건부로 그린다. */}
+          {(() => {
         const lc = luckCycles[selLuck];
         // 대운수(행운수)+순역 — 명식당 하나. daniel 07-17: 표준 대운수(절기까지 일수÷3, 1~10)로 표기.
         //   라이브러리(lunar-javascript)의 startAge 는 '입운 세는나이'(=순수 대운수 + 1)라 그대로 쓰면 11처럼 큼.
@@ -737,6 +741,14 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
         // 시간층 합충 — 확장명식 컬럼(원국+운) 간 작용. 운(대운/세운/월운) 연루된 것만(원국끼리는 팔자 표에).
         // 컬럼 수에 맞춰 가용폭(expW)을 꽉 채움 — 층을 끄면 칸이 넓어지고 글자(scale)도 커진다.
         //   컬럼이 많아 폭을 넘으면 최소 50으로 두고 가로 스크롤. scale 상한 1.7(과도 확대 방지).
+        // ★운 중첩 다이어그램(daniel 2026-08-05) — 원국 제일 안쪽, 일운→월운→년운→대운이 감싼다.
+        //   배열 순서 = 안쪽부터(daniel 지정 순서 그대로). 데이터 없거나 토글 끈 층은 감싸지 않는다.
+        const nestRings = [
+          ...(dayItem && showLayers.day ? [{ label: '일운', stem: dayItem.stem, branch: dayItem.branch, sub: dayItem.stemTenGod }] : []),
+          ...(mo && showLayers.month ? [{ label: `${selMonth + 1}월운`, stem: mo.stem, branch: mo.branch, sub: mo.stemTenGod }] : []),
+          ...(an && showLayers.year ? [{ label: `${an.year}년운`, stem: an.stem, branch: an.branch, sub: an.stemTenGod }] : []),
+          ...(lc && showLayers.luck ? [{ label: `대운 ${lc.startAge}세~`, stem: lc.stem, branch: lc.branch, sub: lc.stemTenGod }] : []),
+        ];
         const nCols = expandCols.length || 1;
         const COLW = expW > 0 ? Math.max(50, Math.floor(expW / nCols)) : 50;
         const scale = Math.min(1.7, COLW / 50);
@@ -810,6 +822,14 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
               </PressableScale>
             ))}
           </View>
+          {/* ★운 중첩(벤다이어그램식·daniel 2026-08-05) — 원국이 제일 안쪽, 일운→월운→년운→대운이 감싼다.
+              켠 층·데이터 있는 층만 두른다. 운이 하나도 없으면 원국 상자만 남는다(그래도 뜬다). */}
+          <View style={{ marginTop: space(3), marginBottom: space(2) }}>
+            <LuckNest
+              natal={visiblePos.map((p) => ({ pos: `${p}주`, stem: P[p].stem, branch: P[p].branch }))}
+              rings={nestRings}
+            />
+          </View>
           {/* ★확장명식(원국+대운/세운/월운/일운) = 시간층을 하나라도 켰을 때만 노출(daniel 2026-07-24 통합): 다 끄면 원국은 위 팔자표에 있으니 중복 렌더 안 함. */}
           {hasLuckCol && (<>
           {/* 원국 + 대운·세운 확장 명식 (합충선은 아래 토글로 펼침) */}
@@ -860,7 +880,8 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
             </View>
           )}
           </>)}
-          {/* 대운 타임라인 — 제목 옆 대운수(행운수)·순역 표기(daniel) */}
+          {/* 대운 타임라인 — 제목 옆 대운수(행운수)·순역 표기(daniel). 운 데이터 없으면 목록 자체가 없다. */}
+          {luckCycles.length > 0 && (<>
           <Text style={styles.luckSub}>
             대운{daeunsu != null ? <Text style={{ fontWeight: '700' }}> · 대운수 {daeunsu}{luckDir ? ` ${luckDir}` : ''}</Text> : null} (탭하면 그 대운의 세운 펼침)
           </Text>
@@ -876,6 +897,7 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
               </PressableScale>
             ))}
           </ScrollView>
+          </>)}
           {/* 세운 타임라인 (선택 대운 10년, 탭 → 확장 명식 갱신) */}
           {lc?.annuals?.length > 0 && (
             <>
