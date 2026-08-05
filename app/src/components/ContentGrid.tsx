@@ -297,13 +297,22 @@ export function ContentGrid({ query = '', viewMode }: { query?: string; viewMode
     if (!q) return [] as MenuItem[];
     const seen = new Set<string>();
     const out: MenuItem[] = [];
-    for (const sec of sections) for (const m of sec.items) {
-      if (seen.has(m.route)) continue;
-      // 검색 대상 = 정적 라벨·설명. 티저('내 얘기')는 명식마다 달라져 검색 결과가 흔들린다.
-      const hay = `${t(m.labelKey)} ${m.descKey ? t(m.descKey) : ''}`.toLowerCase();
-      if (!hay.includes(q)) continue;
-      seen.add(m.route);
-      out.push(m);
+    for (const sec of sections) {
+      // ★섹션 제목·설명도 검색 대상(daniel 08-06 점검에서 발견).
+      //   실측: **"돈"으로 검색하면 0건**이었다 — 섹션명은 '돈·일·진로'인데 그 안의 항목
+      //   라벨·설명('재물 딥리포트', '타고난 재물 그릇…')에는 '돈'이라는 낱말이 하나도 없다.
+      //   사용자는 섹션에 적힌 말로 검색하는데 그 말이 검색되지 않으면 검색이 무용지물이 된다.
+      //   → 섹션명이 맞으면 그 섹션 항목을 전부 결과에 넣는다(주제로 훑어보는 것도 검색의 목적).
+      const secHay = `${t(sec.titleKey)} ${sec.descKey ? t(sec.descKey) : ''}`.toLowerCase();
+      const secHit = secHay.includes(q);
+      for (const m of sec.items) {
+        if (seen.has(m.route)) continue;
+        // 항목 검색 대상 = 정적 라벨·설명. 티저('내 얘기')는 명식마다 달라져 검색 결과가 흔들린다.
+        const hay = `${t(m.labelKey)} ${m.descKey ? t(m.descKey) : ''}`.toLowerCase();
+        if (!secHit && !hay.includes(q)) continue;
+        seen.add(m.route);
+        out.push(m);
+      }
     }
     return out;
   }, [q, sections, t]);
