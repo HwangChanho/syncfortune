@@ -54,7 +54,10 @@ export function EgenTetoBar({ score, height = 10 }: { score: number; height?: nu
 }
 
 const styles = StyleSheet.create({
-  track: { width: '100%', backgroundColor: colors.sunk, overflow: 'visible', justifyContent: 'center' },
+  // ★flex:1 이어야 한다(daniel 2026-08-05 IMG_8381 "선이 왜이래" — 홈에서 막대가 '테토' 라벨을
+  //   화면 밖으로 밀어냈다). 세 사용처 모두 [에겐|막대|테토] 가로 행인데, width:'100%' 는 row 에서
+  //   **줄어들지 않아** 부모 폭 전체를 먹는다. 통일 전 히어로 구현이 flex:1 이었던 이유.
+  track: { flex: 1, minWidth: 0, marginHorizontal: 10, backgroundColor: colors.sunk, overflow: 'visible', justifyContent: 'center' },
   dot: { position: 'absolute', borderWidth: 2, borderColor: colors.card },
 });
 
