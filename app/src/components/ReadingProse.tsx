@@ -58,7 +58,20 @@ export function ReadingProse({
 
   return (
     <View style={style}>
-      {shown.map((segments, i) => (
+      {shown.map((segments, i) => {
+        // ★소분류 소제목(daniel 2026-08-05 "모든 풀이는 대분류와 소분류로, 제목이 하위 내용을 담아야").
+        //   서버가 본문 블록 첫 줄을 `◆ 제목` 마커로 내보낸다(sectionsDirective).
+        //   마커 문단은 강조 파싱을 거치지 않고 통째로 소제목 스타일 — 옛 풀이(마커 없음)는 이 분기를
+        //   안 타므로 기존 모양 그대로다(캐시 호환·스키마 무변).
+        const raw = segments.map((sg) => sg.t).join('');
+        if (raw.startsWith('◆')) {
+          return (
+            <Text key={i} style={[styles.subhead, { color: accent }, i > 0 && { marginTop: space(5) }]}>
+              {raw.replace(/^◆\s*/, '')}
+            </Text>
+          );
+        }
+        return (
         <Text key={i} style={[styles.para, bodyDyn, i > 0 && { marginTop: space(3.5) }]}>
           {segments.map((sg, j) => {
             if (!sg.em) return <Text key={j}>{sg.t}</Text>;
@@ -75,7 +88,8 @@ export function ReadingProse({
             return <Text key={j} style={styles.em}>{sg.t}</Text>;
           })}
         </Text>
-      ))}
+        );
+      })}
       {canCollapse && (
         <PressableScale style={[styles.moreBtn, { borderColor: accent + '55' }]} onPress={() => setOpen((v) => !v)} hitSlop={8}>
           <Text style={[styles.moreTx, { color: accent, fontSize: fs(13) }]}>
@@ -193,6 +207,8 @@ const styles = StyleSheet.create({
   headWrap: { borderLeftWidth: 3, borderRadius: radius.md, paddingVertical: space(3.5), paddingHorizontal: space(4), marginBottom: space(4) },
   headTx: { ...font.heading, color: colors.ink, fontWeight: '800' },
   // 핵심 3줄 — headline(틴트 배지) 과 본문(카드) 사이 위계. 테두리만 둬서 headline 보다 가볍게.
+  // 소분류 소제목(◆ 마커) — 본문보다 굵고 콘텐츠 accent 색. 위 여백을 넉넉히 줘 블록 경계가 읽히게.
+  subhead: { fontSize: 15.5, lineHeight: 22, fontWeight: '800' },
   pointsWrap: { borderWidth: 1, borderRadius: radius.md, paddingVertical: space(4), paddingHorizontal: space(4), marginBottom: space(4), backgroundColor: colors.sunk },
   pointRow: { flexDirection: 'row', alignItems: 'flex-start', gap: space(2.5) },
   pointNum: { width: 20, height: 20, borderRadius: 10, borderWidth: 1, alignItems: 'center', justifyContent: 'center', marginTop: 2 },

@@ -40,6 +40,7 @@ import { CareerTeaser } from '../../components/CareerTeaser'; // ★무료 온�
 import { ShareReadingButton } from '../../components/ShareReadingButton'; // 이슈17: 풀이 결과 공유(가드 내장)
 import { TTSButton } from '../../components/TTSButton'; // 풀이 음성 읽기(온디바이스 TTS·무료)
 import { useLogContentVisit } from '../../lib/backend/contentVisit'; // 콘텐츠 방문 집계(daniel 2026-07-06) — 진입 1회 기록
+import { ReadingProse } from '../../components/ReadingProse'; // ★소분류 마커(◆) 렌더 — 본문을 공용 프로즈로 통일(daniel 2026-08-05)
 
 // 6개 카테고리(Edge 응답 키 ↔ i18n 라벨, 없으면 ko 기본값). 순서대로 스택.
 const SECTIONS: { key: string; tk: string; def: string }[] = [
@@ -201,7 +202,6 @@ export default function CareerScreen() {
     generate(chartId);
   }
 
-  const bodyDyn = { fontSize: fs(15), lineHeight: 25 };
 
   if (!loaded) return <View style={styles.center}><ActivityIndicator color={colors.ju} /></View>;
   if (!savedChart) {
@@ -246,12 +246,12 @@ export default function CareerScreen() {
           ) : null}
           {/* ★근본 '풀이 안 보임'(daniel 07-11): base 폴백 형식이면 구조화 섹션 키가 비어 화면이 텅 빔 → base 있으면 통째로 표시. */}
           {typeof reading.base === 'string' && reading.base.trim() ? (
-            <View style={[styles.card, styles.cardAccent]}><Text style={[styles.body, bodyDyn]}>{reading.base}</Text></View>
+            <View style={[styles.card, styles.cardAccent]}><ReadingProse text={String(reading.base ?? '')} collapsible={false} /></View>
           ) : SECTIONS.map((s) => (typeof reading[s.key] === 'string' && reading[s.key] ? (
             <View key={s.key} style={[styles.card, styles.cardAccent]}>
               {CAREER_IMG[s.key] ? <ExpoImage source={CAREER_IMG[s.key]} style={styles.secImg} contentFit="cover" cachePolicy="memory-disk" transition={150} /> : null}
               <Text style={styles.secLabel}>{t(s.tk, s.def)}</Text>
-              <Text style={[styles.body, bodyDyn]}>{reading[s.key]}</Text>
+              <ReadingProse text={String(reading[s.key] ?? '')} collapsible={false} />
             </View>
           ) : null))}
           {/* 풀이 음성 읽기(온디바이스 TTS·무료) — SECTIONS 순서로 읽음 */}

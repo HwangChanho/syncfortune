@@ -37,6 +37,7 @@ import { TimelineTeaser } from '../components/TimelineTeaser'; // 무료 결정�
 import { colors, radius, space, shadow, font } from '../lib/theme';
 import type { ChartInput } from '@spec/chart';
 import type { SavedChart } from '../lib/engine/myChart';
+import { ReadingProse } from '../components/ReadingProse'; // ★소분류 마커(◆) 렌더 — 본문을 공용 프로즈로 통일(daniel 2026-08-05)
 
 const AGE_MIN = 10, AGE_MAX = 110;  // 대운 110세까지(daniel)
 
@@ -312,9 +313,9 @@ export function TimelineScreen({ input, savedChart }: { input: ChartInput | null
       return (
         <View style={styles.card}>
           {expiryNote}
-          {r.base ? <Text style={[styles.body, bodyDyn]}>{r.base}</Text> : null}
-          {r.overlay ? <Text style={[styles.body, bodyDyn, { marginTop: space(3) }]}>{r.overlay}</Text> : null}
-          {r.remedy ? <Text style={[styles.body, bodyDyn, { marginTop: space(3) }]}>{r.remedy}</Text> : null}
+          {r.base ? <ReadingProse text={String(r.base)} collapsible={false} /> : null}
+          {r.overlay ? <ReadingProse text={String(r.overlay)} collapsible={false} style={{ marginTop: space(3) }} /> : null}
+          {r.remedy ? <ReadingProse text={String(r.remedy)} collapsible={false} style={{ marginTop: space(3) }} /> : null}
         </View>
       );
     }

@@ -46,6 +46,7 @@ import { InyeonYieojimCard } from '../../components/InyeonYieojimCard'; // 애�
 import { PossibilityGauge } from '../../components/PossibilityGauge'; // 공용 인연 가능성 게이지(재회와 공유 — 애니 미터)
 import { loveInyeonGauge } from '../../lib/love/inyeonGauge'; // 인연 가능성 점수(결정론·온디바이스·재회와 동일 신호)
 import { useLogContentVisit } from '../../lib/backend/contentVisit'; // 콘텐츠 방문 집계(daniel 2026-07-06) — 진입 1회 기록
+import { ReadingProse } from '../../components/ReadingProse'; // ★소분류 마커(◆) 렌더 — 본문을 공용 프로즈로 통일(daniel 2026-08-05)
 
 // 건당 가격 — 정가 → 할인가로 마킹(daniel). 결제 연동 시 조율.
 export const LOVE_PRICE = '₩9,900';
@@ -280,7 +281,6 @@ export default function LoveScreen() {
     generate(chartId);                                                              // 관리자·크레딧 통과 → 생성(서버 차감)
   }
 
-  const bodyDyn = { fontSize: fs(15), lineHeight: 25 };
 
   if (!loaded) return <View style={styles.center}><ActivityIndicator color={colors.ju} /></View>;
   if (!savedChart) {
@@ -326,12 +326,12 @@ export default function LoveScreen() {
               폴백하는데, 옛 코드는 base 를 안 그려 결정론 게이지·그래프만 뜨고 본문이 통째로 비었다. base 있으면 통째로 표시(무표시 방지·ReadingScreen 동일 패턴), 없으면 구조화 섹션. */}
           {typeof reading.base === 'string' && reading.base.trim() ? (
             <Animated.View style={[styles.card, styles.cardAccent, { borderLeftColor: LOVE_PINK }, cardAnim(reveal, 0, 1)]}>
-              <Text style={[styles.body, bodyDyn]}>{reading.base}</Text>
+              <ReadingProse text={String(reading.base ?? '')} collapsible={false} />
             </Animated.View>
           ) : SECTIONS.map((s, i) => (typeof reading[s.key] === 'string' && reading[s.key] ? (
           <Animated.View key={s.key} style={[styles.card, styles.cardAccent, { borderLeftColor: LOVE_PINK }, cardAnim(reveal, i, SECTIONS.length)]}>
             <Text style={[styles.secLabel, { color: LOVE_PINK }]}>{t(s.tk)}</Text>
-            <Text style={[styles.body, bodyDyn]}>{reading[s.key]}</Text>
+            <ReadingProse text={String(reading[s.key] ?? '')} collapsible={false} />
           </Animated.View>
         ) : null))}
           {/* 풀이 음성 읽기(온디바이스 TTS·무료) — SECTIONS 순서로 읽음 */}

@@ -46,6 +46,7 @@ import { MonthFlowGraph } from '../../components/MonthFlowGraph'; // 12개월 �
 import { newyearCategoryFlow, type NewyearCategory } from '../../lib/content/newyearCategoryFlow'; // 카테고리별 월별 흐름(합성 활성×부합·결정론·daniel 07-08)
 import { useFontScale } from '../../lib/ui/fontScale';
 import { useLogContentVisit } from '../../lib/backend/contentVisit'; // 콘텐츠 방문 집계(daniel 2026-07-06) — 진입 1회 기록
+import { ReadingProse } from '../../components/ReadingProse'; // ★소분류 마커(◆) 렌더 — 본문을 공용 프로즈로 통일(daniel 2026-08-05)
 
 // 신년 패키지 분야 10(daniel: 컨텐츠 강화 — 통합·직업·사업·재물·애정·결혼·건강·대인·배움·이동)
 const AREAS: { key: string; ko: string }[] = [
@@ -296,7 +297,7 @@ export default function NewYearScreen() {
             ) : null}
             {/* ★근본 '풀이 안 보임'(daniel 07-11): base 프로즈만 오면(JSON 파싱 폴백) 명명 키(keyword/yearNature/분야…)가 전부 비어 본문 텅 빔 → base 통째로 표시. */}
             {typeof data.base === 'string' && data.base.trim() ? (
-              <View style={styles.card}><Text style={[styles.body, { fontSize: fs(15), lineHeight: 26 }]}>{data.base}</Text></View>
+              <View style={styles.card}><ReadingProse text={String(data.base ?? '')} collapsible={false} /></View>
             ) : null}
             {/* 올해의 키워드 + 총평 */}
             {typeof data.keyword === 'string' && (
@@ -306,7 +307,7 @@ export default function NewYearScreen() {
               </View>
             )}
             {typeof data.summary === 'string' && (
-              <View style={styles.card}><Text style={[styles.body, { fontSize: fs(15), lineHeight: 26 }]}>{data.summary}</Text></View>
+              <View style={styles.card}><ReadingProse text={String(data.summary ?? '')} collapsible={false} /></View>
             )}
             {/* ★올해 간지 특성 + 대운·원국 작용(daniel 07-08) — 상세 분야 전에 '올해는 어떤 해'를 먼저 설명. */}
             {typeof data.yearNature === 'string' && (
