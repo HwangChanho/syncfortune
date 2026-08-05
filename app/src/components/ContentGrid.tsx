@@ -35,7 +35,7 @@ import { homeTeaser, type HomeTeaser } from '../lib/content/homeTeaser'; // 카�
 import { SECTIONS, CARD_REVEAL_OFFSETS, TOTAL_CARDS, HOME_INDIVIDUAL, priceLabel, baseKey, type MenuItem } from '../lib/content/contentSections';
 import { SAJU_READING_CATEGORIES } from '../lib/backend/prewarmReadings'; // 세트(사주16) 카테고리 단일출처
 import { isNewContent } from '../lib/content/newBadge'; // 신규 콘텐츠 NEW 배지(출시일+21일 자동 만료·우측 상단 연한 빨강)
-import { useHomeViewMode } from '../lib/ui/homeView'; // 보기 방식(카드/리스트) 저장·토글(daniel)
+import type { HomeViewMode } from '../lib/ui/homeView'; // 보기 방식(카드/리스트) — 상태는 화면이 소유(아래 주석)
 import { playSound } from '../lib/ui/sounds';
 import { PressableScale } from './PressableScale';
 import { colors, radius, space, shadow, font } from '../lib/theme';
@@ -86,15 +86,19 @@ const ROW_FOLD = 6;
 const AD_TIMEOUT_MS = 15_000;
 
 /**
- * @param showViewToggle 카드/리스트 토글 노출 여부(기본 true)
- * @param query 검색어(화면이 소유). 비어 있지 않으면 섹션 대신 **한 목록**으로 결과만 그린다.
- *   ★검색 입력을 화면(contents.tsx)이 갖는 이유 = 화면 최상단에 고정해야 키보드에 가리지 않고
- *     (check:keyboard R1), 스크롤을 내린 상태에서도 계속 쓸 수 있기 때문.
+ * @param query 검색어. 비어 있지 않으면 섹션 대신 **한 목록**으로 결과만 그린다.
+ * @param viewMode 카드/리스트 보기 방식.
+ *
+ * ★검색어·보기방식을 **화면(contents.tsx)이 소유**하는 이유:
+ *   ① 검색창·토글을 스크롤 밖 최상단 한 줄에 고정해야 한다 — 스크롤을 내린 뒤에도 쓸 수 있고
+ *      키보드에 가리지 않는다(check:keyboard R1). 그 줄은 화면 소유다.
+ *   ② `useHomeViewMode()` 를 화면과 이 컴포넌트가 **각자 부르면 state 가 둘**이 되어,
+ *      화면에서 토글해도 그리드는 모른다(같은 값을 여러 곳이 각자 읽어 갈린 사고 이력 있음).
+ *      → 훅은 화면에서 한 번만 부르고 여기로는 값만 내려온다.
  */
-export function ContentGrid({ showViewToggle = true, query = '' }: { showViewToggle?: boolean; query?: string }) {
+export function ContentGrid({ query = '', viewMode }: { query?: string; viewMode: HomeViewMode }) {
   const router = useRouter();
   const { t } = useTranslation();
-  const { viewMode, setViewMode } = useHomeViewMode();
   const { session } = useAuth();
   const adFree = useAdFree();   // ★광고 게이트 판정(아래 주석)
   const [admin, setAdmin] = useState(false);
@@ -320,22 +324,7 @@ export function ContentGrid({ showViewToggle = true, query = '' }: { showViewTog
 
   return (
     <>
-      {/* 보기 방식(카드/리스트) 토글 — 우측 정렬 세그먼트, 선택은 저장(다음 실행에도 유지). */}
-      {showViewToggle && (
-        <View style={styles.viewToggleRow}>
-          <View style={styles.viewToggle}>
-            {(['card', 'list'] as const).map((mode) => (
-              <PressableScale key={mode} style={[styles.viewTogChip, viewMode === mode && styles.viewTogChipOn]} onPress={() => setViewMode(mode)}>
-                <Text style={[styles.viewTogTx, viewMode === mode && styles.viewTogTxOn]}>
-                  {mode === 'card' ? '▦' : '☰'} {t(mode === 'card' ? 'menu.viewCard' : 'menu.viewList')}
-                </Text>
-              </PressableScale>
-            ))}
-          </View>
-        </View>
-      )}
-
-      {/* 무료 / 프리미엄 / 콘텐츠 3범주 — 큰 섹션 헤더 + 좌우 가로 스크롤 카드(daniel) */}
+      {/* 주제 섹션 — 큰 헤더 + 좌우 가로 스크롤 카드. (보기 토글은 화면 상단 검색줄로 이동·daniel 08-06) */}
       {sections.map((sec, secIdx) => {
         // 카드뷰 줄 수 = 개수로만 결정(위 ROW_FOLD 주석 참조 — 섹션 키 하드코딩 제거).
         const twoRows = sec.items.length > ROW_FOLD;
@@ -453,13 +442,7 @@ export function ContentGrid({ showViewToggle = true, query = '' }: { showViewTog
 }
 
 const styles = StyleSheet.create({
-  // 보기 방식(카드/리스트) 토글 — pill 세그먼트, 우측 정렬(daniel).
-  viewToggleRow: { flexDirection: 'row', justifyContent: 'flex-end', marginBottom: space(4) },
-  viewToggle: { flexDirection: 'row', gap: space(1), backgroundColor: colors.overlay, borderRadius: radius.pill, padding: space(1), borderWidth: 1, borderColor: colors.line },
-  viewTogChip: { paddingHorizontal: space(3.5), paddingVertical: space(1.5), borderRadius: radius.pill },
-  viewTogChipOn: { backgroundColor: colors.ju }, // 활성 = 골드(라이트/다크 자동)
-  viewTogTx: { fontSize: 13, fontWeight: '800', color: colors.inkSoft, letterSpacing: 0.2 },
-  viewTogTxOn: { color: '#15132E' },             // 골드 위 다크 텍스트
+  // (보기 토글 스타일은 화면 상단 검색줄로 이동 — contents.tsx)
   // 범주 섹션 — 큰 헤더 + 좌우 가로 스크롤. marginHorizontal 음수 = 화면 wrap 패딩(space(5)) 상쇄(가로 스크롤이 화면 끝까지).
   section: { marginBottom: space(6), marginHorizontal: -space(5) },
   sectionH: { fontSize: 22, fontWeight: '800', color: colors.ju, marginBottom: space(1), letterSpacing: 0.3, paddingHorizontal: space(5) },
