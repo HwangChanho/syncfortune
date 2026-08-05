@@ -24,9 +24,11 @@ export type NestRing = {
 
 export type NestPillar = { pos: string; stem: string; branch: string };
 
-// 층별 띠 색(안 → 밖, 점점 짙게) — 만세력 운 카드 톤과 같은 계열
-const RING_TINT = ['#F3EFE6', '#EBE4D3', '#E2D8C0', '#D8CCAD'];
-const RING_EDGE = ['#D8CFBE', '#CCC0A8', '#BFB093', '#B2A07E'];
+// 층별 띠 색(안 → 밖, 점점 짙게) — ★쿨 블루그레이(daniel 2026-08-05 3차 "금 색상이 잘 안 보여").
+//   1차 베이지 팔레트가 金 셀색(#D2CCBA·베이지)과 같은 계열이라 金 간지가 링에 묻혔다.
+//   앱 배경(라이트 블루그레이) 계열로 바꿔 다섯 오행색이 모두 또렷하게.
+const RING_TINT = ['#F2F4F8', '#E7EBF2', '#DBE1EB', '#CED6E4'];
+const RING_EDGE = ['#D9DEE8', '#CCD3E0', '#BFC8D8', '#B1BCCF'];
 
 /**
  * 운 중첩(양파) 다이어그램.
@@ -42,8 +44,8 @@ export function LuckNest({ natal, rings, hangeul }: { natal: NestPillar[]; rings
         {[...natal].reverse().map((p) => (
           <View key={p.pos} style={styles.corePillar}>
             <Text style={styles.corePos}>{p.pos}</Text>
-            <GzCell char={p.stem} kind="stem" size="sm" hangeul={hangeul} />
-            <GzCell char={p.branch} kind="branch" size="sm" hangeul={hangeul} />
+            <GzCell char={p.stem} kind="stem" size="xs" scale={0.92} hangeul={hangeul} />
+            <GzCell char={p.branch} kind="branch" size="xs" scale={0.92} hangeul={hangeul} />
           </View>
         ))}
       </View>
@@ -56,8 +58,8 @@ export function LuckNest({ natal, rings, hangeul }: { natal: NestPillar[]; rings
     <View key={r.label} style={[styles.ring, { backgroundColor: RING_TINT[i] ?? RING_TINT[3], borderColor: RING_EDGE[i] ?? RING_EDGE[3] }]}>
       <View style={styles.ringHead}>
         <Text style={styles.ringLabel}>{r.label}</Text>
-        <GzCell char={r.stem} kind="stem" size="sm" hangeul={hangeul} />
-        <GzCell char={r.branch} kind="branch" size="sm" hangeul={hangeul} />
+        <GzCell char={r.stem} kind="stem" size="xs" scale={0.95} hangeul={hangeul} />
+        <GzCell char={r.branch} kind="branch" size="xs" scale={0.95} hangeul={hangeul} />
         {r.sub ? <Text style={styles.ringSub}>{r.sub}</Text> : null}
       </View>
       {child}
@@ -66,13 +68,13 @@ export function LuckNest({ natal, rings, hangeul }: { natal: NestPillar[]; rings
 }
 
 const styles = StyleSheet.create({
-  ring: { borderWidth: 1, borderRadius: radius.lg, padding: space(2.5), paddingTop: space(1.5) },
+  ring: { borderWidth: 1, borderRadius: radius.lg, padding: space(1.5), paddingTop: space(1) },
   ringHead: { flexDirection: 'row', alignItems: 'center', gap: space(1.5), marginBottom: space(1.5), paddingHorizontal: space(0.5) },
   ringLabel: { ...font.caption, color: colors.inkSoft, fontWeight: '800' },
   ringSub: { ...font.caption, color: colors.inkFaint },
   // 원국 코어 — 흰 카드로 주인공 대비
-  core: { backgroundColor: colors.card, borderWidth: 1.5, borderColor: colors.ju, borderRadius: radius.md, paddingVertical: space(2.5), paddingHorizontal: space(2), alignItems: 'center' },
-  coreRow: { flexDirection: 'row', gap: space(2) },
+  core: { backgroundColor: colors.card, borderWidth: 1.5, borderColor: colors.ju, borderRadius: radius.md, paddingVertical: space(2), paddingHorizontal: space(1), alignItems: 'center' },
+  coreRow: { flexDirection: 'row', gap: space(1), flexShrink: 1 },
   corePillar: { alignItems: 'center' },
   corePos: { fontSize: 10, lineHeight: 14, color: colors.inkFaint, fontWeight: '700', marginBottom: 2 },
   coreLabel: { ...font.caption, color: colors.ju, fontWeight: '800', marginTop: space(1.5) },
