@@ -1,86 +1,67 @@
 #!/usr/bin/env tsx
-// scripts/check-reading-video.ts
+// scripts/check-reading-video.ts — (재정의 2026-08-05) 영상 '부활' 방지 하네스
 // ─────────────────────────────────────────────────────────────────────────
-// 풀이영상 온오프 회귀 방지 하네스 (daniel 07-19~20 반복버그: "껐는데 자꾸 씨발 계속 나오잖아").
-//   근본원인은 매번 동일 = '영상 렌더 지점 중 하나가 getReadingVideoEnabled 게이트를 안 탐'
-//   (07-19 UnlockOverlay·인트로 / 07-20 DoorReveal). 사람이 매번 놓치는 종류 → 하네스로 못박는다.
-//
-// ★설계 원칙(메모리 error-harness-prebuild-check): '이름'이 아니라 '렌더'로 판정한다.
-//   = 실제로 <VideoView>(expo-video 플레이어)를 그리는 파일을 전수로 찾아, 각자 올바른 게이트를 참조하는지 본다.
-//   그래야 컴포넌트명이 바뀌거나 새 화면이 영상을 직접 그려도 빠짐없이 걸린다.
-//
-// 2축(app/src/lib/theme.ts):
-//   · 풀이영상  getReadingVideoEnabled()   — 풀이 공개 연출(DoorReveal 문열림·UnlockOverlay 자물쇠). 끄면 영상 없이 즉시 공개.
-//   · 인트로     getLoadingMode()==='video' — 앱 실행 스플래시(VideoSplash 왕궁문→호랑이). ★별개 축, 호출부(_layout)에서 게이트.
+// 종전 이 하네스는 "영상 렌더는 반드시 on/off 게이트를 탄다"를 강제했다(07-19~20 반복버그
+// "껐는데 계속 나온다"). daniel 2026-08-05 "풀이 로딩영상이랑 로딩화면 영상 다 없애버려"로
+// 영상이 **전면 제거**되면서 게이트 강제는 뜻을 잃었다 — 이제 지킬 불변식은 반대다:
+// **영상이 조용히 되살아나면 안 된다.** (mp4 는 require 만 남아도 번들에 실린다 — 11MB.)
 //
 // 규칙:
-//   R1) <VideoView> 를 렌더하는 파일은 아래 '알려진 분류'에 등록돼 있어야 한다.
-//       → 새 파일이 영상을 그리면 FAIL(개발자에게 "이건 풀이영상이냐 인트로냐, 게이트 배선했냐"를 강제).
-//   R2) 풀이영상 파일은 getReadingVideoEnabled 를 반드시 참조한다(자체 게이트 = 끄면 안 뜸).
-//   R3) 인트로 스플래시(VideoSplash)의 오케스트레이터(app/_layout.tsx)는 getLoadingMode 를 참조한다.
+//   V1) app/src 에 expo-video import 금지(VideoView/useVideoPlayer 렌더 부활 차단)
+//   V2) app/src 에 .mp4 require/import 금지(번들 자산 부활 차단)
+//   V3) 제거된 컴포넌트 파일 부활 금지(DoorReveal/VideoSplash)
+//   V4) app/assets 에 mp4 파일 잔존 금지(참조 없어도 파일이 남으면 다음 사람이 다시 연결한다)
+// 음성테스트: src 파일에 `.mp4` require 를 임시로 넣으면 V2 가 문다(2026-08-05 확인).
 // ─────────────────────────────────────────────────────────────────────────
-import * as fs from 'fs';
-import * as path from 'path';
+import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
+import { join, relative, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-// npm 스크립트는 레포 루트에서 실행 → cwd 기준. (다른 곳에서 돌려도 app/src 를 찾도록 상향 탐색 폴백)
-function resolveSrc(): string {
-  let dir = process.cwd();
-  for (let i = 0; i < 4; i++) {
-    const cand = path.join(dir, 'app', 'src');
-    if (fs.existsSync(cand)) return cand;
-    dir = path.dirname(dir);
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
+let fail = 0;
+const ok = (m: string) => console.log(`  ✅ ${m}`);
+const bad = (m: string) => { console.error(`  ❌ ${m}`); fail++; };
+
+const files: string[] = [];
+(function walk(d: string) {
+  for (const n of readdirSync(d)) {
+    if (n === 'node_modules' || n.startsWith('.')) continue;
+    const p = join(d, n);
+    if (statSync(p).isDirectory()) walk(p);
+    else if (/\.tsx?$/.test(p)) files.push(p);
   }
-  return path.resolve('app/src');
+})(join(ROOT, 'app/src'));
+
+console.log('■ check:reading-video — 로딩/풀이 영상 부활 방지(2026-08-05 전면 제거 이후)\n');
+
+{ // V1 expo-video
+  const hits = files.filter((f) => /from ['"]expo-video['"]/.test(readFileSync(f, 'utf8')));
+  if (hits.length) bad(`[V1] expo-video import 부활 ${hits.length}건: ${hits.map((f) => relative(ROOT, f)).join(', ')}`);
+  else ok('[V1] expo-video import 없음');
 }
-const SRC = resolveSrc();
-const rel = (p: string) => path.relative(SRC, p).replace(/\\/g, '/');
-
-// ── 알려진 분류(새 <VideoView> 파일이 생기면 여기 등록 + 게이트 배선 강제) ──────────────────
-const READING_VIDEO_FILES = ['components/DoorReveal.tsx', 'components/UnlockOverlay.tsx']; // 풀이영상 = getReadingVideoEnabled 필수
-const INTRO_SPLASH_FILES = ['components/VideoSplash.tsx'];                                 // 인트로 = getLoadingMode(호출부)
-const KNOWN = new Set([...READING_VIDEO_FILES, ...INTRO_SPLASH_FILES]);
-
-// ── src 전체 walk → 실제로 <VideoView 를 렌더하는(=JSX) .tsx 파일 수집 ──────────────────────
-function walk(dir: string): string[] {
-  const out: string[] = [];
-  for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
-    const p = path.join(dir, e.name);
-    if (e.isDirectory()) out.push(...walk(p));
-    else if (e.name.endsWith('.tsx')) out.push(p);
-  }
-  return out;
+{ // V2 mp4 require
+  const hits = files.filter((f) => /require\([^)]*\.mp4['"]\)|from ['"][^'"]*\.mp4['"]/.test(readFileSync(f, 'utf8')));
+  if (hits.length) bad(`[V2] mp4 번들 참조 부활 ${hits.length}건(번들 크기 되돌아감): ${hits.map((f) => relative(ROOT, f)).join(', ')}`);
+  else ok('[V2] mp4 require/import 없음');
 }
-// <VideoView 뒤에 공백/자닫힘/닫힘이 와야 렌더(import 의 'VideoView' 문자열은 '<' 가 없어 제외).
-const RENDER_RE = /<VideoView[\s/>]/;
-
-const fails: string[] = [];
-const videoFiles = walk(SRC).filter((p) => RENDER_RE.test(fs.readFileSync(p, 'utf8'))).map(rel);
-
-// R1: 모든 <VideoView> 렌더 파일이 알려진 분류인가(미분류 신규 = 게이트 누락 위험 → 강제 검토)
-for (const f of videoFiles) {
-  if (!KNOWN.has(f)) {
-    fails.push(`[R1] 새 <VideoView> 렌더 파일 미분류: ${f}\n        → 풀이영상이면 READING_VIDEO_FILES 에, 인트로면 INTRO_SPLASH_FILES 에 등록하고 게이트(getReadingVideoEnabled / getLoadingMode)를 배선하라.`);
-  }
+{ // V3 제거 컴포넌트
+  const ghosts = ['app/src/components/DoorReveal.tsx', 'app/src/components/VideoSplash.tsx'].filter((p) => existsSync(join(ROOT, p)));
+  if (ghosts.length) bad(`[V3] 제거된 영상 컴포넌트 부활: ${ghosts.join(', ')}`);
+  else ok('[V3] DoorReveal/VideoSplash 없음');
 }
-
-// R2: 풀이영상 파일은 getReadingVideoEnabled 자체 게이트
-for (const f of READING_VIDEO_FILES) {
-  const p = path.join(SRC, f);
-  if (!fs.existsSync(p)) { fails.push(`[R2] 풀이영상 파일 없음(이동/삭제?): ${f} — 분류 목록을 갱신하라.`); continue; }
-  if (!fs.readFileSync(p, 'utf8').includes('getReadingVideoEnabled')) {
-    fails.push(`[R2] 풀이영상 게이트 누락: ${f} 가 getReadingVideoEnabled 를 참조하지 않음\n        → 설정에서 껐는데 영상이 뜨는 반복버그 재발. 렌더 전에 게이트를 확인하거나 컴포넌트 내부에서 OFF 시 즉시 onDone/무영상 처리하라.`);
-  }
+{ // V4 assets mp4
+  const found: string[] = [];
+  (function walkA(d: string) {
+    if (!existsSync(d)) return;
+    for (const n of readdirSync(d)) {
+      const p = join(d, n);
+      if (statSync(p).isDirectory()) walkA(p);
+      else if (n.endsWith('.mp4')) found.push(relative(ROOT, p));
+    }
+  })(join(ROOT, 'app/assets'));
+  if (found.length) bad(`[V4] assets 에 mp4 잔존 ${found.length}건: ${found.join(', ')}`);
+  else ok('[V4] assets mp4 없음');
 }
 
-// R3: 인트로 스플래시 오케스트레이터가 getLoadingMode 참조(인트로 끄기 'text'/'off' 가 먹히게)
-const layout = path.join(SRC, 'app', '_layout.tsx');
-if (!fs.existsSync(layout) || !fs.readFileSync(layout, 'utf8').includes('getLoadingMode')) {
-  fails.push(`[R3] 인트로 게이트 누락: app/_layout.tsx 가 getLoadingMode 를 참조하지 않음 → 인트로 모드('text'/'off')가 안 먹힐 수 있음.`);
-}
-
-// ── 출력(다른 check:* 와 동일 관례: FAIL 시 exit 1) ──────────────────────────────────────
-if (fails.length) {
-  console.error('❌ check:reading-video FAIL — 영상 게이트 배선 문제 ' + fails.length + '건\n' + fails.map((f) => '  - ' + f).join('\n'));
-  process.exit(1);
-}
-console.log(`✓ check:reading-video PASS — <VideoView> 렌더 ${videoFiles.length}곳(풀이영상 ${READING_VIDEO_FILES.length}·인트로 ${INTRO_SPLASH_FILES.length}) 전부 올바른 게이트 배선.`);
+console.log(fail ? `\n❌ check:reading-video FAIL ${fail}건` : '\n✅ check:reading-video 통과 — 영상 부활 없음');
+process.exit(fail ? 1 : 0);
