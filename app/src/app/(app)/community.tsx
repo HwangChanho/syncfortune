@@ -19,6 +19,7 @@ import { computeChart } from '../../lib/engine/engine';
 import { listPosts, pollVote, pollStats, createPost, toSharedSaju, toSharedZiwei, COMMUNITY_CATEGORIES, type CommunityPost, type CommunityCategory } from '../../lib/backend/community';
 import { colors, radius, space, shadow, font } from '../../lib/theme';
 import { dateGanZhi } from '../../lib/content/dailyFortune'; // 일진 스레드 제목 — 서버는 날짜만, 간지는 클라 결정론(daniel 2026-08-05)
+import { SECTIONS } from '../../lib/content/contentSections'; // P2 후기 태그 — 콘텐츠 목록 단일 출처(라벨·라우트 여기서만)
 
 const EULA_KEY = 'pref.communityEula'; // 이용약관 동의 1회 플래그(Apple 1.2)
 
@@ -45,7 +46,8 @@ export default function CommunityScreen() {
   const [selfCharts, setSelfCharts] = useState<SavedChart[]>([]);
   const [attachId, setAttachId] = useState<string | null>(null);
   const [showLuck, setShowLuck] = useState(false); // 대운·세운까지 공개할지(기본 꺼짐 = 원국만)
-  const [composeErr, setComposeErr] = useState<string | null>(null); // 등록 에러를 모달 안에 인라인 표시(Alert 가 글쓰기 Modal 위에 안 떠 '무반응'처럼 보이던 것 해결)
+  const [composeErr, setComposeErr] = useState<string | null>(null);
+  const [topic, setTopic] = useState<string | null>(null); // P2 후기 태그 — 어떤 콘텐츠의 후기인지(contentSections key) // 등록 에러를 모달 안에 인라인 표시(Alert 가 글쓰기 Modal 위에 안 떠 '무반응'처럼 보이던 것 해결)
 
   // ── 일진 데일리 스레드(P1) — 목록에서 분리해 상단 고정 카드로. 투표(1~5) + 집계.
   const [daily, setDaily] = useState<CommunityPost | null>(null);
@@ -137,7 +139,7 @@ export default function CommunityScreen() {
           showLuck,
         };
       }
-      await createPost(wcat, title, body, chart);
+      await createPost(wcat, title, body, chart, wcat === 'review' ? topic : null);
       setCompose(false); setTitle(''); setBody(''); setWcat('free'); setAttachId(null); setShowLuck(false);
       await load();
     } catch (e) {
@@ -219,6 +221,14 @@ export default function CommunityScreen() {
                 <Text style={styles.postCat}>{t(`community.cat.${item.category}`, item.category)}</Text>
                 <Text style={styles.postMeta}>{item.author_name}{item.ilju ? <Text style={styles.iljuBadge}>  {item.ilju}</Text> : null} · {String(item.created_at).slice(5, 10)}</Text>
               </View>
+              {item.topic ? (() => {
+                const t2 = SECTIONS.flatMap((sec) => sec.items).find((it) => it.key === item.topic);
+                return t2 ? (
+                  <PressableScale style={styles.topicLink} onPress={() => router.push(t2.route as never)}>
+                    <Text style={styles.topicLinkTx}>{t(t2.labelKey)} ›</Text>
+                  </PressableScale>
+                ) : null;
+              })() : null}
               <Text style={styles.postTitle} numberOfLines={1}>{item.title}</Text>
               <Text style={styles.postBody} numberOfLines={2}>{item.body}</Text>
               <Text style={styles.postStats}>♥ {item.like_count}   💬 {item.comment_count}</Text>
@@ -286,6 +296,18 @@ export default function CommunityScreen() {
                 </>
               )}
             </View>
+            {/* P2 후기 태그(daniel 2026-08-05) — 후기 카테고리에서만. 목록은 콘텐츠 단일 출처(SECTIONS)라
+                새 콘텐츠가 생기면 자동으로 따라온다. 라벨은 각 콘텐츠의 i18n 라벨 그대로. */}
+            {wcat === 'review' && (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.topicBar} contentContainerStyle={styles.topicRow}>
+                {SECTIONS.flatMap((sec) => sec.items).filter((it) => it.ready !== false).map((it) => (
+                  <PressableScale key={it.key} style={[styles.topicChip, topic === it.key && styles.topicChipOn]}
+                    onPress={() => setTopic((cur) => (cur === it.key ? null : it.key))}>
+                    <Text style={[styles.topicChipTx, topic === it.key && styles.topicChipTxOn]} numberOfLines={1}>{t(it.labelKey)}</Text>
+                  </PressableScale>
+                ))}
+              </ScrollView>
+            )}
             <TextInput style={styles.titleInput} value={title} onChangeText={setTitle} placeholder={t('community.titlePh', '제목')} placeholderTextColor={colors.inkFaint} maxLength={100} />
             <TextInput style={styles.bodyInput} value={body} onChangeText={setBody} placeholder={t('community.bodyPh', '내용을 입력하세요 (욕설·혐오·성적 콘텐츠 금지)')} placeholderTextColor={colors.inkFaint} maxLength={4000} multiline textAlignVertical="top" />
 
@@ -348,6 +370,15 @@ const styles = StyleSheet.create({
   listWrap: { padding: space(5), paddingBottom: space(24), gap: space(3) },
   empty: { ...font.body, color: colors.inkFaint, textAlign: 'center', marginTop: space(16) },
   // 일진 데일리 카드(P1) — 목록 위 고정. 참여 문턱 최저(투표 탭 1회).
+  // P2 후기 토픽 칩(작성)·딥링크(목록)
+  topicBar: { marginBottom: space(2) },
+  topicRow: { gap: space(1.5), paddingRight: space(4) },
+  topicChip: { borderWidth: 1, borderColor: colors.line, borderRadius: radius.pill, paddingVertical: space(1.5), paddingHorizontal: space(3), backgroundColor: colors.sunk },
+  topicChipOn: { backgroundColor: colors.ju, borderColor: colors.ju },
+  topicChipTx: { fontSize: 12, lineHeight: 16, color: colors.inkSoft, fontWeight: '600' },
+  topicChipTxOn: { color: colors.bg, fontWeight: '800' },
+  topicLink: { alignSelf: 'flex-start', backgroundColor: colors.juSoft, borderRadius: radius.pill, paddingVertical: space(0.5), paddingHorizontal: space(2.5), marginBottom: space(1) },
+  topicLinkTx: { fontSize: 11.5, lineHeight: 16, color: colors.ju, fontWeight: '800' },
   dailyCard: { backgroundColor: colors.juSoft, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.ju + '55', padding: space(4), marginBottom: space(4) },
   dailyTag: { ...font.caption, color: colors.ju, fontWeight: '800' },
   dailyGz: { fontSize: 21, lineHeight: 28, fontWeight: '900', color: colors.ink, marginTop: space(1), marginBottom: space(1) },

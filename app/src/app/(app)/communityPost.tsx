@@ -16,6 +16,7 @@ import { getPost, listComments, addComment, toggleLike, likedPostIds, reportCont
   type CommunityPost, type CommunityComment } from '../../lib/backend/community';
 import { withTimeout } from '../../lib/core/withTimeout'; // ★잠금 구간 네트워크 상한(멈춤 방지)
 import { colors, radius, space, font } from '../../lib/theme';
+import { SECTIONS } from '../../lib/content/contentSections'; // P2 후기 태그 딥링크
 
 export default function CommunityPostScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -126,6 +127,14 @@ export default function CommunityPostScreen() {
         <Text style={styles.cat}>{t(`community.cat.${post.category}`, post.category)}</Text>
         <Text style={styles.title}>{post.title}</Text>
         <Text style={styles.meta}>{post.author_name}{post.ilju ? ` · ${post.ilju}` : ''} · {String(post.created_at).slice(0, 10)}</Text>
+          {post.topic ? (() => {
+            const it = SECTIONS.flatMap((sec) => sec.items).find((x) => x.key === post.topic);
+            return it ? (
+              <PressableScale style={styles.topicLink} onPress={() => router.push(it.route as never)}>
+                <Text style={styles.topicLinkTx}>{t(it.labelKey)} ›</Text>
+              </PressableScale>
+            ) : null;
+          })() : null}
 
         {/* 첨부 명식 — 작성자가 자기 명식을 함께 올린 글에만(daniel: "글 볼 때 상단에 사주 원국 노출").
             본문보다 위에 두는 이유: 사주 Q&A·고민 글은 '이 명식을 두고 하는 이야기'라 명식이 전제다.
@@ -180,6 +189,8 @@ export default function CommunityPostScreen() {
 }
 
 const styles = StyleSheet.create({
+  topicLink: { alignSelf: 'flex-start', backgroundColor: colors.juSoft, borderRadius: radius.pill, paddingVertical: space(0.5), paddingHorizontal: space(2.5), marginTop: space(1) },
+  topicLinkTx: { fontSize: 11.5, lineHeight: 16, color: colors.ju, fontWeight: '800' },
   bg: { flex: 1, backgroundColor: 'transparent' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: space(7) },
   gone: { ...font.body, color: colors.inkFaint, textAlign: 'center' },

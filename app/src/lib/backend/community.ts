@@ -20,6 +20,7 @@ export type CommunityPost = {
   title: string; body: string; like_count: number; comment_count: number; created_at: string;
   // P1(daniel 2026-08-05): kind='daily'=일진 스레드(cron 자동 개설·author_id null) / ilju=작성자 일주 뱃지(opt-in·2자)
   kind?: 'normal' | 'daily'; daily_date?: string | null; ilju?: string | null;
+  topic?: string | null;   // P2 후기 태그 — contentSections item key(라벨·라우트는 클라 단일 출처)
   // 첨부 명식(선택) — 목록 조회(listPosts)에는 실리지 않는다(아래 LIST_COLS). 상세(getPost)에서만 채워진다.
   chart_saju?: SharedSaju | null;
   chart_ziwei?: SharedZiwei | null;
@@ -29,7 +30,7 @@ export type CommunityComment = { id: string; post_id: string; author_id: string;
 
 // 목록용 컬럼 — **chart_* 를 명시적으로 제외**한다. 목록은 명식을 그리지 않는데 select('*') 로 두면
 //   글 30개 × 첨부 명식이 통째로 딸려와 스크롤 진입이 느려진다(첨부 명식은 상세에서만 필요).
-const LIST_COLS = 'id,author_id,author_name,category,title,body,like_count,comment_count,created_at,kind,daily_date,ilju';
+const LIST_COLS = 'id,author_id,author_name,category,title,body,like_count,comment_count,created_at,kind,daily_date,ilju,topic';
 const POST_COLS = `${LIST_COLS},chart_saju,chart_ziwei,show_luck`;
 
 // 카테고리(고정) — key 저장, 라벨은 i18n(community.cat.*).
@@ -103,6 +104,7 @@ async function myIljuIfEnabled(me: string): Promise<string | null> {
 export async function createPost(
   category: CommunityCategory, title: string, body: string,
   chart?: { saju: SharedSaju; ziwei?: SharedZiwei | null; showLuck: boolean },
+  topic?: string | null,   // P2: 후기(review) 글이 가리키는 콘텐츠 key(contentSections)
 ): Promise<string> {
   if (containsProfanity(title) || containsProfanity(body)) throw new Error('PROFANITY');
   const me = await uid();
@@ -110,7 +112,7 @@ export async function createPost(
   const ilju = await myIljuIfEnabled(me);
   const { data, error } = await supabase.from('community_posts')
     .insert({
-      author_id: me, category, title: title.trim(), body: body.trim(), ilju,
+      author_id: me, category, title: title.trim(), body: body.trim(), ilju, topic: category === 'review' ? (topic ?? null) : null,
       chart_saju: chart?.saju ?? null,
       chart_ziwei: chart?.ziwei ?? null,
       // 첨부가 없으면 항상 false — 시기 공개 플래그가 명식 없이 남아 있을 이유가 없다.
