@@ -45,8 +45,11 @@ export function ZodiacWheel({ sunSign, size = 220 }: { sunSign?: string; size?: 
       {/* 회전 포인터 — 마운트 시 돌아 내 태양별자리(12시 기준 sunIdx*30°)에 안착 */}
       <Animated.View style={{ position: 'absolute', width: size, height: size, transform: [{ rotate: rot }] }}>
         <Svg width={size} height={size}>
-          <Line x1={c} y1={c} x2={c} y2={16} stroke="rgba(212,175,110,0.85)" strokeWidth={2} />
-          <Circle cx={c} cy={13} r={5} fill="#E9C77B" />
+          {/* ★분침 단축(daniel 2026-08-05 IMG_8389 "분침이 너무 길어서 글자를 가려") —
+              끝을 글리프 안쪽 반경(rGlyph−26)까지만. 종전 y2=16 은 글리프(rGlyph)를 지나쳐
+              하이라이트 원반과 겹쳐 별자리 글자를 덮었다. */}
+          <Line x1={c} y1={c} x2={c} y2={c - (rGlyph - 26)} stroke="rgba(212,175,110,0.85)" strokeWidth={2} />
+          <Circle cx={c} cy={c - (rGlyph - 26)} r={5} fill="#E9C77B" />
           <Circle cx={c} cy={c} r={3} fill="rgba(212,175,110,0.9)" />
         </Svg>
       </Animated.View>

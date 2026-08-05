@@ -326,7 +326,11 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
       } else {
         const r = readingFromInvoke(data, error); // 정상 도착
         setReading(r);
-        if (r && !r.error) { await markUnlocked(id, kind); ok = true; } // ★정상 통변만 소유 힌트(재열람 시 owned·무료 재열람)+완료. 게이트 아님.
+        // ★목업(source='mock')은 소유 힌트를 남기지 않는다(daniel 2026-08-05 "테스트 통변은 구매 이력 0·다음엔 재요청").
+        //   서버도 차감·언락·저장을 전부 스킵하므로, 여기 로컬 힌트까지 막아야 재진입 시 다시 '구매하고 보기'가 뜬다.
+        const isMock = (data as any)?.source === 'mock';
+        if (r && !r.error && !isMock) { await markUnlocked(id, kind); ok = true; }
+        else if (isMock) { ok = true; } // 화면 표시는 정상 완료(진행 배너만 정리)
       }
     } catch (e) {
       // fetch throw(타임아웃 등)도 동일 — 서버가 완료·캐시했으면 폴링으로 회수, 아니면 오류 표시.

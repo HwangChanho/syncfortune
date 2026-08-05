@@ -15,7 +15,8 @@ import { useTranslation } from 'react-i18next';
 
 import { computeChart } from '../../../lib/engine/engine';
 import { loadMyChart } from '../../../lib/engine/myChart';
-import { CELEB_DB, celebChartInput } from '../../../lib/content/celebData';
+import { CELEB_DB, celebChartInput, type CelebEntry } from '../../../lib/content/celebData';
+import { getCelebById } from '../../../lib/content/celebDb'; // ★목록(DB)과 같은 소스 — 번들에 없으면 DB에서(IMG_8388 수정)
 import { rankCelebs, matchHeadline, matchGrade, type CelebMatchResult } from '../../../lib/content/celebMatch';
 import { stemElement } from '../../../lib/engine/ohaeng';
 import { colors, radius, space, shadow, font } from '../../../lib/theme';
@@ -37,8 +38,17 @@ export default function CelebDetail() {
     return () => { alive = false; };
   }, []));
 
-  // 대상 유명인 찾기
-  const celeb = CELEB_DB.find((c) => c.id === id);
+  // 대상 유명인 찾기 — ★번들(16명 폴백) 먼저, 없으면 목록과 같은 DB에서 단건 조회.
+  //   종전엔 번들만 뒤져서 DB 목록(12만 명)에서 들어온 모든 인물이 '찾을 수 없어요'였다(IMG_8388).
+  const bundled = CELEB_DB.find((c) => c.id === id);
+  const [dbCeleb, setDbCeleb] = useState<CelebEntry | null | 'loading'>(bundled ? null : 'loading');
+  useFocusEffect(useCallback(() => {
+    if (bundled) return;
+    let alive = true;
+    getCelebById(String(id)).then((c) => { if (alive) setDbCeleb(c); }).catch(() => { if (alive) setDbCeleb(null); });
+    return () => { alive = false; };
+  }, [id, bundled]));
+  const celeb = bundled ?? (dbCeleb === 'loading' ? null : dbCeleb);
 
   // 결정론 유사도 계산 (메모이즈: myInput 바뀔 때만 재계산)
   const result: CelebMatchResult | null = useMemo(() => {
@@ -53,6 +63,9 @@ export default function CelebDetail() {
   const celebChart = useMemo(() => (celeb ? computeChart(celebChartInput(celeb)) : null), [celeb]);
 
   // ── 로딩·에러 상태 ──────────────────────────────────────────────────────
+  if (!bundled && dbCeleb === 'loading') {
+    return <View style={styles.center}><ActivityIndicator color={colors.ju} /></View>;
+  }
   if (!celeb) {
     return (
       <View style={styles.center}>

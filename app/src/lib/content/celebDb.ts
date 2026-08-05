@@ -97,6 +97,22 @@ export async function listTrendingCelebs(limit = 40): Promise<CelebEntry[]> {
  * 이름 검색(한글·영문 모두). 서버에서 찾는다 — 12만 행을 앱에 담을 수 없다.
  * @param q 두 글자 이상. 짧으면 결과가 수천 건이라 의미가 없다.
  */
+
+/**
+ * 단건 조회 — 상세 화면용(daniel 2026-08-05 IMG_8388 "인물 정보를 찾을 수 없어요" 수정).
+ * ★목록은 DB(12만 명)인데 상세가 번들 16명(CELEB_DB)만 뒤져 전부 실패했다 — 같은 소스로 통일.
+ * 실패/타임아웃 = null(화면이 번들 폴백 → 그래도 없으면 에러 문구).
+ */
+export async function getCelebById(id: string): Promise<CelebEntry | null> {
+  if (!id) return null;
+  const res = await withTimeout(
+    supabase.from('celebrities').select(SELECT).eq('id', id).maybeSingle(),
+    8000,
+  );
+  const row = (res as { data?: Row | null } | undefined)?.data ?? null;
+  return row ? toEntry(row) : null;
+}
+
 export async function searchCelebs(q: string, limit = 30): Promise<CelebEntry[]> {
   const s = q.trim();
   if (s.length < 2) return [];
