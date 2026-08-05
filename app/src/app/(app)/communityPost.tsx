@@ -125,7 +125,7 @@ export default function CommunityPostScreen() {
         {/* 글 */}
         <Text style={styles.cat}>{t(`community.cat.${post.category}`, post.category)}</Text>
         <Text style={styles.title}>{post.title}</Text>
-        <Text style={styles.meta}>{post.author_name} · {String(post.created_at).slice(0, 10)}</Text>
+        <Text style={styles.meta}>{post.author_name}{post.ilju ? ` · ${post.ilju}` : ''} · {String(post.created_at).slice(0, 10)}</Text>
 
         {/* 첨부 명식 — 작성자가 자기 명식을 함께 올린 글에만(daniel: "글 볼 때 상단에 사주 원국 노출").
             본문보다 위에 두는 이유: 사주 Q&A·고민 글은 '이 명식을 두고 하는 이야기'라 명식이 전제다.
@@ -142,7 +142,7 @@ export default function CommunityPostScreen() {
         <View style={styles.actions}>
           <PressableScale style={styles.actBtn} onPress={onLike}><Text style={[styles.actTx, liked && styles.actOn]}>♥ {likeCount}</Text></PressableScale>
           {!mine && <PressableScale style={styles.actBtn} onPress={() => onReport('post', post.id)}><Text style={styles.actTx}>🚩 {t('community.report', '신고')}</Text></PressableScale>}
-          {!mine && <PressableScale style={styles.actBtn} onPress={() => onBlock(post.author_id)}><Text style={styles.actTx}>🚫 {t('community.block', '차단')}</Text></PressableScale>}
+          {!mine && post.author_id != null && <PressableScale style={styles.actBtn} onPress={() => onBlock(post.author_id!)}><Text style={styles.actTx}>🚫 {t('community.block', '차단')}</Text></PressableScale>}
           {mine && <PressableScale style={styles.actBtn} onPress={onDeletePost}><Text style={styles.actTx}>🗑 {t('common.delete', '삭제')}</Text></PressableScale>}
         </View>
 
@@ -153,7 +153,7 @@ export default function CommunityPostScreen() {
           return (
             <View key={c.id} style={styles.comment}>
               <View style={styles.cTop}>
-                <Text style={styles.cAuthor}>{c.author_name}</Text>
+                <Text style={styles.cAuthor}>{c.author_name}{c.ilju ? ` · ${c.ilju}` : ''}</Text>
                 <Text style={styles.cTime}>{String(c.created_at).slice(5, 16).replace('T', ' ')}</Text>
               </View>
               <Text style={styles.cBody}>{c.body}</Text>

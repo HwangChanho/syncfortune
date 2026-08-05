@@ -15,6 +15,8 @@ import { setAppLang } from '../../lib/i18n'; // 언어 변경 + persist(재시�
 import { useFontScale, FONT_STEPS } from '../../lib/ui/fontScale';
 import { isAdmin } from '../../lib/core/admin'; // 관리자 메뉴 노출 판정(실제 권한은 서버 RPC)
 import { useAuth } from '../../lib/useAuth';               // 계정(세션)
+import { TextInput, Switch } from 'react-native'; // 커뮤니티 닉네임·일주 뱃지(daniel 2026-08-05 전면 익명+설정 닉네임)
+import { getCommunityProfile, setNickname as saveNickname, setShowIlju } from '../../lib/backend/community';
 import { useSubscription } from '../../lib/billing/subscription';  // 프리미엄 상태·구매
 import { waitForPremium, markPremiumOwnedNow } from '../../lib/billing/premiumStore';   // 복원=서버 is_premium 확정(단일소스·07-07) + 웹훅 실패 시 영수증 검증분 낙관표시(#2)
 import { useCoinBalance } from '../../lib/billing/coins';   // ★운 잔액 — 공용 훅(표시 규칙 단일화)
@@ -38,6 +40,11 @@ const SUPPORT_EMAIL = 'cksgh0316@gmail.com'; // 버그 제보·문의 수신(dan
 
 export default function SettingsScreen() {
   const { t, i18n } = useTranslation();
+  // ── 커뮤니티(전면 익명·닉네임은 설정에서만) ──
+  const [nick, setNick] = useState('');
+  const [ilju, setIlju] = useState(false);
+  const [nickSaved, setNickSaved] = useState<null | 'ok' | 'err'>(null);
+  useEffect(() => { getCommunityProfile().then((p) => { setNick(p.nickname ?? ''); setIlju(p.show_ilju); }).catch(() => {}); }, []);
   const router = useRouter();
   const { session, isRegistered } = useAuth();
   const { refresh } = useSubscription();
@@ -147,7 +154,7 @@ export default function SettingsScreen() {
   }
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>
+    <ScrollView automaticallyAdjustKeyboardInsets keyboardShouldPersistTaps="handled" style={styles.screen} contentContainerStyle={styles.wrap}>
       {/* ── 계정 ── */}
       <Text style={styles.h}>{t('settings.account')}</Text>
       {/* ★익명 세션 상시라 session 아닌 isRegistered 로 구분 — 등록 유저만 계정카드, 익명/미로그인은 로그인 유도(Apple 5.1.1: 등록은 선택·언제든 가능) */}
@@ -203,6 +210,38 @@ export default function SettingsScreen() {
       <View style={styles.preview}>
         <Text style={[styles.previewBody, { fontSize: fs(15), lineHeight: 25 }]}>{t('settings.preview')}</Text>
       </View>
+
+      {/* ── 커뮤니티(전면 익명 — 닉네임만 노출·미설정이면 자동 익명이름) ── */}
+      <Text style={[styles.h, { marginTop: space(7) }]}>{t('settings.community', '커뮤니티')}</Text>
+      <View style={styles.nickRow}>
+        <TextInput
+          style={styles.nickInput}
+          value={nick}
+          onChangeText={(v) => { setNick(v); setNickSaved(null); }}
+          placeholder={t('settings.nickPh', '닉네임 (2~12자, 비우면 자동 익명이름)')}
+          placeholderTextColor={colors.inkFaint}
+          maxLength={12}
+          autoCorrect={false}
+        />
+        <PressableScale
+          style={styles.nickSave}
+          onPress={async () => {
+            try { await saveNickname(nick); setNickSaved('ok'); }
+            catch (e) {
+              setNickSaved('err');
+              const m = (e as Error)?.message;
+              Alert.alert(t('common.error'), m === 'PROFANITY' ? t('settings.nickBad', '사용할 수 없는 단어가 있어요.') : m === 'LENGTH' ? t('settings.nickLen', '닉네임은 2~12자예요.') : t('common.retryLater', '잠시 후 다시 시도해 주세요.'));
+            }
+          }}
+        >
+          <Text style={styles.nickSaveTx}>{nickSaved === 'ok' ? t('settings.nickDone', '저장됨') : t('common.save', '저장')}</Text>
+        </PressableScale>
+      </View>
+      <View style={styles.iljuRow}>
+        <Text style={styles.iljuLabel}>{t('settings.showIlju', '내 일주 뱃지 보이기')}</Text>
+        <Switch value={ilju} onValueChange={(v) => { setIlju(v); setShowIlju(v).catch(() => setIlju(!v)); }} trackColor={{ true: colors.ju }} />
+      </View>
+      <Text style={styles.iljuHint}>{t('settings.iljuHint', '글·댓글 옆에 태어난 날의 두 글자만 표시돼요. 생년월일은 알 수 없어요.')}</Text>
 
       {/* ── 언어 ── */}
       <Text style={[styles.h, { marginTop: space(7) }]}>{t('settings.language')}</Text>
@@ -318,6 +357,14 @@ const styles = StyleSheet.create({
   wrap: { padding: space(5), paddingBottom: space(12) },
   h: { ...font.heading, marginBottom: space(3) },
   // 계정
+  // 커뮤니티 닉네임·일주 뱃지 줄(daniel 2026-08-05)
+  nickRow: { flexDirection: 'row', gap: space(2), alignItems: 'center' },
+  nickInput: { flex: 1, backgroundColor: colors.sunk, borderRadius: radius.md, borderWidth: 1, borderColor: colors.line, paddingHorizontal: space(3.5), paddingVertical: space(2.5), fontSize: 14, lineHeight: 18, color: colors.ink },
+  nickSave: { backgroundColor: colors.ju, borderRadius: radius.md, paddingVertical: space(2.5), paddingHorizontal: space(4) },
+  nickSaveTx: { color: colors.bg, fontWeight: '800', fontSize: 13, lineHeight: 17 },
+  iljuRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: space(3) },
+  iljuLabel: { ...font.body, color: colors.ink },
+  iljuHint: { ...font.caption, color: colors.inkFaint, marginTop: space(1) },
   acctCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.line, padding: space(4), ...shadow.soft },
   // 앱 정보(버전·약관·개인정보·오픈소스)
   infoCard: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.line, marginTop: space(2), overflow: 'hidden' },

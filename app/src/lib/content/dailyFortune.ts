@@ -30,6 +30,13 @@ export function getDailyFortune(offsetDays = 0) {
   };
 }
 
+/** 특정 날짜(YYYY-MM-DD)의 일진 간지 — 커뮤니티 일진 스레드 제목 렌더용(서버는 날짜만 저장, 간지는 클라 결정론). */
+export function dateGanZhi(iso: string): string {
+  const [y, m, d] = iso.split('-').map(Number);
+  if (!y || !m || !d) return '';
+  try { return (Solar as any).fromYmd(y, m, d).getLunar().getDayInGanZhi() as string; } catch { return ''; }
+}
+
 /** 특정 연도의 세운 간지(궁합 연도별 등). 양력 연중(6/15)로 안정 계산. */
 export function yearGanZhi(year: number): string {
   return (Solar as any).fromYmd(year, 6, 15).getLunar().getYearInGanZhi() as string;

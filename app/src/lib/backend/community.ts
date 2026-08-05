@@ -6,6 +6,8 @@
 // ─────────────────────────────────────────────────────────────────────────
 import type { SharedSaju, SharedZiwei } from './communityChart';
 import { supabase } from '../supabase';
+import { loadRepChart } from '../engine/myChart';   // 일주 뱃지(opt-in) — 순수 TS·네이티브 의존 없음
+import { computeChart } from '../engine/engine';
 
 // 게시물 첨부 명식의 **계약·화이트리스트 변환은 communityChart.ts** 에 있다(의존 없는 순수 모듈 —
 //   그래야 `npm run check:sharedchart` 가 supabase/react-native 없이 실제 함수를 호출해 유출을 잡는다).
@@ -14,18 +16,20 @@ export type { SharedSaju, SharedZiwei } from './communityChart';
 export { toSharedSaju, toSharedZiwei } from './communityChart';
 
 export type CommunityPost = {
-  id: string; author_id: string; author_name: string; category: string;
+  id: string; author_id: string | null; author_name: string; category: string;
   title: string; body: string; like_count: number; comment_count: number; created_at: string;
+  // P1(daniel 2026-08-05): kind='daily'=일진 스레드(cron 자동 개설·author_id null) / ilju=작성자 일주 뱃지(opt-in·2자)
+  kind?: 'normal' | 'daily'; daily_date?: string | null; ilju?: string | null;
   // 첨부 명식(선택) — 목록 조회(listPosts)에는 실리지 않는다(아래 LIST_COLS). 상세(getPost)에서만 채워진다.
   chart_saju?: SharedSaju | null;
   chart_ziwei?: SharedZiwei | null;
   show_luck?: boolean;
 };
-export type CommunityComment = { id: string; post_id: string; author_id: string; author_name: string; body: string; created_at: string };
+export type CommunityComment = { id: string; post_id: string; author_id: string; author_name: string; body: string; created_at: string; ilju?: string | null };
 
 // 목록용 컬럼 — **chart_* 를 명시적으로 제외**한다. 목록은 명식을 그리지 않는데 select('*') 로 두면
 //   글 30개 × 첨부 명식이 통째로 딸려와 스크롤 진입이 느려진다(첨부 명식은 상세에서만 필요).
-const LIST_COLS = 'id,author_id,author_name,category,title,body,like_count,comment_count,created_at';
+const LIST_COLS = 'id,author_id,author_name,category,title,body,like_count,comment_count,created_at,kind,daily_date,ilju';
 const POST_COLS = `${LIST_COLS},chart_saju,chart_ziwei,show_luck`;
 
 // 카테고리(고정) — key 저장, 라벨은 i18n(community.cat.*).
@@ -80,6 +84,22 @@ export async function getPost(id: string): Promise<CommunityPost | null> {
  *   원시 ChartInput 이나 SajuChart 원본(전 생애 대운 포함)을 그대로 넘기면 안 된다(위 화이트리스트 주석).
  *   호출부(글쓰기 화면)는 relation='self' 명식만 고를 수 있게 하고 동의를 받은 뒤 넘긴다.
  */
+/**
+ * 작성자 일주(2자) — 프로필 opt-in(show_ilju) + 대표 명식이 있을 때만.
+ * ★글자 2자(60가지)만 저장 — 생일 역산 불가(명식공유 화이트리스트와 같은 원칙).
+ * 실패는 조용히 null(뱃지는 장식 — 글쓰기를 막을 이유가 없다).
+ */
+async function myIljuIfEnabled(me: string): Promise<string | null> {
+  try {
+    const { data } = await supabase.from('profiles').select('show_ilju').eq('id', me).single();
+    if (!data?.show_ilju) return null;
+    const saved = await loadRepChart();
+    if (!saved) return null;
+    const p = computeChart(saved.input).saju.pillars['일'];
+    return `${p.stem}${p.branch}`;
+  } catch { return null; }
+}
+
 export async function createPost(
   category: CommunityCategory, title: string, body: string,
   chart?: { saju: SharedSaju; ziwei?: SharedZiwei | null; showLuck: boolean },
@@ -87,9 +107,10 @@ export async function createPost(
   if (containsProfanity(title) || containsProfanity(body)) throw new Error('PROFANITY');
   const me = await uid();
   if (!me) throw new Error('세션이 필요해요.');
+  const ilju = await myIljuIfEnabled(me);
   const { data, error } = await supabase.from('community_posts')
     .insert({
-      author_id: me, category, title: title.trim(), body: body.trim(),
+      author_id: me, category, title: title.trim(), body: body.trim(), ilju,
       chart_saju: chart?.saju ?? null,
       chart_ziwei: chart?.ziwei ?? null,
       // 첨부가 없으면 항상 false — 시기 공개 플래그가 명식 없이 남아 있을 이유가 없다.
@@ -116,7 +137,8 @@ export async function addComment(postId: string, body: string): Promise<void> {
   if (containsProfanity(body)) throw new Error('PROFANITY');
   const me = await uid();
   if (!me) throw new Error('세션이 필요해요.');
-  const { error } = await supabase.from('community_comments').insert({ post_id: postId, author_id: me, body: body.trim() });
+  const ilju = await myIljuIfEnabled(me);
+  const { error } = await supabase.from('community_comments').insert({ post_id: postId, author_id: me, body: body.trim(), ilju });
   if (error) throw error;
 }
 
@@ -162,6 +184,52 @@ export async function adminHide(type: 'post' | 'comment', id: string, hidden: bo
 // ── 관리자 모더레이션 대시보드 ──
 export type ModItem = { kind: 'post' | 'comment'; id: string; author_id: string; author_name: string; content: string; report_count: number; hidden: boolean; created_at: string };
 /** 신고된 콘텐츠 큐(report_count>0·숨김 포함). is_admin 만 통과(서버 게이트). */
+/** 체감 투표(멱등 upsert) — 일진 스레드 등 어떤 글에도 붙는다(플랫폼 범용). */
+export async function pollVote(postId: string, choice: 1 | 2 | 3 | 4 | 5): Promise<void> {
+  const { error } = await supabase.rpc('community_poll_vote', { p_post: postId, p_choice: choice });
+  if (error) throw error;
+}
+
+/** 투표 집계 — 행이 아니라 숫자만(익명). my=내 선택(없으면 null). */
+export async function pollStats(postId: string): Promise<{ counts: Record<number, number>; total: number; my: number | null }> {
+  const { data, error } = await supabase.rpc('community_poll_stats', { p_post: postId });
+  if (error) throw error;
+  const counts: Record<number, number> = {};
+  let my: number | null = null; let total = 0;
+  for (const r of (data ?? []) as { choice: number; cnt: number; my_choice: number | null }[]) {
+    counts[r.choice] = Number(r.cnt); total += Number(r.cnt);
+    if (r.my_choice != null) my = r.my_choice;
+  }
+  return { counts, total, my };
+}
+
+/** 설정 닉네임 저장(2~12자·욕설 차단). 빈 문자열 = 해제(결정론 익명이름으로 복귀). */
+export async function setNickname(nick: string): Promise<void> {
+  const v = nick.trim();
+  if (v && (v.length < 2 || v.length > 12)) throw new Error('LENGTH');
+  if (v && containsProfanity(v)) throw new Error('PROFANITY');
+  const me = await uid();
+  if (!me) throw new Error('세션이 필요해요.');
+  const { error } = await supabase.from('profiles').update({ nickname: v || null }).eq('id', me);
+  if (error) throw error;
+}
+
+/** 커뮤니티 프로필(닉네임·일주 뱃지 설정) 조회 — 설정 화면용. */
+export async function getCommunityProfile(): Promise<{ nickname: string | null; show_ilju: boolean }> {
+  const me = await uid();
+  if (!me) return { nickname: null, show_ilju: false };
+  const { data } = await supabase.from('profiles').select('nickname,show_ilju').eq('id', me).single();
+  return { nickname: (data?.nickname as string | null) ?? null, show_ilju: !!data?.show_ilju };
+}
+
+/** 일주 뱃지 표시 on/off. */
+export async function setShowIlju(on: boolean): Promise<void> {
+  const me = await uid();
+  if (!me) throw new Error('세션이 필요해요.');
+  const { error } = await supabase.from('profiles').update({ show_ilju: on }).eq('id', me);
+  if (error) throw error;
+}
+
 export async function moderationQueue(): Promise<ModItem[]> {
   const { data, error } = await supabase.rpc('community_moderation_queue');
   if (error) throw error;

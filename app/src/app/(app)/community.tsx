@@ -16,8 +16,9 @@ import { useAuth } from '../../lib/useAuth';
 import { useLogContentVisit } from '../../lib/backend/contentVisit';
 import { listCharts, subscribeRepChange, type SavedChart } from '../../lib/engine/myChart';
 import { computeChart } from '../../lib/engine/engine';
-import { listPosts, createPost, toSharedSaju, toSharedZiwei, COMMUNITY_CATEGORIES, type CommunityPost, type CommunityCategory } from '../../lib/backend/community';
+import { listPosts, pollVote, pollStats, createPost, toSharedSaju, toSharedZiwei, COMMUNITY_CATEGORIES, type CommunityPost, type CommunityCategory } from '../../lib/backend/community';
 import { colors, radius, space, shadow, font } from '../../lib/theme';
+import { dateGanZhi } from '../../lib/content/dailyFortune'; // 일진 스레드 제목 — 서버는 날짜만, 간지는 클라 결정론(daniel 2026-08-05)
 
 const EULA_KEY = 'pref.communityEula'; // 이용약관 동의 1회 플래그(Apple 1.2)
 
@@ -46,8 +47,17 @@ export default function CommunityScreen() {
   const [showLuck, setShowLuck] = useState(false); // 대운·세운까지 공개할지(기본 꺼짐 = 원국만)
   const [composeErr, setComposeErr] = useState<string | null>(null); // 등록 에러를 모달 안에 인라인 표시(Alert 가 글쓰기 Modal 위에 안 떠 '무반응'처럼 보이던 것 해결)
 
+  // ── 일진 데일리 스레드(P1) — 목록에서 분리해 상단 고정 카드로. 투표(1~5) + 집계.
+  const [daily, setDaily] = useState<CommunityPost | null>(null);
+  const [poll, setPoll] = useState<{ counts: Record<number, number>; total: number; my: number | null } | null>(null);
   const load = useCallback(async () => {
-    try { setPosts(await listPosts(cat)); } catch { /* 목록 로드 실패=빈 목록 */ } finally { setLoading(false); setRefreshing(false); }
+    try {
+      const rows = await listPosts(cat);
+      const d = rows.find((r) => r.kind === 'daily' && r.daily_date === new Date().toISOString().slice(0, 10)) ?? null;
+      setDaily(d);
+      setPosts(rows.filter((r) => r.kind !== 'daily'));
+      if (d) pollStats(d.id).then(setPoll).catch(() => {});
+    } catch { /* 목록 로드 실패=빈 목록 */ } finally { setLoading(false); setRefreshing(false); }
   }, [cat]);
   useEffect(() => { setLoading(true); load(); }, [load]);
   // 약관 동의 플래그 프리로드 — 탭 시점의 동기 SecureStore 호출(JS 스레드 블록)을 없애기 위해 미리 읽어 둔다.
@@ -168,13 +178,46 @@ export default function CommunityScreen() {
           data={posts}
           keyExtractor={(p) => p.id}
           contentContainerStyle={styles.listWrap}
+          ListHeaderComponent={daily ? (
+            <View style={styles.dailyCard}>
+              <View style={styles.postHead}>
+                <Text style={styles.dailyTag}>{t('community.daily', '오늘의 일진')}</Text>
+                <Text style={styles.postMeta}>{daily.daily_date}</Text>
+              </View>
+              {/* 간지는 클라 결정론(만세력 엔진과 같은 lunar 소스) — 서버엔 날짜만 있다 */}
+              <Text style={styles.dailyGz}>{dateGanZhi(daily.daily_date ?? '')} </Text>
+              <Text style={styles.postBody}>{daily.body}</Text>
+              {/* 체감 투표 — 탭 1회 참여(글쓰기보다 낮은 문턱). 재탭=교체(멱등) */}
+              <View style={styles.pollRow}>
+                {([1, 2, 3, 4, 5] as const).map((c) => {
+                  const on = poll?.my === c;
+                  const label = [t('community.p1', '아주 좋음'), t('community.p2', '좋음'), t('community.p3', '보통'), t('community.p4', '아쉬움'), t('community.p5', '힘듦')][c - 1];
+                  return (
+                    <PressableScale key={c} style={[styles.pollChip, on && styles.pollChipOn]}
+                      onPress={() => { pollVote(daily.id, c).then(() => pollStats(daily.id).then(setPoll)).catch(() => {}); }}>
+                      <Text style={[styles.pollChipTx, on && styles.pollChipTxOn]}>{label}</Text>
+                    </PressableScale>
+                  );
+                })}
+              </View>
+              {/* ★집계는 10명부터 — 3명 중 2명 같은 표본은 사회적 증거가 아니라 소음(방문자수와 같은 정직성 원칙) */}
+              {poll && poll.total >= 10 ? (
+                <Text style={styles.pollStat}>{t('community.pollStat', { total: poll.total, top: Math.round(100 * Math.max(...Object.values(poll.counts)) / poll.total), defaultValue: '{{total}}명 참여 · 가장 많은 선택 {{top}}%' })}</Text>
+              ) : poll?.my != null ? (
+                <Text style={styles.pollStat}>{t('community.pollMine', '참여 완료! 참여자가 모이면 통계가 보여요.')}</Text>
+              ) : null}
+              <PressableScale style={styles.dailyTalk} onPress={() => router.push({ pathname: '/communityPost', params: { id: daily.id } })}>
+                <Text style={styles.dailyTalkTx}>{t('community.dailyTalk', '이야기 나누기')} · 💬 {daily.comment_count}</Text>
+              </PressableScale>
+            </View>
+          ) : null}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} tintColor={colors.ju} />}
           ListEmptyComponent={<Text style={styles.empty}>{t('community.empty', '첫 글을 남겨보세요.')}</Text>}
           renderItem={({ item }) => (
             <PressableScale style={styles.postRow} onPress={() => router.push({ pathname: '/communityPost', params: { id: item.id } })}>
               <View style={styles.postHead}>
                 <Text style={styles.postCat}>{t(`community.cat.${item.category}`, item.category)}</Text>
-                <Text style={styles.postMeta}>{item.author_name} · {String(item.created_at).slice(5, 10)}</Text>
+                <Text style={styles.postMeta}>{item.author_name}{item.ilju ? <Text style={styles.iljuBadge}>  {item.ilju}</Text> : null} · {String(item.created_at).slice(5, 10)}</Text>
               </View>
               <Text style={styles.postTitle} numberOfLines={1}>{item.title}</Text>
               <Text style={styles.postBody} numberOfLines={2}>{item.body}</Text>
@@ -304,6 +347,19 @@ const styles = StyleSheet.create({
   catChipTxOn: { color: colors.bg },
   listWrap: { padding: space(5), paddingBottom: space(24), gap: space(3) },
   empty: { ...font.body, color: colors.inkFaint, textAlign: 'center', marginTop: space(16) },
+  // 일진 데일리 카드(P1) — 목록 위 고정. 참여 문턱 최저(투표 탭 1회).
+  dailyCard: { backgroundColor: colors.juSoft, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.ju + '55', padding: space(4), marginBottom: space(4) },
+  dailyTag: { ...font.caption, color: colors.ju, fontWeight: '800' },
+  dailyGz: { fontSize: 21, lineHeight: 28, fontWeight: '900', color: colors.ink, marginTop: space(1), marginBottom: space(1) },
+  pollRow: { flexDirection: 'row', flexWrap: 'wrap', gap: space(1.5), marginTop: space(2.5) },
+  pollChip: { borderWidth: 1, borderColor: colors.line, borderRadius: radius.pill, paddingVertical: space(1.5), paddingHorizontal: space(3), backgroundColor: colors.card },
+  pollChipOn: { backgroundColor: colors.ju, borderColor: colors.ju },
+  pollChipTx: { fontSize: 12.5, lineHeight: 17, color: colors.inkSoft, fontWeight: '600' },
+  pollChipTxOn: { color: colors.bg, fontWeight: '800' },
+  pollStat: { ...font.caption, color: colors.inkSoft, marginTop: space(2) },
+  dailyTalk: { marginTop: space(3), alignSelf: 'flex-start' },
+  dailyTalkTx: { ...font.caption, color: colors.ju, fontWeight: '800' },
+  iljuBadge: { color: colors.ju, fontWeight: '800' },
   postRow: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.juLine, padding: space(4.5), ...shadow.card },
   postHead: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: space(1.5) },
   postCat: { ...font.caption, color: colors.ju, fontWeight: '800', fontSize: 11 },
