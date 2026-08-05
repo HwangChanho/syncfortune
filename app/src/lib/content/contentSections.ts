@@ -90,7 +90,9 @@ export const SECTIONS: Section[] = [
   // ── 0. 인기(숏컷) — 주제 축 밖. 요즘 많이 찾는 것만 한 줄. ─────────────────
   // ★daniel 07-06: '가장 많이 찾는'→'인기'로 개칭·서브타이틀 제거.
   //   무료 '질문형' 원본은 아래 주제 섹션에도 그대로 있다(의도된 중복) — ★키는 고유(hot*)로 React 키 충돌 방지.
-  { key: 'hot', titleKey: 'menu.secContent', items: [
+  //   ★설명(descKey)을 붙인 이유: 전 섹션이 같은 헤더로 통일되면서(08-06) '인기'만 설명이 없으면
+  //     그 자리가 비어 보인다. 다른 섹션과 같은 모양을 갖춘다.
+  { key: 'hot', titleKey: 'menu.secContent', descKey: 'menu.secHotDesc', items: [
     // 재물 딥리포트(유료 EEL 딥리포트) — 인기로 배치(daniel 07-23 '재물 딥리포트도 인기로 옮겨'). NEW 배지+NEW-우선 정렬로 상단 노출.
     //   ★키는 사본 규칙대로 hot* — 원본 `wealth` 는 '돈·일·진로' 섹션에 있다. 배지·티저는 baseKey 로 원본을 따라간다.
     { key: 'hotWealth', labelKey: 'menu.wealth', descKey: 'menu.wealthDesc', image: A('icons/wealth.jpg'), route: '/wealth', ready: true, content: true, creditKey: 'wealth' },

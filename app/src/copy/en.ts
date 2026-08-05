@@ -69,7 +69,7 @@ export const en = {
     secFree: 'Today & Chart', secPremium: 'Understand Yourself', secSpecial: 'Special', secDeep: 'Know Yourself', secLight: 'For Fun',
     viewCard: 'Cards', viewList: 'List', // home view toggle
     todayTileDesc: "Today's flow", monthTileDesc: "This month's flow", newyearTileDesc: "This year's keyword & 12 months", personaTileDesc: 'Saju personality type', taegilTileDesc: 'Pick a good day', luckTileDesc: "Today's luck", zodiacTileDesc: 'Zodiac & star sign', nameTileDesc: "Name's sound energy", dreamTileDesc: 'Dream meaning', egenTileDesc: 'Are you Egen or Teto?', mbtiTileDesc: 'Your MBTI by saju', joseonjobTileDesc: 'Your job in old Korea', lovestyleTileDesc: 'Your love cells?', bokTileDesc: 'Your innate fortune?', pastlifeTileDesc: 'Who were you?', healingTileDesc: 'Your way to rest?',
-    secPremiumDesc: 'Who you are — in depth via Saju & Zi Wei', secContentDesc: 'AI-crafted deep readings', secHotDesc: 'The questions everyone asks — check free, then go deeper', secDeepDesc: 'Look deeper into who you are', secLightDesc: 'Light daily fun',
+    secPremiumDesc: 'Who you are — in depth via Saju & Zi Wei', secContentDesc: 'AI-crafted deep readings', secHotDesc: 'What people are looking at most right now', secDeepDesc: 'Look deeper into who you are', secLightDesc: 'Light daily fun',
   },
   common: { save: 'Save',
     retryLaterNoCharge: 'Please try again shortly. No woon was used.',

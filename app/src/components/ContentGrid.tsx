@@ -346,16 +346,13 @@ export function ContentGrid({ query = '', viewMode }: { query?: string; viewMode
         const items = [...sec.items].sort((a, b) =>
           (hasCredit(b) - hasCredit(a)) || ((isNewContent(b.key) ? 1 : 0) - (isNewContent(a.key) ? 1 : 0)));
         // 섹션 헤더 — 카드뷰·리스트뷰가 동일하게 재사용(중복 제거·정합).
+        //   ★'인기'만 연한 골드 밴드로 강조하던 것을 제거하고 **전 섹션 같은 헤더**로 통일(daniel 08-06).
+        //     주제 축에서는 섹션이 대등한 선택지라, 하나만 박스로 감싸면 그게 섹션인지 버튼인지 모호해지고
+        //     위계가 섞여 보였다. 인기는 **맨 위에 있다는 위치**로 이미 충분히 강조된다.
+        //     (이로써 sec.key 하드코딩 분기가 이 컴포넌트에서 전부 사라졌다.)
         const sectionHeader = (
           <>
-            {sec.key === 'hot' ? (
-              // ★'인기' 강조(daniel 07-05) — 연한 골드 하이라이트 밴드(테두리·🔥 제거). juSoft/ju = 라이트/다크 자동.
-              <View style={styles.sectionHotBand}>
-                <Text style={styles.sectionHotTx}>{t(sec.titleKey)}</Text>
-              </View>
-            ) : (
-              <Text style={styles.sectionH}>{t(sec.titleKey)}</Text>
-            )}
+            <Text style={styles.sectionH}>{t(sec.titleKey)}</Text>
             {/* 섹션 설명은 **있으면 항상** 표시(daniel 08-06). 예전엔 'free' 섹션만 예외로 숨겼는데,
                 주제 축에서는 설명이 곧 "이 칸에 뭐가 들었나"를 알려주는 안내라 숨길 이유가 없다. */}
             {sec.descKey ? <Text style={styles.sectionDesc}>{t(sec.descKey)}</Text> : null}
@@ -455,9 +452,7 @@ const styles = StyleSheet.create({
   // 범주 섹션 — 큰 헤더 + 좌우 가로 스크롤. marginHorizontal 음수 = 화면 wrap 패딩(space(5)) 상쇄(가로 스크롤이 화면 끝까지).
   section: { marginBottom: space(6), marginHorizontal: -space(5) },
   sectionH: { fontSize: 22, fontWeight: '800', color: colors.ju, marginBottom: space(1), letterSpacing: 0.3, paddingHorizontal: space(5) },
-  // ★'인기' 강조 밴드(daniel 07-05) — 연한 골드 틴트 칩(juSoft)+골드 글씨. 라이트/다크 자동.
-  sectionHotBand: { alignSelf: 'flex-start', marginHorizontal: space(5), marginBottom: space(1), backgroundColor: colors.juSoft, borderRadius: radius.md, paddingVertical: space(2), paddingHorizontal: space(3.5) },
-  sectionHotTx: { fontSize: 21, fontWeight: '900', color: colors.ju, letterSpacing: 0.3 },
+  // ('인기' 전용 골드 밴드 제거 — 전 섹션 같은 헤더로 통일, daniel 08-06)
   sectionDesc: { ...font.caption, color: colors.inkSoft, marginBottom: space(3), paddingHorizontal: space(5), lineHeight: 18 },
   hRow: { gap: space(3), paddingHorizontal: space(5), paddingVertical: space(1) }, // 카드 간격 + 좌우 여백
   grid2col: { gap: space(3) },                       // 윗줄·아랫줄 세로 간격

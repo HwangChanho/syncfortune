@@ -68,7 +68,7 @@ export const ja = {
     secFree: '今日・命式', secPremium: '自分を理解する', secSpecial: 'スペシャル', secDeep: '自分を知る', secLight: '気軽に',
     viewCard: 'カード', viewList: 'リスト', // ホーム表示切替
     todayTileDesc: '今日一日の流れ', monthTileDesc: '今月の流れ', newyearTileDesc: '今年のキーワード・12か月', personaTileDesc: '性格タイプ', taegilTileDesc: '良い日選び', luckTileDesc: '今日の幸運', zodiacTileDesc: '干支・星座', nameTileDesc: '名前の響き', dreamTileDesc: '夢占い', egenTileDesc: '私はエゲン？テト？', mbtiTileDesc: '四柱で見るMBTI', joseonjobTileDesc: '四柱で見る朝鮮の職業', lovestyleTileDesc: '私の恋愛細胞は？', bokTileDesc: '私の福は？', pastlifeTileDesc: '私の前世は？', healingTileDesc: '私に合う休み方は？',
-    secPremiumDesc: 'あなたはどんな人か — 四柱·紫微で深く', secContentDesc: 'AIが丁寧に解く深い鑑定', secHotDesc: '今よく検索される質問 — 無料で確認、さらに深く', secDeepDesc: '自分をより深く見つめる', secLightDesc: '気軽に楽しむ運勢',
+    secPremiumDesc: 'あなたはどんな人か — 四柱·紫微で深く', secContentDesc: 'AIが丁寧に解く深い鑑定', secHotDesc: '最近よく見られているものだけ', secDeepDesc: '自分をより深く見つめる', secLightDesc: '気軽に楽しむ運勢',
   },
   common: { save: '保存',
     retryLaterNoCharge: 'しばらくしてからもう一度お試しください。woon は消費されていません。',

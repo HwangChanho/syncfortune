@@ -91,7 +91,9 @@ export const ko = {
     secFree: '오늘·명식', secPremium: '나를 이해하기', secSpecial: '스페셜', secDeep: '나에 대해 알기', secLight: '가볍게 보기',
     viewCard: '카드', viewList: '리스트', // 홈 보기 방식 토글(daniel)
     todayTileDesc: '오늘 하루 흐름', monthTileDesc: '이번 달 흐름', newyearTileDesc: '올해 키워드·열두 달', personaTileDesc: '사주 성격유형', taegilTileDesc: '좋은 날 택일', luckTileDesc: '오늘의 행운', zodiacTileDesc: '띠·별자리 운세', nameTileDesc: '이름 소리 오행', dreamTileDesc: '꿈 해몽', egenTileDesc: '내 사주는 에겐? 테토?', mbtiTileDesc: '사주로 보는 내 MBTI', joseonjobTileDesc: '내 사주로 보는 조선시대 직업', lovestyleTileDesc: '내 연애 세포는?', bokTileDesc: '내 타고난 복은?', pastlifeTileDesc: '나의 전생은?', healingTileDesc: '나에게 맞는 쉼은?',
-    secPremiumDesc: '나는 어떤 사람인지 — 사주·자미로 깊이 분석해요', secContentDesc: 'AI가 정밀하게 풀어주는 깊은 콘텐츠', secHotDesc: '요즘 가장 많이 찾는 질문 — 무료로 확인하고 더 깊이 봐요', secDeepDesc: '나를 더 깊이 들여다보는 분석', secLightDesc: '가볍게 즐기는 오늘의 재미',
+    // ★secHotDesc 는 '요즘 가장 많이 찾는 질문 — 무료로 확인하고 더 깊이 봐요' 였다(08-06 폐기).
+    //   지금 인기 섹션 첫 카드가 **유료** 재물 딥리포트라 '무료로 확인하고'가 사실과 달랐다.
+    secPremiumDesc: '나는 어떤 사람인지 — 사주·자미로 깊이 분석해요', secContentDesc: 'AI가 정밀하게 풀어주는 깊은 콘텐츠', secHotDesc: '요즘 많이 보는 것만 모았어요', secDeepDesc: '나를 더 깊이 들여다보는 분석', secLightDesc: '가볍게 즐기는 오늘의 재미',
   },
   common: { save: '저장',
     retryLaterNoCharge: '잠시 후 다시 시도해 주세요. 운은 차감되지 않았어요.',
