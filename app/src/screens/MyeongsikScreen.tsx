@@ -81,6 +81,7 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
   useEffect(() => { lastMyeongTab = activeTab; }, [activeTab]); // 선택 탭 기억 — 나갔다 와도 유지(daniel)
   const [strengthOpen, setStrengthOpen] = useState(false); // 신강·신약 특징 시트
   const [elemHidden, setElemHidden] = useState(false); // 오행분포에 지장간(支藏干) 오행 포함 토글(daniel)
+  const [luckView, setLuckView] = useState<'cols' | 'nest'>('cols'); // 운세 표시 모드 — 옆으로(기존 그리드)/벤다이어그램(중첩). daniel 2026-08-05
   const [pwHap, setPwHap] = useState(false);       // 오행 세력: 합에 따른 오행 변화(化) 적용
   const [pwJohu, setPwJohu] = useState(false);     // 오행 세력: 조후(왕상휴수)+궁성 보정 적용
   const [johuOpen, setJohuOpen] = useState(false); // 조후·음양 쏠림 시트(daniel)
@@ -822,16 +823,28 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
               </PressableScale>
             ))}
           </View>
-          {/* ★운 중첩(벤다이어그램식·daniel 2026-08-05) — 원국이 제일 안쪽, 일운→월운→년운→대운이 감싼다.
-              켠 층·데이터 있는 층만 두른다. 운이 하나도 없으면 원국 상자만 남는다(그래도 뜬다). */}
+          {/* ★표시 모드 선택(daniel 2026-08-05 2차): 옆으로 보기(기존 그리드) / 벤다이어그램(중첩). */}
+          <View style={[styles.layerToggle, { marginTop: space(2) }]}>
+            {([['cols', '옆으로 보기'], ['nest', '벤다이어그램']] as const).map(([k, l]) => (
+              <PressableScale key={k} style={[styles.layerChip, luckView === k && styles.layerChipOn]} onPress={() => setLuckView(k)}>
+                <Text style={[styles.layerChipTx, luckView === k && styles.layerChipTxOn]}>{luckView === k ? '✓ ' : ''}{l}</Text>
+              </PressableScale>
+            ))}
+          </View>
+          {/* ★운 중첩(벤다이어그램) — 원국 제일 안쪽·일운이 첫 띠(daniel 2차: 일운=가장 안쪽·색깔 한자).
+              켠 층·데이터 있는 층만 두른다. 운 전부 꺼도 원국 상자는 남는다. */}
+          {luckView === 'nest' && (
           <View style={{ marginTop: space(3), marginBottom: space(2) }}>
             <LuckNest
               natal={visiblePos.map((p) => ({ pos: `${p}주`, stem: P[p].stem, branch: P[p].branch }))}
               rings={nestRings}
+              hangeul={hangeul}
             />
           </View>
-          {/* ★확장명식(원국+대운/세운/월운/일운) = 시간층을 하나라도 켰을 때만 노출(daniel 2026-07-24 통합): 다 끄면 원국은 위 팔자표에 있으니 중복 렌더 안 함. */}
-          {hasLuckCol && (<>
+          )}
+          {/* ★옆으로 보기(기존 확장명식). 운을 다 꺼도 원국 컬럼은 남긴다(daniel 2026-08-05 2차 —
+              07-24 '다 끄면 중복 렌더 안 함' 결정을 대체). */}
+          {luckView === 'cols' && (<>
           {/* 원국 + 대운·세운 확장 명식 (합충선은 아래 토글로 펼침) */}
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.luckScroll} onLayout={(e) => setExpW(e.nativeEvent.layout.width)}>
             <View>
