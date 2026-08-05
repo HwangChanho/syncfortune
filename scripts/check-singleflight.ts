@@ -78,9 +78,17 @@ const notes: string[] = [];
 
   // R3 해제 — 잡은 뒤 나가는 경로가 전부 놓는지(정상 return · 목업 return · catch)
   const releases = (src.match(/releaseGenLock\(/g) ?? []).length - 1; // 정의부 1개 제외
-  if (releases < 3) {
+  // ★규칙 개정(2026-08-05 목업 정책): 목업 반환은 **락 선점보다 앞**으로 이동했다(차감·락·저장 전부 스킵).
+  //   그러므로 '목업 해제' 는 더 이상 존재하지 않는다 — 대신 위치 불변식을 검사한다:
+  //   목업 return 이 acquireGenLock 보다 뒤에 있으면(락을 물고 목업 반환) 3분 멈춤이 되살아난다.
+  const mockPos = src.indexOf("Response.json({ source: 'mock'");
+  const lockPos = src.indexOf('acquireGenLock(', src.indexOf('function acquireGenLock') + 30); // 정의부 다음 첫 호출
+  if (mockPos >= 0 && lockPos >= 0 && mockPos > lockPos) {
+    bad(`${INTERPRET}: 목업 반환이 락 선점(acquireGenLock) 뒤에 있습니다 — 락을 물고 나가면 3분 멈춤.`);
+  }
+  if (releases < 2) {
     problems.push(
-      `${INTERPRET}: releaseGenLock 호출이 ${releases}곳뿐입니다(최소 3: 정상 완료·목업 반환·예외).\n` +
+      `${INTERPRET}: releaseGenLock 호출이 ${releases}곳뿐입니다(최소 2: 정상 완료·예외 — 목업은 락 이전 반환).\n` +
       `      → 한 경로라도 빠지면 그 영역이 3분간 "만들어지는 중"으로 굳어 재시도가 막힙니다(멈춤).`,
     );
   }
