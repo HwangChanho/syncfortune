@@ -64,7 +64,6 @@ const CAT_IMG: Record<string, any> = {
   business: A('icons/compat-rel/business.jpg'),
 };
 import { UnlockOverlay } from '../components/UnlockOverlay'; // 생성 중 화면 가림 로딩(daniel)
-import { DoorReveal } from '../components/DoorReveal'; // 풀이 공개 순간 골드 명조 문 열림 영상(daniel 07-06)
 import { TTSButton } from '../components/TTSButton'; // 풀이 음성 읽기(온디바이스 TTS·무료)
 import type { ChartInput } from '@spec/chart';
 
@@ -140,8 +139,6 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
   const [followups, setFollowups] = useState<Record<string, Followup[]>>({});
   const [askInput, setAskInput] = useState('');
   const [asking, setAsking] = useState(false);
-  const [doorPlaying, setDoorPlaying] = useState(false); // 풀이 공개 순간 골드 명조 문 열림 영상(daniel 07-06)
-  const doorShown = useRef(false);                       // 유효 궁합 통변 최초 공개 1회 가드(관계/탭 전환·재렌더 시 재생 방지)
   // ① 생성 세대 토큰 — 쌍(나+상대) 전환 시 analyze() 가 ++ 로 진행 중 gen 무효화(옛 쌍 결과가 새 쌍 readings 에 섞이는 것 차단).
   //   compat 의 '명식'은 쌍이므로 analyze() 재실행(= 쌍 변경)이 곧 chartIdRef 갱신 역할을 겸한다.
   const genSeq = useRef(0);
@@ -321,15 +318,12 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
   // ★유료 궁합 통변(cur)이 실제로 공개되는 순간 = 골드 명조 문 열림 연출 1회(daniel 07-06). 캐시 로드/생성 완료로 처음 뜰 때만.
   //   ReadingScreen 선례처럼 마운트당 1회(관계/탭/연도 전환마다 재생 X). 무료 결정론 점수 티저(ScoreReveal)엔 재생 안 함.
   useEffect(() => {
-    if (cur && !(cur as any).error && !doorShown.current) { doorShown.current = true; setDoorPlaying(true); }
   }, [cur]);
 
   return (
     <>
     {/* 보고 있는 관계 풀이가 이미 준비됐으면(cur) 전체 잠금 오버레이로 막지 않음 — 나머지 관계는 홈 배너로 백그라운드 진행(daniel: 완료 감지·이어보기 개선) */}
     <UnlockOverlay visible={!!busy && !cur} message={t('compat.generating', '두 분의 궁합을 풀이하는 중…')} videoKey="compat" />
-    {/* 풀이 공개 순간 골드 명조 문 열림 영상 — 1회 재생 후 페이드아웃하며 풀이 노출(daniel 07-06) */}
-    <DoorReveal visible={doorPlaying} onDone={() => setDoorPlaying(false)} />
     <ScrollView style={styles.screen} contentContainerStyle={styles.wrap} automaticallyAdjustKeyboardInsets keyboardShouldPersistTaps="handled">
       {/* ── 단계형 위저드(daniel: 궁합 새 디자인) — 나❤상대 헤더 → ①상대 → ②관계 → ③관점 → 풀이 ── */}
       {/* 나 ❤ 상대 — 한 줄 컴팩트 헤더(각자 탭하면 변경/선택). 큰 슬롯·갈색 분석버튼 제거 */}

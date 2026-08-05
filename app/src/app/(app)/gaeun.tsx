@@ -32,7 +32,6 @@ import { setGenProgress } from '../../lib/backend/genProgress';
 import { acquireGen, releaseGen, isGenActive } from '../../lib/backend/genLock'; // 크로스마운트 이중 생성 잠금(② 이중 LLM 방지)
 import { colors, radius, space, shadow, font } from '../../lib/theme';
 import { UnlockOverlay } from '../../components/UnlockOverlay';
-import { DoorReveal } from '../../components/DoorReveal'; // 풀이 공개 순간 골드 명조 문 열림 영상(daniel 07-06)
 import { ChartPicker } from '../../components/ChartPicker';
 import { ShareReadingButton } from '../../components/ShareReadingButton';
 import { TTSButton } from '../../components/TTSButton'; // 풀이 음성 읽기(온디바이스 TTS·무료)
@@ -68,12 +67,9 @@ export default function GaeunScreen() {
   const lastAppliedChartId = useRef<string | null>(null); // ★M1 적용한 chartId param 추적(재진입 중복 setRepresentative 방지·reading.tsx 38-43)
   const genSeq = useRef(0);        // ① 생성 세대 토큰 — 명식 전환/재로드 시 ++ 로 진행 중 gen 무효화(stale setReading 폐기)
   const chartIdRef = useRef<string | null>(null); // ① 현재 로드된 serverChartId — generate 결과 명식 대조(남의 풀이 표시 차단)
-  const [doorPlaying, setDoorPlaying] = useState(false); // 풀이 공개 순간 골드 명조 문 열림 영상(daniel 07-06)
-  const doorShown = useRef(false);                       // 유효 통변 최초 공개 1회 가드(재렌더·명식전환 시 재생 방지)
 
   // ★유효 통변(reading)이 실제로 공개되는 순간 = 골드 명조 문 열림 연출 1회(daniel 07-06). 캐시 로드/생성 완료로 처음 뜰 때만(ref 가드).
   useEffect(() => {
-    if (reading && !reading.error && !doorShown.current) { doorShown.current = true; setDoorPlaying(true); }
   }, [reading]);
 
   useEffect(() => {
@@ -196,8 +192,6 @@ export default function GaeunScreen() {
       <ScrollView style={styles.overlay} contentContainerStyle={styles.wrap}>
         <ChartPicker onChange={() => setReloadKey((k) => k + 1)} />
         <UnlockOverlay visible={busy} message={t('gaeun.generating', '지금 운에 맞는 개운법을 찾는 중…')} />
-        {/* 풀이 공개 순간 골드 명조 문 열림 영상 — 1회 재생 후 페이드아웃하며 풀이 노출(daniel 07-06) */}
-        <DoorReveal visible={doorPlaying} onDone={() => setDoorPlaying(false)} />
         <View style={styles.hero}>
           <ExpoImage source={A('icons/gaeun.jpg')} style={styles.heroImg} contentFit="cover" cachePolicy="memory-disk" transition={150} />
           <Text style={styles.title}>{t('gaeun.title', '맞춤 개운법')}</Text>

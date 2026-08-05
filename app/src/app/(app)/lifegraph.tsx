@@ -35,7 +35,6 @@ import { acquireGen, releaseGen } from '../../lib/backend/genLock'; // 크로스
 import { useFontScale } from '../../lib/ui/fontScale';
 import { colors, radius, space, shadow, font } from '../../lib/theme';
 import { UnlockOverlay } from '../../components/UnlockOverlay'; // unlock 자물쇠 애니 + 그 사이 LLM 분석
-import { DoorReveal } from '../../components/DoorReveal'; // 풀이 공개 순간 골드 명조 문 열림 영상(daniel 07-06)
 import { ChartPicker } from '../../components/ChartPicker'; // 상단 명식 헤더 — 현재 적용 명식 표시·전환
 import { ShareReadingButton } from '../../components/ShareReadingButton'; // 이슈17: 풀이 결과 공유(가드 내장)
 import { TTSButton } from '../../components/TTSButton'; // 풀이 음성 읽기(온디바이스 TTS·무료)
@@ -71,8 +70,6 @@ export default function LifeGraphScreen() {
   const genSeq = useRef(0);        // ① 생성 세대 토큰 — 명식 전환/재로드 시 ++ 로 진행 중 gen 무효화(stale setData 폐기)
   const chartIdRef = useRef<string | null>(null); // ① 현재 로드된 serverChartId — generate 결과 명식 대조(남의 풀이 표시 차단)
   const draw = useRef(new Animated.Value(0)).current; // 이슈18: 인생곡선 드로잉 진행값(0→1)
-  const [doorPlaying, setDoorPlaying] = useState(false); // 풀이 공개 순간 골드 명조 문 열림 영상(daniel 07-06)
-  const doorShown = useRef(false);                       // 유효 통변 최초 공개 1회 가드(재렌더·명식전환 시 재생 방지)
 
   useEffect(() => {
     let alive = true;
@@ -116,7 +113,6 @@ export default function LifeGraphScreen() {
 
   // ★인생그래프 통변(data.decades)이 실제로 공개되는 순간 = 골드 명조 문 열림 연출 1회(daniel 07-06). 곡선이 처음 뜰 때만(ref 가드).
   useEffect(() => {
-    if (data?.decades?.length && !doorShown.current) { doorShown.current = true; setDoorPlaying(true); }
   }, [data]);
 
   // invoke 타임아웃/실패 시 readings 캐시를 폴링해 결과 회수(Edge가 서버에서 계속 생성·캐시하므로).
@@ -252,8 +248,6 @@ export default function LifeGraphScreen() {
       {/* 상단 hero 배너(daniel: 인생그래프 썰렁 → 이미지). 가로 1344×768 cover */}
       <ExpoImage source={A('icons/lifegraph-hero.jpg')} style={{ width: '100%', height: 190, borderRadius: radius.lg, marginBottom: space(4) }} contentFit="cover" cachePolicy="memory-disk" transition={150} />
       <UnlockOverlay visible={busy} message={t('life.generating', '인생 흐름을 그리는 중…')} />
-      {/* 풀이 공개 순간 골드 명조 문 열림 영상 — 1회 재생 후 페이드아웃하며 풀이 노출(daniel 07-06) */}
-      <DoorReveal visible={doorPlaying} onDone={() => setDoorPlaying(false)} />
       {!loaded ? (
         <View style={styles.card}><ActivityIndicator color={colors.ju} /></View>
       ) : !saved ? (

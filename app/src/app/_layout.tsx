@@ -32,7 +32,6 @@ import { colors, getLoadingMode } from '../lib/theme'; // getLoadingMode: 인트
 import { AppAlert } from '../components/AppAlert'; // 커스텀 알림 호스트(시스템 Alert 대체)
 import { installCrashLogger, logEvent, setLogTestContext } from '../lib/backend/logger';
 import { installAdminTrace, setAdminTrace } from '../lib/backend/adminTrace'; // ★Edge·RPC 자동 추적(관리자 상세 / 일반은 실패만) // 전역 JS 크래시 → app_logs(DB 로그) + 앱 사용 세션 시간 로깅 + 테스트/배포 로그 태그
-import { VideoSplash } from '../components/VideoSplash'; // 앱 실행 인트로 영상(왕궁 문→웅장한 호랑이→으르렁, 폴백=이미지)
 import { TextSplash } from '../components/TextSplash'; // 로딩 영상 OFF 시(설정) 八字 한자 스플래시
 import { BusyOverlay } from '../components/BusyOverlay'; // 인증 전환(로그아웃/로그인) 중 전역 블로킹 로딩(먹통 방지)
 import { subscribeAuthBusy, getAuthBusy } from '../lib/ui/authBusy';
@@ -157,7 +156,8 @@ export default function RootLayout() {
             App Store 4.3 대응 = 리뷰어가 운세 카드그리드 대신 'AI 자기이해 도구' 여정을 먼저 보게. */}
         {!splash && <Onboarding />}
         {/* 인트로 스플래시 1회 — 설정: video=호랑이영상 / text=八字한자 / off=없음(splash 처음부터 false, 여기 미렌더) */}
-        {splash && (getLoadingMode() === 'video' ? <VideoSplash onDone={() => setSplash(false)} /> : <TextSplash onDone={() => setSplash(false)} />)}
+        {/* ★스플래시 영상 제거(daniel 2026-08-05 "로딩화면 영상 다 없애버려") — video 모드여도 텍스트 스플래시로. */}
+        {splash && <TextSplash onDone={() => setSplash(false)} />}
       </FontScaleProvider>
     </GestureHandlerRootView>
   );

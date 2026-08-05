@@ -34,7 +34,6 @@ import { setGenProgress } from '../../lib/backend/genProgress'; // 일회성 진
 import { acquireGen, releaseGen } from '../../lib/backend/genLock'; // 크로스마운트 이중 생성 잠금(② 이중 LLM 방지)
 import { colors, radius, space, shadow, font } from '../../lib/theme';
 import { UnlockOverlay } from '../../components/UnlockOverlay'; // unlock 자물쇠 애니 + 그 사이 LLM 분석
-import { DoorReveal } from '../../components/DoorReveal'; // 풀이 공개 순간 골드 명조 문 열림 영상(daniel 07-06)
 import { ContentHero, cardAnim } from '../../components/SpecialContentScreen'; // 공용 히어로 + 섹션 stagger
 import { ChartPicker } from '../../components/ChartPicker'; // 상단 명식 헤더 — 현재 적용 명식 표시·전환
 import { ShareReadingButton } from '../../components/ShareReadingButton'; // 이슈17: 풀이 결과 공유(가드 내장)
@@ -109,8 +108,6 @@ export default function LoveScreen() {
   const genSeq = useRef(0);        // ① 생성 세대 토큰 — 명식 전환/재로드 시 ++ 로 진행 중 gen 무효화(stale setReading 폐기)
   const chartIdRef = useRef<string | null>(null); // ① 현재 로드된 serverChartId — generate 결과가 이 명식용인지 대조(남의 풀이 표시 차단)
   const reveal = useRef(new Animated.Value(0)).current; // 섹션 순차 등장
-  const [doorPlaying, setDoorPlaying] = useState(false); // 풀이 공개 순간 골드 명조 문 열림 영상(daniel 07-06)
-  const doorShown = useRef(false);                       // 유효 통변 최초 공개 1회 가드(재렌더·명식전환 시 재생 방지)
 
   // 대표 명식 로드 → 서버차트ID 확보 → 'love' 캐시 조회(생성 없이 즉시 표시)
   useEffect(() => {
@@ -158,7 +155,6 @@ export default function LoveScreen() {
 
   // ★유효 통변(reading)이 실제로 공개되는 순간 = 골드 명조 문 열림 연출 1회(daniel 07-06). 캐시 로드/생성 완료로 처음 뜰 때만(ref 가드).
   useEffect(() => {
-    if (reading && !reading.error && !doorShown.current) { doorShown.current = true; setDoorPlaying(true); }
   }, [reading]);
 
   // invoke 타임아웃/실패 시 readings 캐시를 폴링해 결과 회수(Edge가 서버에서 계속 생성·캐시하므로).
@@ -297,8 +293,6 @@ export default function LoveScreen() {
       {/* 상단 명식 헤더 — 현재 적용된 대표 명식 표시·전환(daniel: 모든 콘텐츠 상단). 전환 시 그 명식 기준 재로드 */}
       <ChartPicker onChange={() => setReloadKey((k) => k + 1)} />
       <UnlockOverlay visible={busy} message={t('love.generating', '두 명반을 교차해 애정의 결을 풀이하는 중…')} />
-      {/* 풀이 공개 순간 골드 명조 문 열림 영상 — 1회 재생 후 페이드아웃하며 풀이 노출(daniel 07-06) */}
-      <DoorReveal visible={doorPlaying} onDone={() => setDoorPlaying(false)} />
       <ContentHero motif={<LoveThread />} image={A('icons/love-hero.jpg')} title={t('love.title')} sub={t('love.sub')} themeColor={LOVE_PINK} />
       {/* 인연 가능성 게이지(무료·결정론) — 흐름 곡선 '위'에 얹는 핵심 훅. 지금 인연 기운을 0~100 + 한 줄 일상어로. */}
       {loveGauge && (

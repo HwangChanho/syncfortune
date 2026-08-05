@@ -32,7 +32,6 @@ import { confirmReadingChart } from '../lib/ui/confirmChart'; // 생성 전 명�
 import { stemElement, branchElement, elementColor, elementText, stemYinYang, branchYinYang } from '../lib/engine/ohaeng';
 import { TTSButton } from '../components/TTSButton'; // daniel: 풀이 음성 읽기(온디바이스 TTS·무료)
 import { UnlockOverlay } from '../components/UnlockOverlay'; // 시기 통변 생성 중 로딩(타임라인 테마 영상)
-import { DoorReveal } from '../components/DoorReveal'; // 풀이 공개 순간 골드 명조 문 열림 영상(daniel 07-06)
 import { TimelineTeaser } from '../components/TimelineTeaser'; // 무료 결정론 대운 흐름 스트립(유료 카드 위·API 0·퍼널)
 import { colors, radius, space, shadow, font } from '../lib/theme';
 import type { ChartInput } from '@spec/chart';
@@ -89,8 +88,6 @@ export function TimelineScreen({ input, savedChart }: { input: ChartInput | null
   const [busy, setBusy] = useState<string | null>(null);      // 생성 중인 category
   const [picker, setPicker] = useState<'decade' | 'year' | null>(null);
   const [catByKey, setCatByKey] = useState<Record<string, CatKey>>({}); // 기간별 선택된 카테고리 칩(기본 general)
-  const [doorPlaying, setDoorPlaying] = useState(false); // 풀이 공개 순간 골드 명조 문 열림 영상(daniel 07-06)
-  const doorShown = useRef(false);                       // 유효 시기 통변 최초 공개 1회 가드(재렌더·명식전환 시 재생 방지)
   const genSeq = useRef(0);        // ① 생성 세대 토큰 — 명식 전환(load effect) 시 ++ 로 진행 중 gen 무효화(옛 명식 시기통변이 새 명식 readings 에 섞이는 것 차단). 읽기(스냅샷)라 동시 2기간 생성끼리는 무효화 안 함.
   const chartIdRef = useRef<string | null>(null); // ① gen 이 대상으로 삼은 명식(canonical serverChartId) 대조 기준
   const listRef = useRef<ScrollView>(null);                   // picker 목록 스크롤(선택 위치로 이동)
@@ -109,7 +106,6 @@ export function TimelineScreen({ input, savedChart }: { input: ChartInput | null
   // ★유효 시기 통변(readings)이 실제로 공개되는 순간 = 골드 명조 문 열림 연출 1회(daniel 07-06). 캐시 로드/자동생성 완료로 처음 뜰 때(생성중 아님).
   //   무료 결정론 티저(TimelineTeaser)엔 재생 안 함. ReadingScreen 선례처럼 마운트당 1회(ref 가드).
   useEffect(() => {
-    if (!busy && !doorShown.current && Object.values(readings).some((r) => r && !r.error)) { doorShown.current = true; setDoorPlaying(true); }
   }, [readings, busy]);
 
   // 한 기간이 무료인지(프리미엄 & 현재 대운/올해) — 자동 생성·게이트 분기 공용
@@ -375,8 +371,6 @@ export function TimelineScreen({ input, savedChart }: { input: ChartInput | null
     <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>
       {/* 시기(대운/세운) 통변 생성 중 = 타임라인 테마 영상 로딩(busy=생성 중인 category). Modal 이라 위치 무관(최상단 오버레이) */}
       <UnlockOverlay visible={!!busy} videoKey="timeline" message={t('timeline.generating')} />
-      {/* 풀이 공개 순간 골드 명조 문 열림 영상 — 1회 재생 후 페이드아웃하며 풀이 노출(daniel 07-06) */}
-      <DoorReveal visible={doorPlaying} onDone={() => setDoorPlaying(false)} />
       <Text style={[styles.h, { fontSize: fs(22) }]}>{t('reading.timelineTitle')}</Text>
       <Text style={[styles.sub, { fontSize: fs(12), lineHeight: 19 }]}>{t('reading.timelineSub')}</Text>
 

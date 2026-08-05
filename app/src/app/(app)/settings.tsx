@@ -25,7 +25,7 @@ import { loadCredits } from '../../lib/billing/coupons';  // 프리미엄 폴백
 import { supabase } from '../../lib/supabase';             // 로그아웃
 import { BusyOverlay } from '../../components/BusyOverlay'; // 긴 콜백(로그아웃·삭제) 로딩 오버레이
 import { setAuthBusy } from '../../lib/ui/authBusy'; // 로그아웃 전환 전역 블로킹(먹통 방지)
-import { colors, radius, space, shadow, font, getLoadingMode, setLoadingMode, getReadingVideoEnabled, setReadingVideoEnabled, setThemeAccent, getThemeAccent, activeAccentElement, ACCENT_SWATCH, type AccentMode, type LoadingMode } from '../../lib/theme'; // ★다크/라이트 토글 제거·로딩 3모드(video/text/off, daniel 2026-07-15)
+import { colors, radius, space, shadow, font, getLoadingMode, setLoadingMode, setThemeAccent, getThemeAccent, activeAccentElement, ACCENT_SWATCH, type AccentMode, type LoadingMode } from '../../lib/theme'; // ★다크/라이트 토글 제거·로딩 3모드(video/text/off, daniel 2026-07-15)
 
 const LANGS: { key: string; label: string }[] = [
   { key: 'ko', label: '한국어' }, { key: 'en', label: 'English' }, { key: 'ja', label: '日本語' },
@@ -54,7 +54,6 @@ export default function SettingsScreen() {
   const [admin, setAdmin] = useState(false); // 관리자 — 메뉴 노출용(실제 권한은 서버 RPC). 제어(비용분석·테스트/관리자모드)는 /admin 내부로 통합(daniel 07-01)
   const [accent, setAccentState] = useState<AccentMode>(getThemeAccent()); // ★테마 강조색(자동=일간 오행 / 오행 직접 / 골드)
   const [loadingMode, setLoadingModeState] = useState<LoadingMode>(getLoadingMode()); // 로딩(인트로) 화면 video(호랑이)/text(八字)/off(없음, daniel 07-15)
-  const [readingVid, setReadingVid] = useState<boolean>(getReadingVideoEnabled()); // 풀이 로딩(자물쇠 화면) 테마영상 on/off — off=링+자물쇠만(daniel 07-13)
   // 홈 배치 순서 편집은 홈 화면의 '⠿ 홈 배치 편집' 모달로 이동(daniel 07-21) — 계정뷰에서 제거.
   const [notifStatus, setNotifStatus] = useState<NotifStatus>('undetermined'); // 알림 권한 상태(행 라벨·동작 분기)
   const [restoring, setRestoring] = useState(false); // 구매 복원 진행 중(연타 가드·버튼 로딩)
@@ -281,9 +280,10 @@ export default function SettingsScreen() {
       {/* ── 로딩 화면(인트로) — video 호랑이영상 / text 八字한자 / off 없음(바로 앱). daniel 07-15. 변경은 다음 실행부터 적용 ── */}
       <Text style={[styles.h, { marginTop: space(7) }]}>{t('settings.loadingScreen', '로딩 화면')}</Text>
       <View style={styles.row}>
-        {(['video', 'text', 'off'] as LoadingMode[]).map((m) => {
-          const sel = loadingMode === m;
-          const label = m === 'video' ? t('settings.loadingVideoOn', '호랑이 영상') : m === 'text' ? t('settings.loadingVideoOff', '八字 한자') : t('settings.loadingOff', '끄기');
+        {/* ★영상 옵션 제거(daniel 2026-08-05 "로딩화면 영상 다 없애버려") — text/off 2옵션. 저장값이 'video'였던 유저는 text 로 표시·동작. */}
+        {(['text', 'off'] as LoadingMode[]).map((m) => {
+          const sel = loadingMode === m || (m === 'text' && loadingMode === 'video');
+          const label = m === 'text' ? t('settings.loadingVideoOff', '八字 한자') : t('settings.loadingOff', '끄기');
           return (
             <PressableScale key={m} style={[styles.opt, sel && styles.optOn]} onPress={() => {
               setLoadingMode(m); setLoadingModeState(m);
@@ -295,18 +295,6 @@ export default function SettingsScreen() {
         })}
       </View>
 
-      {/* ── 풀이 로딩 영상(자물쇠 화면 테마영상) on/off — daniel 07-13. 끄면 링+자물쇠 애니만. 다음 풀이부터 즉시 적용 ── */}
-      <Text style={[styles.h, { marginTop: space(5) }]}>{t('settings.readingVideo', '풀이 로딩 영상')}</Text>
-      <View style={styles.row}>
-        {[true, false].map((on) => {
-          const sel = readingVid === on;
-          return (
-            <PressableScale key={String(on)} style={[styles.opt, sel && styles.optOn]} onPress={() => { setReadingVideoEnabled(on); setReadingVid(on); }}>
-              <Text style={[styles.optTx, sel && styles.optTxOn]}>{on ? t('settings.readingVideoOn', '테마 영상') : t('settings.readingVideoOff', '심플(영상 없이)')}</Text>
-            </PressableScale>
-          );
-        })}
-      </View>
 
       {/* ── 알림 ── daniel 07-02: 시스템 권한 프롬프트가 안 뜨던 문제 → 명시적 켜기 진입점(미결정=프롬프트, 거부=기기설정) */}
       <Text style={[styles.h, { marginTop: space(7) }]}>{t('settings.notif', '알림')}</Text>

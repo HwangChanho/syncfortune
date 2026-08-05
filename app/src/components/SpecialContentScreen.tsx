@@ -47,7 +47,6 @@ import { setGenProgress } from '../lib/backend/genProgress'; // 일회성 진행
 import { acquireGen, releaseGen } from '../lib/backend/genLock'; // 크로스마운트 이중 생성 잠금(② 이중 LLM 방지)
 import { colors, radius, space, shadow, font } from '../lib/theme';
 import { UnlockOverlay } from './UnlockOverlay';         // unlock 자물쇠 애니 + 그 사이 LLM
-import { DoorReveal } from './DoorReveal';               // 풀이 공개 순간 골드 명조 문 열림 영상(daniel 07-06)
 import { ChartPicker } from './ChartPicker';             // 상단 명식 헤더 — 현재 적용 명식 표시·전환
 
 export type Section = { key: string; label: string; groupTitle?: string }; // groupTitle: 이 섹션 카드 위에 그룹 구분 헤더(divider) 표시(daniel: 별자리/점성술 섹터 분리)
@@ -123,7 +122,6 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
   const genSeq = useRef(0);        // ① 생성 세대 토큰 — 명식 전환/재로드 시 ++ 로 진행 중 gen 무효화(stale setReading 폐기)
   const chartIdRef = useRef<string | null>(null); // ① 현재 로드된 serverChartId — generate 결과 명식 대조(남의 풀이 표시 차단)
   const reveal = useRef(new Animated.Value(0)).current; // 섹션 순차 등장
-  const [doorPlaying, setDoorPlaying] = useState(false); // 풀이 공개 순간 골드 명조 문 열림 영상(daniel 07-06)
   // 명리 용어 설명 시트(가독성 P2) — 본문 용어 탭 → 기존 글로서리(daniel 검수본)에서 뜻을 띄운다.
   const [term, setTerm] = useState<GlossaryTarget>(null);
   const openTerm = (t: string) => setTerm({ kind: glossaryKindOf(t), key: t });
@@ -132,7 +130,6 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
   useLogContentVisit(kind);
   // ★풀이를 공개(revealed=true)하는 순간 = 골드 명조 문 열림 연출 1회(daniel 07-06). 명식/카테고리 전환 시 revealed 리셋되므로 공개할 때마다 재생.
   useEffect(() => {
-    if (revealed && !prevRevealed.current) setDoorPlaying(true);
     prevRevealed.current = revealed;
   }, [revealed]);
 
@@ -612,8 +609,6 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
     {/* ↓ 스크롤 밖 = 뷰포트 기준. 자물쇠·문열림이 항상 화면 한가운데에 뜬다. */}
     {/* child/child_couple(자녀운)만 전용 테마 영상 — 그 외 스페셜(roots·image·mission·talent·astrology·future10 등)은 videoKey 미지정=기본 링+자물쇠 */}
     <UnlockOverlay visible={busy} message={genMsg} videoKey={(kind === 'child' || kind === 'child_couple') ? 'child' : undefined} />
-    {/* 풀이 공개(revealed) 순간 골드 명조 문 열림 영상 — 1회 재생 후 페이드아웃하며 풀이 노출(daniel 07-06) */}
-    <DoorReveal visible={doorPlaying} onDone={() => setDoorPlaying(false)} />
     </View>
   );
 }

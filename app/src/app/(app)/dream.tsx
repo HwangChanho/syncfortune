@@ -28,7 +28,6 @@ import { acquireGen, releaseGen, isGenActive } from '../../lib/backend/genLock';
 import { invokeFail } from '../../lib/backend/interpretResult'; // 방어: 일시적 불가/오류 친화 처리(dream은 reading 아닌 dream 구조라 invokeFail만)
 import { assertOnline } from '../../lib/backend/network'; // daniel: 네트워크/서버 미연결 시 풀이 생성 차단
 import { TTSButton } from '../../components/TTSButton'; // 풀이 음성 읽기(온디바이스 TTS·무료)
-import { DoorReveal } from '../../components/DoorReveal'; // 유료 AI 해몽 공개 순간 골드 명조 문 열림 영상(daniel 07-06)
 import { useLogContentVisit } from '../../lib/backend/contentVisit'; // 콘텐츠 방문 집계(daniel 2026-07-06) — 진입 1회 기록
 
 // 계정별 지난 AI 꿈해몽 한 건(테이블 public.dream_readings 1행). RLS로 본인 것만 조회/삽입(user_id=auth.uid).
@@ -58,10 +57,8 @@ export default function DreamScreen() {
   const [openId, setOpenId] = useState<string | null>(null); // 목록 아코디언: 펼친 항목 id(탭하면 본문 표시)
   // ★유료 AI 꿈해몽(₩300)이 공개되는 순간만 골드 명조 문 연출 — 무료 사전검색/키워드 폴백엔 재생 안 함.
   //   AI 해몽은 반복 유료라 prev-ref로 '새 결과가 뜰 때마다' 1회(재렌더로는 재생 안 함·SpecialContentScreen prevRevealed 패턴).
-  const [doorPlaying, setDoorPlaying] = useState(false);
   const prevAiResult = useRef<{ title: string; meaning: string } | null>(null);
   useEffect(() => {
-    if (aiResult && aiResult !== prevAiResult.current) setDoorPlaying(true);
     prevAiResult.current = aiResult;
   }, [aiResult]);
   // 지난 꿈해몽 로드 — 로그인 상태면 최신순 50건 조회(RLS가 본인 것만 반환). 로그아웃/미로그인=빈 목록.
@@ -194,8 +191,6 @@ export default function DreamScreen() {
 
   return (
     <View style={styles.bg}>
-      {/* 유료 AI 해몽 공개 순간 골드 명조 문 열림 영상 — 1회 재생 후 페이드아웃(daniel 07-06) */}
-      <DoorReveal visible={doorPlaying} onDone={() => setDoorPlaying(false)} />
       <ScrollView style={styles.overlay} contentContainerStyle={styles.wrap} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets keyboardDismissMode="interactive">
         <ContentHero image={A('icons/dream.jpg')} title={t('dream.title', '꿈해몽')} sub={t('dream.sub', '꿈에 나온 것을 검색해 보세요.')} />
 

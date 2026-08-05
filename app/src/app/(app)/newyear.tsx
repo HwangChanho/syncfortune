@@ -35,7 +35,6 @@ import { setGenProgress } from '../../lib/backend/genProgress'; // 일회성 컨
 import { acquireGen, releaseGen } from '../../lib/backend/genLock'; // 크로스마운트 이중 생성 잠금(② 이중 LLM 방지)
 import { colors, radius, space, shadow, font } from '../../lib/theme';
 import { UnlockOverlay } from '../../components/UnlockOverlay'; // unlock 자물쇠 애니 + 그 사이 LLM 분석
-import { DoorReveal } from '../../components/DoorReveal'; // 풀이 공개 순간 골드 명조 문 열림 영상(daniel 07-06)
 import { ContentHero } from '../../components/SpecialContentScreen'; // 공용 히어로
 import { ChartPicker } from '../../components/ChartPicker'; // 상단 명식 헤더 — 현재 적용 명식 표시·전환
 import { ShareReadingButton } from '../../components/ShareReadingButton'; // 이슈17: 풀이 결과 공유(가드 내장)
@@ -88,12 +87,9 @@ export default function NewYearScreen() {
   const lastAppliedChartId = useRef<string | null>(null); // ★M1 적용한 chartId param 추적(재진입 중복 setRepresentative 방지·reading.tsx 38-43)
   const genSeq = useRef(0);        // ① 생성 세대 토큰 — 명식 전환/재로드 시 ++ 로 진행 중 gen 무효화(stale setData 폐기)
   const chartIdRef = useRef<string | null>(null); // ① 현재 로드된 serverChartId — generate 결과 명식 대조(남의 풀이 표시 차단)
-  const [doorPlaying, setDoorPlaying] = useState(false); // 풀이 공개 순간 골드 명조 문 열림 영상(daniel 07-06)
-  const doorShown = useRef(false);                       // 유효 통변 최초 공개 1회 가드(재렌더·명식전환 시 재생 방지)
 
   // ★신년 통변(data)이 실제로 공개되는 순간 = 골드 명조 문 열림 연출 1회(daniel 07-06). 캐시 로드/생성 완료로 처음 뜰 때만(ref 가드·오류는 err 상태라 data는 유효 통변만).
   useEffect(() => {
-    if (data && !(data as any).error && !doorShown.current) { doorShown.current = true; setDoorPlaying(true); }
   }, [data]);
 
   const category = `newyear_${year}`; // 연운(year_YYYY)과 분리된 신년 전용 캐시
@@ -257,8 +253,6 @@ export default function NewYearScreen() {
         {/* 상단 명식 헤더 — 현재 적용된 대표 명식 표시·전환(daniel: 모든 콘텐츠 상단). 전환 시 그 명식 기준 재로드 */}
         <ChartPicker onChange={() => setReloadKey((k) => k + 1)} />
         <UnlockOverlay visible={busy} message={t('newyear.generating', '올 한 해를 풀어내는 중…')} />
-        {/* 풀이 공개 순간 골드 명조 문 열림 영상 — 1회 재생 후 페이드아웃하며 풀이 노출(daniel 07-06) */}
-        <DoorReveal visible={doorPlaying} onDone={() => setDoorPlaying(false)} />
         <ContentHero motif={<NewyearWheel />} image={A('icons/newyear-hero.jpg')} title={`${year}${t('newyear.title', '신년운세')}`} sub={t('newyear.heroSub', '올 한 해의 큰 흐름을 한눈에')} themeColor={colors.ju} />
 
         {/* ★연도 선택 — 올해/내년(daniel 2026-07-29). 연도별로 캐시·결제가 분리된다. */}
