@@ -362,7 +362,7 @@ const styles = StyleSheet.create({
   bg: { flex: 1, backgroundColor: 'transparent' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   catBar: { paddingTop: space(11), borderBottomWidth: 1, borderBottomColor: colors.line },
-  catRow: { paddingHorizontal: space(4), paddingBottom: space(24), gap: space(2) },
+  catRow: { paddingHorizontal: space(4), paddingBottom: space(3), gap: space(2) }, // ★space(24)→3(daniel 2026-08-05 IMG_8382 '카테고리 아래 공간이 너무 커' — 96pt 유령 패딩)
   catChip: { backgroundColor: colors.sunk, borderRadius: radius.pill, paddingHorizontal: space(4), paddingVertical: space(2), borderWidth: 1, borderColor: colors.line },
   catChipOn: { backgroundColor: colors.ju, borderColor: colors.ju },
   catChipTx: { color: colors.inkSoft, fontWeight: '700', fontSize: 13 },
