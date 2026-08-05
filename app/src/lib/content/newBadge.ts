@@ -10,6 +10,8 @@
 //   (더 개인화하려면 '탭하면 사라짐'을 SecureStore 로 얹을 수 있으나, 우선 단순·무상태 방식 채택.)
 // ─────────────────────────────────────────────────────────────────────────
 
+import { baseKey } from './contentSections'; // '인기' 사본 키(hot*) → 원본 키. 출시일 표는 원본 하나만 갖는다.
+
 /** 노출 기간(일) — 출시일로부터 이 기간 동안 NEW 배지. */
 export const NEW_WINDOW_DAYS = 21;
 
@@ -25,7 +27,8 @@ export const NEW_SINCE: Record<string, string> = {
  * @param now 기준 시각(기본 현재) — 테스트 주입용
  */
 export function isNewContent(key: string, now: Date = new Date()): boolean {
-  const since = NEW_SINCE[key];
+  // ★'인기' 섹션 사본(hot*)은 원본과 같은 콘텐츠 → 같은 출시일을 쓴다(사본 키를 위 표에 또 적지 않는다).
+  const since = NEW_SINCE[key] ?? NEW_SINCE[baseKey(key)];
   if (!since) return false;
   const start = new Date(`${since}T00:00:00`);
   if (isNaN(start.getTime())) return false;

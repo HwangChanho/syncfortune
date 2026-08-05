@@ -57,7 +57,16 @@ export const en = {
     dayPillar: 'Day Pillar', dayPillarDesc: 'Your nature by your birth day', career: 'Founder or Employee', careerDesc: 'Your two paths: business vs job', gaeun: 'Lucky Boost', gaeunDesc: 'Lift your luck for this cycle', followupDesc: 'Ask one more about your reading', talent: 'My Innate Talent', celeb: 'World Figures Match', celebDesc: 'Compare your chart with famous figures', talentDesc: 'Your gifts, drive, and money style', numerology: 'Numerology', numerologyDesc: 'Your life path and talents by number', astrology: 'Zodiac & Astrology', astrologyDesc: 'Your star sign + full natal chart',
     child: 'Children', childDesc: 'Your bond, their nature, you as a parent', future10: 'Me in 10 Years', future10Desc: 'Your life 10 years on, by luck cycles', reunion: 'Reunion', reunionDesc: 'When & whether an old love may reopen', crush: 'Crush & Attraction', crushDesc: 'Whether it can bloom · who is drawn to you · when to approach', job: 'Job & Career Move', jobDesc: 'When hiring, a move, or an exam is likely to land', jobfit: 'Careers That Fit', jobfitDesc: 'Which careers suit your nature — desire vs ability gap', wealth: 'Wealth Deep Report', wealthDesc: 'Your wealth capacity & type, when it flows in, and how to keep it', reunionAsk: 'Can we reunite?', reunionAskDesc: 'Free: reunion odds & best months to reach out', crushAsk: 'Will it bloom?', crushAskDesc: 'Free: your charm & when the spark ripens', jobAsk: 'When will I land it?', jobAskDesc: 'Free: when hiring & exams open up',
     saju: 'Saju', sajuDesc: 'Reading · timeline · compatibility', ziweiHub: 'Zi Wei', ziweiHubDesc: 'Chart · luck · compatibility',
-    secFree: 'Today & Chart', secPremium: 'Understand Yourself', secContent: 'Popular', secSpecial: 'Special', secDeep: 'Know Yourself', secLight: 'For Fun',
+    secContent: 'Popular', // ★shortcut row (outside the topic axis)
+    // ★Topic-based sections (2026-08-06) — pick by what you want to know; free/paid is shown by the card badge.
+    secLove: 'Love & Compatibility', secLoveDesc: 'Between two people — bonds, timing, feelings',
+    secMoney: 'Money & Career', secMoneyDesc: 'Your capacity for wealth, aptitude, and when work opens up',
+    secSelf: 'Who Am I', secSelfDesc: 'Your innate nature — read deeply via Saju & Zi Wei',
+    secFlow: 'Timing & Flow', secFlowDesc: 'From today to ten years out — when the current turns',
+    secFun: 'Just for Fun', secFunDesc: 'Light reads, nothing heavy',
+    secTool: 'Charts & Tools', secToolDesc: 'Look it up yourself in the almanac',
+    // (legacy) price-axis labels — unused after the topic rework; kept for an easy revert.
+    secFree: 'Today & Chart', secPremium: 'Understand Yourself', secSpecial: 'Special', secDeep: 'Know Yourself', secLight: 'For Fun',
     viewCard: 'Cards', viewList: 'List', // home view toggle
     todayTileDesc: "Today's flow", monthTileDesc: "This month's flow", newyearTileDesc: "This year's keyword & 12 months", personaTileDesc: 'Saju personality type', taegilTileDesc: 'Pick a good day', luckTileDesc: "Today's luck", zodiacTileDesc: 'Zodiac & star sign', nameTileDesc: "Name's sound energy", dreamTileDesc: 'Dream meaning', egenTileDesc: 'Are you Egen or Teto?', mbtiTileDesc: 'Your MBTI by saju', joseonjobTileDesc: 'Your job in old Korea', lovestyleTileDesc: 'Your love cells?', bokTileDesc: 'Your innate fortune?', pastlifeTileDesc: 'Who were you?', healingTileDesc: 'Your way to rest?',
     secPremiumDesc: 'Who you are — in depth via Saju & Zi Wei', secContentDesc: 'AI-crafted deep readings', secHotDesc: 'The questions everyone asks — check free, then go deeper', secDeepDesc: 'Look deeper into who you are', secLightDesc: 'Light daily fun',
@@ -293,7 +302,12 @@ export const en = {
     'thisMonth': '이번 달', title: 'Monthly Fortune', monthPillar: "This month's energy", flowTitle: "This month's flow (early · mid · late)", note: "The broad flow for this month. For specific days, see the Daily Fortune.", heroSub: "The flow of this month's energy", generating: "Reading this month's flow…", gateTitle: "View This Month's Fortune", gateDesc: "We combine the nature you were born with, the big flow you're in now, this year, and this month's energy to share what may come up this month and how to handle it.", seePremium: "View This Month's Fortune" },
   nav: { home: 'Home', contents: 'Readings', community: 'Community', coach: 'Guide', market: 'Market' },
   lookback: { title: 'Look back', sub2: 'The days you did your one thing.', needLogin: 'Sign in to save your notes and revisit them here.', empty2: 'No records yet. Do your one thing under today\'s reading and check it off.', goToday: "See today's reading", summary: 'You marked {{hit}} of {{rated}} rated days as accurate', streak: "You've done your one thing on {{n}} days", myNote: 'My note', missionDone: '✓ Did that day\'s one thing' },
-  contents: { sub: 'Pick a topic you want to explore' },
+  contents: {
+    sub: 'Pick a topic you want to explore',
+    searchPlaceholder: 'What are you curious about?',
+    searchResult: '{{n}} result(s)',
+    searchEmpty: 'Nothing matched.\nTry another word.',
+  },
   todayEnergy: { kicker: "Today's energy", point: 'pts', more: "See today's reading" },
   persona120: {
     kicker: 'My personality type', count: 'of 120', more: 'See details',

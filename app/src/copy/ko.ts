@@ -79,7 +79,16 @@ export const ko = {
     dayPillar: '일주론', dayPillarDesc: '태어난 날로 보는 나의 기질', career: '사업가의 나', careerDesc: '사업가 vs 직장인, 두 길 풀이', gaeun: '맞춤 개운법', gaeunDesc: '지금 운에 맞춰 운을 살리는 법', followupDesc: '풀이에 더 묻고 싶은 한 가지', talent: '나의 타고난 재능', celeb: '세계 인물 매칭', celebDesc: '유명인 사주와 나를 견주는 재미', talentDesc: '재능·좋아하는 일·돈 다루는 법', numerology: '수비학', numerologyDesc: '수로 보는 인생 방향·재능', astrology: '별자리·점성술', astrologyDesc: '내 별자리 + 네이탈 차트, 두 관점 깊이 풀이',
     child: '자식운', childDesc: '자녀 인연·기질·부모로서의 나', future10: '10년 뒤 나의 모습', future10Desc: '대운·세운으로 그리는 10년 뒤', reunion: '재회운', reunionDesc: '옛 인연과 다시 이어질 시기·가능성', crush: '짝사랑 인연운', crushDesc: '내 마음이 닿을지·끌릴 사람의 결·다가갈 시기', job: '취업·이직운', jobDesc: '취업·이직·합격·시험이 잘 풀리는 시기', jobfit: '나에게 어울리는 직업', jobfitDesc: '타고난 적성으로 어울리는 직업·끌림과 능력의 간극', wealth: '재물 딥리포트', wealthDesc: '타고난 재물 그릇·유형·언제 크게 들어오고 어떻게 지키는지', reunionAsk: '재회 가능할까?', reunionAskDesc: '무료로 보는 재회 가능성·연락 좋은 달', crushAsk: '그 사람과 이어질까?', crushAskDesc: '무료로 보는 매력·썸이 무르익는 달', jobAsk: '취업 언제 될까?', jobAskDesc: '무료로 보는 취업·합격운 열리는 시기',
     saju: '사주', sajuDesc: '원국·타임라인·궁합', ziweiHub: '자미두수', ziweiHubDesc: '명반·운한·궁합',
-    secFree: '오늘·명식', secPremium: '나를 이해하기', secContent: '인기', secSpecial: '스페셜', secDeep: '나에 대해 알기', secLight: '가볍게 보기',
+    secContent: '인기', // ★숏컷 섹션(주제 축 밖) — 최상단 한 줄
+    // ★주제(고민) 축 섹션(2026-08-06 재편) — "무엇이 궁금한가"로 고른다. 유·무료는 카드 배지가 구분.
+    secLove: '연애·궁합', secLoveDesc: '두 사람 사이 — 인연·시기·마음의 결',
+    secMoney: '돈·일·진로', secMoneyDesc: '재물 그릇·적성·일이 풀리는 때',
+    secSelf: '나는 어떤 사람인가', secSelfDesc: '타고난 기질과 쓰임 — 사주·자미로 깊이',
+    secFlow: '시기와 흐름', secFlowDesc: '오늘부터 십 년 뒤까지, 운의 결이 바뀌는 때',
+    secFun: '가볍게 보는 재미', secFunDesc: '심각하지 않게 즐기는 이야기',
+    secTool: '명식·도구', secToolDesc: '만세력으로 직접 찾아보기',
+    // (구) 가격·체계 축 라벨 — 주제 축 재편으로 미사용. 되돌릴 때를 위해 남겨 둠(3개 언어 동일).
+    secFree: '오늘·명식', secPremium: '나를 이해하기', secSpecial: '스페셜', secDeep: '나에 대해 알기', secLight: '가볍게 보기',
     viewCard: '카드', viewList: '리스트', // 홈 보기 방식 토글(daniel)
     todayTileDesc: '오늘 하루 흐름', monthTileDesc: '이번 달 흐름', newyearTileDesc: '올해 키워드·열두 달', personaTileDesc: '사주 성격유형', taegilTileDesc: '좋은 날 택일', luckTileDesc: '오늘의 행운', zodiacTileDesc: '띠·별자리 운세', nameTileDesc: '이름 소리 오행', dreamTileDesc: '꿈 해몽', egenTileDesc: '내 사주는 에겐? 테토?', mbtiTileDesc: '사주로 보는 내 MBTI', joseonjobTileDesc: '내 사주로 보는 조선시대 직업', lovestyleTileDesc: '내 연애 세포는?', bokTileDesc: '내 타고난 복은?', pastlifeTileDesc: '나의 전생은?', healingTileDesc: '나에게 맞는 쉼은?',
     secPremiumDesc: '나는 어떤 사람인지 — 사주·자미로 깊이 분석해요', secContentDesc: 'AI가 정밀하게 풀어주는 깊은 콘텐츠', secHotDesc: '요즘 가장 많이 찾는 질문 — 무료로 확인하고 더 깊이 봐요', secDeepDesc: '나를 더 깊이 들여다보는 분석', secLightDesc: '가볍게 즐기는 오늘의 재미',
@@ -315,7 +324,12 @@ export const ko = {
     'thisMonth': '이번 달', title: '이달의 운세', monthPillar: '이번 달 기운', flowTitle: '이번 달 흐름 (상순·중순·하순)', note: '이번 달의 큰 흐름이에요. 구체적인 날은 오늘의 운세에서 봐요.', heroSub: '이번 달 월건으로 보는 흐름', generating: '이번 달 흐름을 풀어내는 중…', gateTitle: '이달의 운세 보기', gateDesc: '타고난 사주에 지금의 큰 흐름·올해·이번 달 기운을 더해, 이달 생길 수 있는 일과 대처를 풀어 드려요.', seePremium: '이달의 운세 보기' },
   nav: { home: '홈', contents: '풀이', community: '커뮤니티', coach: '우니', market: '마켓' },
   lookback: { title: '되돌아보기', sub2: '오늘의 한 가지를 해낸 날들이에요.', needLogin: '로그인하면 기록이 계정에 저장되고 여기서 다시 볼 수 있어요.', empty2: '아직 기록이 없어요. 오늘의 운세 아래 "오늘의 한 가지"를 해내고 체크해 보세요.', goToday: '오늘의 운세 보기', summary: '평가한 {{rated}}일 중 {{hit}}일을 "맞았다"고 하셨어요', streak: '지금까지 {{n}}일, 오늘의 한 가지를 해내셨어요', myNote: '내 기록', missionDone: '✓ 그날의 한 가지를 했어요' },
-  contents: { sub: '보고 싶은 주제를 골라 보세요' }, // 하단탭 '풀이'(콘텐츠 목록) 화면 서브타이틀
+  contents: { // 하단탭 '풀이'(콘텐츠 목록) 화면
+    sub: '보고 싶은 주제를 골라 보세요',
+    searchPlaceholder: '무엇이 궁금하세요?',   // 검색창(daniel 08-06) — 이름·설명 부분일치
+    searchResult: '검색 결과 {{n}}개',
+    searchEmpty: '찾는 내용이 없어요.\n다른 낱말로 찾아보세요.',
+  },
   // 오늘 기운 카드(홈 주인공 ② · daniel 07-18). ⚠️유형명·근거 본문은 dailyFortune.ts 가 만들며 현재 한국어 고정.
   todayEnergy: { kicker: '오늘의 기운', point: '점', more: '오늘 운세 자세히' },
   // 성격유형 120종(홈 주인공 · daniel 07-18). ⚠️유형명·요약 본문은 engine/personaType.ts 가 만들며 현재 한국어 고정 —

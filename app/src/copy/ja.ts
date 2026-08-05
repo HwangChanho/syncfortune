@@ -56,7 +56,16 @@ export const ja = {
     dayPillar: '日柱論', dayPillarDesc: '生まれた日でみる気質', career: '起業家の私 vs 会社員の私', careerDesc: '独立と組織、二つの道', gaeun: 'あなたの開運法', gaeunDesc: '今の運に合わせて運を活かす', followupDesc: '占いにもう一つ質問', talent: '私の生まれ持った才能', celeb: '世界の人物マッチング', celebDesc: '有名人の四柱と比べる楽しみ', talentDesc: '才能·向く道·お金の扱い方', numerology: '数秘術', numerologyDesc: '数で見る人生の方向·才能', astrology: '星座·占星術', astrologyDesc: '星座 + ネイタルチャート、二つの視点',
     child: '子どもの縁', childDesc: '子との縁·気質·親としての私', future10: '10年後の私', future10Desc: '大運·歳運で描く10年後', reunion: '復縁', reunionDesc: '元の縁が再び開く時期·可能性', crush: '片思い·ご縁運', crushDesc: '想いが届くか·惹かれる人の質·近づく時期', job: '就職·転職運', jobDesc: '就職·転職·合格·試験が動きやすい時期', jobfit: '私に合う職業', jobfitDesc: '生まれ持った適性で合う職業·惹かれと能力の差', wealth: '財運ディープレポート', wealthDesc: '生まれ持った財の器·タイプ·大きく入る時期と守り方', reunionAsk: '復縁できる？', reunionAskDesc: '無料で見る復縁の可能性·連絡に良い月', crushAsk: 'あの人と結ばれる？', crushAskDesc: '無料で見る魅力·ご縁が高まる月', jobAsk: '就職はいつ？', jobAskDesc: '無料で見る就職·合格運が開く時期',
     saju: '四柱推命', sajuDesc: '鑑定·タイムライン·相性', ziweiHub: '紫微斗数', ziweiHubDesc: '命盤·運限·相性',
-    secFree: '今日・命式', secPremium: '自分を理解する', secContent: '人気', secSpecial: 'スペシャル', secDeep: '自分を知る', secLight: '気軽に',
+    secContent: '人気', // ★ショートカット行(テーマ軸の外)
+    // ★テーマ(悩み)軸のセクション(2026-08-06 再編) — 「何が知りたいか」で選ぶ。有料・無料はカードのバッジで示す。
+    secLove: '恋愛・相性', secLoveDesc: '二人の間 — 縁・時期・心の動き',
+    secMoney: 'お金・仕事・進路', secMoneyDesc: '財の器・適性・仕事が開ける時期',
+    secSelf: '私はどんな人か', secSelfDesc: '生まれ持った性質 — 四柱推命・紫微斗数で深く',
+    secFlow: '時期と流れ', secFlowDesc: '今日から十年先まで — 運の変わり目',
+    secFun: '気軽に楽しむ', secFunDesc: '重くない、遊びの読み物',
+    secTool: '命式・ツール', secToolDesc: '万年暦で自分で調べる',
+    // (旧)価格軸のラベル — テーマ軸再編で未使用。戻せるように残す。
+    secFree: '今日・命式', secPremium: '自分を理解する', secSpecial: 'スペシャル', secDeep: '自分を知る', secLight: '気軽に',
     viewCard: 'カード', viewList: 'リスト', // ホーム表示切替
     todayTileDesc: '今日一日の流れ', monthTileDesc: '今月の流れ', newyearTileDesc: '今年のキーワード・12か月', personaTileDesc: '性格タイプ', taegilTileDesc: '良い日選び', luckTileDesc: '今日の幸運', zodiacTileDesc: '干支・星座', nameTileDesc: '名前の響き', dreamTileDesc: '夢占い', egenTileDesc: '私はエゲン？テト？', mbtiTileDesc: '四柱で見るMBTI', joseonjobTileDesc: '四柱で見る朝鮮の職業', lovestyleTileDesc: '私の恋愛細胞は？', bokTileDesc: '私の福は？', pastlifeTileDesc: '私の前世は？', healingTileDesc: '私に合う休み方は？',
     secPremiumDesc: 'あなたはどんな人か — 四柱·紫微で深く', secContentDesc: 'AIが丁寧に解く深い鑑定', secHotDesc: '今よく検索される質問 — 無料で確認、さらに深く', secDeepDesc: '自分をより深く見つめる', secLightDesc: '気軽に楽しむ運勢',
@@ -292,7 +301,12 @@ export const ja = {
     'thisMonth': '이번 달', title: '今月の運勢', monthPillar: '今月の気', flowTitle: '今月の流れ（上旬·中旬·下旬）', note: '今月の大きな流れです。具体的な日は今日の運勢で。', heroSub: '今月のめぐりで読む流れ', generating: '今月の流れを読み解いています…', gateTitle: '今月の運勢を見る', gateDesc: '生まれ持った気質に、いまの大きな流れ・今年・今月のめぐりを重ねて、今月起こりそうなことと対処の仕方をお伝えします。', seePremium: '今月の運勢を見る' },
   nav: { home: 'ホーム', contents: '占い', community: 'コミュニティ', coach: 'ガイド', market: 'マーケット' },
   lookback: { title: '振り返り', sub2: '今日の一つを実行した日々です。', needLogin: 'ログインすると記録が保存され、ここで見返せます。', empty2: 'まだ記録がありません。今日の運勢の下の「今日の一つ」を実行してチェックしてみてください。', goToday: '今日の運勢を見る', summary: '評価した{{rated}}日のうち{{hit}}日を「当たった」とされました', streak: 'これまで{{n}}日、今日の一つを実行しました', myNote: '私の記録', missionDone: '✓ その日の一つを実行しました' },
-  contents: { sub: '見たいテーマを選んでください' },
+  contents: {
+    sub: '見たいテーマを選んでください',
+    searchPlaceholder: '何が気になりますか？',
+    searchResult: '検索結果 {{n}}件',
+    searchEmpty: '見つかりませんでした。\n別の言葉でお試しください。',
+  },
   todayEnergy: { kicker: '今日の気運', point: '点', more: '今日の運勢を詳しく' },
   persona120: {
     kicker: '私の性格タイプ', count: '120種のうち', more: '詳しく見る',

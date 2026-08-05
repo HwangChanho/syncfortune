@@ -32,7 +32,7 @@ import { loadCredits } from '../lib/billing/coupons';             // 쿠폰 잔�
 import { computeChart } from '../lib/engine/engine'; // canonical 빌더 단일화(daniel 07-23·drift 방지)
 import { appLang } from '../lib/i18n';
 import { homeTeaser, type HomeTeaser } from '../lib/content/homeTeaser'; // 카드 설명을 '내 얘기' 한 줄로(결정론·API 0, daniel 07-16)
-import { SECTIONS, CARD_REVEAL_OFFSETS, TOTAL_CARDS, HOME_INDIVIDUAL, priceLabel, type MenuItem } from '../lib/content/contentSections';
+import { SECTIONS, CARD_REVEAL_OFFSETS, TOTAL_CARDS, HOME_INDIVIDUAL, priceLabel, baseKey, type MenuItem } from '../lib/content/contentSections';
 import { SAJU_READING_CATEGORIES } from '../lib/backend/prewarmReadings'; // 세트(사주16) 카테고리 단일출처
 import { isNewContent } from '../lib/content/newBadge'; // 신규 콘텐츠 NEW 배지(출시일+21일 자동 만료·우측 상단 연한 빨강)
 import { useHomeViewMode } from '../lib/ui/homeView'; // 보기 방식(카드/리스트) 저장·토글(daniel)
@@ -75,10 +75,23 @@ function KenBurnsCard({ source }: { source: any }) {
  *  4 = 스크린 한 화면에 섹션 헤더+4행이 들어가 '섹션이 여러 개 있다'는 구조가 보이는 최소치. */
 const LIST_PREVIEW = 4;
 
+/** 카드뷰에서 가로 스크롤을 2줄로 접는 기준 개수(daniel 2026-08-06).
+ *  ★예전엔 섹션 **키를 하드코딩**해 'light 는 5개씩 N줄, deep 은 2줄'로 갈랐다. 그래서 25개짜리
+ *    '가볍게 보기'가 **가로 5줄**이 되어 대부분이 화면 밖에 숨었고, 섹션을 새로 만들 때마다
+ *    이 분기를 같이 고쳐야 했다(고치지 않으면 조용히 1줄로 떨어진다).
+ *  → 이제 **개수로만** 판단한다: 6개 이하면 1줄, 넘으면 2줄. 최대 2줄이라 세로 길이가 예측 가능하다. */
+const ROW_FOLD = 6;
+
 /** 보상형 광고 대기 상한(ms) — 광고는 부가 기능이라 오래 붙잡지 않는다. */
 const AD_TIMEOUT_MS = 15_000;
 
-export function ContentGrid({ showViewToggle = true }: { showViewToggle?: boolean }) {
+/**
+ * @param showViewToggle 카드/리스트 토글 노출 여부(기본 true)
+ * @param query 검색어(화면이 소유). 비어 있지 않으면 섹션 대신 **한 목록**으로 결과만 그린다.
+ *   ★검색 입력을 화면(contents.tsx)이 갖는 이유 = 화면 최상단에 고정해야 키보드에 가리지 않고
+ *     (check:keyboard R1), 스크롤을 내린 상태에서도 계속 쓸 수 있기 때문.
+ */
+export function ContentGrid({ showViewToggle = true, query = '' }: { showViewToggle?: boolean; query?: string }) {
   const router = useRouter();
   const { t } = useTranslation();
   const { viewMode, setViewMode } = useHomeViewMode();
@@ -124,7 +137,8 @@ export function ContentGrid({ showViewToggle = true }: { showViewToggle?: boolea
       // homeTeaser 는 throw 하지 않고 미지원 카드·산출 실패를 null 로 주므로 개별 try/catch 불필요.
       const tUnknown = (rep.input as any)?.timeAccuracy === '미상'; // 시주 미상 힌트(시에 기대는 산출의 정확도)
       const tz: Record<string, HomeTeaser> = {};
-      for (const sec of SECTIONS) for (const m of sec.items) { const x = homeTeaser(m.key, saju, tUnknown); if (x) tz[m.key] = x; }
+      // ★baseKey — '인기' 사본(hot*)도 원본 티저를 쓴다. 안 그러면 같은 카드가 인기 칸에서만 정적 설명이 뜬다.
+      for (const sec of SECTIONS) for (const m of sec.items) { const x = homeTeaser(baseKey(m.key), saju, tUnknown); if (x) tz[m.key] = x; }
       if (alive) setTeasers(tz);
     })().catch(() => {});
     return () => { alive = false; };
@@ -232,6 +246,78 @@ export function ContentGrid({ showViewToggle = true }: { showViewToggle?: boolea
     return priceLabel(ck);                                                                 // ④
   }
 
+  /**
+   * 리스트 행 1줄 — 작은 썸네일(좌) + 제목·설명 + 가격 배지/셰브런(우).
+   * ★리스트뷰와 **검색 결과가 이 함수 하나를 같이 쓴다**. 같은 UI 를 두 곳이 각자 그리면
+   *   언젠가 색·배지가 갈린다(에겐테토 막대 사고 2026-08-04). 갈릴 값은 인자로도 열지 않는다.
+   */
+  function renderListRow(m: MenuItem) {
+    const prem = !!m.premium;
+    const priceTxt = badgeFor(m);
+    const desc = descOf(m);
+    const isNew = isNewContent(m.key); // 신규 콘텐츠 = 라벨 옆 NEW(카드뷰와 동일 기준 — 리스트뷰 누락 수정·daniel 07-23)
+    return (
+      <PressableScale key={m.key} style={styles.listRow} onPress={() => onPress(m)}>
+        {m.image ? (
+          <ExpoImage source={m.image} style={styles.listThumb} contentFit="cover" cachePolicy="memory-disk" transition={120} />
+        ) : (
+          // 이미지 없는 항목(텍스트 카드) = 라벨 첫 글자 골드 썸네일 placeholder(행 정렬 유지)
+          <View style={[styles.listThumb, styles.listThumbPlaceholder]}>
+            <Text style={styles.listThumbGlyph}>{t(m.labelKey).slice(0, 1)}</Text>
+          </View>
+        )}
+        <View style={styles.listTextCol}>
+          <View style={styles.listLabelRow}>
+            <Text style={[styles.listLabel, prem && styles.listLabelPrem]} numberOfLines={1}>{t(m.labelKey)}</Text>
+            {isNew && <View style={styles.listNewTag}><Text style={styles.newTagTx}>NEW</Text></View>}
+          </View>
+          {/* 설명 1줄(daniel 07-26 나열 개선) — 리스트는 스캔이 목적이라 2줄이면 행이 두꺼워진다 */}
+          {desc ? <Text style={styles.listDesc} numberOfLines={1}>{desc}</Text> : null}
+        </View>
+        {priceTxt ? (
+          <View style={styles.listPriceTag}><Text style={styles.listPriceTx}>{priceTxt}</Text></View>
+        ) : (
+          <Text style={styles.listChevron}>›</Text>
+        )}
+      </PressableScale>
+    );
+  }
+
+  // ── 검색(온디바이스·API 0, daniel 2026-08-06) ────────────────────────────
+  // 51종을 스크롤로만 찾게 두면 '나열'이 된다. 라벨·설명 부분일치로 즉시 좁힌다.
+  //   ★결과는 섹션을 **가로질러 한 목록**으로 낸다 — 검색했는데 또 카테고리로 나누면
+  //     '빨리 찾기'라는 목적을 배반한다.
+  //   ★같은 라우트 중복(인기 섹션의 hot* 사본)은 하나로 접는다 — 같은 카드가 두 번 뜨면 혼란.
+  const q = query.trim().toLowerCase();
+  const results = useMemo(() => {
+    if (!q) return [] as MenuItem[];
+    const seen = new Set<string>();
+    const out: MenuItem[] = [];
+    for (const sec of sections) for (const m of sec.items) {
+      if (seen.has(m.route)) continue;
+      // 검색 대상 = 정적 라벨·설명. 티저('내 얘기')는 명식마다 달라져 검색 결과가 흔들린다.
+      const hay = `${t(m.labelKey)} ${m.descKey ? t(m.descKey) : ''}`.toLowerCase();
+      if (!hay.includes(q)) continue;
+      seen.add(m.route);
+      out.push(m);
+    }
+    return out;
+  }, [q, sections, t]);
+
+  // 검색 중 = 섹션·카드뷰·토글을 모두 접고 결과만. (검색어를 지우면 원래 화면으로 돌아온다.)
+  if (q) {
+    return (
+      <View style={styles.section}>
+        <Text style={styles.sectionH}>{t('contents.searchResult', { n: results.length, defaultValue: '검색 결과 {{n}}개' })}</Text>
+        <View style={styles.listBody}>
+          {results.length === 0
+            ? <Text style={styles.searchEmpty}>{t('contents.searchEmpty', '찾는 내용이 없어요.\n다른 낱말로 찾아보세요.')}</Text>
+            : results.map(renderListRow)}
+        </View>
+      </View>
+    );
+  }
+
   return (
     <>
       {/* 보기 방식(카드/리스트) 토글 — 우측 정렬 세그먼트, 선택은 저장(다음 실행에도 유지). */}
@@ -251,8 +337,8 @@ export function ContentGrid({ showViewToggle = true }: { showViewToggle?: boolea
 
       {/* 무료 / 프리미엄 / 콘텐츠 3범주 — 큰 섹션 헤더 + 좌우 가로 스크롤 카드(daniel) */}
       {sections.map((sec, secIdx) => {
-        const isLight = sec.key === 'light'; // '가볍게 보기' = 항목이 많아 2줄 가로 스크롤(daniel)
-        const isDeep = sec.key === 'deep';   // '나에 대해 알기' = 5개 넘어 2줄(컬럼 정렬) 가로 스크롤
+        // 카드뷰 줄 수 = 개수로만 결정(위 ROW_FOLD 주석 참조 — 섹션 키 하드코딩 제거).
+        const twoRows = sec.items.length > ROW_FOLD;
         // ★NEW 배지 콘텐츠를 섹션 앞으로(daniel 07-23 "new 붙어있는걸 제일 앞으로"·카드/리스트 공통). JS sort 안정 → 그 외 순서 유지.
         // ★정렬 = ①보유 이용권 ②NEW ③원래 순서.
         //   ①(daniel 2026-07-26 "유저별로 이용권이 있으면 풀이 목록에서 상단에 올라오게") — 이미 산 이용권을
@@ -272,7 +358,9 @@ export function ContentGrid({ showViewToggle = true }: { showViewToggle?: boolea
             ) : (
               <Text style={styles.sectionH}>{t(sec.titleKey)}</Text>
             )}
-            {sec.key !== 'free' && sec.descKey ? <Text style={styles.sectionDesc}>{t(sec.descKey)}</Text> : null}
+            {/* 섹션 설명은 **있으면 항상** 표시(daniel 08-06). 예전엔 'free' 섹션만 예외로 숨겼는데,
+                주제 축에서는 설명이 곧 "이 칸에 뭐가 들었나"를 알려주는 안내라 숨길 이유가 없다. */}
+            {sec.descKey ? <Text style={styles.sectionDesc}>{t(sec.descKey)}</Text> : null}
           </>
         );
 
@@ -293,37 +381,7 @@ export function ContentGrid({ showViewToggle = true }: { showViewToggle?: boolea
             <View key={sec.key} style={styles.section}>
               {sectionHeader}
               <View style={styles.listBody}>
-                {shown.map((m) => {
-                  const prem = !!m.premium;
-                  const priceTxt = badgeFor(m);
-                  const desc = descOf(m);
-                  const isNew = isNewContent(m.key); // 신규 콘텐츠 = 라벨 옆 NEW(카드뷰와 동일 기준 — 리스트뷰 누락 수정·daniel 07-23)
-                  return (
-                    <PressableScale key={m.key} style={styles.listRow} onPress={() => onPress(m)}>
-                      {m.image ? (
-                        <ExpoImage source={m.image} style={styles.listThumb} contentFit="cover" cachePolicy="memory-disk" transition={120} />
-                      ) : (
-                        // 이미지 없는 항목(텍스트 카드) = 라벨 첫 글자 골드 썸네일 placeholder(행 정렬 유지)
-                        <View style={[styles.listThumb, styles.listThumbPlaceholder]}>
-                          <Text style={styles.listThumbGlyph}>{t(m.labelKey).slice(0, 1)}</Text>
-                        </View>
-                      )}
-                      <View style={styles.listTextCol}>
-                        <View style={styles.listLabelRow}>
-                          <Text style={[styles.listLabel, prem && styles.listLabelPrem]} numberOfLines={1}>{t(m.labelKey)}</Text>
-                          {isNew && <View style={styles.listNewTag}><Text style={styles.newTagTx}>NEW</Text></View>}
-                        </View>
-                        {/* 설명 1줄(daniel 07-26 나열 개선) — 리스트는 스캔이 목적이라 2줄이면 행이 두꺼워진다 */}
-                        {desc ? <Text style={styles.listDesc} numberOfLines={1}>{desc}</Text> : null}
-                      </View>
-                      {priceTxt ? (
-                        <View style={styles.listPriceTag}><Text style={styles.listPriceTx}>{priceTxt}</Text></View>
-                      ) : (
-                        <Text style={styles.listChevron}>›</Text>
-                      )}
-                    </PressableScale>
-                  );
-                })}
+                {shown.map(renderListRow)}
                 {/* 더 보기 / 접기 — 항목이 미리보기 수를 넘을 때만 */}
                 {items.length > LIST_PREVIEW && (
                   <PressableScale style={styles.listMore} onPress={() => setOpenSec((o) => ({ ...o, [sec.key]: !secOpen }))}>
@@ -375,17 +433,9 @@ export function ContentGrid({ showViewToggle = true }: { showViewToggle?: boolea
         return (
           <View key={sec.key} style={styles.section}>
             {sectionHeader}
-            {isLight ? (
-              // 좌우 스크롤 — 한 줄 5개씩, 5개 넘으면 아래 줄로 쌓음(daniel).
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.hRow}>
-                <View style={styles.grid2col}>
-                  {Array.from({ length: Math.ceil(cards.length / 5) }, (_, r) => (
-                    <View key={r} style={styles.grid2row}>{cards.slice(r * 5, r * 5 + 5)}</View>
-                  ))}
-                </View>
-              </ScrollView>
-            ) : isDeep ? (
-              // 나에 대해 알기 — 5개 넘어 2줄(컬럼 정렬: 위/아래 번갈아) 가로 스크롤(daniel)
+            {twoRows ? (
+              // 2줄 — 컬럼 정렬(위/아래 번갈아)이라 **가로로 읽으면 선언 순서 그대로**다.
+              //   (줄 단위로 나누면(앞 절반/뒤 절반) 윗줄을 다 본 뒤 아랫줄로 돌아와야 해 순서가 끊긴다.)
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.hRow}>
                 <View style={styles.grid2col}>
                   <View style={styles.grid2row}>{cards.filter((_, i) => i % 2 === 0)}</View>
@@ -470,6 +520,8 @@ const styles = StyleSheet.create({
   listNewTag: { backgroundColor: '#F16C6C', borderRadius: radius.pill, paddingHorizontal: space(1.5), paddingVertical: 1, marginLeft: space(1.5) }, // 리스트뷰 인라인 NEW(카드뷰 newTag 와 같은 색)
   listLabelPrem: { color: colors.ju },
   listDesc: { fontSize: 12.5, color: colors.inkSoft, lineHeight: 17, marginTop: 2 },
+  // 검색 결과 없음 — 결과 자리에 그대로 놓아 '검색은 됐는데 없다'가 읽히게(빈 화면 아님).
+  searchEmpty: { ...font.body, color: colors.inkSoft, textAlign: 'center', paddingVertical: space(10), lineHeight: 22 },
   // '더 보기/접기' — 섹션 끝 가운데 정렬 소형 버튼(행과 구분되게 배경 없음)
   listMore: { alignSelf: 'center', paddingVertical: space(2.5), paddingHorizontal: space(4) },
   listMoreTx: { ...font.caption, color: colors.ju, fontWeight: '800' },

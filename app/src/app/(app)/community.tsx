@@ -19,7 +19,7 @@ import { computeChart } from '../../lib/engine/engine';
 import { listPosts, pollVote, pollStats, createPost, toSharedSaju, toSharedZiwei, COMMUNITY_CATEGORIES, type CommunityPost, type CommunityCategory } from '../../lib/backend/community';
 import { colors, radius, space, shadow, font } from '../../lib/theme';
 import { dateGanZhi } from '../../lib/content/dailyFortune'; // 일진 스레드 제목 — 서버는 날짜만, 간지는 클라 결정론(daniel 2026-08-05)
-import { SECTIONS } from '../../lib/content/contentSections'; // P2 후기 태그 — 콘텐츠 목록 단일 출처(라벨·라우트 여기서만)
+import { SECTIONS, baseKey } from '../../lib/content/contentSections'; // P2 후기 태그 — 콘텐츠 목록 단일 출처(라벨·라우트 여기서만)
 
 const EULA_KEY = 'pref.communityEula'; // 이용약관 동의 1회 플래그(Apple 1.2)
 
@@ -300,7 +300,8 @@ export default function CommunityScreen() {
                 새 콘텐츠가 생기면 자동으로 따라온다. 라벨은 각 콘텐츠의 i18n 라벨 그대로. */}
             {wcat === 'review' && (
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.topicBar} contentContainerStyle={styles.topicRow}>
-                {SECTIONS.flatMap((sec) => sec.items).filter((it) => it.ready !== false).map((it) => (
+                {/* ★'인기' 섹션 사본(hot*)은 뺀다 — 같은 콘텐츠 태그가 두 번 뜨던 것을 정리(2026-08-06). */}
+                {SECTIONS.flatMap((sec) => sec.items).filter((it) => it.ready !== false && it.key === baseKey(it.key)).map((it) => (
                   <PressableScale key={it.key} style={[styles.topicChip, topic === it.key && styles.topicChipOn]}
                     onPress={() => setTopic((cur) => (cur === it.key ? null : it.key))}>
                     <Text style={[styles.topicChipTx, topic === it.key && styles.topicChipTxOn]} numberOfLines={1}>{t(it.labelKey)}</Text>
