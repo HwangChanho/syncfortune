@@ -94,7 +94,8 @@
     "audit:deadcode": "tsx scripts/audit-deadcode.ts",
     "check:copy": "tsx scripts/check-copy.ts",
     "snap:cols": "node scripts/snap-columns.mjs",
-    "check:platform": "tsx scripts/check-platform.ts"
+    "check:platform": "tsx scripts/check-platform.ts",
+    "check:elempower": "tsx engine/elementPower.goldenset.ts"
   },
   "keywords": [],
   "author": "",

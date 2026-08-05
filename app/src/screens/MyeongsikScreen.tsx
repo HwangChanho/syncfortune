@@ -21,6 +21,7 @@ import { colors, radius, space, shadow, font } from '../lib/theme';
 import { GlassCard } from '../components/GlassCard';
 import { OhaengEnergy } from '../components/OhaengEnergy'; // 오행 에너지 구슬 인포그래픽(팔자 앞·이탈률↓·daniel 기획서①)
 import { GzCell } from '../components/GzCell'; // 간지 한 칸(오행색+한자+한글음) — 2026-07-16 추출(커뮤니티 SharedChart와 공유하는 단일 출처)
+import { elementPower } from '@engine/elementPower'; // ★오행 세력 2모드(합화·조후궁성) — daniel 2026-08-05
 import { stemElement, branchElement, elementColor, stemReading, branchReading, stemYinYang, branchYinYang, eumYangSkew, johuSkew, joSeupSkew } from '../lib/engine/ohaeng';
 import { ELEMENT_SKEW, tengodSkew, YINYANG_SKEW, JOHU_SKEW, JOSEUP_SKEW, CONCEPT_INFO, type SkewItem } from '../lib/content/skewKnowledge';
 import { useFontScale } from '../lib/ui/fontScale'; // 글자 크기(설정) — 명식 글자까지 모든 텍스트에 적용(daniel)
@@ -79,6 +80,8 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
   useEffect(() => { lastMyeongTab = activeTab; }, [activeTab]); // 선택 탭 기억 — 나갔다 와도 유지(daniel)
   const [strengthOpen, setStrengthOpen] = useState(false); // 신강·신약 특징 시트
   const [elemHidden, setElemHidden] = useState(false); // 오행분포에 지장간(支藏干) 오행 포함 토글(daniel)
+  const [pwHap, setPwHap] = useState(false);       // 오행 세력: 합에 따른 오행 변화(化) 적용
+  const [pwJohu, setPwJohu] = useState(false);     // 오행 세력: 조후(왕상휴수)+궁성 보정 적용
   const [johuOpen, setJohuOpen] = useState(false); // 조후·음양 쏠림 시트(daniel)
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(10)).current;
@@ -135,6 +138,12 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
     elem[branchElement(P[p].branch)]++;
     if (elemHidden) P[p].hiddenStems.forEach((h) => { elem[stemElement(h.stem)]++; });
   });
+  // ★오행 세력 2모드(daniel 2026-08-05) — 보정 켜면 '개수'가 아니라 '세력치 %' 로 그린다.
+  //   판정 재료는 전부 엔진(합화 성립=transformSupported·궁성=POS_WEIGHT 사상·조후=왕상휴수 통설표).
+  const pwOn = pwHap || pwJohu;
+  const pw = pwOn ? elementPower(c.saju, { hap: pwHap, johuGung: pwJohu }) : null;
+  const pwLabels = elementPower(c.saju, { hap: false, johuGung: false }).labels; // 발달/과다/부재(개수 기준·모드 무관)
+
   // ① 오행별 십성(daniel) — 일간 오행 기준 각 오행의 십성(대분류: 비겁/식상/재성/관성/인성)
   const dayElem = stemElement(P['일'].stem);
   const ELEM_GEN: Record<string, string> = { 木: '火', 火: '土', 土: '金', 金: '水', 水: '木' }; // 상생
@@ -619,25 +628,36 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
         <PressableScale style={[styles.layerChip, elemHidden && styles.layerChipOn]} onPress={() => setElemHidden((v) => !v)}>
           <Text style={[styles.layerChipTx, elemHidden && styles.layerChipTxOn]}>{elemHidden ? '✓ ' : ''}지장간 포함</Text>
         </PressableScale>
+        {/* ★세력 2모드(daniel 2026-08-05) — 켜면 개수 대신 보정 세력 %. 두 칩은 독립(겹쳐 켜기 가능). */}
+        <PressableScale style={[styles.layerChip, pwHap && styles.layerChipOn]} onPress={() => setPwHap((v) => !v)}>
+          <Text style={[styles.layerChipTx, pwHap && styles.layerChipTxOn]}>{pwHap ? '✓ ' : ''}합화 반영</Text>
+        </PressableScale>
+        <PressableScale style={[styles.layerChip, pwJohu && styles.layerChipOn]} onPress={() => setPwJohu((v) => !v)}>
+          <Text style={[styles.layerChipTx, pwJohu && styles.layerChipTxOn]}>{pwJohu ? '✓ ' : ''}조후·궁성 보정</Text>
+        </PressableScale>
       </View>
       {(() => {
         // 도넛(원 그리기)은 오행 상생 순서를 지켜야 한다 — 목생화·화생토… 가 눈에 보여야 해서.
         const order = ['木', '火', '土', '金', '水'] as const;
+        // ★보정 모드(pwOn)면 개수(elem) 대신 세력치(pw.power). 표시값도 '개수'가 아니라 % 만.
+        const view: Record<string, number> = pwOn && pw
+          ? Object.fromEntries(order.map((el) => [el, pw.power[el]]))
+          : elem;
         // ★범례(목록)는 **갯수 내림차순**으로 세운다(daniel 2026-08-04 "갯수 내림차순으로 노출시켜").
         //   순서를 고정하면 어느 기운이 많은지 숫자를 하나하나 읽어야 안다 — 많은 것부터 놓으면 한눈에 보인다.
         //   같은 개수면 원래 오행 순서를 유지한다(흔들리지 않게).
-        const legendOrder = [...order].sort((a, b) => elem[b] - elem[a] || order.indexOf(a) - order.indexOf(b));
-        const total = order.reduce((a, el) => a + elem[el], 0) || 1;
+        const legendOrder = [...order].sort((a, b) => view[b] - view[a] || order.indexOf(a) - order.indexOf(b));
+        const total = order.reduce((a, el) => a + view[el], 0) || 1;
         const R = 40, CX = 50, CY = 50, SW = 13, circ = 2 * Math.PI * R;
         // 누적 오프셋으로 세그먼트 배치(12시 시작). 강한 오행 순이 아니라 상생순(목화토금수) 고정.
         let acc = 0;
-        const segs = order.filter((el) => elem[el] > 0).map((el) => {
-          const frac = elem[el] / total;
+        const segs = order.filter((el) => view[el] > 0).map((el) => {
+          const frac = view[el] / total;
           const seg = { el, len: circ * frac, offset: acc };
           acc += frac;
           return seg;
         });
-        const top = order.reduce((m, el) => (elem[el] > elem[m] ? el : m), '木' as typeof order[number]);
+        const top = order.reduce((m, el) => (view[el] > view[m] ? el : m), '木' as typeof order[number]);
         return (
           <View style={styles.strengthRow}>
             <Svg width={100} height={100}>
@@ -655,7 +675,12 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
                 <View key={el} style={styles.elemLegendRow}>
                   <View style={[styles.elemDot, { backgroundColor: elementColor[el] }]} />
                   <Text style={[styles.elemLegendEl, { color: elementColor[el] }]}>{el} <Text style={{ fontSize: 11, color: colors.inkFaint, fontWeight: '600' }}>({elemTenGod(el)})</Text></Text>
-                  <Text style={styles.elemLegendVal}>{elem[el]}  ·  {Math.round((elem[el] / total) * 100)}%</Text>
+                  {/* ★발달/과다/부재 라벨(daniel "어떤 오행이 발달했는지도") — 글자 개수 기준·모드 무관 */}
+                  {pwLabels[el as '木'] ? (
+                    <Text style={[styles.elemDevBadge, pwLabels[el as '木'] === '부재' && { color: colors.inkFaint, borderColor: colors.line }]}>{pwLabels[el as '木']}</Text>
+                  ) : null}
+                  {/* 보정 모드에선 세력치가 소수라 개수 표기를 빼고 % 만(개수 모드는 기존 그대로) */}
+                  <Text style={styles.elemLegendVal}>{pwOn ? '' : `${elem[el]}  ·  `}{Math.round((view[el] / total) * 100)}%</Text>
                 </View>
               ))}
             </View>
@@ -1340,6 +1365,8 @@ const makeStyles = (fs: (n: number) => number) => { const f = scaledFont(fs); re
   elemDot: { width: 10, height: 10, borderRadius: 5 },
   elemLegendEl: { fontSize: fs(15), fontWeight: '800' }, // 오행+십성 한 줄(daniel) — 고정폭 제거(width 20이 '(식상)'을 줄바꿈시켰음)
   elemLegendVal: { ...f.caption, color: colors.inkSoft, marginLeft: 'auto' }, // 개수·% 는 우측 정렬(열 정돈)
+  // 발달/과다/부재 배지 — 개수 통설(4+/3/0). 색은 발달·과다=골드, 부재=흐림.
+  elemDevBadge: { fontSize: 10.5, lineHeight: 14, fontWeight: '800', color: colors.ju, borderWidth: 1, borderColor: colors.ju + '66', borderRadius: 4, paddingHorizontal: 4, paddingVertical: 1, marginLeft: 6, overflow: 'hidden' },
   note: { ...f.caption, marginTop: space(6) },
   readingBtn: {
     backgroundColor: colors.ju, borderRadius: radius.md, paddingVertical: space(3.5),
