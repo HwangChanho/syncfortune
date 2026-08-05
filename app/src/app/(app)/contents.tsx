@@ -109,8 +109,10 @@ const styles = StyleSheet.create({
   wrap: { padding: space(5), paddingTop: space(2), paddingBottom: space(24) },
   // 상단 줄 — 스크롤 **밖**(항상 보임). 스크롤과 겹치지 않고 위아래로 놓이므로 배경을 깔지 않는다
   //   (colors.bg 를 깔면 전역 ContentBackdrop 의 오행 배경색과 이 줄만 색이 어긋난다).
+  // ★alignItems:'stretch' — 토글이 검색창과 **같은 높이**가 되게(center 로 두면 토글이 더 커져
+  //   보조 버튼이 주인공인 검색창보다 도드라진다. 실측 08-06).
   topBar: {
-    flexDirection: 'row', alignItems: 'center', gap: space(2),
+    flexDirection: 'row', alignItems: 'stretch', gap: space(2),
     paddingHorizontal: space(5), paddingBottom: space(2.5), backgroundColor: 'transparent',
   },
   searchBox: {
@@ -124,9 +126,10 @@ const styles = StyleSheet.create({
   searchClear: { paddingHorizontal: space(1), paddingVertical: space(1) },
   searchClearTx: { fontSize: 15, fontWeight: '800', color: colors.inkFaint },
   // 보기 토글 — 검색줄 오른쪽 끝. 기호만이라 폭이 작다.
+  //   ★활성 표시를 **연한 골드 배경 + 골드 글자**로(꽉 찬 골드는 보조 버튼이 검색창보다 튄다).
   viewToggle: { flexDirection: 'row', gap: space(1), backgroundColor: colors.overlay, borderRadius: radius.pill, padding: space(1), borderWidth: 1, borderColor: colors.line },
-  viewTogChip: { paddingHorizontal: space(2.5), paddingVertical: space(2), borderRadius: radius.pill },
-  viewTogChipOn: { backgroundColor: colors.ju }, // 활성 = 골드(라이트/다크 자동)
-  viewTogTx: { fontSize: 14, fontWeight: '800', color: colors.inkSoft },
-  viewTogTxOn: { color: '#15132E' },             // 골드 위 다크 텍스트
+  viewTogChip: { justifyContent: 'center', paddingHorizontal: space(2.5), borderRadius: radius.pill }, // 세로 패딩 없음 = 부모(stretch) 높이에 맞춤
+  viewTogChipOn: { backgroundColor: colors.juSoft },
+  viewTogTx: { fontSize: 14, fontWeight: '800', color: colors.inkFaint },
+  viewTogTxOn: { color: colors.ju },
 });
