@@ -8,6 +8,7 @@ import { useEffect, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { PressableScale } from '../../components/PressableScale';
 import { supabase } from '../../lib/supabase';
+import { COIN_PRICE, COIN_PACKS } from '../../lib/billing/coinPrices'; // ★판매가 단일 출처(결제가 실제로 쓰는 값)
 import { colors, space, radius, font } from '../../lib/theme';
 
 type Row = {
@@ -16,11 +17,28 @@ type Row = {
   mult: number;   // 1회 통변 = 영역수 (사주 16·자미 12·그 외 1). 실측(영역당)×mult = 통변 1회 원가
   type: '무료' | '광고무료' | '유료';
   api: boolean;
-  price: number;  // 확정 판매가(₩)
+  price: number;  // 판매가(₩ 환산) — ★COIN_PRICE 단일 출처에서 파생(priceOf)
   adEst: number;  // 광고 수익 *추정*(₩/회) — 보상형≈20·배너≈3
 };
 
-// 가격·분류·영역수는 확정 사실. 원가는 실측 RPC로 채움(아래 costMap).
+// ── 판매가 = 운 단일 출처에서 파생 ────────────────────────────────
+// ★2026-08-06 daniel "가격이나 그런거 제대로 나오고 있고?" 점검에서 드러난 결함:
+//   이 표의 판매가가 **07-28 운(화폐) 전환 이전의 원화 가격으로 하드코딩**돼 있었다.
+//   실측 대조 — 궁합: 표 ₩4,900 vs 실제 30 운(≈₩2,970) = **65% 과대**.
+//   나머지는 우연히 맞았다(운 가격을 대체로 원화÷99 로 정했기 때문) — 즉 **언제든 또 갈릴 구조**였다.
+//   → 가격을 여기 적지 않고 `COIN_PRICE`(결제가 실제로 쓰는 값)에서 계산한다.
+/** 운 → 원 환산 단가. 기본 팩(100운=₩9,900) 기준 = ₩99/운.
+ *  ⚠️대량 팩은 운당 단가가 더 싸므로(1200운 팩 ≈₩74.9) 이 값은 **매출 상한**이다 — 수익을 낙관하지 말 것. */
+const WON_PER_COIN = COIN_PACKS[0].won / COIN_PACKS[0].coins;
+/** api_usage 의 kind → 결제 키(CreditKind). 사주만 이름이 다르다(saju ↔ reading). */
+const CREDIT_OF: Record<string, string> = { saju: 'reading' };
+/** 판매가(₩ 환산). 운 가격이 없는 kind(무료·미등록)는 0. @param kind api_usage kind */
+const priceOf = (kind: string): number => {
+  const coins = (COIN_PRICE as Record<string, number | undefined>)[CREDIT_OF[kind] ?? kind];
+  return coins ? Math.round(coins * WON_PER_COIN) : 0;
+};
+
+// 분류·영역수는 확정 사실. 가격은 위 priceOf(단일 출처), 원가는 실측 RPC로 채움(아래 costMap).
 const ROWS: Row[] = [
   { name: '만세력', kind: '', mult: 1, type: '무료', api: false, price: 0, adEst: 3 },
   { name: '신살·공망', kind: '', mult: 1, type: '무료', api: false, price: 0, adEst: 3 },
@@ -41,30 +59,30 @@ const ROWS: Row[] = [
   { name: '이름풀이', kind: '', mult: 1, type: '무료', api: false, price: 0, adEst: 3 },
   { name: '오늘의 운세', kind: 'daily', mult: 1, type: '광고무료', api: true, price: 0, adEst: 20 },
   { name: '이달의 운세', kind: 'monthly', mult: 1, type: '광고무료', api: true, price: 0, adEst: 20 },
-  { name: '사주 풀이(16영역)', kind: 'saju', mult: 16, type: '유료', api: true, price: 19900, adEst: 0 },
-  { name: '자미두수(12궁)', kind: 'ziwei', mult: 12, type: '유료', api: true, price: 14900, adEst: 0 },
-  { name: '궁합', kind: 'compat', mult: 1, type: '유료', api: true, price: 4900, adEst: 0 },
-  { name: '나의 애정흐름', kind: 'love', mult: 1, type: '유료', api: true, price: 9900, adEst: 0 },
-  { name: '인생 타임라인', kind: 'timeline', mult: 1, type: '유료', api: true, price: 1900, adEst: 0 },
-  { name: '추가 질문', kind: 'followup', mult: 1, type: '유료', api: true, price: 990, adEst: 0 },
-  { name: '신년운세', kind: 'newyear', mult: 1, type: '유료', api: true, price: 9900, adEst: 0 },
-  { name: '인생 그래프', kind: 'lifegraph', mult: 1, type: '유료', api: true, price: 3900, adEst: 0 },
-  { name: '명식의 뿌리', kind: 'roots', mult: 1, type: '유료', api: true, price: 4900, adEst: 0 },
-  { name: '비치는 나', kind: 'image', mult: 1, type: '유료', api: true, price: 4900, adEst: 0 },
-  { name: '나의 사명', kind: 'mission', mult: 1, type: '유료', api: true, price: 6900, adEst: 0 },
-  { name: '사업가의 나', kind: 'career', mult: 1, type: '유료', api: true, price: 4900, adEst: 0 },
-  { name: 'AI 꿈해몽(개당)', kind: 'dream', mult: 1, type: '유료', api: true, price: 500, adEst: 0 },
+  { name: '사주 풀이(16영역)', kind: 'saju', mult: 16, type: '유료', api: true, price: priceOf('saju'), adEst: 0 },
+  { name: '자미두수(12궁)', kind: 'ziwei', mult: 12, type: '유료', api: true, price: priceOf('ziwei'), adEst: 0 },
+  { name: '궁합', kind: 'compat', mult: 1, type: '유료', api: true, price: priceOf('compat'), adEst: 0 },
+  { name: '나의 애정흐름', kind: 'love', mult: 1, type: '유료', api: true, price: priceOf('love'), adEst: 0 },
+  { name: '인생 타임라인', kind: 'timeline', mult: 1, type: '유료', api: true, price: priceOf('timeline'), adEst: 0 },
+  { name: '추가 질문', kind: 'followup', mult: 1, type: '유료', api: true, price: priceOf('followup'), adEst: 0 },
+  { name: '신년운세', kind: 'newyear', mult: 1, type: '유료', api: true, price: priceOf('newyear'), adEst: 0 },
+  { name: '인생 그래프', kind: 'lifegraph', mult: 1, type: '유료', api: true, price: priceOf('lifegraph'), adEst: 0 },
+  { name: '명식의 뿌리', kind: 'roots', mult: 1, type: '유료', api: true, price: priceOf('roots'), adEst: 0 },
+  { name: '비치는 나', kind: 'image', mult: 1, type: '유료', api: true, price: priceOf('image'), adEst: 0 },
+  { name: '나의 사명', kind: 'mission', mult: 1, type: '유료', api: true, price: priceOf('mission'), adEst: 0 },
+  { name: '사업가의 나', kind: 'career', mult: 1, type: '유료', api: true, price: priceOf('career'), adEst: 0 },
+  { name: 'AI 꿈해몽(개당)', kind: 'dream', mult: 1, type: '유료', api: true, price: priceOf('dream'), adEst: 0 },
   // ★누락 보강(daniel 07-07): 전 24종 유료 콘텐츠 원가표 — 실측(usage_cost_by_kind)로 채움. celeb/timeresolve=결정론(비용0).
-  { name: '나의 타고난 재능', kind: 'talent', mult: 1, type: '유료', api: true, price: 4900, adEst: 0 },
-  { name: '별자리·점성술', kind: 'astrology', mult: 1, type: '유료', api: true, price: 4900, adEst: 0 },
-  { name: '맞춤 개운법', kind: 'gaeun', mult: 1, type: '유료', api: true, price: 4900, adEst: 0 },
-  { name: '재회운', kind: 'reunion', mult: 1, type: '유료', api: true, price: 9900, adEst: 0 },
-  { name: '짝사랑 인연운', kind: 'crush', mult: 1, type: '유료', api: true, price: 4900, adEst: 0 },
-  { name: '취업·이직운', kind: 'job', mult: 1, type: '유료', api: true, price: 4900, adEst: 0 },
-  { name: '10년 뒤 나의 모습', kind: 'future10', mult: 1, type: '유료', api: true, price: 4900, adEst: 0 },
-  { name: '자식운', kind: 'child', mult: 1, type: '유료', api: true, price: 4900, adEst: 0 },
+  { name: '나의 타고난 재능', kind: 'talent', mult: 1, type: '유료', api: true, price: priceOf('talent'), adEst: 0 },
+  { name: '별자리·점성술', kind: 'astrology', mult: 1, type: '유료', api: true, price: priceOf('astrology'), adEst: 0 },
+  { name: '맞춤 개운법', kind: 'gaeun', mult: 1, type: '유료', api: true, price: priceOf('gaeun'), adEst: 0 },
+  { name: '재회운', kind: 'reunion', mult: 1, type: '유료', api: true, price: priceOf('reunion'), adEst: 0 },
+  { name: '짝사랑 인연운', kind: 'crush', mult: 1, type: '유료', api: true, price: priceOf('crush'), adEst: 0 },
+  { name: '취업·이직운', kind: 'job', mult: 1, type: '유료', api: true, price: priceOf('job'), adEst: 0 },
+  { name: '10년 뒤 나의 모습', kind: 'future10', mult: 1, type: '유료', api: true, price: priceOf('future10'), adEst: 0 },
+  { name: '자식운', kind: 'child', mult: 1, type: '유료', api: true, price: priceOf('child'), adEst: 0 },
   { name: '세계 인물 매칭', kind: 'celeb', mult: 1, type: '무료', api: false, price: 0, adEst: 0 }, // 온디바이스 결정론·완전 무료 전환(daniel 07-07) — 마켓 판매·잠금 퍼널 제거
-  { name: '태어난 시 찾기', kind: 'timeresolve', mult: 1, type: '유료', api: false, price: 990, adEst: 0 },
+  { name: '태어난 시 찾기', kind: 'timeresolve', mult: 1, type: '유료', api: false, price: priceOf('timeresolve'), adEst: 0 },
 ];
 
 const SCALES = [1, 10, 100, 1000];

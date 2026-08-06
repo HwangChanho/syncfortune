@@ -221,3 +221,15 @@ export const CARD_REVEAL_OFFSETS: number[] = (() => {
 })();
 /** 전체 카드 수 — 공개 완료 판정(revealCount >= TOTAL_CARDS)에 사용. */
 export const TOTAL_CARDS = SECTIONS.reduce((n, s) => n + s.items.length, 0);
+
+/**
+ * 유료(운으로 여는) 콘텐츠의 라우트 집합.
+ * ★용도: **유료 콘텐츠 화면에서는 광고를 띄우지 않는다**(daniel 2026-08-06 "유료 컨텐츠는 광고 다 빼").
+ *   돈을 낸 화면에 광고가 붙어 있으면 그 자체가 과금 유도로 읽힌다 — 무료는 광고로,
+ *   유료는 값으로 값을 받는다는 경계를 코드로 못박는다.
+ * ★왜 목록이 아니라 여기서 파생하나: 유료 콘텐츠가 늘 때마다 광고 예외 목록을 따로 관리하면
+ *   반드시 한쪽이 빠진다(이 프로젝트 반복 실수). creditKey 라는 **사실 하나**에서 자동으로 나온다.
+ */
+export const PAID_ROUTES: string[] = Array.from(
+  new Set(SECTIONS.flatMap((s) => s.items).filter((m) => m.creditKey).map((m) => m.route)),
+);
