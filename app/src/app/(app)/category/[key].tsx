@@ -9,13 +9,13 @@
 // ★목록 렌더는 ContentGrid 를 그대로 쓴다(카드/리스트·배지·게이트·무료 우선 정렬이 전부 거기 있다).
 //   여기서 또 그리면 같은 카드가 두 벌이 되어 언젠가 갈린다(이 프로젝트 반복 사고).
 // ─────────────────────────────────────────────────────────────────────────
-import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import { View, ScrollView, StyleSheet } from 'react-native';
 import { useLocalSearchParams, Stack } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { ContentGrid } from '../../../components/ContentGrid';
 import { SECTIONS } from '../../../lib/content/contentSections';
 import { useHomeViewMode } from '../../../lib/ui/homeView';
-import { colors, space, font } from '../../../lib/theme';
+import { space } from '../../../lib/theme';
 
 export default function CategoryScreen() {
   const { key } = useLocalSearchParams<{ key?: string }>();
@@ -29,9 +29,10 @@ export default function CategoryScreen() {
       {/* 헤더 타이틀 = 카테고리 이름(뒤로 버튼은 네이티브 스택이 담당) */}
       <Stack.Screen options={{ title: sec ? (t(sec.titleKey) as string) : '' }} />
       <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>
-        {sec?.descKey ? <Text style={styles.desc}>{t(sec.descKey)}</Text> : null}
-        {/* category 를 주면 ContentGrid 가 그 섹션만 그린다(무료 우선 정렬 포함). */}
-        <ContentGrid viewMode={viewMode} category={catKey} />
+        {/* ★제목·설명은 ContentGrid 의 섹션 헤더가 그린다(단일 출처). 여기서도 그렸더니 실물에서
+            설명이 두 번 찍혔다 — 같은 문구를 두 곳이 각자 그리는 08-04 사고와 같은 계열. */}
+        {/* category = 그 섹션만 · wrap = 가로 캐러셀 대신 2열 세로 그리드(전용 화면은 세로 지면이 남는다). */}
+        <ContentGrid viewMode={viewMode} category={catKey} wrap />
       </ScrollView>
     </View>
   );
@@ -42,5 +43,4 @@ const styles = StyleSheet.create({
   screen: { backgroundColor: 'transparent' },
   // padding space(5) = ContentGrid 의 section marginHorizontal:-space(5) 와 짝(가로 스크롤이 화면 끝까지).
   wrap: { padding: space(5), paddingBottom: space(24) },
-  desc: { ...font.body, color: colors.inkSoft, marginBottom: space(4) },
 });

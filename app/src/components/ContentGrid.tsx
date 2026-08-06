@@ -96,7 +96,16 @@ const AD_TIMEOUT_MS = 15_000;
  *      화면에서 토글해도 그리드는 모른다(같은 값을 여러 곳이 각자 읽어 갈린 사고 이력 있음).
  *      → 훅은 화면에서 한 번만 부르고 여기로는 값만 내려온다.
  */
-export function ContentGrid({ query = '', viewMode, category = null }: { query?: string; viewMode: HomeViewMode; category?: string | null }) {
+/**
+ * @param query      검색어(있으면 카테고리 필터 대신 전 영역 검색)
+ * @param viewMode   'card' | 'list' — 화면이 소유한 값(여기서 훅을 다시 부르지 않는다)
+ * @param category   섹션 키. 주면 그 섹션만 그린다.
+ * @param wrap       카드뷰를 **가로 스크롤 대신 세로 랩 그리드**로. 카테고리 전용 화면처럼
+ *                   섹션 하나가 곧 화면 전체일 때 쓴다. 기본 false(풀이탭 개요는 종전 캐러셀).
+ * @param header     섹션 제목·설명 표시 여부. 화면이 이미 같은 문구를 그리면 false 로 끈다.
+ */
+export function ContentGrid({ query = '', viewMode, category = null, wrap = false, header = true }:
+  { query?: string; viewMode: HomeViewMode; category?: string | null; wrap?: boolean; header?: boolean }) {
   const router = useRouter();
   const { t } = useTranslation();
   const { session } = useAuth();
@@ -361,7 +370,9 @@ export function ContentGrid({ query = '', viewMode, category = null }: { query?:
         //     주제 축에서는 섹션이 대등한 선택지라, 하나만 박스로 감싸면 그게 섹션인지 버튼인지 모호해지고
         //     위계가 섞여 보였다. 인기는 **맨 위에 있다는 위치**로 이미 충분히 강조된다.
         //     (이로써 sec.key 하드코딩 분기가 이 컴포넌트에서 전부 사라졌다.)
-        const sectionHeader = (
+        //   ★`header=false` 면 통째로 생략 — 카테고리 전용 화면이 이미 같은 제목·설명을 그린다
+        //     (실물에서 설명이 두 번 찍혔다. 08-04 [[duplicate-ui-single-source]] 와 같은 계열의 중복.)
+        const sectionHeader = !header ? null : (
           <>
             <Text style={styles.sectionH}>{t(sec.titleKey)}</Text>
             {/* 섹션 설명은 **있으면 항상** 표시(daniel 08-06). 예전엔 'free' 섹션만 예외로 숨겼는데,
@@ -410,7 +421,7 @@ export function ContentGrid({ query = '', viewMode, category = null }: { query?:
           // 이미지 없는 콘텐츠 = 텍스트 카드(제목+설명), 이미지 카드와 시각 구분
           if (!m.image) {
             return (
-              <PressableScale key={m.key} style={[styles.card, styles.textCard]} onPress={() => onPress(m)}>
+              <PressableScale key={m.key} style={[styles.card, styles.textCard, wrap && styles.cardWrap]} onPress={() => onPress(m)}>
                 {badge && <View style={[styles.priceTag, isNew && styles.priceTagLeft]}><Text style={styles.priceTagText}>{badge}</Text></View>}
                 {isNew && <View style={styles.newTag}><Text style={styles.newTagTx}>NEW</Text></View>}
                 <Text style={styles.textCardLabel}>{t(m.labelKey)}</Text>
@@ -419,7 +430,7 @@ export function ContentGrid({ query = '', viewMode, category = null }: { query?:
             );
           }
           return (
-            <PressableScale key={m.key} style={styles.card} onPress={() => onPress(m)}>
+            <PressableScale key={m.key} style={[styles.card, wrap && styles.cardWrap]} onPress={() => onPress(m)}>
               <View style={styles.cardImg}>
                 {/* expo-image 다운샘플(메모리·랙) + 켄번스 느린 줌(daniel #21). 차례가 온 카드만 mount. */}
                 {revealed
@@ -436,6 +447,18 @@ export function ContentGrid({ query = '', viewMode, category = null }: { query?:
             </PressableScale>
           );
         });
+        // ★랩 그리드 — 카테고리 전용 화면(섹션 1개 = 화면 전체)에서는 가로 캐러셀이 틀린 그림이다.
+        //   실물에서 10개 중 2.5개만 보이고 나머지는 오른쪽으로 잘렸다. "타고 들어가면 하위 항목이 나오게"(daniel)
+        //   라고 했는데 정작 들어가서도 옆으로 밀어야 보였다 — 개요(여러 섹션을 세로로 쌓으므로 가로 압축이 필요)와
+        //   전용 화면(세로 지면이 통째로 남는다)은 요구가 반대다.
+        if (wrap) {
+          return (
+            <View key={sec.key} style={styles.section}>
+              {sectionHeader}
+              <View style={styles.wrapGrid}>{cards}</View>
+            </View>
+          );
+        }
         return (
           <View key={sec.key} style={styles.section}>
             {sectionHeader}
@@ -466,6 +489,11 @@ const styles = StyleSheet.create({
   // ('인기' 전용 골드 밴드 제거 — 전 섹션 같은 헤더로 통일, daniel 08-06)
   sectionDesc: { ...font.caption, color: colors.inkSoft, marginBottom: space(3), paddingHorizontal: space(5), lineHeight: 18 },
   hRow: { gap: space(3), paddingHorizontal: space(5), paddingVertical: space(1) }, // 카드 간격 + 좌우 여백
+  // 랩 그리드(카테고리 전용 화면) — 2열로 접히며 세로로 이어진다. hRow 와 같은 좌우 여백을 써서
+  //   개요 화면에서 들어왔을 때 카드 왼쪽 선이 그대로 이어지는 느낌을 준다.
+  wrapGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: space(3), paddingHorizontal: space(5), paddingVertical: space(1) },
+  // ★폭을 고정 168 → 비율로. 좁은 기기(375pt)에서 168×2+간격이 넘쳐 1열로 무너지던 걸 막는다.
+  cardWrap: { width: '48%' },
   grid2col: { gap: space(3) },                       // 윗줄·아랫줄 세로 간격
   grid2row: { flexDirection: 'row', gap: space(3) }, // 한 줄 카드 가로 간격
   // 콘텐츠 텍스트 카드(이미지 없음) — 이미지 카드와 동일 비율, 제목+설명 하단 정렬
