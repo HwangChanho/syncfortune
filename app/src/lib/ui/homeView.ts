@@ -1,46 +1,46 @@
-// app/src/lib/ui/homeView.ts — 홈 화면 보기 방식(카드/리스트) 저장·토글 (daniel)
+// app/src/lib/ui/homeView.ts — 풀이탭/카테고리 화면의 보기 방식(카드/리스트)
 // ─────────────────────────────────────────────────────────────────────────
-// daniel: "홈에서 카드뷰 ↔ 리스트뷰를 바꿔서 볼 수 있게, 선택은 유지되게."
-//   fontScale.tsx 와 *동일한 저장 방식*(native=SecureStore / web=localStorage)으로 앱 재시작에도 유지.
-//   단, 이 값은 홈 화면 한 곳에서만 쓰므로 fontScale 처럼 전역 Context 를 두지 않고,
-//   자체 hook(로컬 state + 저장)으로 최소·단순하게 구현한다(단일 책임·확장 용이).
-//   ★기본 = 'list'(daniel 2026-08-07 "최상단에 디폴트를 리스트뷰로 해 — 풀이탭 기준").
-//     소비처는 풀이탭(contents)과 카테고리 화면 둘뿐이다(홈은 더 이상 쓰지 않는다) → 홈에 영향 없음.
-//   ⚠️**이미 토글해 본 사용자에게는 안 바뀐다** — 저장값이 있으면 그걸 쓴다. 저장은 토글에서만 일어나므로
-//     저장값 = 그 사람이 직접 고른 값이고, 기본값 변경으로 그걸 덮으면 선택을 빼앗는 게 된다(일부러 안 덮는다).
-//     (08-06 홈 배치에서는 반대로 마이그레이션을 넣었다 — 거긴 '새 블록이 안 보이는' 결손이라 성격이 다르다.)
+// daniel 2026-08-07: **"카드뷰는 눌렀을 때만 그렇게 보이고, 카드뷰로 누르고 종료해도
+//   재시작하면 무조건 리스트뷰가 떠야지."**
+//   ⇒ 토글은 **이번 실행 동안만** 유효하다. 앱을 껐다 켜면 항상 리스트로 돌아온다.
+//   ⇒ 그래서 **저장하지 않는다**(종전엔 SecureStore 에 남겨 다음 실행에도 카드뷰가 유지됐다).
+//
+// ★그런데 '저장 안 함'을 화면별 useState 로 하면 안 된다 —
+//   이 훅의 소비처는 **둘**(풀이탭 contents / 카테고리 화면 category/[key]).
+//   각자 state 를 들면 풀이탭에서 카드로 바꾸고 카테고리로 들어갔을 때 다시 리스트로 보인다.
+//   ⇒ **모듈 스코프 변수 + 구독자**로 한 값을 공유한다. 이 변수는 JS 런타임이 새로 뜰 때
+//     (= 앱 콜드 스타트) 자동으로 DEFAULT_VIEW 로 돌아가므로, '재시작하면 리스트'가 공짜로 성립한다.
+//   (같은 값을 여러 곳이 각자 읽어 갈렸던 사고 이력이 있다 — coin 잔액·에겐테토 막대.)
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useState } from 'react';
-import { Platform } from 'react-native';
-import * as SecureStore from 'expo-secure-store';
 
-/** 홈 메뉴 표시 방식 — 'card'(이미지 카드 그리드·기본) / 'list'(썸네일 세로 리스트) */
+/** 표시 방식 — 'card'(이미지 카드 그리드) / 'list'(썸네일 세로 리스트·기본) */
 export type HomeViewMode = 'card' | 'list';
 
-const KEY = 'home_view_mode_v1'; // 저장 키(버전 접미사 — 향후 스키마 변경 대비)
-export const DEFAULT_VIEW: HomeViewMode = 'list'; // 기본 = 리스트뷰(daniel 08-07 · 위 헤더 주석)
+/** 앱을 켤 때마다 여기서 시작한다(daniel: 재시작하면 무조건 리스트). */
+export const DEFAULT_VIEW: HomeViewMode = 'list';
 
-// 저장소 접근(플랫폼 분기) — fontScale.tsx 의 getRaw/setRaw 패턴을 그대로 미러.
-async function getRaw(): Promise<string | null> {
-  if (Platform.OS === 'web') return (globalThis as any).localStorage?.getItem(KEY) ?? null;
-  return SecureStore.getItemAsync(KEY);
-}
-async function setRaw(v: string): Promise<void> {
-  if (Platform.OS === 'web') (globalThis as any).localStorage?.setItem(KEY, v);
-  else await SecureStore.setItemAsync(KEY, v);
-}
+// 이번 실행 동안의 현재 값 + 구독자. 앱이 완전히 종료되면 함께 사라진다(= 다음 실행은 DEFAULT_VIEW).
+let _mode: HomeViewMode = DEFAULT_VIEW;
+const _subs = new Set<(m: HomeViewMode) => void>();
 
 /**
- * 홈 보기 방식(카드/리스트) 상태 + 토글 세터.
- *  - 마운트 시 저장값 1회 로드('card'/'list'만 인정, 그 외·미설정은 DEFAULT_VIEW).
- *  - setViewMode 호출 시 즉시 반영 + 저장(다음 실행에도 유지).
+ * 보기 방식 상태 + 세터. 소비처가 여러 곳이어도 **같은 값**을 본다.
+ *  - 값은 저장하지 않는다 → 앱 재시작 시 항상 DEFAULT_VIEW('list').
+ *  - setViewMode 는 모든 구독 화면에 즉시 반영된다.
  * @returns { viewMode, setViewMode }
  */
 export function useHomeViewMode() {
-  const [viewMode, setMode] = useState<HomeViewMode>(DEFAULT_VIEW);
+  const [viewMode, setLocal] = useState<HomeViewMode>(_mode);
   useEffect(() => {
-    getRaw().then((v) => { if (v === 'card' || v === 'list') setMode(v); }).catch(() => {});
+    // 마운트 사이에 다른 화면이 바꿨을 수 있으니 현재 값으로 한 번 맞추고 구독한다.
+    setLocal(_mode);
+    _subs.add(setLocal);
+    return () => { _subs.delete(setLocal); };
   }, []);
-  const setViewMode = (m: HomeViewMode) => { setMode(m); setRaw(m).catch(() => {}); };
+  const setViewMode = (m: HomeViewMode) => {
+    _mode = m;
+    _subs.forEach((fn) => fn(m)); // 구독 중인 화면 전부 갱신(풀이탭 ↔ 카테고리 일치)
+  };
   return { viewMode, setViewMode };
 }

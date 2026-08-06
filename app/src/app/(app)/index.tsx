@@ -351,7 +351,9 @@ export default function Home() {
         {/* 타이틀·서브타이틀 = 좌측 컬럼. ★왼쪽 못박기(daniel 07-02): 컬럼 alignItems:flex-start + 텍스트 textAlign:left. 👤만 우측 y축 가운데 */}
         <View style={{ flex: 1, alignItems: 'flex-start' }}>
           <Text style={styles.title}>{t('appName')}</Text>
-          <Text style={styles.sub}>{t('tagline')}</Text>
+          {/* ★태그라인('나와 타인을 이해하는 AI 나침반') 제거 — daniel 2026-08-07.
+              사전의 `tagline` 키는 남겨 둔다(스토어 문안·공유 페이지 등 다른 소비처가 있을 수 있어
+              지우면 그쪽이 조용히 빈다). 홈에서만 안 그린다. */}
         </View>
         <PressableScale onPress={() => router.push('/settings')} hitSlop={10} style={styles.accountBtn}>
           <Text style={styles.accountIcon}>👤</Text>
