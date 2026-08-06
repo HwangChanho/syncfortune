@@ -379,7 +379,13 @@ function Segmented({ options, value, onChange }: { options: { value: string; lab
 
 const styles = StyleSheet.create({
   screen: { backgroundColor: 'transparent' }, // 전역 배경 투과(ContentBackdrop)
-  form: { padding: space(5), paddingBottom: space(12), gap: space(1.5) },
+  // ★하단 여백 = 하단 크롬(광고 배너 50 + 네비바 86 + 홈 인디케이터 34 ≈ 170pt)을 덮고도 남게.
+  //   daniel 2026-08-07 "명식 등록이 짤려" — 맨 아래 '명식 계산·등록' 버튼에 **영영 닿지 못했다**.
+  //   실측(시뮬 scrollToEnd): space(12)=48 이면 끝까지 내려도 '대표로 설정' 체크박스가 마지막이고
+  //   버튼은 안 나온다 / space(44)=176 이면 버튼이 배너 위에 온전히 뜬다.
+  //   ★마지막 요소가 **주 CTA** 인 화면은 하단 여백을 크롬 높이 기준으로 잡아야 한다 —
+  //     '조금 잘리는' 게 아니라 **버튼 자체가 사라져** 등록이 불가능해진다.
+  form: { padding: space(5), paddingBottom: space(44), gap: space(1.5) },
   label: { ...font.label, marginTop: space(4) },
   input: {
     backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line,
