@@ -55,7 +55,18 @@ export function normalizeOrder(raw: unknown): HomeBlockKey[] {
   const valid = new Set(DEFAULT_HOME_ORDER);
   const arr = Array.isArray(raw) ? raw.filter((k): k is HomeBlockKey => typeof k === 'string' && valid.has(k as HomeBlockKey)) : [];
   const seen = new Set(arr);
-  return [...arr, ...DEFAULT_HOME_ORDER.filter((k) => !seen.has(k))];
+  const out = [...arr, ...DEFAULT_HOME_ORDER.filter((k) => !seen.has(k))];
+  // ★신규 블록은 기본은 '맨 뒤'지만, **배너만은 오늘의 운세 바로 아래**여야 한다
+  //   (daniel 2026-08-06 "배너는 홈에서 오늘의 운세 바로 아래로 두라고").
+  //   기존 사용자는 저장된 order 에 banner 가 없어 위 로직대로면 **맨 끝**에 붙는다 —
+  //   기본 순서만 바꿔서는 이미 쓰던 계정에 반영되지 않는다(그래서 실물에서 안 바뀌어 보였다).
+  if (!seen.has('banner')) {
+    const rest = out.filter((k) => k !== 'banner');
+    const at = rest.indexOf('today');
+    rest.splice(at >= 0 ? at + 1 : 0, 0, 'banner');
+    return rest;
+  }
+  return out;
 }
 
 /** 로컬 캐시 읽기(동기 실패해도 안전) — 첫 렌더 깜빡임 방지용. */

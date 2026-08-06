@@ -101,6 +101,7 @@ export const ko = {
   common: { save: '저장',
     retryLaterNoCharge: '잠시 후 다시 시도해 주세요. 운은 차감되지 않았어요.',
     'add': '추가',
+    'more': '자세히',
     'confirm': '확인',
     'delete': '삭제',
     'edit': '수정',

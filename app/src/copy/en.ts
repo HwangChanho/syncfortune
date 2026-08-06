@@ -74,6 +74,7 @@ export const en = {
     secPremiumDesc: 'Who you are — in depth via Saju & Zi Wei', secContentDesc: 'AI-crafted deep readings', secHotDesc: 'What people are looking at most right now', secDeepDesc: 'Look deeper into who you are', secLightDesc: 'Light daily fun',
   },
   common: { save: 'Save',
+    'more': 'More',
     retryLaterNoCharge: 'Please try again shortly. No woon was used.',
     'add': '추가',
     'confirm': '확인',

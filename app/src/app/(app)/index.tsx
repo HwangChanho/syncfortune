@@ -419,7 +419,9 @@ export default function Home() {
           data={order}
           keyExtractor={(k) => k}
           renderItem={renderItem}
-          onDragEnd={({ data }) => setOrder(data)}
+          // ★배치 변경은 관리자만(daniel 2026-08-06 "UI 레이아웃 배치를 관리자에서만 컨트롤 가능하게").
+          //   편집 버튼만 숨기면 **길게 눌러 드래그**로 여전히 순서가 바뀐다 — 저장 경로 자체를 막는다.
+          onDragEnd={({ data }) => { if (isAdmin) setOrder(data); }}
           ListHeaderComponent={listHeader}
           ListFooterComponent={listFooter}
           style={styles.screen}

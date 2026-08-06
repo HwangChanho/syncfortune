@@ -24,6 +24,10 @@ export type MenuItem = {
   premium?: boolean;      // 프리미엄 범주(라벨 골드)
   content?: boolean;      // 무료 온디바이스 = 진입 시 보상형 광고 1회
   creditKey?: CreditKind; // 유료 = 가격/쿠폰/풀이있음 배지 대상
+  /** 목록(ContentGrid)에서만 숨긴다 — 데이터는 남는다.
+   *  ★왜 지우지 않고 숨기나: 도우미 안내·추천(RelatedContent)·후기 태그가 이 표에서 라벨·이미지를 찾는다.
+   *    실제로 'month' 를 지웠더니 check:assistant 가 "도우미가 죽은 링크를 내민다"로 잡았다(2026-08-06). */
+  hiddenInList?: boolean;
 };
 /**
  * @param chipKey 상단 카테고리 칩용 **짧은** 라벨 키(daniel 2026-08-06 "상단에 연애 재물 사람 등등
@@ -172,7 +176,9 @@ export const SECTIONS: Section[] = [
   //   시간 스케일 순서(오늘 → 이달 → 올해 → 10년 → 평생)로 두어 무엇이 더 긴 호흡인지 배치로 읽히게 한다.
   { key: 'flow', titleKey: 'menu.secFlow', descKey: 'menu.secFlowDesc', chipKey: 'menu.chipFlow', items: [
     { key: 'today', labelKey: 'menu.today', descKey: 'menu.todayTileDesc', image: A('icons/today.jpg'), route: '/today', ready: true },
-    { key: 'month', labelKey: 'menu.month', descKey: 'menu.monthTileDesc', image: A('icons/month.jpg'), route: '/month', ready: true },
+    // ★'이달의 운세'는 **목록에서만** 숨긴다(daniel 2026-08-06) — 풀이탭 상단에 펼쳐서 보여주므로(MonthHeroCard) 중복.
+    //   데이터는 남긴다: 도우미·추천·후기 태그가 이 항목의 라벨·이미지를 참조한다.
+    { key: 'month', labelKey: 'menu.month', descKey: 'menu.monthTileDesc', image: A('icons/month.jpg'), route: '/month', ready: true, hiddenInList: true },
     // daniel(2026-06-24): 신년운세 = 시즌 콘텐츠라 이 섹션 앞쪽.
     { key: 'newyear', labelKey: 'menu.newyear', descKey: 'menu.newyearTileDesc', image: A('icons/newyear.jpg'), route: '/newyear', ready: true, content: true, creditKey: 'newyear' },
     // 신규(daniel 2026-07-02): 10년 뒤 나의 모습(대운·세운 스페셜, 개별 유료).

@@ -73,6 +73,7 @@ export const ja = {
     secPremiumDesc: 'あなたはどんな人か — 四柱·紫微で深く', secContentDesc: 'AIが丁寧に解く深い鑑定', secHotDesc: '最近よく見られているものだけ', secDeepDesc: '自分をより深く見つめる', secLightDesc: '気軽に楽しむ運勢',
   },
   common: { save: '保存',
+    'more': '詳しく',
     retryLaterNoCharge: 'しばらくしてからもう一度お試しください。woon は消費されていません。',
     'add': '추가',
     'confirm': '확인',

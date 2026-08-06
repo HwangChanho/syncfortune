@@ -110,6 +110,7 @@ export function ContentGrid({ query = '', viewMode, category = null }: { query?:
       ...sec,
       items: sec.items.filter((m) => {
         if (m.key === 'sokgunghap' && !sokOn) return false;          // 속궁합 노출 게이트 유지
+        if (m.hiddenInList) return false;                             // 목록에서만 숨김(예: 이달의 운세 — 상단에 펼쳐져 있다)
         return true;
       }),
     })).filter((sec) => sec.items.length > 0)

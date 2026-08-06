@@ -19,10 +19,10 @@ import { useState, useEffect } from 'react';
 import { View, Text, TextInput, ScrollView, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context'; // ★상단 안전영역 — 고정 여백은 글자확대 시 잘린다(daniel 07-27)
 import { useTranslation } from 'react-i18next';
-import { useLocalSearchParams, useRouter } from 'expo-router'; // 홈 배너 → 카테고리 딥링크(/contents?cat=love)
+import { useLocalSearchParams } from 'expo-router'; // 홈 배너 → 카테고리 딥링크(/contents?cat=love)
 import { SECTIONS } from '../../lib/content/contentSections'; // 상단 카테고리 칩 = 섹션에서 파생(목록 이중관리 금지)
 import { ContentGrid } from '../../components/ContentGrid';
-import { DeepDiveCta } from '../../components/DeepDiveCta'; // 이달의 운세 히어로 배너(카드 재사용 — 중복 구현 0)
+import { MonthHeroCard } from '../../components/MonthHeroCard'; // 이달의 운세 **펼침** 카드(daniel 08-06 IMG_8409)
 import { NextStepCard } from '../../components/NextStepCard'; // '다음 단계' 퍼널 히어로(나열→저니)
 import { ChartPicker } from '../../components/ChartPicker';
 import { PressableScale } from '../../components/PressableScale';
@@ -33,7 +33,6 @@ export default function ContentsScreen() {
   // ★고정 상단여백(space(12) 등)은 **글자 크기를 키우면 헤더가 상태바 위로 잘린다**(daniel 07-27 IMG_8215).
   //   상수는 기기 노치·다이내믹아일랜드·글자배율 어느 것도 반영하지 못한다 → 실제 안전영역을 쓴다.
   const insets = useSafeAreaInsets();
-  const router = useRouter();
   const { t } = useTranslation();
   const { viewMode, setViewMode } = useHomeViewMode();
   const [reload, setReloadKey] = useState(0); // 명식 전환 시 그리드(배지·티저)·다음단계 카드 재계산 트리거
@@ -126,12 +125,7 @@ export default function ContentsScreen() {
                   매장에 들어온 사람에게 처음 내미는 것도 **무료**여야 한다 — 이달의 운세(무료·온디바이스)를
                   배너 크기로 먼저 보여주고, 아래 '다음 단계'가 그와 이어지는 콘텐츠로 데려간다.
                 카드는 DeepDiveCta 를 그대로 쓴다(같은 모양의 카드를 또 만들지 않는다). */}
-            <DeepDiveCta
-              kind="month"
-              label={t('menu.month', '이달의 운세')}
-              sub={t('menu.monthTileDesc', '이번 달 흐름')}
-              onPress={() => router.push('/month')}
-            />
+            <MonthHeroCard reloadKey={reload} />
             {/* ★대표 명식 — 이 탭에서도 최상단(daniel 2026-07-19). 카드 배지·티저가 적용 명식 기준. */}
             <ChartPicker onChange={() => setReloadKey((k) => k + 1)} />
             {/* ★'다음 단계' 히어로(daniel 2026-07-26) — 나열 대신 **지금 이 사람에게 맞는 딱 한 장**을 크게.
@@ -171,9 +165,11 @@ const styles = StyleSheet.create({
   // 카테고리 칩 — 검색줄 아래 가로 스크롤. 스크롤 밖 고정이라 목록을 내려도 주제를 바꿀 수 있다.
   catBar: { flexGrow: 0, backgroundColor: 'transparent' },
   catRow: { gap: space(2), paddingHorizontal: space(5), paddingBottom: space(3) },
-  catChip: { paddingHorizontal: space(3.5), paddingVertical: space(2), borderRadius: radius.pill, backgroundColor: colors.overlay, borderWidth: 1, borderColor: colors.line },
+  catChip: { minHeight: 36, justifyContent: 'center', paddingHorizontal: space(3.5), paddingVertical: space(2), borderRadius: radius.pill, backgroundColor: colors.overlay, borderWidth: 1, borderColor: colors.line },
   catChipOn: { backgroundColor: colors.ju, borderColor: colors.ju }, // 선택 = 골드(라이트/다크 자동)
-  catTx: { fontSize: 13.5, fontWeight: '800', color: colors.inkSoft, letterSpacing: 0.2 },
+  // ★lineHeight 는 fontSize 와 **반드시 짝**(daniel 07-28 교훈) — 없으면 글자확대 배율에서 위아래가 잘린다.
+  //   08-06 실물(IMG_8409)에서 '전체·인기·연애'가 '저체·이기·여애'로 잘려 보였다.
+  catTx: { fontSize: 13.5, lineHeight: 19, fontWeight: '800', color: colors.inkSoft, letterSpacing: 0.2 },
   catTxOn: { color: '#15132E' },
   // 보기 토글 — 검색줄 오른쪽 끝. 기호만이라 폭이 작다.
   //   ★활성 표시를 **연한 골드 배경 + 골드 글자**로(꽉 찬 골드는 보조 버튼이 검색창보다 튄다).
