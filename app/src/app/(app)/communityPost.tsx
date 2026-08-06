@@ -194,7 +194,11 @@ const styles = StyleSheet.create({
   bg: { flex: 1, backgroundColor: 'transparent' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: space(7) },
   gone: { ...font.body, color: colors.inkFaint, textAlign: 'center' },
-  wrap: { padding: space(6), paddingTop: space(12), paddingBottom: space(24) },
+  // ★하단 여백 = 하단 크롬(≈170pt) 이상 — 마지막 댓글의 수정/삭제 버튼이 배너·네비 뒤로 들어가지 않게.
+  //   ⚠️이 화면은 ScrollView **밖에 고정 입력바(inputBar, absolute bottom:0 · 약 84pt)** 가 더 있다.
+  //     입력바와 크롬이 겹치는지는 **실측하지 않았다**(등록 화면만 실측함) — 실기기에서 마지막 댓글의
+  //     버튼이 여전히 가리면 이 값을 입력바 높이만큼 더 올려야 한다.
+  wrap: { padding: space(6), paddingTop: space(12), paddingBottom: space(44) },
   cat: { ...font.caption, color: colors.ju, fontWeight: '800', fontSize: 12 },
   title: { ...font.title, color: colors.ink, marginTop: space(1) },
   meta: { ...font.caption, color: colors.inkFaint, marginTop: space(1.5), marginBottom: space(4) },

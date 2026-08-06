@@ -81,7 +81,9 @@ export default function SharedReadingScreen() {
 
 const styles = StyleSheet.create({
   screen: { backgroundColor: 'transparent' }, // 전역 배경 투과(ContentBackdrop)
-  wrap: { padding: space(6), paddingBottom: space(12) },
+  // ★하단 여백 = 하단 크롬(≈170pt) 이상 — 마지막이 **'나도 보기' 전환 CTA** 다(공유 링크로 들어온 사람의 유일한 입구).
+  //   가리면 전환이 통째로 막힌다. 명식 등록 화면과 같은 원인(daniel 2026-08-07 실측).
+  wrap: { padding: space(6), paddingBottom: space(44) },
   center: { paddingVertical: space(20), alignItems: 'center', gap: space(3) },
   dim: { ...font.caption, color: colors.inkSoft },
   badge: { alignSelf: 'flex-start', backgroundColor: colors.juSoft, borderColor: colors.ju, borderWidth: 1, borderRadius: radius.sm, paddingVertical: space(1.5), paddingHorizontal: space(3), marginBottom: space(3) },

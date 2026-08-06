@@ -342,7 +342,11 @@ export default function SettingsScreen() {
 
 const styles = StyleSheet.create({
   screen: { backgroundColor: 'transparent' }, // 전역 배경 노출
-  wrap: { padding: space(5), paddingBottom: space(12) },
+  // ★하단 여백 = 하단 크롬(광고 배너 50 + 네비바 86 + 홈 인디케이터 34 ≈ 170pt) 이상.
+  //   이 화면은 **'계정 삭제'가 마지막 요소**라 여백이 모자라면 버튼이 통째로 가린다
+  //   (명식 등록 화면에서 실측·확인된 것과 같은 원인 — daniel 2026-08-07).
+  //   계정 삭제는 App Store 심사 요구사항이라 도달 불가는 반려 사유가 될 수 있다.
+  wrap: { padding: space(5), paddingBottom: space(44) },
   h: { ...font.heading, marginBottom: space(3) },
   // 계정
   // 커뮤니티 닉네임·일주 뱃지 줄(daniel 2026-08-05)

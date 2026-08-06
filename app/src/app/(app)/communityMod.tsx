@@ -57,7 +57,8 @@ export default function CommunityModScreen() {
 const styles = StyleSheet.create({
   bg: { flex: 1, backgroundColor: 'transparent' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  wrap: { padding: space(6), paddingTop: space(12), paddingBottom: space(16) },
+  // ★하단 여백 = 하단 크롬(≈170pt) 이상 — 목록 마지막 항목의 숨김/복원 버튼이 가리지 않게(daniel 2026-08-07 실측 계열).
+  wrap: { padding: space(6), paddingTop: space(12), paddingBottom: space(44) },
   h1: { ...font.title, color: colors.ink },
   sub: { ...font.caption, color: colors.inkSoft, marginTop: space(1), marginBottom: space(5), lineHeight: 18 },
   empty: { ...font.body, color: colors.inkFaint, textAlign: 'center', marginTop: space(12) },
