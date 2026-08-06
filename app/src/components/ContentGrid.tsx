@@ -391,7 +391,10 @@ export function ContentGrid({ query = '', viewMode, category = null, wrap = fals
           //   한 줄씩 쌓여 스캔이 불가능했다(카드뷰는 2줄 가로 스크롤로 압축되지만 리스트뷰엔 그 장치가 없었다).
           //   → 섹션마다 상위 LIST_PREVIEW 개만 펼치고 나머지는 접는다. 스크롤 길이가 1/3 수준으로 줄고,
           //     찾는 사람은 '더 보기'로 즉시 전체를 본다(정보 삭제 아님).
-          const secOpen = openSec[sec.key] ?? false;
+          //   ★단, **카테고리 전용 화면(wrap)에서는 접지 않는다** — 접힘은 개요에서 여러 섹션이
+          //     세로로 쌓일 때 필요한 장치다. 섹션 하나가 곧 화면 전체인 곳에서 또 접으면,
+          //     '타고 들어갔는데 여전히 다 안 보이는' 같은 모순이 된다(가로 캐러셀을 걷어낸 것과 같은 이유).
+          const secOpen = (openSec[sec.key] ?? false) || wrap;
           const shown = secOpen ? items : items.slice(0, LIST_PREVIEW);
           const restN = items.length - shown.length;
           return (
@@ -399,8 +402,8 @@ export function ContentGrid({ query = '', viewMode, category = null, wrap = fals
               {sectionHeader}
               <View style={styles.listBody}>
                 {shown.map(renderListRow)}
-                {/* 더 보기 / 접기 — 항목이 미리보기 수를 넘을 때만 */}
-                {items.length > LIST_PREVIEW && (
+                {/* 더 보기 / 접기 — 항목이 미리보기 수를 넘을 때만(전용 화면은 이미 전량 표시라 숨긴다) */}
+                {!wrap && items.length > LIST_PREVIEW && (
                   <PressableScale style={styles.listMore} onPress={() => setOpenSec((o) => ({ ...o, [sec.key]: !secOpen }))}>
                     <Text style={styles.listMoreTx}>{secOpen ? '접기 ▴' : `${restN}개 더 보기 ▾`}</Text>
                   </PressableScale>
