@@ -83,6 +83,10 @@ const ROWS: Row[] = [
   { name: '자식운', kind: 'child', mult: 1, type: '유료', api: true, price: priceOf('child'), adEst: 0 },
   { name: '세계 인물 매칭', kind: 'celeb', mult: 1, type: '무료', api: false, price: 0, adEst: 0 }, // 온디바이스 결정론·완전 무료 전환(daniel 07-07) — 마켓 판매·잠금 퍼널 제거
   { name: '태어난 시 찾기', kind: 'timeresolve', mult: 1, type: '유료', api: false, price: priceOf('timeresolve'), adEst: 0 },
+  // ★누락 보강(08-06): 딥리포트 2종이 표에 아예 없었다 — 최고가 상품인데 매출·원가가 집계에서 빠져 있었다.
+  //   L1 결정론 EEL 엔진이 구조를 다 계산하고 L2 는 서술만 하므로 토큰이 일반 풀이보다 크다(실측으로 확인할 것).
+  { name: '직업 딥리포트', kind: 'jobfit', mult: 1, type: '유료', api: true, price: priceOf('jobfit'), adEst: 0 },
+  { name: '재물 딥리포트', kind: 'wealth', mult: 1, type: '유료', api: true, price: priceOf('wealth'), adEst: 0 },
 ];
 
 const SCALES = [1, 10, 100, 1000];
