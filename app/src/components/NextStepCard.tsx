@@ -23,8 +23,8 @@ import { useAuth } from '../lib/useAuth';
 import { loadRepChart } from '../lib/engine/myChart';
 import { excludeMock } from '../lib/core/testMode';
 import { appLang } from '../lib/i18n';
-import { SECTIONS, priceLabel } from '../lib/content/contentSections';
-import { pickNextStep, ownedKeysFrom, type NextStep } from '../lib/content/nextStep';
+import { SECTIONS, priceLabel, baseKey } from '../lib/content/contentSections';
+import { pickNextStep, ownedKeysFrom, type NextStep, type CategoryItem } from '../lib/content/nextStep';
 import { CREDIT_KINDS } from '../lib/billing/coupons';
 import { useFontScale } from '../lib/ui/fontScale';
 import { colors, radius, space, shadow, font } from '../lib/theme';
@@ -59,6 +59,10 @@ export function NextStepCard({ reloadKey, category = null }: { reloadKey?: numbe
   const { fs } = useFontScale();
   const { session } = useAuth();
   const [step, setStep] = useState<NextStep | null>(null);
+  // 선택된 카테고리의 항목 — 순수 로직 모듈에 RN 의존을 넘기지 않으려고 여기서 뽑아 전달한다.
+  const catItems: CategoryItem[] | undefined = category
+    ? SECTIONS.find((s2) => s2.key === category)?.items.map((m) => ({ key: baseKey(m.key), creditKey: m.creditKey }))
+    : undefined;
 
   useEffect(() => {
     let alive = true;
@@ -68,7 +72,7 @@ export function NextStepCard({ reloadKey, category = null }: { reloadKey?: numbe
       if (!rep) { setStep(null); return; }          // 명식 없음 → 홈의 '명식 등록' 안내가 먼저다
       const labelOf = (k: string) => CREDIT_LABEL[k] ?? (META[k] ? t(META[k].labelKey) : k);
       // 미로그인·서버차트 미해석이면 보유를 알 수 없다 → 시작점(사주 원국)을 권한다.
-      if (!session || !rep.serverChartId) { setStep(pickNextStep(new Set(), labelOf, ANCHOR_KEY, category)); return; }
+      if (!session || !rep.serverChartId) { setStep(pickNextStep(new Set(), labelOf, ANCHOR_KEY, catItems)); return; }
       const { data } = await excludeMock(supabase
         .from('readings').select('category, created_at')
         .eq('chart_id', rep.serverChartId).eq('lang', appLang()));
@@ -77,7 +81,7 @@ export function NextStepCard({ reloadKey, category = null }: { reloadKey?: numbe
       const owned = ownedKeysFrom(rows.map((r) => r.category));
       // 가장 최근에 본 것 = 그 지점에서 이어 간다(‘방금 본 것 → 다음’이 가장 자연스러운 연결)
       const last = [...rows].sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)))[0];
-      setStep(pickNextStep(owned, labelOf, last ? last.category.split('_')[0] : ANCHOR_KEY, category));
+      setStep(pickNextStep(owned, labelOf, last ? last.category.split('_')[0] : ANCHOR_KEY, catItems));
     })().catch(() => { if (alive) setStep(null); });
     return () => { alive = false; };
   }, [reloadKey, session, t, category]);

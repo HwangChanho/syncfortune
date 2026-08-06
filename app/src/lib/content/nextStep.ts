@@ -15,7 +15,6 @@
 // ⚠️ 순서·문구는 마케팅/UX 판단(명리 아님) — Claude 초안, daniel 조정 슬롯.
 // ─────────────────────────────────────────────────────────────────────────
 import { RELATED } from './relatedMap';
-import { SECTIONS, baseKey } from './contentSections'; // 카테고리 코너 안 상품 선택(daniel 08-06)
 
 /** 추천 결과. from 이 있으면 "○○를 보셨으니 다음은 ○○" 맥락을 붙일 수 있다. */
 export type NextStep = {
@@ -44,31 +43,34 @@ const ENTRY_KEY = 'reading';
  *   ③ 그게 다 소진됐으면, 본 것들 전체의 RELATED 를 순회해 안 본 첫 항목
  *   ④ 그래도 없으면 null
  */
+/** 선택된 카테고리의 항목(호출측이 SECTIONS 에서 baseKey 적용해 넘긴다).
+ *  ★이 모듈은 **순수 로직**이라 react-native 를 끌어오는 모듈(contentSections→remoteAsset)을 import 하지 않는다 —
+ *    하네스(check:nextstep)가 Node 에서 그대로 실행하기 때문. 2026-08-06 실제로 여기서 빌드가 깨졌다. */
+export type CategoryItem = { key: string; creditKey?: string };
+
 export function pickNextStep(
   owned: Set<string>,
   labelOf: (key: string) => string,
   lastKey?: string,
-  category?: string | null,
+  categoryItems?: CategoryItem[],
 ): NextStep | null {
   // ⓪ ★카테고리 코너 안이면 **그 코너의 상품**을 권한다(daniel 2026-08-06).
   //   비유(daniel): 홈 배너 = 백화점 밖 사람을 금액 없이 들어오게 하는 것 /
   //                 풀이탭 배너 = **매장에 들어온 사람에게 상품을 권하는 것**.
   //   연애 코너에 들어왔는데 재물 상품을 권하면 그 비유가 깨진다 — 선택된 주제 안에서 고른다.
   //   그 코너에 권할 게 없으면(전부 봤거나 유료가 없으면) 아래 일반 규칙으로 떨어진다.
-  if (category) {
-    const items = SECTIONS.find((x) => x.key === category)?.items ?? [];
+  if (categoryItems?.length) {
+    const items = categoryItems;
     // ★코너에 들어와서도 **무료가 먼저**다(daniel: "매장 안도 처음에는 무료, 거길 들어가면
     //   그때 깊은 통변을 유료로 유도"). 들어오자마자 값을 부르면 매장 밖으로 도로 나간다.
     for (const m of items) {
-      const k = baseKey(m.key);
-      if (m.creditKey || owned.has(k)) continue;        // 무료만 · 이미 본 것 제외
-      return { key: k, reason: '먼저 무료로 가볍게 확인해 보세요' };
+      if (m.creditKey || owned.has(m.key)) continue;    // 무료만 · 이미 본 것 제외
+      return { key: m.key, reason: '먼저 무료로 가볍게 확인해 보세요' };
     }
     // 무료를 다 본 뒤에야 유료 상세를 권한다(퍼널의 마지막 단).
     for (const m of items) {
-      const k = baseKey(m.key);
-      if (!m.creditKey || owned.has(k)) continue;
-      return { key: k, reason: '이 주제를 더 깊이 보고 싶다면' };
+      if (!m.creditKey || owned.has(m.key)) continue;
+      return { key: m.key, reason: '이 주제를 더 깊이 보고 싶다면' };
     }
   }
 
