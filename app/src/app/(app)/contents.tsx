@@ -119,8 +119,7 @@ export default function ContentsScreen() {
           <ContentGrid query={q} viewMode={viewMode} />
         ) : (
           <View style={styles.catList}>
-            {/* ★'hidden' 섹션은 카드로 내지 않는다 — 그 안의 항목은 **추천으로만** 도달하는 게 설계다(daniel). */}
-            {SECTIONS.filter((sec) => sec.key !== 'hidden').map((sec) => (
+            {SECTIONS.map((sec) => (
               <PressableScale key={sec.key} style={styles.catCard} onPress={() => router.push(`/category/${sec.key}`)}>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.catCardTitle}>{t(sec.titleKey)}</Text>

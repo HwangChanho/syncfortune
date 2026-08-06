@@ -87,6 +87,9 @@ export const ko = {
     secWork: '직업·재물', secWorkDesc: '적성 · 취업 · 재물 그릇',
     secHidden: '더 보기', secHiddenDesc: '추천으로 만나는 콘텐츠',
     chipLove: '연애', chipToday: '운세', chipSelf: '나', chipWork: '직업·재물', chipHidden: '더 보기',
+    secLife: '라이프', secLifeDesc: '타로 · 자미 · 가볍게 즐기는 이야기',
+    secTool: '도구', secToolDesc: '만세력으로 직접 찾아보기',
+    chipLife: '라이프', chipTool: '도구',
     chipAll: '전체',
     secContent: '인기', // ★숏컷 섹션(주제 축 밖) — 최상단 한 줄
     // (구) 가격·체계 축 라벨 — 주제 축 재편으로 미사용. 되돌릴 때를 위해 남겨 둠(3개 언어 동일).

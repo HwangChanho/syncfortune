@@ -62,6 +62,9 @@ export const ja = {
     secWork: '仕事・財', secWorkDesc: '適性・就職・財の器',
     secHidden: 'もっと見る', secHiddenDesc: 'おすすめから出会うコンテンツ',
     chipLove: '恋愛', chipToday: '運勢', chipSelf: '自分', chipWork: '仕事', chipHidden: 'もっと',
+    secLife: 'ライフ', secLifeDesc: 'タロット・紫微・気軽な読み物',
+    secTool: 'ツール', secToolDesc: '万年暦で自分で調べる',
+    chipLife: 'ライフ', chipTool: 'ツール',
     chipAll: 'すべて',
     secContent: '人気', // ★ショートカット行(テーマ軸の外)
     // (旧)価格軸のラベル — テーマ軸再編で未使用。戻せるように残す。

@@ -63,6 +63,9 @@ export const en = {
     secWork: 'Work & Wealth', secWorkDesc: 'Aptitude, jobs, and money',
     secHidden: 'More', secHiddenDesc: 'Found through recommendations',
     chipLove: 'Love', chipToday: 'Fortune', chipSelf: 'Me', chipWork: 'Work', chipHidden: 'More',
+    secLife: 'Life', secLifeDesc: 'Tarot, Zi Wei, and lighter reads',
+    secTool: 'Tools', secToolDesc: 'Look it up yourself in the almanac',
+    chipLife: 'Life', chipTool: 'Tools',
     chipAll: 'All',
     secContent: 'Popular', // ★shortcut row (outside the topic axis)
     // (legacy) price-axis labels — unused after the topic rework; kept for an easy revert.
