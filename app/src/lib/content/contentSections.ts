@@ -117,6 +117,7 @@ export const SECTIONS: Section[] = [
   // ── 나 분석 ───────────────────────────────────────────────────────────────
   //   가입 직후 첫 콘텐츠 축(daniel).
   { key: 'self', titleKey: 'menu.secSelf', descKey: 'menu.secSelfDesc', chipKey: 'menu.chipSelf', items: [
+    { key: 'selfAnalysis', labelKey: 'menu.selfAnalysis', descKey: 'menu.selfAnalysisDesc', image: A('icons/selfAnalysis.jpg'), route: '/selfanalysis', ready: true, content: true  },
     { key: 'impression', labelKey: 'menu.impression', descKey: 'menu.impressionDesc', image: A('icons/impression.jpg'), route: '/impression', ready: true, content: true },
     { key: 'persona', labelKey: 'menu.persona', descKey: 'menu.personaTileDesc', image: A('icons/persona.jpg'), route: '/personatype', ready: true, content: true },
     { key: 'mbti', labelKey: 'menu.mbti', descKey: 'menu.mbtiTileDesc', image: A('icons/mbti.jpg'), route: '/mbti', ready: true, content: true },
@@ -129,7 +130,6 @@ export const SECTIONS: Section[] = [
   { key: 'work', titleKey: 'menu.secWork', descKey: 'menu.secWorkDesc', chipKey: 'menu.chipWork', items: [
     { key: 'jobfit', labelKey: 'menu.jobfit', descKey: 'menu.jobfitDesc', image: A('icons/jobfit.jpg'), route: '/jobfit', ready: true, content: true, creditKey: 'jobfit' },
     { key: 'jobAsk', labelKey: 'menu.jobAsk', descKey: 'menu.jobAskDesc', image: A('icons/job.jpg'), route: '/jobAsk', ready: true, content: true },
-    { key: 'career', labelKey: 'menu.career', descKey: 'menu.careerDesc', image: A('icons/career.jpg'), route: '/career', ready: true, content: true, creditKey: 'career' },
     { key: 'wealth', labelKey: 'menu.wealth', descKey: 'menu.wealthDesc', image: A('icons/wealth.jpg'), route: '/wealth', ready: true, content: true, creditKey: 'wealth' },
   ] },
 
@@ -139,6 +139,7 @@ export const SECTIONS: Section[] = [
   //     실제로 항목을 지웠더니 check:assistant 가 "도우미가 죽은 링크를 내민다"로 잡았다.
   //   ★검색으로는 여전히 찾을 수 있다(숨김은 '목록 노출'만 끈다) — 원하는 사람의 길은 막지 않는다.
   { key: 'hidden', titleKey: 'menu.secHidden', descKey: 'menu.secHiddenDesc', chipKey: 'menu.chipHidden', items: [
+    { key: 'career', labelKey: 'menu.career', descKey: 'menu.careerDesc', image: A('icons/career.jpg'), route: '/career', ready: true, content: true, creditKey: 'career' , hiddenInList: true },
     { key: 'reunion', labelKey: 'menu.reunion', descKey: 'menu.reunionDesc', image: A('icons/reunion.jpg'), route: '/reunion', ready: true, content: true, creditKey: 'reunion' , hiddenInList: true },
     { key: 'crush', labelKey: 'menu.crush', descKey: 'menu.crushDesc', image: A('icons/crush.jpg'), route: '/crush', ready: true, content: true, creditKey: 'crush' , hiddenInList: true },
     { key: 'lovestyle', labelKey: 'menu.lovestyle', descKey: 'menu.lovestyleTileDesc', image: A('icons/lovestyle.jpg'), route: '/lovestyle', ready: true, content: true , hiddenInList: true },
@@ -150,7 +151,6 @@ export const SECTIONS: Section[] = [
     { key: 'mission', labelKey: 'menu.mission', descKey: 'menu.missionDesc', image: A('icons/mission.jpg'), route: '/mission', ready: true, content: true, creditKey: 'mission' , hiddenInList: true },
     { key: 'joseonjob', labelKey: 'menu.joseonjob', descKey: 'menu.joseonjobTileDesc', image: A('icons/joseonjob.jpg'), route: '/joseonjob', ready: true, content: true , hiddenInList: true },
     { key: 'ziwei', labelKey: 'menu.ziweiHub', descKey: 'menu.ziweiHubDesc', image: A('icons/ziwei.jpg'), route: '/ziwei', ready: true, premium: true, creditKey: 'ziwei' , hiddenInList: true },
-    { key: 'selfAnalysis', labelKey: 'menu.selfAnalysis', descKey: 'menu.selfAnalysisDesc', image: A('icons/selfAnalysis.jpg'), route: '/selfanalysis', ready: true, content: true , hiddenInList: true },
     { key: 'egen', labelKey: 'menu.egen', descKey: 'menu.egenTileDesc', image: A('icons/egen.jpg'), route: '/egenteto', ready: true, content: true , hiddenInList: true },
     { key: 'image', labelKey: 'menu.image', descKey: 'menu.imageDesc', image: A('icons/image.jpg'), route: '/image', ready: true, content: true, creditKey: 'image' , hiddenInList: true },
     { key: 'roots', labelKey: 'menu.roots', descKey: 'menu.rootsDesc', image: A('icons/roots.jpg'), route: '/roots', ready: true, content: true, creditKey: 'roots' , hiddenInList: true },
