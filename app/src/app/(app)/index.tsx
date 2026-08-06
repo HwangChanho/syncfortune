@@ -244,7 +244,7 @@ export default function Home() {
           //     앱 화면 49개가 대표 명식 게이트라 신규는 **아무것도 보기 전에 등록 폼**(이름·생년월일·양음윤달·
           //     시진/정확시각·출생지 + 선택 4항목)을 만난다. 먼저 결과를 보여주고 등록은 그다음이다.
           //     등록 링크는 남겨 둔다 — 이미 마음먹은 사람의 길을 막지 않게.
-          <View style={{ alignItems: 'center', paddingVertical: space(5), gap: space(2) }}>
+          <View style={{ alignItems: 'center', paddingVertical: space(3.5), gap: space(1.5) }}>
             <Text style={{ color: colors.ju, fontWeight: '900', fontSize: fs(16), textAlign: 'center' }}>{t('home.noChartTitle', 'AI가 분석하는 나 — 여기서 시작')}</Text>
             <Text style={{ color: colors.inkSoft, fontSize: fs(13), textAlign: 'center' }}>{t('home.noChartSub2', '생년월일만 넣으면 성격유형과 일주를 바로 볼 수 있어요. 가입도, 저장도 안 해요.')}</Text>
             <PressableScale onPress={() => router.push('/light')} style={{ backgroundColor: colors.ju, borderRadius: radius.md, paddingVertical: space(2.5), paddingHorizontal: space(6), marginTop: space(2) }}>
@@ -499,9 +499,12 @@ const styles = StyleSheet.create({
   accountIcon: { fontSize: 20 },
   sub: { ...font.body, color: colors.inkSoft, marginTop: space(1), textAlign: 'left' as const }, // ★좌측 못박기(daniel 07-02)
   divider: { width: 44, height: 3, borderRadius: 2, backgroundColor: colors.ju, marginTop: space(4), marginBottom: space(6) },
+  // ★크기 축소(daniel 2026-08-06 "홈 아래쪽에 배너가 살짝 보여야 해 — 오늘의 운세 사이즈를 조금 줄여").
+  //   첫 화면이 오늘의 운세로 꽉 차 **다음 블록(배너)이 화면 밖**에 있었다 = 아래에 뭔가 더 있다는 신호가 0.
+  //   내용을 지우지 않고 **여백만** 줄였다(정보 손실 없이 다음 블록의 머리가 걸치게).
   fortuneBanner: {
-    backgroundColor: colors.juSoft, padding: space(4), borderRadius: radius.md,
-    borderWidth: 1, borderColor: colors.line, marginBottom: space(6),
+    backgroundColor: colors.juSoft, padding: space(3), borderRadius: radius.md,
+    borderWidth: 1, borderColor: colors.line, marginBottom: space(3.5),
   },
   // ★AI 자기이해 코치 진입 배너(홈 상단·4.3 대화형 도구)
   coachBanner: { flexDirection: 'row', alignItems: 'center', gap: space(3), backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.ju, paddingVertical: space(3.5), paddingHorizontal: space(4), marginBottom: space(6), ...shadow.card },
@@ -510,7 +513,7 @@ const styles = StyleSheet.create({
   coachBannerSub: { ...font.caption, color: colors.inkSoft, marginTop: 1 },
   coachBannerArrow: { fontSize: 22, color: colors.ju, fontWeight: '800' },
   // 오늘/내일 토글(배너 상단)
-  dayToggle: { flexDirection: 'row', gap: space(2), marginBottom: space(3) },
+  dayToggle: { flexDirection: 'row', gap: space(2), marginBottom: space(2) },
   dayTogChip: { paddingHorizontal: space(4), paddingVertical: space(1.5), borderRadius: radius.pill, backgroundColor: colors.overlay, borderWidth: 1, borderColor: colors.line },
   dayTogChipOn: { backgroundColor: colors.ju, borderColor: colors.ju },
   dayTogTx: { fontSize: 13, fontWeight: '800', color: colors.inkSoft },
@@ -522,8 +525,8 @@ const styles = StyleSheet.create({
   gzBoxRow: { flexDirection: 'row', gap: space(1) },
   gzBox: { borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center' },
   gzBoxTx: { fontSize: 20, fontWeight: '800', lineHeight: 24 },
-  bannerHeadline: { ...font.body, color: colors.ju, fontWeight: '800', fontSize: 16, marginTop: space(3) }, // 오늘의 기운을 아우르는 캐치 타이틀
-  bannerProse: { ...font.body, color: colors.inkSoft, marginTop: space(1.5), lineHeight: 22 },
+  bannerHeadline: { ...font.body, color: colors.ju, fontWeight: '800', fontSize: 16, marginTop: space(2) }, // 오늘의 기운을 아우르는 캐치 타이틀
+  bannerProse: { ...font.body, color: colors.inkSoft, marginTop: space(1), lineHeight: 21 },
   bannerMore: { ...font.caption, color: colors.ju, fontWeight: '700', marginTop: space(2) },
   // ── 기운 판정(별도 카드에서 통합·daniel 07-19): 점수·등급·유형명·근거·신살 칩 ──
   scoreWrap: { flexDirection: 'row', alignItems: 'baseline', gap: space(1), marginLeft: 'auto' }, // 우측 정렬
@@ -534,7 +537,7 @@ const styles = StyleSheet.create({
   energyName: { color: colors.ink, fontWeight: '900' },
   energyDesc: { color: colors.inkSoft, marginTop: 2 },   // ★lineHeight 는 인라인에서 fs() 로(고정값이 잘림 원인이었다)
   energyReason: { ...font.body, color: colors.inkSoft, marginTop: space(2) },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space(1.5), marginTop: space(2) },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space(1.5), marginTop: space(1.5) },
   chip: { borderRadius: radius.pill, borderWidth: 1, paddingHorizontal: space(2.5), paddingVertical: space(1), maxWidth: '100%' },
   chipGood: { backgroundColor: colors.juSoft, borderColor: colors.juLine },
   chipCare: { backgroundColor: colors.overlay, borderColor: colors.line },
