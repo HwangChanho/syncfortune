@@ -98,7 +98,10 @@ export default function AppLayout() {
         <Stack.Screen name="coach" options={{ headerShown: false, animation: 'none' }} />
         {/* 하단탭 '풀이'(콘텐츠 목록) — 홈·코치처럼 탭 화면이라 자체 타이틀을 그린다(헤더 숨김, daniel 07-18 IA 개편). */}
         <Stack.Screen name="contents" options={{ headerShown: false, animation: 'none' }} />
-        <Stack.Screen name="community" options={{ animation: 'none' }} />
+        {/* ★headerShown:false — 탭 5개 중 **커뮤니티만 빈 헤더가 켜져 있어** 상단이 이중으로 비었다
+            (daniel 2026-08-07 IMG_8418 "커뮤니티 상단에 여백이 너무 많아"). 제목 없는 헤더 ≈59pt +
+            카테고리 칩바 44pt 가 겹쳤다. 다른 탭(index·coach·contents)과 같은 규칙으로 맞춘다. */}
+        <Stack.Screen name="community" options={{ headerShown: false, animation: 'none' }} />
         <Stack.Screen name="moment" options={{ title: '모먼트' }} />
         {/* 가볍게 보기 — 명식 없이 생년월일만으로 즉시 결과(신규 유입 · docs/PLAN_light_mode.md L1) */}
         <Stack.Screen name="light" options={{ title: '가볍게 보기' }} />

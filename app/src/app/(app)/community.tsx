@@ -162,8 +162,9 @@ export default function CommunityScreen() {
 
   return (
     <View style={styles.bg}>
-      {/* 카테고리 탭 */}
-      <View style={styles.catBar}>
+      {/* 카테고리 탭 — ★헤더를 껐으므로(_layout) 상태바 안전영역은 여기서 확보한다.
+          contents 탭의 topBar 와 **같은 식**(insets.top + space(2))으로 두 탭의 상단선이 맞는다. */}
+      <View style={[styles.catBar, { paddingTop: insets.top + space(2) }]}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.catRow}>
           {CATS.map((c) => (
             <PressableScale key={c ?? 'all'} style={[styles.catChip, cat === c && styles.catChipOn]} onPress={() => setCat(c)}>
@@ -362,7 +363,8 @@ export default function CommunityScreen() {
 const styles = StyleSheet.create({
   bg: { flex: 1, backgroundColor: 'transparent' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  catBar: { paddingTop: space(11), borderBottomWidth: 1, borderBottomColor: colors.line },
+  // paddingTop 은 렌더에서 insets.top + space(2) 로 준다(헤더를 껐으므로 — 위 주석). 여기 고정값을 두면 이중이 된다.
+  catBar: { borderBottomWidth: 1, borderBottomColor: colors.line },
   catRow: { paddingHorizontal: space(4), paddingBottom: space(3), gap: space(2) }, // ★space(24)→3(daniel 2026-08-05 IMG_8382 '카테고리 아래 공간이 너무 커' — 96pt 유령 패딩)
   catChip: { backgroundColor: colors.sunk, borderRadius: radius.pill, paddingHorizontal: space(4), paddingVertical: space(2), borderWidth: 1, borderColor: colors.line },
   catChipOn: { backgroundColor: colors.ju, borderColor: colors.ju },

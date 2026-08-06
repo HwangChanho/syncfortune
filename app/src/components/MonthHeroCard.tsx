@@ -16,7 +16,13 @@ import { View, Text, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { PressableScale } from './PressableScale';
-import { MonthFlowGraph } from './MonthFlowGraph';
+// ★그래프는 **month 화면과 같은 것**을 쓴다(ScoreFlowGraph). 처음에 MonthFlowGraph 를 붙였다가
+//   daniel 2026-08-07 IMG_8417 "여전히 안나와" 로 드러났다 — 두 그래프는 **점수 스케일이 다르다**:
+//     ScoreFlowGraph = 0~100 (scoreFlow 가 주는 값) / MonthFlowGraph = −4~+4 (신년 12개월 방향점수)
+//   −4~+4 식에 60 을 넣으면 y 가 −338 로 나가 곡선·점이 화면 밖으로 날아가고,
+//   면적만 남아 '빈 회색 상자'로, 라벨은 x 만 쓰므로 의미 없는 1~5 로 보였다.
+//   ★교훈: 같은 '흐름 그래프'라도 **입력 스케일이 계약**이다. 타입(number[])은 같아서 tsc 가 못 잡는다.
+import { ScoreFlowGraph } from './ScoreFlowGraph';
 import { loadRepChart, subscribeRepChange } from '../lib/engine/myChart';
 import { computeChart } from '../lib/engine/engine';
 import { getMonthGanZhi, dailyHeadline, getDailyReading, scoreFlow } from '../lib/content/dailyFortune';
@@ -75,8 +81,11 @@ export function MonthHeroCard({ reloadKey }: { reloadKey?: number }) {
       {firstLine ? (
         <Text style={[styles.body, { fontSize: fs(13), lineHeight: fs(19) }]} numberOfLines={2}>{firstLine}</Text>
       ) : null}
-      {/* 다섯 달 흐름(전전달~다다음달) — 그래프가 '풀어 보인다'는 인상을 만든다. month 화면과 같은 컴포넌트. */}
-      {view.flow?.scores?.length ? <MonthFlowGraph scores={view.flow.scores} height={88} /> : null}
+      {/* 다섯 달 흐름(전전달~다다음달) — 그래프가 '풀어 보인다'는 인상을 만든다.
+          labels·currentIndex 까지 넘겨야 '이번 달'이 강조되고 달 이름이 붙는다(month 화면과 동일 계약). */}
+      {view.flow?.scores?.length >= 2 ? (
+        <ScoreFlowGraph scores={view.flow.scores} labels={view.flow.labels} currentIndex={view.flow.currentIndex} height={124} />
+      ) : null}
     </PressableScale>
   );
 }
