@@ -15,6 +15,7 @@
 // ⚠️ 순서·문구는 마케팅/UX 판단(명리 아님) — Claude 초안, daniel 조정 슬롯.
 // ─────────────────────────────────────────────────────────────────────────
 import { RELATED } from './relatedMap';
+import { SECTIONS, baseKey } from './contentSections'; // 카테고리 코너 안 상품 선택(daniel 08-06)
 
 /** 추천 결과. from 이 있으면 "○○를 보셨으니 다음은 ○○" 맥락을 붙일 수 있다. */
 export type NextStep = {
@@ -47,13 +48,33 @@ export function pickNextStep(
   owned: Set<string>,
   labelOf: (key: string) => string,
   lastKey?: string,
+  category?: string | null,
 ): NextStep | null {
-  // ① 시작점
-  if (owned.size === 0) {
-    return { key: ENTRY_KEY, reason: '여기서 시작하면 나머지 풀이가 훨씬 잘 읽혀요' };
+  // ⓪ ★카테고리 코너 안이면 **그 코너의 상품**을 권한다(daniel 2026-08-06).
+  //   비유(daniel): 홈 배너 = 백화점 밖 사람을 금액 없이 들어오게 하는 것 /
+  //                 풀이탭 배너 = **매장에 들어온 사람에게 상품을 권하는 것**.
+  //   연애 코너에 들어왔는데 재물 상품을 권하면 그 비유가 깨진다 — 선택된 주제 안에서 고른다.
+  //   그 코너에 권할 게 없으면(전부 봤거나 유료가 없으면) 아래 일반 규칙으로 떨어진다.
+  if (category) {
+    const items = SECTIONS.find((x) => x.key === category)?.items ?? [];
+    // ★코너에 들어와서도 **무료가 먼저**다(daniel: "매장 안도 처음에는 무료, 거길 들어가면
+    //   그때 깊은 통변을 유료로 유도"). 들어오자마자 값을 부르면 매장 밖으로 도로 나간다.
+    for (const m of items) {
+      const k = baseKey(m.key);
+      if (m.creditKey || owned.has(k)) continue;        // 무료만 · 이미 본 것 제외
+      return { key: k, reason: '먼저 무료로 가볍게 확인해 보세요' };
+    }
+    // 무료를 다 본 뒤에야 유료 상세를 권한다(퍼널의 마지막 단).
+    for (const m of items) {
+      const k = baseKey(m.key);
+      if (!m.creditKey || owned.has(k)) continue;
+      return { key: k, reason: '이 주제를 더 깊이 보고 싶다면' };
+    }
   }
 
-  // ② 최근 본 것에서 이어 가기
+  // ① 앵커(또는 최근 본 것)에서 이어 가기 — ★시작점 제안보다 **먼저** 본다(daniel 2026-08-06).
+  //   풀이탭 상단이 '이달의 운세'(무료) 배너이므로, 그 바로 아래 제안이 그것과 이어져야 화면이 한 흐름이 된다.
+  //   종전엔 아무것도 안 본 사람에게 곧장 시작점(사주 원국풀이 = 유료)을 권해 "들어오자마자 값"이 됐다.
   const tryFrom = (from: string): NextStep | null => {
     for (const cand of RELATED[from] ?? []) {
       if (!owned.has(cand)) {
@@ -65,6 +86,11 @@ export function pickNextStep(
   if (lastKey) {
     const hit = tryFrom(lastKey);
     if (hit) return hit;
+  }
+
+  // ② 시작점 — 이어 갈 게 없을 때만.
+  if (owned.size === 0) {
+    return { key: ENTRY_KEY, reason: '여기서 시작하면 나머지 풀이가 훨씬 잘 읽혀요' };
   }
 
   // ③ 본 것들 전체에서 이어 가기 — owned 를 정렬해 순회(결정론: Set 순회 순서에 기대지 않는다)

@@ -19,9 +19,10 @@ import { useState, useEffect } from 'react';
 import { View, Text, TextInput, ScrollView, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context'; // ★상단 안전영역 — 고정 여백은 글자확대 시 잘린다(daniel 07-27)
 import { useTranslation } from 'react-i18next';
-import { useLocalSearchParams } from 'expo-router'; // 홈 배너 → 카테고리 딥링크(/contents?cat=love)
+import { useLocalSearchParams, useRouter } from 'expo-router'; // 홈 배너 → 카테고리 딥링크(/contents?cat=love)
 import { SECTIONS } from '../../lib/content/contentSections'; // 상단 카테고리 칩 = 섹션에서 파생(목록 이중관리 금지)
 import { ContentGrid } from '../../components/ContentGrid';
+import { DeepDiveCta } from '../../components/DeepDiveCta'; // 이달의 운세 히어로 배너(카드 재사용 — 중복 구현 0)
 import { NextStepCard } from '../../components/NextStepCard'; // '다음 단계' 퍼널 히어로(나열→저니)
 import { ChartPicker } from '../../components/ChartPicker';
 import { PressableScale } from '../../components/PressableScale';
@@ -32,6 +33,7 @@ export default function ContentsScreen() {
   // ★고정 상단여백(space(12) 등)은 **글자 크기를 키우면 헤더가 상태바 위로 잘린다**(daniel 07-27 IMG_8215).
   //   상수는 기기 노치·다이내믹아일랜드·글자배율 어느 것도 반영하지 못한다 → 실제 안전영역을 쓴다.
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const { t } = useTranslation();
   const { viewMode, setViewMode } = useHomeViewMode();
   const [reload, setReloadKey] = useState(0); // 명식 전환 시 그리드(배지·티저)·다음단계 카드 재계산 트리거
@@ -119,11 +121,22 @@ export default function ContentsScreen() {
         {/* 검색 중에는 명식·다음단계를 접는다 — 결과만 보이는 게 검색의 목적. */}
         {!searching && (
           <>
+            {/* ★이달의 운세 = 풀이탭의 앵커(daniel 2026-08-06).
+                비유(daniel): 홈 배너 = 백화점 밖 사람을 **금액 없이** 들어오게 / 풀이탭 = 매장 안.
+                  매장에 들어온 사람에게 처음 내미는 것도 **무료**여야 한다 — 이달의 운세(무료·온디바이스)를
+                  배너 크기로 먼저 보여주고, 아래 '다음 단계'가 그와 이어지는 콘텐츠로 데려간다.
+                카드는 DeepDiveCta 를 그대로 쓴다(같은 모양의 카드를 또 만들지 않는다). */}
+            <DeepDiveCta
+              kind="month"
+              label={t('menu.month', '이달의 운세')}
+              sub={t('menu.monthTileDesc', '이번 달 흐름')}
+              onPress={() => router.push('/month')}
+            />
             {/* ★대표 명식 — 이 탭에서도 최상단(daniel 2026-07-19). 카드 배지·티저가 적용 명식 기준. */}
             <ChartPicker onChange={() => setReloadKey((k) => k + 1)} />
             {/* ★'다음 단계' 히어로(daniel 2026-07-26) — 나열 대신 **지금 이 사람에게 맞는 딱 한 장**을 크게.
                 여기서 들어가면 상세 하단 RelatedContent 가 이어받아 '타고타고' 굴러간다(같은 RELATED 큐레이션 재사용). */}
-            <NextStepCard reloadKey={reload} />
+            <NextStepCard reloadKey={reload} category={category} />
           </>
         )}
         <ContentGrid query={q} viewMode={viewMode} category={category} />

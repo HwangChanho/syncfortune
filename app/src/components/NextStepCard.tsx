@@ -50,7 +50,10 @@ const META: Record<string, { image?: any; route: string; labelKey: string; descK
  * 풀이 탭 '다음 단계' 히어로.
  * @param reloadKey 명식 전환 시 부모가 올려 재계산(ContentGrid 와 동일 계약).
  */
-export function NextStepCard({ reloadKey }: { reloadKey?: number }) {
+/** 풀이탭 상단 배너와 같은 콘텐츠 — 최근 본 게 없을 때 여기서부터 이어 간다(화면이 한 흐름이 되게). */
+const ANCHOR_KEY = 'month';
+
+export function NextStepCard({ reloadKey, category = null }: { reloadKey?: number; category?: string | null }) {
   const router = useRouter();
   const { t } = useTranslation();
   const { fs } = useFontScale();
@@ -65,7 +68,7 @@ export function NextStepCard({ reloadKey }: { reloadKey?: number }) {
       if (!rep) { setStep(null); return; }          // 명식 없음 → 홈의 '명식 등록' 안내가 먼저다
       const labelOf = (k: string) => CREDIT_LABEL[k] ?? (META[k] ? t(META[k].labelKey) : k);
       // 미로그인·서버차트 미해석이면 보유를 알 수 없다 → 시작점(사주 원국)을 권한다.
-      if (!session || !rep.serverChartId) { setStep(pickNextStep(new Set(), labelOf)); return; }
+      if (!session || !rep.serverChartId) { setStep(pickNextStep(new Set(), labelOf, ANCHOR_KEY, category)); return; }
       const { data } = await excludeMock(supabase
         .from('readings').select('category, created_at')
         .eq('chart_id', rep.serverChartId).eq('lang', appLang()));
@@ -74,10 +77,10 @@ export function NextStepCard({ reloadKey }: { reloadKey?: number }) {
       const owned = ownedKeysFrom(rows.map((r) => r.category));
       // 가장 최근에 본 것 = 그 지점에서 이어 간다(‘방금 본 것 → 다음’이 가장 자연스러운 연결)
       const last = [...rows].sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)))[0];
-      setStep(pickNextStep(owned, labelOf, last ? last.category.split('_')[0] : undefined));
+      setStep(pickNextStep(owned, labelOf, last ? last.category.split('_')[0] : ANCHOR_KEY, category));
     })().catch(() => { if (alive) setStep(null); });
     return () => { alive = false; };
-  }, [reloadKey, session, t]);
+  }, [reloadKey, session, t, category]);
 
   const meta = step ? META[step.key] : null;
   // 권할 게 없거나(전부 봄) 메타를 못 찾으면 렌더하지 않는다 — 빈 카드로 자리 차지하지 않게.
