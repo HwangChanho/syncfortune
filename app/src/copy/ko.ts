@@ -226,7 +226,9 @@ export const ko = {
   today: {
     'areaSoon': '이 분야 풀이는 다음 운세부터 채워져요.',
     today: '오늘', tomorrow: '내일', energyTomorrow: '내일의 기운', weekdaysShort: '일,월,화,수,목,금,토',
-    dayPillar: '오늘의 기운', note: '매일 자정에 바뀌는 오늘의 흐름이에요. 내 사주와 엮어 풀어 드려요 — 더 깊은 맞춤 풀이는 풀이 탭에서.',
+    // ★daniel 2026-08-06 — 홈 카드 제목 '오늘의 기운' → '오늘의 운세'
+    //   (luck.todayEnergy 의 '오늘의 기운'은 **오행 기운**을 뜻하므로 건드리지 않는다)
+    dayPillar: '오늘의 운세', note: '매일 자정에 바뀌는 오늘의 흐름이에요. 내 사주와 엮어 풀어 드려요 — 더 깊은 맞춤 풀이는 풀이 탭에서.',
     areas: '분야별 풀이', area_general: '통합', area_work: '직업', area_money: '재물', area_invest: '투자', area_love: '애정', area_health: '건강',
     needChart: '내 명식을 등록하면 오늘의 흐름을 나에게 맞춰 분야별로 풀어 드려요.', registerBtn: '명식 등록하기',
     more: '분야별로 자세히 보기 →',

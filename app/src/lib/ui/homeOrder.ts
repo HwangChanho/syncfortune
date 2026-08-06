@@ -34,7 +34,7 @@ export const DEFAULT_HOME_ORDER: HomeBlockKey[] = ['today', 'banner', 'self', 'p
 
 /** 블록 라벨 — 설정의 순서 편집 화면에 표시. */
 export const HOME_BLOCK_LABEL: Record<HomeBlockKey, string> = {
-  today: '오늘의 기운',
+  today: '오늘의 운세', // ★daniel 2026-08-06: '오늘의 기운' → '오늘의 운세'(풀이탭 '이달의 운세'와 짝)
   banner: '추천 배너', // ★08-06 부터 이동 가능한 블록(종전 고정 헤더)
   relation: '오늘의 관계',
   persona: '나의 성격유형',

@@ -126,7 +126,7 @@ export default function ContentsScreen() {
                   <Text style={styles.catCardTitle}>{t(sec.titleKey)}</Text>
                   {sec.descKey ? <Text style={styles.catCardDesc} numberOfLines={1}>{t(sec.descKey)}</Text> : null}
                 </View>
-                <Text style={styles.catCardCount}>{sec.items.filter((m) => !m.hiddenInList).length}</Text>
+                {/* ★항목 수는 빼 둔다(daniel 2026-08-06) — 숫자가 적으면 빈약해 보이고, 많아도 의미가 없다. */}
                 <Text style={styles.catCardArrow}>›</Text>
               </PressableScale>
             ))}

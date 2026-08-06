@@ -58,9 +58,10 @@ export function MonthHeroCard({ reloadKey }: { reloadKey?: number }) {
 
   if (!view) return null; // 명식 없음/산출 실패 → 자리 차지하지 않는다
 
-  // 룰 풀이 본문 첫 문단만 — '펼쳐 보이되' 전체를 옮겨오진 않는다(상세로 갈 이유를 남긴다).
-  const body = typeof view.reading === 'string' ? view.reading : (view.reading as any)?.text ?? '';
-  const firstLine = String(body).split(/\n+/).find((x) => x.trim().length > 0) ?? '';
+  // 룰 풀이 — ★`getDailyReading` 은 **문자열이 아니라 `Record<영역키, string>`** 이다(general/work/money/love/health).
+  //   처음에 문자열로 다뤄 본문이 통째로 비어 있었다(daniel "이달의 운세 지금 제대로 안 나오고 있어").
+  //   전체 흐름을 대표하는 'general' 한 문단만 보여주고 나머지는 상세로 남긴다.
+  const firstLine = (view.reading?.general ?? '').split(/\n+/).find((x) => x.trim().length > 0) ?? '';
 
   return (
     <PressableScale style={styles.card} onPress={() => router.push('/month')}>
