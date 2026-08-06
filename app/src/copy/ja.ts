@@ -56,6 +56,8 @@ export const ja = {
     dayPillar: '日柱論', dayPillarDesc: '生まれた日でみる気質', career: '起業家の私 vs 会社員の私', careerDesc: '独立と組織、二つの道', gaeun: 'あなたの開運法', gaeunDesc: '今の運に合わせて運を活かす', followupDesc: '占いにもう一つ質問', talent: '私の生まれ持った才能', celeb: '世界の人物マッチング', celebDesc: '有名人の四柱と比べる楽しみ', talentDesc: '才能·向く道·お金の扱い方', numerology: '数秘術', numerologyDesc: '数で見る人生の方向·才能', astrology: '星座·占星術', astrologyDesc: '星座 + ネイタルチャート、二つの視点',
     child: '子どもの縁', childDesc: '子との縁·気質·親としての私', future10: '10年後の私', future10Desc: '大運·歳運で描く10年後', reunion: '復縁', reunionDesc: '元の縁が再び開く時期·可能性', crush: '片思い·ご縁運', crushDesc: '想いが届くか·惹かれる人の質·近づく時期', job: '就職·転職運', jobDesc: '就職·転職·合格·試験が動きやすい時期', jobfit: '私に合う職業', jobfitDesc: '生まれ持った適性で合う職業·惹かれと能力の差', wealth: '財運ディープレポート', wealthDesc: '生まれ持った財の器·タイプ·大きく入る時期と守り方', reunionAsk: '復縁できる？', reunionAskDesc: '無料で見る復縁の可能性·連絡に良い月', crushAsk: 'あの人と結ばれる？', crushAskDesc: '無料で見る魅力·ご縁が高まる月', jobAsk: '就職はいつ？', jobAskDesc: '無料で見る就職·合格運が開く時期',
     saju: '四柱推命', sajuDesc: '鑑定·タイムライン·相性', ziweiHub: '紫微斗数', ziweiHubDesc: '命盤·運限·相性',
+    chipAll: 'すべて',
+    chipHot: '人気', chipLove: '恋愛', chipMoney: 'お金', chipSelf: '私', chipFlow: '時期', chipFun: '遊び', chipTool: '命式',
     secContent: '人気', // ★ショートカット行(テーマ軸の外)
     // ★テーマ(悩み)軸のセクション(2026-08-06 再編) — 「何が知りたいか」で選ぶ。有料・無料はカードのバッジで示す。
     secLove: '恋愛・相性', secLoveDesc: '二人の間 — 縁・時期・心の動き',

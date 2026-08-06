@@ -20,11 +20,16 @@ import { colors, radius, space, shadow } from '../lib/theme';
 // ★프로모 목록(daniel 검수 슬롯) — 인기 콘텐츠를 궁금증 훅으로. image = 그 콘텐츠의 기존 타일(단일 출처: contentSections 와 동일 파일).
 type Promo = { key: string; hook: string; sub: string; route: string; accent: string; image: any };
 const PROMOS: Promo[] = [
-  { key: 'love',     hook: '나의 인연은 어디에?',        sub: '애정 흐름과 인연이 무르익는 시기를 사주로', route: '/love',     accent: '#F4A6B8', image: A('icons/love.jpg') },
-  { key: 'wealth',   hook: '내 재물 그릇은 얼마나 클까?', sub: '타고난 재물과 크게 들어오는 시기',          route: '/wealth',   accent: '#EBCF8A', image: A('icons/wealth.jpg') },
-  { key: 'jobfit',   hook: '나에게 딱 맞는 직업은?',      sub: '타고난 적성으로 찾는 나의 天職',            route: '/jobfit',   accent: '#8FBEEC', image: A('icons/jobfit.jpg') },
-  { key: 'future10', hook: '10년 뒤, 나는 어떤 모습일까?', sub: '대운·세운으로 보는 나의 미래',              route: '/future10', accent: '#8FD8BA', image: A('icons/future10.jpg') },
-  { key: 'crush',    hook: '그 사람도 내 마음 같을까?',   sub: '짝사랑이 이뤄질 시기와 다가가는 법',        route: '/crushAsk', accent: '#CBA6E6', image: A('icons/crush.jpg') },
+  // ★2026-08-06 daniel 퍼널 재설계: "배너에서 연애쪽을 선택하면 풀이탭 연애 카테고리로 넘어가고,
+  //   무료 컨텐츠가 상단에 노출되고, 궁금해질 때쯤 유료 상세로".
+  //   [바뀐 것] route 가 **유료 화면 직행**(/love·/wealth·/jobfit·/future10 = 결제 벽)이었다.
+  //     첫 화면에서 바로 결제를 만나면 무료 사용자는 되돌아간다 → 주제 **카테고리**로 보낸다.
+  //     카테고리 안은 무료가 상단(ContentGrid 무료 우선 정렬)이라 자연히 '무료 → 유료' 순서가 된다.
+  { key: 'love',  hook: '나의 인연은 어디에?',        sub: '연애·궁합 — 무료로 먼저 보고 더 깊이',      route: '/contents?cat=love',  accent: '#F4A6B8', image: A('icons/love.jpg') },
+  { key: 'money', hook: '내 재물 그릇은 얼마나 클까?', sub: '돈·일·진로 — 타고난 그릇과 풀리는 때',      route: '/contents?cat=money', accent: '#EBCF8A', image: A('icons/wealth.jpg') },
+  { key: 'self',  hook: '나는 어떤 사람일까?',         sub: '성격·기질 — 무료 분석부터',                 route: '/contents?cat=self',  accent: '#8FBEEC', image: A('icons/selfAnalysis.jpg') },
+  { key: 'flow',  hook: '10년 뒤, 나는 어떤 모습일까?', sub: '시기와 흐름 — 오늘부터 십 년 뒤까지',       route: '/contents?cat=flow',  accent: '#8FD8BA', image: A('icons/future10.jpg') },
+  { key: 'fun',   hook: '가볍게 오늘 하나 볼까?',       sub: '타로·전생·복 — 심각하지 않게',              route: '/contents?cat=fun',   accent: '#CBA6E6', image: A('icons/taro.jpg') },
 ];
 
 export function HouseAdBanner() {

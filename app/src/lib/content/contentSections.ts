@@ -25,7 +25,12 @@ export type MenuItem = {
   content?: boolean;      // 무료 온디바이스 = 진입 시 보상형 광고 1회
   creditKey?: CreditKind; // 유료 = 가격/쿠폰/풀이있음 배지 대상
 };
-export type Section = { key: string; titleKey: string; descKey?: string; items: MenuItem[] };
+/**
+ * @param chipKey 상단 카테고리 칩용 **짧은** 라벨 키(daniel 2026-08-06 "상단에 연애 재물 사람 등등
+ *   카테고리별로 있어서 선택할 수 있게"). 섹션 제목('나는 어떤 사람인가')은 칩에 넣기엔 길다 —
+ *   칩은 한눈에 훑는 게 목적이라 2~4자로 따로 둔다. 없으면 titleKey 를 쓴다.
+ */
+export type Section = { key: string; titleKey: string; descKey?: string; chipKey?: string; items: MenuItem[] };
 
 /**
  * '인기' 섹션 사본 키(hot*) → 원본 콘텐츠 키.
@@ -92,7 +97,7 @@ export const SECTIONS: Section[] = [
   //   무료 '질문형' 원본은 아래 주제 섹션에도 그대로 있다(의도된 중복) — ★키는 고유(hot*)로 React 키 충돌 방지.
   //   ★설명(descKey)을 붙인 이유: 전 섹션이 같은 헤더로 통일되면서(08-06) '인기'만 설명이 없으면
   //     그 자리가 비어 보인다. 다른 섹션과 같은 모양을 갖춘다.
-  { key: 'hot', titleKey: 'menu.secContent', descKey: 'menu.secHotDesc', items: [
+  { key: 'hot', titleKey: 'menu.secContent', descKey: 'menu.secHotDesc', chipKey: 'menu.chipHot', items: [
     // 재물 딥리포트(유료 EEL 딥리포트) — 인기로 배치(daniel 07-23 '재물 딥리포트도 인기로 옮겨'). NEW 배지+NEW-우선 정렬로 상단 노출.
     //   ★키는 사본 규칙대로 hot* — 원본 `wealth` 는 '돈·일·진로' 섹션에 있다. 배지·티저는 baseKey 로 원본을 따라간다.
     { key: 'hotWealth', labelKey: 'menu.wealth', descKey: 'menu.wealthDesc', image: A('icons/wealth.jpg'), route: '/wealth', ready: true, content: true, creditKey: 'wealth' },
@@ -108,7 +113,7 @@ export const SECTIONS: Section[] = [
   // ── 1. 연애·궁합 — "사람 사이가 궁금하다" ────────────────────────────────
   //   흩어져 있던 궁합(프리미엄)·재회/짝사랑 질문형(가볍게)·애정흐름/재회/짝사랑 유료(스페셜)를 한자리로.
   //   무료 '질문형'(…Ask) 바로 옆에 유료 깊은 풀이를 둔다 — 미리보기→깊은 풀이 퍼널이 눈에 보이게(daniel 07-05 모델).
-  { key: 'love', titleKey: 'menu.secLove', descKey: 'menu.secLoveDesc', items: [
+  { key: 'love', titleKey: 'menu.secLove', descKey: 'menu.secLoveDesc', chipKey: 'menu.chipLove', items: [
     { key: 'compat', labelKey: 'menu.compat', descKey: 'menu.compatDesc', image: A('icons/compat.jpg'), route: '/compat', ready: true, premium: true, creditKey: 'compat' },
     { key: 'love', labelKey: 'menu.love', descKey: 'menu.loveDesc', image: A('icons/love.jpg'), route: '/love', ready: true, content: true, creditKey: 'love' },
     // 무료 질문형(올해 결정론 미리보기) → 화면 CTA로 유료 깊은 풀이 유도(daniel 2026-07-05).
@@ -128,7 +133,7 @@ export const SECTIONS: Section[] = [
 
   // ── 2. 돈·일·진로 — "먹고사는 것이 궁금하다" ──────────────────────────────
   //   재물(인기)·직업적성/사업가vs직장인(심층)·취업(스페셜)·취업질문(가볍게)이 흩어져 있던 것을 모았다.
-  { key: 'money', titleKey: 'menu.secMoney', descKey: 'menu.secMoneyDesc', items: [
+  { key: 'money', titleKey: 'menu.secMoney', descKey: 'menu.secMoneyDesc', chipKey: 'menu.chipMoney', items: [
     { key: 'wealth', labelKey: 'menu.wealth', descKey: 'menu.wealthDesc', image: A('icons/wealth.jpg'), route: '/wealth', ready: true, content: true, creditKey: 'wealth' },
     // 신규(daniel 2026-07-13): 나에게 어울리는 직업(직업 적성 딥리포트 EEL — career 사업가vs직장인과 별개).
     { key: 'jobfit', labelKey: 'menu.jobfit', descKey: 'menu.jobfitDesc', image: A('icons/jobfit.jpg'), route: '/jobfit', ready: true, content: true, creditKey: 'jobfit' },
@@ -144,7 +149,7 @@ export const SECTIONS: Section[] = [
   // ── 3. 나는 어떤 사람인가 — "본질·성격이 궁금하다" ────────────────────────
   //   ★자기이해 우선(App Store 4.3, daniel 07-11) 원칙은 유지 — 사주·자미 원국풀이가 이 섹션의 머리.
   //   기존 '나를 이해하기'(유료)와 '나에 대해 알기'(심층)가 이름만으로 구분 안 되던 문제를 하나로 합쳐 해소.
-  { key: 'self', titleKey: 'menu.secSelf', descKey: 'menu.secSelfDesc', items: [
+  { key: 'self', titleKey: 'menu.secSelf', descKey: 'menu.secSelfDesc', chipKey: 'menu.chipSelf', items: [
     { key: 'saju', labelKey: 'menu.saju', descKey: 'menu.sajuDesc', image: A('icons/premium.jpg'), route: '/reading', ready: true, premium: true, creditKey: 'reading' },        // 허브 제거 → 원국풀이 직접 진입(daniel 07-01)
     { key: 'ziwei', labelKey: 'menu.ziweiHub', descKey: 'menu.ziweiHubDesc', image: A('icons/ziwei.jpg'), route: '/ziwei', ready: true, premium: true, creditKey: 'ziwei' },        // 허브 제거 → 자미 원국풀이 직접
     // 신규(daniel 2026-07-13·4.3 자기분석): 나 분석 종합 — 무료 온디바이스(사주 엔진).
@@ -165,7 +170,7 @@ export const SECTIONS: Section[] = [
   // ── 4. 시기와 흐름 — "언제가 궁금하다" ───────────────────────────────────
   //   오늘/이달(무료)·타임라인(프리미엄)·인생그래프/신년/10년뒤(스페셜)·개운법(심층)·택일/행운(가볍게) 통합.
   //   시간 스케일 순서(오늘 → 이달 → 올해 → 10년 → 평생)로 두어 무엇이 더 긴 호흡인지 배치로 읽히게 한다.
-  { key: 'flow', titleKey: 'menu.secFlow', descKey: 'menu.secFlowDesc', items: [
+  { key: 'flow', titleKey: 'menu.secFlow', descKey: 'menu.secFlowDesc', chipKey: 'menu.chipFlow', items: [
     { key: 'today', labelKey: 'menu.today', descKey: 'menu.todayTileDesc', image: A('icons/today.jpg'), route: '/today', ready: true },
     { key: 'month', labelKey: 'menu.month', descKey: 'menu.monthTileDesc', image: A('icons/month.jpg'), route: '/month', ready: true },
     // daniel(2026-06-24): 신년운세 = 시즌 콘텐츠라 이 섹션 앞쪽.
@@ -182,7 +187,7 @@ export const SECTIONS: Section[] = [
 
   // ── 5. 가볍게 보는 재미 — "심각하지 않게" ────────────────────────────────
   //   ★기존 '가볍게 보기'(25개 잡탕)에서 **정말 가벼운 것만** 남겼다. 나머지는 위 주제로 갔다.
-  { key: 'fun', titleKey: 'menu.secFun', descKey: 'menu.secFunDesc', items: [
+  { key: 'fun', titleKey: 'menu.secFun', descKey: 'menu.secFunDesc', chipKey: 'menu.chipFun', items: [
     { key: 'taro', labelKey: 'menu.taro', descKey: 'menu.taroDesc', image: A('icons/taro.jpg'), route: '/taro', ready: true, content: true },
     { key: 'pet', labelKey: 'menu.pet', descKey: 'menu.petDesc', image: A('icons/pet.jpg'), route: '/pet', ready: true, content: true },
     // 신규(daniel 2026-06-23): 별자리 운세(유료 LLM). ※수비학은 여기로 병합됨(별도 카드 없음).
@@ -200,7 +205,7 @@ export const SECTIONS: Section[] = [
 
   // ── 6. 명식·도구 — 콘텐츠가 아니라 '보는 장치' ───────────────────────────
   //   만세력·시 찾기는 읽을거리가 아니라 도구라 주제 섹션과 성격이 다르다 → 맨 아래 별도.
-  { key: 'tool', titleKey: 'menu.secTool', descKey: 'menu.secToolDesc', items: [
+  { key: 'tool', titleKey: 'menu.secTool', descKey: 'menu.secToolDesc', chipKey: 'menu.chipTool', items: [
     { key: 'manse', labelKey: 'menu.manse', descKey: 'menu.manseDesc', image: A('icons/manse.jpg'), route: '/charts', ready: true },
     // TPR: 시 모르는 사용자가 인생 사건으로 시를 좁히는 결정론 도구(LLM 0). 990 1회 결제로 도구 영구 해제(daniel 06-28).
     { key: 'timeResolve', labelKey: 'menu.timeResolve', descKey: 'menu.timeResolveDesc', image: A('icons/timeResolve.jpg'), route: '/timeResolve', ready: true, creditKey: 'timeresolve' },

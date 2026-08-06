@@ -30,7 +30,8 @@ import { PersonaTypeHero } from '../../components/PersonaTypeHero'; // ★홈 �
 import { CoinBadge } from '../../components/CoinBadge';   // ★운 잔액 배지(daniel 07-28)
 
 // 홈 블록 이미지 상수(IMG)는 홈이 정보 카드로 바뀌며(2026-08-01) 소비처가 사라져 제거했다.
-import { HouseAdBanner } from '../../components/HouseAdBanner'; // 홈 상단 내부 프로모 배너(하우스 광고·daniel 07-24)
+import { HouseAdBanner } from '../../components/HouseAdBanner';
+import { isAdminActing } from '../../lib/core/admin'; // 홈 배치 편집 = 관리자 전용(daniel 2026-08-06) // 홈 상단 내부 프로모 배너(하우스 광고·daniel 07-24)
 import { BiorhythmCard } from '../../components/BiorhythmCard'; // 홈 블록: 바이오리듬(07-21 코드큐·온디바이스·부가 재미·API 0)
 import { LuckyTodayCard } from '../../components/LuckyTodayCard'; // 홈 블록: 오늘의 행운(07-22 코드큐·온디바이스·luckyItem 재사용·API 0)
 import { CommunityPulseInline } from '../../components/CommunityPulseCard'; // 상단 컨트롤 행 우측 소셜 프루프(실측 집계·임계값 미만 자동 숨김)
@@ -104,6 +105,11 @@ export default function Home() {
   const [hasChart, setHasChart] = useState<boolean>(true); // H1(daniel): 대표 명식 유무 — 없으면 오늘/내일 배너를 '명식 등록 안내'로(탭→등록)
   const [reloadKey, setReloadKey] = useState(0); // 명식 변경(전환·수정) 감지 — 포커스마다 오늘의 기운 재계산(daniel: 명식 수정 시 id 동일이라 갱신 안 되던 버그)
   const [editOpen, setEditOpen] = useState(false); // 홈 배치 편집 모달(daniel 07-21 '편집 모드')
+  // ★홈 배치 편집을 **관리자에게만** 보인다(daniel 2026-08-06 "홈화면 편집은 관리자 뷰에서 관리자 계정만").
+  //   일반 사용자에게 배치 편집은 첫 화면의 상단 자리를 차지할 만큼 자주 쓰는 기능이 아니고,
+  //   지금은 홈 구성(오늘의 운세 → 배너 → …)을 운영이 정하는 편이 퍼널 의도에 맞다.
+  const [isAdmin, setIsAdmin] = useState(false);
+  useEffect(() => { isAdminActing().then(setIsAdmin).catch(() => setIsAdmin(false)); }, [session]);
   const [quickOpen, setQuickOpen] = useState(false); // 🧭 바로가기 메뉴(만세력·AI코치 분기 — daniel 2026-07-25 J)
 
   // 홈 포커스 시(명식 변경 후 복귀 포함) 날짜·대표 명식 재확인 → 오늘의 기운 갱신(①③)
@@ -220,6 +226,9 @@ export default function Home() {
     //     `명식 있음 → 이미지 카드 / 없음 → 정보 카드` 로 **게이트가 거꾸로** 걸려 있었을 뿐이다.
     //     (각 카드는 명식이 없으면 스스로 미노출을 판단하므로 분기 자체가 불필요했다.)
     //   ⚡부수 효과: 홈의 `ImageBackground`(원본 풀 디코딩)가 사라져 갤럭시 랙의 큰 축 하나가 없어진다.
+    // ★배너(하우스 광고) — 08-06 부터 **순서를 바꿀 수 있는 블록**이다(daniel "편집에 배너도 위치이동 가능하게").
+    //   기본 위치는 오늘의 운세 바로 아래(DEFAULT_HOME_ORDER). 종전엔 고정 헤더라 늘 최상단이었다.
+    if (k === 'banner') return <HouseAdBanner />;
     if (k === 'persona') return <PersonaTypeHero reloadKey={reloadKey} />;
     if (k === 'self') return <SelfUnderstandingHero reloadKey={reloadKey} />;
     if (k === 'biorhythm') return <BiorhythmCard reloadKey={reloadKey} />;
@@ -353,9 +362,11 @@ export default function Home() {
       {/* 홈 상단 컨트롤 행(daniel 2026-07-25 J): [⠿ 홈 배치 편집] + [🧭 바로가기](만세력·AI코치 분기 메뉴).
           배치 편집 = 블록 순서 드래그(모달·내부 탭 충돌 회피). 바로가기 = 블록에서 뺀 만세력/코치로 진입. */}
       <View style={styles.topCtrlRow}>
-        <PressableScale onPress={() => setEditOpen(true)} style={styles.editBtn} hitSlop={8}>
-          <Text style={styles.editBtnTx}>⠿ 홈 배치 편집</Text>
-        </PressableScale>
+        {isAdmin && (
+          <PressableScale onPress={() => setEditOpen(true)} style={styles.editBtn} hitSlop={8}>
+            <Text style={styles.editBtnTx}>⠿ 홈 배치 편집</Text>
+          </PressableScale>
+        )}
         <PressableScale onPress={() => setQuickOpen(true)} style={styles.editBtn} hitSlop={8}>
           <Text style={styles.editBtnTx}>⚡ 바로가기</Text>
         </PressableScale>
@@ -381,8 +392,8 @@ export default function Home() {
           <Text style={{ color: colors.ju, fontWeight: '700', fontSize: fs(13) }}>이어보기 ›</Text>
         </PressableScale>
       )))}
-      {/* ★홈 상단 내부 프로모 배너(하우스 광고·daniel 07-24) — 인기 콘텐츠를 궁금증 훅으로. 고정 헤더라 항상 최상단(순서 대상 아님). */}
-      <HouseAdBanner />
+      {/* ★배너는 여기(고정 헤더)에서 **블록으로 이동**했다(daniel 2026-08-06) — renderBlock 의 'banner'.
+          종전엔 헤더라 항상 오늘의 운세보다 위였고 순서도 못 바꿨다. */}
     </>
   );
 

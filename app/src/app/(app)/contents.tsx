@@ -15,10 +15,12 @@
 //   → 화면 제목('풀이')은 하단 탭이 이미 강조하고 있고, 부제('보고 싶은 주제를 골라 보세요')는
 //     검색 placeholder('무엇이 궁금하세요?')와 같은 말이라 **둘 다 제거**했다. 뷰 토글은 검색줄에 합쳤다.
 // ─────────────────────────────────────────────────────────────────────────
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { View, Text, TextInput, ScrollView, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context'; // ★상단 안전영역 — 고정 여백은 글자확대 시 잘린다(daniel 07-27)
 import { useTranslation } from 'react-i18next';
+import { useLocalSearchParams } from 'expo-router'; // 홈 배너 → 카테고리 딥링크(/contents?cat=love)
+import { SECTIONS } from '../../lib/content/contentSections'; // 상단 카테고리 칩 = 섹션에서 파생(목록 이중관리 금지)
 import { ContentGrid } from '../../components/ContentGrid';
 import { NextStepCard } from '../../components/NextStepCard'; // '다음 단계' 퍼널 히어로(나열→저니)
 import { ChartPicker } from '../../components/ChartPicker';
@@ -36,6 +38,15 @@ export default function ContentsScreen() {
   // 검색어(daniel 2026-08-06 "너무 나열되어있어서 뭐가뭔지 모르겠어").
   const [q, setQ] = useState('');
   const searching = q.trim().length > 0;
+  // ── 카테고리(주제) 선택 ────────────────────────────────────────────────
+  // daniel 2026-08-06: "상단에 연애 재물 사람 등등 카테고리별로 있어서 선택할 수 있게 하고
+  //   하위에는 상단에 무료 컨텐츠만 노출" — 무료로 먼저 맛보고 궁금해질 때 유료로 넘어가는 퍼널.
+  //   딥링크(`/contents?cat=love`)로도 들어온다 — 홈 배너가 주제별로 여기를 가리킨다.
+  const { cat } = useLocalSearchParams<{ cat?: string }>();
+  const [category, setCategory] = useState<string | null>(null);
+  // ★파라미터는 '초기값'으로만 쓴다 — 여기서 칩을 눌러 바꾼 뒤에도 파라미터가 남아 있으면
+  //   화면이 돌아올 때마다 선택이 되돌아간다(사용자 조작을 URL 이 덮어쓰는 형태).
+  useEffect(() => { if (typeof cat === 'string' && cat) setCategory(cat); }, [cat]);
   return (
     // 전역 ContentBackdrop(오행 배경색)이 비치게 투명(홈과 동일 처리).
     <View style={styles.bg}>
@@ -80,6 +91,25 @@ export default function ContentsScreen() {
           </View>
         )}
       </View>
+      {/* ── 카테고리 칩 — "무엇이 궁금한가"로 먼저 좁힌다(daniel 2026-08-06) ─────────
+          검색 중에는 감춘다(검색은 전 영역이 대상이라 카테고리와 뜻이 겹친다).
+          목록은 SECTIONS 에서 파생 — 여기 따로 적으면 섹션이 늘 때 한쪽이 빠진다. */}
+      {!searching && (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.catBar} contentContainerStyle={styles.catRow}>
+          <PressableScale style={[styles.catChip, !category && styles.catChipOn]} onPress={() => setCategory(null)}>
+            <Text style={[styles.catTx, !category && styles.catTxOn]}>{t('menu.chipAll', '전체')}</Text>
+          </PressableScale>
+          {SECTIONS.map((sec) => (
+            <PressableScale
+              key={sec.key}
+              style={[styles.catChip, category === sec.key && styles.catChipOn]}
+              onPress={() => setCategory(category === sec.key ? null : sec.key)} // 다시 누르면 해제 = '전체'
+            >
+              <Text style={[styles.catTx, category === sec.key && styles.catTxOn]}>{t(sec.chipKey ?? sec.titleKey)}</Text>
+            </PressableScale>
+          ))}
+        </ScrollView>
+      )}
       <ScrollView
         style={styles.screen}
         contentContainerStyle={styles.wrap}
@@ -96,7 +126,7 @@ export default function ContentsScreen() {
             <NextStepCard reloadKey={reload} />
           </>
         )}
-        <ContentGrid query={q} viewMode={viewMode} />
+        <ContentGrid query={q} viewMode={viewMode} category={category} />
       </ScrollView>
     </View>
   );
@@ -125,6 +155,13 @@ const styles = StyleSheet.create({
   searchInput: { flex: 1, ...font.body, color: colors.ink, paddingVertical: space(2.5) },
   searchClear: { paddingHorizontal: space(1), paddingVertical: space(1) },
   searchClearTx: { fontSize: 15, fontWeight: '800', color: colors.inkFaint },
+  // 카테고리 칩 — 검색줄 아래 가로 스크롤. 스크롤 밖 고정이라 목록을 내려도 주제를 바꿀 수 있다.
+  catBar: { flexGrow: 0, backgroundColor: 'transparent' },
+  catRow: { gap: space(2), paddingHorizontal: space(5), paddingBottom: space(3) },
+  catChip: { paddingHorizontal: space(3.5), paddingVertical: space(2), borderRadius: radius.pill, backgroundColor: colors.overlay, borderWidth: 1, borderColor: colors.line },
+  catChipOn: { backgroundColor: colors.ju, borderColor: colors.ju }, // 선택 = 골드(라이트/다크 자동)
+  catTx: { fontSize: 13.5, fontWeight: '800', color: colors.inkSoft, letterSpacing: 0.2 },
+  catTxOn: { color: '#15132E' },
   // 보기 토글 — 검색줄 오른쪽 끝. 기호만이라 폭이 작다.
   //   ★활성 표시를 **연한 골드 배경 + 골드 글자**로(꽉 찬 골드는 보조 버튼이 검색창보다 튄다).
   viewToggle: { flexDirection: 'row', gap: space(1), backgroundColor: colors.overlay, borderRadius: radius.pill, padding: space(1), borderWidth: 1, borderColor: colors.line },

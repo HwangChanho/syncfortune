@@ -96,7 +96,7 @@ const AD_TIMEOUT_MS = 15_000;
  *      화면에서 토글해도 그리드는 모른다(같은 값을 여러 곳이 각자 읽어 갈린 사고 이력 있음).
  *      → 훅은 화면에서 한 번만 부르고 여기로는 값만 내려온다.
  */
-export function ContentGrid({ query = '', viewMode }: { query?: string; viewMode: HomeViewMode }) {
+export function ContentGrid({ query = '', viewMode, category = null }: { query?: string; viewMode: HomeViewMode; category?: string | null }) {
   const router = useRouter();
   const { t } = useTranslation();
   const { session } = useAuth();
@@ -110,10 +110,13 @@ export function ContentGrid({ query = '', viewMode }: { query?: string; viewMode
       ...sec,
       items: sec.items.filter((m) => {
         if (m.key === 'sokgunghap' && !sokOn) return false;          // 속궁합 노출 게이트 유지
-        return true;                                                  // ★필터 없음 — 전 항목 한 목록(위 주석 참조)
+        return true;
       }),
-    })).filter((sec) => sec.items.length > 0),
-    [sokOn],
+    })).filter((sec) => sec.items.length > 0)
+      // ★카테고리 선택(daniel 2026-08-06) — 상단 칩에서 고른 주제 하나만 남긴다.
+      //   '전체'(category=null)면 종전대로 전 섹션. 검색 중에는 이 필터를 타지 않는다(검색은 전 영역 대상).
+      .filter((sec) => !category || sec.key === category),
+    [sokOn, category],
   );
   const [repServerChartId, setRepServerChartId] = useState<string | null>(null); // 현재 대표 명식(프리미엄·배지 판정)
   const [credits, setCredits] = useState<Record<string, number>>({});                            // creditKey별 쿠폰 잔량
@@ -343,8 +346,15 @@ export function ContentGrid({ query = '', viewMode }: { query?: string; viewMode
         //   못 찾아 헤매지 않게 맨 위로. ②는 07-23 daniel 요청("new 붙어있는걸 제일 앞으로"). JS sort 는 안정 소트라
         //   같은 등급 안에서는 선언 순서가 유지된다.
         const hasCredit = (m: MenuItem) => (m.creditKey && (credits[m.creditKey] ?? 0) > 0 ? 1 : 0);
+        // ★무료 우선(daniel 2026-08-06 퍼널): "앞에는 싹 다 무료, 궁금할 때쯤 유료 상세로".
+        //   결제 벽을 앞에 세우면 무료 사용자가 그 섹션을 통째로 건너뛴다 — 가벼운 무료 풀이로 먼저
+        //   '내 얘기'를 보여주고, 더 알고 싶어질 때 유료가 바로 옆에 있게 배치한다.
+        //   ※'이미 산 것'(hasCredit)은 여전히 맨 앞이다(daniel 07-26) — 산 걸 못 찾는 게 더 나쁘다.
+        const isFree = (m: MenuItem) => (m.creditKey ? 0 : 1);
         const items = [...sec.items].sort((a, b) =>
-          (hasCredit(b) - hasCredit(a)) || ((isNewContent(b.key) ? 1 : 0) - (isNewContent(a.key) ? 1 : 0)));
+          (hasCredit(b) - hasCredit(a))
+          || (isFree(b) - isFree(a))
+          || ((isNewContent(b.key) ? 1 : 0) - (isNewContent(a.key) ? 1 : 0)));
         // 섹션 헤더 — 카드뷰·리스트뷰가 동일하게 재사용(중복 제거·정합).
         //   ★'인기'만 연한 골드 밴드로 강조하던 것을 제거하고 **전 섹션 같은 헤더**로 통일(daniel 08-06).
         //     주제 축에서는 섹션이 대등한 선택지라, 하나만 박스로 감싸면 그게 섹션인지 버튼인지 모호해지고

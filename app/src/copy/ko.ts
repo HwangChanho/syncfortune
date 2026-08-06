@@ -79,6 +79,9 @@ export const ko = {
     dayPillar: '일주론', dayPillarDesc: '태어난 날로 보는 나의 기질', career: '사업가의 나', careerDesc: '사업가 vs 직장인, 두 길 풀이', gaeun: '맞춤 개운법', gaeunDesc: '지금 운에 맞춰 운을 살리는 법', followupDesc: '풀이에 더 묻고 싶은 한 가지', talent: '나의 타고난 재능', celeb: '세계 인물 매칭', celebDesc: '유명인 사주와 나를 견주는 재미', talentDesc: '재능·좋아하는 일·돈 다루는 법', numerology: '수비학', numerologyDesc: '수로 보는 인생 방향·재능', astrology: '별자리·점성술', astrologyDesc: '내 별자리 + 네이탈 차트, 두 관점 깊이 풀이',
     child: '자식운', childDesc: '자녀 인연·기질·부모로서의 나', future10: '10년 뒤 나의 모습', future10Desc: '대운·세운으로 그리는 10년 뒤', reunion: '재회운', reunionDesc: '옛 인연과 다시 이어질 시기·가능성', crush: '짝사랑 인연운', crushDesc: '내 마음이 닿을지·끌릴 사람의 결·다가갈 시기', job: '취업·이직운', jobDesc: '취업·이직·합격·시험이 잘 풀리는 시기', jobfit: '나에게 어울리는 직업', jobfitDesc: '타고난 적성으로 어울리는 직업·끌림과 능력의 간극', wealth: '재물 딥리포트', wealthDesc: '타고난 재물 그릇·유형·언제 크게 들어오고 어떻게 지키는지', reunionAsk: '재회 가능할까?', reunionAskDesc: '무료로 보는 재회 가능성·연락 좋은 달', crushAsk: '그 사람과 이어질까?', crushAskDesc: '무료로 보는 매력·썸이 무르익는 달', jobAsk: '취업 언제 될까?', jobAskDesc: '무료로 보는 취업·합격운 열리는 시기',
     saju: '사주', sajuDesc: '원국·타임라인·궁합', ziweiHub: '자미두수', ziweiHubDesc: '명반·운한·궁합',
+    // 상단 카테고리 칩(짧은 라벨) — 섹션 제목은 길어 칩엔 안 맞는다(daniel 08-06)
+    chipAll: '전체',
+    chipHot: '인기', chipLove: '연애', chipMoney: '재물·일', chipSelf: '나', chipFlow: '시기', chipFun: '재미', chipTool: '명식',
     secContent: '인기', // ★숏컷 섹션(주제 축 밖) — 최상단 한 줄
     // ★주제(고민) 축 섹션(2026-08-06 재편) — "무엇이 궁금한가"로 고른다. 유·무료는 카드 배지가 구분.
     secLove: '연애·궁합', secLoveDesc: '두 사람 사이 — 인연·시기·마음의 결',

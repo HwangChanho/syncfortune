@@ -21,17 +21,21 @@ import { supabase } from '../supabase';
 /** 홈에서 순서를 바꿀 수 있는 블록. (헤더·풀이 진행률 배너·로그인 링크는 고정이라 제외)
  *  ★manse(만세력)·coach(AI 코치)는 상단 '⚡ 바로가기' 메뉴로 / chart(명식 선택)는 홈에서 제거(daniel 2026-07-25) — 홈은 대표 명식 기준 자동 표시.
  *    (normalizeOrder 가 valid=DEFAULT 기준으로 필터하므로, 기존 사용자 저장값의 manse/coach/chart 는 자동 제거된다.) */
-export type HomeBlockKey = 'today' | 'relation' | 'persona' | 'self' | 'biorhythm' | 'luck' | 'decision';
+export type HomeBlockKey = 'today' | 'banner' | 'relation' | 'persona' | 'self' | 'biorhythm' | 'luck' | 'decision';
 
 /** daniel 확정 기본 순서 + 오늘의 관계(07-20) + 바이오리듬(07-21) + 오늘의 행운(07-22).
  *  ★07-25: manse·coach → 바로가기 메뉴 / chart(명식 선택) 제거. 오늘의 기운 → 나는 어떤 사람 → 성격유형 → 오늘의 관계 → 바이오리듬 → 오늘의 행운.
  *  ★신규 블록(luck)은 '맨 아래' 기본 — 기존 사용자는 normalizeOrder 가 저장 순서 끝에 자동 덧붙인다. */
 //  ★07-26: 오늘의 결정(decision) 추가 — 신규 블록이라 '맨 아래' 기본(기존 사용자는 normalizeOrder 가 저장 순서 끝에 자동 덧붙임).
-export const DEFAULT_HOME_ORDER: HomeBlockKey[] = ['today', 'self', 'persona', 'relation', 'biorhythm', 'luck', 'decision'];
+// ★08-06(daniel "오늘의 운세를 최상단에 놓고 그 아래 배너를 두자" + "편집에 배너도 위치이동 가능하게"):
+//   배너(HouseAdBanner)를 헤더 고정에서 **드래그 가능한 블록**으로 옮겼다. 종전엔 헤더라 항상 today 위였고
+//   순서를 바꿀 수도 없었다 — 첫 화면을 광고가 차지하는 배치를 사용자·운영자 둘 다 못 바꾸는 구조였다.
+export const DEFAULT_HOME_ORDER: HomeBlockKey[] = ['today', 'banner', 'self', 'persona', 'relation', 'biorhythm', 'luck', 'decision'];
 
 /** 블록 라벨 — 설정의 순서 편집 화면에 표시. */
 export const HOME_BLOCK_LABEL: Record<HomeBlockKey, string> = {
   today: '오늘의 기운',
+  banner: '추천 배너', // ★08-06 부터 이동 가능한 블록(종전 고정 헤더)
   relation: '오늘의 관계',
   persona: '나의 성격유형',
   self: '나는 어떤 사람인가',
