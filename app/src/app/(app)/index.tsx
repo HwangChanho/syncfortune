@@ -27,7 +27,6 @@ import { excludeMock } from '../../lib/core/testMode'; // ★홈 배너 daily �
 // ChartPicker(명식 선택)는 홈에서 제거(daniel 2026-07-25 '명식 선택은 홈에서 빼자') — 풀이 탭·만세력·설정에서 전환.
 import { SelfUnderstandingHero } from '../../components/SelfUnderstandingHero'; // ★4.3: 홈 최상단 자기이해 히어로(성향분석 첫 경험)
 import { PersonaTypeHero } from '../../components/PersonaTypeHero'; // ★홈 주인공 ①: 성격유형 120종(daniel 07-18 IA 개편)
-import { CoinBadge } from '../../components/CoinBadge';   // ★운 잔액 배지(daniel 07-28)
 
 // 홈 블록 이미지 상수(IMG)는 홈이 정보 카드로 바뀌며(2026-08-01) 소비처가 사라져 제거했다.
 import { HouseAdBanner } from '../../components/HouseAdBanner';
@@ -372,7 +371,6 @@ export default function Home() {
         </PressableScale>
         {/* ★코인 잔액(daniel 2026-07-28 코인 전환) — 충전 화면 진입점.
             여기 둔 이유: 유료 풀이를 열기 전에 잔액을 미리 알 수 있어야 '부족' 알림이 놀람이 되지 않는다. */}
-        <CoinBadge />
         {/* ★소셜 프루프(daniel 2026-07-27 IMG_8205 "바로가기 라인 우측에 작게") — 카드였던 걸 이 행 우측 한 줄로.
             카드는 블록 하나를 통째로 쓰면서 아래가 비어 균형이 깨져 있었다. 규모가 작으면 스스로 숨는다. */}
         <CommunityPulseInline />

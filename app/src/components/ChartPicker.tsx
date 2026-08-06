@@ -6,7 +6,6 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { View, Text, Pressable, Modal, StyleSheet, Dimensions, ActivityIndicator, InteractionManager, Animated, ScrollView, TextInput } from 'react-native';
-import { CoinBadge } from './CoinBadge';   // 보유 운 배지(단일 구현 재사용)
 import { PressableScale } from './PressableScale';
 import { Image as ExpoImage } from 'expo-image'; // 자동 다운샘플(메모리) + 엠블럼 탭 풀스크린 뷰어
 import DraggableFlatList, { ScaleDecorator } from 'react-native-draggable-flatlist'; // 이슈20 롱프레스 드래그 reorder
@@ -268,7 +267,6 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
             chart_id 단위). 그래서 명식을 바꾸는 바로 그 자리에서 잔액이 보여야 "다른 명식은 또 내야 하나"를
             누르기 전에 안다. CoinBadge 재사용(신규 발명 아님) — 탭하면 충전으로 간다. */}
         <View style={styles.barRight}>
-          <CoinBadge />
           <Text style={[styles.barName, { fontSize: fs(15) }]}>{rep?.label} ▾</Text>
         </View>
       </PressableScale>

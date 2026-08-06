@@ -23,6 +23,7 @@
 //
 // 실행: npm run check:coins
 // ─────────────────────────────────────────────────────────────────────────
+import { execSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 // ★순수 데이터만 import — coins.ts/coupons.ts 는 supabase(→react-native)를 끌어와 tsx 가 파싱하지 못한다.
 //   그래서 가격표는 coinPrices.ts(순수)로 분리했고, 기존 원화가는 coupons.ts **소스에서 읽는다**.
@@ -247,9 +248,20 @@ console.log('\n[K10] 잔액 뷰 RLS + 화면 렌더');
   if (/styles\.coinCard/.test(mk) && /coins == null/.test(mk)) ok('마켓에 보유 코인 카드 렌더');
   else bad('마켓에 보유 코인 카드가 없다 — 스타일만 남고 JSX 가 지워진 적이 있다(2026-07-28)');
 
-  const home = stripJsx(readFileSync(`${ROOT}app/src/app/(app)/index.tsx`, 'utf8'));
-  if (/<CoinBadge\s*\/>/.test(home)) ok('홈 상단에 코인 배지 렌더');
-  else bad('홈 상단에 코인 배지가 없다 — 유료 풀이를 열기 전에 잔액을 알 수 없다');
+  // ★규칙 뒤집힘(daniel 2026-08-06 "기본적으로 운은 구매하는 곳에서만 보유 운 볼 수 있게 하자"
+  //   + "명식 리스트에서 운 노출은 없애줘").
+  //   [옛 규칙] 홈 상단에 배지가 **있어야** 했다(07-28 코인 전환 때 잔액 가시성 확보 목적).
+  //   [지금] 잔액이 여기저기 떠 있는 것 자체가 과금 압박으로 읽힌다 → **구매 지점에만** 둔다.
+  //   그래서 검사도 뒤집는다: 구매 지점 밖에서 잔액을 그리면 실패.
+  //   (마켓 잔액 카드 검사는 위에 그대로 남아 있다 — 구매처에서는 반드시 보여야 한다.)
+  const BALANCE_ALLOWED = ['app/src/app/(app)/market.tsx', 'app/src/app/(app)/coins.tsx', 'app/src/app/(app)/settings.tsx'];
+  let leaked: string[] = [];
+  try {
+    leaked = execSync(`git grep -l --untracked -E "<CoinBadge" -- 'app/src/**/*.tsx'`, { cwd: ROOT }).toString()
+      .trim().split('\n').filter(Boolean).filter((f) => !BALANCE_ALLOWED.includes(f));
+  } catch { leaked = []; } // 매치 0건이면 git grep 이 exit 1 — 정상(노출 없음)
+  if (leaked.length === 0) ok('보유 운은 구매 지점에만 노출(홈·명식 리스트 등에 배지 없음)');
+  else bad(`구매 지점이 아닌 곳에 잔액 배지가 있다: ${leaked.join(', ')} — 잔액 상시 노출은 과금 압박으로 읽힌다`);
 }
 
 console.log(fail ? `\n❌ check:coins 실패 ${fail}건` : '\n✅ check:coins 통과 — 가격표 완전·환산정합·적립금지·팩단조·조회실패 구분·광고제거 정합 OK');
