@@ -1,6 +1,6 @@
 // app/src/copy/en.ts — English UI copy. Keys must match ko.ts exactly.
 export const en = {
-  appName: '운이',
+  appName: 'Niunnaeun',
   tagline: 'Your AI compass for understanding yourself and others',
   // 홈 카드 개인화 티저 — ko 와 동일 키(계산=homeTeaser.ts). ※ newyear.keyword 값 자체는 엔진이 한국어로 산출(기존 티저 전반과 동일).
   teaser: {
@@ -15,7 +15,7 @@ export const en = {
   onb: {
     skip: 'Skip', next: 'Next', start: 'Start my analysis',
     t1: "The AI that analyzes 'you'",
-    b1: 'Palja is not a horoscope app. It uses Saju as its engine to analyze who you are — a self-understanding tool.',
+    b1: 'Niunnaeun is not a horoscope app. It uses Saju as its engine to analyze who you are — a self-understanding tool.',
     t2: 'We compute your own chart',
     b2: 'Your birth data is calculated with a precise perpetual-calendar engine (true solar time, historical corrections) — an analysis that is yours alone.',
     t3: "What you'll understand",
@@ -219,7 +219,7 @@ export const en = {
     'notif': '알림',
     'notifDaily': '매일 오늘의 운세 알림',
     'notifDenied': '꺼짐 · 눌러서 기기 설정에서 켜기',
-    'notifDeniedMsg': '알림을 받으려면 기기 설정에서 운이 알림을 켜 주세요.',
+    'notifDeniedMsg': 'To receive notifications, enable Niunnaeun notifications in your device settings.',
     'notifNA': '이 기기에서 사용 불가',
     'notifOff': '꺼짐 · 눌러서 켜기',
     'notifOn': '켜짐 · 매일 오전 9시',

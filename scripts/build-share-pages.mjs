@@ -62,9 +62,9 @@ function personaPage(key, sex) {
 <meta property="og:type" content="website">
 <meta property="og:title" content="${esc(row.n)}">
 <meta property="og:description" content="${esc(row.s)}">
-<meta property="og:site_name" content="운이">
+<meta property="og:site_name" content="니운내운">
 ${img ? `<meta property="og:image" content="${img}"><meta name="twitter:card" content="summary_large_image">` : '<meta name="twitter:card" content="summary">'}`;
-  const body = `<div class="brand">운이</div>
+  const body = `<div class="brand">니운내운</div>
 <div class="card">
 ${img ? `<img class="hero" src="${img}" alt="${esc(row.n)}">` : ''}
 <div class="hair"></div>
@@ -80,7 +80,7 @@ ${img ? `<img class="hero" src="${img}" alt="${esc(row.n)}">` : ''}
   return `<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
-<title>${esc(row.n)} — 운이</title><style>${CSS}</style>${head}</head>
+<title>${esc(row.n)} — 니운내운</title><style>${CSS}</style>${head}</head>
 <body><div class="wrap">${body}</div></body></html>`;
 }
 
