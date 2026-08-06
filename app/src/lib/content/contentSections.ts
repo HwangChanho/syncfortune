@@ -96,125 +96,84 @@ export const priceLabel = (key: string) => {
 //   ※'인기'(hot)만 주제가 아닌 **숏컷** 성격이라 최상단에 남긴다(daniel 07-06·07-23 배치 결정 유지).
 //     그 안의 hot* 키는 원본과 같은 라우트를 가리키는 **의도된 중복**이다.
 export const SECTIONS: Section[] = [
-  // ── 0. 인기(숏컷) — 주제 축 밖. 요즘 많이 찾는 것만 한 줄. ─────────────────
-  // ★daniel 07-06: '가장 많이 찾는'→'인기'로 개칭·서브타이틀 제거.
-  //   무료 '질문형' 원본은 아래 주제 섹션에도 그대로 있다(의도된 중복) — ★키는 고유(hot*)로 React 키 충돌 방지.
-  //   ★설명(descKey)을 붙인 이유: 전 섹션이 같은 헤더로 통일되면서(08-06) '인기'만 설명이 없으면
-  //     그 자리가 비어 보인다. 다른 섹션과 같은 모양을 갖춘다.
-  { key: 'hot', titleKey: 'menu.secContent', descKey: 'menu.secHotDesc', chipKey: 'menu.chipHot', items: [
-    // 재물 딥리포트(유료 EEL 딥리포트) — 인기로 배치(daniel 07-23 '재물 딥리포트도 인기로 옮겨'). NEW 배지+NEW-우선 정렬로 상단 노출.
-    //   ★키는 사본 규칙대로 hot* — 원본 `wealth` 는 '돈·일·진로' 섹션에 있다. 배지·티저는 baseKey 로 원본을 따라간다.
-    { key: 'hotWealth', labelKey: 'menu.wealth', descKey: 'menu.wealthDesc', image: A('icons/wealth.jpg'), route: '/wealth', ready: true, content: true, creditKey: 'wealth' },
-    { key: 'hotReunionAsk', labelKey: 'menu.reunionAsk', descKey: 'menu.reunionAskDesc', image: A('icons/reunion.jpg'), route: '/reunionAsk', ready: true, content: true },
-    { key: 'hotCrushAsk', labelKey: 'menu.crushAsk', descKey: 'menu.crushAskDesc', image: A('icons/crush.jpg'), route: '/crushAsk', ready: true, content: true },
-    { key: 'hotJobAsk', labelKey: 'menu.jobAsk', descKey: 'menu.jobAskDesc', image: A('icons/job.jpg'), route: '/jobAsk', ready: true, content: true },
-    // daniel 07-06: 인기에 연애스타일·반려동물 추가(무료 온디바이스, 원본과 동일·hot* 고유키).
-    { key: 'hotLovestyle', labelKey: 'menu.lovestyle', descKey: 'menu.lovestyleTileDesc', image: A('icons/lovestyle.jpg'), route: '/lovestyle', ready: true, content: true },
-    { key: 'hotPet', labelKey: 'menu.pet', descKey: 'menu.petDesc', image: A('icons/pet.jpg'), route: '/pet', ready: true, content: true },
-    // 커뮤니티는 하단 탭바(BottomNav)로 이동 — 카드에서 제거, 탭에서 상시 접근(원격 플래그 게이트는 BottomNav 쪽).
-  ] },
-
-  // ── 1. 연애·궁합 — "사람 사이가 궁금하다" ────────────────────────────────
-  //   흩어져 있던 궁합(프리미엄)·재회/짝사랑 질문형(가볍게)·애정흐름/재회/짝사랑 유료(스페셜)를 한자리로.
-  //   무료 '질문형'(…Ask) 바로 옆에 유료 깊은 풀이를 둔다 — 미리보기→깊은 풀이 퍼널이 눈에 보이게(daniel 07-05 모델).
+  // ── 연애 ───────────────────────────────────────────────────────────────
+  //   궁합 · 재회 가능할까? · 그 사람과 이어질까? · 나의 애정흐름
   { key: 'love', titleKey: 'menu.secLove', descKey: 'menu.secLoveDesc', chipKey: 'menu.chipLove', items: [
     { key: 'compat', labelKey: 'menu.compat', descKey: 'menu.compatDesc', image: A('icons/compat.jpg'), route: '/compat', ready: true, premium: true, creditKey: 'compat' },
-    { key: 'love', labelKey: 'menu.love', descKey: 'menu.loveDesc', image: A('icons/love.jpg'), route: '/love', ready: true, content: true, creditKey: 'love' },
-    // 무료 질문형(올해 결정론 미리보기) → 화면 CTA로 유료 깊은 풀이 유도(daniel 2026-07-05).
     { key: 'reunionAsk', labelKey: 'menu.reunionAsk', descKey: 'menu.reunionAskDesc', image: A('icons/reunion.jpg'), route: '/reunionAsk', ready: true, content: true },
-    { key: 'reunion', labelKey: 'menu.reunion', descKey: 'menu.reunionDesc', image: A('icons/reunion.jpg'), route: '/reunion', ready: true, content: true, creditKey: 'reunion' },
     { key: 'crushAsk', labelKey: 'menu.crushAsk', descKey: 'menu.crushAskDesc', image: A('icons/crush.jpg'), route: '/crushAsk', ready: true, content: true },
-    { key: 'crush', labelKey: 'menu.crush', descKey: 'menu.crushDesc', image: A('icons/crush.jpg'), route: '/crush', ready: true, content: true, creditKey: 'crush' },
-    { key: 'lovestyle', labelKey: 'menu.lovestyle', descKey: 'menu.lovestyleTileDesc', image: A('icons/lovestyle.jpg'), route: '/lovestyle', ready: true, content: true },
-    { key: 'relationPattern', labelKey: 'menu.relationPattern', descKey: 'menu.relationPatternDesc', image: A('icons/relationPattern.jpg'), route: '/relationpattern', ready: true, content: true },
-    { key: 'impression', labelKey: 'menu.impression', descKey: 'menu.impressionDesc', image: A('icons/impression.jpg'), route: '/impression', ready: true, content: true },
-    // 자식운 = 가족 인연이라 이 주제로(원래 '프리미엄' 5종 중 하나, daniel 2026-07-02).
-    { key: 'child', labelKey: 'menu.child', descKey: 'menu.childDesc', image: A('icons/child.jpg'), route: '/child', ready: true, premium: true, creditKey: 'child' },
-    // 속궁합(성적 궁합·17+·온디바이스 결정론 무료). ★원격 플래그(features.sokgunghap)로 게이트 —
-    //   관리자만 노출(재제출 안전판), 심사 통과 후 공개. 렌더 시 ContentGrid 가 useFeatureOn('sokgunghap')로 필터.
-    { key: 'sokgunghap', labelKey: 'menu.sokgunghap', descKey: 'menu.sokgunghapDesc', image: A('icons/sokgunghap.jpg'), route: '/sokgunghap', ready: true, content: true },
+    { key: 'love', labelKey: 'menu.love', descKey: 'menu.loveDesc', image: A('icons/love.jpg'), route: '/love', ready: true, content: true, creditKey: 'love' },
   ] },
 
-  // ── 2. 돈·일·진로 — "먹고사는 것이 궁금하다" ──────────────────────────────
-  //   재물(인기)·직업적성/사업가vs직장인(심층)·취업(스페셜)·취업질문(가볍게)이 흩어져 있던 것을 모았다.
-  { key: 'money', titleKey: 'menu.secMoney', descKey: 'menu.secMoneyDesc', chipKey: 'menu.chipMoney', items: [
-    { key: 'wealth', labelKey: 'menu.wealth', descKey: 'menu.wealthDesc', image: A('icons/wealth.jpg'), route: '/wealth', ready: true, content: true, creditKey: 'wealth' },
-    // 신규(daniel 2026-07-13): 나에게 어울리는 직업(직업 적성 딥리포트 EEL — career 사업가vs직장인과 별개).
-    { key: 'jobfit', labelKey: 'menu.jobfit', descKey: 'menu.jobfitDesc', image: A('icons/jobfit.jpg'), route: '/jobfit', ready: true, content: true, creditKey: 'jobfit' },
-    // 신규(daniel 2026-06): 사업가의 나 vs 직장인의 나.
-    { key: 'career', labelKey: 'menu.career', descKey: 'menu.careerDesc', image: A('icons/career.jpg'), route: '/career', ready: true, content: true, creditKey: 'career' },
-    { key: 'jobAsk', labelKey: 'menu.jobAsk', descKey: 'menu.jobAskDesc', image: A('icons/job.jpg'), route: '/jobAsk', ready: true, content: true },
-    { key: 'job', labelKey: 'menu.job', descKey: 'menu.jobDesc', image: A('icons/job.jpg'), route: '/job', ready: true, content: true, creditKey: 'job' },
-    { key: 'talent', labelKey: 'menu.talent', descKey: 'menu.talentDesc', image: A('icons/talent.jpg'), route: '/talent', ready: true, content: true, creditKey: 'talent' },
-    { key: 'mission', labelKey: 'menu.mission', descKey: 'menu.missionDesc', image: A('icons/mission.jpg'), route: '/mission', ready: true, content: true, creditKey: 'mission' },
-    { key: 'joseonjob', labelKey: 'menu.joseonjob', descKey: 'menu.joseonjobTileDesc', image: A('icons/joseonjob.jpg'), route: '/joseonjob', ready: true, content: true },
-  ] },
-
-  // ── 3. 나는 어떤 사람인가 — "본질·성격이 궁금하다" ────────────────────────
-  //   ★자기이해 우선(App Store 4.3, daniel 07-11) 원칙은 유지 — 사주·자미 원국풀이가 이 섹션의 머리.
-  //   기존 '나를 이해하기'(유료)와 '나에 대해 알기'(심층)가 이름만으로 구분 안 되던 문제를 하나로 합쳐 해소.
-  { key: 'self', titleKey: 'menu.secSelf', descKey: 'menu.secSelfDesc', chipKey: 'menu.chipSelf', items: [
-    { key: 'saju', labelKey: 'menu.saju', descKey: 'menu.sajuDesc', image: A('icons/premium.jpg'), route: '/reading', ready: true, premium: true, creditKey: 'reading' },        // 허브 제거 → 원국풀이 직접 진입(daniel 07-01)
-    { key: 'ziwei', labelKey: 'menu.ziweiHub', descKey: 'menu.ziweiHubDesc', image: A('icons/ziwei.jpg'), route: '/ziwei', ready: true, premium: true, creditKey: 'ziwei' },        // 허브 제거 → 자미 원국풀이 직접
-    // 신규(daniel 2026-07-13·4.3 자기분석): 나 분석 종합 — 무료 온디바이스(사주 엔진).
-    { key: 'selfAnalysis', labelKey: 'menu.selfAnalysis', descKey: 'menu.selfAnalysisDesc', image: A('icons/selfAnalysis.jpg'), route: '/selfanalysis', ready: true, content: true },
-    { key: 'persona', labelKey: 'menu.persona', descKey: 'menu.personaTileDesc', image: A('icons/persona.jpg'), route: '/personatype', ready: true, content: true }, // route=120종 통합(daniel 2026-07-20)
-    { key: 'mbti', labelKey: 'menu.mbti', descKey: 'menu.mbtiTileDesc', image: A('icons/mbti.jpg'), route: '/mbti', ready: true, content: true }, // 사주로 보는 MBTI(무료·온디바이스, daniel 2026-06-23)
-    { key: 'egen', labelKey: 'menu.egen', descKey: 'menu.egenTileDesc', image: A('icons/egen.jpg'), route: '/egenteto', ready: true, content: true },
-    { key: 'image', labelKey: 'menu.image', descKey: 'menu.imageDesc', image: A('icons/image.jpg'), route: '/image', ready: true, content: true, creditKey: 'image' },
-    { key: 'roots', labelKey: 'menu.roots', descKey: 'menu.rootsDesc', image: A('icons/roots.jpg'), route: '/roots', ready: true, content: true, creditKey: 'roots' },
-    // 신규(daniel R-GEM v0.1): 내 사주 보석 — 용신 기반 보석 추천(무료 온디바이스·결정론·API 0). 바이럴 공유카드→유료 심층분석 퍼널.
-    { key: 'gem', labelKey: 'menu.gem', descKey: 'menu.gemDesc', image: A('icons/gem.jpg'), route: '/gem', ready: true, content: true },
-    // 신규(daniel 기획서 Phase2 2026-07-14): 퍼스널 오행 — 오행 컬러/코디/메이크업/자동차. BM(뷰티/패션 제휴) 토대.
-    { key: 'personal', labelKey: 'menu.personal', descKey: 'menu.personalDesc', image: A('icons/personal.jpg'), route: '/personal', ready: true, content: true },
-    // 세계 인물 매칭 — 무료·결정론(온디바이스 사주 유사도·API 0).
-    { key: 'celeb', labelKey: 'menu.celeb', descKey: 'menu.celebDesc', image: A('icons/celeb.jpg'), route: '/celeb', ready: true, content: true },
-  ] },
-
-  // ── 4. 시기와 흐름 — "언제가 궁금하다" ───────────────────────────────────
-  //   오늘/이달(무료)·타임라인(프리미엄)·인생그래프/신년/10년뒤(스페셜)·개운법(심층)·택일/행운(가볍게) 통합.
-  //   시간 스케일 순서(오늘 → 이달 → 올해 → 10년 → 평생)로 두어 무엇이 더 긴 호흡인지 배치로 읽히게 한다.
-  { key: 'flow', titleKey: 'menu.secFlow', descKey: 'menu.secFlowDesc', chipKey: 'menu.chipFlow', items: [
+  // ── 오늘의 운세 ───────────────────────────────────────────────────────────────
+  //   매일 들어오게 만드는 축(daniel). '이달의 운세'는 상단 펼침 카드로도 노출된다.
+  { key: 'today', titleKey: 'menu.secToday', descKey: 'menu.secTodayDesc', chipKey: 'menu.chipToday', items: [
     { key: 'today', labelKey: 'menu.today', descKey: 'menu.todayTileDesc', image: A('icons/today.jpg'), route: '/today', ready: true },
-    // ★'이달의 운세'는 **목록에서만** 숨긴다(daniel 2026-08-06) — 풀이탭 상단에 펼쳐서 보여주므로(MonthHeroCard) 중복.
-    //   데이터는 남긴다: 도우미·추천·후기 태그가 이 항목의 라벨·이미지를 참조한다.
-    { key: 'month', labelKey: 'menu.month', descKey: 'menu.monthTileDesc', image: A('icons/month.jpg'), route: '/month', ready: true, hiddenInList: true },
-    // daniel(2026-06-24): 신년운세 = 시즌 콘텐츠라 이 섹션 앞쪽.
-    { key: 'newyear', labelKey: 'menu.newyear', descKey: 'menu.newyearTileDesc', image: A('icons/newyear.jpg'), route: '/newyear', ready: true, content: true, creditKey: 'newyear' },
-    // 신규(daniel 2026-07-02): 10년 뒤 나의 모습(대운·세운 스페셜, 개별 유료).
-    { key: 'future10', labelKey: 'menu.future10', descKey: 'menu.future10Desc', image: A('icons/future10.jpg'), route: '/future10', ready: true, content: true, creditKey: 'future10' },
-    { key: 'timeline', labelKey: 'menu.timeline', descKey: 'menu.timelineDesc', image: A('icons/timeline.jpg'), route: '/timeline', ready: true, premium: true, creditKey: 'timeline' },
-    { key: 'lifegraph', labelKey: 'menu.lifegraph', descKey: 'menu.lifegraphDesc', image: A('icons/lifegraph.jpg'), route: '/lifegraph', ready: true, content: true, creditKey: 'lifegraph' },
-    // daniel #18(2026-06-24): 맞춤 개운법(원국+지금 운 → 구체 처방·살풀이). 부적/만다라 이미지.
-    { key: 'gaeun', labelKey: 'menu.gaeun', descKey: 'menu.gaeunDesc', image: A('icons/gaeun.jpg'), route: '/gaeun', ready: true, content: true, creditKey: 'gaeun' },
-    { key: 'taegil', labelKey: 'menu.taegil', descKey: 'menu.taegilTileDesc', image: A('icons/taegil.jpg'), route: '/taegil', ready: true, content: true },
     { key: 'luck', labelKey: 'menu.luck', descKey: 'menu.luckTileDesc', image: A('icons/luck.jpg'), route: '/luck', ready: true, content: true },
+    { key: 'month', labelKey: 'menu.month', descKey: 'menu.monthTileDesc', image: A('icons/month.jpg'), route: '/month', ready: true, hiddenInList: true },
+    { key: 'newyear', labelKey: 'menu.newyear', descKey: 'menu.newyearTileDesc', image: A('icons/newyear.jpg'), route: '/newyear', ready: true, content: true, creditKey: 'newyear' },
   ] },
 
-  // ── 5. 가볍게 보는 재미 — "심각하지 않게" ────────────────────────────────
-  //   ★기존 '가볍게 보기'(25개 잡탕)에서 **정말 가벼운 것만** 남겼다. 나머지는 위 주제로 갔다.
-  { key: 'fun', titleKey: 'menu.secFun', descKey: 'menu.secFunDesc', chipKey: 'menu.chipFun', items: [
-    { key: 'taro', labelKey: 'menu.taro', descKey: 'menu.taroDesc', image: A('icons/taro.jpg'), route: '/taro', ready: true, content: true },
-    { key: 'pet', labelKey: 'menu.pet', descKey: 'menu.petDesc', image: A('icons/pet.jpg'), route: '/pet', ready: true, content: true },
-    // 신규(daniel 2026-06-23): 별자리 운세(유료 LLM). ※수비학은 여기로 병합됨(별도 카드 없음).
-    { key: 'astrology', labelKey: 'menu.astrology', descKey: 'menu.astrologyDesc', image: A('icons/astrology.jpg'), route: '/astrology', ready: true, content: true, creditKey: 'astrology' },
-    { key: 'dayPillar', labelKey: 'menu.dayPillar', descKey: 'menu.dayPillarDesc', image: A('icons/dayPillar.jpg'), route: '/dayPillar', ready: true },
-    { key: 'pastlife', labelKey: 'menu.pastlife', descKey: 'menu.pastlifeTileDesc', image: A('icons/pastlife.jpg'), route: '/pastlife', ready: true, content: true },
-    { key: 'bok', labelKey: 'menu.bok', descKey: 'menu.bokTileDesc', image: A('icons/bok.jpg'), route: '/bok', ready: true, content: true },
-    { key: 'healing', labelKey: 'menu.healing', descKey: 'menu.healingTileDesc', image: A('icons/healing.jpg'), route: '/healing', ready: true, content: true },
-    // daniel #A(2026-06-24): 내가 살기 좋은 곳(원국 조후→기후/방위·국기, 무료·온디바이스).
-    { key: 'country', labelKey: 'menu.country', descKey: 'menu.countryDesc', image: A('icons/country.jpg'), route: '/country', ready: true, content: true },
-    { key: 'name', labelKey: 'menu.name', descKey: 'menu.nameTileDesc', image: A('icons/name.jpg'), route: '/name', ready: true, content: true },
-    { key: 'dream', labelKey: 'menu.dream', descKey: 'menu.dreamTileDesc', image: A('icons/dream.jpg'), route: '/dream', ready: true, content: true },
-    // 별자리(/zodiac)는 점성술 콘텐츠로 병합(daniel 2026-06-23) — 별도 카드 제거. /zodiac 라우트는 유지(딥링크 안전).
+  // ── 나 분석 ───────────────────────────────────────────────────────────────
+  //   가입 직후 첫 콘텐츠 축(daniel).
+  { key: 'self', titleKey: 'menu.secSelf', descKey: 'menu.secSelfDesc', chipKey: 'menu.chipSelf', items: [
+    { key: 'impression', labelKey: 'menu.impression', descKey: 'menu.impressionDesc', image: A('icons/impression.jpg'), route: '/impression', ready: true, content: true },
+    { key: 'persona', labelKey: 'menu.persona', descKey: 'menu.personaTileDesc', image: A('icons/persona.jpg'), route: '/personatype', ready: true, content: true },
+    { key: 'mbti', labelKey: 'menu.mbti', descKey: 'menu.mbtiTileDesc', image: A('icons/mbti.jpg'), route: '/mbti', ready: true, content: true },
+    { key: 'saju', labelKey: 'menu.saju', descKey: 'menu.sajuDesc', image: A('icons/premium.jpg'), route: '/reading', ready: true, premium: true, creditKey: 'reading' },
   ] },
 
-  // ── 6. 명식·도구 — 콘텐츠가 아니라 '보는 장치' ───────────────────────────
-  //   만세력·시 찾기는 읽을거리가 아니라 도구라 주제 섹션과 성격이 다르다 → 맨 아래 별도.
-  { key: 'tool', titleKey: 'menu.secTool', descKey: 'menu.secToolDesc', chipKey: 'menu.chipTool', items: [
-    { key: 'manse', labelKey: 'menu.manse', descKey: 'menu.manseDesc', image: A('icons/manse.jpg'), route: '/charts', ready: true },
-    // TPR: 시 모르는 사용자가 인생 사건으로 시를 좁히는 결정론 도구(LLM 0). 990 1회 결제로 도구 영구 해제(daniel 06-28).
-    { key: 'timeResolve', labelKey: 'menu.timeResolve', descKey: 'menu.timeResolveDesc', image: A('icons/timeResolve.jpg'), route: '/timeResolve', ready: true, creditKey: 'timeresolve' },
+  // ── 직업·재물 ───────────────────────────────────────────────────────────────
+  //   ⚠️daniel 목록의 '재물운'에 해당하는 콘텐츠가 **없다** — 가장 가까운 '사업가의 나'(career)를 넣었다.
+  //     별도 '재물운'을 만들지, wealth 하나로 갈지는 daniel 확인 대기.
+  { key: 'work', titleKey: 'menu.secWork', descKey: 'menu.secWorkDesc', chipKey: 'menu.chipWork', items: [
+    { key: 'jobfit', labelKey: 'menu.jobfit', descKey: 'menu.jobfitDesc', image: A('icons/jobfit.jpg'), route: '/jobfit', ready: true, content: true, creditKey: 'jobfit' },
+    { key: 'jobAsk', labelKey: 'menu.jobAsk', descKey: 'menu.jobAskDesc', image: A('icons/job.jpg'), route: '/jobAsk', ready: true, content: true },
+    { key: 'career', labelKey: 'menu.career', descKey: 'menu.careerDesc', image: A('icons/career.jpg'), route: '/career', ready: true, content: true, creditKey: 'career' },
+    { key: 'wealth', labelKey: 'menu.wealth', descKey: 'menu.wealthDesc', image: A('icons/wealth.jpg'), route: '/wealth', ready: true, content: true, creditKey: 'wealth' },
+  ] },
+
+  // ── 숨겨진 콘텐츠 — **메뉴에 없다. 추천(RELATED)으로만 도달**(daniel 2026-08-06) ──────
+  //   "이런 콘텐츠는 처음부터 메뉴에 넣지 않는 걸 추천한다."
+  //   ★지우지 않고 남기는 이유: 추천 체인·도우미·후기 태그·검색이 전부 이 표에서 라벨/이미지/라우트를 찾는다.
+  //     실제로 항목을 지웠더니 check:assistant 가 "도우미가 죽은 링크를 내민다"로 잡았다.
+  //   ★검색으로는 여전히 찾을 수 있다(숨김은 '목록 노출'만 끈다) — 원하는 사람의 길은 막지 않는다.
+  { key: 'hidden', titleKey: 'menu.secHidden', descKey: 'menu.secHiddenDesc', chipKey: 'menu.chipHidden', items: [
+    { key: 'reunion', labelKey: 'menu.reunion', descKey: 'menu.reunionDesc', image: A('icons/reunion.jpg'), route: '/reunion', ready: true, content: true, creditKey: 'reunion' , hiddenInList: true },
+    { key: 'crush', labelKey: 'menu.crush', descKey: 'menu.crushDesc', image: A('icons/crush.jpg'), route: '/crush', ready: true, content: true, creditKey: 'crush' , hiddenInList: true },
+    { key: 'lovestyle', labelKey: 'menu.lovestyle', descKey: 'menu.lovestyleTileDesc', image: A('icons/lovestyle.jpg'), route: '/lovestyle', ready: true, content: true , hiddenInList: true },
+    { key: 'relationPattern', labelKey: 'menu.relationPattern', descKey: 'menu.relationPatternDesc', image: A('icons/relationPattern.jpg'), route: '/relationpattern', ready: true, content: true , hiddenInList: true },
+    { key: 'child', labelKey: 'menu.child', descKey: 'menu.childDesc', image: A('icons/child.jpg'), route: '/child', ready: true, premium: true, creditKey: 'child' , hiddenInList: true },
+    { key: 'sokgunghap', labelKey: 'menu.sokgunghap', descKey: 'menu.sokgunghapDesc', image: A('icons/sokgunghap.jpg'), route: '/sokgunghap', ready: true, content: true , hiddenInList: true },
+    { key: 'job', labelKey: 'menu.job', descKey: 'menu.jobDesc', image: A('icons/job.jpg'), route: '/job', ready: true, content: true, creditKey: 'job' , hiddenInList: true },
+    { key: 'talent', labelKey: 'menu.talent', descKey: 'menu.talentDesc', image: A('icons/talent.jpg'), route: '/talent', ready: true, content: true, creditKey: 'talent' , hiddenInList: true },
+    { key: 'mission', labelKey: 'menu.mission', descKey: 'menu.missionDesc', image: A('icons/mission.jpg'), route: '/mission', ready: true, content: true, creditKey: 'mission' , hiddenInList: true },
+    { key: 'joseonjob', labelKey: 'menu.joseonjob', descKey: 'menu.joseonjobTileDesc', image: A('icons/joseonjob.jpg'), route: '/joseonjob', ready: true, content: true , hiddenInList: true },
+    { key: 'ziwei', labelKey: 'menu.ziweiHub', descKey: 'menu.ziweiHubDesc', image: A('icons/ziwei.jpg'), route: '/ziwei', ready: true, premium: true, creditKey: 'ziwei' , hiddenInList: true },
+    { key: 'selfAnalysis', labelKey: 'menu.selfAnalysis', descKey: 'menu.selfAnalysisDesc', image: A('icons/selfAnalysis.jpg'), route: '/selfanalysis', ready: true, content: true , hiddenInList: true },
+    { key: 'egen', labelKey: 'menu.egen', descKey: 'menu.egenTileDesc', image: A('icons/egen.jpg'), route: '/egenteto', ready: true, content: true , hiddenInList: true },
+    { key: 'image', labelKey: 'menu.image', descKey: 'menu.imageDesc', image: A('icons/image.jpg'), route: '/image', ready: true, content: true, creditKey: 'image' , hiddenInList: true },
+    { key: 'roots', labelKey: 'menu.roots', descKey: 'menu.rootsDesc', image: A('icons/roots.jpg'), route: '/roots', ready: true, content: true, creditKey: 'roots' , hiddenInList: true },
+    { key: 'gem', labelKey: 'menu.gem', descKey: 'menu.gemDesc', image: A('icons/gem.jpg'), route: '/gem', ready: true, content: true , hiddenInList: true },
+    { key: 'personal', labelKey: 'menu.personal', descKey: 'menu.personalDesc', image: A('icons/personal.jpg'), route: '/personal', ready: true, content: true , hiddenInList: true },
+    { key: 'celeb', labelKey: 'menu.celeb', descKey: 'menu.celebDesc', image: A('icons/celeb.jpg'), route: '/celeb', ready: true, content: true , hiddenInList: true },
+    { key: 'future10', labelKey: 'menu.future10', descKey: 'menu.future10Desc', image: A('icons/future10.jpg'), route: '/future10', ready: true, content: true, creditKey: 'future10' , hiddenInList: true },
+    { key: 'timeline', labelKey: 'menu.timeline', descKey: 'menu.timelineDesc', image: A('icons/timeline.jpg'), route: '/timeline', ready: true, premium: true, creditKey: 'timeline' , hiddenInList: true },
+    { key: 'lifegraph', labelKey: 'menu.lifegraph', descKey: 'menu.lifegraphDesc', image: A('icons/lifegraph.jpg'), route: '/lifegraph', ready: true, content: true, creditKey: 'lifegraph' , hiddenInList: true },
+    { key: 'gaeun', labelKey: 'menu.gaeun', descKey: 'menu.gaeunDesc', image: A('icons/gaeun.jpg'), route: '/gaeun', ready: true, content: true, creditKey: 'gaeun' , hiddenInList: true },
+    { key: 'taegil', labelKey: 'menu.taegil', descKey: 'menu.taegilTileDesc', image: A('icons/taegil.jpg'), route: '/taegil', ready: true, content: true , hiddenInList: true },
+    { key: 'taro', labelKey: 'menu.taro', descKey: 'menu.taroDesc', image: A('icons/taro.jpg'), route: '/taro', ready: true, content: true , hiddenInList: true },
+    { key: 'pet', labelKey: 'menu.pet', descKey: 'menu.petDesc', image: A('icons/pet.jpg'), route: '/pet', ready: true, content: true , hiddenInList: true },
+    { key: 'astrology', labelKey: 'menu.astrology', descKey: 'menu.astrologyDesc', image: A('icons/astrology.jpg'), route: '/astrology', ready: true, content: true, creditKey: 'astrology' , hiddenInList: true },
+    { key: 'dayPillar', labelKey: 'menu.dayPillar', descKey: 'menu.dayPillarDesc', image: A('icons/dayPillar.jpg'), route: '/dayPillar', ready: true , hiddenInList: true },
+    { key: 'pastlife', labelKey: 'menu.pastlife', descKey: 'menu.pastlifeTileDesc', image: A('icons/pastlife.jpg'), route: '/pastlife', ready: true, content: true , hiddenInList: true },
+    { key: 'bok', labelKey: 'menu.bok', descKey: 'menu.bokTileDesc', image: A('icons/bok.jpg'), route: '/bok', ready: true, content: true , hiddenInList: true },
+    { key: 'healing', labelKey: 'menu.healing', descKey: 'menu.healingTileDesc', image: A('icons/healing.jpg'), route: '/healing', ready: true, content: true , hiddenInList: true },
+    { key: 'country', labelKey: 'menu.country', descKey: 'menu.countryDesc', image: A('icons/country.jpg'), route: '/country', ready: true, content: true , hiddenInList: true },
+    { key: 'name', labelKey: 'menu.name', descKey: 'menu.nameTileDesc', image: A('icons/name.jpg'), route: '/name', ready: true, content: true , hiddenInList: true },
+    { key: 'dream', labelKey: 'menu.dream', descKey: 'menu.dreamTileDesc', image: A('icons/dream.jpg'), route: '/dream', ready: true, content: true , hiddenInList: true },
+    { key: 'manse', labelKey: 'menu.manse', descKey: 'menu.manseDesc', image: A('icons/manse.jpg'), route: '/charts', ready: true , hiddenInList: true },
+    { key: 'timeResolve', labelKey: 'menu.timeResolve', descKey: 'menu.timeResolveDesc', image: A('icons/timeResolve.jpg'), route: '/timeResolve', ready: true, creditKey: 'timeresolve' , hiddenInList: true },
   ] },
 ];
 

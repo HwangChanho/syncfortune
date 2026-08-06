@@ -15,11 +15,11 @@
 //   → 화면 제목('풀이')은 하단 탭이 이미 강조하고 있고, 부제('보고 싶은 주제를 골라 보세요')는
 //     검색 placeholder('무엇이 궁금하세요?')와 같은 말이라 **둘 다 제거**했다. 뷰 토글은 검색줄에 합쳤다.
 // ─────────────────────────────────────────────────────────────────────────
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { View, Text, TextInput, ScrollView, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context'; // ★상단 안전영역 — 고정 여백은 글자확대 시 잘린다(daniel 07-27)
 import { useTranslation } from 'react-i18next';
-import { useLocalSearchParams } from 'expo-router'; // 홈 배너 → 카테고리 딥링크(/contents?cat=love)
+import { useRouter } from 'expo-router'; // 홈 배너 → 카테고리 딥링크(/contents?cat=love)
 import { SECTIONS } from '../../lib/content/contentSections'; // 상단 카테고리 칩 = 섹션에서 파생(목록 이중관리 금지)
 import { ContentGrid } from '../../components/ContentGrid';
 import { MonthHeroCard } from '../../components/MonthHeroCard'; // 이달의 운세 **펼침** 카드(daniel 08-06 IMG_8409)
@@ -33,6 +33,7 @@ export default function ContentsScreen() {
   // ★고정 상단여백(space(12) 등)은 **글자 크기를 키우면 헤더가 상태바 위로 잘린다**(daniel 07-27 IMG_8215).
   //   상수는 기기 노치·다이내믹아일랜드·글자배율 어느 것도 반영하지 못한다 → 실제 안전영역을 쓴다.
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const { t } = useTranslation();
   const { viewMode, setViewMode } = useHomeViewMode();
   const [reload, setReloadKey] = useState(0); // 명식 전환 시 그리드(배지·티저)·다음단계 카드 재계산 트리거
@@ -43,11 +44,7 @@ export default function ContentsScreen() {
   // daniel 2026-08-06: "상단에 연애 재물 사람 등등 카테고리별로 있어서 선택할 수 있게 하고
   //   하위에는 상단에 무료 컨텐츠만 노출" — 무료로 먼저 맛보고 궁금해질 때 유료로 넘어가는 퍼널.
   //   딥링크(`/contents?cat=love`)로도 들어온다 — 홈 배너가 주제별로 여기를 가리킨다.
-  const { cat } = useLocalSearchParams<{ cat?: string }>();
-  const [category, setCategory] = useState<string | null>(null);
-  // ★파라미터는 '초기값'으로만 쓴다 — 여기서 칩을 눌러 바꾼 뒤에도 파라미터가 남아 있으면
-  //   화면이 돌아올 때마다 선택이 되돌아간다(사용자 조작을 URL 이 덮어쓰는 형태).
-  useEffect(() => { if (typeof cat === 'string' && cat) setCategory(cat); }, [cat]);
+
   return (
     // 전역 ContentBackdrop(오행 배경색)이 비치게 투명(홈과 동일 처리).
     <View style={styles.bg}>
@@ -92,25 +89,6 @@ export default function ContentsScreen() {
           </View>
         )}
       </View>
-      {/* ── 카테고리 칩 — "무엇이 궁금한가"로 먼저 좁힌다(daniel 2026-08-06) ─────────
-          검색 중에는 감춘다(검색은 전 영역이 대상이라 카테고리와 뜻이 겹친다).
-          목록은 SECTIONS 에서 파생 — 여기 따로 적으면 섹션이 늘 때 한쪽이 빠진다. */}
-      {!searching && (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.catBar} contentContainerStyle={styles.catRow}>
-          <PressableScale style={[styles.catChip, !category && styles.catChipOn]} onPress={() => setCategory(null)}>
-            <Text style={[styles.catTx, !category && styles.catTxOn]}>{t('menu.chipAll', '전체')}</Text>
-          </PressableScale>
-          {SECTIONS.map((sec) => (
-            <PressableScale
-              key={sec.key}
-              style={[styles.catChip, category === sec.key && styles.catChipOn]}
-              onPress={() => setCategory(category === sec.key ? null : sec.key)} // 다시 누르면 해제 = '전체'
-            >
-              <Text style={[styles.catTx, category === sec.key && styles.catTxOn]}>{t(sec.chipKey ?? sec.titleKey)}</Text>
-            </PressableScale>
-          ))}
-        </ScrollView>
-      )}
       <ScrollView
         style={styles.screen}
         contentContainerStyle={styles.wrap}
@@ -130,10 +108,30 @@ export default function ContentsScreen() {
             <ChartPicker onChange={() => setReloadKey((k) => k + 1)} />
             {/* ★'다음 단계' 히어로(daniel 2026-07-26) — 나열 대신 **지금 이 사람에게 맞는 딱 한 장**을 크게.
                 여기서 들어가면 상세 하단 RelatedContent 가 이어받아 '타고타고' 굴러간다(같은 RELATED 큐레이션 재사용). */}
-            <NextStepCard reloadKey={reload} category={category} />
+            <NextStepCard reloadKey={reload} />
           </>
         )}
-        <ContentGrid query={q} viewMode={viewMode} category={category} />
+        {/* ── 카테고리 목록 — 누르면 **새 화면**에서 하위 항목(daniel 2026-08-06) ──────────
+            "카테고리 이렇게 나누고 타고 들어가면 새로운 뷰에서 하위항목 나오게 하자".
+            종전엔 한 화면에 전 섹션(50여 장)을 이어 붙여 '들어왔다'는 감각이 없었다.
+            검색 중에는 카테고리 대신 결과만(검색은 전 영역이 대상). */}
+        {searching ? (
+          <ContentGrid query={q} viewMode={viewMode} />
+        ) : (
+          <View style={styles.catList}>
+            {/* ★'hidden' 섹션은 카드로 내지 않는다 — 그 안의 항목은 **추천으로만** 도달하는 게 설계다(daniel). */}
+            {SECTIONS.filter((sec) => sec.key !== 'hidden').map((sec) => (
+              <PressableScale key={sec.key} style={styles.catCard} onPress={() => router.push(`/category/${sec.key}`)}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.catCardTitle}>{t(sec.titleKey)}</Text>
+                  {sec.descKey ? <Text style={styles.catCardDesc} numberOfLines={1}>{t(sec.descKey)}</Text> : null}
+                </View>
+                <Text style={styles.catCardCount}>{sec.items.filter((m) => !m.hiddenInList).length}</Text>
+                <Text style={styles.catCardArrow}>›</Text>
+              </PressableScale>
+            ))}
+          </View>
+        )}
       </ScrollView>
     </View>
   );
@@ -162,7 +160,18 @@ const styles = StyleSheet.create({
   searchInput: { flex: 1, ...font.body, color: colors.ink, paddingVertical: space(2.5) },
   searchClear: { paddingHorizontal: space(1), paddingVertical: space(1) },
   searchClearTx: { fontSize: 15, fontWeight: '800', color: colors.inkFaint },
-  // 카테고리 칩 — 검색줄 아래 가로 스크롤. 스크롤 밖 고정이라 목록을 내려도 주제를 바꿀 수 있다.
+  // 카테고리 카드 — 한 줄에 하나. 제목 + 부제 + 항목 수 + ›
+  catList: { gap: space(2.5) },
+  catCard: {
+    flexDirection: 'row', alignItems: 'center', gap: space(3),
+    backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.line,
+    paddingVertical: space(4), paddingHorizontal: space(4),
+  },
+  catCardTitle: { fontSize: 17, lineHeight: 24, fontWeight: '900', color: colors.ink, letterSpacing: 0.2 },
+  catCardDesc: { fontSize: 12.5, lineHeight: 18, color: colors.inkSoft, marginTop: 2 },
+  catCardCount: { fontSize: 13, lineHeight: 18, fontWeight: '800', color: colors.inkFaint },
+  catCardArrow: { fontSize: 22, lineHeight: 26, fontWeight: '700', color: colors.inkFaint },
+  // (구) 카테고리 칩 — 카드 구조로 대체됨. 스타일은 되돌릴 때를 위해 남겨 둔다.
   catBar: { flexGrow: 0, backgroundColor: 'transparent' },
   catRow: { gap: space(2), paddingHorizontal: space(5), paddingBottom: space(3) },
   catChip: { minHeight: 36, justifyContent: 'center', paddingHorizontal: space(3.5), paddingVertical: space(2), borderRadius: radius.pill, backgroundColor: colors.overlay, borderWidth: 1, borderColor: colors.line },

@@ -80,16 +80,15 @@ export const ko = {
     child: '자식운', childDesc: '자녀 인연·기질·부모로서의 나', future10: '10년 뒤 나의 모습', future10Desc: '대운·세운으로 그리는 10년 뒤', reunion: '재회운', reunionDesc: '옛 인연과 다시 이어질 시기·가능성', crush: '짝사랑 인연운', crushDesc: '내 마음이 닿을지·끌릴 사람의 결·다가갈 시기', job: '취업·이직운', jobDesc: '취업·이직·합격·시험이 잘 풀리는 시기', jobfit: '나에게 어울리는 직업', jobfitDesc: '타고난 적성으로 어울리는 직업·끌림과 능력의 간극', wealth: '재물 딥리포트', wealthDesc: '타고난 재물 그릇·유형·언제 크게 들어오고 어떻게 지키는지', reunionAsk: '재회 가능할까?', reunionAskDesc: '무료로 보는 재회 가능성·연락 좋은 달', crushAsk: '그 사람과 이어질까?', crushAskDesc: '무료로 보는 매력·썸이 무르익는 달', jobAsk: '취업 언제 될까?', jobAskDesc: '무료로 보는 취업·합격운 열리는 시기',
     saju: '사주', sajuDesc: '원국·타임라인·궁합', ziweiHub: '자미두수', ziweiHubDesc: '명반·운한·궁합',
     // 상단 카테고리 칩(짧은 라벨) — 섹션 제목은 길어 칩엔 안 맞는다(daniel 08-06)
+    // ★2026-08-06(2차) daniel 확정 — 노출 카테고리 4개 + 숨겨진 콘텐츠(추천으로만 도달)
+    secLove: '연애', secLoveDesc: '궁합 · 인연 · 마음이 닿는 때',
+    secToday: '오늘의 운세', secTodayDesc: '오늘 · 이달 · 올해의 흐름',
+    secSelf: '나 분석', secSelfDesc: '성격 · 기질 · 남에게 비치는 나',
+    secWork: '직업·재물', secWorkDesc: '적성 · 취업 · 재물 그릇',
+    secHidden: '더 보기', secHiddenDesc: '추천으로 만나는 콘텐츠',
+    chipLove: '연애', chipToday: '운세', chipSelf: '나', chipWork: '직업·재물', chipHidden: '더 보기',
     chipAll: '전체',
-    chipHot: '인기', chipLove: '연애', chipMoney: '재물·일', chipSelf: '나', chipFlow: '시기', chipFun: '재미', chipTool: '명식',
     secContent: '인기', // ★숏컷 섹션(주제 축 밖) — 최상단 한 줄
-    // ★주제(고민) 축 섹션(2026-08-06 재편) — "무엇이 궁금한가"로 고른다. 유·무료는 카드 배지가 구분.
-    secLove: '연애·궁합', secLoveDesc: '두 사람 사이 — 인연·시기·마음의 결',
-    secMoney: '돈·일·진로', secMoneyDesc: '재물 그릇·적성·일이 풀리는 때',
-    secSelf: '나는 어떤 사람인가', secSelfDesc: '타고난 기질과 쓰임 — 사주·자미로 깊이',
-    secFlow: '시기와 흐름', secFlowDesc: '오늘부터 십 년 뒤까지, 운의 결이 바뀌는 때',
-    secFun: '가볍게 보는 재미', secFunDesc: '심각하지 않게 즐기는 이야기',
-    secTool: '명식·도구', secToolDesc: '만세력으로 직접 찾아보기',
     // (구) 가격·체계 축 라벨 — 주제 축 재편으로 미사용. 되돌릴 때를 위해 남겨 둠(3개 언어 동일).
     secFree: '오늘·명식', secPremium: '나를 이해하기', secSpecial: '스페셜', secDeep: '나에 대해 알기', secLight: '가볍게 보기',
     viewCard: '카드', viewList: '리스트', // 홈 보기 방식 토글(daniel)
