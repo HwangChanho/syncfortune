@@ -43,7 +43,7 @@ const KIND_LABEL: Record<string, string> = {
   love: '나의 애정흐름', reunion: '재회운', crush: '짝사랑 인연운', job: '취업·이직운',
   lifegraph: '인생 그래프', future10: '10년 뒤 나의 모습', roots: '명식의 뿌리', image: '비치는 나',
   mission: '나의 사명', talent: '나의 타고난 재능', astrology: '별자리·점성술', career: '사업가의 나',
-  celeb: '세계 인물 매칭', gaeun: '맞춤 개운법', reunionAsk: '재회 가능할까?(무료)', crushAsk: '그 사람과 이어질까?(무료)',
+  celeb: '나와 닮은 연예인', gaeun: '맞춤 개운법', reunionAsk: '재회 가능할까?(무료)', crushAsk: '그 사람과 이어질까?(무료)',
   jobAsk: '취업 언제 될까?(무료)', taro: '타로', pet: '나의 반려동물', persona: '성격유형',
   impression: '사람들이 보는 나', egen: '에겐 vs 테토', mbti: '사주 MBTI', joseonjob: '조선시대 직업',
   lovestyle: '연애 스타일', bok: '타고난 복', pastlife: '전생 이야기', healing: '나만의 힐링 방법',

@@ -54,7 +54,7 @@ export const en = {
     zodiac: 'Zodiac', zodiacDesc: 'Daily Chinese & star sign',
     name: 'Name Reading', nameDesc: 'The five elements in your name',
     dream: 'Dream Guide', dreamDesc: 'Search by dream keyword',
-    dayPillar: 'Day Pillar', dayPillarDesc: 'Your nature by your birth day', career: 'Founder or Employee', careerDesc: 'Your two paths: business vs job', gaeun: 'Lucky Boost', gaeunDesc: 'Lift your luck for this cycle', followupDesc: 'Ask one more about your reading', talent: 'My Innate Talent', celeb: 'World Figures Match', celebDesc: 'Compare your chart with famous figures', talentDesc: 'Your gifts, drive, and money style', numerology: 'Numerology', numerologyDesc: 'Your life path and talents by number', astrology: 'Zodiac & Astrology', astrologyDesc: 'Your star sign + full natal chart',
+    dayPillar: 'Day Pillar', dayPillarDesc: 'Your nature by your birth day', career: 'Founder or Employee', careerDesc: 'Your two paths: business vs job', gaeun: 'Lucky Boost', gaeunDesc: 'Lift your luck for this cycle', followupDesc: 'Ask one more about your reading', talent: 'My Innate Talent', celeb: 'Celebrities Like Me', celebDesc: 'Compare your chart with actors and idols', talentDesc: 'Your gifts, drive, and money style', numerology: 'Numerology', numerologyDesc: 'Your life path and talents by number', astrology: 'Zodiac & Astrology', astrologyDesc: 'Your star sign + full natal chart',
     child: 'Children', childDesc: 'Your bond, their nature, you as a parent', future10: 'Me in 10 Years', future10Desc: 'Your life 10 years on, by luck cycles', reunion: 'Reunion', reunionDesc: 'When & whether an old love may reopen', crush: 'Crush & Attraction', crushDesc: 'Whether it can bloom · who is drawn to you · when to approach', job: 'Job & Career Move', jobDesc: 'When hiring, a move, or an exam is likely to land', jobfit: 'Careers That Fit', jobfitDesc: 'Which careers suit your nature — desire vs ability gap', wealth: 'Wealth Deep Report', wealthDesc: 'Your wealth capacity & type, when it flows in, and how to keep it', reunionAsk: 'Can we reunite?', reunionAskDesc: 'Free: reunion odds & best months to reach out', crushAsk: 'Will it bloom?', crushAskDesc: 'Free: your charm & when the spark ripens', jobAsk: 'When will I land it?', jobAskDesc: 'Free: when hiring & exams open up',
     saju: 'Saju', sajuDesc: 'Reading · timeline · compatibility', ziweiHub: 'Zi Wei', ziweiHubDesc: 'Chart · luck · compatibility',
     secLove: 'Love', secLoveDesc: 'Compatibility, bonds, and timing',
@@ -432,7 +432,7 @@ export const en = {
     'myTenGod': '내 십신 구조 요약',
     'reasons': '공통 구조',
     'sub': 'Find the figures whose chart resembles yours',
-    'title': 'People Who Move the World',
+    'title': 'Celebrities Like Me',
     'topLabel': '나와 가장 닮은 인물',
   },
   coins: {

@@ -76,7 +76,7 @@ export const ko = {
     zodiac: '띠·별자리', zodiacDesc: '오늘의 띠·별자리 운세',
     name: '이름풀이', nameDesc: '이름 속 오행의 결',
     dream: '꿈해몽', dreamDesc: '꿈 키워드로 찾기',
-    dayPillar: '일주론', dayPillarDesc: '태어난 날로 보는 나의 기질', career: '사업가의 나', careerDesc: '사업가 vs 직장인, 두 길 풀이', gaeun: '맞춤 개운법', gaeunDesc: '지금 운에 맞춰 운을 살리는 법', followupDesc: '풀이에 더 묻고 싶은 한 가지', talent: '나의 타고난 재능', celeb: '세계 인물 매칭', celebDesc: '유명인 사주와 나를 견주는 재미', talentDesc: '재능·좋아하는 일·돈 다루는 법', numerology: '수비학', numerologyDesc: '수로 보는 인생 방향·재능', astrology: '별자리·점성술', astrologyDesc: '내 별자리 + 네이탈 차트, 두 관점 깊이 풀이',
+    dayPillar: '일주론', dayPillarDesc: '태어난 날로 보는 나의 기질', career: '사업가의 나', careerDesc: '사업가 vs 직장인, 두 길 풀이', gaeun: '맞춤 개운법', gaeunDesc: '지금 운에 맞춰 운을 살리는 법', followupDesc: '풀이에 더 묻고 싶은 한 가지', talent: '나의 타고난 재능', celeb: '나와 닮은 연예인', celebDesc: '배우·아이돌 사주와 나를 견주는 재미', talentDesc: '재능·좋아하는 일·돈 다루는 법', numerology: '수비학', numerologyDesc: '수로 보는 인생 방향·재능', astrology: '별자리·점성술', astrologyDesc: '내 별자리 + 네이탈 차트, 두 관점 깊이 풀이',
     child: '자식운', childDesc: '자녀 인연·기질·부모로서의 나', future10: '10년 뒤 나의 모습', future10Desc: '대운·세운으로 그리는 10년 뒤', reunion: '재회운', reunionDesc: '옛 인연과 다시 이어질 시기·가능성', crush: '짝사랑 인연운', crushDesc: '내 마음이 닿을지·끌릴 사람의 결·다가갈 시기', job: '취업·이직운', jobDesc: '취업·이직·합격·시험이 잘 풀리는 시기', jobfit: '나에게 어울리는 직업', jobfitDesc: '타고난 적성으로 어울리는 직업·끌림과 능력의 간극', wealth: '재물 딥리포트', wealthDesc: '타고난 재물 그릇·유형·언제 크게 들어오고 어떻게 지키는지', reunionAsk: '재회 가능할까?', reunionAskDesc: '무료로 보는 재회 가능성·연락 좋은 달', crushAsk: '그 사람과 이어질까?', crushAskDesc: '무료로 보는 매력·썸이 무르익는 달', jobAsk: '취업 언제 될까?', jobAskDesc: '무료로 보는 취업·합격운 열리는 시기',
     saju: '사주', sajuDesc: '원국·타임라인·궁합', ziweiHub: '자미두수', ziweiHubDesc: '명반·운한·궁합',
     // 상단 카테고리 칩(짧은 라벨) — 섹션 제목은 길어 칩엔 안 맞는다(daniel 08-06)
@@ -465,7 +465,9 @@ export const ko = {
     'myTenGod': '내 십신 구조 요약',
     'reasons': '공통 구조',
     'sub': '내 사주와 닮은 인물 찾기',
-    'title': '세계를 움직이는 사람들',
+    // ★제목을 내용에 맞춤(daniel 2026-08-07). 목록이 **한국 배우·아이돌**인데 제목만 '세계를 움직이는 사람들'이라
+    //   들어와서 보는 것과 어긋났다(원래는 나폴레옹·모차르트 같은 역사 인물 16명이던 시절의 이름).
+    'title': '나와 닮은 연예인',
     'topLabel': '나와 가장 닮은 인물',
   },
   coins: {

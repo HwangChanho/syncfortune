@@ -1,4 +1,4 @@
-// src/app/(app)/celeb/index.tsx — '세계를 움직이는 사람들' 그리드 + 무료 닮은꼴 (결정론 v2)
+// src/app/(app)/celeb/index.tsx — '나와 닮은 연예인' 그리드 + 무료 닮은꼴 (결정론 v2)
 // ─────────────────────────────────────────────────────────────────────────
 // 유명인(공개 생년월일) 목록 → 탭하면 /celeb/[id] 결정론 상세(나와의 사주 유사도).
 // Edge LLM 호출 없음 — 온디바이스·API 0. ★완전 무료(daniel 07-07): 결정론이라 비용이 0이므로 유료 게이트/퍼널 없음.
@@ -133,7 +133,7 @@ export default function CelebIndex() {
         {/* 타이틀 — ★압축(daniel 2026-08-07 "UI 개선"). 종전엔 큰 제목 + 2줄 설명이 화면 절반을 먹어
             첫 인물 카드가 세로 57% 지점에 있었다. 정작 이 화면의 알맹이는 **인물 카드**다.
             (07-24 에 풀이탭에서 같은 이유로 상단을 압축했다 — 첫 카드 y 49%→31%.) */}
-        <Text style={styles.title}>{t('celeb.title', '세계를 움직이는 사람들')}</Text>
+        <Text style={styles.title}>{t('celeb.title', '나와 닮은 연예인')}</Text>
         <Text style={styles.sub} numberOfLines={1}>
           {t('celeb.sub', '내 사주와 닮은 인물 찾기')}
         </Text>
