@@ -12,6 +12,7 @@ import DraggableFlatList, { ScaleDecorator } from 'react-native-draggable-flatli
 import type { FlatList as GHFlatList } from 'react-native-gesture-handler'; // DraggableFlatList 가 넘겨주는 ref 실체(scrollToOffset)
 import { Alert } from '../lib/ui/alert'; // 커스텀 알림(삭제 확인)
 import { useRouter, useFocusEffect } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context'; // 시트 하단 안전영역(홈 인디케이터) — 아래 addBtn 주석
 import { useTranslation } from 'react-i18next';
 import { listCharts, setRepresentative, getRepresentativeId, deleteChart, reorderCharts, subscribeRepChange, type SavedChart } from '../lib/engine/myChart';
 import { getPremiumChartIdSnapshot, subscribePremium } from '../lib/billing/premiumStore'; // 프리미엄 지정 명식(왕관·삭제경고, daniel 07-01)
@@ -60,6 +61,7 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
   const { t } = useTranslation();
   const router = useRouter();
   const { fs } = useFontScale();
+  const insets = useSafeAreaInsets(); // 시트가 화면 바닥에 붙으므로 홈 인디케이터만큼 아래를 띄운다(addBtn 잘림 방지)
   const EMB = embSize(fs);   // 엠블럼 지름 — 글자 배율 연동(행 높이와 어긋나지 않게)           // 명식 헤더 글자크기(설정 반영)
   const [charts, setCharts] = useState<SavedChart[]>([]);
   const [repId, setRepId] = useState<string | null>(null);
@@ -401,7 +403,16 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
               }}
             />
             )}
-            <PressableScale style={styles.addBtn} onPress={() => { setOpen(false); router.push('/register'); }}>
+            {/* ★'＋ 명식 등록' — 시트의 마지막 요소이자 **주 CTA**. 잘리면 명식을 더 못 만든다.
+                daniel 2026-08-07 IMG_8431 "명식등록 계속 짤려"(명식 51개 · 목록이 길 때).
+                근인 둘을 함께 막는다:
+                  ① 시트가 화면 바닥에 붙는데 **안전영역(홈 인디케이터)을 안 뺐다** → 버튼 아래가 잘렸다
+                  ② 목록이 길면 시트가 maxHeight 88% 에 닿아 버튼이 밖으로 밀렸다 → 버튼 높이를 확보(flexShrink 0)하고
+                     줄어드는 쪽은 **리스트**가 되게 한다(리스트는 안에서 스크롤되므로 줄어도 정보가 안 사라진다). */}
+            <PressableScale
+              style={[styles.addBtn, { marginBottom: insets.bottom }]}
+              onPress={() => { setOpen(false); router.push('/register'); }}
+            >
               <Text style={styles.addBtnText}>＋ {t('compat.registerMyChart')}</Text>
             </PressableScale>
           </Pressable>
@@ -482,7 +493,12 @@ const styles = StyleSheet.create({
   catChipOn: { backgroundColor: colors.ju, borderColor: colors.ju },
   catChipTx: { ...font.caption, color: colors.inkSoft, fontWeight: '700' },
   catChipTxOn: { color: colors.bg },
-  list: { flexShrink: 1, maxHeight: Dimensions.get('window').height * 0.62 }, // ★flexShrink=시트가 꽉 차면 리스트가 줄어 마지막 명식·＋등록 버튼이 안 잘림(daniel 07-21). maxHeight=상한(시트 내 스크롤)
+  // ★flexShrink=시트가 꽉 차면 리스트가 줄어 마지막 명식·＋등록 버튼이 안 잘림(daniel 07-21). maxHeight=상한(시트 내 스크롤)
+  //   ★★상한을 0.62→0.52 로 낮춘다(daniel 2026-08-07 IMG_8431 "명식등록 계속 짤려" · 명식 51개).
+  //     시트 최대 88% 인데 헤더(제목·검색·필터칩·안내문)가 ~22% + 등록 버튼 ~9% + 안전영역 ~4% 를 먹는다.
+  //     남는 자리는 ~53% 뿐인데 상한이 62% 라, flexShrink 가 제때 안 먹으면 버튼이 밖으로 밀렸다.
+  //     상한 자체를 남는 자리 안으로 넣어 **어느 경로로도 버튼이 밀리지 않게** 한다(리스트는 안에서 스크롤된다).
+  list: { flexShrink: 1, maxHeight: Dimensions.get('window').height * 0.52 },
   row: { flexDirection: 'row', alignItems: 'center', paddingVertical: space(3.5), borderBottomWidth: 1, borderBottomColor: colors.line, gap: space(2) },
   rowActive: { backgroundColor: colors.card, borderRadius: radius.md, borderBottomColor: 'transparent' }, // 드래그 중 행 강조(들어올림)
   rowMain: { flex: 1 },
@@ -519,6 +535,7 @@ const styles = StyleSheet.create({
   rowMeta: { ...font.caption, flex: 1 },
   rowCategory: { ...font.caption, color: colors.inkFaint, marginHorizontal: space(1.5) }, // 관계 카테고리 우측 배지(daniel)
   check: { fontSize: 18, color: colors.ju, fontWeight: '700' },
-  addBtn: { backgroundColor: colors.ju, borderRadius: radius.md, paddingVertical: space(3.5), alignItems: 'center', marginTop: space(4) },
+  // flexShrink:0 — 시트가 꽉 차도 이 버튼은 **절대 줄지 않는다**(줄어드는 쪽은 위의 리스트). marginBottom 은 렌더에서 안전영역만큼.
+  addBtn: { backgroundColor: colors.ju, borderRadius: radius.md, paddingVertical: space(3.5), alignItems: 'center', marginTop: space(4), flexShrink: 0 },
   addBtnText: { color: colors.bg, fontSize: 15, fontWeight: '700' },
 });
