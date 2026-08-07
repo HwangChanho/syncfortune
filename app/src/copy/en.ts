@@ -431,8 +431,8 @@ export const en = {
     'matchHead': '닮은 점',
     'myTenGod': '내 십신 구조 요약',
     'reasons': '공통 구조',
-    'sub': '내 사주와 유명인의 사주를 견주는 재미 — 일간·오행·십신 구조로 닮은꼴을 찾아요',
-    'title': '세계를 움직이는 사람들',
+    'sub': 'Find the figures whose chart resembles yours',
+    'title': 'People Who Move the World',
     'topLabel': '나와 가장 닮은 인물',
   },
   coins: {

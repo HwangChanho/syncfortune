@@ -69,12 +69,22 @@ export async function listTrendingCelebs(limit = 40): Promise<CelebEntry[]> {
   //   조회수가 낮아서가 아니라 **비교 대상이 아닌 것을 한 자로 재서** 생긴 왜곡이다.
   // ⇒ 직군 안에서 각각 '요즘 많이 찾아본 순'을 뽑고, 위에서부터 번갈아 놓는다.
   //   각 목록의 순서(=트렌드)는 그대로 보존되고, 노출만 균형을 맞춘다.
+  // ★"아이돌·배우 위주로"(daniel 2026-08-07) — 표에 **'아이돌' 역할값이 없다**(KR: 배우 2388·가수 974·정치인 500).
+  //   없는 걸 있는 척 만들 수 없으니 **출생 연도로 근사**한다. 근거는 실측:
+  //     가수 1975+ 상위엔 린(1981)·성시경(1979)·휘성(1982)·장윤정(1980) 같은 비(非)아이돌이 위를 먹었다.
+  //     하한을 1990 으로 올리니 장원영·카리나·정국·안유진·화사·연준 = 아이돌이 대부분 차지한다.
+  //   ⚠️**근사이지 진짜 분류가 아니다** — 임영웅(트로트)·한로로(인디)는 여전히 섞인다.
+  //     정확히 하려면 표에 그룹/소속 정보가 있어야 하는데 없다(위키데이터 role 만 있다).
+  const MIN_BIRTH: Record<'배우' | '가수', string> = {
+    가수: '1990-01-01', // 아이돌 세대 근사(위 주석)
+    배우: '1985-01-01', // 현역 배우 — 너무 올리면 김고은·박은빈급이 빠져 표본이 얇아진다
+  };
   const half = Math.ceil(limit / 2);
   const byRole = async (role: '배우' | '가수') => {
     const res = await withTimeout(
       supabase.from('celebrities').select(SELECT)
         .eq('country_code', 'KR').eq('role', role)
-        .not('name_ko', 'is', null).gte('birth_date', '1975-01-01')
+        .not('name_ko', 'is', null).gte('birth_date', MIN_BIRTH[role])
         // 정렬 기준 = 최근 30일 위키백과 조회수(수집기 celeb-trend). 미수집은 뒤로.
         .order('views_30d', { ascending: false, nullsFirst: false })
         .order('fame', { ascending: false })

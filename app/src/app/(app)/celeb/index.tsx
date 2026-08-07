@@ -130,10 +130,12 @@ export default function CelebIndex() {
   return (
     <View style={styles.bg}>
       <ScrollView style={styles.overlay} contentContainerStyle={styles.wrap}>
-        {/* 타이틀 */}
+        {/* 타이틀 — ★압축(daniel 2026-08-07 "UI 개선"). 종전엔 큰 제목 + 2줄 설명이 화면 절반을 먹어
+            첫 인물 카드가 세로 57% 지점에 있었다. 정작 이 화면의 알맹이는 **인물 카드**다.
+            (07-24 에 풀이탭에서 같은 이유로 상단을 압축했다 — 첫 카드 y 49%→31%.) */}
         <Text style={styles.title}>{t('celeb.title', '세계를 움직이는 사람들')}</Text>
-        <Text style={styles.sub}>
-          {t('celeb.sub', '내 사주와 유명인의 사주를 견주는 재미 — 일간·오행·십신 구조로 닮은꼴을 찾아요')}
+        <Text style={styles.sub} numberOfLines={1}>
+          {t('celeb.sub', '내 사주와 닮은 인물 찾기')}
         </Text>
 
         {/* ★이름 검색(daniel 2026-08-03) — 12만 명은 앱에 담을 수 없어 서버에서 찾는다.
@@ -195,7 +197,11 @@ export default function CelebIndex() {
 
         {/* 인물 그리드 — 명식 있으면 유사도순(전체 순위) + 카드별 % / 없으면 DB순서. 탭 → 결정론 상세(무료). */}
         <View style={styles.grid}>
-          {(ranked ? ranked.map((r) => r.celeb) : CELEB_DB).map((c, i) => {
+          {/* ★폴백은 **pool** 이다(daniel 2026-08-07). 종전엔 번들 `CELEB_DB` 를 직접 그려서,
+              DB 에서 연예인 40명을 정상으로 받아 와도(실측 n=40) 명식이 없으면 **나폴레옹·모차르트**가 나왔고
+              검색 결과도 화면에 못 올라왔다. pool 의 초기값이 이미 CELEB_DB 라 폴백은 pool 하나로 충분하다.
+              (같은 목록을 두 소스가 그리던 반복 사고 — 에겐테토 막대·운 잔액과 같은 계열.) */}
+          {(ranked ? ranked.map((r) => r.celeb) : pool).map((c, i) => {
             // 명식 있을 때만 순위·유사도 표기(ranked[i] 가 이 카드 c 에 대응 — map 순서 보존). 등급 색 재사용(matchGrade).
             const g = ranked ? matchGrade(ranked[i].score) : null;
             return (
@@ -206,14 +212,21 @@ export default function CelebIndex() {
               >
                 {/* 순위 배지(무료 전체 순위 가시화) — 1위부터. 명식 있을 때만. */}
                 {ranked && <Text style={styles.rankBadge}>{i + 1}위</Text>}
-                <Text style={styles.flag}>{c.flag}</Text>
-                <Text style={styles.name}>{c.name}</Text>
+                {/* ★국기는 **이름 옆 작게**(daniel 2026-08-07 "UI 개선").
+                    종전엔 36pt 로 카드 위쪽 절반을 차지했는데, 목록이 한국 연예인 일색이라
+                    전부 🇰🇷 다 — **자리는 제일 크고 알려 주는 건 0** 이었다. 이름이 주인공이다. */}
+                <View style={styles.nameRow}>
+                  <Text style={styles.flagSm}>{c.flag}</Text>
+                  <Text style={styles.name} numberOfLines={1}>{c.name}</Text>
+                </View>
                 <Text style={styles.role}>{c.role}</Text>
                 {/* 유사도%(무료 공개) — 등급 색. 명식 있을 때만. */}
                 {ranked && g && (
                   <Text style={[styles.cardScore, { color: g.color }]}>{ranked[i].score}% {g.emoji} 닮음</Text>
                 )}
-                <Text style={styles.blurb}>{c.blurb}</Text>
+                {/* ★blurb 는 role 과 다를 때만 — DB 인물은 `blurb = role` 이라 같은 글자가 두 줄로 찍혔다
+                    (한 줄 소개를 지어내지 않기로 한 결정의 부작용. 없는 걸 없다고 두되 중복은 안 그린다). */}
+                {c.blurb && c.blurb !== c.role ? <Text style={styles.blurb}>{c.blurb}</Text> : null}
               </PressableScale>
             );
           })}
@@ -235,8 +248,9 @@ const styles = StyleSheet.create({
   bg: { flex: 1, backgroundColor: 'transparent' }, // 전역 ContentBackdrop 비쳐 보이게(07-20 배경통일 누락분)
   overlay: { flex: 1, backgroundColor: colors.overlay },
   wrap: { padding: space(6), paddingBottom: space(12) },
-  title: { fontSize: 24, fontWeight: '900', color: colors.ink, textAlign: 'center', marginTop: space(2) },
-  sub: { ...font.caption, color: colors.inkSoft, textAlign: 'center', marginTop: space(2), marginBottom: space(5), lineHeight: 19 },
+  // ★상단 압축(위 렌더 주석) — 24→20 / 설명 1줄 / 아래 여백 space(5)→(2). 알맹이(인물 카드)를 위로 끌어올린다.
+  title: { fontSize: 20, fontWeight: '900', color: colors.ink, textAlign: 'center', marginTop: 0 },
+  sub: { ...font.caption, color: colors.inkSoft, textAlign: 'center', marginTop: space(1), marginBottom: space(2), lineHeight: 19 },
 
   // ── 무료 티저 카드(상위 1인) ──
   teaser: {
@@ -268,12 +282,13 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.juLine,
-    padding: space(5),
-    marginBottom: space(4),
+    // ★압축 — 명식 없는 사람에게 필요한 건 '한 줄 안내'지 큰 상자가 아니다(인물 카드가 알맹이).
+    padding: space(3.5),
+    marginBottom: space(3),
     ...shadow.card,
   },
-  noChartTitle: { ...font.body, fontWeight: '800', color: colors.ink, textAlign: 'center', lineHeight: 22 },
-  noChartTx: { ...font.caption, color: colors.ju, fontWeight: '700', textAlign: 'center', marginTop: space(2) },
+  noChartTitle: { ...font.caption, fontWeight: '800', color: colors.ink, textAlign: 'center', lineHeight: 19 },
+  noChartTx: { ...font.caption, color: colors.ju, fontWeight: '700', textAlign: 'center', marginTop: space(1) },
 
   // ── 전체 순위 안내(무료) ──
   rankNote: { ...font.caption, color: colors.inkSoft, lineHeight: 19, marginBottom: space(5), textAlign: 'center' },
@@ -285,14 +300,16 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.juLine,
-    padding: space(4),
+    // 국기를 이름 옆으로 옮겨 카드가 낮아졌다 → 한 화면에 더 많이 보인다(패딩도 함께 축소).
+    padding: space(3.5),
     marginBottom: space(3),
     ...shadow.card,
   },
   // 순위 배지(무료 전체 순위 가시화) — 카드 우상단 골드 라벨
   rankBadge: { ...font.label, color: colors.ju, fontWeight: '900', alignSelf: 'flex-start', marginBottom: space(0.5) },
-  flag: { fontSize: 36, marginBottom: space(1) },
-  name: { ...font.heading, color: colors.ink },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: space(1.5) },
+  flagSm: { fontSize: 16 }, // 이름 옆 소형 국기(외국 인물 구분용). 한국 일색이라 주역은 이름이다.
+  name: { ...font.heading, color: colors.ink, flex: 1 },
   role: { ...font.label, color: colors.ju, marginTop: 2 },
   // 카드별 유사도%(무료 공개) — 등급 색은 인라인
   cardScore: { ...font.caption, fontWeight: '800', marginTop: space(1) },
