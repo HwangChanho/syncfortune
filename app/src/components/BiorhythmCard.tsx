@@ -6,7 +6,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import Svg, { Path, Line as SvgLine, Circle } from 'react-native-svg';
+import Svg, { Path, Line as SvgLine, Circle, Text as SvgText } from 'react-native-svg';
 import { useTranslation } from 'react-i18next';
 import { loadRepChart } from '../lib/engine/myChart';
 import { solarBirth, bioAt, bioSeries, bioState, bioReading, type BioValues } from '../lib/content/biorhythm';
@@ -84,7 +84,11 @@ export function BiorhythmCard({ reloadKey }: { reloadKey?: number }) {
 
 // ── ±14일 3주기 곡선 SVG(오늘=중앙) ─────────────────────────────────────────
 function BioGraph({ birth }: { birth: Date }) {
-  const W = 320, H = 120, padX = 10, padTop = 8, padBottom = 8;
+  // ★날짜 축(daniel 2026-08-07 "선 아래에 날짜도 보이면 좋겠어") — 아래 LABEL_H 만큼을 **라벨 전용 띠**로 뺀다.
+  //   곡선이 쓰던 세로 공간에 겹쳐 쓰면 골짜기(−100 부근)에서 숫자와 선이 뭉갠다
+  //   (07-28 MonthFlowGraph 에서 같은 문제로 라벨 띠를 분리한 이력이 있다).
+  const W = 320, H = 134, padX = 10, padTop = 8, LABEL_H = 14;
+  const padBottom = 8 + LABEL_H;
   const span = 14;
   const ser = bioSeries(birth, new Date(), span);
   const n = ser.offsets.length;                     // 29 (=2*14+1)
@@ -107,6 +111,23 @@ function BioGraph({ birth }: { birth: Date }) {
       {AXES.map((ax) => {
         const v = ser[ax.key][(n - 1) / 2];
         return <Circle key={ax.key} cx={cx} cy={y(v)} r={3} fill={ax.color} />;
+      })}
+      {/* ── 날짜 축 ──────────────────────────────────────────────────────
+          ★29일(±14) 을 다 찍으면 320pt 폭에서 글자가 겹쳐 못 읽는다 → **7일 간격 눈금만**
+            (−14 · −7 · 오늘 · +7 · +14) 5개. 오늘만 골드·굵게로 지금 어디인지 바로 보이게 한다.
+          형식은 'M/D' — 연도는 ±2주 범위에서 필요 없다(폭만 먹는다). */}
+      {ser.offsets.map((off, i) => {
+        if (i % 7 !== 0) return null;              // 7일 간격만
+        const isToday = off === 0;
+        const d0 = new Date(); d0.setDate(d0.getDate() + off);
+        return (
+          <SvgText
+            key={`d${i}`} x={x(i)} y={H - 3} fontSize="9" textAnchor="middle"
+            fill={isToday ? colors.ju : colors.inkFaint} fontWeight={isToday ? '800' : '500'}
+          >
+            {isToday ? '오늘' : `${d0.getMonth() + 1}/${d0.getDate()}`}
+          </SvgText>
+        );
       })}
     </Svg>
   );
