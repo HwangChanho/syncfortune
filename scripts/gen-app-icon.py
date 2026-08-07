@@ -62,28 +62,31 @@ def main() -> None:
             fill=tuple(round(BG_TOP[i] + (BG_BOTTOM[i] - BG_TOP[i]) * k) for i in range(3)),
         )
 
-    # ── 글자 배치 (별도 레이어에 그린 뒤 통째로 안전영역에 맞춘다) ──────────
-    #  왼쪽 열: 니(위) / 내(아래)  ·  오른쪽: 운(크게)
+    # ── 배치 = **A안 '골드 원 배지'**(daniel 2026-08-07 선택) ────────────────
+    #  왼쪽 열: 니(위) / 내(아래) · 오른쪽: **골드 원 안에 크림 '운'**
     #  ★'운'을 세로 중앙에 두고 니·내를 그 위아래로 두면 **니운 / 내운** 두 낱말이 각각 한 줄로 읽힌다.
+    #  ★원(도형)을 넣은 이유: 첫 판(글자만)이 "너무 별로"였고(daniel), 실제 약점은 색이 아니라
+    #    **앵커가 없어 로고로 안 보이는 것**이었다. 도형이 시선을 잡고 '운'을 주인공으로 만든다.
     #  ★★크기·좌표를 손으로 맞추지 않는다 — 첫 판에서 '운'의 마지막 획이 오른쪽 끝에 붙어
     #    (iOS 는 모서리를 둥글게 깎는다) 잘릴 뻔했다. 다 그린 뒤 **잉크 박스를 재서**
     #    안전영역(SAFE)에 자동으로 앉히면 폰트·글자가 바뀌어도 여백이 보장된다.
     layer = Image.new('RGBA', (SIZE * 2, SIZE * 2), (0, 0, 0, 0))  # 여유 캔버스(넘쳐도 잘리지 않게)
     ld = ImageDraw.Draw(layer)
-    F_BIG = font(560)    # 오른쪽 '운' — daniel "조금 크게"
-    F_SMALL = font(330)  # 왼쪽 '니·내'
+    F_BIG = font(430)    # 원 안의 '운'
+    F_SMALL = font(300)  # 왼쪽 '니·내'
 
     cx, cy = SIZE, SIZE  # 여유 캔버스의 중앙
-    gap_x = round(SIZE * 0.36)   # 좌우 열 간격
-    gap_y = round(SIZE * 0.35)   # 니 ↔ 내 세로 간격
-    draw_centered(ld, cx - gap_x, cy - gap_y // 2, '니', F_SMALL, INK)
-    draw_centered(ld, cx - gap_x, cy + gap_y // 2, '내', F_SMALL, INK)
-    draw_centered(ld, cx + round(gap_x * 0.62), cy, '운', F_BIG, GOLD)
+    R = 330                      # 배지 반지름
+    badge_cx = cx + 370          # 배지 중심 x(오른쪽)
+    ld.ellipse([badge_cx - R, cy - R, badge_cx + R, cy + R], fill=GOLD)
+    draw_centered(ld, badge_cx, cy, '운', F_BIG, BG_TOP)   # 원 안은 배경색(크림)으로 파낸 듯이
+    draw_centered(ld, cx - 220, cy - 190, '니', F_SMALL, INK)
+    draw_centered(ld, cx - 220, cy + 190, '내', F_SMALL, INK)
 
-    # 잉크 박스 → 안전영역(가로·세로 82%)에 비율 유지로 앉힌다.
+    # 잉크 박스 → 안전영역에 비율 유지로 앉힌다.
     box = layer.getbbox()
     art = layer.crop(box)
-    SAFE = round(SIZE * 0.82)
+    SAFE = round(SIZE * 0.86)  # A안(배지)은 원이 세로를 이미 채워 조금 더 크게 앉혀도 안전하다
     k = min(SAFE / art.width, SAFE / art.height)
     art = art.resize((max(1, round(art.width * k)), max(1, round(art.height * k))), Image.LANCZOS)
     img.paste(art, ((SIZE - art.width) // 2, (SIZE - art.height) // 2), art)
