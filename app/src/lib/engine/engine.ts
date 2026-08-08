@@ -5,7 +5,7 @@
 // ※ lunar-javascript·iztro의 RN(Hermes) 호환은 빌드 시 실측(ADR-032 플래그).
 // ─────────────────────────────────────────────────────────────────────────
 import { buildSajuChart } from '@engine/saju';
-import { detectInteractions, scoreStrength, classifyStrength, analyzeTenGods, detectPattern } from '@engine/structure';
+import { scoreStrength, classifyStrength, analyzeTenGods, detectPattern } from '@engine/structure';
 import { dayMasterStages } from '@engine/twelve';
 import { analyzeSinsal } from '@engine/sinsal';
 import { buildZiweiChart } from '@engine/ziwei';
@@ -14,7 +14,9 @@ import type { ChartInput, NormalizedChart } from '@spec/chart';
 /** 점신식 입력 → 결정론 명식 전체 (팔자·합충·신강약지표·격국후보·12운성·신살·자미). */
 function buildFullChart(input: ChartInput) {
   const saju = buildSajuChart(input, new Date().getFullYear()); // 세운·현재 대운 = 오늘 기준
-  saju.interactions = detectInteractions(saju);
+  // ★합충형해는 이제 **엔진(buildSajuChart)이 직접 채운다**(2026-08-08) — 여기서 또 채우지 않는다.
+  //   종전엔 이 한 줄이 유일한 공급처라, 이 줄을 안 타는 엔진·골든·픽스처 경로에서는 saju.interactions 가
+  //   늘 빈 배열이었고 scoreStrength 의 충·형 통근손상 규칙이 통째로 죽어 있었다(같은 값을 두 곳이 책임지던 문제).
   let _ziwei: ReturnType<typeof buildZiweiChart> | undefined; // 자미두수 지연 계산 캐시(아래 get ziwei)
   return {
     saju,

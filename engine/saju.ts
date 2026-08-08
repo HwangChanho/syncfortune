@@ -3,13 +3,19 @@
 // 분업:
 //   · 팔자·대운·세운 간지   = lunar-javascript (실검증으로 골든 일치 확인, ADR-008)
 //   · 지장간·십신·통근       = 우리 결정론 로직(골든 학설 표준표) — lunar-js 지장간은 卯/酉 여기 누락
-//   · 합충형해·structure_dx  = WS3(Encoded Expert Layer) 영역 → 여기선 비움([]/미설정)
+//   · 합충형해               = **여기서 채운다**(2026-08-08 — 종전엔 호출처 위임이라 엔진 경로에서 빈 배열이었다)
+//   · structure_dx           = WS3(Encoded Expert Layer) 영역 → 여기선 미설정
 // ─────────────────────────────────────────────────────────────────────────
 import _lunar from 'lunar-javascript';
 import type {
-  ChartInput, SajuChart, PillarData, PillarPos, Stem, Branch, TenGod, HiddenStem, Element, LuckCycle, AnnualPillar, MonthPillar,
+  ChartInput, SajuChart, PillarData, PillarPos, Stem, Branch, TenGod, HiddenStem, Element, LuckCycle, AnnualPillar, MonthPillar, Interaction,
 } from '../spec/chart';
 import { trueSolarOffsetMin, kstMeridianAt, dstOffsetMin } from './solartime'; // kstMeridianAt·dstOffsetMin = 절기용 북경시 변환(감사 C1)
+// ⚠️structure.ts ↔ saju.ts 는 **순환 참조**다(structure 가 STEM_YANG 을 쓴다). ESM 에서 이게 안전한 이유:
+//   structure.ts 는 STEM_YANG 을 **함수 본문 안에서만** 쓰고 모듈 최상위에서 접근하지 않는다 →
+//   평가 시점엔 아무도 안 건드리고, 실제 호출 시점엔 양쪽 다 초기화가 끝나 있다(live binding).
+//   ★모듈 최상위에서 STEM_YANG 을 쓰는 코드가 structure.ts 에 생기면 TDZ 로 깨진다 — 그때는 상수를 별 모듈로 분리할 것.
+import { detectInteractions } from './structure';
 
 const Lunar: any = _lunar;
 const Solar = Lunar.Solar;
@@ -349,10 +355,20 @@ export function buildSajuChart(input: ChartInput, nowYear = new Date().getFullYe
     interactionsWithLuck: [], // WS3(합충 검출) 영역
   };
 
-  return {
+  // ★원국 합충형해는 **엔진이 직접 채운다**(2026-08-08 카나리로 발견한 조용한 무력화 수정).
+  //   종전엔 `interactions: []` 로 두고 **호출처가 채우기로** 되어 있었는데, 실제로 채우는 곳은
+  //   앱 경로(`app/src/lib/engine/engine.ts`) 하나뿐이었다. 그래서 `buildSajuChart` 를 직접 쓰는
+  //   **엔진 검증·골든·픽스처 경로에서는 `saju.interactions` 가 늘 빈 배열**이었고,
+  //   그걸 읽어 동작하는 `scoreStrength` 의 **충·형 통근손상 규칙이 한 번도 걸리지 않았다.**
+  //   (daniel 이 07-14 에 넣은 '형도 통근 손상'이 코드엔 살아 있는데 입력이 안 들어와 죽어 있던 것.)
+  //   실측: 본인 차트가 score 4·신강 → **0.9·중화** 로 착지 — 07-14 기록값과 소수점까지 일치.
+  // ⚠️lazy require 인 이유: `structure.ts` 가 `saju.ts` 의 STEM_YANG 을 쓰므로 정적 import 는 **순환**이다.
+  //   모듈 재편(테이블 분리)이 정공법이지만, 그건 스키마 변경이라 값 변경과 같은 diff 에 섞으면 검토가 불가능해진다
+  //   (전문가 지침: 데이터 정확성 먼저, 스키마 나중). 여기선 값만 고친다.
+  const base = {
     pillars,
     dayMaster: { stem: dayStem, element: STEM_ELEM[dayStem] },
-    interactions: [],  // WS3 영역
+    interactions: [] as Interaction[],
     luckCycles,
     currentLuck,
     annual,
@@ -363,6 +379,10 @@ export function buildSajuChart(input: ChartInput, nowYear = new Date().getFullYe
     ...(input.timeAccuracy === '미상' ? { timeUnknown: true } : {}),
     // structure: WS3/골든 영역 — 엔진은 채우지 않음
   };
+  // 원국 4주끼리의 합충형해만 채운다(운·시간층은 소비처에서 별도 — 종전 계약 유지).
+  //   ★실패를 삼키지 않는다 — 조용히 빈 배열로 돌아가면 지금 고치는 그 버그가 그대로 재발한다.
+  base.interactions = detectInteractions(base as SajuChart);
+  return base;
 }
 
 /** 특정 세운(年)·월(1~12)의 일운(日辰) 달력 — 월운 탭 시 동적 생성(전체 미리계산 회피).
