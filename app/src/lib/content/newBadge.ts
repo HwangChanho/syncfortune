@@ -19,6 +19,7 @@ export const NEW_WINDOW_DAYS = 21;
 export const NEW_SINCE: Record<string, string> = {
   wealth: '2026-07-22', // 재물 딥리포트(신규 유료)
   gem: '2026-07-23',    // 내 사주 보석(R-GEM·신규 무료·daniel 07-23)
+  attach: '2026-08-08', // 애착유형(명식×설문 비교·신규 무료·daniel 08-08)
 };
 
 /**

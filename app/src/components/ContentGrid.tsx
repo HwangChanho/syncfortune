@@ -32,7 +32,7 @@ import { loadCredits } from '../lib/billing/coupons';             // 쿠폰 잔�
 import { computeChart } from '../lib/engine/engine'; // canonical 빌더 단일화(daniel 07-23·drift 방지)
 import { appLang } from '../lib/i18n';
 import { homeTeaser, type HomeTeaser } from '../lib/content/homeTeaser'; // 카드 설명을 '내 얘기' 한 줄로(결정론·API 0, daniel 07-16)
-import { SECTIONS, CARD_REVEAL_OFFSETS, TOTAL_CARDS, HOME_INDIVIDUAL, priceLabel, baseKey, type MenuItem } from '../lib/content/contentSections';
+import { SECTIONS, HOME_INDIVIDUAL, priceLabel, baseKey, type MenuItem } from '../lib/content/contentSections';
 import { SAJU_READING_CATEGORIES } from '../lib/backend/prewarmReadings'; // 세트(사주16) 카테고리 단일출처
 import { isNewContent } from '../lib/content/newBadge'; // 신규 콘텐츠 NEW 배지(출시일+21일 자동 만료·우측 상단 연한 빨강)
 import type { HomeViewMode } from '../lib/ui/homeView'; // 보기 방식(카드/리스트) — 상태는 화면이 소유(아래 주석)
@@ -73,7 +73,6 @@ function KenBurnsCard({ source }: { source: any }) {
  */
 /** 리스트뷰에서 섹션당 기본 노출 개수 — 나머지는 '더 보기'로 접는다(daniel 2026-07-26 나열 개선).
  *  4 = 스크린 한 화면에 섹션 헤더+4행이 들어가 '섹션이 여러 개 있다'는 구조가 보이는 최소치. */
-const LIST_PREVIEW = 4;
 
 /** 카드뷰에서 가로 스크롤을 2줄로 접는 기준 개수(daniel 2026-08-06).
  *  ★예전엔 섹션 **키를 하드코딩**해 'light 는 5개씩 N줄, deep 은 2줄'로 갈랐다. 그래서 25개짜리
@@ -133,7 +132,6 @@ export function ContentGrid({ query = '', viewMode, category = null, wrap = fals
   const [readingRows, setReadingRows] = useState<{ category: string; created_at: string }[]>([]); // 이 명식의 기존 풀이
   const [teasers, setTeasers] = useState<Record<string, HomeTeaser>>({});                         // 카드별 '내 얘기' 한 줄
   const [reloadKey, setReloadKey] = useState(0); // 명식 변경(전환·수정) 감지 — 포커스마다 재계산
-  const [openSec, setOpenSec] = useState<Record<string, boolean>>({}); // 리스트뷰 섹션 펼침(기본 접힘·상위 N개만)
 
   // session 반응형 — 로그아웃 즉시 관리자 상태 해제.
   useEffect(() => { if (!session) { setAdmin(false); return; } isAdminActing().then(setAdmin).catch(() => {}); }, [session]);
@@ -180,9 +178,19 @@ export function ContentGrid({ query = '', viewMode, category = null, wrap = fals
   // 카드 이미지 순차 공개(daniel) — 위→아래로 한 장씩 mount.
   //   ★타이머(시간 기반)를 택한 이유: 가장 단순·안정적. expo-image onLoad 체인은 이미지 하나라도
   //     로드 실패/지연하면 거기서 멈춰(stall) 아래 카드가 영영 안 뜨는 위험이 있다. 타이머는 절대 멈추지 않는다.
+  // ★공개 순번은 **실제로 렌더되는 `sections`** 에서 뽑는다(2026-08-09 수정).
+  //   종전엔 `CARD_REVEAL_OFFSETS`/`TOTAL_CARDS`(= 필터 **전** SECTIONS 기준 상수)를 쓰면서
+  //   `secIdx` 는 필터 **후** 배열의 인덱스였다 — 두 축이 다른 배열을 가리켰다.
+  //   지금은 우연히 상한에 안 걸려 증상이 없지만, 항목이 늘거나 게이트가 하나 더 닫히면
+  //   마지막 카드가 영영 mount 되지 않는 형태로 터진다(카드가 '없는 것'처럼 보인다).
+  const { revealOffsets, totalCards } = useMemo(() => {
+    const offs: number[] = []; let acc = 0;
+    for (const sec of sections) { offs.push(acc); acc += sec.items.length; }
+    return { revealOffsets: offs, totalCards: acc };
+  }, [sections]);
   const [revealCount, setRevealCount] = useState(1);
   useEffect(() => {
-    if (revealCount >= TOTAL_CARDS) return;                                      // 모두 공개 → 타이머 정지
+    if (revealCount >= totalCards) return;                                       // 모두 공개 → 타이머 정지
     const id = setTimeout(() => setRevealCount((c) => c + 1), 90);               // 한 장씩 위→아래(디코드 분산)
     return () => clearTimeout(id);
   }, [revealCount]);
@@ -386,28 +394,22 @@ export function ContentGrid({ query = '', viewMode, category = null, wrap = fals
         //   썸네일이 작아(≈54px) expo-image 다운샘플로 전량 즉시 로드해도 가볍다.
         //   가격/프리미엄 판정·진입(onPress)은 카드뷰와 완전히 동일한 헬퍼를 재사용(단일 출처).
         if (viewMode === 'list') {
-          // ★섹션별 미리보기 + '더 보기'(daniel 2026-07-26 "리스트형식 너무 나열되어 있어서 보기 힘들어").
-          //   원인: 리스트뷰는 전 항목을 세로로 그대로 나열한다 — 특히 '가볍게 보기' 25개 때문에 총 56행이
-          //   한 줄씩 쌓여 스캔이 불가능했다(카드뷰는 2줄 가로 스크롤로 압축되지만 리스트뷰엔 그 장치가 없었다).
-          //   → 섹션마다 상위 LIST_PREVIEW 개만 펼치고 나머지는 접는다. 스크롤 길이가 1/3 수준으로 줄고,
-          //     찾는 사람은 '더 보기'로 즉시 전체를 본다(정보 삭제 아님).
-          //   ★단, **카테고리 전용 화면(wrap)에서는 접지 않는다** — 접힘은 개요에서 여러 섹션이
-          //     세로로 쌓일 때 필요한 장치다. 섹션 하나가 곧 화면 전체인 곳에서 또 접으면,
-          //     '타고 들어갔는데 여전히 다 안 보이는' 같은 모순이 된다(가로 캐러셀을 걷어낸 것과 같은 이유).
-          const secOpen = (openSec[sec.key] ?? false) || wrap;
-          const shown = secOpen ? items : items.slice(0, LIST_PREVIEW);
-          const restN = items.length - shown.length;
+          // ★2026-08-09 **접기 폐지**(daniel "컨텐츠 몇개가 사라졌는데" · "mbti 이런것도 없는데").
+          //   07-26 에 접기를 넣은 이유는 '가볍게 보기' 25개까지 합쳐 **56행**이 한 줄씩 쌓여
+          //   스캔이 불가능했기 때문이다. 그 조건이 사라졌다 — 지금은 51개가 6섹션으로 갈렸고
+          //   상단 **카테고리 칩**으로 원하는 섹션에 바로 갈 수 있다.
+          //   그 사이 08-07 에 **기본 보기가 카드→리스트로** 바뀌면서, 카드뷰(가로 스크롤로 전량 노출)가
+          //   가려 주던 이 접힘이 **기본 화면에 그대로 드러났다** — 51개 중 22개만 보이는 상태가 됐다.
+          //   ★더 나쁜 건 *어떤* 4개가 보일지가 고정이 아니라는 점이다: 정렬이
+          //   `쿠폰보유 → 무료 → 신규` 라 NEW 배지가 만료되거나 쿠폰이 생기면 순서가 바뀌어
+          //   **어제 보이던 항목이 오늘 사라진다**(mbti 가 gem 의 NEW 때문에 5위로 밀려 사라진 게 이 경우).
+          //   ⇒ 개요에서도 전량 표시한다. 08-06 "숨기는 건 없어" 와 같은 결이다.
+          const shown = items;
           return (
             <View key={sec.key} style={styles.section}>
               {sectionHeader}
               <View style={styles.listBody}>
                 {shown.map(renderListRow)}
-                {/* 더 보기 / 접기 — 항목이 미리보기 수를 넘을 때만(전용 화면은 이미 전량 표시라 숨긴다) */}
-                {!wrap && items.length > LIST_PREVIEW && (
-                  <PressableScale style={styles.listMore} onPress={() => setOpenSec((o) => ({ ...o, [sec.key]: !secOpen }))}>
-                    <Text style={styles.listMoreTx}>{secOpen ? '접기 ▴' : `${restN}개 더 보기 ▾`}</Text>
-                  </PressableScale>
-                )}
               </View>
             </View>
           );
@@ -420,7 +422,7 @@ export function ContentGrid({ query = '', viewMode, category = null, wrap = fals
           const isNew = isNewContent(m.key); // 신규 콘텐츠 = 우측 상단 연한 빨강 NEW(출시일+21일)
           const desc = descOf(m);
           // 순차 공개 — 이 카드의 전역 순번이 공개분에 들어왔는지. 아직이면 빈 박스(디코드 미발생).
-          const revealed = CARD_REVEAL_OFFSETS[secIdx] + itemIdx < revealCount;
+          const revealed = revealOffsets[secIdx] + itemIdx < revealCount;
           // 이미지 없는 콘텐츠 = 텍스트 카드(제목+설명), 이미지 카드와 시각 구분
           if (!m.image) {
             return (
@@ -552,8 +554,6 @@ const styles = StyleSheet.create({
   // 검색 결과 없음 — 결과 자리에 그대로 놓아 '검색은 됐는데 없다'가 읽히게(빈 화면 아님).
   searchEmpty: { ...font.body, color: colors.inkSoft, textAlign: 'center', paddingVertical: space(10), lineHeight: 22 },
   // '더 보기/접기' — 섹션 끝 가운데 정렬 소형 버튼(행과 구분되게 배경 없음)
-  listMore: { alignSelf: 'center', paddingVertical: space(2.5), paddingHorizontal: space(4) },
-  listMoreTx: { ...font.caption, color: colors.ju, fontWeight: '800' },
   listPriceTag: { flexShrink: 0, backgroundColor: colors.badgeGold, borderRadius: radius.pill, paddingHorizontal: space(2.5), paddingVertical: space(1) },
   listPriceTx: { color: '#15132E', fontSize: 11, fontWeight: '800', letterSpacing: 0.2 },
   listChevron: { flexShrink: 0, fontSize: 24, fontWeight: '700', color: colors.inkFaint, paddingHorizontal: space(1) },
