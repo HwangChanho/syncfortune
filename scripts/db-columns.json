@@ -419,6 +419,23 @@
       "post_id",
       "user_id",
       "created_at"
+    ],
+    "attach_responses": [
+      "id",
+      "user_id",
+      "answers",
+      "survey_anxiety",
+      "survey_avoidance",
+      "survey_solo",
+      "survey_close",
+      "survey_ver",
+      "indicators",
+      "axes",
+      "month_branch",
+      "daeun_edge_yrs",
+      "engine_ver",
+      "consent_research",
+      "created_at"
     ]
   }
 }

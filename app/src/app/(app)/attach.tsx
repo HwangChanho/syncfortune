@@ -27,6 +27,7 @@ import { computeChart } from '../../lib/engine/engine';
 import { attachAxes, type AttachAxes } from '@engine/attachAxes';
 import { ATTACH_ITEMS, SCALE_LABELS, SCALE_MIN, SCALE_MAX, scoreSurvey, type AttachAnswers } from '../../lib/content/attachSurvey';
 import { useLogContentVisit } from '../../lib/backend/contentVisit';
+import { saveAttachResponse } from '../../lib/content/attachSave';
 import { colors, radius, space, shadow, font } from '../../lib/theme';
 import { useFontScale } from '../../lib/ui/fontScale';
 
@@ -39,6 +40,10 @@ export default function AttachScreen() {
   const [loaded, setLoaded] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
   const [answers, setAnswers] = useState<AttachAnswers>({});
+  // ★연구 이용 동의는 **기본값 false**. 서비스 이용 동의에 묶을 수 없고(전문가 §10-1),
+  //   거부해도 콘텐츠는 그대로 동작해야 한다 → 이 값은 저장 여부만 가른다.
+  const [consent, setConsent] = useState(false);
+  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'done' | 'fail'>('idle');
 
   useEffect(() => {
     let alive = true;
@@ -219,6 +224,46 @@ export default function AttachScreen() {
           </View>
         )}
 
+        {/* ── 연구 이용 동의 — 별도·거부 가능(§10-1) ── */}
+        {surveyDone ? (
+          <View style={styles.consentCard}>
+            <PressableScale
+              onPress={() => setConsent((v) => !v)}
+              style={styles.consentRow}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: consent }}
+            >
+              <View style={[styles.box, consent && styles.boxOn]}>
+                {consent ? <Text style={[styles.boxMark, { fontSize: fs(13), lineHeight: fs(18) }]}>✓</Text> : null}
+              </View>
+              <Text style={[styles.consentText, { fontSize: fs(12), lineHeight: fs(19) }]}>
+                {t('attach.consent', '이 응답을 애착 모델 개선 연구에 익명으로 사용하는 데 동의합니다 (선택 · 동의하지 않아도 결과는 그대로 보실 수 있습니다)')}
+              </Text>
+            </PressableScale>
+            <Text style={[styles.consentNote, { fontSize: fs(11), lineHeight: fs(17) }]}>
+              {t('attach.consentNote', '보내는 값은 설문 응답과 명식에서 계산된 지표뿐입니다. 생년월일시는 기기를 벗어나지 않습니다.')}
+            </Text>
+
+            <PressableScale
+              onPress={async () => {
+                if (!consent || saveState === 'saving') return;
+                setSaveState('saving');
+                const r = await saveAttachResponse(answers, consent, saved?.input);
+                setSaveState(r.ok ? 'done' : 'fail');
+              }}
+              // 동의 전에는 눌러도 아무 일이 없으니 **비활성으로 보이게** 한다(누르고 무반응이 제일 나쁘다).
+              style={[styles.saveBtn, (!consent || saveState === 'saving') && styles.saveBtnOff]}
+            >
+              <Text style={[styles.saveBtnText, { fontSize: fs(14), lineHeight: fs(20) }]}>
+                {saveState === 'saving' ? t('attach.saving', '보내는 중…')
+                  : saveState === 'done' ? t('attach.saved', '보냈습니다. 고맙습니다')
+                  : saveState === 'fail' ? t('attach.saveFail', '보내지 못했습니다. 다시 시도')
+                  : t('attach.saveBtn', '연구에 응답 보내기')}
+              </Text>
+            </PressableScale>
+          </View>
+        ) : null}
+
         {/* 안전 — 진단이 아님(§4) */}
         <Text style={[styles.disclaimer, { fontSize: fs(11), lineHeight: fs(17) }]}>
           {t('attach.disclaimer', '이 결과는 자기이해를 돕는 참고 자료이고 심리 진단이 아닙니다. 관계나 마음의 어려움이 일상에 영향을 주고 있다면 전문가와 이야기해 보시길 권합니다.')}
@@ -273,4 +318,15 @@ const styles = StyleSheet.create({
 
   progress: { color: colors.inkFaint, textAlign: 'center', marginTop: space(2), fontWeight: '700' },
   disclaimer: { color: colors.inkFaint, marginTop: space(5) },
+
+  consentCard: { backgroundColor: colors.sunk, borderRadius: radius.md, padding: space(4), marginTop: space(4) },
+  consentRow: { flexDirection: 'row', alignItems: 'flex-start', gap: space(2.5) },
+  box: { width: 22, height: 22, borderRadius: radius.sm, borderWidth: 1.5, borderColor: colors.inkFaint, alignItems: 'center', justifyContent: 'center', marginTop: 1 },
+  boxOn: { backgroundColor: '#C8A24A', borderColor: '#C8A24A' },
+  boxMark: { color: colors.card, fontWeight: '900' },
+  consentText: { color: colors.inkSoft, flex: 1 },
+  consentNote: { color: colors.inkFaint, marginTop: space(2) },
+  saveBtn: { marginTop: space(3.5), backgroundColor: '#C8A24A', borderRadius: radius.pill, paddingVertical: space(3), alignItems: 'center' },
+  saveBtnOff: { opacity: 0.45 },
+  saveBtnText: { color: colors.card, fontWeight: '800' },
 });
