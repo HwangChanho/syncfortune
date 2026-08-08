@@ -40,9 +40,13 @@ const LIGHT = {
   // 전반 채도↓ + 이미지(미드나잇 네이비·골드 #C9A14A)와 조화(daniel 06-28). 노란기·탁함·순백대비 완화.
   // ★Apple 디자인(daniel 2026-07-15): iOS 클린 — 밝은 시스템 배경(systemGroupedBackground) + 순백 카드 + 뉴트럴 라벨.
   //   bg=옅은 시스템 그레이 / card=순백(계층으로 깊이, 그림자 아닌 대비) / line=iOS separator(연한 회색).
-  bg: '#F2F2F7', card: '#FFFFFF', sunk: '#EAEAEF',
-  glass: 'rgba(255, 255, 255, 0.72)', glassLight: 'rgba(60, 60, 67, 0.05)',
-  ink: '#1C1C1E', inkSoft: '#48484A', inkFaint: '#8A8A8F', line: '#E3E3E8', // iOS label/secondaryLabel/tertiaryLabel/separator
+  // ★★아이콘 톤으로 전면 통일(daniel 2026-08-07 "저거랑 똑같이 ui ux 구성 전부").
+  //   아이콘 A안 = 크림→샌드 종이 + 골드 원 + 진한 브라운 글자. 그 세 색을 그대로 앱 표면에 쓴다.
+  //   종전 iOS 시스템 그레이(#F2F2F7)는 '차가운 회색 종이'라 아이콘의 따뜻한 크림과 어긋났다.
+  bg: '#FAF6EC', card: '#FFFDF7', sunk: '#F0E8D6',
+  glass: 'rgba(255, 253, 247, 0.74)', glassLight: 'rgba(60, 54, 44, 0.05)',
+  // 글자 = 아이콘의 '니·내' 브라운 계열(순수 먹보다 따뜻해 크림 위에서 눈이 편하다).
+  ink: '#3C362C', inkSoft: '#6B6252', inkFaint: '#A2977F', line: '#E6DDC7',
   // ★리디자인(daniel 2026-07-14 '심플하면서 조화롭게' → 먹선 미니멀): 액센트 = 뮤트 골드 하나(조화로운 단일 포인트, daniel 선택).
   //   거창한 색 대신 여백·타이포·절제로 승부 — 색은 종이(bg)·먹(ink)·은은한 금(ju) 3톤으로 통일.
   ju: '#A08948', juDeep: '#84703B', juSoft: '#EFEBE0', juLine: '#C9C0A6',
@@ -64,30 +68,44 @@ const LIGHT = {
 export type ElTheme = { bg: string; card: string; sunk: string; ink: string; inkSoft: string; inkFaint: string; line: string; ju: string; juDeep: string; juSoft: string; juLine: string };
 // ★Apple 디자인 + 일간 오행 tint(daniel 2026-07-15): 배경=iOS 시스템 그레이에 오행 색조 아주 옅게 / 카드=순백 / ink=뉴트럴 라벨 /
 //   ju=오행 tint(iOS accent color 개념·vivid). 그림자 대신 배경↔카드 대비로 깊이(Apple HIG).
-const EL_THEME: Record<string, ElTheme> = {
-  木: { bg: '#EFF3EE', card: '#FFFFFF', sunk: '#E6EBE4', ink: '#1C1C1E', inkSoft: '#48484A', inkFaint: '#8A8A8F', line: '#E0E6DE', ju: '#34A853', juDeep: '#278044', juSoft: '#EAF5EC', juLine: '#CDE7D3' }, // 나무=연한 그린그레이+iOS그린
-  火: { bg: '#F5EFEE', card: '#FFFFFF', sunk: '#EDE4E2', ink: '#1C1C1E', inkSoft: '#48484A', inkFaint: '#8A8A8F', line: '#EBE0DE', ju: '#E1483A', juDeep: '#B4372C', juSoft: '#FCEBE9', juLine: '#F3D3CE' }, // 불=옅은 웜그레이+iOS레드
-  土: { bg: '#F4F1EA', card: '#FFFFFF', sunk: '#ECE7DC', ink: '#1C1C1E', inkSoft: '#48484A', inkFaint: '#8A8A8F', line: '#E9E3D8', ju: '#C79A2E', juDeep: '#9E7A24', juSoft: '#F7F0DE', juLine: '#E9DCBB' }, // 흙=옅은 샌드그레이+골드
-  金: { bg: '#F1F2F4', card: '#FFFFFF', sunk: '#E6E8EC', ink: '#1C1C1E', inkSoft: '#48484A', inkFaint: '#8A8A8F', line: '#E1E4E8', ju: '#5E6B7C', juDeep: '#47525F', juSoft: '#EEF1F4', juLine: '#D6DBE1' }, // 쇠=쿨 라이트그레이+강철빛
-  水: { bg: '#EEF1F5', card: '#FFFFFF', sunk: '#E2E7EE', ink: '#1C1C1E', inkSoft: '#48484A', inkFaint: '#8A8A8F', line: '#DEE4EC', ju: '#3B6EC4', juDeep: '#2C5497', juSoft: '#E9F0FA', juLine: '#CDDBF0' }, // 물=옅은 블루그레이+iOS블루
+// ★★2026-08-07 daniel "이제 **배경테마색만** 대표오행에 맞춰서 변경시키고".
+//   아이콘 톤(크림 종이·골드·브라운 글자)이 앱의 정체성이 되었으므로 카드·글자·강조는 **고정**하고,
+//   오행이 바뀌는 건 **배경 한 톤**뿐이다. 아래 EL_BG 가 실제로 적용되는 유일한 값이고,
+//   ⚠️종전 `EL_THEME`(팔레트 전체 오버라이드)은 **삭제**했다 — 남겨 두면 "오행마다 앱 색이 바뀐다"는
+//     옛 모델이 코드에 살아 있어 다음 사람이 어느 쪽이 진짜인지 알 수 없다(같은 것을 두 곳이 정의하는 사고).
+//     오행별 강조색이 다시 필요해지면 EL_BG 옆에 EL_JU 를 두고 같은 방식으로 한 값만 덮으면 된다.
+//   ⚠️종전 EL_THEME.bg 는 iOS 시스템 그레이 계열(#EFF3EE 등)이라 **크림 위에서 회색으로 떠 보인다** →
+//     크림(#FAF6EC)에 오행 색조를 아주 옅게 태운 값으로 다시 잡았다.
+const EL_BG: Record<string, string> = {
+  木: '#F1F6EA', // 나무 — 크림에 옅은 풀빛
+  火: '#FDF1E9', // 불 — 크림에 옅은 노을빛
+  土: '#FAF4E2', // 흙 — 기본 크림보다 조금 더 샌드
+  金: '#F8F7F2', // 쇠 — 크림에서 채도만 살짝 뺀 백지
+  水: '#EFF3F5', // 물 — 크림을 서늘하게 식힌 톤
 };
-// 설정 강조색 픽커 스와치(오행 대표색 + 골드). 'auto'는 activeAccentElement 색으로 표시.
+// 설정 픽커 스와치 — ★**실제 적용되는 배경색**을 보여준다(daniel 2026-08-07 배경만 반영으로 바뀜).
+//   종전엔 강조색(ju, 진한 오행색)을 보여줬는데 이제 강조는 골드 고정이라 **고르면 안 그렇게 되는 색**이었다.
+//   ⚠️크림 계열끼리라 차이가 옅다 → 픽커에서 테두리(juLine)로 구분되게 UI 쪽에서 보완.
 export const ACCENT_SWATCH: Record<string, string> = {
-  木: EL_THEME.木.ju, 火: EL_THEME.火.ju, 土: EL_THEME.土.ju, 金: EL_THEME.金.ju, 水: EL_THEME.水.ju, gold: '#A08948',
+  木: EL_BG.木, 火: EL_BG.火, 土: EL_BG.土, 金: EL_BG.金, 水: EL_BG.水, gold: '#FAF6EC',
 };
 const ACCENT_KEY = 'pref.themeAccent';   // 'auto' | '木'|'火'|'土'|'金'|'水' | 'gold'
 const ELEMENT_KEY = 'pref.themeElement'; // 대표명식 일간 오행(자동 액센트 소스) — themeElement.ts가 저장
 const ELS = ['木', '火', '土', '金', '水'];
 
-/** 일간 오행 테마 결정 — 설정 모드 + 저장된 일간 오행. null = 기본(土/클레이 팔레트 유지). */
-function resolveAccent(): ElTheme | null {
+/**
+ * 오행 배경색 결정 — 설정 모드 + 저장된 대표명식 일간 오행.
+ * @returns 적용할 배경 hex, 또는 null(기본 크림 유지 — 'gold' 모드거나 오행 미결정)
+ * ★반환이 팔레트 전체가 아니라 **배경 한 값**이다(daniel 2026-08-07). 카드·글자·강조는 아이콘 톤 고정.
+ */
+function resolveBg(): string | null {
   let mode = 'auto';
   try { mode = ((SecureStore as any).getItem?.(ACCENT_KEY) as string) || 'auto'; } catch { /* → auto */ }
-  if (mode === 'gold') return null;                          // 기본(土 클레이) 고정 — 오행 강조 끔
+  if (mode === 'gold') return null;                          // 기본 크림 고정 — 오행 반영 끔
   let el = '';
   if (ELS.includes(mode)) el = mode;                         // 오행 직접 선택
   else { try { el = ((SecureStore as any).getItem?.(ELEMENT_KEY) as string) || ''; } catch { /* 미저장 */ } } // auto=일간
-  return (el && EL_THEME[el]) ? EL_THEME[el] : null;         // 오행 미결정 시 기본 폴백
+  return (el && EL_BG[el]) ? EL_BG[el] : null;               // 오행 미결정 시 기본 폴백
 }
 
 // 로드 시점 동기 결정: 저장 오버라이드(다크/라이트) > 시스템(Appearance). 실패 시 다크.
@@ -100,10 +118,11 @@ export const activeScheme: Scheme = resolveScheme();
 // 전 화면이 import 하는 색 토큰 — 활성 팔레트로 채움(첫 렌더부터 올바른 테마).
 export const colors = { ...(activeScheme === 'light' ? LIGHT : DARK) };
 
-// ★일간 오행 테마 적용 — 코어 팔레트 전체 덮어씀(bg·card·sunk·ink·line + 강조 ju계열). auto=일간 / 오행 / gold(기본).
-//   gold·badgeGold(프리미엄)·onImage·scrim·overlay는 베이스 유지(EL_THEME에 없어 미덮음). font는 아래에서 갱신된 colors.ink 참조.
-const _accent = resolveAccent();
-if (_accent) Object.assign(colors, _accent);
+// ★일간 오행 적용 = **배경 한 값만**(daniel 2026-08-07). 카드·글자·선·강조(골드)는 아이콘 톤 고정.
+//   종전엔 코어 팔레트 전체를 덮어써 오행마다 앱이 다른 앱처럼 보였다 — 아이콘과 한 몸으로 만들려면
+//   정체성(종이·먹·금)은 고정하고 **사람마다 다른 건 배경 한 톤**이면 충분하다.
+const _bg = resolveBg();
+if (_bg) colors.bg = _bg;
 // 활성 강조 오행(설정 UI 표시용) — auto면 저장된 일간 오행, 직접선택이면 그 오행, gold면 ''.
 export const activeAccentElement: string = (() => {
   try {

@@ -255,9 +255,11 @@ export default function SettingsScreen() {
         })}
       </View>
 
-      {/* ── ★테마 강조색 — 대표명식 일간의 오행 색(daniel 2026-07-15). 자동=일간 / 오행 직접 / 골드 ── */}
-      <Text style={[styles.h, { marginTop: space(7) }]}>{t('settings.accent', '테마 강조색')}</Text>
-      <Text style={styles.accentDesc}>{t('settings.accentDesc', '대표명식 일간의 오행 색으로 앱을 물들여요. 직접 고를 수도 있어요.')}</Text>
+      {/* ── ★배경 색 — 대표명식 일간의 오행에 맞춰 **배경 톤만** 달라진다(daniel 2026-08-07).
+           07-15 엔 팔레트 전체를 오행색으로 물들였는데, 앱 아이콘(크림 종이·골드) 톤으로 통일하면서
+           카드·글자·강조는 고정하고 오행이 바꾸는 건 배경 하나로 좁혔다. ── */}
+      <Text style={[styles.h, { marginTop: space(7) }]}>{t('settings.accent', '배경 색')}</Text>
+      <Text style={styles.accentDesc}>{t('settings.accentDesc', '대표명식 일간의 오행에 맞춰 배경 톤이 달라져요. 직접 고를 수도 있어요.')}</Text>
       <View style={styles.accentWrap}>
         {(['auto', '木', '火', '土', '金', '水', 'gold'] as AccentMode[]).map((k) => {
           const on = accent === k;
@@ -268,9 +270,10 @@ export default function SettingsScreen() {
           return (
             <PressableScale key={k} style={[styles.accentChip, on && styles.accentChipOn]} onPress={() => {
               setThemeAccent(k); setAccentState(k);
-              Alert.alert(t('settings.accent', '테마 강조색'), t('settings.themeRestart', '앱을 다시 켜면 적용돼요.'));
+              Alert.alert(t('settings.accent', '배경 색'), t('settings.themeRestart', '앱을 다시 켜면 적용돼요.'));
             }}>
-              <View style={[styles.accentDot, { backgroundColor: swColor }, on && styles.accentDotOn]} />
+              {/* ★스와치가 전부 크림 계열이라 색만으로는 구분이 안 된다 → 테두리를 항상 그린다. */}
+              <View style={[styles.accentDot, { backgroundColor: swColor, borderWidth: 1, borderColor: colors.juLine }, on && styles.accentDotOn]} />
               <Text style={[styles.accentChipTx, on && styles.accentChipTxOn]}>{label}</Text>
             </PressableScale>
           );

@@ -117,7 +117,15 @@ export async function purchaseConsumableRC(productId: string): Promise<boolean> 
   //   기존 두 가드(준비중·오프라인)와 동일하게 throw → 호출부 catch 가 Alert(e.message)로 표출.
   await assertReadingAvailable();
   const products = await Purchases.getProducts([productId]);
-  if (!products.length) throw new Error('상품을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.');
+  if (!products.length) {
+    // ★여기서 막히면 **아무 로그도 안 남았다**(daniel 2026-08-07 "안드로이드 결제가 안돼").
+    //   실측: app_logs 에 android 결제 기록이 성공·실패 **양쪽 다 0건** — 즉 purchaseStoreProduct 에
+    //   도달조차 못 하고 이 줄에서 죽고 있었는데, 화면엔 "상품을 불러오지 못했어요"만 뜨고 원인은 어디에도 안 남았다.
+    //   (07-26 푸시 `catch {}`, 08-07 push-dispatch 거부사유 폐기와 **같은 계열의 사고**.)
+    //   스토어가 상품을 0개로 주는 경우는 원인이 갈리므로(설치 경로·테스터 등록·상품 상태) 반드시 남긴다.
+    logEvent('purchase_products_empty', { productId, platform: Platform.OS }, 'error');
+    throw new Error('상품을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.');
+  }
   try {
     await Purchases.purchaseStoreProduct(products[0]);
     logEvent('purchase_consumable', { productId, ok: true }); // 이용권 결제 성공 로그(배포 필수)
