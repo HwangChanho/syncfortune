@@ -133,6 +133,7 @@ export const SECTIONS: Section[] = [
     { key: 'persona', labelKey: 'menu.persona', descKey: 'menu.personaTileDesc', image: A('icons/persona.jpg'), route: '/personatype', ready: true, content: true },
     { key: 'mbti', labelKey: 'menu.mbti', descKey: 'menu.mbtiTileDesc', image: A('icons/mbti.jpg'), route: '/mbti', ready: true, content: true },
     { key: 'egen', labelKey: 'menu.egen', descKey: 'menu.egenTileDesc', image: A('icons/egen.jpg'), route: '/egenteto', ready: true, content: true },
+    { key: 'attach', labelKey: 'menu.attach', descKey: 'menu.attachDesc', image: A('icons/attach.jpg'), route: '/attach', ready: true, content: true },
     { key: 'gem', labelKey: 'menu.gem', descKey: 'menu.gemDesc', image: A('icons/gem.jpg'), route: '/gem', ready: true, content: true },
     { key: 'personal', labelKey: 'menu.personal', descKey: 'menu.personalDesc', image: A('icons/personal.jpg'), route: '/personal', ready: true, content: true },
     { key: 'celeb', labelKey: 'menu.celeb', descKey: 'menu.celebDesc', image: A('icons/celeb.jpg'), route: '/celeb', ready: true, content: true },
