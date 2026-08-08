@@ -359,7 +359,8 @@
       "l3_ver",
       "model",
       "updated_at",
-      "regen_count"
+      "regen_count",
+      "engine_ver"
     ],
     "readings_backup_20260728": [
       "id",
