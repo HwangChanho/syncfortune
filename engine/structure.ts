@@ -416,17 +416,31 @@ export function analyzeTenGods(saju: SajuChart): {
   return { distribution, detail, absent, excess, notes };
 }
 
-// ── 격국 (R55 · daniel stance 2026-07-18) ────────────────────────────────────
-//   ★격은 **월지 지장간 '본기'의 십신**으로 잡는다 — *투출한 글자 우선이 아니라 본기 고정*.
-//     (daniel 2026-08-01 재확인 "월지로 잡아야지". 07-28~08-01 사이 코드가 '투간 우선'으로 드리프트해
-//      이 주석과 실제 동작이 **서로 모순**이었다 — 그게 daniel 이 '왜 격이 저렇게' 라고 물은 원인이다.)
-//     그리고 **그 격의 글자(=본기 글자)가 천간에 투출했는지**를 *별도로* 노출한다:
-//       투출 = 드러난 격(실체) / 미투출 = 잠복.
-//     ※투출 판정 자리는 **년·월·시 천간**(daniel 명시) — 일간은 '나 자신'이라 투출 대상에서 제외한다.
-//   ⚠️ 순용/역용·성격(成格)/파격(破格)은 daniel stance 미공급 → **판정하지 않는다**(명리 발명 금지).
-//   ※ `candidates` 는 하위호환 필드(verify-fixture·앱 기존 소비처) — 이제 `name` 이 주(主)다.
+// ── 격국 — **월지의 종류가 격의 성립을 정한다** ───────────────────────────────
+//   상담가 판정 2026-08-03 `verify-000c-structure#11` (O) · **daniel 확인 2026-08-10(R55 교체 승인)**:
+//     *"월지가 **생지(寅申巳亥)** 인 경우 지장간 **중기나 정기가 투간되어야** 격이다(여기는 격으로 잡지 않는다).*
+//      ***왕지(子午卯酉)** 가 월지면 **월지가 격**이고, **고지(辰戌丑未)** 가 월지면 지장간 **정기만** 격으로 잡는다."*
+//
+//   ★★이 함수의 stance 는 이번이 **세 번째**다 — 이력을 남긴다(다음 사람이 또 뒤집지 않도록):
+//     ① 07-28 daniel : 투간 우선(중기·여기가 투간하면 격이 그쪽으로 간다)
+//     ② 08-01 daniel : 월지 본기 고정 + **투간=격 / 미투간=국** (R55)
+//     ③ 08-10 **상담가 규칙으로 교체**(daniel 승인) — ②의 '국' 접미는 **폐기**.
+//        격은 **서거나(◯◯격) 서지 않는다(격 없음)**. 그 중간 이름은 두지 않는다.
+//
+//   ★★소비처 함정을 구조로 막았다 — 이전에 접미 '국'이 `.replace('격','')` 소비처를 **조용히** 깨뜨렸다.
+//     이번엔 '격 없음'이라는 새 상태까지 생기므로, **십신이 필요한 곳이 `name` 을 파싱하면 안 된다.**
+//     → `monthMainTenGod`(월지 본기 십신)를 **격 성립과 무관하게 항상** 내보낸다.
+//       성격유형·용신 카드처럼 "월지 본기 십신"이 필요한 곳은 이 필드를 쓴다(격이 없어도 값이 있다).
+//
+//   ※투간 판정 자리는 **년·월·시 천간**(daniel 명시) — 일간은 '나 자신'이라 제외.
+//   ⚠️순용/역용·성격(成格)/파격(破格)은 여전히 판정하지 않는다(명리 발명 금지).
+const SAENGJI: Branch[] = ['寅', '申', '巳', '亥'];   // 생지(生支) — 중기/정기가 투간해야 격이 선다
+const GOJI: Branch[] = ['辰', '戌', '丑', '未'];      // 고지(庫支) — 정기(본기)만 격
 export function detectPattern(saju: SajuChart): {
-  name: string;             // 격 이름(투간=◯◯격 / 미투간=◯◯국)
+  name: string;             // '◯◯격' · 비겁이면 '건록격/양인격/겁재격' · 안 서면 '격 없음'
+  established: boolean;     // ★신규 — 격이 섰는가(생지에서 아무것도 투간 안 하면 false)
+  monthMainTenGod: string;  // ★신규 — 월지 본기 십신. **격 성립과 무관하게 항상** 있다(소비처 안전판)
+  branchKind: '생지' | '왕지' | '고지';   // ★신규 — 어느 규칙으로 판정했는지(근거 추적)
   basis: string;            // 근거 문장
   revealed: boolean;        // 격을 세운 글자가 천간(년·월·시)에 투간했는가
   revealedAt: PillarPos[];  // 투간한 자리
@@ -449,48 +463,76 @@ export function detectPattern(saju: SajuChart): {
     .filter((x) => x.at.length > 0)
     .sort((a, b) => (ROLE_ORDER[a.h.role] ?? 9) - (ROLE_ORDER[b.h.role] ?? 9));
 
-  // ★daniel stance 2026-07-28 — 접미는 투간 여부가 정한다: **투간하면 '격', 못하면 '국'**.
-  const suffix = (tuganned: boolean) => (tuganned ? '격' : '국');
+  const bongiTg = month.branchMainTenGod;                                  // 월지 본기 십신 — 항상 내보낸다
+  const br = month.branch;
+  const branchKind: '생지' | '왕지' | '고지' =
+    SAENGJI.includes(br) ? '생지' : GOJI.includes(br) ? '고지' : '왕지';
+  const selfTugan = revealedStems.find((x) => x.h.role === '본기');        // 본기(정기) 글자가 천간에 떴나
+  const jungTugan = revealedStems.find((x) => x.h.role === '중기');        // 중기 글자가 천간에 떴나
+  const others = revealedStems.filter((x) => x.h.role !== '본기');
 
-  // ── ① 비겁 월지(daniel stance) ─────────────────────────────────────────
-  //   · 월지 본기가 **비견** → 건록  (양·음 공통 — 록은 음간에도 있다)
-  //   · 월지 본기가 **겁재** → 양일간은 **양인** / 음일간은 **겁재**(음간엔 양인이 없다)
-  //   ⚠️이 규칙은 **십신 + 일간 음양**으로만 판정한다(daniel 지시 그대로). 12운성 록지 조건을 걸지 않는다
-  //     → 己 일간 未월(본기 己=비견, 12운성 관대)도 '건록'으로 간다. 이 귀결은 골든에 케이스로 박아 뒀다.
-  const bongiTg = month.branchMainTenGod;
-  if (bongiTg === '비견' || bongiTg === '겁재') {
-    const base = bongiTg === '비견' ? '건록' : (yangDay ? '양인' : '겁재');
-    const self = revealedStems.find((x) => x.h.role === '본기');            // 본기 글자가 천간에 또 있나
-    const name = `${base}${suffix(!!self)}`;
-    const others = revealedStems.filter((x) => x.h.role !== '본기');
-    const basis = `월지 ${month.branch} 본기 ${bongi?.stem ?? '?'}(${bongiTg}) · 일간 ${dm}(${yangDay ? '양' : '음'})`
-      + ` → ${name}`
-      + (self ? ` · 천간 ${self.at.join('·')}에 투간` : ' · 천간 미투간(국)')
-      + (others.length ? ` · 지장간 ${others.map((x) => `${x.h.stem}(${x.h.tenGod})`).join('·')} 투간` : '');
+  // ── 월지 종류별로 **격을 세우는 글자**를 고른다 ─────────────────────────────
+  //   생지 : 중기 **또는** 정기가 투간해야 한다. 둘 다 떴으면 **정기(본기) 우선** —
+  //          어느 쪽이 먼저인지는 판정에 없어, 지장간 세력 순(본기>중기)이라는 기존 엔진 규칙을
+  //          그대로 쓴다(새 서열을 만들지 않는다). 아무것도 안 떴으면 **격이 서지 않는다.**
+  //   왕지 : 투간과 **무관하게** 월지 본기가 곧 격.
+  //   고지 : **정기(본기)만** 격. 중기·여기는 투간했더라도 격으로 삼지 않는다.
+  let gyeokTg: string | null = null;              // 격을 이루는 십신(없으면 격 불성립)
+  let anchor: typeof selfTugan = undefined;       // 격을 세운 글자(투간 자리 추적용)
+  if (branchKind === '생지') {
+    if (selfTugan) { gyeokTg = bongiTg; anchor = selfTugan; }
+    else if (jungTugan) { gyeokTg = jungTugan.h.tenGod; anchor = jungTugan; }
+  } else {
+    // 왕지·고지 — 둘 다 '월지 본기'가 격이다(고지는 중기·여기를 아예 보지 않는다).
+    gyeokTg = bongiTg;
+    anchor = selfTugan;
+  }
+
+  // ── 합으로 서는 격 (상담가 판정 2026-08-03 `verify-000c-structure#6` · O) ────────────
+  //   *"격은 복수로 성립할 수 있다 — 투간으로 서는 격(편관)과 **합으로 서는 격**(무계합→정재)을
+  //     동급 후보로 함께 제시한다."*  근거 verify-110: 亥월 중기 甲 투간 → 편관격,
+  //     그리고 일간 戊가 월간 癸(정재)와 합 → 정재격도 가능.
+  //   ★**주 판정(name)은 바꾸지 않는다.** 상담가는 사례를 하나 줬을 뿐 "어느 쪽이 주인가"는 말하지 않았다.
+  //     내가 순위를 정하면 발명이므로 `candidates` 에 **동급 후보로만** 얹는다(표현 그대로).
+  const hapGyeok = outer
+    .filter((p) => TIANHE.some(([x, y]) => (x === dm && y === saju.pillars[p].stem) || (y === dm && x === saju.pillars[p].stem)))
+    .map((p) => ({ pos: p, stem: saju.pillars[p].stem, tenGod: saju.pillars[p].stemTenGod }));
+
+  const head = `월지 ${br}(${branchKind}) 본기 ${bongi?.stem ?? '?'}(${bongiTg})`;
+  if (!gyeokTg) {
+    // 생지인데 중기·정기 어느 것도 천간에 없다 → 격을 잡지 않는다(억지로 본기로 세우지 않는다).
+    const basis = `${head} → **격 없음** — 생지는 중기나 정기가 투간해야 격이 선다(투간 없음)`
+      + (others.length ? ` · 지장간 ${others.map((x) => `${x.h.stem}(${x.h.tenGod})`).join('·')} 투간(여기는 격으로 안 잡는다)` : '');
     return {
-      name, basis,
-      revealed: !!self,
-      revealedAt: self?.at ?? [],
-      candidates: Array.from(new Set([name, ...others.map((x) => `${x.h.tenGod}격`)])),
+      name: '격 없음', established: false, monthMainTenGod: bongiTg, branchKind,
+      basis, revealed: false, revealedAt: [], candidates: [],
     };
   }
 
-  // ── ② 격의 십신 = **월지 본기 고정**(daniel 2026-08-01 "월지로 잡아야지") ──
-  //   ★stance 변경 기록: 07-28 에는 '투간 우선'(본기가 잠복이고 중기·여기만 투간하면 격이 그쪽으로
-  //     바뀐다)이었다. 2026-08-01 daniel 이 실물 명식을 보고 **월지로 잡는다**로 정정했다.
-  //     예) 월지 未(본기 己=정재) · 여기 丁(상관)이 월간 투간 → 구 규칙 '상관격' / **신 규칙 '정재…'**
-  //   접미는 종전 규칙 유지(daniel 07-28): **본기 글자가 투간했으면 '격' · 못했으면 '국'**.
-  const selfTugan = revealedStems.find((x) => x.h.role === '본기');   // 본기 글자가 천간에 떴나
-  const others = revealedStems.filter((x) => x.h.role !== '본기');
-  const name = `${bongiTg}${suffix(!!selfTugan)}`;
-  const basis = `월지 ${month.branch} 본기 ${bongi?.stem ?? '?'}(${bongiTg}) → ${name}`
-    + (selfTugan ? ` · 천간 ${selfTugan.at.join('·')}에 투간` : ' · 천간 미투간(국)')
-    + (others.length ? ` · 지장간 ${others.map((x) => `${x.h.stem}(${x.h.tenGod})`).join('·')} 투간(격은 월지 본기로 고정)` : '');
+  // ── 비겁 월지는 이름을 따로 붙인다(daniel stance 2026-07-18 — 이 축은 그대로 유지) ──
+  //   · **비견** → 건록  (양·음 공통 — 록은 음간에도 있다)
+  //   · **겁재** → 양일간은 **양인** / 음일간은 **겁재**(음간엔 양인이 없다)
+  //   ⚠️**십신 + 일간 음양**으로만 판정한다(12운성 록지 조건을 걸지 않는다) —
+  //     己 일간 未월(본기 己=비견)도 '건록'으로 간다. 이 귀결은 골든에 케이스로 박아 뒀다.
+  const base = gyeokTg === '비견' ? '건록' : gyeokTg === '겁재' ? (yangDay ? '양인' : '겁재') : gyeokTg;
+  const name = `${base}격`;                       // ★'국' 접미 폐기 — 서면 '격', 안 서면 위에서 '격 없음'
+  const why = branchKind === '왕지' ? '왕지라 월지가 곧 격(투간 무관)'
+    : branchKind === '고지' ? '고지라 정기만 격(중기·여기는 안 본다)'
+    : anchor?.h.role === '본기' ? '생지 — 정기가 투간' : '생지 — 중기가 투간';
+  const basis = `${head}${gyeokTg === '비견' || gyeokTg === '겁재' ? ` · 일간 ${dm}(${yangDay ? '양' : '음'})` : ''} → ${name} · ${why}`
+    + (anchor ? ` · 천간 ${anchor.at.join('·')}에 투간` : '')
+    + (others.length ? ` · 지장간 ${others.map((x) => `${x.h.stem}(${x.h.tenGod})`).join('·')} 투간` : '')
+    + (hapGyeok.length ? ` · 합으로 서는 격 후보: ${hapGyeok.map((x) => `${dm}${x.stem}합→${x.tenGod}격`).join('·')}` : '');
   return {
-    name, basis,
-    revealed: !!selfTugan,
-    revealedAt: selfTugan?.at ?? [],
-    candidates: Array.from(new Set([name, ...others.map((x) => `${x.h.tenGod}격`)])),
+    name, established: true, monthMainTenGod: bongiTg, branchKind,
+    basis,
+    revealed: !!anchor,
+    revealedAt: anchor?.at ?? [],
+    candidates: Array.from(new Set([
+      name,
+      ...others.map((x) => `${x.h.tenGod}격`),
+      ...hapGyeok.map((x) => `${x.tenGod}격`),     // ★합으로 서는 격 = 동급 후보(000c#6)
+    ])),
   };
 }
 

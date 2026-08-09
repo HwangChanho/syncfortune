@@ -25,16 +25,19 @@ import type { Stem, Branch } from '@spec/chart';
 
 /**
  * 대표 명식 → 성격유형 1종을 산출한다(실패 시 null).
- * 격(格)은 R55 = 월지 본기 십신 — detectPattern().name('편재격')에서 '격'을 뗀 값을 엔진에 넘긴다.
+ * 성격유형이 쓰는 값은 **월지 본기 십신**이다(격의 이름이 아니라).
  */
 export function personaFromRepChart(input: any): PersonaType | null {
   try {
     const c = computeChart(input);
     const dayStem = c.saju.pillars['일'].stem as Stem;
     const monthBranch = c.saju.pillars['월'].branch as Branch;
-    // ★접미 '격'(투간)·'국'(미투간) 둘 다 제거(daniel stance 2026-07-28). '격'만 떼면 '정관국'이 남아
-    //   GYEOK 조회가 실패하고 **성격유형 카드의 격 라벨이 조용히 사라진다**.
-    const gyeok = c.pattern?.name?.replace(/[격국]$/, '') || undefined; // '편재격'·'편재국' → '편재'
+    // ★★이름을 파싱하지 않는다 — 엔진이 십신을 **따로** 내보낸다(structure.detectPattern.monthMainTenGod).
+    //   이유(2026-08-10): 격국 stance 가 세 번 바뀌면서 `name` 형식이 계속 달라졌고, 그때마다
+    //   `.replace(/[격국]$/,'')` 가 **에러 없이** 빗나가 성격유형 라벨이 조용히 사라졌다.
+    //   이제 격이 아예 안 서는 명식('격 없음')도 생겨(표본의 약 21%) 파싱은 더 위험하다.
+    //   월지 본기 십신은 **격 성립과 무관하게 항상 있다** — 그래서 이 값을 쓴다.
+    const gyeok = (c.pattern as { monthMainTenGod?: string } | undefined)?.monthMainTenGod || undefined;
     return personaOf(dayStem, monthBranch, gyeok);
   } catch { return null; } // 구버전 차트 등 — 홈이 깨지지 않게 조용히 미노출
 }

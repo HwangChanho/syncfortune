@@ -104,9 +104,13 @@ export function YongsinCard({ saju, pattern, timeUnknown }: { saju: SajuChart; p
   // 격국용신(상신) — 격(pattern.name 십신) + 원국 present 십신 + 신강.
   const gyeokguk = useMemo(() => {
     try {
-      // ★접미가 '격'(투간) / '국'(미투간) 둘로 갈렸다(daniel stance 2026-07-28) — 둘 다 떼야 한다.
-      //   '격'만 떼면 '정관국'이 그대로 남아 kind=null → **격국용신 섹션이 통째로 사라진다**(에러 없이).
-      const sip = String(pattern?.name ?? '').replace(/[격국]$/, '');
+      // ★★이름을 파싱하지 않는다 — 엔진이 월지 본기 십신을 **따로** 내보낸다(2026-08-10).
+      //   격국 stance 가 세 번 바뀌며 `name` 형식이 계속 달라졌고, 파싱은 그때마다 **에러 없이** 빗나가
+      //   격국용신 섹션이 통째로 사라졌다. 이제 '격 없음'(격 불성립) 상태까지 생겨 파싱은 더 위험하다.
+      //   ⚠️격이 안 서는 명식에서도 월지 본기 십신은 있으므로 상신은 그대로 계산한다
+      //     (격의 성립 여부와 "월지가 무슨 십신인가"는 다른 축이다).
+      const sip = String((pattern as { monthMainTenGod?: string } | null | undefined)?.monthMainTenGod
+        ?? String(pattern?.name ?? '').replace(/[격국]$/, ''));   // 폴백: 구버전 캐시 차트
       const kind = gyeokKindOf(sip);
       if (!kind || !ys) return null;
       const POS: PillarPos[] = timeUnknown ? ['년', '월', '일'] : ['년', '월', '일', '시'];

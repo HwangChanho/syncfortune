@@ -522,7 +522,12 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
         <>
       {/* 일간·신강약·격국 */}
       <Text style={styles.kv}>{t('myeongsik.dayMaster')}: <Text style={styles.kvAccent}>{c.saju.dayMaster.stem}({c.saju.dayMaster.element})</Text></Text>
-      <Text style={styles.kv}>{t('myeongsik.dayMaster')} {c.saju.dayMaster.stem}  ·  {t('myeongsik.pattern')}: {c.pattern.name} ({t(c.pattern.revealed ? 'myeongsik.patternRevealed' : 'myeongsik.patternHidden')})</Text>
+      {/* ★격이 아예 서지 않는 명식이 있다(생지 월지에 중기·정기가 모두 미투간 — 표본의 약 21%).
+          그때는 '격 없음'만 쓰고 투간 라벨을 붙이지 않는다 — "격 없음 (잠복)" 같은 문구가 되지 않게. */}
+      <Text style={styles.kv}>{t('myeongsik.dayMaster')} {c.saju.dayMaster.stem}  ·  {t('myeongsik.pattern')}: {c.pattern.name}
+        {(c.pattern as { established?: boolean }).established === false
+          ? ''
+          : ` (${t(c.pattern.revealed ? 'myeongsik.patternRevealed' : 'myeongsik.patternHidden')})`}</Text>
       {/* ★핵심 격(格, 동적 구조) — 살인상생·식신제살·상관패인 등(daniel). B5: 월령(월지 본기/투출) 중심으로 발화 게이트. 명리 정제 = daniel 검수 슬롯 */}
       {(() => {
         const present = new Set<string>();
