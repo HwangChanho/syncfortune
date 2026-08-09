@@ -130,7 +130,14 @@ async function collectStoreDiag(productId: string): Promise<Record<string, unkno
     d.offerings = Object.keys(off?.all ?? {}).length;
     d.offeringCurrent = off?.current?.identifier ?? null;
   } catch (e: any) {
-    d.offeringsErr = String(e?.code ?? e?.underlyingErrorMessage ?? e?.message ?? e).slice(0, 200);
+    // ★2026-08-09 2차 수정: 처음엔 `code ?? underlyingErrorMessage ?? message` 로 적었는데
+    //   code(23)가 있으면 거기서 끊겨 **정작 원인을 말해 주는 문장을 버렸다**.
+    //   RevenueCat 은 `underlyingErrorMessage` 에 "왜 못 가져왔는지"를 담는다
+    //   (예: "None of the products registered in the RevenueCat dashboard could be fetched from Google Play").
+    //   ⇒ 셋을 **각각** 남긴다. 진단은 하나로 합치는 순간 정보가 준다.
+    d.offErrCode = e?.code ?? null;
+    d.offErrUnderlying = String(e?.underlyingErrorMessage ?? '').slice(0, 300);
+    d.offErrMessage = String(e?.message ?? '').slice(0, 300);
   }
   // ② 코인 4종 일괄 조회 — 전부 0인지 일부만 0인지가 원인을 가른다.
   try {
@@ -140,6 +147,7 @@ async function collectStoreDiag(productId: string): Promise<Record<string, unkno
     d.allCoinIds = got.map((x: { identifier: string }) => x.identifier).join(',');
   } catch (e: any) {
     d.allCoinsErr = String(e?.message ?? e).slice(0, 200);
+    d.allCoinsUnderlying = String(e?.underlyingErrorMessage ?? '').slice(0, 300);
   }
   // ③ 어느 RC 사용자로 붙어 있나(계정 뒤섞임·익명 여부).
   try {
