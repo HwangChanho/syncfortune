@@ -32,7 +32,12 @@ const LANGS: { key: string; label: string }[] = [
 ];
 
 // 앱 정보(출시) — 버전·약관·개인정보·오픈소스. ★daniel: 약관/개인정보 URL 을 실제 호스팅 주소로 교체(App Store 심사 필수).
-const APP_VERSION = Constants.expoConfig?.version ?? '1.0.0';
+// ★버전 표기에 **빌드 번호**를 붙인다(2026-08-09).
+//   종전엔 versionName('1.0.0')만 떠서 vc59 와 vc60 을 화면에서 구분할 수 없었다 —
+//   "업데이트했는데 안 돼요"가 실제로는 **구버전에서 시도한 것**이었는지 확인할 방법이 없었다.
+//   nativeBuildVersion = 실제 설치된 네이티브 빌드(Android versionCode / iOS buildNumber).
+const APP_BUILD = String(Constants.nativeBuildVersion ?? Constants.expoConfig?.android?.versionCode ?? '?');
+const APP_VERSION = `${Constants.expoConfig?.version ?? '1.0.0'} (${APP_BUILD})`;
 const TERMS_URL = 'https://hwangchanho.github.io/syncfortune/legal/terms-ko.html';     // GitHub Pages(정식)
 const PRIVACY_URL = 'https://hwangchanho.github.io/syncfortune/legal/privacy-ko.html'; // GitHub Pages — App Store 개인정보 URL
 const OSS_LICENSES = 'React Native · Expo (MIT)\niztro · lunar-javascript (MIT)\nRevenueCat Purchases · Google Mobile Ads\nreact-i18next · React Navigation (MIT)\nreact-native-svg · safe-area-context (MIT)\n\n각 라이브러리는 해당 저장소의 라이선스를 따릅니다.';
