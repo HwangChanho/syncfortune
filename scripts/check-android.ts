@@ -16,9 +16,9 @@
 //   A4 광고 — AdMob 안드로이드 앱ID
 //   A5 상품 — 코인 팩 4종이 Play 등록 스크립트에도 있다(iOS 와 동수)
 //   A6 패키지 — app.json android.package 와 gradle applicationId 일치
-//   A7 EAS 빌드 환경 — EXPO_PUBLIC_* 가 eas.json 또는 EAS 환경변수에 있다
-//      (★로컬 .env 는 **EAS 클라우드 빌드에 자동으로 안 들어간다** — 실측으로 확인.
-//       그대로 두면 빌드는 성공하는데 앱에서 결제·백엔드가 통째로 죽는다)
+//   A7 빌드 환경 — EXPO_PUBLIC_* 4종이 **app/.env 에 값까지** 있다 (EAS 폐기 2026-08-10 · 로컬 빌드 전용)
+//      (★값이 비면 빌드는 성공하는데 앱에서 결제·백엔드가 통째로 죽는다 — 에러 없이.
+//       EAS 시절엔 클라우드 환경변수라 오프라인 확인이 불가해 경고였다 — 이제 실패로 막는다)
 //
 // 실행: npm run check:android
 // ⚠️이 하네스는 **안드로이드 빌드 전에만** 의미가 있다 — iOS 전용 릴리스에서는 실패해도 무방하도록
@@ -111,22 +111,34 @@ console.log('\n[A6] 패키지명 일치');
   else ok(`일치(${appId})`);
 }
 
-// ── A7 EAS 빌드 환경변수 ──────────────────────────────────────────────────
-// ★실측 사고 직전(2026-07-28): EAS 빌드 로그에
+// ── A7 빌드 환경변수 ──────────────────────────────────────────────────────
+// ★왜 이 검사가 있나 — 실측 사고 직전(2026-07-28): EAS 빌드 로그에
 //   "No environment variables with visibility Plain text and Sensitive found for the production environment"
-//   → 로컬 .env 는 클라우드 빌드에 **자동 반영되지 않는다.** 그대로 빌드했으면
+//   → 로컬 .env 는 **클라우드 빌드에 자동 반영되지 않는다.** 그대로 빌드했으면
 //   RC 키·Supabase URL 이 빈 채로 나와 결제도 백엔드도 죽은 앱이 지인 손에 갔을 것이다(에러 없이).
-console.log('\n[A7] EAS 빌드 환경변수');
+//
+// ★★2026-08-10 daniel: **"eas 빌드 루트는 삭제해 다신 안 쓸 거야 무조건 로컬에서 빌드해"**
+//   → `app/eas.json` 삭제. 이제 빌드 소스는 **로컬 `.env` 하나**뿐이다.
+//   그래서 검사도 로컬 기준으로 바꾼다 — 그리고 **경고가 아니라 실패**로 올린다:
+//   클라우드 환경변수는 오프라인에서 확인할 수 없어 경고에 그쳤지만, `.env` 는 지금 여기서 읽을 수 있다.
+//   확인할 수 있는 것을 경고로 두면 하네스가 아니라 장식이 된다.
+console.log('\n[A7] 빌드 환경변수 (로컬 .env — EAS 폐기 2026-08-10)');
 {
   const NEEDED = ['EXPO_PUBLIC_SUPABASE_URL', 'EXPO_PUBLIC_SUPABASE_ANON_KEY', 'EXPO_PUBLIC_RC_IOS_KEY', 'EXPO_PUBLIC_RC_ANDROID_KEY'];
-  const eas = read('app/eas.json') ?? '';
-  const inEasJson = NEEDED.filter((k) => eas.includes(k));
-  // eas.json 에 없으면 **EAS 서버 환경변수**에 있어야 한다 — 이건 오프라인에서 확인 불가라 안내만 한다.
-  if (inEasJson.length === NEEDED.length) ok('eas.json 에 4종 전부 선언');
-  else {
-    wrn(`eas.json 에 없음(${NEEDED.length - inEasJson.length}종) — EAS 서버 환경변수(production)에 등록돼 있어야 한다.`
-      + ' 확인: npx eas-cli env:list --environment production');
+  // ⚠️앱이 읽는 것은 **`app/.env`** 다(루트 `.env` 는 서버·개발용 — SERVICE_ROLE 등이 들어 있고
+  //   EXPO_PUBLIC_* 는 없다). 위 A2 가 이미 `app/.env` 를 보고 있으니 같은 파일을 봐야 한다.
+  const env = read('app/.env');
+  if (env == null) {
+    // 클론 직후·CI 처럼 .env 가 아예 없는 환경 — 검사 불가와 통과는 다르다. 명시하고 넘어간다.
+    wrn('app/.env 가 없어 확인 불가(로컬에서 실행하세요). 로컬 빌드는 이 파일이 유일한 값 출처다.');
+  } else {
+    // 선언만 있고 **값이 비어 있으면** 빌드에 빈 문자열이 박힌다 — 그래서 `KEY=` 뒤에 뭐가 있는지까지 본다.
+    const missing = NEEDED.filter((k) => !new RegExp(`^\\s*${k}\\s*=\\s*\\S`, 'm').test(env));
+    if (missing.length === 0) ok(`.env 에 4종 전부 값까지 있음`);
+    else bad(`app/.env 에 없거나 값이 빈 키 ${missing.length}종: ${missing.join(', ')} — 이대로 빌드하면 결제·백엔드가 조용히 죽는다`);
   }
+  if (read('app/eas.json') != null) bad('app/eas.json 이 되살아났다 — EAS 빌드는 폐기됐다(daniel 2026-08-10). 로컬 fastlane 만 쓴다');
+  else ok('app/eas.json 없음 — 로컬 빌드 전용 유지');
 }
 
 console.log(fail

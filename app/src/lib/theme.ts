@@ -52,7 +52,7 @@ const LIGHT = {
   // 강조 = 라벤더 보라 하나(시안 주조색). 버튼·활성 탭·링크가 전부 이 색이다.
   ju: '#7C5CE0', juDeep: '#5F44BE', juSoft: '#F0EBFE', juLine: '#DDD3F8',
   gold: '#E0A42B', white: '#FFFFFF',
-  badgeGold: '#E0A42B', // ★코인(운) · 프리미엄 배지 금색 — 시안의 W 코인 톤.
+  badgeGold: '#E0A42B', // ★'운' 잔액·프리미엄 배지 금색 — 시안의 W 동전 톤.
   // ★어두운 히어로 이미지 위 텍스트/스크림 — 이미지가 어두우므로 밝은 글씨 + 어두운 스크림 유지.
   onImage: '#F6F3FF', onImageSoft: 'rgba(246,243,255,0.86)', scrimHero: 'rgba(28,22,58,0.5)',
   // ⚠️★`overlay` 는 이름과 달리 **두 용도**로 쓰인다 — 라이트 팔레트에서는 반드시 **밝은** 값이어야 한다:
