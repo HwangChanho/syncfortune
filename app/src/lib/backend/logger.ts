@@ -18,6 +18,7 @@
 //   저장소 = expo-secure-store(이 앱 공통 스토리지 — AsyncStorage 미설치, genProgress 와 같은 선택).
 // ─────────────────────────────────────────────────────────────────────────
 import { Platform, AppState } from 'react-native';
+import { withTimeout } from '../core/withTimeout'; // ★로그 플러시가 매달려 잠기는 것 방지(2026-08-09)
 import * as SecureStore from 'expo-secure-store';
 import { supabase } from '../supabase';
 
@@ -70,12 +71,19 @@ export async function flushLogQueue(): Promise<void> {
       const batch = queue.slice(0, FLUSH_BATCH);
       let sent = 0;
       for (const e of batch) {
-        const { error } = await supabase.rpc('log_event', {
+        // ★★타임아웃 필수(2026-08-09 실측 사고). 종전엔 `await supabase.rpc(...)` 를 맨몸으로 걸었다.
+        //   네트워크가 끊기지 않고 **매달리면** 이 await 가 영영 안 끝나고 `finally` 도 실행되지 않아
+        //   `flushing` 이 true 로 **잠긴다** → 이후 모든 로그가 큐에만 쌓이고 안 올라간다.
+        //   실측 증상: `log_queue_overflow` 다수 + 로그 도착이 **20~27분** 지연(발생 13:49 → 도착 14:16).
+        //   결제 원인 조사가 이 지연 때문에 사이클마다 30분씩 늘어졌다.
+        //   → 응답이 없으면 undefined 로 끊고 **남은 큐는 보존**한다(다음 기회에 재시도).
+        //   [[session-2026-07-31-handoff]] "supabase/fetch 는 기본 타임아웃이 없다"의 재발.
+        const res = await withTimeout(supabase.rpc('log_event', {
           p_event: e.event, p_level: e.level,
           // 실제 발생 시각을 detail 에 실어 보낸다 — created_at 은 '전송 시각'이라 사고 구간이 뭉개진다.
           p_detail: { ...e.detail, at: e.t, queued: true }, p_platform: Platform.OS,
-        });
-        if (error) break;                 // 아직 못 닿는다 → 남은 건 보존
+        }), 8000);
+        if (!res || res.error) break;     // 타임아웃이거나 못 닿는다 → 남은 건 보존
         sent++;
       }
       queue = queue.slice(sent);

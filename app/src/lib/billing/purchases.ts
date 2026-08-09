@@ -14,9 +14,47 @@ import { isOnline } from '../backend/network'; // daniel: 네트워크/서버 �
 import { logEvent } from '../backend/logger'; // ★결제 이벤트 로그(배포 필수 — daniel 07-02)
 import { assertReadingAvailable } from './llmHealth'; // ★결제 전 Anthropic 크레딧/헬스 확인(daniel 07-21) — 죽었으면 과금 차단
 
+/**
+ * 우리가 실제로 쓰는 RevenueCat SDK 표면만 선언한 **타입 파사드**.
+ *
+ * 왜 만들었나 (2026-08-09 · 안드로이드 결제 3일 사고의 구조적 원인):
+ *   네이티브 모듈을 lazy require 하면서 `Purchases: any` 로 뒀더니 **tsc 가 아무것도 못 잡았다.**
+ *   그 결과 두 번이나 조용히 틀렸다 —
+ *     ① `getProducts(ids)` 를 타입 없이 호출 → 기본값 `subs` 로 조회 → 코인이 영영 안 잡힘(근본 원인)
+ *     ② `setLogHandler(({logLevel,message})=>…)` 로 구조분해 → 실제는 위치 인자 2개 → 전부 undefined
+ *
+ * ★★핵심 안전장치: **`getProducts` 의 `type` 을 필수 인자로 선언**했다.
+ *   SDK 원본은 optional 이고 기본값이 `subs` 라 위험하다 — 파사드에서 required 로 바꿔
+ *   **빠뜨리면 컴파일이 안 되게** 만든다(문법으로 막는 게 grep 하네스보다 강하다).
+ *
+ * ⚠️이 선언은 SDK 타이핑과 **손으로 맞춘 것**이다. 메서드를 추가할 때는
+ *   `app/node_modules/react-native-purchases/dist/purchases.d.ts` 를 열어 시그니처를 대조할 것.
+ */
+type RCProduct = { identifier: string; priceString?: string };
+type RCApi = {
+  configure(o: { apiKey: string; appUserID?: string }): void;
+  isConfigured(): Promise<boolean>;
+  isAnonymous(): Promise<boolean>;
+  getAppUserID(): Promise<string>;
+  logIn(id: string): Promise<unknown>;
+  logOut(): Promise<unknown>;
+  getCustomerInfo(): Promise<{ originalAppUserId?: string; entitlements: { active: Record<string, unknown> } }>;
+  getStorefront(): Promise<{ countryCode?: string } | null>;
+  canMakePayments(): Promise<boolean>;
+  getOfferings(): Promise<{ all?: Record<string, unknown>; current?: { identifier?: string } | null }>;
+  /** ★type 필수 — SDK 는 optional(기본 'subs')이지만 여기선 못 빠뜨리게 막는다. */
+  getProducts(ids: string[], type: 'inapp' | 'subs'): Promise<RCProduct[]>;
+  purchaseStoreProduct(p: RCProduct): Promise<unknown>;
+  restorePurchases(): Promise<{ entitlements: { active: Record<string, unknown> } }>;
+  /** ★위치 인자 2개 — 객체 구조분해 아님(dist/callbackTypes.d.ts:36). */
+  setLogHandler(h: (logLevel: unknown, message: unknown) => void): void;
+  setLogLevel(level: unknown): Promise<void>;
+  LOG_LEVEL: Record<string, unknown>;
+};
+
 // 네이티브 모듈 lazy require — 미포함 빌드에서 정적 import 크래시 방지(필수 가드).
-let Purchases: any = null;
-try { Purchases = require('react-native-purchases').default; } catch { Purchases = null; }
+let Purchases: RCApi = null as unknown as RCApi;   // 미포함 빌드에선 null — purchasesEnabled() 가 먼저 막는다
+try { Purchases = require('react-native-purchases').default as RCApi; } catch { Purchases = null as unknown as RCApi; }
 
 // RevenueCat 공개 SDK 키 — daniel: RevenueCat 대시보드 → Project → API Keys(Apple/Google 앱별).
 const RC_KEY = Platform.OS === 'ios'
