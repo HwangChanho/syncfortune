@@ -143,59 +143,63 @@ export async function isPremiumActiveRC(): Promise<boolean> {
 //   (isPremiumActiveRC·ENTITLEMENT_PREMIUM)과 복원(restorePurchasesRC)은 그대로 둔다(이력 보존).
 
 /**
- * 스토어가 상품을 0개로 준 **원인을 가르기 위한** 재료 수집(진단 전용).
+ * 결제 **전 과정 자가진단** — 한 번의 실패로 전체 그림을 보기 위한 것(daniel 2026-08-09
+ * "한번에 전체 프로세스 확인 가능하게 로깅해서 올려").
  *
- * 왜 필요한가: `getProducts` 는 실패해도 **throw 하지 않고 빈 배열**을 준다. 그래서 로그에 "0개"만 남고
- *   원인(①Play 가 아닌 경로로 설치 ②테스터 미등록 ③RC 상품 매핑)이 구분되지 않는다.
- *   아래 값들이 그 셋을 가른다:
- *   · `offeringsErr` — RC 가 스토어와 통신하며 받은 **에러 코드**. 설정/스토어 문제면 여기에 뜬다.
- *   · `allCoins` — 코인 4종을 한꺼번에 조회했을 때 **몇 개**가 오는지.
- *     0 이면 스토어 연결 자체 문제(설치 경로·테스터), 일부만 오면 상품별 설정 문제다.
- *   · `rcUserId`/`rcAnon` — 어느 RC 사용자로 붙었는지(계정 뒤섞임 확인).
+ * 왜 이렇게 바꿨나: 진단을 조각으로 붙이다 **세 번 헛돌았다**(폴백 순서로 원인 문장 유실 →
+ *   RN 브리지가 상세 메시지를 빈 값으로 넘김 → 로그 콜백 시그니처 오류). 매번 Boss 가 다시 눌러야 했다.
+ *   ⇒ 단계마다 결과·소요시간·에러를 **각각** 남기고 **한 이벤트**로 올린다. 한 번 누르면 끝나게.
  *
- * @param productId 실패한 상품 id
- * @returns 로그에 펼쳐 넣을 평평한 객체. **절대 throw 하지 않는다.**
+ * ★단계는 전부 개별 try/catch — 하나가 죽어도 나머지는 계속 수집한다(진단이 진단을 막으면 안 된다).
+ * ★`getStorefront`(스토어 국가)와 `canMakePayments`(결제 가능 여부)가 핵심이다:
+ *   상품이 **KR 단독 판매**라 스토어 국가가 KR 이 아니면 그것만으로 0개가 된다.
+ *
+ * @param productId 사용자가 실제로 누른 상품 id
+ * @returns 로그 payload 로 그대로 올릴 평평한 객체. **절대 throw 하지 않는다.**
  */
-async function collectStoreDiag(productId: string): Promise<Record<string, unknown>> {
-  const d: Record<string, unknown> = {};
-  // ① RC 오퍼링 — getProducts 와 달리 실패 시 에러를 던지므로 코드/메시지를 얻을 수 있다.
-  try {
-    const off = await Purchases.getOfferings();
-    d.offerings = Object.keys(off?.all ?? {}).length;
-    d.offeringCurrent = off?.current?.identifier ?? null;
-  } catch (e: any) {
-    // ★2026-08-09 2차 수정: 처음엔 `code ?? underlyingErrorMessage ?? message` 로 적었는데
-    //   code(23)가 있으면 거기서 끊겨 **정작 원인을 말해 주는 문장을 버렸다**.
-    //   RevenueCat 은 `underlyingErrorMessage` 에 "왜 못 가져왔는지"를 담는다
-    //   (예: "None of the products registered in the RevenueCat dashboard could be fetched from Google Play").
-    //   ⇒ 셋을 **각각** 남긴다. 진단은 하나로 합치는 순간 정보가 준다.
-    d.offErrCode = e?.code ?? null;
-    d.offErrUnderlying = String(e?.underlyingErrorMessage ?? '').slice(0, 300);
-    d.offErrMessage = String(e?.message ?? '').slice(0, 300);
-  }
-  // ② 코인 4종 일괄 조회 — 전부 0인지 일부만 0인지가 원인을 가른다.
-  try {
-    const ids = ['coin_100', 'coin_300', 'coin_600', 'coin_1200'];
-    const got = await Purchases.getProducts(ids);
-    d.allCoins = got.length;
-    d.allCoinIds = got.map((x: { identifier: string }) => x.identifier).join(',');
-  } catch (e: any) {
-    d.allCoinsErr = String(e?.message ?? e).slice(0, 200);
-    d.allCoinsUnderlying = String(e?.underlyingErrorMessage ?? '').slice(0, 300);
-  }
-  // ③ 어느 RC 사용자로 붙어 있나(계정 뒤섞임·익명 여부).
-  try {
-    const ci = await Purchases.getCustomerInfo();
-    d.rcUserId = String(ci?.originalAppUserId ?? '').slice(0, 40);
-    d.rcAnon = String(ci?.originalAppUserId ?? '').startsWith('$RCAnonymous');
-  } catch (e: any) {
-    d.rcUserErr = String(e?.message ?? e).slice(0, 120);
-  }
-  d.askedFor = productId;
-  d.rcLog = rcRecentLogs();   // ★SDK 가 직접 찍은 실패 사유(BillingClient 응답 등)
-  // ★어떤 빌드가 낸 로그인지 **명시**한다. 종전엔 '어떤 진단 필드가 있는지'로 빌드를 역추정했는데,
-  //   그러다 "vc60 에서 눌렀다"는 로그가 실은 vc59 인 것을 뒤늦게 알았다(2026-08-09).
-  d.build = String(Constants.nativeBuildVersion ?? '?');
+async function runBillingSelfTest(productId: string): Promise<Record<string, unknown>> {
+  const d: Record<string, unknown> = {
+    build: String(Constants.nativeBuildVersion ?? '?'),
+    platform: Platform.OS,
+    askedFor: productId,
+    keyPrefix: RC_KEY.slice(0, 5),      // 키 자체는 남기지 않는다(앞 5자로 플랫폼만 확인)
+    keyLen: RC_KEY.length,
+    enabled: purchasesEnabled(),
+    online: isOnline(),
+  };
+  /** 한 단계를 재고 결과·소요시간·에러를 각각 남긴다. */
+  const step = async (name: string, fn: () => Promise<unknown>) => {
+    const t0 = Date.now();
+    try {
+      const v = await fn();
+      d[name] = v;
+    } catch (e: any) {
+      d[`${name}Err`] = String(e?.message ?? e).slice(0, 200);
+      d[`${name}Code`] = e?.code ?? null;
+    }
+    d[`${name}Ms`] = Date.now() - t0;
+  };
+
+  await step('configured', () => Purchases.isConfigured());
+  await step('appUserId', async () => String(await Purchases.getAppUserID() ?? '').slice(0, 40));
+  await step('anon', () => Purchases.isAnonymous());
+  // ★스토어 국가 — 상품이 KR 단독이라 여기가 KR 이 아니면 그 자체가 원인이다.
+  await step('storefront', async () => JSON.stringify(await Purchases.getStorefront() ?? null).slice(0, 120));
+  // ★이 기기에서 결제 자체가 가능한가(Play Billing 연결 상태).
+  await step('canPay', () => Purchases.canMakePayments());
+  await step('offerings', async () => {
+    const o = await Purchases.getOfferings();
+    return `all=${Object.keys(o?.all ?? {}).length} cur=${o?.current?.identifier ?? '-'}`;
+  });
+  await step('one', async () => (await Purchases.getProducts([productId])).length);
+  await step('four', async () => {
+    const got = await Purchases.getProducts(['coin_100', 'coin_300', 'coin_600', 'coin_1200']);
+    return `${got.length}:${got.map((x: { identifier: string }) => x.identifier).join(',')}`;
+  });
+  // 구독 타입으로도 물어본다 — INAPP 만 0 인지, 스토어 연결 자체가 죽었는지 가른다.
+  await step('fourSub', async () => (await Purchases.getProducts(['coin_100'], 'SUBSCRIPTION')).length);
+
+  d.rcLog = rcRecentLogs();   // ★SDK 가 스스로 찍은 로그(BillingClient 응답 등)
   return d;
 }
 
@@ -218,8 +222,8 @@ export async function purchaseConsumableRC(productId: string): Promise<boolean> 
     //     "0개"만 남으면 원인이 셋(설치 경로·테스터 등록·RC 매핑) 중 어느 것인지 못 가른다 —
     //     실제로 이 로그 2건을 보고도 원격에서 좁히지 못했다. **다음 실패 한 번으로 확정되게** 재료를 같이 남긴다.
     //     ⚠️진단 수집이 실패해도 원래 에러를 삼키지 않는다(진단이 본 기능을 망치면 안 된다) — 전부 개별 catch.
-    const diag = await collectStoreDiag(productId);
-    logEvent('purchase_products_empty', { productId, platform: Platform.OS, ...diag }, 'error');
+    const diag = await runBillingSelfTest(productId);
+    logEvent('purchase_products_empty', diag, 'error');
     throw new Error('상품을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.');
   }
   try {
