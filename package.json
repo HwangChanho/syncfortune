@@ -100,7 +100,8 @@
     "check:listfull": "tsx scripts/check-listfull.ts",
     "check:buildnum": "tsx scripts/check-buildnum.ts",
     "check:inapp": "tsx scripts/check-inapp.ts",
-    "check:stance": "npx tsx scripts/check-stance.ts"
+    "check:stance": "npx tsx scripts/check-stance.ts",
+    "asc:builds": "node scripts/asc-builds.mjs"
   },
   "keywords": [],
   "author": "",
