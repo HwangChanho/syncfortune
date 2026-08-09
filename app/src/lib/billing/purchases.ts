@@ -85,6 +85,20 @@ export function purchasesEnabled(): boolean {
  *   SDK 는 BillingClient 응답(예: 상품 조회 응답 코드·사유)을 **자기 로그로는 찍는다** → 그걸 가로채 서버로 보낸다.
  * ★민감정보는 담기지 않는다(SDK 진단 문자열). 길이·줄 수를 제한해 로그 폭주를 막는다.
  */
+/**
+ * ★★상품 조회 타입 — **반드시 명시한다**(2026-08-09 실측으로 잡은 근본 원인).
+ *
+ * `Purchases.getProducts(ids, type?)` 의 **기본값은 `subs`(구독)** 다(타이핑 원문: "Subs by default").
+ * 우리 상품은 코인 4종 = **전부 일회성(consumable)** 이라, 타입을 안 넘기면 Google Play 가
+ * 구독 카탈로그에서 찾다가 못 찾고 **빈 배열**을 준다 — 그게 안드로이드 결제가
+ * 단 한 번도 성공하지 못한 이유였다.
+ *   실측 SDK 로그: `UnfetchedProduct{productId='coin_100', productType='subs', statusCode=3}`
+ *                  `Product not found: coin_100 - Product Type: subs, Reason: PRODUCT_NOT_FOUND`
+ * ⚠️iOS 는 StoreKit 이 이 구분을 안 해서 **그대로 동작했다** — 그래서 플랫폼 차이로만 보였고
+ *   Play·RevenueCat 설정을 며칠 뒤졌다. 설정은 처음부터 전부 정상이었다.
+ */
+const PRODUCT_TYPE_INAPP = 'inapp';   // PURCHASE_TYPE.INAPP — Purchases 가 any 라 리터럴로 둔다
+
 const RC_LOG_MAX = 12;
 const rcLog: string[] = [];
 /** 최근 SDK 로그를 오래된 것부터 이어붙인 문자열(진단 payload 용). */
@@ -191,13 +205,14 @@ async function runBillingSelfTest(productId: string): Promise<Record<string, unk
     const o = await Purchases.getOfferings();
     return `all=${Object.keys(o?.all ?? {}).length} cur=${o?.current?.identifier ?? '-'}`;
   });
-  await step('one', async () => (await Purchases.getProducts([productId])).length);
+  await step('one', async () => (await Purchases.getProducts([productId], PRODUCT_TYPE_INAPP)).length);
   await step('four', async () => {
-    const got = await Purchases.getProducts(['coin_100', 'coin_300', 'coin_600', 'coin_1200']);
+    const got = await Purchases.getProducts(['coin_100', 'coin_300', 'coin_600', 'coin_1200'], PRODUCT_TYPE_INAPP);
     return `${got.length}:${got.map((x: { identifier: string }) => x.identifier).join(',')}`;
   });
   // 구독 타입으로도 물어본다 — INAPP 만 0 인지, 스토어 연결 자체가 죽었는지 가른다.
-  await step('fourSub', async () => (await Purchases.getProducts(['coin_100'], 'SUBSCRIPTION')).length);
+  // 대조군: 구독 타입으로 물으면 0 이어야 정상이다(코인은 구독이 아니므로).
+  await step('fourSub', async () => (await Purchases.getProducts(['coin_100'], 'subs')).length);
 
   d.rcLog = rcRecentLogs();   // ★SDK 가 스스로 찍은 로그(BillingClient 응답 등)
   return d;
@@ -211,7 +226,7 @@ export async function purchaseConsumableRC(productId: string): Promise<boolean> 
   //   죽었으면(크레딧 소진·키 off·수동 점검) *과금 전에* 막는다. 확실한 불가만 throw, 일시장애는 통과(백스톱=생성실패 환불).
   //   기존 두 가드(준비중·오프라인)와 동일하게 throw → 호출부 catch 가 Alert(e.message)로 표출.
   await assertReadingAvailable();
-  const products = await Purchases.getProducts([productId]);
+  const products = await Purchases.getProducts([productId], PRODUCT_TYPE_INAPP);
   if (!products.length) {
     // ★여기서 막히면 **아무 로그도 안 남았다**(daniel 2026-08-07 "안드로이드 결제가 안돼").
     //   실측: app_logs 에 android 결제 기록이 성공·실패 **양쪽 다 0건** — 즉 purchaseStoreProduct 에
@@ -272,7 +287,7 @@ export async function restorePurchasesRC(): Promise<boolean> {
 export async function priceStringRC(productId: string, fallback: string): Promise<string> {
   if (!purchasesEnabled()) return fallback;
   try {
-    const products = await Purchases.getProducts([productId]);
+    const products = await Purchases.getProducts([productId], PRODUCT_TYPE_INAPP);
     return products[0]?.priceString ?? fallback;
   } catch { return fallback; }
 }
@@ -281,7 +296,7 @@ export async function priceStringRC(productId: string, fallback: string): Promis
 export async function priceStringsRC(productIds: string[]): Promise<Record<string, string>> {
   if (!purchasesEnabled()) return {};
   try {
-    const products = await Purchases.getProducts(productIds);
+    const products = await Purchases.getProducts(productIds, PRODUCT_TYPE_INAPP);
     return Object.fromEntries(products.map((p: any) => [p.identifier, p.priceString]));
   } catch { return {}; }
 }
