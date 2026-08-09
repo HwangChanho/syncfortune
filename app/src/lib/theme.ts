@@ -265,18 +265,12 @@ export function setReadingVideoEnabled(on: boolean) {
   SecureStore.setItemAsync(READING_VIDEO_KEY, on ? '1' : '0').catch(() => {});
 }
 
-// ── 그라데이션 (프리미엄 질감) — 라이트에선 톤 조정 ─────────────
-export const gradients = activeScheme === 'light'
-  ? {
-      gold: ['#CDB87C', '#A08948', '#84703B'], // 채도↓ 골드(LIGHT.ju 동기화)
-      midnight: ['#FBFAF6', '#F2EFE7'],         // card·bg 채도↓
-      glass: ['rgba(43,38,32,0.06)', 'rgba(43,38,32,0.02)'],
-    }
-  : {
-      gold: ['#EBCF8A', '#C9A14A', '#A8843A'],
-      midnight: ['#221F44', '#15132E'],
-      glass: ['rgba(255,255,255,0.12)', 'rgba(255,255,255,0.03)'],
-    };
+// ⛔`gradients` 삭제(2026-08-10) — **소비처 0건인 죽은 export** 였다(앱 전역 전수 확인 후 제거).
+//   ★지운 이유가 '안 쓰여서'만은 아니다: 값이 **옛 크림·골드 팔레트**로 굳어 있는데 주석에는
+//   "LIGHT.ju 동기화"라 적혀 있었다. ju 를 라벤더로 바꾼 뒤에도 그 문장이 그대로라,
+//   다음 사람이 읽으면 **"강조색 그라디언트는 여기 있다"고 믿고 쓰게 된다** — 색이 갈리는 길이다.
+//   죽은 코드는 안 돌아서 위험한 게 아니라 **살아 있는 척하며 판단을 오염시켜서** 위험하다.
+//   그라디언트가 다시 필요하면 `colors.ju`/`colors.juDeep` 에서 **파생시켜** 쓸 것(값을 새로 적지 말 것).
 
 // ── 라운드(모서리) — ★Apple 디자인(daniel 2026-07-15): iOS continuous corner 감성(과하지 않게) ──
 export const radius = { sm: 10, md: 14, lg: 20, pill: 999 } as const;
