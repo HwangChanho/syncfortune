@@ -99,8 +99,16 @@ export function configurePurchases(appUserId?: string): void {
       // ★진단(2026-08-09): SDK 로그를 가로채 링버퍼에 담는다. configure **전에** 걸어야 초기 로그도 잡힌다.
       //   VERBOSE 로 올리는 이유 = 상품 조회 실패 사유는 debug/verbose 급에서만 찍힌다.
       try {
-        Purchases.setLogHandler(({ logLevel, message }: { logLevel: string; message: string }) => {
-          rcLog.push(`${logLevel}:${String(message).slice(0, 160)}`);
+        // ⚠️시그니처는 **위치 인자 두 개**다 — `LogHandler = (logLevel, message) => void`.
+        //   처음엔 `({logLevel, message})` 로 구조분해해 전부 undefined 가 찍혔다(2026-08-09 실측).
+        //   ★그때 파라미터에 내 추측 타입을 직접 달아 **tsc 가 잡을 기회를 없앴다**.
+        //     콜백 인자는 주석 달지 말고 **라이브러리 타입이 흘러들어오게** 둘 것.
+        //   ★`Purchases` 는 `any` 다(런치 크래시 회피용 lazy require·18행) → **타입이 흐르지 않는다**.
+        //     그래서 잘못된 시그니처를 tsc 가 잡아 주지 못한다. SDK 타이핑을 눈으로 대조해 맞춘 것:
+        //     `@revenuecat/purchases-typescript-internal` callbackTypes.d.ts:36
+        //     `export type LogHandler = (logLevel: LOG_LEVEL, message: string) => void;`
+        Purchases.setLogHandler((logLevel: unknown, message: unknown) => {
+          rcLog.push(`${String(logLevel)}:${String(message).slice(0, 160)}`);
           if (rcLog.length > RC_LOG_MAX) rcLog.shift();   // 오래된 것부터 버린다
         });
         void Purchases.setLogLevel(Purchases.LOG_LEVEL.VERBOSE);
