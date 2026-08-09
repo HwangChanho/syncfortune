@@ -75,10 +75,35 @@ export function purchasesEnabled(): boolean {
 }
 
 /** 앱 시작/로그인 시 1회 — RC 초기화 + Supabase 유저 연결(appUserID). 모듈/키 없으면 no-op. */
+/**
+ * RevenueCat SDK 가 내부적으로 찍는 로그의 **최근 몇 줄**을 담아 두는 링버퍼.
+ *
+ * 왜: `getProducts` 는 실패해도 **빈 배열**만 주고, `getOfferings` 의 에러 객체는 RN 브리지를 건너오며
+ *   상세 메시지(`underlyingErrorMessage`)가 **빈 문자열로 유실된다**(2026-08-09 실측).
+ *   그래서 원인이 로그에 남지 않았다 — 코드 23("설정 문제")만 보이고 *무엇이* 문제인지는 안 보였다.
+ *   SDK 는 BillingClient 응답(예: 상품 조회 응답 코드·사유)을 **자기 로그로는 찍는다** → 그걸 가로채 서버로 보낸다.
+ * ★민감정보는 담기지 않는다(SDK 진단 문자열). 길이·줄 수를 제한해 로그 폭주를 막는다.
+ */
+const RC_LOG_MAX = 12;
+const rcLog: string[] = [];
+/** 최근 SDK 로그를 오래된 것부터 이어붙인 문자열(진단 payload 용). */
+export function rcRecentLogs(): string {
+  return rcLog.join(' | ').slice(0, 900);
+}
+
 export function configurePurchases(appUserId?: string): void {
   if (!purchasesEnabled()) return;
   try {
     if (!configured) {
+      // ★진단(2026-08-09): SDK 로그를 가로채 링버퍼에 담는다. configure **전에** 걸어야 초기 로그도 잡힌다.
+      //   VERBOSE 로 올리는 이유 = 상품 조회 실패 사유는 debug/verbose 급에서만 찍힌다.
+      try {
+        Purchases.setLogHandler(({ logLevel, message }: { logLevel: string; message: string }) => {
+          rcLog.push(`${logLevel}:${String(message).slice(0, 160)}`);
+          if (rcLog.length > RC_LOG_MAX) rcLog.shift();   // 오래된 것부터 버린다
+        });
+        void Purchases.setLogLevel(Purchases.LOG_LEVEL.VERBOSE);
+      } catch { /* 진단이 본 기능을 막지 않는다 */ }
       Purchases.configure({ apiKey: RC_KEY, appUserID: appUserId });
       configured = true;
     } else if (appUserId) {
@@ -158,6 +183,7 @@ async function collectStoreDiag(productId: string): Promise<Record<string, unkno
     d.rcUserErr = String(e?.message ?? e).slice(0, 120);
   }
   d.askedFor = productId;
+  d.rcLog = rcRecentLogs();   // ★SDK 가 직접 찍은 실패 사유(BillingClient 응답 등)
   return d;
 }
 
