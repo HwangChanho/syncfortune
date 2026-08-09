@@ -51,20 +51,24 @@ if (!target) { console.error(`❌ 검증 세트 '${slug}' 가 없습니다.`); p
 const allItems = await q(`rag_validation_items?select=set_id,seq,section,claim,basis,verdict,base_rate,expert_note&order=seq`);
 const items = allItems.filter((it) => it.set_id === target.id);
 
-// ④ 명식 무관(템플릿) 문장 = 여러 차트에 글자 하나 안 바뀌고 들어가는 본문 → 코퍼스에서 제외.
+// ④ 명식 무관(템플릿) 문장 = 여러 차트에 **같은 틀**로 들어가는 본문 → 코퍼스에서 제외.
 //    참인 문장이어도(상담가 O) **자리가 틀렸다** — 그런 문장은 전역 규칙이지 이 명식의 골든이 아니다.
 //    남겨 두면 어떤 쿼리에도 똑같이 걸려 top-3 자리만 먹고 명식 고유 근거를 밀어낸다.
+//    ★2026-08-10: 판정 기준을 **문자열 완전일치 → 골격(干支·십신 마스킹) 일치**로 넓혔다.
+//      상담가 `verify-000f-claim#5`(O) *"같은 격국이라도 명식마다 다른 말이 나와야 정상"* —
+//      干支만 갈린 문장은 사람 눈에만 다르고 임베딩에는 코사인 0.99 인 같은 문장이었다.
 const slugById = new Map(allSets.map((s) => [s.id, s.slug]));
 const templateBodies = crossChartTemplateBodies(
   allItems
-    .filter((it) => ingestEligibility(it).ok)
+    .filter((it) => ingestEligibility(it, { strict: true }).ok)
     .map((it) => ({ tag: tagForSlug(slugById.get(it.set_id)), item: it }))
     .filter((x) => x.tag),                     // 규칙(stance) 세트는 애초에 코퍼스 대상이 아님
+  { skeleton: true },
 );
 
 const kept = [], dropped = [];
 for (const it of items) {
-  const gate = ingestEligibility(it);          // ①O 판정만 ②base-rate 제외 — 규칙은 공용 모듈
+  const gate = ingestEligibility(it, { strict: true });  // ①O 판정만 ②base-rate ③엔진 재진술(000f#7) — 규칙은 공용 모듈
   if (!gate.ok) {
     dropped.push(`#${it.seq} ${gate.reason}${it.expert_note ? ` — ${it.expert_note}` : ''}`);
     continue;

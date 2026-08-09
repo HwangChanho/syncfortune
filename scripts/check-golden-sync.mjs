@@ -158,6 +158,28 @@ try {
   }
 } catch { /* 품질 측정 실패는 대조 결과를 막지 않는다(부가 정보) */ }
 
+// ── 신(新) 적재 규칙으로 보면 몇 건이 부적격인가 (2026-08-10 · 정보 출력 전용) ──
+//    상담가 `verify-000f-claim` 판정으로 신규 적재 게이트가 둘 늘었다(#7 엔진 재진술 · #5 골격 중복).
+//    ⚠️ **기존 적재분을 지우지 않는다** — 같은 세트 `#8`(O) *"이미 쌓인 골든은 그대로 둬도 된다"*.
+//    그래서 대조(위)는 옛 규칙 그대로 두고, 여기서는 **앞으로 무엇이 걸리는지만** 보여 준다.
+//    이 숫자가 코퍼스 품질의 상한을 말해 준다 — 재적재하면 이만큼 빠진다.
+{
+  const eligibleNow = items.filter((it) => ingestEligibility(it).ok && tagForSlug(slugById.get(it.set_id)));
+  const skelTemplates = crossChartTemplateBodies(
+    eligibleNow.map((it) => ({ tag: tagForSlug(slugById.get(it.set_id)), item: it })),
+    { skeleton: true },
+  );
+  const restated = eligibleNow.filter((it) => !ingestEligibility(it, { strict: true }).ok);
+  const skelDupe = eligibleNow.filter((it) => skelTemplates.has(goldenBody(it)));
+  const both = new Set([...restated, ...skelDupe]);
+  if (both.size) {
+    console.log(`\n   ── 새 적재 규칙 기준(정보) ──`);
+    console.log(`   현행 적재분 ${eligibleNow.length}건 중 **${both.size}건**이 새 규칙에서는 부적격입니다`
+      + ` (엔진 재진술 ${restated.length} · 골격 중복 ${skelDupe.length}, 중복 포함).`);
+    console.log(`   → 지우지 않습니다(상담가 000f#8 "섞어도 된다"). **다음 세트부터** 명식 고유 서술로 씁니다.`);
+  }
+}
+
 // ── 플래그 동기화 ──
 if (SYNC && (promoteTrue.length || promoteFalse.length)) {
   const patch = async (ids, value) => {

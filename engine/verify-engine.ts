@@ -83,6 +83,13 @@ for (const [desc, br, must] of INT_CASES) {
   check('삼합국 성립 시 부분 반합은 국으로 통합(寅午半合 미출력)', !guk.some((d) => d.includes('半合')));
   const two = detectInteractions(mk(['申', '酉', '子', '子'])).map((i) => i.detail);
   check('방합은 2자(申酉)만으론 미성립(3자 전부 필요·통설)', !two.some((d) => d.includes('方合')));
+  // ★상담가 판정 2026-08-04 `verify-000-rules#7`(O) — 卯未 는 목극토가 우선이라 반합이 서지 않는다.
+  //   대조군을 **같이** 둔다: 같은 亥卯未 국의 亥卯 는 生(水生木)이라 그대로 성립해야 한다
+  //   (한쪽만 검사하면 "반합 검출을 통째로 껐다"는 사고를 못 잡는다 — build-artifact-verify-hermes 교훈).
+  const myoMi = detectInteractions(mk(['卯', '未', '巳', '巳'])).map((i) => i.detail);
+  check('卯未 는 반합 미성립(목극토 우선 · 000-rules#7)', !myoMi.some((d) => d.includes('半合')));
+  const haeMyo = detectInteractions(mk(['亥', '卯', '巳', '巳'])).map((i) => i.detail);
+  check('대조군: 亥卯 는 반합 성립(생이라 유지 · 반합 검출 자체는 살아 있다)', haeMyo.some((d) => d.includes('亥卯半合木')));
 }
 
 // ── 신살 일반화 (타 일간 차트 — 자기차트 n=1 넘어 규칙이 임의 차트에 일반 적용되는지) ──

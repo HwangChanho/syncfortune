@@ -22,6 +22,14 @@ export const SANHE: [Branch, Branch, Branch, Element][] = [['申','子','辰','�
 //   ※ 2자 부분 방합 인정 여부는 이설(왕지 포함 2자 인정설 등) → daniel 문파 확정 전 미검출(보수).
 const FANGHE: [Branch, Branch, Branch, Element][] = [['寅','卯','辰','木'],['巳','午','未','火'],['申','酉','戌','金'],['亥','子','丑','水']];
 export const WANGZHI: Branch[] = ['子','午','卯','酉'];                      // 왕지(반합 성립 핵심)
+// ★반합에서 제외하는 쌍 — 상담가 판정 2026-08-04 `verify-000-rules#7` (O):
+//   *"卯未 는 **항상** 목극토가 우선이다 — 조건 없이 반합으로 木(인성)이 서지 않는다."*
+//   (검증 #003 지적 ⑤ "묘미는 목극토가 우선" 을 전역 규칙으로 승격한 것.)
+//   ⚠️여기 卯未 **한 쌍만** 둔다. 巳酉(火剋金)·子辰(土剋水)도 같은 '극' 관계지만
+//     상담가는 그 일반화를 `#9`(△)에서 **"생이 우선된다"** 로만 답했다 — 확정이 아니다.
+//     내가 극 관계 전반으로 넓히면 그건 판정이 아니라 **발명**이다(CLAUDE.md §3.2).
+//     → 질문은 `knowledge/rules/STANCE_LEDGER.md` `verify-000-rules#9` 에 보류로 걸어 뒀다.
+const BANHAP_EXCLUDED: [Branch, Branch][] = [['卯', '未']];
 // 천간 관계표 (자평진전: 천간끼리도 합·충=극) — daniel 검수 대상이나 합/충은 통설
 export const TIANHE: [Stem, Stem, Element][] = [['甲','己','土'],['乙','庚','金'],['丙','辛','水'],['丁','壬','木'],['戊','癸','火']]; // 천간 오합
 export const TIANCHONG: [Stem, Stem][] = [['甲','庚'],['乙','辛'],['丙','壬'],['丁','癸']];   // 천간 칠충 = 상극(극). 戊己(중앙토) 제외
@@ -57,7 +65,7 @@ export function detectInteractionsAmong(items: { pos: ChartPosition; stem: Stem;
     if (pairMatch(HAI, A.branch, B.branch)) out.push({ type: '해', members: [A.pos, B.pos], detail: `${A.branch}${B.branch}害` });
     if (pairMatch(PO, A.branch, B.branch)) out.push({ type: '파', members: [A.pos, B.pos], detail: `${A.branch}${B.branch}破` });
     if (pairMatch(XING_PAIR, A.branch, B.branch)) out.push({ type: '형', members: [A.pos, B.pos], detail: `${A.branch}${B.branch}刑` });
-    const ban = A.branch !== B.branch // 반합은 삼합 중 *서로 다른* 두 글자 (같은 글자=자형, 반합 아님)
+    const ban = A.branch !== B.branch && !pairMatch(BANHAP_EXCLUDED, A.branch, B.branch) // 반합은 삼합 중 *서로 다른* 두 글자 (같은 글자=자형, 반합 아님) · 卯未 는 극 우선이라 제외(000-rules#7)
       ? SANHE.find((grp) => { const s = grp.slice(0, 3) as Branch[]; return !fullSanheSet.has(grp) && s.includes(A.branch) && s.includes(B.branch) && (WANGZHI.includes(A.branch) || WANGZHI.includes(B.branch)); })
       : undefined;
     if (ban) out.push({ type: '합', members: [A.pos, B.pos], detail: `${A.branch}${B.branch}半合${ban[3]}`, transformsTo: ban[3] });
