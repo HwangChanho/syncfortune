@@ -108,6 +108,51 @@ export async function isPremiumActiveRC(): Promise<boolean> {
 //   즉 죽은 코드가 아니라 **살아 있는 깨진 결제 경로**였다. 구매 경로만 지우고, 과거 구매자 판정
 //   (isPremiumActiveRC·ENTITLEMENT_PREMIUM)과 복원(restorePurchasesRC)은 그대로 둔다(이력 보존).
 
+/**
+ * 스토어가 상품을 0개로 준 **원인을 가르기 위한** 재료 수집(진단 전용).
+ *
+ * 왜 필요한가: `getProducts` 는 실패해도 **throw 하지 않고 빈 배열**을 준다. 그래서 로그에 "0개"만 남고
+ *   원인(①Play 가 아닌 경로로 설치 ②테스터 미등록 ③RC 상품 매핑)이 구분되지 않는다.
+ *   아래 값들이 그 셋을 가른다:
+ *   · `offeringsErr` — RC 가 스토어와 통신하며 받은 **에러 코드**. 설정/스토어 문제면 여기에 뜬다.
+ *   · `allCoins` — 코인 4종을 한꺼번에 조회했을 때 **몇 개**가 오는지.
+ *     0 이면 스토어 연결 자체 문제(설치 경로·테스터), 일부만 오면 상품별 설정 문제다.
+ *   · `rcUserId`/`rcAnon` — 어느 RC 사용자로 붙었는지(계정 뒤섞임 확인).
+ *
+ * @param productId 실패한 상품 id
+ * @returns 로그에 펼쳐 넣을 평평한 객체. **절대 throw 하지 않는다.**
+ */
+async function collectStoreDiag(productId: string): Promise<Record<string, unknown>> {
+  const d: Record<string, unknown> = {};
+  // ① RC 오퍼링 — getProducts 와 달리 실패 시 에러를 던지므로 코드/메시지를 얻을 수 있다.
+  try {
+    const off = await Purchases.getOfferings();
+    d.offerings = Object.keys(off?.all ?? {}).length;
+    d.offeringCurrent = off?.current?.identifier ?? null;
+  } catch (e: any) {
+    d.offeringsErr = String(e?.code ?? e?.underlyingErrorMessage ?? e?.message ?? e).slice(0, 200);
+  }
+  // ② 코인 4종 일괄 조회 — 전부 0인지 일부만 0인지가 원인을 가른다.
+  try {
+    const ids = ['coin_100', 'coin_300', 'coin_600', 'coin_1200'];
+    const got = await Purchases.getProducts(ids);
+    d.allCoins = got.length;
+    d.allCoinIds = got.map((x: { identifier: string }) => x.identifier).join(',');
+  } catch (e: any) {
+    d.allCoinsErr = String(e?.message ?? e).slice(0, 200);
+  }
+  // ③ 어느 RC 사용자로 붙어 있나(계정 뒤섞임·익명 여부).
+  try {
+    const ci = await Purchases.getCustomerInfo();
+    d.rcUserId = String(ci?.originalAppUserId ?? '').slice(0, 40);
+    d.rcAnon = String(ci?.originalAppUserId ?? '').startsWith('$RCAnonymous');
+  } catch (e: any) {
+    d.rcUserErr = String(e?.message ?? e).slice(0, 120);
+  }
+  d.askedFor = productId;
+  return d;
+}
+
 /** 소비성(상품 id) 구매 — 성공 시 true(결제 완료). 취소 시 false. */
 export async function purchaseConsumableRC(productId: string): Promise<boolean> {
   if (!purchasesEnabled()) throw new Error('결제가 아직 준비 중이에요.');
@@ -123,7 +168,12 @@ export async function purchaseConsumableRC(productId: string): Promise<boolean> 
     //   도달조차 못 하고 이 줄에서 죽고 있었는데, 화면엔 "상품을 불러오지 못했어요"만 뜨고 원인은 어디에도 안 남았다.
     //   (07-26 푸시 `catch {}`, 08-07 push-dispatch 거부사유 폐기와 **같은 계열의 사고**.)
     //   스토어가 상품을 0개로 주는 경우는 원인이 갈리므로(설치 경로·테스터 등록·상품 상태) 반드시 남긴다.
-    logEvent('purchase_products_empty', { productId, platform: Platform.OS }, 'error');
+    //   ★2026-08-09 진단 보강(daniel "안드로이드 결제가 여전히 안된대"):
+    //     "0개"만 남으면 원인이 셋(설치 경로·테스터 등록·RC 매핑) 중 어느 것인지 못 가른다 —
+    //     실제로 이 로그 2건을 보고도 원격에서 좁히지 못했다. **다음 실패 한 번으로 확정되게** 재료를 같이 남긴다.
+    //     ⚠️진단 수집이 실패해도 원래 에러를 삼키지 않는다(진단이 본 기능을 망치면 안 된다) — 전부 개별 catch.
+    const diag = await collectStoreDiag(productId);
+    logEvent('purchase_products_empty', { productId, platform: Platform.OS, ...diag }, 'error');
     throw new Error('상품을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.');
   }
   try {
