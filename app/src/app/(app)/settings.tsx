@@ -7,6 +7,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { View, Text, ScrollView, StyleSheet, Linking } from 'react-native';
 import { PressableScale } from '../../components/PressableScale';
 import Constants from 'expo-constants'; // 앱 버전(app.json)
+import { APP_BUILD as APP_BUILD_NUM } from '../../lib/core/buildInfo'; // 빌드번호 단일 출처(check:buildnum)
 import { Alert } from '../../lib/ui/alert'; // 커스텀 알림(앱 디자인)
 import { useRouter, useFocusEffect } from 'expo-router';
 import { getNotifStatus, requestNotifPermission, type NotifStatus } from '../../lib/backend/notifications'; // 알림 권한 상태·요청(설정 토글)
@@ -36,7 +37,9 @@ const LANGS: { key: string; label: string }[] = [
 //   종전엔 versionName('1.0.0')만 떠서 vc59 와 vc60 을 화면에서 구분할 수 없었다 —
 //   "업데이트했는데 안 돼요"가 실제로는 **구버전에서 시도한 것**이었는지 확인할 방법이 없었다.
 //   nativeBuildVersion = 실제 설치된 네이티브 빌드(Android versionCode / iOS buildNumber).
-const APP_BUILD = String(Constants.nativeBuildVersion ?? Constants.expoConfig?.android?.versionCode ?? '?');
+// ⚠️`Constants.nativeBuildVersion` 은 expo-constants 17 에서 **undefined** 로 온다(실측 — `(?)` 로 떴다).
+//   → JS 단일 출처 상수를 쓰고, build.gradle 과의 일치는 `check:buildnum` 하네스가 강제한다.
+const APP_BUILD = String(APP_BUILD_NUM);
 const APP_VERSION = `${Constants.expoConfig?.version ?? '1.0.0'} (${APP_BUILD})`;
 const TERMS_URL = 'https://hwangchanho.github.io/syncfortune/legal/terms-ko.html';     // GitHub Pages(정식)
 const PRIVACY_URL = 'https://hwangchanho.github.io/syncfortune/legal/privacy-ko.html'; // GitHub Pages — App Store 개인정보 URL

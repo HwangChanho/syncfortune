@@ -8,7 +8,7 @@
 //   ⚠️ RC SDK 공개키는 클라 임베드 안전(공개용). 키 미설정(EXPO_PUBLIC_RC_*) 시 결제 UI는 '준비 중' 폴백.
 // ─────────────────────────────────────────────────────────────────────────
 import { Platform } from 'react-native';
-import Constants from 'expo-constants'; // 진단에 빌드번호를 싣는다(어떤 빌드가 낸 로그인지 추론하지 않으려고)
+import { APP_BUILD } from '../core/buildInfo'; // 진단에 빌드번호(어떤 빌드가 낸 로그인지 추론하지 않으려고)
 import type { CreditKind } from './coupons';
 import { isOnline } from '../backend/network'; // daniel: 네트워크/서버 미연결 시 구매 차단(결제 후 미반영·실패상태 방지)
 import { logEvent } from '../backend/logger'; // ★결제 이벤트 로그(배포 필수 — daniel 07-02)
@@ -159,7 +159,7 @@ export async function isPremiumActiveRC(): Promise<boolean> {
  */
 async function runBillingSelfTest(productId: string): Promise<Record<string, unknown>> {
   const d: Record<string, unknown> = {
-    build: String(Constants.nativeBuildVersion ?? '?'),
+    build: APP_BUILD,
     platform: Platform.OS,
     askedFor: productId,
     keyPrefix: RC_KEY.slice(0, 5),      // 키 자체는 남기지 않는다(앞 5자로 플랫폼만 확인)
