@@ -135,6 +135,30 @@ export function detectInteractionsAmong(items: { pos: ChartPosition; stem: Stem;
       }
     }
   }
+  // ── 쟁합(爭合) — 같은 천간 **둘**이 **하나**의 천간과 동시에 합한다 ─────────────────
+  //   상담가 판정 2026-08-03 `verify-000c-structure#7` (O):
+  //     *"같은 천간 2개가 하나의 천간과 동시에 합하면 쟁합(爭合)으로 따로 판정한다 —
+  //       그 대상이 재성이면 **쟁재**다."*
+  //   근거 사례 verify-110: 년간 戊 · 일간 戊 가 월간 癸(정재)를 동시에 합한다.
+  //     엔진은 이걸 **쌍 단위 합 2건**으로만 잡아 '다툰다'는 사실 자체를 못 나타냈다.
+  //   ★쌍 합(위 루프)은 **그대로 둔다** — 쟁합은 그 위에 얹는 이름이지 대체가 아니다.
+  //     또 `transformsTo` 를 붙이지 않는다(합화 귀결은 쌍 쪽이 이미 말한다 · 국 가중 이중계상 방지).
+  const posByStem = new Map<Stem, ChartPosition[]>();
+  for (const it of items) { const a = posByStem.get(it.stem) ?? []; a.push(it.pos); posByStem.set(it.stem, a); }
+  for (const [x, y] of TIANHE) {
+    const xs = posByStem.get(x) ?? [], ys = posByStem.get(y) ?? [];
+    if (!xs.length || !ys.length) continue;
+    // 둘이 하나를 다투는 형태만 쟁합. 2:2 이상은 판정에 없다 → 이름 붙이지 않는다(발명 금지).
+    const [many, one, manyStem, oneStem] = xs.length >= 2 && ys.length === 1
+      ? [xs, ys, x, y] as const
+      : ys.length >= 2 && xs.length === 1 ? [ys, xs, y, x] as const : [null, null, x, y] as const;
+    if (!many || !one) continue;
+    out.push({
+      type: '합', level: '천간', members: [...many, ...one],
+      detail: `${manyStem}${manyStem}爭合${oneStem}`,   // 예: 戊戊爭合癸
+    });
+  }
+
   return out.map((it) => ({ ...it, level: it.level ?? '지지' as const }));
 }
 
@@ -148,6 +172,10 @@ export function interactionLabel(it: Interaction): string {
   const d = it.detail ?? '';
   // 글자(지지/천간)만 한글로 — 관계 한자(合冲害破刑半三方化)·화오행(金木水火土)은 제외
   const ko = [...d].map((ch) => BRANCH_KO[ch] ?? STEM_KO[ch] ?? '').join('');
+  if (d.includes('爭合')) {                                        // 戊戊爭合癸 → '무계쟁합'(다투는 글자 1 + 대상 1)
+    const chars = [...d].filter((ch) => STEM_KO[ch]);
+    return `${STEM_KO[chars[0]] ?? ''}${STEM_KO[chars[chars.length - 1]] ?? ''}쟁합`;
+  }
   if (d.includes('自刑')) return `${BRANCH_KO[[...d][0]] ?? ''}자형`; // 辰辰自刑→'진자형'(중복 제거)
   if (d.includes('半合')) return `${ko}반합`;                      // 酉丑半合金→'유축반합'
   if (d.includes('三合')) return `${ko}삼합`;                      // 申子辰三合水→'신자진삼합'
@@ -165,7 +193,19 @@ export function interactionLabel(it: Interaction): string {
  * @returns Interaction[] — *검출*만. '핵심 vs 부가' 선별은 stance(daniel).
  */
 export function detectInteractions(saju: SajuChart): Interaction[] {
-  return detectInteractionsAmong(POS.map((p) => ({ pos: p as ChartPosition, stem: saju.pillars[p].stem, branch: saju.pillars[p].branch })));
+  const out = detectInteractionsAmong(POS.map((p) => ({ pos: p as ChartPosition, stem: saju.pillars[p].stem, branch: saju.pillars[p].branch })));
+  // ★쟁합의 대상이 **재성이면 쟁재**(000c#7). 십신은 일간이 있어야 알 수 있어 여기서 붙인다
+  //   (detectInteractionsAmong 은 임의 기둥 집합만 받아 일간을 모른다 — 시간층에도 쓰이는 함수라 그대로 둔다).
+  const TENGOD_OF: Partial<Record<Stem, string>> = {};
+  for (const p of POS) TENGOD_OF[saju.pillars[p].stem] = saju.pillars[p].stemTenGod;
+  return out.map((it) => {
+    if (!it.detail?.includes('爭合')) return it;
+    const target = [...it.detail].pop() as Stem;                  // 戊戊爭合癸 → 癸(다툼의 대상)
+    const tg = TENGOD_OF[target];
+    return tg === '정재' || tg === '편재'
+      ? { ...it, detail: `${it.detail} — 爭財(${tg})` }            // 상담가: "그 대상이 재성이면 쟁재다"
+      : it;
+  });
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -184,7 +224,10 @@ const STEM_W = 1, ROOT_BONUS = 1.5, THRESHOLD = 2, GUK_BONUS = 1.5, CHUNG_MULT =
 // ★3주(시각 미상) 임계 — daniel 2026-08-01 "B로 가되 임계값은 실측해서 4주랑 중화 비율 맞춰줘".
 //   시주(가중 2.0)가 빠지면 총점 진폭이 줄어 임계 ±2 를 그대로 쓰면 중화로 몰린다.
 //   실측으로 4주의 중화 비율에 맞춘 값(측정 근거는 engine/strength3.calibrate.ts).
-const THRESHOLD_3 = 1.25;  // ★실측 확정(2026-08-01, 표본 3000): 4주 중화 18.9% ↔ 3주 22.2%(가장 근접).
+// ★2026-08-10 재보정 1.25 → 1.75: 충 세력 비교(000c#14)를 넣자 충 손상이 줄어 점수 진폭이 커졌고,
+//   `strength3.calibrate.ts` 가 **코드값 불일치로 실패**해 잡아냈다(하네스가 눈보다 낫다).
+//   daniel 이 정한 원칙("4주랑 중화 비율 맞춰줘")은 그대로고 실측 최적값만 옮긴 것 — 4주와 차이 0.4p.
+const THRESHOLD_3 = 1.75;  // ★실측 확정(2026-08-01 1.25 → 2026-08-10 1.75, 표본 3000): 3주 중화 24.5%(4주와 0.4p).
 //   점수가 0.5 단위로 떨어져 완전 일치는 불가 — ±1.25 와 ±1.50 은 같은 결과이고 그보다 넓히면 30%대로 뛴다.
 //   재측정: `npx tsx engine/strength3.calibrate.ts` (코드값과 실측 최적이 어긋나면 실패한다)
 const THRESHOLD_FOR = (noHour: boolean) => (noHour ? THRESHOLD_3 : THRESHOLD);
@@ -215,7 +258,22 @@ export function scoreStrength(saju: SajuChart): { score: number; verdict: '신�
   let gukAdj = 0; const gukBd: string[] = [];
   for (const it of (saju.interactions ?? [])) {
     if (!it.members.every((m) => (POS4 as string[]).includes(m))) continue; // 원국끼리만(운 제외)
-    if (it.type === '충' && it.level !== '천간') it.members.forEach((m) => chung.add(m));
+    // ── 충의 세력 비교 (상담가 판정 2026-08-03 `verify-000c-structure#14` · O) ──────────
+    //   *"충은 있다/없다의 이분법이 아니라 **세력 비교**다 — 약한 쪽이 강한 쪽을 충하면
+    //     '건드리되 깨지 못한다'로 본다."*  근거 사례: verify-103 #5 (X)
+    //     子(년지)가 午(**월지**)를 충 → *"자수가 오화를 건들긴 하지만, 깨지못한다."*
+    //   ★'세력'의 정의는 판정에 없다. 그래서 **새 값을 만들지 않고** 이미 daniel 이 동결한
+    //     위치 가중(POS_WEIGHT 월3·일2·시2·년1.5 — 2026-07-06 D1)을 그대로 세력으로 읽는다.
+    //     월지가 가장 무겁다는 것은 상담가가 반복해 강조한 바와도 일치한다.
+    //   · 강한 쪽 = 충을 맞아도 **뿌리 손상 없음**(가중 유지·통근 보너스 유지)
+    //   · 약한 쪽 = 종전대로 손상
+    //   · **동률**(일 vs 시)은 어느 쪽이 강한지 판정이 없다 → 양쪽 손상(기존 동작 유지 = 보수)
+    if (it.type === '충' && it.level !== '천간') {
+      const [a, b] = it.members as PillarPos[];
+      const wa = POS_WEIGHT[a] ?? 0, wb = POS_WEIGHT[b] ?? 0;
+      if (wa === wb) { chung.add(a); chung.add(b); }   // 세력 동률 = 판정 없음 → 둘 다 흔들린다
+      else chung.add(wa > wb ? b : a);                 // 약한 쪽만 깨진다
+    }
     if (it.type === '형' && it.level !== '천간') it.members.forEach((m) => hyeong.add(m)); // ★형도 통근 손상(지지 가중은 유지 — 충보다 약)
     // ── 삼합·방합 세력국 방향성 가중 (daniel D1 2026-07-06: 반합/완합 차등) ────────────
     //   완합(3자 완성=삼합국·방합국): GUK_BONUS 그대로 / 반합(2자, 왕지 포함): ×BANHAP_MULT(0.6).

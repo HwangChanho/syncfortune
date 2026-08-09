@@ -7,7 +7,7 @@
 import _lunar from 'lunar-javascript';
 import { twelveStage } from './twelve';
 import { gongmang, analyzeSinsal } from './sinsal';
-import { detectInteractions } from './structure';
+import { detectInteractions, scoreStrength } from './structure';
 import { buildSajuChart, validateBirthInput } from './saju';
 import { trueSolarOffsetMin, kstMeridianAt, dstOffsetMin } from './solartime';
 import type { Stem, Branch, PillarPos, SajuChart, ChartInput } from '../spec/chart';
@@ -103,6 +103,22 @@ for (const [desc, br, must] of INT_CASES) {
   check('대조군: 子(년)午(시) 충은 거리 무관하게 그대로 검출(#4 는 미적용)', farChung.some((d) => d.includes('子午冲')));
 }
 
+// ── 충의 세력 비교 (`verify-000c-structure#14` · O) — verify-103 재현 ──
+//   상담가: "자수가 오화를 건들긴 하지만, **깨지못한다**" (子=년지 · 午=월지)
+//   ⇒ 강한 쪽(월)은 뿌리 손상 없음 · 약한 쪽(년)만 손상. 동률(일·시)은 판정이 없어 양쪽 손상.
+{
+  const strong = mk(['子', '午', '巳', '巳']);          // 년子 ↔ 월午 (세력 1.5 vs 3.0)
+  strong.interactions = detectInteractions(strong);
+  const bd = scoreStrength(strong).breakdown.join(' ');
+  check('충 세력: 午(월)는 子(년)에게 충 맞아도 안 깨진다(000c#14)', !bd.includes('월午(충)'));
+  check('대조군: 약한 쪽 子(년)는 그대로 손상(충 처리 자체는 살아 있다)', bd.includes('년子(충)'));
+
+  const tie = mk(['巳', '巳', '子', '午']);              // 일子 ↔ 시午 (세력 2.0 동률)
+  tie.interactions = detectInteractions(tie);
+  const bdTie = scoreStrength(tie).breakdown.join(' ');
+  check('세력 동률(일·시)이면 판정이 없어 양쪽 손상(보수 유지)', bdTie.includes('일子(충)') && bdTie.includes('시午(충)'));
+}
+
 // ── 신살 일반화 (타 일간 차트 — 자기차트 n=1 넘어 규칙이 임의 차트에 일반 적용되는지) ──
 function mkSaju(st: [Stem, Stem, Stem, Stem], br: [Branch, Branch, Branch, Branch]): SajuChart {
   const P: PillarPos[] = ['년', '월', '일', '시'];
@@ -110,6 +126,22 @@ function mkSaju(st: [Stem, Stem, Stem, Stem], br: [Branch, Branch, Branch, Branc
   P.forEach((p, i) => { pillars[p] = { position: p, stem: st[i], branch: br[i], stemTenGod: '비견', branchMainTenGod: '비견', hiddenStems: [], isRoot: false }; });
   return { pillars, dayMaster: { stem: st[2], element: '木' }, interactions: [], luckCycles: [], currentLuck: {} as any, annual: {} as any } as SajuChart;
 }
+// ── 쟁합·쟁재 (`verify-000c-structure#7` · O) — verify-110 재현 ──
+//   상담가: "같은 천간 2개가 하나의 천간과 동시에 합하면 쟁합으로 따로 판정 — 대상이 재성이면 쟁재"
+//   명식 戊午 癸亥 戊戌 甲寅: 년간 戊·일간 戊 가 월간 癸(정재)를 동시에 합한다.
+{
+  const s = mkSaju(['戊', '癸', '戊', '甲'], ['午', '亥', '戌', '寅']);
+  s.pillars['월'].stemTenGod = '정재';                        // 戊 일간에게 癸 = 정재
+  const det = detectInteractions(s).map((i) => i.detail ?? '');
+  check('쟁합 검출: 戊戊爭合癸 (000c#7)', det.some((d) => d.startsWith('戊戊爭合癸')));
+  check('대상이 재성이면 쟁재 태깅', det.some((d) => d.includes('爭財(정재)')));
+  // ★대조군 — 쟁합은 쌍 합 **위에 얹는 이름**이지 대체가 아니다(둘 다 남아야 한다)
+  check('대조군: 쌍 단위 戊癸合 도 그대로 남는다', det.some((d) => d.includes('戊癸合化')));
+  // ★음성 — 다투는 글자가 하나뿐이면 쟁합이 아니다
+  const solo = mkSaju(['甲', '癸', '戊', '乙'], ['午', '亥', '戌', '寅']);
+  check('음성: 戊 가 하나뿐이면 쟁합 아님', !detectInteractions(solo).some((i) => (i.detail ?? '').includes('爭合')));
+}
+
 console.log('=== 신살 일반화 (타 일간 차트 — n=1 넘어 규칙 일반화) ===');
 {
   const rA = analyzeSinsal(mkSaju(['庚', '丙', '甲', '壬'], ['子', '午', '寅', '戌'])); // 일간 甲, 년지 子·일지 寅
