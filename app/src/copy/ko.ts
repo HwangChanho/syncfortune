@@ -471,7 +471,7 @@ export const ko = {
     'title': '나와 닮은 연예인',
     'topLabel': '나와 가장 닮은 인물',
   },
-  coins: {
+  coins: { failTitle: '충전하지 못했어요',
     spendMsg: '{{cost}} 운을 사용해 풀이를 시작할까요?\n보유 {{have}} 운 → 사용 후 {{after}} 운',
     'balFail': '잔액을 불러오지 못했어요',
     'balance': '보유 운',

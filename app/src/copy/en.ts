@@ -436,7 +436,7 @@ export const en = {
     'title': 'Celebrities Like Me',
     'topLabel': '나와 가장 닮은 인물',
   },
-  coins: {
+  coins: { failTitle: "Couldn't add woon",
     spendMsg: 'Use {{cost}} woon to start this reading?\nYou have {{have}} → {{after}} after',
     'balFail': '잔액을 불러오지 못했어요',
     'balance': '보유 운',

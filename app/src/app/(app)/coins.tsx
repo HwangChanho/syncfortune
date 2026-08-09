@@ -57,7 +57,16 @@ export default function CoinsScreen() {
           : t('coins.doneMsg', { coins, defaultValue: '{{coins}} 운이 충전됐어요.' }),
       );
     } catch (e) {
-      notifyNetworkError('coins.purchase', e, t);
+      // ★2026-08-09 (daniel "600이랑 1200운 눌러도 반응없음") — 결제 실패를 **네트워크 에러 경로로 보내면 안 된다**:
+      //   ① `notifyNetworkError` 에는 **연속 실패 얼럿 1회 스로틀**이 있다. 100운에서 한 번 뜨고 나면
+      //      뒤이어 누른 300·600·1200 은 **아무 반응 없이** 삼켜진다(실측: 로그엔 5건 다 찍혔는데 화면엔 1회).
+      //   ② 문구를 "연결에 문제가 있어요"로 덮어써 **진짜 원인을 감춘다**(실제는 상품 조회 실패).
+      //   → 로깅은 그대로 하되(silent), 사용자에겐 **발생한 에러 그대로** 보여준다.
+      notifyNetworkError('coins.purchase', e, t, { silent: true });   // 기록만
+      Alert.alert(
+        t('coins.failTitle', '충전하지 못했어요'),
+        String((e as any)?.message ?? '') || t('net.errMsg', '잠시 후 다시 시도해 주세요. 계속되면 잠시 뒤에 다시 열어 주세요.'),
+      );
     } finally { setBusy(null); }
   }
 
