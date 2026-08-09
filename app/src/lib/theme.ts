@@ -35,29 +35,40 @@ const DARK = {
   //   labelScrim = 홈 카드 하단 라벨바(라이트는 거의 불투명 — 어두운 카드 이미지가 비쳐 안 어울리던 것 차단·daniel).
   overlay: 'rgba(21,19,46,0.6)', overlaySoft: 'rgba(21,19,46,0.3)', overlayStrong: 'rgba(21,19,46,0.85)', labelScrim: 'rgba(21,19,46,0.86)',
 };
-// ── 라이트 팔레트(한지 — 따뜻한 베이지 + 먹 + 깊은 골드) ──────────
+// ── 라이트 팔레트(라벤더 — 흰 종이 + 보라 강조 + 파스텔) ──────────
+// ★★2026-08-10 daniel 확정: 시안(`docs/design/ref-ui-2026-08-09.png`)의 **라벤더·파스텔**로 교체.
+//   IA(탭 5개·카테고리 6개)는 그대로 두고 **비주얼만** 시안에 맞춘다(daniel 선택).
+//   ⚠️경위 — 직전 팔레트(크림·골드)는 08-08 "이 디자인에 맞게" 지시를 내가 **앱 아이콘**으로 잘못 읽고
+//     만든 것이다(시안 첨부가 세션에 들어오지 않았는데 물어보지 않았다). 실제 시안은 처음부터 라벤더였다.
+//     ⇒ 교훈: "이 X" 가 가리키는 대상이 대화에 실제로 있는지 확인할 것.
+//   ★여기 한 곳만 바꾸면 전 화면이 따라온다 — 화면들은 `colors` 토큰만 쓰고, 배경 이미지는 이미
+//     걷어내 `ContentBackdrop` 이 `colors.bg` 를 칠한다(bgSource 는 미사용 잔존).
 const LIGHT = {
-  // 전반 채도↓ + 이미지(미드나잇 네이비·골드 #C9A14A)와 조화(daniel 06-28). 노란기·탁함·순백대비 완화.
-  // ★Apple 디자인(daniel 2026-07-15): iOS 클린 — 밝은 시스템 배경(systemGroupedBackground) + 순백 카드 + 뉴트럴 라벨.
-  //   bg=옅은 시스템 그레이 / card=순백(계층으로 깊이, 그림자 아닌 대비) / line=iOS separator(연한 회색).
-  // ★★아이콘 톤으로 전면 통일(daniel 2026-08-07 "저거랑 똑같이 ui ux 구성 전부").
-  //   아이콘 A안 = 크림→샌드 종이 + 골드 원 + 진한 브라운 글자. 그 세 색을 그대로 앱 표면에 쓴다.
-  //   종전 iOS 시스템 그레이(#F2F2F7)는 '차가운 회색 종이'라 아이콘의 따뜻한 크림과 어긋났다.
-  bg: '#FAF6EC', card: '#FFFDF7', sunk: '#F0E8D6',
-  glass: 'rgba(255, 253, 247, 0.74)', glassLight: 'rgba(60, 54, 44, 0.05)',
-  // 글자 = 아이콘의 '니·내' 브라운 계열(순수 먹보다 따뜻해 크림 위에서 눈이 편하다).
-  ink: '#3C362C', inkSoft: '#6B6252', inkFaint: '#A2977F', line: '#E6DDC7',
-  // ★리디자인(daniel 2026-07-14 '심플하면서 조화롭게' → 먹선 미니멀): 액센트 = 뮤트 골드 하나(조화로운 단일 포인트, daniel 선택).
-  //   거창한 색 대신 여백·타이포·절제로 승부 — 색은 종이(bg)·먹(ink)·은은한 금(ju) 3톤으로 통일.
-  ju: '#A08948', juDeep: '#84703B', juSoft: '#EFEBE0', juLine: '#C9C0A6',
-  gold: '#A08948', white: '#FFFFFF',
-  badgeGold: '#C9A14A', // ★배지 전용 금색 — 라이트에서도 다크 금색(밝은 #C9A14A) 사용. daniel 07-07(배지만 예외적 채도↑).
-  // ★어두운 히어로 이미지 위 텍스트/스크림 — DARK와 동일값(이미지가 어두우므로 라이트모드에서도 밝은 글씨·어두운 스크림이라야 보임).
-  onImage: '#F7F1E3', onImageSoft: 'rgba(247,241,227,0.86)', scrimHero: 'rgba(16,14,34,0.5)',
-  // 한지 위 옅은 스크림(라이트) — 채도 낮춰 차분하게.
-  //   labelScrim = 홈 카드 라벨바 거의 불투명(어두운 카드 이미지가 비치지 않도록 — daniel: 흰 배경에 어두운 그림 안 어울림).
-  overlay: 'rgba(242,239,231,0.45)', overlaySoft: 'rgba(242,239,231,0.2)', overlayStrong: 'rgba(251,250,246,0.82)', labelScrim: 'rgba(249,247,241,0.97)',
+  // 배경 = 흰색에 라벤더를 아주 옅게 태운 종이 / 카드 = 순백(그림자로 띄운다).
+  bg: '#F7F5FD', card: '#FFFFFF', sunk: '#F1EEFA',
+  glass: 'rgba(255, 255, 255, 0.80)', glassLight: 'rgba(124, 92, 224, 0.06)',
+  // 글자 = 차콜에 남보라를 섞은 톤(시안 제목색). 순흑보다 라벤더 위에서 부드럽다.
+  ink: '#2C2743', inkSoft: '#6A6486', inkFaint: '#A49EBE', line: '#E9E4F7',
+  // 강조 = 라벤더 보라 하나(시안 주조색). 버튼·활성 탭·링크가 전부 이 색이다.
+  ju: '#7C5CE0', juDeep: '#5F44BE', juSoft: '#F0EBFE', juLine: '#DDD3F8',
+  gold: '#E0A42B', white: '#FFFFFF',
+  badgeGold: '#E0A42B', // ★코인(운) · 프리미엄 배지 금색 — 시안의 W 코인 톤.
+  // ★어두운 히어로 이미지 위 텍스트/스크림 — 이미지가 어두우므로 밝은 글씨 + 어두운 스크림 유지.
+  onImage: '#F6F3FF', onImageSoft: 'rgba(246,243,255,0.86)', scrimHero: 'rgba(28,22,58,0.5)',
+  // 흰 배경 위 스크림 — labelScrim 은 카드 하단 라벨바(어두운 카드 이미지가 비치지 않게 거의 불투명).
+  overlay: 'rgba(44,39,67,0.45)', overlaySoft: 'rgba(44,39,67,0.2)', overlayStrong: 'rgba(255,255,255,0.86)', labelScrim: 'rgba(255,255,255,0.96)',
 };
+
+// ── ★파스텔 4색 + 딥 톤 (시안의 카테고리 카드·타로 배너) ────────────────────
+//   화면마다 각자 하드코딩하지 말 것 — 같은 것을 여러 곳이 그리면 색이 갈린다(duplicate-ui-single-source).
+//   쓰임: 카테고리 2×2 카드 배경/제목색 · 딥(진남색) = 타로처럼 밤하늘 톤이 필요한 배너.
+export const pastel = {
+  pink: { bg: '#FDEBF1', ink: '#C9436F' },   // 연애와 결혼
+  blue: { bg: '#E7F0FD', ink: '#3568B8' },   // 취업과 커리어
+  green: { bg: '#E6F4EC', ink: '#358457' },  // 재물과 사업
+  amber: { bg: '#FDF3DF', ink: '#B5822A' },  // 건강과 가족
+  deep: { bg: '#2B2456', ink: '#EDE9FF' },   // 진남색 배너(오늘의 타로)
+} as const;
 
 // ── ★일간 오행 강조색(daniel 2026-07-15) ─────────────────────────
 // 대표명식 *일간의 오행색*(오방색)을 앱 액센트(ju 계열)로. 설정에서 변경 가능: 자동(일간) / 오행 직접 / 골드.
@@ -76,18 +87,21 @@ export type ElTheme = { bg: string; card: string; sunk: string; ink: string; ink
 //     오행별 강조색이 다시 필요해지면 EL_BG 옆에 EL_JU 를 두고 같은 방식으로 한 값만 덮으면 된다.
 //   ⚠️종전 EL_THEME.bg 는 iOS 시스템 그레이 계열(#EFF3EE 등)이라 **크림 위에서 회색으로 떠 보인다** →
 //     크림(#FAF6EC)에 오행 색조를 아주 옅게 태운 값으로 다시 잡았다.
+//   ★2026-08-10 라벤더 전환: 오행 배경도 **보라 톤 안에서 미세하게만** 변주한다(daniel 08-09 지시).
+//     라벤더 베이스(#F7F5FD)에 각 오행 색조를 아주 옅게 태운 값 — 앱이 사람마다 '다른 앱'처럼
+//     보이면 안 되고, 대표명식이 바뀌었다는 것만 은은히 느껴지면 된다.
 const EL_BG: Record<string, string> = {
-  木: '#F1F6EA', // 나무 — 크림에 옅은 풀빛
-  火: '#FDF1E9', // 불 — 크림에 옅은 노을빛
-  土: '#FAF4E2', // 흙 — 기본 크림보다 조금 더 샌드
-  金: '#F8F7F2', // 쇠 — 크림에서 채도만 살짝 뺀 백지
-  水: '#EFF3F5', // 물 — 크림을 서늘하게 식힌 톤
+  木: '#F4F8F6', // 나무 — 라벤더에 옅은 청록
+  火: '#FCF3F7', // 불 — 라벤더에 옅은 노을빛
+  土: '#FAF6F1', // 흙 — 라벤더를 살짝 따뜻하게
+  金: '#F8F8FC', // 쇠 — 라벤더에서 채도만 뺀 백지
+  水: '#F1F4FD', // 물 — 라벤더를 서늘하게 식힌 톤
 };
 // 설정 픽커 스와치 — ★**실제 적용되는 배경색**을 보여준다(daniel 2026-08-07 배경만 반영으로 바뀜).
 //   종전엔 강조색(ju, 진한 오행색)을 보여줬는데 이제 강조는 골드 고정이라 **고르면 안 그렇게 되는 색**이었다.
 //   ⚠️크림 계열끼리라 차이가 옅다 → 픽커에서 테두리(juLine)로 구분되게 UI 쪽에서 보완.
 export const ACCENT_SWATCH: Record<string, string> = {
-  木: EL_BG.木, 火: EL_BG.火, 土: EL_BG.土, 金: EL_BG.金, 水: EL_BG.水, gold: '#FAF6EC',
+  木: EL_BG.木, 火: EL_BG.火, 土: EL_BG.土, 金: EL_BG.金, 水: EL_BG.水, gold: '#F7F5FD',
 };
 const ACCENT_KEY = 'pref.themeAccent';   // 'auto' | '木'|'火'|'土'|'金'|'水' | 'gold'
 const ELEMENT_KEY = 'pref.themeElement'; // 대표명식 일간 오행(자동 액센트 소스) — themeElement.ts가 저장
@@ -267,9 +281,12 @@ export const space = (n: number) => n * 4;
 
 // ── 그림자 ───────────────────────────────────────────────────
 // ★Apple 디자인(daniel 2026-07-15): 그림자 절제 — 순백 카드 vs 시스템 그레이 배경의 '대비'로 깊이(iOS HIG). 아주 미묘한 그림자만.
+// ★2026-08-10 라벤더 전환: 그림자 **색을 보라**로 바꿨다(검정 그림자는 라벤더 배경 위에서 회색으로 탁해진다).
+//   세기(입체감)는 daniel 07-20 "여전히 입체감 없음" 지적 이후 값을 유지한다 — 색만 톤에 맞춘 것이다.
+//   ⚠️Android 는 shadowColor 를 무시하고 elevation 만 쓴다(iOS 에서만 색이 반영됨).
 export const shadow = {
-  card: { shadowColor: '#000', shadowOpacity: 0.20, shadowRadius: 18, shadowOffset: { width: 0, height: 8 }, elevation: 8 }, // 음영 재강화(daniel 07-20 '여전히 입체감 없음') — 라이트 배경에 카드가 확실히 떠 보이게 오프셋·불투명·반경 상향(07-18 0.13/12/4 → 0.20/18/8)
-  soft: { shadowColor: '#000', shadowOpacity: 0.03, shadowRadius: 4, shadowOffset: { width: 0, height: 1 }, elevation: 1 },
+  card: { shadowColor: '#4A3A8F', shadowOpacity: 0.18, shadowRadius: 18, shadowOffset: { width: 0, height: 8 }, elevation: 8 },
+  soft: { shadowColor: '#4A3A8F', shadowOpacity: 0.05, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 1 },
 } as const;
 
 // ── 타이포 (colors 결정 후라 활성 테마 색 반영) ───────────────
