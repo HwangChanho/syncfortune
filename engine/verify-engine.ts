@@ -90,6 +90,17 @@ for (const [desc, br, must] of INT_CASES) {
   check('卯未 는 반합 미성립(목극토 우선 · 000-rules#7)', !myoMi.some((d) => d.includes('半合')));
   const haeMyo = detectInteractions(mk(['亥', '卯', '巳', '巳'])).map((i) => i.detail);
   check('대조군: 亥卯 는 반합 성립(생이라 유지 · 반합 검출 자체는 살아 있다)', haeMyo.some((d) => d.includes('亥卯半合木')));
+
+  // ★상담가 판정 2026-08-03 `verify-000c-structure#3`(O) — 지지 합은 **이웃 기둥끼리만**.
+  //   세 가지를 같이 검사한다. 하나만 보면 "합 검출을 통째로 껐다"·"거리를 충에도 걸었다"를 못 잡는다.
+  const farHap = detectInteractions(mk(['子', '巳', '巳', '丑'])).map((i) => i.detail);
+  check('子(년)丑(시) 육합은 미성립(거리 3 · 000c#3)', !farHap.some((d) => d.includes('子丑合')));
+  const farBan = detectInteractions(mk(['申', '巳', '巳', '子'])).map((i) => i.detail);
+  check('申(년)子(시) 반합도 미성립(거리 조건은 반합에도 걸린다)', !farBan.some((d) => d.includes('半合')));
+  // ⚠️대조군 — 거리 조건은 **합에만**. 충·형·해·파는 `#4`(△)라 확정이 아니고,
+  //   실측상 확대하면 daniel 차트 판정이 정답에서 멀어진다(structure.ts adjacentPair 주석).
+  const farChung = detectInteractions(mk(['子', '巳', '巳', '午'])).map((i) => i.detail);
+  check('대조군: 子(년)午(시) 충은 거리 무관하게 그대로 검출(#4 는 미적용)', farChung.some((d) => d.includes('子午冲')));
 }
 
 // ── 신살 일반화 (타 일간 차트 — 자기차트 n=1 넘어 규칙이 임의 차트에 일반 적용되는지) ──

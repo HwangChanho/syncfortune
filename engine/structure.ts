@@ -40,6 +40,32 @@ const pairMatch = (list: [Branch, Branch][], a: Branch, b: Branch) =>
   list.some(([x, y]) => (x === a && y === b) || (x === b && y === a));
 
 /**
+ * 원국 두 기둥이 **이웃**인가 — 년-월 · 월-일 · 일-시.
+ *
+ * 상담가 판정 2026-08-03 `verify-000c-structure#3` (O):
+ *   *"지지 합은 서로 이웃한 기둥끼리만 성립한다 — 년-월, 월-일, 일-시. 떨어진 자리끼리는 성립하지 않는다."*
+ *   *"바로 옆에 있어야 작용하는데, 주변 글자가 그 작용력을 약화시킬 수도 있다."*
+ *   같은 지적이 **세 번 독립으로** 나왔다(101#5 "붙어있어야 작용함" · 110#5 "멀어서 안된다" · 2차 판정).
+ *
+ * ★적용 범위를 **합에만** 둔다 — 넓히지 않는 이유가 판정과 실측 둘 다에 있다:
+ *   · 충·형·해·파는 같은 세트 `#4` 가 **△("위와 동일")** 라 확정이 아니다. 그리고 실측이 반대를 가리킨다 —
+ *     daniel 본인 차트(甲戌 丁卯 辛丑 丁酉)에 충·형·해까지 거리 조건을 걸면 강약 score 0.9 → 4.9 로 뛰어
+ *     **중화 → 신왕**이 된다. 전문가 검수(2026-07-14) 정답은 **신약**이라 오히려 더 멀어진다.
+ *     (합만 걸면 卯戌=년월 · 丑酉=일시가 둘 다 이웃이라 이 차트는 **무영향**이다 — 그래서 안전하게 넣는다.)
+ *   · 운(대운·세운)이 낀 관계는 제외 — `#5`(O) *"운에는 자리가 없으므로 원국 어느 글자와도 만난다."*
+ *   · 3자 국(삼합국·방합국)은 판정에 없다 → **건드리지 않는다**(CLAUDE.md §3.2 발명 금지).
+ *
+ * @param members 관계에 참여한 자리들
+ * @returns 거리 조건을 통과하는가(원국 2자 관계가 아니면 항상 true)
+ */
+function adjacentPair(members: ChartPosition[]): boolean {
+  if (members.length !== 2) return true;                                   // 3자 국 등 = 대상 아님
+  const natal = members.filter((m) => (POS as string[]).includes(m as string));
+  if (natal.length !== 2) return true;                                     // 운이 끼었다 = 자리 없음(#5)
+  return Math.abs(POS.indexOf(natal[0] as PillarPos) - POS.indexOf(natal[1] as PillarPos)) === 1;
+}
+
+/**
  * 임의 기둥 집합(원국 + 시간층 대운·세운·월운…) 간 합충형해 검출 (결정론).
  * - 지지: 육합(化 + R1 화성립)·충·해·파·상형·삼형·자형·반합·삼합국·방합국(3자).
  * - 천간: 합(化)·충(=상극)·극(오행극). level 로 천간/지지 구분.
@@ -59,8 +85,9 @@ export function detectInteractionsAmong(items: { pos: ChartPosition; stem: Stem;
   // 쌍 관계 (지지: 합·충·해·파·상형·반합)
   for (let i = 0; i < items.length; i++) for (let j = i + 1; j < items.length; j++) {
     const A = items[i], B = items[j];
+    const near = adjacentPair([A.pos, B.pos]);   // ★지지 합에만 거리 조건(000c#3 O) — 충·형·해·파는 미적용
     const he = SIXHE.find(([x, y]) => (x === A.branch && y === B.branch) || (x === B.branch && y === A.branch));
-    if (he) out.push({ type: '합', members: [A.pos, B.pos], detail: `${he[0]}${he[1]}合化${he[2]}`, transformsTo: he[2], transformSupported: stemElems.has(he[2]) });
+    if (he && near) out.push({ type: '합', members: [A.pos, B.pos], detail: `${he[0]}${he[1]}合化${he[2]}`, transformsTo: he[2], transformSupported: stemElems.has(he[2]) });
     if (pairMatch(CHONG, A.branch, B.branch)) out.push({ type: '충', members: [A.pos, B.pos], detail: `${A.branch}${B.branch}冲` });
     if (pairMatch(HAI, A.branch, B.branch)) out.push({ type: '해', members: [A.pos, B.pos], detail: `${A.branch}${B.branch}害` });
     if (pairMatch(PO, A.branch, B.branch)) out.push({ type: '파', members: [A.pos, B.pos], detail: `${A.branch}${B.branch}破` });
@@ -68,7 +95,7 @@ export function detectInteractionsAmong(items: { pos: ChartPosition; stem: Stem;
     const ban = A.branch !== B.branch && !pairMatch(BANHAP_EXCLUDED, A.branch, B.branch) // 반합은 삼합 중 *서로 다른* 두 글자 (같은 글자=자형, 반합 아님) · 卯未 는 극 우선이라 제외(000-rules#7)
       ? SANHE.find((grp) => { const s = grp.slice(0, 3) as Branch[]; return !fullSanheSet.has(grp) && s.includes(A.branch) && s.includes(B.branch) && (WANGZHI.includes(A.branch) || WANGZHI.includes(B.branch)); })
       : undefined;
-    if (ban) out.push({ type: '합', members: [A.pos, B.pos], detail: `${A.branch}${B.branch}半合${ban[3]}`, transformsTo: ban[3] });
+    if (ban && near) out.push({ type: '합', members: [A.pos, B.pos], detail: `${A.branch}${B.branch}半合${ban[3]}`, transformsTo: ban[3] });
   }
 
   // 삼합국·방합국 (3자 완전체 — members 는 해당 글자의 *모든* 자리, 중복 글자 포함)
