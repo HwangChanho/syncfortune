@@ -35,18 +35,45 @@ const QKEY = 'log_queue_v1';
 const QUEUE_MAX = 400;          // 이 이상은 오래된 것부터 버린다(용량·업로드 시간 방어)
 const FLUSH_BATCH = 40;         // 한 번에 올릴 최대 건수
 
-type Entry = { t: string; event: string; level: LogLevel; detail: Record<string, unknown> };
+type Entry = { t: string; event: string; level: LogLevel; detail: Record<string, unknown>; id?: string };
 let queue: Entry[] = [];
-let loaded = false;
 let flushing = false;
 let dropped = 0;                // 상한 초과로 버린 건수(다음 플러시에 함께 보고)
 
-/** 큐를 디스크에서 한 번 읽어 온다. 실패는 무시 — 로깅이 앱을 막지 않는다. */
-async function ensureLoaded(): Promise<void> {
-  if (loaded) return;
-  loaded = true;
-  try { const raw = await SecureStore.getItemAsync(QKEY); if (raw) queue = JSON.parse(raw) as Entry[]; }
-  catch { queue = []; }
+/** 큐 항목 고유 id — **중복 전송과 중복 호출을 구분**하려고 붙인다(아래 ensureLoaded 사고 참조).
+ *  같은 id 가 서버에 두 행이면 전송이 두 번 간 것이고, 다른 id 면 호출부가 두 번 부른 것이다.
+ *  이 구분이 없어서 `detail.at`(밀리초)만 보고 원인을 넘겨짚을 뻔했다 — 같은 밀리초에 두 번 부를 수도 있다. */
+const newId = () => `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+
+/**
+ * 큐를 디스크에서 한 번 읽어 온다. 실패는 무시 — 로깅이 앱을 막지 않는다.
+ *
+ * ⚠️★★2026-08-10 실측 사고 — **모든 로그가 두 번 기록되고 있었다**(`app_active` 996건 = 실제 약 498회).
+ *   원인이 여기였다. 종전 구현:
+ *     `if (loaded) return; loaded = true; ... await getItemAsync(); queue = JSON.parse(raw);`
+ *   `loaded = true` 를 **await 앞에서** 세우는 바람에, 디스크를 읽는 동안 들어온 다른 호출은
+ *   "이미 로드됨"으로 보고 그냥 지나가 **push → 전송 → 큐 비움**까지 마친다.
+ *   그 뒤 늦게 도착한 첫 호출이 `queue = JSON.parse(raw)` 로 **큐를 통째로 덮어써**
+ *   **이미 보낸 항목이 되살아나 다시 전송**됐다. (덮어쓰기라 반대로 유실도 났다.)
+ *
+ *   ⇒ ①**단일 프라미스**로 만들어 동시 호출이 같은 것을 기다리게 하고
+ *     ②로드 결과를 덮어쓰지 않고 **디스크 것 + 그 사이 쌓인 것** 순서로 **병합**한다.
+ */
+let loadPromise: Promise<void> | null = null;
+function ensureLoaded(): Promise<void> {
+  if (!loadPromise) {
+    loadPromise = (async () => {
+      try {
+        const raw = await SecureStore.getItemAsync(QKEY);
+        if (raw) {
+          const disk = JSON.parse(raw) as Entry[];
+          // ★덮어쓰지 않는다 — 읽는 동안 들어온 항목(queue)을 뒤에 붙여 시간순을 지킨다.
+          queue = [...disk, ...queue];
+        }
+      } catch { /* 읽기 실패 시 현재 큐를 그대로 둔다(비우면 그 사이 쌓인 로그를 잃는다) */ }
+    })();
+  }
+  return loadPromise;
 }
 /** 큐를 디스크에 쓴다. 자주 불리므로 실패해도 조용히 넘어간다. */
 async function persist(): Promise<void> {
@@ -81,7 +108,9 @@ export async function flushLogQueue(): Promise<void> {
         const res = await withTimeout(supabase.rpc('log_event', {
           p_event: e.event, p_level: e.level,
           // 실제 발생 시각을 detail 에 실어 보낸다 — created_at 은 '전송 시각'이라 사고 구간이 뭉개진다.
-          p_detail: { ...e.detail, at: e.t, queued: true }, p_platform: Platform.OS,
+          // ★lid = 큐 항목 고유 id. 서버에 같은 lid 가 두 행이면 **전송이 두 번** 간 것이고,
+          //   다른 lid 면 **호출부가 두 번** 부른 것이다 — 이 구분이 없으면 원인을 넘겨짚게 된다.
+          p_detail: { ...e.detail, at: e.t, lid: e.id, queued: true }, p_platform: Platform.OS,
         }), 8000);
         if (!res || res.error) break;     // 타임아웃이거나 못 닿는다 → 남은 건 보존
         sent++;
@@ -108,7 +137,7 @@ export function logEvent(event: string, detail?: unknown, level: LogLevel = 'inf
     // ★먼저 로컬 큐에 넣고 곧바로 플러시 시도 — 네트워크가 죽어 있어도 기록은 남는다(위 §사각지대).
     void (async () => {
       await ensureLoaded();
-      queue.push({ t: new Date().toISOString(), event, level, detail: p_detail as Record<string, unknown> });
+      queue.push({ t: new Date().toISOString(), id: newId(), event, level, detail: p_detail as Record<string, unknown> });
       if (queue.length > QUEUE_MAX) { dropped += queue.length - QUEUE_MAX; queue = queue.slice(-QUEUE_MAX); }
       await persist();
       await flushLogQueue();
