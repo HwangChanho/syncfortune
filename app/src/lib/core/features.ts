@@ -54,7 +54,10 @@ export function remoteFlagValue(key: FeatureKey): boolean {
 
 /** 관리자 토글 — set_app_flag RPC(서버 is_admin 게이트) 호출 후 로컬 캐시 갱신. 심사 통과 후 공개 전환용. */
 export async function setAppFlag(key: FeatureKey, enabled: boolean): Promise<void> {
-  await supabase.rpc('set_app_flag', { p_key: key, p_enabled: enabled });
+  // ⚠️`supabase.rpc()` 는 실패해도 **throw 하지 않는다** — `{ data, error }` 를 돌려준다.
+  //   error 를 안 보면 서버가 거부해도 아래 캐시가 갱신돼 **UI 만 켜진 것처럼 보인다**(2026-08-11 실측).
+  const { error } = await supabase.rpc('set_app_flag', { p_key: key, p_enabled: enabled });
+  if (error) throw new Error(error.message || 'set_app_flag 실패');
   remoteFlags[key] = enabled;
   emit();
 }
@@ -77,7 +80,9 @@ export function newOverride(contentKey: string): boolean | undefined {
 /** 관리자 토글 — NEW 배지를 즉시 켜고 끈다(재빌드 없이 전 유저). */
 export async function setNewOverride(contentKey: string, enabled: boolean): Promise<void> {
   const k = newFlagKey(contentKey);
-  await supabase.rpc('set_app_flag', { p_key: k, p_enabled: enabled });
+  // ⚠️위와 같은 이유로 **error 를 반드시 확인한다.** 안 보면 저장 실패가 성공처럼 보인다.
+  const { error } = await supabase.rpc('set_app_flag', { p_key: k, p_enabled: enabled });
+  if (error) throw new Error(error.message || 'set_app_flag 실패');
   remoteFlags[k] = enabled;
   emit();
 }

@@ -397,7 +397,7 @@ export default function AdminRoute() {
                   //   여기서는 켬/끔 2-상태만 순환시킨다(자동은 한 번도 안 건드린 상태로만 존재).
                   const next = ov === undefined ? true : !ov;
                   try { await setNewOverride(it.key, next); setNewTick((t) => t + 1); }
-                  catch { Alert.alert('!', 'NEW 토글 실패 — 관리자 권한을 확인하세요.'); }
+                  catch (e) { Alert.alert('NEW 토글 실패', String((e as Error)?.message ?? e)); } // ★사유를 그대로 보여 준다
                 }}
               >
                 <Text style={styles.newKey} numberOfLines={1}>{it.key}</Text>

@@ -317,7 +317,11 @@ export async function registerPushToken(): Promise<void> {
     const projectId = (Constants as any)?.expoConfig?.extra?.eas?.projectId ?? (Constants as any)?.easConfig?.projectId;
     if (!projectId) return;
     const { data: token } = await Notif.getExpoPushTokenAsync({ projectId });
-    if (token) await supabase.rpc('set_push_token', { p_token: token }); // 본인 row 갱신(security definer)
+    // ⚠️rpc 는 실패해도 throw 하지 않는다 → error 를 안 보면 **푸시 토큰이 저장 안 된 채 조용히 지나간다**.
+    if (token) {
+      const { error } = await supabase.rpc('set_push_token', { p_token: token }); // 본인 row 갱신(security definer)
+      if (error) throw error;
+    }
   } catch { /* 권한·모듈·네트워크 문제 시 조용히 무시 */ }
 }
 

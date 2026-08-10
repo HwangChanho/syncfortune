@@ -55,7 +55,10 @@ async function pushChartsNow(): Promise<void> {
   if (!(await hasSession())) return;                       // 비로그인 = 동기화 없음
   try {
     const blob = JSON.stringify({ v: BLOB_V, charts: await listCharts(), rep: await getRaw(REP_KEY), tombstones: await getTombstones() });
-    await supabase.rpc('set_my_charts', { p_blob: blob });
+    // ⚠️`supabase.rpc()` 는 실패해도 **throw 하지 않는다**(`{data, error}` 반환) — 2026-08-11 실측.
+    //   여기서 error 를 안 보면 **명식 동기화가 조용히 실패**하고 catch 도 안 탄다. 던져서 아래 catch 로 보낸다.
+    const { error } = await supabase.rpc('set_my_charts', { p_blob: blob });
+    if (error) throw error;
   } catch { /* 네트워크/세션 오류 격리 — 다음 변경 때 재시도 */ }
 }
 
