@@ -17,7 +17,8 @@ import { supabase } from '../supabase';
 import { computeChart } from '../engine/engine';
 import { attachIndicators } from '@engine/attachIndicators';
 import { johu2 } from '@engine/johu2';
-import { attachAxes } from '@engine/attachAxes';
+import { attachAxes } from '@engine/attachAxes';           // v0 — 기각된 축(회귀 비교용으로만 계속 수집)
+import { spouseCapacityAxis } from '@engine/attachSpouseAxis'; // v1 — 상담가 원문 축(화면이 쓰는 것)
 import { scoreSurvey, type AttachAnswers } from './attachSurvey';
 import type { ChartInput } from '@spec/chart';
 
@@ -78,7 +79,11 @@ export async function saveAttachResponse(
       const c = computeChart(input);
       // indicators 와 johu2 를 한 덩어리로 — 회귀 입력이 늘어도 DDL 이 필요 없다(jsonb).
       indicators = { ...attachIndicators(c.saju), johu2: johu2(c.saju) };
-      axes = attachAxes(c.saju);
+      // ★v0(불안·회피 2축)와 v1(배우자성 감당)을 **둘 다** 남긴다.
+      //   v0 는 축 배정이 상담가 검증에서 기각(`verify-000e-attach` 15/15 X)돼 화면에서 내려갔지만,
+      //   이미 수집된 v0 응답과 이어 붙여 비교해야 "새 축이 나은가"를 나중에 잴 수 있다.
+      //   ⚠️`axes` 컬럼은 jsonb 라 DDL 없이 확장된다 — 한 덩어리로 싣는다.
+      axes = { v0: attachAxes(c.saju), v1: spouseCapacityAxis(c.saju, input.sex) };
       monthBranch = c.saju.pillars['월'].branch;
       const birthYear = Number(String(input.birthDateTime ?? '').slice(0, 4));
       const age = birthYear ? new Date().getFullYear() - birthYear + 1 : NaN; // 대운은 세는나이 기준(엔진과 동일)

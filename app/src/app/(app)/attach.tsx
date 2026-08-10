@@ -24,7 +24,7 @@ import { RelatedContent } from '../../components/RelatedContent';
 import { AttachCompareBar, AttachCompareLegend } from '../../components/AttachCompareBar';
 import { loadRepChart, type SavedChart } from '../../lib/engine/myChart';
 import { computeChart } from '../../lib/engine/engine';
-import { attachAxes, type AttachAxes } from '@engine/attachAxes';
+import { spouseCapacityAxis, type SpouseCapacityAxis } from '@engine/attachSpouseAxis';
 import { ATTACH_ITEMS, SCALE_LABELS, SCALE_MIN, SCALE_MAX, scoreSurvey, type AttachAnswers } from '../../lib/content/attachSurvey';
 import { useLogContentVisit } from '../../lib/backend/contentVisit';
 import { saveAttachResponse } from '../../lib/content/attachSave';
@@ -55,18 +55,24 @@ export default function AttachScreen() {
     return () => { alive = false; };
   }, [reloadKey]);
 
-  // 명식 → 두 축. 명식이 없으면 설문만으로도 화면이 성립한다(설문은 명식과 독립).
-  const axes: AttachAxes | null = useMemo(() => {
+  // 명식 → **배우자성 감당 축 한 개**. 명식이 없으면 설문만으로도 화면이 성립한다(설문은 명식과 독립).
+  //   ⚠️2026-08-10: 옛 `attachAxes`(불안·회피 2축)는 상담가 검증에서 **15/15 X** 로 축 배정이 기각됐다.
+  //     여기서 쓰는 축은 상담가 원문 그대로다 — "남자는 정재, 여자는 정관 입장에서 일간이 감당하는가".
+  const spouse: SpouseCapacityAxis | null = useMemo(() => {
     if (!saved) return null;
-    try { return attachAxes(computeChart(saved.input).saju); } catch { return null; }
+    try { return spouseCapacityAxis(computeChart(saved.input).saju, saved.input.sex); } catch { return null; }
   }, [saved]);
 
   const survey = useMemo(() => scoreSurvey(answers), [answers]);
   const surveyDone = survey.answered === survey.total;
 
-  /** 기여 목록 — 0 인 항목은 감춘다(민 것만 보여 주는 게 근거로서 정확하다). */
-  const contribList = (which: 'anxiety' | 'avoidance') =>
-    (axes?.[which].contributions ?? []).filter((c) => c.value > 0).sort((a, b) => b.value - a.value);
+  /**
+   * 명식이 말하는 **회피 쪽 정도** 0~1 — 비교 그래프에서만 쓴다.
+   * 상담가: *"감당이 어려우면 회피형"* ⇒ 감당 위치(1=여유)를 뒤집으면 회피 정도가 된다.
+   * ★불안 축에는 값을 넣지 않는다 — 상담가가 말한 **'불안정'은 안정의 반대말**이지
+   *   설문(ECR-R)의 **'불안' 축이 아니다.** 여기서 이어 붙이면 그건 내가 만든 대응이다.
+   */
+  const chartAvoidance = spouse ? Math.round((1 - spouse.position) * 100) / 100 : undefined;
 
   return (
     <View style={styles.bgImage}>
@@ -103,7 +109,7 @@ export default function AttachScreen() {
               {t('attach.needChart', '명식을 등록하면 이 부분이 함께 나옵니다. 설문만 먼저 해 보셔도 됩니다.')}
             </Text>
           </View>
-        ) : !axes ? (
+        ) : !spouse ? (
           <View style={styles.card}>
             <Text style={[styles.emptyText, { fontSize: fs(13), lineHeight: fs(20) }]}>
               {t('attach.chartFail', '이 명식으로는 계산하지 못했습니다.')}
@@ -111,41 +117,57 @@ export default function AttachScreen() {
           </View>
         ) : (
           <>
-            {(['anxiety', 'avoidance'] as const).map((k) => (
-              <View key={k} style={styles.axisCard}>
-                <Text style={[styles.axisName, { fontSize: fs(15), lineHeight: fs(21) }]}>
-                  {k === 'anxiety' ? t('attach.axisAnx', '불안 — 멀어질까 하는 쪽') : t('attach.axisAvo', '회피 — 거리를 두는 쪽')}
-                </Text>
-                <Text style={[styles.axisNum, { fontSize: fs(28), lineHeight: fs(36) }]}>
-                  {Math.round(axes[k].score * 100)}
-                  <Text style={[styles.axisUnit, { fontSize: fs(16), lineHeight: fs(22) }]}> / 100</Text>
-                </Text>
-                {/* 근거 — 무엇이 이 점수를 밀었나. 점수만 보여 주면 반증이 불가능해진다(§3). */}
-                <Text style={[styles.basisHead, { fontSize: fs(12), lineHeight: fs(17) }]}>
-                  {t('attach.basisHead', '이 점수를 민 것')}
-                </Text>
-                {contribList(k).map((c) => (
-                  <View key={c.key} style={styles.basisRow}>
-                    <Text style={[styles.basisLabel, { fontSize: fs(13), lineHeight: fs(19) }]}>{c.label}</Text>
-                    <View style={styles.basisTrack}>
-                      <View style={[styles.basisFill, { width: `${Math.round(c.value * 100)}%` }]} />
-                    </View>
-                  </View>
-                ))}
-                {contribList(k).length === 0 ? (
-                  <Text style={[styles.basisLabel, { fontSize: fs(13), lineHeight: fs(19) }]}>
-                    {t('attach.basisNone', '이 축을 미는 구조가 뚜렷하지 않습니다.')}
-                  </Text>
-                ) : null}
-              </View>
-            ))}
+            <View style={styles.axisCard}>
+              {/* 무엇을 보고 있는지 먼저 말한다 — 남자면 정재, 여자면 정관(상담가 원문). */}
+              <Text style={[styles.axisName, { fontSize: fs(15), lineHeight: fs(21) }]}>
+                {t('attach.capTitle', '일간이 {{target}}을(를) 감당하는가', { target: spouse.target })}
+              </Text>
+              <Text style={[styles.noteBody, { fontSize: fs(13), lineHeight: fs(20) }]}>
+                {t('attach.capFrame', '관계에서의 거리감은 내가 관계를 감당할 여유가 있는지에서 갈립니다. 남자 명식은 정재, 여자 명식은 정관 자리를 두고 봅니다.')}
+              </Text>
 
-            {/* ★가중치가 가설임을 화면에 적는다 — 이 문장이 빠지면 R-ATTACH 는 사후 변명 장치가 된다(§3)
-                ⚠️2026-08-10: 원래 이 자리에 "축 배정은 상담 전문가가 지정했다"고 적혀 있었으나
-                   `verify-000e-attach#13·#14`(둘 다 X)로 **그 배정 자체가 기각**됐다 — 문구가 거짓이 됐으므로
-                   전문가 귀속을 걷어내고 '검증 중인 가설 · 재설계 중'으로 바꿨다. 축을 다시 세울 때 이 문구도 같이 바꾼다. */}
+              {/* 스펙트럼 — ③ 비교와 **같은 막대 부품**을 쓴다(같은 것을 두 번 그리지 않는다). */}
+              <AttachCompareBar
+                label={t('attach.capAxis', '감당')}
+                chart={spouse.position}
+                survey={undefined}
+                lowText={t('attach.capLow', '버거운 쪽 · 거리를 둔다')}
+                highText={t('attach.capHigh', '여유 있는 쪽 · 편안하다')}
+              />
+              <Text style={[styles.hypo, { fontSize: fs(11), lineHeight: fs(17) }]}>
+                {t('attach.capEdge', '양쪽 끝으로 멀리 갈수록 관계가 흔들리기 쉬워집니다. 어디부터를 그렇게 볼지는 아직 정하지 않아, 유형 이름을 붙이지 않고 위치만 보여 드립니다.')}
+              </Text>
+
+              {/* 근거 — 무엇이 이 위치를 밀었나. 점수만 보여 주면 반증이 불가능해진다(§3). */}
+              <Text style={[styles.basisHead, { fontSize: fs(12), lineHeight: fs(17) }]}>
+                {t('attach.basisHead', '이 점수를 민 것')}
+              </Text>
+              {spouse.contributions.map((c) => (
+                <View key={c.key} style={styles.basisRow}>
+                  <Text style={[styles.basisLabel, { fontSize: fs(13), lineHeight: fs(19) }]}>
+                    {c.label}
+                    <Text style={styles.basisSide}>{c.side === '자립' ? ` · ${t('attach.sideSelf', '여유 쪽')}` : ` · ${t('attach.sideLoad', '부담 쪽')}`}</Text>
+                  </Text>
+                  <View style={styles.basisTrack}>
+                    <View style={[styles.basisFill, { width: `${Math.round(c.value * 100)}%` }]} />
+                  </View>
+                </View>
+              ))}
+
+              {/* 상대 자리가 원국에 안 드러난 경우 — 어떻게 보는지가 아직 판정 전이라 **사실만** 적는다. */}
+              {!spouse.objectPresent ? (
+                <Text style={[styles.hypo, { fontSize: fs(11), lineHeight: fs(17) }]}>
+                  {t('attach.capAbsent', '이 명식에는 {{target}}이(가) 겉으로 드러나 있지 않습니다. 그런 명식을 어떻게 읽을지는 아직 확인 중이라, 위 위치는 더 넉넉히 참고만 해 주세요.', { target: spouse.target })}
+                </Text>
+              ) : null}
+            </View>
+
+            {/* ★가설임을 화면에 적는다 — 이 문장이 빠지면 R-ATTACH 는 사후 변명 장치가 된다(§3)
+                ⚠️2026-08-10: 원래 이 자리엔 "축 배정은 상담 전문가가 지정했다"고 적혀 있었는데
+                   `verify-000e-attach` 15/15 X 로 **그 배정이 통째로 기각**돼 문구가 거짓이 됐었다.
+                   지금 축은 상담가 원문 그대로다 — 남은 미확정은 **'감당'을 무엇으로 재는가**뿐이다. */}
             <Text style={[styles.hypo, { fontSize: fs(11), lineHeight: fs(17) }]}>
-              {t('attach.hypo', '위 항목들이 어느 축에 속하는지는 아직 검증되지 않은 가설입니다. 상담 전문가 검증에서 이 배정을 다시 보라는 판정을 받아 현재 재설계 중이고, 항목별 비중도 정하지 않아 모두 같은 무게로 두었습니다(v0). 명식 쪽 결과는 참고로만 봐 주세요.')}
+              {t('attach.hypo', '보는 자리(남자는 정재·여자는 정관)와 읽는 방법은 상담 전문가가 주신 그대로입니다. 다만 “감당한다”를 무엇으로 잴지는 아직 확인 중이라, 근거 항목을 모두 같은 무게로 두었습니다(v1). 확인되면 다시 계산해 반영합니다.')}
             </Text>
           </>
         )}
@@ -203,20 +225,26 @@ export default function AttachScreen() {
         ) : (
           <View style={styles.axisCard}>
             <AttachCompareLegend />
+            {/* ★불안 축에는 명식 값을 넣지 않는다(chart 없음 = 마커를 안 그린다).
+                상담가가 말한 '불안정'은 **안정의 반대말**이지 설문(ECR-R)의 '불안' 축이 아니다.
+                억지로 이어 붙이면 그건 판정이 아니라 내가 만든 대응이 된다. */}
             <AttachCompareBar
               label={t('attach.axisAnxShort', '불안')}
-              chart={axes?.anxiety.score}
+              chart={undefined}
               survey={survey.anxiety}
               lowText={t('attach.anxLow', '흔들리지 않는 편')}
               highText={t('attach.anxHigh', '멀어질까 살피는 편')}
             />
             <AttachCompareBar
               label={t('attach.axisAvoShort', '회피')}
-              chart={axes?.avoidance.score}
+              chart={chartAvoidance}
               survey={survey.avoidance}
               lowText={t('attach.avoLow', '가까움이 편한 편')}
               highText={t('attach.avoHigh', '거리를 두는 편')}
             />
+            <Text style={[styles.hypo, { fontSize: fs(11), lineHeight: fs(17) }]}>
+              {t('attach.cmpAnxNone', '불안 줄에는 설문 결과만 있습니다. 명식 쪽은 “관계를 감당할 여유가 있는가”까지를 말하고, 그것을 불안으로 바꿔 읽는 방법은 아직 확인하지 않았습니다.')}
+            </Text>
 
             {/* §6 편향 신호 — 해석을 단정하지 않고 '따로 볼 것'으로만 제시한다 */}
             {survey.soloCloseGap >= 0.25 ? (
@@ -304,6 +332,8 @@ const styles = StyleSheet.create({
   basisHead: { color: colors.inkFaint, fontWeight: '700', marginTop: space(3), marginBottom: space(2) },
   basisRow: { marginBottom: space(2) },
   basisLabel: { color: colors.inkSoft, marginBottom: space(1) },
+  // 그 항목이 축을 어느 쪽으로 미는지 — 라벨 뒤에 옅게 붙인다(색으로만 구분하지 않는다: 색각 접근성)
+  basisSide: { color: colors.inkFaint, fontWeight: '700' },
   basisTrack: { height: 6, borderRadius: 3, backgroundColor: colors.sunk, overflow: 'hidden' },
   basisFill: { height: 6, borderRadius: 3, backgroundColor: '#C8A24A' },
 
