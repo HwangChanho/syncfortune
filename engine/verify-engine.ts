@@ -107,6 +107,17 @@ for (const [desc, br, must] of INT_CASES) {
   // 대조군은 **인접 충**으로 옮긴다 — 충 검출 자체를 껐다는 사고를 잡으려면 반드시 하나는 살아 있어야 한다.
   const nearChung = detectInteractions(mk(['子', '午', '巳', '巳'])).map((i) => i.detail);
   check('대조군: 子(년)午(월) 인접 충은 그대로 검출(충 검출이 죽지 않았다)', nearChung.some((d) => d.includes('子午冲')));
+
+  // ★★형(刑)의 **삼형·자형 경로**에 거리 조건이 빠져 있었다 (2026-08-10 실측으로 발견)
+  //   상형(子卯)에만 `near` 를 걸고 삼형(丑戌未)·자형(辰午酉亥)을 같이 안 고쳤다.
+  //   실제 명식 甲戌 辛未 乙未 癸未 에서 戌未刑 이 **년-일·년-시**까지 잡히고 있었다(강약 score 오염).
+  //   ⇒ 자리를 **members 로** 검사한다. detail 문자열만 보면 어느 자리 쌍인지 몰라 이 버그를 못 잡는다.
+  const sanxing = detectInteractions(mk(['戌', '未', '未', '未']));
+  const xingPairs = sanxing.filter((i) => i.type === '형').map((i) => (i.members as string[]).join('-'));
+  check(`삼형 戌未 는 인접(년-월)만 성립 — 년-일·년-시는 미성립(000d#6) [${xingPairs.join(',')}]`,
+    xingPairs.includes('년-월') && !xingPairs.includes('년-일') && !xingPairs.includes('년-시'));
+  check(`자형 未未 도 인접만 — 월-시(두 칸)는 미성립 [${xingPairs.join(',')}]`, !xingPairs.includes('월-시'));
+  check(`대조군: 인접 자형(월-일 · 일-시)은 살아 있다 [${xingPairs.join(',')}]`, xingPairs.includes('월-일') && xingPairs.includes('일-시'));
 }
 
 // ── 충의 세력 비교 (`verify-000c-structure#14` · O) — verify-103 재현 ──

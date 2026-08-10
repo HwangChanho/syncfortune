@@ -125,15 +125,27 @@ export function detectInteractionsAmong(items: { pos: ChartPosition; stem: Stem;
   fullFanghe.forEach((g) => pushGuk(g, '方合'));
 
   // 삼형 (그룹 내 2글자 이상 → 쌍별)
+  //   ⚠️2026-08-10 수정 — 여기와 아래 자형에 **거리 조건이 빠져 있었다**(`000d#6` 반영 누락).
+  //     상형(XING_PAIR)에는 `near` 를 걸었는데 삼형·자형 경로를 같이 안 고쳐서, 실측하니
+  //     甲戌 辛未 乙未 癸未 에서 戌未刑 이 **년-일(두 칸)·년-시(세 칸)까지** 잡히고 있었다.
+  //     상담가: *"떨어진 자리의 충·**형**·해·파는 아예 작용하지 않는다 — 0 이다."*
   for (const grp of SANXING) {
     const present = items.filter((s) => grp.includes(s.branch));
-    for (let i = 0; i < present.length; i++) for (let j = i + 1; j < present.length; j++)
+    for (let i = 0; i < present.length; i++) for (let j = i + 1; j < present.length; j++) {
+      if (!adjacentPair([present[i].pos, present[j].pos])) continue;   // ★거리 조건(000d#6)
       out.push({ type: '형', members: [present[i].pos, present[j].pos], detail: `${present[i].branch}${present[j].branch}刑` });
+    }
   }
-  // 자형 (같은 글자 2개 이상)
+  // 자형 (같은 글자 2개 이상) — ★**쌍별**로 낸다(옛 코드는 세 자리를 한 덩어리로 묶어 거리를 잴 수 없었다)
   const byBranch: Partial<Record<Branch, ChartPosition[]>> = {};
   items.forEach((s) => { (byBranch[s.branch] ??= []).push(s.pos); });
-  for (const b of ZIXING) { const ps = byBranch[b]; if (ps && ps.length >= 2) out.push({ type: '형', members: ps, detail: `${b}${b}自刑` }); }
+  for (const b of ZIXING) {
+    const ps = byBranch[b] ?? [];
+    for (let i = 0; i < ps.length; i++) for (let j = i + 1; j < ps.length; j++) {
+      if (!adjacentPair([ps[i], ps[j]])) continue;                     // ★거리 조건(000d#6)
+      out.push({ type: '형', members: [ps[i], ps[j]], detail: `${b}${b}自刑` });
+    }
+  }
 
   // 천간 합·충(극)
   for (let i = 0; i < items.length; i++) for (let j = i + 1; j < items.length; j++) {
