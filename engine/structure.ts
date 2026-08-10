@@ -266,15 +266,27 @@ const THRESHOLD_3 = 1.75;  // ★실측 확정(2026-08-01 1.25 → 2026-08-10 1.
 //   점수가 0.5 단위로 떨어져 완전 일치는 불가 — ±1.25 와 ±1.50 은 같은 결과이고 그보다 넓히면 30%대로 뛴다.
 //   재측정: `npx tsx engine/strength3.calibrate.ts` (코드값과 실측 최적이 어긋나면 실패한다)
 const THRESHOLD_FOR = (noHour: boolean) => (noHour ? THRESHOLD_3 : THRESHOLD);
-// D1(daniel 2026-07-06 승인): 삼합 완합(3자)=GUK_BONUS 그대로 / 반합(2자, 왕지 포함)=×0.6 차등.
-//   ★배경: 완합과 반합이 동률(±GUK_BONUS)로 찍히던 문제(酉丑 반합 금국이 완성국과 동일 세력으로 계산됨) → 반합 세력을 0.6으로 감쇄.
-const BANHAP_MULT = 0.6; // ★조정 슬롯 — 반합 세력 계수(완합 대비)
+// ★`BANHAP_MULT`(반합 세력 ×0.6 · daniel D1 2026-07-06)는 **폐기**했다 — 2026-08-11 `verify-000h-magnitude#7`(O):
+//   *"'유지되는 힘'이란 더 세지지는 않지만 극을 당해도 덜 흔들린다는 뜻"* → 반합은 **더하기가 아니라 버티기**다.
+//   세력 가산은 0 이 되고, 대신 그 자리의 **충 손상을 면제**한다(scoreStrength 의 `banhapHeld`).
+//   완합(3자)은 `000g#3`(O) *"실제로 그 오행의 세력을 이룬다"* 로 **그대로 유지**한다.
 
 /**
  * 신강약 *참고 지표* (glass-box용). 만세력(팔자) 기반 우호/비우호 ± 위치가중 + 통근.
  * ※ 신강약 **판단(verdict)은 '만세력 기준' = daniel ground truth를 신뢰**한다(ADR-009).
  *    이 score/verdict는 자동 판정이 아니라 *참고 지표*일 뿐 — 합충보정 같은 stance는 두지 않는다.
  */
+/**
+ * 그 자리의 지지가 **제 계절을 만났는가** — 상담가 `verify-000h-magnitude#14`(O).
+ *   *"子 와 午 가 충할 때 어느 쪽이 이기는지는, 그 오행이 **제 계절을 만났는지**로 먼저 가른다."*
+ * @param pos 볼 자리 · @returns 그 지지의 본기 오행이 **월지 본기 오행과 같으면** true
+ * ★등급을 만들지 않는다(강·중·약 눈금은 판정에 없다). 월지 자신은 정의상 항상 제 계절이다.
+ */
+function inSeason(saju: SajuChart, pos: PillarPos): boolean {
+  const elemOf = (p: PillarPos) => STEM_ELEM[BRANCH_MAIN_S[saju.pillars[p].branch]];
+  return elemOf(pos) === elemOf('월');
+}
+
 export function scoreStrength(saju: SajuChart): { score: number; verdict: '신강' | '중화' | '신약'; breakdown: string[] } {
   const day = saju.dayMaster.element;
   const gen = (Object.keys(SHENG_TO) as Element[]).find((e) => SHENG_TO[e] === day)!; // 일간을 생하는 오행(인성)
@@ -290,6 +302,7 @@ export function scoreStrength(saju: SajuChart): { score: number; verdict: '신�
   const POS4: PillarPos[] = noHour ? ['년', '월', '일'] : ['년', '월', '일', '시'];
   const chung = new Set<string>();           // 충 맞은 원국 지지 position
   const hyeong = new Set<string>();          // ★형(刑) 맞은 원국 지지 — 통근 손상(daniel 2026-07-14: 형도 뿌리 흔듦)
+  const banhapHeld = new Set<string>();      // ★반합에 묶여 **덜 흔들리는** 자리(000h#7 O — 더 세지진 않고 버틴다)
   let gukAdj = 0; const gukBd: string[] = [];
   for (const it of (saju.interactions ?? [])) {
     if (!it.members.every((m) => (POS4 as string[]).includes(m))) continue; // 원국끼리만(운 제외)
@@ -303,11 +316,18 @@ export function scoreStrength(saju: SajuChart): { score: number; verdict: '신�
     //   · 강한 쪽 = 충을 맞아도 **뿌리 손상 없음**(가중 유지·통근 보너스 유지)
     //   · 약한 쪽 = 종전대로 손상
     //   · **동률**(일 vs 시)은 어느 쪽이 강한지 판정이 없다 → 양쪽 손상(기존 동작 유지 = 보수)
+    // ★★2026-08-11 `verify-000h-magnitude#14`(O)·`#15`(X) 로 **세력의 정의가 바뀌었다**
+    //   #14(O) *"어느 쪽이 이기는지는 그 오행이 **제 계절을 만났는지**로 먼저 가른다"*
+    //   #15(X) *"**갯수는 강함을 증명하지 않는다**"* — 자리 수·글자 수로 재던 것이 부정됐다.
+    //   ⇒ 종전 `POS_WEIGHT`(자리 가중) 비교를 **계절 비교**로 교체한다.
+    //     상담가 표현대로 *"먼저"* 가르는 것이 계절이므로, 계절로 안 갈리면 **판정이 없다**(보수: 양쪽 손상).
+    //   ⚠️'제 계절'을 등급으로 쪼개지 않는다 — 판정에 없는 눈금을 만들면 그건 내 발명이다.
+    //     월지 본기 오행과 **같으면** 제 계절, 아니면 아니다(이분법).
     if (it.type === '충' && it.level !== '천간') {
       const [a, b] = it.members as PillarPos[];
-      const wa = POS_WEIGHT[a] ?? 0, wb = POS_WEIGHT[b] ?? 0;
-      if (wa === wb) { chung.add(a); chung.add(b); }   // 세력 동률 = 판정 없음 → 둘 다 흔들린다
-      else chung.add(wa > wb ? b : a);                 // 약한 쪽만 깨진다
+      const sa = inSeason(saju, a), sb = inSeason(saju, b);
+      if (sa === sb) { chung.add(a); chung.add(b); }   // 둘 다 제 철이거나 둘 다 아님 = 판정 없음
+      else chung.add(sa ? b : a);                       // 제 철을 만난 쪽이 이긴다 → 진 쪽만 손상
     }
     if (it.type === '형' && it.level !== '천간') it.members.forEach((m) => hyeong.add(m)); // ★형도 통근 손상(지지 가중은 유지 — 충보다 약)
     // ── 삼합·방합 세력국 방향성 가중 (daniel D1 2026-07-06: 반합/완합 차등) ────────────
@@ -318,15 +338,30 @@ export function scoreStrength(saju: SajuChart): { score: number; verdict: '신�
     if (it.type === '합' && it.transformsTo && it.level !== '천간') {
       const isWanhap = it.members.length >= 3;                           // 3자 완성 = 완합(국)
       const isBanhap = !isWanhap && (it.detail ?? '').includes('半合');  // 2자 반합(육합 제외)
-      // ★극 관계 반합(巳酉·子辰)은 **성립하되 세력을 보태지 않는다**(000g#4 X) — 검출은 살리고 가중만 뺀다.
-      if (isBanhap && !banhapAddsPower(it.detail ?? '')) { gukBd.push(`반합:${it.detail}(극이라 세력 0)`); continue; }
-      if (isWanhap || isBanhap) {
+      // ★★2026-08-11 `verify-000h-magnitude#7`(O) — **반합은 세력에 보태지 않는다**
+      //   *"'유지되는 힘'이란 午가 홀로 있을 때보다 **더 세지지는 않지만**, 다른 글자에 극을 당해도
+      //     **덜 흔들린다**는 뜻이다"* → O.
+      //   ⇒ 반합은 **더하기가 아니라 버티기**다. 세력 합산에서 빼고, 대신 **충 손상을 면제**한다
+      //     (면제는 아래 `banhapHeld` 로 처리 — 이 루프가 끝난 뒤 chung 에서 걷어낸다).
+      //   ※`000g#3`(O) *"세 글자가 다 모이면 실제로 그 오행의 세력을 이룬다"* 는 그대로 → **완합은 유지**.
+      //   ※종전 `BANHAP_MULT`(×0.6)·`banhapAddsPower`(극 반합만 0)는 이 판정에 흡수됐다.
+      if (isBanhap) {
+        it.members.forEach((m) => banhapHeld.add(m as string));
+        gukBd.push(`반합:${it.detail}(세력 0 · 버팀)`);
+        continue;
+      }
+      if (isWanhap) {   // ★완합(3자)만 세력을 이룬다 — `000g#3`(O). 반합은 위에서 처리(세력 0 · 버팀)
         const dir = favor.has(it.transformsTo) ? 1 : -1;                 // 방향성: 우호 +, 비우호 −
-        const adj = Math.round(dir * GUK_BONUS * (isBanhap ? BANHAP_MULT : 1) * 10) / 10; // 반합만 ×0.6
-        gukAdj += adj; gukBd.push(`${isBanhap ? '반합' : '국'}:${it.detail}${adj > 0 ? '+' : ''}${adj}`);
+        const adj = Math.round(dir * GUK_BONUS * 10) / 10;
+        gukAdj += adj; gukBd.push(`국:${it.detail}${adj > 0 ? '+' : ''}${adj}`);
       }
     }
   }
+  // ★반합에 묶인 자리는 **덜 흔들린다**(`000h#7` O) — 충 손상을 면제한다.
+  //   *"더 세지지는 않지만, 다른 글자에 극을 당해도 덜 흔들린다"* 의 후반부가 여기다.
+  //   ⚠️형(刑)은 면제하지 않는다 — 판정이 말한 것은 **극(충)** 이다. 넓히면 발명이다.
+  for (const m of banhapHeld) chung.delete(m);
+
   let score = 0; const bd: string[] = [];
   for (const p of POS4) {
     if (p !== '일') { // 일간(주체)은 점수에서 제외

@@ -120,37 +120,68 @@ for (const [desc, br, must] of INT_CASES) {
   check(`대조군: 인접 자형(월-일 · 일-시)은 살아 있다 [${xingPairs.join(',')}]`, xingPairs.includes('월-일') && xingPairs.includes('일-시'));
 }
 
-// ── 충의 세력 비교 (`verify-000c-structure#14` · O) — verify-103 재현 ──
-//   상담가: "자수가 오화를 건들긴 하지만, **깨지못한다**" (子=년지 · 午=월지)
-//   ⇒ 강한 쪽(월)은 뿌리 손상 없음 · 약한 쪽(년)만 손상. 동률(일·시)은 판정이 없어 양쪽 손상.
+// ── 충의 세력 = **제 계절을 만났는지** (`verify-000h-magnitude#14` O · `#15` X · 2026-08-11) ──
+//   #14(O) *"어느 쪽이 이기는지는 그 오행이 **제 계절을 만났는지**로 먼저 가른다"*
+//   #15(X) *"**갯수는 강함을 증명하지 않는다**"* → 종전 자리 가중(월3·일2·시2·년1.5) 비교는 **폐기**.
+//   ★세 갈래를 다 본다: 계절이 가를 때 · 둘 다 제 철일 때 · 둘 다 아닐 때.
+//     한 갈래만 두면 "늘 한쪽만 손상" 같은 상수 동작을 못 잡는다.
 {
-  const strong = mk(['子', '午', '巳', '巳']);          // 년子 ↔ 월午 (세력 1.5 vs 3.0)
-  strong.interactions = detectInteractions(strong);
-  const bd = scoreStrength(strong).breakdown.join(' ');
-  check('충 세력: 午(월)는 子(년)에게 충 맞아도 안 깨진다(000c#14)', !bd.includes('월午(충)'));
-  check('대조군: 약한 쪽 子(년)는 그대로 손상(충 처리 자체는 살아 있다)', bd.includes('년子(충)'));
+  // 월지 午(火). 년子(水)는 제 철이 아니고 월午(火)는 제 철 ⇒ 午가 이긴다
+  const seasonWins = mk(['子', '午', '巳', '巳']);
+  seasonWins.interactions = detectInteractions(seasonWins);
+  const bd = scoreStrength(seasonWins).breakdown.join(' ');
+  check('제 철을 만난 午(월)는 子(년)에게 충 맞아도 안 깨진다(000h#14)', !bd.includes('월午(충)'));
+  check('대조군: 진 쪽 子(년)는 그대로 손상(충 처리 자체는 살아 있다)', bd.includes('년子(충)'));
 
-  const tie = mk(['巳', '巳', '子', '午']);              // 일子 ↔ 시午 (세력 2.0 동률)
-  tie.interactions = detectInteractions(tie);
-  const bdTie = scoreStrength(tie).breakdown.join(' ');
-  check('세력 동률(일·시)이면 판정이 없어 양쪽 손상(보수 유지)', bdTie.includes('일子(충)') && bdTie.includes('시午(충)'));
+  // 월지 巳(火). 일子(水)는 아니고 시午(火)는 제 철 ⇒ **자리가 같아도(일·시) 계절이 가른다**
+  //   ★종전엔 여기가 '세력 동률 → 양쪽 손상'이었다. 자리 가중을 버렸으므로 결과가 바뀐다.
+  const seasonSplits = mk(['巳', '巳', '子', '午']);
+  seasonSplits.interactions = detectInteractions(seasonSplits);
+  const bdSplit = scoreStrength(seasonSplits).breakdown.join(' ');
+  check('자리가 같아도(일·시) 계절이 가른다 — 午(시)는 안 깨지고 子(일)만 손상',
+    !bdSplit.includes('시午(충)') && bdSplit.includes('일子(충)'));
+
+  // 둘 다 제 철이 아니면 **판정이 없다** → 보수적으로 양쪽 손상
+  //   월지 寅(木). 일子(水)·시午(火) 둘 다 木이 아니다.
+  const neither = mk(['卯', '寅', '子', '午']);
+  neither.interactions = detectInteractions(neither);
+  const bdNo = scoreStrength(neither).breakdown.join(' ');
+  check('둘 다 제 철이 아니면 판정이 없어 양쪽 손상(보수 유지)',
+    bdNo.includes('일子(충)') && bdNo.includes('시午(충)'));
 }
 
-// ── 극 관계 반합은 성립하되 세력 0 (`verify-000g-power#4` · X) ──────────────
-//   상담가: "반합은 **되는데**, 극의 에너지이므로 **커진다는 게 아님**"
-//   ★검출과 세력을 가른다 — 합이 있다는 사실은 통변에 쓰이고, 힘은 안 늘어난다.
+// ── 반합 = **더하기가 아니라 버티기** (`verify-000h-magnitude#7` · O · 2026-08-11) ──────
+//   상담가: *"'유지되는 힘'이란 午 가 홀로 있을 때보다 **더 세지지는 않지만**,
+//            다른 글자에 극을 당해도 **덜 흔들린다**는 뜻이다."* → **O**
+//   ⇒ ①세력 가산 0 (종전 ×0.6 폐기 · 극/생 구분도 이 판정에 흡수됨) ②충 손상 **면제**
+//   ★검출과 세력을 가르는 것은 그대로 — 합이 있다는 사실은 통변에 쓰이고, 힘은 안 늘어난다.
 {
-  const sa = mk(['巳', '酉', '寅', '卯']);   // 년巳 ↔ 월酉 (인접 · 火剋金)
+  const sa = mk(['巳', '酉', '寅', '卯']);   // 년巳 ↔ 월酉 (인접)
   sa.interactions = detectInteractions(sa);
-  const det = sa.interactions.map((i) => i.detail ?? '');
-  check('巳酉 반합은 **검출된다**(성립은 한다)', det.some((d) => d.includes('半合')));
-  const bd = scoreStrength(sa).breakdown.join(' ');
-  check('巳酉 반합은 강약 세력에 **안 보탠다**(극이라 세력 0)', bd.includes('극이라 세력 0'));
-  // 대조군 — 생 관계 반합(亥卯)은 세력이 그대로 붙어야 한다(둘 다 껐다는 사고 방지)
+  check('반합은 **검출된다**(성립은 한다)', sa.interactions.some((i) => (i.detail ?? '').includes('半合')));
+  check('반합은 강약 세력에 **안 보탠다**(000h#7 — 더 세지지 않는다)',
+    scoreStrength(sa).breakdown.join(' ').includes('세력 0 · 버팀'));
+  // 생 관계 반합(亥卯)도 마찬가지 — 종전엔 여기만 세력이 붙었다. 판정이 그것을 없앴다.
   const sb = mk(['亥', '卯', '寅', '寅']);
   sb.interactions = detectInteractions(sb);
-  const bdB = scoreStrength(sb).breakdown.join(' ');
-  check('대조군: 亥卯(생) 반합은 세력이 붙는다', /반합:亥卯半合木[+-]/.test(bdB));
+  check('생 관계 반합(亥卯)도 세력이 안 붙는다(극/생 구분은 이 판정에 흡수)',
+    !/반합:亥卯半合木[+-]\d/.test(scoreStrength(sb).breakdown.join(' ')));
+
+  // ★후반부 — "극을 당해도 덜 흔들린다". 반합에 묶인 자리는 **충 손상이 면제**된다.
+  //   ⚠️대조군을 짤 때 **계절 규칙(#14)에 먼저 걸리지 않게** 골라야 한다 — 첫 판이 그래서 무효였다.
+  //     충하는 두 자리가 **둘 다 제 철이 아닌** 배치라야 "원래는 양쪽 손상"이 성립한다.
+  //   배치: 월지 申(金) · 일子(水) ↔ 시午(火) 충 → 둘 다 金 이 아니므로 원래는 양쪽 손상.
+  //         여기에 월申-일子 반합(水)을 얹으면 **일子 만 면제**되어야 한다.
+  const held = mk(['寅', '申', '子', '午']);
+  held.interactions = detectInteractions(held);
+  const bdHeld = scoreStrength(held).breakdown.join(' ');
+  check('반합에 묶인 일子 는 충 손상을 면제받는다(000h#7 후반부)', !bdHeld.includes('일子(충)'));
+  check('대조군: 같은 충의 시午 는 반합에 안 묶여 그대로 손상(면제가 통째로 켜진 게 아니다)', bdHeld.includes('시午(충)'));
+  // 대조군 ② — 반합 자체가 없으면 **양쪽 다** 손상(원래 동작이 살아 있다)
+  const bare = mk(['寅', '寅', '子', '午']);
+  bare.interactions = detectInteractions(bare);
+  const bdBare = scoreStrength(bare).breakdown.join(' ');
+  check('대조군: 반합이 없으면 양쪽 다 손상', bdBare.includes('일子(충)') && bdBare.includes('시午(충)'));
 }
 
 // ── 신살 일반화 (타 일간 차트 — 자기차트 n=1 넘어 규칙이 임의 차트에 일반 적용되는지) ──
