@@ -8,6 +8,7 @@ import _lunar from 'lunar-javascript';
 import { twelveStage } from './twelve';
 import { gongmang, analyzeSinsal } from './sinsal';
 import { detectInteractions, scoreStrength } from './structure';
+import { johu2 } from './johu2';
 import { buildSajuChart, validateBirthInput } from './saju';
 import { trueSolarOffsetMin, kstMeridianAt, dstOffsetMin } from './solartime';
 import type { Stem, Branch, PillarPos, SajuChart, ChartInput } from '../spec/chart';
@@ -335,6 +336,32 @@ console.log('\n=== 대운 전환 시점 (감사 H1 — 나이 규약 off-by-one)
         gz(at) === want && gz(before) !== want);
     }
   }
+}
+
+// ── 조후 2축 조작화 (`verify-000d-johu#2`·`#3` · 2026-08-10) ────────────────
+//   #3(X) *"지장간은 보지 않는다"* / #2(O) 주변=원국 여덟 글자 전부 + 코멘트 *"★대운도 봐야 한다"*
+//   ★이 두 검사는 **서로 반대 방향**이다 — 하나는 "세면 안 되는 것"(지장간), 하나는 "세야 하는 것"(대운).
+//     한쪽만 두면 "전부 0을 낸다"는 사고를 못 잡는다.
+console.log('\n=== 조후 2축 조작화 (verify-000d-johu #2·#3) ===');
+{
+  // ① 지장간 제외 — 寅 의 지장간에는 丙(火)이 있지만 **드러난 글자로는** 조습에 아무 기여가 없어야 한다.
+  //    (寅·卯 는 HUMID 표에 없고 천간 甲은 木이라 STEM_HUMID 에도 없다 ⇒ 정답은 정확히 0)
+  const dry = mk(['寅', '寅', '卯', '寅']);
+  check('지장간은 조습에 안 들어간다(寅 속 丙火 무시 · surround=0)', johu2(dry).joSeup.surround === 0);
+  // 대조군 — 드러난 글자가 습하면 값이 **실제로 움직여야** 한다(위 0 이 '늘 0'이 아님을 보장)
+  const wet = mk(['子', '子', '卯', '子']);
+  check('대조군: 드러난 子(水) 셋은 조습을 민다(surround=3)', johu2(wet).joSeup.surround === 3);
+
+  // ② 대운 포함 — 현재 대운 丙午(火·더움)는 한난에 +2(천간 火 +1 · 지지 午 +1)로 잡혀야 한다.
+  const withLuck = mk(['寅', '寅', '卯', '寅']);
+  const noLuck = johu2(withLuck).hanNan.surround;            // 대운 넣기 **전** surround 값
+  (withLuck as any).currentLuck = { stem: '丙', branch: '午' };
+  const j = johu2(withLuck);
+  check('현재 대운 丙午 가 한난에 잡힌다(daeun=+2)', j.hanNan.daeun === 2);
+  // 대조군 — 대운은 **surround 에 섞이지 않는다**(무게 미판정이라 따로 내기로 한 설계가 지켜지는지)
+  check('대조군: 대운은 surround 에 섞이지 않는다(원국 값 불변)', j.hanNan.surround === noLuck);
+  // 대운이 없는 차트는 0 — NaN 오염 회귀 방지
+  check('대운이 비면 daeun=0 (NaN 오염 없음)', johu2(mk(['寅', '寅', '卯', '寅'])).hanNan.daeun === 0);
 }
 
 if (!ok) { console.log('\n❌ 정확도 게이트 실패 — 공식/테이블 점검'); process.exitCode = 1; }

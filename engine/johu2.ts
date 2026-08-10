@@ -13,11 +13,14 @@
 //     교체는 R56 게이트 수정과 함께 별건으로(스키마와 값 변경을 섞지 말 것 — 전문가).
 //
 // ■ ★가중치를 합쳐서 내보내지 않는다
-//   `base`(기준 글자)와 `surround`(주변 보정)를 **따로** 돌려준다.
-//   둘을 어떤 비율로 합칠지는 아직 판정 전이고([[verify-000d-johu]] N1), 여기서 정하면
+//   `base`(기준 글자)·`surround`(원국 여덟 글자)·`daeun`(현재 대운)을 **셋 다 따로** 돌려준다.
+//   어떤 비율로 합칠지는 **여전히 판정 전**이다 — `verify-000d-johu#5`(O) 가 *"월지 쪽이 더 무겁다"* 라고
+//   **방향만** 주고 크기는 주지 않았고, `#1`(X) 은 *"독립이 아니다, 기준점이다, 다 같이 봐야 한다"* 라
+//   합쳐야 한다는 것까지만 확정했다. 여기서 숫자를 정하면
 //   [[attach-indicators-r-attach]] 와 같은 이유로 사후 변명 장치가 된다. 합성은 소비처/회귀의 몫.
+//   → 크기는 `verify-000h` C 로 되물었다.
 // ─────────────────────────────────────────────────────────────────────────
-import { STEM_ELEM, HIDDEN } from './saju';
+import { STEM_ELEM } from './saju';   // ★HIDDEN(지장간) 은 쓰지 않는다 — `verify-000d-johu#3`(X) 로 제외 확정
 import type { SajuChart, PillarPos, Branch, Element } from '../spec/chart';
 
 const POS: PillarPos[] = ['년', '월', '일', '시'];
@@ -48,12 +51,19 @@ const HUMID: Partial<Record<Branch, number>> = {
 const STEM_TEMP: Partial<Record<Element, number>> = { 火: +1, 水: -1 };
 const STEM_HUMID: Partial<Record<Element, number>> = { 火: -1, 水: +1 };
 
-/** 한 축의 산출 결과 — base 와 surround 를 **합치지 않고** 함께 돌려준다. */
+/** 한 축의 산출 결과 — base·surround·daeun 을 **합치지 않고** 함께 돌려준다. */
 export type JohuAxis = {
   /** 기준 글자(한난=월지 · 조습=일지)가 정하는 값. -1 ~ +1 */
   base: number;
-  /** 주변 글자들이 그 값을 흔드는 방향·크기의 **합**. 정규화하지 않은 raw 합계. */
+  /** **원국 여덟 글자**가 그 값을 흔드는 방향·크기의 **합**. 정규화하지 않은 raw 합계. */
   surround: number;
+  /**
+   * **현재 대운** 干支의 기여 — `verify-000d-johu#2`(O) 코멘트 *"★대운도 봐야 한다"*.
+   * ★surround 에 **더하지 않고 따로** 낸다. 대운 한 기둥이 원국 여덟 글자와 같은 무게인지는
+   *   판정에 없고, 여기서 합치면 기존 소비처(attachAxes 등 원국 전용 층)의 값이 조용히 바뀐다.
+   * 대운을 못 읽으면 0.
+   */
+  daeun: number;
   /** 기준이 된 글자(추적용). */
   anchor: Branch;
 };
@@ -68,15 +78,20 @@ export type Johu2 = {
 /**
  * 조후 2축 산출.
  *
- * @param saju 원국. 대운·세운은 쓰지 않는다 — 상담가 `verify-000-rules` #5(O)
- *             *"세운은 조후 축을 바꾸지 못한다 — 조후는 원국 + 대운으로 본다"*.
- *             대운 층은 별도 모듈로 뺀다(여기서 섞으면 trait/state 가 꼬인다).
- * @returns 두 축 각각의 {base, surround, anchor}. **합성값은 내지 않는다**(위 주석 참조).
+ * @param saju 원국 + `currentLuck`(현재 대운). **세운은 쓰지 않는다** — `verify-000-rules#5`(O)
+ *             *"세운은 조후 축을 바꾸지 못한다"*. 대운은 `verify-000d-johu#2` 코멘트로 포함이 확정됐으나
+ *             **별도 필드**로 낸다(무게 미판정 — JohuAxis.daeun 주석 참조).
+ * @returns 두 축 각각의 {base, surround, daeun, anchor}. **합성값은 내지 않는다**(위 주석 참조).
  *
- * ⚠️조작화 미확정 2건 — [[verify-000d-johu]] N1 판정 대기. 판정이 오면 여기만 고치면 된다:
- *   · N1-2 '주변 글자' 범위 = 여덟 글자 전부인가, 기준에 **인접한 자리만**인가
- *     → 지금은 **전부**(기준 글자 자신만 제외). 인접만으로 판정되면 `surroundOf` 의 필터만 바꾼다.
- *   · N1-3 **지장간 포함** 여부 → 지금은 **미포함**(드러난 여덟 글자만). 포함으로 판정되면 아래 HIDDEN 루프를 켠다.
+ * ■ 조작화 확정 (상담가 판정 2026-08-10 `verify-000d-johu`) — 옛 'N1 대기' 자리를 채운 답이다
+ *   · `#2`(O) '주변 글자' 범위 = **원국 여덟 글자 전부**(기준에 인접한 자리만이 아니다) → 기존 구현이 맞았다.
+ *     + 코멘트 *"★대운도 봐야 한다"* → `daeun` 필드 신설.
+ *   · `#3`(X) 지장간 포함 → **기각**. 코멘트 *"★지장간은 보지 않는다"* → 대기용 HIDDEN 스위치를 걷어냈다.
+ *
+ * ⚠️아직 답이 없는 것 — `verify-000h` C 로 되물었다. 여기서 내가 정하면 발명이다:
+ *   · `#1`(X) *"독립이 아니다. **기준점**이다. 다 같이 봐야 한다"* → 두 축을 **어떻게** 합쳐 한 문장으로 말하는가
+ *   · `#4`(O) **중화**(어느 상한도 아닌 상태)의 경계가 어디인가
+ *   · `#5`(O) 월지(한난)가 일지(조습)보다 **더 무겁다** — 얼마나 무거운지는 없다
  */
 export function johu2(saju: SajuChart): Johu2 {
   const wolBr = saju.pillars['월'].branch;   // 한난의 기준
@@ -100,17 +115,41 @@ export function johu2(saju: SajuChart): Johu2 {
       // 지지 — 기준 글자 자신은 base 로 이미 셌으므로 제외(이중 계상 방지).
       if (p === anchorPos) continue;
       s += brMap[saju.pillars[p].branch] ?? 0;
-      // ⚠️N1-3 판정이 '지장간 포함'으로 오면 아래 주석을 푼다(지금은 미포함이 기본값):
-      //   for (const h of HIDDEN[saju.pillars[p].branch]) s += (stMap[STEM_ELEM[h.stem]] ?? 0) * (h.role === '본기' ? 1 : 0.5);
+      // ★지장간은 세지 않는다 — `verify-000d-johu#3`(X) *"지장간은 보지 않는다"*(2026-08-10 확정).
+      //   판정 전에는 여기 '켤 수 있는 스위치'가 주석으로 남아 있었으나, 기각됐으므로 걷어냈다.
     }
     return Math.round(s * 100) / 100;
   };
 
+  /**
+   * 현재 대운 한 기둥(干 + 支)의 기여 — `#2` 코멘트 *"★대운도 봐야 한다"*.
+   * @param brMap 지지 → 기여값 표 / @param stMap 천간 오행 → 기여값 표
+   * @returns 대운 干支 기여 합. `currentLuck` 이 없으면(픽스처·경량 차트) 0.
+   */
+  const daeunOf = (
+    brMap: Partial<Record<Branch, number>>,
+    stMap: Partial<Record<Element, number>>,
+  ): number => {
+    const lk = saju.currentLuck;
+    // ⚠️경량 픽스처·입운 전 차트는 currentLuck 이 비어 있다(`{}` 로만 채워진 경우 포함) → 0.
+    //   여기서 조용히 undefined 를 계산에 태우면 NaN 이 축을 오염시킨다.
+    if (!lk?.stem || !lk?.branch) return 0;
+    const v = (stMap[STEM_ELEM[lk.stem]] ?? 0) + (brMap[lk.branch] ?? 0);
+    return Math.round(v * 100) / 100;
+  };
+
   return {
-    hanNan: { base: TEMP[wolBr] ?? 0, surround: surroundOf('월', TEMP, STEM_TEMP), anchor: wolBr },
-    joSeup: { base: HUMID[ilBr] ?? 0, surround: surroundOf('일', HUMID, STEM_HUMID), anchor: ilBr },
+    hanNan: {
+      base: TEMP[wolBr] ?? 0,
+      surround: surroundOf('월', TEMP, STEM_TEMP),
+      daeun: daeunOf(TEMP, STEM_TEMP),
+      anchor: wolBr,
+    },
+    joSeup: {
+      base: HUMID[ilBr] ?? 0,
+      surround: surroundOf('일', HUMID, STEM_HUMID),
+      daeun: daeunOf(HUMID, STEM_HUMID),
+      anchor: ilBr,
+    },
   };
 }
-
-// HIDDEN 은 위 N1-3 스위치에서 쓴다 — 판정 전이라 지금은 참조만 해 둔다(미사용 import 방지).
-void HIDDEN;
