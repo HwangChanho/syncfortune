@@ -234,7 +234,12 @@ export function detectInteractions(saju: SajuChart): Interaction[] {
 // ─────────────────────────────────────────────────────────────────────────
 const BRANCH_MAIN_S: Record<Branch, Stem> = { 子:'癸',丑:'己',寅:'甲',卯:'乙',辰:'戊',巳:'丙',午:'丁',未:'己',申:'庚',酉:'辛',戌:'戊',亥:'壬' };
 const SHENG_TO: Record<Element, Element> = { 水:'木', 木:'火', 火:'土', 土:'金', 金:'水' }; // X가 Y를 생
-const POS_WEIGHT: Record<PillarPos, number> = { 월: 3, 일: 2, 시: 2, 년: 1.5 }; // 월령 최대 — ★조정 슬롯
+/**
+ * 자리 가중 = **세력**. daniel 2026-07-06 D1 동결(월령 최대) — ★조정 슬롯.
+ * ★export 이유: 충의 세력 비교(`000c#14` — "약한 쪽이 강한 쪽을 충하면 건드리되 못 깬다")를
+ *   `crisisReport` 도 써야 하는데, 거기서 같은 표를 다시 적으면 두 곳이 갈린다([[duplicate-ui-single-source]]).
+ */
+export const POS_WEIGHT: Record<PillarPos, number> = { 월: 3, 일: 2, 시: 2, 년: 1.5 };
 // ★강약 가중 = daniel 2026-07-06 **동결**(D1). 월3·일2·시2·년1.5 / 충½ / 통근1.5 / 완합국±1.5 / 반합×0.6(BANHAP_MULT).
 //   THRESHOLD ±2 확정(중화 26.5%): ±3(39.6%)은 판정 유보 40%=회피에 가깝고, 진짜 중화명은 귀하다는 정설·30% 기준선 초과라 정상화.
 //   ▷ v2 백로그(지금 X): 경계 감쇠 — THRESHOLD 근처 ±1 구간(약신강/약신약)은 5분류 진폭 ×0.75 선형 완충(경계값 컴플레인 시 도입).

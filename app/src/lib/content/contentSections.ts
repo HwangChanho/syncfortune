@@ -108,6 +108,10 @@ export const SECTIONS: Section[] = [
     { key: 'love', labelKey: 'menu.love', descKey: 'menu.loveDesc', image: A('icons/love.jpg'), route: '/love', ready: true, content: true, creditKey: 'love' },
     { key: 'crush', labelKey: 'menu.crush', descKey: 'menu.crushDesc', image: A('icons/crush.jpg'), route: '/crush', ready: true, content: true, creditKey: 'crush' },
     { key: 'reunion', labelKey: 'menu.reunion', descKey: 'menu.reunionDesc', image: A('icons/reunion.jpg'), route: '/reunion', ready: true, content: true, creditKey: 'reunion' },
+    // 「관계의 고비」(2026-08-10) — 애정 축에서 비어 있던 칸(이별 그 자체·삼각). reunion 은 헤어진 *다음* 이야기다.
+    //   ★무료 온디바이스 결정론(API 0) — L1(쟁합·충 세력·합 거리·배우자궁 개폐)이 그대로 화면이 된다.
+    //   ⚠️카드 설명은 **중립**으로 둔다 — 목록에서 먼저 이별을 들추지 않는다(기획서 §4 가드 4).
+    { key: 'crisis', labelKey: 'menu.crisis', descKey: 'menu.crisisDesc', image: A('icons/reunion.jpg'), route: '/crisis', ready: true, content: true },
     { key: 'child', labelKey: 'menu.child', descKey: 'menu.childDesc', image: A('icons/child.jpg'), route: '/child', ready: true, premium: true, creditKey: 'child' },
   ] },
 
