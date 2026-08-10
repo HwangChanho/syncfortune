@@ -7,6 +7,7 @@ import { Stack, usePathname } from 'expo-router';
 import { View } from 'react-native';
 import { useEffect } from 'react';
 import { clearGenByPath } from '../../lib/backend/genProgress'; // 화면 접근 시 그 풀이 알림 배너 해제(daniel ⑨)
+import { logEvent } from '../../lib/backend/logger'; // 콘텐츠 조회 로깅(daniel 2026-08-10) — 아래 useEffect 참조
 import { useFontScale } from '../../lib/ui/fontScale';
 import { AdBanner } from '../../components/AdBanner';
 import { BottomNav } from '../../components/BottomNav';
@@ -19,11 +20,41 @@ import { colors } from '../../lib/theme';
 //   헤더 뒤로가기를 항상 보장한다(정상 네비·딥링크 무관).
 export const unstable_settings = { initialRouteName: 'index' };
 
+/** 마지막으로 기록한 경로 — 화면 조회 로그의 **연속 중복**을 막는다(아래 useEffect 주석 참조).
+ *  ★모듈 스코프인 이유: 레이아웃이 두 번 마운트돼도 하나로 공유돼야 막힌다(useRef 는 인스턴스마다 따로다). */
+let lastLoggedPath: string | null = null;
+
 export default function AppLayout() {
   const { fs } = useFontScale();   // 글자크기 설정 → 헤더 타이틀 반응(daniel). 뒤로버튼은 iOS 네이티브.
   // 해당 화면을 어떤 루트로든 접근하면 그 풀이의 홈 알림 배너 해제(daniel ⑨). 홈('/')은 제외(배너 노출 유지).
   const pathname = usePathname();
   useEffect(() => { if (pathname && pathname !== '/') clearGenByPath(pathname); }, [pathname]);
+  // ── ★콘텐츠 조회 로깅 (daniel 2026-08-10 "로깅") ──────────────────────────
+  //   왜 필요했나: 콘텐츠가 51종인데 **무엇이 열리는지 아무 기록도 없었다.**
+  //   실측(08-10): `app_logs` 에 `app_active` 996건 · `admin_*` 4건이 전부 —
+  //   즉 프로덕션에 나가도 "뭐가 팔리는지"를 영영 모르는 상태였다. 기획을 추측으로 하게 되는 원인.
+  //
+  //   ★왜 여기 한 곳인가: 콘텐츠는 저마다 **고유 라우트**(`/wealth`·`/taro`·`/ziwei`…)를 갖는다
+  //   (쿼리 파라미터로 갈리지 않는다 — 실측 확인). 그래서 이 레이아웃의 `pathname` 하나면
+  //   **51개 화면을 하나도 안 고치고** 전부 잡힌다. 화면마다 심으면 반드시 빠뜨린다(이 프로젝트 반복 실수).
+  //
+  //   · PII 없음 — 동적 세그먼트 라우트가 없어 경로에 id·생년월일이 실리지 않는다(실측 확인).
+  //   · `logEvent` 는 fire-and-forget 이고 `env: dev|prod` 태그를 자동으로 붙인다(테스트↔실사용 분리).
+  //   · 홈('/')도 남긴다 — 진입 대비 콘텐츠 도달률을 보려면 분모가 필요하다.
+  //   · 같은 경로를 다시 열면 다시 남는다(deps=[pathname]) — 그게 '조회 수'다.
+  //   집계: `npm run stats:content`
+  //
+  //   ⚠️★중복 가드가 **필수**다(실측으로 잡음): 가드 없이 넣었더니 경로마다 **3ms 간격으로 2건씩**
+  //     찍혔다(`/taro` 07:40:38.718 · .721). 그대로 뒀으면 **모든 조회 수가 정확히 2배**가 되어
+  //     통계가 조용히 거짓말을 한다 — 숫자가 나오니 맞는 줄 알았을 것이다.
+  //     원인(레이아웃 이중 실행)보다 **가드가 확실**하다. 그리고 ref 가 아니라 **모듈 스코프**를 쓴다:
+  //     레이아웃 인스턴스가 둘이면 ref 는 각자라 못 막는다.
+  //     ★A→B→A 는 그대로 2번 남는다(연속 중복만 막는다) — 그게 '조회 수'의 정의다.
+  useEffect(() => {
+    if (!pathname || lastLoggedPath === pathname) return;
+    lastLoggedPath = pathname;
+    logEvent('screen', { path: pathname });
+  }, [pathname]);
   // 유료(운으로 여는) 콘텐츠 화면인가 — 하단 배너 노출 판정(아래 AdBanner 주석 참조).
   //   startsWith 인 이유: 라우트가 하위 경로를 갖는 경우(/reading/... 등)도 같은 콘텐츠다.
   const isPaidScreen = !!pathname && PAID_ROUTES.some((r) => pathname === r || pathname.startsWith(`${r}/`));
