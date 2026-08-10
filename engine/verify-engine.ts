@@ -407,35 +407,39 @@ console.log('\n=== 조후 2축 조작화 (verify-000d-johu #2·#3) ===');
   check('대운이 비면 daeun=0 (NaN 오염 없음)', johu2(mk(['寅', '寅', '卯', '寅'])).hanNan.daeun === 0);
 }
 
-// ── 애착 배우자성 감당 축 (`verify-000e-attach#13·14·15` 원문 반영 · 2026-08-10) ──
-//   상담가: "남자는 **정재** 입장(여자는 **정관**), 일간이 **감당 가능하면 안정 / 어려우면 회피**,
-//            안정이나 회피가 **극단으로 가면 불안정**"
-//   ★이 검사가 지키는 것 = **판정에 있는 것만 구현했는가**. 특히 마지막 두 건이 핵심이다:
-//     경계(임계값)를 안 만들었는가 · 무재/무관을 점수에 안 섞었는가.
-console.log('\n=== 애착 배우자성 감당 축 (verify-000e-attach 원문) ===');
+// ── 애착 배우자성 **균형** 축 (`000e` 원문 + `000h#10·#11·#12·#13` · 2026-08-11) ──
+//   `#11`(O) 감당 = **뿌리와 통관**(신강약 아님 — `#10` X)
+//   `#10` 원문 *"일간의 힘과 재성의 힘이 **비슷해야 한다**. 한쪽이라도 강해지면 **강해진 만큼 문제**"*
+//   `#12`(X) 갯수로 안 본다 · `#13`(O) 상대가 없어도 판정은 선다
+console.log('\n=== 애착 배우자성 균형 축 (000e 원문 + 000h D) ===');
 {
-  const male = buildSajuChart({ birthDateTime: '1991-12-16 23:00', calendar: '양', timeAccuracy: '정확', sex: '남', birthPlace: '서울', birthLon: 126.98 }, 2026);
-  const female = buildSajuChart({ birthDateTime: '2000-01-05 10:00', calendar: '양', timeAccuracy: '정확', sex: '여', birthPlace: '서울', birthLon: 126.98 }, 2026);
+  const male = buildSajuChart({ birthDateTime: '1994-07-08 14:20', calendar: '양', timeAccuracy: '정확', sex: '남', birthPlace: '부산', birthLon: 129.03 } as ChartInput, 2026);
+  const female = buildSajuChart({ birthDateTime: '2000-01-05 10:00', calendar: '양', timeAccuracy: '정확', sex: '여', birthPlace: '서울', birthLon: 126.98 } as ChartInput, 2026);
   const m = spouseCapacityAxis(male, '남');
   const f = spouseCapacityAxis(female, '여');
   check('남자 명식은 **정재**를 본다', m.target === '정재');
   check('여자 명식은 **정관**을 본다', f.target === '정관');
-  // 감당 = 자립 − 부담. 두 성분이 실제로 축을 만드는지(상수를 반환하고 있지 않은지)
-  check('감당 = 자립 − 부담 으로 계산된다', m.capacity === Math.round((m.selfStand - m.objectLoad) * 100) / 100);
-  check('자립·부담 모두 0~1 · 감당은 −1~+1', [m, f].every((a) =>
-    a.selfStand >= 0 && a.selfStand <= 1 && a.objectLoad >= 0 && a.objectLoad <= 1 && a.capacity >= -1 && a.capacity <= 1));
-  // ★유형을 선언하지 않는다 — '극단'의 경계가 판정에 없다(000h D#12). 필드가 생기면 이 검사가 문다.
-  check('★유형(안정/회피/불안정)을 선언하지 않는다(경계 미판정)', ![m, f].some((a) =>
+  // ★균형이 축이다 — 강약이 아니다
+  check('감당 = 1 − |치우침| (균형이 축 · 000h#10 원문)',
+    m.capacity === Math.round((1 - Math.abs(m.tilt)) * 100) / 100);
+  check('치우침 = 일간 쪽 − 상대 쪽', m.tilt === Math.round((m.selfStand - m.objectLoad) * 100) / 100);
+  check('범위: 균형 0~1 · 치우침 −1~+1', [m, f].every((a) =>
+    a.capacity >= 0 && a.capacity <= 1 && a.tilt >= -1 && a.tilt <= 1));
+  // ★신강약을 쓰지 않는다(`#10` X) — 득령·득지·득세 이름이 근거에 남아 있으면 실패
+  check('★신강약(득령·득지·득세)을 근거로 쓰지 않는다(000h#10 X)', !/득령|득지|득세/.test(JSON.stringify(m.contributions)));
+  check('근거는 뿌리·통관·상대 셋(000h#11 O)', m.contributions.length === 3
+    && m.contributions.some((c) => c.key === 'root') && m.contributions.some((c) => c.key === 'bridge'));
+  // ★유형을 선언하지 않는다 — '비슷하다'의 폭이 판정에 없다
+  check('★유형(안정/회피/불안정)을 선언하지 않는다', ![m, f].some((a) =>
     Object.keys(a).some((k) => /type|verdict|label|유형/i.test(k))));
-  // ★무재/무관은 점수에 섞지 않고 **사실만** 낸다(000h D#13)
-  check('★상대 자리 유무는 점수가 아니라 플래그로 낸다', typeof m.objectPresent === 'boolean');
-  // 근거를 항상 함께 낸다(반증가능성) — 자립 3 + 부담 1
-  check('근거 4항목(자립 3 · 부담 1)을 함께 낸다',
-    m.contributions.filter((c) => c.side === '자립').length === 3 && m.contributions.filter((c) => c.side === '부담').length === 1);
-  // 대조군 — 같은 명식이라도 성별이 바뀌면 **보는 자리가 바뀌므로** 값이 갈려야 한다(성별을 무시하고 있지 않은지)
+  check('★상대 자리 유무는 점수가 아니라 플래그로(000h#13)', typeof m.objectPresent === 'boolean');
+  // 통관은 성별로 갈린다 — 남=식상 / 여=재성(상생 순서라 정의상 고정)
+  check('통관이 성별로 갈린다(남=식상 · 여=재성)',
+    /식상/.test(m.contributions.find((c) => c.key === 'bridge')!.label)
+    && /재성/.test(f.contributions.find((c) => c.key === 'bridge')!.label));
+  // 대조군 — 같은 명식도 성별이 바뀌면 보는 자리가 바뀐다
   const mAsF = spouseCapacityAxis(male, '여');
-  check('대조군: 같은 명식도 성별이 바뀌면 보는 자리가 바뀐다',
-    mAsF.target === '정관' && (mAsF.objectLoad !== m.objectLoad || mAsF.target !== m.target));
+  check('대조군: 같은 명식도 성별이 바뀌면 값이 갈린다', mAsF.target === '정관' && mAsF.capacity !== m.capacity);
 }
 
 if (!ok) { console.log('\n❌ 정확도 게이트 실패 — 공식/테이블 점검'); process.exitCode = 1; }

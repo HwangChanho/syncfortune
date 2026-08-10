@@ -1,4 +1,4 @@
-// engine/attachSpouseAxis.ts — R-ATTACH **v1 · 배우자성 감당 축** (결정론 · API 0)
+// engine/attachSpouseAxis.ts — R-ATTACH **v2 · 배우자성 균형 축** (결정론 · API 0)
 // ═══════════════════════════════════════════════════════════════════════════
 // ■ 근거 = 상담가 판정 2026-08-10 `verify-000e-attach` **원문 그대로**
 //   `#13`·`#14`·`#15` 세 문항에 같은 답을 주셨다(= 그만큼 분명하다는 뜻으로 읽었다):
@@ -16,15 +16,14 @@
 //     · **바라보는 자리** = 남 정재 / 여 정관 (원문)
 //     · **재는 것** = 일간이 그 자리를 감당하는 정도 (원문)
 //     · **결과의 모양** = 안정 ↔ 회피 **한 축**, 양 끝이 불안정 (원문)
-//     · 일간이 선 정도 = `득령·득지·득세` **세 성분**(전문가 §: 신강약 1비트로 뭉개지 말 것)
-//     · 상대 자리의 세기 = `analyzeTenGods().detail` (daniel 2026-07-06 승인 가중)
+//     · 일간 쪽 힘 = **뿌리 + 통관**(`000h#11` O) · 상대 자리의 세기 = `analyzeTenGods().detail`
 //   ✘ 정하지 **않은** 것 — 판정에 없어서 비워 뒀다(`verify-000h-magnitude` D 로 되물음):
 //     · **'감당 가능'의 기준**이 신강약인지(D#10) 뿌리·통관인지(D#11) → 그래서 **동일 가중**으로 둔다
 //     · **'극단'의 경계**(D#12) → 그래서 **유형을 선언하지 않는다.** 위치만 낸다.
 //     · **무재(無財)/무관 명식**을 어디로 보는지(D#13) → 점수에 섞지 않고 **플래그로 따로** 낸다.
 //   ⇒ 임계값이 없어도 **스펙트럼 위 위치**는 말할 수 있다. 그게 이 파일이 내는 전부다.
 // ═══════════════════════════════════════════════════════════════════════════
-import { analyzeTenGods, classifyStrength } from './structure';
+import { analyzeTenGods } from './structure';   // ★classifyStrength(신강약)는 000h#10(X)로 안 쓴다
 import { STEM_ELEM } from './saju';
 import type { SajuChart, PillarPos, Element } from '../spec/chart';
 
@@ -46,24 +45,33 @@ export type SpouseContribution = {
 export type SpouseCapacityAxis = {
   /** 바라보는 자리 — 남 정재 / 여 정관 (상담가 원문). */
   target: '정재' | '정관';
-  /** 일간이 **스스로 선 정도** 0~1 = 득령·득지·득세 평균(세 성분을 뭉개지 않고 평균만 낸다). */
+  /**
+   * 일간 쪽 힘 0~1 — `#11`(O) *"**뿌리와 통관**을 갖췄는지"*.
+   * 뿌리 = 일간 오행의 통근량 · 통관 = 그 자리로 힘을 흘려 주는 십신(남=식상 → 재 / 여=재성 → 관).
+   * ★신강약(득령·득지·득세)은 **쓰지 않는다** — `#10`(X)이 그것을 부정했다.
+   */
   selfStand: number;
-  /** 상대 자리가 명식에서 차지하는 **몫** 0~1 = 십신 세기 / 전체 세기 합. */
+  /** 상대 자리의 힘 0~1 = 십신 세기 / 전체 세기 합. */
   objectLoad: number;
   /**
-   * **감당** = `selfStand − objectLoad`. **−1 ~ +1**.
-   * · `+` 쪽 = 감당에 여유가 있다 → 상담가 표현으로 **안정** 쪽
-   * · `−` 쪽 = 버겁다 → **회피** 쪽
-   * ⚠️어디부터 '극단(=불안정)'인지는 **판정에 없다** — 이 값에 경계를 긋지 않는다.
+   * **감당** = 두 힘이 얼마나 **비슷한가**. 0~1(1 = 완전히 균형).
+   * 상담가 원문: *"일간의 힘과 재성의 힘이 **비슷해야 한다**. 한쪽이라도 강해지면 **강해진 만큼 문제**된다."*
+   * ⇒ `1 − |selfStand − objectLoad|`. 강약이 아니라 **균형**이 축이다.
    */
   capacity: number;
-  /** 화면 스펙트럼용으로 `capacity` 를 0~1 로 옮긴 값(0=회피 끝 · 1=안정 끝). 판정이 아니라 표시 좌표다. */
+  /**
+   * 치우침의 **방향과 크기** −1 ~ +1. `selfStand − objectLoad`.
+   * · `−` 일간이 부친다(상대가 버겁다) · `+` 일간이 남는다(상대가 가볍다)
+   * ★어느 쪽이든 **치우친 만큼** 문제다 — 원문 *"한쪽이라도 강해지면 강해진 만큼"*.
+   */
+  tilt: number;
+  /** 화면 스펙트럼용 좌표 0~1 (0.5 = 균형). 판정이 아니라 표시 좌표다. */
   position: number;
   /** 상대 자리가 원국에 **드러나 있는가**(천간 투출 또는 지지 본기). 무재/무관 판정은 하지 않고 사실만 낸다. */
   objectPresent: boolean;
   contributions: SpouseContribution[];
   /** 산정 방식. 회귀 가중으로 바뀌면 여기가 바뀐다 — 결과를 비교할 때 반드시 같이 볼 것. */
-  version: 'v1-equal';
+  version: 'v2-balance';
 };
 
 /** 0~1 로 자르기. */
@@ -83,50 +91,58 @@ function targetElement(saju: SajuChart, target: '정재' | '정관'): Element {
 }
 
 /**
- * 성인 애착 — **배우자성 감당 축** v1.
+ * 성인 애착 — **배우자성 균형 축** v2.
  *
  * @param saju 원국. **대운·세운은 쓰지 않는다** — 이 층은 trait(구조)다(전문가 §2).
  * @param sex  '남' → 정재를 본다 · '여' → 정관을 본다 (상담가 원문. 성별이 없으면 계산하지 않는다).
- * @returns 감당 축 한 개 + 근거. **유형(안정/회피/불안정)을 선언하지 않는다** — 경계가 판정에 없다.
+ * @returns 균형 축 한 개 + 근거. **유형(안정/회피/불안정)을 선언하지 않는다** — '비슷하다'의 폭이 판정에 없다.
  *
  * @example
  *   const ax = spouseCapacityAxis(saju, '남');
  *   ax.target      // '정재'
- *   ax.capacity    // +0.31 → 감당에 여유가 있는 쪽
- *   ax.position    // 0.66  → 스펙트럼 상 위치(표시용)
+ *   ax.capacity    // 0.82 → 두 힘이 꽤 비슷하다(균형)
+ *   ax.tilt        // -0.18 → 일간 쪽이 조금 부친다(상대가 버거운 쪽)
  */
 export function spouseCapacityAxis(saju: SajuChart, sex: '남' | '여'): SpouseCapacityAxis {
   const target: '정재' | '정관' = sex === '남' ? '정재' : '정관';
 
-  // ── ① 일간이 스스로 선 정도 — 세 성분을 **각각** 내고 평균만 축에 쓴다 ──────────
-  //   ★신강/신약 한 글자로 뭉치지 않는다(전문가: "1비트로 뭉갠 손실 압축"). 근거 칸에 셋 다 남는다.
-  const cs = classifyStrength(saju);
-  const deuk = { 득령: cs.deukryeong ? 1 : 0, 득지: cs.deukji ? 1 : 0, 득세: cs.deukse ? 1 : 0 };
-  const selfStand = r2((deuk.득령 + deuk.득지 + deuk.득세) / 3);
-
-  // ── ② 상대 자리가 명식에서 차지하는 몫 ───────────────────────────────────────
-  //   ★새 상수를 만들지 않으려고 **몫(share)** 으로 잰다 — 십신 세기 / 전체 세기 합.
-  //     정규화 상수를 내가 고르면 그게 곧 발명이다. 몫은 정의상 0~1 이라 고를 것이 없다.
+  // ── ① 일간 쪽 힘 = **뿌리 + 통관** (`000h#11` O) ─────────────────────────────
+  //   *"신강약이 아니라 일간이 그 정재를 다룰 **뿌리와 통관**을 갖췄는지"* → O.
+  //   ★`classifyStrength`(득령·득지·득세)를 **쓰지 않는다** — `#10`(X)이 신강약 기준을 부정했다.
+  //   · 뿌리 = 일간 오행(비겁)의 세기 몫
+  //   · 통관 = 일간의 힘을 그 자리로 **흘려 주는** 십신의 몫
+  //     남(정재) → 식상이 재를 생한다 / 여(정관) → 재성이 관을 생한다. 이건 상생 순서라 정의상 고정이다.
   const tg = analyzeTenGods(saju);
-  const total = Object.values(tg.detail).reduce((a, b) => a + b, 0);
-  const objectLoad = total > 0 ? r2(c01((tg.detail[target] ?? 0) / total)) : 0;
+  const total = Object.values(tg.detail).reduce((a, b) => a + b, 0) || 1;
+  const share = (...names: string[]) => r2(c01(names.reduce((a, n) => a + (tg.detail[n] ?? 0), 0) / total));
+
+  const rootShare = share('비견', '겁재');                                   // 뿌리
+  const bridgeShare = target === '정재' ? share('식신', '상관') : share('정재', '편재'); // 통관
+  //   ⚠️둘을 어떤 비율로 섞을지는 판정에 없다 → **그냥 더한다**(둘 다 일간 쪽 힘이라 같은 단위다).
+  //     비율을 고르는 순간 그건 판정이 아니라 내 발명이 된다.
+  const selfStand = r2(c01(rootShare + bridgeShare));
+
+  // ── ② 상대 자리의 힘 ────────────────────────────────────────────────────────
+  const objectLoad = share(target);
 
   // 상대 자리가 **드러나 있는가** — 천간 투출(년월시) 또는 지지 본기.
-  //   ⚠️'없으면 어떻게 보는가'는 판정에 없다(000h D#13) → 점수에 안 섞고 사실만 플래그로 낸다.
+  //   `#13`(O) 없어도 판정은 선다 → 점수에 안 섞고 사실만 플래그로 낸다.
   const objectPresent = POS.some((p) =>
     (p !== '일' && saju.pillars[p].stemTenGod === target) || saju.pillars[p].branchMainTenGod === target);
 
-  // ── ③ 감당 = 자립 − 부담 ─────────────────────────────────────────────────────
-  const capacity = r2(selfStand - objectLoad);
-  const position = r2(c01((capacity + 1) / 2));   // −1..+1 → 0..1 (표시 좌표일 뿐, 판정 아님)
+  // ── ③ 감당 = **두 힘이 얼마나 비슷한가** ────────────────────────────────────
+  //   상담가 원문: *"일간의 힘과 재성의 힘이 **비슷해야 한다**. 한쪽이라도 강해지면 **강해진 만큼 문제**된다."*
+  //   ⇒ 강약(어느 쪽이 큰가)이 아니라 **차이의 크기**가 문제다. 방향은 `tilt` 로 따로 낸다.
+  const tilt = r2(selfStand - objectLoad);
+  const capacity = r2(1 - Math.abs(tilt));
+  const position = r2(c01((tilt + 1) / 2));   // −1..+1 → 0..1 (0.5 = 균형 · 표시 좌표일 뿐)
 
   const targetElem = targetElement(saju, target);
   const contributions: SpouseContribution[] = [
-    { key: 'deukryeong', label: '득령(월지가 나를 돕는다)', value: deuk.득령, side: '자립' },
-    { key: 'deukji', label: '득지(일지에 뿌리가 있다)', value: deuk.득지, side: '자립' },
-    { key: 'deukse', label: '득세(내 편 자리가 더 많다)', value: deuk.득세, side: '자립' },
+    { key: 'root', label: '뿌리(비겁)가 차지한 몫', value: rootShare, side: '자립' },
+    { key: 'bridge', label: `통관(${target === '정재' ? '식상' : '재성'})이 차지한 몫`, value: bridgeShare, side: '자립' },
     { key: 'object', label: `${target}(${targetElem})이 차지한 몫`, value: objectLoad, side: '부담' },
   ];
 
-  return { target, selfStand, objectLoad, capacity, position, objectPresent, contributions, version: 'v1-equal' };
+  return { target, selfStand, objectLoad, capacity, tilt, position, objectPresent, contributions, version: 'v2-balance' };
 }
