@@ -14,6 +14,7 @@ import { detectInteractionsAmong, classifyStrength, analyzeTenGods } from '@engi
 import { twelveStage } from '@engine/twelve';
 import { analyzeSinsal, gongmang, twelveSinsalAt } from '@engine/sinsal';
 import { appLang } from '../i18n';
+import { GROUP, type TgGroup } from './tenGodGroup';
 import type { SajuChart, Stem, Branch, PillarPos, ChartPosition, TenGod } from '@spec/chart';
 import { stemElement } from '../engine/ohaeng'; // 일운 알림 팁 — 그날 일진 천간 오행
 
@@ -42,12 +43,10 @@ export function yearGanZhi(year: number): string {
   return (Solar as any).fromYmd(year, 6, 15).getLunar().getYearInGanZhi() as string;
 }
 
-// ── 십신 10 → 5그룹 (오늘 들어오는 기운의 '결' — 내부 분류용, 화면 미노출) ──
-type TgGroup = '비겁' | '식상' | '재성' | '관성' | '인성';
-const GROUP: Record<string, TgGroup> = {
-  비견: '비겁', 겁재: '비겁', 식신: '식상', 상관: '식상',
-  정재: '재성', 편재: '재성', 정관: '관성', 편관: '관성', 정인: '인성', 편인: '인성',
-};
+// ── 십신 10 → 5그룹 — ★표는 `tenGodGroup.ts` 로 옮겼다(2026-08-10) ──
+//   이 파일이 `../i18n` 을 통해 RN 을 끌고 와서, 표만 쓰려는 소비처(`hourFlow`)가
+//   헤드리스로 실행되지 못했다 → 그 콘텐츠에 골든을 못 붙였다. 표만 의존 0 모듈로 분리.
+export { GROUP, type TgGroup } from './tenGodGroup';
 
 // ★반반 보정(daniel 2026-07-08: 오늘/이달이 너무 비관적 → 비관 반·낙관 반).
 //   기존엔 !favorGood(오늘 기운이 신강약에 버거운 날)이면 work/money/love/health 4영역 *전부*에 gate 주의가 붙어 하루가 '다 조심'으로 기울었다.

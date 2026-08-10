@@ -200,7 +200,7 @@ export const en = {
     결혼배우자운: 'Marriage', 대인사회성: 'Social', 부모운: 'Parents', 형제운: 'Siblings',
     자식운: 'Children', 건강: 'Health', 학업자기계발: 'Study', 이동환경: 'Relocation',
   },
-  today: {
+  today: { hourTitle: 'Hour by hour', hourSub: 'The same day reads differently hour to hour', hourBest: 'Runs smoothest · {{ko}} {{range}}', hourCare: 'Worth slowing down · {{ko}} {{range}}', hourNow: 'now', hourFoot: 'Computed from today\u2019s day pillar and your chart — not a verdict on good or bad. A low stretch simply means there is no need to rush it.', 
     'areaSoon': '이 분야 풀이는 다음 운세부터 채워져요.',
     today: 'Today', tomorrow: 'Tomorrow', energyTomorrow: "Tomorrow's Energy", weekdaysShort: 'Sun,Mon,Tue,Wed,Thu,Fri,Sat',
     dayPillar: "Today's Energy", note: "Changes daily at midnight, read against your own chart — deeper readings in Premium.",

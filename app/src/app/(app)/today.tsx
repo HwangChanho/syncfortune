@@ -42,6 +42,7 @@ import { colors, radius, space, shadow, font } from '../../lib/theme';
 import { useFontScale } from '../../lib/ui/fontScale';
 import { stemElement, branchElement, elementColor, elementText, stemReading, branchReading, stemYinYang, branchYinYang } from '../../lib/engine/ohaeng';
 import { ContentHero } from '../../components/SpecialContentScreen'; // 이미지 히어로(보는 맛)
+import { HourFlowCard } from '../../components/HourFlowCard'; // 「오늘의 시간대」 12시진(무료·온디바이스·API 0)
 import { ChartPicker } from '../../components/ChartPicker'; // 명식 선택(대표 전환) — 명식별 오늘 운세(daniel)
 import { ShareReadingButton } from '../../components/ShareReadingButton'; // 이슈17: 풀이 결과 공유(가드 내장)
 import { DailyLogCard } from '../../components/DailyLogCard'; // 리텐션: 오늘의 미션 체크 + 적중 회고(daniel 07-19)
@@ -174,6 +175,10 @@ export default function TodayScreen() {
             <ScoreFlowGraph scores={flow.scores} labels={flow.labels} currentIndex={flow.currentIndex + dayOffset} />
           </View>
         ) : null}
+
+        {/* 시간대별 흐름(12시진) — 하루 안이 비어 있던 자리(기획 §4 C안). 무료·온디바이스·API 0.
+            ★별도 라우트로 빼지 않는다 — 매일 여는 화면 안에 있어야 리텐션에 쓰인다. */}
+        {saved ? <HourFlowCard saju={computeChart(saved.input).saju} dateISO={f.date} isToday={dayOffset === 0} /> : null}
 
         {/* 타이틀 = API 본문 headline 우선(본문과 정합·모순 제거) / 로드 전엔 온디바이스 룰 headline(즉시성) — daniel 07-01 */}
         {(reading?.headline || headline) && (
