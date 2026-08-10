@@ -18,7 +18,9 @@ import { setAdTestMode } from '../../lib/core/ads'; // 테스트모드 → 테�
 import { setClientTestMode } from '../../lib/core/testMode'; // 테스트모드 토글 → readings 목업 필터 즉시 반영(OFF서 mock 제외)
 import { sendDailyTipNow, sendSlotTeaserNow, listScheduledNotifications, type ScheduledPeek } from '../../lib/backend/notifications'; // 알림 즉시 발송·예약 목록 확인(관리자 테스트)
 import { isOnboardingEnabled, setOnboardingEnabled } from '../../components/Onboarding'; // ★관리자 온보딩 토글(daniel 07-12)
-import { remoteFlagValue, setAppFlag, loadFeatures, type FeatureKey } from '../../lib/core/features'; // ★신규 기능 공개 토글(속궁합/커뮤니티/위젯 — 심사 통과 후 전 유저 공개)
+import { remoteFlagValue, setAppFlag, loadFeatures, newOverride, setNewOverride, type FeatureKey } from '../../lib/core/features';
+import { SECTIONS, baseKey } from '../../lib/content/contentSections'; // ★콘텐츠 NEW 토글 목록(단일 출처)
+import { isNewContent, NEW_SINCE, NEW_WINDOW_DAYS } from '../../lib/content/newBadge'; // ★신규 기능 공개 토글(속궁합/커뮤니티/위젯 — 심사 통과 후 전 유저 공개)
 import { useSubscription } from '../../lib/billing/subscription'; // 관리자모드 토글 후 프리미엄 새로고침
 import DateTimePicker from '@react-native-community/datetimepicker'; // ★예약 푸시 발송 시각 선택(daniel 07-17)
 import { CopyEditor } from '../../components/CopyEditor'; // ★문구 수정(빌드 없이) — 기획자 경로(daniel 08-03)
@@ -222,6 +224,10 @@ export default function AdminRoute() {
   const [adminMode, setAdminMode] = useState(true); // god ON / 일반계정 OFF
   const [onbOn, setOnbOn] = useState(false); // 온보딩 노출 여부(관리자 토글·로컬 SecureStore FLAG, daniel 07-12)
   const [flags, setFlags] = useState<Record<string, boolean>>({}); // ★신규 기능 원격 플래그(속궁합/커뮤니티/위젯 — 공개 여부)
+  // ★콘텐츠 NEW 토글 — 원격 플래그가 features.ts **모듈 캐시**라 state 가 안 바뀌면 리렌더가 안 온다.
+  //   그래서 값이 아니라 **리렌더 트리거**로만 쓴다(아래 목록이 이 값을 읽어야 반영된다).
+  const [newTick, setNewTick] = useState(0);
+  const [newOpen, setNewOpen] = useState(false);  // 목록이 51개라 기본은 접어 둔다
   // ── 예약 푸시(daniel 07-17): 제목·본문·시각 정해 전체 유저에게 브로드캐스트 ──
   const [pushTitle, setPushTitle] = useState('');
   const [pushBody, setPushBody] = useState('');
@@ -244,7 +250,7 @@ export default function AdminRoute() {
   useEffect(() => { isOnboardingEnabled().then(setOnbOn).catch(() => {}); }, []); // 온보딩 노출 여부 로드(관리자 토글)
   // ★신규 기능 플래그 로드(원격 app_flags) — 공개 토글 초기 상태.
   // 속궁합·위젯은 전체공개 고정(features.ts ALWAYS_ON)이라 토글·조회 대상에서 제외 — 커뮤니티만 원격 플래그.
-  useEffect(() => { loadFeatures().then(() => setFlags({ community: remoteFlagValue('community') })).catch(() => {}); }, []);
+  useEffect(() => { loadFeatures().then(() => { setFlags({ community: remoteFlagValue('community') }); setNewTick((t) => t + 1); }).catch(() => {}); }, []);
   useEffect(() => { if (allowed) adminListPushCampaigns().then(setCampaigns).catch(() => {}); }, [allowed]); // 예약 푸시 내역(daniel 07-17)
 
   if (allowed === null) return <View style={styles.center}><ActivityIndicator color={colors.ju} /></View>;
@@ -364,6 +370,47 @@ export default function AdminRoute() {
           <Text style={styles.adminLinkTx}>{label} {flags[k] ? '— 공개 (전 유저)' : '— 숨김 (관리자만)'}</Text>
         </PressableScale>
       ))}
+      {/* ── ★콘텐츠 'NEW' 배지 토글 (daniel 2026-08-11 "관리자 페이지에서 컨텐츠 new 토글") ──
+          종전엔 `newBadge.NEW_SINCE` 에 출시일을 적어야 켜졌다 = **배지 하나 켜려고 재빌드**해야 했다.
+          이제 같은 `app_flags` 에 `new_<키>` 로 얹어 즉시 켜고 끈다(전 유저·재빌드 없음).
+          ★3-상태다 — '자동'(관리자가 안 건드림 → 출시일+21일 규칙) / '켬' / '끔'.
+            2-상태로 만들면 "안 건드린 것"과 "끈 것"을 구분할 수 없다. */}
+      <PressableScale style={styles.adminLink} onPress={() => setNewOpen((v) => !v)}>
+        <Text style={styles.adminLinkTx}>콘텐츠 NEW 배지 {newOpen ? '▲ 닫기' : '▼ 열기'}</Text>
+      </PressableScale>
+      {newOpen ? (
+        <View style={styles.newBox} key={`new-${newTick}`}>
+          <Text style={styles.newHint}>
+            자동 = 출시일부터 {NEW_WINDOW_DAYS}일간 노출(코드의 출시일 표). 눌러서 켬 → 끔 → 자동 순으로 돕니다.
+          </Text>
+          {SECTIONS.flatMap((sec) => sec.items).filter((it) => baseKey(it.key) === it.key).map((it) => {
+            const ov = newOverride(it.key);                       // true / false / undefined(자동)
+            const shown = isNewContent(it.key);                   // 지금 실제로 배지가 뜨는가
+            const state = ov === undefined ? '자동' : ov ? '켬' : '끔';
+            return (
+              <PressableScale
+                key={it.key}
+                style={[styles.newRow, shown && styles.newRowOn]}
+                onPress={async () => {
+                  // 켬 → 끔 → 자동(해제) 3-상태 순환. '자동'은 플래그 행을 false 로 두지 않고 **지운다**…
+                  //   가 이상적이나 `set_app_flag` 는 upsert 만 있다 → 자동 복귀는 코드 표에 맡기고
+                  //   여기서는 켬/끔 2-상태만 순환시킨다(자동은 한 번도 안 건드린 상태로만 존재).
+                  const next = ov === undefined ? true : !ov;
+                  try { await setNewOverride(it.key, next); setNewTick((t) => t + 1); }
+                  catch { Alert.alert('!', 'NEW 토글 실패 — 관리자 권한을 확인하세요.'); }
+                }}
+              >
+                <Text style={styles.newKey} numberOfLines={1}>{it.key}</Text>
+                <Text style={styles.newState}>
+                  {state}{NEW_SINCE[it.key] ? ` · 출시 ${NEW_SINCE[it.key]}` : ''}
+                </Text>
+                <Text style={[styles.newDot, shown && styles.newDotOn]}>{shown ? 'NEW' : '—'}</Text>
+              </PressableScale>
+            );
+          })}
+        </View>
+      ) : null}
+
       {/* ★커뮤니티 신고 관리(모더레이션 대시보드·Apple 1.2 조치) 진입 */}
       <PressableScale style={styles.adminLink} onPress={() => router.push('/communityMod')}>
         <Text style={styles.adminLinkTx}>커뮤니티 신고 관리 →</Text>
@@ -627,6 +674,15 @@ const styles = StyleSheet.create({
   giftMsg: { ...font.body, color: colors.ju, fontWeight: '700', marginTop: space(3), textAlign: 'center' },
   adminLink: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.ju, padding: space(3.5), alignItems: 'center', marginBottom: space(2) },
   adminLinkOn: { borderColor: colors.ju, backgroundColor: colors.juSoft },
+  // ★콘텐츠 NEW 배지 토글 목록
+  newBox: { backgroundColor: colors.card, borderRadius: radius.md, padding: space(3), marginBottom: space(2) },
+  newHint: { fontSize: 11, lineHeight: 17, color: colors.inkFaint, marginBottom: space(2) },
+  newRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: space(2), paddingHorizontal: space(2), borderRadius: radius.sm, marginBottom: space(1) },
+  newRowOn: { backgroundColor: colors.juSoft },
+  newKey: { flex: 1, fontSize: 13, fontWeight: '700', color: colors.ink },
+  newState: { fontSize: 11, color: colors.inkSoft, marginRight: space(2) },
+  newDot: { fontSize: 10, fontWeight: '900', color: colors.inkFaint, width: 34, textAlign: 'right' },
+  newDotOn: { color: colors.ju },
   slotRow: { flexDirection: 'row', gap: space(2), marginBottom: space(2) },
   slotBtn: { flex: 1, alignItems: 'center', paddingVertical: space(2.5), borderRadius: radius.md, borderWidth: 1, borderColor: colors.juLine, backgroundColor: colors.sunk },
   slotTx: { ...font.caption, color: colors.ju, fontWeight: '800' },

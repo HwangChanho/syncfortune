@@ -11,6 +11,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 
 import { baseKey } from './contentSections'; // '인기' 사본 키(hot*) → 원본 키. 출시일 표는 원본 하나만 갖는다.
+import { newOverride } from '../core/features'; // ★관리자 원격 토글(daniel 2026-08-11) — 있으면 날짜 규칙보다 우선
 
 /** 노출 기간(일) — 출시일로부터 이 기간 동안 NEW 배지. */
 export const NEW_WINDOW_DAYS = 21;
@@ -20,6 +21,7 @@ export const NEW_SINCE: Record<string, string> = {
   wealth: '2026-07-22', // 재물 딥리포트(신규 유료)
   gem: '2026-07-23',    // 내 사주 보석(R-GEM·신규 무료·daniel 07-23)
   attach: '2026-08-08', // 애착유형(명식×설문 비교·신규 무료·daniel 08-08)
+  crisis: '2026-08-10', // 관계의 고비(이별·삼각·신규 무료·기획 §6-4)
 };
 
 /**
@@ -28,6 +30,12 @@ export const NEW_SINCE: Record<string, string> = {
  * @param now 기준 시각(기본 현재) — 테스트 주입용
  */
 export function isNewContent(key: string, now: Date = new Date()): boolean {
+  // ★관리자 원격 토글이 **먼저**다(daniel 2026-08-11 "관리자 페이지에서 컨텐츠 new 토글").
+  //   지정돼 있으면 그 값이 이기고, 안 건드렸으면(undefined) 아래 날짜 규칙으로 떨어진다.
+  //   ⇒ 재빌드 없이 켜고 끌 수 있다. 사본 키(hot*)도 원본과 같은 판정을 쓰도록 baseKey 로 한 번 더 본다.
+  const ov = newOverride(key) ?? newOverride(baseKey(key));
+  if (ov !== undefined) return ov;
+
   // ★'인기' 섹션 사본(hot*)은 원본과 같은 콘텐츠 → 같은 출시일을 쓴다(사본 키를 위 표에 또 적지 않는다).
   const since = NEW_SINCE[key] ?? NEW_SINCE[baseKey(key)];
   if (!since) return false;

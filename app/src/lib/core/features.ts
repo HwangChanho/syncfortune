@@ -59,6 +59,29 @@ export async function setAppFlag(key: FeatureKey, enabled: boolean): Promise<voi
   emit();
 }
 
+// ── 콘텐츠 'NEW' 배지 원격 오버라이드 (daniel 2026-08-11 "관리자 페이지에서 컨텐츠 new 토글") ──
+//   기존 NEW 는 `newBadge.NEW_SINCE`(출시일 하드코딩) + 21일 자동 만료였다. 즉 **배지를 켜려면 재빌드**해야 했다.
+//   ⇒ 같은 `app_flags` 테이블에 `new_<콘텐츠키>` 로 얹어 관리자가 즉시 켜고 끌 수 있게 한다.
+//   ★설계: 오버라이드는 **3-상태**다 — 행이 없으면 '자동'(기존 날짜 규칙), 있으면 그 값이 이긴다.
+//     불리언 2-상태로 만들면 "관리자가 안 건드린 것"과 "관리자가 끈 것"을 구분할 수 없다.
+const NEW_PREFIX = 'new_';
+/** 콘텐츠 키 → `app_flags` 키. */
+export const newFlagKey = (contentKey: string) => `${NEW_PREFIX}${contentKey}`;
+/**
+ * 이 콘텐츠의 NEW 원격 오버라이드.
+ * @returns `true`/`false` = 관리자가 지정 · `undefined` = 지정 안 함(기존 날짜 규칙을 쓴다)
+ */
+export function newOverride(contentKey: string): boolean | undefined {
+  return remoteFlags[newFlagKey(contentKey)];
+}
+/** 관리자 토글 — NEW 배지를 즉시 켜고 끈다(재빌드 없이 전 유저). */
+export async function setNewOverride(contentKey: string, enabled: boolean): Promise<void> {
+  const k = newFlagKey(contentKey);
+  await supabase.rpc('set_app_flag', { p_key: k, p_enabled: enabled });
+  remoteFlags[k] = enabled;
+  emit();
+}
+
 /** 리액트 구독 훅 — loadFeatures() 완료/세션 변경 시 자동 리렌더. */
 export function useFeatureOn(key: FeatureKey): boolean {
   return useSyncExternalStore(
