@@ -510,6 +510,15 @@ const SAENGJI: Branch[] = ['寅', '申', '巳', '亥'];   // 생지(生支) — 
 const GOJI: Branch[] = ['辰', '戌', '丑', '未'];      // 고지(庫支) — 정기(본기)만 격
 export function detectPattern(saju: SajuChart): {
   name: string;             // '◯◯격' · 비겁이면 '건록격/양인격/겁재격' · 안 서면 '격 없음'
+  /**
+   * ★**사람에게 보여 줄 이름** — 2026-08-11 `verify-000h-magnitude#1`·`#2`·`#3`.
+   *   `#3`(O) *"두 말은 **같은 것을 다르게 부르는 것뿐**이다 — 어느 쪽으로 부르든 읽는 방법은 안 달라진다"*
+   *   `#1`(△) *"격이 없는게 맞다. **하지만 고객에게 격이 없다고하면 기분나빠한다.**"*
+   *   `#2`(△) *"1번보다는 나은 대답이다"* (= '드러나지 않은 격' 쪽이 낫다)
+   * ⇒ **판정은 그대로 '격 없음'**(`name`·`established`)이고, **부르는 이름만** 바꾼다.
+   *   화면·프롬프트는 이 값을 쓰고, 계산은 `established` 를 본다. 둘을 섞으면 안 된다.
+   */
+  displayName: string;
   established: boolean;     // ★신규 — 격이 섰는가(생지에서 아무것도 투간 안 하면 false)
   monthMainTenGod: string;  // ★신규 — 월지 본기 십신. **격 성립과 무관하게 항상** 있다(소비처 안전판)
   branchKind: '생지' | '왕지' | '고지';   // ★신규 — 어느 규칙으로 판정했는지(근거 추적)
@@ -576,7 +585,10 @@ export function detectPattern(saju: SajuChart): {
     const basis = `${head} → **격 없음** — 생지는 중기나 정기가 투간해야 격이 선다(투간 없음)`
       + (others.length ? ` · 지장간 ${others.map((x) => `${x.h.stem}(${x.h.tenGod})`).join('·')} 투간(여기는 격으로 안 잡는다)` : '');
     return {
-      name: '격 없음', established: false, monthMainTenGod: bongiTg, branchKind,
+      name: '격 없음',
+      // ★부르는 이름은 '드러나지 않은 격'(`000h#2`·`#3`) — 판정(established=false)은 그대로다.
+      displayName: `${bongiTg}격(드러나지 않음)`,
+      established: false, monthMainTenGod: bongiTg, branchKind,
       basis, revealed: false, revealedAt: [], candidates: [],
     };
   }
@@ -596,7 +608,7 @@ export function detectPattern(saju: SajuChart): {
     + (others.length ? ` · 지장간 ${others.map((x) => `${x.h.stem}(${x.h.tenGod})`).join('·')} 투간` : '')
     + (hapGyeok.length ? ` · 합으로 서는 격 후보: ${hapGyeok.map((x) => `${dm}${x.stem}합→${x.tenGod}격`).join('·')}` : '');
   return {
-    name, established: true, monthMainTenGod: bongiTg, branchKind,
+    name, displayName: name, established: true, monthMainTenGod: bongiTg, branchKind,
     basis,
     revealed: !!anchor,
     revealedAt: anchor?.at ?? [],

@@ -12,6 +12,15 @@
 //   ⚠️기존 함수는 **그대로 둔다** — 만세력 화면·countryFit 이 쓰고 있어 같이 바꾸면 표시가 전부 흔들린다.
 //     교체는 R56 게이트 수정과 함께 별건으로(스키마와 값 변경을 섞지 말 것 — 전문가).
 //
+// ■ ★2026-08-11 `verify-000h-magnitude#8`·`#9`(둘 다 O) — **합치는 법이 왔다**
+//   `#8`(O) *"두 축이 어긋날 때 그 사람의 조후는 **월지 쪽을 따라** 부른다 — 조습은 그 안에서 덧붙이는 말"*
+//   `#9`(O) *"**중화**란 월지도 일지도 치우치지 않은 자리(寅·卯·申·酉 처럼)에 있고,
+//            주변 여덟 글자가 찬 쪽과 더운 쪽을 **비슷하게 나눠 가진** 상태"*
+//   ⇒ `johuLabel()` 신설. ★임계값을 하나도 안 만들었다 — 판정이 그렇게 짜여 있기 때문이다:
+//     · 기준 글자(base)가 치우쳐 있으면 **그 부호가 이름을 정한다**(월지가 정한다 · #8)
+//     · 기준 글자가 치우치지 않은 자리면(base=0) 그때만 **주변(surround)이 정한다**
+//     · 둘 다 0 = 주변이 양쪽을 비슷하게 나눠 가진 상태 → **중화**(#9 그대로)
+//
 // ■ ★가중치를 합쳐서 내보내지 않는다
 //   `base`(기준 글자)·`surround`(원국 여덟 글자)·`daeun`(현재 대운)을 **셋 다 따로** 돌려준다.
 //   어떤 비율로 합칠지는 **여전히 판정 전**이다 — `verify-000d-johu#5`(O) 가 *"월지 쪽이 더 무겁다"* 라고
@@ -66,6 +75,19 @@ export type JohuAxis = {
   daeun: number;
   /** 기준이 된 글자(추적용). */
   anchor: Branch;
+};
+
+/** 조후 한 축의 이름. `중화` = 기준도 주변도 치우치지 않은 상태(`000h#9`). */
+export type JohuSide<A extends string, B extends string> = A | B | '중화';
+
+/** 조후를 한 문장으로 부를 때 쓰는 이름 — `000h#8`·`#9`. */
+export type JohuLabel = {
+  /** **먼저 말하는 것** = 한난(월지 기준). `000h#8` *"월지 쪽을 따라 부른다"*. */
+  hanNan: JohuSide<'寒', '暖'>;
+  /** 그 안에서 **덧붙이는 말** = 조습(일지 기준). */
+  joSeup: JohuSide<'燥', '濕'>;
+  /** 두 축이 서로 다른 쪽을 가리키는가(어긋남) — `#8` 이 다루던 바로 그 상황. */
+  crossed: boolean;
 };
 
 export type Johu2 = {
@@ -152,4 +174,34 @@ export function johu2(saju: SajuChart): Johu2 {
       anchor: ilBr,
     },
   };
+}
+
+/**
+ * 조후를 **한 문장으로 부르는 이름** — `verify-000h-magnitude#8`·`#9`(둘 다 O).
+ *
+ * @param j `johu2()` 결과
+ * @returns 한난(먼저) · 조습(덧붙임) · 두 축이 어긋났는지
+ *
+ * ★임계값이 하나도 없다. 판정이 이렇게 짜여 있어서다:
+ *   1. 기준 글자가 치우쳐 있으면(base ≠ 0) **그 부호가 이름**이다 — 월지/일지가 정한다.
+ *   2. 기준 글자가 치우치지 않은 자리면(base = 0 · 寅卯申酉 등) 그때만 **주변이 정한다**.
+ *   3. 기준도 주변도 0 = 주변이 양쪽을 비슷하게 나눠 가진 것 → **중화**(`#9` 정의 그대로).
+ * ⚠️`daeun` 은 여기 안 쓴다 — 대운을 이름에 섞을지는 판정에 없다(원국의 이름이 먼저다).
+ *
+ * @example
+ *   johuLabel(johu2(saju))   // { hanNan: '寒', joSeup: '燥', crossed: true } = "찬데 마른 명식"
+ */
+export function johuLabel(j: Johu2): JohuLabel {
+  /** 한 축의 이름 — 위 1~3 규칙. */
+  const side = <A extends string, B extends string>(ax: JohuAxis, neg: A, pos: B): JohuSide<A, B> => {
+    const v = ax.base !== 0 ? ax.base : ax.surround;   // 기준이 먼저, 없을 때만 주변
+    return v === 0 ? '중화' : v < 0 ? neg : pos;
+  };
+  const hanNan = side(j.hanNan, '寒', '暖');
+  const joSeup = side(j.joSeup, '燥', '濕');   // 조습은 음수=燥(마름) · 양수=濕(젖음)
+  // 어긋남 = 한쪽은 차가운데 다른 쪽은 마른 식으로 서로 다른 방향을 가리킬 때.
+  //   ★중화가 끼면 어긋난 것이 아니다(가리키는 방향이 아예 없다).
+  const crossed = hanNan !== '중화' && joSeup !== '중화'
+    && ((hanNan === '寒') !== (joSeup === '濕'));   // 寒↔濕 · 暖↔燥 가 같은 결. 엇갈리면 crossed
+  return { hanNan, joSeup, crossed };
 }

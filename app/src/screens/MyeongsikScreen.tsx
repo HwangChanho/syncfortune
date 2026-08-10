@@ -523,8 +523,11 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
       {/* 일간·신강약·격국 */}
       <Text style={styles.kv}>{t('myeongsik.dayMaster')}: <Text style={styles.kvAccent}>{c.saju.dayMaster.stem}({c.saju.dayMaster.element})</Text></Text>
       {/* ★격이 아예 서지 않는 명식이 있다(생지 월지에 중기·정기가 모두 미투간 — 표본의 약 21%).
-          그때는 '격 없음'만 쓰고 투간 라벨을 붙이지 않는다 — "격 없음 (잠복)" 같은 문구가 되지 않게. */}
-      <Text style={styles.kv}>{t('myeongsik.dayMaster')} {c.saju.dayMaster.stem}  ·  {t('myeongsik.pattern')}: {c.pattern.name}
+          그때는 투간 라벨을 붙이지 않는다 — "격 없음 (잠복)" 같은 문구가 되지 않게.
+          ★2026-08-11 `000h#1`(△) *"격이 없는게 맞다. **하지만 고객에게 격이 없다고하면 기분나빠한다**"* ·
+            `#3`(O) *"두 말은 같은 것을 다르게 부르는 것뿐"* ⇒ **판정은 그대로, 부르는 이름만** 바꾼다.
+            화면은 `displayName`('◯◯격(드러나지 않음)')을 쓰고, 계산은 `established` 를 본다. */}
+      <Text style={styles.kv}>{t('myeongsik.dayMaster')} {c.saju.dayMaster.stem}  ·  {t('myeongsik.pattern')}: {(c.pattern as { displayName?: string }).displayName ?? c.pattern.name}
         {(c.pattern as { established?: boolean }).established === false
           ? ''
           : ` (${t(c.pattern.revealed ? 'myeongsik.patternRevealed' : 'myeongsik.patternHidden')})`}</Text>

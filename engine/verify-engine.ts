@@ -8,7 +8,7 @@ import _lunar from 'lunar-javascript';
 import { twelveStage } from './twelve';
 import { gongmang, analyzeSinsal } from './sinsal';
 import { detectInteractions, scoreStrength } from './structure';
-import { johu2 } from './johu2';
+import { johu2, johuLabel } from './johu2';
 import { spouseCapacityAxis } from './attachSpouseAxis';
 import { buildSajuChart, validateBirthInput } from './saju';
 import { trueSolarOffsetMin, kstMeridianAt, dstOffsetMin } from './solartime';
@@ -405,6 +405,35 @@ console.log('\n=== 조후 2축 조작화 (verify-000d-johu #2·#3) ===');
   check('대조군: 대운은 surround 에 섞이지 않는다(원국 값 불변)', j.hanNan.surround === noLuck);
   // 대운이 없는 차트는 0 — NaN 오염 회귀 방지
   check('대운이 비면 daeun=0 (NaN 오염 없음)', johu2(mk(['寅', '寅', '卯', '寅'])).hanNan.daeun === 0);
+}
+
+// ── 조후를 한 문장으로 (`verify-000h-magnitude#8`·`#9` · 둘 다 O · 2026-08-11) ────
+//   `#8`(O) 두 축이 어긋나면 **월지(한난) 쪽을 따라** 부른다 · `#9`(O) 중화 = 기준도 주변도 안 치우침
+//   ★임계값이 없는 구현인지도 함께 본다 — 기준(base)이 먼저, 없을 때만 주변(surround).
+console.log('\n=== 조후 한 문장 (000h#8·#9) ===');
+{
+  // 월지 子(가장 참) · 일지 戌(마름) = `#8` 이 든 바로 그 예시(子月 戌日)
+  const crossed = mk(['寅', '子', '戌', '寅']);
+  const L1 = johuLabel(johu2(crossed));
+  check(`子월 戌일 = 寒 + 燥 로 읽는다(#8 예시) [${L1.hanNan}${L1.joSeup}]`, L1.hanNan === '寒' && L1.joSeup === '燥');
+  check('두 축이 서로 다른 쪽을 가리키면 crossed', L1.crossed);
+
+  // 대조군 — 寒 + 濕 은 같은 결이라 crossed 가 아니다(늘 true 를 내지 않는다)
+  const aligned = mk(['寅', '子', '子', '寅']);
+  const L2 = johuLabel(johu2(aligned));
+  check(`대조군: 子월 子일 = 寒 + 濕 은 어긋남이 아니다 [${L2.hanNan}${L2.joSeup}]`, !L2.crossed);
+
+  // 중화 — 월지·일지가 치우치지 않은 자리(卯·酉)이고 주변도 한쪽으로 안 쏠릴 때
+  //   ★`#9` 정의 그대로: 기준이 0 이면 주변이 정하고, 주변도 0 이면 중화.
+  const neutral = mk(['卯', '卯', '酉', '酉']);
+  const L3 = johuLabel(johu2(neutral));
+  check(`치우치지 않은 자리 + 쏠리지 않은 주변 = 중화 [${L3.hanNan}${L3.joSeup}]`, L3.joSeup === '중화');
+  check('중화가 끼면 어긋남으로 세지 않는다', !L3.crossed);
+
+  // ★기준(월지)이 먼저다 — 주변이 반대로 쏠려 있어도 기준이 치우쳐 있으면 기준이 이름을 정한다(#8)
+  const baseWins = mk(['午', '子', '午', '午']);   // 월지 子(寒) · 주변은 午 셋(暖)
+  const L4 = johuLabel(johu2(baseWins));
+  check(`기준(월지 子)이 주변(午 셋)을 이긴다 — 여전히 寒 [${L4.hanNan}]`, L4.hanNan === '寒');
 }
 
 // ── 애착 배우자성 **균형** 축 (`000e` 원문 + `000h#10·#11·#12·#13` · 2026-08-11) ──
