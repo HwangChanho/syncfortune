@@ -123,6 +123,23 @@ for (const [desc, br, must] of INT_CASES) {
   check('세력 동률(일·시)이면 판정이 없어 양쪽 손상(보수 유지)', bdTie.includes('일子(충)') && bdTie.includes('시午(충)'));
 }
 
+// ── 극 관계 반합은 성립하되 세력 0 (`verify-000g-power#4` · X) ──────────────
+//   상담가: "반합은 **되는데**, 극의 에너지이므로 **커진다는 게 아님**"
+//   ★검출과 세력을 가른다 — 합이 있다는 사실은 통변에 쓰이고, 힘은 안 늘어난다.
+{
+  const sa = mk(['巳', '酉', '寅', '卯']);   // 년巳 ↔ 월酉 (인접 · 火剋金)
+  sa.interactions = detectInteractions(sa);
+  const det = sa.interactions.map((i) => i.detail ?? '');
+  check('巳酉 반합은 **검출된다**(성립은 한다)', det.some((d) => d.includes('半合')));
+  const bd = scoreStrength(sa).breakdown.join(' ');
+  check('巳酉 반합은 강약 세력에 **안 보탠다**(극이라 세력 0)', bd.includes('극이라 세력 0'));
+  // 대조군 — 생 관계 반합(亥卯)은 세력이 그대로 붙어야 한다(둘 다 껐다는 사고 방지)
+  const sb = mk(['亥', '卯', '寅', '寅']);
+  sb.interactions = detectInteractions(sb);
+  const bdB = scoreStrength(sb).breakdown.join(' ');
+  check('대조군: 亥卯(생) 반합은 세력이 붙는다', /반합:亥卯半合木[+-]/.test(bdB));
+}
+
 // ── 신살 일반화 (타 일간 차트 — 자기차트 n=1 넘어 규칙이 임의 차트에 일반 적용되는지) ──
 function mkSaju(st: [Stem, Stem, Stem, Stem], br: [Branch, Branch, Branch, Branch]): SajuChart {
   const P: PillarPos[] = ['년', '월', '일', '시'];

@@ -30,6 +30,16 @@ export const WANGZHI: Branch[] = ['子','午','卯','酉'];                     
 //     내가 극 관계 전반으로 넓히면 그건 판정이 아니라 **발명**이다(CLAUDE.md §3.2).
 //     → 질문은 `knowledge/rules/STANCE_LEDGER.md` `verify-000-rules#9` 에 보류로 걸어 뒀다.
 const BANHAP_EXCLUDED: [Branch, Branch][] = [['卯', '未']];
+// ★**성립은 하되 세력은 커지지 않는** 반합 — 상담가 판정 2026-08-10 `verify-000g-power#4`(X):
+//   *"반합은 **되는데**, **극의 에너지이므로 커진다는 게 아님**."*
+//   ⇒ 巳酉(火剋金)·子辰(土剋水) 은 검출은 그대로 두고 **강약 가중만 0** 으로 둔다.
+//   (卯未 는 더 강하게 부정됐다 — `000d#13`(O) *"卯未 두 글자로는 木 기운이 서지 않는다"* → 위 EXCLUDED.)
+//   ★검출과 세력을 **가르는** 것이 핵심이다: 합이 있다는 사실은 통변에 쓰이고, 힘은 안 늘어난다.
+const BANHAP_NO_POWER: [Branch, Branch][] = [['巳', '酉'], ['子', '辰']];
+/** 이 반합이 강약 점수에 세력을 보태는가(극 관계면 아니다 · 000g#4). */
+export function banhapAddsPower(detail: string): boolean {
+  return !BANHAP_NO_POWER.some(([x, y]) => detail.startsWith(`${x}${y}`) || detail.startsWith(`${y}${x}`));
+}
 // 천간 관계표 (자평진전: 천간끼리도 합·충=극) — daniel 검수 대상이나 합/충은 통설
 export const TIANHE: [Stem, Stem, Element][] = [['甲','己','土'],['乙','庚','金'],['丙','辛','水'],['丁','壬','木'],['戊','癸','火']]; // 천간 오합
 export const TIANCHONG: [Stem, Stem][] = [['甲','庚'],['乙','辛'],['丙','壬'],['丁','癸']];   // 천간 칠충 = 상극(극). 戊己(중앙토) 제외
@@ -291,6 +301,8 @@ export function scoreStrength(saju: SajuChart): { score: number; verdict: '신�
     if (it.type === '합' && it.transformsTo && it.level !== '천간') {
       const isWanhap = it.members.length >= 3;                           // 3자 완성 = 완합(국)
       const isBanhap = !isWanhap && (it.detail ?? '').includes('半合');  // 2자 반합(육합 제외)
+      // ★극 관계 반합(巳酉·子辰)은 **성립하되 세력을 보태지 않는다**(000g#4 X) — 검출은 살리고 가중만 뺀다.
+      if (isBanhap && !banhapAddsPower(it.detail ?? '')) { gukBd.push(`반합:${it.detail}(극이라 세력 0)`); continue; }
       if (isWanhap || isBanhap) {
         const dir = favor.has(it.transformsTo) ? 1 : -1;                 // 방향성: 우호 +, 비우호 −
         const adj = Math.round(dir * GUK_BONUS * (isBanhap ? BANHAP_MULT : 1) * 10) / 10; // 반합만 ×0.6
