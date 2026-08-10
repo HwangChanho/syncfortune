@@ -97,10 +97,14 @@ for (const [desc, br, must] of INT_CASES) {
   check('子(년)丑(시) 육합은 미성립(거리 3 · 000c#3)', !farHap.some((d) => d.includes('子丑合')));
   const farBan = detectInteractions(mk(['申', '巳', '巳', '子'])).map((i) => i.detail);
   check('申(년)子(시) 반합도 미성립(거리 조건은 반합에도 걸린다)', !farBan.some((d) => d.includes('半合')));
-  // ⚠️대조군 — 거리 조건은 **합에만**. 충·형·해·파는 `#4`(△)라 확정이 아니고,
-  //   실측상 확대하면 daniel 차트 판정이 정답에서 멀어진다(structure.ts adjacentPair 주석).
+  // ★2026-08-10 3차 판정으로 **뒤집혔다** — `000d#6`(O) *"떨어진 자리의 충·형·해·파는 아예 작용하지 않는다"* ·
+  //   `000d#7`(O) 예시 명식의 卯酉冲(월-시)은 작용하지 않는 것으로 본다(상담가가 직접 확정).
+  //   종전 이 자리엔 "충은 거리 무관하게 검출"이 **대조군**으로 있었다 — 판정이 그것을 부정했다.
   const farChung = detectInteractions(mk(['子', '巳', '巳', '午'])).map((i) => i.detail);
-  check('대조군: 子(년)午(시) 충은 거리 무관하게 그대로 검출(#4 는 미적용)', farChung.some((d) => d.includes('子午冲')));
+  check('子(년)午(시) 충은 미성립(거리 · 000d#6·#7)', !farChung.some((d) => d.includes('子午冲')));
+  // 대조군은 **인접 충**으로 옮긴다 — 충 검출 자체를 껐다는 사고를 잡으려면 반드시 하나는 살아 있어야 한다.
+  const nearChung = detectInteractions(mk(['子', '午', '巳', '巳'])).map((i) => i.detail);
+  check('대조군: 子(년)午(월) 인접 충은 그대로 검출(충 검출이 죽지 않았다)', nearChung.some((d) => d.includes('子午冲')));
 }
 
 // ── 충의 세력 비교 (`verify-000c-structure#14` · O) — verify-103 재현 ──

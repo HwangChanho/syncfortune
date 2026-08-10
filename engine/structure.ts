@@ -85,13 +85,19 @@ export function detectInteractionsAmong(items: { pos: ChartPosition; stem: Stem;
   // 쌍 관계 (지지: 합·충·해·파·상형·반합)
   for (let i = 0; i < items.length; i++) for (let j = i + 1; j < items.length; j++) {
     const A = items[i], B = items[j];
-    const near = adjacentPair([A.pos, B.pos]);   // ★지지 합에만 거리 조건(000c#3 O) — 충·형·해·파는 미적용
+    // ★거리 조건 — 2026-08-10 3차 판정으로 **전 관계에 적용**으로 넓혔다.
+    //   `000d#6`(O) *"떨어진 자리의 충·형·해·파는 **아예 작용하지 않는다** — 약하게라도 작용하는 것이 아니다"*
+    //   `000d#7`(O) 예시 명식의 **卯酉冲(월-시)은 작용하지 않는 것으로 본다** — 상담가가 직접 확정.
+    //   `000d#8`(O) *"거리 조건은 **천간에도** 똑같이 걸린다"*(아래 천간 루프).
+    //   ⚠️내 실측은 반대를 가리켰다(daniel 차트가 중화→신왕으로 뒤집힌다) — 그래서 08-10 오전엔 합에만 걸었다.
+    //     그러나 상담가가 **예시 명식으로 직접** 확정했으므로 판정을 따른다(실측은 내 산식이 다른 것을 재고 있었을 수 있다).
+    const near = adjacentPair([A.pos, B.pos]);
     const he = SIXHE.find(([x, y]) => (x === A.branch && y === B.branch) || (x === B.branch && y === A.branch));
     if (he && near) out.push({ type: '합', members: [A.pos, B.pos], detail: `${he[0]}${he[1]}合化${he[2]}`, transformsTo: he[2], transformSupported: stemElems.has(he[2]) });
-    if (pairMatch(CHONG, A.branch, B.branch)) out.push({ type: '충', members: [A.pos, B.pos], detail: `${A.branch}${B.branch}冲` });
-    if (pairMatch(HAI, A.branch, B.branch)) out.push({ type: '해', members: [A.pos, B.pos], detail: `${A.branch}${B.branch}害` });
-    if (pairMatch(PO, A.branch, B.branch)) out.push({ type: '파', members: [A.pos, B.pos], detail: `${A.branch}${B.branch}破` });
-    if (pairMatch(XING_PAIR, A.branch, B.branch)) out.push({ type: '형', members: [A.pos, B.pos], detail: `${A.branch}${B.branch}刑` });
+    if (pairMatch(CHONG, A.branch, B.branch) && near) out.push({ type: '충', members: [A.pos, B.pos], detail: `${A.branch}${B.branch}冲` });
+    if (pairMatch(HAI, A.branch, B.branch) && near) out.push({ type: '해', members: [A.pos, B.pos], detail: `${A.branch}${B.branch}害` });
+    if (pairMatch(PO, A.branch, B.branch) && near) out.push({ type: '파', members: [A.pos, B.pos], detail: `${A.branch}${B.branch}破` });
+    if (pairMatch(XING_PAIR, A.branch, B.branch) && near) out.push({ type: '형', members: [A.pos, B.pos], detail: `${A.branch}${B.branch}刑` });
     const ban = A.branch !== B.branch && !pairMatch(BANHAP_EXCLUDED, A.branch, B.branch) // 반합은 삼합 중 *서로 다른* 두 글자 (같은 글자=자형, 반합 아님) · 卯未 는 극 우선이라 제외(000-rules#7)
       ? SANHE.find((grp) => { const s = grp.slice(0, 3) as Branch[]; return !fullSanheSet.has(grp) && s.includes(A.branch) && s.includes(B.branch) && (WANGZHI.includes(A.branch) || WANGZHI.includes(B.branch)); })
       : undefined;
@@ -122,6 +128,8 @@ export function detectInteractionsAmong(items: { pos: ChartPosition; stem: Stem;
   // 천간 합·충(극)
   for (let i = 0; i < items.length; i++) for (let j = i + 1; j < items.length; j++) {
     const A = items[i], B = items[j];
+    const nearS = adjacentPair([A.pos, B.pos]);   // ★천간에도 거리 조건(000d#8 O)
+    if (!nearS) continue;                          // 떨어진 천간끼리는 합·충·극이 서지 않는다
     const gh = TIANHE.find(([x, y]) => (x === A.stem && y === B.stem) || (x === B.stem && y === A.stem));
     const isChong = TIANCHONG.some(([x, y]) => (x === A.stem && y === B.stem) || (x === B.stem && y === A.stem));
     if (gh) out.push({ type: '합', level: '천간', members: [A.pos, B.pos], detail: `${A.stem}${B.stem}合化${gh[2]}`, transformsTo: gh[2] });
