@@ -4,8 +4,8 @@
 //   선택 항목(life_{startAge} / year_{YYYY}) 통변을 Edge(kind='timeline')로 생성·캐시. 현재 대운·올해 기본.
 //   캐시(readings chart_id×category)로 재생성 0. 프리미엄 메뉴(비프리미엄=유도).
 // ─────────────────────────────────────────────────────────────────────────
-import { useState, useEffect, useMemo, useRef } from 'react';
-import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator, Modal } from 'react-native';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator, Modal, AppState } from 'react-native';
 import { PressableScale } from '../components/PressableScale';
 import { RelatedContent } from '../components/RelatedContent';
 import { ExpiryNote } from '../components/ExpiryNote'; // 보유 만료일 공통(프리미엄 가드 한 곳)
@@ -125,6 +125,37 @@ export function TimelineScreen({ input, savedChart }: { input: ChartInput | null
   }, [picker]);
 
   // 진입 시 서버차트 + 캐시 로드 → 현재 대운·올해 자동 생성(둘 다 보이게)
+  // ★저장된 시기 통변을 서버에서 읽어온다 — **진입과 복귀가 같은 코드를 쓰도록** 뽑아 둔다.
+  //   (주석에 '같다'고 적는 걸로는 보장되지 않는다 — [[duplicate-ui-single-source]])
+  //   set 하지 않고 **돌려주기만** 한다: 호출자가 alive/병합 여부를 스스로 정한다.
+  const fetchReadings = useCallback(async (id: string) => {
+    const { data } = await excludeMock(supabase.from('readings').select('category, content, created_at').eq('chart_id', id).eq('lang', appLang()));
+    const loaded: Record<string, any> = {};
+    const created: Record<string, string> = {};   // 기간별 생성일(보유 만료일 계산용·daniel #25)
+    (data ?? []).forEach((r: any) => { if (/^(life|year)_/.test(r.category)) { loaded[r.category] = r.content; if (r.created_at) created[r.category] = r.created_at; } });
+    return { loaded, created };
+  }, []);
+
+  // ★★백그라운드 복귀 시 결과 회수(daniel 2026-08-12 *"95퍼에서 멈췄어"* — 궁합에서 실측된 사고와 동형)
+  // 앱이 백그라운드로 가면 진행 중이던 fetch 가 죽지만 **서버는 끝까지 만들어 저장한다.**
+  // 복귀했을 때 주우러 가지 않으면 유료 통변을 사고도 못 보는 상태가 된다. 재조회는 읽기 전용(과금 0·멱등).
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (st) => {
+      const id = chartIdRef.current;
+      if (st !== 'active' || !id) return;
+      void fetchReadings(id)
+        .then(({ loaded, created }) => {
+          if (!Object.keys(loaded).length) return;
+          setReadings((prev) => ({ ...prev, ...loaded }));
+          setCreatedAt((prev) => ({ ...prev, ...created }));
+          // ★기다리던 그 기간이 실제로 도착했을 때만 로딩을 푼다 — 아직 만드는 중인 건 건드리지 않는다.
+          setBusy((b) => (b && loaded[b] ? null : b));
+        })
+        .catch(() => {});   // 조회 실패는 조용히 — 다음 복귀에 다시 시도된다
+    });
+    return () => sub.remove();
+  }, [fetchReadings]);
+
   useEffect(() => {
     let alive = true;
     genSeq.current++;   // ① 재로드(진입·명식전환) = 진행 중 gen 무효화(그 결과가 이 화면 readings 에 setReadings 되지 않게)
@@ -135,11 +166,8 @@ export function TimelineScreen({ input, savedChart }: { input: ChartInput | null
       if (!alive || !id) return;
       setChartId(id);
       chartIdRef.current = id;   // ① 현재 명식 확정 — 이후 gen 결과의 명식 대조 기준
-      const { data } = await excludeMock(supabase.from('readings').select('category, content, created_at').eq('chart_id', id).eq('lang', appLang()));
+      const { loaded, created } = await fetchReadings(id);   // ★복귀 회수와 같은 함수(단일 출처)
       if (!alive) return;
-      const loaded: Record<string, any> = {};
-      const created: Record<string, string> = {}; // 기간별 생성일(보유 만료일 계산용·daniel #25)
-      (data ?? []).forEach((r: any) => { if (/^(life|year)_/.test(r.category)) { loaded[r.category] = r.content; if (r.created_at) created[r.category] = r.created_at; } });
       setReadings(loaded);
       setCreatedAt(created);
       // ★★자동 생성 제거(daniel 2026-08-01 "풀이보기 누르지도 않았는데 바로 풀려").

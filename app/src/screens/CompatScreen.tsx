@@ -8,7 +8,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Image as ExpoImage } from 'expo-image'; // ★뷰 크기 다운샘플 + 디스크 캐시(RN Image 는 원본 풀 디코딩 — 갤럭시 랙 원인)
 import { A } from '../lib/ui/remoteAsset'; // ★이미지 원격화(daniel 08-01) — 번들에서 걷어내고 Storage 에서 받는다
-import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator, Modal, TextInput, Keyboard, Animated, Easing } from 'react-native';
+import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator, Modal, TextInput, Keyboard, Animated, Easing, AppState } from 'react-native';
 import { useRouter } from 'expo-router';                    // ★운 부족 → 충전 화면(daniel 07-28)
 import { ensureCoinsFor } from '../lib/billing/coinGate';   // ★운 단일 경로
 import { coinPriceOf } from '../lib/billing/coins';   // ★표시 가격도 운으로(아래 COMPAT_COINS 주석)
@@ -129,6 +129,33 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
   const [pair, setPair] = useState<{ me: any; other: any } | null>(null);
   const [compat, setCompat] = useState<CompatScoreResult | null>(null); // 궁합 점수·등급(결정론 — 통변과 별개로 항상)
   const [ctx, setCtx] = useState<{ chartId: string; sig: string; cross: string[]; dayRel: string; meZiwei: any; otherZiwei: any; numMe?: any; numOther?: any; otherChartId?: string } | null>(null); // 연도별 추가 생성 컨텍스트(+수비학 보조) · otherChartId=상대 서버 명식(pay-once-per-pair 역방향 결제 인식)
+
+  // ★★백그라운드 복귀 시 결과 회수(daniel 2026-08-12 *"95퍼에서 멈췄어"* · 실측으로 규명)
+  // ─────────────────────────────────────────────────────────────────────
+  // 실측 타임라인(app_logs·readings, 2026-08-11 17:00~17:02 UTC):
+  //   17:00:27 `/compat` 진입 → 17:00:38 생성 시작
+  //   17:01:31 **app_background** (사용자가 앱을 나감 — 50초 기다리다)
+  //   17:01:35 `readings` 에 `compat_love_壬午甲辰丙寅辛卯` **저장 완료**(서버는 성공)
+  //   17:02:01 app_active 복귀 — 그런데 **화면은 95% 그대로**
+  // ⇒ 앱이 백그라운드로 가면 진행 중이던 fetch 가 죽는다. 서버는 개의치 않고 끝까지 만들어 저장한다.
+  //   복귀했을 때 **아무도 그 결과를 주우러 가지 않아서** 사용자는 "운을 쓰고 못 봤다"가 된다.
+  //
+  // ★`ReadingScreen` 은 예전부터 AppState 워치독이 있었고(:380) **궁합에만 없었다** — 그래서 궁합만 깨졌다.
+  //   같은 사고가 화면마다 반복되지 않도록, 여기서도 *복귀 = 캐시 재조회* 를 건다.
+  // ※ 재조회는 읽기 전용이라 결제·생성을 다시 일으키지 않는다(비용 0 · 멱등).
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (st) => {
+      if (st !== 'active' || !ctx) return;
+      void loadCompatReadings(ctx.chartId, ctx.sig)
+        .then((got) => {
+          if (!got || !Object.keys(got).length) return;
+          setGenErr(null);
+          setReadings((prev) => ({ ...prev, ...got }));   // 병합 — 진행 중인 다른 관계 결과를 지우지 않는다
+        })
+        .catch(() => {});                                  // 조회 실패는 조용히 — 다음 복귀에 다시 시도된다
+    });
+    return () => sub.remove();
+  }, [ctx]);
   const YEARS = Array.from({ length: 43 }, (_, i) => new Date().getFullYear() - 2 + i); // 연도별 옵션(올해-2~+40 전체 — 드롭다운 스크롤·daniel K)
   const [yearOpen, setYearOpen] = useState(false);              // 년도 선택 드롭다운(전체 년도 스크롤 리스트)
   const [relOpen, setRelOpen] = useState(false);                // ② 관계 선택 드롭다운(관계별 개별 결제·daniel 2026-07-22)

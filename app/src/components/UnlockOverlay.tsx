@@ -69,6 +69,22 @@ export function UnlockOverlay({ visible, message, allowBackground = true, videoK
     return () => clearInterval(id);
   }, [show, visible, hasReal, realPct]);
 
+  // ★★얼어붙은 95% 를 없앤다(daniel 2026-08-12 *"95퍼에서 멈췄어"*)
+  // ─────────────────────────────────────────────────────────────────
+  // 위 램프는 **약 20초 만에 상한 95% 에 닿는다**. 그런데 실측(2026-08-11 궁합)에서 서버는 **57초** 걸렸다.
+  // 즉 사용자는 *37초 넘게 미동도 없는 95%* 를 본다 — 화면이 죽은 것과 구분되지 않는다.
+  // 실제로 daniel 은 50초를 기다리다 앱을 나갔고, 그 **4초 뒤** 서버는 성공해 저장했다.
+  //
+  // ⇒ 가짜 %를 더 올리지 않는다(그건 또 다른 거짓말이다). 대신 **진짜 측정값인 경과 초**를 함께 보여
+  //   "살아 있다"를 숫자의 움직임으로 증명한다. 상한에 닿기 전에는 %가 이미 움직이므로 띄우지 않는다.
+  const [sec, setSec] = useState(0);
+  useEffect(() => {
+    if (!show || !visible) { setSec(0); return; }
+    const id = setInterval(() => setSec((v) => v + 1), 1000);
+    return () => clearInterval(id);
+  }, [show, visible]);
+  const stalled = !hasReal && pct >= 95 && visible;   // 램프 상한 도달 = %로는 더 알릴 게 없는 구간
+
   // ★테마 영상 플레이어 — 훅 규칙상 *항상* 호출(조건부 금지). 실제 보일 때(show && videoKey)만 소스를 넘겨
 
   useEffect(() => {
@@ -100,6 +116,8 @@ export function UnlockOverlay({ visible, message, allowBackground = true, videoK
         </View>
         {/* 진행률 %(daniel 2026-07-13) — 자물쇠 로딩이 죽은 대기처럼 안 느껴지게. 완료 시 100%. */}
         <Text style={[styles.pct]}>{Math.round(pct)}%</Text>
+        {/* ★상한(95%) 이후 — 멈춘 게 아니라는 **증거**를 실제 경과 시간으로 보인다(위 stalled 주석) */}
+        {stalled && <Text style={styles.elapsed}>{sec}초째 쓰는 중 · 보통 1분 안팎이에요</Text>}
         {/* 공통: 메시지 + 안내 + 홈 나가기. 영상 위에선 어두운 영상이라 항상 밝은 글씨(onImage)로 — 라이트모드에서도 가독성 확보(ink=어두움 회피). */}
         <Text style={[styles.msg]}>{message ?? '운명을 여는 중…'}</Text>
         {/* daniel: 정확한 통변엔 시간이 걸림을 안내(무거운 풀이 대기 안심) */}
@@ -120,8 +138,12 @@ const styles = StyleSheet.create({
   center: { width: 140, height: 140, alignItems: 'center', justifyContent: 'center', marginBottom: space(6) },
   ring: { position: 'absolute', width: 130, height: 130, borderRadius: 65, borderWidth: 3, borderColor: colors.ju, borderTopColor: 'transparent', borderRightColor: 'transparent' },
   lock: { fontSize: 52 },
-  pct: { fontSize: 42, fontWeight: '900', color: colors.ju, letterSpacing: 0.5, marginBottom: space(2) }, // 진행률 % — 골드 강조(영상 위=onImage 오버라이드)
+  pct: { fontSize: 42, fontWeight: '900', color: colors.ju, letterSpacing: 0.5, marginBottom: space(2) }, // 진행률 % — 골드 강조
   msg: { ...font.heading, color: colors.ink, fontWeight: '800' },
+  // 상한 이후 경과 표시 — 살아 있다는 **증거**. 눈에 띄되 %보다 약하게(주인공은 메시지다).
+  // ★색·크기는 토큰으로 — 하드코딩하면 테마가 바뀔 때 여기만 갈린다([[duplicate-ui-single-source]]).
+  //   `font.caption` 은 fontSize·lineHeight 가 짝이라 글자확대에서 안 잘린다([[ui-font-scale-lineheight]]).
+  elapsed: { ...font.caption, color: colors.inkSoft, marginTop: -space(1), marginBottom: space(1), textAlign: 'center' },
   sub: { ...font.caption, color: colors.inkSoft, marginTop: space(2), textAlign: 'center', lineHeight: 19 },
   exitBtn: { marginTop: space(6), borderWidth: 1.5, borderColor: colors.ju, borderRadius: radius.pill, paddingHorizontal: space(6), paddingVertical: space(2.75) },
   exitTx: { color: colors.ju, fontSize: 14, fontWeight: '700' },
