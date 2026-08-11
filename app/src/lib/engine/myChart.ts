@@ -175,6 +175,9 @@ export async function listCharts(): Promise<SavedChart[]> {
     if ((await getRaw(REP_KEY)) === SAMPLE_ID) {      // 대표가 샘플이었으면 재지정/해제
       if (charts.length) await setRaw(REP_KEY, charts[0].id);
       else await delRaw(REP_KEY);
+      // ★알림 누락 수정(2026-08-11) — 여기서 대표가 **실제로 바뀌는데** 구독자에게 안 알렸다.
+      //   화면들이 옛 대표를 든 채 남는다(1회성이지만 그 1회가 첫 실행이라 눈에 띈다).
+      notifyRepChange();
     }
   }
   return charts;

@@ -11,7 +11,7 @@ import { View, Text, ScrollView, ActivityIndicator, ImageBackground, StyleSheet 
 import { PressableScale } from './PressableScale';
 import { RelatedContent } from './RelatedContent';
 import { useRouter } from 'expo-router';
-import { loadRepChart } from '../lib/engine/myChart';   // 대표 명식(SavedChart) — 온디바이스, 로그인 불필요
+import { loadRepChart, subscribeRepChange } from '../lib/engine/myChart';   // 대표 명식(SavedChart) — 온디바이스, 로그인 불필요
 import { computeChart } from '../lib/engine/engine';      // 만세력 결정론 산출(엔진) — API 0
 import { colors, radius, space, shadow, font } from '../lib/theme';
 
@@ -38,6 +38,10 @@ export function FreeFunnel({ heroImage, question, sub, paidRoute, paidCta, rende
   const router = useRouter();
   const [saju, setSaju] = useState<any>(null); // 대표 명식의 사주(결정론). null=아직 로드 전 or 명식 없음.
   const [loaded, setLoaded] = useState(false);  // 비동기 로드 완료 여부(스피너 종료 신호).
+  // ★대표 명식이 바뀌면 다시 읽는다(daniel 2026-08-11 테스터 제보 "여러명 등록해놓으면 … 막 달라요").
+  //   종전 deps 가 `[]` 라 **마운트 때 한 번 읽고 끝**이었다 — 대표를 바꿔도 이 블록만 옛 사람으로 남는다.
+  const [repTick, setRepTick] = useState(0);
+  useEffect(() => subscribeRepChange(() => setRepTick((t) => t + 1)), []);
 
   // 마운트 시 대표 명식 → 온디바이스 saju 산출(서버·로그인·광고 불요). 실패해도 앱이 죽지 않게 try/catch.
   useEffect(() => {
@@ -61,7 +65,7 @@ export function FreeFunnel({ heroImage, question, sub, paidRoute, paidCta, rende
       }
     })();
     return () => { alive = false; };
-  }, []);
+  }, [repTick]);
 
   // 명식 없음(또는 산출 실패) — 유료 CTA 를 노출하기 전에 먼저 명식 등록을 부드럽게 유도.
   //   (명식이 없으면 타이밍도 유료 풀이도 의미가 없으므로 히어로/CTA 대신 등록 안내 전면 노출.)
