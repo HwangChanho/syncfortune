@@ -108,7 +108,8 @@
     "check:stance": "npx tsx scripts/check-stance.ts",
     "asc:builds": "node scripts/asc-builds.mjs",
     "stats:content": "node scripts/content-stats.mjs",
-    "check:genrecover": "npx tsx scripts/check-genrecover.ts"
+    "check:genrecover": "npx tsx scripts/check-genrecover.ts",
+    "build:android": "bash scripts/build-android.sh"
   },
   "keywords": [],
   "author": "",
