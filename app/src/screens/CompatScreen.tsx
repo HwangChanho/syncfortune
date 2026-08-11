@@ -568,8 +568,14 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
             <Text style={styles.qaA}>{f.answer}</Text>
           </View>
         ))}
-        {isPremium ? (
-          <>
+        {/* ★★프리미엄 게이트 제거(daniel 2026-08-11 "운으로 더 물어보기는 동작 안하고있어")
+            프리미엄은 폐지됐다(`PREMIUM_ENABLED = false`) → `isPremium` 이 **항상 false** →
+            여기 삼항이 늘 🔒 쪽으로 떨어져 **입력창이 영영 안 떴다.** 눌러도 Alert 만 떴다.
+            버튼 문구는 "**운으로** 더 물어보기"(코인)인데 게이트는 프리미엄이었다 — 이름과 게이트가 갈렸다.
+            ⇒ 게이트를 없앤다. 결제는 이미 `submitFollowup` 의 `ensureCoinsFor('followup')` 이 한다
+              (무료 1회 → 이후 코인 차감, 부족하면 충전 화면). [[alert-double-fire-crash]] 교훈 재발:
+              **기능을 폐지하면 그 플래그를 보던 분기를 전수조사해야 한다.** */}
+        <>
             <Text style={styles.askQuota}>{freeLeft > 0 ? t('reading.askFree', { n: freeLeft }) : t('reading.askPaid', { price: `${coinPriceOf('followup') ?? 0} 운` })}</Text>
             <View style={styles.askRow}>
               {/* singleline — 50자 제한이라 한 줄로 충분, iOS/Android 모두 텍스트가 칸 세로중앙 자동정렬(daniel: y축 한가운데) */}
@@ -579,12 +585,7 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
                 {asking ? <ActivityIndicator color={colors.bg} size="small" /> : <Text style={styles.askSendTx}>{t('reading.askSend')}</Text>}
               </PressableScale>
             </View>
-          </>
-        ) : (
-          <PressableScale style={styles.askLock} onPress={() => Alert.alert(t('reading.askPremiumTitle'), t('reading.askPremiumMsg'))}>
-            <Text style={styles.askLockTx}>🔒 {t('reading.askPremiumCta')}</Text>
-          </PressableScale>
-        )}
+        </>
       </View>
     );
   }

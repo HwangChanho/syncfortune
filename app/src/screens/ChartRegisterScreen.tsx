@@ -17,7 +17,7 @@ import { trueSolarOffsetMin } from '@engine/solartime'; // 진태양시 보정(�
 import { validateBirthInput } from '@engine/saju'; // 생년월일 유효성(감사 H3/H4/H6) — 없는 날짜·없는 윤달을 저장 입구에서 차단
 import { BirthPlacePicker } from '../components/BirthPlacePicker';
 import { getCategories, addCategory, removeCategory, OTHER_CATEGORY, isRemovable } from '../lib/core/categories'; // ★카테고리 관리(생성·삭제·명식 재배치·daniel 07-18)
-import { parseBirthTime } from '../lib/engine/birthTime'; // ★시각 입력 변환 단일 출처(daniel 08-11 00:03 건)
+import { parseBirthTime, hourHint } from '../lib/engine/birthTime'; // ★시각 입력 변환 단일 출처(daniel 08-11 00:03 건)
 import { Alert } from '../lib/ui/alert'; // 카테고리 삭제 확인
 
 
@@ -31,11 +31,12 @@ export function ChartRegisterScreen({ onSubmit, defaultRelation, submitLabel, sh
   const initSijinIdx = initTime ? SIJIN.findIndex((s) => s.hm === initTime) : -1;
   const [sijinIdx, setSijinIdx] = useState<number>(initSijinIdx); // -1 = 시각 모름(또는 정확시각 모드)
   const [sijinOpen, setSijinOpen] = useState(false);     // 시각 선택 바텀시트
-  // 정확한 시각 — 12시간제(오전/오후 + 1~12시). daniel 07-17: 24h 만 있어 12:30이 낮/밤 헷갈림 → 오전/오후 토글.
-  //   저장(birthDateTime)은 24시간제 유지(호환) — 아래 exH24 로 변환. 기존 명식(24h)은 12h+오전/오후로 역변환해 로드.
+  // 정확한 시각 — **24시간제 직접 입력**(daniel 2026-08-11 "오전오후 나누지말고 24시간 기준으로").
+  //   이력: 07-17 에 `12:30` 이 낮/밤 헷갈린다고 오전/오후 토글을 넣었는데, 08-11 에 **`00:03` 이 등록이 안 되는**
+  //   문제가 났다(12시간제라 시가 1~12 뿐). 저장 형식이 어차피 24시간제이므로 입력도 24시간제로 받아
+  //   **변환 자체를 없앴다** — 0=자정 · 12=정오 · 23=밤 11시.
   const init24H = initTime && initSijinIdx < 0 ? parseInt(initTime.split(':')[0] ?? '', 10) : NaN;
-  const [ampm, setAmpm] = useState<'오전' | '오후'>(!isNaN(init24H) && init24H >= 12 ? '오후' : '오전');
-  const [exactH, setExactH] = useState(!isNaN(init24H) ? String(init24H % 12 === 0 ? 12 : init24H % 12) : ''); // 0/12시→12, 13시→1
+  const [exactH, setExactH] = useState(!isNaN(init24H) ? String(init24H) : '');
   const [exactM, setExactM] = useState(initTime && initSijinIdx < 0 ? (initTime.split(':')[1] ?? '') : '');
   const [calendar, setCalendar] = useState<'양' | '음'>(initial?.calendar ?? '양');
   const [isLeap, setIsLeap] = useState<boolean>((initial as any)?.isLeap ?? false); // ⑧ 윤달(daniel) — 음력 윤달 구분
@@ -62,13 +63,12 @@ export function ChartRegisterScreen({ onSubmit, defaultRelation, submitLabel, sh
   // 정확 시각(12시간제 입력: 오전/오후 + 1~12시) → 24시간제(exH24)로 변환해 진태양시 보정·저장에 사용.
   // ★변환 규칙은 `lib/engine/birthTime.ts` **한 곳**에만 둔다 — 화면과 골든이 같은 함수를 쓴다.
   //   여기 식을 다시 적으면 골든이 복사본을 검사하게 되고, 한쪽만 고쳐도 통과해 버린다.
-  const exM = parseInt(exactM, 10);
-  const bt = parseBirthTime(exactH, exactM, ampm);
-  const { h12: exH12, ampm: effAmpm, typed24h: h24Typed, why: exactWhy } = bt;
+  const bt = parseBirthTime(exactH, exactM);
+  const { hour: exH24, minute: exM, why: exactWhy } = bt;
   const exactStr = bt.h24;
   const exactValid = exactStr !== null;
-  const exH24 = exactValid ? Number(exactStr!.split(':')[0]) : NaN;   // 진태양시 보정·저장에 쓰는 24시간제 '시'
-  const timeLabel = exactStr ? `${effAmpm} ${exH12}:${String(exM).padStart(2, '0')}`
+  const hint = exactValid ? hourHint(exH24) : null;   // 0시·12시만 '자정'·'정오' 꼬리표
+  const timeLabel = exactStr ? `${exH24}:${String(exM).padStart(2, '0')}${hint ? ` (${hint})` : ''}`
     : sj ? `${sj.gz} ${sj.ko} (${sj.range})` : t('register.timeUnknown');
 
   function pickSijin(i: number) { setSijinIdx(i); setExactH(''); setExactM(''); setSijinOpen(false); } // 시진/모름 선택 = 정확시각 해제
@@ -311,28 +311,16 @@ export function ChartRegisterScreen({ onSubmit, defaultRelation, submitLabel, sh
             {/* 정확한 시각(시:분) — 알면 우선(진태양시 보정). 출생지 경도로 시주 정밀 산출(daniel). */}
             <View style={styles.exactBox}>
               <Text style={styles.exactLabel}>{t('register.exactTime', '정확한 시각을 알아요 (출생지 경도로 진태양시 보정)')}</Text>
-              {/* 오전/오후(daniel 07-17) — 12:30이 낮/밤 헷갈리지 않게. 밤 12:30 = 오전 12:30. */}
-              <View style={styles.ampmRow}>
-                {(['오전', '오후'] as const).map((ap) => (
-                  <PressableScale key={ap} style={[styles.ampmBtn, ampm === ap && styles.ampmBtnOn]} onPress={() => setAmpm(ap)}>
-                    <Text style={[styles.ampmTx, ampm === ap && styles.ampmTxOn]}>{t(ap === '오전' ? 'register.am' : 'register.pm', ap)}</Text>
-                  </PressableScale>
-                ))}
-              </View>
               <View style={styles.exactRow}>
-                <TextInput style={styles.exactInput} value={exactH} onChangeText={(v) => setExactH(v.replace(/[^0-9]/g, '').slice(0, 2))} placeholder={t('register.hour12', '시(1~12 또는 0~23)')} placeholderTextColor={colors.inkFaint} keyboardType="number-pad" maxLength={2} />
+                <TextInput style={styles.exactInput} value={exactH} onChangeText={(v) => setExactH(v.replace(/[^0-9]/g, '').slice(0, 2))} placeholder={t('register.hour24', '시(0~23)')} placeholderTextColor={colors.inkFaint} keyboardType="number-pad" maxLength={2} />
                 <Text style={styles.exactColon}>:</Text>
                 <TextInput style={styles.exactInput} value={exactM} onChangeText={(v) => setExactM(v.replace(/[^0-9]/g, '').slice(0, 2))} placeholder={t('register.minute', '분')} placeholderTextColor={colors.inkFaint} keyboardType="number-pad" maxLength={2} />
                 <PressableScale style={[styles.exactBtn, !exactStr && styles.exactBtnOff]} onPress={confirmExact} disabled={!exactStr}>
                   <Text style={styles.exactBtnTx}>{t('common.confirm', '확인')}</Text>
                 </PressableScale>
               </View>
-              {/* ★24시간제로 친 값을 어떻게 읽었는지 알려 준다 — 사용자가 오전/오후 토글과 다르게 쳤을 때 특히 중요 */}
-              {h24Typed && exactValid ? (
-                <Text style={styles.exactHint}>
-                  {t('register.h24Read', '{{typed}}시로 입력하셔서 {{ampm}} {{h}}시로 읽었어요.', { typed: exactH, ampm: effAmpm, h: exH12 })}
-                </Text>
-              ) : null}
+              {/* 0시·12시만 꼬리표 — 24시간제에서 유일하게 헷갈리는 두 자리다 */}
+              {hint ? <Text style={styles.exactHint}>{t('register.hourHint', '{{h}}시 = {{hint}}', { h: exH24, hint })}</Text> : null}
               {/* ★막힌 이유를 말한다 — 종전엔 확인 버튼만 회색이라 왜 안 되는지 알 수 없었다 */}
               {exactWhy ? <Text style={styles.exactWhy}>{exactWhy}</Text> : null}
               {boundaryInfo && (
@@ -435,11 +423,6 @@ const styles = StyleSheet.create({
   exactBtnOff: { backgroundColor: colors.line },
   exactBtnTx: { color: colors.bg, fontWeight: '700', fontSize: 14 },
   // 오전/오후 토글(daniel 07-17)
-  ampmRow: { flexDirection: 'row', gap: space(2), marginBottom: space(2.5) },
-  ampmBtn: { flex: 1, alignItems: 'center', paddingVertical: space(2), borderRadius: radius.sm, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.bg },
-  ampmBtnOn: { backgroundColor: colors.juSoft, borderColor: colors.ju },
-  ampmTx: { ...font.label, fontSize: 14, color: colors.inkSoft, fontWeight: '700' },
-  ampmTxOn: { color: colors.ju },
   sheetDivider: { ...font.caption, color: colors.inkFaint, textAlign: 'center', marginBottom: space(2) },
   sheetList: { flexGrow: 0 },
   optionRow: {
