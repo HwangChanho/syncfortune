@@ -167,6 +167,8 @@ export const ja = {
     askPayBtn: '{{price}} 決済', payPending: '準備中',
   },
   compat: {
+    'stillMaking': 'もうすぐです — 届き次第すぐお見せします。',
+    'comeBackLater': 'まだ作成中です。少ししてこの画面をもう一度開くと結果が表示されます。',
     'genConfirm': '생성',
     'genCta': '이 관계 풀이 만들기',
     'genTitle': '풀이 만들기',

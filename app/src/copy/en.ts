@@ -168,6 +168,8 @@ export const en = {
     askPayBtn: 'Pay {{price}}', payPending: 'Coming soon',
   },
   compat: {
+    'stillMaking': 'Almost there — we will show it the moment it arrives.',
+    'comeBackLater': 'Still being written. Reopen this screen in a bit and your reading will be here.',
     'genConfirm': '생성',
     'genCta': '이 관계 풀이 만들기',
     'genTitle': '풀이 만들기',

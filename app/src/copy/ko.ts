@@ -194,6 +194,8 @@ export const ko = {
     askPayBtn: '{{price}} 결제', payPending: '준비 중',
   },
   compat: {
+    'stillMaking': '거의 다 됐어요 — 결과가 오면 바로 보여 드릴게요.',
+    'comeBackLater': '아직 만드는 중이에요. 잠시 후 이 화면을 다시 열면 결과가 보입니다.',
     'genConfirm': '생성',
     'genCta': '이 관계 풀이 만들기',
     'genTitle': '풀이 만들기',

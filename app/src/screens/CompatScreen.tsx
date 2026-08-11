@@ -286,9 +286,21 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
       setBusy(null);
       // 상한 초과(undefined) = 서버가 계속 만들고 있을 수 있다 → 배너만 내리고 재시도를 안내한다(운은 서버가 판정).
       if (!res) {
+        // ★★상한(2분) 초과 — 그런데 **서버는 계속 만들고 있고, 다 만들면 저장까지 한다**(실측 2026-08-11:
+        //   `api_usage`·`readings` 에 `compat_love_…` 가 앱이 나간 **11초 뒤** 저장돼 있었다).
+        //   종전엔 여기서 그냥 "잠시 후 다시 시도"라고만 하고 끝냈다 — 사용자는 **운을 썼는데 결과를
+        //   못 본 것**으로 느낀다(실제로는 서버에 있다). ⇒ 포기하지 말고 **캐시를 주워 온다.**
         setGenProgress({ route: gpRoute, active: false });
-        const m = t('common.retryLater', '잠시 후 다시 시도해 주세요.');
-        setGenErr(m); Alert.alert(t('common.error'), m); return;   // ★화면에도 남긴다
+        setGenErr(t('compat.stillMaking', '거의 다 됐어요 — 결과가 오면 바로 보여 드릴게요.'));
+        for (let i = 0; i < 20; i++) {                      // 10초 간격 × 20 = 최대 200초
+          await new Promise((r) => setTimeout(r, 10_000));
+          if (isStale()) return;                            // 쌍이 바뀌었으면 폐기
+          const got = await loadCompatReadings(ctx.chartId, ctx.sig).catch(() => null);
+          if (got && got[key]) { setGenErr(null); setReadings((prev) => ({ ...prev, ...got })); return; }
+        }
+        // 끝까지 안 오면 그때 안내한다 — 그래도 **서버에 남아 있으니 다시 열면 보인다**고 말해 준다.
+        setGenErr(t('compat.comeBackLater', '아직 만드는 중이에요. 잠시 후 이 화면을 다시 열면 결과가 보입니다.'));
+        return;
       }
       if (res.kind === 'answer') { setGenErr(null); setReadings((prev) => ({ ...prev, [key]: res.reading })); setGenProgress({ route: gpRoute, done: 1, total: 1 }); return; }
       setGenProgress({ route: gpRoute, active: false });
