@@ -87,6 +87,12 @@ export function installAdminTrace(): void {
       // PostgrestFilterBuilder 는 thenable — then 을 걸어도 체이닝을 깨지 않는다
       try {
         (p as any).then((res: any) => {
+          // ★★로거 자신은 로깅하지 않는다(2026-08-11 실측 사고).
+          //   `logEvent` 는 내부에서 `supabase.rpc('log_event', …)` 를 부른다 → 그 호출이 이 래퍼를 다시 타고
+          //   성공하면 또 `rpc_ok` 를 남긴다 = **무한 증폭**. 실측: `app_logs` **1,605,671행 중
+          //   1,594,634행(99.3%)이 `rpc_ok`**(detail.fn = 'log_event')였고, `log_queue_overflow` 까지 났다.
+          //   ⇒ 진짜 로그가 노이즈에 묻혀 **버그를 진단할 수 없었다**(궁합 생성 로그를 하나도 못 찾았다).
+          if (fn === 'log_event') return;
           const ms = Date.now() - t0;
           if (res?.error) {
             logEvent('rpc_fail', { fn, ms, code: res.error.code ?? null, msg: String(res.error.message ?? '').slice(0, 200) }, 'warn');
