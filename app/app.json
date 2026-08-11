@@ -21,7 +21,8 @@
       }
     },
     "android": {
-      "package": "com.syncfortune.app"
+      "package": "com.syncfortune.app",
+      "googleServicesFile": "./google-services.json"
     },
     "plugins": [
       "expo-secure-store",

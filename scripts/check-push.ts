@@ -77,7 +77,7 @@ const main = async () => {
     } else {
       const q = {
         query: `query($id:String!){ app{ byId(appId:$id){ fullName
-                  androidAppCredentials{ applicationIdentifier androidFcm{ id } }
+                  androidAppCredentials{ applicationIdentifier androidFcm{ id } googleServiceAccountKeyForFcmV1{ clientEmail } }
                   iosAppCredentials{ pushKey{ keyIdentifier } } } } }`,
         variables: { id: EAS_PROJECT_ID },
       };
@@ -89,10 +89,14 @@ const main = async () => {
         const app = j?.data?.app?.byId;
         if (!app) { console.log(`     ⏭  Expo 응답을 못 읽었다 — 서버 쪽은 **모름** (${JSON.stringify(j).slice(0, 120)})`); }
         else {
-          serverFcm = !!app.androidAppCredentials?.[0]?.androidFcm;
+          // ★FCM 은 **두 방식**이 있다 — 레거시 서버키(`androidFcm`)와 **FCM V1 서비스계정**(`googleServiceAccountKeyForFcmV1`).
+          //   V1 만 올려도 푸시는 간다. 하나만 보면 "배선했는데 없다고 나오는" 오탐이 난다(2026-08-11 실측).
+          const cred = app.androidAppCredentials?.[0];
+          serverFcm = !!(cred?.androidFcm || cred?.googleServiceAccountKeyForFcmV1);
           serverApns = !!app.iosAppCredentials?.[0]?.pushKey;
           console.log(`     프로젝트 : ${app.fullName}`);
-          console.log(`     androidFcm : ${serverFcm ? '있음' : 'null(없음)'}`);
+          console.log(`     androidFcm(레거시 서버키) : ${cred?.androidFcm ? '있음' : 'null(없음)'}`);
+          console.log(`     FCM V1 서비스계정 : ${cred?.googleServiceAccountKeyForFcmV1?.clientEmail ?? 'null(없음)'}`);
           console.log(`     iosPushKey : ${serverApns ? `있음(${app.iosAppCredentials[0].pushKey.keyIdentifier})` : 'null(없음)'}`);
         }
       } catch (e) {

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "579635940385",
+    "project_id": "syncfortune-push",
+    "storage_bucket": "syncfortune-push.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:579635940385:android:b6e0c5bfc52d602841a760",
+        "android_client_info": {
+          "package_name": "com.syncfortune.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDCvTbiK1wJDEzbjTo1u-WJ6ANH037e-WQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
