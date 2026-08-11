@@ -120,6 +120,11 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
   //   서버가 결제 권위(역방향 무료 인식)라 표시용 readings 엔 안 섞고(반대 방향 통변은 나/상대 관점이 뒤집힘), '보유' 배지 정합에만 쓴다.
   const [pairOwnedRels, setPairOwnedRels] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState<string | null>(null);         // 생성 중 키(rel 또는 rel_yYYYY)
+  // ★실패를 **화면에도** 남긴다(daniel 2026-08-11 "로딩창에서 퍼센트 올아갔다가 갑자기 로딩창이 사라졌어").
+  //   종전엔 실패 시 Alert 만 띄웠다 — 놓치거나 다른 모달과 겹쳐 안 뜨면 사용자에게는
+  //   **"그냥 사라졌다"** 로 보인다. 흔적이 남아야 무슨 일인지 알고 다시 누를 수 있다.
+  //   (`month.tsx` 는 이미 이렇게 한다 — 같은 방식으로 맞춘다.)
+  const [genErr, setGenErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);                 // 재진입 시 캐시 로딩 중 — 자물쇠 대신 스피너(daniel ⑦ 완료 감지)
   const [pair, setPair] = useState<{ me: any; other: any } | null>(null);
   const [compat, setCompat] = useState<CompatScoreResult | null>(null); // 궁합 점수·등급(결정론 — 통변과 별개로 항상)
@@ -262,12 +267,14 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
     // A4(daniel 2026-07-08): 이미 이 관계키가 생성 중이면 2차 LLM 막고(과금0) 로딩 유지·완료까지 대기 후 재시도(Edge 캐시 히트=과금0). daniel: 풀이중 진입차단 허용.
     if (!acquireGen(lockKey)) {
       setBusy(key);
+    setGenErr(null);                 // 재시도 시작 — 이전 실패 흔적을 지운다
       for (let i = 0; i < 45 && isGenActive(lockKey); i++) await new Promise((r) => setTimeout(r, 3000));
       setBusy(null);
       if (isStale() || isGenActive(lockKey)) return;
       return runCompatGen(relKey, yr, key);
     }
     setBusy(key);
+    setGenErr(null);                 // 재시도 시작 — 이전 실패 흔적을 지운다
     // ③ 배너/푸시 명식 식별 — route 에 chartId(내 명식 로컬 meSel.id) + chartLabel. '나' 측 재진입 바인딩은 ★M1 로 compat.tsx 라우트(대표 전환→meSel 채택)에 구현됨. 상대(쌍)는 _lastCompat 복원.
     const gpRoute = meSel?.id ? `/compat?chartId=${meSel.id}` : '/compat';
     setGenProgress({ active: true, total: 1, done: 0, label: tab === 'ziwei' ? '자미 궁합' : '궁합', chartLabel: meSel?.label, route: gpRoute });
@@ -278,11 +285,15 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
       if (isStale()) return;   // ① 생성 사이 쌍 전환됨 → 폐기(옛 쌍 결과가 새 쌍 readings 에 섞이지 않게)
       setBusy(null);
       // 상한 초과(undefined) = 서버가 계속 만들고 있을 수 있다 → 배너만 내리고 재시도를 안내한다(운은 서버가 판정).
-      if (!res) { setGenProgress({ route: gpRoute, active: false }); Alert.alert(t('common.error'), t('common.retryLater', '잠시 후 다시 시도해 주세요.')); return; }
-      if (res.kind === 'answer') { setReadings((prev) => ({ ...prev, [key]: res.reading })); setGenProgress({ route: gpRoute, done: 1, total: 1 }); return; }
+      if (!res) {
+        setGenProgress({ route: gpRoute, active: false });
+        const m = t('common.retryLater', '잠시 후 다시 시도해 주세요.');
+        setGenErr(m); Alert.alert(t('common.error'), m); return;   // ★화면에도 남긴다
+      }
+      if (res.kind === 'answer') { setGenErr(null); setReadings((prev) => ({ ...prev, [key]: res.reading })); setGenProgress({ route: gpRoute, done: 1, total: 1 }); return; }
       setGenProgress({ route: gpRoute, active: false });
       if (res.kind === 'needPremium') { Alert.alert(t('compat.premiumTitle'), t('compat.premiumMsg')); return; }
-      if (res.kind === 'unavailable') { Alert.alert(t('common.error'), res.message); return; } // 방어: LLM 일시적 불가 — 재시도 안내
+      if (res.kind === 'unavailable') { setGenErr(res.message); Alert.alert(t('common.error'), res.message); return; } // 방어: LLM 일시적 불가 — 재시도 안내(화면에도 남긴다)
       if (res.kind === 'needPayment') {
         // ★코인 단일 경로(daniel 2026-07-28) — 스토어 결제 대신 보유 코인. 부족하면 충전 화면으로.
         //   ※이 블록은 finally 의 releaseGen 뒤에 재생성하므로 새 lock 으로 다시 들어간다(기존 주석 유지).
@@ -433,10 +444,14 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
             <View style={{ paddingVertical: space(8), alignItems: 'center' }}><ActivityIndicator color={colors.ju} /></View>
           ) : (
             // 비용 보호(daniel J/L): 미생성 관계는 자동 호출 않고 '생성' 버튼 → alert 확인 후 1건만(genOne)
+            <>
+            {/* ★직전 실패 사유 — Alert 을 놓쳐도 여기 남아 있다(로딩만 사라진 것처럼 보이지 않게) */}
+            {genErr ? <Text style={styles.genErr}>{genErr}</Text> : null}
             <PressableScale onPress={() => genOne(rel, year)} style={{ alignItems: 'center', backgroundColor: colors.ju, borderRadius: radius.md, paddingVertical: space(4), paddingHorizontal: space(5), marginTop: space(4), gap: space(1) }}>
               <Text style={{ color: colors.bg, fontWeight: '900', fontSize: 16 }}>{t('compat.genCta', '이 관계 풀이 만들기')}</Text>
               <Text style={{ color: colors.bg, opacity: 0.85, fontSize: 12, fontWeight: '600' }}>{t('compat.genCtaSub', `확인 후 ${COMPAT_COINS} 운 사용`)}</Text>
             </PressableScale>
+            </>
           )}
 
           {/* 추가질문 — 통변이 있을 때만(관계유형/연도 키별, 사주·자미와 동일) */}
@@ -764,6 +779,7 @@ const styles = StyleSheet.create({
   //     이미 배율을 얹으므로 `ls()` 를 쓰면 1.45² ≈ 2.1배가 된다(check:lineheight 가 잡는다).
   coreTx: { fontWeight: '800', color: colors.ju, marginBottom: space(4) },
   // 섹션 사이에 **연한 구분선**을 둔다 — 제목 크기만 키우면 여전히 줄줄이 이어져 보인다.
+  genErr: { color: colors.ju, fontSize: 13, lineHeight: 20, textAlign: 'center', marginTop: space(4) },
   sec: { marginTop: space(5), paddingTop: space(4), borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.line },
   secLabel: { fontWeight: '800', color: colors.ju, marginBottom: space(2.5), letterSpacing: 0.2 },
   secBody: { ...font.body, color: colors.ink, fontSize: 15, lineHeight: 25 },
