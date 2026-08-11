@@ -102,7 +102,7 @@ export const ja = {
     'catHint': '카테고리를 길게 누르면 삭제돼요 (그 명식들은 기타로 이동)',
     'editDone': '완료',
     'exactTime': '정확한 시각을 알아요 (출생지 경도로 진태양시 보정)',
-    'hour12': '시(1~12)',
+    'hour12': '時（1〜12 または 0〜23）', 'h24Read': '{{typed}}時と入力されたので{{ampm}} {{h}}時と読みました。',
     'invalidDateTitle': '생년월일을 확인해 주세요',
     'minute': '분',
     'newCategory': '새 카테고리',

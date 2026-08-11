@@ -17,6 +17,7 @@ import { trueSolarOffsetMin } from '@engine/solartime'; // 진태양시 보정(�
 import { validateBirthInput } from '@engine/saju'; // 생년월일 유효성(감사 H3/H4/H6) — 없는 날짜·없는 윤달을 저장 입구에서 차단
 import { BirthPlacePicker } from '../components/BirthPlacePicker';
 import { getCategories, addCategory, removeCategory, OTHER_CATEGORY, isRemovable } from '../lib/core/categories'; // ★카테고리 관리(생성·삭제·명식 재배치·daniel 07-18)
+import { parseBirthTime } from '../lib/engine/birthTime'; // ★시각 입력 변환 단일 출처(daniel 08-11 00:03 건)
 import { Alert } from '../lib/ui/alert'; // 카테고리 삭제 확인
 
 
@@ -59,11 +60,15 @@ export function ChartRegisterScreen({ onSubmit, defaultRelation, submitLabel, sh
 
   const sj = sijinIdx >= 0 ? SIJIN[sijinIdx] : null;
   // 정확 시각(12시간제 입력: 오전/오후 + 1~12시) → 24시간제(exH24)로 변환해 진태양시 보정·저장에 사용.
-  const exH12 = parseInt(exactH, 10), exM = parseInt(exactM, 10);
-  const exactValid = exactH !== '' && exactM !== '' && exH12 >= 1 && exH12 <= 12 && exM >= 0 && exM <= 59;
-  const exH24 = !exactValid ? NaN : ampm === '오전' ? (exH12 === 12 ? 0 : exH12) : (exH12 === 12 ? 12 : exH12 + 12); // 오전12=0시, 오후12=12시, 그 외 오후=+12
-  const exactStr = exactValid ? `${exH24}:${String(exM).padStart(2, '0')}` : null;
-  const timeLabel = exactStr ? `${ampm} ${exH12}:${String(exM).padStart(2, '0')}`
+  // ★변환 규칙은 `lib/engine/birthTime.ts` **한 곳**에만 둔다 — 화면과 골든이 같은 함수를 쓴다.
+  //   여기 식을 다시 적으면 골든이 복사본을 검사하게 되고, 한쪽만 고쳐도 통과해 버린다.
+  const exM = parseInt(exactM, 10);
+  const bt = parseBirthTime(exactH, exactM, ampm);
+  const { h12: exH12, ampm: effAmpm, typed24h: h24Typed, why: exactWhy } = bt;
+  const exactStr = bt.h24;
+  const exactValid = exactStr !== null;
+  const exH24 = exactValid ? Number(exactStr!.split(':')[0]) : NaN;   // 진태양시 보정·저장에 쓰는 24시간제 '시'
+  const timeLabel = exactStr ? `${effAmpm} ${exH12}:${String(exM).padStart(2, '0')}`
     : sj ? `${sj.gz} ${sj.ko} (${sj.range})` : t('register.timeUnknown');
 
   function pickSijin(i: number) { setSijinIdx(i); setExactH(''); setExactM(''); setSijinOpen(false); } // 시진/모름 선택 = 정확시각 해제
@@ -315,13 +320,21 @@ export function ChartRegisterScreen({ onSubmit, defaultRelation, submitLabel, sh
                 ))}
               </View>
               <View style={styles.exactRow}>
-                <TextInput style={styles.exactInput} value={exactH} onChangeText={(v) => setExactH(v.replace(/[^0-9]/g, '').slice(0, 2))} placeholder={t('register.hour12', '시(1~12)')} placeholderTextColor={colors.inkFaint} keyboardType="number-pad" maxLength={2} />
+                <TextInput style={styles.exactInput} value={exactH} onChangeText={(v) => setExactH(v.replace(/[^0-9]/g, '').slice(0, 2))} placeholder={t('register.hour12', '시(1~12 또는 0~23)')} placeholderTextColor={colors.inkFaint} keyboardType="number-pad" maxLength={2} />
                 <Text style={styles.exactColon}>:</Text>
                 <TextInput style={styles.exactInput} value={exactM} onChangeText={(v) => setExactM(v.replace(/[^0-9]/g, '').slice(0, 2))} placeholder={t('register.minute', '분')} placeholderTextColor={colors.inkFaint} keyboardType="number-pad" maxLength={2} />
                 <PressableScale style={[styles.exactBtn, !exactStr && styles.exactBtnOff]} onPress={confirmExact} disabled={!exactStr}>
                   <Text style={styles.exactBtnTx}>{t('common.confirm', '확인')}</Text>
                 </PressableScale>
               </View>
+              {/* ★24시간제로 친 값을 어떻게 읽었는지 알려 준다 — 사용자가 오전/오후 토글과 다르게 쳤을 때 특히 중요 */}
+              {h24Typed && exactValid ? (
+                <Text style={styles.exactHint}>
+                  {t('register.h24Read', '{{typed}}시로 입력하셔서 {{ampm}} {{h}}시로 읽었어요.', { typed: exactH, ampm: effAmpm, h: exH12 })}
+                </Text>
+              ) : null}
+              {/* ★막힌 이유를 말한다 — 종전엔 확인 버튼만 회색이라 왜 안 되는지 알 수 없었다 */}
+              {exactWhy ? <Text style={styles.exactWhy}>{exactWhy}</Text> : null}
               {boundaryInfo && (
                 <View style={{ marginTop: space(2.5), padding: space(3), borderRadius: radius.md, backgroundColor: 'rgba(201,161,74,0.1)', borderWidth: 1, borderColor: colors.juLine }}>
                   <Text style={{ fontSize: 13, color: colors.ju, fontWeight: '700' }}>
@@ -412,6 +425,9 @@ const styles = StyleSheet.create({
   // 정확한 시각(시:분) 입력 — 시진 병행(daniel: 진태양시 정밀)
   exactBox: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.line, padding: space(3.5), marginBottom: space(3) },
   exactLabel: { ...font.label, fontSize: 12, color: colors.inkSoft, marginBottom: space(2.5) },
+  // 24시간제로 친 값을 어떻게 읽었는지 · 왜 확인이 안 눌리는지 — 둘 다 **말해 준다**(침묵 금지)
+  exactHint: { fontSize: 12, lineHeight: 18, color: colors.ju, marginTop: space(2), fontWeight: '700' },
+  exactWhy: { fontSize: 12, lineHeight: 18, color: colors.inkSoft, marginTop: space(2) },
   exactRow: { flexDirection: 'row', alignItems: 'center', gap: space(2) },
   exactInput: { width: 56, textAlign: 'center', backgroundColor: colors.bg, borderWidth: 1, borderColor: colors.line, borderRadius: radius.sm, paddingVertical: space(2.5), fontSize: 16, color: colors.ink },
   exactColon: { fontSize: 18, fontWeight: '700', color: colors.ink },
