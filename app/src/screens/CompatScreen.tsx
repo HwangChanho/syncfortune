@@ -413,10 +413,14 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
               {compatSections(rel, !!year).map((s) => {
                 const v = cur[s.key];
                 if (typeof v !== 'string' || !v) return null;
-                if (s.key === 'core') return <Text key="core" style={[styles.coreTx, { fontSize: fs(16), lineHeight: 24 }]}>{v}</Text>;
+                // ★핵심 요약 = 최상위 위계(daniel 2026-08-11 "다 같은크기 같은폰트라 가독성이 너무 떨어져")
+                if (s.key === 'core') return <Text key="core" style={[styles.coreTx, { fontSize: fs(18), lineHeight: 28 }]}>{v}</Text>;
                 return (
                   <View key={s.key} style={[styles.sec, (s.key === 'advice' || s.key === 'remedy') && styles.remedySec]}>
-                    <Text style={styles.secLabel}>{compatSectionLabel(s)}</Text>
+                    {/* ★섹션 제목 — 종전엔 본문과 **똑같이 15px** 이라 카테고리를 세분해도 위계가 안 보였다.
+                        크기를 올리고 `fs()`(글자확대 설정)에 태운다. 고정값이면 확대 시 제목만 안 커진다.
+                        ⚠️lineHeight 에는 `ls()` 를 쓰지 않는다 — 전역 패치가 이미 배율을 얹어 **두 번 곱해진다**(check:lineheight). */}
+                    <Text style={[styles.secLabel, { fontSize: fs(16.5), lineHeight: 24 }]}>{compatSectionLabel(s)}</Text>
                     <ReadingProse text={v} accent={colors.ju} onTermPress={openTerm} />
                   </View>
                 );
@@ -753,9 +757,15 @@ const styles = StyleSheet.create({
   relChipTx: { fontSize: 13, fontWeight: '700', color: colors.inkSoft },
   relChipTxOn: { color: colors.bg },
   readCard: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.juLine, padding: space(5), ...shadow.card, alignItems: 'stretch' },
-  coreTx: { fontSize: 16, fontWeight: '800', color: colors.ju, lineHeight: 24, marginBottom: space(3) },
-  sec: { marginTop: space(4) },
-  secLabel: { fontSize: 15, fontWeight: '800', color: colors.ju, marginBottom: space(2) },
+  // ── 궁합 본문 위계(daniel 2026-08-11) ────────────────────────────────────
+  //   종전: 핵심 16 · 섹션제목 15 · 본문 15 → **거의 같은 크기**라 세분한 카테고리가 다 뭉쳐 보였다.
+  //   지금: 핵심 18(최상위) → 섹션제목 16.5 + 위 구분선 → 본문 15. 셋이 눈에 띄게 갈린다.
+  //   ★크기는 렌더 시점에 `fs()` 로 얹는다(글자확대 대응). ⚠️lineHeight 는 **고정값** — 전역 패치가
+  //     이미 배율을 얹으므로 `ls()` 를 쓰면 1.45² ≈ 2.1배가 된다(check:lineheight 가 잡는다).
+  coreTx: { fontWeight: '800', color: colors.ju, marginBottom: space(4) },
+  // 섹션 사이에 **연한 구분선**을 둔다 — 제목 크기만 키우면 여전히 줄줄이 이어져 보인다.
+  sec: { marginTop: space(5), paddingTop: space(4), borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.line },
+  secLabel: { fontWeight: '800', color: colors.ju, marginBottom: space(2.5), letterSpacing: 0.2 },
   secBody: { ...font.body, color: colors.ink, fontSize: 15, lineHeight: 25 },
   remedySec: { marginTop: space(5), paddingTop: space(4), borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.line },
   busyTx: { ...font.caption, color: colors.inkSoft, marginTop: space(2), textAlign: 'center' },
