@@ -286,8 +286,19 @@ export function buildSajuChart(input: ChartInput, nowYear = new Date().getFullYe
       // 이 대운의 세운(流年) 10년 — 클릭 시 드릴다운에 쓸 간지·십신
       const annuals: AnnualPillar[] = (dy.getLiuNian?.() ?? []).map((ln: any) => {
         const agz: string = ln.getGanZhi();
-        // 이 세운의 월운(流月) 12 — 세운 탭 시 드릴다운에 사용
-        const months: MonthPillar[] = (ln.getLiuYue?.() ?? []).map((ly: any) => {
+        // 이 세운의 월운(流月) 12 — 세운 탭 시 드릴다운에 사용.
+        //
+        // ⚡★★지연 계산(성능 · daniel 2026-08-12 "앱이 전반적으로 좀 느린거 이유 찾아봐")
+        //   실측: `buildSajuChart` 17.96ms 중 **16.08ms(90%)** 가 여기였다.
+        //   대운 13 × 세운 10 × 월운 12 = **월운 1,440개**를 만들고, 각각 `getGanZhi()` 를 부른다.
+        //   (배열 생성 자체는 0.34ms — 비싼 건 **간지를 실제로 읽는 것**이다.)
+        //   그런데 이 월운은 **만세력·타임라인에서 세운을 탭했을 때만** 쓰인다.
+        //   즉 홈·성격·궁합 등 **거의 모든 화면이 쓰지도 않을 1,440개를 매번 계산**하고 있었다.
+        //   ⇒ 접근할 때 1회만 계산한다(위 `get ziwei()` 와 같은 처방 — 이미 검증된 패턴).
+        //   ⚠️getter 이므로 **직렬화(JSON.stringify)하면 평가된다** — 지금 luckCycles 를 통째로
+        //     stringify 하는 곳은 없다(실측). 생기면 그 지점만 명시적으로 펼칠 것.
+        let _months: MonthPillar[] | undefined;
+        const monthsOf = (): MonthPillar[] => (_months ??= (ln.getLiuYue?.() ?? []).map((ly: any) => {
           const mgz: string = ly.getGanZhi();
           // 라이브러리 경계: 2자 미만이면 해당 월운만 스킵(대운/세운 전체는 유지)
           if (!mgz || mgz.length < 2) {
@@ -295,7 +306,7 @@ export function buildSajuChart(input: ChartInput, nowYear = new Date().getFullYe
             return null;
           }
           return { stem: mgz[0] as Stem, branch: mgz[1] as Branch, stemTenGod: tenGod(dayStem, mgz[0] as Stem), label: ly.getMonthInChinese?.() ?? '' };
-        }).filter(Boolean) as MonthPillar[];
+        }).filter(Boolean) as MonthPillar[]);
         // 세운 간지 이상이면 해당 세운 스킵
         if (!agz || agz.length < 2) {
           console.warn('[saju] 세운 간지 이상, 스킵:', agz);
@@ -306,7 +317,7 @@ export function buildSajuChart(input: ChartInput, nowYear = new Date().getFullYe
           stem: agz[0] as Stem, branch: agz[1] as Branch,
           stemTenGod: tenGod(dayStem, agz[0] as Stem),
           interactionsWithLuck: [],   // WS3(원국×대운×세운 합충) 영역
-          months,
+          get months() { return monthsOf(); },   // ⚡지연 — 위 주석 참조(전체 비용의 90%였다)
         };
       }).filter(Boolean) as AnnualPillar[];
       // 대운 간지 이상이면 이 대운을 건너뜀 — 위 filter 전에도 gz 검사 실행됨
