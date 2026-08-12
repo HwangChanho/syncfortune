@@ -179,10 +179,18 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
   // ★엠블럼 이미지 선적재 — 위 warmedOnce 주석 참조. 모달을 열기 *전*에 디스크 캐시를 채운다.
   //   순서: 인터랙션이 끝난 뒤 시작 → 명식 하나씩(틱 분리) 계산 → 이미지 URL 이 나오는 즉시 프리페치.
   //   실패는 전부 무시한다(다음에 리스트에서 정상 경로로 다시 받는다) — 데우기는 **최적화지 정확성이 아니다**.
+  //
+  // ★★상한을 둔다(daniel 2026-08-12 *"명식리스트에 데이터가 많으면 이미지 로딩도 느려지는데"*).
+  //   실측(2026-08-12): 엠블럼 원본 **512×512 · 53~68KB**, 표시 크기는 46~72px.
+  //   종전엔 **명식 전량**을 돌며 ①computeChart(사주 엔진 — 무겁다) ②원격 프리페치를 걸었다.
+  //   명식이 50개면 **엔진 50회 + 동시 요청 ~3MB** 를 목록을 열기도 전에 쓴다.
+  //   ⇒ *데우기는 최적화지 정확성이 아니다*(위 주석). 처음 화면에 들어올 만큼만 데우고,
+  //     나머지는 스크롤할 때 리스트가 정상 경로로 받는다(cachePolicy='memory-disk' 라 한 번이면 끝).
+  const WARM_MAX = 12;   // 화면에 한 번에 보이는 행(대략 8~10) + 여유 몇 개
   useEffect(() => {
     if (warmedOnce || !charts.length) return;
     warmedOnce = true;
-    const snapshot = charts;
+    const snapshot = charts.slice(0, WARM_MAX);
     let alive = true;
     let ti: ReturnType<typeof setTimeout>;
     const h = InteractionManager.runAfterInteractions(() => {
@@ -423,6 +431,13 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"  // 검색 키보드가 열린 채로도 명식 탭이 첫 터치에 먹게
               activationDistance={14}
+              // ★가상화 튜닝(daniel 2026-08-12 "데이터가 많으면 … 느려지는데") — 종전엔 **하나도 안 줬다**.
+              //   기본 windowSize=21 은 *화면의 21배*를 마운트해 둔다. 행마다 512×512 엠블럼이 붙으므로
+              //   명식이 많을수록 메모리·디코딩이 그대로 늘었다. 보이는 근처만 유지한다.
+              //   ⚠️removeClippedSubviews 는 **드래그 reorder 중 행이 사라지는** 알려진 문제가 있어 쓰지 않는다.
+              initialNumToRender={10}
+              maxToRenderPerBatch={8}
+              windowSize={5}
               // 필터 중(부분집합)엔 순서 저장이 전체 순서를 꼬이게 하므로 드래그 결과를 무시(renderItem에서 drag 자체도 비활성).
               onDragEnd={({ data }) => { if (!filtering) onDragEnd(data); }}
               renderItem={({ item: c, drag, isActive }) => {
@@ -441,6 +456,13 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
                       ) : iljuImg ? (
                         <PressableScale onPress={() => setViewImg(iljuImg)} hitSlop={6} style={[styles.emblemImg, { width: EMB, height: EMB, borderRadius: EMB / 2 }]}>
                           <ExpoImage source={iljuImg} style={[StyleSheet.absoluteFill, { borderRadius: EMB / 2 }]} contentFit="cover" cachePolicy="memory-disk" transition={250}
+                            /* ★recyclingKey — 스크롤로 행이 재활용될 때 **이전 명식의 그림이 잠깐 남는 것**을 막는다.
+                               (가상화를 조인 뒤에는 재활용이 잦아져 이게 없으면 엉뚱한 엠블럼이 스친다.)
+                               ★512×512 원본을 46~72px 로 그리므로 디코딩 크기를 명시해 메모리·시간을 아낀다
+                               — expo-image 는 힌트가 없으면 원본 해상도로 디코딩할 수 있다(실측: 장당 1MB). */
+                            recyclingKey={`${em.stem}${em.branch}`}
+                            allowDownscaling
+                            contentPosition="center"
                             onLoadEnd={() => setLoadedEmblems((s) => { const n = new Set(s); n.add(c.id); return n; })} />
                           {/* 이미지 디코드 중 로딩 인디케이터(daniel: 명식변경 리스트 이미지 로딩 표시) — 로드되면 사라짐 */}
                           {!loadedEmblems.has(c.id) && <ActivityIndicator size="small" color={colors.ju} style={StyleSheet.absoluteFill} />}

@@ -115,5 +115,35 @@ console.log('\n📝 check:copy — 문구 단일 출처\n');
   } else ok('[C4] 화면이 쓰는 키가 전부 copy 에 있다');
 }
 
+// ── [C5] en/ja 에 **한국어가 그대로 남아 있는가**(daniel 2026-08-12 "다 고쳐") ────────────
+//   [C1] 은 **키 개수**만 본다. 그래서 값이 한국어 그대로여도 통과했고,
+//   실측 결과 en·ja 각각 **293건**(1413키의 21%)이 번역되지 않은 채 출시돼 있었다 —
+//   `추가`·`확인`·`삭제`·`로그인` 같은 기본 단어까지. 영어·일본어 사용자에게 한국어가 떴다.
+//   ⇒ "키가 맞는가"가 아니라 **"말이 그 언어인가"** 를 본다([[harness-judge-expression-not-name]]).
+{
+  const KO = /[가-힣]/;
+  /** 한국어를 일부러 남기는 자리 — **이유 필수**(고유명사·원어 병기 등). 이유 없이 추가 금지. */
+  const ALLOW: { lang: string; key: string; why: string }[] = [];
+  const found: string[] = [];
+  for (const lang of ['en', 'ja'] as const) {
+    const lines = readFileSync(`app/src/copy/${lang}.ts`, 'utf8').split('\n');
+    let sec = '';
+    lines.forEach((l, i) => {
+      const ms = /^\s{2}([A-Za-z_][A-Za-z0-9_]*): \{/.exec(l);
+      if (ms) { sec = ms[1]; return; }
+      const mv = /^\s*'([^']+)':\s*'(.*)',?\s*$/.exec(l);
+      if (!mv || !KO.test(mv[2])) return;
+      const key = `${sec}.${mv[1]}`;
+      if (ALLOW.some((a) => a.lang === lang && a.key === key)) return;
+      found.push(`${lang}.ts:${i + 1}  ${key}  ${mv[2].slice(0, 40)}`);
+    });
+  }
+  if (found.length) {
+    bad(`[C5] en/ja 에 한국어가 남아 있음 ${found.length}건 — 그 언어 사용자에게 한국어가 뜬다`);
+    found.slice(0, 12).forEach((x) => console.log(`      · ${x}`));
+    if (found.length > 12) console.log(`      … 외 ${found.length - 12}건`);
+  } else ok('[C5] en/ja 에 한국어가 남아 있지 않음');
+}
+
 if (problems.length) { console.error(`\n❌ check:copy 실패 ${problems.length}건\n`); process.exit(1); }
 console.log('\n✅ check:copy 통과 — 문구 단일 출처 유지\n');

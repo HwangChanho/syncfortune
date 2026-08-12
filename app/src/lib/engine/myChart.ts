@@ -9,6 +9,7 @@
 import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import type { ChartInput } from '@spec/chart';
+import { readCategoryState, mergeCategoryState } from '../core/categories'; // 카테고리도 같은 blob 으로 동기화(daniel 2026-08-12)
 import { supabase } from '../supabase'; // 계정 동기화(ADR-056) — owner 전용 암호화 blob RPC
 
 const KEY = 'my_charts_v2';   // SavedChart[]
@@ -54,7 +55,9 @@ export function pushChartsDebounced(): void {
 async function pushChartsNow(): Promise<void> {
   if (!(await hasSession())) return;                       // 비로그인 = 동기화 없음
   try {
-    const blob = JSON.stringify({ v: BLOB_V, charts: await listCharts(), rep: await getRaw(REP_KEY), tombstones: await getTombstones() });
+    // ★cats — 카테고리 목록도 **같은 blob** 에 싣는다(daniel 2026-08-12).
+    //   따로 동기화하면 '명식은 왔는데 그 명식이 속한 카테고리는 없는' 순간이 생긴다(lib/core/categories 주석).
+    const blob = JSON.stringify({ v: BLOB_V, charts: await listCharts(), rep: await getRaw(REP_KEY), tombstones: await getTombstones(), cats: readCategoryState() });
     // ⚠️`supabase.rpc()` 는 실패해도 **throw 하지 않는다**(`{data, error}` 반환) — 2026-08-11 실측.
     //   여기서 error 를 안 보면 **명식 동기화가 조용히 실패**하고 catch 도 안 탄다. 던져서 아래 catch 로 보낸다.
     const { error } = await supabase.rpc('set_my_charts', { p_blob: blob });
@@ -68,12 +71,17 @@ async function pushChartsNow(): Promise<void> {
  */
 export async function syncChartsFromServer(): Promise<void> {
   if (!(await hasSession())) return;
-  let server: { charts?: SavedChart[]; rep?: string; tombstones?: string[] } | null = null;
+  let server: { charts?: SavedChart[]; rep?: string; tombstones?: string[]; cats?: { custom?: string[]; hidden?: string[] } } | null = null;
   try {
     const { data, error } = await supabase.rpc('get_my_charts');
     if (error || data == null) { if ((await listCharts()).length) await pushChartsNow(); return; } // 서버에 없음 = 첫 동기화: 로컬 있으면 올린다(빈 로컬로 덮어쓰기 방지)
     server = JSON.parse(data as string);
   } catch { return; }
+  // ★카테고리 머지 — 명식보다 **먼저** 한다. 명식의 relation 이 가리킬 카테고리가 있어야
+  //   합쳐진 목록을 그리는 화면(ChartPicker)이 첫 렌더부터 온전하다.
+  //   합집합이라 양쪽 기기가 만든 것을 잃지 않고, 지운 것(hidden)도 함께 와 되살아나지 않는다.
+  await mergeCategoryState(server?.cats).catch(() => {});
+
   const local = await listCharts();
   const tomb = new Set<string>([...(await getTombstones()), ...(server?.tombstones ?? [])]);
   const byId = new Map<string, SavedChart>();
