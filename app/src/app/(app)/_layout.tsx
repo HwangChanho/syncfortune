@@ -148,6 +148,7 @@ export default function AppLayout() {
         <Stack.Screen name="zodiac" options={{ headerTitle: '' }} />
         <Stack.Screen name="name" options={{ headerTitle: '' }} />
         <Stack.Screen name="dream" options={{ headerTitle: '' }} />
+        <Stack.Screen name="taemong" options={{ headerTitle: '' }} />
         {/* 프리미엄 허브 제거 — 홈 사주/자미 → 원국풀이(/reading·/ziwei) 직접 진입(daniel 07-01) */}
         <Stack.Screen name="market" options={{ title: '마켓', animation: 'none' }} />
         <Stack.Screen name="shared/[id]" options={{ title: '공유받은 풀이' }} />

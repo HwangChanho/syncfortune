@@ -35,6 +35,9 @@ const lines = src.split('\n');
 const EXEMPT: { match: string; why: string }[] = [
   { match: `'dream'`, why: '꿈해몽 = 5회 번들 횟수형(명식 무관 · 산출물이 명식에 귀속되지 않음)' },
   { match: `'followup'`, why: '추가질문 = 횟수형(질문 1건 = 차감 1건이 정상)' },
+  // ★태몽(daniel 2026-08-12) — **사주와 교차하지 않는 단독 콘텐츠**라 명식(chartId)이 없다.
+  //   dream 과 같은 이유로 면제: 산출물이 명식에 귀속되지 않는 '꿈 1건 = 차감 1건' 횟수형이다.
+  { match: `'taemong'`, why: '태몽 = 횟수형(명식 무관 · 사주와 교차하지 않는 단독 콘텐츠)' },
   // ★compat 면제 해제(daniel 2026-08-03 "궁합 풀이 중에 오류 뜨고 … 또 운 사용하는 거 같은데").
   //   면제 사유였던 '명식×kind 로 표현되지 않는다'가 더는 사실이 아니다 —
   //   언락 키를 `compat:{rel}:{sig}` 로 만들면 그대로 표현된다(관계별 개별 결제 규칙도 유지).
@@ -83,7 +86,9 @@ lines.forEach((line, i) => {
 // ── (D) 클라 게이트: 명식 귀속 kind 의 ensureCoinsFor 는 chartId 를 넘겨야 한다 ──────────────
 //   안 넘기면 '이미 산 콘텐츠'를 알 수 없어 ①결제창이 또 뜨고 ②잔액이 모자라면 **자기가 산 걸 못 연다**.
 //   (소유 판정은 coinGate 안에서 isUnlocked → 서버 reading_unlocks 로 한다.)
-const CLIENT_EXEMPT = ['dream', 'followup', 'compat', 'timeresolve']; // 명식에 귀속되지 않는 kind(위 EXEMPT 와 같은 이유)
+const CLIENT_EXEMPT = ['dream', 'followup', 'compat', 'timeresolve', 'taemong']; // 명식에 귀속되지 않는 kind(위 EXEMPT 와 같은 이유)
+// ★taemong = 태몽(daniel 2026-08-12) — **사주와 교차하지 않는 단독 콘텐츠**라 명식(chartId)이 아예 없다.
+//   차감은 Edge 의 dream 분기가 함께 처리한다(isTaemong → spendForKind('taemong')).
 const clientFiles = execSync(
   `grep -rl "ensureCoinsFor(" app/src --include=*.tsx --include=*.ts || true`,
   { encoding: 'utf8' },

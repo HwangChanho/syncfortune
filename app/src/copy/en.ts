@@ -31,6 +31,7 @@ export const en = {
     more: 'It also computes hidden stems, clashes/combinations/punishments, sinsal, and luck cycles, then cross-validates two traditions — Saju and Zi Wei Dou Shu.',
   },
   menu: {
+    'taemong': 'Conception Dream', 'taemongDesc': 'Reading the dream that came while waiting for a child', 'taemongTileDesc': 'Dragon, tiger, carp… conception-dream symbols, free',
     'egenteto': 'Egen vs Teto',
     lookback: 'Look back', lookbackDesc: 'Your notes next to that day\'s reading',
     myeongsik: 'Register Chart', myeongsikDesc: 'Add & manage your chart',
@@ -392,6 +393,20 @@ export const en = {
     'yearNature': '올해는 어떤 해', title: 'New Year Fortune', generating: 'Reading your whole year…', heroSub: 'See the big picture of your year at a glance', keyword: "This Year's Keyword", lucky: "This Year's Lucky Points", halves: 'First Half · Second Half', months: 'Monthly Calendar', samjaeAdvice: 'What to Watch This Year', resolution: 'Make This Year Count', gateDesc: 'From your keyword for the year to fortune by area, a twelve-month calendar, and your New Year resolutions — all in one place.', pv1: "This year's keyword", pv2: 'Fortune across 8 areas', pv3: 'Twelve-month calendar', pv4: 'First and second half trends', pv5: 'What to focus on and your New Year resolutions', see: 'View New Year Fortune', seePaid: 'View New Year Fortune (₩9,900)', },
   taegil: { title: 'Pick a Day — Find the Right Date', sub: "Choose what you're planning, and we'll highlight the dates over the next three months that suit you best.", best: 'Great', good: 'Good', tapHint: 'Tap a highlighted day', },  zodiac: { title: "Today's Zodiac & Star Sign", animal: 'Zodiac Animal', sign: 'Star Sign', mine: 'My Fortune', },
   name: { title: 'Name Reading', sub: 'We read the vibe of your name through the energy in its sounds.', placeholder: 'Enter your name in Korean', noHangul: 'Please enter your name in Korean.', },
+  taemong: {
+    'title': 'Conception Dream',
+    'sub': 'Reading the dream that came while waiting for a child',
+    'guard': 'Conception dreams are a long-told tradition. They do not tell you a child\'s sex or health — that belongs to medicine.',
+    'dictTitle': 'What appeared in the dream?',
+    'dictPh': 'Dragon · Tiger · Carp · Peach …',
+    'noHit': 'That symbol is not in our dictionary. Write the dream below and AI will read it for you.',
+    'aiTitle': 'AI conception-dream reading',
+    'aiSub': 'Tell the whole dream as a story — even if several symbols mix, or none are in the dictionary, we read them together.',
+    'aiPh': 'Who dreamt it, what appeared, and what happened …',
+    'aiCta': 'Get the reading',
+    'tooShort': 'Please write a little more of the dream.',
+    'fail': "Couldn't load the reading. Please try again in a moment.",
+  },
   dream: {
     'aiBtn': 'Get an AI reading (₩300)',
     'aiPh': 'What you saw or went through in the dream, in detail…',

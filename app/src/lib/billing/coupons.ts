@@ -14,7 +14,7 @@ async function hasSession(): Promise<boolean> {
   return !!data.session;
 }
 
-export type CreditKind = 'reading' | 'ziwei' | 'compat' | 'timeline' | 'followup' | 'love' | 'newyear' | 'lifegraph' | 'roots' | 'image' | 'mission' | 'career' | 'talent' | 'astrology' | 'dream' | 'gaeun' | 'celeb' | 'timeresolve' | 'future10' | 'child' | 'child_couple' | 'reunion' | 'crush' | 'job' | 'jobfit' | 'wealth';
+export type CreditKind = 'reading' | 'ziwei' | 'compat' | 'timeline' | 'followup' | 'love' | 'newyear' | 'lifegraph' | 'roots' | 'image' | 'mission' | 'career' | 'talent' | 'astrology' | 'dream' | 'taemong' | 'gaeun' | 'celeb' | 'timeresolve' | 'future10' | 'child' | 'child_couple' | 'reunion' | 'crush' | 'job' | 'jobfit' | 'wealth';
 // price = 건당 가격(원). daniel 확정(2026-06): 원가(opus, 영구캐시 1회)×~3, 소액(타임라인·질문)=₩990, 애정 ₩4,900.
 export const CREDIT_KINDS: { key: CreditKind; ko: string; price: number }[] = [
   { key: 'reading', ko: '사주 풀이', price: 19900 }, { key: 'ziwei', ko: '자미두수', price: 14900 }, { key: 'compat', ko: '궁합', price: 2900 }, // 궁합 ₩2,900: ★관계별 개별 결제 전환(daniel 07-22 — 쌍당1회→관계별 건당이라 단가 4900→2900 인하). 같은 관계는 사주+자미·연도 공유. ASC 실가는 fastlane(daniel)
@@ -31,6 +31,8 @@ export const CREDIT_KINDS: { key: CreditKind; ko: string; price: number }[] = [
   { key: 'astrology', ko: '별자리 운세', price: 4900 },
   // AI 꿈해몽 — 5회 번들 ₩2,500(=₩500/회, daniel 06-28). Apple IAP 번들 판매(ASC credit_dream=2500). price=건당 참조값.
   { key: 'dream', ko: 'AI 꿈해몽', price: 500 },
+  // 태몽 — 단독 콘텐츠(사주 교차 없음·daniel 2026-08-12). 일생에 한 번뿐인 꿈이라 꿈해몽보다 깊게 쓴다.
+  { key: 'taemong', ko: '태몽 풀이', price: 2000 },
   // 신규(daniel 2026-06-24): 맞춤 개운법(원국+지금 운 → 구체 처방·살풀이). 가격 daniel 조정 슬롯.
   { key: 'gaeun', ko: '맞춤 개운법', price: 4900 },
   // 신규(daniel 2026-06-24 기획 B): 세계 인물 매칭(유명인 사주 ↔ 나 — 재미·추정, 투자/정치 단정 금지). 1회 결제로 전 인물 열람(인물별 캐시).

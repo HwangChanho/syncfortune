@@ -82,7 +82,8 @@ export const CREDIT_PRODUCT: Record<CreditKind, string> = {
   career: 'credit_career',       // 사업가의 나 vs 직장인의 나 ₩4,900
   talent: 'credit_talent',       // 나의 타고난 재능 ₩4,900(월지 축) — ⚠️ASC/RC에 credit_talent 상품 등록 필요(daniel)
   astrology: 'credit_astrology',   // 별자리 운세 ₩4,900 — ⚠️ASC/RC 상품 등록 필요(daniel)
-  dream: 'credit_dream',         // AI 꿈해몽 — 단건 ₩500은 Apple IAP 최저가 미만 → 5회 번들(₩2,500) 상품으로 판매(daniel 06-28)
+  dream: 'credit_dream',
+  taemong: 'credit_taemong',   // 태몽 — 운으로만 여는 콘텐츠(ASC 미등록·운 결제 경로)         // AI 꿈해몽 — 단건 ₩500은 Apple IAP 최저가 미만 → 5회 번들(₩2,500) 상품으로 판매(daniel 06-28)
   gaeun: 'credit_gaeun',         // 맞춤 개운법 ₩4,900 — ⚠️ASC/RC 상품 등록 필요(daniel)
   celeb: 'credit_celeb',         // 세계 인물 매칭 ₩1,200 — ⚠️ASC/RC 상품 등록 필요(daniel)
   timeresolve: 'credit_timeresolve', // 태어난 시 찾기(TPR) ₩990 — ⚠️ASC/RC 상품 등록 필요(daniel)

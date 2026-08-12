@@ -64,7 +64,7 @@ const CREDIT_PRICE: Record<string, number> = Object.fromEntries(CREDIT_KINDS.map
 /** 천단위 콤마(Hermes Intl 비의존). @example wonFmt(4900) → '₩4,900' */
 export const wonFmt = (n: number) => '₩' + n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 /** 프리미엄 미포함(개별구매 전용) — 프리미엄 명식이어도 '무제한' 배지를 주지 않는다. */
-export const HOME_INDIVIDUAL = new Set(['dream', 'followup', 'timeresolve']);
+export const HOME_INDIVIDUAL = new Set(['dream', 'followup', 'timeresolve', 'taemong']);
 /** 개별 가격 배지 문구 — **금액만**(할인율 미표시. 위 주석 참조). @param key creditKey */
 /**
  * 콘텐츠 카드에 표시할 가격.
@@ -171,6 +171,7 @@ export const SECTIONS: Section[] = [
     { key: 'country', labelKey: 'menu.country', descKey: 'menu.countryDesc', image: A('icons/country.jpg'), route: '/country', ready: true, content: true },
     { key: 'name', labelKey: 'menu.name', descKey: 'menu.nameTileDesc', image: A('icons/name.jpg'), route: '/name', ready: true, content: true },
     { key: 'dream', labelKey: 'menu.dream', descKey: 'menu.dreamTileDesc', image: A('icons/dream.jpg'), route: '/dream', ready: true, content: true },
+    { key: 'taemong', labelKey: 'menu.taemong', descKey: 'menu.taemongTileDesc', image: A('icons/dream.jpg')  /* ⏳태몽 전용 이미지 미제작 — 없는 경로를 쓰면 카드가 깨진다(실측 400). 제작 후 icons/taemong.jpg 로 교체 */, route: '/taemong', ready: true, content: true },
     { key: 'ziwei', labelKey: 'menu.ziweiHub', descKey: 'menu.ziweiHubDesc', image: A('icons/ziwei.jpg'), route: '/ziwei', ready: true, premium: true, creditKey: 'ziwei' },
     { key: 'astrology', labelKey: 'menu.astrology', descKey: 'menu.astrologyDesc', image: A('icons/astrology.jpg'), route: '/astrology', ready: true, content: true, creditKey: 'astrology' },
   ] },

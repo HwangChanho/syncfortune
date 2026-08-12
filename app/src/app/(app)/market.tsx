@@ -40,6 +40,7 @@ export const ROUTE: Record<CreditKind, { pathname: string; kind?: string }> = { 
   talent: { pathname: '/talent' },                    // 나의 타고난 재능(월지 축)
   astrology: { pathname: '/astrology' },              // 별자리 운세(서양 네이탈)
   dream: { pathname: '/dream' },                       // AI 꿈해몽(자유 텍스트)
+  taemong: { pathname: '/taemong' },                   // 태몽 — 단독(명식 불필요)
   gaeun: { pathname: '/gaeun' },                       // 맞춤 개운법(daniel #18)
   celeb: { pathname: '/celeb' },                       // 세계 인물 매칭(daniel B)
   timeresolve: { pathname: '/timeResolve' },           // 태어난 시 찾기(TPR — daniel 06-28)
@@ -74,7 +75,7 @@ const TOPIC_OF: Partial<Record<CreditKind, MarketTopic>> = {
   career: 'job', jobfit: 'job', job: 'job', wealth: 'job', talent: 'job',                               // 직업·재물
   reading: 'self', ziwei: 'self', roots: 'self', image: 'self', mission: 'self', astrology: 'self',     // 성격·자기이해(종합 원국 포함)
   future10: 'time', timeline: 'time', newyear: 'time', lifegraph: 'time', gaeun: 'time', timeresolve: 'time', // 시기·미래
-  dream: 'etc', followup: 'etc',                                                                         // 기타
+  dream: 'etc', followup: 'etc', taemong: 'etc',                                                                         // 기타
 };
 const MARKET_TOPICS: [('all' | MarketTopic), string][] = [
   ['all', '전체'], ['love', '애정·궁합'], ['job', '직업·재물'], ['self', '성격·자기이해'], ['time', '시기·미래'], ['etc', '기타'],
@@ -97,6 +98,7 @@ const CARD: Partial<Record<CreditKind, { img: any; desc: string }>> = {
   talent: { img: A('icons/talent.jpg'), desc: 'menu.talentDesc' },
   astrology: { img: A('icons/astrology.jpg'), desc: 'menu.astrologyDesc' },
   dream: { img: A('icons/dream.jpg'), desc: 'menu.dreamDesc' },
+  taemong: { img: A('icons/dream.jpg')  /* ⏳태몽 전용 이미지 미제작 — 없는 경로를 쓰면 카드가 깨진다(실측 400). 제작 후 icons/taemong.jpg 로 교체 */, desc: 'menu.taemongDesc' },
   gaeun: { img: A('icons/gaeun.jpg'), desc: 'menu.gaeunDesc' }, // 맞춤 개운법(daniel #18)
   celeb: { img: A('icons/celeb.jpg'), desc: 'menu.celebDesc' }, // 세계 인물 매칭(daniel B)
   timeresolve: { img: A('icons/timeResolve.jpg'), desc: 'menu.timeResolveDesc' }, // 태어난 시 찾기(TPR — daniel 06-28)

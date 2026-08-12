@@ -100,6 +100,7 @@ function routeExists(route: string): boolean {
 // ★서버게이트 면제(설계상 정당한 예외) — 이유를 여기 적어 둔다. 비면 '누락'과 구분이 안 된다.
 const SERVER_EXEMPT: Record<string, string> = {
   dream: 'Edge dream 분기가 자체 차감(spendForKind)',
+  taemong: 'Edge dream 분기를 함께 탄다(isTaemong) — spendForKind(taemong) 로 자체 차감. 명식 무관(chartless)이라 SERVER_GATED 대상이 아니다',
   followup: 'Edge 추가질문 분기가 자체 차감',
   compat: 'Edge 궁합 분기가 자체 차감(쌍/관계 판정 포함)',
   coach: '팔자 도우미 전환(2026-07-30) — 무료·LLM 미사용',
