@@ -394,6 +394,11 @@ export const en = {
   taegil: { title: 'Pick a Day — Find the Right Date', sub: "Choose what you're planning, and we'll highlight the dates over the next three months that suit you best.", best: 'Great', good: 'Good', tapHint: 'Tap a highlighted day', },  zodiac: { title: "Today's Zodiac & Star Sign", animal: 'Zodiac Animal', sign: 'Star Sign', mine: 'My Fortune', },
   name: { title: 'Name Reading', sub: 'We read the vibe of your name through the energy in its sounds.', placeholder: 'Enter your name in Korean', noHangul: 'Please enter your name in Korean.', },
   taemong: {
+    'secSymbols': 'What appeared in the dream',
+    'secStory': 'What this dream is saying',
+    'secChild': 'As it has been told',
+    'secKeep': 'How to keep this dream',
+    'secTradition': 'There is also this story',
     'title': 'Conception Dream',
     'sub': 'Reading the dream that came while waiting for a child',
     'guard': 'Conception dreams are a long-told tradition. They do not tell you a child\'s sex or health — that belongs to medicine.',

@@ -20,7 +20,7 @@ export const COIN_PRICE: Partial<Record<CreditKind, number>> = {
   dream: 5,
   followup: 10, timeresolve: 10,
   celeb: 12,
-  taemong: 20,   // 태몽 — 단독(명식 불필요). 꿈해몽(5)보다 깊고 timeline 급 분량
+  taemong: 50,   // 태몽 — 단독(명식 불필요) · 섹션 5개 딥리포트(daniel 2026-08-12 — 50운으로 올리고 그에 맞는 분량으로)
   timeline: 20,
   compat: 30,
   lifegraph: 40,

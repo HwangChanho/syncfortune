@@ -51,7 +51,9 @@ export default function TaemongScreen() {
   const [q, setQ] = useState('');
   const [story, setStory] = useState('');                 // 자유 서술(유료 AI)
   const [busy, setBusy] = useState(false);
-  const [ai, setAi] = useState<{ title: string; meaning: string } | null>(null);
+  /** 유료 태몽 풀이 — 50운급 섹션 5개(daniel 2026-08-12 "그에맞게 양질의 컨텐츠"). */
+  type TaemongReading = { headline?: string; symbols?: string; story?: string; child?: string; keep?: string; tradition?: string };
+  const [ai, setAi] = useState<TaemongReading | null>(null);
   const [kbH, setKbH] = useState(0);
 
   // 키보드 높이 추적 — 하단 입력창이 키보드에 덮이지 않게 그만큼 여백을 준다.
@@ -131,11 +133,11 @@ export default function TaemongScreen() {
         return;
       }
       const fail = invokeFail(data, error);
-      const d = (data as any)?.dream as { title: string; meaning: string } | undefined;
-      setAi(fail ? { title: text.slice(0, 12), meaning: fail.message }
-                 : (d ?? { title: text.slice(0, 12), meaning: t('taemong.fail', '풀이를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.') }));
+      const d = (data as any)?.dream as TaemongReading | undefined;
+      setAi(fail ? { headline: text.slice(0, 14), symbols: fail.message }
+                 : (d ?? { headline: text.slice(0, 14), symbols: t('taemong.fail', '풀이를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.') }));
     } catch (e) {
-      setAi({ title: text.slice(0, 12), meaning: (e as Error).message });
+      setAi({ headline: text.slice(0, 14), symbols: (e as Error).message });
     } finally {
       releaseGen('taemong');
       setGenProgress({ route: '/taemong', active: false, done: 1, total: 1 });
@@ -215,11 +217,28 @@ export default function TaemongScreen() {
         {busy ? <ActivityIndicator color={colors.bg} /> : <Text style={styles.ctaTx}>{t('taemong.aiCta', '태몽 풀이 받기')}</Text>}
       </PressableScale>
 
+      {/* ★유료 결과 = 섹션 5개(50운급). 빈 섹션은 그리지 않는다 — 서버가 못 채운 칸이 빈 카드로 남으면
+          "돈 냈는데 비었다"가 된다. 있는 것만 그리고, 하나도 없으면 실패 문구가 symbols 에 온다. */}
       {ai && (
         <View style={[styles.card, styles.aiCard]}>
-          <Text style={styles.cardH}>{ai.title}</Text>
-          <Text style={styles.cardTx}>{ai.meaning}</Text>
-          <TTSButton reading={{ headline: ai.title, body: ai.meaning }} />
+          {!!ai.headline && <Text style={styles.aiHead}>{ai.headline}</Text>}
+          {([
+            ['symbols',   t('taemong.secSymbols', '꿈에 나온 것들')],
+            ['story',     t('taemong.secStory', '이 꿈이 말하는 것')],
+            ['child',     t('taemong.secChild', '전해 내려오기로는')],
+            ['keep',      t('taemong.secKeep', '이 꿈을 간직하는 법')],
+            ['tradition', t('taemong.secTradition', '이런 이야기도 있어요')],
+          ] as const).map(([k, label]) => {
+            const v = (ai as any)[k] as string | undefined;
+            if (!v || !v.trim()) return null;
+            return (
+              <View key={k} style={styles.sec}>
+                <Text style={styles.secH}>{label}</Text>
+                <Text style={styles.cardTx}>{v}</Text>
+              </View>
+            );
+          })}
+          <TTSButton reading={ai} />
         </View>
       )}
 
@@ -249,6 +268,9 @@ const makeStyles = (fs: (n: number) => number) => StyleSheet.create({
   empty: { ...font.caption, color: colors.inkFaint, marginTop: space(3), fontSize: fs(13), lineHeight: fs(20) },
   card: { backgroundColor: colors.card, borderRadius: radius.md, padding: space(4), marginTop: space(3), ...shadow.card },
   aiCard: { borderWidth: 1, borderColor: TAEMONG_TONE },
+  aiHead: { ...font.heading, color: TAEMONG_TONE, fontWeight: '800', fontSize: fs(18), lineHeight: fs(26), marginBottom: space(3) },
+  sec: { marginTop: space(4) },
+  secH: { ...font.caption, color: colors.ink, fontWeight: '800', fontSize: fs(14), lineHeight: fs(21), marginBottom: space(1.5) },
   cardH: { ...font.heading, color: colors.ink, marginBottom: space(2), fontSize: fs(17), lineHeight: fs(25) },
   cardTx: { ...font.body, color: colors.inkSoft, fontSize: fs(15), lineHeight: fs(24) },
   cardTrait: { ...font.body, color: TAEMONG_TONE, marginTop: space(2.5), fontWeight: '700', fontSize: fs(14), lineHeight: fs(22) },

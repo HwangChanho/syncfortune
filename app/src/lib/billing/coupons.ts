@@ -32,7 +32,7 @@ export const CREDIT_KINDS: { key: CreditKind; ko: string; price: number }[] = [
   // AI 꿈해몽 — 5회 번들 ₩2,500(=₩500/회, daniel 06-28). Apple IAP 번들 판매(ASC credit_dream=2500). price=건당 참조값.
   { key: 'dream', ko: 'AI 꿈해몽', price: 500 },
   // 태몽 — 단독 콘텐츠(사주 교차 없음·daniel 2026-08-12). 일생에 한 번뿐인 꿈이라 꿈해몽보다 깊게 쓴다.
-  { key: 'taemong', ko: '태몽 풀이', price: 2000 },
+  { key: 'taemong', ko: '태몽 풀이', price: 4900 },
   // 신규(daniel 2026-06-24): 맞춤 개운법(원국+지금 운 → 구체 처방·살풀이). 가격 daniel 조정 슬롯.
   { key: 'gaeun', ko: '맞춤 개운법', price: 4900 },
   // 신규(daniel 2026-06-24 기획 B): 세계 인물 매칭(유명인 사주 ↔ 나 — 재미·추정, 투자/정치 단정 금지). 1회 결제로 전 인물 열람(인물별 캐시).

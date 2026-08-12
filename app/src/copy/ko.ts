@@ -425,6 +425,11 @@ export const ko = {
   taegil: { title: '택일 — 좋은 날 찾기', sub: '하려는 일을 고르면, 앞으로 석 달 달력에서 내 사주에 잘 맞는 날을 색으로 짚어 드려요.', best: '아주 좋음', good: '좋음', tapHint: '색칠된 날을 눌러 보세요', },  zodiac: { title: '띠·별자리 오늘운세', animal: '띠', sign: '별자리', mine: '내 운세', },
   name: { title: '이름풀이', sub: '이름 속 소리의 기운(오행)으로 결을 봐요.', placeholder: '한글 이름을 입력하세요', noHangul: '한글 이름을 입력해 주세요.', },
   taemong: {
+    'secSymbols': '꿈에 나온 것들',
+    'secStory': '이 꿈이 말하는 것',
+    'secChild': '전해 내려오기로는',
+    'secKeep': '이 꿈을 간직하는 법',
+    'secTradition': '이런 이야기도 있어요',
     'title': '태몽 풀이',
     'sub': '꿈에 나온 것으로 읽는, 아이를 기다리는 마음',
     'guard': '태몽은 오래 전해 온 이야기예요. 아이의 성별이나 건강을 알려주지는 않아요 — 그건 의료의 영역이에요.',
