@@ -38,11 +38,29 @@ function buildFullChart(input: ChartInput) {
 //   풀 엔진(사주+자미두수)을 재계산 → 실기기 CPU 랙. input+연도 키로 캐시해 같은 명식은 1회만 계산
 //   (세운 연도 바뀌면 자동 갱신). 결과는 읽기 전용으로 다룬다(호출처가 변형하지 않음).
 const _chartCache = new Map<string, ReturnType<typeof buildFullChart>>();
+/**
+ * 캐시 상한 — **무한히 자라지 않게**(daniel 2026-08-12 "남은거 다 고치고").
+ * 실측: 차트 1개 직렬화 ~99KB(자미가 붙으면 더). 상한이 없으면 명식을 옮겨 다닐수록 계속 쌓인다.
+ * 24 = 명식 20여 개를 오가도 전부 히트하면서, 최악이라도 수 MB 안쪽.
+ */
+const CACHE_MAX = 24;
 export function computeChart(input: ChartInput): ReturnType<typeof buildFullChart> {
   const key = `${new Date().getFullYear()}|${JSON.stringify(input)}`;
-  let hit = _chartCache.get(key);
-  if (!hit) { hit = buildFullChart(input); _chartCache.set(key, hit); }
-  return hit;
+  const hit = _chartCache.get(key);
+  if (hit) {
+    // LRU — 쓴 것을 맨 뒤로 옮긴다(Map 은 삽입 순서를 지키므로 delete→set 이면 '최근 사용'이 된다).
+    _chartCache.delete(key); _chartCache.set(key, hit);
+    return hit;
+  }
+  const made = buildFullChart(input);
+  _chartCache.set(key, made);
+  // 넘치면 **가장 오래 안 쓴 것**부터 버린다(Map 의 첫 키 = 가장 오래된 것).
+  while (_chartCache.size > CACHE_MAX) {
+    const oldest = _chartCache.keys().next().value;
+    if (oldest === undefined) break;
+    _chartCache.delete(oldest);
+  }
+  return made;
 }
 
 export type ComputedChart = ReturnType<typeof computeChart>;
