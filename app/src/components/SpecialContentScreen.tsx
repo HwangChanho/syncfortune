@@ -301,7 +301,7 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
       if ((data as any)?.needPayment || (data as any)?.needPremium) {
         setOwned(false); setBusy(false); setGenProgress({ route: gpRoute, active: false });
         logEvent(`${kind}_need_payment`, { chartId: id });
-        promptPurchase(id, refreshArg); // ★refresh 유지 — 결제 후 재시도도 캐시 덮어쓰기여야(재회 상대 반영). 아니면 stale 캐시(본인만)를 서빙.
+        void promptPurchase(id, refreshArg); // ★refresh 유지 — 결제 후 재시도도 캐시 덮어쓰기여야(재회 상대 반영). 아니면 stale 캐시(본인만)를 서빙.
         return;
       }
       if (error || !data) {
@@ -432,18 +432,23 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
   }
 
   // 구매 유도 — 서버 게이트(Edge)가 needPayment 를 반환했을 때만 호출(클라 차감 없음).
-  //   바로 구매: 결제 → 웹훅 적립 폴링(C1) → 재생성(Edge 가 1회 차감) / 또는 마켓 이동. id = 재생성 대상 명식.
-  function promptPurchase(id?: string, refresh = false) {
-    Alert.alert(title, t('special.needPayMsg', '운이 필요해요. 지금 운으로 열거나, 마켓에서 충전할 수 있어요.'), [
-      { text: t('coins.spend', '운 사용'), onPress: async () => {
-          // ★코인 단일 경로(daniel 2026-07-28 "기존 단건 결제는 다 없애") — 스토어 결제 왕복 제거.
-          //   차감은 서버(Edge)가 생성 직전에 한다. 부족하면 충전 화면으로 보낸다.
-          const g = await ensureCoinsFor(kind, { title, t, goCharge: () => router.push('/coins'), chartId });
-          if (g === 'ok') generate(id, undefined, refresh);   // refresh 유지(재회 상대 재등록 후 캐시 덮어쓰기)
-        } },
-      { text: t('special.goMarket', '마켓에서 보기'), onPress: () => router.push({ pathname: '/market', params: { focus: kind } }) },   // ★그 상품 위치로
-      { text: t('common.cancel'), style: 'cancel' },
-    ]);
+  //   차감은 서버(Edge)가 생성 직전에 한다. 부족하면 게이트가 충전 화면으로 보낸다. id = 재생성 대상 명식.
+  //
+  // ★★중간 알림을 걷어냈다(daniel 2026-08-12 *"다른 유료 콘텐츠도 사용후 남은운이 얼마가 되는지
+  //   나와야해 없을경우 충전창으로 이동시켜야하고"*).
+  //   종전엔 여기서 **숫자가 하나도 없는** 알림을 먼저 띄웠다 —
+  //     "운이 필요해요. 지금 운으로 열거나, 마켓에서 충전할 수 있어요."
+  //   가격도·보유 운도·사용 후 남는 운도 없이 '운 사용'을 누르라고 했고, 누른 **뒤에야**
+  //   `ensureCoinsFor` 가 숫자를 보여 줬다. 이 화면 하나가 **유료 18종**을 담당하므로
+  //   "유료인데 얼마 남는지 안 보인다"가 여기서 대량으로 생겼다.
+  //   ⇒ 게이트를 **바로** 부른다. 게이트가 이미 셋을 다 한다:
+  //      ①`{cost} 운을 사용해…  보유 {have} 운 → 사용 후 {after} 운`
+  //      ②부족하면 '운 충전하기' → 충전 화면  ③조회 실패는 '부족'과 구분(재결제 유도 방지)
+  //   ★알림이 하나로 줄어 **모달 연속 present** 위험도 함께 준다([[alert-double-fire-crash]]).
+  //   ※'마켓에서 보기'는 뺐다 — 부족할 때 갈 곳은 충전 화면이고, 게이트가 그리로 보낸다.
+  async function promptPurchase(id?: string, refresh = false) {
+    const g = await ensureCoinsFor(kind, { title, t, goCharge: () => router.push('/coins'), chartId });
+    if (g === 'ok') generate(id, undefined, refresh);   // refresh 유지(재회 상대 재등록 후 캐시 덮어쓰기)
   }
 
   // 동적 폰트 스케일이 필요한 StyleSheet 정적값 대체 — StyleSheet.create는 렌더 밖이라 fs()를 직접 쓸 수 없음.

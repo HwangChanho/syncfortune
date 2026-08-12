@@ -242,12 +242,12 @@ export default function LifeGraphScreen() {
     : (() => { const ci = pts.findIndex((p) => p.current); if (ci >= 0) return ci; const tt = decs.findIndex((d) => (d as any).turning); return tt >= 0 ? tt : null; })();
 
   return (
+    <>
     <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>
       {/* 상단 명식 헤더 — 현재 적용된 대표 명식 표시·전환(daniel: 모든 콘텐츠 상단). 전환 시 그 명식 기준 재로드 */}
       <ChartPicker onChange={() => setReloadKey((k) => k + 1)} />
       {/* 상단 hero 배너(daniel: 인생그래프 썰렁 → 이미지). 가로 1344×768 cover */}
       <ExpoImage source={A('icons/lifegraph-hero.jpg')} style={{ width: '100%', height: 190, borderRadius: radius.lg, marginBottom: space(4) }} contentFit="cover" cachePolicy="memory-disk" transition={150} />
-      <UnlockOverlay visible={busy} message={t('life.generating', '인생 흐름을 그리는 중…')} />
       {!loaded ? (
         <View style={styles.card}><ActivityIndicator color={colors.ju} /></View>
       ) : !saved ? (
@@ -375,6 +375,11 @@ export default function LifeGraphScreen() {
             큐레이션 출처는 RELATED 단일(중복 하드코딩 0). 매핑이 없으면 스스로 아무것도 안 그린다. */}
         <RelatedContent kind="lifegraph" />
 </ScrollView>
+      {/* ★UnlockOverlay 는 **반드시 ScrollView 밖**(daniel 2026-08-12 *"자물쇠가 위에있어서 안보여"*).
+          안에 두면 absoluteFill 이 **스크롤 내용 전체 높이**를 채워, 가운데 정렬된 자물쇠·%·메시지가
+          화면 밖으로 밀려 '홈으로 나가기' 버튼만 떠 보였다. check:overlayroot 가 재발을 막는다. */}
+      <UnlockOverlay visible={busy} message={t('life.generating', '인생 흐름을 그리는 중…')} />
+    </>
   );
 }
 

@@ -212,9 +212,9 @@ export default function CareerScreen() {
   return (
     <View style={styles.bg}>
       {/* 전역 ContentBackdrop 이 배경(한지/달밤+별)을 제공 — 화면별 bgSource 이미지·스크림 제거(daniel 07-02) */}
+      <>
       <ScrollView style={styles.overlay} contentContainerStyle={styles.wrap}>
         <ChartPicker onChange={() => setReloadKey((k) => k + 1)} />
-        <UnlockOverlay visible={busy} message={t('career.generating', '두 길을 풀어내는 중…')} />
         {/* 히어로 */}
         <View style={styles.hero}>
           {CAREER_IMG.hero ? <ExpoImage source={CAREER_IMG.hero} style={styles.heroImg} contentFit="cover" cachePolicy="memory-disk" transition={150} /> : null}
@@ -270,6 +270,11 @@ export default function CareerScreen() {
             큐레이션 출처는 RELATED 단일(중복 하드코딩 0). 매핑이 없으면 스스로 아무것도 안 그린다. */}
         <RelatedContent kind="career" />
 </ScrollView>
+      {/* ★UnlockOverlay 는 **반드시 ScrollView 밖**(daniel 2026-08-12 *"자물쇠가 위에있어서 안보여"*).
+          안에 두면 absoluteFill 이 **스크롤 내용 전체 높이**를 채워, 가운데 정렬된 자물쇠·%·메시지가
+          화면 밖으로 밀려 '홈으로 나가기' 버튼만 떠 보였다. check:overlayroot 가 재발을 막는다. */}
+        <UnlockOverlay visible={busy} message={t('career.generating', '두 길을 풀어내는 중…')} />
+      </>
     </View>
   );
 }

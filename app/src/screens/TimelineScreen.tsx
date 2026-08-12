@@ -396,9 +396,9 @@ export function TimelineScreen({ input, savedChart }: { input: ChartInput | null
   if (!c) return <View style={styles.center}><Text style={[font.body, { fontSize: fs(15) }]}>{t('myeongsik.noChart')}</Text></View>;
 
   return (
+    <>
     <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>
       {/* 시기(대운/세운) 통변 생성 중 = 타임라인 테마 영상 로딩(busy=생성 중인 category). Modal 이라 위치 무관(최상단 오버레이) */}
-      <UnlockOverlay visible={!!busy} videoKey="timeline" message={t('timeline.generating')} />
       <Text style={[styles.h, { fontSize: fs(22) }]}>{t('reading.timelineTitle')}</Text>
       <Text style={[styles.sub, { fontSize: fs(12), lineHeight: 19 }]}>{t('reading.timelineSub')}</Text>
 
@@ -448,6 +448,11 @@ export function TimelineScreen({ input, savedChart }: { input: ChartInput | null
           {/* ★이어서 보면 좋은 콘텐츠(daniel 2026-07-27 "전부 붙여") — 큐레이션 출처 RELATED 단일. */}
       <RelatedContent kind="timeline" />
 </ScrollView>
+      {/* ★UnlockOverlay 는 **반드시 ScrollView 밖**(daniel 2026-08-12 *"자물쇠가 위에있어서 안보여"*).
+          안에 두면 absoluteFill 이 **스크롤 내용 전체 높이**를 채워, 가운데 정렬된 자물쇠·%·메시지가
+          화면 밖으로 밀려 '홈으로 나가기' 버튼만 떠 보였다. check:overlayroot 가 재발을 막는다. */}
+      <UnlockOverlay visible={!!busy} videoKey="timeline" message={t('timeline.generating')} />
+    </>
   );
 }
 

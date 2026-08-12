@@ -120,25 +120,22 @@ export default function TimeResolveScreen() {
       if (!requireLoginForPurchase(session, () => router.push('/login'), t)) return; // 미로그인 → 로그인 유도
       // 보유 크레딧 차감(쿠폰/선물/이전 구매분) → 영구 해제
       if (await useCredit('timeresolve')) { await markUnlocked(TPR_UNLOCK, 'timeresolve'); setUnlocked(true); compute(); return; }
-      // 미보유 → 바로 구매 / 마켓 / 취소
-      Alert.alert(t('timeResolve.title', '태어난 시 찾기'), t('special.needPayMsg', '운이 필요해요. 지금 운으로 열거나, 마켓에서 충전할 수 있어요.'), [
-        { text: t('special.buyNow', '바로 구매'), onPress: async () => {
-            if (!purchasesEnabled()) { Alert.alert(t('timeResolve.title', '태어난 시 찾기'), t('market.payPending', '결제 준비 중')); return; }
-            try {
-              const g = await ensureCoinsFor('timeresolve', { title: t('timeResolve.title', '태어난 시 찾기'), t, goCharge: () => router.push('/coins') });
-              if (g !== 'ok') return;   // ★운 전환(daniel 2026-07-28)
-              // ★코인 전환 마무리(daniel 2026-07-28) — 이 화면은 **결정론 도구**라 Edge 생성 단계가 없다.
-              //   그래서 게이트만 통과시키면 *아무도 차감하지 않는다*(= 사실상 무료). 종전엔 useCredit 이 깎았다.
-              //   금액을 클라가 정하면 '1코인 해제'가 되므로, 서버가 금액을 정하는 전용 RPC 로 차감한다.
-              const paid = await spendCoinsFixed('timeresolve');
-              if (paid.ok) { await markUnlocked(TPR_UNLOCK, 'timeresolve'); setUnlocked(true); compute(); }
-              else if (paid.reason === 'insufficient') Alert.alert(t('coins.needTitle', '운이 부족해요'), `${paid.cost ?? ''} 운이 필요해요. 지금 ${paid.balance ?? 0} 운 있어요.`);
-              else Alert.alert(t('timeResolve.title', '태어난 시 찾기'), t('common.retryLaterNoCharge', '잠시 후 다시 시도해 주세요. 운은 차감되지 않았어요.'));
-            } catch (e) { Alert.alert('!', (e as Error).message); }
-          } },
-        { text: t('special.goMarket', '마켓에서 보기'), onPress: () => router.push({ pathname: '/market', params: { focus: 'timeresolve' } }) },   // ★'태어난 시 찾기' 카드로 바로(daniel 07-27)
-        { text: t('common.cancel', '취소'), style: 'cancel' },
-      ]);
+      // 미보유 → 게이트를 **바로** 부른다.
+      // ★★중간 알림을 걷어냈다(daniel 2026-08-12 *"사용후 남은운이 얼마가 되는지 나와야해
+      //   없을경우 충전창으로 이동시켜야하고"*). 종전엔 **숫자가 하나도 없는** 알림을 먼저 띄우고
+      //   ('바로 구매' / '마켓에서 보기' / '취소'), 누른 뒤에야 게이트가 금액을 보여 줬다.
+      //   게이트가 이미 ①`보유 N 운 → 사용 후 M 운` ②부족 시 충전 화면 이동 ③조회 실패 구분을 모두 한다.
+      const TITLE = t('timeResolve.title', '태어난 시 찾기');
+      if (!purchasesEnabled()) { Alert.alert(TITLE, t('market.payPending', '결제 준비 중')); return; }
+      const g = await ensureCoinsFor('timeresolve', { title: TITLE, t, goCharge: () => router.push('/coins') });
+      if (g !== 'ok') return;   // ★운 전환(daniel 2026-07-28) — insufficient 는 게이트가 충전으로 보냈다
+      // ★코인 전환 마무리(daniel 2026-07-28) — 이 화면은 **결정론 도구**라 Edge 생성 단계가 없다.
+      //   그래서 게이트만 통과시키면 *아무도 차감하지 않는다*(= 사실상 무료). 종전엔 useCredit 이 깎았다.
+      //   금액을 클라가 정하면 '1코인 해제'가 되므로, 서버가 금액을 정하는 전용 RPC 로 차감한다.
+      const paid = await spendCoinsFixed('timeresolve');
+      if (paid.ok) { await markUnlocked(TPR_UNLOCK, 'timeresolve'); setUnlocked(true); compute(); }
+      else if (paid.reason === 'insufficient') Alert.alert(t('coins.needTitle', '운이 부족해요'), `${paid.cost ?? ''} 운이 필요해요. 지금 ${paid.balance ?? 0} 운 있어요.`);
+      else Alert.alert(TITLE, t('common.retryLaterNoCharge', '잠시 후 다시 시도해 주세요. 운은 차감되지 않았어요.'));
     } catch { /* 게이트 실패는 조용히(크래시 방지) */ }
     finally { gating.current = false; }
   };

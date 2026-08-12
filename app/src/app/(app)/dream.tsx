@@ -118,24 +118,22 @@ export default function DreamScreen() {
   // 꿈해몽 5회 번들 구매 제안 — Apple IAP 최저가(₩1,200)=5회. 구매 성공 → 5 적립 → 1 차감 → 진행(daniel).
   function promptBuyDream(text: string) {
     if (!purchasesEnabled()) { Alert.alert(t('dream.aiTitle', 'AI 꿈해몽'), t('dream.needCredit', '지금은 열 수 없어요. 잠시 후 다시 시도해 주세요.')); return; }
-    Alert.alert(
-      t('dream.aiTitle', 'AI 꿈해몽'),
-      t('dream.buyBundle', '꿈해몽을 5 운으로 볼까요?'),
-      [
-        { text: t('common.cancel', '취소'), style: 'cancel' },
-        { text: t('dream.buy5', '운 사용'), onPress: async () => {
+    // ★★중간 알림을 걷어냈다(daniel 2026-08-12 *"사용후 남은운이 얼마가 되는지 나와야해"*).
+    //   종전 문구는 *"꿈해몽을 **5 운**으로 볼까요?"* — 가격이 **문구에 하드코딩**돼 있어
+    //   가격표(coinPriceOf('dream'))가 바뀌면 조용히 거짓말이 된다. 게다가 보유 운도,
+    //   쓰고 나서 얼마가 남는지도 없었다. 누른 **뒤에야** 게이트가 숫자를 보여 줬다.
+    //   ⇒ 게이트를 바로 부른다 — 가격·보유·사용 후 잔액을 **서버 값 그대로** 한 번에 보여 준다.
+    void (async () => {
           try {
             const g = await ensureCoinsFor('dream', { title: t('dream.title', '꿈해몽'), t, goCharge: () => router.push('/coins') });
-            if (g !== 'ok') return;   // ★운 전환(daniel 2026-07-28)
+            if (g !== 'ok') return;   // ★운 전환(daniel 2026-07-28) · insufficient 는 게이트가 충전으로 보냈다
             // ★코인 전환 마무리(daniel 2026-07-28) — 종전엔 여기서 waitForCreditGrant('dream') 로
             //   *크레딧 적립*을 기다렸다. 코인은 적립이 아니라 **Edge 가 생성 직전에 차감**하므로
             //   그 폴링은 영원히 오지 않고 "잠시 후 다시 시도"에서 막다른 길이 됐다(반쪽 전환).
             //   게이트를 통과했으면 바로 생성으로 간다.
             runAI(text);
           } catch (e) { Alert.alert(t('dream.aiTitle', 'AI 꿈해몽'), (e as Error).message); }
-        } },
-      ],
-    );
+    })();
   }
 
   async function runAI(text: string) {
