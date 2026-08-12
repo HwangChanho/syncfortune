@@ -145,18 +145,49 @@ export const TAEMONG_DICT: TaemongEntry[] = [
       ja: '澄んで硬い質。自ら光を放つ子です。',
     },
   },
+  // ★소·말·돼지를 갈랐다(daniel 검수 위임 2026-08-12) — 셋의 뜻이 실제로 다른데 한 항목에 묶으니
+  //   '아이의 결'이 "튼튼하다"로 뭉뚱그려졌다. '돼지'를 검색한 사람이 소·말까지 읽을 이유도 없고,
+  //   다른 항목은 전부 단일이라 일관성도 깨졌다.
   {
-    keywords: ['소', '말', '돼지', 'cow', 'ox', 'horse', 'pig', '牛', '馬', '豚'],
-    title: { ko: '소·말·돼지', en: 'Ox / Horse / Pig', ja: '牛·馬·豚' },
+    keywords: ['돼지', '멧돼지', 'pig', 'boar', '豚', 'いのしし'],
+    title: { ko: '돼지', en: 'Pig', ja: '豚' },
     meaning: {
-      ko: '든든함과 복을 뜻하는 상징이에요. 돼지는 재물, 소는 성실, 말은 활달함으로 보았어요.',
-      en: 'Symbols of steadiness and blessing — pig for wealth, ox for diligence, horse for liveliness.',
-      ja: '頼もしさと福の象徴。豚は財、牛は誠実、馬は活発さと見ました。',
+      ko: '재물과 복이 들어오는 대표 상징이에요. 품에 안거나 따라오면 더 좋게 보았어요.',
+      en: 'The classic symbol of wealth and blessing coming in — better still if you hold one or it follows you.',
+      ja: '財と福が入る代表的な象徴。抱く·付いてくるとより良いと見ました。',
     },
     trait: {
-      ko: '몸과 마음이 튼튼하고 제 몫을 다하는 결이라고 해요.',
-      en: 'A sturdy nature in body and mind that carries its own weight.',
-      ja: '心身が丈夫で自分の役割を果たす質だと言います。',
+      ko: '아쉬울 것 없이 넉넉한 결이라고 해요. 사람도 재물도 곁에 모이는 아이예요.',
+      en: 'A nature of easy plenty — a child around whom both people and means gather.',
+      ja: '不足なく豊かな質。人も財も周りに集まる子です。',
+    },
+  },
+  {
+    keywords: ['소', '황소', 'cow', 'ox', 'bull', '牛', 'うし'],
+    title: { ko: '소', en: 'Ox', ja: '牛' },
+    meaning: {
+      ko: '성실과 든든함의 상징이에요. 크고 살진 소일수록 좋게 보았어요.',
+      en: 'A symbol of diligence and dependability — the larger and healthier, the better.',
+      ja: '誠実と頼もしさの象徴。大きく肥えた牛ほど良いと見ました。',
+    },
+    trait: {
+      ko: '한 걸음씩 끝까지 가는 결이라고 해요. 맡은 일을 놓지 않는 아이예요.',
+      en: 'A nature that goes step by step to the end — a child who does not drop what they take on.',
+      ja: '一歩ずつ最後まで行く質。任されたことを手放さない子です。',
+    },
+  },
+  {
+    keywords: ['말', '망아지', 'horse', 'pony', '馬', 'うま'],
+    title: { ko: '말', en: 'Horse', ja: '馬' },
+    meaning: {
+      ko: '활달함과 나아감의 상징이에요. 힘차게 달리는 말을 특히 좋게 보았어요.',
+      en: 'A symbol of liveliness and forward motion — a galloping horse was read as especially good.',
+      ja: '活発さと前進の象徴。力強く駆ける馬を特に良いと見ました。',
+    },
+    trait: {
+      ko: '가만있지 못하고 넓게 다니는 결이라고 해요. 세상을 많이 보는 아이예요.',
+      en: 'A nature that cannot sit still and roams wide — a child who sees much of the world.',
+      ja: 'じっとしていられず広く動く質。世の中を多く見る子です。',
     },
   },
   {
@@ -187,6 +218,36 @@ export const TAEMONG_DICT: TaemongEntry[] = [
       ja: 'ゆっくりでも深く育つ質。長く続く力があります。',
     },
   },
+  // ★추가(daniel 검수 위임) — 한국 태몽에 매우 흔한데 빠져 있었다.
+  //   ⚠️고추·가지처럼 **성별을 암시하는 소재는 넣지 않는다**(§4) — 전통에 있어도 이 앱은 성별을 말하지 않는다.
+  {
+    keywords: ['밤', '대추', '알밤', '밤송이', 'chestnut', 'jujube', '栗', 'なつめ'],
+    title: { ko: '밤·대추', en: 'Chestnut / Jujube', ja: '栗·なつめ' },
+    meaning: {
+      ko: '자손과 결실을 함께 뜻하는 상징이에요. 알이 굵고 여럿일수록 좋게 보았어요.',
+      en: 'A symbol of both offspring and fruition — the plumper and more plentiful, the better.',
+      ja: '子孫と結実を併せて意味する象徴。実が大きく多いほど良いと見ました。',
+    },
+    trait: {
+      ko: '단단하고 야무진 결이라고 해요. 작아도 속이 꽉 찬 아이예요.',
+      en: 'A firm, tightly-put-together nature — small perhaps, but full inside.',
+      ja: '硬くしっかりした質。小さくても中身の詰まった子です。',
+    },
+  },
+  {
+    keywords: ['알', '달걀', '계란', '새알', 'egg', '卵', 'たまご'],
+    title: { ko: '알', en: 'Egg', ja: '卵' },
+    meaning: {
+      ko: '이제 막 시작되는 생명을 뜻해요. 깨지지 않은 온전한 알을 좋게 보았어요.',
+      en: 'Means a life just beginning — an unbroken, whole egg was read as good.',
+      ja: '今まさに始まる命を意味します。割れていない完全な卵を良いと見ました。',
+    },
+    trait: {
+      ko: '품은 것이 많아 앞으로 열릴 게 많은 결이라고 해요.',
+      en: 'A nature holding much within, with much still to open ahead.',
+      ja: '内に多くを抱え、これから開くものが多い質だと言います。',
+    },
+  },
   {
     keywords: ['새', '학', '봉황', '제비', 'bird', 'crane', 'phoenix', '鳥', '鶴', '鳳凰'],
     title: { ko: '새·학·봉황', en: 'Bird / Crane / Phoenix', ja: '鳥·鶴·鳳凰' },
@@ -204,7 +265,7 @@ export const TAEMONG_DICT: TaemongEntry[] = [
 ];
 
 /** 인기 상징 — 화면 상단 칩(무엇을 검색해야 할지 모를 때의 출발점). */
-export const TAEMONG_POPULAR = ['용', '호랑이', '뱀', '잉어', '복숭아', '구슬', '해', '꽃'];
+export const TAEMONG_POPULAR = ['용', '호랑이', '뱀', '잉어', '복숭아', '돼지', '밤', '해'];
 
 /** 언어별 표시값 — dreamDict 와 같은 접근자 이름(화면이 두 사전을 같은 방식으로 다룬다). */
 export const taemongTitle = (e: TaemongEntry) => e.title[L()];
