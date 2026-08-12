@@ -91,6 +91,7 @@
       <button data-tab="users" aria-selected="false">유저 · 운 선물</button>
       <button data-tab="push" aria-selected="false">예약 푸시</button>
       <button data-tab="flags" aria-selected="false">콘텐츠 NEW · 기능 플래그</button>
+      <button data-tab="sys" aria-selected="false">시스템</button>
     </div>
 
     <!-- 현황 -->
@@ -111,6 +112,14 @@
         </div>
         <div id="userList" style="margin-top:12px"></div>
       </div>
+      <!-- ★유저 상세(daniel 2026-08-12 "나머지도 웹으로 옮겨") — 앱 admin.tsx 의 상세 패널을 옮긴 것.
+           "결제했는데 안 들어왔다"·"선물했는데 왜 안 열리지" 를 **원장으로** 추적하려고 만든 화면이라,
+           볼 곳이 없으면 원장의 값어치가 0이다. -->
+      <div class="card" id="detailCard" style="display:none">
+        <h2>유저 상세 <span class="muted" id="detailWho" style="font-weight:400"></span></h2>
+        <div id="detailBody" class="muted">불러오는 중…</div>
+      </div>
+
       <div class="card">
         <h2>운 선물</h2>
         <div class="muted" style="font-size:13px">위 목록에서 유저를 고르면 아래에 채워집니다.</div>
@@ -118,6 +127,19 @@
         <label>수량(운)</label><input id="giftAmt" type="number" value="100" />
         <div class="row" style="margin-top:10px"><button id="gift">선물하기</button></div>
         <div id="giftMsg"></div>
+        <!-- 이용권(쿠폰) 지급 · 프리미엄 토글 — 앱에 있던 것 그대로. 대상 id 는 위 칸을 함께 쓴다. -->
+        <div style="margin-top:16px;padding-top:14px;border-top:1px solid rgba(0,0,0,.08)">
+          <div class="row">
+            <input id="crKind" placeholder="이용권 kind (예: reading · love)" style="flex:1;min-width:180px" />
+            <input id="crQty" type="number" value="1" style="width:90px" />
+            <button id="grantCr">이용권 지급</button>
+          </div>
+          <div class="row" style="margin-top:8px">
+            <button id="premOn">프리미엄 켜기</button>
+            <button id="premOff" class="ghost">프리미엄 끄기</button>
+          </div>
+          <div id="crMsg"></div>
+        </div>
       </div>
     </section>
 
@@ -147,6 +169,37 @@
           여기 <b>없는 키는 '자동'</b>입니다.
         </div>
         <div id="flagList" class="muted">불러오는 중…</div>
+      </div>
+    </section>
+
+    <!-- ★시스템 토글 — 앱 동작을 바꾸는 스위치라 08-10 에는 일부러 뺐던 것(2단계에서 이관).
+         ⚠️전역 테스트모드는 **전 사용자**에게 목업이 서빙된다. 심사·출시 전엔 반드시 꺼 둘 것
+         ([[mock-test-mode-admin-only]]·[[appstore-rejection-2026-07-08]]). -->
+    <section id="tab-sys" class="hide">
+      <div class="card">
+        <h2>전역 테스트모드</h2>
+        <div class="sub" style="margin-bottom:10px">
+          ⚠️켜면 <b>전 사용자</b>에게 목업 풀이가 나갑니다. <b>심사·출시 전에는 반드시 꺼 두세요.</b>
+          (켜 둔 채 심사에 들어가면 심사자도 목업을 보게 되어 반려 위험이 있습니다.)
+        </div>
+        <div class="row"><span id="gtState" class="muted">확인 중…</span></div>
+        <div class="row" style="margin-top:10px"><button id="gtOn">켜기</button><button id="gtOff" class="ghost">끄기</button></div>
+        <div id="gtMsg"></div>
+      </div>
+      <div class="card">
+        <h2>내 계정 스위치</h2>
+        <div class="sub" style="margin-bottom:10px">
+          <b>테스트모드</b> = 내 계정만 목업·테스트광고 · <b>관리자 모드</b> = 끄면 일반 계정처럼 보인다(실사용 점검용).
+          ★여기서 바꾼 값은 <b>앱을 다시 켜야</b> 완전히 반영됩니다(앱이 시작 시 읽습니다).
+        </div>
+        <div class="row"><span id="myState" class="muted">확인 중…</span></div>
+        <div class="row" style="margin-top:10px">
+          <button id="tmOn">테스트모드 켜기</button><button id="tmOff" class="ghost">테스트모드 끄기</button>
+        </div>
+        <div class="row" style="margin-top:8px">
+          <button id="amOn">관리자모드 켜기</button><button id="amOff" class="ghost">관리자모드 끄기</button>
+        </div>
+        <div id="myMsg"></div>
       </div>
     </section>
 
@@ -216,6 +269,7 @@ document.querySelectorAll('.tabs button').forEach((b) => {
     ['stats', 'users', 'push'].forEach((t) => $('tab-' + t).classList.toggle('hide', t !== b.dataset.tab));
     if (b.dataset.tab === 'push') loadPush();
     if (b.dataset.tab === 'flags') loadFlags();
+    if (b.dataset.tab === 'sys') loadSys();
   };
 });
 
@@ -262,11 +316,95 @@ $('search').onclick = async () => {
       <td>${u.email ?? '—'}${u.is_admin ? ' <b>(admin)</b>' : ''}</td>
       <td>${num(u.credits)}</td><td>${num(u.chart_count)}</td><td>${num(u.reading_count)}</td>
       <td>₩${num(u.paid_total)}</td>
-      <td><button class="ghost" data-uid="${u.id}">선택</button></td></tr>`).join('') + '</table>';
+      <td><button class="ghost" data-uid="${u.id}" data-email="${u.email ?? ''}">선택</button></td></tr>`).join('') + '</table>';
   document.querySelectorAll('#userList button[data-uid]').forEach((b) => {
-    b.onclick = () => { $('giftId').value = b.dataset.uid; say($('giftMsg'), '대상이 채워졌습니다', 'ok'); };
+    b.onclick = () => { $('giftId').value = b.dataset.uid; say($('giftMsg'), '대상이 채워졌습니다', 'ok'); loadDetail(b.dataset.uid, b.dataset.email); };
   });
 };
+
+// ── 유저 상세 (앱 admin.tsx 에서 이관) ─────────────────────────────────────
+//   ★세 RPC 를 **병렬로** 부른다 — 순차면 왕복이 3배다.
+//   실패는 각각 격리: 하나가 죽어도 나머지는 보인다(전부 null 이면 그때 메시지).
+async function loadDetail(uid, email) {
+  $('detailCard').style.display = '';
+  $('detailWho').textContent = email ? `· ${email}` : '';
+  const body = $('detailBody');
+  body.textContent = '불러오는 중…';
+  const [d, u, v] = await Promise.all([
+    sb.rpc('admin_user_detail', { p_owner: uid }),
+    sb.rpc('admin_user_usage', { p_owner: uid }),
+    sb.rpc('admin_user_content_visits', { p_owner: uid }),
+  ]);
+  if (d.error && u.error && v.error) { body.innerHTML = `<span class="msg err">불러오지 못했습니다 — ${d.error.message}</span>`; return; }
+  const x = d.data || {};
+  const dt = (t) => (t ? new Date(t).toLocaleString('ko-KR') : '—');
+  const pill = (on, yes, no) => `<b>${on ? yes : no}</b>`;
+
+  const meta = `<div class="row" style="gap:14px;flex-wrap:wrap">
+    <span>가입 ${dt(x.created_at)}</span><span>최근활동 ${dt(x.last_seen)}</span>
+    <span>${pill(x.is_premium, '프리미엄', '일반')}</span>
+    ${x.is_admin ? '<span><b>admin</b></span>' : ''}
+    <span>운 <b>${num(x.coins)}</b></span>
+    <span>명식 ${num(x.chart_count)} · 풀이 ${num(x.reading_count)} · 추가질문 ${num(x.followup_count)}</span>
+    <span>총결제 <b>₩${num(x.paid_total)}</b></span>
+  </div>`;
+
+  const list = (title, rows, fmt) =>
+    !rows || !rows.length ? '' :
+    `<div style="margin-top:14px"><b>${title}</b><div class="muted" style="margin-top:6px">${rows.map(fmt).join('')}</div></div>`;
+
+  // ★코인 원장 — "결제했는데 안 들어왔다 / 두 번 빠졌다" 를 추적하는 자리. 부호를 그대로 보인다.
+  const ledger = list('코인 원장 (최근)', x.coin_ledger, (l) =>
+    `<div>${dt(l.at)} · <b>${l.amount > 0 ? '+' : ''}${num(l.amount)}</b> · ${l.reason ?? ''}${l.kind ? ` (${l.kind})` : ''}</div>`);
+  const purch = list('결제 내역', x.purchases, (q) =>
+    `<div>${dt(q.at)} · ${q.product} · ${q.amount != null ? '₩' + num(q.amount) : '—'} · ${q.type ?? ''}</div>`);
+  const kinds = list('풀이 분야', x.readings_by_kind, (k) => `<div>${k.kind} — ${num(k.n)}</div>`);
+  const creds = list('보유 이용권', x.credits, (c) => `<div>${c.kind} — ${num(c.remaining)}</div>`);
+  const visits = list('콘텐츠 방문', v.data, (c) => `<div>${c.content_key ?? c.kind ?? '—'} — ${num(c.n ?? c.visits)}</div>`);
+  const usage = u.data ? `<div style="margin-top:14px"><b>API 사용</b><div class="muted" style="margin-top:6px">
+      요청 ${num(u.data.reqs)} · 원가 ₩${num(u.data.won)}</div></div>` : '';
+
+  body.innerHTML = meta + ledger + purch + kinds + creds + visits + usage;
+}
+
+// ── 이용권 지급 · 프리미엄 (앱에서 이관) ────────────────────────────────────
+$('grantCr').onclick = async () => {
+  const id = $('giftId').value.trim(), kind = $('crKind').value.trim(), qty = Number($('crQty').value);
+  if (!id || !kind || !qty) return say($('crMsg'), '대상 id · kind · 수량을 확인하세요', 'err');
+  const { error } = await sb.rpc('admin_grant_credit', { p_owner: id, p_kind: kind, p_qty: qty });
+  say($('crMsg'), error ? `실패 — ${error.message}` : `${kind} ${qty}개 지급`, error ? 'err' : 'ok');
+};
+const setPrem = async (val) => {
+  const id = $('giftId').value.trim();
+  if (!id) return say($('crMsg'), '대상 id 를 채우세요', 'err');
+  const { error } = await sb.rpc('admin_set_premium', { p_owner: id, p_val: val });
+  say($('crMsg'), error ? `실패 — ${error.message}` : `프리미엄 ${val ? '켬' : '끔'}`, error ? 'err' : 'ok');
+};
+$('premOn').onclick = () => setPrem(true);
+$('premOff').onclick = () => setPrem(false);
+
+// ── 시스템 토글 (앱에서 이관) ──────────────────────────────────────────────
+//   ⚠️`set_my_*` 은 **호출자 본인**에게 적용된다 — 웹 로그인 계정 = 앱과 같은 계정이라야 뜻이 맞는다.
+async function loadSys() {
+  const { data: gf } = await sb.from('app_flags').select('enabled').eq('key', 'global_test_mode').maybeSingle();
+  const on = gf?.enabled === true;
+  $('gtState').innerHTML = `현재 <b>${on ? '켜짐 ⚠️' : '꺼짐'}</b>`;
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) return;
+  const { data: p } = await sb.from('profiles').select('test_mode, admin_mode').eq('id', session.user.id).maybeSingle();
+  $('myState').innerHTML = `테스트모드 <b>${p?.test_mode ? '켜짐' : '꺼짐'}</b> · 관리자모드 <b>${p?.admin_mode ? '켜짐' : '꺼짐'}</b>`;
+}
+const sysCall = async (fn, on, msgEl) => {
+  const { error } = await sb.rpc(fn, { p_on: on });
+  say($(msgEl), error ? `실패 — ${error.message}` : `${on ? '켬' : '끔'} — 앱을 다시 켜면 반영됩니다`, error ? 'err' : 'ok');
+  if (!error) loadSys();   // 서버 값으로 다시 그린다
+};
+$('gtOn').onclick  = () => sysCall('set_global_test_mode', true,  'gtMsg');
+$('gtOff').onclick = () => sysCall('set_global_test_mode', false, 'gtMsg');
+$('tmOn').onclick  = () => sysCall('set_my_test_mode', true,  'myMsg');
+$('tmOff').onclick = () => sysCall('set_my_test_mode', false, 'myMsg');
+$('amOn').onclick  = () => sysCall('set_my_admin_mode', true,  'myMsg');
+$('amOff').onclick = () => sysCall('set_my_admin_mode', false, 'myMsg');
 
 $('gift').onclick = async () => {
   const id = $('giftId').value.trim(), amt = Number($('giftAmt').value);

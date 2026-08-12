@@ -14,7 +14,6 @@ import { getNotifStatus, requestNotifPermission, type NotifStatus } from '../../
 import { useTranslation } from 'react-i18next';
 import { setAppLang } from '../../lib/i18n'; // 언어 변경 + persist(재시작 후 유지)
 import { useFontScale, FONT_STEPS } from '../../lib/ui/fontScale';
-import { isAdmin } from '../../lib/core/admin'; // 관리자 메뉴 노출 판정(실제 권한은 서버 RPC)
 import { useAuth } from '../../lib/useAuth';               // 계정(세션)
 import { TextInput, Switch } from 'react-native'; // 커뮤니티 닉네임·일주 뱃지(daniel 2026-08-05 전면 익명+설정 닉네임)
 import { getCommunityProfile, setNickname as saveNickname, setShowIlju } from '../../lib/backend/community';
@@ -59,7 +58,6 @@ export default function SettingsScreen() {
   const coins = useCoinBalance(session);   // 보유 운(null=미로그인·조회 실패). 표시 규칙은 훅 한 곳에.
   const { scale, setScale, fs } = useFontScale();
   const [busy, setBusy] = useState<string | null>(null); // 전체화면 로딩 오버레이 메시지(긴 콜백)
-  const [admin, setAdmin] = useState(false); // 관리자 — 메뉴 노출용(실제 권한은 서버 RPC). 제어(비용분석·테스트/관리자모드)는 /admin 내부로 통합(daniel 07-01)
   const [accent, setAccentState] = useState<AccentMode>(getThemeAccent()); // ★테마 강조색(자동=일간 오행 / 오행 직접 / 골드)
   const [loadingMode, setLoadingModeState] = useState<LoadingMode>(getLoadingMode()); // 로딩(인트로) 화면 video(호랑이)/text(八字)/off(없음, daniel 07-15)
   // 홈 배치 순서 편집은 홈 화면의 '⠿ 홈 배치 편집' 모달로 이동(daniel 07-21) — 계정뷰에서 제거.
@@ -69,7 +67,6 @@ export default function SettingsScreen() {
   useFocusEffect(useCallback(() => { getNotifStatus().then(setNotifStatus).catch(() => {}); }, []));
 
   // 관리자/테스트모드 노출 = session 반응형. 로그아웃(session=null) 즉시 false로 내려 관리자 메뉴가 바로 사라지게(daniel) — 빈 deps면 마운트 1회라 창 전환 전까지 살아있었음.
-  useEffect(() => { if (!session) { setAdmin(false); return; } isAdmin().then(setAdmin).catch(() => {}); }, [session]);
   // 프리미엄 현지 통화 가격(RC) 로드 — USD 기준 등록 시 사용자 지역 통화로 자동 표시.
   // ★프리미엄 현지가 조회 제거(daniel 2026-07-30) — setState 만 하고 **화면에 그리는 곳이 0** 이었다.
   //   게다가 premium_lifetime 은 스토어에 등록조차 없어 매 진입마다 헛된 스토어 왕복이었다.
@@ -179,12 +176,12 @@ export default function SettingsScreen() {
         </PressableScale>
       )}
 
-      {/* ── 관리자(is_admin 전용) — 제어(비용분석·테스트/관리자모드)는 ⚙관리자 화면 내부로 통합(daniel 07-01) ── */}
-      {(admin || __DEV__) && (
-        <PressableScale style={styles.adminLink} onPress={() => router.push('/admin')}>
-          <Text style={styles.adminLinkTx}>⚙ 관리자{__DEV__ && !admin ? ' (dev)' : ''}</Text>
-        </PressableScale>
-      )}
+      {/* ── 관리자 진입점 제거(daniel 2026-08-12 "앱에서 admin.tsx 빼고 나머지도 웹으로 옮겨") ──
+          관리자 기능은 전부 **웹 콘솔**로 옮겼다: https://hwangchanho.github.io/syncfortune/admin/
+          · 앱 번들에서 관리자 화면(752줄)이 사라져 **심사자가 볼 수 있는 면이 줄고** 용량도 준다.
+          · 권한은 원래부터 **서버**(`is_caller_admin()`)가 판정했으므로 보안이 약해지지 않는다 —
+            앱 화면은 그 답을 그리기만 했다. 같은 RPC 를 웹이 그대로 부른다.
+          ⚠️`is_admin` 을 보는 **다른** 코드(광고·커뮤니티 신고관리 등)는 그대로 둔다 — 화면만 뺀 것이다. */}
 
       {/* ── 코인 ──
           ★프리미엄 폐지(daniel 2026-07-28) — 이 자리에 있던 '코인 충전하기'를 코인 잔액·충전으로 교체했다.
@@ -382,8 +379,6 @@ const styles = StyleSheet.create({
   acctLoginTx: { color: colors.ju, fontWeight: '800', fontSize: 15 },
   acctLoginSub: { ...font.caption, color: colors.inkFaint, textAlign: 'center', marginTop: space(1) }, // 로그인=선택·크로스디바이스 안내(Apple 5.1.1)
   // 관리자 링크
-  adminLink: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.ju, padding: space(3.5), alignItems: 'center', marginTop: space(2) },
-  adminLinkTx: { color: colors.ju, fontWeight: '800', fontSize: 14 },
   // 계정 삭제 — 약하게 노출(파괴적), 우측 정렬 텍스트 링크
   delAcctBtn: { alignSelf: 'flex-end', marginTop: space(2), paddingVertical: space(1), paddingHorizontal: space(1) },
   delAcctTx: { color: '#E5484D', fontSize: 13, fontWeight: '600' },

@@ -20,8 +20,19 @@ import { join } from 'node:path';
 let fail = 0;
 const bad = (m: string) => { console.error(`  ✗ ${m}`); fail++; };
 
-/** 관리자 화면 접근 경로 — isAdmin() 을 반드시 유지해야 하는 파일(자기잠금 방지). */
-const ACCESS_GATE_FILES = ['app/src/app/(app)/settings.tsx', 'app/src/app/(app)/admin.tsx'];
+/**
+ * 관리자 화면 접근 경로 — **자기잠금 방지**를 지키는 자리.
+ *
+ * ★2026-08-12 이관: 관리자 화면이 **앱에서 웹 콘솔로** 옮겨졌다(daniel "앱에서 admin.tsx 빼고").
+ *   그래서 앱 파일을 검사하던 이 목록은 **비운다** — 앱엔 관리자 화면이 더 이상 없다.
+ *   대신 같은 규칙을 **웹**에서 지킨다(아래 §웹 게이트).
+ *
+ * ⚠️자기잠금이 왜 없는지(실측): `is_caller_admin()` 은 **`is_admin` 만** 본다(admin.ts:13 주석 —
+ *   "화면 진입 노출용"). `admin_mode` 는 **특권 적용**(`isAdminActing`) 판정에만 쓰인다.
+ *   ⇒ 관리자 모드를 꺼도 웹 콘솔에는 들어갈 수 있고, 거기서 다시 켤 수 있다.
+ *   (만에 하나 잠기면 service_role 로 `profiles.admin_mode` 를 직접 되돌릴 수 있다.)
+ */
+const ACCESS_GATE_FILES: string[] = [];
 
 // ── ① 특권 경로에 isAdmin() 잔존 금지 ─────────────────────────────────────
 {
@@ -74,6 +85,24 @@ const ACCESS_GATE_FILES = ['app/src/app/(app)/settings.tsx', 'app/src/app/(app)/
   if (!/export async function isAdmin\(/.test(src)) bad('admin.ts 에 isAdmin() 정의 없음');
   if (!/export async function isAdminActing\(/.test(src)) bad('admin.ts 에 isAdminActing() 정의 없음');
   if (!/is_caller_god/.test(src)) bad('isAdminActing() 이 is_caller_god RPC 를 쓰지 않음 — Edge god 규칙과 어긋남');
+}
+
+// ── §웹 게이트 — 관리자 콘솔이 **is_caller_admin** 으로 막는가(자기잠금 방지의 새 위치) ──────
+//   `isAdminActing`(admin_mode 포함) 으로 막으면 **모드를 끈 순간 콘솔에 못 들어가** 다시 켤 수 없다.
+//   토글이 그 안에 있으므로 이건 되돌릴 수 없는 잠금이 된다 — 앱에서 겪었던 그 함정과 같다.
+{
+  const WEB = 'docs/admin/index.html';
+  try {
+    const web = readFileSync(WEB, 'utf8');
+    if (!/rpc\(\s*['"]is_caller_admin['"]/.test(web)) {
+      bad(`${WEB} 이 is_caller_admin 으로 게이트하지 않습니다 — 관리자 콘솔 접근 판정이 사라졌습니다`);
+    }
+    if (/rpc\(\s*['"]is_caller_god['"]/.test(web) && !/is_caller_admin/.test(web)) {
+      bad(`${WEB} 이 god 판정만 씁니다 — admin_mode 를 끄면 콘솔에 못 들어가 다시 켤 수 없습니다(자기잠금)`);
+    }
+  } catch {
+    bad(`${WEB} 을 읽을 수 없음 — 관리자 콘솔이 사라졌습니다(관리 기능 전체가 접근 불가)`);
+  }
 }
 
 console.log(fail ? `\n❌ check:admin-gate 실패 ${fail}건` : '\n✅ check:admin-gate 통과 — 특권=isAdminActing / 접근게이트=isAdmin 경계 유지');
