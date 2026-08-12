@@ -35,6 +35,7 @@ import { assertOnline } from '../lib/backend/network'; // 오프라인 시 신�
 import { ensureServerChartId } from '../lib/backend/prewarmReadings';
 import { useFontScale } from '../lib/ui/fontScale';
 import { COMPAT_RELS, otherSig, loadCompatReadings, genCompatReading, compatSections, compatSectionLabel, type CompatReading } from '../lib/content/compatReadings';
+import * as SecureStore from 'expo-secure-store'; // 마지막으로 본 쌍 영구 저장(배너와 같은 수명)
 import { setGenProgress } from '../lib/backend/genProgress'; // 다건 진행도(route='/compat', daniel·docs/CONTENT_API_INVENTORY.md)
 import { acquireGen, releaseGen, isGenActive } from '../lib/backend/genLock'; // 크로스마운트 이중 생성 잠금(② 이중 LLM 방지)
 import { loadFollowups, askFollowup, type Followup } from '../lib/backend/followups'; // 궁합 추가질문(사주/자미 풀이와 동일 — 무료1 + 건당)
@@ -69,7 +70,28 @@ import type { ChartInput } from '@spec/chart';
 
 // 이어보기(daniel): 궁합 상태가 in-memory라 홈 갔다 오면 초기화됐음 → 마지막 선택(나·상대·관계)을 모듈에 보관해 복원.
 //   서버 캐시(readings)는 항상 저장되지만, 상대를 복원해야 sig로 캐시를 다시 불러올 수 있다.
-let _lastCompat: { meId?: string; otherId?: string; rel?: string } = {};
+// ★마지막으로 본 쌍(나+상대+관계) — **영구 저장**한다(daniel 2026-08-13
+//   *"홈에는 궁합 완성됐다고 뜨는데 탭해서 들어가면 상대명식부터 다시 지정해야해"*).
+// ─────────────────────────────────────────────────────────────────────────
+//   원인: 이 값이 **모듈 전역 변수**라 앱을 껐다 켜면 사라졌다. 그런데 홈 배너(genProgress)는
+//   **SecureStore 에 저장**돼 살아남는다 — 그래서 "완성됐다"는 배너만 남고, 눌러 들어오면
+//   **어느 쌍이었는지 앱이 잊어버린 상태**가 된다. 두 값의 **수명이 달라서** 생긴 어긋남이다.
+//   ⇒ 배너와 같은 저장소(SecureStore)로 맞춘다. 이제 강제종료·재실행에도 쌍이 복원된다.
+//   ※ 명식 id 만 담는다(생년월일 등 PII 없음). 그 id 가 지워졌으면 복원하지 않고 조용히 넘어간다.
+type LastCompat = { meId?: string; otherId?: string; rel?: string };
+const LAST_KEY = 'compatLast_v1';   // SecureStore 키는 영숫자·._- 만(콜론 불가)
+let _lastCompat: LastCompat = {};
+/** 저장 — 실패는 무시한다(복원 편의 기능이지 정확성이 아니다). */
+function saveLastCompat(v: LastCompat) {
+  _lastCompat = v;
+  SecureStore.setItemAsync(LAST_KEY, JSON.stringify(v)).catch(() => {});
+}
+/** 복원 — 앱 시작 후 첫 진입에서 1회. 실패하면 빈 값으로 둔다(등록 폼이 뜨는 종전 동작). */
+async function loadLastCompat(): Promise<LastCompat> {
+  if (_lastCompat.meId || _lastCompat.otherId) return _lastCompat;   // 이미 메모리에 있으면 그것
+  try { const raw = await SecureStore.getItemAsync(LAST_KEY); if (raw) _lastCompat = JSON.parse(raw); } catch { /* 무시 */ }
+  return _lastCompat;
+}
 
 // 궁합 점수 카운트업(0→score) + 게이지 채움 — 궁합 고유 재미(daniel ②콘텐츠별 메타포). score 변경 시 재애니.
 function ScoreReveal({ score }: { score: number }) {
@@ -181,9 +203,10 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
       const list = await listCharts(); setSaved(list);
       const repId = await getRepresentativeId();
       const rep = list.find((c) => c.id === repId) ?? list.find((c) => c.relation === 'self') ?? list[0] ?? null;
-      setMeSel((_lastCompat.meId && list.find((c) => c.id === _lastCompat.meId)) || rep);
-      if (_lastCompat.otherId) { const o = list.find((c) => c.id === _lastCompat.otherId); if (o) setOtherSel(o); }
-      if (_lastCompat.rel) setRel(_lastCompat.rel);
+      const last = await loadLastCompat();   // ★저장소에서 복원(앱 재실행에도 살아남는다)
+      setMeSel((last.meId && list.find((c) => c.id === last.meId)) || rep);
+      if (last.otherId) { const o = list.find((c) => c.id === last.otherId); if (o) setOtherSel(o); }
+      if (last.rel) setRel(last.rel);
     })();
   }, []);
 
@@ -224,7 +247,7 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
     genSeq.current++;  // ① 쌍(나+상대) 재분석 = 진행 중 runCompatGen 무효화(옛 쌍 결과가 새 쌍 readings 에 setReadings 되지 않게)
     setBusy(null);     // ① 무효화한 gen 의 로딩 키 정리(옛 관계키 스피너 잔존 방지)
     setLoading(true); // 캐시/서버 차트 로딩 시작 — 준비 전까지 스피너(noReading·자물쇠 플래시 방지)
-    _lastCompat = { meId: meSel?.id, otherId: otherSel?.id, rel }; // 이어보기 복원용(마지막 선택 보관)
+    saveLastCompat({ meId: meSel?.id, otherId: otherSel?.id, rel }); // 이어보기 복원용 — **영구 저장**(배너와 수명을 맞춘다)
     const meC = computeChart(meInput), otherC = computeChart(otherInput);
     // 수비학 보조 교차(daniel 2026-06-23) — 두 사람 생명수·생일수(생년월일 기반)를 Edge 궁합 통변에 보조로 전달.
     const numOf = (inp: any) => { const [dp] = String(inp?.birthDateTime ?? '').split(' '); const [y, mo, d] = dp.split('-').map(Number); return (y && mo && d) ? buildNumerology({ year: y, month: mo, day: d }) : undefined; };
