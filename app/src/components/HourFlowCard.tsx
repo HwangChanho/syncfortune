@@ -78,9 +78,9 @@ export function HourFlowCard({ saju, dateISO, isToday }: {
 const styles = StyleSheet.create({
   card: { backgroundColor: colors.card, borderRadius: radius.md, padding: space(4), marginTop: space(4), ...shadow.card },
   title: { ...font.heading, color: colors.ink },
-  sub: { color: colors.inkSoft, marginTop: space(1), marginBottom: space(3) },
-  peaks: { marginBottom: space(3) },
-  peakLine: { color: colors.ink, fontWeight: '700' },
+  sub: { color: colors.inkSoft, marginTop: space(1), marginBottom: space(4.5) },   // ★요약 두 줄과 띄운다(daniel 2026-08-13 "시간밑에 문구 사이 간격필요해")
+  peaks: { marginBottom: space(4.5) },   // ★아래 시간 목록과도 띄운다
+  peakLine: { color: colors.ink, fontWeight: '700', marginBottom: space(1.5) },   // ★두 줄이 붙어 한 덩어리로 읽히던 것
   row: { flexDirection: 'row', alignItems: 'center', marginBottom: space(1.5), paddingVertical: space(0.5), paddingHorizontal: space(1), borderRadius: radius.sm },
   // '지금'만 배경으로 구분 — 색 하나에 의존하지 않게 오른쪽에 글자 배지도 함께 둔다(색각 접근성)
   rowNow: { backgroundColor: colors.juLine },
