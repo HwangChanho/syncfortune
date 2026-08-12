@@ -102,7 +102,6 @@ export const en = {
     'pickCategory': 'Choose a category',
     'catDelHint': 'Deleting a category moves its charts to “Other”. “Other” cannot be deleted.',
     'catDeleteTitle': '카테고리 삭제',
-    'catHint': '카테고리를 길게 누르면 삭제돼요 (그 명식들은 기타로 이동)',
     'editDone': '완료',
     'exactTime': '정확한 시각을 알아요 (출생지 경도로 진태양시 보정)',
     'hour24': 'Hour (0-23)', 'hourHint': '{{h}}:00 = {{hint}}',

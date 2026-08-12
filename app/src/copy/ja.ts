@@ -101,7 +101,6 @@ export const ja = {
     'pickCategory': 'カテゴリーを選ぶ',
     'catDelHint': 'カテゴリーを削除すると、その命式は「その他」に移動します。「その他」は削除できません。',
     'catDeleteTitle': '카테고리 삭제',
-    'catHint': '카테고리를 길게 누르면 삭제돼요 (그 명식들은 기타로 이동)',
     'editDone': '완료',
     'exactTime': '정확한 시각을 알아요 (출생지 경도로 진태양시 보정)',
     'hour24': '時（0〜23）', 'hourHint': '{{h}}時 = {{hint}}',

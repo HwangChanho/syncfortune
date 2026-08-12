@@ -128,7 +128,6 @@ export const ko = {
     'pickCategory': '카테고리 선택',
     'catDelHint': '카테고리를 지우면 그 명식들은 ‘기타’로 옮겨져요. ‘기타’는 지울 수 없어요.',
     'catDeleteTitle': '카테고리 삭제',
-    'catHint': '카테고리를 길게 누르면 삭제돼요 (그 명식들은 기타로 이동)',
     'editDone': '완료',
     'exactTime': '정확한 시각을 알아요 (출생지 경도로 진태양시 보정)',
     'hour24': '시(0~23)', 'hourHint': '{{h}}시 = {{hint}}',
