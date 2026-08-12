@@ -21,7 +21,10 @@ export const COIN_PRICE: Partial<Record<CreditKind, number>> = {
   followup: 10, timeresolve: 10,
   celeb: 12,
   taemong: 50,   // 태몽 — 단독(명식 불필요) · 섹션 5개 딥리포트(daniel 2026-08-12 — 50운으로 올리고 그에 맞는 분량으로)
-  timeline: 20,
+  // ★20 → 40(daniel 2026-08-12 "가격을 올려") — 단가 실측에서 **유일하게 마진 79%**였다.
+  //   실측 원가 ₩317 · 운당 15.9 로 다른 콘텐츠(0.7~9.5)의 4~15배. 세운 1건이 아니라
+  //   대운 구간 전체를 훑는 분량이라 원가가 크다. 40운이면 매출 ₩2,997 → 마진 89%(compat·crush 급).
+  timeline: 40,
   compat: 30,
   lifegraph: 40,
   astrology: 50, career: 50, child: 50, crush: 50, future10: 50,

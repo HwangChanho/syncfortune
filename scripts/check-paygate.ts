@@ -134,6 +134,24 @@ for (const f of clientFiles) {
   if (!mismatch.length) console.log(`   [서버↔앱] 가격 일치(서버 표 ${srvPrices.length}종)`);
   else problems.push(`가격 불일치: ${mismatch.map(([k, v]) => `${k}(서버 ${v})`).join(', ')} — 표시가와 차감이 달라집니다.`);
 
+  // ①-b ★**앱에 있는데 서버에 없는 유료 kind** — 위 ①은 '서버 → 앱' 한 방향만 봐서 이걸 놓쳤다.
+  //   실제 사고(daniel 2026-08-12 태몽): 서버 COIN_PRICE 에 taemong 이 없어
+  //   `spendForKind` 의 `const cost = COIN_PRICE[kind]; if (cost) {…}` 가 **차감을 통째로 건너뛰고**
+  //   크레딧 폴백까지 실패 → 항상 `needPayment`. 운이 있어도 **아무도 열 수 없는 콘텐츠**가 됐다.
+  //   (돈이 새는 게 아니라 기능이 죽는다 — 그래서 결제 로그에도 안 남아 더 늦게 발견된다.)
+  //   ⇒ 양방향으로 본다. 서버 표에 없으면 그 kind 는 서버 기준 '무료'이므로 유료 목록과 모순이다.
+  {
+    // ★앱도 **COIN_PRICE 블록만** 잘라 본다 — 파일 전체를 훑으면 COIN_PACKS 의
+    //   `coins:`·`won:`·`bonusPct:` 까지 유료 kind 로 오인한다(첫 판에서 실제로 15건 오탐).
+    //   서버 쪽(①)이 이미 같은 이유로 블록을 자르고 있다 — 양쪽을 같은 기준으로 맞춘다.
+    const appBlock = /COIN_PRICE[^=]*=\s*\{([\s\S]*?)\n\};/.exec(appPrices)?.[1] ?? '';
+    const appPaid = [...appBlock.matchAll(/(\w+):\s*(\d+)/g)].map(([, k]) => k);
+    const srvKeys = new Set(srvPrices.map(([k]) => k));
+    const missing = appPaid.filter((k) => !srvKeys.has(k));
+    if (!missing.length) console.log(`   [앱→서버] 유료 kind 가 전부 서버 가격표에 있다(${appPaid.length}종)`);
+    else problems.push(`서버 가격표 누락: ${missing.join(', ')} — 서버가 값을 몰라 **차감을 건너뛰고 항상 needPayment** 를 돌려준다(콘텐츠가 안 열린다). supabase/functions/_shared/pricing.ts 의 COIN_PRICE 에 추가하세요.`);
+  }
+
   // ②사주 16영역 — 서버 SET_CATEGORIES.reading 이 앱 SAJU_READING_CATEGORIES 와 같은 집합인가
   const prewarm = readFileSync(join(ROOT, 'app/src/lib/backend/prewarmReadings.ts'), 'utf8');
   const appCats = [...(/SAJU_READING_CATEGORIES[^=]*=\s*\[([\s\S]*?)\]/.exec(prewarm)?.[1] ?? '')

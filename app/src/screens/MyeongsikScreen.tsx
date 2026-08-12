@@ -175,6 +175,24 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
   //   — 켜져 있지 않았을 뿐이라, 기본을 켜면 **열자마자 오늘 기준 네 층**이 원국 옆에 붙는다.
   //   ⚠️끄고 원국만 보고 싶으면 칩을 눌러 끄면 된다(토글은 그대로).
   const [showLayers, setShowLayers] = useState({ luck: true, year: true, month: true, day: true });
+
+  // ★★선택값을 **오늘 기준으로 되잡는다**(daniel 2026-08-12 *"만세력 대운세운월운일운이 오늘기준으로
+  //   안나와 처음에 킬때"*).
+  // ─────────────────────────────────────────────────────────────────────────
+  //   위 네 개는 `useState(...)` 라 **첫 렌더의 값으로 굳는다.** 그런데 이 화면은
+  //   명식(input)이 나중에 채워지거나 바뀌어도 **언마운트되지 않는다** — 그러면
+  //   selLuck/selSeun 은 옛 명식(혹은 luckCycles 가 비었을 때의 0 = 첫 대운 = 어린 시절)에 머문다.
+  //   ⇒ "오늘 기준 현재운세 보기" 버튼이 하던 리셋을 **명식이 바뀔 때 자동으로** 한다.
+  //     (그 버튼이 처음부터 있었다는 건, 어긋나는 경우가 있다는 걸 알고도 수동으로 두었다는 뜻이다.)
+  //   ⚠️사용자가 다른 대운·달을 골라 보는 중에는 건드리지 않는다 — 의존성이 **명식(input)** 뿐이라
+  //     같은 명식을 보는 동안에는 다시 돌지 않는다.
+  const luckKey = `${curLuckIdx}|${curSeunIdx}|${luckCycles.length}`;   // 명식이 바뀌면 함께 바뀐다
+  useEffect(() => {
+    setSelLuck(curLuckIdx);
+    setSelSeun(curSeunIdx);
+    setSelMonth(new Date().getMonth());   // ★now 를 쓰지 않는다 — 렌더 시점이 아니라 **지금**을 다시 읽는다
+    setSelDay(new Date().getDate());      //   (앱을 켜 둔 채 자정을 넘기면 now 가 어제일 수 있다)
+  }, [luckKey]);
   const [expW, setExpW] = useState(0); // 확장명식 가용폭 — 컬럼 수에 맞춰 칸·글자 반응형(daniel)
   const [glossary, setGlossary] = useState<{ kind: GlossaryKind; key?: string } | null>(null); // 클릭 설명 바텀시트
   const [showLinks, setShowLinks] = useState(false); // ★관계분석(합충형해) 기본 접힘(daniel 2026-07-24) — 펼치면 관계 리스트 + 12신살
