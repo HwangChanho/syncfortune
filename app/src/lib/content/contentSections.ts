@@ -171,7 +171,7 @@ export const SECTIONS: Section[] = [
     { key: 'country', labelKey: 'menu.country', descKey: 'menu.countryDesc', image: A('icons/country.jpg'), route: '/country', ready: true, content: true },
     { key: 'name', labelKey: 'menu.name', descKey: 'menu.nameTileDesc', image: A('icons/name.jpg'), route: '/name', ready: true, content: true },
     { key: 'dream', labelKey: 'menu.dream', descKey: 'menu.dreamTileDesc', image: A('icons/dream.jpg'), route: '/dream', ready: true, content: true },
-    { key: 'taemong', labelKey: 'menu.taemong', descKey: 'menu.taemongTileDesc', image: A('icons/dream.jpg')  /* ⏳태몽 전용 이미지 미제작 — 없는 경로를 쓰면 카드가 깨진다(실측 400). 제작 후 icons/taemong.jpg 로 교체 */, route: '/taemong', ready: true, content: true },
+    { key: 'taemong', labelKey: 'menu.taemong', descKey: 'menu.taemongTileDesc', image: A('icons/taemong.jpg'), route: '/taemong', ready: true, content: true },
     { key: 'ziwei', labelKey: 'menu.ziweiHub', descKey: 'menu.ziweiHubDesc', image: A('icons/ziwei.jpg'), route: '/ziwei', ready: true, premium: true, creditKey: 'ziwei' },
     { key: 'astrology', labelKey: 'menu.astrology', descKey: 'menu.astrologyDesc', image: A('icons/astrology.jpg'), route: '/astrology', ready: true, content: true, creditKey: 'astrology' },
   ] },

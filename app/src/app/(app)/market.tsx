@@ -98,7 +98,7 @@ const CARD: Partial<Record<CreditKind, { img: any; desc: string }>> = {
   talent: { img: A('icons/talent.jpg'), desc: 'menu.talentDesc' },
   astrology: { img: A('icons/astrology.jpg'), desc: 'menu.astrologyDesc' },
   dream: { img: A('icons/dream.jpg'), desc: 'menu.dreamDesc' },
-  taemong: { img: A('icons/dream.jpg')  /* ⏳태몽 전용 이미지 미제작 — 없는 경로를 쓰면 카드가 깨진다(실측 400). 제작 후 icons/taemong.jpg 로 교체 */, desc: 'menu.taemongDesc' },
+  taemong: { img: A('icons/taemong.jpg'), desc: 'menu.taemongDesc' },
   gaeun: { img: A('icons/gaeun.jpg'), desc: 'menu.gaeunDesc' }, // 맞춤 개운법(daniel #18)
   celeb: { img: A('icons/celeb.jpg'), desc: 'menu.celebDesc' }, // 세계 인물 매칭(daniel B)
   timeresolve: { img: A('icons/timeResolve.jpg'), desc: 'menu.timeResolveDesc' }, // 태어난 시 찾기(TPR — daniel 06-28)

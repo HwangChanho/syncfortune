@@ -122,7 +122,7 @@ export default function TaemongScreen() {
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={[styles.wrap, { paddingBottom: space(14) + lift }]} keyboardShouldPersistTaps="handled">
-      <ContentHero image={A('icons/dream.jpg') /* ⏳태몽 전용 이미지 미제작 — 제작 후 교체 */} title={t('taemong.title', '태몽 풀이')} sub={t('taemong.sub', '꿈에 나온 것으로 읽는, 아이를 기다리는 마음')} themeColor={TAEMONG_TONE} />
+      <ContentHero image={A('icons/taemong.jpg')} title={t('taemong.title', '태몽 풀이')} sub={t('taemong.sub', '꿈에 나온 것으로 읽는, 아이를 기다리는 마음')} themeColor={TAEMONG_TONE} />
 
       {/* ★경계를 먼저 밝힌다 — 나중에 작게 적으면 아무도 안 읽는다(§4) */}
       <View style={styles.noteBox}>

@@ -109,6 +109,28 @@ WAVES = {
     "crush":       "one human silhouette with a single red thread reaching out from the chest toward the edge, deep indigo silhouette on cream",
     "dayPillar":   "one round jade medallion with a simple engraved pattern, deep jade green medallion with gold rim on cream",
     "dream":       "one softly glowing doorway standing among round clouds, deep indigo clouds with gold doorway on cream",
+    # 태몽(daniel 2026-08-12) — **꿈해몽과 구분되는 표지판**이어야 한다(R4).
+    #   dream 은 '문+구름'(꿈 일반) → taemong 은 **복숭아 하나를 감싼 손** = 태몽의 대표 상징(복숭아)+'품에 안는다'는 태몽의 핵심 동작.
+    #   ★R6 준수: 개수를 세는 소재(꽃잎·별 여럿) 회피 → **복숭아 하나 + 감싸는 형태 하나**로 단일 실루엣.
+    #   ★R5 준수: 글자 나오는 소재 없음. ★아기·사람 얼굴은 넣지 않는다(손발·얼굴 기형 미해결 + 성별 암시 회피 §4).
+    #   ⚠️1차 실패(실측): "두 손이 복숭아를 감싼" 구도 → **손이 4~6개로 뒤엉키고** 복숭아가 2개가 됐다.
+    #     [[mascot-tiger-svd-video]] 의 '손발 기형 미해결'을 알면서도 손을 소재로 넣은 것이 원인.
+    #     ⇒ **손·사람을 아예 빼고** 복숭아 하나만 크게. 그래야 54pt 에서도 실루엣이 읽힌다(R3).
+    #   ⚠️2차도 실패: 복숭아가 2개 · 액자 테두리 · 피사체가 하단으로 침.
+    #     원인 = 내가 프롬프트에 구도어(`centered in the upper half`)와 **`frame`** 을 직접 넣어
+    #     COMP 프리픽스와 충돌시킨 것. 특히 `frame` 은 R7 이 막으려는 **액자를 불러들이는 단어**다.
+    #     ⇒ 다른 성공 항목들처럼 **소재 + 색만** 쓴다(구도는 COMP 가 이미 지시한다).
+    #   ⚠️3차도 실패: **사실적 3D 정물**로 나왔다(평면 에디토리얼 톤과 이질) + 복숭아가 또 2개.
+    #     원인 = 'peach' 라는 단어가 사진풍 정물을 강하게 부른다. 성공한 항목들은 전부
+    #     **실루엣이거나 인공물**(열쇠·원반·문)이라 평면화가 자연스러웠다.
+    #     ⇒ 소재 쪽에 **flat silhouette** 를 못박아 TONE 과 같은 방향으로 밀어 준다.
+    #   ⚠️4차도 실패: 평면화를 강제했더니 이번엔 **꽃·버섯처럼** 보이고 형태가 프레임 밖으로 잘렸다.
+    #   ★★여기서 멈추고 **변수를 바꿨다** — 4번 모두 '복숭아'를 두고 **문구만** 고쳤다.
+    #     이 파일 상단 주석의 교훈("팔레트만 바꿔서 전부 실패")을 내가 그대로 반복한 것이다.
+    #     복숭아는 이 톤에서 ①사실적 정물로 흐르거나 ②평면화하면 꽃이 되거나 ③2개로 늘어난다.
+    #     ⇒ **소재를 바꾼다.** 잉어는 태몽 대표 상징이면서 실루엣이 단순해 54pt 에서도 읽히고,
+    #       다른 65종 카드에 물고기가 없어 표지판으로도 겹치지 않는다(R3·R4).
+    "taemong":     "one koi fish swimming upward, deep indigo fish with gold fins on cream",
     "egen":        "one human silhouette split down the middle into two contrasting colors, deep indigo and warm persimmon halves on cream",
     "followup":    "one large rounded speech bubble with a small gold spark inside, deep indigo bubble on cream",
     "future10":    "one long straight road receding toward a distant glowing gate, deep teal road with gold gate on cream",
@@ -348,6 +370,17 @@ def preview(names) -> str:
 if __name__ == "__main__":
     wave = next((a for a in sys.argv[1:] if not a.startswith("-")), "w1")
     items = WAVES[wave]
+    # ★한 장만 다시 뽑기(daniel 2026-08-12) — 웨이브 전체는 수십 장 × 2.5분이라
+    #   카드 하나를 추가·교체할 때 몇 시간이 든다. `--only <key>[,<key>…]` 로 좁힌다.
+    only = next((a.split("=", 1)[1] for a in sys.argv[1:] if a.startswith("--only=")), None)
+    if only:
+        keys = [k.strip() for k in only.split(",") if k.strip()]
+        missing = [k for k in keys if k not in items]
+        if missing:
+            print(f"❌ '{wave}' 에 없는 키: {', '.join(missing)}")
+            sys.exit(1)
+        items = {k: items[k] for k in keys}
+        print(f"▶ --only: {', '.join(keys)} ({len(items)}장)")
     if "--preview" not in sys.argv:
         try:
             urllib.request.urlopen("http://127.0.0.1:7860/sdapi/v1/options", timeout=4).read(1)
