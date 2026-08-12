@@ -68,6 +68,37 @@ export default function TaemongScreen() {
 
   const hits = useMemo(() => searchTaemong(q), [q]);
 
+  // ★★키워드 LLM 폴백(daniel 2026-08-12 *"꿈 카테고리가 너무 다양한데 다 넣을수 있어?"*)
+  // ─────────────────────────────────────────────────────────────────────
+  //   지적이 옳았다. 태몽 상징은 사실상 무한한데 사전은 12종뿐이라, 처음 만든 2단 구조에서는
+  //   사전에 없는 상징이 곧바로 **유료**로 넘어갔다(꿈해몽엔 있던 무료 폴백이 태몽엔 빠져 있었다).
+  //   ⇒ 꿈해몽과 **같은 3단**으로 맞춘다:
+  //     ①사전 hit = 온디바이스(API 0)
+  //     ②사전 miss + 짧은 키워드 = **LLM 무료 + 전역 캐시**(누가 한 번 물으면 그 답이 저장돼
+  //       다음 사람은 API 없이 본다 → 캐시가 쌓이며 **무료 범위가 저절로 넓어진다**)
+  //     ③긴 꿈 이야기(여러 상징이 얽힌 것) = 유료
+  //   ★이래야 '사전 크기 = 커버리지'라는 한계가 사라진다. CLAUDE.md §1-5(무료=룰/캐시)도 지켜진다.
+  const [llm, setLlm] = useState<{ title: string; meaning: string } | null>(null);
+  const [llmBusy, setLlmBusy] = useState(false);
+  useEffect(() => { setLlm(null); }, [q]);   // 검색어가 바뀌면 이전 답을 지운다(엉뚱한 상징의 답 잔존 방지)
+  async function searchLLM() {
+    const kw = q.trim();
+    if (!kw || llmBusy) return;
+    setLlmBusy(true);
+    try {
+      // keyword 로 보낸다 = Edge 가 **차감 없이** 전역 캐시(taemong_cache)를 태우는 경로
+      const __inv = await withTimeout(
+        supabase.functions.invoke('interpret', { body: { kind: 'taemong', keyword: kw, lang: appLang() } }),
+        GEN_TIMEOUT_MS,
+      );
+      const { data, error } = __inv ?? { data: null, error: { message: 'client timeout' } as any };
+      const fail = invokeFail(data, error);
+      setLlm(fail ? { title: kw, meaning: fail.message }
+                  : ((data?.dream as any) ?? { title: kw, meaning: t('taemong.fail', '풀이를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.') }));
+    } catch { setLlm({ title: kw, meaning: t('taemong.fail', '풀이를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.') }); }
+    setLlmBusy(false);
+  }
+
   /**
    * AI 태몽 풀이 — 꿈 이야기 전체를 읽는다.
    * ★`kind: 'taemong'` 으로 Edge 에 보낸다(dream 과 **다른 프롬프트**를 쓰기 위해).
@@ -146,8 +177,20 @@ export default function TaemongScreen() {
         ))}
       </View>
 
-      {q.trim() !== '' && hits.length === 0 && (
-        <Text style={styles.empty}>{t('taemong.noHit', '사전에 없는 상징이에요. 아래에 꿈 이야기를 적어 주시면 AI가 풀어 드려요.')}</Text>
+      {/* ★사전 miss = 막다른 길이 아니다 — **무료로** 한 번 찾아 준다(위 3단 주석) */}
+      {q.trim() !== '' && hits.length === 0 && !llm && (
+        <View style={styles.card}>
+          <Text style={styles.cardTx}>{t('taemong.noHit', '사전에 없는 상징이에요. 무료로 찾아 드릴까요?')}</Text>
+          <PressableScale style={[styles.cta, llmBusy && styles.ctaOff]} onPress={searchLLM} disabled={llmBusy}>
+            {llmBusy ? <ActivityIndicator color={colors.bg} /> : <Text style={styles.ctaTx}>{t('taemong.lookup', '‘{{kw}}’ 찾아보기 (무료)', { kw: q.trim() })}</Text>}
+          </PressableScale>
+        </View>
+      )}
+      {llm && (
+        <View style={styles.card}>
+          <Text style={styles.cardH}>{llm.title}</Text>
+          <Text style={styles.cardTx}>{llm.meaning}</Text>
+        </View>
       )}
       {hits.map((e: TaemongEntry, i) => (
         <View key={i} style={styles.card}>
