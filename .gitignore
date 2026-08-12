@@ -60,6 +60,11 @@ docs/*
 # 명리 검증 화면(ADR-060) — 비밀 없음(토큰은 URL·데이터는 Edge API). ⚠️gitignore 는 줄끝 주석 불가
 !docs/review/
 !docs/review/*
+# 관리자 콘솔 — anon key 만 쓴다(앱 번들에 이미 공개되는 키). service_role 은 절대 두지 않는다.
+# 데이터는 Supabase Auth 로그인 + admin RPC 의 is_caller_admin() 가드가 막는다 → 소스가 공개돼도 안전.
+# ⚠️2026-08-12 발견: 이 예외가 없어 `docs/*` 에 막혀 **커밋조차 안 되고 있었다**(08-10 작성분).
+!docs/admin/
+!docs/admin/*
 # ↑ 이슈17 공유 스마트링크 stub(docs/s) — GitHub Pages 공개 필요(앱 열기/설치 유도, 풀이 내용은 노출 X)
 # 명리 지식 레이어·물상 (moat 콘텐츠)
 knowledge/

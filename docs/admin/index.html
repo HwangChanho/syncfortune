@@ -1,0 +1,362 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex, nofollow" />
+<title>니운내운 관리자</title>
+<!--
+  docs/admin/index.html — 관리자 콘솔 (GitHub Pages 정적)
+  ─────────────────────────────────────────────────────────────────────────
+  daniel 2026-08-10: "지금 cksgh0316에있는 관리자 기능을 다 관리자 페이지로 옮기고 앱에선 없애자"
+
+  ■ 왜 이 구조인가
+    · 관리자 RPC 는 **이미 서버에서 `is_caller_admin()` 으로 강제**된다(앱과 같은 함수를 그대로 쓴다).
+      ⇒ Edge 함수를 새로 만들 필요가 없다. 로그인만 하면 같은 RPC 를 부르면 된다.
+    · `docs/` 는 **PUBLIC 저장소**다. 그래서 `rag-review` 의 `?t=토큰` 방식을 쓰지 않았다 —
+      토큰은 링크만 새면 뚫리고, 이 페이지는 유저 이메일(PII)·매출을 다룬다.
+      **Supabase Auth 로그인**이면 페이지가 공개돼도 **로그인 없이는 아무 데이터도 안 보인다**(RLS 가 막는다).
+    · anon key 는 원래 앱 번들에 들어가 공개되는 키다 — 여기 있다고 새로 새는 것이 아니다.
+      (service_role 키는 **절대** 여기 두지 않는다.)
+
+  ■ 로그인 = 이메일 매직링크
+    앱은 소셜 로그인(Apple·Google·Naver)이지만 웹에서 OAuth 리다이렉트를 새로 잡는 것보다
+    매직링크가 단순하고, **같은 이메일이면 같은 계정**이라 권한이 그대로 따라온다.
+    ⚠️Supabase 대시보드 → Authentication → URL Configuration 에 이 페이지 주소가
+      **Redirect URLs** 로 등록돼 있어야 링크가 돌아온다(daniel 콘솔 작업).
+
+  ■ 여기 없는 것(의도)
+    테스트모드·관리자모드·온보딩 토글은 **앱 동작을 바꾸는 스위치**라 앱에 남긴다고 섞으면 위험하다 →
+    2단계에서 별도로 옮긴다. 지금은 조회·선물·푸시까지.
+-->
+<style>
+  :root{
+    --bg:#F7F5FD; --card:#FFFFFF; --ink:#2C2743; --soft:#6A6486; --faint:#A49EBE;
+    --line:#E9E4F7; --ju:#7C5CE0; --juDeep:#5F44BE; --juSoft:#F0EBFE;
+    --ok:#358457; --warn:#B5822A; --bad:#C9436F;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Pretendard",sans-serif}
+  .wrap{max-width:960px;margin:0 auto;padding:20px 16px 64px}
+  h1{font-size:20px;margin:0 0 4px}
+  .sub{color:var(--soft);font-size:13px;margin-bottom:20px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:14px}
+  .card h2{font-size:15px;margin:0 0 12px;color:var(--ink)}
+  button{background:var(--ju);color:#fff;border:0;border-radius:10px;padding:10px 16px;font-size:14px;font-weight:700;cursor:pointer}
+  button:disabled{opacity:.5;cursor:default}
+  button.ghost{background:var(--juSoft);color:var(--juDeep)}
+  button.danger{background:var(--bad)}
+  input,select{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;font-size:14px;background:#fff;color:var(--ink)}
+  label{display:block;font-size:12px;color:var(--soft);margin:10px 0 4px}
+  .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+  .kpi{background:var(--juSoft);border-radius:12px;padding:12px}
+  .kpi .n{font-size:20px;font-weight:800}
+  .kpi .l{font-size:12px;color:var(--soft)}
+  .tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+  .tabs button{background:transparent;color:var(--soft);border:1px solid var(--line);font-weight:600}
+  .tabs button[aria-selected="true"]{background:var(--ju);color:#fff;border-color:var(--ju)}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--soft);font-weight:600;font-size:12px}
+  .bar{height:6px;background:var(--ju);border-radius:3px;min-width:2px}
+  .muted{color:var(--faint)}
+  .msg{padding:10px 12px;border-radius:10px;font-size:13px;margin-top:10px}
+  .msg.ok{background:#E6F4EC;color:var(--ok)} .msg.err{background:#FDEBF1;color:var(--bad)}
+  .hide{display:none}
+  code{background:var(--juSoft);padding:1px 5px;border-radius:5px;font-size:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>니운내운 관리자</h1>
+  <div class="sub" id="who">로그인이 필요합니다</div>
+
+  <!-- 로그인 -->
+  <div class="card" id="loginCard">
+    <h2>관리자 로그인</h2>
+    <div class="muted" style="font-size:13px">앱과 <b>같은 이메일</b>로 로그인하면 권한이 그대로 따라옵니다. 메일로 오는 링크를 누르면 됩니다.</div>
+    <label>이메일</label>
+    <input id="email" type="email" placeholder="cksgh0316@gmail.com" autocomplete="email" />
+    <div class="row" style="margin-top:10px">
+      <button id="sendLink">로그인 링크 받기</button>
+    </div>
+    <div id="loginMsg"></div>
+  </div>
+
+  <!-- 본문 -->
+  <div id="app" class="hide">
+    <div class="tabs" role="tablist">
+      <button data-tab="stats" aria-selected="true">현황</button>
+      <button data-tab="users" aria-selected="false">유저 · 운 선물</button>
+      <button data-tab="push" aria-selected="false">예약 푸시</button>
+      <button data-tab="flags" aria-selected="false">콘텐츠 NEW · 기능 플래그</button>
+    </div>
+
+    <!-- 현황 -->
+    <section id="tab-stats">
+      <div class="card"><h2>전체 현황</h2><div class="grid" id="kpis"><span class="muted">불러오는 중…</span></div></div>
+      <div class="card"><h2>풀이 분야 분포</h2><div id="byKind" class="muted">—</div></div>
+      <div class="card"><h2>인기 콘텐츠</h2><div id="topContent" class="muted">—</div></div>
+      <div class="card"><h2>분야별 실매출</h2><div id="revKind" class="muted">—</div></div>
+    </section>
+
+    <!-- 유저 -->
+    <section id="tab-users" class="hide">
+      <div class="card">
+        <h2>유저 검색</h2>
+        <div class="row">
+          <input id="q" placeholder="이메일 일부" style="flex:1;min-width:200px" />
+          <button id="search">검색</button>
+        </div>
+        <div id="userList" style="margin-top:12px"></div>
+      </div>
+      <div class="card">
+        <h2>운 선물</h2>
+        <div class="muted" style="font-size:13px">위 목록에서 유저를 고르면 아래에 채워집니다.</div>
+        <label>대상 user id</label><input id="giftId" placeholder="uuid" />
+        <label>수량(운)</label><input id="giftAmt" type="number" value="100" />
+        <div class="row" style="margin-top:10px"><button id="gift">선물하기</button></div>
+        <div id="giftMsg"></div>
+      </div>
+    </section>
+
+    <!-- 푸시 -->
+    <!-- ★2단계(daniel 2026-08-12): 앱 관리자 화면에 있던 **콘텐츠 NEW 토글**을 여기로.
+         저장은 앱과 **같은 RPC**(`set_app_flag`) · 키 규칙도 같다(`new_<콘텐츠키>`) —
+         두 곳이 각자 쓰면 반드시 갈린다([[duplicate-ui-single-source]]). -->
+    <section id="tab-flags" class="hide">
+      <div class="card">
+        <h2>콘텐츠 NEW 배지</h2>
+        <div class="sub" style="margin-bottom:10px">
+          ★<b>3-상태</b>입니다 — <code>자동</code>(행 없음 = 등록일 규칙) / <code>켬</code> / <code>끔</code>.
+          불리언 2-상태로 만들면 “관리자가 안 건드린 것”과 “관리자가 끈 것”을 구분할 수 없습니다.
+          재빌드 없이 전 유저에게 즉시 반영됩니다.
+        </div>
+        <div class="row" style="gap:8px">
+          <input id="flagKey" placeholder="콘텐츠 키 (예: wealth · jobfit · crush)" style="flex:1;min-width:220px" />
+          <button id="flagOn">켬</button>
+          <button id="flagOff">끔</button>
+        </div>
+        <div id="flagMsg"></div>
+      </div>
+      <div class="card">
+        <h2>현재 플래그 (app_flags 전체)</h2>
+        <div class="sub" style="margin-bottom:8px">
+          <code>new_*</code> = 콘텐츠 NEW 배지 · 그 외 = 기능 게이트(속궁합·커뮤니티 등).
+          여기 <b>없는 키는 '자동'</b>입니다.
+        </div>
+        <div id="flagList" class="muted">불러오는 중…</div>
+      </div>
+    </section>
+
+    <section id="tab-push" class="hide">
+      <div class="card">
+        <h2>예약 푸시 (전체 발송)</h2>
+        <label>제목</label><input id="pTitle" placeholder="오늘의 운세가 도착했어요" />
+        <label>본문</label><input id="pBody" placeholder="지금 확인해 보세요" />
+        <label>이동 경로(선택 · 예 <code>/today</code>)</label><input id="pRoute" placeholder="비우면 홈" />
+        <label>보낼 시각</label><input id="pAt" type="datetime-local" />
+        <div class="row" style="margin-top:10px"><button id="pSave">예약하기</button></div>
+        <div id="pMsg"></div>
+      </div>
+      <div class="card"><h2>예약 목록</h2><div id="pList" class="muted">—</div></div>
+    </section>
+  </div>
+
+  <div class="sub" style="margin-top:24px">
+    이 페이지는 <code>is_caller_admin()</code> 이 참인 계정만 데이터를 볼 수 있습니다 — 권한은 서버가 강제합니다.
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>
+// ── 설정 (anon key = 앱 번들에 이미 공개된 키. service_role 은 절대 여기 두지 않는다) ──
+const SB_URL = 'https://zpslflbcxzalaikbbdzk.supabase.co';
+const SB_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpwc2xmbGJjeHphbGFpa2JiZHprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0OTM4MjgsImV4cCI6MjA5NjA2OTgyOH0.cjaKKxsBeIAiLzER2Li7GavSURNU6uelcOqub8_2vok';
+const sb = supabase.createClient(SB_URL, SB_ANON);
+
+const $ = (id) => document.getElementById(id);
+const say = (el, text, kind) => { el.innerHTML = text ? `<div class="msg ${kind || 'ok'}">${text}</div>` : ''; };
+const num = (n) => (n == null ? '—' : Number(n).toLocaleString('ko-KR'));
+
+// ── 로그인 ────────────────────────────────────────────────────────────────
+$('sendLink').onclick = async () => {
+  const email = $('email').value.trim();
+  if (!email) return say($('loginMsg'), '이메일을 입력하세요', 'err');
+  $('sendLink').disabled = true;
+  const { error } = await sb.auth.signInWithOtp({
+    email,
+    options: { emailRedirectTo: location.href.split('#')[0] },
+  });
+  $('sendLink').disabled = false;
+  say($('loginMsg'), error ? `보내지 못했습니다 — ${error.message}` : '메일을 확인하세요. 링크를 누르면 이 페이지로 돌아옵니다.', error ? 'err' : 'ok');
+};
+
+/** 로그인 상태 + 관리자 권한 확인. ★권한 판정은 서버(`is_caller_admin`)가 한다 — 화면은 그 답을 따를 뿐이다. */
+async function boot() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) return;
+  const { data: ok, error } = await sb.rpc('is_caller_admin');
+  if (error || ok !== true) {
+    $('who').textContent = `${session.user.email} — 관리자 권한이 없습니다`;
+    say($('loginMsg'), '이 계정은 관리자가 아닙니다. 서버가 접근을 막았습니다.', 'err');
+    return;
+  }
+  $('who').textContent = `${session.user.email} · 관리자`;
+  $('loginCard').classList.add('hide');
+  $('app').classList.remove('hide');
+  loadStats();
+}
+
+// ── 탭 ────────────────────────────────────────────────────────────────────
+document.querySelectorAll('.tabs button').forEach((b) => {
+  b.onclick = () => {
+    document.querySelectorAll('.tabs button').forEach((x) => x.setAttribute('aria-selected', String(x === b)));
+    ['stats', 'users', 'push'].forEach((t) => $('tab-' + t).classList.toggle('hide', t !== b.dataset.tab));
+    if (b.dataset.tab === 'push') loadPush();
+    if (b.dataset.tab === 'flags') loadFlags();
+  };
+});
+
+// ── 현황 ──────────────────────────────────────────────────────────────────
+/** 막대 목록 — 외부 차트 라이브러리 없이(앱 관리자 화면과 같은 방식). */
+function bars(rows, labelKey, valKey, fmt) {
+  if (!rows || !rows.length) return '<span class="muted">데이터 없음</span>';
+  const max = Math.max(...rows.map((r) => Number(r[valKey]) || 0)) || 1;
+  return '<table>' + rows.slice(0, 15).map((r) => {
+    const v = Number(r[valKey]) || 0;
+    return `<tr><td style="width:35%">${r[labelKey] ?? '—'}</td>
+      <td style="width:45%"><div class="bar" style="width:${Math.max(2, (v / max) * 100)}%"></div></td>
+      <td style="text-align:right">${fmt ? fmt(v) : num(v)}</td></tr>`;
+  }).join('') + '</table>';
+}
+
+async function loadStats() {
+  const { data, error } = await sb.rpc('admin_stats');
+  if (error) return ($('kpis').innerHTML = `<span class="muted">불러오지 못했습니다 — ${error.message}</span>`);
+  const s = Array.isArray(data) ? data[0] : data;
+  const kpi = [
+    ['전체 유저', s.total_users], ['최근 7일 활성', s.active_7d], ['결제 유저', s.paying_users],
+    ['명식', s.total_charts], ['풀이', s.total_readings], ['남은 운', s.credits_remaining],
+    ['누적 매출', s.total_revenue, (v) => '₩' + num(v)], ['실측 원가', s.measured_cost, (v) => '₩' + num(v)],
+  ];
+  $('kpis').innerHTML = kpi.map(([l, v, f]) => `<div class="kpi"><div class="n">${f ? f(v) : num(v)}</div><div class="l">${l}</div></div>`).join('');
+  $('byKind').innerHTML = bars(s.readings_by_kind, 'kind', 'n');
+  $('topContent').innerHTML = bars(s.top_content, 'kind', 'n');
+  $('revKind').innerHTML = bars(s.revenue_by_kind, 'kind', 'amount', (v) => '₩' + num(v));
+}
+
+// ── 유저 ──────────────────────────────────────────────────────────────────
+$('search').onclick = async () => {
+  // ⚠️`admin_list_users` 는 **인자를 받지 않는다**(앱 코드 실측) → 전건을 받아 **여기서 거른다.**
+  //   추측으로 `p_q`·`p_limit` 을 넘겼다가 교정한 자리다 — RPC 시그니처는 반드시 실물로 확인할 것.
+  const { data, error } = await sb.rpc('admin_list_users');
+  if (error) return ($('userList').innerHTML = `<span class="muted">${error.message}</span>`);
+  const q = $('q').value.trim().toLowerCase();
+  const rows = (data || []).filter((u) => !q || String(u.email || '').toLowerCase().includes(q));
+  if (!rows.length) return ($('userList').innerHTML = '<span class="muted">결과 없음</span>');
+  $('userList').innerHTML = `<div class="muted" style="font-size:12px;margin-bottom:6px">${rows.length}명 / 전체 ${(data||[]).length}명</div>`
+    + '<table><tr><th>이메일</th><th>운</th><th>명식</th><th>풀이</th><th>결제</th><th></th></tr>' +
+    rows.map((u) => `<tr>
+      <td>${u.email ?? '—'}${u.is_admin ? ' <b>(admin)</b>' : ''}</td>
+      <td>${num(u.credits)}</td><td>${num(u.chart_count)}</td><td>${num(u.reading_count)}</td>
+      <td>₩${num(u.paid_total)}</td>
+      <td><button class="ghost" data-uid="${u.id}">선택</button></td></tr>`).join('') + '</table>';
+  document.querySelectorAll('#userList button[data-uid]').forEach((b) => {
+    b.onclick = () => { $('giftId').value = b.dataset.uid; say($('giftMsg'), '대상이 채워졌습니다', 'ok'); };
+  });
+};
+
+$('gift').onclick = async () => {
+  const id = $('giftId').value.trim(), amt = Number($('giftAmt').value);
+  if (!id || !amt) return say($('giftMsg'), 'user id 와 수량을 확인하세요', 'err');
+  $('gift').disabled = true;
+  const { error } = await sb.rpc('admin_grant_coins', { p_owner: id, p_amount: amt });
+  $('gift').disabled = false;
+  say($('giftMsg'), error ? `실패 — ${error.message}` : `${num(amt)}운을 지급했습니다`, error ? 'err' : 'ok');
+};
+
+// ── 예약 푸시 ─────────────────────────────────────────────────────────────
+// ── 콘텐츠 NEW · 기능 플래그 (2단계 — 앱 관리자 화면에서 옮겨옴) ────────────────
+//   저장은 앱과 **같은 RPC**(`set_app_flag`) · 키 규칙도 같다(`new_<콘텐츠키>`).
+//   ⚠️`supabase.rpc()` 는 실패해도 throw 하지 않는다 — `error` 를 반드시 본다
+//     (안 보면 저장 실패가 성공처럼 보인다 · 앱에서 실제로 겪은 사고).
+const NEW_PREFIX = 'new_';
+
+async function loadFlags() {
+  const box = $('flagList');
+  const { data, error } = await sb.from('app_flags').select('key, enabled').order('key');
+  if (error) { box.innerHTML = `<span class="msg err">불러오지 못했습니다 — ${error.message}</span>`; return; }
+  if (!data || !data.length) { box.textContent = '설정된 플래그가 없습니다 (전부 자동)'; return; }
+  const rows = data.map((f) => {
+    const isNew = f.key.startsWith(NEW_PREFIX);
+    const label = isNew ? f.key.slice(NEW_PREFIX.length) : f.key;
+    const tag = isNew ? 'NEW 배지' : '기능';
+    const on = f.enabled === true;
+    return `<div class="row" style="justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(0,0,0,.06)">
+      <span><b>${label}</b> <span class="muted">· ${tag}</span></span>
+      <span>
+        <span class="muted" style="margin-right:8px">${on ? '켬' : '끔'}</span>
+        <button data-fk="${f.key}" data-fv="${on ? '0' : '1'}">${on ? '끄기' : '켜기'}</button>
+      </span>
+    </div>`;
+  }).join('');
+  box.innerHTML = rows;
+  // 목록 안 버튼 = 그 자리에서 토글
+  box.querySelectorAll('button[data-fk]').forEach((b) => {
+    b.onclick = () => setFlag(b.dataset.fk, b.dataset.fv === '1');
+  });
+}
+
+/** 플래그 저장 — 앱과 같은 RPC. 성공하면 목록을 다시 읽어 **서버 값으로** 화면을 맞춘다. */
+async function setFlag(key, enabled) {
+  const { error } = await sb.rpc('set_app_flag', { p_key: key, p_enabled: enabled });
+  say($('flagMsg'), error ? `저장 실패 — ${error.message}` : `${key} → ${enabled ? '켬' : '끔'}`, error ? 'err' : 'ok');
+  if (!error) loadFlags();   // ★낙관적 갱신을 하지 않는다 — 서버가 정답이다
+}
+
+$('flagOn').onclick = () => {
+  const k = $('flagKey').value.trim();
+  if (!k) return say($('flagMsg'), '콘텐츠 키를 입력하세요', 'err');
+  setFlag(k.startsWith(NEW_PREFIX) ? k : NEW_PREFIX + k, true);
+};
+$('flagOff').onclick = () => {
+  const k = $('flagKey').value.trim();
+  if (!k) return say($('flagMsg'), '콘텐츠 키를 입력하세요', 'err');
+  setFlag(k.startsWith(NEW_PREFIX) ? k : NEW_PREFIX + k, false);
+};
+
+async function loadPush() {
+  const { data, error } = await sb.rpc('admin_list_push_campaigns');
+  if (error) return ($('pList').innerHTML = `<span class="muted">${error.message}</span>`);
+  if (!data || !data.length) return ($('pList').innerHTML = '<span class="muted">예약 없음</span>');
+  $('pList').innerHTML = '<table><tr><th>시각</th><th>제목</th><th>상태</th><th></th></tr>' +
+    data.map((c) => `<tr><td>${(c.send_at || '').replace('T', ' ').slice(0, 16)}</td><td>${c.title ?? ''}</td>
+      <td>${c.status ?? ''}</td>
+      <td>${c.status === 'scheduled' ? `<button class="danger" data-cid="${c.id}">취소</button>` : ''}</td></tr>`).join('') + '</table>';
+  document.querySelectorAll('#pList button[data-cid]').forEach((b) => {
+    b.onclick = async () => {
+      const { error: e2 } = await sb.rpc('admin_cancel_push', { p_id: b.dataset.cid });
+      if (!e2) loadPush();
+    };
+  });
+}
+
+$('pSave').onclick = async () => {
+  const title = $('pTitle').value.trim(), body = $('pBody').value.trim(), at = $('pAt').value;
+  const route = $('pRoute').value.trim();
+  if (!title || !body || !at) return say($('pMsg'), '제목·본문·시각을 모두 채우세요', 'err');
+  $('pSave').disabled = true;
+  // datetime-local 은 타임존이 없다 → 브라우저 로컬 시각으로 해석해 ISO 로 변환한다.
+  const { error } = await sb.rpc('admin_schedule_push', { p_title: title, p_body: body, p_route: route || null, p_scheduled_at: new Date(at).toISOString() });
+  $('pSave').disabled = false;
+  say($('pMsg'), error ? `실패 — ${error.message}` : '예약했습니다', error ? 'err' : 'ok');
+  if (!error) loadPush();
+};
+
+sb.auth.onAuthStateChange(() => boot());
+boot();
+</script>
+</body>
+</html>
