@@ -15,7 +15,7 @@
 //   → 화면 제목('풀이')은 하단 탭이 이미 강조하고 있고, 부제('보고 싶은 주제를 골라 보세요')는
 //     검색 placeholder('무엇이 궁금하세요?')와 같은 말이라 **둘 다 제거**했다. 뷰 토글은 검색줄에 합쳤다.
 // ─────────────────────────────────────────────────────────────────────────
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { View, Text, TextInput, ScrollView, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context'; // ★상단 안전영역 — 고정 여백은 글자확대 시 잘린다(daniel 07-27)
 import { useTranslation } from 'react-i18next';
@@ -25,6 +25,7 @@ import { ContentGrid } from '../../components/ContentGrid';
 import { MonthHeroCard } from '../../components/MonthHeroCard'; // 이달의 운세 **펼침** 카드(daniel 08-06 IMG_8409)
 import { NextStepCard } from '../../components/NextStepCard'; // '다음 단계' 퍼널 히어로(나열→저니)
 import { ChartPicker } from '../../components/ChartPicker';
+import { loadRepChart } from '../../lib/engine/myChart'; // 명식 유무 판정(홈과 같은 관용구)
 import { PressableScale } from '../../components/PressableScale';
 import { useHomeViewMode } from '../../lib/ui/homeView'; // ★훅은 **여기서만** 호출 — 아래로는 값만 내린다(ContentGrid 주석 참조)
 import { colors, space, font, radius } from '../../lib/theme';
@@ -39,6 +40,13 @@ export default function ContentsScreen() {
   const [reload, setReloadKey] = useState(0); // 명식 전환 시 그리드(배지·티저)·다음단계 카드 재계산 트리거
   // 검색어(daniel 2026-08-06 "너무 나열되어있어서 뭐가뭔지 모르겠어").
   const [q, setQ] = useState('');
+  // ★명식 유무 — 없으면 '가볍게 보기'로 안내한다(daniel 2026-08-13 "명식 없는걸로").
+  //   왜 필요했나: `/light`(생년월일만으로 성격유형·일주) 는 잘 만들어져 있는데 **입구가 홈 하나뿐**이었다.
+  //   풀이탭·마켓·공유링크로 들어온 사람은 그 존재를 영영 모른다 — 여기가 '매장 안'인데
+  //   명식이 없으면 카드 54장이 전부 등록 폼으로 이어진다.
+  //   기본값 true = 첫 프레임에 안내가 번쩍이지 않게(대개 명식이 있다).
+  const [hasChart, setHasChart] = useState(true);
+  useEffect(() => { let alive = true; loadRepChart().then((r) => { if (alive) setHasChart(!!r); }).catch(() => {}); return () => { alive = false; }; }, [reload]);
   const searching = q.trim().length > 0;
   // ── 카테고리(주제) 선택 ────────────────────────────────────────────────
   // daniel 2026-08-06: "상단에 연애 재물 사람 등등 카테고리별로 있어서 선택할 수 있게 하고
@@ -101,7 +109,17 @@ export default function ContentsScreen() {
             {/* ★대표 명식 = **제일 위**(daniel 2026-08-07 "풀이에서 명식을 제일 상단으로 올려").
                 아래의 모든 것(이달의 운세·다음 단계·카드 배지·티저)이 **이 명식 기준**으로 계산된다 —
                 누구 것인지 먼저 보이지 않으면 그 아래 내용이 무엇에 대한 것인지 알 수 없다. */}
-            <ChartPicker onChange={() => setReloadKey((k) => k + 1)} />
+            {hasChart ? (
+              <ChartPicker onChange={() => setReloadKey((k) => k + 1)} />
+            ) : (
+              /* ★명식이 없을 때 = 명식 선택기 대신 **먼저 결과를 보여주는 길**.
+                 홈 배너와 같은 문구를 쓴다(같은 약속을 두 번 다르게 말하지 않는다). */
+              <PressableScale style={styles.lightCard} onPress={() => router.push('/light')}>
+                <Text style={styles.lightTitle}>{t('home.noChartTitle', 'AI가 분석하는 나 — 여기서 시작')}</Text>
+                <Text style={styles.lightSub}>{t('home.noChartSub2', '생년월일만 넣으면 성격유형과 일주를 바로 볼 수 있어요. 가입도, 저장도 안 해요.')}</Text>
+                <View style={styles.lightBtn}><Text style={styles.lightBtnTx}>{t('home.lightCta', '가볍게 보기')}</Text></View>
+              </PressableScale>
+            )}
             {/* ★이달의 운세 = 풀이탭의 앵커(daniel 2026-08-06).
                 비유(daniel): 홈 배너 = 백화점 밖 사람을 **금액 없이** 들어오게 / 풀이탭 = 매장 안.
                   매장에 들어온 사람에게 처음 내미는 것도 **무료**여야 한다 — 이달의 운세(무료·온디바이스)를
@@ -138,6 +156,12 @@ export default function ContentsScreen() {
 }
 
 const styles = StyleSheet.create({
+  // ── '가볍게 보기' 안내(명식 없을 때만) — 홈 배너와 같은 톤 ──
+  lightCard: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.juLine, padding: space(4), alignItems: 'center', gap: space(1.5), marginBottom: space(3) },
+  lightTitle: { color: colors.ju, fontWeight: '900', fontSize: 16, lineHeight: 23, textAlign: 'center' },
+  lightSub: { color: colors.inkSoft, fontSize: 13, lineHeight: 20, textAlign: 'center' },
+  lightBtn: { backgroundColor: colors.ju, borderRadius: radius.md, paddingVertical: space(2.5), paddingHorizontal: space(6), marginTop: space(2) },
+  lightBtnTx: { color: colors.bg, fontWeight: '800', fontSize: 14, lineHeight: 20 },
   bg: { flex: 1, backgroundColor: 'transparent' },
   screen: { backgroundColor: 'transparent' },
   // padding space(5) = ContentGrid 의 section marginHorizontal:-space(5) 와 짝(가로 스크롤이 화면 끝까지 닿게).
