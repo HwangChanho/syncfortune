@@ -31,6 +31,10 @@ export function ChartRegisterScreen({ onSubmit, defaultRelation, submitLabel, sh
   const initSijinIdx = initTime ? SIJIN.findIndex((s) => s.hm === initTime) : -1;
   const [sijinIdx, setSijinIdx] = useState<number>(initSijinIdx); // -1 = 시각 모름(또는 정확시각 모드)
   const [sijinOpen, setSijinOpen] = useState(false);     // 시각 선택 바텀시트
+  const [catOpen, setCatOpen] = useState(false);         // 카테고리 드롭박스(daniel 08-12 — 종전 칩 나열)
+  const [newCat, setNewCat] = useState('');              // 시트 안 '새 카테고리' 입력 — relation(선택값)과 분리한다
+                                                         //   종전엔 입력칸이 relation 을 직접 편집해, 타이핑하는 동안
+                                                         //   '이 명식의 카테고리'가 미완성 문자열로 바뀌어 있었다.
   // 정확한 시각 — **24시간제 직접 입력**(daniel 2026-08-11 "오전오후 나누지말고 24시간 기준으로").
   //   이력: 07-17 에 `12:30` 이 낮/밤 헷갈린다고 오전/오후 토글을 넣었는데, 08-11 에 **`00:03` 이 등록이 안 되는**
   //   문제가 났다(12시간제라 시가 1~12 뿐). 저장 형식이 어차피 24시간제이므로 입력도 24시간제로 받아
@@ -46,7 +50,6 @@ export function ChartRegisterScreen({ onSubmit, defaultRelation, submitLabel, sh
   const [birthPlaceLon, setBirthPlaceLon] = useState<number | null>(initial?.birthLon ?? 126.9780); // 진태양시 경도(ADR-008) — 서울 기본
   const [birthPlaceLat, setBirthPlaceLat] = useState<number | null>(initial?.birthLat ?? 37.5665);  // 점성술 상승궁 위도 — 서울 기본
   const [relation, setRelation] = useState<string>(initial?.relation ?? defaultRelation ?? 'self');
-  const [relationCustom, setRelationCustom] = useState(false); // 신규 카테고리 입력 모드
   const [cats, setCats] = useState<string[]>(() => getCategories()); // 관리 카테고리 목록(프리셋+커스텀+기타·self 제외)
   const [makeRep, setMakeRep] = useState(false); // 이 명식을 대표로 설정(register 전용)
   // 풀이 grounding 기본정보(선택, daniel) — 하는 일·관계상태·관심/고민·메모. 입력 시 통변이 더 정확(특히 R25: 현재 배우자 유무가 연애·결혼·궁합 풀이를 좌우).
@@ -76,27 +79,37 @@ export function ChartRegisterScreen({ onSubmit, defaultRelation, submitLabel, sh
 
   // ── 카테고리 관리(daniel 07-18): 신규 생성 → 목록·선택 반영 / 길게 눌러 삭제 → 소속 명식 '기타'로 ──
   async function addNewCat() {
-    const n = relation.trim();
+    const n = newCat.trim();
     if (!n) return;
     await addCategory(n);
     setCats(getCategories());
-    setRelationCustom(false);
-    setRelation(n); // 방금 만든 카테고리를 이 명식에 선택
+    setRelation(n);   // 방금 만든 카테고리를 이 명식에 선택
+    setNewCat('');    // 입력칸 비우기 — 연속 추가가 자연스럽게
+    setCatOpen(false);
   }
   function confirmRemoveCat(r: string) {
     if (!isRemovable(r)) return; // self·기타는 삭제 불가
-    Alert.alert(
+    // ★★Modal 두 개를 동시에 present 하지 않는다.
+    //   이 앱의 Alert 는 **RN Modal 기반**이고(lib/ui/alert), RN Modal 은 한 번에 하나만 뜬다.
+    //   카테고리 시트가 열린 채로 확인창을 띄우면 확인창이 안 보이거나 iOS 가 죽는다
+    //   ([[alert-double-fire-crash]] — 모달 연속 present 로 실제 terminate 된 이력).
+    //   ⇒ 시트를 먼저 닫고, dismiss 애니가 끝난 뒤(380ms — confirmChart 와 같은 값) 확인창을 띄운다.
+    //   취소·삭제 어느 쪽이든 **시트로 되돌려** 사용자가 하던 흐름을 잃지 않게 한다.
+    setCatOpen(false);
+    setTimeout(() => Alert.alert(
       t('register.catDeleteTitle', '카테고리 삭제'),
       t('register.catDeleteMsg', `‘${r}’ 카테고리를 삭제할까요? 이 카테고리의 명식들은 ‘기타’로 옮겨집니다.`),
       [
-        { text: t('common.cancel', '취소'), style: 'cancel' },
+        { text: t('common.cancel', '취소'), style: 'cancel', onPress: () => setCatOpen(true) },
         { text: t('common.delete', '삭제'), style: 'destructive', onPress: async () => {
-          await removeCategory(r);
+          await removeCategory(r);   // ★소속 명식 relation → '기타' 일괄(reassignRelation)
           setCats(getCategories());
           if (relation === r) setRelation(OTHER_CATEGORY); // 선택 중이던 카테고리면 기타로
+          setCatOpen(true);
         } },
       ],
-    );
+      () => setCatOpen(true),   // 뒤로가기로 닫아도 시트로 복귀(길이 끊기지 않게)
+    ), 380);
   }
 
   // 경계시 보정(daniel) — 정확시각 입력 시 진태양시 = 시계 + 거주지 보정. 시진 경계 ±20분이면 경고(시주가 바뀔 수 있음).
@@ -205,41 +218,15 @@ export function ChartRegisterScreen({ onSubmit, defaultRelation, submitLabel, sh
         <Text style={styles.label}>{t('register.birthPlace')}</Text>
         <BirthPlacePicker value={birthPlace} onSelect={(p) => { setBirthPlace(p.name); setBirthPlaceLon(p.lon); setBirthPlaceLat(p.lat); }} />
 
-        {/* 관계(카테고리) — 본인 고정 + 관리 카테고리(길게 눌러 삭제) + 신규 생성. daniel 07-18 */}
+        {/* 관계(카테고리) — **드롭박스**(daniel 2026-08-12 *"버블형식으로 나열하지말고 드랍박스로하자"*).
+            종전엔 칩을 flexWrap 으로 늘어놓아, 카테고리를 추가할수록 화면이 밀려 내려갔고
+            **삭제가 '길게 누르기'뿐이라 아무도 찾을 수 없었다.** 시트 안에서 선택·추가·삭제를 모두 한다.
+            (시트 관용구는 아래 시진 선택과 동일 — 화면 안에서 두 방식이 갈리지 않게) */}
         <Text style={styles.label}>{t('register.relation')}</Text>
-        <View style={styles.chipRow}>
-          {/* 본인(self) — 고정(삭제 불가) */}
-          <PressableScale key="self" style={[styles.chip, !relationCustom && relation === 'self' && styles.chipOn]}
-            onPress={() => { setRelationCustom(false); setRelation('self'); }}>
-            <Text style={!relationCustom && relation === 'self' ? styles.chipOnText : styles.chipText}>{t('register.selfLabel')}</Text>
-          </PressableScale>
-          {/* 관리 카테고리 — 탭 선택 / 길게 눌러 삭제(기타는 삭제 불가) */}
-          {cats.map((r) => {
-            const on = !relationCustom && relation === r;
-            return (
-              <PressableScale key={r} style={[styles.chip, on && styles.chipOn]}
-                onPress={() => { setRelationCustom(false); setRelation(r); }}
-                onLongPress={() => confirmRemoveCat(r)}>
-                <Text style={on ? styles.chipOnText : styles.chipText}>{r}</Text>
-              </PressableScale>
-            );
-          })}
-          {/* 신규 카테고리 생성 */}
-          <PressableScale style={[styles.chip, relationCustom && styles.chipOn]}
-            onPress={() => { setRelationCustom(true); setRelation(''); }}>
-            <Text style={relationCustom ? styles.chipOnText : styles.chipText}>＋ {t('register.newCategory', '새 카테고리')}</Text>
-          </PressableScale>
-        </View>
-        {relationCustom && (
-          <View style={{ flexDirection: 'row', gap: space(2), marginTop: space(2) }}>
-            <TextInput style={[styles.input, { flex: 1 }]} value={relation} onChangeText={setRelation}
-              placeholder={t('register.newCategoryPh', '새 카테고리 이름')} placeholderTextColor={colors.inkFaint} autoFocus />
-            <PressableScale style={[styles.addCatBtn, !relation.trim() && styles.addCatBtnOff]} onPress={addNewCat} disabled={!relation.trim()}>
-              <Text style={styles.addCatBtnTx}>{t('common.add', '추가')}</Text>
-            </PressableScale>
-          </View>
-        )}
-        {cats.length > 1 && !relationCustom && <Text style={styles.catHint}>{t('register.catHint', '카테고리를 길게 누르면 삭제돼요 (그 명식들은 기타로 이동)')}</Text>}
+        <PressableScale style={styles.dropBox} onPress={() => setCatOpen(true)}>
+          <Text style={styles.dropTx}>{relation === 'self' ? t('register.selfLabel') : (relation || t('register.pickCategory', '카테고리 선택'))}</Text>
+          <Text style={styles.dropCaret}>▾</Text>
+        </PressableScale>
 
         {/* 내 상황(선택) — 풀이 grounding 기본정보. R25: 현재 배우자 유무가 연애·결혼·궁합 풀이를 좌우 */}
         <View style={styles.ctxBox}>
@@ -300,6 +287,49 @@ export function ChartRegisterScreen({ onSubmit, defaultRelation, submitLabel, sh
           <Text style={styles.submitText}>{submitLabel ?? t('register.submit')}</Text>
         </PressableScale>
       </ScrollView>
+
+      {/* ★카테고리 드롭박스(daniel 2026-08-12) — 선택·추가·삭제를 **한 곳에서**.
+          · 삭제는 각 줄의 '✕' 로 **보이게** 한다. 종전엔 길게 누르기뿐이라 기능이 있어도 없는 것과 같았다.
+          · '본인'과 '기타'는 ✕ 를 아예 그리지 않는다(isRemovable) — 누를 수 없는 버튼을 보여 주지 않는다.
+          · 삭제하면 그 카테고리의 명식들은 **전부 '기타'로** 옮겨진다(removeCategory→reassignRelation).
+          시트 관용구·스타일은 아래 시진 선택과 동일하게 맞췄다([[duplicate-ui-single-source]]). */}
+      <Modal statusBarTranslucent visible={catOpen} transparent animationType="slide" onRequestClose={() => setCatOpen(false)}>
+        <Pressable style={styles.backdrop} onPress={() => setCatOpen(false)}>
+          <Pressable style={styles.sheet} onPress={() => {}}>
+            <View style={styles.sheetHandle} />
+            <Text style={styles.sheetTitle}>{t('register.relation')}</Text>
+            <ScrollView style={styles.sheetList} showsVerticalScrollIndicator={false}>
+              {/* 본인(self) — 고정(삭제 불가) */}
+              <Pressable style={styles.catRow} onPress={() => { setRelation('self'); setCatOpen(false); }}>
+                <Text style={[styles.catRowTx, relation === 'self' && styles.catRowOn]}>{t('register.selfLabel')}</Text>
+                {relation === 'self' && <Text style={styles.catCheck}>✓</Text>}
+              </Pressable>
+              {cats.map((r) => (
+                <Pressable key={r} style={styles.catRow} onPress={() => { setRelation(r); setCatOpen(false); }}>
+                  <Text style={[styles.catRowTx, relation === r && styles.catRowOn]}>{r}</Text>
+                  {relation === r && <Text style={styles.catCheck}>✓</Text>}
+                  {/* ★기타·본인은 ✕ 자체를 안 그린다 — 삭제 불가를 눌러 보고 알게 하지 않는다 */}
+                  {isRemovable(r) && (
+                    <Pressable hitSlop={10} style={styles.catDel} onPress={() => confirmRemoveCat(r)}>
+                      <Text style={styles.catDelTx}>✕</Text>
+                    </Pressable>
+                  )}
+                </Pressable>
+              ))}
+            </ScrollView>
+            {/* 새 카테고리 — 시트 안에서 바로 추가하고 그대로 선택된다 */}
+            <Text style={styles.sheetDivider}>{t('register.newCategory', '새 카테고리')}</Text>
+            <View style={{ flexDirection: 'row', gap: space(2) }}>
+              <TextInput style={[styles.input, { flex: 1, marginTop: 0 }]} value={newCat} onChangeText={setNewCat}
+                placeholder={t('register.newCategoryPh', '새 카테고리 이름')} placeholderTextColor={colors.inkFaint} />
+              <PressableScale style={[styles.addCatBtn, !newCat.trim() && styles.addCatBtnOff]} onPress={addNewCat} disabled={!newCat.trim()}>
+                <Text style={styles.addCatBtnTx}>{t('common.add', '추가')}</Text>
+              </PressableScale>
+            </View>
+            <Text style={styles.catHint}>{t('register.catDelHint', '카테고리를 지우면 그 명식들은 ‘기타’로 옮겨져요. ‘기타’는 지울 수 없어요.')}</Text>
+          </Pressable>
+        </Pressable>
+      </Modal>
 
       {/* 시진 선택 바텀시트 — 클릭 시 슬라이드 업, 스크롤로 12시진+모름 선택 */}
       <Modal statusBarTranslucent visible={sijinOpen} transparent animationType="slide" onRequestClose={() => setSijinOpen(false)}>
@@ -437,6 +467,24 @@ const styles = StyleSheet.create({
   optionCheck: { fontSize: 18, color: colors.ju, fontWeight: '700' },
   // 관계 칩
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: space(2), marginTop: space(1) },
+  // ── 카테고리 드롭박스(daniel 2026-08-12 "버블형식으로 나열하지말고 드랍박스로하자") ──
+  //   생김새는 위 input 과 맞춘다 — 같은 폼 안에서 입력칸과 선택칸이 달라 보이면 그 자체가 잡음이다.
+  dropBox: {
+    backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, borderRadius: radius.md,
+    paddingVertical: space(3), paddingHorizontal: space(3.5), marginTop: space(1),
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+  },
+  dropTx: { color: colors.ink, fontSize: 15 },
+  dropCaret: { color: colors.inkFaint, fontSize: 13 },
+  // 시트 안 한 줄 = [이름 ………… ✓ ✕]
+  catRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: space(3), borderBottomWidth: 1, borderBottomColor: colors.line },
+  catRowTx: { flex: 1, color: colors.inkSoft, fontSize: 15 },
+  catRowOn: { color: colors.ju, fontWeight: '800' },
+  catCheck: { color: colors.ju, fontSize: 15, fontWeight: '800', marginRight: space(3) },
+  // ✕ 는 **삭제 가능한 줄에만** 그린다(isRemovable) — 못 누르는 버튼을 보여 주지 않는다
+  catDel: { paddingHorizontal: space(2), paddingVertical: space(1) },
+  catDelTx: { color: colors.inkFaint, fontSize: 15 },
+
   chip: {
     backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line,
     borderRadius: radius.pill, paddingVertical: space(2), paddingHorizontal: space(3.5),

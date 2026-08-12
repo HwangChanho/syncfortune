@@ -99,6 +99,8 @@ export const en = {
     or: 'or', google: 'Continue with Google', apple: 'Continue with Apple', naver: 'Continue with Naver', processing: 'Signing in…',
   },
   register: {
+    'pickCategory': 'Choose a category',
+    'catDelHint': 'Deleting a category moves its charts to “Other”. “Other” cannot be deleted.',
     'catDeleteTitle': '카테고리 삭제',
     'catHint': '카테고리를 길게 누르면 삭제돼요 (그 명식들은 기타로 이동)',
     'editDone': '완료',
@@ -346,6 +348,9 @@ export const en = {
   offline: { title: 'Offline', msg: "You're not connected to the internet. You can view saved content, but new readings need a connection.", banner: 'Offline — saved content only' },
   taro: { draw: 'Draw a card', reshuffle: 'Reshuffle', reversed: 'Reversed' },
   manse: {
+    'catDeleteTitle': 'Delete category',
+    'newCategoryPh': 'New category name',
+    'catDelNote': 'Deleting a category does not delete the charts — they move to “Other”.',
     'deleteTitle': '명식 삭제',
     'viewManse': '만세력 보기', empty: 'No saved chart.', myChart: 'Chart', searchChart: 'Search by name' },
   sinsal: { 도화: 'Peach Blossom', 역마: 'Travel Horse', 화개: 'Canopy', 천을귀인: 'Nobleman', 문창: 'Academic', 양인: 'Blade', 홍염: 'Romance', 괴강: 'Goegang', 백호: 'White Tiger' },

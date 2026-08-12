@@ -4,13 +4,14 @@
 //   대표 변경 = setRepresentative → 만세력·풀이·궁합이 그 명식 기준(loadMyChart).
 // 명식이 없으면 등록 유도. 화면 복귀 시 useFocusEffect 로 목록 갱신.
 // ─────────────────────────────────────────────────────────────────────────
-import { useState, useCallback, useEffect, useRef } from 'react';
-import { View, Text, Pressable, Modal, StyleSheet, Dimensions, ActivityIndicator, InteractionManager, Animated, ScrollView, TextInput } from 'react-native';
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
+import { View, Text, Pressable, Modal, StyleSheet, Dimensions, ActivityIndicator, InteractionManager, Animated, TextInput } from 'react-native';
 import { PressableScale } from './PressableScale';
 import { Image as ExpoImage } from 'expo-image'; // 자동 다운샘플(메모리) + 엠블럼 탭 풀스크린 뷰어
 import DraggableFlatList, { ScaleDecorator } from 'react-native-draggable-flatlist'; // 이슈20 롱프레스 드래그 reorder
 import type { FlatList as GHFlatList } from 'react-native-gesture-handler'; // DraggableFlatList 가 넘겨주는 ref 실체(scrollToOffset)
 import { Alert } from '../lib/ui/alert'; // 커스텀 알림(삭제 확인)
+import { getCategories, addCategory, removeCategory, isRemovable } from '../lib/core/categories'; // 카테고리 관리(daniel 2026-08-12 — 명식리스트에서 추가·삭제)
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context'; // 시트 하단 안전영역(홈 인디케이터) — 아래 addBtn 주석
 import { useTranslation } from 'react-i18next';
@@ -72,6 +73,8 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
   const [actionsFor, setActionsFor] = useState<string | null>(null); // 수정/삭제 펼친 행(daniel: 한 버튼 ⋯ 탭 → 수정·삭제 분리)
   const [premChartId, setPremChartId] = useState<string | null>(getPremiumChartIdSnapshot()); // 프리미엄 지정 명식 serverChartId(👑·삭제경고)
   const [catFilter, setCatFilter] = useState<string | null>(null); // 카테고리(관계) 필터 — null=전체보기(daniel: 전체보기+카테고리별 보기)
+  const [catMenu, setCatMenu] = useState(false);   // 카테고리 드롭박스 펼침(daniel 2026-08-12 — 종전 칩 나열)
+  const [newCat, setNewCat] = useState('');        // 새 카테고리 입력
   const [query, setQuery] = useState(''); // ★이름 검색(daniel 2026-08-04 "명식 리스트에서 검색으로도 찾을 수 있게") — 이름(label)만 대조
 
   const reload = useCallback(async () => {
@@ -98,9 +101,24 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
   //   → 관계 옵션이 나중에 바뀌어도 자동 반영. 등장 순서 보존(첫 등장 순).
   const relOf = (c: SavedChart) => c.relation || 'self';
   const relLabel = useCallback((r: string) => (r === 'self' ? t('register.selfLabel', '본인') : r), [t]);
-  const categories = charts.reduce<string[]>((acc, c) => { const r = relOf(c); if (!acc.includes(r)) acc.push(r); return acc; }, []);
-  // 필터 바는 카테고리가 2종 이상일 때만(전부 같은 관계면 필터가 무의미 — 예: 본인 명식만 있는 경우).
-  const showFilter = categories.length >= 2;
+  // ★★관리 목록과 합친다(daniel 2026-08-12 *"명식리스트에서 카테고리 추가할수있게"*).
+  //   종전엔 **저장된 명식에서만** 뽑았다 — 그러면 여기서 새 카테고리를 만들어도
+  //   **아직 그 카테고리의 명식이 없으니 목록에 안 나타난다**(만들었는데 사라진 것처럼 보인다).
+  //   ⇒ 실제 쓰인 relation ∪ 관리 목록(프리셋+커스텀+기타). 순서는 '실제 쓰인 것 먼저'를 유지한다.
+  const [catRev, setCatRev] = useState(0);   // 추가·삭제 후 목록 재조회 트리거
+  const categories = useMemo(() => {
+    const used = charts.reduce<string[]>((acc, c) => { const r = relOf(c); if (!acc.includes(r)) acc.push(r); return acc; }, []);
+    const managed = getCategories();         // 프리셋(숨김 제외) + 커스텀 + 기타
+    return [...used, ...managed.filter((m) => !used.includes(m))];
+  }, [charts, catRev]);
+  /** 카테고리별 명식 수 — 드롭박스에서 '몇 개짜리인지' 보여 삭제 판단을 돕는다(0개면 지워도 옮겨갈 명식이 없다). */
+  const catCount = useMemo(() => {
+    const m: Record<string, number> = {};
+    for (const c of charts) { const r = relOf(c); m[r] = (m[r] ?? 0) + 1; }
+    return m;
+  }, [charts]);
+  // ★종전엔 카테고리가 2종 미만이면 필터 바를 아예 숨겼다(showFilter). 드롭박스는 **추가 창구이기도 하므로**
+  //   항상 보여야 한다 — 숨기면 카테고리가 하나뿐인 사용자는 새로 만들 방법이 없다(닭이 먼저인 문제).
   // 선택된 필터로 표시 목록을 좁힌다(null=전체). 필터 중이면 드래그 순서변경은 막는다(부분집합 드래그가 전체 순서를 꼬이게 함).
   // 검색은 공백·대소문자 무시(한글엔 대소문자가 없지만 영문 이름 등록도 있다).
   const q = query.trim().toLowerCase();
@@ -237,6 +255,41 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
   // 만세력 보기 → 그 명식을 대표로 설정하고 만세력(/charts) 화면으로 진입(daniel 07-01)
   async function viewManse(id: string) { await setRepresentative(id); setOpen(false); onChange?.(); router.push('/charts'); }
 
+  // ── 카테고리 관리(daniel 2026-08-12 *"카테고리 추가할수있게하고 삭제도 할수 있게"*) ──
+  /** 새 카테고리 추가 — 만들자마자 그 카테고리로 필터를 옮겨 '만들어졌다'가 눈에 보이게 한다. */
+  async function addCat() {
+    const n = newCat.trim();
+    if (!n) return;
+    await addCategory(n);
+    setNewCat(''); setCatRev((v) => v + 1); setCatFilter(n);
+  }
+  /**
+   * 카테고리 삭제 — 소속 명식은 **전부 '기타'로** 옮겨진다(removeCategory → reassignRelation).
+   * '본인(self)'과 '기타'는 삭제 대상이 아니다(isRemovable) — 애초에 ✕ 를 그리지 않는다.
+   * ★확인창은 이 모달을 **닫지 않고** 띄운다 — 바로 아래 confirmDelete(명식 삭제)가 이미 같은 방식으로
+   *   프로덕션에서 동작 중이다. 화면 안에서 두 방식이 갈리지 않게 그 관용구를 따른다.
+   */
+  function confirmRemoveCat(r: string) {
+    if (!isRemovable(r)) return;
+    const n = catCount[r] ?? 0;
+    Alert.alert(
+      t('manse.catDeleteTitle', '카테고리 삭제'),
+      n > 0
+        ? (t('manse.catDeleteMsgN', { cat: relLabel(r), n, defaultValue: `‘${relLabel(r)}’ 카테고리를 지울까요?\n이 카테고리의 명식 ${n}개는 ‘기타’로 옮겨져요(명식은 지워지지 않아요).` }) as string)
+        : (t('manse.catDeleteMsg0', { cat: relLabel(r), defaultValue: `‘${relLabel(r)}’ 카테고리를 지울까요?` }) as string),
+      [
+        { text: t('common.cancel', '취소'), style: 'cancel' },
+        { text: t('common.delete', '삭제'), style: 'destructive', onPress: async () => {
+          await removeCategory(r);
+          if (catFilter === r) setCatFilter(null);   // 지운 카테고리를 보고 있었으면 전체로
+          setCatRev((v) => v + 1);
+          await reload();                            // 명식들의 relation 이 '기타'로 바뀌었다 — 목록 재조회
+          onChange?.();
+        } },
+      ],
+    );
+  }
+
   // 명식 삭제 → 확인 후 deleteChart + 목록 갱신 + 호출처 알림(되돌릴 수 없음).
   function remove(id: string, label: string) {
     // ★프리미엄 지정 명식 삭제 = 프리미엄 혜택 사라짐 → 경고 필수(daniel 07-01)
@@ -310,18 +363,47 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
                 {shown.length ? `검색 결과 ${shown.length}개` : '검색 결과가 없어요'} · 순서 변경은 검색을 지우고
               </Text>
             )}
-            {/* 카테고리(관계) 필터 — 관계가 2종 이상일 때만. [전체] + 각 카테고리 칩(daniel: 전체보기+카테고리별). */}
-            {showFilter && (
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.catBar} contentContainerStyle={styles.catRow}>
-                <PressableScale style={[styles.catChip, !filtering && styles.catChipOn]} onPress={() => setCatFilter(null)}>
-                  <Text style={[styles.catChipTx, !filtering && styles.catChipTxOn]}>{t('community.all', '전체')}</Text>
-                </PressableScale>
+            {/* ★카테고리 — **드롭박스**(daniel 2026-08-12 *"버블형식으로 나열하지말고 드랍박스로하자"*).
+                종전엔 가로 스크롤 칩이라 ①카테고리가 늘면 오른쪽으로 밀려 안 보이고
+                ②추가·삭제할 방법이 이 화면에 아예 없었다. 이제 선택·추가·삭제를 여기서 다 한다.
+                ★**펼침은 인라인**(absolute·중첩 Modal 아님) — 이 화면은 이미 Modal 안이고,
+                  리스트 안 absolute 는 잘림·유령터치를 만든다([[toggle-view-auto-dismiss]]). */}
+            <PressableScale style={styles.catDrop} onPress={() => setCatMenu((v) => !v)}>
+              <Text style={styles.catDropTx} numberOfLines={1}>
+                {catFilter ? relLabel(catFilter) : t('community.all', '전체')}
+                <Text style={styles.catDropCount}>  {catFilter ? (catCount[catFilter] ?? 0) : charts.length}개</Text>
+              </Text>
+              <Text style={styles.catDropCaret}>{catMenu ? '▴' : '▾'}</Text>
+            </PressableScale>
+            {catMenu && (
+              <View style={styles.catMenu}>
+                <Pressable style={styles.catItem} onPress={() => { setCatFilter(null); setCatMenu(false); }}>
+                  <Text style={[styles.catItemTx, !catFilter && styles.catItemOn]}>{t('community.all', '전체')}</Text>
+                  <Text style={styles.catItemN}>{charts.length}</Text>
+                </Pressable>
                 {categories.map((r) => (
-                  <PressableScale key={r} style={[styles.catChip, catFilter === r && styles.catChipOn]} onPress={() => setCatFilter(r)}>
-                    <Text style={[styles.catChipTx, catFilter === r && styles.catChipTxOn]} numberOfLines={1}>{relLabel(r)}</Text>
-                  </PressableScale>
+                  <Pressable key={r} style={styles.catItem} onPress={() => { setCatFilter(r); setCatMenu(false); }}>
+                    <Text style={[styles.catItemTx, catFilter === r && styles.catItemOn]} numberOfLines={1}>{relLabel(r)}</Text>
+                    <Text style={styles.catItemN}>{catCount[r] ?? 0}</Text>
+                    {/* ★'본인'·'기타'는 ✕ 를 아예 안 그린다 — 못 누르는 버튼을 보여 주지 않는다 */}
+                    {isRemovable(r) && (
+                      <Pressable hitSlop={8} style={styles.catX} onPress={() => confirmRemoveCat(r)}>
+                        <Text style={styles.catXTx}>✕</Text>
+                      </Pressable>
+                    )}
+                  </Pressable>
                 ))}
-              </ScrollView>
+                {/* 새 카테고리 — 여기서 바로 만들고, 만들면 그 카테고리로 필터가 옮겨간다 */}
+                <View style={styles.catAddRow}>
+                  <TextInput style={styles.catAddInput} value={newCat} onChangeText={setNewCat}
+                    placeholder={t('manse.newCategoryPh', '새 카테고리 이름')} placeholderTextColor={colors.inkFaint}
+                    returnKeyType="done" onSubmitEditing={addCat} />
+                  <PressableScale style={[styles.catAddBtn, !newCat.trim() && styles.catAddBtnOff]} onPress={addCat} disabled={!newCat.trim()}>
+                    <Text style={styles.catAddBtnTx}>{t('common.add', '추가')}</Text>
+                  </PressableScale>
+                </View>
+                <Text style={styles.catNote}>{t('manse.catDelNote', '카테고리를 지워도 명식은 지워지지 않아요 — ‘기타’로 옮겨져요.')}</Text>
+              </View>
             )}
             {/* 순서 변경 안내 — 전체보기에서만 드래그 가능(필터 중엔 부분집합이라 순서 저장이 꼬임). */}
             {charts.length > 1 && !filtering && <Text style={{ ...font.caption, color: colors.inkFaint, marginBottom: space(2) }}>명식을 길게 눌러 끌면 순서가 바뀌어요</Text>}
@@ -493,6 +575,36 @@ const styles = StyleSheet.create({
   catChipOn: { backgroundColor: colors.ju, borderColor: colors.ju },
   catChipTx: { ...font.caption, color: colors.inkSoft, fontWeight: '700' },
   catChipTxOn: { color: colors.bg },
+  // ── 카테고리 드롭박스(daniel 2026-08-12) — 칩 가로스크롤을 대체 ──
+  //   ★생김새는 위 검색창(input)과 맞춘다. 같은 시트 안에서 컨트롤이 서로 달라 보이면 그게 잡음이다.
+  catDrop: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    backgroundColor: colors.sunk, borderWidth: 1, borderColor: colors.line, borderRadius: radius.md,
+    paddingHorizontal: space(3.5), minHeight: 40, marginBottom: space(2),
+  },
+  catDropTx: { ...font.caption, color: colors.ink, fontWeight: '700', flex: 1 },
+  catDropCount: { color: colors.inkFaint, fontWeight: '600' },
+  catDropCaret: { color: colors.inkFaint, fontSize: 12 },
+  // 펼침은 **인라인**(absolute 금지 — 리스트 안 absolute 는 잘림·유령터치를 만든다)
+  catMenu: {
+    backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, borderRadius: radius.md,
+    paddingHorizontal: space(3), paddingVertical: space(1), marginBottom: space(2.5),
+  },
+  catItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: space(2.5), borderBottomWidth: 1, borderBottomColor: colors.line },
+  catItemTx: { ...font.caption, color: colors.inkSoft, flex: 1 },
+  catItemOn: { color: colors.ju, fontWeight: '800' },
+  catItemN: { ...font.caption, color: colors.inkFaint, marginRight: space(2) },
+  catX: { paddingHorizontal: space(1.5), paddingVertical: space(0.5) },
+  catXTx: { color: colors.inkFaint, fontSize: 13 },
+  catAddRow: { flexDirection: 'row', alignItems: 'center', gap: space(2), paddingVertical: space(2.5) },
+  catAddInput: {
+    flex: 1, backgroundColor: colors.sunk, borderWidth: 1, borderColor: colors.line, borderRadius: radius.sm,
+    paddingHorizontal: space(2.5), minHeight: 36, color: colors.ink, fontSize: 13,
+  },
+  catAddBtn: { backgroundColor: colors.ju, borderRadius: radius.sm, paddingHorizontal: space(3.5), minHeight: 36, justifyContent: 'center' },
+  catAddBtnOff: { opacity: 0.4 },
+  catAddBtnTx: { color: colors.bg, fontSize: 13, fontWeight: '800' },
+  catNote: { ...font.caption, color: colors.inkFaint, paddingBottom: space(2) },
   // ★flexShrink=시트가 꽉 차면 리스트가 줄어 마지막 명식·＋등록 버튼이 안 잘림(daniel 07-21). maxHeight=상한(시트 내 스크롤)
   //   ★★상한을 0.62→0.52 로 낮춘다(daniel 2026-08-07 IMG_8431 "명식등록 계속 짤려" · 명식 51개).
   //     시트 최대 88% 인데 헤더(제목·검색·필터칩·안내문)가 ~22% + 등록 버튼 ~9% + 안전영역 ~4% 를 먹는다.

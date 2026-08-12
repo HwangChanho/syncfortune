@@ -125,6 +125,8 @@ export const ko = {
     or: '또는', google: 'Google로 계속하기', apple: 'Apple로 계속하기', naver: '네이버로 계속하기', processing: '로그인 처리 중…',
   },
   register: {
+    'pickCategory': '카테고리 선택',
+    'catDelHint': '카테고리를 지우면 그 명식들은 ‘기타’로 옮겨져요. ‘기타’는 지울 수 없어요.',
     'catDeleteTitle': '카테고리 삭제',
     'catHint': '카테고리를 길게 누르면 삭제돼요 (그 명식들은 기타로 이동)',
     'editDone': '완료',
@@ -377,6 +379,9 @@ export const ko = {
   offline: { title: '오프라인', msg: '인터넷에 연결돼 있지 않아요. 저장된 내용은 볼 수 있지만, 새 풀이는 연결된 뒤에 가능해요.', banner: '오프라인 — 저장된 내용만 볼 수 있어요' },
   taro: { draw: '카드 뽑기', reshuffle: '다시 뽑기', reversed: '역방향' },
   manse: {
+    'catDeleteTitle': '카테고리 삭제',
+    'newCategoryPh': '새 카테고리 이름',
+    'catDelNote': '카테고리를 지워도 명식은 지워지지 않아요 — ‘기타’로 옮겨져요.',
     'deleteTitle': '명식 삭제',
     'viewManse': '만세력 보기', empty: '등록된 명식이 없습니다.', myChart: '명식', searchChart: '이름으로 찾기' },
   sinsal: { 도화: '도화', 역마: '역마', 화개: '화개', 천을귀인: '천을귀인', 문창: '문창', 양인: '양인', 홍염: '홍염', 괴강: '괴강', 백호: '백호' },

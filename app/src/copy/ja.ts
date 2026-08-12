@@ -98,6 +98,8 @@ export const ja = {
     or: 'または', google: 'Googleで続ける', apple: 'Appleで続ける', naver: 'Naverで続ける', processing: 'ログイン処理中…',
   },
   register: {
+    'pickCategory': 'カテゴリーを選ぶ',
+    'catDelHint': 'カテゴリーを削除すると、その命式は「その他」に移動します。「その他」は削除できません。',
     'catDeleteTitle': '카테고리 삭제',
     'catHint': '카테고리를 길게 누르면 삭제돼요 (그 명식들은 기타로 이동)',
     'editDone': '완료',
@@ -345,6 +347,9 @@ export const ja = {
   offline: { title: 'オフライン', msg: 'インターネットに接続されていません。保存済みは見られますが、新しい鑑定は接続後に可能です。', banner: 'オフライン — 保存済みのみ' },
   taro: { draw: 'カードを引く', reshuffle: '引き直す', reversed: '逆位置' },
   manse: {
+    'catDeleteTitle': 'カテゴリー削除',
+    'newCategoryPh': '新しいカテゴリー名',
+    'catDelNote': 'カテゴリーを削除しても命式は消えません —「その他」に移動します。',
     'deleteTitle': '명식 삭제',
     'viewManse': '만세력 보기', empty: '登録された命式がありません。', myChart: '命式', searchChart: '名前で探す' },
   sinsal: { 도화: '桃花', 역마: '駅馬', 화개: '華蓋', 천을귀인: '天乙貴人', 문창: '文昌', 양인: '羊刃', 홍염: '紅艶', 괴강: '魁罡', 백호: '白虎' },
