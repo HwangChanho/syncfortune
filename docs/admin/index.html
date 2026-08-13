@@ -562,7 +562,13 @@ $('gift').onclick = async () => {
   $('gift').disabled = true;
   const { error } = await sb.rpc('admin_grant_coins', { p_owner: id, p_amount: amt });
   $('gift').disabled = false;
-  say($('giftMsg'), error ? `실패 — ${error.message}` : `${num(amt)}운을 지급했습니다`, error ? 'err' : 'ok');
+  // ★'forbidden' 은 권한이 없다는 뜻이 아니라 **관리자모드가 꺼져 있다**는 뜻이다(2026-08-13 실측).
+  //   운 지급은 `is_caller_god()` = is_admin AND admin_mode 를 요구하는데,
+  //   메시지가 'forbidden' 뿐이라 무엇을 고쳐야 할지 알 수 없었다. 해결 방법을 화면에 적는다.
+  const hint = error && /forbidden/i.test(error.message)
+    ? '실패 — 관리자모드가 꺼져 있습니다. [시스템] 탭에서 관리자모드를 켠 뒤 다시 시도하세요.'
+    : error ? `실패 — ${error.message}` : `${num(amt)}운을 지급했습니다 (푸시 알림도 함께 발송됩니다)`;
+  say($('giftMsg'), hint, error ? 'err' : 'ok');
 };
 
 // ── 예약 푸시 ─────────────────────────────────────────────────────────────
