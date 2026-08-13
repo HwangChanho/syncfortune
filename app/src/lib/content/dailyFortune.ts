@@ -328,6 +328,60 @@ const DAY_TIP: Record<string, Record<string, string>> = {
 };
 const GOOD_PREFIX: Record<string, string> = { ko: '오늘은 흐름이 좋아요. ', en: 'Good flow today — ', ja: '今日は流れの良い日 — ' };
 
+// ── 건강: 오행별 **몸에서 느끼는 부위 + 관리법** ───────────────────────────
+// daniel 2026-08-13: *"건강도 부위별로 좀더 디테일하게"* → 수위는 **「부위 + 관리법까지」** 로 확정.
+//
+// ★★§4 안전 가드 — 이 표에서 절대 하지 않는 것
+//   · **장부명을 쓰지 않는다**(간·심장·위장·폐·신장). 장부명이 들어가면 *진단처럼* 읽힌다.
+//     그래서 木을 "간"이 아니라 **"눈·어깨"** 로, 水를 "신장"이 아니라 **"허리·다리"** 로 적는다.
+//   · **질병을 예측하지 않는다.** "~에 걸린다"·"~을 조심" 대신 **"이런 느낌이 오기 쉬운 흐름"** 으로만.
+//   · 반드시 **관리법을 함께** 적는다 — 진단으로 끝내지 않고 대응으로 닫는다(가드5).
+//
+// ■ 어느 오행을 보는가 (판정축)
+//   **그날/그달 천간의 오행**을 본다 — 바로 위 `DAY_TIP` 과 **같은 축**이라 앱 안에서 말이 어긋나지 않는다.
+//   ⚠️다른 축(그날 기운이 극하는 오행 / 원국의 약한 오행 / 태과한 오행)도 가능하고,
+//     그중 무엇이 옳은지는 상담가 세트 `verify-000m` #12~15 에 **판정 대기 중**이다.
+//     판정이 오면 이 표는 그대로 두고 **고르는 오행만** 바꾸면 된다(그래서 표와 축을 분리해 두었다).
+const BODY_CARE: Record<string, Record<string, { area: string; care: string }>> = {
+  ko: {
+    木: { area: '눈과 어깨·목이 뻐근해지기 쉬운', care: '한 시간에 한 번은 먼 곳을 보고 어깨를 크게 돌려 주세요.' },
+    火: { area: '가슴이 답답하거나 잠이 얕아지기 쉬운', care: '늦은 카페인을 줄이고 자기 전 미지근한 물 한 잔이 도움이 돼요.' },
+    土: { area: '속이 더부룩해지기 쉬운', care: '천천히 씹어 먹고 찬 음식보다 따뜻한 쪽을 골라 보세요.' },
+    金: { area: '목과 코가 건조해지기 쉬운', care: '실내 습도를 챙기고 따뜻한 물을 자주 마시면 한결 편해요.' },
+    水: { area: '허리와 다리가 무거워지기 쉬운', care: '오래 앉아 있었다면 일어나 허리를 펴고 따뜻하게 감싸 주세요.' },
+  },
+  en: {
+    木: { area: 'tension in your eyes, shoulders and neck', care: 'Look into the distance once an hour and roll your shoulders wide.' },
+    火: { area: 'a tight chest or lighter sleep', care: 'Cut back on late caffeine; a glass of warm water before bed helps.' },
+    土: { area: 'a heavy, bloated feeling after meals', care: 'Chew slowly and choose warm food over cold today.' },
+    金: { area: 'dryness in your throat and nose', care: 'Keep the air humid and sip warm water often.' },
+    水: { area: 'heaviness in your lower back and legs', care: 'If you have been sitting long, stand, straighten up and keep warm.' },
+  },
+  ja: {
+    木: { area: '目と肩・首がこわばりやすい', care: '一時間に一度は遠くを見て、肩を大きく回してみてください。' },
+    火: { area: '胸が詰まったり眠りが浅くなりやすい', care: '遅い時間のカフェインを控え、寝る前に白湯を一杯どうぞ。' },
+    土: { area: 'お腹が張りやすい', care: 'ゆっくり噛んで、冷たいものより温かいものを選んでみて。' },
+    金: { area: 'のどと鼻が乾きやすい', care: '室内の湿度を保ち、温かい水をこまめに飲むと楽になります。' },
+    水: { area: '腰と脚が重くなりやすい', care: '長く座っていたら立ち上がって腰を伸ばし、温かくして過ごしましょう。' },
+  },
+};
+/**
+ * 그날 천간 오행 → 건강 한 줄(부위 + 관리법). §4: 장부명·질병 예측 금지.
+ *
+ * ★'이달' 판은 따로 만들지 않는다 — 다른 문구와 똑같이 **`dayToMonth` 치환**에 맡긴다
+ *   (`오늘은`→`이번 달은` · `today`→`this month`). 프레이밍을 두 벌로 두면 한쪽만 고쳐지기 쉽다.
+ * ⚠️en 은 치환 정규식이 `/\btoday\b/gi` → 소문자 `this month` 라 **문장 첫머리에 Today 를 두지 않는다**
+ *   (두면 "this month you may…" 로 소문자가 문장을 연다). 그래서 today 를 문장 끝에 놓았다.
+ */
+function bodyCareLine(lang: string, stem: Stem): string {
+  const el = stemElement(stem);
+  const t = BODY_CARE[lang]?.[el] ?? BODY_CARE.ko[el];
+  if (!t) return '';
+  if (lang === 'ja') return `今日は${t.area}流れです。${t.care}`;
+  if (lang === 'en') return `You may notice ${t.area} today. ${t.care}`;
+  return `오늘은 ${t.area} 흐름이에요. ${t.care}`;
+}
+
 /** 일운 아침 알림 한 줄 팁 — 그날 일진 오행 → 라이프 액션(결정론). 좋은 날(score≥66)이면 긍정 프리픽스. */
 export function dailyAlarmTip(saju: SajuChart, dayStem: Stem, dayBranch: Branch): string {
   const lang = appLang();
@@ -414,7 +468,15 @@ export function dailyPreview(saju: SajuChart, todayStem: Stem, todayBranch: Bran
 }
 
 export type DailyAreaKey = 'general' | 'work' | 'money' | 'invest' | 'love' | 'health';
-export const DAILY_AREA_KEYS: DailyAreaKey[] = ['general', 'work', 'money', 'love', 'health']; // 오늘/이달 노출 5분야(투자 제외 — daniel 07-04. getDailyReading은 invest 계산하나 화면 미노출)
+/**
+ * 오늘/이달 화면에 칩으로 뜨는 분야.
+ *
+ * ★`invest`(투자) 이력 — 07-04 daniel 이 뺐다가 **08-13 daniel 이 다시 살렸다**.
+ *   *"재물의경우 투자 사업 분류해서 알려주고"* → 「'투자' 칩을 다시 살림」 선택.
+ *   문구·3개 언어(투자/Investing/投資)·투자조언 금지 가드가 **전부 이미 있어서** 켜기만 하면 됐다.
+ *   ⚠️07-04 에 왜 뺐는지는 커밋에 사유가 안 남아 있다 — 화면 폭이 좁아 칩이 줄바꿈되면 그때 다시 논의.
+ */
+export const DAILY_AREA_KEYS: DailyAreaKey[] = ['general', 'work', 'money', 'invest', 'love', 'health'];
 
 // ── 언어별 템플릿 묶음 (ko/en/ja) — 본문은 앱 언어로. group/stage/type/pos 키는 내부(엔진 산출) 고정. ──
 type Lang = 'ko' | 'en' | 'ja';
@@ -433,6 +495,8 @@ type Bundle = {
   areaSub: Record<TgGroup, string>;
   threeUnite: string; gm: string; gmMoney: string; cheonEul: string; hwagae: string;
   yeokma: string; dohwa: string; moneyBijeop: string; healthLow: string;
+  /** 돈이 크게 움직이는 날(편재+충) — ★'횡재'라 쓰지 않는다: 충은 나가는 쪽도 된다(daniel 08-13). */
+  moneyMove: string;
   investCaution: string;                                      // 투자 분야 주의(daniel #17 — 흐름·타이밍 관점만, 종목·매수 조언 아님)
   polarity: Partial<Record<TenGod, string>>;                  // ★C3(daniel): 오늘 기운 正/偏·식/상 결 한 줄(5-lump 복구 — 칠살·상관 등). general 에 덧댐
   sangGwanGyeonGwan: string;                                  // ★C3(daniel): 상관견관(오늘 상관 + 원국 정관) — 윗사람·규칙 마찰 주의(직업)
@@ -558,6 +622,7 @@ const KO: Bundle = {
   yeokma: '외근·이동·출장처럼 움직이는 일이 오히려 기회가 되는 날이에요. 자리만 지키기보다 직접 가서 보세요.',
   dohwa: '매력이 살아나고 시선이 모이는 날이에요. 첫 만남이든 오랜 사이든 호감이 잘 통해요.',
   moneyBijeop: '주변과 같이 쓰는 돈은 특히 새기 쉬워요. 오늘만큼은 한도를 정해 두는 게 안전해요.',
+  moneyMove: '돈이 크게 움직이는 흐름이에요. 들어오는 쪽도, 나가는 쪽도 평소보다 커질 수 있으니 큰 결제는 하루 묵혀 보세요.',
   healthLow: '몸이 보내는 신호에 평소보다 민감해지세요. 오늘은 일찍 쉬는 것이 보약이에요.',
   investCaution: '투자·재테크는 흐름과 타이밍의 관점에서만 가볍게 보세요. 무리한 베팅·빚투는 한 걸음 물러서고, 큰 결정은 하루 묵혀 결제 전 한 번 더 점검 — 구체적인 종목·매수 조언이 아니에요.',
   // ★C3(daniel): 오늘 천간의 정밀 십신 결 — 5-lump 로 뭉갠 正/偏·식/상 복구(특히 편관=칠살 압박·상관=표출). general 에 한 줄.
@@ -698,6 +763,7 @@ const EN: Bundle = {
   yeokma: 'A day when moving work — field trips, travel, errands — becomes the opportunity. Rather than staying put, go see for yourself.',
   dohwa: 'A day your charm shines and eyes turn your way — first meeting or long-time bond, goodwill comes through.',
   moneyBijeop: 'Money shared with others leaks especially easily — for today, setting a limit is the safe move.',
+  moneyMove: 'Money moves in a big way today — both in and out can run larger than usual, so sleep on any major payment.',
   healthLow: 'Be more sensitive than usual to what your body signals — today, turning in early is the best medicine.',
   investCaution: 'Treat investing as a matter of flow and timing only. Step back from over-leveraged bets, sleep on big decisions, and double-check before you commit — this is not specific stock or buy advice.',
   polarity: {
@@ -836,6 +902,7 @@ const JA: Bundle = {
   yeokma: '外回り・移動・出張のような動く仕事が、むしろ機会になる日です——席を守るより、自分で行って見て。',
   dohwa: '魅力が生きて視線が集まる日です——初対面でも長い間柄でも、好意がよく通じます。',
   moneyBijeop: '周りと一緒に使うお金は特に漏れやすい——今日だけは上限を決めておくのが安全。',
+  moneyMove: 'お金が大きく動く流れです。入る側も出る側も普段より大きくなりがちなので、大きな決済は一晩おいてみて。',
   healthLow: '体が送るサインに普段より敏感に——今日は早めに休むのが一番の薬です。',
   investCaution: '投資・資産運用は流れとタイミングの観点だけで軽く。無理なベットや借金投資は一歩引いて、大きな決断は一晩おいて決済前にもう一度——具体的な銘柄・買い推奨ではありません。',
   polarity: {
@@ -948,6 +1015,11 @@ export function dailyChartReadings(saju: SajuChart, todayStem: Stem, todayBranch
   if (group === '비겁' && strong) money.push(tt.moneyBijeop);
   if (!favorGood && GATE_AREAS[group].includes('money')) money.push(tt.gate.money); // ★테마A + 반반 보정(신약 재성날 ≠ 항상 '돈 유리', 단 그 부담을 전 영역이 아닌 재물에만)
   if (isGm) money.push(tt.gmMoney);
+  // ★돈이 크게 움직이는 날(daniel 2026-08-13) — **편재 + 충** 이 겹칠 때만.
+  //   ⚠️'횡재수'라고 쓰지 않는다. 충은 **들어오는 쪽만이 아니라 나가는 쪽도** 되기 때문이다.
+  //     daniel 선택: 「넣되 '움직임'으로만」 — 빗나가도 손해를 안 끼치는 표현으로 닫는다.
+  //   (판정축 자체는 상담가 세트 `verify-000m` #9~11 에 올려 두었다. O 가 다르게 오면 조건만 바꾼다.)
+  if (tg === '편재' && links.some((it) => it.type === '충')) money.push(tt.moneyMove);
 
   // 투자(daniel #17) = 재물 흐름 관점 + 표준 주의(흐름·타이밍만, 종목·매수 조언 아님). ※ 십신별 투자 stance 정교화는 daniel 검수 슬롯.
   const invest: string[] = [tt.area.money[group], ...(!favorGood && GATE_AREAS[group].includes('money') ? [tt.gate.money] : []), tt.investCaution]; // ★테마A + 반반 보정
@@ -968,6 +1040,7 @@ export function dailyChartReadings(saju: SajuChart, todayStem: Stem, todayBranch
   const health: string[] = [tt.area.health[group]];
   if (LOW_ENERGY.has(stage)) health.push(tt.healthLow);
   if (!favorGood && GATE_AREAS[group].includes('health')) health.push(tt.gate.health); // ★테마A + 반반 보정
+  health.push(bodyCareLine(appLang(), todayStem)); // ★부위 + 관리법(daniel 08-13) — 장부명·질병예측 금지(§4)
 
   const clean = (arr: string[]) => arr.filter(Boolean);
   return [

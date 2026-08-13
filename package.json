@@ -118,7 +118,8 @@
     "check:resumepair": "npx tsx scripts/check-resumepair.ts",
     "check:security": "npx tsx scripts/check-security.ts",
     "check:adminkeys": "npx tsx scripts/check-adminkeys.ts",
-    "deploy:admin": "bash scripts/deploy-admin.sh"
+    "deploy:admin": "bash scripts/deploy-admin.sh",
+    "check:healthsafe": "npx tsx scripts/check-healthsafe.ts"
   },
   "keywords": [],
   "author": "",
