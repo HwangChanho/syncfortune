@@ -30,6 +30,7 @@ import { excludeMock } from '../../lib/core/testMode'; // ★목업(tier='mock')
 import { appLang } from '../../lib/i18n';
 import { readingFromInvoke } from '../../lib/backend/interpretResult'; // 방어: Edge 응답 정규화(일시적 불가·결제필요·오류)
 import { logEvent } from '../../lib/backend/logger'; // DB 로그(단계별 — 네이티브 크래시 직전 추적)
+import { useResumeReading } from '../../lib/backend/useResumeReading'; // 앱 복귀 시 서버가 만들어 둔 결과 회수
 import { setGenProgress } from '../../lib/backend/genProgress'; // 일회성 진행도(daniel 이슈15)
 import { acquireGen, releaseGen, isGenActive } from '../../lib/backend/genLock'; // 크로스마운트 이중 생성 잠금(② 이중 LLM 방지)
 import { colors, radius, space, shadow, font } from '../../lib/theme';
@@ -87,6 +88,9 @@ export default function CareerScreen() {
   const chartIdRef = useRef<string | null>(null); // ① 현재 로드된 serverChartId — generate 결과 명식 대조(남의 풀이 표시 차단)
 
   // ★유효 통변(reading)이 실제로 공개되는 순간 = 골드 명조 문 열림 연출 1회(daniel 07-06). 캐시 로드/생성 완료로 처음 뜰 때만(ref 가드).
+  // ★복귀 회수 — 앱이 나가도 Edge 는 끝까지 만들어 저장한다. 읽기 전용이라 재결제·재생성 없음.
+  useResumeReading(chartId, 'career', (content) => { setReading(content as any); setBusy(false); });
+
   useEffect(() => {
   }, [reading]);
 

@@ -30,6 +30,7 @@ import { appLang } from '../../lib/i18n';
 import { invokeFail } from '../../lib/backend/interpretResult'; // 방어: Edge 실패(일시적 불가·결제필요·오류) 정규화
 import { assertOnline } from '../../lib/backend/network'; // daniel: 네트워크/서버 미연결 시 풀이 생성 차단
 import { logEvent } from '../../lib/backend/logger';
+import { useResumeReading } from '../../lib/backend/useResumeReading'; // 앱 복귀 시 서버가 만들어 둔 결과 회수
 import { setGenProgress } from '../../lib/backend/genProgress'; // 일회성 진행도(daniel 이슈15)
 import { acquireGen, releaseGen } from '../../lib/backend/genLock'; // 크로스마운트 이중 생성 잠금(② 이중 LLM 방지)
 import { useFontScale } from '../../lib/ui/fontScale';
@@ -70,6 +71,9 @@ export default function LifeGraphScreen() {
   const genSeq = useRef(0);        // ① 생성 세대 토큰 — 명식 전환/재로드 시 ++ 로 진행 중 gen 무효화(stale setData 폐기)
   const chartIdRef = useRef<string | null>(null); // ① 현재 로드된 serverChartId — generate 결과 명식 대조(남의 풀이 표시 차단)
   const draw = useRef(new Animated.Value(0)).current; // 이슈18: 인생곡선 드로잉 진행값(0→1)
+
+  // ★복귀 회수 — 앱이 나가도 Edge 는 끝까지 만들어 저장한다. 읽기 전용이라 재결제·재생성 없음.
+  useResumeReading(chartId, 'lifegraph', (content) => { setData(content as any); setBusy(false); });
 
   useEffect(() => {
     let alive = true;

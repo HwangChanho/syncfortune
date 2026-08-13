@@ -29,7 +29,8 @@ import { withTimeout, GEN_TIMEOUT_MS } from '../../lib/core/withTimeout';   // �
 import { excludeMock } from '../../lib/core/testMode'; // ★목업(tier='mock') 제외(테스트모드 OFF) — 실모드 목업 서빙 차단
 import { appLang } from '../../lib/i18n';
 import { readingFromInvoke } from '../../lib/backend/interpretResult'; // 방어: Edge 응답 정규화(일시적 불가·결제필요·오류 친화 처리)
-import { logEvent } from '../../lib/backend/logger'; // DB 로그(app_logs) — 단계별 추적(네이티브 크래시 직전 지점)
+import { logEvent } from '../../lib/backend/logger';
+import { useResumeReading } from '../../lib/backend/useResumeReading'; // 앱 복귀 시 서버가 만들어 둔 결과 회수(운을 쓰고 못 보는 상태 방지) // DB 로그(app_logs) — 단계별 추적(네이티브 크래시 직전 지점)
 import { setGenProgress } from '../../lib/backend/genProgress'; // 일회성 진행도(daniel 이슈15)
 import { acquireGen, releaseGen } from '../../lib/backend/genLock'; // 크로스마운트 이중 생성 잠금(② 이중 LLM 방지)
 import { colors, radius, space, shadow, font } from '../../lib/theme';
@@ -110,6 +111,11 @@ export default function LoveScreen() {
   const reveal = useRef(new Animated.Value(0)).current; // 섹션 순차 등장
 
   // 대표 명식 로드 → 서버차트ID 확보 → 'love' 캐시 조회(생성 없이 즉시 표시)
+  // ★앱이 백그라운드로 가면 fetch 는 죽지만 **Edge 는 끝까지 만들어 저장한다**(애정 풀이 실측 87~103초).
+  //   복귀했을 때 그 캐시를 주워 오지 않으면 사용자는 "운을 쓰고 결과를 못 본" 상태가 된다.
+  //   재조회는 읽기 전용이라 결제·생성을 다시 일으키지 않는다(비용 0 · 멱등).
+  useResumeReading(chartId, 'love', (content) => { setReading(content as LoveReading); setBusy(false); });
+
   useEffect(() => {
     let alive = true;
     genSeq.current++;   // ① 재로드(진입·명식전환) = 진행 중 generate 무효화(그 결과가 이 화면에 setReading 되지 않게)

@@ -31,6 +31,7 @@ import { appLang } from '../../lib/i18n';
 import { invokeFail } from '../../lib/backend/interpretResult'; // 방어: Edge 실패(일시적 불가·결제필요·오류) 정규화
 import { assertOnline } from '../../lib/backend/network'; // daniel: 네트워크/서버 미연결 시 풀이 생성 차단
 import { logEvent } from '../../lib/backend/logger';
+import { useResumeReading } from '../../lib/backend/useResumeReading'; // 앱 복귀 시 서버가 만들어 둔 결과 회수
 import { setGenProgress } from '../../lib/backend/genProgress'; // 일회성 컨텐츠 진행도(daniel 이슈15)
 import { acquireGen, releaseGen } from '../../lib/backend/genLock'; // 크로스마운트 이중 생성 잠금(② 이중 LLM 방지)
 import { colors, radius, space, shadow, font } from '../../lib/theme';
@@ -93,6 +94,9 @@ export default function NewYearScreen() {
   }, [data]);
 
   const category = `newyear_${year}`; // 연운(year_YYYY)과 분리된 신년 전용 캐시
+
+  // ★복귀 회수 — 앱이 나가도 Edge 는 끝까지 만들어 저장한다. 읽기 전용이라 재결제·재생성 없음.
+  useResumeReading(chartId, category, (content) => { setData(content as any); setBusy(false); });
   // 대표 명식의 결정론 차트(무료 티저 + 삼재 산출 공용). computeChart 는 엔진 캐시라 재호출 저렴.
   const c = useMemo(() => (saved ? computeChart(saved.input) : null), [saved]);
   // ★신년 카테고리별 12개월 흐름(결정론·온디바이스·daniel 07-08) — 합성(활성×부합). 유료 본문 분야 카드의 곡선 소스.

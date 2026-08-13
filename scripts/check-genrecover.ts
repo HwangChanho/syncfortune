@@ -34,6 +34,23 @@ const WATCHED = [
   { file: 'app/src/screens/CompatScreen.tsx', why: '궁합 생성 — 실측 57초' },
   { file: 'app/src/screens/ReadingScreen.tsx', why: '사주·자미 풀이 생성 — 다건' },
   { file: 'app/src/screens/TimelineScreen.tsx', why: '인생 타임라인 — 유료(tier: paid) · 이 하네스의 §자동탐지가 찾아냈다' },
+  // ★2026-08-13: 자동탐지 범위를 넓히자마자 드러난 8개(전부 expo-router 경로라 그동안 안 보였다).
+  { file: 'app/src/app/(app)/love.tsx', why: '애정 흐름 — 실측 87~103초(가장 무겁다)' },
+  { file: 'app/src/app/(app)/career.tsx', why: '직업 딥리포트 — 유료' },
+  { file: 'app/src/app/(app)/gaeun.tsx', why: '개운 — 유료' },
+  { file: 'app/src/app/(app)/lifegraph.tsx', why: '인생 그래프 — 유료' },
+  { file: 'app/src/app/(app)/newyear.tsx', why: '신년운 — 유료(category 가 newyear_YYYY 동적)' },
+];
+
+/**
+ * 면제 — **결과를 `readings` 에 명식별로 캐시하지 않는** 화면.
+ * 복귀 회수의 전제(= chart_id × category 로 다시 읽기)가 성립하지 않으므로 이 하네스의 대상이 아니다.
+ * ⚠️사유 없이 넣지 말 것. 여기 들어가면 영영 검사되지 않는다.
+ */
+const EXEMPT = [
+  { file: 'app/src/app/(app)/dream.tsx', why: 'chartless — `dream_readings`(키워드 기준) 라 명식별 회수가 성립하지 않는다' },
+  { file: 'app/src/app/(app)/taemong.tsx', why: 'chartless — 명식 없이 꿈 텍스트로만 생성' },
+  { file: 'app/src/app/(app)/community.tsx', why: '서버 생성을 기다리지 않는다(DB 조회 없음)' },
 ];
 
 /** 생성 대기 화면임을 알아보는 표시 — 이게 있는데 WATCHED 에 없으면 "빠뜨렸다"고 본다. */
@@ -47,6 +64,19 @@ const src = (f: string) => (fs.existsSync(f) ? fs.readFileSync(f, 'utf8') : null
  * — 셋이 **같은 구독 블록 안**에 있어야 한다(따로 있으면 우연이다).
  */
 function hasRecovery(code: string): { ok: boolean; why: string } {
+  // ★공통 훅(`useResumeReading`)을 쓰는 화면도 인정한다 — 동작은 동일하고, 8곳에 같은 코드를 복사하는 것보다
+  //   한 곳을 고치는 편이 안전하다([[duplicate-ui-single-source]]).
+  //   ⚠️단 **훅 이름만 보고 통과시키지 않는다** — 훅 파일이 실제로 AppState 'active' 를 구독하는지 확인한다
+  //   ([[harness-judge-expression-not-name]]: 이름이 아니라 동작으로 판정).
+  if (/useResumeReading\s*\(/.test(code)) {
+    const hookSrc = src('app/src/lib/backend/useResumeReading.ts');
+    if (!hookSrc) return { ok: false, why: 'useResumeReading 을 쓰는데 훅 파일이 없습니다' };
+    if (!/AppState\.addEventListener\('change'/.test(hookSrc) || !/['"]active['"]/.test(hookSrc)) {
+      return { ok: false, why: 'useResumeReading 훅이 AppState active 를 구독하지 않습니다(속 빈 훅)' };
+    }
+    return { ok: true, why: '공통 훅 useResumeReading 으로 복귀 회수' };
+  }
+
   const sub = code.indexOf("AppState.addEventListener('change'");
   if (sub < 0) return { ok: false, why: "AppState.addEventListener('change') 구독이 없습니다" };
   // 구독 블록 = 등록 지점부터 넉넉히 잡되(콜백이 길 수 있다) 다음 구독 전까지
@@ -76,12 +106,24 @@ for (const w of WATCHED) {
 }
 
 // §자동탐지 — WATCHED 에 **추가하는 걸 잊은** 생성 화면을 찾는다(하네스가 스스로 갱신을 요구한다)
+//
+// ★★2026-08-13: 이 자동탐지가 **`app/src/screens` 만 훑고 있었다.**
+//   앱 화면의 절반 이상은 expo-router 경로인 `app/src/app/(app)/` 에 있는데 거기를 안 봤다 —
+//   그래서 하네스가 3개만 검사하고 **"통과"라고 말하는 동안 7개가 뚫려 있었다**
+//   (career·dream·gaeun·lifegraph·love·newyear·taemong — 전부 유료 생성 화면).
+//   daniel 이 "연애 풀이 로딩창이 도중에 사라짐"을 보고했는데 하네스는 초록불이었다.
+//   ⇒ **탐지 범위가 좁은 하네스는 거짓 안심을 준다.** 통과보다 위험하다.
+//   ⚠️새 화면 디렉터리가 생기면 여기에 추가할 것. 목록은 코드가 아니라 **파일시스템**이 정하게 둔다.
+const SCAN_DIRS = ['app/src/screens', 'app/src/app/(app)'];
 const missed: string[] = [];
-for (const f of fs.readdirSync('app/src/screens')) {
-  const p = `app/src/screens/${f}`;
-  if (!f.endsWith('.tsx') || WATCHED.some((w) => w.file === p)) continue;
-  const code = src(p);
-  if (code && GEN_MARK.test(code)) missed.push(p);
+for (const dir of SCAN_DIRS) {
+  if (!fs.existsSync(dir)) continue;
+  for (const f of fs.readdirSync(dir)) {
+    const p = `${dir}/${f}`;
+    if (!f.endsWith('.tsx') || WATCHED.some((w) => w.file === p) || EXEMPT.some((e) => e.file === p)) continue;
+    const code = src(p);
+    if (code && GEN_MARK.test(code)) missed.push(p);
+  }
 }
 if (missed.length) {
   bad += missed.length;
