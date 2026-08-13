@@ -173,7 +173,7 @@ export default function NewYearScreen() {
     if (!acquireGen(lockKey)) {
       setBusy(true); setErr(null);
       const cached = await pollCachedReading(id, category);
-      if (isStale()) return;
+      if (isStale()) { setBusy(false); return; }   // ★로딩을 끄고 나간다 — 여기서 그냥 return 하면 busy 가 켜진 채 남아 화면이 멈춘다
       if (cached) setData(cached);
       setBusy(false);
       return;
@@ -212,7 +212,13 @@ export default function NewYearScreen() {
       if (cached) { setData(cached); ok = true; } // 서버 완료·캐시 = 성공
       else setErr(t('today.genFail', '풀이 생성에 실패했어요. 잠시 후 다시 시도해 주세요.'));
     } finally {
-      releaseGen(lockKey);   // ② 완료·중단·오류·폐기 모두 잠금 해제
+      // ★로딩은 **어떤 경로로 나가든** 꺼야 한다(daniel 2026-08-13).
+      //   `isStale()` 로 빠져나가는 return 이 이 아래에만 7곳 있는데, 전부 setBusy(false) 없이 나갔다.
+      //   ⇒ 명식을 바꾸거나 화면이 재로드되면 **로딩이 영영 안 사라졌다**(사용자는 멈춘 걸로 본다).
+      //   finally 는 성공·실패·폐기를 모두 지나므로 여기 한 줄이면 전 경로가 닫힌다.
+      //   (아래쪽 setBusy(false) 는 중복이지만 같은 값이라 무해 — 굳이 지우지 않는다.)
+      releaseGen(lockKey);
+      setBusy(false);
     }
     if (isStale()) return;   // ① 완료 처리도 현재 명식일 때만
     // ★L2: 실제 성공만 완료 전이(배너+완료 푸시). 실패(오류·폴링실패·unavailable·needPayment)면 배너 제거 → 오완료 '완성' 푸시 방지.
