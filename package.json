@@ -115,7 +115,8 @@
     "check:enginecost": "npx tsx scripts/check-enginecost.ts",
     "check:adminweb": "npx tsx scripts/check-adminweb.ts",
     "check:todaydefault": "npx tsx scripts/check-todaydefault.ts",
-    "check:resumepair": "npx tsx scripts/check-resumepair.ts"
+    "check:resumepair": "npx tsx scripts/check-resumepair.ts",
+    "check:security": "npx tsx scripts/check-security.ts"
   },
   "keywords": [],
   "author": "",
