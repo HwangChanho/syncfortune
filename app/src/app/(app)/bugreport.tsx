@@ -105,7 +105,7 @@ export default function BugReportScreen() {
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView
         style={styles.wrap}
-        contentContainerStyle={{ padding: space(5), paddingBottom: insets.bottom + space(10) }}
+        contentContainerStyle={[styles.scrollPad, { paddingBottom: insets.bottom + space(44) }]}
         keyboardShouldPersistTaps="handled"
       >
         <Text style={styles.title}>{t('bug.title', '버그 제보')}</Text>
@@ -160,6 +160,10 @@ export default function BugReportScreen() {
 
 const mkStyles = (fs: (n: number) => number) => StyleSheet.create({
   wrap: { flex: 1, backgroundColor: colors.bg },
+  // ★하단 여백 176pt(=space(44)) — 마지막이 '보내기' 버튼이라 부족하면 **버튼이 배너 뒤로 사라져 기능이 죽는다.**
+  //   시뮬 실측: 48 이면 안 보이고 176 이면 온전히 보인다(check:bottominset 이 이 값을 강제한다).
+  //   처음엔 space(10) 으로 써서 preflight 에 걸렸다 — 하네스가 맞았다.
+  scrollPad: { padding: space(5), paddingBottom: space(44) },
   title: { color: colors.ink, fontSize: fs(22), lineHeight: fs(30), fontWeight: '800' },
   desc: { color: colors.inkSoft, fontSize: fs(14), lineHeight: fs(22), marginTop: space(2) },
   label: { color: colors.ink, fontSize: fs(14), lineHeight: fs(20), fontWeight: '700', marginTop: space(6), marginBottom: space(2) },
