@@ -119,7 +119,8 @@
     "check:security": "npx tsx scripts/check-security.ts",
     "check:adminkeys": "npx tsx scripts/check-adminkeys.ts",
     "deploy:admin": "bash scripts/deploy-admin.sh",
-    "check:healthsafe": "npx tsx scripts/check-healthsafe.ts"
+    "check:healthsafe": "npx tsx scripts/check-healthsafe.ts",
+    "check:keychain": "npx tsx scripts/check-keychain.ts"
   },
   "keywords": [],
   "author": "",
