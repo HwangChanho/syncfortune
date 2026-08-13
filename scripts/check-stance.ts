@@ -195,8 +195,35 @@ async function main() {
     pending.forEach((p) => console.log(`   ⏳ ${p}`));
   }
 
+  // ── ★코드에 남은 '판정 대기 면제'가 유효한가 (2026-08-13) ─────────────────
+  //   `verify` 는 판정이 없어 못 정하는 항목을 ⏳ 로 **면제**해 두고 통과한다
+  //   (상시 빨간불이면 다른 회귀를 못 보기 때문). 그 면제는 **판정이 오는 순간 거짓말**이 된다.
+  //   그런데 판정 도착은 아무도 알려주지 않는다 — 이미 세 번 놓쳤다([[stance-ledger-harness]]).
+  //   ⇒ 면제가 어떤 세트를 기다리는지 코드에서 읽어, **그 세트에 판정이 오면 여기서 실패**시킨다.
+  //     기억이 아니라 기계가 알아차리게 하는 장치다.
+  const stale: string[] = [];
+  try {
+    const src = fs.readFileSync('engine/verify-fixture.ts', 'utf8');
+    // 면제 목록에 달린 판정 세트 slug 를 코드에서 뽑는다(이름이 아니라 **실제 값**으로)
+    const waited = new Set([...src.matchAll(/set:\s*'([a-z0-9-]+)'/g)].map((m) => m[1]));
+    for (const slug of waited) {
+      const set = sets.find((s) => s.slug === slug);
+      if (!set) continue;
+      const judged = items.filter((i) => i.set_id === set.id && i.verdict && String(i.verdict).trim());
+      if (judged.length) stale.push(`${slug} — 판정 ${judged.length}건 도착 (verify 면제가 아직 코드에 남아 있습니다)`);
+    }
+  } catch { /* 파일이 없으면 검사 생략 — 이 하네스의 본업이 아니다 */ }
+
   console.log('\n   ── 요약 ──');
   console.log(`   판정된 규칙 항목 ${judgedTotal}건 · 대장 기재 ${ledger.size}건 · 누락 ${missing.length}건`);
+
+  if (stale.length) {
+    console.error('\n❌ 판정이 도착했는데 `verify` 가 아직 그 항목을 면제하고 있습니다.');
+    stale.forEach((s) => console.error(`   · ${s}`));
+    console.error('\n   → 판정대로 엔진을 고치고, engine/verify-fixture.ts 의 PENDING_STANCE 에서 해당 줄을 지우세요.');
+    console.error('     면제를 남겨 두면 골든이 "통과"라고 말하지만 실제로는 검증되지 않은 상태입니다.');
+    process.exit(1);
+  }
 
   if (missing.length) {
     console.error('\n❌ 상담가 판정이 도착했는데 대장에 없습니다 — 아무도 안 본 판정입니다.');
