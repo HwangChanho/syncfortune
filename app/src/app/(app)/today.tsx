@@ -243,7 +243,9 @@ const styles = StyleSheet.create({
   bgImage: { flex: 1, backgroundColor: 'transparent' }, // 전역 ContentBackdrop 이 비쳐 보이게(daniel 07-02)
   overlay: { flex: 1, backgroundColor: colors.overlay },
   wrap: { padding: space(6), paddingBottom: space(12) },
-  headlineCard: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.juLine, paddingVertical: space(3.5), paddingHorizontal: space(4), marginBottom: space(4), alignItems: 'center', ...shadow.card },
+  // ★marginTop 추가(daniel 2026-08-13 "여기 아직도 사이 여백이 없네") — 위 시간대별 흐름 카드와 **붙어 있었다.**
+  //   카드 **안쪽** 여백은 08-12 에 고쳤는데 **카드 사이**가 남아 있었다(HourFlowCard 는 marginTop 만 갖는다).
+  headlineCard: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.juLine, paddingVertical: space(3.5), paddingHorizontal: space(4), marginTop: space(4), marginBottom: space(4), alignItems: 'center', ...shadow.card },
   // 점수 흐름 그래프 카드(daniel 07-13)
   graphCard: { backgroundColor: colors.card, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.juLine, paddingTop: space(4), paddingBottom: space(2), paddingHorizontal: space(2), marginBottom: space(4), alignItems: 'center', ...shadow.card },
   graphScore: { fontSize: 44, fontWeight: '900', color: colors.ju, lineHeight: 48 },

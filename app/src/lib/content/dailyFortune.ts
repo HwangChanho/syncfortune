@@ -135,6 +135,29 @@ export function dailyHeadline(saju: SajuChart, todayStem: Stem, todayBranch: Bra
     { pos: '일운' as ChartPosition, stem: todayStem, branch: todayBranch },
   ];
   const links = detectInteractionsAmong(items).filter((it) => it.members.includes('일운') && it.level !== '천간');
+
+  // ★★시간층(대운·세운)을 함께 본다(daniel 2026-08-13 *"원국 대운 세운 월운 일운 고려해서 다양화 시켜"*)
+  // ─────────────────────────────────────────────────────────────────────────
+  //   종전엔 **원국 + 오늘 간지**만 봤다. 그래서 대운이 바뀌어도, 해가 바뀌어도 같은 명식이면
+  //   같은 결의 문구가 계속 나왔다 — "왠지 익숙한 틀을 한번 흔드는 하루"가 반복되던 이유다.
+  //   ⇒ ①시드에 대운·세운 간지를 섞어 **문구 선택 자체를 시기별로 갈리게** 하고
+  //     ②오늘이 **대운·세운 지지와 만드는 작용**도 신호로 넣는다(같은 일진이어도 시기에 따라 다르게).
+  //   ⚠️§10 불변규칙 — 시간층을 **독립으로 읽지 않는다.** 원국 신호(위 links)가 주(主)이고
+  //     여기서 얻는 것은 **그 위에 얹히는 색**이다. 우선순위는 아래 special 판정에서 원국이 앞선다.
+  const luckGz = (saju as any).currentLuck ? `${(saju as any).currentLuck.stem}${(saju as any).currentLuck.branch}` : '';
+  const annualGz = (saju as any).annual ? `${(saju as any).annual.stem}${(saju as any).annual.branch}` : '';
+  const layerItems = [
+    ...POS.map((p) => ({ pos: p as ChartPosition, stem: P[p].stem, branch: P[p].branch })),
+    ...((saju as any).currentLuck ? [{ pos: '대운' as ChartPosition, stem: (saju as any).currentLuck.stem, branch: (saju as any).currentLuck.branch }] : []),
+    ...((saju as any).annual ? [{ pos: '세운' as ChartPosition, stem: (saju as any).annual.stem, branch: (saju as any).annual.branch }] : []),
+    { pos: '일운' as ChartPosition, stem: todayStem, branch: todayBranch },
+  ];
+  //   오늘이 **대운·세운과** 직접 만드는 작용만 추린다(원국끼리의 관계는 위 links 가 이미 본다).
+  const layerLinks = detectInteractionsAmong(layerItems)
+    .filter((it) => it.members.includes('일운') && it.level !== '천간'
+      && it.members.some((m) => m === '대운' || m === '세운'));
+  const layerChung = layerLinks.some((it) => it.type === '충' || it.type === '형');
+  const layerHap = layerLinks.some((it) => it.type === '합');
   // ★C1(daniel): 충/형 특화 헤드라인은 고지(개고)·통근 자리를 칠 때만 — 일 단위 개고 과발화 방지(그 외엔 십신 그룹 헤드라인으로 통과).
   const hasChung = links.some((it) => (it.type === '충' || it.type === '형') && it.members.some((m) => m !== '일운' && isSignificantClash(P, m as PillarPos)));
   const hasHap = links.some((it) => it.type === '합');
@@ -149,11 +172,15 @@ export function dailyHeadline(saju: SajuChart, todayStem: Stem, todayBranch: Bra
     : true; // 중화 = 대체로 순(good)
   const lang = appLang() as HlLang;
   // 같은 날·같은 명식 = 같은 타이틀(결정론). 슬롯마다 다른 비트로 독립 선택.
-  const seed = hlHash(`${todayStem}${todayBranch}${me}`);
+  //   ★시드에 대운·세운을 넣는다 — 같은 일진이어도 **시기가 다르면 다른 문구**가 뽑힌다.
+  //     (같은 날·같은 명식·같은 시기 = 여전히 같은 결과 = 결정론 유지)
+  const seed = hlHash(`${todayStem}${todayBranch}${me}${luckGz}${annualGz}`);
   const lead = hlPick(HL_LEAD[period][lang], seed >>> 11);
   // 신살·작용 특화(우선): 천을귀인 > 충/형 > 합 > 역마 > 도화 > 공망
+  //   ★우선순위: **원국 신호가 먼저**(§10 — 시간층 독립 읽기 금지). 원국이 조용할 때만 시간층 색을 쓴다.
   const special = hasCheonEul ? 'cheoneul' : hasChung ? 'chung' : hasHap ? 'hap'
-    : tw.has('역마') ? 'yeokma' : tw.has('도화') ? 'dohwa' : isGm ? 'gongmang' : null;
+    : tw.has('역마') ? 'yeokma' : tw.has('도화') ? 'dohwa' : isGm ? 'gongmang'
+    : layerChung ? 'chung' : layerHap ? 'hap' : null;
   if (special) {
     const body = hlPick(HL_SPECIAL[special][lang] ?? HL_SPECIAL[special].ko, seed);
     return hlWrap(lead, body, lang, period);
