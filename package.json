@@ -116,7 +116,9 @@
     "check:adminweb": "npx tsx scripts/check-adminweb.ts",
     "check:todaydefault": "npx tsx scripts/check-todaydefault.ts",
     "check:resumepair": "npx tsx scripts/check-resumepair.ts",
-    "check:security": "npx tsx scripts/check-security.ts"
+    "check:security": "npx tsx scripts/check-security.ts",
+    "check:adminkeys": "npx tsx scripts/check-adminkeys.ts",
+    "deploy:admin": "bash scripts/deploy-admin.sh"
   },
   "keywords": [],
   "author": "",
