@@ -16,7 +16,7 @@
 //   그래서 명식 목록이 바뀔 때만 계산한다(reloadKey).
 // ═══════════════════════════════════════════════════════════════════════════
 import { useEffect, useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, InteractionManager } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
@@ -37,6 +37,15 @@ const NODE_COLOR: Record<Element, string> = {
 
 type Top = { id: string; name: string; elem: Element; chemi: number; role: string };
 
+/**
+ * ★계산 결과 캐시 — 홈은 자주 다시 그려지고, 명식이 그대로면 답도 그대로다.
+ *   실측(2026-08-14 daniel *"홈로딩도 갑자기 너무 오래걸려"*):
+ *     명식 61개면 `buildSajuChart`×61 만 **163ms**(맥 기준·기기는 3~5배).
+ *     `buildRelationMap` 자체는 3ms 로 싸다 — 비싼 건 **명식을 다시 세우는 것**이었다.
+ *   키는 명식 목록의 지문(id+라벨). 사람이 추가·수정되면 키가 바뀌어 자동으로 다시 센다.
+ */
+let _cache: { key: string; count: number; tops: Top[]; lead: string } | null = null;
+
 export function RelationMapCard({ reloadKey }: { reloadKey?: number }) {
   const { t } = useTranslation();
   const router = useRouter();
@@ -50,13 +59,24 @@ export function RelationMapCard({ reloadKey }: { reloadKey?: number }) {
 
   useEffect(() => {
     let alive = true;
-    (async () => {
+    // ★홈 **첫 페인트를 막지 않는다.** 전환·애니메이션이 끝난 뒤에 계산한다 —
+    //   이 카드 하나 때문에 앱이 느려 보이면 안 된다(카드는 늦게 떠도 된다).
+    const task = InteractionManager.runAfterInteractions(() => {
+      void (async () => {
       const [list, rep] = await Promise.all([listCharts(), getRepresentativeId()]);
       const meId = rep ?? list[0]?.id;
       const me = list.find((c) => c.id === meId);
       if (!me) return;
       const others = list.filter((c) => c.id !== meId && c.relation !== 'pet');
       if (!others.length) return;                      // 나 혼자면 안 그린다
+
+      // 같은 명식 구성이면 다시 세지 않는다
+      const key = `${meId}|${list.map((c) => `${c.id}:${c.label ?? ''}`).sort().join(',')}`;
+      if (_cache && _cache.key === key) {
+        if (!alive) return;
+        setCount(_cache.count); setTops(_cache.tops); setLead(_cache.lead);
+        return;
+      }
 
       const meChart = computeChart(me.input).saju;
       const built = buildRelationMap(
@@ -67,16 +87,20 @@ export function RelationMapCard({ reloadKey }: { reloadKey?: number }) {
       if (!alive || !built.nodes.length) return;
 
       const nameOf = (id: string) => list.find((c) => c.id === id)?.label ?? '';
-      setCount(built.nodes.length);
-      setTops(built.nodes.slice(0, 3).map((n) => ({
+      const topList: Top[] = built.nodes.slice(0, 3).map((n) => ({
         id: n.id, name: nameOf(n.id), elem: n.dayElem, chemi: n.chemi, role: rolePhrase(lang, n.role).name,
-      })));
-      const first = built.nodes[0];
-      setLead(t('relmapCard.lead', '{{name}}님은 {{role}}이에요', {
-        name: nameOf(first.id), role: rolePhrase(lang, first.role).name,
       }));
-    })().catch(() => {});
-    return () => { alive = false; };
+      setCount(built.nodes.length);
+      setTops(topList);
+      const first = built.nodes[0];
+      const leadTx = t('relmapCard.lead', '{{name}}님은 {{role}}이에요', {
+        name: nameOf(first.id), role: rolePhrase(lang, first.role).name,
+      });
+      setLead(leadTx);
+      _cache = { key, count: built.nodes.length, tops: topList, lead: leadTx };
+      })().catch(() => {});
+    });
+    return () => { alive = false; task.cancel?.(); };
   }, [reloadKey, lang, t]);
 
   if (!count) return null;   // 상대가 없으면 홈에서 통째로 빠진다

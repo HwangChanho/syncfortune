@@ -121,7 +121,8 @@
     "deploy:admin": "bash scripts/deploy-admin.sh",
     "check:healthsafe": "npx tsx scripts/check-healthsafe.ts",
     "check:keychain": "npx tsx scripts/check-keychain.ts",
-    "check:busyleak": "npx tsx scripts/check-busyleak.ts"
+    "check:busyleak": "npx tsx scripts/check-busyleak.ts",
+    "check:homecost": "npx tsx scripts/check-homecost.ts"
   },
   "keywords": [],
   "author": "",
