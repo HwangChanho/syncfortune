@@ -27,7 +27,7 @@
 import { readFileSync, existsSync } from 'node:fs';
 
 /** 공개 배포되는 정적 파일들 — 여기 있는 것은 전부 "전 세계가 읽는다"고 가정한다. */
-const PUBLIC_FILES = ['docs/admin/index.html'];
+const PUBLIC_FILES = ['docs/admin/index.html', 'docs/join/index.html'];  // join = 관계 지도 초대 입력 페이지(2026-08-14)
 
 let bad = 0;
 const fail = (msg: string) => { bad++; console.log(`   ❌ ${msg}`); };

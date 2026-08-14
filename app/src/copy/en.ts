@@ -89,6 +89,12 @@ export const en = {
     failBody: 'Please try again shortly. If it keeps failing, you can email us at the address below.',
   },
   relmap: {
+    joinedTitle: 'Someone joined', joinedBody: '{{n}} new on your map.',
+    invite: 'Send an invite link', inviting: 'Making a link…',
+    inviteNote: 'Your friend opens the link, enters their birth date, and takes a place on your map. Links close after 7 days.',
+    shareMsg: 'Take a spot on my relationship map — just your birth date',
+    needLoginTitle: 'Sign in first',
+    needLoginBody: 'What your friends enter arrives through your account, so invite links need you signed in.',
     title: 'Relationship Map', me: 'me', count: '{{n}} people', hint: 'the closer, the better the chemistry',
     list: 'Best fit first', summary: 'This is the shape of your map',
     emptyOthers: 'It is just you so far. Add a birth date for family or a friend and you will see what kind of presence they are to you.',

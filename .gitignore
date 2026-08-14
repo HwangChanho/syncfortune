@@ -65,6 +65,8 @@ docs/*
 # ⚠️2026-08-12 발견: 이 예외가 없어 `docs/*` 에 막혀 **커밋조차 안 되고 있었다**(08-10 작성분).
 !docs/admin/
 !docs/admin/*
+!docs/join/
+!docs/join/*
 # ↑ 이슈17 공유 스마트링크 stub(docs/s) — GitHub Pages 공개 필요(앱 열기/설치 유도, 풀이 내용은 노출 X)
 # 명리 지식 레이어·물상 (moat 콘텐츠)
 knowledge/

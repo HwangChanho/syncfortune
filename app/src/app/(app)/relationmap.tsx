@@ -14,7 +14,7 @@
 //     한눈에 읽힌다. 무작위로 뿌리면 예쁘기만 하고 아무 말도 못 한다.
 // ═══════════════════════════════════════════════════════════════════════════
 import { useEffect, useMemo, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, ActivityIndicator, Pressable } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, ActivityIndicator, Pressable, Share } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -24,6 +24,8 @@ import { computeChart } from '../../lib/engine/engine';
 import { buildRelationMap, type RelationNode, type RelationRole } from '@engine/relationMap';
 import { rolePhrase, elemRelationLabel, compatHook } from '../../lib/content/relationMapPhrases';
 import { appLang } from '../../lib/i18n';
+import { createInvite, collectEntries } from '../../lib/backend/mapInvite';
+import { Alert } from '../../lib/ui/alert';
 import { saveLastCompat } from '../../screens/CompatScreen'; // 궁합 화면이 상대를 복원하는 그 경로
 import { PressableScale } from '../../components/PressableScale';
 import { colors, radius, space } from '../../lib/theme';
@@ -67,16 +69,37 @@ export default function RelationMapScreen() {
   const [meId, setMeId] = useState<string | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
 
+  const [inviting, setInviting] = useState(false);
+
   useEffect(() => {
     let alive = true;
     (async () => {
+      // ★먼저 회수한다 — 친구가 링크로 넣어 둔 사람이 있으면 이번 화면에 바로 뜬다.
+      //   실패해도 지도는 떠야 하므로 조용히 넘긴다(네트워크가 없을 수도 있다).
+      const added = await collectEntries().catch(() => 0);
       const [list, rep] = await Promise.all([listCharts(), getRepresentativeId()]);
       if (!alive) return;
       setSaved(list); setMeId(rep ?? list[0]?.id ?? null);
       setLoading(false);
+      // 담겼을 때만 알린다 — 0명인데 매번 뜨면 잔소리가 된다
+      if (added > 0) Alert.alert(t('relmap.joinedTitle', '새로 들어왔어요'), t('relmap.joinedBody', '{{n}}명이 지도에 자리를 잡았어요.', { n: added }));
     })().catch(() => alive && setLoading(false));
     return () => { alive = false; };
-  }, []);
+  }, [t]);
+
+  /** 초대 링크를 만들어 공유 시트를 연다. 로그인 안 됐으면 먼저 안내한다. */
+  async function onInvite() {
+    if (inviting) return;
+    setInviting(true);
+    const link = await createInvite(map?.me?.label);
+    setInviting(false);
+    if (!link) {
+      Alert.alert(t('relmap.needLoginTitle', '로그인이 필요해요'),
+        t('relmap.needLoginBody', '친구가 넣은 정보를 내 계정으로 받아야 해서, 초대 링크는 로그인 후에 만들 수 있어요.'));
+      return;
+    }
+    Share.share({ message: `${t('relmap.shareMsg', '내 관계 지도에 자리 하나 맡아 줘 — 생년월일만 넣으면 돼')}\n${link.url}` }).catch(() => {});
+  }
 
   // ★계산은 명식이 바뀔 때만 — 명식 12개면 엔진이 12번 돈다(각 2.12ms). 매 렌더 돌리면 스크롤이 끊긴다.
   const map = useMemo(() => {
@@ -229,6 +252,10 @@ export default function RelationMapScreen() {
       <View style={styles.card}>
         <Text style={styles.h2}>{t('relmap.more', '지도를 더 채우려면')}</Text>
         <Text style={styles.body}>{t('relmap.moreBody', '사람이 늘수록 내 관계의 결이 또렷해져요. 아직 안 넣은 사람이 있다면 생년월일만으로 바로 자리를 잡습니다.')}</Text>
+        <PressableScale style={styles.cta} onPress={onInvite}>
+          <Text style={styles.ctaTx}>{inviting ? t('relmap.inviting', '링크 만드는 중…') : t('relmap.invite', '초대 링크 보내기')}</Text>
+        </PressableScale>
+        <Text style={styles.note}>{t('relmap.inviteNote', '친구가 링크를 열어 생년월일을 넣으면 내 지도에 자리를 잡아요. 링크는 7일 뒤 닫혀요.')}</Text>
         <PressableScale style={styles.ctaGhost} onPress={() => router.push('/register')}>
           <Text style={styles.ctaGhostTx}>{t('relmap.addFriend', '사람 추가하기')}</Text>
         </PressableScale>
