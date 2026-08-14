@@ -380,6 +380,9 @@ export const en = {
     disclaimer: "The day pillar is only one facet of your nature. A precise reading needs your whole chart — the year, month and hour pillars plus combinations, clashes and the useful god — not the day pillar alone.",
   },
   purchase: {
+    syncTitle: 'To use this on other devices',
+    syncMsg: 'Your credits are saved on this device. Sign in and they follow you to any device. You can do this later from Settings — no rush.',
+    syncLater: 'Later',
     loginTitle: 'Sign in required', loginMsg: 'Signing in saves your purchases to your account, so they carry over to other devices and reinstalls. Sign in now?', loginCta: 'Sign in',
     restore: 'Restore purchases', restored: 'Purchases restored.', restoreNone: 'No purchases to restore.', restorePending: 'Purchase confirmed. It may take a moment to apply — please check again shortly.', preparing: 'Payments are coming soon.',
   },
