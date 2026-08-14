@@ -88,6 +88,7 @@ export const en = {
     failTitle: "Couldn't send",
     failBody: 'Please try again shortly. If it keeps failing, you can email us at the address below.',
   },
+  relmapCard: { title: 'Relationship Map', lead: '{{name}} is {{role}}', more: 'See the whole map ›' },
   relmap: {
     joinedTitle: 'Someone joined', joinedBody: '{{n}} new on your map.',
     invite: 'Send an invite link', inviting: 'Making a link…',

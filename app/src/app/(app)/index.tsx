@@ -36,6 +36,7 @@ import { LuckyTodayCard } from '../../components/LuckyTodayCard'; // 홈 블록:
 import { CommunityPulseInline } from '../../components/CommunityPulseCard'; // 상단 컨트롤 행 우측 소셜 프루프(실측 집계·임계값 미만 자동 숨김)
 import { DecisionTodayCard } from '../../components/DecisionTodayCard'; // 홈 블록: 오늘의 결정(07-25 코드큐·dailyEnergy 재배열·새 판정 0·API 0)
 import { TodayRelationCard } from '../../components/TodayRelationCard'; // 오늘의 관계 — 궁합을 매일 여는 화면으로(리텐션 07-20)
+import { RelationMapCard } from '../../components/RelationMapCard';
 import { TigerMascot } from '../../components/TigerMascot'; // 아기 백호 브랜드 마스코트(모션) — 홈 헤더 타이틀 좌측
 import { getDailyFortune, dailyHeadline, getDailyReading, scoreFlow, dailyEnergy, energyReason, ENERGY_LABEL, type DailyEnergy } from '../../lib/content/dailyFortune';
 import { ScoreFlowGraph } from '../../components/ScoreFlowGraph'; // 오늘 기운 점수 흐름 그래프(홈, daniel 07-13)
@@ -234,6 +235,7 @@ export default function Home() {
     if (k === 'luck') return <LuckyTodayCard reloadKey={reloadKey} />;
     if (k === 'decision') return <DecisionTodayCard reloadKey={reloadKey} />;
     if (k === 'relation') return <TodayRelationCard reloadKey={reloadKey} dateKey={dateKey} />;
+    if (k === 'relmap') return <RelationMapCard reloadKey={reloadKey} />;   // 관계 지도(daniel 2026-08-14 '최초 진입')
     // (AI 자기이해 코치 블록은 상단 🧭 바로가기로 이동 — daniel 2026-07-25 J)
     // 오늘/내일 기운 — 토글·좌우 슬라이드(가로 페이징). 별도 카드였던 유형명·점수·등급·근거·신살 칩이 여기 통합됐다.
     return (

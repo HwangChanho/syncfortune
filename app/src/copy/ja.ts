@@ -87,6 +87,7 @@ export const ja = {
     failTitle: '送信できませんでした',
     failBody: 'しばらくしてからもう一度お試しください。うまくいかない場合は下記の宛先へお送りください。',
   },
+  relmapCard: { title: '関係地図', lead: '{{name}}さんは{{role}}です', more: '地図で全部見る ›' },
   relmap: {
     joinedTitle: '新しく入りました', joinedBody: '{{n}}人が地図に加わりました。',
     invite: '招待リンクを送る', inviting: 'リンクを作成中…',

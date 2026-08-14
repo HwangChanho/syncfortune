@@ -114,6 +114,7 @@ export const ko = {
     failTitle: '보내지 못했어요',
     failBody: '잠시 후 다시 시도해 주세요. 계속 안 되면 아래 주소로 보내 주셔도 됩니다.',
   },
+  relmapCard: { title: '관계 지도', lead: '{{name}}님은 {{role}}이에요', more: '지도에서 전부 보기 ›' },
   relmap: {
     joinedTitle: '새로 들어왔어요', joinedBody: '{{n}}명이 지도에 자리를 잡았어요.',
     invite: '초대 링크 보내기', inviting: '링크 만드는 중…',
