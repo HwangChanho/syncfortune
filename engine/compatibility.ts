@@ -48,9 +48,20 @@ const pair = <T extends string>(list: [T, T][], a: T, b: T) => list.some(([x, y]
 
 export interface CrossInteraction {
   kind: '천간합' | '천간충' | '지지합' | '지지충';
-  mine: string;   // 내 자리·글자
-  theirs: string; // 상대 자리·글자
+  mine: string;   // 내 자리·글자 — **표시용 요약**(예: '년干甲')
+  theirs: string; // 상대 자리·글자 — 표시용 요약
   detail: string;
+  /**
+   * ★참여 글자의 **구조화된 출처**(R46 개정 스펙 4번 '파싱 무결성', 2026-08-15).
+   *
+   * 왜 문자열(`mine`/`theirs`)로 부족한가: `'시支卯'` 같은 요약은 **되짚어 세기 어렵다.**
+   * 실제로 수기 판단 중 상대의 卯 개수를 2개로 오독해 卯酉충이 1:1→2:1 로 바뀌고
+   * 결론이 뒤집힌 일이 있었다. 카운트는 **파싱된 차트 객체**에서 나와야 하고,
+   * 결과에는 어느 명식 어느 기둥의 어떤 글자였는지가 남아야 한다.
+   *
+   * ⚠️`mine`/`theirs` 는 소비처(프롬프트·화면)가 이미 쓰므로 **지우지 않는다.** 여기에 덧붙인다.
+   */
+  refs: { chart: 'self' | 'other'; pillar: '년' | '월' | '일' | '시'; char: string }[];
 }
 
 export interface CompatibilityDx {
@@ -107,12 +118,14 @@ export function analyzeCompatibility(me: SajuChart, other: SajuChart): Compatibi
   for (const pa of POS) for (const pb of POS) {
     const sa = me.pillars[pa].stem, sb = other.pillars[pb].stem;
     const c = STEM_COMBINE.find(([x, y]) => (x === sa && y === sb) || (x === sb && y === sa));
-    if (c) cross.push({ kind: '천간합', mine: `${pa}干${sa}`, theirs: `${pb}干${sb}`, detail: `${sa}${sb}合化${c[2]}` });
-    if (pair(STEM_CLASH, sa, sb)) cross.push({ kind: '천간충', mine: `${pa}干${sa}`, theirs: `${pb}干${sb}`, detail: `${sa}${sb}冲` });
+    const stemRefs = () => ([{ chart: 'self' as const, pillar: pa, char: sa }, { chart: 'other' as const, pillar: pb, char: sb }]);
+    if (c) cross.push({ kind: '천간합', mine: `${pa}干${sa}`, theirs: `${pb}干${sb}`, detail: `${sa}${sb}合化${c[2]}`, refs: stemRefs() });
+    if (pair(STEM_CLASH, sa, sb)) cross.push({ kind: '천간충', mine: `${pa}干${sa}`, theirs: `${pb}干${sb}`, detail: `${sa}${sb}冲`, refs: stemRefs() });
     const ba = me.pillars[pa].branch, bb = other.pillars[pb].branch;
     const h = SIXHE.find(([x, y]) => (x === ba && y === bb) || (x === bb && y === ba));
-    if (h) cross.push({ kind: '지지합', mine: `${pa}支${ba}`, theirs: `${pb}支${bb}`, detail: `${ba}${bb}合化${h[2]}` });
-    if (pair(CHONG, ba, bb)) cross.push({ kind: '지지충', mine: `${pa}支${ba}`, theirs: `${pb}支${bb}`, detail: `${ba}${bb}冲` });
+    const branchRefs = () => ([{ chart: 'self' as const, pillar: pa, char: ba }, { chart: 'other' as const, pillar: pb, char: bb }]);
+    if (h) cross.push({ kind: '지지합', mine: `${pa}支${ba}`, theirs: `${pb}支${bb}`, detail: `${ba}${bb}合化${h[2]}`, refs: branchRefs() });
+    if (pair(CHONG, ba, bb)) cross.push({ kind: '지지충', mine: `${pa}支${ba}`, theirs: `${pb}支${bb}`, detail: `${ba}${bb}冲`, refs: branchRefs() });
   }
 
   // 3) 용신 상보
