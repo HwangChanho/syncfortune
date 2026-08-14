@@ -79,6 +79,15 @@
       </div>
       <label class="check"><input id="unknown" type="checkbox"> 태어난 시각을 몰라요</label>
 
+      <!-- ★출생지 — 진태양시 보정에 쓴다(daniel 2026-08-14).
+           없으면 서울로 계산돼 시주가 틀어질 수 있다: 같은 13:35 출생이라도
+           서울은 甲午, 부산은 乙未로 갈린다(실측). 그래서 물어본다. -->
+      <label for="place">태어난 지역</label>
+      <select id="place"></select>
+      <p class="note" style="margin-top:6px">
+        지역마다 해 뜨는 시각이 달라서, 태어난 시각을 더 정확히 맞추는 데 씁니다.
+      </p>
+
       <button id="send">지도에 참여하기</button>
       <div id="msg"></div>
       <p class="note">
@@ -150,6 +159,24 @@ const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => (
 
 const token = new URLSearchParams(location.search).get('t') || '';
 
+/**
+ * 출생지 경도(°E) — **엔진 `solartime.ts` 의 CITY_LON 과 같은 값**이어야 한다.
+ * 값이 갈리면 같은 사람이 앱과 웹에서 다른 시주를 갖는다.
+ * ⚠️여기 없는 지역은 경도를 보내지 않는다 — 엔진이 한국 평균(127.5°)으로 떨어뜨린다(최대 ±3분).
+ */
+const CITY_LON = {
+  서울: 126.98, 인천: 126.70, 수원: 127.03, 부산: 129.08, 대구: 128.60, 울산: 129.31,
+  광주: 126.85, 대전: 127.38, 세종: 127.29, 청주: 127.49, 천안: 127.15, 전주: 127.15,
+  여수: 127.66, 목포: 126.39, 순천: 127.49, 포항: 129.36, 창원: 128.68, 김해: 128.89,
+  진주: 128.11, 강릉: 128.90, 춘천: 127.73, 원주: 127.92, 제주: 126.53, 안동: 128.73,
+};
+(function fillPlaces() {
+  const sel = $('place');
+  sel.innerHTML = '<option value="">잘 모르겠어요</option>'
+    + Object.keys(CITY_LON).map((c) => `<option value="${c}">${c}</option>`).join('')
+    + '<option value="__abroad">해외에서 태어났어요</option>';
+})();
+
 (async function boot() {
   if (!token) return show('bad');
   const { data, error } = await sb.rpc('map_invite_peek', { p_token: token });
@@ -171,6 +198,7 @@ $('send').onclick = async () => {
   const name = $('name').value.trim();
   const date = $('date').value;
   const unknown = $('unknown').checked;
+  const place = $('place').value;
   const time = unknown ? '00:00' : ($('time').value || '12:00');
   if (!name) return say('이름을 넣어 주세요');
   if (!date) return say('생년월일을 넣어 주세요');
@@ -183,6 +211,9 @@ $('send').onclick = async () => {
     calendar: $('cal').value,
     sex: $('sex').value || null,
     time_unknown: unknown,
+    // 출생지 — 고른 지역만 경도를 함께 보낸다('잘 모르겠어요'·해외는 경도 없이 지역명만)
+    birth_place: place === '__abroad' ? '해외' : (place || null),
+    birth_lon: CITY_LON[place] ?? null,
   });
   $('send').disabled = false;
   if (error) return say(/row-level security/i.test(error.message)

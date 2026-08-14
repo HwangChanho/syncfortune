@@ -65,7 +65,7 @@ export async function collectEntries(): Promise<number> {
 
   const res = await withTimeout(
     supabase.from('map_invite_entries')
-      .select('id, display_name, birth_datetime, calendar, sex, time_unknown, birth_place')
+      .select('id, display_name, birth_datetime, calendar, sex, time_unknown, birth_place, birth_lon')
       .order('created_at', { ascending: true }).limit(50),
     NET_TIMEOUT_MS,
   );
@@ -87,7 +87,13 @@ export async function collectEntries(): Promise<number> {
       //   addChart(input: any) 라 **tsc 가 못 잡는다** — 계약 값은 spec/chart.ts 를 열어 확인할 것.
       timeAccuracy: (e.time_unknown ? '미상' : '정확') as '정확' | '추정' | '미상',
       sex: e.sex ?? undefined,
-      birthPlace: e.birth_place ?? '서울특별시',   // 앱 등록 폼과 같은 기본값(진태양시 보정용)
+      // ★출생지 — 친구가 고른 값을 그대로 싣는다(2026-08-14).
+      //   종전엔 없으면 **'서울특별시'로 채웠다**. 그러면 부산 사람도 서울로 계산돼
+      //   시진 경계에서 시주가 갈린다(실측: 13:35 출생 서울 甲午 / 부산 乙未).
+      //   ⇒ 모르면 **모르는 채로 둔다** — 엔진이 한국 평균(127.5°)으로 떨어뜨리는 편이
+      //     엉뚱한 도시로 단정하는 것보다 오차가 작다(±3분 vs 최대 11분).
+      birthPlace: e.birth_place ?? '',
+      birthLon: typeof e.birth_lon === 'number' ? e.birth_lon : undefined,
       label: String(e.display_name).slice(0, 24),
       relation: 'friend',
     };
