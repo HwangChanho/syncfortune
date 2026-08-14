@@ -161,7 +161,22 @@ export default function RelationMapScreen() {
   }
 
   const { nodes, summary } = map;
-  const shown = nodes.slice(0, MAP_MAX);           // 지도에 앉힐 사람
+  /**
+   * ★지도에 앉힐 사람 = **역할마다 케미 상위 2명씩**(daniel 2026-08-14 실기기 "지금 왜 일부만 나와?").
+   *
+   * 케미 순으로만 10명을 뽑았더니 **한 역할이 독식**했다 — daniel 화면엔 火(관성) 7명·水 2명뿐이고
+   * 土·金·木 방향은 통째로 비었다. 관계 지도인데 다섯 방향 중 둘만 보이면 지도가 아니다.
+   * ⇒ 역할별로 먼저 자리를 나눠 **다섯 방향이 다 차게** 하고, 남는 자리만 케미 순으로 채운다.
+   *   (역할이 실제로 없으면 그 방향은 비는 게 맞다 — 없는 사람을 지어내지 않는다.)
+   */
+  const shown = (() => {
+    const perRole: RelationNode[] = [];
+    for (const r of Object.keys(ROLE_ARC) as RelationRole[]) {
+      perRole.push(...nodes.filter((n) => n.role === r).slice(0, 2));   // nodes 는 이미 케미 내림차순
+    }
+    const rest = nodes.filter((n) => !perRole.includes(n));
+    return [...perRole, ...rest].slice(0, MAP_MAX);
+  })();
   const hidden = nodes.length - shown.length;      // 목록에서만 보이는 사람
   const myElem = computeChart(map.me.input).saju.dayMaster.element as Element;
   // 같은 역할이 여럿이면 부채꼴 안에서 벌린다(겹침 방지)
@@ -173,7 +188,8 @@ export default function RelationMapScreen() {
   const seatOf = (n: RelationNode) => {
     const sameRole = shown.filter((x) => x.role === n.role);
     const idx = sameRole.findIndex((x) => x.id === n.id);
-    const spread = sameRole.length > 1 ? (idx - (sameRole.length - 1) / 2) * 24 : 0;
+    // 역할당 2명이 기본이라 ±17° = 34° 벌어진다 — 이름표(최대 60pt)가 안쪽 반지름(62pt)에서도 안 겹친다
+    const spread = sameRole.length > 1 ? (idx - (sameRole.length - 1) / 2) * 34 : 0;
     const deg = ROLE_ARC[n.role] + spread;
     const r = R_MAX - ((n.chemi - lo) / span) * (R_MAX - R_MIN);
     const rad = (deg * Math.PI) / 180;
@@ -209,7 +225,7 @@ export default function RelationMapScreen() {
 
       {hidden > 0 && (
         <Text style={styles.mapNote}>
-          {t('relmap.mapCap', '지도에는 가까운 {{n}}명만 그렸어요 — 나머지 {{r}}명은 아래 목록에 있어요.', { n: shown.length, r: hidden })}
+          {t('relmap.mapCap', '지도에는 자리마다 가까운 {{n}}명을 그렸어요 — 나머지 {{r}}명은 아래 목록에 있어요.', { n: shown.length, r: hidden })}
         </Text>
       )}
 

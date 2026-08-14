@@ -89,7 +89,7 @@ export const ja = {
   },
   relmapCard: { title: '関係地図', lead: '{{name}}さんは{{role}}です', more: '地図で全部見る ›' },
   relmap: {
-    mapCap: '地図には近い{{n}}人だけ描いています — 残り{{r}}人は下の一覧にあります。',
+    mapCap: '地図には各役割ごとに近い{{n}}人を描いています — 残り{{r}}人は下の一覧に。',
     joinedTitle: '新しく入りました', joinedBody: '{{n}}人が地図に加わりました。',
     invite: '招待リンクを送る', inviting: 'リンクを作成中…',
     inviteNote: '友だちがリンクを開いて生年月日を入れると、あなたの地図に加わります。リンクは7日で閉じます。',

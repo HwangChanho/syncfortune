@@ -116,7 +116,7 @@ export const ko = {
   },
   relmapCard: { title: '관계 지도', lead: '{{name}}님은 {{role}}이에요', more: '지도에서 전부 보기 ›' },
   relmap: {
-    mapCap: '지도에는 가까운 {{n}}명만 그렸어요 — 나머지 {{r}}명은 아래 목록에 있어요.',
+    mapCap: '지도에는 자리마다 가까운 {{n}}명을 그렸어요 — 나머지 {{r}}명은 아래 목록에 있어요.',
     joinedTitle: '새로 들어왔어요', joinedBody: '{{n}}명이 지도에 자리를 잡았어요.',
     invite: '초대 링크 보내기', inviting: '링크 만드는 중…',
     inviteNote: '친구가 링크를 열어 생년월일을 넣으면 내 지도에 자리를 잡아요. 링크는 7일 뒤 닫혀요.',
