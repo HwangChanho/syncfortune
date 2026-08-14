@@ -66,8 +66,12 @@ export type RelationNode = {
   basisElem: Element;
   /** 세력 보정이 걸렸는가 — 걸렸으면 화면이 이유를 밝혀야 한다 */
   adjusted: boolean;
-  /** 보정 사유(없으면 null). 예: '일간은 水지만 원국에 土가 과다' */
-  adjustNote: string | null;
+  /**
+   * 보정이 걸렸을 때 **원래 일간 오행**(없으면 null).
+   * ★문장이 아니라 사실만 싣는다 — 화면이 쉬운 말로 옮긴다(엔진에 한국어 문장을 박으면
+   *   3개 언어를 못 맞추고, "원국·일간" 같은 용어가 그대로 새어 나간다 · daniel 2026-08-14).
+   */
+  adjustFrom: Element | null;
   /** 케미 0~100 — 궁합 6기준(R47)에서 나온 점수. 역할과 **별개 축**이다 */
   chemi: number;
   /** ★이 사람만의 결 — 강한 순으로 최대 2개(같은 역할끼리 구분되게) */
@@ -109,16 +113,15 @@ export function roleOf(mine: Element, theirs: Element): RelationRole {
  * @returns 판정 오행 + 보정 여부 + 사유
  * ★ '과다' 판정은 `elementPower().labels` 를 그대로 쓴다(임계값을 여기서 새로 만들지 않는다).
  */
-function basisElemOf(chart: SajuChart): { elem: Element; adjusted: boolean; note: string | null } {
+function basisElemOf(chart: SajuChart): { elem: Element; adjusted: boolean; from: Element | null } {
   const day = chart.dayMaster.element as Element;
   const ep = elementPower(chart, { hap: true, johuGung: true });
   // 과다(4자 이상)인 오행 중 일간과 다른 것 — 여럿이면 세력이 가장 큰 것
   const excess = (Object.entries(ep.labels) as [Element, string][])
     .filter(([el, label]) => label === '과다' && el !== day)
     .sort((a, b) => (ep.power[b[0]] ?? 0) - (ep.power[a[0]] ?? 0));
-  if (!excess.length) return { elem: day, adjusted: false, note: null };
-  const el = excess[0][0];
-  return { elem: el, adjusted: true, note: `일간은 ${day}지만 원국에 ${el}이(가) 과다` };
+  if (!excess.length) return { elem: day, adjusted: false, from: null };
+  return { elem: excess[0][0], adjusted: true, from: day };
 }
 
 /**
@@ -171,7 +174,7 @@ export function buildRelationMap(
       dayElem: o.chart.dayMaster.element as Element,
       basisElem: b.elem,
       adjusted: b.adjusted,
-      adjustNote: b.note,
+      adjustFrom: b.from,
       chemi: chemiOf(dx),
       traits: traitsOf(dx, o.chart),
       dx,

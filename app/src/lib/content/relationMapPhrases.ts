@@ -42,35 +42,35 @@ export type RolePhrase = {
 
 const KO: Record<RelationRole, RolePhrase> = {
   인성: {
-    name: '날 끌어주는 사람', term: '인성(印星)',
+    name: '날 끌어주는 사람', term: '예전 말로 인성(印星)',
     image: '마른 흙에 물이 스미듯, 있으면 내가 채워지는 사이',
     meaning: '먼저 손을 내밀지 않아도 배울 게 생기는 사람이에요. 조언이든 기회든, 이 사람 쪽에서 나에게 흘러 들어옵니다.',
     caution: '기대는 게 편해서 판단까지 맡겨 버리기 쉬워요. 이 사람 말이 곧 내 결론이 되면 관계가 상하로 굳습니다.',
     advice: '받은 만큼 근황을 먼저 전하세요. 조언은 듣되 결정은 내가 한다는 선만 지키면 오래 갑니다.',
   },
   비견: {
-    name: '같은 결의 사람', term: '비견(比肩)',
+    name: '같은 결의 사람', term: '예전 말로 비견(比肩)',
     image: '나란히 선 두 그루 나무처럼, 말 안 해도 통하는 사이',
     meaning: '속도와 방식이 닮아서 설명이 짧아도 통해요. 같이 있으면 편하고, 함께 벌이는 일이 잘 굴러갑니다.',
     caution: '닮은 만큼 원하는 것도 겹칩니다. 같은 자리를 두고 서면 그때부터 편했던 만큼 불편해져요.',
     advice: '역할을 미리 갈라 두세요. "이건 네가, 저건 내가"가 정해져 있으면 이 관계는 가장 든든한 축이 됩니다.',
   },
   식상: {
-    name: '내가 챙기게 되는 사람', term: '식상(食傷)',
+    name: '내가 챙기게 되는 사람', term: '예전 말로 식상(食傷)',
     image: '내 안의 물이 흘러 나가듯, 자연스레 마음이 쓰이는 사이',
     meaning: '묻지 않아도 챙겨주고 싶어지는 사람이에요. 내가 가진 것을 꺼내 쓰게 되고, 그 과정에서 내 표현도 늘어납니다.',
     caution: '주는 쪽이 나로 굳어지면 어느 순간 지칩니다. 서운함은 대개 이 자리에서 생겨요.',
     advice: '가끔은 부탁하는 쪽이 되어 보세요. 받아 본 사람이라야 주는 마음을 압니다.',
   },
   재성: {
-    name: '내가 움직이게 되는 사람', term: '재성(財星)',
+    name: '내가 움직이게 되는 사람', term: '예전 말로 재성(財星)',
     image: '손에 잡히는 결실처럼, 내가 나서서 만들어 가는 사이',
     meaning: '이 사람과는 일이 구체적으로 굴러갑니다. 계획을 세우고 실행하게 되는, 결과가 남는 관계예요.',
     caution: '성과로만 이어지면 일이 끝났을 때 할 말이 없어집니다. 관계가 용건 단위로 짧아져요.',
     advice: '용건 없이 연락하는 날을 만들어 두세요. 그 한 번이 이 관계의 수명을 늘립니다.',
   },
   관성: {
-    name: '날 긴장시키는 사람', term: '관성(官星)',
+    name: '날 긴장시키는 사람', term: '예전 말로 관성(官星)',
     image: '쇠를 두드리는 망치처럼, 부딪히면서 모양이 잡히는 사이',
     meaning: '편하지만은 않은데 이상하게 신경 쓰이는 사람이에요. 이 사람 앞에서는 흐트러지지 않게 되고, 그래서 나를 끌어올립니다.',
     caution: '긴장이 길어지면 위축으로 바뀝니다. 맞추기만 하다 보면 내 결이 지워져요.',
@@ -167,12 +167,12 @@ const JA: Record<RelationRole, RolePhrase> = {
  */
 const TRAIT: Record<Lang, Record<RelationTrait, string>> = {
   ko: {
-    clash:    '두 사람 일지가 {{v}}로 걸려 있어요. 가까워질수록 사소한 데서 부딪히기 쉽습니다.',
+    clash:    '두 사람의 **태어난 날**이 {{v}}로 걸려 있어요. 가까워질수록 사소한 데서 부딪히기 쉽습니다.',
     friction: '서로를 흔드는 자리가 {{v}}군데예요. 지루할 틈은 없지만, 붙어 있는 시간이 길면 지칩니다.',
-    fills:    '내게 없는 {{v}}를 갖고 있어요. 이 사람 옆에서 내 빈자리가 메워지는 느낌이 듭니다.',
+    fills:    '내 사주에 없는 글자 {{v}}를 갖고 있어요. 이 사람 옆에서 빈자리가 메워지는 느낌이 듭니다.',
     meshes:   '맞물리는 자리가 {{v}}군데라 말이 잘 통해요. 애쓰지 않아도 흐름이 이어집니다.',
-    intense:  '{{v}} 기운이 몰려 있는 원국이라 색이 진해요. 좋아하는 것도 싫어하는 것도 뚜렷합니다.',
-    sparse:   '{{v}} 기운이 비어 있는 원국이에요. 그쪽 이야기가 나오면 유독 서툴거나 예민할 수 있습니다.',
+    intense:  '{{v}} 기운이 몰린 사주라 색이 진해요. 좋아하는 것도 싫어하는 것도 뚜렷합니다.',
+    sparse:   '{{v}} 기운이 비어 있는 사주예요. 그쪽 이야기가 나오면 유독 서툴거나 예민할 수 있습니다.',
     sturdy:   '자기 축이 단단한 사람이에요. 흔들어도 잘 안 밀리는 대신, 방향을 바꾸는 데 시간이 걸립니다.',
     yielding: '주위를 타는 결이라 분위기를 잘 읽어요. 대신 혼자 결정하는 자리에선 힘들어할 수 있습니다.',
     season:   '내가 더울 때 서늘하고, 내가 추울 때 따뜻한 계절을 타고났어요. 온도가 서로를 눅여 줍니다.',
@@ -269,15 +269,42 @@ export function rolePhrase(lang: Lang, role: RelationRole): RolePhrase {
   return (TABLE[lang] ?? KO)[role];
 }
 
-/** 오행 상생/상극을 한자로 — 화면에 근거로 작게 붙인다(예: 金生水). */
-export function elemRelationLabel(mine: Element, theirs: Element): string {
+/**
+ * 오행 관계를 **한글로** 쓴다 — 일반인도 읽히게(daniel 2026-08-14 "일반인도 알수있는 용어로해").
+ *
+ * ★종전엔 `火剋金` 처럼 한자를 그대로 냈다. 명리를 아는 사람에겐 정확하지만
+ *   모르는 사람에겐 **읽을 수조차 없는 기호**다 — 우리 화면의 대부분은 그런 사람이 본다.
+ *   한자는 버리지 않고 **괄호로 남긴다**(아는 사람은 근거를 확인할 수 있게).
+ */
+const EL_KO: Record<Element, string> = { 木: '나무', 火: '불', 土: '흙', 金: '쇠', 水: '물' };
+
+/** 화면 노드에 쓰는 짧은 한글 이름(원 안에 들어가야 한다). */
+export function elemLabel(el: Element, lang: Lang = 'ko'): string {
+  if (lang === 'ko') return EL_KO[el] ?? el;
+  return el;   // en/ja 는 한자가 통용된다(ja) / 짧은 기호가 나은 편(en)
+}
+
+/** 두 오행의 관계 — 예: `그 사람의 불이 내 쇠를 달굽니다 (火剋金)` */
+export function elemRelationLabel(mine: Element, theirs: Element, lang: Lang = 'ko'): string {
   const SHENG: Record<Element, Element> = { 水: '木', 木: '火', 火: '土', 土: '金', 金: '水' };
   const KE: Record<Element, Element> = { 木: '土', 土: '水', 水: '火', 火: '金', 金: '木' };
-  if (mine === theirs) return `${mine}比和`;               // 비화 — `金金` 은 표기가 아니다(관용은 比和)
-  if (SHENG[theirs] === mine) return `${theirs}生${mine}`;  // 상대가 나를 생
-  if (SHENG[mine] === theirs) return `${mine}生${theirs}`;  // 내가 상대를 생
-  if (KE[mine] === theirs) return `${mine}剋${theirs}`;     // 내가 상대를 극
-  return `${theirs}剋${mine}`;                              // 상대가 나를 극
+  const m = EL_KO[mine], t = EL_KO[theirs];
+  if (lang !== 'ko') {
+    if (mine === theirs) return `${mine}=${theirs}`;
+    if (SHENG[theirs] === mine) return `${theirs}→${mine}`;
+    if (SHENG[mine] === theirs) return `${mine}→${theirs}`;
+    if (KE[mine] === theirs) return `${mine}⇒${theirs}`;
+    return `${theirs}⇒${mine}`;
+  }
+  // ★조사는 받침에 맞춰 고른다 — `이(가)`·`을(를)` 병기는 읽는 사람을 멈칫하게 한다.
+  //   '불'(ㄹ받침)→이/을 · '쇠'(받침없음)→가/를 · '나무'→가/를 · '흙'→이/을
+  const ga = (w: string) => `${w}${hasFinal(w) ? '이' : '가'}`;
+  const eul = (w: string) => `${w}${hasFinal(w) ? '을' : '를'}`;
+  if (mine === theirs) return `둘 다 ${m} (${mine}比和)`;
+  if (SHENG[theirs] === mine) return `그 사람의 ${ga(t)} 내 ${eul(m)} 키웁니다 (${theirs}生${mine})`;
+  if (SHENG[mine] === theirs) return `내 ${ga(m)} 그 사람의 ${eul(t)} 키웁니다 (${mine}生${theirs})`;
+  if (KE[mine] === theirs) return `내 ${ga(m)} 그 사람의 ${eul(t)} 누릅니다 (${mine}剋${theirs})`;
+  return `그 사람의 ${ga(t)} 내 ${eul(m)} 누릅니다 (${theirs}剋${mine})`;
 }
 
 /**

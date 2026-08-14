@@ -106,7 +106,7 @@ export const en = {
     taking: 'Plenty of people fill you up. Make somewhere for it to flow onward so the energy does not pool.',
     balanced: 'Give and take run evenly here. Nothing tips too far one way, so relationships rarely drain you.',
     lacking: 'Your chart has no {{el}} energy — people carrying it are especially precious to you.',
-    adjusted: 'Read through that energy instead, because {{note}}.',
+    adjusted: 'Their day sign is {{from}}, but {{to}} dominates the whole chart — so we read them as {{to}}.',
     caution: 'Watch for', advice: 'What helps',
     more: 'To fill the map out',
     moreBody: 'The more people on it, the clearer the grain of your relationships. A birth date is all it takes to place someone.',

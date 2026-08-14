@@ -23,7 +23,7 @@ import { useTranslation } from 'react-i18next';
 import { listCharts, getRepresentativeId } from '../lib/engine/myChart';
 import { computeChart } from '../lib/engine/engine';
 import { buildRelationMap } from '@engine/relationMap';
-import { rolePhrase } from '../lib/content/relationMapPhrases';
+import { rolePhrase, elemLabel } from '../lib/content/relationMapPhrases';
 import { appLang } from '../lib/i18n';
 import { PressableScale } from './PressableScale';
 import { colors, radius, space } from '../lib/theme';
@@ -117,7 +117,7 @@ export function RelationMapCard({ reloadKey }: { reloadKey?: number }) {
         {tops.map((p) => (
           <View key={p.id} style={styles.person}>
             <View style={[styles.dot, { backgroundColor: NODE_COLOR[p.elem] }]}>
-              <Text style={styles.dotTx}>{p.elem}</Text>
+              <Text style={styles.dotTx}>{elemLabel(p.elem, lang)}</Text>
             </View>
             <Text style={styles.name} numberOfLines={1}>{p.name}</Text>
             <Text style={styles.chemi}>{p.chemi}</Text>
@@ -139,7 +139,7 @@ const mkStyles = (fs: (n: number) => number) => StyleSheet.create({
   dots: { flexDirection: 'row', gap: space(4), marginTop: space(4) },
   person: { alignItems: 'center', width: 60 },
   dot: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
-  dotTx: { color: '#fff', fontSize: fs(14), lineHeight: fs(18), fontWeight: '800' },
+  dotTx: { color: '#fff', fontSize: fs(12), lineHeight: fs(16), fontWeight: '800' },   // '나무'(2글자) 대응
   name: { color: colors.ink, fontSize: fs(11), lineHeight: fs(16), marginTop: space(1) },
   chemi: { color: colors.ju, fontSize: fs(12), lineHeight: fs(18), fontWeight: '800' },
   lead: { color: colors.ink, fontSize: fs(14), lineHeight: fs(22), marginTop: space(4) },

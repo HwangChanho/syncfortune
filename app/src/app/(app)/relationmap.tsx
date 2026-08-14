@@ -22,7 +22,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { listCharts, getRepresentativeId, type SavedChart } from '../../lib/engine/myChart';
 import { computeChart } from '../../lib/engine/engine';
 import { buildRelationMap, type RelationNode, type RelationRole } from '@engine/relationMap';
-import { rolePhrase, elemRelationLabel, compatHook, traitPhrases, traitLead, type TraitFacts } from '../../lib/content/relationMapPhrases';
+import { rolePhrase, elemRelationLabel, elemLabel, compatHook, traitPhrases, traitLead, type TraitFacts } from '../../lib/content/relationMapPhrases';
 import { appLang } from '../../lib/i18n';
 import { createInvite, collectEntries } from '../../lib/backend/mapInvite';
 import { Alert } from '../../lib/ui/alert';
@@ -206,7 +206,7 @@ export default function RelationMapScreen() {
         <View style={styles.ring1} /><View style={styles.ring2} />
         {/* 중앙 = 나 */}
         <View style={[styles.me, { backgroundColor: NODE_COLOR[myElem] }]}>
-          <Text style={styles.meElem}>{myElem}</Text>
+          <Text style={styles.meElem}>{elemLabel(myElem, lang)}</Text>
           <Text style={styles.meLabel}>{t('relmap.me', '나')}</Text>
         </View>
         {shown.map((n) => {
@@ -215,7 +215,7 @@ export default function RelationMapScreen() {
           return (
             <Pressable key={n.id} style={[styles.node, pos, on && styles.nodeOn]} onPress={() => setOpenId(on ? null : n.id)}>
               <View style={[styles.dot, { backgroundColor: NODE_COLOR[n.dayElem] }]}>
-                <Text style={styles.dotTx}>{n.dayElem}</Text>
+                <Text style={styles.dotTx}>{elemLabel(n.dayElem, lang)}</Text>
               </View>
               <Text style={styles.nodeName} numberOfLines={1}>{nameOf(n.id)}</Text>
             </Pressable>
@@ -241,7 +241,7 @@ export default function RelationMapScreen() {
         </Text>
         {!!summary.lackingElems.length && (
           <Text style={styles.note}>
-            {t('relmap.lacking', '내 원국엔 {{el}} 기운이 없어요 — 그 기운을 가진 사람이 특히 귀합니다.', { el: summary.lackingElems.join('·') })}
+            {t('relmap.lacking', '내 사주엔 {{el}} 기운이 없어요 — 그 기운을 가진 사람이 특히 귀합니다.', { el: summary.lackingElems.map((e) => elemLabel(e, lang)).join('·') })}
           </Text>
         )}
         <View style={styles.chips}>
@@ -263,10 +263,10 @@ export default function RelationMapScreen() {
         return (
           <View key={n.id} style={styles.card}>
             <Pressable style={styles.row} onPress={() => setOpenId(on ? null : n.id)}>
-              <View style={[styles.dotSm, { backgroundColor: NODE_COLOR[n.dayElem] }]}><Text style={styles.dotTx}>{n.dayElem}</Text></View>
+              <View style={[styles.dotSm, { backgroundColor: NODE_COLOR[n.dayElem] }]}><Text style={styles.dotTx}>{elemLabel(n.dayElem, lang)}</Text></View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.rowName}>{nameOf(n.id)}</Text>
-                <Text style={styles.rowRole}>{p.name} · {elemRelationLabel(myElem, n.basisElem)}</Text>
+                <Text style={styles.rowRole} numberOfLines={2}>{p.name} · {elemRelationLabel(myElem, n.basisElem, lang)}</Text>
                 {/* ★같은 역할이라도 사람마다 다른 한 줄(daniel: "원국기준 다양하게") */}
                 {!!traitLead(lang, n.traits, factsOf(n)) && (
                   <Text style={styles.rowTrait} numberOfLines={2}>{traitLead(lang, n.traits, factsOf(n))}</Text>
@@ -281,8 +281,11 @@ export default function RelationMapScreen() {
                 <Text style={styles.image}>{p.image}</Text>
                 <Text style={styles.body}>{p.meaning}</Text>
                 {/* ★세력 보정이 걸렸으면 반드시 밝힌다 — 근거 없이 역할이 바뀌면 신뢰를 잃는다 */}
-                {n.adjusted && !!n.adjustNote && (
-                  <Text style={styles.note}>{t('relmap.adjusted', '이 사람은 {{note}}해서 그 기운으로 봤어요.', { note: n.adjustNote })}</Text>
+                {n.adjusted && !!n.adjustFrom && (
+                  <Text style={styles.note}>
+                    {t('relmap.adjusted', '태어난 날은 {{from}}이지만 사주 전체에 {{to}} 기운이 몰려 있어, 그쪽으로 봤어요.',
+                      { from: elemLabel(n.adjustFrom, lang), to: elemLabel(n.basisElem, lang) })}
+                  </Text>
                 )}
                 {traitPhrases(lang, n.traits, factsOf(n)).map((tp, i) => (
                   <Text key={i} style={styles.traitBody}>{tp.replace(/\*\*/g, '')}</Text>
@@ -339,13 +342,13 @@ const mkStyles = (fs: (n: number) => number) => StyleSheet.create({
   ring1: { position: 'absolute', left: CENTER - R_MIN, top: CENTER - R_MIN, width: R_MIN * 2, height: R_MIN * 2, borderRadius: R_MIN, borderWidth: 1, borderColor: colors.juLine, opacity: 0.5 },
   ring2: { position: 'absolute', left: CENTER - R_MAX, top: CENTER - R_MAX, width: R_MAX * 2, height: R_MAX * 2, borderRadius: R_MAX, borderWidth: 1, borderColor: colors.juLine, opacity: 0.3 },
   me: { position: 'absolute', left: CENTER - 30, top: CENTER - 30, width: 60, height: 60, borderRadius: 30, alignItems: 'center', justifyContent: 'center' },
-  meElem: { color: '#fff', fontSize: fs(18), lineHeight: fs(22), fontWeight: '800' },
+  meElem: { color: '#fff', fontSize: fs(15), lineHeight: fs(20), fontWeight: '800' },   // '나무'(2글자)가 들어간다
   meLabel: { color: '#fff', fontSize: fs(10), lineHeight: fs(14), opacity: 0.9 },
   node: { position: 'absolute', width: DOT, alignItems: 'center' },
   nodeOn: { transform: [{ scale: 1.08 }] },
   dot: { width: DOT, height: DOT, borderRadius: DOT / 2, alignItems: 'center', justifyContent: 'center' },
   dotSm: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', marginRight: space(3) },
-  dotTx: { color: '#fff', fontSize: fs(14), lineHeight: fs(18), fontWeight: '800' },
+  dotTx: { color: '#fff', fontSize: fs(12), lineHeight: fs(16), fontWeight: '800' },   // '나무'(2글자) 대응
   nodeName: { color: colors.ink, fontSize: fs(10), lineHeight: fs(14), marginTop: 2, maxWidth: DOT + 16, textAlign: 'center' },
 
   card: { backgroundColor: colors.card, borderRadius: radius.md, padding: space(4), marginTop: space(3) },
