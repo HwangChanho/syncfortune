@@ -162,6 +162,8 @@ export const ko = {
     or: '또는', google: 'Google로 계속하기', apple: 'Apple로 계속하기', naver: '네이버로 계속하기', processing: '로그인 처리 중…',
   },
   register: {
+    placeHintNone: '지역마다 해 뜨는 시각이 달라 태어난 시가 갈릴 수 있어요. 고르지 않으면 한국 평균으로 계산해요.',
+    placeHintSet: '이 지역의 실제 태양시로 태어난 시를 맞춥니다.',
     'pickCategory': '카테고리 선택',
     'catDelHint': '카테고리를 지우면 그 명식들은 ‘기타’로 옮겨져요. ‘기타’는 지울 수 없어요.',
     'catDeleteTitle': '카테고리 삭제',

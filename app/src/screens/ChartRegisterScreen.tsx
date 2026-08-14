@@ -46,8 +46,14 @@ export function ChartRegisterScreen({ onSubmit, defaultRelation, submitLabel, sh
   const [isLeap, setIsLeap] = useState<boolean>((initial as any)?.isLeap ?? false); // ⑧ 윤달(daniel) — 음력 윤달 구분
   const [sex, setSex] = useState<'남' | '여'>(initial?.sex ?? '남');
   // ★기본 출생지 = 대한민국 서울(daniel 2026-07-24) — 대다수 사용자 편의로 미리 채움(진태양시 경도·위도 포함). 신규 등록만(편집=기존값 우선).
-  const [birthPlace, setBirthPlace] = useState(initial?.birthPlace ?? '서울특별시');
-  const [birthPlaceLon, setBirthPlaceLon] = useState<number | null>(initial?.birthLon ?? 126.9780); // 진태양시 경도(ADR-008) — 서울 기본
+  // ★기본값을 '서울'로 두지 않는다(daniel 2026-08-14 "기존 등록된건 알맞게 고치고").
+  //   종전엔 안 고르면 조용히 **서울 출생으로 단정**됐다 — 부산 사람은 시주가 갈린다
+  //   (실측: 1994-03-16 13:35 → 서울 甲午 / 부산 乙未).
+  //   ⇒ 비워 두면 엔진이 한국 평균(127.5°)으로 떨어뜨린다. 오차가 ±3분으로 **단정보다 작다.**
+  //   ⚠️기존에 저장된 '서울'은 **자동으로 못 고친다** — 진짜 서울인지 안 고른 건지 구분할 수 없다.
+  //     대신 아래 안내로 사용자가 직접 확인·수정하게 한다.
+  const [birthPlace, setBirthPlace] = useState(initial?.birthPlace ?? '');
+  const [birthPlaceLon, setBirthPlaceLon] = useState<number | null>(initial?.birthLon ?? null);
   const [birthPlaceLat, setBirthPlaceLat] = useState<number | null>(initial?.birthLat ?? 37.5665);  // 점성술 상승궁 위도 — 서울 기본
   const [relation, setRelation] = useState<string>(initial?.relation ?? defaultRelation ?? 'self');
   const [cats, setCats] = useState<string[]>(() => getCategories()); // 관리 카테고리 목록(프리셋+커스텀+기타·self 제외)
@@ -217,6 +223,12 @@ export function ChartRegisterScreen({ onSubmit, defaultRelation, submitLabel, sh
         {/* 출생지 — 도시 검색 선택(Nominatim, 검증된 입력 + 진태양시 경도 보관) */}
         <Text style={styles.label}>{t('register.birthPlace')}</Text>
         <BirthPlacePicker value={birthPlace} onSelect={(p) => { setBirthPlace(p.name); setBirthPlaceLon(p.lon); setBirthPlaceLat(p.lat); }} />
+        {/* 왜 묻는지 밝힌다 — 안 고르면 어떻게 되는지도 함께(몰래 기본값을 쓰지 않는다) */}
+        <Text style={styles.placeHint}>
+          {birthPlaceLon == null
+            ? t('register.placeHintNone', '지역마다 해 뜨는 시각이 달라 태어난 시가 갈릴 수 있어요. 고르지 않으면 한국 평균으로 계산해요.')
+            : t('register.placeHintSet', '이 지역의 실제 태양시로 태어난 시를 맞춥니다.')}
+        </Text>
 
         {/* 관계(카테고리) — **드롭박스**(daniel 2026-08-12 *"버블형식으로 나열하지말고 드랍박스로하자"*).
             종전엔 칩을 flexWrap 으로 늘어놓아, 카테고리를 추가할수록 화면이 밀려 내려갔고
@@ -445,6 +457,8 @@ const styles = StyleSheet.create({
   exactLabel: { ...font.label, fontSize: 12, color: colors.inkSoft, marginBottom: space(2.5) },
   // 24시간제로 친 값을 어떻게 읽었는지 · 왜 확인이 안 눌리는지 — 둘 다 **말해 준다**(침묵 금지)
   exactHint: { fontSize: 12, lineHeight: 18, color: colors.ju, marginTop: space(2), fontWeight: '700' },
+  // 출생지 안내 — 강조가 아니라 설명이라 차분한 톤(exactHint 는 ju 강조색이라 따로 둔다)
+  placeHint: { fontSize: 12, lineHeight: 18, color: colors.inkSoft, marginTop: space(2) },
   exactWhy: { fontSize: 12, lineHeight: 18, color: colors.inkSoft, marginTop: space(2) },
   exactRow: { flexDirection: 'row', alignItems: 'center', gap: space(2) },
   exactInput: { width: 56, textAlign: 'center', backgroundColor: colors.bg, borderWidth: 1, borderColor: colors.line, borderRadius: radius.sm, paddingVertical: space(2.5), fontSize: 16, color: colors.ink },

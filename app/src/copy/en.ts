@@ -136,6 +136,8 @@ export const en = {
     or: 'or', google: 'Continue with Google', apple: 'Continue with Apple', naver: 'Continue with Naver', processing: 'Signing in…',
   },
   register: {
+    placeHintNone: 'Sunrise differs by region, so the hour pillar can shift. Left blank, we use a national average.',
+    placeHintSet: 'We adjust the birth hour to this location\'s true solar time.',
     'pickCategory': 'Choose a category',
     'catDelHint': 'Deleting a category moves its charts to “Other”. “Other” cannot be deleted.',
     'catDeleteTitle': 'Delete category',

@@ -135,6 +135,8 @@ export const ja = {
     or: 'または', google: 'Googleで続ける', apple: 'Appleで続ける', naver: 'Naverで続ける', processing: 'ログイン処理中…',
   },
   register: {
+    placeHintNone: '地域ごとに日の出が違うため、時柱が変わることがあります。選ばない場合は韓国の平均で計算します。',
+    placeHintSet: 'この地域の真太陽時で生まれた時刻を合わせます。',
     'pickCategory': 'カテゴリーを選ぶ',
     'catDelHint': 'カテゴリーを削除すると、その命式は「その他」に移動します。「その他」は削除できません。',
     'catDeleteTitle': 'カテゴリー削除',
