@@ -67,6 +67,7 @@ docs/*
 !docs/admin/*
 !docs/join/
 !docs/join/*
+!docs/appstore-review-notes.md
 # ↑ 이슈17 공유 스마트링크 stub(docs/s) — GitHub Pages 공개 필요(앱 열기/설치 유도, 풀이 내용은 노출 X)
 # 명리 지식 레이어·물상 (moat 콘텐츠)
 knowledge/
