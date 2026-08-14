@@ -24,6 +24,7 @@
 import type { SajuChart, Element } from '../spec/chart';
 import { elementPower } from './elementPower';
 import { analyzeCompatibility, type CompatibilityDx } from './compatibility';
+import { classifyStrength } from './structure';
 
 /** 오행 상생: 이 오행이 **낳는** 오행. (木→火→土→金→水→木) */
 const SHENG_TO: Record<Element, Element> = { 水: '木', 木: '火', 火: '土', 土: '金', 金: '水' };
@@ -32,6 +33,27 @@ const KE_TO: Record<Element, Element> = { 木: '土', 土: '水', 水: '火', �
 
 /** 관계 역할 — 십신 5분류. 화면 이름(생활어)은 앱 문구 파일이 정한다. */
 export type RelationRole = '인성' | '비견' | '식상' | '재성' | '관성';
+
+/**
+ * ★같은 역할이라도 **사람마다 다르게** 만드는 변주 축(daniel 2026-08-14
+ *   *"같은 화 일간이라도 원국기준 다양하게 나오게해"*).
+ *
+ * 왜 필요한가: 역할이 5개뿐이라 61명을 그리면 **17명이 똑같은 문구**가 된다(실측).
+ * 일간만 보면 그럴 수밖에 없다 — 그래서 **그 사람 원국**과 **나와의 실제 상호작용**에서
+ * 가장 두드러진 것을 뽑아 한 줄을 더 얹는다.
+ *
+ * 문장은 여기서 만들지 않는다(3개 언어는 앱 몫). 여기서는 **무엇이 두드러지는가**만 고른다.
+ */
+export type RelationTrait =
+  | 'clash'        // 배우자궁(일지)이 부딪힌다 — 가까울수록 마찰
+  | 'friction'     // 충·형·파·해가 많다 — 자극이 크다
+  | 'fills'        // 내게 없는 지지를 채워 준다
+  | 'meshes'       // 합이 많다 — 자연스레 맞물린다
+  | 'intense'      // 그 사람 원국에 과다 오행이 있다 — 기세가 한쪽으로 쏠렸다
+  | 'sparse'       // 그 사람 원국에 부재 오행이 있다 — 비어 있는 자리가 있다
+  | 'sturdy'       // 신강 — 밀도가 높다
+  | 'yielding'     // 신약 — 주위를 타는 결
+  | 'season';      // 계절이 상보 — 한난이 맞는다
 
 /** 지도 위의 한 사람. */
 export type RelationNode = {
@@ -48,6 +70,8 @@ export type RelationNode = {
   adjustNote: string | null;
   /** 케미 0~100 — 궁합 6기준(R47)에서 나온 점수. 역할과 **별개 축**이다 */
   chemi: number;
+  /** ★이 사람만의 결 — 강한 순으로 최대 2개(같은 역할끼리 구분되게) */
+  traits: RelationTrait[];
   /** 궁합 상세(화면이 '조심할 점' 등을 뽑아 쓴다) */
   dx: CompatibilityDx;
 };
@@ -106,6 +130,32 @@ function basisElemOf(chart: SajuChart): { elem: Element; adjusted: boolean; note
  *
  * ⚠️상대가 0명이어도 정상 동작한다(빈 지도 + 내 원국 요약) — 화면이 "친구를 더해 보세요"를 띄운다.
  */
+/**
+ * 이 사람의 결을 강한 순으로 고른다(최대 2개).
+ *
+ * 순서가 곧 우선순위다 — 위에 있을수록 **관계에서 먼저 체감되는 것**을 놓았다.
+ * ⚠️임계값(충 3건·합 2건 등)은 "몇 건이면 눈에 띄나"를 정한 것이고, 명리 판정이 아니다.
+ *   판정 자체는 전부 기존 엔진(analyzeCompatibility·elementPower·classifyStrength)이 한다.
+ */
+function traitsOf(dx: CompatibilityDx, theirs: SajuChart): RelationTrait[] {
+  const out: RelationTrait[] = [];
+  const ep = elementPower(theirs, { hap: true, johuGung: true });
+  const has = (l: string) => Object.values(ep.labels).includes(l as never);
+
+  if (dx.spousePalace.afflictions.length) out.push('clash');      // 가장 먼저 체감된다
+  if (dx.tension.length >= 3) out.push('friction');
+  if (dx.missingFill.chars.length >= 2) out.push('fills');
+  if (dx.harmony.length >= 2) out.push('meshes');
+  if (has('과다')) out.push('intense');
+  const st = classifyStrength(theirs).type;
+  if (st === '신강' || st === '신왕') out.push('sturdy');
+  else if (st === '신약') out.push('yielding');
+  if (has('부재')) out.push('sparse');
+  if (dx.seasonComplement.complementary) out.push('season');
+
+  return out.slice(0, 2);
+}
+
 export function buildRelationMap(
   me: SajuChart,
   others: { id: string; chart: SajuChart }[],
@@ -123,6 +173,7 @@ export function buildRelationMap(
       adjusted: b.adjusted,
       adjustNote: b.note,
       chemi: chemiOf(dx),
+      traits: traitsOf(dx, o.chart),
       dx,
     };
   }).sort((a, b) => b.chemi - a.chemi);

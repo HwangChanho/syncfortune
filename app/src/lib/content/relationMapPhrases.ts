@@ -19,7 +19,7 @@
 // ⚠️건강·재물 단정 금지(§4)는 여기도 같다 — 관계를 **평가**하지 않는다.
 //   "이 사람은 당신에게 해롭다" 같은 말은 쓰지 않는다. 사람을 점수로 재는 화면이 되면 안 된다.
 // ═══════════════════════════════════════════════════════════════════════════
-import type { RelationRole } from '@engine/relationMap';
+import type { RelationRole, RelationTrait } from '@engine/relationMap';
 import type { Element } from '@spec/chart';
 
 export type Lang = 'ko' | 'en' | 'ja';
@@ -153,6 +153,114 @@ const JA: Record<RelationRole, RolePhrase> = {
     advice: 'この人の言葉と、この人自身を分けて聞いて。学ぶものだけ持ち帰り、顔色は置いてくればいい。',
   },
 };
+
+
+/**
+ * ★결(trait) 문구 — **같은 역할이라도 사람마다 다르게** 만드는 한 줄
+ *   (daniel 2026-08-14 *"같은 화 일간이라도 원국기준 다양하게 나오게해"*).
+ *
+ * 실측: 61명을 그리면 역할이 5개뿐이라 **관성만 17명이 똑같은 문구**였다.
+ * 이 표를 얹으면 같은 관성 안에서도 23가지로 갈린다(엔진이 강한 순 2개를 골라 준다).
+ *
+ * ⚠️사람을 **평가하지 않는다.** '기세가 세다'는 관찰이고 '나쁜 사람'은 판단이다 —
+ *   후자는 쓰지 않는다(§4 안전 가드).
+ */
+const TRAIT: Record<Lang, Record<RelationTrait, string>> = {
+  ko: {
+    clash:    '두 사람 일지가 {{v}}로 걸려 있어요. 가까워질수록 사소한 데서 부딪히기 쉽습니다.',
+    friction: '서로를 흔드는 자리가 {{v}}군데예요. 지루할 틈은 없지만, 붙어 있는 시간이 길면 지칩니다.',
+    fills:    '내게 없는 {{v}}를 갖고 있어요. 이 사람 옆에서 내 빈자리가 메워지는 느낌이 듭니다.',
+    meshes:   '맞물리는 자리가 {{v}}군데라 말이 잘 통해요. 애쓰지 않아도 흐름이 이어집니다.',
+    intense:  '{{v}} 기운이 몰려 있는 원국이라 색이 진해요. 좋아하는 것도 싫어하는 것도 뚜렷합니다.',
+    sparse:   '{{v}} 기운이 비어 있는 원국이에요. 그쪽 이야기가 나오면 유독 서툴거나 예민할 수 있습니다.',
+    sturdy:   '자기 축이 단단한 사람이에요. 흔들어도 잘 안 밀리는 대신, 방향을 바꾸는 데 시간이 걸립니다.',
+    yielding: '주위를 타는 결이라 분위기를 잘 읽어요. 대신 혼자 결정하는 자리에선 힘들어할 수 있습니다.',
+    season:   '내가 더울 때 서늘하고, 내가 추울 때 따뜻한 계절을 타고났어요. 온도가 서로를 눅여 줍니다.',
+  },
+  en: {
+    clash:    'Your day branches catch on each other ({{v}}) — small things chafe as you get closer.',
+    friction: '{{v}} places where you rattle each other — never dull, but long stretches wear thin.',
+    fills:    'They carry {{v}}, which your chart lacks. Your gaps feel covered around this person.',
+    meshes:   '{{v}} places where you interlock, so talk flows without effort.',
+    intense:  '{{v}} crowds their chart, so the colour runs strong — clear likes, clear dislikes.',
+    sparse:   'Their chart has no {{v}}. Around that they may be unusually clumsy or touchy.',
+    sturdy:   'A firm axis of their own. Hard to push over, and slow to turn.',
+    yielding: 'They read the room easily, riding what is around them — and struggle when left to decide alone.',
+    season:   'Born to the season that cools you when you run hot and warms you when you run cold.',
+  },
+  ja: {
+    clash:    '二人の日支が{{v}}で引っかかっています — 近づくほど些細なところでぶつかりやすい。',
+    friction: '互いを揺さぶる場所が{{v}}か所。退屈はしませんが、長時間一緒だと疲れます。',
+    fills:    '自分にない{{v}}を持っている人。そばにいると空いた場所が埋まる感じがします。',
+    meshes:   '噛み合う場所が{{v}}か所あり、話がよく通ります。力まなくても流れが続きます。',
+    intense:  '{{v}}の気が偏った命式で色が濃いめ。好きなものも苦手なものもはっきりしています。',
+    sparse:   '{{v}}の気が空いた命式です。その話題になると、やけに不器用だったり敏感だったりします。',
+    sturdy:   '自分の軸が固い人。押しても動きにくい代わり、方向を変えるのに時間がかかります。',
+    yielding: '周りの空気をよく読む質。ただ一人で決める場面では苦しくなりがちです。',
+    season:   '自分が暑いとき涼しく、寒いとき温かい季節を持っています。温度が互いを和らげます。',
+  },
+};
+
+
+/**
+ * 한국어 조사 자동 선택 — `{{v}}` 에 무엇이 들어오든 문장이 어색하지 않게.
+ *
+ * ★실측(2026-08-14): 값을 채우자 "辰**를**", "원진**로**" 처럼 조사가 어긋났다.
+ *   한자(辰·午)는 한국어 독음의 받침을 따라야 한다 — 子(자)·午(오)는 받침 없음, 辰(진)·申(신)은 있음.
+ *   그래서 **글자표**로 판단한다(코드포인트로는 알 수 없다).
+ */
+const NO_FINAL = new Set('子午卯酉巳亥丙丁戊己壬癸水火土'.split(''));   // 독음에 받침 없는 글자
+function hasFinal(word: string): boolean {
+  const last = word.trim().slice(-1);
+  if (NO_FINAL.has(last)) return false;
+  if (/[丑寅辰未申戌甲乙庚辛木金]/.test(last)) return true;
+  const code = last.charCodeAt(0);
+  if (code >= 0xac00 && code <= 0xd7a3) return (code - 0xac00) % 28 !== 0;   // 한글은 종성으로
+  return true;   // 알 수 없으면 받침 있는 쪽(…을/…으로)이 덜 어색하다
+}
+/** `{{v}}` 뒤에 붙는 조사를 값에 맞게 고른다. 지원: 을/를 · 으로/로 · 이/가 · 은/는 */
+function fixParticles(text: string, value: string): string {
+  const f = hasFinal(value);
+  return text
+    .replace(/\{\{v\}\}를/g, `${value}${f ? '을' : '를'}`)
+    .replace(/\{\{v\}\}로/g, `${value}${f ? '으로' : '로'}`)
+    .replace(/\{\{v\}\}가/g, `${value}${f ? '이' : '가'}`)
+    .replace(/\{\{v\}\}는/g, `${value}${f ? '은' : '는'}`)
+    .replace(/\{\{v\}\}/g, value);
+}
+
+/**
+ * 결 문구. 엔진이 고른 순서(강한 순) 그대로 최대 2줄.
+ *
+ * ★`{{v}}` 자리에 **실제 값**을 채운다(daniel 2026-08-14 "원국기준 다양하게").
+ *   "내게 없는 글자를 여럿"보다 "내게 없는 午·辰을"이 낫다 — 사람마다 달라지고, 근거가 보인다.
+ *   실측: 값을 안 채우면 61명이 23가지로만 갈렸다(같은 조합끼리 한 글자도 안 달랐다).
+ */
+export function traitPhrases(lang: Lang, traits: RelationTrait[], node?: TraitFacts): string[] {
+  const t = TRAIT[lang] ?? TRAIT.ko;
+  return traits.map((k) => {
+    const raw = t[k];
+    if (!raw) return '';
+    const v = node?.[k];
+    // 값이 없으면 그 줄은 쓰지 않는다 — `{{v}}` 가 그대로 노출되면 버그로 보인다
+    return raw.includes('{{v}}') ? (v ? fixParticles(raw, v) : '') : raw;
+  }).filter(Boolean);
+}
+
+/** 문구에 채워 넣을 값들(화면이 `dx` 와 상대 원국에서 뽑아 준다). */
+export type TraitFacts = Partial<Record<RelationTrait, string>>;
+
+/**
+ * 리스트 한 줄용 — 결의 **첫 문장들**을 이어 붙인다(최대 2개).
+ *
+ * ★첫 결 하나만 쓰면 `friction+fills` 와 `friction+meshes` 가 화면에서 같은 말이 된다(실측).
+ *   둘째까지 이어야 조합이 그대로 드러나 사람이 갈린다.
+ *   리스트는 2줄까지 보여 주므로 길이도 맞는다.
+ */
+export function traitLead(lang: Lang, traits: RelationTrait[], facts?: TraitFacts): string {
+  const head = (t: string) => t.replace(/\*\*/g, '').split(/(?<=[.。])\s|(?<=요)\s|(?<=다)\s/)[0];
+  return traitPhrases(lang, traits, facts).slice(0, 2).map(head).join(' ');
+}
 
 const TABLE: Record<Lang, Record<RelationRole, RolePhrase>> = { ko: KO, en: EN, ja: JA };
 

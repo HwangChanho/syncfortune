@@ -90,6 +90,7 @@ export const en = {
   },
   relmapCard: { title: 'Relationship Map', lead: '{{name}} is {{role}}', more: 'See the whole map ›' },
   relmap: {
+    mapCap: 'The map shows your closest {{n}} — the other {{r}} are in the list below.',
     joinedTitle: 'Someone joined', joinedBody: '{{n}} new on your map.',
     invite: 'Send an invite link', inviting: 'Making a link…',
     inviteNote: 'Your friend opens the link, enters their birth date, and takes a place on your map. Links close after 7 days.',

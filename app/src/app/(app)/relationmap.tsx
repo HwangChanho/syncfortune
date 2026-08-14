@@ -22,7 +22,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { listCharts, getRepresentativeId, type SavedChart } from '../../lib/engine/myChart';
 import { computeChart } from '../../lib/engine/engine';
 import { buildRelationMap, type RelationNode, type RelationRole } from '@engine/relationMap';
-import { rolePhrase, elemRelationLabel, compatHook } from '../../lib/content/relationMapPhrases';
+import { rolePhrase, elemRelationLabel, compatHook, traitPhrases, traitLead, type TraitFacts } from '../../lib/content/relationMapPhrases';
 import { appLang } from '../../lib/i18n';
 import { createInvite, collectEntries } from '../../lib/backend/mapInvite';
 import { Alert } from '../../lib/ui/alert';
@@ -46,6 +46,13 @@ const CENTER = MAP_SIZE / 2;
 const R_MIN = 62;              // 케미 99 → 이만큼 가까이
 const R_MAX = 124;             // 케미 1  → 이만큼 멀리
 const DOT = 44;
+/**
+ * ★지도에 그리는 최대 인원(daniel 2026-08-14 실기기: **61명이 뭉개져** 이름이 겹쳤다).
+ *   원 하나에 61개를 올리면 도넛이 되고 아무 정보도 안 남는다.
+ *   ⇒ 지도는 **케미 상위 10명**만. 나머지는 아래 목록이 전부 보여 준다(잘라 숨기는 게 아니다 —
+ *     [[list-truncation-hides-content]] 의 교훈대로 **어디서 다 볼 수 있는지 화면에 적는다**).
+ */
+const MAP_MAX = 10;
 
 /** 역할별 각도 구역(12시 방향부터 시계 방향). 같은 역할끼리 모여야 쏠림이 보인다. */
 const ROLE_ARC: Record<RelationRole, number> = {
@@ -116,6 +123,22 @@ export default function RelationMapScreen() {
 
   const nameOf = (id: string) => saved.find((c) => c.id === id)?.label ?? '';
 
+  /**
+   * 결 문구의 `{{v}}` 에 넣을 **실제 값**을 뽑는다.
+   * ★"내게 없는 글자를 여럿"보다 "내게 없는 午·辰을"이 낫다 — 사람마다 달라지고 근거가 보인다.
+   *   값이 없는 결은 문구 쪽에서 알아서 빠진다(`{{v}}` 노출 방지).
+   */
+  const factsOf = (n: RelationNode): TraitFacts => {
+    const dx = n.dx as any;
+    return {
+      fills: dx?.missingFill?.chars?.length ? dx.missingFill.chars.join('·') : undefined,
+      clash: dx?.spousePalace?.afflictions?.length ? dx.spousePalace.afflictions.join('·') : undefined,
+      friction: dx?.tension?.length ? String(dx.tension.length) : undefined,
+      meshes: dx?.harmony?.length ? String(dx.harmony.length) : undefined,
+      intense: n.adjusted ? n.basisElem : undefined,   // 세력 보정이 걸린 오행 = 그 사람의 몰린 기운
+    };
+  };
+
   if (loading) return <View style={styles.center}><ActivityIndicator color={colors.ju} /></View>;
 
   // ── 명식이 없거나 나뿐일 때 ────────────────────────────────────────────
@@ -138,14 +161,21 @@ export default function RelationMapScreen() {
   }
 
   const { nodes, summary } = map;
+  const shown = nodes.slice(0, MAP_MAX);           // 지도에 앉힐 사람
+  const hidden = nodes.length - shown.length;      // 목록에서만 보이는 사람
   const myElem = computeChart(map.me.input).saju.dayMaster.element as Element;
   // 같은 역할이 여럿이면 부채꼴 안에서 벌린다(겹침 방지)
-  const seatOf = (n: RelationNode, i: number) => {
-    const sameRole = nodes.filter((x) => x.role === n.role);
+  // ★거리는 **이 지도 안의 최고~최저**에 맞춰 편다. 절대값(1~99)으로 매핑하면
+  //   케미가 66~85 처럼 좁게 모인 실제 데이터에서 전원이 같은 반지름에 서서 도넛이 된다.
+  const chemis = shown.map((n) => n.chemi);
+  const hi = Math.max(...chemis), lo = Math.min(...chemis);
+  const span = Math.max(1, hi - lo);
+  const seatOf = (n: RelationNode) => {
+    const sameRole = shown.filter((x) => x.role === n.role);
     const idx = sameRole.findIndex((x) => x.id === n.id);
-    const spread = sameRole.length > 1 ? (idx - (sameRole.length - 1) / 2) * 26 : 0;
+    const spread = sameRole.length > 1 ? (idx - (sameRole.length - 1) / 2) * 24 : 0;
     const deg = ROLE_ARC[n.role] + spread;
-    const r = R_MAX - ((n.chemi - 1) / 98) * (R_MAX - R_MIN);   // 케미 높을수록 가까이
+    const r = R_MAX - ((n.chemi - lo) / span) * (R_MAX - R_MIN);
     const rad = (deg * Math.PI) / 180;
     return { left: CENTER + Math.cos(rad) * r - DOT / 2, top: CENTER + Math.sin(rad) * r - DOT / 2 };
   };
@@ -163,8 +193,8 @@ export default function RelationMapScreen() {
           <Text style={styles.meElem}>{myElem}</Text>
           <Text style={styles.meLabel}>{t('relmap.me', '나')}</Text>
         </View>
-        {nodes.map((n, i) => {
-          const pos = seatOf(n, i);
+        {shown.map((n) => {
+          const pos = seatOf(n);
           const on = openId === n.id;
           return (
             <Pressable key={n.id} style={[styles.node, pos, on && styles.nodeOn]} onPress={() => setOpenId(on ? null : n.id)}>
@@ -176,6 +206,12 @@ export default function RelationMapScreen() {
           );
         })}
       </View>
+
+      {hidden > 0 && (
+        <Text style={styles.mapNote}>
+          {t('relmap.mapCap', '지도에는 가까운 {{n}}명만 그렸어요 — 나머지 {{r}}명은 아래 목록에 있어요.', { n: shown.length, r: hidden })}
+        </Text>
+      )}
 
       {/* ── 내 지도 요약 ─────────────────────────────────────────────────── */}
       <View style={styles.card}>
@@ -215,6 +251,10 @@ export default function RelationMapScreen() {
               <View style={{ flex: 1 }}>
                 <Text style={styles.rowName}>{nameOf(n.id)}</Text>
                 <Text style={styles.rowRole}>{p.name} · {elemRelationLabel(myElem, n.basisElem)}</Text>
+                {/* ★같은 역할이라도 사람마다 다른 한 줄(daniel: "원국기준 다양하게") */}
+                {!!traitLead(lang, n.traits, factsOf(n)) && (
+                  <Text style={styles.rowTrait} numberOfLines={2}>{traitLead(lang, n.traits, factsOf(n))}</Text>
+                )}
               </View>
               <Text style={styles.chemi}>{n.chemi}</Text>
             </Pressable>
@@ -228,6 +268,9 @@ export default function RelationMapScreen() {
                 {n.adjusted && !!n.adjustNote && (
                   <Text style={styles.note}>{t('relmap.adjusted', '이 사람은 {{note}}해서 그 기운으로 봤어요.', { note: n.adjustNote })}</Text>
                 )}
+                {traitPhrases(lang, n.traits, factsOf(n)).map((tp, i) => (
+                  <Text key={i} style={styles.traitBody}>{tp.replace(/\*\*/g, '')}</Text>
+                ))}
                 <View style={styles.divider} />
                 <Text style={styles.label}>{t('relmap.caution', '조심할 점')}</Text>
                 <Text style={styles.body}>{p.caution}</Text>
@@ -302,6 +345,9 @@ const mkStyles = (fs: (n: number) => number) => StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center' },
   rowName: { color: colors.ink, fontSize: fs(15), lineHeight: fs(22), fontWeight: '700' },
   rowRole: { color: colors.inkSoft, fontSize: fs(12), lineHeight: fs(19) },
+  rowTrait: { color: colors.ink, fontSize: fs(12), lineHeight: fs(19), marginTop: space(1) },
+  traitBody: { color: colors.ink, fontSize: fs(14), lineHeight: fs(23), marginTop: space(2) },
+  mapNote: { color: colors.inkSoft, fontSize: fs(12), lineHeight: fs(19), textAlign: 'center', marginTop: space(3) },
   chemi: { color: colors.ju, fontSize: fs(20), lineHeight: fs(26), fontWeight: '800', marginLeft: space(2) },
 
   detail: { marginTop: space(4) },
