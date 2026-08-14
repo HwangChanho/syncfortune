@@ -82,7 +82,13 @@ type LastCompat = { meId?: string; otherId?: string; rel?: string };
 const LAST_KEY = 'compatLast_v1';   // SecureStore 키는 영숫자·._- 만(콜론 불가)
 let _lastCompat: LastCompat = {};
 /** 저장 — 실패는 무시한다(복원 편의 기능이지 정확성이 아니다). */
-function saveLastCompat(v: LastCompat) {
+/**
+ * 마지막으로 본 궁합 쌍을 기억한다.
+ * ★export 인 이유(2026-08-14): **관계 지도**가 "이 사람과 궁합" 을 누를 때 상대를 미리 심어 둔다.
+ *   compat 라우트에 새 파라미터를 뚫는 대신 **이미 있는 복원 경로**(:208 `last.otherId`)를 그대로 쓴다 —
+ *   경로가 둘이 되면 한쪽만 고쳐지는 사고가 난다([[duplicate-ui-single-source]]).
+ */
+export function saveLastCompat(v: LastCompat) {
   _lastCompat = v;
   SecureStore.setItemAsync(LAST_KEY, JSON.stringify(v)).catch(() => {});
 }

@@ -104,6 +104,9 @@ export const SECTIONS: Section[] = [
     { key: 'lovestyle', labelKey: 'menu.lovestyle', descKey: 'menu.lovestyleTileDesc', image: A('icons/lovestyle.jpg'), route: '/lovestyle', ready: true, content: true },
     { key: 'relationPattern', labelKey: 'menu.relationPattern', descKey: 'menu.relationPatternDesc', image: A('icons/relationPattern.jpg'), route: '/relationpattern', ready: true, content: true },
     { key: 'sokgunghap', labelKey: 'menu.sokgunghap', descKey: 'menu.sokgunghapDesc', image: A('icons/sokgunghap.jpg'), route: '/sokgunghap', ready: true, content: true },
+    // 관계 지도(daniel 2026-08-14) — **무료 결정론**(온디바이스·API 0원). 궁합의 앞 단계이자 유입로다.
+    //   ⚠️전용 아이콘이 아직 없어 compat 이미지를 함께 쓴다(이미지 제작은 별건 — 깨진 칸보다 낫다).
+    { key: 'relationmap', labelKey: 'menu.relationmap', descKey: 'menu.relationmapDesc', image: A('icons/compat.jpg'), route: '/relationmap', ready: true, content: true },
     { key: 'compat', labelKey: 'menu.compat', descKey: 'menu.compatDesc', image: A('icons/compat.jpg'), route: '/compat', ready: true, premium: true, creditKey: 'compat' },
     { key: 'love', labelKey: 'menu.love', descKey: 'menu.loveDesc', image: A('icons/love.jpg'), route: '/love', ready: true, content: true, creditKey: 'love' },
     { key: 'crush', labelKey: 'menu.crush', descKey: 'menu.crushDesc', image: A('icons/crush.jpg'), route: '/crush', ready: true, content: true, creditKey: 'crush' },
