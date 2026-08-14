@@ -47,6 +47,11 @@
   .done { text-align:center; padding:28px 20px; }
   .done .big { font-size:40px; }
   .hide { display:none; }
+  .btn { display:block; text-align:center; text-decoration:none; padding:15px; font-size:16px;
+         font-weight:800; color:#fff; background:var(--ju); border-radius:12px; }
+  .soon { text-align:center; padding:14px; border:1px dashed var(--line); border-radius:12px;
+          color:var(--soft); font-weight:700; }
+  ul { margin:0; }
   a { color:var(--ju); }
 </style>
 
@@ -83,15 +88,41 @@
     </div>
   </div>
 
-  <!-- 완료 -->
+  <!-- 완료 — ★여기가 이 페이지의 본론이다(daniel 2026-08-14 "앱으로 유도시키고싶은데 저걸로").
+       생일을 막 넣은 사람은 **자기 결과가 궁금한 상태**다. 그 순간에만 설치 동기가 생긴다. -->
   <div id="done" class="hide">
     <div class="card done">
       <div class="big">🗺️</div>
-      <h1>참여 완료</h1>
-      <p class="sub">잠시 뒤 <span id="who3">초대한 분</span>의 지도에 자리가 잡혀요.</p>
-      <hr style="border:0;border-top:1px solid var(--line);margin:20px 0">
-      <p class="sub" style="margin-bottom:14px">내 지도도 만들어 볼까요?<br>내가 아는 사람들이 나에게 어떤 결인지 한 장으로 봅니다.</p>
-      <a href="https://apps.apple.com/app/id6779321930" style="font-weight:700">니운내운 받기</a>
+      <h1>자리를 맡았어요</h1>
+      <p class="sub"><span id="who3">초대한 분</span>의 지도에 곧 떠요.</p>
+    </div>
+
+    <div class="card" style="margin-top:14px">
+      <h2 style="font-size:17px;margin:0 0 8px">그런데, 나는 그분에게 어떤 사람일까요?</h2>
+      <p style="font-size:14px;margin:0 0 12px">
+        지도는 두 사람의 <b>여덟 글자</b>를 맞대어 봅니다 —
+        내가 그분을 <b>끌어주는 자리</b>인지, <b>챙기게 되는 자리</b>인지, 아니면 <b>긴장시키는 자리</b>인지.
+        같이 있으면 편한 이유도, 이상하게 부딪히는 이유도 거기서 나와요.
+      </p>
+      <p style="font-size:14px;margin:0 0 4px"><b>내 지도를 만들면</b></p>
+      <ul style="font-size:14px;color:var(--soft);margin:0 0 16px;padding-left:18px;line-height:1.7">
+        <li>내가 아는 사람들이 <b>나에게</b> 어떤 결인지 한 장으로</li>
+        <li>가까운 순서와 <b>조심할 점 · 잘 지내는 법</b>까지</li>
+        <li>링크 하나로 친구 자리를 채워 나가기</li>
+      </ul>
+
+      <!-- 출시 전엔 스토어로 보내지 않는다 — 404 로 보내면 그걸로 끝이다.
+           `store_live` 플래그가 켜지는 순간 버튼이 산다(관리자 콘솔 [시스템] 탭). -->
+      <div id="storeBox" class="hide">
+        <a id="storeLink" class="btn" href="#">앱에서 내 지도 만들기</a>
+        <p class="note" style="text-align:center">니운내운 · 무료로 시작</p>
+      </div>
+      <div id="soonBox" class="hide">
+        <div class="soon">🌱 곧 만나요</div>
+        <p class="note" style="margin-top:10px">
+          지금은 마지막 준비 중이에요. 이 지도를 만든 분이 열리는 날 알려 줄 거예요.
+        </p>
+      </div>
     </div>
   </div>
 
@@ -157,7 +188,34 @@ $('send').onclick = async () => {
   if (error) return say(/row-level security/i.test(error.message)
     ? '링크가 만료됐어요. 초대한 분께 새 링크를 부탁해 주세요.' : `보내지 못했어요 — ${esc(error.message)}`);
   show('done');
+  setupFunnel();
 };
 
 function say(t) { $('msg').innerHTML = `<div class="msg err">${esc(t)}</div>`; }
+
+// ── 앱 유도(daniel 2026-08-14) ────────────────────────────────────────────
+//   ★출시 전에는 스토어로 보내지 않는다. 2026-08-14 실측: App Store 는 WAITING_FOR_REVIEW,
+//     Play 는 production 트랙이 비어 있어 **두 링크 모두 404** 였다.
+//     404 로 보내면 그 사람은 다시 안 온다 — 차라리 "곧 만나요"가 낫다.
+//   ⇒ `app_flags.store_live` 가 켜지면(관리자 콘솔 [시스템] 탭) 그때 버튼이 산다.
+const STORE = {
+  ios: 'https://apps.apple.com/kr/app/id6779321930',
+  android: 'https://play.google.com/store/apps/details?id=com.syncfortune.app',
+};
+/** 이 기기에 맞는 스토어. 판단이 안 서면 iOS(우리 첫 출시 플랫폼). */
+function storeUrl() {
+  const ua = navigator.userAgent || '';
+  if (/Android/i.test(ua)) return STORE.android;
+  return STORE.ios;
+}
+async function setupFunnel() {
+  let live = false;
+  try {
+    // 플래그를 못 읽어도 화면은 떠야 한다 — 못 읽으면 '곧 만나요'로 떨어진다(안전한 쪽).
+    const { data } = await sb.from('app_flags').select('enabled').eq('key', 'store_live').maybeSingle();
+    live = data?.enabled === true;
+  } catch { /* 네트워크 실패 = 미출시 취급 */ }
+  if (live) { $('storeLink').href = storeUrl(); $('storeBox').classList.remove('hide'); }
+  else $('soonBox').classList.remove('hide');
+}
 </script>
