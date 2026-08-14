@@ -390,7 +390,7 @@ export const en = {
     'newCategoryPh': 'New category name',
     'catDelNote': 'Deleting a category does not delete the charts — they move to “Other”.',
     'deleteTitle': 'Delete chart',
-    'viewManse': '만세력 보기', empty: 'No saved chart.', myChart: 'Chart', searchChart: 'Search by name' },
+    'viewManse': '만세력 보기', 'changeCategory': 'Change category', empty: 'No saved chart.', myChart: 'Chart', searchChart: 'Search by name' },
   sinsal: { 도화: 'Peach Blossom', 역마: 'Travel Horse', 화개: 'Canopy', 천을귀인: 'Nobleman', 문창: 'Academic', 양인: 'Blade', 홍염: 'Romance', 괴강: 'Goegang', 백호: 'White Tiger' },
   special: {
     'freeBasics2': 'Start free — the Big 3 + your life-giving element',

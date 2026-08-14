@@ -421,7 +421,7 @@ export const ko = {
     'newCategoryPh': '새 카테고리 이름',
     'catDelNote': '카테고리를 지워도 명식은 지워지지 않아요 — ‘기타’로 옮겨져요.',
     'deleteTitle': '명식 삭제',
-    'viewManse': '만세력 보기', empty: '등록된 명식이 없습니다.', myChart: '명식', searchChart: '이름으로 찾기' },
+    'viewManse': '만세력 보기', 'changeCategory': '카테고리 변경', empty: '등록된 명식이 없습니다.', myChart: '명식', searchChart: '이름으로 찾기' },
   sinsal: { 도화: '도화', 역마: '역마', 화개: '화개', 천을귀인: '천을귀인', 문창: '문창', 양인: '양인', 홍염: '홍염', 괴강: '괴강', 백호: '백호' },
   special: {
     'freeBasics2': '먼저 무료로 — 빅3 + 생명수',

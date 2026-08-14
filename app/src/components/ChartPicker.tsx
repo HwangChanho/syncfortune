@@ -5,7 +5,7 @@
 // 명식이 없으면 등록 유도. 화면 복귀 시 useFocusEffect 로 목록 갱신.
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
-import { View, Text, Pressable, Modal, StyleSheet, Dimensions, ActivityIndicator, InteractionManager, Animated, TextInput } from 'react-native';
+import { View, Text, Pressable, Modal, StyleSheet, Dimensions, ActivityIndicator, InteractionManager, Animated, TextInput, ScrollView } from 'react-native';
 import { PressableScale } from './PressableScale';
 import { Image as ExpoImage } from 'expo-image'; // 자동 다운샘플(메모리) + 엠블럼 탭 풀스크린 뷰어
 import DraggableFlatList, { ScaleDecorator } from 'react-native-draggable-flatlist'; // 이슈20 롱프레스 드래그 reorder
@@ -15,7 +15,7 @@ import { getCategories, addCategory, removeCategory, isRemovable } from '../lib/
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context'; // 시트 하단 안전영역(홈 인디케이터) — 아래 addBtn 주석
 import { useTranslation } from 'react-i18next';
-import { listCharts, setRepresentative, getRepresentativeId, deleteChart, reorderCharts, subscribeRepChange, type SavedChart } from '../lib/engine/myChart';
+import { listCharts, setRepresentative, getRepresentativeId, deleteChart, reorderCharts, subscribeRepChange, updateChart, type SavedChart } from '../lib/engine/myChart';
 import { getPremiumChartIdSnapshot, subscribePremium } from '../lib/billing/premiumStore'; // 프리미엄 지정 명식(왕관·삭제경고, daniel 07-01)
 import { useFontScale } from '../lib/ui/fontScale'; // 명식 헤더 글자크기 반영(daniel)
 import { computeChart } from '../lib/engine/engine'; // 각 명식 일주 산출(엠블럼)
@@ -70,6 +70,7 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
   const [listReady, setListReady] = useState(false); // 모달 열림 직후 스피너 → 리스트는 인터랙션 후 마운트(daniel: 명식 버튼 로딩 표시)
   const [viewImg, setViewImg] = useState<any>(null); // 엠블럼 탭 → 풀스크린 이미지 뷰어(daniel)
   const [loadedEmblems, setLoadedEmblems] = useState<Set<string>>(new Set()); // 엠블럼 이미지 디코드 완료 — 로딩 인디케이터용(daniel: 명식변경 리스트 이미지 로딩 표시)
+  const [catFor, setCatFor] = useState<string | null>(null);   // 카테고리 변경 시트(daniel 2026-08-15)
   const [actionsFor, setActionsFor] = useState<string | null>(null); // 수정/삭제 펼친 행(daniel: 한 버튼 ⋯ 탭 → 수정·삭제 분리)
   const [premChartId, setPremChartId] = useState<string | null>(getPremiumChartIdSnapshot()); // 프리미엄 지정 명식 serverChartId(👑·삭제경고)
   const [catFilter, setCatFilter] = useState<string | null>(null); // 카테고리(관계) 필터 — null=전체보기(daniel: 전체보기+카테고리별 보기)
@@ -533,6 +534,13 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
                 <PressableScale style={styles.actSheetItem} onPress={() => { setActionsFor(null); edit(c.id); }}>
                   <Text style={styles.actSheetTx}>{t('common.edit', '수정')}</Text>
                 </PressableScale>
+                {/* ★카테고리 변경(daniel 2026-08-15 "여기서 카테고리도 바로 바꿀수 잇게해줘") —
+                    종전엔 '수정'으로 들어가 등록 폼 전체를 거쳐야 했다. 한 항목만 바꾸는데 폼을 다 지나는 건 과하다. */}
+                {relOf(c) !== 'self' && (
+                  <PressableScale style={styles.actSheetItem} onPress={() => { setActionsFor(null); setCatFor(c.id); }}>
+                    <Text style={styles.actSheetTx}>{t('manse.changeCategory', '카테고리 변경')}</Text>
+                  </PressableScale>
+                )}
                 <PressableScale style={styles.actSheetItem} onPress={() => { setActionsFor(null); viewManse(c.id); }}>
                   <Text style={styles.actSheetTx}>{t('manse.viewManse', '만세력 보기')}</Text>
                 </PressableScale>
@@ -540,6 +548,42 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
                   <Text style={[styles.actSheetTx, styles.actSheetDel]}>{t('common.delete', '삭제')}</Text>
                 </PressableScale>
                 <PressableScale style={[styles.actSheetItem, styles.actSheetCancel]} onPress={() => setActionsFor(null)}>
+                  <Text style={styles.actSheetCancelTx}>{t('common.cancel', '취소')}</Text>
+                </PressableScale>
+              </Pressable>
+            </Pressable>
+          );
+        })()}
+        {/* 카테고리 변경 시트 — 고르면 바로 저장하고 닫는다(확인 단계 없음: 되돌리기 쉬운 변경이다) */}
+        {!!catFor && (() => {
+          const c = charts.find((x) => x.id === catFor);
+          if (!c) return null;
+          const cur = relOf(c);
+          return (
+            <Pressable style={styles.actSheetBackdrop} onPress={() => setCatFor(null)}>
+              <Pressable style={styles.actSheet} onPress={() => {}}>
+                <Text style={styles.actSheetTitle} numberOfLines={1}>{c.label}</Text>
+                <ScrollView style={{ maxHeight: 320 }}>
+                  {categories.filter((k) => k !== 'self').map((k) => (
+                    <PressableScale
+                      key={k}
+                      style={styles.actSheetItem}
+                      onPress={async () => {
+                        setCatFor(null);
+                        if (k === cur) return;                       // 같은 값이면 저장하지 않는다
+                        // ⚠️relation 이 바뀌면 updateChart 가 serverChartId 를 새로 발급한다(풀이 캐시 계약).
+                        //   그래서 input 전체를 그대로 넘기고 relation 만 얹는다 — 사주 값은 손대지 않는다.
+                        await updateChart(c.id, { ...c.input, relation: k });
+                        await reload();
+                      }}
+                    >
+                      <Text style={[styles.actSheetTx, k === cur && { color: colors.ju, fontWeight: '800' }]}>
+                        {k}{k === cur ? '  ✓' : ''}
+                      </Text>
+                    </PressableScale>
+                  ))}
+                </ScrollView>
+                <PressableScale style={[styles.actSheetItem, styles.actSheetCancel]} onPress={() => setCatFor(null)}>
                   <Text style={styles.actSheetCancelTx}>{t('common.cancel', '취소')}</Text>
                 </PressableScale>
               </Pressable>
