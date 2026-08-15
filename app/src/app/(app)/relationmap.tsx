@@ -413,9 +413,14 @@ const mkStyles = (fs: (n: number) => number) => StyleSheet.create({
   nodeOn: { transform: [{ scale: 1.08 }] },
   dot: { width: DOT, height: DOT, borderRadius: DOT / 2, alignItems: 'center', justifyContent: 'center' },
   dotOn: { borderWidth: 2, borderColor: colors.ju },   // 지금 궁합을 연 사람이 지도에서 보이게
-  // 점수 배지 — 원 오른쪽 아래에 물린다. 카드 배경색을 깔아야 오행 색 위에서도 숫자가 읽힌다.
+  /**
+   * 점수 배지 — 원 오른쪽 아래에 물린다. 카드 배경색을 깔아야 오행 색 위에서도 숫자가 읽힌다.
+   * ⚠️튀어나오는 값(right/bottom)을 -2 로 잡은 이유: `mapBox` 가 `overflow:'hidden'` 이라
+   *   지도 밖으로 나간 만큼 **잘린다**. 3시 방향 노드의 오른쪽 끝은 x≈296(지도 300) 이라
+   *   -6 이면 배지가 2pt 깎였다. 눈에 잘 안 띄는 종류의 깨짐이라 계산으로 막는다.
+   */
   badge: {
-    position: 'absolute', right: -6, bottom: -4, minWidth: 24, paddingHorizontal: 4, paddingVertical: 1,
+    position: 'absolute', right: -2, bottom: -2, minWidth: 24, paddingHorizontal: 4, paddingVertical: 1,
     borderRadius: 9, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.juLine, alignItems: 'center',
   },
   badgeTx: { color: colors.ju, fontSize: fs(10), lineHeight: fs(14), fontWeight: '800' },
