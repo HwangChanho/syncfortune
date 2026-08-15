@@ -6,7 +6,7 @@
 //   ★정적 style·함수형 style(({pressed})=>…) 모두 지원 = 어떤 Pressable이든 안전한 드롭인(daniel 07-02: 모든 버튼 누름 애니).
 // ─────────────────────────────────────────────────────────────────────────
 import { forwardRef, useRef } from 'react';
-import { Animated, Pressable, type PressableProps } from 'react-native';
+import { Animated, Platform, Pressable, type PressableProps } from 'react-native';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -39,6 +39,15 @@ export const PressableScale = forwardRef<any, Props>(function PressableScale(
     transform: [{ scale: a.interpolate({ inputRange: [0, 1], outputRange: [1, scaleTo] }) }],
     opacity: a.interpolate({ inputRange: [0, 1], outputRange: [1, dimTo] }),
   };
+  /**
+   * ★웹 어포던스(2026-08-15 웹 전환) — **커서**와 **hover**.
+   *
+   * 폰에는 커서가 없어서 "누를 수 있는 것"은 눌러 봐야 안다. 웹은 반대다 —
+   * 손 모양 커서가 안 뜨면 사용자는 그냥 그림인 줄 알고 지나간다.
+   * 이 컴포넌트가 앱의 **모든 버튼·카드**의 길목이라, 여기 두 줄이면 51개 화면이 같이 웹처럼 반응한다.
+   * (네이티브에는 이 속성이 없어서 `Platform.OS === 'web'` 일 때만 얹는다.)
+   */
+  const webCursor = Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '120ms' } as any) : null;
   return (
     <AnimatedPressable
       ref={ref}
@@ -47,7 +56,9 @@ export const PressableScale = forwardRef<any, Props>(function PressableScale(
       onPressIn={(e) => { Animated.spring(a, { toValue: 1, useNativeDriver: true, speed: 50, bounciness: 0 }).start(); onPressIn?.(e); }}
       onPressOut={(e) => { Animated.spring(a, { toValue: 0, useNativeDriver: true, speed: 18, bounciness: 8 }).start(); onPressOut?.(e); }}
       // 정적 style이면 [style, anim] / 함수형 style이면 (state)=>[style(state), anim] — 둘 다 안전.
-      style={typeof style === 'function' ? (state: any) => [(style as any)(state), anim] : [style as any, anim]}
+      style={typeof style === 'function'
+        ? (state: any) => [(style as any)(state), anim, webCursor, Platform.OS === 'web' && (state as any)?.hovered && { opacity: 0.88 }]
+        : [style as any, anim, webCursor]}
     >
       {children as any}
     </AnimatedPressable>

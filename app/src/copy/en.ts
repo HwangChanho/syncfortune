@@ -260,7 +260,7 @@ export const en = {
     'coins': 'Luck',
     'loadingOff': 'Off',
     'loadingScreen': 'Loading screen',
-    'loadingVideoOff': '八字 characters',
+    'loadingVideoOff': 'App name only',
     'loadingVideoOn': 'Tiger video',
     'loginBenefit': 'Log in and the content you bought carries over to other devices and reinstalls (optional)',
     'notif': 'Notifications',

@@ -34,8 +34,8 @@ export function SplashOverlay({ onDone }: { onDone: () => void }) {
       <HomeBackdrop />
       {/* ★호랑이(백두산) 이미지 유지 — contain(잘림 없음), 아래로 SHIFT. 상하 여백엔 위 HomeBackdrop(별 상단·선비 하단)가 보임 */}
       <ImageBackground source={require('../../assets/splash-bg.png')} style={[StyleSheet.absoluteFill, { transform: [{ translateY: SHIFT }] }]} resizeMode="contain" />
-      {/* 좌상단 八字(노란색) — 브랜드 표식(daniel 07-01) */}
-      <Text style={[styles.hanja, { fontSize: hanjaSize, top: hanjaTop }]}>八字</Text>
+      {/* 좌상단 브랜드 표식 — 앱 이름(Boss 2026-08-15 개명 반영. 종전엔 옛 이름 `八字`) */}
+      <Text style={[styles.hanja, { fontSize: hanjaSize * 0.62, top: hanjaTop }]}>니운내운</Text>
     </Animated.View>
   );
 }
@@ -43,6 +43,7 @@ export function SplashOverlay({ onDone }: { onDone: () => void }) {
 const styles = StyleSheet.create({
   // 풀스크린 미드나잇 배경(이미지 contain 시 상하 여백을 자연스럽게 메움)
   overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center', zIndex: 999 },
-  // 좌상단 八字 — 브랜드 골드(노란색), 어두운 천지 이미지 위 가독 위해 그림자(daniel 07-01)
+  // 좌상단 브랜드 워드마크 — 골드, 어두운 이미지 위 가독 위해 그림자(daniel 07-01).
+  //   ★한글 4자는 한자 2자보다 길어 렌더 시 크기를 0.62 로 줄여 쓴다(위 참조).
   hanja: { position: 'absolute', top: 64, left: 26, fontSize: 36, fontWeight: '900', color: colors.ju, letterSpacing: 3, textShadowColor: 'rgba(0,0,0,0.55)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 5 },
 });

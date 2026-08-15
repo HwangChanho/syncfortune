@@ -26,6 +26,19 @@ import { colors, radius, space, shadow, font } from '../lib/theme';
 function webBrowser(): any | null { try { return require('expo-web-browser'); } catch { return null; } }
 try { webBrowser()?.maybeCompleteAuthSession(); } catch { /* 네이티브 모듈 없으면 무시 */ }
 
+/**
+ * 소셜 로그인 복귀 주소.
+ * · 네이티브 = `syncfortune://auth-callback` (딥링크)
+ * · **웹** = `<현재 오리진>/auth-callback` — 웹엔 딥링크가 없다. 브라우저가 그 주소로 되돌아오고
+ *   `app/auth-callback.tsx` 가 `?code=` 를 받아 세션을 확립한다(그 라우트는 이미 쿼리로 동작한다).
+ * ⚠️이 주소는 **Supabase Auth 의 Redirect URLs** 와 각 소셜 콘솔에 **등록돼 있어야** 한다.
+ *   등록 안 된 주소로 오면 provider 가 그 자리에서 막는다(코드로는 못 뚫는다).
+ */
+function authRedirectUrl(): string {
+  if (Platform.OS === 'web') return `${window.location.origin}/auth-callback`;
+  return Linking.createURL('auth-callback');
+}
+
 // 인증 세션 복귀 URL(syncfortune://auth-callback?code=… / ?token_hash=&type=) → 세션 확립.
 //   openAuthSessionAsync 가 리다이렉트를 가로채 브라우저를 닫으므로, 콜백 라우트 대신 여기서 직접 처리한다.
 async function completeAuthFromUrl(url: string): Promise<{ error: any } | undefined> {
@@ -67,6 +80,16 @@ export function AuthScreen() {
   // OAuth 1스텝 실행 — mode='link'(익명 승격·같은 uid) 또는 'signin'(신규/전환). URL 받아 인앱 세션으로 열고 콜백 처리.
   //   반환: 콜백 에러(있으면). 인앱 세션(ASWebAuthenticationSession)은 리다이렉트 시 브라우저 자동 닫힘.
   async function runOAuth(provider: 'google' | 'apple', mode: 'link' | 'signin', redirectTo: string): Promise<{ error: any } | undefined> {
+    // ★웹 = **페이지를 통째로 넘긴다**(2026-08-15 웹 전환).
+    //   네이티브 흐름은 `skipBrowserRedirect` + 인앱 브라우저 세션인데, 웹에서 그건 팝업이라
+    //   팝업 차단에 그대로 막힌다. 웹의 표준은 리다이렉트이고, 돌아오는 주소는 `/auth-callback` 이다.
+    if (Platform.OS === 'web') {
+      const { error } = mode === 'link'
+        ? await supabase.auth.linkIdentity({ provider, options: { redirectTo } })
+        : await supabase.auth.signInWithOAuth({ provider, options: { redirectTo } });
+      // 성공하면 이 줄 다음은 실행되지 않는다(브라우저가 이미 떠났다).
+      return error ? { error } : undefined;
+    }
     const { data, error } = mode === 'link'
       ? await supabase.auth.linkIdentity({ provider, options: { redirectTo, skipBrowserRedirect: true } }) // 익명 세션에 소셜 연결(같은 uid·데이터 보존)
       : await supabase.auth.signInWithOAuth({ provider, options: { redirectTo, skipBrowserRedirect: true } });
@@ -86,7 +109,7 @@ export function AuthScreen() {
   //   이미 그 소셜로 가입된 계정이면(Case B) 링크가 실패 → signInWithOAuth 로 전환(그 기존 계정으로 로그인). 등록 세션이면 바로 signin.
   async function signInWithOAuth(provider: 'google' | 'apple') {
     setLoading(true);
-    const redirectTo = Linking.createURL('auth-callback'); // syncfortune://auth-callback
+    const redirectTo = authRedirectUrl(); // 네이티브=딥링크 · 웹=<오리진>/auth-callback
     logEvent('diag_oauth_start', { provider, isAnon: isAnonSession(), redirectTo }); // ★진단: 버튼 탭 진입(무반응이면 이 로그부터 없을 것)
     try {
       // ★항상 signin(구글/애플 계정 선택창 1회 — daniel 07-11 버그: 창이 두 번 떴다).
@@ -105,11 +128,13 @@ export function AuthScreen() {
   async function signInWithNaver() {
     setLoading(true); // 외부 브라우저 전환까지 버튼 비활성(중복 탭 방지)
     try {
-      const appRedirect = Linking.createURL('auth-callback');               // syncfortune://auth-callback
+      const appRedirect = authRedirectUrl();                                 // 네이티브=딥링크 · 웹=<오리진>/auth-callback
       const fnBase = (process.env.EXPO_PUBLIC_SUPABASE_URL ?? '').replace(/\/+$/, '');
       if (!fnBase) { Alert.alert('!', t('common.error')); return; }
       // 인앱 인증 세션 — 네이버 로그인·매직링크 복귀 시 브라우저 자동 닫힘(외부 탭 잔류 X).
       const naverUrl = `${fnBase}/functions/v1/naver-auth?app_redirect=${encodeURIComponent(appRedirect)}`;
+      // 웹 = 같은 창에서 이동(팝업 아님). 복귀는 `/auth-callback` 이 받는다.
+      if (Platform.OS === 'web') { window.location.assign(naverUrl); return; }
       const WB = webBrowser();
       if (WB) {
         const res = await WB.openAuthSessionAsync(naverUrl, appRedirect);

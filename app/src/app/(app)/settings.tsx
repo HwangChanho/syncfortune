@@ -290,7 +290,7 @@ export default function SettingsScreen() {
         {/* ★영상 옵션 제거(daniel 2026-08-05 "로딩화면 영상 다 없애버려") — text/off 2옵션. 저장값이 'video'였던 유저는 text 로 표시·동작. */}
         {(['text', 'off'] as LoadingMode[]).map((m) => {
           const sel = loadingMode === m || (m === 'text' && loadingMode === 'video');
-          const label = m === 'text' ? t('settings.loadingVideoOff', '八字 한자') : t('settings.loadingOff', '끄기');
+          const label = m === 'text' ? t('settings.loadingVideoOff', '앱 이름만') : t('settings.loadingOff', '끄기');
           return (
             <PressableScale key={m} style={[styles.opt, sel && styles.optOn]} onPress={() => {
               setLoadingMode(m); setLoadingModeState(m);

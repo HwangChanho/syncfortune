@@ -288,7 +288,7 @@ export const ko = {
     'coins': '운',
     'loadingOff': '끄기',
     'loadingScreen': '로딩 화면',
-    'loadingVideoOff': '八字 한자',
+    'loadingVideoOff': '앱 이름만',
     'loadingVideoOn': '호랑이 영상',
     'loginBenefit': '로그인하면 구매한 콘텐츠가 다른 기기·재설치에서도 이어져요 (선택)',
     'notif': '알림',

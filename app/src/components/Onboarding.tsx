@@ -86,9 +86,9 @@ export function Onboarding() {
         </PressableScale>
       </View>
 
-      {/* 본문 — 八字 심볼 + 타이틀 + (본문 or 불릿) */}
+      {/* 본문 — 브랜드 워드마크 + 타이틀 + (본문 or 불릿) */}
       <View style={styles.body}>
-        <Text style={styles.glyph}>八字</Text>
+        <Text style={styles.glyph}>니운내운</Text>
         <Text style={styles.title}>{cur.title}</Text>
         {cur.body ? <Text style={styles.desc}>{cur.body}</Text> : null}
         {cur.bullets ? (
@@ -149,7 +149,7 @@ const styles = StyleSheet.create({
   skipBtn: { paddingVertical: space(1), paddingHorizontal: space(1) },
   skipTxt: { color: colors.inkFaint, fontSize: 15, fontWeight: '600' },
   body: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  glyph: { color: colors.ju, fontSize: 46, fontWeight: '800', letterSpacing: 4, marginBottom: space(7) },
+  glyph: { color: colors.ju, fontSize: 30, fontWeight: '800', letterSpacing: 2, marginBottom: space(7) }, // 한글 4자 — 한자 2자와 같은 크기면 넘친다
   title: { color: colors.ink, fontSize: 26, fontWeight: '800', textAlign: 'center', lineHeight: 35 },
   desc: { color: colors.inkSoft, fontSize: 16, lineHeight: 26, textAlign: 'center', marginTop: space(5), maxWidth: 340 },
   bullets: { marginTop: space(7), alignSelf: 'stretch', paddingHorizontal: space(2) },

@@ -259,7 +259,7 @@ export const ja = {
     'coins': '運',
     'loadingOff': 'オフ',
     'loadingScreen': 'ローディング画面',
-    'loadingVideoOff': '八字の漢字',
+    'loadingVideoOff': 'アプリ名のみ',
     'loadingVideoOn': 'トラの映像',
     'loginBenefit': 'ログインすると購入したコンテンツが他の端末や再インストール後も引き継がれます（任意）',
     'notif': '通知',
