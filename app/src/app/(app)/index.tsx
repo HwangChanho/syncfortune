@@ -16,7 +16,7 @@
 //
 // 로그인 게이트 없음(ADR-037).
 // ─────────────────────────────────────────────────────────────────────────
-import { View, Text, ScrollView, StyleSheet, Animated, AppState, Dimensions, Modal, Pressable } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Animated, AppState, Dimensions, Modal, Pressable, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context'; // ★상단 안전영역 — 고정 여백은 글자확대 시 잘린다(daniel 07-27)
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -56,7 +56,8 @@ import { appLang } from '../../lib/i18n';
 import { useHomeOrder, type HomeBlockKey } from '../../lib/ui/homeOrder'; // 홈 블록 배치 순서(계정별 저장·daniel 07-19)
 import DraggableFlatList, { type RenderItemParams } from 'react-native-draggable-flatlist'; // 홈 블록 리스트(드래그는 '배치 편집' 모달에서 — daniel 07-21 '편집 모드')
 import { HomeOrderEditModal } from '../../components/HomeOrderEditModal';
-import { useWebCols } from '../../components/WebShell'; // 넓은 웹 = 홈 블록 2열(폰은 그대로 드래그 리스트) // 홈 배치 편집 모달(간단 목록 드래그·제스처 충돌 0)
+import { useWebCols } from '../../components/WebShell';
+import { WebLanding } from '../../components/WebLanding'; // 웹 첫 방문자에게 '이게 뭔지' 먼저(명식 0개일 때만) // 넓은 웹 = 홈 블록 2열(폰은 그대로 드래그 리스트) // 홈 배치 편집 모달(간단 목록 드래그·제스처 충돌 0)
 
 // 주의 등급 라벨·색 — dailyEnergy.caution(점수 구간)에 붙는 이름표.
 //   ★'조심'에 빨강을 쓰지 않는다(§4 부정 증폭 금지) — 골드/중립 톤으로 낮춰 표시한다.
@@ -398,6 +399,9 @@ export default function Home() {
       )))}
       {/* ★배너는 여기(고정 헤더)에서 **블록으로 이동**했다(daniel 2026-08-06) — renderBlock 의 'banner'.
           종전엔 헤더라 항상 오늘의 운세보다 위였고 순서도 못 바꿨다. */}
+      {/* ★웹 첫 방문자 — 앱은 설치라는 문턱이 설명을 대신하지만 웹은 링크 하나로 들어온다.
+          명식이 하나라도 생기면 사라진다(그때부턴 홈이 할 일이 있다). 네이티브에선 렌더 안 됨. */}
+      {Platform.OS === 'web' && !hasChart && <WebLanding />}
     </>
   );
 

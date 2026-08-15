@@ -110,6 +110,17 @@ export function ContentGrid({ query = '', viewMode, category = null, wrap = fals
   //   숫자를 화면에 박지 않고 `useWebCols` 한 곳에서 받는다(정책이 갈리지 않게).
   const cols = useWebCols();
   const cardW: `${number}%` = cols >= 3 ? '31.7%' : '48%';
+  /**
+   * ★넓은 웹에서는 **가로 캐러셀 대신 랩 그리드**를 쓴다.
+   *   아래 주석(카테고리 화면)과 같은 이유다 — 가로로 미는 건 손가락이 있을 때 얘기고,
+   *   데스크톱엔 스와이프가 없어서 오른쪽에 잘린 카드는 사실상 없는 카드가 된다.
+   */
+  const wrapEff = wrap || cols > 1;
+  /**
+   * 카드 비율 — 원본 카드아트는 832×1216(세로 0.72)이라 3열에서 카드 하나가 500px 가까이 길어진다.
+   * 자산을 다시 만들지 않고 **보이는 창만** 가로로 잡는다(`contentFit="cover"` 가 가운데를 남긴다).
+   */
+  const cardAspect = cols > 1 ? 1.05 : undefined;
   const router = useRouter();
   const { t } = useTranslation();
   const { session } = useAuth();
@@ -431,7 +442,7 @@ export function ContentGrid({ query = '', viewMode, category = null, wrap = fals
           // 이미지 없는 콘텐츠 = 텍스트 카드(제목+설명), 이미지 카드와 시각 구분
           if (!m.image) {
             return (
-              <PressableScale key={m.key} style={[styles.card, styles.textCard, wrap && { width: cardW }]} onPress={() => onPress(m)}>
+              <PressableScale key={m.key} style={[styles.card, styles.textCard, wrapEff && { width: cardW, aspectRatio: cardAspect }]} onPress={() => onPress(m)}>
                 {badge && <View style={[styles.priceTag, isNew && styles.priceTagLeft]}><Text style={styles.priceTagText}>{badge}</Text></View>}
                 {isNew && <View style={styles.newTag}><Text style={styles.newTagTx}>NEW</Text></View>}
                 <Text style={styles.textCardLabel}>{t(m.labelKey)}</Text>
@@ -440,7 +451,7 @@ export function ContentGrid({ query = '', viewMode, category = null, wrap = fals
             );
           }
           return (
-            <PressableScale key={m.key} style={[styles.card, wrap && { width: cardW }]} onPress={() => onPress(m)}>
+            <PressableScale key={m.key} style={[styles.card, wrapEff && { width: cardW, aspectRatio: cardAspect }]} onPress={() => onPress(m)}>
               <View style={styles.cardImg}>
                 {/* expo-image 다운샘플(메모리·랙) + 켄번스 느린 줌(daniel #21). 차례가 온 카드만 mount. */}
                 {revealed
@@ -461,7 +472,7 @@ export function ContentGrid({ query = '', viewMode, category = null, wrap = fals
         //   실물에서 10개 중 2.5개만 보이고 나머지는 오른쪽으로 잘렸다. "타고 들어가면 하위 항목이 나오게"(daniel)
         //   라고 했는데 정작 들어가서도 옆으로 밀어야 보였다 — 개요(여러 섹션을 세로로 쌓으므로 가로 압축이 필요)와
         //   전용 화면(세로 지면이 통째로 남는다)은 요구가 반대다.
-        if (wrap) {
+        if (wrapEff) {
           return (
             <View key={sec.key} style={styles.section}>
               {sectionHeader}
