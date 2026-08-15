@@ -27,6 +27,7 @@ import { useTranslation } from 'react-i18next';
 
 import { ALL_TABS, TabIcon } from './BottomNav';   // ★탭 정의·아이콘은 하단 내비와 **같은 출처**
 import { useFeatureOn } from '../lib/core/features';
+import { CONTENT_ROUTES } from '../lib/content/contentSections'; // 읽는 화면 판정 — 손으로 안 적고 콘텐츠 목록에서 파생
 import { colors, radius, space } from '../lib/theme';
 
 /** 사이드바가 서는 최소 폭. 이보다 좁으면 폰 레이아웃(하단 탭)이 맞다. */
@@ -44,13 +45,18 @@ const SIDEBAR = 248;
  * ★여기에 없는 화면은 전부 '글'로 본다(760px). 화면마다 폭을 고르게 하지 않는 이유는
  *   그러면 곧 화면마다 폭이 갈리기 때문이다 — 정책은 한 표에서만 바뀐다.
  */
-const WIDE_ROUTES = ['/', '/contents', '/relationmap', '/charts', '/market', '/community'];
+const WIDE_ROUTES = ['/', '/contents', '/category', '/relationmap', '/charts', '/market', '/community'];
 /**
  * **폼 화면** — 입력이 주인 화면은 더 좁아야 한다.
  * 글은 760 이 편하지만, 입력창이 760 으로 늘어나면 라벨과 입력 사이가 멀어져 한 덩어리로 안 읽힌다.
  */
 const FORM_ROUTES = ['/register', '/light'];
 export const WEB_FORM = 560;
+/**
+ * **콘텐츠(읽는) 화면**의 지면 — 히어로가 넓게 깔리고 본문은 그 안에서 좁아진다(브런치·29CM 식).
+ * 라우트 목록은 `contentSections` 에서 파생된다 — 콘텐츠가 늘면 자동으로 따라온다.
+ */
+export const WEB_READ = 1000;
 
 /** 지금 '넓은 웹'인가 — 레이아웃이 하단 탭 대신 사이드바를 써야 하는 상태. */
 export function useWideWeb(): boolean {
@@ -80,12 +86,13 @@ export function WebShell({ children }: { children: ReactNode }) {
   // 그리드 화면이면 가로를 쓰고, 글 화면이면 줄 길이를 지킨다
   const isWideRoute = WIDE_ROUTES.some((r) => (r === '/' ? pathname === '/' : pathname?.startsWith(r)));
   const isForm = FORM_ROUTES.some((r) => pathname?.startsWith(r));
+  const isContent = !!pathname && CONTENT_ROUTES.some((r) => pathname === r || pathname.startsWith(`${r}/`));
   return (
     <View style={styles.row}>
       <WebSidebar />
       {/* 본문 — 가운데 정렬 컬럼. 바깥 여백은 앱 배경이 그대로 비친다(전역 ContentBackdrop) */}
       <View style={styles.stage}>
-        <View style={[styles.column, { maxWidth: isWideRoute ? WEB_STAGE : isForm ? WEB_FORM : WEB_COLUMN }]}>{children}</View>
+        <View style={[styles.column, { maxWidth: isWideRoute ? WEB_STAGE : isForm ? WEB_FORM : isContent ? WEB_READ : WEB_COLUMN }]}>{children}</View>
       </View>
     </View>
   );

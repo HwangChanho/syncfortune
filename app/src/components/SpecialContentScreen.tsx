@@ -46,6 +46,7 @@ import { useLogContentVisit } from '../lib/backend/contentVisit'; // 콘텐츠 �
 import { setGenProgress } from '../lib/backend/genProgress'; // 일회성 진행도(daniel 이슈15)
 import { acquireGen, releaseGen } from '../lib/backend/genLock'; // 크로스마운트 이중 생성 잠금(② 이중 LLM 방지)
 import { colors, radius, space, shadow, font } from '../lib/theme';
+import { useWebCols } from './WebShell'; // 넓은 웹 = 본문 컬럼 좁히기(히어로는 전폭)
 import { UnlockOverlay } from './UnlockOverlay';         // unlock 자물쇠 애니 + 그 사이 LLM
 import { ChartPicker } from './ChartPicker';             // 상단 명식 헤더 — 현재 적용 명식 표시·전환
 
@@ -467,6 +468,9 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
   const n = sections.length;
 
   if (!loaded) return <View style={styles.center}><ActivityIndicator color={colors.ju} /></View>;
+  // 넓은 웹에서만 본문을 좁힌다(히어로·명식 헤더는 지면 전체를 쓴다)
+  const webBody = useWebCols() > 1 ? ({ width: '100%', maxWidth: 680, alignSelf: 'center' } as const) : undefined;
+
   if (!savedChart) return (
     <View style={styles.center}>
       <Text style={[styles.msg, dynStyles.msg]}>{t('manse.empty')}</Text>
@@ -500,6 +504,11 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
         </View></View>
       </Modal>
       <ContentHero motif={heroMotif} image={heroImage ?? HERO_BY_KIND[kind]} title={title} sub={sub} themeColor={themeColor} />
+
+      {/* ★본문 컬럼(29CM/브런치 방향) — **히어로는 지면 전체, 글은 좁게**.
+          긴 풀이를 1000px 로 흘리면 눈이 다음 줄을 놓친다. 폰에서는 undefined 라 그대로 지나간다.
+          ★이 틀 하나가 **콘텐츠 화면 31개**를 덮는다. */}
+      <View style={webBody}>
 
       {/* ★무료 온디바이스 티저(재회 도화-충 달력 등) — 히어로 바로 아래. ★유료 전환 후크라 '미소유(잠김)'일 때만 노출(daniel 2026-07-24 재개정):
           유료로 열린 뒤에도 티저의 "무료로 짚어 봤어요/지금은 미리보기예요/아래에서 열 수 있어요" 문구가 남아 구매 상태와 모순됐다(IMG_8168·freeHook 쓰는 12개 유료콘텐츠 공통).
@@ -614,6 +623,7 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
       <RelatedContent kind={kind} />
       {/* 명리 용어 설명(가독성 P2) */}
       <GlossarySheet target={term} onClose={() => setTerm(null)} />
+      </View>
     </ScrollView>
     {/* ↓ 스크롤 밖 = 뷰포트 기준. 자물쇠·문열림이 항상 화면 한가운데에 뜬다. */}
     {/* child/child_couple(자녀운)만 전용 테마 영상 — 그 외 스페셜(roots·image·mission·talent·astrology·future10 등)은 videoKey 미지정=기본 링+자물쇠 */}

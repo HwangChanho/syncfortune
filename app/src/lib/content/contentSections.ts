@@ -210,6 +210,14 @@ export const TOTAL_CARDS = SECTIONS.reduce((n, s) => n + s.items.length, 0);
  * ★왜 목록이 아니라 여기서 파생하나: 유료 콘텐츠가 늘 때마다 광고 예외 목록을 따로 관리하면
  *   반드시 한쪽이 빠진다(이 프로젝트 반복 실수). creditKey 라는 **사실 하나**에서 자동으로 나온다.
  */
+/**
+ * 콘텐츠 화면의 라우트 **전체** — 웹 레이아웃이 "이건 읽는 화면"이라고 판정하는 데 쓴다.
+ * ★손으로 나열하지 않는다. 콘텐츠가 늘면 이 목록도 같이 는다(`PAID_ROUTES` 와 같은 원리).
+ */
+export const CONTENT_ROUTES: string[] = Array.from(
+  new Set(SECTIONS.flatMap((s) => s.items).map((m) => m.route)),
+);
+
 export const PAID_ROUTES: string[] = Array.from(
   new Set(SECTIONS.flatMap((s) => s.items).filter((m) => m.creditKey).map((m) => m.route)),
 );

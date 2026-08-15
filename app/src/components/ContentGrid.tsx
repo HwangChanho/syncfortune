@@ -117,6 +117,12 @@ export function ContentGrid({ query = '', viewMode, category = null, wrap = fals
    */
   const wrapEff = wrap || cols > 1;
   /**
+   * ★29CM 톤(Boss 2026-08-15 선택) — **이미지가 곧 카드**.
+   * 폰에서는 카드가 서로 붙어 있어 테두리·그림자가 경계 노릇을 했지만, 데스크톱은 여백이 넉넉해
+   * **이미지 자체가 이미 경계**다. 걷어내면 카드아트 278장이 화면의 주인이 된다.
+   */
+  const webCard = cols > 1 ? { borderWidth: 0, shadowOpacity: 0, elevation: 0 } : null;
+  /**
    * 카드 비율 — 원본 카드아트는 832×1216(세로 0.72)이라 3열에서 카드 하나가 500px 가까이 길어진다.
    * 자산을 다시 만들지 않고 **보이는 창만** 가로로 잡는다(`contentFit="cover"` 가 가운데를 남긴다).
    */
@@ -402,7 +408,8 @@ export function ContentGrid({ query = '', viewMode, category = null, wrap = fals
         //     (실물에서 설명이 두 번 찍혔다. 08-04 [[duplicate-ui-single-source]] 와 같은 계열의 중복.)
         const sectionHeader = !header ? null : (
           <>
-            <Text style={styles.sectionH}>{t(sec.titleKey)}</Text>
+            {/* ★섹션 제목 — 데스크톱에서 22px 는 작다. 제목이 지면을 잡아야 그리드가 정돈돼 보인다. */}
+            <Text style={[styles.sectionH, cols > 1 && { fontSize: 30, lineHeight: 40, marginBottom: space(2) }]}>{t(sec.titleKey)}</Text>
             {/* 섹션 설명은 **있으면 항상** 표시(daniel 08-06). 예전엔 'free' 섹션만 예외로 숨겼는데,
                 주제 축에서는 설명이 곧 "이 칸에 뭐가 들었나"를 알려주는 안내라 숨길 이유가 없다. */}
             {sec.descKey ? <Text style={styles.sectionDesc}>{t(sec.descKey)}</Text> : null}
@@ -446,7 +453,7 @@ export function ContentGrid({ query = '', viewMode, category = null, wrap = fals
           // 이미지 없는 콘텐츠 = 텍스트 카드(제목+설명), 이미지 카드와 시각 구분
           if (!m.image) {
             return (
-              <PressableScale key={m.key} style={[styles.card, styles.textCard, wrapEff && cardOverride]} onPress={() => onPress(m)}>
+              <PressableScale key={m.key} style={[styles.card, styles.textCard, wrapEff && cardOverride, webCard]} onPress={() => onPress(m)}>
                 {badge && <View style={[styles.priceTag, isNew && styles.priceTagLeft]}><Text style={styles.priceTagText}>{badge}</Text></View>}
                 {isNew && <View style={styles.newTag}><Text style={styles.newTagTx}>NEW</Text></View>}
                 <Text style={styles.textCardLabel}>{t(m.labelKey)}</Text>
@@ -455,7 +462,7 @@ export function ContentGrid({ query = '', viewMode, category = null, wrap = fals
             );
           }
           return (
-            <PressableScale key={m.key} style={[styles.card, wrapEff && cardOverride]} onPress={() => onPress(m)}>
+            <PressableScale key={m.key} style={[styles.card, wrapEff && cardOverride, webCard]} onPress={() => onPress(m)}>
               <View style={styles.cardImg}>
                 {/* expo-image 다운샘플(메모리·랙) + 켄번스 느린 줌(daniel #21). 차례가 온 카드만 mount. */}
                 {revealed
