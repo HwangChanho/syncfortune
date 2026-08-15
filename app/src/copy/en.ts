@@ -98,6 +98,7 @@ export const en = {
     needLoginTitle: 'Sign in first',
     needLoginBody: 'What your friends enter arrives through your account, so invite links need you signed in.',
     title: 'Relationship Map', me: 'me', count: '{{n}} people', hint: 'the closer, the better the chemistry',
+    tapHint: 'Tap a dot to open your compatibility with that person.',
     list: 'Best fit first', summary: 'This is the shape of your map',
     emptyOthers: 'It is just you so far. Add a birth date for family or a friend and you will see what kind of presence they are to you.',
     emptyMe: 'Register your own chart first — that is the reference every relationship is read against.',

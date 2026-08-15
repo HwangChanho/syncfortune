@@ -20,6 +20,7 @@
 //   "이 사람은 당신에게 해롭다" 같은 말은 쓰지 않는다. 사람을 점수로 재는 화면이 되면 안 된다.
 // ═══════════════════════════════════════════════════════════════════════════
 import type { RelationRole, RelationTrait } from '@engine/relationMap';
+import type { CompatScoreBreakdown } from '@engine/compatScore';
 import type { Element } from '@spec/chart';
 
 export type Lang = 'ko' | 'en' | 'ja';
@@ -315,6 +316,115 @@ export function elemRelationLabel(mine: Element, theirs: Element, lang: Lang = '
  *   같은 문구를 쓰면 거짓말이 된다([[no-fabrication-honesty]]).
  *   ⇒ 우리 유도는 "무엇이 더 있는가"로 간다: 점수 → **이유·시기·처방**.
  */
+/** 근거 한 줄 — 부호는 화면이 아이콘(＋/－)으로 옮긴다. */
+export type CompatBasisLine = { sign: '+' | '-'; text: string };
+
+/**
+ * 배우자궁 충돌 종류(형·충·파·해·원진)를 **그 언어의 말로** 옮긴다.
+ *
+ * ★왜 표가 필요한가: 엔진이 주는 값은 한국어 명리 용어다. 그대로 영어 문장에 끼우면
+ *   *"The closest seat carries 해·원진"* 이 되어 **영어 화면에 한국어가 뜬다**
+ *   — 실제로 이 함수를 쓰기 전 실측에서 그렇게 나왔다([[i18n-untranslated-shipped]]:
+ *   "키가 맞는가"와 "말이 그 언어인가"는 다른 질문이다).
+ * ja 는 한자를 그대로 쓴다(통용된다 · `elemLabel` 과 같은 판단).
+ */
+const AFFLICTION: Record<Lang, Record<string, string>> = {
+  ko: { 충: '충', 형: '형', 파: '파', 해: '해', 원진: '원진' },
+  en: { 충: 'clash', 형: 'friction', 파: 'a break', 해: 'harm', 원진: 'a hidden grudge' },
+  ja: { 충: '冲', 형: '刑', 파: '破', 해: '害', 원진: '怨嗔' },
+};
+
+/** 충돌 목록을 언어에 맞게 잇는다(모르는 값은 원문 그대로 — 새 종류가 생겨도 화면이 안 빈다). */
+function afflictionList(lang: Lang, kinds: string[]): string {
+  const t = AFFLICTION[lang] ?? AFFLICTION.ko;
+  const words = kinds.map((k) => t[k] ?? k);
+  return lang === 'en' ? words.join(' and ') : words.join('·');
+}
+
+/**
+ * 점수의 **근거**를 사람 말로 편다 — daniel 6기준을 그대로 읽어 준다.
+ *
+ * ■ 왜 필요한가 (daniel 2026-08-15 *"탭하면 상대와 나의 궁합이 나오게"*)
+ *   숫자만 띄우면 "이 사람 72점"이 되고, 그건 **사람을 점수로 재는 화면**이다(이 파일 머리말 ⚠️).
+ *   근거가 같이 나와야 "무엇을 보고 나온 값인지"가 읽히고, 그때야 숫자가 정보가 된다.
+ *
+ * ■ 무엇을 넣고 무엇을 빼나
+ *   해당 없는 기준은 **줄 자체를 안 만든다**(없는 걸 '없음'이라 적으면 화면이 채점표가 된다).
+ *   §4 — 감점 줄도 **거리·속도 조절**이라는 대응을 함께 적는다. 진단만 남기지 않는다.
+ *
+ * @param lang 화면 언어 · @param b `compatScoreOf(dx)` 결과(점수와 같은 재료)
+ * @returns 가점 최대 4줄 + 감점 최대 1줄 — 카드 하나에 들어가는 분량
+ */
+export function compatBasis(lang: Lang, b: CompatScoreBreakdown): CompatBasisLine[] {
+  const plus: CompatBasisLine[] = [];
+  const minus: CompatBasisLine[] = [];
+  const L = lang === 'en' ? 'en' : lang === 'ja' ? 'ja' : 'ko';
+
+  // ⑤ 용신 공급 — 가중치가 가장 큰 축이라 먼저 놓는다
+  if (b.supply === '강' || b.supply === '중') {
+    const strong = b.supply === '강';
+    plus.push({ sign: '+', text:
+      L === 'en' ? (strong ? 'They carry plenty of the energy your chart needs.' : 'They carry some of the energy your chart needs.')
+      : L === 'ja' ? (strong ? 'あなたに必要な気を、この人がたっぷり持っています。' : 'あなたに必要な気を、この人がある程度持っています。')
+      : (strong ? '내게 필요한 기운을 이 사람이 넉넉히 갖고 있어요.' : '내게 필요한 기운을 이 사람이 어느 정도 갖고 있어요.') });
+  }
+  // ② 상대 일간이 나에게 재/관
+  if (b.jaegwan) {
+    const jae = b.jaegwan === '재성';
+    plus.push({ sign: '+', text:
+      L === 'en' ? (jae ? 'They put you in motion — things get concrete around them.' : 'They keep you sharp — you hold your shape around them.')
+      : L === 'ja' ? (jae ? '物事が具体的に動き出す相手です。' : '背筋が伸びる相手です。')
+      : (jae ? '내가 나서서 움직이게 되는 자리에 서는 사람이에요.' : '내가 흐트러지지 않게 되는 자리에 서는 사람이에요.') });
+  }
+  // ① 계절 한난 상보
+  if (b.seasonComplement) {
+    plus.push({ sign: '+', text:
+      L === 'en' ? 'Your seasons offset each other — one cools, the other warms.'
+      : L === 'ja' ? '季節が互いを補います——一方が冷まし、一方が温めます。'
+      : '계절이 서로를 보완해요 — 더울 때 식혀 주고, 추울 때 데워 줍니다.' });
+  }
+  // ③ 결핍 지지 보완 — 글자를 그대로 보여 준다(근거가 눈에 보이게)
+  if (b.fillChars.length) {
+    const chars = b.fillChars.slice(0, 3).join('·');
+    plus.push({ sign: '+', text:
+      L === 'en' ? `They fill in ${chars}, which your chart does not have.`
+      : L === 'ja' ? `あなたに無い ${chars} を埋めてくれます。`
+      // ★조사는 값의 받침에 맞춰 고른다 — `巳·申를`(申=신, 받침 있음)은 틀린 말이다
+      : fixParticles('내게 없는 {{v}}를 채워 줘요.', chars) });
+  }
+  // ④ 일간 관계 — 충은 감점이 아니다(daniel "충이 발전형")
+  const dm = b.dmType;
+  if (dm === '충') plus.push({ sign: '+', text:
+    L === 'en' ? 'Your day stems clash — the friction pushes both of you forward.'
+    : L === 'ja' ? '日干がぶつかります——刺激が二人を押し上げます。'
+    : '두 사람 일간이 부딪혀요 — 자극이 커서 서로를 밀어 올립니다.' });
+  else if (dm === '상생') plus.push({ sign: '+', text:
+    L === 'en' ? 'One of you feeds the other — conversation runs smooth.'
+    : L === 'ja' ? '一方が一方を生かす流れです——会話が滑らかに続きます。'
+    : '한쪽이 한쪽을 낳는 흐름이에요 — 말이 순하게 이어집니다.' });
+  else if (dm === '합') plus.push({ sign: '+', text:
+    L === 'en' ? 'Your day stems bind — easy together, though change comes slowly.'
+    : L === 'ja' ? '日干が結びます——楽ですが変化はゆっくりです。'
+    : '두 일간이 묶여요 — 편한 대신 변화는 더딥니다.' });
+
+  // ⑥ 배우자궁(일지) — 감점 줄. **대응을 붙여서만** 적는다(§4)
+  if (b.spouseAfflictions.length) {
+    const kinds = afflictionList(L, b.spouseAfflictions);
+    minus.push({ sign: '-', text:
+      L === 'en' ? `The closest seat (day branch) carries ${kinds} — pace the closeness and it settles.`
+      : L === 'ja' ? `一番近い席（日支）に ${kinds} があります——距離と速度を調節すると落ち着きます。`
+      // '파'(받침 없음)면 '파가', '원진'이면 '원진이' — 조사를 값에 맞춰 고른다
+      : fixParticles('가장 가까이 붙는 자리(일지)에 {{v}}가 있어요 — 거리와 속도를 조절하면 가라앉습니다.', kinds) });
+  } else if (b.tension >= 3) {
+    minus.push({ sign: '-', text:
+      L === 'en' ? 'Plenty of push-and-pull between the two charts — good in short bursts, tiring if constant.'
+      : L === 'ja' ? '二つの命式の間に刺激が多めです——短く濃く会うほうが合います。'
+      : '두 명식 사이에 부딪히는 자리가 많은 편이에요 — 짧고 진하게 만나는 쪽이 맞습니다.' });
+  }
+
+  return [...plus.slice(0, 4), ...minus.slice(0, 1)];
+}
+
 export function compatHook(lang: Lang, name: string, chemi: number): { title: string; body: string; cta: string } {
   if (lang === 'en') return {
     title: `${chemi} with ${name} — the number is the short version`,

@@ -24,6 +24,7 @@
 import type { SajuChart, Element } from '../spec/chart';
 import { elementPower } from './elementPower';
 import { analyzeCompatibility, type CompatibilityDx } from './compatibility';
+import { compatScoreOf } from './compatScore';
 import { classifyStrength } from './structure';
 
 /** 오행 상생: 이 오행이 **낳는** 오행. (木→火→土→金→水→木) */
@@ -72,7 +73,11 @@ export type RelationNode = {
    *   3개 언어를 못 맞추고, "원국·일간" 같은 용어가 그대로 새어 나간다 · daniel 2026-08-14).
    */
   adjustFrom: Element | null;
-  /** 케미 0~100 — 궁합 6기준(R47)에서 나온 점수. 역할과 **별개 축**이다 */
+  /**
+   * 케미 = **궁합 점수 그 자체**(daniel 6기준·R47). 역할과 **별개 축**이다.
+   * ★2026-08-15부터 `compatScoreOf` 와 **같은 값**이다 — 궁합 화면에서 76인 사람이
+   *   지도에서 65로 보이던 것을 없앴다(`check:relationmap` 이 이 동일성을 지킨다).
+   */
   chemi: number;
   /** ★이 사람만의 결 — 강한 순으로 최대 2개(같은 역할끼리 구분되게) */
   traits: RelationTrait[];
@@ -175,7 +180,7 @@ export function buildRelationMap(
       basisElem: b.elem,
       adjusted: b.adjusted,
       adjustFrom: b.from,
-      chemi: chemiOf(dx),
+      chemi: compatScoreOf(dx).score,   // ★궁합 화면과 **같은 산식·같은 숫자**(단일 출처)
       traits: traitsOf(dx, o.chart),
       dx,
     };
@@ -203,30 +208,12 @@ export function buildRelationMap(
   };
 }
 
-/**
- * 케미 0~100 — 궁합 6기준(R47)을 지도용으로 환산한다.
- *
- * ★왜 `compatScore` 를 안 부르나: 그건 앱(`app/src/lib/content`)에 있어서 엔진이 의존하면
- *   방향이 거꾸로 선다(L1 이 L4 를 참조). 대신 **같은 6기준·같은 서열**을 쓴다 —
- *   가중치가 갈리면 "궁합 78점인데 지도엔 62"처럼 앱 안에서 말이 어긋난다.
- *   ⚠️`compatScore` 를 고치면 여기도 같이 고쳐야 한다(check:relationmap 이 이 정합을 본다).
- */
-function chemiOf(dx: CompatibilityDx): number {
-  const dmBonus =
-    dx.dayMasterRelation.type === '충' ? 7 :
-    dx.dayMasterRelation.type === '상생' ? 5 :
-    dx.dayMasterRelation.type === '합' ? 4 :
-    dx.dayMasterRelation.type === '비화' ? 2 : 0;
-  const supply = { 강: 8, 중: 5, 약: 2, 없음: 0 }[dx.usefulGodSupply.supply] ?? 0;
-
-  const raw = 50
-    + (dx.seasonComplement.complementary ? 8 : 0)      // 계절 한난 상보
-    + (dx.partnerToMe.favorable ? 10 : 0)              // 상대→나 재/관
-    + Math.min(dx.missingFill.chars.length, 3) * 3     // 결핍 지지 보완
-    + dmBonus + supply
-    + Math.min(dx.harmony.length, 4) * 2               // 합
-    - Math.min(dx.tension.length, 4) * 2               // 충형파해
-    - Math.min(dx.spousePalace.afflictions.length, 3) * 3; // 배우자궁 흉
-
-  return Math.max(1, Math.min(99, Math.round(raw)));   // 0·100 은 쓰지 않는다(단정 회피)
-}
+// ─────────────────────────────────────────────────────────────────────────
+// ★케미 산식은 여기 없다 — `engine/compatScore.ts` 가 정본이고 그걸 그대로 부른다.
+//
+//   2026-08-15 이전엔 이 자리에 `chemiOf` 가 따로 있었다. "엔진이 앱을 참조하면 방향이 거꾸로
+//   선다"는 이유였는데, 그러다 **같은 6기준을 두 벌로 쓰게 됐고** 같은 사람이 궁합 화면 76 ·
+//   지도 65 로 보였다(실측 최대 11점 차). 주석엔 "같은 서열을 쓴다"고 적혀 있었지만 보장이 아니었다.
+//   ⇒ 방향을 지키는 답은 '다시 쓰기'가 아니라 **산식을 L1 으로 내리기**였다.
+//     (승인 안 된 내 가중치를 버리고 daniel 승인분으로 합쳤다 · CLAUDE.md §3.3)
+// ─────────────────────────────────────────────────────────────────────────

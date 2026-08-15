@@ -13,8 +13,9 @@
 //   ⚠️각도는 역할별 구역으로 나눈다 — 같은 역할끼리 모여 보여야 "내 관계가 어느 쪽으로 쏠렸는지"가
 //     한눈에 읽힌다. 무작위로 뿌리면 예쁘기만 하고 아무 말도 못 한다.
 // ═══════════════════════════════════════════════════════════════════════════
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, ActivityIndicator, Pressable, Share } from 'react-native';
+import { Image as ExpoImage } from 'expo-image';   // 뷰 크기 다운샘플 + 디스크 캐시(원본 풀 디코딩 방지)
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -22,7 +23,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { listCharts, getRepresentativeId, type SavedChart } from '../../lib/engine/myChart';
 import { computeChart } from '../../lib/engine/engine';
 import { buildRelationMap, type RelationNode, type RelationRole } from '@engine/relationMap';
-import { rolePhrase, elemRelationLabel, elemLabel, compatHook, traitPhrases, traitLead, type TraitFacts } from '../../lib/content/relationMapPhrases';
+import { rolePhrase, elemRelationLabel, elemLabel, traitPhrases, traitLead, type TraitFacts } from '../../lib/content/relationMapPhrases';
+import { ROLE_IMG, RELMAP_HERO } from '../../lib/content/relationMapImages';
+import { CompatPeek } from '../../components/CompatPeek';
 import { appLang } from '../../lib/i18n';
 import { createInvite, collectEntries } from '../../lib/backend/mapInvite';
 import { Alert } from '../../lib/ui/alert';
@@ -74,9 +77,23 @@ export default function RelationMapScreen() {
   const [loading, setLoading] = useState(true);
   const [saved, setSaved] = useState<SavedChart[]>([]);
   const [meId, setMeId] = useState<string | null>(null);
+  /** 아래 리스트에서 펼친 사람 */
   const [openId, setOpenId] = useState<string | null>(null);
+  /**
+   * ★지도에서 **점을 눌러** 궁합을 연 사람(daniel 2026-08-15 "탭하면 상대와 나의 궁합이 나오게").
+   *
+   * `openId`(리스트 펼침)와 나누는 이유: 종전엔 점을 눌러도 `openId` 만 바뀌어서
+   * **한참 아래 리스트가 펼쳐졌다** — 화면에는 아무 일도 안 일어난 것처럼 보였다.
+   * 이제 점을 누르면 **지도 바로 밑에** 궁합이 열린다. 둘을 합치면 같은 사람이 두 곳에 그려진다.
+   */
+  const [peekId, setPeekId] = useState<string | null>(null);
 
   const [inviting, setInviting] = useState(false);
+
+  // 점을 눌렀을 때 궁합 카드가 화면 밖에 열리지 않도록 그 자리로 스크롤한다(히어로+지도 아래라 접힘)
+  const scrollRef = useRef<ScrollView>(null);
+  const peekY = useRef(0);
+  const scrolledFor = useRef<string | null>(null);   // 이미 옮겨 준 카드(같은 카드로 반복 스크롤 방지)
 
   useEffect(() => {
     let alive = true;
@@ -197,9 +214,13 @@ export default function RelationMapScreen() {
   };
 
   return (
-    <ScrollView style={styles.wrap} contentContainerStyle={[styles.pad, { paddingBottom: insets.bottom + space(44) }]}>
+    <ScrollView ref={scrollRef} style={styles.wrap} contentContainerStyle={[styles.pad, { paddingBottom: insets.bottom + space(44) }]}>
       <Text style={styles.title}>{t('relmap.title', '관계 지도')}</Text>
       <Text style={styles.sub}>{t('relmap.count', '{{n}}명', { n: nodes.length })} · {t('relmap.hint', '가까울수록 케미가 잘 맞는 사람')}</Text>
+
+      {/* ★히어로(daniel 2026-08-15 "디자인 — 이미지 사용") — 지도 그 자체를 그린 그림.
+          앱의 다른 화면은 전부 카드아트가 있는데 여기만 색 원뿐이라 딴 앱처럼 보였다. */}
+      <ExpoImage source={RELMAP_HERO} style={styles.hero} contentFit="cover" transition={200} />
 
       {/* ── 지도 ─────────────────────────────────────────────────────────── */}
       <View style={styles.mapBox}>
@@ -211,11 +232,20 @@ export default function RelationMapScreen() {
         </View>
         {shown.map((n) => {
           const pos = seatOf(n);
-          const on = openId === n.id;
+          const on = peekId === n.id;
           return (
-            <Pressable key={n.id} style={[styles.node, pos, on && styles.nodeOn]} onPress={() => setOpenId(on ? null : n.id)}>
-              <View style={[styles.dot, { backgroundColor: NODE_COLOR[n.dayElem] }]}>
+            <Pressable
+              key={n.id}
+              style={[styles.node, pos, on && styles.nodeOn]}
+              // ★탭 = 궁합 열기(같은 점을 다시 누르면 닫는다). `scrolledFor` 를 비워
+              //   새로 연 카드로 한 번만 스크롤되게 한다(열 때마다 튀지 않게).
+              onPress={() => { scrolledFor.current = null; setPeekId(on ? null : n.id); }}
+            >
+              <View style={[styles.dot, { backgroundColor: NODE_COLOR[n.dayElem] }, on && styles.dotOn]}>
                 <Text style={styles.dotTx}>{elemLabel(n.dayElem, lang)}</Text>
+                {/* ★점수(daniel 2026-08-15 "지도에 점수 표시") — 거리로만 표현하면
+                    "가깝다"는 알겠는데 얼마나인지는 아래 목록까지 내려가야 했다. */}
+                <View style={styles.badge}><Text style={styles.badgeTx}>{n.chemi}</Text></View>
               </View>
               <Text style={styles.nodeName} numberOfLines={1}>{nameOf(n.id)}</Text>
             </Pressable>
@@ -228,6 +258,32 @@ export default function RelationMapScreen() {
           {t('relmap.mapCap', '지도에는 자리마다 가까운 {{n}}명을 그렸어요 — 나머지 {{r}}명은 아래 목록에 있어요.', { n: shown.length, r: hidden })}
         </Text>
       )}
+
+      {/* ── ★점을 누르면 여기 = 그 사람과 나의 궁합 ──────────────────────── */}
+      {(() => {
+        const p = peekId ? nodes.find((n) => n.id === peekId) : null;
+        if (!p) return (
+          <Text style={styles.mapNote}>{t('relmap.tapHint', '점을 누르면 그 사람과 나의 궁합이 열려요.')}</Text>
+        );
+        return (
+          <View onLayout={(e) => {
+            peekY.current = e.nativeEvent.layout.y;
+            // 카드가 화면 밖(히어로+지도 아래)에 열리면 아무 일도 안 일어난 것처럼 보인다 → 그 자리로 옮긴다
+            if (peekId && scrolledFor.current !== peekId) {
+              scrolledFor.current = peekId;
+              scrollRef.current?.scrollTo({ y: Math.max(0, peekY.current - space(3)), animated: true });
+            }
+          }}>
+            <CompatPeek
+              name={nameOf(p.id)}
+              roleName={rolePhrase(lang, p.role).name}
+              dx={p.dx}
+              lang={lang}
+              onOpen={() => { saveLastCompat({ meId: map.me.id, otherId: p.id }); router.push('/compat'); }}
+            />
+          </View>
+        );
+      })()}
 
       {/* ── 내 지도 요약 ─────────────────────────────────────────────────── */}
       <View style={styles.card}>
@@ -259,7 +315,6 @@ export default function RelationMapScreen() {
       {nodes.map((n) => {
         const p = rolePhrase(lang, n.role);
         const on = openId === n.id;
-        const hook = compatHook(lang, nameOf(n.id), n.chemi);
         return (
           <View key={n.id} style={styles.card}>
             <Pressable style={styles.row} onPress={() => setOpenId(on ? null : n.id)}>
@@ -277,6 +332,11 @@ export default function RelationMapScreen() {
 
             {on && (
               <View style={styles.detail}>
+                {/* ★역할 그림 — 문구의 비유("마른 흙에 물이 스미듯")를 그대로 그린 것이라
+                    글을 읽기 전에 무슨 사이인지 먼저 보인다(daniel "디자인 — 이미지 사용") */}
+                {ROLE_IMG[n.role] && (
+                  <ExpoImage source={ROLE_IMG[n.role]} style={styles.roleImg} contentFit="cover" transition={200} />
+                )}
                 <Text style={styles.term}>{p.term}</Text>
                 <Text style={styles.image}>{p.image}</Text>
                 <Text style={styles.body}>{p.meaning}</Text>
@@ -296,14 +356,16 @@ export default function RelationMapScreen() {
                 <Text style={[styles.label, { marginTop: space(4) }]}>{t('relmap.advice', '이렇게 지내면 좋아요')}</Text>
                 <Text style={styles.body}>{p.advice}</Text>
 
-                {/* 궁합 유도 — daniel: 맨 아래에 */}
-                <View style={styles.hook}>
-                  <Text style={styles.hookTitle}>{hook.title}</Text>
-                  <Text style={styles.hookBody}>{hook.body}</Text>
-                  <PressableScale style={styles.cta} onPress={() => { saveLastCompat({ meId: map.me.id, otherId: n.id }); router.push('/compat'); }}>
-                    <Text style={styles.ctaTx}>{hook.cta}</Text>
-                  </PressableScale>
-                </View>
+                {/* 궁합 — daniel: 맨 아래에. 지도에서 점을 눌렀을 때와 **같은 카드**를 쓴다
+                    (두 벌로 그리면 한쪽만 고쳐지는 날이 온다). */}
+                {/* `compact` = 등급 그림 생략 — 이 카드엔 위에 역할 그림이 이미 있다 */}
+                <CompatPeek
+                  name={nameOf(n.id)}
+                  dx={n.dx}
+                  lang={lang}
+                  compact
+                  onOpen={() => { saveLastCompat({ meId: map.me.id, otherId: n.id }); router.push('/compat'); }}
+                />
               </View>
             )}
           </View>
@@ -335,6 +397,9 @@ const mkStyles = (fs: (n: number) => number) => StyleSheet.create({
   sub: { color: colors.inkSoft, fontSize: fs(13), lineHeight: fs(20), marginTop: space(1) },
   h2: { color: colors.ink, fontSize: fs(16), lineHeight: fs(24), fontWeight: '800', marginTop: space(6), marginBottom: space(2) },
 
+  // 히어로 — 다른 화면(카드아트)과 같은 규격. 높이를 더 키우면 지도가 첫 화면에서 밀린다.
+  hero: { width: '100%', height: 140, borderRadius: radius.md, marginTop: space(4) },
+
   mapBox: {
     width: MAP_SIZE, height: MAP_SIZE, alignSelf: 'center', marginTop: space(5),
     borderRadius: MAP_SIZE / 2, backgroundColor: colors.sunk, overflow: 'hidden',
@@ -347,6 +412,13 @@ const mkStyles = (fs: (n: number) => number) => StyleSheet.create({
   node: { position: 'absolute', width: DOT, alignItems: 'center' },
   nodeOn: { transform: [{ scale: 1.08 }] },
   dot: { width: DOT, height: DOT, borderRadius: DOT / 2, alignItems: 'center', justifyContent: 'center' },
+  dotOn: { borderWidth: 2, borderColor: colors.ju },   // 지금 궁합을 연 사람이 지도에서 보이게
+  // 점수 배지 — 원 오른쪽 아래에 물린다. 카드 배경색을 깔아야 오행 색 위에서도 숫자가 읽힌다.
+  badge: {
+    position: 'absolute', right: -6, bottom: -4, minWidth: 24, paddingHorizontal: 4, paddingVertical: 1,
+    borderRadius: 9, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.juLine, alignItems: 'center',
+  },
+  badgeTx: { color: colors.ju, fontSize: fs(10), lineHeight: fs(14), fontWeight: '800' },
   dotSm: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', marginRight: space(3) },
   dotTx: { color: '#fff', fontSize: fs(12), lineHeight: fs(16), fontWeight: '800' },   // '나무'(2글자) 대응
   nodeName: { color: colors.ink, fontSize: fs(10), lineHeight: fs(14), marginTop: 2, maxWidth: DOT + 16, textAlign: 'center' },
@@ -370,13 +442,10 @@ const mkStyles = (fs: (n: number) => number) => StyleSheet.create({
   chemi: { color: colors.ju, fontSize: fs(20), lineHeight: fs(26), fontWeight: '800', marginLeft: space(2) },
 
   detail: { marginTop: space(4) },
+  roleImg: { width: '100%', height: 140, borderRadius: radius.sm, marginBottom: space(3) },
   term: { color: colors.inkFaint, fontSize: fs(11), lineHeight: fs(16) },
   image: { color: colors.ink, fontSize: fs(14), lineHeight: fs(22), fontWeight: '700', marginTop: space(1), marginBottom: space(2) },
   divider: { height: 1, backgroundColor: colors.juLine, marginVertical: space(4) },
-
-  hook: { backgroundColor: colors.sunk, borderRadius: radius.md, padding: space(4), marginTop: space(5) },
-  hookTitle: { color: colors.ink, fontSize: fs(15), lineHeight: fs(23), fontWeight: '800' },
-  hookBody: { color: colors.inkSoft, fontSize: fs(13), lineHeight: fs(21), marginTop: space(2) },
 
   emptyCard: { backgroundColor: colors.card, borderRadius: radius.md, padding: space(5), marginTop: space(5) },
   emptyTx: { color: colors.ink, fontSize: fs(14), lineHeight: fs(23) },

@@ -7,7 +7,6 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useEffect, useRef } from 'react';
 import { Image as ExpoImage } from 'expo-image'; // ★뷰 크기 다운샘플 + 디스크 캐시(RN Image 는 원본 풀 디코딩 — 갤럭시 랙 원인)
-import { A } from '../lib/ui/remoteAsset'; // ★이미지 원격화(daniel 08-01) — 번들에서 걷어내고 Storage 에서 받는다
 import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator, Modal, TextInput, Keyboard, Animated, Easing, AppState } from 'react-native';
 import { useRouter } from 'expo-router';                    // ★운 부족 → 충전 화면(daniel 07-28)
 import { ensureCoinsFor } from '../lib/billing/coinGate';   // ★운 단일 경로
@@ -43,27 +42,9 @@ import { yearGanZhi } from '../lib/content/dailyFortune'; // 연도별 궁합: �
 import { compatScore, tierLabel, tierOf, type CompatScoreResult } from '../lib/content/compatScore'; // 궁합 점수·등급(R26: LLM 직접 산출 우선, 결정론은 폴백)
 import { appLang } from '../lib/i18n';
 
-// 궁합 등급별 이미지 — assets/icons/compat/{tier.key}.jpg. 없으면 이모지 폴백(이미지 생성 후 require 연결).
-const COMPAT_IMG: Record<string, any> = {
-  soulmate: A('icons/compat/soulmate.jpg'),
-  great: A('icons/compat/great.jpg'),
-  good: A('icons/compat/good.jpg'),
-  steady: A('icons/compat/steady.jpg'),
-  spark: A('icons/compat/spark.jpg'),
-  opposite: A('icons/compat/opposite.jpg'),
-};
-
-// 관계 카테고리별 이미지(daniel: 각 카테고리에 맞는 이미지) — assets/icons/compat-rel/{rel}.jpg. 선택 관계 배너.
-const CAT_IMG: Record<string, any> = {
-  friend: A('icons/compat-rel/friend.jpg'),
-  family: A('icons/compat-rel/family.jpg'),
-  love: A('icons/compat-rel/love.jpg'),
-  marriage: A('icons/compat-rel/marriage.jpg'),
-  coworker: A('icons/compat-rel/coworker.jpg'),
-  senior: A('icons/compat-rel/senior.jpg'),
-  staff: A('icons/compat-rel/staff.jpg'),
-  business: A('icons/compat-rel/business.jpg'),
-};
+// 궁합 등급 이미지·관계 카테고리 배너 — 표는 `lib/content/compatImages` 가 단일 출처다
+//   (관계 지도의 궁합 미리보기가 같은 등급 이미지를 쓴다 · 없으면 이모지 폴백).
+import { COMPAT_TIER_IMG as COMPAT_IMG, COMPAT_REL_IMG as CAT_IMG } from '../lib/content/compatImages';
 import { UnlockOverlay } from '../components/UnlockOverlay'; // 생성 중 화면 가림 로딩(daniel)
 import { TTSButton } from '../components/TTSButton'; // 풀이 음성 읽기(온디바이스 TTS·무료)
 import type { ChartInput } from '@spec/chart';

@@ -1,11 +1,18 @@
-// app/src/lib/compatScore.ts — 궁합 점수(0~100)·등급·등급별 이미지 (온디바이스·결정론·API 0).
+// app/src/lib/compatScore.ts — 궁합 등급·등급별 이미지 (온디바이스·결정론·API 0).
 // ─────────────────────────────────────────────────────────────────────────
 // daniel: 궁합은 메인 콘텐츠 → 점수 + 등급별 이미지 + 상세 풀이. 점수는 두 명식에서 *결정론적*
 //   으로 산출(같은 쌍 = 항상 같은 점수). 근거 = engine/compatibility 의 CompatibilityDx
 //   (일간관계·교차 조화/긴장·용신 공급). ★stance(Claude 초안 — daniel 검수 슬롯): 가중치·등급 컷.
 //   §4: 부정 증폭 금지 — 낮은 점수도 '도전·성장형'으로 전향적 라벨.
+//
+// ★2026-08-15 — **산식은 여기 없다.** `engine/compatScore.ts` 로 내렸다.
+//   이유: 관계 지도가 같은 6기준을 **다시 써서** 같은 쌍에 다른 숫자를 냈다(지도 65 ↔ 궁합 76).
+//   이제 이 파일은 점수를 **엔진에서 받아** 등급·이미지(=화면 표현)만 얹는다.
+//   ⚠️import 가 `@engine` alias 가 아니라 상대경로인 이유: `scripts/check-compat.ts` 가
+//     루트 tsconfig(paths 없음)로 이 모듈을 직접 부른다 — alias 를 쓰면 그 하네스가 죽는다.
 // ─────────────────────────────────────────────────────────────────────────
 import type { CompatibilityDx } from '@engine/compatibility';
+import { compatScoreOf, type CompatScoreBreakdown } from '../../../../engine/compatScore';
 
 export type CompatTier = { key: string; min: number; emoji: string; ko: string; en: string; ja: string };
 
@@ -19,61 +26,21 @@ export const COMPAT_TIERS: CompatTier[] = [
   { key: 'opposite', min: 0,  emoji: '🌗', ko: '극과 극',         en: 'Opposites Attract',  ja: '正反対' },
 ];
 
-export type CompatScoreResult = {
-  score: number;          // 0~100(실제로는 15~97로 클램프 — 0/100 극단 회피)
-  tier: CompatTier;
-  harmony: number;        // 조화(합·상생) 작용 수
-  tension: number;        // 긴장(충·상극) 작용 수
-  dmType: CompatibilityDx['dayMasterRelation']['type']; // 일간 관계
-  supply: CompatibilityDx['usefulGodSupply']['supply']; // 상대가 내 용신 채워주는 정도
-  // daniel 궁합 기준(2026-07-17) — 표시·근거용
-  seasonComplement: boolean;                 // 계절(월지) 한난 상보
-  jaegwan: '재성' | '관성' | null;           // 상대 일간이 나에게 재/관(내 관점)이면
-  spouseAfflictions: string[];               // 배우자궁(일지) 형충파해원진귀문
-  fillChars: string[];                       // 상대가 채워주는 내 결핍 지지 글자
-};
-
-const SUPPLY_W: Record<string, number> = { '강': 12, '중': 7, '약': 3, '없음': 0 };
+/** 점수·근거(엔진) + 등급(화면). 필드 구성은 예전 그대로라 쓰는 쪽은 안 바뀐다. */
+export type CompatScoreResult = CompatScoreBreakdown & { tier: CompatTier };
 
 /**
- * CompatibilityDx → 0~100 궁합 점수 + 등급. 결정론(같은 쌍 = 같은 점수).
- * ★가중치 = daniel 검수 슬롯(2026-07-17 "일단 너가 제시한 걸로" 잠정 승인). daniel 6기준:
- *   ① 계절 한난 상보(월지 봄여름↔가을겨울)         +7
- *   ② 상대 일간이 나에게 재/관(내 관점, 재관 동일)   +8
- *   ③ 결핍 지지 글자 보완(상대가 내게 없는 지지)     글자당 +3 (최대 +9)
- *   ④ 일간관계 — ★"충이 발전형, 합은 좋으나 정체":  충 +7 / 상생 +5 / 합 +4 / 비화 +2 / 상극 0
- *      ⇒ 여기 '충'은 **일간(천간)충**. 일지(지지)충은 ⑥에서 감점 — daniel "충은 일간 말한거야".
- *   ⑤ 용신공급(보완성, 보조):                        강 +12 / 중 +7 / 약 +3
- *      + 교차합(끌림, 보조):                          합당 +2 (최대 +6)
- *   ⑥ 배우자궁(두 일지) 형충파해원진귀문 없어야:      종류당 −5 (최대 −15)
- *   기준 55 → [15,97] 클램프(§4 부정 증폭 금지 — 극단 회피).
+ * CompatibilityDx → 궁합 점수 + 등급. 결정론(같은 쌍 = 같은 점수).
+ *
+ * 점수 산식(daniel 6기준·가중치)은 **`engine/compatScore.ts` 가 정본**이다 — 관계 지도도 같은
+ * 함수를 부른다. 여기서는 등급(COMPAT_TIERS)만 얹는다. 등급 컷을 바꿔도 점수는 안 흔들린다.
+ *
+ * @param dx `analyzeCompatibility(me, other)` 결과
+ * @returns 점수·근거 + 등급(이미지 키·다국어 라벨 포함)
  */
 export function compatScore(dx: CompatibilityDx): CompatScoreResult {
-  const harmony = dx.harmony.length;
-  const tension = dx.tension.length;
-  const supply = SUPPLY_W[dx.usefulGodSupply.supply] ?? 0;
-  const dmType = dx.dayMasterRelation.type;
-  // ④ 일간(천간) 관계 — 충>상생>합>비화>상극. 일간충은 발전형이라 가점(일지충 감점과 별개 축).
-  const dmBonus =
-    dmType === '충' ? 7 :
-    dmType === '상생' ? 5 :
-    dmType === '합' ? 4 :
-    dmType === '비화' ? 2 : 0; // 상극
-  const season = dx.seasonComplement.complementary ? 7 : 0;           // ①
-  const jaegwan = dx.partnerToMe.favorable ? 8 : 0;                   // ②
-  const fill = Math.min(dx.missingFill.chars.length, 3) * 3;          // ③ 0~9
-  const crossHe = dx.crossInteractions.filter((c) => c.kind.includes('합')).length;
-  const heBonus = Math.min(crossHe, 3) * 2;                           // ⑤ 교차합 0~6
-  const spouseMinus = Math.min(dx.spousePalace.afflictions.length, 3) * 5; // ⑥ 0~15
-  let s = 55 + season + jaegwan + fill + dmBonus + supply + heBonus - spouseMinus;
-  s = Math.max(15, Math.min(97, Math.round(s)));
-  return {
-    score: s, tier: tierOf(s), harmony, tension, dmType, supply: dx.usefulGodSupply.supply,
-    seasonComplement: dx.seasonComplement.complementary,
-    jaegwan: dx.partnerToMe.favorable ? (dx.partnerToMe.tenGod as '재성' | '관성') : null,
-    spouseAfflictions: dx.spousePalace.afflictions,
-    fillChars: dx.missingFill.chars,
-  };
+  const b = compatScoreOf(dx);
+  return { ...b, tier: tierOf(b.score) };
 }
 
 /**
