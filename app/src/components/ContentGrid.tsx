@@ -39,6 +39,7 @@ import type { HomeViewMode } from '../lib/ui/homeView'; // 보기 방식(카드/
 import { playSound } from '../lib/ui/sounds';
 import { PressableScale } from './PressableScale';
 import { colors, radius, space, shadow, font } from '../lib/theme';
+import { useWebCols } from './WebShell'; // 넓은 웹 = 카드 3열(폰/모바일웹은 그대로 2열)
 
 // 카드 켄번스 — 정적 이미지를 아주 느리게 줌(daniel #21: 카드가 '가볍게' 살아 움직이게).
 //   정적 일러스트라 내부 요소 자체를 움직일 순 없어, 느린 줌으로 생동감을 준다. native 드라이버=GPU라 스크롤 영향 최소.
@@ -105,6 +106,10 @@ const AD_TIMEOUT_MS = 15_000;
  */
 export function ContentGrid({ query = '', viewMode, category = null, wrap = false, header = true }:
   { query?: string; viewMode: HomeViewMode; category?: string | null; wrap?: boolean; header?: boolean }) {
+  // ★랩 그리드의 카드 폭 — 폰은 2열, 넓은 웹은 3열(가로를 실제로 쓰게).
+  //   숫자를 화면에 박지 않고 `useWebCols` 한 곳에서 받는다(정책이 갈리지 않게).
+  const cols = useWebCols();
+  const cardW: `${number}%` = cols >= 3 ? '31.7%' : '48%';
   const router = useRouter();
   const { t } = useTranslation();
   const { session } = useAuth();
@@ -426,7 +431,7 @@ export function ContentGrid({ query = '', viewMode, category = null, wrap = fals
           // 이미지 없는 콘텐츠 = 텍스트 카드(제목+설명), 이미지 카드와 시각 구분
           if (!m.image) {
             return (
-              <PressableScale key={m.key} style={[styles.card, styles.textCard, wrap && styles.cardWrap]} onPress={() => onPress(m)}>
+              <PressableScale key={m.key} style={[styles.card, styles.textCard, wrap && { width: cardW }]} onPress={() => onPress(m)}>
                 {badge && <View style={[styles.priceTag, isNew && styles.priceTagLeft]}><Text style={styles.priceTagText}>{badge}</Text></View>}
                 {isNew && <View style={styles.newTag}><Text style={styles.newTagTx}>NEW</Text></View>}
                 <Text style={styles.textCardLabel}>{t(m.labelKey)}</Text>
@@ -435,7 +440,7 @@ export function ContentGrid({ query = '', viewMode, category = null, wrap = fals
             );
           }
           return (
-            <PressableScale key={m.key} style={[styles.card, wrap && styles.cardWrap]} onPress={() => onPress(m)}>
+            <PressableScale key={m.key} style={[styles.card, wrap && { width: cardW }]} onPress={() => onPress(m)}>
               <View style={styles.cardImg}>
                 {/* expo-image 다운샘플(메모리·랙) + 켄번스 느린 줌(daniel #21). 차례가 온 카드만 mount. */}
                 {revealed
@@ -498,7 +503,6 @@ const styles = StyleSheet.create({
   //   개요 화면에서 들어왔을 때 카드 왼쪽 선이 그대로 이어지는 느낌을 준다.
   wrapGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: space(3), paddingHorizontal: space(5), paddingVertical: space(1) },
   // ★폭을 고정 168 → 비율로. 좁은 기기(375pt)에서 168×2+간격이 넘쳐 1열로 무너지던 걸 막는다.
-  cardWrap: { width: '48%' },
   grid2col: { gap: space(3) },                       // 윗줄·아랫줄 세로 간격
   grid2row: { flexDirection: 'row', gap: space(3) }, // 한 줄 카드 가로 간격
   // 콘텐츠 텍스트 카드(이미지 없음) — 이미지 카드와 동일 비율, 제목+설명 하단 정렬

@@ -31,9 +31,20 @@ import { colors, radius, space } from '../lib/theme';
 
 /** 사이드바가 서는 최소 폭. 이보다 좁으면 폰 레이아웃(하단 탭)이 맞다. */
 export const WEB_WIDE = 900;
-/** 본문 한 줄의 최대 폭 — 폰보다는 넓고, 눈이 줄을 놓치지 않는 범위. */
+/** **글을 읽는 화면**의 최대 폭 — 줄이 길어지면 눈이 다음 줄을 놓친다. */
 export const WEB_COLUMN = 760;
+/** **그리드·목록 화면**의 최대 폭 — 가로를 실제로 쓰는 화면. */
+export const WEB_STAGE = 1160;
+/** 3열까지 펼칠 수 있는 폭(그리드 화면 기준). */
+export const WEB_XWIDE = 1180;
 const SIDEBAR = 248;
+
+/**
+ * 가로를 **쓰는** 화면 목록 — 카드 그리드·지도·목록.
+ * ★여기에 없는 화면은 전부 '글'로 본다(760px). 화면마다 폭을 고르게 하지 않는 이유는
+ *   그러면 곧 화면마다 폭이 갈리기 때문이다 — 정책은 한 표에서만 바뀐다.
+ */
+const WIDE_ROUTES = ['/', '/contents', '/relationmap', '/charts', '/market', '/community'];
 
 /** 지금 '넓은 웹'인가 — 레이아웃이 하단 탭 대신 사이드바를 써야 하는 상태. */
 export function useWideWeb(): boolean {
@@ -42,18 +53,32 @@ export function useWideWeb(): boolean {
 }
 
 /**
+ * 이 화면에서 카드를 **몇 열로** 놓을 것인가.
+ * @returns 1 = 폰(네이티브·모바일 웹) · 2~3 = 넓은 웹
+ * ★화면이 직접 `Platform.OS`·픽셀을 보지 않게 한다. 판단은 여기 한 곳.
+ */
+export function useWebCols(): number {
+  const { width } = useWindowDimensions();
+  if (Platform.OS !== 'web' || width < WEB_WIDE) return 1;
+  return width >= WEB_XWIDE ? 3 : 2;
+}
+
+/**
  * 넓은 웹에서 좌측 내비 + 가운데 본문 컬럼으로 감싼다.
  * @param children 앱의 화면 스택(그대로 넘어온다 — 화면은 자기가 웹인지 모른다)
  */
 export function WebShell({ children }: { children: ReactNode }) {
   const wide = useWideWeb();
+  const pathname = usePathname();
   if (!wide) return <>{children}</>;
+  // 그리드 화면이면 가로를 쓰고, 글 화면이면 줄 길이를 지킨다
+  const isWideRoute = WIDE_ROUTES.some((r) => (r === '/' ? pathname === '/' : pathname?.startsWith(r)));
   return (
     <View style={styles.row}>
       <WebSidebar />
       {/* 본문 — 가운데 정렬 컬럼. 바깥 여백은 앱 배경이 그대로 비친다(전역 ContentBackdrop) */}
       <View style={styles.stage}>
-        <View style={styles.column}>{children}</View>
+        <View style={[styles.column, { maxWidth: isWideRoute ? WEB_STAGE : WEB_COLUMN }]}>{children}</View>
       </View>
     </View>
   );
@@ -94,8 +119,8 @@ function WebSidebar() {
 const styles = StyleSheet.create({
   row: { flex: 1, flexDirection: 'row' },
   stage: { flex: 1, alignItems: 'center' },
-  // 컬럼이 화면 높이를 다 쓰게 flex:1 — 안쪽 화면들이 자기 스크롤을 갖는다
-  column: { flex: 1, width: '100%', maxWidth: WEB_COLUMN },
+  // 컬럼이 화면 높이를 다 쓰게 flex:1 — 안쪽 화면들이 자기 스크롤을 갖는다. maxWidth 는 라우트가 정한다.
+  column: { flex: 1, width: '100%' },
 
   side: {
     width: SIDEBAR, paddingTop: space(7), paddingHorizontal: space(3),

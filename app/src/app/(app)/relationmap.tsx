@@ -26,6 +26,7 @@ import { buildRelationMap, type RelationNode, type RelationRole } from '@engine/
 import { rolePhrase, elemRelationLabel, elemLabel, traitPhrases, traitLead, type TraitFacts } from '../../lib/content/relationMapPhrases';
 import { ROLE_IMG, RELMAP_HERO } from '../../lib/content/relationMapImages';
 import { CompatPeek } from '../../components/CompatPeek';
+import { useWebCols } from '../../components/WebShell'; // 넓은 웹 = 2열(폰은 그대로 세로)
 import { appLang } from '../../lib/i18n';
 import { createInvite, collectEntries } from '../../lib/backend/mapInvite';
 import { Alert } from '../../lib/ui/alert';
@@ -72,6 +73,7 @@ export default function RelationMapScreen() {
   const insets = useSafeAreaInsets();
   const { fs } = useFontScale();
   const styles = mkStyles(fs);
+  const two = useWebCols() > 1;   // 넓은 웹에서만 좌/우 두 단
   const lang = appLang() as 'ko' | 'en' | 'ja';
 
   const [loading, setLoading] = useState(true);
@@ -218,6 +220,12 @@ export default function RelationMapScreen() {
       <Text style={styles.title}>{t('relmap.title', '관계 지도')}</Text>
       <Text style={styles.sub}>{t('relmap.count', '{{n}}명', { n: nodes.length })} · {t('relmap.hint', '가까울수록 케미가 잘 맞는 사람')}</Text>
 
+      {/* ★넓은 웹 = 2열. **왼쪽 = 지도와 그 지도에서 누른 사람의 궁합**, 오른쪽 = 요약·전체 목록.
+          이 순서라야 "점을 누르면 지도 바로 아래에 궁합"이라는 규칙이 데스크톱에서도 그대로 산다.
+          폰에서는 `two=false` 라 이 View 들이 아무 스타일도 안 걸치고 지나간다(세로 그대로). */}
+      <View style={two ? styles.two : undefined}>
+      <View style={two ? styles.colL : undefined}>
+
       {/* ★히어로(daniel 2026-08-15 "디자인 — 이미지 사용") — 지도 그 자체를 그린 그림.
           앱의 다른 화면은 전부 카드아트가 있는데 여기만 색 원뿐이라 딴 앱처럼 보였다. */}
       <ExpoImage source={RELMAP_HERO} style={styles.hero} contentFit="cover" transition={200} />
@@ -284,6 +292,9 @@ export default function RelationMapScreen() {
           </View>
         );
       })()}
+
+      </View>
+      <View style={two ? styles.colR : undefined}>
 
       {/* ── 내 지도 요약 ─────────────────────────────────────────────────── */}
       <View style={styles.card}>
@@ -384,6 +395,9 @@ export default function RelationMapScreen() {
           <Text style={styles.ctaGhostTx}>{t('relmap.addFriend', '사람 추가하기')}</Text>
         </PressableScale>
       </View>
+
+      </View>
+      </View>
     </ScrollView>
   );
 }
@@ -445,6 +459,11 @@ const mkStyles = (fs: (n: number) => number) => StyleSheet.create({
   traitBody: { color: colors.ink, fontSize: fs(14), lineHeight: fs(23), marginTop: space(2) },
   mapNote: { color: colors.inkSoft, fontSize: fs(12), lineHeight: fs(19), textAlign: 'center', marginTop: space(3) },
   chemi: { color: colors.ju, fontSize: fs(20), lineHeight: fs(26), fontWeight: '800', marginLeft: space(2) },
+
+  // 넓은 웹 2열 — 왼쪽은 지도 폭(300)에 여백을 더한 고정, 오른쪽이 남는 폭을 먹는다
+  two: { flexDirection: 'row', alignItems: 'flex-start', gap: space(6) },
+  colL: { width: 396 },
+  colR: { flex: 1, minWidth: 320 },
 
   detail: { marginTop: space(4) },
   roleImg: { width: '100%', height: 140, borderRadius: radius.sm, marginBottom: space(3) },

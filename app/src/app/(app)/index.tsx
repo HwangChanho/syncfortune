@@ -55,7 +55,8 @@ import { PressableScale } from '../../components/PressableScale';
 import { appLang } from '../../lib/i18n';
 import { useHomeOrder, type HomeBlockKey } from '../../lib/ui/homeOrder'; // 홈 블록 배치 순서(계정별 저장·daniel 07-19)
 import DraggableFlatList, { type RenderItemParams } from 'react-native-draggable-flatlist'; // 홈 블록 리스트(드래그는 '배치 편집' 모달에서 — daniel 07-21 '편집 모드')
-import { HomeOrderEditModal } from '../../components/HomeOrderEditModal'; // 홈 배치 편집 모달(간단 목록 드래그·제스처 충돌 0)
+import { HomeOrderEditModal } from '../../components/HomeOrderEditModal';
+import { useWebCols } from '../../components/WebShell'; // 넓은 웹 = 홈 블록 2열(폰은 그대로 드래그 리스트) // 홈 배치 편집 모달(간단 목록 드래그·제스처 충돌 0)
 
 // 주의 등급 라벨·색 — dailyEnergy.caution(점수 구간)에 붙는 이름표.
 //   ★'조심'에 빨강을 쓰지 않는다(§4 부정 증폭 금지) — 골드/중립 톤으로 낮춰 표시한다.
@@ -66,6 +67,7 @@ const CAUTION: Record<DailyEnergy['caution'], { label: string; tone: string }> =
 };
 
 export default function Home() {
+  const twoCol = useWebCols() > 1;   // 넓은 웹에서만 2열(드래그는 폰 제스처라 그쪽에만 둔다)
   // ★고정 상단여백(space(12) 등)은 **글자 크기를 키우면 헤더가 상태바 위로 잘린다**(daniel 07-27 IMG_8215).
   //   상수는 기기 노치·다이내믹아일랜드·글자배율 어느 것도 반영하지 못한다 → 실제 안전영역을 쓴다.
   const insets = useSafeAreaInsets();
@@ -419,6 +421,27 @@ export default function Home() {
         {/* ★홈 블록 배치 — 순서는 계정별(useHomeOrder · profiles.home_order). 홈에서 길게 눌러 드래그 or 설정에서 변경(daniel).
             기본 순서(daniel 07-25) = 명식 → 오늘의 기운 → 나는 어떤 사람인가 → 나의 성격유형 → 오늘의 관계 → 바이오리듬 → 오늘의 행운. (만세력·AI코치는 상단 🧭 바로가기 메뉴)
             헤더/진행률 배너/로그인 링크는 '고정'이라 ListHeaderComponent/ListFooterComponent 로 뺀다(드래그 대상 아님). */}
+        {twoCol ? (
+          /* ★넓은 웹 — 블록을 **두 단**으로 흘린다(홀/짝 번갈아). 세로로만 쌓으면 데스크톱에서
+             카드가 1160px 로 늘어나 '폰 앱을 늘려 놓은' 그 모양이 된다.
+             ⚠️드래그는 여기 없다 — 길게 눌러 옮기는 건 **폰 제스처**다. 데스크톱에서 순서를 바꾸려면
+               관리자 '배치 편집' 모달을 쓴다(이미 있는 경로라 새로 만들지 않았다). */
+          <ScrollView
+            style={styles.screen}
+            contentContainerStyle={[styles.wrap, { paddingTop: insets.top + space(2) }]}
+            showsVerticalScrollIndicator={false}
+          >
+            {listHeader}
+            <View style={styles.webTwo}>
+              {([0, 1] as const).map((side) => (
+                <View key={side} style={styles.webCol}>
+                  {order.filter((_, i) => i % 2 === side).map((k) => <View key={k}>{renderBlock(k)}</View>)}
+                </View>
+              ))}
+            </View>
+            {listFooter}
+          </ScrollView>
+        ) : (
         <DraggableFlatList
           data={order}
           keyExtractor={(k) => k}
@@ -432,6 +455,7 @@ export default function Home() {
           contentContainerStyle={[styles.wrap, { paddingTop: insets.top + space(2) }]}
           showsVerticalScrollIndicator={false}
         />
+        )}
       </Animated.View>
       <HomeOrderEditModal visible={editOpen} onClose={() => setEditOpen(false)} />
       {/* 🧭 바로가기 메뉴(daniel 2026-07-25 J) — 만세력·AI 코치를 홈 블록에서 빼고 여기서 분기 진입. 배경 탭=닫힘(모달·리스트내 absolute 금지). */}
@@ -482,6 +506,9 @@ export default function Home() {
 const styles = StyleSheet.create({
   bgImage: { flex: 1, backgroundColor: 'transparent' }, // 전역 ContentBackdrop(오행 배경) 투과
   screen: { backgroundColor: 'transparent' },
+  // 넓은 웹 2열 — 두 단이 각자 흐른다(높이가 달라도 옆 단을 기다리지 않는다)
+  webTwo: { flexDirection: 'row', alignItems: 'flex-start', gap: space(5) },
+  webCol: { flex: 1, minWidth: 0 },
   wrap: { padding: space(5), paddingBottom: space(24) }, // 헤더 숨김 → status bar 여백 확보
   // 홈 상단 컨트롤 행(배치 편집 + 바로가기) — 구분선 아래·subtle. marginBottom 은 행에서 한 번만.
   topCtrlRow: { flexDirection: 'row', alignItems: 'center', gap: space(2), flexWrap: 'wrap', marginTop: -space(2), marginBottom: space(5) },
