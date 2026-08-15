@@ -28,4 +28,27 @@ config.resolver.nodeModulesPaths = [
   path.resolve(workspaceRoot, 'node_modules'),
 ];
 
+// 3) ★웹 번들 차단 해제 (2026-08-15 · Apple 4.3(b) 대비 웹 전환 준비)
+//    `circular-natal-horoscope-js` 의 package.json 이 `module: "src/index.js"` 를 가리키는데
+//    **배포 tarball 에는 `dist/` 만 들어 있다**(src 없음). 네이티브는 `main`(=dist/index)을 보므로
+//    멀쩡하지만, **웹 resolver 는 `module` 을 먼저 본다** → `expo export --platform web` 이 그 자리에서 죽는다.
+//    (실측: `Unable to resolve …/src/index.js/index` · exit 1)
+//    ⇒ 이 패키지 하나만 `dist` 로 못박는다. `resolverMainFields` 에서 'module' 을 통째로 빼면
+//      ESM 만 배포하는 다른 패키지가 같이 깨질 수 있어 **범위를 좁힌 해결**을 택했다.
+const CIRCULAR_NATAL = path.resolve(projectRoot, 'node_modules/circular-natal-horoscope-js/dist/index.js');
+// 웹 전용 대체 — 네이티브 모듈은 웹 번들에서 그대로 죽는다. 앱 코드의 `try{require}catch` 폴백을 태운다.
+const WEB_STUBS = {
+  'react-native-google-mobile-ads': path.resolve(projectRoot, 'src/lib/ads/admob.web-stub.js'),
+};
+const baseResolveRequest = config.resolver.resolveRequest;
+config.resolver.resolveRequest = (context, moduleName, platform) => {
+  if (moduleName === 'circular-natal-horoscope-js') {
+    return { type: 'sourceFile', filePath: CIRCULAR_NATAL };
+  }
+  if (platform === 'web' && WEB_STUBS[moduleName]) {
+    return { type: 'sourceFile', filePath: WEB_STUBS[moduleName] };
+  }
+  return (baseResolveRequest ?? context.resolveRequest)(context, moduleName, platform);
+};
+
 module.exports = config;
