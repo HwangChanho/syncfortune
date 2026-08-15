@@ -27,7 +27,7 @@ import { colors, space } from '../lib/theme';
 // 탭 전체 정의(순서 = 홈 → 풀이 → 커뮤니티 → 도우미 → 마켓). 커뮤니티는 렌더 시 플래그로 필터링.
 //   ★'풀이'(daniel 2026-07-18) = 홈에 쌓여 있던 콘텐츠 카드 그리드를 옮긴 탭.
 //     라우트가 /contents 인 이유는 기존 /reading(사주 원국풀이)과 혼동을 피하려는 것.
-const ALL_TABS = [
+export const ALL_TABS = [
   { key: 'home', route: '/' },
   { key: 'contents', route: '/contents' },
   { key: 'community', route: '/community' },
@@ -46,7 +46,7 @@ const ICON = { size: 23, viewBox: '0 0 24 24', width: 1.7 } as const;
  * ★도우미를 말풍선이 아니라 **나침반**으로 둔 이유: 팔자 도우미는 대화형 챗이 아니라
  *   '무엇을 볼지 안내'하는 기능으로 바뀌었다(API 0원 전환). 말풍선은 채팅을 기대하게 만든다.
  */
-function TabIcon({ name, color }: { name: TabKey; color: string }) {
+export function TabIcon({ name, color }: { name: TabKey; color: string }) {
   const p = { stroke: color, strokeWidth: ICON.width, fill: 'none', strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
   return (
     <Svg width={ICON.size} height={ICON.size} viewBox={ICON.viewBox}>

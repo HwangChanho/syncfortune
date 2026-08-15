@@ -13,6 +13,7 @@ import { AdBanner } from '../../components/AdBanner';
 import { BottomNav } from '../../components/BottomNav';
 import { OfflineBanner } from '../../components/OfflineBanner';
 import { ContentBackdrop } from '../../components/ContentBackdrop'; // ★전 콘텐츠 화면 공통 배경(한지/달밤+별) — daniel 07-02
+import { WebShell, useWideWeb } from '../../components/WebShell'; // 넓은 웹 = 좌측 내비 + 가운데 컬럼(네이티브·모바일 웹은 무영향)
 import { PAID_ROUTES } from '../../lib/content/contentSections'; // 유료 화면 = 광고 없음(daniel 08-06)
 import { colors } from '../../lib/theme';
 
@@ -26,6 +27,7 @@ let lastLoggedPath: string | null = null;
 
 export default function AppLayout() {
   const { fs } = useFontScale();   // 글자크기 설정 → 헤더 타이틀 반응(daniel). 뒤로버튼은 iOS 네이티브.
+  const wideWeb = useWideWeb();    // 넓은 웹 = 하단 탭 대신 좌측 사이드바(아래 렌더 참조)
   // 해당 화면을 어떤 루트로든 접근하면 그 풀이의 홈 알림 배너 해제(daniel ⑨). 홈('/')은 제외(배너 노출 유지).
   const pathname = usePathname();
   useEffect(() => { if (pathname && pathname !== '/') clearGenByPath(pathname); }, [pathname]);
@@ -64,6 +66,8 @@ export default function AppLayout() {
           루트 View 의 backgroundColor: colors.bg 는 이 배경이 뜨기 전 흰 깜빡임 방지용 베이스(곧 가려짐). */}
       <ContentBackdrop />
       <OfflineBanner />
+      {/* ★넓은 웹에서만 좌측 내비 + 가운데 컬럼으로 감싼다. 네이티브·모바일 웹은 children 그대로 지나간다. */}
+      <WebShell>
       <Stack screenOptions={{
         // ★기본 = 헤더 타이틀 없음(daniel: 콘텐츠 상단에 라우트 영어 이름 'country'·'gaeun' 등이 박히던 문제 →
         //   _layout 누락 라우트가 expo-router 기본값=파일명(영어)을 띄움). 타이틀이 필요한 화면만 아래 title: 로 덮어씀.
@@ -155,14 +159,17 @@ export default function AppLayout() {
         <Stack.Screen name="admin" options={{ title: '관리자' }} />
         <Stack.Screen name="coststable" options={{ title: '비용·수익 분석' }} />
       </Stack>
+      </WebShell>
       {/* 하단 배너 — 무료 화면에만. 광고 제거 구매자는 AdBanner 내부에서 숨긴다(useAdFree).
           ★유료 콘텐츠 화면에서는 띄우지 않는다(daniel 2026-08-06 "유료 컨텐츠는 광고 다 빼").
             배너는 전역(_layout)이라 **운을 내고 여는 풀이를 읽는 내내** 하단에 광고가 붙어 있었다.
             무료는 광고로, 유료는 값으로 — 그 경계를 여기 길목 하나에서 정한다.
             판정 목록(PAID_ROUTES)은 creditKey 라는 사실에서 자동 파생되므로 콘텐츠가 늘어도 안 빠진다. */}
       {!isPaidScreen && <AdBanner />}
-      {/* 하단 탭 네비(홈/마켓) — 모든 화면 최하단 고정 */}
-      <BottomNav />
+      {/* 하단 탭 네비(홈/마켓) — 모든 화면 최하단 고정.
+          ★넓은 웹에서는 좌측 사이드바(WebShell)가 그 일을 하므로 띄우지 않는다 —
+            둘 다 있으면 같은 내비가 두 벌이 된다. */}
+      {!wideWeb && <BottomNav />}
     </View>
   );
 }
