@@ -120,7 +120,11 @@ export function ContentGrid({ query = '', viewMode, category = null, wrap = fals
    * 카드 비율 — 원본 카드아트는 832×1216(세로 0.72)이라 3열에서 카드 하나가 500px 가까이 길어진다.
    * 자산을 다시 만들지 않고 **보이는 창만** 가로로 잡는다(`contentFit="cover"` 가 가운데를 남긴다).
    */
-  const cardAspect = cols > 1 ? 1.05 : undefined;
+  //   ⚠️`{aspectRatio: undefined}` 를 스타일 배열에 넣으면 **앞의 값을 지운다**(RN 병합은 undefined 도 대입).
+  //     `styles.card` 가 `aspectRatio: 0.72` 를 갖고 있어, 네이티브(cols===1)에서 그 비율이 통째로 날아간다
+  //     → 카테고리 화면 카드가 높이를 잃는다. 그래서 **값이 있을 때만** 키를 만든다.
+  const cardOverride: { width: `${number}%`; aspectRatio?: number } =
+    cols > 1 ? { width: cardW, aspectRatio: 1.05 } : { width: cardW };
   const router = useRouter();
   const { t } = useTranslation();
   const { session } = useAuth();
@@ -442,7 +446,7 @@ export function ContentGrid({ query = '', viewMode, category = null, wrap = fals
           // 이미지 없는 콘텐츠 = 텍스트 카드(제목+설명), 이미지 카드와 시각 구분
           if (!m.image) {
             return (
-              <PressableScale key={m.key} style={[styles.card, styles.textCard, wrapEff && { width: cardW, aspectRatio: cardAspect }]} onPress={() => onPress(m)}>
+              <PressableScale key={m.key} style={[styles.card, styles.textCard, wrapEff && cardOverride]} onPress={() => onPress(m)}>
                 {badge && <View style={[styles.priceTag, isNew && styles.priceTagLeft]}><Text style={styles.priceTagText}>{badge}</Text></View>}
                 {isNew && <View style={styles.newTag}><Text style={styles.newTagTx}>NEW</Text></View>}
                 <Text style={styles.textCardLabel}>{t(m.labelKey)}</Text>
@@ -451,7 +455,7 @@ export function ContentGrid({ query = '', viewMode, category = null, wrap = fals
             );
           }
           return (
-            <PressableScale key={m.key} style={[styles.card, wrapEff && { width: cardW, aspectRatio: cardAspect }]} onPress={() => onPress(m)}>
+            <PressableScale key={m.key} style={[styles.card, wrapEff && cardOverride]} onPress={() => onPress(m)}>
               <View style={styles.cardImg}>
                 {/* expo-image 다운샘플(메모리·랙) + 켄번스 느린 줌(daniel #21). 차례가 온 카드만 mount. */}
                 {revealed
