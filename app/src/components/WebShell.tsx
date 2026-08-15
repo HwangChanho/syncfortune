@@ -45,6 +45,12 @@ const SIDEBAR = 248;
  *   그러면 곧 화면마다 폭이 갈리기 때문이다 — 정책은 한 표에서만 바뀐다.
  */
 const WIDE_ROUTES = ['/', '/contents', '/relationmap', '/charts', '/market', '/community'];
+/**
+ * **폼 화면** — 입력이 주인 화면은 더 좁아야 한다.
+ * 글은 760 이 편하지만, 입력창이 760 으로 늘어나면 라벨과 입력 사이가 멀어져 한 덩어리로 안 읽힌다.
+ */
+const FORM_ROUTES = ['/register', '/light'];
+export const WEB_FORM = 560;
 
 /** 지금 '넓은 웹'인가 — 레이아웃이 하단 탭 대신 사이드바를 써야 하는 상태. */
 export function useWideWeb(): boolean {
@@ -73,12 +79,13 @@ export function WebShell({ children }: { children: ReactNode }) {
   if (!wide) return <>{children}</>;
   // 그리드 화면이면 가로를 쓰고, 글 화면이면 줄 길이를 지킨다
   const isWideRoute = WIDE_ROUTES.some((r) => (r === '/' ? pathname === '/' : pathname?.startsWith(r)));
+  const isForm = FORM_ROUTES.some((r) => pathname?.startsWith(r));
   return (
     <View style={styles.row}>
       <WebSidebar />
       {/* 본문 — 가운데 정렬 컬럼. 바깥 여백은 앱 배경이 그대로 비친다(전역 ContentBackdrop) */}
       <View style={styles.stage}>
-        <View style={[styles.column, { maxWidth: isWideRoute ? WEB_STAGE : WEB_COLUMN }]}>{children}</View>
+        <View style={[styles.column, { maxWidth: isWideRoute ? WEB_STAGE : isForm ? WEB_FORM : WEB_COLUMN }]}>{children}</View>
       </View>
     </View>
   );
@@ -114,6 +121,28 @@ function WebSidebar() {
       })}
     </View>
   );
+}
+
+/**
+ * 바텀시트를 **가운데 다이얼로그**로 바꾸는 조각(넓은 웹 전용).
+ *
+ * 화면 아래에서 올라오는 시트는 **엄지 반경** 안에 손잡이를 두려는 폰 패턴이다.
+ * 마우스에는 반경이 없고, 1440px 화면 아래쪽에 붙은 패널은 오히려 멀다 —
+ * 웹에서 같은 역할을 하는 건 가운데 뜨는 다이얼로그다.
+ *
+ * @returns `backdrop`/`sheet` — 각 시트의 기존 스타일 **뒤에 덧붙이면** 된다(좁은 화면이면 null).
+ * ★시트마다 값을 정하지 않는다. 폭·모서리·최대높이는 여기서만 바뀐다.
+ */
+export function useSheetLayout(): { backdrop: object | null; sheet: object | null } {
+  const wide = useWideWeb();
+  if (!wide) return { backdrop: null, sheet: null };
+  return {
+    backdrop: { justifyContent: 'center', alignItems: 'center', padding: space(6) },
+    sheet: {
+      width: '100%', maxWidth: 560, maxHeight: '84%', alignSelf: 'center',
+      borderRadius: radius.lg, borderTopLeftRadius: radius.lg, borderTopRightRadius: radius.lg,
+    },
+  };
 }
 
 const styles = StyleSheet.create({

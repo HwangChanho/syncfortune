@@ -13,6 +13,7 @@ import { PressableScale } from './PressableScale';
 import { lookupGlossary, GLOSSARY_KIND_LABEL, type GlossaryKind } from '../lib/content/myeongriGlossary';
 import { useFontScale } from '../lib/ui/fontScale';
 import { colors, radius, space, font } from '../lib/theme';
+import { useSheetLayout } from './WebShell'; // 넓은 웹 = 바텀시트를 가운데 다이얼로그로
 
 export type GlossaryTarget = { kind: GlossaryKind; key: string } | null;
 
@@ -22,13 +23,14 @@ export type GlossaryTarget = { kind: GlossaryKind; key: string } | null;
  * @param onClose 닫기 콜백
  */
 export function GlossarySheet({ target, onClose }: { target: GlossaryTarget; onClose: () => void }) {
+  const sheetL = useSheetLayout();
   const { fs } = useFontScale();
   const entry = target ? lookupGlossary(target.kind, target.key) : null;
   return (
     <Modal statusBarTranslucent visible={!!target} transparent animationType="slide" onRequestClose={onClose}>
       {/* 바깥 탭 = 닫기 / 안쪽 탭은 전파 차단(만세력 시트와 동일 관례) */}
-      <Pressable style={styles.overlay} onPress={onClose}>
-        <Pressable style={styles.sheet} onPress={() => {}}>
+      <Pressable style={[styles.overlay, sheetL.backdrop]} onPress={onClose}>
+        <Pressable style={[styles.sheet, sheetL.sheet]} onPress={() => {}}>
           <View style={styles.handle} />
           {entry ? (
             <>

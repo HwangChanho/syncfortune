@@ -69,6 +69,7 @@ const CAUTION: Record<DailyEnergy['caution'], { label: string; tone: string }> =
 
 export default function Home() {
   const twoCol = useWebCols() > 1;   // 넓은 웹에서만 2열(드래그는 폰 제스처라 그쪽에만 둔다)
+  const wideWebHome = twoCol;        // 사이드바가 있는 화면 = 헤더에서 워드마크 중복 제거
   // ★고정 상단여백(space(12) 등)은 **글자 크기를 키우면 헤더가 상태바 위로 잘린다**(daniel 07-27 IMG_8215).
   //   상수는 기기 노치·다이내믹아일랜드·글자배율 어느 것도 반영하지 못한다 → 실제 안전영역을 쓴다.
   const insets = useSafeAreaInsets();
@@ -349,13 +350,16 @@ export default function Home() {
   // 리스트 고정 헤더 = 브랜드 헤더 + 구분선 + 통변 진행률 배너(알림·순서 대상 아님·항상 최상단).
   const listHeader = (
     <>
-      {/* 헤더 — 타이틀 옆에 계정(사람) 아이콘: 탭 → 계정 관리·프리미엄 구매(설정)(daniel) */}
+      {/* 헤더 — 타이틀 옆에 계정(사람) 아이콘: 탭 → 계정 관리·프리미엄 구매(설정)(daniel)
+          ★넓은 웹에서는 **워드마크를 빼고 계정 버튼만** 남긴다(2026-08-15).
+            좌측 사이드바가 이미 '니운내운'을 달고 있어, 같은 화면에 브랜드가 두 번 뜨고 있었다.
+            폰에는 사이드바가 없으므로 그대로 둔다. */}
       <View style={styles.headerRow}>
         {/* 브랜드 마스코트(아기 백호·모션) — 타이틀 좌측. 헤더가 조밀해 후광은 끔(bob/sway만). */}
-        <TigerMascot size={40} glow={false} style={{ marginRight: space(2.5), marginBottom: space(1) }} />
+        {!wideWebHome && <TigerMascot size={40} glow={false} style={{ marginRight: space(2.5), marginBottom: space(1) }} />}
         {/* 타이틀·서브타이틀 = 좌측 컬럼. ★왼쪽 못박기(daniel 07-02): 컬럼 alignItems:flex-start + 텍스트 textAlign:left. 👤만 우측 y축 가운데 */}
         <View style={{ flex: 1, alignItems: 'flex-start' }}>
-          <Text style={styles.title}>{t('appName')}</Text>
+          {!wideWebHome && <Text style={styles.title}>{t('appName')}</Text>}
           {/* ★태그라인('나와 타인을 이해하는 AI 나침반') 제거 — daniel 2026-08-07.
               사전의 `tagline` 키는 남겨 둔다(스토어 문안·공유 페이지 등 다른 소비처가 있을 수 있어
               지우면 그쪽이 조용히 빈다). 홈에서만 안 그린다. */}

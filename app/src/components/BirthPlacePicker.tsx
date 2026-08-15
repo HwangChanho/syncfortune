@@ -12,10 +12,12 @@ import { View, Text, TextInput, Pressable, Modal, ScrollView, ActivityIndicator,
 import { PressableScale } from './PressableScale';
 import { useTranslation } from 'react-i18next';
 import { colors, radius, space, shadow, font } from '../lib/theme';
+import { useSheetLayout } from './WebShell'; // 넓은 웹 = 바텀시트를 가운데 다이얼로그로
 
 type Place = { name: string; lon: number | null; lat: number | null }; // lat=점성술 상승궁(daniel: 출생지에서 추출)
 
 export function BirthPlacePicker({ value, onSelect }: { value: string; onSelect: (p: Place) => void }) {
+  const sheetL = useSheetLayout();
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -95,8 +97,8 @@ export function BirthPlacePicker({ value, onSelect }: { value: string; onSelect:
       <Modal statusBarTranslucent visible={open} transparent animationType="slide" onRequestClose={() => setOpen(false)}>
         {/* 키보드가 시트(입력·결과)를 가리지 않게 위로 올림(daniel) */}
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-        <Pressable style={styles.backdrop} onPress={() => setOpen(false)}>
-          <Pressable style={styles.sheet} onPress={() => {}}>
+        <Pressable style={[styles.backdrop, sheetL.backdrop]} onPress={() => setOpen(false)}>
+          <Pressable style={[styles.sheet, sheetL.sheet]} onPress={() => {}}>
             <View style={styles.handle} />
             <Text style={styles.title}>{t('register.birthPlaceSearch')}</Text>
             <TextInput

@@ -21,6 +21,7 @@ import { useFontScale } from '../lib/ui/fontScale'; // 명식 헤더 글자크�
 import { computeChart } from '../lib/engine/engine'; // 각 명식 일주 산출(엠블럼)
 import { iljuEmblem, iljuImage, type IljuEmblem } from '../lib/dayPillarEmblem'; // 일주 엠블럼(은빛 소 등) + 60갑자 AI 일러스트
 import { colors, radius, space, shadow, font } from '../lib/theme';
+import { useSheetLayout } from './WebShell'; // 넓은 웹 = 바텀시트를 가운데 다이얼로그로
 
 // 엠블럼 로딩 스켈레톤 — 펄스(opacity 0.4↔0.85) 애니(daniel: 스켈레톤도 살아있게).
 /** 엠블럼 지름 — 글자 배율에 비례(최소 46 · 상한 72). 행 높이와 텍스트 칸이 함께 커지도록. */
@@ -59,6 +60,7 @@ const emblemKey = (c: { id: string; input: unknown }) => `${c.id}:${JSON.stringi
 let warmedOnce = false;
 
 export function ChartPicker({ onChange }: { onChange?: () => void }) {
+  const sheetL = useSheetLayout();
   const { t } = useTranslation();
   const router = useRouter();
   const { fs } = useFontScale();
@@ -336,8 +338,8 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
       </PressableScale>
 
       <Modal statusBarTranslucent visible={open} transparent animationType="slide" onRequestClose={() => setOpen(false)}>
-        <Pressable style={styles.backdrop} onPress={() => setOpen(false)}>
-          <Pressable style={styles.sheet} onPress={() => {}}>
+        <Pressable style={[styles.backdrop, sheetL.backdrop]} onPress={() => setOpen(false)}>
+          <Pressable style={[styles.sheet, sheetL.sheet]} onPress={() => {}}>
             <View style={styles.handle} />
             <View style={styles.sheetHead}>
               {/* ★'명식' 옆에 등록 수(daniel 07-21) — 필터 무관 총 등록 명식 개수 */}
@@ -528,8 +530,8 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
           const c = charts.find((x) => x.id === actionsFor);
           if (!c) return null;
           return (
-            <Pressable style={styles.actSheetBackdrop} onPress={() => setActionsFor(null)}>
-              <Pressable style={styles.actSheet} onPress={() => {}}>
+            <Pressable style={[styles.actSheetBackdrop, sheetL.backdrop]} onPress={() => setActionsFor(null)}>
+              <Pressable style={[styles.actSheet, sheetL.sheet]} onPress={() => {}}>
                 <Text style={styles.actSheetTitle} numberOfLines={1}>{c.label}</Text>
                 <PressableScale style={styles.actSheetItem} onPress={() => { setActionsFor(null); edit(c.id); }}>
                   <Text style={styles.actSheetTx}>{t('common.edit', '수정')}</Text>
