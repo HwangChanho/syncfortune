@@ -7,15 +7,28 @@
 //   ※ charts.tsx·ChartPicker 가 쓰던 인라인 패턴을 한 훅으로 표준화(중복 제거·일관 적용).
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useEffect } from 'react';
-import { InteractionManager } from 'react-native';
+import { InteractionManager, Platform } from 'react-native';
 
 /**
  * 네비 전환(인터랙션) 완료 후 true. 무거운 화면은 false 동안 스켈레톤을 그리고, true가 되면 콘텐츠를 마운트.
  * @returns ready — false=전환 중(스켈레톤) / true=콘텐츠 마운트 가능
+ *
+ * ★★웹 분기(2026-08-16 실측) — **웹에서는 이 훅이 영영 안 풀렸다.**
+ *   `InteractionManager.runAfterInteractions` 가 react-native-web 에서 끝나지 않아
+ *   `ready` 가 계속 false → 만세력(`/myeongsik`)·내 명식(`/charts`)이 **44초를 기다려도 스켈레톤**이었다.
+ *   에러가 안 나서 "명식이 없어서 비었나 보다"로 오해하기 딱 좋은 증상이다(실제로 내가 그렇게 넘겨짚었다).
+ *   ⇒ 웹은 `requestAnimationFrame` 두 번으로 **첫 페인트만 넘긴다**: 스켈레톤이 한 프레임 보이고 곧 콘텐츠.
+ *     (한 번이면 같은 프레임에 묶여 스켈레톤이 안 보이고, 무거운 계산이 첫 페인트를 다시 막는다.)
+ *   ⚠️네이티브 경로는 그대로 둔다 — 전환 애니 중 무거운 렌더를 미루는 원래 목적이 살아 있어야 한다.
  */
 export function useDeferredReady(): boolean {
   const [ready, setReady] = useState(false);
   useEffect(() => {
+    if (Platform.OS === 'web') {
+      let inner = 0;
+      const outer = requestAnimationFrame(() => { inner = requestAnimationFrame(() => setReady(true)); });
+      return () => { cancelAnimationFrame(outer); cancelAnimationFrame(inner); };
+    }
     // 전환 애니/제스처가 모두 끝난 뒤 1회 — 그 전까지 무거운 계산·렌더를 미뤄 전환을 매끄럽게.
     const task = InteractionManager.runAfterInteractions(() => setReady(true));
     return () => task.cancel(); // 언마운트 시 콜백 취소(전환 중 이탈 대비)

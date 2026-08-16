@@ -44,10 +44,13 @@ import { detectInteractionsAmong, interactionLabel } from '@engine/structure';  
 import { detectGyeokguk } from '../lib/engine/gyeokguk';                                 // 핵심 격(살인상생·식신제살 등) 검출 — daniel
 import { lookupGlossary, GLOSSARY_KIND_LABEL, SINSAL_GLOSSARY, type GlossaryKind } from '../lib/content/myeongriGlossary'; // 클릭 설명
 import { playSound } from '../lib/ui/sounds';
+import { PILLAR_DISPLAY_ORDER } from '../lib/ui/pillarOrder'; // ★명식 표기 순서 단일 소스(오른쪽=년주)
 import Svg, { Path, Rect, Circle, Text as SvgText, G } from 'react-native-svg';
 
 // 전통 표기 — 오른쪽이 년주: 시(왼) ← 일 ← 월 ← 년(오른쪽)
-const POS: PillarPos[] = ['시', '일', '월', '년'];
+// ★순서는 단일 소스에서 온다(`lib/ui/pillarOrder`). 여기 사본을 두면 화면마다 방향이 갈린다 —
+//   실제로 벤다이어그램(LuckNest)이 반대로 나갔던 자리다(2026-08-16).
+const POS: PillarPos[] = PILLAR_DISPLAY_ORDER;
 
 // 만세력 카테고리 탭(daniel 07-13 재편) — 사주원국(팔자+지장간+합충+신살길성 통합)/운세(대운·세운·월운·일운)/오행·강약/자미두수.
 type MyeongTab = 'wonguk' | 'rel' | 'elem' | 'ziwei';  // rel = 운세 전용(구 '사주관계' → 운세). 합충·신살은 wonguk으로 흡수.

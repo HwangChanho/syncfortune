@@ -14,6 +14,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { colors, space, radius, font } from '../lib/theme';
 import { GzCell } from './GzCell';
+import { sortPillarsForDisplay } from '../lib/ui/pillarOrder'; // ★표기 순서 단일 소스(오른쪽=년주)
 
 export type NestRing = {
   label: string;            // '일운' 등 — 순서는 배열이 정함: **[0] = 제일 안쪽**
@@ -37,11 +38,16 @@ const RING_EDGE = ['#D9DEE8', '#CCD3E0', '#BFC8D8', '#B1BCCF'];
  * @param hangeul 한자 옆 한글음 표시(만세력 토글과 연동)
  */
 export function LuckNest({ natal, rings, hangeul }: { natal: NestPillar[]; rings: NestRing[]; hangeul?: boolean }) {
-  // 원국 미니 그리드 — 전통 표기(오른쪽=년주)와 맞추기 위해 역순 렌더. 간지 = 색깔 한자(GzCell).
+  // 원국 미니 그리드 — 전통 표기(**오른쪽 = 년주**). 간지 = 색깔 한자(GzCell).
+  // ★2026-08-16 수정(daniel *"년주 월주 일주 시주 순으로 오른쪽부터"*):
+  //   여기서 `[...natal].reverse()` 를 하고 있었다. "년월일시로 들어온다"는 전제였는데
+  //   호출부(만세력)의 `POS` 는 **이미 `['시','일','월','년']`(전통 순서)** 이라 한 번 더 뒤집혀
+  //   벤다이어그램만 년주가 왼쪽으로 나갔다 — 바로 위 본 명식 그리드와 방향이 반대였다.
+  //   ⇒ 배열 순서에 기대지 말고 **자리 이름으로 정렬**한다(누가 어떤 순서로 넘겨도 그림이 같다).
   const core = (
     <View style={styles.core}>
       <View style={styles.coreRow}>
-        {[...natal].reverse().map((p) => (
+        {sortPillarsForDisplay(natal).map((p) => (
           <View key={p.pos} style={styles.corePillar}>
             <Text style={styles.corePos}>{p.pos}</Text>
             <GzCell char={p.stem} kind="stem" size="xs" scale={0.92} hangeul={hangeul} />
