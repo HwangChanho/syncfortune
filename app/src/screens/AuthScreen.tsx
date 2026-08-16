@@ -18,6 +18,7 @@ import { supabase } from '../lib/supabase';
 import { isAnonSession } from '../lib/useAuth'; // 익명 세션 판정 — 로그인 시 linkIdentity(승격·데이터 보존) vs signInWithOAuth 분기(Apple 5.1.1)
 import { logEvent } from '../lib/backend/logger'; // ★로그인 진단(daniel 07-11: OAuth 버튼 무반응 원인 로그)
 import { colors, radius, space, shadow, font } from '../lib/theme';
+import { useWideWeb } from '../components/WebShell'; // ★넓은 웹 판정 한 곳 — 화면이 직접 Platform·픽셀을 보지 않게
 
 // ★크래시 근본수정(daniel 07-04): expo-web-browser 네이티브 모듈이 빌드에 링크 안 되면(Podfile.lock 누락) 정적 import·
 //   모듈로드 호출이 화면 진입(로그아웃→AuthScreen)·로그인 탭에서 즉시 크래시("Cannot find native module 'ExpoWebBrowser'").
@@ -58,6 +59,7 @@ async function completeAuthFromUrl(url: string): Promise<{ error: any } | undefi
 
 export function AuthScreen() {
   const { t } = useTranslation();
+  const wide = useWideWeb();   // 넓은 웹(≥900px) — 카드 레이아웃 · 부제/안내 노출. 네이티브는 항상 false.
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -153,11 +155,22 @@ export function AuthScreen() {
     //   반드시 회피한다. 이 화면은 전역 BottomNav 밖(로그인)이라 표준 KAV 가 정상 동작한다.
     //   (daniel 07-18 표준 · check:keyboard 가 강제)
     <KeyboardAvoidingView style={styles.wrap} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+     {/*
+       ★로그인 카드 — 넓은 웹에서만 '카드'가 된다(daniel 2026-08-16 *"sns 로그인 나와있는뷰 너무 옆으로만 길어 웹기준"*).
+         이 라우트(`/login`)는 `WebShell` **밖**이라(로그인 전이라 사이드바가 없다) 폭을 잡아 주는 것이 없었다 —
+         1512px 화면에서 버튼 세 개가 화면 끝까지 늘어났다.
+       ⚠️네이티브에 영향이 가지 않게 오버라이드는 **wide 일 때만 객체를 만든다.**
+         `webCard={...}` 를 항상 넘기고 값만 undefined 로 두면 RN 이 기본 스타일을 덮어 버린다
+         (관계지도 `aspectRatio: undefined` 로 한 번 당한 자리 · [[duplicate-ui-single-source]]).
+     */}
+     <View style={wide ? [styles.card, styles.cardWeb] : styles.card}>
       {/* 타이틀 롱프레스(0.8s) = 심사용 히든 로그인 노출(App Store 리뷰어 전용 — SNS 전용 앱의 데모계정 접근, daniel 07-07) */}
       <Pressable onLongPress={() => setReviewMode(true)} delayLongPress={800}>
         <Text style={styles.title}>{t('appName')}</Text>
       </Pressable>
       <View style={styles.divider} />
+      {/* 부제 — 웹에서만. 앱은 스플래시·홈이 이미 같은 말을 해서 로그인에서 반복하지 않는다 */}
+      {wide ? <Text style={styles.sub}>{t('auth.subtitle')}</Text> : null}
 
       {/* ★이메일/비번 로그인 제거 — SNS 로그인만(daniel). 단 심사용 히든 로그인은 reviewMode(타이틀 롱프레스)에서만 노출. */}
       {reviewMode && (
@@ -186,15 +199,33 @@ export function AuthScreen() {
         <Text style={styles.naverN}>N</Text>
         <Text style={styles.naverText}>{t('auth.naver')}</Text>
       </PressableScale>
+
+      {/* 왜 로그인하는지 한 줄 — 웹은 '선택 로그인'이라는 게 앱보다 덜 분명하다 */}
+      {wide ? <Text style={styles.note}>{t('auth.note')}</Text> : null}
+     </View>
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   wrap: { flex: 1, justifyContent: 'center', padding: space(7), backgroundColor: colors.bg },
+  /** 카드 껍데기 — 네이티브에선 아무 일도 하지 않는다(폭 100%). 웹에서만 `cardWeb` 이 얹힌다. */
+  card: { width: '100%' },
+  /**
+   * 넓은 웹의 로그인 카드.
+   * ★420px 은 로그인 폼의 통상 폭이다. 우리 폼 폭 토큰(`WEB_FORM`=560)보다 좁게 잡은 이유는
+   *   이 화면엔 입력이 없고 **버튼 세 개**뿐이라, 560 이면 버튼이 다시 '옆으로 긴' 막대가 되기 때문이다.
+   */
+  cardWeb: {
+    maxWidth: 420, alignSelf: 'center',
+    backgroundColor: colors.card, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.line,
+    paddingHorizontal: space(8), paddingTop: space(9), paddingBottom: space(8), ...shadow.card,
+  },
   title: { ...font.display, textAlign: 'center' },
   divider: { width: 44, height: 3, borderRadius: 2, backgroundColor: colors.ju, alignSelf: 'center', marginTop: space(3) },
-  sub: { ...font.body, color: colors.inkSoft, textAlign: 'center', marginTop: space(3), marginBottom: space(7) },
+  sub: { ...font.body, color: colors.inkSoft, textAlign: 'center', marginTop: space(4), marginBottom: space(2) },
+  /** 카드 맨 아래 안내 — 작고 낮은 대비(버튼이 주인공이다). */
+  note: { ...font.caption, color: colors.inkFaint, textAlign: 'center', marginTop: space(5), lineHeight: 18 },
   input: {
     backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, borderRadius: radius.sm,
     padding: space(3.5), fontSize: 15, color: colors.ink, marginTop: space(3), ...shadow.soft,

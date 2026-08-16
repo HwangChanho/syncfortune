@@ -134,6 +134,8 @@ export const ja = {
     toSignup: 'アカウントがありませんか？  新規登録', toSignin: 'すでにアカウントをお持ちですか？  ログイン',
     needInput: 'メールとパスワードを入力してください。', signupDone: '確認メールを送信しました。認証後にログインしてください。',
     or: 'または', google: 'Googleで続ける', apple: 'Appleで続ける', naver: 'Naverで続ける', processing: 'ログイン処理中…',
+    subtitle: '四柱推命と紫微斗数を組み合わせた解釈', note: 'ログインは任意です。端末を変えても命式と利用券を引き継ぐには連携してください。',
+    failedTitle: 'ログインに失敗しました',
   },
   register: {
     placeHintNone: '地域ごとに日の出が違うため、時柱が変わることがあります。選ばない場合は韓国の平均で計算します。',

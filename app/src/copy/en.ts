@@ -135,6 +135,8 @@ export const en = {
     toSignup: "Don't have an account?  Sign up", toSignin: 'Already have an account?  Log in',
     needInput: 'Enter your email and password.', signupDone: 'Verification email sent. Verify, then log in.',
     or: 'or', google: 'Continue with Google', apple: 'Continue with Apple', naver: 'Continue with Naver', processing: 'Signing in…',
+    subtitle: 'Saju and Zi Wei Dou Shu, read together', note: 'Signing in is optional — connect an account to keep your charts and passes when you switch devices.',
+    failedTitle: 'Sign-in failed',
   },
   register: {
     placeHintNone: 'Sunrise differs by region, so the hour pillar can shift. Left blank, we use a national average.',

@@ -109,8 +109,17 @@ export const PRODUCT_UNLOCK_4900 = 'unlock_4900';
 
 let configured = false;
 
-/** RC 사용 가능 여부(네이티브 모듈 포함 + 키 설정됨). 아니면 결제 UI는 '준비 중' 폴백. */
+/**
+ * RC 사용 가능 여부(네이티브 모듈 포함 + 키 설정됨). 아니면 결제 UI는 '준비 중' 폴백.
+ *
+ * ★**웹은 무조건 false**(2026-08-16). RevenueCat 의 인앱결제 SDK 는 웹에서 못 쓴다.
+ *   그런데 `RC_KEY` 가 `ios ? iOS키 : 안드로이드키` 라서 **웹에서 안드로이드 키로 configure 를 시도**했고,
+ *   콘솔에 RC 오류가 계속 찍혔다. 기능은 try/catch 로 막혀 있어 안 죽지만,
+ *   웹 로그인처럼 **다른 문제를 진단할 때 그 오류가 원인처럼 보인다** — 그래서 아예 들어가지 않게 한다.
+ *   ※웹 결제는 별도 PG(토스페이먼츠 등)로 가야 한다 — 여기서 흉내 내지 않는다.
+ */
 export function purchasesEnabled(): boolean {
+  if (Platform.OS === 'web') return false;
   return !!Purchases && !!RC_KEY;
 }
 

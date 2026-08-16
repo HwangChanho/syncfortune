@@ -161,6 +161,8 @@ export const ko = {
     toSignup: '계정이 없으신가요?  회원가입', toSignin: '이미 계정이 있으신가요?  로그인',
     needInput: '이메일과 비밀번호를 입력하세요.', signupDone: '확인 메일이 발송됐습니다. 메일 인증 후 로그인하세요.',
     or: '또는', google: 'Google로 계속하기', apple: 'Apple로 계속하기', naver: '네이버로 계속하기', processing: '로그인 처리 중…',
+    subtitle: '사주와 자미두수를 결합한 복합적인 해석', note: '로그인은 선택이에요. 기기를 바꿔도 명식과 이용권을 그대로 쓰려면 연결해 주세요.',
+    failedTitle: '로그인에 실패했어요',
   },
   register: {
     placeHintNone: '지역마다 해 뜨는 시각이 달라 태어난 시가 갈릴 수 있어요. 고르지 않으면 한국 평균으로 계산해요.',
