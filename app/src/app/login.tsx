@@ -13,11 +13,13 @@ import { useAuth } from '../lib/useAuth';
 import { logEvent } from '../lib/backend/logger'; // ★로그인 진단(daniel 07-11: 로그인 안 됨 원인 로그)
 import Constants from 'expo-constants'; // 빌드 번호(어느 빌드에서 재현 중인지 로그로 확정)
 import { colors, space } from '../lib/theme';
+import { useWideWeb } from '../components/WebShell'; // ★넓은 웹 판정(뒤로 정렬)
 
 export default function Login() {
   const { session, isRegistered } = useAuth();
   const router = useRouter();
   const { t } = useTranslation();
+  const wide = useWideWeb();   // 넓은 웹만 정렬 보정(네이티브 무관)
 
   // ★진단 로그(daniel 07-11): /login 진입 시 isRegistered 판정과 세션 상세 → app_logs 로 원인 추적(리다이렉트로 화면 못 봄 vs 화면 뜸).
   useEffect(() => {
@@ -34,7 +36,7 @@ export default function Login() {
       {/* 선택 로그인이라 뒤로가기로 빠져나올 수 있어야 함 */}
       <PressableScale
         onPress={() => (router.canGoBack() ? router.back() : router.replace('/(app)'))}
-        style={styles.back}
+        style={wide ? [styles.back, styles.backWeb] : styles.back}
         hitSlop={8}
       >
         <Text style={styles.backText}>{t('common.back')}</Text>
@@ -47,5 +49,8 @@ export default function Login() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   back: { paddingHorizontal: space(5), paddingTop: space(14), paddingBottom: space(1) },
+  // ★넓은 웹 — 로그인 카드(420px)와 같은 축에 세운다(daniel 2026-08-16 점검: "카드와 따로 논다").
+  //   화면 맨 좌상단에 홀로 있으면 카드와 관계없는 버튼처럼 보인다.
+  backWeb: { alignSelf: 'center', width: '100%', maxWidth: 420, paddingHorizontal: 0, paddingTop: space(8) },
   backText: { color: colors.ju, fontSize: 16, fontWeight: '600' },
 });

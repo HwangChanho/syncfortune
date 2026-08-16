@@ -28,6 +28,7 @@ import { ChartPicker } from '../../components/ChartPicker';
 import { loadRepChart } from '../../lib/engine/myChart'; // 명식 유무 판정(홈과 같은 관용구)
 import { PressableScale } from '../../components/PressableScale';
 import { useHomeViewMode } from '../../lib/ui/homeView'; // ★훅은 **여기서만** 호출 — 아래로는 값만 내린다(ContentGrid 주석 참조)
+import { useWideWeb, useWebCols } from '../../components/WebShell'; // ★넓은 웹 = 카테고리 2~3열(폰·네이티브는 그대로)
 import { colors, space, font, radius } from '../../lib/theme';
 
 export default function ContentsScreen() {
@@ -37,6 +38,8 @@ export default function ContentsScreen() {
   const router = useRouter();
   const { t } = useTranslation();
   const { viewMode, setViewMode } = useHomeViewMode();
+  const wide = useWideWeb();          // 넓은 웹? — 제목·그리드 분기(네이티브는 항상 false)
+  const cols = useWebCols();          // 2 또는 3열(좁으면 1)
   const [reload, setReloadKey] = useState(0); // 명식 전환 시 그리드(배지·티저)·다음단계 카드 재계산 트리거
   // 검색어(daniel 2026-08-06 "너무 나열되어있어서 뭐가뭔지 모르겠어").
   const [q, setQ] = useState('');
@@ -60,7 +63,10 @@ export default function ContentsScreen() {
           ① 51종을 스크롤로만 찾는 구조가 '나열'의 근원이었다. 이름 한 낱말로 바로 좁힌다(온디바이스·API 0).
           ② 스크롤 안에 두면 아래로 내려간 뒤엔 못 쓴다 — 정작 '못 찾겠을 때'는 한참 내려간 뒤다.
           ③ keyboard-safe: 검색창이 화면 최상단에 고정이라 키보드가 덮을 수 없다(check:keyboard R1 면제 사유). */}
-      <View style={[styles.topBar, { paddingTop: insets.top + space(2) }]}>
+      {/* ★페이지 제목 — **넓은 웹에서만**(daniel 2026-08-16 점검).
+             폰은 하단 탭바가 현재 위치를 알려 주지만, 데스크톱엔 그게 없어 검색창이 곧장 최상단이었다. */}
+      {wide ? <Text style={styles.pageTitle}>{t('nav.contents')}</Text> : null}
+      <View style={[styles.topBar, { paddingTop: wide ? space(1) : insets.top + space(2) }]}>
         <View style={styles.searchBox}>
           <TextInput
             style={styles.searchInput}
@@ -80,8 +86,11 @@ export default function ContentsScreen() {
             </PressableScale>
           )}
         </View>
-        {/* 보기 방식(카드/리스트) — 검색 중에는 결과가 항상 리스트라 감춘다(누를 수 없는 버튼을 두지 않는다). */}
-        {!searching && (
+        {/* ★보기 방식(카드/리스트) — **검색 중에만** 보인다(daniel 2026-08-16 점검).
+               종전엔 정반대였다: 검색이 아닐 때 떠 있는데 정작 이 값을 쓰는 `ContentGrid` 는
+               검색 중에만 렌더돼, 눌러도 그 화면에선 아무 변화가 없었다(고장으로 읽힌다).
+               ※카테고리 상세에도 같은 값이 적용되지만, 그 화면에는 자체 토글이 있어야 맞다. */}
+        {searching && (
           <View style={styles.viewToggle}>
             {(['card', 'list'] as const).map((mode) => (
               <PressableScale
@@ -137,16 +146,28 @@ export default function ContentsScreen() {
         {searching ? (
           <ContentGrid query={q} viewMode={viewMode} />
         ) : (
-          <View style={styles.catList}>
+          /* ★넓은 웹에서는 **2~3열 카드**(daniel 2026-08-16 점검: "첫 화면만 아직 폰 레이아웃").
+               카테고리 안쪽(`/category/[key]`)은 이미 3열인데 여기만 1000px 짜리 가로 막대라
+               제목과 화살표가 1000px 떨어져 있었다. 폰·네이티브는 종전 그대로(한 줄에 하나). */
+          <View style={wide ? [styles.catList, styles.catGrid] : styles.catList}>
             {SECTIONS.map((sec) => (
-              <PressableScale key={sec.key} style={styles.catCard} onPress={() => router.push(`/category/${sec.key}`)}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.catCardTitle}>{t(sec.titleKey)}</Text>
-                  {sec.descKey ? <Text style={styles.catCardDesc} numberOfLines={1}>{t(sec.descKey)}</Text> : null}
-                </View>
-                {/* ★항목 수는 빼 둔다(daniel 2026-08-06) — 숫자가 적으면 빈약해 보이고, 많아도 의미가 없다. */}
-                <Text style={styles.catCardArrow}>›</Text>
-              </PressableScale>
+              /* ★칸 래퍼 — 폭은 래퍼가, 여백은 래퍼의 padding 이 갖는다.
+                   `gap` 과 `width:%` 를 같이 쓰면 합이 100%를 넘어 한 줄에 하나씩 떨어진다.
+                   네이티브에선 래퍼가 스타일 없이 통과 = 종전 레이아웃 그대로. */
+              <View key={sec.key} style={wide ? { width: `${100 / cols}%`, padding: space(1.25) } : undefined}>
+                <PressableScale
+                  style={wide ? [styles.catCard, styles.catCardWeb] : styles.catCard}
+                  onPress={() => router.push(`/category/${sec.key}`)}
+                >
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.catCardTitle}>{t(sec.titleKey)}</Text>
+                    {sec.descKey ? <Text style={styles.catCardDesc} numberOfLines={wide ? 2 : 1}>{t(sec.descKey)}</Text> : null}
+                  </View>
+                  {/* ★항목 수는 빼 둔다(daniel 2026-08-06) — 숫자가 적으면 빈약해 보이고, 많아도 의미가 없다.
+                      넓은 웹에선 화살표를 뺀다 — 카드가 좁아 제목 바로 옆이라 안내가 아니라 소음이 된다. */}
+                  {wide ? null : <Text style={styles.catCardArrow}>›</Text>}
+                </PressableScale>
+              </View>
             ))}
           </View>
         )}
@@ -185,12 +206,18 @@ const styles = StyleSheet.create({
   searchClear: { paddingHorizontal: space(1), paddingVertical: space(1) },
   searchClearTx: { fontSize: 15, fontWeight: '800', color: colors.inkFaint },
   // 카테고리 카드 — 한 줄에 하나. 제목 + 부제 + 항목 수 + ›
+  // 넓은 웹 전용 페이지 제목 — 사이드바만으론 '지금 어느 페이지인지'가 약하다
+  pageTitle: { ...font.display, fontSize: 30, lineHeight: 40, color: colors.ink, paddingHorizontal: space(5), paddingTop: space(6), paddingBottom: space(1) },
   catList: { gap: space(2.5) },
   catCard: {
     flexDirection: 'row', alignItems: 'center', gap: space(3),
     backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.line,
     paddingVertical: space(4), paddingHorizontal: space(4),
   },
+  // 넓은 웹 전용 — 카드를 격자로 흘린다. `gap` 은 catList 가 이미 갖고 있다.
+  catGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 0, margin: -space(1.25) },
+  // 격자 칸: 폭은 인라인(열 수 파생) · 세로로 쌓아 제목/부제가 위에서 시작하게
+  catCardWeb: { flexDirection: 'column', alignItems: 'flex-start', minHeight: 96, paddingVertical: space(5) },
   catCardTitle: { fontSize: 17, lineHeight: 24, fontWeight: '900', color: colors.ink, letterSpacing: 0.2 },
   catCardDesc: { fontSize: 12.5, lineHeight: 18, color: colors.inkSoft, marginTop: 2 },
   catCardCount: { fontSize: 13, lineHeight: 18, fontWeight: '800', color: colors.inkFaint },

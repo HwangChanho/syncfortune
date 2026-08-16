@@ -15,6 +15,7 @@ import { ChartSkeleton } from '../../components/Skeleton'; // 로딩 중 명식 
 import { useDeferredReady } from '../../lib/ui/useDeferredReady'; // 전환 끝난 뒤 MyeongsikScreen 마운트(멈칫 제거)
 import { colors, radius, space, font } from '../../lib/theme';
 import type { ChartInput } from '@spec/chart';
+import { useWideWeb } from '../../components/WebShell'; // ★넓은 웹 판정(빈 상태 카드)
 
 export default function ChartsScreen() {
   const router = useRouter();
@@ -30,6 +31,7 @@ export default function ChartsScreen() {
     refreshRepName();
   }, []);
   const { fs } = useFontScale();
+  const wide = useWideWeb();   // 넓은 웹만 카드 처리(네이티브는 종전 그대로)
   const styles = useMemo(() => makeStyles(fs), [fs]);
 
   // 로드 중 OR 전환 중 = 명식 형태 스켈레톤. ★MyeongsikScreen 은 ready 후에만 마운트(내부 조기 return 금지 — hook 수 불변).
@@ -38,10 +40,14 @@ export default function ChartsScreen() {
   if (!me) {
     return (
       <View style={styles.center}>
-        <Text style={styles.msg}>{t('manse.empty')}</Text>
-        <PressableScale style={styles.btn} onPress={() => router.push('/register')}>
-          <Text style={styles.btnText}>{t('compat.registerMyChart')}</Text>
-        </PressableScale>
+        {/* ★넓은 웹에서는 카드로 감싼다(daniel 2026-08-16 점검: "빈 화면에 회색 판이 통째로").
+             데스크톱 컬럼은 1000px 인데 안내 한 줄만 떠 있으면 '덜 불러온 화면'처럼 보인다. */}
+        <View style={wide ? styles.emptyCard : undefined}>
+          <Text style={styles.msg}>{t('manse.empty')}</Text>
+          <PressableScale style={styles.btn} onPress={() => router.push('/register')}>
+            <Text style={styles.btnText}>{t('compat.registerMyChart')}</Text>
+          </PressableScale>
+        </View>
       </View>
     );
   }
@@ -69,6 +75,12 @@ const scaledFont = (fs: (n: number) => number) => ({
 });
 const makeStyles = (fs: (n: number) => number) => { const f = scaledFont(fs); return StyleSheet.create({
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: space(7), backgroundColor: 'transparent' }, // 전역 배경 노출
+  // 넓은 웹 전용 — 안내를 카드에 담아 '빈 화면'이 아니라 '할 일이 있는 화면'으로 읽히게
+  emptyCard: {
+    alignItems: 'center', maxWidth: 420, width: '100%',
+    backgroundColor: colors.card, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.line,
+    paddingVertical: space(9), paddingHorizontal: space(7),
+  },
   msg: { ...f.body, textAlign: 'center', marginBottom: space(5) },
   btn: { backgroundColor: colors.ju, borderRadius: radius.md, paddingVertical: space(3.25), paddingHorizontal: space(6) },
   btnText: { color: colors.white, fontSize: fs(15), fontWeight: '700' },
