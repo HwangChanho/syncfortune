@@ -25,9 +25,11 @@ export function useDeferredReady(): boolean {
   const [ready, setReady] = useState(false);
   useEffect(() => {
     if (Platform.OS === 'web') {
-      let inner = 0;
-      const outer = requestAnimationFrame(() => { inner = requestAnimationFrame(() => setReady(true)); });
-      return () => { cancelAnimationFrame(outer); cancelAnimationFrame(inner); };
+      // ★`requestAnimationFrame` 은 **백그라운드 탭에서 아예 안 돈다**(2026-08-17 실측 — 그래서
+      //   탭을 뒤에 두고 열면 만세력이 영영 스켈레톤이었다. 앞서 rAF 로 고친 게 이 구멍을 남겼다).
+      //   목적은 '첫 페인트만 넘기기'이므로 타이머면 충분하고, 타이머는 백그라운드에서도 진행된다.
+      const timer = setTimeout(() => setReady(true), 0);
+      return () => clearTimeout(timer);
     }
     // 전환 애니/제스처가 모두 끝난 뒤 1회 — 그 전까지 무거운 계산·렌더를 미뤄 전환을 매끄럽게.
     const task = InteractionManager.runAfterInteractions(() => setReady(true));

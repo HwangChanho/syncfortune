@@ -40,6 +40,12 @@ import { Onboarding } from '../components/Onboarding'; // ★첫 실행 자기�
 import { applyGlobalFont } from '../lib/ui/globalFont'; // 전역 Pretendard 폰트 — Text/TextInput 렌더 패치(트렌디, daniel 기획서 UX)
 import { loadFeatures } from '../lib/core/features'; // ★신규 기능 노출 게이트(원격 플래그+관리자) — 속궁합/커뮤니티/위젯 재제출 안전판
 import { syncThemeElement } from '../lib/ui/themeElement'; // ★대표명식 일간 오행 → 테마 강조색 소스 저장(자동 강조색)
+import { installRnwStyleShim } from '../lib/web/rnwStyleShim'; // ★웹: 중첩 <Text> 크래시 무해화(네이티브 무관)
+import { AppErrorBoundary } from '../components/AppErrorBoundary'; // ★전역 렌더 오류 방어(백지 금지)
+
+// ★react-native-web 호환 shim — 중첩 <Text> 가 웹에서 앱 전체를 백지로 만들던 것을 무해화.
+//   자세한 근거는 `lib/web/rnwStyleShim.ts` 머리말. 네이티브는 이 줄이 아무 일도 하지 않는다.
+installRnwStyleShim();
 
 // i18next 26.x가 Hermes에서 Intl.PluralRules 를 인식 못 해 내는 dev 경고(동작은 v3 fallback 정상,
 //   한·영·일 복수형 단순해 영향 0) 억제. 프로덕션 빌드엔 LogBox 자체가 없어 무영향.
@@ -137,6 +143,9 @@ export default function RootLayout() {
   //   FontScaleProvider 로 전역 글자 배율 제공. 인트로(SplashOverlay)는 최상위 1회 — 그 사이 세션 복원(loading).
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
+      {/* ★전역 에러 바운더리(2026-08-17) — 한 화면의 렌더 오류가 **앱 전체를 백지로** 만들지 않게.
+          종전엔 바운더리가 하나도 없어서, 어느 한 곳이 죽으면 사이드바까지 사라지고 원인은 콘솔에만 남았다. */}
+      <AppErrorBoundary where="root">
       <FontScaleProvider>
         {(loading || (!fontsLoaded && !fontError)) ? (
           <View style={styles.center}><ActivityIndicator size="large" color={colors.ju} /></View>
@@ -159,6 +168,7 @@ export default function RootLayout() {
         {/* ★스플래시 영상 제거(daniel 2026-08-05 "로딩화면 영상 다 없애버려") — video 모드여도 텍스트 스플래시로. */}
         {splash && <TextSplash onDone={() => setSplash(false)} />}
       </FontScaleProvider>
+      </AppErrorBoundary>
     </GestureHandlerRootView>
   );
 }
