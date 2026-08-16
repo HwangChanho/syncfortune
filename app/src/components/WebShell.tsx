@@ -152,11 +152,21 @@ export function useSheetLayout(): { backdrop: object | null; sheet: object | nul
   };
 }
 
+/**
+ * ★웹에서 **문서가 아니라 본문만** 스크롤하게 못박는다(2026-08-16).
+ *
+ * 이걸 안 하면 문서 전체가 길어져 **사이드바까지 같이 밀려 올라간다.**
+ * 그 상태로 화면에 들어오면(스크롤이 아래에 남아 있으면) **빈 영역만 보여서 "흰 화면"으로 읽힌다** —
+ * 실제로 그렇게 오진했다. DOM 에는 내용이 다 있었고 위로 올리면 멀쩡했다.
+ * 데스크톱 앱은 좌측 내비가 고정이고 본문만 흐른다 — 그게 맞는 모양이기도 하다.
+ */
+const WEB_VIEWPORT = Platform.OS === 'web' ? ({ height: '100vh', maxHeight: '100vh', overflow: 'hidden' } as any) : null;
+
 const styles = StyleSheet.create({
-  row: { flex: 1, flexDirection: 'row' },
-  stage: { flex: 1, alignItems: 'center' },
+  row: { flex: 1, flexDirection: 'row', ...(WEB_VIEWPORT ?? {}) },
+  stage: { flex: 1, alignItems: 'center', ...(Platform.OS === 'web' ? ({ height: '100%', overflow: 'hidden' } as any) : {}) },
   // 컬럼이 화면 높이를 다 쓰게 flex:1 — 안쪽 화면들이 자기 스크롤을 갖는다. maxWidth 는 라우트가 정한다.
-  column: { flex: 1, width: '100%' },
+  column: { flex: 1, width: '100%', ...(Platform.OS === 'web' ? ({ height: '100%' } as any) : {}) },
 
   side: {
     width: SIDEBAR, paddingTop: space(7), paddingHorizontal: space(3),
