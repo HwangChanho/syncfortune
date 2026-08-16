@@ -12,13 +12,13 @@ import type { SajuChart, PillarPos } from '@spec/chart';
 import { computeYongsinApprox } from '../lib/content/yongsinApprox';
 import { elementColor } from '../lib/engine/ohaeng';
 import { colors, radius, space, font, shadow } from '../lib/theme';
+import { EL_KO } from '../lib/content/ohaengLabel';   // ★오행 이름표 단일 소스(사본 만들지 말 것)
 
 // 오행 생/극(표준 통설) — 십신↔오행 변환.
 const GEN: Record<string, string> = { 木: '火', 火: '土', 土: '金', 金: '水', 水: '木' };   // e가 생하는(식상)
 const CTRL: Record<string, string> = { 木: '土', 土: '水', 水: '火', 火: '金', 金: '木' };  // e가 극하는(재성)
 const GEN_BY: Record<string, string> = { 火: '木', 土: '火', 金: '土', 水: '金', 木: '水' }; // e를 생하는(인성)
 const CTRL_BY: Record<string, string> = { 土: '木', 水: '土', 火: '水', 金: '火', 木: '金' };// e를 극하는(관살)
-const EL_KO: Record<string, string> = { 木: '나무', 火: '불', 土: '흙', 金: '쇠', 水: '물' };
 
 type Group = '비겁' | '식상' | '재성' | '관살' | '인성';
 const SIP_GROUP: Record<string, Group> = {

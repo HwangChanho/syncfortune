@@ -7,6 +7,7 @@
 import { getDailyFortune } from './dailyFortune';
 import { stemElement, branchElement } from '../engine/ohaeng';
 import { appLang } from '../i18n';
+import { ELEM_LABEL } from './ohaengLabel';   // ★오행 이름표 단일 소스(사본 만들지 말 것)
 
 type Elem = '木' | '火' | '土' | '金' | '水';
 type L = 'ko' | 'en' | 'ja';
@@ -34,10 +35,6 @@ const DATA: Record<Elem, {
 };
 
 // 오행 한 글자 라벨(다국어) — 본문 노출용(한자 대신 일상어)
-const ELEM_LABEL: Record<Elem, Record<L, string>> = {
-  木: { ko: '나무', en: 'Wood', ja: '木' }, 火: { ko: '불', en: 'Fire', ja: '火' }, 土: { ko: '흙', en: 'Earth', ja: '土' },
-  金: { ko: '쇠', en: 'Metal', ja: '金' }, 水: { ko: '물', en: 'Water', ja: '水' },
-};
 
 export type LuckyToday = {
   date: string; elemLabel: string; hex: string; color: string; dir: string; nums: number[]; item: string;

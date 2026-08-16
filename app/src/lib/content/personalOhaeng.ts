@@ -11,7 +11,9 @@ import { computeYongsinApprox } from './yongsinApprox';
 import type { SajuChart } from '@spec/chart';
 
 const EL = ['木', '火', '土', '金', '水'] as const;
-export const EL_KO: Record<string, string> = { 木: '나무', 火: '불', 土: '흙', 金: '쇠', 水: '물' };
+// 오행 이름표는 단일 소스에서 온다(사본 금지 — `ohaengLabel.ts` 머리말 참고).
+//   여기서 재수출하는 것은 `personal.tsx` 가 이미 이 이름으로 가져다 쓰고 있기 때문이다.
+export { EL_KO } from './ohaengLabel';
 
 // ★daniel 검수 후보 — 오행별 퍼스널 프로필. hex = 화면 스와치 색(대표 3색).
 export interface OhaengProfile {

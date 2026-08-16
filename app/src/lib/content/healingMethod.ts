@@ -14,15 +14,11 @@
 import { stemElement, branchElement, elementColor } from '../engine/ohaeng';
 import { appLang } from '../i18n';
 import { computeYongsinApprox } from './yongsinApprox'; // ★억부 용신(충전)·희신(보조) 처방 소스(daniel B7 2026-07-06)
+import { ELEM_LABEL } from './ohaengLabel';   // ★오행 이름표 단일 소스(사본 만들지 말 것)
 
 type Elem = '木' | '火' | '土' | '金' | '水';
 type L = 'ko' | 'en' | 'ja';
 
-// 오행 일상어 라벨(본문 노출 — 한자 대신)
-const ELEM_LABEL: Record<Elem, Record<L, string>> = {
-  木: { ko: '나무', en: 'Wood', ja: '木' }, 火: { ko: '불', en: 'Fire', ja: '火' },
-  土: { ko: '흙', en: 'Earth', ja: '土' }, 金: { ko: '쇠', en: 'Metal', ja: '金' }, 水: { ko: '물', en: 'Water', ja: '水' },
-};
 // 일간 오행별 히어로 이모지(이미지 폴백 — HEAL_IMG 없을 때 화면에서 사용)
 export const HEAL_EMOJI: Record<Elem, string> = { 木: '🌿', 火: '🌅', 土: '🏡', 金: '🤍', 水: '💧' };
 

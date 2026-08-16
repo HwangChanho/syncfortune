@@ -10,6 +10,7 @@
 //   ※ 아래 CHO_ELEM 맵은 이미 ㅇ·ㅎ=土 로 올바르게 세팅돼 있음(변경 불필요, 기준 표기만 추가).
 // ─────────────────────────────────────────────────────────────────────────
 import { appLang } from '../i18n';
+import { ELEM_LABEL } from './ohaengLabel';   // ★오행 이름표 단일 소스(사본 만들지 말 것)
 
 type Elem = '木' | '火' | '土' | '金' | '水';
 type L = 'ko' | 'en' | 'ja';
@@ -22,10 +23,6 @@ const CHO_ELEM: Record<string, Elem> = {
   ㅇ: '土', ㅎ: '土',
   ㅅ: '金', ㅆ: '金', ㅈ: '金', ㅉ: '金', ㅊ: '金',
   ㅁ: '水', ㅂ: '水', ㅃ: '水', ㅍ: '水',
-};
-const ELEM_LABEL: Record<Elem, Record<L, string>> = {
-  木: { ko: '나무', en: 'Wood', ja: '木' }, 火: { ko: '불', en: 'Fire', ja: '火' }, 土: { ko: '흙', en: 'Earth', ja: '土' },
-  金: { ko: '쇠', en: 'Metal', ja: '金' }, 水: { ko: '물', en: 'Water', ja: '水' },
 };
 const GEN: Record<Elem, Elem> = { 木: '火', 火: '土', 土: '金', 金: '水', 水: '木' };
 

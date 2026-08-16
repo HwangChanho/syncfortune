@@ -13,9 +13,9 @@ import { stemElement, branchElement, elementColor } from '../lib/engine/ohaeng';
 import type { SajuChart } from '@spec/chart';
 import { useFontScale } from '../lib/ui/fontScale';   // ★원 크기를 글자 배율에서 파생(daniel 07-28)
 import { colors, space, radius, font } from '../lib/theme';
+import { EL_KO } from '../lib/content/ohaengLabel';   // ★오행 이름표 단일 소스(사본 만들지 말 것)
 
 const EL = ['木', '火', '土', '金', '水'] as const;
-const EL_KO: Record<string, string> = { 木: '나무', 火: '불', 土: '흙', 金: '쇠', 水: '물' };
 const EL_TRAIT: Record<string, string> = {
   木: '성장·기획·추진', 火: '표현·열정·확산', 土: '안정·중재·신뢰', 金: '정밀·결단·원칙', 水: '지혜·유연·소통',
 };

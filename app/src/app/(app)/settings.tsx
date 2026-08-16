@@ -25,6 +25,7 @@ import { loadCredits } from '../../lib/billing/coupons';  // 프리미엄 폴백
 import { supabase } from '../../lib/supabase';             // 로그아웃
 import { BusyOverlay } from '../../components/BusyOverlay'; // 긴 콜백(로그아웃·삭제) 로딩 오버레이
 import { setAuthBusy } from '../../lib/ui/authBusy'; // 로그아웃 전환 전역 블로킹(먹통 방지)
+import { EL_KO_SHORT } from '../../lib/content/ohaengLabel';   // ★오행 이름표 단일 소스(사본 만들지 말 것)
 import { colors, radius, space, shadow, font, getLoadingMode, setLoadingMode, setThemeAccent, getThemeAccent, activeAccentElement, ACCENT_SWATCH, type AccentMode, type LoadingMode } from '../../lib/theme'; // ★다크/라이트 토글 제거·로딩 3모드(video/text/off, daniel 2026-07-15)
 
 const LANGS: { key: string; label: string }[] = [
@@ -270,7 +271,7 @@ export default function SettingsScreen() {
           const swColor = k === 'auto' ? (ACCENT_SWATCH[activeAccentElement] ?? ACCENT_SWATCH.gold) : ACCENT_SWATCH[k];
           const label = k === 'auto' ? t('settings.accentAuto', '자동(일간)')
             : k === 'gold' ? t('settings.accentGold', '골드')
-            : ({ 木: '목', 火: '화', 土: '토', 金: '금', 水: '수' } as Record<string, string>)[k];
+            : EL_KO_SHORT[k];   // 오행 독음 — 표는 단일 소스(`ohaengLabel.ts`)
           return (
             <PressableScale key={k} style={[styles.accentChip, on && styles.accentChipOn]} onPress={() => {
               setThemeAccent(k); setAccentState(k);

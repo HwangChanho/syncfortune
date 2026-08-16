@@ -14,8 +14,13 @@
 import type { Element } from '@spec/chart';
 import type { GemBasis } from './gemRecommend';
 
-/** 오행 글자 → 한글 독음(문구 보조용). */
-export const EL_KO: Record<Element, string> = { 木: '목', 火: '화', 土: '토', 金: '금', 水: '수' };
+/**
+ * 오행 글자 → 한글 **독음**(문구 보조용 — `土(토)` 처럼 한자 옆에 붙인다).
+ * ★표 자체는 단일 소스(`ohaengLabel.ts`)에 있다. 여기서는 이 파일이 쓰던 이름으로 재수출만 한다
+ *   (`GemCard` 가 이미 `EL_KO` 로 가져다 쓰고 있어 이름을 바꾸면 호출부가 흔들린다).
+ */
+export { EL_KO_SHORT as EL_KO } from './ohaengLabel';
+import { EL_KO_SHORT as EL_KO } from './ohaengLabel';
 
 /** gemCopy 입력 — 카드 문구에 필요한 원국 요약 + 판정 결과. */
 export interface GemCopyInput {

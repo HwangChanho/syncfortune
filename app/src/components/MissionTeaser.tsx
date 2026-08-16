@@ -13,8 +13,8 @@ import { elementColor } from '../lib/engine/ohaeng';
 import { computeYongsinApprox } from '../lib/content/yongsinApprox';
 import { YONG_MISSION } from '../lib/content/elementPhrases';
 import { colors, radius, space, font } from '../lib/theme';
+import { EL_KO } from '../lib/content/ohaengLabel';   // ★오행 이름표 단일 소스(사본 만들지 말 것)
 
-const EL_KO: Record<string, string> = { 木: '나무', 火: '불', 土: '흙', 金: '쇠', 水: '물' };
 
 /** '나의 사명' 무료 티저 — SpecialContentScreen freeHook. 용신 오행 → 나아갈 방향(결정론). */
 export function MissionTeaser({ saju }: { saju: SajuChart & { timeUnknown?: boolean } }) {

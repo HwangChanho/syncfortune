@@ -127,7 +127,7 @@ function mapCard() {
     return `<div style="position:absolute;left:${left}px;top:${top}px;width:92px;text-align:center">
       <div style="position:relative;width:92px;height:92px;border-radius:46px;background:${EL[n.el]};
                   display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:26px">
-        ${n.el === '木' ? '나무' : n.el === '火' ? '불' : n.el === '土' ? '흙' : n.el === '金' ? '쇠' : '물'}
+        ${n.el === '木' ? '나무' : n.el === '火' ? '불' : n.el === '土' ? '흙' : n.el === '金' ? '금' : '물'}
         <div style="position:absolute;right:-6px;bottom:-4px;min-width:50px;padding:3px 9px;border-radius:18px;
                     background:${C.card};border:2px solid ${C.juLine};color:${C.ju};font-size:22px;font-weight:800">${n.s}</div>
       </div>
@@ -141,7 +141,7 @@ function mapCard() {
       <div style="position:absolute;left:${CX - 248}px;top:${CY - 248}px;width:496px;height:496px;border-radius:248px;border:2px solid ${C.juLine};opacity:.35"></div>
       <div style="position:absolute;left:${CX - 62}px;top:${CY - 62}px;width:124px;height:124px;border-radius:62px;background:${EL['金']};
                   display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff">
-        <div style="font-size:31px;font-weight:800">쇠</div><div style="font-size:21px;opacity:.9">나</div>
+        <div style="font-size:31px;font-weight:800">금</div><div style="font-size:21px;opacity:.9">나</div>
       </div>
       ${dots}
     </div>

@@ -22,6 +22,7 @@
 import type { RelationRole, RelationTrait } from '@engine/relationMap';
 import type { CompatScoreBreakdown } from '@engine/compatScore';
 import type { Element } from '@spec/chart';
+import { EL_KO } from './ohaengLabel';   // ★오행 이름표 단일 소스(사본 만들지 말 것)
 
 export type Lang = 'ko' | 'en' | 'ja';
 
@@ -72,7 +73,10 @@ const KO: Record<RelationRole, RolePhrase> = {
   },
   관성: {
     name: '날 긴장시키는 사람', term: '예전 말로 관성(官星)',
-    image: '쇠를 두드리는 망치처럼, 부딪히면서 모양이 잡히는 사이',
+    // ★'쇠' → '무쇠'(2026-08-16): 오행 이름을 '금'으로 통일한 뒤, 같은 화면에 홀로 남은 '쇠'가
+    //   오행 이름처럼 읽혔다. 여기 쇠는 오행이 아니라 **대장간 물상**이라 우리가 이미 쓰는
+    //   庚의 물상어 '무쇠'(personaType: "무쇠 도끼")로 바꾼다 — 그림은 그대로, 이름과는 안 겹친다.
+    image: '무쇠를 두드리는 망치처럼, 부딪히면서 모양이 잡히는 사이',
     meaning: '편하지만은 않은데 이상하게 신경 쓰이는 사람이에요. 이 사람 앞에서는 흐트러지지 않게 되고, 그래서 나를 끌어올립니다.',
     caution: '긴장이 길어지면 위축으로 바뀝니다. 맞추기만 하다 보면 내 결이 지워져요.',
     advice: '이 사람이 하는 말과 그 사람 자체를 분리해 들으세요. 배울 건 챙기고 눈치는 두고 오면 됩니다.',
@@ -277,7 +281,8 @@ export function rolePhrase(lang: Lang, role: RelationRole): RolePhrase {
  *   모르는 사람에겐 **읽을 수조차 없는 기호**다 — 우리 화면의 대부분은 그런 사람이 본다.
  *   한자는 버리지 않고 **괄호로 남긴다**(아는 사람은 근거를 확인할 수 있게).
  */
-const EL_KO: Record<Element, string> = { 木: '나무', 火: '불', 土: '흙', 金: '쇠', 水: '물' };
+// 이름표는 단일 소스(`ohaengLabel.ts`). ★여기 사본을 다시 만들지 말 것 — 그래서 화면마다 말이 갈렸다.
+//   金 = '금'(daniel 2026-08-16 판정). 조사는 아래 `hasFinal` 이 받침을 보고 자동으로 고른다 → '금이/금을'.
 
 /** 화면 노드에 쓰는 짧은 한글 이름(원 안에 들어가야 한다). */
 export function elemLabel(el: Element, lang: Lang = 'ko'): string {
@@ -285,7 +290,7 @@ export function elemLabel(el: Element, lang: Lang = 'ko'): string {
   return el;   // en/ja 는 한자가 통용된다(ja) / 짧은 기호가 나은 편(en)
 }
 
-/** 두 오행의 관계 — 예: `그 사람의 불이 내 쇠를 달굽니다 (火剋金)` */
+/** 두 오행의 관계 — 예: `그 사람의 불이 내 금을 누릅니다 (火剋金)` */
 export function elemRelationLabel(mine: Element, theirs: Element, lang: Lang = 'ko'): string {
   const SHENG: Record<Element, Element> = { 水: '木', 木: '火', 火: '土', 土: '金', 金: '水' };
   const KE: Record<Element, Element> = { 木: '土', 土: '水', 水: '火', 火: '金', 金: '木' };
@@ -298,7 +303,7 @@ export function elemRelationLabel(mine: Element, theirs: Element, lang: Lang = '
     return `${theirs}⇒${mine}`;
   }
   // ★조사는 받침에 맞춰 고른다 — `이(가)`·`을(를)` 병기는 읽는 사람을 멈칫하게 한다.
-  //   '불'(ㄹ받침)→이/을 · '쇠'(받침없음)→가/를 · '나무'→가/를 · '흙'→이/을
+  //   '불'(ㄹ받침)→이/을 · '금'(ㅁ받침)→이/을 · '나무'(받침없음)→가/를 · '흙'→이/을
   const ga = (w: string) => `${w}${hasFinal(w) ? '이' : '가'}`;
   const eul = (w: string) => `${w}${hasFinal(w) ? '을' : '를'}`;
   if (mine === theirs) return `둘 다 ${m} (${mine}比和)`;

@@ -12,8 +12,8 @@ import type { SajuChart } from '@spec/chart';
 import { elementColor } from '../lib/engine/ohaeng';
 import { EL_TALENT, dominantElement } from '../lib/content/elementPhrases';
 import { colors, radius, space, font } from '../lib/theme';
+import { EL_KO } from '../lib/content/ohaengLabel';   // ★오행 이름표 단일 소스(사본 만들지 말 것)
 
-const EL_KO: Record<string, string> = { 木: '나무', 火: '불', 土: '흙', 金: '쇠', 水: '물' };
 
 /** 타고난 재능 무료 티저 — SpecialContentScreen freeHook. 최강 오행 → 재능 결(결정론). */
 export function TalentTeaser({ saju }: { saju: SajuChart & { timeUnknown?: boolean } }) {
