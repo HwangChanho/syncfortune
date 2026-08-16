@@ -105,6 +105,7 @@
       <button data-tab="users" aria-selected="false">유저 · 운 선물</button>
       <button data-tab="push" aria-selected="false">예약 푸시</button>
       <button data-tab="flags" aria-selected="false">콘텐츠 NEW · 기능 플래그</button>
+      <button data-tab="home" aria-selected="false">홈 구성</button>
       <button data-tab="sys" aria-selected="false">시스템</button>
       <button data-tab="bugs" aria-selected="false">버그 제보</button>
     </div>
@@ -184,6 +185,27 @@
           여기 <b>없는 키는 '자동'</b>입니다.
         </div>
         <div id="flagList" class="muted">불러오는 중…</div>
+      </div>
+    </section>
+
+    <!-- ★홈 구성(2026-08-16) — 앱 홈에 **어떤 블록이 어떤 순서로** 뜨는지 정한다.
+         종전엔 코드 상수(DEFAULT_HOME_ORDER)라 배치를 바꾸려면 앱을 다시 내야 했다.
+         여기서 저장하면 `app_config.home_order` 에 들어가고 **재빌드 없이** 전 유저에게 반영된다.
+         · 뺀 블록은 **모두에게서 사라진다**(개인 순서 설정이 되살리지 못한다)
+         · 개인 순서는 여기서 정한 목록 '안에서만' 유효하다 -->
+    <section id="tab-home" class="hide">
+      <div class="card">
+        <h2>홈 블록 구성</h2>
+        <div class="sub" style="margin-bottom:10px">
+          체크 = 노출 · <b>▲▼</b> 로 순서. 저장하면 <b>재빌드 없이</b> 전 유저 홈에 반영됩니다.
+          사용자가 개인 순서를 바꿔도 <b>여기서 뺀 블록은 안 나옵니다</b>.
+        </div>
+        <div id="homeList" class="muted">불러오는 중…</div>
+        <div class="row" style="gap:8px;margin-top:12px">
+          <button id="homeSave">저장</button>
+          <button id="homeReset" style="background:transparent;border:1px solid var(--line);color:var(--soft)">기본값으로</button>
+        </div>
+        <div id="homeMsg"></div>
       </div>
     </section>
 
@@ -356,6 +378,7 @@ document.querySelectorAll('.tabs button').forEach((b) => {
     TAB_KEYS.forEach((t) => { const el = $('tab-' + t); if (el) el.classList.toggle('hide', t !== b.dataset.tab); });
     if (b.dataset.tab === 'push') loadPush();
     if (b.dataset.tab === 'flags') loadFlags();
+    if (b.dataset.tab === 'home') loadHomeCfg();
     if (b.dataset.tab === 'sys') loadSys();
     if (b.dataset.tab === 'bugs') loadBugs();
   };
@@ -577,6 +600,68 @@ $('gift').onclick = async () => {
 //   ⚠️`supabase.rpc()` 는 실패해도 throw 하지 않는다 — `error` 를 반드시 본다
 //     (안 보면 저장 실패가 성공처럼 보인다 · 앱에서 실제로 겪은 사고).
 const NEW_PREFIX = 'new_';
+
+// ── 홈 구성(2026-08-16) ────────────────────────────────────────────────────
+// 앱의 `DEFAULT_HOME_ORDER` 와 **같은 키·같은 라벨**을 쓴다.
+//   ⚠️여기 목록은 앱 코드(`app/src/lib/ui/homeOrder.ts`)가 정본이다 — 블록을 추가하면 양쪽을 같이 고친다.
+//     (앱은 모르는 키를 버리므로, 여기만 고쳐도 앱이 깨지지는 않는다.)
+const HOME_BLOCKS = [
+  ['today', '오늘의 운세'], ['banner', '추천 배너'], ['self', '나는 어떤 사람인가'],
+  ['persona', '나의 성격유형'], ['relation', '오늘의 관계'], ['relmap', '관계 지도'],
+  ['biorhythm', '바이오리듬'], ['luck', '오늘의 행운'], ['decision', '모먼트'],
+];
+const HOME_DEFAULT = HOME_BLOCKS.map(([k]) => k);
+let homeOrder = HOME_DEFAULT.slice();   // 화면이 편집 중인 목록(노출되는 것만·순서대로)
+
+function renderHomeCfg() {
+  const off = HOME_BLOCKS.filter(([k]) => !homeOrder.includes(k));
+  const row = (k, on, i) => {
+    const label = (HOME_BLOCKS.find(([x]) => x === k) || [k, k])[1];
+    return `<tr>
+      <td style="width:34px"><input type="checkbox" data-hk="${k}" ${on ? 'checked' : ''}></td>
+      <td>${label} <span class="muted">${k}</span></td>
+      <td style="width:96px;text-align:right">
+        ${on ? `<button data-hup="${i}" ${i === 0 ? 'disabled' : ''}>▲</button>
+                <button data-hdn="${i}" ${i === homeOrder.length - 1 ? 'disabled' : ''}>▼</button>` : ''}
+      </td></tr>`;
+  };
+  $('homeList').innerHTML = `<table>
+    ${homeOrder.map((k, i) => row(k, true, i)).join('')}
+    ${off.map(([k]) => row(k, false, -1)).join('')}
+  </table>`;
+  // 체크 = 노출 목록에 넣고 빼기(순서는 맨 뒤로)
+  $('homeList').querySelectorAll('[data-hk]').forEach((el) => {
+    el.onchange = () => {
+      const k = el.dataset.hk;
+      homeOrder = el.checked ? [...homeOrder.filter((x) => x !== k), k] : homeOrder.filter((x) => x !== k);
+      renderHomeCfg();
+    };
+  });
+  const swap = (i, j) => { const a = homeOrder.slice(); [a[i], a[j]] = [a[j], a[i]]; homeOrder = a; renderHomeCfg(); };
+  $('homeList').querySelectorAll('[data-hup]').forEach((b) => { b.onclick = () => swap(+b.dataset.hup, +b.dataset.hup - 1); });
+  $('homeList').querySelectorAll('[data-hdn]').forEach((b) => { b.onclick = () => swap(+b.dataset.hdn, +b.dataset.hdn + 1); });
+}
+
+async function loadHomeCfg() {
+  const { data, error } = await sb.from('app_config').select('value').eq('key', 'home_order').maybeSingle();
+  if (error) { $('homeList').innerHTML = `<span class="msg err">불러오지 못했습니다 — ${error.message}</span>`; return; }
+  const v = data?.value;
+  // 모르는 키는 버린다(앱과 같은 규칙) — 옛 블록이 남아 있어도 화면이 깨지지 않게
+  homeOrder = Array.isArray(v) ? v.filter((k) => HOME_DEFAULT.includes(k)) : HOME_DEFAULT.slice();
+  if (!homeOrder.length) homeOrder = HOME_DEFAULT.slice();
+  renderHomeCfg();
+}
+
+$('homeSave').onclick = async () => {
+  if (!homeOrder.length) { $('homeMsg').innerHTML = '<span class="msg err">최소 한 개는 남겨야 합니다.</span>'; return; }
+  // ⚠️`upsert` 는 RLS 로 막히면 error 를 준다 — 반드시 error 를 본다(rpc 와 같은 함정)
+  const { error } = await sb.from('app_config')
+    .upsert({ key: 'home_order', value: homeOrder, updated_at: new Date().toISOString() }, { onConflict: 'key' });
+  $('homeMsg').innerHTML = error
+    ? `<span class="msg err">저장 실패 — ${error.message}</span>`
+    : `<span class="msg ok">저장했습니다 · ${homeOrder.length}개 노출 — 앱은 다음 실행(또는 홈 재진입)에 반영됩니다.</span>`;
+};
+$('homeReset').onclick = () => { homeOrder = HOME_DEFAULT.slice(); renderHomeCfg(); $('homeMsg').innerHTML = '<span class="muted">기본값으로 되돌렸습니다 — 저장을 눌러야 반영됩니다.</span>'; };
 
 async function loadFlags() {
   const box = $('flagList');

@@ -48,6 +48,24 @@ export const HOME_BLOCK_LABEL: Record<HomeBlockKey, string> = {
 };
 
 const LOCAL_KEY = 'pref.homeOrder';
+/** 전역 기본(관리자 콘솔) 캐시 — 첫 렌더에서 서버 응답을 기다리지 않게. */
+const LOCAL_GLOBAL_KEY = 'pref.homeOrderGlobal';
+
+/**
+ * ★**운영자가 정하는 노출 목록 + 기본 순서**(2026-08-16 Boss "관리자 페이지에서 홈 메뉴구성 변경").
+ *
+ * 종전엔 `DEFAULT_HOME_ORDER`(코드 상수)가 유일한 기본이라 **배치를 바꾸려면 앱을 다시 내야 했다.**
+ * 이제 `app_config.home_order`(익명 읽기 가능·관리자만 쓰기)가 그 자리를 대신한다.
+ *
+ * ■ 두 층을 분리한다
+ *   · **전역**(여기) = *어떤 블록이 존재하는가* + 기본 순서 → 운영자가 정한다
+ *   · **개인**(profiles.home_order) = 그 안에서의 순서 → 사용자가 정한다
+ *   ⇒ 운영자가 블록을 빼면 **모두에게서 사라진다**(개인 설정이 되살리지 못한다).
+ *     종전 `normalizeOrder` 는 빠진 키를 자동으로 되붙였기 때문에 그대로 두면 '숨기기'가 동작하지 않는다.
+ *
+ * 서버를 못 읽으면 코드 상수로 떨어진다(앱이 빈 홈이 되는 일은 없다).
+ */
+let _allowed: HomeBlockKey[] = DEFAULT_HOME_ORDER;
 
 /**
  * 저장값을 현재 블록 목록에 맞춰 정규화한다.
@@ -55,15 +73,15 @@ const LOCAL_KEY = 'pref.homeOrder';
  * @returns 알 수 없는 키를 제거하고, 빠진 블록을 기본 순서 자리에 덧붙인 배열
  */
 export function normalizeOrder(raw: unknown): HomeBlockKey[] {
-  const valid = new Set(DEFAULT_HOME_ORDER);
+  const valid = new Set(_allowed);   // ★코드 상수가 아니라 **운영자가 정한 목록** 기준
   const arr = Array.isArray(raw) ? raw.filter((k): k is HomeBlockKey => typeof k === 'string' && valid.has(k as HomeBlockKey)) : [];
   const seen = new Set(arr);
-  const out = [...arr, ...DEFAULT_HOME_ORDER.filter((k) => !seen.has(k))];
+  const out = [...arr, ..._allowed.filter((k) => !seen.has(k))];
   // ★신규 블록은 기본은 '맨 뒤'지만, **배너만은 오늘의 운세 바로 아래**여야 한다
   //   (daniel 2026-08-06 "배너는 홈에서 오늘의 운세 바로 아래로 두라고").
   //   기존 사용자는 저장된 order 에 banner 가 없어 위 로직대로면 **맨 끝**에 붙는다 —
   //   기본 순서만 바꿔서는 이미 쓰던 계정에 반영되지 않는다(그래서 실물에서 안 바뀌어 보였다).
-  if (!seen.has('banner')) {
+  if (!seen.has('banner') && _allowed.includes('banner')) {
     const rest = out.filter((k) => k !== 'banner');
     const at = rest.indexOf('today');
     rest.splice(at >= 0 ? at + 1 : 0, 0, 'banner');
@@ -97,6 +115,24 @@ function pushOrder(next: HomeBlockKey[]): void { if (!sameOrder(_order, next)) {
 
 /** 로컬 캐시 → (로그인 시)서버 순으로 읽어 전역 상태에 반영. 훅 마운트마다 호출(계정 전환·최신값 반영). */
 export async function loadHomeOrder(): Promise<void> {
+  // 0차: 전역 목록(관리자) — 캐시 먼저 적용하고 서버로 갱신한다.
+  //   ★이걸 **개인 설정보다 먼저** 세워야 한다. `normalizeOrder` 가 이 목록을 기준으로 거르기 때문.
+  try {
+    const cached = await SecureStore.getItemAsync(LOCAL_GLOBAL_KEY);
+    if (cached) { const g = JSON.parse(cached); if (Array.isArray(g) && g.length) _allowed = g; }
+  } catch { /* 캐시 없음 — 코드 상수로 */ }
+  try {
+    const { data: cfg } = await supabase.from('app_config').select('value').eq('key', 'home_order').maybeSingle();
+    const g = cfg?.value;
+    if (Array.isArray(g) && g.length) {
+      // 코드에 없는 키(옛 블록)는 버린다 — 운영자가 실수해도 앱이 깨지지 않게
+      const known = new Set(DEFAULT_HOME_ORDER);
+      const next = g.filter((k: unknown): k is HomeBlockKey => typeof k === 'string' && known.has(k as HomeBlockKey));
+      if (next.length) { _allowed = next; void SecureStore.setItemAsync(LOCAL_GLOBAL_KEY, JSON.stringify(next)).catch(() => {}); }
+    }
+  } catch { /* 오프라인 등 — 캐시/코드 상수 유지 */ }
+  pushOrder(normalizeOrder(_order));                 // 전역 목록이 바뀌었으면 현재 순서를 그 안으로 재정렬
+
   const local = await readLocal();
   if (local) pushOrder(local);                       // 1차: 로컬 캐시 즉시(깜빡임 방지)
   try {
