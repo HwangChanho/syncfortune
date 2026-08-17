@@ -268,6 +268,10 @@ async function runBillingSelfTest(productId: string): Promise<Record<string, unk
 
 /** 소비성(상품 id) 구매 — 성공 시 true(결제 완료). 취소 시 false. */
 export async function purchaseConsumableRC(productId: string): Promise<boolean> {
+  // ★웹과 앱은 못 사는 **이유가 다르다**(daniel 2026-08-17). 같은 문구를 쓰면 웹 사용자가 오해한다:
+  //   · 앱 = 스토어 결제 모듈이 아직 안 붙음 → "준비 중"이 맞다
+  //   · 웹 = 인앱결제 자체를 쓸 수 없다(토스페이먼츠 연동 예정) → "웹은 아직 안 받는다"가 맞다
+  if (Platform.OS === 'web') throw new Error('웹에서는 아직 충전을 받지 않아요. 앱에서 충전한 운은 웹에서도 그대로 쓸 수 있어요.');
   if (!purchasesEnabled()) throw new Error('결제가 아직 준비 중이에요.');
   if (!isOnline()) throw new Error('인터넷 연결이 필요해요. 연결한 뒤 다시 시도해 주세요.'); // daniel: 오프라인 구매 차단(결제만 되고 미반영되는 상태 방지)
   // ★결제 전 Anthropic 크레딧/헬스 확인(Boss 07-21) — 소비성 이용권은 전부 LLM 풀이라, 클로드가 확실히

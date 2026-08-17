@@ -52,3 +52,52 @@ export const AD_FREE_PLANS: { id: 'adfree_30' | 'adfree_forever'; coins: number;
   { id: 'adfree_30',      coins: 30,  days: 30 },
   { id: 'adfree_forever', coins: 100, days: null },   // null = 영구
 ];
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ★결제 채널 (daniel 2026-08-17 결정: **앱·웹 동일 가격**)
+// ═══════════════════════════════════════════════════════════════════════════
+// 배경 — 안드로이드와 웹을 병행하면 **수수료가 다르다**:
+//   · Google Play  약 15%(구간에 따라 30%)  → 100운 9,900원 중 순수령 약 8,415원
+//   · 웹 PG(토스)  약 2.5~3.3%              → 순수령 약 9,603원   (차이 12~14%p)
+//
+// daniel 결정: **가격은 같게 간다.** 웹의 14%p 는 *할인 재원이 아니라 마진*이다.
+//   이유 ① 사용자 눈에 보이는 차이가 없으면 "왜 앱이 비싸?" CS 가 아예 안 생긴다
+//        ② 앱 안에서 웹 가격을 알리는 행위(steering)는 스토어 정책 영역 — 리스크를 만들지 않는다
+//        ③ 웹 결제를 붙이는 것 자체가 큰 공사다. 변수는 하나만 둔다
+//
+// ★이 파일이 **가격의 단일 출처**인 것이 이 문제를 작게 만든다:
+//   원화가 붙는 것은 충전 팩 4개뿐이고, 콘텐츠 51종은 전부 `COIN_PRICE`(운)로 매겨져 있다.
+//   ⇒ 채널이 늘어도 **콘텐츠 가격표는 손댈 필요가 없다.**
+//
+// ★지갑도 이미 채널 무관이다: 적립은 서버 `grant_coins`(원장 `coin_ledger` + `p_ref` 멱등)만 할 수 있고
+//   클라에는 실행 권한이 없다. ⇒ 웹 PG 웹훅이 같은 RPC 를 부르면 **웹에서 충전한 운을 앱에서 그대로 쓴다.**
+//   (지금 그 일을 하는 것이 `supabase/functions/rc-webhook` — 토스용은 같은 계약을 따르면 된다)
+//
+// ⚠️앞으로 차등을 두고 싶어지면 **가격 대신 `bonusPct`**(웹에서 운을 더 주기)가 낫다 —
+//   정가는 하나로 남아 비교 자체가 안 생긴다.
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** 결제 채널 — `store`=앱 인앱결제(Play/App Store) · `web`=웹 PG(토스페이먼츠). */
+export type PayChannel = 'store' | 'web';
+
+/**
+ * 채널별로 **의도적으로** 가격을 다르게 두는 팩. 지금은 비어 있다(= 전 채널 동일가).
+ *
+ * ★비워 두는 것이 곧 정책이다. 여기에 줄을 추가하지 않는 한 `check:paychannel` 이
+ *   채널 간 가격 차이를 **실패로 잡는다** — 실수로 벌어지는 일이 없게.
+ * @example { coin_100: { web: 8900, why: '웹 전환 캠페인(2026-Q4)' } }
+ */
+export const PRICE_DIVERGENCE: Record<string, { web: number; why: string }> = {};
+
+/**
+ * 팩의 원화 가격 — **채널을 받는다**.
+ *
+ * @param packId  `coin_100` 등 팩 id
+ * @param channel 결제 채널. 기본 `'store'`
+ * @returns 원화 가격. `PRICE_DIVERGENCE` 에 명시된 팩만 채널별로 달라진다(현재 없음 = 항상 동일).
+ */
+export function packPriceWon(packId: string, channel: PayChannel = 'store'): number {
+  const base = COIN_PACKS.find((p) => p.id === packId)?.won ?? 0;
+  if (channel === 'web') return PRICE_DIVERGENCE[packId]?.web ?? base;
+  return base;
+}
