@@ -20,8 +20,10 @@ import { colors, radius, space, shadow, font } from '../../lib/theme';
 import { ContentHero } from '../../components/SpecialContentScreen'; // 이미지 히어로(보는 맛)
 import { ShareReadingButton } from '../../components/ShareReadingButton'; // 이슈17: 풀이 결과 공유(앱게이트)
 import { useLogContentVisit } from '../../lib/backend/contentVisit'; // 콘텐츠 방문 집계(daniel 2026-07-06) — 진입 1회 기록
+import { useReadBody } from '../../components/WebShell'; // ★읽는 화면 본문 캡(히어로는 전폭·글은 좁게)
 
 export default function PetScreen() {
+  const readBody = useReadBody();   // 넓은 웹에서만 본문 폭을 묶는다
   useLogContentVisit('pet'); // 진입 1회 방문 기록(daniel 2026-07-06)
   const { t } = useTranslation();
   const { fs } = useFontScale();
@@ -119,6 +121,8 @@ export default function PetScreen() {
       keyboardShouldPersistTaps="handled"
     >
       <ContentHero image={A('icons/pet.jpg')} title={t('pet.title')} sub={t('pet.sub')} />
+      {/* ★본문 캡 — 히어로는 지면 전체, 글은 좁게(브런치 방향). 폰은 undefined 라 그대로 지나간다. */}
+      <View style={readBody}>
 
       {/* 저장된 아이들 — 칩으로 전환 + 추가 */}
       {pets.length > 0 && (
@@ -220,7 +224,8 @@ export default function PetScreen() {
             {/* ★이어서 보면 좋은 콘텐츠(daniel 2026-07-27 "전부 붙여") — 화면마다 하단이 달라 보이던 것 통일.
             큐레이션 출처는 RELATED 단일(중복 하드코딩 0). 매핑이 없으면 스스로 아무것도 안 그린다. */}
         <RelatedContent kind="pet" />
-</ScrollView>
+</View>
+      </ScrollView>
   );
 }
 

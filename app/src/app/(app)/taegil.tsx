@@ -23,6 +23,7 @@ import { ShareReadingButton } from '../../components/ShareReadingButton'; // 이
 import { TTSButton } from '../../components/TTSButton'; // 풀이 음성 읽기(온디바이스 TTS·무료)
 import type { ChartInput } from '@spec/chart';
 import { useLogContentVisit } from '../../lib/backend/contentVisit'; // 콘텐츠 방문 집계(daniel 2026-07-06) — 진입 1회 기록
+import { useReadBody } from '../../components/WebShell'; // ★읽는 화면 본문 캡(히어로는 전폭·글은 좁게)
 
 const WEEKDAYS: Record<string, string[]> = {
   ko: ['일', '월', '화', '수', '목', '금', '토'],
@@ -82,6 +83,7 @@ function MonthGrid({ year, month, byDate, goodT, bestT, sel, onSel, todayStr }: 
 }
 
 export default function TaegilScreen() {
+  const readBody = useReadBody();   // 넓은 웹에서만 본문 폭을 묶는다
   useLogContentVisit('taegil'); // 진입 1회 방문 기록(daniel 2026-07-06)
   const router = useRouter();
   const { t } = useTranslation();
@@ -136,6 +138,8 @@ export default function TaegilScreen() {
         {/* 상단 명식 헤더 — 현재 적용된 대표 명식 표시·전환(daniel: 모든 콘텐츠 상단) */}
         <ChartPicker onChange={() => loadMyChart().then(setMe)} />
         <ContentHero image={A('icons/taegil.jpg')} title={t('taegil.title', '택일 — 좋은 날 찾기')} sub={t('taegil.sub', '하려는 일을 고르면, 앞으로 석 달 달력에서 내 사주에 잘 맞는 날을 색으로 짚어 드려요.')} />
+      {/* ★본문 캡 — 히어로는 지면 전체, 글은 좁게(브런치 방향). 폰은 undefined 라 그대로 지나간다. */}
+      <View style={readBody}>
 
         {/* 목적 칩 — 바꾸면 선택 날 초기화 */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
@@ -181,7 +185,8 @@ export default function TaegilScreen() {
 {/* ★이어서 보면 좋은 콘텐츠(daniel 2026-07-27 "전부 붙여") — 화면마다 하단이 달라 보이던 것 통일.
             큐레이션 출처는 RELATED 단일(중복 하드코딩 0). 매핑이 없으면 스스로 아무것도 안 그린다. */}
         <RelatedContent kind="taegil" />
-</ScrollView>
+</View>
+      </ScrollView>
     </View>
   );
 }

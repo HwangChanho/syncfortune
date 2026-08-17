@@ -47,6 +47,7 @@ import { newyearCategoryFlow, type NewyearCategory } from '../../lib/content/new
 import { useFontScale } from '../../lib/ui/fontScale';
 import { useLogContentVisit } from '../../lib/backend/contentVisit'; // 콘텐츠 방문 집계(daniel 2026-07-06) — 진입 1회 기록
 import { ReadingProse } from '../../components/ReadingProse'; // ★소분류 마커(◆) 렌더 — 본문을 공용 프로즈로 통일(daniel 2026-08-05)
+import { useReadBody } from '../../components/WebShell'; // ★읽는 화면 본문 캡(히어로는 전폭·글은 좁게)
 
 // 신년 패키지 분야 10(daniel: 컨텐츠 강화 — 통합·직업·사업·재물·애정·결혼·건강·대인·배움·이동)
 const AREAS: { key: string; ko: string }[] = [
@@ -58,6 +59,7 @@ const AREAS: { key: string; ko: string }[] = [
 ];
 
 export default function NewYearScreen() {
+  const readBody = useReadBody();   // 넓은 웹에서만 본문 폭을 묶는다
   useLogContentVisit('newyear'); // 진입 1회 방문 기록(daniel 2026-07-06)
   const { t } = useTranslation();
   const { fs, ls } = useFontScale();
@@ -264,6 +266,8 @@ export default function NewYearScreen() {
         {/* 상단 명식 헤더 — 현재 적용된 대표 명식 표시·전환(daniel: 모든 콘텐츠 상단). 전환 시 그 명식 기준 재로드 */}
         <ChartPicker onChange={() => setReloadKey((k) => k + 1)} />
         <ContentHero motif={<NewyearWheel />} image={A('icons/newyear-hero.jpg')} title={`${year}${t('newyear.title', '신년운세')}`} sub={t('newyear.heroSub', '올 한 해의 큰 흐름을 한눈에')} themeColor={colors.ju} />
+      {/* ★본문 캡 — 히어로는 지면 전체, 글은 좁게(브런치 방향). 폰은 undefined 라 그대로 지나간다. */}
+      <View style={readBody}>
 
         {/* ★연도 선택 — 올해/내년(daniel 2026-07-29). 연도별로 캐시·결제가 분리된다. */}
         <View style={styles.yearRow}>
@@ -436,7 +440,8 @@ export default function NewYearScreen() {
               {/* ★이어서 보면 좋은 콘텐츠(daniel 2026-07-27 "전부 붙여") — 화면마다 하단이 달라 보이던 것 통일.
             큐레이션 출처는 RELATED 단일(중복 하드코딩 0). 매핑이 없으면 스스로 아무것도 안 그린다. */}
         <RelatedContent kind="newyear" />
-</ScrollView>
+</View>
+      </ScrollView>
       {/* ★UnlockOverlay 는 **반드시 ScrollView 밖**(daniel 2026-08-12 *"자물쇠가 위에있어서 안보여"*).
           안에 두면 absoluteFill 이 **스크롤 내용 전체 높이**를 채워, 가운데 정렬된 자물쇠·%·메시지가
           화면 밖으로 밀려 '홈으로 나가기' 버튼만 떠 보였다. check:overlayroot 가 재발을 막는다. */}

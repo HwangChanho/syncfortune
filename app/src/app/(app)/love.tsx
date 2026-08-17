@@ -47,6 +47,7 @@ import { PossibilityGauge } from '../../components/PossibilityGauge'; // 공용 
 import { loveInyeonGauge } from '../../lib/love/inyeonGauge'; // 인연 가능성 점수(결정론·온디바이스·재회와 동일 신호)
 import { useLogContentVisit } from '../../lib/backend/contentVisit'; // 콘텐츠 방문 집계(daniel 2026-07-06) — 진입 1회 기록
 import { ReadingProse } from '../../components/ReadingProse'; // ★소분류 마커(◆) 렌더 — 본문을 공용 프로즈로 통일(daniel 2026-08-05)
+import { useReadBody } from '../../components/WebShell'; // ★읽는 화면 본문 캡(히어로는 전폭·글은 좁게)
 
 // 건당 가격 — 정가 → 할인가로 마킹(daniel). 결제 연동 시 조율.
 export const LOVE_PRICE = '₩9,900';
@@ -83,6 +84,7 @@ const LOVE_PINK = '#E5749B'; // 애정 테마색(인연 실 모티프와 통일)
 type LoveReading = { [section: string]: string | undefined; headline?: string; ageGap?: string; error?: string };
 
 export default function LoveScreen() {
+  const readBody = useReadBody();   // 넓은 웹에서만 본문 폭을 묶는다
   useLogContentVisit('love'); // 진입 1회 방문 기록(daniel 2026-07-06)
   const { t } = useTranslation();
   const router = useRouter();
@@ -306,6 +308,8 @@ export default function LoveScreen() {
       {/* 상단 명식 헤더 — 현재 적용된 대표 명식 표시·전환(daniel: 모든 콘텐츠 상단). 전환 시 그 명식 기준 재로드 */}
       <ChartPicker onChange={() => setReloadKey((k) => k + 1)} />
       <ContentHero motif={<LoveThread />} image={A('icons/love-hero.jpg')} title={t('love.title')} sub={t('love.sub')} themeColor={LOVE_PINK} />
+      {/* ★본문 캡 — 히어로는 지면 전체, 글은 좁게(브런치 방향). 폰은 undefined 라 그대로 지나간다. */}
+      <View style={readBody}>
       {/* 인연 가능성 게이지(무료·결정론) — 흐름 곡선 '위'에 얹는 핵심 훅. 지금 인연 기운을 0~100 + 한 줄 일상어로. */}
       {loveGauge && (
         <PossibilityGauge score={loveGauge.score} label={loveGauge.label} tone={loveGauge.tone} title="인연이 무르익는 흐름" caption={loveGauge.caption} accent={LOVE_PINK} />
@@ -362,7 +366,8 @@ export default function LoveScreen() {
             {/* ★이어서 보면 좋은 콘텐츠(daniel 2026-07-27 "전부 붙여") — 화면마다 하단이 달라 보이던 것 통일.
             큐레이션 출처는 RELATED 단일(중복 하드코딩 0). 매핑이 없으면 스스로 아무것도 안 그린다. */}
         <RelatedContent kind="love" />
-</ScrollView>
+</View>
+      </ScrollView>
       {/* ★UnlockOverlay 는 **반드시 ScrollView 밖**(daniel 2026-08-12 *"자물쇠가 위에있어서 안보여"*).
           안에 두면 absoluteFill 이 **스크롤 내용 전체 높이**를 채워, 가운데 정렬된 자물쇠·%·메시지가
           화면 밖으로 밀려 '홈으로 나가기' 버튼만 떠 보였다. check:overlayroot 가 재발을 막는다. */}

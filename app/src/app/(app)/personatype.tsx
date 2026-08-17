@@ -24,8 +24,10 @@ import { ChartPicker } from '../../components/ChartPicker';
 import { ShareReadingButton } from '../../components/ShareReadingButton';
 import type { ChartInput } from '@spec/chart';
 import { useLogContentVisit } from '../../lib/backend/contentVisit'; // 콘텐츠 방문 집계 — 진입 1회 기록
+import { useReadBody } from '../../components/WebShell'; // ★읽는 화면 본문 캡(히어로는 전폭·글은 좁게)
 
 export default function PersonaTypeScreen() {
+  const readBody = useReadBody();   // 넓은 웹에서만 본문 폭을 묶는다
   useLogContentVisit('personatype');
   const { t } = useTranslation();
   const { fs } = useFontScale();
@@ -57,6 +59,8 @@ export default function PersonaTypeScreen() {
           title={t('persona120.title', '120가지 유형 중 나는 어떤 유형일까')}
           sub={t('persona120.sub', '일간 10 × 월지 12로 나눈 120가지 결')}
         />
+      {/* ★본문 캡 — 히어로는 지면 전체, 글은 좁게(브런치 방향). 폰은 undefined 라 그대로 지나간다. */}
+      <View style={readBody}>
         {/* ★타이틀 근처 '계산됨' 배지 — 이 유형이 생년월일로 계산된 개인 결과임을 표시(과밀 방지·한 줄) */}
         {!p ? (
           <Text style={styles.note}>{t('persona120.empty', '명식을 등록하면 120가지 중 내 유형을 보여드려요.')}</Text>
@@ -92,7 +96,8 @@ export default function PersonaTypeScreen() {
               {/* ★이어서 보면 좋은 콘텐츠(daniel 2026-07-27 "전부 붙여") — 화면마다 하단이 달라 보이던 것 통일.
             큐레이션 출처는 RELATED 단일(중복 하드코딩 0). 매핑이 없으면 스스로 아무것도 안 그린다. */}
         <RelatedContent kind="personatype" />
-</ScrollView>
+</View>
+      </ScrollView>
     </View>
   );
 }

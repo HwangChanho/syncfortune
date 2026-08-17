@@ -19,8 +19,10 @@ import { ChartPicker } from '../../components/ChartPicker'; // 상단 명식 헤
 import { ShareReadingButton } from '../../components/ShareReadingButton'; // 이슈17: 풀이 결과 공유(앱게이트)
 import type { ChartInput } from '@spec/chart';
 import { useLogContentVisit } from '../../lib/backend/contentVisit'; // 콘텐츠 방문 집계(daniel 2026-07-06) — 진입 1회 기록
+import { useReadBody } from '../../components/WebShell'; // ★읽는 화면 본문 캡(히어로는 전폭·글은 좁게)
 
 export default function ZodiacScreen() {
+  const readBody = useReadBody();   // 넓은 웹에서만 본문 폭을 묶는다
   useLogContentVisit('zodiac'); // 진입 1회 방문 기록(daniel 2026-07-06)
   const { t } = useTranslation();
   const { fs } = useFontScale();
@@ -53,6 +55,8 @@ export default function ZodiacScreen() {
         {/* 상단 명식 헤더 — 현재 적용된 대표 명식 표시·전환(daniel: 모든 콘텐츠 상단) */}
         <ChartPicker onChange={() => loadMyChart().then(setMe)} />
         <ContentHero image={A('icons/zodiac.jpg')} title={t('zodiac.title', '띠·별자리 오늘운세')} sub={animal.date} />
+      {/* ★본문 캡 — 히어로는 지면 전체, 글은 좁게(브런치 방향). 폰은 undefined 라 그대로 지나간다. */}
+      <View style={readBody}>
 
         {/* 토글 */}
         <View style={styles.toggle}>
@@ -85,7 +89,8 @@ export default function ZodiacScreen() {
             : null}
         />
 
-</ScrollView>
+</View>
+      </ScrollView>
     </View>
   );
 }

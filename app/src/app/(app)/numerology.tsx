@@ -19,8 +19,10 @@ import { ChartPicker } from '../../components/ChartPicker';
 import { ShareReadingButton } from '../../components/ShareReadingButton';
 import { Reveal } from '../../components/Reveal'; // 카드 순차 등장(daniel 재미)
 import { useLogContentVisit } from '../../lib/backend/contentVisit'; // 콘텐츠 방문 집계(daniel 2026-07-06) — 진입 1회 기록
+import { useReadBody } from '../../components/WebShell'; // ★읽는 화면 본문 캡(히어로는 전폭·글은 좁게)
 
 export default function NumerologyScreen() {
+  const readBody = useReadBody();   // 넓은 웹에서만 본문 폭을 묶는다
   useLogContentVisit('numerology'); // 진입 1회 방문 기록(daniel 2026-07-06)
   const { t } = useTranslation();
   const { fs } = useFontScale();
@@ -53,6 +55,8 @@ export default function NumerologyScreen() {
         {/* 상단 명식 헤더 — 현재 명식 표시·전환 */}
         <ChartPicker onChange={() => loadRepChart().then(setRep)} />
         <ContentHero image={A('icons/numerology.jpg')} title={t('numerology.title', '수비학')} sub={t('numerology.sub', '생년월일에 담긴 수로 보는 나의 인생 방향·재능·올해 흐름')} />
+      {/* ★본문 캡 — 히어로는 지면 전체, 글은 좁게(브런치 방향). 폰은 undefined 라 그대로 지나간다. */}
+      <View style={readBody}>
 
         {!n ? (
           <Text style={styles.note}>{t('numerology.empty', '명식을 등록하면 생년월일로 수비학을 보여드려요.')}</Text>
@@ -68,6 +72,7 @@ export default function NumerologyScreen() {
             <ShareReadingButton kind="numerology" title="수비학" content={{ lifePath: n.lifePath, keyword: lp!.keyword, summary: lp!.text }} />
           </>
         )}
+      </View>
       </ScrollView>
     </View>
   );

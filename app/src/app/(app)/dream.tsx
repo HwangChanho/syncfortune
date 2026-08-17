@@ -29,6 +29,7 @@ import { invokeFail } from '../../lib/backend/interpretResult'; // 방어: 일�
 import { assertOnline } from '../../lib/backend/network'; // daniel: 네트워크/서버 미연결 시 풀이 생성 차단
 import { TTSButton } from '../../components/TTSButton'; // 풀이 음성 읽기(온디바이스 TTS·무료)
 import { useLogContentVisit } from '../../lib/backend/contentVisit'; // 콘텐츠 방문 집계(daniel 2026-07-06) — 진입 1회 기록
+import { useReadBody } from '../../components/WebShell'; // ★읽는 화면 본문 캡(히어로는 전폭·글은 좁게)
 
 // 계정별 지난 AI 꿈해몽 한 건(테이블 public.dream_readings 1행). RLS로 본인 것만 조회/삽입(user_id=auth.uid).
 //   ★재진입 버그 해소: aiResult는 로컬 state뿐이라 완료 배너 탭 → /dream 새 마운트 시 사라짐 → DB에 저장해 목록으로 재조회.
@@ -41,6 +42,7 @@ function shortDate(iso: string): string {
 }
 
 export default function DreamScreen() {
+  const readBody = useReadBody();   // 넓은 웹에서만 본문 폭을 묶는다
   useLogContentVisit('dream'); // 진입 1회 방문 기록(daniel 2026-07-06)
   const { t } = useTranslation();
   const { fs } = useFontScale();
@@ -191,6 +193,8 @@ export default function DreamScreen() {
     <View style={styles.bg}>
       <ScrollView style={styles.overlay} contentContainerStyle={styles.wrap} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets keyboardDismissMode="interactive">
         <ContentHero image={A('icons/dream.jpg')} title={t('dream.title', '꿈해몽')} sub={t('dream.sub', '꿈에 나온 것을 검색해 보세요.')} />
+      {/* ★본문 캡 — 히어로는 지면 전체, 글은 좁게(브런치 방향). 폰은 undefined 라 그대로 지나간다. */}
+      <View style={readBody}>
 
         <TextInput
           style={styles.input}
@@ -300,7 +304,8 @@ export default function DreamScreen() {
 {/* ★이어서 보면 좋은 콘텐츠(daniel 2026-07-27 "전부 붙여") — 화면마다 하단이 달라 보이던 것 통일.
             큐레이션 출처는 RELATED 단일(중복 하드코딩 0). 매핑이 없으면 스스로 아무것도 안 그린다. */}
         <RelatedContent kind="dream" />
-</ScrollView>
+</View>
+      </ScrollView>
     </View>
   );
 }

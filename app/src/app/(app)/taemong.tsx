@@ -39,8 +39,10 @@ import { invokeFail } from '../../lib/backend/interpretResult';
 import { assertOnline } from '../../lib/backend/network';
 import { useLogContentVisit } from '../../lib/backend/contentVisit';
 import { getNavBarHeight } from '../../components/BottomNav'; // 키보드 리프트 보정(하단 네비바 높이)
+import { useReadBody } from '../../components/WebShell'; // ★읽는 화면 본문 캡(히어로는 전폭·글은 좁게)
 
 export default function TaemongScreen() {
+  const readBody = useReadBody();   // 넓은 웹에서만 본문 폭을 묶는다
   const { t } = useTranslation();
   const router = useRouter();
   const { session } = useAuth();
@@ -156,6 +158,8 @@ export default function TaemongScreen() {
   return (
     <ScrollView style={styles.screen} contentContainerStyle={[styles.wrap, { paddingBottom: space(14) + lift }]} keyboardShouldPersistTaps="handled">
       <ContentHero image={A('icons/taemong.jpg')} title={t('taemong.title', '태몽 풀이')} sub={t('taemong.sub', '꿈에 나온 것으로 읽는, 아이를 기다리는 마음')} themeColor={TAEMONG_TONE} />
+      {/* ★본문 캡 — 히어로는 지면 전체, 글은 좁게(브런치 방향). 폰은 undefined 라 그대로 지나간다. */}
+      <View style={readBody}>
 
       {/* ★경계를 먼저 밝힌다 — 나중에 작게 적으면 아무도 안 읽는다(§4) */}
       <View style={styles.noteBox}>
@@ -243,7 +247,8 @@ export default function TaemongScreen() {
       )}
 
       <RelatedContent kind="taemong" />
-    </ScrollView>
+    </View>
+      </ScrollView>
   );
 }
 

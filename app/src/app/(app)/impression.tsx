@@ -20,8 +20,10 @@ import { ContentHero } from '../../components/SpecialContentScreen';
 import { ChartPicker } from '../../components/ChartPicker';
 import { colors, radius, space, shadow, font } from '../../lib/theme';
 import { useLogContentVisit } from '../../lib/backend/contentVisit'; // 콘텐츠 방문 집계(daniel 2026-07-06) — 진입 1회 기록
+import { useReadBody } from '../../components/WebShell'; // ★읽는 화면 본문 캡(히어로는 전폭·글은 좁게)
 
 export default function ImpressionScreen() {
+  const readBody = useReadBody();   // 넓은 웹에서만 본문 폭을 묶는다
   useLogContentVisit('impression'); // 진입 1회 방문 기록(daniel 2026-07-06)
   const { t } = useTranslation();
   const router = useRouter();
@@ -52,6 +54,8 @@ export default function ImpressionScreen() {
       <ContentHero image={A('icons/impression.jpg')}
         title={t('impression.title', '사람들이 보는 나의 인상')}
         sub={t('impression.sub', '겉으로 비치는 모습과 알고 보면 다른 진짜 나')} />
+      {/* ★본문 캡 — 히어로는 지면 전체, 글은 좁게(브런치 방향). 폰은 undefined 라 그대로 지나간다. */}
+      <View style={readBody}>
       {!saved || !c ? (
         <View style={styles.emptyBox}>
           <Text style={styles.empty}>{t('manse.empty', '등록된 명식이 없습니다.')}</Text>
@@ -101,7 +105,8 @@ export default function ImpressionScreen() {
             {/* ★이어서 보면 좋은 콘텐츠(daniel 2026-07-27 "전부 붙여") — 화면마다 하단이 달라 보이던 것 통일.
             큐레이션 출처는 RELATED 단일(중복 하드코딩 0). 매핑이 없으면 스스로 아무것도 안 그린다. */}
         <RelatedContent kind="impression" />
-</ScrollView>
+</View>
+      </ScrollView>
   );
 }
 

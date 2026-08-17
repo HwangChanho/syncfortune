@@ -46,10 +46,10 @@ import { useLogContentVisit } from '../lib/backend/contentVisit'; // 콘텐츠 �
 import { setGenProgress } from '../lib/backend/genProgress'; // 일회성 진행도(daniel 이슈15)
 import { acquireGen, releaseGen } from '../lib/backend/genLock'; // 크로스마운트 이중 생성 잠금(② 이중 LLM 방지)
 import { colors, radius, space, shadow, font } from '../lib/theme';
-import { useWebCols } from './WebShell'; // 넓은 웹 = 본문 컬럼 좁히기(히어로는 전폭)
 import { UnlockOverlay } from './UnlockOverlay';         // unlock 자물쇠 애니 + 그 사이 LLM
 import { ChartPicker } from './ChartPicker';             // 상단 명식 헤더 — 현재 적용 명식 표시·전환
-import { useHeroCap, HERO_CAP } from '../lib/ui/heroSize'; // ★웹 전폭 히어로 높이 상한(네이티브 무관)
+import { useHeroCap, HERO_CAP } from '../lib/ui/heroSize';
+import { useReadBody } from './WebShell';   // ★읽는 화면 본문 캡(단일 소스 — 17개 화면과 같은 값)
 
 export type Section = { key: string; label: string; groupTitle?: string }; // groupTitle: 이 섹션 카드 위에 그룹 구분 헤더(divider) 표시(daniel: 별자리/점성술 섹터 분리)
 
@@ -470,7 +470,7 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
 
   if (!loaded) return <View style={styles.center}><ActivityIndicator color={colors.ju} /></View>;
   // 넓은 웹에서만 본문을 좁힌다(히어로·명식 헤더는 지면 전체를 쓴다)
-  const webBody = useWebCols() > 1 ? ({ width: '100%', maxWidth: 680, alignSelf: 'center' } as const) : undefined;
+  const webBody = useReadBody();   // ★본문 캡 단일 소스(WebShell) — 17개 화면과 같은 값을 쓴다
 
   if (!savedChart) return (
     <View style={styles.center}>

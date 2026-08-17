@@ -25,6 +25,7 @@ import { ShareReadingButton } from '../../components/ShareReadingButton'; // 이
 import { TTSButton } from '../../components/TTSButton'; // 풀이 음성 읽기(온디바이스 TTS·무료)
 import { ListSkeleton } from '../../components/Skeleton'; // 로딩 중 콘텐츠 형태 스켈레톤(daniel 2026-06-28)
 import { useLogContentVisit } from '../../lib/backend/contentVisit'; // 콘텐츠 방문 집계(daniel 2026-07-06) — 진입 1회 기록
+import { useReadBody } from '../../components/WebShell'; // ★읽는 화면 본문 캡(히어로는 전폭·글은 좁게)
 
 // 천간 순서(일간 그룹핑용) — 갑·을·…·계. 각 천간당 일주 6개(60갑자).
 const STEMS = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'];
@@ -47,6 +48,7 @@ function sectionList(sex: '남' | '여'): { tk: string; field: keyof DayPillarTr
 }
 
 export default function DayPillarScreen() {
+  const readBody = useReadBody();   // 넓은 웹에서만 본문 폭을 묶는다
   useLogContentVisit('dayPillar'); // 진입 1회 방문 기록(daniel 2026-07-06)
   const { t } = useTranslation();
   const { fs } = useFontScale();
@@ -150,6 +152,8 @@ export default function DayPillarScreen() {
       {/* 헤더 타이틀 — 화면에서 직접 박아 확실하게(+다국어) */}
       <Stack.Screen options={{ headerTitle: '' }} />{/* 상단 타이틀 제거(daniel) — 히어로가 제목 표시 */}
       <ContentHero image={A('icons/dayPillar.jpg')} title={t('dayPillar.title')} sub={t('dayPillar.sub')} />
+      {/* ★본문 캡 — 히어로는 지면 전체, 글은 좁게(브런치 방향). 폰은 undefined 라 그대로 지나간다. */}
+      <View style={readBody}>
       {/* daniel #20: 일주론은 '태어난 날(일주)' 기준 경향 — 정확한 풀이엔 사주 전체가 필요함을 설명 상단에 명시 */}
 
       {/* 남/여 보기 토글 — 관리자만(전체 열람). 일반 유저는 본인/명식 성별로 고정 표시. */}
@@ -248,7 +252,8 @@ export default function DayPillarScreen() {
             {/* ★이어서 보면 좋은 콘텐츠(daniel 2026-07-27 "전부 붙여") — 화면마다 하단이 달라 보이던 것 통일.
             큐레이션 출처는 RELATED 단일(중복 하드코딩 0). 매핑이 없으면 스스로 아무것도 안 그린다. */}
         <RelatedContent kind="dayPillar" />
-</ScrollView>
+</View>
+      </ScrollView>
   );
 }
 

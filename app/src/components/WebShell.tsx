@@ -34,8 +34,24 @@ import { colors, radius, space } from '../lib/theme';
 export const WEB_WIDE = 900;
 /** **글을 읽는 화면**의 최대 폭 — 줄이 길어지면 눈이 다음 줄을 놓친다. */
 export const WEB_COLUMN = 760;
-/** **그리드·목록 화면**의 최대 폭 — 가로를 실제로 쓰는 화면. */
-export const WEB_STAGE = 1160;
+/**
+ * **그리드·목록 화면**의 최대 폭 — 가로를 실제로 쓰는 화면.
+ *
+ * ★1160 → 1560 (daniel 2026-08-17: *"오른쪽 컨텐츠 영역 양끝에 여백이 너무 많아"*)
+ *   실측(1710px 창): 사이드바 248 → 쓸 수 있는 폭 1462 인데 컬럼이 1160 이라
+ *   **좌·우 여백이 각 151px**(합 302 = 화면의 21%)이었다. 격자 화면에서 그만큼은 낭비다.
+ *
+ * ★고정 폭이 문제의 근원이다 — 화면이 커질수록 여백이 **같이 커진다.**
+ *   그래서 값만 올리지 않고 `stage` 에 좌우 패딩(`STAGE_PAD`)을 줘서
+ *   **평소엔 패딩만큼만 남고**, 초광폭(≈2000px+)에서만 이 상한이 걸리게 했다.
+ *   결과(1710px): 컬럼 1414 · 여백 각 24 — 격자 카드가 그만큼 커진다.
+ *
+ * ⚠️읽는 화면(`WEB_READ`)은 **일부러 좁게 둔다** — 줄이 길어지면 눈이 다음 줄을 놓친다
+ *   (브런치·29CM 방향: 히어로는 넓게, 본문은 좁게). 여백이 남는 게 그 화면에선 정상이다.
+ */
+export const WEB_STAGE = 1560;
+/** 스테이지 좌우 숨통 — 컬럼이 사이드바·화면 끝에 붙지 않게. 여백은 '남는 것'이 아니라 이 값이어야 한다. */
+export const STAGE_PAD = 24;
 /** 3열까지 펼칠 수 있는 폭(그리드 화면 기준). */
 export const WEB_XWIDE = 1180;
 const SIDEBAR = 248;
@@ -55,8 +71,48 @@ export const WEB_FORM = 560;
 /**
  * **콘텐츠(읽는) 화면**의 지면 — 히어로가 넓게 깔리고 본문은 그 안에서 좁아진다(브런치·29CM 식).
  * 라우트 목록은 `contentSections` 에서 파생된다 — 콘텐츠가 늘면 자동으로 따라온다.
+ *
+ * ★1000 → **1360** (daniel 2026-08-17 여백 지적 · 2026-08-18 본문 캡 완료 후 적용).
+ *   실측(1710px 창): 여백이 **각 231px** 이었다.
+ *
+ * ★**순서가 중요했다.** 처음엔 캡 없이 먼저 넓혔다가 되돌렸다 —
+ *   "본문은 `SpecialContentScreen` 이 680 으로 캡하니 안전"이라 봤는데, 그 근거인 grep 이
+ *   **import 경로**(`from '…/SpecialContentScreen'`)에 걸린 것이었다. 실제로 그 컴포넌트로 렌더하는
+ *   화면은 12개뿐이고 **17개는 `ContentHero` 만 가져와 본문을 자기가 그렸다**(캡 없음).
+ *   그래서 넓히자 본문 문장이 **1269px**(한글 80자/줄)까지 퍼졌다.
+ *   ⇒ 17개에 `useReadBody()` 를 붙여 캡을 채운 **뒤에** 지면을 넓혔다.
+ *   ★교훈: grep 히트 수를 '사용처 수'로 읽지 말 것 — 같은 모듈에서 **다른 것**을 가져오는 파일이 섞인다.
+ *
+ * ※`WEB_BODY`(680)와 짝이다: **지면은 넓고 글은 좁다.** 히어로·전폭 요소가 지면을 쓰고 글만 묶인다.
  */
-export const WEB_READ = 1000;
+export const WEB_READ = 1360;
+
+/**
+ * 읽는 화면 **본문(글)** 의 최대 폭 — 지면(`WEB_READ`)과 다르다.
+ * 한글 본문은 이 폭에서 한 줄이 40~45자로 떨어진다. 더 넓으면 눈이 다음 줄을 놓친다.
+ */
+export const WEB_BODY = 680;
+
+/**
+ * 읽는 화면의 **본문 캡** — 히어로는 지면 전체, 글은 좁게(브런치·29CM 방향).
+ *
+ * @returns 넓은 웹이면 `{ width:'100%', maxWidth: WEB_BODY, alignSelf:'center' }`, 그 밖에서는 **undefined**
+ *          (폰·네이티브는 그대로 지나간다 — 오버라이드 객체를 만들지 않는다)
+ *
+ * @example
+ * const readBody = useReadBody();
+ * <ContentHero … />            // 히어로는 지면 전체
+ * <View style={readBody}>…</View>   // 글은 좁게
+ *
+ * ★왜 훅으로 뽑았나(2026-08-17): 이 캡이 `SpecialContentScreen` 안에만 인라인으로 있었고,
+ *   `ContentHero` 만 가져다 쓰는 화면 **17개**에는 없었다. 그래서 지면을 넓히자 그 17개의
+ *   본문 문장이 **1269px**(한글 80자/줄)까지 퍼졌다 — 실측으로 발견.
+ *   ⇒ 캡을 한 곳에 두고 두 계열이 같은 값을 쓰게 한다(`check:readbody` 가 누락을 감시).
+ */
+export function useReadBody(): { width: '100%'; maxWidth: number; alignSelf: 'center' } | undefined {
+  const wide = useWideWeb();
+  return wide ? { width: '100%', maxWidth: WEB_BODY, alignSelf: 'center' } : undefined;
+}
 
 /** 지금 '넓은 웹'인가 — 레이아웃이 하단 탭 대신 사이드바를 써야 하는 상태. */
 export function useWideWeb(): boolean {
@@ -164,7 +220,13 @@ const WEB_VIEWPORT = Platform.OS === 'web' ? ({ height: '100vh', maxHeight: '100
 
 const styles = StyleSheet.create({
   row: { flex: 1, flexDirection: 'row', ...(WEB_VIEWPORT ?? {}) },
-  stage: { flex: 1, alignItems: 'center', ...(Platform.OS === 'web' ? ({ height: '100%', overflow: 'hidden' } as any) : {}) },
+  // ★좌우 패딩 = 컬럼이 사이드바·화면 끝에 붙지 않게 하는 **최소 숨통**(daniel 2026-08-17 여백 지적).
+  //   종전엔 패딩이 없고 컬럼 maxWidth(1160)만 있어서, 남는 공간이 그대로 여백이 됐다(각 151px).
+  //   이제 여백은 '남는 것'이 아니라 이 값이다 — 화면이 커져도 컬럼이 먼저 자란다.
+  stage: {
+    flex: 1, alignItems: 'center', paddingHorizontal: STAGE_PAD,
+    ...(Platform.OS === 'web' ? ({ height: '100%', overflow: 'hidden' } as any) : {}),
+  },
   // 컬럼이 화면 높이를 다 쓰게 flex:1 — 안쪽 화면들이 자기 스크롤을 갖는다. maxWidth 는 라우트가 정한다.
   column: { flex: 1, width: '100%', ...(Platform.OS === 'web' ? ({ height: '100%' } as any) : {}) },
 

@@ -39,8 +39,10 @@ import { ContentHero } from '../../components/SpecialContentScreen'; // 이미�
 import { ShareReadingButton } from '../../components/ShareReadingButton'; // 이슈17: 풀이 결과 공유(가드 내장)
 import { TTSButton } from '../../components/TTSButton'; // daniel: 풀이 음성 읽기(온디바이스 TTS·무료)
 import { useLogContentVisit } from '../../lib/backend/contentVisit'; // 콘텐츠 방문 집계(daniel 2026-07-06) — 진입 1회 기록
+import { useReadBody } from '../../components/WebShell'; // ★읽는 화면 본문 캡(히어로는 전폭·글은 좁게)
 
 export default function MonthScreen() {
+  const readBody = useReadBody();   // 넓은 웹에서만 본문 폭을 묶는다
   useLogContentVisit('monthly'); // 진입 1회 방문 기록(daniel 2026-07-06)
   const { t } = useTranslation();
   const { fs } = useFontScale();
@@ -141,6 +143,8 @@ export default function MonthScreen() {
     <View style={styles.bgImage}>
       <ScrollView style={styles.overlay} contentContainerStyle={styles.wrap}>
         <ContentHero image={A('icons/month.jpg')} title={t('month.title', '이달의 운세')} sub={t('month.heroSub', '이번 달 월건으로 보는 흐름')} />
+      {/* ★본문 캡 — 히어로는 지면 전체, 글은 좁게(브런치 방향). 폰은 undefined 라 그대로 지나간다. */}
+      <View style={readBody}>
         {/* 이번 달 월건 헤더 */}
         <View style={styles.pillarRow}>
           {gzChip(stem, 'stem')}
@@ -227,7 +231,8 @@ export default function MonthScreen() {
 {/* ★이어서 보면 좋은 콘텐츠(daniel 2026-07-27 "전부 붙여") — 화면마다 하단이 달라 보이던 것 통일.
             큐레이션 출처는 RELATED 단일(중복 하드코딩 0). 매핑이 없으면 스스로 아무것도 안 그린다. */}
         <RelatedContent kind="month" />
-</ScrollView>
+</View>
+      </ScrollView>
     </View>
   );
 }

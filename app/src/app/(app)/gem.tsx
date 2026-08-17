@@ -20,6 +20,7 @@ import { recommendGem } from '../../lib/content/gemRecommend';
 import { gemCopy } from '../../lib/content/gemCopy';
 import { useLogContentVisit } from '../../lib/backend/contentVisit';
 import { colors, space, radius, font } from '../../lib/theme';
+import { useReadBody } from '../../components/WebShell'; // ★읽는 화면 본문 캡(히어로는 전폭·글은 좁게)
 
 /** 저장 생일 문자열('1994-03-16 17:55')에서 '월'(1~12)만 뽑는다. 서양 탄생석 대조용.
  *  ⚠️음력 입력(calendar='음')이면 이 값은 음력 월 — 서양 탄생석은 양력 기준이라 오차 가능(백로그: 양력 변환). */
@@ -30,6 +31,7 @@ function birthMonthOf(birthDateTime?: string): number | null {
 }
 
 export default function GemRoute() {
+  const readBody = useReadBody();   // 넓은 웹에서만 본문 폭을 묶는다
   const { t } = useTranslation();
   const router = useRouter();
   useLogContentVisit('gem'); // 진입 1회 방문 기록(로그인 사용자)
@@ -70,6 +72,8 @@ export default function GemRoute() {
     <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>
       <ChartPicker onChange={() => setReloadKey((k) => k + 1)} />
       <ContentHero title={t('gem.title', '내 사주 보석')} sub={t('gem.sub', '생일 보석은 사실 나와 안 맞아요 — 나를 살리는 진짜 보석')} />
+      {/* ★본문 캡 — 히어로는 지면 전체, 글은 좁게(브런치 방향). 폰은 undefined 라 그대로 지나간다. */}
+      <View style={readBody}>
 
       {loading ? (
         <View style={styles.center}><ActivityIndicator color={colors.ju} /></View>
@@ -86,7 +90,8 @@ export default function GemRoute() {
           <RelatedContent kind="gem" />
         </>
       )}
-    </ScrollView>
+    </View>
+      </ScrollView>
   );
 }
 

@@ -20,6 +20,7 @@ import { ChartPicker } from '../../components/ChartPicker';
 import { ShareReadingButton } from '../../components/ShareReadingButton';
 import type { ChartInput } from '@spec/chart';
 import { useLogContentVisit } from '../../lib/backend/contentVisit'; // 콘텐츠 방문 집계(daniel 2026-07-06) — 진입 1회 기록
+import { useReadBody } from '../../components/WebShell'; // ★읽는 화면 본문 캡(히어로는 전폭·글은 좁게)
 
 // 각 축의 [왼글자, 오른글자] — score(0~100)는 오른글자 비율
 const AXIS_ENDS: Record<string, [string, string]> = { EI: ['I', 'E'], SN: ['S', 'N'], TF: ['T', 'F'], JP: ['J', 'P'] };
@@ -34,6 +35,7 @@ function AxisBar({ score }: { score: number }) {
 }
 
 export default function MbtiScreen() {
+  const readBody = useReadBody();   // 넓은 웹에서만 본문 폭을 묶는다
   useLogContentVisit('mbti'); // 진입 1회 방문 기록(daniel 2026-07-06)
   const { t } = useTranslation();
   const { fs } = useFontScale();
@@ -54,6 +56,8 @@ export default function MbtiScreen() {
         {/* 상단 명식 헤더 — 현재 적용 명식 표시·전환 */}
         <ChartPicker onChange={() => loadMyChart().then(setMe)} />
         <ContentHero image={A('icons/mbti.jpg')} title={t('mbti.title', '사주로 보는 내 MBTI')} sub={t('mbti.sub', '내 사주 구조로 풀어본 성향 유형')} />
+      {/* ★본문 캡 — 히어로는 지면 전체, 글은 좁게(브런치 방향). 폰은 undefined 라 그대로 지나간다. */}
+      <View style={readBody}>
 
         {!r ? (
           <Text style={styles.note}>{t('mbti.empty', '명식을 등록하면 사주로 본 MBTI를 보여드려요.')}</Text>
@@ -91,7 +95,8 @@ export default function MbtiScreen() {
               {/* ★이어서 보면 좋은 콘텐츠(daniel 2026-07-27 "전부 붙여") — 화면마다 하단이 달라 보이던 것 통일.
             큐레이션 출처는 RELATED 단일(중복 하드코딩 0). 매핑이 없으면 스스로 아무것도 안 그린다. */}
         <RelatedContent kind="mbti" />
-</ScrollView>
+</View>
+      </ScrollView>
     </View>
   );
 }

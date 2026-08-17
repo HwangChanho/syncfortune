@@ -18,6 +18,7 @@ import { personalOhaeng, personalTone, EL_KO, EL_VIBE, type OhaengProfile } from
 import { useLogContentVisit } from '../../lib/backend/contentVisit';
 import { appLang } from '../../lib/i18n';
 import { colors, space, radius, font } from '../../lib/theme';
+import { useReadBody } from '../../components/WebShell'; // ★읽는 화면 본문 캡(히어로는 전폭·글은 좁게)
 
 // 색 스와치 3개 + 색 이름
 function Swatches({ p }: { p: OhaengProfile }) {
@@ -34,6 +35,7 @@ function Swatches({ p }: { p: OhaengProfile }) {
 }
 
 export default function PersonalRoute() {
+  const readBody = useReadBody();   // 넓은 웹에서만 본문 폭을 묶는다
   const { t } = useTranslation();
   const router = useRouter();
   useLogContentVisit('personal'); // 진입 1회 방문 기록
@@ -66,6 +68,8 @@ export default function PersonalRoute() {
     <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>
       <ChartPicker onChange={() => setReloadKey((k) => k + 1)} />
       <ContentHero image={A('icons/personal.jpg')} title={t('personal.title', '퍼스널 오행')} sub={t('personal.sub', '내 오행에 맞는 컬러·코디·메이크업·자동차 색')} />
+      {/* ★본문 캡 — 히어로는 지면 전체, 글은 좁게(브런치 방향). 폰은 undefined 라 그대로 지나간다. */}
+      <View style={readBody}>
 
       {loading ? (
         <View style={styles.center}><ActivityIndicator color={colors.ju} /></View>
@@ -123,7 +127,8 @@ export default function PersonalRoute() {
           <RelatedContent kind="personal" />
         </>
       )}
-    </ScrollView>
+    </View>
+      </ScrollView>
   );
 }
 

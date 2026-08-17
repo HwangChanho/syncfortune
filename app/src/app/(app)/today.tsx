@@ -49,8 +49,10 @@ import { DailyLogCard } from '../../components/DailyLogCard'; // 리텐션: 오�
 import { TTSButton } from '../../components/TTSButton'; // daniel: 풀이 음성 읽기(온디바이스 TTS·무료)
 import { RelatedContent } from '../../components/RelatedContent'; // 오늘운세 하단 연관 콘텐츠 추천(개운·애정 동선·API 0)
 import { useLogContentVisit } from '../../lib/backend/contentVisit'; // 콘텐츠 방문 집계(daniel 2026-07-06) — 진입 1회 기록
+import { useReadBody } from '../../components/WebShell'; // ★읽는 화면 본문 캡(히어로는 전폭·글은 좁게)
 
 export default function TodayScreen() {
+  const readBody = useReadBody();   // 넓은 웹에서만 본문 폭을 묶는다
   useLogContentVisit('daily'); // 진입 1회 방문 기록(daniel 2026-07-06)
   const { t } = useTranslation();
   const { fs } = useFontScale();
@@ -146,6 +148,8 @@ export default function TodayScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <ContentHero image={A('icons/today.jpg')} title={t('today.title', '오늘의 운세')} sub={t('today.heroSub', '오늘 일진으로 보는 하루 흐름')} />
+      {/* ★본문 캡 — 히어로는 지면 전체, 글은 좁게(브런치 방향). 폰은 undefined 라 그대로 지나간다. */}
+      <View style={readBody}>
         {/* 명식 선택 — 대표 전환 시 그 명식 기준으로 오늘의 운세 재로드(daniel: 명식별 적용) */}
         <ChartPicker onChange={() => setReloadKey((k) => k + 1)} />
         {/* 오늘/내일 토글 */}
@@ -234,6 +238,7 @@ export default function TodayScreen() {
 
 {/* 오늘운세 하단 → 연관 콘텐츠 추천(개운·애정·직업 동선·daniel 기획서②-피드백) */}
         <RelatedContent kind="daily" />
+      </View>
       </ScrollView>
     </View>
   );
