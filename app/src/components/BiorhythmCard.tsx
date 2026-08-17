@@ -23,7 +23,7 @@ const AXES = [
 /** 홈 블록: 바이오리듬. reloadKey = 대표 명식 전환/포커스 시 홈이 올려 재산출. */
 export function BiorhythmCard({ reloadKey }: { reloadKey?: number }) {
   const { t } = useTranslation();
-  const { fs } = useFontScale();
+  const { fs, ls } = useFontScale();   // ls = 치수 스케일(글자를 담는 상자는 반드시 ls)
   const [birth, setBirth] = useState<Date | null>(null);
   const [today, setToday] = useState<BioValues | null>(null);
 
@@ -60,8 +60,12 @@ export function BiorhythmCard({ reloadKey }: { reloadKey?: number }) {
           return (
             <View key={ax.key} style={styles.row}>
               <View style={[styles.dot, { backgroundColor: ax.color }]} />
-              <Text style={[styles.rowLabel, { fontSize: fs(13) }]}>{t(`bio.${ax.key}`, ax.label)}</Text>
-              <Text style={[styles.rowVal, { color: ax.color, fontSize: fs(14) }]}>{v > 0 ? `+${v}` : v}%</Text>
+              {/* ★폭은 `ls()`(치수 스케일)로 준다 — daniel 2026-08-17 *"퍼센트가 다음 라인으로 넘어가"*.
+                    글자는 전역 패치가 배율만큼 키우는데 상자가 고정 px(40·52)이면 **글자만 커져 넘친다**.
+                    실측: 「감정 -43%」만 두 줄(높이 54px, 나머지 27px) — 폭이 2~3px 모자랐다.
+                    그리고 `width` 가 아니라 `minWidth` 다 — 정렬은 지키되 모자라면 늘어나게(줄바꿈 원천 차단). */}
+              <Text style={[styles.rowLabel, { fontSize: fs(13), minWidth: ls(40) }]} numberOfLines={1}>{t(`bio.${ax.key}`, ax.label)}</Text>
+              <Text style={[styles.rowVal, { color: ax.color, fontSize: fs(14), minWidth: ls(52) }]} numberOfLines={1}>{v > 0 ? `+${v}` : v}%</Text>
               <Text style={[styles.rowState, { fontSize: fs(12) }]}>{t(`bio.state.${bioState(v)}`, bioState(v))}</Text>
             </View>
           );
@@ -141,8 +145,8 @@ const styles = StyleSheet.create({
   rows: { marginTop: space(2), gap: space(1.5) },
   row: { flexDirection: 'row', alignItems: 'center', gap: space(2) },
   dot: { width: 10, height: 10, borderRadius: 5 },
-  rowLabel: { color: colors.inkSoft, fontWeight: '700', width: 40 },
-  rowVal: { fontWeight: '900', width: 52 },
+  rowLabel: { color: colors.inkSoft, fontWeight: '700' },   // 폭은 사용처에서 ls() 로(고정 px 금지)
+  rowVal: { fontWeight: '900' },                            // 폭은 사용처에서 ls() 로(고정 px 금지)
   rowState: { color: colors.inkFaint, fontWeight: '700' },
   readingBox: { marginTop: space(3), paddingTop: space(3), borderTopWidth: 1, borderTopColor: colors.line, gap: space(1.5) },
   summary: { ...font.body, color: colors.ink, fontWeight: '700', lineHeight: 20 },

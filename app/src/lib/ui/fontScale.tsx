@@ -5,7 +5,8 @@
 //   ※ 본문(읽기) 텍스트에 적용 — `fs(base)` 헬퍼로 fontSize·lineHeight 를 곱한다(버튼/라벨 chrome 은 고정).
 // ─────────────────────────────────────────────────────────────────────────
 import { createContext, useContext, useEffect, useState, Fragment, type ReactNode } from 'react';
-import { Platform } from 'react-native';
+import { Platform, useWindowDimensions } from 'react-native';
+import { webFontFactor } from './webFontFactor';   // ★웹: 뷰포트 폭 → 배율 보정(네이티브는 항상 1)
 import * as SecureStore from 'expo-secure-store';
 
 const KEY = 'font_scale_v1';
@@ -41,27 +42,45 @@ async function setRaw(v: string): Promise<void> {
   else await SecureStore.setItemAsync(KEY, v);
 }
 
-type Ctx = { scale: number; setScale: (s: number) => void };
-const FontScaleContext = createContext<Ctx>({ scale: 1, setScale: () => {} });
+/** `scale` = 실제 적용 배율(설정 × 폭 보정) · `rawScale` = 사용자가 고른 설정값(설정 화면용). */
+type Ctx = { scale: number; rawScale: number; setScale: (s: number) => void };
+const FontScaleContext = createContext<Ctx>({ scale: 1, rawScale: 1, setScale: () => {} });
 
 /** 앱 루트에 감싸 전역 글자 배율 제공. 저장값을 1회 로드. */
 export function FontScaleProvider({ children }: { children: ReactNode }) {
-  const [scale, setScaleState] = useState(DEFAULT_SCALE); // 기본 = 아주 크게
+  const [scale, setScaleState] = useState(DEFAULT_SCALE); // 기본 = 아주 크게 (설정값 — 사용자가 고른 것)
+  const { width } = useWindowDimensions();                // 창 크기·브라우저 확대에 따라 바뀐다
+  const factor = webFontFactor(width, Platform.OS === 'web');
+  const factorRef = factor;                               // setScale 안에서 최신 보정치를 쓰기 위한 별칭
+  const effective = Math.round(scale * factor * 1000) / 1000;   // 설정값 × 폭 보정 = 실제 배율
+  // ★★뷰포트 반응(daniel 2026-08-17 *"브라우저의 확대 축소 사이즈에 따라서 글씨크기를 반응하게"*).
+  //   설정값 하나로 고정하면 창을 줄이거나 브라우저를 확대했을 때 글자만 남아 줄바꿈·잘림이 난다.
+  //   ⇒ 폭에서 보정치를 뽑아 **설정값에 곱한다**. 브라우저 확대는 CSS 픽셀 폭을 줄이므로
+  //     이 보정이 있으면 확대해도 레이아웃이 유지된다.
+  //   ⚠️보정은 `currentScale`(글자를 키우는 전역 패치)과 context 의 `scale`(상자를 키우는 ls) **양쪽에**
+  //     같이 들어가야 한다. 한쪽만 넣으면 '글자만 커지고 상자는 그대로' 라는 옛 함정이 그대로 재현된다.
   // 저장값이 남은 단계 범위(1.15~1.45)면 적용. 그보다 작거나(구버전 '작게' 1.0·0.9) 미설정이면 기본(1.3)으로 끌어올린다.
   //   ★이 마이그레이션이 없으면 '작게'를 골라 뒀던 기기는 선택지에서 사라진 값을 계속 쓴다(설정 화면과 실제가 어긋남).
   useEffect(() => {
     getRaw().then((v) => {
       const n = Number(v);
       const next = n >= MIN_SCALE && n <= 1.6 ? n : DEFAULT_SCALE;
-      currentScale = next;              // ★렌더 패치가 읽는 값도 함께(순서 중요 — state 보다 먼저 반영돼야 첫 렌더가 맞다)
-      setScaleState(next);
+      setScaleState(next);   // ★currentScale 은 아래 effect 가 보정까지 얹어 한 곳에서 갱신한다
     });
   }, []);
-  const setScale = (s: number) => { currentScale = s; setScaleState(s); setRaw(String(s)); };
+  // ★전역 Text 패치가 읽는 값 = **보정까지 얹은 실제 배율**. 설정이 바뀌든 창이 바뀌든 여기 한 곳에서 갱신한다.
+  useEffect(() => { currentScale = effective; }, [effective]);
+  const setScale = (s: number) => { currentScale = s * factorRef; setScaleState(s); setRaw(String(s)); };
   // ★key={scale} — 배율이 바뀌면 트리를 리마운트한다.
   //   고정 fontSize 를 쓰는 컴포넌트는 이 Context 를 **구독하지 않아** 값이 바뀌어도 리렌더되지 않는다.
   //   설정에서 가끔 바꾸는 값이라 리마운트 비용은 감수할 만하고, 이게 없으면 "설정을 바꿔도 그대로"가 된다.
-  return <FontScaleContext.Provider value={{ scale, setScale }}><Fragment key={scale}>{children}</Fragment></FontScaleContext.Provider>;
+  // ⚠️context 에 내려보내는 것도 **보정된 값**이다 — `ls()`(상자 치수)가 글자와 같은 비율로 커져야 한다.
+  //   설정 화면은 사용자가 고른 원본이 필요하므로 `rawScale` 로 따로 준다.
+  return (
+    <FontScaleContext.Provider value={{ scale: effective, rawScale: scale, setScale }}>
+      <Fragment key={effective}>{children}</Fragment>
+    </FontScaleContext.Provider>
+  );
 }
 
 /**
@@ -73,7 +92,7 @@ export function FontScaleProvider({ children }: { children: ReactNode }) {
  *   ⚠️ fs() 로 계산한 lineHeight 도 그대로 두면 된다 — 전역 패치가 fontSize·lineHeight 를 **같은 비율로** 키운다.
  */
 export function useFontScale() {
-  const { scale, setScale } = useContext(FontScaleContext);
+  const { scale, rawScale, setScale } = useContext(FontScaleContext);
   const fs = (px: number) => px;   // 항등 — 실제 배율은 전역 패치가 적용
   /**
    * ★레이아웃 치수 스케일(daniel 2026-07-29 "글자크기 중간·큰 사이즈인데 둘다 짤려").
@@ -83,5 +102,5 @@ export function useFontScale() {
    *   ⚠️치수에 fs() 를 쓰면 안 커진다. 글자를 담는 상자는 반드시 ls().
    */
   const ls = (px: number) => Math.round(px * scale);
-  return { scale, setScale, fs, ls };
+  return { scale, rawScale, setScale, fs, ls };
 }

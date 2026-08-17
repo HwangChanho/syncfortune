@@ -56,7 +56,8 @@ export default function SettingsScreen() {
   const { session, isRegistered } = useAuth();
   const { refresh } = useSubscription();
   const coins = useCoinBalance(session);   // 보유 운(null=미로그인·조회 실패). 표시 규칙은 훅 한 곳에.
-  const { scale, setScale, fs } = useFontScale();
+  const { rawScale, setScale, fs } = useFontScale();   // ★설정 화면은 **사용자가 고른 값**으로 판정한다
+  //   (`scale` 은 웹 폭 보정이 곱해진 실제 배율이라 FONT_STEPS 와 안 맞는다 — 어떤 단계도 안 켜진다)
   const [busy, setBusy] = useState<string | null>(null); // 전체화면 로딩 오버레이 메시지(긴 콜백)
   const [accent, setAccentState] = useState<AccentMode>(getThemeAccent()); // ★테마 강조색(자동=일간 오행 / 오행 직접 / 골드)
   const [loadingMode, setLoadingModeState] = useState<LoadingMode>(getLoadingMode()); // 로딩(인트로) 화면 video(호랑이)/text(八字)/off(없음, daniel 07-15)
@@ -202,7 +203,7 @@ export default function SettingsScreen() {
       <Text style={[styles.h, { marginTop: space(7) }]}>{t('settings.fontSize')}</Text>
       <View style={styles.row}>
         {FONT_STEPS.map((s) => {
-          const on = Math.abs(scale - s.scale) < 0.001;
+          const on = Math.abs(rawScale - s.scale) < 0.001;
           return (
             <PressableScale key={s.key} style={[styles.opt, on && styles.optOn]} onPress={() => setScale(s.scale)}>
               <Text style={[styles.optTx, on && styles.optTxOn, { fontSize: 13 * s.scale }]}>{t(`settings.size_${s.key}`)}</Text>
