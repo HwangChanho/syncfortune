@@ -23,6 +23,7 @@ import { playSound } from '../../lib/ui/sounds';
 import { colors, radius, space, font } from '../../lib/theme';
 import { GlassCard } from '../../components/GlassCard';
 import { useLogContentVisit } from '../../lib/backend/contentVisit'; // 콘텐츠 방문 집계(daniel 2026-07-06) — 진입 1회 기록
+import { usePortraitCap } from '../../lib/ui/heroSize'; // ★웹: 세로 카드 폭 상한(네이티브 무관)
 
 // expo-haptics 는 네이티브 모듈 — 현재 dev 빌드 미포함 시 호출하면 크래시. 안전 래퍼로 감싼다(재빌드 후 정상 진동).
 const hImpact = (s: Haptics.ImpactFeedbackStyle) => { try { Haptics.impactAsync(s).catch(() => {}); } catch { /* 네이티브 미포함 — 무시 */ } };
@@ -46,6 +47,7 @@ function todayStr(): string {
 }
 
 export default function TaroScreen() {
+  const cardCap = usePortraitCap();   // 넓은 웹에서만 카드 폭을 묶는다(폰·네이티브는 null)
   useLogContentVisit('taro'); // 진입 1회 방문 기록(daniel 2026-07-06)
   const { t } = useTranslation();
   const { cat } = useLocalSearchParams<{ cat?: string }>();
@@ -231,7 +233,7 @@ export default function TaroScreen() {
               }]}
             >
               <GlassCard intensity={60} style={styles.bigGlass}>
-                <ExpoImage source={cardImage(spread[sel].id)} style={[styles.bigImgNew, spread[sel].reversed && styles.revImg]} contentFit="contain" />
+                <ExpoImage source={cardImage(spread[sel].id)} style={[styles.bigImgNew, spread[sel].reversed && styles.revImg, cardCap]} contentFit="contain" />
                 <View style={styles.bigInfo}>
                   <Text style={styles.bigPos}>{sel + 1}. {spread[sel].position}</Text>
                   <Text style={styles.bigName}>{spread[sel].ko}{spread[sel].reversed ? ' (뒤집힘)' : ''}</Text>

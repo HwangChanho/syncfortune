@@ -28,6 +28,7 @@ import { pickNextStep, ownedKeysFrom, type NextStep, type CategoryItem } from '.
 import { CREDIT_KINDS } from '../lib/billing/coupons';
 import { useFontScale } from '../lib/ui/fontScale';
 import { colors, radius, space, shadow, font } from '../lib/theme';
+import { useHeroCap, HERO_CAP } from '../lib/ui/heroSize'; // ★웹 전폭 히어로 높이 상한(네이티브 무관)
 
 // 키 → 라벨(유료는 CREDIT_KINDS 한글명, 그 외는 SECTIONS 라벨키). 단일 출처에서만 끌어온다.
 const CREDIT_LABEL: Record<string, string> = Object.fromEntries(CREDIT_KINDS.map((c) => [c.key, c.ko]));
@@ -54,6 +55,7 @@ const META: Record<string, { image?: any; route: string; labelKey: string; descK
 const ANCHOR_KEY = 'month';
 
 export function NextStepCard({ reloadKey, category = null }: { reloadKey?: number; category?: string | null }) {
+  const heroCap = useHeroCap(HERO_CAP.banner);   // 넓은 웹에서만 높이를 묶는다(폰·네이티브는 null)
   const router = useRouter();
   const { t } = useTranslation();
   const { fs } = useFontScale();
@@ -94,7 +96,7 @@ export function NextStepCard({ reloadKey, category = null }: { reloadKey?: numbe
   const price = meta.creditKey ? priceLabel(meta.creditKey) : null;
 
   return (
-    <PressableScale style={styles.card} onPress={() => router.push(meta.route as any)}>
+    <PressableScale style={heroCap ? [styles.card, heroCap] : styles.card} onPress={() => router.push(meta.route as any)}>
       {meta.image ? (
         <ExpoImage source={meta.image} style={StyleSheet.absoluteFill} contentFit="cover" contentPosition="center" cachePolicy="memory-disk" transition={140} />
       ) : null}

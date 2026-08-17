@@ -49,6 +49,7 @@ import { colors, radius, space, shadow, font } from '../lib/theme';
 import { useWebCols } from './WebShell'; // 넓은 웹 = 본문 컬럼 좁히기(히어로는 전폭)
 import { UnlockOverlay } from './UnlockOverlay';         // unlock 자물쇠 애니 + 그 사이 LLM
 import { ChartPicker } from './ChartPicker';             // 상단 명식 헤더 — 현재 적용 명식 표시·전환
+import { useHeroCap, HERO_CAP } from '../lib/ui/heroSize'; // ★웹 전폭 히어로 높이 상한(네이티브 무관)
 
 export type Section = { key: string; label: string; groupTitle?: string }; // groupTitle: 이 섹션 카드 위에 그룹 구분 헤더(divider) 표시(daniel: 별자리/점성술 섹터 분리)
 
@@ -644,6 +645,7 @@ export function cardAnim(reveal: Animated.Value, i: number, n: number) {
 // 상단 히어로 — SVG 모티프(+선택적 이미지 배경) + 타이틀/부제 페이드인. love/newyear 등 다른 화면도 재사용(export).
 export function ContentHero({ motif, image, title, sub, themeColor = colors.ju }: { motif?: ReactNode; image?: any; title: string; sub: string; themeColor?: string }) {
   const { fs } = useFontScale();
+  const heroCap = useHeroCap(HERO_CAP.reading);   // 넓은 웹에서만 높이를 묶는다(폰·네이티브는 null)
   const a = useRef(new Animated.Value(0)).current;
   const kb = useRef(new Animated.Value(0)).current; // 히어로 켄번스(느린 줌 인↔아웃) — 정적 이미지에 생동(daniel 재미)
   useEffect(() => { Animated.timing(a, { toValue: 1, duration: 700, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start(); }, [a]);
@@ -669,7 +671,7 @@ export function ContentHero({ motif, image, title, sub, themeColor = colors.ju }
   );
   if (image) return (
     // 히어로 이미지 박스 = 이미지 비율(1344x768=1.75)에 맞춤 → cover가 좌우 안 자르고 풀이미지 중앙 노출(daniel: 이미지 가운데/가로 꽉)
-    <View style={styles.heroImageBox}>
+    <View style={heroCap ? [styles.heroImageBox, heroCap] : styles.heroImageBox}>
       <Animated.View style={[StyleSheet.absoluteFill, { transform: [{ scale: kb.interpolate({ inputRange: [0, 1], outputRange: [1, 1.08] }) }] }]}>
         <ExpoImage source={image} style={StyleSheet.absoluteFill} contentFit="cover" contentPosition="center" cachePolicy="memory-disk" transition={150} />
       </Animated.View>

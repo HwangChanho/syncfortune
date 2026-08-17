@@ -14,6 +14,7 @@ import { useRouter } from 'expo-router';
 import { loadRepChart, subscribeRepChange } from '../lib/engine/myChart';   // 대표 명식(SavedChart) — 온디바이스, 로그인 불필요
 import { computeChart } from '../lib/engine/engine';      // 만세력 결정론 산출(엔진) — API 0
 import { colors, radius, space, shadow, font } from '../lib/theme';
+import { useHeroCap, HERO_CAP } from '../lib/ui/heroSize'; // ★웹 전폭 히어로 높이 상한(네이티브 무관)
 
 /**
  * 무료→유료 퍼널 공통 셸.
@@ -35,6 +36,7 @@ export function FreeFunnel({ heroImage, question, sub, paidRoute, paidCta, rende
    *  이 셸을 쓰는 퍼널 3종(재회·짝사랑·취업)이 한 번에 붙는다 — 화면마다 따로 붙이면 또 어긋난다. */
   relatedKind?: string;
 }) {
+  const heroCap = useHeroCap(HERO_CAP.banner);   // 넓은 웹에서만 높이를 묶는다(폰·네이티브는 null)
   const router = useRouter();
   const [saju, setSaju] = useState<any>(null); // 대표 명식의 사주(결정론). null=아직 로드 전 or 명식 없음.
   const [loaded, setLoaded] = useState(false);  // 비동기 로드 완료 여부(스피너 종료 신호).
@@ -83,7 +85,7 @@ export function FreeFunnel({ heroImage, question, sub, paidRoute, paidCta, rende
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>
       {/* 히어로 — 이미지 배경 + 어둡게 스크림 위에 질문 헤드라인(밝은 글씨). 퍼널의 첫 훅. */}
-      <ImageBackground source={heroImage} style={styles.hero} imageStyle={styles.heroImg} resizeMode="cover">
+      <ImageBackground source={heroImage} style={heroCap ? [styles.hero, heroCap] : styles.hero} imageStyle={styles.heroImg} resizeMode="cover">
         <View style={styles.heroScrim} />
         <View style={styles.heroInner}>
           <Text style={styles.heroTitle}>{question}</Text>
