@@ -52,6 +52,29 @@ if (!/hasChartElement\(\)/.test(themeEl)) {
   bad.push('[S4] `ensureThemeElement` 에 `hasChartElement()` 가드가 없다 — 사용자의 선택을 덮는다');
 }
 
+// ── 2026-08-19: '테마 즉시 반영' 리로드를 넣으면서 생긴 새 함정 셋 ──────────
+// daniel: *"모바일에서 명식 변경했는데 테마 적용이 바로 안돼"* → 리로드를 켰다.
+//   `colors` 가 모듈 로드 시 1회 결정돼(168개 파일 import) 즉시 반영은 재시작뿐이다.
+//   그런데 리로드에는 값이 두 개 딸려 온다 — **어디로 돌아오나**와 **대표가 되돌아가나**.
+
+// [S5] 리로드 뒤 **있던 화면으로 복귀**한다(daniel 2026-07-18 "명식 바꿀 때마다 홈으로 튕겨서")
+if (!/consumeThemeReload\(\)/.test(layout) || !/router\.replace\(returnTo/.test(layout)) {
+  bad.push('[S5] 테마 리로드 뒤 원래 화면으로 돌아가지 않는다 — 명식만 바꿔도 홈으로 튕긴다');
+}
+
+// [S6] 테마 리로드로 다시 뜬 시작에서는 `preferSelfAsRep()` 을 **건너뛴다**
+//   안 건너뛰면 방금 고른 명식이 리로드 직후 본인으로 되돌아간다(테마만 바뀌고 명식은 원복 = 최악).
+if (!/if \(!was\) preferSelfAsRep\(\)/.test(layout)) {
+  bad.push("[S6] 테마 리로드 시작에서 `preferSelfAsRep()` 을 건너뛰지 않는다 — 방금 고른 명식이 본인으로 되돌아간다");
+}
+
+// [S7] `storeChartElement` 는 **리로드하지 않는다**(저장·판정만) — 리로드는 경로를 아는 쪽이 한다
+const themeSrc = readFileSync('app/src/lib/theme.ts', 'utf8');
+const storeBody = /export function storeChartElement[\s\S]*?\n\}/.exec(themeSrc)?.[0] ?? '';
+if (/reloadAsync|DevSettings\.reload/.test(storeBody)) {
+  bad.push('[S7] `storeChartElement` 안에서 리로드한다 — 그러면 돌아올 화면을 모른다(홈으로 튕긴다)');
+}
+
 if (process.argv.includes('--selftest')) {
   const cases: Array<[string, RegExp, string, boolean]> = [
     ['S1 위반', /preferSelfAsRep\(\)[^;]*\.then\(\s*\(\s*\)\s*=>\s*syncThemeElement/,
@@ -60,6 +83,12 @@ if (process.argv.includes('--selftest')) {
       'preferSelfAsRep().catch(() => {}); ensureThemeElement()', false],
     ['S3 위반', /notifyRepChange\('boot'\)/, "notifyRepChange()", false],
     ['S3 정상', /notifyRepChange\('boot'\)/, "notifyRepChange('boot')", true],
+    ['S5 위반', /router\.replace\(returnTo/, 'consumeThemeReload();', false],
+    ['S5 정상', /router\.replace\(returnTo/, 'router.replace(returnTo as never)', true],
+    ['S6 위반', /if \(!was\) preferSelfAsRep\(\)/, 'preferSelfAsRep().catch(() => {})', false],
+    ['S6 정상', /if \(!was\) preferSelfAsRep\(\)/, 'if (!was) preferSelfAsRep().catch(() => {})', true],
+    ['S7 위반', /reloadAsync|DevSettings\.reload/, 'Updates?.reloadAsync?.()', true],
+    ['S7 정상', /reloadAsync|DevSettings\.reload/, 'return (readPref(ACCENT_KEY) || \'auto\') === \'auto\';', false],
   ];
   let n = 0;
   for (const [name, re, sample, want] of cases) {

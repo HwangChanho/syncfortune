@@ -11,8 +11,8 @@ import '../lib/i18n'; // 다국어(한·영·일) init
 //   화면 291곳을 고치는 대신 바닥값을 여기서 깐다(자세한 근거는 모듈 주석).
 import { installMinLineHeight } from '../lib/ui/textLineHeight';
 installMinLineHeight();
-import { useEffect, useState, useSyncExternalStore } from 'react';
-import { Stack } from 'expo-router';
+import { useEffect, useState, useSyncExternalStore, useRef } from 'react';
+import { Stack, useRouter, usePathname } from 'expo-router';
 import { useFonts } from 'expo-font'; // 트렌디 폰트(Pretendard) 런타임 로드 — 네이티브 ExpoFont pod
 import { View, ActivityIndicator, StyleSheet, LogBox, AppState, InteractionManager } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler'; // 이슈20 드래그 reorder(gesture-handler) — 루트 래핑 필수
@@ -23,6 +23,7 @@ import { applyCopyOverrides } from '../lib/ui/copyOverrides';   // ★빌드 없
 import { refreshAdFree } from '../lib/billing/adFree';   // ★광고 제거(운) 전역 재평가 — 배너가 전 화면에 있어 단일 소스가 필요 // 세션 변경(로그인/로그아웃/계정전환) 시 프리미엄 전역 재평가 → 광고 즉시 토글(daniel 2026-06-24)
 import { migrateLocalCreditsOnLogin } from '../lib/billing/migrateCredits'; // 로그인 시 디바이스 구매 이관(H)
 import { preferSelfAsRep, syncChartsFromServer, subscribeRepChange } from '../lib/engine/myChart'; // 대표 명식=본인 + 명식 멀티기기 동기화(포그라운드 복귀 시) + 대표 변경 구독(테마 반영)
+import { applyThemeNow, consumeThemeReload } from '../lib/theme';
 import { hydrateGenProgress } from '../lib/backend/genProgress'; // 앱 시작 시 진행중/미확인 풀이 복원 → 홈 배너(daniel: 강제종료 생존)
 import { initAds, setAdTestMode } from '../lib/core/ads'; // AdMob 초기화 + 테스트광고 모드(관리자/테스트=실 유닛 서빙 전이라 구글 테스트광고로, daniel)
 import { setClientTestMode } from '../lib/core/testMode'; // ★클라 테스트모드 캐시 → readings 목업(tier='mock') 필터 판정(OFF서 목업 새어나감 방지, daniel 07-23)
@@ -56,6 +57,12 @@ LogBox.ignoreLogs([/i18next::pluralResolver/]);
 applyGlobalFont();
 
 export default function RootLayout() {
+  const router = useRouter();
+  // ★지금 화면 경로를 **ref 로** 들고 있는다 — 테마 리로드 직전에 저장해 두었다가 돌아온다.
+  //   구독 콜백은 한 번만 등록되므로(`[]`) 클로저에 갇힌 값이 아니라 ref 를 봐야 최신이다.
+  const pathname = usePathname();
+  const pathnameRef = useRef(pathname);
+  pathnameRef.current = pathname;
   const { session, loading } = useAuth();
   // 트렌디 폰트(Pretendard) 3웨이트 로드 — globalFont 패치가 참조하는 키명과 일치해야 함.
   //   에러 시(fontError)엔 게이트하지 않고 시스템 폰트로 진행(폰트 문제로 앱이 막히지 않게).
@@ -106,7 +113,25 @@ export default function RootLayout() {
   //   ★★테마는 여기서 **덮지 않는다**(2026-08-18 Boss ②안: 테마 소스를 대표와 분리).
   //     대표는 앱을 켤 때마다 본인으로 돌아가지만, 테마는 **마지막으로 고른 명식**의 색을 지킨다.
   //     `ensureThemeElement()` 는 저장값이 없을 때(최초 실행)만 본인 오행으로 초기화한다.
-  useEffect(() => { preferSelfAsRep().catch(() => {}); ensureThemeElement().catch(() => {}); }, []);
+  //   ★★2026-08-19: '테마 리로드'로 다시 뜬 경우에는 `preferSelfAsRep()` 을 **건너뛴다**.
+  //     안 그러면 방금 고른 명식이 리로드 직후 본인으로 되돌아간다(테마만 바뀌고 명식은 원복 = 최악).
+  //     그리고 있던 화면으로 돌려보낸다(daniel 2026-07-18 *"명식 바꿀 때마다 홈으로 튕겨서"*).
+  useEffect(() => {
+    const { was, returnTo } = consumeThemeReload();
+    if (!was) preferSelfAsRep().catch(() => {});
+    ensureThemeElement().catch(() => {});
+    if (was && returnTo && returnTo !== '/') {
+      // ⚠️라우터가 아직 첫 화면을 마운트하기 전이면 `replace` 가 **조용히 버려진다**
+      //   (2026-08-19 실측: `setTimeout(…, 0)` 으로는 홈에 머물렀다).
+      //   ⇒ 실제로 그 경로에 도착할 때까지 짧게 재시도한다. 2초 안에 안 되면 포기(홈에 머문다).
+      let tries = 0;
+      const tick = setInterval(() => {
+        tries += 1;
+        try { router.replace(returnTo as never); } catch { /* 아직 준비 안 됨 */ }
+        if (pathnameRef.current === returnTo || tries >= 10) clearInterval(tick);
+      }, 200);
+    }
+  }, []);
   // ★★명식을 바꾸면 테마도 **그 명식 오행으로** 간다(Boss 2026-08-18 "현재 적용된 명식 기준").
   //   `reload=true` — 다만 실제 리로드는 **웹에서만** 일어난다(theme.storeChartElement 참조).
   //   07-18 에 리로드를 뺀 이유가 "명식 바꿀 때마다 홈으로 튕겨서"였는데, 웹은 같은 URL 로 새로고침이라
@@ -114,7 +139,13 @@ export default function RootLayout() {
   // ★★명식을 **사람이 고르면** 테마도 그 명식 오행으로 간다(Boss 2026-08-18 "현재 적용된 명식 기준").
   //   ⚠️`'boot'`(앱이 대표를 본인으로 되돌린 것)는 따라가지 않는다 — 그러면 어제 고른 색이 매번 리셋된다.
   //   색이 실제로 바뀌는 시점은 **다음 진입**이다(`colors` 가 모듈 로드 시 1회 결정 — 168개 파일이 import).
-  useEffect(() => subscribeRepChange((reason) => { if (reason !== 'boot') syncThemeElement(); }), []);
+  //   ★색을 **지금** 바꾸려면 앱을 다시 띄우는 수밖에 없다(`colors` 가 모듈 로드 시 1회 결정 — 168개 파일이 import).
+  //     그 비용을 두 가지로 덜었다: ①오행이 **실제로 바뀔 때만** 리로드(같은 오행끼리 전환은 그대로)
+  //     ②리로드 뒤 **있던 화면으로 복귀**(위 부팅 훅).
+  useEffect(() => subscribeRepChange((reason) => {
+    if (reason === 'boot') return;   // 앱이 대표를 본인으로 되돌린 것 — 어제 고른 색을 리셋하지 않는다
+    void syncThemeElement().then((changed) => { if (changed) applyThemeNow(pathnameRef.current); });
+  }), []);
   // ★신규 기능 노출 게이트 로드(세션 변경 시) — 원격 플래그(app_flags)+내 관리자 여부. 속궁합/커뮤니티/위젯 게이트.
   useEffect(() => { loadFeatures().catch(() => {}); }, [session?.user?.id]);
   // 앱 사용 세션 시간 추적(daniel: 관리자 계정별 평균 사용시간) — 포그라운드 구간 길이를 app_session 으로 기록.

@@ -92,6 +92,8 @@ export const ACCENT_SWATCH: Record<string, string> = {
   gold: ELEMENT_PALETTE[DEFAULT_ELEMENT].bg,   // '기본' = 중립(무채) — 오행에서 金 이 곧 백색이다
 };
 const ACCENT_KEY = 'pref.themeAccent';   // 'auto' | '木'|'火'|'土'|'金'|'水' | 'gold'
+const THEME_RELOADING_KEY = 'pref.themeReloading';   // 이번 시작이 테마 리로드인가(1회용)
+const THEME_RETURN_KEY = 'pref.themeReturnTo';       // 리로드 후 돌아갈 화면
 const ELEMENT_KEY = 'pref.themeElement'; // 대표명식 일간 오행(자동 액센트 소스) — themeElement.ts가 저장
 const ELS: ThemeElement[] = ['木', '火', '土', '金', '水'];
 
@@ -217,33 +219,66 @@ export function hasChartElement(): boolean {
   return (ELS as string[]).includes(readPref(ELEMENT_KEY));
 }
 
-export function storeChartElement(el: string, reload = false) {
-  if (!(ELS as string[]).includes(el)) return;   // el 은 엔진에서 온 문자열 — 오행 5자 중 하나인지만 본다
+/**
+ * 테마 오행을 저장한다.
+ *
+ * @param el 오행 5자 중 하나(엔진에서 온 문자열)
+ * @returns **실제로 바뀌었는가** — 부르는 쪽이 이 값으로 리로드 여부를 정한다
+ *
+ * ★리로드를 여기서 하지 않는다(2026-08-19 구조 변경).
+ *   종전엔 이 함수가 저장하고 곧바로 리로드까지 했는데, 그러면 **어디로 돌아올지**를 모른다 —
+ *   리로드는 JS 번들 재시작이라 첫 화면으로 튕긴다(daniel 2026-07-18 *"명식 바꿀 때마다 홈으로 튕겨서"*).
+ *   ⇒ 리로드는 화면 경로를 아는 `_layout` 이 맡고, 여기는 **저장과 판정**만 한다.
+ */
+export function storeChartElement(el: string, _reload = false): boolean {
+  if (!(ELS as string[]).includes(el)) return false;   // el 은 엔진에서 온 문자열 — 오행 5자 중 하나인지만 본다
   // ★`readPref` 로 통일 — 종전엔 SecureStore 동기 getItem 만 봤다. 웹에는 그 API 가 없어 `prev` 가 늘 ''
   //   이었고, 그래서 **매번 '바뀌었다'로 오판**했다(07-18 '백그라운드 갔다오면 새로고침'의 뿌리이기도 하다).
   const prev = readPref(ELEMENT_KEY);
-  if (prev === el) return;
+  if (prev === el) return false;
   try { (SecureStore as any).setItem?.(ELEMENT_KEY, el); } catch { /* noop */ }
   try { (globalThis as any).localStorage?.setItem(ELEMENT_KEY, el); } catch { /* 네이티브엔 없다 */ }
   SecureStore.setItemAsync(ELEMENT_KEY, el).catch(() => {});
-  // ★리로드는 reload=true(대표명식을 실제로 *변경*했을 때)만. 앱 시작·포그라운드 복귀(reload=false)는 저장만 한다.
-  //   daniel 2026-07-18: 포그라운드 복귀마다 _layout 이 syncThemeElement 를 불러 여기 도달하는데, SecureStore 동기
-  //   getItem 이 실패하면 prev='' 가 되어 prev!==el 로 오판 → **매 복귀 리로드**("백그라운드 갔다오면 새로고침")됐다.
-  //   colors 는 모듈 로드 시 ELEMENT_KEY 를 읽으므로 저장만 해두면 *다음 실행*엔 자동 반영(리로드 불필요). 즉시 반영이
-  //   필요한 대표명식 변경만 reload=true 로 리로드. 수동 오행선택(ACCENT_KEY≠auto)은 존중(리로드 안 함).
-  if (reload) {
-    const mode = readPref(ACCENT_KEY) || 'auto';
-    if (mode === 'auto') {
-      // ⚠️⚠️**웹 즉시 리로드를 시도했다가 되돌렸다**(2026-08-18 실측).
-      //   웹은 같은 URL 로 새로고침이라 화면이 안 튕겨서 즉시 반영이 되는 줄 알았는데,
-      //   리로드는 곧 **앱 재시작**이고 `_layout` 이 `preferSelfAsRep()` 을 돌린다 —
-      //   그게 대표를 다시 '본인'으로 **되돌려** 방금 고른 명식이 사라졌다(더 나쁜 버그).
-      //   ⇒ 리로드하지 않는다. 색은 **다음 진입**에 반영된다(네이티브와 같은 동작).
-      //   ★즉시 반영을 하려면 `colors` 를 반응형으로 바꿔야 하는데, 168개 파일이 이걸 import 한다.
-      if (__DEV__) { try { DevSettings.reload(); } catch { /* noop */ } }
-      else { try { Updates?.reloadAsync?.().catch(() => {}); } catch { /* 재시작 후 반영 */ } }
+  // 수동 오행 선택(ACCENT_KEY ≠ auto)은 존중한다 — 그 사람은 색을 직접 고른 것이다
+  return (readPref(ACCENT_KEY) || 'auto') === 'auto';
+}
+
+/**
+ * 테마를 **지금** 화면에 반영한다 — 앱을 다시 띄운다.
+ *
+ * ⚠️왜 리로드밖에 없나: `colors` 는 **모듈 로드 시 1회** 결정되고 `StyleSheet.create` 가 그 값을
+ *   그대로 굽는다. 168개 파일이 이걸 import 하므로 반응형으로 바꾸려면 전부 손봐야 한다.
+ *   ⇒ 지금 할 수 있는 '즉시 반영'은 재시작뿐이다.
+ *
+ * ★대신 **튕기지 않게** 두 가지를 남긴다(부르는 쪽이 채운다):
+ *   ① `pref.themeReturnTo` — 돌아올 화면 경로
+ *   ② `pref.themeReloading` — 이번 시작은 '테마 리로드'라는 표시
+ *     → 부팅 경로가 이걸 보고 `preferSelfAsRep()`(대표=본인 되돌리기)을 **한 번 건너뛴다**.
+ *       안 그러면 방금 고른 명식이 리로드 직후 본인으로 되돌아간다(2026-08-18 에 겪은 그 버그).
+ */
+export function applyThemeNow(returnTo?: string): void {
+  try { (globalThis as any).localStorage?.setItem(THEME_RELOADING_KEY, '1'); } catch { /* noop */ }
+  try { (SecureStore as any).setItem?.(THEME_RELOADING_KEY, '1'); } catch { /* noop */ }
+  if (returnTo) {
+    try { (globalThis as any).localStorage?.setItem(THEME_RETURN_KEY, returnTo); } catch { /* noop */ }
+    try { (SecureStore as any).setItem?.(THEME_RETURN_KEY, returnTo); } catch { /* noop */ }
+  }
+  if (__DEV__) { try { DevSettings.reload(); return; } catch { /* noop */ } }
+  try { Updates?.reloadAsync?.().catch(() => {}); } catch { /* 재시작 후 반영 */ }
+}
+
+/** 이번 시작이 '테마 리로드'인가. **읽으면 지운다**(한 번만 쓰는 표시). */
+export function consumeThemeReload(): { was: boolean; returnTo: string | null } {
+  const was = readPref(THEME_RELOADING_KEY) === '1';
+  const returnTo = readPref(THEME_RETURN_KEY) || null;
+  if (was) {
+    for (const k of [THEME_RELOADING_KEY, THEME_RETURN_KEY]) {
+      try { (globalThis as any).localStorage?.removeItem(k); } catch { /* noop */ }
+      try { (SecureStore as any).setItem?.(k, ''); } catch { /* noop */ }
+      SecureStore.deleteItemAsync(k).catch(() => {});
     }
   }
+  return { was, returnTo };
 }
 
 // 로딩(인트로) 영상 on/off — daniel 07-03. 끄면 八字 한자 스플래시만. 기본 on. 다음 실행부터 반영(스플래시는 실행 시 1회).

@@ -10,10 +10,15 @@ import { computeChart } from '../engine/engine';
 import { stemElement } from '../engine/ohaeng';
 import { storeChartElement, hasChartElement } from '../theme';
 
-/** 대표명식 일간 오행을 산출해 theme 강조색 소스로 저장.
- *  @param reload true=대표명식을 실제로 *변경*했을 때만(즉시 리로드로 색 반영). 앱시작·포그라운드 복귀는 false(저장만·리로드 없음).
- *  실패/명식없음=무시. */
-export async function syncThemeElement(reload = false): Promise<void> {
+/**
+ * 지금 적용된 명식의 일간 오행을 산출해 테마 색 소스로 저장한다.
+ *
+ * @returns **화면에 지금 반영해야 하는가** — 오행이 실제로 바뀌었고 강조 모드가 `auto` 일 때만 true.
+ *   ★리로드는 여기서 하지 않는다. 화면 경로를 아는 쪽(`_layout`)이 `applyThemeNow(경로)` 를 부른다
+ *     — 그래야 리로드 뒤 **있던 화면으로 돌아온다**(daniel 2026-07-18 "홈으로 튕겨서").
+ * 실패/명식없음 = false(아무 일도 하지 않는다).
+ */
+export async function syncThemeElement(_reload = false): Promise<boolean> {
   try {
     // ★★테마 소스 = **지금 적용된 명식**(Boss 2026-08-18 *"앱 배경테마는 대표명식말고 현재 적용된 명식 기준으로"*).
     //
@@ -24,10 +29,11 @@ export async function syncThemeElement(reload = false): Promise<void> {
     //     오행 5색 세트라 **화면 전체**가 바뀐다 — 누구를 보고 있는지가 색으로 드러나는 편이 맞다.
     //   ★그래서 self 폴백을 남긴다: 아직 아무 명식도 안 고른 상태에서는 본인 색으로 시작한다.
     const src = (await loadRepChart()) ?? (await listCharts()).find((c) => c.relation === 'self');
-    if (!src?.input) return;
+    if (!src?.input) return false;
     const stem = computeChart(src.input).saju?.dayMaster?.stem;
-    if (stem) storeChartElement(stemElement(stem), reload);
-  } catch { /* 무시(테마는 다음 로드에 반영) */ }
+    if (!stem) return false;
+    return storeChartElement(stemElement(stem));
+  } catch { return false; }   /* 무시(테마는 다음 로드에 반영) */
 }
 
 /**
