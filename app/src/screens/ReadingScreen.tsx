@@ -27,6 +27,14 @@ import { isAdminActing } from '../lib/core/admin'; // 관리자 여부 — 풀�
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { computeChart } from '../lib/engine/engine';
+import { stemElement, branchElement } from '../lib/engine/ohaeng';
+// ★시안(니운내운.pdf p10·p11) 풀이 본문 — 히어로·명식표·오행 분포·6탭
+import { ReadingHero } from '../components/reading/ReadingHero';
+import { NatalTable } from '../components/reading/NatalTable';
+import { ElementDonut } from '../components/reading/ElementDonut';
+import { READING_TABS, areasOfTab, type ReadingTab } from '../lib/content/readingTabs';
+import { DAY_PILLAR, dayPillarKey } from '../lib/engine/dayPillar';
+import { iljuEmblem } from '../lib/dayPillarEmblem';   // 일주 → 「은빛 소」 같은 이름(시안 히어로 제목)
 import { useAuth } from '../lib/useAuth';
 import { supabase } from '../lib/supabase';
 import { withTimeout, GEN_TIMEOUT_MS } from '../lib/core/withTimeout';   // ★대기 상한(멈춤 방지·2026-07-31)
@@ -176,6 +184,9 @@ export function ReadingScreen({
   const [unlocked, setUnlocked] = useState(false); // 이 명식 세트 결제 언락 여부(#1 — 프리미엄 아니어도 결제자면 표시 유지)
   const [unlockedLoaded, setUnlockedLoaded] = useState(false); // 언락 조회 완료 — 이 전엔 잠금 판정 보류(로드 race 자물쇠 깜빡임 방지, daniel 07-01)
   const [expandedG, setExpandedG] = useState<Record<string, boolean>>({}); // 아코디언 펼침(그룹 라벨→bool, 기본 펼침)
+  // ★시안 6탭(2026-08-18) — **사주에서만** 쓴다. 자미 12궁은 이름이 곧 분류라 기존 4그룹을 유지한다.
+  const [tab, setTab] = useState<ReadingTab['key']>('all');
+  const useTabs = kind !== 'ziwei';
   useEffect(() => {
     let alive = true;
     getRepresentativeId().then((rid) => { if (alive) setIsRep(!!savedChart && !!rid && rid === savedChart.id); }).catch(() => {});
@@ -204,6 +215,41 @@ export function ReadingScreen({
     if (etc.length) out.push({ label: '기타', items: etc });
     return out;
   }, [cats, kind, readings]);
+
+  /**
+   * 시안 히어로에 들어갈 제목·부제.
+   *
+   * ★문구를 **지어내지 않는다** — 시안의 「흐름을 따르는 지혜」 같은 시적 타이틀은 일주 60종마다
+   *   필요하고 그건 daniel 검수 슬롯이다(CLAUDE.md §3). 지금은 있는 데이터로 정확히 쓴다:
+   *     제목 = 일주 엠블럼(`iljuEmblem().name`, 예 「은빛 소」)
+   *     부제 = `DAY_PILLAR[일주].overview` 의 첫 문장
+   *   타이틀 60종이 오면 제목 한 줄만 갈아 끼우면 된다.
+   */
+  /** 히어로 아치의 점 크기용 오행 개수 — `ElementDonut` 과 **같은 규칙**(천간·지지 각 1). */
+  const elemCounts = useMemo(() => {
+    const sj = c?.saju;
+    if (!sj) return null;
+    const counts: Record<string, number> = { 木: 0, 火: 0, 土: 0, 金: 0, 水: 0 };
+    for (const pos of ['년', '월', '일', '시'] as const) {
+      const pd = sj.pillars?.[pos];
+      if (!pd) continue;
+      const se = stemElement(pd.stem), be = branchElement(pd.branch);
+      if (se in counts) counts[se]++;
+      if (be in counts) counts[be]++;
+    }
+    return counts;
+  }, [c]);
+
+  const hero = useMemo(() => {
+    const dp = c?.saju?.pillars?.['일'];
+    if (!dp) return null;
+    const emblem = iljuEmblem(dp.stem, dp.branch);
+    const key = dayPillarKey(dp.stem, dp.branch);
+    const overview = key ? DAY_PILLAR[key]?.overview ?? '' : '';
+    // 첫 문장만 — 히어로는 두 줄이 한계라 통째로 넣으면 잘린다
+    const sub = overview.split(/(?<=[.!?])\s/)[0] ?? '';
+    return { title: emblem.name || `${dp.stem}${dp.branch} 일주`, sub };
+  }, [c]);
 
   // ★추천 콘텐츠(daniel 07-21 '이런 콘텐츠도 좋아하실 거예요') — 상세 하단에 이미지 리스트로. 현재 리딩 화면(사주/자미)은 제외.
   const recommend = useMemo(() => {
@@ -842,6 +888,12 @@ export function ReadingScreen({
     <UnlockOverlay visible={showUnlockOverlay(!!progress, Object.keys(readings).length) /* 생성중+캐시0일 때만 — 기존 풀이 위 자물쇠 방지(readingGate·테스트됨) */} message={progress?.current ? t('reading.progress', { current: progress.current, done: progress.done, total: progress.total }) : t('reading.generating', '풀이를 정성껏 그리는 중…')} videoKey={kind === 'ziwei' ? 'ziwei' : 'saju'} /* 사주=saju / 자미두수=ziwei 테마 로딩 영상 */ done={progress?.done} total={progress?.total} /* ★실제 진행 전달 — 없으면 오버레이가 시간추정 램프로 95%를 띄워 (0/16)과 모순됐다 */ />
     <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>
       {header}
+      {/* ★시안 p10 히어로 — 아치 + 일주 이름 + 한 줄. 사주에서만(자미는 궁 중심이라 다른 지면이다). */}
+      {useTabs && hero ? (
+        <View style={styles.heroWrap}>
+          <ReadingHero title={hero.title} sub={hero.sub} counts={elemCounts ?? undefined} />
+        </View>
+      ) : null}
       {/* ★생성 진행 바(daniel 2026-07-29 "풀이 눌렀는데 풀이중인지 뭐 어쩐지 아무것도 모르겠는데").
           자물쇠 오버레이는 **캐시 0개일 때만** 뜬다(showUnlockOverlay) — 한 영역이라도 채워지면 사라져
           그 뒤로는 아무 표시가 없었다. 진행 중이면 여기서 항상 보이게 한다. */}
@@ -857,8 +909,10 @@ export function ReadingScreen({
         </View>
       ) : null}
       {/* ★상단 '계산됨' 배지 — 이 풀이가 유저 명식(생년월일 계산)에 근거함을 표시(한 줄·과밀 방지) */}
-      {/* 풀이 보유 만료일 — 공통 컴포넌트(프리미엄 가드·문구 한 곳, daniel 07-01). 생성된 풀이 있을 때만. */}
-      <ExpiryNote expiry={Object.keys(readings).length > 0 ? expiry : null} chartId={chartId} />
+      {/* 풀이 보유 만료일 — 공통 컴포넌트(프리미엄 가드·문구 한 곳, daniel 07-01). 생성된 풀이 있을 때만.
+          ★시안 지면에서는 **본문 뒤**로 내린다(2026-08-18) — 히어로와 탭 사이에 끼면 지면이 거기서 끊긴다.
+            안내문이라 먼저 읽힐 이유가 없다. 자미(탭 미사용)에서는 종전 자리를 지킨다. */}
+      {!useTabs ? <ExpiryNote expiry={Object.keys(readings).length > 0 ? expiry : null} chartId={chartId} /> : null}
       {/* 상단 타이틀·설명 제거(daniel: 카드뷰만) — 화면 헤더(네비)로 충분 */}
       {/* 생성 버튼 + 과금 안내(미생성 항목이 있을 때만) */}
       {showStart && (
@@ -893,8 +947,81 @@ export function ReadingScreen({
           <Text style={{ ...font.caption, color: colors.inkSoft, marginTop: space(3) }}>{t('reading.lockedNote', '위 버튼으로 열어 전부 보실 수 있어요.')}</Text>
         </View>
       )}
+      {/* ★시안 6탭(2026-08-18) — 사주는 「전체·성향·연애·직업·재물·인생」.
+            종전엔 세로 아코디언 4그룹이었다(daniel b안 2026-07). Boss "전부 다 똑같이" → 시안을 따른다.
+            ⚠️16영역이 하나도 빠지지 않는지는 `check:readingtabs` 가 값으로 검사한다 —
+              탭을 바꿀 때 영역이 조용히 사라지면 **돈 낸 사람이 산 내용이 화면에서 없어진다**. */}
+      {!locked && useTabs ? (
+        <>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabBar} contentContainerStyle={styles.tabBarIn}>
+            {READING_TABS.map((tb) => {
+              const on = tb.key === tab;
+              return (
+                <PressableScale key={tb.key} style={[styles.tabChip, on && styles.tabChipOn]} onPress={() => setTab(tb.key)}>
+                  <Text style={[styles.tabTx, on && styles.tabTxOn]}>{t(`readingTab.${tb.key}`)}</Text>
+                </PressableScale>
+              );
+            })}
+          </ScrollView>
+
+          {tab === 'all' ? (
+            /* 개요 탭 — 시안의 「1. 나의 사주팔자」·「2. 나를 이루는 다섯 기운」 */
+            <View style={styles.sheet}>
+              {c?.saju ? (
+                <>
+                  <Text style={styles.numHead}>{t('readingTab.h1', '1. 나의 사주팔자')}</Text>
+                  <NatalTable saju={c.saju} />
+                  <View style={styles.hr} />
+                  <Text style={styles.numHead}>{t('readingTab.h2', '2. 나를 이루는 다섯 기운')}</Text>
+                  <ElementDonut saju={c.saju} />
+                  {/* ★시안 p10 의 세 번째 블록 — 개요 탭이 표와 차트만이면 '읽을 것'이 없다.
+                        성격 본문을 여기 한 번 세우고, 같은 글이 '성향' 탭에도 있다(시안도 그렇다).
+                        ⚠️탭 매핑 표(readingTabs)에는 넣지 않는다 — 거기 넣으면 중복으로 잡힌다.
+                          '전체'는 개요 자리라 영역을 갖지 않는 것이 규칙이다. */}
+                  {(() => {
+                    const r = normalizeReading(readings['성격내면']);
+                    const txt = r && typeof r === 'object' && !(r as any).error ? asText((r as any).base) : '';
+                    if (!txt) return null;
+                    return (
+                      <>
+                        <View style={styles.hr} />
+                        <Text style={styles.numHead}>{t('readingTab.h3', '3. 나는 어떤 사람일까요?')}</Text>
+                        <ReadingProse text={txt} accent={colors.ju} collapsible onTermPress={openTerm} />
+                      </>
+                    );
+                  })()}
+                </>
+              ) : null}
+            </View>
+          ) : (
+            /* 영역 탭 — 본문을 **펼쳐** 보여준다(시안). 각 영역 끝의 '자세히'로 기존 상세(질문·공유·TTS)로 간다 */
+            <View style={styles.sheet}>
+              {areasOfTab(tab).map((area, idx) => {
+                const cat = cats.find((x) => x.key === area);
+                const r = normalizeReading(readings[area]);
+                if (!cat || !r || typeof r !== 'object' || (r as any).error) return null;
+                return (
+                  <View key={area} style={styles.tabSection}>
+                    <Text style={styles.numHead}>{idx + 1}. {cat.label}</Text>
+                    <ReadingProse text={asText((r as any).base)} accent={colors.ju} collapsible onTermPress={openTerm} />
+                    <PressableScale style={styles.moreRow} onPress={() => setDetail(area)}>
+                      <Text style={styles.moreTx}>{t('readingTab.more', '자세히 보기')} ›</Text>
+                    </PressableScale>
+                  </View>
+                );
+              })}
+              {/* 이 탭의 영역이 아직 하나도 안 만들어졌을 때 — 빈 화면 대신 이유를 적는다 */}
+              {areasOfTab(tab).every((a) => !readings[a]) ? (
+                <Text style={styles.tabEmpty}>{t('readingTab.empty', '이 주제는 아직 만들어지지 않았어요.')}</Text>
+              ) : null}
+            </View>
+          )}
+          <ExpiryNote expiry={Object.keys(readings).length > 0 ? expiry : null} chartId={chartId} />
+        </>
+      ) : null}
+
       {/* 카테고리 그룹 아코디언 — 그룹 헤더(접기/펴기) + 영역 리스트(탭→상세 모달). 기본 펼침. */}
-      {!locked && groups.map((g) => {
+      {!locked && !useTabs && groups.map((g) => {
         const open = expandedG[g.label] ?? true;
         return (
           <View key={g.label} style={styles.group}>
@@ -994,6 +1121,27 @@ export function ReadingScreen({
 }
 
 const styles = StyleSheet.create({
+  // ── 시안 p10·p11 풀이 지면 ──────────────────────────────────────────────
+  heroWrap: { marginHorizontal: -space(5), marginTop: -space(3), marginBottom: space(2) },   // 지면 좌우 패딩을 뚫고 전폭으로
+  tabBar: { marginHorizontal: -space(5), marginBottom: space(3) },
+  tabBarIn: { paddingHorizontal: space(5), gap: space(2) },
+  tabChip: {
+    paddingHorizontal: space(4), paddingVertical: space(2),
+    borderRadius: radius.pill, backgroundColor: colors.card,
+  },
+  tabChipOn: { backgroundColor: colors.ju },
+  tabTx: { ...font.label, color: colors.inkSoft, fontWeight: '800' },
+  tabTxOn: { color: colors.onJu },
+  // 시안의 흰 시트 — 탭 아래로 본문이 얹힌다
+  sheet: { backgroundColor: colors.card, borderRadius: radius.lg, padding: space(5), marginBottom: space(4) },
+  // 번호 소제목 — 시안이 「1. 나의 사주팔자」처럼 번호를 붙여 읽는 순서를 만든다
+  numHead: { fontSize: 18, lineHeight: 26, fontWeight: '900', color: colors.ju, letterSpacing: -0.3, marginBottom: space(3) },
+  hr: { height: 1, backgroundColor: colors.line, marginVertical: space(5) },
+  tabSection: { marginBottom: space(6) },
+  moreRow: { alignSelf: 'flex-end', paddingVertical: space(2), paddingHorizontal: space(1) },
+  moreTx: { ...font.label, color: colors.ju, fontWeight: '800' },
+  tabEmpty: { ...font.body, color: colors.inkSoft, textAlign: 'center', paddingVertical: space(8) },
+
   // ★생성 진행 바 — 캐시가 일부 찬 뒤에도 '지금 돌고 있다'를 계속 보여 준다(daniel 07-29)
   genBar: { flexDirection: 'row', alignItems: 'center', gap: space(2.5), backgroundColor: colors.juSoft, borderWidth: 1, borderColor: colors.juLine, borderRadius: radius.md, paddingVertical: space(2.5), paddingHorizontal: space(3.5), marginBottom: space(3) },
   genBarTx: { ...font.body, color: colors.ju, fontWeight: '700', flex: 1 },

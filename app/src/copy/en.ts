@@ -559,6 +559,8 @@ export const en = {
     'failed': "Couldn't load notifications.",
     'title': 'Notifications',
   },
+  readingTab: { all: 'Overview', nature: 'Nature', love: 'Love', work: 'Work', money: 'Wealth', life: 'Life',
+    h1: '1. My four pillars', h2: '2. The five energies in me', h3: '3. What kind of person am I?', more: 'Read more', empty: 'This topic has not been generated yet.' },
   my: {
     'fav': 'Saved',
     'readings': 'Reading history',

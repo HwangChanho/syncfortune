@@ -558,6 +558,8 @@ export const ja = {
     'failed': 'お知らせを読み込めませんでした。',
     'title': 'お知らせ',
   },
+  readingTab: { all: '全体', nature: '性向', love: '恋愛', work: '仕事', money: '財運', life: '人生',
+    h1: '1. 私の四柱', h2: '2. 私を作る五つの気', h3: '3. 私はどんな人でしょう？', more: '詳しく見る', empty: 'このテーマはまだ作成されていません。' },
   my: {
     'fav': 'お気に入り',
     'readings': '鑑定履歴',

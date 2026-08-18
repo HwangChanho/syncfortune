@@ -596,6 +596,9 @@ export const ko = {
     'failed': '알림을 불러오지 못했어요.',
     'title': '알림',
   },
+  // 시안 p10·p11 풀이 본문 6탭
+  readingTab: { all: '전체', nature: '성향', love: '연애', work: '직업', money: '재물', life: '인생',
+    h1: '1. 나의 사주팔자', h2: '2. 나를 이루는 다섯 기운', h3: '3. 나는 어떤 사람일까요?', more: '자세히 보기', empty: '이 주제는 아직 만들어지지 않았어요.' },
   my: {
     'fav': '찜한 콘텐츠',
     'readings': '운세 기록',
