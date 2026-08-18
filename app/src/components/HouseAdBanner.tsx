@@ -1,43 +1,58 @@
-// app/src/components/HouseAdBanner.tsx — 홈 상단 '내부 광고'(하우스 광고) 회전 배너
+// app/src/components/HouseAdBanner.tsx — 홈 '오늘의 추천' 회전 배너
 // ─────────────────────────────────────────────────────────────────────────
-// daniel 2026-07-24: 홈에 배너를 올리되, 지금은 외부 광고(AdMob) 대신 *내부 콘텐츠 프로모*를 먼저 노출.
-//   "나의 인연은 어디에?" 처럼 궁금증을 자극하는 훅 → 탭하면 해당 콘텐츠로 진입(자연스러운 발견·전환).
-//   ★이미지 기반(daniel 07-24 '기존 이미지로·실제 배너처럼·조잡하지 않게'): 각 콘텐츠의 기존 타일 이미지를
-//     가로 배너 배경(cover)으로 쓰고, 좌측 다크 그라디언트 위에 훅/부제를 얹어 '진짜 배너'처럼. ContentGrid 카드와 같은 결.
-//   · 가로 페이징 캐러셀(스와이프) + 4.5초 자동 회전 + 하단 도트.
-//   · 문구(hook/sub)는 마케팅 카피라 daniel 검수 슬롯(★). i18n 은 추후(현재 ko 단일 스토어).
+// daniel 2026-07-24: 홈에 배너를 올리되, 외부 광고(AdMob) 대신 *내부 콘텐츠 프로모*를 먼저 노출.
+//   "나의 인연은 어디에?" 처럼 궁금증을 자극하는 훅 → 탭하면 해당 콘텐츠로 진입.
+//
+// ■ 이 파일이 맡는 것 = **여러 장을 어떻게 넘기나**(스와이프·자동회전·점).
+//   한 장이 어떻게 생겼나는 `kit/PromoBanner` 가 맡는다. 둘을 갈라 둬야 한쪽만 고칠 수 있다.
+//
+// ■ 2026-08-18 시안 반영으로 바뀐 것
+//   [before] 콘텐츠 타일 사진 + 좌측 다크 그라디언트 + 흰 글자
+//   [after ] 오행 계열 파스텔 일러스트 + 밝은 스크림 + 먹 글자 + `ju` 알약
+//   ★그림은 **테마 오행**을 따른다 — 시안이 같은 배너 문구를 오행마다 다른 그림으로 그렸다
+//     (p04 水=풍선 · p13 土=문 · p21 木=클로버 · p29 火=계단). `bannerArtFor()` 가 그 규칙이다.
+//
+// ■ ⚠️웹에서 자동회전이 **원래부터 안 돌고 있었다**(2026-08-18 실측)
+//   `pagingEnabled` 는 웹에서 `scroll-snap-type: x mandatory` 로 번역되는데,
+//   그 위에서 `scrollTo({animated:true})`(= `behavior:'smooth'`) 는 **아무 일도 하지 않는다**.
+//   실측: smooth → 1.2초 뒤에도 `scrollLeft` 가 0. instant → 곧바로 677.
+//   그런데 점(idx)은 카운터로 따로 돌고 있어서 **점만 넘어가고 화면은 그대로**였다 —
+//   살아 있는 것처럼 보여서 아무도 몰랐다.
+//   ⇒ ①웹은 애니메이션 없이 민다(그래야 실제로 넘어간다) ②`onScroll` 이 실제 위치로 커서를 교정한다.
+//   ★그래서 점이 다시 거짓말을 하려면 '밀기가 조용히 실패'해야 하는데, 그 원인(animated:true)은
+//     `check:bannerart` B2 가 막는다.
+//
+// ■ 지키고 있는 것 (건드리지 말 것)
+//   route 가 **카테고리**로 간다 — daniel 2026-08-06 퍼널 재설계.
+//   종전엔 유료 화면 직행(/love·/wealth…)이라 첫 화면에서 바로 결제 벽을 만났다.
+//   카테고리 안은 무료가 상단(ContentGrid 무료 우선)이라 자연히 '무료 → 유료' 순서가 된다.
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useRef, useEffect } from 'react';
-import { A } from '../lib/ui/remoteAsset'; // ★이미지 원격화(daniel 08-01) — 번들에서 걷어내고 Storage 에서 받는다
-import { View, Text, ScrollView, StyleSheet, type NativeSyntheticEvent, type NativeScrollEvent } from 'react-native';
-import { Image as ExpoImage } from 'expo-image'; // 자동 다운샘플·디스크캐시(콘텐츠 카드와 동일)
-import { LinearGradient } from 'expo-linear-gradient';
+import { View, ScrollView, StyleSheet, Platform, type NativeSyntheticEvent, type NativeScrollEvent } from 'react-native';
 import { useRouter } from 'expo-router';
-import { PressableScale } from './PressableScale';
-import { useFontScale } from '../lib/ui/fontScale';
-import { colors, radius, space, shadow } from '../lib/theme';
+import { useTranslation } from 'react-i18next';
+import { PromoBanner } from './kit/PromoBanner';
+import { bannerArtFor } from '../lib/ui/brandAsset';
+import { colors, space } from '../lib/theme';
 
-// ★프로모 목록(daniel 검수 슬롯) — 인기 콘텐츠를 궁금증 훅으로. image = 그 콘텐츠의 기존 타일(단일 출처: contentSections 와 동일 파일).
-type Promo = { key: string; hook: string; sub: string; route: string; accent: string; image: any };
+/** 프로모 한 장 — 문구는 i18n 키로만 갖는다(하드코딩하면 en/ja 에 한국어가 나간다). */
+type Promo = { key: string; route: string };
+
+/** ★프로모 목록(문구는 `copy/*.ts` 의 `banner.*`). 순서 = 캐러셀 순서. */
 const PROMOS: Promo[] = [
-  // ★2026-08-06 daniel 퍼널 재설계: "배너에서 연애쪽을 선택하면 풀이탭 연애 카테고리로 넘어가고,
-  //   무료 컨텐츠가 상단에 노출되고, 궁금해질 때쯤 유료 상세로".
-  //   [바뀐 것] route 가 **유료 화면 직행**(/love·/wealth·/jobfit·/future10 = 결제 벽)이었다.
-  //     첫 화면에서 바로 결제를 만나면 무료 사용자는 되돌아간다 → 주제 **카테고리**로 보낸다.
-  //     카테고리 안은 무료가 상단(ContentGrid 무료 우선 정렬)이라 자연히 '무료 → 유료' 순서가 된다.
-  { key: 'love',  hook: '나의 인연은 어디에?',        sub: '연애·궁합 — 무료로 먼저 보고 더 깊이',      route: '/contents?cat=love',  accent: '#F4A6B8', image: A('icons/love.jpg') },
-  { key: 'money', hook: '내 재물 그릇은 얼마나 클까?', sub: '돈·일·진로 — 타고난 그릇과 풀리는 때',      route: '/contents?cat=money', accent: '#EBCF8A', image: A('icons/wealth.jpg') },
-  { key: 'self',  hook: '나는 어떤 사람일까?',         sub: '성격·기질 — 무료 분석부터',                 route: '/contents?cat=self',  accent: '#8FBEEC', image: A('icons/selfAnalysis.jpg') },
-  { key: 'flow',  hook: '10년 뒤, 나는 어떤 모습일까?', sub: '시기와 흐름 — 오늘부터 십 년 뒤까지',       route: '/contents?cat=flow',  accent: '#8FD8BA', image: A('icons/future10.jpg') },
-  { key: 'fun',   hook: '가볍게 오늘 하나 볼까?',       sub: '타로·전생·복 — 심각하지 않게',              route: '/contents?cat=fun',   accent: '#CBA6E6', image: A('icons/taro.jpg') },
+  { key: 'love',  route: '/contents?cat=love' },
+  { key: 'money', route: '/contents?cat=money' },
+  { key: 'self',  route: '/contents?cat=self' },
+  { key: 'flow',  route: '/contents?cat=flow' },
+  { key: 'fun',   route: '/contents?cat=fun' },
 ];
 
 export function HouseAdBanner() {
   const router = useRouter();
-  const { fs } = useFontScale();
+  const { t } = useTranslation();
   const [w, setW] = useState(0);         // 컨테이너 폭 = 카드 1장 폭(페이징 단위). onLayout 실측.
   const [idx, setIdx] = useState(0);
-  const idxRef = useRef(0);              // 자동 회전용 최신 인덱스(setInterval 클로저 stale 방지)
+  const idxRef = useRef(0);              // 다음 장을 정하는 커서(스와이프하면 onScroll 이 여기로 진실을 써 넣는다)
   const scRef = useRef<ScrollView>(null);
 
   // 4.5초 자동 회전 — 폭 측정 후 시작. 마지막 장 다음은 첫 장으로 순환.
@@ -45,19 +60,24 @@ export function HouseAdBanner() {
     if (!w) return;
     const id = setInterval(() => {
       const next = (idxRef.current + 1) % PROMOS.length;
-      scRef.current?.scrollTo({ x: next * w, animated: true });
       idxRef.current = next;
       setIdx(next);
+      // 웹은 스냅과 부딪혀 애니메이션이 통째로 무시된다 → 애니메이션 없이 민다(위 ⚠️)
+      scRef.current?.scrollTo({ x: next * w, animated: Platform.OS !== 'web' });
     }, 4500);
     return () => clearInterval(id);
   }, [w]);
 
-  // 스와이프 종료 → 현재 인덱스 동기화(도트·자동회전 기준).
-  const onScrollEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+  // 스와이프하면 **실제 위치**가 커서를 덮어쓴다 — 손으로 넘긴 다음 장부터 이어서 돈다.
+  //   ⚠️회전 자체를 이 값에 의존시키지 않는 이유: 웹에서 `onScroll` 은 `scrollEventThrottle` 때문에
+  //     rAF 에 묶여 있고, **rAF 는 백그라운드 탭에서 안 돈다**([[web-nested-text-crash]]).
+  //     위치를 읽어 다음 장을 정하게 했더니 배경 탭에서 위치가 0 으로 고정돼 **1장에서 멈췄다**(실측).
+  //     ⇒ 회전은 커서가 몰고, 위치는 **교정만** 한다.
+  const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     if (!w) return;
-    const i = Math.round(e.nativeEvent.contentOffset.x / w);
+    const i = Math.min(PROMOS.length - 1, Math.max(0, Math.round(e.nativeEvent.contentOffset.x / w)));
     idxRef.current = i;
-    setIdx(i);
+    setIdx((prev) => (prev === i ? prev : i));   // 같은 값이면 렌더를 만들지 않는다
   };
 
   return (
@@ -67,37 +87,28 @@ export function HouseAdBanner() {
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
-        onMomentumScrollEnd={onScrollEnd}
+        onScroll={onScroll}
+        scrollEventThrottle={16}
       >
-        {/* 폭 측정 전엔 렌더 보류(카드 폭이 0이면 페이징이 깨짐) */}
-        {w > 0 && PROMOS.map((p) => (
-          <PressableScale key={p.key} onPress={() => router.push(p.route as any)} style={{ width: w }}>
-            <View style={styles.card}>
-              {/* 배경 = 콘텐츠 기존 타일 이미지(cover). 우측이 보이게 좌측을 어둡게 덮는다. */}
-              <ExpoImage source={p.image} style={StyleSheet.absoluteFill} contentFit="cover" contentPosition="center" cachePolicy="memory-disk" transition={150} />
-              {/* 좌→우 다크 그라디언트(좌측 텍스트 가독·우측 이미지 노출) — '진짜 배너' 결 */}
-              <LinearGradient
-                colors={['rgba(9,9,20,0.94)', 'rgba(9,9,20,0.72)', 'rgba(9,9,20,0.12)']}
-                locations={[0, 0.5, 1]}
-                start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-                style={StyleSheet.absoluteFill}
-              />
-              <View style={styles.body}>
-                <Text style={[styles.eyebrow, { color: p.accent }]}>✨ 이런 건 어때요?</Text>
-                <Text style={[styles.hook, { fontSize: fs(24) }]} numberOfLines={2}>{p.hook}</Text>
-                <Text style={[styles.sub, { fontSize: fs(13) }]} numberOfLines={1}>{p.sub}</Text>
-                <View style={styles.ctaRow}>
-                  <Text style={[styles.cta, { color: p.accent }]}>보러 가기</Text>
-                  <Text style={[styles.cta, { color: p.accent }]}> ›</Text>
-                </View>
-              </View>
-            </View>
-          </PressableScale>
+        {/* 폭 측정 전엔 렌더 보류(카드 폭이 0이면 페이징이 깨진다) */}
+        {w > 0 && PROMOS.map((p, i) => (
+          <View key={p.key} style={{ width: w }}>
+            <PromoBanner
+              slide={{
+                kicker: t('banner.kicker'),
+                title: t(`banner.${p.key}T`),
+                sub: t(`banner.${p.key}S`),
+                cta: t(`banner.${p.key}C`),
+                image: bannerArtFor(i),          // 그림은 테마 오행의 풀에서 슬라이드 순서대로
+                onPress: () => router.push(p.route as never),
+              }}
+            />
+          </View>
         ))}
       </ScrollView>
-      {/* 페이지 도트 */}
+      {/* 점은 캐러셀이 그린다 — PromoBanner 는 한 장만 알고 전체 장수를 모른다 */}
       <View style={styles.dots}>
-        {PROMOS.map((_, i) => <View key={i} style={[styles.dot, i === idx && styles.dotOn]} />)}
+        {PROMOS.map((p, i) => <View key={p.key} style={[styles.dot, i === idx && styles.dotOn]} />)}
       </View>
     </View>
   );
@@ -105,15 +116,7 @@ export function HouseAdBanner() {
 
 const styles = StyleSheet.create({
   wrap: { marginBottom: space(5) },
-  // 이미지 배너 — 와이드(가로 3.0:1 근처), 큼직하게(daniel 07-24 '더 크게'). 이미지 cover + 좌측 다크 오버레이.
-  card: { width: '100%', height: 250, borderRadius: radius.lg, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(20,19,46,0.12)', ...shadow.card }, // ★아래로 더 크게(daniel 2026-07-25 150→200 → 07-26 200→250)
-  body: { flex: 1, justifyContent: 'center', paddingLeft: space(6), paddingRight: space(5), maxWidth: '78%' },
-  eyebrow: { fontSize: 13, fontWeight: '800', letterSpacing: 0.3, marginBottom: 6 },
-  hook: { color: colors.white, fontWeight: '900', letterSpacing: -0.3, lineHeight: 30 },
-  sub: { color: 'rgba(255,255,255,0.9)', marginTop: 5, fontWeight: '500' },
-  ctaRow: { flexDirection: 'row', alignItems: 'center', marginTop: 10 },
-  cta: { fontSize: 13.5, fontWeight: '800' },
-  dots: { flexDirection: 'row', justifyContent: 'center', gap: 6, marginTop: space(3) },
-  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.line },
-  dotOn: { backgroundColor: colors.ju, width: 18 },
+  dots: { flexDirection: 'row', justifyContent: 'center', gap: 6, marginTop: space(1) },
+  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.juLine },
+  dotOn: { width: 18, backgroundColor: colors.ju },
 });
