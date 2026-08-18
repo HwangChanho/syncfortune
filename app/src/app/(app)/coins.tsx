@@ -18,6 +18,7 @@ import { PressableScale } from '../../components/PressableScale';
 import { AdFreeSection } from '../../components/AdFreeSection';   // ★광고 제거(운 구매) 공용 블록
 import { Alert } from '../../lib/ui/alert';
 import { COIN_PACKS, coinBalanceOrNull } from '../../lib/billing/coins';
+import { listBonusCoupons, claimCoinBonus, type BonusCoupon } from '../../lib/billing/coinBonus';   // ★보너스 쿠폰(정가 결제 + 운 추가)
 import { purchaseCoinPack } from '../../lib/billing/purchases';
 import { requireLoginForPurchase } from '../../lib/billing/requireLogin';
 import { useAuth } from '../../lib/useAuth';
@@ -33,11 +34,20 @@ export default function CoinsScreen() {
   const { session } = useAuth();
   const [balance, setBalance] = useState<number | null | undefined>(undefined); // undefined=로딩 / null=조회실패
   const [busy, setBusy] = useState<string | null>(null);
+  const [coupons, setCoupons] = useState<BonusCoupon[]>([]);   // 쓸 수 있는 보너스 쿠폰(큰 것부터)
 
   // ★충전 화면은 **충전 직후 즉시** 갱신이 필요해 직접 reload 를 유지한다(웹훅 적립 폴링과 짝).
   //   그 외 표시 화면(마켓·설정·배지)은 공용 훅 useCoinBalance 로 통일했다 — 규칙이 갈리지 않게.
   const reload = useCallback(async () => { setBalance(await coinBalanceOrNull()); }, []);
-  useFocusEffect(useCallback(() => { void reload(); }, [reload]));
+
+  // ★진입할 때마다 보너스를 청구한다 — 결제 직후 앱이 죽어 못 받은 것이 있으면 여기서 붙는다.
+  //   멱등이라(서버 `ref` 유니크) 몇 번을 불러도 이중 지급이 없다.
+  const syncBonus = useCallback(async () => {
+    const granted = await claimCoinBonus();
+    if (granted > 0) setBalance(await coinBalanceOrNull());   // 붙었으면 잔액을 다시 읽는다
+    setCoupons(await listBonusCoupons());
+  }, []);
+  useFocusEffect(useCallback(() => { void reload(); void syncBonus(); }, [reload, syncBonus]));
 
   async function buy(packId: string, coins: number) {
     if (!requireLoginForPurchase(session, () => router.push('/login'), t)) return;
@@ -48,8 +58,12 @@ export default function CoinsScreen() {
       if (!ok) return;                       // 사용자가 취소 — 조용히
       // 적립은 웹훅이 한다(클라 적립 불가) → 잠깐 뒤 잔액을 다시 읽는다.
       await new Promise((r) => setTimeout(r, 1500));
+      // ★웹훅이 적립을 끝낸 뒤에 보너스를 붙인다(붙일 충전이 원장에 있어야 한다).
+      //   실패해도 그냥 둔다 — 다음 진입에서 `syncBonus` 가 다시 시도한다(멱등).
+      const bonus = await claimCoinBonus();
       const after = await coinBalanceOrNull();
       setBalance(after);
+      if (bonus > 0) setCoupons(await listBonusCoupons());
       Alert.alert(
         t('coins.doneTitle', '충전됐어요'),
         after == null
@@ -113,6 +127,26 @@ export default function CoinsScreen() {
           )}
         </View>
 
+        {/* ★보너스 쿠폰 — 시안 홈의 '할인 티켓'에 해당한다.
+              스토어 가격은 앱이 바꿀 수 없어 **정가 결제 + 운 추가**로 구현했다(0025 마이그레이션 머리말).
+              그래서 문구도 '할인'이 아니라 '더 드려요'로 정확히 적는다 — 결제창 금액과 어긋나면 그게 거짓말이 된다. */}
+        {coupons.length > 0 ? (
+          <>
+            <Text style={[styles.h, { fontSize: fs(15) }]}>{t('coins.bonusTitle', '가진 보너스')}</Text>
+            <View style={styles.ticketRow}>
+              {coupons.slice(0, 3).map((c) => (
+                <View key={c.id} style={styles.ticket}>
+                  <Text style={[styles.ticketPct, { fontSize: fs(20) }]}>+{c.bonusPct}%</Text>
+                  <Text style={[styles.ticketTx, { fontSize: fs(11) }]} numberOfLines={1}>{c.label ?? t('coins.bonusAny', '충전 시 자동 적용')}</Text>
+                </View>
+              ))}
+            </View>
+            <Text style={[styles.ticketNote, { fontSize: fs(12) }]}>
+              {t('coins.bonusNote', '충전하면 큰 쿠폰부터 자동으로 쓰여요. 결제 금액은 그대로예요.')}
+            </Text>
+          </>
+        ) : null}
+
         <Text style={[styles.h, { fontSize: fs(15) }]}>{t('coins.packs', '운 충전하기')}</Text>
         {COIN_PACKS.map((p) => (
           <PressableScale key={p.id} style={[styles.pack, busy === p.id && styles.packBusy]} onPress={() => void buy(p.id, p.coins)} disabled={!!busy}>
@@ -145,6 +179,16 @@ const styles = StyleSheet.create({
   bg: { flex: 1, backgroundColor: 'transparent' },
   screen: { backgroundColor: 'transparent' },
   wrap: { padding: space(5), paddingBottom: space(10) },
+  // 보너스 티켓 — 시안의 쿠폰 스트립. 세 장까지만 보여 준다(그 이상은 어차피 큰 것부터 쓰인다)
+  ticketRow: { flexDirection: 'row', gap: space(2), marginBottom: space(2) },
+  ticket: {
+    flex: 1, alignItems: 'center', backgroundColor: colors.juSoft,
+    borderRadius: radius.md, paddingVertical: space(3), paddingHorizontal: space(2),
+    borderWidth: 1, borderColor: colors.juLine, borderStyle: 'dashed',
+  },
+  ticketPct: { fontWeight: '900', color: colors.ju, letterSpacing: -0.5 },
+  ticketTx: { color: colors.inkSoft, marginTop: 2 },
+  ticketNote: { color: colors.inkFaint, marginBottom: space(4) },
   balCard: { backgroundColor: colors.card, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.juLine, padding: space(5), alignItems: 'center', marginBottom: space(5), ...shadow.card },
   balLabel: { ...font.caption, color: colors.inkSoft, fontWeight: '800', letterSpacing: 0.5 },
   balNum: { ...font.display, color: colors.ju, fontWeight: '900', marginTop: space(1) },

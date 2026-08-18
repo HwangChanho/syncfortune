@@ -56,7 +56,16 @@ for (const f of files) {
 
     // ★한 줄만 보면 멀티라인 호출을 놓친다 — 앞 2줄까지 같이 본다(구조분해가 위에 있는 경우).
     const window = [lines[i - 2] ?? '', lines[i - 1] ?? '', line].join(' ');
-    const checksError = /\{\s*[^}]*\berror\b[^}]*\}\s*=/.test(window);
+    // ① 구조분해로 받는 형태 — `const { error } = await supabase.rpc(...)`
+    const destructured = /\{\s*[^}]*\berror\b[^}]*\}\s*=/.test(window);
+    // ② 변수에 담고 `.error` 를 보는 형태 — `const r = await withTimeout(supabase.rpc(...)); if (!r || r.error)`
+    //    ★`withTimeout` 은 타임아웃 시 **undefined** 를 준다. 구조분해를 쓰면 그 순간 TypeError 라
+    //      이 패턴을 쓸 수밖에 없다(2026-08-18 coinBonus 에서 실제로 걸렸다).
+    //      뒤 3줄 안에서 그 변수의 `.error` 를 보는지 확인한다.
+    const assigned = /(?:const|let)\s+(\w+)\s*=\s*await\s+[^;]*supabase\.rpc\(/.exec(window)?.[1];
+    const laterLines = [line, lines[i + 1] ?? '', lines[i + 2] ?? '', lines[i + 3] ?? ''].join(' ');
+    const checksViaVar = !!assigned && new RegExp(`\\b${assigned}\\.error\\b`).test(laterLines);
+    const checksError = destructured || checksViaVar;
     // `.then(a, b)` 로 두 콜백을 다 준 경우 = 실패를 **명시적으로** 흘려보낸 것
     const explicitThen = /\.then\([^)]*,[^)]*\)/.test(line) || /\.then\([^)]*,[^)]*\)/.test(lines[i + 1] ?? '');
     if (checksError || explicitThen) return;

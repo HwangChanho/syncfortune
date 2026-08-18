@@ -508,7 +508,7 @@ export const ja = {
     'title': '私に似た芸能人',
     'topLabel': '私と最も似ている人物',
   },
-  coins: { failTitle: 'チャージできませんでした',
+  coins: { bonusAny: 'チャージ時に自動適用', bonusNote: '大きいクーポンから自動で使われます。お支払い金額は変わりません。', bonusTitle: 'お持ちのボーナス', failTitle: 'チャージできませんでした',
     spendMsg: '{{cost}} woon を使って鑑定を始めますか？\n保有 {{have}} → 使用後 {{after}}',
     'balFail': '残高を読み込めませんでした',
     'balance': '保有する運',

@@ -150,6 +150,15 @@
             <input id="crQty" type="number" value="1" style="width:90px" />
             <button id="grantCr">이용권 지급</button>
           </div>
+          <!-- ★운 충전 보너스 쿠폰(2026-08-18) — 시안의 '할인 티켓'.
+               스토어 가격은 앱이 못 바꾸므로 **정가 결제 + 운 추가**로 구현돼 있다.
+               여기서 발급하면 그 사용자의 다음 충전에 큰 쿠폰부터 자동으로 붙는다. -->
+          <div class="row" style="margin-top:10px">
+            <input id="cpPct" type="number" value="30" placeholder="보너스 %" style="width:110px" />
+            <input id="cpLabel" placeholder="표시 이름 (예: 첫 충전)" style="flex:1;min-width:150px" />
+            <input id="cpDays" type="number" placeholder="유효일(비우면 무기한)" style="width:150px" />
+            <button id="grantCp">보너스 쿠폰 발급</button>
+          </div>
           <div class="row" style="margin-top:8px">
             <button id="premOn">프리미엄 켜기</button>
             <button id="premOff" class="ghost">프리미엄 끄기</button>
@@ -578,6 +587,23 @@ $('tmOn').onclick  = () => sysCall('set_my_test_mode', true,  'myMsg');
 $('tmOff').onclick = () => sysCall('set_my_test_mode', false, 'myMsg');
 $('amOn').onclick  = () => sysCall('set_my_admin_mode', true,  'myMsg');
 $('amOff').onclick = () => sysCall('set_my_admin_mode', false, 'myMsg');
+
+$('grantCp').onclick = async () => {
+  const id = $('giftId').value.trim();
+  const pct = Number($('cpPct').value);
+  const label = $('cpLabel').value.trim() || null;
+  const days = $('cpDays').value ? Number($('cpDays').value) : null;
+  if (!id || !pct || pct < 1 || pct > 100) return say($('giftMsg'), 'user id 와 보너스 %(1~100)를 확인하세요', 'err');
+  $('grantCp').disabled = true;
+  const { data, error } = await sb.rpc('admin_grant_coupon', { p_owner: id, p_pct: pct, p_label: label, p_days: days });
+  $('grantCp').disabled = false;
+  // ⚠️rpc 는 실패해도 throw 하지 않는다 — error 와 반환값을 **둘 다** 본다.
+  //   `data === false` 는 관리자 권한이 없다는 뜻이다(함수가 조용히 false 를 준다).
+  const msg = error ? `실패 — ${error.message}`
+    : data === false ? '실패 — 관리자 권한이 없습니다([시스템] 탭에서 관리자모드를 켜세요)'
+    : `+${pct}% 보너스 쿠폰을 발급했습니다 — 다음 충전에 자동으로 붙습니다(결제 금액은 그대로).`;
+  say($('giftMsg'), msg, (error || data === false) ? 'err' : 'ok');
+};
 
 $('gift').onclick = async () => {
   const id = $('giftId').value.trim(), amt = Number($('giftAmt').value);

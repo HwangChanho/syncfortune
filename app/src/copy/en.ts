@@ -509,7 +509,7 @@ export const en = {
     'title': 'Celebrities Like Me',
     'topLabel': 'The figure most like you',
   },
-  coins: { failTitle: "Couldn't add woon",
+  coins: { bonusAny: 'Applied automatically', bonusNote: 'The largest coupon applies first. The price you pay stays the same.', bonusTitle: 'Your bonuses', failTitle: "Couldn't add woon",
     spendMsg: 'Use {{cost}} woon to start this reading?\nYou have {{have}} → {{after}} after',
     'balFail': 'Couldn\'t load your balance',
     'balance': 'Your Luck',
