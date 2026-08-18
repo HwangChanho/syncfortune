@@ -229,11 +229,12 @@ export function storeChartElement(el: string, reload = false) {
   if (reload) {
     const mode = readPref(ACCENT_KEY) || 'auto';
     if (mode === 'auto') {
-      // ★웹은 **지금 URL 그대로** 새로고침한다 — 07-18 에 리로드를 뺀 이유가 "홈으로 튕겨서"였는데,
-      //   웹에서는 튕기지 않는다(주소가 유지된다). 그래서 웹만 즉시 반영한다.
-      //   ⚠️네이티브는 여전히 저장만 — `reload()` 가 초기 라우트로 되돌리기 때문이다(그 제약은 그대로).
-      const loc = (globalThis as any).location;
-      if (loc?.reload) { try { loc.reload(); return; } catch { /* 아래로 */ } }
+      // ⚠️⚠️**웹 즉시 리로드를 시도했다가 되돌렸다**(2026-08-18 실측).
+      //   웹은 같은 URL 로 새로고침이라 화면이 안 튕겨서 즉시 반영이 되는 줄 알았는데,
+      //   리로드는 곧 **앱 재시작**이고 `_layout` 이 `preferSelfAsRep()` 을 돌린다 —
+      //   그게 대표를 다시 '본인'으로 **되돌려** 방금 고른 명식이 사라졌다(더 나쁜 버그).
+      //   ⇒ 리로드하지 않는다. 색은 **다음 진입**에 반영된다(네이티브와 같은 동작).
+      //   ★즉시 반영을 하려면 `colors` 를 반응형으로 바꿔야 하는데, 168개 파일이 이걸 import 한다.
       if (__DEV__) { try { DevSettings.reload(); } catch { /* noop */ } }
       else { try { Updates?.reloadAsync?.().catch(() => {}); } catch { /* 재시작 후 반영 */ } }
     }
