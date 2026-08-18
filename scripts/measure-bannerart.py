@@ -11,7 +11,11 @@ from PIL import Image
 import hashlib, json, statistics, sys, os
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-BRAND = os.path.join(ROOT, 'app/assets/brand')
+# ★폴더를 하드코딩하지 않는다 — brandAsset.ts 의 BRAND_DIR 을 따라간다
+import re
+_src = open(os.path.join(ROOT, 'app/src/lib/ui/brandAsset.ts'), encoding='utf-8').read()
+_dir = (re.search(r"BRAND_DIR\s*=\s*'([^']+)'", _src) or [None, 'brand'])[1]
+BRAND = os.path.join(ROOT, 'app/assets', _dir)
 OUT = os.path.join(ROOT, 'scripts/data/banner-art-measured.json')
 TEXT_ZONE = 0.58          # PromoBanner 의 TEXT_ZONE 과 같아야 한다
 

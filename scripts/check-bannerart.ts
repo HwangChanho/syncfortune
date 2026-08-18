@@ -218,7 +218,9 @@ const fails = audit(
   },
   data.arts,
   (name) => {
-    const p = join(ROOT, 'app/assets/brand', name);
+    // ★폴더를 하드코딩하지 않는다 — `BRAND_DIR` 이 바뀌면(그림 재작업 = 캐시 무효화) 여기도 따라가야 한다
+    const dir = readFileSync(join(ROOT, P_ASSET), 'utf8').match(/BRAND_DIR\s*=\s*'([^']+)'/)?.[1] ?? 'brand';
+    const p = join(ROOT, 'app/assets', dir, name);
     return existsSync(p) ? createHash('sha256').update(readFileSync(p)).digest('hex').slice(0, 16) : null;
   },
 );

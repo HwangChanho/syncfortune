@@ -10,21 +10,31 @@ import { A } from './remoteAsset';
 import { activeElement } from '../theme';
 import type { ThemeElement } from '../theme/elementPalette';
 
+/**
+ * 브랜드 자산 폴더의 **버전**.
+ *
+ * ⚠️왜 버전이 붙나: Storage 업로드는 `cache-control: 1년` 이라 **같은 이름으로 덮으면
+ *   낡은 파일이 계속 나간다**(CDN·앱 디스크 캐시 둘 다). 실제로 두 번 당했다 —
+ *   ①어긋난 크롭(`cd-*`) ②흰 배경이 남아 **흰 사각형**으로 보이던 아바타·무료3열 아이콘 20장.
+ * ⇒ 그림을 **다시 자르거나 고치면 이 숫자를 올린다**. 이름은 그대로 두고 폴더만 바꾼다.
+ */
+const BRAND_DIR = 'brand/v2';
+
 /** 오행 → 파일명 조각(영문). 한자를 파일명에 쓰면 URL 인코딩에서 문제가 잦다. */
 const EL_SLUG: Record<ThemeElement, string> = { 木: 'wood', 火: 'fire', 土: 'earth', 金: 'metal', 水: 'water' };
 
 /** 브랜드 로고(심볼만). */
-export const brandMark = () => A('brand/mark.png');
+export const brandMark = () => A(`${BRAND_DIR}/mark.png`);
 /** 로고 + 워드마크. */
-export const brandWordmark = () => A('brand/wordmark.png');
+export const brandWordmark = () => A(`${BRAND_DIR}/wordmark.png`);
 /** 운 심볼(금화) — 원본의 검은 배경을 지운 투명 PNG. */
-export const coinIcon = () => A('brand/coin.png');
+export const coinIcon = () => A(`${BRAND_DIR}/coin.png`);
 
 /**
  * 오행 아바타(마이페이지 프로필).
  * @param el 오행. 생략하면 지금 테마 오행
  */
-export const elementAvatar = (el: ThemeElement = activeElement) => A(`brand/av-${EL_SLUG[el]}.png`);
+export const elementAvatar = (el: ThemeElement = activeElement) => A(`${BRAND_DIR}/av-${EL_SLUG[el]}.png`);
 
 /** 홈 「무료로 체험해보세요!」 3열이 쓰는 아이콘 종류. */
 export type FreeTrioKind = 'ziwei' | 'taro' | 'astro';
@@ -35,12 +45,12 @@ export type FreeTrioKind = 'ziwei' | 'taro' | 'astro';
  * @param el   오행. 생략하면 지금 테마 오행
  */
 export const freeTrioIcon = (kind: FreeTrioKind, el: ThemeElement = activeElement) =>
-  A(`brand/f3-${kind}-${EL_SLUG[el]}.png`);
+  A(`${BRAND_DIR}/f3-${kind}-${EL_SLUG[el]}.png`);
 
 /** 콘텐츠 아이콘(투명 PNG) — 카드·목록에서 쓴다. */
 export const contentIcon = (name:
   'heart' | 'ring' | 'coin' | 'moneybag' | 'briefcase' |
-  'book' | 'idcard' | 'health' | 'family' | 'crystal') => A(`brand/ic-${name}.png`);
+  'book' | 'idcard' | 'health' | 'family' | 'crystal') => A(`${BRAND_DIR}/ic-${name}.png`);
 
 /** 배너 일러스트 이름 — Storage `brand/bn-<name>.jpg`. */
 export type BannerArt =
@@ -75,7 +85,7 @@ export const BANNER_FIELD: Record<BannerArt, string> = {
  * ⚠️`pen`·`forest`·`compass` 는 여기에 **없다**. 그림이 화면을 가득 채워 왼쪽이 비지 않는 종류라
  *   글자를 얹으면 대비가 1.09·3.00·3.65 로 떨어진다(실측). 배너용이 아니다.
  */
-export const bannerArt = (name: BannerArt) => A(`brand/bn-${name}.jpg`);
+export const bannerArt = (name: BannerArt) => A(`${BRAND_DIR}/bn-${name}.jpg`);
 
 /**
  * 오행별 배너 그림 풀. 배너가 페이지 색과 **같은 계열**로 보이게 한다.

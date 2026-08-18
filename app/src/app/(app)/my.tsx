@@ -19,7 +19,7 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';   // ★상단 안전영역 — 헤더가 없는 화면이라 직접 받는다(고정 여백은 글자확대 시 잘린다)
 import { Image as ExpoImage } from 'expo-image';
-import { elementAvatar } from '../../lib/ui/brandAsset';
+import { elementAvatar, coinIcon } from '../../lib/ui/brandAsset';
 import { PressableScale } from '../../components/PressableScale';
 import { useAuth } from '../../lib/useAuth';
 import { useCoinBalance } from '../../lib/billing/coins';
@@ -62,8 +62,10 @@ export default function MyPageScreen() {
         <Text style={styles.helloSub}>{t('my.helloSub', '나의 운을 관리하고 더 나은 하루를 만들어보세요.')}</Text>
       </View>
 
-      {/* ② 운 지갑 */}
+      {/* ② 운 지갑 — 시안 p06: 잔액 왼쪽 · **금화 오른쪽**. 금화가 '운'이 무엇인지 한눈에 말해 준다 */}
       <View style={styles.wallet}>
+        {/* 금화는 장식이라 화면 낭독에서 빼고(잔액은 바로 옆 글자가 읽어 준다) 터치도 받지 않는다 */}
+        <ExpoImage source={coinIcon()} style={styles.coin} contentFit="contain" transition={200} pointerEvents="none" accessible={false} />
         <Text style={styles.walletTitle}>{t('my.wallet', '나의 운 지갑')}</Text>
         <View style={styles.balRow}>
           {/* 조회 실패면 숫자를 지어내지 않고 '—' 를 둔다 */}
@@ -109,10 +111,13 @@ const styles = StyleSheet.create({
   helloSub: { ...font.caption, color: colors.inkSoft, marginTop: space(1.5) },
 
   wallet: {
+    position: 'relative',
     backgroundColor: colors.card, borderRadius: radius.lg,
     padding: space(5), marginBottom: space(4), ...shadow.soft,
   },
   walletTitle: { ...font.heading, color: colors.ju, fontWeight: '900' },
+  // 금화 — 잔액 줄 오른쪽. ⚠️`wallet` 이 relative 여야 여기 붙는다(absoluteFill 은 **부모**를 채운다 · [[overlay-absolutefill-parent]])
+  coin: { position: 'absolute', right: 20, top: 40, width: 68, height: 68 },
   balRow: { flexDirection: 'row', alignItems: 'baseline', gap: space(1.5), marginTop: space(2) },
   // 시안에서 이 화면의 주인공 — 홈의 점수와 같은 급으로 크게.
   bal: { fontSize: 34, lineHeight: 42, fontWeight: '900', color: colors.ink, letterSpacing: -1 },
