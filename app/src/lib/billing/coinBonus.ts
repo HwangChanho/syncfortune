@@ -60,3 +60,24 @@ export async function claimCoinBonus(): Promise<number> {
     return granted;
   } catch { return 0; }
 }
+
+/**
+ * 첫 충전 보너스 쿠폰을 (자격이 되면) 받아 둔다.
+ *
+ * @returns 이번에 새로 받았는가
+ * ★조건 판정은 **전부 서버**가 한다 — 앱은 부르기만 한다. 충전 이력 유무·중복 발급 모두 서버 데이터로 본다.
+ *   (앱이 "나 신규야"라고 말할 수 있으면 그건 무한 발급이다.)
+ * ★멱등 — 화면 진입마다 불러도 한 장뿐이다. 실측(2026-08-18): 3회 호출 → true / false / false.
+ */
+export async function claimWelcomeCoupon(): Promise<boolean> {
+  try {
+    const r = await withTimeout(supabase.rpc('claim_welcome_coupon'), 8000);
+    if (!r || r.error) {
+      logEvent('welcome_coupon_failed', { err: String(r?.error?.message ?? 'timeout') });
+      return false;
+    }
+    const got = r.data === true;
+    if (got) logEvent('welcome_coupon_granted', {});
+    return got;
+  } catch { return false; }
+}

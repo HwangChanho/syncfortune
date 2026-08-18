@@ -18,7 +18,7 @@ import { PressableScale } from '../../components/PressableScale';
 import { AdFreeSection } from '../../components/AdFreeSection';   // ★광고 제거(운 구매) 공용 블록
 import { Alert } from '../../lib/ui/alert';
 import { COIN_PACKS, coinBalanceOrNull } from '../../lib/billing/coins';
-import { listBonusCoupons, claimCoinBonus, type BonusCoupon } from '../../lib/billing/coinBonus';   // ★보너스 쿠폰(정가 결제 + 운 추가)
+import { listBonusCoupons, claimCoinBonus, claimWelcomeCoupon, type BonusCoupon } from '../../lib/billing/coinBonus';   // ★보너스 쿠폰(정가 결제 + 운 추가)
 import { purchaseCoinPack } from '../../lib/billing/purchases';
 import { requireLoginForPurchase } from '../../lib/billing/requireLogin';
 import { useAuth } from '../../lib/useAuth';
@@ -43,6 +43,9 @@ export default function CoinsScreen() {
   // ★진입할 때마다 보너스를 청구한다 — 결제 직후 앱이 죽어 못 받은 것이 있으면 여기서 붙는다.
   //   멱등이라(서버 `ref` 유니크) 몇 번을 불러도 이중 지급이 없다.
   const syncBonus = useCallback(async () => {
+    // ★첫 충전 쿠폰을 **먼저** 받아 둔다 — 받자마자 이번 충전에 쓸 수 있어야 한다.
+    //   자격 판정은 서버가 한다(충전 이력 있으면 안 준다). 몇 번을 불러도 한 장뿐.
+    await claimWelcomeCoupon();
     const granted = await claimCoinBonus();
     if (granted > 0) setBalance(await coinBalanceOrNull());   // 붙었으면 잔액을 다시 읽는다
     setCoupons(await listBonusCoupons());

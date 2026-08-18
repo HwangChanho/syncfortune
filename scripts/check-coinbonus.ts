@@ -34,6 +34,10 @@ const RULES: Array<[string, RegExp, string]> = [
     '앱이 `coin_coupons` 에 쓴다 — 쿠폰을 스스로 발급할 수 있으면 무한 충전이다(발급은 관리자 RPC 만)'],
   ['B3', /rpc\(\s*['"]grant_coins['"]/,
     '앱이 `grant_coins` 를 직접 부른다 — 적립은 결제 웹훅·서버 함수만 한다'],
+  // ★2026-08-18 첫 충전 쿠폰 — 자격 판정(충전 이력 유무)은 **전부 서버**다.
+  //   앱이 인자를 넘기는 순간 "나 신규야"라고 말할 수 있게 되고, 그건 무한 발급이다.
+  ['B5', /rpc\(\s*['"]claim_welcome_coupon['"]\s*,/,
+    "앱이 `claim_welcome_coupon` 에 **인자를 넘긴다** — 자격을 클라가 주장하면 무한 발급이 된다"],
 ];
 
 const files = walk('app/src');
@@ -63,6 +67,8 @@ if (process.argv.includes('--selftest')) {
     ['B2', "supabase.from('coin_coupons').select('id, bonus_pct')", false],
     ['B3', "supabase.rpc('grant_coins', { p_amount: 9999 })", true],
     ['B3', "supabase.rpc('claim_coin_bonus')", false],
+    ['B5', "supabase.rpc('claim_welcome_coupon', { p_owner: id })", true],
+    ['B5', "await supabase.rpc('claim_welcome_coupon')", false],
   ];
   let n = 0;
   for (const [id, line, want] of cases) {

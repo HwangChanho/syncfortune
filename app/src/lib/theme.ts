@@ -105,13 +105,29 @@ const ELS: ThemeElement[] = ['木', '火', '土', '金', '水'];
  *   정체성이라 화면 전체가 변하면 안 된다는 판단이었고, 지금은 **시안 자체가 전면 틴트**다.
  *   ⇒ 배경뿐 아니라 카드·글자·선·강조까지 그 오행 세트로 간다(`ELEMENT_PALETTE`).
  */
+/**
+ * 저장값 **동기** 읽기.
+ *
+ * ⚠️2026-08-18 실측 버그 — `expo-secure-store` 는 **웹에서 `getItem`(동기)을 주지 않는다.**
+ *   그래서 웹에서는 설정에 무엇을 골라도 `resolveElement()` 가 늘 기본값으로 떨어졌다
+ *   (`pref.themeAccent = 火` 가 localStorage 에 **있는데도** 화면은 金 그대로였다).
+ *   Boss 가 "색상은 대표명식 오행에 따라 변하게" 라고 못박은 요구가 **웹에서 통째로 죽어 있었다.**
+ *   ⇒ 웹에서는 localStorage 를 직접 본다(SecureStore 웹 구현이 쓰는 저장소와 같은 곳).
+ * ★팔레트는 모듈 로드 시 1회 결정되므로 **동기 읽기여야 한다** — 비동기로는 이미 늦는다.
+ */
+function readPref(key: string): string {
+  try {
+    const f = (SecureStore as any).getItem;
+    if (typeof f === 'function') { const v = f.call(SecureStore, key); if (v != null) return String(v); }
+  } catch { /* 아래 폴백 */ }
+  try { return (globalThis as any).localStorage?.getItem(key) ?? ''; } catch { return ''; }
+}
+
 function resolveElement(): ThemeElement {
-  let mode = 'auto';
-  try { mode = ((SecureStore as any).getItem?.(ACCENT_KEY) as string) || 'auto'; } catch { /* → auto */ }
+  const mode = readPref(ACCENT_KEY) || 'auto';
   if (mode === 'gold') return DEFAULT_ELEMENT;                       // '기본' = 중립 세트
   if ((ELS as string[]).includes(mode)) return mode as ThemeElement; // 오행 직접 선택
-  let el = '';
-  try { el = ((SecureStore as any).getItem?.(ELEMENT_KEY) as string) || ''; } catch { /* 미저장 */ }
+  const el = readPref(ELEMENT_KEY);
   return (ELS as string[]).includes(el) ? (el as ThemeElement) : DEFAULT_ELEMENT;  // auto = 일간 오행
 }
 
@@ -233,9 +249,10 @@ export type LoadingMode = 'video' | 'text' | 'off';
 //   ※같은 뿌리의 사고 전례: 포그라운드 복귀마다 앱이 새로고침되던 건(check:reload 하네스).
 /** 동기 읽기 결과: string=값 / null=값 없음(정상) / undefined=동기 API 불가(캐시로 폴백해야 함). */
 function _syncGet(key: string): string | null | undefined {
-  const f = (SecureStore as any).getItem;
-  if (typeof f !== 'function') return undefined;
-  try { return f.call(SecureStore, key); } catch { return undefined; }
+  // ★`readPref` 와 같은 경로 — 웹에서 동기 읽기가 죽어 있던 것을 함께 고친다(로딩 모드도 같은 증상이었다).
+  //   빈 문자열은 '없음'으로 본다(종전 undefined 와 같은 취급).
+  const v = readPref(key);
+  return v === '' ? undefined : v;
 }
 let _loadingMode: LoadingMode | null = null; // 비동기 부팅 캐시
 let _readingVideo: boolean | null = null;
