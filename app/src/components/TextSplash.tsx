@@ -1,11 +1,31 @@
-// app/src/components/TextSplash.tsx — 로딩 영상 OFF 시 스플래시(daniel 07-03)
-// ─────────────────────────────────────────────────────────────────────────
+// app/src/components/TextSplash.tsx — 앱 인트로 스플래시 (시안 `니운내운.pdf` p01)
+// ═══════════════════════════════════════════════════════════════════════════
 // 설정에서 로딩 영상을 끄면 인트로 영상 대신 이 화면을 1회 보여준다(daniel 07-15).
-//   미드나잇 배경 + 골드 워드마크. 페이드 인 → 짧게 유지 → 페이드 아웃 → onDone. 탭하면 즉시 스킵.
-//   영상(VideoSplash)과 동일한 배경색(#0B0A1A)이라 전환이 매끄럽다.
-// ─────────────────────────────────────────────────────────────────────────
+//   페이드 인 → 짧게 유지 → 페이드 아웃 → onDone. 탭하면 즉시 스킵.
+//
+// ■ 2026-08-18 시안 반영 — 미드나잇에서 **오행 배경**으로
+//   종전엔 `#0B0A1A` 고정 + 골드 워드마크였다. 시안 p01 은 밝은 바탕에 부드러운 곡면이고,
+//   무엇보다 이 앱의 색은 이제 **대표 명식 오행을 따라간다** — 첫 화면만 고정색이면 그 다음 화면에서 튄다.
+//   ⇒ `colors` 토큰만 쓴다. 오행이 바뀌면 스플래시도 같이 바뀐다.
+//   ⚠️영상 스플래시(VideoSplash)와 배경색을 맞추던 주석은 걷어냈다 — 두 모드는 **배타적**이라
+//     동시에 뜨지 않는다(loadingMode: video / text / off). 맞출 대상이 애초에 없었다.
+//
+// ■ 시안의 「운」 심볼은 넣지 않았다
+//   그건 브랜드 로고라 내가 그릴 자리가 아니다(Boss 제작 영역). 자리는 워드마크가 지킨다.
+//   대신 태그라인의 '다섯 기운'을 **오행 5색 점**으로 받아 글자로만 두지 않았다 —
+//   풀이 히어로의 아치와 같은 언어라 첫 화면부터 이어진다.
+//
+// ★버튼은 두지 않는다. 시안 p01 에는 [시작하기]가 있지만, 우리는 이 뒤에 **온보딩**(App Store 4.3 대응)이
+//   바로 오고 거기 CTA 가 있다. 버튼이 둘이면 무엇을 눌러야 하는지 흐려진다.
+// ═══════════════════════════════════════════════════════════════════════════
 import { useEffect, useRef } from 'react';
-import { Animated, Pressable, StyleSheet, Text } from 'react-native';
+import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
+import Svg, { Path } from 'react-native-svg';
+import { colors, space, font } from '../lib/theme';
+import { elementColor } from '../lib/engine/ohaeng';
+
+/** 태그라인 아래 오행 점 — 상생 순서 고정(풀이 히어로와 같은 배열). */
+const EL = ['木', '火', '土', '金', '水'] as const;
 
 export function TextSplash({ onDone }: { onDone: () => void }) {
   const fade = useRef(new Animated.Value(0)).current; // 0=투명 → 페이드 인/아웃 공용
@@ -27,22 +47,42 @@ export function TextSplash({ onDone }: { onDone: () => void }) {
 
   return (
     <Animated.View style={[StyleSheet.absoluteFill, styles.bg, { opacity: fade }]}>
+      {/* 곡면 장식 — 시안 p01 의 좌상·우하 부드러운 면. 탭을 막지 않는다.
+          ⚠️`preserveAspectRatio="none"` 이면 넓은 화면에서 곡면이 **화면 절반**을 덮는다(웹 실측) → slice */}
+      <Svg style={StyleSheet.absoluteFill} pointerEvents="none" viewBox="0 0 100 200" preserveAspectRatio="xMidYMid slice">
+        <Path d="M0 0 H62 C40 26, 26 44, 0 52 Z" fill={colors.juSoft} opacity={0.9} />
+        <Path d="M100 200 H38 C60 174, 74 156, 100 148 Z" fill={colors.juSoft} opacity={0.9} />
+      </Svg>
+
       {/* 탭하면 스킵 */}
       <Pressable style={[StyleSheet.absoluteFill, styles.center]} onPress={finish}>
         {/* ★브랜드 표식 = **앱 이름**(Boss 2026-08-15 "앱 스플래시도 니운내운으로 바꿔").
-            07-15 에 고른 `八字` 는 앱 이름이 '팔자'이던 시절의 표식이다. 08-06 개명 뒤로
-            스토어·아이콘·사이드바는 전부 '니운내운'인데 **첫 화면만 옛 이름**이었다.
-            ⚠️`八字` 자체는 지우지 않는다 — 그건 브랜드이기도 하지만 **명리 용어**이기도 하다.
+            07-15 에 고른 `八字` 는 앱 이름이 '팔자'이던 시절의 표식이다.
+            ⚠️`八字` 자체는 지우지 않는다 — 브랜드이기도 하지만 **명리 용어**이기도 하다.
               바꾸는 건 '브랜드 표식으로 쓰이던 자리'뿐이다([[app-rename-wooni]] 일괄치환 금지). */}
-        <Text style={styles.wordmark}>니운내운</Text>
+        {/* 시안 p01 — 「니**운**.내**운**」에서 '운' 두 글자만 강조색이다. 앱 이름이 곧 그 글자다. */}
+        <Text style={styles.wordmark}>
+          니<Text style={styles.accent}>운</Text><Text style={styles.dot}>.</Text>내<Text style={styles.accent}>운</Text>
+        </Text>
+
+        <View style={styles.dots}>
+          {EL.map((e) => <View key={e} style={[styles.el, { backgroundColor: elementColor[e] }]} />)}
+        </View>
+
+        <Text style={styles.tagline}>다섯 기운이 이어{'\n'}오늘의 나를 읽다</Text>
       </Pressable>
     </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
-  bg: { backgroundColor: '#0B0A1A' },                 // 영상과 동일 미드나잇(매끄러운 전환)
+  bg: { backgroundColor: colors.bg },
   center: { alignItems: 'center', justifyContent: 'center' },
   // 한글 4자는 한자 2자보다 길다 — 같은 크기로 두면 좁은 화면에서 넘친다
-  wordmark: { fontSize: 54, fontWeight: '900', color: '#C9A14A', letterSpacing: 4 },
+  wordmark: { fontSize: 44, fontWeight: '900', color: colors.ink, letterSpacing: 2 },
+  accent: { color: colors.ju },
+  dot: { color: colors.inkFaint },                    // 가운데 점은 눌러 두어 두 낱말이 갈려 읽히게
+  dots: { flexDirection: 'row', gap: space(2), marginTop: space(6) },
+  el: { width: 9, height: 9, borderRadius: 5 },
+  tagline: { ...font.body, color: colors.inkSoft, textAlign: 'center', marginTop: space(5), lineHeight: 24 },
 });
