@@ -377,7 +377,9 @@ export const ko = {
     'aiLogin': '로그인하면 AI가 이번 달 흐름을 더 깊게 풀어 드려요.',
     'aiTitle': 'AI 정밀 풀이',
     'thisMonth': '이번 달', title: '이달의 운세', monthPillar: '이번 달 기운', flowTitle: '이번 달 흐름 (상순·중순·하순)', note: '이번 달의 큰 흐름이에요. 구체적인 날은 오늘의 운세에서 봐요.', heroSub: '이번 달 월건으로 보는 흐름', generating: '이번 달 흐름을 풀어내는 중…', gateTitle: '이달의 운세 보기', gateDesc: '타고난 사주에 지금의 큰 흐름·올해·이번 달 기운을 더해, 이달 생길 수 있는 일과 대처를 풀어 드려요.', seePremium: '이달의 운세 보기' },
-  nav: { home: '홈', contents: '풀이', community: '커뮤니티', coach: '우니', market: '마켓' },
+  nav: { home: '홈', fortune: '운세', readings: '풀이', my: '마이페이지',
+         // ↓ 탭에서는 빠졌지만 마이페이지 메뉴·설정이 계속 쓰는 이름들(2026-08-18 4탭 전환)
+         contents: '풀이', community: '커뮤니티', coach: '우니', market: '마켓' },
   lookback: { title: '되돌아보기', sub2: '오늘의 한 가지를 해낸 날들이에요.', needLogin: '로그인하면 기록이 계정에 저장되고 여기서 다시 볼 수 있어요.', empty2: '아직 기록이 없어요. 오늘의 운세 아래 "오늘의 한 가지"를 해내고 체크해 보세요.', goToday: '오늘의 운세 보기', summary: '평가한 {{rated}}일 중 {{hit}}일을 "맞았다"고 하셨어요', streak: '지금까지 {{n}}일, 오늘의 한 가지를 해내셨어요', myNote: '내 기록', missionDone: '✓ 그날의 한 가지를 했어요' },
   contents: { // 하단탭 '풀이'(콘텐츠 목록) 화면
     sub: '보고 싶은 주제를 골라 보세요',
@@ -583,6 +585,31 @@ export const ko = {
     'generating': '지금 운에 맞는 개운법을 찾는 중…',
     'sub': '지금 운(대운·세운)에 맞춰 운을 살리는 구체적인 방법을 짚어 드려요',
     'title': '맞춤 개운법',
+  },
+  // ★시안 4탭(2026-08-18) — 마이페이지·결제 내역·풀이 보관함
+  my: {
+    'charge': '운 충전하기',
+    'coach': '상담 내역',
+    'coupon': '쿠폰함',
+    'helloGuest': '안녕하세요',
+    'helloName': '안녕하세요, {{name}}님',
+    'helloSub': '나의 운을 관리하고 더 나은 하루를 만들어보세요.',
+    'history': '결제/충전 내역',
+    'settings': '설정 및 개인정보',
+    'wallet': '나의 운 지갑',
+    'walletSub': '운은 다양한 상담과 콘텐츠에 사용돼요.',
+    'woon': '운',
+  },
+  coinHistory: {
+    'charge': '운 충전',
+    'empty': '아직 충전·사용 내역이 없어요.',
+    'failed': '내역을 불러오지 못했어요.',
+    'use': '운 사용',
+  },
+  myReadings: {
+    'empty': '아직 만든 풀이가 없어요.',
+    'failed': '풀이를 불러오지 못했어요.',
+    'goPick': '운세 보러 가기',
   },
   home: {
     'freeTrio': '무료로 체험해보세요!',

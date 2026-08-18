@@ -25,8 +25,7 @@ import { Platform, View, Text, StyleSheet, Pressable, useWindowDimensions } from
 import { useRouter, usePathname } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
-import { ALL_TABS, TabIcon } from './BottomNav';   // ★탭 정의·아이콘은 하단 내비와 **같은 출처**
-import { useFeatureOn } from '../lib/core/features';
+import { ALL_TABS, TabIcon, isTabActive } from './BottomNav';   // ★탭 정의·아이콘은 하단 내비와 **같은 출처**
 import { CONTENT_ROUTES } from '../lib/content/contentSections'; // 읽는 화면 판정 — 손으로 안 적고 콘텐츠 목록에서 파생
 import { colors, radius, space } from '../lib/theme';
 
@@ -159,8 +158,7 @@ function WebSidebar() {
   const router = useRouter();
   const pathname = usePathname();
   const { t } = useTranslation();
-  const commOn = useFeatureOn('community');
-  const tabs = ALL_TABS.filter((tb) => tb.key !== 'community' || commOn);
+  const tabs = ALL_TABS;   // ★4탭 전환(2026-08-18) — 커뮤니티는 탭이 아니라 마이페이지 메뉴다
 
   return (
     <View style={styles.side}>
@@ -169,8 +167,10 @@ function WebSidebar() {
         <Text style={styles.brandSub}>사주와 자미두수를 결합한 해석</Text>
       </View>
       {tabs.map((tb) => {
-        // 홈만 정확히 일치로 본다 — '/' 는 startsWith 로 보면 모든 경로에 걸린다
-        const on = tb.route === '/' ? pathname === '/' : !!pathname?.startsWith(tb.route);
+        // ★판정은 BottomNav 와 **같은 함수**를 쓴다(2026-08-18).
+        //   종전엔 여기 따로 `startsWith(tb.route)` 를 적어 뒀는데, `/my` 가 `/myreadings` 까지
+        //   삼켜 두 탭이 동시에 켜진다([[duplicate-ui-single-source]] — 같은 판정을 두 번 쓰면 갈린다).
+        const on = isTabActive(tb.key, pathname ?? '');
         return (
           <Pressable
             key={tb.key}

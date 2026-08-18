@@ -14,26 +14,50 @@
 //   · 라벨은 남긴다(아이콘만 두면 '풀이'와 '도우미'처럼 뜻이 겹치는 탭을 구분하기 어렵다). 라벨은 작게.
 //   · active = 골드(colors.ju) 선·글자 + 상단 짧은 골드 바, inactive = 흐린 잉크.
 // ─────────────────────────────────────────────────────────────────────────
-import { useMemo } from 'react';
 import { View, Text, StyleSheet, Platform } from 'react-native';
 import Svg, { Path, Circle } from 'react-native-svg';
 import { PressableScale } from './PressableScale';
 import { useRouter, usePathname } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
-import { useFeatureOn } from '../lib/core/features'; // 원격 플래그 + 관리자 오버라이드 게이트(커뮤니티 탭 노출용)
 import { colors, space } from '../lib/theme';
 
-// 탭 전체 정의(순서 = 홈 → 풀이 → 커뮤니티 → 도우미 → 마켓). 커뮤니티는 렌더 시 플래그로 필터링.
-//   ★'풀이'(daniel 2026-07-18) = 홈에 쌓여 있던 콘텐츠 카드 그리드를 옮긴 탭.
-//     라우트가 /contents 인 이유는 기존 /reading(사주 원국풀이)과 혼동을 피하려는 것.
+// 탭 전체 정의(순서 = 홈 → 운세 → 풀이 → 마이페이지).
+//
+// ★★2026-08-18 Boss 결정 — 시안(`니운내운.pdf`) 4탭 채택. 종전 5탭에서 이렇게 옮겼다.
+//     · 커뮤니티 → 마이페이지 메뉴(플래그 ON 일 때만·지금은 관리자 전용)
+//     · 우니(coach) → 마이페이지 「상담 내역」 + 홈 ⚡바로가기
+//     · 마켓 → 마이페이지 「쿠폰함」(+ 운 충전은 지갑 카드의 주 버튼)
+//   ⇒ **화면은 하나도 없애지 않았다.** 탭에서 뺀 것은 진입로일 뿐이라 딥링크·기존 push 는 그대로 산다.
+//
+// ★'운세'(fortune) = 종전 '풀이'(/contents) 탭의 콘텐츠 목록이다. 라우트를 그대로 두고 **라벨만** 바꿨다 —
+//   라우트를 바꾸면 홈 배너·도우미·추천이 쓰는 딥링크(/contents?cat=love)가 전부 끊긴다.
+// ★'풀이'(readings) = **내가 만든 풀이를 다시 읽는 곳**(신규). 시안 p10·p11 의 본문이 여기서 열린다.
+// ★`match` = 이 탭이 '켜진' 것으로 볼 경로 접두사. 종전엔 활성 판정이 렌더 안 if 체인에 손으로
+//   적혀 있어서, 탭을 바꾸면 **정의는 바뀌고 판정은 안 바뀌는** 상태가 됐다(4탭 전환에서 실제로 났다).
+//   판정을 정의 옆에 두면 탭을 고칠 때 한 군데만 본다.
 export const ALL_TABS = [
-  { key: 'home', route: '/' },
-  { key: 'contents', route: '/contents' },
-  { key: 'community', route: '/community' },
-  { key: 'coach', route: '/coach' },
-  { key: 'market', route: '/market' },
+  { key: 'home', route: '/', match: '' },              // 홈만 예외 — '/' 는 접두사로 못 잡는다(아래 isTabActive)
+  { key: 'fortune', route: '/contents', match: '/contents' },
+  { key: 'readings', route: '/myreadings', match: '/myreadings' },
+  { key: 'my', route: '/my', match: '/my' },
 ] as const;
+
+/**
+ * 지금 경로가 이 탭에 속하는가.
+ * @param key  탭 키
+ * @param path `usePathname()` 값
+ * ⚠️`/my` 와 `/myreadings` 는 접두사가 겹친다 — 긴 것부터 보고, 정확 일치도 함께 본다.
+ */
+export function isTabActive(key: TabKey, path: string): boolean {
+  if (key === 'home') return path === '/' || path === '/index';
+  const me = ALL_TABS.find((tb) => tb.key === key)?.match ?? '';
+  // 더 긴 match 를 가진 다른 탭이 이 경로를 가져가면 이 탭은 꺼진다(/my vs /myreadings)
+  const winner = ALL_TABS
+    .filter((tb) => tb.match && (path === tb.match || path.startsWith(tb.match + '/') || path.startsWith(tb.match + '?')))
+    .sort((a, b) => b.match.length - a.match.length)[0];
+  return !!winner && winner.match === me;
+}
 
 type TabKey = (typeof ALL_TABS)[number]['key'];
 
@@ -55,24 +79,19 @@ export function TabIcon({ name, color }: { name: TabKey; color: string }) {
         <Path d="M5.9 10.3V19.8h12.2V10.3" {...p} />
         <Path d="M10.1 19.8v-4.6h3.8v4.6" {...p} />
       </>)}
-      {name === 'contents' && (<>
+      {name === 'fortune' && (<>
+        {/* 운세 = 사방으로 뻗는 빛(시안 하단탭의 반짝임) — '오늘 무엇을 볼까'의 자리 */}
+        <Path d="M12 3.6c.9 4.5 3.9 7.5 8.4 8.4-4.5.9-7.5 3.9-8.4 8.4-.9-4.5-3.9-7.5-8.4-8.4 4.5-.9 7.5-3.9 8.4-8.4z" {...p} />
+      </>)}
+      {name === 'readings' && (<>
         <Path d="M6.7 3.9h7.6l3.6 3.6v12.6H6.7z" {...p} />
         <Path d="M14.3 3.9v3.6h3.6" {...p} />
         <Path d="M9.4 12h5.6M9.4 15.2h5.6M9.4 18.4h3.6" {...p} />
       </>)}
-      {name === 'community' && (<>
-        <Circle cx="9.2" cy="8.6" r="2.9" {...p} />
-        <Path d="M3.9 19.6c0-3 2.3-4.8 5.3-4.8s5.3 1.8 5.3 4.8" {...p} />
-        <Circle cx="16.8" cy="9.6" r="2.1" {...p} />
-        <Path d="M15.4 14.9c2.9-.5 5.2 1.1 5.2 4.1" {...p} />
-      </>)}
-      {name === 'coach' && (<>
-        <Circle cx="12" cy="12" r="8.2" {...p} />
-        <Path d="m15.4 8.6-2.3 4.8-4.8 2.3 2.3-4.8z" {...p} />
-      </>)}
-      {name === 'market' && (<>
-        <Path d="M5.4 7.9h13.2l-1.1 11.9H6.5z" {...p} />
-        <Path d="M9.1 7.9V6.6a2.9 2.9 0 0 1 5.8 0v1.3" {...p} />
+      {name === 'my' && (<>
+        {/* 마이페이지 = 사람 하나(커뮤니티의 '사람 둘'과 구분된다) */}
+        <Circle cx="12" cy="8.4" r="3.3" {...p} />
+        <Path d="M5.4 19.8c0-3.4 2.9-5.6 6.6-5.6s6.6 2.2 6.6 5.6" {...p} />
       </>)}
     </Svg>
   );
@@ -103,17 +122,12 @@ export function BottomNav() {
   const marginBottom = Platform.OS === 'android' ? Math.max(NAV_MARGIN_BOTTOM, insets.bottom) : NAV_MARGIN_BOTTOM;
   _navMarginBottom = marginBottom;
   const { t } = useTranslation();
-  // 커뮤니티는 원격 플래그(features.community) ON 일 때만 노출 = 관리자 전용, 심사 통과 후 공개.
-  const commOn = useFeatureOn('community');
-  const tabs = useMemo(() => ALL_TABS.filter((tb) => tb.key !== 'community' || commOn), [commOn]);
+  // ★커뮤니티는 이제 탭이 아니라 **마이페이지 메뉴**다(2026-08-18 4탭 전환) — 플래그 판정도 그쪽으로 옮겼다.
+  const tabs = ALL_TABS;
   return (
     <View style={[styles.bar, { marginBottom }]} onLayout={(e) => { _navBarHeight = e.nativeEvent.layout.height; }}>
       {tabs.map((tb) => {
-        const on = tb.key === 'market' ? path.startsWith('/market')
-          : tb.key === 'coach' ? path.startsWith('/coach')
-          : tb.key === 'community' ? path.startsWith('/community')
-          : tb.key === 'contents' ? path.startsWith('/contents')
-          : (path === '/' || path === '/index');
+        const on = isTabActive(tb.key, path);
         return (
           <PressableScale key={tb.key} style={styles.tab} onPress={() => { if (!on) router.replace(tb.route); }} hitSlop={6}>
             {on && <View style={styles.activeBar} />}
