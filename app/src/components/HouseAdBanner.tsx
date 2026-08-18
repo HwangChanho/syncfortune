@@ -99,7 +99,7 @@ export function HouseAdBanner() {
                 title: t(`banner.${p.key}T`),
                 sub: t(`banner.${p.key}S`),
                 cta: t(`banner.${p.key}C`),
-                image: bannerArtFor(i),          // 그림은 테마 오행의 풀에서 슬라이드 순서대로
+                ...bannerArtFor(i),              // {image, field} — 그림과 **그 그림의 바탕색**을 함께 넘긴다
                 onPress: () => router.push(p.route as never),
               }}
             />

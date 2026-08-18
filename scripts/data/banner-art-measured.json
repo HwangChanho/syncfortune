@@ -1,0 +1,72 @@
+{
+ "_설명": "bn-*.jpg 를 실제로 열어 잰 값. check:bannerart 가 이 값으로 대비를 계산한다.",
+ "_재측정": "npm run measure:bannerart (그림을 바꾸면 sha256 이 어긋나 하네스가 실패한다)",
+ "_글자자리": "좌측 57% = PromoBanner TEXT_ZONE",
+ "arts": {
+  "balloon": {
+   "sha256": "06574e4b25686c66",
+   "field": "#E7E8FD",
+   "darkest": "#E6E7FC"
+  },
+  "butterfly": {
+   "sha256": "9922478cabb91b61",
+   "field": "#FCDEDE",
+   "darkest": "#E77F7D"
+  },
+  "candle": {
+   "sha256": "5b36c7fde0455c3d",
+   "field": "#EDE9F7",
+   "darkest": "#EBE7F5"
+  },
+  "clover": {
+   "sha256": "f6d04e6bc3632d96",
+   "field": "#F0F0E4",
+   "darkest": "#93A763"
+  },
+  "compass": {
+   "sha256": "ab8a795373eef978",
+   "field": "#ECE8F6",
+   "darkest": "#4B4995"
+  },
+  "couple": {
+   "sha256": "0d55530d8b4bbe14",
+   "field": "#E9ECFF",
+   "darkest": "#CED6FC"
+  },
+  "door": {
+   "sha256": "2e0f20b9cfa8ad4b",
+   "field": "#FFEEDB",
+   "darkest": "#FCE0BC"
+  },
+  "forest": {
+   "sha256": "1ac23c1e28251e9d",
+   "field": "#B1BBF9",
+   "darkest": "#5B6FC5"
+  },
+  "moonlake": {
+   "sha256": "7906187fc697c310",
+   "field": "#DADEFC",
+   "darkest": "#8CA4E7"
+  },
+  "pen": {
+   "sha256": "ca9d909af5a30687",
+   "field": "#FFE6C7",
+   "darkest": "#33220C"
+  },
+  "stairs": {
+   "sha256": "7c055679504297c2",
+   "field": "#FCDDDD",
+   "darkest": "#FBDBDC"
+  },
+  "sunrise": {
+   "sha256": "abbe625f58e3c133",
+   "field": "#FEE8C9",
+   "darkest": "#F8C787"
+  },
+  "tree": {
+   "sha256": "b165f8b2307ec9bd",
+   "field": "#F1F1E7",
+   "darkest": "#CCD4B1"
+  }
+ }
+}

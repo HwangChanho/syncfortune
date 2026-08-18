@@ -128,6 +128,7 @@
     "check:authweb": "tsx scripts/check-authweb.ts",
     "check:pillarorder": "tsx scripts/check-pillarorder.ts",
     "check:bannerart": "tsx scripts/check-bannerart.ts",
+    "measure:bannerart": "python3 scripts/measure-bannerart.py",
     "check:reviewlogin": "tsx scripts/check-reviewlogin.ts",
     "check:cardart": "tsx scripts/check-cardart.ts",
     "check:webcrash": "tsx scripts/check-webcrash.ts",

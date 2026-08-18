@@ -44,19 +44,36 @@ export const contentIcon = (name:
 
 /** 배너 일러스트 이름 — Storage `brand/bn-<name>.jpg`. */
 export type BannerArt =
-  | 'balloon' | 'couple' | 'compass' | 'moonlake' | 'forest'    // 水 계열(라벤더·블루)
-  | 'door' | 'sunrise' | 'pen'                                   // 土 계열(피치·탠)
-  | 'clover' | 'tree'                                            // 木 계열(그린)
-  | 'stairs' | 'butterfly'                                       // 火 계열(로즈)
-  | 'candle';                                                    // 중성(라벤더그레이)
+  | 'balloon' | 'couple' | 'moonlake'      // 水 계열(라벤더·블루)
+  | 'door' | 'sunrise'                     // 土 계열(피치·탠)
+  | 'clover' | 'tree'                      // 木 계열(그린)
+  | 'stairs' | 'butterfly'                 // 火 계열(로즈)
+  | 'candle';                              // 중성(라벤더그레이)
 
 /**
- * 홈 추천 배너의 배경 일러스트.
+ * 그림의 **바탕색**(왼쪽 빈 면의 색) — 배너 배경을 이 값으로 칠한다.
+ *
+ * ★왜 이 값을 데이터로 갖고 있나: 그림은 알파가 없는 JPEG 라, 배너 배경이 다르면
+ *   그림 자리에 **밝은 사각형**이 뜬다. 배경을 그림의 바탕색과 같게 맞추면 이음매가 사라져
+ *   시안처럼 "색면 위에 그림이 얹힌" 한 장으로 보인다(시안 p13 土가 정확히 그 모양이다).
+ * ⚠️눈으로 고른 값이 아니라 각 그림 좌상단 1/4 의 **중앙값을 계산**한 것이다.
+ *   `check:bannerart` 가 파일을 다시 읽어 이 값과 맞는지 검증한다.
+ */
+export const BANNER_FIELD: Record<BannerArt, string> = {
+  balloon: '#E7E8FD', couple: '#E9ECFF', moonlake: '#DADEFC',
+  door: '#FFEEDB', sunrise: '#FEE8C9',
+  clover: '#F0F0E4', tree: '#F1F1E7',
+  stairs: '#FCDDDD', butterfly: '#FCDEDE',
+  candle: '#EDE9F7',
+};
+
+/**
+ * 배너 일러스트.
  * @param name 그림 이름
  *
- * ★가로형이고 **왼쪽이 비어 있다** — 원본부터 배너용으로 그려진 것이라 글자가 그 자리에 앉는다.
- *   (다만 왼쪽이 늘 밝지는 않다 — pen·compass·forest 는 어두운 그림이 글자 자리를 파고든다.
- *    그래서 `PromoBanner` 가 **밝은 스크림**을 깔고 글자를 올린다. `check:bannerart` 가 그 스크림을 지킨다.)
+ * ★가로형이고 **왼쪽 절반이 비어 있다** — 그 자리에 글자가 앉는다.
+ * ⚠️`pen`·`forest`·`compass` 는 여기에 **없다**. 그림이 화면을 가득 채워 왼쪽이 비지 않는 종류라
+ *   글자를 얹으면 대비가 1.09·3.00·3.65 로 떨어진다(실측). 배너용이 아니다.
  */
 export const bannerArt = (name: BannerArt) => A(`brand/bn-${name}.jpg`);
 
@@ -66,23 +83,24 @@ export const bannerArt = (name: BannerArt) => A(`brand/bn-${name}.jpg`);
  * ★시안 실측(p04 水=풍선 · p13 土=문 · p21 木=클로버 · p29 火=계단 · p37 金=풍선)
  *   — 같은 배너 문구인데 오행마다 **그림이 다르다**. 즉 그림은 슬라이드가 아니라 **테마**를 따른다.
  * ⚠️金 은 전용 그림이 없다 — 시안도 金 페이지에서 **水의 풍선을 회색으로 눌러** 썼다.
- *   여기서는 차선으로 가장 차분한 것들(초·달호수·나침반)을 빌려 쓴다. 전용 그림이 오면 갈아 끼운다.
+ *   여기서는 차분한 것들을 빌려 쓴다. 전용 그림이 오면 갈아 끼운다.
  */
 export const BANNER_POOL: Record<ThemeElement, readonly BannerArt[]> = {
-  水: ['balloon', 'couple', 'compass', 'moonlake', 'forest'],
-  土: ['door', 'sunrise', 'pen'],
+  水: ['balloon', 'couple', 'moonlake'],
+  土: ['door', 'sunrise'],
   木: ['clover', 'tree'],
   火: ['stairs', 'butterfly'],
-  金: ['candle', 'moonlake', 'compass', 'balloon', 'couple'],
+  金: ['candle', 'balloon', 'couple', 'moonlake'],
 };
 
 /**
- * 배너 한 장이 쓸 그림 — 슬라이드 번호로 풀을 돌린다.
+ * 배너 한 장이 쓸 그림과 그 바탕색 — 슬라이드 번호로 풀을 돌린다.
  * @param slide 캐러셀 몇 번째 장인가(0부터)
  * @param el    오행. 생략하면 지금 테마 오행
- * ★풀보다 슬라이드가 많으면 다시 처음으로 돈다(木·火 는 2장뿐이라 번갈아 나온다).
+ * ★풀보다 슬라이드가 많으면 다시 처음으로 돈다(土·木·火 는 2장뿐이라 번갈아 나온다).
  */
 export const bannerArtFor = (slide: number, el: ThemeElement = activeElement) => {
   const pool = BANNER_POOL[el];
-  return bannerArt(pool[slide % pool.length]);
+  const name = pool[slide % pool.length];
+  return { image: bannerArt(name), field: BANNER_FIELD[name] };
 };
