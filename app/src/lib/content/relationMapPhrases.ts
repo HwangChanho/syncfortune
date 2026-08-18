@@ -172,9 +172,9 @@ const JA: Record<RelationRole, RolePhrase> = {
  */
 const TRAIT: Record<Lang, Record<RelationTrait, string>> = {
   ko: {
-    clash:    '두 사람의 **태어난 날**이 {{v}}로 걸려 있어요. 가까워질수록 사소한 데서 부딪히기 쉽습니다.',
+    clash:    '두 사람의 **태어난 날**이 서로 걸려 있어요({{v}}). 가까워질수록 사소한 데서 부딪히기 쉽습니다.',
     friction: '서로를 흔드는 자리가 {{v}}군데예요. 지루할 틈은 없지만, 붙어 있는 시간이 길면 지칩니다.',
-    fills:    '내 사주에 없는 글자 {{v}}를 갖고 있어요. 이 사람 옆에서 빈자리가 메워지는 느낌이 듭니다.',
+    fills:    '내게 없는 {{v}}의 기운을 갖고 있어요. 이 사람 옆에서 빈자리가 메워지는 느낌이 듭니다.',
     meshes:   '맞물리는 자리가 {{v}}군데라 말이 잘 통해요. 애쓰지 않아도 흐름이 이어집니다.',
     intense:  '{{v}} 기운이 몰린 사주라 색이 진해요. 좋아하는 것도 싫어하는 것도 뚜렷합니다.',
     sparse:   '{{v}} 기운이 비어 있는 사주예요. 그쪽 이야기가 나오면 유독 서툴거나 예민할 수 있습니다.',
@@ -185,7 +185,7 @@ const TRAIT: Record<Lang, Record<RelationTrait, string>> = {
   en: {
     clash:    'Your day branches catch on each other ({{v}}) — small things chafe as you get closer.',
     friction: '{{v}} places where you rattle each other — never dull, but long stretches wear thin.',
-    fills:    'They carry {{v}}, which your chart lacks. Your gaps feel covered around this person.',
+    fills:    'They carry the {{v}} energy your chart lacks. Your gaps feel covered around this person.',
     meshes:   '{{v}} places where you interlock, so talk flows without effort.',
     intense:  '{{v}} crowds their chart, so the colour runs strong — clear likes, clear dislikes.',
     sparse:   'Their chart has no {{v}}. Around that they may be unusually clumsy or touchy.',
@@ -196,7 +196,7 @@ const TRAIT: Record<Lang, Record<RelationTrait, string>> = {
   ja: {
     clash:    '二人の日支が{{v}}で引っかかっています — 近づくほど些細なところでぶつかりやすい。',
     friction: '互いを揺さぶる場所が{{v}}か所。退屈はしませんが、長時間一緒だと疲れます。',
-    fills:    '自分にない{{v}}を持っている人。そばにいると空いた場所が埋まる感じがします。',
+    fills:    '自分にない{{v}}の気を持っている人。そばにいると空いた場所が埋まる感じがします。',
     meshes:   '噛み合う場所が{{v}}か所あり、話がよく通ります。力まなくても流れが続きます。',
     intense:  '{{v}}の気が偏った命式で色が濃いめ。好きなものも苦手なものもはっきりしています。',
     sparse:   '{{v}}の気が空いた命式です。その話題になると、やけに不器用だったり敏感だったりします。',

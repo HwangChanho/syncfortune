@@ -4,7 +4,7 @@
 // 무료 사용자 = 하단 AdBanner 고정 / 프리미엄(구독) = 광고 없음(ADR-043).
 // ─────────────────────────────────────────────────────────────────────────
 import { Stack, usePathname } from 'expo-router';
-import { View } from 'react-native';
+import { View, Platform } from 'react-native';
 import { useEffect } from 'react';
 import { clearGenByPath } from '../../lib/backend/genProgress'; // 화면 접근 시 그 풀이 알림 배너 해제(daniel ⑨)
 import { logEvent } from '../../lib/backend/logger'; // 콘텐츠 조회 로깅(daniel 2026-08-10) — 아래 useEffect 참조
@@ -83,6 +83,10 @@ export default function AppLayout() {
         //   네이티브가 글래스 안 가운데 정렬·표준 처리). headerBackTitle 로 '뒤로' 텍스트만 지정.
         headerBackButtonDisplayMode: 'default',
         headerBackTitle: '뒤로',
+        // ★웹은 뒤로가기를 그리지 않는다 (daniel 2026-08-19 *"웹에서는 뒤로가기 빼도 될꺼같은데"*).
+        //   브라우저가 이미 뒤로가기를 갖고 있어 **같은 일을 하는 버튼이 둘**이 된다.
+        //   ⚠️네이티브는 그대로 둔다 — 거기엔 브라우저 뒤로가기가 없어서 이게 유일한 통로다.
+        ...(Platform.OS === 'web' ? { headerLeft: () => null, headerBackVisible: false } : null),
         contentStyle: { backgroundColor: 'transparent' }, // ★씬 투명 — 전역 ContentBackdrop 이 비쳐 보이게(daniel 07-02). 흰 깜빡임은 루트 View bg + 배경 레이어가 방지.
         animation: 'fade', // ★카드 진입 애니(홈 카드가 화면 채움) 뒤에 슬라이드가 또 나와 이상하던 것 → 페이드로 통일(카드 fill이 전환, daniel 07-01)
       }}>

@@ -24,6 +24,7 @@ import { listCharts, getRepresentativeId, type SavedChart } from '../../lib/engi
 import { computeChart } from '../../lib/engine/engine';
 import { buildRelationMap, type RelationNode, type RelationRole } from '@engine/relationMap';
 import { rolePhrase, elemRelationLabel, elemLabel, traitPhrases, traitLead, type TraitFacts } from '../../lib/content/relationMapPhrases';
+import { BRANCH_GLOSSARY } from '../../lib/content/myeongriGlossary';   // 지지 한자 → 한글 이름표(단일 출처)
 import { ROLE_IMG, RELMAP_HERO } from '../../lib/content/relationMapImages';
 import { CompatPeek } from '../../components/CompatPeek';
 import { useWebCols } from '../../components/WebShell'; // 넓은 웹 = 2열(폰은 그대로 세로)
@@ -144,13 +145,24 @@ export default function RelationMapScreen() {
 
   /**
    * 결 문구의 `{{v}}` 에 넣을 **실제 값**을 뽑는다.
-   * ★"내게 없는 글자를 여럿"보다 "내게 없는 午·辰을"이 낫다 — 사람마다 달라지고 근거가 보인다.
+   * ★"내게 없는 글자를 여럿"보다 "내게 없는 말·용을"이 낫다 — 사람마다 달라지고 근거가 보인다.
    *   값이 없는 결은 문구 쪽에서 알아서 빠진다(`{{v}}` 노출 방지).
+   *
+   * ⚠️★한자를 그대로 내보내지 않는다 (daniel 2026-08-19: *"辰·亥·申 이런식으로 나오는데 일반인은 이해못해"*)
+   *   이 파일이 아니라 `relationMapPhrases.ts` 에 **이미 그 원칙이 적혀 있었다** —
+   *   *"명리를 아는 사람에겐 정확하지만 모르는 사람에겐 읽을 수조차 없는 기호다.
+   *     한자는 버리지 않고 괄호로 남긴다"* — 오행에는 적용됐는데 **지지에는 안 돼 있었다.**
+   *   ⇒ `BRANCH_GLOSSARY.ko`(= `'진(용)'`)를 쓴다. 그 사전은 이미 daniel 검수를 거쳤고,
+   *     여기서 새 표를 만들면 화면마다 말이 갈린다([[duplicate-ui-single-source]]).
+   *     띠 이름은 **같은 글자의 다른 이름표**라 해석이 섞이지 않는다(1:1).
    */
   const factsOf = (n: RelationNode): TraitFacts => {
     const dx = n.dx as any;
+    /** 지지 한자 → 「용·돼지」. 사전에 없으면 원문을 그대로 둔다(빈칸보다 낫다). */
+    const branchesKo = (chars: string[]): string =>
+      chars.map((ch) => BRANCH_GLOSSARY[ch]?.ko?.match(/\(([^)]+)\)/)?.[1] ?? ch).join('·');
     return {
-      fills: dx?.missingFill?.chars?.length ? dx.missingFill.chars.join('·') : undefined,
+      fills: dx?.missingFill?.chars?.length ? branchesKo(dx.missingFill.chars) : undefined,
       clash: dx?.spousePalace?.afflictions?.length ? dx.spousePalace.afflictions.join('·') : undefined,
       friction: dx?.tension?.length ? String(dx.tension.length) : undefined,
       meshes: dx?.harmony?.length ? String(dx.harmony.length) : undefined,
