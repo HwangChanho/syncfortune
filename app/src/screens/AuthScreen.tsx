@@ -15,6 +15,8 @@ import { Alert } from '../lib/ui/alert'; // 커스텀 알림(앱 디자인)
 import * as Linking from 'expo-linking';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../lib/supabase';
+import { Image as ExpoImage } from 'expo-image';
+import { brandMark } from '../lib/ui/brandAsset';   // 시안 p02 「운」 심볼
 import { isAnonSession } from '../lib/useAuth'; // 익명 세션 판정 — 로그인 시 linkIdentity(승격·데이터 보존) vs signInWithOAuth 분기(Apple 5.1.1)
 import { logEvent } from '../lib/backend/logger'; // ★로그인 진단(daniel 07-11: OAuth 버튼 무반응 원인 로그)
 import { colors, radius, space, shadow, font } from '../lib/theme';
@@ -164,8 +166,13 @@ export function AuthScreen() {
          (관계지도 `aspectRatio: undefined` 로 한 번 당한 자리 · [[duplicate-ui-single-source]]).
      */}
      <View style={wide ? [styles.card, styles.cardWeb] : styles.card}>
-      {/* 타이틀 롱프레스(0.8s) = 심사용 히든 로그인 노출(App Store 리뷰어 전용 — SNS 전용 앱의 데모계정 접근, daniel 07-07) */}
+      {/* ★로고 + 타이틀을 **한 Pressable 안에** 둔다 — 롱프레스(0.8s)가 심사용 히든 로그인의
+          유일한 진입로다(SNS 전용 앱이라 리뷰어가 데모계정으로 들어올 길이 이것뿐 · daniel 07-07).
+          ⚠️타이틀을 이미지로 갈아 끼우면서 제스처를 잃으면 **또 리젝**된다 — `check:reviewlogin` 이 막는다.
+          시안 p02 는 「운」 심볼 + 워드마크 2단이라, 심볼을 글자 위에 얹고 글자는 그대로 뒀다
+          (이미지가 안 떠도 글자와 제스처는 남는다). */}
       <Pressable onLongPress={() => setReviewMode(true)} delayLongPress={800}>
+        <ExpoImage source={brandMark()} style={styles.mark} contentFit="contain" transition={200} />
         <Text style={styles.title}>{t('appName')}</Text>
       </Pressable>
       <View style={styles.divider} />
@@ -221,6 +228,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.line,
     paddingHorizontal: space(8), paddingTop: space(9), paddingBottom: space(8), ...shadow.card,
   },
+  // 심볼 — 글자 위 여백은 두되 카드가 길어지지 않게(로그인은 한 화면에 들어와야 한다)
+  mark: { width: 64, height: 64, alignSelf: 'center', marginBottom: space(2) },
   title: { ...font.display, textAlign: 'center' },
   divider: { width: 44, height: 3, borderRadius: 2, backgroundColor: colors.ju, alignSelf: 'center', marginTop: space(3) },
   sub: { ...font.body, color: colors.inkSoft, textAlign: 'center', marginTop: space(4), marginBottom: space(2) },

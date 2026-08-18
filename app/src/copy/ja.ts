@@ -605,6 +605,11 @@ export const ja = {
     'funS': '重くなく、\n今日の分だけ。',
     'funC': '軽く見る',
   },
+  freeDraw: {
+    'title': '無料タロット一枚引き',
+    'sub': '今日の運をカード一枚で確かめてみましょう。',
+    'cta': 'はじめる',
+  },
   home: {
     'bonusLead': 'チャージ時に自動で使われます',
     'bonusTitle': '届いた特典',

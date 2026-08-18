@@ -23,6 +23,7 @@ import { useRouter } from 'expo-router'; // 홈 배너 → 카테고리 딥링�
 import { SECTIONS } from '../../lib/content/contentSections'; // 상단 카테고리 칩 = 섹션에서 파생(목록 이중관리 금지)
 import { ContentGrid } from '../../components/ContentGrid';
 import { MonthHeroCard } from '../../components/MonthHeroCard'; // 이달의 운세 **펼침** 카드(daniel 08-06 IMG_8409)
+import { FreeDrawStrip } from '../../components/contents/FreeDrawStrip';
 import { NextStepCard } from '../../components/NextStepCard'; // '다음 단계' 퍼널 히어로(나열→저니)
 import { ChartPicker } from '../../components/ChartPicker';
 import { loadRepChart } from '../../lib/engine/myChart'; // 명식 유무 판정(홈과 같은 관용구)
@@ -140,6 +141,8 @@ export default function ContentsScreen() {
             {/* ★'다음 단계' 히어로(daniel 2026-07-26) — 나열 대신 **지금 이 사람에게 맞는 딱 한 장**을 크게.
                 여기서 들어가면 상세 하단 RelatedContent 가 이어받아 '타고타고' 굴러간다(같은 RELATED 큐레이션 재사용). */}
             <NextStepCard reloadKey={reload} />
+            {/* 시안 p05 — 이달의운세·다음단계에 이어 **결제 없는 손잡이** 하나 더(무료 타로) */}
+            <FreeDrawStrip />
           </>
         )}
         {/* ── 카테고리 목록 — 누르면 **새 화면**에서 하위 항목(daniel 2026-08-06) ──────────

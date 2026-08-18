@@ -606,6 +606,11 @@ export const en = {
     'funS': 'Nothing heavy —\njust today.',
     'funC': 'Keep it light',
   },
+  freeDraw: {
+    'title': 'Free one-card tarot',
+    'sub': 'See how today runs — one card is enough.',
+    'cta': 'Start',
+  },
   home: {
     'bonusLead': 'Applied automatically when you top up',
     'bonusTitle': 'Your rewards',

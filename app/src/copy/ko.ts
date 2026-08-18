@@ -644,6 +644,11 @@ export const ko = {
     'funS': '무겁지 않게,\n딱 오늘 것만.',
     'funC': '가볍게 보기',
   },
+  freeDraw: {
+    'title': '무료 타로 한 장 뽑기',
+    'sub': '오늘의 운을 카드 한장으로 확인해보세요.',
+    'cta': '시작하기',
+  },
   home: {
     'bonusLead': '충전할 때 자동으로 쓰여요',
     'bonusTitle': '도착한 혜택',
