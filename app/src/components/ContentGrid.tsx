@@ -10,9 +10,8 @@
 //
 // ★목록 데이터는 lib/content/contentSections.ts 단일 출처 — 카드 추가는 그 파일만 고친다.
 // ─────────────────────────────────────────────────────────────────────────
-import { View, Text, ScrollView, StyleSheet, Animated, Easing } from 'react-native';
+import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { Image as ExpoImage } from 'expo-image'; // 이미지 자동 다운샘플(표시 크기로 디코딩) — 카드 35장 메모리·랙 해결
-import { LinearGradient } from 'expo-linear-gradient'; // 카드 하단 다크 그라데이션(라벨 가독·카드 경계 — daniel 07-22 '카드인지도 모르겠고')
 import { useEffect, useRef, useMemo, useState, useCallback } from 'react';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -42,25 +41,8 @@ import { loadFavorites, toggleFavorite, subscribeFavorites } from '../lib/conten
 import { colors, radius, space, shadow, font } from '../lib/theme';
 import { useWebCols } from './WebShell'; // 넓은 웹 = 카드 3열(폰/모바일웹은 그대로 2열)
 
-// 카드 켄번스 — 정적 이미지를 아주 느리게 줌(daniel #21: 카드가 '가볍게' 살아 움직이게).
-//   정적 일러스트라 내부 요소 자체를 움직일 순 없어, 느린 줌으로 생동감을 준다. native 드라이버=GPU라 스크롤 영향 최소.
-function KenBurnsCard({ source }: { source: any }) {
-  const s = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    const loop = Animated.loop(Animated.sequence([
-      Animated.timing(s, { toValue: 1, duration: 6500, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
-      Animated.timing(s, { toValue: 0, duration: 6500, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
-    ]));
-    loop.start();
-    return () => loop.stop();
-  }, [s]);
-  const scale = s.interpolate({ inputRange: [0, 1], outputRange: [1, 1.08] });
-  return (
-    <Animated.View style={[StyleSheet.absoluteFill, { transform: [{ scale }] }]}>
-      <ExpoImage source={source} style={[StyleSheet.absoluteFill, styles.cardImgInner]} contentFit="cover" cachePolicy="memory-disk" transition={120} />
-    </Animated.View>
-  );
-}
+// ★2026-08-19 `KenBurnsCard` 삭제 — 사진 카드를 걷어내면서 쓸 곳이 사라졌다(느린 줌은 사진 전용 효과).
+//   아이콘은 투명 PNG 라 줌을 걸면 잘리기만 한다. 사진 카드가 돌아오면 git 이력에서 되살릴 것.
 
 // ★풀이 3대 카테고리 시스템 매핑(daniel 2026-07-24) — 자미두수=ziwei(자미 원국풀이)·타로=taro, 그 외 전부 사주.
 
@@ -139,7 +121,13 @@ export function ContentGrid({ query = '', viewMode, category = null, wrap = fals
     void loadFavorites().then(setFavs);
     return subscribeFavorites(setFavs);
   }, []);
-  const cardW: `${number}%` = cols >= 3 ? '31.7%' : '48%';
+  // ★시안 p05 는 **3열**이다(카드 178pt · 폰 환산 116pt · 3×116 + 간격 = 370 = 402 − 좌우 16).
+  //   종전엔 폰에서 2열이었다. 3열이 되면 카드가 좁아져 설명이 안 들어가는데,
+  //   **시안 카드에는 애초에 설명이 없다** — 제목과 그림뿐이다(아래 카드 렌더 참조).
+  //   ⚠️퍼센트는 **간격을 뺀 뒤** 나눠야 한다 — 31.7%×3 + 간격 12pt×2 는 100%를 넘어
+  //     3열로 짰는데 **2개만 들어가고 오른쪽이 텅 비었다**(시뮬 실측).
+  //     폭 362pt(402 − 좌우 20) · 간격 12pt×2 = 6.6% → (100−6.6)/3 = **31.1%**.
+  const cardW: `${number}%` = cols >= 3 ? '31.1%' : cols === 2 ? '48%' : '31.1%';
   /**
    * ★넓은 웹에서는 **가로 캐러셀 대신 랩 그리드**를 쓴다.
    *   아래 주석(카테고리 화면)과 같은 이유다 — 가로로 미는 건 손가락이 있을 때 얘기고,
@@ -160,7 +148,7 @@ export function ContentGrid({ query = '', viewMode, category = null, wrap = fals
   //     `styles.card` 가 `aspectRatio: 0.72` 를 갖고 있어, 네이티브(cols===1)에서 그 비율이 통째로 날아간다
   //     → 카테고리 화면 카드가 높이를 잃는다. 그래서 **값이 있을 때만** 키를 만든다.
   const cardOverride: { width: `${number}%`; aspectRatio?: number } =
-    cols > 1 ? { width: cardW, aspectRatio: 1.05 } : { width: cardW };
+    cols > 1 ? { width: cardW, aspectRatio: 1.05 } : { width: cardW };   // 폰(cols=1)은 위 cardW 가 31.7% = 3열
   const router = useRouter();
   const { t } = useTranslation();
   const { session } = useAuth();
@@ -339,10 +327,14 @@ export function ContentGrid({ query = '', viewMode, category = null, wrap = fals
     const isNew = isNewContent(m.key); // 신규 콘텐츠 = 라벨 옆 NEW(카드뷰와 동일 기준 — 리스트뷰 누락 수정·daniel 07-23)
     return (
       <PressableScale key={m.key} style={styles.listRow} onPress={() => onPress(m)}>
+        {/* ★썸네일 = 항목 아이콘, 없으면 **라벨 첫 글자**.
+            ⚠️2026-08-19 에 여기를 '섹션 아이콘 폴백'으로 바꿨다가 **되돌렸다** —
+              리스트는 한 화면에 여러 줄이 뜨는데 연애 섹션 6줄 중 5줄이 **같은 하트**가 됐다(시뮬 실측).
+              도우미(`DeepDiveCta`)는 한 번에 한 장이라 섹션 아이콘이 맞지만, 여기선 정반대다.
+              ★같은 폴백이라도 **몇 개가 동시에 보이느냐**에 따라 답이 갈린다. */}
         {m.image ? (
-          <ExpoImage source={m.image} style={styles.listThumb} contentFit="cover" cachePolicy="memory-disk" transition={120} />
+          <ExpoImage source={m.image} style={styles.listThumb} contentFit="contain" cachePolicy="memory-disk" transition={120} />
         ) : (
-          // 이미지 없는 항목(텍스트 카드) = 라벨 첫 글자 골드 썸네일 placeholder(행 정렬 유지)
           <View style={[styles.listThumb, styles.listThumbPlaceholder]}>
             <Text style={styles.listThumbGlyph}>{t(m.labelKey).slice(0, 1)}</Text>
           </View>
@@ -476,39 +468,41 @@ export function ContentGrid({ query = '', viewMode, category = null, wrap = fals
 
         // ── 카드뷰(기본) — 순차 공개 + 켄번스 가로 스크롤 ──────────────────────────
         const cards = items.map((m, itemIdx) => {
-          const prem = !!m.premium;
           const badge = badgeFor(m);
           const isNew = isNewContent(m.key); // 신규 콘텐츠 = 우측 상단 연한 빨강 NEW(출시일+21일)
-          const desc = descOf(m);
           // 순차 공개 — 이 카드의 전역 순번이 공개분에 들어왔는지. 아직이면 빈 박스(디코드 미발생).
           const revealed = revealOffsets[secIdx] + itemIdx < revealCount;
-          // 이미지 없는 콘텐츠 = 텍스트 카드(제목+설명), 이미지 카드와 시각 구분
-          if (!m.image) {
-            return (
-              <PressableScale key={m.key} style={[styles.card, styles.textCard, wrapEff && cardOverride, webCard]} onPress={() => onPress(m)}>
-                {badge && <View style={[styles.priceTag, isNew && styles.priceTagLeft]}><Text style={styles.priceTagText}>{badge}</Text></View>}
-                {isNew && <View style={styles.newTag}><Text style={styles.newTagTx}>NEW</Text></View>}
-                <Text style={styles.textCardLabel}>{t(m.labelKey)}</Text>
-                {desc ? <Text style={styles.textCardDesc}>{desc}</Text> : null}
-                <FavHeart k={m.key} on={favs.has(m.key)} />
-              </PressableScale>
-            );
-          }
+          // ★2026-08-19 시안 카드로 통일 (daniel *"콘텐츠 이미지 카드들 안쓰니깐 다 제거하고 시안대로"*)
+          //   시안 p05·p14 실측: **밝은 카드 · 제목이 위(강조색·굵게) · 아이콘은 가운데 아래**.
+          //   종전엔 사진이 카드를 꽉 채우고 아래에 검은 그라데이션 + 흰 글자였다(미디어 카드).
+          //   ⇒ 사진 46장을 걷어내고 한 모양으로 합쳤다. 카드 종류가 둘이면 같은 목록이 두 결로 보인다.
+          //
+          //   ⚠️아이콘은 **그 콘텐츠를 정확히 가리킬 때만** 붙인다(현재 18/55).
+          //     Boss 가 준 아이콘은 10종인데 콘텐츠는 55개다. 주제별로 억지로 나눠 쓰면
+          //     한 섹션에 같은 그림이 아홉 번 나와 **뜻이 사라지고 복사 실수처럼 보인다**
+          //     (`check:cardart` 가 사진에서 그 문제를 잡아낸 적이 있다).
+          //     아이콘이 없는 카드는 **제목이 주인공**이다 — 시안의 카드에서 장식만 뺀 모양이라 결이 같다.
           return (
             <PressableScale key={m.key} style={[styles.card, wrapEff && cardOverride, webCard]} onPress={() => onPress(m)}>
-              <View style={styles.cardImg}>
-                {/* expo-image 다운샘플(메모리·랙) + 켄번스 느린 줌(daniel #21). 차례가 온 카드만 mount. */}
-                {revealed
-                  ? <KenBurnsCard source={m.image} />
-                  : <View style={[StyleSheet.absoluteFill, styles.cardImgInner, styles.cardPlaceholder]} />}
-                {badge && <View style={[styles.priceTag, isNew && styles.priceTagLeft]}><Text style={styles.priceTagText}>{badge}</Text></View>}
-                {isNew && <View style={styles.newTag}><Text style={styles.newTagTx}>NEW</Text></View>}
-                <FavHeart k={m.key} on={favs.has(m.key)} dark />
-                {/* 하단 라벨 — 이미지 위 다크 그라데이션 오버레이(흰 글씨). 이미지가 카드를 채우고 아래만 어두워져 '미디어 카드'로 또렷해진다. */}
-                <LinearGradient colors={['transparent', 'rgba(11,10,26,0.55)', 'rgba(11,10,26,0.94)']} locations={[0, 0.45, 1]} style={styles.labelBar}>
-                  <Text style={[styles.cardLabel, prem && styles.cardLabelPrem]} numberOfLines={1}>{t(m.labelKey)}</Text>
-                  {desc ? <Text style={styles.cardDesc} numberOfLines={2}>{desc}</Text> : null}
-                </LinearGradient>
+              {/* ★시안 카드에는 **설명이 없다** — 제목과 그림뿐이다(p05·p14 실측).
+                  3열이라 카드 폭이 116pt 뿐이라 설명을 넣으면 두 글자씩 끊어져 오히려 안 읽힌다.
+                  설명은 **리스트 뷰**가 맡는다(거기는 가로가 넉넉하다). */}
+              <Text style={styles.cardLabel} numberOfLines={3}>{t(m.labelKey)}</Text>
+              {/* 남는 세로를 여기서 먹어 그림이 **항상 아래쪽 같은 자리**에 온다 */}
+              <View style={{ flex: 1 }} />
+              {/* 그림 자리는 **있든 없든 남긴다** — 카드 높이가 들쭉날쭉하지 않게 */}
+              <View style={styles.cardArt}>
+                {m.image && revealed ? (
+                  <ExpoImage source={m.image} style={styles.cardArtImg} contentFit="contain" cachePolicy="memory-disk" transition={140} />
+                ) : null}
+              </View>
+              {/* ★배지·하트는 **흐름 안 한 줄**로 둔다(2026-08-19).
+                  절대배치로 두었더니 그림 위에 겹쳤다(「30 운」이 사람 그림을 덮었다 · 시뮬 실측). */}
+              <View style={styles.cardFoot}>
+                {isNew ? <View style={styles.newTag}><Text style={styles.newTagTx}>NEW</Text></View>
+                       : badge ? <View style={styles.priceTag}><Text style={styles.priceTagText}>{badge}</Text></View>
+                       : <View />}
+                <FavHeart k={m.key} on={favs.has(m.key)} inline />
               </View>
             </PressableScale>
           );
@@ -562,9 +556,6 @@ const styles = StyleSheet.create({
   grid2col: { gap: space(3) },                       // 윗줄·아랫줄 세로 간격
   grid2row: { flexDirection: 'row', gap: space(3) }, // 한 줄 카드 가로 간격
   // 콘텐츠 텍스트 카드(이미지 없음) — 이미지 카드와 동일 비율, 제목+설명 하단 정렬
-  textCard: { backgroundColor: colors.juSoft, borderWidth: 1, borderColor: colors.juLine, justifyContent: 'flex-end', padding: space(4) },
-  textCardLabel: { fontSize: 18, fontWeight: '800', color: colors.ink },
-  textCardDesc: { ...font.caption, color: colors.inkSoft, marginTop: space(1.5), lineHeight: 18 },
   // 가격/상태 배지 — 골드 pill·다크 텍스트(daniel 07-07 라이트에서도 금색 고정)
   // 찜 하트 — 카드 우측 하단(가격 배지는 우측 상단이라 겹치지 않는다)
   favBtn: { position: 'absolute', right: space(1.5), bottom: space(1.5), zIndex: 3, padding: space(1.5) },
@@ -572,16 +563,16 @@ const styles = StyleSheet.create({
   favTxDark: { color: 'rgba(255,255,255,0.92)' },   // 이미지 위 — 흰 하트
   favInline: { paddingLeft: space(2), paddingVertical: space(1) },
   favTxOn: { color: colors.ju },
+  // ★배지는 카드 **맨 아래 줄**에 흐름으로 놓인다(절대배치 아님 — 그림과 겹쳤다).
+  //   리스트 뷰는 여전히 자기 배지(`listPriceTag`)를 쓴다.
+  cardFoot: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: space(1.5) },
   priceTag: {
-    position: 'absolute', top: space(2.5), right: space(2.5), zIndex: 1,
     backgroundColor: colors.badgeGold, borderRadius: radius.pill,
     paddingHorizontal: space(2), paddingVertical: space(0.5),
   },
   priceTagText: { color: '#15132E', fontSize: 10, fontWeight: '700', letterSpacing: 0.3 },
-  priceTagLeft: { right: undefined, left: space(2.5) }, // 신규(NEW)가 우측 상단을 쓰면 가격은 좌측 상단으로 비켜난다
   // 신규 콘텐츠 NEW 배지 — 우측 상단·연한 빨강(daniel 07-22). newBadge.NEW_SINCE 로 출시+21일 자동 노출.
   newTag: {
-    position: 'absolute', top: space(2.5), right: space(2.5), zIndex: 2,
     backgroundColor: '#F16C6C', borderRadius: radius.pill,
     paddingHorizontal: space(2), paddingVertical: space(0.5),
     shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 3, shadowOffset: { width: 0, height: 1 }, elevation: 2,
@@ -590,15 +581,26 @@ const styles = StyleSheet.create({
   // 카드 비율 3:4 고정폭(가로 스크롤). 이미지 cover + 하단 라벨 오버레이.
   // ★미디어 카드(daniel 07-22 '카드인지도 모르겠고') — 이미지가 카드를 꽉 채우고, 하단 다크 그라데이션 위 흰 글씨.
   //   라이트 페이지 위에서 어두운 카드 + 테두리 + 그림자로 경계가 또렷해진다(예전 연한 라벨바 blend 문제 해소).
-  card: { width: 168, aspectRatio: 0.72, borderRadius: radius.md, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(20,19,46,0.10)', ...shadow.card },
-  cardImg: { flex: 1, justifyContent: 'flex-end' },
+  // ★시안 카드 — 밝은 면 · 큰 라운드 · 테두리 없음 · 그림자는 아주 옅게.
+  //   제목이 위에 오고 그림은 아래다(보통과 반대 — 무엇인지 먼저 읽히게 한 배치).
+  card: {
+    width: 168, aspectRatio: 0.72, borderRadius: radius.lg, overflow: 'hidden',
+    backgroundColor: colors.card, paddingHorizontal: space(2.5), paddingTop: space(3), paddingBottom: space(2.5),
+    ...shadow.soft,
+  },
+  // ★고정 높이 — `flex:1` 로 두면 **설명 줄 수에 따라 아이콘 크기가 달라진다**
+  //   (2줄짜리 카드는 아이콘이 크고 3줄짜리는 작았다 · 시뮬 실측). 위쪽 여백이 대신 늘어난다.
+  //   ★높이 88 = 시안에서 그림이 **카드 폭의 약 60%**를 차지한다(정사각에 가까워 높이도 그만큼).
+  cardArt: { height: 76, alignItems: 'center', justifyContent: 'center', marginTop: space(2) },
+  cardArtImg: { width: '100%', height: '100%' },
   cardImgInner: { borderRadius: radius.md },
   // 순차 공개 전 자리 — 빈 박스(디코드 전). 카드와 같은 크기·모서리 유지(레이아웃 안 흔들림).
   cardPlaceholder: { backgroundColor: colors.juSoft },
-  labelBar: { paddingTop: space(7), paddingBottom: space(3), paddingHorizontal: space(3.5), alignItems: 'flex-start' }, // 그라데이션 위 좌측정렬 라벨(paddingTop=페이드 여백)
-  cardLabel: { color: '#FFFFFF', fontSize: 15.5, fontWeight: '800', letterSpacing: 0.2 },
-  cardDesc: { color: 'rgba(255,255,255,0.82)', fontSize: 11, lineHeight: 14.5, textAlign: 'left', marginTop: 3 },
-  cardLabelPrem: { color: '#FFE6A6' }, // 프리미엄 = 밝은 골드(다크 오버레이 위 가독)
+  cardLabel: { color: colors.ju, fontSize: 14.5, lineHeight: 19, fontWeight: '900', letterSpacing: -0.4 },
+  cardDesc: { color: colors.inkSoft, fontSize: 11.5, lineHeight: 15.5, textAlign: 'left', marginTop: 4 },
+  // ★`cardLabelPrem`(밝은 골드) 삭제 — **다크 오버레이 위**에서 읽히라고 만든 색이라
+  //   밝은 시안 카드에서는 대비가 **2.3**(기준 4.5)으로 거의 안 보였다(계산 · 시뮬 실측).
+  //   유료라는 신호는 아래 가격 배지(「30 운」)가 이미 하고 있어 글자색까지 바꿀 이유가 없다.
   // ── 리스트뷰 — 세로 행: 썸네일 + 텍스트 + 가격/셰브런 ──
   listBody: { paddingHorizontal: space(5), gap: space(2), marginTop: space(1) }, // section 의 -space(5) 상쇄해 폭 정렬
   listRow: {
@@ -608,9 +610,11 @@ const styles = StyleSheet.create({
     paddingVertical: space(2.5), paddingHorizontal: space(3),
     ...shadow.soft,
   },
-  listThumb: { width: 54, height: 54, borderRadius: radius.sm, backgroundColor: colors.juSoft },
-  listThumbPlaceholder: { alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.juLine },
-  listThumbGlyph: { fontSize: 22, fontWeight: '800', color: colors.ju },
+  // 투명 아이콘이 `contain` 으로 들어간다 — 면은 옅게 깔아 두어 빈 줄에도 정렬이 유지된다
+  listThumb: { width: 54, height: 54, borderRadius: radius.md, backgroundColor: colors.juSoft, padding: space(1) },
+  // 글자 모노그램 — 테두리 없이 색면만(시안 톤). 항목마다 달라 반복으로 보이지 않는다
+  listThumbPlaceholder: { alignItems: 'center', justifyContent: 'center' },
+  listThumbGlyph: { fontSize: 21, fontWeight: '900', color: colors.ju, letterSpacing: -0.5 },
   listTextCol: { flex: 1, justifyContent: 'center' }, // 남는 폭 차지 → 가격/셰브런 우측 고정
   listLabel: { flexShrink: 1, fontSize: 16, fontWeight: '800', color: colors.ink, letterSpacing: 0.2 },
   listLabelRow: { flexDirection: 'row', alignItems: 'center' }, // 라벨 + NEW 배지 한 줄(라벨 flexShrink 로 길면 …, NEW 는 고정)

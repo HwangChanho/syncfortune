@@ -13,6 +13,10 @@
 //   A3 도메인   — daniel 지정 3축(사주·타로·자미두수)이 모두 있고 각 도메인에 주제가 1개 이상
 //   A4 매칭     — 대표 문장이 의도한 주제로 걸린다(키워드 표가 비어 있지 않다는 실증)
 //   A5 이미지   — 안내 카드가 이미지로 뜬다(daniel IMG_8311 "이미지랑 같이 노출")
+//                 ★2026-08-19: 항목 그림이 없으면 **섹션 아이콘**이 대신 들어간다.
+//                   카드 그리드는 시안대로 사진을 걷어냈지만, 도우미는 한 장씩 보여 주는 자리라
+//                   그림이 없으면 **글자 버튼으로 떨어진다** — 그게 IMG_8311 로 지적받은 그 모양이다.
+//                   ⇒ 판정은 '항목 그림 **또는** 그 항목이 속한 섹션 아이콘'이 있는가로 본다.
 //   A6 비용     — 도우미 화면이 LLM(Edge interpret)을 호출하지 않는다 ★핵심 요구
 //
 // 실행: npm run check:assistant
@@ -29,13 +33,17 @@ const ok = (m: string) => console.log(`  ✓ ${m}`);
 
 // SECTIONS 를 **소스에서** 읽는다(require 하면 react-native/이미지 require 가 걸린다).
 const secSrc = strip(readFileSync(`${ROOT}app/src/lib/content/contentSections.ts`, 'utf8'));
-type Item = { key: string; creditKey?: string; route: string; hasImage: boolean };
+type Item = { key: string; creditKey?: string; route: string; hasImage: boolean; section?: string };
 const items: Item[] = [];
 // ⚠️블록 정규식(`{ key: ... }`)을 쓰면 **섹션 헤더가 첫 항목을 삼킨다** —
 //   `{ key: 'premium', …, items: [ { key: 'saju', …, route: '/reading' … }` 에서
 //   비탐욕 `[^}]*?}` 가 헤더~첫 항목의 닫는 중괄호까지 한 덩어리로 잡아 'saju' 가 사라졌다(오탐 3건).
 //   이 파일은 **항목 1개 = 1줄** 형식이라 줄 단위로 읽는 게 정확하다. 형식이 바뀌면 아래 개수 가드가 잡는다.
+// 섹션 헤더 줄(`{ key: 'love', icon: 'heart', titleKey: …`)을 만나면 현재 섹션을 갈아 끼운다.
+let curSection: string | undefined;
 for (const ln of secSrc.split('\n')) {
+  const sec = /\{\s*key:\s*'([a-z]+)',[^\n]*titleKey:/.exec(ln)?.[1];
+  if (sec) { curSection = sec; continue; }            // 헤더 줄은 항목이 아니다
   const key = /\bkey:\s*'([^']+)'/.exec(ln)?.[1];
   const route = /\broute:\s*'([^']+)'/.exec(ln)?.[1];
   if (!key || !route) continue;                             // 섹션 헤더(route 없음)·주석 줄 제외
@@ -49,6 +57,7 @@ for (const ln of secSrc.split('\n')) {
     //   "이미지 없음"으로 전부 오탐한다(실제로 그렇게 깨졌다). **두 형태를 모두 인정**한다.
     //   ⚠️여기서 옛 패턴으로 되돌리지 말 것 — 불변식은 '카드에 이미지가 있다'이지 'require 를 쓴다'가 아니다.
     hasImage: /image:\s*(require\(|A\(|contentIcon\(|freeTrioIcon\(|cardArt\()/.test(ln),
+    section: curSection,
   });
 }
 const byKey = new Map<string, Item>();
@@ -119,9 +128,17 @@ console.log('\n[A4] 대표 문장이 의도한 주제로 걸린다');
 // ── A5 이미지 ────────────────────────────────────────────────────────────
 console.log('\n[A5] 안내 카드가 이미지로 뜬다(daniel IMG_8311)');
 {
-  const noImg = assistItemKeys().filter((k) => byKey.get(k) && !byKey.get(k)!.hasImage);
-  if (!noImg.length) ok('모든 안내 대상이 이미지 보유');
-  else bad(`이미지 없는 안내 대상: ${noImg.join(', ')} — 글자 카드로 폴백되어 눈에 안 띈다`);
+  // 섹션 아이콘 표 — `{ key: 'love', icon: 'heart', …` 형태
+  const secIcon = new Map<string, string>();
+  for (const m of secSrc.matchAll(/\{\s*key:\s*'([a-z]+)',\s*icon:\s*'([a-z]+)'/g)) secIcon.set(m[1], m[2]);
+  const noImg = assistItemKeys().filter((k) => {
+    const it = byKey.get(k);
+    if (!it) return false;
+    if (it.hasImage) return false;
+    return !(it.section && secIcon.has(it.section));   // 섹션 아이콘이 대신 들어간다
+  });
+  if (!noImg.length) ok(`모든 안내 대상이 그림 보유(항목 그림 또는 섹션 아이콘 ${secIcon.size}종)`);
+  else bad(`그림 없는 안내 대상: ${noImg.join(', ')} — 글자 버튼으로 떨어져 눈에 안 띈다(항목 아이콘을 주거나 그 섹션에 icon 을 달 것)`);
 }
 
 // ── A6 비용 ──────────────────────────────────────────────────────────────

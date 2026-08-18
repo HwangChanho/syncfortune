@@ -14,7 +14,8 @@
 //   kind 로 이미지를 찾고, 못 찾으면 **기존처럼 글자 버튼으로 폴백**한다(빈 카드로 깨지지 않게).
 // ─────────────────────────────────────────────────────────────────────────
 import { View, Text, StyleSheet } from 'react-native';
-import { Image as ExpoImage } from 'expo-image'; // 자동 다운샘플·디스크캐시(추천 카드와 동일)
+import { Image as ExpoImage } from 'expo-image';
+import { contentIcon } from '../lib/ui/brandAsset';   // 섹션 아이콘 폴백 // 자동 다운샘플·디스크캐시(추천 카드와 동일)
 import { useTranslation } from 'react-i18next';
 import { PressableScale } from './PressableScale';
 import { SECTIONS } from '../lib/content/contentSections';
@@ -26,8 +27,12 @@ const META_BY_KIND: Record<string, { image: any; descKey?: string }> = (() => {
   const m: Record<string, { image: any; descKey?: string }> = {};
   for (const s of SECTIONS) {
     for (const it of s.items) {
-      if (!it.image) continue;
-      const entry = { image: it.image, descKey: it.descKey };
+      // ★그림이 없으면 **섹션 아이콘**으로 채운다(2026-08-19).
+      //   도우미는 한 번에 한 장만 보여 줘서 카테고리 그림이 반복으로 보이지 않는다.
+      //   그림이 아예 없으면 아래에서 **글자 버튼으로 떨어져** daniel IMG_8311 지적으로 되돌아간다.
+      const img = it.image ?? (s.icon ? contentIcon(s.icon) : null);
+      if (!img) continue;
+      const entry = { image: img, descKey: it.descKey };
       if (it.creditKey && !m[it.creditKey]) m[it.creditKey] = entry;
       if (!m[it.key]) m[it.key] = entry;
     }
