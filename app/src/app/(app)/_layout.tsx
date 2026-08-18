@@ -101,6 +101,7 @@ export default function AppLayout() {
         <Stack.Screen name="myreadings" options={{ headerShown: false }} />
         <Stack.Screen name="favorites" options={{ headerShown: false }} />
         <Stack.Screen name="notifications" options={{ headerShown: false }} />
+        <Stack.Screen name="analyzed" options={{ headerShown: false }} />
         <Stack.Screen name="coinhistory" options={{ title: '결제/충전 내역' }} />
         <Stack.Screen name="compat" options={{ headerTitle: '' }} />
         <Stack.Screen name="taro" options={{ headerTitle: '' }} />

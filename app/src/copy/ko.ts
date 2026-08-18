@@ -614,6 +614,7 @@ export const ko = {
     'walletSub': '운은 다양한 상담과 콘텐츠에 사용돼요.',
     'woon': '운',
   },
+  analyzed: { done: '분석이 완료되었어요!', ilju: '일주', is: '입니다.', next: '내 명식 보기', sub: '당신의 사주를 확인해 보세요.', you: '당신은' },
   coinHistory: {
     'charge': '운 충전',
     'empty': '아직 충전·사용 내역이 없어요.',

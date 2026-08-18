@@ -576,6 +576,7 @@ export const en = {
     'walletSub': 'Woon is used across readings and consultations.',
     'woon': 'Woon',
   },
+  analyzed: { done: 'Analysis complete!', ilju: ' day pillar', is: '', next: 'See my chart', sub: 'Take a look at your chart.', you: 'You are' },
   coinHistory: {
     'charge': 'Top-up',
     'empty': 'No top-ups or spending yet.',

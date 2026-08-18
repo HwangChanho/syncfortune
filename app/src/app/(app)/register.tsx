@@ -32,9 +32,13 @@ export default function RegisterRoute() {
   const [editReady, setEditReady] = useState(!editId); // 편집모드면 명식 로드 완료까지 폼 마운트 보류(초기값 prefill 보장)
   useEffect(() => { if (editId) listCharts().then((l) => { setEditing(l.find((c) => c.id === editId) ?? null); setEditReady(true); }); }, [editId]);
 
-  // 저장 후 명식 화면으로(스택 = [홈, 명식] — 등록 폼은 replace 로 제거).
+  // 저장 후 **분석 완료 화면**을 한 박자 거쳐 명식으로(시안 p12, 2026-08-18).
+  //   종전엔 등록하자마자 8글자 표가 나와서, 방금 넣은 생년월일이 무엇이 되었는지 알기 전에
+  //   한자부터 마주쳤다. "당신은 ○○ 일주" 를 먼저 말해 주고 넘긴다.
+  //   ⚠️편집 모드는 건너뛴다 — 이미 아는 명식을 고친 것이라 다시 선언할 이유가 없다.
   function proceed(input: any) {
-    router.replace({ pathname: '/myeongsik', params: { input: JSON.stringify(input) } });
+    const to = editId ? '/myeongsik' : '/analyzed';
+    router.replace({ pathname: to, params: { input: JSON.stringify(input) } });
   }
 
   // 한도(10개) 초과 안내 → 보상형 광고 1회 보고 1건 추가.

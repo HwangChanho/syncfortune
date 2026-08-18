@@ -575,6 +575,7 @@ export const ja = {
     'walletSub': '運は鑑定や相談に使えます。',
     'woon': '運',
   },
+  analyzed: { done: '分析が完了しました！', ilju: '日柱', is: 'です。', next: '私の命式を見る', sub: 'あなたの四柱を確認してみましょう。', you: 'あなたは' },
   coinHistory: {
     'charge': 'チャージ',
     'empty': 'まだ履歴がありません。',
