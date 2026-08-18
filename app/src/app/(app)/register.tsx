@@ -70,6 +70,9 @@ export default function RegisterRoute() {
 
   return (
     <ChartRegisterScreen
+      // ★신규 등록만 **4단계**로 묻는다(시안 p03, 2026-08-18).
+      //   편집은 한 화면 그대로 — 이미 아는 명식에서 한 칸 고치려는데 4단계를 걷게 하면 그건 벌이다.
+      stepped={!editId}
       // 편집모드 = 기존 값 prefill + '수정 저장' 라벨. input 의 label/relation 은 메타로 합쳐 전달.
       initial={editing ? { ...editing.input, label: editing.label, relation: editing.relation } : prefill}
       submitLabel={editId ? t('register.editDone', '완료') : undefined}

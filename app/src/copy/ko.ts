@@ -164,7 +164,7 @@ export const ko = {
     subtitle: '사주와 자미두수를 결합한 복합적인 해석', note: '로그인은 선택이에요. 기기를 바꿔도 명식과 이용권을 그대로 쓰려면 연결해 주세요.',
     failedTitle: '로그인에 실패했어요',
   },
-  register: {
+  register: { needDate: '생년월일 8자리를 입력해 주세요.', next: '다음', prev: '이전', step0Desc: '정확한 분석을 위해 정보를 입력해주세요.', step1Desc: '태어난 날짜를 알려주세요. 음력이면 음력으로 골라 주세요.', step2Desc: '태어난 시간을 알면 더 정확해요. 모르면 그대로 넘어가도 괜찮아요.', step3Desc: '태어난 곳을 고르면 그 지역의 실제 태양시로 맞춰요.', stepTitle: '사주 정보 입력',
     placeHintNone: '지역마다 해 뜨는 시각이 달라 태어난 시가 갈릴 수 있어요. 고르지 않으면 한국 평균으로 계산해요.',
     placeHintSet: '이 지역의 실제 태양시로 태어난 시를 맞춥니다.',
     'pickCategory': '카테고리 선택',

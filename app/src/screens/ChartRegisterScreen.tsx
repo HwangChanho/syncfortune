@@ -22,7 +22,14 @@ import { Alert } from '../lib/ui/alert'; // 카테고리 삭제 확인
 
 
 // defaultRelation/submitLabel = 궁합 상대 등록 등 재사용 시 기본 관계·CTA 문구 주입(옵션, 기존 호출 영향 0).
-export function ChartRegisterScreen({ onSubmit, defaultRelation, submitLabel, showMakeRep = true, initial, autoSave, onAutoSave }: { onSubmit: (input: any) => void; defaultRelation?: string; submitLabel?: string; showMakeRep?: boolean; initial?: any; autoSave?: boolean; onAutoSave?: (input: any) => void }) {
+//
+// ★`stepped`(2026-08-18 · 시안 p03) — 한 화면에 다 쏟지 않고 **4단계**로 나눠 묻는다.
+//   왜: 신규 등록에서 이름·성별·생년월일·시각·출생지·카테고리·내 상황·대표설정이 **한 화면에 전부** 있었다.
+//   첫 진입자가 마주치는 첫 화면이 가장 긴 폼이면, 채우기도 전에 나간다.
+//   ⚠️필드·검증·제출 로직은 **하나도 바꾸지 않았다** — 같은 상태를 단계별로 *보여 주기만* 한다.
+//     (쪼개면서 검증을 다시 짜면 그때부터 두 벌이 된다.)
+//   ⚠️기본값 false — 궁합 상대 등록 등 **재사용처는 종전 그대로** 한 화면이다(거기선 이미 맥락이 있다).
+export function ChartRegisterScreen({ onSubmit, defaultRelation, submitLabel, showMakeRep = true, initial, autoSave, onAutoSave, stepped = false }: { onSubmit: (input: any) => void; defaultRelation?: string; submitLabel?: string; showMakeRep?: boolean; initial?: any; autoSave?: boolean; onAutoSave?: (input: any) => void; stepped?: boolean }) {
   const { t } = useTranslation();
   // 편집모드(initial) = 기존 명식 값으로 폼 prefill. 신규면 빈 값. 시각은 hm(대표시각)으로 시진 역매핑.
   const initTime = initial && initial.timeAccuracy !== '미상' ? String(initial.birthDateTime ?? '').split(' ')[1] : null;
@@ -58,6 +65,21 @@ export function ChartRegisterScreen({ onSubmit, defaultRelation, submitLabel, sh
   const [relation, setRelation] = useState<string>(initial?.relation ?? defaultRelation ?? 'self');
   const [cats, setCats] = useState<string[]>(() => getCategories()); // 관리 카테고리 목록(프리셋+커스텀+기타·self 제외)
   const [makeRep, setMakeRep] = useState(false); // 이 명식을 대표로 설정(register 전용)
+
+  // ── 4단계 입력(시안 p03) ────────────────────────────────────────────────
+  //   1 누구인가(이름·성별) → 2 언제(생년월일·양음·윤달) → 3 몇 시(시각) → 4 어디서(출생지·카테고리·상황)
+  //   ★쉬운 것부터 묻는다 — 이름·성별은 고민이 없고, 출생지·상황은 모르면 건너뛸 수 있다.
+  const [step, setStep] = useState(0);
+  const [stepHint, setStepHint] = useState<string | null>(null);   // 왜 못 넘어가는지(빈 반응 방지)
+  const STEP_COUNT = 4;
+  /** 이 단계를 채웠는가 — 못 채우면 '다음'을 막는다(마지막 검증은 종전 handleSubmit 이 한다). */
+  const stepReady = (i: number): boolean => {
+    if (i === 0) return true;                       // 이름은 비어도 된다(관계명으로 대체된다 — 종전 규칙)
+    if (i === 1) return birthDate.replace(/\D/g, '').length === 8;
+    return true;                                    // 시각·출생지는 '모름'이 정당한 답이다
+  };
+  /** 단계형에서 이 블록을 지금 보여줄 것인가(단계형이 아니면 늘 보여 준다). */
+  const at = (i: number): boolean => !stepped || step === i;
   // 풀이 grounding 기본정보(선택, daniel) — 하는 일·관계상태·관심/고민·메모. 입력 시 통변이 더 정확(특히 R25: 현재 배우자 유무가 연애·결혼·궁합 풀이를 좌우).
   // ★상황(daniel 2026-07-28 "풀이가 너무 직장인에만 포커스") — **고정 키** 칩.
   //   자유 텍스트('하는 일')는 사람마다 표기가 제각각이라(회사원/직딩/백수…) 모델이 일관되게 못 쓴다.
@@ -186,40 +208,66 @@ export function ChartRegisterScreen({ onSubmit, defaultRelation, submitLabel, sh
         automaticallyAdjustKeyboardInsets
         keyboardShouldPersistTaps="handled"
       >
+        {/* ★단계 머리말(시안 p03) — 제목 + 진행 점. 단계형일 때만 */}
+        {stepped ? (
+          <View style={styles.stepHead}>
+            <Text style={styles.stepTitle}>{t('register.stepTitle', '사주 정보 입력')}</Text>
+            <View style={styles.dots}>
+              {Array.from({ length: STEP_COUNT }).map((_, i) => (
+                <View key={i} style={[styles.dot, i === step && styles.dotOn, i < step && styles.dotDone]} />
+              ))}
+            </View>
+            <Text style={styles.stepDesc}>{t(`register.step${step}Desc`)}</Text>
+          </View>
+        ) : null}
+
         {/* 이름·별칭 */}
-        <Text style={styles.label}>{t('register.name')}</Text>
-        <TextInput style={styles.input} value={label} onChangeText={setLabel}
-          placeholder={t('register.namePh')} placeholderTextColor={colors.inkFaint} />
+        {/* ── 1단계 · 누구인가 (이름 · 성별) ─────────────────────────────
+              ★쉬운 것부터 묻는다 — 고민이 필요 없는 두 칸이라 첫 화면의 부담이 가장 낮다. */}
+        {at(0) ? (<>
+          <Text style={styles.label}>{t('register.name')}</Text>
+          <TextInput style={styles.input} value={label} onChangeText={setLabel}
+            placeholder={t('register.namePh')} placeholderTextColor={colors.inkFaint} />
 
-        {/* 생년월일 — 숫자 입력 자동 하이픈(19900315 → 1990-03-15) */}
-        <Text style={styles.label}>{t('register.birthDate')}</Text>
-        <TextInput style={styles.input} value={birthDate}
-          onChangeText={(v) => setBirthDate(formatBirthDate(v))}
-          placeholder={t('register.birthDatePh')} placeholderTextColor={colors.inkFaint}
-          keyboardType="number-pad" maxLength={10} />
+          <Text style={styles.label}>{t('register.sex')}</Text>
+          <Segmented options={[{ value: '남', label: t('register.male') }, { value: '여', label: t('register.female') }]}
+            value={sex} onChange={(v) => setSex(v as '남' | '여')} />
+        </>) : null}
 
-        {/* 태어난 시각 — 드롭다운 필드 클릭 → 바텀시트 스크롤 선택 */}
-        <Text style={styles.label}>{t('register.birthTimeSijin')}</Text>
-        <PressableScale style={styles.select} onPress={() => setSijinOpen(true)}>
-          <Text style={[styles.selectText, !exactStr && !sj && styles.selectPlaceholder]}>{timeLabel}</Text>
-          <Text style={styles.selectChevron}>▾</Text>
-        </PressableScale>
+        {/* ── 2단계 · 언제 (생년월일 · 양음 · 윤달) ────────────────────────
+              ★양력/음력을 생년월일 **바로 아래** 둔다. 종전엔 시각 블록이 사이에 끼어 있어
+                날짜를 적고 한참 아래에서 음력을 고르게 돼 있었다. */}
+        {at(1) ? (<>
+          {/* 생년월일 — 숫자 입력 자동 하이픈(19900315 → 1990-03-15) */}
+          <Text style={styles.label}>{t('register.birthDate')}</Text>
+          <TextInput style={styles.input} value={birthDate}
+            onChangeText={(v) => setBirthDate(formatBirthDate(v))}
+            placeholder={t('register.birthDatePh')} placeholderTextColor={colors.inkFaint}
+            keyboardType="number-pad" maxLength={10} />
 
-        {/* 양력/음력 */}
-        <Text style={styles.label}>{t('register.calendar')}</Text>
-        <Segmented options={[{ value: '양', label: t('register.solar') }, { value: '음', label: t('register.lunar') }]}
-          value={calendar} onChange={(v) => setCalendar(v as '양' | '음')} />
-        {/* ⑧ 윤달(daniel) — 음력 선택 시 평달/윤달 구분(같은 달이 두 번 드는 해) */}
-        {calendar === '음' && (
-          <Segmented options={[{ value: 'false', label: t('register.normalMonth', '평달') }, { value: 'true', label: t('register.leapMonth', '윤달') }]}
-            value={String(isLeap)} onChange={(v) => setIsLeap(v === 'true')} />
-        )}
+          <Text style={styles.label}>{t('register.calendar')}</Text>
+          <Segmented options={[{ value: '양', label: t('register.solar') }, { value: '음', label: t('register.lunar') }]}
+            value={calendar} onChange={(v) => setCalendar(v as '양' | '음')} />
+          {/* ⑧ 윤달(daniel) — 음력 선택 시 평달/윤달 구분(같은 달이 두 번 드는 해) */}
+          {calendar === '음' && (
+            <Segmented options={[{ value: 'false', label: t('register.normalMonth', '평달') }, { value: 'true', label: t('register.leapMonth', '윤달') }]}
+              value={String(isLeap)} onChange={(v) => setIsLeap(v === 'true')} />
+          )}
+        </>) : null}
 
-        {/* 성별 */}
-        <Text style={styles.label}>{t('register.sex')}</Text>
-        <Segmented options={[{ value: '남', label: t('register.male') }, { value: '여', label: t('register.female') }]}
-          value={sex} onChange={(v) => setSex(v as '남' | '여')} />
+        {/* ── 3단계 · 몇 시 (태어난 시각) ─────────────────────────────────
+              ★한 칸만 두는 단계다 — 시각은 '모른다'가 정당한 답이고, 여기서 망설이는 사람이 많다.
+                다른 칸과 섞어 두면 모름을 고르는 것이 포기처럼 보인다. */}
+        {at(2) ? (<>
+          <Text style={styles.label}>{t('register.birthTimeSijin')}</Text>
+          <PressableScale style={styles.select} onPress={() => setSijinOpen(true)}>
+            <Text style={[styles.selectText, !exactStr && !sj && styles.selectPlaceholder]}>{timeLabel}</Text>
+            <Text style={styles.selectChevron}>▾</Text>
+          </PressableScale>
+        </>) : null}
 
+        {/* ── 4단계 · 어디서 + 나머지 (출생지 · 카테고리 · 내 상황 · 대표) ── */}
+        {at(3) ? (<>
         {/* 출생지 — 도시 검색 선택(Nominatim, 검증된 입력 + 진태양시 경도 보관) */}
         <Text style={styles.label}>{t('register.birthPlace')}</Text>
         <BirthPlacePicker value={birthPlace} onSelect={(p) => { setBirthPlace(p.name); setBirthPlaceLon(p.lon); setBirthPlaceLat(p.lat); }} />
@@ -294,10 +342,41 @@ export function ChartRegisterScreen({ onSubmit, defaultRelation, submitLabel, sh
           </PressableScale>
         )}
 
-        {/* 제출 (CTA = 주색) */}
-        <PressableScale style={styles.submit} onPress={handleSubmit}>
-          <Text style={styles.submitText}>{submitLabel ?? t('register.submit')}</Text>
-        </PressableScale>
+        </>) : null}
+
+        {/* 제출 — 단계형에서는 **마지막 단계에서만** 뜬다. 그 전에는 [이전][다음]. */}
+        {!stepped || step === STEP_COUNT - 1 ? (
+          <PressableScale style={styles.submit} onPress={handleSubmit}>
+            <Text style={styles.submitText}>{submitLabel ?? t('register.submit')}</Text>
+          </PressableScale>
+        ) : null}
+
+        {/* 단계 이동 — '다음'은 이 단계를 채워야 눌린다(마지막 검증은 종전 handleSubmit 이 한다) */}
+        {stepped ? (
+          <>
+          {stepHint ? <Text style={styles.stepHint}>{stepHint}</Text> : null}
+          <View style={styles.navRow}>
+            {step > 0 ? (
+              <PressableScale style={styles.navGhost} onPress={() => setStep((v) => Math.max(0, v - 1))}>
+                <Text style={styles.navGhostTx}>{t('register.prev', '이전')}</Text>
+              </PressableScale>
+            ) : null}
+            {step < STEP_COUNT - 1 ? (
+              <PressableScale
+                style={[styles.navNext, !stepReady(step) && styles.navNextOff]}
+                onPress={() => {
+                  if (stepReady(step)) { setStepHint(null); setStep((v) => Math.min(STEP_COUNT - 1, v + 1)); return; }
+                  // ⚠️눌렀는데 **아무 일도 안 일어나면 고장으로 읽힌다**(실물에서 확인).
+                  //   막는 데서 끝내지 않고 무엇이 모자란지 적는다.
+                  setStepHint(t('register.needDate', '생년월일 8자리를 입력해 주세요.'));
+                }}
+              >
+                <Text style={styles.navNextTx}>{t('register.next', '다음')}</Text>
+              </PressableScale>
+            ) : null}
+          </View>
+          </>
+        ) : null}
       </ScrollView>
 
       {/* ★카테고리 드롭박스(daniel 2026-08-12) — 선택·추가·삭제를 **한 곳에서**.
@@ -538,5 +617,25 @@ const styles = StyleSheet.create({
     backgroundColor: colors.ju, borderRadius: radius.md, paddingVertical: space(4),
     alignItems: 'center', marginTop: space(8), ...shadow.card,
   },
+  // ── 4단계 입력(시안 p03) ────────────────────────────────────────────────
+  stepHead: { alignItems: 'center', marginBottom: space(4), gap: space(3) },
+  stepTitle: { fontSize: 22, lineHeight: 30, fontWeight: '900', color: colors.ink, letterSpacing: -0.3 },
+  // 진행 점 — 지난 단계는 채우고, 지금은 길게(어디쯤 왔는지 형태로 보이게)
+  dots: { flexDirection: 'row', alignItems: 'center', gap: space(1.5) },
+  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.juLine },
+  dotDone: { backgroundColor: colors.ju, opacity: 0.55 },
+  dotOn: { width: 22, backgroundColor: colors.ju, opacity: 1 },
+  stepDesc: { ...font.caption, color: colors.inkSoft, textAlign: 'center' },
+  stepHint: { ...font.caption, color: colors.ju, marginTop: space(3), textAlign: 'center' },
+  navRow: { flexDirection: 'row', gap: space(2), marginTop: space(2) },
+  navGhost: {
+    flex: 1, borderRadius: radius.md, borderWidth: 1, borderColor: colors.juLine,
+    paddingVertical: space(3.5), alignItems: 'center',
+  },
+  navGhostTx: { ...font.label, color: colors.ju, fontWeight: '800' },
+  navNext: { flex: 2, borderRadius: radius.md, backgroundColor: colors.ju, paddingVertical: space(3.5), alignItems: 'center' },
+  // 못 누른다는 것을 **색으로** 알린다 — opacity 0.4 만으로는 실물에서 활성과 구분되지 않았다
+  navNextOff: { backgroundColor: colors.juLine },
+  navNextTx: { ...font.label, color: colors.onJu, fontWeight: '900' },
   submitText: { color: colors.bg, fontSize: 16, fontWeight: '700', letterSpacing: 0.3 },
 });

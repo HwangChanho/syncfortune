@@ -13,7 +13,7 @@ export const ja = {
     raw: '{{text}}', // image·talent·mission — 文言はエンジン(lib/content/elementPhrases)が韓国語で算出しそのまま挿入(既存 newyear.keyword と同方式・3言語同値)
   },
   onb: {
-    skip: 'スキップ', next: '次へ', start: '私の分析を始める',
+    skip: 'スキップ',  next: '次へ', start: '私の分析を始める',
     t1: 'AIが分析する「私」',
     b1: 'ニウンネウンは占いアプリではありません。四柱推命をエンジンに、あなたがどんな人かを分析する自己理解ツールです。',
     t2: 'あなただけの命式を計算します',
@@ -137,7 +137,7 @@ export const ja = {
     subtitle: '四柱推命と紫微斗数を組み合わせた解釈', note: 'ログインは任意です。端末を変えても命式と利用券を引き継ぐには連携してください。',
     failedTitle: 'ログインに失敗しました',
   },
-  register: {
+  register: { needDate: '生年月日8桁を入力してください。', next: '次へ', prev: '戻る', step0Desc: '正確な分析のために情報を入力してください。', step1Desc: '生年月日を入力してください。旧暦の場合は旧暦を選んでください。', step2Desc: '生まれた時間がわかるとより正確です。わからなければ飛ばして大丈夫です。', step3Desc: '生まれた場所を選ぶと、その地域の実際の太陽時に合わせます。', stepTitle: '四柱情報の入力',
     placeHintNone: '地域ごとに日の出が違うため、時柱が変わることがあります。選ばない場合は韓国の平均で計算します。',
     placeHintSet: 'この地域の真太陽時で生まれた時刻を合わせます。',
     'pickCategory': 'カテゴリーを選ぶ',

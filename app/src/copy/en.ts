@@ -13,7 +13,7 @@ export const en = {
     raw: '{{text}}', // image·talent·mission — text is engine-generated Korean (same approach as newyear.keyword), same value across locales
   },
   onb: {
-    skip: 'Skip', next: 'Next', start: 'Start my analysis',
+    skip: 'Skip',  next: 'Next', start: 'Start my analysis',
     t1: "The AI that analyzes 'you'",
     b1: 'Niunnaeun is not a horoscope app. It uses Saju as its engine to analyze who you are — a self-understanding tool.',
     t2: 'We compute your own chart',
@@ -138,7 +138,7 @@ export const en = {
     subtitle: 'Saju and Zi Wei Dou Shu, read together', note: 'Signing in is optional — connect an account to keep your charts and passes when you switch devices.',
     failedTitle: 'Sign-in failed',
   },
-  register: {
+  register: { needDate: 'Please enter your 8-digit birth date.', next: 'Next', prev: 'Back', step0Desc: 'Tell us a little about you.', step1Desc: 'Enter your birth date. Choose lunar if that is what you know.', step2Desc: 'Birth time makes it more precise. It is fine to skip it.', step3Desc: 'Birth place lets us use the real solar time there.', stepTitle: 'Birth details',
     placeHintNone: 'Sunrise differs by region, so the hour pillar can shift. Left blank, we use a national average.',
     placeHintSet: 'We adjust the birth hour to this location\'s true solar time.',
     'pickCategory': 'Choose a category',
