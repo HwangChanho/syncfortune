@@ -212,6 +212,11 @@ export function setThemeAccent(mode: AccentMode) {
   else { try { Updates?.reloadAsync?.().catch(() => {}); } catch { /* 재시작 후 적용 */ } }
 }
 /** 대표명식 일간 오행 저장(themeElement.ts가 rep 변경/시작 시 호출). reload=true(대표명식 *변경*)일 때만 auto 모드 즉시 리로드. */
+/** 테마 오행이 이미 저장돼 있는가(최초 실행 판정용 — `ensureThemeElement`). */
+export function hasChartElement(): boolean {
+  return (ELS as string[]).includes(readPref(ELEMENT_KEY));
+}
+
 export function storeChartElement(el: string, reload = false) {
   if (!(ELS as string[]).includes(el)) return;   // el 은 엔진에서 온 문자열 — 오행 5자 중 하나인지만 본다
   // ★`readPref` 로 통일 — 종전엔 SecureStore 동기 getItem 만 봤다. 웹에는 그 API 가 없어 `prev` 가 늘 ''

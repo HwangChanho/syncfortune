@@ -8,7 +8,7 @@
 import { loadRepChart, listCharts } from '../engine/myChart';
 import { computeChart } from '../engine/engine';
 import { stemElement } from '../engine/ohaeng';
-import { storeChartElement } from '../theme';
+import { storeChartElement, hasChartElement } from '../theme';
 
 /** 대표명식 일간 오행을 산출해 theme 강조색 소스로 저장.
  *  @param reload true=대표명식을 실제로 *변경*했을 때만(즉시 리로드로 색 반영). 앱시작·포그라운드 복귀는 false(저장만·리로드 없음).
@@ -28,4 +28,16 @@ export async function syncThemeElement(reload = false): Promise<void> {
     const stem = computeChart(src.input).saju?.dayMaster?.stem;
     if (stem) storeChartElement(stemElement(stem), reload);
   } catch { /* 무시(테마는 다음 로드에 반영) */ }
+}
+
+/**
+ * 테마 오행이 **아직 한 번도 정해지지 않았을 때만** 본인 명식으로 초기화한다.
+ *
+ * ★앱 실행마다 부르지만, 저장값이 있으면 아무것도 하지 않는다 —
+ *   `preferSelfAsRep()` 이 대표를 본인으로 되돌려도 **마지막으로 고른 명식의 색이 유지**되도록
+ *   (Boss 2026-08-18 ②안: 테마 소스를 대표와 분리).
+ */
+export async function ensureThemeElement(): Promise<void> {
+  if (hasChartElement()) return;   // 이미 정해져 있다 — 사용자의 선택을 덮지 않는다
+  await syncThemeElement();
 }

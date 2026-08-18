@@ -22,15 +22,25 @@ export const FREE_CHART_LIMIT = 10;   // 무료 티어 명식 등록 한도. 프
 
 // ── 대표 명식 변경 전역 동기화(daniel 2026-06) — 홈이든 어디든 바꾸면 모든 화면·ChartPicker 즉시 반영 ──
 //   비React 모듈이라 가벼운 pub/sub. setRepresentative/add/update/delete 시 notifyRepChange()로 알린다.
-type RepListener = () => void;
+/**
+ * 대표가 **왜** 바뀌었는가.
+ *
+ * ★2026-08-18 추가 — 테마가 이걸 봐야 한다.
+ *   앱을 켤 때 `preferSelfAsRep()` 이 대표를 본인으로 되돌리는데(daniel: "실행하면 대표=본인"),
+ *   그것까지 '사용자가 명식을 골랐다'로 세면 **어제 고른 명식의 색이 매번 본인 색으로 리셋**된다.
+ *   ⇒ `'boot'`(자동 복귀)와 `'user'`(사람이 고름)를 갈라, 테마는 `'user'` 만 따라간다.
+ *   ⚠️다른 구독자(ChartPicker 새로고침 등)는 이유를 무시하면 종전과 똑같이 동작한다.
+ */
+export type RepChangeReason = 'user' | 'boot';
+type RepListener = (reason: RepChangeReason) => void;
 const repListeners = new Set<RepListener>();
 /** 대표 명식 변경 구독 → 해제 함수 반환(useEffect cleanup). */
 export function subscribeRepChange(cb: RepListener): () => void {
   repListeners.add(cb);
   return () => { repListeners.delete(cb); };
 }
-function notifyRepChange(): void {
-  repListeners.forEach((cb) => { try { cb(); } catch { /* 구독자 오류 격리 */ } });
+function notifyRepChange(reason: RepChangeReason = 'user'): void {
+  repListeners.forEach((cb) => { try { cb(reason); } catch { /* 구독자 오류 격리 */ } });
 }
 
 // ── 계정 동기화(ADR-056) — 명식을 owner 전용 *암호화 blob*(set/get_my_charts RPC, Vault 키)으로 서버 저장 ──
@@ -246,7 +256,9 @@ export async function preferSelfAsRep(): Promise<void> {
   const self = charts.find((c) => c.relation === 'self');
   if (!self) return;
   const cur = await getRaw(REP_KEY);
-  if (cur !== self.id) { await setRaw(REP_KEY, self.id); notifyRepChange(); } // 전역 알림 → 화면 본인 기준 갱신
+  //   ★`'boot'` 로 알린다 — 이건 사람이 고른 게 아니라 **앱이 되돌린 것**이다.
+  //     테마는 이 신호를 따라가지 않는다(그러면 어제 고른 색이 매번 리셋된다).
+  if (cur !== self.id) { await setRaw(REP_KEY, self.id); notifyRepChange('boot'); } // 전역 알림 → 화면 본인 기준 갱신
 }
 
 /** 대표 명식의 input (호환 — 기존 loadMyChart). 없으면 null. */

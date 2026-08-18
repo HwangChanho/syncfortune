@@ -39,7 +39,7 @@ import { ChartConfirmHost } from '../lib/ui/chartConfirm'; // 풀이/구매 전 
 import { Onboarding } from '../components/Onboarding'; // ★첫 실행 자기이해 온보딩(App Store 4.3: '운세앱'→'AI 자기이해 도구' 인상 전환)
 import { applyGlobalFont } from '../lib/ui/globalFont'; // 전역 Pretendard 폰트 — Text/TextInput 렌더 패치(트렌디, daniel 기획서 UX)
 import { loadFeatures } from '../lib/core/features'; // ★신규 기능 노출 게이트(원격 플래그+관리자) — 속궁합/커뮤니티/위젯 재제출 안전판
-import { syncThemeElement } from '../lib/ui/themeElement'; // ★대표명식 일간 오행 → 테마 강조색 소스 저장(자동 강조색)
+import { syncThemeElement, ensureThemeElement } from '../lib/ui/themeElement'; // ★대표명식 일간 오행 → 테마 강조색 소스 저장(자동 강조색)
 import { installRnwStyleShim } from '../lib/web/rnwStyleShim'; // ★웹: 중첩 <Text> 크래시 무해화(네이티브 무관)
 import { AppErrorBoundary } from '../components/AppErrorBoundary'; // ★전역 렌더 오류 방어(백지 금지)
 
@@ -103,12 +103,18 @@ export default function RootLayout() {
   }, [session]);
   // 앱 실행 시 대표 명식을 '본인'으로(daniel) — 로컬 명식 기준 즉시(로그인 동기화 후엔 syncChartsFromServer가 한 번 더 보정).
   //   대표명식 확정 후 일간 오행을 테마 강조색 소스로 저장(auto 강조 모드면 다음 로드에 일간 색 반영).
-  useEffect(() => { preferSelfAsRep().then(() => syncThemeElement()).catch(() => { syncThemeElement().catch(() => {}); }); }, []);
+  //   ★★테마는 여기서 **덮지 않는다**(2026-08-18 Boss ②안: 테마 소스를 대표와 분리).
+  //     대표는 앱을 켤 때마다 본인으로 돌아가지만, 테마는 **마지막으로 고른 명식**의 색을 지킨다.
+  //     `ensureThemeElement()` 는 저장값이 없을 때(최초 실행)만 본인 오행으로 초기화한다.
+  useEffect(() => { preferSelfAsRep().catch(() => {}); ensureThemeElement().catch(() => {}); }, []);
   // ★★명식을 바꾸면 테마도 **그 명식 오행으로** 간다(Boss 2026-08-18 "현재 적용된 명식 기준").
   //   `reload=true` — 다만 실제 리로드는 **웹에서만** 일어난다(theme.storeChartElement 참조).
   //   07-18 에 리로드를 뺀 이유가 "명식 바꿀 때마다 홈으로 튕겨서"였는데, 웹은 같은 URL 로 새로고침이라
   //   튕기지 않는다. 네이티브는 그 제약이 그대로라 저장만 되고 **다음 실행**에 반영된다.
-  useEffect(() => subscribeRepChange(() => syncThemeElement(true)), []);
+  // ★★명식을 **사람이 고르면** 테마도 그 명식 오행으로 간다(Boss 2026-08-18 "현재 적용된 명식 기준").
+  //   ⚠️`'boot'`(앱이 대표를 본인으로 되돌린 것)는 따라가지 않는다 — 그러면 어제 고른 색이 매번 리셋된다.
+  //   색이 실제로 바뀌는 시점은 **다음 진입**이다(`colors` 가 모듈 로드 시 1회 결정 — 168개 파일이 import).
+  useEffect(() => subscribeRepChange((reason) => { if (reason !== 'boot') syncThemeElement(); }), []);
   // ★신규 기능 노출 게이트 로드(세션 변경 시) — 원격 플래그(app_flags)+내 관리자 여부. 속궁합/커뮤니티/위젯 게이트.
   useEffect(() => { loadFeatures().catch(() => {}); }, [session?.user?.id]);
   // 앱 사용 세션 시간 추적(daniel: 관리자 계정별 평균 사용시간) — 포그라운드 구간 길이를 app_session 으로 기록.
@@ -123,7 +129,9 @@ export default function RootLayout() {
         // ★L3: 로그아웃 클린업이 진행 중이면 완료 후 sync — 이전 계정 명식이 새 계정 blob 으로 새는 것 방지(배리어 없으면 즉시).
         void whenAuthCleanupIdle().then(() => syncChartsFromServer());
         hydrateGenProgress().catch(() => {});
-        syncThemeElement().catch(() => {}); // 대표명식 바뀌었으면 일간 오행 갱신(다음 로드 반영)
+        // ⚠️포그라운드 복귀에서는 테마를 **건드리지 않는다**(2026-08-18) — 복귀 시점의 대표는
+        //   사용자가 고른 것이 아닐 수 있다(부팅 복귀·서버 동기화). 최초 초기화만 보장한다.
+        ensureThemeElement().catch(() => {});
         return;
       }
       const sec = Math.round((Date.now() - start) / 1000);   // 백그라운드/비활성 → 이번 구간 길이
