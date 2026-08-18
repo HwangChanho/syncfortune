@@ -31,6 +31,7 @@ import { PersonaTypeHero } from '../../components/PersonaTypeHero'; // ★홈 �
 // 홈 블록 이미지 상수(IMG)는 홈이 정보 카드로 바뀌며(2026-08-01) 소비처가 사라져 제거했다.
 import { HouseAdBanner } from '../../components/HouseAdBanner';
 import { FreeTrioBlock } from '../../components/home/FreeTrioBlock';
+import { BonusStrip } from '../../components/home/BonusStrip';
 import { unreadCount } from '../../lib/backend/notifyInbox';   // ★시안 헤더의 종 — 안 읽은 알림 배지
 import { isAdminActing } from '../../lib/core/admin'; // 홈 배치 편집 = 관리자 전용(daniel 2026-08-06) // 홈 상단 내부 프로모 배너(하우스 광고·daniel 07-24)
 import { BiorhythmCard } from '../../components/BiorhythmCard'; // 홈 블록: 바이오리듬(07-21 코드큐·온디바이스·부가 재미·API 0)
@@ -241,6 +242,8 @@ export default function Home() {
     if (k === 'banner') return <HouseAdBanner />;
     // 시안 p04 「무료로 체험해보세요!」 — 무료 콘텐츠 29종에서 날짜 시드로 도는 3장(FreeTrioBlock 머리말)
     if (k === 'free3') return <FreeTrioBlock dateKey={dateKey} />;
+    // 시안 p13 하단 「도착한 혜택」 — 보너스 쿠폰이 **있을 때만** 스스로 렌더한다(없으면 null)
+    if (k === 'bonus') return <BonusStrip name={repName} />;
     if (k === 'persona') return <PersonaTypeHero reloadKey={reloadKey} />;
     if (k === 'self') return <SelfUnderstandingHero reloadKey={reloadKey} />;
     if (k === 'biorhythm') return <BiorhythmCard reloadKey={reloadKey} />;

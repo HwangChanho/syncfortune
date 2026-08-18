@@ -588,6 +588,10 @@ export const ja = {
     'goPick': '運勢を見に行く',
   },
   home: {
+    'bonusLead': 'チャージ時に自動で使われます',
+    'bonusTitle': '届いた特典',
+    'bonusTitleName': '{{name}}さんに届いた特典',
+    'bonusUntil': '{{date}}まで使えます。',
     'freeTrio': '無料で試してみましょう',
     'freeTrioSub': '登録なしで今すぐ見られるもの',
     'greeting': '{{name}}さん、ようこそ',

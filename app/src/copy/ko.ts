@@ -627,6 +627,10 @@ export const ko = {
     'goPick': '운세 보러 가기',
   },
   home: {
+    'bonusLead': '충전할 때 자동으로 쓰여요',
+    'bonusTitle': '도착한 혜택',
+    'bonusTitleName': '{{name}}님께 도착한 혜택',
+    'bonusUntil': '{{date}}까지 쓸 수 있어요.',
     'freeTrio': '무료로 체험해보세요!',
     'freeTrioSub': '가입 없이 지금 바로 볼 수 있는 것들',
     'greeting': '{{name}}님 반갑습니다.',

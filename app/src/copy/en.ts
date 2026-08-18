@@ -589,6 +589,10 @@ export const en = {
     'goPick': 'Browse fortunes',
   },
   home: {
+    'bonusLead': 'Applied automatically when you top up',
+    'bonusTitle': 'Your rewards',
+    'bonusTitleName': 'Rewards for {{name}}',
+    'bonusUntil': 'Valid until {{date}}.',
     'freeTrio': 'Try these for free',
     'freeTrioSub': 'Things you can see right now, no sign-up',
     'greeting': 'Welcome, {{name}}',
