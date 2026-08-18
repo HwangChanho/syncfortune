@@ -545,7 +545,7 @@ export const ko = {
     'title': '나와 닮은 연예인',
     'topLabel': '나와 가장 닮은 인물',
   },
-  coins: { bonusAny: '충전 시 자동 적용', bonusNote: '충전하면 큰 쿠폰부터 자동으로 쓰여요. 결제 금액은 그대로예요.', bonusTitle: '가진 보너스', failTitle: '충전하지 못했어요',
+  coins: { title: '운 충전', titleSub: '운을 충전하고 원하는 풀이를 열어 보세요.', bonusAny: '충전 시 자동 적용', bonusNote: '충전하면 큰 쿠폰부터 자동으로 쓰여요. 결제 금액은 그대로예요.', bonusTitle: '가진 보너스', failTitle: '충전하지 못했어요',
     spendMsg: '{{cost}} 운을 사용해 풀이를 시작할까요?\n보유 {{have}} 운 → 사용 후 {{after}} 운',
     'balFail': '잔액을 불러오지 못했어요',
     'balance': '보유 운',

@@ -110,6 +110,11 @@ export default function CoinsScreen() {
   return (
     <View style={styles.bg}>
       <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>
+        {/* ★시안 p07 머리말 — 종전엔 잔액 카드가 곧바로 나와 '여기가 어디인지'가 없었다.
+              충전은 돈을 쓰는 화면이라, 무엇을 하는 자리인지 먼저 적는다. */}
+        <Text style={styles.pageTitle}>{t('coins.title', '운 충전')}</Text>
+        <Text style={styles.pageSub}>{t('coins.titleSub', '운을 충전하고 원하는 풀이를 열어 보세요.')}</Text>
+
         {/* 잔액 — 로딩/실패/정상 3상태를 분명히 구분해 보여 준다 */}
         <View style={styles.balCard}>
           <Text style={[styles.balLabel, { fontSize: fs(12) }]}>{t('coins.balance', '보유 운')}</Text>
@@ -123,7 +128,10 @@ export default function CoinsScreen() {
               </PressableScale>
             </>
           ) : (
-            <Text style={[styles.balNum, { fontSize: fs(34) }]}>{balance.toLocaleString('ko-KR')}</Text>
+            <View style={styles.balRow}>
+              <Text style={[styles.balNum, { fontSize: fs(34) }]}>{balance.toLocaleString('ko-KR')}</Text>
+              <Text style={[styles.balUnit, { fontSize: fs(15) }]}>{t('my.woon', '운')}</Text>
+            </View>
           )}
         </View>
 
@@ -179,6 +187,11 @@ const styles = StyleSheet.create({
   bg: { flex: 1, backgroundColor: 'transparent' },
   screen: { backgroundColor: 'transparent' },
   wrap: { padding: space(5), paddingBottom: space(10) },
+  // 시안 p07 머리말
+  pageTitle: { fontSize: 22, lineHeight: 30, fontWeight: '900', color: colors.ink, letterSpacing: -0.3, textAlign: 'center' },
+  pageSub: { ...font.caption, color: colors.inkSoft, textAlign: 'center', marginTop: space(1.5), marginBottom: space(4) },
+  balRow: { flexDirection: 'row', alignItems: 'baseline', gap: space(1.5) },
+  balUnit: { color: colors.inkSoft, fontWeight: '800' },
   // 보너스 티켓 — 시안의 쿠폰 스트립. 세 장까지만 보여 준다(그 이상은 어차피 큰 것부터 쓰인다)
   ticketRow: { flexDirection: 'row', gap: space(2), marginBottom: space(2) },
   ticket: {
