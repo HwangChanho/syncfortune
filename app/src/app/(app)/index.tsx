@@ -31,6 +31,7 @@ import { PersonaTypeHero } from '../../components/PersonaTypeHero'; // ★홈 �
 // 홈 블록 이미지 상수(IMG)는 홈이 정보 카드로 바뀌며(2026-08-01) 소비처가 사라져 제거했다.
 import { HouseAdBanner } from '../../components/HouseAdBanner';
 import { FreeTrioBlock } from '../../components/home/FreeTrioBlock';
+import { unreadCount } from '../../lib/backend/notifyInbox';   // ★시안 헤더의 종 — 안 읽은 알림 배지
 import { isAdminActing } from '../../lib/core/admin'; // 홈 배치 편집 = 관리자 전용(daniel 2026-08-06) // 홈 상단 내부 프로모 배너(하우스 광고·daniel 07-24)
 import { BiorhythmCard } from '../../components/BiorhythmCard'; // 홈 블록: 바이오리듬(07-21 코드큐·온디바이스·부가 재미·API 0)
 import { LuckyTodayCard } from '../../components/LuckyTodayCard'; // 홈 블록: 오늘의 행운(07-22 코드큐·온디바이스·luckyItem 재사용·API 0)
@@ -107,6 +108,7 @@ export default function Home() {
   const [flow, setFlow] = useState<{ scores: number[]; labels: string[]; currentIndex: number } | null>(null); // 오늘 점수 흐름(그래프, daniel 07-13)
   // 오늘·내일 기운 판정(유형명·총운점수·주의등급·근거·신살) — 별도 카드였던 것을 이 배너로 통합(daniel 07-19).
   const [energies, setEnergies] = useState<(DailyEnergy | null)[]>([null, null]);
+  const [unread, setUnread] = useState(0);                       // 안 읽은 알림(0 이면 배지를 그리지 않는다)
   const [repName, setRepName] = useState<string | null>(null);   // ★시안 인사말('○○님 반갑습니다')용 대표 명식 이름
   const [hasChart, setHasChart] = useState<boolean>(true); // H1(daniel): 대표 명식 유무 — 없으면 오늘/내일 배너를 '명식 등록 안내'로(탭→등록)
   const [reloadKey, setReloadKey] = useState(0); // 명식 변경(전환·수정) 감지 — 포커스마다 오늘의 기운 재계산(daniel: 명식 수정 시 id 동일이라 갱신 안 되던 버그)
@@ -138,6 +140,7 @@ export default function Home() {
       if (!alive) return;
       setHasChart(!!rep); // H1: 명식 유무 → 오늘/내일 배너 분기(등록안내 vs 운세)
       setRepName(rep?.label ?? null);   // 인사말용 — 같은 왕복에서 얻으므로 추가 조회가 없다
+      void unreadCount().then((n) => { if (alive) setUnread(n); });   // 실패하면 0 = 배지 없음(틀린 숫자보다 낫다)
       if (!rep) { setDayData([{ headline: null, prose: null }, { headline: null, prose: null }]); setFlow(null); setEnergies([null, null]); return; }
       const saju = computeChart(rep.input).saju; // ★상세(today.tsx)와 동일 빌더 — 세운·interactions 포함해 classifyStrength 일치(favorGood 뒤집힘 방지)
       try { setFlow(scoreFlow(saju, 'day')); } catch { setFlow(null); } // 오늘 점수 흐름(그제~모레)
@@ -376,6 +379,11 @@ export default function Home() {
         <View style={styles.headerSide} />
         {!wideWebHome && <TigerMascot size={40} glow={false} />}
         <View style={[styles.headerSide, styles.headerIcons]}>
+          {/* 알림 — 안 읽은 게 있을 때만 점을 얹는다(숫자는 쓰지 않는다: 3개든 30개든 '새 게 있다'가 전부다) */}
+          <PressableScale onPress={() => router.push('/notifications')} hitSlop={10} style={styles.iconBtn}>
+            <Text style={styles.iconTx}>🔔</Text>
+            {unread > 0 ? <View style={styles.dot} /> : null}
+          </PressableScale>
           <PressableScale onPress={() => router.push('/settings')} hitSlop={10} style={styles.iconBtn}>
             <Text style={styles.iconTx}>⚙︎</Text>
           </PressableScale>
@@ -552,6 +560,7 @@ const styles = StyleSheet.create({
   headerIcons: { justifyContent: 'flex-end', gap: space(2) },
   iconBtn: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
   iconTx: { fontSize: 20, color: colors.ju },
+  dot: { position: 'absolute', top: 6, right: 6, width: 8, height: 8, borderRadius: 4, backgroundColor: '#E5484D' },
   // 시안 인사말 — 화면에서 두 번째로 큰 글자(첫째는 점수). 가운데 정렬·아주 굵게.
   greeting: { fontSize: 22, lineHeight: 30, fontWeight: '900', color: colors.ink, textAlign: 'center', marginTop: space(3), marginBottom: space(5), letterSpacing: -0.3 },
   accountBtn: { width: 40, height: 40, borderRadius: 20, borderWidth: 1.5, borderColor: colors.ju, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.juSoft, marginRight: space(2), marginBottom: space(1) },

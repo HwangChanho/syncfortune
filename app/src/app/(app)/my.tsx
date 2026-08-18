@@ -41,6 +41,7 @@ export default function MyPageScreen() {
   const rows: Row[] = [
     { key: 'readings', icon: '📄', label: t('my.readings', '운세 기록'), route: '/myreadings' },
     { key: 'fav', icon: '♥', label: t('my.fav', '찜한 콘텐츠'), route: '/favorites' },
+    { key: 'notify', icon: '🔔', label: t('notify.title', '알림'), route: '/notifications' },
     { key: 'coupon', icon: '🎟', label: t('my.coupon', '쿠폰함'), route: '/market' },
     { key: 'coach', icon: '💬', label: t('my.coach', '상담 내역'), route: '/coach' },
     { key: 'community', icon: '👥', label: t('nav.community'), route: '/community', admin: true },   // 플래그 OFF 면 숨는다

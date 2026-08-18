@@ -554,6 +554,11 @@ export const en = {
     'empty': 'Nothing saved yet.',
     'emptySub': 'Tap ♡ on a card to keep it here.',
   },
+  notify: {
+    'empty': 'No notifications yet.',
+    'failed': "Couldn't load notifications.",
+    'title': 'Notifications',
+  },
   my: {
     'fav': 'Saved',
     'readings': 'Reading history',
