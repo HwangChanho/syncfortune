@@ -11,7 +11,10 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { CREDIT_KINDS, type CreditKind } from '../billing/coupons';
 import { A } from '../../lib/ui/remoteAsset'; // ★이미지 원격화(daniel 08-01) — 번들에서 걷어내고 Storage 에서 받는다
-import { COIN_PRICE } from '../billing/coinPrices';   // ★가격 표기를 운으로(daniel 07-28)
+import { COIN_PRICE } from '../billing/coinPrices';
+// ★시안 카드 아이콘(Boss 제공 2026-08-18) — 시안 p05·p14 의 카드 그리드에 **그 그림이 그 카드에** 있었다.
+//   투명 PNG 라 카드 배경 위에 얹힌다(기존 사진 카드와 결이 다르지만, 그게 시안이다).
+import { contentIcon } from '../ui/brandAsset';   // ★가격 표기를 운으로(daniel 07-28)
 
 /** 콘텐츠 카드 1장. premium=프리미엄 허브(사주·자미 등), content=무료 온디바이스 진입 광고 대상, creditKey=유료 결제 키. */
 export type MenuItem = {
@@ -99,8 +102,8 @@ export const SECTIONS: Section[] = [
   // ── 연애 ───────────────────────────────────────────────────────────────
   //   무료 질문형·가벼운 것 먼저, 깊은 유료는 그 뒤(daniel '유료를 대놓고 앞에 빼지 말라').
   { key: 'love', titleKey: 'menu.secLove', descKey: 'menu.secLoveDesc', chipKey: 'menu.chipLove', items: [
-    { key: 'reunionAsk', labelKey: 'menu.reunionAsk', descKey: 'menu.reunionAskDesc', image: A('icons/reunion.jpg'), route: '/reunionAsk', ready: true, content: true },
-    { key: 'crushAsk', labelKey: 'menu.crushAsk', descKey: 'menu.crushAskDesc', image: A('icons/crush.jpg'), route: '/crushAsk', ready: true, content: true },
+    { key: 'reunionAsk', labelKey: 'menu.reunionAsk', descKey: 'menu.reunionAskDesc', image: contentIcon('ring'), route: '/reunionAsk', ready: true, content: true },
+    { key: 'crushAsk', labelKey: 'menu.crushAsk', descKey: 'menu.crushAskDesc', image: contentIcon('heart'), route: '/crushAsk', ready: true, content: true },
     { key: 'lovestyle', labelKey: 'menu.lovestyle', descKey: 'menu.lovestyleTileDesc', image: A('icons/lovestyle.jpg'), route: '/lovestyle', ready: true, content: true },
     { key: 'relationPattern', labelKey: 'menu.relationPattern', descKey: 'menu.relationPatternDesc', image: A('icons/relationPattern.jpg'), route: '/relationpattern', ready: true, content: true },
     { key: 'sokgunghap', labelKey: 'menu.sokgunghap', descKey: 'menu.sokgunghapDesc', image: A('icons/sokgunghap.jpg'), route: '/sokgunghap', ready: true, content: true },
@@ -109,7 +112,7 @@ export const SECTIONS: Section[] = [
     // ★2026-08-16: 궁합 이미지를 같이 쓰고 있었다 — 3열 그리드에서 궁합 카드와 **나란히** 같은 그림이 떠
     //   복사 실수처럼 보였다. 관계 지도는 자기 히어로 이미지가 이미 있다(`icons/relmap/hero.jpg`).
     { key: 'relationmap', labelKey: 'menu.relationmap', descKey: 'menu.relationmapDesc', image: A('icons/relmap/hero.jpg'), route: '/relationmap', ready: true, content: true },
-    { key: 'compat', labelKey: 'menu.compat', descKey: 'menu.compatDesc', image: A('icons/compat.jpg'), route: '/compat', ready: true, premium: true, creditKey: 'compat' },
+    { key: 'compat', labelKey: 'menu.compat', descKey: 'menu.compatDesc', image: contentIcon('family'), route: '/compat', ready: true, premium: true, creditKey: 'compat' },
     { key: 'love', labelKey: 'menu.love', descKey: 'menu.loveDesc', image: A('icons/love.jpg'), route: '/love', ready: true, content: true, creditKey: 'love' },
     { key: 'crush', labelKey: 'menu.crush', descKey: 'menu.crushDesc', image: A('icons/crush.jpg'), route: '/crush', ready: true, content: true, creditKey: 'crush' },
     { key: 'reunion', labelKey: 'menu.reunion', descKey: 'menu.reunionDesc', image: A('icons/reunion.jpg'), route: '/reunion', ready: true, content: true, creditKey: 'reunion' },
@@ -150,18 +153,18 @@ export const SECTIONS: Section[] = [
     { key: 'bok', labelKey: 'menu.bok', descKey: 'menu.bokTileDesc', image: A('icons/bok.jpg'), route: '/bok', ready: true, content: true },
     { key: 'saju', labelKey: 'menu.saju', descKey: 'menu.sajuDesc', image: A('icons/premium.jpg'), route: '/reading', ready: true, premium: true, creditKey: 'reading' },
     { key: 'image', labelKey: 'menu.image', descKey: 'menu.imageDesc', image: A('icons/image.jpg'), route: '/image', ready: true, content: true, creditKey: 'image' },
-    { key: 'roots', labelKey: 'menu.roots', descKey: 'menu.rootsDesc', image: A('icons/roots.jpg'), route: '/roots', ready: true, content: true, creditKey: 'roots' },
+    { key: 'roots', labelKey: 'menu.roots', descKey: 'menu.rootsDesc', image: contentIcon('book'), route: '/roots', ready: true, content: true, creditKey: 'roots' },
   ] },
 
   // ── 직업·재물 ───────────────────────────────────────────────────────────────
   //   무료 질문형(취업 언제 될까?)·조선시대 직업이 앞.
   { key: 'work', titleKey: 'menu.secWork', descKey: 'menu.secWorkDesc', chipKey: 'menu.chipWork', items: [
-    { key: 'jobAsk', labelKey: 'menu.jobAsk', descKey: 'menu.jobAskDesc', image: A('icons/job.jpg'), route: '/jobAsk', ready: true, content: true },
+    { key: 'jobAsk', labelKey: 'menu.jobAsk', descKey: 'menu.jobAskDesc', image: contentIcon('idcard'), route: '/jobAsk', ready: true, content: true },
     { key: 'joseonjob', labelKey: 'menu.joseonjob', descKey: 'menu.joseonjobTileDesc', image: A('icons/joseonjob.jpg'), route: '/joseonjob', ready: true, content: true },
     { key: 'jobfit', labelKey: 'menu.jobfit', descKey: 'menu.jobfitDesc', image: A('icons/jobfit.jpg'), route: '/jobfit', ready: true, content: true, creditKey: 'jobfit' },
-    { key: 'career', labelKey: 'menu.career', descKey: 'menu.careerDesc', image: A('icons/career.jpg'), route: '/career', ready: true, content: true, creditKey: 'career' },
-    { key: 'job', labelKey: 'menu.job', descKey: 'menu.jobDesc', image: A('icons/job.jpg'), route: '/job', ready: true, content: true, creditKey: 'job' },
-    { key: 'wealth', labelKey: 'menu.wealth', descKey: 'menu.wealthDesc', image: A('icons/wealth.jpg'), route: '/wealth', ready: true, content: true, creditKey: 'wealth' },
+    { key: 'career', labelKey: 'menu.career', descKey: 'menu.careerDesc', image: contentIcon('moneybag'), route: '/career', ready: true, content: true, creditKey: 'career' },
+    { key: 'job', labelKey: 'menu.job', descKey: 'menu.jobDesc', image: contentIcon('briefcase'), route: '/job', ready: true, content: true, creditKey: 'job' },
+    { key: 'wealth', labelKey: 'menu.wealth', descKey: 'menu.wealthDesc', image: contentIcon('coin'), route: '/wealth', ready: true, content: true, creditKey: 'wealth' },
     { key: 'talent', labelKey: 'menu.talent', descKey: 'menu.talentDesc', image: A('icons/talent.jpg'), route: '/talent', ready: true, content: true, creditKey: 'talent' },
     { key: 'mission', labelKey: 'menu.mission', descKey: 'menu.missionDesc', image: A('icons/mission.jpg'), route: '/mission', ready: true, content: true, creditKey: 'mission' },
   ] },
@@ -178,7 +181,7 @@ export const SECTIONS: Section[] = [
     { key: 'dream', labelKey: 'menu.dream', descKey: 'menu.dreamTileDesc', image: A('icons/dream.jpg'), route: '/dream', ready: true, content: true },
     { key: 'taemong', labelKey: 'menu.taemong', descKey: 'menu.taemongTileDesc', image: A('icons/taemong.jpg'), route: '/taemong', ready: true, content: true },
     { key: 'ziwei', labelKey: 'menu.ziweiHub', descKey: 'menu.ziweiHubDesc', image: A('icons/ziwei.jpg'), route: '/ziwei', ready: true, premium: true, creditKey: 'ziwei' },
-    { key: 'astrology', labelKey: 'menu.astrology', descKey: 'menu.astrologyDesc', image: A('icons/astrology.jpg'), route: '/astrology', ready: true, content: true, creditKey: 'astrology' },
+    { key: 'astrology', labelKey: 'menu.astrology', descKey: 'menu.astrologyDesc', image: contentIcon('crystal'), route: '/astrology', ready: true, content: true, creditKey: 'astrology' },
   ] },
 
   // ── 도구 ───────────────────────────────────────────────────────────────

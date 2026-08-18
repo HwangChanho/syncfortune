@@ -43,10 +43,12 @@ for (const ln of secSrc.split('\n')) {
     key,
     creditKey: /creditKey:\s*'([^']+)'/.exec(ln)?.[1],
     route,
+    // ★2026-08-18: 시안 아이콘은 `image: contentIcon('heart')` 형태다(brandAsset 경유).
+    //   `A(` 만 보던 규칙이라 **이미지가 있는데도 '없다'** 고 잡았다 — 참조 방식이 늘면 여기도 늘려야 한다.
     // ★이미지 원격화(2026-08-01) 이후 `image: A('icons/x.jpg')` 형태다 — 옛 `require(` 만 보면
     //   "이미지 없음"으로 전부 오탐한다(실제로 그렇게 깨졌다). **두 형태를 모두 인정**한다.
     //   ⚠️여기서 옛 패턴으로 되돌리지 말 것 — 불변식은 '카드에 이미지가 있다'이지 'require 를 쓴다'가 아니다.
-    hasImage: /image:\s*(require\(|A\()/.test(ln),
+    hasImage: /image:\s*(require\(|A\(|contentIcon\(|freeTrioIcon\(|cardArt\()/.test(ln),
   });
 }
 const byKey = new Map<string, Item>();

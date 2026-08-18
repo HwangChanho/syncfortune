@@ -24,12 +24,11 @@ const SRC = 'app/src/lib/content/contentSections.ts';
  * daniel 이 카드아트를 만들면 여기서 지운다(그때 C2 가 통과한다).
  * key = 그림이 없는 쪽 · sharesWith = 빌려 쓰는 상대
  */
+// ★2026-08-18: `reunionAsk`·`crushAsk`·`jobAsk` 를 뺐다 — Boss 가 준 시안 아이콘(반지·하트·명함)이
+//   들어가 **자기 그림**을 갖게 됐다. C2 가 "이미 갖고 있다"고 잡아 줘서 알았다(목록이 낡지 않게).
 const PENDING_ART: Array<{ key: string; sharesWith: string; note: string }> = [
   // ⚠️`icons/reunion.jpg` 한 장을 **셋**이 쓴다(reunion 이 주인) — 연애 섹션 3열에서 특히 눈에 띈다
   { key: 'crisis', sharesWith: 'reunion', note: '관계의 고비 — 재회 그림(빨간 밧줄)을 빌려 쓴다' },
-  { key: 'reunionAsk', sharesWith: 'reunion', note: '재회 질문 — 재회 그림을 빌려 쓴다' },
-  { key: 'crushAsk', sharesWith: 'crush', note: '짝사랑 질문 — 짝사랑 그림을 빌려 쓴다' },
-  { key: 'jobAsk', sharesWith: 'job', note: '직업 질문 — 직업 그림을 빌려 쓴다' },
 ];
 
 type Finding = { rule: string; msg: string };
