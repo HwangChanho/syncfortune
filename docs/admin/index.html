@@ -609,6 +609,8 @@ const HOME_BLOCKS = [
   ['today', '오늘의 운세'], ['banner', '추천 배너'], ['self', '나는 어떤 사람인가'],
   ['persona', '나의 성격유형'], ['relation', '오늘의 관계'], ['relmap', '관계 지도'],
   ['biorhythm', '바이오리듬'], ['luck', '오늘의 행운'], ['decision', '모먼트'],
+  ['free3', '무료 체험 3종'],
+
 ];
 const HOME_DEFAULT = HOME_BLOCKS.map(([k]) => k);
 let homeOrder = HOME_DEFAULT.slice();   // 화면이 편집 중인 목록(노출되는 것만·순서대로)
@@ -655,8 +657,15 @@ async function loadHomeCfg() {
 $('homeSave').onclick = async () => {
   if (!homeOrder.length) { $('homeMsg').innerHTML = '<span class="msg err">최소 한 개는 남겨야 합니다.</span>'; return; }
   // ⚠️`upsert` 는 RLS 로 막히면 error 를 준다 — 반드시 error 를 본다(rpc 와 같은 함정)
-  const { error } = await sb.from('app_config')
-    .upsert({ key: 'home_order', value: homeOrder, updated_at: new Date().toISOString() }, { onConflict: 'key' });
+  // ★두 줄을 함께 쓴다(2026-08-18) — 체크를 **끈** 블록은 `home_hidden` 에 남긴다.
+  //   앱은 "서버 목록 + 서버가 모르는 신규 블록(숨김 제외)"으로 노출을 정하므로,
+  //   숨김을 적어 두지 않으면 새 배포에서 **뺀 블록이 되살아난다**.
+  const hidden = HOME_BLOCKS.map(([k]) => k).filter((k) => !homeOrder.includes(k));
+  const at = new Date().toISOString();
+  const { error } = await sb.from('app_config').upsert([
+    { key: 'home_order', value: homeOrder, updated_at: at },
+    { key: 'home_hidden', value: hidden, updated_at: at },
+  ], { onConflict: 'key' });
   $('homeMsg').innerHTML = error
     ? `<span class="msg err">저장 실패 — ${error.message}</span>`
     : `<span class="msg ok">저장했습니다 · ${homeOrder.length}개 노출 — 앱은 다음 실행(또는 홈 재진입)에 반영됩니다.</span>`;

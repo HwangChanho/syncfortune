@@ -585,6 +585,10 @@ export const ko = {
     'title': '맞춤 개운법',
   },
   home: {
+    'freeTrio': '무료로 체험해보세요!',
+    'freeTrioSub': '가입 없이 지금 바로 볼 수 있는 것들',
+    'greeting': '{{name}}님 반갑습니다.',
+    'seeMore': '보러가기',
     'lightCta': '가볍게 보기',
     'manseSub': '내 사주 명식 전체 보기',
     'noChartCta': '+ 명식 등록',

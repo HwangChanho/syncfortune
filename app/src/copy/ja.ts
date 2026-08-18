@@ -549,6 +549,10 @@ export const ja = {
     'title': 'オーダーメイド開運法',
   },
   home: {
+    'freeTrio': '無料で試してみましょう',
+    'freeTrioSub': '登録なしで今すぐ見られるもの',
+    'greeting': '{{name}}さん、ようこそ',
+    'seeMore': '見に行く',
     'lightCta': '軽く見る',
     'manseSub': '私の四柱命式をすべて見る',
     'noChartCta': '+ 命式を登録',

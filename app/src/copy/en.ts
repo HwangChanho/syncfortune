@@ -550,6 +550,10 @@ export const en = {
     'title': 'Your personal luck remedies',
   },
   home: {
+    'freeTrio': 'Try these for free',
+    'freeTrioSub': 'Things you can see right now, no sign-up',
+    'greeting': 'Welcome, {{name}}',
+    'seeMore': 'View',
     'lightCta': 'Quick look',
     'manseSub': 'See your full saju chart',
     'noChartCta': '+ Register a chart',

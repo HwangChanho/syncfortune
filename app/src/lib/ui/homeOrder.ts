@@ -21,7 +21,7 @@ import { supabase } from '../supabase';
 /** 홈에서 순서를 바꿀 수 있는 블록. (헤더·풀이 진행률 배너·로그인 링크는 고정이라 제외)
  *  ★manse(만세력)·coach(AI 코치)는 상단 '⚡ 바로가기' 메뉴로 / chart(명식 선택)는 홈에서 제거(daniel 2026-07-25) — 홈은 대표 명식 기준 자동 표시.
  *    (normalizeOrder 가 valid=DEFAULT 기준으로 필터하므로, 기존 사용자 저장값의 manse/coach/chart 는 자동 제거된다.) */
-export type HomeBlockKey = 'today' | 'banner' | 'relation' | 'relmap' | 'persona' | 'self' | 'biorhythm' | 'luck' | 'decision';
+export type HomeBlockKey = 'today' | 'banner' | 'relation' | 'relmap' | 'persona' | 'self' | 'biorhythm' | 'luck' | 'decision' | 'free3';
 
 /** daniel 확정 기본 순서 + 오늘의 관계(07-20) + 바이오리듬(07-21) + 오늘의 행운(07-22).
  *  ★07-25: manse·coach → 바로가기 메뉴 / chart(명식 선택) 제거. 오늘의 기운 → 나는 어떤 사람 → 성격유형 → 오늘의 관계 → 바이오리듬 → 오늘의 행운.
@@ -30,7 +30,7 @@ export type HomeBlockKey = 'today' | 'banner' | 'relation' | 'relmap' | 'persona
 // ★08-06(daniel "오늘의 운세를 최상단에 놓고 그 아래 배너를 두자" + "편집에 배너도 위치이동 가능하게"):
 //   배너(HouseAdBanner)를 헤더 고정에서 **드래그 가능한 블록**으로 옮겼다. 종전엔 헤더라 항상 today 위였고
 //   순서를 바꿀 수도 없었다 — 첫 화면을 광고가 차지하는 배치를 사용자·운영자 둘 다 못 바꾸는 구조였다.
-export const DEFAULT_HOME_ORDER: HomeBlockKey[] = ['today', 'banner', 'self', 'persona', 'relation', 'relmap', 'biorhythm', 'luck', 'decision'];
+export const DEFAULT_HOME_ORDER: HomeBlockKey[] = ['today', 'banner', 'free3', 'self', 'persona', 'relation', 'relmap', 'biorhythm', 'luck', 'decision'];
 //   ★'relmap'(관계 지도) 은 'relation'(오늘의 관계) 바로 뒤 — 둘 다 **사람** 이야기라 붙여 둔다(2026-08-14).
 //     상대가 없으면 카드가 스스로 안 그려지므로 순서에 있어도 빈 자리가 생기지 않는다.
 
@@ -38,6 +38,7 @@ export const DEFAULT_HOME_ORDER: HomeBlockKey[] = ['today', 'banner', 'self', 'p
 export const HOME_BLOCK_LABEL: Record<HomeBlockKey, string> = {
   today: '오늘의 운세', // ★daniel 2026-08-06: '오늘의 기운' → '오늘의 운세'(풀이탭 '이달의 운세'와 짝)
   banner: '추천 배너', // ★08-06 부터 이동 가능한 블록(종전 고정 헤더)
+  free3: '무료 체험 3종', // ★시안(니운내운.pdf p04) — 매일 도는 무료 카드 3장
   relation: '오늘의 관계',
   relmap: '관계 지도',
   persona: '나의 성격유형',
@@ -72,6 +73,15 @@ let _allowed: HomeBlockKey[] = DEFAULT_HOME_ORDER;
  * @param raw 저장된 배열(신뢰할 수 없는 값)
  * @returns 알 수 없는 키를 제거하고, 빠진 블록을 기본 순서 자리에 덧붙인 배열
  */
+/**
+ * 신규 블록의 **기본 자리**(맨 뒤가 아닌 것만). `[블록, 이 블록 바로 뒤에]`.
+ * 순서대로 적용되므로 뒤 항목이 앞 항목 뒤에 붙을 수 있다(free3 는 banner 뒤 = today 아래 두 번째).
+ */
+const NEW_BLOCK_ANCHOR: ReadonlyArray<readonly [HomeBlockKey, HomeBlockKey]> = [
+  ['banner', 'today'],   // daniel 2026-08-06 "배너는 오늘의 운세 바로 아래"
+  ['free3', 'banner'],   // 시안 p04 — 배너 다음이 무료 3열
+];
+
 export function normalizeOrder(raw: unknown): HomeBlockKey[] {
   const valid = new Set(_allowed);   // ★코드 상수가 아니라 **운영자가 정한 목록** 기준
   const arr = Array.isArray(raw) ? raw.filter((k): k is HomeBlockKey => typeof k === 'string' && valid.has(k as HomeBlockKey)) : [];
@@ -81,13 +91,17 @@ export function normalizeOrder(raw: unknown): HomeBlockKey[] {
   //   (daniel 2026-08-06 "배너는 홈에서 오늘의 운세 바로 아래로 두라고").
   //   기존 사용자는 저장된 order 에 banner 가 없어 위 로직대로면 **맨 끝**에 붙는다 —
   //   기본 순서만 바꿔서는 이미 쓰던 계정에 반영되지 않는다(그래서 실물에서 안 바뀌어 보였다).
-  if (!seen.has('banner') && _allowed.includes('banner')) {
-    const rest = out.filter((k) => k !== 'banner');
-    const at = rest.indexOf('today');
-    rest.splice(at >= 0 ? at + 1 : 0, 0, 'banner');
-    return rest;
+  // ★08-18: `free3`(무료 체험 3종)도 같은 사정이다 — 기존 사용자의 저장 order 에 없어서 맨 끝으로 밀린다.
+  //   그래서 특례를 **표로 일반화**했다. 앞으로 '기본 자리가 맨 뒤가 아닌' 블록은 여기 한 줄만 더하면 된다.
+  let cur = out;
+  for (const [key, after] of NEW_BLOCK_ANCHOR) {
+    if (seen.has(key) || !_allowed.includes(key)) continue;   // 이미 저장돼 있으면 사용자의 순서를 존중한다
+    const rest = cur.filter((k) => k !== key);
+    const at = rest.indexOf(after);
+    rest.splice(at >= 0 ? at + 1 : 0, 0, key);
+    cur = rest;
   }
-  return out;
+  return cur;
 }
 
 /** 로컬 캐시 읽기(동기 실패해도 안전) — 첫 렌더 깜빡임 방지용. */
@@ -122,13 +136,24 @@ export async function loadHomeOrder(): Promise<void> {
     if (cached) { const g = JSON.parse(cached); if (Array.isArray(g) && g.length) _allowed = g; }
   } catch { /* 캐시 없음 — 코드 상수로 */ }
   try {
-    const { data: cfg } = await supabase.from('app_config').select('value').eq('key', 'home_order').maybeSingle();
-    const g = cfg?.value;
+    // ★두 줄을 함께 읽는다(2026-08-18) — `home_order`(노출·순서)와 `home_hidden`(운영자가 **뺀** 블록).
+    //   왜 나눴나: 종전엔 `home_order` 하나로 "이게 전부"라고 봤다. 그러면 **새로 배포한 블록**이
+    //   서버 목록에 없다는 이유로 안 나오고, 블록을 낼 때마다 관리자 콘솔을 눌러야 했다.
+    //   ('운영자가 뺀 것'과 '서버가 아직 모르는 것'이 구분되지 않았던 것 — 실제로 `free3` 가 이걸로 막혔다.)
+    const { data: rows } = await supabase.from('app_config').select('key, value').in('key', ['home_order', 'home_hidden']);
+    const pick = (k: string) => (Array.isArray(rows) ? rows.find((r) => r?.key === k)?.value : undefined);
+    const g = pick('home_order');
+    const hiddenRaw = pick('home_hidden');
+    const hidden = new Set<HomeBlockKey>(Array.isArray(hiddenRaw) ? (hiddenRaw as HomeBlockKey[]) : []);
     if (Array.isArray(g) && g.length) {
       // 코드에 없는 키(옛 블록)는 버린다 — 운영자가 실수해도 앱이 깨지지 않게
       const known = new Set(DEFAULT_HOME_ORDER);
       const next = g.filter((k: unknown): k is HomeBlockKey => typeof k === 'string' && known.has(k as HomeBlockKey));
-      if (next.length) { _allowed = next; void SecureStore.setItemAsync(LOCAL_GLOBAL_KEY, JSON.stringify(next)).catch(() => {}); }
+      // 서버가 모르는 **신규** 블록을 뒤에 잇는다 — 단, 운영자가 명시적으로 숨긴 것은 뺀다.
+      const seenSrv = new Set(next);
+      const fresh = DEFAULT_HOME_ORDER.filter((k) => !seenSrv.has(k) && !hidden.has(k));
+      const merged = [...next, ...fresh];
+      if (merged.length) { _allowed = merged; void SecureStore.setItemAsync(LOCAL_GLOBAL_KEY, JSON.stringify(merged)).catch(() => {}); }
     }
   } catch { /* 오프라인 등 — 캐시/코드 상수 유지 */ }
   pushOrder(normalizeOrder(_order));                 // 전역 목록이 바뀌었으면 현재 순서를 그 안으로 재정렬

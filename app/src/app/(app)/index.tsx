@@ -30,6 +30,7 @@ import { PersonaTypeHero } from '../../components/PersonaTypeHero'; // ★홈 �
 
 // 홈 블록 이미지 상수(IMG)는 홈이 정보 카드로 바뀌며(2026-08-01) 소비처가 사라져 제거했다.
 import { HouseAdBanner } from '../../components/HouseAdBanner';
+import { FreeTrioBlock } from '../../components/home/FreeTrioBlock';
 import { isAdminActing } from '../../lib/core/admin'; // 홈 배치 편집 = 관리자 전용(daniel 2026-08-06) // 홈 상단 내부 프로모 배너(하우스 광고·daniel 07-24)
 import { BiorhythmCard } from '../../components/BiorhythmCard'; // 홈 블록: 바이오리듬(07-21 코드큐·온디바이스·부가 재미·API 0)
 import { LuckyTodayCard } from '../../components/LuckyTodayCard'; // 홈 블록: 오늘의 행운(07-22 코드큐·온디바이스·luckyItem 재사용·API 0)
@@ -106,6 +107,7 @@ export default function Home() {
   const [flow, setFlow] = useState<{ scores: number[]; labels: string[]; currentIndex: number } | null>(null); // 오늘 점수 흐름(그래프, daniel 07-13)
   // 오늘·내일 기운 판정(유형명·총운점수·주의등급·근거·신살) — 별도 카드였던 것을 이 배너로 통합(daniel 07-19).
   const [energies, setEnergies] = useState<(DailyEnergy | null)[]>([null, null]);
+  const [repName, setRepName] = useState<string | null>(null);   // ★시안 인사말('○○님 반갑습니다')용 대표 명식 이름
   const [hasChart, setHasChart] = useState<boolean>(true); // H1(daniel): 대표 명식 유무 — 없으면 오늘/내일 배너를 '명식 등록 안내'로(탭→등록)
   const [reloadKey, setReloadKey] = useState(0); // 명식 변경(전환·수정) 감지 — 포커스마다 오늘의 기운 재계산(daniel: 명식 수정 시 id 동일이라 갱신 안 되던 버그)
   const [editOpen, setEditOpen] = useState(false); // 홈 배치 편집 모달(daniel 07-21 '편집 모드')
@@ -135,6 +137,7 @@ export default function Home() {
       const rep = await loadRepChart();
       if (!alive) return;
       setHasChart(!!rep); // H1: 명식 유무 → 오늘/내일 배너 분기(등록안내 vs 운세)
+      setRepName(rep?.label ?? null);   // 인사말용 — 같은 왕복에서 얻으므로 추가 조회가 없다
       if (!rep) { setDayData([{ headline: null, prose: null }, { headline: null, prose: null }]); setFlow(null); setEnergies([null, null]); return; }
       const saju = computeChart(rep.input).saju; // ★상세(today.tsx)와 동일 빌더 — 세운·interactions 포함해 classifyStrength 일치(favorGood 뒤집힘 방지)
       try { setFlow(scoreFlow(saju, 'day')); } catch { setFlow(null); } // 오늘 점수 흐름(그제~모레)
@@ -233,6 +236,8 @@ export default function Home() {
     // ★배너(하우스 광고) — 08-06 부터 **순서를 바꿀 수 있는 블록**이다(daniel "편집에 배너도 위치이동 가능하게").
     //   기본 위치는 오늘의 운세 바로 아래(DEFAULT_HOME_ORDER). 종전엔 고정 헤더라 늘 최상단이었다.
     if (k === 'banner') return <HouseAdBanner />;
+    // 시안 p04 「무료로 체험해보세요!」 — 무료 콘텐츠 29종에서 날짜 시드로 도는 3장(FreeTrioBlock 머리말)
+    if (k === 'free3') return <FreeTrioBlock dateKey={dateKey} />;
     if (k === 'persona') return <PersonaTypeHero reloadKey={reloadKey} />;
     if (k === 'self') return <SelfUnderstandingHero reloadKey={reloadKey} />;
     if (k === 'biorhythm') return <BiorhythmCard reloadKey={reloadKey} />;
@@ -285,39 +290,50 @@ export default function Home() {
               return (
                 <PressableScale key={off} style={{ width: pageW }} onPress={() => router.push(`/today?offset=${off}`)}>
                   <Text style={styles.bannerDate}>{f.date} ({t('today.weekdaysShort').split(',')[new Date(f.date + 'T00:00:00').getDay()] ?? ''})</Text>
+                  {/* ★시안(p04) 2열 — 좌: 무슨 날인지(간지·유형명·설명) / 우: 점수·등급.
+                        종전엔 점수만 이 행에 있고 유형명은 **아랫줄**이었다. 점수를 40px 로 키우자
+                        우측이 좌측보다 40px 넘게 길어져 그 아래가 통째로 빈 칸이 됐다(실물에서 확인).
+                        두 열로 묶으면 높이가 서로를 채운다 — 여백은 정렬 문제지 간격 문제가 아니었다. */}
                   <View style={styles.bannerPillarRow}>
-                    <Text style={styles.bannerPillar}>{off === 0 ? t('today.dayPillar') : t('today.energyTomorrow')}</Text>
-                    <View style={styles.gzBoxRow}>
-                      {[f.dayGanZhi[0], f.dayGanZhi[1]].map((ch, i) => {
-                        const el = i === 0 ? stemElement(ch) : branchElement(ch); // 천간·지지 오행
-                        return (
-                          <View key={i} style={[styles.gzBox, { minWidth: ls(30), minHeight: ls(34) }, { backgroundColor: elementColor[el] }]}>
-                            <Text style={[styles.gzBoxTx, { color: elementText[el] }]}>{ch}</Text>
-                          </View>
-                        );
-                      })}
+                    <View style={styles.todayLeft}>
+                      <View style={styles.gzHeadRow}>
+                        <Text style={styles.bannerPillar}>{off === 0 ? t('today.dayPillar') : t('today.energyTomorrow')}</Text>
+                        <View style={styles.gzBoxRow}>
+                          {[f.dayGanZhi[0], f.dayGanZhi[1]].map((ch, i) => {
+                            const el = i === 0 ? stemElement(ch) : branchElement(ch); // 천간·지지 오행
+                            return (
+                              <View key={i} style={[styles.gzBox, { minWidth: ls(30), minHeight: ls(34) }, { backgroundColor: elementColor[el] }]}>
+                                <Text style={[styles.gzBoxTx, { color: elementText[el] }]}>{ch}</Text>
+                              </View>
+                            );
+                          })}
+                        </View>
+                      </View>
+                      {/* 기운 유형명 + 한 줄 설명 — 좌측 열 안(점수 옆)으로 올라왔다 */}
+                      {e && (
+                        <View style={{ marginTop: space(2) }}>
+                          <Text style={[styles.energyName, { fontSize: fs(16) }]}>{ENERGY_LABEL[e.group].name}</Text>
+                      {/* ★lineHeight 를 함께 스케일(daniel 2026-07-28 '아주 크게에서 아직 잘림') —
+                          fontSize 만 fs() 로 키우고 lineHeight 는 17 로 고정돼 있어 글자 위아래가 잘렸다.
+                          줄 수도 완화: 큰 글자에서 2줄이면 문장이 중간에 끊긴다. */}
+                          <Text style={[styles.energyDesc, { fontSize: fs(12.5), lineHeight: 18 }]} numberOfLines={scale >= 1.45 ? 3 : 2}>{ENERGY_LABEL[e.group].desc}</Text>
+                        </View>
+                      )}
                     </View>
-                    {/* 총운 점수 + 주의 등급 — 우측 정렬(통합 전 카드의 핵심 정보) */}
+
+                    {/* 우 — 총운 점수 + 주의 등급(시안: 숫자가 가장 큰 글자) */}
                     {e && cau && (
                       <View style={styles.scoreWrap}>
-                        <Text style={[styles.scoreTx, { color: cau.tone }]}>{e.score}</Text>
-                        <Text style={styles.scoreUnit}>{t('todayEnergy.point', '점')}</Text>
+                        <View style={styles.scoreRow}>
+                          <Text style={[styles.scoreTx, { color: cau.tone }]}>{e.score}</Text>
+                          <Text style={styles.scoreUnit}>{t('todayEnergy.point', '점')}</Text>
+                        </View>
                         <View style={[styles.cautionPill, { borderColor: cau.tone }]}>
                           <Text style={[styles.cautionTx, { color: cau.tone, fontSize: fs(11), lineHeight: 15 }]}>{cau.label}</Text>
                         </View>
                       </View>
                     )}
                   </View>
-                  {/* 기운 유형명 + 한 줄 설명 */}
-                  {e && (
-                    <View style={{ marginTop: space(2) }}>
-                      <Text style={[styles.energyName, { fontSize: fs(16) }]}>{ENERGY_LABEL[e.group].name}</Text>
-                      {/* ★lineHeight 를 함께 스케일(daniel 2026-07-28 '아주 크게에서 아직 잘림') —
-                          fontSize 만 fs() 로 키우고 lineHeight 는 17 로 고정돼 있어 글자 위아래가 잘렸다.
-                          줄 수도 완화: 큰 글자에서 2줄이면 문장이 중간에 끊긴다. */}
-                      <Text style={[styles.energyDesc, { fontSize: fs(12.5), lineHeight: 18 }]} numberOfLines={scale >= 1.45 ? 3 : 2}>{ENERGY_LABEL[e.group].desc}</Text>
-                    </View>
-                  )}
                   {/* 점수 흐름 그래프(그제~모레) — off(오늘/내일)에 맞춰 강조점 이동(daniel 07-13) */}
                   {flow ? <View style={{ marginTop: space(2), marginBottom: space(1) }}><ScoreFlowGraph scores={flow.scores} labels={flow.labels} currentIndex={flow.currentIndex + off} height={112} /></View> : null}
                   {d.headline && <Text style={[styles.bannerHeadline, { fontSize: fs(16) }]}>{d.headline}</Text>}
@@ -354,21 +370,19 @@ export default function Home() {
           ★넓은 웹에서는 **워드마크를 빼고 계정 버튼만** 남긴다(2026-08-15).
             좌측 사이드바가 이미 '니운내운'을 달고 있어, 같은 화면에 브랜드가 두 번 뜨고 있었다.
             폰에는 사이드바가 없으므로 그대로 둔다. */}
+      {/* ★시안 헤더(`니운내운.pdf` p04) — 로고는 가운데, 설정·알림은 우측, 그 아래 큰 인사말.
+            종전엔 좌측에 마스코트+앱이름, 우측에 👤 였다. 시안은 **이름을 부르는 것**을 앞세운다. */}
       <View style={styles.headerRow}>
-        {/* 브랜드 마스코트(아기 백호·모션) — 타이틀 좌측. 헤더가 조밀해 후광은 끔(bob/sway만). */}
-        {!wideWebHome && <TigerMascot size={40} glow={false} style={{ marginRight: space(2.5), marginBottom: space(1) }} />}
-        {/* 타이틀·서브타이틀 = 좌측 컬럼. ★왼쪽 못박기(daniel 07-02): 컬럼 alignItems:flex-start + 텍스트 textAlign:left. 👤만 우측 y축 가운데 */}
-        <View style={{ flex: 1, alignItems: 'flex-start' }}>
-          {!wideWebHome && <Text style={styles.title}>{t('appName')}</Text>}
-          {/* ★태그라인('나와 타인을 이해하는 AI 나침반') 제거 — daniel 2026-08-07.
-              사전의 `tagline` 키는 남겨 둔다(스토어 문안·공유 페이지 등 다른 소비처가 있을 수 있어
-              지우면 그쪽이 조용히 빈다). 홈에서만 안 그린다. */}
+        <View style={styles.headerSide} />
+        {!wideWebHome && <TigerMascot size={40} glow={false} />}
+        <View style={[styles.headerSide, styles.headerIcons]}>
+          <PressableScale onPress={() => router.push('/settings')} hitSlop={10} style={styles.iconBtn}>
+            <Text style={styles.iconTx}>⚙︎</Text>
+          </PressableScale>
         </View>
-        <PressableScale onPress={() => router.push('/settings')} hitSlop={10} style={styles.accountBtn}>
-          <Text style={styles.accountIcon}>👤</Text>
-        </PressableScale>
       </View>
-      <View style={styles.divider} />
+      {/* 인사말 — 대표 명식이 있으면 이름을 부르고, 없으면 앱 이름을 세운다(빈 자리를 만들지 않는다). */}
+      <Text style={styles.greeting}>{repName ? `${repName}님 반갑습니다.` : t('appName')}</Text>
       {/* 홈 상단 컨트롤 행(daniel 2026-07-25 J): [⠿ 홈 배치 편집] + [🧭 바로가기](만세력·AI코치 분기 메뉴).
           배치 편집 = 블록 순서 드래그(모달·내부 탭 충돌 회피). 바로가기 = 블록에서 뺀 만세력/코치로 진입. */}
       <View style={styles.topCtrlRow}>
@@ -534,6 +548,12 @@ const styles = StyleSheet.create({
   title: { ...font.display, lineHeight: 34, textAlign: 'left' as const }, // ★좌측 못박기(daniel 07-02)
   // 헤더 행 — 전체를 살짝 아래로(타이틀 너무 위 방지), 👤 아이콘만 좌측 타이틀·서브 컬럼 기준 y축 가운데(daniel 07-02)
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: space(4) },
+  headerSide: { flex: 1, flexDirection: 'row', alignItems: 'center' },   // 로고를 정확히 가운데 두려면 양옆 폭이 같아야 한다
+  headerIcons: { justifyContent: 'flex-end', gap: space(2) },
+  iconBtn: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  iconTx: { fontSize: 20, color: colors.ju },
+  // 시안 인사말 — 화면에서 두 번째로 큰 글자(첫째는 점수). 가운데 정렬·아주 굵게.
+  greeting: { fontSize: 22, lineHeight: 30, fontWeight: '900', color: colors.ink, textAlign: 'center', marginTop: space(3), marginBottom: space(5), letterSpacing: -0.3 },
   accountBtn: { width: 40, height: 40, borderRadius: 20, borderWidth: 1.5, borderColor: colors.ju, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.juSoft, marginRight: space(2), marginBottom: space(1) },
   accountIcon: { fontSize: 20 },
   sub: { ...font.body, color: colors.inkSoft, marginTop: space(1), textAlign: 'left' as const }, // ★좌측 못박기(daniel 07-02)
@@ -560,7 +580,7 @@ const styles = StyleSheet.create({
   bannerDate: { ...font.caption, color: colors.inkSoft },
   bannerPillar: { ...font.heading, color: colors.ink, flexShrink: 1 },
   // ★큰 글자에서 한 줄에 다 못 들어가 밀려 잘리던 행 — 줄바꿈 허용 + 라벨 축소 가능(daniel 07-28)
-  bannerPillarRow: { flexDirection: 'row', alignItems: 'center', gap: space(2), marginTop: space(1.5), flexWrap: 'wrap' },
+  bannerPillarRow: { flexDirection: 'row', alignItems: 'flex-start', gap: space(2), marginTop: space(1.5), flexWrap: 'wrap' },
   gzBoxRow: { flexDirection: 'row', gap: space(1) },
   gzBox: { borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center' },
   gzBoxTx: { fontSize: 20, fontWeight: '800', lineHeight: 24 },
@@ -568,9 +588,15 @@ const styles = StyleSheet.create({
   bannerProse: { ...font.body, color: colors.inkSoft, marginTop: space(1), lineHeight: 21 },
   bannerMore: { ...font.caption, color: colors.ju, fontWeight: '700', marginTop: space(2) },
   // ── 기운 판정(별도 카드에서 통합·daniel 07-19): 점수·등급·유형명·근거·신살 칩 ──
-  scoreWrap: { flexDirection: 'row', alignItems: 'baseline', gap: space(1), marginLeft: 'auto' }, // 우측 정렬
-  scoreTx: { fontSize: 24, fontWeight: '900', letterSpacing: -0.5 },
-  scoreUnit: { ...font.caption, color: colors.inkFaint, marginRight: space(1) },
+  // ★시안(니운내운.pdf p04) — **점수가 화면에서 가장 큰 글자**다. 24 → 40 으로 올리고,
+  //   등급 칩은 옆이 아니라 **숫자 아래**로 내려 '숫자 + 그 뜻'이 한 덩어리로 읽히게 했다.
+  //   (옆에 두면 40px 숫자와 11px 칩이 같은 줄에서 baseline 이 어긋나 지저분해진다.)
+  todayLeft: { flex: 1, minWidth: 0 },                                       // 좌측 열(간지·유형명·설명) — minWidth:0 이라야 긴 글이 줄바꿈된다
+  gzHeadRow: { flexDirection: 'row', alignItems: 'center', gap: space(2) },   // 「오늘의 운세」 + 간지 두 칸
+  scoreWrap: { alignItems: 'flex-end', gap: space(1) },   // 우측 열 — flex 로 나뉘므로 marginLeft:auto 는 필요 없다
+  scoreRow: { flexDirection: 'row', alignItems: 'baseline', gap: 2 },
+  scoreTx: { fontSize: 40, lineHeight: 46, fontWeight: '900', letterSpacing: -1.5 },
+  scoreUnit: { ...font.caption, color: colors.inkFaint },
   cautionPill: { borderWidth: 1, borderRadius: radius.pill, paddingHorizontal: space(2), paddingVertical: space(0.5), alignSelf: 'center' },
   cautionTx: { fontSize: 11, fontWeight: '800' },
   energyName: { color: colors.ink, fontWeight: '900' },
