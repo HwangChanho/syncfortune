@@ -214,10 +214,12 @@ export function setThemeAccent(mode: AccentMode) {
 /** 대표명식 일간 오행 저장(themeElement.ts가 rep 변경/시작 시 호출). reload=true(대표명식 *변경*)일 때만 auto 모드 즉시 리로드. */
 export function storeChartElement(el: string, reload = false) {
   if (!(ELS as string[]).includes(el)) return;   // el 은 엔진에서 온 문자열 — 오행 5자 중 하나인지만 본다
-  let prev = '';
-  try { prev = ((SecureStore as any).getItem?.(ELEMENT_KEY) as string) || ''; } catch { /* noop */ }
+  // ★`readPref` 로 통일 — 종전엔 SecureStore 동기 getItem 만 봤다. 웹에는 그 API 가 없어 `prev` 가 늘 ''
+  //   이었고, 그래서 **매번 '바뀌었다'로 오판**했다(07-18 '백그라운드 갔다오면 새로고침'의 뿌리이기도 하다).
+  const prev = readPref(ELEMENT_KEY);
   if (prev === el) return;
   try { (SecureStore as any).setItem?.(ELEMENT_KEY, el); } catch { /* noop */ }
+  try { (globalThis as any).localStorage?.setItem(ELEMENT_KEY, el); } catch { /* 네이티브엔 없다 */ }
   SecureStore.setItemAsync(ELEMENT_KEY, el).catch(() => {});
   // ★리로드는 reload=true(대표명식을 실제로 *변경*했을 때)만. 앱 시작·포그라운드 복귀(reload=false)는 저장만 한다.
   //   daniel 2026-07-18: 포그라운드 복귀마다 _layout 이 syncThemeElement 를 불러 여기 도달하는데, SecureStore 동기
@@ -225,9 +227,13 @@ export function storeChartElement(el: string, reload = false) {
   //   colors 는 모듈 로드 시 ELEMENT_KEY 를 읽으므로 저장만 해두면 *다음 실행*엔 자동 반영(리로드 불필요). 즉시 반영이
   //   필요한 대표명식 변경만 reload=true 로 리로드. 수동 오행선택(ACCENT_KEY≠auto)은 존중(리로드 안 함).
   if (reload) {
-    let mode = 'auto';
-    try { mode = ((SecureStore as any).getItem?.(ACCENT_KEY) as string) || 'auto'; } catch { /* noop */ }
+    const mode = readPref(ACCENT_KEY) || 'auto';
     if (mode === 'auto') {
+      // ★웹은 **지금 URL 그대로** 새로고침한다 — 07-18 에 리로드를 뺀 이유가 "홈으로 튕겨서"였는데,
+      //   웹에서는 튕기지 않는다(주소가 유지된다). 그래서 웹만 즉시 반영한다.
+      //   ⚠️네이티브는 여전히 저장만 — `reload()` 가 초기 라우트로 되돌리기 때문이다(그 제약은 그대로).
+      const loc = (globalThis as any).location;
+      if (loc?.reload) { try { loc.reload(); return; } catch { /* 아래로 */ } }
       if (__DEV__) { try { DevSettings.reload(); } catch { /* noop */ } }
       else { try { Updates?.reloadAsync?.().catch(() => {}); } catch { /* 재시작 후 반영 */ } }
     }

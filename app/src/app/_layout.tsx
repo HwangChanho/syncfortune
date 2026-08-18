@@ -104,9 +104,11 @@ export default function RootLayout() {
   // 앱 실행 시 대표 명식을 '본인'으로(daniel) — 로컬 명식 기준 즉시(로그인 동기화 후엔 syncChartsFromServer가 한 번 더 보정).
   //   대표명식 확정 후 일간 오행을 테마 강조색 소스로 저장(auto 강조 모드면 다음 로드에 일간 색 반영).
   useEffect(() => { preferSelfAsRep().then(() => syncThemeElement()).catch(() => { syncThemeElement().catch(() => {}); }); }, []);
-  // ★대표명식 변경 시 오행 *저장만*(리로드 X). daniel 07-18: 명식 바꿀 때마다 리로드가 홈으로 튕겨(새로고침) 싫음.
-  //   색은 다음 앱 시작에 반영(colors 가 모듈 로드 시 ELEMENT_KEY 를 읽음). 즉시 반영은 리로드가 필요한데 그게 튕김이라 뺀다.
-  useEffect(() => subscribeRepChange(() => syncThemeElement()), []);
+  // ★★명식을 바꾸면 테마도 **그 명식 오행으로** 간다(Boss 2026-08-18 "현재 적용된 명식 기준").
+  //   `reload=true` — 다만 실제 리로드는 **웹에서만** 일어난다(theme.storeChartElement 참조).
+  //   07-18 에 리로드를 뺀 이유가 "명식 바꿀 때마다 홈으로 튕겨서"였는데, 웹은 같은 URL 로 새로고침이라
+  //   튕기지 않는다. 네이티브는 그 제약이 그대로라 저장만 되고 **다음 실행**에 반영된다.
+  useEffect(() => subscribeRepChange(() => syncThemeElement(true)), []);
   // ★신규 기능 노출 게이트 로드(세션 변경 시) — 원격 플래그(app_flags)+내 관리자 여부. 속궁합/커뮤니티/위젯 게이트.
   useEffect(() => { loadFeatures().catch(() => {}); }, [session?.user?.id]);
   // 앱 사용 세션 시간 추적(daniel: 관리자 계정별 평균 사용시간) — 포그라운드 구간 길이를 app_session 으로 기록.

@@ -4,8 +4,8 @@
 //   대표 변경 = setRepresentative → 만세력·풀이·궁합이 그 명식 기준(loadMyChart).
 // 명식이 없으면 등록 유도. 화면 복귀 시 useFocusEffect 로 목록 갱신.
 // ─────────────────────────────────────────────────────────────────────────
-import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
-import { View, Text, Pressable, Modal, StyleSheet, Dimensions, ActivityIndicator, InteractionManager, Animated, TextInput, ScrollView } from 'react-native';
+import { useState, useCallback, useEffect, useRef, useMemo, Fragment } from 'react';
+import { ActivityIndicator, Animated, Dimensions, FlatList, InteractionManager, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { PressableScale } from './PressableScale';
 import { Image as ExpoImage } from 'expo-image'; // 자동 다운샘플(메모리) + 엠블럼 탭 풀스크린 뷰어
 import DraggableFlatList, { ScaleDecorator } from 'react-native-draggable-flatlist'; // 이슈20 롱프레스 드래그 reorder
@@ -248,6 +248,81 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
     return () => cancelAnimationFrame(r);
   }, [open, listReady, scrollToRep]);
 
+  /**
+   * 명식 목록 행 하나.
+   * ★네이티브(DraggableFlatList)와 웹(FlatList)이 **같은 함수**를 쓴다 — 두 벌로 그리면
+   *   행 UI 가 언젠가 갈린다([[duplicate-ui-single-source]]). 웹은 `drag` 만 no-op 으로 받는다.
+   */
+  const renderChartRow = ({ item: c, drag, isActive }: { item: SavedChart; drag: () => void; isActive: boolean }) => {
+    // ⚠️`ScaleDecorator` 는 **DraggableFlatList 컨텍스트 전용**이다. 일반 FlatList(웹) 안에서 쓰면
+    //   `useIsActive must be called from within CellProvider!` 로 화면이 죽는다(2026-08-18 실물에서 확인).
+    //   ⇒ 웹에서는 장식을 걷어내고 그대로 그린다. 행 내용은 두 경로가 **같은 코드**를 쓴다.
+    const Deco: any = Platform.OS === 'web' ? Fragment : ScaleDecorator;
+            const on = c.id === repId;
+            const em = emblems[c.id];
+            const iljuImg = em ? iljuImage(em.stem, em.branch) : null; // 60갑자 AI 일러스트(없으면 색+동물 폴백)
+            return (
+              <Deco>
+                <View
+                  style={[styles.row, isActive && styles.rowActive, actionsFor === c.id && styles.rowMenuOpen]}
+                  // 첫 행의 실제 높이를 한 번만 재서 '현재 명식으로 이동'의 offset 기준으로 쓴다(상수 추정 금지).
+                  onLayout={(e) => { if (!rowHRef.current) { rowHRef.current = e.nativeEvent.layout.height; scrollToRep(); } }}
+                >
+                  {!em ? (
+                    <SkeletonDot d={EMB} /> /* 펄스 스켈레톤 — 엠블럼 계산 전(딜레이 가림) */
+                  ) : iljuImg ? (
+                    <PressableScale onPress={() => setViewImg(iljuImg)} hitSlop={6} style={[styles.emblemImg, { width: EMB, height: EMB, borderRadius: EMB / 2 }]}>
+                      <ExpoImage source={iljuImg} style={[StyleSheet.absoluteFill, { borderRadius: EMB / 2 }]} contentFit="cover" cachePolicy="memory-disk" transition={250}
+                        /* ★recyclingKey — 스크롤로 행이 재활용될 때 **이전 명식의 그림이 잠깐 남는 것**을 막는다.
+                           (가상화를 조인 뒤에는 재활용이 잦아져 이게 없으면 엉뚱한 엠블럼이 스친다.)
+                           ★512×512 원본을 46~72px 로 그리므로 디코딩 크기를 명시해 메모리·시간을 아낀다
+                           — expo-image 는 힌트가 없으면 원본 해상도로 디코딩할 수 있다(실측: 장당 1MB). */
+                        recyclingKey={`${em.stem}${em.branch}`}
+                        allowDownscaling
+                        contentPosition="center"
+                        onLoadEnd={() => setLoadedEmblems((s) => { const n = new Set(s); n.add(c.id); return n; })} />
+                      {/* 이미지 디코드 중 로딩 인디케이터(daniel: 명식변경 리스트 이미지 로딩 표시) — 로드되면 사라짐 */}
+                      {!loadedEmblems.has(c.id) && <ActivityIndicator size="small" color={colors.ju} style={StyleSheet.absoluteFill} />}
+                    </PressableScale>
+                  ) : (
+                    <View style={[styles.emblem, { backgroundColor: em.color, width: EMB, height: EMB, borderRadius: EMB / 2 }]}>
+                      <Text style={[styles.emblemTx, { color: em.textColor, fontSize: fs(13) }]}>{em.animal}</Text>
+                    </View>
+                  )}
+                  <PressableScale style={styles.rowMain} onPress={() => choose(c.id)} onLongPress={filtering ? undefined : drag} delayLongPress={250}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: space(1.5) }}>
+                      <Text style={[styles.rowName, on && styles.rowOn, { fontSize: fs(15) }]} numberOfLines={1}>{c.label}</Text>
+                      {/* ★성별 배지(daniel 2026-08-02 "명식 리스트에서 여자인지 남자인지도 보이면 좋겠어")
+                          — 동명이인·가족 명식이 쌓이면 이름만으론 구분이 안 된다. 사주는 성별에 따라
+                          대운 방향(순행/역행)이 갈리므로 **명식의 정체성 정보**지 장식이 아니다.
+                          색으로 성별을 나누지 않고 중립 톤을 쓴다(테마 일관·고정관념 회피). */}
+                      {!!c.input.sex && (
+                        <Text style={[styles.sexBadge, { fontSize: fs(10.5) }]}>{c.input.sex}</Text>
+                      )}
+                      {/* ★프리미엄 지정 명식 배지(daniel 07-02: 명식 옆에 프리미엄 여부) — 골드 왕관 배지 */}
+                      {!!premChartId && c.serverChartId === premChartId && (
+                        <View style={styles.premBadge}><Text style={styles.premBadgeTx}>👑 프리미엄</Text></View>
+                      )}
+                    </View>
+                    {em ? <Text style={[styles.iljuName, { fontSize: fs(12) }]}>{em.name}</Text> : null}
+                    <Text style={[styles.rowMeta, { fontSize: fs(12) }]} numberOfLines={1}>
+                      {String(c.input.birthDateTime ?? '').replace('T', ' ').slice(0, 16)}{/* 날짜+시간(daniel: 시간도 노출) */}
+                    </Text>
+                  </PressableScale>
+                  {/* 카테고리(관계)를 행 우측에 배지로(daniel: 카테고리도 오른쪽에) */}
+                  <Text style={[styles.rowCategory, { fontSize: fs(11) }]} numberOfLines={1}>{c.relation === 'self' ? t('register.selfLabel') : c.relation}</Text>
+                  {on && <Text style={styles.check}>✓</Text>}
+                  {/* ⋯ 토글 → 작은 세로 메뉴(수정·만세력보기·삭제). 삭제는 항상 재확인 alert(daniel 07-01) */}
+                  {/* ⋯ → 하단 액션시트 모달(수정·만세력보기·삭제). in-row 드롭다운은 리스트가 잘라내고 반투명·auto-dismiss가
+                      안 돼서 모달로 전환(daniel 07-05). 모달=클리핑 없음·불투명·뷰 바뀌면 자동 닫힘. */}
+                  <PressableScale style={styles.actWrap} hitSlop={12} onPress={() => setActionsFor(c.id)}>
+                    <Text style={[styles.rowAct, { fontSize: 20 }]}>⋯</Text>
+                  </PressableScale>
+                </View>
+              </Deco>
+            );
+  };
+
   async function choose(id: string) {
     await setRepresentative(id);
     setRepId(id);
@@ -424,6 +499,26 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
             {!listReady ? (
               <View style={{ height: 200, alignItems: 'center', justifyContent: 'center' }}><ActivityIndicator color={colors.ju} /></View>
             ) : (
+            /* ★★웹은 **일반 FlatList** 로 그린다(2026-08-18 실측 버그).
+                 `react-native-draggable-flatlist` 는 gesture-handler 위에서 도는데, **웹에서 행 탭을 삼킨다** —
+                 명식을 눌러도 `choose()` 가 아예 불리지 않아 **한 명식에 갇혔다**(64개를 등록해 놓고도).
+                 롱프레스 드래그 정렬은 어차피 손가락 인터랙션이라 웹에서 쓸 일이 없다 ⇒ 웹은 드래그를 포기하고
+                 **선택이 되게** 한다(둘 중 하나를 골라야 한다면 선택이 먼저다).
+                 ⚠️`renderItem` 은 그대로 쓴다 — 두 벌로 갈리면 행 UI 가 언젠가 어긋난다. drag 만 no-op 으로 넘긴다. */
+            Platform.OS === 'web' ? (
+            <FlatList
+              data={shown}
+              keyExtractor={(c: SavedChart) => c.id}
+              style={styles.list}
+              contentContainerStyle={{ paddingBottom: space(14) }}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              initialNumToRender={10}
+              maxToRenderPerBatch={8}
+              windowSize={5}
+              renderItem={({ item }: { item: SavedChart }) => renderChartRow({ item, drag: () => {}, isActive: false })}
+            />
+            ) : (
             <DraggableFlatList
               ref={listRef}
               data={shown}
@@ -443,73 +538,9 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
               windowSize={5}
               // 필터 중(부분집합)엔 순서 저장이 전체 순서를 꼬이게 하므로 드래그 결과를 무시(renderItem에서 drag 자체도 비활성).
               onDragEnd={({ data }) => { if (!filtering) onDragEnd(data); }}
-              renderItem={({ item: c, drag, isActive }) => {
-                const on = c.id === repId;
-                const em = emblems[c.id];
-                const iljuImg = em ? iljuImage(em.stem, em.branch) : null; // 60갑자 AI 일러스트(없으면 색+동물 폴백)
-                return (
-                  <ScaleDecorator>
-                    <View
-                      style={[styles.row, isActive && styles.rowActive, actionsFor === c.id && styles.rowMenuOpen]}
-                      // 첫 행의 실제 높이를 한 번만 재서 '현재 명식으로 이동'의 offset 기준으로 쓴다(상수 추정 금지).
-                      onLayout={(e) => { if (!rowHRef.current) { rowHRef.current = e.nativeEvent.layout.height; scrollToRep(); } }}
-                    >
-                      {!em ? (
-                        <SkeletonDot d={EMB} /> /* 펄스 스켈레톤 — 엠블럼 계산 전(딜레이 가림) */
-                      ) : iljuImg ? (
-                        <PressableScale onPress={() => setViewImg(iljuImg)} hitSlop={6} style={[styles.emblemImg, { width: EMB, height: EMB, borderRadius: EMB / 2 }]}>
-                          <ExpoImage source={iljuImg} style={[StyleSheet.absoluteFill, { borderRadius: EMB / 2 }]} contentFit="cover" cachePolicy="memory-disk" transition={250}
-                            /* ★recyclingKey — 스크롤로 행이 재활용될 때 **이전 명식의 그림이 잠깐 남는 것**을 막는다.
-                               (가상화를 조인 뒤에는 재활용이 잦아져 이게 없으면 엉뚱한 엠블럼이 스친다.)
-                               ★512×512 원본을 46~72px 로 그리므로 디코딩 크기를 명시해 메모리·시간을 아낀다
-                               — expo-image 는 힌트가 없으면 원본 해상도로 디코딩할 수 있다(실측: 장당 1MB). */
-                            recyclingKey={`${em.stem}${em.branch}`}
-                            allowDownscaling
-                            contentPosition="center"
-                            onLoadEnd={() => setLoadedEmblems((s) => { const n = new Set(s); n.add(c.id); return n; })} />
-                          {/* 이미지 디코드 중 로딩 인디케이터(daniel: 명식변경 리스트 이미지 로딩 표시) — 로드되면 사라짐 */}
-                          {!loadedEmblems.has(c.id) && <ActivityIndicator size="small" color={colors.ju} style={StyleSheet.absoluteFill} />}
-                        </PressableScale>
-                      ) : (
-                        <View style={[styles.emblem, { backgroundColor: em.color, width: EMB, height: EMB, borderRadius: EMB / 2 }]}>
-                          <Text style={[styles.emblemTx, { color: em.textColor, fontSize: fs(13) }]}>{em.animal}</Text>
-                        </View>
-                      )}
-                      <PressableScale style={styles.rowMain} onPress={() => choose(c.id)} onLongPress={filtering ? undefined : drag} delayLongPress={250}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: space(1.5) }}>
-                          <Text style={[styles.rowName, on && styles.rowOn, { fontSize: fs(15) }]} numberOfLines={1}>{c.label}</Text>
-                          {/* ★성별 배지(daniel 2026-08-02 "명식 리스트에서 여자인지 남자인지도 보이면 좋겠어")
-                              — 동명이인·가족 명식이 쌓이면 이름만으론 구분이 안 된다. 사주는 성별에 따라
-                              대운 방향(순행/역행)이 갈리므로 **명식의 정체성 정보**지 장식이 아니다.
-                              색으로 성별을 나누지 않고 중립 톤을 쓴다(테마 일관·고정관념 회피). */}
-                          {!!c.input.sex && (
-                            <Text style={[styles.sexBadge, { fontSize: fs(10.5) }]}>{c.input.sex}</Text>
-                          )}
-                          {/* ★프리미엄 지정 명식 배지(daniel 07-02: 명식 옆에 프리미엄 여부) — 골드 왕관 배지 */}
-                          {!!premChartId && c.serverChartId === premChartId && (
-                            <View style={styles.premBadge}><Text style={styles.premBadgeTx}>👑 프리미엄</Text></View>
-                          )}
-                        </View>
-                        {em ? <Text style={[styles.iljuName, { fontSize: fs(12) }]}>{em.name}</Text> : null}
-                        <Text style={[styles.rowMeta, { fontSize: fs(12) }]} numberOfLines={1}>
-                          {String(c.input.birthDateTime ?? '').replace('T', ' ').slice(0, 16)}{/* 날짜+시간(daniel: 시간도 노출) */}
-                        </Text>
-                      </PressableScale>
-                      {/* 카테고리(관계)를 행 우측에 배지로(daniel: 카테고리도 오른쪽에) */}
-                      <Text style={[styles.rowCategory, { fontSize: fs(11) }]} numberOfLines={1}>{c.relation === 'self' ? t('register.selfLabel') : c.relation}</Text>
-                      {on && <Text style={styles.check}>✓</Text>}
-                      {/* ⋯ 토글 → 작은 세로 메뉴(수정·만세력보기·삭제). 삭제는 항상 재확인 alert(daniel 07-01) */}
-                      {/* ⋯ → 하단 액션시트 모달(수정·만세력보기·삭제). in-row 드롭다운은 리스트가 잘라내고 반투명·auto-dismiss가
-                          안 돼서 모달로 전환(daniel 07-05). 모달=클리핑 없음·불투명·뷰 바뀌면 자동 닫힘. */}
-                      <PressableScale style={styles.actWrap} hitSlop={12} onPress={() => setActionsFor(c.id)}>
-                        <Text style={[styles.rowAct, { fontSize: 20 }]}>⋯</Text>
-                      </PressableScale>
-                    </View>
-                  </ScaleDecorator>
-                );
-              }}
+              renderItem={renderChartRow}
             />
-            )}
+            ))}
             {/* ★'＋ 명식 등록' — 시트의 마지막 요소이자 **주 CTA**. 잘리면 명식을 더 못 만든다.
                 daniel 2026-08-07 IMG_8431 "명식등록 계속 짤려"(명식 51개 · 목록이 길 때).
                 근인 둘을 함께 막는다:
