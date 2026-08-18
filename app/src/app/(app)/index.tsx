@@ -30,6 +30,7 @@ import { PersonaTypeHero } from '../../components/PersonaTypeHero'; // ★홈 �
 
 // 홈 블록 이미지 상수(IMG)는 홈이 정보 카드로 바뀌며(2026-08-01) 소비처가 사라져 제거했다.
 import { HouseAdBanner } from '../../components/HouseAdBanner';
+import { ScoreCard } from '../../components/kit/ScoreCard';   // 시안 p04 점수 카드
 import { FreeTrioBlock } from '../../components/home/FreeTrioBlock';
 import { Image as ExpoImage } from 'expo-image';
 import { brandMark } from '../../lib/ui/brandAsset';
@@ -42,9 +43,7 @@ import { CommunityPulseInline } from '../../components/CommunityPulseCard'; // �
 import { DecisionTodayCard } from '../../components/DecisionTodayCard'; // 홈 블록: 오늘의 결정(07-25 코드큐·dailyEnergy 재배열·새 판정 0·API 0)
 import { TodayRelationCard } from '../../components/TodayRelationCard'; // 오늘의 관계 — 궁합을 매일 여는 화면으로(리텐션 07-20)
 import { RelationMapCard } from '../../components/RelationMapCard';
-import { getDailyFortune, dailyHeadline, getDailyReading, scoreFlow, dailyEnergy, energyReason, ENERGY_LABEL, type DailyEnergy } from '../../lib/content/dailyFortune';
-import { ScoreFlowGraph } from '../../components/ScoreFlowGraph'; // 오늘 기운 점수 흐름 그래프(홈, daniel 07-13)
-import { stemElement, branchElement, elementColor, elementText } from '../../lib/engine/ohaeng'; // 오늘의 기운 = 오행색 네모 한자
+import { getDailyFortune, dailyHeadline, getDailyReading, dailyEnergy, type DailyEnergy } from '../../lib/content/dailyFortune';
 import { useGenProgress, clearGenProgress } from '../../lib/backend/genProgress'; // 풀이 진행률(다중·route별, 풀이중 홈 나가도 % — daniel)
 import { useSubscription } from '../../lib/billing/subscription';
 import { loadRepChart, subscribeRepChange } from '../../lib/engine/myChart';
@@ -79,7 +78,7 @@ export default function Home() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { t } = useTranslation();
-  const { fs, scale, ls } = useFontScale(); // 오늘의 기운 배너 본문 글자 크기 + 배율(줄 수 완화 판단용)
+  const { fs } = useFontScale(); // 남은 인라인 글자 크기(명식 없음 안내 등)
   const gen = useGenProgress(); // 통변 생성 진행률(풀이중 홈 나가면 여기 배너로 %)
   // I(daniel): %가 움직이도록 — 진행 중 풀이가 있으면 주기 리렌더(단일 콜의 추정 % 갱신). 진행 없으면 타이머 미동작.
   const [, setTick] = useState(0);
@@ -107,7 +106,6 @@ export default function Home() {
   const goDay = (off: number) => { setDayOffset(off); fortunePager.current?.scrollTo({ x: off * pageW, animated: true }); };
   // 오늘·내일 각각의 한 줄 풀이(글)+캐치 타이틀 — 대표 명식 일간 × 그날 일진(온디바이스). [0]=오늘 [1]=내일.
   const [dayData, setDayData] = useState<{ headline: string | null; prose: string | null }[]>([{ headline: null, prose: null }, { headline: null, prose: null }]);
-  const [flow, setFlow] = useState<{ scores: number[]; labels: string[]; currentIndex: number } | null>(null); // 오늘 점수 흐름(그래프, daniel 07-13)
   // 오늘·내일 기운 판정(유형명·총운점수·주의등급·근거·신살) — 별도 카드였던 것을 이 배너로 통합(daniel 07-19).
   const [energies, setEnergies] = useState<(DailyEnergy | null)[]>([null, null]);
   const [unread, setUnread] = useState(0);                       // 안 읽은 알림(0 이면 배지를 그리지 않는다)
@@ -143,9 +141,8 @@ export default function Home() {
       setHasChart(!!rep); // H1: 명식 유무 → 오늘/내일 배너 분기(등록안내 vs 운세)
       setRepName(rep?.label ?? null);   // 인사말용 — 같은 왕복에서 얻으므로 추가 조회가 없다
       void unreadCount().then((n) => { if (alive) setUnread(n); });   // 실패하면 0 = 배지 없음(틀린 숫자보다 낫다)
-      if (!rep) { setDayData([{ headline: null, prose: null }, { headline: null, prose: null }]); setFlow(null); setEnergies([null, null]); return; }
+      if (!rep) { setDayData([{ headline: null, prose: null }, { headline: null, prose: null }]); setEnergies([null, null]); return; }
       const saju = computeChart(rep.input).saju; // ★상세(today.tsx)와 동일 빌더 — 세운·interactions 포함해 classifyStrength 일치(favorGood 뒤집힘 방지)
-      try { setFlow(scoreFlow(saju, 'day')); } catch { setFlow(null); } // 오늘 점수 흐름(그제~모레)
       // 오늘·내일 각각의 기운 판정(결정론·API 0). 실패해도 배너 나머지는 그대로 보이게 null 유지.
       try {
         setEnergies(fortunes.map((f) => dailyEnergy(saju, f.dayGanZhi[0] as Stem, f.dayGanZhi[1] as Branch)));
@@ -290,74 +287,25 @@ export default function Home() {
             onMomentumScrollEnd={(e) => setDayOffset(Math.round(e.nativeEvent.contentOffset.x / Math.max(1, pageW)))}
           >
             {([0, 1] as const).map((off) => {
-              const f = fortunes[off];
-              const d = dayData[off];
-              const e = energies[off];                        // 그 날 기운 판정(유형·점수·등급·근거·신살)
-              const cau = e ? CAUTION[e.caution] : null;      // 주의 등급 라벨·색
+              const e = energies[off];   // 그 날 기운 판정(점수·주의 등급). 유형명·근거·신살은 /today 가 맡는다
               return (
-                <PressableScale key={off} style={{ width: pageW }} onPress={() => router.push(`/today?offset=${off}`)}>
-                  <Text style={styles.bannerDate}>{f.date} ({t('today.weekdaysShort').split(',')[new Date(f.date + 'T00:00:00').getDay()] ?? ''})</Text>
-                  {/* ★시안(p04) 2열 — 좌: 무슨 날인지(간지·유형명·설명) / 우: 점수·등급.
-                        종전엔 점수만 이 행에 있고 유형명은 **아랫줄**이었다. 점수를 40px 로 키우자
-                        우측이 좌측보다 40px 넘게 길어져 그 아래가 통째로 빈 칸이 됐다(실물에서 확인).
-                        두 열로 묶으면 높이가 서로를 채운다 — 여백은 정렬 문제지 간격 문제가 아니었다. */}
-                  <View style={styles.bannerPillarRow}>
-                    <View style={styles.todayLeft}>
-                      <View style={styles.gzHeadRow}>
-                        <Text style={styles.bannerPillar}>{off === 0 ? t('today.dayPillar') : t('today.energyTomorrow')}</Text>
-                        <View style={styles.gzBoxRow}>
-                          {[f.dayGanZhi[0], f.dayGanZhi[1]].map((ch, i) => {
-                            const el = i === 0 ? stemElement(ch) : branchElement(ch); // 천간·지지 오행
-                            return (
-                              <View key={i} style={[styles.gzBox, { minWidth: ls(30), minHeight: ls(34) }, { backgroundColor: elementColor[el] }]}>
-                                <Text style={[styles.gzBoxTx, { color: elementText[el] }]}>{ch}</Text>
-                              </View>
-                            );
-                          })}
-                        </View>
-                      </View>
-                      {/* 기운 유형명 + 한 줄 설명 — 좌측 열 안(점수 옆)으로 올라왔다 */}
-                      {e && (
-                        <View style={{ marginTop: space(2) }}>
-                          <Text style={[styles.energyName, { fontSize: fs(16) }]}>{ENERGY_LABEL[e.group].name}</Text>
-                      {/* ★lineHeight 를 함께 스케일(daniel 2026-07-28 '아주 크게에서 아직 잘림') —
-                          fontSize 만 fs() 로 키우고 lineHeight 는 17 로 고정돼 있어 글자 위아래가 잘렸다.
-                          줄 수도 완화: 큰 글자에서 2줄이면 문장이 중간에 끊긴다. */}
-                          <Text style={[styles.energyDesc, { fontSize: fs(12.5), lineHeight: 18 }]} numberOfLines={scale >= 1.45 ? 3 : 2}>{ENERGY_LABEL[e.group].desc}</Text>
-                        </View>
-                      )}
-                    </View>
-
-                    {/* 우 — 총운 점수 + 주의 등급(시안: 숫자가 가장 큰 글자) */}
-                    {e && cau && (
-                      <View style={styles.scoreWrap}>
-                        <View style={styles.scoreRow}>
-                          <Text style={[styles.scoreTx, { color: cau.tone }]}>{e.score}</Text>
-                          <Text style={styles.scoreUnit}>{t('todayEnergy.point', '점')}</Text>
-                        </View>
-                        <View style={[styles.cautionPill, { borderColor: cau.tone }]}>
-                          <Text style={[styles.cautionTx, { color: cau.tone, fontSize: fs(11), lineHeight: 15 }]}>{cau.label}</Text>
-                        </View>
-                      </View>
-                    )}
-                  </View>
-                  {/* 점수 흐름 그래프(그제~모레) — off(오늘/내일)에 맞춰 강조점 이동(daniel 07-13) */}
-                  {flow ? <View style={{ marginTop: space(2), marginBottom: space(1) }}><ScoreFlowGraph scores={flow.scores} labels={flow.labels} currentIndex={flow.currentIndex + off} height={112} /></View> : null}
-                  {d.headline && <Text style={[styles.bannerHeadline, { fontSize: fs(16) }]}>{d.headline}</Text>}
-                  {d.prose && <Text style={[styles.bannerProse, { fontSize: fs(15), lineHeight: 22 }]} numberOfLines={scale >= 1.45 ? 4 : 3}>{d.prose}</Text>}
-                  {/* 근거(억부: 내 강약 × 그 날 기운) + 작용·신살 칩 */}
-                  {e && <Text style={[styles.energyReason, { fontSize: fs(13), lineHeight: 19 }]}>{energyReason(e)}</Text>}
-                  {e && e.signals.length > 0 && (
-                    <View style={styles.chips}>
-                      {e.signals.map((s) => (
-                        <View key={s.key} style={[styles.chip, s.kind === 'good' ? styles.chipGood : styles.chipCare]}>
-                          <Text style={[styles.chipTx, s.kind === 'good' && styles.chipTxGood, { fontSize: fs(11.5), lineHeight: 16 }]} numberOfLines={1}>{s.label}</Text>
-                        </View>
-                      ))}
-                    </View>
-                  )}
-                  {d.prose && <Text style={styles.bannerMore}>{t('today.more')}</Text>}
-                </PressableScale>
+                <View key={off} style={{ width: pageW }}>
+                  {/* ★시안 p04 그대로 — 좌: 「오늘의 운세」·**큰 점수**·상태칩 / 우: 제목·2줄·자세히보기.
+                      [무엇이 빠졌나] 간지 박스·꺾은선 그래프·기운 유형명·억부 근거·신살 칩은
+                      **지우지 않고 `/today` 로 옮겼다**. 홈 카드는 "오늘 몇 점"만 박는 자리다
+                      — 종전엔 이 카드 하나가 첫 화면을 통째로 먹어 **아래에 뭔가 더 있다는 신호가 0** 이었다.
+                      ⚠️'홈에서 뺀다'와 '없앤다'는 다르다. 옮길 곳을 먼저 만들고 뺐다. */}
+                  <ScoreCard
+                    label={off === 0 ? t('today.title', '오늘의 운세') : t('today.energyTomorrow', '내일의 기운')}
+                    score={e?.score ?? '—'}
+                    tone={e ? CAUTION[e.caution].label : undefined}
+                    title={dayData[off].headline ?? ''}
+                    body={dayData[off].prose ?? undefined}
+                    unitLabel={t('todayEnergy.point', '점')}
+                    moreLabel={t('today.more', '분야별로 자세히 보기 →')}
+                    onPress={() => router.push(`/today?offset=${off}`)}
+                  />
+                </View>
               );
             })}
           </ScrollView>
@@ -577,10 +525,10 @@ const styles = StyleSheet.create({
   // ★크기 축소(daniel 2026-08-06 "홈 아래쪽에 배너가 살짝 보여야 해 — 오늘의 운세 사이즈를 조금 줄여").
   //   첫 화면이 오늘의 운세로 꽉 차 **다음 블록(배너)이 화면 밖**에 있었다 = 아래에 뭔가 더 있다는 신호가 0.
   //   내용을 지우지 않고 **여백만** 줄였다(정보 손실 없이 다음 블록의 머리가 걸치게).
-  fortuneBanner: {
-    backgroundColor: colors.juSoft, padding: space(3), borderRadius: radius.md,
-    borderWidth: 1, borderColor: colors.line, marginBottom: space(3.5),
-  },
+  // ★2026-08-19 `juSoft` → 투명. 시뮬에서 재 보니 이 면(金 #EDEDED)이 페이지 배경(#E8E9E9)과
+  //   **대비 1.039** 로 사실상 구분이 안 됐다(시안은 흰 카드 vs 배경 = 1.216).
+  //   안에 든 `ScoreCard` 가 이미 흰 카드라 여기서 또 면을 깔면 **카드가 겹쳐 보인다** — 감싸기만 한다.
+  fortuneBanner: { marginBottom: space(1) },
   // ★AI 자기이해 코치 진입 배너(홈 상단·4.3 대화형 도구)
   coachBanner: { flexDirection: 'row', alignItems: 'center', gap: space(3), backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.ju, paddingVertical: space(3.5), paddingHorizontal: space(4), marginBottom: space(6), ...shadow.card },
   coachBannerEmoji: { fontSize: 22 },

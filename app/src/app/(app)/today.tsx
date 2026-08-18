@@ -22,7 +22,7 @@ import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-nat
 import { PressableScale } from '../../components/PressableScale';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { getDailyFortune, DAILY_AREA_KEYS, dailyHeadline, getDailyReading, scoreFlow, type DailyAreaKey } from '../../lib/content/dailyFortune';
+import { getDailyFortune, DAILY_AREA_KEYS, dailyHeadline, getDailyReading, scoreFlow, dailyEnergy, energyReason, ENERGY_LABEL, type DailyAreaKey } from '../../lib/content/dailyFortune';
 import { ScoreFlowGraph } from '../../components/ScoreFlowGraph'; // 점수 흐름 그래프(그제~모레, daniel 07-13)
 import { loadRepChart, type SavedChart } from '../../lib/engine/myChart';
 import { ensureServerChartId } from '../../lib/backend/prewarmReadings';
@@ -80,6 +80,12 @@ export default function TodayScreen() {
   const ruleReading = useMemo(() => { if (!saved) return null; try { return getDailyReading(computeChart(saved.input).saju, stem, branch, 'day'); } catch { return null; } }, [saved, stem, branch]);
   // 오늘 점수 흐름(그제~모레 5일) — 온디바이스 결정론. 상단 그래프(daniel 07-13)
   const flow = useMemo(() => { if (!saved) return null; try { return scoreFlow(computeChart(saved.input).saju, 'day'); } catch { return null; } }, [saved]);
+  // ★2026-08-19 홈에서 옮겨 온 것 — 홈 카드를 시안 p04 대로 압축하면서 **지우지 않고 여기로** 데려왔다.
+  //   기운 유형명·설명 · 억부 근거 · 작용/신살 칩. 상세 화면이 이것들의 제자리다.
+  const energy = useMemo(() => {
+    if (!saved) return null;
+    try { return dailyEnergy(computeChart(saved.input).saju, stem, branch); } catch { return null; }
+  }, [saved, stem, branch]);
   // 실제 표시 풀이: LLM 결과(프리미엄/광고)가 있으면 그것, 없으면 무료 룰 기본.
   const shown = reading ?? ruleReading;
 
@@ -180,6 +186,25 @@ export default function TodayScreen() {
           </View>
         ) : null}
 
+        {/* 오늘 기운의 성격 — 유형명·한 줄 설명 · 왜 그런지(억부 근거) · 작용/신살
+            ★홈에서 옮겨 왔다(2026-08-19). 홈은 "몇 점"만, 여기는 "왜 그 점수인지". */}
+        {energy ? (
+          <View style={styles.energyCard}>
+            <Text style={styles.energyName}>{ENERGY_LABEL[energy.group].name}</Text>
+            <Text style={styles.energyDesc}>{ENERGY_LABEL[energy.group].desc}</Text>
+            <Text style={styles.energyReason}>{energyReason(energy)}</Text>
+            {energy.signals.length > 0 ? (
+              <View style={styles.energyChips}>
+                {energy.signals.map((sg) => (
+                  <View key={sg.key} style={[styles.energyChip, sg.kind === 'good' && styles.energyChipGood]}>
+                    <Text style={[styles.energyChipTx, sg.kind === 'good' && styles.energyChipTxGood]} numberOfLines={1}>{sg.label}</Text>
+                  </View>
+                ))}
+              </View>
+            ) : null}
+          </View>
+        ) : null}
+
         {/* 시간대별 흐름(12시진) — 하루 안이 비어 있던 자리(기획 §4 C안). 무료·온디바이스·API 0.
             ★별도 라우트로 빼지 않는다 — 매일 여는 화면 안에 있어야 리텐션에 쓰인다. */}
         {saved ? <HourFlowCard saju={computeChart(saved.input).saju} dateISO={f.date} isToday={dayOffset === 0} /> : null}
@@ -252,6 +277,16 @@ const styles = StyleSheet.create({
   //   카드 **안쪽** 여백은 08-12 에 고쳤는데 **카드 사이**가 남아 있었다(HourFlowCard 는 marginTop 만 갖는다).
   headlineCard: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.juLine, paddingVertical: space(3.5), paddingHorizontal: space(4), marginTop: space(4), marginBottom: space(4), alignItems: 'center', ...shadow.card },
   // 점수 흐름 그래프 카드(daniel 07-13)
+  // ── 오늘 기운(홈에서 옮겨 온 블록) ───────────────────────────
+  energyCard: { backgroundColor: colors.card, borderRadius: radius.lg, padding: space(4), marginBottom: space(3), ...shadow.soft },
+  energyName: { ...font.heading, color: colors.ink, fontWeight: '900' },
+  energyDesc: { ...font.caption, color: colors.inkSoft, marginTop: space(1), lineHeight: 19 },
+  energyReason: { ...font.body, color: colors.inkSoft, marginTop: space(2.5), lineHeight: 21 },
+  energyChips: { flexDirection: 'row', flexWrap: 'wrap', gap: space(1.5), marginTop: space(2.5) },
+  energyChip: { borderRadius: radius.pill, paddingHorizontal: space(2.5), paddingVertical: space(1), backgroundColor: colors.sunk, borderWidth: 1, borderColor: colors.line },
+  energyChipGood: { backgroundColor: colors.juSoft, borderColor: colors.juLine },
+  energyChipTx: { ...font.caption, color: colors.inkSoft, fontWeight: '700' },
+  energyChipTxGood: { color: colors.ju },
   graphCard: { backgroundColor: colors.card, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.juLine, paddingTop: space(4), paddingBottom: space(2), paddingHorizontal: space(2), marginBottom: space(4), alignItems: 'center', ...shadow.card },
   graphScore: { fontSize: 44, fontWeight: '900', color: colors.ju, lineHeight: 48 },
   graphScoreCap: { ...font.caption, color: colors.inkFaint, marginBottom: space(1), fontWeight: '700' },

@@ -97,34 +97,42 @@ export function NextStepCard({ reloadKey, category = null }: { reloadKey?: numbe
 
   return (
     <PressableScale style={heroCap ? [styles.card, heroCap] : styles.card} onPress={() => router.push(meta.route as any)}>
-      {meta.image ? (
-        <ExpoImage source={meta.image} style={StyleSheet.absoluteFill} contentFit="cover" contentPosition="center" cachePolicy="memory-disk" transition={140} />
-      ) : null}
-      {/* 이미지 위 글씨 가독 스크림 — 어두운 타일이 많아 항상 밝은 글씨(ContentHero 와 같은 관례) */}
-      <View style={styles.scrim} />
       <View style={styles.inner}>
         <Text style={[styles.kicker, { fontSize: fs(11) }]}>다음 단계</Text>
-        <Text style={[styles.title, { fontSize: fs(22), lineHeight: Math.round(22 * 1.3) }]} numberOfLines={2}>{label}</Text>
+        <Text style={[styles.title, { fontSize: fs(19), lineHeight: Math.round(19 * 1.35) }]} numberOfLines={2}>{label}</Text>
         <Text style={[styles.reason, { fontSize: fs(13), lineHeight: Math.round(13 * 1.5) }]} numberOfLines={2}>{step.reason}</Text>
         <View style={styles.ctaRow}>
-          <View style={styles.cta}><Text style={[styles.ctaTx, { fontSize: fs(14) }]}>보러 가기 ›</Text></View>
+          <View style={styles.cta}><Text style={[styles.ctaTx, { fontSize: fs(13.5) }]}>보러 가기 ›</Text></View>
           {price ? <Text style={[styles.price, { fontSize: fs(12) }]}>{price}</Text> : null}
         </View>
       </View>
+      {/* 그림은 오른쪽 썸네일 — 어떤 콘텐츠인지 알려 주되 글자를 덮지 않는다 */}
+      {meta.image ? (
+        <ExpoImage source={meta.image} style={styles.thumb} contentFit="cover" contentPosition="center" cachePolicy="memory-disk" transition={140} />
+      ) : null}
     </PressableScale>
   );
 }
 
 const styles = StyleSheet.create({
-  // 큰 히어로 — 아래 목록(작은 행)과 확실한 위계 차이를 만든다.
-  card: { width: '100%', aspectRatio: 1.6, borderRadius: radius.lg, overflow: 'hidden', backgroundColor: colors.sunk, marginBottom: space(5), ...shadow.card },
-  scrim: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(16,14,34,0.52)' },
-  inner: { flex: 1, justifyContent: 'flex-end', padding: space(5) },
-  kicker: { ...font.caption, color: colors.onImageSoft, fontWeight: '800', letterSpacing: 1.2, marginBottom: space(1) },
-  title: { ...font.title, color: colors.onImage, fontWeight: '900' },
-  reason: { ...font.body, color: colors.onImageSoft, marginTop: space(1.5) },
-  ctaRow: { flexDirection: 'row', alignItems: 'center', gap: space(3), marginTop: space(4) },
-  cta: { backgroundColor: colors.badgeGold, borderRadius: radius.pill, paddingVertical: space(2), paddingHorizontal: space(4) },
-  ctaTx: { color: '#15132E', fontWeight: '900' },
-  price: { ...font.caption, color: colors.onImageSoft, fontWeight: '700' },
+  // ★2026-08-19 시안 톤으로 전환 — 종전엔 **전면 어두운 사진 + 52% 검은 막 + 흰 글자**였다.
+  //   시안(니운내운.pdf)은 전 화면이 밝은 파스텔이라 이 카드 하나가 화면에서 통째로 튀었다
+  //   (홈에서 가장 먼저 눈에 걸리던 이물감의 정체가 이것이었다 · daniel 2026-08-19 "시안 쪽으로 맞춰").
+  //   ⇒ 밝은 카드 + 먹 글자 + `ju` 알약. 사진은 **버리지 않고** 오른쪽 썸네일로 남겼다
+  //     (어떤 콘텐츠인지 알려 주는 정보다 — 장식이 아니라서 지우면 손해다).
+  //   ⚠️'오늘의 추천' 배너와 **다르게** 생겨야 한다. 배너는 색면 전체, 이건 흰 카드 + 썸네일이다.
+  card: {
+    width: '100%', flexDirection: 'row', alignItems: 'center', gap: space(4),
+    backgroundColor: colors.card, borderRadius: radius.lg, overflow: 'hidden',
+    padding: space(4), marginBottom: space(5), ...shadow.soft,
+  },
+  inner: { flex: 1, minWidth: 0 },
+  kicker: { ...font.caption, color: colors.ju, fontWeight: '800', letterSpacing: 0.6, marginBottom: space(1) },
+  title: { ...font.title, color: colors.ink, fontWeight: '900' },
+  reason: { ...font.body, color: colors.inkSoft, marginTop: space(1.5) },
+  ctaRow: { flexDirection: 'row', alignItems: 'center', gap: space(3), marginTop: space(3) },
+  cta: { backgroundColor: colors.ju, borderRadius: radius.pill, paddingVertical: space(1.75), paddingHorizontal: space(4) },
+  ctaTx: { color: colors.onJu, fontWeight: '900' },
+  price: { ...font.caption, color: colors.inkFaint, fontWeight: '700' },
+  thumb: { width: 104, height: 104, borderRadius: radius.md },
 });
