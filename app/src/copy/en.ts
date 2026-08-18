@@ -550,7 +550,13 @@ export const en = {
     'sub': 'Concrete ways to lift your luck, tuned to the cycle you\'re in now',
     'title': 'Your personal luck remedies',
   },
+  fav: {
+    'empty': 'Nothing saved yet.',
+    'emptySub': 'Tap ♡ on a card to keep it here.',
+  },
   my: {
+    'fav': 'Saved',
+    'readings': 'Reading history',
     'charge': 'Add Woon',
     'coach': 'Consultation history',
     'coupon': 'Coupons',

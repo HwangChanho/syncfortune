@@ -99,6 +99,7 @@ export default function AppLayout() {
         {/* ★시안 4탭(2026-08-18) — 마이페이지·풀이 보관함·결제 내역 */}
         <Stack.Screen name="my" options={{ headerShown: false }} />
         <Stack.Screen name="myreadings" options={{ headerShown: false }} />
+        <Stack.Screen name="favorites" options={{ headerShown: false }} />
         <Stack.Screen name="coinhistory" options={{ title: '결제/충전 내역' }} />
         <Stack.Screen name="compat" options={{ headerTitle: '' }} />
         <Stack.Screen name="taro" options={{ headerTitle: '' }} />

@@ -5,7 +5,7 @@
 //   · 풀이(여기) = 볼 수 있는 콘텐츠 전부 — '무엇을 볼까'
 //
 // ★라우트 이름이 /contents 인 이유: 기존 /reading(사주 원국풀이 화면)과 한 글자 차이인 /readings 는
-//   딥링크·grep·라우터 매칭에서 서로 오인하기 쉽다. 탭 라벨만 '풀이'(i18n nav.contents)로 둔다.
+//   딥링크·grep·라우터 매칭에서 서로 오인하기 쉽다. 탭 라벨은 2026-08-18 부터 '운세'(i18n nav.fortune).
 //
 // 목록 데이터 = lib/content/contentSections.ts / 렌더·진입 게이트 = components/ContentGrid.tsx (단일 출처).
 // 이 화면은 껍데기(스크롤) + **상단 한 줄(검색 + 보기 토글)** 을 담당한다.
@@ -65,7 +65,10 @@ export default function ContentsScreen() {
           ③ keyboard-safe: 검색창이 화면 최상단에 고정이라 키보드가 덮을 수 없다(check:keyboard R1 면제 사유). */}
       {/* ★페이지 제목 — **넓은 웹에서만**(daniel 2026-08-16 점검).
              폰은 하단 탭바가 현재 위치를 알려 주지만, 데스크톱엔 그게 없어 검색창이 곧장 최상단이었다. */}
-      {wide ? <Text style={styles.pageTitle}>{t('nav.contents')}</Text> : null}
+      {/* ★2026-08-18 4탭 전환 — 이 화면은 하단탭에서 **'운세'** 다.
+          `nav.contents`('풀이')를 쓰면 화면 제목과 탭 이름이 어긋난다(실물에서 확인).
+          라우트는 `/contents` 그대로 둔다 — 딥링크(홈 배너·도우미·추천)가 전부 이 경로를 쓴다. */}
+      {wide ? <Text style={styles.pageTitle}>{t('nav.fortune')}</Text> : null}
       <View style={[styles.topBar, { paddingTop: wide ? space(1) : insets.top + space(2) }]}>
         <View style={styles.searchBox}>
           <TextInput

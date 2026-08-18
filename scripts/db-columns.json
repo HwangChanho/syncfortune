@@ -1,6 +1,6 @@
 {
   "_note": "public 스키마 컬럼 스냅샷 — scripts/check-edge-columns.mjs 가 참조한다. 마이그레이션 후 npm run snap:cols 로 갱신할 것.",
-  "_generatedAt": "2026-08-05T06:02:27.463Z",
+  "_generatedAt": "2026-08-18T03:20:39.719Z",
   "tables": {
     "charts": [
       "id",
@@ -58,6 +58,18 @@
       "status",
       "created_at"
     ],
+    "map_invite_entries": [
+      "id",
+      "invite_id",
+      "display_name",
+      "birth_datetime",
+      "calendar",
+      "sex",
+      "time_unknown",
+      "birth_place",
+      "created_at",
+      "birth_lon"
+    ],
     "reading_followups": [
       "id",
       "chart_id",
@@ -108,6 +120,16 @@
       "ref",
       "created_at"
     ],
+    "user_notify_queue": [
+      "id",
+      "recipient",
+      "title",
+      "body",
+      "route",
+      "kind",
+      "status",
+      "created_at"
+    ],
     "rag_validation_items": [
       "id",
       "set_id",
@@ -147,6 +169,11 @@
       "ad_free_until",
       "nickname",
       "show_ilju"
+    ],
+    "app_config": [
+      "key",
+      "value",
+      "updated_at"
     ],
     "community_blocks": [
       "blocker_id",
@@ -278,6 +305,28 @@
       "lang",
       "created_at"
     ],
+    "content_favorites": [
+      "owner_id",
+      "content_key",
+      "created_at"
+    ],
+    "attach_responses": [
+      "id",
+      "user_id",
+      "answers",
+      "survey_anxiety",
+      "survey_avoidance",
+      "survey_solo",
+      "survey_close",
+      "survey_ver",
+      "indicators",
+      "axes",
+      "month_branch",
+      "daeun_edge_yrs",
+      "engine_ver",
+      "consent_research",
+      "created_at"
+    ],
     "knowledge_vectors": [
       "id",
       "kind",
@@ -296,6 +345,13 @@
       "owner_id",
       "blob_enc",
       "updated_at"
+    ],
+    "map_invites": [
+      "id",
+      "owner_id",
+      "owner_label",
+      "expires_at",
+      "created_at"
     ],
     "shared_readings": [
       "id",
@@ -420,22 +476,21 @@
       "user_id",
       "created_at"
     ],
-    "attach_responses": [
+    "bug_reports": [
       "id",
       "user_id",
-      "answers",
-      "survey_anxiety",
-      "survey_avoidance",
-      "survey_solo",
-      "survey_close",
-      "survey_ver",
-      "indicators",
-      "axes",
-      "month_branch",
-      "daeun_edge_yrs",
-      "engine_ver",
-      "consent_research",
-      "created_at"
+      "message",
+      "contact",
+      "app_version",
+      "build_no",
+      "platform",
+      "os_version",
+      "device",
+      "route",
+      "status",
+      "admin_note",
+      "created_at",
+      "updated_at"
     ]
   }
 }

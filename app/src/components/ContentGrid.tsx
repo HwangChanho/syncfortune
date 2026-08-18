@@ -38,6 +38,7 @@ import { isNewContent } from '../lib/content/newBadge'; // 신규 콘텐츠 NEW 
 import type { HomeViewMode } from '../lib/ui/homeView'; // 보기 방식(카드/리스트) — 상태는 화면이 소유(아래 주석)
 import { playSound } from '../lib/ui/sounds';
 import { PressableScale } from './PressableScale';
+import { loadFavorites, toggleFavorite, subscribeFavorites } from '../lib/content/favorites';   // ★찜하기(시안 「찜한 콘텐츠」)
 import { colors, radius, space, shadow, font } from '../lib/theme';
 import { useWebCols } from './WebShell'; // 넓은 웹 = 카드 3열(폰/모바일웹은 그대로 2열)
 
@@ -104,11 +105,40 @@ const AD_TIMEOUT_MS = 15_000;
  *                   섹션 하나가 곧 화면 전체일 때 쓴다. 기본 false(풀이탭 개요는 종전 캐러셀).
  * @param header     섹션 제목·설명 표시 여부. 화면이 이미 같은 문구를 그리면 false 로 끈다.
  */
+/**
+ * 카드 우측 하단 하트.
+ *
+ * ★카드뷰·리스트뷰가 **같은 것**을 쓴다 — 하트가 두 벌이면 상태가 갈린다([[duplicate-ui-single-source]]).
+ * ⚠️카드 전체가 눌리는 영역이라 하트는 이벤트를 **먹어야** 한다(안 그러면 찜하려다 콘텐츠로 들어간다).
+ *
+ * @param k    콘텐츠 카드 키
+ * @param on   지금 찜한 상태
+ * @param dark   어두운 이미지 위에 얹히는가(흰 하트로 그린다)
+ * @param inline 리스트 행처럼 **흐름 안**에 놓는가(카드는 절대배치)
+ */
+function FavHeart({ k, on, dark, inline }: { k: string; on: boolean; dark?: boolean; inline?: boolean }) {
+  return (
+    <PressableScale
+      style={inline ? styles.favInline : styles.favBtn}
+      hitSlop={8}
+      onPress={(e?: any) => { e?.stopPropagation?.(); void toggleFavorite(k); }}
+    >
+      <Text style={[styles.favTx, dark && styles.favTxDark, on && styles.favTxOn]}>{on ? '♥' : '♡'}</Text>
+    </PressableScale>
+  );
+}
+
 export function ContentGrid({ query = '', viewMode, category = null, wrap = false, header = true }:
   { query?: string; viewMode: HomeViewMode; category?: string | null; wrap?: boolean; header?: boolean }) {
   // ★랩 그리드의 카드 폭 — 폰은 2열, 넓은 웹은 3열(가로를 실제로 쓰게).
   //   숫자를 화면에 박지 않고 `useWebCols` 한 곳에서 받는다(정책이 갈리지 않게).
   const cols = useWebCols();
+  // ★찜 상태는 여기서 한 번 구독하고 카드에는 **값만** 내린다(카드마다 훅을 걸면 수십 개가 된다).
+  const [favs, setFavs] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    void loadFavorites().then(setFavs);
+    return subscribeFavorites(setFavs);
+  }, []);
   const cardW: `${number}%` = cols >= 3 ? '31.7%' : '48%';
   /**
    * ★넓은 웹에서는 **가로 캐러셀 대신 랩 그리드**를 쓴다.
@@ -330,6 +360,8 @@ export function ContentGrid({ query = '', viewMode, category = null, wrap = fals
         ) : (
           <Text style={styles.listChevron}>›</Text>
         )}
+        {/* ★리스트 행에도 같은 하트 — 카드뷰에만 달면 리스트로 보는 사용자는 찜을 못 한다(실물에서 확인) */}
+        <FavHeart k={m.key} on={favs.has(m.key)} inline />
       </PressableScale>
     );
   }
@@ -458,6 +490,7 @@ export function ContentGrid({ query = '', viewMode, category = null, wrap = fals
                 {isNew && <View style={styles.newTag}><Text style={styles.newTagTx}>NEW</Text></View>}
                 <Text style={styles.textCardLabel}>{t(m.labelKey)}</Text>
                 {desc ? <Text style={styles.textCardDesc}>{desc}</Text> : null}
+                <FavHeart k={m.key} on={favs.has(m.key)} />
               </PressableScale>
             );
           }
@@ -470,6 +503,7 @@ export function ContentGrid({ query = '', viewMode, category = null, wrap = fals
                   : <View style={[StyleSheet.absoluteFill, styles.cardImgInner, styles.cardPlaceholder]} />}
                 {badge && <View style={[styles.priceTag, isNew && styles.priceTagLeft]}><Text style={styles.priceTagText}>{badge}</Text></View>}
                 {isNew && <View style={styles.newTag}><Text style={styles.newTagTx}>NEW</Text></View>}
+                <FavHeart k={m.key} on={favs.has(m.key)} dark />
                 {/* 하단 라벨 — 이미지 위 다크 그라데이션 오버레이(흰 글씨). 이미지가 카드를 채우고 아래만 어두워져 '미디어 카드'로 또렷해진다. */}
                 <LinearGradient colors={['transparent', 'rgba(11,10,26,0.55)', 'rgba(11,10,26,0.94)']} locations={[0, 0.45, 1]} style={styles.labelBar}>
                   <Text style={[styles.cardLabel, prem && styles.cardLabelPrem]} numberOfLines={1}>{t(m.labelKey)}</Text>
@@ -532,6 +566,12 @@ const styles = StyleSheet.create({
   textCardLabel: { fontSize: 18, fontWeight: '800', color: colors.ink },
   textCardDesc: { ...font.caption, color: colors.inkSoft, marginTop: space(1.5), lineHeight: 18 },
   // 가격/상태 배지 — 골드 pill·다크 텍스트(daniel 07-07 라이트에서도 금색 고정)
+  // 찜 하트 — 카드 우측 하단(가격 배지는 우측 상단이라 겹치지 않는다)
+  favBtn: { position: 'absolute', right: space(1.5), bottom: space(1.5), zIndex: 3, padding: space(1.5) },
+  favTx: { fontSize: 18, lineHeight: 22, color: colors.inkFaint },
+  favTxDark: { color: 'rgba(255,255,255,0.92)' },   // 이미지 위 — 흰 하트
+  favInline: { paddingLeft: space(2), paddingVertical: space(1) },
+  favTxOn: { color: colors.ju },
   priceTag: {
     position: 'absolute', top: space(2.5), right: space(2.5), zIndex: 1,
     backgroundColor: colors.badgeGold, borderRadius: radius.pill,
