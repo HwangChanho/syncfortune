@@ -31,6 +31,8 @@ import { PersonaTypeHero } from '../../components/PersonaTypeHero'; // ★홈 �
 // 홈 블록 이미지 상수(IMG)는 홈이 정보 카드로 바뀌며(2026-08-01) 소비처가 사라져 제거했다.
 import { HouseAdBanner } from '../../components/HouseAdBanner';
 import { FreeTrioBlock } from '../../components/home/FreeTrioBlock';
+import { Image as ExpoImage } from 'expo-image';
+import { brandMark } from '../../lib/ui/brandAsset';
 import { BonusStrip } from '../../components/home/BonusStrip';
 import { unreadCount } from '../../lib/backend/notifyInbox';   // ★시안 헤더의 종 — 안 읽은 알림 배지
 import { isAdminActing } from '../../lib/core/admin'; // 홈 배치 편집 = 관리자 전용(daniel 2026-08-06) // 홈 상단 내부 프로모 배너(하우스 광고·daniel 07-24)
@@ -40,7 +42,6 @@ import { CommunityPulseInline } from '../../components/CommunityPulseCard'; // �
 import { DecisionTodayCard } from '../../components/DecisionTodayCard'; // 홈 블록: 오늘의 결정(07-25 코드큐·dailyEnergy 재배열·새 판정 0·API 0)
 import { TodayRelationCard } from '../../components/TodayRelationCard'; // 오늘의 관계 — 궁합을 매일 여는 화면으로(리텐션 07-20)
 import { RelationMapCard } from '../../components/RelationMapCard';
-import { TigerMascot } from '../../components/TigerMascot'; // 아기 백호 브랜드 마스코트(모션) — 홈 헤더 타이틀 좌측
 import { getDailyFortune, dailyHeadline, getDailyReading, scoreFlow, dailyEnergy, energyReason, ENERGY_LABEL, type DailyEnergy } from '../../lib/content/dailyFortune';
 import { ScoreFlowGraph } from '../../components/ScoreFlowGraph'; // 오늘 기운 점수 흐름 그래프(홈, daniel 07-13)
 import { stemElement, branchElement, elementColor, elementText } from '../../lib/engine/ohaeng'; // 오늘의 기운 = 오행색 네모 한자
@@ -380,7 +381,9 @@ export default function Home() {
             종전엔 좌측에 마스코트+앱이름, 우측에 👤 였다. 시안은 **이름을 부르는 것**을 앞세운다. */}
       <View style={styles.headerRow}>
         <View style={styles.headerSide} />
-        {!wideWebHome && <TigerMascot size={40} glow={false} />}
+        {/* ★「운」 심볼(Boss 제공 2026-08-18) — 시안은 헤더 가운데가 로고다.
+              넓은 웹에서는 사이드바가 이미 브랜드를 달고 있어 숨긴다(브랜드 중복 방지·08-15 규칙 유지). */}
+        {!wideWebHome && <ExpoImage source={brandMark()} style={styles.brandMark} contentFit="contain" transition={160} />}
         <View style={[styles.headerSide, styles.headerIcons]}>
           {/* 알림 — 안 읽은 게 있을 때만 점을 얹는다(숫자는 쓰지 않는다: 3개든 30개든 '새 게 있다'가 전부다) */}
           <PressableScale onPress={() => router.push('/notifications')} hitSlop={10} style={styles.iconBtn}>
@@ -562,6 +565,7 @@ const styles = StyleSheet.create({
   headerSide: { flex: 1, flexDirection: 'row', alignItems: 'center' },   // 로고를 정확히 가운데 두려면 양옆 폭이 같아야 한다
   headerIcons: { justifyContent: 'flex-end', gap: space(2) },
   iconBtn: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  brandMark: { width: 44, height: 44 },
   iconTx: { fontSize: 20, color: colors.ju },
   dot: { position: 'absolute', top: 6, right: 6, width: 8, height: 8, borderRadius: 4, backgroundColor: '#E5484D' },
   // 시안 인사말 — 화면에서 두 번째로 큰 글자(첫째는 점수). 가운데 정렬·아주 굵게.

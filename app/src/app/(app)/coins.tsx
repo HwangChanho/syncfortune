@@ -14,6 +14,8 @@
 import { useCallback, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
+import { Image as ExpoImage } from 'expo-image';
+import { coinIcon } from '../../lib/ui/brandAsset';
 import { PressableScale } from '../../components/PressableScale';
 import { AdFreeSection } from '../../components/AdFreeSection';   // ★광고 제거(운 구매) 공용 블록
 import { Alert } from '../../lib/ui/alert';
@@ -134,6 +136,8 @@ export default function CoinsScreen() {
             <View style={styles.balRow}>
               <Text style={[styles.balNum, { fontSize: fs(34) }]}>{balance.toLocaleString('ko-KR')}</Text>
               <Text style={[styles.balUnit, { fontSize: fs(15) }]}>{t('my.woon', '운')}</Text>
+              {/* ★금화(Boss 제공) — 시안 p07 잔액 카드 우측 */}
+              <ExpoImage source={coinIcon()} style={styles.coin} contentFit="contain" transition={160} />
             </View>
           )}
         </View>
@@ -193,7 +197,8 @@ const styles = StyleSheet.create({
   // 시안 p07 머리말
   pageTitle: { fontSize: 22, lineHeight: 30, fontWeight: '900', color: colors.ink, letterSpacing: -0.3, textAlign: 'center' },
   pageSub: { ...font.caption, color: colors.inkSoft, textAlign: 'center', marginTop: space(1.5), marginBottom: space(4) },
-  balRow: { flexDirection: 'row', alignItems: 'baseline', gap: space(1.5) },
+  balRow: { flexDirection: 'row', alignItems: 'center', gap: space(1.5) },
+  coin: { width: 46, height: 46, marginLeft: 'auto' },
   balUnit: { color: colors.inkSoft, fontWeight: '800' },
   // 보너스 티켓 — 시안의 쿠폰 스트립. 세 장까지만 보여 준다(그 이상은 어차피 큰 것부터 쓰인다)
   ticketRow: { flexDirection: 'row', gap: space(2), marginBottom: space(2) },

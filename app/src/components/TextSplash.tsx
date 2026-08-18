@@ -10,17 +10,20 @@
 //   ⚠️영상 스플래시(VideoSplash)와 배경색을 맞추던 주석은 걷어냈다 — 두 모드는 **배타적**이라
 //     동시에 뜨지 않는다(loadingMode: video / text / off). 맞출 대상이 애초에 없었다.
 //
-// ■ 시안의 「운」 심볼은 넣지 않았다
-//   그건 브랜드 로고라 내가 그릴 자리가 아니다(Boss 제작 영역). 자리는 워드마크가 지킨다.
-//   대신 태그라인의 '다섯 기운'을 **오행 5색 점**으로 받아 글자로만 두지 않았다 —
-//   풀이 히어로의 아치와 같은 언어라 첫 화면부터 이어진다.
+// ■ 「운」 심볼 (Boss 제공 · 2026-08-18)
+//   워드마크로 자리만 지키던 것을 **실제 로고**로 교체했다. 원본은 흰 여백이 큰 캔버스라
+//   심볼만 잘라 `brand/mark.png` 로 Storage 에 올렸다(그리는 쪽은 `A()` 로 받는다).
+//   ★태그라인의 '다섯 기운'은 **오행 5색 점**으로 그대로 둔다 —
+//     풀이 히어로의 아치와 같은 언어라 첫 화면부터 이어진다.
 //
 // ★버튼은 두지 않는다. 시안 p01 에는 [시작하기]가 있지만, 우리는 이 뒤에 **온보딩**(App Store 4.3 대응)이
 //   바로 오고 거기 CTA 가 있다. 버튼이 둘이면 무엇을 눌러야 하는지 흐려진다.
 // ═══════════════════════════════════════════════════════════════════════════
 import { useEffect, useRef } from 'react';
 import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image as ExpoImage } from 'expo-image';
 import Svg, { Path } from 'react-native-svg';
+import { A } from '../lib/ui/remoteAsset';
 import { colors, space, font } from '../lib/theme';
 import { elementColor } from '../lib/engine/ohaeng';
 
@@ -60,6 +63,9 @@ export function TextSplash({ onDone }: { onDone: () => void }) {
             07-15 에 고른 `八字` 는 앱 이름이 '팔자'이던 시절의 표식이다.
             ⚠️`八字` 자체는 지우지 않는다 — 브랜드이기도 하지만 **명리 용어**이기도 하다.
               바꾸는 건 '브랜드 표식으로 쓰이던 자리'뿐이다([[app-rename-wooni]] 일괄치환 금지). */}
+        {/* 「운」 심볼 — 로고가 먼저 뜨고 그 아래 앱 이름이 온다(시안 p01 구도) */}
+        <ExpoImage source={A('brand/mark.png')} style={styles.mark} contentFit="contain" transition={200} />
+
         {/* 시안 p01 — 「니**운**.내**운**」에서 '운' 두 글자만 강조색이다. 앱 이름이 곧 그 글자다. */}
         <Text style={styles.wordmark}>
           니<Text style={styles.accent}>운</Text><Text style={styles.dot}>.</Text>내<Text style={styles.accent}>운</Text>
@@ -79,7 +85,8 @@ const styles = StyleSheet.create({
   bg: { backgroundColor: colors.bg },
   center: { alignItems: 'center', justifyContent: 'center' },
   // 한글 4자는 한자 2자보다 길다 — 같은 크기로 두면 좁은 화면에서 넘친다
-  wordmark: { fontSize: 44, fontWeight: '900', color: colors.ink, letterSpacing: 2 },
+  mark: { width: 132, height: 132, marginBottom: space(4) },
+  wordmark: { fontSize: 38, fontWeight: '900', color: colors.ink, letterSpacing: 2 },
   accent: { color: colors.ju },
   dot: { color: colors.inkFaint },                    // 가운데 점은 눌러 두어 두 낱말이 갈려 읽히게
   dots: { flexDirection: 'row', gap: space(2), marginTop: space(6) },

@@ -18,6 +18,8 @@ import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';   // ★상단 안전영역 — 헤더가 없는 화면이라 직접 받는다(고정 여백은 글자확대 시 잘린다)
+import { Image as ExpoImage } from 'expo-image';
+import { elementAvatar } from '../../lib/ui/brandAsset';
 import { PressableScale } from '../../components/PressableScale';
 import { useAuth } from '../../lib/useAuth';
 import { useCoinBalance } from '../../lib/billing/coins';
@@ -52,7 +54,8 @@ export default function MyPageScreen() {
     <ScrollView style={styles.wrap} contentContainerStyle={[styles.body, { paddingTop: insets.top + space(4) }]}>
       {/* ① 인사 */}
       <View style={styles.hello}>
-        <View style={styles.avatar}><Text style={styles.avatarTx}>🙂</Text></View>
+        {/* ★오행 아바타(Boss 제공) — 지금 테마 오행을 따라간다. 이모지는 어느 오행에도 안 맞았다 */}
+        <ExpoImage source={elementAvatar()} style={styles.avatar} contentFit="contain" transition={160} />
         <Text style={styles.helloTx}>
           {who ? t('my.helloName', { name: who, defaultValue: '안녕하세요, {{name}}님' }) : t('my.helloGuest', '안녕하세요')}
         </Text>
@@ -101,11 +104,7 @@ const styles = StyleSheet.create({
   body: { paddingHorizontal: space(4), paddingBottom: 170 },
 
   hello: { alignItems: 'center', marginBottom: space(5) },
-  avatar: {
-    width: 84, height: 84, borderRadius: 42, backgroundColor: colors.juSoft,
-    alignItems: 'center', justifyContent: 'center', marginBottom: space(3),
-  },
-  avatarTx: { fontSize: 38, lineHeight: 46 },
+  avatar: { width: 96, height: 96, marginBottom: space(3) },
   helloTx: { fontSize: 20, lineHeight: 28, fontWeight: '900', color: colors.ju, letterSpacing: -0.3 },
   helloSub: { ...font.caption, color: colors.inkSoft, marginTop: space(1.5) },
 
