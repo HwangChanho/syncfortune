@@ -10,6 +10,7 @@
 import { DevSettings } from 'react-native'; // ★다크/라이트 제거(daniel 2026-07-15) — Appearance 불필요(소프트 클레이 단일 테마)
 import * as SecureStore from 'expo-secure-store';
 import { A } from '../lib/ui/remoteAsset'; // ★이미지 원격화(daniel 08-01) — 번들에서 걷어내고 Storage 에서 받는다
+import { ELEMENT_PALETTE, DEFAULT_ELEMENT, type ThemeElement } from './theme/elementPalette'; // ★오행 전면 팔레트 단일 출처(시안 실측색)
 // ⚠️ expo-updates = 네이티브 모듈. theme.ts 는 거의 모든 화면이 import → *정적 import* 하면 런치 시 로드되어,
 //   모듈/설정 이슈 시 JS 로거 설치 전 네이티브 크래시 위험(purchases.ts·ads.ts 와 동일 패턴 위반).
 //   → lazy require 가드(setThemePref 호출 시에만 로드). 모듈 없으면 조용히 no-op(테마는 재시작 후 적용).
@@ -81,50 +82,44 @@ export const pastel = {
 //   ※theme.ts는 저장된 오행 문자열만 읽음(엔진 의존 X). 대표명식→오행 산출·저장은 ui/themeElement.ts(_layout에서).
 // ★배경까지 오행별로(daniel 2026-07-15 '배경색도 오행에 맞춰') — 코어 팔레트 전체를 일간 오행으로.
 //   배경=은은한 동색 톤(소프트 클레이) / 강조(ju)=진한 오행색. gold/badgeGold(프리미엄)·overlay·scrim은 베이스 유지.
-export type ElTheme = { bg: string; card: string; sunk: string; ink: string; inkSoft: string; inkFaint: string; line: string; ju: string; juDeep: string; juSoft: string; juLine: string };
-// ★Apple 디자인 + 일간 오행 tint(daniel 2026-07-15): 배경=iOS 시스템 그레이에 오행 색조 아주 옅게 / 카드=순백 / ink=뉴트럴 라벨 /
-//   ju=오행 tint(iOS accent color 개념·vivid). 그림자 대신 배경↔카드 대비로 깊이(Apple HIG).
-// ★★2026-08-07 daniel "이제 **배경테마색만** 대표오행에 맞춰서 변경시키고".
-//   아이콘 톤(크림 종이·골드·브라운 글자)이 앱의 정체성이 되었으므로 카드·글자·강조는 **고정**하고,
-//   오행이 바뀌는 건 **배경 한 톤**뿐이다. 아래 EL_BG 가 실제로 적용되는 유일한 값이고,
-//   ⚠️종전 `EL_THEME`(팔레트 전체 오버라이드)은 **삭제**했다 — 남겨 두면 "오행마다 앱 색이 바뀐다"는
-//     옛 모델이 코드에 살아 있어 다음 사람이 어느 쪽이 진짜인지 알 수 없다(같은 것을 두 곳이 정의하는 사고).
-//     오행별 강조색이 다시 필요해지면 EL_BG 옆에 EL_JU 를 두고 같은 방식으로 한 값만 덮으면 된다.
-//   ⚠️종전 EL_THEME.bg 는 iOS 시스템 그레이 계열(#EFF3EE 등)이라 **크림 위에서 회색으로 떠 보인다** →
-//     크림(#FAF6EC)에 오행 색조를 아주 옅게 태운 값으로 다시 잡았다.
-//   ★2026-08-10 라벤더 전환: 오행 배경도 **보라 톤 안에서 미세하게만** 변주한다(daniel 08-09 지시).
-//     라벤더 베이스(#F7F5FD)에 각 오행 색조를 아주 옅게 태운 값 — 앱이 사람마다 '다른 앱'처럼
-//     보이면 안 되고, 대표명식이 바뀌었다는 것만 은은히 느껴지면 된다.
-const EL_BG: Record<string, string> = {
-  木: '#F4F8F6', // 나무 — 라벤더에 옅은 청록
-  火: '#FCF3F7', // 불 — 라벤더에 옅은 노을빛
-  土: '#FAF6F1', // 흙 — 라벤더를 살짝 따뜻하게
-  金: '#F8F8FC', // 금 — 라벤더에서 채도만 뺀 백지
-  水: '#F1F4FD', // 물 — 라벤더를 서늘하게 식힌 톤
-};
-// 설정 픽커 스와치 — ★**실제 적용되는 배경색**을 보여준다(daniel 2026-08-07 배경만 반영으로 바뀜).
-//   종전엔 강조색(ju, 진한 오행색)을 보여줬는데 이제 강조는 골드 고정이라 **고르면 안 그렇게 되는 색**이었다.
-//   ⚠️크림 계열끼리라 차이가 옅다 → 픽커에서 테두리(juLine)로 구분되게 UI 쪽에서 보완.
+// ★옛 `ElTheme`·`EL_BG` 는 **삭제**했다(2026-08-18 전면 틴트 전환).
+//   오행 색의 단일 출처는 `lib/theme/elementPalette.ts` 다 — 남겨 두면 어느 쪽이 진짜인지 모르게 된다.
+// 설정 픽커 스와치 — ★**실제 적용되는 배경색**을 보여준다.
+//   전면 틴트로 바뀌면서(2026-08-18) 오행별 배경 차이가 뚜렷해져 픽커에서도 바로 구분된다.
 export const ACCENT_SWATCH: Record<string, string> = {
-  木: EL_BG.木, 火: EL_BG.火, 土: EL_BG.土, 金: EL_BG.金, 水: EL_BG.水, gold: '#F7F5FD',
+  木: ELEMENT_PALETTE.木.bg, 火: ELEMENT_PALETTE.火.bg, 土: ELEMENT_PALETTE.土.bg,
+  金: ELEMENT_PALETTE.金.bg, 水: ELEMENT_PALETTE.水.bg,
+  gold: ELEMENT_PALETTE[DEFAULT_ELEMENT].bg,   // '기본' = 중립(무채) — 오행에서 金 이 곧 백색이다
 };
 const ACCENT_KEY = 'pref.themeAccent';   // 'auto' | '木'|'火'|'土'|'金'|'水' | 'gold'
 const ELEMENT_KEY = 'pref.themeElement'; // 대표명식 일간 오행(자동 액센트 소스) — themeElement.ts가 저장
-const ELS = ['木', '火', '土', '金', '水'];
+const ELS: ThemeElement[] = ['木', '火', '土', '金', '水'];
 
 /**
- * 오행 배경색 결정 — 설정 모드 + 저장된 대표명식 일간 오행.
- * @returns 적용할 배경 hex, 또는 null(기본 크림 유지 — 'gold' 모드거나 오행 미결정)
- * ★반환이 팔레트 전체가 아니라 **배경 한 값**이다(daniel 2026-08-07). 카드·글자·강조는 아이콘 톤 고정.
+ * 적용할 오행 결정 — 설정 모드 + 저장된 대표명식 일간 오행.
+ *
+ * @returns 적용할 오행. 'gold'(기본) 이거나 오행 미결정이면 `DEFAULT_ELEMENT`(중립).
+ *
+ * ★**2026-08-18 전면 틴트로 되돌림**(daniel: 시안 `니운내운.pdf` 대로).
+ *   2026-08-07 에 "배경 한 값만"으로 좁혔던 것을 되돌린다 — 그때는 아이콘 톤(종이·먹·금)이
+ *   정체성이라 화면 전체가 변하면 안 된다는 판단이었고, 지금은 **시안 자체가 전면 틴트**다.
+ *   ⇒ 배경뿐 아니라 카드·글자·선·강조까지 그 오행 세트로 간다(`ELEMENT_PALETTE`).
  */
-function resolveBg(): string | null {
+function resolveElement(): ThemeElement {
   let mode = 'auto';
   try { mode = ((SecureStore as any).getItem?.(ACCENT_KEY) as string) || 'auto'; } catch { /* → auto */ }
-  if (mode === 'gold') return null;                          // 기본 크림 고정 — 오행 반영 끔
+  if (mode === 'gold') return DEFAULT_ELEMENT;                       // '기본' = 중립 세트
+  if ((ELS as string[]).includes(mode)) return mode as ThemeElement; // 오행 직접 선택
   let el = '';
-  if (ELS.includes(mode)) el = mode;                         // 오행 직접 선택
-  else { try { el = ((SecureStore as any).getItem?.(ELEMENT_KEY) as string) || ''; } catch { /* 미저장 */ } } // auto=일간
-  return (el && EL_BG[el]) ? EL_BG[el] : null;               // 오행 미결정 시 기본 폴백
+  try { el = ((SecureStore as any).getItem?.(ELEMENT_KEY) as string) || ''; } catch { /* 미저장 */ }
+  return (ELS as string[]).includes(el) ? (el as ThemeElement) : DEFAULT_ELEMENT;  // auto = 일간 오행
+}
+
+/** `#RRGGBB` + 알파 → `rgba(...)`. 오행마다 달라지는 면(overlay·glass)을 팔레트에서 파생시킨다. */
+function rgba(hex: string, alpha: number): string {
+  const h = hex.replace('#', '');
+  const [r, g, b] = [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16));
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
 // 로드 시점 동기 결정: 저장 오버라이드(다크/라이트) > 시스템(Appearance). 실패 시 다크.
@@ -134,20 +129,38 @@ function resolveScheme(): Scheme { return 'light'; }
 
 export const activeScheme: Scheme = resolveScheme();
 
-// 전 화면이 import 하는 색 토큰 — 활성 팔레트로 채움(첫 렌더부터 올바른 테마).
-export const colors = { ...(activeScheme === 'light' ? LIGHT : DARK) };
+/** 지금 적용된 오행(전면 팔레트 소스). 설정 UI·하네스가 읽는다. */
+export const activeElement: ThemeElement = resolveElement();
+const EP = ELEMENT_PALETTE[activeElement];
 
-// ★일간 오행 적용 = **배경 한 값만**(daniel 2026-08-07). 카드·글자·선·강조(골드)는 아이콘 톤 고정.
-//   종전엔 코어 팔레트 전체를 덮어써 오행마다 앱이 다른 앱처럼 보였다 — 아이콘과 한 몸으로 만들려면
-//   정체성(종이·먹·금)은 고정하고 **사람마다 다른 건 배경 한 톤**이면 충분하다.
-const _bg = resolveBg();
-if (_bg) colors.bg = _bg;
-// 활성 강조 오행(설정 UI 표시용) — auto면 저장된 일간 오행, 직접선택이면 그 오행, gold면 ''.
+/**
+ * 전 화면이 import 하는 색 토큰.
+ *
+ * ★구성 = **베이스(LIGHT) 위에 오행 세트(EP)를 얹고, 면 색은 그 오행에서 파생**한다.
+ *   · `LIGHT` 가 먼저 오는 이유: gold·badgeGold·onImage·scrimHero 처럼 **오행과 무관한 브랜드 값**을
+ *     빠뜨리지 않기 위해서다(키가 하나라도 사라지면 168개 파일 중 어딘가가 undefined 색을 쓴다).
+ *   · `overlay` 계열은 LIGHT 의 라벤더 rgba 를 그대로 두면 **오행 배경 위에서 보라 얼룩**이 된다
+ *     → 그 오행의 `juSoft`·`card` 에서 다시 만든다.
+ *   ⚠️`overlay` 는 이름과 달리 **칩 배경 + 전체 막** 두 용도라 반드시 **밝은** 값이어야 한다
+ *     (어두운 스크림이 필요한 곳은 `scrimHero` 가 따로 있다 — 2026-08-10 회색 알약 사고).
+ */
+export const colors = {
+  ...(activeScheme === 'light' ? LIGHT : DARK),
+  ...EP,
+  glass: rgba(EP.card, 0.8),
+  glassLight: rgba(EP.ju, 0.06),
+  overlay: rgba(EP.juSoft, 0.55),
+  overlaySoft: rgba(EP.juSoft, 0.28),
+  overlayStrong: rgba(EP.card, 0.88),
+  labelScrim: rgba(EP.card, 0.96),
+};
+
+// 활성 강조 오행(설정 UI 표시용) — 'gold'(기본)면 빈 문자열(픽커가 '기본' 칩을 켠다).
 export const activeAccentElement: string = (() => {
   try {
     const m = ((SecureStore as any).getItem?.(ACCENT_KEY) as string) || 'auto';
     if (m === 'gold') return '';
-    if (ELS.includes(m)) return m;
+    if ((ELS as string[]).includes(m)) return m;
     return ((SecureStore as any).getItem?.(ELEMENT_KEY) as string) || '';
   } catch { return ''; }
 })();
@@ -184,7 +197,7 @@ export function setThemeAccent(mode: AccentMode) {
 }
 /** 대표명식 일간 오행 저장(themeElement.ts가 rep 변경/시작 시 호출). reload=true(대표명식 *변경*)일 때만 auto 모드 즉시 리로드. */
 export function storeChartElement(el: string, reload = false) {
-  if (!ELS.includes(el)) return;
+  if (!(ELS as string[]).includes(el)) return;   // el 은 엔진에서 온 문자열 — 오행 5자 중 하나인지만 본다
   let prev = '';
   try { prev = ((SecureStore as any).getItem?.(ELEMENT_KEY) as string) || ''; } catch { /* noop */ }
   if (prev === el) return;
