@@ -117,9 +117,7 @@ const ZIWEI_GROUPS: { label: string; keys: string[] }[] = [
   { label: '일·건강', keys: ['관록궁', '천이궁', '질액궁', '부모궁'] },
 ];
 
-export function ReadingScreen({
-  input, savedChart, categories, kind = 'saju', header,
-}: {
+type ReadingScreenProps = {
   input: ChartInput | null;
   savedChart?: SavedChart | null;
   categories?: ReadingCategory[];        // 미지정 = 사주 16영역(t 라벨)
@@ -127,7 +125,33 @@ export function ReadingScreen({
   titleKey?: string;
   subKey?: string;
   header?: ReactNode;                    // 상단 명식 헤더(ChartPicker). 전환 시 부모가 key로 리마운트 → 게이트 재평가
-}) {
+};
+
+/**
+ * 풀이 화면 — **껍데기**.
+ *
+ * ⚠️★왜 껍데기가 따로 있나 (2026-08-19 크래시 수정 · `MyeongsikScreen` 과 같은 이유)
+ *   본체 한가운데에 `if (!c) return <명식 없음/>` 이 있고 그 **뒤에 useEffect 가 셋** 더 있었다.
+ *   명식이 없을 땐 훅이 셋 적게 돌다가 등록하면 늘어나 React 가 화면을 통째로 죽인다
+ *   ("Rendered more hooks than during the previous render" → 「화면을 그리다 문제가 생겼어요」).
+ *   ⇒ 판정을 훅보다 앞으로 빼서, 명식이 없으면 본체를 아예 마운트하지 않는다.
+ *   ★`check:hookorder` 가 이 모양을 다시 만들지 못하게 막는다.
+ */
+export function ReadingScreen(props: ReadingScreenProps) {
+  const { t } = useTranslation();
+  if (!props.input) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'transparent' }}>
+        <Text style={font.body}>{t('myeongsik.noChart')}</Text>
+      </View>
+    );
+  }
+  return <ReadingScreenBody {...props} input={props.input} />;
+}
+
+function ReadingScreenBody({
+  input, savedChart, categories, kind = 'saju', header,
+}: ReadingScreenProps & { input: ChartInput }) {
   const router = useRouter();
   const { t } = useTranslation();
   const { session } = useAuth();
@@ -192,7 +216,7 @@ export function ReadingScreen({
     getRepresentativeId().then((rid) => { if (alive) setIsRep(!!savedChart && !!rid && rid === savedChart.id); }).catch(() => {});
     return () => { alive = false; };
   }, [savedChart]);
-  const c = useMemo(() => (input ? computeChart(input) : null), [input]);
+  const c = useMemo(() => computeChart(input), [input]);   // ★input 은 껍데기가 보장한다(위 ⚠️ 참조)
   // 항목 집합: 주입된 categories 우선, 없으면 사주 16영역(i18n 라벨)
   const cats = useMemo<ReadingCategory[]>(() => {
     if (categories) return categories;
@@ -440,7 +464,6 @@ export function ReadingScreen({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [savedChart, cacheLoaded, progress, kind]);
 
-  if (!c) return <View style={styles.center}><Text style={font.body}>{t('myeongsik.noChart')}</Text></View>;
 
   // 서버 charts row 확보 — 단일 구현(lib/prewarmReadings.ensureServerChartId) 공유.
   async function ensureServerChart(): Promise<string | null> {

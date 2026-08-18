@@ -7,6 +7,13 @@
 //
 // ★폰에서 3열이면 카드가 좁다 — 제목이 두 줄로 넘어가지 않게 짧은 말만 넣는다(자미두수·타로·점성술).
 // ⚠️일러스트가 없으면 그 자리를 **비운다**(회색 네모를 그리지 않는다). 그림이 준비되는 대로 채워진다.
+//
+// ■ 크기·간격은 **재서 정했다**(2026-08-19 · 시안 폭 616 → 402pt 폰 축척 0.652)
+//   · 카드 높이 270pt → **176pt**. 종전엔 그림 자리를 `aspectRatio:1` 로 뒀는데
+//     3열이라 카드 폭이 116pt → 그림칸만 116pt 가 되어 카드가 **224pt** 로 부풀었다.
+//     ⇒ 그림칸은 **고정 높이 72pt**. 카드가 시안 비율로 돌아온다.
+//   · ⚠️`row` 에 **아래 여백이 없었다** — 다음 블록이 카드에 붙어 있었다(daniel 실기기 지적).
+//     다른 홈 블록은 저마다 `marginBottom` 을 갖는데 여기만 빠져 있었다.
 // ═══════════════════════════════════════════════════════════════════════════
 import { View, Text, StyleSheet, type ImageSourcePropType } from 'react-native';
 import { Image as ExpoImage } from 'expo-image';
@@ -47,15 +54,16 @@ export function TrioCards({ items }: { items: TrioItem[] }) {
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', gap: space(2.5) },
+  row: { flexDirection: 'row', gap: space(2.5), marginBottom: space(5) },
   card: {
     flex: 1, backgroundColor: colors.card, borderRadius: radius.lg,
     paddingVertical: space(4), paddingHorizontal: space(2.5), alignItems: 'center',
   },
   title: { ...font.heading, color: colors.ju, fontWeight: '900', textAlign: 'center' },
   // 그림 자리는 비어 있어도 높이를 유지한다 — 카드 3장의 버튼 줄이 어긋나지 않게.
-  artBox: { width: '100%', aspectRatio: 1, marginVertical: space(2), alignItems: 'center', justifyContent: 'center' },
-  art: { width: '86%', height: '86%' },
+  // ★고정 높이(비율 아님) — 위 ■ 참조. 폭에 매면 3열에서 카드가 세로로 부푼다.
+  artBox: { width: '100%', height: 72, marginVertical: space(2.5), alignItems: 'center', justifyContent: 'center' },
+  art: { width: '100%', height: '100%' },
   cta: { backgroundColor: colors.ju, borderRadius: radius.pill, paddingHorizontal: space(3.5), paddingVertical: space(2) },
   ctaTx: { ...font.caption, color: colors.onJu, fontWeight: '900' },
 });

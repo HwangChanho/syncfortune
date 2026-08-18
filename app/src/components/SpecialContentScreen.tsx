@@ -468,9 +468,15 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
   };
   const n = sections.length;
 
-  if (!loaded) return <View style={styles.center}><ActivityIndicator color={colors.ju} /></View>;
   // 넓은 웹에서만 본문을 좁힌다(히어로·명식 헤더는 지면 전체를 쓴다)
+  // ⚠️★이 훅은 **조기 return 위**에 있어야 한다(2026-08-19 크래시 수정).
+  //   종전엔 `if (!loaded) return …` **아래**에 있었다 → 로딩 중에는 훅이 하나 적게 돌고
+  //   로드가 끝나면 하나 늘어나 React 가 **"Rendered more hooks than during the previous render"** 로 터졌다.
+  //   증상: 별자리·이미지 등 이 컴포넌트를 쓰는 화면이 열리자마자 「화면을 그리다 문제가 생겼어요」.
+  //   ★훅은 **컴포넌트 맨 위에서 무조건** 부른다 — 조건·조기 return 뒤에 두지 않는다(React 규칙 1).
   const webBody = useReadBody();   // ★본문 캡 단일 소스(WebShell) — 17개 화면과 같은 값을 쓴다
+
+  if (!loaded) return <View style={styles.center}><ActivityIndicator color={colors.ju} /></View>;
 
   if (!savedChart) return (
     <View style={styles.center}>

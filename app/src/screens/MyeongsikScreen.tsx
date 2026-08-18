@@ -76,7 +76,33 @@ const STRENGTH_INFO: { key: '신강' | '신약'; title: string; traits: string; 
     yongsin: '인성·비겁으로 보강하는 게 관건 — 배움·휴식·내 편(동료)을 통해 힘을 채울 때 안정됩니다.' },
 ];
 
-export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }: { input: ChartInput | null; onReading?: () => void; onSinsal?: () => void; header?: ReactNode; whoName?: string | null }) {
+type MyeongsikProps = { input: ChartInput | null; onReading?: () => void; onSinsal?: () => void; header?: ReactNode; whoName?: string | null };
+
+/**
+ * 명식 화면 — **껍데기**.
+ *
+ * ⚠️★왜 껍데기가 따로 있나 (2026-08-19 크래시 수정)
+ *   본체는 훅을 30개 쓴다. 종전엔 그 **한가운데**에 `if (!c) return <명식 없음/>` 이 있었다 —
+ *   명식이 없을 땐 훅 15개만 돌고, 등록하면 30개가 된다.
+ *   React 는 렌더마다 훅 개수가 달라지면 **"Rendered more hooks than during the previous render"**
+ *   로 화면을 통째로 죽인다(= 「화면을 그리다 문제가 생겼어요」).
+ *   ⇒ 판정을 **훅보다 앞**으로 빼서, 명식이 없으면 본체 자체를 마운트하지 않는다.
+ *     이러면 본체는 언제나 명식이 있는 상태로만 돌아 훅 개수가 흔들리지 않는다.
+ *   ★1527줄을 쪼개지 않고 고칠 수 있는 가장 작은 방법이다(`check:hookorder` 가 지킨다).
+ */
+export function MyeongsikScreen(props: MyeongsikProps) {
+  const { t } = useTranslation();
+  if (!props.input) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'transparent' }}>
+        <Text style={font.body}>{t('myeongsik.noChart')}</Text>
+      </View>
+    );
+  }
+  return <MyeongsikBody {...props} input={props.input} />;
+}
+
+function MyeongsikBody({ input, onReading, onSinsal, header, whoName }: MyeongsikProps & { input: ChartInput }) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<MyeongTab>(lastMyeongTab === 'rel' ? 'wonguk' : lastMyeongTab); // 'rel'(구 운세 탭)은 wonguk 으로 통합(daniel 07-24) — 저장값 방어
@@ -113,7 +139,7 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
     ]).start();
   }, [activeTab]);
 
-  const c = useMemo(() => (input ? computeChart(input) : null), [input]);
+  const c = useMemo(() => computeChart(input), [input]);   // ★input 은 껍데기가 보장한다(위 ⚠️ 참조)
   const { fs, ls } = useFontScale();
   // ★지장간 동그라미는 **글자 크기에서 파생**시킨다(daniel 2026-07-29 IMG_8302 "아직도 깨지잖아").
   //   원인: 원이 `width/height: 15` **고정**인데 글자는 전역 배율로 커진다(fs 는 2026-07-29 부터 항등).
@@ -127,7 +153,6 @@ export function MyeongsikScreen({ input, onReading, onSinsal, header, whoName }:
   //   → 칸을 flex:1 로 **3등분**하면 기둥 폭을 최대한 쓰면서(=옆으로 길어지고) 절대 넘치지 않는다.
   const HID_BOX = { height: HID_H };
   const styles = useMemo(() => makeStyles(fs), [fs]);     // fs 적용 스타일 — 명식 글자 포함 모든 텍스트 스케일
-  if (!c) return <View style={styles.center}><Text style={font.body}>{t('myeongsik.noChart')}</Text></View>;
 
   const timeUnknown = input?.timeAccuracy === '미상'; // 시각 모름 → 시주 마스킹
   const P = c.saju.pillars;

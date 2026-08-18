@@ -15,10 +15,11 @@ import type { ThemeElement } from '../theme/elementPalette';
  *
  * ⚠️왜 버전이 붙나: Storage 업로드는 `cache-control: 1년` 이라 **같은 이름으로 덮으면
  *   낡은 파일이 계속 나간다**(CDN·앱 디스크 캐시 둘 다). 실제로 두 번 당했다 —
- *   ①어긋난 크롭(`cd-*`) ②흰 배경이 남아 **흰 사각형**으로 보이던 아바타·무료3열 아이콘 20장.
+ *   ①어긋난 크롭(`cd-*`) ②흰 배경이 남아 **흰 사각형**으로 보이던 아바타·무료3열 아이콘 20장
+ *   ③v2→v3: 무료3열 아이콘 15장이 **셀 격자로 잘려** 내용이 제각각 치우치고 타로는 아래가 잘렸다.
  * ⇒ 그림을 **다시 자르거나 고치면 이 숫자를 올린다**. 이름은 그대로 두고 폴더만 바꾼다.
  */
-const BRAND_DIR = 'brand/v2';
+const BRAND_DIR = 'brand/v3';
 
 /** 오행 → 파일명 조각(영문). 한자를 파일명에 쓰면 URL 인코딩에서 문제가 잦다. */
 const EL_SLUG: Record<ThemeElement, string> = { 木: 'wood', 火: 'fire', 土: 'earth', 金: 'metal', 水: 'water' };
