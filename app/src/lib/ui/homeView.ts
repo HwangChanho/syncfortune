@@ -17,8 +17,14 @@ import { useEffect, useState } from 'react';
 /** 표시 방식 — 'card'(이미지 카드 그리드) / 'list'(썸네일 세로 리스트·기본) */
 export type HomeViewMode = 'card' | 'list';
 
-/** 앱을 켤 때마다 여기서 시작한다(daniel: 재시작하면 무조건 리스트). */
-export const DEFAULT_VIEW: HomeViewMode = 'list';
+/**
+ * 앱을 켤 때마다 여기서 시작한다.
+ *
+ * ★2026-08-19 daniel: **카드**(시안대로). 시안 p05·p14 가 3열 카드 그리드다.
+ *   ⚠️2026-08-07 에는 *"재시작하면 무조건 리스트뷰가 떠야지"* 였다 — 그때 카드는
+ *     사진이 꽉 찬 무거운 미디어 카드였고, 지금은 시안의 밝은 아이콘 카드다. 물건이 바뀌어 판단도 바뀌었다.
+ */
+export const DEFAULT_VIEW: HomeViewMode = 'card';
 
 // 이번 실행 동안의 현재 값 + 구독자. 앱이 완전히 종료되면 함께 사라진다(= 다음 실행은 DEFAULT_VIEW).
 let _mode: HomeViewMode = DEFAULT_VIEW;

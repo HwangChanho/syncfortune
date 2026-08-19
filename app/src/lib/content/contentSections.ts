@@ -13,7 +13,7 @@ import { CREDIT_KINDS, type CreditKind } from '../billing/coupons';
 import { COIN_PRICE } from '../billing/coinPrices';
 // ★시안 카드 아이콘(Boss 제공 2026-08-18) — 시안 p05·p14 의 카드 그리드에 **그 그림이 그 카드에** 있었다.
 //   투명 PNG 라 카드 배경 위에 얹힌다(기존 사진 카드와 결이 다르지만, 그게 시안이다).
-import { contentIcon } from '../ui/brandAsset';   // ★가격 표기를 운으로(daniel 07-28)
+import { contentIcon, freeTrioIcon } from '../ui/brandAsset';   // ★가격 표기를 운으로(daniel 07-28)
 
 /** 콘텐츠 카드 1장. premium=프리미엄 허브(사주·자미 등), content=무료 온디바이스 진입 광고 대상, creditKey=유료 결제 키. */
 export type MenuItem = {
@@ -117,8 +117,8 @@ export const SECTIONS: Section[] = [
     { key: 'reunionAsk', labelKey: 'menu.reunionAsk', descKey: 'menu.reunionAskDesc', image: contentIcon('ring'), route: '/reunionAsk', ready: true, content: true },
     { key: 'crushAsk', labelKey: 'menu.crushAsk', descKey: 'menu.crushAskDesc', image: contentIcon('heart'), route: '/crushAsk', ready: true, content: true },
     { key: 'lovestyle', labelKey: 'menu.lovestyle', descKey: 'menu.lovestyleTileDesc', image: contentIcon('heart'), route: '/lovestyle', ready: true, content: true },
-    { key: 'relationPattern', labelKey: 'menu.relationPattern', descKey: 'menu.relationPatternDesc', route: '/relationpattern', ready: true, content: true },
-    { key: 'sokgunghap', labelKey: 'menu.sokgunghap', descKey: 'menu.sokgunghapDesc', route: '/sokgunghap', ready: true, content: true },
+    { key: 'relationPattern', labelKey: 'menu.relationPattern', descKey: 'menu.relationPatternDesc', image: contentIcon('family'), route: '/relationpattern', ready: true, content: true },
+    { key: 'sokgunghap', labelKey: 'menu.sokgunghap', descKey: 'menu.sokgunghapDesc', image: contentIcon('heart'), route: '/sokgunghap', ready: true, content: true },
     // 관계 지도(daniel 2026-08-14) — **무료 결정론**(온디바이스·API 0원). 궁합의 앞 단계이자 유입로다.
     //   ⚠️전용 아이콘이 아직 없어 compat 이미지를 함께 쓴다(이미지 제작은 별건 — 깨진 칸보다 낫다).
     // ★2026-08-16: 궁합 이미지를 같이 쓰고 있었다 — 3열 그리드에서 궁합 카드와 **나란히** 같은 그림이 떠
@@ -131,40 +131,40 @@ export const SECTIONS: Section[] = [
     // 「관계의 고비」(2026-08-10) — 애정 축에서 비어 있던 칸(이별 그 자체·삼각). reunion 은 헤어진 *다음* 이야기다.
     //   ★무료 온디바이스 결정론(API 0) — L1(쟁합·충 세력·합 거리·배우자궁 개폐)이 그대로 화면이 된다.
     //   ⚠️카드 설명은 **중립**으로 둔다 — 목록에서 먼저 이별을 들추지 않는다(기획서 §4 가드 4).
-    { key: 'crisis', labelKey: 'menu.crisis', descKey: 'menu.crisisDesc', route: '/crisis', ready: true, content: true },
+    { key: 'crisis', labelKey: 'menu.crisis', descKey: 'menu.crisisDesc', image: contentIcon('ring'), route: '/crisis', ready: true, content: true },
     { key: 'child', labelKey: 'menu.child', descKey: 'menu.childDesc', image: contentIcon('family'), route: '/child', ready: true, premium: true, creditKey: 'child' },
   ] },
 
   // ── 오늘의 운세 ───────────────────────────────────────────────────────────────
   //   ★'이달의 운세'만 목록에서 숨긴다 — 상단 펼침 카드(MonthHeroCard)로 이미 펼쳐 보이므로 중복.
   { key: 'today', icon: 'crystal', titleKey: 'menu.secToday', descKey: 'menu.secTodayDesc', chipKey: 'menu.chipToday', items: [
-    { key: 'today', labelKey: 'menu.today', descKey: 'menu.todayTileDesc', route: '/today', ready: true },
-    { key: 'luck', labelKey: 'menu.luck', descKey: 'menu.luckTileDesc', route: '/luck', ready: true, content: true },
-    { key: 'taegil', labelKey: 'menu.taegil', descKey: 'menu.taegilTileDesc', route: '/taegil', ready: true, content: true },
-    { key: 'month', labelKey: 'menu.month', descKey: 'menu.monthTileDesc', route: '/month', ready: true, hiddenInList: true },
-    { key: 'newyear', labelKey: 'menu.newyear', descKey: 'menu.newyearTileDesc', route: '/newyear', ready: true, content: true, creditKey: 'newyear' },
-    { key: 'future10', labelKey: 'menu.future10', descKey: 'menu.future10Desc', route: '/future10', ready: true, content: true, creditKey: 'future10' },
-    { key: 'timeline', labelKey: 'menu.timeline', descKey: 'menu.timelineDesc', route: '/timeline', ready: true, premium: true, creditKey: 'timeline' },
-    { key: 'lifegraph', labelKey: 'menu.lifegraph', descKey: 'menu.lifegraphDesc', route: '/lifegraph', ready: true, content: true, creditKey: 'lifegraph' },
-    { key: 'gaeun', labelKey: 'menu.gaeun', descKey: 'menu.gaeunDesc', route: '/gaeun', ready: true, content: true, creditKey: 'gaeun' },
+    { key: 'today', labelKey: 'menu.today', descKey: 'menu.todayTileDesc', image: contentIcon('crystal'), route: '/today', ready: true },
+    { key: 'luck', labelKey: 'menu.luck', descKey: 'menu.luckTileDesc', image: contentIcon('crystal'), route: '/luck', ready: true, content: true },
+    { key: 'taegil', labelKey: 'menu.taegil', descKey: 'menu.taegilTileDesc', image: contentIcon('crystal'), route: '/taegil', ready: true, content: true },
+    { key: 'month', labelKey: 'menu.month', descKey: 'menu.monthTileDesc', image: contentIcon('crystal'), route: '/month', ready: true, hiddenInList: true },
+    { key: 'newyear', labelKey: 'menu.newyear', descKey: 'menu.newyearTileDesc', image: contentIcon('crystal'), route: '/newyear', ready: true, content: true, creditKey: 'newyear' },
+    { key: 'future10', labelKey: 'menu.future10', descKey: 'menu.future10Desc', image: contentIcon('crystal'), route: '/future10', ready: true, content: true, creditKey: 'future10' },
+    { key: 'timeline', labelKey: 'menu.timeline', descKey: 'menu.timelineDesc', image: contentIcon('book'), route: '/timeline', ready: true, premium: true, creditKey: 'timeline' },
+    { key: 'lifegraph', labelKey: 'menu.lifegraph', descKey: 'menu.lifegraphDesc', image: contentIcon('book'), route: '/lifegraph', ready: true, content: true, creditKey: 'lifegraph' },
+    { key: 'gaeun', labelKey: 'menu.gaeun', descKey: 'menu.gaeunDesc', image: contentIcon('crystal'), route: '/gaeun', ready: true, content: true, creditKey: 'gaeun' },
   ] },
 
   // ── 나 분석 ───────────────────────────────────────────────────────────────
   //   가입 직후 첫 콘텐츠 축. 무료 자기이해가 앞, 사주 원국풀이 등 유료는 뒤.
   { key: 'self', icon: 'idcard', titleKey: 'menu.secSelf', descKey: 'menu.secSelfDesc', chipKey: 'menu.chipSelf', items: [
-    { key: 'selfAnalysis', labelKey: 'menu.selfAnalysis', descKey: 'menu.selfAnalysisDesc', route: '/selfanalysis', ready: true, content: true },
-    { key: 'impression', labelKey: 'menu.impression', descKey: 'menu.impressionDesc', route: '/impression', ready: true, content: true },
-    { key: 'persona', labelKey: 'menu.persona', descKey: 'menu.personaTileDesc', route: '/personatype', ready: true, content: true },
-    { key: 'mbti', labelKey: 'menu.mbti', descKey: 'menu.mbtiTileDesc', route: '/mbti', ready: true, content: true },
-    { key: 'egen', labelKey: 'menu.egen', descKey: 'menu.egenTileDesc', route: '/egenteto', ready: true, content: true },
-    { key: 'attach', labelKey: 'menu.attach', descKey: 'menu.attachDesc', route: '/attach', ready: true, content: true },
-    { key: 'gem', labelKey: 'menu.gem', descKey: 'menu.gemDesc', route: '/gem', ready: true, content: true },
-    { key: 'personal', labelKey: 'menu.personal', descKey: 'menu.personalDesc', route: '/personal', ready: true, content: true },
-    { key: 'celeb', labelKey: 'menu.celeb', descKey: 'menu.celebDesc', route: '/celeb', ready: true, content: true },
-    { key: 'dayPillar', labelKey: 'menu.dayPillar', descKey: 'menu.dayPillarDesc', route: '/dayPillar', ready: true },
-    { key: 'bok', labelKey: 'menu.bok', descKey: 'menu.bokTileDesc', route: '/bok', ready: true, content: true },
-    { key: 'saju', labelKey: 'menu.saju', descKey: 'menu.sajuDesc', route: '/reading', ready: true, premium: true, creditKey: 'reading' },
-    { key: 'image', labelKey: 'menu.image', descKey: 'menu.imageDesc', route: '/image', ready: true, content: true, creditKey: 'image' },
+    { key: 'selfAnalysis', labelKey: 'menu.selfAnalysis', descKey: 'menu.selfAnalysisDesc', image: contentIcon('idcard'), route: '/selfanalysis', ready: true, content: true },
+    { key: 'impression', labelKey: 'menu.impression', descKey: 'menu.impressionDesc', image: contentIcon('idcard'), route: '/impression', ready: true, content: true },
+    { key: 'persona', labelKey: 'menu.persona', descKey: 'menu.personaTileDesc', image: contentIcon('idcard'), route: '/personatype', ready: true, content: true },
+    { key: 'mbti', labelKey: 'menu.mbti', descKey: 'menu.mbtiTileDesc', image: contentIcon('idcard'), route: '/mbti', ready: true, content: true },
+    { key: 'egen', labelKey: 'menu.egen', descKey: 'menu.egenTileDesc', image: contentIcon('idcard'), route: '/egenteto', ready: true, content: true },
+    { key: 'attach', labelKey: 'menu.attach', descKey: 'menu.attachDesc', image: contentIcon('heart'), route: '/attach', ready: true, content: true },
+    { key: 'gem', labelKey: 'menu.gem', descKey: 'menu.gemDesc', image: contentIcon('crystal'), route: '/gem', ready: true, content: true },
+    { key: 'personal', labelKey: 'menu.personal', descKey: 'menu.personalDesc', image: contentIcon('idcard'), route: '/personal', ready: true, content: true },
+    { key: 'celeb', labelKey: 'menu.celeb', descKey: 'menu.celebDesc', image: contentIcon('idcard'), route: '/celeb', ready: true, content: true },
+    { key: 'dayPillar', labelKey: 'menu.dayPillar', descKey: 'menu.dayPillarDesc', image: contentIcon('book'), route: '/dayPillar', ready: true },
+    { key: 'bok', labelKey: 'menu.bok', descKey: 'menu.bokTileDesc', image: contentIcon('crystal'), route: '/bok', ready: true, content: true },
+    { key: 'saju', labelKey: 'menu.saju', descKey: 'menu.sajuDesc', image: contentIcon('book'), route: '/reading', ready: true, premium: true, creditKey: 'reading' },
+    { key: 'image', labelKey: 'menu.image', descKey: 'menu.imageDesc', image: contentIcon('idcard'), route: '/image', ready: true, content: true, creditKey: 'image' },
     { key: 'roots', labelKey: 'menu.roots', descKey: 'menu.rootsDesc', image: contentIcon('book'), route: '/roots', ready: true, content: true, creditKey: 'roots' },
   ] },
 
@@ -172,35 +172,35 @@ export const SECTIONS: Section[] = [
   //   무료 질문형(취업 언제 될까?)·조선시대 직업이 앞.
   { key: 'work', icon: 'briefcase', titleKey: 'menu.secWork', descKey: 'menu.secWorkDesc', chipKey: 'menu.chipWork', items: [
     { key: 'jobAsk', labelKey: 'menu.jobAsk', descKey: 'menu.jobAskDesc', image: contentIcon('idcard'), route: '/jobAsk', ready: true, content: true },
-    { key: 'joseonjob', labelKey: 'menu.joseonjob', descKey: 'menu.joseonjobTileDesc', route: '/joseonjob', ready: true, content: true },
+    { key: 'joseonjob', labelKey: 'menu.joseonjob', descKey: 'menu.joseonjobTileDesc', image: contentIcon('briefcase'), route: '/joseonjob', ready: true, content: true },
     { key: 'jobfit', labelKey: 'menu.jobfit', descKey: 'menu.jobfitDesc', image: contentIcon('briefcase'), route: '/jobfit', ready: true, content: true, creditKey: 'jobfit' },
     { key: 'career', labelKey: 'menu.career', descKey: 'menu.careerDesc', image: contentIcon('moneybag'), route: '/career', ready: true, content: true, creditKey: 'career' },
     { key: 'job', labelKey: 'menu.job', descKey: 'menu.jobDesc', image: contentIcon('briefcase'), route: '/job', ready: true, content: true, creditKey: 'job' },
     { key: 'wealth', labelKey: 'menu.wealth', descKey: 'menu.wealthDesc', image: contentIcon('coin'), route: '/wealth', ready: true, content: true, creditKey: 'wealth' },
-    { key: 'talent', labelKey: 'menu.talent', descKey: 'menu.talentDesc', route: '/talent', ready: true, content: true, creditKey: 'talent' },
-    { key: 'mission', labelKey: 'menu.mission', descKey: 'menu.missionDesc', route: '/mission', ready: true, content: true, creditKey: 'mission' },
+    { key: 'talent', labelKey: 'menu.talent', descKey: 'menu.talentDesc', image: contentIcon('book'), route: '/talent', ready: true, content: true, creditKey: 'talent' },
+    { key: 'mission', labelKey: 'menu.mission', descKey: 'menu.missionDesc', image: contentIcon('book'), route: '/mission', ready: true, content: true, creditKey: 'mission' },
   ] },
 
   // ── 라이프 ───────────────────────────────────────────────────────────────
   //   ★신설 — 위 네 축에 들어가지 않는 흥미·힐링 콘텐츠(daniel '분류 안 되는 건 신규로 만들어서').
   { key: 'life', icon: 'book', titleKey: 'menu.secLife', descKey: 'menu.secLifeDesc', chipKey: 'menu.chipLife', items: [
-    { key: 'taro', labelKey: 'menu.taro', descKey: 'menu.taroDesc', route: '/taro', ready: true, content: true },
-    { key: 'pet', labelKey: 'menu.pet', descKey: 'menu.petDesc', route: '/pet', ready: true, content: true },
-    { key: 'pastlife', labelKey: 'menu.pastlife', descKey: 'menu.pastlifeTileDesc', route: '/pastlife', ready: true, content: true },
+    { key: 'taro', labelKey: 'menu.taro', descKey: 'menu.taroDesc', image: freeTrioIcon('taro'), route: '/taro', ready: true, content: true },
+    { key: 'pet', labelKey: 'menu.pet', descKey: 'menu.petDesc', image: contentIcon('family'), route: '/pet', ready: true, content: true },
+    { key: 'pastlife', labelKey: 'menu.pastlife', descKey: 'menu.pastlifeTileDesc', image: contentIcon('book'), route: '/pastlife', ready: true, content: true },
     { key: 'healing', labelKey: 'menu.healing', descKey: 'menu.healingTileDesc', image: contentIcon('health'), route: '/healing', ready: true, content: true },
-    { key: 'country', labelKey: 'menu.country', descKey: 'menu.countryDesc', route: '/country', ready: true, content: true },
-    { key: 'name', labelKey: 'menu.name', descKey: 'menu.nameTileDesc', route: '/name', ready: true, content: true },
-    { key: 'dream', labelKey: 'menu.dream', descKey: 'menu.dreamTileDesc', route: '/dream', ready: true, content: true },
-    { key: 'taemong', labelKey: 'menu.taemong', descKey: 'menu.taemongTileDesc', route: '/taemong', ready: true, content: true },
-    { key: 'ziwei', labelKey: 'menu.ziweiHub', descKey: 'menu.ziweiHubDesc', route: '/ziwei', ready: true, premium: true, creditKey: 'ziwei' },
-    { key: 'astrology', labelKey: 'menu.astrology', descKey: 'menu.astrologyDesc', image: contentIcon('crystal'), route: '/astrology', ready: true, content: true, creditKey: 'astrology' },
+    { key: 'country', labelKey: 'menu.country', descKey: 'menu.countryDesc', image: contentIcon('crystal'), route: '/country', ready: true, content: true },
+    { key: 'name', labelKey: 'menu.name', descKey: 'menu.nameTileDesc', image: contentIcon('book'), route: '/name', ready: true, content: true },
+    { key: 'dream', labelKey: 'menu.dream', descKey: 'menu.dreamTileDesc', image: contentIcon('crystal'), route: '/dream', ready: true, content: true },
+    { key: 'taemong', labelKey: 'menu.taemong', descKey: 'menu.taemongTileDesc', image: contentIcon('family'), route: '/taemong', ready: true, content: true },
+    { key: 'ziwei', labelKey: 'menu.ziweiHub', descKey: 'menu.ziweiHubDesc', image: freeTrioIcon('ziwei'), route: '/ziwei', ready: true, premium: true, creditKey: 'ziwei' },
+    { key: 'astrology', labelKey: 'menu.astrology', descKey: 'menu.astrologyDesc', image: freeTrioIcon('astro'), route: '/astrology', ready: true, content: true, creditKey: 'astrology' },
   ] },
 
   // ── 도구 ───────────────────────────────────────────────────────────────
   //   ★신설 — 콘텐츠가 아니라 '보는 장치'.
   { key: 'tool', icon: 'book', titleKey: 'menu.secTool', descKey: 'menu.secToolDesc', chipKey: 'menu.chipTool', items: [
     { key: 'manse', labelKey: 'menu.manse', descKey: 'menu.manseDesc', image: contentIcon('book'), route: '/charts', ready: true },
-    { key: 'timeResolve', labelKey: 'menu.timeResolve', descKey: 'menu.timeResolveDesc', route: '/timeResolve', ready: true, creditKey: 'timeresolve' },
+    { key: 'timeResolve', labelKey: 'menu.timeResolve', descKey: 'menu.timeResolveDesc', image: contentIcon('book'), route: '/timeResolve', ready: true, creditKey: 'timeresolve' },
   ] },
 ];
 

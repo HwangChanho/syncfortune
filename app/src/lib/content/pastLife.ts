@@ -7,6 +7,7 @@
 import type { SajuChart, TenGod } from '@spec/chart';
 import { analyzeTenGods } from '@engine/structure';
 import { appLang } from '../i18n';
+import { logEvent } from '../backend/logger';   // 폴백이 실제로 걸리는지 값으로 남긴다
 
 type G5 = '비겁' | '식상' | '재성' | '관성' | '인성';
 type Lang = 'ko' | 'en' | 'ja';
@@ -37,9 +38,21 @@ const ROLE: Record<G5, { emoji: string; ko: { title: string; life: string; echo:
 
 /** 사주 = 일간 오행(시대) × 가장 강한 십신군(신분) → 전생 이야기. 동률이면 우선순위(관>인>식상>재>비겁). */
 export function pastLife(saju: SajuChart): PastLifeResult {
-  const { detail } = analyzeTenGods(saju);
+  // ⚠️★방어(2026-08-19 크래시): 이 화면이 **에러 오버레이로 통째로 죽었다**
+  //   (`Cannot convert undefined value to object` → 전생 화면이 안 뜨고, 뜬 에러창이
+  //    이후 딥링크까지 막아 다른 화면 24개가 검사에서 함께 가려졌다).
+  //   재미 콘텐츠 하나 때문에 화면이 죽으면 안 된다 — **모르면 기본값으로 간다.**
+  //   ★어느 값이 비었는지는 로그로 남긴다(원인을 추측으로 닫지 않는다).
+  const analyzed = analyzeTenGods(saju);
+  const detail = analyzed?.detail;
   const g5: Record<G5, number> = { 비겁: 0, 식상: 0, 재성: 0, 관성: 0, 인성: 0 };
-  for (const [k, n] of Object.entries(detail)) if ((n as number) > 0) g5[TO5[k as TenGod]] += n as number;
+  const unknown: string[] = [];
+  for (const [k, n] of Object.entries(detail ?? {})) {
+    const g = TO5[k as TenGod];
+    if (!g) { unknown.push(k); continue; }          // 표에 없는 십신 이름 — 조용히 NaN 을 만들지 않는다
+    const v = Number(n);
+    if (Number.isFinite(v) && v > 0) g5[g] += v;    // ★`Number.isFinite` — 문자열·NaN 이 섞이면 합이 오염된다
+  }
   // 가장 강한 십신군 → 신분. 동률(흔함)이면 고정 우선순위가 다 '관성(관리)'으로 쏠리므로,
   //   동률 그룹은 차트 고유값(일간 + 총 십신수)으로 분산해 다양성을 준다(재미 콘텐츠 — 25종 고르게, daniel).
   const PRIORITY: G5[] = ['관성', '인성', '식상', '재성', '비겁'];
@@ -47,11 +60,20 @@ export function pastLife(saju: SajuChart): PastLifeResult {
   const tied = PRIORITY.filter((g) => g5[g] === maxN);          // 동률(최다) 그룹들
   const stemIdx = Math.max(0, '甲乙丙丁戊己庚辛壬癸'.indexOf(saju.dayMaster.stem));
   const totalN = PRIORITY.reduce((s, g) => s + g5[g], 0);
-  const top: G5 = tied[(stemIdx + totalN) % tied.length];        // 차트별로 동률을 골고루 분산
+  // ★`tied` 가 비면(= maxN 이 NaN 이면) `tied[NaN]` = undefined 가 되어 아래 `role[lang]` 에서 터진다.
+  //   그 경로를 막고, 왜 비었는지 값을 남긴다.
+  const top: G5 = tied.length ? tied[(stemIdx + totalN) % tied.length] : PRIORITY[0];
+  if (!detail || !tied.length || unknown.length) {
+    logEvent('pastlife_fallback', {
+      tied: tied.length, maxN: String(maxN), unknown: unknown.slice(0, 6),
+      g5: Object.fromEntries(PRIORITY.map((g) => [g, g5[g]])),
+      hasDetail: !!detail, stem: saju?.dayMaster?.stem ?? null, el: saju?.dayMaster?.element ?? null,
+    }, 'warn');
+  }
   const element = saju.dayMaster.element ?? '木';
   const lang = appLang() as Lang;
   const era = (ERA[element] ?? ERA['木'])[lang] ?? ERA['木'].ko;
-  const role = ROLE[top];
+  const role = ROLE[top] ?? ROLE['관성'];   // ★표에 없는 값이 와도 화면은 뜬다
   const r = role[lang] ?? role.ko;
   // 언어별 한 토막 서사 + 현생 연결
   const story = lang === 'en'

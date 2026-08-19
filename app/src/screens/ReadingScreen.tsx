@@ -137,6 +137,9 @@ type ReadingScreenProps = {
  *   ⇒ 판정을 훅보다 앞으로 빼서, 명식이 없으면 본체를 아예 마운트하지 않는다.
  *   ★`check:hookorder` 가 이 모양을 다시 만들지 못하게 막는다.
  */
+/** 실시간 채널 이름 일련번호 — 같은 이름 재사용으로 인한 `after subscribe()` 크래시를 막는다. */
+let genChSeq = 0;
+
 export function ReadingScreen(props: ReadingScreenProps) {
   const { t } = useTranslation();
   if (!props.input) {
@@ -224,6 +227,13 @@ function ReadingScreenBody({
     if (kind === 'ziwei') return ((c?.ziwei?.palaces as any[]) ?? []).map((p) => ({ key: p.name, label: p.name, desc: PALACE_DESC[p.name] }));
     return SAJU_CATEGORIES.map((k) => ({ key: k, label: t(`category.${k}`) }));
   }, [categories, kind, c, t]);
+
+  // ★`cats` 는 **구독 effect 의 의존성에서 뺀다**(2026-08-19).
+  //   `cats` 는 `c`(차트)·`t`(i18n)에 매달려 있어 자주 새 객체가 된다. 그때마다 realtime 구독을
+  //   끊고 다시 걸었고, `removeChannel` 이 비동기라 같은 이름이 겹쳐 **화면이 죽었다**.
+  //   구독이 `cats` 를 쓰는 곳은 '이 카테고리가 목록에 있나·몇 개인가'뿐이라 **최신값만 있으면 된다** → ref.
+  const catsRef = useRef(cats);
+  catsRef.current = cats;
 
   // 카테고리 그룹(아코디언) — 생성된 영역만 그룹별로 묶는다(미생성은 생성 버튼이 별도 처리).
   //   매핑에 없는(생성된) 키는 '기타' 그룹으로 모아 누락 방지.
@@ -353,13 +363,13 @@ function ReadingScreenBody({
     const gpRoute = `/reading?kind=${kind === 'ziwei' ? 'ziwei' : 'saju'}&chartId=${savedChart.id}`;
     const refetch = () => excludeMock(supabase.from('readings').select('category, content').eq('chart_id', chartId).eq('lang', appLang())).then(({ data }) => {
       if (!alive || !data) return;
-      setReadings((prev) => { const u = { ...prev }; (data as any[]).forEach((r) => { if (cats.some((cc) => cc.key === r.category)) u[r.category] = r.content; }); return u; });
+      setReadings((prev) => { const u = { ...prev }; (data as any[]).forEach((r) => { if (catsRef.current.some((cc) => cc.key === r.category)) u[r.category] = r.content; }); return u; });
     });
     const apply = (row: any) => {
       if (!alive || !row || row.kind !== kind) return;
       if (row.status === 'running') {
-        setProgress({ done: row.done ?? 0, total: row.total ?? cats.length });
-        setGenProgress({ active: true, done: row.done ?? 0, total: row.total ?? cats.length, label: kind === 'ziwei' ? t('reading.ziweiTitle', '자미두수 12궁 풀이') : t('reading.sajuTitle', '사주 풀이'), chartLabel: savedChart.label, route: gpRoute });
+        setProgress({ done: row.done ?? 0, total: row.total ?? catsRef.current.length });
+        setGenProgress({ active: true, done: row.done ?? 0, total: row.total ?? catsRef.current.length, label: kind === 'ziwei' ? t('reading.ziweiTitle', '자미두수 12궁 풀이') : t('reading.sajuTitle', '사주 풀이'), chartLabel: savedChart.label, route: gpRoute });
       } else {
         setProgress(null); // done/error/idle → 오버레이 내림(다시 캐시/버튼 UI 로)
         // ★완료 = 이 화면(구독은 마운트 중에만 돎)에서 보고 있으므로 홈 배너만 제거. 완료 푸시는 **서버(generate_set)** 가
@@ -373,7 +383,14 @@ function ReadingScreenBody({
     //     실패해도 반드시 true 로 둔다. 안 그러면 네트워크가 나쁠 때 버튼이 영영 안 나온다(멈춤).
     supabase.from('gen_jobs').select('done, total, status, kind').eq('chart_id', chartId).eq('kind', kind).maybeSingle()
       .then(({ data }) => { apply(data); if (alive) setJobLoaded(true); }, () => { if (alive) setJobLoaded(true); });
-    const ch = supabase.channel(`genjobs:${chartId}:${kind}`)
+    // ⚠️★채널 이름에 **일련번호**를 붙인다(2026-08-19 크래시 수정).
+    //   증상: 「화면을 그리다 문제가 생겼어요」 +
+    //     `cannot add postgres_changes callbacks for realtime:genjobs:… after subscribe()`
+    //   원인: 이 effect 의 deps 에 `cats`·`savedChart` 처럼 **객체**가 있어 자주 다시 돈다.
+    //     `supabase.removeChannel()` 은 **비동기**라, 정리가 끝나기 전에 같은 이름으로 다시 만들면
+    //     supabase 가 **이미 subscribe 된 옛 채널을 그대로 돌려준다** → 거기에 `.on()` 을 걸어 던진다.
+    //   ⇒ 이름을 매번 다르게 해 재사용 자체를 없앤다. 정리(`removeChannel`)는 그대로 둔다.
+    const ch = supabase.channel(`genjobs:${chartId}:${kind}:${++genChSeq}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'gen_jobs', filter: `chart_id=eq.${chartId}` }, (payload) => apply(payload.new))
       .subscribe();
     // ★폴링 폴백(daniel 2026-07-29 "여전히 퍼센트가 안올라가서 알수가없어").
@@ -388,7 +405,8 @@ function ReadingScreenBody({
     }, 8000);
     return () => { alive = false; clearInterval(poll); supabase.removeChannel(ch); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [chartId, kind, cats, savedChart]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- cats 는 위 catsRef 로 최신값을 읽는다(구독 재시작 방지)
+  }, [chartId, kind, savedChart]);
 
   // ★★자동 복구 워치독(daniel 2026-07-27 "네트워크 오류나면 자동으로 다시 복구해야지. 돈 주고 구매한 거잖아")
   //   문제: 위 gen_jobs 구독은 **표시 전용**이라(06-30 무한루프 방지) 서버 체인이 끊기면 아무도 재개하지 않는다.
