@@ -17,7 +17,7 @@
 //   멈춤(`paused`)·한도(`capped`)·오류를 각각 다른 말로 띄운다 —
 //   "안 되네요" 하나로 묶으면 사용자는 자기 잘못인지 우리 잘못인지 모른다.
 // ═══════════════════════════════════════════════════════════════════════════
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef, useMemo, type ReactNode } from 'react';
 import { View, Text, StyleSheet, TextInput, Keyboard, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -33,6 +33,8 @@ import { ensureServerChartIdForSaved } from '../../lib/backend/prewarmReadings';
 import { useAuth } from '../../lib/useAuth';
 import { computeChart } from '../../lib/engine/engine';
 import { useWideWeb } from '../../components/WebShell';
+import { renderTalkBlock, isFriendBlock, blockName } from '../../components/talk/blockRegistry';
+import { useHomeOrder } from '../../lib/ui/homeOrder';
 import { getNavBarHeight } from '../../components/BottomNav';
 import { colors, space, radius, font } from '../../lib/theme';
 
@@ -49,14 +51,35 @@ function toItems(r: VirtualReply): TalkItem[] {
   }));
 }
 
-export default function TalkScreen() {
+/**
+ * 친구목록 + 대화 — **시작 화면의 본체**(Boss 2026-08-19 *"첫 시작화면에 로고뜨고 바로 카카오톡처럼 친구목록"*).
+ *
+ * @param renderTop 목록 위에 얹을 것(브랜드 헤더·풀이 진행률 배너).
+ *   ★대화 상세로 들어가면 **띄우지 않는다** — 카톡도 대화에 들어가면 상단이 상대 이름으로 바뀐다.
+ *     헤더가 두 겹으로 남으면 '어디에 있는지'가 흐려진다.
+ */
+export function TalkHome({ renderTop }: { renderTop?: ReactNode }) {
   const { t, i18n } = useTranslation();
   const router = useRouter();
   const wide = useWideWeb();
   const insets = useSafeAreaInsets();
   const { session } = useAuth();
 
-  const [list, setList] = useState<Consultant[]>(consultantsSnapshot());
+  const { order } = useHomeOrder();          // 홈 순서 = 친구 순서(운영자가 정한 것을 그대로 따른다)
+  const [dateKey] = useState(() => new Date().toDateString());
+  const [servers, setServers] = useState<Consultant[]>(consultantsSnapshot());
+  /**
+   * 친구목록 = **홈 블록 친구 + 상담사**.
+   * ★블록이 앞이다 — 사용자가 매일 보러 오는 건 오늘의 운세지 상담이 아니다.
+   *   (상담을 위에 두면 첫 화면이 '팔아야 할 것'부터 보이는 배치가 된다.)
+   */
+  const list = useMemo<Consultant[]>(() => {
+    const blocks: Consultant[] = order.filter(isFriendBlock).map((k, i) => ({
+      id: `block:${k}`, kind: 'virtual', name: blockName(k), tagline: null, avatar: null,
+      specialty: [], routes: [], sortOrder: i, block: k,
+    }));
+    return [...blocks, ...servers];
+  }, [order, servers]);
   const [cur, setCur] = useState<Consultant | null>(null);
   const [items, setItems] = useState<TalkItem[]>([]);
   const [saju, setSaju] = useState<any>(null);
@@ -79,7 +102,7 @@ export default function TalkScreen() {
   }, []);
   const lift = kbH > 0 ? Math.max(0, kbH - getNavBarHeight()) : 0;
 
-  useEffect(() => { void listConsultants().then(setList); }, []);
+  useEffect(() => { void listConsultants().then(setServers); }, []);
   // 명식은 한 번만 계산해 둔다 — 가상 답이 매번 엔진을 다시 돌릴 이유가 없다
   useEffect(() => {
     let alive = true;
@@ -103,6 +126,15 @@ export default function TalkScreen() {
   //   실제 상담사였다면 그것만으로 API 를 태울 수도 있었다(첫 인사는 공짜라 태우진 않았지만, 구조가 위험했다).
   const open = useCallback((c: Consultant) => {
     setCur(c);
+    // ── 홈 블록 친구 — 인사 한 줄 + **기존 화면 그대로** ──
+    //   ★말풍선으로 내용을 옮겨 적지 않는다. 옮겨 적는 순간 홈과 갈린다.
+    if (c.block) {
+      setItems([
+        { id: nextId(), role: 'assistant', body: t('talk.blockHi', '{{what}} 가져왔어요.').replace('{{what}}', c.name) },
+        { id: nextId(), role: 'assistant', body: '', node: renderTalkBlock(c.block as never, { reloadKey: 0, dateKey, repName: myName }) },
+      ]);
+      return;
+    }
     if (c.kind === 'virtual') {
       setItems(toItems(greet(c.name, c.tagline, c.routes, t as never)));
     } else {
@@ -159,7 +191,8 @@ export default function TalkScreen() {
       .finally(() => setBusy(false));
   }, [draft, cur, saju, busy, chartId, t, i18n.language]);
 
-  const composer = cur?.kind === 'virtual' || cur?.kind === 'live' ? (
+  // ★블록 친구에겐 입력창을 띄우지 않는다 — 물어봐도 답할 수 없는 입력창은 없느니만 못하다
+  const composer = !cur?.block && (cur?.kind === 'virtual' || cur?.kind === 'live') ? (
     <View style={[styles.composer, { paddingBottom: Math.max(space(3), insets.bottom), marginBottom: lift }]}>
       <TextInput
         style={styles.input}
@@ -181,7 +214,10 @@ export default function TalkScreen() {
   if (wide) {
     return (
       <View style={styles.two}>
-        <View style={styles.pane}><TalkList items={list} onOpen={open} selected={cur?.id} myName={myName} onMe={() => router.push('/charts')} /></View>
+        <View style={styles.pane}>
+          {renderTop}
+          <TalkList items={list} onOpen={open} selected={cur?.id} myName={myName} onMe={() => router.push('/charts')} />
+        </View>
         <View style={styles.main}>
           {cur ? (
             <>
@@ -198,7 +234,12 @@ export default function TalkScreen() {
   }
 
   // ── 폰 = 목록 → 대화 ─────────────────────────────────────────────
-  if (!cur) return <TalkList items={list} onOpen={open} myName={myName} onMe={() => router.push('/charts')} />;
+  if (!cur) return (
+    <View style={styles.one}>
+      {renderTop}
+      <TalkList items={list} onOpen={open} myName={myName} onMe={() => router.push('/charts')} />
+    </View>
+  );
   return (
     <View style={styles.one}>
       <View style={styles.head}>
@@ -243,3 +284,8 @@ const styles = StyleSheet.create({
   // ★강조색 위 글자는 `onJu`(check:onaccent)
   sendTx: { ...font.label, color: colors.onJu, fontWeight: '900' },
 });
+
+/** `/talk` 라우트 — 시작 화면과 **같은 화면**이다(딥링크 호환용으로 남겨 둔다). */
+export default function TalkScreen() {
+  return <TalkHome />;
+}

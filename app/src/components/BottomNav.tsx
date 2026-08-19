@@ -36,11 +36,18 @@ import { colors, space } from '../lib/theme';
 // ★`match` = 이 탭이 '켜진' 것으로 볼 경로 접두사. 종전엔 활성 판정이 렌더 안 if 체인에 손으로
 //   적혀 있어서, 탭을 바꾸면 **정의는 바뀌고 판정은 안 바뀌는** 상태가 됐다(4탭 전환에서 실제로 났다).
 //   판정을 정의 옆에 두면 탭을 고칠 때 한 군데만 본다.
+// ★★2026-08-19 — **3탭(카톡 구조)** 으로 재편(Boss *"하단에는 연락처 커뮤니티 설정 이렇게 구성"*).
+//   시작 화면이 카톡형 친구목록이 되면서, 종전 4탭이 하던 일이 친구목록 안으로 들어왔다:
+//     · '운세'(/contents 55종)  → 가상 상담사 넷이 주제별로 안내한다
+//     · '풀이'(/myreadings)     → 대화 이력이 곧 내가 본 풀이다
+//   ⚠️★그래도 **화면을 없애지 않았다.** 탭에서 뺀 것은 진입로일 뿐이고, 두 곳 모두
+//     설정(§'내 기록')에 진입로를 남겨 뒀다 — 이 저장소는 "옮길 곳을 먼저 만들고 뺀다"를
+//     이미 비싸게 배웠다(홈 블록 접기 때 바이오리듬이 도달 불가가 될 뻔했다).
+//     ⇒ 탭에서 빼기 전에 `check:reach` 가 대체 진입로를 확인한다.
 export const ALL_TABS = [
-  { key: 'home', route: '/', match: '' },              // 홈만 예외 — '/' 는 접두사로 못 잡는다(아래 isTabActive)
-  { key: 'fortune', route: '/contents', match: '/contents' },
-  { key: 'readings', route: '/myreadings', match: '/myreadings' },
-  { key: 'my', route: '/my', match: '/my' },
+  { key: 'home', route: '/', match: '' },                      // 연락처(친구목록) — '/' 는 접두사로 못 잡는다(아래 isTabActive)
+  { key: 'community', route: '/community', match: '/community' },
+  { key: 'my', route: '/settings', match: '/settings' },       // 설정 — 만세력·내 기록·계정이 여기로 모인다
 ] as const;
 
 /**
@@ -74,24 +81,23 @@ export function TabIcon({ name, color }: { name: TabKey; color: string }) {
   const p = { stroke: color, strokeWidth: ICON.width, fill: 'none', strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
   return (
     <Svg width={ICON.size} height={ICON.size} viewBox={ICON.viewBox}>
+      {/* 연락처 = 사람 하나 + 목록 줄(카톡 친구목록 자리). ★집 모양을 버린 이유 =
+          이제 첫 화면이 '홈'이 아니라 **사람 목록**이라, 집 아이콘은 무엇이 열릴지 잘못 알려 준다. */}
       {name === 'home' && (<>
-        <Path d="M3.4 11.2 12 4.2l8.6 7" {...p} />
-        <Path d="M5.9 10.3V19.8h12.2V10.3" {...p} />
-        <Path d="M10.1 19.8v-4.6h3.8v4.6" {...p} />
+        <Circle cx="8.6" cy="8.4" r="3.1" {...p} />
+        <Path d="M3.2 19.6c0-3.2 2.4-5.2 5.4-5.2s5.4 2 5.4 5.2" {...p} />
+        <Path d="M16.4 9.2h4.4M16.4 13h4.4M16.4 16.8h4.4" {...p} />
       </>)}
-      {name === 'fortune' && (<>
-        {/* 운세 = 사방으로 뻗는 빛(시안 하단탭의 반짝임) — '오늘 무엇을 볼까'의 자리 */}
-        <Path d="M12 3.6c.9 4.5 3.9 7.5 8.4 8.4-4.5.9-7.5 3.9-8.4 8.4-.9-4.5-3.9-7.5-8.4-8.4 4.5-.9 7.5-3.9 8.4-8.4z" {...p} />
+      {/* 커뮤니티 = 사람 둘 */}
+      {name === 'community' && (<>
+        <Circle cx="9.2" cy="8.6" r="3" {...p} />
+        <Path d="M3.6 19.6c0-3.1 2.5-5 5.6-5s5.6 1.9 5.6 5" {...p} />
+        <Path d="M16 6.2a3 3 0 0 1 0 5.9M17.4 14.9c2 .6 3.2 2.2 3.2 4.4" {...p} />
       </>)}
-      {name === 'readings' && (<>
-        <Path d="M6.7 3.9h7.6l3.6 3.6v12.6H6.7z" {...p} />
-        <Path d="M14.3 3.9v3.6h3.6" {...p} />
-        <Path d="M9.4 12h5.6M9.4 15.2h5.6M9.4 18.4h3.6" {...p} />
-      </>)}
+      {/* 설정 = 톱니 */}
       {name === 'my' && (<>
-        {/* 마이페이지 = 사람 하나(커뮤니티의 '사람 둘'과 구분된다) */}
-        <Circle cx="12" cy="8.4" r="3.3" {...p} />
-        <Path d="M5.4 19.8c0-3.4 2.9-5.6 6.6-5.6s6.6 2.2 6.6 5.6" {...p} />
+        <Circle cx="12" cy="12" r="3.1" {...p} />
+        <Path d="M12 3.4v2.2M12 18.4v2.2M20.6 12h-2.2M5.6 12H3.4M18.1 5.9l-1.6 1.6M7.5 16.5l-1.6 1.6M18.1 18.1l-1.6-1.6M7.5 7.5 5.9 5.9" {...p} />
       </>)}
     </Svg>
   );

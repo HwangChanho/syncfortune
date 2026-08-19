@@ -11,7 +11,7 @@
 // ■ 콘텐츠 카드가 대화 안에 들어간다
 //   가상 상담사의 존재 이유가 '기존 콘텐츠로 데려다주는 것'이라, 링크는 덧붙임이 아니라 **본문**이다.
 // ═══════════════════════════════════════════════════════════════════════════
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, type ReactNode } from 'react';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { PressableScale } from '../PressableScale';
@@ -23,6 +23,12 @@ export type TalkItem = {
   role: 'user' | 'assistant';
   body: string;
   links?: { key: string; label: string; route: string }[];
+  /**
+   * 말풍선 대신 **화면 한 덩이**를 넣는다(홈 블록 친구).
+   * ★말풍선으로 감싸지 않는다 — 카드가 말풍선 안에 들어가면 폭이 좁아져 원래 레이아웃이 깨진다.
+   *   카톡도 지도·송금 같은 건 말풍선 밖으로 낸다.
+   */
+  node?: ReactNode;
 };
 
 /**
@@ -46,9 +52,13 @@ export function TalkThread({ items, busy, onLink }: {
     <ScrollView ref={ref} style={styles.wrap} contentContainerStyle={styles.body}>
       {items.map((m) => (
         <View key={m.id} style={m.role === 'user' ? styles.mineRow : styles.themRow}>
-          <View style={m.role === 'user' ? styles.mine : styles.them}>
-            <Text style={m.role === 'user' ? styles.mineTx : styles.themTx}>{m.body}</Text>
-          </View>
+          {m.body ? (
+            <View style={m.role === 'user' ? styles.mine : styles.them}>
+              <Text style={m.role === 'user' ? styles.mineTx : styles.themTx}>{m.body}</Text>
+            </View>
+          ) : null}
+          {/* 홈 블록은 말풍선 밖으로 — 폭을 온전히 써야 원래 카드 그대로 보인다 */}
+          {m.node ? <View style={styles.node}>{m.node}</View> : null}
           {m.links?.length ? (
             <View style={styles.links}>
               {m.links.map((l) => (
@@ -97,6 +107,7 @@ const styles = StyleSheet.create({
   typing: { flexDirection: 'row', alignItems: 'center', gap: space(2) },
   typingTx: { ...font.caption, color: colors.inkFaint },
 
+  node: { alignSelf: 'stretch', marginTop: space(1) },
   links: { marginTop: space(2), gap: space(1.5), alignSelf: 'stretch' },
   link: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',

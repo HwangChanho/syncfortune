@@ -16,34 +16,21 @@
 //
 // 로그인 게이트 없음(ADR-037).
 // ─────────────────────────────────────────────────────────────────────────
-import { View, Text, ScrollView, StyleSheet, Animated, AppState, Dimensions, Modal, Pressable, Platform } from 'react-native';
+import { View, Text, StyleSheet, Animated, AppState, Modal, Pressable, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context'; // ★상단 안전영역 — 고정 여백은 글자확대 시 잘린다(daniel 07-27)
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../lib/useAuth';
-import { useEffect, useRef, useMemo, useState, useCallback } from 'react';
-import { supabase } from '../../lib/supabase';
-import { excludeMock } from '../../lib/core/testMode'; // ★홈 배너 daily 캐시서 목업 제외(OFF) — 실모드서 '목업 자리표시' 노출 방지(daniel 07-23 신고)
+import { useEffect, useRef, useState, useCallback } from 'react';
 // ChartPicker(명식 선택)는 홈에서 제거(daniel 2026-07-25 '명식 선택은 홈에서 빼자') — 풀이 탭·만세력·설정에서 전환.
-import { SelfUnderstandingHero } from '../../components/SelfUnderstandingHero'; // ★4.3: 홈 최상단 자기이해 히어로(성향분석 첫 경험)
-import { PersonaTypeHero } from '../../components/PersonaTypeHero'; // ★홈 주인공 ①: 성격유형 120종(daniel 07-18 IA 개편)
 
 // 홈 블록 이미지 상수(IMG)는 홈이 정보 카드로 바뀌며(2026-08-01) 소비처가 사라져 제거했다.
-import { HouseAdBanner } from '../../components/HouseAdBanner';
-import { ScoreCard } from '../../components/kit/ScoreCard';   // 시안 p04 점수 카드
-import { FreeTrioBlock } from '../../components/home/FreeTrioBlock';
 import { Image as ExpoImage } from 'expo-image';
 import { brandMark } from '../../lib/ui/brandAsset';
-import { BonusStrip } from '../../components/home/BonusStrip';
+import { TalkHome } from './talk';   // ★08-19 시작 화면 = 친구목록
 import { unreadCount } from '../../lib/backend/notifyInbox';   // ★시안 헤더의 종 — 안 읽은 알림 배지
 import { isAdminActing } from '../../lib/core/admin'; // 홈 배치 편집 = 관리자 전용(daniel 2026-08-06) // 홈 상단 내부 프로모 배너(하우스 광고·daniel 07-24)
-import { BiorhythmCard } from '../../components/BiorhythmCard'; // 홈 블록: 바이오리듬(07-21 코드큐·온디바이스·부가 재미·API 0)
-import { LuckyTodayCard } from '../../components/LuckyTodayCard'; // 홈 블록: 오늘의 행운(07-22 코드큐·온디바이스·luckyItem 재사용·API 0)
 import { CommunityPulseInline } from '../../components/CommunityPulseCard'; // 상단 컨트롤 행 우측 소셜 프루프(실측 집계·임계값 미만 자동 숨김)
-import { DecisionTodayCard } from '../../components/DecisionTodayCard'; // 홈 블록: 오늘의 결정(07-25 코드큐·dailyEnergy 재배열·새 판정 0·API 0)
-import { TodayRelationCard } from '../../components/TodayRelationCard'; // 오늘의 관계 — 궁합을 매일 여는 화면으로(리텐션 07-20)
-import { RelationMapCard } from '../../components/RelationMapCard';
-import { getDailyFortune, dailyHeadline, getDailyReading, dailyEnergy, type DailyEnergy } from '../../lib/content/dailyFortune';
 import { useGenProgress, clearGenProgress } from '../../lib/backend/genProgress'; // 풀이 진행률(다중·route별, 풀이중 홈 나가도 % — daniel)
 import { useSubscription } from '../../lib/billing/subscription';
 import { loadRepChart, subscribeRepChange } from '../../lib/engine/myChart';
@@ -51,24 +38,13 @@ import { prewarmReadings, prewarmDaily } from '../../lib/backend/prewarmReadings
 import { scheduleDailyFortune } from '../../lib/backend/notifications'; // 매일 9시 오늘의 운세 알림
 import { scheduleLuckAlerts } from '../../lib/backend/luckAlerts'; // 시기 예고(대운 교체·세운 전환) 로컬 알림 — 리텐션 Phase 2
 import { computeChart } from '../../lib/engine/engine'; // ★canonical 명식 빌더 단일화(daniel 07-23) — 홈이 raw buildSajuChart 직접호출 시 세운·interactions 누락→신강약 드리프트(홈 33 vs 상세 59)
-import type { Stem, Branch } from '@spec/chart';
 import { colors, radius, space, shadow, font } from '../../lib/theme';
 import { useFontScale } from '../../lib/ui/fontScale';
 import { PressableScale } from '../../components/PressableScale';
-import { appLang } from '../../lib/i18n';
-import { useHomeOrder, type HomeBlockKey } from '../../lib/ui/homeOrder'; // 홈 블록 배치 순서(계정별 저장·daniel 07-19)
-import DraggableFlatList, { type RenderItemParams } from 'react-native-draggable-flatlist'; // 홈 블록 리스트(드래그는 '배치 편집' 모달에서 — daniel 07-21 '편집 모드')
 import { HomeOrderEditModal } from '../../components/HomeOrderEditModal';
 import { useWebCols } from '../../components/WebShell';
 import { WebLanding } from '../../components/WebLanding'; // 웹 첫 방문자에게 '이게 뭔지' 먼저(명식 0개일 때만) // 넓은 웹 = 홈 블록 2열(폰은 그대로 드래그 리스트) // 홈 배치 편집 모달(간단 목록 드래그·제스처 충돌 0)
 
-// 주의 등급 라벨·색 — dailyEnergy.caution(점수 구간)에 붙는 이름표.
-//   ★'조심'에 빨강을 쓰지 않는다(§4 부정 증폭 금지) — 골드/중립 톤으로 낮춰 표시한다.
-const CAUTION: Record<DailyEnergy['caution'], { label: string; tone: string }> = {
-  low: { label: '순조', tone: colors.ju },
-  mid: { label: '보통', tone: colors.inkSoft },
-  high: { label: '조심', tone: colors.inkSoft },
-};
 
 export default function Home() {
   const twoCol = useWebCols() > 1;   // 넓은 웹에서만 2열(드래그는 폰 제스처라 그쪽에만 둔다)
@@ -91,23 +67,10 @@ export default function Home() {
   const genPct = (done: number, total: number, startedAt: number) => total > 1
     ? Math.round((done / total) * 100)
     : Math.min(95, Math.max(3, Math.round(((Date.now() - startedAt) / 20000) * 100)));
-  const { session, isRegistered } = useAuth();
+  const { session } = useAuth();
   const { isPremium } = useSubscription();
-  const { order, setOrder } = useHomeOrder(); // 홈 블록 순서(계정별 — 설정·홈 드래그에서 변경)
-  const [dayOffset, setDayOffset] = useState(0); // 0=오늘·1=내일(오늘의 기운 카드 토글)
   // 날짜 키 — 홈을 켜둔 채 자정이 지나도 갱신되게(③). 포커스·앱 복귀 시 재확인.
-  const [dateKey, setDateKey] = useState(() => new Date().toDateString());
-  // 오늘·내일 둘 다 미리 계산(daniel: 좌우 슬라이드 — 손가락 따라 미끄러지는 가로 페이징)
-  const fortunes = useMemo(() => [getDailyFortune(0), getDailyFortune(1)], [dateKey]);
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  // 오늘/내일 가로 페이징(네이티브 슬라이드) 제어 — 페이지 폭은 onLayout 으로 확정(초기엔 대략값=깜빡임 방지)
-  const fortunePager = useRef<ScrollView>(null);
-  const [pageW, setPageW] = useState(Dimensions.get('window').width - space(5) * 2 - space(4) * 2);
-  const goDay = (off: number) => { setDayOffset(off); fortunePager.current?.scrollTo({ x: off * pageW, animated: true }); };
-  // 오늘·내일 각각의 한 줄 풀이(글)+캐치 타이틀 — 대표 명식 일간 × 그날 일진(온디바이스). [0]=오늘 [1]=내일.
-  const [dayData, setDayData] = useState<{ headline: string | null; prose: string | null }[]>([{ headline: null, prose: null }, { headline: null, prose: null }]);
-  // 오늘·내일 기운 판정(유형명·총운점수·주의등급·근거·신살) — 별도 카드였던 것을 이 배너로 통합(daniel 07-19).
-  const [energies, setEnergies] = useState<(DailyEnergy | null)[]>([null, null]);
   const [unread, setUnread] = useState(0);                       // 안 읽은 알림(0 이면 배지를 그리지 않는다)
   const [repName, setRepName] = useState<string | null>(null);   // ★시안 인사말('○○님 반갑습니다')용 대표 명식 이름
   const [hasChart, setHasChart] = useState<boolean>(true); // H1(daniel): 대표 명식 유무 — 없으면 오늘/내일 배너를 '명식 등록 안내'로(탭→등록)
@@ -122,64 +85,30 @@ export default function Home() {
 
   // 홈 포커스 시(명식 변경 후 복귀 포함) 날짜·대표 명식 재확인 → 오늘의 기운 갱신(①③)
   useFocusEffect(useCallback(() => {
-    setDateKey(new Date().toDateString());
+    // ★날짜 갱신은 `TodayFortuneBlock` 이 자기 `dateKey` 로 한다(08-19 추출) — 여기선 재계산 신호만 준다
     setReloadKey((k) => k + 1); // 홈 복귀마다 재계산 트리거 → 명식 전환·수정 모두 반영(daniel)
   }, []));
   // 명식 전역 변경(전환·수정·★로그아웃 클리어) 구독 → 오늘의 기운 즉시 재계산. 로그아웃 시 화면 전환 없이 명식이 비워지면 바로 빈 상태로(daniel).
   useEffect(() => subscribeRepChange(() => setReloadKey((k) => k + 1)), []);
   // 백그라운드→포그라운드(자정 넘겨 홈 유지) 시 날짜 재확인(③)
   useEffect(() => {
-    const sub = AppState.addEventListener('change', (s) => { if (s === 'active') setDateKey(new Date().toDateString()); });
+    const sub = AppState.addEventListener('change', (s) => { if (s === 'active') setReloadKey((k) => k + 1); });
     return () => sub.remove();
   }, []);
-  // 대표 명식 × 오늘·내일 일진 → 각 날의 한 줄 풀이+캐치(둘 다 미리 = 슬라이드 시 즉시 표시). ①③ 재계산.
+  // 대표 명식 확인 — ★운세 계산은 `TodayFortuneBlock` 이 스스로 한다(08-19 추출).
+  //   여기 남은 건 **홈 자신에게 필요한 것**뿐이다: 인사말 이름 · 알림 배지.
+  //   ⚠️운세 로딩까지 여기 남겨 두면 홈과 블록이 각자 계산해 값이 갈릴 수 있다.
   useEffect(() => {
     let alive = true;
     (async () => {
       const rep = await loadRepChart();
       if (!alive) return;
-      setHasChart(!!rep); // H1: 명식 유무 → 오늘/내일 배너 분기(등록안내 vs 운세)
-      setRepName(rep?.label ?? null);   // 인사말용 — 같은 왕복에서 얻으므로 추가 조회가 없다
+      setHasChart(!!rep);
+      setRepName(rep?.label ?? null);
       void unreadCount().then((n) => { if (alive) setUnread(n); });   // 실패하면 0 = 배지 없음(틀린 숫자보다 낫다)
-      if (!rep) { setDayData([{ headline: null, prose: null }, { headline: null, prose: null }]); setEnergies([null, null]); return; }
-      const saju = computeChart(rep.input).saju; // ★상세(today.tsx)와 동일 빌더 — 세운·interactions 포함해 classifyStrength 일치(favorGood 뒤집힘 방지)
-      // 오늘·내일 각각의 기운 판정(결정론·API 0). 실패해도 배너 나머지는 그대로 보이게 null 유지.
-      try {
-        setEnergies(fortunes.map((f) => dailyEnergy(saju, f.dayGanZhi[0] as Stem, f.dayGanZhi[1] as Branch)));
-      } catch { setEnergies([null, null]); }
-      // ★홈 배너 본문 = 상세(/today)와 동일 소스(getDailyReading 통합 첫문장)로 통일 — 주제/내용 정합(daniel 07-23).
-      //   기존 dailyPreview(별도 2문장 조합 풀)는 상세 본문(getDailyReading 5분야)과 달라 '홈≠상세' 어긋남 → 상세 통합의 teaser로 교체.
-      //   룰·LLM 두 경우 모두 general(통합) 첫문장을 쓰므로 홈은 언제나 상세의 미리보기가 된다. firstSentence 는 아래 LLM 병합과 공용.
-      const firstSentence = (s: string) => { const tx = (s || '').trim(); const m = tx.match(/^[\s\S]*?[.!?。]\s/); return (m ? m[0] : tx).trim(); };
-      const calc = (f: typeof fortunes[number]) => ({
-        prose: firstSentence(getDailyReading(saju, f.dayGanZhi[0] as Stem, f.dayGanZhi[1] as Branch, 'day').general),
-        headline: dailyHeadline(saju, f.dayGanZhi[0] as Stem, f.dayGanZhi[1] as Branch),
-      });
-      const base = [calc(fortunes[0]), calc(fortunes[1])];
-      setDayData(base); // 룰 기반 즉시 표시(즉시성 유지 — 절대규칙5)
-
-      // ★ 상세 화면과 정합(daniel 07-13): 같은 날 LLM 통변 캐시가 있으면 그 headline/통합을 우선.
-      //   상세(today.tsx)는 reading.headline 우선인데 홈은 룰만 써서 '같은 명식·같은 날인데 제목이 다름' 발생 → 홈도 캐시 우선.
-      if (session && rep.serverChartId) {
-        try {
-          const cats = fortunes.map((f) => `daily_${f.date.replace(/-/g, '')}`);
-          const { data } = await excludeMock(supabase.from('readings')
-            .select('category, content').eq('chart_id', rep.serverChartId).eq('lang', appLang()).in('category', cats));
-          if (!alive || !data?.length) return;
-          const byCat: Record<string, Record<string, string>> = {};
-          for (const r of data as { category: string; content: Record<string, string> }[]) byCat[r.category] = r.content;
-          // 통합(general) 첫 문장만 뽑아 배너 teaser 로(상세 본문과 같은 소스 → 톤 정합·firstSentence 는 위에서 정의). numberOfLines=3 이 넘치면 클램프.
-          const merged = fortunes.map((f, i) => {
-            const c = byCat[`daily_${f.date.replace(/-/g, '')}`];
-            if (!c?.headline) return base[i]; // 그 날 LLM 통변 없으면 룰 유지(오늘만 있고 내일은 보통 없음)
-            return { headline: c.headline, prose: firstSentence(c.general) || base[i].prose };
-          });
-          if (alive) setDayData(merged);
-        } catch { /* 캐시 조회 실패 시 룰 유지 */ }
-      }
     })();
     return () => { alive = false; };
-  }, [fortunes, reloadKey, session]);
+  }, [reloadKey, session]);
 
   useEffect(() => {
     Animated.timing(fadeAnim, { toValue: 1, duration: 1000, useNativeDriver: true }).start();
@@ -216,107 +145,9 @@ export default function Home() {
 
   // ── 홈 블록 하나를 렌더 — order 의 각 키 → 해당 컴포넌트/배너. (드래그 재정렬 renderItem 에서 호출) ──
   //   key 는 DraggableFlatList(keyExtractor)·renderItem 래퍼가 담당하므로 여기선 붙이지 않는다.
-  const renderBlock = (k: HomeBlockKey) => {
-    // 명식 선택(ChartPicker)은 홈에서 제거(daniel 2026-07-25) — 홈은 대표 명식 기준 자동 표시. reloadKey 는 포커스/repChange 로 갱신(105·108).
-    // 만세력·AI 코치 = 홈 블록에서 제거(daniel 2026-07-25 J) → 상단 '🧭 바로가기' 메뉴로 분기(order·renderBlock 미처리).
-    // 성격유형 120종(일간10×월지12·온디바이스 결정론) — 명식이 없으면 스스로 렌더하지 않는다.
-    // ★2026-07-27(daniel "홈에 글씨들은 다 숨기고 타고 들어가야 볼 수 있게" → "홈은 모든 컨텐츠 다, 오늘의 운세 빼고"):
-    //   오늘의 운세만 펼치고 **나머지 6블록은 제목 한 줄로 접는다.** 홈이 글로 도배되지 않게 하는 것이 목적이라
-    //   힌트 문구도 '내용'이 아니라 *무엇을 볼 수 있는지*만 적는다(내용을 적으면 접는 의미가 없다).
-    //   ⚠️접기 전 상세 화면 존재를 전수 확인했다 — 바이오리듬만 없어서 `/biorhythm` 을 새로 만들었다
-    //     (상세가 없는 블록을 접으면 그 콘텐츠가 도달 불가가 된다).
-    //   ★원래 카드 컴포넌트는 그대로 둔다 — 각자의 상세 화면에서 재사용된다(중복 구현 0).
-    // ★★2026-08-01 daniel "홈 이미지들 오늘의 기운처럼 바꿔" — **정보 카드로 되돌린다.**
-    //   07-27 엔 반대로 갔었다("홈에 글씨들은 다 숨기고 타고 들어가야 볼 수 있게"). 실물을 보고 나온 판단이
-    //   바뀐 것이고, 지금 화면은 **제목 한 줄뿐인 큰 그림**이 줄줄이라 정보 밀도가 0이었다.
-    //   오늘의 기운 카드처럼 **들어가지 않아도 내 얘기가 보이는** 카드로 통일한다.
-    //
-    //   ★고칠 게 거의 없었다 — 정보 카드 컴포넌트(BiorhythmCard·LuckyTodayCard…)는 처음부터 다 있었고,
-    //     `명식 있음 → 이미지 카드 / 없음 → 정보 카드` 로 **게이트가 거꾸로** 걸려 있었을 뿐이다.
-    //     (각 카드는 명식이 없으면 스스로 미노출을 판단하므로 분기 자체가 불필요했다.)
-    //   ⚡부수 효과: 홈의 `ImageBackground`(원본 풀 디코딩)가 사라져 갤럭시 랙의 큰 축 하나가 없어진다.
-    // ★배너(하우스 광고) — 08-06 부터 **순서를 바꿀 수 있는 블록**이다(daniel "편집에 배너도 위치이동 가능하게").
-    //   기본 위치는 오늘의 운세 바로 아래(DEFAULT_HOME_ORDER). 종전엔 고정 헤더라 늘 최상단이었다.
-    if (k === 'banner') return <HouseAdBanner />;
-    // 시안 p04 「무료로 체험해보세요!」 — 무료 콘텐츠 29종에서 날짜 시드로 도는 3장(FreeTrioBlock 머리말)
-    if (k === 'free3') return <FreeTrioBlock dateKey={dateKey} />;
-    // 시안 p13 하단 「도착한 혜택」 — 보너스 쿠폰이 **있을 때만** 스스로 렌더한다(없으면 null)
-    if (k === 'bonus') return <BonusStrip name={repName} />;
-    if (k === 'persona') return <PersonaTypeHero reloadKey={reloadKey} />;
-    if (k === 'self') return <SelfUnderstandingHero reloadKey={reloadKey} />;
-    if (k === 'biorhythm') return <BiorhythmCard reloadKey={reloadKey} />;
-    if (k === 'luck') return <LuckyTodayCard reloadKey={reloadKey} />;
-    if (k === 'decision') return <DecisionTodayCard reloadKey={reloadKey} />;
-    if (k === 'relation') return <TodayRelationCard reloadKey={reloadKey} dateKey={dateKey} />;
-    if (k === 'relmap') return <RelationMapCard reloadKey={reloadKey} />;   // 관계 지도(daniel 2026-08-14 '최초 진입')
-    // (AI 자기이해 코치 블록은 상단 🧭 바로가기로 이동 — daniel 2026-07-25 J)
-    // 오늘/내일 기운 — 토글·좌우 슬라이드(가로 페이징). 별도 카드였던 유형명·점수·등급·근거·신살 칩이 여기 통합됐다.
-    return (
-      <View style={styles.fortuneBanner}>
-        {!hasChart ? (
-          // H1(daniel): 명식 미등록 → 오늘/내일 운세 대신 안내.
-          //   ★2026-07-26: **주 CTA 를 '가볍게 보기'로 바꿈**(docs/PLAN_light_mode.md L1). 이유 =
-          //     앱 화면 49개가 대표 명식 게이트라 신규는 **아무것도 보기 전에 등록 폼**(이름·생년월일·양음윤달·
-          //     시진/정확시각·출생지 + 선택 4항목)을 만난다. 먼저 결과를 보여주고 등록은 그다음이다.
-          //     등록 링크는 남겨 둔다 — 이미 마음먹은 사람의 길을 막지 않게.
-          <View style={{ alignItems: 'center', paddingVertical: space(3.5), gap: space(1.5) }}>
-            <Text style={{ color: colors.ju, fontWeight: '900', fontSize: fs(16), textAlign: 'center' }}>{t('home.noChartTitle', 'AI가 분석하는 나 — 여기서 시작')}</Text>
-            <Text style={{ color: colors.inkSoft, fontSize: fs(13), textAlign: 'center' }}>{t('home.noChartSub2', '생년월일만 넣으면 성격유형과 일주를 바로 볼 수 있어요. 가입도, 저장도 안 해요.')}</Text>
-            <PressableScale onPress={() => router.push('/light')} style={{ backgroundColor: colors.ju, borderRadius: radius.md, paddingVertical: space(2.5), paddingHorizontal: space(6), marginTop: space(2) }}>
-              <Text style={{ color: colors.bg, fontWeight: '800', fontSize: fs(14) }}>{t('home.lightCta', '가볍게 보기')}</Text>
-            </PressableScale>
-            <PressableScale onPress={() => router.push('/register')} style={{ paddingVertical: space(2), paddingHorizontal: space(4) }}>
-              <Text style={{ color: colors.inkSoft, fontWeight: '700', fontSize: fs(13) }}>{t('home.noChartCta', '+ 명식 등록')}</Text>
-            </PressableScale>
-          </View>
-        ) : (<>
-        <View style={styles.dayToggle}>
-          {([0, 1] as const).map((off) => (
-            <PressableScale key={off} style={[styles.dayTogChip, dayOffset === off && styles.dayTogChipOn]} onPress={() => goDay(off)}>
-              <Text style={[styles.dayTogTx, dayOffset === off && styles.dayTogTxOn]}>{t(off === 0 ? 'today.today' : 'today.tomorrow')}</Text>
-            </PressableScale>
-          ))}
-        </View>
-        {/* 가로 페이징 = 손가락 따라 슬라이드. onLayout 으로 페이지 폭 확정 → 한 페이지씩 스냅. */}
-        <View onLayout={(e) => setPageW(e.nativeEvent.layout.width)}>
-          <ScrollView
-            ref={fortunePager}
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            onMomentumScrollEnd={(e) => setDayOffset(Math.round(e.nativeEvent.contentOffset.x / Math.max(1, pageW)))}
-          >
-            {([0, 1] as const).map((off) => {
-              const e = energies[off];   // 그 날 기운 판정(점수·주의 등급). 유형명·근거·신살은 /today 가 맡는다
-              return (
-                <View key={off} style={{ width: pageW }}>
-                  {/* ★시안 p04 그대로 — 좌: 「오늘의 운세」·**큰 점수**·상태칩 / 우: 제목·2줄·자세히보기.
-                      [무엇이 빠졌나] 간지 박스·꺾은선 그래프·기운 유형명·억부 근거·신살 칩은
-                      **지우지 않고 `/today` 로 옮겼다**. 홈 카드는 "오늘 몇 점"만 박는 자리다
-                      — 종전엔 이 카드 하나가 첫 화면을 통째로 먹어 **아래에 뭔가 더 있다는 신호가 0** 이었다.
-                      ⚠️'홈에서 뺀다'와 '없앤다'는 다르다. 옮길 곳을 먼저 만들고 뺐다. */}
-                  <ScoreCard
-                    label={off === 0 ? t('today.title', '오늘의 운세') : t('today.energyTomorrow', '내일의 기운')}
-                    score={e?.score ?? '—'}
-                    tone={e ? CAUTION[e.caution].label : undefined}
-                    title={dayData[off].headline ?? ''}
-                    body={dayData[off].prose ?? undefined}
-                    unitLabel={t('todayEnergy.point', '점')}
-                    moreLabel={t('today.more', '분야별로 자세히 보기 →')}
-                    onPress={() => router.push(`/today?offset=${off}`)}
-                  />
-                </View>
-              );
-            })}
-          </ScrollView>
-        </View>
-        </>)}
-      </View>
-    );
-  };
-
-  // ── 홈 블록 렌더 — 순서대로 표시(홈에서 드래그 없음). 순서 변경은 '배치 편집' 버튼 → HomeOrderEditModal(간단 목록 드래그). ──
-  const renderItem = ({ item }: RenderItemParams<HomeBlockKey>) => <View>{renderBlock(item)}</View>;
+  // ★`renderBlock` 은 `components/talk/blockRegistry.tsx` 로 **옮겼다**(2026-08-19).
+  //   홈과 대화창이 같은 블록을 그려야 하는데, 여기 두면 둘 중 하나가 사본이 된다.
+  //   ⇒ 레지스트리 하나가 두 곳을 먹인다(같은 컴포넌트·같은 인자).
 
   // 리스트 고정 헤더 = 브랜드 헤더 + 구분선 + 통변 진행률 배너(알림·순서 대상 아님·항상 최상단).
   const listHeader = (
@@ -385,18 +216,6 @@ export default function Home() {
     </>
   );
 
-  // 리스트 고정 푸터 = 로그인 링크(선택·순서 대상 아님).
-  //   ★익명 세션 상시라 !session 아닌 !isRegistered — 익명/미로그인에 로그인 유도 노출.
-  const listFooter = (
-    <View style={styles.authRow}>
-      {!isRegistered && (
-        <PressableScale onPress={() => router.push('/login')}>
-          <Text style={styles.linkText}>{t('common.loginOptional')}</Text>
-        </PressableScale>
-      )}
-    </View>
-  );
-
   return (
     // ★홈도 투명(daniel 2026-07-15 '홈은 테마 적용 안돼') — bgSource 이미지 제거, 전역 ContentBackdrop(오행 배경색)이 비치게.
     <View style={styles.bgImage}>
@@ -405,41 +224,13 @@ export default function Home() {
         {/* ★홈 블록 배치 — 순서는 계정별(useHomeOrder · profiles.home_order). 홈에서 길게 눌러 드래그 or 설정에서 변경(daniel).
             기본 순서(daniel 07-25) = 명식 → 오늘의 기운 → 나는 어떤 사람인가 → 나의 성격유형 → 오늘의 관계 → 바이오리듬 → 오늘의 행운. (만세력·AI코치는 상단 🧭 바로가기 메뉴)
             헤더/진행률 배너/로그인 링크는 '고정'이라 ListHeaderComponent/ListFooterComponent 로 뺀다(드래그 대상 아님). */}
-        {twoCol ? (
-          /* ★넓은 웹 — 블록을 **두 단**으로 흘린다(홀/짝 번갈아). 세로로만 쌓으면 데스크톱에서
-             카드가 1160px 로 늘어나 '폰 앱을 늘려 놓은' 그 모양이 된다.
-             ⚠️드래그는 여기 없다 — 길게 눌러 옮기는 건 **폰 제스처**다. 데스크톱에서 순서를 바꾸려면
-               관리자 '배치 편집' 모달을 쓴다(이미 있는 경로라 새로 만들지 않았다). */
-          <ScrollView
-            style={styles.screen}
-            contentContainerStyle={[styles.wrap, { paddingTop: insets.top + space(2) }]}
-            showsVerticalScrollIndicator={false}
-          >
-            {listHeader}
-            <View style={styles.webTwo}>
-              {([0, 1] as const).map((side) => (
-                <View key={side} style={styles.webCol}>
-                  {order.filter((_, i) => i % 2 === side).map((k) => <View key={k}>{renderBlock(k)}</View>)}
-                </View>
-              ))}
-            </View>
-            {listFooter}
-          </ScrollView>
-        ) : (
-        <DraggableFlatList
-          data={order}
-          keyExtractor={(k) => k}
-          renderItem={renderItem}
-          // ★배치 변경은 관리자만(daniel 2026-08-06 "UI 레이아웃 배치를 관리자에서만 컨트롤 가능하게").
-          //   편집 버튼만 숨기면 **길게 눌러 드래그**로 여전히 순서가 바뀐다 — 저장 경로 자체를 막는다.
-          onDragEnd={({ data }) => { if (isAdmin) setOrder(data); }}
-          ListHeaderComponent={listHeader}
-          ListFooterComponent={listFooter}
-          style={styles.screen}
-          contentContainerStyle={[styles.wrap, { paddingTop: insets.top + space(2) }]}
-          showsVerticalScrollIndicator={false}
-        />
-        )}
+        {/* ★★2026-08-19 — 홈이 **친구목록**이 됐다(Boss *"첫 시작화면에 로고뜨고 바로 카카오톡처럼 친구목록"*).
+            종전엔 여기서 홈 블록 열한 개를 세로로 쌓았다. 그 블록들은 지운 게 아니라
+            **친구목록의 「친구」로 옮겼다** — 탭하면 대화창에서 같은 카드가 그대로 열린다
+            (`blockRegistry` — 컴포넌트를 공유하므로 홈과 갈릴 수 없다).
+            ⚠️두 단 웹 배치·드래그 정렬은 `TalkHome` 이 자기 방식(목록+대화 2칸)으로 대체한다.
+              순서는 여전히 `useHomeOrder` 다 — 운영자가 관리자 콘솔에서 정한 순서가 친구 순서가 된다. */}
+        <TalkHome renderTop={<View style={{ paddingTop: insets.top + space(2), paddingHorizontal: space(5) }}>{listHeader}</View>} />
       </Animated.View>
       <HomeOrderEditModal visible={editOpen} onClose={() => setEditOpen(false)} />
       {/* 🧭 바로가기 메뉴(daniel 2026-07-25 J) — 만세력·AI 코치를 홈 블록에서 빼고 여기서 분기 진입. 배경 탭=닫힘(모달·리스트내 absolute 금지). */}

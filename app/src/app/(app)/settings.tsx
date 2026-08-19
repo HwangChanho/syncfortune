@@ -184,6 +184,26 @@ export default function SettingsScreen() {
             앱 화면은 그 답을 그리기만 했다. 같은 RPC 를 웹이 그대로 부른다.
           ⚠️`is_admin` 을 보는 **다른** 코드(광고·커뮤니티 신고관리 등)는 그대로 둔다 — 화면만 뺀 것이다. */}
 
+      {/* ── 내 기록 ──────────────────────────────────────────────────────
+          ★★2026-08-19 3탭 전환에서 **탭에서 빠진 화면들의 대체 진입로**다(Boss
+            *"만세력이나 기타 설정들은 설정에서 진입"*).
+          ⚠️이 블록을 지우면 만세력·콘텐츠 목록·내 풀이가 **도달 불가**가 된다 —
+            화면은 멀쩡히 살아 있는데 아무 데서도 들어갈 수 없는 상태가 되고,
+            그건 삭제보다 나쁘다(코드는 남아 유지보수 비용은 그대로다).
+            `check:reach` 가 이 진입로들을 지킨다. */}
+      <Text style={[styles.h, { marginTop: space(7) }]}>{t('settings.myRecords', '내 기록')}</Text>
+      <View style={styles.infoCard}>
+        <PressableScale style={styles.infoRow} onPress={() => router.push('/charts')}>
+          <Text style={styles.infoLabel}>{t('menu.manse', '만세력')}</Text><Text style={styles.infoArrow}>›</Text>
+        </PressableScale>
+        <PressableScale style={styles.infoRow} onPress={() => router.push('/myreadings')}>
+          <Text style={styles.infoLabel}>{t('nav.readings', '풀이')}</Text><Text style={styles.infoArrow}>›</Text>
+        </PressableScale>
+        <PressableScale style={[styles.infoRow, styles.infoRowLast]} onPress={() => router.push('/contents')}>
+          <Text style={styles.infoLabel}>{t('nav.fortune', '운세')}</Text><Text style={styles.infoArrow}>›</Text>
+        </PressableScale>
+      </View>
+
       {/* ── 코인 ──
           ★프리미엄 폐지(daniel 2026-07-28) — 이 자리에 있던 '코인 충전하기'를 코인 잔액·충전으로 교체했다.
             계정 화면에서 지금 얼마 있는지 바로 보이는 게 결제 이해에 가장 직접적이다. */}

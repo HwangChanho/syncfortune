@@ -23,6 +23,13 @@ export type Consultant = {
   /** 가상 전용 — 안내할 콘텐츠 키(`contentSections` 의 key). 순서가 곧 노출 순서다 */
   routes: string[];
   sortOrder: number;
+  /**
+   * 홈 블록 친구면 그 블록 키(Boss 2026-08-19 *"홈에있던것들 전부"*).
+   * ★서버 `consultants` 에 없다 — **앱이 만든 친구**다. 홈 블록은 온디바이스 화면이라
+   *   서버가 알 필요가 없고, `homeOrder`(운영자가 정하는 순서)를 그대로 따라야 하기 때문이다.
+   *   ⇒ 이 값이 있으면 대화창은 말풍선 대신 그 블록 화면을 띄운다.
+   */
+  block?: string;
 };
 
 /**
