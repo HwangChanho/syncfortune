@@ -7,7 +7,7 @@
 //   - SecureStore.getItem(동기)로 로드 시점에 즉시 결정(첫 렌더부터 올바른 테마).
 //   - 토글 변경은 *재시작 후 적용*(StyleSheet 캐시 특성 — 설정에서 안내). 시스템 변경도 재시작 시 반영.
 // ─────────────────────────────────────────────────────────────────────────
-import { DevSettings } from 'react-native'; // ★다크/라이트 제거(daniel 2026-07-15) — Appearance 불필요(소프트 클레이 단일 테마)
+import { DevSettings, Platform } from 'react-native'; // ★다크/라이트 제거(daniel 2026-07-15) — Appearance 불필요(소프트 클레이 단일 테마)
 import * as SecureStore from 'expo-secure-store';
 import { A } from '../lib/ui/remoteAsset'; // ★이미지 원격화(daniel 08-01) — 번들에서 걷어내고 Storage 에서 받는다
 import { ELEMENT_PALETTE, DEFAULT_ELEMENT, type ThemeElement } from './theme/elementPalette'; // ★오행 전면 팔레트 단일 출처(시안 실측색)
@@ -188,14 +188,27 @@ export const bgSource = activeScheme === 'light'
   ? A('icons/bg-paper.jpg')
   : A('icons/bg-night.png');
 
+/**
+ * 앱을 다시 띄운다 — **플랫폼별 방법이 다르다**.
+ *
+ * ⚠️★한 곳으로 모은 이유(2026-08-19): 종전엔 이 세 줄이 **세 군데**에 복사돼 있었고
+ *   셋 다 웹을 빠뜨렸다(`DevSettings.reload`·`Updates.reloadAsync` 는 **웹에 없다**).
+ *   둘 다 조용히 실패해서 — 예외도 안 나고 — 웹에서 테마·강조색이 **아무 반응이 없었다**
+ *   (daniel *"웹도 명식변경할때 테마가 안바껴"*). 복사본이 셋이면 하나 고쳐도 둘이 남는다.
+ */
+function reloadApp(): void {
+  if (Platform.OS === 'web') { try { (globalThis as any).location?.reload?.(); } catch { /* noop */ } return; }
+  if (__DEV__) { try { DevSettings.reload(); return; } catch { /* noop */ } }
+  try { Updates?.reloadAsync?.().catch(() => {}); } catch { /* 재시작 후 반영 */ }
+}
+
 // 설정 토글 — 저장(재시작 후 적용). 동기/비동기 모두 시도.
 export function setThemePref(p: ThemePref) {
   try { (SecureStore as any).setItem?.(PREF_KEY, p); } catch { /* noop */ } // 동기 저장(리로드 직후 로드 시 반영)
   SecureStore.setItemAsync(PREF_KEY, p).catch(() => {});
   // ★즉시 적용(daniel) — StyleSheet 캐시 특성상 JS 리로드로 새 팔레트를 앱 안 끄고 바로 반영.
   //   개발(dev client)=DevSettings.reload / 프로덕션=expo-updates reloadAsync(네이티브 → 다음 빌드부터 동작).
-  if (__DEV__) { try { DevSettings.reload(); } catch { /* noop */ } }
-  else { try { Updates?.reloadAsync?.().catch(() => {}); } catch { /* 모듈/설정 없으면 재시작 후 적용 */ } }
+  reloadApp();
 }
 export function getThemePref(): ThemePref {
   try { return ((SecureStore as any).getItem?.(PREF_KEY) as ThemePref) || 'light'; } catch { return 'light'; } // 기본 = 한지 라이트(리디자인 C)
@@ -210,8 +223,7 @@ export function getThemeAccent(): AccentMode {
 export function setThemeAccent(mode: AccentMode) {
   try { (SecureStore as any).setItem?.(ACCENT_KEY, mode); } catch { /* noop */ }
   SecureStore.setItemAsync(ACCENT_KEY, mode).catch(() => {});
-  if (__DEV__) { try { DevSettings.reload(); } catch { /* noop */ } }
-  else { try { Updates?.reloadAsync?.().catch(() => {}); } catch { /* 재시작 후 적용 */ } }
+  reloadApp();
 }
 /** 대표명식 일간 오행 저장(themeElement.ts가 rep 변경/시작 시 호출). reload=true(대표명식 *변경*)일 때만 auto 모드 즉시 리로드. */
 /** 테마 오행이 이미 저장돼 있는가(최초 실행 판정용 — `ensureThemeElement`). */
@@ -263,8 +275,9 @@ export function applyThemeNow(returnTo?: string): void {
     try { (globalThis as any).localStorage?.setItem(THEME_RETURN_KEY, returnTo); } catch { /* noop */ }
     try { (SecureStore as any).setItem?.(THEME_RETURN_KEY, returnTo); } catch { /* noop */ }
   }
-  if (__DEV__) { try { DevSettings.reload(); return; } catch { /* noop */ } }
-  try { Updates?.reloadAsync?.().catch(() => {}); } catch { /* 재시작 후 반영 */ }
+  // ★웹 리로드가 안전해진 건 `consumeThemeReload()` 덕이다 — 그게 없던 시절엔 리로드가
+  //   `preferSelfAsRep()` 을 불러 방금 고른 명식을 되돌렸다(2026-08-18 에 그래서 되돌렸던 것).
+  reloadApp();
 }
 
 /** 이번 시작이 '테마 리로드'인가. **읽으면 지운다**(한 번만 쓰는 표시). */

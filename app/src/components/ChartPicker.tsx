@@ -175,6 +175,13 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
   // daniel: 명식 버튼 누를 때 로딩 표시 — 모달은 즉시 열려 스피너를 보이고, 무거운 리스트(DraggableFlatList)는 슬라이드가 끝난 뒤 마운트.
   useEffect(() => {
     if (!open) { setListReady(false); return; }
+    // ⚠️★웹은 `InteractionManager` 를 **쓰지 않는다**(2026-08-19 daniel *"웹에서 명식 리스트가 안나와"*).
+    //   react-native-web 의 구현은 **`requestIdleCallback`** 이다(node_modules 실측).
+    //     · 배경 탭에서는 아예 안 돈다
+    //     · 앞에 있어도 **브라우저가 한가해져야** 불린다 — 명식 64개를 그리는 동안 계속 밀려
+    //       콜백이 영영 안 왔고, 목록 자리에 **스피너만 200px** 남았다(DOM 으로 확인).
+    //   네이티브의 `InteractionManager` 는 '애니메이션 끝난 뒤'라는 뜻이라 의도대로 동작한다 → 그대로 둔다.
+    if (Platform.OS === 'web') { setListReady(true); return; }
     const h = InteractionManager.runAfterInteractions(() => setListReady(true));
     return () => h.cancel();
   }, [open]);
