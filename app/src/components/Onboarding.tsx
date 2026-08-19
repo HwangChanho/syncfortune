@@ -14,6 +14,10 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import * as SecureStore from 'expo-secure-store';
 import { PressableScale } from './PressableScale';
+import { Image as ExpoImage } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
+import Svg, { Path } from 'react-native-svg';
+import { brandMark } from '../lib/ui/brandAsset';
 import { colors, space, radius, shadow } from '../lib/theme';
 
 const FLAG = 'palja_onboarding_seen_v3'; // 온보딩 노출 이력 플래그. v3(daniel 07-12) = 4번째 '미리보기' 단계(성향 분석 샘플카드) 추가 → 전 유저 재노출. v2=명식보유 자동스킵 폐지.
@@ -79,6 +83,17 @@ export function Onboarding() {
 
   return (
     <View style={styles.overlay}>
+      {/* ★시안 결 — 위가 밝은 오행 그라데이션 + 아치(상세 히어로·풀이 히어로와 같은 모양).
+          온보딩은 시안 43장에 **없는 화면**이라(공통 3장 = 스플래시·로그인·사주입력) 사양이 없다.
+          ⇒ 앱 안에서 이미 정한 결을 따른다 — 새 스타일을 발명하지 않는다. */}
+      <LinearGradient
+        colors={[colors.juSoft, colors.bg]}
+        start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }}
+        style={StyleSheet.absoluteFill}
+      />
+      <Svg width="100%" height="46%" viewBox="0 0 320 210" preserveAspectRatio="none" style={styles.arc} pointerEvents="none">
+        <Path d="M 26 210 L 26 150 A 134 122 0 0 1 294 150 L 294 210" stroke={colors.juLine} strokeWidth={2.2} fill="none" strokeLinecap="round" />
+      </Svg>
       {/* 건너뛰기 — 실사용자 편의(리뷰어는 대개 여정을 따라감). 우상단. */}
       <View style={styles.topRow}>
         <PressableScale onPress={() => finish(false)} hitSlop={10} style={styles.skipBtn}>
@@ -86,8 +101,11 @@ export function Onboarding() {
         </PressableScale>
       </View>
 
-      {/* 본문 — 브랜드 워드마크 + 타이틀 + (본문 or 불릿) */}
+      {/* 본문 — 브랜드 마크 + 타이틀 + (본문 or 불릿)
+          ★2026-08-19: 워드마크를 **글자**로 쓰고 있었다. 시안 p01·p02 는 「운」 심볼이다.
+            심볼을 얹되 글자는 아래에 작게 남긴다 — 이미지가 안 떠도 무엇인지 읽힌다. */}
       <View style={styles.body}>
+        <ExpoImage source={brandMark()} style={styles.mark} contentFit="contain" transition={200} />
         <Text style={styles.glyph}>니운내운</Text>
         <Text style={styles.title}>{cur.title}</Text>
         {cur.body ? <Text style={styles.desc}>{cur.body}</Text> : null}
@@ -147,9 +165,11 @@ const styles = StyleSheet.create({
   },
   topRow: { flexDirection: 'row', justifyContent: 'flex-end' },
   skipBtn: { paddingVertical: space(1), paddingHorizontal: space(1) },
+  arc: { position: 'absolute', left: 0, right: 0, top: 0 },
   skipTxt: { color: colors.inkFaint, fontSize: 15, fontWeight: '600' },
   body: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  glyph: { color: colors.ju, fontSize: 30, fontWeight: '800', letterSpacing: 2, marginBottom: space(7) }, // 한글 4자 — 한자 2자와 같은 크기면 넘친다
+  mark: { width: 72, height: 72, marginBottom: space(2) },
+  glyph: { color: colors.ju, fontSize: 18, fontWeight: '800', letterSpacing: 1, marginBottom: space(6) }, // 한글 4자 — 한자 2자와 같은 크기면 넘친다
   title: { color: colors.ink, fontSize: 26, fontWeight: '800', textAlign: 'center', lineHeight: 35 },
   desc: { color: colors.inkSoft, fontSize: 16, lineHeight: 26, textAlign: 'center', marginTop: space(5), maxWidth: 340 },
   bullets: { marginTop: space(7), alignSelf: 'stretch', paddingHorizontal: space(2) },
