@@ -666,6 +666,10 @@ export const ko = {
     'send': '보내기',
     'pickOne': '왼쪽에서 상담사를 골라 주세요',
     'liveSoon': '곧 이야기 나눌 수 있어요. 준비 중이에요.',
+    'friends': '친구',
+    'meNoChart': '명식을 등록하면 이름이 나와요',
+    'liveGreet': '안녕하세요. {{name}}이에요. 무엇이 궁금하세요?',
+    'overFree': '오늘 무료 대화를 다 쓰셨어요. 그래도 조금 더 이야기해 볼게요.',
   },
   home: {
     'bonusLead': '충전할 때 자동으로 쓰여요',

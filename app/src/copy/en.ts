@@ -628,6 +628,10 @@ export const en = {
     'send': 'Send',
     'pickOne': 'Pick someone on the left',
     'liveSoon': 'We can talk soon. Getting ready.',
+    'friends': 'Friends',
+    'meNoChart': 'Add your chart to show your name',
+    'liveGreet': "Hello, I'm {{name}}. What's on your mind?",
+    'overFree': "You've used today's free chats. Let's keep going a little longer anyway.",
   },
   home: {
     'bonusLead': 'Applied automatically when you top up',
