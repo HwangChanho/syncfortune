@@ -14,6 +14,8 @@ import { GlossarySheet, type GlossaryTarget } from './GlossarySheet'; // 명리 
 import { glossaryKindOf } from '../lib/ui/readingEmphasis'; // 용어 → 글로서리 kind(십신/기본)
 import { ExpiryNote } from './ExpiryNote'; // 보유 만료일 공통(프리미엄 가드 한 곳)
 import { Image as ExpoImage } from 'expo-image'; // 콘텐츠 배너 — 자동 다운샘플·디스크캐시(daniel: 이미지 프리로드/캐시). 홈카드와 같은 파일 캐시 공유 → 콘텐츠 진입 즉시
+import { LinearGradient } from 'expo-linear-gradient';
+import Svg, { Path } from 'react-native-svg';
 import { Alert } from '../lib/ui/alert'; // 커스텀 알림(앱 디자인)
 import { useTranslation } from 'react-i18next';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -648,44 +650,63 @@ export function cardAnim(reveal: Animated.Value, i: number, n: number) {
   };
 }
 
-// 상단 히어로 — SVG 모티프(+선택적 이미지 배경) + 타이틀/부제 페이드인. love/newyear 등 다른 화면도 재사용(export).
+// 상단 히어로 — **시안 톤**(밝은 색면 + 아치 + 먹/강조 글자). love/newyear 등 다른 화면도 재사용(export).
+// ═══════════════════════════════════════════════════════════════════════════
+// ★2026-08-19 daniel *"상세 화면들도 시안톤으로 다 바꿔"* — 이 한 컴포넌트가 상세 19화면의 길목이다.
+//
+// [before] 어두운 사진이 꽉 차고 그 위에 **검은 스크림 + 흰 글자**(미디어 히어로).
+//          앱 전체가 파스텔로 바뀌자 이 히어로만 홀로 어두워 화면마다 결이 끊겼다.
+// [after ] 시안 p10·p11 의 풀이 히어로와 같은 결 —
+//          **오행 색면 그라데이션 + 아치 곡선 + 강조색 제목**. 글자는 먹, 배경은 밝다.
+//
+// ■ 사진은 버리지 않고 **아주 옅게 뒤에 남긴다**(opacity 0.08)
+//   그림이 있으면 '무엇에 관한 화면인지'가 한눈에 오고, 없으면 19화면이 전부 똑같아 보인다.
+//   ⚠️0.08 은 눈대중이 아니라 **계산한 값**이다 — 사진이 최악(완전 검정)이어도 그 위 제목(`ju`) 대비가
+//     다섯 오행 전부 4.5 를 넘는 최대치다. 0.10 이면 水 가 4.34 로 떨어진다.
+//     처음엔 0.14 로 잡았다가 계산해 보고 내렸다(3.96 이었다). `check:herotone` 이 지킨다.
+//
+// ■ 아치는 `ReadingHero` 와 같은 모양이되 **점은 없다**
+//   거기 점은 '내 오행 지도'라는 뜻이 있고, 여기엔 그 데이터가 없다. 뜻 없는 장식은 넣지 않는다.
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** 히어로 사진의 불투명도 — 이 위에 먹 글자가 올라간다. `check:herotone` 이 대비를 계산해 지킨다. */
+export const HERO_PHOTO_OPACITY = 0.08;
+
 export function ContentHero({ motif, image, title, sub, themeColor = colors.ju }: { motif?: ReactNode; image?: any; title: string; sub: string; themeColor?: string }) {
   const { fs } = useFontScale();
   const heroCap = useHeroCap(HERO_CAP.reading);   // 넓은 웹에서만 높이를 묶는다(폰·네이티브는 null)
   const a = useRef(new Animated.Value(0)).current;
-  const kb = useRef(new Animated.Value(0)).current; // 히어로 켄번스(느린 줌 인↔아웃) — 정적 이미지에 생동(daniel 재미)
   useEffect(() => { Animated.timing(a, { toValue: 1, duration: 700, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start(); }, [a]);
-  useEffect(() => {
-    if (!image) return; // 이미지 히어로만
-    const loop = Animated.loop(Animated.sequence([
-      Animated.timing(kb, { toValue: 1, duration: 9000, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
-      Animated.timing(kb, { toValue: 0, duration: 9000, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
-    ]));
-    loop.start();
-    return () => loop.stop();
-  }, [kb, image]);
   const titleAnim = { opacity: a, transform: [{ translateY: a.interpolate({ inputRange: [0, 1], outputRange: [10, 0] }) }] };
-  // ★이미지 히어로 = 어두운 배경 → 글씨 항상 밝게(onImage). plain(이미지 없음) = 밝은 카드 → 기본 ink.
-  //   (라이트모드에서 어두운 히어로 이미지 위 ink(어두움) 글씨가 안 보이던 문제 — daniel 가시성 QA)
-  const onImg = !!image;
-  const inner = (
-    <View style={styles.heroInner}>
-      {!image && motif}
-      <Animated.Text style={[styles.heroTitle, { fontSize: fs(22) }, onImg && { color: colors.onImage }, titleAnim]}>{title}</Animated.Text>
-      <Animated.Text style={[styles.heroSub, { fontSize: fs(12), lineHeight: 19, opacity: a }, onImg && { color: colors.onImageSoft }]}>{sub}</Animated.Text>
+
+  return (
+    <View style={heroCap ? [styles.heroBox, heroCap] : styles.heroBox}>
+      {/* 배경 — 위가 밝다(시안 p10). 오행 팔레트라 테마가 바뀌면 히어로도 따라간다 */}
+      <LinearGradient
+        colors={[colors.juSoft, colors.bg]}
+        start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }}
+        style={StyleSheet.absoluteFill}
+      />
+      {/* 사진 — 아주 옅게. 없으면 그냥 색면 */}
+      {image ? (
+        <ExpoImage
+          source={image}
+          style={[StyleSheet.absoluteFill, { opacity: HERO_PHOTO_OPACITY }]}
+          contentFit="cover" contentPosition="center" cachePolicy="memory-disk" transition={150}
+        />
+      ) : null}
+      {/* 아치 — 제목 뒤로 지나간다 */}
+      <Svg width="100%" height="100%" viewBox="0 0 320 210" preserveAspectRatio="none" style={StyleSheet.absoluteFill} pointerEvents="none">
+        <Path d="M 26 210 L 26 150 A 134 122 0 0 1 294 150 L 294 210" stroke={themeColor + '55'} strokeWidth={2.2} fill="none" strokeLinecap="round" />
+      </Svg>
+
+      <View style={styles.heroInner}>
+        {motif}
+        <Animated.Text style={[styles.heroTitle, { fontSize: fs(24), color: themeColor }, titleAnim]}>{title}</Animated.Text>
+        <Animated.Text style={[styles.heroSub, { fontSize: fs(13), lineHeight: 20, opacity: a }]}>{sub}</Animated.Text>
+      </View>
     </View>
   );
-  if (image) return (
-    // 히어로 이미지 박스 = 이미지 비율(1344x768=1.75)에 맞춤 → cover가 좌우 안 자르고 풀이미지 중앙 노출(daniel: 이미지 가운데/가로 꽉)
-    <View style={heroCap ? [styles.heroImageBox, heroCap] : styles.heroImageBox}>
-      <Animated.View style={[StyleSheet.absoluteFill, { transform: [{ scale: kb.interpolate({ inputRange: [0, 1], outputRange: [1, 1.08] }) }] }]}>
-        <ExpoImage source={image} style={StyleSheet.absoluteFill} contentFit="cover" contentPosition="center" cachePolicy="memory-disk" transition={150} />
-      </Animated.View>
-      <View style={styles.heroScrim} />
-      {inner}
-    </View>
-  );
-  return <View style={[styles.heroPlain, { borderColor: themeColor + '40' }]}>{inner}</View>; // 이미지 없을 때 = 컴팩트 헤더(aspectRatio 1.5 큰 빈 박스 제거·daniel)
 }
 
 // 무료 티어 미리보기 카드 — 온디바이스 결정론 기본값(수비학 생명수·점성술 빅3)을 키:값 줄로. 유료=LLM 심층(하이브리드 hook).
@@ -711,13 +732,12 @@ const styles = StyleSheet.create({
   // 히어로
   hero: { borderRadius: radius.lg, overflow: 'hidden', marginBottom: space(5), aspectRatio: 1.5, backgroundColor: colors.sunk },
   // 이미지 히어로 = 단일 스타일(hero와 병합 금지 — aspectRatio 이중지정이 Yoga 폭 계산을 깨 좌치우침 유발). width 100%로 전폭·중앙(daniel 시뮬 실측 확인: 좌72=우72).
-  heroImageBox: { width: '100%', aspectRatio: 1.75, borderRadius: radius.lg, overflow: 'hidden', marginBottom: space(5), backgroundColor: colors.sunk },
-  heroPlain: { backgroundColor: colors.card, borderWidth: 1, borderRadius: radius.lg, marginBottom: space(5) }, // 이미지 없을 때 = 자동높이 컴팩트 헤더(큰 빈 박스 방지·daniel)
+  // ★시안 히어로 — 색면 + 아치. 사진이 있든 없든 **같은 상자**다(종전엔 둘이 갈려 화면마다 높이가 달랐다).
+  heroBox: { width: '100%', minHeight: 210, borderRadius: radius.lg, overflow: 'hidden', marginBottom: space(5), justifyContent: 'flex-end' },
   heroImg: { borderRadius: radius.lg },
-  heroScrim: { ...StyleSheet.absoluteFillObject, backgroundColor: colors.scrimHero }, // 이미지 위 가독 스크림(스킴 무관 어둡게 — 이미지가 어두우므로 라이트모드에서도 어두운 스크림이라야 밝은 글씨가 산다)
-  heroInner: { alignItems: 'center', justifyContent: 'center', paddingVertical: space(6), paddingHorizontal: space(5) },
-  heroTitle: { ...font.title, color: colors.ink, marginTop: space(2), textAlign: 'center' },
-  heroSub: { ...font.caption, color: colors.inkSoft, marginTop: space(1.5), textAlign: 'center', lineHeight: 19 },
+  heroInner: { alignItems: 'center', justifyContent: 'flex-end', paddingVertical: space(7), paddingHorizontal: space(6) },
+  heroTitle: { fontWeight: '900', letterSpacing: -0.5, marginTop: space(2), textAlign: 'center' },
+  heroSub: { color: colors.inkSoft, marginTop: space(2), textAlign: 'center' },
   // 섹션 카드(좌측 테마색 띠)
   card: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.juLine, padding: space(5), marginBottom: space(3), ...shadow.card },
   cardAccent: { borderLeftWidth: 3 },

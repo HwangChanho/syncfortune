@@ -132,7 +132,10 @@ export function RelationMapCard({ reloadKey }: { reloadKey?: number }) {
 }
 
 const mkStyles = (fs: (n: number) => number) => StyleSheet.create({
-  card: { backgroundColor: colors.card, borderRadius: radius.md, padding: space(4), marginTop: space(3) },
+  // ★아래 여백 — 홈 블록은 저마다 자기 아래 여백을 갖는다(2026-08-19 daniel 지적:
+  //   *"오늘의 행운이랑 관계지도 사이도 붙어있잖아"*). 이 카드만 빠져 있었다.
+  //   ⚠️같은 실수가 `TrioCards` 에서도 났다 → `check:homegap` 이 전 블록을 검사한다.
+  card: { backgroundColor: colors.card, borderRadius: radius.md, padding: space(4), marginTop: space(3), marginBottom: space(5) },
   head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   title: { color: colors.ink, fontSize: fs(16), lineHeight: fs(24), fontWeight: '800' },
   count: { color: colors.inkSoft, fontSize: fs(12), lineHeight: fs(18) },
