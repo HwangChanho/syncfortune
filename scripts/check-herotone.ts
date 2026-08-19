@@ -13,6 +13,8 @@
  *     ★눈으로는 넷 중 셋이 멀쩡해 보였다 — 계산이 아니면 못 잡는다.
  *
  * 규칙
+ *   T0 상세/퍼널 화면이 **자기 히어로를 따로 만들지 않는다** — `ContentHero` 하나로 모은다
+ *      (`FreeFunnel` 이 따로 어두운 히어로를 갖고 있었다. 하나만 지키면 되도록 합쳤다)
  *   T1 히어로에 **어두운 스크림이 없다**(`scrimHero`·검은 오버레이로 되돌리면 실패)
  *   T2 제목이 **흰 글자가 아니다**(`onImage` 계열을 쓰면 밝은 배경에서 사라진다)
  *   T3 `HERO_PHOTO_OPACITY` 로 사진을 덮었을 때, **다섯 오행 전부** 제목 대비 ≥ 4.5
@@ -25,6 +27,8 @@ import { join } from 'node:path';
 
 const ROOT = join(import.meta.dirname, '..');
 const P_HERO = 'app/src/components/SpecialContentScreen.tsx';
+/** 히어로를 직접 그리면 안 되는 화면들 — `ContentHero` 를 써야 한다. */
+const NO_OWN_HERO = ['app/src/components/FreeFunnel.tsx'];
 const P_PAL = 'app/src/lib/theme/elementPalette.ts';
 const MIN = 4.5;
 
@@ -53,8 +57,16 @@ const code = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/
  * @param palSrc  `elementPalette.ts` 원문
  * @returns 위반 목록
  */
-export function audit(heroSrc: string, palSrc: string): Fail[] {
+export function audit(heroSrc: string, palSrc: string, others: Record<string, string> = {}): Fail[] {
   const out: Fail[] = [];
+
+  // T0 — 다른 화면이 자기 히어로를 따로 만들지 않는가
+  for (const [path, src] of Object.entries(others)) {
+    const cs = code(src);
+    if (/scrimHero|heroScrim/.test(cs) || /onImage/.test(cs)) {
+      out.push({ rule: 'T0', msg: `${path} 가 자기 어두운 히어로를 갖고 있다 — \`ContentHero\` 로 모을 것(톤이 갈린다)` });
+    }
+  }
   const c = code(heroSrc);
   // `ContentHero` 함수 본문만 본다(파일 전체엔 다른 화면 코드도 있다)
   const body = c.match(/export function ContentHero[\s\S]*?\n\}/)?.[0] ?? '';
@@ -123,19 +135,23 @@ export function ContentHero({ image, title }: any) {
     ['어두운 스크림 부활', audit(ok.replace('<LinearGradient', '<View style={styles.heroScrim} /><LinearGradient'), pal).length],
     ['흰 글자 부활', audit(ok.replace('color: themeColor', 'color: colors.onImage'), pal).length],
     ['불투명도를 못 읽음', audit(ok.replace('HERO_PHOTO_OPACITY = 0.08', 'X = 1'), pal).length],
+    ['다른 화면이 자기 어두운 히어로를 가짐', audit(ok, pal, { 'x.tsx': 'heroScrim: { backgroundColor: colors.scrimHero }' }).length],
+    ['다른 화면이 ContentHero 를 씀(정상)', audit(ok, pal, { 'x.tsx': '<ContentHero image={heroImage} title={q} />' }).length],
   ];
-  const want = [0, 3, 1, 1, 1];
+  const want = [0, 3, 1, 1, 1, 1, 0];
   let bad = 0;
   cases.forEach(([n, got], i) => {
     const okc = got === want[i];
     console.log(`  ${okc ? '✓' : '❌'} ${n} → ${got}건 (기대 ${want[i]})`);
     if (!okc) bad++;
   });
-  console.log(bad ? `\n❌ 자가테스트 ${bad}건 실패` : '\n✅ check:herotone 자가테스트 통과 (5케이스)');
+  console.log(bad ? `\n❌ 자가테스트 ${bad}건 실패` : '\n✅ check:herotone 자가테스트 통과 (7케이스)');
   process.exit(bad ? 1 : 0);
 }
 
-const fails = audit(readFileSync(join(ROOT, P_HERO), 'utf8'), readFileSync(join(ROOT, P_PAL), 'utf8'));
+const others: Record<string, string> = {};
+for (const p of NO_OWN_HERO) others[p] = readFileSync(join(ROOT, p), 'utf8');
+const fails = audit(readFileSync(join(ROOT, P_HERO), 'utf8'), readFileSync(join(ROOT, P_PAL), 'utf8'), others);
 if (fails.length) {
   console.error(`❌ check:herotone — ${fails.length}건`);
   for (const f of fails) console.error(`  [${f.rule}] ${f.msg}`);

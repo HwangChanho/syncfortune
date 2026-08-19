@@ -7,14 +7,14 @@
 //   미드나잇-골드 톤 + 넉넉한 여백(SpecialContentScreen 히어로 결을 가볍게 미러링).
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useState, type ReactNode } from 'react';
-import { View, Text, ScrollView, ActivityIndicator, ImageBackground, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, ActivityIndicator, StyleSheet } from 'react-native';
 import { PressableScale } from './PressableScale';
 import { RelatedContent } from './RelatedContent';
 import { useRouter } from 'expo-router';
 import { loadRepChart, subscribeRepChange } from '../lib/engine/myChart';   // 대표 명식(SavedChart) — 온디바이스, 로그인 불필요
 import { computeChart } from '../lib/engine/engine';      // 만세력 결정론 산출(엔진) — API 0
+import { ContentHero } from './SpecialContentScreen';   // 상세 화면과 같은 시안 히어로
 import { colors, radius, space, shadow, font } from '../lib/theme';
-import { useHeroCap, HERO_CAP } from '../lib/ui/heroSize'; // ★웹 전폭 히어로 높이 상한(네이티브 무관)
 
 /**
  * 무료→유료 퍼널 공통 셸.
@@ -36,7 +36,6 @@ export function FreeFunnel({ heroImage, question, sub, paidRoute, paidCta, rende
    *  이 셸을 쓰는 퍼널 3종(재회·짝사랑·취업)이 한 번에 붙는다 — 화면마다 따로 붙이면 또 어긋난다. */
   relatedKind?: string;
 }) {
-  const heroCap = useHeroCap(HERO_CAP.banner);   // 넓은 웹에서만 높이를 묶는다(폰·네이티브는 null)
   const router = useRouter();
   const [saju, setSaju] = useState<any>(null); // 대표 명식의 사주(결정론). null=아직 로드 전 or 명식 없음.
   const [loaded, setLoaded] = useState(false);  // 비동기 로드 완료 여부(스피너 종료 신호).
@@ -84,14 +83,10 @@ export function FreeFunnel({ heroImage, question, sub, paidRoute, paidCta, rende
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>
-      {/* 히어로 — 이미지 배경 + 어둡게 스크림 위에 질문 헤드라인(밝은 글씨). 퍼널의 첫 훅. */}
-      <ImageBackground source={heroImage} style={heroCap ? [styles.hero, heroCap] : styles.hero} imageStyle={styles.heroImg} resizeMode="cover">
-        <View style={styles.heroScrim} />
-        <View style={styles.heroInner}>
-          <Text style={styles.heroTitle}>{question}</Text>
-          {sub ? <Text style={styles.heroSub}>{sub}</Text> : null}
-        </View>
-      </ImageBackground>
+      {/* ★히어로 = 상세 화면과 **같은 컴포넌트**(2026-08-19 시안 톤 통일).
+          종전엔 여기만 따로 어두운 사진 + 스크림 + 흰 글자였다 — 같은 앱 안에서 두 결이 섞였다.
+          `ContentHero` 하나로 모으면 톤이 갈릴 일이 없고, `check:herotone` 이 그 하나만 지키면 된다. */}
+      <ContentHero image={heroImage} title={question} sub={sub ?? ''} />
 
       {/* 결정론 타이밍(무료 미리보기) — 로드 전엔 스피너, 완료되면 주입된 타이밍 컴포넌트. */}
       {saju ? render(saju) : (
@@ -124,12 +119,6 @@ const styles = StyleSheet.create({
   registerTx: { color: colors.bg, fontSize: 15, fontWeight: '800' },
   // 히어로(이미지 배경 + 스크림 + 질문). 세로 카드아트(832×1216)를 가로 박스에 cover-crop 시 중앙 띠가 꽉 참.
   //   ★width:'100%' 필수(daniel 07-05) — 없으면 aspectRatio만으로 Yoga 폭 계산이 깨져 좌치우침(오른쪽 여백↑). SpecialContentScreen.heroImageBox와 동일 틀.
-  hero: { width: '100%', aspectRatio: 1.5, borderRadius: radius.lg, overflow: 'hidden', marginBottom: space(6), backgroundColor: colors.sunk, justifyContent: 'center' },
-  heroImg: { borderRadius: radius.lg },
-  heroScrim: { ...StyleSheet.absoluteFillObject, backgroundColor: colors.scrimHero }, // 이미지 위 가독 스크림(밝은 글씨 대비)
-  heroInner: { alignItems: 'center', paddingHorizontal: space(6), paddingVertical: space(7) },
-  heroTitle: { fontSize: 26, fontWeight: '900', color: colors.onImage, textAlign: 'center', lineHeight: 34 }, // 큰 질문 헤드라인(이미지 위=밝게)
-  heroSub: { fontSize: 14, color: colors.onImageSoft, textAlign: 'center', marginTop: space(3), lineHeight: 21 },
   // 타이밍 로드 중 스피너 슬롯
   timingLoading: { paddingVertical: space(8), alignItems: 'center', marginBottom: space(4) },
   // ★골드 CTA(가장 눈에 띄게) — 금색 채움 + 그림자 + 화살표
