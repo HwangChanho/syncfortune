@@ -20,6 +20,7 @@ import { PressableScale } from './PressableScale';
 import { useRouter, usePathname } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
+import { useFeatureOn } from '../lib/core/features';   // 커뮤니티 노출 = 원격 플래그(my.tsx 와 **같은 판정**)
 import { colors, space } from '../lib/theme';
 
 // 탭 전체 정의(순서 = 홈 → 운세 → 풀이 → 마이페이지).
@@ -128,8 +129,14 @@ export function BottomNav() {
   const marginBottom = Platform.OS === 'android' ? Math.max(NAV_MARGIN_BOTTOM, insets.bottom) : NAV_MARGIN_BOTTOM;
   _navMarginBottom = marginBottom;
   const { t } = useTranslation();
-  // ★커뮤니티는 이제 탭이 아니라 **마이페이지 메뉴**다(2026-08-18 4탭 전환) — 플래그 판정도 그쪽으로 옮겼다.
-  const tabs = ALL_TABS;
+  // ★★커뮤니티 탭은 **원격 플래그**로 가린다(2026-08-19 3탭 전환에서 복구).
+  //   ⚠️내가 3탭으로 바꾸면서 이 판정을 빠뜨렸다 — `my.tsx` 주석에는
+  //     *"커뮤니티 노출 = 원격 플래그(BottomNav 와 같은 판정)"* 라고 적혀 있는데 **여기엔 없었다.**
+  //     지금은 플래그가 켜져 있어 결과가 같지만, **끄는 순간 갈린다**(메뉴는 숨고 탭은 남는다).
+  //   ⇒ 주석이 '같다'고 말하는 것은 보장이 아니다([[duplicate-ui-single-source]]).
+  //     `check:featuregate` 가 두 곳이 같은 판정을 쓰는지 지킨다.
+  const commOn = useFeatureOn('community');
+  const tabs = ALL_TABS.filter((tb) => tb.key !== 'community' || commOn);
   return (
     <View style={[styles.bar, { marginBottom }]} onLayout={(e) => { _navBarHeight = e.nativeEvent.layout.height; }}>
       {tabs.map((tb) => {
