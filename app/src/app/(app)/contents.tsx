@@ -236,7 +236,11 @@ const styles = StyleSheet.create({
   // ★lineHeight 는 fontSize 와 **반드시 짝**(daniel 07-28 교훈) — 없으면 글자확대 배율에서 위아래가 잘린다.
   //   08-06 실물(IMG_8409)에서 '전체·인기·연애'가 '저체·이기·여애'로 잘려 보였다.
   catTx: { fontSize: 13.5, lineHeight: 19, fontWeight: '800', color: colors.inkSoft, letterSpacing: 0.2 },
-  catTxOn: { color: '#15132E' },
+  // ★`#15132E`(옛 미드나잇 네이비) → `colors.onJu` (2026-08-19).
+  //   이 글자는 **`colors.ju` 배경 위**에 올라간다. 팔레트가 파스텔 5색으로 바뀌면서
+  //   대비가 **2.23~2.86**(기준 4.5)으로 떨어졌다 — 선택된 칩의 글자가 거의 안 보였다.
+  //   `onJu`(흰색)면 다섯 오행 전부 6.3~8.1 로 통과한다(계산). ⚠️강조색 위 글자는 반드시 `onJu`.
+  catTxOn: { color: colors.onJu },
   // 보기 토글 — 검색줄 오른쪽 끝. 기호만이라 폭이 작다.
   //   ★활성 표시를 **연한 골드 배경 + 골드 글자**로(꽉 찬 골드는 보조 버튼이 검색창보다 튄다).
   viewToggle: { flexDirection: 'row', gap: space(1), backgroundColor: colors.overlay, borderRadius: radius.pill, padding: space(1), borderWidth: 1, borderColor: colors.line },

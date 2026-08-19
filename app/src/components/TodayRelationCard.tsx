@@ -156,12 +156,16 @@ const styles = StyleSheet.create({
   catChip: { paddingVertical: space(1), paddingHorizontal: space(2.5), borderRadius: radius.pill, borderWidth: 1, borderColor: colors.juLine, backgroundColor: colors.juSoft },
   catChipOn: { backgroundColor: colors.ju, borderColor: colors.ju },
   catTx: { fontSize: 11.5, fontWeight: '800', color: colors.ju },
-  catTxOn: { color: '#15132E' },
+  // ★`#15132E`(옛 미드나잇 네이비) → `colors.onJu` (2026-08-19).
+  //   이 글자는 **`colors.ju` 배경 위**에 올라간다. 팔레트가 파스텔 5색으로 바뀌면서
+  //   대비가 **2.23~2.86**(기준 4.5)으로 떨어졌다 — 선택된 칩의 글자가 거의 안 보였다.
+  //   `onJu`(흰색)면 다섯 오행 전부 6.3~8.1 로 통과한다(계산). ⚠️강조색 위 글자는 반드시 `onJu`.
+  catTxOn: { color: colors.onJu },
   chips: { gap: space(1.5), paddingVertical: space(2) },
   chip: { paddingVertical: space(1.5), paddingHorizontal: space(3), borderRadius: radius.pill, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.overlay, maxWidth: 120 },
   chipOn: { backgroundColor: colors.ju, borderColor: colors.ju },
   chipTx: { fontSize: 12, fontWeight: '700', color: colors.inkSoft },
-  chipTxOn: { color: '#15132E', fontWeight: '800' },
+  chipTxOn: { color: colors.onJu, fontWeight: '800' },
   who: { ...font.caption, color: colors.inkSoft, fontWeight: '700', marginTop: space(2) },
   title: { ...font.heading, color: colors.ink, fontWeight: '900', marginTop: space(2) },
   body: { ...font.body, color: colors.inkSoft, marginTop: space(1.5) },

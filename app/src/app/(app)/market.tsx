@@ -453,7 +453,11 @@ const styles = StyleSheet.create({
   topicChip: { paddingVertical: space(2), paddingHorizontal: space(3.5), borderRadius: radius.pill, backgroundColor: colors.sunk, borderWidth: 1, borderColor: colors.line },
   topicChipOn: { backgroundColor: colors.ju, borderColor: colors.ju },
   topicChipTx: { fontSize: 13, fontWeight: '700', color: colors.inkSoft },
-  topicChipTxOn: { color: '#15132E', fontWeight: '800' },
+  // ★`#15132E`(옛 미드나잇 네이비) → `colors.onJu` (2026-08-19).
+  //   이 글자는 **`colors.ju` 배경 위**에 올라간다. 팔레트가 파스텔 5색으로 바뀌면서
+  //   대비가 **2.23~2.86**(기준 4.5)으로 떨어졌다 — 선택된 칩의 글자가 거의 안 보였다.
+  //   `onJu`(흰색)면 다섯 오행 전부 6.3~8.1 로 통과한다(계산). ⚠️강조색 위 글자는 반드시 `onJu`.
+  topicChipTxOn: { color: colors.onJu, fontWeight: '800' },
   emptyTopic: { ...font.caption, color: colors.inkSoft, textAlign: 'center', marginTop: space(6), lineHeight: 18 },
   sectionH: { ...font.heading, color: colors.ju, marginTop: space(5), marginBottom: space(1) },
   // ★인기 외곽칸(daniel 07-08) — juSoft 배경 + gold 테두리로 개별섹션 상단 강조.

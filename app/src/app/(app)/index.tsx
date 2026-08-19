@@ -540,7 +540,11 @@ const styles = StyleSheet.create({
   dayTogChip: { paddingHorizontal: space(4), paddingVertical: space(1.5), borderRadius: radius.pill, backgroundColor: colors.overlay, borderWidth: 1, borderColor: colors.line },
   dayTogChipOn: { backgroundColor: colors.ju, borderColor: colors.ju },
   dayTogTx: { fontSize: 13, fontWeight: '800', color: colors.inkSoft },
-  dayTogTxOn: { color: '#15132E' },
+  // ★`#15132E`(옛 미드나잇 네이비) → `colors.onJu` (2026-08-19).
+  //   이 글자는 **`colors.ju` 배경 위**에 올라간다. 팔레트가 파스텔 5색으로 바뀌면서
+  //   대비가 **2.23~2.86**(기준 4.5)으로 떨어졌다 — 선택된 칩의 글자가 거의 안 보였다.
+  //   `onJu`(흰색)면 다섯 오행 전부 6.3~8.1 로 통과한다(계산). ⚠️강조색 위 글자는 반드시 `onJu`.
+  dayTogTxOn: { color: colors.onJu },
   bannerDate: { ...font.caption, color: colors.inkSoft },
   bannerPillar: { ...font.heading, color: colors.ink, flexShrink: 1 },
   // ★큰 글자에서 한 줄에 다 못 들어가 밀려 잘리던 행 — 줄바꿈 허용 + 라벨 축소 가능(daniel 07-28)
