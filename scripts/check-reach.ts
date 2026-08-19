@@ -34,6 +34,8 @@ const MUST_REACH: Array<{ route: string; why: string; from: string[] }> = [
   { route: '/contents',   why: '콘텐츠 55종 목록',  from: ['app/src/app/(app)/settings.tsx'] },
   { route: '/myreadings', why: '내가 만든 풀이',    from: ['app/src/app/(app)/settings.tsx'] },
   { route: '/charts',     why: '만세력·명식 관리',  from: ['app/src/app/(app)/settings.tsx', 'app/src/app/(app)/talk.tsx'] },
+  // ★홈 「⚡바로가기」가 사라지면서 진입로가 설정으로 옮겨졌다(2026-08-19)
+  { route: '/coach',      why: '팔자 도우미(기존 이력)', from: ['app/src/app/(app)/settings.tsx'] },
 ];
 
 type Fail = { rule: string; msg: string };
@@ -87,18 +89,19 @@ if (process.argv.includes('--selftest')) {
     { key: 'my', route: '/settings', match: '/settings' },
   ] as const;`;
   const navOld = navNew.replace("route: '/community'", "route: '/contents'");
-  const withLinks = `router.push('/contents'); router.push('/myreadings'); router.push('/charts');`;
+  // ⚠️MUST_REACH 에 줄을 더하면 **이 픽스처도 함께** 늘려야 한다(자가테스트가 먼저 빨간불이 된다 — 의도된 것이다)
+  const withLinks = `router.push('/contents'); router.push('/myreadings'); router.push('/charts'); router.push('/coach');`;
   const okRead = () => withLinks;
   const badRead = () => `아무 링크도 없다`;
   const allExist = () => true;
   const cases: Array<[string, number]> = [
     ['정상(설정에 진입로 있음)', audit(navNew, okRead, allExist).length],
-    ['진입로 없음 → 3건 도달불가', audit(navNew, badRead, allExist).length],
-    ['탭에 남아 있으면 면제', audit(navOld, () => `router.push('/myreadings'); router.push('/charts');`, allExist).length],
+    ['진입로 없음 → 전부 도달불가', audit(navNew, badRead, allExist).length],
+    ['탭에 남아 있으면 면제', audit(navOld, () => `router.push('/myreadings'); router.push('/charts'); router.push('/coach');`, allExist).length],
     ['탭이 없는 화면을 가리킴', audit(navNew, okRead, (p) => !p.includes('community')).length],
     ['MUST_REACH 가 빔(하네스 무력화)', audit(navNew, okRead, allExist, []).length],
   ];
-  const want = [0, 3, 0, 1, 1];
+  const want = [0, 4, 0, 1, 1];
   let bad = 0;
   cases.forEach(([n, got], i) => {
     const ok = got === want[i];

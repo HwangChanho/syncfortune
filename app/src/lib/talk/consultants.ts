@@ -70,7 +70,13 @@ export async function listConsultants(force = false): Promise<Consultant[]> {
   if (_cache && !force) return _cache;
   try {
     const r = await withTimeout(
-      supabase.from('consultants').select('id,kind,name,tagline,avatar,specialty,routes,sort_order').order('sort_order'),
+      // ★★`enabled` 를 **쿼리에서** 거른다(2026-08-19 실물에서 잡힘).
+      //   RLS 의 공개 정책은 `using (enabled)` 라 일반 사용자에겐 안 보이지만,
+      //   관리자 정책이 `for all` 이라 **관리자에게는 비활성 상담사까지 보인다**
+      //   (정책은 OR 로 합쳐진다). 실제로 준비 중인 「노쎔」이 친구목록에 떠 있었다.
+      //   ⇒ RLS 는 '볼 권한'을 정하고, 쿼리는 '지금 보여줄 것'을 정한다. 둘은 다르다.
+      supabase.from('consultants').select('id,kind,name,tagline,avatar,specialty,routes,sort_order')
+        .eq('enabled', true).order('sort_order'),
       8000,
     );
     if (!r || r.error || !Array.isArray(r.data) || !r.data.length) return _cache ?? SEED;

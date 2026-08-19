@@ -75,6 +75,13 @@ export function audit(vt: string, cs: string, mig: string): Fail[] {
     out.push({ rule: 'F3', msg: `${P_CS} 가 서버 kind 를 그대로 옮기지 않는다 — 앱이 과금 경로를 정하면 안 된다` });
   }
 
+  // F5 — 준비 중(enabled=false)인 상담사가 목록에 뜨면 안 된다
+  //   ★RLS 만 믿으면 안 된다: 관리자 정책이 `for all` 이라 관리자에겐 비활성 행도 보인다(정책은 OR).
+  //     실제로 말투 검수 전인 「노쎔」이 친구목록에 떠 있었다 — 첫인상은 두 번 오지 않는다.
+  if (!/\.eq\('enabled',\s*true\)/.test(code(cs))) {
+    out.push({ rule: 'F5', msg: `${P_CS} 가 enabled=true 로 거르지 않는다 — 준비 중인 상담사가 관리자 화면에 노출된다(RLS 로는 안 막힌다)` });
+  }
+
   // F4 — 씨앗이 같은가
   const appIds = [...code(cs).matchAll(/id:\s*'([a-z_]+)',\s*kind:/g)].map((m) => m[1]).sort();
   // ⚠️`insert … values` 블록 안에서만 찾는다 — 그러지 않으면
@@ -93,7 +100,8 @@ export function audit(vt: string, cs: string, mig: string): Fail[] {
 if (process.argv.includes('--selftest')) {
   const vtOk = `export function greet(){ return { bubbles: [], links: [], source: 'script' }; }
 export function todayFlow(){ return { bubbles: [], links: [], source: 'engine' }; }`;
-  const csOk = `kind: r.kind === 'live' ? 'live' : 'virtual',
+  const csOk = `.eq('enabled', true)
+kind: r.kind === 'live' ? 'live' : 'virtual',
 const SEED = [ { id: 'wealth_guide', kind: 'virtual' }, { id: 'myeongun', kind: 'live' } ];`;
   const migOk = `create table consultants ( kind text check (kind in ('virtual','live')) );
 insert into public.consultants (id, kind) values
@@ -104,19 +112,22 @@ insert into public.consultants (id, kind) values
     ['가상이 Edge 를 부름', audit(vtOk + `\nsupabase.functions.invoke('talk')`, csOk, migOk).length],
     ['가상이 fetch 를 씀', audit(vtOk + `\nawait fetch(url)`, csOk, migOk).length],
     ['source 가 llm', audit(vtOk.replace("'script'", "'llm'"), csOk, migOk).length],
-    ['앱이 kind 를 지어냄', audit(vtOk, `kind: 'live',\nconst SEED = [ { id: 'wealth_guide', kind: 'virtual' }, { id: 'myeongun', kind: 'live' } ];`, migOk).length],
+    // ⚠️이 케이스는 F3 만 보려는 것이므로 다른 규칙(F5 enabled 필터)은 만족시켜 둔다 —
+    //   안 그러면 무엇이 걸렸는지가 흐려진다(자가테스트가 먼저 알려 줬다).
+    ['앱이 kind 를 지어냄', audit(vtOk, `.eq('enabled', true)\nkind: 'live',\nconst SEED = [ { id: 'wealth_guide', kind: 'virtual' }, { id: 'myeongun', kind: 'live' } ];`, migOk).length],
     ['씨앗 불일치', audit(vtOk, csOk, migOk.replace("('myeongun', 'live'", "('other', 'live'")).length],
     // ★주석에만 fetch 가 적힌 경우 — 오탐이면 안 된다
     ['주석 속 fetch(정상)', audit(`// fetch 를 쓰지 않는다\n` + vtOk, csOk, migOk).length],
+    ['enabled 필터 없음', audit(vtOk, csOk.replace(".eq('enabled', true)", ''), migOk).length],
   ];
-  const want = [0, 1, 1, 1, 1, 1, 0];
+  const want = [0, 1, 1, 1, 1, 1, 0, 1];
   let bad = 0;
   cases.forEach(([n, got], i) => {
     const ok = got === want[i];
     console.log(`  ${ok ? '✓' : '❌'} ${n} → ${got}건 (기대 ${want[i]})`);
     if (!ok) bad++;
   });
-  console.log(bad ? `\n❌ 자가테스트 ${bad}건 실패` : '\n✅ check:talkfree 자가테스트 통과 (7케이스)');
+  console.log(bad ? `\n❌ 자가테스트 ${bad}건 실패` : '\n✅ check:talkfree 자가테스트 통과 (8케이스)');
   process.exit(bad ? 1 : 0);
 }
 

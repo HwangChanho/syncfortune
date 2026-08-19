@@ -16,10 +16,9 @@
 //
 // 로그인 게이트 없음(ADR-037).
 // ─────────────────────────────────────────────────────────────────────────
-import { View, Text, StyleSheet, Animated, AppState, Modal, Pressable, Platform } from 'react-native';
+import { View, Text, StyleSheet, Animated, AppState, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context'; // ★상단 안전영역 — 고정 여백은 글자확대 시 잘린다(daniel 07-27)
 import { useRouter, useFocusEffect } from 'expo-router';
-import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../lib/useAuth';
 import { useEffect, useRef, useState, useCallback } from 'react';
 // ChartPicker(명식 선택)는 홈에서 제거(daniel 2026-07-25 '명식 선택은 홈에서 빼자') — 풀이 탭·만세력·설정에서 전환.
@@ -53,7 +52,6 @@ export default function Home() {
   //   상수는 기기 노치·다이내믹아일랜드·글자배율 어느 것도 반영하지 못한다 → 실제 안전영역을 쓴다.
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { t } = useTranslation();
   const { fs } = useFontScale(); // 남은 인라인 글자 크기(명식 없음 안내 등)
   const gen = useGenProgress(); // 통변 생성 진행률(풀이중 홈 나가면 여기 배너로 %)
   // I(daniel): %가 움직이도록 — 진행 중 풀이가 있으면 주기 리렌더(단일 콜의 추정 % 갱신). 진행 없으면 타이머 미동작.
@@ -72,7 +70,6 @@ export default function Home() {
   // 날짜 키 — 홈을 켜둔 채 자정이 지나도 갱신되게(③). 포커스·앱 복귀 시 재확인.
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const [unread, setUnread] = useState(0);                       // 안 읽은 알림(0 이면 배지를 그리지 않는다)
-  const [repName, setRepName] = useState<string | null>(null);   // ★시안 인사말('○○님 반갑습니다')용 대표 명식 이름
   const [hasChart, setHasChart] = useState<boolean>(true); // H1(daniel): 대표 명식 유무 — 없으면 오늘/내일 배너를 '명식 등록 안내'로(탭→등록)
   const [reloadKey, setReloadKey] = useState(0); // 명식 변경(전환·수정) 감지 — 포커스마다 오늘의 기운 재계산(daniel: 명식 수정 시 id 동일이라 갱신 안 되던 버그)
   const [editOpen, setEditOpen] = useState(false); // 홈 배치 편집 모달(daniel 07-21 '편집 모드')
@@ -81,7 +78,6 @@ export default function Home() {
   //   지금은 홈 구성(오늘의 운세 → 배너 → …)을 운영이 정하는 편이 퍼널 의도에 맞다.
   const [isAdmin, setIsAdmin] = useState(false);
   useEffect(() => { isAdminActing().then(setIsAdmin).catch(() => setIsAdmin(false)); }, [session]);
-  const [quickOpen, setQuickOpen] = useState(false); // 🧭 바로가기 메뉴(만세력·AI코치 분기 — daniel 2026-07-25 J)
 
   // 홈 포커스 시(명식 변경 후 복귀 포함) 날짜·대표 명식 재확인 → 오늘의 기운 갱신(①③)
   useFocusEffect(useCallback(() => {
@@ -104,7 +100,6 @@ export default function Home() {
       const rep = await loadRepChart();
       if (!alive) return;
       setHasChart(!!rep);
-      setRepName(rep?.label ?? null);
       void unreadCount().then((n) => { if (alive) setUnread(n); });   // 실패하면 0 = 배지 없음(틀린 숫자보다 낫다)
     })();
     return () => { alive = false; };
@@ -174,8 +169,9 @@ export default function Home() {
           </PressableScale>
         </View>
       </View>
-      {/* 인사말 — 대표 명식이 있으면 이름을 부르고, 없으면 앱 이름을 세운다(빈 자리를 만들지 않는다). */}
-      <Text style={styles.greeting}>{repName ? `${repName}님 반갑습니다.` : t('appName')}</Text>
+      {/* ★인사말은 뺐다(2026-08-19) — 바로 아래 친구목록 맨 위가 '나'라서
+            "황찬호님 반갑습니다." 와 "황찬호" 가 **같은 이름을 두 번** 보여 주고 있었다.
+            카톡은 인사하지 않는다. 이름은 프로필 자리 하나로 충분하다. */}
       {/* 홈 상단 컨트롤 행(daniel 2026-07-25 J): [⠿ 홈 배치 편집] + [🧭 바로가기](만세력·AI코치 분기 메뉴).
           배치 편집 = 블록 순서 드래그(모달·내부 탭 충돌 회피). 바로가기 = 블록에서 뺀 만세력/코치로 진입. */}
       <View style={styles.topCtrlRow}>
@@ -184,9 +180,9 @@ export default function Home() {
             <Text style={styles.editBtnTx}>⠿ 홈 배치 편집</Text>
           </PressableScale>
         )}
-        <PressableScale onPress={() => setQuickOpen(true)} style={styles.editBtn} hitSlop={8}>
-          <Text style={styles.editBtnTx}>⚡ 바로가기</Text>
-        </PressableScale>
+        {/* ★「⚡바로가기」는 뺐다(2026-08-19) — 만세력·팔자 도우미는 **설정 「내 기록」**으로 옮겼다
+            (Boss *"만세력이나 기타 설정들은 설정에서 진입"*). 옮길 곳을 먼저 만들고 뺐고,
+            `check:reach` 가 두 진입로를 지킨다. */}
         {/* ★코인 잔액(daniel 2026-07-28 코인 전환) — 충전 화면 진입점.
             여기 둔 이유: 유료 풀이를 열기 전에 잔액을 미리 알 수 있어야 '부족' 알림이 놀람이 되지 않는다. */}
         {/* ★소셜 프루프(daniel 2026-07-27 IMG_8205 "바로가기 라인 우측에 작게") — 카드였던 걸 이 행 우측 한 줄로.
@@ -234,46 +230,6 @@ export default function Home() {
       </Animated.View>
       <HomeOrderEditModal visible={editOpen} onClose={() => setEditOpen(false)} />
       {/* 🧭 바로가기 메뉴(daniel 2026-07-25 J) — 만세력·AI 코치를 홈 블록에서 빼고 여기서 분기 진입. 배경 탭=닫힘(모달·리스트내 absolute 금지). */}
-      <Modal statusBarTranslucent visible={quickOpen} transparent animationType="fade" onRequestClose={() => setQuickOpen(false)}>
-        <Pressable style={styles.quickBackdrop} onPress={() => setQuickOpen(false)}>
-          <Pressable style={styles.quickSheet} onPress={() => {}}>
-            <Text style={styles.quickSheetTitle}>바로가기</Text>
-            {hasChart && (
-              <PressableScale style={styles.quickItem} onPress={() => { setQuickOpen(false); router.push('/charts'); }}>
-                <Text style={styles.coachBannerEmoji}>📜</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.coachBannerTitle}>{t('menu.manse', '만세력')}</Text>
-                  <Text style={styles.coachBannerSub} numberOfLines={1}>{t('home.manseSub', '내 사주 명식 전체 보기')}</Text>
-                </View>
-                <Text style={styles.coachBannerArrow}>›</Text>
-              </PressableScale>
-            )}
-            <PressableScale style={styles.quickItem} onPress={() => { setQuickOpen(false); router.push('/coach'); }}>
-              <Text style={styles.coachBannerEmoji}>💬</Text>
-              <View style={{ flex: 1 }}>
-                {/* 팔자 도우미로 전환(daniel 2026-07-30) — 종전 'AI 자기이해 코치'(LLM 생성)에서 콘텐츠 안내로 */}
-                <Text style={styles.coachBannerTitle}>{t('assist.title', '우니')}</Text>
-                <Text style={styles.coachBannerSub} numberOfLines={1}>{t('assist.sub', '보고 싶은 걸 말해 주세요. 바로 그 자리로 데려다 드려요.')}</Text>
-              </View>
-              <Text style={styles.coachBannerArrow}>›</Text>
-            </PressableScale>
-            {/* ★명식 등록(daniel 2026-07-27 "홈에서도 명식 등록 할 수 있으면 좋겠어").
-                홈 상단 ChartPicker 는 daniel 이 07-25 에 직접 뺐으므로 되돌리지 않는다 —
-                대신 그때 만든 이 바로가기 메뉴(홈 블록에서 뺀 것들의 집합소)에 등록 동선을 둔다.
-                ★명식이 없을 땐 홈 배너 CTA 가 이미 등록으로 보내므로 여기선 중복 표시하지 않는다. */}
-            {hasChart && (
-              <PressableScale style={styles.quickItem} onPress={() => { setQuickOpen(false); router.push('/register'); }}>
-                <Text style={styles.coachBannerEmoji}>＋</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.coachBannerTitle}>{t('home.quickRegister', '명식 등록')}</Text>
-                  <Text style={styles.coachBannerSub} numberOfLines={1}>{t('home.quickRegisterSub', '가족·연인·친구의 명식을 추가해요')}</Text>
-                </View>
-                <Text style={styles.coachBannerArrow}>›</Text>
-              </PressableScale>
-            )}
-          </Pressable>
-        </Pressable>
-      </Modal>
     </View>
   );
 }

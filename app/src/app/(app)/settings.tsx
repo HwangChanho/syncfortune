@@ -199,8 +199,13 @@ export default function SettingsScreen() {
         <PressableScale style={styles.infoRow} onPress={() => router.push('/myreadings')}>
           <Text style={styles.infoLabel}>{t('nav.readings', '풀이')}</Text><Text style={styles.infoArrow}>›</Text>
         </PressableScale>
-        <PressableScale style={[styles.infoRow, styles.infoRowLast]} onPress={() => router.push('/contents')}>
+        <PressableScale style={styles.infoRow} onPress={() => router.push('/contents')}>
           <Text style={styles.infoLabel}>{t('nav.fortune', '운세')}</Text><Text style={styles.infoArrow}>›</Text>
+        </PressableScale>
+        {/* ★홈의 「⚡바로가기」가 없어지면서 여기로 옮겼다(2026-08-19). 상담사 톡이 이 역할을 대신하지만
+            **쓰던 사람의 이력이 남아 있어** 진입로를 끊지 않는다 — 없앨지는 Boss 판단이다. */}
+        <PressableScale style={[styles.infoRow, styles.infoRowLast]} onPress={() => router.push('/coach')}>
+          <Text style={styles.infoLabel}>{t('nav.coach', '우니')}</Text><Text style={styles.infoArrow}>›</Text>
         </PressableScale>
       </View>
 
