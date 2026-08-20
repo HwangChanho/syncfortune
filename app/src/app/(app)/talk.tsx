@@ -234,7 +234,17 @@ export function TalkHome({ renderTop, mode = 'contacts' }: { renderTop?: ReactNo
           //     사람은 하나 보내고 다음을 친다. 그 **사이 간격**이 사람처럼 느끼게 하는 전부다.
           //   ★뜸은 **앞 풍선 길이**에 비례한다(긴 말 뒤에 더 오래 걸린다). 상한 1.4초 —
           //     그 이상은 '사람 같다'가 아니라 '느리다'가 된다.
-          const parts = r.answer.split(/\n{2,}/).map((x) => x.trim()).filter(Boolean);
+          //   ★모델이 안 나눠 주면 **앱이 문장 단위로 쪼갠다**(Boss 2026-08-20 "더 뚝뚝 끊어").
+          //     프롬프트로만 지시하면 모델이 자꾸 긴 문장을 쓴다 — 지시는 어기지만 문장 부호는 못 어긴다.
+          //     ⚠️짧은 풍선은 건드리지 않는다(45자 이하는 이미 카톡 길이다).
+          const parts = r.answer
+            .split(/\n{2,}/)
+            .flatMap((chunk) => {
+              const c = chunk.trim();
+              if (c.length <= 45) return [c];
+              return c.split(/(?<=[.!?])\s+/).map((x) => x.trim()).filter(Boolean);
+            })
+            .filter(Boolean);
           let at = 0;
           parts.forEach((body, i) => {
             if (i > 0) at += Math.min(1400, 320 + parts[i - 1].length * 12);
