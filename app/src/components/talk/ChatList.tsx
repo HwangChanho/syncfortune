@@ -28,7 +28,14 @@ import { elementColor, elementText } from '../../lib/engine/ohaeng';
 const EL = ['木', '火', '土', '金', '水'] as const;
 
 /** 목록 한 줄 — 세션 + 상담사 이름. */
-type Row = { id: string; consultantId: string; name: string; title: string | null; lastAt: string; turns: number };
+type Row = {
+  id: string; consultantId: string; name: string;
+  /** 미리보기 = 마지막 메시지 한 줄(Boss 2026-08-20 "텍스트 미리보기로 간략하게") */
+  preview: string | null;
+  lastAt: string; turns: number;
+  /** 안 읽은 상담사 메시지 수 — 0 이면 배지를 그리지 않는다 */
+  unread: number;
+};
 
 /** 상대 시각 — "방금 · 3분 전 · 어제". ★날짜를 그대로 적으면 대화 목록이 표처럼 읽힌다. */
 function ago(iso: string, t: (k: string, d?: string) => string): string {
@@ -49,7 +56,11 @@ function ago(iso: string, t: (k: string, d?: string) => string): string {
  * @param onOpen     한 대화를 열었을 때(웹 2칸이면 오른쪽 칸에, 폰이면 대화 화면으로)
  * @param selectedId 지금 열려 있는 상담사 id(웹 2칸에서 줄을 강조)
  */
-export function ChatList({ onOpen, selectedId }: { onOpen: (consultantId: string) => void; selectedId?: string }) {
+export function ChatList({ onOpen, selectedId, reloadKey = 0 }: {
+  onOpen: (consultantId: string) => void; selectedId?: string;
+  /** 답이 오거나 읽음 처리됐을 때 올려서 다시 읽게 한다(웹은 목록과 대화가 동시에 보인다) */
+  reloadKey?: number;
+}) {
   const { t } = useTranslation();
   const router = useRouter();
   const { session } = useAuth();
@@ -60,9 +71,11 @@ export function ChatList({ onOpen, selectedId }: { onOpen: (consultantId: string
     // 상담사 이름표가 필요하다 — 목록은 거의 안 바뀌므로 캐시를 먼저 쓰고, 없으면 한 번 읽는다
     let people = consultantsSnapshot();
     if (!people.length) people = await listConsultants();
+    // ★뷰 하나로 **세션 + 안읽은수 + 미리보기**를 한 번에 받는다.
+    //   세션마다 count 를 따로 물으면 대화 수만큼 왕복이 생긴다(N+1).
     const r = await withTimeout(
-      supabase.from('talk_sessions')
-        .select('id, consultant_id, title, last_at, turn_count')
+      supabase.from('talk_session_list')
+        .select('id, consultant_id, preview, last_at, turn_count, unread')
         .order('last_at', { ascending: false }).limit(50),
       8000,
     );
@@ -72,13 +85,14 @@ export function ChatList({ onOpen, selectedId }: { onOpen: (consultantId: string
       consultantId: s.consultant_id,
       // ⚠️상담사가 사라졌어도 대화는 남는다 — 이름을 못 찾으면 빈 줄을 내지 말고 id 라도 보여 준다
       name: people.find((p) => p.id === s.consultant_id)?.name ?? s.consultant_id,
-      title: s.title,
+      preview: s.preview ?? null,
       lastAt: s.last_at,
       turns: s.turn_count ?? 0,
+      unread: Number(s.unread ?? 0),
     })));
   }, [session]);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => { void load(); }, [load, reloadKey]);
   // 대화하고 돌아오면 갱신 — 방금 나눈 이야기가 목록에 없으면 사라진 것처럼 보인다
   useFocusEffect(useCallback(() => { void load(); }, [load]));
 
@@ -114,11 +128,18 @@ export function ChatList({ onOpen, selectedId }: { onOpen: (consultantId: string
             <View style={styles.col}>
               <Text style={styles.name} numberOfLines={1}>{r.name}</Text>
               {/* 마지막에 물어본 것 — 무슨 얘기였는지가 이름보다 기억을 되살린다 */}
-              <Text style={styles.sub} numberOfLines={1}>{r.title ?? t('chats.noTitle', '대화를 이어가 보세요')}</Text>
+              {/* ★미리보기는 **한 줄**로 자른다 — 목록에서 본문을 읽게 하면 그건 목록이 아니다 */}
+              <Text style={[styles.sub, r.unread > 0 && styles.subUnread]} numberOfLines={1}>
+                {r.preview ?? t('chats.noTitle', '대화를 이어가 보세요')}
+              </Text>
             </View>
             <View style={styles.meta}>
               <Text style={styles.time}>{ago(r.lastAt, t as never)}</Text>
-              {r.turns > 0 && <Text style={styles.turns}>{t('chats.turns', '{{n}}턴').replace('{{n}}', String(r.turns))}</Text>}
+              {/* 안 읽은 수 — ★0 이면 아예 그리지 않는다(0 배지는 정보가 아니라 잡음이다).
+                  99 를 넘으면 '99+' — 정확한 수보다 '많다'가 더 쓸모 있다. */}
+              {r.unread > 0
+                ? <View style={styles.badge}><Text style={styles.badgeTx}>{r.unread > 99 ? '99+' : r.unread}</Text></View>
+                : r.turns > 0 ? <Text style={styles.turns}>{t('chats.turns', '{{n}}턴').replace('{{n}}', String(r.turns))}</Text> : null}
             </View>
           </PressableScale>
         );
@@ -146,5 +167,10 @@ const styles = StyleSheet.create({
   sub: { ...font.caption, color: colors.inkFaint },
   meta: { alignItems: 'flex-end', gap: 3 },
   time: { ...font.caption, color: colors.inkFaint },
-  turns: { ...font.caption, color: colors.ju, fontWeight: '700' },
+  turns: { ...font.caption, color: colors.inkFaint },
+  // 안 읽음 배지 — 강조색 위 글자는 `onJu`(`check:onaccent`)
+  badge: { minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 6, backgroundColor: colors.ju, alignItems: 'center', justifyContent: 'center' },
+  badgeTx: { fontSize: 11.5, lineHeight: 15, fontWeight: '900', color: colors.onJu },
+  // 안 읽은 대화는 미리보기를 진하게 — 목록을 훑을 때 눈이 먼저 간다
+  subUnread: { color: colors.ink, fontWeight: '700' },
 });

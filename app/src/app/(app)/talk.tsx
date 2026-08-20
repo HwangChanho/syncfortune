@@ -18,7 +18,7 @@
 //   "안 되네요" 하나로 묶으면 사용자는 자기 잘못인지 우리 잘못인지 모른다.
 // ═══════════════════════════════════════════════════════════════════════════
 import { useEffect, useState, useCallback, useRef, useMemo, type ReactNode } from 'react';
-import { View, Text, StyleSheet, TextInput, Keyboard, Platform } from 'react-native';
+import { View, Text, StyleSheet, TextInput, Keyboard, Platform, useWindowDimensions } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -29,6 +29,7 @@ import { TalkThread, type TalkItem } from '../../components/talk/TalkThread';
 import { listConsultants, consultantsSnapshot, type Consultant } from '../../lib/talk/consultants';
 import { greet, todayFlow, guide, type VirtualReply } from '../../lib/talk/virtualTalk';
 import { askLive } from '../../lib/talk/liveTalk';
+import { supabase } from '../../lib/supabase';
 import { loadRepChart } from '../../lib/engine/myChart';
 import { ensureServerChartIdForSaved } from '../../lib/backend/prewarmReadings';
 import { useAuth } from '../../lib/useAuth';
@@ -68,6 +69,10 @@ export function TalkHome({ renderTop, mode = 'contacts' }: { renderTop?: ReactNo
   // 대화 목록(`/chats`)에서 특정 상담사를 바로 열 때 쓰는 값
   const { c: openId } = useLocalSearchParams<{ c?: string }>();
   const wide = useWideWeb();
+  // 세 칸을 다 펴려면 목록 둘(264×2) + 사이드바(210) 위에 대화창이 최소 420 은 있어야 한다.
+  //   ★못 미치면 채팅목록을 접는다 — 세 칸이 다 답답한 것보다 두 칸이 낫다.
+  const { width: winW } = useWindowDimensions();
+  const showChatPane = wide && winW >= 1160;
   const insets = useSafeAreaInsets();
   const { session } = useAuth();
 
@@ -93,6 +98,20 @@ export function TalkHome({ renderTop, mode = 'contacts' }: { renderTop?: ReactNo
   const [myName, setMyName] = useState<string | null>(null);   // 친구목록 상단 '나' — 대표 명식 label
   const [draft, setDraft] = useState('');
   const [busy, setBusy] = useState(false);        // 실제 상담사가 답을 만드는 중(점 세 개)
+  // 채팅목록(오른쪽 칸)을 다시 읽게 하는 신호 — 답이 오거나 읽음 처리했을 때 올린다.
+  //   ★웹은 목록과 대화창이 **동시에 보이므로**, 답이 왔는데 목록이 그대로면 화면이 자기모순이 된다.
+  const [chatsTick, setChatsTick] = useState(0);
+  const bumpChats = useCallback(() => setChatsTick((n) => n + 1), []);
+  /**
+   * 읽음 처리 — ★실패 사유를 **삼키지 않는다**(`check:rpcerror`).
+   *   배지가 안 사라지는 건 눈에 보이는 증상인데, 원인(권한·네트워크)을 안 남기면
+   *   "왜 안 지워지지"만 남는다. 화면은 막지 않되 로그는 남긴다.
+   */
+  const markRead = useCallback(async (sessionId: string) => {
+    const { error } = await supabase.rpc('mark_talk_read', { p_session: sessionId });
+    if (error) console.warn('[talk] mark_talk_read 실패', error.message);
+    bumpChats();
+  }, [bumpChats]);
   // 세션은 **상담사별로** 따로 이어진다 — 한 세션에 여러 상담사를 섞으면 이력이 뒤엉킨다
   const sessRef = useRef<Record<string, string>>({});
   // ★키보드 회피 — `coach.tsx` 와 **같은 패턴**을 쓴다(`check:keyboard` R1/R2).
@@ -141,6 +160,11 @@ export function TalkHome({ renderTop, mode = 'contacts' }: { renderTop?: ReactNo
   //   실제 상담사였다면 그것만으로 API 를 태울 수도 있었다(첫 인사는 공짜라 태우진 않았지만, 구조가 위험했다).
   const open = useCallback((c: Consultant) => {
     setCur(c);
+    // ★대화를 열면 **읽음 처리**한다 — 안 그러면 배지가 영원히 남는다.
+    //   시각은 서버가 `now()` 로 찍는다(앱이 값을 보내면 미래 시각으로 배지를 지울 수 있다).
+    //   실패해도 대화는 열린다(배지가 한 번 더 뜰 뿐이다).
+    const sid = sessRef.current[c.id];
+    if (sid) void markRead(sid);
     // ── 홈 블록 친구 — 인사 한 줄 + **기존 화면 그대로** ──
     //   ★말풍선으로 내용을 옮겨 적지 않는다. 옮겨 적는 순간 홈과 갈린다.
     if (c.block) {
@@ -159,7 +183,7 @@ export function TalkHome({ renderTop, mode = 'contacts' }: { renderTop?: ReactNo
         body: t('talk.liveGreet', '안녕하세요. {{name}}이에요. 무엇이 궁금하세요?').replace('{{name}}', c.name),
       }]);
     }
-  }, [t]);
+  }, [t, dateKey, myName, bumpChats]);
 
   /**
    * 사용자가 한 마디.
@@ -190,6 +214,8 @@ export function TalkHome({ renderTop, mode = 'contacts' }: { renderTop?: ReactNo
       .then((r) => {
         if (r.ok) {
           sessRef.current[cur.id] = r.sessionId;   // 다음 턴부터 이력이 이어진다
+          // 방금 내가 읽은 답이므로 읽음 처리 + 목록 갱신(미리보기·시각이 바로 반영된다)
+          void markRead(r.sessionId);
           setItems((prev) => [...prev, { id: nextId(), role: 'assistant', body: r.answer }]);
           // 무료를 다 쓴 순간에만 한 번 알린다 — 매 턴 알리면 잔소리가 된다
           if (r.overFree && r.used === r.freeDaily + 1) {
@@ -204,12 +230,12 @@ export function TalkHome({ renderTop, mode = 'contacts' }: { renderTop?: ReactNo
         }
       })
       .finally(() => setBusy(false));
-  }, [draft, cur, saju, busy, chartId, t, i18n.language]);
+  }, [draft, cur, saju, busy, chartId, t, i18n.language, bumpChats]);
 
   // ★블록 친구에겐 입력창을 띄우지 않는다 — 물어봐도 답할 수 없는 입력창은 없느니만 못하다
   /**
-   * 왼쪽 칸 — 탭에 따라 친구목록/대화목록. **여기 한 곳에서만 갈린다.**
-   * ★대화 목록에서 연 상담사는 `findConsultant` 로 찾는다 — 목록에 없으면(비활성 등) 안 연다.
+   * 폰의 목록 칸 — 탭에 따라 친구목록/대화목록. **여기 한 곳에서만 갈린다.**
+   * ★웹은 셋을 동시에 펴므로 이 분기를 쓰지 않는다(폰만 좁아서 갈린다).
    */
   const leftPane = mode === 'chats'
     ? <ChatList selectedId={cur?.id} onOpen={(id) => { const c = list.find((x) => x.id === id); if (c) open(c); }} />
@@ -233,14 +259,26 @@ export function TalkHome({ renderTop, mode = 'contacts' }: { renderTop?: ReactNo
     </View>
   ) : null;
 
-  // ── 넓은 웹 = 두 칸 ──────────────────────────────────────────────
+  // ── 넓은 웹 = **세 칸** ───────────────────────────────────────────
+  //   Boss 2026-08-20 *"웹은 화면 분할해서 채팅목록 리스트 띄워두라니깐"*.
+  //   [친구목록 | 채팅목록 | 대화창] — 카톡 PC 와 같은 배치다.
+  //   ★내가 앞서 두 칸([친구목록 | 대화창])으로 만든 게 틀렸다.
+  //     그러면 **채팅목록을 볼 자리가 아예 없어서**, 나눈 대화가 어디 있는지 알 수 없다.
+  //     (Boss 가 세 번 말한 뒤에야 맞췄다 — '탭'이 아니라 '칸'이라는 말을 내가 계속 탭으로 읽었다.)
+  //   ⚠️아주 좁은 웹(900~1200)에서는 세 칸이 각각 답답하므로 채팅목록을 접는다.
   if (wide) {
     return (
       <View style={styles.two}>
         <View style={[styles.pane, { paddingTop: renderTop ? 0 : insets.top }]}>
           {renderTop}
-          {leftPane}
+          <TalkList items={list} onOpen={open} selected={cur?.id} myName={myName} onMe={() => router.push('/charts')} />
         </View>
+        {showChatPane && (
+          <View style={[styles.pane, { paddingTop: insets.top }]}>
+            <ChatList reloadKey={chatsTick} selectedId={cur?.id}
+                      onOpen={(id) => { const c = list.find((x) => x.id === id); if (c) open(c); }} />
+          </View>
+        )}
         <View style={styles.main}>
           {cur ? (
             <>
@@ -288,11 +326,12 @@ const styles = StyleSheet.create({
   one: { flex: 1, backgroundColor: colors.bg },
   two: { flex: 1, flexDirection: 'row', backgroundColor: colors.bg },
   // 왼쪽 목록 — 폭 고정(내용에 따라 흔들리면 눈이 피곤하다).
-  //   ★300 → 264 (Boss 2026-08-20 *"친구리스트 가로 길이가 너무 길어"*).
-  //     친구 줄은 아바타(48) + 여백 + 이름뿐이라 300 은 오른쪽이 계속 비어 있었다.
-  //     264 는 가장 긴 이름(「나는 어떤 사람인가」 9자)이 한 줄에 들어가는 폭이다 —
-  //     더 줄이면 이름이 잘리고, 잘린 이름은 목록으로서 쓸모가 없다.
-  pane: { width: 264, borderRightWidth: 1, borderRightColor: colors.line },
+  //   300 → 264 (Boss *"가로 길이가 너무 길어"*) → **282**.
+  //   ⚠️264 는 '아바타+이름'만 있을 때의 최소폭이었다. 그 뒤 **즐겨찾기 별이 들어오면서**
+  //     이름 자리가 24px 줄어 「나는 어떤 사람인가」가 잘렸다(실물에서 확인).
+  //   ⇒ 별 폭만큼 되돌린 282 다. 300 보다는 짧고, 가장 긴 이름이 한 줄에 들어간다.
+  //     ★잘린 이름은 목록으로서 쓸모가 없다 — 폭을 줄이는 것보다 이름이 보이는 게 먼저다.
+  pane: { width: 282, borderRightWidth: 1, borderRightColor: colors.line },
   main: { flex: 1, minWidth: 0 },
 
   head: {

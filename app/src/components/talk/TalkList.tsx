@@ -16,7 +16,7 @@
 //   오행 색 + 이름 첫 글자로 버틴다. `avatar` 컬럼에 경로가 들어오면 그때부터 사진이 뜬다.
 //   ★색은 id 로 **고정 배정**한다. 매번 달라지면 사람이 얼굴로 못 외운다.
 // ═══════════════════════════════════════════════════════════════════════════
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TextInput } from 'react-native';
 import { Image as ExpoImage } from 'expo-image';
 import { useTranslation } from 'react-i18next';
@@ -25,6 +25,7 @@ import { A } from '../../lib/ui/remoteAsset';
 import { colors, space, radius, font } from '../../lib/theme';
 import { elementColor, elementText } from '../../lib/engine/ohaeng';
 import type { Consultant } from '../../lib/talk/consultants';
+import { loadFavorites, subscribeFavorites, splitByFavorite, toggleFavorite, isFavorite, isPinned } from '../../lib/talk/favorites';
 
 const FALLBACK_EL = ['木', '火', '土', '金', '水'] as const;
 
@@ -77,6 +78,40 @@ function Avatar({ name, initial, slot, uri, size = 48 }: {
 }
 
 /**
+ * 친구 한 줄 — 즐겨찾기 칸과 일반 칸이 **같은 컴포넌트**를 쓴다.
+ * ★두 벌로 만들면 한쪽만 고쳐져 같은 친구가 위아래에서 다르게 보인다.
+ *
+ * @param slot 얼굴색 자리(전체 목록 기준 — 즐겨찾기로 올라가도 얼굴이 안 바뀐다)
+ */
+function Row({ c, initial, slot, on, onOpen, t }: {
+  c: Consultant; initial?: string; slot: number; on: boolean;
+  onOpen: (c: Consultant) => void; t: (k: string, d?: string) => string;
+}) {
+  const pinned = isPinned(c.id);
+  const faved = isFavorite(c.id);
+  return (
+    <PressableScale style={[styles.row, on && styles.rowOn]} onPress={() => onOpen(c)}>
+      <Avatar name={c.name} initial={initial} slot={slot} uri={c.avatar} />
+      <View style={styles.col}>
+        <Text style={styles.name} numberOfLines={1}>{c.name}</Text>
+      </View>
+      {/* 별 — ★고정된 친구는 **누를 수 없다**(실수로 빼고 "없어졌다"가 되면 우리 잘못이다).
+          그래서 고정은 별을 흐리게 두고 hitSlop 도 주지 않는다. */}
+      <PressableScale
+        hitSlop={pinned ? 0 : 10}
+        disabled={pinned}
+        onPress={() => { if (!pinned) void toggleFavorite(c.id); }}
+        accessibilityLabel={t(faved ? 'talk.unfav' : 'talk.fav', '즐겨찾기')}
+      >
+        <Text style={[styles.star, faved && styles.starOn, pinned && styles.starPinned]}>
+          {faved ? '★' : '☆'}
+        </Text>
+      </PressableScale>
+    </PressableScale>
+  );
+}
+
+/**
  * 친구목록.
  *
  * @param items    상담사들(이미 정렬돼 있다)
@@ -96,6 +131,12 @@ export function TalkList({ items, onOpen, selected, myName, onMe }: {
   // ★검색은 **온디바이스 필터**다(Boss 손그림 2026-08-20 상단 검색바).
   //   서버로 질의하지 않는다 — 목록이 열댓 개라 왕복할 이유가 없고, 원가도 0이다.
   const [q, setQ] = useState('');
+  // 즐겨찾기 — 온디바이스. ★별을 누르면 **즉시** 다시 그린다(새로고침을 요구하지 않는다).
+  const [favTick, setFavTick] = useState(0);
+  useEffect(() => {
+    void loadFavorites().then(() => setFavTick((n) => n + 1));
+    return subscribeFavorites(() => setFavTick((n) => n + 1));
+  }, []);
   const shown = useMemo(() => {
     const k = q.trim().toLowerCase();
     return k ? items.filter((c) => c.name.toLowerCase().includes(k)) : items;
@@ -104,6 +145,13 @@ export function TalkList({ items, onOpen, selected, myName, onMe }: {
   //   검색으로 걸러질 때마다 얼굴 글자가 바뀌면 같은 친구가 다른 사람처럼 보인다.
   const allInitials = useMemo(() => initialsFor(items.map((c) => c.name)), [items]);
   const initialOf = (id: string) => allInitials[items.findIndex((c) => c.id === id)];
+  // ★얼굴색은 **전체 목록 위치**로 정한다 — 즐겨찾기로 올라가도 같은 얼굴이어야 한다
+  const slotOf = (id: string) => items.findIndex((c) => c.id === id) + 1;
+  // 즐겨찾기/나머지 — 검색 중이면 가르지 않는다(찾는 사람이 어디 있든 한 곳에 보여야 한다)
+  const { fav, rest } = useMemo(
+    () => (q.trim() ? { fav: [] as Consultant[], rest: shown } : splitByFavorite(shown)),
+    [shown, q, favTick],
+  );
   return (
     <ScrollView style={styles.wrap} contentContainerStyle={styles.body}>
       {/* ── 검색 ── */}
@@ -131,20 +179,30 @@ export function TalkList({ items, onOpen, selected, myName, onMe }: {
         </View>
       </PressableScale>
 
+      {/* ── 즐겨찾기 ──────────────────────────────────────────────
+          Boss 2026-08-20: 상단에 즐겨찾기 칸, 노쎔은 고정.
+          ★검색 중에는 접는다 — 찾는 중에 고정 칸이 위를 먹으면 결과가 밀린다. */}
+      {!q.trim() && fav.length > 0 && (
+        <>
+          <View style={styles.rule} />
+          <Text style={styles.section}>{t('talk.favorites', '즐겨찾기')}</Text>
+          {fav.map((c) => (
+            <Row key={c.id} c={c} initial={initialOf(c.id)} slot={slotOf(c.id)}
+                 on={selected === c.id} onOpen={onOpen} t={t as never} />
+          ))}
+        </>
+      )}
+
       <View style={styles.rule} />
       {/* 친구 수 — ★검색 중이면 **걸러진 수**를 보여 준다(안 그러면 목록과 숫자가 어긋난다) */}
       <Text style={styles.section}>
-        {t('talk.friendsCount', '친구 {{n}}명').replace('{{n}}', String(shown.length))}
+        {t('talk.friendsCount', '친구 {{n}}명').replace('{{n}}', String(rest.length))}
       </Text>
 
       {/* ── 친구 ── */}
-      {shown.map((c) => (
-        <PressableScale key={c.id} style={[styles.row, selected === c.id && styles.rowOn]} onPress={() => onOpen(c)}>
-          <Avatar name={c.name} initial={initialOf(c.id)} slot={items.findIndex((x) => x.id === c.id) + 1} uri={c.avatar} />
-          <View style={styles.col}>
-            <Text style={styles.name} numberOfLines={1}>{c.name}</Text>
-          </View>
-        </PressableScale>
+      {rest.map((c) => (
+        <Row key={c.id} c={c} initial={initialOf(c.id)} slot={slotOf(c.id)}
+             on={selected === c.id} onOpen={onOpen} t={t as never} />
       ))}
       {/* ★빈 결과를 말없이 두지 않는다 — 목록이 사라진 이유를 화면이 설명해야 한다 */}
       {q.trim() && !shown.length
@@ -178,4 +236,8 @@ const styles = StyleSheet.create({
   rowOn: { backgroundColor: colors.juSoft },
   col: { flex: 1, minWidth: 0 },
   name: { fontSize: 15.5, lineHeight: 21, fontWeight: '700', color: colors.ink },
+  star: { fontSize: 17, color: colors.inkFaint, paddingHorizontal: space(1) },
+  starOn: { color: colors.ju },
+  // 고정 = 켜져 있지만 **누를 수 없다**는 것을 흐리기로 알린다(비활성 버튼의 관례)
+  starPinned: { opacity: 0.45 },
 });

@@ -27,7 +27,6 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { Image as ExpoImage } from 'expo-image';
 import { brandMark } from '../../lib/ui/brandAsset';
 import { TalkHome } from './talk';   // ★08-19 시작 화면 = 친구목록
-import { unreadCount } from '../../lib/backend/notifyInbox';   // ★시안 헤더의 종 — 안 읽은 알림 배지
 import { isAdminActing } from '../../lib/core/admin'; // 홈 배치 편집 = 관리자 전용(daniel 2026-08-06) // 홈 상단 내부 프로모 배너(하우스 광고·daniel 07-24)
 import { useGenProgress, clearGenProgress } from '../../lib/backend/genProgress'; // 풀이 진행률(다중·route별, 풀이중 홈 나가도 % — daniel)
 import { useSubscription } from '../../lib/billing/subscription';
@@ -68,7 +67,6 @@ export default function Home() {
   const { isPremium } = useSubscription();
   // 날짜 키 — 홈을 켜둔 채 자정이 지나도 갱신되게(③). 포커스·앱 복귀 시 재확인.
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const [unread, setUnread] = useState(0);                       // 안 읽은 알림(0 이면 배지를 그리지 않는다)
   const [hasChart, setHasChart] = useState<boolean>(true); // H1(daniel): 대표 명식 유무 — 없으면 오늘/내일 배너를 '명식 등록 안내'로(탭→등록)
   const [reloadKey, setReloadKey] = useState(0); // 명식 변경(전환·수정) 감지 — 포커스마다 오늘의 기운 재계산(daniel: 명식 수정 시 id 동일이라 갱신 안 되던 버그)
   const [editOpen, setEditOpen] = useState(false); // 홈 배치 편집 모달(daniel 07-21 '편집 모드')
@@ -99,7 +97,6 @@ export default function Home() {
       const rep = await loadRepChart();
       if (!alive) return;
       setHasChart(!!rep);
-      void unreadCount().then((n) => { if (alive) setUnread(n); });   // 실패하면 0 = 배지 없음(틀린 숫자보다 낫다)
     })();
     return () => { alive = false; };
   }, [reloadKey, session]);
@@ -158,14 +155,11 @@ export default function Home() {
               넓은 웹에서는 사이드바가 이미 브랜드를 달고 있어 숨긴다(브랜드 중복 방지·08-15 규칙 유지). */}
         {!wideWebHome && <ExpoImage source={brandMark()} style={styles.brandMark} contentFit="contain" transition={160} />}
         <View style={[styles.headerSide, styles.headerIcons]}>
-          {/* 알림 — 안 읽은 게 있을 때만 점을 얹는다(숫자는 쓰지 않는다: 3개든 30개든 '새 게 있다'가 전부다) */}
-          <PressableScale onPress={() => router.push('/notifications')} hitSlop={10} style={styles.iconBtn}>
-            <Text style={styles.iconTx}>🔔</Text>
-            {unread > 0 ? <View style={styles.dot} /> : null}
-          </PressableScale>
-          {/* ★설정 아이콘은 뺐다(Boss 손그림 2026-08-20 — 우상단에 **알림 하나만** 있다).
-              설정은 하단 탭으로 갔으므로 헤더에 또 두면 같은 곳으로 가는 문이 두 개다.
-              ⚠️도달 경로는 탭이 보장한다(`check:reach` 는 탭에 있는 화면을 면제한다). */}
+          {/* ★알림 종은 뺐다(Boss 2026-08-20 *"상단에 알림은 빼버리고"*).
+              알림은 두 갈래로 간다: **모바일=푸시** · **웹=채팅목록의 안 읽은 배지+미리보기**.
+              ⇒ 종을 눌러 목록을 여는 단계가 사라지고, 어디에 새 소식이 있는지가 목록에 바로 보인다.
+              ⚠️`/notifications` 화면은 살아 있다 — 푸시를 눌러 들어오는 곳이라 지우면 안 된다.
+              ★로고는 남긴다(Boss *"첫 시작화면에 로고뜨고"*) — 폰에는 사이드바가 없다. */}
         </View>
       </View>
       {/* ★인사말은 뺐다(2026-08-19) — 바로 아래 친구목록 맨 위가 '나'라서
