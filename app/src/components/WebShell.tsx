@@ -162,9 +162,10 @@ function WebSidebar() {
 
   return (
     <View style={styles.side}>
+      {/* ★부제는 뺐다(Boss 2026-08-20) — 카톡형 친구목록에선 사이드바가 '설명하는 자리'가 아니라
+          '이름표'다. 서비스 설명은 랜딩(`WebLanding`)이 맡는다(거기 문구는 그대로다). */}
       <View style={styles.brand}>
         <Text style={styles.brandTx}>니운내운</Text>
-        <Text style={styles.brandSub}>사주와 자미두수를 결합한 해석</Text>
       </View>
       {tabs.map((tb) => {
         // ★판정은 BottomNav 와 **같은 함수**를 쓴다(2026-08-18).
@@ -236,7 +237,6 @@ const styles = StyleSheet.create({
   },
   brand: { paddingHorizontal: space(3), marginBottom: space(6) },
   brandTx: { color: colors.ink, fontSize: 21, lineHeight: 28, fontWeight: '800' },
-  brandSub: { color: colors.inkSoft, fontSize: 12, lineHeight: 18, marginTop: 4 },
 
   item: {
     flexDirection: 'row', alignItems: 'center', gap: space(3),
