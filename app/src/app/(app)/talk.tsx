@@ -29,6 +29,7 @@ import { TalkThread, type TalkItem } from '../../components/talk/TalkThread';
 import { listConsultants, consultantsSnapshot, type Consultant } from '../../lib/talk/consultants';
 import { greet, todayFlow, guide, type VirtualReply } from '../../lib/talk/virtualTalk';
 import { askLive, loadThread } from '../../lib/talk/liveTalk';
+import { pickTalkImage } from '../../lib/talk/talkImagery';
 import { supabase } from '../../lib/supabase';
 import { loadRepChart } from '../../lib/engine/myChart';
 import { ensureServerChartIdForSaved } from '../../lib/backend/prewarmReadings';
@@ -114,6 +115,8 @@ export function TalkHome({ renderTop, mode = 'contacts' }: { renderTop?: ReactNo
   }, [bumpChats]);
   // 세션은 **상담사별로** 따로 이어진다 — 한 세션에 여러 상담사를 섞으면 이력이 뒤엉킨다
   const sessRef = useRef<Record<string, string>>({});
+  // 이 대화에서 이미 쓴 그림 — ★같은 그림을 반복하면 '자동으로 붙는 장식'처럼 보인다
+  const usedArtRef = useRef<Set<string>>(new Set());
   // ★키보드 회피 — `coach.tsx` 와 **같은 패턴**을 쓴다(`check:keyboard` R1/R2).
   //   입력바가 하단 고정이라 KeyboardAvoidingView 로는 안 올라간다 — 리스너로 직접 올린다.
   //   하단 내비 높이를 빼는 이유: 키보드가 그만큼을 이미 덮고 있어서, 안 빼면 두 번 올라간다.
@@ -190,7 +193,15 @@ export function TalkHome({ renderTop, mode = 'contacts' }: { renderTop?: ReactNo
         if (!th) return;
         sessRef.current[c.id] = th.sessionId;
         if (th.messages.length) {
-          setItems(th.messages.map((m) => ({ id: nextId(), role: m.role, body: m.body })));
+          // ★복원된 이력에도 같은 규칙으로 그림을 붙인다 — 결정론이라 **처음과 같은 그림**이 나온다
+          //   (모델에게 고르게 했다면 다시 열 때마다 달라졌을 것이다).
+          const used = new Set<string>();
+          setItems(th.messages.map((m) => {
+            const p = m.role === 'assistant' ? pickTalkImage(m.body, used) : null;
+            if (p) used.add(p.art);
+            return { id: nextId(), role: m.role, body: m.body, image: p?.source };
+          }));
+          usedArtRef.current = used;
           void markRead(th.sessionId);
         }
       });
@@ -245,11 +256,19 @@ export function TalkHome({ renderTop, mode = 'contacts' }: { renderTop?: ReactNo
               return c.split(/(?<=[.!?])\s+/).map((x) => x.trim()).filter(Boolean);
             })
             .filter(Boolean);
+          // 그림은 **답 전체**를 보고 한 장만 고른다(풍선마다 고르면 여러 장이 붙는다)
+          const pick = pickTalkImage(r.answer, usedArtRef.current);
+          if (pick) usedArtRef.current.add(pick.art);
           let at = 0;
           parts.forEach((body, i) => {
             if (i > 0) at += Math.min(1400, 320 + parts[i - 1].length * 12);
             const ms = at;
-            setTimeout(() => setItems((prev) => [...prev, { id: nextId(), role: 'assistant', body }]), ms);
+            const last = i === parts.length - 1;
+            setTimeout(() => setItems((prev) => [...prev, {
+              id: nextId(), role: 'assistant', body,
+              // ★마지막 풍선에 붙인다 — 말이 끝난 뒤 사진을 보내는 순서가 자연스럽다
+              image: last && pick ? pick.source : undefined,
+            }]), ms);
           });
           // 마지막 풍선이 뜰 때까지 '입력 중'을 유지한다 — 중간에 꺼지면 끝난 줄 안다
           if (parts.length > 1) { setBusy(true); setTimeout(() => setBusy(false), at); }

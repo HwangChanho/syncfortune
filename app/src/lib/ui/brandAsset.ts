@@ -59,7 +59,11 @@ export type BannerArt =
   | 'door' | 'sunrise'                     // 土 계열(피치·탠)
   | 'clover' | 'tree'                      // 木 계열(그린)
   | 'stairs' | 'butterfly'                 // 火 계열(로즈)
-  | 'candle';                              // 중성(라벤더그레이)
+  | 'candle'                               // 중성(라벤더그레이)
+  // ★아래 셋은 Storage 에는 있었지만 타입에 빠져 있었다(2026-08-20 대화 그림을 붙이다 타입체커가 잡았다).
+  //   배너 회전(`BANNER_POOL`)에는 넣지 않았다 — 거긴 오행별로 색이 맞아야 하고,
+  //   이 셋은 **대화에서 주제로 고르는 용도**라 색 계열을 따지지 않는다.
+  | 'compass' | 'forest' | 'pen';
 
 /**
  * 그림의 **바탕색**(왼쪽 빈 면의 색) — 배너 배경을 이 값으로 칠한다.
@@ -70,12 +74,17 @@ export type BannerArt =
  * ⚠️눈으로 고른 값이 아니라 각 그림 좌상단 1/4 의 **중앙값을 계산**한 것이다.
  *   `check:bannerart` 가 파일을 다시 읽어 이 값과 맞는지 검증한다.
  */
+// ⚠️`Record<BannerArt, …>` 라 새 이름을 추가하면 여기도 채워야 한다(타입이 강제한다).
+//   대화용 셋은 배너로 쓰이지 않지만, 값을 비워 둘 수 없으므로 계열이 가까운 색을 준다.
 export const BANNER_FIELD: Record<BannerArt, string> = {
   balloon: '#E7E8FD', couple: '#E9ECFF', moonlake: '#DADEFC',
   door: '#FFEEDB', sunrise: '#FEE8C9',
   clover: '#F0F0E4', tree: '#F1F1E7',
   stairs: '#FCDDDD', butterfly: '#FCDEDE',
   candle: '#EDE9F7',
+  // 대화용 셋(2026-08-20) — ★기존 값과 **같은 방법**으로 뽑았다(그림 좌상단 1/4 의 중앙값).
+  //   눈으로 고르지 않는다 — 배경이 그림 바탕색과 어긋나면 그림 자리에 밝은 사각형이 뜬다.
+  compass: '#ECE8F6', forest: '#B1BBF9', pen: '#FFE6C7',
 };
 
 /**

@@ -13,6 +13,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import { useRef, useEffect, type ReactNode } from 'react';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
+import { Image as ExpoImage } from 'expo-image';
 import { useTranslation } from 'react-i18next';
 import { PressableScale } from '../PressableScale';
 import { colors, space, radius, font, shadow } from '../../lib/theme';
@@ -29,6 +30,11 @@ export type TalkItem = {
    *   카톡도 지도·송금 같은 건 말풍선 밖으로 낸다.
    */
   node?: ReactNode;
+  /**
+   * 말풍선에 붙는 그림(Boss 2026-08-20 *"대화 할때 다양한 이미지들도"*).
+   * ★말풍선 **안**이 아니라 아래에 따로 얹는다 — 카톡도 사진은 말풍선과 별개 덩이다.
+   */
+  image?: { uri: string } | number;
 };
 
 /**
@@ -59,6 +65,10 @@ export function TalkThread({ items, busy, onLink }: {
           ) : null}
           {/* 홈 블록은 말풍선 밖으로 — 폭을 온전히 써야 원래 카드 그대로 보인다 */}
           {m.node ? <View style={styles.node}>{m.node}</View> : null}
+          {/* 그림 — ★비율을 고정한다(16:10). 안 하면 로드 전후로 화면이 튀어 대화가 흔들린다 */}
+          {m.image ? (
+            <ExpoImage source={m.image} style={styles.photo} contentFit="cover" transition={200} />
+          ) : null}
           {m.links?.length ? (
             <View style={styles.links}>
               {m.links.map((l) => (
@@ -108,6 +118,8 @@ const styles = StyleSheet.create({
   typingTx: { ...font.caption, color: colors.inkFaint },
 
   node: { alignSelf: 'stretch', marginTop: space(1) },
+  // 그림 — 말풍선보다 살짝 좁게(84%) 두어 '얹힌 것'으로 보이게. 높이는 비율 고정.
+  photo: { width: '68%', aspectRatio: 16 / 10, borderRadius: radius.lg, marginTop: space(2) },
   links: { marginTop: space(2), gap: space(1.5), alignSelf: 'stretch' },
   link: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
