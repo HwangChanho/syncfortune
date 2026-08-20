@@ -287,8 +287,12 @@ export function TalkHome({ renderTop, mode = 'contacts' }: { renderTop?: ReactNo
 const styles = StyleSheet.create({
   one: { flex: 1, backgroundColor: colors.bg },
   two: { flex: 1, flexDirection: 'row', backgroundColor: colors.bg },
-  // 왼쪽 목록 — 폭을 고정한다(내용에 따라 흔들리면 눈이 피곤하다)
-  pane: { width: 300, borderRightWidth: 1, borderRightColor: colors.line },
+  // 왼쪽 목록 — 폭 고정(내용에 따라 흔들리면 눈이 피곤하다).
+  //   ★300 → 264 (Boss 2026-08-20 *"친구리스트 가로 길이가 너무 길어"*).
+  //     친구 줄은 아바타(48) + 여백 + 이름뿐이라 300 은 오른쪽이 계속 비어 있었다.
+  //     264 는 가장 긴 이름(「나는 어떤 사람인가」 9자)이 한 줄에 들어가는 폭이다 —
+  //     더 줄이면 이름이 잘리고, 잘린 이름은 목록으로서 쓸모가 없다.
+  pane: { width: 264, borderRightWidth: 1, borderRightColor: colors.line },
   main: { flex: 1, minWidth: 0 },
 
   head: {

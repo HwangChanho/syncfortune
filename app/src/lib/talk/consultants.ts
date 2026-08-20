@@ -37,6 +37,8 @@ export type Consultant = {
  * ★마이그레이션 `0026` 의 시드와 **같은 내용**이다. 둘이 갈리면 오프라인에서 다른 앱이 된다.
  */
 const SEED: Consultant[] = [
+  // ★메인 사주풀이 친구(Boss 2026-08-19). 말투는 아직 없다 — 공통 프롬프트만으로 답한다(§3 검수 대기).
+  { id: 'nossem', kind: 'live', name: '노쎔', tagline: '사주 풀이', avatar: null, specialty: ['all'], routes: [], sortOrder: 5 },
   { id: 'wealth_guide', kind: 'virtual', name: '재물 안내', tagline: '돈·일·재물 그릇', avatar: null, specialty: ['wealth', 'work'], routes: ['wealth', 'career', 'job', 'jobfit', 'talent'], sortOrder: 10 },
   { id: 'love_guide', kind: 'virtual', name: '인연 안내', tagline: '연애·궁합·인연', avatar: null, specialty: ['love'], routes: ['love', 'crush', 'reunion', 'compat', 'lovestyle', 'relationmap'], sortOrder: 20 },
   { id: 'flow_guide', kind: 'virtual', name: '흐름 안내', tagline: '오늘·이달·올해의 결', avatar: null, specialty: ['today'], routes: ['today', 'month', 'newyear', 'future10', 'timeline', 'luck'], sortOrder: 30 },

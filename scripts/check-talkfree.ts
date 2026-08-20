@@ -17,13 +17,16 @@
  *
  * 사용: npm run check:talkfree · 자가테스트: npx tsx scripts/check-talkfree.ts --selftest
  */
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
 const ROOT = join(import.meta.dirname, '..');
 const P_VT = 'app/src/lib/talk/virtualTalk.ts';
 const P_CS = 'app/src/lib/talk/consultants.ts';
-const P_MIG = 'supabase/migrations/0026_consultant_talk.sql';
+// ⚠️★단일 파일을 보면 안 된다(2026-08-20에 잡힘) — 상담사 시드는 **여러 마이그레이션에 흩어진다**.
+//   `0026` 만 보다가 `0028` 에서 추가한 「노쎔」을 못 읽어 '씨앗 불일치'로 잘못 실패했다.
+//   ⇒ `consultants` 에 insert 하는 마이그레이션을 전부 모아서 본다(다음에 0029 가 생겨도 자동).
+const MIG_DIR = 'supabase/migrations';
 
 type Fail = { rule: string; msg: string };
 
@@ -86,8 +89,9 @@ export function audit(vt: string, cs: string, mig: string): Fail[] {
   const appIds = [...code(cs).matchAll(/id:\s*'([a-z_]+)',\s*kind:/g)].map((m) => m[1]).sort();
   // ⚠️`insert … values` 블록 안에서만 찾는다 — 그러지 않으면
   //   `check (kind in ('virtual','live'))` 같은 **제약 조건**이 씨앗으로 잡힌다(실제로 그랬다).
-  const valuesBlock = mig.match(/insert into public\.consultants[\s\S]*?;/)?.[0] ?? '';
-  const sqlIds = [...valuesBlock.matchAll(/\('([a-z_]+)',\s*'(virtual|live)'/g)].map((m) => m[1]).sort();
+  //   ★insert 가 **여러 개**일 수 있으므로 전부 모은다(matchAll) — 하나만 보면 나중에 추가한 상담사를 놓친다.
+  const blocks = [...mig.matchAll(/insert into public\.consultants[\s\S]*?;/g)].map((m) => m[0]).join('\n');
+  const sqlIds = [...new Set([...blocks.matchAll(/\('([a-z_]+)',\s*'(virtual|live)'/g)].map((m) => m[1]))].sort();
   if (!appIds.length || !sqlIds.length) {
     out.push({ rule: 'F4', msg: `씨앗을 못 읽었다 (앱 ${appIds.length} · SQL ${sqlIds.length})` });
   } else if (appIds.join(',') !== sqlIds.join(',')) {
@@ -119,22 +123,35 @@ insert into public.consultants (id, kind) values
     // ★주석에만 fetch 가 적힌 경우 — 오탐이면 안 된다
     ['주석 속 fetch(정상)', audit(`// fetch 를 쓰지 않는다\n` + vtOk, csOk, migOk).length],
     ['enabled 필터 없음', audit(vtOk, csOk.replace(".eq('enabled', true)", ''), migOk).length],
+    // ★★이번에 하네스가 틀린 모양 — 시드가 **두 마이그레이션에 나뉘어** 있다.
+    //   합쳐서 보면 앱 씨앗과 같으므로 통과해야 한다(예전 코드는 첫 insert 만 보고 실패시켰다).
+    ['시드가 두 파일에 나뉨(정상)', audit(
+      vtOk,
+      csOk + `\n{ id: 'nossem', kind: 'live' }`,
+      migOk + `\ninsert into public.consultants (id, kind) values\n  ('nossem', 'live', …);`,
+    ).length],
   ];
-  const want = [0, 1, 1, 1, 1, 1, 0, 1];
+  const want = [0, 1, 1, 1, 1, 1, 0, 1, 0];
   let bad = 0;
   cases.forEach(([n, got], i) => {
     const ok = got === want[i];
     console.log(`  ${ok ? '✓' : '❌'} ${n} → ${got}건 (기대 ${want[i]})`);
     if (!ok) bad++;
   });
-  console.log(bad ? `\n❌ 자가테스트 ${bad}건 실패` : '\n✅ check:talkfree 자가테스트 통과 (8케이스)');
+  console.log(bad ? `\n❌ 자가테스트 ${bad}건 실패` : '\n✅ check:talkfree 자가테스트 통과 (9케이스)');
   process.exit(bad ? 1 : 0);
 }
 
+// 상담사 시드가 든 마이그레이션을 **전부** 읽어 합친다
+const migAll = readdirSync(join(ROOT, MIG_DIR))
+  .filter((f) => f.endsWith('.sql'))
+  .map((f) => readFileSync(join(ROOT, MIG_DIR, f), 'utf8'))
+  .filter((t) => /insert into public\.consultants/.test(t))
+  .join('\n');
 const fails = audit(
   readFileSync(join(ROOT, P_VT), 'utf8'),
   readFileSync(join(ROOT, P_CS), 'utf8'),
-  readFileSync(join(ROOT, P_MIG), 'utf8'),
+  migAll,
 );
 if (fails.length) {
   console.error(`❌ check:talkfree — ${fails.length}건 · 가상 상담사의 원가 0 전제가 깨진다`);
