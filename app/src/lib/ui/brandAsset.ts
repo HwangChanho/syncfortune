@@ -49,9 +49,12 @@ export const freeTrioIcon = (kind: FreeTrioKind, el: ThemeElement = activeElemen
   A(`${BRAND_DIR}/f3-${kind}-${EL_SLUG[el]}.png`);
 
 /** 콘텐츠 아이콘(투명 PNG) — 카드·목록에서 쓴다. */
-export const contentIcon = (name:
-  'heart' | 'ring' | 'coin' | 'moneybag' | 'briefcase' |
-  'book' | 'idcard' | 'health' | 'family' | 'crystal') => A(`${BRAND_DIR}/ic-${name}.png`);
+/** 콘텐츠 아이콘 이름 — ★열 종뿐이다. 없는 이름을 쓰면 빈 자리가 뜨므로 타입으로 막는다. */
+export type ContentIcon =
+  | 'heart' | 'ring' | 'coin' | 'moneybag' | 'briefcase'
+  | 'book' | 'idcard' | 'health' | 'family' | 'crystal';
+
+export const contentIcon = (name: ContentIcon) => A(`${BRAND_DIR}/ic-${name}.png`);
 
 /** 배너 일러스트 이름 — Storage `brand/bn-<name>.jpg`. */
 export type BannerArt =

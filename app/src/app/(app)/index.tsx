@@ -27,7 +27,6 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { Image as ExpoImage } from 'expo-image';
 import { brandMark } from '../../lib/ui/brandAsset';
 import { TalkHome } from './talk';   // ★08-19 시작 화면 = 친구목록
-import { isAdminActing } from '../../lib/core/admin'; // 홈 배치 편집 = 관리자 전용(daniel 2026-08-06) // 홈 상단 내부 프로모 배너(하우스 광고·daniel 07-24)
 import { useGenProgress, clearGenProgress } from '../../lib/backend/genProgress'; // 풀이 진행률(다중·route별, 풀이중 홈 나가도 % — daniel)
 import { useSubscription } from '../../lib/billing/subscription';
 import { loadRepChart, subscribeRepChange } from '../../lib/engine/myChart';
@@ -73,8 +72,6 @@ export default function Home() {
   // ★홈 배치 편집을 **관리자에게만** 보인다(daniel 2026-08-06 "홈화면 편집은 관리자 뷰에서 관리자 계정만").
   //   일반 사용자에게 배치 편집은 첫 화면의 상단 자리를 차지할 만큼 자주 쓰는 기능이 아니고,
   //   지금은 홈 구성(오늘의 운세 → 배너 → …)을 운영이 정하는 편이 퍼널 의도에 맞다.
-  const [isAdmin, setIsAdmin] = useState(false);
-  useEffect(() => { isAdminActing().then(setIsAdmin).catch(() => setIsAdmin(false)); }, [session]);
 
   // 홈 포커스 시(명식 변경 후 복귀 포함) 날짜·대표 명식 재확인 → 오늘의 기운 갱신(①③)
   useFocusEffect(useCallback(() => {
@@ -149,37 +146,13 @@ export default function Home() {
             폰에는 사이드바가 없으므로 그대로 둔다. */}
       {/* ★시안 헤더(`니운내운.pdf` p04) — 로고는 가운데, 설정·알림은 우측, 그 아래 큰 인사말.
             종전엔 좌측에 마스코트+앱이름, 우측에 👤 였다. 시안은 **이름을 부르는 것**을 앞세운다. */}
+      {/* ★헤더 아이콘은 **친구목록 안으로 옮겼다**(Boss 2026-08-20 카톡 배치 —
+          내 프로필 옆에 검색·설정이 있는 모양). 여기 두면 같은 아이콘이 두 벌이 된다.
+          로고는 남긴다(폰에는 사이드바가 없어 여기서만 보인다). */}
       <View style={styles.headerRow}>
         <View style={styles.headerSide} />
-        {/* ★「운」 심볼(Boss 제공 2026-08-18) — 시안은 헤더 가운데가 로고다.
-              넓은 웹에서는 사이드바가 이미 브랜드를 달고 있어 숨긴다(브랜드 중복 방지·08-15 규칙 유지). */}
         {!wideWebHome && <ExpoImage source={brandMark()} style={styles.brandMark} contentFit="contain" transition={160} />}
-        <View style={[styles.headerSide, styles.headerIcons]}>
-          {/* ★알림 종은 뺐다(Boss 2026-08-20 *"상단에 알림은 빼버리고"*).
-              알림은 두 갈래로 간다: **모바일=푸시** · **웹=채팅목록의 안 읽은 배지+미리보기**.
-              ⇒ 종을 눌러 목록을 여는 단계가 사라지고, 어디에 새 소식이 있는지가 목록에 바로 보인다.
-              ⚠️`/notifications` 화면은 살아 있다 — 푸시를 눌러 들어오는 곳이라 지우면 안 된다.
-              ★로고는 남긴다(Boss *"첫 시작화면에 로고뜨고"*) — 폰에는 사이드바가 없다. */}
-        </View>
-      </View>
-      {/* ★인사말은 뺐다(2026-08-19) — 바로 아래 친구목록 맨 위가 '나'라서
-            "황찬호님 반갑습니다." 와 "황찬호" 가 **같은 이름을 두 번** 보여 주고 있었다.
-            카톡은 인사하지 않는다. 이름은 프로필 자리 하나로 충분하다. */}
-      {/* 홈 상단 컨트롤 행(daniel 2026-07-25 J): [⠿ 홈 배치 편집] + [🧭 바로가기](만세력·AI코치 분기 메뉴).
-          배치 편집 = 블록 순서 드래그(모달·내부 탭 충돌 회피). 바로가기 = 블록에서 뺀 만세력/코치로 진입. */}
-      <View style={styles.topCtrlRow}>
-        {isAdmin && (
-          <PressableScale onPress={() => setEditOpen(true)} style={styles.editBtn} hitSlop={8}>
-            <Text style={styles.editBtnTx}>⠿ 홈 배치 편집</Text>
-          </PressableScale>
-        )}
-        {/* ★「⚡바로가기」는 뺐다(2026-08-19) — 만세력·팔자 도우미는 **설정 「내 기록」**으로 옮겼다
-            (Boss *"만세력이나 기타 설정들은 설정에서 진입"*). 옮길 곳을 먼저 만들고 뺐고,
-            `check:reach` 가 두 진입로를 지킨다. */}
-        {/* ★코인 잔액(daniel 2026-07-28 코인 전환) — 충전 화면 진입점.
-            여기 둔 이유: 유료 풀이를 열기 전에 잔액을 미리 알 수 있어야 '부족' 알림이 놀람이 되지 않는다. */}
-        {/* ★소셜 프루프('오늘 N명이 봤어요')는 뺐다(Boss 2026-08-20).
-            카톡형 친구목록에선 상단이 **내 프로필 자리**라, 남의 방문 수가 낄 자리가 아니다. */}
+        <View style={styles.headerSide} />
       </View>
 
       {/* 통변 생성 진행률(daniel) — 여러 개 동시 풀이 가능 → route별 배너 여러 개. 탭=그 화면 이동 + 그 배너만 닫기.

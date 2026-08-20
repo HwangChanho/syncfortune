@@ -43,11 +43,22 @@ export async function loadMyProfile(): Promise<MyProfile> {
   );
   const row = r && !r.error ? (r.data as any) : null;
   _cache = {
-    name: row?.display_name ?? null,
+    // ⚠️★이메일은 **이름이 아니다**(2026-08-20 실물에서 `cksgh0…` 로 떴다).
+    //   `profiles.display_name` 은 로그인할 때 이메일이 자동으로 들어가는 자리라,
+    //   사용자가 직접 정한 이름과 **섞여 있다**. `@` 가 있으면 안 쓴다 → 명식 이름으로 떨어진다.
+    //   ⇒ 사용자가 설정에서 저장하면 그 값이 들어와 이 검사를 통과한다.
+    name: displayNameOf(row?.display_name),
     avatarUrl: row?.avatar_path ? publicUrl(row.avatar_path) : null,
   };
   notify();
   return _cache;
+}
+
+/** 이름으로 쓸 수 있는 값인가 — 이메일·빈 값은 이름이 아니다. */
+function displayNameOf(v: unknown): string | null {
+  const t = typeof v === 'string' ? v.trim() : '';
+  if (!t || t.includes('@')) return null;
+  return t;
 }
 
 /** Storage 경로 → 공개 URL. ★버킷이 public 이라 서명이 필요 없다. */

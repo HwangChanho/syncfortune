@@ -32,6 +32,8 @@ import { askLive, loadThread } from '../../lib/talk/liveTalk';
 import { pickTalkImage } from '../../lib/talk/talkImagery';
 import { supabase } from '../../lib/supabase';
 import { loadRepChart } from '../../lib/engine/myChart';
+import { loadMyProfile, subscribeProfile, profileSnapshot } from '../../lib/talk/myProfile';
+import { useHomeOrder } from '../../lib/ui/homeOrder';
 import { ensureServerChartIdForSaved } from '../../lib/backend/prewarmReadings';
 import { useAuth } from '../../lib/useAuth';
 import { computeChart } from '../../lib/engine/engine';
@@ -90,7 +92,9 @@ export function TalkHome({ renderTop, mode = 'contacts' }: { renderTop?: ReactNo
   const [items, setItems] = useState<TalkItem[]>([]);
   const [saju, setSaju] = useState<any>(null);
   const [chartId, setChartId] = useState<string | null>(null);
-  const [myName, setMyName] = useState<string | null>(null);   // 친구목록 상단 '나' — 대표 명식 label
+  const [myName, setMyName] = useState<string | null>(null);   // 친구목록 상단 '나'
+  const [myAvatar, setMyAvatar] = useState<string | null>(profileSnapshot().avatarUrl);
+  const { order } = useHomeOrder();     // 콘텐츠 레일 = **홈 순서 그대로**(운영자가 정한 것을 따른다)
   const [draft, setDraft] = useState('');
   const [busy, setBusy] = useState(false);        // 실제 상담사가 답을 만드는 중(점 세 개)
   // 채팅목록(오른쪽 칸)을 다시 읽게 하는 신호 — 답이 오거나 읽음 처리했을 때 올린다.
@@ -125,6 +129,16 @@ export function TalkHome({ renderTop, mode = 'contacts' }: { renderTop?: ReactNo
   const lift = kbH > 0 ? Math.max(0, kbH - getNavBarHeight()) : 0;
 
   useEffect(() => { void listConsultants().then(setServers); }, []);
+  // ★설정에서 정한 이름·사진이 **명식 이름을 이긴다**(사용자가 직접 고른 값이 우선).
+  useEffect(() => {
+    const sync = () => {
+      const p = profileSnapshot();
+      if (p.name) setMyName(p.name);
+      setMyAvatar(p.avatarUrl);
+    };
+    void loadMyProfile().then(sync);
+    return subscribeProfile(sync);
+  }, []);
   // 명식은 한 번만 계산해 둔다 — 가상 답이 매번 엔진을 다시 돌릴 이유가 없다
   useEffect(() => {
     let alive = true;
@@ -286,7 +300,13 @@ export function TalkHome({ renderTop, mode = 'contacts' }: { renderTop?: ReactNo
    */
   const leftPane = mode === 'chats'
     ? <ChatList selectedId={cur?.id} onOpen={(id) => { const c = list.find((x) => x.id === id); if (c) open(c); }} />
-    : <TalkList items={list} onOpen={open} selected={cur?.id} myName={myName} onMe={() => router.push('/charts')} />;
+    : <TalkList items={list} onOpen={open} selected={cur?.id} myName={myName} myAvatar={myAvatar}
+                      railKeys={order} onMe={() => router.push('/charts')}
+                      onSettings={() => router.push('/settings')}
+                      // ★`wide` = **목록 칸이 넓은가**(화면이 넓은가가 아니다).
+                      //   폰은 목록이 전체 폭이라 넓고, 웹 3칸의 왼쪽 칸은 264px 이라 좁다.
+                      //   ⇒ `useWideWeb()` 의 정확히 반대다 — 헷갈리기 쉬워 적어 둔다.
+                      wide={!wide} />;
 
   const composer = !cur?.block && (cur?.kind === 'virtual' || cur?.kind === 'live') ? (
     <View style={[styles.composer, { paddingBottom: Math.max(space(3), insets.bottom), marginBottom: lift }]}>
@@ -318,7 +338,9 @@ export function TalkHome({ renderTop, mode = 'contacts' }: { renderTop?: ReactNo
       <View style={styles.two}>
         <View style={[styles.pane, { paddingTop: renderTop ? 0 : insets.top }]}>
           {renderTop}
-          <TalkList items={list} onOpen={open} selected={cur?.id} myName={myName} onMe={() => router.push('/charts')} />
+          <TalkList items={list} onOpen={open} selected={cur?.id} myName={myName} myAvatar={myAvatar}
+                      railKeys={order} onMe={() => router.push('/charts')}
+                      onSettings={() => router.push('/settings')} wide={!wide} />   {/* 웹 3칸 = 좁은 칸 */}
         </View>
         {showChatPane && (
           <View style={[styles.pane, { paddingTop: insets.top }]}>
