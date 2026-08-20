@@ -109,3 +109,31 @@ export async function loadThread(consultantId: string): Promise<
     return null;   // 실패해도 새 대화로 시작한다(막지 않는다)
   }
 }
+
+/**
+ * 대화를 지운다.
+ *
+ * ★세션 하나만 지우면 메시지는 **CASCADE 로 함께** 사라진다(`talk_messages.session_id` FK).
+ *   메시지를 따로 지우려 들면 지우다 만 상태가 생길 수 있다 — DB 가 보장하게 둔다.
+ * ⚠️되돌릴 수 없다. 호출 전에 **반드시 확인을 받아야 한다**(화면 쪽 책임).
+ *
+ * @param consultantId 이 상담가와의 **가장 최근 대화**를 지운다
+ * @returns 성공 여부. 실패 사유를 삼키지 않는다
+ */
+export async function deleteThread(consultantId: string): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const s = await withTimeout(
+      supabase.from('talk_sessions')
+        .select('id').eq('consultant_id', consultantId)
+        .order('last_at', { ascending: false }).limit(1).maybeSingle(),
+      8000,
+    );
+    const sid = s && !s.error ? (s.data as any)?.id : null;
+    if (!sid) return { ok: true };            // 지울 게 없으면 성공으로 본다(화면은 이미 빈 상태)
+    const { error } = await supabase.from('talk_sessions').delete().eq('id', sid);
+    if (error) return { ok: false, error: error.message };
+    return { ok: true };
+  } catch (e: any) {
+    return { ok: false, error: String(e?.message ?? e) };
+  }
+}

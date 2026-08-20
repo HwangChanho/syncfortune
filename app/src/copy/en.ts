@@ -632,6 +632,8 @@ export const en = {
     'typing': 'typing',
     'inputHint': 'Ask anything',
     'send': 'Send',
+    'delAsk': 'Delete this conversation? This cannot be undone.',
+    'delOk': 'Delete',
     'pickChat': 'Pick a conversation on the left',
     'pickOne': 'Pick someone on the left',
     'liveSoon': 'We can talk soon. Getting ready.',

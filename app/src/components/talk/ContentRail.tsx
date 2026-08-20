@@ -12,7 +12,8 @@
 //   `homeOrder` 의 블록 키를 그대로 받는다 — 여기서 새 목록을 만들면 운영자가 관리자에서
 //   홈 구성을 바꿔도 이 줄만 그대로 남는다.
 // ═══════════════════════════════════════════════════════════════════════════
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { useState } from 'react';
+import { View, Text, StyleSheet } from 'react-native';
 import { Image as ExpoImage } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { PressableScale } from '../PressableScale';
@@ -49,21 +50,31 @@ const ICON: Partial<Record<HomeBlockKey, ContentIcon>> = {
 /** 이 블록이 레일에 오를 수 있나(= 갈 화면이 있나). ★목록과 개수가 어긋나지 않게 같은 판정을 쓴다. */
 export const hasRailRoute = (k: HomeBlockKey): boolean => !!ROUTE[k];
 
+/** 접었을 때 보여 줄 개수(Boss 2026-08-20 *"노출은 3개만"*). */
+const COLLAPSED = 3;
+
 /**
  * 콘텐츠 레일.
+ *
+ * ★가로 스크롤이 아니라 **접기/펼치기**다.
+ *   가로로 흘리면 화면 밖에 있는 것은 **있는 줄도 모르고**, 아홉 개를 다 펴면
+ *   목록 위 한 줄이 아니라 화면 절반을 먹는다. ⇒ 셋만 보이고 원하면 편다.
+ *
  * @param keys 보여 줄 블록 키(홈 순서 그대로). 경로가 없는 키는 스스로 빠진다
  */
 export function ContentRail({ keys }: { keys: readonly HomeBlockKey[] }) {
   const router = useRouter();
+  const [open, setOpen] = useState(false);
   const items = keys.filter((k) => ROUTE[k]);
   if (!items.length) return null;
+  const shown = open ? items : items.slice(0, COLLAPSED);
+  const more = items.length - COLLAPSED;
+  // ★가로 스크롤이 아니라 **줄바꿈**이다(Boss 2026-08-20 *"콘텐츠가 다 노출되게"*).
+  //   가로로 흘리면 화면 밖에 있는 것은 **있는 줄도 모른다** — 목록 위 한 줄은 훑어보는 자리지
+  //   스크롤해서 찾는 자리가 아니다. 줄이 늘어도 다 보이는 편이 낫다.
   return (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={styles.rail}
-    >
-      {items.map((k) => (
+    <View style={styles.rail}>
+      {shown.map((k) => (
         <PressableScale key={k} style={styles.cell} onPress={() => router.push(ROUTE[k] as never)}>
           <View style={styles.circle}>
             <ExpoImage source={contentIcon(ICON[k] ?? 'crystal')} style={styles.icon} contentFit="contain" />
@@ -72,12 +83,24 @@ export function ContentRail({ keys }: { keys: readonly HomeBlockKey[] }) {
           <Text style={styles.label} numberOfLines={2}>{HOME_BLOCK_LABEL[k]}</Text>
         </PressableScale>
       ))}
-    </ScrollView>
+      {/* 더보기 — ★접었을 때만 뜬다. 펴고 나면 되접을 이유가 별로 없어 '접기'는 두지 않았다
+          (한 번 편 사람은 계속 보고 싶다는 뜻이다). */}
+      {!open && more > 0 ? (
+        <PressableScale style={styles.cell} onPress={() => setOpen(true)}>
+          <View style={[styles.circle, styles.moreCircle]}>
+            <Text style={styles.moreTx}>+{more}</Text>
+          </View>
+          <Text style={styles.label} numberOfLines={2}>더보기</Text>
+        </PressableScale>
+      ) : null}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  rail: { paddingVertical: space(2), gap: space(3.5) },
+  // ★`flexWrap` + `gap` — 칸이 좁으면 줄이 늘고, 넓으면 한 줄에 다 들어간다.
+  //   폭에 따라 열 수를 계산하지 않는다(계산하면 화면 크기가 바뀔 때마다 틀어진다).
+  rail: { flexDirection: 'row', flexWrap: 'wrap', paddingVertical: space(2), gap: space(3) },
   // 한 칸 = 원 + 이름. 폭을 고정해야 이름 길이에 따라 줄이 들쭉날쭉하지 않다
   cell: { width: 62, alignItems: 'center', gap: space(1.5) },
   // ★카톡 기준 비율로 잡았다(화면 폭의 약 12%) — 48pt.
@@ -86,5 +109,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.sunk, alignItems: 'center', justifyContent: 'center',
   },
   icon: { width: 26, height: 26 },
+  // 더보기 — 아이콘 대신 남은 개수를 적는다(무엇이 더 있는지는 눌러야 알지만, 몇 개인지는 미리 알려준다)
+  moreCircle: { borderWidth: 1, borderColor: colors.line, backgroundColor: 'transparent' },
+  moreTx: { ...font.label, color: colors.inkSoft, fontWeight: '800' },
   label: { ...font.caption, color: colors.inkSoft, textAlign: 'center', lineHeight: 14 },
 });

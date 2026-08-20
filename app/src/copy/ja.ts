@@ -631,6 +631,8 @@ export const ja = {
     'typing': '入力中',
     'inputHint': '何でも聞いてください',
     'send': '送信',
+    'delAsk': 'この会話を削除しますか？元に戻せません。',
+    'delOk': '削除',
     'pickChat': '左から会話を選んでください',
     'pickOne': '左から相談相手を選んでください',
     'liveSoon': 'もうすぐお話しできます。準備中です。',

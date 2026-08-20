@@ -670,6 +670,8 @@ export const ko = {
     'typing': '입력 중',
     'inputHint': '무엇이든 물어보세요',
     'send': '보내기',
+    'delAsk': '이 대화를 지울까요? 되돌릴 수 없어요.',
+    'delOk': '지우기',
     'pickChat': '왼쪽에서 대화를 골라 주세요',
     'pickOne': '왼쪽에서 상담사를 골라 주세요',
     'liveSoon': '곧 이야기 나눌 수 있어요. 준비 중이에요.',

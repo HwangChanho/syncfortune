@@ -241,9 +241,11 @@ export function TalkList({ items, onOpen, selected, myName, onMe, myAvatar, rail
       )}
 
       <View style={styles.rule} />
-      {/* 친구 수 — ★검색 중이면 **걸러진 수**를 보여 준다(안 그러면 목록과 숫자가 어긋난다) */}
+      {/* 친구 수 — ★**즐겨찾기까지 포함**한 전체다(Boss 2026-08-20).
+          위로 올라간 사람이 수에서 빠지면 "친구 4명인데 다섯 명이 보인다"가 된다.
+          ⚠️검색 중에는 **걸러진 수**를 보여 준다(안 그러면 목록과 숫자가 어긋난다). */}
       <Text style={styles.section}>
-        {t('talk.friendsCount', '친구 {{n}}명').replace('{{n}}', String(rest.length))}
+        {t('talk.friendsCount', '친구 {{n}}명').replace('{{n}}', String(shown.length))}
       </Text>
 
       {/* ── 친구 ── */}

@@ -28,7 +28,7 @@ import { ChatList } from '../../components/talk/ChatList';
 import { TalkThread, type TalkItem } from '../../components/talk/TalkThread';
 import { listConsultants, consultantsSnapshot, type Consultant } from '../../lib/talk/consultants';
 import { greet, todayFlow, guide, type VirtualReply } from '../../lib/talk/virtualTalk';
-import { askLive, loadThread } from '../../lib/talk/liveTalk';
+import { askLive, loadThread, deleteThread } from '../../lib/talk/liveTalk';
 import { pickTalkImage } from '../../lib/talk/talkImagery';
 import { supabase } from '../../lib/supabase';
 import { loadRepChart } from '../../lib/engine/myChart';
@@ -41,6 +41,25 @@ import { useWideWeb } from '../../components/WebShell';
 import { renderTalkBlock } from '../../components/talk/blockRegistry';
 import { getNavBarHeight } from '../../components/BottomNav';
 import { colors, space, radius, font } from '../../lib/theme';
+
+/**
+ * 삭제 확인 줄.
+ * ★모달·Alert 대신 **화면 안 한 줄**이다 — 웹에서 `Alert` 가 안 뜨거나 이중 발화한 이력이 있고,
+ *   되돌릴 수 없는 일은 눌린 자리 바로 아래에서 확인받는 편이 오해가 적다.
+ */
+function DeleteBar({ onOk, onCancel, t }: { onOk: () => void; onCancel: () => void; t: (k: string, d?: string) => string }) {
+  return (
+    <View style={styles.delBar}>
+      <Text style={styles.delTx}>{t('talk.delAsk', '이 대화를 지울까요? 되돌릴 수 없어요.')}</Text>
+      <PressableScale style={styles.delNo} onPress={onCancel}>
+        <Text style={styles.delNoTx}>{t('common.cancel', '취소')}</Text>
+      </PressableScale>
+      <PressableScale style={styles.delYes} onPress={onOk}>
+        <Text style={styles.delYesTx}>{t('talk.delOk', '지우기')}</Text>
+      </PressableScale>
+    </View>
+  );
+}
 
 let _seq = 0;
 const nextId = () => `m${++_seq}`;
@@ -100,6 +119,9 @@ export function TalkHome({ renderTop, mode = 'contacts' }: { renderTop?: ReactNo
   // 채팅목록(오른쪽 칸)을 다시 읽게 하는 신호 — 답이 오거나 읽음 처리했을 때 올린다.
   //   ★웹은 목록과 대화창이 **동시에 보이므로**, 답이 왔는데 목록이 그대로면 화면이 자기모순이 된다.
   const [chatsTick, setChatsTick] = useState(0);
+  // 대화 삭제 확인 — ★`Alert` 를 쓰지 않는다(웹에서 안 뜨거나 이중 발화한 이력이 있다).
+  //   화면 안에 확인 줄을 띄우는 편이 웹·폰 어디서나 확실하다.
+  const [askDelete, setAskDelete] = useState(false);
   const bumpChats = useCallback(() => setChatsTick((n) => n + 1), []);
   /**
    * 읽음 처리 — ★실패 사유를 **삼키지 않는다**(`check:rpcerror`).
@@ -309,6 +331,24 @@ export function TalkHome({ renderTop, mode = 'contacts' }: { renderTop?: ReactNo
                       //   ⇒ `useWideWeb()` 의 정확히 반대다 — 헷갈리기 쉬워 적어 둔다.
                       wide={!wide} />;
 
+  /**
+   * 이 대화 지우기.
+   * ★화면을 **먼저 비우지 않는다** — 서버가 실패하면 "지운 것처럼 보이는데 남아 있는" 상태가 된다.
+   *   성공한 뒤에 비운다.
+   */
+  const onDeleteThread = useCallback(async () => {
+    if (!cur) return;
+    const r = await deleteThread(cur.id);
+    setAskDelete(false);
+    if (!r.ok) { console.warn('[talk] 대화 삭제 실패', r.error); return; }
+    delete sessRef.current[cur.id];
+    usedArtRef.current = new Set();
+    // 인사말만 남긴다 — 빈 화면보다 "다시 시작할 수 있다"가 낫다
+    setItems([{ id: nextId(), role: 'assistant',
+      body: t('talk.liveGreet', '안녕하세요. {{name}}이에요. 무엇이 궁금하세요?').replace('{{name}}', cur.name) }]);
+    bumpChats();
+  }, [cur, t, bumpChats]);
+
   const composer = !cur?.block && (cur?.kind === 'virtual' || cur?.kind === 'live') ? (
     <View style={[styles.composer, { paddingBottom: Math.max(space(3), insets.bottom), marginBottom: lift }]}>
       <TextInput
@@ -353,7 +393,14 @@ export function TalkHome({ renderTop, mode = 'contacts' }: { renderTop?: ReactNo
         <View style={styles.main}>
           {cur ? (
             <>
-              <View style={styles.head}><Text style={styles.headTx}>{cur.name}</Text></View>
+              <View style={styles.head}>
+                <Text style={styles.headTx}>{cur.name}</Text>
+                {/* 대화 지우기 — ★상담가가 아니라 **이 대화**를 지운다(친구는 목록에 남는다) */}
+                <PressableScale hitSlop={8} onPress={() => setAskDelete(true)}>
+                  <Text style={styles.headIcon}>🗑</Text>
+                </PressableScale>
+              </View>
+              {askDelete ? <DeleteBar onCancel={() => setAskDelete(false)} onOk={onDeleteThread} t={t as never} /> : null}
               <TalkThread items={items} busy={busy} onLink={(r) => router.push(r as never)} />
               {composer}
             </>
@@ -386,7 +433,11 @@ export function TalkHome({ renderTop, mode = 'contacts' }: { renderTop?: ReactNo
       <View style={[styles.head, { paddingTop: insets.top + space(3) }]}>
         <PressableScale hitSlop={10} onPress={() => setCur(null)}><Text style={styles.back}>‹</Text></PressableScale>
         <Text style={styles.headTx}>{cur.name}</Text>
+        <PressableScale hitSlop={8} onPress={() => setAskDelete(true)}>
+          <Text style={styles.headIcon}>🗑</Text>
+        </PressableScale>
       </View>
+      {askDelete ? <DeleteBar onCancel={() => setAskDelete(false)} onOk={onDeleteThread} t={t as never} /> : null}
       <TalkThread items={items} busy={busy} onLink={(r) => router.push(r as never)} />
       {composer}
     </View>
@@ -411,7 +462,16 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1, borderBottomColor: colors.line, backgroundColor: colors.card,
   },
   back: { fontSize: 26, lineHeight: 30, color: colors.ju, fontWeight: '900', paddingRight: space(1) },
-  headTx: { ...font.heading, color: colors.ink, fontWeight: '800' },
+  headTx: { flex: 1, minWidth: 0, ...font.heading, color: colors.ink, fontWeight: '800' },
+  headIcon: { fontSize: 17, paddingHorizontal: space(1) },
+  // 삭제 확인 — 눌린 자리 바로 아래
+  delBar: { flexDirection: 'row', alignItems: 'center', gap: space(2), paddingHorizontal: space(4), paddingVertical: space(3), backgroundColor: colors.sunk, borderBottomWidth: 1, borderBottomColor: colors.line },
+  delTx: { flex: 1, minWidth: 0, ...font.caption, color: colors.inkSoft },
+  delNo: { paddingHorizontal: space(3), paddingVertical: space(1.5) },
+  delNoTx: { ...font.caption, color: colors.inkFaint, fontWeight: '700' },
+  delYes: { backgroundColor: colors.ju, borderRadius: radius.pill, paddingHorizontal: space(3.5), paddingVertical: space(1.5) },
+  // ★강조색 위 글자는 `onJu`(`check:onaccent`)
+  delYesTx: { ...font.caption, color: colors.onJu, fontWeight: '900' },
 
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   emptyTx: { ...font.body, color: colors.inkFaint },
