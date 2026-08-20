@@ -8,7 +8,6 @@ import { View, Text, ScrollView, StyleSheet, Linking } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PressableScale } from '../../components/PressableScale';
 import Constants from 'expo-constants'; // 앱 버전(app.json)
-import { APP_BUILD as APP_BUILD_NUM } from '../../lib/core/buildInfo'; // 빌드번호 단일 출처(check:buildnum)
 import { Alert } from '../../lib/ui/alert'; // 커스텀 알림(앱 디자인)
 import { useRouter, useFocusEffect } from 'expo-router';
 import { getNotifStatus, requestNotifPermission, type NotifStatus } from '../../lib/backend/notifications'; // 알림 권한 상태·요청(설정 토글)
@@ -40,8 +39,10 @@ const LANGS: { key: string; label: string }[] = [
 //   nativeBuildVersion = 실제 설치된 네이티브 빌드(Android versionCode / iOS buildNumber).
 // ⚠️`Constants.nativeBuildVersion` 은 expo-constants 17 에서 **undefined** 로 온다(실측 — `(?)` 로 떴다).
 //   → JS 단일 출처 상수를 쓰고, build.gradle 과의 일치는 `check:buildnum` 하네스가 강제한다.
-const APP_BUILD = String(APP_BUILD_NUM);
-const APP_VERSION = `${Constants.expoConfig?.version ?? '1.0.0'} (${APP_BUILD})`;
+// ★괄호 안 빌드번호는 뺐다(Boss 2026-08-20). 사용자에게 `1.0.5 (100)` 의 괄호는 읽을 정보가 아니다.
+//   ⚠️버리는 게 아니라 **옮겨져 있다** — 버그 제보가 `build_no` 로 따로 올린다(`bugreport.tsx:71` 실측).
+//     그래서 어느 빌드에서 난 문제인지는 여전히 알 수 있다.
+const APP_VERSION = String(Constants.expoConfig?.version ?? '1.0.0');
 const TERMS_URL = 'https://hwangchanho.github.io/syncfortune/legal/terms-ko.html';     // GitHub Pages(정식)
 const PRIVACY_URL = 'https://hwangchanho.github.io/syncfortune/legal/privacy-ko.html'; // GitHub Pages — App Store 개인정보 URL
 const OSS_LICENSES = 'React Native · Expo (MIT)\niztro · lunar-javascript (MIT)\nRevenueCat Purchases · Google Mobile Ads\nreact-i18next · React Navigation (MIT)\nreact-native-svg · safe-area-context (MIT)\n\n각 라이브러리는 해당 저장소의 라이선스를 따릅니다.';

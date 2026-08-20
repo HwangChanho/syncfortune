@@ -29,7 +29,6 @@ import { brandMark } from '../../lib/ui/brandAsset';
 import { TalkHome } from './talk';   // ★08-19 시작 화면 = 친구목록
 import { unreadCount } from '../../lib/backend/notifyInbox';   // ★시안 헤더의 종 — 안 읽은 알림 배지
 import { isAdminActing } from '../../lib/core/admin'; // 홈 배치 편집 = 관리자 전용(daniel 2026-08-06) // 홈 상단 내부 프로모 배너(하우스 광고·daniel 07-24)
-import { CommunityPulseInline } from '../../components/CommunityPulseCard'; // 상단 컨트롤 행 우측 소셜 프루프(실측 집계·임계값 미만 자동 숨김)
 import { useGenProgress, clearGenProgress } from '../../lib/backend/genProgress'; // 풀이 진행률(다중·route별, 풀이중 홈 나가도 % — daniel)
 import { useSubscription } from '../../lib/billing/subscription';
 import { loadRepChart, subscribeRepChange } from '../../lib/engine/myChart';
@@ -185,9 +184,8 @@ export default function Home() {
             `check:reach` 가 두 진입로를 지킨다. */}
         {/* ★코인 잔액(daniel 2026-07-28 코인 전환) — 충전 화면 진입점.
             여기 둔 이유: 유료 풀이를 열기 전에 잔액을 미리 알 수 있어야 '부족' 알림이 놀람이 되지 않는다. */}
-        {/* ★소셜 프루프(daniel 2026-07-27 IMG_8205 "바로가기 라인 우측에 작게") — 카드였던 걸 이 행 우측 한 줄로.
-            카드는 블록 하나를 통째로 쓰면서 아래가 비어 균형이 깨져 있었다. 규모가 작으면 스스로 숨는다. */}
-        <CommunityPulseInline />
+        {/* ★소셜 프루프('오늘 N명이 봤어요')는 뺐다(Boss 2026-08-20).
+            카톡형 친구목록에선 상단이 **내 프로필 자리**라, 남의 방문 수가 낄 자리가 아니다. */}
       </View>
 
       {/* 통변 생성 진행률(daniel) — 여러 개 동시 풀이 가능 → route별 배너 여러 개. 탭=그 화면 이동 + 그 배너만 닫기.

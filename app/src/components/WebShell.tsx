@@ -26,6 +26,7 @@ import { useRouter, usePathname } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
 import { ALL_TABS, TabIcon, isTabActive } from './BottomNav';   // ★탭 정의·아이콘은 하단 내비와 **같은 출처**
+import { useFeatureOn } from '../lib/core/features';           // 커뮤니티 노출 = 원격 플래그(BottomNav 와 **같은 판정**)
 import { CONTENT_ROUTES } from '../lib/content/contentSections'; // 읽는 화면 판정 — 손으로 안 적고 콘텐츠 목록에서 파생
 import { colors, radius, space } from '../lib/theme';
 
@@ -161,7 +162,15 @@ function WebSidebar() {
   const router = useRouter();
   const pathname = usePathname();
   const { t } = useTranslation();
-  const tabs = ALL_TABS;   // ★4탭 전환(2026-08-18) — 커뮤니티는 탭이 아니라 마이페이지 메뉴다
+  // ★★웹은 **연락처와 대화가 한 뷰**다(Boss 2026-08-20 *"연락처랑 대화를 하나의 뷰에 넣으라니깐 칸 나눠서"*).
+  //   연락처 화면이 이미 [친구목록 | 대화] 두 칸이라, 대화가 **거기 안에 있다.**
+  //   ⇒ 사이드바에 「대화」를 또 두면 **같은 것으로 가는 문이 둘**이고,
+  //     누르면 왼쪽 칸만 바뀌어서 사용자는 무엇이 달라졌는지 모른다.
+  //   ⚠️폰은 다르다 — 화면이 좁아 두 칸을 못 쓰므로 탭으로 갈린다(`BottomNav` 는 4탭 그대로).
+  //     즉 **웹에서만** 감춘다. 라우트(`/chats`)는 살아 있다(딥링크·폰 공용).
+  const commOn = useFeatureOn('community');
+  const tabs = ALL_TABS.filter((tb) =>
+    tb.key !== 'chats' && (tb.key !== 'community' || commOn));
 
   return (
     <View style={styles.side}>

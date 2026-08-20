@@ -30,7 +30,8 @@ const GATED: Array<{ key: string; why: string; files: string[] }> = [
   {
     key: 'community',
     why: '커뮤니티 진입로 — 탭과 마이페이지 메뉴가 함께 켜지고 함께 꺼져야 한다',
-    files: ['app/src/components/BottomNav.tsx', 'app/src/app/(app)/my.tsx'],
+    // ⚠️웹 사이드바도 같은 목록을 그린다 — 여기가 빠지면 **웹에서만** 커뮤니티가 남는다
+    files: ['app/src/components/BottomNav.tsx', 'app/src/components/WebShell.tsx', 'app/src/app/(app)/my.tsx'],
   },
 ];
 
