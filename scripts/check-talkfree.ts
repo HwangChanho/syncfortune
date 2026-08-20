@@ -92,10 +92,19 @@ export function audit(vt: string, cs: string, mig: string): Fail[] {
   //   ★insert 가 **여러 개**일 수 있으므로 전부 모은다(matchAll) — 하나만 보면 나중에 추가한 상담사를 놓친다.
   const blocks = [...mig.matchAll(/insert into public\.consultants[\s\S]*?;/g)].map((m) => m[0]).join('\n');
   const sqlIds = [...new Set([...blocks.matchAll(/\('([a-z_]+)',\s*'(virtual|live)'/g)].map((m) => m[1]))].sort();
+  // ★★비교는 **부분집합**이다(2026-08-20에 규칙을 고쳤다).
+  //   종전엔 두 집합이 **완전히 같아야** 했는데, 그 뒤 「상담가를 끈다」는 개념이 생겼다
+  //   (다섯으로 압축하며 옛 넷을 `enabled=false` 로 두었다 — 지우면 대화 이력이 함께 사라진다).
+  //   그러면 SQL 에는 남고 앱 씨앗에는 없는 id 가 정상인데, 옛 규칙은 그걸 실패로 봤다.
+  //   ⇒ 진짜 위험은 **반대 방향**이다: 앱에만 있고 서버에 없는 id =
+  //     앱이 서버에 없는 상담가를 만들어낸 것(오프라인에서 다른 앱이 된다).
+  //   ⚠️[[harness-can-enforce-wrong-rule]] — 상황이 바뀌면 코드보다 하네스를 먼저 본다.
+  const sqlSet = new Set(sqlIds);
+  const ghosts = appIds.filter((id) => !sqlSet.has(id));
   if (!appIds.length || !sqlIds.length) {
     out.push({ rule: 'F4', msg: `씨앗을 못 읽었다 (앱 ${appIds.length} · SQL ${sqlIds.length})` });
-  } else if (appIds.join(',') !== sqlIds.join(',')) {
-    out.push({ rule: 'F4', msg: `씨앗이 다르다 — 앱[${appIds.join(',')}] vs SQL[${sqlIds.join(',')}]. 오프라인에서 다른 앱이 된다` });
+  } else if (ghosts.length) {
+    out.push({ rule: 'F4', msg: `앱 씨앗에만 있는 상담가: ${ghosts.join(',')} — 서버에 없는 사람을 앱이 만들어냈다(오프라인에서 다른 앱이 된다)` });
   }
   return out;
 }
@@ -119,26 +128,37 @@ insert into public.consultants (id, kind) values
     // ⚠️이 케이스는 F3 만 보려는 것이므로 다른 규칙(F5 enabled 필터)은 만족시켜 둔다 —
     //   안 그러면 무엇이 걸렸는지가 흐려진다(자가테스트가 먼저 알려 줬다).
     ['앱이 kind 를 지어냄', audit(vtOk, `.eq('enabled', true)\nkind: 'live',\nconst SEED = [ { id: 'wealth_guide', kind: 'virtual' }, { id: 'myeongun', kind: 'live' } ];`, migOk).length],
-    ['씨앗 불일치', audit(vtOk, csOk, migOk.replace("('myeongun', 'live'", "('other', 'live'")).length],
+    // ⚠️이 케이스는 **기대값이 바뀌었다** — SQL 쪽 id 가 달라도 앱 씨앗이 그 부분집합이 아니면
+    //   잡힌다. 여기선 앱에 `myeongun` 이 있고 SQL 엔 `other` 뿐이라 여전히 유령으로 잡힌다.
+    ['앱 씨앗이 SQL 에 없음', audit(vtOk, csOk, migOk.replace("('myeongun', 'live'", "('other', 'live'")).length],
     // ★주석에만 fetch 가 적힌 경우 — 오탐이면 안 된다
     ['주석 속 fetch(정상)', audit(`// fetch 를 쓰지 않는다\n` + vtOk, csOk, migOk).length],
     ['enabled 필터 없음', audit(vtOk, csOk.replace(".eq('enabled', true)", ''), migOk).length],
     // ★★이번에 하네스가 틀린 모양 — 시드가 **두 마이그레이션에 나뉘어** 있다.
     //   합쳐서 보면 앱 씨앗과 같으므로 통과해야 한다(예전 코드는 첫 insert 만 보고 실패시켰다).
+    // ★끈 상담가는 SQL 에만 남는다 — **정상**이다(옛 규칙은 이걸 실패로 봤다)
+    ['SQL 에만 있는 옛 상담가(정상)', audit(
+      vtOk, csOk,
+      migOk + `\ninsert into public.consultants (id, kind) values\n  ('old_guide', 'virtual', …);`,
+    ).length],
+    // 반대 방향은 여전히 잡아야 한다 — 앱이 서버에 없는 사람을 만들어낸 경우
+    ['앱에만 있는 유령 상담가', audit(
+      vtOk, csOk + `\n{ id: 'ghost_guide', kind: 'virtual' }`, migOk,
+    ).length],
     ['시드가 두 파일에 나뉨(정상)', audit(
       vtOk,
       csOk + `\n{ id: 'nossem', kind: 'live' }`,
       migOk + `\ninsert into public.consultants (id, kind) values\n  ('nossem', 'live', …);`,
     ).length],
   ];
-  const want = [0, 1, 1, 1, 1, 1, 0, 1, 0];
+  const want = [0, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0];
   let bad = 0;
   cases.forEach(([n, got], i) => {
     const ok = got === want[i];
     console.log(`  ${ok ? '✓' : '❌'} ${n} → ${got}건 (기대 ${want[i]})`);
     if (!ok) bad++;
   });
-  console.log(bad ? `\n❌ 자가테스트 ${bad}건 실패` : '\n✅ check:talkfree 자가테스트 통과 (9케이스)');
+  console.log(bad ? `\n❌ 자가테스트 ${bad}건 실패` : '\n✅ check:talkfree 자가테스트 통과 (11케이스)');
   process.exit(bad ? 1 : 0);
 }
 

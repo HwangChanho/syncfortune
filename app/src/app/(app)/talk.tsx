@@ -17,7 +17,7 @@
 //   멈춤(`paused`)·한도(`capped`)·오류를 각각 다른 말로 띄운다 —
 //   "안 되네요" 하나로 묶으면 사용자는 자기 잘못인지 우리 잘못인지 모른다.
 // ═══════════════════════════════════════════════════════════════════════════
-import { useEffect, useState, useCallback, useRef, useMemo, type ReactNode } from 'react';
+import { useEffect, useState, useCallback, useRef, type ReactNode } from 'react';
 import { View, Text, StyleSheet, TextInput, Keyboard, Platform, useWindowDimensions } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -36,8 +36,7 @@ import { ensureServerChartIdForSaved } from '../../lib/backend/prewarmReadings';
 import { useAuth } from '../../lib/useAuth';
 import { computeChart } from '../../lib/engine/engine';
 import { useWideWeb } from '../../components/WebShell';
-import { renderTalkBlock, isFriendBlock, blockName } from '../../components/talk/blockRegistry';
-import { useHomeOrder } from '../../lib/ui/homeOrder';
+import { renderTalkBlock } from '../../components/talk/blockRegistry';
 import { getNavBarHeight } from '../../components/BottomNav';
 import { colors, space, radius, font } from '../../lib/theme';
 
@@ -77,21 +76,16 @@ export function TalkHome({ renderTop, mode = 'contacts' }: { renderTop?: ReactNo
   const insets = useSafeAreaInsets();
   const { session } = useAuth();
 
-  const { order } = useHomeOrder();          // 홈 순서 = 친구 순서(운영자가 정한 것을 그대로 따른다)
   const [dateKey] = useState(() => new Date().toDateString());
-  const [servers, setServers] = useState<Consultant[]>(consultantsSnapshot());
+  const [servers, setServers] = useState<Consultant[]>(consultantsSnapshot());   // 서버 목록(= 그대로 친구목록)
   /**
-   * 친구목록 = **홈 블록 친구 + 상담사**.
-   * ★블록이 앞이다 — 사용자가 매일 보러 오는 건 오늘의 운세지 상담이 아니다.
-   *   (상담을 위에 두면 첫 화면이 '팔아야 할 것'부터 보이는 배치가 된다.)
+   * 친구목록 = **사람 다섯**(Boss 2026-08-20 압축).
+   * ★종전엔 홈 블록 아홉이 그대로 '친구'로 올라가 열다섯이었다 —
+   *   카톡 목록에 「오늘의 운세」가 사람처럼 앉아 있어 사람과 기능이 섞여 보였다.
+   * ★블록은 **없앤 게 아니라 사람 아래로 묶었다**(`c.blocks`) —
+   *   그냥 뺐으면 오늘의 운세·관계 지도가 도달 불가가 된다.
    */
-  const list = useMemo<Consultant[]>(() => {
-    const blocks: Consultant[] = order.filter(isFriendBlock).map((k, i) => ({
-      id: `block:${k}`, kind: 'virtual', name: blockName(k), tagline: null, avatar: null,
-      specialty: [], routes: [], sortOrder: i, block: k,
-    }));
-    return [...blocks, ...servers];
-  }, [order, servers]);
+  const list = servers;
   const [cur, setCur] = useState<Consultant | null>(null);
   const [items, setItems] = useState<TalkItem[]>([]);
   const [saju, setSaju] = useState<any>(null);
@@ -168,24 +162,22 @@ export function TalkHome({ renderTop, mode = 'contacts' }: { renderTop?: ReactNo
     //   실패해도 대화는 열린다(배지가 한 번 더 뜰 뿐이다).
     const sid = sessRef.current[c.id];
     if (sid) void markRead(sid);
-    // ── 홈 블록 친구 — 인사 한 줄 + **기존 화면 그대로** ──
-    //   ★말풍선으로 내용을 옮겨 적지 않는다. 옮겨 적는 순간 홈과 갈린다.
-    if (c.block) {
-      setItems([
-        { id: nextId(), role: 'assistant', body: t('talk.blockHi', '{{what}} 가져왔어요.').replace('{{what}}', c.name) },
-        { id: nextId(), role: 'assistant', body: '', node: renderTalkBlock(c.block as never, { reloadKey: 0, dateKey, repName: myName }) },
-      ]);
-      return;
-    }
+    // 이 상담가가 담당하는 홈 블록 카드 — ★말풍선으로 옮겨 적지 않고 **원래 컴포넌트**를 띄운다
+    //   (옮겨 적는 순간 홈과 갈린다). 없으면 빈 배열이라 아무 일도 안 일어난다.
+    const blockCards = (c.blocks ?? []).map((k) => ({
+      id: nextId(), role: 'assistant' as const, body: '',
+      node: renderTalkBlock(k as never, { reloadKey: 0, dateKey, repName: myName }),
+    })).filter((b) => !!b.node);
+
     if (c.kind === 'virtual') {
-      setItems(toItems(greet(c.name, c.tagline, c.routes, t as never)));
+      setItems([...toItems(greet(c.name, c.tagline, c.routes, t as never)), ...blockCards]);
     } else {
       // 실제 상담사도 **첫 인사만은 공짜다** — 화면을 여는 것만으로 API 를 태우지 않는다.
       const greet = {
         id: nextId(), role: 'assistant' as const,
         body: t('talk.liveGreet', '안녕하세요. {{name}}이에요. 무엇이 궁금하세요?').replace('{{name}}', c.name),
       };
-      setItems([greet]);
+      setItems([greet, ...blockCards]);
       // ★지난 대화를 **이어 붙인다**(2026-08-20) — 세션 id 를 메모리에만 두면
       //   새로고침·앱 재시작마다 새 방이 생긴다(실제로 노쎔 대화가 셋으로 쪼개졌다).
       //   카톡은 껐다 켜도 같은 방이다. 인사는 **이력이 없을 때만** 남긴다.

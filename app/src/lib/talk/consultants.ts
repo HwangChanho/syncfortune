@@ -26,7 +26,12 @@ export type Consultant = {
   routes: string[];
   sortOrder: number;
   /**
-   * 홈 블록 친구면 그 블록 키(Boss 2026-08-19 *"홈에있던것들 전부"*).
+   * 이 상담가가 대화에서 보여 줄 홈 블록 키들(Boss 2026-08-20 다섯으로 압축).
+   * ★친구목록에서 블록을 뺀 대신 **사람 아래로 묶은** 자리다 — 비우면 그 블록은 도달 불가가 된다.
+   */
+  blocks: string[];
+  /**
+   * (구) 홈 블록 자체가 친구였을 때의 키. 다섯 압축 뒤로는 쓰지 않는다.
    * ★서버 `consultants` 에 없다 — **앱이 만든 친구**다. 홈 블록은 온디바이스 화면이라
    *   서버가 알 필요가 없고, `homeOrder`(운영자가 정하는 순서)를 그대로 따라야 하기 때문이다.
    *   ⇒ 이 값이 있으면 대화창은 말풍선 대신 그 블록 화면을 띄운다.
@@ -39,13 +44,11 @@ export type Consultant = {
  * ★마이그레이션 `0026` 의 시드와 **같은 내용**이다. 둘이 갈리면 오프라인에서 다른 앱이 된다.
  */
 const SEED: Consultant[] = [
-  // ★메인 사주풀이 친구(Boss 2026-08-19). 말투는 아직 없다 — 공통 프롬프트만으로 답한다(§3 검수 대기).
-  { id: 'nossem', kind: 'live', name: '노쎔', tagline: '사주 풀이', avatar: null, specialty: ['all'], routes: [], sortOrder: 5 },
-  { id: 'wealth_guide', kind: 'virtual', name: '재물 안내', tagline: '돈·일·재물 그릇', avatar: null, specialty: ['wealth', 'work'], routes: ['wealth', 'career', 'job', 'jobfit', 'talent'], sortOrder: 10 },
-  { id: 'love_guide', kind: 'virtual', name: '인연 안내', tagline: '연애·궁합·인연', avatar: null, specialty: ['love'], routes: ['love', 'crush', 'reunion', 'compat', 'lovestyle', 'relationmap'], sortOrder: 20 },
-  { id: 'flow_guide', kind: 'virtual', name: '흐름 안내', tagline: '오늘·이달·올해의 결', avatar: null, specialty: ['today'], routes: ['today', 'month', 'newyear', 'future10', 'timeline', 'luck'], sortOrder: 30 },
-  { id: 'self_guide', kind: 'virtual', name: '나 안내', tagline: '성격·기질·타고난 결', avatar: null, specialty: ['self'], routes: ['selfAnalysis', 'persona', 'mbti', 'egen', 'dayPillar', 'image'], sortOrder: 40 },
-  { id: 'myeongun', kind: 'live', name: '명운 선생', tagline: '무엇이든 물어보세요', avatar: null, specialty: ['all'], routes: [], sortOrder: 90 },
+  { id: 'nossem', kind: 'live', name: '노쎔', tagline: '사주 풀이', avatar: null, specialty: ['saju'], routes: [], blocks: ['self', 'persona'], sortOrder: 10 },
+  { id: 'ziwei_master', kind: 'virtual', name: '자미 선생', tagline: '자미두수', avatar: null, specialty: ['ziwei'], routes: ['ziwei', 'sinsal'], blocks: [], sortOrder: 20 },
+  { id: 'tarot_reader', kind: 'virtual', name: '타로 리더', tagline: '타로', avatar: null, specialty: ['tarot'], routes: ['taro', 'dream'], blocks: [], sortOrder: 30 },
+  { id: 'love_reader', kind: 'virtual', name: '인연 상담', tagline: '연애·궁합', avatar: null, specialty: ['love'], routes: ['compat', 'love', 'crush', 'reunion', 'lovestyle', 'relationmap'], blocks: ['relation', 'relmap'], sortOrder: 40 },
+  { id: 'flow_reader', kind: 'virtual', name: '흐름 상담', tagline: '오늘·이달의 결', avatar: null, specialty: ['today'], routes: ['today', 'month', 'newyear', 'timeline', 'luck'], blocks: ['today', 'free3', 'biorhythm', 'luck', 'decision'], sortOrder: 50 },
 ];
 
 let _cache: Consultant[] | null = null;
@@ -74,6 +77,7 @@ function fromRow(r: any): Consultant {
     avatar: r.avatar ? avatarUrl(String(r.avatar)) : null,
     specialty: Array.isArray(r.specialty) ? r.specialty : [],
     routes: Array.isArray(r.routes) ? r.routes : [],
+    blocks: Array.isArray(r.blocks) ? r.blocks : [],
     sortOrder: Number(r.sort_order ?? 100),
   };
 }
@@ -93,7 +97,7 @@ export async function listConsultants(force = false): Promise<Consultant[]> {
       //   관리자 정책이 `for all` 이라 **관리자에게는 비활성 상담사까지 보인다**
       //   (정책은 OR 로 합쳐진다). 실제로 준비 중인 「노쎔」이 친구목록에 떠 있었다.
       //   ⇒ RLS 는 '볼 권한'을 정하고, 쿼리는 '지금 보여줄 것'을 정한다. 둘은 다르다.
-      supabase.from('consultants').select('id,kind,name,tagline,avatar,specialty,routes,sort_order')
+      supabase.from('consultants').select('id,kind,name,tagline,avatar,specialty,routes,blocks,sort_order')
         .eq('enabled', true).order('sort_order'),
       8000,
     );
