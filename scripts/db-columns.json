@@ -1,6 +1,6 @@
 {
   "_note": "public 스키마 컬럼 스냅샷 — scripts/check-edge-columns.mjs 가 참조한다. 마이그레이션 후 npm run snap:cols 로 갱신할 것.",
-  "_generatedAt": "2026-08-18T03:20:39.719Z",
+  "_generatedAt": "2026-08-20T07:42:53.852Z",
   "tables": {
     "charts": [
       "id",
@@ -21,6 +21,19 @@
       "detail",
       "owner_id",
       "platform"
+    ],
+    "talk_messages": [
+      "id",
+      "session_id",
+      "owner_id",
+      "role",
+      "body",
+      "source",
+      "model",
+      "in_tok",
+      "out_tok",
+      "won",
+      "sent_at"
     ],
     "relationships": [
       "id",
@@ -78,6 +91,18 @@
       "answer",
       "owner_id",
       "created_at"
+    ],
+    "talk_session_list": [
+      "id",
+      "owner_id",
+      "consultant_id",
+      "chart_id",
+      "title",
+      "turn_count",
+      "last_at",
+      "last_read_at",
+      "unread",
+      "preview"
     ],
     "community_comments": [
       "id",
@@ -168,7 +193,39 @@
       "home_order",
       "ad_free_until",
       "nickname",
-      "show_ilju"
+      "show_ilju",
+      "avatar_path"
+    ],
+    "coin_coupons": [
+      "id",
+      "owner_id",
+      "bonus_pct",
+      "label",
+      "expires_at",
+      "used_at",
+      "used_ref",
+      "created_at"
+    ],
+    "consultants": [
+      "id",
+      "kind",
+      "name",
+      "tagline",
+      "avatar",
+      "specialty",
+      "routes",
+      "persona",
+      "model",
+      "enabled",
+      "sort_order",
+      "created_at",
+      "updated_at",
+      "free_daily",
+      "daily_cap",
+      "max_out_tok",
+      "deep_model",
+      "example_limit",
+      "guardrails"
     ],
     "app_config": [
       "key",
@@ -388,6 +445,17 @@
       "consent",
       "created_at"
     ],
+    "consultant_examples": [
+      "id",
+      "consultant_id",
+      "user_says",
+      "reply",
+      "tag",
+      "weight",
+      "enabled",
+      "author",
+      "created_at"
+    ],
     "rag_validation_progress": [
       "slug",
       "title",
@@ -451,6 +519,18 @@
       "model",
       "updated_at",
       "regen_count"
+    ],
+    "talk_sessions": [
+      "id",
+      "owner_id",
+      "consultant_id",
+      "chart_id",
+      "title",
+      "summary",
+      "turn_count",
+      "last_at",
+      "created_at",
+      "last_read_at"
     ],
     "push_campaigns": [
       "id",

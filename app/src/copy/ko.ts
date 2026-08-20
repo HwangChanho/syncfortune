@@ -380,6 +380,9 @@ export const ko = {
   nav: { home: '연락처', chats: '대화', fortune: '운세', readings: '풀이', my: '설정',
          // ↓ 탭에서는 빠졌지만 마이페이지 메뉴·설정이 계속 쓰는 이름들(2026-08-18 4탭 전환)
          contents: '풀이', community: '커뮤니티', coach: '우니', market: '마켓' },
+  profile: { title: '내 프로필', namePh: '이름', pick: '사진 바꾸기', clear: '사진 지우기',
+    saved: '저장했어요', saveFail: '저장하지 못했어요', tooLarge: '2MB 이하 사진만 올릴 수 있어요',
+    hint: '비워 두면 명식 이름으로 표시돼요.', mobileSoon: '사진 바꾸기는 다음 업데이트에서 열려요. 지금은 웹에서 바꿀 수 있어요.' },
   chats: { now: '방금', minAgo: '{{n}}분 전', hourAgo: '{{n}}시간 전', yesterday: '어제', dayAgo: '{{n}}일 전',
     empty: '아직 나눈 이야기가 없어요.\n연락처에서 친구를 눌러 보세요.', needLogin: '로그인하면 나눈 이야기가 여기 쌓여요.',
     noTitle: '대화를 이어가 보세요', turns: '{{n}}턴' },

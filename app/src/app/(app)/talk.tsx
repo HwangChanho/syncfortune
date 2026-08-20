@@ -216,7 +216,21 @@ export function TalkHome({ renderTop, mode = 'contacts' }: { renderTop?: ReactNo
           sessRef.current[cur.id] = r.sessionId;   // 다음 턴부터 이력이 이어진다
           // 방금 내가 읽은 답이므로 읽음 처리 + 목록 갱신(미리보기·시각이 바로 반영된다)
           void markRead(r.sessionId);
-          setItems((prev) => [...prev, { id: nextId(), role: 'assistant', body: r.answer }]);
+          // ★★말풍선을 **나눠서 순차로** 띄운다(Boss 2026-08-20 *"채팅하듯이 짧게 짧게"*).
+          //   모델이 빈 줄로 구분해 보내면 그대로 쪼갠다(한 덩이로 뱉으면 풍선 하나).
+          //   ⚠️전부 한꺼번에 붙이면 '사람이 길게 쓴 글'이지 대화가 아니다 —
+          //     사람은 하나 보내고 다음을 친다. 그 **사이 간격**이 사람처럼 느끼게 하는 전부다.
+          //   ★뜸은 **앞 풍선 길이**에 비례한다(긴 말 뒤에 더 오래 걸린다). 상한 1.4초 —
+          //     그 이상은 '사람 같다'가 아니라 '느리다'가 된다.
+          const parts = r.answer.split(/\n{2,}/).map((x) => x.trim()).filter(Boolean);
+          let at = 0;
+          parts.forEach((body, i) => {
+            if (i > 0) at += Math.min(1400, 320 + parts[i - 1].length * 12);
+            const ms = at;
+            setTimeout(() => setItems((prev) => [...prev, { id: nextId(), role: 'assistant', body }]), ms);
+          });
+          // 마지막 풍선이 뜰 때까지 '입력 중'을 유지한다 — 중간에 꺼지면 끝난 줄 안다
+          if (parts.length > 1) { setBusy(true); setTimeout(() => setBusy(false), at); }
           // 무료를 다 쓴 순간에만 한 번 알린다 — 매 턴 알리면 잔소리가 된다
           if (r.overFree && r.used === r.freeDaily + 1) {
             setItems((prev) => [...prev, {

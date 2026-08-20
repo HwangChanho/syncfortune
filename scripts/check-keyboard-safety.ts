@@ -62,7 +62,11 @@ const HAS_LISTENER = /Keyboard\.addListener\(\s*(showEvt|hideEvt|['"`]keyboard(W
 const HAS_LISTENER_LOOSE = /keyboard(Will|Did)Show/;      // 이벤트명을 변수로 뺀 형태까지 포함
 const HAS_KAV = /KeyboardAvoidingView/;
 const HAS_AUTO_INSET = /automaticallyAdjustKeyboardInsets/;
-const HAS_EXEMPT = /keyboard-safe:/;
+// ⚠️★**이유를 반드시 요구한다**(2026-08-20에 구멍이 드러났다).
+//   종전엔 `/keyboard-safe:/` 뿐이라 콜론만 찍어도 통과했다 — 이유 없는 면제는 규칙을 지운 것과 같다.
+//   `[^\S\n]*` = 개행이 아닌 공백만. `\s*` 를 쓰면 **개행을 먹어 다음 줄을 이유로 읽는다**
+//   (같은 실수를 `check:safearea` 에서 먼저 냈고, 음성 테스트에서만 드러났다).
+const HAS_EXEMPT = /keyboard-safe:[^\S\n]*\S/;
 // 하단 고정 '입력바' = 스타일 **키 이름이 입력바스러운 것**(input/compose/comment/reply/chat/sendBar)이면서
 //   그 스타일 객체가 position:'absolute' + bottom 인 형태.
 //   ★키 이름으로 좁히는 이유: 단순히 "파일 어딘가에 absolute+bottom"으로 잡으면 FAB(글쓰기 버튼)·

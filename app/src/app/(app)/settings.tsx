@@ -6,6 +6,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { View, Text, ScrollView, StyleSheet, Linking } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { MyProfileCard } from '../../components/settings/MyProfileCard';
+import { loadRepChart } from '../../lib/engine/myChart';
 import { PressableScale } from '../../components/PressableScale';
 import Constants from 'expo-constants'; // 앱 버전(app.json)
 import { Alert } from '../../lib/ui/alert'; // 커스텀 알림(앱 디자인)
@@ -49,6 +51,9 @@ const OSS_LICENSES = 'React Native · Expo (MIT)\niztro · lunar-javascript (MIT
 
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();   // Stack 헤더를 껐으므로 상단 여백은 화면이 책임진다
+  // 대표 명식 이름 — 프로필 이름을 안 정했을 때의 기본값
+  const [repName, setRepName] = useState<string | null>(null);
+  useEffect(() => { void loadRepChart().then((c) => setRepName(c?.label ?? null)); }, []);
   const { t, i18n } = useTranslation();
   // ── 커뮤니티(전면 익명·닉네임은 설정에서만) ──
   const [nick, setNick] = useState('');
@@ -189,6 +194,12 @@ export default function SettingsScreen() {
           · 권한은 원래부터 **서버**(`is_caller_admin()`)가 판정했으므로 보안이 약해지지 않는다 —
             앱 화면은 그 답을 그리기만 했다. 같은 RPC 를 웹이 그대로 부른다.
           ⚠️`is_admin` 을 보는 **다른** 코드(광고·커뮤니티 신고관리 등)는 그대로 둔다 — 화면만 뺀 것이다. */}
+
+      {/* ── 내 프로필 (Boss 2026-08-20) ──
+          여기서 정한 이름·사진이 **친구목록 상단 "나"** 에 그대로 쓰인다.
+          ⚠️커뮤니티 닉네임과는 다른 값이다 — 거긴 전면 익명이라 목적이 반대다. */}
+      <Text style={[styles.h, { marginTop: space(7) }]}>{t('profile.title', '내 프로필')}</Text>
+      <MyProfileCard fallbackName={repName} />
 
       {/* ── 내 기록 ──────────────────────────────────────────────────────
           ★★2026-08-19 3탭 전환에서 **탭에서 빠진 화면들의 대체 진입로**다(Boss
