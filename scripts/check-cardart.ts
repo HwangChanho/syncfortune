@@ -68,7 +68,11 @@ if (!fs.existsSync(SRC)) {
   // C3 — 아이콘 이름이 `contentIcon` 유니온 안에 있는가(오타는 빈 칸으로 조용히 나간다)
   const known = new Set(
     (fs.readFileSync('app/src/lib/ui/brandAsset.ts', 'utf8')
-      .match(/export const contentIcon = \(name:([\s\S]*?)\) =>/)?.[1] ?? '')
+      // ⚠️★이름 목록은 **타입 선언**에서 읽는다(2026-08-20에 고쳤다).
+      //   종전엔 `contentIcon = (name: 'a'|'b'…)` 의 인라인 union 을 읽었는데,
+      //   그 union 을 `export type ContentIcon` 으로 빼자 하네스가 **열 개를 전부 모른다**고 했다.
+      //   코드는 멀쩡했고 하네스만 낡은 것이다 — 단일 출처가 타입으로 옮겨갔으니 거기서 읽는다.
+      .match(/export type ContentIcon =([\s\S]*?);/)?.[1] ?? '')
       .match(/'([a-z]+)'/g)?.map((x) => x.replace(/'/g, '')) ?? [],
   );
   const used = [...raw.matchAll(/contentIcon\('([a-z]+)'\)/g)].map((m) => m[1]);
