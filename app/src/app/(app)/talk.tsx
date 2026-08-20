@@ -19,11 +19,12 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import { useEffect, useState, useCallback, useRef, useMemo, type ReactNode } from 'react';
 import { View, Text, StyleSheet, TextInput, Keyboard, Platform } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PressableScale } from '../../components/PressableScale';
 import { TalkList } from '../../components/talk/TalkList';
+import { ChatList } from '../../components/talk/ChatList';
 import { TalkThread, type TalkItem } from '../../components/talk/TalkThread';
 import { listConsultants, consultantsSnapshot, type Consultant } from '../../lib/talk/consultants';
 import { greet, todayFlow, guide, type VirtualReply } from '../../lib/talk/virtualTalk';
@@ -57,10 +58,15 @@ function toItems(r: VirtualReply): TalkItem[] {
  * @param renderTop 목록 위에 얹을 것(브랜드 헤더·풀이 진행률 배너).
  *   ★대화 상세로 들어가면 **띄우지 않는다** — 카톡도 대화에 들어가면 상단이 상대 이름으로 바뀐다.
  *     헤더가 두 겹으로 남으면 '어디에 있는지'가 흐려진다.
+ * @param mode 왼쪽 칸에 무엇을 둘까 — `contacts`(친구목록) / `chats`(대화 목록).
+ *   ★두 탭이 **같은 껍데기**를 쓴다(Boss 2026-08-20 *"친구목록이랑 채팅 탭이 좌우로 공간을 나눠서"*).
+ *     대화창·입력바·2칸 배치를 탭마다 만들면 언젠가 다르게 동작한다.
  */
-export function TalkHome({ renderTop }: { renderTop?: ReactNode }) {
+export function TalkHome({ renderTop, mode = 'contacts' }: { renderTop?: ReactNode; mode?: 'contacts' | 'chats' }) {
   const { t, i18n } = useTranslation();
   const router = useRouter();
+  // 대화 목록(`/chats`)에서 특정 상담사를 바로 열 때 쓰는 값
+  const { c: openId } = useLocalSearchParams<{ c?: string }>();
   const wide = useWideWeb();
   const insets = useSafeAreaInsets();
   const { session } = useAuth();
@@ -120,6 +126,15 @@ export function TalkHome({ renderTop }: { renderTop?: ReactNode }) {
     });
     return () => { alive = false; };
   }, [session]);
+
+  // 대화 목록에서 넘어왔으면 그 사람을 연다 — ★한 번만(사용자가 뒤로 가면 목록으로 돌아가야 한다)
+  const openedRef = useRef(false);
+  useEffect(() => {
+    if (openedRef.current || !openId || !list.length) return;
+    const c = list.find((x) => x.id === openId);
+    if (c) { openedRef.current = true; open(c); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openId, list]);
 
   // ★웹도 **처음엔 빈 대화창**이다(Boss 2026-08-19 "최초에는 빈 대화창으로 뜨고 클릭해야 대화 노출").
   //   종전엔 첫 상담사를 자동으로 열었다 — 화면은 꽉 차 보이지만 **사용자가 고르지 않은 대화**가 시작된다.
@@ -192,6 +207,14 @@ export function TalkHome({ renderTop }: { renderTop?: ReactNode }) {
   }, [draft, cur, saju, busy, chartId, t, i18n.language]);
 
   // ★블록 친구에겐 입력창을 띄우지 않는다 — 물어봐도 답할 수 없는 입력창은 없느니만 못하다
+  /**
+   * 왼쪽 칸 — 탭에 따라 친구목록/대화목록. **여기 한 곳에서만 갈린다.**
+   * ★대화 목록에서 연 상담사는 `findConsultant` 로 찾는다 — 목록에 없으면(비활성 등) 안 연다.
+   */
+  const leftPane = mode === 'chats'
+    ? <ChatList selectedId={cur?.id} onOpen={(id) => { const c = list.find((x) => x.id === id); if (c) open(c); }} />
+    : <TalkList items={list} onOpen={open} selected={cur?.id} myName={myName} onMe={() => router.push('/charts')} />;
+
   const composer = !cur?.block && (cur?.kind === 'virtual' || cur?.kind === 'live') ? (
     <View style={[styles.composer, { paddingBottom: Math.max(space(3), insets.bottom), marginBottom: lift }]}>
       <TextInput
@@ -214,9 +237,9 @@ export function TalkHome({ renderTop }: { renderTop?: ReactNode }) {
   if (wide) {
     return (
       <View style={styles.two}>
-        <View style={styles.pane}>
+        <View style={[styles.pane, { paddingTop: renderTop ? 0 : insets.top }]}>
           {renderTop}
-          <TalkList items={list} onOpen={open} selected={cur?.id} myName={myName} onMe={() => router.push('/charts')} />
+          {leftPane}
         </View>
         <View style={styles.main}>
           {cur ? (
@@ -226,7 +249,14 @@ export function TalkHome({ renderTop }: { renderTop?: ReactNode }) {
               {composer}
             </>
           ) : (
-            <View style={styles.empty}><Text style={styles.emptyTx}>{t('talk.pickOne', '왼쪽에서 상담사를 골라 주세요')}</Text></View>
+            <View style={styles.empty}>
+              {/* ★탭마다 다른 말 — 대화 탭에서 "상담사를 골라 주세요"는 틀린 안내다(고를 목록이 대화다) */}
+              <Text style={styles.emptyTx}>
+                {mode === 'chats'
+                  ? t('talk.pickChat', '왼쪽에서 대화를 골라 주세요')
+                  : t('talk.pickOne', '왼쪽에서 상담사를 골라 주세요')}
+              </Text>
+            </View>
           )}
         </View>
       </View>
@@ -235,14 +265,16 @@ export function TalkHome({ renderTop }: { renderTop?: ReactNode }) {
 
   // ── 폰 = 목록 → 대화 ─────────────────────────────────────────────
   if (!cur) return (
-    <View style={styles.one}>
+    // ★상단 인셋 — Stack 헤더를 껐으므로(4탭 전환) 화면이 직접 준다.
+    //   `renderTop`(브랜드 헤더)이 있으면 그쪽이 이미 인셋을 갖고 있어 0으로 둔다 — 두 번 주면 헤더가 뜬다.
+    <View style={[styles.one, { paddingTop: renderTop ? 0 : insets.top }]}>
       {renderTop}
-      <TalkList items={list} onOpen={open} myName={myName} onMe={() => router.push('/charts')} />
+      {leftPane}
     </View>
   );
   return (
     <View style={styles.one}>
-      <View style={styles.head}>
+      <View style={[styles.head, { paddingTop: insets.top + space(3) }]}>
         <PressableScale hitSlop={10} onPress={() => setCur(null)}><Text style={styles.back}>‹</Text></PressableScale>
         <Text style={styles.headTx}>{cur.name}</Text>
       </View>

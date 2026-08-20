@@ -164,9 +164,9 @@ export default function Home() {
             <Text style={styles.iconTx}>🔔</Text>
             {unread > 0 ? <View style={styles.dot} /> : null}
           </PressableScale>
-          <PressableScale onPress={() => router.push('/settings')} hitSlop={10} style={styles.iconBtn}>
-            <Text style={styles.iconTx}>⚙︎</Text>
-          </PressableScale>
+          {/* ★설정 아이콘은 뺐다(Boss 손그림 2026-08-20 — 우상단에 **알림 하나만** 있다).
+              설정은 하단 탭으로 갔으므로 헤더에 또 두면 같은 곳으로 가는 문이 두 개다.
+              ⚠️도달 경로는 탭이 보장한다(`check:reach` 는 탭에 있는 화면을 면제한다). */}
         </View>
       </View>
       {/* ★인사말은 뺐다(2026-08-19) — 바로 아래 친구목록 맨 위가 '나'라서

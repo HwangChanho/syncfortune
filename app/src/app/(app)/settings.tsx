@@ -5,6 +5,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useEffect, useCallback } from 'react';
 import { View, Text, ScrollView, StyleSheet, Linking } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PressableScale } from '../../components/PressableScale';
 import Constants from 'expo-constants'; // 앱 버전(app.json)
 import { APP_BUILD as APP_BUILD_NUM } from '../../lib/core/buildInfo'; // 빌드번호 단일 출처(check:buildnum)
@@ -46,6 +47,7 @@ const PRIVACY_URL = 'https://hwangchanho.github.io/syncfortune/legal/privacy-ko.
 const OSS_LICENSES = 'React Native · Expo (MIT)\niztro · lunar-javascript (MIT)\nRevenueCat Purchases · Google Mobile Ads\nreact-i18next · React Navigation (MIT)\nreact-native-svg · safe-area-context (MIT)\n\n각 라이브러리는 해당 저장소의 라이선스를 따릅니다.';
 
 export default function SettingsScreen() {
+  const insets = useSafeAreaInsets();   // Stack 헤더를 껐으므로 상단 여백은 화면이 책임진다
   const { t, i18n } = useTranslation();
   // ── 커뮤니티(전면 익명·닉네임은 설정에서만) ──
   const [nick, setNick] = useState('');
@@ -159,7 +161,10 @@ export default function SettingsScreen() {
   }
 
   return (
-    <ScrollView automaticallyAdjustKeyboardInsets keyboardShouldPersistTaps="handled" style={styles.screen} contentContainerStyle={styles.wrap}>
+    // ★상단 인셋은 화면이 직접 준다 — Stack 헤더를 껐기 때문이다(2026-08-20 4탭 전환).
+    //   ⚠️안 주면 폰에서 상태바 아래로 글자가 파고든다(웹에선 0이라 티가 안 난다).
+    <ScrollView automaticallyAdjustKeyboardInsets keyboardShouldPersistTaps="handled" style={styles.screen}
+      contentContainerStyle={[styles.wrap, { paddingTop: insets.top + space(4) }]}>
       {/* ── 계정 ── */}
       <Text style={styles.h}>{t('settings.account')}</Text>
       {/* ★익명 세션 상시라 session 아닌 isRegistered 로 구분 — 등록 유저만 계정카드, 익명/미로그인은 로그인 유도(Apple 5.1.1: 등록은 선택·언제든 가능) */}

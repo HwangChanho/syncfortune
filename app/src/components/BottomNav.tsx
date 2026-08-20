@@ -45,8 +45,12 @@ import { colors, space } from '../lib/theme';
 //     설정(§'내 기록')에 진입로를 남겨 뒀다 — 이 저장소는 "옮길 곳을 먼저 만들고 뺀다"를
 //     이미 비싸게 배웠다(홈 블록 접기 때 바이오리듬이 도달 불가가 될 뻔했다).
 //     ⇒ 탭에서 빼기 전에 `check:reach` 가 대체 진입로를 확인한다.
+// ★★2026-08-20 Boss 손그림 — 탭이 **넷**이다(3 → 4). 둘째가 말풍선 = 대화 목록.
+//   앞선 말씀과도 맞는다: *"친구목록 대화리스트 탭해서 들어가면 대화 상세"*.
+//   ⇒ 연락처(누구와 이야기할 수 있나)와 대화(누구와 이야기했나)는 **다른 질문**이라 탭이 갈린다.
 export const ALL_TABS = [
   { key: 'home', route: '/', match: '' },                      // 연락처(친구목록) — '/' 는 접두사로 못 잡는다(아래 isTabActive)
+  { key: 'chats', route: '/chats', match: '/chats' },          // 대화 목록(talk_sessions)
   { key: 'community', route: '/community', match: '/community' },
   { key: 'my', route: '/settings', match: '/settings' },       // 설정 — 만세력·내 기록·계정이 여기로 모인다
 ] as const;
@@ -88,6 +92,10 @@ export function TabIcon({ name, color }: { name: TabKey; color: string }) {
         <Circle cx="8.6" cy="8.4" r="3.1" {...p} />
         <Path d="M3.2 19.6c0-3.2 2.4-5.2 5.4-5.2s5.4 2 5.4 5.2" {...p} />
         <Path d="M16.4 9.2h4.4M16.4 13h4.4M16.4 16.8h4.4" {...p} />
+      </>)}
+      {/* 대화 = 말풍선(Boss 손그림의 둘째 칸) */}
+      {name === 'chats' && (<>
+        <Path d="M4.2 6.6a2.4 2.4 0 0 1 2.4-2.4h10.8a2.4 2.4 0 0 1 2.4 2.4v7.2a2.4 2.4 0 0 1-2.4 2.4H9.8l-4 3.4v-3.4H6.6a2.4 2.4 0 0 1-2.4-2.4z" {...p} />
       </>)}
       {/* 커뮤니티 = 사람 둘 */}
       {name === 'community' && (<>

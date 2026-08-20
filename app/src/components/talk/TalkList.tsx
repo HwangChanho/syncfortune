@@ -16,7 +16,8 @@
 //   오행 색 + 이름 첫 글자로 버틴다. `avatar` 컬럼에 경로가 들어오면 그때부터 사진이 뜬다.
 //   ★색은 id 로 **고정 배정**한다. 매번 달라지면 사람이 얼굴로 못 외운다.
 // ═══════════════════════════════════════════════════════════════════════════
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { useState, useMemo } from 'react';
+import { View, Text, StyleSheet, ScrollView, TextInput } from 'react-native';
 import { Image as ExpoImage } from 'expo-image';
 import { useTranslation } from 'react-i18next';
 import { PressableScale } from '../PressableScale';
@@ -92,10 +93,33 @@ export function TalkList({ items, onOpen, selected, myName, onMe }: {
   onMe?: () => void;
 }) {
   const { t } = useTranslation();
-  // ★목록 전체를 한 번에 보고 겹치지 않는 글자를 뽑는다 — 한 줄씩 따로 정하면 겹치는 걸 알 수 없다
-  const initials = initialsFor(items.map((c) => c.name));
+  // ★검색은 **온디바이스 필터**다(Boss 손그림 2026-08-20 상단 검색바).
+  //   서버로 질의하지 않는다 — 목록이 열댓 개라 왕복할 이유가 없고, 원가도 0이다.
+  const [q, setQ] = useState('');
+  const shown = useMemo(() => {
+    const k = q.trim().toLowerCase();
+    return k ? items.filter((c) => c.name.toLowerCase().includes(k)) : items;
+  }, [items, q]);
+  // ★글자는 **보이는 목록**이 아니라 전체 기준으로 뽑는다 —
+  //   검색으로 걸러질 때마다 얼굴 글자가 바뀌면 같은 친구가 다른 사람처럼 보인다.
+  const allInitials = useMemo(() => initialsFor(items.map((c) => c.name)), [items]);
+  const initialOf = (id: string) => allInitials[items.findIndex((c) => c.id === id)];
   return (
     <ScrollView style={styles.wrap} contentContainerStyle={styles.body}>
+      {/* ── 검색 ── */}
+      <View style={styles.searchWrap}>
+        <Text style={styles.searchIcon}>⌕</Text>
+        <TextInput
+          style={styles.search}
+          value={q}
+          onChangeText={setQ}
+          placeholder={t('talk.search', '친구 검색')}
+          placeholderTextColor={colors.inkFaint}
+          returnKeyType="search"
+          // keyboard-safe: 목록 상단 검색창이라 키보드가 올라와도 가려지지 않는다
+        />
+      </View>
+
       {/* ── 나 ── */}
       <PressableScale style={styles.me} onPress={onMe} disabled={!onMe}>
         {/* 나 = 늘 첫 번째 색(slot 0). 내 얼굴이 목록 순서에 따라 바뀌면 이상하다 */}
@@ -108,17 +132,24 @@ export function TalkList({ items, onOpen, selected, myName, onMe }: {
       </PressableScale>
 
       <View style={styles.rule} />
-      <Text style={styles.section}>{t('talk.friends', '친구')} {items.length}</Text>
+      {/* 친구 수 — ★검색 중이면 **걸러진 수**를 보여 준다(안 그러면 목록과 숫자가 어긋난다) */}
+      <Text style={styles.section}>
+        {t('talk.friendsCount', '친구 {{n}}명').replace('{{n}}', String(shown.length))}
+      </Text>
 
       {/* ── 친구 ── */}
-      {items.map((c, i) => (
+      {shown.map((c) => (
         <PressableScale key={c.id} style={[styles.row, selected === c.id && styles.rowOn]} onPress={() => onOpen(c)}>
-          <Avatar name={c.name} initial={initials[i]} slot={i + 1} uri={c.avatar} />
+          <Avatar name={c.name} initial={initialOf(c.id)} slot={items.findIndex((x) => x.id === c.id) + 1} uri={c.avatar} />
           <View style={styles.col}>
             <Text style={styles.name} numberOfLines={1}>{c.name}</Text>
           </View>
         </PressableScale>
       ))}
+      {/* ★빈 결과를 말없이 두지 않는다 — 목록이 사라진 이유를 화면이 설명해야 한다 */}
+      {q.trim() && !shown.length
+        ? <Text style={styles.empty}>{t('talk.searchEmpty', '찾는 친구가 없어요.')}</Text>
+        : null}
     </ScrollView>
   );
 }
@@ -130,7 +161,16 @@ const styles = StyleSheet.create({
   me: { flexDirection: 'row', alignItems: 'center', gap: space(3), paddingVertical: space(2) },
   meName: { fontSize: 17, lineHeight: 24, fontWeight: '800', color: colors.ink, letterSpacing: -0.3 },
 
+  searchWrap: {
+    flexDirection: 'row', alignItems: 'center', gap: space(2),
+    backgroundColor: colors.sunk, borderRadius: radius.pill,
+    paddingHorizontal: space(3.5), marginBottom: space(3),
+  },
+  searchIcon: { fontSize: 17, color: colors.inkFaint },
+  search: { flex: 1, paddingVertical: space(2.5), ...font.body, color: colors.ink },
+
   rule: { height: 1, backgroundColor: colors.line, marginVertical: space(3) },
+  empty: { ...font.body, color: colors.inkFaint, textAlign: 'center', paddingVertical: space(8) },
   section: { ...font.caption, color: colors.inkFaint, fontWeight: '700', marginBottom: space(2) },
 
   // ★카드가 아니라 **줄**이다. 카톡 친구목록은 카드로 떠 있지 않다.

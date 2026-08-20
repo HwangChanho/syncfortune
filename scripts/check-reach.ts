@@ -51,6 +51,7 @@ export function audit(
   reader: (p: string) => string,
   exists: (p: string) => boolean,
   mustReach = MUST_REACH,
+  readLayout: () => string = () => reader(`${APP_DIR}/_layout.tsx`),
 ): Fail[] {
   const out: Fail[] = [];
   if (!mustReach.length) {
@@ -78,6 +79,19 @@ export function audit(
     const p = `${APP_DIR}${r}.tsx`;
     if (!exists(p)) out.push({ rule: 'R2', msg: `탭이 ${r} 을 가리키는데 ${p} 가 없다 — 눌러도 빈 화면이다` });
   }
+
+  // R4 — 탭 라우트는 Stack 헤더를 꺼야 한다(탭 화면은 자기 헤더를 갖는다)
+  //   ★실제 사고: `/chats` 를 만들고 등록을 잊어 **64px 흰 띠**가 얹혔다.
+  //     화면은 멀쩡히 돌아서 '레이아웃이 좀 이상한데'로만 보였다 — 오류가 안 난다.
+  let layout = '';
+  try { layout = readLayout(); } catch { /* 못 읽으면 아래에서 전부 실패로 잡힌다 */ }
+  for (const r of tabRoutes) {
+    const name = r === '/' ? 'index' : r.replace(/^\//, '');
+    const re = new RegExp(`name="${name}"[^/]*headerShown:\\s*false`);
+    if (!re.test(layout)) {
+      out.push({ rule: 'R4', msg: `탭 라우트 '${name}' 이 _layout 에 headerShown:false 로 등록돼 있지 않다 — Stack 기본 헤더(64px 흰 띠)가 얹힌다` });
+    }
+  }
   return out;
 }
 
@@ -94,12 +108,15 @@ if (process.argv.includes('--selftest')) {
   const okRead = () => withLinks;
   const badRead = () => `아무 링크도 없다`;
   const allExist = () => true;
+  const layoutOk = `<Stack.Screen name="index" options={{ headerShown: false }} />
+    <Stack.Screen name="community" options={{ headerShown: false }} />
+    <Stack.Screen name="settings" options={{ headerShown: false }} />`;
   const cases: Array<[string, number]> = [
-    ['정상(설정에 진입로 있음)', audit(navNew, okRead, allExist).length],
-    ['진입로 없음 → 전부 도달불가', audit(navNew, badRead, allExist).length],
-    ['탭에 남아 있으면 면제', audit(navOld, () => `router.push('/myreadings'); router.push('/charts'); router.push('/coach');`, allExist).length],
-    ['탭이 없는 화면을 가리킴', audit(navNew, okRead, (p) => !p.includes('community')).length],
-    ['MUST_REACH 가 빔(하네스 무력화)', audit(navNew, okRead, allExist, []).length],
+    ['정상(설정에 진입로 있음)', audit(navNew, okRead, allExist, MUST_REACH, () => layoutOk).length],
+    ['진입로 없음 → 전부 도달불가', audit(navNew, badRead, allExist, MUST_REACH, () => layoutOk).length],
+    ['탭에 남아 있으면 면제', audit(navOld, () => `router.push('/myreadings'); router.push('/charts'); router.push('/coach');`, allExist, MUST_REACH, () => layoutOk + `<Stack.Screen name="contents" options={{ headerShown: false }} />`).length],
+    ['탭이 없는 화면을 가리킴', audit(navNew, okRead, (p) => !p.includes('community'), MUST_REACH, () => layoutOk).length],
+    ['MUST_REACH 가 빔(하네스 무력화)', audit(navNew, okRead, allExist, [], () => layoutOk).length],
   ];
   const want = [0, 4, 0, 1, 1];
   let bad = 0;

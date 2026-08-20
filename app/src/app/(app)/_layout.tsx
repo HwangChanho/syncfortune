@@ -94,12 +94,22 @@ export default function AppLayout() {
             BottomNav 는 router.replace 로 이동하므로 전역 screenOptions 의 animation:'fade' 를 타고 있었다.
             전역 fade 는 콘텐츠 화면 진입용으로 07-01 에 의도된 것이라 유지하고, **탭만** 'none' 으로 덮어쓴다. */}
         <Stack.Screen name="index" options={{ headerShown: false, animation: 'none' }} />
+        {/* ★★하단 탭 라우트는 **반드시** headerShown:false + animation:'none' 이다(2026-08-20).
+            빠뜨리면 Stack 기본 헤더(64px 흰 띠)가 얹히고, 탭을 넘길 때 전역 fade 가 붙는다.
+            ⚠️실제로 `/chats` 를 새로 만들고 등록을 잊어 흰 띠가 떴다 — 화면은 멀쩡히 돌아서
+              '레이아웃이 좀 이상한데' 로만 보였다. `check:reach` R4 가 이제 지킨다. */}
+        <Stack.Screen name="chats" options={{ headerShown: false, animation: 'none' }} />
+        <Stack.Screen name="talk" options={{ headerShown: false, animation: 'none' }} />
         <Stack.Screen name="register" options={{ title: '차트 등록' }} />
         <Stack.Screen name="myeongsik" options={{ headerTitle: '' }} />
         <Stack.Screen name="sinsal" options={{ headerTitle: '' }} />
         <Stack.Screen name="reading" options={{ headerTitle: '' }} />
         <Stack.Screen name="timeline" options={{ headerTitle: '' }} />
-        <Stack.Screen name="settings" options={{ title: '설정' }} />
+        {/* ★설정은 이제 **탭**이다(2026-08-20 4탭) — 다른 탭과 같이 Stack 헤더를 끈다.
+            ⚠️종전 `title:'설정'` 헤더는 웹에서 **제목이 그려지지 않아** 64px 흰 띠만 남았다
+              (실물에서 확인). 정보 없는 띠가 네 탭 중 하나에만 있으면 그건 결함이다.
+            ★`/settings` 로 push 진입하는 곳이 없음을 확인하고 껐다 — 뒤로가기가 필요 없다. */}
+        <Stack.Screen name="settings" options={{ headerShown: false, animation: 'none' }} />
         {/* ★시안 4탭(2026-08-18) — 마이페이지·풀이 보관함·결제 내역 */}
         <Stack.Screen name="my" options={{ headerShown: false }} />
         <Stack.Screen name="myreadings" options={{ headerShown: false }} />

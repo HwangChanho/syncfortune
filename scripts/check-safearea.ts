@@ -38,6 +38,21 @@ for (const name of targets) {
   try { src = readFileSync(`${ROOT}${path}`, 'utf8'); } catch { console.log(`  · ${name}: 파일 없음(스킵)`); continue; }
   const code = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
 
+  // ── 면제 ─────────────────────────────────────────────────────────
+  // ★인셋을 **다른 컴포넌트에 위임한** 화면이 있다(예: `chats.tsx` 는 `TalkHome` 한 줄짜리 껍데기다).
+  //   거기에 인셋을 또 주면 여백이 두 번 들어가 헤더가 뜬다 — 규칙을 지키려다 화면을 깨는 셈이다.
+  //   ⇒ `// safe-area-safe: <이유>` 로 면제하되 **이유를 반드시 적게** 한다.
+  //     `check:keyboard` 의 `// keyboard-safe:` 와 같은 방식이다(두 하네스가 다른 문법을 쓰면 아무도 못 외운다).
+  // ⚠️★`\s*` 를 쓰면 **개행을 먹어 다음 줄을 이유로 읽는다** — 음성 테스트에서 잡혔다
+  //   (이유를 비웠는데 바로 아래 `import` 문이 이유로 통과했다).
+  //   `[^\S\n]*` = 개행이 아닌 공백만. 하네스는 자기 정규식부터 반증해야 한다.
+  const ex = src.match(/\/\/[^\S\n]*safe-area-safe:[^\S\n]*(.*)/);
+  if (ex) {
+    if (!ex[1]?.trim()) { bad(`${name}: 면제 주석에 **이유가 없다** — 이유 없는 면제는 규칙을 지운 것과 같다`); }
+    else { ok(`${name}: 면제 — ${ex[1].trim()}`); }
+    continue;
+  }
+
   // S1·S2
   const hasHook = /useSafeAreaInsets\s*\(/.test(code);
   const usesTop = /insets\.top/.test(code);
