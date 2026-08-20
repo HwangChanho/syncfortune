@@ -21,7 +21,6 @@ import { View, Text, StyleSheet, ScrollView, TextInput } from 'react-native';
 import { Image as ExpoImage } from 'expo-image';
 import { useTranslation } from 'react-i18next';
 import { PressableScale } from '../PressableScale';
-import { A } from '../../lib/ui/remoteAsset';
 import { colors, space, radius, font } from '../../lib/theme';
 import { elementColor, elementText } from '../../lib/engine/ohaeng';
 import type { Consultant } from '../../lib/talk/consultants';
@@ -67,7 +66,9 @@ function Avatar({ name, initial, slot, uri, size = 48 }: {
   name: string; initial?: string; slot: number; uri?: string | null; size?: number;
 }) {
   const st = { width: size, height: size, borderRadius: size * 0.32 };
-  if (uri) return <ExpoImage source={A(uri)} style={st} contentFit="cover" transition={140} />;
+  // ⚠️`A()` 를 쓰지 않는다 — `consultants.fromRow` 가 **이미 공개 URL** 로 바꿔 놨다.
+  //   여기서 또 감싸면 `assets/img/` 버킷을 가리켜 404 가 나고 조용히 안 뜬다.
+  if (uri) return <ExpoImage source={{ uri }} style={st} contentFit="cover" transition={140} />;
   const el = FALLBACK_EL[slot % FALLBACK_EL.length];
   return (
     <View style={[st, { backgroundColor: elementColor[el], alignItems: 'center', justifyContent: 'center' }]}>

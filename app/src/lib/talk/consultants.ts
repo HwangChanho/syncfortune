@@ -20,6 +20,8 @@ export type Consultant = {
   tagline: string | null;
   avatar: string | null;
   specialty: string[];
+  /** 프로필 사진 **URL**(경로 아님 — `fromRow` 가 이미 바꿔 놨다) */
+  avatarUrlOnly?: never;
   /** 가상 전용 — 안내할 콘텐츠 키(`contentSections` 의 key). 순서가 곧 노출 순서다 */
   routes: string[];
   sortOrder: number;
@@ -48,6 +50,19 @@ const SEED: Consultant[] = [
 
 let _cache: Consultant[] | null = null;
 
+/**
+ * 아바타 경로 → 공개 URL.
+ * ⚠️★`A()`(`lib/ui/remoteAsset`)를 쓰면 안 된다 — 그건 `assets/img/` 버킷을 가리키는데
+ *   상담가 사진은 **`avatars` 버킷**이다. 잘못 쓰면 404 가 나고 **조용히 안 뜬다**
+ *   (오류도 안 나서 "사진을 올렸는데 왜 안 나오지"만 남는다).
+ * ★버전 쿼리: 관리자가 **같은 경로에 덮어쓰므로** 없으면 CDN 이 옛 사진을 계속 준다.
+ *   목록을 읽는 시점 기준이라 앱을 다시 열면 새 사진이 온다.
+ */
+function avatarUrl(path: string): string {
+  const base = supabase.storage.from('avatars').getPublicUrl(path).data.publicUrl;
+  return `${base}?v=${Math.floor(Date.now() / 60000)}`;   // 1분 단위 — 매 렌더마다 바뀌면 캐시가 무의미하다
+}
+
 /** 서버 행 → 앱 타입. 컬럼 이름이 바뀌면 여기만 고친다. */
 function fromRow(r: any): Consultant {
   return {
@@ -55,7 +70,8 @@ function fromRow(r: any): Consultant {
     kind: r.kind === 'live' ? 'live' : 'virtual',   // ★모르는 값은 안전한 쪽(virtual = 원가 0)으로
     name: String(r.name ?? ''),
     tagline: r.tagline ?? null,
-    avatar: r.avatar ?? null,
+    // ★경로가 아니라 **완성된 URL** 로 내려준다 — 화면이 어느 버킷인지 알 필요가 없다
+    avatar: r.avatar ? avatarUrl(String(r.avatar)) : null,
     specialty: Array.isArray(r.specialty) ? r.specialty : [],
     routes: Array.isArray(r.routes) ? r.routes : [],
     sortOrder: Number(r.sort_order ?? 100),
