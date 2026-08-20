@@ -637,6 +637,7 @@ export const ja = {
     'blockHi': '{{what}}をお持ちしました。',
     'friends': '友だち',
     'favorites': 'お気に入り',
+    'contents': 'コンテンツ',
     'fav': 'お気に入りに追加',
     'unfav': 'お気に入りから外す',
     'friendsCount': '友だち {{n}}人',

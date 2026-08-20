@@ -676,6 +676,7 @@ export const ko = {
     'blockHi': '{{what}} 가져왔어요.',
     'friends': '친구',
     'favorites': '즐겨찾기',
+    'contents': '콘텐츠',
     'fav': '즐겨찾기에 추가',
     'unfav': '즐겨찾기에서 빼기',
     'friendsCount': '친구 {{n}}명',

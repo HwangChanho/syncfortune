@@ -638,6 +638,7 @@ export const en = {
     'blockHi': "Here's your {{what}}.",
     'friends': 'Friends',
     'favorites': 'Favorites',
+    'contents': 'Contents',
     'fav': 'Add to favorites',
     'unfav': 'Remove from favorites',
     'friendsCount': '{{n}} friends',
