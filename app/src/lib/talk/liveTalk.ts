@@ -70,3 +70,42 @@ export async function askLive(
     return { ok: false, reason: 'failed', message: '연결이 원활하지 않아요. 잠시 뒤 다시 물어봐 주세요.' };
   }
 }
+
+/**
+ * 이 상담사와 **이어갈 세션**을 찾아 이력과 함께 돌려준다.
+ *
+ * ★왜 필요한가(2026-08-20 실물에서 발견): 세션 id 를 앱 메모리에만 두면
+ *   새로고침·앱 재시작마다 **새 대화방이 생긴다.** 실제로 노쎔 대화가 셋으로 쪼개졌다.
+ *   카톡은 앱을 껐다 켜도 같은 방이다 — 대화는 이어지는 것이 기본값이어야 한다.
+ * ⚠️'가장 최근' 하나만 잇는다. 여러 방을 만드는 기능은 없다(있으면 카톡이 아니라 게시판이다).
+ *
+ * @param consultantId 상담사 id
+ * @returns 세션과 지난 메시지(오래된 것부터). 없으면 null
+ */
+export async function loadThread(consultantId: string): Promise<
+  { sessionId: string; messages: { role: 'user' | 'assistant'; body: string }[] } | null
+> {
+  try {
+    const s = await withTimeout(
+      supabase.from('talk_sessions')
+        .select('id').eq('consultant_id', consultantId)
+        .order('last_at', { ascending: false }).limit(1).maybeSingle(),
+      8000,
+    );
+    const sid = s && !s.error ? (s.data as any)?.id : null;
+    if (!sid) return null;
+    const m = await withTimeout(
+      supabase.from('talk_messages')
+        .select('role, body').eq('session_id', sid)
+        .order('sent_at', { ascending: true }).limit(60),   // 화면에 60개면 충분하다(그 위는 스크롤로도 안 본다)
+      8000,
+    );
+    const messages = m && !m.error && Array.isArray(m.data)
+      ? (m.data as any[]).map((x) => ({ role: x.role === 'user' ? 'user' as const : 'assistant' as const, body: String(x.body ?? '') }))
+      : [];
+    return { sessionId: sid, messages };
+  } catch (e) {
+    console.warn('[talk] loadThread 실패', e);
+    return null;   // 실패해도 새 대화로 시작한다(막지 않는다)
+  }
+}

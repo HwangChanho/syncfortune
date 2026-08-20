@@ -28,7 +28,7 @@ import { ChatList } from '../../components/talk/ChatList';
 import { TalkThread, type TalkItem } from '../../components/talk/TalkThread';
 import { listConsultants, consultantsSnapshot, type Consultant } from '../../lib/talk/consultants';
 import { greet, todayFlow, guide, type VirtualReply } from '../../lib/talk/virtualTalk';
-import { askLive } from '../../lib/talk/liveTalk';
+import { askLive, loadThread } from '../../lib/talk/liveTalk';
 import { supabase } from '../../lib/supabase';
 import { loadRepChart } from '../../lib/engine/myChart';
 import { ensureServerChartIdForSaved } from '../../lib/backend/prewarmReadings';
@@ -178,10 +178,22 @@ export function TalkHome({ renderTop, mode = 'contacts' }: { renderTop?: ReactNo
       setItems(toItems(greet(c.name, c.tagline, c.routes, t as never)));
     } else {
       // 실제 상담사도 **첫 인사만은 공짜다** — 화면을 여는 것만으로 API 를 태우지 않는다.
-      setItems([{
-        id: nextId(), role: 'assistant',
+      const greet = {
+        id: nextId(), role: 'assistant' as const,
         body: t('talk.liveGreet', '안녕하세요. {{name}}이에요. 무엇이 궁금하세요?').replace('{{name}}', c.name),
-      }]);
+      };
+      setItems([greet]);
+      // ★지난 대화를 **이어 붙인다**(2026-08-20) — 세션 id 를 메모리에만 두면
+      //   새로고침·앱 재시작마다 새 방이 생긴다(실제로 노쎔 대화가 셋으로 쪼개졌다).
+      //   카톡은 껐다 켜도 같은 방이다. 인사는 **이력이 없을 때만** 남긴다.
+      void loadThread(c.id).then((th) => {
+        if (!th) return;
+        sessRef.current[c.id] = th.sessionId;
+        if (th.messages.length) {
+          setItems(th.messages.map((m) => ({ id: nextId(), role: m.role, body: m.body })));
+          void markRead(th.sessionId);
+        }
+      });
     }
   }, [t, dateKey, myName, bumpChats]);
 

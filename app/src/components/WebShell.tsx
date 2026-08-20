@@ -64,7 +64,7 @@ const SIDEBAR = 248;
 // ⚠️`/chats` 는 **2칸 화면**이라 반드시 여기 있어야 한다(2026-08-20) —
 //   빠지면 좁은 컬럼(WEB_COLUMN) 안에 두 칸을 욱여넣어 왼쪽 목록이 화면 한가운데 뜬다.
 //   `check:widepane` 이 '2칸을 쓰는 라우트'가 여기 등록됐는지 지킨다.
-const WIDE_ROUTES = ['/', '/chats', '/contents', '/category', '/relationmap', '/charts', '/market', '/community'];
+const WIDE_ROUTES = ['/', '/chats', '/talk', '/contents', '/category', '/relationmap', '/charts', '/market', '/community'];
 /**
  * **폼 화면** — 입력이 주인 화면은 더 좁아야 한다.
  * 글은 760 이 편하지만, 입력창이 760 으로 늘어나면 라벨과 입력 사이가 멀어져 한 덩어리로 안 읽힌다.
