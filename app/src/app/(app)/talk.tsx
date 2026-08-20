@@ -299,7 +299,8 @@ export function TalkHome({ renderTop, mode = 'contacts' }: { renderTop?: ReactNo
    * ★웹은 셋을 동시에 펴므로 이 분기를 쓰지 않는다(폰만 좁아서 갈린다).
    */
   const leftPane = mode === 'chats'
-    ? <ChatList selectedId={cur?.id} onOpen={(id) => { const c = list.find((x) => x.id === id); if (c) open(c); }} />
+    ? <ChatList selectedId={cur?.id} wide onSettings={() => router.push('/settings')}
+                onOpen={(id) => { const c = list.find((x) => x.id === id); if (c) open(c); }} />
     : <TalkList items={list} onOpen={open} selected={cur?.id} myName={myName} myAvatar={myAvatar}
                       railKeys={order} onMe={() => router.push('/charts')}
                       onSettings={() => router.push('/settings')}
@@ -344,7 +345,8 @@ export function TalkHome({ renderTop, mode = 'contacts' }: { renderTop?: ReactNo
         </View>
         {showChatPane && (
           <View style={[styles.pane, { paddingTop: insets.top }]}>
-            <ChatList reloadKey={chatsTick} selectedId={cur?.id}
+            <ChatList reloadKey={chatsTick} selectedId={cur?.id} wide={false}
+                      onSettings={() => router.push('/settings')}
                       onOpen={(id) => { const c = list.find((x) => x.id === id); if (c) open(c); }} />
           </View>
         )}

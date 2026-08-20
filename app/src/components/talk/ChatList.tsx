@@ -22,6 +22,7 @@ import { supabase } from '../../lib/supabase';
 import { withTimeout } from '../../lib/core/withTimeout';
 import { useAuth } from '../../lib/useAuth';
 import { consultantsSnapshot, listConsultants } from '../../lib/talk/consultants';
+import { HouseAdBanner } from '../HouseAdBanner';
 import { colors, space, radius, font } from '../../lib/theme';
 import { elementColor, elementText } from '../../lib/engine/ohaeng';
 
@@ -56,10 +57,14 @@ function ago(iso: string, t: (k: string, d?: string) => string): string {
  * @param onOpen     한 대화를 열었을 때(웹 2칸이면 오른쪽 칸에, 폰이면 대화 화면으로)
  * @param selectedId 지금 열려 있는 상담사 id(웹 2칸에서 줄을 강조)
  */
-export function ChatList({ onOpen, selectedId, reloadKey = 0 }: {
+export function ChatList({ onOpen, selectedId, reloadKey = 0, wide, onSettings }: {
   onOpen: (consultantId: string) => void; selectedId?: string;
   /** 답이 오거나 읽음 처리됐을 때 올려서 다시 읽게 한다(웹은 목록과 대화가 동시에 보인다) */
   reloadKey?: number;
+  /** 목록 칸이 넓은가 — 좁으면 배너를 숨긴다(`TalkList` 와 같은 뜻) */
+  wide?: boolean;
+  /** 우측 톱니 */
+  onSettings?: () => void;
 }) {
   const { t } = useTranslation();
   const router = useRouter();
@@ -102,7 +107,17 @@ export function ChatList({ onOpen, selectedId, reloadKey = 0 }: {
 
   return (
     <ScrollView style={styles.wrap} contentContainerStyle={styles.body}>
-      <Text style={styles.head}>{t('nav.chats', '대화')}</Text>
+      {/* ── 상단: 제목 + 아이콘 (Boss 2026-08-20 카톡 채팅목록 배치) ── */}
+      <View style={styles.topRow}>
+        <Text style={styles.head}>{t('nav.chats', '대화')}</Text>
+        <PressableScale hitSlop={8} onPress={onSettings}>
+          <Text style={styles.topIcon}>⚙︎</Text>
+        </PressableScale>
+      </View>
+
+      {/* 배너 — 친구목록과 같은 자리(카톡도 두 탭 다 배너가 있다).
+          ⚠️좁은 칸에서는 숨긴다 — 배너는 넓은 폭 전제라 좁으면 글자가 세로로 흐른다. */}
+      {wide ? <View style={styles.banner}><HouseAdBanner /></View> : null}
 
       {!rows.length ? (
         <View style={styles.center}>
@@ -133,13 +148,15 @@ export function ChatList({ onOpen, selectedId, reloadKey = 0 }: {
                 {r.preview ?? t('chats.noTitle', '대화를 이어가 보세요')}
               </Text>
             </View>
+            {/* ★시각은 **위**, 배지는 **아래**(Boss 지정 카톡 배치).
+                시간부터 읽고 안 읽은 게 있는지 보는 순서가 자연스럽다. */}
             <View style={styles.meta}>
               <Text style={styles.time}>{ago(r.lastAt, t as never)}</Text>
               {/* 안 읽은 수 — ★0 이면 아예 그리지 않는다(0 배지는 정보가 아니라 잡음이다).
                   99 를 넘으면 '99+' — 정확한 수보다 '많다'가 더 쓸모 있다. */}
               {r.unread > 0
                 ? <View style={styles.badge}><Text style={styles.badgeTx}>{r.unread > 99 ? '99+' : r.unread}</Text></View>
-                : r.turns > 0 ? <Text style={styles.turns}>{t('chats.turns', '{{n}}턴').replace('{{n}}', String(r.turns))}</Text> : null}
+                : null}
             </View>
           </PressableScale>
         );
@@ -151,7 +168,10 @@ export function ChatList({ onOpen, selectedId, reloadKey = 0 }: {
 const styles = StyleSheet.create({
   wrap: { flex: 1, backgroundColor: colors.bg },
   body: { paddingHorizontal: space(4), paddingTop: space(4), paddingBottom: space(20) },
-  head: { fontSize: 22, lineHeight: 30, fontWeight: '900', color: colors.ink, letterSpacing: -0.4, marginBottom: space(4) },
+  topRow: { flexDirection: 'row', alignItems: 'center', marginBottom: space(3) },
+  head: { flex: 1, fontSize: 22, lineHeight: 30, fontWeight: '900', color: colors.ink, letterSpacing: -0.4 },
+  topIcon: { fontSize: 20, color: colors.inkSoft, paddingHorizontal: space(1.5) },
+  banner: { marginBottom: space(3) },
 
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: space(16), gap: space(4) },
   emptyTx: { ...font.body, color: colors.inkFaint, textAlign: 'center', lineHeight: 22 },
@@ -159,13 +179,15 @@ const styles = StyleSheet.create({
   // ★강조색 위 글자는 `onJu`(`check:onaccent`)
   ctaTx: { ...font.label, color: colors.onJu, fontWeight: '900' },
 
-  row: { flexDirection: 'row', alignItems: 'center', gap: space(3), paddingVertical: space(2.5), paddingHorizontal: space(1), borderRadius: radius.md },
+  // ★카톡 비율 — 아바타는 화면 폭의 약 13%, 행은 위아래 여백이 넉넉하다
+  row: { flexDirection: 'row', alignItems: 'center', gap: space(3.5), paddingVertical: space(3), paddingHorizontal: space(1), borderRadius: radius.md },
   rowOn: { backgroundColor: colors.juSoft },
-  av: { width: 48, height: 48, borderRadius: radius.md * 1.1, alignItems: 'center', justifyContent: 'center' },
+  av: { width: 52, height: 52, borderRadius: radius.lg, alignItems: 'center', justifyContent: 'center' },
   col: { flex: 1, minWidth: 0, gap: 2 },
   name: { fontSize: 15.5, lineHeight: 21, fontWeight: '700', color: colors.ink },
   sub: { ...font.caption, color: colors.inkFaint },
-  meta: { alignItems: 'flex-end', gap: 3 },
+  // 시각(위) · 배지(아래) — 사이를 벌려 두 정보가 붙어 보이지 않게
+  meta: { alignItems: 'flex-end', justifyContent: 'space-between', alignSelf: 'stretch', gap: space(1.5), minHeight: 40 },
   time: { ...font.caption, color: colors.inkFaint },
   turns: { ...font.caption, color: colors.inkFaint },
   // 안 읽음 배지 — 강조색 위 글자는 `onJu`(`check:onaccent`)
