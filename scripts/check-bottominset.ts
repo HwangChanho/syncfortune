@@ -69,7 +69,17 @@ for (const root of ROOTS) {
       .join('\n');
     if (!PRESSABLE.test(tail)) continue; // 마지막이 '읽는 것' → 가려도 기능은 산다
 
-    const ref = /contentContainerStyle=\{(?:\[)?styles\.([A-Za-z0-9_]+)/.exec(src);
+    // ⚠️★**가로 스크롤러를 세로로 재던 버그**(2026-08-21 `room.tsx` 에서 드러남).
+    //   이 파일의 유일한 ScrollView 가 가로 칩 목록이었는데, 파일에서 **첫 번째**
+    //   `contentContainerStyle` 을 집어 그 8pt 를 '화면 하단 여백'으로 읽고 실패시켰다.
+    //   (하네스 주석이 §1 에서 경고해 둔 바로 그 오탐을, 스타일 참조 쪽에서 다시 저질렀다.)
+    //   ⇒ ①`horizontal` 스크롤러는 **세로 여백 개념이 없으니** 판정에서 뺀다
+    //     ②여백은 **그 스크롤러 자신의** contentContainerStyle 에서 읽는다(첫 매치가 아니라).
+    const opens = [...src.matchAll(/<ScrollView\b[^>]*>/g)];
+    const vertical = opens.filter((m) => !/\bhorizontal\b/.test(m[0]));
+    if (!vertical.length) continue;                       // 가로 스크롤러뿐 = 이 판정의 대상이 아니다
+    const outer = vertical[vertical.length - 1][0];       // 최외곽(가장 늦게 열린 세로 스크롤러)
+    const ref = /contentContainerStyle=\{(?:\[)?styles\.([A-Za-z0-9_]+)/.exec(outer);
     const pb = ref ? paddingBottomOf(src, ref[1]) : null;
     if (pb === null || pb < MIN_BOTTOM) bad.push({ file, pb });
   }

@@ -16,6 +16,7 @@ import { View, Text, StyleSheet, ScrollView, Animated } from 'react-native';
 import { Image as ExpoImage } from 'expo-image';
 import { PressableScale } from '../PressableScale';
 import { colors, space, radius, font, shadow } from '../../lib/theme';
+import { elementColor, elementText } from '../../lib/engine/ohaeng';
 
 /** 화면에 그리는 한 덩이. 서버 `talk_messages` 한 행 + 링크(가상 답에만 붙는다). */
 export type TalkItem = {
@@ -34,6 +35,14 @@ export type TalkItem = {
    * ★말풍선 **안**이 아니라 아래에 따로 얹는다 — 카톡도 사진은 말풍선과 별개 덩이다.
    */
   image?: { uri: string } | number;
+  /**
+   * 누가 한 말인가 — **여럿이 있는 자리에서만** 쓴다(오픈채팅방).
+   *
+   * ★1:1 에서는 넣지 않는다. 상대가 한 명뿐인데 말풍선마다 이름을 붙이면 잡음이다
+   *   (카톡도 1:1 에는 이름을 안 붙이고 단톡에만 붙인다).
+   * ⚠️`avatar` 가 없으면 이름 첫 글자로 대신한다 — 사진이 아직 없는 상담가가 있다.
+   */
+  who?: { name: string; avatar?: string | null; element?: string };
 };
 
 /**
@@ -88,6 +97,22 @@ export function TalkThread({ items, busy, onLink }: {
     <ScrollView ref={ref} style={styles.wrap} contentContainerStyle={styles.body}>
       {items.map((m) => (
         <View key={m.id} style={m.role === 'user' ? styles.mineRow : styles.themRow}>
+          {/* 여럿이 있는 자리 = 누가 한 말인지 먼저. ★말풍선 위가 아니라 **왼쪽**에 두면 줄이 흔들린다 */}
+          {m.who && m.role !== 'user' ? (
+            <View style={styles.whoRow}>
+              {m.who.avatar
+                ? <ExpoImage source={{ uri: m.who.avatar }} style={styles.whoPic} contentFit="cover" />
+                : (
+                  // ⚠️`elementColor` 는 **표**다(함수가 아니다) — 친구목록과 같은 것을 쓴다
+                  <View style={[styles.whoPic, { backgroundColor: elementColor[m.who.element ?? '木'] }]}>
+                    <Text style={[styles.whoInit, { color: elementText[m.who.element ?? '木'] }]}>
+                      {m.who.name.slice(0, 1)}
+                    </Text>
+                  </View>
+                )}
+              <Text style={styles.whoTx} numberOfLines={1}>{m.who.name}</Text>
+            </View>
+          ) : null}
           {m.body ? (
             <View style={m.role === 'user' ? styles.mine : styles.them}>
               <Text style={m.role === 'user' ? styles.mineTx : styles.themTx}>{m.body}</Text>
@@ -140,6 +165,12 @@ const styles = StyleSheet.create({
   // 점 세 개 — 글자 대신 점을 쓴다(글자는 언어마다 길이가 달라 말풍선 크기가 흔들린다)
   typing: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingVertical: space(3) },
   dot: { width: 7, height: 7, borderRadius: 4, backgroundColor: colors.inkFaint },
+
+  // 화자 — 사진 20px + 이름. ★말풍선보다 **작게**. 이름이 크면 대화가 아니라 명단으로 읽힌다
+  whoRow: { flexDirection: 'row', alignItems: 'center', gap: space(1.5), marginBottom: space(1) },
+  whoPic: { width: 20, height: 20, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  whoInit: { fontSize: 11, fontWeight: '900' },
+  whoTx: { ...font.caption, color: colors.inkSoft, fontWeight: '700' },
 
   node: { alignSelf: 'stretch', marginTop: space(1) },
   // 그림 — 말풍선보다 살짝 좁게(84%) 두어 '얹힌 것'으로 보이게. 높이는 비율 고정.
