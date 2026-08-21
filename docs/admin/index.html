@@ -220,6 +220,29 @@
          (Boss 가 준 사진도 2:3 세로였다). 올리기 전에 여기서 잘라 둔다.
          ⚠️라이브러리를 쓰지 않았다 — 관리자 콘솔은 CDN 의존을 늘리지 않는 편이 낫고,
            필요한 건 '정사각 한 칸 고르기'뿐이라 canvas 로 충분하다. -->
+    <!-- ★말투 스크립트(2026-08-21) — Boss *"노쎔은 내가 스크립트 줄테니깐 그걸로 학습해"*.
+         **파인튜닝이 아니다** — 프롬프트에 얹는 few-shot 이라 오늘 넣으면 오늘 반영되고,
+         되돌리기도 한 줄이다. ⚠️`author='boss'` 로 저장되어야 서비스에 나간다(초안은 안 나간다). -->
+    <div id="scWrap" class="crop-back hide">
+      <div class="crop-box" style="max-width:620px">
+        <h2 style="margin:0 0 4px">말투 스크립트 <span id="scWho" class="sub"></span></h2>
+        <div class="sub" style="margin-bottom:10px">
+          <b>말투</b>는 "어떻게 말하나"를, <b>예시 대화</b>는 그걸 실제로 보여 줍니다.
+          예시가 설명보다 훨씬 잘 옮습니다. 붙여넣기: <code>회원: …</code> / <code>나: …</code> 를 줄바꿈으로.
+        </div>
+        <label class="sub">말투(persona)</label>
+        <textarea id="scPersona" rows="6" style="width:100%;margin-bottom:10px"></textarea>
+        <label class="sub">예시 대화 — 한 쌍씩, 빈 줄로 구분</label>
+        <textarea id="scExamples" rows="10" style="width:100%"
+          placeholder="회원: 요즘 일이 잘 안 풀려요&#10;나: 지금은 준비 구간이에요.&#10;&#10;회원: 이직해도 될까요?&#10;나: 가을 지나서 움직이는 게 나아요."></textarea>
+        <div class="row" style="gap:8px;justify-content:flex-end;margin-top:12px">
+          <button id="scCancel" style="background:transparent;border:1px solid var(--line);color:var(--soft)">취소</button>
+          <button id="scSave">저장(서비스 반영)</button>
+        </div>
+        <div id="scMsg"></div>
+      </div>
+    </div>
+
     <div id="cropWrap" class="crop-back hide">
       <div class="crop-box">
         <h2 style="margin:0 0 4px">사진 편집</h2>
@@ -431,7 +454,7 @@ document.querySelectorAll('.tabs button').forEach((b) => {
     //   **flags·sys 탭이 초기 hide 인 채로 영영 안 열렸다**(loadFlags/loadSys 는 불리는데 화면이 안 보임).
     //   목록을 손으로 관리하면 탭을 추가할 때마다 같은 사고가 난다.
     TAB_KEYS.forEach((t) => { const el = $('tab-' + t); if (el) el.classList.toggle('hide', t !== b.dataset.tab); });
-    if (b.dataset.tab === 'talk') { loadTalk(); wireCrop(); }   // 탭을 열 때 읽는다(첫 화면을 무겁게 하지 않는다)
+    if (b.dataset.tab === 'talk') { loadTalk(); wireCrop(); wireScript(); }   // 탭을 열 때 읽는다(첫 화면을 무겁게 하지 않는다)
     if (b.dataset.tab === 'push') loadPush();
     if (b.dataset.tab === 'flags') loadFlags();
     if (b.dataset.tab === 'home') loadHomeCfg();
@@ -755,6 +778,64 @@ function wireCrop() {
   };
 }
 
+// ── 말투 스크립트(2026-08-21) ─────────────────────────────────────────────
+let _scId = null;
+
+async function openScript(id, name) {
+  _scId = id;
+  $('scWho').textContent = '· ' + name;
+  const { data: c } = await sb.from('consultants').select('persona').eq('id', id).maybeSingle();
+  $('scPersona').value = (c && c.persona) || '';
+  // ★기존 예시를 **그대로 되보여 준다** — 무엇이 이미 들어가 있는지 모르면 중복해서 넣게 된다
+  const { data: ex } = await sb.from('consultant_examples')
+    .select('user_says, reply').eq('consultant_id', id).eq('enabled', true)
+    .order('weight', { ascending: false });
+  $('scExamples').value = (ex || []).map((e) => `회원: ${e.user_says}\n나: ${e.reply}`).join('\n\n');
+  $('scMsg').innerHTML = '';
+  $('scWrap').classList.remove('hide');
+}
+
+/**
+ * 붙여넣은 글을 예시 쌍으로 자른다.
+ * ★빈 줄로 나누고 `회원:` / `나:` 를 찾는다. 형식이 틀린 덩이는 **조용히 버리지 않고** 수를 알린다 —
+ *   말없이 빠지면 "왜 안 들어갔지"만 남는다.
+ */
+function parseExamples(text) {
+  const pairs = [], bad = [];
+  for (const block of String(text || '').split(/\n\s*\n/)) {
+    const b = block.trim();
+    if (!b) continue;
+    const m = b.match(/회원\s*[:：]\s*([\s\S]*?)\n\s*나\s*[:：]\s*([\s\S]*)$/);
+    if (m && m[1].trim() && m[2].trim()) pairs.push({ user_says: m[1].trim(), reply: m[2].trim() });
+    else bad.push(b.slice(0, 24));
+  }
+  return { pairs, bad };
+}
+
+function wireScript() {
+  $('scCancel').onclick = () => { $('scWrap').classList.add('hide'); _scId = null; };
+  $('scSave').onclick = async () => {
+    if (!_scId) return;
+    const { pairs, bad } = parseExamples($('scExamples').value);
+    const persona = $('scPersona').value.trim() || null;
+    say($('scMsg'), '저장 중…', 'ok');
+    const up = await sb.from('consultants').update({ persona }).eq('id', _scId);
+    if (up.error) return say($('scMsg'), '말투 저장 실패 — ' + esc(up.error.message), 'err');
+    // ★예시는 **통째로 갈아 끼운다** — 덧붙이면 지운 줄이 서버에 남아 계속 쓰인다
+    const del = await sb.from('consultant_examples').delete().eq('consultant_id', _scId);
+    if (del.error) return say($('scMsg'), '예시 정리 실패 — ' + esc(del.error.message), 'err');
+    if (pairs.length) {
+      // ★`author='boss'` — 이 화면에서 넣는 것은 검수된 문안이다(Edge 는 이것만 싣는다)
+      const rows = pairs.map((p, i) => ({ consultant_id: _scId, user_says: p.user_says, reply: p.reply,
+                                          weight: 100 - i, author: 'boss', enabled: true }));
+      const ins = await sb.from('consultant_examples').insert(rows);
+      if (ins.error) return say($('scMsg'), '예시 저장 실패 — ' + esc(ins.error.message), 'err');
+    }
+    say($('scMsg'), `저장했습니다 — 예시 ${pairs.length}쌍` + (bad.length ? ` · ⚠️형식이 안 맞아 건너뛴 덩이 ${bad.length}개` : ''), bad.length ? 'err' : 'ok');
+    setTimeout(() => { if (!bad.length) { $('scWrap').classList.add('hide'); _scId = null; loadTalk(); } }, bad.length ? 100 : 900);
+  };
+}
+
 // ── 상담가(2026-08-20) ─────────────────────────────────────────────────────
 //   ★사진 업로드가 이 탭의 존재 이유다 — 앱에는 사진을 고를 화면이 없고(그럴 자리도 아니다),
 //     상담가는 **운영이 정하는 것**이라 관리자에서 등록하는 게 맞다.
@@ -784,6 +865,7 @@ async function loadTalk() {
       </div>
       <div style="flex:0 0 auto;display:flex;gap:6px">
         <button class="tPick">사진</button>
+        <button class="tScript">스크립트</button>
         <button class="tSave">저장</button>
       </div>
       <input type="file" class="tFile" accept="image/jpeg,image/png,image/webp" style="display:none">
@@ -821,6 +903,7 @@ function wireTalkRows() {
       });
       file.value = '';   // 같은 파일을 다시 골라도 이벤트가 오게
     };
+    row.querySelector('.tScript').onclick = () => openScript(id, row.querySelector('.tName').value);
     row.querySelector('.tSave').onclick = async () => {
       const patch = {
         name: row.querySelector('.tName').value.trim(),
