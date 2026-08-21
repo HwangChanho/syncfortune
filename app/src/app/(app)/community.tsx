@@ -16,26 +16,62 @@ import { useAuth } from '../../lib/useAuth';
 import { useLogContentVisit } from '../../lib/backend/contentVisit';
 import { listCharts, subscribeRepChange, type SavedChart } from '../../lib/engine/myChart';
 import { computeChart } from '../../lib/engine/engine';
-import { listPosts, pollVote, pollStats, createPost, toSharedSaju, toSharedZiwei, COMMUNITY_CATEGORIES, type CommunityPost, type CommunityCategory } from '../../lib/backend/community';
+import { listPosts, pollVote, pollStats, createPost, toSharedSaju, toSharedZiwei, COMMUNITY_CATEGORIES, type CommunityPost, type CommunityCategory, type CommunitySort } from '../../lib/backend/community';
 import { colors, pastel, radius, space, shadow, font } from '../../lib/theme';
 import { dateGanZhi } from '../../lib/content/dailyFortune'; // 일진 스레드 제목 — 서버는 날짜만, 간지는 클라 결정론(daniel 2026-08-05)
 import { SECTIONS, baseKey } from '../../lib/content/contentSections'; // P2 후기 태그 — 콘텐츠 목록 단일 출처(라벨·라우트 여기서만)
 
 /**
- * 카테고리 썸네일 — 콘티의 목록은 왼쪽에 **네모 그림**이 붙는다.
+ * 카테고리 썸네일 — 콘티의 목록은 **오른쪽에 큰 네모 그림**이 붙는다.
  *
- * ★사진을 만들지 않는다. 글에는 이미지가 없고, 없는 걸 채우려 아무 그림이나 얹으면
- *   그건 글의 내용이 아니라 장식이라 오히려 목록을 읽기 어렵게 한다.
+ * ★사진을 만들지 않는다. 글에는 이미지가 없고(업로드 기능 자체가 없다), 없는 걸 채우려
+ *   아무 그림이나 얹으면 그건 글의 내용이 아니라 장식이라 오히려 목록을 읽기 어렵게 한다.
  *   ⇒ **카테고리 색 + 글자 한 자**로 그린다. 색만 봐도 무슨 얘기인지 구분된다.
+ *   ⏳콘티의 실사 이미지는 **이미지 자산이 오면** 여기만 갈아 끼우면 된다(자리는 같다).
  * ⚠️색은 시안 팔레트(`pastel`)에서만 고른다 — 새 색을 만들지 않는다.
  */
 const CAT_THUMB: Record<string, { bg: string; ink: string; ch: string }> = {
-  free:     { bg: pastel.blue.bg,  ink: pastel.blue.ink,  ch: '자' },
-  love:     { bg: pastel.pink.bg,  ink: pastel.pink.ink,  ch: '연' },
-  saju:     { bg: pastel.amber.bg, ink: pastel.amber.ink, ch: '사' },
-  review:   { bg: pastel.green.bg, ink: pastel.green.ink, ch: '후' },
-  question: { bg: pastel.deep.bg,  ink: pastel.deep.ink,  ch: '문' },
+  love:   { bg: pastel.pink.bg,  ink: pastel.pink.ink,  ch: '연' },
+  career: { bg: pastel.blue.bg,  ink: pastel.blue.ink,  ch: '직' },
+  wealth: { bg: pastel.green.bg, ink: pastel.green.ink, ch: '재' },
+  daily:  { bg: pastel.amber.bg, ink: pastel.amber.ink, ch: '일' },
+  free:   { bg: pastel.blue.bg,  ink: pastel.blue.ink,  ch: '자' },
+  tarot:  { bg: pastel.deep.bg,  ink: pastel.deep.ink,  ch: '타' },
+  ziwei:  { bg: pastel.deep.bg,  ink: pastel.deep.ink,  ch: '자' },
 };
+
+/**
+ * 상대 시각 — 「2시간 전」(콘티). ★날짜를 그대로 적으면 목록이 표처럼 읽힌다.
+ * ⚠️`ChatList.ago` 와 **같은 규칙**을 쓴다 — 같은 앱에서 시간이 두 결로 보이면 안 된다.
+ */
+function ago(iso: string, t: (k: string, d?: string) => string): string {
+  const ms = Date.now() - new Date(iso).getTime();
+  const m = Math.floor(ms / 60000);
+  if (m < 1) return t('chats.now', '방금');
+  if (m < 60) return t('chats.minAgo', '{{n}}분 전').replace('{{n}}', String(m));
+  const h = Math.floor(m / 60);
+  if (h < 24) return t('chats.hourAgo', '{{n}}시간 전').replace('{{n}}', String(h));
+  const d = Math.floor(h / 24);
+  if (d === 1) return t('chats.yesterday', '어제');
+  if (d < 7) return t('chats.dayAgo', '{{n}}일 전').replace('{{n}}', String(d));
+  return String(iso).slice(0, 10);
+}
+
+/** 큰 수 축약 — 콘티의 「1.2k」. ★1000 미만은 그대로(축약이 오히려 부정확해 보인다). */
+function compact(n: number): string {
+  if (n < 1000) return String(n);
+  return `${(n / 1000).toFixed(1).replace(/\.0$/, '')}k`;
+}
+
+/** 작성자 동그라미 색 — 이름 해시로 **고정**한다(같은 사람이 목록마다 다른 색이면 못 알아본다). */
+function authorHue(name: string): { bg: string; ink: string } {
+  const P = [pastel.pink, pastel.blue, pastel.green, pastel.amber, pastel.deep];
+  let h = 0; for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+  return P[h % P.length];
+}
+
+/** i18n `t` 를 좁혀 쓴다(하네스·테스트에서도 간단한 함수 하나면 넣을 수 있게). */
+type TFn = (k: string, d?: string) => string;
 
 const EULA_KEY = 'pref.communityEula'; // 이용약관 동의 1회 플래그(Apple 1.2)
 
@@ -46,6 +82,8 @@ export default function CommunityScreen() {
   const insets = useSafeAreaInsets(); // 글쓰기 모달 헤더가 상단 안전영역(노치·다이나믹아일랜드)에 가려 버튼이 안 눌리던 것 방지
   const { isRegistered } = useAuth(); // 익명 세션이 상시 존재하므로 session 이 아닌 isRegistered 로 판정
   const [cat, setCat] = useState<CommunityCategory | undefined>(undefined); // undefined=전체
+  // ★콘티의 맨 앞 두 칩은 **정렬**이다(카테고리가 아니다). 추천=최신 · 인기=좋아요 순
+  const [sort, setSort] = useState<CommunitySort>('recommend');
   const [posts, setPosts] = useState<CommunityPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -55,7 +93,7 @@ export default function CommunityScreen() {
   const [eula, setEula] = useState(false);       // 이용약관 모달
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
-  const [wcat, setWcat] = useState<CommunityCategory>('free'); // 작성 카테고리
+  const [wcat, setWcat] = useState<CommunityCategory>('daily'); // 작성 카테고리(기본=일상)
   const [wcatOpen, setWcatOpen] = useState(false);   // ★카테고리 드롭다운 열림(daniel 07-28)
   const [posting, setPosting] = useState(false);
   // 첨부 가능한 명식 = **본인(relation='self')만**. attachId=null 이면 첨부 없이 글만 올린다(기본).
@@ -70,13 +108,13 @@ export default function CommunityScreen() {
   const [poll, setPoll] = useState<{ counts: Record<number, number>; total: number; my: number | null } | null>(null);
   const load = useCallback(async () => {
     try {
-      const rows = await listPosts(cat);
+      const rows = await listPosts(cat, 30, undefined, sort);
       const d = rows.find((r) => r.kind === 'daily' && r.daily_date === new Date().toISOString().slice(0, 10)) ?? null;
       setDaily(d);
       setPosts(rows.filter((r) => r.kind !== 'daily'));
       if (d) pollStats(d.id).then(setPoll).catch(() => {});
     } catch { /* 목록 로드 실패=빈 목록 */ } finally { setLoading(false); setRefreshing(false); }
-  }, [cat]);
+  }, [cat, sort]);
   useEffect(() => { setLoading(true); load(); }, [load]);
   // 약관 동의 플래그 프리로드 — 탭 시점의 동기 SecureStore 호출(JS 스레드 블록)을 없애기 위해 미리 읽어 둔다.
   useEffect(() => { SecureStore.getItemAsync(EULA_KEY).then((v) => setEulaAgreed(v === '1')).catch(() => setEulaAgreed(false)); }, []);
@@ -155,8 +193,8 @@ export default function CommunityScreen() {
           showLuck,
         };
       }
-      await createPost(wcat, title, body, chart, wcat === 'review' ? topic : null);
-      setCompose(false); setTitle(''); setBody(''); setWcat('free'); setAttachId(null); setShowLuck(false);
+      await createPost(wcat, title, body, chart, topic);
+      setCompose(false); setTitle(''); setBody(''); setWcat('daily'); setAttachId(null); setShowLuck(false);
       await load();
     } catch (e) {
       const em = (e as Error).message || '';
@@ -173,7 +211,6 @@ export default function CommunityScreen() {
     } finally { setPosting(false); }
   }
 
-  const CATS: (CommunityCategory | undefined)[] = [undefined, ...COMMUNITY_CATEGORIES];
   const catLabel = (c?: CommunityCategory) => c ? t(`community.cat.${c}`) : t('community.all', '전체');
 
   return (
@@ -182,8 +219,22 @@ export default function CommunityScreen() {
           contents 탭의 topBar 와 **같은 식**(insets.top + space(2))으로 두 탭의 상단선이 맞는다. */}
       <View style={[styles.catBar, { paddingTop: insets.top + space(2) }]}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.catRow}>
-          {CATS.map((c) => (
-            <PressableScale key={c ?? 'all'} style={[styles.catChip, cat === c && styles.catChipOn]} onPress={() => setCat(c)}>
+          {/* ①정렬 — ★고르면 카테고리는 '전체'로 돌린다. 콘티에서 이 둘은 목록 전체를 보는 자리다 */}
+          {(['recommend', 'popular'] as const).map((sk) => {
+            const on = sort === sk && !cat;
+            return (
+              <PressableScale key={sk} style={[styles.catChip, on && styles.catChipOn]}
+                              onPress={() => { setSort(sk); setCat(undefined); }}>
+                <Text style={[styles.catChipTx, on && styles.catChipTxOn]}>
+                  {sk === 'recommend' ? t('community.sortRecommend', '추천') : t('community.sortPopular', '인기')}
+                </Text>
+              </PressableScale>
+            );
+          })}
+          {/* ②카테고리 일곱 */}
+          {COMMUNITY_CATEGORIES.map((c) => (
+            <PressableScale key={c} style={[styles.catChip, cat === c && styles.catChipOn]}
+                            onPress={() => setCat(cat === c ? undefined : c)}>
               <Text style={[styles.catChipTx, cat === c && styles.catChipTxOn]}>{catLabel(c)}</Text>
             </PressableScale>
           ))}
@@ -205,7 +256,7 @@ export default function CommunityScreen() {
                 ★두 곳 다 `onCompose` 하나를 부른다 — 로그인·약관 게이트가 갈리면 안 된다. */}
             <PressableScale style={styles.writeBox} onPress={onCompose}>
               <View style={styles.writeAv}><Text style={styles.writeAvTx}>✎</Text></View>
-              <Text style={styles.writePh}>{t('community.writeBox', '무슨 이야기를 나눠 볼까요?')}</Text>
+              <Text style={styles.writePh}>{t('community.writeBox', '오늘의 고민이나 질문을 남겨보세요 ✨')}</Text>
             </PressableScale>
             {daily ? (
             <View style={styles.dailyCard}>
@@ -245,29 +296,50 @@ export default function CommunityScreen() {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} tintColor={colors.ju} />}
           ListEmptyComponent={<Text style={styles.empty}>{t('community.empty', '첫 글을 남겨보세요.')}</Text>}
           renderItem={({ item }) => {
-            const th = CAT_THUMB[item.category] ?? CAT_THUMB.free;
+            const th = CAT_THUMB[item.category] ?? CAT_THUMB.daily;
+            const au = authorHue(item.author_name || '?');
             return (
             <PressableScale style={styles.postRow} onPress={() => router.push({ pathname: '/communityPost', params: { id: item.id } })}>
-              {/* 썸네일 — 장식이라 낭독에서 뺀다(옆 글자가 카테고리를 이미 읽어 준다) */}
-              <View style={[styles.thumb, { backgroundColor: th.bg }]} accessible={false} pointerEvents="none">
-                <Text style={[styles.thumbTx, { color: th.ink }]}>{th.ch}</Text>
-              </View>
               <View style={styles.postMain}>
-              <View style={styles.postHead}>
-                <Text style={styles.postCat}>{t(`community.cat.${item.category}`, item.category)}</Text>
-                <Text style={styles.postMeta}>{item.author_name}{item.ilju ? <Text style={styles.iljuBadge}>  {item.ilju}</Text> : null} · {String(item.created_at).slice(5, 10)}</Text>
+                {/* ①작성자 줄 — 동그라미 + 닉네임 + 시각(콘티) */}
+                <View style={styles.postHead}>
+                  <View style={[styles.au, { backgroundColor: au.bg }]}>
+                    <Text style={[styles.auTx, { color: au.ink }]}>{(item.author_name || '?').slice(0, 1)}</Text>
+                  </View>
+                  <Text style={styles.auName} numberOfLines={1}>{item.author_name}</Text>
+                  {item.ilju ? <Text style={styles.iljuBadge}>{item.ilju}</Text> : null}
+                  <Text style={styles.postMeta}>{ago(item.created_at, t as TFn)}</Text>
+                </View>
+
+                <Text style={styles.postTitle} numberOfLines={1}>{item.title}</Text>
+                <Text style={styles.postBody} numberOfLines={2}>{item.body}</Text>
+
+                {/* ②지표 — 콘티는 좋아요·댓글·조회 셋이다 */}
+                <View style={styles.statRow}>
+                  <Text style={styles.postStats}>♥ {item.like_count}</Text>
+                  <Text style={styles.postStats}>💬 {item.comment_count}</Text>
+                  <Text style={styles.postStats}>{t('community.views', '조회')} {compact(item.view_count ?? 0)}</Text>
+                </View>
+
+                {/* 후기 태그 — 콘텐츠 단일 출처(SECTIONS)에서 라벨을 가져온다 */}
+                {item.topic ? (() => {
+                  const t2 = SECTIONS.flatMap((sec) => sec.items).find((it) => it.key === item.topic);
+                  return t2 ? (
+                    <PressableScale style={styles.topicLink} onPress={() => router.push(t2.route as never)}>
+                      <Text style={styles.topicLinkTx}>{t(t2.labelKey)} ›</Text>
+                    </PressableScale>
+                  ) : null;
+                })() : null}
               </View>
-              {item.topic ? (() => {
-                const t2 = SECTIONS.flatMap((sec) => sec.items).find((it) => it.key === item.topic);
-                return t2 ? (
-                  <PressableScale style={styles.topicLink} onPress={() => router.push(t2.route as never)}>
-                    <Text style={styles.topicLinkTx}>{t(t2.labelKey)} ›</Text>
-                  </PressableScale>
-                ) : null;
-              })() : null}
-              <Text style={styles.postTitle} numberOfLines={1}>{item.title}</Text>
-              <Text style={styles.postBody} numberOfLines={2}>{item.body}</Text>
-              <Text style={styles.postStats}>♥ {item.like_count}   💬 {item.comment_count}</Text>
+
+              {/* ③오른쪽 그림 + 그 아래 카테고리 배지(콘티) */}
+              <View style={styles.thumbCol}>
+                <View style={[styles.thumb, { backgroundColor: th.bg }]} accessible={false} pointerEvents="none">
+                  <Text style={[styles.thumbTx, { color: th.ink }]}>{th.ch}</Text>
+                </View>
+                <View style={[styles.catBadge, { backgroundColor: th.bg }]}>
+                  <Text style={[styles.catBadgeTx, { color: th.ink }]}>{t(`community.cat.${item.category}`, item.category)}</Text>
+                </View>
               </View>
             </PressableScale>
           );}}
@@ -333,9 +405,11 @@ export default function CommunityScreen() {
                 </>
               )}
             </View>
-            {/* P2 후기 태그(daniel 2026-08-05) — 후기 카테고리에서만. 목록은 콘텐츠 단일 출처(SECTIONS)라
-                새 콘텐츠가 생기면 자동으로 따라온다. 라벨은 각 콘텐츠의 i18n 라벨 그대로. */}
-            {wcat === 'review' && (
+            {/* P2 후기 태그(daniel 2026-08-05) — 목록은 콘텐츠 단일 출처(SECTIONS)라
+                새 콘텐츠가 생기면 자동으로 따라온다. 라벨은 각 콘텐츠의 i18n 라벨 그대로.
+                ★2026-08-21: **카테고리 제한을 풀었다.** 콘티에 「후기」 카테고리가 없어서인데,
+                  없앤 게 아니라 축을 나눈 것이다 — 연애 글에도 "이 콘텐츠 보고 썼다"가 붙을 수 있다. */}
+            {true && (
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.topicBar} contentContainerStyle={styles.topicRow}>
                 {/* ★'인기' 섹션 사본(hot*)은 뺀다 — 같은 콘텐츠 태그가 두 번 뜨던 것을 정리(2026-08-06). */}
                 {SECTIONS.flatMap((sec) => sec.items).filter((it) => it.ready !== false && it.key === baseKey(it.key)).map((it) => (
@@ -447,9 +521,18 @@ const styles = StyleSheet.create({
   writeAvTx: { fontSize: 15, color: colors.onJu, fontWeight: '900' },
   writePh: { ...font.body, color: colors.inkFaint, flex: 1 },
 
-  postMain: { flex: 1, minWidth: 0 },   // ⚠️`minWidth:0` 없으면 긴 제목이 썸네일을 밀어낸다
-  thumb: { width: 48, height: 48, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center' },
-  thumbTx: { fontSize: 20, fontWeight: '900' },
+  postMain: { flex: 1, minWidth: 0, gap: space(1.5) },
+  // 작성자 줄 — 동그라미 22 + 닉네임 + 시각(우측). ★시각은 `marginLeft:'auto'` 로 밀어 오른쪽 끝에
+  au: { width: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
+  auTx: { fontSize: 11, fontWeight: '900' },
+  auName: { ...font.caption, color: colors.ink, fontWeight: '700', maxWidth: 110 },
+  statRow: { flexDirection: 'row', gap: space(3), marginTop: space(0.5) },
+  // 오른쪽 그림 칸 — 그림 + 그 아래 배지
+  thumbCol: { alignItems: 'flex-end', gap: space(1.5) },
+  catBadge: { paddingHorizontal: space(2), paddingVertical: 3, borderRadius: radius.sm },
+  catBadgeTx: { fontSize: 11, lineHeight: 15, fontWeight: '800' },   // ⚠️`minWidth:0` 없으면 긴 제목이 썸네일을 밀어낸다
+  thumb: { width: 84, height: 84, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
+  thumbTx: { fontSize: 30, fontWeight: '900' },
   postHead: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: space(1.5) },
   postCat: { ...font.caption, color: colors.ju, fontWeight: '800', fontSize: 11 },
   postMeta: { ...font.caption, color: colors.inkFaint, fontSize: 11 },

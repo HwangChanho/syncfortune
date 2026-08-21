@@ -17,7 +17,7 @@
 //   멈춤(`paused`)·한도(`capped`)·오류를 각각 다른 말로 띄운다 —
 //   "안 되네요" 하나로 묶으면 사용자는 자기 잘못인지 우리 잘못인지 모른다.
 // ═══════════════════════════════════════════════════════════════════════════
-import { useEffect, useState, useCallback, useRef, type ReactNode } from 'react';
+import { useEffect, useState, useCallback, useMemo, useRef, type ReactNode } from 'react';
 import { View, Text, StyleSheet, TextInput, Keyboard, Platform, useWindowDimensions } from 'react-native';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -31,6 +31,7 @@ import { greet, todayFlow, guide, type VirtualReply } from '../../lib/talk/virtu
 import { askLive, loadThread, deleteThread } from '../../lib/talk/liveTalk';
 import { pickTalkImage } from '../../lib/talk/talkImagery';
 import { supabase } from '../../lib/supabase';
+import { withTimeout } from '../../lib/core/withTimeout';
 import { loadRepChart } from '../../lib/engine/myChart';
 import { loadMyProfile, subscribeProfile, profileSnapshot } from '../../lib/talk/myProfile';
 import { listFriends, type Friend } from '../../lib/talk/friends';
@@ -107,7 +108,6 @@ export function TalkHome({ renderTop, mode = 'contacts' }: { renderTop?: ReactNo
    * ★블록은 **없앤 게 아니라 사람 아래로 묶었다**(`c.blocks`) —
    *   그냥 뺐으면 오늘의 운세·관계 지도가 도달 불가가 된다.
    */
-  const list = servers;
   const [cur, setCur] = useState<Consultant | null>(null);
   const [items, setItems] = useState<TalkItem[]>([]);
   const [saju, setSaju] = useState<any>(null);
@@ -121,6 +121,38 @@ export function TalkHome({ renderTop, mode = 'contacts' }: { renderTop?: ReactNo
   // 채팅목록(오른쪽 칸)을 다시 읽게 하는 신호 — 답이 오거나 읽음 처리했을 때 올린다.
   //   ★웹은 목록과 대화창이 **동시에 보이므로**, 답이 왔는데 목록이 그대로면 화면이 자기모순이 된다.
   const [chatsTick, setChatsTick] = useState(0);
+
+  /**
+   * ★마지막 대화 시각 — 콘티 1면은 친구 줄 오른쪽에 시각을 적는다(「오후 8:21」·「방금 전」).
+   *   `talk_session_list` 는 **운대화 탭이 이미 쓰는 뷰**라 새 질의를 만들지 않았다.
+   *   ⚠️비로그인이면 빈 표다 — 그때는 시각이 안 뜨는 게 맞다(지어내지 않는다).
+   */
+  const [lastAts, setLastAts] = useState<Record<string, string>>({});
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      if (!session) { setLastAts({}); return; }
+      const r = await withTimeout(
+        supabase.from('talk_session_list').select('consultant_id, last_at').limit(50), 8000);
+      if (!alive || !r || r.error || !Array.isArray(r.data)) return;
+      const m: Record<string, string> = {};
+      for (const row of r.data as any[]) {
+        // ★같은 상담가 세션이 여럿이면 **가장 최근**을 남긴다
+        const id = String(row.consultant_id), at = String(row.last_at);
+        if (!m[id] || at > m[id]) m[id] = at;
+      }
+      setLastAts(m);
+    })();
+    return () => { alive = false; };
+  }, [session, chatsTick]);
+
+  const list = useMemo(
+    () => servers.map((c) => ({ ...c, lastAt: lastAts[c.id] ?? null })),
+    [servers, lastAts],
+  );
+
+
+
   // 대화 삭제 확인 — ★`Alert` 를 쓰지 않는다(웹에서 안 뜨거나 이중 발화한 이력이 있다).
   //   화면 안에 확인 줄을 띄우는 편이 웹·폰 어디서나 확실하다.
   const [askDelete, setAskDelete] = useState(false);

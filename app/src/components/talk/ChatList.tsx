@@ -69,6 +69,8 @@ export function ChatList({ onOpen, selectedId, reloadKey = 0, wide, onSettings }
   const { t } = useTranslation();
   const router = useRouter();
   const { session } = useAuth();
+  // 콘티 2면의 필터 칩 상태(전체 · 선생님 AI · 무료 친구)
+  const [filter, setFilter] = useState<'all' | 'teacher' | 'friend'>('all');
   const [rows, setRows] = useState<Row[] | null>(null);   // null = 아직 모름(로딩)
 
   const load = useCallback(async () => {
@@ -105,6 +107,10 @@ export function ChatList({ onOpen, selectedId, reloadKey = 0, wide, onSettings }
     return <View style={styles.center}><ActivityIndicator color={colors.ju} /></View>;
   }
 
+  // ★묶음 판정은 **친구목록과 같은 출처**(`consultantsSnapshot`)를 쓴다 — 두 탭이 갈리면 안 된다
+  const groupOf = (cid: string) => consultantsSnapshot().find((c) => c.id === cid)?.group;
+  const visible = filter === 'all' ? rows : rows.filter((r) => groupOf(r.consultantId) === filter);
+
   return (
     <ScrollView style={styles.wrap} contentContainerStyle={styles.body}>
       {/* ── 상단: 제목 + 아이콘 (Boss 2026-08-20 카톡 채팅목록 배치) ── */}
@@ -120,11 +126,23 @@ export function ChatList({ onOpen, selectedId, reloadKey = 0, wide, onSettings }
         </PressableScale>
       </View>
 
+      {/* ── 필터 칩 — ★콘티 2면 그대로 셋(전체 · 선생님 AI · 무료 친구) ──
+          ⚠️'최근'은 여기 없다(콘티). 이 목록은 **이미 최근 순**이라 칩이 할 일이 없다. */}
+      <View style={styles.chips}>
+        {(['all', 'teacher', 'friend'] as const).map((k) => (
+          <PressableScale key={k} style={[styles.chip, filter === k && styles.chipOn]} onPress={() => setFilter(k)}>
+            <Text style={[styles.chipTx, filter === k && styles.chipTxOn]}>
+              {t(`talk.filter.${k}`, k === 'all' ? '전체' : k === 'teacher' ? '선생님 AI' : '무료 친구')}
+            </Text>
+          </PressableScale>
+        ))}
+      </View>
+
       {/* 배너 — 친구목록과 같은 자리(카톡도 두 탭 다 배너가 있다).
           ⚠️좁은 칸에서는 숨긴다 — 배너는 넓은 폭 전제라 좁으면 글자가 세로로 흐른다. */}
       {wide ? <View style={styles.banner}><HouseAdBanner /></View> : null}
 
-      {!rows.length ? (
+      {!visible.length ? (
         <View style={styles.center}>
           {/* ★'로그인 안 됨'과 '대화 없음'을 다른 말로 — 사용자가 무엇을 해야 하는지가 다르다 */}
           <Text style={styles.emptyTx}>
@@ -138,7 +156,7 @@ export function ChatList({ onOpen, selectedId, reloadKey = 0, wide, onSettings }
             </PressableScale>
           )}
         </View>
-      ) : rows.map((r, i) => {
+      ) : visible.map((r, i) => {
         const el = EL[(i + 1) % EL.length];
         return (
           <PressableScale key={r.id} style={[styles.row, selectedId === r.consultantId && styles.rowOn]} onPress={() => onOpen(r.consultantId)}>
@@ -174,6 +192,15 @@ const styles = StyleSheet.create({
   wrap: { flex: 1, backgroundColor: colors.bg },
   body: { paddingHorizontal: space(4), paddingTop: space(4), paddingBottom: space(20) },
   // ★아이콘이 둘이라 gap 을 준다 — 붙여 두면 오픈채팅을 누르려다 설정이 눌린다
+  chips: { flexDirection: 'row', gap: space(2), marginBottom: space(3) },
+  chip: {
+    paddingHorizontal: space(3.5), paddingVertical: space(1.5), borderRadius: radius.pill,
+    backgroundColor: colors.sunk, borderWidth: 1, borderColor: colors.line,
+  },
+  chipOn: { backgroundColor: colors.ju, borderColor: colors.ju },
+  chipTx: { ...font.caption, color: colors.inkSoft, fontWeight: '700' },
+  // ★고른 칩 글자는 `onJu`(강조색 위 대비 — `check:onaccent`)
+  chipTxOn: { color: colors.onJu },
   topRow: { flexDirection: 'row', alignItems: 'center', gap: space(3), marginBottom: space(3) },
   head: { flex: 1, fontSize: 22, lineHeight: 30, fontWeight: '900', color: colors.ink, letterSpacing: -0.4 },
   // ★친구목록과 **같은 크기**(26). 두 탭을 오가는데 아이콘 크기가 다르면 눈에 띈다.

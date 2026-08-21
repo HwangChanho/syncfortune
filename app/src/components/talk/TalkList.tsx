@@ -27,7 +27,7 @@ import type { HomeBlockKey } from '../../lib/ui/homeOrder';
 import { colors, space, radius, font, activeElement } from '../../lib/theme';
 import { elementColor, elementText } from '../../lib/engine/ohaeng';
 import type { Consultant } from '../../lib/talk/consultants';
-import { loadFavorites, subscribeFavorites, splitByFavorite, toggleFavorite, isFavorite, isPinned } from '../../lib/talk/favorites';
+import { loadFavorites, subscribeFavorites, toggleFavorite, isFavorite, isPinned } from '../../lib/talk/favorites';
 
 const FALLBACK_EL = ['木', '火', '土', '金', '水'] as const;
 
@@ -89,8 +89,30 @@ function Avatar({ name, initial, slot, uri, size = 48, element }: {
  *
  * @param slot 얼굴색 자리(전체 목록 기준 — 즐겨찾기로 올라가도 얼굴이 안 바뀐다)
  */
+/**
+ * 상대 시각 — 콘티 1면의 우측(「오후 8:21」·「방금 전」·「어제」).
+ * ★오늘이면 **시각**, 어제면 「어제」, 그보다 오래면 「n일 전」.
+ *   ⚠️운대화 목록(`ChatList.ago`)은 늘 상대 표현인데 여기는 콘티가 **오늘만 시각**을 쓴다 —
+ *     친구목록은 '언제 이야기했나'보다 '지금 살아 있나'를 보는 자리라 그 편이 읽기 쉽다.
+ */
+function whenText(iso: string, t: (k: string, d?: string) => string): string {
+  const d = new Date(iso);
+  const now = new Date();
+  const sameDay = d.toDateString() === now.toDateString();
+  if (sameDay) {
+    const h = d.getHours(), m = d.getMinutes();
+    const ampm = h < 12 ? t('time.am', '오전') : t('time.pm', '오후');
+    const hh = h % 12 === 0 ? 12 : h % 12;
+    return `${ampm} ${hh}:${String(m).padStart(2, '0')}`;
+  }
+  const days = Math.floor((now.getTime() - d.getTime()) / 86400000);
+  if (days <= 1) return t('chats.yesterday', '어제');
+  if (days < 7) return t('chats.dayAgo', '{{n}}일 전').replace('{{n}}', String(days));
+  return `${d.getMonth() + 1}/${d.getDate()}`;
+}
+
 function Row({ c, initial, slot, on, onOpen, t }: {
-  c: Consultant; initial?: string; slot: number; on: boolean;
+  c: Consultant & { lastAt?: string | null }; initial?: string; slot: number; on: boolean;
   onOpen: (c: Consultant) => void; t: (k: string, d?: string) => string;
 }) {
   const pinned = isPinned(c.id);
@@ -100,7 +122,11 @@ function Row({ c, initial, slot, on, onOpen, t }: {
       <Avatar name={c.name} initial={initial} slot={slot} uri={c.avatar} />
       <View style={styles.col}>
         <Text style={styles.name} numberOfLines={1}>{c.name}</Text>
+        {/* 상태메시지 — 콘티는 이름 아래 한 줄을 둔다. 없으면 줄 자체를 그리지 않는다(빈 줄이 남지 않게) */}
+        {c.tagline ? <Text style={styles.tagline} numberOfLines={1}>{c.tagline}</Text> : null}
       </View>
+      {/* 시각 — ★이야기한 적 있을 때만. 없는데 무언가 적으면 그건 지어낸 것이다 */}
+      {c.lastAt ? <Text style={styles.when}>{whenText(c.lastAt, t)}</Text> : null}
       {/* 별 — ★고정된 친구는 **누를 수 없다**(실수로 빼고 "없어졌다"가 되면 우리 잘못이다).
           그래서 고정은 별을 흐리게 두고 hitSlop 도 주지 않는다. */}
       <PressableScale
@@ -144,7 +170,12 @@ function ContentRailBlock({ keys, t }: { keys: readonly HomeBlockKey[]; t: (k: s
 
 export function TalkList({ items, onOpen, selected, myName, onMe, myAvatar, railKeys = [], onSettings, wide,
                            onAddFriend, pendingCount = 0, people = [], onOpenPerson }: {
-  items: Consultant[];
+  /**
+   * 친구목록에 뜰 사람들.
+   * ★`lastAt` = **마지막으로 이야기한 시각**(`talk_session_list`). 콘티 1면의 우측 시각이자
+   *   「최근」 칩의 정렬 기준이다. 이야기한 적 없으면 없다(그러면 시각도 안 뜬다).
+   */
+  items: (Consultant & { lastAt?: string | null })[];
   onOpen: (c: Consultant) => void;
   selected?: string;
   myName?: string | null;
@@ -175,7 +206,7 @@ export function TalkList({ items, onOpen, selected, myName, onMe, myAvatar, rail
   //   `searchOpen` 은 늘 false 라 검색바가 렌더되지 않는다.
   const searchOpen = false;
   // 콘티의 칩 — 전체 / 선생님 AI / 친구
-  const [filter, setFilter] = useState<'all' | 'teacher' | 'friend'>('all');
+  const [filter, setFilter] = useState<'all' | 'teacher' | 'friend' | 'recent'>('all');
   // 즐겨찾기 — 온디바이스. ★별을 누르면 **즉시** 다시 그린다(새로고침을 요구하지 않는다).
   const [favTick, setFavTick] = useState(0);
   useEffect(() => {
@@ -185,7 +216,14 @@ export function TalkList({ items, onOpen, selected, myName, onMe, myAvatar, rail
   const shown = useMemo(() => {
     const k = q.trim().toLowerCase();
     if (k) return items.filter((c) => c.name.toLowerCase().includes(k));   // 검색 중엔 묶음을 가르지 않는다
-    return filter === 'all' ? items : items.filter((c) => c.group === filter);
+    if (filter === 'all') return items;
+    // ★'최근'은 **거르는 칩이 아니라 정렬 칩**이다 — 이야기한 적 있는 사람만, 최근 순으로.
+    //   `lastAt` 이 없는 사람(한 번도 대화 안 함)은 빠진다. 그게 '최근'의 뜻이다.
+    if (filter === 'recent') {
+      return items.filter((c) => c.lastAt)
+        .sort((a, b) => String(b.lastAt).localeCompare(String(a.lastAt)));
+    }
+    return items.filter((c) => c.group === filter);
   }, [items, q, filter]);
   // ★글자는 **보이는 목록**이 아니라 전체 기준으로 뽑는다 —
   //   검색으로 걸러질 때마다 얼굴 글자가 바뀌면 같은 친구가 다른 사람처럼 보인다.
@@ -194,10 +232,18 @@ export function TalkList({ items, onOpen, selected, myName, onMe, myAvatar, rail
   // ★얼굴색은 **전체 목록 위치**로 정한다 — 즐겨찾기로 올라가도 같은 얼굴이어야 한다
   const slotOf = (id: string) => items.findIndex((c) => c.id === id) + 1;
   // 즐겨찾기/나머지 — 검색 중이면 가르지 않는다(찾는 사람이 어디 있든 한 곳에 보여야 한다)
-  const { fav, rest } = useMemo(
-    () => (q.trim() ? { fav: [] as Consultant[], rest: shown } : splitByFavorite(shown)),
-    [shown, q, favTick],
-  );
+  /**
+   * 묶음별 목록 — ⚠️`splitByFavorite` 는 더 이상 쓰지 않는다(콘티에 즐겨찾기 **칸**이 없다).
+   * 즐겨찾기는 이제 **묶음 안 정렬**로만 작용한다: 별 켠 사람이 자기 묶음 맨 위로.
+   * ★`favTick` 에 의존시킨다 — 즐겨찾기는 모듈 전역 상태라 이게 없으면 별을 눌러도 순서가 안 바뀐다.
+   */
+  const byGroup = useMemo(() => {
+    const pick = (g: 'teacher' | 'friend') =>
+      shown.filter((c) => c.group === g).slice()
+        .sort((a, b) => Number(isFavorite(b.id)) - Number(isFavorite(a.id)));
+    return { teacher: pick('teacher'), friend: pick('friend') };
+  }, [shown, favTick]);
+
   return (
     <ScrollView style={styles.wrap} contentContainerStyle={styles.body}>
       {/* ── 상단: 내 프로필 + 아이콘 (Boss 2026-08-20 카톡 배치) ──
@@ -225,15 +271,16 @@ export function TalkList({ items, onOpen, selected, myName, onMe, myAvatar, rail
         </PressableScale>
       </View>
 
-      {/* ── 필터 칩(콘티 2026-08-21) ──
-          ★'최근'은 넣지 않았다 — 마지막 대화 시각은 **운대화 탭**이 이미 그 순서로 보여 준다.
-            같은 정렬을 두 탭에 두면 사용자는 둘이 뭐가 다른지 묻게 된다. */}
+      {/* ── 필터 칩 — ★콘티 1면 그대로 **넷**(전체 · 선생님 AI · 무료 친구 · 최근) ──
+          ⚠️전에 '최근'을 뺐었다("운대화 탭이 이미 그 순서다"). 콘티에 있으므로 되돌렸다 —
+            **콘티가 정본**이고, 내 판단으로 항목을 빼면 화면이 시안과 어긋난다(Boss 2026-08-21). */}
       {!q.trim() ? (
         <View style={styles.chips}>
-          {(['all', 'teacher', 'friend'] as const).map((k) => (
+          {(['all', 'teacher', 'friend', 'recent'] as const).map((k) => (
             <PressableScale key={k} style={[styles.chip, filter === k && styles.chipOn]} onPress={() => setFilter(k)}>
               <Text style={[styles.chipTx, filter === k && styles.chipTxOn]}>
-                {t(`talk.filter.${k}`, k === 'all' ? '전체' : k === 'teacher' ? '선생님 AI' : '친구')}
+                {t(`talk.filter.${k}`,
+                  k === 'all' ? '전체' : k === 'teacher' ? '선생님 AI' : k === 'friend' ? '무료 친구' : '최근')}
               </Text>
             </PressableScale>
           ))}
@@ -267,18 +314,10 @@ export function TalkList({ items, onOpen, selected, myName, onMe, myAvatar, rail
       ) : null}
 
       {/* ── 즐겨찾기 ──────────────────────────────────────────────
-          Boss 2026-08-20: 상단에 즐겨찾기 칸, 노쎔은 고정.
-          ★검색 중에는 접는다 — 찾는 중에 고정 칸이 위를 먹으면 결과가 밀린다. */}
-      {!q.trim() && fav.length > 0 && (
-        <>
-          <View style={styles.rule} />
-          <Text style={styles.section}>{t('talk.favorites', '즐겨찾기')}</Text>
-          {fav.map((c) => (
-            <Row key={c.id} c={c} initial={initialOf(c.id)} slot={slotOf(c.id)}
-                 on={selected === c.id} onOpen={onOpen} t={t as never} />
-          ))}
-        </>
-      )}
+          ⚠️★2026-08-21 콘티: **따로 뜬 「즐겨찾기」 칸이 없다.** 노쌤이 「✦ 선생님 AI」 첫 줄에 그냥 있다.
+            ⇒ 칸을 없앴다. 대신 즐겨찾기한 사람은 **자기 묶음 안에서 맨 위**로 올린다(아래 `byGroup`).
+              그래야 콘티와 같은 모양이면서 별(즐겨찾기)이 하는 일도 남는다 —
+              칸만 지우고 정렬을 안 바꾸면 별이 아무 일도 안 하는 장식이 된다. */}
 
       <View style={styles.rule} />
       {/* 친구 수 — ★**즐겨찾기까지 포함**한 전체다(Boss 2026-08-20).
@@ -292,7 +331,7 @@ export function TalkList({ items, onOpen, selected, myName, onMe, myAvatar, rail
       {/* ★두 묶음을 **나눠서** 보여 준다(콘티) — 섞으면 "사주 상담"과 "생활 친구"가 뒤엉킨다.
           칩으로 하나만 고른 상태면 머리말을 또 달지 않는다(같은 말이 두 번 뜬다). */}
       {(['teacher', 'friend'] as const).map((g) => {
-        const list = rest.filter((c) => c.group === g);
+        const list = byGroup[g];
         if (!list.length) return null;
         return (
           <View key={g}>
@@ -353,6 +392,8 @@ const styles = StyleSheet.create({
   topBadgeTx: { fontSize: 9.5, lineHeight: 13, fontWeight: '900', color: colors.onJu },
   sub: { ...font.caption, color: colors.inkFaint },
   banner: { marginBottom: space(3) },
+  tagline: { ...font.caption, color: colors.inkFaint, marginTop: 1 },
+  when: { ...font.caption, color: colors.inkFaint, marginLeft: space(1) },
   chips: { flexDirection: 'row', gap: space(2), marginBottom: space(3), flexWrap: 'wrap' },
   chip: { paddingHorizontal: space(3.5), paddingVertical: space(1.5), borderRadius: radius.pill, backgroundColor: colors.sunk, borderWidth: 1, borderColor: colors.line },
   chipOn: { backgroundColor: colors.ju, borderColor: colors.ju },

@@ -17,6 +17,8 @@ export { toSharedSaju, toSharedZiwei } from './communityChart';
 
 export type CommunityPost = {
   id: string; author_id: string | null; author_name: string; category: string;
+  /** 본문을 연 횟수 — `bump_post_view()` 로만 오른다(0039). 목록에 뜬 것은 세지 않는다 */
+  view_count?: number;
   title: string; body: string; like_count: number; comment_count: number; created_at: string;
   // P1(daniel 2026-08-05): kind='daily'=일진 스레드(cron 자동 개설·author_id null) / ilju=작성자 일주 뱃지(opt-in·2자)
   kind?: 'normal' | 'daily'; daily_date?: string | null; ilju?: string | null;
@@ -30,12 +32,21 @@ export type CommunityComment = { id: string; post_id: string; author_id: string;
 
 // 목록용 컬럼 — **chart_* 를 명시적으로 제외**한다. 목록은 명식을 그리지 않는데 select('*') 로 두면
 //   글 30개 × 첨부 명식이 통째로 딸려와 스크롤 진입이 느려진다(첨부 명식은 상세에서만 필요).
-const LIST_COLS = 'id,author_id,author_name,category,title,body,like_count,comment_count,created_at,kind,daily_date,ilju,topic';
+const LIST_COLS = 'id,author_id,author_name,category,title,body,like_count,comment_count,view_count,created_at,kind,daily_date,ilju,topic';
 const POST_COLS = `${LIST_COLS},chart_saju,chart_ziwei,show_luck`;
 
 // 카테고리(고정) — key 저장, 라벨은 i18n(community.cat.*).
-export const COMMUNITY_CATEGORIES = ['free', 'love', 'saju', 'review', 'question'] as const;
+//
+// ★2026-08-21 콘티대로 **일곱**으로 바꿨다(연애·직장진로·재물·일상·자유·타로·자미두수).
+//   ⚠️콘티의 칩 줄 맨 앞 「추천·인기」는 **카테고리가 아니라 정렬**이다 —
+//     글의 성격이 아니라 '무엇을 먼저 보여줄까'라서 카테고리에 섞으면 안 된다(`CommunitySort`).
+//   ⚠️바뀐 값이라 **기존 글이 있으면 마이그레이션이 필요**했겠지만, 실측 결과 `community_posts` 가
+//     0건이라 옮길 것이 없다. 나중에 또 바꿀 땐 이 확인을 먼저 한다.
+export const COMMUNITY_CATEGORIES = ['love', 'career', 'wealth', 'daily', 'free', 'tarot', 'ziwei'] as const;
 export type CommunityCategory = (typeof COMMUNITY_CATEGORIES)[number];
+
+/** 정렬 — 콘티의 「추천 / 인기」. 추천 = 최신순(기본), 인기 = 좋아요 많은 순. */
+export type CommunitySort = 'recommend' | 'popular';
 
 // ── 비속어 필터(★daniel 검수 슬롯 — 최소 시드. 서버 자동숨김[신고 5]과 이중 방어) ──
 //   완벽한 필터는 불가 — 명백한 욕설/혐오만 1차 차단하고, 나머지는 신고·차단·모더레이션으로.
@@ -64,13 +75,70 @@ async function uid(): Promise<string | null> {
 }
 
 /** 게시글 목록(카테고리 필터·최신순·페이지). 숨김·차단 유저 글은 RLS가 제외. 첨부 명식은 제외(LIST_COLS). */
-export async function listPosts(category?: CommunityCategory, limit = 30, beforeIso?: string): Promise<CommunityPost[]> {
-  let q = supabase.from('community_posts').select(LIST_COLS).order('created_at', { ascending: false }).limit(limit);
+export async function listPosts(
+  category?: CommunityCategory, limit = 30, beforeIso?: string, sort: CommunitySort = 'recommend',
+): Promise<CommunityPost[]> {
+  // ★'인기'도 최신순을 2차 정렬로 둔다 — 좋아요가 같을 때 순서가 매번 바뀌면 목록이 흔들린다
+  let q = supabase.from('community_posts').select(LIST_COLS).limit(limit);
+  q = sort === 'popular'
+    ? q.order('like_count', { ascending: false }).order('created_at', { ascending: false })
+    : q.order('created_at', { ascending: false });
   if (category) q = q.eq('category', category);
   if (beforeIso) q = q.lt('created_at', beforeIso);
   const { data, error } = await q;
   if (error) throw error;
   return (data ?? []) as CommunityPost[];
+}
+
+/**
+ * **내가 쓴 글** (콘티 4면 「내 활동 › 작성한 글」).
+ *
+ * ★목록과 같은 컬럼(`LIST_COLS`)을 쓴다 — 화면이 같은 카드를 그리므로 모양이 갈리면 안 된다.
+ * ⚠️RLS 는 '남의 글 숨김·차단'을 거르지만 **내 글은 내가 언제나 본다**(작성자 본인).
+ */
+export async function myPosts(limit = 50): Promise<CommunityPost[]> {
+  const me = await uid();
+  if (!me) return [];
+  const { data, error } = await supabase.from('community_posts').select(LIST_COLS)
+    .eq('author_id', me).order('created_at', { ascending: false }).limit(limit);
+  if (error) { console.warn('[community] 내 글 조회 실패', error.message); return []; }
+  return (data ?? []) as CommunityPost[];
+}
+
+/** 내 댓글 한 줄 — 어느 글에 달았는지 함께 보여 줘야 뜻이 통한다. */
+export type MyComment = CommunityComment & { post_title: string | null };
+
+/**
+ * **내가 단 댓글** (콘티 「내 활동 › 댓글과 답글」).
+ *
+ * ★글 제목을 조인해서 가져온다 — 댓글만 나열하면 무슨 얘기였는지 알 수 없다.
+ * ⚠️조인한 글이 지워졌으면 제목이 null 이다. 그때는 화면이 '삭제된 글'로 적는다(빈칸으로 두지 않는다).
+ */
+export async function myComments(limit = 50): Promise<MyComment[]> {
+  const me = await uid();
+  if (!me) return [];
+  const { data, error } = await supabase.from('community_comments')
+    .select('id, post_id, author_id, author_name, body, created_at, ilju, community_posts(title)')
+    .eq('author_id', me).order('created_at', { ascending: false }).limit(limit);
+  if (error) { console.warn('[community] 내 댓글 조회 실패', error.message); return []; }
+  return (data ?? []).map((r: any) => ({
+    id: r.id, post_id: r.post_id, author_id: r.author_id, author_name: r.author_name,
+    body: r.body, created_at: r.created_at, ilju: r.ilju ?? null,
+    post_title: r.community_posts?.title ?? null,
+  }));
+}
+
+/**
+ * 조회수 +1 — ★**본문을 열었을 때만** 부른다(목록에 뜬 것은 조회가 아니다).
+ *
+ * ⚠️★`supabase.rpc()` 는 **실패해도 throw 하지 않는다** — 그래서 `try/catch` 로는 아무것도 못 잡는다.
+ *   처음에 그렇게 써서 `check:rpcerror` 가 잡아 줬다. 반드시 `error` 를 **읽어야** 한다.
+ * ★읽은 뒤에는 던지지 않는다(의도) — 조회수 때문에 글이 안 열리면 그게 더 나쁜 고장이다.
+ *   대신 조용히 삼키지 않고 로그에 남긴다.
+ */
+export async function bumpView(postId: string): Promise<void> {
+  const { error } = await supabase.rpc('bump_post_view', { p_post: postId });
+  if (error) console.warn('[community] 조회수 증가 실패(무시)', error.message);
 }
 
 /** 게시글 1개(첨부 명식 포함 — 상세만). */
@@ -101,6 +169,12 @@ async function myIljuIfEnabled(me: string): Promise<string | null> {
   } catch { return null; }
 }
 
+/**
+ * ★후기 태그(`topic`)는 **카테고리와 직교한다**(2026-08-21).
+ *   전에는 `category==='review'` 일 때만 저장했는데, 콘티에는 「후기」 카테고리가 없다.
+ *   ⇒ 카테고리에서 빼되 **기능은 죽이지 않는다** — '무슨 얘기냐'(카테고리)와
+ *     '어떤 콘텐츠에 대한 글이냐'(태그)는 애초에 다른 축이라, 연애 글에도 후기를 달 수 있는 게 맞다.
+ */
 export async function createPost(
   category: CommunityCategory, title: string, body: string,
   chart?: { saju: SharedSaju; ziwei?: SharedZiwei | null; showLuck: boolean },
@@ -112,7 +186,7 @@ export async function createPost(
   const ilju = await myIljuIfEnabled(me);
   const { data, error } = await supabase.from('community_posts')
     .insert({
-      author_id: me, category, title: title.trim(), body: body.trim(), ilju, topic: category === 'review' ? (topic ?? null) : null,
+      author_id: me, category, title: title.trim(), body: body.trim(), ilju, topic: topic ?? null,   // ★카테고리와 무관하게 붙일 수 있다(아래 주석)
       chart_saju: chart?.saju ?? null,
       chart_ziwei: chart?.ziwei ?? null,
       // 첨부가 없으면 항상 false — 시기 공개 플래그가 명식 없이 남아 있을 이유가 없다.

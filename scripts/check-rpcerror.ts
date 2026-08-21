@@ -26,6 +26,7 @@ const ALLOW: { file: string; rpc: string; why: string }[] = [
   { file: 'lib/core/admin.ts', rpc: 'is_caller_god', why: '읽기 전용 판정 — 실패 시 false 로 안전하게 떨어진다(withTimeout)' },
   { file: 'app/(app)/coststable.tsx', rpc: 'usage_cost_by_kind', why: '읽기 전용 통계 — 없으면 빈 표' },
   { file: 'app/(app)/coststable.tsx', rpc: 'usage_cost_by_category', why: '읽기 전용 통계 — 없으면 빈 표' },
+  { file: 'lib/backend/community.ts', rpc: 'bump_post_view', why: '조회수 집계 — error 를 읽어 경고만 남기고 던지지 않는다(조회수 때문에 글이 안 열리면 안 된다)' },
   { file: 'lib/engine/myChart.ts', rpc: 'recover_my_charts', why: '읽기 전용 복구 조회 — 실패 시 복구 없음으로 진행' },
   { file: 'app/(app)/admin.tsx', rpc: 'set_my_test_mode', why: '반환 data 로 성공을 판정한다(관리자 전용·즉시 화면 반영)' },
   { file: 'app/(app)/admin.tsx', rpc: 'set_global_test_mode', why: '동상' },

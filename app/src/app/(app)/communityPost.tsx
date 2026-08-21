@@ -13,7 +13,7 @@ import { SharedChart } from '../../components/SharedChart';
 import { Alert } from '../../lib/ui/alert';
 import { useAuth } from '../../lib/useAuth';
 import { getPost, listComments, addComment, toggleLike, likedPostIds, reportContent, blockUser, deletePost, deleteComment,
-  type CommunityPost, type CommunityComment } from '../../lib/backend/community';
+  type CommunityPost, type CommunityComment, bumpView } from '../../lib/backend/community';
 import { withTimeout } from '../../lib/core/withTimeout'; // ★잠금 구간 네트워크 상한(멈춤 방지)
 import { colors, radius, space, font } from '../../lib/theme';
 import { SECTIONS } from '../../lib/content/contentSections'; // P2 후기 태그 딥링크
@@ -52,6 +52,11 @@ export default function CommunityPostScreen() {
     } catch { /* 로드 실패 */ } finally { setLoading(false); }
   }, [id]);
   useEffect(() => { load(); }, [load]);
+
+  // ★조회수는 **본문을 연 이 자리**에서만 올린다(목록에 뜬 것은 조회가 아니다).
+  //   ⚠️`load` 에 넣지 않는다 — 댓글 등록·좋아요마다 `load()` 가 다시 도는데 그때마다 오르면
+  //     조회수가 아니라 '새로고침 수'가 된다.
+  useEffect(() => { if (id) bumpView(String(id)); }, [id]);
 
   async function onLike() {
     if (!post) return;

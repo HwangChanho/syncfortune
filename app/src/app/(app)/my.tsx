@@ -5,10 +5,15 @@
 //   커뮤니티·우니는 각자 탭. 시안은 그걸 **한 화면**으로 모은다.
 //   ⇒ 탭이 5개에서 4개로 줄어드는 대신, 사라진 탭들의 화면은 **전부 여기서 갈 수 있다**(기능 유실 0).
 //
-// ■ 구성(시안 실측)
-//   ① 아바타 + 「안녕하세요, ○○님」 + 한 줄 설명
-//   ② 「나의 운 지갑」 카드 — 잔액 크게 · 「운 충전하기」(주) · 「결제/충전 내역」(보조)
-//   ③ 메뉴 리스트 — 한 줄에 아이콘 + 이름 + ›
+// ■ 구성 — ★2026-08-21 **콘티 4면 실측대로 다시 맞췄다**
+//   ①헤더: 워드마크 좌 · 🔔 · ⚙️
+//   ②프로필: **사각 라운드 사진(좌)** + 닉네임 + 상태메시지 + 「프로필 편집」
+//   ③운 카드: **연보라 그라데이션** · 「내 운」 · 큰 잔액 · 「운 충전 / 사용 내역」 · 우측 → 원
+//   ④메뉴 3묶음 — 내 활동 4 · 운 관리 3 · 설정 3
+//
+//   ⚠️★어제 내가 추측으로 넣은 항목은 **거의 다 틀렸다**(운세 기록·찜한 콘텐츠·쿠폰함·내 명식…).
+//     콘티가 정본이다. 지금 항목은 콘티에서 그대로 옮긴 것이고, 갈 곳이 없던 셋은 화면을 만들었다
+//     (`/myposts`·`/mycomments`·`/myteachers`).
 //
 // ★잔액은 `useCoinBalance(session)` **한 곳**에서만 읽는다([[coin-balance-single-hook]]).
 //   화면마다 따로 조회하면 같은 화면 안에서 숫자가 갈린다(실제로 겪은 사고).
@@ -19,12 +24,18 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';   // ★상단 안전영역 — 헤더가 없는 화면이라 직접 받는다(고정 여백은 글자확대 시 잘린다)
 import { Image as ExpoImage } from 'expo-image';
-import { elementAvatar, coinIcon } from '../../lib/ui/brandAsset';
+import { LinearGradient } from 'expo-linear-gradient';
+import { elementAvatar } from '../../lib/ui/brandAsset';
 import { PressableScale } from '../../components/PressableScale';
 import { useAuth } from '../../lib/useAuth';
 import { useCoinBalance } from '../../lib/billing/coins';
 import { colors, radius, space, font, shadow } from '../../lib/theme';
-import { useFeatureOn } from '../../lib/core/features';   // 커뮤니티 노출 = 원격 플래그(BottomNav 와 같은 판정)
+import { useFeatureOn } from '../../lib/core/features';
+import { useWideWeb } from '../../components/WebShell';   // 커뮤니티 노출 = 원격 플래그(BottomNav 와 같은 판정)
+
+/** 운 카드 그라데이션 — 콘티의 연보라. ★강조색(오행)과 무관하게 **고정**이다:
+ *  이 카드는 '돈'을 말하는 자리라 테마마다 색이 바뀌면 무엇을 뜻하는 카드인지 흐려진다. */
+const GRAD = ['#EFEAFB', '#E4E9FA'] as const;
 
 /** 메뉴 한 줄. `admin` 이면 관리자에게만 보인다. */
 type Row = { key: string; icon: string; label: string; route: string; admin?: boolean };
@@ -37,7 +48,8 @@ export default function MyPageScreen() {
   const { session } = useAuth();
   const balance = useCoinBalance(session);   // null = 조회 실패/비로그인 (0 과 구분)
   const commOn = useFeatureOn('community');
-  const insets = useSafeAreaInsets();   // ★관리자 전용 — 판정을 여기서 새로 만들지 않는다(BottomNav 와 같은 훅)
+  const insets = useSafeAreaInsets();
+  const wideWeb = useWideWeb();   // 넓은 웹 = 사이드바가 워드마크를 이미 갖고 있다   // ★관리자 전용 — 판정을 여기서 새로 만들지 않는다(BottomNav 와 같은 훅)
 
   // 표시 이름 — 로그인 이메일 앞부분을 쓴다(닉네임 설정은 설정 화면에 있다).
   const who = (session?.user?.email ?? '').split('@')[0];
@@ -46,55 +58,76 @@ export default function MyPageScreen() {
   //   「내 명식」 진입만 여기에 얹었다(설정 안에만 있어 찾기 어려웠다).
   //   ⚠️어느 줄이 어느 묶음인지는 **콘티가 정본**이다. 이 배치는 뜻이 통하는 최소 안이고,
   //     콘티와 다르면 Boss 검수에서 고친다(내가 항목을 지어내지는 않는다).
+  // ★콘티에서 그대로 옮긴 항목이다. 이름·순서·묶음을 바꾸지 말 것 —
+  //   바꿀 일이 생기면 콘티를 고치고 여기를 따라오게 한다(반대로 하면 다시 어긋난다).
   const groups: Group[] = [
     { key: 'act', title: t('my.grpAct', '내 활동'), rows: [
-      { key: 'readings', icon: '📄', label: t('my.readings', '운세 기록'), route: '/myreadings' },
-      { key: 'fav', icon: '♥', label: t('my.fav', '찜한 콘텐츠'), route: '/favorites' },
-      { key: 'coach', icon: '💬', label: t('my.coach', '상담 내역'), route: '/coach' },
-      { key: 'community', icon: '👥', label: t('nav.community'), route: '/community', admin: true },   // 플래그 OFF 면 숨는다
+      { key: 'chats',    icon: '🗨', label: t('my.chats', '대화 기록'), route: '/chats' },
+      { key: 'teachers', icon: '♡', label: t('my.teachers', '찜한 선생님'), route: '/myteachers' },
+      { key: 'posts',    icon: '✎', label: t('my.posts', '작성한 글'), route: '/myposts' },
+      { key: 'comments', icon: '💬', label: t('my.comments', '댓글과 답글'), route: '/mycomments' },
     ] },
     { key: 'woon', title: t('my.grpWoon', '운 관리'), rows: [
-      { key: 'history', icon: '🧾', label: t('my.history', '결제/충전 내역'), route: '/coinhistory' },
-      { key: 'coupon', icon: '🎟', label: t('my.coupon', '쿠폰함'), route: '/market' },
+      { key: 'charge',  icon: '⊕', label: t('my.charge', '운 충전하기'), route: '/coins' },
+      { key: 'history', icon: '🧾', label: t('my.useHistory', '운 사용 내역'), route: '/coinhistory' },
+      // ⚠️「구독 관리」가 갈 곳은 **광고 제거**다 — 이 앱의 유일한 기간제 상품(`adfree_30`).
+      //   콘티에 있다고 없는 화면으로 보내면 눌렀을 때 빈 화면이 된다.
+      { key: 'sub',     icon: '✓', label: t('my.subs', '구독 관리'), route: '/market' },
     ] },
     { key: 'set', title: t('my.grpSet', '설정'), rows: [
-      { key: 'charts', icon: '🗂', label: t('my.charts', '내 명식'), route: '/charts' },
-      { key: 'notify', icon: '🔔', label: t('notify.title', '알림'), route: '/notifications' },
-      { key: 'settings', icon: '⚙️', label: t('my.settings', '설정 및 개인정보'), route: '/settings' },
+      { key: 'notify',   icon: '🔔', label: t('my.notifySet', '알림 설정'), route: '/notifications' },
+      { key: 'account',  icon: '🛡', label: t('my.account', '계정 및 보안'), route: '/settings' },
+      { key: 'support',  icon: '☎', label: t('my.support', '고객센터'), route: '/bugreport' },
     ] },
   ];
 
+
   return (
     <ScrollView style={styles.wrap} contentContainerStyle={[styles.body, { paddingTop: insets.top + space(4) }]}>
-      {/* ① 인사 */}
-      <View style={styles.hello}>
-        {/* ★오행 아바타(Boss 제공) — 지금 테마 오행을 따라간다. 이모지는 어느 오행에도 안 맞았다 */}
-        <ExpoImage source={elementAvatar()} style={styles.avatar} contentFit="contain" transition={160} />
-        <Text style={styles.helloTx}>
-          {who ? t('my.helloName', { name: who, defaultValue: '안녕하세요, {{name}}님' }) : t('my.helloGuest', '안녕하세요')}
-        </Text>
-        <Text style={styles.helloSub}>{t('my.helloSub', '나의 운을 관리하고 더 나은 하루를 만들어보세요.')}</Text>
+      {/* ① 헤더 — 워드마크 좌 · 알림 · 설정 (콘티)
+          ⚠️★넓은 웹에서는 워드마크를 **숨긴다** — 사이드바(`WebShell`)에 이미 있어서
+            그대로 두면 같은 글자가 한 화면에 두 번 뜬다(실측으로 드러났다).
+            콘티는 폰 한 면이라 이 중복이 보이지 않는다. */}
+      <View style={styles.top}>
+        {wideWeb ? <View style={{ flex: 1 }} /> : <Text style={styles.wordmark}>니운내운</Text>}
+        <PressableScale hitSlop={10} onPress={() => router.push('/notifications')}>
+          <Text style={styles.topIcon}>🔔</Text>
+        </PressableScale>
+        <PressableScale hitSlop={10} onPress={() => router.push('/settings')}>
+          <Text style={styles.topIcon}>⚙︎</Text>
+        </PressableScale>
       </View>
 
-      {/* ② 운 지갑 — 시안 p06: 잔액 왼쪽 · **금화 오른쪽**. 금화가 '운'이 무엇인지 한눈에 말해 준다 */}
-      <View style={styles.wallet}>
-        {/* 금화는 장식이라 화면 낭독에서 빼고(잔액은 바로 옆 글자가 읽어 준다) 터치도 받지 않는다 */}
-        <ExpoImage source={coinIcon()} style={styles.coin} contentFit="contain" transition={200} pointerEvents="none" accessible={false} />
-        <Text style={styles.walletTitle}>{t('my.wallet', '나의 운 지갑')}</Text>
-        <View style={styles.balRow}>
-          {/* 조회 실패면 숫자를 지어내지 않고 '—' 를 둔다 */}
-          <Text style={styles.bal}>{balance == null ? '—' : balance.toLocaleString()}</Text>
-          <Text style={styles.balUnit}>{t('my.woon', '운')}</Text>
+      {/* ② 프로필 — ★사진이 **왼쪽**이고 사각 라운드다(콘티). 가운데 정렬 원형이 아니다 */}
+      <View style={styles.profile}>
+        <ExpoImage source={elementAvatar()} style={styles.pic} contentFit="cover" transition={160} />
+        <View style={styles.profileMid}>
+          <Text style={styles.nick} numberOfLines={1}>
+            {who || t('my.helloGuest', '안녕하세요')}
+          </Text>
+          {/* 상태메시지 — 아직 저장 기능이 없어 기본 문구를 쓴다(빈 줄로 두면 카드가 무너진다) */}
+          <Text style={styles.status} numberOfLines={2}>{t('my.statusDefault', '오늘도 나에게 좋은 일이 가득하길 ✨')}</Text>
+          <PressableScale style={styles.editBtn} onPress={() => router.push('/settings')}>
+            <Text style={styles.editTx}>{t('my.editProfile', '프로필 편집')}</Text>
+          </PressableScale>
         </View>
-        <Text style={styles.walletSub}>{t('my.walletSub', '운은 다양한 상담과 콘텐츠에 사용돼요.')}</Text>
-
-        <PressableScale style={styles.cta} onPress={() => router.push('/coins')}>
-          <Text style={styles.ctaTx}>{t('my.charge', '운 충전하기')}</Text>
-        </PressableScale>
-        <PressableScale style={styles.ctaGhost} onPress={() => router.push('/coinhistory')}>
-          <Text style={styles.ctaGhostTx}>{t('my.history', '결제/충전 내역')}</Text>
-        </PressableScale>
       </View>
+
+      {/* ③ 운 카드 — 연보라 그라데이션 · 우측 원형 화살표(콘티) */}
+      <PressableScale onPress={() => router.push('/coins')}>
+        <LinearGradient colors={GRAD} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.wallet}>
+          <View style={styles.walletMid}>
+            <Text style={styles.walletTitle}>{t('my.woonCard', '내 운')}</Text>
+            <View style={styles.balRow}>
+              {/* 조회 실패면 숫자를 지어내지 않고 '—' 를 둔다 */}
+              <Text style={styles.bal}>{balance == null ? '—' : balance.toLocaleString()}</Text>
+              <Text style={styles.balUnit}>{t('my.woon', '운')}</Text>
+            </View>
+            <Text style={styles.walletSub}>{t('my.walletLink', '운 충전 / 사용 내역')}</Text>
+          </View>
+          <View style={styles.walletGo}><Text style={styles.walletGoTx}>→</Text></View>
+        </LinearGradient>
+      </PressableScale>
 
       {/* ③ 메뉴 — 세 묶음 */}
       {groups.map((g) => {
@@ -128,34 +161,40 @@ const styles = StyleSheet.create({
   // 하단 여백 170 = 광고 배너 50 + 하단 내비 86 + 홈 인디케이터 34(check:bottominset 기준)
   body: { paddingHorizontal: space(4), paddingBottom: 170 },
 
-  hello: { alignItems: 'center', marginBottom: space(5) },
-  avatar: { width: 96, height: 96, marginBottom: space(3) },
-  helloTx: { fontSize: 20, lineHeight: 28, fontWeight: '900', color: colors.ju, letterSpacing: -0.3 },
-  helloSub: { ...font.caption, color: colors.inkSoft, marginTop: space(1.5) },
+  top: { flexDirection: 'row', alignItems: 'center', gap: space(3), marginBottom: space(4) },
+  wordmark: { flex: 1, fontSize: 21, lineHeight: 28, fontWeight: '900', color: colors.ju, letterSpacing: -0.5 },
+  topIcon: { fontSize: 20, lineHeight: 26 },
+
+  profile: { flexDirection: 'row', alignItems: 'flex-start', gap: space(3.5), marginBottom: space(4) },
+  // ★사각 라운드(콘티). 원형이 아니다 — 카톡 프로필과 같은 모양이라 '사람'으로 읽힌다
+  pic: { width: 64, height: 64, borderRadius: radius.md, backgroundColor: colors.sunk },
+  profileMid: { flex: 1, minWidth: 0, gap: space(1) },
+  nick: { fontSize: 17, lineHeight: 23, fontWeight: '900', color: colors.ink },
+  status: { ...font.caption, color: colors.inkSoft, lineHeight: 18 },
+  editBtn: {
+    alignSelf: 'flex-start', marginTop: space(1),
+    paddingHorizontal: space(3), paddingVertical: space(1.5),
+    borderRadius: radius.pill, borderWidth: 1, borderColor: colors.juLine,
+  },
+  editTx: { ...font.caption, color: colors.ju, fontWeight: '800' },
 
   wallet: {
-    position: 'relative',
-    backgroundColor: colors.card, borderRadius: radius.lg,
-    padding: space(5), marginBottom: space(4), ...shadow.soft,
+    flexDirection: 'row', alignItems: 'center', gap: space(3),
+    borderRadius: radius.lg, padding: space(5), marginBottom: space(5),
   },
-  walletTitle: { ...font.heading, color: colors.ju, fontWeight: '900' },
-  // 금화 — 잔액 줄 오른쪽. ⚠️`wallet` 이 relative 여야 여기 붙는다(absoluteFill 은 **부모**를 채운다 · [[overlay-absolutefill-parent]])
-  coin: { position: 'absolute', right: 20, top: 40, width: 68, height: 68 },
-  balRow: { flexDirection: 'row', alignItems: 'baseline', gap: space(1.5), marginTop: space(2) },
+  walletMid: { flex: 1, minWidth: 0 },
+  // ⚠️그라데이션 위 글자는 **고정색**이다 — 오행 강조색을 쓰면 색마다 대비가 갈린다
+  walletTitle: { ...font.caption, color: '#6B5FA8', fontWeight: '800' },
+  balRow: { flexDirection: 'row', alignItems: 'baseline', gap: space(1.5), marginTop: space(1) },
   // 시안에서 이 화면의 주인공 — 홈의 점수와 같은 급으로 크게.
-  bal: { fontSize: 34, lineHeight: 42, fontWeight: '900', color: colors.ink, letterSpacing: -1 },
-  balUnit: { ...font.label, color: colors.inkSoft, fontWeight: '800' },
-  walletSub: { ...font.caption, color: colors.inkFaint, marginTop: space(1) },
-  cta: {
-    marginTop: space(4), backgroundColor: colors.ju, borderRadius: radius.md,
-    paddingVertical: space(3.5), alignItems: 'center',
+  bal: { fontSize: 30, lineHeight: 38, fontWeight: '900', color: '#2E2A4A', letterSpacing: -0.8 },
+  balUnit: { ...font.label, color: '#2E2A4A', fontWeight: '800' },
+  walletSub: { ...font.caption, color: '#6B5FA8', marginTop: space(1.5) },
+  walletGo: {
+    width: 34, height: 34, borderRadius: 17, backgroundColor: '#FFFFFF',
+    alignItems: 'center', justifyContent: 'center',
   },
-  ctaTx: { ...font.label, color: colors.onJu, fontWeight: '900' },
-  ctaGhost: {
-    marginTop: space(2), borderRadius: radius.md, borderWidth: 1, borderColor: colors.juLine,
-    paddingVertical: space(3.5), alignItems: 'center',
-  },
-  ctaGhostTx: { ...font.label, color: colors.ju, fontWeight: '800' },
+  walletGoTx: { fontSize: 16, color: '#6B5FA8', fontWeight: '900' },
 
   group: { marginBottom: space(4) },
   // 묶음 제목 — 카드 **밖**에 둔다(안에 넣으면 첫 줄과 붙어 메뉴처럼 읽힌다)
