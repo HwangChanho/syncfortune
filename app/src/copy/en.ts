@@ -641,6 +641,8 @@ export const en = {
     'friends': 'Friends',
     'favorites': 'Favorites',
     'contents': 'Contents',
+    'more': 'More',
+    'collapse': 'Less',
     'fav': 'Add to favorites',
     'unfav': 'Remove from favorites',
     'friendsCount': '{{n}} friends',

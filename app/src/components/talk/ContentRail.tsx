@@ -16,6 +16,7 @@ import { useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Image as ExpoImage } from 'expo-image';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { PressableScale } from '../PressableScale';
 import { contentIcon, type ContentIcon } from '../../lib/ui/brandAsset';
 import { HOME_BLOCK_LABEL, type HomeBlockKey } from '../../lib/ui/homeOrder';
@@ -64,6 +65,7 @@ const COLLAPSED = 3;
  */
 export function ContentRail({ keys }: { keys: readonly HomeBlockKey[] }) {
   const router = useRouter();
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const items = keys.filter((k) => ROUTE[k]);
   if (!items.length) return null;
@@ -83,14 +85,18 @@ export function ContentRail({ keys }: { keys: readonly HomeBlockKey[] }) {
           <Text style={styles.label} numberOfLines={2}>{HOME_BLOCK_LABEL[k]}</Text>
         </PressableScale>
       ))}
-      {/* 더보기 — ★접었을 때만 뜬다. 펴고 나면 되접을 이유가 별로 없어 '접기'는 두지 않았다
-          (한 번 편 사람은 계속 보고 싶다는 뜻이다). */}
-      {!open && more > 0 ? (
-        <PressableScale style={styles.cell} onPress={() => setOpen(true)}>
+      {/* 더보기 / 접기 — ★둘 다 둔다(Boss 2026-08-20).
+          처음엔 "한 번 편 사람은 계속 보고 싶다"고 보고 접기를 뺐는데, 그건 내 짐작이었다.
+          펼치면 아홉 개가 화면을 꽤 먹으므로 **되돌릴 길**이 있어야 한다.
+          ★같은 자리에 있어야 한다 — 편 버튼과 접는 버튼이 다른 곳에 있으면 눈이 다시 찾아야 한다. */}
+      {more > 0 ? (
+        <PressableScale style={styles.cell} onPress={() => setOpen((v) => !v)}>
           <View style={[styles.circle, styles.moreCircle]}>
-            <Text style={styles.moreTx}>+{more}</Text>
+            <Text style={styles.moreTx}>{open ? '−' : `+${more}`}</Text>
           </View>
-          <Text style={styles.label} numberOfLines={2}>더보기</Text>
+          <Text style={styles.label} numberOfLines={2}>
+            {open ? t('talk.collapse', '접기') : t('talk.more', '더보기')}
+          </Text>
         </PressableScale>
       ) : null}
     </View>

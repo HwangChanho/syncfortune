@@ -640,6 +640,8 @@ export const ja = {
     'friends': '友だち',
     'favorites': 'お気に入り',
     'contents': 'コンテンツ',
+    'more': 'もっと見る',
+    'collapse': '閉じる',
     'fav': 'お気に入りに追加',
     'unfav': 'お気に入りから外す',
     'friendsCount': '友だち {{n}}人',
