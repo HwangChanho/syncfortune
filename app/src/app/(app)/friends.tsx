@@ -157,7 +157,7 @@ export default function FriendsScreen() {
         <Text style={styles.emptyTx}>{t('friends.empty', '아직 친구가 없어요.\n위에서 코드로 추가해 보세요.')}</Text>
       ) : mates.map((f, i) => (
         <Row key={f.otherId} f={f} slot={i} t={t as never}
-             onOpen={() => router.push(`/compat?friend=${f.otherId}`)}
+             onOpen={() => router.push(`/friendcompat?friend=${f.otherId}`)}
              onRemove={async () => { if (await removeFriend(f.otherId)) void reload(); }} />
       ))}
     </ScrollView>

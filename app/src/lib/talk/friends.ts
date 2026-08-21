@@ -106,3 +106,26 @@ export async function getShareConsent(): Promise<boolean> {
   const r = await withTimeout(supabase.from('profiles').select('share_consent').maybeSingle(), 8000);
   return !!(r && !r.error && (r.data as any)?.share_consent);
 }
+
+/**
+ * 친구의 명식을 읽는다.
+ *
+ * ★서버가 **이미 계산해 둔 `saju`** 를 그대로 쓴다 — 생년월일(`birth_enc`)은 암호화돼 있고
+ *   우리에게 필요한 것도 아니다. 계산을 다시 하지 않으므로 원가도 0이다.
+ * ⚠️RLS 가 두 조건(accepted + share_consent)을 모두 볼 때만 행을 준다.
+ *   ⇒ 못 읽으면 **null**이고, 그건 오류가 아니라 "아직 안 열었다"는 뜻이다.
+ *
+ * @param chartId `my_friends()` 가 준 값. null 이면 애초에 못 보는 것이라 부르지 않는다
+ */
+export async function loadFriendChart(chartId: string): Promise<{ saju: any; ziwei: any } | null> {
+  const r = await withTimeout(
+    supabase.from('charts').select('saju, ziwei').eq('id', chartId).maybeSingle(),
+    8000,
+  );
+  if (!r || r.error || !r.data) {
+    if (r?.error) console.warn('[friends] 친구 명식 조회 실패', r.error.message);
+    return null;
+  }
+  const d = r.data as any;
+  return d.saju ? { saju: d.saju, ziwei: d.ziwei ?? null } : null;
+}

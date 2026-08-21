@@ -369,7 +369,7 @@ export function TalkHome({ renderTop, mode = 'contacts' }: { renderTop?: ReactNo
                       people={friends.filter((f) => f.status === 'accepted').map((f) => ({
                         id: f.otherId, name: f.name ?? '이름 없음', avatarUrl: f.avatarUrl, canSee: !!f.chartId,
                       }))}
-                      onOpenPerson={(id) => router.push(`/compat?friend=${id}`)}
+                      onOpenPerson={(id) => router.push(`/friendcompat?friend=${id}`)}
                       // ★`wide` = **목록 칸이 넓은가**(화면이 넓은가가 아니다).
                       //   폰은 목록이 전체 폭이라 넓고, 웹 3칸의 왼쪽 칸은 264px 이라 좁다.
                       //   ⇒ `useWideWeb()` 의 정확히 반대다 — 헷갈리기 쉬워 적어 둔다.
@@ -431,7 +431,7 @@ export function TalkHome({ renderTop, mode = 'contacts' }: { renderTop?: ReactNo
                       people={friends.filter((f) => f.status === 'accepted').map((f) => ({
                         id: f.otherId, name: f.name ?? '이름 없음', avatarUrl: f.avatarUrl, canSee: !!f.chartId,
                       }))}
-                      onOpenPerson={(id) => router.push(`/compat?friend=${id}`)} wide={!wide} />   {/* 웹 3칸 = 좁은 칸 */}
+                      onOpenPerson={(id) => router.push(`/friendcompat?friend=${id}`)} wide={!wide} />   {/* 웹 3칸 = 좁은 칸 */}
         </View>
         {showChatPane && (
           <View style={[styles.pane, { paddingTop: insets.top }]}>
