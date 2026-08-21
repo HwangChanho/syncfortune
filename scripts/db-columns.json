@@ -1,6 +1,6 @@
 {
   "_note": "public 스키마 컬럼 스냅샷 — scripts/check-edge-columns.mjs 가 참조한다. 마이그레이션 후 npm run snap:cols 로 갱신할 것.",
-  "_generatedAt": "2026-08-21T09:39:25.804Z",
+  "_generatedAt": "2026-08-21T10:09:24.849Z",
   "tables": {
     "charts": [
       "id",
@@ -240,6 +240,18 @@
       "blocks",
       "group_key"
     ],
+    "room_messages": [
+      "id",
+      "room_id",
+      "user_id",
+      "ai_id",
+      "body",
+      "model",
+      "in_tok",
+      "out_tok",
+      "won",
+      "sent_at"
+    ],
     "app_config": [
       "key",
       "value",
@@ -365,6 +377,13 @@
       "active",
       "note",
       "created_at"
+    ],
+    "room_members": [
+      "room_id",
+      "user_id",
+      "role",
+      "muted",
+      "joined_at"
     ],
     "dream_readings": [
       "id",
@@ -584,6 +603,20 @@
       "admin_note",
       "created_at",
       "updated_at"
+    ],
+    "rooms": [
+      "id",
+      "kind",
+      "title",
+      "topic",
+      "owner_id",
+      "ai_ids",
+      "ai_per_turn",
+      "daily_turn_cap",
+      "is_public",
+      "closed",
+      "created_at",
+      "last_at"
     ]
   }
 }
