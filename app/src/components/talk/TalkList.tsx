@@ -168,8 +168,10 @@ export function TalkList({ items, onOpen, selected, myName, onMe, myAvatar, rail
   // ★검색은 **온디바이스 필터**다(Boss 손그림 2026-08-20 상단 검색바).
   //   서버로 질의하지 않는다 — 목록이 열댓 개라 왕복할 이유가 없고, 원가도 0이다.
   const [q, setQ] = useState('');
-  // 검색은 **접어 둔다** — 첫 화면에서 늘 쓰는 것이 아니라 필요할 때 여는 것이다
-  const [searchOpen, setSearchOpen] = useState(false);
+  // ⚠️검색 UI 는 **아이콘만 뺐다**(Boss 2026-08-20) — 친구가 다섯 남짓이라 검색할 게 없다.
+  //   기능(`q` 필터)은 그대로 두었으므로, 친구가 늘면 여는 아이콘만 되살리면 된다.
+  //   `searchOpen` 은 늘 false 라 검색바가 렌더되지 않는다.
+  const searchOpen = false;
   // 즐겨찾기 — 온디바이스. ★별을 누르면 **즉시** 다시 그린다(새로고침을 요구하지 않는다).
   const [favTick, setFavTick] = useState(0);
   useEffect(() => {
@@ -201,16 +203,16 @@ export function TalkList({ items, onOpen, selected, myName, onMe, myAvatar, rail
         <Text style={styles.meName} numberOfLines={1}>
           {myName ?? t('talk.meNoChart', '명식을 등록하면 이름이 나와요')}
         </Text>
-        <PressableScale hitSlop={8} onPress={() => setSearchOpen((v) => !v)}>
-          <Text style={[styles.topIcon, searchOpen && styles.topIconOn]}>⌕</Text>
-        </PressableScale>
+        {/* ★돋보기는 뺐다(Boss 2026-08-20). 친구가 다섯 남짓이라 **검색할 게 없다** —
+            목록이 한 화면에 들어오는데 검색 아이콘을 두면 자리만 먹는다.
+            ⚠️검색 기능(`q`)은 코드에 남겨 뒀다. 친구가 늘면 아이콘만 되살리면 된다. */}
         {/* 친구 추가 — 카톡의 사람+ 자리. ★배지로 **받은 신청 수**를 알린다
             (신청이 와도 모르면 친구가 안 맺어진다). */}
-        <PressableScale hitSlop={8} onPress={onAddFriend}>
+        <PressableScale hitSlop={10} onPress={onAddFriend}>
           <Text style={styles.topIcon}>＋</Text>
           {pendingCount > 0 ? <View style={styles.topBadge}><Text style={styles.topBadgeTx}>{pendingCount}</Text></View> : null}
         </PressableScale>
-        <PressableScale hitSlop={8} onPress={onSettings}>
+        <PressableScale hitSlop={10} onPress={onSettings}>
           <Text style={styles.topIcon}>⚙︎</Text>
         </PressableScale>
       </View>
@@ -304,7 +306,9 @@ const styles = StyleSheet.create({
   // 상단 행 — 아바타 + 이름 + 아이콘들(카톡 배치)
   topRow: { flexDirection: 'row', alignItems: 'center', gap: space(3), paddingVertical: space(2), marginBottom: space(3) },
   meName: { flex: 1, minWidth: 0, fontSize: 19, lineHeight: 26, fontWeight: '900', color: colors.ink, letterSpacing: -0.4 },
-  topIcon: { fontSize: 20, color: colors.inkSoft, paddingHorizontal: space(1.5) },
+  // ★아이콘을 키웠다(20 → 26, Boss 2026-08-20 "너무 작아"). 손끝은 44pt 를 필요로 하는데
+  //   글리프가 작으면 눌러도 눌린 것 같지 않다 — 여백(hitSlop)만 넓히면 '보이지 않는 버튼'이 된다.
+  topIcon: { fontSize: 26, lineHeight: 30, color: colors.inkSoft, paddingHorizontal: space(2) },
   topIconOn: { color: colors.ju },
   topBadge: { position: 'absolute', top: -3, right: -1, minWidth: 15, height: 15, borderRadius: 8, paddingHorizontal: 4, backgroundColor: colors.ju, alignItems: 'center', justifyContent: 'center' },
   topBadgeTx: { fontSize: 9.5, lineHeight: 13, fontWeight: '900', color: colors.onJu },

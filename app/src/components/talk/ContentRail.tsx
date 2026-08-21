@@ -51,8 +51,9 @@ const ICON: Partial<Record<HomeBlockKey, ContentIcon>> = {
 /** 이 블록이 레일에 오를 수 있나(= 갈 화면이 있나). ★목록과 개수가 어긋나지 않게 같은 판정을 쓴다. */
 export const hasRailRoute = (k: HomeBlockKey): boolean => !!ROUTE[k];
 
-/** 접었을 때 보여 줄 개수(Boss 2026-08-20 *"노출은 3개만"*). */
-const COLLAPSED = 3;
+// 한 칸 치수 — ★스타일과 **같은 값**을 쓴다(여기서 다르게 잡으면 계산과 실제가 어긋난다).
+const CELL = 62;
+const GAP = 12;      // = space(3)
 
 /**
  * 콘텐츠 레일.
@@ -67,15 +68,27 @@ export function ContentRail({ keys }: { keys: readonly HomeBlockKey[] }) {
   const router = useRouter();
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
+  // ★칸 폭을 **직접 잰다**(Boss 2026-08-20 *"모바일에선 화면에 맞춰서"*).
+  //   화면 폭이 아니라 **이 줄이 실제로 쓰는 폭**이어야 한다 — 웹 3칸의 왼쪽은 264px 이고
+  //   폰은 전체 폭이라, 화면 크기로 계산하면 웹에서 넘친다.
+  const [w, setW] = useState(0);
   const items = keys.filter((k) => ROUTE[k]);
   if (!items.length) return null;
-  const shown = open ? items : items.slice(0, COLLAPSED);
-  const more = items.length - COLLAPSED;
+
+  // 한 줄에 들어가는 칸 수. 아직 못 쟀으면(0) 세 개로 시작한다 — 첫 프레임에 아홉 개가
+  // 쏟아졌다가 접히면 화면이 튄다.
+  const perRow = w > 0 ? Math.max(1, Math.floor((w + GAP) / (CELL + GAP))) : 3;
+  // ★전부 들어가면 더보기가 필요 없다. 안 들어가면 **더보기 자리 한 칸을 빼고** 채운다 —
+  //   안 그러면 더보기가 다음 줄로 밀려 한 줄이 두 줄이 된다.
+  const fits = items.length <= perRow;
+  const collapsed = fits ? items.length : Math.max(1, perRow - 1);
+  const shown = open ? items : items.slice(0, collapsed);
+  const more = items.length - collapsed;
   // ★가로 스크롤이 아니라 **줄바꿈**이다(Boss 2026-08-20 *"콘텐츠가 다 노출되게"*).
   //   가로로 흘리면 화면 밖에 있는 것은 **있는 줄도 모른다** — 목록 위 한 줄은 훑어보는 자리지
   //   스크롤해서 찾는 자리가 아니다. 줄이 늘어도 다 보이는 편이 낫다.
   return (
-    <View style={styles.rail}>
+    <View style={styles.rail} onLayout={(e) => setW(e.nativeEvent.layout.width)}>
       {shown.map((k) => (
         <PressableScale key={k} style={styles.cell} onPress={() => router.push(ROUTE[k] as never)}>
           <View style={styles.circle}>

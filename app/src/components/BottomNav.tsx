@@ -14,7 +14,7 @@
 //   · 라벨은 남긴다(아이콘만 두면 '풀이'와 '도우미'처럼 뜻이 겹치는 탭을 구분하기 어렵다). 라벨은 작게.
 //   · active = 골드(colors.ju) 선·글자 + 상단 짧은 골드 바, inactive = 흐린 잉크.
 // ─────────────────────────────────────────────────────────────────────────
-import { View, Text, StyleSheet, Platform } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import Svg, { Path, Circle } from 'react-native-svg';
 import { PressableScale } from './PressableScale';
 import { useRouter, usePathname } from 'expo-router';
@@ -113,7 +113,11 @@ export function TabIcon({ name, color }: { name: TabKey; color: string }) {
 }
 
 let _navBarHeight = 82; // 실측 전 근사값. onLayout 으로 갱신(아이콘 추가로 높이가 바뀌어도 자동 반영).
-const NAV_MARGIN_BOTTOM = space(4); // ★styles.bar 의 marginBottom — onLayout 높이에 안 잡힌다(아래 getNavBarHeight 주석)
+// ★★2026-08-20 Boss *"하단에 탭바 아래로 딱 붙여"* — 떠 있던 16pt 를 **0** 으로.
+//   종전엔 바가 화면 아래에서 16pt 떠 있어 카드처럼 보였다. 카톡·대부분의 앱은 붙어 있다.
+//   ⚠️0 이어도 **안전영역은 따로 지킨다**(아래 렌더의 `insets.bottom`) —
+//     0 으로 두고 인셋까지 빼면 홈 인디케이터가 탭을 덮는다.
+const NAV_MARGIN_BOTTOM = 0;
 // ★Android 시스템 내비 회피(daniel 2026-08-04 "안드로이드/iOS 다를 수 있는 부분 찾아서 고쳐").
 //   iOS 는 marginBottom 16 고정 모양을 daniel 이 승인했지만, Android 는 edge-to-edge 라
 //   3버튼 내비(인셋 ~48)가 고정 16 여백을 **덮는다**(배너 틈과 같은 뿌리 — 인셋을 아무도 안 받던 문제).
@@ -134,7 +138,9 @@ export function BottomNav() {
   const path = usePathname();
   const insets = useSafeAreaInsets();
   // Android 만 시스템 내비 인셋 반영(iOS 는 승인된 고정 여백 유지). 렌더마다 모듈 변수 동기화.
-  const marginBottom = Platform.OS === 'android' ? Math.max(NAV_MARGIN_BOTTOM, insets.bottom) : NAV_MARGIN_BOTTOM;
+  // ★붙이되 **안전영역만큼은** 띄운다(iOS 홈 인디케이터 · Android 3버튼 내비).
+  //   종전엔 iOS 만 고정 16pt 였는데, 붙이기로 한 이상 두 OS 가 같은 규칙을 쓰는 게 맞다.
+  const marginBottom = Math.max(NAV_MARGIN_BOTTOM, insets.bottom);
   _navMarginBottom = marginBottom;
   const { t } = useTranslation();
   // ★★커뮤니티 탭은 **원격 플래그**로 가린다(2026-08-19 3탭 전환에서 복구).
@@ -163,7 +169,7 @@ export function BottomNav() {
 
 const styles = StyleSheet.create({
   // 네비바 배경 = 카드 서피스(라이트=연베이지, 다크=#221F44) — 배경(한지/달밤) 위에서 바로 도드라지게(daniel 07-03)
-  bar: { flexDirection: 'row', borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.line, backgroundColor: colors.card, paddingBottom: space(6), paddingTop: space(4) }, // marginBottom 은 렌더에서(Android 인셋 반영)
+  bar: { flexDirection: 'row', borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.line, backgroundColor: colors.card, paddingBottom: space(3), paddingTop: space(3) }, // ★붙인 뒤엔 24pt 아래 패딩이 과하다(12pt). marginBottom 은 렌더에서
 
   tab: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 3 },
   // active 상단 짧은 골드 바

@@ -110,7 +110,7 @@ export function ChatList({ onOpen, selectedId, reloadKey = 0, wide, onSettings }
       {/* ── 상단: 제목 + 아이콘 (Boss 2026-08-20 카톡 채팅목록 배치) ── */}
       <View style={styles.topRow}>
         <Text style={styles.head}>{t('nav.chats', '대화')}</Text>
-        <PressableScale hitSlop={8} onPress={onSettings}>
+        <PressableScale hitSlop={10} onPress={onSettings}>
           <Text style={styles.topIcon}>⚙︎</Text>
         </PressableScale>
       </View>
@@ -170,7 +170,8 @@ const styles = StyleSheet.create({
   body: { paddingHorizontal: space(4), paddingTop: space(4), paddingBottom: space(20) },
   topRow: { flexDirection: 'row', alignItems: 'center', marginBottom: space(3) },
   head: { flex: 1, fontSize: 22, lineHeight: 30, fontWeight: '900', color: colors.ink, letterSpacing: -0.4 },
-  topIcon: { fontSize: 20, color: colors.inkSoft, paddingHorizontal: space(1.5) },
+  // ★친구목록과 **같은 크기**(26). 두 탭을 오가는데 아이콘 크기가 다르면 눈에 띈다.
+  topIcon: { fontSize: 26, lineHeight: 30, color: colors.inkSoft, paddingHorizontal: space(2) },
   banner: { marginBottom: space(3) },
 
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: space(16), gap: space(4) },
