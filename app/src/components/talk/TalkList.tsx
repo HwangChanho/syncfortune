@@ -140,7 +140,8 @@ function ContentRailBlock({ keys, t }: { keys: readonly HomeBlockKey[]; t: (k: s
   );
 }
 
-export function TalkList({ items, onOpen, selected, myName, onMe, myAvatar, railKeys = [], onSettings, wide }: {
+export function TalkList({ items, onOpen, selected, myName, onMe, myAvatar, railKeys = [], onSettings, wide,
+                           onAddFriend, pendingCount = 0, people = [], onOpenPerson }: {
   items: Consultant[];
   onOpen: (c: Consultant) => void;
   selected?: string;
@@ -154,6 +155,14 @@ export function TalkList({ items, onOpen, selected, myName, onMe, myAvatar, rail
   onSettings?: () => void;
   /** 넓은 칸인가(폰 전체 폭·웹 넓은 화면). 좁으면 배너를 숨긴다 */
   wide?: boolean;
+  /** 친구 추가 화면으로 */
+  onAddFriend?: () => void;
+  /** 받은 친구 신청 수 — 0이면 배지를 안 그린다 */
+  pendingCount?: number;
+  /** 실제 사람 친구들(상담가와 **다른 섹션**에 둔다) */
+  people?: { id: string; name: string; avatarUrl: string | null; canSee: boolean }[];
+  /** 사람 친구를 눌렀을 때 */
+  onOpenPerson?: (id: string) => void;
 }) {
   const { t } = useTranslation();
   // ★검색은 **온디바이스 필터**다(Boss 손그림 2026-08-20 상단 검색바).
@@ -194,6 +203,12 @@ export function TalkList({ items, onOpen, selected, myName, onMe, myAvatar, rail
         </Text>
         <PressableScale hitSlop={8} onPress={() => setSearchOpen((v) => !v)}>
           <Text style={[styles.topIcon, searchOpen && styles.topIconOn]}>⌕</Text>
+        </PressableScale>
+        {/* 친구 추가 — 카톡의 사람+ 자리. ★배지로 **받은 신청 수**를 알린다
+            (신청이 와도 모르면 친구가 안 맺어진다). */}
+        <PressableScale hitSlop={8} onPress={onAddFriend}>
+          <Text style={styles.topIcon}>＋</Text>
+          {pendingCount > 0 ? <View style={styles.topBadge}><Text style={styles.topBadgeTx}>{pendingCount}</Text></View> : null}
         </PressableScale>
         <PressableScale hitSlop={8} onPress={onSettings}>
           <Text style={styles.topIcon}>⚙︎</Text>
@@ -253,6 +268,27 @@ export function TalkList({ items, onOpen, selected, myName, onMe, myAvatar, rail
         <Row key={c.id} c={c} initial={initialOf(c.id)} slot={slotOf(c.id)}
              on={selected === c.id} onOpen={onOpen} t={t as never} />
       ))}
+      {/* ── 내 친구(실제 사람) ──────────────────────────────────
+          ★상담가와 **다른 섹션**이다. 섞으면 "이 사람이 AI 인가 사람인가"가 흐려진다. */}
+      {!q.trim() && people.length > 0 ? (
+        <>
+          <View style={styles.rule} />
+          <Text style={styles.section}>
+            {t('friends.mates', '내 친구')} {people.length}
+          </Text>
+          {people.map((p, i) => (
+            <PressableScale key={p.id} style={styles.row} onPress={() => onOpenPerson?.(p.id)}>
+              <Avatar name={p.name} slot={items.length + i + 1} uri={p.avatarUrl} />
+              <View style={styles.col}>
+                <Text style={styles.name} numberOfLines={1}>{p.name}</Text>
+                {/* ★못 보는 이유를 적는다 — 빈 줄이면 우리 잘못인지 상대 설정인지 모른다 */}
+                {!p.canSee ? <Text style={styles.sub}>{t('friends.notShared', '아직 명식을 열지 않았어요')}</Text> : null}
+              </View>
+            </PressableScale>
+          ))}
+        </>
+      ) : null}
+
       {/* ★빈 결과를 말없이 두지 않는다 — 목록이 사라진 이유를 화면이 설명해야 한다 */}
       {q.trim() && !shown.length
         ? <Text style={styles.empty}>{t('talk.searchEmpty', '찾는 친구가 없어요.')}</Text>
@@ -270,6 +306,9 @@ const styles = StyleSheet.create({
   meName: { flex: 1, minWidth: 0, fontSize: 19, lineHeight: 26, fontWeight: '900', color: colors.ink, letterSpacing: -0.4 },
   topIcon: { fontSize: 20, color: colors.inkSoft, paddingHorizontal: space(1.5) },
   topIconOn: { color: colors.ju },
+  topBadge: { position: 'absolute', top: -3, right: -1, minWidth: 15, height: 15, borderRadius: 8, paddingHorizontal: 4, backgroundColor: colors.ju, alignItems: 'center', justifyContent: 'center' },
+  topBadgeTx: { fontSize: 9.5, lineHeight: 13, fontWeight: '900', color: colors.onJu },
+  sub: { ...font.caption, color: colors.inkFaint },
   banner: { marginBottom: space(3) },
 
   searchWrap: {

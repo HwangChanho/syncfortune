@@ -99,6 +99,7 @@ export default function AppLayout() {
             ⚠️실제로 `/chats` 를 새로 만들고 등록을 잊어 흰 띠가 떴다 — 화면은 멀쩡히 돌아서
               '레이아웃이 좀 이상한데' 로만 보였다. `check:reach` R4 가 이제 지킨다. */}
         <Stack.Screen name="chats" options={{ headerShown: false, animation: 'none' }} />
+        <Stack.Screen name="friends" options={{ headerShown: false }} />
         <Stack.Screen name="talk" options={{ headerShown: false, animation: 'none' }} />
         <Stack.Screen name="register" options={{ title: '차트 등록' }} />
         <Stack.Screen name="myeongsik" options={{ headerTitle: '' }} />
