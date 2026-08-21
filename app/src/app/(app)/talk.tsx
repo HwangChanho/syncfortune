@@ -123,6 +123,43 @@ export function TalkHome({ renderTop, mode = 'contacts' }: { renderTop?: ReactNo
   //   화면 안에 확인 줄을 띄우는 편이 웹·폰 어디서나 확실하다.
   const [askDelete, setAskDelete] = useState(false);
   const bumpChats = useCallback(() => setChatsTick((n) => n + 1), []);
+
+  // 순차 표시 타이머 — ★상담가를 바꾸면 **이전 대기를 취소**한다.
+  //   안 그러면 A 의 인사가 B 의 대화창에 뒤늦게 떨어진다.
+  const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const clearTimers = useCallback(() => {
+    timersRef.current.forEach(clearTimeout);
+    timersRef.current = [];
+  }, []);
+
+  /**
+   * 말풍선들을 **타이핑을 거쳐 하나씩** 띄운다(Boss 2026-08-20).
+   *
+   * ★인사말도 여기를 지난다 — 열자마자 다 떠 있으면 '미리 써 둔 안내문'이지 대화가 아니다.
+   * ★뜸은 **다음에 나올 말의 길이**에 비례한다(긴 말일수록 오래 친다). 상한 1.4초 —
+   *   그 이상은 '사람 같다'가 아니라 '느리다'가 된다.
+   *
+   * @param parts  띄울 말풍선들(순서대로)
+   * @param extra  마지막 말풍선에 얹을 것(그림·링크·블록 카드)
+   */
+  const sayInOrder = useCallback((parts: TalkItem[], startDelay = 240) => {
+    clearTimers();
+    if (!parts.length) return;
+    let at = startDelay;
+    parts.forEach((item, i) => {
+      if (i > 0) at += Math.min(1400, 320 + (parts[i - 1].body?.length ?? 0) * 12);
+      const ms = at;
+      const last = i === parts.length - 1;
+      timersRef.current.push(setTimeout(() => {
+        setItems((prev) => [...prev, item]);
+        if (last) setBusy(false);          // 마지막이 뜨면 점 세 개를 끈다
+      }, ms));
+    });
+    setBusy(true);                          // 첫 말풍선이 뜨기 전부터 점이 보인다
+  }, [clearTimers]);
+
+  // 화면을 떠나면 대기 중인 타이머를 정리한다(끝난 화면에 말풍선이 떨어지지 않게)
+  useEffect(() => clearTimers, [clearTimers]);
   /**
    * 읽음 처리 — ★실패 사유를 **삼키지 않는다**(`check:rpcerror`).
    *   배지가 안 사라지는 건 눈에 보이는 증상인데, 원인(권한·네트워크)을 안 남기면
@@ -206,14 +243,17 @@ export function TalkHome({ renderTop, mode = 'contacts' }: { renderTop?: ReactNo
     })).filter((b) => !!b.node);
 
     if (c.kind === 'virtual') {
-      setItems([...toItems(greet(c.name, c.tagline, c.routes, t as never)), ...blockCards]);
+      // ★인사도 **타이핑을 거쳐** 나온다. 블록 카드는 말이 끝난 뒤에 건넨다.
+      setItems([]);
+      sayInOrder([...toItems(greet(c.name, c.tagline, c.routes, t as never)), ...blockCards]);
     } else {
       // 실제 상담사도 **첫 인사만은 공짜다** — 화면을 여는 것만으로 API 를 태우지 않는다.
       const greet = {
         id: nextId(), role: 'assistant' as const,
         body: t('talk.liveGreet', '안녕하세요. {{name}}이에요. 무엇이 궁금하세요?').replace('{{name}}', c.name),
       };
-      setItems([greet, ...blockCards]);
+      setItems([]);
+      sayInOrder([greet, ...blockCards]);
       // ★지난 대화를 **이어 붙인다**(2026-08-20) — 세션 id 를 메모리에만 두면
       //   새로고침·앱 재시작마다 새 방이 생긴다(실제로 노쎔 대화가 셋으로 쪼개졌다).
       //   카톡은 껐다 켜도 같은 방이다. 인사는 **이력이 없을 때만** 남긴다.
@@ -221,6 +261,8 @@ export function TalkHome({ renderTop, mode = 'contacts' }: { renderTop?: ReactNo
         if (!th) return;
         sessRef.current[c.id] = th.sessionId;
         if (th.messages.length) {
+          clearTimers();          // ★지난 대화를 복원할 때는 인사 타이핑을 멈춘다(이력이 먼저다)
+          setBusy(false);
           // ★복원된 이력에도 같은 규칙으로 그림을 붙인다 — 결정론이라 **처음과 같은 그림**이 나온다
           //   (모델에게 고르게 했다면 다시 열 때마다 달라졌을 것이다).
           const used = new Set<string>();
@@ -255,7 +297,7 @@ export function TalkHome({ renderTop, mode = 'contacts' }: { renderTop?: ReactNo
       //     가상의 몫은 **빠르고 공짜로 데려다주는 것**이다.
       const wantsFlow = /오늘|흐름|운세|이달|today/i.test(q) && !!saju;
       const r = wantsFlow ? todayFlow(saju, t as never) : guide(cur.routes, t as never);
-      setTimeout(() => setItems((prev) => [...prev, ...toItems(r)]), 260);   // 사람이 치는 듯한 짧은 뜸
+      sayInOrder(toItems(r));     // ★가상 상담가도 사람처럼 하나씩 친다
       return;
     }
 
@@ -268,14 +310,8 @@ export function TalkHome({ renderTop, mode = 'contacts' }: { renderTop?: ReactNo
           // 방금 내가 읽은 답이므로 읽음 처리 + 목록 갱신(미리보기·시각이 바로 반영된다)
           void markRead(r.sessionId);
           // ★★말풍선을 **나눠서 순차로** 띄운다(Boss 2026-08-20 *"채팅하듯이 짧게 짧게"*).
-          //   모델이 빈 줄로 구분해 보내면 그대로 쪼갠다(한 덩이로 뱉으면 풍선 하나).
-          //   ⚠️전부 한꺼번에 붙이면 '사람이 길게 쓴 글'이지 대화가 아니다 —
-          //     사람은 하나 보내고 다음을 친다. 그 **사이 간격**이 사람처럼 느끼게 하는 전부다.
-          //   ★뜸은 **앞 풍선 길이**에 비례한다(긴 말 뒤에 더 오래 걸린다). 상한 1.4초 —
-          //     그 이상은 '사람 같다'가 아니라 '느리다'가 된다.
-          //   ★모델이 안 나눠 주면 **앱이 문장 단위로 쪼갠다**(Boss 2026-08-20 "더 뚝뚝 끊어").
-          //     프롬프트로만 지시하면 모델이 자꾸 긴 문장을 쓴다 — 지시는 어기지만 문장 부호는 못 어긴다.
-          //     ⚠️짧은 풍선은 건드리지 않는다(45자 이하는 이미 카톡 길이다).
+          //   모델이 빈 줄로 구분해 보내면 그대로 쪼갠다. 길면 문장 단위로 더 쪼갠다 —
+          //   프롬프트로만 지시하면 모델이 자꾸 긴 문장을 쓴다(지시는 어겨도 문장 부호는 못 어긴다).
           const parts = r.answer
             .split(/\n{2,}/)
             .flatMap((chunk) => {
@@ -287,32 +323,30 @@ export function TalkHome({ renderTop, mode = 'contacts' }: { renderTop?: ReactNo
           // 그림은 **답 전체**를 보고 한 장만 고른다(풍선마다 고르면 여러 장이 붙는다)
           const pick = pickTalkImage(r.answer, usedArtRef.current);
           if (pick) usedArtRef.current.add(pick.art);
-          let at = 0;
-          parts.forEach((body, i) => {
-            if (i > 0) at += Math.min(1400, 320 + parts[i - 1].length * 12);
-            const ms = at;
-            const last = i === parts.length - 1;
-            setTimeout(() => setItems((prev) => [...prev, {
-              id: nextId(), role: 'assistant', body,
-              // ★마지막 풍선에 붙인다 — 말이 끝난 뒤 사진을 보내는 순서가 자연스럽다
-              image: last && pick ? pick.source : undefined,
-            }]), ms);
-          });
-          // 마지막 풍선이 뜰 때까지 '입력 중'을 유지한다 — 중간에 꺼지면 끝난 줄 안다
-          if (parts.length > 1) { setBusy(true); setTimeout(() => setBusy(false), at); }
-          // 무료를 다 쓴 순간에만 한 번 알린다 — 매 턴 알리면 잔소리가 된다
+          sayInOrder(parts.map((body, i) => ({
+            id: nextId(), role: 'assistant' as const, body,
+            // ★마지막 풍선에 붙인다 — 말이 끝난 뒤 사진을 보내는 순서가 자연스럽다
+            image: i === parts.length - 1 && pick ? pick.source : undefined,
+          })), 0);                 // 서버 응답을 기다린 뒤라 추가 뜸은 필요 없다
+          // ⚠️무료 소진 안내는 **답이 다 뜬 뒤**에 붙인다 — 바로 넣으면 순차 표시를 앞질러
+          //   답보다 먼저 뜬다. 마지막 풍선의 예상 시각 뒤로 미룬다.
           if (r.overFree && r.used === r.freeDaily + 1) {
-            setItems((prev) => [...prev, {
+            const after = parts.reduce((acc, p, i) => acc + (i === 0 ? 0 : Math.min(1400, 320 + parts[i - 1].length * 12)), 0) + 600;
+            timersRef.current.push(setTimeout(() => setItems((prev) => [...prev, {
               id: nextId(), role: 'assistant',
               body: t('talk.overFree', '오늘 무료 대화를 다 쓰셨어요. 그래도 조금 더 이야기해 볼게요.'),
-            }]);
+            }]), after));
           }
         } else {
           // ★실패 사유를 그대로 보여 준다(멈춤·한도·오류가 서로 다른 말이어야 한다)
+          setBusy(false);
           setItems((prev) => [...prev, { id: nextId(), role: 'assistant', body: r.message }]);
         }
       })
-      .finally(() => setBusy(false));
+      // ⚠️★여기서 `setBusy(false)` 를 하면 안 된다 — `sayInOrder` 가 방금 켠 타이핑을 즉시 꺼서
+      //   말풍선이 하나씩 뜨는 동안 점이 사라진다. **끄는 책임은 `sayInOrder` 의 마지막 풍선**에 있다.
+      //   (성공 경로는 거기서, 실패 경로는 위 else 에서 끈다.)
+      .catch((e) => { setBusy(false); console.warn('[talk] send 실패', e); });
   }, [draft, cur, saju, busy, chartId, t, i18n.language, bumpChats]);
 
   // ★블록 친구에겐 입력창을 띄우지 않는다 — 물어봐도 답할 수 없는 입력창은 없느니만 못하다

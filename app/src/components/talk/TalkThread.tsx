@@ -12,9 +12,8 @@
 //   가상 상담사의 존재 이유가 '기존 콘텐츠로 데려다주는 것'이라, 링크는 덧붙임이 아니라 **본문**이다.
 // ═══════════════════════════════════════════════════════════════════════════
 import { useRef, useEffect, type ReactNode } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Animated } from 'react-native';
 import { Image as ExpoImage } from 'expo-image';
-import { useTranslation } from 'react-i18next';
 import { PressableScale } from '../PressableScale';
 import { colors, space, radius, font, shadow } from '../../lib/theme';
 
@@ -38,6 +37,38 @@ export type TalkItem = {
 };
 
 /**
+ * 타이핑 표시 — **말풍선 안 점 세 개**(Boss 2026-08-20 *"말풍선에 ... 이렇게 나오다가"*).
+ *
+ * ★상대 말풍선과 **같은 모양**을 쓴다. 다른 모양으로 만들면 '시스템 안내'처럼 보이고,
+ *   카톡에서 점이 뜨는 자리는 어디까지나 **그 사람이 말하려는 자리**다.
+ * ⚠️`Animated` 로 점마다 시차를 준다 — 세 점이 함께 깜빡이면 '로딩'이지 '타이핑'이 아니다.
+ *   `useNativeDriver` 라 JS 스레드가 바빠도 부드럽게 돈다.
+ */
+function TypingBubble() {
+  const dots = useRef([new Animated.Value(0.3), new Animated.Value(0.3), new Animated.Value(0.3)]).current;
+  useEffect(() => {
+    const loops = dots.map((v, i) =>
+      Animated.loop(
+        Animated.sequence([
+          Animated.delay(i * 160),                                           // 점마다 시차
+          Animated.timing(v, { toValue: 1, duration: 320, useNativeDriver: true }),
+          Animated.timing(v, { toValue: 0.3, duration: 320, useNativeDriver: true }),
+          Animated.delay((2 - i) * 160),
+        ]),
+      ));
+    loops.forEach((l) => l.start());
+    return () => loops.forEach((l) => l.stop());
+  }, [dots]);
+  return (
+    <View style={styles.themRow}>
+      <View style={[styles.them, styles.typing]}>
+        {dots.map((v, i) => <Animated.View key={i} style={[styles.dot, { opacity: v }]} />)}
+      </View>
+    </View>
+  );
+}
+
+/**
  * 대화창.
  *
  * @param items    말풍선들(오래된 것부터)
@@ -49,7 +80,6 @@ export function TalkThread({ items, busy, onLink }: {
   busy?: boolean;
   onLink: (route: string) => void;
 }) {
-  const { t } = useTranslation();
   const ref = useRef<ScrollView>(null);
   // 새 말풍선이 붙으면 아래로 — 대화는 마지막 줄이 중요하다
   useEffect(() => { ref.current?.scrollToEnd({ animated: true }); }, [items.length, busy]);
@@ -81,14 +111,7 @@ export function TalkThread({ items, busy, onLink }: {
           ) : null}
         </View>
       ))}
-      {busy ? (
-        <View style={styles.themRow}>
-          <View style={[styles.them, styles.typing]}>
-            <ActivityIndicator size="small" color={colors.inkFaint} />
-            <Text style={styles.typingTx}>{t('talk.typing', '입력 중')}</Text>
-          </View>
-        </View>
-      ) : null}
+      {busy ? <TypingBubble /> : null}
     </ScrollView>
   );
 }
@@ -114,8 +137,9 @@ const styles = StyleSheet.create({
   // ★강조색 위 글자는 `onJu` — 다섯 오행 전부 대비 6.3~8.1 (`check:onaccent`)
   mineTx: { ...font.body, color: colors.onJu, lineHeight: 22 },
 
-  typing: { flexDirection: 'row', alignItems: 'center', gap: space(2) },
-  typingTx: { ...font.caption, color: colors.inkFaint },
+  // 점 세 개 — 글자 대신 점을 쓴다(글자는 언어마다 길이가 달라 말풍선 크기가 흔들린다)
+  typing: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingVertical: space(3) },
+  dot: { width: 7, height: 7, borderRadius: 4, backgroundColor: colors.inkFaint },
 
   node: { alignSelf: 'stretch', marginTop: space(1) },
   // 그림 — 말풍선보다 살짝 좁게(84%) 두어 '얹힌 것'으로 보이게. 높이는 비율 고정.
