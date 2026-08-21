@@ -788,9 +788,16 @@ async function openScript(id, name) {
   $('scPersona').value = (c && c.persona) || '';
   // ★기존 예시를 **그대로 되보여 준다** — 무엇이 이미 들어가 있는지 모르면 중복해서 넣게 된다
   const { data: ex } = await sb.from('consultant_examples')
-    .select('user_says, reply').eq('consultant_id', id).eq('enabled', true)
+    .select('user_says, reply, author').eq('consultant_id', id).eq('enabled', true)
     .order('weight', { ascending: false });
   $('scExamples').value = (ex || []).map((e) => `회원: ${e.user_says}\n나: ${e.reply}`).join('\n\n');
+  // ★★초안(draft)은 **저장되어 있어도 서비스에 안 나간다**(Edge 는 author='boss' 만 싣는다).
+  //   화면이 둘을 똑같이 보여 주면 "넣었는데 왜 그대로지?" 가 된다 — 그래서 여기서 말해 준다.
+  //   ⚠️이 편집기에서 저장하는 순간 **전부 'boss' 가 된다**(= 서비스에 나간다). 그 사실도 함께 적는다.
+  const nDraft = (ex || []).filter((e) => e.author === 'draft').length;
+  say($('scMsg'), nDraft
+    ? `지금 ${nDraft}쌍이 초안이라 서비스에 나가지 않습니다. 검수 후 저장하면 그때부터 적용됩니다.`
+    : '', nDraft ? 'err' : 'ok');
   $('scMsg').innerHTML = '';
   $('scWrap').classList.remove('hide');
 }
