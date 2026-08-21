@@ -28,6 +28,8 @@ import { useFeatureOn } from '../../lib/core/features';   // 커뮤니티 노출
 
 /** 메뉴 한 줄. `admin` 이면 관리자에게만 보인다. */
 type Row = { key: string; icon: string; label: string; route: string; admin?: boolean };
+/** 묶음 — 콘티는 메뉴를 **세 덩이**로 나눈다(한 줄로 열 개를 늘어놓으면 아무것도 안 읽힌다). */
+type Group = { key: string; title: string; rows: Row[] };
 
 export default function MyPageScreen() {
   const { t } = useTranslation();
@@ -40,14 +42,26 @@ export default function MyPageScreen() {
   // 표시 이름 — 로그인 이메일 앞부분을 쓴다(닉네임 설정은 설정 화면에 있다).
   const who = (session?.user?.email ?? '').split('@')[0];
 
-  const rows: Row[] = [
-    { key: 'readings', icon: '📄', label: t('my.readings', '운세 기록'), route: '/myreadings' },
-    { key: 'fav', icon: '♥', label: t('my.fav', '찜한 콘텐츠'), route: '/favorites' },
-    { key: 'notify', icon: '🔔', label: t('notify.title', '알림'), route: '/notifications' },
-    { key: 'coupon', icon: '🎟', label: t('my.coupon', '쿠폰함'), route: '/market' },
-    { key: 'coach', icon: '💬', label: t('my.coach', '상담 내역'), route: '/coach' },
-    { key: 'community', icon: '👥', label: t('nav.community'), route: '/community', admin: true },   // 플래그 OFF 면 숨는다
-    { key: 'settings', icon: '⚙️', label: t('my.settings', '설정 및 개인정보'), route: '/settings' },
+  // ★항목을 **새로 만들지 않았다** — 있던 일곱 줄을 콘티의 세 묶음으로 나누고, 흩어져 있던
+  //   「내 명식」 진입만 여기에 얹었다(설정 안에만 있어 찾기 어려웠다).
+  //   ⚠️어느 줄이 어느 묶음인지는 **콘티가 정본**이다. 이 배치는 뜻이 통하는 최소 안이고,
+  //     콘티와 다르면 Boss 검수에서 고친다(내가 항목을 지어내지는 않는다).
+  const groups: Group[] = [
+    { key: 'act', title: t('my.grpAct', '내 활동'), rows: [
+      { key: 'readings', icon: '📄', label: t('my.readings', '운세 기록'), route: '/myreadings' },
+      { key: 'fav', icon: '♥', label: t('my.fav', '찜한 콘텐츠'), route: '/favorites' },
+      { key: 'coach', icon: '💬', label: t('my.coach', '상담 내역'), route: '/coach' },
+      { key: 'community', icon: '👥', label: t('nav.community'), route: '/community', admin: true },   // 플래그 OFF 면 숨는다
+    ] },
+    { key: 'woon', title: t('my.grpWoon', '운 관리'), rows: [
+      { key: 'history', icon: '🧾', label: t('my.history', '결제/충전 내역'), route: '/coinhistory' },
+      { key: 'coupon', icon: '🎟', label: t('my.coupon', '쿠폰함'), route: '/market' },
+    ] },
+    { key: 'set', title: t('my.grpSet', '설정'), rows: [
+      { key: 'charts', icon: '🗂', label: t('my.charts', '내 명식'), route: '/charts' },
+      { key: 'notify', icon: '🔔', label: t('notify.title', '알림'), route: '/notifications' },
+      { key: 'settings', icon: '⚙️', label: t('my.settings', '설정 및 개인정보'), route: '/settings' },
+    ] },
   ];
 
   return (
@@ -82,20 +96,29 @@ export default function MyPageScreen() {
         </PressableScale>
       </View>
 
-      {/* ③ 메뉴 */}
-      <View style={styles.menu}>
-        {rows.filter((r) => !r.admin || commOn).map((r, i, arr) => (
-          <PressableScale
-            key={r.key}
-            style={[styles.row, i < arr.length - 1 && styles.rowLine]}
-            onPress={() => router.push(r.route as never)}
-          >
-            <Text style={styles.rowIcon}>{r.icon}</Text>
-            <Text style={styles.rowTx}>{r.label}</Text>
-            <Text style={styles.rowArrow}>›</Text>
-          </PressableScale>
-        ))}
-      </View>
+      {/* ③ 메뉴 — 세 묶음 */}
+      {groups.map((g) => {
+        const rows = g.rows.filter((r) => !r.admin || commOn);
+        if (!rows.length) return null;            // ★플래그로 다 빠지면 제목만 남는 일이 없게
+        return (
+          <View key={g.key} style={styles.group}>
+            <Text style={styles.groupTx}>{g.title}</Text>
+            <View style={styles.menu}>
+              {rows.map((r, i) => (
+                <PressableScale
+                  key={r.key}
+                  style={[styles.row, i < rows.length - 1 && styles.rowLine]}
+                  onPress={() => router.push(r.route as never)}
+                >
+                  <Text style={styles.rowIcon}>{r.icon}</Text>
+                  <Text style={styles.rowTx}>{r.label}</Text>
+                  <Text style={styles.rowArrow}>›</Text>
+                </PressableScale>
+              ))}
+            </View>
+          </View>
+        );
+      })}
     </ScrollView>
   );
 }
@@ -134,6 +157,9 @@ const styles = StyleSheet.create({
   },
   ctaGhostTx: { ...font.label, color: colors.ju, fontWeight: '800' },
 
+  group: { marginBottom: space(4) },
+  // 묶음 제목 — 카드 **밖**에 둔다(안에 넣으면 첫 줄과 붙어 메뉴처럼 읽힌다)
+  groupTx: { ...font.caption, color: colors.ju, fontWeight: '800', marginBottom: space(1.5), marginLeft: space(1) },
   menu: { backgroundColor: colors.card, borderRadius: radius.lg, paddingHorizontal: space(4), ...shadow.soft },
   row: { flexDirection: 'row', alignItems: 'center', gap: space(3), paddingVertical: space(4) },
   rowLine: { borderBottomWidth: 1, borderBottomColor: colors.line },

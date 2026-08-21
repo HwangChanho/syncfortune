@@ -17,9 +17,25 @@ import { useLogContentVisit } from '../../lib/backend/contentVisit';
 import { listCharts, subscribeRepChange, type SavedChart } from '../../lib/engine/myChart';
 import { computeChart } from '../../lib/engine/engine';
 import { listPosts, pollVote, pollStats, createPost, toSharedSaju, toSharedZiwei, COMMUNITY_CATEGORIES, type CommunityPost, type CommunityCategory } from '../../lib/backend/community';
-import { colors, radius, space, shadow, font } from '../../lib/theme';
+import { colors, pastel, radius, space, shadow, font } from '../../lib/theme';
 import { dateGanZhi } from '../../lib/content/dailyFortune'; // 일진 스레드 제목 — 서버는 날짜만, 간지는 클라 결정론(daniel 2026-08-05)
 import { SECTIONS, baseKey } from '../../lib/content/contentSections'; // P2 후기 태그 — 콘텐츠 목록 단일 출처(라벨·라우트 여기서만)
+
+/**
+ * 카테고리 썸네일 — 콘티의 목록은 왼쪽에 **네모 그림**이 붙는다.
+ *
+ * ★사진을 만들지 않는다. 글에는 이미지가 없고, 없는 걸 채우려 아무 그림이나 얹으면
+ *   그건 글의 내용이 아니라 장식이라 오히려 목록을 읽기 어렵게 한다.
+ *   ⇒ **카테고리 색 + 글자 한 자**로 그린다. 색만 봐도 무슨 얘기인지 구분된다.
+ * ⚠️색은 시안 팔레트(`pastel`)에서만 고른다 — 새 색을 만들지 않는다.
+ */
+const CAT_THUMB: Record<string, { bg: string; ink: string; ch: string }> = {
+  free:     { bg: pastel.blue.bg,  ink: pastel.blue.ink,  ch: '자' },
+  love:     { bg: pastel.pink.bg,  ink: pastel.pink.ink,  ch: '연' },
+  saju:     { bg: pastel.amber.bg, ink: pastel.amber.ink, ch: '사' },
+  review:   { bg: pastel.green.bg, ink: pastel.green.ink, ch: '후' },
+  question: { bg: pastel.deep.bg,  ink: pastel.deep.ink,  ch: '문' },
+};
 
 const EULA_KEY = 'pref.communityEula'; // 이용약관 동의 1회 플래그(Apple 1.2)
 
@@ -181,7 +197,17 @@ export default function CommunityScreen() {
           data={posts}
           keyExtractor={(p) => p.id}
           contentContainerStyle={styles.listWrap}
-          ListHeaderComponent={daily ? (
+          ListHeaderComponent={(
+            <>
+            {/* ★상단 글쓰기 박스(콘티) — 목록 맨 위에서 "여기에 쓰면 된다"를 먼저 말한다.
+                ⚠️FAB 는 **남겨 둔다**: 이 박스는 목록과 함께 스크롤돼 위로 사라지고,
+                  그러면 긴 목록에서는 글쓰기로 가는 길이 없어진다.
+                ★두 곳 다 `onCompose` 하나를 부른다 — 로그인·약관 게이트가 갈리면 안 된다. */}
+            <PressableScale style={styles.writeBox} onPress={onCompose}>
+              <View style={styles.writeAv}><Text style={styles.writeAvTx}>✎</Text></View>
+              <Text style={styles.writePh}>{t('community.writeBox', '무슨 이야기를 나눠 볼까요?')}</Text>
+            </PressableScale>
+            {daily ? (
             <View style={styles.dailyCard}>
               <View style={styles.postHead}>
                 <Text style={styles.dailyTag}>{t('community.daily', '오늘의 일진')}</Text>
@@ -213,11 +239,20 @@ export default function CommunityScreen() {
                 <Text style={styles.dailyTalkTx}>{t('community.dailyTalk', '이야기 나누기')} · 💬 {daily.comment_count}</Text>
               </PressableScale>
             </View>
-          ) : null}
+            ) : null}
+            </>
+          )}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} tintColor={colors.ju} />}
           ListEmptyComponent={<Text style={styles.empty}>{t('community.empty', '첫 글을 남겨보세요.')}</Text>}
-          renderItem={({ item }) => (
+          renderItem={({ item }) => {
+            const th = CAT_THUMB[item.category] ?? CAT_THUMB.free;
+            return (
             <PressableScale style={styles.postRow} onPress={() => router.push({ pathname: '/communityPost', params: { id: item.id } })}>
+              {/* 썸네일 — 장식이라 낭독에서 뺀다(옆 글자가 카테고리를 이미 읽어 준다) */}
+              <View style={[styles.thumb, { backgroundColor: th.bg }]} accessible={false} pointerEvents="none">
+                <Text style={[styles.thumbTx, { color: th.ink }]}>{th.ch}</Text>
+              </View>
+              <View style={styles.postMain}>
               <View style={styles.postHead}>
                 <Text style={styles.postCat}>{t(`community.cat.${item.category}`, item.category)}</Text>
                 <Text style={styles.postMeta}>{item.author_name}{item.ilju ? <Text style={styles.iljuBadge}>  {item.ilju}</Text> : null} · {String(item.created_at).slice(5, 10)}</Text>
@@ -233,8 +268,9 @@ export default function CommunityScreen() {
               <Text style={styles.postTitle} numberOfLines={1}>{item.title}</Text>
               <Text style={styles.postBody} numberOfLines={2}>{item.body}</Text>
               <Text style={styles.postStats}>♥ {item.like_count}   💬 {item.comment_count}</Text>
+              </View>
             </PressableScale>
-          )}
+          );}}
         />
       )}
 
@@ -394,7 +430,26 @@ const styles = StyleSheet.create({
   dailyTalk: { marginTop: space(3), alignSelf: 'flex-start' },
   dailyTalkTx: { ...font.caption, color: colors.ju, fontWeight: '800' },
   iljuBadge: { color: colors.ju, fontWeight: '800' },
-  postRow: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.juLine, padding: space(4.5), ...shadow.card },
+  // ★가로 배치로 바뀌었다(썸네일 | 내용). `alignItems:'flex-start'` 라야 썸네일이 첫 줄에 맞는다 —
+  //   기본값(stretch)이면 썸네일이 카드 높이만큼 늘어나 네모가 아니게 된다.
+  postRow: {
+    flexDirection: 'row', alignItems: 'flex-start', gap: space(3.5),
+    backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.juLine,
+    padding: space(4.5), ...shadow.card,
+  },
+  // 상단 글쓰기 박스 — 입력창처럼 보이되 **누르면 모달**이다(여기서 바로 치게 하면 약관 게이트를 지나칠 수 있다)
+  writeBox: {
+    flexDirection: 'row', alignItems: 'center', gap: space(3),
+    backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.juLine,
+    paddingHorizontal: space(4), paddingVertical: space(3.5), marginBottom: space(3),
+  },
+  writeAv: { width: 32, height: 32, borderRadius: 16, backgroundColor: colors.ju, alignItems: 'center', justifyContent: 'center' },
+  writeAvTx: { fontSize: 15, color: colors.onJu, fontWeight: '900' },
+  writePh: { ...font.body, color: colors.inkFaint, flex: 1 },
+
+  postMain: { flex: 1, minWidth: 0 },   // ⚠️`minWidth:0` 없으면 긴 제목이 썸네일을 밀어낸다
+  thumb: { width: 48, height: 48, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center' },
+  thumbTx: { fontSize: 20, fontWeight: '900' },
   postHead: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: space(1.5) },
   postCat: { ...font.caption, color: colors.ju, fontWeight: '800', fontSize: 11 },
   postMeta: { ...font.caption, color: colors.inkFaint, fontSize: 11 },

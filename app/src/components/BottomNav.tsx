@@ -52,8 +52,19 @@ export const ALL_TABS = [
   { key: 'home', route: '/', match: '' },                      // 연락처(친구목록) — '/' 는 접두사로 못 잡는다(아래 isTabActive)
   { key: 'chats', route: '/chats', match: '/chats' },          // 대화 목록(talk_sessions)
   { key: 'community', route: '/community', match: '/community' },
-  { key: 'my', route: '/settings', match: '/settings' },       // 설정 — 만세력·내 기록·계정이 여기로 모인다
+  // ⚠️★2026-08-21 실측: 시안 p06 마이페이지(`my.tsx`)가 **어디서도 링크되지 않아 도달 불가**였다.
+  //   탭이 곧장 `/settings` 로 갔기 때문이다. 만든 화면이 조용히 죽어 있던 것
+  //   ([[list-truncation-hides-content]] 과 같은 종류 — 화면은 있는데 길이 없다).
+  //   ⇒ 탭은 `/my` 로 보내고, 설정은 그 안의 줄로 간다(기능 유실 0 — `check:reach` 가 확인한다).
+  { key: 'my', route: '/my', match: '/my' },
 ] as const;
+
+/**
+ * ★`/my` 탭이 자기 밑의 화면들에서도 켜져 있어야 하는 경로들.
+ *   설정·충전·내역으로 들어가면 탭 불이 꺼져 "내가 어디 있지"가 된다.
+ *   ⚠️`ALL_TABS.match` 에 넣지 않는 이유: 그 목록은 **탭이 가는 곳**이라 한 탭에 하나여야 한다.
+ */
+const MY_SUBPATHS = ['/settings', '/coins', '/coinhistory', '/myreadings', '/favorites', '/notifications'] as const;
 
 /**
  * 지금 경로가 이 탭에 속하는가.
@@ -63,6 +74,8 @@ export const ALL_TABS = [
  */
 export function isTabActive(key: TabKey, path: string): boolean {
   if (key === 'home') return path === '/' || path === '/index';
+  // `/my` 밑의 화면(설정·충전·기록)에서도 「내 운」이 켜져 있어야 한다
+  if (MY_SUBPATHS.some((m) => path === m || path.startsWith(m + '/') || path.startsWith(m + '?'))) return key === 'my';
   const me = ALL_TABS.find((tb) => tb.key === key)?.match ?? '';
   // 더 긴 match 를 가진 다른 탭이 이 경로를 가져가면 이 탭은 꺼진다(/my vs /myreadings)
   const winner = ALL_TABS
