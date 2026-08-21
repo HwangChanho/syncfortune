@@ -24,7 +24,7 @@ import { PressableScale } from '../PressableScale';
 import { HouseAdBanner } from '../HouseAdBanner';
 import { ContentRail, hasRailRoute } from './ContentRail';
 import type { HomeBlockKey } from '../../lib/ui/homeOrder';
-import { colors, space, radius, font } from '../../lib/theme';
+import { colors, space, radius, font, activeElement } from '../../lib/theme';
 import { elementColor, elementText } from '../../lib/engine/ohaeng';
 import type { Consultant } from '../../lib/talk/consultants';
 import { loadFavorites, subscribeFavorites, splitByFavorite, toggleFavorite, isFavorite, isPinned } from '../../lib/talk/favorites';
@@ -65,14 +65,16 @@ export function initialsFor(names: string[]): string[] {
  *   해시는 우연히 몰린다(실물에서 열다섯 중 대부분이 청록·청흑 둘로 갔다).
  *   순번이면 다섯 색이 고르게 돈다. 사진이 들어오면 어차피 사라지는 임시 얼굴이다.
  */
-function Avatar({ name, initial, slot, uri, size = 48 }: {
+function Avatar({ name, initial, slot, uri, size = 48, element }: {
   name: string; initial?: string; slot: number; uri?: string | null; size?: number;
+  /** 이 얼굴의 오행을 **직접** 지정(내 프로필 = 대표 명식 오행). 없으면 순번으로 돈다 */
+  element?: string;
 }) {
   const st = { width: size, height: size, borderRadius: size * 0.32 };
   // ⚠️`A()` 를 쓰지 않는다 — `consultants.fromRow` 가 **이미 공개 URL** 로 바꿔 놨다.
   //   여기서 또 감싸면 `assets/img/` 버킷을 가리켜 404 가 나고 조용히 안 뜬다.
   if (uri) return <ExpoImage source={{ uri }} style={st} contentFit="cover" transition={140} />;
-  const el = FALLBACK_EL[slot % FALLBACK_EL.length];
+  const el = element ?? FALLBACK_EL[slot % FALLBACK_EL.length];
   return (
     <View style={[st, { backgroundColor: elementColor[el], alignItems: 'center', justifyContent: 'center' }]}>
       {/* ★글자색은 `elementText` — **이미 있는 표**다. 흰 글자로 통일하면 金(#D2CCBA)에서 안 읽힌다. */}
@@ -199,7 +201,10 @@ export function TalkList({ items, onOpen, selected, myName, onMe, myAvatar, rail
           ★카톡은 이름 옆에 아이콘만 두고 검색바는 **접어 둔다**. 첫 화면에서 검색은
             늘 쓰는 것이 아니라 필요할 때 여는 것이라 그 배치가 맞다. */}
       <View style={styles.topRow}>
-        <Avatar name={myName ?? '나'} slot={0} uri={myAvatar} size={44} />
+        {/* ★내 얼굴은 **대표 명식의 오행 색**이다(Boss 2026-08-20 *"등록하면 대표오행 색상으로"*).
+            종전엔 순번(slot 0)이라 늘 木이었다 — 내 명식이 火든 水든 같은 색이었다.
+            `activeElement` 는 테마가 쓰는 값과 **같은 출처**라 화면 강조색과 얼굴이 어긋나지 않는다. */}
+        <Avatar name={myName ?? '나'} slot={0} element={activeElement} uri={myAvatar} size={44} />
         <Text style={styles.meName} numberOfLines={1}>
           {myName ?? t('talk.meNoChart', '명식을 등록하면 이름이 나와요')}
         </Text>

@@ -20,7 +20,7 @@ import { Image as ExpoImage } from 'expo-image';
 import { useTranslation } from 'react-i18next';
 import { PressableScale } from '../PressableScale';
 import { loadMyProfile, saveMyName, uploadMyAvatar, clearMyAvatar } from '../../lib/talk/myProfile';
-import { colors, space, radius, font } from '../../lib/theme';
+import { colors, space, radius, font, activeElement } from '../../lib/theme';
 import { elementColor, elementText } from '../../lib/engine/ohaeng';
 
 /**
@@ -130,9 +130,10 @@ const styles = StyleSheet.create({
   card: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.line, padding: space(4), gap: space(3), marginTop: space(2) },
   row: { flexDirection: 'row', alignItems: 'center', gap: space(4) },
   av: { width: 64, height: 64, borderRadius: radius.md * 1.2 },
-  avFallback: { backgroundColor: elementColor['木'], alignItems: 'center', justifyContent: 'center' },
-  // ★오행색 위 글자는 `elementText` — 흰색으로 통일하면 金에서 안 읽힌다
-  avTx: { color: elementText['木'], fontWeight: '900', fontSize: 24 },
+  // ★대표 명식 오행 색 — 친구목록의 '나'와 **같은 값**을 쓴다(두 곳이 다르면 같은 나가 다른 얼굴이 된다)
+  avFallback: { backgroundColor: elementColor[activeElement], alignItems: 'center', justifyContent: 'center' },
+  // ★오행색 위 글자는 `elementText` — 흰색으로 통일하면 金(#D2CCBA)에서 안 읽힌다
+  avTx: { color: elementText[activeElement], fontWeight: '900', fontSize: 24 },
   col: { flex: 1, gap: space(2), alignItems: 'flex-start' },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: space(2) },
   input: { flex: 1, backgroundColor: colors.sunk, borderRadius: radius.md, paddingHorizontal: space(3.5), paddingVertical: space(2.5), ...font.body, color: colors.ink },
