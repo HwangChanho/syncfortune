@@ -109,7 +109,7 @@ export function ChatList({ onOpen, selectedId, reloadKey = 0, wide, onSettings }
     <ScrollView style={styles.wrap} contentContainerStyle={styles.body}>
       {/* ── 상단: 제목 + 아이콘 (Boss 2026-08-20 카톡 채팅목록 배치) ── */}
       <View style={styles.topRow}>
-        <Text style={styles.head}>{t('nav.chats', '대화')}</Text>
+        <Text style={styles.head}>{t('nav.chats', '운대화')}</Text>
         <PressableScale hitSlop={10} onPress={onSettings}>
           <Text style={styles.topIcon}>⚙︎</Text>
         </PressableScale>

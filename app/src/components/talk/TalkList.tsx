@@ -174,6 +174,8 @@ export function TalkList({ items, onOpen, selected, myName, onMe, myAvatar, rail
   //   기능(`q` 필터)은 그대로 두었으므로, 친구가 늘면 여는 아이콘만 되살리면 된다.
   //   `searchOpen` 은 늘 false 라 검색바가 렌더되지 않는다.
   const searchOpen = false;
+  // 콘티의 칩 — 전체 / 선생님 AI / 친구
+  const [filter, setFilter] = useState<'all' | 'teacher' | 'friend'>('all');
   // 즐겨찾기 — 온디바이스. ★별을 누르면 **즉시** 다시 그린다(새로고침을 요구하지 않는다).
   const [favTick, setFavTick] = useState(0);
   useEffect(() => {
@@ -182,8 +184,9 @@ export function TalkList({ items, onOpen, selected, myName, onMe, myAvatar, rail
   }, []);
   const shown = useMemo(() => {
     const k = q.trim().toLowerCase();
-    return k ? items.filter((c) => c.name.toLowerCase().includes(k)) : items;
-  }, [items, q]);
+    if (k) return items.filter((c) => c.name.toLowerCase().includes(k));   // 검색 중엔 묶음을 가르지 않는다
+    return filter === 'all' ? items : items.filter((c) => c.group === filter);
+  }, [items, q, filter]);
   // ★글자는 **보이는 목록**이 아니라 전체 기준으로 뽑는다 —
   //   검색으로 걸러질 때마다 얼굴 글자가 바뀌면 같은 친구가 다른 사람처럼 보인다.
   const allInitials = useMemo(() => initialsFor(items.map((c) => c.name)), [items]);
@@ -221,6 +224,21 @@ export function TalkList({ items, onOpen, selected, myName, onMe, myAvatar, rail
           <Text style={styles.topIcon}>⚙︎</Text>
         </PressableScale>
       </View>
+
+      {/* ── 필터 칩(콘티 2026-08-21) ──
+          ★'최근'은 넣지 않았다 — 마지막 대화 시각은 **운대화 탭**이 이미 그 순서로 보여 준다.
+            같은 정렬을 두 탭에 두면 사용자는 둘이 뭐가 다른지 묻게 된다. */}
+      {!q.trim() ? (
+        <View style={styles.chips}>
+          {(['all', 'teacher', 'friend'] as const).map((k) => (
+            <PressableScale key={k} style={[styles.chip, filter === k && styles.chipOn]} onPress={() => setFilter(k)}>
+              <Text style={[styles.chipTx, filter === k && styles.chipTxOn]}>
+                {t(`talk.filter.${k}`, k === 'all' ? '전체' : k === 'teacher' ? '선생님 AI' : '친구')}
+              </Text>
+            </PressableScale>
+          ))}
+        </View>
+      ) : null}
 
       {/* 배너 — Boss *"배너도 동일"*. 홈에서 쓰던 하우스 배너를 그대로 옮겼다(사본 아님).
           ⚠️★좁은 칸(웹 3칸의 264px)에서는 **숨긴다** — 배너는 넓은 폭 전제로 만든 것이라
@@ -271,10 +289,26 @@ export function TalkList({ items, onOpen, selected, myName, onMe, myAvatar, rail
       </Text>
 
       {/* ── 친구 ── */}
-      {rest.map((c) => (
-        <Row key={c.id} c={c} initial={initialOf(c.id)} slot={slotOf(c.id)}
-             on={selected === c.id} onOpen={onOpen} t={t as never} />
-      ))}
+      {/* ★두 묶음을 **나눠서** 보여 준다(콘티) — 섞으면 "사주 상담"과 "생활 친구"가 뒤엉킨다.
+          칩으로 하나만 고른 상태면 머리말을 또 달지 않는다(같은 말이 두 번 뜬다). */}
+      {(['teacher', 'friend'] as const).map((g) => {
+        const list = rest.filter((c) => c.group === g);
+        if (!list.length) return null;
+        return (
+          <View key={g}>
+            {filter === 'all' && !q.trim() ? (
+              <Text style={styles.groupHead}>
+                {t(g === 'teacher' ? 'talk.groupTeacher' : 'talk.groupFriend',
+                   g === 'teacher' ? '✦ 선생님 AI' : '✦ 함께하면 좋은 친구들')}
+              </Text>
+            ) : null}
+            {list.map((c) => (
+              <Row key={c.id} c={c} initial={initialOf(c.id)} slot={slotOf(c.id)}
+                   on={selected === c.id} onOpen={onOpen} t={t as never} />
+            ))}
+          </View>
+        );
+      })}
       {/* ── 내 친구(실제 사람) ──────────────────────────────────
           ★상담가와 **다른 섹션**이다. 섞으면 "이 사람이 AI 인가 사람인가"가 흐려진다. */}
       {!q.trim() && people.length > 0 ? (
@@ -319,6 +353,13 @@ const styles = StyleSheet.create({
   topBadgeTx: { fontSize: 9.5, lineHeight: 13, fontWeight: '900', color: colors.onJu },
   sub: { ...font.caption, color: colors.inkFaint },
   banner: { marginBottom: space(3) },
+  chips: { flexDirection: 'row', gap: space(2), marginBottom: space(3), flexWrap: 'wrap' },
+  chip: { paddingHorizontal: space(3.5), paddingVertical: space(1.5), borderRadius: radius.pill, backgroundColor: colors.sunk, borderWidth: 1, borderColor: colors.line },
+  chipOn: { backgroundColor: colors.ju, borderColor: colors.ju },
+  chipTx: { ...font.caption, color: colors.inkSoft, fontWeight: '700' },
+  // ★강조색 위 글자는 `onJu`(`check:onaccent`)
+  chipTxOn: { color: colors.onJu },
+  groupHead: { ...font.caption, color: colors.ju, fontWeight: '800', marginTop: space(4), marginBottom: space(1.5) },
 
   searchWrap: {
     flexDirection: 'row', alignItems: 'center', gap: space(2),

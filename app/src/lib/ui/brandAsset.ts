@@ -26,7 +26,7 @@ const EL_SLUG: Record<ThemeElement, string> = { 木: 'wood', 火: 'fire', 土: '
 
 /** 브랜드 로고(심볼만). */
 export const brandMark = () => A(`${BRAND_DIR}/mark.png`);
-/** 로고 + 워드마크. */
+/** 로고 + 워드마크(「운」 심볼 + 「니운.내운」 글자). ★콘티(2026-08-21)의 헤더는 **좌측 워드마크**다. */
 export const brandWordmark = () => A(`${BRAND_DIR}/wordmark.png`);
 /** 운 심볼(금화) — 원본의 검은 배경을 지운 투명 PNG. */
 export const coinIcon = () => A(`${BRAND_DIR}/coin.png`);

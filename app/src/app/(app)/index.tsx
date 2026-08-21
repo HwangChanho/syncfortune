@@ -25,7 +25,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 
 // 홈 블록 이미지 상수(IMG)는 홈이 정보 카드로 바뀌며(2026-08-01) 소비처가 사라져 제거했다.
 import { Image as ExpoImage } from 'expo-image';
-import { brandMark } from '../../lib/ui/brandAsset';
+import { brandWordmark } from '../../lib/ui/brandAsset';
 import { TalkHome } from './talk';   // ★08-19 시작 화면 = 친구목록
 import { useGenProgress, clearGenProgress } from '../../lib/backend/genProgress'; // 풀이 진행률(다중·route별, 풀이중 홈 나가도 % — daniel)
 import { useSubscription } from '../../lib/billing/subscription';
@@ -149,10 +149,12 @@ export default function Home() {
       {/* ★헤더 아이콘은 **친구목록 안으로 옮겼다**(Boss 2026-08-20 카톡 배치 —
           내 프로필 옆에 검색·설정이 있는 모양). 여기 두면 같은 아이콘이 두 벌이 된다.
           로고는 남긴다(폰에는 사이드바가 없어 여기서만 보인다). */}
+      {/* ★콘티(2026-08-21) — 헤더는 **좌측 워드마크**다(가운데 심볼 아님).
+          우측 아이콘은 친구목록 안에 있으므로 여기는 로고 한 줄만 둔다. */}
       <View style={styles.headerRow}>
-        <View style={styles.headerSide} />
-        {!wideWebHome && <ExpoImage source={brandMark()} style={styles.brandMark} contentFit="contain" transition={160} />}
-        <View style={styles.headerSide} />
+        {!wideWebHome && (
+          <ExpoImage source={brandWordmark()} style={styles.brandWord} contentFit="contain" transition={160} />
+        )}
       </View>
 
       {/* 통변 생성 진행률(daniel) — 여러 개 동시 풀이 가능 → route별 배너 여러 개. 탭=그 화면 이동 + 그 배너만 닫기.
@@ -225,7 +227,8 @@ const styles = StyleSheet.create({
   headerSide: { flex: 1, flexDirection: 'row', alignItems: 'center' },   // 로고를 정확히 가운데 두려면 양옆 폭이 같아야 한다
   headerIcons: { justifyContent: 'flex-end', gap: space(2) },
   iconBtn: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
-  brandMark: { width: 44, height: 44 },
+  // ★콘티의 좌측 워드마크 — 심볼+글자라 가로가 길다(정사각 44 로 두면 글자가 뭉갠다)
+  brandWord: { width: 108, height: 34 },
   iconTx: { fontSize: 20, color: colors.ju },
   dot: { position: 'absolute', top: 6, right: 6, width: 8, height: 8, borderRadius: 4, backgroundColor: '#E5484D' },
   // 시안 인사말 — 화면에서 두 번째로 큰 글자(첫째는 점수). 가운데 정렬·아주 굵게.

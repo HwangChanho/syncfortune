@@ -30,6 +30,8 @@ export type Consultant = {
    * ★친구목록에서 블록을 뺀 대신 **사람 아래로 묶은** 자리다 — 비우면 그 블록은 도달 불가가 된다.
    */
   blocks: string[];
+  /** 친구목록의 묶음 — `teacher`(선생님 AI) / `friend`(함께하면 좋은 친구들) */
+  group: 'teacher' | 'friend';
   /**
    * (구) 홈 블록 자체가 친구였을 때의 키. 다섯 압축 뒤로는 쓰지 않는다.
    * ★서버 `consultants` 에 없다 — **앱이 만든 친구**다. 홈 블록은 온디바이스 화면이라
@@ -44,11 +46,20 @@ export type Consultant = {
  * ★마이그레이션 `0026` 의 시드와 **같은 내용**이다. 둘이 갈리면 오프라인에서 다른 앱이 된다.
  */
 const SEED: Consultant[] = [
-  { id: 'nossem', kind: 'live', name: '노쎔', tagline: '사주 풀이', avatar: null, specialty: ['saju'], routes: [], blocks: ['self', 'persona'], sortOrder: 10 },
-  { id: 'ziwei_master', kind: 'virtual', name: '자미 선생', tagline: '자미두수', avatar: null, specialty: ['ziwei'], routes: ['ziwei', 'sinsal'], blocks: [], sortOrder: 20 },
-  { id: 'tarot_reader', kind: 'virtual', name: '타로 리더', tagline: '타로', avatar: null, specialty: ['tarot'], routes: ['taro', 'dream'], blocks: [], sortOrder: 30 },
-  { id: 'love_reader', kind: 'virtual', name: '인연 상담', tagline: '연애·궁합', avatar: null, specialty: ['love'], routes: ['compat', 'love', 'crush', 'reunion', 'lovestyle', 'relationmap'], blocks: ['relation', 'relmap'], sortOrder: 40 },
-  { id: 'flow_reader', kind: 'virtual', name: '흐름 상담', tagline: '오늘·이달의 결', avatar: null, specialty: ['today'], routes: ['today', 'month', 'newyear', 'timeline', 'luck'], blocks: ['today', 'free3', 'biorhythm', 'luck', 'decision'], sortOrder: 50 },
+  // 선생님 AI
+  { id: 'nossem', kind: 'live', name: '노쌤의 사주상담소', tagline: '사주 전반', avatar: null, specialty: ['saju'], routes: [], blocks: ['self', 'persona'], group: 'teacher', sortOrder: 10 },
+  { id: 'love_seoyun', kind: 'live', name: '연애세포 서윤쌤', tagline: '연애·궁합', avatar: null, specialty: ['love'], routes: ['compat', 'love', 'crush', 'reunion', 'lovestyle'], blocks: ['relation', 'relmap'], group: 'teacher', sortOrder: 20 },
+  { id: 'guide_minjae', kind: 'live', name: '사주 보는 길잡이 민재', tagline: '사업·재물', avatar: null, specialty: ['wealth'], routes: ['wealth', 'career', 'jobfit', 'talent'], blocks: [], group: 'teacher', sortOrder: 30 },
+  { id: 'tarot_harin', kind: 'live', name: '타로마스터 하린', tagline: '타로', avatar: null, specialty: ['tarot'], routes: ['taro'], blocks: [], group: 'teacher', sortOrder: 40 },
+  { id: 'tarot_doyun', kind: 'live', name: '타로하는 도윤', tagline: '고민 정리', avatar: null, specialty: ['tarot'], routes: ['taro', 'dream'], blocks: [], group: 'teacher', sortOrder: 50 },
+  { id: 'ziwei_yujin', kind: 'live', name: '자미두수 유진', tagline: '인생 흐름', avatar: null, specialty: ['ziwei'], routes: ['ziwei', 'timeline'], blocks: [], group: 'teacher', sortOrder: 60 },
+  { id: 'astro_taehyun', kind: 'live', name: '별자리 자미 태현', tagline: '운의 타이밍', avatar: null, specialty: ['astro'], routes: ['astrology', 'numerology', 'newyear'], blocks: ['today'], group: 'teacher', sortOrder: 70 },
+  // 함께하면 좋은 친구들 — ★사주와 무관한 주제다(일상 대화 허용이 이들을 받쳐 준다)
+  { id: 'beauty_jjinya', kind: 'live', name: '메이크업 아티스트 찐야', tagline: '메이크업', avatar: null, specialty: ['beauty'], routes: [], blocks: [], group: 'friend', sortOrder: 110 },
+  { id: 'color_bombom', kind: 'live', name: '퍼스널컬러 봄봄', tagline: '어울리는 색', avatar: null, specialty: ['color'], routes: [], blocks: [], group: 'friend', sortOrder: 120 },
+  { id: 'car_unni', kind: 'live', name: '차(량) 잘 아는 언니', tagline: '차 고르기', avatar: null, specialty: ['car'], routes: [], blocks: [], group: 'friend', sortOrder: 130 },
+  { id: 'travel_jini', kind: 'live', name: '여행홀릭 지니', tagline: '여행', avatar: null, specialty: ['travel'], routes: [], blocks: [], group: 'friend', sortOrder: 140 },
+  { id: 'heal_yuri', kind: 'live', name: '힐링하는 유리', tagline: '마음 돌보기', avatar: null, specialty: ['heal'], routes: [], blocks: [], group: 'friend', sortOrder: 150 },
 ];
 
 let _cache: Consultant[] | null = null;
@@ -78,6 +89,8 @@ function fromRow(r: any): Consultant {
     specialty: Array.isArray(r.specialty) ? r.specialty : [],
     routes: Array.isArray(r.routes) ? r.routes : [],
     blocks: Array.isArray(r.blocks) ? r.blocks : [],
+    // ★모르는 값은 'teacher' 로 — 새 묶음이 생겨도 목록에서 사라지지 않는다
+    group: r.group_key === 'friend' ? 'friend' : 'teacher',
     sortOrder: Number(r.sort_order ?? 100),
   };
 }
@@ -97,7 +110,7 @@ export async function listConsultants(force = false): Promise<Consultant[]> {
       //   관리자 정책이 `for all` 이라 **관리자에게는 비활성 상담사까지 보인다**
       //   (정책은 OR 로 합쳐진다). 실제로 준비 중인 「노쎔」이 친구목록에 떠 있었다.
       //   ⇒ RLS 는 '볼 권한'을 정하고, 쿼리는 '지금 보여줄 것'을 정한다. 둘은 다르다.
-      supabase.from('consultants').select('id,kind,name,tagline,avatar,specialty,routes,blocks,sort_order')
+      supabase.from('consultants').select('id,kind,name,tagline,avatar,specialty,routes,blocks,group_key,sort_order')
         .eq('enabled', true).order('sort_order'),
       8000,
     );
