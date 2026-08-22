@@ -64,12 +64,18 @@ export default function RootLayout() {
   const pathnameRef = useRef(pathname);
   pathnameRef.current = pathname;
   const { session, loading } = useAuth();
-  // 트렌디 폰트(Pretendard) 3웨이트 로드 — globalFont 패치가 참조하는 키명과 일치해야 함.
+  // Pretendard **5웨이트** 로드 — globalFont 패치가 참조하는 키명과 일치해야 함.
+  //   ★2026-08-22 Medium(500)·ExtraBold(800) 추가: 시안(`니운내운.pdf`)이 다섯 웨이트를 쓰는데
+  //     앱엔 셋뿐이라 500→Regular · 800→Bold 로 떨어져 **한 단계씩 얇게** 나오고 있었다.
+  //   ⚠️다섯 다 **같은 판(Version 1.309 · alternative ttf 빌드)** 이다 — 판이 섞이면 글자 폭이
+  //     웨이트마다 미묘하게 어긋난다(기존 Regular 와 저장소 파일의 md5 가 같은 것으로 확인했다).
   //   에러 시(fontError)엔 게이트하지 않고 시스템 폰트로 진행(폰트 문제로 앱이 막히지 않게).
   const [fontsLoaded, fontError] = useFonts({
     'Pretendard-Regular': require('../../assets/fonts/Pretendard-Regular.ttf'),
+    'Pretendard-Medium': require('../../assets/fonts/Pretendard-Medium.ttf'),
     'Pretendard-SemiBold': require('../../assets/fonts/Pretendard-SemiBold.ttf'),
     'Pretendard-Bold': require('../../assets/fonts/Pretendard-Bold.ttf'),
+    'Pretendard-ExtraBold': require('../../assets/fonts/Pretendard-ExtraBold.ttf'),
   });
   const authBusy = useSyncExternalStore(subscribeAuthBusy, getAuthBusy); // 로그아웃/로그인 전환 중 전역 블로킹 오버레이(먹통 방지)
   const [splash, setSplash] = useState(() => getLoadingMode() !== 'off'); // 앱 실행 인트로 1회 — 끝나면 언마운트. off=처음부터 없음(바로 앱)

@@ -2,7 +2,9 @@
 // ─────────────────────────────────────────────────────────────────────────
 // RN은 '전역 기본 폰트'가 없어(각 Text가 시스템 폰트) Text·TextInput의 render를 1회 패치해
 //   그 텍스트의 fontWeight → 해당 Pretendard 웨이트 패밀리를 자동 주입한다.
-//   웨이트 매핑(3웨이트로 계층 유지, 앱 용량 절약): 100~500=Regular · 600=SemiBold · 700~900/bold=Bold.
+//   웨이트 매핑(★2026-08-22 **5웨이트** — 시안이 다섯을 쓴다):
+//     100~400=Regular · 500=Medium · 600=SemiBold · 700=Bold · 800~900/bold=ExtraBold.
+//   ⚠️전에는 셋뿐이라 500→Regular · 800→Bold 로 **한 단계씩 얇게** 나왔다(시안과 다른 이유 중 하나).
 //   폰트 자체는 expo-font useFonts 로 로드(_layout). 로드 전엔 시스템 폰트로 우아하게 폴백.
 //   ※ 명시적으로 fontFamily를 지정한 텍스트는 그 값을 존중(우리 주입값을 style 배열 '앞'에 둠 → 명시값이 이김).
 // ─────────────────────────────────────────────────────────────────────────
@@ -13,9 +15,13 @@ import { Asset } from 'expo-asset';
 // fontWeight(문자열/숫자) → Pretendard 웨이트 패밀리 키(useFonts 로드 키와 일치).
 const FAMILY: Record<string, string> = {
   '100': 'Pretendard-Regular', '200': 'Pretendard-Regular', '300': 'Pretendard-Regular',
-  '400': 'Pretendard-Regular', normal: 'Pretendard-Regular', '500': 'Pretendard-Regular',
+  '400': 'Pretendard-Regular', normal: 'Pretendard-Regular',
+  '500': 'Pretendard-Medium',
   '600': 'Pretendard-SemiBold',
-  '700': 'Pretendard-Bold', '800': 'Pretendard-Bold', '900': 'Pretendard-Bold', bold: 'Pretendard-Bold',
+  '700': 'Pretendard-Bold', bold: 'Pretendard-Bold',
+  // ★900 은 Black 이 따로 있지만 받지 않았다 — 앱에서 900 을 쓰는 곳은 ExtraBold 로 충분하고
+  //   웨이트를 하나 더 넣으면 용량만 2.6MB 늘어난다.
+  '800': 'Pretendard-ExtraBold', '900': 'Pretendard-ExtraBold',
 };
 
 function familyFor(style: any): string {
@@ -47,15 +53,19 @@ function applyWebFont(): void {
   // 파일 URL — 번들러가 내보낸 실제 주소를 받는다(경로를 손으로 적으면 배포에서 깨진다)
   const uri = (mod: number) => { try { return Asset.fromModule(mod).uri; } catch { return ''; } };
   const reg = uri(require('../../../assets/fonts/Pretendard-Regular.ttf'));
+  const med = uri(require('../../../assets/fonts/Pretendard-Medium.ttf'));
   const semi = uri(require('../../../assets/fonts/Pretendard-SemiBold.ttf'));
   const bold = uri(require('../../../assets/fonts/Pretendard-Bold.ttf'));
-  if (!reg || !semi || !bold) return;            // 하나라도 못 찾으면 손대지 않는다(시스템 폰트가 낫다)
+  const xbold = uri(require('../../../assets/fonts/Pretendard-ExtraBold.ttf'));
+  if (!reg || !med || !semi || !bold || !xbold) return;   // 하나라도 못 찾으면 손대지 않는다(시스템 폰트가 낫다)
   const st = d.createElement('style');
   st.id = 'pretendard-web';
   st.textContent = `
-@font-face { font-family: Pretendard; font-weight: 100 500; font-style: normal; font-display: swap; src: url('${reg}') format('truetype'); }
+@font-face { font-family: Pretendard; font-weight: 100 400; font-style: normal; font-display: swap; src: url('${reg}') format('truetype'); }
+@font-face { font-family: Pretendard; font-weight: 500;     font-style: normal; font-display: swap; src: url('${med}') format('truetype'); }
 @font-face { font-family: Pretendard; font-weight: 600;     font-style: normal; font-display: swap; src: url('${semi}') format('truetype'); }
-@font-face { font-family: Pretendard; font-weight: 700 900; font-style: normal; font-display: swap; src: url('${bold}') format('truetype'); }
+@font-face { font-family: Pretendard; font-weight: 700;     font-style: normal; font-display: swap; src: url('${bold}') format('truetype'); }
+@font-face { font-family: Pretendard; font-weight: 800 900; font-style: normal; font-display: swap; src: url('${xbold}') format('truetype'); }
 /* ★RN-web 은 폰트를 클래스로 건다. 우리 규칙이 그걸 이기도록 넉넉히 잡되,
    \`!important\` 는 쓰지 않는다 — 아이콘 폰트(있다면)까지 덮어써 글리프가 깨진다. */
 html, body, #root, input, textarea, button, select { font-family: Pretendard, -apple-system, 'Apple SD Gothic Neo', sans-serif; }
