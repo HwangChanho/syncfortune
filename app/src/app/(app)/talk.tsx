@@ -128,27 +128,30 @@ export function TalkHome({ renderTop, mode = 'contacts' }: { renderTop?: ReactNo
    *   ⚠️비로그인이면 빈 표다 — 그때는 시각이 안 뜨는 게 맞다(지어내지 않는다).
    */
   const [lastAts, setLastAts] = useState<Record<string, string>>({});
+  const [unreads, setUnreads] = useState<Record<string, number>>({});   // 콘티 1면의 보라 배지
   useEffect(() => {
     let alive = true;
     (async () => {
-      if (!session) { setLastAts({}); return; }
+      if (!session) { setLastAts({}); setUnreads({}); return; }
       const r = await withTimeout(
-        supabase.from('talk_session_list').select('consultant_id, last_at').limit(50), 8000);
+        supabase.from('talk_session_list').select('consultant_id, last_at, unread').limit(50), 8000);
       if (!alive || !r || r.error || !Array.isArray(r.data)) return;
       const m: Record<string, string> = {};
+      const u: Record<string, number> = {};
       for (const row of r.data as any[]) {
-        // ★같은 상담가 세션이 여럿이면 **가장 최근**을 남긴다
+        // ★같은 상담가 세션이 여럿이면 **가장 최근**을 남긴다. 안 읽은 수는 **합친다**.
         const id = String(row.consultant_id), at = String(row.last_at);
         if (!m[id] || at > m[id]) m[id] = at;
+        u[id] = (u[id] ?? 0) + (Number(row.unread) || 0);
       }
-      setLastAts(m);
+      setLastAts(m); setUnreads(u);
     })();
     return () => { alive = false; };
   }, [session, chatsTick]);
 
   const list = useMemo(
-    () => servers.map((c) => ({ ...c, lastAt: lastAts[c.id] ?? null })),
-    [servers, lastAts],
+    () => servers.map((c) => ({ ...c, lastAt: lastAts[c.id] ?? null, unread: unreads[c.id] ?? 0 })),
+    [servers, lastAts, unreads],
   );
 
 

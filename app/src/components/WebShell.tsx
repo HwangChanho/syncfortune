@@ -25,7 +25,8 @@ import { Platform, View, Text, StyleSheet, Pressable, useWindowDimensions } from
 import { useRouter, usePathname } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
-import { ALL_TABS, TabIcon, isTabActive } from './BottomNav';   // ★탭 정의·아이콘은 하단 내비와 **같은 출처**
+import { ALL_TABS, TabIcon, isTabActive } from './BottomNav';
+import { BrandWordmark } from './BrandWordmark';   // ★탭 정의·아이콘은 하단 내비와 **같은 출처**
 import { useFeatureOn } from '../lib/core/features';           // 커뮤니티 노출 = 원격 플래그(BottomNav 와 **같은 판정**)
 import { CONTENT_ROUTES } from '../lib/content/contentSections'; // 읽는 화면 판정 — 손으로 안 적고 콘텐츠 목록에서 파생
 import { colors, radius, space } from '../lib/theme';
@@ -177,7 +178,7 @@ function WebSidebar() {
       {/* ★부제는 뺐다(Boss 2026-08-20) — 카톡형 친구목록에선 사이드바가 '설명하는 자리'가 아니라
           '이름표'다. 서비스 설명은 랜딩(`WebLanding`)이 맡는다(거기 문구는 그대로다). */}
       <View style={styles.brand}>
-        <Text style={styles.brandTx}>니운내운</Text>
+        <BrandWordmark />
       </View>
       {tabs.map((tb) => {
         // ★판정은 BottomNav 와 **같은 함수**를 쓴다(2026-08-18).
@@ -248,7 +249,6 @@ const styles = StyleSheet.create({
     borderRightWidth: 1, borderRightColor: colors.line, backgroundColor: colors.card,
   },
   brand: { paddingHorizontal: space(3), marginBottom: space(6) },
-  brandTx: { color: colors.ink, fontSize: 21, lineHeight: 28, fontWeight: '800' },
 
   item: {
     flexDirection: 'row', alignItems: 'center', gap: space(3),

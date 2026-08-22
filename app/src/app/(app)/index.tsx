@@ -24,8 +24,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 // ChartPicker(명식 선택)는 홈에서 제거(daniel 2026-07-25 '명식 선택은 홈에서 빼자') — 풀이 탭·만세력·설정에서 전환.
 
 // 홈 블록 이미지 상수(IMG)는 홈이 정보 카드로 바뀌며(2026-08-01) 소비처가 사라져 제거했다.
-import { Image as ExpoImage } from 'expo-image';
-import { brandWordmark } from '../../lib/ui/brandAsset';
+import { BrandWordmark } from '../../components/BrandWordmark';
 import { TalkHome } from './talk';   // ★08-19 시작 화면 = 친구목록
 import { useGenProgress, clearGenProgress } from '../../lib/backend/genProgress'; // 풀이 진행률(다중·route별, 풀이중 홈 나가도 % — daniel)
 import { useSubscription } from '../../lib/billing/subscription';
@@ -152,9 +151,10 @@ export default function Home() {
       {/* ★콘티(2026-08-21) — 헤더는 **좌측 워드마크**다(가운데 심볼 아님).
           우측 아이콘은 친구목록 안에 있으므로 여기는 로고 한 줄만 둔다. */}
       <View style={styles.headerRow}>
-        {!wideWebHome && (
-          <ExpoImage source={brandWordmark()} style={styles.brandWord} contentFit="contain" transition={160} />
-        )}
+        {/* ⚠️★이미지가 아니라 **글자**다. 종전엔 `brand/v3/wordmark.png`(340×470 세로형)을
+            `108×34` 가로 박스에 넣어 폭 25px 콩알로 줄어들어 있었다(Boss 2026-08-22 지적).
+            콘티 헤더는 좌측 보라 글자다. ⇒ `BrandWordmark` 하나로 통일. */}
+        {!wideWebHome && <BrandWordmark />}
       </View>
 
       {/* 통변 생성 진행률(daniel) — 여러 개 동시 풀이 가능 → route별 배너 여러 개. 탭=그 화면 이동 + 그 배너만 닫기.
@@ -228,7 +228,6 @@ const styles = StyleSheet.create({
   headerIcons: { justifyContent: 'flex-end', gap: space(2) },
   iconBtn: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
   // ★콘티의 좌측 워드마크 — 심볼+글자라 가로가 길다(정사각 44 로 두면 글자가 뭉갠다)
-  brandWord: { width: 108, height: 34 },
   iconTx: { fontSize: 20, color: colors.ju },
   dot: { position: 'absolute', top: 6, right: 6, width: 8, height: 8, borderRadius: 4, backgroundColor: '#E5484D' },
   // 시안 인사말 — 화면에서 두 번째로 큰 글자(첫째는 점수). 가운데 정렬·아주 굵게.

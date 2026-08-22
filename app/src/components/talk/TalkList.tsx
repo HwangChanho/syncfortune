@@ -21,10 +21,9 @@ import { View, Text, StyleSheet, ScrollView, TextInput } from 'react-native';
 import { Image as ExpoImage } from 'expo-image';
 import { useTranslation } from 'react-i18next';
 import { PressableScale } from '../PressableScale';
-import { HouseAdBanner } from '../HouseAdBanner';
-import { ContentRail, hasRailRoute } from './ContentRail';
+import { BrandWordmark } from '../BrandWordmark';
 import type { HomeBlockKey } from '../../lib/ui/homeOrder';
-import { colors, space, radius, font, activeElement } from '../../lib/theme';
+import { colors, space, radius, font } from '../../lib/theme';
 import { elementColor, elementText } from '../../lib/engine/ohaeng';
 import type { Consultant } from '../../lib/talk/consultants';
 import { loadFavorites, subscribeFavorites, toggleFavorite, isFavorite, isPinned } from '../../lib/talk/favorites';
@@ -112,7 +111,7 @@ function whenText(iso: string, t: (k: string, d?: string) => string): string {
 }
 
 function Row({ c, initial, slot, on, onOpen, t }: {
-  c: Consultant & { lastAt?: string | null }; initial?: string; slot: number; on: boolean;
+  c: Consultant & { lastAt?: string | null; unread?: number }; initial?: string; slot: number; on: boolean;
   onOpen: (c: Consultant) => void; t: (k: string, d?: string) => string;
 }) {
   const pinned = isPinned(c.id);
@@ -125,8 +124,18 @@ function Row({ c, initial, slot, on, onOpen, t }: {
         {/* 상태메시지 — 콘티는 이름 아래 한 줄을 둔다. 없으면 줄 자체를 그리지 않는다(빈 줄이 남지 않게) */}
         {c.tagline ? <Text style={styles.tagline} numberOfLines={1}>{c.tagline}</Text> : null}
       </View>
-      {/* 시각 — ★이야기한 적 있을 때만. 없는데 무언가 적으면 그건 지어낸 것이다 */}
-      {c.lastAt ? <Text style={styles.when}>{whenText(c.lastAt, t)}</Text> : null}
+      {/* 시각 + 안 읽은 수 — 콘티 1면은 시각 **아래**에 보라 배지를 둔다.
+          ★배지는 0이면 그리지 않는다(0을 보여 주면 '안 읽은 게 있다'로 잘못 읽힌다). */}
+      {c.lastAt || (c.unread ?? 0) > 0 ? (
+        <View style={styles.rightCol}>
+          {c.lastAt ? <Text style={styles.when}>{whenText(c.lastAt, t)}</Text> : null}
+          {(c.unread ?? 0) > 0 ? (
+            <View style={styles.unread}>
+              <Text style={styles.unreadTx}>{(c.unread ?? 0) > 99 ? '99+' : c.unread}</Text>
+            </View>
+          ) : null}
+        </View>
+      ) : null}
       {/* 별 — ★고정된 친구는 **누를 수 없다**(실수로 빼고 "없어졌다"가 되면 우리 잘못이다).
           그래서 고정은 별을 흐리게 두고 hitSlop 도 주지 않는다. */}
       <PressableScale
@@ -152,21 +161,10 @@ function Row({ c, initial, slot, on, onOpen, t }: {
  * @param myName   상단 내 프로필에 쓸 이름(대표 명식 `label`). 없으면 등록 안내
  * @param onMe     내 프로필을 눌렀을 때(명식 관리로)
  */
-/**
- * 콘텐츠 레일 + 개수 라벨.
- * ★개수는 **실제로 보이는 것**을 센다 — `railKeys` 를 그대로 세면 화면이 없는 키(배너·보너스)까지
- *   세어 "콘텐츠 11"인데 아홉 개만 보이는 어긋남이 생긴다(실물에서 확인).
- */
-function ContentRailBlock({ keys, t }: { keys: readonly HomeBlockKey[]; t: (k: string, d?: string) => string }) {
-  const shown = keys.filter(hasRailRoute);
-  if (!shown.length) return null;
-  return (
-    <>
-      <Text style={styles.section}>{t('talk.contents', '콘텐츠')} {shown.length}</Text>
-      <ContentRail keys={shown} />
-    </>
-  );
-}
+// ⚠️`ContentRailBlock` 을 지웠다(2026-08-22) — 콘티 1면에 콘텐츠 레일이 없다.
+//   지우기 전에 **길을 먼저 냈다**: 레일이 다루던 아홉 종을 전부 상담가 `blocks` 에 붙였다
+//   (특히 `biorhythm` 은 어느 상담가에도 없어 그냥 지웠으면 도달 불가가 됐다).
+//   ★`ContentRail` 컴포넌트 자체는 남아 있다 — 다른 자리에서 쓸 수 있다.
 
 export function TalkList({ items, onOpen, selected, myName, onMe, myAvatar, railKeys = [], onSettings, wide,
                            onAddFriend, pendingCount = 0, people = [], onOpenPerson }: {
@@ -175,7 +173,7 @@ export function TalkList({ items, onOpen, selected, myName, onMe, myAvatar, rail
    * ★`lastAt` = **마지막으로 이야기한 시각**(`talk_session_list`). 콘티 1면의 우측 시각이자
    *   「최근」 칩의 정렬 기준이다. 이야기한 적 없으면 없다(그러면 시각도 안 뜬다).
    */
-  items: (Consultant & { lastAt?: string | null })[];
+  items: (Consultant & { lastAt?: string | null; unread?: number })[];
   onOpen: (c: Consultant) => void;
   selected?: string;
   myName?: string | null;
@@ -201,10 +199,9 @@ export function TalkList({ items, onOpen, selected, myName, onMe, myAvatar, rail
   // ★검색은 **온디바이스 필터**다(Boss 손그림 2026-08-20 상단 검색바).
   //   서버로 질의하지 않는다 — 목록이 열댓 개라 왕복할 이유가 없고, 원가도 0이다.
   const [q, setQ] = useState('');
-  // ⚠️검색 UI 는 **아이콘만 뺐다**(Boss 2026-08-20) — 친구가 다섯 남짓이라 검색할 게 없다.
-  //   기능(`q` 필터)은 그대로 두었으므로, 친구가 늘면 여는 아이콘만 되살리면 된다.
-  //   `searchOpen` 은 늘 false 라 검색바가 렌더되지 않는다.
-  const searchOpen = false;
+  // ★검색 아이콘을 **되살렸다**(2026-08-22) — 콘티 1면 헤더에 돋보기가 있고,
+  //   "친구가 다섯이라 검색할 게 없다"던 08-20 의 근거는 **열둘이 된 지금** 더는 맞지 않는다.
+  const [searchOpen, setSearchOpen] = useState(false);
   // 콘티의 칩 — 전체 / 선생님 AI / 친구
   const [filter, setFilter] = useState<'all' | 'teacher' | 'friend' | 'recent'>('all');
   // 즐겨찾기 — 온디바이스. ★별을 누르면 **즉시** 다시 그린다(새로고침을 요구하지 않는다).
@@ -246,28 +243,22 @@ export function TalkList({ items, onOpen, selected, myName, onMe, myAvatar, rail
 
   return (
     <ScrollView style={styles.wrap} contentContainerStyle={styles.body}>
-      {/* ── 상단: 내 프로필 + 아이콘 (Boss 2026-08-20 카톡 배치) ──
-          ★카톡은 이름 옆에 아이콘만 두고 검색바는 **접어 둔다**. 첫 화면에서 검색은
-            늘 쓰는 것이 아니라 필요할 때 여는 것이라 그 배치가 맞다. */}
+      {/* ── 상단 — ★콘티 1면 그대로: **워드마크 좌 · 돋보기 · ⊕** ─────────────
+          ⚠️★내 프로필 행(얼굴 + 이름)을 **뺐다**.
+            Boss 2026-08-20 손그림에는 있었지만 **콘티(08-21) 네 면 어디에도 없다**.
+            Boss 2026-08-22 *"배치 레이아웃 이런거 다 다른거같아"* → 콘티가 정본이다.
+            ★내 프로필은 사라지지 않았다 — 「내 운」 탭이 콘티대로 그 자리를 맡는다.
+          ⚠️돋보기를 **되살렸다**(08-20 에 뺐던 것). 콘티에 있고, 이제 친구가 열둘이라
+            "검색할 게 없다"던 그때 근거가 더는 맞지 않는다. */}
       <View style={styles.topRow}>
-        {/* ★내 얼굴은 **대표 명식의 오행 색**이다(Boss 2026-08-20 *"등록하면 대표오행 색상으로"*).
-            종전엔 순번(slot 0)이라 늘 木이었다 — 내 명식이 火든 水든 같은 색이었다.
-            `activeElement` 는 테마가 쓰는 값과 **같은 출처**라 화면 강조색과 얼굴이 어긋나지 않는다. */}
-        <Avatar name={myName ?? '나'} slot={0} element={activeElement} uri={myAvatar} size={44} />
-        <Text style={styles.meName} numberOfLines={1}>
-          {myName ?? t('talk.meNoChart', '명식을 등록하면 이름이 나와요')}
-        </Text>
-        {/* ★돋보기는 뺐다(Boss 2026-08-20). 친구가 다섯 남짓이라 **검색할 게 없다** —
-            목록이 한 화면에 들어오는데 검색 아이콘을 두면 자리만 먹는다.
-            ⚠️검색 기능(`q`)은 코드에 남겨 뒀다. 친구가 늘면 아이콘만 되살리면 된다. */}
-        {/* 친구 추가 — 카톡의 사람+ 자리. ★배지로 **받은 신청 수**를 알린다
-            (신청이 와도 모르면 친구가 안 맺어진다). */}
+        <BrandWordmark style={{ flex: 1 }} />
+        <PressableScale hitSlop={10} onPress={() => setSearchOpen((v) => !v)}>
+          <Text style={styles.topIcon}>{searchOpen ? '×' : '⌕'}</Text>
+        </PressableScale>
+        {/* 친구 추가 — ★배지로 **받은 신청 수**를 알린다(신청이 와도 모르면 친구가 안 맺어진다) */}
         <PressableScale hitSlop={10} onPress={onAddFriend}>
           <Text style={styles.topIcon}>＋</Text>
           {pendingCount > 0 ? <View style={styles.topBadge}><Text style={styles.topBadgeTx}>{pendingCount}</Text></View> : null}
-        </PressableScale>
-        <PressableScale hitSlop={10} onPress={onSettings}>
-          <Text style={styles.topIcon}>⚙︎</Text>
         </PressableScale>
       </View>
 
@@ -287,14 +278,12 @@ export function TalkList({ items, onOpen, selected, myName, onMe, myAvatar, rail
         </View>
       ) : null}
 
-      {/* 배너 — Boss *"배너도 동일"*. 홈에서 쓰던 하우스 배너를 그대로 옮겼다(사본 아님).
-          ⚠️★좁은 칸(웹 3칸의 264px)에서는 **숨긴다** — 배너는 넓은 폭 전제로 만든 것이라
-            좁은 칸에 넣으면 제목이 한 글자씩 세로로 흘러 화면이 무너진다(실물에서 확인).
-            Boss 가 준 화면은 **폰 전체 폭**이고, 거기서는 그대로 뜬다. */}
-      {wide ? <View style={styles.banner}><HouseAdBanner /></View> : null}
-
-      {/* 콘텐츠 레일 — 카톡의 「업데이트 프로필」 자리 */}
-      {!q.trim() ? <ContentRailBlock keys={railKeys} t={t as never} /> : null}
+      {/* ⚠️★배너와 콘텐츠 레일을 **뺐다** — 콘티 1면에 둘 다 없다.
+          레일을 지우면 콘텐츠 아홉 종이 도달 불가가 될 뻔했다(`biorhythm` 은 어느 상담가에도
+          안 붙어 있었다 — 실측). ⇒ **먼저 길을 내고 지웠다**: 고아 블록 넷을
+          `free3→노쌤 · biorhythm→유리 · luck→유진 · decision→태현` 으로 붙였다.
+          이제 아홉 종 전부 상담가 대화 안에서 열린다(실측 확인).
+          ★"옮길 곳을 먼저 만들고 뺀다" — 이 저장소가 비싸게 배운 순서다. */}
 
       {/* ── 검색(접힘) ── */}
       {searchOpen ? (
@@ -319,13 +308,7 @@ export function TalkList({ items, onOpen, selected, myName, onMe, myAvatar, rail
               그래야 콘티와 같은 모양이면서 별(즐겨찾기)이 하는 일도 남는다 —
               칸만 지우고 정렬을 안 바꾸면 별이 아무 일도 안 하는 장식이 된다. */}
 
-      <View style={styles.rule} />
-      {/* 친구 수 — ★**즐겨찾기까지 포함**한 전체다(Boss 2026-08-20).
-          위로 올라간 사람이 수에서 빠지면 "친구 4명인데 다섯 명이 보인다"가 된다.
-          ⚠️검색 중에는 **걸러진 수**를 보여 준다(안 그러면 목록과 숫자가 어긋난다). */}
-      <Text style={styles.section}>
-        {t('talk.friendsCount', '친구 {{n}}명').replace('{{n}}', String(shown.length))}
-      </Text>
+      {/* ⚠️「친구 N명」 줄도 콘티에 없다 — 뺐다(수를 세는 자리가 아니라 사람을 찾는 자리다). */}
 
       {/* ── 친구 ── */}
       {/* ★두 묶음을 **나눠서** 보여 준다(콘티) — 섞으면 "사주 상담"과 "생활 친구"가 뒤엉킨다.
@@ -393,7 +376,14 @@ const styles = StyleSheet.create({
   sub: { ...font.caption, color: colors.inkFaint },
   banner: { marginBottom: space(3) },
   tagline: { ...font.caption, color: colors.inkFaint, marginTop: 1 },
-  when: { ...font.caption, color: colors.inkFaint, marginLeft: space(1) },
+  rightCol: { alignItems: 'flex-end', gap: 4, marginLeft: space(1) },
+  when: { ...font.caption, color: colors.inkFaint },
+  // 안 읽은 수 — 콘티의 보라 원. ★글자는 `onJu`(강조색 위 대비)
+  unread: {
+    minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 5,
+    backgroundColor: colors.ju, alignItems: 'center', justifyContent: 'center',
+  },
+  unreadTx: { fontSize: 11, lineHeight: 15, fontWeight: '900', color: colors.onJu },
   chips: { flexDirection: 'row', gap: space(2), marginBottom: space(3), flexWrap: 'wrap' },
   chip: { paddingHorizontal: space(3.5), paddingVertical: space(1.5), borderRadius: radius.pill, backgroundColor: colors.sunk, borderWidth: 1, borderColor: colors.line },
   chipOn: { backgroundColor: colors.ju, borderColor: colors.ju },

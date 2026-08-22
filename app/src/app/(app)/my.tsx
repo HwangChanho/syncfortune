@@ -27,6 +27,7 @@ import { Image as ExpoImage } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { elementAvatar } from '../../lib/ui/brandAsset';
 import { PressableScale } from '../../components/PressableScale';
+import { BrandWordmark } from '../../components/BrandWordmark';
 import { useAuth } from '../../lib/useAuth';
 import { useCoinBalance } from '../../lib/billing/coins';
 import { colors, radius, space, font, shadow } from '../../lib/theme';
@@ -89,7 +90,7 @@ export default function MyPageScreen() {
             그대로 두면 같은 글자가 한 화면에 두 번 뜬다(실측으로 드러났다).
             콘티는 폰 한 면이라 이 중복이 보이지 않는다. */}
       <View style={styles.top}>
-        {wideWeb ? <View style={{ flex: 1 }} /> : <Text style={styles.wordmark}>니운내운</Text>}
+        {wideWeb ? <View style={{ flex: 1 }} /> : <BrandWordmark style={{ flex: 1 }} />}
         <PressableScale hitSlop={10} onPress={() => router.push('/notifications')}>
           <Text style={styles.topIcon}>🔔</Text>
         </PressableScale>
@@ -162,7 +163,6 @@ const styles = StyleSheet.create({
   body: { paddingHorizontal: space(4), paddingBottom: 170 },
 
   top: { flexDirection: 'row', alignItems: 'center', gap: space(3), marginBottom: space(4) },
-  wordmark: { flex: 1, fontSize: 21, lineHeight: 28, fontWeight: '900', color: colors.ju, letterSpacing: -0.5 },
   topIcon: { fontSize: 20, lineHeight: 26 },
 
   profile: { flexDirection: 'row', alignItems: 'flex-start', gap: space(3.5), marginBottom: space(4) },
