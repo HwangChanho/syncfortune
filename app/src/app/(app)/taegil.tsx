@@ -203,7 +203,7 @@ const styles = StyleSheet.create({
   chip: { paddingHorizontal: space(3.5), paddingVertical: space(2.25), borderRadius: radius.pill, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line },
   chipOn: { backgroundColor: colors.ju, borderColor: colors.ju },
   chipTx: { fontSize: 13, fontWeight: '700', color: colors.inkSoft },
-  chipTxOn: { color: colors.bg },
+  chipTxOn: { color: colors.onJu },
   // 범례
   legend: { flexDirection: 'row', alignItems: 'center', gap: space(4), marginBottom: space(3) },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: space(1.5) },

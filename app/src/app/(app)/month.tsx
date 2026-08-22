@@ -262,7 +262,7 @@ const styles = StyleSheet.create({
   areaChip: { paddingHorizontal: space(3.5), paddingVertical: space(2), borderRadius: radius.pill, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line },
   areaChipOn: { backgroundColor: colors.ju, borderColor: colors.ju },
   areaChipTx: { fontSize: 13, fontWeight: '700', color: colors.inkSoft },
-  areaChipTxOn: { color: colors.bg },
+  areaChipTxOn: { color: colors.onJu },
   readCard: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.juLine, padding: space(5), ...shadow.card, alignItems: 'center' },
   readTx: { ...font.body, color: colors.ink, lineHeight: 26, fontSize: 15, alignSelf: 'stretch' },
   genWait: { ...font.caption, color: colors.inkSoft, marginTop: space(2) },

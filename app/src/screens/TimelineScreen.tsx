@@ -476,7 +476,7 @@ const styles = StyleSheet.create({
   chip: { paddingVertical: space(2), paddingHorizontal: space(3), borderRadius: radius.pill ?? 999, borderWidth: 1, borderColor: colors.juLine, backgroundColor: colors.bg },
   chipOn: { backgroundColor: colors.ju, borderColor: colors.ju },
   chipTx: { fontSize: 13, fontWeight: '700', color: colors.inkSoft },
-  chipTxOn: { color: colors.bg },
+  chipTxOn: { color: colors.onJu },
   // 연운 월별(1~12월)
   monthsBox: { marginTop: space(5), paddingTop: space(4), borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.line },
   monthsH: { fontSize: 14, fontWeight: '800', color: colors.ju, marginBottom: space(3) },

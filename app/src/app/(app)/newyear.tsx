@@ -483,7 +483,7 @@ const styles = StyleSheet.create({
   chipOn: { backgroundColor: colors.ju, borderColor: colors.ju },
   chipIcon: { fontSize: 14 },
   chipTx: { fontSize: 13, fontWeight: '700', color: colors.inkSoft },
-  chipTxOn: { color: colors.bg },
+  chipTxOn: { color: colors.onJu },
   monthTx: { ...font.body, color: colors.ink, marginBottom: space(2) },
   // 선택 분야 카드(아이콘 헤더 + 내용) — 가독성(daniel)
   areaCard: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.juLine, padding: space(5), marginBottom: space(3), ...shadow.card },

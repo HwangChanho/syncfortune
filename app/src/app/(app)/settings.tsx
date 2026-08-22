@@ -27,8 +27,7 @@ import { loadCredits } from '../../lib/billing/coupons';  // 프리미엄 폴백
 import { supabase } from '../../lib/supabase';             // 로그아웃
 import { BusyOverlay } from '../../components/BusyOverlay'; // 긴 콜백(로그아웃·삭제) 로딩 오버레이
 import { setAuthBusy } from '../../lib/ui/authBusy'; // 로그아웃 전환 전역 블로킹(먹통 방지)
-import { EL_KO_SHORT } from '../../lib/content/ohaengLabel';   // ★오행 이름표 단일 소스(사본 만들지 말 것)
-import { colors, radius, space, shadow, font, getLoadingMode, setLoadingMode, setThemeAccent, getThemeAccent, activeAccentElement, ACCENT_SWATCH, type AccentMode, type LoadingMode } from '../../lib/theme'; // ★다크/라이트 토글 제거·로딩 3모드(video/text/off, daniel 2026-07-15)
+import { colors, radius, space, shadow, font, getLoadingMode, setLoadingMode, type LoadingMode } from '../../lib/theme'; // ★다크/라이트 토글 제거·로딩 3모드(video/text/off, daniel 2026-07-15)
 
 const LANGS: { key: string; label: string }[] = [
   { key: 'ko', label: '한국어' }, { key: 'en', label: 'English' }, { key: 'ja', label: '日本語' },
@@ -67,7 +66,6 @@ export default function SettingsScreen() {
   const { rawScale, setScale, fs } = useFontScale();   // ★설정 화면은 **사용자가 고른 값**으로 판정한다
   //   (`scale` 은 웹 폭 보정이 곱해진 실제 배율이라 FONT_STEPS 와 안 맞는다 — 어떤 단계도 안 켜진다)
   const [busy, setBusy] = useState<string | null>(null); // 전체화면 로딩 오버레이 메시지(긴 콜백)
-  const [accent, setAccentState] = useState<AccentMode>(getThemeAccent()); // ★테마 강조색(자동=일간 오행 / 오행 직접 / 골드)
   const [loadingMode, setLoadingModeState] = useState<LoadingMode>(getLoadingMode()); // 로딩(인트로) 화면 video(호랑이)/text(八字)/off(없음, daniel 07-15)
   // 홈 배치 순서 편집은 홈 화면의 '⠿ 홈 배치 편집' 모달로 이동(daniel 07-21) — 계정뷰에서 제거.
   const [notifStatus, setNotifStatus] = useState<NotifStatus>('undetermined'); // 알림 권한 상태(행 라벨·동작 분기)
@@ -303,32 +301,14 @@ export default function SettingsScreen() {
         })}
       </View>
 
-      {/* ── ★테마 색 — 대표명식 일간의 오행에 맞춰 **화면 전체**가 달라진다.
-           이력: 07-15 팔레트 전체 → 08-07 배경 톤만(앱 아이콘 톤 통일) → **08-18 다시 전체**
-           (시안 `니운내운.pdf` 가 오행 5색 세트로 그려져 있고, Boss "색상은 대표명식 오행에 따라 변하게").
-           ⚠️문구도 함께 고쳤다 — '배경 톤만'이라고 적혀 있었는데 실제로는 카드·글자·강조까지 바뀐다.
-             화면이 하는 일과 설명이 어긋나면 그게 곧 거짓말이다. ── */}
-      <Text style={[styles.h, { marginTop: space(7) }]}>{t('settings.accent', '테마 색')}</Text>
-      <Text style={styles.accentDesc}>{t('settings.accentDesc', '대표명식 일간의 오행에 맞춰 화면 색이 달라져요. 직접 고를 수도 있어요.')}</Text>
-      <View style={styles.accentWrap}>
-        {(['auto', '木', '火', '土', '金', '水', 'gold'] as AccentMode[]).map((k) => {
-          const on = accent === k;
-          const swColor = k === 'auto' ? (ACCENT_SWATCH[activeAccentElement] ?? ACCENT_SWATCH.gold) : ACCENT_SWATCH[k];
-          const label = k === 'auto' ? t('settings.accentAuto', '자동(일간)')
-            : k === 'gold' ? t('settings.accentGold', '골드')
-            : EL_KO_SHORT[k];   // 오행 독음 — 표는 단일 소스(`ohaengLabel.ts`)
-          return (
-            <PressableScale key={k} style={[styles.accentChip, on && styles.accentChipOn]} onPress={() => {
-              setThemeAccent(k); setAccentState(k);
-              Alert.alert(t('settings.accent', '테마 색'), t('settings.themeRestart', '앱을 다시 켜면 적용돼요.'));
-            }}>
-              {/* ★스와치가 전부 크림 계열이라 색만으로는 구분이 안 된다 → 테두리를 항상 그린다. */}
-              <View style={[styles.accentDot, { backgroundColor: swColor, borderWidth: 1, borderColor: colors.juLine }, on && styles.accentDotOn]} />
-              <Text style={[styles.accentChipTx, on && styles.accentChipTxOn]}>{label}</Text>
-            </PressableScale>
-          );
-        })}
-      </View>
+      {/* ── ⚠️★「테마 색」 픽커를 **뺐다**(2026-08-22) ──────────────────────────
+           Boss 결정: 콘티대로 **라벤더 한 색**. 화면 팔레트가 더 이상 오행에 따라 바뀌지 않는다.
+           ⇒ 이 픽커는 눌러도 **아무 일도 일어나지 않는** 컨트롤이 됐다. 남겨 두면
+             바로 위 주석이 스스로 경고한 그것이 된다 — *"화면이 하는 일과 설명이 어긋나면
+             그게 곧 거짓말이다."* 실제로 설명문("오행에 맞춰 화면 색이 달라져요")이 이미 거짓이었다.
+           ★오행 색 자체는 없어지지 않았다 — 아바타·명식 표시(`lib/engine/ohaeng`)는 그대로다.
+             바뀐 건 **화면 팔레트**뿐이다.
+           ★되돌리려면: `theme.ts` 의 `const EP = LAVENDER` 한 줄 + 이 블록. ── */}
 
       {/* ── 로딩 화면(인트로) — video 호랑이영상 / text 八字한자 / off 없음(바로 앱). daniel 07-15. 변경은 다음 실행부터 적용 ── */}
       <Text style={[styles.h, { marginTop: space(7) }]}>{t('settings.loadingScreen', '로딩 화면')}</Text>
@@ -458,7 +438,7 @@ const styles = StyleSheet.create({
   accentDotOn: { borderWidth: 2, borderColor: colors.ink },
   accentChipTx: { fontSize: 13, fontWeight: '700', color: colors.inkSoft },
   accentChipTxOn: { color: colors.ink },
-  optTxOn: { color: colors.bg },
+  optTxOn: { color: colors.onJu },
   preview: { marginTop: space(4), padding: space(4), borderRadius: radius.md, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.juLine, ...shadow.card },
   previewBody: { color: colors.ink },
   note: { ...font.caption, color: colors.inkFaint, marginTop: space(6), lineHeight: 18 },

@@ -266,7 +266,7 @@ const styles = StyleSheet.create({
   chip: { paddingHorizontal: space(3.5), paddingVertical: space(2), borderRadius: radius.pill, borderWidth: 1, borderColor: colors.juLine, backgroundColor: colors.card },
   chipOn: { backgroundColor: colors.ju, borderColor: colors.ju },
   chipTx: { fontSize: 14, color: colors.inkSoft, fontWeight: '700' },
-  chipTxOn: { fontSize: 14, color: colors.bg, fontWeight: '800' },
+  chipTxOn: { fontSize: 14, color: colors.onJu, fontWeight: '800' },
   addBtn: { marginTop: space(3), alignSelf: 'flex-start', paddingHorizontal: space(4), paddingVertical: space(2.5), borderRadius: radius.pill, borderWidth: 1, borderColor: colors.ju },
   addTx: { color: colors.ju, fontWeight: '800', fontSize: 14 },
   // ── 추가된 인생 사건 = 배지형 칩(유형 선택 칩과 같은 pill 계열로 시각 통일·연한 accent 배경). ──

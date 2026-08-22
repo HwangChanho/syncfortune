@@ -268,7 +268,7 @@ const styles = StyleSheet.create({
   toggleBtn: { flex: 1, paddingVertical: space(2.5), borderRadius: radius.pill, alignItems: 'center' },
   toggleOn: { backgroundColor: colors.ju },
   toggleTx: { fontSize: 15, fontWeight: '700', color: colors.inkSoft },
-  toggleTxOn: { color: colors.bg },
+  toggleTxOn: { color: colors.onJu },
   // 내 일주 강조
   mineWrap: { marginBottom: space(6) },
   mineLabel: { fontSize: 14, fontWeight: '800', color: colors.ju, marginBottom: space(2) },

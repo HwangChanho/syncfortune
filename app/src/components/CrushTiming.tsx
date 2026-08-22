@@ -79,7 +79,7 @@ const styles = StyleSheet.create({
   cell: { width: 44, paddingVertical: space(2), borderRadius: radius.sm, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, alignItems: 'center' },
   cellOn: { backgroundColor: colors.ju, borderColor: colors.ju },      // 매력 달 = 금색 강조
   cellTx: { ...font.caption, color: colors.inkFaint, fontSize: 12 },
-  cellTxOn: { color: colors.bg, fontWeight: '900' },
+  cellTxOn: { color: colors.onJu, fontWeight: '900' },
   summary: { ...font.body, color: colors.ju, fontWeight: '800', textAlign: 'center', marginTop: space(3), fontSize: 14 },
   note: { ...font.caption, color: colors.inkFaint, marginTop: space(2), textAlign: 'center', fontSize: 11, lineHeight: 16 },
   empty: { ...font.caption, color: colors.inkSoft, lineHeight: 19 },

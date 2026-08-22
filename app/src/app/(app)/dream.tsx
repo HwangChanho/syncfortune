@@ -321,7 +321,7 @@ const styles = StyleSheet.create({
   chip: { paddingHorizontal: space(3.5), paddingVertical: space(2), borderRadius: radius.pill, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line },
   chipOn: { backgroundColor: colors.ju, borderColor: colors.ju },
   chipTx: { fontSize: 13, fontWeight: '700', color: colors.inkSoft },
-  chipTxOn: { color: colors.bg },
+  chipTxOn: { color: colors.onJu },
   card: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.juLine, padding: space(5), marginBottom: space(2.5), ...shadow.card },
   cardTitle: { fontSize: 17, fontWeight: '900', color: colors.ju, marginBottom: space(2) },
   cardBody: { ...font.body, color: colors.ink },

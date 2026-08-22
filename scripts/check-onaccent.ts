@@ -54,8 +54,17 @@ const contrast = (a: RGB, b: RGB) => { const [hi, lo] = [lum(a), lum(b)].sort((x
 export type Palette = Array<[string, Record<string, string>]>;
 export function palettes(palSrc: string): Palette {
   const out: Palette = [];
-  for (const el of ['水', '木', '火', '土', '金']) {
-    const blk = palSrc.match(new RegExp(`${el}:\\s*\\{([\\s\\S]*?)\\n  \\},`))?.[1] ?? '';
+  // ★★2026-08-22: 화면 팔레트가 **`LAVENDER` 하나**로 통일됐다(Boss: 콘티대로 라벤더 한 색).
+  //   ⚠️여기를 안 고쳤으면 하네스는 **이제 안 쓰는 오행 팔레트만** 검사하고,
+  //     정작 화면에 뜨는 라벤더는 아무도 안 보게 된다 — 초록불이 거짓이 되는 그 상황이다
+  //     ([[harness-can-enforce-wrong-rule]] 의 뒷면).
+  //   ★오행 세트도 계속 검사한다: 되돌릴 수 있게 남겨 둔 값이라, 썩으면 되돌릴 때 터진다.
+  for (const el of ['LAVENDER', '水', '木', '火', '土', '金']) {
+    // `LAVENDER` 는 `export const LAVENDER: ElementPalette = { … };` 형태라 닫는 모양이 다르다
+    const re = el === 'LAVENDER'
+      ? /export const LAVENDER: ElementPalette = \{([\s\S]*?)\n\};/
+      : new RegExp(`${el}:\\s*\\{([\\s\\S]*?)\\n  \\},`);
+    const blk = palSrc.match(re)?.[1] ?? '';
     const tokens: Record<string, string> = {};
     for (const m of blk.matchAll(/(\w+):\s*'(#[0-9A-Fa-f]{6})'/g)) tokens[m[1]] = m[2];
     if (tokens.ju) out.push([el, tokens]);

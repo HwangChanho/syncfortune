@@ -680,7 +680,7 @@ const styles = StyleSheet.create({
   catChip: { minHeight: 32, justifyContent: 'center', backgroundColor: colors.sunk, borderRadius: radius.pill, paddingHorizontal: space(3.5), borderWidth: 1, borderColor: colors.line }, // 명시적 높이+세로중앙(paddingVertical 대신 — 짜부라짐 이중 방어)
   catChipOn: { backgroundColor: colors.ju, borderColor: colors.ju },
   catChipTx: { ...font.caption, color: colors.inkSoft, fontWeight: '700' },
-  catChipTxOn: { color: colors.bg },
+  catChipTxOn: { color: colors.onJu },
   // ── 카테고리 드롭박스(daniel 2026-08-12) — 칩 가로스크롤을 대체 ──
   //   ★생김새는 위 검색창(input)과 맞춘다. 같은 시트 안에서 컨트롤이 서로 달라 보이면 그게 잡음이다.
   catDrop: {

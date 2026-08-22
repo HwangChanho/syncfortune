@@ -758,14 +758,17 @@ const styles = StyleSheet.create({
   chip: { paddingVertical: space(2), paddingHorizontal: space(4), borderRadius: radius.pill, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line },
   chipOn: { backgroundColor: colors.ju, borderColor: colors.ju },
   chipTx: { ...font.body, color: colors.ink, fontWeight: '700' },
-  chipTxOn: { color: colors.bg },
+  chipTxOn: { color: colors.onJu },
   pickBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }, // 드롭다운 배경(탭하면 닫힘)
   pickSheet: { backgroundColor: colors.card, borderTopLeftRadius: radius.lg, borderTopRightRadius: radius.lg, paddingHorizontal: space(5), paddingTop: space(4) },
   pickHead: { fontSize: 16, fontWeight: '900', color: colors.ju, marginBottom: space(3) },
   pickRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: space(3.5), paddingHorizontal: space(4), borderRadius: radius.md, marginBottom: space(2), backgroundColor: colors.sunk },
   pickRowOn: { backgroundColor: colors.ju + '22', borderWidth: 1, borderColor: colors.ju },
   pickRowTx: { fontSize: 15, fontWeight: '700', color: colors.ink, flex: 1 },
-  pickRowTxOn: { color: colors.ju },
+  // ⚠️★여기는 **흰 글자가 아니다**. 배경이 `colors.ju + '22'`(13%만 얹은 연보라 #EEE9FB)라
+  //   흰 글자를 쓰면 대비 1.19 로 **안 보인다**(내가 일괄 교체하다 한 번 그렇게 만들었다).
+  //   ⇒ 깊은 보라(`juDeep`)로 간다 — 같은 배경 위 대비 5.78(계산값. `ju` 는 3.96 으로 미달).
+  pickRowTxOn: { color: colors.juDeep },
   pickCheck: { color: colors.ju, fontSize: 16, fontWeight: '900', marginLeft: space(2) },
   orHint: { ...font.caption, color: colors.inkSoft, marginTop: space(2), marginBottom: space(1) },
   placeField: { marginTop: space(2) },
@@ -804,7 +807,7 @@ const styles = StyleSheet.create({
   compatTab: { flex: 1, paddingVertical: space(2.5), alignItems: 'center', borderRadius: radius.sm },
   compatTabOn: { backgroundColor: colors.ju },
   compatTabTx: { color: colors.inkFaint, fontWeight: '700', fontSize: 13 },
-  compatTabTxOn: { color: colors.bg },
+  compatTabTxOn: { color: colors.onJu },
   // 위저드 — 나❤상대 헤더 + 단계 라벨(daniel 궁합 재디자인)
   wizPair: { flexDirection: 'row', alignItems: 'center', gap: space(2), marginBottom: space(4) },
   wizPerson: { flex: 1, backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.line, paddingVertical: space(3), paddingHorizontal: space(2), alignItems: 'center' },
@@ -819,7 +822,7 @@ const styles = StyleSheet.create({
   wizSelectBtnTx: { color: colors.bg, fontSize: 15, fontWeight: '800' },
   relChipOn: { backgroundColor: colors.ju, borderColor: colors.ju },
   relChipTx: { fontSize: 13, fontWeight: '700', color: colors.inkSoft },
-  relChipTxOn: { color: colors.bg },
+  relChipTxOn: { color: colors.onJu },
   readCard: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.juLine, padding: space(5), ...shadow.card, alignItems: 'stretch' },
   // ── 궁합 본문 위계(daniel 2026-08-11) ────────────────────────────────────
   //   종전: 핵심 16 · 섹션제목 15 · 본문 15 → **거의 같은 크기**라 세분한 카테고리가 다 뭉쳐 보였다.

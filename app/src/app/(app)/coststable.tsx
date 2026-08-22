@@ -222,7 +222,7 @@ const styles = StyleSheet.create({
   scaleBtn: { flex: 1, paddingVertical: space(2.5), borderRadius: radius.sm, borderWidth: 1, borderColor: colors.line, alignItems: 'center' },
   scaleOn: { backgroundColor: colors.ju, borderColor: colors.ju },
   scaleTx: { fontSize: 13, fontWeight: '700', color: colors.inkSoft },
-  scaleTxOn: { color: colors.bg },
+  scaleTxOn: { color: colors.onJu },
   sumCard: { flexDirection: 'row', backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.juLine, padding: space(4), marginBottom: space(2) },
   sumItem: { flex: 1, alignItems: 'center' },
   sumLabel: { fontSize: 11, color: colors.inkSoft, marginBottom: space(1) },
