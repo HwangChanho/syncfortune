@@ -11,14 +11,14 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context'; // 전체화면 Modal 헤더 상단 안전영역(다이나믹아일랜드) — reunion.tsx 패턴
 import { PressableScale } from '../../components/PressableScale';
+import { BrandWordmark } from '../../components/BrandWordmark';
 import { Alert } from '../../lib/ui/alert';
 import { useAuth } from '../../lib/useAuth';
 import { useLogContentVisit } from '../../lib/backend/contentVisit';
 import { listCharts, subscribeRepChange, type SavedChart } from '../../lib/engine/myChart';
 import { computeChart } from '../../lib/engine/engine';
-import { listPosts, pollVote, pollStats, createPost, toSharedSaju, toSharedZiwei, COMMUNITY_CATEGORIES, type CommunityPost, type CommunityCategory, type CommunitySort } from '../../lib/backend/community';
+import { listPosts, createPost, toSharedSaju, toSharedZiwei, COMMUNITY_CATEGORIES, type CommunityPost, type CommunityCategory, type CommunitySort } from '../../lib/backend/community';
 import { colors, pastel, radius, space, shadow, font } from '../../lib/theme';
-import { dateGanZhi } from '../../lib/content/dailyFortune'; // 일진 스레드 제목 — 서버는 날짜만, 간지는 클라 결정론(daniel 2026-08-05)
 import { SECTIONS, baseKey } from '../../lib/content/contentSections'; // P2 후기 태그 — 콘텐츠 목록 단일 출처(라벨·라우트 여기서만)
 
 /**
@@ -84,6 +84,9 @@ export default function CommunityScreen() {
   const [cat, setCat] = useState<CommunityCategory | undefined>(undefined); // undefined=전체
   // ★콘티의 맨 앞 두 칩은 **정렬**이다(카테고리가 아니다). 추천=최신 · 인기=좋아요 순
   const [sort, setSort] = useState<CommunitySort>('recommend');
+  const [menu, setMenu] = useState(false);          // ☰ (콘티 3면)
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [q, setQ] = useState('');                   // 제목 필터 — 온디바이스
   const [posts, setPosts] = useState<CommunityPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -103,16 +106,22 @@ export default function CommunityScreen() {
   const [composeErr, setComposeErr] = useState<string | null>(null);
   const [topic, setTopic] = useState<string | null>(null); // P2 후기 태그 — 어떤 콘텐츠의 후기인지(contentSections key) // 등록 에러를 모달 안에 인라인 표시(Alert 가 글쓰기 Modal 위에 안 떠 '무반응'처럼 보이던 것 해결)
 
-  // ── 일진 데일리 스레드(P1) — 목록에서 분리해 상단 고정 카드로. 투표(1~5) + 집계.
-  const [daily, setDaily] = useState<CommunityPost | null>(null);
-  const [poll, setPoll] = useState<{ counts: Record<number, number>; total: number; my: number | null } | null>(null);
+  /**
+   * 목록 — ★일진(데일리 스레드)도 **같은 카드로 흐른다**(2026-08-22).
+   *
+   * 종전엔 일진만 빼내 상단 고정 카드로 그렸는데, 콘티 3면에는 특별 카드가 없다.
+   * ⚠️그 카드에 **체감 투표**가 붙어 있었다 — 그냥 지우면 기능이 죽는다.
+   *   ⇒ 투표는 **글 상세로 옮겼다**(`communityPost.tsx`). 옮길 곳을 먼저 만들고 뺐다.
+   */
   const load = useCallback(async () => {
     try {
       const rows = await listPosts(cat, 30, undefined, sort);
-      const d = rows.find((r) => r.kind === 'daily' && r.daily_date === new Date().toISOString().slice(0, 10)) ?? null;
-      setDaily(d);
-      setPosts(rows.filter((r) => r.kind !== 'daily'));
-      if (d) pollStats(d.id).then(setPoll).catch(() => {});
+      // ⚠️★일진은 **오늘 것만** 남긴다.
+      //   일진은 cron 이 매일 하나씩 만든다 — 전부 흘리면 목록이 「오늘의 일진」으로 뒤덮인다
+      //   (실측으로 바로 드러났다: 첫 화면이 같은 제목 세 개였다).
+      //   콘티가 원하는 건 '특별 카드가 없는 것'이지 '지난 자동 글이 쌓이는 것'이 아니다.
+      const today = new Date().toISOString().slice(0, 10);
+      setPosts(rows.filter((r) => r.kind !== 'daily' || r.daily_date === today));
     } catch { /* 목록 로드 실패=빈 목록 */ } finally { setLoading(false); setRefreshing(false); }
   }, [cat, sort]);
   useEffect(() => { setLoading(true); load(); }, [load]);
@@ -217,7 +226,37 @@ export default function CommunityScreen() {
     <View style={styles.bg}>
       {/* 카테고리 탭 — ★헤더를 껐으므로(_layout) 상태바 안전영역은 여기서 확보한다.
           contents 탭의 topBar 와 **같은 식**(insets.top + space(2))으로 두 탭의 상단선이 맞는다. */}
-      <View style={[styles.catBar, { paddingTop: insets.top + space(2) }]}>
+      {/* ★콘티 3면 헤더 — 워드마크 · 돋보기 · ☰. 종전엔 헤더가 아예 없고 칩 줄만 있었다. */}
+      <View style={[styles.headBar, { paddingTop: insets.top + space(2) }]}>
+        <BrandWordmark style={{ flex: 1 }} />
+        <PressableScale hitSlop={10} onPress={() => setSearchOpen((v) => !v)}>
+          <Text style={styles.headIcon}>{searchOpen ? '×' : '⌕'}</Text>
+        </PressableScale>
+        {/* ☰ — 콘티의 메뉴. 내 활동으로 간다(콘티 4면에 있는 그 화면들이다) */}
+        <PressableScale hitSlop={10} onPress={() => setMenu((v) => !v)}>
+          <Text style={styles.headIcon}>☰</Text>
+        </PressableScale>
+      </View>
+      {menu ? (
+        <View style={styles.menuBox}>
+          <PressableScale style={styles.menuRow} onPress={() => { setMenu(false); router.push('/myposts'); }}>
+            <Text style={styles.menuTx}>{t('my.posts', '작성한 글')}</Text>
+          </PressableScale>
+          <PressableScale style={styles.menuRow} onPress={() => { setMenu(false); router.push('/mycomments'); }}>
+            <Text style={styles.menuTx}>{t('my.comments', '댓글과 답글')}</Text>
+          </PressableScale>
+        </View>
+      ) : null}
+      {searchOpen ? (
+        <View style={styles.searchBox}>
+          <TextInput value={q} onChangeText={setQ} autoFocus style={styles.searchTx}
+            placeholder={t('community.searchPh', '글 제목으로 찾기')} placeholderTextColor={colors.inkFaint}
+            returnKeyType="search"
+            // keyboard-safe: 목록 상단 검색창이라 키보드가 올라와도 가려지지 않는다
+          />
+        </View>
+      ) : null}
+      <View style={[styles.catBar, { paddingTop: 0 }]}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.catRow}>
           {/* ①정렬 — ★고르면 카테고리는 '전체'로 돌린다. 콘티에서 이 둘은 목록 전체를 보는 자리다 */}
           {(['recommend', 'popular'] as const).map((sk) => {
@@ -258,39 +297,7 @@ export default function CommunityScreen() {
               <View style={styles.writeAv}><Text style={styles.writeAvTx}>✎</Text></View>
               <Text style={styles.writePh}>{t('community.writeBox', '오늘의 고민이나 질문을 남겨보세요 ✨')}</Text>
             </PressableScale>
-            {daily ? (
-            <View style={styles.dailyCard}>
-              <View style={styles.postHead}>
-                <Text style={styles.dailyTag}>{t('community.daily', '오늘의 일진')}</Text>
-                <Text style={styles.postMeta}>{daily.daily_date}</Text>
-              </View>
-              {/* 간지는 클라 결정론(만세력 엔진과 같은 lunar 소스) — 서버엔 날짜만 있다 */}
-              <Text style={styles.dailyGz}>{dateGanZhi(daily.daily_date ?? '')} </Text>
-              <Text style={styles.postBody}>{daily.body}</Text>
-              {/* 체감 투표 — 탭 1회 참여(글쓰기보다 낮은 문턱). 재탭=교체(멱등) */}
-              <View style={styles.pollRow}>
-                {([1, 2, 3, 4, 5] as const).map((c) => {
-                  const on = poll?.my === c;
-                  const label = [t('community.p1', '아주 좋음'), t('community.p2', '좋음'), t('community.p3', '보통'), t('community.p4', '아쉬움'), t('community.p5', '힘듦')][c - 1];
-                  return (
-                    <PressableScale key={c} style={[styles.pollChip, on && styles.pollChipOn]}
-                      onPress={() => { pollVote(daily.id, c).then(() => pollStats(daily.id).then(setPoll)).catch(() => {}); }}>
-                      <Text style={[styles.pollChipTx, on && styles.pollChipTxOn]}>{label}</Text>
-                    </PressableScale>
-                  );
-                })}
-              </View>
-              {/* ★집계는 10명부터 — 3명 중 2명 같은 표본은 사회적 증거가 아니라 소음(방문자수와 같은 정직성 원칙) */}
-              {poll && poll.total >= 10 ? (
-                <Text style={styles.pollStat}>{t('community.pollStat', { total: poll.total, top: Math.round(100 * Math.max(...Object.values(poll.counts)) / poll.total), defaultValue: '{{total}}명 참여 · 가장 많은 선택 {{top}}%' })}</Text>
-              ) : poll?.my != null ? (
-                <Text style={styles.pollStat}>{t('community.pollMine', '참여 완료! 참여자가 모이면 통계가 보여요.')}</Text>
-              ) : null}
-              <PressableScale style={styles.dailyTalk} onPress={() => router.push({ pathname: '/communityPost', params: { id: daily.id } })}>
-                <Text style={styles.dailyTalkTx}>{t('community.dailyTalk', '이야기 나누기')} · 💬 {daily.comment_count}</Text>
-              </PressableScale>
-            </View>
-            ) : null}
+            {/* ⚠️일진 특별 카드를 뺐다 — 콘티 3면은 모든 글이 같은 카드다(위 주석) */}
             </>
           )}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} tintColor={colors.ju} />}
@@ -346,8 +353,9 @@ export default function CommunityScreen() {
         />
       )}
 
-      {/* 글쓰기 FAB */}
-      <PressableScale style={styles.fab} onPress={onCompose}><Text style={styles.fabTx}>✎</Text></PressableScale>
+      {/* ⚠️글쓰기 FAB 를 **뺐다** — 콘티 3면에 없다(상단 글쓰기 박스가 그 일을 한다).
+          ★박스는 목록과 함께 스크롤돼 사라지지만, 콘티가 그 배치다. 길게 읽다 쓰고 싶으면
+            위로 올리면 된다 — 아이콘 하나를 늘 띄우는 것보다 화면이 조용하다. */}
 
       {/* 이용약관 동의(Apple 1.2 — zero tolerance) */}
       <Modal statusBarTranslucent visible={eula} transparent animationType="fade" onRequestClose={() => setEula(false)}>
@@ -474,6 +482,13 @@ const styles = StyleSheet.create({
   bg: { flex: 1, backgroundColor: 'transparent' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   // paddingTop 은 렌더에서 insets.top + space(2) 로 준다(헤더를 껐으므로 — 위 주석). 여기 고정값을 두면 이중이 된다.
+  headBar: { flexDirection: 'row', alignItems: 'center', gap: space(3), paddingHorizontal: space(4), paddingBottom: space(2) },
+  headIcon: { fontSize: 20, lineHeight: 26, color: colors.ju },
+  menuBox: { marginHorizontal: space(4), backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.juLine, marginBottom: space(2) },
+  menuRow: { paddingHorizontal: space(4), paddingVertical: space(3) },
+  menuTx: { ...font.body, color: colors.ink },
+  searchBox: { marginHorizontal: space(4), backgroundColor: colors.sunk, borderRadius: radius.md, paddingHorizontal: space(3.5), marginBottom: space(2) },
+  searchTx: { paddingVertical: space(2.5), ...font.body, color: colors.ink },
   catBar: { borderBottomWidth: 1, borderBottomColor: colors.line },
   catRow: { paddingHorizontal: space(4), paddingBottom: space(3), gap: space(2) }, // ★space(24)→3(daniel 2026-08-05 IMG_8382 '카테고리 아래 공간이 너무 커' — 96pt 유령 패딩)
   catChip: { backgroundColor: colors.sunk, borderRadius: radius.pill, paddingHorizontal: space(4), paddingVertical: space(2), borderWidth: 1, borderColor: colors.line },

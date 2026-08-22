@@ -13,16 +13,16 @@
 //   ⚠️'로그인 안 됨'과 '대화 없음'은 **사용자가 할 일이 다르다.** 같은 빈 화면을 띄우면 안 된다.
 // ═══════════════════════════════════════════════════════════════════════════
 import { useEffect, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { PressableScale } from '../../components/PressableScale';
+import { BrandWordmark } from '../BrandWordmark';
 import { supabase } from '../../lib/supabase';
 import { withTimeout } from '../../lib/core/withTimeout';
 import { useAuth } from '../../lib/useAuth';
 import { consultantsSnapshot, listConsultants } from '../../lib/talk/consultants';
-import { HouseAdBanner } from '../HouseAdBanner';
 import { colors, space, radius, font } from '../../lib/theme';
 import { elementColor, elementText } from '../../lib/engine/ohaeng';
 
@@ -71,6 +71,9 @@ export function ChatList({ onOpen, selectedId, reloadKey = 0, wide, onSettings }
   const { session } = useAuth();
   // 콘티 2면의 필터 칩 상태(전체 · 선생님 AI · 무료 친구)
   const [filter, setFilter] = useState<'all' | 'teacher' | 'friend'>('all');
+  const [more, setMore] = useState(false);        // ⋮ 더보기(콘티 2면)
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [q, setQ] = useState('');                 // 이름 필터 — 온디바이스(원가 0)
   const [rows, setRows] = useState<Row[] | null>(null);   // null = 아직 모름(로딩)
 
   const load = useCallback(async () => {
@@ -109,20 +112,24 @@ export function ChatList({ onOpen, selectedId, reloadKey = 0, wide, onSettings }
 
   // ★묶음 판정은 **친구목록과 같은 출처**(`consultantsSnapshot`)를 쓴다 — 두 탭이 갈리면 안 된다
   const groupOf = (cid: string) => consultantsSnapshot().find((c) => c.id === cid)?.group;
-  const visible = filter === 'all' ? rows : rows.filter((r) => groupOf(r.consultantId) === filter);
+  const byFilter = filter === 'all' ? rows : rows.filter((r) => groupOf(r.consultantId) === filter);
+  // ★검색은 **거르기만** 한다(묶음·정렬을 건드리지 않는다)
+  const k = q.trim().toLowerCase();
+  const visible = k ? byFilter.filter((r) => r.name.toLowerCase().includes(k)) : byFilter;
 
   return (
     <ScrollView style={styles.wrap} contentContainerStyle={styles.body}>
       {/* ── 상단: 제목 + 아이콘 (Boss 2026-08-20 카톡 채팅목록 배치) ── */}
       <View style={styles.topRow}>
-        <Text style={styles.head}>{t('nav.chats', '운대화')}</Text>
-        {/* ★오픈채팅 진입은 **여기 하나**다 — 카톡도 오픈채팅은 채팅 탭 안에 있다.
-            연락처 탭에도 넣으면 '방'이 사람 목록에 섞여 뭐가 사람인지 흐려진다. */}
-        <PressableScale hitSlop={10} onPress={() => router.push('/rooms')}>
-          <Text style={styles.topIcon}>💬</Text>
+        {/* ★콘티 2면 헤더 = **워드마크 · 돋보기 · ⋮**. 제목 글자("운대화")가 아니다 —
+            탭바가 이미 어느 탭인지 말해 주므로 제목을 또 쓰면 같은 말이 두 번이다. */}
+        <BrandWordmark style={{ flex: 1 }} />
+        <PressableScale hitSlop={10} onPress={() => setSearchOpen((v) => !v)}>
+          <Text style={styles.topIcon}>{searchOpen ? '×' : '⌕'}</Text>
         </PressableScale>
-        <PressableScale hitSlop={10} onPress={onSettings}>
-          <Text style={styles.topIcon}>⚙︎</Text>
+        {/* ⋮ — 콘티의 더보기. ★오픈채팅과 설정이 여기로 들어간다(아이콘 둘을 하나로 접었다) */}
+        <PressableScale hitSlop={10} onPress={() => setMore((v) => !v)}>
+          <Text style={styles.topIcon}>⋮</Text>
         </PressableScale>
       </View>
 
@@ -138,9 +145,31 @@ export function ChatList({ onOpen, selectedId, reloadKey = 0, wide, onSettings }
         ))}
       </View>
 
-      {/* 배너 — 친구목록과 같은 자리(카톡도 두 탭 다 배너가 있다).
-          ⚠️좁은 칸에서는 숨긴다 — 배너는 넓은 폭 전제라 좁으면 글자가 세로로 흐른다. */}
-      {wide ? <View style={styles.banner}><HouseAdBanner /></View> : null}
+      {/* ⚠️배너를 **뺐다** — 콘티 2면에 없다(1면에서 뺀 것과 같은 이유). */}
+
+      {/* ⋮ 더보기 — 열렸을 때만. ★모달이 아니라 **접히는 줄**이다: 목록 위에서 바로 고르고 닫힌다 */}
+      {more ? (
+        <View style={styles.moreBox}>
+          <PressableScale style={styles.moreRow} onPress={() => { setMore(false); router.push('/rooms'); }}>
+            <Text style={styles.moreTx}>{t('rooms.title', '오픈채팅')}</Text>
+          </PressableScale>
+          <PressableScale style={styles.moreRow} onPress={() => { setMore(false); onSettings?.(); }}>
+            <Text style={styles.moreTx}>{t('my.settings', '설정 및 개인정보')}</Text>
+          </PressableScale>
+        </View>
+      ) : null}
+
+      {/* 검색 — ⌕ 로 연다(콘티 헤더의 돋보기) */}
+      {searchOpen ? (
+        <View style={styles.searchBox}>
+          <TextInput
+            value={q} onChangeText={setQ} autoFocus
+            style={styles.search} placeholder={t('talk.searchPh', '이름으로 찾기')}
+            placeholderTextColor={colors.inkFaint} returnKeyType="search"
+            // keyboard-safe: 목록 상단 검색창이라 키보드가 올라와도 가려지지 않는다
+          />
+        </View>
+      ) : null}
 
       {!visible.length ? (
         <View style={styles.center}>
@@ -192,6 +221,11 @@ const styles = StyleSheet.create({
   wrap: { flex: 1, backgroundColor: colors.bg },
   body: { paddingHorizontal: space(4), paddingTop: space(4), paddingBottom: space(20) },
   // ★아이콘이 둘이라 gap 을 준다 — 붙여 두면 오픈채팅을 누르려다 설정이 눌린다
+  moreBox: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.juLine, marginBottom: space(3) },
+  moreRow: { paddingHorizontal: space(4), paddingVertical: space(3) },
+  moreTx: { ...font.body, color: colors.ink },
+  searchBox: { backgroundColor: colors.sunk, borderRadius: radius.md, paddingHorizontal: space(3.5), marginBottom: space(3) },
+  search: { paddingVertical: space(2.5), ...font.body, color: colors.ink },
   chips: { flexDirection: 'row', gap: space(2), marginBottom: space(3) },
   chip: {
     paddingHorizontal: space(3.5), paddingVertical: space(1.5), borderRadius: radius.pill,

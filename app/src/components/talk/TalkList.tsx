@@ -16,11 +16,12 @@
 //   오행 색 + 이름 첫 글자로 버틴다. `avatar` 컬럼에 경로가 들어오면 그때부터 사진이 뜬다.
 //   ★색은 id 로 **고정 배정**한다. 매번 달라지면 사람이 얼굴로 못 외운다.
 // ═══════════════════════════════════════════════════════════════════════════
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, TextInput } from 'react-native';
 import { Image as ExpoImage } from 'expo-image';
 import { useTranslation } from 'react-i18next';
 import { PressableScale } from '../PressableScale';
+import { Swipeable } from 'react-native-gesture-handler';
 import { BrandWordmark } from '../BrandWordmark';
 import type { HomeBlockKey } from '../../lib/ui/homeOrder';
 import { colors, space, radius, font } from '../../lib/theme';
@@ -116,16 +117,40 @@ function Row({ c, initial, slot, on, onOpen, t }: {
 }) {
   const pinned = isPinned(c.id);
   const faved = isFavorite(c.id);
-  return (
+  const ref = useRef<Swipeable>(null);
+
+  /**
+   * 왼쪽으로 밀면 나오는 동작 — 즐겨찾기 켜기/끄기 (Boss 2026-08-22).
+   *
+   * ★고정된 친구(노쌤)는 **끌 수 없다**. 실수로 빼고 "없어졌다"가 되면 우리 잘못이라,
+   *   미는 것 자체를 막는다(동작이 없는 버튼을 보여 주는 것보다 낫다).
+   * ⚠️누르고 나면 **스스로 닫는다** — 열린 채로 두면 다음 줄을 누르려다 이걸 또 누른다.
+   */
+  const renderRight = () => (
+    <PressableScale
+      style={[styles.swipeAct, faved && styles.swipeActOff]}
+      onPress={() => { void toggleFavorite(c.id); ref.current?.close(); }}
+      accessibilityLabel={t(faved ? 'talk.unfav' : 'talk.fav', '즐겨찾기')}
+    >
+      <Text style={styles.swipeActTx}>
+        {faved ? t('talk.unfavShort', '해제') : t('talk.favShort', '즐겨찾기')}
+      </Text>
+    </PressableScale>
+  );
+
+  const row = (
     <PressableScale style={[styles.row, on && styles.rowOn]} onPress={() => onOpen(c)}>
       <Avatar name={c.name} initial={initial} slot={slot} uri={c.avatar} />
       <View style={styles.col}>
-        <Text style={styles.name} numberOfLines={1}>{c.name}</Text>
-        {/* 상태메시지 — 콘티는 이름 아래 한 줄을 둔다. 없으면 줄 자체를 그리지 않는다(빈 줄이 남지 않게) */}
+        <View style={styles.nameRow}>
+          <Text style={styles.name} numberOfLines={1}>{c.name}</Text>
+          {/* ★즐겨찾기 **상태 표시**는 남긴다(작은 별 하나).
+              콘티엔 별이 없지만, 조작을 스와이프로 감춘 마당에 상태까지 안 보이면
+              사용자는 자기가 켰는지 알 수 없다 — 그건 '없는 기능'이 된다. */}
+          {faved ? <Text style={styles.favDot}>★</Text> : null}
+        </View>
         {c.tagline ? <Text style={styles.tagline} numberOfLines={1}>{c.tagline}</Text> : null}
       </View>
-      {/* 시각 + 안 읽은 수 — 콘티 1면은 시각 **아래**에 보라 배지를 둔다.
-          ★배지는 0이면 그리지 않는다(0을 보여 주면 '안 읽은 게 있다'로 잘못 읽힌다). */}
       {c.lastAt || (c.unread ?? 0) > 0 ? (
         <View style={styles.rightCol}>
           {c.lastAt ? <Text style={styles.when}>{whenText(c.lastAt, t)}</Text> : null}
@@ -136,19 +161,15 @@ function Row({ c, initial, slot, on, onOpen, t }: {
           ) : null}
         </View>
       ) : null}
-      {/* 별 — ★고정된 친구는 **누를 수 없다**(실수로 빼고 "없어졌다"가 되면 우리 잘못이다).
-          그래서 고정은 별을 흐리게 두고 hitSlop 도 주지 않는다. */}
-      <PressableScale
-        hitSlop={pinned ? 0 : 10}
-        disabled={pinned}
-        onPress={() => { if (!pinned) void toggleFavorite(c.id); }}
-        accessibilityLabel={t(faved ? 'talk.unfav' : 'talk.fav', '즐겨찾기')}
-      >
-        <Text style={[styles.star, faved && styles.starOn, pinned && styles.starPinned]}>
-          {faved ? '★' : '☆'}
-        </Text>
-      </PressableScale>
     </PressableScale>
+  );
+
+  // 고정된 친구는 스와이프 자체를 막는다(위 주석)
+  if (pinned) return row;
+  return (
+    <Swipeable ref={ref} renderRightActions={renderRight} overshootRight={false} friction={2}>
+      {row}
+    </Swipeable>
   );
 }
 
@@ -378,6 +399,15 @@ const styles = StyleSheet.create({
   tagline: { ...font.caption, color: colors.inkFaint, marginTop: 1 },
   rightCol: { alignItems: 'flex-end', gap: 4, marginLeft: space(1) },
   when: { ...font.caption, color: colors.inkFaint },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: space(1.5) },
+  favDot: { fontSize: 12, color: colors.ju },
+  // 왼쪽으로 밀면 나오는 동작 — 줄 높이를 그대로 채운다(반만 차면 눌리는 곳이 좁아진다)
+  swipeAct: {
+    width: 88, justifyContent: 'center', alignItems: 'center',
+    backgroundColor: colors.ju, borderRadius: radius.md, marginVertical: 2,
+  },
+  swipeActOff: { backgroundColor: colors.inkFaint },
+  swipeActTx: { ...font.caption, color: colors.onJu, fontWeight: '800' },
   // 안 읽은 수 — 콘티의 보라 원. ★글자는 `onJu`(강조색 위 대비)
   unread: {
     minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 5,

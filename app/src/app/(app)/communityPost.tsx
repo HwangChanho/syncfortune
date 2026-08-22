@@ -13,7 +13,7 @@ import { SharedChart } from '../../components/SharedChart';
 import { Alert } from '../../lib/ui/alert';
 import { useAuth } from '../../lib/useAuth';
 import { getPost, listComments, addComment, toggleLike, likedPostIds, reportContent, blockUser, deletePost, deleteComment,
-  type CommunityPost, type CommunityComment, bumpView } from '../../lib/backend/community';
+  type CommunityPost, type CommunityComment, bumpView, pollVote, pollStats } from '../../lib/backend/community';
 import { withTimeout } from '../../lib/core/withTimeout'; // ★잠금 구간 네트워크 상한(멈춤 방지)
 import { colors, radius, space, font } from '../../lib/theme';
 import { SECTIONS } from '../../lib/content/contentSections'; // P2 후기 태그 딥링크
@@ -29,6 +29,7 @@ export default function CommunityPostScreen() {
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [poll, setPoll] = useState<{ my: number | null; total: number; counts: Record<string, number> } | null>(null);
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
   const [kbH, setKbH] = useState(0); // 키보드 높이(px) — 댓글 입력바를 키보드 바로 위로 올림(전역 네비바 보정)
@@ -52,6 +53,11 @@ export default function CommunityPostScreen() {
     } catch { /* 로드 실패 */ } finally { setLoading(false); }
   }, [id]);
   useEffect(() => { load(); }, [load]);
+
+  // 일진 글이면 체감 투표 집계를 읽어 온다(다른 글에는 없다)
+  useEffect(() => {
+    if (post?.kind === 'daily') pollStats(post.id).then(setPoll).catch(() => {});
+  }, [post?.kind, post?.id]);
 
   // ★조회수는 **본문을 연 이 자리**에서만 올린다(목록에 뜬 것은 조회가 아니다).
   //   ⚠️`load` 에 넣지 않는다 — 댓글 등록·좋아요마다 `load()` 가 다시 도는데 그때마다 오르면
@@ -152,6 +158,33 @@ export default function CommunityPostScreen() {
 
         <Text style={styles.body}>{post.body}</Text>
 
+        {/* ── 체감 투표 — ★일진 글에서만 (2026-08-22 목록에서 여기로 **옮겨 왔다**) ──
+            콘티 3면에 특별 카드가 없어 목록의 일진 카드를 뺐는데, 투표가 거기 있었다.
+            ⇒ 지우지 않고 이리로 옮겼다("옮길 곳을 먼저 만들고 뺀다").
+            ★집계는 10명부터 — 3명 중 2명 같은 표본은 사회적 증거가 아니라 소음이다. */}
+        {post.kind === 'daily' ? (
+          <View style={styles.pollWrap}>
+            <View style={styles.pollRow}>
+              {([1, 2, 3, 4, 5] as const).map((c) => {
+                const on = poll?.my === c;
+                const label = [t('community.p1', '아주 좋음'), t('community.p2', '좋음'), t('community.p3', '보통'),
+                               t('community.p4', '아쉬움'), t('community.p5', '힘듦')][c - 1];
+                return (
+                  <PressableScale key={c} style={[styles.pollChip, on && styles.pollChipOn]}
+                    onPress={() => { pollVote(post.id, c).then(() => pollStats(post.id).then(setPoll)).catch(() => {}); }}>
+                    <Text style={[styles.pollChipTx, on && styles.pollChipTxOn]}>{label}</Text>
+                  </PressableScale>
+                );
+              })}
+            </View>
+            {poll && poll.total >= 10 ? (
+              <Text style={styles.pollStat}>{t('community.pollStat', { total: poll.total, top: Math.round(100 * Math.max(...Object.values(poll.counts)) / poll.total), defaultValue: '{{total}}명 참여 · 가장 많은 선택 {{top}}%' })}</Text>
+            ) : poll?.my != null ? (
+              <Text style={styles.pollStat}>{t('community.pollMine', '참여 완료! 참여자가 모이면 통계가 보여요.')}</Text>
+            ) : null}
+          </View>
+        ) : null}
+
         {/* 액션 */}
         <View style={styles.actions}>
           <PressableScale style={styles.actBtn} onPress={onLike}><Text style={[styles.actTx, liked && styles.actOn]}>♥ {likeCount}</Text></PressableScale>
@@ -208,6 +241,13 @@ const styles = StyleSheet.create({
   title: { ...font.title, color: colors.ink, marginTop: space(1) },
   meta: { ...font.caption, color: colors.inkFaint, marginTop: space(1.5), marginBottom: space(4) },
   chartWrap: { marginBottom: space(5) }, // 첨부 명식 카드 ↔ 본문 간격
+  pollWrap: { marginTop: space(4), gap: space(2) },
+  pollRow: { flexDirection: 'row', flexWrap: 'wrap', gap: space(2) },
+  pollChip: { paddingHorizontal: space(3), paddingVertical: space(1.5), borderRadius: radius.pill, borderWidth: 1, borderColor: colors.juLine, backgroundColor: colors.bg },
+  pollChipOn: { backgroundColor: colors.ju, borderColor: colors.ju },
+  pollChipTx: { ...font.caption, color: colors.inkSoft, fontWeight: '700' },
+  pollChipTxOn: { color: colors.onJu },
+  pollStat: { ...font.caption, color: colors.inkFaint },
   body: { ...font.body, color: colors.ink, lineHeight: 25 },
   actions: { flexDirection: 'row', gap: space(2), marginTop: space(5), marginBottom: space(4), flexWrap: 'wrap' },
   actBtn: { backgroundColor: colors.sunk, borderRadius: radius.pill, paddingHorizontal: space(4), paddingVertical: space(2), borderWidth: 1, borderColor: colors.line },
