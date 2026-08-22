@@ -18,11 +18,14 @@ import { PossibilityGauge } from './PossibilityGauge';                   // 공�
 import { newyearSinsu, type SamjaeLabel } from '../lib/content/newyearGauge'; // 내년 신수 결정론 엔진
 
 // ── 삼재 신호등 색·문구(§4: 절대 붉은/공포색 아님 — 관리축 톤. 초록=없음 / 노랑=가장자리 / 주황=절정) ──
+// ⚠️★금색을 어둡게 바꿨다(2026-08-22) — 종전 #D9A441 은 **흰 카드 위 대비 2.25** 로 안 읽혔다.
+//   미드나잇(어두운) 테마 시절 값이 라벤더 전환 뒤에도 남아 있던 것이다.
+//   #A16C09 = 카드 4.50 · 배경 4.17 (계산해서 고른 값이지 눈으로 고르지 않았다).
 const SAMJAE_LIGHT: Record<SamjaeLabel, { color: string; title: string; sub: string }> = {
   none: { color: '#3E8E5A', title: '삼재 없음', sub: '내년은 삼재에 들지 않는 해예요' },
-  deul: { color: '#D9A441', title: '들삼재', sub: '삼재가 들어오기 시작하는 해예요' },
-  nul:  { color: '#D9773D', title: '눌삼재', sub: '삼재 한가운데를 지나는 해예요' },
-  nal:  { color: '#D9A441', title: '날삼재', sub: '삼재가 물러나는 해예요' },
+  deul: { color: '#A16C09', title: '들삼재', sub: '삼재가 들어오기 시작하는 해예요' },
+  nul:  { color: '#D4743B', title: '눌삼재', sub: '삼재 한가운데를 지나는 해예요' },
+  nal:  { color: '#A16C09', title: '날삼재', sub: '삼재가 물러나는 해예요' },
 };
 
 // 톤 → 게이지 경향 라벨/한 줄 문구(§4 경향·단정 금지 + 전향적). 재회/애정 게이지와 동일 결.

@@ -31,7 +31,7 @@ export type TarotCard = {
 
 // 수트 메타 — 한글명·원소·색(미드나잇 테마 카드 띠 색)
 export const SUIT_META: Record<Suit, { ko: string; element: string; color: string }> = {
-  major:     { ko: '메이저', element: '—', color: '#C9A14A' },   // 골드
+  major:     { ko: '메이저', element: '—', color: '#AC8A3F' },   // 골드
   wands:     { ko: '완드',   element: '火', color: '#C0392B' },   // 불
   cups:      { ko: '컵',     element: '水', color: '#3A6EA5' },   // 물
   swords:    { ko: '검',     element: '風', color: '#7A8AA0' },   // 바람

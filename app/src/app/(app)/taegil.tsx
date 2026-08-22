@@ -215,7 +215,7 @@ const styles = StyleSheet.create({
   monthTitle: { fontSize: 16, fontWeight: '800', color: colors.ju, marginBottom: space(2) },
   weekRow: { flexDirection: 'row', marginBottom: space(1) },
   weekHead: { width: `${100 / 7}%`, textAlign: 'center', ...font.caption, color: colors.inkFaint, fontWeight: '700' },
-  sun: { color: '#E5749B' },
+  sun: { color: '#D26A8E' },
   grid: { flexDirection: 'row', flexWrap: 'wrap' },
   cell: { width: `${100 / 7}%`, aspectRatio: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 2 },
   dot: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },

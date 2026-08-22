@@ -136,14 +136,14 @@ export default function CostTableScreen() {
     totCost += c * n; totRev += r.price * n; totAd += r.adEst * n; totNet += netPrice(r.price) * n;
   });
 
-  const typeColor = (t: Row['type']) => t === '유료' ? colors.ju : t === '광고무료' ? '#3FA7A0' : colors.inkSoft;
+  const typeColor = (t: Row['type']) => t === '유료' ? colors.ju : t === '광고무료' ? '#3B9C96' : colors.inkSoft;
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>
       <Text style={styles.title}>컨텐츠 비용·수익 분석</Text>
       <Text style={styles.note}>
         원가=<Text style={{ color: colors.ju, fontWeight: '800' }}>실측</Text>(Anthropic usage 토큰→₩, 통변 생성 시 자동 적재). 측정 전이면 "측정 필요".
-        가격=확정. 광고=<Text style={{ color: '#E5A93F' }}>추정</Text>(보상형≈₩20·배너≈₩3).
+        가격=확정. 광고=<Text style={{ color: '#A56900' }}>추정</Text>(보상형≈₩20·배너≈₩3).
       </Text>
 
       <View style={styles.scaleRow}>
@@ -156,7 +156,7 @@ export default function CostTableScreen() {
 
       <View style={styles.sumCard}>
         <View style={styles.sumItem}><Text style={styles.sumLabel}>총 원가(실측)</Text><Text style={[styles.sumVal, { color: '#E5484D' }]}>{won(totCost)}</Text></View>
-        <View style={styles.sumItem}><Text style={styles.sumLabel}>실수령(수수료·세금 후)</Text><Text style={[styles.sumVal, { color: '#3FA7A0' }]}>{won(totNet)}</Text></View>
+        <View style={styles.sumItem}><Text style={styles.sumLabel}>실수령(수수료·세금 후)</Text><Text style={[styles.sumVal, { color: '#3B9C96' }]}>{won(totNet)}</Text></View>
         <View style={styles.sumItem}><Text style={styles.sumLabel}>순마진(실수령−원가)</Text><Text style={[styles.sumVal, { color: colors.ju }]}>{won(totNet - totCost)}</Text></View>
       </View>
       <Text style={styles.adNote}>판매가 합계 {won(totRev)} → 애플 {Math.round(APPLE_CUT * 100)}%·세금 {Math.round(TAX_RATE * 100)}% 차감 = 실수령 {won(totNet)}(원가 차감 전). 광고(추정·별도) {won(totAd)}는 순익에서 제외(daniel).</Text>
@@ -177,11 +177,11 @@ export default function CostTableScreen() {
           <View key={r.name} style={styles.row}>
             <Text style={styles.cName} numberOfLines={1}>{r.name}</Text>
             <Text style={[styles.cType, { color: typeColor(r.type) }]}>{r.type}{r.api ? '·API' : ''}</Text>
-            <Text style={[styles.cNum, { color: c == null ? '#E5A93F' : c ? '#E5484D' : colors.inkFaint }]}>
+            <Text style={[styles.cNum, { color: c == null ? '#A56900' : c ? '#E5484D' : colors.inkFaint }]}>
               {c == null ? '측정필요' : c ? won(c) : '0'}
             </Text>
             <Text style={styles.cNum}>{r.price ? won(r.price) : r.adEst ? '광고~' + won(r.adEst) : '-'}</Text>
-            <Text style={[styles.cNum, { color: net == null ? colors.inkFaint : net >= 0 ? '#3FA7A0' : '#E5484D', fontWeight: '800' }]}>
+            <Text style={[styles.cNum, { color: net == null ? colors.inkFaint : net >= 0 ? '#3B9C96' : '#E5484D', fontWeight: '800' }]}>
               {net == null ? '—' : won(net)}
             </Text>
           </View>
@@ -227,8 +227,8 @@ const styles = StyleSheet.create({
   sumItem: { flex: 1, alignItems: 'center' },
   sumLabel: { fontSize: 11, color: colors.inkSoft, marginBottom: space(1) },
   sumVal: { fontSize: 15, fontWeight: '900' },
-  warn: { fontSize: 11, color: '#E5A93F', marginBottom: space(3), lineHeight: 15 },
-  adNote: { fontSize: 11, color: '#E5A93F', marginBottom: space(3), lineHeight: 16 },
+  warn: { fontSize: 11, color: '#A56900', marginBottom: space(3), lineHeight: 15 },
+  adNote: { fontSize: 11, color: '#A56900', marginBottom: space(3), lineHeight: 16 },
   row: { flexDirection: 'row', alignItems: 'center', paddingVertical: space(2.25), borderBottomWidth: 1, borderBottomColor: colors.line },
   head: { borderBottomWidth: 1.5, borderBottomColor: colors.ju, paddingBottom: space(2) },
   hTx: { fontWeight: '800', color: colors.ju, fontSize: 11 },

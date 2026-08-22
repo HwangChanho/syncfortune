@@ -234,7 +234,7 @@ export function matchHeadline(result: CelebMatchResult): string {
  * ★daniel 검수: 컷오프·라벨 문구 조정.
  */
 export function matchGrade(score: number): { label: string; emoji: string; color: string } {
-  if (score >= 75) return { label: '사주 동류', emoji: '✨', color: '#C9A14A' };
+  if (score >= 75) return { label: '사주 동류', emoji: '✨', color: '#AC8A3F' };
   if (score >= 55) return { label: '닮은 기운', emoji: '💫', color: '#8A7FBF' };
   if (score >= 35) return { label: '공통 에너지', emoji: '🔮', color: '#5A8A7F' };
   return { label: '다른 빛깔', emoji: '🌗', color: '#7A6A5A' };

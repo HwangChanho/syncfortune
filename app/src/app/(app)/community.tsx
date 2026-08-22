@@ -590,8 +590,11 @@ const styles = StyleSheet.create({
   titleInput: { ...font.heading, color: colors.ink, borderBottomWidth: 1, borderBottomColor: colors.line, paddingVertical: space(3) },
   bodyInput: { ...font.body, color: colors.ink, minHeight: 220, lineHeight: 24 },
   // 등록 에러 인라인
-  composeErrBox: { backgroundColor: '#3a1a1a', borderRadius: radius.md, borderWidth: 1, borderColor: '#E5484D', padding: space(3) },
-  composeErrTx: { ...font.caption, color: '#ff9a9a', lineHeight: 18 },
+  // ⚠️★어두운 붉은 상자(#3a1a1a)는 **미드나잇 테마 잔재**였다 — 대비는 맞았지만
+  //   흰 라벤더 화면에 검붉은 상자가 얹혀 혼자 다른 앱처럼 보였다. 라이트 톤으로 바꿨다.
+  //   글자 #CD3035 on #FDECEC = 4.52 (계산값).
+  composeErrBox: { backgroundColor: '#FDECEC', borderRadius: radius.md, borderWidth: 1, borderColor: '#F3C4C6', padding: space(3) },
+  composeErrTx: { ...font.caption, color: '#CD3035', lineHeight: 18 },
   // 등록 중 차단 오버레이(로딩)
   postingOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.35)', alignItems: 'center', justifyContent: 'center', gap: space(3) },
   postingTx: { ...font.body, color: colors.white, fontWeight: '700' },

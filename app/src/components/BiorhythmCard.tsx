@@ -16,7 +16,7 @@ import { useFontScale } from '../lib/ui/fontScale';
 // 3주기 고정색(오행 팔레트에서 차용 — 火 신체 / 土 감정 / 水 지성). 오늘 값 라벨·곡선 공용.
 const AXES = [
   { key: 'physical', label: '신체', color: '#E1483A' },
-  { key: 'emotional', label: '감정', color: '#C79A2E' },
+  { key: 'emotional', label: '감정', color: '#AF8728' },
   { key: 'intellectual', label: '지성', color: '#3B6EC4' },
 ] as const;
 
