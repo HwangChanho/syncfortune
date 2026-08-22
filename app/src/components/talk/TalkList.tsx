@@ -17,7 +17,7 @@
 //   ★색은 id 로 **고정 배정**한다. 매번 달라지면 사람이 얼굴로 못 외운다.
 // ═══════════════════════════════════════════════════════════════════════════
 import { useState, useMemo, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, TextInput } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TextInput, Platform } from 'react-native';
 import { Image as ExpoImage } from 'expo-image';
 import { useTranslation } from 'react-i18next';
 import { PressableScale } from '../PressableScale';
@@ -165,6 +165,21 @@ function Row({ c, initial, slot, on, onOpen, t }: {
 
   // 고정된 친구는 스와이프 자체를 막는다(위 주석)
   if (pinned) return row;
+  // ⚠️★**웹에서는 스와이프로 켤 수 없다**(Boss 2026-08-23 *"웹에서는 즐겨찾기 목록이 안나오는데"*).
+  //   미는 동작은 터치 관용구다 — 마우스로는 되더라도 아무도 시도하지 않는다.
+  //   실측: 웹 목록에 별이 **하나**(고정된 노쌤)뿐이었다. 켤 방법이 없으니 당연히 목록이 빈다.
+  //   ⇒ 웹에서는 **누르는 별**을 준다. 같은 `toggleFavorite` 을 부르므로 결과는 한 곳으로 모인다.
+  if (Platform.OS === 'web') {
+    return (
+      <View style={styles.rowWrap}>
+        {row}
+        <PressableScale style={styles.webStar} hitSlop={8} onPress={() => { void toggleFavorite(c.id); }}
+                        accessibilityLabel={t(faved ? 'talk.unfav' : 'talk.fav', '즐겨찾기')}>
+          <Text style={[styles.webStarTx, faved && styles.webStarOn]}>{faved ? '★' : '☆'}</Text>
+        </PressableScale>
+      </View>
+    );
+  }
   return (
     <Swipeable ref={ref} renderRightActions={renderRight} overshootRight={false} friction={2}>
       {row}
@@ -255,11 +270,12 @@ export function TalkList({ items, onOpen, selected, myName, onMe, myAvatar, rail
    * ★`favTick` 에 의존시킨다 — 즐겨찾기는 모듈 전역 상태라 이게 없으면 별을 눌러도 순서가 안 바뀐다.
    */
   const byGroup = useMemo(() => {
-    const pick = (g: 'teacher' | 'friend') =>
-      shown.filter((c) => c.group === g).slice()
-        .sort((a, b) => Number(isFavorite(b.id)) - Number(isFavorite(a.id)));
-    return { teacher: pick('teacher'), friend: pick('friend') };
+    // ★즐겨찾기는 **위 칸으로 빠진다** — 두 곳에 같은 사람이 뜨면 "왜 두 번 있지"가 된다.
+    const rest = shown.filter((c) => !isFavorite(c.id));
+    return { teacher: rest.filter((c) => c.group === 'teacher'), friend: rest.filter((c) => c.group === 'friend') };
   }, [shown, favTick]);
+  /** 즐겨찾기 칸 — 서버 순서 그대로(별을 켠 순서가 아니라 목록 순서라야 매번 같은 자리다). */
+  const favRows = useMemo(() => shown.filter((c) => isFavorite(c.id)), [shown, favTick]);
 
   return (
     <ScrollView style={styles.wrap} contentContainerStyle={styles.body}>
@@ -336,7 +352,22 @@ export function TalkList({ items, onOpen, selected, myName, onMe, myAvatar, rail
               그래야 콘티와 같은 모양이면서 별(즐겨찾기)이 하는 일도 남는다 —
               칸만 지우고 정렬을 안 바꾸면 별이 아무 일도 안 하는 장식이 된다. */}
 
-      {/* ⚠️「친구 N명」 줄도 콘티에 없다 — 뺐다(수를 세는 자리가 아니라 사람을 찾는 자리다). */}
+      {/* ── 즐겨찾기 ────────────────────────────────────────────────────
+          ★2026-08-23 되살렸다(Boss *"웹에서는 즐겨찾기 목록이 안나오는데"*).
+          ⚠️★**있을 때만 그린다.** 콘티에 이 칸이 없는 건 그 화면에 즐겨찾기가 없었기 때문으로 읽는다 —
+            비어 있을 때는 콘티와 **똑같은 화면**이 되고, 켠 사람에게만 칸이 생긴다.
+            (어제는 칸을 통째로 없앴는데, 그러면 켜도 아무 데도 안 보인다.)
+          ★검색 중에는 접는다 — 찾는 중에 고정 칸이 위를 먹으면 결과가 밀린다. */}
+      {!q.trim() && favRows.length > 0 ? (
+        <>
+          <Text style={styles.groupHead}>{t('talk.favorites', '즐겨찾기')}</Text>
+          {favRows.map((c) => (
+            <Row key={`fav-${c.id}`} c={c} initial={initialOf(c.id)} slot={slotOf(c.id)}
+                 on={selected === c.id} onOpen={onOpen} t={t as never} />
+          ))}
+        </>
+      ) : null}
+
 
       {/* ── 친구 ── */}
       {/* ★두 묶음을 **나눠서** 보여 준다(콘티) — 섞으면 "사주 상담"과 "생활 친구"가 뒤엉킨다.
@@ -408,6 +439,11 @@ const styles = StyleSheet.create({
   rightCol: { alignItems: 'flex-end', gap: 4, marginLeft: space(1) },
   when: { ...font.caption, color: colors.inkFaint },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: space(1.5) },
+  // 웹 전용 별 — 줄 위에 겹쳐 올린다(줄 자체 레이아웃을 건드리지 않는다)
+  rowWrap: { position: 'relative' },
+  webStar: { position: 'absolute', right: space(2), top: 0, bottom: 0, justifyContent: 'center', paddingHorizontal: space(1) },
+  webStarTx: { fontSize: 16, color: colors.inkFaint },
+  webStarOn: { color: colors.ju },
   favDot: { fontSize: 12, color: colors.ju },
   // 왼쪽으로 밀면 나오는 동작 — 줄 높이를 그대로 채운다(반만 차면 눌리는 곳이 좁아진다)
   swipeAct: {
