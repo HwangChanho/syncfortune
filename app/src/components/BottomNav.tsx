@@ -153,7 +153,15 @@ export function BottomNav() {
   // Android 만 시스템 내비 인셋 반영(iOS 는 승인된 고정 여백 유지). 렌더마다 모듈 변수 동기화.
   // ★붙이되 **안전영역만큼은** 띄운다(iOS 홈 인디케이터 · Android 3버튼 내비).
   //   종전엔 iOS 만 고정 16pt 였는데, 붙이기로 한 이상 두 OS 가 같은 규칙을 쓰는 게 맞다.
-  const marginBottom = Math.max(NAV_MARGIN_BOTTOM, insets.bottom);
+  /**
+   * ★★2026-08-23 Boss *"탭바 아래로 내리고"* — 바를 **화면 바닥에 붙인다**(바깥 여백 0).
+   *
+   * ⚠️★그런데 여백만 0 으로 두면 **안드로이드 3버튼 내비가 탭바를 덮는다**
+   *   (`check:platform` P6 가 바로 잡아 줬다 — 여백을 지우자마자 빨간불이 됐다).
+   *   ⇒ 바깥 여백(marginBottom)은 0, 대신 **바 안쪽에 `insets.bottom` 만큼 패딩**을 준다.
+   *     배경은 화면 끝까지 내려가고 아이콘만 인디케이터·내비 위로 올라온다 — 이게 표준 모양이다.
+   */
+  const marginBottom = 0;
   _navMarginBottom = marginBottom;
   const { t } = useTranslation();
   // ★★커뮤니티 탭은 **원격 플래그**로 가린다(2026-08-19 3탭 전환에서 복구).
@@ -165,7 +173,7 @@ export function BottomNav() {
   const commOn = useFeatureOn('community');
   const tabs = ALL_TABS.filter((tb) => tb.key !== 'community' || commOn);
   return (
-    <View style={[styles.bar, { marginBottom }]} onLayout={(e) => { _navBarHeight = e.nativeEvent.layout.height; }}>
+    <View style={[styles.bar, { marginBottom, paddingBottom: space(3) + insets.bottom }]} onLayout={(e) => { _navBarHeight = e.nativeEvent.layout.height; }}>
       {tabs.map((tb) => {
         const on = isTabActive(tb.key, path);
         return (

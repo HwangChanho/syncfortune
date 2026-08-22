@@ -22,7 +22,6 @@ import { Image as ExpoImage } from 'expo-image';
 import { useTranslation } from 'react-i18next';
 import { PressableScale } from '../PressableScale';
 import { Swipeable } from 'react-native-gesture-handler';
-import { BrandWordmark } from '../BrandWordmark';
 import type { HomeBlockKey } from '../../lib/ui/homeOrder';
 import { colors, space, radius, font } from '../../lib/theme';
 import { elementColor, elementText } from '../../lib/engine/ohaeng';
@@ -272,7 +271,15 @@ export function TalkList({ items, onOpen, selected, myName, onMe, myAvatar, rail
           ⚠️돋보기를 **되살렸다**(08-20 에 뺐던 것). 콘티에 있고, 이제 친구가 열둘이라
             "검색할 게 없다"던 그때 근거가 더는 맞지 않는다. */}
       <View style={styles.topRow}>
-        <BrandWordmark style={{ flex: 1 }} />
+        {/* ★★워드마크가 아니라 **내 이름**이다(Boss 2026-08-23).
+            워드마크는 이 화면 **바로 위**(`index.tsx` 헤더)에 이미 있어 둘이 겹쳐 보였다 —
+            *"니운내운 두번뜨는거 제일상단꺼만 남겨둬"*. 위 것을 남기고 여기는 이름으로 바꿨다.
+            ★누르면 **만세력**(`/charts`)으로 간다(Boss 지시). */}
+        <PressableScale style={styles.meBtn} onPress={onMe}>
+          <Text style={styles.meName} numberOfLines={1}>
+            {myName ?? t('talk.meNoChart', '명식을 등록하면 이름이 나와요')}
+          </Text>
+        </PressableScale>
         <PressableScale hitSlop={10} onPress={() => setSearchOpen((v) => !v)}>
           <Text style={styles.topIcon}>{searchOpen ? '×' : '⌕'}</Text>
         </PressableScale>
@@ -387,7 +394,8 @@ const styles = StyleSheet.create({
 
   // 상단 행 — 아바타 + 이름 + 아이콘들(카톡 배치)
   topRow: { flexDirection: 'row', alignItems: 'center', gap: space(3), paddingVertical: space(2), marginBottom: space(3) },
-  meName: { flex: 1, minWidth: 0, fontSize: 19, lineHeight: 26, fontWeight: '900', color: colors.ink, letterSpacing: -0.4 },
+  meBtn: { flex: 1, minWidth: 0 },
+  meName: { fontSize: 19, lineHeight: 26, fontWeight: '900', color: colors.ink, letterSpacing: -0.4 },
   // ★아이콘을 키웠다(20 → 26, Boss 2026-08-20 "너무 작아"). 손끝은 44pt 를 필요로 하는데
   //   글리프가 작으면 눌러도 눌린 것 같지 않다 — 여백(hitSlop)만 넓히면 '보이지 않는 버튼'이 된다.
   topIcon: { fontSize: 26, lineHeight: 30, color: colors.inkSoft, paddingHorizontal: space(2) },

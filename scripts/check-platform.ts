@@ -107,7 +107,16 @@ console.log('📱 check:platform — Android/iOS 갈림 방지\n');
 // ── P6: BottomNav 는 Android 시스템 내비 인셋을 반영해야 한다 ───────────────
 {
   const src = readFileSync(join(ROOT, 'app/src/components/BottomNav.tsx'), 'utf8');
-  if (/Math\.max\(NAV_MARGIN_BOTTOM,\s*insets\.bottom\)/.test(src)) ok('[P6] BottomNav 가 Android 인셋(3버튼 내비) 반영');
+  // ⚠️★**이름(특정 식)이 아니라 성질로** 본다 (2026-08-23).
+  //   전에는 `Math.max(NAV_MARGIN_BOTTOM, insets.bottom)` 이라는 **한 가지 구현**을 문자열로 찾았다.
+  //   그래서 바를 바닥에 붙이고 `paddingBottom: space(3) + insets.bottom` 으로 **더 낫게** 고쳤더니
+  //   빨간불이 났다 — 하네스가 옛 구현을 강제하고 있었던 것이다([[harness-judge-expression-not-name]]).
+  //   ⇒ 지켜야 할 성질은 하나다: **바가 `insets.bottom` 을 어떤 형태로든 소비하는가.**
+  //     (바깥 여백이든 안쪽 패딩이든, 아이콘이 시스템 내비 위로 올라오기만 하면 된다.)
+  const barLine = /<View style=\{\[styles\.bar[^\n]*/.exec(src)?.[0] ?? '';
+  const marginUses = /const marginBottom\s*=[^;]*insets\.bottom/.test(src);
+  const paddingUses = /insets\.bottom/.test(barLine);
+  if (marginUses || paddingUses) ok('[P6] BottomNav 가 Android 인셋(3버튼 내비) 반영');
   else bad('[P6] BottomNav 가 시스템 내비 인셋을 안 받는다 — Android 3버튼 기기에서 탭바가 덮인다');
 }
 
