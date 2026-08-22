@@ -17,6 +17,7 @@ import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TextInput } from
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import { Image as ExpoImage } from 'expo-image';
 import { PressableScale } from '../../components/PressableScale';
 import { BrandWordmark } from '../BrandWordmark';
 import { supabase } from '../../lib/supabase';
@@ -112,6 +113,13 @@ export function ChatList({ onOpen, selectedId, reloadKey = 0, wide, onSettings }
 
   // ★묶음 판정은 **친구목록과 같은 출처**(`consultantsSnapshot`)를 쓴다 — 두 탭이 갈리면 안 된다
   const groupOf = (cid: string) => consultantsSnapshot().find((c) => c.id === cid)?.group;
+  /**
+   * 상담가 사진 — ★친구목록과 **같은 출처**(`consultantsSnapshot`)에서 가져온다.
+   * ⚠️Boss 2026-08-23 *"친구리스트에서 변경된 사진이 대화리스트에서는 반영이 안되어있어"* —
+   *   이 목록은 `talk_session_list` 뷰만 읽어서 **사진 칸이 아예 없었다**(오행 색 + 첫 글자만 그렸다).
+   *   질의를 새로 만들지 않는다 — 친구목록이 이미 받아 둔 것을 그대로 쓴다.
+   */
+  const avatarOf = (cid: string) => consultantsSnapshot().find((c) => c.id === cid)?.avatar ?? null;
   const byFilter = filter === 'all' ? rows : rows.filter((r) => groupOf(r.consultantId) === filter);
   // ★검색은 **거르기만** 한다(묶음·정렬을 건드리지 않는다)
   const k = q.trim().toLowerCase();
@@ -189,9 +197,13 @@ export function ChatList({ onOpen, selectedId, reloadKey = 0, wide, onSettings }
         const el = EL[(i + 1) % EL.length];
         return (
           <PressableScale key={r.id} style={[styles.row, selectedId === r.consultantId && styles.rowOn]} onPress={() => onOpen(r.consultantId)}>
-            <View style={[styles.av, { backgroundColor: elementColor[el] }]}>
-              <Text style={{ color: elementText[el], fontWeight: '900', fontSize: 19 }}>{r.name.slice(0, 1)}</Text>
-            </View>
+            {avatarOf(r.consultantId)
+              ? <ExpoImage source={{ uri: avatarOf(r.consultantId) as string }} style={styles.av} contentFit="cover" transition={140} />
+              : (
+                <View style={[styles.av, { backgroundColor: elementColor[el] }]}>
+                  <Text style={{ color: elementText[el], fontWeight: '900', fontSize: 19 }}>{r.name.slice(0, 1)}</Text>
+                </View>
+              )}
             <View style={styles.col}>
               <Text style={styles.name} numberOfLines={1}>{r.name}</Text>
               {/* 마지막에 물어본 것 — 무슨 얘기였는지가 이름보다 기억을 되살린다 */}
