@@ -11,7 +11,7 @@
 // ■ 콘텐츠 카드가 대화 안에 들어간다
 //   가상 상담사의 존재 이유가 '기존 콘텐츠로 데려다주는 것'이라, 링크는 덧붙임이 아니라 **본문**이다.
 // ═══════════════════════════════════════════════════════════════════════════
-import { useRef, useEffect, type ReactNode } from 'react';
+import { useRef, useEffect, useState, type ReactNode } from 'react';
 import { View, Text, StyleSheet, ScrollView, Animated } from 'react-native';
 import { Image as ExpoImage } from 'expo-image';
 import { PressableScale } from '../PressableScale';
@@ -24,6 +24,11 @@ export type TalkItem = {
   role: 'user' | 'assistant';
   body: string;
   links?: { key: string; label: string; route: string }[];
+  /**
+   * 서버 `talk_messages.id`. **정리에서 원문으로 데려갈 때** 쓴다(Boss 2026-08-23).
+   * 없으면 그 줄로는 못 뛴다(화면에서만 만든 인사·안내 말풍선 등).
+   */
+  msgId?: number;
   /**
    * 말풍선 대신 **화면 한 덩이**를 넣는다(홈 블록 친구).
    * ★말풍선으로 감싸지 않는다 — 카드가 말풍선 안에 들어가면 폭이 좁아져 원래 레이아웃이 깨진다.
@@ -84,19 +89,43 @@ function TypingBubble() {
  * @param busy     답을 기다리는 중(점 세 개)
  * @param onLink   콘텐츠 카드를 눌렀을 때
  */
-export function TalkThread({ items, busy, onLink }: {
+export function TalkThread({ items, busy, onLink, jumpTo }: {
   items: TalkItem[];
   busy?: boolean;
   onLink: (route: string) => void;
+  /**
+   * 이 `talk_messages.id` 로 **스크롤해서 잠깐 밝힌다**(정리 → 원문).
+   * ★같은 값을 또 넣어도 다시 뛰게 하려면 호출부가 값을 비웠다 넣는다.
+   */
+  jumpTo?: number | null;
 }) {
   const ref = useRef<ScrollView>(null);
+  // 말풍선마다 세로 위치를 적어 둔다 — 정리에서 뛸 때 이 값으로 스크롤한다.
+  const yRef = useRef<Record<number, number>>({});
+  const [lit, setLit] = useState<number | null>(null);   // 잠깐 밝힐 대상
   // 새 말풍선이 붙으면 아래로 — 대화는 마지막 줄이 중요하다
   useEffect(() => { ref.current?.scrollToEnd({ animated: true }); }, [items.length, busy]);
+
+  // ★정리에서 뛰어오면: 그 자리로 스크롤 + 1.6초간 밝힌다.
+  //   ⚠️밝히지 않으면 어디로 왔는지 모른다 — 스크롤만 하면 '아무 일도 안 일어난 것'처럼 보인다.
+  useEffect(() => {
+    if (jumpTo == null) return;
+    const y = yRef.current[jumpTo];
+    if (y == null) return;                                   // 아직 안 그려진 줄(이력 밖) — 조용히 넘어간다
+    ref.current?.scrollTo({ y: Math.max(0, y - 40), animated: true });
+    setLit(jumpTo);
+    const t = setTimeout(() => setLit(null), 1600);
+    return () => clearTimeout(t);
+  }, [jumpTo]);
 
   return (
     <ScrollView ref={ref} style={styles.wrap} contentContainerStyle={styles.body}>
       {items.map((m) => (
-        <View key={m.id} style={m.role === 'user' ? styles.mineRow : styles.themRow}>
+        <View
+          key={m.id}
+          style={[m.role === 'user' ? styles.mineRow : styles.themRow, lit != null && m.msgId === lit && styles.litRow]}
+          onLayout={(e) => { if (m.msgId != null) yRef.current[m.msgId] = e.nativeEvent.layout.y; }}
+        >
           {/* 여럿이 있는 자리 = 누가 한 말인지 먼저. ★말풍선 위가 아니라 **왼쪽**에 두면 줄이 흔들린다 */}
           {m.who && m.role !== 'user' ? (
             <View style={styles.whoRow}>
@@ -176,6 +205,8 @@ const styles = StyleSheet.create({
   // 그림 — 말풍선보다 살짝 좁게(84%) 두어 '얹힌 것'으로 보이게. 높이는 비율 고정.
   photo: { width: '68%', aspectRatio: 16 / 10, borderRadius: radius.lg, marginTop: space(2) },
   links: { marginTop: space(2), gap: space(1.5), alignSelf: 'stretch' },
+  // 정리에서 뛰어온 줄을 잠깐 밝힌다 — 어디로 왔는지 보이게(스크롤만 하면 아무 일도 안 한 것 같다)
+  litRow: { backgroundColor: colors.juSoft, borderRadius: radius.md },
   link: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     backgroundColor: colors.card, borderRadius: radius.md,

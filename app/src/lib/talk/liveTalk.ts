@@ -20,6 +20,8 @@ import { withTimeout } from '../core/withTimeout';
 export type LiveReply =
   | {
       ok: true; sessionId: string; answer: string; used: number; freeDaily: number; overFree: boolean;
+      /** ★이번 답에서 뽑힌 정리(없으면 빈 배열). 서버가 저장까지 마친 뒤 알려 준다. */
+      notes?: { kind: 'me' | 'when' | 'todo' | 'said'; body: string }[];
       /** ★대화 중 안내할 콘텐츠 키(없으면 null). 서버가 답에서 마커를 떼어 내고 여기로 준다.
        *  키 → 라벨·라우트 변환은 화면이 `contentSections` 로 한다(목록의 단일 출처). */
       recommend?: string | null;
@@ -71,6 +73,7 @@ export async function askLive(
       used: data.used ?? 0, freeDaily: data.freeDaily ?? 0, overFree: !!data.overFree,
       // ⚠️문자열일 때만 받는다 — 서버가 안 주거나 다른 걸 주면 '추천 없음'으로 떨어진다(화면이 안 깨지게)
       recommend: typeof data.recommend === 'string' ? data.recommend : null,
+      notes: Array.isArray(data.notes) ? data.notes : [],
     };
   } catch (e) {
     console.warn('[talk] askLive threw', e);
@@ -90,7 +93,7 @@ export async function askLive(
  * @returns 세션과 지난 메시지(오래된 것부터). 없으면 null
  */
 export async function loadThread(consultantId: string): Promise<
-  { sessionId: string; messages: { role: 'user' | 'assistant'; body: string }[] } | null
+  { sessionId: string; messages: { id: number; role: 'user' | 'assistant'; body: string }[] } | null
 > {
   try {
     const s = await withTimeout(
@@ -103,12 +106,13 @@ export async function loadThread(consultantId: string): Promise<
     if (!sid) return null;
     const m = await withTimeout(
       supabase.from('talk_messages')
-        .select('role, body').eq('session_id', sid)
+        // ★id 도 읽는다 — 정리에서 **원문으로 데려갈 때** 이 값으로 찾는다(Boss 2026-08-23)
+        .select('id, role, body').eq('session_id', sid)
         .order('sent_at', { ascending: true }).limit(60),   // 화면에 60개면 충분하다(그 위는 스크롤로도 안 본다)
       8000,
     );
     const messages = m && !m.error && Array.isArray(m.data)
-      ? (m.data as any[]).map((x) => ({ role: x.role === 'user' ? 'user' as const : 'assistant' as const, body: String(x.body ?? '') }))
+      ? (m.data as any[]).map((x) => ({ id: Number(x.id), role: x.role === 'user' ? 'user' as const : 'assistant' as const, body: String(x.body ?? '') }))
       : [];
     return { sessionId: sid, messages };
   } catch (e) {

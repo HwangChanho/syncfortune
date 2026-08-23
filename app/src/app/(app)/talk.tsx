@@ -26,6 +26,8 @@ import { PressableScale } from '../../components/PressableScale';
 import { TalkList } from '../../components/talk/TalkList';
 import { ChatList } from '../../components/talk/ChatList';
 import { TalkThread, type TalkItem } from '../../components/talk/TalkThread';
+import { TalkNotes } from '../../components/talk/TalkNotes';                 // 대화 정리 줄(Boss 2026-08-23)
+import { listNotes, type TalkNote } from '../../lib/talk/talkNotes';
 import { listConsultants, consultantsSnapshot, type Consultant } from '../../lib/talk/consultants';
 import { greet, todayFlow, guide, type VirtualReply } from '../../lib/talk/virtualTalk';
 import { askLive, loadThread, deleteThread } from '../../lib/talk/liveTalk';
@@ -115,6 +117,16 @@ export function TalkHome({ renderTop, mode = 'contacts' }: { renderTop?: ReactNo
   const [chartId, setChartId] = useState<string | null>(null);
   const [myName, setMyName] = useState<string | null>(null);   // 친구목록 상단 '나'
   const [myAvatar, setMyAvatar] = useState<string | null>(profileSnapshot().avatarUrl);
+  // ── 대화 정리(Boss 2026-08-23) ───────────────────────────────────────────
+  const [notes, setNotes] = useState<TalkNote[]>([]);
+  // ★기본은 접힘. 한 번 펴 본 사람에게는 그대로 펴진 채로 둔다(앱을 켜 둔 동안).
+  const [notesOpen, setNotesOpen] = useState(false);
+  const [jumpTo, setJumpTo] = useState<number | null>(null);
+  /** 이 방의 정리를 다시 읽는다. 세션이 없으면 비운다(정리 줄이 안 뜬다). */
+  const refreshNotes = useCallback((sessionId: string | null | undefined) => {
+    if (!sessionId) { setNotes([]); return; }
+    void listNotes(sessionId).then(setNotes);
+  }, []);
   const [friends, setFriends] = useState<Friend[]>([]);   // 실제 사람 친구(상담가와 다른 섹션)
   const { order } = useHomeOrder();     // 콘텐츠 레일 = **홈 순서 그대로**(운영자가 정한 것을 따른다)
   const [draft, setDraft] = useState('');
@@ -270,6 +282,9 @@ export function TalkHome({ renderTop, mode = 'contacts' }: { renderTop?: ReactNo
   //   실제 상담사였다면 그것만으로 API 를 태울 수도 있었다(첫 인사는 공짜라 태우진 않았지만, 구조가 위험했다).
   const open = useCallback((c: Consultant) => {
     setCur(c);
+    // ⚠️먼저 비운다 — 안 비우면 **직전 방의 정리**가 잠깐 보인다
+    setNotes([]); setJumpTo(null);
+    refreshNotes(sessRef.current[c.id]);
     // ★대화를 열면 **읽음 처리**한다 — 안 그러면 배지가 영원히 남는다.
     //   시각은 서버가 `now()` 로 찍는다(앱이 값을 보내면 미래 시각으로 배지를 지울 수 있다).
     //   실패해도 대화는 열린다(배지가 한 번 더 뜰 뿐이다).
@@ -300,6 +315,7 @@ export function TalkHome({ renderTop, mode = 'contacts' }: { renderTop?: ReactNo
       void loadThread(c.id).then((th) => {
         if (!th) return;
         sessRef.current[c.id] = th.sessionId;
+        refreshNotes(th.sessionId);        // 방을 열면 정리도 같이 읽는다
         if (th.messages.length) {
           clearTimers();          // ★지난 대화를 복원할 때는 인사 타이핑을 멈춘다(이력이 먼저다)
           setBusy(false);
@@ -309,7 +325,8 @@ export function TalkHome({ renderTop, mode = 'contacts' }: { renderTop?: ReactNo
           setItems(th.messages.map((m) => {
             const p = m.role === 'assistant' ? pickTalkImage(m.body, used) : null;
             if (p) used.add(p.art);
-            return { id: nextId(), role: m.role, body: m.body, image: p?.source };
+            // ★msgId 를 싣는다 — 정리에서 원문으로 데려갈 때 이 값으로 찾는다
+            return { id: nextId(), msgId: m.id, role: m.role, body: m.body, image: p?.source };
           }));
           usedArtRef.current = used;
           void markRead(th.sessionId);
@@ -347,6 +364,8 @@ export function TalkHome({ renderTop, mode = 'contacts' }: { renderTop?: ReactNo
       .then((r) => {
         if (r.ok) {
           sessRef.current[cur.id] = r.sessionId;   // 다음 턴부터 이력이 이어진다
+          // ★이번 턴에 남긴 게 있을 때만 다시 읽는다 — 매 턴 조회하면 헛돈다
+          if (r.notes?.length) refreshNotes(r.sessionId);
           // 방금 내가 읽은 답이므로 읽음 처리 + 목록 갱신(미리보기·시각이 바로 반영된다)
           void markRead(r.sessionId);
           // ★★말풍선을 **나눠서 순차로** 띄운다(Boss 2026-08-20 *"채팅하듯이 짧게 짧게"*).
@@ -496,7 +515,12 @@ export function TalkHome({ renderTop, mode = 'contacts' }: { renderTop?: ReactNo
                 </PressableScale>
               </View>
               {askDelete ? <DeleteBar onCancel={() => setAskDelete(false)} onOk={onDeleteThread} t={t as never} /> : null}
-              <TalkThread items={items} busy={busy} onLink={(r) => router.push(r as never)} />
+              <TalkNotes
+                notes={notes} open={notesOpen} onToggle={() => setNotesOpen((v) => !v)}
+                onJump={(mid) => { setJumpTo(null); requestAnimationFrame(() => setJumpTo(mid)); }}
+                onChanged={() => refreshNotes(cur ? sessRef.current[cur.id] : null)}
+              />
+              <TalkThread items={items} busy={busy} onLink={(r) => router.push(r as never)} jumpTo={jumpTo} />
               {composer}
             </>
           ) : (
@@ -535,7 +559,12 @@ export function TalkHome({ renderTop, mode = 'contacts' }: { renderTop?: ReactNo
         </PressableScale>
       </View>
       {askDelete ? <DeleteBar onCancel={() => setAskDelete(false)} onOk={onDeleteThread} t={t as never} /> : null}
-      <TalkThread items={items} busy={busy} onLink={(r) => router.push(r as never)} />
+      <TalkNotes
+        notes={notes} open={notesOpen} onToggle={() => setNotesOpen((v) => !v)}
+        onJump={(mid) => { setJumpTo(null); requestAnimationFrame(() => setJumpTo(mid)); }}
+        onChanged={() => refreshNotes(cur ? sessRef.current[cur.id] : null)}
+      />
+      <TalkThread items={items} busy={busy} onLink={(r) => router.push(r as never)} jumpTo={jumpTo} />
       {composer}
     </View>
   );
