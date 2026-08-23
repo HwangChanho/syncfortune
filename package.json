@@ -121,6 +121,7 @@
     "check:adminkeys": "npx tsx scripts/check-adminkeys.ts",
     "deploy:admin": "bash scripts/deploy-admin.sh",
     "check:healthsafe": "npx tsx scripts/check-healthsafe.ts",
+    "avatars:recv": "npx tsx scripts/avatars-receive.ts",
     "avatars:upload": "npx tsx scripts/avatars-upload.ts",
     "avatars:brief": "npx tsx scripts/avatars-brief.ts",
     "avatars:gen": "npx tsx scripts/avatars-gen.ts",
