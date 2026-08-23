@@ -31,7 +31,7 @@ import { useWebCols } from '../../components/WebShell'; // 넓은 웹 = 2열(폰
 import { appLang } from '../../lib/i18n';
 import { createInvite, collectEntries } from '../../lib/backend/mapInvite';
 import { Alert } from '../../lib/ui/alert';
-import { saveLastCompat } from '../../screens/CompatScreen'; // 궁합 화면이 상대를 복원하는 그 경로
+import { saveLastCompat } from '../../lib/core/lastCompat'; // 궁합 화면이 상대를 복원하는 그 경로(2026-08-23 화면 밖으로 분리)
 import { PressableScale } from '../../components/PressableScale';
 import { colors, radius, space } from '../../lib/theme';
 import { useFontScale } from '../../lib/ui/fontScale';

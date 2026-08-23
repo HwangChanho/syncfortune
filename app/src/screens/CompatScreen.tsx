@@ -34,7 +34,7 @@ import { assertOnline } from '../lib/backend/network'; // 오프라인 시 신�
 import { ensureServerChartId } from '../lib/backend/prewarmReadings';
 import { useFontScale } from '../lib/ui/fontScale';
 import { COMPAT_RELS, otherSig, loadCompatReadings, genCompatReading, compatSections, compatSectionLabel, type CompatReading } from '../lib/content/compatReadings';
-import * as SecureStore from 'expo-secure-store'; // 마지막으로 본 쌍 영구 저장(배너와 같은 수명)
+import { saveLastCompat, loadLastCompat } from '../lib/core/lastCompat'; // 마지막으로 본 쌍(나·상대) — 화면 밖 작은 모듈(2026-08-23 분리)
 import { setGenProgress } from '../lib/backend/genProgress'; // 다건 진행도(route='/compat', daniel·docs/CONTENT_API_INVENTORY.md)
 import { acquireGen, releaseGen, isGenActive } from '../lib/backend/genLock'; // 크로스마운트 이중 생성 잠금(② 이중 LLM 방지)
 import { loadFollowups, askFollowup, type Followup } from '../lib/backend/followups'; // 궁합 추가질문(사주/자미 풀이와 동일 — 무료1 + 건당)
@@ -49,37 +49,10 @@ import { UnlockOverlay } from '../components/UnlockOverlay'; // 생성 중 화�
 import { TTSButton } from '../components/TTSButton'; // 풀이 음성 읽기(온디바이스 TTS·무료)
 import type { ChartInput } from '@spec/chart';
 
-// 이어보기(daniel): 궁합 상태가 in-memory라 홈 갔다 오면 초기화됐음 → 마지막 선택(나·상대·관계)을 모듈에 보관해 복원.
+// 이어보기(daniel): 궁합 상태가 in-memory라 홈 갔다 오면 초기화됐음 → 마지막 선택(나·상대·관계)을 복원한다.
 //   서버 캐시(readings)는 항상 저장되지만, 상대를 복원해야 sig로 캐시를 다시 불러올 수 있다.
-// ★마지막으로 본 쌍(나+상대+관계) — **영구 저장**한다(daniel 2026-08-13
-//   *"홈에는 궁합 완성됐다고 뜨는데 탭해서 들어가면 상대명식부터 다시 지정해야해"*).
-// ─────────────────────────────────────────────────────────────────────────
-//   원인: 이 값이 **모듈 전역 변수**라 앱을 껐다 켜면 사라졌다. 그런데 홈 배너(genProgress)는
-//   **SecureStore 에 저장**돼 살아남는다 — 그래서 "완성됐다"는 배너만 남고, 눌러 들어오면
-//   **어느 쌍이었는지 앱이 잊어버린 상태**가 된다. 두 값의 **수명이 달라서** 생긴 어긋남이다.
-//   ⇒ 배너와 같은 저장소(SecureStore)로 맞춘다. 이제 강제종료·재실행에도 쌍이 복원된다.
-//   ※ 명식 id 만 담는다(생년월일 등 PII 없음). 그 id 가 지워졌으면 복원하지 않고 조용히 넘어간다.
-type LastCompat = { meId?: string; otherId?: string; rel?: string };
-const LAST_KEY = 'compatLast_v1';   // SecureStore 키는 영숫자·._- 만(콜론 불가)
-let _lastCompat: LastCompat = {};
-/** 저장 — 실패는 무시한다(복원 편의 기능이지 정확성이 아니다). */
-/**
- * 마지막으로 본 궁합 쌍을 기억한다.
- * ★export 인 이유(2026-08-14): **관계 지도**가 "이 사람과 궁합" 을 누를 때 상대를 미리 심어 둔다.
- *   compat 라우트에 새 파라미터를 뚫는 대신 **이미 있는 복원 경로**(:208 `last.otherId`)를 그대로 쓴다 —
- *   경로가 둘이 되면 한쪽만 고쳐지는 사고가 난다([[duplicate-ui-single-source]]).
- */
-export function saveLastCompat(v: LastCompat) {
-  _lastCompat = v;
-  SecureStore.setItemAsync(LAST_KEY, JSON.stringify(v)).catch(() => {});
-}
-/** 복원 — 앱 시작 후 첫 진입에서 1회. 실패하면 빈 값으로 둔다(등록 폼이 뜨는 종전 동작). */
-async function loadLastCompat(): Promise<LastCompat> {
-  if (_lastCompat.meId || _lastCompat.otherId) return _lastCompat;   // 이미 메모리에 있으면 그것
-  try { const raw = await SecureStore.getItemAsync(LAST_KEY); if (raw) _lastCompat = JSON.parse(raw); } catch { /* 무시 */ }
-  return _lastCompat;
-}
-
+//   ★그 보관은 **`lib/core/lastCompat.ts`** 가 한다(2026-08-23 분리 — 이유·사고 이력은 그 파일 머리말).
+//     여기서 다시 구현하지 않는다. 쓰는 쪽이 셋(궁합·관계 지도·명식 목록 말풍선)으로 늘었다.
 // 궁합 점수 카운트업(0→score) + 게이지 채움 — 궁합 고유 재미(daniel ②콘텐츠별 메타포). score 변경 시 재애니.
 function ScoreReveal({ score }: { score: number }) {
   const [disp, setDisp] = useState(0);

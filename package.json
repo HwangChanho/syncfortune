@@ -121,6 +121,8 @@
     "check:adminkeys": "npx tsx scripts/check-adminkeys.ts",
     "deploy:admin": "bash scripts/deploy-admin.sh",
     "check:healthsafe": "npx tsx scripts/check-healthsafe.ts",
+    "avatars:brief": "npx tsx scripts/avatars-brief.ts",
+    "avatars:gen": "npx tsx scripts/avatars-gen.ts",
     "avatars": "npx tsx scripts/avatars-status.ts",
     "check:solartime": "npx tsx scripts/check-solartime.ts",
     "check:legacycolor": "npx tsx scripts/check-legacycolor.ts",

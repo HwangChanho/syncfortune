@@ -5,7 +5,7 @@
 // 명식이 없으면 등록 유도. 화면 복귀 시 useFocusEffect 로 목록 갱신.
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useCallback, useEffect, useRef, useMemo, Fragment } from 'react';
-import { ActivityIndicator, Animated, Dimensions, FlatList, InteractionManager, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Animated, Dimensions, Easing, FlatList, InteractionManager, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { PressableScale } from './PressableScale';
 import { Image as ExpoImage } from 'expo-image'; // 자동 다운샘플(메모리) + 엠블럼 탭 풀스크린 뷰어
 import DraggableFlatList, { ScaleDecorator } from 'react-native-draggable-flatlist'; // 이슈20 롱프레스 드래그 reorder
@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'; // 시트 �
 import { useTranslation } from 'react-i18next';
 import { listCharts, setRepresentative, getRepresentativeId, deleteChart, reorderCharts, subscribeRepChange, updateChart, type SavedChart } from '../lib/engine/myChart';
 import { getPremiumChartIdSnapshot, subscribePremium } from '../lib/billing/premiumStore'; // 프리미엄 지정 명식(왕관·삭제경고, daniel 07-01)
+import { saveLastCompat } from '../lib/core/lastCompat'; // ★'궁합 보기' 말풍선 — 관계 지도가 쓰는 **그 복원 경로**를 그대로 쓴다(경로를 둘로 만들지 않는다)
 import { useFontScale } from '../lib/ui/fontScale'; // 명식 헤더 글자크기 반영(daniel)
 import { computeChart } from '../lib/engine/engine'; // 각 명식 일주 산출(엠블럼)
 import { iljuEmblem, iljuImage, type IljuEmblem } from '../lib/dayPillarEmblem'; // 일주 엠블럼(은빛 소 등) + 60갑자 AI 일러스트
@@ -42,11 +43,54 @@ function SkeletonDot({ d }: { d: number }) {
   return <Animated.View style={[styles.emblem, styles.emblemSkel, { width: d, height: d, borderRadius: d / 2, opacity: a }]} />;
 }
 
+/** 연인 카테고리 전용 — 말풍선이 위아래로 **살짝 떠오르는** 폭(px). 크면 리스트가 어지럽다. */
+const BUBBLE_LIFT = 5;
+
+/**
+ * '궁합보기' 말풍선 — 위아래로 둥실거리는 작은 버튼.
+ *
+ * Boss 2026-08-23 *"연인 카테고리로 변경했을때는 각 명식마다 궁합보기가 뜨면 좋겠어
+ *   약간 귀여운 모양으로 위아래로 움직이는 애니메이션 넣어서 말풍선 같이 탭하면 궁합으로 넘어가고"*.
+ *
+ * @param onPress 탭 — 궁합 화면으로 넘어간다
+ * @param fs 글자 배율 함수(설정의 글자 크기를 따른다 — 고정 px 로 박으면 확대 설정에서 깨진다)
+ *
+ * ⚠️루프 애니는 **언마운트에서 반드시 멈춘다**. 명식 목록은 스크롤로 행이 재활용되므로
+ *   안 멈추면 사라진 행의 애니가 계속 돈다(같은 파일의 `SkeletonDot` 과 동일한 관용).
+ */
+function CompatBubble({ onPress, fs }: { onPress: () => void; fs: (n: number) => number }) {
+  const y = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const loop = Animated.loop(Animated.sequence([
+      Animated.timing(y, { toValue: -BUBBLE_LIFT, duration: 780, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+      Animated.timing(y, { toValue: 0, duration: 780, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+    ]));
+    loop.start();
+    return () => loop.stop();
+  }, [y]);
+  return (
+    <Animated.View style={{ transform: [{ translateY: y }] }}>
+      <PressableScale style={styles.compatBubble} onPress={onPress} hitSlop={10}>
+        {/* ⚠️<Text> 안에 <Text> 를 넣지 않는다 — 웹에서 백지가 된다([[web-nested-text-crash]]) */}
+        <Text style={[styles.compatBubbleTx, { fontSize: fs(11), lineHeight: Math.round(fs(11) * 1.3) }]} numberOfLines={1}>
+          궁합 보기
+        </Text>
+        {/* 말풍선 꼬리 — 45° 돌린 작은 네모를 아래에 반쯤 걸친다(삼각형 에셋 없이 만든다) */}
+        <View style={styles.compatBubbleTail} pointerEvents="none" />
+      </PressableScale>
+    </Animated.View>
+  );
+}
+
 // ★일주 엠블럼 캐시(daniel 2026-07-29 "명식 리스트 이미지 로딩 너무 오래걸리는데").
 //   원인: 모달을 **닫을 때마다 setEmblems({}) 로 전부 버려서**, 다시 열면 N개 명식을
 //   computeChart 로 처음부터 순차 재계산했다(명식 29개면 29틱 + 엔진 29회).
 //   → 컴포넌트 **밖**(모듈 레벨)에 캐시를 두면 언마운트·재열기에도 살아남아 두 번째부터 즉시 뜬다.
 //   ⚠️키에 input 을 포함한다 — 명식을 **수정하면 id 는 같고 내용만 바뀌므로**, id 만 쓰면 옛 엠블럼이 굳는다.
+/** '연인' 카테고리 이름 — `lib/core/categories.ts` 의 프리셋과 같은 글자여야 한다.
+ *  ⚠️여기 하드코딩을 늘리지 말 것. 이 한 곳만 쓴다(궁합 말풍선 노출 조건). */
+const LOVE_CATEGORY = '연인';
+
 const emblemCache = new Map<string, IljuEmblem>();
 const emblemKey = (c: { id: string; input: unknown }) => `${c.id}:${JSON.stringify(c.input)}`;
 
@@ -316,8 +360,13 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
                       {String(c.input.birthDateTime ?? '').replace('T', ' ').slice(0, 16)}{/* 날짜+시간(daniel: 시간도 노출) */}
                     </Text>
                   </PressableScale>
-                  {/* 카테고리(관계)를 행 우측에 배지로(daniel: 카테고리도 오른쪽에) */}
-                  <Text style={[styles.rowCategory, { fontSize: fs(11) }]} numberOfLines={1}>{c.relation === 'self' ? t('register.selfLabel') : c.relation}</Text>
+                  {/* ★'연인'으로 걸러 본 목록에서는 카테고리 배지가 **모든 행에 같은 글자**라 정보가 0이다.
+                      그 자리를 '궁합 보기' 말풍선에 내준다(Boss 2026-08-23). 다른 카테고리는 종전대로 배지. */}
+                  {catFilter === LOVE_CATEGORY && relOf(c) === LOVE_CATEGORY ? (
+                    <CompatBubble fs={fs} onPress={() => openCompatWith(c)} />
+                  ) : (
+                    <Text style={[styles.rowCategory, { fontSize: fs(11) }]} numberOfLines={1}>{c.relation === 'self' ? t('register.selfLabel') : c.relation}</Text>
+                  )}
                   {on && <Text style={styles.check}>✓</Text>}
                   {/* ⋯ 토글 → 작은 세로 메뉴(수정·만세력보기·삭제). 삭제는 항상 재확인 alert(daniel 07-01) */}
                   {/* ⋯ → 하단 액션시트 모달(수정·만세력보기·삭제). in-row 드롭다운은 리스트가 잘라내고 반투명·auto-dismiss가
@@ -329,6 +378,26 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
               </Deco>
             );
   };
+
+  /**
+   * '궁합 보기' — 이 명식을 **상대**로 세우고 궁합 화면으로.
+   *
+   * @param c 상대가 될 명식(연인 카테고리 행)
+   *
+   * ★'나'는 본인(self) 명식을 우선한다. 대표가 연인 명식으로 바뀌어 있을 수 있어서,
+   *   대표를 그대로 '나'로 쓰면 **연인 vs 연인**이 될 수 있다(실제로 대표는 자주 바뀐다).
+   *   self 가 없으면 대표(단, 상대와 다를 때)로, 그것도 아니면 비워 둔다 —
+   *   비면 궁합 화면이 대표를 '나'로 채운다(CompatScreen 의 기존 폴백).
+   * ⚠️새 라우트 파라미터를 만들지 않는다. 관계 지도가 쓰는 `saveLastCompat` 경로 그대로다
+   *   — 경로가 둘이 되면 한쪽만 고쳐지는 사고가 난다([[duplicate-ui-single-source]]).
+   */
+  function openCompatWith(c: SavedChart) {
+    const selfC = charts.find((x) => relOf(x) === 'self' && x.id !== c.id);
+    const meId = selfC?.id ?? (repId && repId !== c.id ? repId : undefined);
+    saveLastCompat({ meId, otherId: c.id });
+    setOpen(false);                 // 시트를 닫고 넘어간다(뒤로 오면 목록이 그대로 열려 있는 게 아니라 화면이 남는다)
+    router.push('/compat');
+  }
 
   async function choose(id: string) {
     await setRepresentative(id);
@@ -752,6 +821,19 @@ const styles = StyleSheet.create({
   rowOn: { color: colors.ju },
   rowMeta: { ...font.caption, flex: 1 },
   rowCategory: { ...font.caption, color: colors.inkFaint, marginHorizontal: space(1.5) }, // 관계 카테고리 우측 배지(daniel)
+  // ★'궁합 보기' 말풍선 — 채운 라벤더 + 배경색 글씨(같은 파일 `addBtn` 과 같은 대비 조합).
+  //   ⚠️연한 배경 + 흰 글씨로 하면 대비가 1점대로 떨어진다(08-23 에 한 번 당한 조합).
+  compatBubble: {
+    backgroundColor: colors.ju, borderRadius: radius.pill,
+    paddingHorizontal: space(2.25), paddingVertical: space(1),
+    marginHorizontal: space(1.5), ...shadow.card,
+  },
+  compatBubbleTx: { color: colors.bg, fontWeight: '800' },
+  // 꼬리 = 45° 돌린 작은 네모. 말풍선 아래 왼쪽에 반쯤 걸쳐 '이 행이 하는 말'처럼 보이게.
+  compatBubbleTail: {
+    position: 'absolute', left: 11, bottom: -3,
+    width: 7, height: 7, backgroundColor: colors.ju, transform: [{ rotate: '45deg' }],
+  },
   check: { fontSize: 18, color: colors.ju, fontWeight: '700' },
   // flexShrink:0 — 시트가 꽉 차도 이 버튼은 **절대 줄지 않는다**(줄어드는 쪽은 위의 리스트). marginBottom 은 렌더에서 안전영역만큼.
   addBtn: { backgroundColor: colors.ju, borderRadius: radius.md, paddingVertical: space(3.5), alignItems: 'center', marginTop: space(4), flexShrink: 0 },
