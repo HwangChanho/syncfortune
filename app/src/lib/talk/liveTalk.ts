@@ -18,7 +18,12 @@ import { withTimeout } from '../core/withTimeout';
 
 /** 서버가 돌려주는 결과 — 성공/한도/중단을 **구분해서** 올린다(뭉뚱그리면 화면이 거짓말을 한다). */
 export type LiveReply =
-  | { ok: true; sessionId: string; answer: string; used: number; freeDaily: number; overFree: boolean }
+  | {
+      ok: true; sessionId: string; answer: string; used: number; freeDaily: number; overFree: boolean;
+      /** ★대화 중 안내할 콘텐츠 키(없으면 null). 서버가 답에서 마커를 떼어 내고 여기로 준다.
+       *  키 → 라벨·라우트 변환은 화면이 `contentSections` 로 한다(목록의 단일 출처). */
+      recommend?: string | null;
+    }
   | { ok: false; reason: 'paused' | 'capped' | 'unauthorized' | 'failed'; message: string };
 
 /**
@@ -64,6 +69,8 @@ export async function askLive(
     return {
       ok: true, sessionId: data.sessionId, answer: data.answer,
       used: data.used ?? 0, freeDaily: data.freeDaily ?? 0, overFree: !!data.overFree,
+      // ⚠️문자열일 때만 받는다 — 서버가 안 주거나 다른 걸 주면 '추천 없음'으로 떨어진다(화면이 안 깨지게)
+      recommend: typeof data.recommend === 'string' ? data.recommend : null,
     };
   } catch (e) {
     console.warn('[talk] askLive threw', e);

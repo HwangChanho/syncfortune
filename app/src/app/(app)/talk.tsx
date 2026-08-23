@@ -29,6 +29,7 @@ import { TalkThread, type TalkItem } from '../../components/talk/TalkThread';
 import { listConsultants, consultantsSnapshot, type Consultant } from '../../lib/talk/consultants';
 import { greet, todayFlow, guide, type VirtualReply } from '../../lib/talk/virtualTalk';
 import { askLive, loadThread, deleteThread } from '../../lib/talk/liveTalk';
+import { SECTIONS } from '../../lib/content/contentSections'; // 대화 중 콘텐츠 안내 — 키 → 라벨·라우트(목록의 단일 출처)
 import { pickTalkImage } from '../../lib/talk/talkImagery';
 import { supabase } from '../../lib/supabase';
 import { withTimeout } from '../../lib/core/withTimeout';
@@ -362,10 +363,19 @@ export function TalkHome({ renderTop, mode = 'contacts' }: { renderTop?: ReactNo
           // 그림은 **답 전체**를 보고 한 장만 고른다(풍선마다 고르면 여러 장이 붙는다)
           const pick = pickTalkImage(r.answer, usedArtRef.current);
           if (pick) usedArtRef.current.add(pick.art);
+          // ★대화 중 콘텐츠 안내(Boss 2026-08-23) — 서버가 답에서 마커를 떼어 `recommend` 로 준다.
+          //   키 → 라벨·라우트는 **`contentSections`(목록의 단일 출처)** 에서 찾는다.
+          //   ⚠️목록에 없는 키면 카드를 만들지 않는다(빈 화면으로 보내지 않는다).
+          const reco = r.recommend
+            ? SECTIONS.flatMap((sec) => sec.items).find((it) => it.key === r.recommend && it.ready)
+            : undefined;
+          const recoLinks = reco ? [{ key: reco.key, label: t(reco.labelKey), route: reco.route }] : undefined;
           sayInOrder(parts.map((body, i) => ({
             id: nextId(), role: 'assistant' as const, body,
             // ★마지막 풍선에 붙인다 — 말이 끝난 뒤 사진을 보내는 순서가 자연스럽다
             image: i === parts.length - 1 && pick ? pick.source : undefined,
+            // 안내 카드도 마지막 풍선에 — 말이 끝난 뒤 건네는 순서다(가상 상담사와 같은 관용)
+            links: i === parts.length - 1 ? recoLinks : undefined,
           })), 0);                 // 서버 응답을 기다린 뒤라 추가 뜸은 필요 없다
           // ⚠️무료 소진 안내는 **답이 다 뜬 뒤**에 붙인다 — 바로 넣으면 순차 표시를 앞질러
           //   답보다 먼저 뜬다. 마지막 풍선의 예상 시각 뒤로 미룬다.
