@@ -433,15 +433,47 @@ const COUNTRIES: Country[] = [
 ];
 
 /**
+ * 도시명 → 국가명 — **국가명이 없는 옛 명식**을 위한 보조 표.
+ *
+ * ★왜 필요한가: 출생지 피커는 "밀라노, 롬바르디아, 이탈리아" 처럼 국가명을 붙여 주지만,
+ *   피커가 생기기 전에 **손으로 타이핑한 명식**은 "밀라노" 뿐이다. 그러면 국가를 못 찾아
+ *   경도 근사로 떨어지고 — 표준시는 우연히 맞더라도 **서머타임은 통째로 빠진다**(여름 60분).
+ * ⚠️`solartime.ts` 의 `CITY_LON` 과 **같은 도시 목록**을 유지할 것(경도만 알고 나라를 모르면 반쪽이다).
+ */
+const CITY_COUNTRY: Record<string, string> = {
+  도쿄: '일본', 오사카: '일본', 후쿠오카: '일본',
+  베이징: '중국', 상하이: '중국', 우루무치: '중국',
+  홍콩: '홍콩', 타이베이: '대만', 싱가포르: '싱가포르', 하노이: '베트남', 마닐라: '필리핀',
+  로스앤젤레스: '미국', 뉴욕: '미국', 시애틀: '미국', 시카고: '미국', 샌프란시스코: '미국',
+  밴쿠버: '캐나다', 토론토: '캐나다',
+  런던: '영국', 파리: '프랑스', 베를린: '독일',
+  밀라노: '이탈리아', 로마: '이탈리아', 마드리드: '스페인', 바르셀로나: '스페인',
+  뮌헨: '독일', 프랑크푸르트: '독일', 암스테르담: '네덜란드', 취리히: '스위스',
+  빈: '오스트리아', 프라하: '체코',
+  시드니: '오스트레일리아', 멜버른: '오스트레일리아', 오클랜드: '뉴질랜드',
+  두바이: '아랍에미리트', 모스크바: '러시아',
+};
+
+/**
  * 출생지 문자열에서 국가를 찾는다.
- * @param place 출생지 표시명(예: "밀라노, 롬바르디아, 이탈리아")
+ * @param place 출생지 표시명(예: "밀라노, 롬바르디아, 이탈리아" · 옛 명식은 "밀라노" 뿐일 수 있다)
  * @returns 찾은 국가 칸, 못 찾으면 undefined
  */
 function matchCountry(place: string): Country | undefined {
   if (!place) return undefined;
   const p = place.toLowerCase();
   // ⚠️'대한민국'·'한국'은 여기서 다루지 않는다 — 한국은 공인 이력(kstMeridianAt/dstOffsetMin)이 따로 있다.
-  return COUNTRIES.find((c) => c.names.some((n) => p.includes(n.toLowerCase())));
+  const direct = COUNTRIES.find((c) => c.names.some((n) => p.includes(n.toLowerCase())));
+  if (direct) return direct;
+  // 국가명이 없으면 도시명으로 한 번 더 — 손으로 적은 옛 명식 구제
+  for (const city in CITY_COUNTRY) {
+    if (place.includes(city)) {
+      const cn = CITY_COUNTRY[city];
+      const hit = COUNTRIES.find((c) => c.names.includes(cn));
+      if (hit) return hit;
+    }
+  }
+  return undefined;
 }
 
 /**
