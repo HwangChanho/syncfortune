@@ -53,19 +53,30 @@ console.log('\n[3] ① 계절 한난 상보(월지 봄여름↔가을겨울)');
 ok(sB.seasonComplement === true, `B: 내 卯(봄여름) ↔ 상대 戌(가을겨울) = 상보`);
 ok(sA.seasonComplement === false && sC.seasonComplement === false, `A·C: 둘 다 봄여름군 = 상보 아님`);
 
-console.log('\n[4] ⑥ 배우자궁(일지) 형충파해원진 감점 — daniel "일지에 …없어야"(귀문은 LLM 판정이라 결정론 제외)');
-ok(dxA.spousePalace.clean === true, `A: 일지 丑·巳 충돌 없음(clean)`);
-ok(dxB.spousePalace.afflictions.includes('형'), `B: 일지 丑·戌 = 형 [${dxB.spousePalace.afflictions.join('·')}]`);
-ok(dxC.spousePalace.afflictions.length >= 2 && !dxC.spousePalace.afflictions.includes('귀문' as any), `C: 일지 丑·午 = ${dxC.spousePalace.afflictions.join('·')}(2종+·귀문 제외 확인)`);
-// C 는 재성·결핍이 좋아도(A 와 유사) 배우자궁 감점으로 A 보다 낮아야 = 감점이 실제로 먹는다
-ok(sC.score < sA.score, `C(${sC.score}) < A(${sA.score}) — 배우자궁 흉이 재/관·결핍 이점을 눌렀다`);
+console.log('\n[4] ⑥ 배우자궁 형충파해원진 감점 — ★2026-08-24 **범위 확대**(Boss "범위 넓혀")');
+// ★★여기 있던 `A: 일지 丑·巳 충돌 없음(clean)` 은 **옛 stance** 였다.
+//   종전 규칙(두 사람 **일지끼리만**)에서는 깨끗했지만, 전문가 케이스 노트는 상대의 월지·시지가
+//   내 배우자궁을 치는 것도 배우자궁 상호작용으로 센다(케이스 003: B 일지 丑 ↔ A 월지·시지 未).
+//   ⇒ stance 가 뒤집혔으므로 **코드가 아니라 이 단언을 먼저** 고친다([[harness-can-enforce-wrong-rule]]).
+ok(!dxA.spousePalace.clean, `A: 확대 범위가 잡는다 — ${dxA.spousePalace.detail}`);
+// ★확대가 실제로 한 일인지 증명한다: 일지끼리가 아니라 **다른 자리**에서 온 hit 가 있어야 한다.
+ok(dxA.spousePalace.hits.some((h) => h.at !== '일'),
+  `A: 일지 아닌 자리에서 왔다 [${dxA.spousePalace.hits.map((h) => `${h.mine}${h.theirs}${h.kind}@${h.at}`).join(' ')}] — 종전 규칙이면 0건`);
+ok(dxB.spousePalace.afflictions.includes('형'), `B: 형 검출 [${dxB.spousePalace.afflictions.join('·')}]`);
+ok(dxC.spousePalace.afflictions.length >= 2 && !dxC.spousePalace.afflictions.includes('귀문' as any), `C: ${dxC.spousePalace.afflictions.join('·')}(2종+·귀문 제외 확인)`);
+// ★감점이 실제로 먹는가 — **같은 재료에서 배우자궁만 바꿔** 본다.
+//   (A·C 실점수 비교는 확대 뒤 다른 항목까지 섞여 흔들린다. 부호는 이렇게 봐야 정확하다.)
+{
+  const noAffl = compatScore({ ...dxC, spousePalace: { afflictions: [], hits: [], clean: true, detail: '' } } as any).score;
+  ok(sC.score < noAffl, `배우자궁 감점이 먹는다 — 있음 ${sC.score} < 없음 ${noAffl}`);
+}
 
 console.log('\n[5] ③ 결핍 지지 보완(상대가 내게 없는 지지 글자)');
 [dxA, dxB, dxC].forEach((dx, i) => ok(dx.missingFill.chars.length > 0, `${'ABC'[i]}: 결핍 보완 ${dx.missingFill.chars.join('·') || '없음'}`));
 
 console.log('\n[6] ④ 일간관계 서열 — 충>상생>합>비화>상극(일간충=발전형 가점)');
 // 산식 부호 확인: 같은 재료에서 dmType 만 바꿔 상대 점수 서열이 유지되는지(합성 dx)
-const baseDx = { ...dxA, seasonComplement: { ...dxA.seasonComplement, complementary: false }, partnerToMe: { ...dxA.partnerToMe, favorable: false }, missingFill: { chars: [], detail: '' }, spousePalace: { afflictions: [], clean: true, detail: '' }, crossInteractions: [], usefulGodSupply: { element: null, supply: '없음' as const, detail: '' } };
+const baseDx = { ...dxA, seasonComplement: { ...dxA.seasonComplement, complementary: false }, partnerToMe: { ...dxA.partnerToMe, favorable: false }, missingFill: { chars: [], detail: '' }, spousePalace: { afflictions: [], hits: [], clean: true, detail: '' }, crossInteractions: [], usefulGodSupply: { element: null, supply: '없음' as const, detail: '' } };
 const sc = (type: any) => compatScore({ ...baseDx, dayMasterRelation: { type, detail: '' } } as any).score;
 ok(sc('충') > sc('합'), `충(${sc('충')}) > 합(${sc('합')}) — daniel "충이 발전형, 합은 정체"`);
 ok(sc('상생') >= sc('합') && sc('합') > sc('상극'), `상생(${sc('상생')}) ≥ 합(${sc('합')}) > 상극(${sc('상극')})`);

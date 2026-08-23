@@ -70,7 +70,7 @@ console.log('=== ① 팔자·대운 — 전문가 확인본과 같은가 ===');
 // ── ② 전문가가 지목한 글자를 실제로 잡는가 ──────────────────────────────
 console.log('\n=== ② 전문가가 지목한 충·합을 엔진이 잡는가 ===');
 {
-  const dx = analyzeCompatibility(ca, cb);
+  const dx = analyzeCompatibility(ca, cb, '여');
   const all = [...dx.tension, ...dx.harmony].join(' | ');
   const need: [string, string][] = [
     ['乙辛', '식신제살 · 배우자성 감점 근거'],
@@ -92,23 +92,25 @@ console.log('\n=== ② 전문가가 지목한 충·합을 엔진이 잡는가 ==
 // ── ③ 아직 못 하는 것 (실패 아님 — 되면 알린다) ─────────────────────────
 console.log('\n=== ③ 전문가가 지적한 미구현 — 되기 시작하면 알린다 ===');
 {
-  const dx = analyzeCompatibility(ca, cb);
+  const dx = analyzeCompatibility(ca, cb, '여');
   const s = compatScoreOf(dx);
-  const s2 = compatScoreOf(analyzeCompatibility(cb, ca));
+  const s2 = compatScoreOf(analyzeCompatibility(cb, ca, '남'));
   const cross = dx.crossInteractions.map((c: any) => String(c.kind)).join(' ');
 
   gap('G1 용신 오행 특정', dx.usefulGodSupply.element != null,
     `지금: ${dx.usefulGodSupply.detail.slice(0, 30)} → 용신 호환(노트 95점)이 0점으로 들어간다`);
-  gap('G2 교차 삼합 검출', /삼합|반합/.test(cross),
-    '亥卯未·巳酉丑 쌍방 완성 — 노트의 배우자성 90점 근거');
-  gap('G3 삼형 검출', /삼형|형/.test([...dx.tension].join(' ')),
-    '丑戌未 — 갈등 구조가 과소평가된다');
+  gap('G2 교차 삼합 검출', dx.crossSanhe.length >= 2,
+    dx.crossSanhe.length
+      ? dx.crossSanhe.map((c: any) => c.detail).join(' / ')
+      : '亥卯未·巳酉丑 쌍방 완성 — 노트의 배우자성 90점 근거');
+  gap('G3 삼형 검출', dx.crossSamhyeong.length >= 1,
+    dx.crossSamhyeong.length ? dx.crossSamhyeong.map((c: any) => c.detail).join(' / ') : '丑戌未 — 갈등 구조가 과소평가된다');
   gap('G4 무근 천간의 상대 통근', false,
     'A 의 乙(무근) → B 의 卯 — 검출 항목 자체가 없다');
   gap('G5 미러 비대칭', s.score !== s2.score,
     `지금 A기준 ${s.score} = B기준 ${s2.score} — R48 양방향이 안 갈린다`);
-  gap('G6 분산 지표', 'spread' in (s as any) || 'lowest' in (s as any),
-    '고분산 82 와 저분산 82 를 구분할 보조 출력이 없다');
+  gap('G6 분산 지표', s.weakest != null,
+    s.weakest ? `가장 약한 항목 = ${s.weakest.item} (${Math.round(s.weakest.ratio * 100)}%)` : '고분산/저분산을 구분할 보조 출력이 없다');
 
   // 점수 자체는 **고정하지 않는다** — 위 여섯이 붙으면 당연히 바뀐다.
   //   다만 **지금 값**을 찍어 둔다(다음 사람이 무엇에서 출발했는지 알 수 있게).

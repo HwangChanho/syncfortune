@@ -46,6 +46,12 @@ export type CompatScoreBreakdown = {
   spouseAfflictions: string[];
   /** ③ 상대가 채워주는 내 결핍 지지 글자 */
   fillChars: string[];
+  /** ⑦ 교차 삼합으로 완성된 국 — 배우자성이면 최고 가중(2026-08-24) */
+  crossSanhe: { guk: string; tenGod: string; spouseStar: boolean | null }[];
+  /** ⑧ 교차 삼형 성립(2026-08-24) */
+  crossSamhyeong: string[];
+  /** ★가장 낮은 항목이 무엇인가 — 고분산/저분산을 가르는 보조 출력(G6) */
+  weakest: { item: string; ratio: number } | null;
 };
 
 /**
@@ -82,7 +88,14 @@ export function compatScoreOf(dx: CompatibilityDx): CompatScoreBreakdown {
   const crossHe = dx.crossInteractions.filter((c) => c.kind.includes('합')).length;
   const heBonus = Math.min(crossHe, 3) * 2;                                 // ⑤ 교차합 0~6
   const spouseMinus = Math.min(dx.spousePalace.afflictions.length, 3) * 5;  // ⑥ 0~15
-  let s = 55 + season + jaegwan + fill + dmBonus + supply + heBonus - spouseMinus;
+  // ⑦ ★교차 삼합 완성(2026-08-24 · 전문가 케이스 노트 R46-d).
+  //   *"완성 국의 십신 판정 — 배우자성이면 최고 가중"* → 배우자성 완성 +10 · 그 외 완성 +4 (최대 +14).
+  //   ⚠️가중치 숫자는 **stance 다**(★Boss 검수 슬롯). 검출·서열은 노트 원문, 크기는 잠정값이다.
+  const sanheBonus = Math.min(
+    dx.crossSanhe.reduce((a, c) => a + (c.spouseStar ? 10 : 4), 0), 14);
+  // ⑧ ★교차 삼형 성립 — 짝 형(⑥에 이미 반영)과 **별개**로, 셋이 모인 무게. 건당 −6(최대 −12).
+  const samhyeongMinus = Math.min(dx.crossSamhyeong.length * 6, 12);
+  let s = 55 + season + jaegwan + fill + dmBonus + supply + heBonus + sanheBonus - spouseMinus - samhyeongMinus;
   s = Math.max(15, Math.min(97, Math.round(s)));
   return {
     score: s,
@@ -94,5 +107,18 @@ export function compatScoreOf(dx: CompatibilityDx): CompatScoreBreakdown {
     jaegwan: dx.partnerToMe.favorable ? (dx.partnerToMe.tenGod as '재성' | '관성') : null,
     spouseAfflictions: dx.spousePalace.afflictions,
     fillChars: dx.missingFill.chars,
+    crossSanhe: dx.crossSanhe.map((c) => ({ guk: c.guk.join(''), tenGod: c.tenGod, spouseStar: c.spouseStar })),
+    crossSamhyeong: dx.crossSamhyeong.map((c) => c.guk.join('')),
+    // ★G6 — **가장 약한 항목**을 함께 낸다. 평균이 같아도 한 항목이 바닥이면 실효가 다르다
+    //   (전문가 노트: *"잔감점 분산형 82 와 단일변수 수렴형 82 는 실효가 다르다"*).
+    weakest: (() => {
+      const items: [string, number][] = [
+        ['계절상보', season / 7], ['재관', jaegwan / 8], ['결핍보완', fill / 9],
+        ['일간관계', dmBonus / 7], ['용신공급', supply / 12],
+        ['배우자궁', 1 - spouseMinus / 15], ['갈등(삼형)', 1 - samhyeongMinus / 12],
+      ];
+      const low = items.sort((a, b) => a[1] - b[1])[0];
+      return low ? { item: low[0], ratio: Math.round(low[1] * 100) / 100 } : null;
+    })(),
   };
 }
