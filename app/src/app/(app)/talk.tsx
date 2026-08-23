@@ -31,6 +31,7 @@ import { listNotes, type TalkNote } from '../../lib/talk/talkNotes';
 import { listConsultants, consultantsSnapshot, type Consultant } from '../../lib/talk/consultants';
 import { greet, todayFlow, guide, type VirtualReply } from '../../lib/talk/virtualTalk';
 import { askLive, loadThread, deleteThread } from '../../lib/talk/liveTalk';
+import { Alert } from '../../lib/ui/alert';   // 커스텀 알림 — 운 부족 시 충전 유도
 import { SECTIONS } from '../../lib/content/contentSections'; // 대화 중 콘텐츠 안내 — 키 → 라벨·라우트(목록의 단일 출처)
 import { pickTalkImage } from '../../lib/talk/talkImagery';
 import { supabase } from '../../lib/supabase';
@@ -405,6 +406,26 @@ export function TalkHome({ renderTop, mode = 'contacts' }: { renderTop?: ReactNo
               body: t('talk.overFree', '오늘 무료 대화를 다 쓰셨어요. 그래도 조금 더 이야기해 볼게요.'),
             }]), after));
           }
+        } else if (r.reason === 'needCoins') {
+          // ★운 부족 — **충전 유도**(Boss 2026-08-24 *"운 다 떨어지면 충전 유도 해야하고"*).
+          //   ⚠️말풍선으로만 알리지 않는다 — 대화창 안의 회색 글씨는 스크롤에 묻힌다.
+          //     알림으로 물어보고, 원하면 충전 화면으로 데려간다(다른 유료 콘텐츠와 같은 관용).
+          //   ★얼마가 필요하고 얼마가 있는지 **숫자를 말한다** — "부족합니다"만으로는
+          //     얼마를 채워야 하는지 알 수 없다([[pay-alert-must-show-numbers]]).
+          setBusy(false);
+          const have = r.balance == null ? null : r.balance;
+          setItems((prev) => [...prev, { id: nextId(), role: 'assistant', body: r.message }]);
+          Alert.alert(
+            t('talk.needCoinsTitle', '운이 모자라요'),
+            have == null
+              ? t('talk.needCoinsMsgNoBal', '이어서 이야기하려면 한 번에 {{cost}}운이 필요해요.').replace('{{cost}}', String(r.cost ?? 0))
+              : t('talk.needCoinsMsg', '이어서 이야기하려면 한 번에 {{cost}}운이 필요해요. 지금 {{have}}운 있어요.')
+                  .replace('{{cost}}', String(r.cost ?? 0)).replace('{{have}}', String(have)),
+            [
+              { text: t('common.later', '나중에'), style: 'cancel' },
+              { text: t('coins.charge', '운 충전하기'), onPress: () => router.push('/coins') },
+            ],
+          );
         } else {
           // ★실패 사유를 그대로 보여 준다(멈춤·한도·오류가 서로 다른 말이어야 한다)
           setBusy(false);

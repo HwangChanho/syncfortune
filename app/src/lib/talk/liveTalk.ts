@@ -20,13 +20,24 @@ import { withTimeout } from '../core/withTimeout';
 export type LiveReply =
   | {
       ok: true; sessionId: string; answer: string; used: number; freeDaily: number; overFree: boolean;
+      /** 이번 턴에 빠져나간 운(무료 범위면 0) */
+      spent?: number;
       /** ★이번 답에서 뽑힌 정리(없으면 빈 배열). 서버가 저장까지 마친 뒤 알려 준다. */
       notes?: { kind: 'me' | 'when' | 'todo' | 'said'; body: string }[];
       /** ★대화 중 안내할 콘텐츠 키(없으면 null). 서버가 답에서 마커를 떼어 내고 여기로 준다.
        *  키 → 라벨·라우트 변환은 화면이 `contentSections` 로 한다(목록의 단일 출처). */
       recommend?: string | null;
     }
-  | { ok: false; reason: 'paused' | 'capped' | 'unauthorized' | 'failed'; message: string };
+  | {
+      ok: false;
+      /** ★`needCoins` = 무료 한도를 넘겼고 **운이 모자란다**(2026-08-24). 화면이 충전을 유도한다. */
+      reason: 'paused' | 'capped' | 'unauthorized' | 'failed' | 'needCoins';
+      message: string;
+      /** needCoins 일 때만 — 턴당 필요한 운 */
+      cost?: number;
+      /** needCoins 일 때만 — 지금 잔액(모르면 null) */
+      balance?: number | null;
+    };
 
 /**
  * 실제 상담사에게 한 마디 보낸다.
@@ -67,6 +78,15 @@ export async function askLive(
     }
     if (data?.paused) return { ok: false, reason: 'paused', message: data.message ?? '지금은 상담이 잠시 멈춰 있어요.' };
     if (data?.capped) return { ok: false, reason: 'capped', message: data.message ?? '오늘은 여기까지 이야기했어요.' };
+    // ★운 부족 — 충전 유도(Boss 2026-08-24 *"운 다 떨어지면 충전 유도"*)
+    if (data?.needCoins) {
+      return {
+        ok: false, reason: 'needCoins',
+        message: data.message ?? '오늘 무료 대화를 다 썼어요.',
+        cost: Number(data.cost ?? 0),
+        balance: typeof data.balance === 'number' ? data.balance : null,
+      };
+    }
     if (!data?.answer) return { ok: false, reason: 'failed', message: data?.message ?? '답이 비어서 다시 물어봐 주세요.' };
     return {
       ok: true, sessionId: data.sessionId, answer: data.answer,
@@ -74,6 +94,8 @@ export async function askLive(
       // ⚠️문자열일 때만 받는다 — 서버가 안 주거나 다른 걸 주면 '추천 없음'으로 떨어진다(화면이 안 깨지게)
       recommend: typeof data.recommend === 'string' ? data.recommend : null,
       notes: Array.isArray(data.notes) ? data.notes : [],
+      /** 이번 턴에 빠져나간 운(무료 범위면 0) */
+      spent: Number(data.spent ?? 0),
     };
   } catch (e) {
     console.warn('[talk] askLive threw', e);
