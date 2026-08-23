@@ -139,6 +139,7 @@ export const ko = {
     moreBody: '사람이 늘수록 내 관계의 결이 또렷해져요. 아직 안 넣은 사람이 있다면 생년월일만으로 바로 자리를 잡습니다.',
   },
   common: { send: '보내기', save: '저장',
+    'later': '나중에',        // 나중에 — 유도 알림의 취소 쪽(대화 운 부족 등)
     retryLaterNoCharge: '잠시 후 다시 시도해 주세요. 운은 차감되지 않았어요.',
     'add': '추가',
     'more': '자세히',
@@ -724,6 +725,10 @@ export const ko = {
     'meNoChart': '명식을 등록하면 이름이 나와요',
     'liveGreet': '안녕하세요. {{name}}이에요. 무엇이 궁금하세요?',
     'overFree': '오늘 무료 대화를 다 쓰셨어요. 그래도 조금 더 이야기해 볼게요.',
+    // 운 부족 — 충전 유도(Boss 2026-08-24). ★얼마 필요하고 얼마 있는지 **숫자로** 말한다.
+    'needCoinsTitle': '운이 모자라요',
+    'needCoinsMsg': '이어서 이야기하려면 한 번에 {{cost}}운이 필요해요. 지금 {{have}}운 있어요.',
+    'needCoinsMsgNoBal': '이어서 이야기하려면 한 번에 {{cost}}운이 필요해요.',
   },
   home: {
     'bonusLead': '충전할 때 자동으로 쓰여요',

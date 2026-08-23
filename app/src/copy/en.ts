@@ -113,6 +113,7 @@ export const en = {
     moreBody: 'The more people on it, the clearer the grain of your relationships. A birth date is all it takes to place someone.',
   },
   common: { send: 'Send', save: 'Save',
+    'later': 'Later',        // 나중에 — 유도 알림의 취소 쪽(대화 운 부족 등)
     'more': 'More',
     retryLaterNoCharge: 'Please try again shortly. No woon was used.',
     'add': 'Add',
@@ -686,6 +687,9 @@ export const en = {
     'meNoChart': 'Add your chart to show your name',
     'liveGreet': "Hello, I'm {{name}}. What's on your mind?",
     'overFree': "You've used today's free chats. Let's keep going a little longer anyway.",
+    'needCoinsTitle': 'Not enough woon',
+    'needCoinsMsg': 'Each message costs {{cost}} woon. You have {{have}} right now.',
+    'needCoinsMsgNoBal': 'Each message costs {{cost}} woon to keep talking.',
   },
   home: {
     'bonusLead': 'Applied automatically when you top up',

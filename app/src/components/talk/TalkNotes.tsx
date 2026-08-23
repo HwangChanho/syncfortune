@@ -49,18 +49,26 @@ export function TalkNotes({
 
   if (!notes.length) return null;   // ★없으면 줄 자체가 없다
 
-  /** 지우기 — 화면에서 먼저 빼지 않고, 서버가 받은 뒤 다시 읽는다(되돌아가는 깜빡임 방지). */
+  /**
+   * 지우기 — 화면에서 먼저 빼지 않고, 서버가 받은 뒤 다시 읽는다(되돌아가는 깜빡임 방지).
+   * ⚠️★잠금은 반드시 `finally` 로 푼다 — 예외가 나면 그 줄의 버튼이 **영구히 비활성**으로 남는다
+   *   (`check:hang` H1 이 잡아 줬다. 아래 `togglePin` 도 같다.)
+   */
   const remove = async (id: number) => {
     setBusy(id);
-    const ok = await hideNote(id);
-    setBusy(null);
-    if (ok) onChanged();
+    try {
+      if (await hideNote(id)) onChanged();
+    } finally {
+      setBusy(null);
+    }
   };
   const togglePin = async (n: TalkNote) => {
     setBusy(n.id);
-    const ok = await pinNote(n.id, !n.pinned);
-    setBusy(null);
-    if (ok) onChanged();
+    try {
+      if (await pinNote(n.id, !n.pinned)) onChanged();
+    } finally {
+      setBusy(null);
+    }
   };
 
   return (

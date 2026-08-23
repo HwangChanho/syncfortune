@@ -112,6 +112,7 @@ export const ja = {
     moreBody: '人が増えるほど関係の質がはっきりします。まだ入れていない人がいれば、生年月日だけですぐ位置が決まります。',
   },
   common: { send: '送信', save: '保存',
+    'later': '後で',        // 나중에 — 유도 알림의 취소 쪽(대화 운 부족 등)
     'more': '詳しく',
     retryLaterNoCharge: 'しばらくしてからもう一度お試しください。woon は消費されていません。',
     'add': '追加',
@@ -685,6 +686,9 @@ export const ja = {
     'meNoChart': '命式を登録すると名前が表示されます',
     'liveGreet': 'こんにちは。{{name}}です。何が気になりますか？',
     'overFree': '今日の無料の会話は使い切りました。それでももう少しお話ししますね。',
+    'needCoinsTitle': '運が足りません',
+    'needCoinsMsg': '続けるには1回あたり{{cost}}運が必要です。今は{{have}}運あります。',
+    'needCoinsMsgNoBal': '続けるには1回あたり{{cost}}運が必要です。',
   },
   home: {
     'bonusLead': 'チャージ時に自動で使われます',
