@@ -18,7 +18,7 @@
 // ⚠️자동으로 넘기지 않는다. 읽는 속도는 사람마다 다르고, 특히 이 화면은 **자기 일주를 처음 보는 순간**이다.
 //   탭하면 넘어가고, 아래에 다음 버튼도 둔다(탭 영역만 있으면 무엇을 해야 할지 모른다).
 // ═══════════════════════════════════════════════════════════════════════════
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
@@ -30,6 +30,7 @@ import { stemReading, branchReading, elementColor, stemElement } from '../../lib
 import { PressableScale } from '../../components/PressableScale';
 import { colors, radius, space, font } from '../../lib/theme';
 import { logEvent } from '../../lib/backend/logger';
+import { loadMyChart } from '../../lib/engine/myChart'; // ★params 유실 시 대표 명식으로 폴백(2026-08-24)
 
 /** 언덕 파형 — 겹칠수록 멀어 보이게 위쪽 것을 옅게 그린다(시안 p12 하단). */
 const HILLS = [
@@ -43,10 +44,18 @@ export default function AnalyzedScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ input?: string }>();
   const insets = useSafeAreaInsets();
+  // ★★params 가 비어 올 때가 있다 — **웹에서 `router.replace({params})` 가 값을 못 넘긴다**(2026-08-24 실측:
+  //   등록을 마치면 이 화면이 빈손으로 떠서 홈으로 튕겼다). 그때는 **방금 등록해 대표가 된 명식**을 읽는다.
+  //   ⇒ 등록 직후 `setRepresentative` 가 불리므로, 대표 = 방금 그 명식이다.
+  const [repInput, setRepInput] = useState<any>(null);
+  useEffect(() => {
+    if (params.input) return;                 // 파라미터가 있으면 그것이 정본이다
+    loadMyChart().then((c) => setRepInput(c)).catch(() => {});
+  }, [params.input, repInput]);
 
   const info = useMemo(() => {
     try {
-      const input = params.input ? JSON.parse(String(params.input)) : null;
+      const input = params.input ? JSON.parse(String(params.input)) : repInput;
       if (!input) return null;
       const day = computeChart(input).saju?.pillars?.['일'];
       if (!day) return null;
@@ -69,15 +78,18 @@ export default function AnalyzedScreen() {
   //   "당신은 ___ 일주입니다" 에서 빈칸이 뜨는 것보다, 그냥 만세력으로 가는 편이 낫다.
   useEffect(() => {
     if (info) return;
-    const raw = params.input ? String(params.input) : '';
-    if (raw) router.replace({ pathname: '/myeongsik', params: { input: raw } });
-    else router.replace('/');
-  }, [info, params.input, router]);
+    // ★등록 뒤에는 **만세력**으로 간다(Boss 2026-08-24 *"명식 등록하면 기본적으로 만세력으로 떠야지"*).
+    //   종전 `/myeongsik` 은 넘겨받은 input 만 그리는 1회용 화면이라 **명식 전환도 탭도 없었다.**
+    //   등록 직후 대표가 방금 그 명식으로 바뀌므로(`setRepresentative`), 만세력이 곧 그 명식이다.
+    // ⚠️대표를 아직 읽는 중일 수 있다 — 그때는 기다린다(빈손이라고 단정해 홈으로 보내면 안 된다).
+    if (!params.input && repInput === null) return;
+    router.replace('/charts');
+  }, [info, params.input, repInput, router]);
 
   /** 다음 = 만세력(종전 등록 직후 목적지 그대로). 파라미터도 그대로 넘긴다. */
   const goNext = () => {
     if (!info) { router.replace('/'); return; }
-    router.replace({ pathname: '/myeongsik', params: { input: JSON.stringify(info.input) } });
+    router.replace('/charts');   // ★위와 같은 이유 — 등록 뒤 기본 도착지는 만세력이다
   };
 
   // 배경은 일간 오행색을 아주 옅게 깐다 — 전면을 오행색으로 칠하는 시안 구도

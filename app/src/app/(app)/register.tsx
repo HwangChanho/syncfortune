@@ -57,7 +57,16 @@ export default function RegisterRoute() {
           onPress: async () => {
             const earned = await showRewardedAd();
             if (!earned) { Alert.alert(t('register.limitTitle'), t('register.adNotFinished')); return; }
-            try { await saveMyChart(input, { bypassLimit: true }); proceed(input); }
+            // ⚠️★대표 설정이 빠져 있었다(2026-08-24 발견). 등록 뒤 도착지를 **만세력**으로 바꾸면서
+            //   드러난 구멍이다 — 만세력은 **대표 명식**을 그리므로, 여기서 대표를 안 세우면
+            //   광고를 보고 추가한 사람에게는 **방금 넣은 명식이 아니라 옛 명식**이 뜬다.
+            //   (다른 저장 경로 둘은 이미 `setRepresentative` 를 부르고 있었다.)
+            try {
+              await saveMyChart(input, { bypassLimit: true });
+              const added = (await listCharts()).at(-1);
+              if (added) await setRepresentative(added.id);
+              proceed(input);
+            }
             catch (e) { Alert.alert('!', (e as Error).message); }
           },
         },

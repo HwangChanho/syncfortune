@@ -7,8 +7,8 @@
 //   · label(이름)·relation 을 onSubmit input 에 포함(기존 누락 버그 수정)
 // 입력 → onSubmit(input) 콜백(라우트가 myChart 저장 + /myeongsik 전달). PII 기기 잔류(ADR-005).
 // ─────────────────────────────────────────────────────────────────────────
-import { useState, useEffect, useRef, useMemo } from 'react';
-import { View, Text, TextInput, Pressable, StyleSheet, ScrollView, Modal } from 'react-native';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { View, Text, TextInput, Pressable, StyleSheet, ScrollView, Modal, BackHandler, Platform } from 'react-native';
 import { PressableScale } from '../components/PressableScale';
 import { useTranslation } from 'react-i18next';
 import { colors, radius, space, shadow, font } from '../lib/theme';
@@ -16,6 +16,7 @@ import { SIJIN, formatBirthDate } from '../lib/engine/sijin';
 import { trueSolarOffsetMin, tzOf } from '@engine/solartime'; // 진태양시 보정 + 시간대 판정 — 경계시 경고·해외 표준시 표시용
 import { validateBirthInput } from '@engine/saju'; // 생년월일 유효성(감사 H3/H4/H6) — 없는 날짜·없는 윤달을 저장 입구에서 차단
 import { BirthPlacePicker } from '../components/BirthPlacePicker';
+import { useNavigation } from 'expo-router'; // ★뒤로가기를 이 화면이 먼저 받는다(2026-08-24)
 import { getCategories, addCategory, removeCategory, OTHER_CATEGORY, isRemovable } from '../lib/core/categories'; // ★카테고리 관리(생성·삭제·명식 재배치·daniel 07-18)
 import { parseBirthTime, hourHint } from '../lib/engine/birthTime'; // ★시각 입력 변환 단일 출처(daniel 08-11 00:03 건)
 import { Alert } from '../lib/ui/alert'; // 카테고리 삭제 확인
@@ -82,6 +83,8 @@ export function ChartRegisterScreen({ onSubmit, defaultRelation, submitLabel, sh
   const [step, setStep] = useState(0);
   const [stepHint, setStepHint] = useState<string | null>(null);   // 왜 못 넘어가는지(빈 반응 방지)
   const STEP_COUNT = 4;
+  // ★출생지 시트가 떠 있는가 — 뒤로가기를 가로채려면 **부모가 알아야** 한다(아래 goBack 참조).
+  const [placeOpen, setPlaceOpen] = useState(false);
   /** 이 단계를 채웠는가 — 못 채우면 '다음'을 막는다(마지막 검증은 종전 handleSubmit 이 한다). */
   const stepReady = (i: number): boolean => {
     if (i === 0) return true;                       // 이름은 비어도 된다(관계명으로 대체된다 — 종전 규칙)
@@ -90,6 +93,71 @@ export function ChartRegisterScreen({ onSubmit, defaultRelation, submitLabel, sh
   };
   /** 단계형에서 이 블록을 지금 보여줄 것인가(단계형이 아니면 늘 보여 준다). */
   const at = (i: number): boolean => !stepped || step === i;
+
+  // ── ★뒤로가기를 이 화면이 **먼저 받는다** (Boss 2026-08-24) ──────────────
+  //   제보: *"도시입력중에 뒤로가기하면 저장된상태로 이전등록 화면으로 가야지"* —
+  //   지금은 시트가 떠 있든 3단계까지 채웠든 **화면 전체가 빠져나가** 입력이 전부 날아간다.
+  //   원인은 단순하다: 뒤로가기를 **아무도 가로채지 않았다**(앱 전체에 BackHandler 가 한 곳도 없었다).
+  //
+  //   ★가로채는 순서 = 화면에서 가장 위에 떠 있는 것부터 (사용자가 마지막에 연 것이 먼저 닫힌다)
+  //     ① 열린 시트(출생지·시각·카테고리) → 그것만 닫는다
+  //     ② 단계형이고 첫 단계가 아니면 → **이전 단계**로. 입력값은 그대로 남는다(state 를 안 건드린다)
+  //     ③ 그 외 → 막지 않는다. 화면을 떠난다
+  //   ⚠️막을 이유가 없을 때는 **반드시 통과시킨다** — 못 나가는 화면이 제일 나쁘다.
+  const navigation = useNavigation();
+  const goBack = useCallback((): boolean => {
+    if (placeOpen) { setPlaceOpen(false); return true; }
+    if (sijinOpen) { setSijinOpen(false); return true; }
+    if (catOpen) { setCatOpen(false); return true; }
+    if (stepped && step > 0) { setStepHint(null); setStep((v) => Math.max(0, v - 1)); return true; }
+    return false;
+  }, [placeOpen, sijinOpen, catOpen, stepped, step]);
+
+  // 안드로이드 하드웨어/제스처 뒤로가기
+  useEffect(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', goBack);
+    return () => sub.remove();
+  }, [goBack]);
+
+  // iOS 스와이프·헤더 뒤로
+  //   ⚠️⚠️**사용자가 뒤로 갈 때만** 가로챈다(`GO_BACK`·`POP`).
+  //     처음엔 모든 이탈을 가로챘다가 **등록 자체가 막혔다**(2026-08-24 웹 실측):
+  //     저장을 마치고 `router.replace('/analyzed')` 를 부르는데 그것도 '화면 이탈'이라
+  //     `beforeRemove` 가 잡아 취소해 버렸다 — 등록을 눌러도 화면이 그대로였다.
+  //     `beforeRemove` 는 replace·reset 같은 **프로그램 이동에도 불린다.** 종류를 봐야 한다.
+  //   ⚠️`preventDefault` 는 **막을 때만.** 통과시킬 때 건드리면 화면이 갇힌다.
+  useEffect(() => {
+    const unsub = (navigation as any)?.addListener?.('beforeRemove', (e: any) => {
+      const type = e?.data?.action?.type;
+      if (type !== 'GO_BACK' && type !== 'POP') return;   // 프로그램 이동(replace 등)은 건드리지 않는다
+      if (!goBack()) return;      // 막을 이유가 없다 → 그대로 나간다
+      e.preventDefault();         // 시트를 닫았거나 한 단계 물러섰다 → 화면은 그대로 둔다
+    });
+    return unsub;
+  }, [navigation, goBack]);
+
+  // ★★웹 브라우저 뒤로가기는 **위 둘 중 어느 것도 안 잡는다** (2026-08-24 실측).
+  //   `BackHandler` 는 안드로이드 전용이고, `beforeRemove` 는 브라우저 popstate 로는 안 불린다.
+  //   ⇒ 히스토리에 **예비 칸**을 하나 쌓아 뒤로가기가 그걸 먼저 먹게 한다.
+  //     먹었을 때 되돌릴 게 남아 있으면 다시 한 칸 쌓아 화면에 머물고, 없으면 진짜로 나간다.
+  //
+  //   ⚠️★한 번 이걸 **범인으로 잘못 지목해 걷어냈다가 되살렸다**(같은 날).
+  //     증상: 등록을 마쳐도 홈으로 튕긴다. 이 가드가 히스토리를 어긋나게 한 줄 알았는데,
+  //     걷어내고 다시 재 보니 **증상이 그대로였다** — 진짜 원인은 웹에서 `router.replace({params})`
+  //     가 값을 못 넘기는 것이었고(analyzed 가 빈손으로 뜸), 이 가드는 무죄였다.
+  //     ★교훈: 고친 뒤 **다시 재기 전까지는** 원인을 지목하지 말 것.
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    const w = globalThis as any;
+    if (!w?.history?.pushState || !w?.addEventListener) return;
+    w.history.pushState({ __regGuard: true }, '');
+    const onPop = () => {
+      if (goBack()) w.history.pushState({ __regGuard: true }, '');  // 아직 되돌릴 게 있다 -> 머문다
+      else w.history.back();                                        // 다 되돌렸다 -> 진짜로 나간다
+    };
+    w.addEventListener('popstate', onPop);
+    return () => w.removeEventListener('popstate', onPop);
+  }, [goBack]);
   // 풀이 grounding 기본정보(선택, daniel) — 하는 일·관계상태·관심/고민·메모. 입력 시 통변이 더 정확(특히 R25: 현재 배우자 유무가 연애·결혼·궁합 풀이를 좌우).
   // ★상황(daniel 2026-07-28 "풀이가 너무 직장인에만 포커스") — **고정 키** 칩.
   //   자유 텍스트('하는 일')는 사람마다 표기가 제각각이라(회사원/직딩/백수…) 모델이 일관되게 못 쓴다.
@@ -285,7 +353,11 @@ export function ChartRegisterScreen({ onSubmit, defaultRelation, submitLabel, sh
         {at(2) ? (<>
         {/* 출생지 — 도시 검색 선택(Nominatim, 검증된 입력 + 진태양시 경도 보관) */}
         <Text style={styles.label}>{t('register.birthPlace')}</Text>
-        <BirthPlacePicker value={birthPlace} onSelect={(p) => { setBirthPlace(p.name); setBirthPlaceLon(p.lon); setBirthPlaceLat(p.lat); }} />
+        <BirthPlacePicker
+          value={birthPlace}
+          onSelect={(p) => { setBirthPlace(p.name); setBirthPlaceLon(p.lon); setBirthPlaceLat(p.lat); }}
+          onOpenChange={setPlaceOpen}   /* ★뒤로가기가 시트를 먼저 닫게 하려면 부모가 알아야 한다 */
+        />
         {/* 왜 묻는지 밝힌다 — 안 고르면 어떻게 되는지도 함께(몰래 기본값을 쓰지 않는다) */}
         <Text style={styles.placeHint}>
           {birthPlaceLon == null

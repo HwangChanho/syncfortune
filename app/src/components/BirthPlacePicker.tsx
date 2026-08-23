@@ -16,10 +16,24 @@ import { useSheetLayout } from './WebShell'; // 넓은 웹 = 바텀시트를 가
 
 type Place = { name: string; lon: number | null; lat: number | null }; // lat=점성술 상승궁(daniel: 출생지에서 추출)
 
-export function BirthPlacePicker({ value, onSelect }: { value: string; onSelect: (p: Place) => void }) {
+/**
+ * @param value    지금 고른 출생지 표시명
+ * @param onSelect 고르면 부르는 함수
+ * @param onOpenChange ★시트가 열리고 닫힐 때 알린다(2026-08-23).
+ *   왜 필요한가: 뒤로가기를 화면이 가로채려면 **지금 시트가 떠 있는지**를 알아야 한다.
+ *   열림 상태가 이 컴포넌트 안에만 있으면 부모는 알 수 없어, 도시를 입력하던 중에 뒤로가기를 누르면
+ *   시트만 닫히는 게 아니라 **등록 화면 전체가 빠져나가 버린다**(Boss 2026-08-24 제보).
+ */
+export function BirthPlacePicker({ value, onSelect, onOpenChange }: {
+  value: string;
+  onSelect: (p: Place) => void;
+  onOpenChange?: (open: boolean) => void;
+}) {
   const sheetL = useSheetLayout();
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
+  // ★`setOpen` 호출부가 여러 곳이라 **여기 한 곳에서** 알린다(호출부마다 붙이면 하나를 빠뜨린다).
+  useEffect(() => { onOpenChange?.(open); }, [open, onOpenChange]);
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<{ name: string; lon: number; lat: number }[]>([]);
   const [loading, setLoading] = useState(false);
