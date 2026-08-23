@@ -667,7 +667,7 @@ export const en = {
     'delAsk': 'Delete this conversation? This cannot be undone.',
     'delOk': 'Delete',
     'pickChat': 'Pick a conversation on the left',
-    'pickOne': 'Pick someone on the left',
+    'pickOne': 'No conversations',
     'liveSoon': 'We can talk soon. Getting ready.',
     'blockHi': "Here's your {{what}}.",
     'friends': 'Friends',

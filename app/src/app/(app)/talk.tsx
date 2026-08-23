@@ -491,11 +491,13 @@ export function TalkHome({ renderTop, mode = 'contacts' }: { renderTop?: ReactNo
             </>
           ) : (
             <View style={styles.empty}>
-              {/* ★탭마다 다른 말 — 대화 탭에서 "상담사를 골라 주세요"는 틀린 안내다(고를 목록이 대화다) */}
+              {/* ★탭마다 다른 말 — 고를 목록이 다르다.
+                  ★2026-08-23 Boss: 친구 탭 쪽 문구를 「대화가 없습니다」로(고르라는 지시보다
+                    지금 상태를 말하는 편이 낫다). 대화 탭 문구는 그대로 둔다. */}
               <Text style={styles.emptyTx}>
                 {mode === 'chats'
                   ? t('talk.pickChat', '왼쪽에서 대화를 골라 주세요')
-                  : t('talk.pickOne', '왼쪽에서 상담사를 골라 주세요')}
+                  : t('talk.pickOne', '대화가 없습니다')}
               </Text>
             </View>
           )}

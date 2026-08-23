@@ -705,7 +705,7 @@ export const ko = {
     'delAsk': '이 대화를 지울까요? 되돌릴 수 없어요.',
     'delOk': '지우기',
     'pickChat': '왼쪽에서 대화를 골라 주세요',
-    'pickOne': '왼쪽에서 상담사를 골라 주세요',
+    'pickOne': '대화가 없습니다',
     'liveSoon': '곧 이야기 나눌 수 있어요. 준비 중이에요.',
     'blockHi': '{{what}} 가져왔어요.',
     'friends': '친구',

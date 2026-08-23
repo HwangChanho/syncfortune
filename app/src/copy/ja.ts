@@ -666,7 +666,7 @@ export const ja = {
     'delAsk': 'この会話を削除しますか？元に戻せません。',
     'delOk': '削除',
     'pickChat': '左から会話を選んでください',
-    'pickOne': '左から相談相手を選んでください',
+    'pickOne': '会話がありません',
     'liveSoon': 'もうすぐお話しできます。準備中です。',
     'blockHi': '{{what}}をお持ちしました。',
     'friends': '友だち',

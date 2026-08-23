@@ -101,7 +101,13 @@ export default function MyPageScreen() {
 
       {/* ② 프로필 — ★사진이 **왼쪽**이고 사각 라운드다(콘티). 가운데 정렬 원형이 아니다 */}
       <View style={styles.profile}>
-        <ExpoImage source={elementAvatar()} style={styles.pic} contentFit="cover" transition={160} />
+        {/* ⚠️★`cover` 가 아니라 `contain` 이다(Boss 2026-08-23 *"프로필사진 위치에 있는 이미지가 제대로 안되어있어"*).
+            자산 `av-*.png` 는 **405×495 세로 인물**인데 상자는 64×64 정사각이라,
+            `cover` 는 넘치는 위아래를 **잘라낸다** — 머리나 발이 잘린 채 가운데 띠만 보였다.
+            ⚠️로고 때(340×470 을 108×34 에)와 **같은 부류**다: 비율이 안 맞는 그림은
+              찌그러지지 않고 **작아지거나(contain) 잘린다(cover)** — 둘 다 고장으로 안 읽힌다.
+            ⇒ 전체가 보이게 `contain`. 64 안에서 52×64 로 들어가 옆에 6px 씩만 남는다. */}
+        <ExpoImage source={elementAvatar()} style={styles.pic} contentFit="contain" transition={160} />
         <View style={styles.profileMid}>
           <Text style={styles.nick} numberOfLines={1}>
             {who || t('my.helloGuest', '안녕하세요')}
@@ -167,7 +173,8 @@ const styles = StyleSheet.create({
 
   profile: { flexDirection: 'row', alignItems: 'flex-start', gap: space(3.5), marginBottom: space(4) },
   // ★사각 라운드(콘티). 원형이 아니다 — 카톡 프로필과 같은 모양이라 '사람'으로 읽힌다
-  pic: { width: 64, height: 64, borderRadius: radius.md, backgroundColor: colors.sunk },
+  // ★배경을 뺐다 — `contain` 이라 옆 여백이 생기는데 회색 면이 깔리면 '레터박스'로 보인다
+  pic: { width: 64, height: 64, borderRadius: radius.md },
   profileMid: { flex: 1, minWidth: 0, gap: space(1) },
   nick: { fontSize: 17, lineHeight: 23, fontWeight: '900', color: colors.ink },
   status: { ...font.caption, color: colors.inkSoft, lineHeight: 18 },

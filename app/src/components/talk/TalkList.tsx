@@ -127,13 +127,16 @@ function Row({ c, initial, slot, on, onOpen, t }: {
    */
   const renderRight = () => (
     <PressableScale
-      style={[styles.swipeAct, faved && styles.swipeActOff]}
+      style={styles.swipeAct}
       onPress={() => { void toggleFavorite(c.id); ref.current?.close(); }}
       accessibilityLabel={t(faved ? 'talk.unfav' : 'talk.fav', '즐겨찾기')}
     >
-      <Text style={styles.swipeActTx}>
-        {faved ? t('talk.unfavShort', '해제') : t('talk.favShort', '즐겨찾기')}
-      </Text>
+      {/* ★★글자가 아니라 **별**이다(Boss 2026-08-23 *"즐겨찾기라 안뜨고 별모양으로"*).
+          ⚠️보이는 별은 **지금 상태**다 — 이미 됐으면 꽉찬 별(★), 해야 하면 빈 별(☆).
+            '누르면 무엇이 되는가'가 아니라 '지금 어떤가'를 보여 준다(Boss 지시 그대로).
+          ★보라 덩어리를 걷어냈다 — 줄을 밀면 색면이 통째로 나와 "너무 어색해" 했던 그 모양이다.
+            이제 옅은 면 위에 별 하나만 뜬다. */}
+      <Text style={[styles.swipeStar, faved && styles.swipeStarOn]}>{faved ? '★' : '☆'}</Text>
     </PressableScale>
   );
 
@@ -446,12 +449,13 @@ const styles = StyleSheet.create({
   webStarOn: { color: colors.ju },
   favDot: { fontSize: 12, color: colors.ju },
   // 왼쪽으로 밀면 나오는 동작 — 줄 높이를 그대로 채운다(반만 차면 눌리는 곳이 좁아진다)
+  // 밀면 나오는 자리 — 옅은 면 + 별 하나(색면 덩어리를 걷어냈다)
   swipeAct: {
-    width: 88, justifyContent: 'center', alignItems: 'center',
-    backgroundColor: colors.ju, borderRadius: radius.md, marginVertical: 2,
+    width: 64, justifyContent: 'center', alignItems: 'center',
+    backgroundColor: colors.juSoft, borderRadius: radius.md, marginVertical: 2,
   },
-  swipeActOff: { backgroundColor: colors.inkFaint },
-  swipeActTx: { ...font.caption, color: colors.onJu, fontWeight: '800' },
+  swipeStar: { fontSize: 24, color: colors.inkFaint },
+  swipeStarOn: { color: colors.ju },
   // 안 읽은 수 — 콘티의 보라 원. ★글자는 `onJu`(강조색 위 대비)
   unread: {
     minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 5,
