@@ -67,8 +67,18 @@ export function ChartRegisterScreen({ onSubmit, defaultRelation, submitLabel, sh
   const [makeRep, setMakeRep] = useState(false); // 이 명식을 대표로 설정(register 전용)
 
   // ── 4단계 입력(시안 p03) ────────────────────────────────────────────────
-  //   1 누구인가(이름·성별) → 2 언제(생년월일·양음·윤달) → 3 몇 시(시각) → 4 어디서(출생지·카테고리·상황)
-  //   ★쉬운 것부터 묻는다 — 이름·성별은 고민이 없고, 출생지·상황은 모르면 건너뛸 수 있다.
+  //   1 누구인가(이름·성별) → 2 언제(생년월일·양음·윤달) → **3 어디서(출생지·카테고리·상황)** → **4 몇 시(시각)**
+  //
+  //   ⚠️★★2026-08-23 **3·4 를 맞바꿨다** (Boss: *"시간보정 제대로 받으려면 출생지를 먼저 받아야 하는 거 아니야?"*).
+  //     Boss 말이 맞았고, 근거는 이 파일 안에 이미 있었다 —
+  //     시진 선택 모달은 `boundaryInfo` 로 **"거주지 보정 +N분 → 실제 HH:MM (○시)"** 를 이미 띄운다.
+  //     그런데 그 모달이 뜨는 시점이 **출생지를 묻기 전**이라 `birthPlaceLon` 이 null 이었고,
+  //     `lonOf()` 가 **한국 평균 127.5** 로 떨어져 **틀린 보정값을 보여 주고 있었다.**
+  //     ⇒ 출생지를 먼저 받으면 그 미리보기가 비로소 맞는 값이 된다.
+  //   ★결과(시주) 자체는 순서와 무관하다 — 엔진은 등록을 마친 뒤 네 값을 한꺼번에 받아 보정한다.
+  //     바뀌는 것은 **입력 중에 보여 주는 값의 정확도**다.
+  //   ★쉬운 것부터 묻는다는 원칙은 유지 — 이름·성별은 고민이 없고, 출생지·상황은 모르면 건너뛴다.
+  //   ★시각을 **마지막 한 칸**으로 둔 이유는 그대로다: '모른다'가 정당한 답이라 다른 칸과 섞지 않는다.
   const [step, setStep] = useState(0);
   const [stepHint, setStepHint] = useState<string | null>(null);   // 왜 못 넘어가는지(빈 반응 방지)
   const STEP_COUNT = 4;
@@ -258,7 +268,7 @@ export function ChartRegisterScreen({ onSubmit, defaultRelation, submitLabel, sh
         {/* ── 3단계 · 몇 시 (태어난 시각) ─────────────────────────────────
               ★한 칸만 두는 단계다 — 시각은 '모른다'가 정당한 답이고, 여기서 망설이는 사람이 많다.
                 다른 칸과 섞어 두면 모름을 고르는 것이 포기처럼 보인다. */}
-        {at(2) ? (<>
+        {at(3) ? (<>
           <Text style={styles.label}>{t('register.birthTimeSijin')}</Text>
           <PressableScale style={styles.select} onPress={() => setSijinOpen(true)}>
             <Text style={[styles.selectText, !exactStr && !sj && styles.selectPlaceholder]}>{timeLabel}</Text>
@@ -267,7 +277,7 @@ export function ChartRegisterScreen({ onSubmit, defaultRelation, submitLabel, sh
         </>) : null}
 
         {/* ── 4단계 · 어디서 + 나머지 (출생지 · 카테고리 · 내 상황 · 대표) ── */}
-        {at(3) ? (<>
+        {at(2) ? (<>
         {/* 출생지 — 도시 검색 선택(Nominatim, 검증된 입력 + 진태양시 경도 보관) */}
         <Text style={styles.label}>{t('register.birthPlace')}</Text>
         <BirthPlacePicker value={birthPlace} onSelect={(p) => { setBirthPlace(p.name); setBirthPlaceLon(p.lon); setBirthPlaceLat(p.lat); }} />

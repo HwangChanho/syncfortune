@@ -103,6 +103,17 @@ export function MyeongsikScreen(props: MyeongsikProps) {
 }
 
 function MyeongsikBody({ input, onReading, onSinsal, header, whoName }: MyeongsikProps & { input: ChartInput }) {
+  /** 제목 아래 한 줄 — 생년월일(+음력 표기) · 시각(또는 미상) · 출생지(또는 미상). */
+  const birthMeta = (() => {
+    const [d = '', tm = ''] = String(input.birthDateTime ?? '').split(' ');
+    const date = d.replace(/-/g, '.');
+    const cal = input.calendar === '음' ? ' (음력)' : '';
+    const time = input.timeAccuracy === '미상'
+      ? '시 미상'
+      : `${tm}${input.timeAccuracy === '추정' ? ' (추정)' : ''}`;
+    const place = (input.birthPlace ?? '').trim() || '출생지 미상';
+    return [date + cal, time, place].filter(Boolean).join(' · ');
+  })();
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<MyeongTab>(lastMyeongTab === 'rel' ? 'wonguk' : lastMyeongTab); // 'rel'(구 운세 탭)은 wonguk 으로 통합(daniel 07-24) — 저장값 방어
@@ -470,7 +481,16 @@ function MyeongsikBody({ input, onReading, onSinsal, header, whoName }: Myeongsi
           <OhaengEnergy saju={c.saju} />
           <View style={styles.headerArea}>
             {/* 누구 명식인지 제목에 표기(daniel 07-05) — 헤더 ChartPicker(변경 가능)와 함께 '누구의 사주 원국'인지 명확히. */}
-            <Text style={styles.h}>{whoName ? `${whoName} · ${t('myeongsik.palja')}` : t('myeongsik.palja')}</Text>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={styles.h}>{whoName ? `${whoName} · ${t('myeongsik.palja')}` : t('myeongsik.palja')}</Text>
+              {/* ★생년월일시·출생지를 작게 함께(Boss 2026-08-23) — '이 명식이 누구의 무엇인지'를
+                  제목만으로는 알 수 없다. 명식을 여러 개 두는 앱이라 특히.
+                  ⚠️시각 미상이면 `birthDateTime` 이 '0:0' 이다 — **00:00 으로 적으면 거짓**이라
+                    '시 미상'으로 적는다(`timeAccuracy` 가 정본).
+                  ⚠️음력이면 반드시 표시한다 — 안 적으면 날짜를 양력으로 잘못 읽는다.
+                  ⚠️출생지가 없으면 '출생지 미상' — 비워 두면 진태양시가 한국 평균으로 계산된 걸 모른다. */}
+              <Text style={styles.hMeta} numberOfLines={1}>{birthMeta}</Text>
+            </View>
             <View style={{ flexDirection: 'row', gap: space(2) }}>
               {/* ★한자↔한글 토글(daniel 07-24) — 사주 모르는 사람도 한글음으로 명식 보기 */}
               <PressableScale style={styles.advancedBtn} onPress={() => setHangeul((v) => !v)}>
@@ -1297,7 +1317,9 @@ const makeStyles = (fs: (n: number) => number) => { const f = scaledFont(fs); re
   gyeokHanja: { color: colors.inkFaint, fontWeight: '600', fontSize: 13 },
   gyeokDesc: { color: colors.inkSoft, marginTop: space(1) },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'transparent' }, // 전역 배경 투과(ContentBackdrop)
-  h: { ...f.heading, marginTop: space(5), marginBottom: space(2) },
+  h: { ...f.heading, marginTop: space(5), marginBottom: 2 },
+  // 제목 아래 메타 — 작고 흐리게(제목을 밀어내지 않는다)
+  hMeta: { ...f.caption, color: colors.inkFaint, marginBottom: space(2) },
   hint: { ...f.caption, marginBottom: space(2) },
   ssRow: { flexDirection: 'row', alignItems: 'center', gap: space(2), paddingVertical: space(1.5), borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.line },
   ssName: { ...f.body, width: 76, color: colors.ink },
