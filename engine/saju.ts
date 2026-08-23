@@ -10,7 +10,7 @@ import _lunar from 'lunar-javascript';
 import type {
   ChartInput, SajuChart, PillarData, PillarPos, Stem, Branch, TenGod, HiddenStem, Element, LuckCycle, AnnualPillar, MonthPillar, Interaction,
 } from '../spec/chart';
-import { trueSolarOffsetMin, kstMeridianAt, dstOffsetMin } from './solartime'; // kstMeridianAt·dstOffsetMin = 절기용 북경시 변환(감사 C1)
+import { trueSolarOffsetMin, beijingShiftMin } from './solartime'; // beijingShiftMin = 절기용 북경시 변환(감사 C1 · 08-23 해외 대응)
 // ⚠️structure.ts ↔ saju.ts 는 **순환 참조**다(structure 가 STEM_YANG 을 쓴다). ESM 에서 이게 안전한 이유:
 //   structure.ts 는 STEM_YANG 을 **함수 본문 안에서만** 쓰고 모듈 최상위에서 접근하지 않는다 →
 //   평가 시점엔 아무도 안 건드리고, 실제 호출 시점엔 양쪽 다 초기화가 끝나 있다(live binding).
@@ -250,10 +250,12 @@ export function buildSajuChart(input: ChartInput, nowYear = new Date().getFullYe
   //     따져도 정답은 동일하게 "시계시 ≥ 절입표기 + 60분"이다. 즉 순수한 타임존 축 불일치.
   //   ※ 한 번의 입력으로 두 기준을 동시에 만족시킬 수 없어(시주는 지방 진태양시, 절기는 물리적 순간)
   //     라이브러리를 두 번 호출한다 — **년·월주·대운 = 이 ecTerm / 일·시주 = 위 ec(진태양시)**.
-  //   보정량 = (표준자오선 − 120°)×4분 + 서머타임분. 시대별 자오선(135°/127.5°)·DST 를 그대로 반영하므로
-  //     1954~61 127.5° 시대는 −30분, 서머타임 기간은 60분이 더 빠진다.
-  const meridian = kstMeridianAt(y, mo, d);
-  const toBeijingMin = -Math.round((meridian - 120) * 4) + dstOffsetMin(y, mo, d, h, mi);
+  //   보정량 = 480 − **그 순간 그 지역의 UTC 오프셋**(분). 시대별 자오선(135°/127.5°)·서머타임을
+  //     그대로 반영하므로 1954~61 127.5° 시대는 −30분, 한국 서머타임 기간은 60분이 더 빠진다.
+  //   ★2026-08-23: 예전엔 `kstMeridianAt` 를 **해외 출생에도 그대로** 써서, 절기 축이 그 나라
+  //     시차만큼 통째로 어긋났다(밀라노 8~9시간). 이제 출생지 기준으로 판정한다(engine/timezone.ts).
+  //     ⚠️한국 출생은 수치가 동일하다(등가 변형) — `npm run check:solartime` 이 그걸 고정한다.
+  const toBeijingMin = Math.round(beijingShiftMin(input, y, mo, d, h, mi));
   const bj = new Date(y, mo - 1, d, h, mi, 0);
   bj.setMinutes(bj.getMinutes() + toBeijingMin);
   const ecTerm = Solar.fromYmdHms(bj.getFullYear(), bj.getMonth() + 1, bj.getDate(), bj.getHours(), bj.getMinutes(), 0).getLunar().getEightChar();

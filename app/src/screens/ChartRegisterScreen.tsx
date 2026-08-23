@@ -13,7 +13,7 @@ import { PressableScale } from '../components/PressableScale';
 import { useTranslation } from 'react-i18next';
 import { colors, radius, space, shadow, font } from '../lib/theme';
 import { SIJIN, formatBirthDate } from '../lib/engine/sijin';
-import { trueSolarOffsetMin } from '@engine/solartime'; // 진태양시 보정(거주지 경도·서머타임·균시차) — 경계시 경고용
+import { trueSolarOffsetMin, tzOf } from '@engine/solartime'; // 진태양시 보정 + 시간대 판정 — 경계시 경고·해외 표준시 표시용
 import { validateBirthInput } from '@engine/saju'; // 생년월일 유효성(감사 H3/H4/H6) — 없는 날짜·없는 윤달을 저장 입구에서 차단
 import { BirthPlacePicker } from '../components/BirthPlacePicker';
 import { getCategories, addCategory, removeCategory, OTHER_CATEGORY, isRemovable } from '../lib/core/categories'; // ★카테고리 관리(생성·삭제·명식 재배치·daniel 07-18)
@@ -155,19 +155,24 @@ export function ChartRegisterScreen({ onSubmit, defaultRelation, submitLabel, sh
     if (!exactStr) return null;
     const [by, bm, bd] = birthDate.split('-').map((x) => parseInt(x, 10));
     if (!by || !bm || !bd) return null;
-    const input = { birthDateTime: `${birthDate} ${exactStr}`, calendar, sex, birthPlace, birthLon: birthPlaceLon ?? undefined } as any;
+    // ⚠️birthLat 도 넘긴다 — 애리조나·퀸즐랜드처럼 **같은 나라 안에서 위도로 서머타임이 갈리는** 곳이 있다.
+    const input = { birthDateTime: `${birthDate} ${exactStr}`, calendar, sex, birthPlace, birthLon: birthPlaceLon ?? undefined, birthLat: birthPlaceLat ?? undefined } as any;
     const offset = Math.round(trueSolarOffsetMin(input, by, bm, bd, exH24, exM));
     const solarMin = (((exH24 * 60 + exM + offset) % 1440) + 1440) % 1440;           // 진태양시 분(0~1439)
     const fromStart = (((solarMin - 1380) % 120) + 120) % 120;                       // 시진 블록(子 23:00 시작, 2h) 경계로부터
     const toBoundary = Math.min(fromStart, 120 - fromStart);                         // 가까운 시진 경계까지(분)
     const blockIdx = Math.floor(((((solarMin - 1380) % 1440) + 1440) % 1440) / 120); // 0=자..11=해
     const SIJI = ['자', '축', '인', '묘', '진', '사', '오', '미', '신', '유', '술', '해'];
+    // ★시간대 판정을 **입력 중에 보여 준다**(2026-08-23) — 밀라노 출생이 서머타임 없이 계산되던 사고 이후.
+    //   보정 분수만 보면 그게 어느 나라 표준시로 계산된 값인지 알 수 없어, 틀려도 조용히 지나간다.
+    const tz = tzOf(input, by, bm, bd, exH24, exM);
     return {
       offset,
       solarTime: `${String(Math.floor(solarMin / 60)).padStart(2, '0')}:${String(solarMin % 60).padStart(2, '0')}`,
       siji: SIJI[blockIdx], toBoundary, warn: toBoundary <= 20,
+      zone: tz.zone, dst: tz.dstApplied, overseas: tz.source !== 'korea', tzUncertain: tz.uncertain,
     };
-  }, [exactStr, birthDate, calendar, sex, birthPlace, birthPlaceLon, exH24, exM]);
+  }, [exactStr, birthDate, calendar, sex, birthPlace, birthPlaceLon, birthPlaceLat, exH24, exM]);
 
   // input 구성 — 수동 제출·자동저장 공용. label/relation 은 메타(ChartInput PII 계약 외).
   function buildInput() {
@@ -459,6 +464,18 @@ export function ChartRegisterScreen({ onSubmit, defaultRelation, submitLabel, sh
                   <Text style={{ fontSize: 13, color: colors.ju, fontWeight: '700' }}>
                     거주지 보정 {boundaryInfo.offset >= 0 ? '+' : ''}{boundaryInfo.offset}분 → 실제 {boundaryInfo.solarTime} ({boundaryInfo.siji}시)
                   </Text>
+                  {/* ★해외 출생이면 **어느 표준시로 계산했는지** 보여 준다 — 틀린 가정이 조용히 지나가지 않게 */}
+                  {boundaryInfo.overseas && (
+                    <Text style={{ fontSize: 12, color: colors.ju, marginTop: space(1.5), lineHeight: 17 }}>
+                      {boundaryInfo.zone}{boundaryInfo.dst ? ' · 서머타임 적용' : ' 기준'}
+                    </Text>
+                  )}
+                  {/* ⚠️서머타임 이력을 확정하지 못한 시기·지역 — 추측해 채우지 않고 그대로 알린다 */}
+                  {boundaryInfo.tzUncertain && (
+                    <Text style={{ fontSize: 12, color: colors.ju, marginTop: space(1.5), lineHeight: 17 }}>
+                      ⚠️ 이 시기·지역의 서머타임 이력은 확인되지 않았어요. 시각이 1시간 어긋날 수 있습니다.
+                    </Text>
+                  )}
                   {boundaryInfo.warn && (
                     <Text style={{ fontSize: 12, color: colors.ju, marginTop: space(1.5), lineHeight: 17 }}>
                       ⚠️ 시(時) 경계까지 {boundaryInfo.toBoundary}분 — 시각이 조금만 달라도 시주가 바뀔 수 있어요. 정확한지 확인하세요.
