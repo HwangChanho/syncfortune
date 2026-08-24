@@ -89,6 +89,26 @@ console.log('\n=== ② 전문가가 지목한 충·합을 엔진이 잡는가 ==
   else bad(`未丑沖 ${cnt('未丑')}건 — 노트는 2건`);
 }
 
+// ── ②-b 케이스 노트 v2 §4 — 노트가 **지목한** 교차 신살 (확인된 값 = 회귀하면 빨간불) ──
+console.log('\n=== ②-b 노트 v2 가 지목한 교차 신살 ===');
+{
+  const dx = analyzeCompatibility(ca, cb, '여');
+  // 노트: *"A 의 년지 亥 = B 의 일지(丑) 기준 역마 — 이 사람으로 인해 이동수 발생"*
+  const named = dx.crossSinsal.find((c: any) => c.name === '역마' && c.myBranch === '亥' && c.theirBranch === '丑' && c.theirBase === '일');
+  if (named) ok('내 년지 亥 ← 상대 일지 丑 기준 역마 (노트 지목)');
+  else bad('★노트가 지목한 亥↔丑 역마를 못 잡는다');
+
+  // ★배우자궁(일지)이 역마인 배치 — 노트 §3 *"배우자궁이 충 당사자 → 결혼 = 이동의 닻"* 과 맞물린다
+  const spousePalaceYeokma = dx.crossSinsal.some((c: any) => c.name === '역마' && c.myAt === '일');
+  if (spousePalaceYeokma) ok('내 **일지(배우자궁)**가 상대 기준 역마 — 노트 §3 과 정합');
+  else bad('일지 역마 배치가 사라졌다');
+
+  // ⚠️점수를 매기지 않았는지 — 도화 궁위 감쇄는 **판정 대기**(노트 컨펌 2번)
+  const hasScore = dx.crossSinsal.some((c: any) => 'score' in c || 'weight' in c);
+  if (hasScore) bad('★`crossSinsal` 에 점수가 생겼다 — 도화 감쇄 계수는 Daniel 컨펌 항목이다');
+  else ok('교차 신살에 점수를 매기지 않는다(컨펌 대기)');
+}
+
 // ── ③ 전문가가 지적했던 항목들 (실패로 찍지 않는다 — 상태만 보여 준다) ────
 console.log('\n=== ③ 전문가가 지적한 항목 — 구현 상태 ===');
 {
@@ -111,6 +131,10 @@ console.log('\n=== ③ 전문가가 지적한 항목 — 구현 상태 ===');
   gap('G5 미러 비대칭', s.score !== s2.score,
     s.score !== s2.score ? `A기준 ${s.score} / B기준 ${s2.score}`
       : `A기준 ${s.score} = B기준 ${s2.score} — R48 양방향이 안 갈린다`);
+  gap('G7 상대 지지 = 내 신살(노트 v2 §4)', dx.crossSinsal.some((c: any) => c.name === '역마'),
+    dx.crossSinsal.length
+      ? dx.crossSinsal.filter((c: any) => c.name === '역마').map((c: any) => c.detail).join(' / ')
+      : '상대 지지가 내 역마인 배치를 못 잡는다');
   gap('G6 분산 지표', s.weakest != null,
     s.weakest ? `가장 약한 항목 = ${s.weakest.item} ${Math.round(s.weakest.ratio * 100)}점` : '고분산/저분산을 구분할 보조 출력이 없다');
 
