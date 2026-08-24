@@ -173,11 +173,17 @@ export default function Home() {
       )))}
       {/* ★배너는 여기(고정 헤더)에서 **블록으로 이동**했다(daniel 2026-08-06) — renderBlock 의 'banner'.
           종전엔 헤더라 항상 오늘의 운세보다 위였고 순서도 못 바꿨다. */}
-      {/* ★웹 첫 방문자 — 앱은 설치라는 문턱이 설명을 대신하지만 웹은 링크 하나로 들어온다.
-          명식이 하나라도 생기면 사라진다(그때부턴 홈이 할 일이 있다). 네이티브에선 렌더 안 됨. */}
-      {Platform.OS === 'web' && !hasChart && <WebLanding />}
     </>
   );
+
+  /* ★웹 첫 방문자 설명 — 앱은 설치라는 문턱이 설명을 대신하지만 웹은 링크 하나로 들어온다.
+     명식이 하나라도 생기면 사라진다(그때부턴 홈이 할 일이 있다). 네이티브에선 렌더 안 됨.
+     ⚠️★**목록 위(`renderTop`)에 두지 않는다.** 거기 두면 랜딩이 화면을 다 먹어
+       친구목록이 1000px 아래로 밀린다 — 「운친구」를 눌러도 목록이 안 보였다
+       (Boss 2026-08-24 *"운친구 눌려있는데 왜 친구목록이 안나와"*). 실측으로 잡았다:
+       랜딩 y=533 · 목록 헤더 y=930 · 첫 친구 y=1055(뷰포트 811).
+     ⇒ 목록 **맨 아래**에 붙인다. 목록이 맨 위를 지키고, 설명은 스크롤하면 나온다. */
+  const webIntro = Platform.OS === 'web' && !hasChart ? <WebLanding /> : null;
 
   return (
     // ★홈도 투명(daniel 2026-07-15 '홈은 테마 적용 안돼') — bgSource 이미지 제거, 전역 ContentBackdrop(오행 배경색)이 비치게.
@@ -193,7 +199,10 @@ export default function Home() {
             (`blockRegistry` — 컴포넌트를 공유하므로 홈과 갈릴 수 없다).
             ⚠️두 단 웹 배치·드래그 정렬은 `TalkHome` 이 자기 방식(목록+대화 2칸)으로 대체한다.
               순서는 여전히 `useHomeOrder` 다 — 운영자가 관리자 콘솔에서 정한 순서가 친구 순서가 된다. */}
-        <TalkHome renderTop={<View style={{ paddingTop: insets.top + space(2), paddingHorizontal: space(5) }}>{listHeader}</View>} />
+        <TalkHome
+          renderTop={<View style={{ paddingTop: insets.top + space(2), paddingHorizontal: space(5) }}>{listHeader}</View>}
+          renderBottom={webIntro ? <View style={{ paddingHorizontal: space(5), paddingTop: space(4) }}>{webIntro}</View> : undefined}
+        />
       </Animated.View>
       <HomeOrderEditModal visible={editOpen} onClose={() => setEditOpen(false)} />
       {/* 🧭 바로가기 메뉴(daniel 2026-07-25 J) — 만세력·AI 코치를 홈 블록에서 빼고 여기서 분기 진입. 배경 탭=닫힘(모달·리스트내 absolute 금지). */}

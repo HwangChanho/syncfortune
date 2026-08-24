@@ -84,14 +84,17 @@ function toItems(r: VirtualReply): TalkItem[] {
 /**
  * 친구목록 + 대화 — **시작 화면의 본체**(Boss 2026-08-19 *"첫 시작화면에 로고뜨고 바로 카카오톡처럼 친구목록"*).
  *
- * @param renderTop 목록 위에 얹을 것(브랜드 헤더·풀이 진행률 배너).
+ * @param renderTop    목록 **위**에 얹을 것(브랜드 헤더·풀이 진행률 배너).
+ *   ⚠️여기 큰 것을 넣으면 목록이 화면 밖으로 밀린다 — 웹 랜딩을 여기 뒀다가 친구목록이
+ *     안 보였다(Boss 2026-08-24). 큰 설명은 `renderBottom` 으로.
+ * @param renderBottom 목록 **맨 아래**에 붙일 것. 목록과 같이 스크롤된다.
  *   ★대화 상세로 들어가면 **띄우지 않는다** — 카톡도 대화에 들어가면 상단이 상대 이름으로 바뀐다.
  *     헤더가 두 겹으로 남으면 '어디에 있는지'가 흐려진다.
  * @param mode 왼쪽 칸에 무엇을 둘까 — `contacts`(친구목록) / `chats`(대화 목록).
  *   ★두 탭이 **같은 껍데기**를 쓴다(Boss 2026-08-20 *"친구목록이랑 채팅 탭이 좌우로 공간을 나눠서"*).
  *     대화창·입력바·2칸 배치를 탭마다 만들면 언젠가 다르게 동작한다.
  */
-export function TalkHome({ renderTop, mode = 'contacts' }: { renderTop?: ReactNode; mode?: 'contacts' | 'chats' }) {
+export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { renderTop?: ReactNode; renderBottom?: ReactNode; mode?: 'contacts' | 'chats' }) {
   const { t, i18n } = useTranslation();
   const router = useRouter();
   // 대화 목록(`/chats`)에서 특정 상담사를 바로 열 때 쓰는 값
@@ -572,7 +575,7 @@ export function TalkHome({ renderTop, mode = 'contacts' }: { renderTop?: ReactNo
                       people={friends.filter((f) => f.status === 'accepted').map((f) => ({
                         id: f.otherId, name: f.name ?? '이름 없음', avatarUrl: f.avatarUrl, canSee: !!f.chartId,
                       }))}
-                      onOpenPerson={(id) => router.push(`/friendcompat?friend=${id}`)} wide={!wide} />   {/* 웹 3칸 = 좁은 칸 */}
+                      onOpenPerson={(id) => router.push(`/friendcompat?friend=${id}`)} wide={!wide} footer={renderBottom} />   {/* 웹 3칸 = 좁은 칸 */}
         </View>
         {showChatPane && (
           <View style={[styles.pane, { paddingTop: insets.top }]}>

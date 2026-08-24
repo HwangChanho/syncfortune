@@ -205,7 +205,7 @@ function Row({ c, initial, slot, on, onOpen, t }: {
 //   (특히 `biorhythm` 은 어느 상담가에도 없어 그냥 지웠으면 도달 불가가 됐다).
 //   ★`ContentRail` 컴포넌트 자체는 남아 있다 — 다른 자리에서 쓸 수 있다.
 
-export function TalkList({ items, onOpen, selected, myName, onMe, myAvatar, railKeys = [], onSettings, wide,
+export function TalkList({ items, onOpen, selected, myName, onMe, myAvatar, railKeys = [], onSettings, wide, footer,
                            onAddFriend, pendingCount = 0, people = [], onOpenPerson }: {
   /**
    * 친구목록에 뜰 사람들.
@@ -223,6 +223,11 @@ export function TalkList({ items, onOpen, selected, myName, onMe, myAvatar, rail
   railKeys?: readonly HomeBlockKey[];
   /** 우측 톱니 — 설정으로 */
   onSettings?: () => void;
+  /** ★목록 **맨 아래**에 붙일 것(웹 첫 방문자 설명 등).
+   *  ⚠️위(`renderTop`)에 두면 목록을 화면 밖으로 밀어낸다 — 실제로 그래서 친구목록이 안 보였다
+   *    (Boss 2026-08-24 *"운친구 눌려있는데 왜 친구목록이 안나와"*). 이 목록은 ScrollView 라
+   *    여기 넣으면 **같이 스크롤**되고, 목록이 맨 위를 지킨다. */
+  footer?: React.ReactNode;
   /** 넓은 칸인가(폰 전체 폭·웹 넓은 화면). 좁으면 배너를 숨긴다 */
   wide?: boolean;
   /** 친구 추가 화면으로 */
@@ -419,6 +424,7 @@ export function TalkList({ items, onOpen, selected, myName, onMe, myAvatar, rail
       {q.trim() && !shown.length
         ? <Text style={styles.empty}>{t('talk.searchEmpty', '찾는 친구가 없어요.')}</Text>
         : null}
+      {footer}
     </ScrollView>
   );
 }
