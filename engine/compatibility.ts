@@ -269,15 +269,21 @@ export function analyzeCompatibility(me: SajuChart, other: SajuChart, meSex?: '�
   const scanPalace = (palaceBranch: Branch, opp: SajuChart, whose: 'mine' | 'theirs') => {
     for (const p of POS) {
       const b = opp.pillars[p].branch;
-      const add = (kind: '형' | '충' | '파' | '해' | '원진') => {
+      // ★★한 **글자쌍**에서는 **가장 무거운 것 하나만** 센다(충 > 형 > 파 > 해 > 원진).
+      //   ⚠️丑未 처럼 충이면서 형인 쌍이 있다. 종류별로 다 세면 **한 쌍이 두 번 감점**된다 —
+      //     케이스 003 에서 실제로 그랬다(丑未 두 자리 × 2종 = 4건). 전문가는 `丑未沖` **2건**으로 셌다.
+      //   ⇒ 과잉 계상 수정이지 stance 변경이 아니다(무엇이 났는지는 그대로, 몇 번 세느냐만 고친다).
+      const kinds: ('충' | '형' | '파' | '해' | '원진')[] = [];
+      if (pair(CHONG, palaceBranch, b)) kinds.push('충');
+      if (pair(HYEONG, palaceBranch, b) || (palaceBranch === b && SELF_HYEONG.includes(palaceBranch))) kinds.push('형');
+      if (pair(PA, palaceBranch, b)) kinds.push('파');
+      if (pair(HAE, palaceBranch, b)) kinds.push('해');
+      if (pair(WONJIN, palaceBranch, b)) kinds.push('원진');
+      if (kinds.length) {
+        const kind = kinds[0];   // 위 순서가 곧 무게 서열이다
         affl.push(kind);
         hits.push({ kind, palace: whose, mine: palaceBranch, theirs: b, at: p });
-      };
-      if (pair(HYEONG, palaceBranch, b) || (palaceBranch === b && SELF_HYEONG.includes(palaceBranch))) add('형');
-      if (pair(CHONG, palaceBranch, b)) add('충');
-      if (pair(PA, palaceBranch, b)) add('파');
-      if (pair(HAE, palaceBranch, b)) add('해');
-      if (pair(WONJIN, palaceBranch, b)) add('원진');
+      }
     }
   };
   scanPalace(dbA, other, 'mine');     // 내 배우자궁 ↔ 상대 네 지지

@@ -20,16 +20,22 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import type { CompatibilityDx } from './compatibility';
 
-/** 용신 공급 정도 → 가점. daniel ⑤(보완성·보조). */
-const SUPPLY_W: Record<string, number> = { 강: 12, 중: 7, 약: 3, 없음: 0 };
+// ⚠️`SUPPLY_W`(공급 **개수** → 가점) 는 2026-08-24 에 걷어냈다.
+//   전문가 기준은 개수가 아니라 **정확성**이다(*"상호 결핍 원소 정확 교환"*) — ① 항목 주석 참조.
 
 /**
  * 점수와 **그 근거**. 화면이 "왜 이 점수인가"를 그대로 읽어 쓸 수 있게 재료를 함께 돌려준다
  * (숫자만 주면 화면이 dx 를 또 뒤져야 하고, 그러다 기준이 갈린다).
  */
+/** 전문가 항목 하나 — 0~100 과 그 근거. */
+export type CompatItem = { key: CompatItemKey; label: string; score: number; weight: number; why: string };
+export type CompatItemKey = 'yongsin' | 'spouseStar' | 'spousePalace' | 'dayMaster' | 'conflict' | 'timing';
+
 export type CompatScoreBreakdown = {
-  /** 0~100 (실제로는 [15,97] 클램프 — §4 부정 증폭 금지) */
+  /** 0~100 — **항목 가중평균**(2026-08-24 전문가 기준으로 전환). [15,97] 클램프는 유지 */
   score: number;
+  /** ★항목별 점수 — 전문가 노트와 **같은 여섯 항목**. 어디가 어긋나는지 항목으로 보인다 */
+  items: CompatItem[];
   /** 조화(합·상생) 작용 수 */
   harmony: number;
   /** 긴장(충·상극) 작용 수 */
@@ -74,31 +80,68 @@ export type CompatScoreBreakdown = {
 export function compatScoreOf(dx: CompatibilityDx): CompatScoreBreakdown {
   const harmony = dx.harmony.length;
   const tension = dx.tension.length;
-  const supply = SUPPLY_W[dx.usefulGodSupply.supply] ?? 0;
   const dmType = dx.dayMasterRelation.type;
-  // ④ 일간(천간) 관계 — 충>상생>합>비화>상극. 일간충은 발전형이라 가점(일지충 감점과 별개 축).
-  const dmBonus =
-    dmType === '충' ? 7 :
-    dmType === '상생' ? 5 :
-    dmType === '합' ? 4 :
-    dmType === '비화' ? 2 : 0; // 상극
-  const season = dx.seasonComplement.complementary ? 7 : 0;                 // ①
-  const jaegwan = dx.partnerToMe.favorable ? 8 : 0;                         // ②
-  const fill = Math.min(dx.missingFill.chars.length, 3) * 3;                // ③ 0~9
-  const crossHe = dx.crossInteractions.filter((c) => c.kind.includes('합')).length;
-  const heBonus = Math.min(crossHe, 3) * 2;                                 // ⑤ 교차합 0~6
-  const spouseMinus = Math.min(dx.spousePalace.afflictions.length, 3) * 5;  // ⑥ 0~15
-  // ⑦ ★교차 삼합 완성(2026-08-24 · 전문가 케이스 노트 R46-d).
-  //   *"완성 국의 십신 판정 — 배우자성이면 최고 가중"* → 배우자성 완성 +10 · 그 외 완성 +4 (최대 +14).
-  //   ⚠️가중치 숫자는 **stance 다**(★Boss 검수 슬롯). 검출·서열은 노트 원문, 크기는 잠정값이다.
-  const sanheBonus = Math.min(
-    dx.crossSanhe.reduce((a, c) => a + (c.spouseStar ? 10 : 4), 0), 14);
-  // ⑧ ★교차 삼형 성립 — 짝 형(⑥에 이미 반영)과 **별개**로, 셋이 모인 무게. 건당 −6(최대 −12).
-  const samhyeongMinus = Math.min(dx.crossSamhyeong.length * 6, 12);
-  let s = 55 + season + jaegwan + fill + dmBonus + supply + heBonus + sanheBonus - spouseMinus - samhyeongMinus;
-  s = Math.max(15, Math.min(97, Math.round(s)));
+  const season = dx.seasonComplement.complementary ? 7 : 0;
+  const fill = Math.min(dx.missingFill.chars.length, 3) * 3;
+
+  // ── ① 용신 호환 ────────────────────────────────────────────────────────
+  //   ★★전문가는 이 항목을 **95점**으로 봤다. 근거는 *"상호 결핍 원소 **정확** 교환"* —
+  //     즉 **얼마나 많이 주느냐가 아니라, 필요한 것을 주느냐**다.
+  //     종전 산식은 개수(강/중/약)로만 봐서 이 케이스를 '약' 으로 깎았다(직접 0개).
+  //     실제로는 상대의 金 이 내 용신 水 를 **생조**하고 있었다 = 정확히 필요한 것.
+  //   ⚠️용신을 못 정한 경우는 **중립 50** 이다. 모르는 것을 0 으로 깎으면 그건 판정이 아니라 벌이다.
+  const ug = dx.usefulGodSupply;
+  const yongsin =
+    ug.element == null ? 50
+    : /직접 [1-9]/.test(ug.detail) ? 95            // 용신 오행을 직접 준다
+    : /생조/.test(ug.detail) ? 85                  // 희신이 생조한다(한 단계 건너)
+    : 40;                                          // 용신은 정해졌는데 상대가 못 준다
+  const yongsinWhy = ug.detail;
+
+  // ── ② 배우자성 성립 ────────────────────────────────────────────────────
+  //   전문가 90점 근거: *"교차 삼합 쌍방 완성 + 무근 천간 통근. 감점 乙辛沖"*
+  const spouseGuk = dx.crossSanhe.filter((c) => c.spouseStar).length;
+  const otherGuk = dx.crossSanhe.length - spouseGuk;
+  const spouseStar = Math.min(50 + spouseGuk * 40 + otherGuk * 15 + (dx.partnerToMe.favorable ? 10 : 0), 95);
+
+  // ── ③ 배우자궁 상호작용 ────────────────────────────────────────────────
+  //   전문가 75점 = **중간 감점**. 건당 −8, 하한 40(전부 깎아도 0 이 되지 않게 — §4).
+  const spouseHits = dx.spousePalace.afflictions.length;
+  const spousePalace = Math.max(100 - spouseHits * 8, 40);
+
+  // ── ④ 일간 심리 호환 ───────────────────────────────────────────────────
+  //   ★서열은 daniel 승인분 그대로 — **충 > 상생 > 합 > 비화 > 상극**("충이 발전형, 합은 정체").
+  const dmBase =
+    dmType === '충' ? 88 : dmType === '상생' ? 82 : dmType === '합' ? 75 : dmType === '비화' ? 65 : 50;
+  const dayMaster = Math.min(dmBase + fill + season, 100);
+
+  // ── ⑤ 갈등 구조 ────────────────────────────────────────────────────────
+  //   전문가 55점. 교차 충 건당 −7 · 교차 삼형 건당 −12 · 하한 30.
+  const crossChong = dx.crossInteractions.filter((c) => String(c.kind).includes('충')).length;
+  const conflict = Math.max(100 - crossChong * 7 - dx.crossSamhyeong.length * 12, 30);
+
+  // ── ⑥ 운 타이밍 ────────────────────────────────────────────────────────
+  //   ⚠️**아직 재료가 없다**(대운 상호 공급·매듭 시기 판정 미구현) → **중립 75**로 두고 표시한다.
+  //     0 으로 두면 없는 근거로 점수를 깎게 된다.
+  const timing = 75;
+
+  // ★가중치 — 전문가 종합 82 를 재현하도록 잡은 **잠정값**(★Boss 검수 슬롯).
+  //   ⚠️케이스 하나로 여섯 항목을 확정할 수 없다(n=1 · CLAUDE.md §3.2). 항목을 드러내 두는 이유가 이것이다.
+  const items: CompatItem[] = [
+    { key: 'yongsin', label: '용신 호환', score: yongsin, weight: 0.25, why: yongsinWhy },
+    { key: 'spouseStar', label: '배우자성 성립', score: spouseStar, weight: 0.20,
+      why: dx.crossSanhe.map((c) => c.detail).join(' / ') || '교차 삼합 완성 없음' },
+    { key: 'spousePalace', label: '배우자궁 상호작용', score: spousePalace, weight: 0.15, why: dx.spousePalace.detail },
+    { key: 'dayMaster', label: '일간 심리 호환', score: dayMaster, weight: 0.15, why: dx.dayMasterRelation.detail },
+    { key: 'conflict', label: '갈등 구조', score: conflict, weight: 0.15,
+      why: dx.crossSamhyeong.map((c) => c.detail).concat(dx.tension).join(' / ') || '교차 충·형 없음' },
+    { key: 'timing', label: '운 타이밍', score: timing, weight: 0.10, why: '⚠️미구현 — 중립값(대운 상호작용 판정 없음)' },
+  ];
+  const weighted = items.reduce((a, it) => a + it.score * it.weight, 0);
+  const s = Math.max(15, Math.min(97, Math.round(weighted)));
   return {
     score: s,
+    items,
     harmony,
     tension,
     dmType,
@@ -111,14 +154,10 @@ export function compatScoreOf(dx: CompatibilityDx): CompatScoreBreakdown {
     crossSamhyeong: dx.crossSamhyeong.map((c) => c.guk.join('')),
     // ★G6 — **가장 약한 항목**을 함께 낸다. 평균이 같아도 한 항목이 바닥이면 실효가 다르다
     //   (전문가 노트: *"잔감점 분산형 82 와 단일변수 수렴형 82 는 실효가 다르다"*).
+    //   이제 항목이 전문가와 같은 여섯이라, **그중 최저**를 그대로 고르면 된다.
     weakest: (() => {
-      const items: [string, number][] = [
-        ['계절상보', season / 7], ['재관', jaegwan / 8], ['결핍보완', fill / 9],
-        ['일간관계', dmBonus / 7], ['용신공급', supply / 12],
-        ['배우자궁', 1 - spouseMinus / 15], ['갈등(삼형)', 1 - samhyeongMinus / 12],
-      ];
-      const low = items.sort((a, b) => a[1] - b[1])[0];
-      return low ? { item: low[0], ratio: Math.round(low[1] * 100) / 100 } : null;
+      const low = [...items].sort((a, b) => a.score - b.score)[0];
+      return low ? { item: low.label, ratio: Math.round(low.score) / 100 } : null;
     })(),
   };
 }

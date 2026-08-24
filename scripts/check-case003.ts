@@ -112,10 +112,37 @@ console.log('\n=== ③ 전문가가 지적한 미구현 — 되기 시작하면 
   gap('G6 분산 지표', s.weakest != null,
     s.weakest ? `가장 약한 항목 = ${s.weakest.item} (${Math.round(s.weakest.ratio * 100)}%)` : '고분산/저분산을 구분할 보조 출력이 없다');
 
-  // 점수 자체는 **고정하지 않는다** — 위 여섯이 붙으면 당연히 바뀐다.
-  //   다만 **지금 값**을 찍어 둔다(다음 사람이 무엇에서 출발했는지 알 수 있게).
-  console.log(`\n  · 지금 엔진 점수 A기준 ${s.score} / B기준 ${s2.score}  (전문가 수동 R46 = 82)`);
-  console.log('    ⚠️이 숫자는 고정하지 않는다 — 위 여섯이 구현되면 당연히 오른다.');
+  // ★★2026-08-24 부터는 **전문가 기준에 맞춘 상태를 잠근다**(Boss *"전문가 기준으로해"*).
+  //   ⚠️다만 **±15 까지 허용**한다. 케이스가 하나뿐이라 더 조이면 그건 과적합이다(CLAUDE.md §3.2 n=1).
+  //     큰 드리프트만 잡고, 미세 조정은 막지 않는다.
+  console.log(`\n  · 엔진 종합 A기준 ${s.score} / B기준 ${s2.score}  (전문가 수동 R46 = 82)`);
+  // ★★항목별로 나란히 놓는다 — 어디가 어긋나는지 **숫자로** 보여야 고칠 곳이 정해진다.
+  const EXPERT: Record<string, number> = {
+    yongsin: 95, spouseStar: 90, spousePalace: 75, dayMaster: 85, conflict: 55, timing: 80,
+  };
+  console.log('\n  ── 항목 대조 (엔진 vs 전문가) ──');
+  for (const it of s.items) {
+    const e = EXPERT[it.key];
+    const d = it.score - e;
+    const mark = Math.abs(d) <= 10 ? '≈' : d > 0 ? '↑' : '↓';
+    console.log(`    ${mark} ${it.label.padEnd(12)} 엔진 ${String(it.score).padStart(3)} · 전문가 ${e}  (${d >= 0 ? '+' : ''}${d})`);
+  }
+
+  // ── ④ ★전문가 기준 게이트 (Boss 2026-08-24 *"전문가 기준으로해"*) ──────
+  //   여기부터는 **실패로 찍는다** — 전문가 판정에서 벗어나면 빨간불이다.
+  //   ⚠️허용폭 ±15. 케이스가 **하나뿐**이라 더 조이면 그건 과적합이다(CLAUDE.md §3.2 n=1).
+  //     큰 드리프트만 잡고 미세 조정은 막지 않는다. 케이스가 늘면 그때 조인다.
+  console.log('\n=== ④ 전문가 기준 게이트 ===');
+  const off = s.items.filter((it) => Math.abs(it.score - EXPERT[it.key]) > 15);
+  if (off.length) off.forEach((it) => bad(`${it.label}: 엔진 ${it.score} vs 전문가 ${EXPERT[it.key]} — 15점 초과 이탈`));
+  else ok('여섯 항목 전부 전문가 판정 ±15 안쪽');
+
+  if (Math.abs(s.score - 82) > 10) bad(`종합 ${s.score} 이 전문가 82 에서 10점 넘게 벗어났다`);
+  else ok(`종합 ${s.score} ≈ 전문가 82`);
+
+  // ⚠️B 기준(미러)에는 전문가 판정이 없다 → **비대칭이 살아 있는지만** 본다(값은 고정하지 않는다).
+  if (s.score === s2.score) bad('미러가 대칭이다 — 양방향이 갈리지 않는다(R48)');
+  else ok(`미러 비대칭 유지 — A ${s.score} / B ${s2.score}`);
 }
 
 console.log(`\n   통과 ${pass} · 실패 ${fail} · 미구현 ${todo}`);
