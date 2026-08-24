@@ -110,3 +110,6 @@ scratchpad/
 
 # 이미지 톤 파일럿 산출물(daniel 검토용·원본 교체 전) — 공개 repo 에 대용량 PNG 를 넣지 않는다
 app/assets/icons/_pilot/
+
+# Playwright MCP 스크린샷·스냅샷 — 디버깅 부산물이라 저장소에 남기지 않는다
+.playwright-mcp/
