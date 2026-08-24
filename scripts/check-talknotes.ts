@@ -246,17 +246,29 @@ console.log('\n=== ⑦ 대화를 지우면 진행 중이던 것까지 멈추는�
 
     // ★날아간 fetch 는 못 끊는다 → **세대 토큰**으로 버려야 한다
     //   (지우고 나면 응답이 도착해 새 인사말 밑에 지운 대화의 답이 붙는다.)
-    const sendB = fnBody(screen, 'send');
+    // ★함수 **이름**이 아니라 *`askLive` 를 부르는 곳*을 찾는다 — 2026-08-24 에 그 호출이
+    //   `send` 에서 `fire`(자동 재시도용)로 옮겨 가며 이 검사가 헛돌았다.
+    //   구조가 바뀌어도 규칙이 살아 있게, **호출자를 찾아서** 검사한다.
+    const callerOf = (src: string, needle: string): string => {
+      for (const name of [...src.matchAll(/const (\w+) = useCallback\(/g)].map((m) => m[1])) {
+        const b = fnBody(src, name);
+        if (b.includes(needle)) return b;
+      }
+      return '';
+    };
+    const sendB = callerOf(screen, 'askLive(');
     const bumps = (b: string) => /genRef\.current\s*\+\+/.test(b);
     if (!bumps(delB)) bad('★삭제가 세대(genRef)를 안 올린다 — 진행 중이던 답이 새 화면에 붙는다');
     else if (!bumps(openB)) bad('★방을 바꿀 때 세대를 안 올린다 — 직전 방의 답이 이 방에 붙는다');
     else ok('삭제·방 이동이 세대를 올린다');
 
-    if (!sendB) bad('`send` 본문을 못 찾았다 — 하네스가 헛돈다');
-    else if (!/const gen = genRef\.current/.test(sendB)) bad('★`send` 가 보낼 때의 세대를 안 붙든다');
+    if (!sendB) bad('`askLive` 를 부르는 함수를 못 찾았다 — 하네스가 헛돈다');
+    // 세대를 **어디서 붙들든** 상관없다 — 호출자가 그 값을 쓰기만 하면 된다
+    //   (2026-08-24 에 `const gen = …` 은 `send` 에 남고 호출은 `fire` 로 갔다).
+    else if (!/\bgen\b/.test(sendB)) bad('★`askLive` 호출자가 세대를 전혀 안 다룬다');
     else if ((sendB.match(/gen !== genRef\.current/g) ?? []).length < 2) {
       bad('★성공·실패 **양쪽**에서 세대를 비교하지 않는다 — 한쪽으로 새면 그쪽만 붙는다');
-    } else ok('`send` 가 성공·실패 양쪽에서 옛 세대의 답을 버린다');
+    } else ok('`askLive` 호출자가 성공·실패 양쪽에서 옛 세대의 답을 버린다');
   }
 }
 

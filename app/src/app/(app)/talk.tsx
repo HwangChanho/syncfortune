@@ -373,7 +373,17 @@ export function TalkHome({ renderTop, mode = 'contacts' }: { renderTop?: ReactNo
     // ── 실제 상담사 ────────────────────────────────────────────────────
     setBusy(true);
     const gen = genRef.current;   // ★이 답이 어느 방 것인지 붙들어 둔다(위 `genRef` 주석)
-    void askLive(cur.id, q, sessRef.current[cur.id] ?? null, chartId, i18n.language)
+    fireRef.current(q, 0, gen);
+  }, [draft, cur, saju, busy, t]);
+
+  /**
+   * 실제 상담사에게 한 번 보낸다. **자동 재시도가 같은 경로를 타도록** 따로 뺐다.
+   *
+   * @param q       질문 / @param attempt 회차(0=첫 시도) / @param gen 보낼 때의 방 세대
+   */
+  const fire = useCallback((q: string, attempt: number, gen: number) => {
+    if (!cur) return;
+    void askLive(cur.id, q, sessRef.current[cur.id] ?? null, chartId, i18n.language, attempt)
       .then((r) => {
         // 답을 기다리는 동안 대화를 지웠거나 다른 방으로 옮겼다 — **버린다.**
         //   ⚠️`setBusy(false)` 도 하지 않는다. 지금 점이 돌고 있다면 그건 **새 방의 것**이다.
@@ -421,6 +431,22 @@ export function TalkHome({ renderTop, mode = 'contacts' }: { renderTop?: ReactNo
               body: t('talk.overFree', '오늘 무료 대화를 다 쓰셨어요. 그래도 조금 더 이야기해 볼게요.'),
             }]), after));
           }
+        } else if (r.reason === 'stalled') {
+          // ★생성이 막혔다 — **실패로 뭉개지 않는다**(Boss 2026-08-24
+          //   *"api 가 멈췄을때 대화는 계속 이어질수있게 … 기다려달라는식"*).
+          //   상담가가 사람처럼 한마디 하고, 다시 해 볼 만하면 **실제로 다시 보낸다.**
+          //   ⚠️기다리라고 해 놓고 안 보내면 그건 거짓말이라, 문구와 재시도를 **짝으로** 묶는다.
+          if (r.retryable) {
+            // 점 세 개는 **끄지 않는다** — 아직 진행 중인 게 맞다.
+            sayInOrder([{ id: nextId(), role: 'assistant', body: r.message }], 0);
+            timersRef.current.push(setTimeout(() => {
+              if (gen !== genRef.current) return;   // 그 사이 방이 바뀌었으면 조용히 끝낸다
+              fireRef.current(q, attempt + 1, gen);
+            }, r.retryAfterMs ?? 2600));
+          } else {
+            setBusy(false);
+            sayInOrder([{ id: nextId(), role: 'assistant', body: r.message }], 0);
+          }
         } else if (r.reason === 'needCoins') {
           // ★운 부족 — **충전 유도**(Boss 2026-08-24 *"운 다 떨어지면 충전 유도 해야하고"*).
           //   ⚠️말풍선으로만 알리지 않는다 — 대화창 안의 회색 글씨는 스크롤에 묻힌다.
@@ -454,7 +480,11 @@ export function TalkHome({ renderTop, mode = 'contacts' }: { renderTop?: ReactNo
         if (gen !== genRef.current) return;   // 버린 방의 실패는 새 방에 알리지 않는다
         setBusy(false); console.warn('[talk] send 실패', e);
       });
-  }, [draft, cur, saju, busy, chartId, t, i18n.language, bumpChats]);
+  }, [cur, chartId, t, i18n.language, bumpChats, refreshNotes, sayInOrder]);
+  // ★ref 로 붙들어 둔다 — `send` 와 재시도 타이머가 **항상 최신 `fire`** 를 부르게.
+  //   (`send` 의 의존성에 `fire` 를 넣으면 매 입력마다 콜백이 새로 만들어진다.)
+  const fireRef = useRef(fire);
+  useEffect(() => { fireRef.current = fire; }, [fire]);
 
   // ★블록 친구에겐 입력창을 띄우지 않는다 — 물어봐도 답할 수 없는 입력창은 없느니만 못하다
   /**

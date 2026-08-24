@@ -31,10 +31,19 @@ export type LiveReply =
   | {
       ok: false;
       /** ★`needCoins` = 무료 한도를 넘겼고 **운이 모자란다**(2026-08-24). 화면이 충전을 유도한다. */
-      reason: 'paused' | 'capped' | 'unauthorized' | 'failed' | 'needCoins';
+      /** ★`stalled` = 생성이 막혔다(과부하·타임아웃). **실패가 아니라 안내**로 다룬다 —
+       *  상담가가 사람처럼 한마디 하고, `retryable` 이면 화면이 잠시 뒤 **자동으로 다시** 보낸다.
+       *  운은 서버가 이미 돌려놨다(`refunded`). (Boss 2026-08-24) */
+      reason: 'paused' | 'capped' | 'unauthorized' | 'failed' | 'needCoins' | 'stalled';
       message: string;
       /** needCoins 일 때만 — 턴당 필요한 운 */
       cost?: number;
+      /** stalled 전용 — 잠시 뒤 자동으로 다시 보낼 수 있는가 */
+      retryable?: boolean;
+      /** stalled 전용 — 얼마 뒤에 다시 보낼지(ms) */
+      retryAfterMs?: number;
+      /** stalled 전용 — 서버가 돌려준 운 */
+      refunded?: number;
       /** needCoins 일 때만 — 지금 잔액(모르면 null) */
       balance?: number | null;
     };
@@ -55,6 +64,8 @@ export async function askLive(
   sessionId: string | null,
   chartId: string | null,
   lang = 'ko',
+  /** 재시도 회차 — 0 = 첫 시도. ⚠️**회차지 비용이 아니다**(과금에 영향 없음). */
+  attempt = 0,
 ): Promise<LiveReply> {
   try {
     // ⚠️타임아웃을 반드시 건다 — supabase.functions.invoke 는 **기본 타임아웃이 없다**
@@ -63,7 +74,7 @@ export async function askLive(
     //   목적이 '응답 보장'이 아니라 'UI 잠금 해제'라서다 → 반드시 undefined 를 먼저 갈라야 한다.
     const r = await withTimeout(
       supabase.functions.invoke('talk', {
-        body: { consultantId, message, sessionId, chartId, lang },
+        body: { consultantId, message, sessionId, chartId, lang, attempt },
       }),
       45_000,
     );
@@ -85,6 +96,16 @@ export async function askLive(
         message: data.message ?? '오늘 무료 대화를 다 썼어요.',
         cost: Number(data.cost ?? 0),
         balance: typeof data.balance === 'number' ? data.balance : null,
+      };
+    }
+    // ★생성이 막혔다 — 끊지 않고 이어 간다(Boss 2026-08-24)
+    if (data?.stalled) {
+      return {
+        ok: false, reason: 'stalled',
+        message: data.message ?? '잠깐만요, 다시 짚어 볼게요.',
+        retryable: !!data.retryable,
+        retryAfterMs: Number(data.retryAfterMs ?? 2600),
+        refunded: Number(data.refunded ?? 0),
       };
     }
     if (!data?.answer) return { ok: false, reason: 'failed', message: data?.message ?? '답이 비어서 다시 물어봐 주세요.' };
