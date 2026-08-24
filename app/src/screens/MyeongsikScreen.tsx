@@ -14,6 +14,7 @@ import { RelatedContent } from '../components/RelatedContent';
 import { useTranslation } from 'react-i18next';
 import * as Haptics from 'expo-haptics';
 import { computeChart } from '../lib/engine/engine';
+import { IljuTabCard } from '../components/IljuTabCard';   // 일주론 탭(Boss 2026-08-25)
 import { GaeunCard } from '../components/GaeunCard';     // 개운 방향(Boss 2026-08-24) — 용신 카드 바로 아래
 import { YongsinCard } from '../components/YongsinCard'; // 만세력 용신(canonical 엔진·억부/병약/조후+희신/기신·Boss 07-22)
 import type { ChartInput, PillarPos } from '@spec/chart';
@@ -56,11 +57,14 @@ import Svg, { Path, Rect, Circle, Text as SvgText, G } from 'react-native-svg';
 const POS: PillarPos[] = PILLAR_DISPLAY_ORDER;
 
 // 만세력 카테고리 탭(daniel 07-13 재편) — 사주원국(팔자+지장간+합충+신살길성 통합)/운세(대운·세운·월운·일운)/오행·강약/자미두수.
-type MyeongTab = 'wonguk' | 'rel' | 'elem' | 'ziwei';  // rel = 운세 전용(구 '사주관계' → 운세). 합충·신살은 wonguk으로 흡수.
+type MyeongTab = 'wonguk' | 'rel' | 'elem' | 'ilju' | 'ziwei';  // rel = 운세 전용(구 '사주관계' → 운세). 합충·신살은 wonguk으로 흡수.
 const MYEONG_TABS: { id: MyeongTab; label: string; desc: string }[] = [
   // ★사주원국 + 운세 통합(daniel 2026-07-24) — 원국(팔자·지장간·합충·신살)과 운세(대운·세운·월운·일운)를 한 탭에서. 겹치던 원국 표시 중복 제거.
   { id: 'wonguk', label: '원국·운세', desc: '팔자(연·월·일·시 여덟 글자)와 숨은 기운(지장간), 글자끼리의 합·충·형·해·파 관계·신살·길성, 그리고 대운·세운·월운·일운으로 보는 시기별 흐름(운세)까지 한자리에서 봐요.' },
   { id: 'elem', label: '오행·강약', desc: '내 글자들이 목·화·토·금·수 다섯 기운 중 무엇에 쏠렸는지·그게 나에게 어떤 역할(십성)인지, 그리고 내 힘(일간)이 강한지 약한지·무엇으로 균형을 잡으면 좋은지 함께 봐요.' },
+  // ★일주론(Boss 2026-08-25) — 자미두수 **앞**에 둔다. 사주를 읽는 흐름이 원국 → 오행 → 일주 이고,
+  //   자미두수는 *별개 체계*라 맨 뒤가 맞다.
+  { id: 'ilju', label: '일주론', desc: '태어난 날의 간지(일주)로 보는 나의 기질이에요. 일간은 나 자신, 일지는 내가 딛고 선 자리이자 배우자궁이라, 성격·연애·직업의 결이 여기서 많이 드러나요. 60갑자 전체는 일주론 화면에서 볼 수 있어요.' },
   { id: 'ziwei', label: '자미두수', desc: '사주와는 별개의 운명 체계예요. 태어난 시각으로 열두 자리(명궁·재물·관록·배우자 등)에 여러 별을 배치해, 삶의 각 영역에 어떤 기운이 드는지 봅니다. 사주를 보조해 교차로 참고해요(시각을 알아야 정확).' },
 ];
 let lastMyeongTab: MyeongTab = 'wonguk';   // 선택 탭 기억(세션 내 — 나갔다 와도 분류 유지, daniel)
@@ -1084,6 +1088,10 @@ function MyeongsikBody({ input, onReading, onSinsal, header, whoName }: Myeongsi
 
       {/* 신살·공망 = 팔자 바로 아래로 이동(daniel 2026-07-25 T) · 운에서 오는 신살 제거(S). 여기 있던 '신살과 길성' 블록은 삭제. */}
       {/* ── 자미두수: 사주관계 신살탭에서 별도 탭으로 분리(daniel) ── */}
+      {/* ── 일주론(Boss 2026-08-25) ── ★화면을 베끼지 않았다: `/dayPillar` 와 **같은 자료**를 읽고
+             내 일주만 보여 준다. 60갑자 전체는 그 화면으로 보낸다(문구가 두 갈래가 되지 않게). */}
+      {activeTab === 'ilju' && <IljuTabCard saju={c.saju} sex={(input?.sex as '남' | '여' | undefined) ?? null} />}
+
       {activeTab === 'ziwei' && (
         <>
       {/* 자미두수(보조) */}
