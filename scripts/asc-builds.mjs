@@ -26,7 +26,11 @@ const KEY_ID = 'L7GWWF9WVF';
 const ISSUER = process.env.ASC_ISSUER_ID || '5f89581a-d0c6-46c2-9461-78d5c08448fa';
 const P8 = `${os.homedir()}/.appstoreconnect/private_keys/AuthKey_${KEY_ID}.p8`;
 const APP_ID = '6779321930';
-const LIMIT = Number(process.argv.find((a) => /^\d+$/.test(a))) || 8;
+// ⚠️★`--check <빌드번호>` 의 값을 개수로 삼키면 안 된다 — ASC 는 limit 상한이 200 이라
+//   `--check 29791782` 가 곧바로 PARAMETER_ERROR 로 죽었다(2026-08-24, 실제로 당함).
+const ARGV = process.argv.slice(2);
+const CHECK_AT = ARGV.indexOf('--check');
+const LIMIT = Number(ARGV.find((a, i) => /^\d+$/.test(a) && i !== CHECK_AT + 1)) || 8;
 const TIMEOUT_MS = 20_000;
 
 if (!fs.existsSync(P8)) {
@@ -79,3 +83,24 @@ for (const b of j.data) {
   );
 }
 console.log('\n※ processingState VALID = Apple 이 바이너리를 받아 처리 완료. report.xml 은 이걸 말해 주지 않는다.\n');
+
+// ── `--check <빌드번호>` — **기계가 읽을 창구** ──────────────────────────────
+//   ⚠️★위 표는 **사람 보라고** 만든 것이다. 기계가 `awk` 로 칸을 세게 하면 안 된다 —
+//     날짜에 공백이 있어 `processingState` 는 5번째가 아니라 **7번째 칸**이고,
+//     실제로 그걸 5번째로 읽은 감시가 45분 내내 "아직"이라고 찍었다(2026-08-24).
+//     빌드는 그때 이미 VALID 였다. **거짓 신호가 완료를 덮었다.**
+//   ⇒ 판정이 필요하면 이 모드를 쓴다. 그 번호보다 **큰** 빌드가 VALID 면 0, 아니면 1 로 끝난다.
+if (CHECK_AT >= 0) {
+  const base = Number(ARGV[CHECK_AT + 1] ?? 0);
+  const hit = j.data.map((b) => b.attributes)
+    .find((a) => Number(a.version) > base && String(a.processingState) === 'VALID');
+  if (hit) {
+    console.log(`✅ ${hit.version} VALID — 기준선 ${base} 초과. 테스터가 설치할 수 있습니다.`);
+    process.exit(0);
+  }
+  const pend = j.data.map((b) => b.attributes).find((a) => Number(a.version) > base);
+  console.log(pend
+    ? `⏳ ${pend.version} 업로드됨 · 처리상태 ${pend.processingState}`
+    : `⏳ 기준선 ${base} 초과 빌드가 아직 ASC 에 없습니다.`);
+  process.exit(1);
+}
