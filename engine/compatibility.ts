@@ -8,6 +8,7 @@
 import type { SajuChart, Stem, Branch, Element, PillarPos } from '../spec/chart';
 import { johu2, johuLabel } from './johu2'; // ★조후 축 → 조후용신 오행(G1 · 2026-08-24)
 import { HIDDEN } from './saju';            // 지장간 — 통근 판정(G4 · 2026-08-24)
+import { twelveSinsalAt } from './sinsal';   // 상대 지지 기준 내 신살(케이스 노트 v2 §4)
 
 const STEM_ELEM: Record<Stem, Element> = { 甲: '木', 乙: '木', 丙: '火', 丁: '火', 戊: '土', 己: '土', 庚: '金', 辛: '金', 壬: '水', 癸: '水' };
 const BRANCH_MAIN: Record<Branch, Stem> = { 子: '癸', 丑: '己', 寅: '甲', 卯: '乙', 辰: '戊', 巳: '丙', 午: '丁', 未: '己', 申: '庚', 酉: '辛', 戌: '戊', 亥: '壬' };
@@ -150,6 +151,25 @@ export interface CompatibilityDx {
     tenGod: '비겁' | '식상' | '재성' | '관성' | '인성';
     /** 그것이 내 배우자성인가(성별 미상이면 null) */
     spouseStar: boolean | null;
+    detail: string;
+  }[];
+  /**
+   * ★**상대 지지가 내 신살을 건드리는가** (케이스 노트 v2 §4 · R46 추가 권장).
+   *
+   * 노트 예: *"A 의 년지 亥 = B 의 일지(丑) 기준 역마 — 이 사람으로 인해 이동수 발생"*.
+   *   ⇒ **상대의 지지를 기준으로** 내 글자가 무슨 12신살이 되는지 본다.
+   * ⚠️점수를 매기지 않는다 — 어느 신살을 얼마로 칠지는 **판정 대기**(노트 Daniel 컨펌 2번:
+   *   도화 궁위 감쇄 계수). 날것으로 내보내고 해석은 나중에 붙인다.
+   */
+  crossSinsal: {
+    /** 기준이 되는 상대 자리 */
+    theirBase: PillarPos;
+    theirBranch: Branch;
+    /** 그 기준에서 신살이 되는 **내** 자리 */
+    myAt: PillarPos;
+    myBranch: Branch;
+    /** 12신살 이름 */
+    name: string;
     detail: string;
   }[];
   note: string;
@@ -396,9 +416,29 @@ export function analyzeCompatibility(me: SajuChart, other: SajuChart, meSex?: '�
     detail: fillChars.length ? `상대가 내게 없는 지지 ${fillChars.join('·')} 보유 — 결핍 보완` : '상대 지지가 모두 내 원국에 이미 있음',
   };
 
+  // ── 5-c5. ★상대 지지가 내 신살을 건드리는가 (케이스 노트 v2 §4) ─────────
+  //   노트: *"A 의 년지 亥 = B 의 일지(丑) 기준 역마 — 이 사람으로 인해 이동수 발생"*.
+  //   **상대의 지지를 기준지로** 삼아 내 글자가 무슨 12신살이 되는지 본다.
+  //   ⚠️점수·감쇄 계수는 넣지 않는다 — 노트가 **Daniel 컨펌 항목**으로 지정했다(도화 궁위 감쇄).
+  //     여기서 내가 계수를 정하면 판정이 아니라 사후 변명 장치가 된다.
+  //   ★역마·도화·화개만 남긴다 — 열두 개를 다 흘리면 신호가 묻힌다(나머지는 필요할 때 연다).
+  const crossSinsal: CompatibilityDx['crossSinsal'] = [];
+  {
+    const NOTABLE = new Set(['역마', '도화', '화개']);
+    for (const tb of POS) for (const ma of POS) {
+      const name = twelveSinsalAt(other.pillars[tb].branch, me.pillars[ma].branch);
+      if (!NOTABLE.has(name)) continue;
+      crossSinsal.push({
+        theirBase: tb, theirBranch: other.pillars[tb].branch,
+        myAt: ma, myBranch: me.pillars[ma].branch, name,
+        detail: `내 ${ma}지 ${me.pillars[ma].branch} 가 상대 ${tb}지 ${other.pillars[tb].branch} 기준 **${name}**`,
+      });
+    }
+  }
+
   return {
     dayMasterRelation: dmRel, crossInteractions: cross, usefulGodSupply: supply, harmony, tension,
-    seasonComplement, partnerToMe, spousePalace, missingFill, crossSanhe, crossSamhyeong, crossRooting,
+    seasonComplement, partnerToMe, spousePalace, missingFill, crossSanhe, crossSamhyeong, crossRooting, crossSinsal,
     note: '사주 단독 궁합(규칙2) — 자미·MBTI는 독립 평가 후 C2에서 수렴. 깊은 통변은 LLM 패스 + daniel 검수.',
   };
 }
