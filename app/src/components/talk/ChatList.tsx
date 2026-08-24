@@ -26,6 +26,7 @@ import { useAuth } from '../../lib/useAuth';
 import { consultantsSnapshot, listConsultants } from '../../lib/talk/consultants';
 import { colors, space, radius, font } from '../../lib/theme';
 import { elementColor, elementText } from '../../lib/engine/ohaeng';
+import { Icon } from '../kit/Icon';   // 상단 아이콘 단일 원본(Boss 2026-08-24)
 
 const EL = ['木', '火', '土', '金', '水'] as const;
 
@@ -133,11 +134,11 @@ export function ChatList({ onOpen, selectedId, reloadKey = 0, wide, onSettings }
             탭바가 이미 어느 탭인지 말해 주므로 제목을 또 쓰면 같은 말이 두 번이다. */}
         <BrandWordmark style={{ flex: 1 }} />
         <PressableScale hitSlop={10} onPress={() => setSearchOpen((v) => !v)}>
-          <Text style={styles.topIcon}>{searchOpen ? '×' : '⌕'}</Text>
+          <Icon name={searchOpen ? 'close' : 'search'} size={26} color={searchOpen ? colors.ju : colors.inkSoft} />
         </PressableScale>
         {/* ⋮ — 콘티의 더보기. ★오픈채팅과 설정이 여기로 들어간다(아이콘 둘을 하나로 접었다) */}
         <PressableScale hitSlop={10} onPress={() => setMore((v) => !v)}>
-          <Text style={styles.topIcon}>⋮</Text>
+          <Icon name="more" size={26} />
         </PressableScale>
       </View>
 
@@ -250,7 +251,8 @@ const styles = StyleSheet.create({
   topRow: { flexDirection: 'row', alignItems: 'center', gap: space(3), marginBottom: space(3) },
   head: { flex: 1, fontSize: 22, lineHeight: 30, fontWeight: '900', color: colors.ink, letterSpacing: -0.4 },
   // ★친구목록과 **같은 크기**(26). 두 탭을 오가는데 아이콘 크기가 다르면 눈에 띈다.
-  topIcon: { fontSize: 26, lineHeight: 30, color: colors.inkSoft, paddingHorizontal: space(2) },
+  // ★TalkList 와 **같은 규격**이다(`kit/Icon`). 종전엔 이 스타일이 두 파일에 복제돼 있었다.
+  topBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
   banner: { marginBottom: space(3) },
 
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: space(16), gap: space(4) },

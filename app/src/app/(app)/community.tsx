@@ -20,6 +20,7 @@ import { computeChart } from '../../lib/engine/engine';
 import { listPosts, createPost, toSharedSaju, toSharedZiwei, COMMUNITY_CATEGORIES, type CommunityPost, type CommunityCategory, type CommunitySort } from '../../lib/backend/community';
 import { colors, pastel, radius, space, shadow, font } from '../../lib/theme';
 import { SECTIONS, baseKey } from '../../lib/content/contentSections'; // P2 후기 태그 — 콘텐츠 목록 단일 출처(라벨·라우트 여기서만)
+import { Icon } from '../../components/kit/Icon';   // 상단 아이콘 단일 원본(Boss 2026-08-24)
 
 /**
  * 카테고리 썸네일 — 콘티의 목록은 **오른쪽에 큰 네모 그림**이 붙는다.
@@ -229,12 +230,12 @@ export default function CommunityScreen() {
       {/* ★콘티 3면 헤더 — 워드마크 · 돋보기 · ☰. 종전엔 헤더가 아예 없고 칩 줄만 있었다. */}
       <View style={[styles.headBar, { paddingTop: insets.top + space(2) }]}>
         <BrandWordmark style={{ flex: 1 }} />
-        <PressableScale hitSlop={10} onPress={() => setSearchOpen((v) => !v)}>
-          <Text style={styles.headIcon}>{searchOpen ? '×' : '⌕'}</Text>
+        <PressableScale hitSlop={12} style={styles.headIconBtn} onPress={() => setSearchOpen((v) => !v)}>
+          <Icon name={searchOpen ? 'close' : 'search'} size={25} color={colors.ju} />
         </PressableScale>
         {/* ☰ — 콘티의 메뉴. 내 활동으로 간다(콘티 4면에 있는 그 화면들이다) */}
-        <PressableScale hitSlop={10} onPress={() => setMenu((v) => !v)}>
-          <Text style={styles.headIcon}>☰</Text>
+        <PressableScale hitSlop={12} style={styles.headIconBtn} onPress={() => setMenu((v) => !v)}>
+          <Icon name="menu" size={25} color={colors.ju} />
         </PressableScale>
       </View>
       {menu ? (
@@ -376,7 +377,7 @@ export default function CommunityScreen() {
           {/* ✕(닫기)·올리기는 양끝(space-between), 타이틀은 화면 정중앙(absolute·pointerEvents none으로 버튼 탭 통과).
               ★paddingTop = insets.top: 다이나믹아일랜드/노치에 헤더 버튼이 가려 안 눌리던 버그 수정(reunion.tsx 패턴). hitSlop 으로 탭 영역 확대. */}
           <View style={[styles.composeHead, { paddingTop: insets.top + space(3) }]}>
-            <PressableScale onPress={() => { setCompose(false); setComposeErr(null); }} hitSlop={14}><Text style={styles.composeX}>✕</Text></PressableScale>
+            <PressableScale onPress={() => { setCompose(false); setComposeErr(null); }} hitSlop={14}><Icon name="close" size={22} color={colors.inkSoft} /></PressableScale>
             {/* ★버튼은 posting 때만 비활성 — 제목·내용 없어도 눌러서 안내를 받도록(구: disabled 라 조용히 먹통). */}
             <PressableScale onPress={submit} disabled={posting} hitSlop={14}>
               <Text style={[styles.composeSubmit, posting && styles.composeSubmitOff]}>{posting ? '…' : t('community.post', '올리기')}</Text>
@@ -483,7 +484,8 @@ const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   // paddingTop 은 렌더에서 insets.top + space(2) 로 준다(헤더를 껐으므로 — 위 주석). 여기 고정값을 두면 이중이 된다.
   headBar: { flexDirection: 'row', alignItems: 'center', gap: space(3), paddingHorizontal: space(4), paddingBottom: space(2) },
-  headIcon: { fontSize: 20, lineHeight: 26, color: colors.ju },
+  // ★글리프 대신 SVG(`kit/Icon`) — `⌕` 는 em 박스를 다 안 써서 20 을 줘도 콩알이었다
+  headIconBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
   menuBox: { marginHorizontal: space(4), backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.juLine, marginBottom: space(2) },
   menuRow: { paddingHorizontal: space(4), paddingVertical: space(3) },
   menuTx: { ...font.body, color: colors.ink },
@@ -569,7 +571,6 @@ const styles = StyleSheet.create({
   composeBg: { flex: 1, backgroundColor: colors.bg },
   // paddingTop 은 인라인(insets.top) — 고정값이면 다이나믹아일랜드에 버튼이 가림. position relative = 타이틀 absolute 기준.
   composeHead: { position: 'relative', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: space(5), paddingBottom: space(3), borderBottomWidth: 1, borderBottomColor: colors.line },
-  composeX: { fontSize: 20, color: colors.inkSoft },
   // 타이틀 = 화면 정중앙(좌우 0·textAlign center). top 은 인라인(insets.top)으로 버튼과 같은 라인. pointerEvents none 이라 뒤 버튼 탭 통과.
   composeTitle: { ...font.heading, color: colors.ink, position: 'absolute', left: 0, right: 0, textAlign: 'center', pointerEvents: 'none' },
   composeSubmit: { color: colors.ju, fontWeight: '800', fontSize: 16 },

@@ -47,6 +47,7 @@ import { useWideWeb } from '../../components/WebShell';
 import { renderTalkBlock } from '../../components/talk/blockRegistry';
 import { getNavBarHeight } from '../../components/BottomNav';
 import { colors, space, radius, font } from '../../lib/theme';
+import { Icon } from '../../components/kit/Icon';   // 상단 아이콘 단일 원본(Boss 2026-08-24)
 
 /**
  * 삭제 확인 줄.
@@ -557,7 +558,7 @@ export function TalkHome({ renderTop, mode = 'contacts' }: { renderTop?: ReactNo
                 <Text style={styles.headTx}>{cur.name}</Text>
                 {/* 대화 지우기 — ★상담가가 아니라 **이 대화**를 지운다(친구는 목록에 남는다) */}
                 <PressableScale hitSlop={8} onPress={() => setAskDelete(true)}>
-                  <Text style={styles.headIcon}>🗑</Text>
+                  <Icon name="trash" size={25} />
                 </PressableScale>
               </View>
               {askDelete ? <DeleteBar onCancel={() => setAskDelete(false)} onOk={onDeleteThread} t={t as never} /> : null}
@@ -601,7 +602,7 @@ export function TalkHome({ renderTop, mode = 'contacts' }: { renderTop?: ReactNo
         <PressableScale hitSlop={10} onPress={() => setCur(null)}><Text style={styles.back}>‹</Text></PressableScale>
         <Text style={styles.headTx}>{cur.name}</Text>
         <PressableScale hitSlop={8} onPress={() => setAskDelete(true)}>
-          <Text style={styles.headIcon}>🗑</Text>
+          <Icon name="trash" size={25} />
         </PressableScale>
       </View>
       {askDelete ? <DeleteBar onCancel={() => setAskDelete(false)} onOk={onDeleteThread} t={t as never} /> : null}
@@ -635,7 +636,7 @@ const styles = StyleSheet.create({
   },
   back: { fontSize: 26, lineHeight: 30, color: colors.ju, fontWeight: '900', paddingRight: space(1) },
   headTx: { flex: 1, minWidth: 0, ...font.heading, color: colors.ink, fontWeight: '800' },
-  headIcon: { fontSize: 17, paddingHorizontal: space(1) },
+  headIcon: { paddingHorizontal: space(1) },   // ★그림은 `kit/Icon` 이 그린다(크기는 거기서)
   // 삭제 확인 — 눌린 자리 바로 아래
   delBar: { flexDirection: 'row', alignItems: 'center', gap: space(2), paddingHorizontal: space(4), paddingVertical: space(3), backgroundColor: colors.sunk, borderBottomWidth: 1, borderBottomColor: colors.line },
   delTx: { flex: 1, minWidth: 0, ...font.caption, color: colors.inkSoft },

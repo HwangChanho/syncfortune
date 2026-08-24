@@ -33,6 +33,7 @@ import { useCoinBalance } from '../../lib/billing/coins';
 import { colors, radius, space, font, shadow } from '../../lib/theme';
 import { useFeatureOn } from '../../lib/core/features';
 import { useWideWeb } from '../../components/WebShell';   // 커뮤니티 노출 = 원격 플래그(BottomNav 와 같은 판정)
+import { Icon } from '../../components/kit/Icon';   // 상단 아이콘 단일 원본(Boss 2026-08-24)
 
 /** 운 카드 그라데이션 — 콘티의 연보라. ★강조색(오행)과 무관하게 **고정**이다:
  *  이 카드는 '돈'을 말하는 자리라 테마마다 색이 바뀌면 무엇을 뜻하는 카드인지 흐려진다. */
@@ -91,11 +92,14 @@ export default function MyPageScreen() {
             콘티는 폰 한 면이라 이 중복이 보이지 않는다. */}
       <View style={styles.top}>
         {wideWeb ? <View style={{ flex: 1 }} /> : <BrandWordmark style={{ flex: 1 }} />}
-        <PressableScale hitSlop={10} onPress={() => router.push('/notifications')}>
-          <Text style={styles.topIcon}>🔔</Text>
+        {/* ★이모지 🔔 + 글리프 ⚙︎ 를 섞어 쓰던 자리다 — 이모지는 em 을 꽉 채우고
+            `⚙︎`(U+FE0E, 텍스트 표현)는 얇은 콩알이라 **둘 크기가 안 맞았다**(Boss 2026-08-24).
+            같은 규격으로 그린다(`kit/Icon`). */}
+        <PressableScale hitSlop={12} style={styles.topBtn} onPress={() => router.push('/notifications')}>
+          <Icon name="bell" size={25} color={colors.ink} />
         </PressableScale>
-        <PressableScale hitSlop={10} onPress={() => router.push('/settings')}>
-          <Text style={styles.topIcon}>⚙︎</Text>
+        <PressableScale hitSlop={12} style={styles.topBtn} onPress={() => router.push('/settings')}>
+          <Icon name="gear" size={25} color={colors.ink} />
         </PressableScale>
       </View>
 
@@ -169,7 +173,7 @@ const styles = StyleSheet.create({
   body: { paddingHorizontal: space(4), paddingBottom: 170 },
 
   top: { flexDirection: 'row', alignItems: 'center', gap: space(3), marginBottom: space(4) },
-  topIcon: { fontSize: 20, lineHeight: 26 },
+  topBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
 
   profile: { flexDirection: 'row', alignItems: 'flex-start', gap: space(3.5), marginBottom: space(4) },
   // ★사각 라운드(콘티). 원형이 아니다 — 카톡 프로필과 같은 모양이라 '사람'으로 읽힌다

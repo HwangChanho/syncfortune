@@ -225,8 +225,6 @@ const styles = StyleSheet.create({
   // 헤더 행 — 전체를 살짝 아래로(타이틀 너무 위 방지), 👤 아이콘만 좌측 타이틀·서브 컬럼 기준 y축 가운데(daniel 07-02)
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: space(4) },
   headerSide: { flex: 1, flexDirection: 'row', alignItems: 'center' },   // 로고를 정확히 가운데 두려면 양옆 폭이 같아야 한다
-  headerIcons: { justifyContent: 'flex-end', gap: space(2) },
-  iconBtn: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
   // ★콘티의 좌측 워드마크 — 심볼+글자라 가로가 길다(정사각 44 로 두면 글자가 뭉갠다)
   iconTx: { fontSize: 20, color: colors.ju },
   dot: { position: 'absolute', top: 6, right: 6, width: 8, height: 8, borderRadius: 4, backgroundColor: '#E5484D' },

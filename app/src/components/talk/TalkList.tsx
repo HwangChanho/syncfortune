@@ -27,6 +27,7 @@ import { colors, space, radius, font } from '../../lib/theme';
 import { elementColor, elementText } from '../../lib/engine/ohaeng';
 import type { Consultant } from '../../lib/talk/consultants';
 import { loadFavorites, subscribeFavorites, toggleFavorite, isFavorite, isPinned } from '../../lib/talk/favorites';
+import { Icon } from '../kit/Icon';   // 상단 아이콘 단일 원본(Boss 2026-08-24)
 
 const FALLBACK_EL = ['木', '火', '土', '金', '水'] as const;
 
@@ -299,12 +300,12 @@ export function TalkList({ items, onOpen, selected, myName, onMe, myAvatar, rail
             {myName ?? t('talk.meNoChart', '명식을 등록하면 이름이 나와요')}
           </Text>
         </PressableScale>
-        <PressableScale hitSlop={10} onPress={() => setSearchOpen((v) => !v)}>
-          <Text style={styles.topIcon}>{searchOpen ? '×' : '⌕'}</Text>
+        <PressableScale hitSlop={12} style={styles.topBtn} onPress={() => setSearchOpen((v) => !v)}>
+          <Icon name={searchOpen ? 'close' : 'search'} size={26} color={searchOpen ? colors.ju : colors.inkSoft} />
         </PressableScale>
         {/* 친구 추가 — ★배지로 **받은 신청 수**를 알린다(신청이 와도 모르면 친구가 안 맺어진다) */}
-        <PressableScale hitSlop={10} onPress={onAddFriend}>
-          <Text style={styles.topIcon}>＋</Text>
+        <PressableScale hitSlop={12} style={styles.topBtn} onPress={onAddFriend}>
+          <Icon name="plus" size={26} />
           {pendingCount > 0 ? <View style={styles.topBadge}><Text style={styles.topBadgeTx}>{pendingCount}</Text></View> : null}
         </PressableScale>
       </View>
@@ -335,7 +336,7 @@ export function TalkList({ items, onOpen, selected, myName, onMe, myAvatar, rail
       {/* ── 검색(접힘) ── */}
       {searchOpen ? (
       <View style={styles.searchWrap}>
-        <Text style={styles.searchIcon}>⌕</Text>
+        <Icon name="search" size={18} color={colors.inkFaint} />
         <TextInput
           style={styles.search}
           value={q}
@@ -432,7 +433,9 @@ const styles = StyleSheet.create({
   meName: { fontSize: 19, lineHeight: 26, fontWeight: '900', color: colors.ink, letterSpacing: -0.4 },
   // ★아이콘을 키웠다(20 → 26, Boss 2026-08-20 "너무 작아"). 손끝은 44pt 를 필요로 하는데
   //   글리프가 작으면 눌러도 눌린 것 같지 않다 — 여백(hitSlop)만 넓히면 '보이지 않는 버튼'이 된다.
-  topIcon: { fontSize: 26, lineHeight: 30, color: colors.inkSoft, paddingHorizontal: space(2) },
+  // ★글자 글리프를 버리고 SVG 로 갔다(`kit/Icon`). 종전 `fontSize: 26` 은 `⌕`·`×` 가
+  //   em 박스를 다 안 써서 화면에선 콩알이었다(Boss 2026-08-24). 여기는 **누를 자리**만 잡는다.
+  topBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
   topIconOn: { color: colors.ju },
   topBadge: { position: 'absolute', top: -3, right: -1, minWidth: 15, height: 15, borderRadius: 8, paddingHorizontal: 4, backgroundColor: colors.ju, alignItems: 'center', justifyContent: 'center' },
   topBadgeTx: { fontSize: 9.5, lineHeight: 13, fontWeight: '900', color: colors.onJu },
@@ -475,7 +478,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.sunk, borderRadius: radius.pill,
     paddingHorizontal: space(3.5), marginBottom: space(3),
   },
-  searchIcon: { fontSize: 17, color: colors.inkFaint },
   search: { flex: 1, paddingVertical: space(2.5), ...font.body, color: colors.ink },
 
   rule: { height: 1, backgroundColor: colors.line, marginVertical: space(3) },
