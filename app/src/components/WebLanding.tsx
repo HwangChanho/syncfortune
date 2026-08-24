@@ -16,13 +16,14 @@
 //   **웹 + 등록된 명식 0개**일 때만. 명식이 생기면 사라진다(그때부턴 홈이 할 일이 있다).
 //   네이티브에서는 아예 렌더되지 않는다.
 // ═══════════════════════════════════════════════════════════════════════════
+import { useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Image as ExpoImage } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
 import { RELMAP_HERO } from '../lib/content/relationMapImages'; // 성좌도 — 이미 있는 자산을 쓴다
-import { useWebCols } from './WebShell';
+;
 import { PressableScale } from './PressableScale';
 import { colors, radius, space } from '../lib/theme';
 import { useFontScale } from '../lib/ui/fontScale';
@@ -50,10 +51,13 @@ const FEATURES = [
 ];
 
 export function WebLanding() {
+  // ★이 블록이 실제로 차지하는 폭. 창 너비가 아니라 **자기 칸**을 본다(위 주석).
+  const [featsW, setFeatsW] = useState(0);
+  // 3열이 성립하는 최소 폭 = 카드 3장(각 176) + 사이 여백 2칸. 그 아래면 세로로 쌓는다.
+  const featsWide = featsW >= 560;
   const router = useRouter();
   const { t } = useTranslation();
   const { fs } = useFontScale();
-  const cols = useWebCols();
   const s = mkStyles(fs);
 
   return (
@@ -80,10 +84,17 @@ export function WebLanding() {
         </View>
       </View>
 
-      {/* 특징 — 넓으면 3열, 좁으면 세로 */}
-      <View style={[s.feats, cols > 1 && s.featsRow]}>
+      {/* 특징 — 넓으면 3열, 좁으면 세로
+          ⚠️★**창 너비(`cols`)로 정하면 안 된다.** 창이 1680 이어도 이 블록이 들어앉는 칸은
+            3단 레이아웃에서 241px 밖에 안 된다 — 그때 3등분하면 카드가 **72px** 이 되고
+            글자가 세로로 한 글자씩 흐른다(Boss 2026-08-24 제보. 창을 넓혀도 그대로였다).
+          ⇒ **자기 칸의 폭**을 재서 정한다. 어떤 레이아웃 안에 들어가든 맞는다. */}
+      <View
+        style={[s.feats, featsWide && s.featsRow]}
+        onLayout={(e) => setFeatsW(e.nativeEvent.layout.width)}
+      >
         {FEATURES.map((f) => (
-          <View key={f.k} style={[s.feat, cols > 1 && s.featCol]}>
+          <View key={f.k} style={[s.feat, featsWide && s.featCol]}>
             <Text style={s.featTag}>{f.tag}</Text>
             <Text style={s.featTitle}>{f.title}</Text>
             <Text style={s.featBody}>{f.body}</Text>
