@@ -52,7 +52,6 @@ export const HOME_BLOCK_LABEL: Record<HomeBlockKey, string> = {
 
 const LOCAL_KEY = 'pref.homeOrder';
 /** 전역 기본(관리자 콘솔) 캐시 — 첫 렌더에서 서버 응답을 기다리지 않게. */
-const LOCAL_GLOBAL_KEY = 'pref.homeOrderGlobal';
 
 /**
  * ★**운영자가 정하는 노출 목록 + 기본 순서**(2026-08-16 Boss "관리자 페이지에서 홈 메뉴구성 변경").
@@ -133,33 +132,14 @@ function pushOrder(next: HomeBlockKey[]): void { if (!sameOrder(_order, next)) {
 
 /** 로컬 캐시 → (로그인 시)서버 순으로 읽어 전역 상태에 반영. 훅 마운트마다 호출(계정 전환·최신값 반영). */
 export async function loadHomeOrder(): Promise<void> {
-  // 0차: 전역 목록(관리자) — 캐시 먼저 적용하고 서버로 갱신한다.
-  //   ★이걸 **개인 설정보다 먼저** 세워야 한다. `normalizeOrder` 가 이 목록을 기준으로 거르기 때문.
-  try {
-    const cached = await SecureStore.getItemAsync(LOCAL_GLOBAL_KEY);
-    if (cached) { const g = JSON.parse(cached); if (Array.isArray(g) && g.length) _allowed = g; }
-  } catch { /* 캐시 없음 — 코드 상수로 */ }
-  try {
-    // ★두 줄을 함께 읽는다(2026-08-18) — `home_order`(노출·순서)와 `home_hidden`(운영자가 **뺀** 블록).
-    //   왜 나눴나: 종전엔 `home_order` 하나로 "이게 전부"라고 봤다. 그러면 **새로 배포한 블록**이
-    //   서버 목록에 없다는 이유로 안 나오고, 블록을 낼 때마다 관리자 콘솔을 눌러야 했다.
-    //   ('운영자가 뺀 것'과 '서버가 아직 모르는 것'이 구분되지 않았던 것 — 실제로 `free3` 가 이걸로 막혔다.)
-    const { data: rows } = await supabase.from('app_config').select('key, value').in('key', ['home_order', 'home_hidden']);
-    const pick = (k: string) => (Array.isArray(rows) ? rows.find((r) => r?.key === k)?.value : undefined);
-    const g = pick('home_order');
-    const hiddenRaw = pick('home_hidden');
-    const hidden = new Set<HomeBlockKey>(Array.isArray(hiddenRaw) ? (hiddenRaw as HomeBlockKey[]) : []);
-    if (Array.isArray(g) && g.length) {
-      // 코드에 없는 키(옛 블록)는 버린다 — 운영자가 실수해도 앱이 깨지지 않게
-      const known = new Set(DEFAULT_HOME_ORDER);
-      const next = g.filter((k: unknown): k is HomeBlockKey => typeof k === 'string' && known.has(k as HomeBlockKey));
-      // 서버가 모르는 **신규** 블록을 뒤에 잇는다 — 단, 운영자가 명시적으로 숨긴 것은 뺀다.
-      const seenSrv = new Set(next);
-      const fresh = DEFAULT_HOME_ORDER.filter((k) => !seenSrv.has(k) && !hidden.has(k));
-      const merged = [...next, ...fresh];
-      if (merged.length) { _allowed = merged; void SecureStore.setItemAsync(LOCAL_GLOBAL_KEY, JSON.stringify(merged)).catch(() => {}); }
-    }
-  } catch { /* 오프라인 등 — 캐시/코드 상수 유지 */ }
+  // ⚠️★관리자 「홈 구성」은 **제거했다**(Boss 2026-08-25 *"관리자 홈구성은 더이상 의미가 없잖아 완전 제거해"*).
+  //   홈이 친구목록이 된 뒤(08-19) 이 설정이 정하던 것은 **친구목록 안 콘텐츠 레일 순서**뿐이었고,
+  //   그걸 원격으로 돌릴 일이 없어졌다.
+  //   ⇒ 노출·순서의 기준은 이제 **코드 상수**(`DEFAULT_HOME_ORDER`) 하나다.
+  //     ★그편이 낫기도 하다 — 서버에 저장돼 있던 옛 목록에는 `month`(이달의 운세)가 없어서,
+  //       새 블록이 **맨 뒤로** 밀려 있었다. 코드 기본값은 오늘의 운세 **바로 아래**다.
+  //   ⚠️`app_config.home_order`·`home_hidden` 행은 **지우지 않았다**(되돌릴 여지). 앱이 안 읽을 뿐이다.
+  //   ※ 사용자 개인 순서(`profiles.home_order` · 드래그)는 **그대로다** — 이건 관리자 설정과 별개다.
   pushOrder(normalizeOrder(_order));                 // 전역 목록이 바뀌었으면 현재 순서를 그 안으로 재정렬
 
   const local = await readLocal();
