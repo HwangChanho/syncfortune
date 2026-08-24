@@ -17,7 +17,7 @@ import { PressableScale } from './PressableScale';
 import { Image as ExpoImage } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Path } from 'react-native-svg';
-import { brandMark } from '../lib/ui/brandAsset';
+import { brandMarkSolid } from '../lib/ui/brandAsset';
 import { colors, space, radius, shadow } from '../lib/theme';
 
 const FLAG = 'palja_onboarding_seen_v3'; // 온보딩 노출 이력 플래그. v3(daniel 07-12) = 4번째 '미리보기' 단계(성향 분석 샘플카드) 추가 → 전 유저 재노출. v2=명식보유 자동스킵 폐지.
@@ -105,7 +105,7 @@ export function Onboarding() {
           ★2026-08-19: 워드마크를 **글자**로 쓰고 있었다. 시안 p01·p02 는 「운」 심볼이다.
             심볼을 얹되 글자는 아래에 작게 남긴다 — 이미지가 안 떠도 무엇인지 읽힌다. */}
       <View style={styles.body}>
-        <ExpoImage source={brandMark()} style={styles.mark} contentFit="contain" transition={200} />
+        <ExpoImage source={brandMarkSolid()} style={styles.mark} contentFit="contain" transition={200} />
         <Text style={styles.glyph}>니운내운</Text>
         <Text style={styles.title}>{cur.title}</Text>
         {cur.body ? <Text style={styles.desc}>{cur.body}</Text> : null}
@@ -168,7 +168,8 @@ const styles = StyleSheet.create({
   arc: { position: 'absolute', left: 0, right: 0, top: 0 },
   skipTxt: { color: colors.inkFaint, fontSize: 15, fontWeight: '600' },
   body: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  mark: { width: 72, height: 72, marginBottom: space(2) },
+  // ★배경이 있는 판이라 모서리를 굴린다 — 안 굴리면 각진 사각형이 화면에 떠 보인다
+  mark: { width: 72, height: 72, borderRadius: 16, marginBottom: space(2) },
   glyph: { color: colors.ju, fontSize: 18, fontWeight: '800', letterSpacing: 1, marginBottom: space(6) }, // 한글 4자 — 한자 2자와 같은 크기면 넘친다
   title: { color: colors.ink, fontSize: 26, fontWeight: '800', textAlign: 'center', lineHeight: 35 },
   desc: { color: colors.inkSoft, fontSize: 16, lineHeight: 26, textAlign: 'center', marginTop: space(5), maxWidth: 340 },

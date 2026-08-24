@@ -16,7 +16,7 @@ import * as Linking from 'expo-linking';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../lib/supabase';
 import { Image as ExpoImage } from 'expo-image';
-import { brandMark } from '../lib/ui/brandAsset';   // 시안 p02 「운」 심볼
+import { brandMarkSolid } from '../lib/ui/brandAsset';   // 시안 p02 「운」 심볼
 import { isAnonSession } from '../lib/useAuth'; // 익명 세션 판정 — 로그인 시 linkIdentity(승격·데이터 보존) vs signInWithOAuth 분기(Apple 5.1.1)
 import { logEvent } from '../lib/backend/logger'; // ★로그인 진단(daniel 07-11: OAuth 버튼 무반응 원인 로그)
 import { colors, radius, space, shadow, font } from '../lib/theme';
@@ -172,7 +172,7 @@ export function AuthScreen() {
           시안 p02 는 「운」 심볼 + 워드마크 2단이라, 심볼을 글자 위에 얹고 글자는 그대로 뒀다
           (이미지가 안 떠도 글자와 제스처는 남는다). */}
       <Pressable onLongPress={() => setReviewMode(true)} delayLongPress={800}>
-        <ExpoImage source={brandMark()} style={styles.mark} contentFit="contain" transition={200} />
+        <ExpoImage source={brandMarkSolid()} style={styles.mark} contentFit="contain" transition={200} />
         <Text style={styles.title}>{t('appName')}</Text>
       </Pressable>
       <View style={styles.divider} />
@@ -229,7 +229,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: space(8), paddingTop: space(9), paddingBottom: space(8), ...shadow.card,
   },
   // 심볼 — 글자 위 여백은 두되 카드가 길어지지 않게(로그인은 한 화면에 들어와야 한다)
-  mark: { width: 64, height: 64, alignSelf: 'center', marginBottom: space(2) },
+  // ★배경이 있는 판이라 모서리를 굴린다 — 안 굴리면 각진 사각형이 화면에 떠 보인다
+  mark: { width: 64, height: 64, borderRadius: 14, alignSelf: 'center', marginBottom: space(2) },
   title: { ...font.display, textAlign: 'center' },
   divider: { width: 44, height: 3, borderRadius: 2, backgroundColor: colors.ju, alignSelf: 'center', marginTop: space(3) },
   sub: { ...font.body, color: colors.inkSoft, textAlign: 'center', marginTop: space(4), marginBottom: space(2) },
