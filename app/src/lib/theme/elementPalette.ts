@@ -69,21 +69,33 @@ export type ElementPalette = {
  *   `inkFaint` 는 종전 라벤더 값(#A49EBE)이 카드 위 **2.56** 으로 이 저장소 기준(3.0)에 미달이었다.
  *   오행 팔레트는 08-18 에 이 검사를 거쳐 고쳤는데 **라벤더 베이스는 안 거쳤다** — 그대로 옮겼으면
  *   미달인 채로 나갔을 것이다. ⇒ #908AAA (카드 3.28 · 배경 3.04).
- *   `onJu`(흰 글자) on `ju` = **4.70** (`check:onaccent` 기준 4.5).
+ *   `onJu`(흰 글자) on `ju` = **4.70**(라벤더) → **4.84**(카멜). `check:onaccent` 기준 4.5.
+ *
+ * ■ ★★2026-08-24 카멜 전환 (Boss *"앱 테마 색상은 카멜로 하자"*)
+ *   ⚠️**클래식 카멜(#C19A6B)은 못 쓴다** — 흰 글자 대비 **2.59**. 배너 흰글자로 이미 당한 함정이다.
+ *     통과하는 가장 밝은 카멜이 **#96683C = 4.84**.
+ *   ★대조군(라벤더)을 같이 재서 **모든 짝에서 같거나 나음**을 확인했다:
+ *     흰 on ju 4.70→4.84 · ju on juSoft 4.04→4.47 · inkFaint on card 3.28→3.31 · ink on bg 13.15→13.77
  */
-export const LAVENDER: ElementPalette = {
-  bg: '#F7F5FD',      // 콘티 페이지배경 — 흰색에 라벤더를 아주 옅게
-  card: '#FFFFFF',    // 콘티 카드 = 순백(그림자로 띄운다)
-  sunk: '#F1EEFA',
-  line: '#E9E4F7',
-  ink: '#2C2743',
-  inkSoft: '#6A6486',
-  inkFaint: '#908AAA', // ★계산값 — 옛 #A49EBE 는 카드 위 2.56 으로 기준 미달이었다
-  ju: '#7C5CE0',      // 콘티 주조색(워드마크·활성 탭·주버튼)
-  juDeep: '#5F44BE',
-  juSoft: '#F0EBFE',
-  juLine: '#DDD3F8',
+export const CAMEL: ElementPalette = {
+  bg: '#FAF7F2',      // 흰 종이에 카멜을 아주 옅게
+  card: '#FFFFFF',    // 카드 = 순백(그림자로 띄운다)
+  sunk: '#F3EDE4',
+  line: '#EBE3D8',
+  ink: '#2E2720',     // 차콜에 갈색기 — 순흑보다 카멜 위에서 부드럽다
+  inkSoft: '#6B6055',
+  inkFaint: '#9A8B78', // ★계산값 — 카드 위 3.31(옛 라벤더 #908AAA 는 3.28)
+  ju: '#96683C',      // 주조색(워드마크·활성 탭·주버튼)
+  juDeep: '#7A5230',
+  juSoft: '#FBF5EE',
+  juLine: '#E4D3BC',
   onJu: '#FFFFFF',
+};
+/** @deprecated 2026-08-24 Boss *"앱 테마 색상은 카멜로 하자"* — `CAMEL` 로 교체. 되돌릴 때 쓰라고 남긴다. */
+export const LAVENDER: ElementPalette = {
+  bg: '#F7F5FD', card: '#FFFFFF', sunk: '#F1EEFA', line: '#E9E4F7',
+  ink: '#2C2743', inkSoft: '#6A6486', inkFaint: '#908AAA',
+  ju: '#7C5CE0', juDeep: '#5F44BE', juSoft: '#F0EBFE', juLine: '#DDD3F8', onJu: '#FFFFFF',
 };
 
 /**

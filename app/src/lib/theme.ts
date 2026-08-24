@@ -10,7 +10,7 @@
 import { DevSettings, Platform } from 'react-native'; // ★다크/라이트 제거(daniel 2026-07-15) — Appearance 불필요(소프트 클레이 단일 테마)
 import * as SecureStore from 'expo-secure-store';
 import { A } from '../lib/ui/remoteAsset'; // ★이미지 원격화(daniel 08-01) — 번들에서 걷어내고 Storage 에서 받는다
-import { ELEMENT_PALETTE, LAVENDER, DEFAULT_ELEMENT, type ThemeElement } from './theme/elementPalette'; // ★오행 전면 팔레트 단일 출처(시안 실측색)
+import { ELEMENT_PALETTE, CAMEL, DEFAULT_ELEMENT, type ThemeElement } from './theme/elementPalette'; // ★오행 전면 팔레트 단일 출처(시안 실측색)
 // ⚠️ expo-updates = 네이티브 모듈. theme.ts 는 거의 모든 화면이 import → *정적 import* 하면 런치 시 로드되어,
 //   모듈/설정 이슈 시 JS 로거 설치 전 네이티브 크래시 위험(purchases.ts·ads.ts 와 동일 패턴 위반).
 //   → lazy require 가드(setThemePref 호출 시에만 로드). 모듈 없으면 조용히 no-op(테마는 재시작 후 적용).
@@ -36,7 +36,14 @@ const DARK = {
   //   labelScrim = 홈 카드 하단 라벨바(라이트는 거의 불투명 — 어두운 카드 이미지가 비쳐 안 어울리던 것 차단·daniel).
   overlay: 'rgba(21,19,46,0.6)', overlaySoft: 'rgba(21,19,46,0.3)', overlayStrong: 'rgba(21,19,46,0.85)', labelScrim: 'rgba(21,19,46,0.86)',
 };
-// ── 라이트 팔레트(라벤더 — 흰 종이 + 보라 강조 + 파스텔) ──────────
+// ── 라이트 팔레트(**카멜** — 따뜻한 종이 + 카멜 강조) ──────────
+// ★★2026-08-24 Boss *"앱 테마 색상은 카멜로 하자"* — 라벤더(보라)에서 교체.
+//   ⚠️★**클래식 카멜(#C19A6B)은 못 쓴다.** 흰 글자 대비가 **2.59** 로 기준 4.5 에 한참 못 미친다
+//     (배너 흰글자로 이미 당한 함정 — [[design-not-automatically-right]]).
+//     통과하는 가장 밝은 카멜이 **#96683C = 4.84** 라 그걸 강조색으로 쓴다.
+//   ★대조군을 같이 재서 **현행보다 나쁘지 않음**을 확인했다(라벤더 → 카멜):
+//     흰 on ju 4.70→4.84 · ju on juSoft 4.04→4.47 · inkFaint on card 2.56→**3.31** · ink on bg 13.15→13.77
+//   ⚠️오행별 팔레트(`theme/elementPalette.ts`)의 `ju` 는 **따로**다 — 거긴 이미 어두운 색이라 안 건드렸다.
 // ★★2026-08-10 daniel 확정: 시안(`docs/design/ref-ui-2026-08-09.png`)의 **라벤더·파스텔**로 교체.
 //   IA(탭 5개·카테고리 6개)는 그대로 두고 **비주얼만** 시안에 맞춘다(daniel 선택).
 //   ⚠️경위 — 직전 팔레트(크림·골드)는 08-08 "이 디자인에 맞게" 지시를 내가 **앱 아이콘**으로 잘못 읽고
@@ -45,24 +52,25 @@ const DARK = {
 //   ★여기 한 곳만 바꾸면 전 화면이 따라온다 — 화면들은 `colors` 토큰만 쓰고, 배경 이미지는 이미
 //     걷어내 `ContentBackdrop` 이 `colors.bg` 를 칠한다(bgSource 는 미사용 잔존).
 const LIGHT = {
-  // 배경 = 흰색에 라벤더를 아주 옅게 태운 종이 / 카드 = 순백(그림자로 띄운다).
-  bg: '#F7F5FD', card: '#FFFFFF', sunk: '#F1EEFA',
-  glass: 'rgba(255, 255, 255, 0.80)', glassLight: 'rgba(124, 92, 224, 0.06)',
-  // 글자 = 차콜에 남보라를 섞은 톤(시안 제목색). 순흑보다 라벤더 위에서 부드럽다.
-  ink: '#2C2743', inkSoft: '#6A6486', inkFaint: '#A49EBE', line: '#E9E4F7',
-  // 강조 = 라벤더 보라 하나(시안 주조색). 버튼·활성 탭·링크가 전부 이 색이다.
-  ju: '#7C5CE0', juDeep: '#5F44BE', juSoft: '#F0EBFE', juLine: '#DDD3F8',
+  // 배경 = 흰 종이에 카멜을 아주 옅게 태운 것 / 카드 = 순백(그림자로 띄운다).
+  bg: '#FAF7F2', card: '#FFFFFF', sunk: '#F3EDE4',
+  glass: 'rgba(255, 255, 255, 0.80)', glassLight: 'rgba(150, 104, 60, 0.06)',
+  // 글자 = 차콜에 갈색기를 섞은 톤. 순흑보다 카멜 위에서 부드럽다.
+  ink: '#2E2720', inkSoft: '#6B6055', inkFaint: '#9A8B78', line: '#EBE3D8',
+  // 강조 = 카멜 하나. 버튼·활성 탭·링크가 전부 이 색이다.
+  //   ★`ju` 는 **흰 글자를 태우는 색**이라 밝게 못 간다(위 머리말의 2.59 함정).
+  ju: '#96683C', juDeep: '#7A5230', juSoft: '#FBF5EE', juLine: '#E4D3BC',
   gold: '#E0A42B', white: '#FFFFFF',
   badgeGold: '#E0A42B', // ★'운' 잔액·프리미엄 배지 금색 — 시안의 W 동전 톤.
   // ★어두운 히어로 이미지 위 텍스트/스크림 — 이미지가 어두우므로 밝은 글씨 + 어두운 스크림 유지.
-  onImage: '#F6F3FF', onImageSoft: 'rgba(246,243,255,0.86)', scrimHero: 'rgba(28,22,58,0.5)',
+  onImage: '#FBF6EE', onImageSoft: 'rgba(251,246,238,0.86)', scrimHero: 'rgba(42,32,22,0.5)',
   // ⚠️★`overlay` 는 이름과 달리 **두 용도**로 쓰인다 — 라이트 팔레트에서는 반드시 **밝은** 값이어야 한다:
   //     ① 칩·버튼 배경(`editBtn`·`orderBtn`·`dayTogChip`·`chipCare`) = 배경 위에 얹는 옅은 면
   //     ② 화면 전체 막(`overlay:{flex:1}` — today·month·healing 등 10여 화면)
   //   2026-08-10 라벤더 전환 때 이걸 '어두운 스크림'으로 잘못 잡았다가 홈 '⚡바로가기' 칩이
   //   **회색 알약**으로 떠서 실물 스크린샷에서 잡혔다. 어두운 스크림이 필요한 곳은 `scrimHero` 가 따로 있다.
   //   labelScrim 은 카드 하단 라벨바(어두운 카드 이미지가 비치지 않게 거의 불투명).
-  overlay: 'rgba(240,236,253,0.55)', overlaySoft: 'rgba(240,236,253,0.28)', overlayStrong: 'rgba(255,255,255,0.88)', labelScrim: 'rgba(255,255,255,0.96)',
+  overlay: 'rgba(247,239,228,0.55)', overlaySoft: 'rgba(247,239,228,0.28)', overlayStrong: 'rgba(255,255,255,0.88)', labelScrim: 'rgba(255,255,255,0.96)',
 };
 
 // ── ★파스텔 4색 + 딥 톤 (시안의 카테고리 카드·타로 배너) ────────────────────
@@ -158,7 +166,7 @@ export const activeElement: ThemeElement = resolveElement();
  *   화면 팔레트와 다른 축이고, 거기서 오행을 없애면 명식을 못 읽는다.
  * ★되돌리려면 이 한 줄만 바꾸면 된다.
  */
-const EP = LAVENDER;
+const EP = CAMEL;   // ★2026-08-24 Boss 지시로 라벤더 → 카멜(되돌리려면 이 한 줄만 LAVENDER 로)
 
 /**
  * 전 화면이 import 하는 색 토큰.
