@@ -302,7 +302,7 @@ export function TalkList({ items, onOpen, selected, myName, onMe, myAvatar, rail
             ★누르면 **만세력**(`/charts`)으로 간다(Boss 지시). */}
         <PressableScale style={styles.meBtn} onPress={onMe}>
           <Text style={styles.meName} numberOfLines={1}>
-            {myName ?? t('talk.meNoChart', '명식을 등록하면 이름이 나와요')}
+            {myName ?? t('talk.meNoChart', '명식 등록')}
           </Text>
         </PressableScale>
         <PressableScale hitSlop={12} style={styles.topBtn} onPress={() => setSearchOpen((v) => !v)}>

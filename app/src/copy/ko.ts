@@ -722,7 +722,10 @@ export const ko = {
     'friendsCount': '친구 {{n}}명',
     'search': '친구 검색',
     'searchEmpty': '찾는 친구가 없어요.',
-    'meNoChart': '명식을 등록하면 이름이 나와요',
+    'meNoChart': '명식 등록',
+    'needLoginBubble': '{{name}}이에요. 이야기를 이어가려면 로그인이 필요해요. 회원님 명식을 봐야 제대로 답해 드릴 수 있거든요.',
+    'needLoginTitle': '로그인이 필요해요',
+    'needLoginMsg': '로그인하면 명식을 저장하고 상담가와 이어서 이야기할 수 있어요.',
     'liveGreet': '안녕하세요. {{name}}이에요. 무엇이 궁금하세요?',
     'overFree': '오늘 무료 대화를 다 쓰셨어요. 그래도 조금 더 이야기해 볼게요.',
     // 운 부족 — 충전 유도(Boss 2026-08-24). ★얼마 필요하고 얼마 있는지 **숫자로** 말한다.

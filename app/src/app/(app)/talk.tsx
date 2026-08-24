@@ -450,6 +450,25 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
             setBusy(false);
             sayInOrder([{ id: nextId(), role: 'assistant', body: r.message }], 0);
           }
+        } else if (r.reason === 'unauthorized') {
+          // ★비로그인 — **상담가가 사람처럼 권한다**(Boss 2026-08-24
+          //   *"비 로그인 회원은 대화해도 인물들이 로그인 유도하게해"*).
+          //   종전엔 일반 실패로 뭉개져 회색 안내 한 줄로 끝났다 — 무엇을 하면 되는지 알 수 없었다.
+          //   ⚠️말풍선으로만 알리지 않는다. 대화창 안 글씨는 스크롤에 묻힌다(운 부족 안내와 같은 관용).
+          setBusy(false);
+          sayInOrder([{
+            id: nextId(), role: 'assistant',
+            body: t('talk.needLoginBubble', '{{name}}이에요. 이야기를 이어가려면 로그인이 필요해요. 회원님 명식을 봐야 제대로 답해 드릴 수 있거든요.')
+              .replace('{{name}}', cur.name),
+          }], 0);
+          Alert.alert(
+            t('talk.needLoginTitle', '로그인이 필요해요'),
+            t('talk.needLoginMsg', '로그인하면 명식을 저장하고 상담가와 이어서 이야기할 수 있어요.'),
+            [
+              { text: t('common.later', '나중에'), style: 'cancel' },
+              { text: t('auth.login', '로그인'), onPress: () => router.push('/login') },
+            ],
+          );
         } else if (r.reason === 'needCoins') {
           // ★운 부족 — **충전 유도**(Boss 2026-08-24 *"운 다 떨어지면 충전 유도 해야하고"*).
           //   ⚠️말풍선으로만 알리지 않는다 — 대화창 안의 회색 글씨는 스크롤에 묻힌다.

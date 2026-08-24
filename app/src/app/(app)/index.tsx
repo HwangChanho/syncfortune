@@ -16,7 +16,7 @@
 //
 // 로그인 게이트 없음(ADR-037).
 // ─────────────────────────────────────────────────────────────────────────
-import { View, Text, StyleSheet, Animated, AppState, Platform } from 'react-native';
+import { View, Text, StyleSheet, Animated, AppState } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context'; // ★상단 안전영역 — 고정 여백은 글자확대 시 잘린다(daniel 07-27)
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useAuth } from '../../lib/useAuth';
@@ -38,7 +38,6 @@ import { useFontScale } from '../../lib/ui/fontScale';
 import { PressableScale } from '../../components/PressableScale';
 import { HomeOrderEditModal } from '../../components/HomeOrderEditModal';
 import { useWebCols } from '../../components/WebShell';
-import { WebLanding } from '../../components/WebLanding'; // 웹 첫 방문자에게 '이게 뭔지' 먼저(명식 0개일 때만) // 넓은 웹 = 홈 블록 2열(폰은 그대로 드래그 리스트) // 홈 배치 편집 모달(간단 목록 드래그·제스처 충돌 0)
 
 
 export default function Home() {
@@ -65,7 +64,6 @@ export default function Home() {
   const { isPremium } = useSubscription();
   // 날짜 키 — 홈을 켜둔 채 자정이 지나도 갱신되게(③). 포커스·앱 복귀 시 재확인.
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const [hasChart, setHasChart] = useState<boolean>(true); // H1(daniel): 대표 명식 유무 — 없으면 오늘/내일 배너를 '명식 등록 안내'로(탭→등록)
   const [reloadKey, setReloadKey] = useState(0); // 명식 변경(전환·수정) 감지 — 포커스마다 오늘의 기운 재계산(daniel: 명식 수정 시 id 동일이라 갱신 안 되던 버그)
   const [editOpen, setEditOpen] = useState(false); // 홈 배치 편집 모달(daniel 07-21 '편집 모드')
   // ★홈 배치 편집을 **관리자에게만** 보인다(daniel 2026-08-06 "홈화면 편집은 관리자 뷰에서 관리자 계정만").
@@ -90,9 +88,9 @@ export default function Home() {
   useEffect(() => {
     let alive = true;
     (async () => {
-      const rep = await loadRepChart();
+      // ★결과는 여기서 안 쓴다 — 소비처(블록들)가 각자 읽는다. 캐시를 **데워 두는** 것이 목적.
+      await loadRepChart();
       if (!alive) return;
-      setHasChart(!!rep);
     })();
     return () => { alive = false; };
   }, [reloadKey, session]);
@@ -176,14 +174,10 @@ export default function Home() {
     </>
   );
 
-  /* ★웹 첫 방문자 설명 — 앱은 설치라는 문턱이 설명을 대신하지만 웹은 링크 하나로 들어온다.
-     명식이 하나라도 생기면 사라진다(그때부턴 홈이 할 일이 있다). 네이티브에선 렌더 안 됨.
-     ⚠️★**목록 위(`renderTop`)에 두지 않는다.** 거기 두면 랜딩이 화면을 다 먹어
-       친구목록이 1000px 아래로 밀린다 — 「운친구」를 눌러도 목록이 안 보였다
-       (Boss 2026-08-24 *"운친구 눌려있는데 왜 친구목록이 안나와"*). 실측으로 잡았다:
-       랜딩 y=533 · 목록 헤더 y=930 · 첫 친구 y=1055(뷰포트 811).
-     ⇒ 목록 **맨 아래**에 붙인다. 목록이 맨 위를 지키고, 설명은 스크롤하면 나온다. */
-  const webIntro = Platform.OS === 'web' && !hasChart ? <WebLanding /> : null;
+  /* ★웹 첫 방문자 설명(`WebLanding`)은 **띄우지 않는다** — Boss 2026-08-24
+     *"친구목록 아래 저거는 안나와도 돼"*. 처음 열자마자 친구목록만 보이는 게 낫다는 판단.
+     ⚠️컴포넌트는 지우지 않았다(문구·시안이 살아 있다). 다시 켜려면 아래 `renderBottom` 에 넣는다 —
+       **`renderTop` 에는 넣지 말 것.** 거기 두면 목록을 화면 밖으로 밀어낸다(그래서 안 보였다). */
 
   return (
     // ★홈도 투명(daniel 2026-07-15 '홈은 테마 적용 안돼') — bgSource 이미지 제거, 전역 ContentBackdrop(오행 배경색)이 비치게.
@@ -201,7 +195,6 @@ export default function Home() {
               순서는 여전히 `useHomeOrder` 다 — 운영자가 관리자 콘솔에서 정한 순서가 친구 순서가 된다. */}
         <TalkHome
           renderTop={<View style={{ paddingTop: insets.top + space(2), paddingHorizontal: space(5) }}>{listHeader}</View>}
-          renderBottom={webIntro ? <View style={{ paddingHorizontal: space(5), paddingTop: space(4) }}>{webIntro}</View> : undefined}
         />
       </Animated.View>
       <HomeOrderEditModal visible={editOpen} onClose={() => setEditOpen(false)} />
