@@ -13,6 +13,7 @@ import { computeYongsinApprox } from '../lib/content/yongsinApprox';
 import { elementColor } from '../lib/engine/ohaeng';
 import { colors, radius, space, font, shadow } from '../lib/theme';
 import { EL_KO } from '../lib/content/ohaengLabel';   // ★오행 이름표 단일 소스(사본 만들지 말 것)
+import { sipsinGroupOf, type Elem5 } from '@engine/sipsinGroup';   // 오행→십신 단일 원본(2026-08-24)
 
 // 오행 생/극(표준 통설) — 십신↔오행 변환.
 const GEN: Record<string, string> = { 木: '火', 火: '土', 土: '金', 金: '水', 水: '木' };   // e가 생하는(식상)
@@ -29,14 +30,16 @@ const SIP_GROUP: Record<string, Group> = {
 function groupElement(D: string, g: Group): string {
   return g === '비겁' ? D : g === '식상' ? GEN[D] : g === '재성' ? CTRL[D] : g === '관살' ? CTRL_BY[D] : GEN_BY[D];
 }
-/** 일간 오행 D 기준, 대상 오행 T 의 십신 그룹. */
+/**
+ * 일간 오행 D 기준, 대상 오행 T 의 십신 그룹 — **화면에 찍는 이름**.
+ *
+ * ★2026-08-24 엔진(`@engine/sipsinGroup`)에 위임했다. 표가 여기와 개운 모듈 **두 곳에** 있었고,
+ *   바로 아래 개운 블록이 같은 오행을 말하므로 이름이 갈리면 한 화면에서 모순이 된다.
+ * ⚠️갈려 있던 이름도 맞췄다 — 여기만 `관살`, 앱의 나머지(24곳·`tenGods.distribution` 포함)는 `관성`이었다.
+ *   아래 격국 상신 쪽 `Group` 타입은 **그대로 둔다**(그건 표시가 아니라 분기 조건이다).
+ */
 function sipsinGroup(D: string, T: string): string {
-  if (T === D) return '비겁';
-  if (GEN[D] === T) return '식상';
-  if (CTRL[D] === T) return '재성';
-  if (CTRL[T] === D) return '관살';
-  if (GEN[T] === D) return '인성';
-  return '';
+  return sipsinGroupOf(D as Elem5, T as Elem5);
 }
 
 // 관점(method) 일상어 설명 — daniel 검수 슬롯.

@@ -14,6 +14,7 @@ import { RelatedContent } from '../components/RelatedContent';
 import { useTranslation } from 'react-i18next';
 import * as Haptics from 'expo-haptics';
 import { computeChart } from '../lib/engine/engine';
+import { GaeunCard } from '../components/GaeunCard';     // 개운 방향(Boss 2026-08-24) — 용신 카드 바로 아래
 import { YongsinCard } from '../components/YongsinCard'; // 만세력 용신(canonical 엔진·억부/병약/조후+희신/기신·Boss 07-22)
 import type { ChartInput, PillarPos } from '@spec/chart';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';   // ★하단 탭바·홈 인디케이터 여백(daniel 07-29 잘림)
@@ -626,6 +627,10 @@ function MyeongsikBody({ input, onReading, onSinsal, header, whoName }: Myeongsi
 
       {/* ★용신(Boss 07-22) — canonical 엔진 산출: 용신·희신·기신 + 관점(method=억부/병약/조후/종격/통관). 격국용신은 관법 대기. */}
       <YongsinCard saju={c.saju} pattern={c.pattern} timeUnknown={timeUnknown} />
+      {/* ★개운 방향(Boss 2026-08-24) — 용신 카드 **바로 아래**. 순서가 곧 논리다:
+          "무엇이 용신인가"(위) → "그래서 무엇을 하면 되나"(아래).
+          ⚠️적은 오행을 채우라고 말하지 않는다 · 채우면 안 되는 기운(기신)을 반드시 같이 적는다. */}
+      <GaeunCard saju={c.saju} />
 
       {/* 대표 오행(일간)·대표 십성(격국) — 탭→설명 */}
       <View style={styles.repRow}>
