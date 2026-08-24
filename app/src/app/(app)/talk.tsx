@@ -178,6 +178,15 @@ export function TalkHome({ renderTop, mode = 'contacts' }: { renderTop?: ReactNo
   // 순차 표시 타이머 — ★상담가를 바꾸면 **이전 대기를 취소**한다.
   //   안 그러면 A 의 인사가 B 의 대화창에 뒤늦게 떨어진다.
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  /**
+   * ★**방 세대(generation)** — 방이 갈아엎어질 때마다 1 올린다(지우기 · 다른 상담가로 이동).
+   *
+   * 왜 필요한가: `askLive` 는 몇 초씩 걸린다. 그 사이에 대화를 지우거나 다른 방으로 옮기면
+   * **응답은 그대로 도착해** 새 화면에 말풍선을 붙인다 — 지운 대화의 답이 인사말 밑에 뜬다.
+   * 보내기 직전 값을 붙들어 두었다가, 돌아왔을 때 값이 달라졌으면 **그 답을 버린다.**
+   * (타이머는 `clearTimers` 로 끊을 수 있지만, 이미 날아간 `fetch` 의 `.then` 은 못 끊는다.)
+   */
+  const genRef = useRef(0);
   const clearTimers = useCallback(() => {
     timersRef.current.forEach(clearTimeout);
     timersRef.current = [];
@@ -285,6 +294,7 @@ export function TalkHome({ renderTop, mode = 'contacts' }: { renderTop?: ReactNo
     setCur(c);
     // ⚠️먼저 비운다 — 안 비우면 **직전 방의 정리**가 잠깐 보인다
     setNotes([]); setJumpTo(null);
+    genRef.current++;   // ★직전 방에 보낸 답이 도착해도 이 방에 붙지 않게(위 `genRef` 주석)
     refreshNotes(sessRef.current[c.id]);
     // ★대화를 열면 **읽음 처리**한다 — 안 그러면 배지가 영원히 남는다.
     //   시각은 서버가 `now()` 로 찍는다(앱이 값을 보내면 미래 시각으로 배지를 지울 수 있다).
@@ -361,8 +371,12 @@ export function TalkHome({ renderTop, mode = 'contacts' }: { renderTop?: ReactNo
 
     // ── 실제 상담사 ────────────────────────────────────────────────────
     setBusy(true);
+    const gen = genRef.current;   // ★이 답이 어느 방 것인지 붙들어 둔다(위 `genRef` 주석)
     void askLive(cur.id, q, sessRef.current[cur.id] ?? null, chartId, i18n.language)
       .then((r) => {
+        // 답을 기다리는 동안 대화를 지웠거나 다른 방으로 옮겼다 — **버린다.**
+        //   ⚠️`setBusy(false)` 도 하지 않는다. 지금 점이 돌고 있다면 그건 **새 방의 것**이다.
+        if (gen !== genRef.current) return;
         if (r.ok) {
           sessRef.current[cur.id] = r.sessionId;   // 다음 턴부터 이력이 이어진다
           // ★이번 턴에 남긴 게 있을 때만 다시 읽는다 — 매 턴 조회하면 헛돈다
@@ -435,7 +449,10 @@ export function TalkHome({ renderTop, mode = 'contacts' }: { renderTop?: ReactNo
       // ⚠️★여기서 `setBusy(false)` 를 하면 안 된다 — `sayInOrder` 가 방금 켠 타이핑을 즉시 꺼서
       //   말풍선이 하나씩 뜨는 동안 점이 사라진다. **끄는 책임은 `sayInOrder` 의 마지막 풍선**에 있다.
       //   (성공 경로는 거기서, 실패 경로는 위 else 에서 끈다.)
-      .catch((e) => { setBusy(false); console.warn('[talk] send 실패', e); });
+      .catch((e) => {
+        if (gen !== genRef.current) return;   // 버린 방의 실패는 새 방에 알리지 않는다
+        setBusy(false); console.warn('[talk] send 실패', e);
+      });
   }, [draft, cur, saju, busy, chartId, t, i18n.language, bumpChats]);
 
   // ★블록 친구에겐 입력창을 띄우지 않는다 — 물어봐도 답할 수 없는 입력창은 없느니만 못하다
@@ -472,11 +489,19 @@ export function TalkHome({ renderTop, mode = 'contacts' }: { renderTop?: ReactNo
     if (!r.ok) { console.warn('[talk] 대화 삭제 실패', r.error); return; }
     delete sessRef.current[cur.id];
     usedArtRef.current = new Set();
+    // ★정리도 함께 비운다 — DB 행은 세션과 함께 cascade 로 사라지지만(0040), **화면 state 는 남는다.**
+    //   안 비우면 지운 대화의 "이 대화 정리 · N" 줄이 상단에 그대로 떠 있다(Boss 2026-08-24 제보).
+    //   `notesOpen` 은 건드리지 않는다 — 펴 둔 것은 **사람의 선택**이지 이 방의 상태가 아니다(위 §123).
+    setNotes([]); setJumpTo(null);
+    // ★진행 중이던 것도 멈춘다 — 안 그러면 지운 대화의 흔적이 새 화면에서 계속 움직인다:
+    //   `clearTimers` 순차 표시·무료소진 안내 타이머 / `setBusy(false)` 점 세 개 / `genRef` 날아간 응답.
+    //   (`open` 이 방을 바꿀 때 하는 것과 같다 — 여기만 빠져 있었다.)
+    genRef.current++; clearTimers(); setBusy(false);
     // 인사말만 남긴다 — 빈 화면보다 "다시 시작할 수 있다"가 낫다
     setItems([{ id: nextId(), role: 'assistant',
       body: t('talk.liveGreet', '안녕하세요. {{name}}이에요. 무엇이 궁금하세요?').replace('{{name}}', cur.name) }]);
     bumpChats();
-  }, [cur, t, bumpChats]);
+  }, [cur, t, bumpChats, clearTimers]);
 
   const composer = !cur?.block && (cur?.kind === 'virtual' || cur?.kind === 'live') ? (
     <View style={[styles.composer, { paddingBottom: Math.max(space(3), insets.bottom), marginBottom: lift }]}>

@@ -11,6 +11,8 @@
  *     ③건강·투자 문장이 걸러지지 않는다                  → 방 맨 위에 질병 이야기가 고정된다(§4)
  *     ④출처(`from_message`)를 안 싣는다                 → 눌러도 아무 데도 못 간다 = 믿을 수 없는 정리
  *     ⑤DB 스키마·RLS 가 없다                            → 남의 정리가 보인다
+ *     ⑥**대화를 지웠는데 정리 줄이 그대로 떠 있다**       → 지운 대화의 요약이 상단에 남는다
+ *        (Boss 2026-08-24 제보. DB 행은 cascade 로 사라지지만 **화면 state 는 안 사라진다.**)
  *
  * 실행: npm run check:talknotes   (preflight 에 포함)
  */
@@ -185,6 +187,77 @@ console.log('\n=== ⑥ 음성 테스트 — 잘못된 것을 버리는가 ===');
   const after = splitNotes('[[남김:me|첫 줄]]');
   if (after.notes.length === 1) ok('전역 정규식 lastIndex 오염에도 안전하다');
   else bad('★lastIndex 가 남아 두 번째 호출부터 안 걸린다(matchAll 사용 확인)');
+}
+
+// ── ⑦ 대화를 지우면 화면의 방별 state 도 비는가 ──────────────────────────
+//   ★규칙을 '`setNotes` 가 있는가'로 적지 않는다 — 그러면 state 가 하나 더 늘 때 또 샌다.
+//     **"방을 여는 경로가 비우는 것은, 방을 지우는 경로도 비워야 한다"** 로 적는다.
+//     (`setCur` 만 뺀다 — 여는 쪽은 상담가를 바꾸지만 지우는 쪽은 그 방에 그대로 머문다.)
+console.log('\n=== ⑦ 대화를 지우면 진행 중이던 것까지 멈추는가 ===');
+{
+  /** `const NAME = useCallback(…)` 의 **본문**만 잘라 낸다(중괄호 짝을 세어서). */
+  const fnBody = (src: string, name: string): string => {
+    const i = src.indexOf(`const ${name} = useCallback(`);
+    if (i < 0) return '';
+    const s0 = src.indexOf('{', src.indexOf('=>', i));
+    if (s0 < 0) return '';
+    let depth = 0;
+    for (let j = s0; j < src.length; j++) {
+      if (src[j] === '{') depth++;
+      else if (src[j] === '}' && --depth === 0) return src.slice(s0, j + 1);
+    }
+    return '';
+  };
+  /** 본문이 부르는 `setXxx` 이름 집합. */
+  const setters = (body: string) => new Set([...body.matchAll(/\bset([A-Z]\w*)\(/g)].map((m) => m[1]));
+
+  const screen = readFileSync(SCREEN, 'utf8');
+  const openB = fnBody(screen, 'open');
+  const delB = fnBody(screen, 'onDeleteThread');
+
+  /** 여는 쪽이 비우는데 지우는 쪽이 안 비우는 state 목록. */
+  const leaks = (o: string, d: string) => {
+    const dd = setters(d);
+    return [...setters(o)].filter((n) => n !== 'Cur' && !dd.has(n));
+  };
+
+  if (!openB || !delB) bad('`open` / `onDeleteThread` 본문을 못 찾았다 — 하네스가 헛돈다');
+  else {
+    const miss = leaks(openB, delB);
+    if (miss.length) bad(`★대화를 지워도 안 비우는 state: ${miss.map((n) => `set${n}`).join(' · ')} — 지운 대화의 흔적이 화면에 남는다`);
+    else ok('방을 여는 경로가 비우는 것을 지우는 경로도 전부 비운다');
+
+    // 정리 줄은 **이름을 박아** 한 번 더 본다 — 실제로 제보가 들어온 자리다
+    if (setters(delB).has('Notes')) ok('삭제가 `setNotes` 로 정리 줄을 비운다(Boss 08-24 제보 자리)');
+    else bad('★삭제가 정리 줄을 안 비운다 — "이 대화 정리 · N" 이 상단에 그대로 남는다');
+
+    // ★음성 테스트 — 고친 줄을 도로 빼면 이 하네스가 **무는가**
+    const broken = delB.replace(/setNotes\(\[\]\);\s*setJumpTo\(null\);/, '');
+    if (broken !== delB && leaks(openB, broken).length) ok('음성 테스트 — 그 줄을 지우면 하네스가 문다');
+    else bad('음성 테스트 실패 — 줄을 지워도 통과한다(하네스가 못 문다)');
+
+    // `notesOpen` 은 **건드리면 안 된다** — 펴 둔 것은 사람의 선택이지 방의 상태가 아니다
+    if (setters(delB).has('NotesOpen')) bad('삭제가 `notesOpen` 까지 되돌린다 — 펴 둔 것은 사람의 선택이다');
+    else ok('펼침 상태(`notesOpen`)는 건드리지 않는다');
+
+    // 타이머 — `setX` 가 아니라서 위 집합 비교로는 안 잡힌다. 이름으로 한 번 더 본다.
+    if (/clearTimers\(\)/.test(delB)) ok('삭제가 순차 표시 타이머를 끊는다');
+    else bad('★삭제가 타이머를 안 끊는다 — 지운 대화의 말풍선이 새 화면에 계속 떠오른다');
+
+    // ★날아간 fetch 는 못 끊는다 → **세대 토큰**으로 버려야 한다
+    //   (지우고 나면 응답이 도착해 새 인사말 밑에 지운 대화의 답이 붙는다.)
+    const sendB = fnBody(screen, 'send');
+    const bumps = (b: string) => /genRef\.current\s*\+\+/.test(b);
+    if (!bumps(delB)) bad('★삭제가 세대(genRef)를 안 올린다 — 진행 중이던 답이 새 화면에 붙는다');
+    else if (!bumps(openB)) bad('★방을 바꿀 때 세대를 안 올린다 — 직전 방의 답이 이 방에 붙는다');
+    else ok('삭제·방 이동이 세대를 올린다');
+
+    if (!sendB) bad('`send` 본문을 못 찾았다 — 하네스가 헛돈다');
+    else if (!/const gen = genRef\.current/.test(sendB)) bad('★`send` 가 보낼 때의 세대를 안 붙든다');
+    else if ((sendB.match(/gen !== genRef\.current/g) ?? []).length < 2) {
+      bad('★성공·실패 **양쪽**에서 세대를 비교하지 않는다 — 한쪽으로 새면 그쪽만 붙는다');
+    } else ok('`send` 가 성공·실패 양쪽에서 옛 세대의 답을 버린다');
+  }
 }
 
 console.log(`\n   통과 ${pass} · 실패 ${fail}`);
