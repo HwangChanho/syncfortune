@@ -26,13 +26,33 @@ const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 fs.mkdirSync(OUT, { recursive: true });
 fs.mkdirSync(TMP, { recursive: true });
 
-// ── 앱 팔레트(app/src/lib/theme.ts LIGHT) — 여기서 새 색을 만들지 않는다 ──────
-const C = {
-  bg: '#F7F5FD', card: '#FFFFFF', sunk: '#F1EEFA',
-  ink: '#2C2743', inkSoft: '#6A6486', inkFaint: '#A49EBE', line: '#E9E4F7',
-  ju: '#7C5CE0', juDeep: '#5F44BE', juSoft: '#F0EBFE', juLine: '#DDD3F8',
-  deep: '#2B2456',                      // pastel.deep — 마케팅 배경
+// ── 앱 팔레트 — ★**원본에서 읽는다**(사본을 두지 않는다) ─────────────────────
+//   ⚠️2026-08-25 사고: 여기 하드코딩된 사본이 라벤더인 채로 남아, 앱이 **카멜로 바뀐 뒤에도**
+//     스크린샷만 보라로 나올 뻔했다. 주석엔 *"앱 토큰 그대로"* 라 적혀 있었지만 **사본이었다.**
+//     (스크린샷이 앱과 다르면 그 자체로 리젝 사유다 — 2.3.3. 이번 리젝의 원인 중 하나이기도 했다.)
+//   ⇒ `theme/elementPalette.ts` 의 활성 팔레트를 **파싱해서** 쓴다. 앱이 바뀌면 여기가 따라온다.
+const paletteSrc = fs.readFileSync(path.resolve(import.meta.dirname, '../app/src/lib/theme/elementPalette.ts'), 'utf8');
+const themeSrc = fs.readFileSync(path.resolve(import.meta.dirname, '../app/src/lib/theme.ts'), 'utf8');
+/** `theme.ts` 의 `const EP = X;` 가 정본이다 — 그 이름의 팔레트를 읽는다. */
+const EP_NAME = /const EP = (\w+);/.exec(themeSrc)?.[1];
+if (!EP_NAME) throw new Error('theme.ts 에서 활성 팔레트(EP)를 못 찾았다 — 스크린샷 색이 앱과 갈린다');
+const epBlock = new RegExp(`export const ${EP_NAME}: ElementPalette = \\{([\\s\\S]*?)\\n\\};`).exec(paletteSrc)?.[1];
+if (!epBlock) throw new Error(`elementPalette.ts 에서 ${EP_NAME} 을 못 찾았다`);
+const pick = (k) => {
+  const m = new RegExp(`\\b${k}:\\s*'(#[0-9A-Fa-f]{6})'`).exec(epBlock);
+  if (!m) throw new Error(`${EP_NAME}.${k} 를 못 읽었다`);
+  return m[1];
 };
+const C = {
+  bg: pick('bg'), card: pick('card'), sunk: pick('sunk'),
+  ink: pick('ink'), inkSoft: pick('inkSoft'), inkFaint: pick('inkFaint'), line: pick('line'),
+  ju: pick('ju'), juDeep: pick('juDeep'), juSoft: pick('juSoft'), juLine: pick('juLine'),
+  // 마케팅 배경(깊은 색) — 팔레트에 없는 값이라 **강조색에서 파생**한다(따로 고르지 않는다).
+  deep: (() => { const h = pick('juDeep').slice(1);
+    const [r, g, b] = [0, 2, 4].map((i) => Math.round(parseInt(h.slice(i, i + 2), 16) * 0.42));
+    return `#${[r, g, b].map((v) => v.toString(16).padStart(2, '0')).join('')}`; })(),
+};
+console.log(`팔레트 = ${EP_NAME} · bg ${C.bg} · ju ${C.ju} · deep ${C.deep}`);
 /** 오행 색 — 관계 지도 노드와 같은 값 */
 const EL = { 木: '#5FA98B', 火: '#D97A93', 土: '#C9A06A', 金: '#9AA0B8', 水: '#6E8FD1' };
 
@@ -41,7 +61,7 @@ const dataUri = (rel) => {
   const p = path.resolve(import.meta.dirname, '..', rel);
   return `data:image/${p.endsWith('.png') ? 'png' : 'jpeg'};base64,${fs.readFileSync(p).toString('base64')}`;
 };
-const ICON = dataUri('app/assets/icon.png');                       // 니운내운 아이콘(크림·골드)
+const ICON = dataUri('app/assets/icon.png');                       // 니운내운 아이콘(원본 = 앱과 같은 파일)
 const MAP_HERO = dataUri('app/assets/icons/relmap/hero.jpg');      // 관계 지도 히어로
 
 /** 공통 셸 — 배경·헤드라인·폰 프레임·브랜드 푸터. */
@@ -52,7 +72,7 @@ const page = ({ n, kicker, title, sub, card }) => `<!doctype html><html lang="ko
     width:1242px; height:2688px; overflow:hidden; position:relative;
     font-family:-apple-system,"Apple SD Gothic Neo","Noto Sans KR",sans-serif; color:#fff;
     background:
-      radial-gradient(120% 70% at 50% 0%, #4A3A8F 0%, rgba(74,58,143,0) 60%),
+      radial-gradient(120% 70% at 50% 0%, ${C.deep} 0%, rgba(74,58,143,0) 60%),
       linear-gradient(180deg, #221C48 0%, ${C.deep} 45%, #191436 100%);
   }
   /* 은은한 별 — 기존 6장의 톤을 잇는다(완전히 다른 그림으로 보이면 그것도 어색하다) */
@@ -60,12 +80,12 @@ const page = ({ n, kicker, title, sub, card }) => `<!doctype html><html lang="ko
     background-image:
       radial-gradient(1.5px 1.5px at 12% 9%, #fff 50%, transparent),
       radial-gradient(1.5px 1.5px at 78% 6%, #fff 50%, transparent),
-      radial-gradient(1.2px 1.2px at 30% 14%, #E7DEFF 50%, transparent),
-      radial-gradient(1.2px 1.2px at 88% 17%, #E7DEFF 50%, transparent),
+      radial-gradient(1.2px 1.2px at 30% 14%, ${C.juSoft} 50%, transparent),
+      radial-gradient(1.2px 1.2px at 88% 17%, ${C.juSoft} 50%, transparent),
       radial-gradient(1.6px 1.6px at 60% 4%, #fff 50%, transparent); }
   .top { position:absolute; left:0; right:0; top:118px; text-align:center; padding:0 90px; }
   .n { font-size:30px; letter-spacing:.42em; color:rgba(255,255,255,.42); font-weight:600; }
-  .kick { margin-top:22px; font-size:31px; letter-spacing:.34em; color:#C6B4FF; font-weight:800; }
+  .kick { margin-top:22px; font-size:31px; letter-spacing:.34em; color:${C.juLine}; font-weight:800; }
   h1 { margin-top:26px; font-size:96px; line-height:1.14; font-weight:800; letter-spacing:-.022em; }
   .sub { margin-top:30px; font-size:41px; line-height:1.45; color:rgba(255,255,255,.66); font-weight:500; }
 
