@@ -51,6 +51,17 @@ export type ElementPowerOpts = {
   hap: boolean;
   /** 조후(왕상휴수)+궁성(자리 가중) 보정 적용 */
   johuGung: boolean;
+  /**
+   * ★**운의 간지를 함께 센다**(Boss 2026-08-25 *"대운 세운별로 선택해서 확인"*).
+   *
+   * 원국 네 자리 뒤에 대운·세운을 **덧붙여** 같은 식으로 센다.
+   * ⚠️궁성 가중은 주지 않는다(자리 가중은 년월일시의 것이다) — 운은 **가중 1**로 센다.
+   *   조후 계수는 그대로 적용한다(월령은 원국 월지 기준이라 운에도 같이 걸린다).
+   * ⚠️합화(`hap`)는 **원국끼리만** 본다 — 운과의 합은 엔진에 성립 판정이 없어 지어내지 않는다.
+   * ⚠️발달/과다/부재 라벨은 **원국 글자 수로만** 낸다 — 운은 10년·1년짜리라
+   *   "타고난 것"을 말하는 라벨을 흔들면 안 된다.
+   */
+  extra?: { label: string; stem: Stem; branch: Branch }[];
 };
 
 export type ElementPowerResult = {
@@ -107,6 +118,18 @@ export function elementPower(saju: SajuChart, opts: ElementPowerOpts): ElementPo
 
     power[stemEl] += STEM_W * sCoef * (opts.johuGung ? Math.min(gw, 2) : 1); // 천간엔 궁성 절반 사상(지지=뿌리가 주역 · ★조정 슬롯)
     power[branchEl] += gw * bCoef;
+  }
+
+  // ── 운(대운·세운) 덧붙이기 — 위와 **같은 식**을 쓴다(따로 계산하지 않는다) ──
+  for (const e of opts.extra ?? []) {
+    const stemEl = STEM_ELEM[e.stem];
+    const branchEl = STEM_ELEM[BRANCH_MAIN_S[e.branch]];
+    // ⚠️`counts` 에는 **안 넣는다** — 발달/과다/부재는 타고난 글자 수로만 판정한다
+    const sCoef = opts.johuGung ? WANG_COEF[wangStateOf(monthBranch, stemEl)] : 1;
+    const bCoef = opts.johuGung ? WANG_COEF[wangStateOf(monthBranch, branchEl)] : 1;
+    power[stemEl] += STEM_W * sCoef;   // 궁성 가중 없음(자리 가중은 년월일시의 것)
+    power[branchEl] += bCoef;
+    notes.push(`${e.label} ${e.stem}${e.branch} 포함 — 궁성 가중 없이 1로 셈`);
   }
   if (opts.johuGung) notes.push(`조후: 월지 ${monthBranch}(${SEASON_ELEM[monthBranch]}령) 왕상휴수 계수 · 궁성: 월${GUNG_WEIGHT['월']}·일${GUNG_WEIGHT['일']}·시${GUNG_WEIGHT['시']}·년${GUNG_WEIGHT['년']}`);
 

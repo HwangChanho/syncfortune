@@ -188,8 +188,6 @@ function MyeongsikBody({ input, onReading, onSinsal, header, whoName }: Myeongsi
   });
   // ★오행 세력 2모드(daniel 2026-08-05) — 보정 켜면 '개수'가 아니라 '세력치 %' 로 그린다.
   //   판정 재료는 전부 엔진(합화 성립=transformSupported·궁성=POS_WEIGHT 사상·조후=왕상휴수 통설표).
-  const pwOn = pwHap || pwJohu;
-  const pw = pwOn ? elementPower(c.saju, { hap: pwHap, johuGung: pwJohu }) : null;
   const pwLabels = elementPower(c.saju, { hap: false, johuGung: false }).labels; // 발달/과다/부재(개수 기준·모드 무관)
 
   // ① 오행별 십성(daniel) — 일간 오행 기준 각 오행의 십성(대분류: 비겁/식상/재성/관성/인성)
@@ -212,6 +210,28 @@ function MyeongsikBody({ input, onReading, onSinsal, header, whoName }: Myeongsi
   const curSeunIdx = Math.max(0, ((luckCycles[curLuckIdx]?.annuals ?? []) as any[]).findIndex((a) => a.year === now.getFullYear()));
   const [selLuck, setSelLuck] = useState(curLuckIdx);                  // 선택된 대운 → 세운 드릴다운(기본=현재 대운)
   const [selSeun, setSelSeun] = useState(curSeunIdx);                 // 선택된 세운(기본=올해)
+
+  /**
+   * ★오행 분포에 **운을 얹어 본다**(Boss 2026-08-25 *"대운 세운별로 선택해서 확인"*).
+   *   'natal' 원국만 · 'luck' +대운 · 'both' +대운·세운.
+   *   ⚠️어느 대운·세운인지는 **운세 띠의 선택**(`selLuck`·`selSeun`)을 그대로 따라간다 —
+   *     여기 별도 선택기를 만들면 같은 것을 두 곳에서 고르게 되어 어긋난다.
+   */
+  const [elemSpan, setElemSpan] = useState<'natal' | 'luck' | 'both'>('natal');
+  const spanExtra = (() => {
+    if (elemSpan === 'natal') return undefined;
+    const l = luckCycles[selLuck];
+    if (!l) return undefined;
+    const out = [{ label: `${l.startAge}세 대운`, stem: l.stem, branch: l.branch }];
+    if (elemSpan === 'both') {
+      const a = l.annuals?.[selSeun];
+      if (a) out.push({ label: `${a.year} 세운`, stem: a.stem, branch: a.branch });
+    }
+    return out;
+  })();
+  // ★운을 얹으면 **보정 여부와 무관하게** 세력치로 그려야 한다(개수 축은 원국 전용이라).
+  const pwOn = pwHap || pwJohu || elemSpan !== 'natal';
+  const pw = pwOn ? elementPower(c.saju, { hap: pwHap, johuGung: pwJohu, extra: spanExtra }) : null;
   const [selMonth, setSelMonth] = useState(now.getMonth());           // 선택된 월운(기본=이번 달)
   const [selDay, setSelDay] = useState(now.getDate());                // 선택된 일운(기본=오늘) — 일진 달력 탭으로 변경
   // 운세 확장명식 시간층 — ★**기본 ON**(daniel 2026-08-03 "만세력에 디폴트가 오늘 기준
@@ -723,6 +743,22 @@ function MyeongsikBody({ input, onReading, onSinsal, header, whoName }: Myeongsi
           <Text style={[styles.layerChipTx, pwJohu && styles.layerChipTxOn]}>{pwJohu ? '✓ ' : ''}조후·궁성 보정</Text>
         </PressableScale>
       </View>
+      {/* ★기간 — 원국에 운을 얹어 본다(Boss 2026-08-25).
+          ⚠️어느 대운·세운인지는 **위 운세 탭에서 고른 것**을 따라간다(선택기를 둘로 만들지 않는다). */}
+      <View style={styles.layerToggle}>
+        {([['natal', '원국'], ['luck', '+대운'], ['both', '+대운·세운']] as const).map(([k, label]) => (
+          <PressableScale key={k} style={[styles.layerChip, elemSpan === k && styles.layerChipOn]} onPress={() => setElemSpan(k)}>
+            <Text style={[styles.layerChipTx, elemSpan === k && styles.layerChipTxOn]}>{label}</Text>
+          </PressableScale>
+        ))}
+      </View>
+      {/* 어느 운을 얹었는지 **글자로** 밝힌다 — 안 적으면 무엇이 더해졌는지 알 수 없다 */}
+      {spanExtra && spanExtra.length > 0 && (
+        <Text style={styles.spanNote}>
+          {spanExtra.map((e) => `${e.label} ${e.stem}${e.branch}`).join(' · ')} 을(를) 더해서 본 분포예요.
+          발달·과다·부재 표시는 **타고난 글자**만 보고 정해요.
+        </Text>
+      )}
       {(() => {
         // 도넛(원 그리기)은 오행 상생 순서를 지켜야 한다 — 목생화·화생토… 가 눈에 보여야 해서.
         const order = ['木', '火', '土', '金', '水'] as const;
@@ -1369,6 +1405,7 @@ const makeStyles = (fs: (n: number) => number) => { const f = scaledFont(fs); re
   ssGmRow: { flexDirection: 'row', alignItems: 'center', gap: space(2), marginTop: space(2.5) },
   ssLuckLine: { ...f.caption, color: colors.inkFaint, marginTop: space(2), lineHeight: fs(18) },
   // 신살·공망 전용 상세 화면 진입 버튼(골드 아웃라인)
+  spanNote: { ...font.caption, color: colors.inkFaint, marginTop: space(2), marginBottom: space(1), lineHeight: 18 },
   sinsalDetailBtn: { alignSelf: 'flex-start', borderWidth: 1, borderColor: colors.ju, borderRadius: radius.pill, paddingHorizontal: space(3.5), paddingVertical: space(1.75), marginTop: space(1), marginBottom: space(3) },
   sinsalDetailTx: { color: colors.ju, fontSize: fs(13), fontWeight: '700' },
   // 신살·공망 상세 (길신/흉살/기타/공망)
