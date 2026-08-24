@@ -32,13 +32,13 @@ const B: ChartInput = {
   timeAccuracy: '정확',
 } as ChartInput;
 
-let fail = 0, pass = 0, todo = 0;
+let fail = 0, pass = 0, todo = 0, done = 0;
 const bad = (m: string) => { fail++; console.log(`  ❌ ${m}`); };
 const ok = (m: string) => { pass++; console.log(`  ✅ ${m}`); };
 /** 아직 못 하는 것 — 실패가 아니다. 되기 시작하면 알린다. */
 const gap = (label: string, nowDone: boolean, note: string) => {
-  if (nowDone) { todo++; console.log(`  🆕 ${label} — **구현된 것 같다.** 골든 003 §3 을 갱신할 것 (${note})`); }
-  else { todo++; console.log(`  ⏳ ${label} (${note})`); }
+  if (nowDone) { done++; console.log(`  ✅ ${label} (${note})`); }
+  else { todo++; console.log(`  ⏳ ${label} — **아직 못 한다** (${note})`); }
 };
 
 const gz = (c: any) => ['년', '월', '일', '시'].map((p) => `${c.pillars[p].stem}${c.pillars[p].branch}`).join(' ');
@@ -89,8 +89,8 @@ console.log('\n=== ② 전문가가 지목한 충·합을 엔진이 잡는가 ==
   else bad(`未丑沖 ${cnt('未丑')}건 — 노트는 2건`);
 }
 
-// ── ③ 아직 못 하는 것 (실패 아님 — 되면 알린다) ─────────────────────────
-console.log('\n=== ③ 전문가가 지적한 미구현 — 되기 시작하면 알린다 ===');
+// ── ③ 전문가가 지적했던 항목들 (실패로 찍지 않는다 — 상태만 보여 준다) ────
+console.log('\n=== ③ 전문가가 지적한 항목 — 구현 상태 ===');
 {
   const dx = analyzeCompatibility(ca, cb, '여');
   const s = compatScoreOf(dx);
@@ -98,19 +98,21 @@ console.log('\n=== ③ 전문가가 지적한 미구현 — 되기 시작하면 
   const cross = dx.crossInteractions.map((c: any) => String(c.kind)).join(' ');
 
   gap('G1 용신 오행 특정', dx.usefulGodSupply.element != null,
-    `지금: ${dx.usefulGodSupply.detail.slice(0, 30)} → 용신 호환(노트 95점)이 0점으로 들어간다`);
+    dx.usefulGodSupply.element != null ? dx.usefulGodSupply.detail
+      : '용신을 못 정하면 용신 호환(전문가 95점)이 계산되지 않는다');
   gap('G2 교차 삼합 검출', dx.crossSanhe.length >= 2,
     dx.crossSanhe.length
       ? dx.crossSanhe.map((c: any) => c.detail).join(' / ')
       : '亥卯未·巳酉丑 쌍방 완성 — 노트의 배우자성 90점 근거');
   gap('G3 삼형 검출', dx.crossSamhyeong.length >= 1,
     dx.crossSamhyeong.length ? dx.crossSamhyeong.map((c: any) => c.detail).join(' / ') : '丑戌未 — 갈등 구조가 과소평가된다');
-  gap('G4 무근 천간의 상대 통근', false,
-    'A 의 乙(무근) → B 의 卯 — 검출 항목 자체가 없다');
+  gap('G4 무근 천간의 상대 통근', dx.crossRooting.length >= 1,
+    dx.crossRooting.length ? dx.crossRooting.map((r: any) => r.detail).join(' / ') : 'A 의 乙(무근) → B 의 卯');
   gap('G5 미러 비대칭', s.score !== s2.score,
-    `지금 A기준 ${s.score} = B기준 ${s2.score} — R48 양방향이 안 갈린다`);
+    s.score !== s2.score ? `A기준 ${s.score} / B기준 ${s2.score}`
+      : `A기준 ${s.score} = B기준 ${s2.score} — R48 양방향이 안 갈린다`);
   gap('G6 분산 지표', s.weakest != null,
-    s.weakest ? `가장 약한 항목 = ${s.weakest.item} (${Math.round(s.weakest.ratio * 100)}%)` : '고분산/저분산을 구분할 보조 출력이 없다');
+    s.weakest ? `가장 약한 항목 = ${s.weakest.item} ${Math.round(s.weakest.ratio * 100)}점` : '고분산/저분산을 구분할 보조 출력이 없다');
 
   // ★★2026-08-24 부터는 **전문가 기준에 맞춘 상태를 잠근다**(Boss *"전문가 기준으로해"*).
   //   ⚠️다만 **±15 까지 허용**한다. 케이스가 하나뿐이라 더 조이면 그건 과적합이다(CLAUDE.md §3.2 n=1).
@@ -145,9 +147,9 @@ console.log('\n=== ③ 전문가가 지적한 미구현 — 되기 시작하면 
   else ok(`미러 비대칭 유지 — A ${s.score} / B ${s2.score}`);
 }
 
-console.log(`\n   통과 ${pass} · 실패 ${fail} · 미구현 ${todo}`);
+console.log(`\n   통과 ${pass} · 실패 ${fail} · 전문가 지적 ${done}건 구현 · 미구현 ${todo}건`);
 if (fail) {
   console.log('\n   ⚠️ 전문가 확인본과 어긋난다. 시간 보정(check:solartime)·합충 검출을 먼저 본다.\n');
   process.exit(1);
 }
-console.log('   🎯 통과 — 확인된 값 회귀 없음. 미구현 6건은 골든 003 §3 에 적혀 있다.\n');
+console.log(`   🎯 통과 — 확인된 값 회귀 없음${todo ? ` · 남은 미구현 ${todo}건은 골든 003 §3 에` : ' · 전문가 지적 전건 구현'}\n`);

@@ -56,6 +56,8 @@ export type CompatScoreBreakdown = {
   crossSanhe: { guk: string; tenGod: string; spouseStar: boolean | null }[];
   /** ⑧ 교차 삼형 성립(2026-08-24) */
   crossSamhyeong: string[];
+  /** ⑨ 무근 천간이 상대에게 통근(2026-08-24 · G4) */
+  crossRooting: { stem: string; element: string; theirs: string; spouseStar: boolean | null }[];
   /** ★가장 낮은 항목이 무엇인가 — 고분산/저분산을 가르는 보조 출력(G6) */
   weakest: { item: string; ratio: number } | null;
 };
@@ -102,7 +104,14 @@ export function compatScoreOf(dx: CompatibilityDx): CompatScoreBreakdown {
   //   전문가 90점 근거: *"교차 삼합 쌍방 완성 + 무근 천간 통근. 감점 乙辛沖"*
   const spouseGuk = dx.crossSanhe.filter((c) => c.spouseStar).length;
   const otherGuk = dx.crossSanhe.length - spouseGuk;
-  const spouseStar = Math.min(50 + spouseGuk * 40 + otherGuk * 15 + (dx.partnerToMe.favorable ? 10 : 0), 95);
+  // ★G4 — 무근 천간이 상대에게 뿌리를 얻는 것도 여기 든다(전문가가 같은 항목의 근거로 들었다).
+  //   배우자성 오행이 뿌리를 얻으면 +15, 그 외 천간이면 +5.
+  const rootSpouse = dx.crossRooting.filter((r) => r.spouseStar).length;
+  const rootOther = dx.crossRooting.length - rootSpouse;
+  const spouseStar = Math.min(
+    50 + spouseGuk * 40 + otherGuk * 15 + (dx.partnerToMe.favorable ? 10 : 0)
+      + rootSpouse * 15 + rootOther * 5,
+    95);
 
   // ── ③ 배우자궁 상호작용 ────────────────────────────────────────────────
   //   전문가 75점 = **중간 감점**. 건당 −8, 하한 40(전부 깎아도 0 이 되지 않게 — §4).
@@ -130,7 +139,8 @@ export function compatScoreOf(dx: CompatibilityDx): CompatScoreBreakdown {
   const items: CompatItem[] = [
     { key: 'yongsin', label: '용신 호환', score: yongsin, weight: 0.25, why: yongsinWhy },
     { key: 'spouseStar', label: '배우자성 성립', score: spouseStar, weight: 0.20,
-      why: dx.crossSanhe.map((c) => c.detail).join(' / ') || '교차 삼합 완성 없음' },
+      why: [...dx.crossSanhe.map((c) => c.detail), ...dx.crossRooting.map((r) => r.detail)].join(' / ')
+        || '교차 삼합 완성·통근 없음' },
     { key: 'spousePalace', label: '배우자궁 상호작용', score: spousePalace, weight: 0.15, why: dx.spousePalace.detail },
     { key: 'dayMaster', label: '일간 심리 호환', score: dayMaster, weight: 0.15, why: dx.dayMasterRelation.detail },
     { key: 'conflict', label: '갈등 구조', score: conflict, weight: 0.15,
@@ -152,6 +162,7 @@ export function compatScoreOf(dx: CompatibilityDx): CompatScoreBreakdown {
     fillChars: dx.missingFill.chars,
     crossSanhe: dx.crossSanhe.map((c) => ({ guk: c.guk.join(''), tenGod: c.tenGod, spouseStar: c.spouseStar })),
     crossSamhyeong: dx.crossSamhyeong.map((c) => c.guk.join('')),
+    crossRooting: dx.crossRooting.map((r) => ({ stem: r.stem, element: r.element, theirs: r.theirBranches.join(''), spouseStar: r.spouseStar })),
     // ★G6 — **가장 약한 항목**을 함께 낸다. 평균이 같아도 한 항목이 바닥이면 실효가 다르다
     //   (전문가 노트: *"잔감점 분산형 82 와 단일변수 수렴형 82 는 실효가 다르다"*).
     //   이제 항목이 전문가와 같은 여섯이라, **그중 최저**를 그대로 고르면 된다.

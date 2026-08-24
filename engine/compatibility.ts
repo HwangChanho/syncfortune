@@ -7,6 +7,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import type { SajuChart, Stem, Branch, Element, PillarPos } from '../spec/chart';
 import { johu2, johuLabel } from './johu2'; // ★조후 축 → 조후용신 오행(G1 · 2026-08-24)
+import { HIDDEN } from './saju';            // 지장간 — 통근 판정(G4 · 2026-08-24)
 
 const STEM_ELEM: Record<Stem, Element> = { 甲: '木', 乙: '木', 丙: '火', 丁: '火', 戊: '土', 己: '土', 庚: '金', 辛: '金', 壬: '水', 癸: '水' };
 const BRANCH_MAIN: Record<Branch, Stem> = { 子: '癸', 丑: '己', 寅: '甲', 卯: '乙', 辰: '戊', 巳: '丙', 午: '丁', 未: '己', 申: '庚', 酉: '辛', 戌: '戊', 亥: '壬' };
@@ -130,6 +131,27 @@ export interface CompatibilityDx {
    * ⚠️혼자 이미 셋을 다 가졌으면 교차가 아니다 → 제외(상대 기여 0).
    */
   crossSamhyeong: { guk: [Branch, Branch, Branch]; mine: Branch[]; theirs: Branch[]; detail: string }[];
+  /**
+   * ★**무근 천간이 상대 차트에 통근**(G4 · 2026-08-24 · 전문가 케이스 노트 R46-e).
+   * 케이스 003: A 의 `乙`(木)은 자기 원국에 **木 본기 지지가 없다**(亥의 甲·未의 乙은 중기·여기뿐).
+   * 그런데 B 에 `卯`(乙 본기)가 있어 **뿌리를 얻는다** — 전문가가 배우자성 90점 근거에 넣은 항목.
+   *
+   * ⚠️'무근'의 기준 = **본기 뿌리 0**. 엔진이 이미 본기 1.0 · 중기/여기 0.5 로 가중해 왔고
+   *   (`attachIndicators.rootAmount`), 전문가도 중기·여기만 있는 A 의 乙 을 '무근' 이라 불렀다.
+   * ★날것을 함께 남긴다(`mineRootAmount`) — 무근을 boolean 으로만 내보내면 해석이 굳는다.
+   */
+  crossRooting: {
+    stem: Stem; at: PillarPos; element: Element;
+    /** 내 원국에서의 통근량(본기 1.0 · 중기/여기 0.5 합) — 0.5 여도 본기가 없으면 무근으로 본다 */
+    mineRootAmount: number;
+    /** 뿌리를 주는 상대 지지(그 오행의 **본기**) */
+    theirBranches: Branch[];
+    /** 이 천간이 내 일간 기준 무슨 십신인가 */
+    tenGod: '비겁' | '식상' | '재성' | '관성' | '인성';
+    /** 그것이 내 배우자성인가(성별 미상이면 null) */
+    spouseStar: boolean | null;
+    detail: string;
+  }[];
   note: string;
 }
 
@@ -333,6 +355,38 @@ export function analyzeCompatibility(me: SajuChart, other: SajuChart, meSex?: '�
     });
   }
 
+  // 5-c4) ★무근 천간이 상대 차트에 통근(G4)
+  /** 그 오행의 **본기**를 가진 지지들 */
+  const mainRootsOf = (chart: SajuChart, elem: Element): Branch[] =>
+    POS.map((p) => chart.pillars[p].branch)
+      .filter((b) => HIDDEN[b].some((h) => h.role === '본기' && STEM_ELEM[h.stem] === elem));
+  /** 통근량(본기 1.0 · 중기/여기 0.5) — `attachIndicators.rootAmount` 와 같은 셈법 */
+  const rootAmountOf = (chart: SajuChart, elem: Element): number => {
+    let n = 0;
+    for (const p of POS) for (const h of HIDDEN[chart.pillars[p].branch]) {
+      if (STEM_ELEM[h.stem] === elem) n += h.role === '본기' ? 1 : 0.5;
+    }
+    return Math.round(n * 10) / 10;
+  };
+  const crossRooting: CompatibilityDx['crossRooting'] = [];
+  const dmElem = STEM_ELEM[me.pillars['일'].stem];
+  for (const p of POS) {
+    if (p === '일') continue;                       // 일간 자신은 뿌리 논의의 주체라 제외
+    const st = me.pillars[p].stem;
+    const el = STEM_ELEM[st];
+    if (mainRootsOf(me, el).length) continue;       // 내 원국에 **본기 뿌리**가 있으면 무근이 아니다
+    const theirs = mainRootsOf(other, el);
+    if (!theirs.length) continue;                   // 상대도 못 주면 볼 것 없다
+    const tg = tenGodOf(dmElem, el);
+    const ss = meSex == null ? null : meSex === '여' ? tg === '관성' : tg === '재성';
+    crossRooting.push({
+      stem: st, at: p, element: el,
+      mineRootAmount: rootAmountOf(me, el),
+      theirBranches: theirs, tenGod: tg, spouseStar: ss,
+      detail: `${p}간 ${st}(${el}) 무근 — 상대 ${theirs.join('')}에 통근 (내 기준 ${tg}${ss ? ' · **배우자성**' : ''})`,
+    });
+  }
+
   // 5-d) 상대가 내 결핍 지지 글자를 채우는가(글자 기준)
   const myBranches = new Set<Branch>(POS.map((p) => me.pillars[p].branch));
   const otherBranches = [...new Set<Branch>(POS.map((p) => other.pillars[p].branch))];
@@ -344,7 +398,7 @@ export function analyzeCompatibility(me: SajuChart, other: SajuChart, meSex?: '�
 
   return {
     dayMasterRelation: dmRel, crossInteractions: cross, usefulGodSupply: supply, harmony, tension,
-    seasonComplement, partnerToMe, spousePalace, missingFill, crossSanhe, crossSamhyeong,
+    seasonComplement, partnerToMe, spousePalace, missingFill, crossSanhe, crossSamhyeong, crossRooting,
     note: '사주 단독 궁합(규칙2) — 자미·MBTI는 독립 평가 후 C2에서 수렴. 깊은 통변은 LLM 패스 + daniel 검수.',
   };
 }
