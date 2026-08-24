@@ -48,6 +48,7 @@ import { renderTalkBlock } from '../../components/talk/blockRegistry';
 import { getNavBarHeight } from '../../components/BottomNav';
 import { colors, space, radius, font } from '../../lib/theme';
 import { Icon } from '../../components/kit/Icon';   // 상단 아이콘 단일 원본(Boss 2026-08-24)
+import { ConsultantLinkCard } from '../../components/talk/ConsultantLinkCard';   // 상담가 본인 채널(Boss 2026-08-25)
 
 /**
  * 삭제 확인 줄.
@@ -320,10 +321,19 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
       node: renderTalkBlock(k as never, { reloadKey: 0, dateKey, repName: myName }),
     })).filter((b) => !!b.node);
 
+    // ★상담가 본인 채널 — **첫 인사 뒤에 한 번만**(Boss 2026-08-25).
+    //   목적은 광고가 아니라 *"실제 상담가가 만드는 서비스"* 라는 **신뢰 신호**다.
+    //   ⚠️매 턴 띄우면 그 순간 광고가 되고 신뢰는 반대로 깎인다 — 인사 경로에만 붙인다
+    //     (인사는 **이력이 없을 때만** 나오므로 자연히 드물다).
+    const linkCard = c.linkUrl
+      ? [{ id: nextId(), role: 'assistant' as const, body: '',
+           node: <ConsultantLinkCard name={c.name} url={c.linkUrl} label={c.linkLabel} /> }]
+      : [];
+
     if (c.kind === 'virtual') {
       // ★인사도 **타이핑을 거쳐** 나온다. 블록 카드는 말이 끝난 뒤에 건넨다.
       setItems([]);
-      sayInOrder([...toItems(greet(c.name, c.tagline, c.routes, t as never)), ...blockCards]);
+      sayInOrder([...toItems(greet(c.name, c.tagline, c.routes, t as never)), ...blockCards, ...linkCard]);
     } else {
       // 실제 상담사도 **첫 인사만은 공짜다** — 화면을 여는 것만으로 API 를 태우지 않는다.
       const greet = {
@@ -331,7 +341,7 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
         body: t('talk.liveGreet', '안녕하세요. {{name}}이에요. 무엇이 궁금하세요?').replace('{{name}}', c.name),
       };
       setItems([]);
-      sayInOrder([greet, ...blockCards]);
+      sayInOrder([greet, ...blockCards, ...linkCard]);   // ★채널 카드는 인사에만(위 주석)
       // ★지난 대화를 **이어 붙인다**(2026-08-20) — 세션 id 를 메모리에만 두면
       //   새로고침·앱 재시작마다 새 방이 생긴다(실제로 노쎔 대화가 셋으로 쪼개졌다).
       //   카톡은 껐다 켜도 같은 방이다. 인사는 **이력이 없을 때만** 남긴다.

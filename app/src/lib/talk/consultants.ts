@@ -18,6 +18,9 @@ export type Consultant = {
   kind: 'virtual' | 'live';
   name: string;
   tagline: string | null;
+  /** ★상담가 **본인 채널**(유튜브 등) — "실제 상담가가 만드는 서비스"라는 신뢰 신호(Boss 2026-08-25) */
+  linkUrl?: string | null;
+  linkLabel?: string | null;
   avatar: string | null;
   specialty: string[];
   /** 프로필 사진 **URL**(경로 아님 — `fromRow` 가 이미 바꿔 놨다) */
@@ -89,6 +92,8 @@ function fromRow(r: any): Consultant {
     specialty: Array.isArray(r.specialty) ? r.specialty : [],
     routes: Array.isArray(r.routes) ? r.routes : [],
     blocks: Array.isArray(r.blocks) ? r.blocks : [],
+    linkUrl: r.link_url ?? null,
+    linkLabel: r.link_label ?? null,
     // ★모르는 값은 'teacher' 로 — 새 묶음이 생겨도 목록에서 사라지지 않는다
     group: r.group_key === 'friend' ? 'friend' : 'teacher',
     sortOrder: Number(r.sort_order ?? 100),
@@ -110,7 +115,7 @@ export async function listConsultants(force = false): Promise<Consultant[]> {
       //   관리자 정책이 `for all` 이라 **관리자에게는 비활성 상담사까지 보인다**
       //   (정책은 OR 로 합쳐진다). 실제로 준비 중인 「노쎔」이 친구목록에 떠 있었다.
       //   ⇒ RLS 는 '볼 권한'을 정하고, 쿼리는 '지금 보여줄 것'을 정한다. 둘은 다르다.
-      supabase.from('consultants').select('id,kind,name,tagline,avatar,specialty,routes,blocks,group_key,sort_order')
+      supabase.from('consultants').select('id,kind,name,tagline,avatar,specialty,routes,blocks,group_key,sort_order, link_url, link_label')
         .eq('enabled', true).order('sort_order'),
       8000,
     );
