@@ -127,7 +127,24 @@ export function analyzeSinsal(saju: SajuChart): SinsalResult {
     }
     return out;
   };
-  const specs: { name: string; glyphs: string[]; note: string }[] = [
+  const specs = sinsalSpecs(dayStem, monthBranch);
+  const sinsal: SinsalHit[] = specs.map((s) => ({ name: s.name, glyphs: s.glyphs, hits: hitsOf(s.glyphs), note: s.note }));
+  const goegang = GOEGANG.has(`${dayStem}${dayBranch}`);
+  const baekhoHits = POS.filter((p) => BAEKHO.has(`${saju.pillars[p].stem}${saju.pillars[p].branch}`));
+
+  return { gongmang: gm, gongmangHits: POS.filter((p) => gm.includes(saju.pillars[p].branch)), sinsal, twelve, goegang, baekhoHits };
+}
+
+/**
+ * 길신·기타 신살 **기준 글자표**.
+ *
+ * ★원국(`analyzeSinsal`)과 운(`sinsalAtLuck`)이 **같은 표**를 쓰게 하려고 빼냈다.
+ *   표가 둘이면 "원국에선 천을귀인인데 대운에선 아니다" 같은 모순이 조용히 생긴다.
+ * @param dayStem     일간 — 대부분의 길신이 여기서 나온다
+ * @param monthBranch 월지 — 월덕·천덕·황은대사 기준
+ */
+export function sinsalSpecs(dayStem: Stem, monthBranch: Branch): { name: string; glyphs: string[]; note: string }[] {
+  const out: { name: string; glyphs: string[]; note: string }[] = [
     { name: '천을귀인', glyphs: CHEONEUL[dayStem], note: '최고 길신 — 위기에 귀인·조력' },
     { name: '문창', glyphs: [MUNCHANG[dayStem]], note: '학문·총명·표현' },
     { name: '정록', glyphs: [ROK[dayStem]], note: '일간 건록 — 자기 힘의 뿌리·안정' },
@@ -141,10 +158,75 @@ export function analyzeSinsal(saju: SajuChart): SinsalResult {
     { name: '현침살', glyphs: HYEONCHIM, note: '바늘 글자 — 예리·정교(기술·의료·문장)' },
     { name: '홍염', glyphs: [HONGYEOM[dayStem]], note: '이성 매력·끼·인기(도화와 별개)' },
   ];
-  if (YANGIN[dayStem]) specs.push({ name: '양인', glyphs: [YANGIN[dayStem]!], note: '강한 결단·전문기술(양간 겁재 왕지)' });
-  const sinsal: SinsalHit[] = specs.map((s) => ({ name: s.name, glyphs: s.glyphs, hits: hitsOf(s.glyphs), note: s.note }));
-  const goegang = GOEGANG.has(`${dayStem}${dayBranch}`);
-  const baekhoHits = POS.filter((p) => BAEKHO.has(`${saju.pillars[p].stem}${saju.pillars[p].branch}`));
+  if (YANGIN[dayStem]) out.push({ name: '양인', glyphs: [YANGIN[dayStem]!], note: '강한 결단·전문기술(양간 겁재 왕지)' });
+  return out;
+}
 
-  return { gongmang: gm, gongmangHits: POS.filter((p) => gm.includes(saju.pillars[p].branch)), sinsal, twelve, goegang, baekhoHits };
+/** 운(대운·세운·월운·일운) 하나가 데려오는 신살. */
+export interface LuckSinsal {
+  /** 12신살 — 원국 지지들을 기준으로 이 운 지지가 무엇이 되는가(어느 기준에서 나왔는지 `bases`) */
+  twelve: { name: string; bases: PillarPos[] }[];
+  /** 이 운의 간지가 맞은 길신·기타 신살 이름 */
+  boons: string[];
+  /** 이 운 지지가 원국 공망에 드는가 */
+  gongmang: boolean;
+  /** 이 운 간지 자체가 백호 */
+  baekho: boolean;
+  /** 이 운 간지 자체가 괴강 */
+  goegang: boolean;
+  /** 화면이 그대로 쓸 수 있는 이름 목록(12신살 → 길신 → 공망/백호/괴강 순, 중복 제거) */
+  names: string[];
+}
+
+/**
+ * **운에서 발생하는 살** — Boss 2026-08-24 *"만세력에 운에서 발생하는 살도 보여지면 좋겠어"*.
+ *
+ * 원국은 고정이지만 운은 10년·1년마다 새 간지가 들어온다. 그 글자가 원국과 만나
+ * 새로 생기는 신살을 산출한다.
+ *
+ * ■ ★기준지는 원국 **전부**를 쓴다
+ *   daniel 지시(2026-08-01) *"전부 산출 — 일지·년지만 X"* 를 원국과 똑같이 적용한다.
+ *   같은 신살이 여러 기준에서 나오면 `bases` 로 묶는다(원국 `twelve` 와 같은 모양).
+ *
+ * ■ ⚠️시각 미상이면 시주를 기준지에서 뺀다
+ *   유령 子시가 **기준지**가 되면 있지도 않은 신살을 만들어 낸다(원국 쪽 머리말 ② 그대로).
+ *
+ * @param saju   원국
+ * @param stem   운의 천간 / @param branch 운의 지지
+ * @returns 이 운이 데려오는 신살. 아무것도 없으면 `names` 가 빈 배열
+ */
+export function sinsalAtLuck(saju: SajuChart, stem: Stem, branch: Branch): LuckSinsal {
+  const POS = posOf(saju);
+  const dayStem = saju.pillars['일'].stem;
+  const monthBranch = saju.pillars['월'].branch;
+
+  // ── 12신살 — 원국 각 지지를 기준으로 이 운 지지가 무엇이 되는가 ──
+  const grouped = new Map<string, PillarPos[]>();
+  for (const bp of POS) {
+    const name = twelveSinsalAt(saju.pillars[bp].branch, branch);
+    if (!grouped.has(name)) grouped.set(name, []);
+    grouped.get(name)!.push(bp);
+  }
+  const twelve = Array.from(grouped, ([name, bases]) => ({ name, bases }));
+
+  // ── 길신·기타 — 운의 천간/지지가 기준 글자에 맞는가(원국과 **같은 표**) ──
+  const boons = sinsalSpecs(dayStem, monthBranch)
+    .filter((sp) => sp.glyphs.some((g) => (STEMS_SET.has(g) ? stem === g : branch === g)))
+    .map((sp) => sp.name);
+
+  const gm = gongmang(dayStem, saju.pillars['일'].branch);
+  const gongmangHit = gm.includes(branch);
+  const gz = `${stem}${branch}`;
+  const baekho = BAEKHO.has(gz);
+  const goegang = GOEGANG.has(gz);
+
+  const names = [
+    ...twelve.map((x) => x.name),
+    ...boons,
+    ...(gongmangHit ? ['공망'] : []),
+    ...(baekho ? ['백호'] : []),
+    ...(goegang ? ['괴강'] : []),
+  ].filter((n, i, a) => n && a.indexOf(n) === i);
+
+  return { twelve, boons, gongmang: gongmangHit, baekho, goegang, names };
 }

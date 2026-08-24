@@ -39,6 +39,8 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 // ⚠️ expo-haptics 는 네이티브 모듈 — 현재 dev 빌드에 미포함이면 impactAsync 호출 시 크래시(2026-06).
 //   안전 래퍼로 감싼다(네이티브 없으면 조용히 무시). 재빌드(npx expo run:ios) 후 진동 정상 동작.
 const haptic = () => { try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); } catch { /* 네이티브 미포함 — 무시 */ } };
+import { sinsalAtLuck } from '@engine/sinsal';   // ★운에서 발생하는 살(Boss 2026-08-24)
+import { LuckSinsalLine, LuckSinsalTags } from '../components/LuckSinsal';
 import { HIDDEN, computeMonthDays, branchTenGod, daeunForward } from '@engine/saju'; // 지장간 표 + 일운(流日) + 지지십신 + 대운 순역
 import { twelveStage } from '@engine/twelve';                          // 임의 지지 12운성(타임라인용)
 import { detectInteractionsAmong, interactionLabel } from '@engine/structure';   // 합충 검출 + 짝이름 라벨(daniel: 유축반합·정신극)
@@ -986,9 +988,15 @@ function MyeongsikBody({ input, onReading, onSinsal, header, whoName }: Myeongsi
                 <GzCell char={l.branch} kind="branch" size="sm" hangeul={hangeul} />
                 <Text style={styles.luckTg}>{branchTenGod(dm, l.branch)}</Text>
                 <Text style={styles.luckStage}>{twelveStage(dm, l.branch)}</Text>
+                {/* ★운에서 발생하는 살(Boss 2026-08-24) — 칸이 좁아 **두 개까지만**.
+                    전체는 아래 '이 대운의 살' 줄에서 본다(잘라 놓고 안 보여 주면 소실이다). */}
+                <LuckSinsalTags names={sinsalAtLuck(c.saju, l.stem, l.branch).names} />
               </PressableScale>
             ))}
           </ScrollView>
+          <LuckSinsalLine label={lc ? `${lc.startAge}세 대운 ${lc.stem}${lc.branch}` : ''}
+                          saju={c.saju} stem={lc?.stem} branch={lc?.branch}
+                          onTag={(n) => setGlossary(n === '공망' ? { kind: 'gongmang' } : { kind: 'sinsal', key: n })} />
           </>)}
           {/* 세운 타임라인 (선택 대운 10년, 탭 → 확장 명식 갱신) */}
           {lc?.annuals?.length > 0 && (
@@ -1007,10 +1015,14 @@ function MyeongsikBody({ input, onReading, onSinsal, header, whoName }: Myeongsi
                     <GzCell char={a.branch} kind="branch" size="xs" hangeul={hangeul} />
                     <Text style={styles.seunTg}>{branchTenGod(dm, a.branch)}</Text>
                     <Text style={styles.seunStage}>{twelveStage(dm, a.branch)}</Text>
+                    <LuckSinsalTags names={sinsalAtLuck(c.saju, a.stem, a.branch).names} />
                   </PressableScale>
                   );
                 })}
               </ScrollView>
+              <LuckSinsalLine label={an ? `${an.year}년 세운 ${an.stem}${an.branch}` : ''}
+                              saju={c.saju} stem={an?.stem} branch={an?.branch}
+                              onTag={(n) => setGlossary(n === '공망' ? { kind: 'gongmang' } : { kind: 'sinsal', key: n })} />
             </>
           )}
           {an?.months && an.months.length > 0 && (
