@@ -166,7 +166,8 @@
     "check:readingtabs": "tsx scripts/check-readingtabs.ts",
     "check:natalorder": "tsx scripts/check-natalorder.ts",
     "check:themesource": "tsx scripts/check-themesource.ts",
-    "check:topicons": "tsx scripts/check-topicons.ts"
+    "check:topicons": "tsx scripts/check-topicons.ts",
+    "rag:push": "node scripts/rag-set-push.mjs"
   },
   "keywords": [],
   "author": "",
