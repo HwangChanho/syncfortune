@@ -23,6 +23,7 @@ import { HouseAdBanner } from '../HouseAdBanner';
 import { FreeTrioBlock } from '../home/FreeTrioBlock';
 import { BonusStrip } from '../home/BonusStrip';
 import { TodayFortuneBlock } from '../home/TodayFortuneBlock';
+import { MonthFortuneBlock } from '../home/MonthFortuneBlock';   // 이달의 운세(Boss 2026-08-25)
 import { PersonaTypeHero } from '../PersonaTypeHero';
 import { SelfUnderstandingHero } from '../SelfUnderstandingHero';
 import { BiorhythmCard } from '../BiorhythmCard';
@@ -41,6 +42,7 @@ export type BlockCtx = { reloadKey: number; dateKey: string; repName: string | n
  */
 const RENDER: Record<HomeBlockKey, (c: BlockCtx) => ReactElement> = {
   today:     (c) => <TodayFortuneBlock reloadKey={c.reloadKey} dateKey={c.dateKey} />,
+  month:     (c) => <MonthFortuneBlock reloadKey={c.reloadKey} dateKey={c.dateKey} />,
   banner:    () => <HouseAdBanner />,
   free3:     (c) => <FreeTrioBlock dateKey={c.dateKey} />,
   bonus:     (c) => <BonusStrip name={c.repName} />,
