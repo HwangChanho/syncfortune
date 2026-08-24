@@ -149,5 +149,27 @@ liftUsers.length > 0
   ? pass(`getNavBarHeight() 사용 ${liftUsers.length}건 — 표준 패턴 실재(${liftUsers.map((f) => f.split('/').pop()).join(', ')})`)
   : fail('getNavBarHeight() 사용 0건 = 표준 패턴이 사라짐(하네스 기준이 무의미해짐)');
 
+// ── ★웹 대화창 자동 포커스 (Boss 2026-08-25) ─────────────────────────────
+//   *"웹은 대화창이 열려있으면 기본적으로 포커스가 텍스트필드로 가있어야해"*
+//   ⚠️★**네이티브에 켜면 안 된다** — 방을 열자마자 키보드가 화면 절반을 덮는다.
+//     웹은 키보드가 없어 커서만 깜빡이므로 이득만 있고, 폰은 손해가 크다.
+//     ⇒ "포커스가 있는가"가 아니라 **"웹으로 갈렸는가"** 를 본다.
+console.log('\n[포커스] 웹 대화창은 열자마자 입력칸에 커서가 가 있어야 한다');
+{
+  const talk = readFileSync('app/src/app/(app)/talk.tsx', 'utf8');
+  const body = talk.replace(/\/\*[\s\S]*?\*\//g, '').split('\n').filter((l) => !/^\s*(\/\/|\*)/.test(l)).join('\n');
+  const i = body.indexOf('inputRef.current?.focus()');
+  if (i < 0) fail('★대화창 자동 포커스가 없다 — 웹에서 열자마자 못 친다');
+  else {
+    const seg = body.slice(Math.max(0, i - 600), i);
+    /Platform\.OS !== 'web'|Platform\.OS === 'web'/.test(seg)
+      ? pass('자동 포커스가 **웹으로만** 갈려 있다')
+      : fail('★자동 포커스가 네이티브에서도 돈다 — 방을 열자마자 키보드가 화면을 덮는다');
+    /busy/.test(seg)
+      ? pass('답 만드는 중에는 포커스를 건드리지 않는다(editable=false 구간)')
+      : fail('답 만드는 중에도 포커스를 준다');
+  }
+}
+
 console.log(failed ? `\n❌ check:keyboard 실패 ${failed}건` : '\n✅ check:keyboard 통과');
 process.exit(failed ? 1 : 0);

@@ -191,6 +191,14 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
    * (타이머는 `clearTimers` 로 끊을 수 있지만, 이미 날아간 `fetch` 의 `.then` 은 못 끊는다.)
    */
   const genRef = useRef(0);
+  /**
+   * 입력칸 — **웹에서만** 자동으로 포커스를 준다(Boss 2026-08-25
+   *   *"웹은 대화창이 열려있으면 기본적으로 포커스가 텍스트필드로 가있어야해"*).
+   *
+   * ⚠️★네이티브에서는 하지 않는다 — 방을 열자마자 **키보드가 화면 절반을 덮는다.**
+   *   웹은 키보드가 없어 커서만 깜빡이므로 이득만 있고, 폰은 손해가 크다. 그래서 갈랐다.
+   */
+  const inputRef = useRef<TextInput>(null);
   const clearTimers = useCallback(() => {
     timersRef.current.forEach(clearTimeout);
     timersRef.current = [];
@@ -556,9 +564,25 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
     bumpChats();
   }, [cur, t, bumpChats, clearTimers]);
 
+  /**
+   * 웹에서 대화창이 열려 있으면 커서를 입력칸에 둔다.
+   *
+   * · 방을 **열거나 바꿀 때** — 바로 칠 수 있게
+   * · 답이 **끝났을 때**(`busy` 해제) — 보내고 나면 커서가 풀려 다음 말을 못 이어 친다
+   * ⚠️입력칸이 없는 상태(블록 친구·차단)에서는 아무 일도 안 한다.
+   */
+  useEffect(() => {
+    if (Platform.OS !== 'web' || !cur || cur.block) return;
+    if (busy) return;                       // 답 만드는 중에는 건드리지 않는다(editable=false 다)
+    // ⚠️한 틱 미뤄야 한다 — 방을 막 그린 프레임에서는 입력칸이 아직 붙기 전이다
+    const id = setTimeout(() => inputRef.current?.focus(), 0);
+    return () => clearTimeout(id);
+  }, [cur?.id, cur?.block, busy]);
+
   const composer = !cur?.block && (cur?.kind === 'virtual' || cur?.kind === 'live') ? (
     <View style={[styles.composer, { paddingBottom: Math.max(space(3), insets.bottom), marginBottom: lift }]}>
       <TextInput
+        ref={inputRef}
         style={styles.input}
         value={draft}
         onChangeText={setDraft}
