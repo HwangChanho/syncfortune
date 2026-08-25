@@ -51,6 +51,7 @@ import { Icon } from '../../components/kit/Icon';   // 상단 아이콘 단일 �
 import { ConsultantLinkCard } from '../../components/talk/ConsultantLinkCard';   // 상담가 본인 채널(Boss 2026-08-25)
 import { buildChartVerdict } from '../../lib/talk/chartVerdict';   // 우리 엔진 판정을 대화에 싣는다(Boss 2026-08-25)
 import { splitBubbles, typingDelay } from '../../lib/talk/splitBubbles';   // 말풍선 쪼개기·뜸(Boss 08-25)
+import { CoinNotice } from '../../components/talk/CoinNotice';   // 운 안내 = 상단 띠(Boss 08-25)
 import { pendingMonthlyBrief, markBriefSeen } from '../../lib/talk/monthlyBrief';   // 노쌤 월간 공지(Boss 2026-08-25)
 import { FortuneVideoCard } from '../../components/FortuneVideoCard';
 
@@ -141,6 +142,10 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
   const { order } = useHomeOrder();     // 콘텐츠 레일 = **홈 순서 그대로**(운영자가 정한 것을 따른다)
   const [draft, setDraft] = useState('');
   const [busy, setBusy] = useState(false);        // 실제 상담사가 답을 만드는 중(점 세 개)
+  // ★운 안내는 **말풍선이 아니라 상단 띠**로 뜬다(Boss 2026-08-25).
+  //   상담가가 한 말과 앱이 한 말이 섞이면 과금 안내가 상담 내용처럼 읽힌다.
+  const [notice, setNotice] = useState<{ kind: 'info' | 'need'; text: string; action?: string } | null>(null);
+  // ⚠️방을 옮기면 지운다 — 다른 상담가 화면에 앞 방의 «운이 모자라요» 가 남아 있으면 안 된다
   // 채팅목록(오른쪽 칸)을 다시 읽게 하는 신호 — 답이 오거나 읽음 처리했을 때 올린다.
   //   ★웹은 목록과 대화창이 **동시에 보이므로**, 답이 왔는데 목록이 그대로면 화면이 자기모순이 된다.
   const [chatsTick, setChatsTick] = useState(0);
@@ -311,7 +316,8 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
   const open = useCallback((c: Consultant) => {
     setCur(c);
     // ⚠️먼저 비운다 — 안 비우면 **직전 방의 정리**가 잠깐 보인다
-    setNotes([]); setJumpTo(null);
+    //   ★운 안내 띠도 같이 지운다 — 앞 방의 「운이 모자라요」가 다른 상담가 화면에 남으면 안 된다
+    setNotes([]); setJumpTo(null); setNotice(null);
     genRef.current++;   // ★직전 방에 보낸 답이 도착해도 이 방에 붙지 않게(위 `genRef` 주석)
     refreshNotes(sessRef.current[c.id]);
     // ★대화를 열면 **읽음 처리**한다 — 안 그러면 배지가 영원히 남는다.
@@ -466,12 +472,14 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
           })), 0);                 // 서버 응답을 기다린 뒤라 추가 뜸은 필요 없다
           // ⚠️무료 소진 안내는 **답이 다 뜬 뒤**에 붙인다 — 바로 넣으면 순차 표시를 앞질러
           //   답보다 먼저 뜬다. 마지막 풍선의 예상 시각 뒤로 미룬다.
+          // ★무료 소진 — 상단 띠로 알린다(종전엔 상담가 말풍선이었다).
+          //   띠는 자리가 고정이라 답을 앞지르지 않는다 ⇒ 종전의 «마지막 풍선 뒤로 미루는» 계산이 필요 없다.
           if (r.overFree && r.used === r.freeDaily + 1) {
-            const after = parts.reduce((acc, p, i) => acc + (i === 0 ? 0 : Math.min(1400, 320 + parts[i - 1].length * 12)), 0) + 600;
-            timersRef.current.push(setTimeout(() => setItems((prev) => [...prev, {
-              id: nextId(), role: 'assistant',
-              body: t('talk.overFree', '오늘 무료 대화를 다 쓰셨어요. 그래도 조금 더 이야기해 볼게요.'),
-            }]), after));
+            setNotice({ kind: 'info', text: t('talk.overFree', '오늘 무료 대화를 다 쓰셨어요. 지금부터는 운이 쓰여요.') });
+          } else if (!r.overFree && typeof r.used === 'number' && typeof r.freeDaily === 'number') {
+            // 남은 무료 횟수도 **미리** 알려 준다 — 다 쓰고 나서야 아는 건 늦다
+            const left = Math.max(0, r.freeDaily - r.used);
+            if (left <= 2) setNotice({ kind: 'info', text: t('talk.freeLeft', '오늘 무료 대화 {{n}}번 남았어요.').replace('{{n}}', String(left)) });
           }
         } else if (r.reason === 'stalled') {
           // ★생성이 막혔다 — **실패로 뭉개지 않는다**(Boss 2026-08-24
@@ -516,7 +524,15 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
           //     얼마를 채워야 하는지 알 수 없다([[pay-alert-must-show-numbers]]).
           setBusy(false);
           const have = r.balance == null ? null : r.balance;
-          setItems((prev) => [...prev, { id: nextId(), role: 'assistant', body: r.message }]);
+          // ★상단 띠로 먼저 알린다 — 말풍선으로 넣으면 상담가가 «돈 얘기» 를 한 것처럼 읽힌다
+          setNotice({
+            kind: 'need',
+            text: have == null
+              ? t('talk.needCoinsMsgNoBal', '이어서 이야기하려면 한 번에 {{cost}}운이 필요해요.').replace('{{cost}}', String(r.cost ?? 0))
+              : t('talk.needCoinsMsg', '이어서 이야기하려면 한 번에 {{cost}}운이 필요해요. 지금 {{have}}운 있어요.')
+                  .replace('{{cost}}', String(r.cost ?? 0)).replace('{{have}}', String(have)),
+            action: t('coins.charge', '운 충전하기'),
+          });
           Alert.alert(
             t('talk.needCoinsTitle', '운이 모자라요'),
             have == null
@@ -676,6 +692,14 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
                 onJump={(mid) => { setJumpTo(null); requestAnimationFrame(() => setJumpTo(mid)); }}
                 onChanged={() => refreshNotes(cur ? sessRef.current[cur.id] : null)}
               />
+              {/* ★운 안내 — 목록 **위**에 고정. 말풍선과 자리·색이 둘 다 다르다(Boss 2026-08-25) */}
+              {notice ? (
+                <CoinNotice
+                  kind={notice.kind} text={notice.text} action={notice.action}
+                  onAction={notice.action ? () => { setNotice(null); router.push('/coins'); } : undefined}
+                  onClose={() => setNotice(null)}
+                />
+              ) : null}
               <TalkThread items={items} busy={busy} onLink={(r) => router.push(r as never)} jumpTo={jumpTo} />
               {composer}
             </>

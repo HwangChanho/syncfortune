@@ -152,13 +152,18 @@ if (!URL_BASE || !ANON) {
 //   ⚠️`0040` 마이그레이션 스스로 *"지시문만 주면 모델은 결국 비슷하게 쓴다"* 고 적어 뒀는데,
 //     그 진단이 맞았고 **아무도 그 침묵을 몰랐다.** ⇒ 여기서 소리내게 한다.
 console.log('\n=== ⑥ 말투 예시가 **실제로 실리는가** ===');
-if (!URL_BASE || !ANON) {
-  console.log('  ·  .env 없음 — 생략');
+// ⚠️★여기만 **service_role** 로 읽는다(2026-08-25 실측).
+//   `consultant_examples` 는 RLS 로 anon 에게 **통째로 안 보인다** — anon 으로 조회하면
+//   행이 33개 있어도 빈 배열이 온다. 그걸 «예시가 0건이다» 로 읽으면 **거짓 빨간불**이다.
+//   ⇒ «없다» 와 «내가 못 본다» 는 다르다. 못 보면 판정하지 말고 그렇게 말한다.
+const SVC = (new RegExp('^SUPABASE_SERVICE_ROLE_KEY=(.*)$', 'm').exec(env)?.[1] ?? '').replace(/['"]/g, '').trim();
+if (!URL_BASE || !SVC) {
+  console.log('  ·  service_role 키 없음 — 생략(anon 으로는 이 표가 안 보인다)');
 } else {
   try {
     const [cRes, eRes] = await Promise.all([
-      fetch(`${URL_BASE}/rest/v1/consultants?select=id,example_limit&enabled=eq.true`, { headers: { apikey: ANON, Authorization: `Bearer ${ANON}` } }),
-      fetch(`${URL_BASE}/rest/v1/consultant_examples?select=consultant_id,author,enabled`, { headers: { apikey: ANON, Authorization: `Bearer ${ANON}` } }),
+      fetch(`${URL_BASE}/rest/v1/consultants?select=id,example_limit&enabled=eq.true`, { headers: { apikey: SVC, Authorization: `Bearer ${SVC}` } }),
+      fetch(`${URL_BASE}/rest/v1/consultant_examples?select=consultant_id,author,enabled`, { headers: { apikey: SVC, Authorization: `Bearer ${SVC}` } }),
     ]);
     const cs = await cRes.json() as any[];
     const ex = await eRes.json() as any[];

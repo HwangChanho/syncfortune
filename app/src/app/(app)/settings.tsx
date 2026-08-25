@@ -8,6 +8,8 @@ import { View, Text, ScrollView, StyleSheet, Linking } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MyProfileCard } from '../../components/settings/MyProfileCard';
 import { loadRepChart } from '../../lib/engine/myChart';
+import { computeChart } from '../../lib/engine/engine';
+import { stemElement } from '../../lib/engine/ohaeng';   // 대표 명식 일간 → 오행(프로필 색)
 import { PressableScale } from '../../components/PressableScale';
 import Constants from 'expo-constants'; // 앱 버전(app.json)
 import { Alert } from '../../lib/ui/alert'; // 커스텀 알림(앱 디자인)
@@ -53,7 +55,18 @@ export default function SettingsScreen() {
   const insets = useSafeAreaInsets();   // Stack 헤더를 껐으므로 상단 여백은 화면이 책임진다
   // 대표 명식 이름 — 프로필 이름을 안 정했을 때의 기본값
   const [repName, setRepName] = useState<string | null>(null);
-  useEffect(() => { void loadRepChart().then((c) => setRepName(c?.label ?? null)); }, []);
+  // ★프로필 아바타 색의 기준 오행 — **대표 명식**의 일간에서 뽑는다(Boss 2026-08-25).
+  //   ⚠️`activeElement`(테마)를 쓰면 안 된다. 그건 «마지막으로 고른 명식» 이라
+  //     남의 명식을 잠깐 열어 보기만 해도 「내 프로필」이 남의 색을 입는다.
+  const [repEl, setRepEl] = useState<string | null>(null);
+  useEffect(() => {
+    void loadRepChart().then((c) => {
+      setRepName(c?.label ?? null);
+      if (!c?.input) return;
+      try { setRepEl(stemElement(computeChart(c.input).saju.dayMaster.stem)); }
+      catch { /* 계산 못 하면 테마 색으로 떨어진다 — 화면은 안 깨진다 */ }
+    });
+  }, []);
   const { t, i18n } = useTranslation();
   // ── 커뮤니티(전면 익명·닉네임은 설정에서만) ──
   const [nick, setNick] = useState('');
@@ -201,7 +214,7 @@ export default function SettingsScreen() {
           여기서 정한 이름·사진이 **친구목록 상단 "나"** 에 그대로 쓰인다.
           ⚠️커뮤니티 닉네임과는 다른 값이다 — 거긴 전면 익명이라 목적이 반대다. */}
       <Text style={[styles.h, { marginTop: space(7) }]}>{t('profile.title', '내 프로필')}</Text>
-      <MyProfileCard fallbackName={repName} />
+      <MyProfileCard fallbackName={repName} element={repEl} />
 
       {/* ── 내 기록 ──────────────────────────────────────────────────────
           ★★2026-08-19 3탭 전환에서 **탭에서 빠진 화면들의 대체 진입로**다(Boss

@@ -26,8 +26,13 @@ import { elementColor, elementText } from '../../lib/engine/ohaeng';
 /**
  * 내 프로필 편집.
  * @param fallbackName 이름을 안 정했을 때 보여 줄 값(대표 명식 이름)
+ * @param element      아바타 자리 색의 기준 오행. ★**대표 명식**의 일간 오행을 받는다.
+ *   ⚠️Boss 2026-08-25 *"설정에 내 프로필은 대표명식 기준으로 돼야지 설정명식 말고"*.
+ *     종전엔 `activeElement`(=**마지막으로 고른 명식**의 색 · 테마용)를 썼다. 그건 다른 사람의
+ *     명식을 잠깐 열어 보기만 해도 바뀌는 값이라, 「내 프로필」이 남의 색을 입고 있었다.
+ *     안 주면 종전대로 테마 색으로 떨어진다(명식이 아직 없을 때).
  */
-export function MyProfileCard({ fallbackName }: { fallbackName?: string | null }) {
+export function MyProfileCard({ fallbackName, element }: { fallbackName?: string | null; element?: string | null }) {
   const { t } = useTranslation();
   const [name, setName] = useState('');
   const [avatar, setAvatar] = useState<string | null>(null);
@@ -66,13 +71,15 @@ export function MyProfileCard({ fallbackName }: { fallbackName?: string | null }
   const onClear = async () => { setBusy(true); await clearMyAvatar(); setBusy(false); setAvatar(null); };
 
   const initial = (name.trim() || fallbackName || '나').slice(0, 1);
+  // ★색은 **대표 명식**의 오행. 못 받았으면 테마 색(종전 동작)으로 떨어진다
+  const el = element && elementColor[element] ? element : activeElement;
   return (
     <View style={styles.card}>
       <View style={styles.row}>
         {avatar
           ? <ExpoImage source={{ uri: avatar }} style={styles.av} contentFit="cover" transition={140} />
-          : <View style={[styles.av, styles.avFallback]}>
-              <Text style={styles.avTx}>{initial}</Text>
+          : <View style={[styles.av, styles.avFallback, { backgroundColor: elementColor[el] }]}>
+              <Text style={[styles.avTx, { color: elementText[el] }]}>{initial}</Text>
             </View>}
         <View style={styles.col}>
           {Platform.OS === 'web' ? (
@@ -131,9 +138,9 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: space(4) },
   av: { width: 64, height: 64, borderRadius: radius.md * 1.2 },
   // ★대표 명식 오행 색 — 친구목록의 '나'와 **같은 값**을 쓴다(두 곳이 다르면 같은 나가 다른 얼굴이 된다)
-  avFallback: { backgroundColor: elementColor[activeElement], alignItems: 'center', justifyContent: 'center' },
+  avFallback: { alignItems: 'center', justifyContent: 'center' },   // ★색은 위 `el` 로 인라인(대표 명식 기준)
   // ★오행색 위 글자는 `elementText` — 흰색으로 통일하면 金(#D2CCBA)에서 안 읽힌다
-  avTx: { color: elementText[activeElement], fontWeight: '900', fontSize: 24 },
+  avTx: { fontWeight: '900', fontSize: 24 },                        // ★색은 위 `el` 로 인라인
   col: { flex: 1, gap: space(2), alignItems: 'flex-start' },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: space(2) },
   input: { flex: 1, backgroundColor: colors.sunk, borderRadius: radius.md, paddingHorizontal: space(3.5), paddingVertical: space(2.5), ...font.body, color: colors.ink },
