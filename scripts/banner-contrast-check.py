@@ -26,6 +26,10 @@ HARD, WANT = 4.5, 5.5   # 하네스 하한 / 납품 목표
 # ★현행 13장 실측이 0.005~0.025 라 0.05 로 잡았다(최대치의 2배). 낙관·먹 서명 한 획이면 넘는다.
 #   붉은 낙관은 색으로 거를 수 있지만 **먹으로 쓴 서명은 색으로 못 거른다** — 그래서 밝기로 잡는다.
 CORNER_DROP = 0.05
+# 좌측의 «세로 엣지» — 그림 안에 선 세로선이 색면과 만나 **가짜 이음매**로 읽힌다.
+# ★게이트가 아니라 **순위 신호**다(현행 13장 0.002~0.065, n 이 너무 적어 합격선을 못 긋는다).
+#   컷 3장 중 하나를 고를 때 낮은 쪽을 고르면 된다. 0.04 넘으면 눈으로 볼 것.
+EDGE_WARN   = 0.04
 TARGET_AR   = 1.60      # 비율. contain 이라 비율=높이 → 장마다 다르면 캐러셀에서 그림이 들썩인다
 
 def lum(c):
@@ -57,9 +61,15 @@ def check(path):
     # ② 최암부 — ★64×46 리사이즈가 곧 «창 크기»다. 480px 폭이면 창 ≈ 7×6px
     band = im.crop((0, int(H*0.08), int(W*TEXT_ZONE), int(H*0.92))).resize((64, 46))
     dark = min(_px(band), key=lum)
+    # ③-b 좌측 세로 엣지 — 열 평균밝기의 최대 급변
+    eb = im.crop((0, int(H*0.08), int(W*TEXT_ZONE), int(H*0.92))).resize((58, 40))
+    ep = _px(eb)
+    cols = [sum(lum(ep[r*58+c]) for r in range(40))/40 for c in range(58)]
+    edge = max(abs(cols[i+1]-cols[i]) for i in range(57))
+
     c = contrast(over(dark, JU, TINT), INK)
     return {'c': c, 'dark': '#%02X%02X%02X' % dark, 'field': '#%02X%02X%02X' % field,
-            'ar': W/H, 'drop': drop, 'wh': (W, H)}
+            'ar': W/H, 'drop': drop, 'edge': edge, 'wh': (W, H)}
 
 if __name__ == '__main__':
     strict = '--strict' in sys.argv          # 납품 검수(비율·목표대비까지 강제)
@@ -70,9 +80,11 @@ if __name__ == '__main__':
         elif strict and r['c'] < WANT:        why.append(f"대비 {r['c']:.2f} < 목표 {WANT}")
         if r['drop'] > CORNER_DROP:           why.append(f"좌상단 낙폭 {r['drop']:.3f} — 낙관·서명·짙은 획이 걸렸다")
         if strict and abs(r['ar']-TARGET_AR) > 0.04: why.append(f"비율 {r['ar']:.2f} ≠ {TARGET_AR}")
+        edgemark = '  ⚠️세로엣지' if r['edge'] > EDGE_WARN else ''
         mark = '✅' if not why else '❌ ' + ' · '.join(why)
         print(f"{p.split('/')[-1]:<22} 대비 {r['c']:5.2f}  최암부 {r['dark']}  "
-              f"색면 {r['field']}  낙폭 {r['drop']:.3f}  {r['wh'][0]}x{r['wh'][1]}  {mark}")
+              f"색면 {r['field']}  낙폭 {r['drop']:.3f}  엣지 {r['edge']:.3f}{edgemark}  "
+              f"{r['wh'][0]}x{r['wh'][1]}  {mark}")
         if why: bad += 1
     print(f"\n{'❌ ' + str(bad) + '장 탈락' if bad else '✅ 전량 통과'}"
           f"{' (--strict: 비율·목표대비까지 검사)' if strict else ''}")
