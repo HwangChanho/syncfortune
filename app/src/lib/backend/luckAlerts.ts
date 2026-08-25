@@ -13,6 +13,7 @@
 //   자주 울리는 알림은 꺼진다 — 희소해야 열어 본다.
 // ⚠️§4 안전: 예고는 '경고'가 아니라 '준비'로 쓴다. 공포·단정 금지(무엇이 나빠진다고 말하지 않는다).
 // ─────────────────────────────────────────────────────────────────────────
+import * as SecureStore from 'expo-secure-store';
 import type { SajuChart } from '@spec/chart';
 
 // ⚠️expo-notifications 는 *네이티브 모듈* — 미포함 빌드(재빌드 전 dev client)엔 없다.
@@ -35,6 +36,40 @@ function ageAt(birth: Date, at: Date): number {
   const m = at.getMonth() - birth.getMonth();
   if (m < 0 || (m === 0 && at.getDate() < birth.getDate())) a--;
   return a;
+}
+
+/**
+ * ★알림을 **보내는 사람**(Boss 2026-08-25 *"실제 노쎔이 보내는걸로 할꺼야"*).
+ * 카톡처럼 **제목이 사람 이름**이고 본문이 그 사람의 말이다.
+ * ⚠️`consultants.id` 와 맞아야 한다 — 안 맞으면 탭했을 때 빈 대화창이 열린다.
+ */
+const SENDER_ID = 'nossem';
+const SENDER_NAME = '노쌤';
+
+/** ★앱 자체 알림 스위치(OS 권한과 **별개**) — 설정에서 끈다. */
+export const LUCK_ALERTS_KEY = 'luck_alerts_on';
+
+/**
+ * 앱 알림이 켜져 있는가. **기본은 켬** — 처음 쓰는 사람에게 알림이 아예 안 가면
+ * 기능이 있는지도 모른다. 끈 사람만 저장된다.
+ */
+export async function luckAlertsOn(): Promise<boolean> {
+  try {
+    const v = await SecureStore.getItemAsync(LUCK_ALERTS_KEY);
+    return v !== 'off';
+  } catch { return true; }
+}
+/** 앱 알림 켜기/끄기. 끄면 **예약된 것도 지운다**(끄고도 오면 그게 제일 나쁘다). */
+export async function setLuckAlerts(on: boolean): Promise<void> {
+  try {
+    await SecureStore.setItemAsync(LUCK_ALERTS_KEY, on ? 'on' : 'off');
+    if (!on && Notif) {
+      const scheduled = (await Notif.getAllScheduledNotificationsAsync?.()) ?? [];
+      for (const s of scheduled) {
+        if (s?.content?.data?.tag === TAG) await Notif.cancelScheduledNotificationAsync?.(s.identifier);
+      }
+    }
+  } catch { /* 저장 실패해도 앱은 돈다 */ }
 }
 
 export type LuckAlert = { when: Date; title: string; body: string };
@@ -61,9 +96,11 @@ export function buildLuckAlerts(saju: SajuChart, birth: Date, now = new Date()):
       if (notifyAt > now && notifyAt < horizon) {
         out.push({
           when: notifyAt,
-          title: '큰 흐름이 바뀌는 시기가 다가와요',
+          // ★알림 제목은 **보낸 사람 이름**이다(Boss 2026-08-25 *"실제 노쎔이 보내는걸로"*).
+          //   카톡이 그렇다 — 제목이 사람이고 본문이 말이다. 그래야 «누가 나에게 말을 걸었다»로 읽힌다.
+          title: SENDER_NAME,
           // §4: 무엇이 나빠진다고 하지 않는다. '준비'로 서술.
-          body: `다음 달부터 10년 단위의 큰 운이 ${next.stem}${next.branch}(${next.stemTenGod})로 바뀝니다. 어떤 흐름인지 미리 봐 두면 좋아요.`,
+          body: `한 달쯤 뒤에 10년 단위 큰 운이 ${next.stem}${next.branch}(${next.stemTenGod})로 바뀌어요. 미리 한번 볼까요?`,
         });
       }
     }
@@ -76,8 +113,8 @@ export function buildLuckAlerts(saju: SajuChart, birth: Date, now = new Date()):
     if (notifyAt > now && notifyAt < horizon) {
       out.push({
         when: notifyAt,
-        title: '올해의 기운이 바뀌어요',
-        body: `이번 주에 ${y}년의 운으로 넘어갑니다. 새 해 흐름을 미리 확인해 보세요.`,
+        title: SENDER_NAME,
+        body: `이번 주에 ${y}년 기운으로 넘어가요. 새 해 흐름 같이 볼까요?`,
       });
     }
   }
@@ -92,6 +129,7 @@ export function buildLuckAlerts(saju: SajuChart, birth: Date, now = new Date()):
 export async function scheduleLuckAlerts(saju: SajuChart, birth: Date): Promise<void> {
   try {
     if (!Notif) return;                                            // 네이티브 모듈 없는 빌드 = no-op
+    if (!(await luckAlertsOn())) return;                            // ★앱에서 껐으면 예약하지 않는다
     const perm = await Notif.getPermissionsAsync?.();
     if (perm && perm.status !== 'granted') return;                 // 권한 없으면 요청하지 않는다(오늘의 운세 쪽에서 이미 다룸)
 
@@ -104,7 +142,9 @@ export async function scheduleLuckAlerts(saju: SajuChart, birth: Date): Promise<
     const DATE = Notif.SchedulableTriggerInputTypes?.DATE ?? 'date';
     for (const a of buildLuckAlerts(saju, birth)) {
       await Notif.scheduleNotificationAsync({
-        content: { title: a.title, body: a.body, data: { route: '/timeline', tag: TAG } }, // 탭 → 타임라인(시간층 화면)
+        // ★탭하면 **그 사람과의 대화창**으로 간다(Boss 2026-08-25 *"알림 클릭하면 대화창으로 바로"*).
+        //   종전엔 `/timeline` 이라, 말을 건 사람은 있는데 답할 자리가 없었다.
+        content: { title: a.title, body: a.body, data: { route: `/talk?c=${SENDER_ID}`, tag: TAG } },
         trigger: { type: DATE, date: a.when },
       });
     }

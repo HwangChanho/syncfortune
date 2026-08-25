@@ -28,6 +28,7 @@ import { supabase } from '../../lib/supabase';             // 로그아웃
 import { BusyOverlay } from '../../components/BusyOverlay'; // 긴 콜백(로그아웃·삭제) 로딩 오버레이
 import { setAuthBusy } from '../../lib/ui/authBusy'; // 로그아웃 전환 전역 블로킹(먹통 방지)
 import { colors, radius, space, shadow, font, getLoadingMode, setLoadingMode, type LoadingMode } from '../../lib/theme'; // ★다크/라이트 토글 제거·로딩 3모드(video/text/off, daniel 2026-07-15)
+import { luckAlertsOn, setLuckAlerts } from '../../lib/backend/luckAlerts';   // 상담가 알림 스위치(Boss 2026-08-25)
 
 const LANGS: { key: string; label: string }[] = [
   { key: 'ko', label: '한국어' }, { key: 'en', label: 'English' }, { key: 'ja', label: '日本語' },
@@ -68,7 +69,10 @@ export default function SettingsScreen() {
   const [busy, setBusy] = useState<string | null>(null); // 전체화면 로딩 오버레이 메시지(긴 콜백)
   const [loadingMode, setLoadingModeState] = useState<LoadingMode>(getLoadingMode()); // 로딩(인트로) 화면 video(호랑이)/text(八字)/off(없음, daniel 07-15)
   // 홈 배치 순서 편집은 홈 화면의 '⠿ 홈 배치 편집' 모달로 이동(daniel 07-21) — 계정뷰에서 제거.
-  const [notifStatus, setNotifStatus] = useState<NotifStatus>('undetermined'); // 알림 권한 상태(행 라벨·동작 분기)
+  const [notifStatus, setNotifStatus] = useState<NotifStatus>('undetermined');
+  // 상담가 알림 — 앱 자체 스위치(기본 켬). OS 권한과 별개다.
+  const [luckOn, setLuckOn] = useState(true);
+  useEffect(() => { void luckAlertsOn().then(setLuckOn); }, []); // 알림 권한 상태(행 라벨·동작 분기)
   const [restoring, setRestoring] = useState(false); // 구매 복원 진행 중(연타 가드·버튼 로딩)
   // 알림 권한 상태 로드 — 포커스마다(기기 설정 다녀와서 켜/끄면 ON/OFF 즉시 반영, daniel 07-02)
   useFocusEffect(useCallback(() => { getNotifStatus().then(setNotifStatus).catch(() => {}); }, []));
@@ -342,6 +346,21 @@ export default function SettingsScreen() {
           </Text>
         </View>
         <Text style={[styles.notifState, notifStatus === 'granted' && { color: colors.ju }]}>{notifStatus === 'granted' ? 'ON' : 'OFF'}</Text>
+      </PressableScale>
+
+      {/* ★상담가가 보내는 알림 — **앱 자체 스위치**(OS 권한과 별개).
+          Boss 2026-08-25 *"설정에서 푸시알림 끌수도 있게 할꺼야"*.
+          ⚠️OS 권한은 앱이 못 끈다(기기 설정으로 가야 한다). 그래서 **앱 안에서 끌 수 있는 스위치**가 따로 필요하다.
+          ⚠️끄면 **이미 예약된 것도 지운다** — 껐는데 오는 게 제일 나쁘다. */}
+      <PressableScale style={styles.notifRow} onPress={async () => { const nx = !luckOn; setLuckOn(nx); await setLuckAlerts(nx); }}>
+        <View style={{ flex: 1, marginRight: space(3) }}>
+          <Text style={styles.infoLabel}>{t('settings.notifTalk', '상담가가 보내는 알림')}</Text>
+          <Text style={styles.notifSub}>
+            {luckOn ? t('settings.notifTalkOn', '켜짐 · 큰 흐름이 바뀔 때 노쌤이 먼저 알려줘요')
+                    : t('settings.notifTalkOff', '꺼짐 · 눌러서 켜기')}
+          </Text>
+        </View>
+        <Text style={[styles.notifState, luckOn && { color: colors.ju }]}>{luckOn ? 'ON' : 'OFF'}</Text>
       </PressableScale>
 
 {/* ── 앱 정보(버전·약관·개인정보·오픈소스) — 출시 준비 ── */}
