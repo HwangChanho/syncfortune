@@ -145,6 +145,42 @@ if (!URL_BASE || !ANON) {
 }
 
 // ── ⑤ 음성 테스트 — 기준이 무뎌지면 반드시 깨지는가 ──────────────────────
+// ── ⑥ 말투 «예시»가 실제로 실리는가 ─────────────────────────────────────
+//   ★2026-08-25 Boss *"선생님들만의 대화 개성이 제대로 적용 안된거 같어"* 의 원인이 여기였다.
+//   예시 33건이 DB 에 있는데 **전부 `author='draft'`** 라 Edge 가 하나도 안 실었다
+//   (Edge 는 `author='boss'` 만 싣는다). 말투는 지시문 140~183자만으로 전달되고 있었다.
+//   ⚠️`0040` 마이그레이션 스스로 *"지시문만 주면 모델은 결국 비슷하게 쓴다"* 고 적어 뒀는데,
+//     그 진단이 맞았고 **아무도 그 침묵을 몰랐다.** ⇒ 여기서 소리내게 한다.
+console.log('\n=== ⑥ 말투 예시가 **실제로 실리는가** ===');
+if (!URL_BASE || !ANON) {
+  console.log('  ·  .env 없음 — 생략');
+} else {
+  try {
+    const [cRes, eRes] = await Promise.all([
+      fetch(`${URL_BASE}/rest/v1/consultants?select=id,example_limit&enabled=eq.true`, { headers: { apikey: ANON, Authorization: `Bearer ${ANON}` } }),
+      fetch(`${URL_BASE}/rest/v1/consultant_examples?select=consultant_id,author,enabled`, { headers: { apikey: ANON, Authorization: `Bearer ${ANON}` } }),
+    ]);
+    const cs = await cRes.json() as any[];
+    const ex = await eRes.json() as any[];
+    const live = ex.filter((r) => r.author === 'boss' && r.enabled);
+    const draft = ex.filter((r) => r.author !== 'boss');
+    const want = cs.filter((c) => (c.example_limit ?? 0) > 0);
+    if (!Array.isArray(cs) || !Array.isArray(ex)) {
+      console.log('  ·  조회 실패 — 생략');
+    } else if (want.length && !live.length) {
+      bad(`예시를 싣겠다고 한 상담가가 ${want.length}명인데 **실리는 예시가 0건**이다`
+        + (draft.length ? ` — 초안 ${draft.length}건이 author='draft' 로 잠들어 있다. Boss 검수 후 npm run persona:approve` : ''));
+      bad("말투가 «지시문»만으로 전달되고 있다 — 그러면 상담가들이 결국 비슷하게 말한다(0040 마이그레이션의 진단)");
+    } else if (want.length) {
+      const per = new Set(live.map((r) => r.consultant_id));
+      ok(`말투 예시 ${live.length}건이 실린다(상담가 ${per.size}명)`);
+      const none = want.map((c) => c.id).filter((id) => !per.has(id) && id !== 'nossem');
+      if (none.length) bad(`예시가 하나도 없는 상담가: ${none.join(' · ')} — 그 사람만 개성이 밋밋해진다`);
+      else ok('예시를 싣겠다고 한 상담가 전원에게 예시가 있다');
+    } else ok('예시를 싣는 상담가가 없다(example_limit 0)');
+  } catch (e) { console.log(`  ·  조회 실패(${(e as Error).message}) — 생략`); }
+}
+
 console.log('\n=== ⑤ 음성 테스트 — 일부러 똑같이 만들면 잡히는가 ===');
 {
   const base = PERSONAS[0];

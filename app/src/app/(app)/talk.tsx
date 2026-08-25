@@ -50,6 +50,7 @@ import { colors, space, radius, font } from '../../lib/theme';
 import { Icon } from '../../components/kit/Icon';   // 상단 아이콘 단일 원본(Boss 2026-08-24)
 import { ConsultantLinkCard } from '../../components/talk/ConsultantLinkCard';   // 상담가 본인 채널(Boss 2026-08-25)
 import { buildChartVerdict } from '../../lib/talk/chartVerdict';   // 우리 엔진 판정을 대화에 싣는다(Boss 2026-08-25)
+import { splitBubbles, typingDelay } from '../../lib/talk/splitBubbles';   // 말풍선 쪼개기·뜸(Boss 08-25)
 import { pendingMonthlyBrief, markBriefSeen } from '../../lib/talk/monthlyBrief';   // 노쌤 월간 공지(Boss 2026-08-25)
 import { FortuneVideoCard } from '../../components/FortuneVideoCard';
 
@@ -212,8 +213,9 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
    * 말풍선들을 **타이핑을 거쳐 하나씩** 띄운다(Boss 2026-08-20).
    *
    * ★인사말도 여기를 지난다 — 열자마자 다 떠 있으면 '미리 써 둔 안내문'이지 대화가 아니다.
-   * ★뜸은 **다음에 나올 말의 길이**에 비례한다(긴 말일수록 오래 친다). 상한 1.4초 —
-   *   그 이상은 '사람 같다'가 아니라 '느리다'가 된다.
+   * ★뜸은 **지금 치고 있는 말**의 길이에 비례한다(`typingDelay`) — 0.26~2.2초.
+   *   ⚠️종전엔 «직전에 뜬 말» 길이를 썼다. 짧은 말 뒤에 긴 말이 와도 뜸이 짧았다
+   *   (Boss 2026-08-25 *"긴 문장은 …이 오래 표시 돼야하고 짧은건 좀 짧게"*).
    *
    * @param parts  띄울 말풍선들(순서대로)
    * @param extra  마지막 말풍선에 얹을 것(그림·링크·블록 카드)
@@ -223,7 +225,7 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
     if (!parts.length) return;
     let at = startDelay;
     parts.forEach((item, i) => {
-      if (i > 0) at += Math.min(1400, 320 + (parts[i - 1].body?.length ?? 0) * 12);
+      if (i > 0) at += typingDelay(item.body ?? '');   // ★«지금 치는 말» 길이(종전엔 직전에 뜬 말이었다)
       const ms = at;
       const last = i === parts.length - 1;
       timersRef.current.push(setTimeout(() => {
@@ -441,16 +443,10 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
           // 방금 내가 읽은 답이므로 읽음 처리 + 목록 갱신(미리보기·시각이 바로 반영된다)
           void markRead(r.sessionId);
           // ★★말풍선을 **나눠서 순차로** 띄운다(Boss 2026-08-20 *"채팅하듯이 짧게 짧게"*).
-          //   모델이 빈 줄로 구분해 보내면 그대로 쪼갠다. 길면 문장 단위로 더 쪼갠다 —
-          //   프롬프트로만 지시하면 모델이 자꾸 긴 문장을 쓴다(지시는 어겨도 문장 부호는 못 어긴다).
-          const parts = r.answer
-            .split(/\n{2,}/)
-            .flatMap((chunk) => {
-              const c = chunk.trim();
-              if (c.length <= 45) return [c];
-              return c.split(/(?<=[.!?])\s+/).map((x) => x.trim()).filter(Boolean);
-            })
-            .filter(Boolean);
+          //   ★쪼개는 규칙은 `splitBubbles` 단일 원본이다(Boss 2026-08-25 «대화하듯이 짧게 끊어야해»).
+          //   종전엔 여기서 «빈 줄 + 마침표» 만 봤는데, 한국어 대화체는 마침표 없이 «~죠» 로
+          //   끝나는 일이 잦아 문장 열 개가 한 풍선이 되곤 했다.
+          const parts = splitBubbles(r.answer);
           // 그림은 **답 전체**를 보고 한 장만 고른다(풍선마다 고르면 여러 장이 붙는다)
           const pick = pickTalkImage(r.answer, usedArtRef.current);
           if (pick) usedArtRef.current.add(pick.art);

@@ -126,6 +126,7 @@
     "check:talkcoin": "npx tsx scripts/check-talkcoin.ts",
     "check:talknotes": "npx tsx scripts/check-talknotes.ts",
     "check:talkrecommend": "npx tsx scripts/check-talkrecommend.ts",
+    "persona:approve": "npx tsx scripts/persona-approve.ts",
     "check:persona": "npx tsx scripts/check-persona.ts",
     "avatars:recv": "npx tsx scripts/avatars-receive.ts",
     "avatars:upload": "npx tsx scripts/avatars-upload.ts",
