@@ -39,7 +39,7 @@ export const ja = {
     ziwei: '紫微斗数', ziweiDesc: '命盤·12宮の星',
     taro: 'タロット', taroDesc: '今日のカード',
     today: '今日の運勢', todayDesc: '毎日変わる日運', month: '今月の運勢', monthDesc: '今月の分野別の流れ',
-    compat: '相性', compatDesc: '関係力学の深い分析',
+    compatMarriage: '結婚の相性', compatMarriageDesc: '生涯добро共に歩める相手か', compatCoworkerDesc: '一緒に働くとどうなるか', compatCoworker: '同僚との相性', compatSenior: '目上との相性', compatSeniorDesc: '上司・メンターとの噛み合い', compatBusiness: '共同事業の相性', compatBusinessDesc: '一緒に稼ぐとどこで分かれるか', compatFamily: '家族の相性', compatFamilyDesc: '親・兄弟との間合い', compatFriend: '友人との相性', compatFriendDesc: '長く続く相手かを見る', compat: '相性', compatDesc: '関係力学の深い分析',
     premium: 'プレミアム鑑定', premiumDesc: '深い通変·全領域', premiumTag: 'プレミアム',
     timeline: '人生タイムライン', timelineDesc: '10〜100歳の時期別の流れ',
     pet: 'うちの子', petDesc: 'うちの子の生まれもった特徴', love: '私の恋愛の流れ', loveDesc: '理想のタイプ·出会う人を詳しく',
@@ -211,6 +211,7 @@ export const ja = {
     askPayBtn: '{{price}} 決済', payPending: '準備中',
   },
   compat: {
+    owned: '✓ 保有',
     'stillMaking': 'もうすぐです — 届き次第すぐお見せします。',
     'comeBackLater': 'まだ作成中です。少ししてこの画面をもう一度開くと結果が表示されます。',
     'genConfirm': '作成',
@@ -421,7 +422,7 @@ export const ja = {
     's_stress': 'ストレス解消',
     title: '日柱論', sub: '生まれた日の干支（日柱）でみる、生まれもった気質です。',
     male: '男性', female: '女性', mine: '私の日柱', browseAll: '日柱60すべて', dayGroup: '日', tapHint: '日柱をタップすると詳しい解説が開きます。', mineList: '私の命式の日柱', noChart: '登録された命式がありません。先に命式を登録してください。',
-    s_overview: '概要', s_personality: '性格', s_love: '恋愛·結婚', s_career: '仕事·財運', s_male: '男性', s_female: '女性', s_advice: 'アドバイス', s_live: '人生のコツ',
+    catAll: 'すべて', s_overview: '概要', s_personality: '性格', s_love: '恋愛·結婚', s_career: '仕事·財運', s_male: '男性', s_female: '女性', s_advice: 'アドバイス', s_live: '人生のコツ',
     disclaimer: '日柱論は生まれもった気質の一面にすぎません。正確な鑑定は日柱だけでなく、年·月·時の柱や合冲·用神まで、命式全体を合わせてみる必要があります。',
   },
   purchase: {

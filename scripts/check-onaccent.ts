@@ -94,10 +94,14 @@ export function audit(src: string, file: string, pal: Palette): Fail[] {
   if (!accentStyles.size) return out;
 
   for (const [name, alpha] of accentStyles) {
-    // 짝 = 같은 접두 + Tx (예: catChipOn ↔ catTxOn / dayTogChipOn ↔ dayTogTxOn)
-    const stem = name.replace(/(Chip)?On$/, '');
+    // 짝 = 같은 이름의 글자 스타일. ★**정확히** 두 형태만 인정한다:
+    //   `relChipOn` ↔ `relChipTxOn`(On 앞에 Tx)  ·  `catChipOn` ↔ `catTxOn`(Chip 을 Tx 로)
+    // ⚠️★종전엔 «어간으로 시작하면 짝» 이라 **남의 스타일을 물었다**(2026-08-25 실측):
+    //   `relChipOn` 의 어간이 `rel` 이 되어 새로 만든 `relCellTxOn`(배경이 `juSoft` 인 다른 칸)을
+    //   «`colors.ju` 위의 글자» 로 잘못 판정했다. 이름이 비슷하다고 같은 자리가 아니다.
+    const want = new Set([name.replace(/On$/, 'TxOn'), name.replace(/ChipOn$/, 'TxOn')]);
     const pair = [...src.matchAll(/^\s*(\w+):\s*\{([^\n]*)$/gm)]
-      .filter(([, n]) => n.startsWith(stem) && /Tx.*On$|TxOn$/.test(n));
+      .filter(([, n]) => want.has(n));
     for (const [, n, bodyRaw] of pair) {
       const colorM = bodyRaw.match(/color:\s*('#[0-9A-Fa-f]{6}'|colors\.\w+)/);
       if (!colorM) continue;

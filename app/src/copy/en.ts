@@ -40,7 +40,7 @@ export const en = {
     ziwei: 'Zi Wei Dou Shu', ziweiDesc: 'Palaces & stars reading',
     taro: 'Tarot', taroDesc: "Today's card",
     today: 'Daily Fortune', todayDesc: 'Changes every day', month: 'Monthly Fortune', monthDesc: "This month by area",
-    compat: 'Compatibility', compatDesc: 'Deep relationship analysis',
+    compatMarriage: 'Marriage match', compatMarriageDesc: 'Can this last a lifetime?', compatCoworker: 'Coworker match', compatCoworkerDesc: 'How you two work together', compatSenior: 'Mentor match', compatSeniorDesc: 'How you fit with a boss or mentor', compatBusiness: 'Partnership match', compatBusinessDesc: 'Where a business pairing splits', compatFamily: 'Family match', compatFamilyDesc: 'Your grain with parents and siblings', compatFriend: 'Friendship match', compatFriendDesc: 'Whether this friendship lasts', compat: 'Compatibility', compatDesc: 'Deep relationship analysis',
     premium: 'Premium Reading', premiumDesc: 'Deep reading · all areas', premiumTag: 'Premium',
     timeline: 'Life Timeline', timelineDesc: 'Decade-by-decade, age 10–100',
     pet: 'My Pet', petDesc: "Your companion's nature", love: 'My Love Flow', loveDesc: 'Ideal type & who you meet, in detail',
@@ -212,6 +212,7 @@ export const en = {
     askPayBtn: 'Pay {{price}}', payPending: 'Coming soon',
   },
   compat: {
+    owned: '✓ Owned',
     'stillMaking': 'Almost there — we will show it the moment it arrives.',
     'comeBackLater': 'Still being written. Reopen this screen in a bit and your reading will be here.',
     'genConfirm': 'Create',
@@ -422,7 +423,7 @@ export const en = {
     's_stress': 'Relieving stress',
     title: 'Day Pillar', sub: 'Your innate nature, seen through your birth-day pillar (ilju).',
     male: 'Male', female: 'Female', mine: 'My Day Pillar', browseAll: 'All 60 Day Pillars', dayGroup: 'day', tapHint: 'Tap a pillar to expand its full reading.', mineList: 'My Day Pillars', noChart: 'No saved charts. Register a chart first.',
-    s_overview: 'Overview', s_personality: 'Personality', s_love: 'Love & Marriage', s_career: 'Career & Wealth', s_male: 'For Men', s_female: 'For Women', s_advice: 'Advice', s_live: 'Life Tips',
+    catAll: 'All', s_overview: 'Overview', s_personality: 'Personality', s_love: 'Love & Marriage', s_career: 'Career & Wealth', s_male: 'For Men', s_female: 'For Women', s_advice: 'Advice', s_live: 'Life Tips',
     disclaimer: "The day pillar is only one facet of your nature. A precise reading needs your whole chart — the year, month and hour pillars plus combinations, clashes and the useful god — not the day pillar alone.",
   },
   purchase: {

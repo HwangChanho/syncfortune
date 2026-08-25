@@ -125,6 +125,11 @@ export const SECTIONS: Section[] = [
     //   복사 실수처럼 보였다. 관계 지도는 자기 히어로 이미지가 이미 있다(`icons/relmap/hero.jpg`).
     { key: 'relationmap', labelKey: 'menu.relationmap', descKey: 'menu.relationmapDesc', image: contentIcon('family'), route: '/relationmap', ready: true, content: true },
     { key: 'compat', labelKey: 'menu.compat', descKey: 'menu.compatDesc', image: contentIcon('family'), route: '/compat', ready: true, premium: true, creditKey: 'compat' },
+    // ★궁합을 **관계마다** 노출한다(Boss 2026-08-25 *"연인 카테고리만 하지말고 … 해당 카테고리에
+    //   맞는 궁합으로 바로 넘어가서 비용지불하고 볼수있게"*). 종전엔 연애 섹션에 하나뿐이라
+    //   직장·가족 궁합이 **있는 줄도 모르는** 상태였다.
+    //   ⚠️`creditKey` 는 전부 'compat' 로 같다 — 관계별 과금은 화면 안에서 갈린다(여기서 나누면 두 갈래가 된다).
+    { key: 'compat_marriage', labelKey: 'menu.compatMarriage', descKey: 'menu.compatMarriageDesc', image: contentIcon('ring'), route: '/compat?rel=marriage', ready: true, premium: true, creditKey: 'compat' },
     { key: 'love', labelKey: 'menu.love', descKey: 'menu.loveDesc', image: contentIcon('ring'), route: '/love', ready: true, content: true, creditKey: 'love' },
     { key: 'crush', labelKey: 'menu.crush', descKey: 'menu.crushDesc', image: contentIcon('heart'), route: '/crush', ready: true, content: true, creditKey: 'crush' },
     { key: 'reunion', labelKey: 'menu.reunion', descKey: 'menu.reunionDesc', image: contentIcon('ring'), route: '/reunion', ready: true, content: true, creditKey: 'reunion' },
@@ -171,6 +176,9 @@ export const SECTIONS: Section[] = [
   // ── 직업·재물 ───────────────────────────────────────────────────────────────
   //   무료 질문형(취업 언제 될까?)·조선시대 직업이 앞.
   { key: 'work', icon: 'briefcase', titleKey: 'menu.secWork', descKey: 'menu.secWorkDesc', chipKey: 'menu.chipWork', items: [
+    { key: 'compat_coworker', labelKey: 'menu.compatCoworker', descKey: 'menu.compatCoworkerDesc', image: contentIcon('family'), route: '/compat?rel=coworker', ready: true, premium: true, creditKey: 'compat' },
+    { key: 'compat_senior', labelKey: 'menu.compatSenior', descKey: 'menu.compatSeniorDesc', image: contentIcon('family'), route: '/compat?rel=senior', ready: true, premium: true, creditKey: 'compat' },
+    { key: 'compat_business', labelKey: 'menu.compatBusiness', descKey: 'menu.compatBusinessDesc', image: contentIcon('family'), route: '/compat?rel=business', ready: true, premium: true, creditKey: 'compat' },
     { key: 'jobAsk', labelKey: 'menu.jobAsk', descKey: 'menu.jobAskDesc', image: contentIcon('idcard'), route: '/jobAsk', ready: true, content: true },
     { key: 'joseonjob', labelKey: 'menu.joseonjob', descKey: 'menu.joseonjobTileDesc', image: contentIcon('briefcase'), route: '/joseonjob', ready: true, content: true },
     { key: 'jobfit', labelKey: 'menu.jobfit', descKey: 'menu.jobfitDesc', image: contentIcon('briefcase'), route: '/jobfit', ready: true, content: true, creditKey: 'jobfit' },
@@ -184,6 +192,8 @@ export const SECTIONS: Section[] = [
   // ── 라이프 ───────────────────────────────────────────────────────────────
   //   ★신설 — 위 네 축에 들어가지 않는 흥미·힐링 콘텐츠(daniel '분류 안 되는 건 신규로 만들어서').
   { key: 'life', icon: 'book', titleKey: 'menu.secLife', descKey: 'menu.secLifeDesc', chipKey: 'menu.chipLife', items: [
+    { key: 'compat_family', labelKey: 'menu.compatFamily', descKey: 'menu.compatFamilyDesc', image: contentIcon('family'), route: '/compat?rel=family', ready: true, premium: true, creditKey: 'compat' },
+    { key: 'compat_friend', labelKey: 'menu.compatFriend', descKey: 'menu.compatFriendDesc', image: contentIcon('family'), route: '/compat?rel=friend', ready: true, premium: true, creditKey: 'compat' },
     { key: 'taro', labelKey: 'menu.taro', descKey: 'menu.taroDesc', image: freeTrioIcon('taro'), route: '/taro', ready: true, content: true },
     { key: 'pet', labelKey: 'menu.pet', descKey: 'menu.petDesc', image: contentIcon('family'), route: '/pet', ready: true, content: true },
     { key: 'pastlife', labelKey: 'menu.pastlife', descKey: 'menu.pastlifeTileDesc', image: contentIcon('book'), route: '/pastlife', ready: true, content: true },

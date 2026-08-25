@@ -47,6 +47,12 @@ function sectionList(sex: '남' | '여'): { tk: string; field: keyof DayPillarTr
   ];
 }
 
+/** 카테고리 칩에 쓸 목록 — ★`sectionList` 를 그대로 쓰고 뒤 둘만 더한다(표를 두 벌 만들지 않는다). */
+const EXTRA_CATS = [
+  { tk: 'dayPillar.s_live', field: 'live' as const },
+  { tk: 'dayPillar.s_stress', field: 'stress' as const },
+];
+
 export default function DayPillarScreen() {
   const readBody = useReadBody();   // 넓은 웹에서만 본문 폭을 묶는다
   useLogContentVisit('dayPillar'); // 진입 1회 방문 기록(daniel 2026-07-06)
@@ -56,6 +62,9 @@ export default function DayPillarScreen() {
   const [loaded, setLoaded] = useState(false);
   const [sex, setSex] = useState<'남' | '여'>('남');       // 보기 성별 — 대표 명식 성별로 초기화
   const [open, setOpen] = useState<Set<string>>(new Set()); // 펼쳐진 일주(아코디언)
+  // ★카테고리 보기(Boss 2026-08-25 *"60갑자 일주 전체 보기에서도 카테고리별로 구분해서 보게해줘"*).
+  //   null = 전부 보여 준다(종전 동작). 고르면 **그 칸만** 남는다 — 60개를 한 축으로 견줘 볼 수 있다.
+  const [cat, setCat] = useState<string | null>(null);
   const [admin, setAdmin] = useState(false);                // 관리자만 60갑자 전체·남녀 토글 열람
   // 일반 유저가 볼 일주 = 등록한 명식들의 일주만(명식별 성별·라벨 포함). 관리자는 전체 60을 본다.
   const [myItems, setMyItems] = useState<{ key: string; sex: '남' | '여'; label: string }[]>([]);
@@ -103,16 +112,18 @@ export default function DayPillarScreen() {
   // 한 일주의 전체 섹션 렌더. sx = 성별 기준(관리자=토글 sex / 일반=각 명식 성별).
   const renderSections = (k: string, sx: '남' | '여' = sex) => {
     const d = DAY_PILLAR[k];
+    // ★고른 카테고리만 남긴다. 안 골랐으면(null) 종전대로 전부
+    const show = (field: string) => cat == null || cat === field;
     return (
       <>
-        {sectionList(sx).map((s) => (
+        {sectionList(sx).filter((s) => show(s.field as string)).map((s) => (
           <View key={s.field} style={styles.section}>
             <Text style={styles.secLabel}>{t(s.tk)}</Text>
             <Text style={[styles.detailTx, bodyDyn]}>{d[s.field] as string}</Text>
           </View>
         ))}
         {/* 어떻게 살아야 하나 — 일주별 실천 4계명(개운·처방). DAY_PILLAR_LIVE(별도 파일·daniel 검수 슬롯). */}
-        {DAY_PILLAR_LIVE[k] ? (
+        {show('live') && DAY_PILLAR_LIVE[k] ? (
           <View style={styles.section}>
             <Text style={styles.secLabel}>{t('dayPillar.s_live', '인생 꿀팁')}</Text>
             {DAY_PILLAR_LIVE[k].map((line, i) => (
@@ -125,7 +136,7 @@ export default function DayPillarScreen() {
           </View>
         ) : null}
         {/* 스트레스 해소(daniel: 일주별) — 일간 오행·일지 기질 기반 관리축 */}
-        {STRESS[k] ? (
+        {show('stress') && STRESS[k] ? (
           <View style={styles.section}>
             <Text style={styles.secLabel}>{t('dayPillar.s_stress', '스트레스 해소')}</Text>
             <Text style={[styles.detailTx, bodyDyn]}>{STRESS[k]}</Text>
@@ -200,6 +211,18 @@ export default function DayPillarScreen() {
       {/* 일주 목록 — 관리자: 전체 60(천간별 그룹) / 일반: 등록된 명식의 일주만. 내 일주는 골드 강조. */}
       <Text style={styles.browseH}>{admin ? t('dayPillar.browseAll') : t('dayPillar.mineList')}</Text>
       {admin && <Text style={styles.browseHint}>{t('dayPillar.tapHint')}</Text>}
+      {/* ★카테고리 칩 — 고르면 아래 카드들이 **그 칸만** 보여 준다(Boss 2026-08-25).
+          한 축으로 여러 일주를 견줘 볼 수 있다. 안 고르면 종전대로 전부. */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.catBar} contentContainerStyle={styles.catBarIn}>
+        {[{ tk: 'dayPillar.catAll', field: null as string | null }, ...sectionList(sex), ...EXTRA_CATS].map((c) => {
+          const on = cat === c.field;
+          return (
+            <PressableScale key={String(c.field)} onPress={() => setCat(c.field)} style={[styles.cat, on && styles.catOn]}>
+              <Text style={[styles.catTx, on && styles.catTxOn]}>{t(c.tk)}</Text>
+            </PressableScale>
+          );
+        })}
+      </ScrollView>
       {admin ? (
         STEMS.map((stem) => {
           const keys = Object.keys(DAY_PILLAR).filter((k) => k[0] === stem); // 이 천간의 일주 6개
@@ -281,6 +304,13 @@ const styles = StyleSheet.create({
   mineKeyHero: { fontSize: 26, fontWeight: '800', color: colors.ju, padding: space(3), textShadowColor: 'rgba(0,0,0,0.85)', textShadowRadius: 6 }, // 배경 위 간지(골드+그림자)
   browseH: { fontSize: 18, fontWeight: '800', color: colors.ink, marginBottom: space(1) },
   browseHint: { ...font.caption, color: colors.inkFaint, marginBottom: space(3) },
+  // 카테고리 칩 — 가로 스크롤. ★칩이 화면을 넘치면 잘리므로 반드시 ScrollView 안에 둔다
+  catBar: { marginBottom: space(2) },
+  catBarIn: { gap: space(1.5), paddingRight: space(4) },
+  cat: { paddingHorizontal: space(3), paddingVertical: space(1.5), borderRadius: radius.pill ?? 999, backgroundColor: colors.sunk },
+  catOn: { backgroundColor: colors.ju },
+  catTx: { ...font.caption, color: colors.inkSoft, fontWeight: '700' },
+  catTxOn: { color: colors.onJu, fontWeight: '800' },
   group: { marginBottom: space(5) },
   groupH: { fontSize: 15, fontWeight: '800', color: colors.ju, marginBottom: space(2), opacity: 0.9 },
   // 일주 행

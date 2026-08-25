@@ -79,7 +79,12 @@ function ScoreReveal({ score }: { score: number }) {
 //   — 사용자는 무엇으로 사는지 알 수 없었다. 숫자를 손으로 적지 않고 가격표에서 읽는다.
 const COMPAT_COINS = coinPriceOf('compat') ?? 0;
 
-export function CompatScreen({ me }: { me: ChartInput | null }) {
+/**
+ * @param me       내 명식
+ * @param initialRel 열자마자 고를 관계(`/compat?rel=friend`). ★목록에서 «직장 동료 궁합» 을
+ *   눌렀는데 화면이 «연애» 로 열리면 한 번 더 골라야 한다 — 그 한 번이 이탈이다(Boss 2026-08-25).
+ */
+export function CompatScreen({ me, initialRel }: { me: ChartInput | null; initialRel?: string }) {
   const router = useRouter();   // ★운 부족 시 /coins 이동(daniel 07-28)
   const { t } = useTranslation();
   const { session } = useAuth();
@@ -92,7 +97,9 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
   const [otherSel, setOtherSel] = useState<SavedChart | null>(null); // 상대(저장 명식). 없으면 등록 폼으로 추가.
   const [otherReg, setOtherReg] = useState(false);                    // 상대 명식 등록 폼 모달
   // 통변(관계별) + 결정론 비교
-  const [rel, setRel] = useState('love');                        // 선택 관계 유형(기본 연애)
+  // ★들어올 때 지정된 관계가 있으면 그것으로 연다(없으면 종전대로 연애)
+  const [rel, setRel] = useState(() =>
+    (initialRel && COMPAT_RELS.some((r) => r.key === initialRel)) ? initialRel : 'love');
   const [year, setYear] = useState('');                          // '' = 원국(관계 본바탕) / 'YYYY' = 그 해 흐름
   const [compatTab] = useState<'saju' | 'ziwei'>('saju'); // ★탭 제거(daniel 2026-07-15) — 항상 'saju'(=사주+자미 합친 'compat' 통변). setter 미사용.
   const [readings, setReadings] = useState<Record<string, CompatReading>>({});
@@ -167,7 +174,9 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
       const last = await loadLastCompat();   // ★저장소에서 복원(앱 재실행에도 살아남는다)
       setMeSel((last.meId && list.find((c) => c.id === last.meId)) || rep);
       if (last.otherId) { const o = list.find((c) => c.id === last.otherId); if (o) setOtherSel(o); }
-      if (last.rel) setRel(last.rel);
+      // ⚠️URL 로 관계를 지정해 들어왔으면 **마지막으로 본 관계로 되돌리지 않는다**
+      //   (사용자가 방금 고른 것이 이전 기록보다 우선이다)
+      if (last.rel && !initialRel) setRel(last.rel);
     })();
   }, []);
 
@@ -388,15 +397,26 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
         <>
           {/* ② 어떤 사이? — 관계 유형(드롭박스·③ 년도와 동일 UX·daniel 2026-07-22). 관계마다 별도 유료 풀이 → 선택칸에 소유(✓)/가격 표시. */}
           <Text style={styles.stepLabel}>{t('compat.step2', '② 어떤 사이인가요?')}</Text>
-          <PressableScale style={styles.relDropBtn} onPress={() => setRelOpen(true)}>
-            <Text style={styles.relDropTx}>{t(COMPAT_RELS.find((r) => r.key === rel)?.tk ?? '')}</Text>
-            <View style={styles.relDropRight}>
-              {ownedRels.has(rel)
-                ? <Text style={styles.relOwnedTag}>✓ 보유</Text>
-                : (!isPremium ? <Text style={styles.relPriceTag}>{COMPAT_COINS} 운</Text> : null)}
-              <Text style={styles.relDropCaret}>▾</Text>
-            </View>
-          </PressableScale>
+          {/* ★여덟 관계를 **전부 펼쳐 놓는다**(Boss 2026-08-25 *"궁합보기는 전체 다 노출되게 하자
+              연인 카테고리만 하지말고"*). 종전엔 드롭다운 뒤에 있었다 — 이 프로젝트의 교훈대로
+              **열어야 보이는 기능은 없는 기능**이다(길게 누르기만 있던 카테고리 관리와 같은 자리).
+              ★고르면 그 관계의 풀이로 바로 간다(보유면 열고, 아니면 그 자리에서 결제). */}
+          <View style={styles.relGrid}>
+            {COMPAT_RELS.map((r) => {
+              const on = rel === r.key, owned = ownedRels.has(r.key);
+              return (
+                <PressableScale key={r.key} onPress={() => setRel(r.key)} style={[styles.relCell, on && styles.relCellOn]}>
+                  <Text style={[styles.relCellTx, on && styles.relCellTxOn]} numberOfLines={1}>{t(r.tk)}</Text>
+                  {/* 보유·가격을 **칸마다** 보여 준다 — 무엇이 이미 있고 무엇이 유료인지 한눈에 */}
+                  {/* ★`isPremium` 분기를 쓰지 않는다 — 프리미엄은 2026-07-28 에 폐지돼
+                      **항상 false** 다(`check:deadflag` 가 문다). 안 가진 관계는 늘 값이 보인다. */}
+                  <Text style={[styles.relCellTag, on && styles.relCellTagOn]}>
+                    {owned ? t('compat.owned', '✓ 보유') : `${COMPAT_COINS} 운`}
+                  </Text>
+                </PressableScale>
+              );
+            })}
+          </View>
           <Text style={styles.relHint}>{isPremium ? '관계마다 별도 풀이예요' : `관계마다 별도로 풀어 드려요 — 고른 관계만 ${COMPAT_COINS} 운이 들어요`}</Text>
           {/* ★사주/자미 탭 제거(daniel 2026-07-15 '구분짓지 말고 같이풀어') — 'compat' 통변이 이미 사주 주축+자미 보조교차로 합쳐 나옴(규칙2·R46). 항상 compatTab='saju'(=합친 통변). */}
           {/* 연도별 — 전체(원국 본바탕) / 그 해 흐름(세운). 연도 탭 시 그 관계×연도 통변 생성 */}
@@ -795,6 +815,19 @@ const styles = StyleSheet.create({
   yearChipTxOn: { color: colors.ju },
   relChip: { paddingHorizontal: space(3.5), paddingVertical: space(2), borderRadius: radius.pill, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line },
   // ★관계 드롭박스(② 어떤 사이 — 관계별 개별 결제·소유/가격 표시·daniel 2026-07-22)
+  // 관계 여덟 칸 — 2열. ★드롭다운을 대신한다(전부 보이게)
+  relGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: space(2) },
+  relCell: {
+    width: '48%', paddingVertical: space(2.5), paddingHorizontal: space(3),
+    borderRadius: radius.md, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line,
+  },
+  relCellOn: { borderColor: colors.juDeep, borderWidth: 2, backgroundColor: colors.juSoft },
+  relCellTx: { ...font.label, color: colors.ink, fontWeight: '800' },
+  // ★`colors.ju` 를 쓰면 `juSoft` 위에서 대비 **4.47** 로 기준(4.5) 바로 아래다(실측).
+  //   `juDeep` 이면 7.26 — 선택 표시는 테두리·바탕이 이미 하고 있으니 글자는 읽히는 쪽으로 간다.
+  relCellTxOn: { color: colors.juDeep },
+  relCellTag: { ...font.caption, color: colors.inkFaint, marginTop: 2 },
+  relCellTagOn: { color: colors.juDeep, fontWeight: '700' },
   relDropBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: space(4), paddingVertical: space(3), borderRadius: radius.md, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line },
   relDropTx: { color: colors.ink, fontSize: 15, fontWeight: '700' },
   relDropRight: { flexDirection: 'row', alignItems: 'center', gap: space(2) },

@@ -18,7 +18,8 @@ export default function CompatRoute() {
   useLogContentVisit('compat'); // 진입 1회 방문 기록(daniel 2026-07-06)
   const router = useRouter();
   const { t } = useTranslation();
-  const { chartId } = useLocalSearchParams<{ chartId?: string }>(); // ★M1 재진입 바인딩(배너/푸시 route 의 chartId)
+  // ★`rel` = 어떤 사이의 궁합인지(`/compat?rel=coworker`). 목록에서 고른 관계로 **바로** 연다
+  const { chartId, rel } = useLocalSearchParams<{ chartId?: string; rel?: string }>(); // ★M1 재진입 바인딩(배너/푸시 route 의 chartId)
   const [me, setMe] = useState<ChartInput | null>(null);
   const [loading, setLoading] = useState(true);
   const lastAppliedChartId = useRef<string | null>(null); // ★M1 적용한 chartId param 추적(재진입 중복 setRepresentative 방지·reading.tsx 38-43)
@@ -58,7 +59,7 @@ export default function CompatRoute() {
     );
   }
 
-  return <CompatScreen me={me} />;
+  return <CompatScreen me={me} initialRel={typeof rel === 'string' ? rel : undefined} />;
 }
 
 const styles = StyleSheet.create({

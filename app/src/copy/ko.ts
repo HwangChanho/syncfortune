@@ -61,7 +61,7 @@ export const ko = {
     taro: '타로', taroDesc: '카드로 보는 오늘',
     today: '오늘의 운세', todayDesc: '매일 바뀌는 일운',
     month: '이달의 운세', monthDesc: '이번 달 분야별 흐름',
-    compat: '궁합', compatDesc: '관계역학 딥 분석',
+    compatMarriage: '결혼 궁합', compatMarriageDesc: '평생을 같이 갈 수 있는 사이인가', compatCoworker: '직장 동료 궁합', compatCoworkerDesc: '같이 일하면 어떤 결이 나오나', compatSenior: '윗사람 궁합', compatSeniorDesc: '상사·멘토와 어떻게 맞물리나', compatBusiness: '동업 궁합', compatBusinessDesc: '같이 벌면 어디서 갈리나', compatFamily: '가족 궁합', compatFamilyDesc: '부모·형제와의 결과 거리', compatFriend: '친구 궁합', compatFriendDesc: '오래 갈 사이인지 견줘 보기', compat: '궁합', compatDesc: '관계역학 딥 분석',
     premium: '깊은 풀이', premiumDesc: '딥 통변·전 영역', premiumTag: '운',
     timeline: '인생 타임라인', timelineDesc: '10~100세 시기별 흐름',
     pet: '나의 반려동물', petDesc: '우리 아이의 타고난 특징',
@@ -238,6 +238,7 @@ export const ko = {
     askPayBtn: '{{price}} 결제', payPending: '준비 중',
   },
   compat: {
+    owned: '✓ 보유',
     'stillMaking': '거의 다 됐어요 — 결과가 오면 바로 보여 드릴게요.',
     'comeBackLater': '아직 만드는 중이에요. 잠시 후 이 화면을 다시 열면 결과가 보입니다.',
     'genConfirm': '생성',
@@ -454,7 +455,7 @@ export const ko = {
     's_stress': '스트레스 해소',
     title: '일주론', sub: '태어난 날의 간지(일주)로 보는 타고난 기질이에요.',
     male: '남자', female: '여자', mine: '내 일주', browseAll: '전체 일주 60', dayGroup: '일주', tapHint: '일주를 탭하면 상세 풀이가 펼쳐져요.', mineList: '내 명식 일주', noChart: '등록된 명식이 없어요. 명식을 먼저 등록하세요.',
-    s_overview: '개요', s_personality: '성격', s_love: '연애·결혼', s_career: '직업·재물', s_male: '남성', s_female: '여성', s_advice: '조언', s_live: '인생 꿀팁',
+    catAll: '전체', s_overview: '개요', s_personality: '성격', s_love: '연애·결혼', s_career: '직업·재물', s_male: '남성', s_female: '여성', s_advice: '조언', s_live: '인생 꿀팁',
     disclaimer: '일주론은 타고난 기질의 한 단면일 뿐이에요. 정확한 풀이는 일주만이 아니라 연·월·시 기둥과 합충·용신까지 사주원국 전체를 함께 봐야 해요.',
   },
   purchase: {
