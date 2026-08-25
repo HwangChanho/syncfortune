@@ -33,11 +33,18 @@ def measure(name):
     fb = im.crop((0, 0, int(W*0.35), int(H*0.35))).resize((40, 40))
     px = pixels(fb)
     field = tuple(int(statistics.median([q[i] for q in px])) for i in range(3))
+    # ★그 구석이 **균일한가**. 낙관·먹 서명이 걸리면 낙폭이 튄다.
+    #   왜 따로 재나 — 아래 `darkest` 밴드는 y 8~92% 만 본다. 그런데 `field` 는 y 0~35% 다.
+    #   ⇒ **맨 위 8% 에 있는 서명은 대비 검사를 그대로 빠져나가면서** 색면만 어둡게 만든다
+    #     (실측: 위 8% 에 먹 서명을 넣은 그림이 대비 7.75 로 통과, 낙폭 0.718 로만 잡혔다).
+    Ls = [lum(q) for q in px]
+    corner_drop = round(statistics.median(Ls) - min(Ls), 4)
     band = im.crop((0, int(H*0.08), int(W*TEXT_ZONE), int(H*0.92))).resize((64, 46))
     dark = min(pixels(band), key=lum)
     return {'sha256': hashlib.sha256(raw).hexdigest()[:16],
             'field': '#%02X%02X%02X' % field,
-            'darkest': '#%02X%02X%02X' % dark}
+            'darkest': '#%02X%02X%02X' % dark,
+            'cornerDrop': corner_drop}
 
 names = sorted(f[3:-4] for f in os.listdir(BRAND) if f.startswith('bn-') and f.endswith('.jpg'))
 arts = {n: measure(n) for n in names}

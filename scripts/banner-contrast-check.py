@@ -22,6 +22,11 @@ TINT      = 0.22     # BANNER_TINT
 # 다섯 오행 중 **가장 빡빡한** 조합(水). 이걸 넘기면 나머지 넷은 자동으로 넘는다.
 JU, INK   = (0x39, 0x60, 0x9D), (0x1B, 0x2E, 0x3F)
 HARD, WANT = 4.5, 5.5   # 하네스 하한 / 납품 목표
+# 좌상단이 «깨끗한 종이톤 하나»인가 — 중앙값 대비 최암부의 낙폭.
+# ★현행 13장 실측이 0.005~0.025 라 0.05 로 잡았다(최대치의 2배). 낙관·먹 서명 한 획이면 넘는다.
+#   붉은 낙관은 색으로 거를 수 있지만 **먹으로 쓴 서명은 색으로 못 거른다** — 그래서 밝기로 잡는다.
+CORNER_DROP = 0.05
+TARGET_AR   = 1.60      # 비율. contain 이라 비율=높이 → 장마다 다르면 캐러셀에서 그림이 들썩인다
 
 def lum(c):
     f = lambda v: (v/255)/12.92 if v/255 <= 0.03928 else (((v/255)+0.055)/1.055) ** 2.4
@@ -39,24 +44,36 @@ def _px(im):
     return list(im.get_flattened_data()) if hasattr(im, 'get_flattened_data') else list(im.getdata())
 
 def check(path):
-    """@return (통과여부, 대비, 최암부hex, 색면hex, 비율)"""
+    """@return dict — 대비·최암부·색면·비율·좌상단 낙폭과 각 판정"""
     im = Image.open(path).convert('RGB'); W, H = im.size
     # ① 배너 왼쪽 색면 색 — ★이 색이 **글자 자리 전체**를 칠한다
     fb = im.crop((0, 0, int(W*FIELD_BOX), int(H*FIELD_BOX))).resize((40, 40))
     px = _px(fb)
     field = tuple(int(statistics.median([q[i] for q in px])) for i in range(3))
+    # ①-b 그 구석이 **균일한가** — 낙관·서명·짙은 획이 걸리면 낙폭이 튄다.
+    #     붉은 낙관은 색으로 거를 수 있어도 **먹으로 쓴 서명은 색으로 못 거른다** → 밝기로 잡는다
+    Ls = [lum(q) for q in px]
+    drop = statistics.median(Ls) - min(Ls)
     # ② 최암부 — ★64×46 리사이즈가 곧 «창 크기»다. 480px 폭이면 창 ≈ 7×6px
     band = im.crop((0, int(H*0.08), int(W*TEXT_ZONE), int(H*0.92))).resize((64, 46))
     dark = min(_px(band), key=lum)
     c = contrast(over(dark, JU, TINT), INK)
-    return c >= HARD, c, '#%02X%02X%02X' % dark, '#%02X%02X%02X' % field, W/H
+    return {'c': c, 'dark': '#%02X%02X%02X' % dark, 'field': '#%02X%02X%02X' % field,
+            'ar': W/H, 'drop': drop, 'wh': (W, H)}
 
 if __name__ == '__main__':
+    strict = '--strict' in sys.argv          # 납품 검수(비율·목표대비까지 강제)
     bad = 0
-    for p in sys.argv[1:]:
-        ok, c, dk, fd, ar = check(p)
-        mark = '✅' if c >= WANT else ('⚠️ 하한만 통과' if ok else '❌ 탈락')
-        ratio = '' if abs(ar-1.6) < 0.04 else f'  ⚠️비율 {ar:.2f}(목표 1.60)'
-        print(f'{p.split("/")[-1]:<22} 대비 {c:5.2f}  최암부 {dk}  색면 {fd}  {mark}{ratio}')
-        if not ok: bad += 1
+    for p in [a for a in sys.argv[1:] if not a.startswith('--')]:
+        r = check(p); why = []
+        if r['c'] < HARD:                     why.append(f"대비 {r['c']:.2f} < {HARD} 하네스 탈락")
+        elif strict and r['c'] < WANT:        why.append(f"대비 {r['c']:.2f} < 목표 {WANT}")
+        if r['drop'] > CORNER_DROP:           why.append(f"좌상단 낙폭 {r['drop']:.3f} — 낙관·서명·짙은 획이 걸렸다")
+        if strict and abs(r['ar']-TARGET_AR) > 0.04: why.append(f"비율 {r['ar']:.2f} ≠ {TARGET_AR}")
+        mark = '✅' if not why else '❌ ' + ' · '.join(why)
+        print(f"{p.split('/')[-1]:<22} 대비 {r['c']:5.2f}  최암부 {r['dark']}  "
+              f"색면 {r['field']}  낙폭 {r['drop']:.3f}  {r['wh'][0]}x{r['wh'][1]}  {mark}")
+        if why: bad += 1
+    print(f"\n{'❌ ' + str(bad) + '장 탈락' if bad else '✅ 전량 통과'}"
+          f"{' (--strict: 비율·목표대비까지 검사)' if strict else ''}")
     sys.exit(1 if bad else 0)

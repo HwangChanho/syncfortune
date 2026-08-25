@@ -26,6 +26,13 @@
  *   B4 오행 막을 씌운 뒤에도 **글자영역 먹 대비 ≥ 4.5**(열 장 × 다섯 오행 전부 계산)
  *   B5 제목 한 줄이 **글자 자리에 들어간다**(③ 재발 방지 — 실제 문구를 재서 계산)
  *   B6 웹 자동회전이 `animated: true` 를 쓰지 않는다 · B7 점을 `onScroll` 로 맞춘다
+ *   B8 그림 **좌상단 35%×35% 가 균일**하다(낙관·먹 서명이 없다)
+ *
+ *  ⑤ **B4 에 사각지대가 있었다(2026-08-25 실측).**
+ *     최암부 밴드는 y 8~92% 만 본다. 그런데 색면(`field`)은 **y 0~35%** 를 뜬다.
+ *     ⇒ **맨 위 8% 에 있는 먹 서명은 대비 7.75 로 그대로 통과하면서** 글자 자리 색만 어둡게 만든다.
+ *     붉은 낙관은 색으로 거를 수 있어도 **먹 서명은 색으로 못 거른다** — 그래서 밝기 낙폭으로 잡는다.
+ *     현행 13장 실측 낙폭이 0.005~0.025 라 상한을 **0.05**(최대치의 2배)로 뒀다.
  *
  * 사용: npm run check:bannerart · 자가테스트: npx tsx scripts/check-bannerart.ts --selftest
  * 그림을 바꿨으면: npm run measure:bannerart (잰 값을 다시 만든다)
@@ -42,13 +49,15 @@ const P_DATA = 'scripts/data/banner-art-measured.json';
 
 /** 본문 글자 기준 최소 대비(WCAG AA). 제목은 큰 글자라 3.0 이면 되지만 부제가 이 기준을 받는다. */
 const MIN_CONTRAST = 4.5;
+/** 좌상단 낙폭 상한 — 현행 13장이 0.005~0.025 라 그 2배. 넘으면 구석에 낙관·서명이 있다. */
+const MAX_CORNER_DROP = 0.05;
 /** 기준 화면 — 가장 좁은 실기기 축에 맞춘다(iPhone SE/13 mini 는 375, 여기선 실기기 402 기준). */
 const SCREEN_PT = 402;
 /** 페이지 좌우 여백(홈 `body` 의 paddingHorizontal = space(4)). */
 const PAGE_PAD = 16;
 
 type Fail = { rule: string; msg: string };
-type Art = { sha256: string; field: string; darkest: string };
+type Art = { sha256: string; field: string; darkest: string; cornerDrop?: number };
 
 /** 주석을 걷어낸 소스 — '주석에 적힌 말'이 아니라 **코드**로 판정한다. */
 const code = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
@@ -162,6 +171,13 @@ export function audit(
     }
   }
 
+  // ── B8 좌상단이 균일한가 ──────────────────────────────────
+  for (const n of union) {
+    const d = arts[n]?.cornerDrop;
+    if (d === undefined) { out.push({ rule: 'B8', msg: `'${n}' 의 좌상단 낙폭을 안 쟀다 — npm run measure:bannerart` }); continue; }
+    if (d > MAX_CORNER_DROP) out.push({ rule: 'B8', msg: `bn-${n}.jpg 좌상단 낙폭 ${d.toFixed(3)} > ${MAX_CORNER_DROP} — 구석에 낙관·서명·짙은 획이 있다. 그 구석 중앙값이 **글자 자리 색 전체**가 되므로 색면이 오염된다` });
+  }
+
   // ── B6·B7 웹 캐러셀 ───────────────────────────────────────
   const scrollTo = ch.match(/scrollTo\(\{[^}]*\}\)/g) ?? [];
   if (!scrollTo.length) out.push({ rule: 'B6', msg: `${P_HOUSE} 에 scrollTo 가 없다 — 자동회전이 사라졌나?` });
@@ -174,8 +190,8 @@ export function audit(
 // ── 자가테스트 ─────────────────────────────────────────────
 if (process.argv.includes('--selftest')) {
   const arts: Record<string, Art> = {
-    balloon: { sha256: 'aaa', field: '#E7E8FD', darkest: '#E6E7FC' },
-    door: { sha256: 'bbb', field: '#FFEEDB', darkest: '#FCE0BC' },
+    balloon: { sha256: 'aaa', field: '#E7E8FD', darkest: '#E6E7FC', cornerDrop: 0.015 },
+    door: { sha256: 'bbb', field: '#FFEEDB', darkest: '#FCE0BC', cornerDrop: 0.021 },
   };
   const ok = {
     promo: `const TEXT_ZONE = '58%';\nexport const BANNER_TINT = 0.22;\nbody: { paddingVertical: space(5), paddingHorizontal: space(4), width: TEXT_ZONE },\ntitle: { fontSize: 21, lineHeight: 29 },`,
@@ -194,6 +210,8 @@ if (process.argv.includes('--selftest')) {
     ['B4 막 과다(0.5)', audit({ ...ok, promo: ok.promo.replace('0.22', '0.5') }, { ...arts, balloon: { ...arts.balloon, darkest: '#8CA4E7' } }, sha)],
     ['B5 제목이 넘침', audit({ ...ok, ko: `'moneyT': '내 재물 그릇은 얼마나 클까요?',` }, arts, sha)],
     ['B5 글자 너무 큼', audit({ ...ok, promo: ok.promo.replace('fontSize: 21', 'fontSize: 34') }, arts, sha)],
+    ['B8 좌상단에 서명', audit(ok, { ...arts, balloon: { ...arts.balloon, cornerDrop: 0.72 } }, sha)],
+    ['B8 낙폭을 안 쟀다', audit(ok, { ...arts, balloon: { sha256: 'aaa', field: '#E7E8FD', darkest: '#E6E7FC' } }, sha)],
     ['B6 웹에도 animated:true', audit({ ...ok, house: `scrollTo({ x: 1, animated: true });\n<ScrollView onScroll={onScroll} />` }, arts, sha)],
     ['B7 onScroll 제거', audit({ ...ok, house: `scrollTo({ x: 1, animated: Platform.OS !== 'web' });` }, arts, sha)],
   ];
@@ -204,7 +222,7 @@ if (process.argv.includes('--selftest')) {
     if (passed !== shouldPass) { console.error(`❌ 자가테스트 실패: ${name} → ${passed ? '통과' : fails.map((f) => f.rule).join(',')}`); bad++; }
     else console.log(`  ✓ ${name} → ${passed ? '통과' : [...new Set(fails.map((f) => f.rule))].join(',')}`);
   }
-  console.log(bad ? `\n❌ 자가테스트 ${bad}건 실패` : '\n✅ check:bannerart 자가테스트 통과 (11케이스)');
+  console.log(bad ? `\n❌ 자가테스트 ${bad}건 실패` : '\n✅ check:bannerart 자가테스트 통과 (13케이스)');
   process.exit(bad ? 1 : 0);
 }
 

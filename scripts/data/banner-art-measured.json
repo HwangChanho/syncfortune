@@ -6,67 +6,80 @@
   "balloon": {
    "sha256": "7bf480c00ebd2944",
    "field": "#EADDCD",
-   "darkest": "#E9DCCC"
+   "darkest": "#E9DCCC",
+   "cornerDrop": 0.0148
   },
   "butterfly": {
    "sha256": "529195a3e9a472e0",
    "field": "#E6D7C4",
-   "darkest": "#C4A17B"
+   "darkest": "#C4A17B",
+   "cornerDrop": 0.0248
   },
   "candle": {
    "sha256": "7a9a6a9dad38b723",
    "field": "#ECE0D1",
-   "darkest": "#EADDCD"
+   "darkest": "#EADDCD",
+   "cornerDrop": 0.023
   },
   "clover": {
    "sha256": "e45dad4984c21789",
    "field": "#F0E6DA",
-   "darkest": "#C6A179"
+   "darkest": "#C6A179",
+   "cornerDrop": 0.0161
   },
   "compass": {
    "sha256": "65bc9600d2505c2d",
    "field": "#ECDFCF",
-   "darkest": "#C5A17C"
+   "darkest": "#C5A17C",
+   "cornerDrop": 0.0224
   },
   "couple": {
    "sha256": "71bf328ef98f733c",
    "field": "#EEE2D4",
-   "darkest": "#DCC3A8"
+   "darkest": "#DCC3A8",
+   "cornerDrop": 0.0228
   },
   "door": {
    "sha256": "8ad55ca17f04f9e2",
    "field": "#F1E7DC",
-   "darkest": "#E6D5C2"
+   "darkest": "#E6D5C2",
+   "cornerDrop": 0.0162
   },
   "forest": {
    "sha256": "7283f06c9678b53a",
    "field": "#C7A47E",
-   "darkest": "#C3A07B"
+   "darkest": "#C3A07B",
+   "cornerDrop": 0.0052
   },
   "moonlake": {
    "sha256": "06ea225b12e433c2",
    "field": "#E1CFB9",
-   "darkest": "#C6A17A"
+   "darkest": "#C6A17A",
+   "cornerDrop": 0.022
   },
   "pen": {
    "sha256": "e32d8b8b36a120b5",
    "field": "#EADCCD",
-   "darkest": "#C2A081"
+   "darkest": "#C2A081",
+   "cornerDrop": 0.0131
   },
   "stairs": {
    "sha256": "333721f2183ae2f3",
    "field": "#E6D5C3",
-   "darkest": "#E4D3BF"
+   "darkest": "#E4D3BF",
+   "cornerDrop": 0.0212
   },
   "sunrise": {
    "sha256": "34ff64243ed9bd26",
    "field": "#ECDED0",
-   "darkest": "#D0B495"
+   "darkest": "#D0B495",
+   "cornerDrop": 0.015
   },
   "tree": {
    "sha256": "1a923e72e0071b12",
    "field": "#F1E7DD",
-   "darkest": "#DCCBB7"
+   "darkest": "#DCCBB7",
+   "cornerDrop": 0.0177
   }
  }
 }
