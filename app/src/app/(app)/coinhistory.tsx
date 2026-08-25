@@ -19,6 +19,7 @@ import { useTranslation } from 'react-i18next';
 import { supabase } from '../../lib/supabase';
 import { withTimeout } from '../../lib/core/withTimeout';   // ★supabase 는 기본 타임아웃이 없다(멈춤 근절)
 import { PressableScale } from '../../components/PressableScale';
+import { coinLedgerLabel } from '../../lib/content/coinLedgerLabel';   // 내역 한 줄을 그 나라 말로(Boss 08-25)
 import { colors, radius, space, font, shadow } from '../../lib/theme';
 
 /** 원장 한 줄. delta 가 +면 충전·보상, −면 사용. */
@@ -70,7 +71,10 @@ export default function CoinHistoryScreen() {
               <View key={e.id} style={[styles.row, i < arr.length - 1 && styles.rowLine]}>
                 <View style={styles.rowL}>
                   <Text style={styles.rowTitle} numberOfLines={1}>
-                    {e.reason || (plus ? t('coinHistory.charge', '운 충전') : t('coinHistory.use', '운 사용'))}
+                    {/* ★서버 원문(`spend`·`purchase` 같은 **코드**)을 그대로 찍지 않는다 —
+                        한국 사용자에겐 영어 코드가, 영어·일본어 사용자에겐 번역 안 된 값이 떴다.
+                        `reason`(무슨 일이) × `kind`(무엇에) 를 둘 다 읽어 그 나라 말로 적는다. */}
+                    {coinLedgerLabel(e.reason, e.kind, e.delta, t)}
                   </Text>
                   <Text style={styles.rowDate}>{e.created_at.slice(0, 10)}</Text>
                 </View>

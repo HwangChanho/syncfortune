@@ -18,6 +18,17 @@
 // ⚠️영어(en.ts)·일본어(ja.ts)는 **키가 같아야** 합니다. 여기서 키를 추가/삭제하면 그쪽도 같이 해야 합니다.
 // ═══════════════════════════════════════════════════════════════════════════
 export const ko = {
+  screen: {
+    shared: '공유받은 풀이',
+    register: '차트 등록',
+    coinhistory: '결제/충전 내역',
+    charts: '만세력',
+    moment: '모먼트',
+    light: '가볍게 보기',
+    biorhythm: '바이오리듬',
+    coins: '운 충전',
+    market: '마켓',
+  },
   appName: '니운내운',
   tagline: '나와 타인을 이해하는 AI 나침반',
   // 홈 카드 개인화 티저 — 대표 명식으로 계산한 '내 얘기' 한 줄(계산=lib/content/homeTeaser.ts, 문구=여기).
@@ -659,6 +670,22 @@ export const ko = {
   },
   analyzed: { done: '분석이 완료되었어요!', ilju: '일주', is: '입니다.', next: '내 명식 보기', sub: '당신의 사주를 확인해 보세요.', you: '당신은' },
   coinHistory: {
+    adFreeForever: '광고 제거 (평생)',
+    kindCoach: '팔자 도우미',
+    kindFuture10: '10년 흐름',
+    kindQaTopup: '테스트 지급',
+    coinPack: '{{n}} 운',
+    adFree: '광고 제거 {{d}}일',
+    kindTalk: '상담가 대화',
+    kindReading: '사주 풀이',
+    rPurchaseWhat: '{{what}} 충전',
+    rPurchase: '운 충전',
+    rSpendWhat: '{{what}}에 사용',
+    rSpend: '운 사용',
+    rRefundWhat: '{{what}} 환불',
+    rRefund: '환불',
+    rGift: '선물 받은 운',
+    rMigrate: '이전 잔액 이관',
     'charge': '운 충전',
     'empty': '아직 충전·사용 내역이 없어요.',
     'failed': '내역을 불러오지 못했어요.',

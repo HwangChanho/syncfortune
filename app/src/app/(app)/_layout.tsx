@@ -4,6 +4,7 @@
 // 무료 사용자 = 하단 AdBanner 고정 / 프리미엄(구독) = 광고 없음(ADR-043).
 // ─────────────────────────────────────────────────────────────────────────
 import { Stack, usePathname } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { View, Platform } from 'react-native';
 import { useEffect } from 'react';
 import { clearGenByPath } from '../../lib/backend/genProgress'; // 화면 접근 시 그 풀이 알림 배너 해제(daniel ⑨)
@@ -26,6 +27,9 @@ export const unstable_settings = { initialRouteName: 'index' };
 let lastLoggedPath: string | null = null;
 
 export default function AppLayout() {
+  // ★화면 제목도 그 나라 말로 — 종전엔 한국어가 박혀 있어 en/ja 사용자에게 그대로 떴다
+  //   (Boss 2026-08-25 «해당국가 언어로». 관리자 전용 둘은 한국어가 정본이라 그대로 둔다.)
+  const { t } = useTranslation();
   const { fs } = useFontScale();   // 글자크기 설정 → 헤더 타이틀 반응(daniel). 뒤로버튼은 iOS 네이티브.
   const wideWeb = useWideWeb();    // 넓은 웹 = 하단 탭 대신 좌측 사이드바(아래 렌더 참조)
   // 해당 화면을 어떤 루트로든 접근하면 그 풀이의 홈 알림 배너 해제(daniel ⑨). 홈('/')은 제외(배너 노출 유지).
@@ -102,7 +106,7 @@ export default function AppLayout() {
         <Stack.Screen name="friends" options={{ headerShown: false }} />
         <Stack.Screen name="friendcompat" options={{ headerShown: false }} />
         <Stack.Screen name="talk" options={{ headerShown: false, animation: 'none' }} />
-        <Stack.Screen name="register" options={{ title: '차트 등록' }} />
+        <Stack.Screen name="register" options={{ title: t('screen.register', '차트 등록') }} />
         <Stack.Screen name="myeongsik" options={{ headerTitle: '' }} />
         <Stack.Screen name="sinsal" options={{ headerTitle: '' }} />
         <Stack.Screen name="reading" options={{ headerTitle: '' }} />
@@ -118,12 +122,12 @@ export default function AppLayout() {
         <Stack.Screen name="favorites" options={{ headerShown: false }} />
         <Stack.Screen name="notifications" options={{ headerShown: false }} />
         <Stack.Screen name="analyzed" options={{ headerShown: false }} />
-        <Stack.Screen name="coinhistory" options={{ title: '결제/충전 내역' }} />
+        <Stack.Screen name="coinhistory" options={{ title: t('screen.coinhistory', '결제/충전 내역') }} />
         <Stack.Screen name="compat" options={{ headerTitle: '' }} />
         <Stack.Screen name="taro" options={{ headerTitle: '' }} />
         <Stack.Screen name="today" options={{ headerTitle: '' }} />
         <Stack.Screen name="month" options={{ headerTitle: '' }} />
-        <Stack.Screen name="charts" options={{ title: '만세력' }} />
+        <Stack.Screen name="charts" options={{ title: t('screen.charts', '만세력') }} />
         <Stack.Screen name="traits" options={{ headerTitle: '' }} />
         <Stack.Screen name="dayPillar" options={{ headerTitle: '' }} />
         <Stack.Screen name="pet" options={{ headerTitle: '' }} />
@@ -160,11 +164,11 @@ export default function AppLayout() {
             (daniel 2026-08-07 IMG_8418 "커뮤니티 상단에 여백이 너무 많아"). 제목 없는 헤더 ≈59pt +
             카테고리 칩바 44pt 가 겹쳤다. 다른 탭(index·coach·contents)과 같은 규칙으로 맞춘다. */}
         <Stack.Screen name="community" options={{ headerShown: false, animation: 'none' }} />
-        <Stack.Screen name="moment" options={{ title: '모먼트' }} />
+        <Stack.Screen name="moment" options={{ title: t('screen.moment', '모먼트') }} />
         {/* 가볍게 보기 — 명식 없이 생년월일만으로 즉시 결과(신규 유입 · docs/PLAN_light_mode.md L1) */}
-        <Stack.Screen name="light" options={{ title: '가볍게 보기' }} />
-        <Stack.Screen name="biorhythm" options={{ title: '바이오리듬' }} />
-        <Stack.Screen name="coins" options={{ title: '운 충전' }} />
+        <Stack.Screen name="light" options={{ title: t('screen.light', '가볍게 보기') }} />
+        <Stack.Screen name="biorhythm" options={{ title: t('screen.biorhythm', '바이오리듬') }} />
+        <Stack.Screen name="coins" options={{ title: t('screen.coins', '운 충전') }} />
         <Stack.Screen name="joseonjob" options={{ headerTitle: '' }} />
         <Stack.Screen name="lovestyle" options={{ headerTitle: '' }} />
         <Stack.Screen name="bok" options={{ headerTitle: '' }} />
@@ -177,8 +181,9 @@ export default function AppLayout() {
         <Stack.Screen name="dream" options={{ headerTitle: '' }} />
         <Stack.Screen name="taemong" options={{ headerTitle: '' }} />
         {/* 프리미엄 허브 제거 — 홈 사주/자미 → 원국풀이(/reading·/ziwei) 직접 진입(daniel 07-01) */}
-        <Stack.Screen name="market" options={{ title: '마켓', animation: 'none' }} />
-        <Stack.Screen name="shared/[id]" options={{ title: '공유받은 풀이' }} />
+        <Stack.Screen name="market" options={{ title: t('screen.market', '마켓'), animation: 'none' }} />
+        <Stack.Screen name="shared/[id]" options={{ title: t('screen.shared', '공유받은 풀이') }} />
+        {/* ★아래 둘은 **운영자만** 본다 — 한국어가 정본이라 다국어로 안 뺀다(빼면 관리 화면이 더 헷갈린다) */}
         <Stack.Screen name="admin" options={{ title: '관리자' }} />
         <Stack.Screen name="coststable" options={{ title: '비용·수익 분석' }} />
       </Stack>
