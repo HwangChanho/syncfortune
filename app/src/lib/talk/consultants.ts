@@ -22,6 +22,8 @@ export type Consultant = {
   linkUrl?: string | null;
   linkLabel?: string | null;
   avatar: string | null;
+  /** 프로필 창의 **배경 사진**(카카오톡식). 없으면 오행 색면으로 채운다 */
+  cover?: string | null;
   specialty: string[];
   /** 프로필 사진 **URL**(경로 아님 — `fromRow` 가 이미 바꿔 놨다) */
   avatarUrlOnly?: never;
@@ -89,6 +91,7 @@ function fromRow(r: any): Consultant {
     tagline: r.tagline ?? null,
     // ★경로가 아니라 **완성된 URL** 로 내려준다 — 화면이 어느 버킷인지 알 필요가 없다
     avatar: r.avatar ? avatarUrl(String(r.avatar)) : null,
+    cover: r.cover ? avatarUrl(String(r.cover)) : null,
     specialty: Array.isArray(r.specialty) ? r.specialty : [],
     routes: Array.isArray(r.routes) ? r.routes : [],
     blocks: Array.isArray(r.blocks) ? r.blocks : [],
@@ -115,7 +118,7 @@ export async function listConsultants(force = false): Promise<Consultant[]> {
       //   관리자 정책이 `for all` 이라 **관리자에게는 비활성 상담사까지 보인다**
       //   (정책은 OR 로 합쳐진다). 실제로 준비 중인 「노쎔」이 친구목록에 떠 있었다.
       //   ⇒ RLS 는 '볼 권한'을 정하고, 쿼리는 '지금 보여줄 것'을 정한다. 둘은 다르다.
-      supabase.from('consultants').select('id,kind,name,tagline,avatar,specialty,routes,blocks,group_key,sort_order, link_url, link_label')
+      supabase.from('consultants').select('id,kind,name,tagline,avatar,cover,specialty,routes,blocks,group_key,sort_order, link_url, link_label')
         .eq('enabled', true).order('sort_order'),
       8000,
     );

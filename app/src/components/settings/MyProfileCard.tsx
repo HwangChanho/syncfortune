@@ -19,7 +19,7 @@ import { View, Text, StyleSheet, TextInput, Platform, ActivityIndicator } from '
 import { Image as ExpoImage } from 'expo-image';
 import { useTranslation } from 'react-i18next';
 import { PressableScale } from '../PressableScale';
-import { loadMyProfile, saveMyName, uploadMyAvatar, clearMyAvatar } from '../../lib/talk/myProfile';
+import { loadMyProfile, saveMyName, uploadMyAvatar, clearMyAvatar, uploadMyCover, clearMyCover } from '../../lib/talk/myProfile';
 import { colors, space, radius, font, activeElement } from '../../lib/theme';
 import { elementColor, elementText } from '../../lib/engine/ohaeng';
 
@@ -36,12 +36,15 @@ export function MyProfileCard({ fallbackName, element }: { fallbackName?: string
   const { t } = useTranslation();
   const [name, setName] = useState('');
   const [avatar, setAvatar] = useState<string | null>(null);
+  // ★배경 사진(카카오톡식 프로필 창의 윗면) — Boss 2026-08-26 «유저도 등록 가능하게»
+  const [cover, setCover] = useState<string | null>(null);
+  const coverRef = useRef<any>(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const fileRef = useRef<any>(null);
 
   useEffect(() => {
-    void loadMyProfile().then((p) => { setName(p.name ?? ''); setAvatar(p.avatarUrl); });
+    void loadMyProfile().then((p) => { setName(p.name ?? ''); setAvatar(p.avatarUrl); setCover(p.coverUrl); });
   }, []);
 
   const flash = (m: string) => { setMsg(m); setTimeout(() => setMsg(null), 2400); };
@@ -70,11 +73,43 @@ export function MyProfileCard({ fallbackName, element }: { fallbackName?: string
 
   const onClear = async () => { setBusy(true); await clearMyAvatar(); setBusy(false); setAvatar(null); };
 
+  // ★배경도 **같은 관용**이다 — 고르기·지우기가 사진과 나란히 있어야 «둘 다 바꿀 수 있다»가 읽힌다
+  const onPickCover = () => coverRef.current?.click?.();
+  const onCoverFile = async (e: any) => {
+    const f = e?.target?.files?.[0];
+    if (!f) return;
+    setBusy(true);
+    const r = await uploadMyCover(f);
+    setBusy(false);
+    if (r.ok && r.url) { setCover(r.url); flash(t('profile.saved', '저장했어요')); }
+    else flash(r.error === 'too_large'
+      ? t('profile.coverTooLarge', '4MB 이하 사진만 올릴 수 있어요')
+      : t('profile.saveFail', '저장하지 못했어요'));
+    if (e.target) e.target.value = '';
+  };
+  const onClearCover = async () => { setBusy(true); await clearMyCover(); setBusy(false); setCover(null); };
+
   const initial = (name.trim() || fallbackName || '나').slice(0, 1);
   // ★색은 **대표 명식**의 오행. 못 받았으면 테마 색(종전 동작)으로 떨어진다
   const el = element && elementColor[element] ? element : activeElement;
   return (
     <View style={styles.card}>
+      {/* ★배경 사진 — 프로필 창에서 이 자리가 윗면이 된다. 없으면 오행 색면 */}
+      <View style={[styles.cover, { backgroundColor: elementColor[el] }]}>
+        {cover ? <ExpoImage source={{ uri: cover }} style={StyleSheet.absoluteFill} contentFit="cover" transition={140} /> : null}
+        {Platform.OS === 'web' ? (
+          <View style={styles.coverBtns}>
+            <PressableScale style={styles.coverBtn} onPress={onPickCover} disabled={busy}>
+              <Text style={styles.coverBtnTx}>{t('profile.pickCover', '배경 바꾸기')}</Text>
+            </PressableScale>
+            {cover ? (
+              <PressableScale style={styles.coverBtn} onPress={onClearCover} disabled={busy}>
+                <Text style={styles.coverBtnTx}>{t('profile.clearCover', '배경 지우기')}</Text>
+              </PressableScale>
+            ) : null}
+          </View>
+        ) : null}
+      </View>
       <View style={styles.row}>
         {avatar
           ? <ExpoImage source={{ uri: avatar }} style={styles.av} contentFit="cover" transition={140} />
@@ -122,6 +157,8 @@ export function MyProfileCard({ fallbackName, element }: { fallbackName?: string
 
       {/* 숨긴 파일 입력 — 웹에서만 렌더된다(네이티브에는 DOM 이 없다) */}
       {Platform.OS === 'web' ? <WebFileInput inputRef={fileRef} onChange={onFile} /> : null}
+      {/* ★배경용 파일 입력도 **따로** 둔다 — 하나를 돌려 쓰면 어느 쪽을 고른 건지 알 수 없다 */}
+      {Platform.OS === 'web' ? <WebFileInput inputRef={coverRef} onChange={onCoverFile} /> : null}
     </View>
   );
 }
@@ -134,6 +171,11 @@ function WebFileInput({ inputRef, onChange }: { inputRef: any; onChange: (e: any
 }
 
 const styles = StyleSheet.create({
+  // 배경 사진 — 카카오톡식 프로필 창의 윗면과 **같은 그림**이다
+  cover: { height: 110, borderRadius: radius.md, overflow: 'hidden', marginBottom: space(3), justifyContent: 'flex-end' },
+  coverBtns: { flexDirection: 'row', gap: space(1.5), padding: space(2) },
+  coverBtn: { paddingVertical: space(1.5), paddingHorizontal: space(3), borderRadius: radius.pill, backgroundColor: 'rgba(0,0,0,0.45)' },
+  coverBtnTx: { ...font.caption, color: '#FFFFFF', fontWeight: '800' },
   card: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.line, padding: space(4), gap: space(3), marginTop: space(2) },
   row: { flexDirection: 'row', alignItems: 'center', gap: space(4) },
   av: { width: 64, height: 64, borderRadius: radius.md * 1.2 },

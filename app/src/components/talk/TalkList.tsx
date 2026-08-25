@@ -21,6 +21,7 @@ import { View, Text, StyleSheet, ScrollView, TextInput, Platform } from 'react-n
 import { Image as ExpoImage } from 'expo-image';
 import { useTranslation } from 'react-i18next';
 import { PressableScale } from '../PressableScale';
+import { ProfileSheet, type ProfileTarget } from './ProfileSheet';   // 카카오톡식 프로필 창(Boss 08-26)
 import { Swipeable } from 'react-native-gesture-handler';
 import type { HomeBlockKey } from '../../lib/ui/homeOrder';
 import { colors, space, radius, font } from '../../lib/theme';
@@ -90,9 +91,12 @@ function Avatar({ name, initial, slot, uri, size = 48, element }: {
  * @param slot 얼굴색 자리(전체 목록 기준 — 즐겨찾기로 올라가도 얼굴이 안 바뀐다)
  */
 
-function Row({ c, initial, slot, on, onOpen, t }: {
+function Row({ c, initial, slot, on, onOpen, onPhoto, t }: {
   c: Consultant & { lastAt?: string | null; unread?: number }; initial?: string; slot: number; on: boolean;
-  onOpen: (c: Consultant) => void; t: (k: string, d?: string) => string;
+  onOpen: (c: Consultant) => void;
+  /** ★사진을 누르면 **대화가 아니라 프로필 창**이 뜬다(Boss 2026-08-26 카카오톡식) */
+  onPhoto: (c: Consultant, element: string) => void;
+  t: (k: string, d?: string) => string;
 }) {
   const pinned = isPinned(c.id);
   const faved = isFavorite(c.id);
@@ -122,7 +126,11 @@ function Row({ c, initial, slot, on, onOpen, t }: {
 
   const row = (
     <PressableScale style={[styles.row, on && styles.rowOn]} onPress={() => onOpen(c)}>
-      <Avatar name={c.name} initial={initial} slot={slot} uri={c.avatar} />
+      {/* ★사진만 따로 눌린다 — 줄을 누르면 대화, 사진을 누르면 프로필 창.
+          카카오톡이 그렇고, 사람들이 그렇게 기대한다. */}
+      <PressableScale onPress={() => onPhoto(c, FALLBACK_EL[slot % FALLBACK_EL.length])} hitSlop={4}>
+        <Avatar name={c.name} initial={initial} slot={slot} uri={c.avatar} />
+      </PressableScale>
       <View style={styles.col}>
         <View style={styles.nameRow}>
           <Text style={styles.name} numberOfLines={1}>{c.name}</Text>
@@ -282,7 +290,16 @@ export function TalkList({ items, onOpen, selected, myName, onMe, myAvatar, rail
   /** 즐겨찾기 칸 — 서버 순서 그대로(별을 켠 순서가 아니라 목록 순서라야 매번 같은 자리다). */
   const favRows = useMemo(() => shown.filter((c) => isFavorite(c.id)), [shown, favTick]);
 
+  // ★프로필 창(카카오톡식) — 사진을 누르면 뜬다. 줄 전체를 누르면 종전대로 대화가 열린다
+  const [profile, setProfile] = useState<ProfileTarget | null>(null);
+  const openPhoto = (c: Consultant, element: string) => setProfile({
+    name: c.name, tagline: c.tagline, avatar: c.avatar, cover: c.cover,
+    linkUrl: c.linkUrl, linkLabel: c.linkLabel, element,
+    onTalk: () => onOpen(c),
+  });
+
   return (
+    <>
     <ScrollView style={styles.wrap} contentContainerStyle={styles.body}>
       {/* ── 상단 — ★콘티 1면 그대로: **워드마크 좌 · 돋보기 · ⊕** ─────────────
           ⚠️★내 프로필 행(얼굴 + 이름)을 **뺐다**.
@@ -386,7 +403,7 @@ export function TalkList({ items, onOpen, selected, myName, onMe, myAvatar, rail
           <Text style={styles.groupHead}>{t('talk.favorites', '즐겨찾기')}</Text>
           {favRows.map((c) => (
             <Row key={`fav-${c.id}`} c={c} initial={initialOf(c.id)} slot={slotOf(c.id)}
-                 on={selected === c.id} onOpen={onOpen} t={t as never} />
+                 on={selected === c.id} onOpen={onOpen} onPhoto={openPhoto} t={t as never} />
           ))}
         </>
       ) : null}
@@ -414,7 +431,7 @@ export function TalkList({ items, onOpen, selected, myName, onMe, myAvatar, rail
             ) : null}
             {list.map((c) => (
               <Row key={c.id} c={c} initial={initialOf(c.id)} slot={slotOf(c.id)}
-                   on={selected === c.id} onOpen={onOpen} t={t as never} />
+                   on={selected === c.id} onOpen={onOpen} onPhoto={openPhoto} t={t as never} />
             ))}
           </View>
         );
@@ -446,6 +463,8 @@ export function TalkList({ items, onOpen, selected, myName, onMe, myAvatar, rail
         : null}
       {footer}
     </ScrollView>
+    <ProfileSheet target={profile} onClose={() => setProfile(null)} />
+    </>
   );
 }
 

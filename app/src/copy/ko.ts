@@ -400,6 +400,9 @@ export const ko = {
          // ↓ 탭에서는 빠졌지만 마이페이지 메뉴·설정이 계속 쓰는 이름들(2026-08-18 4탭 전환)
          contents: '풀이', community: '운광장', coach: '우니', market: '마켓' },
   profile: { title: '내 프로필', namePh: '이름', pick: '사진 바꾸기', clear: '사진 지우기',
+    pickCover: '배경 바꾸기',
+    clearCover: '배경 지우기',
+    coverTooLarge: '4MB 이하 사진만 올릴 수 있어요',
     saved: '저장했어요', saveFail: '저장하지 못했어요', tooLarge: '2MB 이하 사진만 올릴 수 있어요',
     hint: '비워 두면 명식 이름으로 표시돼요.', mobileSoon: '사진 바꾸기는 다음 업데이트에서 열려요. 지금은 웹에서 바꿀 수 있어요.' },
   fcompat: { gone: '친구 목록에 없는 사람이에요.',

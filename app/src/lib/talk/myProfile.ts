@@ -15,7 +15,9 @@
 import { supabase } from '../supabase';
 import { withTimeout } from '../core/withTimeout';
 
-export type MyProfile = { name: string | null; avatarUrl: string | null };
+export type MyProfile = { name: string | null; avatarUrl: string | null; coverUrl: string | null };
+// ★`coverUrl` = 카카오톡식 프로필의 **배경 사진**(Boss 2026-08-26 *"배경이미지 사진이미지 있는창"*).
+//   아바타와 **같은 버킷·같은 관용**을 쓴다(첫 칸이 내 uid · 같은 경로 덮어쓰기 + 버전 쿼리).
 
 let _cache: MyProfile | null = null;
 const subs = new Set<() => void>();
@@ -29,7 +31,7 @@ const notify = () => subs.forEach((f) => f());
 
 /** 지금 캐시된 값(동기 — 첫 렌더용). */
 export function profileSnapshot(): MyProfile {
-  return _cache ?? { name: null, avatarUrl: null };
+  return _cache ?? { name: null, avatarUrl: null, coverUrl: null };
 }
 
 /**
@@ -38,7 +40,7 @@ export function profileSnapshot(): MyProfile {
  */
 export async function loadMyProfile(): Promise<MyProfile> {
   const r = await withTimeout(
-    supabase.from('profiles').select('display_name, avatar_path').maybeSingle(),
+    supabase.from('profiles').select('display_name, avatar_path, cover_path').maybeSingle(),
     8000,
   );
   const row = r && !r.error ? (r.data as any) : null;
@@ -49,6 +51,7 @@ export async function loadMyProfile(): Promise<MyProfile> {
     //   ⇒ 사용자가 설정에서 저장하면 그 값이 들어와 이 검사를 통과한다.
     name: displayNameOf(row?.display_name),
     avatarUrl: row?.avatar_path ? publicUrl(row.avatar_path) : null,
+    coverUrl: row?.cover_path ? publicUrl(row.cover_path) : null,
   };
   notify();
   return _cache;
@@ -119,6 +122,42 @@ export async function clearMyAvatar(): Promise<{ ok: boolean; error?: string }> 
     .upsert({ id: user.id, avatar_path: null }, { onConflict: 'id' });
   if (error) return { ok: false, error: error.message };
   _cache = { ...profileSnapshot(), avatarUrl: null };
+  notify();
+  return { ok: true };
+}
+
+/**
+ * 배경 사진 올리기 — 아바타와 **같은 관용**이다(경로 첫 칸이 내 uid · 덮어쓰기 + 버전 쿼리).
+ *
+ * @param file 브라우저 File 객체(웹) — 모바일은 `expo-image-picker` 가 붙은 뒤에 지원한다
+ */
+export async function uploadMyCover(file: Blob & { name?: string; type?: string }): Promise<{ ok: boolean; url?: string; error?: string }> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: 'unauthorized' };
+  // ⚠️배경은 가로로 넓어 아바타보다 크다 — 그래도 4MB 를 넘기지 않는다(느린 망에서 화면이 늦게 뜬다)
+  if (file.size > 4 * 1024 * 1024) return { ok: false, error: 'too_large' };
+  const ext = (file.type ?? '').includes('png') ? 'png' : (file.type ?? '').includes('webp') ? 'webp' : 'jpg';
+  const path = `${user.id}/cover.${ext}`;
+  const up = await supabase.storage.from('avatars')
+    .upload(path, file, { upsert: true, contentType: file.type || 'image/jpeg' });
+  if (up.error) return { ok: false, error: up.error.message };
+  const { error } = await supabase.from('profiles')
+    .upsert({ id: user.id, cover_path: path }, { onConflict: 'id' });
+  if (error) return { ok: false, error: error.message };
+  const url = `${publicUrl(path)}?v=${Date.now()}`;
+  _cache = { ...profileSnapshot(), coverUrl: url };
+  notify();
+  return { ok: true, url };
+}
+
+/** 배경 사진 지우기 — 파일은 남기고 참조만 끊는다(되돌릴 여지). */
+export async function clearMyCover(): Promise<{ ok: boolean; error?: string }> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: 'unauthorized' };
+  const { error } = await supabase.from('profiles')
+    .upsert({ id: user.id, cover_path: null }, { onConflict: 'id' });
+  if (error) return { ok: false, error: error.message };
+  _cache = { ...profileSnapshot(), coverUrl: null };
   notify();
   return { ok: true };
 }
