@@ -16,7 +16,7 @@
 //
 // 로그인 게이트 없음(ADR-037).
 // ─────────────────────────────────────────────────────────────────────────
-import { View, Text, StyleSheet, Animated, AppState } from 'react-native';
+import { View, StyleSheet, Animated, AppState } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context'; // ★상단 안전영역 — 고정 여백은 글자확대 시 잘린다(daniel 07-27)
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useAuth } from '../../lib/useAuth';
@@ -34,8 +34,7 @@ import { scheduleDailyFortune } from '../../lib/backend/notifications'; // 매�
 import { scheduleLuckAlerts } from '../../lib/backend/luckAlerts'; // 시기 예고(대운 교체·세운 전환) 로컬 알림 — 리텐션 Phase 2
 import { computeChart } from '../../lib/engine/engine'; // ★canonical 명식 빌더 단일화(daniel 07-23) — 홈이 raw buildSajuChart 직접호출 시 세운·interactions 누락→신강약 드리프트(홈 33 vs 상세 59)
 import { colors, radius, space, shadow, font } from '../../lib/theme';
-import { useFontScale } from '../../lib/ui/fontScale';
-import { PressableScale } from '../../components/PressableScale';
+import { GenReplyBanner } from '../../components/GenReplyBanner';   // 풀이 진행 = 담당자의 답장(Boss 08-25)
 import { HomeOrderEditModal } from '../../components/HomeOrderEditModal';
 import { useWebCols } from '../../components/WebShell';
 
@@ -47,7 +46,7 @@ export default function Home() {
   //   상수는 기기 노치·다이내믹아일랜드·글자배율 어느 것도 반영하지 못한다 → 실제 안전영역을 쓴다.
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { fs } = useFontScale(); // 남은 인라인 글자 크기(명식 없음 안내 등)
+  // ★`useFontScale` 은 더 이상 여기서 안 쓴다 — 인라인 글자가 `GenReplyBanner` 로 옮겨갔다.
   const gen = useGenProgress(); // 통변 생성 진행률(풀이중 홈 나가면 여기 배너로 %)
   // I(daniel): %가 움직이도록 — 진행 중 풀이가 있으면 주기 리렌더(단일 콜의 추정 % 갱신). 진행 없으면 타이머 미동작.
   const [, setTick] = useState(0);
@@ -155,20 +154,25 @@ export default function Home() {
         {!wideWebHome && <BrandWordmark />}
       </View>
 
-      {/* 통변 생성 진행률(daniel) — 여러 개 동시 풀이 가능 → route별 배너 여러 개. 탭=그 화면 이동 + 그 배너만 닫기.
-          ★이 배너는 '알림'이라 배치 순서 대상이 아니다(항상 최상단 고정). */}
-      {gen.map((g) => (g.total > 0 && g.done >= g.total ? (
-        // 완료(daniel 이슈13): '풀이 보기' — 탭하면 그 화면 이동 + 그 배너만 닫기(다른 풀이 배너는 유지).
-        <PressableScale key={g.route} onPress={() => { clearGenProgress(g.route); router.navigate(g.route as any); }} style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.ju, borderRadius: radius.md, paddingVertical: space(2.5), paddingHorizontal: space(4), marginBottom: space(3), gap: space(2) }}>
-          <Text style={{ color: colors.bg, fontWeight: '800', fontSize: fs(13), flex: 1 }}>{g.chartLabel ? g.chartLabel + ' — ' : ''}{g.label} 풀이가 완성됐어요!</Text>
-          <Text style={{ color: colors.bg, fontWeight: '800', fontSize: fs(13) }}>풀이 보기 ›</Text>
-        </PressableScale>
-      ) : (
-        <PressableScale key={g.route} onPress={() => router.navigate(g.route as any)} style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.juSoft, borderColor: colors.ju, borderWidth: 1, borderRadius: radius.md, paddingVertical: space(2.5), paddingHorizontal: space(4), marginBottom: space(3), gap: space(2) }}>
-          <Text style={{ color: colors.ju, fontWeight: '700', fontSize: fs(13), flex: 1 }}>{g.restored ? `이전에 진행중이던 ${g.chartLabel ? g.chartLabel + ' — ' : ''}${g.label} 풀이가 있어요` : `${g.chartLabel ? g.chartLabel + ' — ' : ''}${g.label} 풀이 중… ${g.total > 1 ? `${g.done}/${g.total} ` : ''}${genPct(g.done, g.total, g.startedAt)}%`}</Text>
-          <Text style={{ color: colors.ju, fontWeight: '700', fontSize: fs(13) }}>이어보기 ›</Text>
-        </PressableScale>
-      )))}
+      {/* 풀이 진행 알림 — ★진행률 막대가 아니라 **담당자의 답장**이다(Boss 2026-08-25).
+          담당은 `consultants.routes` 를 뒤집어 찾는다(`genReplier`) — 여기서 다시 분류하지 않는다.
+          여러 개 동시 풀이 가능 → route별로 한 줄씩. 탭 = 그 화면 이동(+완료면 그 줄만 닫기).
+          ★이 줄은 '알림'이라 배치 순서 대상이 아니다(항상 최상단 고정). */}
+      {gen.map((g, i) => {
+        const finished = g.total > 0 && g.done >= g.total;
+        return (
+          <GenReplyBanner
+            key={g.route}
+            route={g.route}
+            label={g.label}
+            chartLabel={g.chartLabel}
+            slot={i}
+            state={finished ? 'done' : g.restored ? 'restored' : 'working'}
+            pct={genPct(g.done, g.total, g.startedAt)}
+            onPress={() => { if (finished) clearGenProgress(g.route); router.navigate(g.route as any); }}
+          />
+        );
+      })}
       {/* ★배너는 여기(고정 헤더)에서 **블록으로 이동**했다(daniel 2026-08-06) — renderBlock 의 'banner'.
           종전엔 헤더라 항상 오늘의 운세보다 위였고 순서도 못 바꿨다. */}
     </>
