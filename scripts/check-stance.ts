@@ -195,6 +195,30 @@ async function main() {
     pending.forEach((p) => console.log(`   ⏳ ${p}`));
   }
 
+  // ── ★파일로만 있고 **DB 에 안 올라간 세트** (2026-08-25) ──────────────────
+  //   이 하네스는 DB(`rag_validation_sets`)를 본다. 그래서 `knowledge/validation-sets/` 에
+  //   파일을 만들어 두기만 하면 **여기 목록에 아예 안 뜬다** — 아무도 그 세트를 기다리지 않는다.
+  //   ⚠️실제로 당했다: 개운 세트를 만들고 `check:stance` 를 돌렸는데 조용히 통과했다.
+  //     올리지 않은 세트는 «없는 것»과 구분이 안 된다 — 물어보지도 않은 질문이 되는 것이다.
+  //   ⇒ 로컬 파일의 slug 가 DB 에 없으면 **실패**시킨다. 초안 중이면 아직 커밋하지 않으면 된다.
+  const unpushed: string[] = [];
+  try {
+    const dir = 'knowledge/validation-sets';
+    const known = new Set(sets.map((x) => String(x.slug)));
+    for (const f of fs.readdirSync(dir)) {
+      if (!f.endsWith('.set.json')) continue;
+      const slug = f.slice(0, -'.set.json'.length);
+      if (!known.has(slug)) unpushed.push(slug);
+    }
+  } catch { /* 폴더가 없으면 검사 생략 */ }
+  if (unpushed.length) {
+    console.error('\n❌ 판정 세트가 **파일로만** 있습니다 — 전문가에게 안 올라갔습니다.');
+    unpushed.forEach((x) => console.error(`   · ${x}`));
+    console.error('\n   → npm run rag:push <slug>');
+    console.error('     올리지 않으면 이 하네스 목록에도 안 뜨고, 아무도 그 판정을 기다리지 않습니다.');
+    process.exit(1);
+  }
+
   // ── ★코드에 남은 '판정 대기 면제'가 유효한가 (2026-08-13) ─────────────────
   //   `verify` 는 판정이 없어 못 정하는 항목을 ⏳ 로 **면제**해 두고 통과한다
   //   (상시 빨간불이면 다른 회귀를 못 보기 때문). 그 면제는 **판정이 오는 순간 거짓말**이 된다.
