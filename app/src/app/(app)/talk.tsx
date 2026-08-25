@@ -33,7 +33,6 @@ import { greet, todayFlow, guide, type VirtualReply } from '../../lib/talk/virtu
 import { askLive, loadThread, deleteThread } from '../../lib/talk/liveTalk';
 import { Alert } from '../../lib/ui/alert';   // 커스텀 알림 — 운 부족 시 충전 유도
 import { SECTIONS } from '../../lib/content/contentSections'; // 대화 중 콘텐츠 안내 — 키 → 라벨·라우트(목록의 단일 출처)
-import { pickTalkImage } from '../../lib/talk/talkImagery';
 import { supabase } from '../../lib/supabase';
 import { withTimeout } from '../../lib/core/withTimeout';
 import { loadRepChart } from '../../lib/engine/myChart';
@@ -256,7 +255,6 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
   // 세션은 **상담사별로** 따로 이어진다 — 한 세션에 여러 상담사를 섞으면 이력이 뒤엉킨다
   const sessRef = useRef<Record<string, string>>({});
   // 이 대화에서 이미 쓴 그림 — ★같은 그림을 반복하면 '자동으로 붙는 장식'처럼 보인다
-  const usedArtRef = useRef<Set<string>>(new Set());
   // ★키보드 회피 — `coach.tsx` 와 **같은 패턴**을 쓴다(`check:keyboard` R1/R2).
   //   입력바가 하단 고정이라 KeyboardAvoidingView 로는 안 올라간다 — 리스너로 직접 올린다.
   //   하단 내비 높이를 빼는 이유: 키보드가 그만큼을 이미 덮고 있어서, 안 빼면 두 번 올라간다.
@@ -385,14 +383,13 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
           setBusy(false);
           // ★복원된 이력에도 같은 규칙으로 그림을 붙인다 — 결정론이라 **처음과 같은 그림**이 나온다
           //   (모델에게 고르게 했다면 다시 열 때마다 달라졌을 것이다).
-          const used = new Set<string>();
           setItems(th.messages.map((m) => {
-            const p = m.role === 'assistant' ? pickTalkImage(m.body, used) : null;
-            if (p) used.add(p.art);
+            // ★대화 중 그림을 넣지 않는다(Boss 2026-08-25 *"대화 끝날때마다 나오는 이미지는 필요없어"*).
+            //   말끝마다 그림이 붙으면 대화가 아니라 «카드 묶음» 으로 읽힌다.
+            //   ⚠️`talkImagery` 는 지우지 않았다 — 다시 켤 일이 있으면 여기 한 줄이다.
             // ★msgId 를 싣는다 — 정리에서 원문으로 데려갈 때 이 값으로 찾는다
-            return { id: nextId(), msgId: m.id, role: m.role, body: m.body, image: p?.source };
+            return { id: nextId(), msgId: m.id, role: m.role, body: m.body };
           }));
-          usedArtRef.current = used;
           void markRead(th.sessionId);
         }
       });
@@ -453,9 +450,6 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
           //   종전엔 여기서 «빈 줄 + 마침표» 만 봤는데, 한국어 대화체는 마침표 없이 «~죠» 로
           //   끝나는 일이 잦아 문장 열 개가 한 풍선이 되곤 했다.
           const parts = splitBubbles(r.answer);
-          // 그림은 **답 전체**를 보고 한 장만 고른다(풍선마다 고르면 여러 장이 붙는다)
-          const pick = pickTalkImage(r.answer, usedArtRef.current);
-          if (pick) usedArtRef.current.add(pick.art);
           // ★대화 중 콘텐츠 안내(Boss 2026-08-23) — 서버가 답에서 마커를 떼어 `recommend` 로 준다.
           //   키 → 라벨·라우트는 **`contentSections`(목록의 단일 출처)** 에서 찾는다.
           //   ⚠️목록에 없는 키면 카드를 만들지 않는다(빈 화면으로 보내지 않는다).
@@ -465,8 +459,6 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
           const recoLinks = reco ? [{ key: reco.key, label: t(reco.labelKey), route: reco.route }] : undefined;
           sayInOrder(parts.map((body, i) => ({
             id: nextId(), role: 'assistant' as const, body,
-            // ★마지막 풍선에 붙인다 — 말이 끝난 뒤 사진을 보내는 순서가 자연스럽다
-            image: i === parts.length - 1 && pick ? pick.source : undefined,
             // 안내 카드도 마지막 풍선에 — 말이 끝난 뒤 건네는 순서다(가상 상담사와 같은 관용)
             links: i === parts.length - 1 ? recoLinks : undefined,
           })), 0);                 // 서버 응답을 기다린 뒤라 추가 뜸은 필요 없다
@@ -597,7 +589,6 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
     setAskDelete(false);
     if (!r.ok) { console.warn('[talk] 대화 삭제 실패', r.error); return; }
     delete sessRef.current[cur.id];
-    usedArtRef.current = new Set();
     // ★정리도 함께 비운다 — DB 행은 세션과 함께 cascade 로 사라지지만(0040), **화면 state 는 남는다.**
     //   안 비우면 지운 대화의 "이 대화 정리 · N" 줄이 상단에 그대로 떠 있다(Boss 2026-08-24 제보).
     //   `notesOpen` 은 건드리지 않는다 — 펴 둔 것은 **사람의 선택**이지 이 방의 상태가 아니다(위 §123).
@@ -692,7 +683,12 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
               {askDelete ? <DeleteBar onCancel={() => setAskDelete(false)} onOk={onDeleteThread} t={t as never} /> : null}
               <TalkNotes
                 notes={notes} open={notesOpen} onToggle={() => setNotesOpen((v) => !v)}
-                onJump={(mid) => { setJumpTo(null); requestAnimationFrame(() => setJumpTo(mid)); }}
+                onJump={(mid) => {
+                  // ★뛰기 전에 정리 패널을 **접는다** — 펼쳐진 채로 스크롤하면 목적지가 그 밑에 가려
+                  //   «아무 일도 안 일어난 것»으로 보인다(Boss 2026-08-25 제보 자리).
+                  setNotesOpen(false);
+                  setJumpTo(null); requestAnimationFrame(() => setJumpTo(mid));
+                }}
                 onChanged={() => refreshNotes(cur ? sessRef.current[cur.id] : null)}
               />
               {/* ★운 안내 — 목록 **위**에 고정. 말풍선과 자리·색이 둘 다 다르다(Boss 2026-08-25) */}

@@ -134,7 +134,10 @@ function Row({ c, initial, slot, on, onOpen, t }: {
               *"실제 사용자도 전문 상담가가 직접 운영하는 서비스라는걸 느껴야해"*
               ⚠️링크를 여기 걸지 않는다 — 목록에서 밖으로 나가면 대화로 못 들어온다.
                 여기서는 **표시만** 하고, 링크는 대화방 첫 인사 카드가 준다. */}
-          {c.linkUrl ? <Text style={styles.realBadge}>실제 상담가</Text> : null}
+          {/* ★문구를 「공식」으로(Boss 2026-08-25 «실제 상담가 말고 다른 단어로»).
+              채널을 가진 = **실재하는 사람**이라는 뜻은 그대로 두되, 말이 덜 어색하다.
+              ⚠️한 단어라 바꾸기 쉽다 — 다른 말을 원하면 여기만 고친다. */}
+          {c.linkUrl ? <Text style={styles.realBadge}>{t('talk.officialBadge', '공식')}</Text> : null}
         </View>
         {c.tagline ? <Text style={styles.tagline} numberOfLines={1}>{c.tagline}</Text> : null}
       </View>

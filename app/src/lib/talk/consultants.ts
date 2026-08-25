@@ -55,7 +55,7 @@ const SEED: Consultant[] = [
   { id: 'guide_minjae', kind: 'live', name: '사주 보는 길잡이 민재', tagline: '사업·재물', avatar: null, specialty: ['wealth'], routes: ['wealth', 'career', 'jobfit', 'talent'], blocks: [], group: 'teacher', sortOrder: 30 },
   { id: 'tarot_harin', kind: 'live', name: '타로마스터 하린', tagline: '타로', avatar: null, specialty: ['tarot'], routes: ['taro'], blocks: [], group: 'teacher', sortOrder: 40 },
   { id: 'tarot_doyun', kind: 'live', name: '타로하는 도윤', tagline: '고민 정리', avatar: null, specialty: ['tarot'], routes: ['taro', 'dream', 'taemong'], blocks: [], group: 'teacher', sortOrder: 50 },
-  { id: 'ziwei_yujin', kind: 'live', name: '자미두수 유진', tagline: '인생 흐름', avatar: null, specialty: ['ziwei'], routes: ['ziwei', 'timeline', 'lifegraph'], blocks: [], group: 'teacher', sortOrder: 60 },
+  { id: 'ziwei_yujin', kind: 'live', name: '자미두수 유진', tagline: '자미두수', avatar: null, specialty: ['ziwei'], routes: ['ziwei', 'timeline', 'lifegraph'], blocks: [], group: 'teacher', sortOrder: 60 },
   { id: 'astro_taehyun', kind: 'live', name: '별자리 자미 태현', tagline: '운의 타이밍', avatar: null, specialty: ['astro'], routes: ['astrology', 'numerology', 'newyear'], blocks: ['today'], group: 'teacher', sortOrder: 70 },
   // 함께하면 좋은 친구들 — ★사주와 무관한 주제다(일상 대화 허용이 이들을 받쳐 준다)
   { id: 'beauty_jjinya', kind: 'live', name: '메이크업 아티스트 찐야', tagline: '메이크업', avatar: null, specialty: ['beauty'], routes: [], blocks: [], group: 'friend', sortOrder: 110 },

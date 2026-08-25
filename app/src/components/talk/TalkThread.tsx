@@ -110,12 +110,23 @@ export function TalkThread({ items, busy, onLink, jumpTo }: {
   //   ⚠️밝히지 않으면 어디로 왔는지 모른다 — 스크롤만 하면 '아무 일도 안 일어난 것'처럼 보인다.
   useEffect(() => {
     if (jumpTo == null) return;
-    const y = yRef.current[jumpTo];
-    if (y == null) return;                                   // 아직 안 그려진 줄(이력 밖) — 조용히 넘어간다
-    ref.current?.scrollTo({ y: Math.max(0, y - 40), animated: true });
-    setLit(jumpTo);
-    const t = setTimeout(() => setLit(null), 1600);
-    return () => clearTimeout(t);
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    // ⚠️★종전엔 «아직 안 그려진 줄이면 **조용히** 넘어간다» 였다 — 그래서 눌렀는데
+    //   **아무 일도 안 일어나는** 일이 생겼다(Boss 2026-08-25 «클릭하면 그 대화로 이동가능하면 좋겠어»
+    //   = 지금은 안 된다는 뜻이다). onLayout 이 아직 안 끝났을 뿐인데 포기한 것이다.
+    //   ⇒ 몇 번 **다시 시도**한다. 그래도 못 찾으면 그건 이력 밖이라 어차피 갈 곳이 없다.
+    const tryJump = (left: number) => {
+      const y = yRef.current[jumpTo];
+      if (y != null) {
+        ref.current?.scrollTo({ y: Math.max(0, y - 40), animated: true });
+        setLit(jumpTo);
+        timers.push(setTimeout(() => setLit(null), 1600));
+        return;
+      }
+      if (left > 0) timers.push(setTimeout(() => tryJump(left - 1), 120));
+    };
+    tryJump(8);                                              // 최대 약 1초 동안 기다린다
+    return () => timers.forEach(clearTimeout);
   }, [jumpTo]);
 
   return (

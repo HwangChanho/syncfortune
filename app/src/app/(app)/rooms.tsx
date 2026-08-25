@@ -95,7 +95,7 @@ export default function RoomsScreen() {
   //     (Boss 2026-08-21 *"생활 전반 AI 친구로 넓히는거야"* — 열둘 다 부를 수 있는 게 맞다).
   const callable = people.filter((p) => p.kind === 'live');
   const GROUPS = [
-    { key: 'teacher' as const, label: t('talk.groupTeacher', '✦ 선생님 AI') },
+    { key: 'teacher' as const, label: t('talk.groupTeacher', '✦ 선생님') },
     { key: 'friend' as const, label: t('talk.groupFriend', '✦ 함께하면 좋은 친구들') },
   ];
 
