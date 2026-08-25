@@ -132,7 +132,7 @@ export const CAST: CastMember[] = [
     why: 'persona: "아 그거 진짜 속상하죠" 처럼 공감 먼저 · 말끝 "-죠?" "-잖아요" · 탓하지 않는다',
     look:
       'a warm and beautiful Korean woman in her late 20s, shoulder-length soft wavy dark brown hair, ' +
-      'warm-toned light makeup, smiling eyes, gentle closed-lip smile, cream-colored soft knit top, ' +
+      'warm-toned light makeup, smiling eyes, gentle closed-lip smile, ' +
       'leaning very slightly toward the camera as if listening',
     bg: 'clean softly blurred hanji-paper and dark-wood interior in warm camel tones, soft daylight from a lattice window',
   },
@@ -148,8 +148,7 @@ export const CAST: CastMember[] = [
     why: 'persona: 숫자와 시기를 좋아해 "언제까지 무엇을" · 말끝 "-습니다"/"-요" 혼용 · 과장하지 않는다',
     look:
       'a handsome composed Korean man in his mid 30s, neat short black hair, clean-shaven, ' +
-      'calm confident expression with a faint closed-lip smile, straight posture, ' +
-      'charcoal dress shirt with no tie under a dark navy blazer',
+      'calm confident expression with a faint closed-lip smile, straight posture',
     bg: 'clean softly blurred hanji-paper and dark-wood interior in warm camel tones, soft daylight from a lattice window',
   },
   {
@@ -165,9 +164,8 @@ export const CAST: CastMember[] = [
     look:
       'an elegant beautiful Korean woman in her late 20s, long straight black hair, ' +
       'cool-toned soft makeup with deep berry lip, calm knowing gaze into the camera, ' +
-      'quiet mysterious expression, black or dark burgundy silk blouse, small delicate gold earrings',
-    bg: 'clean softly blurred hanji-paper and dark-wood interior in warm camel tones, soft daylight from a lattice window' +
-      'candle-warm accent far out of focus',
+      'quiet mysterious expression',
+    bg: 'clean softly blurred hanji-paper and dark-wood interior in warm camel tones, soft daylight from a lattice window, candle-warm accent far out of focus',
   },
   {
     id: 'tarot_doyun',
@@ -182,8 +180,7 @@ export const CAST: CastMember[] = [
     caution: '시선을 완전히 내리면 44px 에서 눈이 사라진다 — **살짝 낮추되 카메라를 본다**.',
     look:
       'a gentle handsome Korean man in his early 30s, soft medium-length black hair slightly tousled, ' +
-      'thin round metal glasses, quiet attentive expression, chin very slightly lowered but eyes on the camera, ' +
-      'oatmeal-colored knit sweater',
+      'thin round metal glasses, quiet attentive expression, chin very slightly lowered but eyes on the camera',
     bg: 'clean softly blurred hanji-paper and dark-wood interior in warm camel tones, soft daylight from a lattice window',
   },
   {
@@ -198,8 +195,7 @@ export const CAST: CastMember[] = [
     why: 'persona: "올해만 보면 답답한데, 흐름으로 보면 …" · 말이 차분하고 조금 느리다',
     look:
       'a refined graceful Korean woman in her late 30s, dark hair with soft volume neatly styled, ' +
-      'serene composed expression, direct steady gaze, mature elegance, ' +
-      'deep plum or navy silk blouse, minimal jewelry',
+      'serene composed expression, direct steady gaze, mature elegance',
     bg: 'clean softly blurred hanji-paper and dark-wood interior in warm camel tones, soft daylight from a lattice window',
   },
   {
@@ -214,8 +210,7 @@ export const CAST: CastMember[] = [
     why: 'persona: 호기심이 많아 되묻는 편 · 말끝이 가볍고 밝다 · "지금은 아니고, 조금 뒤"',
     look:
       'a bright handsome Korean man in his late 20s, clean-cut short black hair, ' +
-      'open curious expression with an easy natural smile, one eyebrow very slightly raised, ' +
-      'light blue oxford shirt with the top button open',
+      'open curious expression with an easy natural smile, one eyebrow very slightly raised',
     bg: 'clean softly blurred hanji-paper and dark-wood interior in warm camel tones, soft daylight from a lattice window',
   },
   {
@@ -231,7 +226,7 @@ export const CAST: CastMember[] = [
     look:
       'a strikingly pretty Korean woman in her mid 20s, glossy styled long hair, ' +
       'polished K-beauty glam makeup with dewy skin, defined brows and coral lip, ' +
-      'lively bright smile with visible energy, chic black top',
+      'lively bright smile with visible energy',
     bg: 'clean softly blurred hanji-paper and dark-wood interior in warm camel tones, soft daylight from a lattice window',
   },
   {
@@ -249,10 +244,8 @@ export const CAST: CastMember[] = [
     extraNegative: 'color cast, tinted lighting, colored gel light, orange or blue tinted background',
     look:
       'a clean-featured lovely Korean woman in her late 20s, simple straight hair, ' +
-      'natural true-to-tone makeup, warm approachable but composed expression, ' +
-      'plain soft white top with no pattern',
-    bg: 'clean softly blurred hanji-paper and dark-wood interior in warm camel tones, soft daylight from a lattice window' +
-      'no color cast anywhere in the frame',
+      'natural true-to-tone makeup, warm approachable but composed expression',
+    bg: 'clean softly blurred hanji-paper and dark-wood interior in warm camel tones, soft daylight from a lattice window, no color cast anywhere in the frame',
   },
   {
     id: 'car_unni',
@@ -266,8 +259,7 @@ export const CAST: CastMember[] = [
     why: 'persona: "그 예산이면 이 급이 낫지" · 단점을 숨기지 않는다 · 말끝 "-지" "-야"',
     look:
       'a cool good-looking Korean woman in her early 30s, low-maintenance straight bob or loose ponytail, ' +
-      'minimal makeup, relaxed confident half-smile, slight head tilt, direct frank gaze, ' +
-      'simple denim shirt over a plain black tee',
+      'minimal makeup, relaxed confident half-smile, slight head tilt, direct frank gaze',
     bg: 'clean softly blurred hanji-paper and dark-wood interior in warm camel tones, soft daylight from a lattice window',
   },
   {
@@ -282,10 +274,8 @@ export const CAST: CastMember[] = [
     why: 'persona: "거긴 아침이 진짜 좋아요" 처럼 시간대·감각을 함께 준다 · 느낌표를 쓴다',
     look:
       'a bright pretty Korean woman in her mid 20s, sun-kissed healthy skin, ' +
-      'hair lightly moved by a breeze, wide open genuine smile, ' +
-      'casual white linen shirt',
-    bg: 'clean softly blurred hanji-paper and dark-wood interior in warm camel tones, soft daylight from a lattice window' +
-      'hint of sky and greenery, no landmark',
+      'hair lightly moved by a breeze, wide open genuine smile',
+    bg: 'clean softly blurred hanji-paper and dark-wood interior in warm camel tones, soft daylight from a lattice window, hint of sky and greenery, no landmark',
   },
   {
     id: 'heal_yuri',
@@ -299,8 +289,7 @@ export const CAST: CastMember[] = [
     why: 'persona: 해결하려 들지 않고 곁에 있어 준다 · "그랬군요" 를 먼저 한다 · 말끝 "-요"',
     look:
       'a serene beautiful Korean woman in her early 30s, hair loosely tied back with a few soft strands, ' +
-      'soft low-contrast natural makeup, calm gentle eyes, faint reassuring smile, ' +
-      'oatmeal or sage linen shirt',
+      'soft low-contrast natural makeup, calm gentle eyes, faint reassuring smile',
     bg: 'clean softly blurred hanji-paper and dark-wood interior in warm camel tones, soft daylight from a lattice window',
   },
 ];
