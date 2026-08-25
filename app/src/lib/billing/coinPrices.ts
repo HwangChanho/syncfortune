@@ -101,3 +101,13 @@ export function packPriceWon(packId: string, channel: PayChannel = 'store'): num
   if (channel === 'web') return PRICE_DIVERGENCE[packId]?.web ?? base;
   return base;
 }
+
+/**
+ * 대화 묶음 — **한 번에 얼마로 몇 턴**인가(Boss 2026-08-26 *"짜잘하게 뜯지말고 한번에
+ *   5~10개씩 뜯고 대화를 몇턴 할수있게"*).
+ *
+ * ⚠️★서버(`talk` Edge)의 `coin_cost`·`PACK_TURNS` 와 **같아야 한다.** 여기는 «화면에 적는 값»이고
+ *   실제 차감은 서버가 한다 — 어긋나면 «10운이라더니 20운이 빠졌다» 가 된다.
+ *   ⇒ 서버 값을 바꿀 때 여기도 바꾼다. `check:talkcoin` ⑥ 이 DB 값을 찍어 준다.
+ */
+export const TALK_PACK = { cost: 10, turns: 5 } as const;

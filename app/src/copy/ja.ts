@@ -1,5 +1,6 @@
 // app/src/copy/ja.ts — 日本語 UI 文言。キーは ko.ts と一致させること。
 export const ja = {
+  adult: { title: 'アダルト会話', row: '満19歳以上です', sub: '相性や親密さの話をぼかさずに話します。' },
   screen: {
     shared: '共有された鑑定',
     register: '命式の登録',
@@ -563,6 +564,10 @@ export const ja = {
     'topLabel': '私と最も似ている人物',
   },
   coins: { title: '運のチャージ', titleSub: '運をチャージして、見たい鑑定を開きましょう。', bonusAny: 'チャージ時に自動適用', bonusNote: '大きいクーポンから自動で使われます。お支払い金額は変わりません。', bonusTitle: 'お持ちのボーナス', failTitle: 'チャージできませんでした',
+    useHead: '運でできること',
+    useTalk: '· 相談員とのチャット — {{cost}}運で{{turns}}ターン',
+    useReading: '· 四柱推命・相性・タロットの鑑定 — 価格は内容ごとに異なり、開く前に表示されます',
+    useNote: '無料の5ターンは毎日補充されます。運は失効しません。',
     spendMsg: '{{cost}} woon を使って鑑定を始めますか？\n保有 {{have}} → 使用後 {{after}}',
     'balFail': '残高を読み込めませんでした',
     'balance': '保有する運',

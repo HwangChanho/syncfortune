@@ -12,6 +12,7 @@
 // ⚠️문구·가격 = ★daniel 검수 슬롯. 상품 등록(ASC)은 daniel 몫.
 // ─────────────────────────────────────────────────────────────────────────
 import { useCallback, useState } from 'react';
+import { TALK_PACK } from '../../lib/billing/coinPrices';   // 대화 묶음(화면 표기용 — 실제 차감은 서버)
 import { View, Text, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Image as ExpoImage } from 'expo-image';
@@ -120,6 +121,20 @@ export default function CoinsScreen() {
         <Text style={styles.pageTitle}>{t('coins.title', '운 충전')}</Text>
         <Text style={styles.pageSub}>{t('coins.titleSub', '운을 충전하고 원하는 풀이를 열어 보세요.')}</Text>
 
+        {/* ★운으로 **무엇을 할 수 있는지** 적는다(Boss 2026-08-26 *"운 구매할때 설명 명시 돼야하고"*).
+            종전엔 «원하는 풀이를 열어 보세요» 한 줄뿐이라, 10운이 얼마만큼인지 알 수 없었다.
+            ⚠️숫자를 여기 **직접 적지 않는다** — `TALK_PACK` 하나만 고치면 문구가 따라온다.
+              두 곳에 적으면 가격을 바꿨을 때 화면만 옛 숫자로 남는다. */}
+        <View style={styles.useCard}>
+          <Text style={styles.useHead}>{t('coins.useHead', '운으로 할 수 있는 것')}</Text>
+          <Text style={styles.useRow}>
+            {t('coins.useTalk', '· 상담가와 대화 — {{cost}}운이면 {{turns}}턴')
+              .replace('{{cost}}', String(TALK_PACK.cost)).replace('{{turns}}', String(TALK_PACK.turns))}
+          </Text>
+          <Text style={styles.useRow}>{t('coins.useReading', '· 사주·궁합·타로 풀이 — 콘텐츠마다 값이 다르고, 열기 전에 보여 드려요')}</Text>
+          <Text style={styles.useNote}>{t('coins.useNote', '무료 대화 5턴은 매일 다시 채워져요. 운은 사라지지 않아요.')}</Text>
+        </View>
+
         {/* 잔액 — 로딩/실패/정상 3상태를 분명히 구분해 보여 준다 */}
         <View style={styles.balCard}>
           <Text style={[styles.balLabel, { fontSize: fs(12) }]}>{t('coins.balance', '보유 운')}</Text>
@@ -210,6 +225,11 @@ const styles = StyleSheet.create({
   ticketPct: { fontWeight: '900', color: colors.ju, letterSpacing: -0.5 },
   ticketTx: { color: colors.inkSoft, marginTop: 2 },
   ticketNote: { color: colors.inkFaint, marginBottom: space(4) },
+  // 운으로 할 수 있는 것 — 돈을 쓰기 전에 «무엇을 사는지» 를 먼저 본다
+  useCard: { backgroundColor: colors.card, borderRadius: radius.lg, padding: space(4), marginBottom: space(3), gap: space(1) },
+  useHead: { ...font.label, color: colors.ink, fontWeight: '800', marginBottom: space(1) },
+  useRow: { ...font.caption, color: colors.inkSoft, lineHeight: 19 },
+  useNote: { ...font.caption, color: colors.inkFaint, marginTop: space(1.5), lineHeight: 17 },
   balCard: { backgroundColor: colors.card, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.juLine, padding: space(5), alignItems: 'center', marginBottom: space(5), ...shadow.card },
   balLabel: { ...font.caption, color: colors.inkSoft, fontWeight: '800', letterSpacing: 0.5 },
   balNum: { ...font.display, color: colors.ju, fontWeight: '900', marginTop: space(1) },

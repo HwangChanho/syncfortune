@@ -1,5 +1,6 @@
 // app/src/copy/en.ts — English UI copy. Keys must match ko.ts exactly.
 export const en = {
+  adult: { title: 'Adult conversation', row: 'I am 19 or older', sub: 'Turns on frank talk about intimacy and compatibility.' },
   screen: {
     shared: 'Shared reading',
     register: 'Register chart',
@@ -564,6 +565,10 @@ export const en = {
     'topLabel': 'The figure most like you',
   },
   coins: { title: 'Add Woon', titleSub: 'Top up Woon and open the readings you want.', bonusAny: 'Applied automatically', bonusNote: 'The largest coupon applies first. The price you pay stays the same.', bonusTitle: 'Your bonuses', failTitle: "Couldn't add woon",
+    useHead: 'What woon is for',
+    useTalk: '· Chat with a consultant — {{cost}} woon buys {{turns}} turns',
+    useReading: '· Saju, compatibility, tarot readings — price varies and is shown before you open it',
+    useNote: '5 free turns refill every day. Woon never expires.',
     spendMsg: 'Use {{cost}} woon to start this reading?\nYou have {{have}} → {{after}} after',
     'balFail': 'Couldn\'t load your balance',
     'balance': 'Your Luck',

@@ -121,7 +121,13 @@ console.log('\n=== ⑤ 무료 구간에서는 빼지 않는가 ===');
 {
   const i = edge.indexOf('overFree');
   const seg = i >= 0 ? edge.slice(i, i + 900) : '';
-  if (/if\s*\(overFree\s*&&\s*coinCost\s*>\s*0\)/.test(seg)) ok('무료를 넘겼고 단가가 0보다 클 때만 뺀다');
+  // ⚠️★조건에 **다른 항이 더 붙어도** 통과시킨다(2026-08-26).
+  //   묶음 과금(`packStart`)을 넣으면서 `if (overFree && packStart && coinCost > 0)` 이 됐는데,
+  //   종전 정규식은 **정확히 두 항**만 인정해서 «더 엄격해진 코드»를 반려했다.
+  //   ⇒ 지켜야 할 것은 **«무료 판정(overFree)과 단가 판정이 그 if 안에 있는가»** 이지 항의 개수가 아니다.
+  //   ★단, 둘 다 없으면 여전히 문다(아래 음성 테스트).
+  const guard = /if\s*\(([^)]*)\)\s*\{/.exec(seg)?.[1] ?? '';
+  if (/\boverFree\b/.test(guard) && /coinCost\s*>\s*0/.test(guard)) ok('무료를 넘겼고 단가가 0보다 클 때만 뺀다');
   else bad('★무료 구간 판정 없이 뺀다 — 무료라면서 빼는 것이 제일 나쁘다');
 }
 

@@ -14,6 +14,7 @@
 //   여기서는 서버가 준 사유(`paused`·`capped`·`error`)를 **그대로 화면까지 올린다.**
 // ═══════════════════════════════════════════════════════════════════════════
 import { supabase } from '../supabase';
+import { adultConfirmed } from './adultGate';   // 성인 확인(단일 원본)
 import { withTimeout } from '../core/withTimeout';
 
 /** 서버가 돌려주는 결과 — 성공/한도/중단을 **구분해서** 올린다(뭉뚱그리면 화면이 거짓말을 한다). */
@@ -80,7 +81,8 @@ export async function askLive(
     //   목적이 '응답 보장'이 아니라 'UI 잠금 해제'라서다 → 반드시 undefined 를 먼저 갈라야 한다.
     const r = await withTimeout(
       supabase.functions.invoke('talk', {
-        body: { consultantId, message, sessionId, chartId, lang, attempt, verdict },
+        // ★성인 확인 여부를 **여기서 읽는다** — 화면마다 넘기게 하면 한 곳이 빠져도 모른다
+        body: { consultantId, message, sessionId, chartId, lang, attempt, verdict, adult: adultConfirmed() },
       }),
       45_000,
     );

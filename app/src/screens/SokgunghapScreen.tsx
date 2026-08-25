@@ -6,7 +6,6 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useEffect } from 'react';
 import { View, Text, ScrollView, StyleSheet, Modal, ActivityIndicator, Pressable } from 'react-native';
-import * as SecureStore from 'expo-secure-store';
 import { useTranslation } from 'react-i18next';
 import { PressableScale } from '../components/PressableScale';
 import { RelatedContent } from '../components/RelatedContent';
@@ -21,16 +20,13 @@ import { sokgunghapReading } from '../lib/content/sokgunghapReadings';
 import { appLang } from '../lib/i18n';
 import { useLogContentVisit } from '../lib/backend/contentVisit';
 import { colors, radius, space, shadow, font } from '../lib/theme';
+import { adultConfirmed, markAdultConfirmed } from '../lib/talk/adultGate';
 import type { ChartInput } from '@spec/chart';
 
-const GATE_KEY = 'pref.sok17ok'; // 17+ 성인 확인 1회 저장(재진입 시 재확인 생략)
-function gate17Seen(): boolean {
-  try { return (SecureStore as any).getItem?.(GATE_KEY) === '1'; } catch { return false; }
-}
-function markGate17() {
-  try { (SecureStore as any).setItem?.(GATE_KEY, '1'); } catch { /* noop */ }
-  SecureStore.setItemAsync(GATE_KEY, '1').catch(() => {});
-}
+// ★성인 확인은 `lib/talk/adultGate` 가 단일 원본이다(2026-08-26 대화창에도 필요해지면서 옮겼다).
+//   여기에 사본을 두면 한쪽만 고쳐져 «한 화면은 열리고 한 화면은 막히는» 일이 생긴다.
+const gate17Seen = adultConfirmed;
+const markGate17 = markAdultConfirmed;
 
 export function SokgunghapScreen({ me: meInit }: { me: ChartInput }) {
   const [me, setMe] = useState<ChartInput>(meInit); // 대표명식(나) — ChartPicker로 변경 가능

@@ -8,6 +8,7 @@ import { View, Text, ScrollView, StyleSheet, Linking } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MyProfileCard } from '../../components/settings/MyProfileCard';
 import { loadRepChart } from '../../lib/engine/myChart';
+import { adultConfirmed, markAdultConfirmed, clearAdultConfirmed } from '../../lib/talk/adultGate';
 import { computeChart } from '../../lib/engine/engine';
 import { stemElement } from '../../lib/engine/ohaeng';   // 대표 명식 일간 → 오행(프로필 색)
 import { PressableScale } from '../../components/PressableScale';
@@ -59,6 +60,7 @@ export default function SettingsScreen() {
   //   ⚠️`activeElement`(테마)를 쓰면 안 된다. 그건 «마지막으로 고른 명식» 이라
   //     남의 명식을 잠깐 열어 보기만 해도 「내 프로필」이 남의 색을 입는다.
   const [repEl, setRepEl] = useState<string | null>(null);
+  const [adultOn, setAdultOn] = useState<boolean>(() => adultConfirmed());   // 성인 대화 스위치
   useEffect(() => {
     void loadRepChart().then((c) => {
       setRepName(c?.label ?? null);
@@ -215,6 +217,28 @@ export default function SettingsScreen() {
           ⚠️커뮤니티 닉네임과는 다른 값이다 — 거긴 전면 익명이라 목적이 반대다. */}
       <Text style={[styles.h, { marginTop: space(7) }]}>{t('profile.title', '내 프로필')}</Text>
       <MyProfileCard fallbackName={repName} element={repEl} />
+
+      {/* ── 성인 대화 ──
+          ★Boss 2026-08-26 *"19금 대화도 성인인증 된 대상이면 가능하면 좋겠어"* · *"열어 게이트"*.
+          ⚠️이건 **자기 확인**이지 본인인증이 아니다 — 그래서 문구도 «성인입니다»가 아니라
+            «만 19세 이상입니다»로 적는다(스스로 밝히는 것임이 드러나게).
+          ★끌 수 있어야 한다 — 켜기만 되고 못 끄면 그건 설정이 아니다. */}
+      <Text style={[styles.h, { marginTop: space(7) }]}>{t('adult.title', '성인 대화')}</Text>
+      <View style={styles.infoCard}>
+        <View style={[styles.infoRow, styles.infoRowLast, { alignItems: 'flex-start' }]}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.infoLabel}>{t('adult.row', '만 19세 이상입니다')}</Text>
+            <Text style={[styles.infoLabel, { color: colors.inkFaint, marginTop: 2 }]}>
+              {t('adult.sub', '켜면 속궁합·애정 이야기를 에두르지 않고 나눠요.')}
+            </Text>
+          </View>
+          <Switch
+            value={adultOn}
+            onValueChange={(v) => { setAdultOn(v); if (v) markAdultConfirmed(); else clearAdultConfirmed(); }}
+            trackColor={{ true: colors.ju, false: colors.line }}
+          />
+        </View>
+      </View>
 
       {/* ── 내 기록 ──────────────────────────────────────────────────────
           ★★2026-08-19 3탭 전환에서 **탭에서 빠진 화면들의 대체 진입로**다(Boss
