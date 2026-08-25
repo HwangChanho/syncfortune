@@ -40,6 +40,7 @@ import { ShareReadingButton } from '../../components/ShareReadingButton'; // 이
 import { TTSButton } from '../../components/TTSButton'; // daniel: 풀이 음성 읽기(온디바이스 TTS·무료)
 import { useLogContentVisit } from '../../lib/backend/contentVisit'; // 콘텐츠 방문 집계(daniel 2026-07-06) — 진입 1회 기록
 import { useReadBody } from '../../components/WebShell'; // ★읽는 화면 본문 캡(히어로는 전폭·글은 좁게)
+import { FortuneVideoCard } from '../../components/FortuneVideoCard';   // 월별 운세 영상(Boss 2026-08-25)
 
 export default function MonthScreen() {
   const readBody = useReadBody();   // 넓은 웹에서만 본문 폭을 묶는다
@@ -152,6 +153,9 @@ export default function MonthScreen() {
           <View style={styles.pillarInfo}>
             <Text style={styles.pillarTitle}>{t('month.monthPillar')}</Text>
             <Text style={styles.pillarSub}>{f.yearGanZhi}년 {f.monthGanZhi}월</Text>
+            {/* ★이달의 운세 **영상**(Boss 2026-08-25) — 운영자가 `app_config.fortune_video` 에 넣으면 뜬다.
+                없으면 아무것도 안 그린다. ⚠️번들이 아니라 **원격 URL** 이다(11MB 사고 재발 방지). */}
+            <FortuneVideoCard periodKey={new Date().toISOString().slice(0, 7)} title="이달의 운세 영상" />
           </View>
         </View>
 

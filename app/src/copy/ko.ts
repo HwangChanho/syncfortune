@@ -713,6 +713,7 @@ export const ko = {
     'favorites': '즐겨찾기',
     'filter': { all: '전체', teacher: '선생님 AI', friend: '무료 친구', recent: '최근' },
     'groupTeacher': '✦ 선생님 AI',
+    'groupTeacherSub': '실제 상담가의 관법을 따라 답해요.',
     'groupFriend': '✦ 함께하면 좋은 친구들',
     'contents': '콘텐츠',
     'more': '더보기',

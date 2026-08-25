@@ -675,6 +675,7 @@ export const en = {
     'favorites': 'Favorites',
     'filter': { all: 'All', teacher: 'AI teachers', friend: 'Free friends', recent: 'Recent' },
     'groupTeacher': '✦ AI teachers',
+    'groupTeacherSub': 'Answers follow a real practitioner’s method.',
     'groupFriend': '✦ Good to have around',
     'contents': 'Contents',
     'more': 'More',

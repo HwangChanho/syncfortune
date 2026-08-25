@@ -674,6 +674,7 @@ export const ja = {
     'favorites': 'お気に入り',
     'filter': { all: 'すべて', teacher: '先生AI', friend: '無料の友だち', recent: '最近' },
     'groupTeacher': '✦ 先生AI',
+    'groupTeacherSub': '実際の相談家の観法に沿って答えます。',
     'groupFriend': '✦ 一緒にいると良い友だち',
     'contents': 'コンテンツ',
     'more': 'もっと見る',

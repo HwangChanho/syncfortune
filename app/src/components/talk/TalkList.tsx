@@ -151,6 +151,11 @@ function Row({ c, initial, slot, on, onOpen, t }: {
               콘티엔 별이 없지만, 조작을 스와이프로 감춘 마당에 상태까지 안 보이면
               사용자는 자기가 켰는지 알 수 없다 — 그건 '없는 기능'이 된다. */}
           {faved ? <Text style={styles.favDot}>★</Text> : null}
+          {/* ★채널이 있는 상담가 = **실재하는 사람**이라는 표시(Boss 2026-08-25).
+              *"실제 사용자도 전문 상담가가 직접 운영하는 서비스라는걸 느껴야해"*
+              ⚠️링크를 여기 걸지 않는다 — 목록에서 밖으로 나가면 대화로 못 들어온다.
+                여기서는 **표시만** 하고, 링크는 대화방 첫 인사 카드가 준다. */}
+          {c.linkUrl ? <Text style={styles.realBadge}>실제 상담가</Text> : null}
         </View>
         {c.tagline ? <Text style={styles.tagline} numberOfLines={1}>{c.tagline}</Text> : null}
       </View>
@@ -392,6 +397,12 @@ export function TalkList({ items, onOpen, selected, myName, onMe, myAvatar, rail
                    g === 'teacher' ? '✦ 선생님 AI' : '✦ 함께하면 좋은 친구들')}
               </Text>
             ) : null}
+            {/* ★이 줄이 「실제 상담가가 운영한다」를 말한다 — 배지 하나로는 안 읽힌다 */}
+            {filter === 'all' && !q.trim() && g === 'teacher' ? (
+              <Text style={styles.groupSub}>
+                {t('talk.groupTeacherSub', '실제 상담가의 관법을 따라 답해요.')}
+              </Text>
+            ) : null}
             {list.map((c) => (
               <Row key={c.id} c={c} initial={initialOf(c.id)} slot={slotOf(c.id)}
                    on={selected === c.id} onOpen={onOpen} t={t as never} />
@@ -456,6 +467,12 @@ const styles = StyleSheet.create({
   webStar: { position: 'absolute', right: space(2), top: 0, bottom: 0, justifyContent: 'center', paddingHorizontal: space(1) },
   webStarTx: { fontSize: 16, color: colors.inkFaint },
   webStarOn: { color: colors.ju },
+  realBadge: {
+    fontSize: 9.5, lineHeight: 14, color: colors.ju, fontWeight: '800',
+    backgroundColor: colors.juSoft, borderRadius: 999,
+    paddingHorizontal: 6, paddingVertical: 1, overflow: 'hidden',
+  },
+  groupSub: { ...font.caption, fontSize: 11.5, lineHeight: 17, color: colors.inkFaint, marginTop: -2, marginBottom: 6, paddingHorizontal: 2 },
   favDot: { fontSize: 12, color: colors.ju },
   // 왼쪽으로 밀면 나오는 동작 — 줄 높이를 그대로 채운다(반만 차면 눌리는 곳이 좁아진다)
   // 밀면 나오는 자리 — 옅은 면 + 별 하나(색면 덩어리를 걷어냈다)

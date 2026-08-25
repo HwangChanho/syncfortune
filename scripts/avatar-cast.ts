@@ -63,6 +63,23 @@ export type CastMember = {
  *   ①얼굴이 프레임의 중앙에 크게 ②눈이 위쪽 1/3 ③배경은 단순·흐리게.
  *   전신·원거리 사진은 그 크기에서 **누구인지 식별 불가**라 아예 negative 로 막는다.
  */
+/**
+ * ★**한국 전통 상담가 결**(Boss 2026-08-25 *"실제 무속인처럼 꾸며서 보여줘야 할꺼같고"*).
+ *
+ * ■ 왜 이 결로 정했나
+ *   Boss 지시는 *"무속인처럼"* 이지만, 우리가 하는 것은 **명리(命理)** 다 — 글을 읽는 학문이지
+ *   신내림·굿이 아니다. 그래서 **한국 전통 역술가**의 결로 간다:
+ *   한복·한지·서재·붓·목재. 이국적이고 신비롭되 **앱이 하는 일과 그림이 맞는다.**
+ *   ⚠️굿·부적·촛불 제단 같은 무속 기호는 쓰지 않는다(도메인이 틀리고, 심사에서도 불리하다).
+ *
+ * ■ 색은 **앱 팔레트를 따른다** — 카멜(2026-08-25 전환). 종전 배경의 라벤더 기를 걷었다.
+ */
+const TRADITION =
+  'wearing a modern hanbok-inspired top with clean lines (jeogori-style collar or wrapped neckline), ' +
+  'natural fabric texture in warm earth tones — camel, ochre, deep brown, off-white hanji paper tone, ' +
+  'set in a quiet traditional Korean study: hanji paper wall, dark wood, soft daylight through a lattice window, ' +
+  'calm and grounded presence of someone who reads and interprets, not theatrical';
+
 export const HOUSE_STYLE =
   'photorealistic portrait photograph, square 1:1 composition, head-and-shoulders framing, ' +
   'face centered in the frame and filling about 60% of the frame height, eyes on the upper third, ' +
@@ -117,7 +134,7 @@ export const CAST: CastMember[] = [
       'a warm and beautiful Korean woman in her late 20s, shoulder-length soft wavy dark brown hair, ' +
       'warm-toned light makeup, smiling eyes, gentle closed-lip smile, cream-colored soft knit top, ' +
       'leaning very slightly toward the camera as if listening',
-    bg: 'clean softly blurred warm beige background with a hint of lavender, soft window light',
+    bg: 'clean softly blurred hanji-paper and dark-wood interior in warm camel tones, soft daylight from a lattice window',
   },
   {
     id: 'guide_minjae',
@@ -133,7 +150,7 @@ export const CAST: CastMember[] = [
       'a handsome composed Korean man in his mid 30s, neat short black hair, clean-shaven, ' +
       'calm confident expression with a faint closed-lip smile, straight posture, ' +
       'charcoal dress shirt with no tie under a dark navy blazer',
-    bg: 'clean softly blurred neutral gray background with a faint lavender cast, even soft light',
+    bg: 'clean softly blurred hanji-paper and dark-wood interior in warm camel tones, soft daylight from a lattice window',
   },
   {
     id: 'tarot_harin',
@@ -149,8 +166,7 @@ export const CAST: CastMember[] = [
       'an elegant beautiful Korean woman in her late 20s, long straight black hair, ' +
       'cool-toned soft makeup with deep berry lip, calm knowing gaze into the camera, ' +
       'quiet mysterious expression, black or dark burgundy silk blouse, small delicate gold earrings',
-    bg:
-      'deep muted indigo-charcoal background, low-key lighting with a soft rim light on the hair, ' +
+    bg: 'clean softly blurred hanji-paper and dark-wood interior in warm camel tones, soft daylight from a lattice window' +
       'candle-warm accent far out of focus',
   },
   {
@@ -168,7 +184,7 @@ export const CAST: CastMember[] = [
       'a gentle handsome Korean man in his early 30s, soft medium-length black hair slightly tousled, ' +
       'thin round metal glasses, quiet attentive expression, chin very slightly lowered but eyes on the camera, ' +
       'oatmeal-colored knit sweater',
-    bg: 'warm dim study background softly out of focus, low warm lamp light',
+    bg: 'clean softly blurred hanji-paper and dark-wood interior in warm camel tones, soft daylight from a lattice window',
   },
   {
     id: 'ziwei_yujin',
@@ -184,7 +200,7 @@ export const CAST: CastMember[] = [
       'a refined graceful Korean woman in her late 30s, dark hair with soft volume neatly styled, ' +
       'serene composed expression, direct steady gaze, mature elegance, ' +
       'deep plum or navy silk blouse, minimal jewelry',
-    bg: 'still softly gradient dark lavender background, quiet even lighting',
+    bg: 'clean softly blurred hanji-paper and dark-wood interior in warm camel tones, soft daylight from a lattice window',
   },
   {
     id: 'astro_taehyun',
@@ -200,7 +216,7 @@ export const CAST: CastMember[] = [
       'a bright handsome Korean man in his late 20s, clean-cut short black hair, ' +
       'open curious expression with an easy natural smile, one eyebrow very slightly raised, ' +
       'light blue oxford shirt with the top button open',
-    bg: 'bright airy pale lavender-white background, soft daylight',
+    bg: 'clean softly blurred hanji-paper and dark-wood interior in warm camel tones, soft daylight from a lattice window',
   },
   {
     id: 'beauty_jjinya',
@@ -216,7 +232,7 @@ export const CAST: CastMember[] = [
       'a strikingly pretty Korean woman in her mid 20s, glossy styled long hair, ' +
       'polished K-beauty glam makeup with dewy skin, defined brows and coral lip, ' +
       'lively bright smile with visible energy, chic black top',
-    bg: 'bright studio background in soft pink-lavender, clean beauty lighting with a catchlight in the eyes',
+    bg: 'clean softly blurred hanji-paper and dark-wood interior in warm camel tones, soft daylight from a lattice window',
   },
   {
     id: 'color_bombom',
@@ -235,8 +251,7 @@ export const CAST: CastMember[] = [
       'a clean-featured lovely Korean woman in her late 20s, simple straight hair, ' +
       'natural true-to-tone makeup, warm approachable but composed expression, ' +
       'plain soft white top with no pattern',
-    bg:
-      'neutral light gray seamless studio background, daylight-balanced 5500K color-accurate lighting, ' +
+    bg: 'clean softly blurred hanji-paper and dark-wood interior in warm camel tones, soft daylight from a lattice window' +
       'no color cast anywhere in the frame',
   },
   {
@@ -253,7 +268,7 @@ export const CAST: CastMember[] = [
       'a cool good-looking Korean woman in her early 30s, low-maintenance straight bob or loose ponytail, ' +
       'minimal makeup, relaxed confident half-smile, slight head tilt, direct frank gaze, ' +
       'simple denim shirt over a plain black tee',
-    bg: 'softly blurred neutral city dusk background, no readable cars or signs, soft ambient light',
+    bg: 'clean softly blurred hanji-paper and dark-wood interior in warm camel tones, soft daylight from a lattice window',
   },
   {
     id: 'travel_jini',
@@ -269,8 +284,7 @@ export const CAST: CastMember[] = [
       'a bright pretty Korean woman in her mid 20s, sun-kissed healthy skin, ' +
       'hair lightly moved by a breeze, wide open genuine smile, ' +
       'casual white linen shirt',
-    bg:
-      'outdoor golden-hour background thrown far out of focus, warm backlight rimming the hair, ' +
+    bg: 'clean softly blurred hanji-paper and dark-wood interior in warm camel tones, soft daylight from a lattice window' +
       'hint of sky and greenery, no landmark',
   },
   {
@@ -287,7 +301,7 @@ export const CAST: CastMember[] = [
       'a serene beautiful Korean woman in her early 30s, hair loosely tied back with a few soft strands, ' +
       'soft low-contrast natural makeup, calm gentle eyes, faint reassuring smile, ' +
       'oatmeal or sage linen shirt',
-    bg: 'muted sage-greige background, diffuse soft window light, low saturation overall',
+    bg: 'clean softly blurred hanji-paper and dark-wood interior in warm camel tones, soft daylight from a lattice window',
   },
 ];
 
@@ -300,7 +314,9 @@ export const CAST: CastMember[] = [
  */
 export function buildPrompt(m: CastMember): { prompt: string; negative: string } {
   if (m.real) throw new Error(`${m.name}(${m.id}) 은 실존 인물 — 이미지를 생성하지 않는다`);
-  const prompt = [HOUSE_STYLE, m.look, m.bg].filter(Boolean).join(', ');
+  // ★전통 레이어는 **look 뒤·bg 앞**에 넣는다 — 인물 묘사를 먼저 잡고 의상·공간을 얹는 순서.
+  //   ⚠️노쌤은 실존 인물이라 애초에 생성 대상이 아니다(`real: true`).
+  const prompt = [HOUSE_STYLE, m.look, TRADITION, m.bg].filter(Boolean).join(', ');
   const negative = [NEGATIVE, m.extraNegative].filter(Boolean).join(', ');
   return { prompt, negative };
 }
