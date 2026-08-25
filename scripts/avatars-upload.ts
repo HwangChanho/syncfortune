@@ -33,7 +33,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { CAST } from './avatar-cast';
 
-const SRC_DIR = process.argv[2] || 'design/avatars';
+const DRY = process.argv.includes('--dry-run');   // ★검사만 하고 **아무것도 안 올린다**
+const SRC_DIR = process.argv.slice(2).find((a) => !a.startsWith('--')) || 'design/avatars';
 const EXTS = ['png', 'jpg', 'jpeg', 'webp'];
 const SIZE = 512;              // 저장 규격 — 관리자 콘솔 자르기 편집기와 같은 값
 const JPEG_QUALITY = 90;       // 대략 100KB — 버킷 제한(2MB) 한참 안쪽
@@ -73,6 +74,29 @@ function toSquareJpeg(src: string, out: string): { w: number; h: number } | null
   args.push(src, '--out', out);
   execFileSync('sips', args, { stdio: 'pipe' });
   return w === h ? null : { w, h };
+}
+
+/**
+ * 파일이 **실제로 이미지인가** — 앞 몇 바이트(매직 넘버)로 본다.
+ *
+ * ⚠️왜 필요한가(2026-08-25 실측): `design/avatars/` 에 **구글 «Error 400» HTML 페이지**가
+ *   `.jpg` 로 열한 장 들어 있었다. 드라이브에서 받다가 권한·바이러스검사 안내 페이지가
+ *   그대로 저장된 것이다(1,695 바이트). 확장자만 믿으면 **HTML 을 누군가의 얼굴로 올린다.**
+ *   그 상태로 올라가면 앱에서 사진이 깨져 보이는데 원인은 안 보인다.
+ *
+ * @param p 파일 경로
+ * @returns 이미지면 null, 아니면 사람이 읽을 수 있는 사유
+ */
+function notAnImage(p: string): string | null {
+  const b = readFileSync(p).subarray(0, 12);
+  if (b.length < 12) return '파일이 너무 짧다';
+  const is = (sig: number[], off = 0) => sig.every((v, i) => b[off + i] === v);
+  if (is([0xFF, 0xD8, 0xFF])) return null;                                   // jpeg
+  if (is([0x89, 0x50, 0x4E, 0x47])) return null;                             // png
+  if (is([0x52, 0x49, 0x46, 0x46]) && is([0x57, 0x45, 0x42, 0x50], 8)) return null;  // webp
+  const head = b.toString('utf8').trim().slice(0, 9).toLowerCase();
+  if (head.startsWith('<html') || head.startsWith('<!doctype')) return 'HTML 이다 — 드라이브 오류 페이지를 받은 것 같다';
+  return `이미지가 아니다(앞 4바이트 ${[...b.subarray(0, 4)].map((x) => x.toString(16).padStart(2, '0')).join(' ')})`;
 }
 
 /** 폴더에서 이 id 의 원본 파일을 찾는다(확장자는 아무거나). */
@@ -119,7 +143,7 @@ if (!existsSync(SRC_DIR)) {
   process.exit(1);
 }
 
-console.log(`\n📤 상담가 사진 등록 — ${SRC_DIR}\n`);
+console.log(`\n📤 상담가 사진 등록 — ${SRC_DIR}${DRY ? '   ⚠️ --dry-run: 검사만 하고 올리지 않는다' : ''}\n`);
 const tmp = mkdtempSync(join(tmpdir(), 'avatars-'));
 let done = 0, skipped = 0, failed = 0;
 
@@ -130,12 +154,16 @@ for (const m of CAST) {
   }
   const src = findSource(m.id);
   if (!src) { console.log(`  ·  ${m.name.padEnd(8)} 파일 없음 — 건너뜀 (${m.id}.png)`); skipped++; continue; }
+  // ★확장자를 믿지 않는다 — 내용을 본다(위 notAnImage 주석의 사고 참조)
+  const why = notAnImage(src);
+  if (why) { console.log(`  ❌ ${m.name.padEnd(8)} ${why} — 올리지 않았다: ${src}`); failed++; continue; }
   try {
     const out = join(tmp, `${m.id}.jpg`);
     const odd = toSquareJpeg(src, out);
     const jpeg = readFileSync(out);
-    await upload(m.id, jpeg);
-    await link(m.id);
+    // ★--dry-run 은 스토리지·DB 를 **건드리지 않는다**. 검사만 하려고 돌렸다가
+    //   실서비스 사진을 갈아 끼우는 일이 없게 한다(2026-08-25 내가 그럴 뻔했다).
+    if (!DRY) { await upload(m.id, jpeg); await link(m.id); }
     done++;
     const note = odd ? ` ⚠️ 원본이 ${odd.w}×${odd.h}(정사각 아님) — 가운데를 잘랐습니다. 얼굴이 중앙이 아니면 다시 주세요` : '';
     console.log(`  ✅ ${m.name.padEnd(8)} ${Math.round(jpeg.length / 1024)}KB → consultants/${m.id}.jpg${note}`);
