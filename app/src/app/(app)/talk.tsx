@@ -538,6 +538,7 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
                       railKeys={order} onMe={() => router.push('/charts')}
                       onSettings={() => router.push('/settings')}
                       onAddFriend={() => router.push('/friends')}
+                      session={session} onLogin={() => router.push('/login')}
                       pendingCount={friends.filter((f) => f.status === 'pending' && !f.requestedByMe).length}
                       people={friends.filter((f) => f.status === 'accepted').map((f) => ({
                         id: f.otherId, name: f.name ?? '이름 없음', avatarUrl: f.avatarUrl, canSee: !!f.chartId,
@@ -624,6 +625,7 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
                       railKeys={order} onMe={() => router.push('/charts')}
                       onSettings={() => router.push('/settings')}
                       onAddFriend={() => router.push('/friends')}
+                      session={session} onLogin={() => router.push('/login')}
                       pendingCount={friends.filter((f) => f.status === 'pending' && !f.requestedByMe).length}
                       people={friends.filter((f) => f.status === 'accepted').map((f) => ({
                         id: f.otherId, name: f.name ?? '이름 없음', avatarUrl: f.avatarUrl, canSee: !!f.chartId,

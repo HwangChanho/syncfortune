@@ -84,28 +84,39 @@ console.log('\n=== ③ 누르는 아이콘이 다시 작아지지 않았는가 =
    * @param src 주석을 걷어 낸 소스
    * @returns 눌리는 자리에 있는 `<Icon>` 의 size 값들
    */
-  const pressableIconSizes = (src: string): number[] => {
-    const out: number[] = [];
+  const pressableIconSizes = (src: string): { size: number; hitSlop: number }[] => {
+    const out: { size: number; hitSlop: number }[] = [];
     for (const m of src.matchAll(/<Icon[^>]*size=\{(\d+(?:\.\d+)?)\}/g)) {
       const before = src.slice(Math.max(0, m.index! - 400), m.index!);
       const openAt = before.lastIndexOf('<PressableScale');
       const closeAt = before.lastIndexOf('</PressableScale>');
-      if (openAt >= 0 && openAt > closeAt) out.push(Number(m[1]));   // 아직 안 닫힌 버튼 안이다
+      if (openAt < 0 || openAt <= closeAt) continue;                 // 버튼 안이 아니다
+      // 그 버튼 태그에 붙은 hitSlop 을 읽는다(없으면 0)
+      const tag = before.slice(openAt);
+      const hs = /hitSlop=\{(\d+)\}/.exec(tag);
+      out.push({ size: Number(m[1]), hitSlop: hs ? Number(hs[1]) : 0 });
     }
     return out;
   };
 
   let small = 0;
   for (const f of TOPBARS) {
-    for (const n of pressableIconSizes(stripComments(readFileSync(f, 'utf8')))) {
-      if (n < 22) { bad(`${f.split('/').pop()} — 누르는 아이콘 size ${n} (22 이상. 옛 글리프 잉크가 12~13 이었다)`); small++; }
+    const src = stripComments(readFileSync(f, 'utf8'));
+    for (const { size, hitSlop } of pressableIconSizes(src)) {
+      // ★기준은 **손가락이 닿는 넓이**지 글자 크기가 아니다.
+      //   배너의 작은 닫기(✕)까지 22 를 강요하면 그 줄이 뭉개진다 — 규칙이 화면을 망친다.
+      //   ⇒ `hitSlop` 이 있으면 **실효 크기 = size + hitSlop×2** 로 본다(그게 실제 누르는 넓이다).
+      //   ⚠️그래도 **16 아래는 막는다** — 아무리 hitSlop 을 줘도 눈으로 못 찾는다.
+      const eff = size + hitSlop * 2;
+      if (size < 16) { bad(`${f.split('/').pop()} — 누르는 아이콘 size ${size} (16 아래는 눈으로 못 찾는다)`); small++; }
+      else if (eff < 40) { bad(`${f.split('/').pop()} — 누르는 자리가 ${eff}px (size ${size} + hitSlop ${hitSlop}) — 40 이상이어야 손가락이 닿는다`); small++; }
     }
   }
   if (!small) ok('누르는 아이콘이 전부 22 이상');
 
   // ★음성 테스트 — 규칙이 실제로 무는지, 그리고 **장식은 안 무는지**(둘 다 봐야 한다)
   const btn = '<PressableScale onPress={x}><Icon name="search" size={14} /></PressableScale>';
-  if (pressableIconSizes(btn).length === 1) ok('음성 테스트 — 버튼 안의 작은 값을 문다');
+  if (pressableIconSizes(btn).length === 1 && pressableIconSizes(btn)[0].size === 14) ok('음성 테스트 — 버튼 안의 작은 값을 문다');
   else bad('음성 테스트 실패 — 버튼 안이 작아져도 통과한다');
 
   const deco = '<View style={s.box}><Icon name="search" size={18} /><TextInput /></View>';

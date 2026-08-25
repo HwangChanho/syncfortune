@@ -89,27 +89,6 @@ function Avatar({ name, initial, slot, uri, size = 48, element }: {
  *
  * @param slot 얼굴색 자리(전체 목록 기준 — 즐겨찾기로 올라가도 얼굴이 안 바뀐다)
  */
-/**
- * 상대 시각 — 콘티 1면의 우측(「오후 8:21」·「방금 전」·「어제」).
- * ★오늘이면 **시각**, 어제면 「어제」, 그보다 오래면 「n일 전」.
- *   ⚠️운대화 목록(`ChatList.ago`)은 늘 상대 표현인데 여기는 콘티가 **오늘만 시각**을 쓴다 —
- *     친구목록은 '언제 이야기했나'보다 '지금 살아 있나'를 보는 자리라 그 편이 읽기 쉽다.
- */
-function whenText(iso: string, t: (k: string, d?: string) => string): string {
-  const d = new Date(iso);
-  const now = new Date();
-  const sameDay = d.toDateString() === now.toDateString();
-  if (sameDay) {
-    const h = d.getHours(), m = d.getMinutes();
-    const ampm = h < 12 ? t('time.am', '오전') : t('time.pm', '오후');
-    const hh = h % 12 === 0 ? 12 : h % 12;
-    return `${ampm} ${hh}:${String(m).padStart(2, '0')}`;
-  }
-  const days = Math.floor((now.getTime() - d.getTime()) / 86400000);
-  if (days <= 1) return t('chats.yesterday', '어제');
-  if (days < 7) return t('chats.dayAgo', '{{n}}일 전').replace('{{n}}', String(days));
-  return `${d.getMonth() + 1}/${d.getDate()}`;
-}
 
 function Row({ c, initial, slot, on, onOpen, t }: {
   c: Consultant & { lastAt?: string | null; unread?: number }; initial?: string; slot: number; on: boolean;
@@ -159,9 +138,12 @@ function Row({ c, initial, slot, on, onOpen, t }: {
         </View>
         {c.tagline ? <Text style={styles.tagline} numberOfLines={1}>{c.tagline}</Text> : null}
       </View>
-      {c.lastAt || (c.unread ?? 0) > 0 ? (
+      {/* ★**시각은 안 그린다**(Boss 2026-08-25 *"친구목록에는 시간 안 떠도 된다"*).
+          웹에서 즐겨찾기 별(스와이프 자리)과 **겹쳐 보였다**. 마지막 대화 시각이 필요한 곳은
+          **대화목록(`ChatList`)**이다 — 거긴 그대로 둔다. 여기는 «누구인가»를 보는 자리다.
+          ⚠️안 읽음 배지는 **남긴다** — 그건 시각이 아니라 «할 일»이라 사라지면 놓친다. */}
+      {(c.unread ?? 0) > 0 ? (
         <View style={styles.rightCol}>
-          {c.lastAt ? <Text style={styles.when}>{whenText(c.lastAt, t)}</Text> : null}
           {(c.unread ?? 0) > 0 ? (
             <View style={styles.unread}>
               <Text style={styles.unreadTx}>{(c.unread ?? 0) > 99 ? '99+' : c.unread}</Text>
@@ -210,7 +192,7 @@ function Row({ c, initial, slot, on, onOpen, t }: {
 //   (특히 `biorhythm` 은 어느 상담가에도 없어 그냥 지웠으면 도달 불가가 됐다).
 //   ★`ContentRail` 컴포넌트 자체는 남아 있다 — 다른 자리에서 쓸 수 있다.
 
-export function TalkList({ items, onOpen, selected, myName, onMe, myAvatar, railKeys = [], onSettings, wide, footer,
+export function TalkList({ items, onOpen, selected, myName, onMe, myAvatar, railKeys = [], onSettings, onLogin, session, wide, footer,
                            onAddFriend, pendingCount = 0, people = [], onOpenPerson }: {
   /**
    * 친구목록에 뜰 사람들.
@@ -228,6 +210,10 @@ export function TalkList({ items, onOpen, selected, myName, onMe, myAvatar, rail
   railKeys?: readonly HomeBlockKey[];
   /** 우측 톱니 — 설정으로 */
   onSettings?: () => void;
+  /** 로그인 화면으로(비로그인일 때만 상단 줄이 뜬다) */
+  onLogin?: () => void;
+  /** 로그인 세션 — 없으면 상단에 로그인 줄을 띄운다 */
+  session?: unknown;
   /** ★목록 **맨 아래**에 붙일 것(웹 첫 방문자 설명 등).
    *  ⚠️위(`renderTop`)에 두면 목록을 화면 밖으로 밀어낸다 — 실제로 그래서 친구목록이 안 보였다
    *    (Boss 2026-08-24 *"운친구 눌려있는데 왜 친구목록이 안나와"*). 이 목록은 ScrollView 라
@@ -251,6 +237,8 @@ export function TalkList({ items, onOpen, selected, myName, onMe, myAvatar, rail
   // ★검색 아이콘을 **되살렸다**(2026-08-22) — 콘티 1면 헤더에 돋보기가 있고,
   //   "친구가 다섯이라 검색할 게 없다"던 08-20 의 근거는 **열둘이 된 지금** 더는 맞지 않는다.
   const [searchOpen, setSearchOpen] = useState(false);
+  // 이번 실행 동안만 숨긴다(껐다 켜면 다시 뜬다 — 저장까지 하면 영영 못 보게 된다)
+  const [loginHidden, setLoginHidden] = useState(false);
   // 콘티의 칩 — 전체 / 선생님 AI / 친구
   const [filter, setFilter] = useState<'all' | 'teacher' | 'friend' | 'recent'>('all');
   // 즐겨찾기 — 온디바이스. ★별을 누르면 **즉시** 다시 그린다(새로고침을 요구하지 않는다).
@@ -319,6 +307,24 @@ export function TalkList({ items, onOpen, selected, myName, onMe, myAvatar, rail
           {pendingCount > 0 ? <View style={styles.topBadge}><Text style={styles.topBadgeTx}>{pendingCount}</Text></View> : null}
         </PressableScale>
       </View>
+
+      {/* ★로그인 유도 — **앱을 열면 바로 보이는 자리**(Boss 2026-08-25 *"로그인 유도가 없네"*).
+          종전엔 `SignupNudge` 가 **콘텐츠 하단 한 곳**(하루 1회)에만 있어 눈에 안 띄었다.
+          ⚠️문구는 겁주기가 아니라 **사실**이다 — 익명 계정은 이 기기에만 있어 앱을 지우면 못 되찾는다.
+            (§4 부정 증폭 금지 · SignupNudge 와 같은 결로 쓴다.)
+          ⚠️닫을 수 있게 둔다 — 못 닫는 배너는 광고로 읽혀 신뢰를 깎는다. */}
+      {!session && !loginHidden ? (
+        <PressableScale style={styles.loginBar} onPress={onLogin}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.loginTx}>{t('talk.loginNudge', '로그인하면 명식과 풀이가 계정에 저장돼요.')}</Text>
+            <Text style={styles.loginSub}>{t('talk.loginNudgeSub', '지금은 이 기기에만 있어요 — 앱을 지우면 되찾을 수 없어요.')}</Text>
+          </View>
+          <Text style={styles.loginGo}>{t('talk.loginNudgeCta', '로그인')} ›</Text>
+          <PressableScale hitSlop={12} style={styles.loginX} onPress={() => setLoginHidden(true)}>
+            <Icon name="close" size={16} color={colors.inkFaint} />
+          </PressableScale>
+        </PressableScale>
+      ) : null}
 
       {/* ── 필터 칩 — ★콘티 1면 그대로 **넷**(전체 · 선생님 AI · 무료 친구 · 최근) ──
           ⚠️전에 '최근'을 뺐었다("운대화 탭이 이미 그 순서다"). 콘티에 있으므로 되돌렸다 —
@@ -467,6 +473,16 @@ const styles = StyleSheet.create({
   webStar: { position: 'absolute', right: space(2), top: 0, bottom: 0, justifyContent: 'center', paddingHorizontal: space(1) },
   webStarTx: { fontSize: 16, color: colors.inkFaint },
   webStarOn: { color: colors.ju },
+  loginBar: {
+    flexDirection: 'row', alignItems: 'center', gap: space(2),
+    backgroundColor: colors.juSoft, borderWidth: 1, borderColor: colors.juLine,
+    borderRadius: radius.md, paddingVertical: space(2.5), paddingHorizontal: space(3.5),
+    marginBottom: space(2.5),
+  },
+  loginTx: { ...font.body, fontSize: 13, lineHeight: 19, color: colors.ink, fontWeight: '800' },
+  loginSub: { ...font.caption, fontSize: 11.5, lineHeight: 17, color: colors.inkSoft, marginTop: 1 },
+  loginGo: { ...font.body, fontSize: 12.5, lineHeight: 18, color: colors.ju, fontWeight: '800' },
+  loginX: { paddingLeft: space(1) },
   realBadge: {
     fontSize: 9.5, lineHeight: 14, color: colors.ju, fontWeight: '800',
     backgroundColor: colors.juSoft, borderRadius: 999,
