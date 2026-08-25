@@ -40,6 +40,7 @@ import { acquireGen, releaseGen, isGenActive } from '../lib/backend/genLock'; //
 import { loadFollowups, askFollowup, type Followup } from '../lib/backend/followups'; // 궁합 추가질문(사주/자미 풀이와 동일 — 무료1 + 건당)
 import { yearGanZhi } from '../lib/content/dailyFortune'; // 연도별 궁합: 그 해 간지(세운)
 import { compatScore, tierLabel, tierOf, type CompatScoreResult } from '../lib/content/compatScore'; // 궁합 점수·등급(R26: LLM 직접 산출 우선, 결정론은 폴백)
+import { interactionColor, INTERACTION_ORDER } from '../lib/content/interactionColor'; // 작용 6종 색 단일 원본(Boss 08-25)
 import { appLang } from '../lib/i18n';
 
 // 궁합 등급 이미지·관계 카테고리 배너 — 표는 `lib/content/compatImages` 가 단일 출처다
@@ -646,21 +647,48 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
     const cross = detectInteractionsAmong(all.map((x) => ({ pos: x.pos as any, stem: x.stem, branch: x.branch })))
       .filter((it) => String(it.members[0]).startsWith('나') !== String(it.members[1]).startsWith('나'));
     const findP = (pos: string) => all.find((x) => x.pos === pos);
-    const typeColor = (ty: string) => (ty === '합' ? colors.ju : (ty === '충' || ty === '극') ? '#C0392B' : '#9A8CC0');
+    // ★작용 색은 `interactionColor` 단일 원본. 종전엔 6종에 색이 셋뿐이라
+    //   형·해·파가 같은 색이었고(«무슨 작용인지» 를 색으로 못 읽었다),
+    //   그 색 `#9A8CC0` 는 라벤더 시절 잔재였다(Boss 2026-08-25).
+    const typeColor = (ty: string) => interactionColor(ty);
     const rowKey = (it: any) => `${it.type}:${it.level}:${it.members[0]}:${it.members[1]}`;
-    const hlCells = new Set<string>();
-    cross.forEach((it) => { if (!active.has(rowKey(it))) return; const side = it.level === '천간' ? 'stem' : 'branch'; hlCells.add(`${it.members[0]}|${side}`); hlCells.add(`${it.members[1]}|${side}`); });
+    // ★칸마다 **어느 작용으로** 켜졌는지 색을 들고 온다 — 종전엔 켜짐 여부만 알아
+    //   테두리가 늘 같은 청록(`#19E3E3`)이었다. 그러면 두 작용을 동시에 켜도 구분이 안 된다.
+    //   여럿이 겹치면 먼저 켠 것을 쓴다(표시 순서가 아니라 사용자가 켠 순서).
+    const hlCells = new Map<string, string>();
+    cross.forEach((it) => {
+      if (!active.has(rowKey(it))) return;
+      const side = it.level === '천간' ? 'stem' : 'branch';
+      const col = interactionColor(it.type);
+      for (const mbr of [it.members[0], it.members[1]]) {
+        const k = `${mbr}|${side}`;
+        if (!hlCells.has(k)) hlCells.set(k, col);
+      }
+    });
     const miniChart = (pillars: any[], title: string) => (
       <View>
         <Text style={styles.cmTitle}>{title}</Text>
         <View style={styles.cmRow}>
           {pillars.map((x, i) => {
-            const stemOn = hlCells.has(`${x.pos}|stem`), branchOn = hlCells.has(`${x.pos}|branch`);
+            const stemHl = hlCells.get(`${x.pos}|stem`), branchHl = hlCells.get(`${x.pos}|branch`);
+            /** 한 칸. 켜지면 **흰 고리 + 작용 색 테두리**로 감싼다.
+             *  ⚠️색 테두리를 오행 배경에 바로 대면 대비가 1.06~1.10 이라 **안 보인다**.
+             *    흰 틈이 있어야 배경이 밝든 어둡든 색이 산다. */
+            const cell = (ch: string, el: string, hl?: string) => {
+              const box = (
+                <View style={[styles.cmCell, { minWidth: ls(30), minHeight: ls(30) }, { backgroundColor: elementColor[el] }]}>
+                  <Text style={[styles.cmTx, { color: elementText[el] }]}>{ch}</Text>
+                </View>
+              );
+              return hl
+                ? <View style={[styles.cmRing, { borderColor: hl }]}>{box}</View>
+                : <View style={styles.cmRingOff}>{box}</View>;
+            };
             return (
               <View key={i} style={[styles.cmCol, (x.label === '대운' || x.label === '세운') && styles.cmColLuck]}>
                 <Text style={styles.cmLabel}>{x.label}</Text>
-                <View style={[styles.cmCell, { minWidth: ls(30), minHeight: ls(30) }, { backgroundColor: elementColor[stemElement(x.stem)] }, stemOn && styles.cmCellHL]}><Text style={[styles.cmTx, { color: elementText[stemElement(x.stem)] }]}>{x.stem}</Text></View>
-                <View style={[styles.cmCell, { minWidth: ls(30), minHeight: ls(30) }, { backgroundColor: elementColor[branchElement(x.branch)] }, branchOn && styles.cmCellHL]}><Text style={[styles.cmTx, { color: elementText[branchElement(x.branch)] }]}>{x.branch}</Text></View>
+                {cell(x.stem, stemElement(x.stem), stemHl)}
+                {cell(x.branch, branchElement(x.branch), branchHl)}
               </View>
             );
           })}
@@ -675,7 +703,7 @@ export function CompatScreen({ me }: { me: ChartInput | null }) {
         {cross.length > 0 && <Text style={styles.cmHint}>작용을 탭하면 위 두 명식에서 해당 글자가 강조됩니다.</Text>}
         <View style={styles.crossList}>
           {cross.length === 0 ? <Text style={styles.note}>두 명식 간 직접 합충형해가 없습니다.</Text> :
-            ['합', '충', '형', '해', '파', '극'].map((ty) => {
+            INTERACTION_ORDER.map((ty) => {
               const grp = cross.filter((it) => it.type === ty);
               if (!grp.length) return null;
               const col = typeColor(ty);
@@ -840,7 +868,11 @@ const styles = StyleSheet.create({
   cmLabel: { fontSize: 9, color: colors.inkFaint, marginBottom: 2 },
   cmCell: { borderRadius: 5, alignItems: 'center', justifyContent: 'center', marginVertical: 1 },
   // 강조 테두리 = 밝은 청록(오행 5색에 없는 색) — 土(골드 #C9A14A)·金 배경에서도 또렷이 보이게(daniel)
-  cmCellHL: { borderWidth: 3, borderColor: '#19E3E3' },
+  // 강조 고리 — 색 테두리와 오행 배경 사이에 **흰 틈**을 둔다(위 cell() 주석 참조).
+  //   ★종전 `cmCellHL` 은 작용과 무관한 청록 고정이었다(#19E3E3 — 라벤더/시안 잔재).
+  cmRing: { borderWidth: 2, borderRadius: radius.sm + 3, padding: 2, backgroundColor: colors.card },
+  // 안 켜졌을 때도 **같은 자리를 차지**해야 한다 — 없으면 켤 때마다 칸이 4px 씩 흔들린다
+  cmRingOff: { borderWidth: 2, borderColor: 'transparent', borderRadius: radius.sm + 3, padding: 2 },
   cmTx: { fontSize: 17, fontWeight: '800' },
   cmHint: { ...font.caption, color: colors.inkFaint, marginTop: space(1), marginBottom: space(1) },
   crossList: { marginTop: space(2), padding: space(3), borderRadius: radius.sm, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line },

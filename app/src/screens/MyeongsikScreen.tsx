@@ -8,6 +8,7 @@
 // 일주(日柱) = '나'(일간) → 골드 강조. 용신·통변은 별도(하단 "풀이 보기").
 // ─────────────────────────────────────────────────────────────────────────
 import { useMemo, useState, useEffect, useRef, type ReactNode } from 'react';
+import { interactionColor, INTERACTION_ORDER } from '../lib/content/interactionColor';
 import { View, Text, ScrollView, StyleSheet, Pressable, Modal, Animated, LayoutAnimation, Platform, UIManager } from 'react-native';
 import { PressableScale } from '../components/PressableScale';
 import { RelatedContent } from '../components/RelatedContent';
@@ -273,9 +274,10 @@ function MyeongsikBody({ input, onReading, onSinsal, header, whoName }: Myeongsi
   const jiLinks = allLinks.filter((it: any) => it.level !== '천간');  // 지지 합·충·형·해·파 — 팔자 아래(실선)
   // 합충선 라벨: 합이면 '합+합화오행'을 그 오행 색으로(=어떤 기운이 강해지는지), 그 외는 종류만.
   const linkLabel = (it: any) => interactionLabel(it); // 짝 이름 라벨(유축반합·묘술육합·정신극) — daniel. 화오행은 글라스박스/transformsTo로.
-  const linkColor = (it: any) =>
-    it.type === '합' ? colors.ju
-    : (it.type === '충' || it.type === '극') ? '#C0392B' : '#9A8CC0';
+  // ★작용 색은 `interactionColor` 단일 원본 — 궁합 화면과 **같은 표**를 쓴다.
+  //   종전엔 여기와 궁합에 3색 배색이 따로 박혀 있었다(형·해·파가 한 색). 같은 「작용」이
+  //   화면마다 다르게 보이면 안 된다([[duplicate-ui-single-source]]).
+  const linkColor = (it: any) => interactionColor(it.type);
   // 합충 호 — 표의 천간 행 위(above·점선) / 지지 행 아래(below·실선). 라벨열(34) 오프셋 반영.
   const renderArcs = (links: any[], dir: 'above' | 'below') => {
     if (!(rowW > 0) || links.length === 0) return null;
@@ -323,8 +325,8 @@ function MyeongsikBody({ input, onReading, onSinsal, header, whoName }: Myeongsi
   };
 
   // 합충형해 종류별 그룹 렌더 (선 클러터 대신 합/충/형/해/파/극 묶음 + 글자쌍, 탭→의미)
-  const typeColor = (ty: string) => (ty === '합' ? colors.ju : (ty === '충' || ty === '극') ? '#C0392B' : '#9A8CC0');
-  const renderGroups = (items: any[], active: Set<string>, onToggle: (k: string) => void) => ['합', '충', '형', '해', '파', '극'].map((ty) => {
+  const typeColor = (ty: string) => interactionColor(ty);   // ★위 linkColor 와 같은 단일 원본
+  const renderGroups = (items: any[], active: Set<string>, onToggle: (k: string) => void) => INTERACTION_ORDER.map((ty) => {
     const grp = items.filter((x) => x.type === ty);
     if (!grp.length) return null;
     const col = typeColor(ty);
