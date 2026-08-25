@@ -50,6 +50,8 @@ import { colors, space, radius, font } from '../../lib/theme';
 import { Icon } from '../../components/kit/Icon';   // 상단 아이콘 단일 원본(Boss 2026-08-24)
 import { ConsultantLinkCard } from '../../components/talk/ConsultantLinkCard';   // 상담가 본인 채널(Boss 2026-08-25)
 import { buildChartVerdict } from '../../lib/talk/chartVerdict';   // 우리 엔진 판정을 대화에 싣는다(Boss 2026-08-25)
+import { pendingMonthlyBrief, markBriefSeen } from '../../lib/talk/monthlyBrief';   // 노쌤 월간 공지(Boss 2026-08-25)
+import { FortuneVideoCard } from '../../components/FortuneVideoCard';
 
 /**
  * 삭제 확인 줄.
@@ -321,6 +323,26 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
       id: nextId(), role: 'assistant' as const, body: '',
       node: renderTalkBlock(k as never, { reloadKey: 0, dateKey, repName: myName }),
     })).filter((b) => !!b.node);
+
+    const gen = genRef.current;   // 이 방의 세대 — 비동기 공지가 늦게 와도 **엉뚱한 방에 안 붙게**
+    // ★이달의 총 흐름 — 노쌤이 **한 달에 한 번** 보내는 공지(Boss 2026-08-25
+    //   *"일간별운세 전에 총 운흐름내용 정리해서 «여러분의 운은 어떻게 될까요» 이런식으로"*).
+    //   ⇒ 총평은 **공통**, 그다음이 **개인 운세**. 방송을 보고 내 것을 확인하는 결이다.
+    //   ⚠️보낸 사람이 있는 상담가(`link_url` = 실존 상담가)에게만 붙인다 — 아무나 공지를 보내면
+    //     «누가 말한 것인지»가 흐려진다. 지금은 노쌤뿐이다.
+    void (async () => {
+      if (!c.linkUrl) return;
+      const brief = await pendingMonthlyBrief();
+      if (!brief || gen !== genRef.current) return;       // 그 사이 방을 옮겼으면 버린다
+      await markBriefSeen(brief.periodKey);               // ★한 달에 한 번 — 봤으면 다시 안 띄운다
+      sayInOrder([
+        { id: nextId(), role: 'assistant', body: brief.body },
+        // ★영상은 **있으면 붙고 없으면 안 그린다** — 카드가 스스로 그 달을 찾는다(표가 정본).
+        { id: nextId(), role: 'assistant' as const, body: '',
+          node: <FortuneVideoCard periodKey={brief.periodKey} title="이달의 운세 영상" /> },
+        { id: nextId(), role: 'assistant', body: t('talk.briefTail', '여러분의 운은 어떻게 될까요? 회원님 명식으로 보면 이번 달이 어떤 달인지 알 수 있어요.') },
+      ], 700);
+    })();
 
     // ★상담가 본인 채널 — **첫 인사 뒤에 한 번만**(Boss 2026-08-25).
     //   목적은 광고가 아니라 *"실제 상담가가 만드는 서비스"* 라는 **신뢰 신호**다.

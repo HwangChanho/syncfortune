@@ -682,6 +682,7 @@ export const en = {
     'loginNudge': 'Sign in to save your charts and readings to your account.',
     'loginNudgeSub': 'Right now they live only on this device — uninstalling loses them.',
     'loginNudgeCta': 'Sign in',
+    'briefTail': 'So how will your month go? Your own chart shows what kind of month this is for you.',
     'groupFriend': '✦ Good to have around',
     'contents': 'Contents',
     'more': 'More',

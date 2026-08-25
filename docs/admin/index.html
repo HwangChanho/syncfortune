@@ -193,6 +193,28 @@
           키는 <code>2026-08</code>(그 달) 또는 <code>2026</code>(그 해). <code>https://</code> 로 시작해야 합니다.
         </div>
         <div id="videoList" class="sub">불러오는 중…</div>
+      </div>
+
+      <!-- ★이달의 총 흐름(2026-08-25) — 노쌤이 **한 달에 한 번** 보내는 공지.
+           Boss: *"일간별운세 전에 총 운흐름내용 정리해서 «여러분의 운은 어떻게 될까요» 이런식으로"*
+           · 비워 두면 **아무것도 안 간다**(빈 공지를 보내지 않는다)
+           · 사용자가 그 달 것을 한 번 보면 다시 안 뜬다 -->
+      <div class="card" style="margin-top:14px">
+        <h2>이달의 총 흐름 — 노쌤 공지</h2>
+        <div class="sub" style="margin-bottom:10px">
+          노쌤 대화방에 <b>한 달에 한 번</b> 도착합니다. 끝에 «여러분의 운은 어떻게 될까요?» 가 자동으로 붙고,
+          그 달 영상이 등록돼 있으면 같이 나갑니다.<br>
+          <b>누구에게나 같은 이야기</b>를 쓰세요 — 개인 풀이는 그다음 화면이 합니다.
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+          <input id="briefKey" placeholder="2026-08" style="width:120px">
+        </div>
+        <textarea id="briefBody" rows="5" placeholder="이번 달은 …" style="width:100%"></textarea>
+        <div style="margin-top:8px;display:flex;gap:8px">
+          <button id="briefSave">저장</button>
+          <button id="briefLoad">불러오기</button>
+        </div>
+        <div id="briefMsg" class="sub" style="margin-top:8px"></div>
         <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
           <input id="videoKey" placeholder="2026-08" style="width:120px">
           <input id="videoUrl" placeholder="https://… .mp4" style="flex:1;min-width:240px">
@@ -969,6 +991,36 @@ $('videoAdd').onclick = () => {
   videoMap[k] = u;
   $('videoKey').value = ''; $('videoUrl').value = '';
   saveVideo();
+};
+
+// ── 이달의 총 흐름(2026-08-25) — 노쌤 공지 ────────────────────────────────
+//   `app_config.monthly_brief` = { "2026-08": { body, video } }
+//   ★영상 주소는 위 「운세 영상」 표에서 그 달 키로 자동으로 붙는다 — 여기서 또 넣지 않는다.
+let briefMap = {};
+async function loadBriefMap() {
+  const { data } = await sb.from('app_config').select('value').eq('key', 'monthly_brief').maybeSingle();
+  briefMap = (data && data.value && typeof data.value === 'object') ? data.value : {};
+}
+$('briefLoad').onclick = async () => {
+  await loadBriefMap();
+  const k = $('briefKey').value.trim() || new Date().toISOString().slice(0, 7);
+  $('briefKey').value = k;
+  $('briefBody').value = (briefMap[k] && briefMap[k].body) || '';
+  $('briefMsg').innerHTML = briefMap[k]
+    ? '<span class="msg ok">불러왔습니다.</span>'
+    : '<span class="muted">그 달 공지가 아직 없습니다.</span>';
+};
+$('briefSave').onclick = async () => {
+  const k = $('briefKey').value.trim();
+  const body = $('briefBody').value.trim();
+  if (!/^\d{4}-\d{2}$/.test(k)) { $('briefMsg').innerHTML = '<span class="msg err">키는 2026-08 모양이어야 합니다.</span>'; return; }
+  await loadBriefMap();
+  // ★비우면 **지운다** — 빈 공지를 보내는 것보다 안 보내는 게 낫다
+  if (!body) delete briefMap[k]; else briefMap[k] = { body };
+  const { error } = await sb.from('app_config').upsert({ key: 'monthly_brief', value: briefMap });
+  $('briefMsg').innerHTML = error
+    ? `<span class="msg err">저장 실패 — ${esc(error.message)}</span>`
+    : `<span class="msg ok">${body ? '저장했습니다' : '지웠습니다'} · ${k} — 앱은 노쌤 방을 열면 받습니다.</span>`;
 };
 
 async function loadFlags() {

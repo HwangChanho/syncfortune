@@ -720,6 +720,7 @@ export const ko = {
     'loginNudge': '로그인하면 명식과 풀이가 계정에 저장돼요.',
     'loginNudgeSub': '지금은 이 기기에만 있어요 — 앱을 지우면 되찾을 수 없어요.',
     'loginNudgeCta': '로그인',
+    'briefTail': '여러분의 운은 어떻게 될까요? 회원님 명식으로 보면 이번 달이 어떤 달인지 알 수 있어요.',
     'groupFriend': '✦ 함께하면 좋은 친구들',
     'contents': '콘텐츠',
     'more': '더보기',

@@ -681,6 +681,7 @@ export const ja = {
     'loginNudge': 'ログインすると命式と鑑定がアカウントに保存されます。',
     'loginNudgeSub': '今はこの端末だけにあります — アプリを消すと戻せません。',
     'loginNudgeCta': 'ログイン',
+    'briefTail': '皆さんの運はどうなるでしょう？ご自身の命式で見ると、今月がどんな月かわかります。',
     'groupFriend': '✦ 一緒にいると良い友だち',
     'contents': 'コンテンツ',
     'more': 'もっと見る',
