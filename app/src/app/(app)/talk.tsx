@@ -601,7 +601,10 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
     // ★정리도 함께 비운다 — DB 행은 세션과 함께 cascade 로 사라지지만(0040), **화면 state 는 남는다.**
     //   안 비우면 지운 대화의 "이 대화 정리 · N" 줄이 상단에 그대로 떠 있다(Boss 2026-08-24 제보).
     //   `notesOpen` 은 건드리지 않는다 — 펴 둔 것은 **사람의 선택**이지 이 방의 상태가 아니다(위 §123).
-    setNotes([]); setJumpTo(null);
+    //   ★운 안내 띠도 같이 비운다 — 지운 대화의 「운이 모자라요」가 남으면 같은 종류의 흔적이다
+    //     (`check:talknotes` ⑦ 이 이 규칙을 **불변식**으로 지킨다 — 새 state 를 넣으면 바로 문다.
+    //      실제로 이 띠를 만들자마자 잡혔다.)
+    setNotes([]); setJumpTo(null); setNotice(null);
     // ★진행 중이던 것도 멈춘다 — 안 그러면 지운 대화의 흔적이 새 화면에서 계속 움직인다:
     //   `clearTimers` 순차 표시·무료소진 안내 타이머 / `setBusy(false)` 점 세 개 / `genRef` 날아간 응답.
     //   (`open` 이 방을 바꿀 때 하는 것과 같다 — 여기만 빠져 있었다.)
