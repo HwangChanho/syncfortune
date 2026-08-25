@@ -27,8 +27,13 @@ HARD, WANT = 4.5, 5.5   # 하네스 하한 / 납품 목표
 #   붉은 낙관은 색으로 거를 수 있지만 **먹으로 쓴 서명은 색으로 못 거른다** — 그래서 밝기로 잡는다.
 CORNER_DROP = 0.05
 # 좌측의 «세로 엣지» — 그림 안에 선 세로선이 색면과 만나 **가짜 이음매**로 읽힌다.
-# ★게이트가 아니라 **순위 신호**다(현행 13장 0.002~0.065, n 이 너무 적어 합격선을 못 긋는다).
-#   컷 3장 중 하나를 고를 때 낮은 쪽을 고르면 된다. 0.04 넘으면 눈으로 볼 것.
+#
+# ⚠️★★**한쪽으로만 유효한 지표다. 낮은 값은 «괜찮다»가 아니라 «모른다»다.**
+#   후처리(좌측을 종이색으로 묽히는 «진정»)가 경계를 같이 지우기 때문이다. 실측:
+#     compass 원본 0.065 → 진정 0.4 에서 0.042 → 진정 0.6 에서 **0.028**(경고선 아래)
+#   즉 우리가 받는 건 **완성본**이라 이 값은 대부분 낮게 나오고, 그걸 통과로 읽으면
+#   거짓 초록불이 된다. 그래서 **높을 때만 찍고, 낮으면 아무것도 안 찍는다.**
+#   진짜 판별은 **후처리 전**에 해야 하며 그건 그림 만드는 쪽 몫이다.
 EDGE_WARN   = 0.04
 TARGET_AR   = 1.60      # 비율. contain 이라 비율=높이 → 장마다 다르면 캐러셀에서 그림이 들썩인다
 
@@ -80,11 +85,12 @@ if __name__ == '__main__':
         elif strict and r['c'] < WANT:        why.append(f"대비 {r['c']:.2f} < 목표 {WANT}")
         if r['drop'] > CORNER_DROP:           why.append(f"좌상단 낙폭 {r['drop']:.3f} — 낙관·서명·짙은 획이 걸렸다")
         if strict and abs(r['ar']-TARGET_AR) > 0.04: why.append(f"비율 {r['ar']:.2f} ≠ {TARGET_AR}")
-        edgemark = '  ⚠️세로엣지' if r['edge'] > EDGE_WARN else ''
+        # ★낮은 값은 찍지 않는다 — «0.018» 같은 숫자가 보이면 통과로 읽힌다(위 주석 참조)
+        edgemark = f"  ⚠️세로엣지 {r['edge']:.3f}" if r['edge'] > EDGE_WARN else ''
         mark = '✅' if not why else '❌ ' + ' · '.join(why)
         print(f"{p.split('/')[-1]:<22} 대비 {r['c']:5.2f}  최암부 {r['dark']}  "
-              f"색면 {r['field']}  낙폭 {r['drop']:.3f}  엣지 {r['edge']:.3f}{edgemark}  "
-              f"{r['wh'][0]}x{r['wh'][1]}  {mark}")
+              f"색면 {r['field']}  낙폭 {r['drop']:.3f}  "
+              f"{r['wh'][0]}x{r['wh'][1]}  {mark}{edgemark}")
         if why: bad += 1
     print(f"\n{'❌ ' + str(bad) + '장 탈락' if bad else '✅ 전량 통과'}"
           f"{' (--strict: 비율·목표대비까지 검사)' if strict else ''}")
