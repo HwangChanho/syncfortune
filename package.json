@@ -176,7 +176,8 @@
     "check:gaeun": "tsx scripts/check-gaeun.ts",
     "check:talkstall": "tsx scripts/check-talkstall.ts",
     "check:yeokma": "tsx scripts/check-yeokma.ts",
-    "check:myeongtabs": "tsx scripts/check-myeongtabs.ts"
+    "check:myeongtabs": "tsx scripts/check-myeongtabs.ts",
+    "measure:talkvoice": "tsx scripts/measure-talkvoice.ts"
   },
   "keywords": [],
   "author": "",
