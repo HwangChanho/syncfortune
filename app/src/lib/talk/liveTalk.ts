@@ -28,6 +28,10 @@ export type LiveReply =
       /** ★대화 중 안내할 콘텐츠 키(없으면 null). 서버가 답에서 마커를 떼어 내고 여기로 준다.
        *  키 → 라벨·라우트 변환은 화면이 `contentSections` 로 한다(목록의 단일 출처). */
       recommend?: string | null;
+      /** 다인방에서 이번 턴에 **답한 사람**(1:1 이면 null) */
+      speakerName?: string | null;
+      /** ★곁다리 한 마디 — 옆 사람이 툭 던진 것. 운은 **더 안 나간다**(같은 호출에 얹혀 온다). */
+      banter?: { name: string; line: string } | null;
     }
   | {
       ok: false;
@@ -122,6 +126,8 @@ export async function askLive(
       used: data.used ?? 0, freeDaily: data.freeDaily ?? 0, overFree: !!data.overFree,
       // ⚠️문자열일 때만 받는다 — 서버가 안 주거나 다른 걸 주면 '추천 없음'으로 떨어진다(화면이 안 깨지게)
       recommend: typeof data.recommend === 'string' ? data.recommend : null,
+      speakerName: typeof data.speakerName === 'string' ? data.speakerName : null,
+      banter: data.banter && typeof data.banter.line === 'string' ? data.banter : null,
       notes: Array.isArray(data.notes) ? data.notes : [],
       /** 이번 턴에 빠져나간 운(무료 범위면 0) */
       spent: Number(data.spent ?? 0),

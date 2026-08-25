@@ -468,11 +468,28 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
             ? SECTIONS.flatMap((sec) => sec.items).find((it) => it.key === r.recommend && it.ready)
             : undefined;
           const recoLinks = reco ? [{ key: reco.key, label: t(reco.labelKey), route: reco.route }] : undefined;
+          // ★다인방이면 답 앞에 **누가 말했는지**를 단다 — 여럿이면 이름 없이는 누가 한 말인지 모른다.
+          //   ⚠️새 필드를 만들지 않는다 — `who` 가 이미 이름·사진을 그린다(사본을 만들면 갈라진다).
+          const whoOf = (nm?: string | null) => {
+            if (!nm || !mates.length) return undefined;
+            const f = [cur, ...mates].find((x) => x.name === nm);
+            return f ? { name: f.name, avatar: f.avatar, element: undefined } : { name: nm };
+          };
           sayInOrder(parts.map((body, i) => ({
-            id: nextId(), role: 'assistant' as const, body,
+            id: nextId(), role: 'assistant' as const, body, who: whoOf(r.speakerName),
             // 안내 카드도 마지막 풍선에 — 말이 끝난 뒤 건네는 순서다(가상 상담사와 같은 관용)
             links: i === parts.length - 1 ? recoLinks : undefined,
           })), 0);                 // 서버 응답을 기다린 뒤라 추가 뜸은 필요 없다
+          // ★곁다리 한 마디(Boss 2026-08-26) — 옆 사람이 툭 던진다.
+          //   ⚠️답이 **다 뜬 뒤**에 붙인다. 같이 넣으면 순차 표시를 앞질러 답보다 먼저 뜬다.
+          //   ★운은 더 안 나간다 — 같은 호출에 얹혀 온 것이라 이미 계상됐다(서버 주석 참조).
+          if (r.banter) {
+            const after = parts.reduce((a, b) => a + typingDelay(b), 0) + 300;
+            timersRef.current.push(setTimeout(() => {
+              sayInOrder([{ id: nextId(), role: 'assistant' as const,
+                body: r.banter!.line, who: whoOf(r.banter!.name) }], 0);
+            }, after));
+          }
           // ⚠️무료 소진 안내는 **답이 다 뜬 뒤**에 붙인다 — 바로 넣으면 순차 표시를 앞질러
           //   답보다 먼저 뜬다. 마지막 풍선의 예상 시각 뒤로 미룬다.
           // ★무료 소진 — 상단 띠로 알린다(종전엔 상담가 말풍선이었다).

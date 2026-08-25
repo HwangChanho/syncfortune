@@ -18,6 +18,7 @@ import { useRouter } from 'expo-router';
 import { useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Image as ExpoImage } from 'expo-image';
+import { ProfileSheet, type ProfileTarget } from './ProfileSheet';   // 카카오톡식 프로필 창(Boss 08-26)
 import { PressableScale } from '../../components/PressableScale';
 import { BrandWordmark } from '../BrandWordmark';
 import { supabase } from '../../lib/supabase';
@@ -121,6 +122,18 @@ export function ChatList({ onOpen, selectedId, reloadKey = 0, wide, onSettings }
    *   질의를 새로 만들지 않는다 — 친구목록이 이미 받아 둔 것을 그대로 쓴다.
    */
   const avatarOf = (cid: string) => consultantsSnapshot().find((c) => c.id === cid)?.avatar ?? null;
+  // ★프로필 창 — **사진만** 따로 눌린다. 줄을 누르면 종전대로 대화가 열린다(카톡이 그렇다).
+  //   ⚠️친구목록(`TalkList`)에도 같은 것이 있다. 여기만 없으면 «대화목록에서는 안 된다» 가 된다.
+  const [profile, setProfile] = useState<ProfileTarget | null>(null);
+  const openPhoto = (cid: string, element: string) => {
+    const c = consultantsSnapshot().find((x) => x.id === cid);
+    if (!c) return;
+    setProfile({
+      name: c.name, tagline: c.tagline, avatar: c.avatar, cover: c.cover,
+      linkUrl: c.linkUrl, linkLabel: c.linkLabel, element,
+      onTalk: () => { setProfile(null); onOpen(cid); },
+    });
+  };
   const byFilter = filter === 'all' ? rows : rows.filter((r) => groupOf(r.consultantId) === filter);
   // ★검색은 **거르기만** 한다(묶음·정렬을 건드리지 않는다)
   const k = q.trim().toLowerCase();
@@ -198,13 +211,16 @@ export function ChatList({ onOpen, selectedId, reloadKey = 0, wide, onSettings }
         const el = EL[(i + 1) % EL.length];
         return (
           <PressableScale key={r.id} style={[styles.row, selectedId === r.consultantId && styles.rowOn]} onPress={() => onOpen(r.consultantId)}>
-            {avatarOf(r.consultantId)
-              ? <ExpoImage source={{ uri: avatarOf(r.consultantId) as string }} style={styles.av} contentFit="cover" transition={140} />
-              : (
-                <View style={[styles.av, { backgroundColor: elementColor[el] }]}>
-                  <Text style={{ color: elementText[el], fontWeight: '900', fontSize: 19 }}>{r.name.slice(0, 1)}</Text>
-                </View>
-              )}
+            {/* ★사진만 따로 — 줄을 누르면 대화, 사진을 누르면 프로필(Boss 2026-08-26) */}
+            <PressableScale hitSlop={6} onPress={() => openPhoto(r.consultantId, el)}>
+              {avatarOf(r.consultantId)
+                ? <ExpoImage source={{ uri: avatarOf(r.consultantId) as string }} style={styles.av} contentFit="cover" transition={140} />
+                : (
+                  <View style={[styles.av, { backgroundColor: elementColor[el] }]}>
+                    <Text style={{ color: elementText[el], fontWeight: '900', fontSize: 19 }}>{r.name.slice(0, 1)}</Text>
+                  </View>
+                )}
+            </PressableScale>
             <View style={styles.col}>
               <Text style={styles.name} numberOfLines={1}>{r.name}</Text>
               {/* 마지막에 물어본 것 — 무슨 얘기였는지가 이름보다 기억을 되살린다 */}
@@ -226,6 +242,8 @@ export function ChatList({ onOpen, selectedId, reloadKey = 0, wide, onSettings }
           </PressableScale>
         );
       })}
+      {/* ★프로필 창은 목록 **밖**이 아니라 안에 둔다 — ScrollView 형제로 두면 스크롤과 같이 밀린다 */}
+      <ProfileSheet target={profile} onClose={() => setProfile(null)} />
     </ScrollView>
   );
 }
