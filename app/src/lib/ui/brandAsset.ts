@@ -92,15 +92,18 @@ export type BannerArt =
  */
 // ⚠️`Record<BannerArt, …>` 라 새 이름을 추가하면 여기도 채워야 한다(타입이 강제한다).
 //   대화용 셋은 배너로 쓰이지 않지만, 값을 비워 둘 수 없으므로 계열이 가까운 색을 준다.
+// ★★2026-08-25 카멜 전환으로 **전부 다시 쟀다**(`npm run measure:bannerart`).
+//   그림을 바꾸면 이 표도 같이 바꿔야 한다 — 안 바꾸면 카드 배경과 그림 사이에 **이음매**가 보인다.
+//   `check:bannerart` B3 가 그걸 잡는다(실측 바탕색과 다르면 실패).
 export const BANNER_FIELD: Record<BannerArt, string> = {
-  balloon: '#E7E8FD', couple: '#E9ECFF', moonlake: '#DADEFC',
-  door: '#FFEEDB', sunrise: '#FEE8C9',
-  clover: '#F0F0E4', tree: '#F1F1E7',
-  stairs: '#FCDDDD', butterfly: '#FCDEDE',
-  candle: '#EDE9F7',
+  balloon: '#EADDCD', couple: '#EEE2D4', moonlake: '#E1CFB9',
+  door: '#F1E7DC', sunrise: '#ECDED0',
+  clover: '#F0E6DA', tree: '#F1E7DD',
+  stairs: '#E6D5C3', butterfly: '#E6D7C4',
+  candle: '#ECE0D1',
   // 대화용 셋(2026-08-20) — ★기존 값과 **같은 방법**으로 뽑았다(그림 좌상단 1/4 의 중앙값).
   //   눈으로 고르지 않는다 — 배경이 그림 바탕색과 어긋나면 그림 자리에 밝은 사각형이 뜬다.
-  compass: '#ECE8F6', forest: '#B1BBF9', pen: '#FFE6C7',
+  compass: '#ECDFCF', forest: '#C7A47E', pen: '#EADCCD',
 };
 
 /**
