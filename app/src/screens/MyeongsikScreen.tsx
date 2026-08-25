@@ -41,8 +41,7 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 // ⚠️ expo-haptics 는 네이티브 모듈 — 현재 dev 빌드에 미포함이면 impactAsync 호출 시 크래시(2026-06).
 //   안전 래퍼로 감싼다(네이티브 없으면 조용히 무시). 재빌드(npx expo run:ios) 후 진동 정상 동작.
 const haptic = () => { try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); } catch { /* 네이티브 미포함 — 무시 */ } };
-import { sinsalAtLuck } from '@engine/sinsal';   // ★운에서 발생하는 살(Boss 2026-08-24)
-import { LuckSinsalLine, LuckSinsalTags } from '../components/LuckSinsal';
+import { LuckSinsalLine } from '../components/LuckSinsal';
 import { HIDDEN, computeMonthDays, branchTenGod, daeunForward } from '@engine/saju'; // 지장간 표 + 일운(流日) + 지지십신 + 대운 순역
 import { twelveStage } from '@engine/twelve';                          // 임의 지지 12운성(타임라인용)
 import { detectInteractionsAmong, interactionLabel } from '@engine/structure';   // 합충 검출 + 짝이름 라벨(daniel: 유축반합·정신극)
@@ -1019,7 +1018,9 @@ function MyeongsikBody({ input, onReading, onSinsal, header, whoName }: Myeongsi
           {/* 대운 타임라인 — 제목 옆 대운수(행운수)·순역 표기(daniel). 운 데이터 없으면 목록 자체가 없다. */}
           {luckCycles.length > 0 && (<>
           <Text style={styles.luckSub}>
-            대운{daeunsu != null ? <Text style={{ fontWeight: '700' }}> · 대운수 {daeunsu}{luckDir ? ` ${luckDir}` : ''}</Text> : null} (탭하면 그 대운의 세운 펼침)
+            {/* ★지금 보는 층을 **굵게**(Boss 2026-08-26 *"대운 세운 이렇게 같이 나와있으니깐
+                이게 대운인지 세운인지 모르겠고"*). 제목이 «A · B» 인데 아래 띠는 **B** 다. */}
+            <Text style={styles.luckSubOn}>대운</Text>{daeunsu != null ? <Text style={{ fontWeight: '700' }}> · 대운수 {daeunsu}{luckDir ? ` ${luckDir}` : ''}</Text> : null} (탭하면 그 대운의 세운 펼침)
           </Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} ref={luckScrollRef} onLayout={(e) => { centerM.current.luck.v = e.nativeEvent.layout.width; recenter('luck', luckScrollRef); }} onContentSizeChange={() => recenter('luck', luckScrollRef)} style={styles.luckScroll} contentContainerStyle={styles.luckScrollC}>
             {luckCycles.map((l, i) => (
@@ -1030,9 +1031,9 @@ function MyeongsikBody({ input, onReading, onSinsal, header, whoName }: Myeongsi
                 <GzCell char={l.branch} kind="branch" size="sm" hangeul={hangeul} />
                 <Text style={styles.luckTg}>{branchTenGod(dm, l.branch)}</Text>
                 <Text style={styles.luckStage}>{twelveStage(dm, l.branch)}</Text>
-                {/* ★운에서 발생하는 살(Boss 2026-08-24) — 칸이 좁아 **두 개까지만**.
-                    전체는 아래 '이 대운의 살' 줄에서 본다(잘라 놓고 안 보여 주면 소실이다). */}
-                <LuckSinsalTags names={sinsalAtLuck(c.saju, l.stem, l.branch).names} />
+                {/* ★살 꼬리표를 **칸에서 뺐다**(Boss 2026-08-26 *"발생하는 살은 따로 공간을 만들어서"*).
+                    칸이 좁아 두 개만 보이던 데다, 간지·십신·12운성과 뒤섞여 무엇이 무엇인지 안 갈렸다.
+                    ⇒ 아래 **전용 칸**에서 전부 본다(자르지 않는다). */}
               </PressableScale>
             ))}
           </ScrollView>
@@ -1043,7 +1044,8 @@ function MyeongsikBody({ input, onReading, onSinsal, header, whoName }: Myeongsi
           {/* 세운 타임라인 (선택 대운 10년, 탭 → 확장 명식 갱신) */}
           {lc?.annuals?.length > 0 && (
             <>
-              <Text style={styles.luckSub}>{lc.startAge}세 대운 · 세운 (탭하면 위 명식에 반영)</Text>
+              {/* 아래 띠는 **세운**이다 — 그 낱말만 굵게 */}
+              <Text style={styles.luckSub}>{lc.startAge}세 대운 · <Text style={styles.luckSubOn}>세운</Text> (탭하면 위 명식에 반영)</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} ref={seunScrollRef} onLayout={(e) => { centerM.current.seun.v = e.nativeEvent.layout.width; recenter('seun', seunScrollRef); }} onContentSizeChange={() => recenter('seun', seunScrollRef)} style={styles.luckScroll} contentContainerStyle={styles.luckScrollC}>
                 {lc.annuals.map((a: any, j: number) => {
                   // ★세운 만 나이(daniel 2026-07-12) — 대운 입운 만나이(startAge) + 대운 내 연차(위 seunAge 와 동일식·엔진 나이모델 일관)
@@ -1057,7 +1059,6 @@ function MyeongsikBody({ input, onReading, onSinsal, header, whoName }: Myeongsi
                     <GzCell char={a.branch} kind="branch" size="xs" hangeul={hangeul} />
                     <Text style={styles.seunTg}>{branchTenGod(dm, a.branch)}</Text>
                     <Text style={styles.seunStage}>{twelveStage(dm, a.branch)}</Text>
-                    <LuckSinsalTags names={sinsalAtLuck(c.saju, a.stem, a.branch).names} />
                   </PressableScale>
                   );
                 })}
@@ -1069,7 +1070,8 @@ function MyeongsikBody({ input, onReading, onSinsal, header, whoName }: Myeongsi
           )}
           {an?.months && an.months.length > 0 && (
             <>
-              <Text style={styles.luckSub}>{an.year} 세운 · 월운 (탭하면 위 명식에 반영)</Text>
+              {/* 아래 띠는 **월운**이다 */}
+              <Text style={styles.luckSub}>{an.year} 세운 · <Text style={styles.luckSubOn}>월운</Text> (탭하면 위 명식에 반영)</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} ref={monthScrollRef} onLayout={(e) => { centerM.current.month.v = e.nativeEvent.layout.width; recenter('month', monthScrollRef); }} onContentSizeChange={() => recenter('month', monthScrollRef)} style={styles.luckScroll} contentContainerStyle={styles.luckScrollC}>
                 {an.months.map((_m: any, k: number) => {
                   // ★월 선택기(daniel 2026-07-08): 카드 k = 양력월(라벨 (k+1)월). 干支는 월운 타임라인(위 line 716)과 동일하게
@@ -1087,6 +1089,11 @@ function MyeongsikBody({ input, onReading, onSinsal, header, whoName }: Myeongsi
                   );
                 })}
               </ScrollView>
+              {/* ★월운에도 살 칸을 둔다 — 대운·세운엔 있는데 여기만 없으면 «월운은 살이 없나» 로 읽힌다.
+                  층이 셋이면 셋 다 같은 자리에 같은 모양으로 있어야 한다. */}
+              <LuckSinsalLine label={mo ? `${an.year}년 ${selMonth + 1}월 월운 ${mo.stem}${mo.branch}` : ''}
+                              saju={c.saju} stem={mo?.stem} branch={mo?.branch}
+                              onTag={(n) => setGlossary(n === '공망' ? { kind: 'gongmang' } : { kind: 'sinsal', key: n })} />
             </>
           )}
           {/* 월운 탭 → 그 달 일진(日辰) 달력 — 날짜 탭하면 위 명식 '일운'에 반영 */}
@@ -1444,6 +1451,8 @@ const makeStyles = (fs: (n: number) => number) => { const f = scaledFont(fs); re
   luckStem: { fontSize: fs(17), fontWeight: '800' },
   luckTg: { fontSize: fs(9), color: colors.inkSoft },
   luckStage: { fontSize: fs(9), color: colors.inkFaint, fontWeight: '600' },   // 12운성
+  // ★지금 보는 층 — 제목에서 이 낱말만 굵다(대운·세운·월운이 한 화면에 있어 헷갈렸다)
+  luckSubOn: { fontWeight: '900', color: colors.ju },
   luckSub: { ...f.caption, color: colors.ju, marginTop: space(3), marginBottom: space(1) },
   // 자미두수 운흐름(대한) 행 — 나이 | 궁 지지 | 비성사화
   ziDecRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: space(2), borderBottomWidth: 1, borderBottomColor: colors.line, gap: space(2) },

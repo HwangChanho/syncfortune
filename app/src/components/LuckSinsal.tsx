@@ -49,8 +49,10 @@ export function LuckSinsalLine({
   if (!stem || !branch) return null;
   const r = sinsalAtLuck(saju, stem as never, branch as never);
   return (
-    <View style={styles.line}>
-      <Text style={styles.lineLbl} numberOfLines={1}>{label} 살</Text>
+    // ★한 줄이 아니라 **칸**이다(Boss 2026-08-26 *"발생하는 살은 따로 공간을 만들어서 보여줘야해"*).
+    //   종전엔 띠 바로 밑 한 줄이라 간지·십신 사이에 끼어 «이게 무엇의 살인지» 가 안 읽혔다.
+    <View style={styles.box}>
+      <Text style={styles.boxLbl} numberOfLines={1}>{label} 에서 오는 살</Text>
       {r.names.length ? (
         <View style={styles.lineTags}>
           {r.names.map((n) => (
@@ -68,6 +70,13 @@ export function LuckSinsalLine({
 }
 
 const styles = StyleSheet.create({
+  // 살 전용 칸 — 띠와 **분명히 갈라진** 면. 배경·테두리로 «다른 것» 임을 말한다
+  box: {
+    marginTop: space(1.5), marginBottom: space(2.5),
+    backgroundColor: colors.sunk, borderRadius: radius.md,
+    paddingVertical: space(2.5), paddingHorizontal: space(3), gap: space(1.5),
+  },
+  boxLbl: { ...font.caption, color: colors.inkSoft, fontWeight: '800' },
   tagWrap: { alignItems: 'center', marginTop: 2 },
   tag: { fontSize: 9, lineHeight: 13, color: colors.ju, fontWeight: '700' },
   more: { fontSize: 8.5, lineHeight: 12, color: colors.inkFaint, fontWeight: '700' },
