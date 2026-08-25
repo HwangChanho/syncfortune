@@ -12,7 +12,7 @@
 // ⚠️문구·가격 = ★daniel 검수 슬롯. 상품 등록(ASC)은 daniel 몫.
 // ─────────────────────────────────────────────────────────────────────────
 import { useCallback, useState } from 'react';
-import { TALK_PACK } from '../../lib/billing/coinPrices';   // 대화 묶음(화면 표기용 — 실제 차감은 서버)
+import { TALK_PACK, FREE_TALK_DAILY } from '../../lib/billing/coinPrices';   // 대화 묶음(화면 표기용 — 실제 차감은 서버)
 import { View, Text, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Image as ExpoImage } from 'expo-image';
@@ -132,7 +132,10 @@ export default function CoinsScreen() {
               .replace('{{cost}}', String(TALK_PACK.cost)).replace('{{turns}}', String(TALK_PACK.turns))}
           </Text>
           <Text style={styles.useRow}>{t('coins.useReading', '· 사주·궁합·타로 풀이 — 콘텐츠마다 값이 다르고, 열기 전에 보여 드려요')}</Text>
-          <Text style={styles.useNote}>{t('coins.useNote', '무료 대화 5턴은 매일 다시 채워져요. 운은 사라지지 않아요.')}</Text>
+          <Text style={styles.useNote}>
+            {t('coins.useNote', '무료 대화 {{free}}턴은 매일 다시 채워져요. 운은 사라지지 않아요.')
+              .replace('{{free}}', String(FREE_TALK_DAILY))}
+          </Text>
         </View>
 
         {/* 잔액 — 로딩/실패/정상 3상태를 분명히 구분해 보여 준다 */}

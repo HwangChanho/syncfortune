@@ -111,3 +111,6 @@ export function packPriceWon(packId: string, channel: PayChannel = 'store'): num
  *   ⇒ 서버 값을 바꿀 때 여기도 바꾼다. `check:talkcoin` ⑥ 이 DB 값을 찍어 준다.
  */
 export const TALK_PACK = { cost: 10, turns: 5 } as const;
+
+/** 하루 무료 대화 턴 수 — ★서버 `consultants.free_daily` 와 같아야 한다(화면 표기용). */
+export const FREE_TALK_DAILY = 10;

@@ -169,6 +169,7 @@ export const ko = {
     genFailed: '풀이를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.',           // 방어: 일반 생성 실패(원문 숨김)
   },
   auth: {
+    privacyTalk: '대화는 이어보기를 위해 저장돼요. AI 학습에 쓰지 않고, 다른 사람이 볼 수 없어요. 언제든 지울 수 있어요.',
     'login': '로그인',
     signin: '로그인', signupTitle: '회원가입', email: '이메일', password: '비밀번호 (6자 이상)',
     toSignup: '계정이 없으신가요?  회원가입', toSignin: '이미 계정이 있으신가요?  로그인',
@@ -297,6 +298,7 @@ export const ko = {
     genFail: '풀이 생성에 실패했어요. 잠시 후 다시 시도해 주세요.', title: '오늘의 운세', heroSub: '오늘 일진으로 보는 하루 흐름', generating: '오늘의 흐름을 풀어내는 중…', gateTitle: '오늘의 운세 보기', gateDesc: '타고난 사주에 지금의 큰 흐름·올해·오늘 기운을 더해, 오늘 생길 수 있는 일과 대처를 풀어 드려요.', seePremium: '오늘의 운세 보기', seeAd: '광고 보고 무료로 보기', adFail: '광고를 불러오지 못했어요. 잠시 후 다시 시도하거나, 운으로 광고를 없앨 수 있어요.',
   },
   settings: { myRecords: '내 기록', community: '커뮤니티', nickPh: '닉네임 (2~12자, 비우면 자동 익명이름)', nickBad: '사용할 수 없는 단어가 있어요.', nickLen: '닉네임은 2~12자예요.', nickDone: '저장됨', showIlju: '내 일주 뱃지 보이기', iljuHint: '글·댓글 옆에 태어난 날의 두 글자만 표시돼요. 생년월일은 알 수 없어요.',
+    privacyHead: '개인정보',
     'accent': '테마 색',
     'accentAuto': '자동(일간)',
     'accentDesc': '대표명식 일간의 오행에 맞춰 화면 색이 달라져요. 직접 고를 수도 있어요.',
@@ -604,7 +606,7 @@ export const ko = {
     useHead: '운으로 할 수 있는 것',
     useTalk: '· 상담가와 대화 — {{cost}}운이면 {{turns}}턴',
     useReading: '· 사주·궁합·타로 풀이 — 콘텐츠마다 값이 다르고, 열기 전에 보여 드려요',
-    useNote: '무료 대화 5턴은 매일 다시 채워져요. 운은 사라지지 않아요.',
+    useNote: '무료 대화 {{free}}턴은 매일 다시 채워져요. 운은 사라지지 않아요.',
     spendMsg: '{{cost}} 운을 사용해 풀이를 시작할까요?\n보유 {{have}} 운 → 사용 후 {{after}} 운',
     'balFail': '잔액을 불러오지 못했어요',
     'balance': '보유 운',

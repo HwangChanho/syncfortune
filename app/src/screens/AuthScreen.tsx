@@ -209,6 +209,15 @@ export function AuthScreen() {
 
       {/* 왜 로그인하는지 한 줄 — 웹은 '선택 로그인'이라는 게 앱보다 덜 분명하다 */}
       {wide ? <Text style={styles.note}>{t('auth.note')}</Text> : null}
+
+      {/* ★대화 저장 고지(Boss 2026-08-26 *"대화가 저장되지 않는다는걸 유저가 알수있게해
+          회원가입때나. 저장은 돼도 따로 사용되지 않는다고"*).
+          ⚠️«저장되지 않는다»고 쓰지 않았다 — **실제로는 저장된다**(이어보기·대화 정리가 그 위에 산다).
+            거짓 고지는 없는 기능보다 나쁘다. 대신 **저장되지만 다른 데 쓰지 않는다**를 적는다.
+          ★적힌 셋은 전부 실측으로 확인했다:
+            · AI 학습에 안 쓴다  · 남이 못 본다(RLS — anon 키로 조회하니 빈 배열)
+            · 언제든 지운다(대화창 「지우기」 — 세션과 함께 cascade 로 사라진다) */}
+      <Text style={styles.privacy}>{t('auth.privacyTalk')}</Text>
      </View>
     </KeyboardAvoidingView>
   );
@@ -243,6 +252,8 @@ const styles = StyleSheet.create({
   btn: { backgroundColor: colors.ju, borderRadius: radius.md, padding: space(4), alignItems: 'center', marginTop: space(5), ...shadow.card },
   btnDisabled: { opacity: 0.6 },
   btnText: { color: colors.white, fontSize: 16, fontWeight: '700' },
+  // 대화 저장 고지 — 작게, 그러나 로그인 화면에 **반드시** 보이게
+  privacy: { ...font.caption, color: colors.inkFaint, textAlign: 'center', lineHeight: 17, marginTop: space(4) },
   toggle: { color: colors.ju, textAlign: 'center', marginTop: space(4.5), fontSize: 14 },
   // 구분선 (또는)
   orRow: { flexDirection: 'row', alignItems: 'center', marginTop: space(6), marginBottom: space(1) },

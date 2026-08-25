@@ -223,6 +223,16 @@ export default function SettingsScreen() {
           ⚠️이건 **자기 확인**이지 본인인증이 아니다 — 그래서 문구도 «성인입니다»가 아니라
             «만 19세 이상입니다»로 적는다(스스로 밝히는 것임이 드러나게).
           ★끌 수 있어야 한다 — 켜기만 되고 못 끄면 그건 설정이 아니다. */}
+      {/* ★대화 저장 고지 — 로그인 화면에만 두면 **나중에 다시 볼 곳이 없다**.
+          설정에 상설로 둔다(Boss 2026-08-26 «유저가 알수있게해»).
+          ⚠️문구는 로그인 화면과 **같은 키**를 쓴다 — 두 곳에 따로 적으면 한쪽만 고쳐진다. */}
+      <Text style={[styles.h, { marginTop: space(7) }]}>{t('settings.privacyHead', '개인정보')}</Text>
+      <View style={styles.infoCard}>
+        <View style={[styles.infoRow, styles.infoRowLast]}>
+          <Text style={[styles.infoLabel, { flex: 1, lineHeight: 19 }]}>{t('auth.privacyTalk')}</Text>
+        </View>
+      </View>
+
       <Text style={[styles.h, { marginTop: space(7) }]}>{t('adult.title', '성인 대화')}</Text>
       <View style={styles.infoCard}>
         <View style={[styles.infoRow, styles.infoRowLast, { alignItems: 'flex-start' }]}>
