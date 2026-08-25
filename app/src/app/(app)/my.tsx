@@ -47,7 +47,7 @@ type Group = { key: string; title: string; rows: Row[] };
 export default function MyPageScreen() {
   const { t } = useTranslation();
   const router = useRouter();
-  const { session } = useAuth();
+  const { session, isRegistered } = useAuth();   // ★익명 세션이 늘 있어 `session` 으로는 로그인 여부를 못 가른다
   const balance = useCoinBalance(session);   // null = 조회 실패/비로그인 (0 과 구분)
   const commOn = useFeatureOn('community');
   const insets = useSafeAreaInsets();
@@ -124,6 +124,32 @@ export default function MyPageScreen() {
         </View>
       </View>
 
+      {/* ★비로그인이면 **여기서 바로** 로그인·회원가입 (Boss 2026-08-25
+          *"비 로그인이면 내운에서 바로 로그인 및 회원가입 할수있게해 접근성이 너무 안 좋잖아"*).
+          ⚠️종전엔 로그인 버튼이 「계정 및 보안」 **안에** 있었다 — 「내 운」 → 설정 → 로그인,
+            두 단계 깊었고 «계정 및 보안» 은 로그인을 찾는 사람이 누를 이름이 아니다.
+          ★강제하지 않는다. 이 화면은 **읽을 수 있는 상태로 그대로 두고** 위에 한 줄만 얹는다 —
+            막아 세우면 Apple 5.1.1(v) 자리다(전에 그것으로 반려당했다). */}
+      {/* ★비로그인이면 **여기서 바로** 로그인·가입 (Boss 2026-08-25
+          *"비 로그인이면 내운에서 바로 로그인 및 회원가입 할수있게해 접근성이 너무 안 좋잖아"*).
+          ⚠️종전엔 로그인 버튼이 「계정 및 보안」 **안에** 있었다 — 「내 운」 → 설정 → 로그인,
+            두 단계 깊었고 «계정 및 보안» 은 로그인을 찾는 사람이 누를 이름이 아니다.
+
+          ★★`session` 이 아니라 `isRegistered` 로 본다 — **익명 세션이 항상 존재**해서
+            `session` 은 늘 참이다(2026-07-11 에 같은 것으로 로그인 화면에 도달 못 한 버그가 있었다).
+          ★버튼을 **하나만** 둔다 — 코드에 `signUp()` 이 없다. 이메일은 로그인만 되고
+            **소셜 로그인이 곧 가입**이라, 「회원가입」을 따로 두면 없는 길을 가리키게 된다.
+          ★막지 않는다. 아래 메뉴는 그대로 눌린다 — 막아 세우면 Apple 5.1.1(v) 자리다. */}
+      {!isRegistered && (
+        <View style={styles.loginCard}>
+          <Text style={styles.loginTitle}>{t('my.loginTitle', '로그인하고 이어서 보세요')}</Text>
+          <Text style={styles.loginSub}>{t('my.loginSub', '카카오·구글·애플로 시작하면 계정이 함께 만들어져요. 산 콘텐츠와 대화가 다른 기기·재설치에서도 이어집니다.')}</Text>
+          <PressableScale style={styles.loginBtn} onPress={() => router.push('/login')}>
+            <Text style={styles.loginBtnTx}>{t('my.loginCta', '로그인 · 회원가입')}</Text>
+          </PressableScale>
+        </View>
+      )}
+
       {/* ③ 운 카드 — 연보라 그라데이션 · 우측 원형 화살표(콘티) */}
       <PressableScale onPress={() => router.push('/coins')}>
         <LinearGradient colors={GRAD} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.wallet}>
@@ -176,6 +202,15 @@ const styles = StyleSheet.create({
   topBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
 
   profile: { flexDirection: 'row', alignItems: 'flex-start', gap: space(3.5), marginBottom: space(4) },
+  // 비로그인 안내 — ★막는 카드가 아니라 **얹는 카드**다. 아래 메뉴는 그대로 눌린다
+  loginCard: {
+    backgroundColor: colors.juSoft, borderColor: colors.juLine, borderWidth: 1,
+    borderRadius: radius.lg, padding: space(4), marginBottom: space(3), gap: space(1),
+  },
+  loginTitle: { ...font.label, color: colors.ink, fontWeight: '800' },
+  loginSub: { ...font.caption, color: colors.inkSoft, lineHeight: 18 },
+  loginBtn: { paddingVertical: space(3), borderRadius: radius.md, backgroundColor: colors.ju, alignItems: 'center', marginTop: space(2.5) },
+  loginBtnTx: { ...font.label, color: colors.onJu, fontWeight: '800' },
   // ★사각 라운드(콘티). 원형이 아니다 — 카톡 프로필과 같은 모양이라 '사람'으로 읽힌다
   // ★배경을 뺐다 — `contain` 이라 옆 여백이 생기는데 회색 면이 깔리면 '레터박스'로 보인다
   pic: { width: 64, height: 64, borderRadius: radius.md },
