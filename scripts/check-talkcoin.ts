@@ -30,15 +30,23 @@ console.log('\n🪙 대화 과금 하네스\n');
 const edge = readFileSync(EDGE, 'utf8');
 
 // ── ① 상담가별로 세는가 ──────────────────────────────────────────────────
-console.log('=== ① 한도를 상담가별로 세는가 ===');
+console.log('=== ① 한도를 **계정 전체**로 세는가 (Boss 2026-08-25 전환) ===');
 {
   // 사용량 집계 구간을 잘라서 본다(파일 전체에 `consultant_id` 가 있어도 그건 다른 용도일 수 있다)
-  const i = edge.indexOf('dayStart');
-  const seg = i >= 0 ? edge.slice(i, i + 1200) : '';
+  // ⚠️★**주석을 걷고 본다** — 내가 규칙을 설명하며 `consultant_id` 를 적었더니
+  //   그 글자 때문에 검사가 물었다(같은 함정에 두 번째다 — `check:talknotes` 때도 그랬다).
+  const strip = (t: string) => t.replace(/\/\*[\s\S]*?\*\//g, '').split('\n').filter((l) => !/^\s*(\/\/|\*)/.test(l)).join('\n');
+  const edgeCode = strip(edge);
+  const i = edgeCode.indexOf('dayStart');
+  const seg = i >= 0 ? edgeCode.slice(i, i + 1200) : '';
+  // ★★2026-08-25 규칙이 **뒤집혔다**. 08-24 엔 *"상담가별로"* 였는데,
+  //   그러면 사람을 갈아탈 때마다 한도가 리셋돼 **하루 60턴**(12명×5)이 공짜였다.
+  //   Boss: *"상담가당 5턴 말고 **전체 상담가 기준 5턴**"*.
+  //   ⇒ 집계에 `consultant_id` 가 **있으면 실패**다(정반대가 됐다).
   if (!seg) bad('사용량 집계 구간을 못 찾았다 — 하네스가 헛돈다');
-  else if (!/consultant_id/.test(seg)) bad('★계정 전체로 센다 — A 와 5번 얘기하면 B 가 이미 소진 상태가 된다');
-  else if (!/in\('session_id'/.test(seg)) bad('상담가는 걸렀는데 그 세션의 메시지로 좁히지 않았다');
-  else ok('(계정 × 상담가)로 센다');
+  else if (/consultant_id/.test(seg)) bad('★상담가별로 센다 — 사람을 갈아타면 한도가 리셋돼 사실상 무제한이 된다');
+  else if (!/in\('session_id'/.test(seg)) bad('내 세션의 메시지로 좁히지 않았다');
+  else ok('계정 전체로 센다(상담가를 갈아타도 같은 한도)');
 
   if (/\.eq\('owner_id', uid\)/.test(seg)) ok('내 것만 센다(owner_id 고정)');
   else bad('owner_id 를 안 건다 — 남의 사용량이 섞인다');
@@ -157,4 +165,4 @@ if (fail) {
   console.log('      `app/(app)/talk.tsx`(충전 유도) · 마이그레이션 0041 을 본다.\n');
   process.exit(1);
 }
-console.log('   🎯 통과 — 상담가별 집계 · 생성 전 차감 · 서버 단가 · 충전 유도\n');
+console.log('   🎯 통과 — **계정 전체** 집계 · 생성 전 차감 · 서버 단가 · 충전 유도\n');

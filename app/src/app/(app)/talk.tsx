@@ -49,6 +49,7 @@ import { getNavBarHeight } from '../../components/BottomNav';
 import { colors, space, radius, font } from '../../lib/theme';
 import { Icon } from '../../components/kit/Icon';   // 상단 아이콘 단일 원본(Boss 2026-08-24)
 import { ConsultantLinkCard } from '../../components/talk/ConsultantLinkCard';   // 상담가 본인 채널(Boss 2026-08-25)
+import { buildChartVerdict } from '../../lib/talk/chartVerdict';   // 우리 엔진 판정을 대화에 싣는다(Boss 2026-08-25)
 
 /**
  * 삭제 확인 줄.
@@ -404,7 +405,9 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
    */
   const fire = useCallback((q: string, attempt: number, gen: number) => {
     if (!cur) return;
-    void askLive(cur.id, q, sessRef.current[cur.id] ?? null, chartId, i18n.language, attempt)
+    // ★판정은 **보낼 때 만든다** — 명식이 바뀌면 다음 턴부터 바로 반영된다
+    void askLive(cur.id, q, sessRef.current[cur.id] ?? null, chartId, i18n.language, attempt,
+                 saju ? buildChartVerdict(saju) : null)
       .then((r) => {
         // 답을 기다리는 동안 대화를 지웠거나 다른 방으로 옮겼다 — **버린다.**
         //   ⚠️`setBusy(false)` 도 하지 않는다. 지금 점이 돌고 있다면 그건 **새 방의 것**이다.

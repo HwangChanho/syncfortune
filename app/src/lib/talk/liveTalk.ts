@@ -66,6 +66,12 @@ export async function askLive(
   lang = 'ko',
   /** 재시도 회차 — 0 = 첫 시도. ⚠️**회차지 비용이 아니다**(과금에 영향 없음). */
   attempt = 0,
+  /**
+   * ★우리 엔진이 계산한 **명리 판정**(용신·강약·격국·오행·신살).
+   * 앱이 만세력 화면에서 쓰는 **같은 함수**의 결과라, 화면과 대화가 갈릴 수 없다.
+   * ⚠️과금·권한 값이 아니다 — **해석 재료**다(단가는 서버가 정한다).
+   */
+  verdict?: string | null,
 ): Promise<LiveReply> {
   try {
     // ⚠️타임아웃을 반드시 건다 — supabase.functions.invoke 는 **기본 타임아웃이 없다**
@@ -74,7 +80,7 @@ export async function askLive(
     //   목적이 '응답 보장'이 아니라 'UI 잠금 해제'라서다 → 반드시 undefined 를 먼저 갈라야 한다.
     const r = await withTimeout(
       supabase.functions.invoke('talk', {
-        body: { consultantId, message, sessionId, chartId, lang, attempt },
+        body: { consultantId, message, sessionId, chartId, lang, attempt, verdict },
       }),
       45_000,
     );
