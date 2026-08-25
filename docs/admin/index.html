@@ -113,6 +113,7 @@
       <button data-tab="push" aria-selected="false">예약 푸시</button>
       <button data-tab="flags" aria-selected="false">콘텐츠 NEW · 기능 플래그</button>
       <button data-tab="talk" aria-selected="false">상담가</button>
+      <button data-tab="video" aria-selected="false">운세 영상</button>
       <button data-tab="sys" aria-selected="false">시스템</button>
       <button data-tab="bugs" aria-selected="false">버그 제보</button>
     </div>
@@ -179,6 +180,28 @@
     <!-- ★2단계(daniel 2026-08-12): 앱 관리자 화면에 있던 **콘텐츠 NEW 토글**을 여기로.
          저장은 앱과 **같은 RPC**(`set_app_flag`) · 키 규칙도 같다(`new_<콘텐츠키>`) —
          두 곳이 각자 쓰면 반드시 갈린다([[duplicate-ui-single-source]]). -->
+    <!-- ★운세 영상(2026-08-25) — 월별·년별 풀이 영상 주소를 여기서 넣는다.
+         Boss: *"월별운세같은건 영상으로 만들어서 풀어줄수 있게 하자"*
+         · 키 = `2026-08`(월) 또는 `2026`(연). 앱이 그 달/해에 맞는 것을 찾아 튼다.
+         · **주소를 비우면 그 달 영상이 사라진다**(앱은 아무것도 안 그린다).
+         ⚠️mp4 를 앱에 넣지 않는다 — 여기 넣는 것은 **원격 주소**다(번들 11MB 사고 방지). -->
+    <section id="tab-video" class="hide">
+      <div class="card">
+        <h2>월별 · 년별 운세 영상</h2>
+        <div class="sub" style="margin-bottom:10px">
+          영상 <b>주소만</b> 넣으면 앱에 바로 뜹니다(재빌드 없음). 비우면 사라집니다.<br>
+          키는 <code>2026-08</code>(그 달) 또는 <code>2026</code>(그 해). <code>https://</code> 로 시작해야 합니다.
+        </div>
+        <div id="videoList" class="sub">불러오는 중…</div>
+        <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+          <input id="videoKey" placeholder="2026-08" style="width:120px">
+          <input id="videoUrl" placeholder="https://… .mp4" style="flex:1;min-width:240px">
+          <button id="videoAdd">추가 · 수정</button>
+        </div>
+        <div id="videoMsg" class="sub" style="margin-top:8px"></div>
+      </div>
+    </section>
+
     <section id="tab-flags" class="hide">
       <div class="card">
         <h2>콘텐츠 NEW 배지</h2>
@@ -435,6 +458,7 @@ document.querySelectorAll('.tabs button').forEach((b) => {
     TAB_KEYS.forEach((t) => { const el = $('tab-' + t); if (el) el.classList.toggle('hide', t !== b.dataset.tab); });
     if (b.dataset.tab === 'talk') { loadTalk(); wireCrop(); wireScript(); }   // 탭을 열 때 읽는다(첫 화면을 무겁게 하지 않는다)
     if (b.dataset.tab === 'push') loadPush();
+    if (b.dataset.tab === 'video') loadVideo();
     if (b.dataset.tab === 'flags') loadFlags();
     if (b.dataset.tab === 'sys') loadSys();
     if (b.dataset.tab === 'bugs') loadBugs();
@@ -901,6 +925,51 @@ function wireTalkRows() {
     };
   });
 }
+
+// ── 운세 영상(2026-08-25) ──────────────────────────────────────────────────
+//   `app_config.fortune_video` = { "2026-08": "https://…", "2026": "https://…" }
+//   ★앱은 이 표에서 **그 달/해 키**를 찾아 있으면 튼다. 없으면 아무것도 안 그린다.
+let videoMap = {};
+async function loadVideo() {
+  const box = $('videoList');
+  box.textContent = '불러오는 중…';
+  const { data, error } = await sb.from('app_config').select('value').eq('key', 'fortune_video').maybeSingle();
+  if (error) { box.innerHTML = `<span class="msg err">읽기 실패 — ${esc(error.message)}</span>`; return; }
+  videoMap = (data && data.value && typeof data.value === 'object') ? data.value : {};
+  renderVideo();
+}
+function renderVideo() {
+  const keys = Object.keys(videoMap).sort().reverse();
+  const box = $('videoList');
+  if (!keys.length) { box.innerHTML = '<span class="muted">등록된 영상이 없습니다.</span>'; return; }
+  // ★사용자 입력을 그대로 그리지 않는다 — `esc()` 필수(관리자 브라우저 XSS)
+  box.innerHTML = keys.map((k) => `
+    <div style="display:flex;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid #eee">
+      <b style="width:80px">${esc(k)}</b>
+      <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(videoMap[k])}</span>
+      <button data-vk="${esc(k)}" class="videoDel">삭제</button>
+    </div>`).join('');
+  box.querySelectorAll('.videoDel').forEach((b) => {
+    b.onclick = () => { delete videoMap[b.dataset.vk]; saveVideo(); };
+  });
+}
+async function saveVideo() {
+  const { error } = await sb.from('app_config').upsert({ key: 'fortune_video', value: videoMap });
+  $('videoMsg').innerHTML = error
+    ? `<span class="msg err">저장 실패 — ${esc(error.message)}</span>`
+    : `<span class="msg ok">저장했습니다 · ${Object.keys(videoMap).length}건 — 앱은 화면을 다시 열면 반영됩니다.</span>`;
+  renderVideo();
+}
+$('videoAdd').onclick = () => {
+  const k = $('videoKey').value.trim();
+  const u = $('videoUrl').value.trim();
+  // ★키 모양을 검사한다 — 아무 키나 넣으면 앱이 영영 못 찾는다
+  if (!/^\d{4}(-\d{2})?$/.test(k)) { $('videoMsg').innerHTML = '<span class="msg err">키는 2026 또는 2026-08 모양이어야 합니다.</span>'; return; }
+  if (!/^https:\/\//.test(u)) { $('videoMsg').innerHTML = '<span class="msg err">주소는 https:// 로 시작해야 합니다.</span>'; return; }
+  videoMap[k] = u;
+  $('videoKey').value = ''; $('videoUrl').value = '';
+  saveVideo();
+};
 
 async function loadFlags() {
   const box = $('flagList');

@@ -48,6 +48,7 @@ import { useFontScale } from '../../lib/ui/fontScale';
 import { useLogContentVisit } from '../../lib/backend/contentVisit'; // 콘텐츠 방문 집계(daniel 2026-07-06) — 진입 1회 기록
 import { ReadingProse } from '../../components/ReadingProse'; // ★소분류 마커(◆) 렌더 — 본문을 공용 프로즈로 통일(daniel 2026-08-05)
 import { useReadBody } from '../../components/WebShell'; // ★읽는 화면 본문 캡(히어로는 전폭·글은 좁게)
+import { FortuneVideoCard } from '../../components/FortuneVideoCard';   // 년별 운세 영상(Boss 2026-08-25)
 
 // 신년 패키지 분야 10(daniel: 컨텐츠 강화 — 통합·직업·사업·재물·애정·결혼·건강·대인·배움·이동)
 const AREAS: { key: string; ko: string }[] = [
@@ -266,6 +267,9 @@ export default function NewYearScreen() {
         {/* 상단 명식 헤더 — 현재 적용된 대표 명식 표시·전환(daniel: 모든 콘텐츠 상단). 전환 시 그 명식 기준 재로드 */}
         <ChartPicker onChange={() => setReloadKey((k) => k + 1)} />
         <ContentHero motif={<NewyearWheel />} image={A('icons/newyear-hero.jpg')} title={`${year}${t('newyear.title', '신년운세')}`} sub={t('newyear.heroSub', '올 한 해의 큰 흐름을 한눈에')} themeColor={colors.ju} />
+        {/* ★올해 운세 **영상**(Boss 2026-08-25 *"월별 년별"*) — 운영자가 `app_config.fortune_video`
+            에 `"2026"` 키로 넣으면 뜬다. 없으면 아무것도 안 그린다. ⚠️원격 URL 전용. */}
+        <FortuneVideoCard periodKey={String(year)} title={`${year} 신년운세 영상`} />
       {/* ★본문 캡 — 히어로는 지면 전체, 글은 좁게(브런치 방향). 폰은 undefined 라 그대로 지나간다. */}
       <View style={readBody}>
 
