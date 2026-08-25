@@ -21,7 +21,9 @@ import { supabase } from '../supabase';
 /** 홈에서 순서를 바꿀 수 있는 블록. (헤더·풀이 진행률 배너·로그인 링크는 고정이라 제외)
  *  ★manse(만세력)·coach(AI 코치)는 상단 '⚡ 바로가기' 메뉴로 / chart(명식 선택)는 홈에서 제거(daniel 2026-07-25) — 홈은 대표 명식 기준 자동 표시.
  *    (normalizeOrder 가 valid=DEFAULT 기준으로 필터하므로, 기존 사용자 저장값의 manse/coach/chart 는 자동 제거된다.) */
-export type HomeBlockKey = 'today' | 'month' | 'banner' | 'relation' | 'relmap' | 'persona' | 'self' | 'biorhythm' | 'luck' | 'decision' | 'free3' | 'bonus';
+export type HomeBlockKey = 'today' | 'month' | 'banner' | 'relation' | 'relmap' | 'persona' | 'self' | 'biorhythm' | 'luck' | 'decision' | 'free3' | 'bonus' | 'ziwei' | 'studysaju' | 'studyziwei';
+// ★'ziwei'(자미두수 명반)는 **대화창 전용**이다 — 최자미가 쓴다(Boss 2026-08-26).
+//   홈 기본 순서(`DEFAULT_HOME_ORDER`)에는 넣지 않았다: 홈은 사주 중심이고 자미는 보조다.
 
 /** daniel 확정 기본 순서 + 오늘의 관계(07-20) + 바이오리듬(07-21) + 오늘의 행운(07-22).
  *  ★07-25: manse·coach → 바로가기 메뉴 / chart(명식 선택) 제거. 오늘의 기운 → 나는 어떤 사람 → 성격유형 → 오늘의 관계 → 바이오리듬 → 오늘의 행운.
@@ -47,6 +49,9 @@ export const HOME_BLOCK_LABEL: Record<HomeBlockKey, string> = {
   self: '나는 어떤 사람인가',
   biorhythm: '바이오리듬',
   luck: '오늘의 행운',
+  ziwei: '자미두수 명반',   // ★대화창 전용(최자미)
+  studysaju: '사주 명리 공부',   // ★대화창 전용(노쌤)
+  studyziwei: '자미두수 공부',   // ★대화창 전용(최자미)
   decision: '모먼트', // ★이름 변경(daniel 2026-07-26): 오늘의 결정 → 모먼트(결정 판정 + 설레는 제안)
 };
 

@@ -50,6 +50,7 @@ import { Icon } from '../../components/kit/Icon';   // 상단 아이콘 단일 �
 import { ConsultantLinkCard } from '../../components/talk/ConsultantLinkCard';   // 상담가 본인 채널(Boss 2026-08-25)
 import { buildChartVerdict } from '../../lib/talk/chartVerdict';   // 우리 엔진 판정을 대화에 싣는다(Boss 2026-08-25)
 import { splitBubbles, typingDelay } from '../../lib/talk/splitBubbles';   // 말풍선 쪼개기·뜸(Boss 08-25)
+import { greetingFor } from '../../lib/talk/greetingFor';   // 상담가별 첫 인사(Boss 08-26)
 import { CoinNotice } from '../../components/talk/CoinNotice';   // 운 안내 = 상단 띠(Boss 08-25)
 import { pendingMonthlyBrief, markBriefSeen } from '../../lib/talk/monthlyBrief';   // 노쌤 월간 공지(Boss 2026-08-25)
 import { FortuneVideoCard } from '../../components/FortuneVideoCard';
@@ -367,10 +368,14 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
       // 실제 상담사도 **첫 인사만은 공짜다** — 화면을 여는 것만으로 API 를 태우지 않는다.
       const greet = {
         id: nextId(), role: 'assistant' as const,
-        body: t('talk.liveGreet', '안녕하세요. {{name}}이에요. 무엇이 궁금하세요?').replace('{{name}}', c.name),
+        // ★상담가마다 다른 인사(Boss 2026-08-26 *"각 테마에 맞게 가벼운 멘트"*).
+        //   종전엔 열두 명이 **똑같은 한 줄**이었다. 말투 예시의 결을 그대로 옮겼다.
+        body: greetingFor(c.id, c.name, c.tagline),
       };
       setItems([]);
-      sayInOrder([greet, ...blockCards, ...linkCard]);   // ★채널 카드는 인사에만(위 주석)
+      // ★인사도 **쪼개서** 띄운다 — 한 덩어리로 뜨면 «미리 써 둔 안내문»이지 대화가 아니다
+      const greetParts = splitBubbles(greet.body).map((b) => ({ ...greet, id: nextId(), body: b }));
+      sayInOrder([...greetParts, ...blockCards, ...linkCard]);   // ★채널 카드는 인사에만(위 주석)
       // ★지난 대화를 **이어 붙인다**(2026-08-20) — 세션 id 를 메모리에만 두면
       //   새로고침·앱 재시작마다 새 방이 생긴다(실제로 노쎔 대화가 셋으로 쪼개졌다).
       //   카톡은 껐다 켜도 같은 방이다. 인사는 **이력이 없을 때만** 남긴다.

@@ -31,6 +31,8 @@ import { LuckyTodayCard } from '../LuckyTodayCard';
 import { DecisionTodayCard } from '../DecisionTodayCard';
 import { TodayRelationCard } from '../TodayRelationCard';
 import { RelationMapCard } from '../RelationMapCard';
+import { ZiweiBlock } from '../ZiweiBlock';
+import { StudyBlock } from './StudyBlock';
 import { HOME_BLOCK_LABEL, type HomeBlockKey } from '../../lib/ui/homeOrder';
 
 /** 블록을 그리는 데 필요한 것 — 홈이 주던 것과 같다. */
@@ -53,6 +55,11 @@ const RENDER: Record<HomeBlockKey, (c: BlockCtx) => ReactElement> = {
   decision:  (c) => <DecisionTodayCard reloadKey={c.reloadKey} />,
   relation:  (c) => <TodayRelationCard reloadKey={c.reloadKey} dateKey={c.dateKey} />,
   relmap:    (c) => <RelationMapCard reloadKey={c.reloadKey} />,
+  // ★자미두수 — 최자미가 대화를 열 때 뜬다(종전엔 `luck`=오늘의 행운이 떠 있었다)
+  ziwei:     (c) => <ZiweiBlock reloadKey={c.reloadKey} />,
+  // ★공부하기 — 내용은 `myeongriGlossary`(검수본) 그대로다. 여기서 명리를 새로 쓰지 않는다
+  studysaju:  () => <StudyBlock topic="saju" />,
+  studyziwei: () => <StudyBlock topic="ziwei" />,
 };
 
 /**
