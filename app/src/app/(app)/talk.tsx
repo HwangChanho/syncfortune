@@ -51,7 +51,9 @@ import { ConsultantLinkCard } from '../../components/talk/ConsultantLinkCard';  
 import { buildChartVerdict } from '../../lib/talk/chartVerdict';   // 우리 엔진 판정을 대화에 싣는다(Boss 2026-08-25)
 import { splitBubbles, typingDelay } from '../../lib/talk/splitBubbles';   // 말풍선 쪼개기·뜸(Boss 08-25)
 import { greetingFor } from '../../lib/talk/greetingFor';   // 상담가별 첫 인사(Boss 08-26)
-import { CoinNotice } from '../../components/talk/CoinNotice';   // 운 안내 = 상단 띠(Boss 08-25)
+import { CoinNotice } from '../../components/talk/CoinNotice';
+import InviteSheet from '../../components/talk/InviteSheet';   // 다인방 초대(Boss 2026-08-25)
+import { openGroupRoom, roomTitle, memberCount } from '../../lib/talk/groupTalk';   // 운 안내 = 상단 띠(Boss 08-25)
 import { pendingMonthlyBrief, markBriefSeen } from '../../lib/talk/monthlyBrief';   // 노쌤 월간 공지(Boss 2026-08-25)
 import { FortuneVideoCard } from '../../components/FortuneVideoCard';
 
@@ -115,6 +117,10 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
 
   const [dateKey] = useState(() => new Date().toDateString());
   const [servers, setServers] = useState<Consultant[]>(consultantsSnapshot());   // 서버 목록(= 그대로 친구목록)
+  // ★다인방(Boss 2026-08-25 *"다른 사람을 초대할수 있어야해"*).
+  //   `mates` = 지금 방에 **같이 있는 상담가들**. 비면 1:1 방이다.
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [mates, setMates] = useState<Consultant[]>([]);
   /**
    * 친구목록 = **사람 다섯**(Boss 2026-08-20 압축).
    * ★종전엔 홈 블록 아홉이 그대로 '친구'로 올라가 열다섯이었다 —
@@ -679,7 +685,16 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
           {cur ? (
             <>
               <View style={styles.head}>
-                <Text style={styles.headTx}>{cur.name}</Text>
+                <View style={styles.headMid}>
+                  <Text style={styles.headTx} numberOfLines={1}>
+                    {mates.length ? roomTitle([cur.name, ...mates.map((m) => m.name)]) : cur.name}
+                  </Text>
+                  {mates.length ? <Text style={styles.headNum}>{memberCount(mates.length + 1)}</Text> : null}
+                </View>
+                {/* 초대 — ★좁은 화면 헤더와 **같은 것**을 둔다(하나만 두면 넓은 창에서 기능이 없다) */}
+                <PressableScale hitSlop={8} onPress={() => setInviteOpen(true)}>
+                  <Text style={styles.headAdd}>＋</Text>
+                </PressableScale>
                 {/* 대화 지우기 — ★상담가가 아니라 **이 대화**를 지운다(친구는 목록에 남는다) */}
                 <PressableScale hitSlop={8} onPress={() => setAskDelete(true)}>
                   <Icon name="trash" size={25} />
@@ -737,7 +752,19 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
     <View style={styles.one}>
       <View style={[styles.head, { paddingTop: insets.top + space(3) }]}>
         <PressableScale hitSlop={10} onPress={() => setCur(null)}><Text style={styles.back}>‹</Text></PressableScale>
-        <Text style={styles.headTx}>{cur.name}</Text>
+        {/* ★다인방이면 이름을 쉼표로 잇고 **인원수**를 붙인다(Boss 2026-08-25).
+            인원수는 «나 포함» — Boss 가 그렇게 말했고, 카톡도 그렇다. */}
+        <View style={styles.headMid}>
+          <Text style={styles.headTx} numberOfLines={1}>
+            {mates.length ? roomTitle([cur.name, ...mates.map((m) => m.name)]) : cur.name}
+          </Text>
+          {mates.length
+            ? <Text style={styles.headNum}>{memberCount(mates.length + 1)}</Text>
+            : null}
+        </View>
+        <PressableScale hitSlop={8} onPress={() => setInviteOpen(true)}>
+          <Text style={styles.headAdd}>＋</Text>
+        </PressableScale>
         <PressableScale hitSlop={8} onPress={() => setAskDelete(true)}>
           <Icon name="trash" size={25} />
         </PressableScale>
@@ -750,6 +777,20 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
       />
       <TalkThread items={items} busy={busy} onLink={(r) => router.push(r as never)} jumpTo={jumpTo} />
       {composer}
+      {inviteOpen ? (
+        <InviteSheet
+          // ★이미 방에 있는 사람은 뺀다 — 두 번 부르면 «3명» 이 되지 않는다
+          candidates={servers.filter((x) => x.id !== cur.id && !mates.some((m) => m.id === x.id))}
+          onClose={() => setInviteOpen(false)}
+          onInvite={async (ids) => {
+            setInviteOpen(false);
+            const sid = await openGroupRoom(cur.id, ids, chartId);
+            if (!sid) return;                       // 실패해도 지금 방은 그대로다(막지 않는다)
+            sessRef.current[cur.id] = sid;          // 이 방으로 이어서 말한다
+            setMates(servers.filter((x) => ids.includes(x.id)));
+          }}
+        />
+      ) : null}
     </View>
   );
 }
@@ -772,7 +813,11 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1, borderBottomColor: colors.line, backgroundColor: colors.card,
   },
   back: { fontSize: 26, lineHeight: 30, color: colors.ju, fontWeight: '900', paddingRight: space(1) },
-  headTx: { flex: 1, minWidth: 0, ...font.heading, color: colors.ink, fontWeight: '800' },
+  headMid: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: space(2) },
+  headTx: { flexShrink: 1, minWidth: 0, ...font.heading, color: colors.ink, fontWeight: '800' },
+  // ★인원수 — 카톡처럼 이름 옆에 **작게**. 배지로 크게 그리면 이름을 밀어낸다.
+  headNum: { ...font.label, color: colors.inkSoft, fontWeight: '700' },
+  headAdd: { ...font.heading, color: colors.ink, fontWeight: '700', paddingHorizontal: space(1) },
   headIcon: { paddingHorizontal: space(1) },   // ★그림은 `kit/Icon` 이 그린다(크기는 거기서)
   // 삭제 확인 — 눌린 자리 바로 아래
   delBar: { flexDirection: 'row', alignItems: 'center', gap: space(2), paddingHorizontal: space(4), paddingVertical: space(3), backgroundColor: colors.sunk, borderBottomWidth: 1, borderBottomColor: colors.line },

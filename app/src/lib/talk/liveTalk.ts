@@ -150,6 +150,10 @@ export async function loadThread(consultantId: string): Promise<
     const s = await withTimeout(
       supabase.from('talk_sessions')
         .select('id').eq('consultant_id', consultantId)
+        // ★★**1:1 방만** 집는다 — 다인방도 `consultant_id` 를 그대로 갖고 있어서, 이 필터가 없으면
+        //   노쌤과 단둘이 한 방을 열었는데 «노쌤, 한서윤» 방이 열린다(내가 만들 뻔한 회귀다).
+        //   짝이 되는 규칙은 `groupTalk.ts` 에 있다: 그룹 조회는 **안 빈 것만** 본다.
+        .eq('guest_ids', '{}')
         .order('last_at', { ascending: false }).limit(1).maybeSingle(),
       8000,
     );
@@ -187,6 +191,10 @@ export async function deleteThread(consultantId: string): Promise<{ ok: boolean;
     const s = await withTimeout(
       supabase.from('talk_sessions')
         .select('id').eq('consultant_id', consultantId)
+        // ★★**1:1 방만** 집는다 — 다인방도 `consultant_id` 를 그대로 갖고 있어서, 이 필터가 없으면
+        //   노쌤과 단둘이 한 방을 열었는데 «노쌤, 한서윤» 방이 열린다(내가 만들 뻔한 회귀다).
+        //   짝이 되는 규칙은 `groupTalk.ts` 에 있다: 그룹 조회는 **안 빈 것만** 본다.
+        .eq('guest_ids', '{}')
         .order('last_at', { ascending: false }).limit(1).maybeSingle(),
       8000,
     );
