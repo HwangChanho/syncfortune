@@ -78,6 +78,13 @@ export function ChatList({ onOpen, selectedId, reloadKey = 0, wide, onSettings }
   const [searchOpen, setSearchOpen] = useState(false);
   const [q, setQ] = useState('');                 // 이름 필터 — 온디바이스(원가 0)
   const [rows, setRows] = useState<Row[] | null>(null);   // null = 아직 모름(로딩)
+  // ★프로필 창 — **사진만** 따로 눌린다. 줄을 누르면 종전대로 대화가 열린다(카톡이 그렇다).
+  //   ⚠️친구목록(`TalkList`)에도 같은 것이 있다. 여기만 없으면 «대화목록에서는 안 된다» 가 된다.
+  // ⚠️★훅은 **조기 return(`rows === null`)보다 반드시 위**에 둔다.
+  //   아래에 두면 로딩 렌더(훅 8개) → 목록 렌더(훅 9개)로 개수가 늘어
+  //   React #310 «Rendered more hooks than during the previous render» 로 화면이 통째로 죽는다.
+  //   2026-08-26 웹이 실제로 이걸로 백지가 됐다. [[web-nested-text-crash]] 와 같은 «백지» 계열.
+  const [profile, setProfile] = useState<ProfileTarget | null>(null);
 
   const load = useCallback(async () => {
     if (!session) { setRows([]); return; }
@@ -122,9 +129,6 @@ export function ChatList({ onOpen, selectedId, reloadKey = 0, wide, onSettings }
    *   질의를 새로 만들지 않는다 — 친구목록이 이미 받아 둔 것을 그대로 쓴다.
    */
   const avatarOf = (cid: string) => consultantsSnapshot().find((c) => c.id === cid)?.avatar ?? null;
-  // ★프로필 창 — **사진만** 따로 눌린다. 줄을 누르면 종전대로 대화가 열린다(카톡이 그렇다).
-  //   ⚠️친구목록(`TalkList`)에도 같은 것이 있다. 여기만 없으면 «대화목록에서는 안 된다» 가 된다.
-  const [profile, setProfile] = useState<ProfileTarget | null>(null);
   const openPhoto = (cid: string, element: string) => {
     const c = consultantsSnapshot().find((x) => x.id === cid);
     if (!c) return;
