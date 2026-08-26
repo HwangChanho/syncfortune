@@ -58,8 +58,13 @@ const SEED: Consultant[] = [
   { id: 'tarot_harin', kind: 'live', name: '타로마스터 하린', tagline: '타로', avatar: null, specialty: ['tarot'], routes: ['taro'], blocks: [], group: 'teacher', sortOrder: 40 },
   { id: 'tarot_doyun', kind: 'live', name: '타로하는 도윤', tagline: '고민 정리', avatar: null, specialty: ['tarot'], routes: ['taro', 'dream', 'taemong'], blocks: [], group: 'teacher', sortOrder: 50 },
   { id: 'ziwei_yujin', kind: 'live', name: '자미두수 유진', tagline: '자미두수 · 공부', avatar: null, specialty: ['ziwei'], routes: ['ziwei', 'timeline', 'lifegraph'], blocks: ['ziwei', 'studyziwei'], group: 'teacher', sortOrder: 60 },
-  { id: 'astro_taehyun', kind: 'live', name: '별자리 자미 태현', tagline: '운의 타이밍', avatar: null, specialty: ['astro'], routes: ['astrology', 'numerology', 'newyear'], blocks: ['today'], group: 'teacher', sortOrder: 70 },
+  { id: 'astro_taehyun', kind: 'live', name: '별자리 자미 태현', tagline: '운의 타이밍', avatar: null, specialty: ['astro'], routes: ['astrology', 'numerology', 'newyear'], blocks: ['decision'], group: 'teacher', sortOrder: 70 },
   // 함께하면 좋은 친구들 — ★사주와 무관한 주제다(일상 대화 허용이 이들을 받쳐 준다)
+  // ★「오늘의 운세」 — 하루 콘텐츠의 **자기 자리**(Boss 2026-08-26).
+  //   종전엔 성태현 안에 `blocks=['today','month']` 로 숨어 있어 그 사람을 알아야 도달했다.
+  //   ⚠️내일의 운세는 **별도 블록이 아니다** — `TodayFortuneBlock` 이 오늘/내일 토글을 내장한다.
+  //   ★`virtual` = 두 블록 다 온디바이스 결정론이라 **원가 ₩0**(LLM 을 안 부른다).
+  { id: 'fortune_today', kind: 'virtual', name: '오늘의 운세', tagline: '오늘 · 내일 · 이달', avatar: null, specialty: ['today'], routes: ['today', 'month'], blocks: ['today', 'month'], group: 'friend', sortOrder: 100 },
   { id: 'beauty_jjinya', kind: 'live', name: '메이크업 아티스트 찐야', tagline: '메이크업', avatar: null, specialty: ['beauty'], routes: [], blocks: [], group: 'friend', sortOrder: 110 },
   { id: 'color_bombom', kind: 'live', name: '퍼스널컬러 봄봄', tagline: '어울리는 색', avatar: null, specialty: ['color'], routes: [], blocks: [], group: 'friend', sortOrder: 120 },
   { id: 'car_unni', kind: 'live', name: '차(량) 잘 아는 언니', tagline: '차 고르기', avatar: null, specialty: ['car'], routes: [], blocks: [], group: 'friend', sortOrder: 130 },
