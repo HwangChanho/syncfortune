@@ -87,7 +87,8 @@ async function main(): Promise<void> {
     });
     if (!up.ok) { skipped.push(`${f} — 업로드 실패 ${up.status} ${(await up.text()).slice(0, 80)}`); continue; }
     const patch = await fetch(`${URL_BASE}/rest/v1/consultants?id=eq.${id}`, {
-      method: 'PATCH', headers: { ...H, 'Content-Type': 'application/json' }, body: JSON.stringify({ cover: key }),
+      method: 'PATCH', headers: { ...H, 'Content-Type': 'application/json' }, // ⚠️★`updated_at` 을 같이 올린다 — 앱이 이 값으로 CDN 캐시를 깬다(안 올리면 옛 배경이 계속 보인다)
+      body: JSON.stringify({ cover: key, updated_at: new Date().toISOString() }),
     });
     if (!patch.ok) { skipped.push(`${f} — DB 저장 실패 ${patch.status}`); continue; }
 

@@ -130,7 +130,8 @@ async function link(id: string): Promise<void> {
       apikey: SERVICE, Authorization: `Bearer ${SERVICE}`,
       'Content-Type': 'application/json', Prefer: 'return=minimal',
     },
-    body: JSON.stringify({ avatar: `consultants/${id}.jpg` }),
+    // ⚠️★`updated_at` 을 같이 올린다 — 앱이 이 값으로 CDN 캐시를 깬다(안 올리면 옛 사진이 계속 보인다)
+    body: JSON.stringify({ avatar: `consultants/${id}.jpg`, updated_at: new Date().toISOString() }),
   });
   if (!res.ok) throw new Error(`DB 연결 실패 HTTP ${res.status} — ${(await res.text()).slice(0, 200)}`);
 }

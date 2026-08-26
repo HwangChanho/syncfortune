@@ -949,7 +949,8 @@ function wireTalkRows() {
       say($('talkMsg'), '올리는 중…', 'ok');
       const up = await sb.storage.from('avatars').upload(path, blob, { upsert: true, contentType: 'image/jpeg' });
       if (up.error) return say($('talkMsg'), '업로드 실패 — ' + esc(up.error.message), 'err');
-      const { error } = await sb.from('consultants').update({ avatar: path }).eq('id', id);
+      // ⚠️★`updated_at` 을 **같이** 올린다 — 앱이 이 값으로 캐시를 깬다(안 올리면 옛 사진이 계속 보인다)
+      const { error } = await sb.from('consultants').update({ avatar: path, updated_at: new Date().toISOString() }).eq('id', id);
       if (error) return say($('talkMsg'), '저장 실패 — ' + esc(error.message), 'err');
       say($('talkMsg'), '사진을 바꿨습니다.', 'ok');
       loadTalk();
@@ -985,7 +986,8 @@ function wireTalkRows() {
       }
       const up = await sb.storage.from('avatars').upload(path, f, { upsert: true, contentType: f.type });
       if (up.error) return say($('talkMsg'), '업로드 실패 — ' + esc(up.error.message), 'err');
-      const { error } = await sb.from('consultants').update({ cover: path }).eq('id', id);
+      // ⚠️★`updated_at` 을 **같이** 올린다 — 안 올리면 CDN 이 옛 배경을 계속 준다(영상은 특히 크다)
+      const { error } = await sb.from('consultants').update({ cover: path, updated_at: new Date().toISOString() }).eq('id', id);
       if (error) return say($('talkMsg'), '저장 실패 — ' + esc(error.message), 'err');
       say($('talkMsg'), isVid ? '배경 영상을 올렸습니다.' : '배경 사진을 올렸습니다.', 'ok');
       loadTalk();

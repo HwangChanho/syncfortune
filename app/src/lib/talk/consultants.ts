@@ -89,9 +89,16 @@ let _cache: Consultant[] | null = null;
  * ★버전 쿼리: 관리자가 **같은 경로에 덮어쓰므로** 없으면 CDN 이 옛 사진을 계속 준다.
  *   목록을 읽는 시점 기준이라 앱을 다시 열면 새 사진이 온다.
  */
-function avatarUrl(path: string): string {
+function avatarUrl(path: string, ver?: string | null): string {
   const base = supabase.storage.from('avatars').getPublicUrl(path).data.publicUrl;
-  return `${base}?v=${Math.floor(Date.now() / 60000)}`;   // 1분 단위 — 매 렌더마다 바뀌면 캐시가 무의미하다
+  // ★버전은 **그 행이 바뀐 시각**이다 — 사진·영상이 바뀔 때만 바뀐다.
+  //   ⚠️종전엔 `Math.floor(Date.now()/60000)`(1분 단위)였다. 사진(50KB)일 땐 견딜 만했지만
+  //     **배경 영상(최대 8MB)** 에서는 주소가 바뀔 때마다 **다시 받고 재생이 처음으로 돌아간다.**
+  //   ⚠️그래서 쓰는 쪽(관리자 콘솔·`covers:upload`·`avatars:upload`)이 media 를 갈 때
+  //     `updated_at` 을 **함께 갱신해야 한다** — 안 하면 CDN 이 옛 파일을 계속 준다.
+  //     실측(2026-08-26): 사진은 08-25 인데 `updated_at` 은 08-21 이었다 = 자동으로 안 따라간다.
+  const v = ver ? Date.parse(ver) : NaN;
+  return `${base}?v=${Number.isFinite(v) ? v : Math.floor(Date.now() / 60000)}`;
 }
 
 /** 서버 행 → 앱 타입. 컬럼 이름이 바뀌면 여기만 고친다. */
@@ -102,8 +109,8 @@ function fromRow(r: any): Consultant {
     name: String(r.name ?? ''),
     tagline: r.tagline ?? null,
     // ★경로가 아니라 **완성된 URL** 로 내려준다 — 화면이 어느 버킷인지 알 필요가 없다
-    avatar: r.avatar ? avatarUrl(String(r.avatar)) : null,
-    cover: r.cover ? avatarUrl(String(r.cover)) : null,
+    avatar: r.avatar ? avatarUrl(String(r.avatar), r.updated_at) : null,
+    cover: r.cover ? avatarUrl(String(r.cover), r.updated_at) : null,
     specialty: Array.isArray(r.specialty) ? r.specialty : [],
     routes: Array.isArray(r.routes) ? r.routes : [],
     blocks: Array.isArray(r.blocks) ? r.blocks : [],
@@ -132,7 +139,7 @@ export async function listConsultants(force = false): Promise<Consultant[]> {
       //   관리자 정책이 `for all` 이라 **관리자에게는 비활성 상담사까지 보인다**
       //   (정책은 OR 로 합쳐진다). 실제로 준비 중인 「노쎔」이 친구목록에 떠 있었다.
       //   ⇒ RLS 는 '볼 권한'을 정하고, 쿼리는 '지금 보여줄 것'을 정한다. 둘은 다르다.
-      supabase.from('consultants').select('id,kind,name,tagline,avatar,cover,specialty,routes,blocks,group_key,sort_order, link_url, link_label, age')
+      supabase.from('consultants').select('id,kind,name,tagline,avatar,cover,specialty,routes,blocks,group_key,sort_order, link_url, link_label, age, updated_at')
         .eq('enabled', true).order('sort_order'),
       8000,
     );
