@@ -184,7 +184,8 @@
     "check:talkmention": "tsx scripts/check-talkmention.ts",
     "check:banmal": "tsx scripts/check-banmal.ts",
     "check:webmodules": "tsx scripts/check-webmodules.ts",
-    "check:chartidentity": "tsx scripts/check-chartidentity.ts"
+    "check:chartidentity": "tsx scripts/check-chartidentity.ts",
+    "check:termstyle": "tsx scripts/check-termstyle.ts"
   },
   "keywords": [],
   "author": "",
