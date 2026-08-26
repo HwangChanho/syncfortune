@@ -45,6 +45,14 @@ export type Consultant = {
    */
   age?: number | null;
   /**
+   * 이 사람을 **뭐라고 부를지**(프로필 창 표시). 비면 묶음 기본값(선생님 AI / 무료 친구).
+   * ★Boss 2026-08-26 *"노쎔은 선생님 AI 아니고 역술인으로 해둬"* —
+   *   `group` 을 바꾸면 **그 사람만 따로 떨어진 칸**이 생긴다(노쌤은 목록 첫 줄에 있어야 한다).
+   *   ⇒ 묶음은 그대로 두고 **부르는 말만** 따로 둔다.
+   * ⚠️「선생님 AI」는 **AI 임을 밝히는 자리**이기도 하다 — 바꾸는 것은 Boss 판단이다.
+   */
+  roleLabel?: string | null;
+  /**
    * (구) 홈 블록 자체가 친구였을 때의 키. 다섯 압축 뒤로는 쓰지 않는다.
    * ★서버 `consultants` 에 없다 — **앱이 만든 친구**다. 홈 블록은 온디바이스 화면이라
    *   서버가 알 필요가 없고, `homeOrder`(운영자가 정하는 순서)를 그대로 따라야 하기 때문이다.
@@ -59,7 +67,7 @@ export type Consultant = {
  */
 const SEED: Consultant[] = [
   // 선생님 AI
-  { id: 'nossem', kind: 'live', name: '노쌤의 사주상담소', tagline: '사주 · 명리 공부', avatar: null, specialty: ['saju'], routes: ['saju', 'gaeun'], blocks: ['studysaju', 'free3', 'persona', 'self'], group: 'teacher', sortOrder: 10 },
+  { id: 'nossem', kind: 'live', name: '노쌤의 사주상담소', tagline: '사주 · 명리 공부', avatar: null, specialty: ['saju'], routes: ['saju', 'gaeun'], blocks: ['studysaju', 'free3', 'persona', 'self'], group: 'teacher', sortOrder: 10, age: 39, roleLabel: '역술인' },
   { id: 'love_seoyun', kind: 'live', name: '연애세포 서윤쌤', tagline: '연애·궁합', avatar: null, specialty: ['love'], routes: ['compat', 'love', 'crush', 'reunion', 'lovestyle'], blocks: ['relation', 'relmap'], group: 'teacher', sortOrder: 20, age: 33 },
   { id: 'guide_minjae', kind: 'live', name: '사주 보는 길잡이 민재', tagline: '사업·재물', avatar: null, specialty: ['wealth'], routes: ['wealth', 'career', 'jobfit', 'talent'], blocks: [], group: 'teacher', sortOrder: 30, age: 41 },
   { id: 'tarot_harin', kind: 'live', name: '타로마스터 하린', tagline: '타로', avatar: null, specialty: ['tarot'], routes: ['taro'], blocks: [], group: 'teacher', sortOrder: 40, age: 36 },
@@ -120,6 +128,7 @@ function fromRow(r: any): Consultant {
     group: r.group_key === 'friend' ? 'friend' : 'teacher',
     // ★숫자가 아니면 null — 서버가 안 주거나 이상한 값이면 «모른다»(=존댓말)로 떨어진다
     age: Number.isFinite(Number(r.age)) ? Number(r.age) : null,
+    roleLabel: (typeof r.role_label === 'string' && r.role_label.trim()) ? r.role_label.trim() : null,
     sortOrder: Number(r.sort_order ?? 100),
   };
 }
@@ -139,7 +148,7 @@ export async function listConsultants(force = false): Promise<Consultant[]> {
       //   관리자 정책이 `for all` 이라 **관리자에게는 비활성 상담사까지 보인다**
       //   (정책은 OR 로 합쳐진다). 실제로 준비 중인 「노쎔」이 친구목록에 떠 있었다.
       //   ⇒ RLS 는 '볼 권한'을 정하고, 쿼리는 '지금 보여줄 것'을 정한다. 둘은 다르다.
-      supabase.from('consultants').select('id,kind,name,tagline,avatar,cover,specialty,routes,blocks,group_key,sort_order, link_url, link_label, age, updated_at')
+      supabase.from('consultants').select('id,kind,name,tagline,avatar,cover,specialty,routes,blocks,group_key,sort_order, link_url, link_label, age, role_label, updated_at')
         .eq('enabled', true).order('sort_order'),
       8000,
     );

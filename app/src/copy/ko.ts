@@ -786,8 +786,8 @@ export const ko = {
     'freeLeft': '오늘 무료 대화 {{n}}번 남았어요.',
     // 운 부족 — 충전 유도(Boss 2026-08-24). ★얼마 필요하고 얼마 있는지 **숫자로** 말한다.
     'needCoinsTitle': '운이 모자라요',
-    'needCoinsMsg': '이어서 이야기하려면 한 번에 {{cost}}운이 필요해요. 지금 {{have}}운 있어요.',
-    'needCoinsMsgNoBal': '이어서 이야기하려면 한 번에 {{cost}}운이 필요해요.',
+    'needCoinsMsg': '이어서 이야기하려면 {{cost}}운이 필요해요. 지금 {{have}}운 있어요.',
+    'needCoinsMsgNoBal': '이어서 이야기하려면 {{cost}}운이 필요해요.',
   },
   home: {
     'bonusLead': '충전할 때 자동으로 쓰여요',

@@ -875,7 +875,7 @@ let _talkRows = [];
 async function loadTalk() {
   const box = $('talkList');
   const { data, error } = await sb.from('consultants')
-    .select('id, kind, name, tagline, avatar, cover, enabled, sort_order, persona, age')
+    .select('id, kind, name, tagline, avatar, cover, enabled, sort_order, persona, age, role_label')
     .order('sort_order');
   if (error) { box.innerHTML = `<span class="muted">불러오지 못했습니다 — ${esc(error.message)}</span>`; return; }
   _talkRows = data || [];
@@ -888,7 +888,10 @@ async function loadTalk() {
            onerror="this.style.visibility='hidden'">
       <div style="flex:1;min-width:0">
         <input class="tName" value="${esc(c.name)}" style="width:100%;margin-bottom:4px" placeholder="이름">
-        <input class="tTag" value="${esc(c.tagline || '')}" style="width:100%" placeholder="한 줄 소개(선택)">
+        <input class="tTag" value="${esc(c.tagline || '')}" style="width:100%;margin-bottom:4px" placeholder="한 줄 소개(선택)">
+        <!-- ★뭐라고 부를지 — 비우면 묶음 기본값(선생님 AI / 무료 친구).
+             ⚠️「선생님 AI」는 AI 임을 밝히는 자리이기도 하다 — 바꿀 땐 그걸 알고 바꾼다 -->
+        <input class="tRole" value="${esc(c.role_label || '')}" style="width:100%" placeholder="표시 라벨(비우면 «선생님 AI» / «무료 친구»)">
       </div>
       <div style="flex:0 0 auto;text-align:right">
         <div class="sub" style="margin-bottom:4px">${c.kind === 'live' ? 'LLM 대화' : '콘텐츠 안내(무료)'}</div>
@@ -1003,6 +1006,9 @@ function wireTalkRows() {
         // ★나이 — 회원이 이 나이보다 어리면 기본 반말(Boss 2026-08-26).
         //   ⚠️비우면 **null** 이어야 한다(0 이 아니다) — 0 이면 «모두가 나보다 나이가 많다» 가 된다.
         age: ageRaw === '' ? null : Number(ageRaw),
+        // ★비우면 null — 빈 문자열을 넣으면 «이름 없는 라벨» 이 화면에 뜬다
+        role_label: row.querySelector('.tRole').value.trim() || null,
+        updated_at: new Date().toISOString(),
       };
       if (patch.age != null && (!Number.isFinite(patch.age) || patch.age < 0 || patch.age > 129)) {
         return say($('talkMsg'), '나이는 0~129 사이 숫자이거나 비워 두세요.', 'err');

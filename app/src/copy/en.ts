@@ -747,8 +747,8 @@ export const en = {
     'spent': '{{n}} Woon used',
     'freeLeft': '{{n}} free chats left today.',
     'needCoinsTitle': 'Not enough woon',
-    'needCoinsMsg': 'Each message costs {{cost}} woon. You have {{have}} right now.',
-    'needCoinsMsgNoBal': 'Each message costs {{cost}} woon to keep talking.',
+    'needCoinsMsg': 'Continuing costs {{cost}} woon. You have {{have}} right now.',
+    'needCoinsMsgNoBal': 'Continuing costs {{cost}} woon.',
   },
   home: {
     'bonusLead': 'Applied automatically when you top up',

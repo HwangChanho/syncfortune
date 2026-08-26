@@ -44,6 +44,8 @@ export type ProfileTarget = {
   age?: number | null;
   /** 선생님 AI / 함께하면 좋은 친구 */
   group?: 'teacher' | 'friend';
+  /** ★이 사람을 뭐라고 부를지 — 있으면 묶음 기본값 대신 이걸 쓴다(Boss 2026-08-26 «노쌤 = 역술인») */
+  roleLabel?: string | null;
   /** 「대화하기」를 눌렀을 때. 없으면 그 버튼을 안 그린다(이미 그 방에 있는 경우) */
   onTalk?: () => void;
   /** 「꾸미기」 — 내 프로필일 때만 준다(설정으로 보낸다) */
@@ -103,7 +105,9 @@ export function ProfileSheet({ target, onClose }: { target: ProfileTarget | null
             const bits = [
               target.age != null ? `${target.age}세` : null,
               target.tagline?.trim() || null,
-              target.group === 'teacher' ? '선생님 AI' : target.group === 'friend' ? '무료 친구' : null,
+              // ★사람별 라벨이 먼저 — 없을 때만 묶음 기본값으로 떨어진다
+              target.roleLabel?.trim()
+                || (target.group === 'teacher' ? '선생님 AI' : target.group === 'friend' ? '무료 친구' : null),
             ].filter(Boolean);
             return bits.length ? <Text style={styles.meta} numberOfLines={2}>{bits.join(' · ')}</Text> : null;
           })()}

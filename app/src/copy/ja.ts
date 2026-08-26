@@ -746,8 +746,8 @@ export const ja = {
     'spent': '運{{n}}を使用',
     'freeLeft': '本日の無料チャットはあと{{n}}回です。',
     'needCoinsTitle': '運が足りません',
-    'needCoinsMsg': '続けるには1回あたり{{cost}}運が必要です。今は{{have}}運あります。',
-    'needCoinsMsgNoBal': '続けるには1回あたり{{cost}}運が必要です。',
+    'needCoinsMsg': '続けるには{{cost}}運が必要です。今は{{have}}運あります。',
+    'needCoinsMsgNoBal': '続けるには{{cost}}運が必要です。',
   },
   home: {
     'bonusLead': 'チャージ時に自動で使われます',

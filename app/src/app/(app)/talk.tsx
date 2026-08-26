@@ -653,16 +653,16 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
           setNotice({
             kind: 'need',
             text: have == null
-              ? t('talk.needCoinsMsgNoBal', '이어서 이야기하려면 한 번에 {{cost}}운이 필요해요.').replace('{{cost}}', String(r.cost ?? 0))
-              : t('talk.needCoinsMsg', '이어서 이야기하려면 한 번에 {{cost}}운이 필요해요. 지금 {{have}}운 있어요.')
+              ? t('talk.needCoinsMsgNoBal', '이어서 이야기하려면 {{cost}}운이 필요해요.').replace('{{cost}}', String(r.cost ?? 0))
+              : t('talk.needCoinsMsg', '이어서 이야기하려면 {{cost}}운이 필요해요. 지금 {{have}}운 있어요.')
                   .replace('{{cost}}', String(r.cost ?? 0)).replace('{{have}}', String(have)),
             action: t('coins.charge', '운 충전하기'),
           });
           Alert.alert(
             t('talk.needCoinsTitle', '운이 모자라요'),
             have == null
-              ? t('talk.needCoinsMsgNoBal', '이어서 이야기하려면 한 번에 {{cost}}운이 필요해요.').replace('{{cost}}', String(r.cost ?? 0))
-              : t('talk.needCoinsMsg', '이어서 이야기하려면 한 번에 {{cost}}운이 필요해요. 지금 {{have}}운 있어요.')
+              ? t('talk.needCoinsMsgNoBal', '이어서 이야기하려면 {{cost}}운이 필요해요.').replace('{{cost}}', String(r.cost ?? 0))
+              : t('talk.needCoinsMsg', '이어서 이야기하려면 {{cost}}운이 필요해요. 지금 {{have}}운 있어요.')
                   .replace('{{cost}}', String(r.cost ?? 0)).replace('{{have}}', String(have)),
             [
               { text: t('common.later', '나중에'), style: 'cancel' },

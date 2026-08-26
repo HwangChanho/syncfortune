@@ -305,7 +305,7 @@ export function TalkList({ items, onOpen, selected, myName, onMe, myAvatar, rail
     name: c.name, tagline: c.tagline, avatar: c.avatar, cover: c.cover,
     linkUrl: c.linkUrl, linkLabel: c.linkLabel, element,
     // ★기본 프로필(Boss 2026-08-26) — 나이·묶음. 없는 사람은 창이 그 줄을 안 그린다
-    age: c.age ?? null, group: c.group,
+    age: c.age ?? null, group: c.group, roleLabel: c.roleLabel ?? null,
     onTalk: () => onOpen(c),
   });
 
