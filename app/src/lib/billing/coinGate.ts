@@ -54,7 +54,7 @@ export async function ensureCoinsFor(
     if (st.status === 'topup') {
       return await new Promise<CoinGateResult>((resolve) => {
         Alert.alert(
-          t('coins.needTitle', '운이 부족해요'),
+          t('coins.needTitle', '운이 조금 모자라요'),
           t('coins.needMsg', { need: won(st.cost), have: won(st.balance), defaultValue: '이 풀이는 {{need}} 운이 필요해요. 지금 {{have}} 운 있어요.' }),
           [
             { text: t('common.cancel'), style: 'cancel', onPress: () => resolve('cancel') },
@@ -100,7 +100,7 @@ export async function ensureCoinsFor(
   if (bal < cost) {
     return await new Promise<CoinGateResult>((resolve) => {
       Alert.alert(
-        t('coins.needTitle', '운이 부족해요'),
+        t('coins.needTitle', '운이 조금 모자라요'),
         t('coins.needMsg', { need: won(cost), have: won(bal), defaultValue: '이 풀이는 {{need}} 운이 필요해요. 지금 {{have}} 운 있어요.' }),
         [
           { text: t('common.cancel'), style: 'cancel', onPress: () => resolve('cancel') },

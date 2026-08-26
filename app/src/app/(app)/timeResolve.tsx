@@ -134,7 +134,7 @@ export default function TimeResolveScreen() {
       //   금액을 클라가 정하면 '1코인 해제'가 되므로, 서버가 금액을 정하는 전용 RPC 로 차감한다.
       const paid = await spendCoinsFixed('timeresolve');
       if (paid.ok) { await markUnlocked(TPR_UNLOCK, 'timeresolve'); setUnlocked(true); compute(); }
-      else if (paid.reason === 'insufficient') Alert.alert(t('coins.needTitle', '운이 부족해요'), `${paid.cost ?? ''} 운이 필요해요. 지금 ${paid.balance ?? 0} 운 있어요.`);
+      else if (paid.reason === 'insufficient') Alert.alert(t('coins.needTitle', '운이 조금 모자라요'), `${paid.cost ?? ''} 운이 필요해요. 지금 ${paid.balance ?? 0} 운 있어요.`);
       else Alert.alert(TITLE, t('common.retryLaterNoCharge', '잠시 후 다시 시도해 주세요. 운은 차감되지 않았어요.'));
     } catch { /* 게이트 실패는 조용히(크래시 방지) */ }
     finally { gating.current = false; }

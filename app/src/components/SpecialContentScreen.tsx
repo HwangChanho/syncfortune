@@ -406,7 +406,7 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
       }
       if (st.status === 'topup') {                                           // 잔액 부족 — 서버 판정
         Alert.alert(
-          t('coins.needTitle', '운이 부족해요'),
+          t('coins.needTitle', '운이 조금 모자라요'),
           t('coins.needMsg', { need: st.cost, have: st.balance, defaultValue: '이 풀이는 {{need}} 운이 필요해요. 지금 {{have}} 운 있어요.' }),
           [{ text: t('common.cancel'), style: 'cancel' },
            { text: t('coins.charge', '운 충전하기'), onPress: () => router.push('/coins') }],

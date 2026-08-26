@@ -561,7 +561,7 @@ export const ko = {
   luck: { title: '오늘의 행운', todayEnergy: '오늘의 기운', color: '행운의 색', direction: '행운의 방향', numbers: '행운의 숫자', item: '행운의 아이템', weakHead: '내게 보탬이 되는 색', weakTail: ' — 내 사주에 부족하기 쉬운 기운이라, 곁에 두면 균형이 살아나요.', },
   // 팔자 도우미(콘텐츠 안내 · API 0 · daniel 2026-07-30) — 종전 'AI 자기이해 코치'를 대체
   // 재통변(1년 경과 → 코인 결제 · daniel 2026-07-30)
-  renewal: { title: '최신 통변으로 다시 받기', msg: '이 풀이를 받은 지 1년이 지났어요.\n\n{{pct}}% 할인된 {{coins}} 운으로 지금 시점 기준으로 다시 풀어 드려요.\n보유 {{have}} 운 → 사용 후 {{after}} 운', later: '다음에', go: '재통변하기', needTitle: '운이 부족해요', needMsg: '재통변에는 {{need}} 운이 필요해요. 지금 {{have}} 운 있어요.' },
+  renewal: { title: '최신 통변으로 다시 받기', msg: '이 풀이를 받은 지 1년이 지났어요.\n\n{{pct}}% 할인된 {{coins}} 운으로 지금 시점 기준으로 다시 풀어 드려요.\n보유 {{have}} 운 → 사용 후 {{after}} 운', later: '다음에', go: '재통변하기', needTitle: '운이 조금 모자라요', needMsg: '재통변에는 {{need}} 운이 들어요. 지금 {{have}} 운 있어요.' },
   assist: { title: '우니', sub: '보고 싶은 걸 말해 주세요. 바로 그 자리로 데려다 드려요.', label: '우니', hello: '무엇을 보고 싶으세요? 세 가지 중에 고르셔도 되고, 그냥 편하게 말해 주셔도 돼요.', egLabel: '이렇게 말해도 알아들어요', miss: '제가 아직 그 말은 못 알아들었어요. 아래에서 골라 주시면 바로 안내해 드릴게요.', placeholder: '무엇을 보고 싶으세요?', reset: '↺ 처음으로', send: '보내기', },
   coach: { title: 'AI 자기이해 코치', sub: '나에 대해 궁금한 걸 물어보세요. 당신의 사주로 답해 드려요.', coachLabel: '코치', thinking: '당신의 사주를 살펴보는 중…', placeholder: '나에 대해 물어보세요', send: '보내기', needChart: '먼저 명식을 등록해 주세요.', registerBtn: '명식 등록하기', loadFail: '명식을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.', gateTitle: '오늘 무료 질문을 다 쓰셨어요', gateDesc: '무료로 하루 {{count}}번까지 물어볼 수 있어요. 운으로 더 대화할 수 있어요.', gateCta: '운 충전하기', q1: '나는 어떤 사람인가요?', q2: '왜 제 관계는 비슷하게 반복될까요?', q3: '제 강점을 어떻게 살리면 좋을까요?', q4: '요즘 제 흐름은 어떤가요?' },
   selfHero: { kicker: '나는 어떤 사람인가', emptyTitle: '나를 분석해 드릴게요', emptySub: '생년월일시를 넣으면 사주 엔진이 성격·기질·강점을 분석해요', emptyCta: '+ 나를 분석받기', more: '성향 분석 자세히 보기 ›' },
@@ -619,7 +619,7 @@ export const ko = {
     'doneTitle': '충전됐어요',
     'needLoginDesc': '충전한 운은 계정에 보관돼요. 로그인해야 기기를 바꿔도 그대로 남습니다.',
     'needLoginTitle': '로그인이 필요해요',
-    'needTitle': '운이 부족해요',
+    'needTitle': '운이 조금 모자라요',
     'note': '· 운은 모든 유료 풀이에 쓸 수 있어요.\\n· 충전한 운은 계정에 보관돼요 — 기기를 바꿔도 그대로예요.\\n· 운은 사용 기한이 없어요.',
     'packs': '운 충전하기',
     'spend': '운 사용',
@@ -780,14 +780,14 @@ export const ko = {
     'chartMade': '명식을 만들었어요. 이제 이 사주로 봐 드릴게요.',
     'chartMakeFail': '명식 만들기',
     'chartMakeFailBody': '지금은 만들지 못했어요. 잠시 뒤 다시 시도해 주세요.',
-    'overFree': '오늘 무료 대화를 다 쓰셨어요. 지금부터는 운이 쓰여요.',
+    'overFree': '오늘 무료로 나눌 이야기는 여기까지예요. 이어서 하시면 운이 쓰여요.',
     // ★운 차감 «영수증» 한 줄(말풍선 아님 · 가운데 · 작은 글씨). 숫자는 **서버가 준 값**만 들어간다
     'spent': '{{n}}운 사용',
     'freeLeft': '오늘 무료 대화 {{n}}번 남았어요.',
     // 운 부족 — 충전 유도(Boss 2026-08-24). ★얼마 필요하고 얼마 있는지 **숫자로** 말한다.
-    'needCoinsTitle': '운이 모자라요',
-    'needCoinsMsg': '이어서 이야기하려면 {{cost}}운이 필요해요. 지금 {{have}}운 있어요.',
-    'needCoinsMsgNoBal': '이어서 이야기하려면 {{cost}}운이 필요해요.',
+    'needCoinsTitle': '운이 조금 모자라요',
+    'needCoinsMsg': '조금 더 이야기 나누려면 {{cost}}운이 들어요. 지금 {{have}}운 있어요.',
+    'needCoinsMsgNoBal': '조금 더 이야기 나누려면 {{cost}}운이 들어요.',
   },
   home: {
     'bonusLead': '충전할 때 자동으로 쓰여요',
@@ -888,7 +888,7 @@ export const ko = {
     'afterReunion': '다시 만난다면',
     'caution': '되돌아보면 좋은 점',
     'changeBuy': '구매하고 바꾸기',
-    'changeConfirmBuy': '상대를 바꾸려면 새로 풀어야 하고, 운이 필요해요. 진행할까요?',
+    'changeConfirmBuy': '상대를 바꾸면 처음부터 다시 풀어요. 운이 조금 들어가는데 괜찮으실까요?',
     'changeConfirmCredit': '가진 재회운 1회분으로 상대를 바꿔 새로 풀어요. 바꾸시겠어요?',
     'changeConfirmPremium': '상대를 바꾸면 그 사람으로 새로 풀어요. 바꾸시겠어요?',
     'changeGo': '바꾸기',

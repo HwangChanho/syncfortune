@@ -600,7 +600,7 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
           // ★무료 소진 — 상단 띠로 알린다(종전엔 상담가 말풍선이었다).
           //   띠는 자리가 고정이라 답을 앞지르지 않는다 ⇒ 종전의 «마지막 풍선 뒤로 미루는» 계산이 필요 없다.
           if (r.overFree && r.used === r.freeDaily + 1) {
-            setNotice({ kind: 'info', text: t('talk.overFree', '오늘 무료 대화를 다 쓰셨어요. 지금부터는 운이 쓰여요.') });
+            setNotice({ kind: 'info', text: t('talk.overFree', '오늘 무료로 나눌 이야기는 여기까지예요. 이어서 하시면 운이 쓰여요.') });
           } else if (!r.overFree && typeof r.used === 'number' && typeof r.freeDaily === 'number') {
             // 남은 무료 횟수도 **미리** 알려 준다 — 다 쓰고 나서야 아는 건 늦다
             const left = Math.max(0, r.freeDaily - r.used);
@@ -653,16 +653,16 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
           setNotice({
             kind: 'need',
             text: have == null
-              ? t('talk.needCoinsMsgNoBal', '이어서 이야기하려면 {{cost}}운이 필요해요.').replace('{{cost}}', String(r.cost ?? 0))
-              : t('talk.needCoinsMsg', '이어서 이야기하려면 {{cost}}운이 필요해요. 지금 {{have}}운 있어요.')
+              ? t('talk.needCoinsMsgNoBal', '조금 더 이야기 나누려면 {{cost}}운이 들어요.').replace('{{cost}}', String(r.cost ?? 0))
+              : t('talk.needCoinsMsg', '조금 더 이야기 나누려면 {{cost}}운이 들어요. 지금 {{have}}운 있어요.')
                   .replace('{{cost}}', String(r.cost ?? 0)).replace('{{have}}', String(have)),
             action: t('coins.charge', '운 충전하기'),
           });
           Alert.alert(
-            t('talk.needCoinsTitle', '운이 모자라요'),
+            t('talk.needCoinsTitle', '운이 조금 모자라요'),
             have == null
-              ? t('talk.needCoinsMsgNoBal', '이어서 이야기하려면 {{cost}}운이 필요해요.').replace('{{cost}}', String(r.cost ?? 0))
-              : t('talk.needCoinsMsg', '이어서 이야기하려면 {{cost}}운이 필요해요. 지금 {{have}}운 있어요.')
+              ? t('talk.needCoinsMsgNoBal', '조금 더 이야기 나누려면 {{cost}}운이 들어요.').replace('{{cost}}', String(r.cost ?? 0))
+              : t('talk.needCoinsMsg', '조금 더 이야기 나누려면 {{cost}}운이 들어요. 지금 {{have}}운 있어요.')
                   .replace('{{cost}}', String(r.cost ?? 0)).replace('{{have}}', String(have)),
             [
               { text: t('common.later', '나중에'), style: 'cancel' },

@@ -131,7 +131,7 @@ export default function ReunionRoute() {
         return;
       }
       // 이용권 없음 → 구매(영수증 검증 웹훅 적립 대기) 후 잠금 해제·재등록.
-      Alert.alert(t('reunion.title', '재회운'), t('reunion.changeConfirmBuy', '상대를 바꾸려면 새로 풀어야 하고, 운이 필요해요. 진행할까요?'), [
+      Alert.alert(t('reunion.title', '재회운'), t('reunion.changeConfirmBuy', '상대를 바꾸면 처음부터 다시 풀어요. 운이 조금 들어가는데 괜찮으실까요?'), [
         { text: t('common.cancel', '취소'), style: 'cancel' },
         { text: t('reunion.changeBuy', '구매하고 바꾸기'), onPress: async () => {
             if (!purchasesEnabled()) { Alert.alert(t('reunion.title', '재회운'), t('market.payPending', '결제 준비 중')); return; }
