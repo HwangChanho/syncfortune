@@ -41,7 +41,7 @@ export const ja = {
     badge: '私の生年月日から計算',
     more: '蔵干・冲・合・刑、神殺、大運(運の流れ)まで計算し、四柱推命と紫微斗数の二つの伝統を照らし合わせて検証します。',
   },
-  menu: { mycard: '私のカード', mycardDesc: '自分のタイプを一枚に', 
+  menu: { typematch: 'タイプ対タイプ', typematchDesc: '相手の生年月日なしで日柱だけで照らす',  mycard: '私のカード', mycardDesc: '自分のタイプを一枚に', 
     relationmap: '関係地図', relationmapDesc: '登録した人が自分にとってどんな質か、一枚で',
     'taemong': '胎夢の解説', 'taemongDesc': '子を待つ心を、夢に出たもので読む', 'taemongTileDesc': '龍·虎·鯉… 胎夢の象徴を無料で',
     'egenteto': 'エゲン・テト傾向',
@@ -125,7 +125,8 @@ export const ja = {
   },
   lang: { title: '言語', pick: '言語を選ぶ', auto: '自動', autoNote: '端末の言語 · 今は {{l}}', uiEnglish: '画面の文字は English', hint: '画面の文字と鑑定文をまとめて切り替えます。' },
   splash: { tagline: '五つの気がつながり\n今日の私を読む' },
-  mycard: { title: '私のカード', lead: 'タイプは入口です。一枠を押すと、その軸を計算した本文へ入ります。', more: '詳しく ›', noChart: '先に命式を登録してください。', register: '命式を登録', foot: '同じタイプでも大運・強弱が違えば本文は変わります。タイプは入口、文章はあなたのものです。' },
+  mycard: { axisIlju: '日柱', axisPersona: '性格タイプ', axisMbti: 'MBTI', axisEgen: 'エゲン・テト', axisBok: '生まれ持った福', teto: 'テト', egen: 'エゲン', both: '半々', tetoScore: 'テト {{n}}点', title: '私のカード', lead: 'タイプは入口です。一枠を押すと、その軸を計算した本文へ入ります。', more: '詳しく ›', noChart: '先に命式を登録してください。', register: '命式を登録', foot: '同じタイプでも大運・強弱が違えば本文は変わります。タイプは入口、文章はあなたのものです。' },
+  typematch: { tagStemHap: '天干の合', tagSaeng: '気の相生', tagBrHap: '地支の合', tagSamhap: '三合', tagChung: '日支の沖', title: 'タイプ対タイプ', lead: '相手が日柱の二文字を言ってくれれば十分です。生年月日がなくても照らせます。', me: '自分', pick: '相手の日柱を選ぶ', none: '二文字の間に合・沖がかかりません。良し悪しではなく、この軸では特別な引きも衝突も出ないという意味です。', limit: 'これは日柱の二文字だけを見たものです。生まれた時間・月まで見ればずっと正確になります。', goCompat: '生年月日で正確な相性を見る', noChart: '先に自分の命式を登録してください。' },
   person: { message: 'メッセージを送る', me: '私の命式', mine: '私の命式', friend: '友だち', tabChart: '命式', tabCompat: '相性', tabTalk: '会話', notShared: 'まだ命式を公開していません。', gone: '友だち一覧にいない人です。', noMe: 'まず自分の命式を登録してください。', noChart: '見られる命式がありません。', noCompat: 'まだ相性を出せません。', needMine: '自分の命式を登録すると、この人との相性が見られます。', openManse: '万年暦で詳しく見る', openCompat: '相性を詳しく見る', talkLead: 'この人を会話に呼ぶと、相談員がこの命式も一緒に見て答えます。', mention: '会話で @{{name}} を呼ぶ' },
   common: { close: '閉じる', send: '送信', save: '保存',
     'later': '後で',        // 나중에 — 유도 알림의 취소 쪽(대화 운 부족 등)

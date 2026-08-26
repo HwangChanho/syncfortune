@@ -139,6 +139,15 @@ export function countHardcodedKo(files: { path: string; src: string }[]): Map<st
       const before = s.slice(Math.max(0, m.index! - 120), m.index!);
       if (FALLBACK.test(before)) continue;
       if (LOG.test(before)) continue;
+      // ⚠️★**속성 접근자**는 UI 가 아니다 — `saju.pillars['일']` 의 `'일'` 은 엔진 자료구조의
+      //   **열쇠**이지 화면에 뜨는 글자가 아니다. 번역하면 오히려 엔진이 깨진다.
+      //   (검증 가능한 문법 규칙이다 — 특정 파일을 봐주는 예외가 아니다.)
+      const after = s.slice(m.index! + m[0].length, m.index! + m[0].length + 2);
+      if (/\[\s*$/.test(before) && /^\s*\]/.test(after)) continue;
+      // ⚠️★**객체의 열쇠**도 UI 가 아니다 — `{ '천간 합': t(...) }` 의 왼쪽은 «엔진 값을 받는 자리» 다.
+      //   화면에 뜨는 것은 **오른쪽(값)** 이고, 그건 그대로 센다.
+      //   규칙: 한국어 리터럴 **바로 뒤가 `:`** 면 열쇠다(문법으로 판별 가능 · 특정 파일 예외가 아니다).
+      if (/^\s*:/.test(after)) continue;
       n++;
     }
     n += [...s.matchAll(JSX_TEXT)].length;
@@ -149,7 +158,7 @@ export function countHardcodedKo(files: { path: string; src: string }[]): Map<st
 
 // ★baseline — 2026-08-27 실측. **줄이는 건 자유, 늘리는 건 실패.**
 //   줄였으면 이 숫자를 내려 잠근다(안 내리면 다시 늘어날 여지를 남긴 것이다).
-const BASELINE = 1855;
+const BASELINE = 1711;
 
 {
   const files = screens().map((p) => ({ path: p, src: read(p) ?? '' }));
@@ -174,11 +183,17 @@ const BASELINE = 1855;
     { path: 'e.tsx', src: `console.warn('대표 전환 실패', e);` },           // ← 로그라 안 센다
     { path: 'f.tsx', src: `<Text>다섯 기운이 이어</Text>` },                 // ← ★태그 사이 맨 한국어도 센다
     { path: 'g.tsx', src: `<Text>{t('k')}</Text>` },                      // ← 키로 뽑으면 안 센다
+    { path: 'h.tsx', src: `const b = saju.pillars['일'].branch;` },        // ← ★자료구조 열쇠라 안 센다
+    { path: 'i.tsx', src: `const label = '일';` },                         // ← 같은 글자라도 **값**이면 센다
+    { path: 'j.tsx', src: `const m = { '천간 합': t('k') };` },             // ← ★열쇠라 안 센다
+    { path: 'k.tsx', src: `const m = { a: '천간 합' };` },                  // ← 값이면 센다
   ]);
   const good = c.get('a.tsx') === 1 && !c.has('b.tsx') && !c.has('c.tsx') && !c.has('d.tsx') && !c.has('e.tsx')
-    && c.get('f.tsx') === 1 && !c.has('g.tsx');
+    && c.get('f.tsx') === 1 && !c.has('g.tsx')
+    && !c.has('h.tsx') && c.get('i.tsx') === 1
+    && !c.has('j.tsx') && c.get('k.tsx') === 1;
   say(good, '자기검사 — 폴백·주석·로그는 빼고, **태그 사이 글자까지** 센다',
-    good ? '대조군 7개 통과' : `실제: ${JSON.stringify([...c])}`);
+    good ? '대조군 11개 통과' : `실제: ${JSON.stringify([...c])}`);
 }
 
 console.log(fail === 0 ? '\n✅ 언어 고르기가 이어져 있고, 남은 한국어가 안 늘었습니다\n'

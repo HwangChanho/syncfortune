@@ -30,6 +30,7 @@ import { DAY_PILLAR, dayPillarKey } from '../engine/dayPillar';
 import { bokType } from './bokType';
 import { sajuMbti } from './sajuMbti';
 import { egenTeto } from './egenTeto';
+import type { TFunction } from 'i18next';   // ★라이브러리는 t 를 **인자로** 받는다(coinLedgerLabel 과 같은 방식)
 import type { ChartInput } from '@spec/chart';
 
 /** 카드 한 칸. ★`route` 가 있어야 «입구» 가 된다 — 눌러서 깊이로 들어간다. */
@@ -50,8 +51,10 @@ export type CardSlot = {
  *
  * ★각 값은 **그 화면이 쓰는 함수 그대로**다(`personaOf`·`sajuMbti`…). 여기서 새 판단을 하지 않는다.
  * @param input 명식 입력(대표 명식)
+ * @param t     문구 — ⚠️라이브러리는 훅을 못 쓰므로 **받아서** 쓴다.
+ *              (칸 이름을 한국어로 박으면 영어 화면에 한국어가 남는다 — `check:langpicker` L5.)
  */
-export function buildMyCard(input: ChartInput): CardSlot[] {
+export function buildMyCard(input: ChartInput, t: TFunction): CardSlot[] {
   const saju = computeChart(input).saju;
   const out: CardSlot[] = [];
 
@@ -60,7 +63,7 @@ export function buildMyCard(input: ChartInput): CardSlot[] {
   const k = dayPillarKey(d?.stem, d?.branch);
   if (k && DAY_PILLAR[k]) {
     out.push({
-      kind: 'dayPillar', label: '일주', value: k,
+      kind: 'dayPillar', label: t('mycard.axisIlju', '일주'), value: k,
       sub: DAY_PILLAR[k].keywords.slice(0, 3).join(' · '),
       route: '/dayPillar',
     });
@@ -71,27 +74,27 @@ export function buildMyCard(input: ChartInput): CardSlot[] {
     const m = saju?.pillars?.['월']?.branch;
     if (d?.stem && m) {
       const p = personaOf(d.stem as never, m as never);
-      out.push({ kind: 'persona', label: '성격유형', value: p.name, sub: p.keywords.slice(0, 3).join(' · '), route: '/personatype' });
+      out.push({ kind: 'persona', label: t('mycard.axisPersona', '성격유형'), value: p.name, sub: p.keywords.slice(0, 3).join(' · '), route: '/personatype' });
     }
   } catch (e) { console.warn('[myCard] 성격유형 실패', e); }
 
   // ③ MBTI — 말하기 가장 쉬운 축(16)
   try {
     const r = sajuMbti(saju);
-    out.push({ kind: 'mbti', label: 'MBTI', value: r.type, sub: r.nickname, route: '/mbti' });
+    out.push({ kind: 'mbti', label: t('mycard.axisMbti', 'MBTI'), value: r.type, sub: r.nickname, route: '/mbti' });
   } catch (e) { console.warn('[myCard] MBTI 실패', e); }
 
   // ④ 에겐/테토 — ⚠️**운에 따라 바뀌는 축**(원국 + 현재 대운·세운)
   try {
     const r = egenTeto(saju);
-    const name = r.type === 'teto' ? '테토' : r.type === 'egen' ? '에겐' : '반반';
-    out.push({ kind: 'egenteto', label: '에겐·테토', value: name, sub: `테토 ${r.tetoScore}점`, route: '/egenteto' });
+    const name = r.type === 'teto' ? t('mycard.teto', '테토') : r.type === 'egen' ? t('mycard.egen', '에겐') : t('mycard.both', '반반');
+    out.push({ kind: 'egenteto', label: t('mycard.axisEgen', '에겐·테토'), value: name, sub: t('mycard.tetoScore', '테토 {{n}}점').replace('{{n}}', String(r.tetoScore)), route: '/egenteto' });
   } catch (e) { console.warn('[myCard] 에겐테토 실패', e); }
 
   // ⑤ 타고난 복
   try {
     const r = bokType(saju);
-    out.push({ kind: 'bok', label: '타고난 복', value: `${r.emoji} ${r.bok}`, sub: r.desc, route: '/bok' });
+    out.push({ kind: 'bok', label: t('mycard.axisBok', '타고난 복'), value: `${r.emoji} ${r.bok}`, sub: r.desc, route: '/bok' });
   } catch (e) { console.warn('[myCard] 복 실패', e); }
 
   return out;

@@ -702,21 +702,43 @@ const ciSamhap = (a: string, b: string) => CI_SAMHAP.some((g) => g.includes(a) &
  * 해당 일주와 잘 맞는 일주 Top5(한자 key + 사유). 천간합(+10)·지지육합(+8)·삼합(+6)·상생(+2~3), 충(−6).
  * 표준 명리(간지 합·생) 기반 결정론 — daniel 명리 stance 검수 슬롯(가중치·예외는 추후 보강).
  */
+/**
+ * 일주 **한 쌍**의 구조 점수와 걸린 관계들.
+ *
+ * ★2026-08-27 — `compatibleIlju` 안에 있던 채점을 **그대로** 꺼냈다(값이 하나도 안 바뀐다).
+ *   유형 대 유형 대조(기획서 §2-C)가 «특정 쌍» 의 점수를 알아야 하는데,
+ *   같은 규칙을 다시 쓰면 **Top5 와 쌍 대조가 다른 답을 낼 수 있다.** 규칙은 한 곳에 둔다.
+ * ⚠️가중치·예외는 여전히 **daniel 검수 슬롯**이다 — 화면은 이 값을 «판정» 으로 말하면 안 된다.
+ *
+ * @param stem   내 일간(한자) · @param branch 내 일지(한자)
+ * @param otherKey 상대 일주 2글자(예: `'甲子'`)
+ * @returns 점수와 걸린 관계 이름들(합·삼합·충 …). 관계가 없으면 `tags` 가 빈 배열
+ */
+export function iljuPair(stem: string, branch: string, otherKey: string):
+  { score: number; tags: string[]; chung: boolean } {
+  const ps = otherKey[0], pb = otherKey[1];
+  let score = 0; const tags: string[] = [];
+  if (CI_STEM_HAP[stem] === ps) { score += 10; tags.push('천간 합'); }
+  else if (CI_SAENG[CI_STEM_EL[stem]] === CI_STEM_EL[ps] || CI_SAENG[CI_STEM_EL[ps]] === CI_STEM_EL[stem]) { score += 3; tags.push('기운 상생'); }
+  else if (CI_STEM_EL[stem] === CI_STEM_EL[ps]) { score += 2; }
+  if (CI_BR_YUKHAP[branch] === pb) { score += 8; tags.push('지지 합'); }
+  else if (ciSamhap(branch, pb)) { score += 6; tags.push('삼합'); }
+  else if (CI_SAENG[CI_BR_EL[branch]] === CI_BR_EL[pb] || CI_SAENG[CI_BR_EL[pb]] === CI_BR_EL[branch]) { score += 2; }
+  const chung = CI_BR_CHUNG[branch] === pb;
+  if (chung) { score -= 6; tags.push('일지 충'); }
+  return { score, tags, chung };
+}
+
 export function compatibleIlju(stem: string, branch: string): { key: string; reason: string }[] {
   const self = `${stem}${branch}`;
   return Object.keys(DAY_PILLAR)
     .filter((k) => k !== self)
     .map((k) => {
-      const ps = k[0], pb = k[1];
-      let score = 0; const tags: string[] = [];
-      if (CI_STEM_HAP[stem] === ps) { score += 10; tags.push('천간 합'); }
-      else if (CI_SAENG[CI_STEM_EL[stem]] === CI_STEM_EL[ps] || CI_SAENG[CI_STEM_EL[ps]] === CI_STEM_EL[stem]) { score += 3; tags.push('기운 상생'); }
-      else if (CI_STEM_EL[stem] === CI_STEM_EL[ps]) { score += 2; }
-      if (CI_BR_YUKHAP[branch] === pb) { score += 8; tags.push('지지 합'); }
-      else if (ciSamhap(branch, pb)) { score += 6; tags.push('삼합'); }
-      else if (CI_SAENG[CI_BR_EL[branch]] === CI_BR_EL[pb] || CI_SAENG[CI_BR_EL[pb]] === CI_BR_EL[branch]) { score += 2; }
-      if (CI_BR_CHUNG[branch] === pb) { score -= 6; }
-      return { key: k, score, reason: tags.join(' · ') || '두루 무난' };
+      // ★채점은 `iljuPair` 한 곳에서만 한다(위 주석)
+      const { score, tags } = iljuPair(stem, branch, k);
+      // ⚠️Top5 문구에서는 «충» 을 사유로 적지 않는다 — 잘 맞는 목록에 «충» 이 뜨면 말이 어긋난다
+      const shown = tags.filter((x) => x !== '일지 충');
+      return { key: k, score, reason: shown.join(' · ') || '두루 무난' };
     })
     .sort((a, b) => b.score - a.score)
     .slice(0, 5)

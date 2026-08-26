@@ -88,6 +88,31 @@ const raw = read('app/src/app/(app)/mycard.tsx') ?? '';
       : `화면:${said} 문구:${inCopy} — 이 말이 없으면 App Store 설명의 «분류함이 없습니다» 와 충돌한다`);
 }
 
+// ── T1~T3 유형 대 유형(기획서 §2-C) ────────────────────────────────────────
+{
+  const tm = strip(read('app/src/app/(app)/typematch.tsx') ?? '');
+  const dp = strip(read('app/src/lib/engine/dayPillar.ts') ?? '');
+
+  // T1 ★규칙을 **발명하지 않았다** — Top5 가 쓰던 그 함수를 그대로 쓴다
+  const usesShared = /iljuPair\(/.test(tm);
+  const topUsesToo = /const \{ score, tags \} = iljuPair\(/.test(dp);
+  say(usesShared && topUsesToo, 'T1 대조가 **Top5 와 같은 함수**를 쓴다',
+    usesShared && topUsesToo ? 'iljuPair() 한 곳'
+      : `대조:${usesShared} Top5:${topUsesToo} — 규칙이 둘이면 «Top5 와 쌍 대조가 다른 답» 을 낸다`);
+
+  // T2 ⚠️점수를 **판정으로 말하지 않는다**(가중치가 daniel 검수 슬롯이다)
+  const showsScore = /\{\s*pair\.score\s*\}/.test(tm);
+  say(!showsScore, 'T2 점수를 **숫자로 안 보여 준다**',
+    showsScore ? '★가중치가 검수 대기인데 숫자를 보이면 그건 판정처럼 읽힌다'
+      : '걸린 관계만 사실로 적는다');
+
+  // T3 ★정확도를 밝히고 궁합으로 보낸다(기획서 §2-C 가 명시한 조건)
+  const admits = /typematch\.limit/.test(tm) && /\/compat/.test(tm);
+  say(admits, 'T3 정확도를 밝히고 **궁합으로 유도**한다',
+    admits ? '«두 글자만 봤다» + 궁합 버튼'
+      : '숨기면 거짓이고, 정확한 쪽으로 갈 이유도 사라진다(깔때기가 안 생긴다)');
+}
+
 // ── 자기검사 ───────────────────────────────────────────────────────────────
 {
   const fakeNoRoute = `out.push({ kind: 'x', label: 'a', value: 'b', sub: 'c' })`;

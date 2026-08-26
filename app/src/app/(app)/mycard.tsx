@@ -49,14 +49,14 @@ export default function MyCardScreen() {
       const rep = await loadRepChart();
       if (!alive) return;
       if (!rep?.input) { setSlots([]); return; }
-      const built = buildMyCard(rep.input);
+      const built = buildMyCard(rep.input, t as never);
       setSlots(built);
       setName(rep.label ?? '');
       // ★저장은 **화면을 막지 않는다** — 실패해도 카드는 보인다(저장은 부가다)
       if (rep.id) void saveMyCard(rep.id, built);
     })();
     return () => { alive = false; };
-  }, []);
+  }, [t]);
 
   if (slots === null) {
     return <View style={styles.center}><ActivityIndicator color={colors.ju} /></View>;
@@ -111,7 +111,8 @@ export default function MyCardScreen() {
 
 const styles = StyleSheet.create({
   wrap: { flex: 1, backgroundColor: colors.bg },
-  body: { padding: space(5), paddingBottom: space(20) },
+  // ★하단 여백 — 광고 배너 50 + 네비바 86 + 홈 인디케이터 34(실측 · `check:bottominset`)
+  body: { padding: space(5), paddingBottom: 176 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg, gap: space(4) },
   h: { ...font.title, color: colors.ink, fontWeight: '900' },
   lead: { ...font.caption, color: colors.inkSoft, marginTop: space(1.5) },
