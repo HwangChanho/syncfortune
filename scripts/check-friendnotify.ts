@@ -23,7 +23,12 @@
 import { readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 
-const HOME = 'app/src/app/(app)/index.tsx';
+// ★벨은 **친구목록·대화목록 헤더**에 있다(Boss 2026-08-26 *"돋보기 옆에 놔"*).
+//   폰에서는 **홈이 곧 친구목록**(`TalkHome`)이라 «메인화면에서 보인다» 는 취지는 그대로다.
+//   ⚠️첫 판에서는 홈(`index.tsx`)의 이모지 벨을 봤다 — 자리를 옮기자 이 검사가 깨졌다.
+//     검사는 «어느 파일인가» 가 아니라 **«사용자가 닿는 자리에 있는가»** 를 봐야 한다.
+const BELL = 'app/src/components/talk/NotifyBell.tsx';
+const PLACES = ['app/src/components/talk/ChatList.tsx', 'app/src/components/talk/TalkList.tsx'];
 const INBOX = 'app/src/lib/backend/notifyInbox.ts';
 
 const isMain = process.argv[1]?.includes('check-friendnotify');
@@ -32,18 +37,28 @@ if (isMain) {
   let bad = 0;
   const say = (ok: boolean, name: string, note = '') => { if (!ok) bad++; console.log(`   ${ok ? '✅' : '❌'} ${name.padEnd(46)} ${note}`); };
 
-  // ── N1 홈에서 알림함으로 가는 길 ──────────────────────────────────────────
-  const home = readFileSync(HOME, 'utf8');
-  const opens = /router\.push\('\/notifications'\)/.test(home);
-  say(opens, 'N1 **홈에서** 알림함으로 갈 수 있다',
+  // ── N1 벨이 **사용자가 닿는 자리**에 있는가 ────────────────────────────────
+  const bellRaw = readFileSync(BELL, 'utf8');
+  // ★★주석을 먼저 걷어낸다 — **오늘만 두 번째다.** `check:talkdomain` D3 도 내 설명 주석을 코드로 읽고 울었다.
+  //   여기서도 주석에 «종전엔 🔔 이모지를 뒀다» 라고 적었더니 N1c 가 «이모지가 남아 있다» 로 판정했다.
+  //   ⇒ 검사 대상은 **실행되는 코드**다. 하네스를 만들 때 이 한 줄을 기본으로 둔다.
+  const bell = bellRaw.replace(/\/\/[^\n]*/g, ' ').replace(/\/\*[\s\S]*?\*\//g, ' ');
+  const opens = /router\.push\('\/notifications'\)/.test(bell);
+  say(opens, 'N1 벨을 누르면 알림함으로 간다',
     opens ? '' : '★알림함이 있어도 「마이」 탭 안에만 있으면 아무도 못 찾습니다');
+  const placed = PLACES.filter((f) => /<NotifyBell/.test(readFileSync(f, 'utf8')));
+  say(placed.length === PLACES.length, 'N1b 친구목록·대화목록 **둘 다**에 놓였다',
+    placed.length === PLACES.length ? '폰에서는 홈이 곧 친구목록이다' : `빠짐: ${PLACES.filter((f) => !placed.includes(f)).join(', ')}`);
+  // ★이모지가 아니라 **선 아이콘**이어야 옆의 돋보기와 무게가 맞는다
+  say(/<Icon name="bell"/.test(bell) && !/🔔/.test(bell), 'N1c 이모지가 아니라 선 아이콘이다',
+    '이모지는 색이 박혀 있어 옆 아이콘과 무게가 안 맞는다');
 
   // ── N2 읽지 않은 배지 ─────────────────────────────────────────────────────
-  const badge = /unreadCount\(\)/.test(home) && /unread > 0/.test(home);
+  const badge = /unreadCount\(\)/.test(bell) && /unread > 0/.test(bell);
   say(badge, 'N2 읽지 않은 수를 **배지로** 보여 준다',
     badge ? '' : '`unreadCount()` 가 있는데 아무도 안 쓰면 배지가 없습니다');
   // ★포커스마다 다시 세는가 — 읽고 돌아왔는데 배지가 남으면 그게 더 나쁘다
-  const refresh = /useFocusEffect\([\s\S]{0,200}unreadCount\(\)/.test(home);
+  const refresh = /useFocusEffect\([\s\S]{0,200}unreadCount\(\)/.test(bell);
   say(refresh, 'N2b 포커스마다 다시 센다(읽으면 바로 빠진다)',
     refresh ? '' : '한 번만 세면 «읽었는데 빨간 점이 남는» 상태가 됩니다');
 

@@ -29,6 +29,7 @@ import { elementColor, elementText } from '../../lib/engine/ohaeng';
 import type { Consultant } from '../../lib/talk/consultants';
 import { loadFavorites, subscribeFavorites, toggleFavorite, isFavorite, isPinned } from '../../lib/talk/favorites';
 import { Icon } from '../kit/Icon';   // 상단 아이콘 단일 원본(Boss 2026-08-24)
+import { NotifyBell } from './NotifyBell';   // 알림 벨+배지(단일 원본 — 대화목록과 같은 것)
 
 const FALLBACK_EL = ['木', '火', '土', '金', '水'] as const;
 
@@ -329,6 +330,8 @@ export function TalkList({ items, onOpen, selected, myName, onMe, myAvatar, rail
             {myName ?? t('talk.meNoChart', '명식 등록')}
           </Text>
         </PressableScale>
+        {/* ★알림 — 돋보기 **왼쪽**(Boss 2026-08-26). 선 아이콘이라 옆과 무게가 같다 */}
+        <NotifyBell size={26} />
         <PressableScale hitSlop={12} style={styles.topBtn} onPress={() => setSearchOpen((v) => !v)}>
           <Icon name={searchOpen ? 'close' : 'search'} size={26} color={searchOpen ? colors.ju : colors.inkSoft} />
         </PressableScale>

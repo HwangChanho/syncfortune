@@ -28,6 +28,7 @@ import { consultantsSnapshot, listConsultants, toProfileTarget } from '../../lib
 import { colors, space, radius, font } from '../../lib/theme';
 import { elementColor, elementText } from '../../lib/engine/ohaeng';
 import { Icon } from '../kit/Icon';   // 상단 아이콘 단일 원본(Boss 2026-08-24)
+import { NotifyBell } from './NotifyBell';   // 알림 벨+배지(단일 원본 — 친구목록과 같은 것)
 
 const EL = ['木', '火', '土', '金', '水'] as const;
 
@@ -157,6 +158,9 @@ export function ChatList({ onOpen, selectedId, reloadKey = 0, wide, onSettings, 
         {/* ★콘티 2면 헤더 = **워드마크 · 돋보기 · ⋮**. 제목 글자("운대화")가 아니다 —
             탭바가 이미 어느 탭인지 말해 주므로 제목을 또 쓰면 같은 말이 두 번이다. */}
         <BrandWordmark symbol style={{ flex: 1 }} />   {/* ★심볼+글자 (Boss 2026-08-26) — 넓은 목록 칸이라 이름이 안 잘린다 */}
+        {/* ★알림 — 돋보기 **왼쪽**(Boss 2026-08-26 *"돋보기 옆에 놔"*).
+            이모지가 아니라 선 아이콘이라 옆 아이콘들과 **무게가 같다**. */}
+        <NotifyBell size={26} />
         <PressableScale hitSlop={10} onPress={() => setSearchOpen((v) => !v)}>
           <Icon name={searchOpen ? 'close' : 'search'} size={26} color={searchOpen ? colors.ju : colors.inkSoft} />
         </PressableScale>

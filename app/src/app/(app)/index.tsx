@@ -16,7 +16,7 @@
 //
 // 로그인 게이트 없음(ADR-037).
 // ─────────────────────────────────────────────────────────────────────────
-import { View, Text, StyleSheet, Animated, AppState } from 'react-native';
+import { View, StyleSheet, Animated, AppState } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context'; // ★상단 안전영역 — 고정 여백은 글자확대 시 잘린다(daniel 07-27)
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useAuth } from '../../lib/useAuth';
@@ -25,14 +25,12 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 
 // 홈 블록 이미지 상수(IMG)는 홈이 정보 카드로 바뀌며(2026-08-01) 소비처가 사라져 제거했다.
 import { BrandWordmark } from '../../components/BrandWordmark';
-import { PressableScale } from '../../components/PressableScale';   // 알림 벨 — 이 화면엔 원래 없던 import
 import { TalkHome } from './talk';   // ★08-19 시작 화면 = 친구목록
 import { useGenProgress, clearGenProgress } from '../../lib/backend/genProgress'; // 풀이 진행률(다중·route별, 풀이중 홈 나가도 % — daniel)
 import { useSubscription } from '../../lib/billing/subscription';
 import { loadRepChart, subscribeRepChange } from '../../lib/engine/myChart';
 import { prewarmReadings, prewarmDaily } from '../../lib/backend/prewarmReadings';
 import { scheduleDailyFortune } from '../../lib/backend/notifications'; // 매일 9시 오늘의 운세 알림
-import { unreadCount } from '../../lib/backend/notifyInbox';   // ★읽지 않은 알림 수 — 배지에 쓴다(있는데 안 쓰이던 함수)
 import { scheduleLuckAlerts } from '../../lib/backend/luckAlerts'; // 시기 예고(대운 교체·세운 전환) 로컬 알림 — 리텐션 Phase 2
 import { computeChart } from '../../lib/engine/engine'; // ★canonical 명식 빌더 단일화(daniel 07-23) — 홈이 raw buildSajuChart 직접호출 시 세운·interactions 누락→신강약 드리프트(홈 33 vs 상세 59)
 import { colors, radius, space, shadow, font } from '../../lib/theme';
@@ -67,16 +65,6 @@ export default function Home() {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const [reloadKey, setReloadKey] = useState(0); // 명식 변경(전환·수정) 감지 — 포커스마다 오늘의 기운 재계산(daniel: 명식 수정 시 id 동일이라 갱신 안 되던 버그)
   const [editOpen, setEditOpen] = useState(false); // 홈 배치 편집 모달(daniel 07-21 '편집 모드')
-  // ★★읽지 않은 알림 수 (Boss 2026-08-26 *"메인화면 알림창에서도 볼수있게"*)
-  //   ⚠️`unreadCount()` 는 **이미 있었는데 아무도 안 쓰고 있었다** — 그래서 배지가 없었다.
-  //   ★포커스마다 다시 센다: 알림함에서 읽고 돌아오면 배지가 **바로** 빠져야 한다.
-  //     (한 번만 세면 «읽었는데 빨간 점이 남아 있는» 상태가 된다.)
-  const [unread, setUnread] = useState(0);
-  useFocusEffect(useCallback(() => {
-    let alive = true;
-    void unreadCount().then((n) => { if (alive) setUnread(n); }).catch(() => { /* 못 세면 0 그대로 */ });
-    return () => { alive = false; };
-  }, []));
   // ★홈 배치 편집을 **관리자에게만** 보인다(daniel 2026-08-06 "홈화면 편집은 관리자 뷰에서 관리자 계정만").
   //   일반 사용자에게 배치 편집은 첫 화면의 상단 자리를 차지할 만큼 자주 쓰는 기능이 아니고,
   //   지금은 홈 구성(오늘의 운세 → 배너 → …)을 운영이 정하는 편이 퍼널 의도에 맞다.
@@ -164,26 +152,9 @@ export default function Home() {
             `108×34` 가로 박스에 넣어 폭 25px 콩알로 줄어들어 있었다(Boss 2026-08-22 지적).
             콘티 헤더는 좌측 보라 글자다. ⇒ `BrandWordmark` 하나로 통일. */}
         {!wideWebHome && <BrandWordmark symbol />}
-        <View style={{ flex: 1 }} />
-        {/* ★★알림 — Boss 2026-08-26 *"메인화면 알림창에서도 볼수있게 하자"*
-            ⚠️알림함 화면(`/notifications`)도 `unreadCount()` 도 **이미 있었다.**
-              그런데 여는 길이 **「마이」 탭 안**에만 있었고, 읽지 않은 표시는 **아무 데도 없었다**
-              ⇒ 있어도 아무도 못 찾는 기능이었다([[category-management-ui]] 의 그 실수).
-            ★웹에서도 이게 «알림» 이다 — 웹엔 Expo 푸시 토큰이 없어 푸시는 안 오지만,
-              알림함은 같은 큐를 DB 에서 읽으므로 **놓치는 알림이 없다**. */}
-        <PressableScale hitSlop={12} onPress={() => router.push('/notifications')}
-          /* ⚠️이 화면은 `useTranslation` 을 안 쓴다 — 라벨 하나 때문에 훅을 들이지 않는다 */
-          accessibilityLabel="알림">
-          <View>
-            <Text style={styles.bell}>🔔</Text>
-            {unread > 0 ? (
-              // ★숫자로 보여 준다 — 점만 찍으면 «몇 개인지» 를 알려고 또 들어가야 한다
-              <View style={styles.badge}>
-                <Text style={styles.badgeTx}>{unread > 99 ? '99+' : String(unread)}</Text>
-              </View>
-            ) : null}
-          </View>
-        </PressableScale>
+        {/* ⚠️알림 벨은 **여기 없다** — Boss 2026-08-26 *"돋보기 옆에 놔"* 로
+            친구목록·대화목록 헤더(`NotifyBell`)로 옮겼다. 이모지(🔔)도 선 아이콘으로 바꿨다:
+            이모지는 색이 박혀 있어 옆의 선 아이콘들과 **무게가 안 맞았다**. */}
       </View>
 
       {/* 풀이 진행 알림 — ★진행률 막대가 아니라 **담당자의 답장**이다(Boss 2026-08-25).
@@ -240,14 +211,6 @@ export default function Home() {
 }
 
 const styles = StyleSheet.create({
-  // 알림 벨 — 이모지라 `fontSize` 만큼 실제로 커진다([[glyph-icons-dont-scale]]: 글리프는 안 커진다)
-  bell: { fontSize: 22 },
-  // 배지 — 벨 오른쪽 위. ★숫자를 보여 준다(점만 찍으면 몇 개인지 또 들어가 봐야 한다)
-  badge: {
-    position: 'absolute', top: -4, right: -8, minWidth: 18, height: 18, borderRadius: 9,
-    paddingHorizontal: 4, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.ju,
-  },
-  badgeTx: { color: '#fff', fontSize: 11, fontWeight: '800', lineHeight: 18 },
   bgImage: { flex: 1, backgroundColor: 'transparent' }, // 전역 ContentBackdrop(오행 배경) 투과
   screen: { backgroundColor: 'transparent' },
   // 넓은 웹 2열 — 두 단이 각자 흐른다(높이가 달라도 옆 단을 기다리지 않는다)

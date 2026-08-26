@@ -19,6 +19,7 @@
 //
 // ★음성 테스트: `npx tsx scripts/check-termstyle.ts --selftest`
 // ═══════════════════════════════════════════════════════════════════════════
+import { readFileSync } from 'node:fs';
 import * as P from '../supabase/functions/_shared/prompts';
 
 export type Fail = { rule: string; msg: string };
@@ -92,6 +93,25 @@ if (process.argv.includes('--selftest')) {
 }
 
 const fails = judge(entries);
+
+// ── T-talk ★대화도 **언어별로** 한자를 푸는가 (Boss 2026-08-26) ──────────────
+//   *"대화에서 한자를 쓰면 옆에 괄호로 해당 국가 또는 선택한 언어로 풀어서 설명을 해줘야"*
+//   ⚠️대화 지문은 `prompts.ts` 의 `TERM_STYLE` 을 **안 쓴다**(talk/index.ts 에 직접 적혀 있다).
+//     그래서 오늘까지 대화에는 **한국어 예시만** 있었다 — 영어 사용자에게 한자를 그냥 던졌다는 뜻이다.
+//   ★«읽을 수 없는 글자는 없는 글자다» — 로마자 없이 한자만 던지면 그 답은 빈 답과 같다.
+{
+  const talkSrc = readFileSync('supabase/functions/talk/index.ts', 'utf8')
+    .replace(/\/\/[^\n]*/g, ' ').replace(/\/\*[\s\S]*?\*\//g, ' ');   // ★주석 제거(오늘만 두 번 당했다)
+  const need: Array<[string, RegExp]> = [
+    ['한국어=한자 그대로', /한국어[^\n]*한자 그대로/],
+    ['일·중=한자 그대로', /일본어[\s\S]{0,200}그대로/],
+    ['그 밖=로마자 먼저', /로마자를? (?:앞에|먼저)/],
+    ['설명 없이 한자만 금지', /설명 없이 한자만[\s\S]{0,40}금지/],
+  ];
+  const missing = need.filter(([, re_]) => !re_.test(talkSrc)).map(([n]) => n);
+  if (missing.length) fails.push({ rule: 'T-talk', msg: `대화 지문에 **언어별 한자 처리**가 없다: ${missing.join(' · ')}` });
+}
+
 if (!fails.length) {
   const withRule = entries.filter(([, v]) => v.includes('써도 된다 — 대신 처음 나올 때')).length;
   console.log(`✅ check:termstyle — 프롬프트 ${entries.length}개 · 새 규칙 ${withRule}개에 실림 · 안전·내부 금지 유지 · 치환 잔여 0`);
