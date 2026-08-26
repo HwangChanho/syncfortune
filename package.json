@@ -190,7 +190,9 @@
     "covers:brief": "npx tsx scripts/covers-brief.ts",
     "check:birthparse": "tsx scripts/check-birthparse.ts",
     "covers:upload": "tsx --env-file-if-exists=.env scripts/covers-upload.ts",
-    "check:mediaver": "tsx scripts/check-mediaver.ts"
+    "check:mediaver": "tsx scripts/check-mediaver.ts",
+    "check:rpcambig": "tsx scripts/check-rpcambig.ts",
+    "check:rpconce": "tsx scripts/check-rpconce.ts"
   },
   "keywords": [],
   "author": "",

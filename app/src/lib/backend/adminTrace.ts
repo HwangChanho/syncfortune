@@ -84,23 +84,54 @@ export function installAdminTrace(): void {
     (supabase as any).rpc = (fn: string, params?: any, opts?: any) => {
       const t0 = Date.now();
       const p = origRpc(fn, params, opts);
-      // PostgrestFilterBuilder 는 thenable — then 을 걸어도 체이닝을 깨지 않는다
+
+      // ★★★2026-08-26 실측 사고 — 이 래퍼가 **모든 RPC 를 두 번 실행시키고 있었다.**
+      //   종전 코드는 `p.then(로깅)` 을 걸어 두고 `return p` 했다. 주석엔 *"then 을 걸어도 체이닝을
+      //   깨지 않는다"* 라고만 적혀 있었는데, 깨지지 않는 것과 **한 번만 나가는 것은 다른 이야기**였다.
+      //   `PostgrestBuilder.then()` 은 Promise 의 then 이 아니라 **호출될 때마다 새로 fetch 를 실행**한다
+      //   (postgrest-js `PostgrestBuilder.ts` — then 본문에서 매번 `executeWithRetry()`. 결과 캐시 없음).
+      //   ⇒ 래퍼가 ①번, 호출측 `await` 가 ②번 = **요청 2회**.
+      //
+      //   ★어떻게 드러났나: `app_logs` 의 **정확히 50%가 같은 lid 중복**이었다(8/10~8/26 내내, 웹·안드·iOS 모두 50%).
+      //     같은 lid 두 행 = 「전송이 두 번」이라고 logger.ts 가 미리 적어 둔 덕에 방향을 안 헤맸다.
+      //     두 행의 시간차가 97% 가 100ms 이내라 **재전송이 아니라 동시 2발**이라는 것도 값으로 갈렸다.
+      //   ★실제 피해: `content_visits.visits` 가 **2배로 부풀었다**(`visits + 1` 이 두 번). 나머지 RPC 는
+      //     운 좋게 전부 멱등이라(`insert_chart_enc` 는 지문 조회, `set_*` 은 upsert) 데이터는 살아남았다.
+      //     — 멱등이라서 *안 터진 것*이지, 앞으로 비멱등 RPC 를 하나만 추가해도 바로 터진다.
+      //
+      //   처방: `then` 을 **한 번만 흘려보내고 그 결과를 재사용**하게 덮어쓴다.
+      //     · 요청은 누가 처음 소비할 때 1회 (원래의 lazy 동작 유지 — 아무도 안 기다리면 안 나간다)
+      //     · 체이닝(`.single()` 등)은 `p` 를 그대로 돌려주므로 그대로 산다
+      //     · 로깅은 그 1회 결과에 얹는다 — 계측이 **관측 대상을 바꾸지 않는다**
+      if (fn === 'log_event') return p;   // ★로거 자신은 감싸지 않는다(아래 §무한증폭) — 원본 그대로 흘린다
       try {
-        (p as any).then((res: any) => {
-          // ★★로거 자신은 로깅하지 않는다(2026-08-11 실측 사고).
-          //   `logEvent` 는 내부에서 `supabase.rpc('log_event', …)` 를 부른다 → 그 호출이 이 래퍼를 다시 타고
-          //   성공하면 또 `rpc_ok` 를 남긴다 = **무한 증폭**. 실측: `app_logs` **1,605,671행 중
-          //   1,594,634행(99.3%)이 `rpc_ok`**(detail.fn = 'log_event')였고, `log_queue_overflow` 까지 났다.
-          //   ⇒ 진짜 로그가 노이즈에 묻혀 **버그를 진단할 수 없었다**(궁합 생성 로그를 하나도 못 찾았다).
-          if (fn === 'log_event') return;
-          const ms = Date.now() - t0;
-          if (res?.error) {
-            logEvent('rpc_fail', { fn, ms, code: res.error.code ?? null, msg: String(res.error.message ?? '').slice(0, 200) }, 'warn');
-          } else if (detailed) {
-            logEvent('rpc_ok', { fn, ms });
+        const origThen = (p as any).then.bind(p);
+        let once: Promise<any> | null = null;
+        (p as any).then = (onF: any, onR: any) => {
+          // ★지역 변수로 받는다 — 클로저 안이라 `once` 만으로는 타입이 좁혀지지 않는다
+          let run = once;
+          if (!run) {
+            // ★실제 요청은 여기 딱 한 번. 이후 몇 번을 더 `.then` 해도 이 결과를 나눠 쓴다.
+            run = origThen((res: any) => {
+              const ms = Date.now() - t0;
+              // ★★로거 자신은 로깅하지 않는다(2026-08-11 실측 사고).
+              //   `logEvent` 는 내부에서 `supabase.rpc('log_event', …)` 를 부른다 → 그 호출이 이 래퍼를 다시 타고
+              //   성공하면 또 `rpc_ok` 를 남긴다 = **무한 증폭**. 실측: `app_logs` **1,605,671행 중
+              //   1,594,634행(99.3%)이 `rpc_ok`**(detail.fn = 'log_event')였고, `log_queue_overflow` 까지 났다.
+              //   ⇒ 진짜 로그가 노이즈에 묻혀 **버그를 진단할 수 없었다**(궁합 생성 로그를 하나도 못 찾았다).
+              //   지금은 위에서 `fn === 'log_event'` 를 아예 되돌려 보내므로 여기까지 오지 않는다.
+              if (res?.error) {
+                logEvent('rpc_fail', { fn, ms, code: res.error.code ?? null, msg: String(res.error.message ?? '').slice(0, 200) }, 'warn');
+              } else if (detailed) {
+                logEvent('rpc_ok', { fn, ms });
+              }
+              return res;   // ★반드시 그대로 흘린다 — 호출측이 받는 값이다
+            });
+            once = run;
           }
-        }, () => { /* reject 는 호출측이 처리 */ });
-      } catch { /* thenable 이 아니면 로깅만 건너뛴다 */ }
+          return run!.then(onF, onR);
+        };
+      } catch { /* thenable 이 아니면 로깅만 건너뛴다(원본 동작은 그대로) */ }
       return p;
     };
   } catch { /* 무시 */ }
