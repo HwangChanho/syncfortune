@@ -412,7 +412,7 @@ export const en = {
     noPublic: 'No open rooms yet. Be the first to make one.',
   },
   time: { am: 'AM', pm: 'PM', },
-  chats: { now: 'just now', minAgo: '{{n}}m ago', hourAgo: '{{n}}h ago', yesterday: 'yesterday', dayAgo: '{{n}}d ago',
+  chats: { pin: 'Pin to top', unpin: 'Unpin', leave: 'Leave', leaveAsk: 'Leave “{{name}}”? The conversation goes with it.', now: 'just now', minAgo: '{{n}}m ago', hourAgo: '{{n}}h ago', yesterday: 'yesterday', dayAgo: '{{n}}d ago',
     empty: "No conversations yet.\nTap a friend in Contacts.", needLogin: 'Sign in and your conversations will collect here.',
     noTitle: 'Pick up where you left off', turns: '{{n}} turns' },
   lookback: { title: 'Look back', sub2: 'The days you did your one thing.', needLogin: 'Sign in to save your notes and revisit them here.', empty2: 'No records yet. Do your one thing under today\'s reading and check it off.', goToday: "See today's reading", summary: 'You marked {{hit}} of {{rated}} rated days as accurate', streak: "You've done your one thing on {{n}} days", myNote: 'My note', missionDone: '✓ Did that day\'s one thing' },

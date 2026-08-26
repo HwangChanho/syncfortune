@@ -66,6 +66,7 @@ import { splitBubbles, typingDelay } from '../../lib/talk/splitBubbles';   // �
 import { greetingFor } from '../../lib/talk/greetingFor';   // 상담가별 첫 인사(Boss 08-26)
 import { CoinNotice } from '../../components/talk/CoinNotice';
 import InviteSheet from '../../components/talk/InviteSheet';   // 다인방 초대(Boss 2026-08-25)
+import { leaveRoom } from '../../lib/talk/roomActions';        // 방 나가기(목록 스와이프·우클릭)
 import { openGroupRoom, roomTitle, memberCount } from '../../lib/talk/groupTalk';   // 운 안내 = 상단 띠(Boss 08-25)
 import { pendingMonthlyBrief, markBriefSeen } from '../../lib/talk/monthlyBrief';   // 노쌤 월간 공지(Boss 2026-08-25)
 import { FortuneVideoCard } from '../../components/FortuneVideoCard';
@@ -84,6 +85,32 @@ function DeleteBar({ onOk, onCancel, t }: { onOk: () => void; onCancel: () => vo
       </PressableScale>
       <PressableScale style={styles.delYes} onPress={onOk}>
         <Text style={styles.delYesTx}>{t('talk.delOk', '지우기')}</Text>
+      </PressableScale>
+    </View>
+  );
+}
+
+/**
+ * 나가기 확인 줄.
+ *
+ * ★`DeleteBar` 와 **따로 둔다** — 말이 다르기 때문이다.
+ *   「지우기」는 *지금 보고 있는 대화*를 비우는 것이고,
+ *   「나가기」는 *목록의 어느 방*을 통째로 없애는 것이다(그 방이 지금 열려 있지 않을 수도 있다).
+ *   ⇒ **어느 방을 나가는지 이름을 적는다.** 안 적으면 «무엇을 지우는지 모르고 누르는» 확인이 된다.
+ */
+function LeaveBar({ name, onOk, onCancel, t }: {
+  name: string; onOk: () => void; onCancel: () => void; t: (k: string, d?: string) => string;
+}) {
+  return (
+    <View style={styles.delBar}>
+      <Text style={styles.delTx} numberOfLines={2}>
+        {t('chats.leaveAsk', '「{{name}}」 방을 나갈까요? 대화 내용도 함께 사라져요.').replace('{{name}}', name)}
+      </Text>
+      <PressableScale style={styles.delNo} onPress={onCancel}>
+        <Text style={styles.delNoTx}>{t('common.cancel', '취소')}</Text>
+      </PressableScale>
+      <PressableScale style={styles.delYes} onPress={onOk}>
+        <Text style={styles.delYesTx}>{t('chats.leave', '나가기')}</Text>
       </PressableScale>
     </View>
   );
@@ -230,6 +257,12 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
   // 대화 삭제 확인 — ★`Alert` 를 쓰지 않는다(웹에서 안 뜨거나 이중 발화한 이력이 있다).
   //   화면 안에 확인 줄을 띄우는 편이 웹·폰 어디서나 확실하다.
   const [askDelete, setAskDelete] = useState(false);
+  /**
+   * 목록에서 「나가기」를 고른 방 — ⚠️**지금 열린 방과 다를 수 있다.**
+   * (스와이프·우클릭은 아무 줄에서나 되므로, `cur` 를 지우면 엉뚱한 방이 사라진다.)
+   * Boss 2026-08-27: *"채팅 목록에서 방을 나갈수있고 그러면 대화내용이랑 다 삭제 돼야하고"*
+   */
+  const [askLeave, setAskLeave] = useState<{ sessionId: string; name: string } | null>(null);
   const bumpChats = useCallback(() => setChatsTick((n) => n + 1), []);
 
   // 순차 표시 타이머 — ★상담가를 바꾸면 **이전 대기를 취소**한다.
@@ -812,7 +845,8 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
    */
   const leftPane = mode === 'chats'
     ? <ChatList selectedId={curSid ?? undefined} wide onOpenProfile={setProfile} onSettings={() => router.push('/settings')}
-                onOpen={(r) => { const c = list.find((x) => x.id === r.consultantId); if (c) open(c, r); }} />
+                onOpen={(r) => { const c = list.find((x) => x.id === r.consultantId); if (c) open(c, r); }}
+                onLeave={(r) => setAskLeave({ sessionId: r.sessionId, name: r.name })} />
     : <TalkList items={list} onOpen={open} selected={cur?.id} myName={myName} myAvatar={myAvatar} onOpenProfile={setProfile}
                       railKeys={order} onMe={() => setPerson({ kind: 'me', name: myName })}
                       onSettings={() => router.push('/settings')}
@@ -833,6 +867,24 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
    * ★화면을 **먼저 비우지 않는다** — 서버가 실패하면 "지운 것처럼 보이는데 남아 있는" 상태가 된다.
    *   성공한 뒤에 비운다.
    */
+  /**
+   * 목록에서 고른 방을 **나간다** — 대화가 함께 사라진다(FK CASCADE).
+   * ★지금 열린 방을 나갔으면 화면도 닫는다. 다른 방이면 **목록만** 갱신한다.
+   */
+  const onLeaveRoom = useCallback(async () => {
+    const target = askLeave;
+    if (!target) return;
+    setAskLeave(null);
+    const r = await leaveRoom(target.sessionId);
+    if (!r.ok) return;                       // ★실패하면 화면을 안 바꾼다(지운 척하지 않는다)
+    if (curSidRef.current === target.sessionId) {
+      // 열려 있던 방을 나갔다 — 대화창을 닫는다(빈 화면이 «지워졌다» 는 가장 정직한 표시다)
+      genRef.current++; clearTimers(); setBusy(false);
+      setSid(null); setCur(null); setMates([]); setItems([]); setNotes([]); setJumpTo(null); setNotice(null);
+    }
+    bumpChats();
+  }, [askLeave, bumpChats, clearTimers, setSid]);
+
   const onDeleteThread = useCallback(async () => {
     if (!cur) return;
     const r = await deleteThread(cur.id, curSidRef.current);   // ★**이 방만** 지운다
@@ -1052,7 +1104,8 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
           <View style={[styles.pane, { paddingTop: insets.top }]}>
             <ChatList reloadKey={chatsTick} selectedId={curSid ?? undefined} wide={false} onOpenProfile={setProfile}
                       onSettings={() => router.push('/settings')}
-                      onOpen={(r) => { const c = list.find((x) => x.id === r.consultantId); if (c) open(c, r); }} />
+                      onOpen={(r) => { const c = list.find((x) => x.id === r.consultantId); if (c) open(c, r); }}
+                      onLeave={(r) => setAskLeave({ sessionId: r.sessionId, name: r.name })} />
           </View>
         )}
         <View style={styles.main}>
@@ -1075,6 +1128,8 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
                 </PressableScale>
               </View>
               {askDelete ? <DeleteBar onCancel={() => setAskDelete(false)} onOk={onDeleteThread} t={t as never} /> : null}
+      {askLeave ? <LeaveBar name={askLeave.name} onCancel={() => setAskLeave(null)} onOk={onLeaveRoom} t={t as never} /> : null}
+              {askLeave ? <LeaveBar name={askLeave.name} onCancel={() => setAskLeave(null)} onOk={onLeaveRoom} t={t as never} /> : null}
               <TalkNotes
                 notes={notes} open={notesOpen} onToggle={() => setNotesOpen((v) => !v)}
                 onJump={(mid) => {

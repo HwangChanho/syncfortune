@@ -12,8 +12,8 @@
 // ■ '없음'을 두 가지로 구분한다
 //   ⚠️'로그인 안 됨'과 '대화 없음'은 **사용자가 할 일이 다르다.** 같은 빈 화면을 띄우면 안 된다.
 // ═══════════════════════════════════════════════════════════════════════════
-import { useEffect, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TextInput } from 'react-native';
+import { useEffect, useState, useCallback, useRef } from 'react';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TextInput, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -28,6 +28,8 @@ import { consultantsSnapshot, listConsultants, toProfileTarget } from '../../lib
 import { colors, space, radius, font } from '../../lib/theme';
 import { elementColor, elementText } from '../../lib/engine/ohaeng';
 import { Icon } from '../kit/Icon';   // 상단 아이콘 단일 원본(Boss 2026-08-24)
+import { Swipeable } from 'react-native-gesture-handler';   // 앱 = 왼쪽 스와이프(친구목록과 같은 틀)
+import { pinRoom } from '../../lib/talk/roomActions';       // 상단고정 — 나가기는 호출부가 확인 후 부른다
 import { NotifyBell } from './NotifyBell';   // 알림 벨+배지(단일 원본 — 친구목록과 같은 것)
 
 const EL = ['木', '火', '土', '金', '水'] as const;
@@ -37,6 +39,8 @@ type Row = {
   id: string; consultantId: string; name: string;
   /** ★다인방 참여자(상담가 id). 비면 1:1 — 이게 없으면 두 방을 구분할 수 없다(0048) */
   guestIds: string[];
+  /** 상단고정 시각. null = 안 함. **시각**인 이유: 「가장 최신 고정한 순」(Boss 2026-08-27) */
+  pinnedAt: string | null;
   /** 미리보기 = 마지막 메시지 한 줄(Boss 2026-08-20 "텍스트 미리보기로 간략하게") */
   preview: string | null;
   lastAt: string; turns: number;
@@ -68,7 +72,7 @@ function ago(iso: string, t: (k: string, d?: string) => string): string {
  *   실제로 그래서 초대해 새 방을 만들면 1:1 방의 내용이 남고 두 방이 같이 움직였다(Boss 제보).
  *   ⇒ 목록이 아는 것(세션 id · 참여자)을 **버리지 않고** 그대로 넘긴다.
  */
-export function ChatList({ onOpen, selectedId, reloadKey = 0, wide, onSettings, onOpenProfile }: {
+export function ChatList({ onOpen, selectedId, reloadKey = 0, wide, onSettings, onOpenProfile, onLeave }: {
   onOpen: (room: { sessionId: string; consultantId: string; guestIds: string[] }) => void;
   selectedId?: string;
   /** 답이 오거나 읽음 처리됐을 때 올려서 다시 읽게 한다(웹은 목록과 대화가 동시에 보인다) */
@@ -79,13 +83,20 @@ export function ChatList({ onOpen, selectedId, reloadKey = 0, wide, onSettings, 
   onSettings?: () => void;
   /** ★프로필 창을 **화면 루트**에서 열어 달라고 올려 보낸다(위 setProfile 주석 참고) */
   onOpenProfile?: (t: ProfileTarget) => void;
+  /**
+   * 「나가기」를 골랐을 때 — ⚠️**여기서 지우지 않는다.**
+   * 대화가 함께 사라지는 되돌릴 수 없는 동작이라 **확인은 호출부**가 한다
+   * (목록이 파괴적 동작의 판단자가 되면, 확인 없는 경로가 언젠가 생긴다).
+   */
+  onLeave?: (room: { sessionId: string; consultantId: string; guestIds: string[]; name: string; pinned?: boolean }) => void;
 }) {
   const { t } = useTranslation();
   const router = useRouter();
   const { session } = useAuth();
   // 콘티 2면의 필터 칩 상태(전체 · 선생님 AI · 무료 친구)
   const [filter, setFilter] = useState<'all' | 'teacher' | 'friend'>('all');
-  const [more, setMore] = useState(false);        // ⋮ 더보기(콘티 2면)
+  /** 스와이프 손잡이 — 동작을 누른 뒤 **스스로 닫으려고** 줄마다 하나씩 들고 있는다 */
+  const swipeRefs = useRef<Record<string, Swipeable | null>>({});
   const [searchOpen, setSearchOpen] = useState(false);
   const [q, setQ] = useState('');                 // 이름 필터 — 온디바이스(원가 0)
   const [rows, setRows] = useState<Row[] | null>(null);   // null = 아직 모름(로딩)
@@ -113,7 +124,11 @@ export function ChatList({ onOpen, selectedId, reloadKey = 0, wide, onSettings, 
     //   세션마다 count 를 따로 물으면 대화 수만큼 왕복이 생긴다(N+1).
     const r = await withTimeout(
       supabase.from('talk_session_list')
-        .select('id, consultant_id, guest_ids, preview, last_at, turn_count, unread')
+        .select('id, consultant_id, guest_ids, pinned_at, preview, last_at, turn_count, unread')
+        // ★고정한 것이 위 · 그중 **최근에 고정한 것**이 더 위(Boss 2026-08-27 지시 그대로).
+        //   해제하면 `pinned_at` 이 null 이 되어 자동으로 `last_at` 자리로 돌아간다 —
+        //   «원래 자리» 를 따로 기억할 필요가 없다.
+        .order('pinned_at', { ascending: false, nullsFirst: false })
         .order('last_at', { ascending: false }).limit(50),
       8000,
     );
@@ -123,6 +138,7 @@ export function ChatList({ onOpen, selectedId, reloadKey = 0, wide, onSettings, 
       consultantId: s.consultant_id,
       // ★다인방 판별 — 비면 1:1. 뷰가 이걸 안 주던 탓에 화면이 «틀린 열쇠» 를 골랐다(0048)
       guestIds: Array.isArray(s.guest_ids) ? (s.guest_ids as string[]) : [],
+      pinnedAt: s.pinned_at ?? null,
       // ⚠️상담사가 사라졌어도 대화는 남는다 — 이름을 못 찾으면 빈 줄을 내지 말고 id 라도 보여 준다
       name: people.find((p) => p.id === s.consultant_id)?.name ?? s.consultant_id,
       preview: s.preview ?? null,
@@ -131,6 +147,24 @@ export function ChatList({ onOpen, selectedId, reloadKey = 0, wide, onSettings, 
       unread: Number(s.unread ?? 0),
     })));
   }, [session]);
+
+  /**
+   * 상단고정 켜기/끄기.
+   * ★화면을 **먼저 바꾼다**(낙관적) — 서버 왕복을 기다리면 «눌렀는데 아무 일도 안 나는» 것처럼 보인다.
+   *   실패하면 목록을 다시 읽어 **진짜 상태로 되돌린다**(거짓말을 남기지 않는다).
+   */
+  const togglePin = useCallback(async (r: Row) => {
+    const on = !r.pinnedAt;
+    setRows((prev) => prev && prev.map((x) => (x.id === r.id ? { ...x, pinnedAt: on ? new Date().toISOString() : null } : x))
+      // 정렬도 서버와 **같은 규칙**으로 다시 매긴다(안 하면 눌러도 자리가 안 바뀐다)
+      .slice().sort((a, b) => {
+        if (!!a.pinnedAt !== !!b.pinnedAt) return a.pinnedAt ? -1 : 1;
+        if (a.pinnedAt && b.pinnedAt) return a.pinnedAt < b.pinnedAt ? 1 : -1;
+        return a.lastAt < b.lastAt ? 1 : -1;
+      }));
+    const ok = await pinRoom(r.id, on);
+    if (!ok) void load();   // ★실패하면 되돌린다
+  }, [load]);
 
   useEffect(() => { void load(); }, [load, reloadKey]);
   // 대화하고 돌아오면 갱신 — 방금 나눈 이야기가 목록에 없으면 사라진 것처럼 보인다
@@ -179,10 +213,12 @@ export function ChatList({ onOpen, selectedId, reloadKey = 0, wide, onSettings, 
         <PressableScale hitSlop={10} onPress={() => setSearchOpen((v) => !v)}>
           <Icon name={searchOpen ? 'close' : 'search'} size={26} color={searchOpen ? colors.ju : colors.inkSoft} />
         </PressableScale>
-        {/* ⋮ — 콘티의 더보기. ★오픈채팅과 설정이 여기로 들어간다(아이콘 둘을 하나로 접었다) */}
-        <PressableScale hitSlop={10} onPress={() => setMore((v) => !v)}>
-          <Icon name="more" size={26} />
-        </PressableScale>
+        {/* ⚠️★⋮ 더보기를 **뺐다**(Boss 2026-08-27
+              *"점 3개로 오픈채팅 만들고 설정으로 진입하는데 이건 빼고"*).
+            오픈채팅은 **따로 만드는 것이 아니라** 일반 방에 사람을 초대하면 되는 것이 됐고
+            (*"따로 거하게 만들필요없이 그냥 일반 채팅방에 여러사람이 들어와있을수 있게 초대하면"*),
+            설정은 친구목록 헤더에 이미 있다 ⇒ **여기 두 줄은 갈 곳이 사라졌다.**
+            ★쓰지 않는 진입점을 남겨 두면 «있는데 아무 일도 안 하는 것» 이 된다. */}
       </View>
 
       {/* ── 필터 칩 — ★콘티 2면 그대로 셋(전체 · 선생님 AI · 무료 친구) ──
@@ -198,18 +234,6 @@ export function ChatList({ onOpen, selectedId, reloadKey = 0, wide, onSettings, 
       </View>
 
       {/* ⚠️배너를 **뺐다** — 콘티 2면에 없다(1면에서 뺀 것과 같은 이유). */}
-
-      {/* ⋮ 더보기 — 열렸을 때만. ★모달이 아니라 **접히는 줄**이다: 목록 위에서 바로 고르고 닫힌다 */}
-      {more ? (
-        <View style={styles.moreBox}>
-          <PressableScale style={styles.moreRow} onPress={() => { setMore(false); router.push('/rooms'); }}>
-            <Text style={styles.moreTx}>{t('rooms.title', '오픈채팅')}</Text>
-          </PressableScale>
-          <PressableScale style={styles.moreRow} onPress={() => { setMore(false); onSettings?.(); }}>
-            <Text style={styles.moreTx}>{t('my.settings', '설정 및 개인정보')}</Text>
-          </PressableScale>
-        </View>
-      ) : null}
 
       {/* 검색 — ⌕ 로 연다(콘티 헤더의 돋보기) */}
       {searchOpen ? (
@@ -239,8 +263,39 @@ export function ChatList({ onOpen, selectedId, reloadKey = 0, wide, onSettings, 
         </View>
       ) : visible.map((r, i) => {
         const el = EL[(i + 1) % EL.length];
-        return (
-          <PressableScale key={r.id} style={[styles.row, selectedId === r.id && styles.rowOn]} onPress={() => onOpen({ sessionId: r.id, consultantId: r.consultantId, guestIds: r.guestIds })}>
+        const pinned = !!r.pinnedAt;
+        /**
+         * 밀면 나오는 두 동작 — **상단고정 · 나가기**(Boss 2026-08-27).
+         * ⚠️누른 뒤 **스스로 닫는다** — 열어 두면 다음 줄을 누르려다 이걸 또 누른다
+         *   (친구목록 스와이프가 같은 이유로 그렇게 한다).
+         */
+        const renderRight = () => (
+          <View style={styles.swipeWrap}>
+            <PressableScale style={styles.swipeAct}
+              onPress={() => { swipeRefs.current[r.id]?.close(); void togglePin(r); }}
+              accessibilityLabel={t(pinned ? 'chats.unpin' : 'chats.pin', '상단고정')}>
+              {/* ★보이는 것은 **지금 상태**다 — 고정돼 있으면 채운 압정, 아니면 빈 압정.
+                  '누르면 무엇이 되는가' 가 아니라 '지금 어떤가'(친구목록 별과 같은 규칙). */}
+              <Text style={[styles.swipeIcon, pinned && styles.swipeIconOn]}>{pinned ? '📌' : '📌'}</Text>
+              <Text style={styles.swipeTx} numberOfLines={1}>{t(pinned ? 'chats.unpin' : 'chats.pin', '상단고정')}</Text>
+            </PressableScale>
+            <PressableScale style={[styles.swipeAct, styles.swipeDanger]}
+              onPress={() => { swipeRefs.current[r.id]?.close(); onLeave?.({ sessionId: r.id, consultantId: r.consultantId, guestIds: r.guestIds, name: r.name, pinned }); }}
+              accessibilityLabel={t('chats.leave', '나가기')}>
+              <Text style={styles.swipeIconOut}>↪</Text>
+              <Text style={[styles.swipeTx, styles.swipeTxOut]} numberOfLines={1}>{t('chats.leave', '나가기')}</Text>
+            </PressableScale>
+          </View>
+        );
+        const row = (
+          <PressableScale style={[styles.row, selectedId === r.id && styles.rowOn]}
+            onPress={() => onOpen({ sessionId: r.id, consultantId: r.consultantId, guestIds: r.guestIds })}
+            {...(Platform.OS === 'web' ? { onContextMenu: (e: any) => {
+              // ★웹 = **우클릭**(Boss 2026-08-27). 스와이프는 손가락 동작이라 마우스에는 없다.
+              // ⚠️기본 메뉴를 막지 않으면 브라우저 메뉴가 우리 메뉴 위에 겹쳐 뜬다.
+              e?.preventDefault?.();
+              onLeave?.({ sessionId: r.id, consultantId: r.consultantId, guestIds: r.guestIds, name: r.name, pinned });
+            } } : null)}>
             {/* ★사진만 따로 — 줄을 누르면 대화, 사진을 누르면 프로필(Boss 2026-08-26) */}
             <PressableScale hitSlop={6} onPress={() => openPhoto(r.consultantId, el)}>
               {avatarOf(r.consultantId)
@@ -262,6 +317,9 @@ export function ChatList({ onOpen, selectedId, reloadKey = 0, wide, onSettings, 
             {/* ★시각은 **위**, 배지는 **아래**(Boss 지정 카톡 배치).
                 시간부터 읽고 안 읽은 게 있는지 보는 순서가 자연스럽다. */}
             <View style={styles.meta}>
+              {/* ★고정 표시 — 조작(스와이프·우클릭)을 감춘 마당에 상태까지 안 보이면
+                  사용자는 자기가 켰는지 알 수 없다. 그건 «없는 기능» 이 된다. */}
+              {pinned ? <Text style={styles.pinDot}>📌</Text> : null}
               <Text style={styles.time}>{ago(r.lastAt, t as never)}</Text>
               {/* 안 읽은 수 — ★0 이면 아예 그리지 않는다(0 배지는 정보가 아니라 잡음이다).
                   99 를 넘으면 '99+' — 정확한 수보다 '많다'가 더 쓸모 있다. */}
@@ -271,6 +329,14 @@ export function ChatList({ onOpen, selectedId, reloadKey = 0, wide, onSettings, 
             </View>
           </PressableScale>
         );
+        // ★웹에는 스와이프를 안 씌운다 — 마우스로는 못 밀고, 씌우면 드래그가 스크롤을 방해한다.
+        //   웹의 진입은 위의 `onContextMenu`(우클릭)다.
+        return Platform.OS === 'web' ? <View key={r.id}>{row}</View> : (
+          <Swipeable key={r.id} ref={(x) => { swipeRefs.current[r.id] = x; }}
+                     renderRightActions={renderRight} overshootRight={false} friction={2}>
+            {row}
+          </Swipeable>
+        );
       })}
       {/* ★프로필 창은 목록 **밖**이 아니라 안에 둔다 — ScrollView 형제로 두면 스크롤과 같이 밀린다 */}
     </ScrollView>
@@ -279,11 +345,20 @@ export function ChatList({ onOpen, selectedId, reloadKey = 0, wide, onSettings, 
 
 const styles = StyleSheet.create({
   wrap: { flex: 1, backgroundColor: colors.bg },
+  // 밀면 나오는 자리 — 옅은 면 위에 아이콘+글자(색면 덩어리는 «어색하다» 는 지적을 받았다)
+  swipeWrap: { flexDirection: 'row', alignItems: 'stretch' },
+  swipeAct: {
+    width: 76, justifyContent: 'center', alignItems: 'center', gap: 2,
+    backgroundColor: colors.juSoft, borderRadius: radius.md, marginVertical: 2, marginLeft: 4,
+  },
+  swipeDanger: { backgroundColor: colors.sunk },
+  swipeIcon: { fontSize: 18, opacity: 0.45 },
+  swipeIconOn: { opacity: 1 },
+  swipeIconOut: { fontSize: 18, color: colors.inkSoft },
+  swipeTx: { ...font.caption, fontSize: 11, color: colors.inkSoft },
+  swipeTxOut: { color: colors.inkSoft },
+  pinDot: { fontSize: 11, marginBottom: 2 },
   body: { paddingHorizontal: space(4), paddingTop: space(4), paddingBottom: space(20) },
-  // ★아이콘이 둘이라 gap 을 준다 — 붙여 두면 오픈채팅을 누르려다 설정이 눌린다
-  moreBox: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.juLine, marginBottom: space(3) },
-  moreRow: { paddingHorizontal: space(4), paddingVertical: space(3) },
-  moreTx: { ...font.body, color: colors.ink },
   searchBox: { backgroundColor: colors.sunk, borderRadius: radius.md, paddingHorizontal: space(3.5), marginBottom: space(3) },
   search: { paddingVertical: space(2.5), ...font.body, color: colors.ink },
   chips: { flexDirection: 'row', gap: space(2), marginBottom: space(3) },

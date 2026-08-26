@@ -411,7 +411,7 @@ export const ja = {
     noPublic: 'まだ開いている部屋がありません。最初の部屋を作ってみましょう。',
   },
   time: { am: '午前', pm: '午後', },
-  chats: { now: 'たった今', minAgo: '{{n}}分前', hourAgo: '{{n}}時間前', yesterday: '昨日', dayAgo: '{{n}}日前',
+  chats: { pin: '上に固定', unpin: '固定を解除', leave: '退出', leaveAsk: '「{{name}}」から退出しますか？会話も一緒に消えます。', now: 'たった今', minAgo: '{{n}}分前', hourAgo: '{{n}}時間前', yesterday: '昨日', dayAgo: '{{n}}日前',
     empty: 'まだ会話がありません。\n連絡先から友だちを選んでください。', needLogin: 'ログインすると会話がここに残ります。',
     noTitle: '会話を続けましょう', turns: '{{n}}ターン' },
   lookback: { title: '振り返り', sub2: '今日の一つを実行した日々です。', needLogin: 'ログインすると記録が保存され、ここで見返せます。', empty2: 'まだ記録がありません。今日の運勢の下の「今日の一つ」を実行してチェックしてみてください。', goToday: '今日の運勢を見る', summary: '評価した{{rated}}日のうち{{hit}}日を「当たった」とされました', streak: 'これまで{{n}}日、今日の一つを実行しました', myNote: '私の記録', missionDone: '✓ その日の一つを実行しました' },
