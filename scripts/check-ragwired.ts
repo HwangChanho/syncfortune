@@ -52,8 +52,17 @@ export function judgeTalk(src: string): Fail[] {
   if (!/여덟 글자\(만세력\)를 네가 계산하지 마라/.test(src)) {
     out.push({ rule: 'R6', msg: '★모델이 만세력을 **직접 계산**하는 것을 막지 않는다 — 실제로 «경오일주»(정답 신축)를 지어냈다' });
   }
-  if (!/명식을 등록해 주시면/.test(src)) {
-    out.push({ rule: 'R6', msg: '차트가 없을 때 **어디로 보낼지**가 없다 — 모델이 결국 스스로 센다' });
+  // ★2026-08-26 Boss: *"명식 등록을 안하고 대화에서 그냥 1994 03 16 유시 이렇게 입력할수도 있잖아
+  //   … 태어난곳 양력 음력 여부 성별 여부니깐 이런걸 되물어야지"*
+  //   ⇒ «등록하러 가세요» 로 끝내면 대화가 끊긴다. **모자란 것을 되묻는** 길이 있어야 한다.
+  if (!/모자란 것을 되물어라/.test(src)) {
+    out.push({ rule: 'R6', msg: '차트가 없을 때 **되묻는 길**이 없다 — «등록하세요» 로 끝나면 대화가 끊기고, 결국 모델이 스스로 센다' });
+  }
+  // 엔진이 필요한 다섯 가지를 실제로 나열하는가(하나라도 빠지면 계산이 안 된다)
+  for (const need of ['양력/음력', '성별', '태어난 곳']) {
+    if (!src.includes(need)) {
+      out.push({ rule: 'R6', msg: `되묻기 목록에 «${need}» 가 없다 — 엔진이 여덟 글자를 못 센다` });
+    }
   }
   return out;
 }
@@ -89,6 +98,8 @@ if (process.argv.includes('--selftest')) {
     t('grounding 을 캐시 블록으로 옮기면 **잡는다**',
       has(judgeTalk(talk.replace('${histBlock}${goldenGround}', '${histBlock}').replace('${chartBlock}', '${chartBlock}${goldenGround}')), 'R4')),
     t('만세력 금지를 지우면 **잡는다**', has(judgeTalk(talk.replace(/여덟 글자\(만세력\)를 네가 계산하지 마라/g, '어쩌고')), 'R6')),
+    t('되묻기 규칙을 지우면 **잡는다**', has(judgeTalk(talk.replace(/모자란 것을 되물어라/g, '어쩌고')), 'R6')),
+    t('«태어난 곳» 을 빼면 **잡는다**', has(judgeTalk(talk.replace(/태어난 곳/g, '어딘가')), 'R6')),
     t('사본을 다시 만들면 **잡는다**',
       has(judgeSingleSource(sh, inter, talk + '\nasync function retrieveGolden(){}\n'), 'R3')),
     t('«베끼지 마라» 를 지우면 **잡는다**', has(judgeSingleSource(sh.replace(/베끼지 마라/g, '어쩌고'), inter, talk), 'R5')),

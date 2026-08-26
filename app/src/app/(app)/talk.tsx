@@ -41,6 +41,10 @@ import { parseMentions, buildMentionBlocks, MAX_MENTIONS, type MentionTarget } f
 import ChartMentionSheet from '../../components/talk/ChartMentionSheet';
 // ★반말/존댓말 판정은 **한 곳에서만**(Boss 2026-08-26) — 인사와 서버가 갈리면 안 된다
 import { ageFromBirth, isCasual } from '../../lib/talk/speechLevel';
+// ★대화 안에서 명식 만들기(Boss 2026-08-26) — 등록 화면에 안 가고도 만들 수 있어야 한다
+import { parseBirth, looksLikeBirthInfo, type BirthDraft } from '../../lib/talk/birthParse';
+import { BirthDraftCard, type BirthCardResult } from '../../components/talk/BirthDraftCard';
+import { addChart, setRepresentative } from '../../lib/engine/myChart';
 import { loadMyProfile, subscribeProfile, profileSnapshot } from '../../lib/talk/myProfile';
 import { listFriends, type Friend } from '../../lib/talk/friends';
 import { useHomeOrder } from '../../lib/ui/homeOrder';
@@ -132,6 +136,15 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
   // ★회원 만 나이 — 상담가 나이보다 어리면 **기본 반말**(Boss 2026-08-26).
   //   ⚠️명식이 없으면 null → 존댓말. 모르면 안전한 쪽이다.
   const [myAge, setMyAge] = useState<number | null>(null);
+  // ★명식이 **아예 없는가** — 없을 때만 «명식 만들기» 카드를 띄운다(있는데 띄우면 잔소리다)
+  const [hasChart, setHasChart] = useState<boolean | null>(null);
+  /**
+   * 대화에서 모아 온 생년월일 조각.
+   * ★여러 턴에 걸쳐 **합친다** — "1994 03 16" 하고 다음 턴에 "양력 남자 서울" 이라고 해도 모여야 한다.
+   * ⚠️여기서 여덟 글자를 세지 않는다. 세는 건 엔진이다(절대규칙 1).
+   */
+  const [birthDraft, setBirthDraft] = useState<BirthDraft | null>(null);
+  const [makingChart, setMakingChart] = useState(false);
   const [mentionOpen, setMentionOpen] = useState(false);
   /**
    * 친구목록 = **사람 다섯**(Boss 2026-08-20 압축).
@@ -306,7 +319,9 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
   useEffect(() => {
     let alive = true;
     void loadRepChart().then(async (c) => {
-      if (!alive || !c?.input) return;
+      if (!alive) return;
+      setHasChart(!!c?.input);
+      if (!c?.input) return;
       setMyName(c.label ?? null);
       // ★생년월일은 **여기 밖으로 안 나간다** — 나이(정수)만 뽑아 서버로 보낸다(ADR-005)
       setMyAge(ageFromBirth(c.input?.birthDateTime));
@@ -463,6 +478,22 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
     setDraft('');
     setItems((prev) => [...prev, { id: nextId(), role: 'user', body: q }]);
 
+    // ★생년월일을 말했는데 **명식이 없다** — 조각을 모아 카드를 띄운다(Boss 2026-08-26).
+    //   ⚠️모델에게 계산시키지 않는다. 카드가 받은 값을 **엔진**에 넘긴다.
+    if (hasChart === false && (looksLikeBirthInfo(q) || birthDraft)) {
+      const got = parseBirth(q);
+      // 이미 모은 것 위에 **채워진 칸만** 덮는다 — 다음 턴에 말한 것도 합쳐진다
+      const merged: BirthDraft = {
+        date: got.date ?? birthDraft?.date ?? null,
+        time: got.time ?? birthDraft?.time ?? null,
+        timeAccuracy: got.timeAccuracy ?? birthDraft?.timeAccuracy ?? null,
+        calendar: got.calendar ?? birthDraft?.calendar ?? null,
+        sex: got.sex ?? birthDraft?.sex ?? null,
+        place: got.place ?? birthDraft?.place ?? null,
+      };
+      if (merged.date) setBirthDraft(merged);
+    }
+
     if (cur.kind === 'virtual') {
       // 아주 단순한 갈래 — '오늘/흐름'을 물으면 결정론 문구, 아니면 콘텐츠 안내.
       //   ⚠️여기서 의도를 정교하게 알아내려 들지 않는다. 그건 LLM 이 할 일이고,
@@ -477,7 +508,8 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
     setBusy(true);
     const gen = genRef.current;   // ★이 답이 어느 방 것인지 붙들어 둔다(위 `genRef` 주석)
     fireRef.current(q, 0, gen);
-  }, [draft, cur, saju, busy, t]);
+    // ⚠️`hasChart`·`birthDraft` 를 빼면 조각이 안 쌓인다(첫 턴 것만 남는다)
+  }, [draft, cur, saju, busy, t, hasChart, birthDraft]);
 
   /**
    * 실제 상담사에게 한 번 보낸다. **자동 재시도가 같은 경로를 타도록** 따로 뺐다.
@@ -750,6 +782,46 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
   ) : null;
 
   /**
+   * 카드가 준 값을 **엔진에** 넘겨 명식을 만든다.
+   *
+   * ★여기가 «세는» 자리다 — `addChart` 안에서 `computeChart` 가 돈다. 모델은 관여하지 않는다.
+   * ★만들고 나면 **대표로 잡고 다시 읽는다** — 그래야 이번 대화부터 바로 그 사주로 답한다.
+   */
+  const makeChartFromDraft = useCallback(async (r: BirthCardResult) => {
+    if (makingChart) return;
+    setMakingChart(true);
+    try {
+      const id = await addChart({ ...r, label: '내 명식', relation: 'self' });
+      await setRepresentative(id);
+      setBirthDraft(null);
+      setHasChart(true);
+      const c = await loadRepChart();
+      if (c?.input) {
+        setMyName(c.label ?? null);
+        setMyAge(ageFromBirth(c.input.birthDateTime));
+        try { setSaju(computeChart(c.input).saju); } catch { /* 계산이 안 되면 흐름 안내만 빠진다 */ }
+        if (session) setChartId(await ensureServerChartIdForSaved(c, session));
+      }
+      sayInOrder([{ id: nextId(), role: 'assistant' as const,
+        body: t('talk.chartMade', '명식을 만들었어요. 이제 이 사주로 봐 드릴게요.') }], 0);
+    } catch {
+      Alert.alert(t('talk.chartMakeFail', '명식 만들기'),
+        t('talk.chartMakeFailBody', '지금은 만들지 못했어요. 잠시 뒤 다시 시도해 주세요.'));
+    } finally { setMakingChart(false); }
+  }, [makingChart, session, t, sayInOrder]);
+
+  /**
+   * 대화에서 모은 생년월일로 만드는 카드. **명식이 없을 때만** 뜬다.
+   * ★말풍선이 아니라 카드인 이유: 자유 문장 파싱은 반드시 틀린다 —
+   *   읽은 값을 **보여 주고 고칠 수 있게** 해야 엉뚱한 사주로 만들어지지 않는다.
+   */
+  const birthCard = (hasChart === false && birthDraft?.date) ? (
+    <View style={styles.birthCardWrap}>
+      <BirthDraftCard draft={birthDraft} onMake={makeChartFromDraft} busy={makingChart} />
+    </View>
+  ) : null;
+
+  /**
    * 명식 부르기 창.
    * ★`composer` 와 **같이** 만들어 둔다 — 렌더 경로가 둘(넓은 웹 3칸 / 폰)이라
    *   한쪽에만 넣으면 «폰에서는 되는데 웹에서는 안 된다» 가 된다. [[duplicate-ui-single-source]]
@@ -844,6 +916,7 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
                 />
               ) : null}
               <TalkThread items={items} busy={busy} onLink={(r) => router.push(r as never)} jumpTo={jumpTo} />
+              {birthCard}
               {composer}
               {mentionSheet}
             </>
@@ -901,6 +974,7 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
         onChanged={() => refreshNotes(cur ? sessRef.current[cur.id] : null)}
       />
       <TalkThread items={items} busy={busy} onLink={(r) => router.push(r as never)} jumpTo={jumpTo} />
+      {birthCard}
       {composer}
       {mentionSheet}
       {inviteOpen ? (
@@ -957,6 +1031,8 @@ const styles = StyleSheet.create({
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   emptyTx: { ...font.body, color: colors.inkFaint },
 
+  // ★명식 만들기 카드 — 입력창 **바로 위**. 대화 흐름을 끊지 않으면서 늘 손에 닿는 자리다
+  birthCardWrap: { paddingHorizontal: space(4), paddingBottom: space(2) },
   composer: {
     flexDirection: 'row', alignItems: 'center', gap: space(2),
     paddingHorizontal: space(4), paddingTop: space(3),

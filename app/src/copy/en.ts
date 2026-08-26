@@ -739,6 +739,9 @@ export const en = {
     'needLoginTitle': 'Sign in required',
     'needLoginMsg': 'Sign in to save your chart and keep talking with your reader.',
     'liveGreet': "Hello, I'm {{name}}. What's on your mind?",
+    'chartMade': 'Your chart is ready. I\u2019ll read from this chart now.',
+    'chartMakeFail': 'Create chart',
+    'chartMakeFailBody': 'Could not create it right now. Please try again in a moment.',
     'overFree': "You've used today's free chats. Woon will be used from now on.",
     // ★Spend receipt line (not a bubble — centered, small). The number comes from the server only.
     'spent': '{{n}} Woon used',

@@ -187,7 +187,8 @@
     "check:chartidentity": "tsx scripts/check-chartidentity.ts",
     "check:termstyle": "tsx scripts/check-termstyle.ts",
     "check:ragwired": "tsx scripts/check-ragwired.ts",
-    "covers:brief": "npx tsx scripts/covers-brief.ts"
+    "covers:brief": "npx tsx scripts/covers-brief.ts",
+    "check:birthparse": "tsx scripts/check-birthparse.ts"
   },
   "keywords": [],
   "author": "",
