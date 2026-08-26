@@ -26,6 +26,12 @@ export type Friend = {
   shares: boolean;
   /** 볼 수 있는 상대 명식. ★null = 못 본다(동의 없음). 화면은 이 값만 보면 된다 */
   chartId: string | null;
+  /**
+   * ★**내가 이 친구에게** 명식을 여는가(Boss 2026-08-27 *"친구별로 열고 닫을수 있게"*).
+   * ⚠️`shares` 와 방향이 **반대**다 — `shares` 는 «상대가 나에게», 이건 «내가 상대에게».
+   *   둘을 헷갈리면 토글이 남의 설정을 바꾸는 것처럼 보인다.
+   */
+  iShare: boolean;
 };
 
 /** 신청 결과 — 화면이 서로 **다른 말**을 하도록 사유를 나눈다. */
@@ -77,6 +83,7 @@ export async function listFriends(): Promise<Friend[]> {
     // ⚠️이메일은 이름이 아니다(로그인 시 `display_name` 에 자동으로 들어간다)
     name: typeof x.name === 'string' && x.name.trim() && !x.name.includes('@') ? x.name.trim() : null,
     avatarUrl: x.avatar_path ? supabase.storage.from('avatars').getPublicUrl(x.avatar_path).data.publicUrl : null,
+    iShare: x.i_share === true,
     status: x.status === 'accepted' ? 'accepted' : 'pending',
     requestedByMe: !!x.requested_by_me,
     shares: !!x.shares,
@@ -128,4 +135,18 @@ export async function loadFriendChart(chartId: string): Promise<{ saju: any; ziw
   }
   const d = r.data as any;
   return d.saju ? { saju: d.saju, ziwei: d.ziwei ?? null } : null;
+}
+
+/**
+ * 이 친구에게 **내 명식을 열고/닫는다** (Boss 2026-08-27).
+ *
+ * ★전역 설정(`profiles.share_consent`)은 **기본값**으로 남는다 — 친구별 값이 없으면 그걸 따른다.
+ *   그래서 이 기능이 생겨도 기존 사용자의 설정이 그대로 유지된다.
+ * ⚠️쓰기는 RPC 로만 한다 — `friends` 에 직접 쓰면 **남의 칸**(상대가 나에게 여는 값)도 바꿀 수 있다.
+ * @returns 성공 여부
+ */
+export async function setFriendShare(otherId: string, open: boolean): Promise<boolean> {
+  const r = await withTimeout(supabase.rpc('set_friend_share', { p_other: otherId, p_open: open }), 8000);
+  if (!r || r.error) { console.warn('[friends] 공개 설정 실패', r?.error?.message); return false; }
+  return r.data === true;
 }

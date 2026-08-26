@@ -87,7 +87,11 @@ export function ChartRegisterScreen({ onSubmit, defaultRelation, submitLabel, sh
   const [placeOpen, setPlaceOpen] = useState(false);
   /** 이 단계를 채웠는가 — 못 채우면 '다음'을 막는다(마지막 검증은 종전 handleSubmit 이 한다). */
   const stepReady = (i: number): boolean => {
-    if (i === 0) return true;                       // 이름은 비어도 된다(관계명으로 대체된다 — 종전 규칙)
+    // ★★2026-08-27 Boss: *"이름 없음 안나오게 무조건 이름필드 입력 받게해 명식이랑"*
+    //   ⚠️종전엔 «이름은 비어도 된다(관계명으로 대체)» 였다. 그래서 친구 목록·대화방에
+    //     **「이름 없음」** 이 떴다 — 실제로 Boss 친구가 그렇게 보였다.
+    //   ★두 글자 이상을 요구한다: 한 글자는 사람을 가리키지 못하고(「ㅇ」), 공백만 친 것도 막힌다.
+    if (i === 0) return label.trim().length >= 2;
     if (i === 1) return birthDate.replace(/\D/g, '').length === 8;
     return true;                                    // 시각·출생지는 '모름'이 정당한 답이다
   };
@@ -245,6 +249,8 @@ export function ChartRegisterScreen({ onSubmit, defaultRelation, submitLabel, sh
   // input 구성 — 수동 제출·자동저장 공용. label/relation 은 메타(ChartInput PII 계약 외).
   function buildInput() {
     return {
+      // ★이름은 위 `stepReady(0)` 가 이미 막았으므로 여기 폴백은 **단계형이 아닌 경로**의 안전망이다.
+      //   (폴백을 없애면 옛 화면에서 저장이 통째로 막힌다 — 규칙은 앞에서 걸고 뒤는 남긴다.)
       label: label.trim() || (relation === 'self' ? t('register.selfLabel') : relation),
       birthDateTime: `${birthDate} ${exactStr ?? (sj ? sj.hm : '0:0')}`, // 정확시각 우선(진태양시 보정 대상) → 없으면 시진 대표시각 → 모름=0:0
       calendar, sex, birthPlace, birthLon: birthPlaceLon ?? undefined, birthLat: birthPlaceLat ?? undefined, // 진태양시 경도 + 점성술 위도

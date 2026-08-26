@@ -124,7 +124,10 @@ export function countHardcodedKo(files: { path: string; src: string }[]): Map<st
   //   ⇒ 하네스는 자기가 «잰다» 고 말한 것을 실제로 재야 한다.
   const JSX_TEXT = />[^<>{}\n]*[가-힣][^<>{}\n]*</g;
   const LIT = /(['"`])((?:\\.|(?!\1)[^\\])*)\1/g;
-  const FALLBACK = /t\(\s*'[\w.]+'\s*,\s*$/;
+  // ★키가 **삼항**일 수도 있다: `t(faved ? 'talk.unfav' : 'talk.fav', '즐겨찾기')`
+  //   그것도 엄연한 폴백인데 종전 식은 «따옴표 키» 만 봐서 **가짜 미번역**으로 셌다.
+  //   ⚠️넓히되 «두 번째 인자가 폴백인 자리» 라는 뜻은 유지한다 — 아래 대조군이 그걸 지킨다.
+  const FALLBACK = /t\(\s*(?:'[\w.]+'|[^,()]*\?\s*'[\w.]+'\s*:\s*'[\w.]+')\s*,\s*$/;
   // ★로그는 **화면이 아니다** — `console.warn('… 실패', e)` 를 번역하라는 건 말이 안 된다.
   //   («번역 대상» 의 정의를 «화면에 닿는 글자» 로 못 박는다. 이 줄이 없으면 진단 로그를 늘릴 때마다
   //    이 검사가 빨간불이 되어, 결국 «로그를 안 남기는» 잘못된 방향으로 사람을 민다.)
@@ -158,7 +161,7 @@ export function countHardcodedKo(files: { path: string; src: string }[]): Map<st
 
 // ★baseline — 2026-08-27 실측. **줄이는 건 자유, 늘리는 건 실패.**
 //   줄였으면 이 숫자를 내려 잠근다(안 내리면 다시 늘어날 여지를 남긴 것이다).
-const BASELINE = 1711;
+const BASELINE = 1707;
 
 {
   const files = screens().map((p) => ({ path: p, src: read(p) ?? '' }));
@@ -187,13 +190,16 @@ const BASELINE = 1711;
     { path: 'i.tsx', src: `const label = '일';` },                         // ← 같은 글자라도 **값**이면 센다
     { path: 'j.tsx', src: `const m = { '천간 합': t('k') };` },             // ← ★열쇠라 안 센다
     { path: 'k.tsx', src: `const m = { a: '천간 합' };` },                  // ← 값이면 센다
+    { path: 'l.tsx', src: `t(on ? 'a.b' : 'a.c', '즐겨찾기')` },            // ← ★삼항 키의 폴백도 안 센다
+    { path: 'm.tsx', src: `foo(bar ? 1 : 2, '즐겨찾기')` },                 // ← t() 가 아니면 센다
   ]);
   const good = c.get('a.tsx') === 1 && !c.has('b.tsx') && !c.has('c.tsx') && !c.has('d.tsx') && !c.has('e.tsx')
     && c.get('f.tsx') === 1 && !c.has('g.tsx')
     && !c.has('h.tsx') && c.get('i.tsx') === 1
-    && !c.has('j.tsx') && c.get('k.tsx') === 1;
+    && !c.has('j.tsx') && c.get('k.tsx') === 1
+    && !c.has('l.tsx') && c.get('m.tsx') === 1;
   say(good, '자기검사 — 폴백·주석·로그는 빼고, **태그 사이 글자까지** 센다',
-    good ? '대조군 11개 통과' : `실제: ${JSON.stringify([...c])}`);
+    good ? '대조군 13개 통과' : `실제: ${JSON.stringify([...c])}`);
 }
 
 console.log(fail === 0 ? '\n✅ 언어 고르기가 이어져 있고, 남은 한국어가 안 늘었습니다\n'

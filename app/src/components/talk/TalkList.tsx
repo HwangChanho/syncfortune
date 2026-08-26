@@ -70,6 +70,48 @@ export function initialsFor(names: string[]): string[] {
  *   해시는 우연히 몰린다(실물에서 열다섯 중 대부분이 청록·청흑 둘로 갔다).
  *   순번이면 다섯 색이 고르게 돈다. 사진이 들어오면 어차피 사라지는 임시 얼굴이다.
  */
+/**
+ * 친구(사람) 한 줄 — 즐겨찾기 칸과 친구 칸이 **같은 컴포넌트**를 쓴다.
+ *
+ * ★상담가 줄(`Row`)과 나란히 두는 이유: 즐겨찾기 칸에는 둘이 섞여 뜬다.
+ *   각자 그리면 «상담가 별과 친구 별이 다르게 도는» 앱이 된다([[duplicate-ui-single-source]]).
+ * ★밀면 별 — 상담가와 **같은 `toggleFavorite`** 을 부른다. id 만 다르다(사람=UUID).
+ */
+function PersonRow({ p, onOpenPerson, t }: {
+  p: { id: string; name: string; avatarUrl?: string | null; canSee?: boolean };
+  onOpenPerson?: (id: string) => void;
+  t: (k: string, d?: string) => string;
+}) {
+  const faved = isFavorite(p.id);
+  const ref = useRef<Swipeable>(null);
+  const renderRight = () => (
+    <PressableScale style={styles.swipeAct}
+      onPress={() => { void toggleFavorite(p.id); ref.current?.close(); }}
+      accessibilityLabel={t(faved ? 'talk.unfav' : 'talk.fav', '즐겨찾기')}>
+      {/* ★보이는 별은 **지금 상태**다(상담가 줄과 같은 규칙) */}
+      <Text style={[styles.swipeStar, faved && styles.swipeStarOn]}>{faved ? '★' : '☆'}</Text>
+    </PressableScale>
+  );
+  const row = (
+    <PressableScale style={styles.row} onPress={() => onOpenPerson?.(p.id)}>
+      {/* ⚠️★색은 **위치가 아니라 그 사람**으로 정한다(2026-08-27) */}
+      <Avatar name={p.name} slot={0} element={fallbackElement(p.id)} uri={p.avatarUrl} />
+      <View style={styles.col}>
+        <View style={styles.nameRow}>
+          <Text style={styles.name} numberOfLines={1}>{p.name}</Text>
+          {faved ? <Text style={styles.favDot}>★</Text> : null}
+        </View>
+        {/* ★못 보는 이유를 적는다 — 빈 줄이면 우리 잘못인지 상대 설정인지 모른다 */}
+        {!p.canSee ? <Text style={styles.sub}>{t('friends.notShared', '아직 명식을 열지 않았어요')}</Text> : null}
+      </View>
+    </PressableScale>
+  );
+  // 웹은 밀 수 없다 — 상담가 줄이 쓰는 규칙과 같게 둔다(그쪽은 누르는 별을 따로 그린다)
+  return Platform.OS === 'web' ? row : (
+    <Swipeable ref={ref} renderRightActions={renderRight} overshootRight={false} friction={2}>{row}</Swipeable>
+  );
+}
+
 function Avatar({ name, initial, slot, uri, size = 48, element }: {
   name: string; initial?: string; slot: number; uri?: string | null; size?: number;
   /** 이 얼굴의 오행을 **직접** 지정(내 프로필 = 대표 명식 오행). 없으면 순번으로 돈다 */
@@ -295,6 +337,8 @@ export function TalkList({ items, onOpen, selected, myName, onMe, myAvatar, rail
   }, [shown, favTick]);
   /** 즐겨찾기 칸 — 서버 순서 그대로(별을 켠 순서가 아니라 목록 순서라야 매번 같은 자리다). */
   const favRows = useMemo(() => shown.filter((c) => isFavorite(c.id)), [shown, favTick]);
+  // ★친구 중 즐겨찾기한 사람 — 상담가와 **같은 판정**(`isFavorite`)을 쓴다
+  const favPeople = useMemo(() => people.filter((p) => isFavorite(p.id)), [people, favTick]);
 
   // ★프로필 창(카카오톡식) — 사진을 누르면 뜬다. 줄 전체를 누르면 종전대로 대화가 열린다
   /**
@@ -415,12 +459,18 @@ export function TalkList({ items, onOpen, selected, myName, onMe, myAvatar, rail
             비어 있을 때는 콘티와 **똑같은 화면**이 되고, 켠 사람에게만 칸이 생긴다.
             (어제는 칸을 통째로 없앴는데, 그러면 켜도 아무 데도 안 보인다.)
           ★검색 중에는 접는다 — 찾는 중에 고정 칸이 위를 먹으면 결과가 밀린다. */}
-      {!q.trim() && favRows.length > 0 ? (
+      {!q.trim() && (favRows.length > 0 || favPeople.length > 0) ? (
         <>
           <Text style={styles.groupHead}>{t('talk.favorites', '즐겨찾기')}</Text>
           {favRows.map((c) => (
             <Row key={`fav-${c.id}`} c={c} initial={initialOf(c.id)} slot={slotOf(c.id)}
                  on={selected === c.id} onOpen={onOpen} onPhoto={openPhoto} t={t as never} />
+          ))}
+          {/* ★★친구(사람)도 여기 올라온다(Boss 2026-08-27 *"친구도 마찬가지로 즐겨찾기에 등록 가능해야해"*).
+              ⚠️저장은 상담가와 **같은 곳**(`toggleFavorite`)을 쓴다 — id 만 다르다(상담가=문자열 · 사람=UUID).
+                따로 만들면 «상담가 별과 친구 별이 다르게 도는» 앱이 된다. */}
+          {favPeople.map((p) => (
+            <PersonRow key={`favp-${p.id}`} p={p} onOpenPerson={onOpenPerson} t={t as never} />
           ))}
         </>
       ) : null}
@@ -461,18 +511,9 @@ export function TalkList({ items, onOpen, selected, myName, onMe, myAvatar, rail
           <Text style={styles.section}>
             {t('friends.mates', '내 친구')} {people.length}
           </Text>
-          {people.map((p, i) => (
-            <PressableScale key={p.id} style={styles.row} onPress={() => onOpenPerson?.(p.id)}>
-              {/* ⚠️★색은 **위치가 아니라 그 사람**으로 정한다 — 대화목록과 정렬이 달라
-                  같은 친구가 목록마다 다른 색이었다(Boss 2026-08-27). 사진 없는 사람은
-                  그 원이 곧 얼굴이라 색이 바뀌면 «다른 사람» 으로 보인다. */}
-              <Avatar name={p.name} slot={0} element={fallbackElement(p.id)} uri={p.avatarUrl} />
-              <View style={styles.col}>
-                <Text style={styles.name} numberOfLines={1}>{p.name}</Text>
-                {/* ★못 보는 이유를 적는다 — 빈 줄이면 우리 잘못인지 상대 설정인지 모른다 */}
-                {!p.canSee ? <Text style={styles.sub}>{t('friends.notShared', '아직 명식을 열지 않았어요')}</Text> : null}
-              </View>
-            </PressableScale>
+          {/* ★즐겨찾기로 올라간 사람은 여기서 **뺀다** — 두 번 뜨면 같은 사람이 둘로 보인다 */}
+          {people.filter((p) => !isFavorite(p.id)).map((p) => (
+            <PersonRow key={p.id} p={p} onOpenPerson={onOpenPerson} t={t as never} />
           ))}
         </>
       ) : null}

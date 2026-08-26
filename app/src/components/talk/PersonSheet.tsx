@@ -36,7 +36,7 @@ import { PressableScale } from '../PressableScale';
 import { CompatPeek } from '../CompatPeek';
 import { SharedChart } from '../SharedChart';
 import { toSharedSaju } from '../../lib/backend/communityChart';
-import { listFriends, loadFriendChart } from '../../lib/talk/friends';
+import { listFriends, loadFriendChart, setFriendShare } from '../../lib/talk/friends';
 import { loadRepChart } from '../../lib/engine/myChart';
 import { computeChart } from '../../lib/engine/engine';
 import { analyzeCompatibility } from '@engine/compatibility';
@@ -83,6 +83,12 @@ export function PersonSheet({ target, onClose, onMention, onMessage, onMore }: {
   const [tab, setTab] = useState<Tab>('chart');
   const [data, setData] = useState<Loaded | null>(null);
   const [busy, setBusy] = useState(false);
+  /**
+   * ★**내가 이 친구에게** 명식을 여는가(Boss 2026-08-27 *"친구별로 열고 닫을수 있게"*).
+   * ⚠️`data.blocked === 'notShared'`(상대가 나에게 안 연 것)와 **방향이 반대**다 —
+   *   둘을 한 줄에 두면 «누가 누구에게» 가 흐려지므로 문구를 분명히 갈라 적는다.
+   */
+  const [iShare, setIShare] = useState<boolean | null>(null);
 
   const key = target ? (target.kind === 'me' ? 'me' : `f:${target.id}`) : '';
 
@@ -103,6 +109,7 @@ export function PersonSheet({ target, onClose, onMention, onMessage, onMore }: {
         const f = (await listFriends()).find((x) => x.otherId === target.id && x.status === 'accepted') ?? null;
         if (!alive) return;
         if (!f) { setData({ saju: null, dx: null, blocked: 'gone' }); return; }
+        setIShare(f.iShare);
         if (!f.chartId) { setData({ saju: null, dx: null, blocked: 'notShared' }); return; }
         const [mine, theirs] = await Promise.all([loadRepChart(), loadFriendChart(f.chartId)]);
         if (!alive) return;
@@ -247,6 +254,35 @@ export function PersonSheet({ target, onClose, onMention, onMessage, onMore }: {
               ) : null}
 
               {/* ── 대화 ── */}
+              {/* ★★내 명식을 이 친구에게 열고/닫기 — **그 사람 상세**가 이 설정의 자연스러운 자리다.
+                  ⚠️위의 «아직 명식을 공개하지 않았어요» 는 **상대→나** 방향이다. 이건 **나→상대** —
+                    방향을 문구로 분명히 갈라 적는다(안 그러면 남의 설정을 바꾸는 것처럼 보인다). */}
+              {tab === 'chart' && !isMe && iShare !== null ? (
+                <PressableScale
+                  style={styles.shareRow}
+                  onPress={() => {
+                    const next = !iShare;
+                    setIShare(next);   // 낙관적 — 실패하면 되돌린다
+                    void setFriendShare((target as { id: string }).id, next)
+                      .then((ok) => { if (!ok) setIShare(!next); });
+                  }}
+                >
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.shareTx}>
+                      {t('person.iShare', '내 명식을 이 친구에게 보여주기')}
+                    </Text>
+                    <Text style={styles.shareSub}>
+                      {iShare
+                        ? t('person.iShareOn', '지금 이 친구는 내 명식을 볼 수 있어요.')
+                        : t('person.iShareOff', '지금은 이 친구에게 안 보여요.')}
+                    </Text>
+                  </View>
+                  <View style={[styles.shareKnob, iShare && styles.shareKnobOn]}>
+                    <Text style={[styles.shareKnobTx, iShare && styles.shareKnobTxOn]}>{iShare ? 'ON' : 'OFF'}</Text>
+                  </View>
+                </PressableScale>
+              ) : null}
+
               {tab === 'talk' ? (
                 <View style={styles.talkBox}>
                   {/* ★★2026-08-27 — 여기가 **사람에게 직접 말 거는 자리**가 됐다
@@ -319,6 +355,21 @@ const styles = StyleSheet.create({
 
   talkBox: { gap: space(4), paddingTop: space(2) },
   talkLead: { ...font.body, color: colors.inkSoft },
+  // 친구별 명식 공개 토글
+  shareRow: {
+    flexDirection: 'row', alignItems: 'center', gap: space(3),
+    marginTop: space(4), padding: space(4),
+    backgroundColor: colors.sunk, borderRadius: radius.md, borderWidth: 1, borderColor: colors.line,
+  },
+  shareTx: { ...font.body, color: colors.ink, fontWeight: '700' },
+  shareSub: { ...font.caption, color: colors.inkSoft, marginTop: 2 },
+  shareKnob: {
+    paddingHorizontal: space(3), paddingVertical: space(1.5), borderRadius: radius.pill,
+    backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line,
+  },
+  shareKnobOn: { backgroundColor: colors.ju, borderColor: colors.ju },
+  shareKnobTx: { ...font.caption, color: colors.inkFaint, fontWeight: '800' },
+  shareKnobTxOn: { color: colors.onJu },
   // 두 번째 버튼은 **약하게** — 「메시지 보내기」가 주된 행동이다
   ctaGhost: { backgroundColor: 'transparent', borderWidth: 1, borderColor: colors.juLine },
   ctaGhostTx: { color: colors.ju },
