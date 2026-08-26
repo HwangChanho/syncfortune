@@ -51,10 +51,21 @@ else bad('① fs() 구현을 확인할 수 없다 — 하네스가 낡았거나 
 // ── ② 단일 출처 getter 와 Provider 동기화 ────────────────────────────────
 if (/export function getFontScale\(\)/.test(fsMod)) ok('② getFontScale() 단일 출처 존재');
 else bad('② getFontScale() 이 없다 — 전역 패치가 배율을 읽을 방법이 없다');
-if (/currentScale = next/.test(fsMod) && /currentScale = s;/.test(fsMod)) ok('② Provider 가 로드·변경 시 모듈 변수도 갱신');
-else bad('② Provider 가 currentScale 을 갱신하지 않는다 — 설정을 바꿔도 렌더에 반영 안 됨');
-if (/key=\{scale\}/.test(fsMod)) ok('② 배율 변경 시 트리 리마운트(고정 fontSize 도 반영)');
-else bad('② key={scale} 리마운트가 없다 — 고정 fontSize 컴포넌트는 Context 를 구독하지 않아 그대로 남는다');
+// ⚠️★«무엇으로 갱신하느냐» 가 아니라 **갱신하느냐**를 본다([[harness-judge-expression-not-name]]).
+//   종전엔 `currentScale = next` · `key={scale}` 라는 **글자 그대로**를 찾았다.
+//   08-23 배율 개편에서 변수 이름이 `effective` 로 바뀌자(값은 더 정확해졌다 — 폭 보정까지 얹은 실제 배율)
+//   하네스만 빨간불이 됐다. 코드가 아니라 **하네스가 낡은 것**이었다([[harness-can-enforce-wrong-rule]]).
+const assigns = [...fsMod.matchAll(/currentScale\s*=\s*([^;\n]+)/g)].map((m) => m[1].trim());
+//   선언(`let currentScale = DEFAULT_SCALE`)은 «갱신» 이 아니므로 뺀다
+const updates = assigns.filter((rhs) => !/^DEFAULT_SCALE$/.test(rhs));
+if (updates.length >= 2) ok(`② Provider 가 모듈 변수를 갱신 (${updates.length}곳: ${updates.join(' · ')})`);
+else bad(`② currentScale 을 갱신하는 곳이 ${updates.length}곳뿐 — 설정을 바꿔도(또는 창을 바꿔도) 렌더에 반영 안 됨`);
+
+//   리마운트: key 에 **배율에서 온 값**이 물려 있으면 된다(변수 이름은 무엇이든).
+//   `scale` · `effective` 처럼 배율을 담는 식별자를 키로 쓰는지만 본다.
+const keyed = /key=\{\s*(scale|effective|[A-Za-z_$][\w$]*[Ss]cale)\s*\}/.exec(fsMod);
+if (keyed) ok(`② 배율 변경 시 트리 리마운트 — key={${keyed[1]}}`);
+else bad('② 배율을 key 로 쓰는 리마운트가 없다 — 고정 fontSize 컴포넌트는 Context 를 구독하지 않아 그대로 남는다');
 
 // ── ③ 패치가 fontSize 와 lineHeight 를 함께 스케일하는가 ─────────────────
 if (/getFontScale\(\)/.test(patch)) ok('③ 전역 패치가 배율을 읽는다');

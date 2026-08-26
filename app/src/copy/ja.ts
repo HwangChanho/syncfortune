@@ -123,6 +123,7 @@ export const ja = {
     more: '地図をもっと埋めるには',
     moreBody: '人が増えるほど関係の質がはっきりします。まだ入れていない人がいれば、生年月日だけですぐ位置が決まります。',
   },
+  lang: { title: '言語', pick: '言語を選ぶ', auto: '自動', autoNote: '端末の言語 · 今は {{l}}', uiEnglish: '画面の文字は English', hint: '画面の文字と鑑定文をまとめて切り替えます。' },
   person: { me: '私の命式', mine: '私の命式', friend: '友だち', tabChart: '命式', tabCompat: '相性', tabTalk: '会話', notShared: 'まだ命式を公開していません。', gone: '友だち一覧にいない人です。', noMe: 'まず自分の命式を登録してください。', noChart: '見られる命式がありません。', noCompat: 'まだ相性を出せません。', needMine: '自分の命式を登録すると、この人との相性が見られます。', openManse: '万年暦で詳しく見る', openCompat: '相性を詳しく見る', talkLead: 'この人を会話に呼ぶと、相談員がこの命式も一緒に見て答えます。', mention: '会話で @{{name}} を呼ぶ' },
   common: { close: '閉じる', send: '送信', save: '保存',
     'later': '後で',        // 나중에 — 유도 알림의 취소 쪽(대화 운 부족 등)

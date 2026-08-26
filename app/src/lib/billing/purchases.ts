@@ -174,19 +174,22 @@ export function configurePurchases(appUserId?: string): void {
           if (rcLog.length > RC_LOG_MAX) rcLog.shift();   // 오래된 것부터 버린다
         });
         void Purchases.setLogLevel(Purchases.LOG_LEVEL.VERBOSE);
-      } catch { /* 진단이 본 기능을 막지 않는다 */ }
+      } catch (e) { console.warn('[pay] RC 진단 후킹 실패(본 기능엔 영향 없음)', e); }
       Purchases.configure({ apiKey: RC_KEY, appUserID: appUserId });
       configured = true;
     } else if (appUserId) {
       Purchases.logIn(appUserId).catch(() => {});
     }
-  } catch { /* 설정 실패해도 앱은 무탈 */ }
+  } catch (e) {
+    // ⚠️★삼키면 «결제가 왜 안 되는지» 를 영영 모른다(07-26 푸시 토큰 사고와 같은 계열).
+    console.warn('[pay] RC 초기화 실패 — 결제가 동작하지 않습니다', e);
+  }
 }
 
 /** 로그아웃 시 RC 익명화. */
 export async function logoutPurchases(): Promise<void> {
   if (!purchasesEnabled() || !configured) return;
-  try { await Purchases.logOut(); } catch { /* ignore */ }
+  try { await Purchases.logOut(); } catch (e) { console.warn('[pay] RC logOut 실패', e); }
 }
 
 /** 현재 프리미엄 활성 여부 — RC customerInfo 기준. */

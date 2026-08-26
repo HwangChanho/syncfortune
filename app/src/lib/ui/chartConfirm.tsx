@@ -54,7 +54,7 @@ export function ChartConfirmHost() {
   if (!state) return null;
   const chartless = !!state.opts.chartless;
   const close = (v: boolean) => { const r = state.resolve; _state = null; emit(); r(v); };
-  const pick = async (id: string) => { setRepId(id); try { await setRepresentative(id); } catch { /* 전환 실패 무시 */ } }; // 대표 전환 → 화면 재로드
+  const pick = async (id: string) => { setRepId(id); try { await setRepresentative(id); } catch (e) { console.warn('[chart] 대표 명식 전환 실패', e); } }; // 대표 전환 → 화면 재로드
 
   return (
     <Modal statusBarTranslucent transparent animationType="fade" visible onRequestClose={() => close(false)}>

@@ -37,6 +37,7 @@ import { TextSplash } from '../components/TextSplash'; // 로딩 영상 OFF 시(
 import { BusyOverlay } from '../components/BusyOverlay'; // 인증 전환(로그아웃/로그인) 중 전역 블로킹 로딩(먹통 방지)
 import { subscribeAuthBusy, getAuthBusy } from '../lib/ui/authBusy';
 import { ChartConfirmHost } from '../lib/ui/chartConfirm'; // 풀이/구매 전 명식 확인 모달(드롭다운 변경)
+import { LangPickerHost } from '../components/LangChip'; // 언어 목록 — 칩은 여러 곳, 목록은 여기 한 벌(호스트가 없으면 칩이 무반응)
 import { Onboarding } from '../components/Onboarding'; // ★첫 실행 자기이해 온보딩(App Store 4.3: '운세앱'→'AI 자기이해 도구' 인상 전환)
 import { applyGlobalFont } from '../lib/ui/globalFont'; // 전역 Pretendard 폰트 — Text/TextInput 렌더 패치(트렌디, daniel 기획서 UX)
 import { loadFeatures } from '../lib/core/features'; // ★신규 기능 노출 게이트(원격 플래그+관리자) — 속궁합/커뮤니티/위젯 재제출 안전판
@@ -206,6 +207,8 @@ export default function RootLayout() {
         <AppAlert />
         {/* 풀이/구매 전 명식 확인 모달(드롭다운으로 명식 변경 가능, daniel 07-02) — 전역 호스트 1개 */}
         <ChartConfirmHost />
+        {/* ★언어 목록 — 홈 헤더의 칩이 이걸 연다. 여기 없으면 눌러도 **아무 일도 안 난다**(오류도 없다) */}
+        <LangPickerHost />
         {/* 인증 전환(로그아웃/로그인) 중 화면 막고 로딩 — 클린업 캐스케이드 동안 '먹통' 방지(daniel 07-02) */}
         <BusyOverlay visible={authBusy} message="잠시만 기다려 주세요…" />
         {/* ★첫 실행 자기이해 온보딩 — 스플래시 종료 후 노출. 신규 설치 1회(컴포넌트 자체 판정: 플래그+기존 명식).

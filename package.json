@@ -206,7 +206,8 @@
     "check:friendnotify": "tsx scripts/check-friendnotify.ts",
     "check:classics": "tsx scripts/check-classics.ts",
     "check:personsheet": "tsx scripts/check-personsheet.ts",
-    "bump": "node scripts/bump-build.mjs"
+    "bump": "node scripts/bump-build.mjs",
+    "check:langpicker": "tsx scripts/check-langpicker.ts"
   },
   "keywords": [],
   "author": "",

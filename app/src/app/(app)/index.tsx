@@ -24,6 +24,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 // ChartPicker(명식 선택)는 홈에서 제거(daniel 2026-07-25 '명식 선택은 홈에서 빼자') — 풀이 탭·만세력·설정에서 전환.
 
 // 홈 블록 이미지 상수(IMG)는 홈이 정보 카드로 바뀌며(2026-08-01) 소비처가 사라져 제거했다.
+import { LangChip } from '../../components/LangChip'; // 언어 칩(목록은 _layout 의 LangPickerHost)
 import { BrandWordmark } from '../../components/BrandWordmark';
 import { TalkHome } from './talk';   // ★08-19 시작 화면 = 친구목록
 import { useGenProgress, clearGenProgress } from '../../lib/backend/genProgress'; // 풀이 진행률(다중·route별, 풀이중 홈 나가도 % — daniel)
@@ -152,6 +153,13 @@ export default function Home() {
             `108×34` 가로 박스에 넣어 폭 25px 콩알로 줄어들어 있었다(Boss 2026-08-22 지적).
             콘티 헤더는 좌측 보라 글자다. ⇒ `BrandWordmark` 하나로 통일. */}
         {!wideWebHome && <BrandWordmark symbol />}
+        {/* ★언어 — Boss 2026-08-27 *"서비스 홈에서 언어설정 가능하게"*.
+            설정 안에만 있으면 «있는데 아무도 모르는 기능» 이 된다 — 특히 **한국어를 못 읽는 사람**은
+            설정까지 갈 길을 찾지 못한다. 해외 타게팅에서 이건 첫 화면에 있어야 한다.
+            ⚠️목록은 여기가 아니라 `_layout` 의 `LangPickerHost` 가 그린다(여기 헤더는 `FlatList` 의
+              `ListHeaderComponent` 안이라 오버레이가 **헤더 높이만큼만** 덮인다). */}
+        <View style={{ flex: 1 }} />
+        <LangChip />
         {/* ⚠️알림 벨은 **여기 없다** — Boss 2026-08-26 *"돋보기 옆에 놔"* 로
             친구목록·대화목록 헤더(`NotifyBell`)로 옮겼다. 이모지(🔔)도 선 아이콘으로 바꿨다:
             이모지는 색이 박혀 있어 옆의 선 아이콘들과 **무게가 안 맞았다**. */}

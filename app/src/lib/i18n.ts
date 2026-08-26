@@ -42,8 +42,16 @@ const resources = {
   ja: { translation: ja },
 };
 
-const device = Localization.getLocales()[0]?.languageCode ?? 'ko';
-const lng = (APP_LANGS as readonly string[]).includes(device) ? device : 'en';
+/**
+ * 기기 언어에서 고른 앱 언어. **«자동» 이 가리키는 값**이다.
+ * ⚠️`languageCode` 는 `zh-Hant` 같은 지역까지 안 준다 — UI 는 어차피 ko/en/ja 뿐이라 무방하다.
+ * @returns 기기 언어가 우리가 가진 언어면 그것, 아니면 `'en'`
+ */
+export function deviceAppLang(): AppLang {
+  const d = Localization.getLocales()[0]?.languageCode ?? 'ko';
+  return ((APP_LANGS as readonly string[]).includes(d) ? d : 'en') as AppLang;
+}
+const lng = deviceAppLang();
 
 i18n.use(initReactI18next).init({
   resources,
@@ -56,22 +64,90 @@ i18n.use(initReactI18next).init({
   interpolation: { escapeValue: false },
 });
 
-// 언어 저장/복원 — 기본은 기기 언어(위 lng), 사용자가 설정에서 바꾸면 persist 해 재시작 후에도 유지(daniel).
+// ═══════════════════════════════════════════════════════════════════════════
+// 앱 언어 저장/복원 — Boss 2026-08-27 *"자동으로 변경가능하게"*
+//
+// ■ ★«자동» 은 **값이 아니라 «값이 없음»** 이다
+//   종전엔 사용자가 한 번 고르면 그 값이 저장돼 **되돌릴 길이 없었다** — 기기 언어를 바꿔도
+//   앱만 옛 선택에 붙들린다. 「자동」 이라는 **네 번째 값**을 저장하는 대신,
+//   **저장을 지우는 것**을 자동으로 삼는다(풀이 언어의 `null` 과 같은 규칙 — 규칙이 둘이면 갈린다).
+// ═══════════════════════════════════════════════════════════════════════════
 const LANG_KEY = 'app_lang_v1';
+/** null = **기기 언어를 따라간다**(기본). 값이 있으면 그것만 쓴다. */
+let appLangOverride: AppLang | null = null;
+const alangSubs = new Set<() => void>();
+
+/** 앱 언어가 바뀌면 알려 준다(화면이 다시 그리게). 해제 함수를 돌려준다. */
+export function onAppLangChange(fn: () => void): () => void {
+  alangSubs.add(fn);
+  return () => alangSubs.delete(fn);
+}
+const notifyAlang = () => alangSubs.forEach((f) => { try { f(); } catch { /* 하나가 죽어도 나머지는 알린다 */ } });
+
+/** 사용자가 «자동(기기 언어)» 상태인지 — 고르는 화면의 표시용. */
+export function isAppLangAuto(): boolean { return appLangOverride == null; }
+
 async function getStored(): Promise<string | null> {
   try { return Platform.OS === 'web' ? ((globalThis as any).localStorage?.getItem(LANG_KEY) ?? null) : await SecureStore.getItemAsync(LANG_KEY); }
   catch { return null; }
 }
-/** 앱 언어 변경 + persist(설정 화면에서 호출). 기기 기본을 덮어쓴다. */
-export async function setAppLang(lng: AppLang): Promise<void> {
-  i18n.changeLanguage(lng);
+
+/**
+ * 앱 언어 변경 + 저장.
+ * @param lng 언어 코드, 또는 `null` = **자동**(기기 언어를 따라간다)
+ */
+export async function setAppLang(lng: AppLang | null): Promise<void> {
+  appLangOverride = lng;
+  i18n.changeLanguage(lng ?? deviceAppLang());
   try {
-    if (Platform.OS === 'web') (globalThis as any).localStorage?.setItem(LANG_KEY, lng);
-    else await SecureStore.setItemAsync(LANG_KEY, lng);
-  } catch { /* persist 실패해도 런타임 반영은 됨 */ }
+    if (Platform.OS === 'web') {
+      if (lng) (globalThis as any).localStorage?.setItem(LANG_KEY, lng);
+      else (globalThis as any).localStorage?.removeItem(LANG_KEY);
+    } else if (lng) await SecureStore.setItemAsync(LANG_KEY, lng);
+    else await SecureStore.deleteItemAsync(LANG_KEY);
+  } catch { /* 저장 실패해도 이번 실행에는 반영된다 */ }
+  notifyAlang();
 }
-// 시작 시 저장된 선택이 있으면 기기 기본 위에 적용(있을 때만 — 없으면 기기 언어 유지)
-getStored().then((saved) => { if (saved && (APP_LANGS as readonly string[]).includes(saved) && saved !== i18n.language) i18n.changeLanguage(saved); });
+
+// 시작 시 저장된 선택이 있으면 기기 기본 위에 적용(있을 때만 — 없으면 «자동» 그대로)
+getStored().then((saved) => {
+  if (saved && (APP_LANGS as readonly string[]).includes(saved)) {
+    appLangOverride = saved as AppLang;
+    if (saved !== i18n.language) i18n.changeLanguage(saved);
+    notifyAlang();
+  }
+});
+
+/**
+ * ★★**하나로 고르는 언어** — Boss 2026-08-27 *"모든 텍스트가 다 번역되게"*
+ *
+ * 우리 안에서는 «화면 문구(1,800개 · 사람이 번역)» 와 «풀이 본문(LLM 이 그 자리에서 씀)» 이
+ * 갈려 있지만, **쓰는 사람에게 그 구분은 우리 사정**이다. 「English」를 골랐으면 되도록 다 영어여야 한다.
+ * ⇒ 이 함수 하나가 **둘 다** 바꾼다.
+ *
+ * ⚠️화면 문구가 아직 없는 언어(태국어·베트남어·중국어…)를 고르면 **화면은 영어**로 떨어진다.
+ *   그건 숨기지 말고 `uiFallsBackToEnglish()` 로 **화면에 적어야** 한다 — 조용히 영어로 두면
+ *   «번역이 안 됐다» 가 아니라 «앱이 고장났다» 로 읽힌다.
+ *
+ * @param l 언어 코드(풀이 기준 9개 중 하나), 또는 `null` = 자동
+ */
+export async function setLang(l: ReadingLang | null): Promise<void> {
+  const forUi = l == null ? null : ((APP_LANGS as readonly string[]).includes(l) ? (l as AppLang) : 'en');
+  await setAppLang(forUi);
+  await setReadingLang(l);
+}
+
+/** 지금 고른 언어 — 「하나로 고르기」 화면이 표시할 값. `null` = 자동 */
+export function currentLang(): ReadingLang | null {
+  if (isAppLangAuto() && isReadingLangAuto()) return null;
+  return readingLang();
+}
+
+/** 고른 언어에 **화면 문구가 없어** 영어로 떨어지는 상태인가(화면에 그렇게 적어 줘야 한다). */
+export function uiFallsBackToEnglish(): boolean {
+  const l = currentLang();
+  return l != null && !(APP_LANGS as readonly string[]).includes(l);
+}
 
 // 현재 앱 언어(ko/en/ja) — 통변 생성/캐시를 언어별로 분기할 때 사용(Edge body.lang).
 export function appLang(): AppLang {

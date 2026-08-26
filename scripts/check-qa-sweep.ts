@@ -59,8 +59,13 @@ console.log('\n🔎 QA 전수검수 방어선\n');
 // (푸시 토큰 등록 실패를 catch 가 삼켜 '한 번도 작동 안 함'을 몰랐던 사고와 같은 유형)
 {
   const silent: string[] = [];
+  // ⚠️★**주석을 먼저 걷는다.** 안 걷으면 하네스가 «내가 옛 사고를 설명해 둔 문장」을 코드로 읽는다 —
+  //   실제로 `purchases.ts:286` 의 *"(07-26 푸시 `catch {}` … 같은 계열의 사고)"* 라는 **주석 한 줄**이
+  //   상시 빨간불을 만들고 있었다. 오늘만 네 번째 같은 유형이다(talkdomain·friendnotify·persona).
+  //   ⇒ 소스를 읽는 하네스의 **기본값은 주석 제거**다.
+  const strip = (t: string) => t.replace(/\/\/.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, '');
   for (const f of walk('app/src')) {
-    const src = read(f) ?? '';
+    const src = strip(read(f) ?? '');
     for (const m of src.matchAll(/catch\s*\{\s*\}/g)) {
       const around = src.slice(Math.max(0, m.index! - 220), m.index!);
       if (/updateChart|insertChart|setRepresentative|spend|purchase|consume|grant/i.test(around)) {

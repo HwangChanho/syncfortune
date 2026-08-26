@@ -36,10 +36,34 @@ export function isDeepFrom(src: string): (q: string) => boolean {
   return new Function('q', body) as (q: string) => boolean;
 }
 
-/** `DEEP_MAX_OUT_TOK` 값과, 기본 상한보다 큰지. */
-export function deepCap(src: string): number | null {
-  const m = /const DEEP_MAX_OUT_TOK\s*=\s*(\d+)/.exec(src);
-  return m ? Number(m[1]) : null;
+/**
+ * 깊은 물음일 때 **실제로 쓰이는 출력 상한**을 구한다.
+ *
+ * ⚠️★이름이 아니라 **식**으로 판정한다([[harness-judge-expression-not-name]]).
+ *   종전엔 `const DEEP_MAX_OUT_TOK = (\d+)` 를 찾았다. 그런데 그 상수는
+ *   **DB(`consultants.deep_max_out_tok`)로 옮겨졌고** 소스에는 폴백만 남았다 —
+ *   이름이 사라지자 하네스가 «상한이 없다» 며 **옛 판단을 강제**했다
+ *   ([[harness-can-enforce-wrong-rule]] 가 말하는 바로 그 재발).
+ *
+ *   ⇒ 이제 `const maxOut = …` **식을 통째로 꺼내 실행**한다.
+ *     정본이 DB든 상수든, **깊은 턴에 몇이 나오는지**만 본다.
+ *
+ * @param src   Edge 함수 소스
+ * @param row   가짜 `consultants` 행(비우면 «DB 값이 없는» 최악의 경우 = 폴백 경로)
+ * @returns 깊은 턴의 상한. 식을 못 찾거나 못 돌리면 `null`
+ */
+export function deepCap(src: string, row: Record<string, unknown> = {}): number | null {
+  const m = /const maxOut\s*=\s*([\s\S]*?);\n/.exec(src);
+  if (!m) return null;
+  // 소스에 남은 폴백 상수들을 같이 실어 준다(이름이 무엇이든 숫자 상수는 다 넣는다)
+  const consts = [...src.matchAll(/const ([A-Z][A-Z0-9_]*)\s*=\s*(\d+);/g)]
+    .map(([, k, v]) => `const ${k} = ${v};`).join('\n');
+  try {
+    // eslint-disable-next-line no-new-func
+    const f = new Function('c', 'deep', `${consts}\nconst maxOut = ${m[1]};\nreturn maxOut;`);
+    const v = f(row, true);
+    return typeof v === 'number' && Number.isFinite(v) ? v : null;
+  } catch { return null; }
 }
 
 // ── 자기 검사(음성 테스트) ────────────────────────────────────────────────
@@ -47,7 +71,12 @@ function selftest(): boolean {
   const fake = `function isDeep(q: string): boolean {\n  if (q.length >= 60) return true;\n  return /왜/.test(q);\n}`;
   const f = isDeepFrom(fake);
   const ok = f('왜 그래요?') === true && f('맞아요?') === false
-    && deepCap('const DEEP_MAX_OUT_TOK = 999;') === 999 && deepCap('없다') === null;
+    // ★음성 테스트 셋 — 하나라도 통과하면 하네스가 거짓 초록불이다
+    //   ① DB 값이 있으면 그것이 이긴다  ② 없으면 폴백  ③ 옛 «고정 380» 소스는 반드시 낮게 잡힌다
+    && deepCap('const FB = 1100;\nconst maxOut = deep ? (c.deep_max_out_tok ?? FB) : 380;\n', { deep_max_out_tok: 1500 }) === 1500
+    && deepCap('const FB = 1100;\nconst maxOut = deep ? (c.deep_max_out_tok ?? FB) : 380;\n') === 1100
+    && deepCap('const maxOut = c.max_out_tok ?? 380;\n') === 380          // ← 옛 소스(상한 안 갈림)
+    && deepCap('상한이라는 게 아예 없다') === null;
   console.log(`   ${ok ? '✅' : '❌'} 자기검사 — 가짜 판정기가 「왜」만 깊게 보고, 상한을 읽는다`);
   return ok;
 }
@@ -96,10 +125,16 @@ if (isMain) {
     missShallow.length ? `깊게 갈림(비용): ${missShallow.map((q) => `「${q}」`).join(' ')}` : `${MUST_BE_SHALLOW.length}개 통과`);
 
   // ── S3 상한 ──────────────────────────────────────────────────────────────
+  // ★DB 값이 **비었을 때**(= 최악의 경우)로 잰다. 상담가 한 명이라도 값이 없으면 그 경로를 탄다
   const cap = deepCap(src);
+  const capDb = deepCap(src, { deep_max_out_tok: 1500 });
   const wired = /max_tokens:\s*maxOut/.test(src) && /const maxOut\s*=\s*deep\s*\?/.test(src);
   say(cap !== null && cap >= 900, 'S3 깊은 물음의 출력 상한이 넉넉하다',
-    cap === null ? 'DEEP_MAX_OUT_TOK 이 없습니다' : `${cap} 토큰 ≈ 한국어 ${Math.round(cap * 0.68)}자`);
+    cap === null ? '`const maxOut = …` 식을 못 읽었습니다'
+      : `${cap} 토큰 ≈ 한국어 ${Math.round(cap * 0.68)}자 (DB 값이 없을 때)`);
+  say(capDb === 1500, 'S3c 상한의 **정본은 DB** 다',
+    capDb === 1500 ? 'consultants.deep_max_out_tok 이 폴백을 이긴다(배포 없이 조일 수 있다)'
+      : `DB 값 1500 을 넣었는데 ${capDb} 가 나옵니다 — 코드가 DB 를 안 봅니다`);
   say(wired, 'S3b 그 상한이 **실제로 요청에 쓰인다**',
     wired ? '' : '상한을 정해 놓고 `max_tokens` 에 안 넘기고 있습니다');
 

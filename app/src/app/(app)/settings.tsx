@@ -17,7 +17,7 @@ import { Alert } from '../../lib/ui/alert'; // 커스텀 알림(앱 디자인)
 import { useRouter, useFocusEffect } from 'expo-router';
 import { getNotifStatus, requestNotifPermission, type NotifStatus } from '../../lib/backend/notifications'; // 알림 권한 상태·요청(설정 토글)
 import { useTranslation } from 'react-i18next';
-import { setAppLang, APP_LANGS, APP_LANG_LABEL, type AppLang, READING_LANGS, READING_LANG_LABEL, setReadingLang, readingLang, isReadingLangAuto, onReadingLangChange, type ReadingLang } from '../../lib/i18n'; // 언어 변경 + persist(재시작 후 유지) · 풀이 언어는 UI 언어와 별개
+import { setAppLang, APP_LANGS, APP_LANG_LABEL, type AppLang, READING_LANGS, READING_LANG_LABEL, setReadingLang, readingLang, isReadingLangAuto, onReadingLangChange, isAppLangAuto, onAppLangChange, deviceAppLang, type ReadingLang } from '../../lib/i18n'; // 언어 변경 + persist(재시작 후 유지) · 풀이 언어는 UI 언어와 별개
 import { useFontScale, FONT_STEPS } from '../../lib/ui/fontScale';
 import { useAuth } from '../../lib/useAuth';               // 계정(세션)
 import { TextInput, Switch } from 'react-native'; // 커뮤니티 닉네임·일주 뱃지(daniel 2026-08-05 전면 익명+설정 닉네임)
@@ -95,6 +95,10 @@ export default function SettingsScreen() {
   const [rl, setRl] = useState<ReadingLang>(() => readingLang());
   const [rlAuto, setRlAuto] = useState<boolean>(() => isReadingLangAuto());
   useEffect(() => onReadingLangChange(() => { setRl(readingLang()); setRlAuto(isReadingLangAuto()); }), []);
+  // 앱 언어도 같은 이유로 구독한다 — 홈 헤더 칩에서 바꾸면 이 화면이 **바로** 따라와야 한다
+  //   (한쪽만 구독하면 «홈에선 바뀌었는데 설정은 그대로» 가 되고, 그 어긋남이 곧 버그로 보인다).
+  const [alAuto, setAlAuto] = useState<boolean>(() => isAppLangAuto());
+  useEffect(() => onAppLangChange(() => { setAlAuto(isAppLangAuto()); setRl(readingLang()); setRlAuto(isReadingLangAuto()); }), []);
   // 알림 권한 상태 로드 — 포커스마다(기기 설정 다녀와서 켜/끄면 ON/OFF 즉시 반영, daniel 07-02)
   useFocusEffect(useCallback(() => { getNotifStatus().then(setNotifStatus).catch(() => {}); }, []));
 
@@ -345,11 +349,24 @@ export default function SettingsScreen() {
       </View>
       <Text style={styles.iljuHint}>{t('settings.iljuHint', '글·댓글 옆에 태어난 날의 두 글자만 표시돼요. 생년월일은 알 수 없어요.')}</Text>
 
-      {/* ── 언어 ── */}
+      {/* ── 언어 ──────────────────────────────────────────────────────────────
+           Boss 2026-08-27: *"자동으로 변경가능하게"*
+
+           ★「자동」 은 **네 번째 값이 아니라 «값 없음»** 이다(저장을 지운다).
+             종전엔 한 번 고르면 되돌릴 길이 없어, 기기 언어를 바꿔도 앱만 옛 선택에 붙들렸다.
+             풀이 언어의 `null` 과 **같은 규칙**으로 맞춘다 — 규칙이 둘이면 언젠가 갈린다.
+           ★홈 헤더에도 같은 것을 **한 번에 고르는 칩**이 있다(`LangChip`) — 한국어를 못 읽는
+             사람이 설정까지 오는 길을 못 찾기 때문이다. 여기는 화면/풀이를 **따로** 두고 싶은 사람용.
+        ── */}
       <Text style={[styles.h, { marginTop: space(7) }]}>{t('settings.language')}</Text>
-      <View style={styles.row}>
+      <View style={[styles.row, { flexWrap: 'wrap' }]}>
+        <PressableScale style={[styles.opt, alAuto && styles.optOn]} onPress={() => setAppLang(null)}>
+          <Text style={[styles.optTx, alAuto && styles.optTxOn]}>
+            {t('lang.auto', '자동')} · {APP_LANG_LABEL[deviceAppLang()]}
+          </Text>
+        </PressableScale>
         {LANGS.map((l) => {
-          const on = i18n.language?.startsWith(l.key);
+          const on = !alAuto && i18n.language?.startsWith(l.key);
           return (
             <PressableScale key={l.key} style={[styles.opt, on && styles.optOn]} onPress={() => setAppLang(l.key as AppLang)}>
               <Text style={[styles.optTx, on && styles.optTxOn]}>{l.label}</Text>

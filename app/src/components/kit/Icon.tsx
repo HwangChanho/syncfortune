@@ -21,7 +21,7 @@ import Svg, { Circle, Line, Path } from 'react-native-svg';
 import { colors } from '../../lib/theme';
 
 /** 그릴 수 있는 아이콘. 늘릴 때는 **24×24 · 굵기 2** 규격을 지킨다. */
-export type IconName = 'search' | 'close' | 'plus' | 'more' | 'trash' | 'gear' | 'bell' | 'menu';
+export type IconName = 'search' | 'close' | 'plus' | 'more' | 'trash' | 'gear' | 'bell' | 'menu' | 'globe' | 'check';
 
 /**
  * 상단바 아이콘 하나.
@@ -71,6 +71,15 @@ export function Icon({ name, size = 24, color = colors.inkSoft }: {
         <Circle cx={12} cy={12} r={3.2} {...common} />
         <Path d="M12 3.4v2.6M12 18v2.6M20.6 12h-2.6M6 12H3.4M18.1 5.9l-1.8 1.8M7.7 16.3l-1.8 1.8M18.1 18.1l-1.8-1.8M7.7 7.7L5.9 5.9" {...common} />
       </>)}
+      {/* 지구본 — 언어. ⚠️`🌐` 이모지를 안 쓴다: 이모지는 **색이 박혀 있어** 옆의 선 아이콘과
+          무게가 안 맞고 플랫폼마다 그림이 다르다(알림 벨에서 겪은 그것). */}
+      {name === 'globe' && (<>
+        <Circle cx={12} cy={12} r={8.5} {...common} />
+        <Path d="M3.5 12h17" {...common} />
+        {/* 경선 — 원 안쪽에서 위아래로 좁아지는 타원 둘로 «구» 를 만든다 */}
+        <Path d="M12 3.5c2.6 2.4 4 5.4 4 8.5s-1.4 6.1-4 8.5c-2.6-2.4-4-5.4-4-8.5s1.4-6.1 4-8.5Z" {...common} />
+      </>)}
+      {name === 'check' && (<Path d="M4.8 12.6l4.6 4.6 9.8-10.4" {...common} />)}
     </Svg>
   );
 }

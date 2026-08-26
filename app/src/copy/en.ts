@@ -124,6 +124,7 @@ export const en = {
     more: 'To fill the map out',
     moreBody: 'The more people on it, the clearer the grain of your relationships. A birth date is all it takes to place someone.',
   },
+  lang: { title: 'Language', pick: 'Choose language', auto: 'Automatic', autoNote: 'Device language · now {{l}}', uiEnglish: 'Interface stays in English', hint: 'Changes both the interface and your readings.' },
   person: { me: 'My chart', mine: 'My chart', friend: 'Friend', tabChart: 'Chart', tabCompat: 'Together', tabTalk: 'Talk', notShared: "They haven't shared their chart yet.", gone: 'This person is no longer in your friends.', noMe: 'Add your own chart first.', noChart: 'No chart to show.', noCompat: "Can't read this pairing yet.", needMine: 'Add your chart to see how you two go together.', openManse: 'Open the full chart', openCompat: 'See the full reading', talkLead: 'Bring this person into a talk and the guide reads their chart alongside yours.', mention: 'Mention @{{name}} in talk' },
   common: { close: 'Close', send: 'Send', save: 'Save',
     'later': 'Later',        // 나중에 — 유도 알림의 취소 쪽(대화 운 부족 등)
