@@ -23,7 +23,14 @@ const CARD = 'app/src/components/IljuTabCard.tsx';
 let fail = 0, pass = 0;
 const bad = (m: string) => { fail++; console.log(`  ❌ ${m}`); };
 const ok = (m: string) => { pass++; console.log(`  ✅ ${m}`); };
-const strip = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, '').split('\n').filter((l) => !/^\s*(\/\/|\*)/.test(l)).join('\n');
+// ⚠️★**줄 주석을 먼저** 걷는다(2026-08-27에 실제로 당했다).
+//   블록 주석을 먼저 지우면, 줄 주석 안에 적힌 `/*`(예: 경로를 `copy/*.ts` 라고 쓴 것)이
+//   **블록 주석 시작으로 읽혀** 그 뒤가 통째로 사라진다 — 실제로 탭 목록이 사라져
+//   «그리는데 목록에 없다» 는 **거짓 빨간불**이 났다.
+//   ⇒ 줄 주석 → 블록 주석 순서로 걷는다(다른 하네스들이 쓰는 순서와도 같다).
+const strip = (s: string) => s
+  .split('\n').filter((l) => !/^\s*(\/\/|\*)/.test(l)).join('\n')
+  .replace(/\/\*[\s\S]*?\*\//g, '');
 
 console.log('\n🗂  만세력 탭 하네스\n');
 
@@ -61,9 +68,15 @@ console.log('\n=== ② 일주론 탭 ===');
   else bad('★일주론 탭이 아무것도 안 그린다');
 
   // ★설명문(desc)이 있어야 한다 — 시트가 그걸 띄운다. 빠지면 빈 설명이 뜬다
-  const desc = /\{ id: 'ilju', label: '[^']*', desc: '([^']{20,})'/.exec(src);
-  if (desc) ok('탭 설명이 있다(하단 시트가 띄운다)');
-  else bad('탭 설명이 비었거나 너무 짧다');
+  // ⚠️★설명이 **키**로 바뀌었다(2026-08-27 다국어). 길이를 재던 옛 검사는 «짧다» 며 울었다 —
+  //   코드가 아니라 하네스가 낡은 것이다. ⇒ 그 키가 **copy 에 실제로 있는지**, 그리고
+  //   그 문구가 충분히 긴지를 **copy 파일에서** 본다(설명은 이제 거기 있다).
+  const key = /\{ id: 'ilju', label: '[^']*', desc: '([\w.]+)'/.exec(src)?.[1];
+  const ko = readFileSync('app/src/copy/ko.ts', 'utf8');
+  const leaf = key?.split('.').pop() ?? '';
+  const val = leaf ? new RegExp(`${leaf}: '((?:[^'\\\\]|\\\\.)*)'`).exec(ko)?.[1] : null;
+  if (key && val && val.length >= 20) ok(`탭 설명이 있다(${key} · ${val.length}자)`);
+  else bad(`탭 설명이 비었거나 너무 짧다 — 키:${key ?? '없음'} 길이:${val?.length ?? 0}`);
 }
 
 console.log('\n=== ③ 자료를 베끼지 않았는가 ===');

@@ -58,29 +58,31 @@ const POS: PillarPos[] = PILLAR_DISPLAY_ORDER;
 
 // 만세력 카테고리 탭(daniel 07-13 재편) — 사주원국(팔자+지장간+합충+신살길성 통합)/운세(대운·세운·월운·일운)/오행·강약/자미두수.
 type MyeongTab = 'wonguk' | 'rel' | 'elem' | 'ilju' | 'ziwei';  // rel = 운세 전용(구 '사주관계' → 운세). 합충·신살은 wonguk으로 흡수.
+// ⚠️★모듈 상수라 `t()` 를 여기서 못 부른다(훅 밖·언어가 정해지기 전이다).
+//   ⇒ **키만** 담고, 그릴 때 푼다. 문구 본문은 `copy/ko.ts`·`en.ts`·`ja.ts` 의 `ms.` 항목에 있다.
 const MYEONG_TABS: { id: MyeongTab; label: string; desc: string }[] = [
   // ★사주원국 + 운세 통합(daniel 2026-07-24) — 원국(팔자·지장간·합충·신살)과 운세(대운·세운·월운·일운)를 한 탭에서. 겹치던 원국 표시 중복 제거.
-  { id: 'wonguk', label: '원국·운세', desc: '팔자(연·월·일·시 여덟 글자)와 숨은 기운(지장간), 글자끼리의 합·충·형·해·파 관계·신살·길성, 그리고 대운·세운·월운·일운으로 보는 시기별 흐름(운세)까지 한자리에서 봐요.' },
-  { id: 'elem', label: '오행·강약', desc: '내 글자들이 목·화·토·금·수 다섯 기운 중 무엇에 쏠렸는지·그게 나에게 어떤 역할(십성)인지, 그리고 내 힘(일간)이 강한지 약한지·무엇으로 균형을 잡으면 좋은지 함께 봐요.' },
+  { id: 'wonguk', label: '원국·운세', desc: 'ms.tabNatalDesc' },
+  { id: 'elem', label: '오행·강약', desc: 'ms.tabElemDesc' },
   // ★일주론(Boss 2026-08-25) — 자미두수 **앞**에 둔다. 사주를 읽는 흐름이 원국 → 오행 → 일주 이고,
   //   자미두수는 *별개 체계*라 맨 뒤가 맞다.
-  { id: 'ilju', label: '일주론', desc: '태어난 날의 간지(일주)로 보는 나의 기질이에요. 일간은 나 자신, 일지는 내가 딛고 선 자리이자 배우자궁이라, 성격·연애·직업의 결이 여기서 많이 드러나요. 60갑자 전체는 일주론 화면에서 볼 수 있어요.' },
-  { id: 'ziwei', label: '자미두수', desc: '사주와는 별개의 운명 체계예요. 태어난 시각으로 열두 자리(명궁·재물·관록·배우자 등)에 여러 별을 배치해, 삶의 각 영역에 어떤 기운이 드는지 봅니다. 사주를 보조해 교차로 참고해요(시각을 알아야 정확).' },
+  { id: 'ilju', label: '일주론', desc: 'ms.tabIljuDesc' },
+  { id: 'ziwei', label: '자미두수', desc: 'ms.tabZiweiDesc' },
 ];
 let lastMyeongTab: MyeongTab = 'wonguk';   // 선택 탭 기억(세션 내 — 나갔다 와도 분류 유지, daniel)
 
 // 신강/신약 특징(신강약 섹션 탭 → 상세 시트). ★명리 stance = daniel 검수 슬롯. en/ja i18n 은 검수 후.
 const STRENGTH_INFO: { key: '신강' | '신약'; title: string; traits: string; strong: string; caution: string; yongsin: string }[] = [
-  { key: '신강', title: '신강 (身強)',
-    traits: '일간이 뿌리 깊고 비겁·인성이 받쳐주는 사주. 자기 주관이 뚜렷하고 추진력·독립심이 강합니다.',
-    strong: '주도적이고 위기에 강하며, 자기 힘으로 밀어붙이는 돌파력과 리더십이 있습니다.',
-    caution: '힘이 과하면 독선·고집으로 흐르고 주변과 타협이 어려울 수 있습니다.',
-    yongsin: '식상·재성·관성으로 힘을 덜어 균형 잡는 게 관건 — 일·재물·관계·책임에 힘을 쓸 때 성취가 큽니다.' },
-  { key: '신약', title: '신약 (身弱)',
-    traits: '일간이 약하고 식상·재성·관성에 기운을 내주는 사주. 유연하고 섬세하며 환경에 잘 맞춥니다.',
-    strong: '협조·조율에 능하고 적응력이 좋아, 주변의 도움과 흐름을 활용하는 데 강합니다.',
-    caution: '힘이 너무 빠지면 의존적이거나 우유부단해지고 자신감이 약해질 수 있습니다.',
-    yongsin: '인성·비겁으로 보강하는 게 관건 — 배움·휴식·내 편(동료)을 통해 힘을 채울 때 안정됩니다.' },
+  { key: '신강', title: 'ms.strongTitle',
+    traits: 'ms.strongWhat',
+    strong: 'ms.strongGood',
+    caution: 'ms.strongCare',
+    yongsin: 'ms.strongKey' },
+  { key: '신약', title: 'ms.weakTitle',
+    traits: 'ms.weakWhat',
+    strong: 'ms.weakGood',
+    caution: 'ms.weakCare',
+    yongsin: 'ms.weakKey' },
 ];
 
 type MyeongsikProps = { input: ChartInput | null; onReading?: () => void; onSinsal?: () => void; header?: ReactNode; whoName?: string | null };
@@ -1061,7 +1063,7 @@ function MyeongsikBody({ input, onReading, onSinsal, header, whoName }: Myeongsi
           </ScrollView>
           {(ganEx.length + jiEx.length) > 0 && (
             <PressableScale style={styles.linksToggle} onPress={() => setShowExpandLinks((v) => !v)}>
-              <Text style={styles.linksToggleTx}>{hasLuckCol ? '운 ' : '원국 '}합충형해 {ganEx.length + jiEx.length}개  {showExpandLinks ? '▲ 접기' : '▼ 펼쳐 보기'}</Text>
+              <Text style={styles.linksToggleTx}>{hasLuckCol ? '운 ' : '원국 '}합충형해 {ganEx.length + jiEx.length}개  {showExpandLinks ? '▲ 접기' : t('ms.expand', '▼ 펼쳐 보기')}</Text>
             </PressableScale>
           )}
           {showExpandLinks && normEx.length > 0 && (
@@ -1328,7 +1330,7 @@ function MyeongsikBody({ input, onReading, onSinsal, header, whoName }: Myeongsi
         <Pressable style={styles.sheet} onPress={() => {}}>
           <View style={styles.sheetHandle} />
           <Text style={styles.sheetTitle}>{MYEONG_TABS.find((x) => x.id === activeTab)?.label}</Text>
-          <Text style={styles.sheetMeaning}>{MYEONG_TABS.find((x) => x.id === activeTab)?.desc}</Text>
+          <Text style={styles.sheetMeaning}>{t(MYEONG_TABS.find((x) => x.id === activeTab)?.desc ?? '')}</Text>
           <PressableScale style={styles.sheetClose} onPress={() => setCatDescOpen(false)}>
             <Text style={styles.sheetCloseText}>닫기</Text>
           </PressableScale>
@@ -1348,14 +1350,14 @@ function MyeongsikBody({ input, onReading, onSinsal, header, whoName }: Myeongsi
               const mine = c.strengthClass.type.includes(s.key === '신강' ? '강' : '약');
               return (
                 <View key={s.key} style={[styles.strDetailCard, mine && styles.strDetailMine]}>
-                  <Text style={styles.strDetailTitle}>{s.title}{mine ? '  · 내 유형' : ''}</Text>
-                  <Text style={styles.strDetailBody}>{s.traits}</Text>
-                  <Text style={styles.strDetailLabel}>강점</Text>
-                  <Text style={styles.strDetailBody}>{s.strong}</Text>
-                  <Text style={styles.strDetailLabel}>주의</Text>
-                  <Text style={styles.strDetailBody}>{s.caution}</Text>
-                  <Text style={styles.strDetailLabel}>방향 (용신)</Text>
-                  <Text style={styles.strDetailBody}>{s.yongsin}</Text>
+                  <Text style={styles.strDetailTitle}>{t(s.title)}{mine ? `  · ${t('ms.mine', '내 유형')}` : ''}</Text>
+                  <Text style={styles.strDetailBody}>{t(s.traits)}</Text>
+                  <Text style={styles.strDetailLabel}>{t('ms.pro', '강점')}</Text>
+                  <Text style={styles.strDetailBody}>{t(s.strong)}</Text>
+                  <Text style={styles.strDetailLabel}>{t('ms.con', '주의')}</Text>
+                  <Text style={styles.strDetailBody}>{t(s.caution)}</Text>
+                  <Text style={styles.strDetailLabel}>{t('ms.dir', '방향 (用神)')}</Text>
+                  <Text style={styles.strDetailBody}>{t(s.yongsin)}</Text>
                 </View>
               );
             })}
@@ -1386,7 +1388,7 @@ function MyeongsikBody({ input, onReading, onSinsal, header, whoName }: Myeongsi
                 <View style={styles.strDetailCard} key={label}>
                   <Text style={styles.strDetailTitle}>{label} · {sub}</Text>
                   {concept ? emph(concept, styles.strDetailBody) : null}
-                  {item ? (<><Text style={styles.strDetailLabel}>{favorable ? '이렇게 강하면' : '이렇게 쏠리면'}</Text><Text style={styles.strDetailBody}>{item.problem}</Text><Text style={styles.strDetailLabel}>{favorable ? '살리는 법' : '대응법(개운)'}</Text><Text style={styles.strDetailBody}>{item.remedy}</Text></>) : <Text style={styles.strDetailBody}>치우침이 크지 않아 무난해요.</Text>}
+                  {item ? (<><Text style={styles.strDetailLabel}>{favorable ? '이렇게 강하면' : t('ms.skewLead', '이렇게 쏠리면')}</Text><Text style={styles.strDetailBody}>{item.problem}</Text><Text style={styles.strDetailLabel}>{favorable ? '살리는 법' : t('ms.remedy', '대응법(개운)')}</Text><Text style={styles.strDetailBody}>{item.remedy}</Text></>) : <Text style={styles.strDetailBody}>치우침이 크지 않아 무난해요.</Text>}
                 </View>
               );
               return (<>
@@ -1394,7 +1396,7 @@ function MyeongsikBody({ input, onReading, onSinsal, header, whoName }: Myeongsi
                 {block('조습', `${js.skew} (습함 ${js.wet}·건조 ${js.dry})`, CONCEPT_INFO.조습, js.skew !== '중화' ? JOSEUP_SKEW[js.skew] : null)}
                 {block('음양', `${ey.skew.replace('양', '+').replace('음', '-')} (+ ${ey.yang}·- ${ey.yin})`, CONCEPT_INFO.음양, ey.skew !== '균형' ? YINYANG_SKEW[ey.skew] : null)}
                 {domEl && domEl[1] >= 4 ? block('오행 쏠림', `${domEl[0]} 강함`, '', ELEMENT_SKEW[domEl[0]]) : null}
-                {tgSkew ? block('기운(십성) 쏠림', `${tgSkew.god} 강함`, '', tgSkew.item, tgSkew.favorable) : null}
+                {tgSkew ? block(t('ms.tgSkew', '기운(십성) 쏠림'), `${tgSkew.god} 강함`, '', tgSkew.item, tgSkew.favorable) : null}
               </>);
             })()}
             <Text style={styles.sheetMeaning}>* 쏠림 경향 안내예요(대응법=개운법). 정확한 풀이는 원국 전체로 봐야 합니다.</Text>

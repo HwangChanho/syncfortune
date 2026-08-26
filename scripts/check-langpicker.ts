@@ -161,7 +161,7 @@ export function countHardcodedKo(files: { path: string; src: string }[]): Map<st
 
 // ★baseline — 2026-08-27 실측. **줄이는 건 자유, 늘리는 건 실패.**
 //   줄였으면 이 숫자를 내려 잠근다(안 내리면 다시 늘어날 여지를 남긴 것이다).
-const BASELINE = 1707;
+const BASELINE = 1686;
 
 {
   const files = screens().map((p) => ({ path: p, src: read(p) ?? '' }));
