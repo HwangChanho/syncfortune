@@ -157,6 +157,8 @@ export const SECTIONS: Section[] = [
   // ── 나 분석 ───────────────────────────────────────────────────────────────
   //   가입 직후 첫 콘텐츠 축. 무료 자기이해가 앞, 사주 원국풀이 등 유료는 뒤.
   { key: 'self', icon: 'idcard', titleKey: 'menu.secSelf', descKey: 'menu.secSelfDesc', chipKey: 'menu.chipSelf', items: [
+    // ★맨 앞이다 — 유형은 **입구**이므로 «나 분석» 의 첫 칸이 맞다(기획서 §2-A)
+    { key: 'mycard', labelKey: 'menu.mycard', descKey: 'menu.mycardDesc', image: contentIcon('idcard'), route: '/mycard', ready: true, content: true },
     { key: 'selfAnalysis', labelKey: 'menu.selfAnalysis', descKey: 'menu.selfAnalysisDesc', image: contentIcon('idcard'), route: '/selfanalysis', ready: true, content: true },
     { key: 'impression', labelKey: 'menu.impression', descKey: 'menu.impressionDesc', image: contentIcon('idcard'), route: '/impression', ready: true, content: true },
     { key: 'persona', labelKey: 'menu.persona', descKey: 'menu.personaTileDesc', image: contentIcon('idcard'), route: '/personatype', ready: true, content: true },

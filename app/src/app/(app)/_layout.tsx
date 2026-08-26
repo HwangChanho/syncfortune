@@ -154,6 +154,8 @@ export default function AppLayout() {
         <Stack.Screen name="gem" options={{ headerTitle: '' }} />
         <Stack.Screen name="timeResolve" options={{ headerTitle: '' }} />
         <Stack.Screen name="mission" options={{ headerTitle: '' }} />
+        {/* ★「나의 카드」 — 흩어진 유형을 한 장에(기획서 §2-A · Boss 2026-08-27 «유형은 입구, 계산은 깊이») */}
+        <Stack.Screen name="mycard" options={{ headerTitle: '' }} />
         <Stack.Screen name="personatype" options={{ headerTitle: '' }} /> {/* 성격유형 120종(홈 주인공 상세 · 64종 /persona 통합, daniel 07-20) */}
         {/* 되돌아보기(lookback) 제거 — daniel 07-23. 화면 파일·라우트 삭제. */}
         <Stack.Screen name="egenteto" options={{ headerTitle: '' }} />

@@ -42,7 +42,7 @@ export const en = {
     badge: 'Computed from your birth data',
     more: 'It also computes hidden stems, clashes/combinations/punishments, sinsal, and luck cycles, then cross-validates two traditions — Saju and Zi Wei Dou Shu.',
   },
-  menu: {
+  menu: { mycard: 'My Card', mycardDesc: 'Your types, gathered on one card', 
     relationmap: 'Relationship Map', relationmapDesc: 'Everyone you saved, and what they are to you — on one page',
     'taemong': 'Conception Dream', 'taemongDesc': 'Reading the dream that came while waiting for a child', 'taemongTileDesc': 'Dragon, tiger, carp… conception-dream symbols, free',
     'egenteto': 'Egen vs Teto',
@@ -126,6 +126,7 @@ export const en = {
   },
   lang: { title: 'Language', pick: 'Choose language', auto: 'Automatic', autoNote: 'Device language · now {{l}}', uiEnglish: 'Interface stays in English', hint: 'Changes both the interface and your readings.' },
   splash: { tagline: 'Five energies meet\nand read who you are today' },
+  mycard: { title: 'My Card', lead: 'A type is a doorway. Tap a tile to read the part that was actually computed.', more: 'More ›', noChart: 'Register your chart first.', register: 'Register a chart', foot: 'Two people with the same type get different text — the cycles and balance differ. The type is the doorway; the writing is yours.' },
   person: { message: 'Send a message', me: 'My chart', mine: 'My chart', friend: 'Friend', tabChart: 'Chart', tabCompat: 'Together', tabTalk: 'Talk', notShared: "They haven't shared their chart yet.", gone: 'This person is no longer in your friends.', noMe: 'Add your own chart first.', noChart: 'No chart to show.', noCompat: "Can't read this pairing yet.", needMine: 'Add your chart to see how you two go together.', openManse: 'Open the full chart', openCompat: 'See the full reading', talkLead: 'Bring this person into a talk and the guide reads their chart alongside yours.', mention: 'Mention @{{name}} in talk' },
   common: { close: 'Close', send: 'Send', save: 'Save',
     'later': 'Later',        // 나중에 — 유도 알림의 취소 쪽(대화 운 부족 등)

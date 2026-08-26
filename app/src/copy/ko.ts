@@ -62,7 +62,7 @@ export const ko = {
     badge: '내 생년월일로 계산됨',
     more: '지장간·충·합·형, 신살, 대운(운의 흐름)까지 계산하고, 사주와 자미두수 두 전통을 교차검증해요.',
   },
-  menu: {
+  menu: { mycard: '나의 카드', mycardDesc: '내 유형을 한 장에 모아 보기', 
     relationmap: '관계 지도', relationmapDesc: '내가 등록한 사람들이 나에게 어떤 결인지 한 장으로',
     'taemong': '태몽 풀이', 'taemongDesc': '꿈에 나온 것으로 읽는, 아이를 기다리는 마음', 'taemongTileDesc': '용·호랑이·잉어… 태몽 상징을 무료로',
     'egenteto': '에겐·테토 성향',
@@ -152,6 +152,7 @@ export const ko = {
   },
   lang: { title: '언어', pick: '언어 고르기', auto: '자동', autoNote: '기기 언어 · 지금은 {{l}}', uiEnglish: '화면 글자는 English', hint: '화면 글자와 풀이 본문을 함께 바꿔요.' },
   splash: { tagline: '다섯 기운이 이어\n오늘의 나를 읽다' },
+  mycard: { title: '나의 카드', lead: '유형은 입구예요. 한 칸을 누르면 그 축을 계산한 본문으로 들어가요.', more: '자세히 ›', noChart: '명식을 먼저 등록해 주세요.', register: '명식 등록하기', foot: '같은 유형이어도 대운·강약이 다르면 본문은 다르게 나와요. 유형은 입구일 뿐, 글은 당신 것이에요.' },
   person: { message: '메시지 보내기', me: '내 명식', mine: '내 명식', friend: '친구', tabChart: '명식', tabCompat: '관계', tabTalk: '대화', notShared: '아직 명식을 공개하지 않았어요.', gone: '친구 목록에 없는 사람이에요.', noMe: '내 명식을 먼저 등록해 주세요.', noChart: '볼 수 있는 명식이 없어요.', noCompat: '아직 궁합을 낼 수 없어요.', needMine: '내 명식을 등록하면 이 사람과의 궁합을 볼 수 있어요.', openManse: '만세력에서 자세히 보기', openCompat: '궁합 자세히 보기', talkLead: '이 사람을 대화에서 부르면, 상담가가 이 명식을 함께 보고 답해요.', mention: '대화에서 @{{name}} 부르기' },
   common: { close: '닫기', send: '보내기', save: '저장',
     'later': '나중에',        // 나중에 — 유도 알림의 취소 쪽(대화 운 부족 등)

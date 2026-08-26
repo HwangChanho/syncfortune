@@ -209,7 +209,8 @@
     "bump": "node scripts/bump-build.mjs",
     "check:langpicker": "tsx scripts/check-langpicker.ts",
     "check:roomidentity": "tsx scripts/check-roomidentity.ts",
-    "check:viewrls": "tsx scripts/check-viewrls.ts"
+    "check:viewrls": "tsx scripts/check-viewrls.ts",
+    "check:mycard": "tsx scripts/check-mycard.ts"
   },
   "keywords": [],
   "author": "",
