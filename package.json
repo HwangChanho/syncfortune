@@ -180,7 +180,8 @@
     "measure:talkvoice": "tsx scripts/measure-talkvoice.ts",
     "check:grouptalk": "tsx scripts/check-grouptalk.ts",
     "check:hooks": "tsx scripts/check-hooks.ts",
-    "check:todayfriend": "tsx scripts/check-todayfriend.ts"
+    "check:todayfriend": "tsx scripts/check-todayfriend.ts",
+    "check:talkmention": "tsx scripts/check-talkmention.ts"
   },
   "keywords": [],
   "author": "",

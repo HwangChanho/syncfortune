@@ -77,6 +77,15 @@ export async function askLive(
    * ⚠️과금·권한 값이 아니다 — **해석 재료**다(단가는 서버가 정한다).
    */
   verdict?: string | null,
+  /**
+   * ★대화에서 `@이름` 으로 **부른 사람들**의 원국·판정(Boss 2026-08-26).
+   * 사람당 한 덩이. 종전엔 대표 명식 하나만 갔기 때문에 "○○이랑 잘 맞아요?" 를 물으면
+   * 상담가가 **상대를 모른 채** 답했다 — 궁합을 모델의 일반 지식으로 짓고 있었다.
+   * ⚠️`verdict` 와 **같은 취급**이다: 해석 재료지 과금·권한 값이 아니다.
+   * ⚠️생년월일·출생지는 들어 있지 않다 — 구조만 간다(ADR-005 · `chartMention.ts`).
+   * ★턴마다 달라지므로 서버는 이걸 **캐시 접두사에 넣지 않는다**(넣으면 매 턴 캐시가 깨진다).
+   */
+  mentions?: string[] | null,
 ): Promise<LiveReply> {
   try {
     // ⚠️타임아웃을 반드시 건다 — supabase.functions.invoke 는 **기본 타임아웃이 없다**
@@ -86,7 +95,12 @@ export async function askLive(
     const r = await withTimeout(
       supabase.functions.invoke('talk', {
         // ★성인 확인 여부를 **여기서 읽는다** — 화면마다 넘기게 하면 한 곳이 빠져도 모른다
-        body: { consultantId, message, sessionId, chartId, lang, attempt, verdict, adult: adultConfirmed() },
+        body: {
+          consultantId, message, sessionId, chartId, lang, attempt, verdict,
+          // 빈 배열은 보내지 않는다 — 서버가 «부른 사람 없음» 과 «옛 앱» 을 구분할 필요가 없다
+          mentions: mentions?.length ? mentions : undefined,
+          adult: adultConfirmed(),
+        },
       }),
       45_000,
     );

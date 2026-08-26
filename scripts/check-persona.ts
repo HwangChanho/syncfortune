@@ -108,13 +108,18 @@ if (!URL_BASE || !ANON) {
   console.log('  ·  .env 없음 — DB 대조 생략(코드 검사만 수행)');
 } else {
   try {
-    const res = await fetch(`${URL_BASE}/rest/v1/consultants?select=id,name,persona,guardrails,enabled&enabled=eq.true`, {
+    const res = await fetch(`${URL_BASE}/rest/v1/consultants?select=id,name,kind,persona,guardrails,enabled&enabled=eq.true`, {
       headers: { apikey: ANON, Authorization: `Bearer ${ANON}` },
       signal: AbortSignal.timeout(15000),
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const rows = (await res.json()) as { id: string; name: string; persona: string | null; guardrails: string | null }[];
-    const byId = new Map(rows.map((r) => [r.id, r]));
+    const all = (await res.json()) as { id: string; name: string; kind: string; persona: string | null; guardrails: string | null }[];
+    // ⚠️★말투·가드·예시는 **LLM 을 부르는 상담가(kind='live')에게만** 해당한다.
+    //   `virtual`(오늘의 운세 같은 콘텐츠 채널)은 프롬프트가 아예 없다 —
+    //   여기에 말투를 요구하면 하네스가 **없어도 되는 일**을 시킨다([[harness-can-enforce-wrong-rule]]).
+    //   2026-08-26 실제로 `fortune_today` 하나 때문에 빨간불이 났다.
+    const rows = all.filter((r) => r.kind === 'live');
+    const byId = new Map(all.map((r) => [r.id, r]));
 
     let drift = 0;
     for (const p of PERSONAS) {
@@ -162,14 +167,15 @@ if (!URL_BASE || !SVC) {
 } else {
   try {
     const [cRes, eRes] = await Promise.all([
-      fetch(`${URL_BASE}/rest/v1/consultants?select=id,example_limit&enabled=eq.true`, { headers: { apikey: SVC, Authorization: `Bearer ${SVC}` } }),
+      fetch(`${URL_BASE}/rest/v1/consultants?select=id,kind,example_limit&enabled=eq.true`, { headers: { apikey: SVC, Authorization: `Bearer ${SVC}` } }),
       fetch(`${URL_BASE}/rest/v1/consultant_examples?select=consultant_id,author,enabled`, { headers: { apikey: SVC, Authorization: `Bearer ${SVC}` } }),
     ]);
     const cs = await cRes.json() as any[];
     const ex = await eRes.json() as any[];
     const live = ex.filter((r) => r.author === 'boss' && r.enabled);
     const draft = ex.filter((r) => r.author !== 'boss');
-    const want = cs.filter((c) => (c.example_limit ?? 0) > 0);
+    // ⚠️★`virtual` 은 제외 — 프롬프트가 없어 예시를 실을 자리가 없다(위 ④ 주석과 같은 이유)
+    const want = cs.filter((c) => c.kind === 'live' && (c.example_limit ?? 0) > 0);
     if (!Array.isArray(cs) || !Array.isArray(ex)) {
       console.log('  ·  조회 실패 — 생략');
     } else if (want.length && !live.length) {

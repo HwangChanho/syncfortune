@@ -35,7 +35,10 @@ import { Alert } from '../../lib/ui/alert';   // 커스텀 알림 — 운 부족
 import { SECTIONS } from '../../lib/content/contentSections'; // 대화 중 콘텐츠 안내 — 키 → 라벨·라우트(목록의 단일 출처)
 import { supabase } from '../../lib/supabase';
 import { withTimeout } from '../../lib/core/withTimeout';
-import { loadRepChart } from '../../lib/engine/myChart';
+import { loadRepChart, listCharts, type SavedChart } from '../../lib/engine/myChart';
+// ★@명식 부르기(Boss 2026-08-26) — 부른 사람의 **원국·판정**을 같이 보낸다
+import { parseMentions, buildMentionBlocks, MAX_MENTIONS, type MentionTarget } from '../../lib/talk/chartMention';
+import ChartMentionSheet from '../../components/talk/ChartMentionSheet';
 import { loadMyProfile, subscribeProfile, profileSnapshot } from '../../lib/talk/myProfile';
 import { listFriends, type Friend } from '../../lib/talk/friends';
 import { useHomeOrder } from '../../lib/ui/homeOrder';
@@ -121,6 +124,10 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
   //   `mates` = 지금 방에 **같이 있는 상담가들**. 비면 1:1 방이다.
   const [inviteOpen, setInviteOpen] = useState(false);
   const [mates, setMates] = useState<Consultant[]>([]);
+  // ── @명식 부르기(Boss 2026-08-26 *"@누구 이런식으로 불러올수 있으면"*) ─────────────
+  //   ★저장된 명식은 **온디바이스**다(ADR-005). 서버에 없는 사람도 부를 수 있어야 한다.
+  const [myCharts, setMyCharts] = useState<SavedChart[]>([]);
+  const [mentionOpen, setMentionOpen] = useState(false);
   /**
    * 친구목록 = **사람 다섯**(Boss 2026-08-20 압축).
    * ★종전엔 홈 블록 아홉이 그대로 '친구'로 올라가 열다섯이었다 —
@@ -288,6 +295,8 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
   }, []);
   // 사람 친구 — ★화면에 들어올 때마다 다시 읽는다(신청을 수락하고 돌아오면 바로 보여야 한다)
   useFocusEffect(useCallback(() => { void listFriends().then(setFriends); }, []));
+  // 명식 목록 — ★화면에 들어올 때마다 다시 읽는다(방금 등록하고 돌아오면 **바로** 부를 수 있어야 한다)
+  useFocusEffect(useCallback(() => { void listCharts().then(setMyCharts); }, []));
   // 명식은 한 번만 계산해 둔다 — 가상 답이 매번 엔진을 다시 돌릴 이유가 없다
   useEffect(() => {
     let alive = true;
@@ -407,6 +416,30 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
     }
   }, [t, dateKey, myName, bumpChats]);
 
+  /** `@` 뒤에 올 수 있는 이름들 — 저장된 명식이 곧 후보다. */
+  const mentionTargets = useMemo<MentionTarget[]>(
+    () => myCharts.map((c) => ({ id: c.id, name: c.label, relation: c.relation })),
+    [myCharts],
+  );
+
+  /**
+   * 본문에서 부른 사람들 → **모델이 읽을 재료**(원국·판정).
+   *
+   * ⚠️생년월일·출생지는 **안 나간다** — 구조만 보낸다(ADR-005 · `chartMention.ts` 머리말).
+   * ★계산이 안 되는 명식 하나 때문에 대화를 막지 않는다 — 그 사람만 빼고 나머지는 간다.
+   * @param q 사용자가 쓴 문장
+   */
+  const buildMentions = useCallback((q: string): string[] => {
+    const people: { name: string; relation: string; saju: any }[] = [];
+    for (const m of parseMentions(q, mentionTargets)) {
+      const c = myCharts.find((x) => x.id === m.id);
+      if (!c?.input) continue;
+      try { people.push({ name: m.name, relation: m.relation, saju: computeChart(c.input).saju }); }
+      catch { /* 이 한 명이 안 되어도 나머지는 보낸다 */ }
+    }
+    return buildMentionBlocks(people);
+  }, [myCharts, mentionTargets]);
+
   /**
    * 사용자가 한 마디.
    *
@@ -445,7 +478,9 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
     if (!cur) return;
     // ★판정은 **보낼 때 만든다** — 명식이 바뀌면 다음 턴부터 바로 반영된다
     void askLive(cur.id, q, sessRef.current[cur.id] ?? null, chartId, i18n.language, attempt,
-                 saju ? buildChartVerdict(saju) : null)
+                 saju ? buildChartVerdict(saju) : null,
+                 // ★@이름으로 부른 사람들 — **이 턴에만** 실린다(캐시 접두사를 건드리지 않는다)
+                 buildMentions(q))
       .then((r) => {
         // 답을 기다리는 동안 대화를 지웠거나 다른 방으로 옮겼다 — **버린다.**
         //   ⚠️`setBusy(false)` 도 하지 않는다. 지금 점이 돌고 있다면 그건 **새 방의 것**이다.
@@ -577,7 +612,8 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
         if (gen !== genRef.current) return;   // 버린 방의 실패는 새 방에 알리지 않는다
         setBusy(false); console.warn('[talk] send 실패', e);
       });
-  }, [cur, chartId, t, i18n.language, bumpChats, refreshNotes, sayInOrder]);
+    // ⚠️`saju`·`buildMentions` 를 빼면 명식을 바꾸고도 **옛 것으로** 보낸다(그리고 조용하다)
+  }, [cur, chartId, t, i18n.language, bumpChats, refreshNotes, sayInOrder, saju, buildMentions]);
   // ★ref 로 붙들어 둔다 — `send` 와 재시도 타이머가 **항상 최신 `fire`** 를 부르게.
   //   (`send` 의 의존성에 `fire` 를 넣으면 매 입력마다 콜백이 새로 만들어진다.)
   const fireRef = useRef(fire);
@@ -651,11 +687,23 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
 
   const composer = !cur?.block && (cur?.kind === 'virtual' || cur?.kind === 'live') ? (
     <View style={[styles.composer, { paddingBottom: Math.max(space(3), insets.bottom), marginBottom: lift }]}>
+      {/* ★명식 부르기 — **실제 상담가에게만** 붙인다.
+          가상(오늘의 운세 등)은 LLM 을 안 부르므로 눌러도 아무 일이 없다 = 죽은 버튼이 된다. */}
+      {cur?.kind === 'live' ? (
+        <PressableScale style={styles.atBtn} hitSlop={6} onPress={() => setMentionOpen(true)}>
+          <Text style={styles.atTx}>@</Text>
+        </PressableScale>
+      ) : null}
       <TextInput
         ref={inputRef}
         style={styles.input}
         value={draft}
-        onChangeText={setDraft}
+        onChangeText={(v) => {
+          setDraft(v);
+          // ★'@' 를 치면 **바로** 목록을 연다 — 이름을 외워 칠 필요가 없다(Boss «간편하게»).
+          //   ⚠️이미 열려 있으면 다시 열지 않는다(웹에서 창이 깜빡인다).
+          if (cur?.kind === 'live' && v.endsWith('@') && !mentionOpen) setMentionOpen(true);
+        }}
         placeholder={t('talk.inputHint', '무엇이든 물어보세요')}
         placeholderTextColor={colors.inkFaint}
         onSubmitEditing={send}
@@ -666,6 +714,32 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
         <Text style={styles.sendTx}>{t('talk.send', '보내기')}</Text>
       </PressableScale>
     </View>
+  ) : null;
+
+  /**
+   * 명식 부르기 창.
+   * ★`composer` 와 **같이** 만들어 둔다 — 렌더 경로가 둘(넓은 웹 3칸 / 폰)이라
+   *   한쪽에만 넣으면 «폰에서는 되는데 웹에서는 안 된다» 가 된다. [[duplicate-ui-single-source]]
+   */
+  const mentionSheet = mentionOpen ? (
+    <ChartMentionSheet
+      rows={myCharts.map((c) => ({
+        id: c.id, name: c.label, relation: c.relation,
+        // ⚠️생일은 **고를 때 구분하려고** 화면에만 쓴다 — 서버로는 안 나간다(ADR-005)
+        born: String(c.input?.birthDateTime ?? '').slice(0, 10),
+      }))}
+      already={parseMentions(draft, mentionTargets).map((m) => m.name)}
+      max={MAX_MENTIONS}
+      onClose={() => setMentionOpen(false)}
+      onRegister={() => { setMentionOpen(false); router.push('/register'); }}
+      onPick={(row) => {
+        setMentionOpen(false);
+        // ★방금 친 '@' 는 지우고 넣는다 — 안 그러면 "@@민수" 가 되고 그러면 못 맞춘다
+        setDraft((d) => `${d.replace(/@$/, '')}@${row.name} `);
+        // 고르고 나면 계속 쓸 수 있게 입력창으로 돌려준다
+        setTimeout(() => inputRef.current?.focus(), 0);
+      }}
+    />
   ) : null;
 
   // ── 넓은 웹 = **세 칸** ───────────────────────────────────────────
@@ -738,6 +812,7 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
               ) : null}
               <TalkThread items={items} busy={busy} onLink={(r) => router.push(r as never)} jumpTo={jumpTo} />
               {composer}
+              {mentionSheet}
             </>
           ) : (
             <View style={styles.empty}>
@@ -794,6 +869,7 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
       />
       <TalkThread items={items} busy={busy} onLink={(r) => router.push(r as never)} jumpTo={jumpTo} />
       {composer}
+      {mentionSheet}
       {inviteOpen ? (
         <InviteSheet
           // ★이미 방에 있는 사람은 뺀다 — 두 번 부르면 «3명» 이 되지 않는다
@@ -858,6 +934,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: space(4), paddingVertical: space(2.5),
     ...font.body, color: colors.ink,
   },
+  // ★명식 부르기 — 보내기와 **다른 무게**로(주 동작은 보내기다).
+  //   ⚠️글리프는 fontSize 만큼 안 커진다([[glyph-icons-dont-scale]]) — 잉크로 보고 22 로 잡았다
+  atBtn: {
+    width: 38, height: 38, borderRadius: radius.pill, backgroundColor: colors.sunk,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  atTx: { ...font.body, fontSize: 22, lineHeight: 26, color: colors.ju, fontWeight: '900' },
   sendBtn: { backgroundColor: colors.ju, borderRadius: radius.pill, paddingHorizontal: space(4), paddingVertical: space(2.5) },
   // ★강조색 위 글자는 `onJu`(check:onaccent)
   sendTx: { ...font.label, color: colors.onJu, fontWeight: '900' },
