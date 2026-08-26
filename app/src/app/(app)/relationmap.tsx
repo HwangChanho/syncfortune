@@ -36,6 +36,7 @@ import { PressableScale } from '../../components/PressableScale';
 import { colors, radius, space } from '../../lib/theme';
 import { useFontScale } from '../../lib/ui/fontScale';
 import type { Element } from '@spec/chart';
+import Svg, { Line as SvgLine } from 'react-native-svg';   // ★나↔상대 점선(Boss 2026-08-27)
 
 /**
  * 지도 노드 색 — 오행을 **구분**해야 하는 자리라 채도를 올린다.
@@ -51,6 +52,14 @@ const CENTER = MAP_SIZE / 2;
 const R_MIN = 62;              // 케미 99 → 이만큼 가까이
 const R_MAX = 124;             // 케미 1  → 이만큼 멀리
 const DOT = 44;
+/**
+ * 중앙(나) 원의 반지름 · 상대 점의 반지름 — **점선을 원 밖에서 시작·끝내려고** 이름을 준다.
+ *
+ * ⚠️★스타일(`styles.me` 의 60×60)과 **같은 값**이라야 한다. 여기 숫자를 손으로 또 적으면
+ *   원 크기를 바꿨을 때 점선이 원 밑으로 파고들거나 붕 뜬다 — 그래서 스타일이 이 상수를 쓴다.
+ */
+const ME_R = 30;
+const DOT_R = DOT / 2;
 /**
  * ★지도에 그리는 최대 인원(daniel 2026-08-14 실기기: **61명이 뭉개져** 이름이 겹쳤다).
  *   원 하나에 61개를 올리면 도넛이 되고 아무 정보도 안 남는다.
@@ -216,6 +225,14 @@ export default function RelationMapScreen() {
   const chemis = shown.map((n) => n.chemi);
   const hi = Math.max(...chemis), lo = Math.min(...chemis);
   const span = Math.max(1, hi - lo);
+  /**
+   * 한 사람의 **자리** — 점과 점선이 **같은 계산**을 쓴다.
+   *
+   * ⚠️★종전엔 `left/top` 만 돌려줬다. 점선을 그리려고 각도를 여기서 또 구하면
+   *   «점은 여기 있는데 선은 저리로 가는» 어긋남이 언젠가 생긴다([[duplicate-ui-single-source]]).
+   *   ⇒ 중심 좌표(`cx`,`cy`)와 거리(`r`)까지 한 번에 돌려주고, 선은 그 값을 그대로 쓴다.
+   * @returns `left/top` = 점 상자의 왼쪽 위 · `cx/cy` = 점의 **한가운데** · `r` = 나에게서의 거리
+   */
   const seatOf = (n: RelationNode) => {
     const sameRole = shown.filter((x) => x.role === n.role);
     const idx = sameRole.findIndex((x) => x.id === n.id);
@@ -224,7 +241,9 @@ export default function RelationMapScreen() {
     const deg = ROLE_ARC[n.role] + spread;
     const r = R_MAX - ((n.chemi - lo) / span) * (R_MAX - R_MIN);
     const rad = (deg * Math.PI) / 180;
-    return { left: CENTER + Math.cos(rad) * r - DOT / 2, top: CENTER + Math.sin(rad) * r - DOT / 2 };
+    const cx = CENTER + Math.cos(rad) * r;
+    const cy = CENTER + Math.sin(rad) * r;
+    return { left: cx - DOT / 2, top: cy - DOT / 2, cx, cy, r, rad };
   };
 
   return (
@@ -245,6 +264,35 @@ export default function RelationMapScreen() {
       {/* ── 지도 ─────────────────────────────────────────────────────────── */}
       <View style={styles.mapBox}>
         <View style={styles.ring1} /><View style={styles.ring2} />
+        {/* ★나 ↔ 상대 **점선**(Boss 2026-08-27 *"나를 중심으로 점선으로 상대와의 거리를
+            시각적으로 더 알기 쉽게"*). 종전엔 거리가 «점이 놓인 자리» 로만 보여서,
+            어디까지가 나에게서 멀어진 것인지 눈으로 이어지지 않았다.
+            ★선은 **원 밖에서 시작해 원 밖에서 끝난다** — 두 원 밑으로 파고들면 지저분해진다.
+            ★가까울수록 **진하고 굵다** — 거리(길이)와 세기(굵기)가 같은 말을 하면 더 빨리 읽힌다.
+            ⚠️링 **위**, 점 **아래**에 둔다(선이 얼굴을 가리면 안 된다). */}
+        <Svg width={MAP_SIZE} height={MAP_SIZE} style={StyleSheet.absoluteFill as never} pointerEvents="none">
+          {shown.map((n) => {
+            const st = seatOf(n);
+            // 0(가장 먼 사람) ~ 1(가장 가까운 사람) — 지도 안에서의 상대 위치
+            const near = (R_MAX - st.r) / Math.max(1, R_MAX - R_MIN);
+            const on = peekId === n.id;
+            // 원 겉면에서 겉면까지 — 시작·끝을 반지름만큼 밀어 낸다
+            const x1 = CENTER + Math.cos(st.rad) * ME_R;
+            const y1 = CENTER + Math.sin(st.rad) * ME_R;
+            const x2 = st.cx - Math.cos(st.rad) * DOT_R;
+            const y2 = st.cy - Math.sin(st.rad) * DOT_R;
+            return (
+              <SvgLine
+                key={n.id} x1={x1} y1={y1} x2={x2} y2={y2}
+                stroke={on ? colors.ju : NODE_COLOR[n.dayElem]}
+                strokeWidth={on ? 2.4 : 1 + near * 1.2}
+                strokeOpacity={on ? 0.95 : 0.3 + near * 0.4}
+                strokeDasharray={on ? '6 4' : '3 5'}
+                strokeLinecap="round"
+              />
+            );
+          })}
+        </Svg>
         {/* 중앙 = 나 */}
         <View style={[styles.me, { backgroundColor: NODE_COLOR[myElem] }]}>
           <Text style={styles.meElem}>{elemLabel(myElem, lang)}</Text>
@@ -432,7 +480,8 @@ const mkStyles = (fs: (n: number) => number) => StyleSheet.create({
   },
   ring1: { position: 'absolute', left: CENTER - R_MIN, top: CENTER - R_MIN, width: R_MIN * 2, height: R_MIN * 2, borderRadius: R_MIN, borderWidth: 1, borderColor: colors.juLine, opacity: 0.5 },
   ring2: { position: 'absolute', left: CENTER - R_MAX, top: CENTER - R_MAX, width: R_MAX * 2, height: R_MAX * 2, borderRadius: R_MAX, borderWidth: 1, borderColor: colors.juLine, opacity: 0.3 },
-  me: { position: 'absolute', left: CENTER - 30, top: CENTER - 30, width: 60, height: 60, borderRadius: 30, alignItems: 'center', justifyContent: 'center' },
+  // ★`ME_R` 을 쓴다 — 점선이 이 원의 겉면에서 시작하므로 두 값이 갈리면 선이 파고든다
+  me: { position: 'absolute', left: CENTER - ME_R, top: CENTER - ME_R, width: ME_R * 2, height: ME_R * 2, borderRadius: ME_R, alignItems: 'center', justifyContent: 'center' },
   meElem: { color: '#fff', fontSize: fs(15), lineHeight: fs(20), fontWeight: '800' },   // '나무'(2글자)가 들어간다
   meLabel: { color: '#fff', fontSize: fs(10), lineHeight: fs(14), opacity: 0.9 },
   node: { position: 'absolute', width: DOT, alignItems: 'center' },
