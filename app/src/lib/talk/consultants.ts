@@ -11,6 +11,7 @@
 //   클라이언트를 고쳐 유료 대화를 무료로 부를 수 있다. 여기서는 서버가 준 값을 그대로 옮기기만 한다.
 // ═══════════════════════════════════════════════════════════════════════════
 import { supabase } from '../supabase';
+import i18n from 'i18next';   // 상담가 이름·소개의 언어별 값(copy_overrides)을 읽는다
 import { withTimeout } from '../core/withTimeout';
 
 export type Consultant = {
@@ -87,7 +88,10 @@ const SEED: Consultant[] = [
   { id: 'heal_yuri', kind: 'live', name: '힐링하는 유리', tagline: '마음 돌보기', avatar: null, specialty: ['heal'], routes: [], blocks: [], group: 'friend', sortOrder: 150, age: 34 },
 ];
 
-let _cache: Consultant[] | null = null;
+// ⚠️★캐시는 **서버 원문**을 담는다(번역된 결과가 아니라).
+//   번역을 구워 두면 언어를 바꿔도 **이름·소개가 한국어 그대로** 남는다 —
+//   «고쳤는데 왜 그대로냐» 의 전형이다. 매핑은 읽을 때마다 한다(22행이라 비용은 무시할 수준).
+let _raw: any[] | null = null;
 
 /**
  * 아바타 경로 → 공개 URL.
@@ -109,13 +113,34 @@ function avatarUrl(path: string, ver?: string | null): string {
   return `${base}?v=${Number.isFinite(v) ? v : Math.floor(Date.now() / 60000)}`;
 }
 
+/**
+ * DB 값 위에 **번역이 있으면 그것을** 쓴다.
+ *
+ * ⚠️★2026-08-27 실측으로 드러난 것 — 영어로 바꿔도 **상담가 이름·소개는 한국어 그대로**였다.
+ *   화면 문구(`copy/*.ts`)를 아무리 번역해도 이건 안 바뀐다. **DB 값**이기 때문이다.
+ *   ⇒ 이미 있는 `copy_overrides(키, 언어, 값)` 길을 그대로 쓴다 —
+ *     `consultant.<id>.name` · `consultant.<id>.tagline` 키가 있으면 그 언어 값을 쓰고,
+ *     **없으면 DB 원문**(한국어)을 쓴다. 언어를 늘려도 스키마도 이 코드도 안 바뀐다.
+ *   ★한국어에서는 키를 **일부러 안 넣는다** — 정본이 두 곳이 되면 관리자 콘솔에서 이름을 고쳐도
+ *     화면이 안 바뀌는 «고쳤는데 왜 그대로냐» 가 생긴다.
+ *
+ * @param key  `consultant.<id>.name` 같은 오버라이드 키
+ * @param raw  DB 원문(번역이 없으면 이것을 쓴다)
+ */
+function tr(key: string, raw: string | null | undefined): string {
+  const v = raw ?? '';
+  if (i18n.language?.startsWith('ko')) return v;          // ★한국어는 DB 가 정본
+  return i18n.exists(key) ? String(i18n.t(key)) : v;
+}
+
 /** 서버 행 → 앱 타입. 컬럼 이름이 바뀌면 여기만 고친다. */
 function fromRow(r: any): Consultant {
+  const id = String(r.id);
   return {
-    id: String(r.id),
+    id,
     kind: r.kind === 'live' ? 'live' : 'virtual',   // ★모르는 값은 안전한 쪽(virtual = 원가 0)으로
-    name: String(r.name ?? ''),
-    tagline: r.tagline ?? null,
+    name: tr(`consultant.${id}.name`, r.name),
+    tagline: r.tagline ? tr(`consultant.${id}.tagline`, r.tagline) : null,
     // ★경로가 아니라 **완성된 URL** 로 내려준다 — 화면이 어느 버킷인지 알 필요가 없다
     avatar: r.avatar ? avatarUrl(String(r.avatar), r.updated_at) : null,
     cover: r.cover ? avatarUrl(String(r.cover), r.updated_at) : null,
@@ -140,7 +165,7 @@ function fromRow(r: any): Consultant {
  * @returns 노출 순서대로 정렬된 목록. 서버 실패 시 씨앗
  */
 export async function listConsultants(force = false): Promise<Consultant[]> {
-  if (_cache && !force) return _cache;
+  if (_raw && !force) return _raw.map(fromRow);
   try {
     const r = await withTimeout(
       // ★★`enabled` 를 **쿼리에서** 거른다(2026-08-19 실물에서 잡힘).
@@ -152,17 +177,17 @@ export async function listConsultants(force = false): Promise<Consultant[]> {
         .eq('enabled', true).order('sort_order'),
       8000,
     );
-    if (!r || r.error || !Array.isArray(r.data) || !r.data.length) return _cache ?? SEED;
-    _cache = r.data.map(fromRow);
-    return _cache;
+    if (!r || r.error || !Array.isArray(r.data) || !r.data.length) return _raw ? _raw.map(fromRow) : SEED;
+    _raw = r.data;
+    return _raw.map(fromRow);
   } catch {
-    return _cache ?? SEED;   // 네트워크가 없어도 첫 화면은 뜬다
+    return _raw ? _raw.map(fromRow) : SEED;   // 네트워크가 없어도 첫 화면은 뜬다
   }
 }
 
 /** 지금 캐시된 목록(동기 — 첫 렌더용). 아직 안 읽었으면 씨앗. */
 export function consultantsSnapshot(): Consultant[] {
-  return _cache ?? SEED;
+  return _raw ? _raw.map(fromRow) : SEED;
 }
 
 /** 한 명 찾기. 없으면 null(라우트가 사라진 상담사를 열었을 때). */

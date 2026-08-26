@@ -76,6 +76,27 @@ console.log('\n🌐 check:langpicker — 언어 고르기 · 남은 한국어\n'
     has ? '헤더에 <LangChip />' : 'Boss 지시: *"서비스 홈에서 언어설정 가능하게"*');
 }
 
+// ── L6 ★DB 문구(상담가 이름·소개)도 그 언어로 나오는가 ─────────────────────
+//   2026-08-27 실측: 영어로 바꿔도 **상담가 이름·소개가 한국어 그대로**였다.
+//   화면 문구(`copy/*.ts`)를 아무리 번역해도 안 바뀐다 — **DB 값**이기 때문이다.
+//   ⇒ 셋이 다 있어야 한다: ①번역을 태우는 배선 ②캐시가 번역을 굽지 않음 ③언어 바뀌면 다시 그림
+{
+  const c = strip(read('app/src/lib/talk/consultants.ts') ?? '');
+  const wired = /name:\s*tr\(/.test(c) && /tagline:\s*r\.tagline\s*\?\s*tr\(/.test(c);
+  say(wired, 'L6 상담가 이름·소개가 번역을 탄다',
+    wired ? 'copy_overrides 의 consultant.<id>.* 를 쓴다' : 'DB 값을 그대로 내보내면 **영어 화면에 한국어 이름**이 남는다');
+
+  // ★캐시가 **매핑된 결과**를 담으면 언어를 바꿔도 옛 언어가 남는다 — 원문을 담아야 한다
+  const lazy = /_raw\s*\.map\(fromRow\)/.test(c) && !/_raw\s*=\s*r\.data\.map\(/.test(c);
+  say(lazy, 'L6b 캐시가 번역을 **굽지 않는다**',
+    lazy ? '원문을 담고 읽을 때 매핑한다' : '캐시에 번역이 구워지면 언어를 바꿔도 그대로 남는다');
+
+  const layout = strip(read('app/src/app/_layout.tsx') ?? '');
+  const remount = /<Stack\s+key=\{[A-Za-z_$][\w$]*[Ll]ang\}/.test(layout);
+  say(remount, 'L6c 언어가 바뀌면 화면을 **다시 읽는다**',
+    remount ? '<Stack key={언어}> 로 리마운트' : 'state 에 담아 둔 서버 문구가 옛 언어로 남는다');
+}
+
 // ── L5 ★남은 한국어 — 세고, 늘면 막는다 ────────────────────────────────────
 /** 화면 파일 전부. */
 function screens(dir = 'app/src'): string[] {

@@ -5,6 +5,7 @@
 // native = 스택 내비 / web = URL 라우팅 으로 같은 트리가 양쪽에서 동작한다.
 // ─────────────────────────────────────────────────────────────────────────
 import 'intl-pluralrules'; // Intl.PluralRules polyfill (Hermes) — iztro i18next 보조(ERROR 폴백, 무해)
+import { useTranslation } from 'react-i18next';   // 언어가 바뀌면 재렌더 + 트리 리마운트 키
 import '../lib/i18n'; // 다국어(한·영·일) init
 // ★전역 최소 줄간격(daniel 2026-07-28 "글자가 클때 줄간 간격이 너무 좁아") — import 시점에 1회 설치.
 //   테마 프리셋에 lineHeight 가 없어 대부분의 텍스트가 RN 기본(약 1.2배)으로 그려지고 있었다.
@@ -91,6 +92,14 @@ export default function RootLayout() {
   // ★문구 오버라이드(daniel 2026-08-03) — 앱 재빌드 없이 기획자가 고친 문구를 번들 위에 덮는다.
   //   실패·지연은 무시(내부에서 5초 상한) — 문구는 부가라 번들 값으로 정상 동작한다.
   useEffect(() => { void applyCopyOverrides(); }, []);
+  // ★★언어를 바꾸면 **트리를 다시 그린다**(아래 `<Stack key={i18nLang}>`).
+  //   `useTranslation()` 은 문구만 다시 읽어 준다. 그런데 화면이 **한 번 읽어 state 에 담아 둔 것**
+  //   (상담가 목록·서버에서 받은 문구)은 그대로 남는다 — 실제로 영어로 바꿔도
+  //   **상담가 이름·소개가 한국어 그대로**였다(2026-08-27 실측).
+  //   ⇒ 배율(`FontScaleProvider` 의 `key={effective}`)과 **같은 수법**. 언어는 자주 바꾸는 값이 아니라
+  //     리마운트 비용을 감수할 만하고, 이게 없으면 «골랐는데 안 바뀐다» 가 남는다.
+  const { i18n: i18nInst } = useTranslation();
+  const i18nLang = i18nInst.language;
   // 진행중/완료-미확인 풀이 복원(daniel: 풀이 중 강제종료해도 홈에 '이전에 진행중인 풀이' 배너 → 탭하여 이어보기).
   useEffect(() => { hydrateGenProgress().catch(() => {}); }, []);
   // ★테스트광고 게이트(daniel) — 관리자/테스트 계정은 실 AdMob 유닛 서빙 전이라 구글 테스트광고를 보게(배너·보상형·전면 동작 확인용).
@@ -198,7 +207,7 @@ export default function RootLayout() {
         {(loading || (!fontsLoaded && !fontError)) ? (
           <View style={styles.center}><ActivityIndicator size="large" color={colors.ju} /></View>
         ) : (
-          <Stack screenOptions={{ headerShown: false }}>
+          <Stack key={i18nLang} screenOptions={{ headerShown: false }}>
             <Stack.Screen name="login" />
             <Stack.Screen name="auth-callback" />
             <Stack.Screen name="(app)" />
