@@ -69,10 +69,12 @@ type Loaded = {
  * @param onMention 「대화에서 부르기」 — 이름을 넘긴다(호출부가 `@이름` 을 입력창에 넣는다)
  * @param onMore    「자세히」 — 갈 경로를 넘긴다(만세력·궁합 전체 화면)
  */
-export function PersonSheet({ target, onClose, onMention, onMore }: {
+export function PersonSheet({ target, onClose, onMention, onMessage, onMore }: {
   target: PersonTarget | null;
   onClose: () => void;
   onMention?: (name: string) => void;
+  /** 「메시지 보내기」 — 이 사람과의 **사람 방**을 연다(운 0). 친구일 때만 뜬다. */
+  onMessage?: () => void;
   onMore?: (route: string) => void;
 }) {
   const { t } = useTranslation();
@@ -247,15 +249,24 @@ export function PersonSheet({ target, onClose, onMention, onMore }: {
               {/* ── 대화 ── */}
               {tab === 'talk' ? (
                 <View style={styles.talkBox}>
+                  {/* ★★2026-08-27 — 여기가 **사람에게 직접 말 거는 자리**가 됐다
+                      (Boss: *"기본적으로 친구추가하면 서로 채팅도 가능하게 하자"*).
+                      종전엔 「대화에서 @이름 부르기」뿐이었다 — 그건 **상담가에게** 이 사람 명식을
+                      보여 주는 것이지, 이 사람과 이야기하는 것이 아니다. 둘 다 남긴다:
+                        ①메시지 보내기 = 사람에게(운 0)  ②상담가에게 부르기 = 명식을 같이 보기
+                      ⚠️①은 명식 공개와 **무관하다** — 명식을 안 열어 준 친구와도 이야기는 된다. */}
+                  <PressableScale style={styles.cta} onPress={() => { onClose(); onMessage?.(); }}>
+                    <Text style={styles.ctaTx}>{t('person.message', '메시지 보내기')}</Text>
+                  </PressableScale>
                   <Text style={styles.talkLead}>
                     {t('person.talkLead', '이 사람을 대화에서 부르면, 상담가가 이 명식을 함께 보고 답해요.')}
                   </Text>
                   <PressableScale
-                    style={styles.cta}
+                    style={[styles.cta, styles.ctaGhost]}
                     disabled={!data?.saju}
                     onPress={() => { onClose(); onMention?.(name); }}
                   >
-                    <Text style={styles.ctaTx}>
+                    <Text style={[styles.ctaTx, styles.ctaGhostTx]}>
                       {t('person.mention', '대화에서 @{{name}} 부르기').replace('{{name}}', name)}
                     </Text>
                   </PressableScale>
@@ -308,6 +319,9 @@ const styles = StyleSheet.create({
 
   talkBox: { gap: space(4), paddingTop: space(2) },
   talkLead: { ...font.body, color: colors.inkSoft },
+  // 두 번째 버튼은 **약하게** — 「메시지 보내기」가 주된 행동이다
+  ctaGhost: { backgroundColor: 'transparent', borderWidth: 1, borderColor: colors.juLine },
+  ctaGhostTx: { color: colors.ju },
   cta: { backgroundColor: colors.ju, borderRadius: radius.md, paddingVertical: space(3.5), alignItems: 'center' },
   ctaTx: { ...font.body, color: '#fff', fontWeight: '800' },
 });

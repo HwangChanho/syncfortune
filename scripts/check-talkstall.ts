@@ -124,7 +124,9 @@ console.log('\n=== ⑤ "기다려 주세요"가 약속인가 ===');
 console.log('\n=== ⑥ `attempt` 가 과금에 영향을 주지 않는가 ===');
 {
   const edge = readFileSync(EDGE, 'utf8');
-  const costLine = /const\s+coinCost\s*=.*$/m.exec(edge)?.[0] ?? '';
+  // ⚠️`const` 를 **글자로** 찾지 않는다 — 다인방 합산(2026-08-27)으로 `let` 이 되자 빨간불이 됐다.
+  //   코드는 옳았고 하네스가 낡은 것이다([[harness-judge-expression-not-name]]).
+  const costLine = /(?:const|let|var)\s+coinCost\s*=.*$/m.exec(edge)?.[0] ?? '';
   if (costLine && !/attempt/.test(costLine)) ok('단가 계산식이 회차를 참조하지 않는다');
   else bad('★회차가 단가에 섞였다 — 클라가 회차를 조작해 공짜로 만든다');
   const freeLine = /const\s+overFree\s*=.*$/m.exec(edge)?.[0] ?? '';

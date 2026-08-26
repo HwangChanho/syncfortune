@@ -1,6 +1,6 @@
 {
   "_note": "public 스키마 컬럼 스냅샷 — scripts/check-edge-columns.mjs 가 참조한다. 마이그레이션 후 npm run snap:cols 로 갱신할 것.",
-  "_generatedAt": "2026-08-26T15:53:30.390Z",
+  "_generatedAt": "2026-08-26T16:37:26.192Z",
   "tables": {
     "charts": [
       "id",
@@ -115,7 +115,9 @@
       "last_at",
       "last_read_at",
       "unread",
-      "preview"
+      "preview",
+      "guest_ids",
+      "pinned_at"
     ],
     "community_comments": [
       "id",
@@ -376,6 +378,12 @@
       "topic",
       "view_count"
     ],
+    "talk_members": [
+      "session_id",
+      "user_id",
+      "joined_at",
+      "last_read_at"
+    ],
     "dream_cache": [
       "keyword",
       "lang",
@@ -601,7 +609,8 @@
       "last_at",
       "created_at",
       "last_read_at",
-      "guest_ids"
+      "guest_ids",
+      "pinned_at"
     ],
     "push_campaigns": [
       "id",

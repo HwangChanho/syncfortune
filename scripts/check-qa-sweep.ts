@@ -8,6 +8,7 @@
 // 실행: npm run check:qa-sweep
 // ─────────────────────────────────────────────────────────────────────────
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
+import { homedir } from 'node:os';   // ★realtime 표의 REPLICA IDENTITY 를 DB 에서 실측하려고
 
 const ROOT = new URL('..', import.meta.url).pathname;
 const read = (p: string) => { try { return readFileSync(`${ROOT}${p}`, 'utf8'); } catch { return null; } };
@@ -84,10 +85,38 @@ console.log('\n🔎 QA 전수검수 방어선\n');
   for (const f of walk('app/src')) {
     for (const m of (read(f) ?? '').matchAll(/table:\s*'([a-z_]+)'/g)) tables.add(m[1]);
   }
-  const known = new Set(['gen_jobs']);               // FULL 로 전환 확인된 것
-  const unknown = [...tables].filter((t) => !known.has(t));
-  if (!unknown.length) ok(`④ realtime 구독 테이블 ${[...tables].join(',')} — REPLICA IDENTITY 확인됨`);
-  else bad(`④ 새 realtime 구독 테이블: ${unknown.join(', ')} — RLS 가 있으면 REPLICA IDENTITY FULL 필요(아니면 이벤트가 조용히 드롭)`);
+  // ★★명단이 아니라 **DB 를 본다**(2026-08-27).
+  //   종전엔 «FULL 로 전환 확인된 것» 을 손으로 적어 뒀다 — 표를 하나 더 구독할 때마다
+  //   **실제로 FULL 인지와 무관하게** 빨간불이 됐다(`talk_messages` 에서 실제로 그랬다: 이미 FULL 이었다).
+  //   ⇒ 토큰이 있으면 `pg_class.relreplident` 를 **직접 읽는다**. 없으면 명단으로 물러선다.
+  let notFull: string[] | null = null;
+  try {
+    const tok = readFileSync(`${homedir()}/.supabase/access-token`, 'utf8').trim();
+    const ref = (read('.env') ?? '').match(/https:\/\/([a-z0-9]+)\.supabase\.co/)?.[1];
+    if (tok && ref && tables.size) {
+      const names = [...tables].map((t) => `'${t}'`).join(',');
+      const res = await fetch(`https://api.supabase.com/v1/projects/${ref}/database/query`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${tok}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: `select relname, relreplident from pg_class where relname in (${names})` }),
+      });
+      const rows = await res.json();
+      if (Array.isArray(rows)) {
+        // 'f' = FULL. 그 외(d=default/i=index/n=nothing)는 삭제·수정 이벤트에 옛 행이 안 실린다.
+        notFull = rows.filter((r: any) => r.relreplident !== 'f').map((r: any) => String(r.relname));
+      }
+    }
+  } catch { /* 조회 못 하면 아래 명단으로 */ }
+
+  if (notFull !== null) {
+    if (!notFull.length) ok(`④ realtime 구독 테이블 ${[...tables].join(',')} — **DB 실측** REPLICA IDENTITY FULL`);
+    else bad(`④ REPLICA IDENTITY 가 FULL 이 아니다: ${notFull.join(', ')} — 이벤트가 조용히 드롭된다`);
+  } else {
+    const known = new Set(['gen_jobs', 'talk_messages']);   // 실측으로 FULL 확인(2026-08-27)
+    const unknown = [...tables].filter((t) => !known.has(t));
+    if (!unknown.length) ok(`④ realtime 구독 테이블 ${[...tables].join(',')} — 명단 대조(DB 조회 불가)`);
+    else bad(`④ 새 realtime 구독 테이블: ${unknown.join(', ')} — RLS 가 있으면 REPLICA IDENTITY FULL 필요`);
+  }
 }
 
 // ── ⑤ 유료 kind 가 서버 게이트에 등록됐는가(빠지면 무료로 생성) ──────────

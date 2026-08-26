@@ -42,6 +42,13 @@ type Row = {
   guestIds: string[];
   /** 상단고정 시각. null = 안 함. **시각**인 이유: 「가장 최신 고정한 순」(Boss 2026-08-27) */
   pinnedAt: string | null;
+  /**
+   * ★사람 방인가 — `consultant_id` 가 **없는** 방(0050).
+   * 상담가 방과 목록을 **같이 쓴다**(Boss: *"따로 거하게 만들필요없이"*). 다른 건 이름·사진뿐이다.
+   */
+  isUserRoom: boolean;
+  /** 사람 방의 상대 얼굴(완성된 URL). 없으면 첫 글자를 그린다 */
+  peerAvatar: string | null;
   /** 미리보기 = 마지막 메시지 한 줄(Boss 2026-08-20 "텍스트 미리보기로 간략하게") */
   preview: string | null;
   lastAt: string; turns: number;
@@ -134,6 +141,38 @@ export function ChatList({ onOpen, selectedId, reloadKey = 0, wide, onSettings, 
       8000,
     );
     if (!r || r.error || !Array.isArray(r.data)) { setRows([]); return; }
+    // ★★사람 방(consultant_id 가 없는 방)은 **상대 사람**을 보여야 한다.
+    //   ⚠️방마다 물으면 방 수만큼 왕복이 생긴다(N+1) ⇒ **한 번에** 읽는다.
+    //   ⚠️`talk_members` 는 RLS 로 «내가 있는 방» 만 준다 — 목록에 안 보일 방은 애초에 안 온다.
+    const userRoomIds = (r.data as any[]).filter((x) => !x.consultant_id).map((x) => String(x.id));
+    const peerOf: Record<string, { name: string; avatar: string | null }> = {};
+    if (userRoomIds.length) {
+      const [mem, me] = await Promise.all([
+        withTimeout(supabase.from('talk_members').select('session_id, user_id').in('session_id', userRoomIds), 8000),
+        supabase.auth.getUser(),
+      ]);
+      const myId = me?.data?.user?.id ?? '';
+      const rowsM = (mem && !mem.error && Array.isArray(mem.data) ? mem.data : []) as any[];
+      const others = [...new Set(rowsM.map((x) => String(x.user_id)).filter((u) => u !== myId))];
+      const prof = others.length
+        ? await withTimeout(supabase.from('profiles').select('id, nickname, display_name, avatar_path').in('id', others), 8000)
+        : null;
+      const pRows = (prof && !prof.error && Array.isArray(prof.data) ? prof.data : []) as any[];
+      for (const sid of userRoomIds) {
+        const mates = rowsM.filter((x) => String(x.session_id) === sid && String(x.user_id) !== myId);
+        const names = mates.map((x) => {
+          const pr = pRows.find((y) => String(y.id) === String(x.user_id));
+          return String(pr?.nickname || pr?.display_name || t('friends.noName', '이름 없음'));
+        });
+        const first = mates[0] ? pRows.find((y) => String(y.id) === String(mates[0].user_id)) : null;
+        const path = first?.avatar_path ?? null;
+        peerOf[sid] = {
+          // ★혼자 남은 방도 있다(상대가 나갔다) — 그때는 «대화 상대 없음» 이라고 적는다
+          name: names.length ? roomTitle(names) : t('room.alone', '나 혼자 있는 방'),
+          avatar: path ? (supabase.storage.from('avatars').getPublicUrl(path).data.publicUrl ?? null) : null,
+        };
+      }
+    }
     setRows(r.data.map((s: any) => ({
       id: s.id,
       consultantId: s.consultant_id,
@@ -144,7 +183,11 @@ export function ChatList({ onOpen, selectedId, reloadKey = 0, wide, onSettings, 
       // ★★다인방이면 **참여자를 적는다**(2026-08-27 실측: 다인방 둘이 있는데 목록엔 둘 다
       //   「노쌤의 사주상담소」로만 떠서 **어느 방인지 구분이 안 됐다**).
       //   ⇒ 대화방 머리가 쓰는 `roomTitle` 을 **그대로** 쓴다 — 두 곳이 갈리면 같은 방이 다른 이름이 된다.
+      isUserRoom: !s.consultant_id,
+      peerAvatar: peerOf[String(s.id)]?.avatar ?? null,
       name: (() => {
+        // ★사람 방은 **상대 이름**이다(상담가가 없다)
+        if (!s.consultant_id) return peerOf[String(s.id)]?.name ?? t('room.alone', '나 혼자 있는 방');
         const nameOf = (id: string) => people.find((p) => p.id === id)?.name ?? id;
         const guests = Array.isArray(s.guest_ids) ? (s.guest_ids as string[]) : [];
         return guests.length
@@ -186,6 +229,8 @@ export function ChatList({ onOpen, selectedId, reloadKey = 0, wide, onSettings, 
 
   // ★묶음 판정은 **친구목록과 같은 출처**(`consultantsSnapshot`)를 쓴다 — 두 탭이 갈리면 안 된다
   const groupOf = (cid: string) => consultantsSnapshot().find((c) => c.id === cid)?.group;
+  /** 줄이 어느 칩에 속하나 — ★사람 방은 언제나 «친구» 다(상담가 묶음이 없다) */
+  const bucketOf = (r: Row) => (r.isUserRoom ? 'friend' : groupOf(r.consultantId));
   /**
    * 상담가 사진 — ★친구목록과 **같은 출처**(`consultantsSnapshot`)에서 가져온다.
    * ⚠️Boss 2026-08-23 *"친구리스트에서 변경된 사진이 대화리스트에서는 반영이 안되어있어"* —
@@ -205,7 +250,7 @@ export function ChatList({ onOpen, selectedId, reloadKey = 0, wide, onSettings, 
       if (row) onOpen({ sessionId: row.id, consultantId: cid, guestIds: row.guestIds });
     }));
   };
-  const byFilter = filter === 'all' ? rows : rows.filter((r) => groupOf(r.consultantId) === filter);
+  const byFilter = filter === 'all' ? rows : rows.filter((r) => bucketOf(r) === filter);
   // ★검색은 **거르기만** 한다(묶음·정렬을 건드리지 않는다)
   const k = q.trim().toLowerCase();
   const visible = k ? byFilter.filter((r) => r.name.toLowerCase().includes(k)) : byFilter;
@@ -307,9 +352,11 @@ export function ChatList({ onOpen, selectedId, reloadKey = 0, wide, onSettings, 
               onLeave?.({ sessionId: r.id, consultantId: r.consultantId, guestIds: r.guestIds, name: r.name, pinned });
             } } : null)}>
             {/* ★사진만 따로 — 줄을 누르면 대화, 사진을 누르면 프로필(Boss 2026-08-26) */}
-            <PressableScale hitSlop={6} onPress={() => openPhoto(r.consultantId, el)}>
-              {avatarOf(r.consultantId)
-                ? <ExpoImage source={{ uri: avatarOf(r.consultantId) as string }} style={styles.av} contentFit="cover" transition={140} />
+            {/* ⚠️★사람 방은 **상담가 프로필을 열면 안 된다** — 그런 상담가가 없다.
+                (`openPhoto` 는 `consultantsSnapshot()` 에서 찾는데 사람 방은 id 가 null 이다.) */}
+            <PressableScale hitSlop={6} disabled={r.isUserRoom} onPress={() => { if (!r.isUserRoom) openPhoto(r.consultantId, el); }}>
+              {(r.isUserRoom ? r.peerAvatar : avatarOf(r.consultantId))
+                ? <ExpoImage source={{ uri: (r.isUserRoom ? r.peerAvatar : avatarOf(r.consultantId)) as string }} style={styles.av} contentFit="cover" transition={140} />
                 : (
                   <View style={[styles.av, { backgroundColor: elementColor[el] }]}>
                     <Text style={{ color: elementText[el], fontWeight: '900', fontSize: 19 }}>{r.name.slice(0, 1)}</Text>

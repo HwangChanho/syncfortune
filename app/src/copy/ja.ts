@@ -125,7 +125,7 @@ export const ja = {
   },
   lang: { title: '言語', pick: '言語を選ぶ', auto: '自動', autoNote: '端末の言語 · 今は {{l}}', uiEnglish: '画面の文字は English', hint: '画面の文字と鑑定文をまとめて切り替えます。' },
   splash: { tagline: '五つの気がつながり\n今日の私を読む' },
-  person: { me: '私の命式', mine: '私の命式', friend: '友だち', tabChart: '命式', tabCompat: '相性', tabTalk: '会話', notShared: 'まだ命式を公開していません。', gone: '友だち一覧にいない人です。', noMe: 'まず自分の命式を登録してください。', noChart: '見られる命式がありません。', noCompat: 'まだ相性を出せません。', needMine: '自分の命式を登録すると、この人との相性が見られます。', openManse: '万年暦で詳しく見る', openCompat: '相性を詳しく見る', talkLead: 'この人を会話に呼ぶと、相談員がこの命式も一緒に見て答えます。', mention: '会話で @{{name}} を呼ぶ' },
+  person: { message: 'メッセージを送る', me: '私の命式', mine: '私の命式', friend: '友だち', tabChart: '命式', tabCompat: '相性', tabTalk: '会話', notShared: 'まだ命式を公開していません。', gone: '友だち一覧にいない人です。', noMe: 'まず自分の命式を登録してください。', noChart: '見られる命式がありません。', noCompat: 'まだ相性を出せません。', needMine: '自分の命式を登録すると、この人との相性が見られます。', openManse: '万年暦で詳しく見る', openCompat: '相性を詳しく見る', talkLead: 'この人を会話に呼ぶと、相談員がこの命式も一緒に見て答えます。', mention: '会話で @{{name}} を呼ぶ' },
   common: { close: '閉じる', send: '送信', save: '保存',
     'later': '後で',        // 나중에 — 유도 알림의 취소 쪽(대화 운 부족 등)
     'more': '詳しく',
@@ -394,7 +394,7 @@ export const ja = {
     consentBody: 'オンにすると友だちがあなたの四柱（八字）と相性を見られます。\n八字から生年月日を추定できるため、信頼できる人にだけ公開してください。\nいつでもオフにでき、오프にすると即座に非表示になります。',
     consentOn: '友だちに命式が見えます。', consentOff: '誰にも見えなくなりました。' },
   // ── オープンチャット ─────────────────────────────────────────────────────
-  room: {
+  room: { alone: '自分だけの部屋', this: 'この会話',
     someone: '誰か', ph: 'メッセージを入力',
     aiCount: 'AI {{n}}人',
     gone: 'この部屋は存在しないか、入れません。',

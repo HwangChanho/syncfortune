@@ -152,7 +152,7 @@ export const ko = {
   },
   lang: { title: '언어', pick: '언어 고르기', auto: '자동', autoNote: '기기 언어 · 지금은 {{l}}', uiEnglish: '화면 글자는 English', hint: '화면 글자와 풀이 본문을 함께 바꿔요.' },
   splash: { tagline: '다섯 기운이 이어\n오늘의 나를 읽다' },
-  person: { me: '내 명식', mine: '내 명식', friend: '친구', tabChart: '명식', tabCompat: '관계', tabTalk: '대화', notShared: '아직 명식을 공개하지 않았어요.', gone: '친구 목록에 없는 사람이에요.', noMe: '내 명식을 먼저 등록해 주세요.', noChart: '볼 수 있는 명식이 없어요.', noCompat: '아직 궁합을 낼 수 없어요.', needMine: '내 명식을 등록하면 이 사람과의 궁합을 볼 수 있어요.', openManse: '만세력에서 자세히 보기', openCompat: '궁합 자세히 보기', talkLead: '이 사람을 대화에서 부르면, 상담가가 이 명식을 함께 보고 답해요.', mention: '대화에서 @{{name}} 부르기' },
+  person: { message: '메시지 보내기', me: '내 명식', mine: '내 명식', friend: '친구', tabChart: '명식', tabCompat: '관계', tabTalk: '대화', notShared: '아직 명식을 공개하지 않았어요.', gone: '친구 목록에 없는 사람이에요.', noMe: '내 명식을 먼저 등록해 주세요.', noChart: '볼 수 있는 명식이 없어요.', noCompat: '아직 궁합을 낼 수 없어요.', needMine: '내 명식을 등록하면 이 사람과의 궁합을 볼 수 있어요.', openManse: '만세력에서 자세히 보기', openCompat: '궁합 자세히 보기', talkLead: '이 사람을 대화에서 부르면, 상담가가 이 명식을 함께 보고 답해요.', mention: '대화에서 @{{name}} 부르기' },
   common: { close: '닫기', send: '보내기', save: '저장',
     'later': '나중에',        // 나중에 — 유도 알림의 취소 쪽(대화 운 부족 등)
     retryLaterNoCharge: '잠시 후 다시 시도해 주세요. 운은 차감되지 않았어요.',
@@ -424,7 +424,7 @@ export const ko = {
     consentBody: '켜면 친구가 내 사주 원국(여덟 글자)과 궁합을 볼 수 있어요.\n여덟 글자로 생년월일을 되짚을 수 있으니, 믿는 사람에게만 열어 주세요.\n언제든 끌 수 있고, 끄면 바로 안 보여요.',
     consentOn: '친구에게 명식이 보여요.', consentOff: '이제 아무에게도 안 보여요.' },
   // ── 오픈채팅방 (Boss 2026-08-21) ──────────────────────────────────────────
-  room: {
+  room: { alone: '나 혼자 있는 방', this: '이 대화',
     someone: '누군가', ph: '메시지를 입력하세요',
     aiCount: 'AI {{n}}명',
     gone: '없는 방이거나 들어갈 수 없는 방이에요.',

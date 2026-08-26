@@ -67,6 +67,8 @@ import { greetingFor } from '../../lib/talk/greetingFor';   // 상담가별 첫 
 import { CoinNotice } from '../../components/talk/CoinNotice';
 import InviteSheet from '../../components/talk/InviteSheet';   // 다인방 초대(Boss 2026-08-25)
 import { leaveRoom } from '../../lib/talk/roomActions';        // 방 나가기(목록 스와이프·우클릭)
+import { UserRoomView } from '../../components/talk/UserRoomView';   // 사람끼리의 대화(운 0)
+import { openUserRoom, leaveUserRoom, inviteToRoom } from '../../lib/talk/userRoom';
 import { openGroupRoom, roomTitle, memberCount } from '../../lib/talk/groupTalk';   // 운 안내 = 상단 띠(Boss 08-25)
 import { pendingMonthlyBrief, markBriefSeen } from '../../lib/talk/monthlyBrief';   // 노쌤 월간 공지(Boss 2026-08-25)
 import { FortuneVideoCard } from '../../components/FortuneVideoCard';
@@ -266,6 +268,12 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
    * Boss 2026-08-27: *"채팅 목록에서 방을 나갈수있고 그러면 대화내용이랑 다 삭제 돼야하고"*
    */
   const [askLeave, setAskLeave] = useState<{ sessionId: string; name: string } | null>(null);
+  /**
+   * 지금 열려 있는 **사람 방**(Boss 2026-08-27 *"친구추가하면 서로 채팅도 가능하게"*).
+   * ★상담가 방(`cur`)과 **동시에 열리지 않는다** — 하나를 열면 다른 하나를 비운다.
+   *   둘 다 살아 있으면 «어느 화면이 위인가» 가 애매해지고, 전송이 어디로 갈지도 갈린다.
+   */
+  const [userRoom, setUserRoom] = useState<string | null>(null);
   const bumpChats = useCallback(() => setChatsTick((n) => n + 1), []);
 
   // 순차 표시 타이머 — ★상담가를 바꾸면 **이전 대기를 취소**한다.
@@ -874,19 +882,38 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
    * 목록에서 고른 방을 **나간다** — 대화가 함께 사라진다(FK CASCADE).
    * ★지금 열린 방을 나갔으면 화면도 닫는다. 다른 방이면 **목록만** 갱신한다.
    */
+  /**
+   * 친구와의 사람 방을 연다(없으면 만든다).
+   * ⚠️**운을 안 쓴다** — Edge 를 안 타므로 차감 코드가 아예 안 지나간다.
+   */
+  const openPersonRoom = useCallback(async (otherId: string) => {
+    const sid = await openUserRoom(otherId);
+    if (!sid) return;
+    // ★상담가 방을 **비운다** — 두 화면이 동시에 살아 있으면 전송이 어디로 갈지 갈린다
+    genRef.current++; clearTimers(); setBusy(false);
+    setCur(null); setSid(null); setMates([]); setItems([]); setNotes([]); setJumpTo(null); setNotice(null);
+    setUserRoom(sid);
+    bumpChats();
+  }, [bumpChats, clearTimers, setSid]);
+
   const onLeaveRoom = useCallback(async () => {
     const target = askLeave;
     if (!target) return;
     setAskLeave(null);
-    const r = await leaveRoom(target.sessionId);
+    // ★사람 방이면 **RPC 로** 나간다 — 남은 사람에게 「누가 나갔습니다」가 남아야 한다(Boss 지시).
+    //   상담가 방은 그냥 지운다(*"ai일경우 그냥 바로 방을 폭파시키면 되고"*).
+    //   ⚠️어느 쪽인지 화면이 판단하지 않는다 — **서버가** 인원을 세어 정하고 결과를 돌려준다.
+    const viaRpc = await leaveUserRoom(target.sessionId);
+    const r = viaRpc ? { ok: true } : await leaveRoom(target.sessionId);
     if (!r.ok) return;                       // ★실패하면 화면을 안 바꾼다(지운 척하지 않는다)
+    if (userRoom === target.sessionId) setUserRoom(null);
     if (curSidRef.current === target.sessionId) {
       // 열려 있던 방을 나갔다 — 대화창을 닫는다(빈 화면이 «지워졌다» 는 가장 정직한 표시다)
       genRef.current++; clearTimers(); setBusy(false);
       setSid(null); setCur(null); setMates([]); setItems([]); setNotes([]); setJumpTo(null); setNotice(null);
     }
     bumpChats();
-  }, [askLeave, bumpChats, clearTimers, setSid]);
+  }, [askLeave, bumpChats, clearTimers, setSid, userRoom]);
 
   const onDeleteThread = useCallback(async () => {
     if (!cur) return;
@@ -900,7 +927,9 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
     //   ★운 안내 띠도 같이 비운다 — 지운 대화의 「운이 모자라요」가 남으면 같은 종류의 흔적이다
     //     (`check:talknotes` ⑦ 이 이 규칙을 **불변식**으로 지킨다 — 새 state 를 넣으면 바로 문다.
     //      실제로 이 띠를 만들자마자 잡혔다.)
-    setNotes([]); setJumpTo(null); setNotice(null);
+    // ★참여자도 비운다 — 다인방을 지웠는데 `mates` 가 남으면 머리말이 «3명» 이라고 말한다
+    //   (`check:talknotes` 가 이 규칙을 **불변식**으로 지킨다 — 새 state 를 넣으면 바로 문다).
+    setNotes([]); setJumpTo(null); setNotice(null); setMates([]);
     // ★진행 중이던 것도 멈춘다 — 안 그러면 지운 대화의 흔적이 새 화면에서 계속 움직인다:
     //   `clearTimers` 순차 표시·무료소진 안내 타이머 / `setBusy(false)` 점 세 개 / `genRef` 날아간 응답.
     //   (`open` 이 방을 바꿀 때 하는 것과 같다 — 여기만 빠져 있었다.)
@@ -1070,10 +1099,27 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
           setDraft((d) => `${d.replace(/@$/, '')}@${nm} `);
           setTimeout(() => inputRef.current?.focus(), 0);
         }}
+        // ★「메시지 보내기」 — 친구일 때만 의미가 있다(내 명식에는 상대가 없다)
+        onMessage={person?.kind === 'friend' ? () => void openPersonRoom(person.id) : undefined}
         onMore={(route) => router.push(route as never)}
       />
       {/* ★`cur` 가드 — 이 묶음은 «대화를 고르기 전» 보다 앞에 있다. 상대가 없으면 초대할 것도 없다. */}
-      {inviteOpen && cur ? (
+      {/* ★★사람 방의 ＋ 는 **친구**를 부른다(상담가가 아니라).
+          Boss: *"그냥 일반 채팅방에 여러사람이 들어와있을수 있게 초대하면"*
+          ⚠️서버가 «내 친구인가» 를 다시 확인한다(`invite_to_room`) — 화면 목록만 믿지 않는다. */}
+      {inviteOpen && userRoom ? (
+        <InviteSheet
+          candidates={friends.filter((f) => f.status === 'accepted').map((f) => ({
+            id: f.otherId, name: f.name ?? '이름 없음', tagline: null, avatar: f.avatarUrl,
+          })) as never}
+          onClose={() => setInviteOpen(false)}
+          onInvite={async (ids) => {
+            setInviteOpen(false);
+            for (const id of ids) await inviteToRoom(userRoom, id);
+            bumpChats();
+          }}
+        />
+      ) : inviteOpen && cur ? (
         <InviteSheet
           // ★이미 방에 있는 사람은 뺀다 — 두 번 부르면 «3명» 이 되지 않는다
           candidates={servers.filter((x) => x.id !== cur.id && !mates.some((m) => m.id === x.id))}
@@ -1117,7 +1163,16 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
           </View>
         )}
         <View style={styles.main}>
-          {cur ? (
+          {/* ★★사람 방이 열려 있으면 **그것만** 그린다(Boss 2026-08-27).
+              상담가 방과 동시에 뜨지 않는다 — 전송이 어디로 갈지 갈리기 때문이다. */}
+          {userRoom ? (
+            <UserRoomView
+              sessionId={userRoom}
+              myId={session?.user?.id ?? ''}
+              onInvite={() => setInviteOpen(true)}
+              onLeave={() => setAskLeave({ sessionId: userRoom, name: t('room.this', '이 대화') })}
+            />
+          ) : cur ? (
             <>
               <View style={styles.head}>
                 <View style={styles.headMid}>
@@ -1180,6 +1235,22 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
             (`absoluteFill` 은 부모를 채운다 · [[overlay-absolutefill-parent]]).
             ⚠️RN `Modal` 을 안 쓰는 이유: iOS 에서 그 안의 `VideoView` 가 소리만 남고 안 보인다 —
               배경을 영상으로 두려면 Modal 밖이어야 한다. */}
+        {overlays}
+      </View>
+    );
+  }
+
+  // ★사람 방은 **폰에서도 같은 컴포넌트**로 그린다 — 두 벌을 만들면 문구·동작이 갈린다
+  if (userRoom) {
+    return (
+      <View style={styles.one}>
+        <UserRoomView
+          sessionId={userRoom}
+          myId={session?.user?.id ?? ''}
+          onBack={() => setUserRoom(null)}
+          onInvite={() => setInviteOpen(true)}
+          onLeave={() => setAskLeave({ sessionId: userRoom, name: t('room.this', '이 대화') })}
+        />
         {overlays}
       </View>
     );

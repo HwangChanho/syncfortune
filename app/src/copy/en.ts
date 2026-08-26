@@ -126,7 +126,7 @@ export const en = {
   },
   lang: { title: 'Language', pick: 'Choose language', auto: 'Automatic', autoNote: 'Device language · now {{l}}', uiEnglish: 'Interface stays in English', hint: 'Changes both the interface and your readings.' },
   splash: { tagline: 'Five energies meet\nand read who you are today' },
-  person: { me: 'My chart', mine: 'My chart', friend: 'Friend', tabChart: 'Chart', tabCompat: 'Together', tabTalk: 'Talk', notShared: "They haven't shared their chart yet.", gone: 'This person is no longer in your friends.', noMe: 'Add your own chart first.', noChart: 'No chart to show.', noCompat: "Can't read this pairing yet.", needMine: 'Add your chart to see how you two go together.', openManse: 'Open the full chart', openCompat: 'See the full reading', talkLead: 'Bring this person into a talk and the guide reads their chart alongside yours.', mention: 'Mention @{{name}} in talk' },
+  person: { message: 'Send a message', me: 'My chart', mine: 'My chart', friend: 'Friend', tabChart: 'Chart', tabCompat: 'Together', tabTalk: 'Talk', notShared: "They haven't shared their chart yet.", gone: 'This person is no longer in your friends.', noMe: 'Add your own chart first.', noChart: 'No chart to show.', noCompat: "Can't read this pairing yet.", needMine: 'Add your chart to see how you two go together.', openManse: 'Open the full chart', openCompat: 'See the full reading', talkLead: 'Bring this person into a talk and the guide reads their chart alongside yours.', mention: 'Mention @{{name}} in talk' },
   common: { close: 'Close', send: 'Send', save: 'Save',
     'later': 'Later',        // 나중에 — 유도 알림의 취소 쪽(대화 운 부족 등)
     'more': 'More',
@@ -395,7 +395,7 @@ export const en = {
     consentBody: 'When on, friends can see your four pillars and your compatibility.\nThose eight characters can reveal your birth date, so only open this to people you trust.\nYou can turn it off anytime, and it hides immediately.',
     consentOn: 'Friends can see your chart now.', consentOff: 'Nobody can see it now.' },
   // ── Open chat rooms ──────────────────────────────────────────────────────
-  room: {
+  room: { alone: 'Only you here', this: 'this conversation',
     someone: 'Someone', ph: 'Type a message',
     aiCount: '{{n}} AI',
     gone: "This room doesn't exist, or you can't enter it.",
