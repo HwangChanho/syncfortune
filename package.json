@@ -203,7 +203,8 @@
     "check:session": "tsx scripts/check-session.ts",
     "check:friendmention": "tsx scripts/check-friendmention.ts",
     "check:johu74": "tsx scripts/check-johu74.ts",
-    "check:friendnotify": "tsx scripts/check-friendnotify.ts"
+    "check:friendnotify": "tsx scripts/check-friendnotify.ts",
+    "check:classics": "tsx scripts/check-classics.ts"
   },
   "keywords": [],
   "author": "",

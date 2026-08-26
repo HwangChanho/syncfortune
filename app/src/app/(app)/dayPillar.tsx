@@ -255,7 +255,14 @@ export default function DayPillarScreen() {
           return (
             <PressableScale key={ok} onPress={() => toggle(ok)} style={[styles.card, styles.row, it.key === myKey && styles.rowMineHi]}>
               <View style={styles.rowHead}>
+                {/* ★★2026-08-26 Boss *"일주론에서 여자인지 남자인지도 나와야지"*
+                    실측: `it.sex` 는 **이미 있었는데** 아래 `renderSections` 에만 쓰이고
+                    **화면에는 안 나왔다** — 펼쳐 봐야 남/여 칸이 다른 걸 알 수 있었다.
+                    ★일주론은 남녀 풀이가 갈리므로, **접힌 상태에서도** 어느 쪽인지 보여야 한다. */}
                 <Text style={styles.rowKey}>{it.label} · {label(it.key)}</Text>
+                <View style={[styles.sexTag, it.sex === '여' && styles.sexTagF]}>
+                  <Text style={[styles.sexTx, it.sex === '여' && styles.sexTxF]}>{it.sex}</Text>
+                </View>
                 <Text style={styles.chevron}>{isOpen ? '▴' : '▾'}</Text>
               </View>
               <View style={styles.kwRow}>
@@ -281,6 +288,11 @@ export default function DayPillarScreen() {
 }
 
 const styles = StyleSheet.create({
+  // 남/여 배지 — ★색만으로 가르지 않는다(글자로도 남/여). 색약이어도 읽힌다.
+  sexTag: { marginLeft: space(2), paddingHorizontal: space(2), paddingVertical: 1, borderRadius: 999, backgroundColor: colors.sunk },
+  sexTagF: { backgroundColor: colors.juSoft ?? colors.sunk },
+  sexTx: { ...font.caption, color: colors.inkSoft, fontWeight: '800' },
+  sexTxF: { color: colors.ju },
   screen: { backgroundColor: 'transparent' }, // 전역 배경 노출
   wrap: { padding: space(6), paddingBottom: space(12) }, // 콘텐츠 좌우여백 통일(daniel)
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'transparent' }, // 전역 배경 노출

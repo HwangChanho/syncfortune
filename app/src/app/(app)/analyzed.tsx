@@ -86,6 +86,16 @@ export default function AnalyzedScreen() {
     router.replace('/charts');
   }, [info, params.input, repInput, router]);
 
+  // ★★2026-08-26 Boss *"명식 등록할떄 가끔 «당신은 ○○ 일주입니다» 가 순식간에 사라져버려"*
+  //   실측: 이 화면에는 **자동 이동 타이머가 없다**(`setTimeout` 0건). 파싱 실패 로그도 8/18 이 마지막이다.
+  //   ⇒ 넘어가는 길은 **탭 하나뿐**인데, 이 화면은 **전체가 하나의 큰 버튼**이다.
+  //   ★범인은 «등록» 버튼을 누른 **그 터치**다. `router.replace('/analyzed')` 로 화면이 바뀌는 순간
+  //     손가락이 아직 붙어 있으면 그 press 가 **새 화면의 Pressable 에 그대로 떨어진다.**
+  //     그래서 «가끔» 이다 — 손을 빨리 떼면 안 나고, 조금 늦게 떼면 난다.
+  //   ⇒ 화면이 뜨고 잠깐은 탭을 **받지 않는다**. 읽을 시간을 준다(자동으로 넘어가지는 않는다).
+  const [armed, setArmed] = useState(false);
+  useEffect(() => { const id = setTimeout(() => setArmed(true), 900); return () => clearTimeout(id); }, []);
+
   /** 다음 = 만세력(종전 등록 직후 목적지 그대로). 파라미터도 그대로 넘긴다. */
   const goNext = () => {
     if (!info) { router.replace('/'); return; }
@@ -96,7 +106,8 @@ export default function AnalyzedScreen() {
   const tint = info ? elementColor[info.element] : colors.ju;
 
   return (
-    <Pressable style={[styles.wrap, { backgroundColor: colors.bg }]} onPress={goNext}>
+    // ★`armed` 전에는 안 눌린다 — 앞 화면의 터치가 흘러들어와 «순식간에» 사라지는 것을 막는다
+    <Pressable style={[styles.wrap, { backgroundColor: colors.bg }]} onPress={armed ? goNext : undefined}>
       <Stack.Screen options={{ headerShown: false }} />
 
       {/* 언덕 — 화면 아래를 채운다 */}
