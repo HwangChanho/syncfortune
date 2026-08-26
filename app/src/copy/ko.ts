@@ -151,6 +151,7 @@ export const ko = {
     moreBody: '사람이 늘수록 내 관계의 결이 또렷해져요. 아직 안 넣은 사람이 있다면 생년월일만으로 바로 자리를 잡습니다.',
   },
   lang: { title: '언어', pick: '언어 고르기', auto: '자동', autoNote: '기기 언어 · 지금은 {{l}}', uiEnglish: '화면 글자는 English', hint: '화면 글자와 풀이 본문을 함께 바꿔요.' },
+  splash: { tagline: '다섯 기운이 이어\n오늘의 나를 읽다' },
   person: { me: '내 명식', mine: '내 명식', friend: '친구', tabChart: '명식', tabCompat: '관계', tabTalk: '대화', notShared: '아직 명식을 공개하지 않았어요.', gone: '친구 목록에 없는 사람이에요.', noMe: '내 명식을 먼저 등록해 주세요.', noChart: '볼 수 있는 명식이 없어요.', noCompat: '아직 궁합을 낼 수 없어요.', needMine: '내 명식을 등록하면 이 사람과의 궁합을 볼 수 있어요.', openManse: '만세력에서 자세히 보기', openCompat: '궁합 자세히 보기', talkLead: '이 사람을 대화에서 부르면, 상담가가 이 명식을 함께 보고 답해요.', mention: '대화에서 @{{name}} 부르기' },
   common: { close: '닫기', send: '보내기', save: '저장',
     'later': '나중에',        // 나중에 — 유도 알림의 취소 쪽(대화 운 부족 등)
@@ -399,7 +400,7 @@ export const ko = {
     'aiLogin': '로그인하면 AI가 이번 달 흐름을 더 깊게 풀어 드려요.',
     'aiTitle': 'AI 정밀 풀이',
     'thisMonth': '이번 달', title: '이달의 운세', monthPillar: '이번 달 기운', flowTitle: '이번 달 흐름 (상순·중순·하순)', note: '이번 달의 큰 흐름이에요. 구체적인 날은 오늘의 운세에서 봐요.', heroSub: '이번 달 월건으로 보는 흐름', generating: '이번 달 흐름을 풀어내는 중…', gateTitle: '이달의 운세 보기', gateDesc: '타고난 사주에 지금의 큰 흐름·올해·이번 달 기운을 더해, 이달 생길 수 있는 일과 대처를 풀어 드려요.', seePremium: '이달의 운세 보기' },
-  nav: { home: '운친구', chats: '운대화', fortune: '운세', readings: '풀이', my: '내 운',
+  nav: { back: '뒤로', admin: '관리자', costs: '비용·수익 분석', home: '운친구', chats: '운대화', fortune: '운세', readings: '풀이', my: '내 운',
          // ↓ 탭에서는 빠졌지만 마이페이지 메뉴·설정이 계속 쓰는 이름들(2026-08-18 4탭 전환)
          contents: '풀이', community: '운광장', coach: '우니', market: '마켓' },
   profile: { title: '내 프로필', namePh: '이름', pick: '사진 바꾸기', clear: '사진 지우기',

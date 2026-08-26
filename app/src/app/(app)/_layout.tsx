@@ -86,7 +86,7 @@ export default function AppLayout() {
         // 뒤로버튼 = iOS 네이티브(daniel #9: iOS26 글래스 버튼 안에서 커스텀 '‹뒤로'가 왼쪽에 붙던 문제 →
         //   네이티브가 글래스 안 가운데 정렬·표준 처리). headerBackTitle 로 '뒤로' 텍스트만 지정.
         headerBackButtonDisplayMode: 'default',
-        headerBackTitle: '뒤로',
+        headerBackTitle: t('nav.back', '뒤로'),
         // ★웹은 뒤로가기를 그리지 않는다 (daniel 2026-08-19 *"웹에서는 뒤로가기 빼도 될꺼같은데"*).
         //   브라우저가 이미 뒤로가기를 갖고 있어 **같은 일을 하는 버튼이 둘**이 된다.
         //   ⚠️네이티브는 그대로 둔다 — 거기엔 브라우저 뒤로가기가 없어서 이게 유일한 통로다.
@@ -184,8 +184,8 @@ export default function AppLayout() {
         <Stack.Screen name="market" options={{ title: t('screen.market', '마켓'), animation: 'none' }} />
         <Stack.Screen name="shared/[id]" options={{ title: t('screen.shared', '공유받은 풀이') }} />
         {/* ★아래 둘은 **운영자만** 본다 — 한국어가 정본이라 다국어로 안 뺀다(빼면 관리 화면이 더 헷갈린다) */}
-        <Stack.Screen name="admin" options={{ title: '관리자' }} />
-        <Stack.Screen name="coststable" options={{ title: '비용·수익 분석' }} />
+        <Stack.Screen name="admin" options={{ title: t('nav.admin', '관리자') }} />
+        <Stack.Screen name="coststable" options={{ title: t('nav.costs', '비용·수익 분석') }} />
       </Stack>
       </WebShell>
       {/* 하단 배너 — 무료 화면에만. 광고 제거 구매자는 AdBanner 내부에서 숨긴다(useAdFree).

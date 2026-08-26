@@ -125,6 +125,7 @@ export const en = {
     moreBody: 'The more people on it, the clearer the grain of your relationships. A birth date is all it takes to place someone.',
   },
   lang: { title: 'Language', pick: 'Choose language', auto: 'Automatic', autoNote: 'Device language · now {{l}}', uiEnglish: 'Interface stays in English', hint: 'Changes both the interface and your readings.' },
+  splash: { tagline: 'Five energies meet\nand read who you are today' },
   person: { me: 'My chart', mine: 'My chart', friend: 'Friend', tabChart: 'Chart', tabCompat: 'Together', tabTalk: 'Talk', notShared: "They haven't shared their chart yet.", gone: 'This person is no longer in your friends.', noMe: 'Add your own chart first.', noChart: 'No chart to show.', noCompat: "Can't read this pairing yet.", needMine: 'Add your chart to see how you two go together.', openManse: 'Open the full chart', openCompat: 'See the full reading', talkLead: 'Bring this person into a talk and the guide reads their chart alongside yours.', mention: 'Mention @{{name}} in talk' },
   common: { close: 'Close', send: 'Send', save: 'Save',
     'later': 'Later',        // 나중에 — 유도 알림의 취소 쪽(대화 운 부족 등)
@@ -371,7 +372,7 @@ export const en = {
     'aiLogin': 'Log in and AI will go deeper into this month\'s flow.',
     'aiTitle': 'AI in-depth reading',
     'thisMonth': 'This month', title: 'Monthly Fortune', monthPillar: "This month's energy", flowTitle: "This month's flow (early · mid · late)", note: "The broad flow for this month. For specific days, see the Daily Fortune.", heroSub: "The flow of this month's energy", generating: "Reading this month's flow…", gateTitle: "View This Month's Fortune", gateDesc: "We combine the nature you were born with, the big flow you're in now, this year, and this month's energy to share what may come up this month and how to handle it.", seePremium: "View This Month's Fortune" },
-  nav: { home: 'Friends', chats: 'Chats', fortune: 'Fortune', readings: 'My readings', my: 'My',
+  nav: { back: 'Back', admin: 'Admin', costs: 'Cost · revenue', home: 'Friends', chats: 'Chats', fortune: 'Fortune', readings: 'My readings', my: 'My',
          contents: 'Readings', community: 'Community', coach: 'Guide', market: 'Market' },
   profile: { title: 'My profile', namePh: 'Name', pick: 'Change photo', clear: 'Remove photo',
     pickCover: 'Change cover',

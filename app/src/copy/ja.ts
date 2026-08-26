@@ -124,6 +124,7 @@ export const ja = {
     moreBody: '人が増えるほど関係の質がはっきりします。まだ入れていない人がいれば、生年月日だけですぐ位置が決まります。',
   },
   lang: { title: '言語', pick: '言語を選ぶ', auto: '自動', autoNote: '端末の言語 · 今は {{l}}', uiEnglish: '画面の文字は English', hint: '画面の文字と鑑定文をまとめて切り替えます。' },
+  splash: { tagline: '五つの気がつながり\n今日の私を読む' },
   person: { me: '私の命式', mine: '私の命式', friend: '友だち', tabChart: '命式', tabCompat: '相性', tabTalk: '会話', notShared: 'まだ命式を公開していません。', gone: '友だち一覧にいない人です。', noMe: 'まず自分の命式を登録してください。', noChart: '見られる命式がありません。', noCompat: 'まだ相性を出せません。', needMine: '自分の命式を登録すると、この人との相性が見られます。', openManse: '万年暦で詳しく見る', openCompat: '相性を詳しく見る', talkLead: 'この人を会話に呼ぶと、相談員がこの命式も一緒に見て答えます。', mention: '会話で @{{name}} を呼ぶ' },
   common: { close: '閉じる', send: '送信', save: '保存',
     'later': '後で',        // 나중에 — 유도 알림의 취소 쪽(대화 운 부족 등)
@@ -370,7 +371,7 @@ export const ja = {
     'aiLogin': 'ログインするとAIが今月の流れをより深く読み解きます。',
     'aiTitle': 'AI精密解説',
     'thisMonth': '今月', title: '今月の運勢', monthPillar: '今月の気', flowTitle: '今月の流れ（上旬·中旬·下旬）', note: '今月の大きな流れです。具体的な日は今日の運勢で。', heroSub: '今月のめぐりで読む流れ', generating: '今月の流れを読み解いています…', gateTitle: '今月の運勢を見る', gateDesc: '生まれ持った気質に、いまの大きな流れ・今年・今月のめぐりを重ねて、今月起こりそうなことと対処の仕方をお伝えします。', seePremium: '今月の運勢を見る' },
-  nav: { home: '友だち', chats: 'チャット', fortune: '運勢', readings: '鑑定', my: 'マイ',
+  nav: { back: '戻る', admin: '管理者', costs: 'コスト・収益', home: '友だち', chats: 'チャット', fortune: '運勢', readings: '鑑定', my: 'マイ',
          contents: '占い', community: 'コミュニティ', coach: 'ガイド', market: 'マーケット' },
   profile: { title: 'マイプロフィール', namePh: '名前', pick: '写真を変更', clear: '写真を削除',
     pickCover: '背景を変更',

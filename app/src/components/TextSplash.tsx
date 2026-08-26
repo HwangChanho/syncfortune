@@ -20,6 +20,7 @@
 //   바로 오고 거기 CTA 가 있다. 버튼이 둘이면 무엇을 눌러야 하는지 흐려진다.
 // ═══════════════════════════════════════════════════════════════════════════
 import { useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Image as ExpoImage } from 'expo-image';
 import Svg, { Path } from 'react-native-svg';
@@ -31,6 +32,7 @@ import { elementColor } from '../lib/engine/ohaeng';
 const EL = ['木', '火', '土', '金', '水'] as const;
 
 export function TextSplash({ onDone }: { onDone: () => void }) {
+  const { t } = useTranslation();
   const fade = useRef(new Animated.Value(0)).current; // 0=투명 → 페이드 인/아웃 공용
   const doneRef = useRef(false);                       // 종료 1회 보장(타임아웃·탭 중복 방지)
 
@@ -75,7 +77,10 @@ export function TextSplash({ onDone }: { onDone: () => void }) {
           {EL.map((e) => <View key={e} style={[styles.el, { backgroundColor: elementColor[e] }]} />)}
         </View>
 
-        <Text style={styles.tagline}>다섯 기운이 이어{'\n'}오늘의 나를 읽다</Text>
+        {/* ⚠️★외국인이 앱을 켜면 **가장 먼저 보는 글자**다. 여기가 한국어면 그 사람에게 앱은 한국 앱이다.
+            (2026-08-27: 실제로 English 로 바꿔도 여기만 한국어로 남아 있었다 —
+             태그 사이 맨 글자라 문자열 검사에 안 걸렸다.) */}
+        <Text style={styles.tagline}>{t('splash.tagline', '다섯 기운이 이어\n오늘의 나를 읽다')}</Text>
       </Pressable>
     </Animated.View>
   );

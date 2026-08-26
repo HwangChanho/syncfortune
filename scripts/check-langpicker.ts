@@ -6,7 +6,7 @@
 // ■ ★왜 `check:copy` 로는 부족했나 — **초록불이 거짓이었다**
 //   `check:copy` 는 **copy 파일끼리만** 본다(ko·en·ja 의 키가 맞는가, 값에 한국어가 남았는가).
 //   그래서 화면(.tsx)에 **한국어가 통째로 박혀 있어도 늘 초록불**이었다.
-//   실측(2026-08-27): 화면 238개에 한국어 리터럴 **1,463곳** · 태그 사이 맨 한국어 **412곳**.
+//   실측(2026-08-27): 화면 238개에 **1,858곳**(문자열 리터럴 + 태그 사이 맨 한국어).
 //   ⇒ «키가 맞는가» 와 «화면에 한국어가 없는가» 는 **다른 질문**이다([[i18n-untranslated-shipped]]
 //     의 *"키가 맞는가 ≠ 말이 그 언어인가"* 와 같은 계열).
 //
@@ -118,6 +118,11 @@ function screens(dir = 'app/src'): string[] {
  * @returns 파일별 개수
  */
 export function countHardcodedKo(files: { path: string; src: string }[]): Map<string, number> {
+  // ⚠️★**태그 사이 맨 한국어도 센다** — 이게 오히려 더 흔하다.
+  //   처음엔 문자열 리터럴만 셌다가 `<Text>다섯 기운이 이어…</Text>`(스플래시)를 **0으로 읽었다.**
+  //   외국인이 앱을 켜면 **가장 먼저 보는 화면**인데 검사는 초록불이었다.
+  //   ⇒ 하네스는 자기가 «잰다» 고 말한 것을 실제로 재야 한다.
+  const JSX_TEXT = />[^<>{}\n]*[가-힣][^<>{}\n]*</g;
   const LIT = /(['"`])((?:\\.|(?!\1)[^\\])*)\1/g;
   const FALLBACK = /t\(\s*'[\w.]+'\s*,\s*$/;
   // ★로그는 **화면이 아니다** — `console.warn('… 실패', e)` 를 번역하라는 건 말이 안 된다.
@@ -136,6 +141,7 @@ export function countHardcodedKo(files: { path: string; src: string }[]): Map<st
       if (LOG.test(before)) continue;
       n++;
     }
+    n += [...s.matchAll(JSX_TEXT)].length;
     if (n) out.set(f.path, n);
   }
   return out;
@@ -143,7 +149,7 @@ export function countHardcodedKo(files: { path: string; src: string }[]): Map<st
 
 // ★baseline — 2026-08-27 실측. **줄이는 건 자유, 늘리는 건 실패.**
 //   줄였으면 이 숫자를 내려 잠근다(안 내리면 다시 늘어날 여지를 남긴 것이다).
-const BASELINE = 1459;
+const BASELINE = 1855;
 
 {
   const files = screens().map((p) => ({ path: p, src: read(p) ?? '' }));
@@ -166,10 +172,13 @@ const BASELINE = 1459;
     { path: 'c.tsx', src: `// 주석의 '안녕'\nconst y = 'hi';` },          // ← 주석이라 안 센다
     { path: 'd.tsx', src: `const z = 'hello';` },                        // ← 한국어 아님
     { path: 'e.tsx', src: `console.warn('대표 전환 실패', e);` },           // ← 로그라 안 센다
+    { path: 'f.tsx', src: `<Text>다섯 기운이 이어</Text>` },                 // ← ★태그 사이 맨 한국어도 센다
+    { path: 'g.tsx', src: `<Text>{t('k')}</Text>` },                      // ← 키로 뽑으면 안 센다
   ]);
-  const good = c.get('a.tsx') === 1 && !c.has('b.tsx') && !c.has('c.tsx') && !c.has('d.tsx') && !c.has('e.tsx');
-  say(good, '자기검사 — 폴백·주석·로그는 빼고 화면 글자만 센다',
-    good ? '대조군 5개 통과' : `실제: ${JSON.stringify([...c])}`);
+  const good = c.get('a.tsx') === 1 && !c.has('b.tsx') && !c.has('c.tsx') && !c.has('d.tsx') && !c.has('e.tsx')
+    && c.get('f.tsx') === 1 && !c.has('g.tsx');
+  say(good, '자기검사 — 폴백·주석·로그는 빼고, **태그 사이 글자까지** 센다',
+    good ? '대조군 7개 통과' : `실제: ${JSON.stringify([...c])}`);
 }
 
 console.log(fail === 0 ? '\n✅ 언어 고르기가 이어져 있고, 남은 한국어가 안 늘었습니다\n'
