@@ -29,7 +29,7 @@ import { isPremiumForChart } from '../lib/billing/premiumStore';  // 명식별 �
 import { needsYearRepurchase } from '../lib/billing/repurchase';  // 지난 해 연도 풀이 → '재구매' 배지(daniel 07-08)
 import { loadCredits } from '../lib/billing/coupons';             // 쿠폰 잔량
 import { computeChart } from '../lib/engine/engine'; // canonical 빌더 단일화(daniel 07-23·drift 방지)
-import { appLang } from '../lib/i18n';
+import { readingLang } from '../lib/i18n';
 import { homeTeaser, type HomeTeaser } from '../lib/content/homeTeaser'; // 카드 설명을 '내 얘기' 한 줄로(결정론·API 0, daniel 07-16)
 import { SECTIONS, HOME_INDIVIDUAL, priceLabel, baseKey, type MenuItem } from '../lib/content/contentSections';
 import { SAJU_READING_CATEGORIES } from '../lib/backend/prewarmReadings'; // 세트(사주16) 카테고리 단일출처
@@ -211,7 +211,7 @@ export function ContentGrid({ query = '', viewMode, category = null, wrap = fals
       const cr = await loadCredits().catch((): Record<string, number> => ({}));
       const { data } = await excludeMock(supabase
         .from('readings').select('category, created_at')
-        .eq('chart_id', repServerChartId).eq('lang', appLang()));
+        .eq('chart_id', repServerChartId).eq('lang', readingLang()));
       if (!alive) return;
       setCredits(cr);
       setReadingRows((data ?? []) as { category: string; created_at: string }[]);

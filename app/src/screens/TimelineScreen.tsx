@@ -27,7 +27,7 @@ import { useRouter } from 'expo-router';                     // ★운 부족 �
 import { ensureCoinsFor } from '../lib/billing/coinGate';    // ★운 단일 경로
 import { isReadingUnlocked } from '../lib/billing/unlocks'; // 서버 세트 언락(timeline)
 import { isPremiumForChart } from '../lib/billing/premiumStore'; // 명식별 프리미엄 판정(#1 — 비지정 명식/무료모드 게이트)
-import { appLang } from '../lib/i18n'; // 통변 출력 언어(앱 언어)
+import { readingLang } from '../lib/i18n'; // 통변 출력 언어(**풀이 언어** — 앱 UI 언어와 따로 고를 수 있다)
 import { confirmReadingChart } from '../lib/ui/confirmChart'; // 생성 전 명식 확인 + 보유 이용권 안내(daniel)
 import { stemElement, branchElement, elementColor, elementText, stemYinYang, branchYinYang } from '../lib/engine/ohaeng';
 import { TTSButton } from '../components/TTSButton'; // daniel: 풀이 음성 읽기(온디바이스 TTS·무료)
@@ -129,7 +129,7 @@ export function TimelineScreen({ input, savedChart }: { input: ChartInput | null
   //   (주석에 '같다'고 적는 걸로는 보장되지 않는다 — [[duplicate-ui-single-source]])
   //   set 하지 않고 **돌려주기만** 한다: 호출자가 alive/병합 여부를 스스로 정한다.
   const fetchReadings = useCallback(async (id: string) => {
-    const { data } = await excludeMock(supabase.from('readings').select('category, content, created_at').eq('chart_id', id).eq('lang', appLang()));
+    const { data } = await excludeMock(supabase.from('readings').select('category, content, created_at').eq('chart_id', id).eq('lang', readingLang()));
     const loaded: Record<string, any> = {};
     const created: Record<string, string> = {};   // 기간별 생성일(보유 만료일 계산용·daniel #25)
     (data ?? []).forEach((r: any) => { if (/^(life|year)_/.test(r.category)) { loaded[r.category] = r.content; if (r.created_at) created[r.category] = r.created_at; } });
@@ -239,7 +239,7 @@ export function TimelineScreen({ input, savedChart }: { input: ChartInput | null
     try {
       // 사주 大運 주축 + 자미두수 운한(대한) 보조 교차(daniel: 타임라인은 사주+자미 종합) — love 화면처럼 최신 자미 명반(운한 포함)을 body로 전달.
       //   시각 미상 차트는 c.ziwei가 子시(0시) 기반이라 부실하지만, 서버 빌더가 timeUnknown 게이트로 무시(사주만 폴백). 자미 계산은 지연 — 이 호출 시 1회만.
-      const __inv = await withTimeout(supabase.functions.invoke('interpret', { body: { chartId: cid, category: key, kind: 'timeline', tier: 'paid', lang: appLang(), ziwei: c?.ziwei } }), GEN_TIMEOUT_MS);
+      const __inv = await withTimeout(supabase.functions.invoke('interpret', { body: { chartId: cid, category: key, kind: 'timeline', tier: 'paid', lang: readingLang(), ziwei: c?.ziwei } }), GEN_TIMEOUT_MS);
       const { data, error } = __inv ?? { data: null, error: { message: 'client timeout' } as any };      if (isStale()) return;   // ① 생성 사이 명식 전환됨 → 폐기(옛 명식 시기통변이 새 명식 readings 에 섞이지 않게)
       // 방어: 일시적 불가/오류는 원문 대신 친화 메시지로(예전 'non-2xx' 노출 방지)
       const f = invokeFail(data, error);

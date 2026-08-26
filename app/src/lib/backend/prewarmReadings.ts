@@ -13,7 +13,7 @@ import { supabase } from '../supabase';
 import { excludeMock } from '../core/testMode'; // ★존재체크서 목업(tier='mock') 제외(OFF) — 목업을 '이미 있음'으로 오인해 실 생성 스킵 방지
 import { computeChart } from '../engine/engine';
 import { setServerChartId, type SavedChart } from '../engine/myChart';
-import { appLang } from '../i18n'; // 통변 출력 언어(앱 언어)
+import { readingLang } from '../i18n'; // 통변 출력 언어(**풀이 언어** — 앱 UI 언어와 따로 고를 수 있다)
 import { getDailyFortune } from '../content/dailyFortune'; // H2(daniel): 오늘/내일 daily LLM 프리워밍용 일진
 import { logEvent } from './logger'; // 방어: 일시적 불가 시 중단 로깅
 import type { ChartInput, CategoryKey } from '@spec/chart';
@@ -103,7 +103,7 @@ export async function prewarmReadings(savedChart: SavedChart, session: Session):
       ...((c.ziwei?.palaces as any[]) ?? []).map((p) => ({ key: p.name as string, kind: 'ziwei' as const })),
     ];
     // 이미 캐시된 영역 제외(멱등 — 비용 방어. Edge 도 요청마다 캐시 선확인 = 이중 생성 없음)
-    const { data } = await excludeMock(supabase.from('readings').select('category').eq('chart_id', id).eq('lang', appLang()));
+    const { data } = await excludeMock(supabase.from('readings').select('category').eq('chart_id', id).eq('lang', readingLang()));
     const have = new Set((data ?? []).map((r: any) => r.category));
     const missing = all.filter((x) => !have.has(x.key));
     const sajuTodo = missing.filter((m) => m.kind === 'saju').map((m) => ({ key: m.key, label: m.key }));
@@ -113,8 +113,8 @@ export async function prewarmReadings(savedChart: SavedChart, session: Session):
     //   generate_set 이 gen_jobs(chart_id,kind unique)로 서버측 중복차단하므로, 화면 진입 생성과 프리워밍이 겹쳐도
     //   생성은 **1회**. 서버가 강제종료·백그라운드 무관하게 끝까지 생성(대운/세운 최신 명반은 Edge 가 저장본 우선 사용).
     await Promise.all([
-      sajuTodo.length ? supabase.functions.invoke('generate_set', { body: { chartId: id, kind: 'saju', categories: sajuTodo, lang: appLang(), savedChartId: savedChart.id } }) : Promise.resolve(),
-      ziweiTodo.length ? supabase.functions.invoke('generate_set', { body: { chartId: id, kind: 'ziwei', categories: ziweiTodo, lang: appLang(), ziwei: c.ziwei, savedChartId: savedChart.id } }) : Promise.resolve(),
+      sajuTodo.length ? supabase.functions.invoke('generate_set', { body: { chartId: id, kind: 'saju', categories: sajuTodo, lang: readingLang(), savedChartId: savedChart.id } }) : Promise.resolve(),
+      ziweiTodo.length ? supabase.functions.invoke('generate_set', { body: { chartId: id, kind: 'ziwei', categories: ziweiTodo, lang: readingLang(), ziwei: c.ziwei, savedChartId: savedChart.id } }) : Promise.resolve(),
     ]);
   } catch { /* 프리워밍은 보조 — 어떤 실패도 앱 흐름을 막지 않는다 */ }
   finally { running = false; }
@@ -138,10 +138,10 @@ export async function prewarmDaily(savedChart: SavedChart, session: Session): Pr
     for (let off = 0; off < 2; off++) {                          // 오늘(0)·내일(1)
       const f = getDailyFortune(off);
       const category = `daily_${f.date.replace(/-/g, '')}`;       // today.tsx와 동일 캐시 키(daily_YYYYMMDD)
-      const { data: have } = await excludeMock(supabase.from('readings').select('category').eq('chart_id', id).eq('category', category).eq('lang', appLang())).maybeSingle();
+      const { data: have } = await excludeMock(supabase.from('readings').select('category').eq('chart_id', id).eq('category', category).eq('lang', readingLang())).maybeSingle();
       if (have) continue;                                         // 이미 캐시 — 재생성 안 함(비용 0)
       const { data: res } = await supabase.functions.invoke('interpret', {
-        body: { chartId: id, category, kind: 'daily', gz: f.dayGanZhi, tier: 'paid', lang: appLang(), ...(savedChart.context ? { context: savedChart.context } : {}) },
+        body: { chartId: id, category, kind: 'daily', gz: f.dayGanZhi, tier: 'paid', lang: readingLang(), ...(savedChart.context ? { context: savedChart.context } : {}) },
       });
       if ((res as any)?.unavailable) { logEvent('prewarm_daily_unavailable', { category, retryAt: (res as any)?.retryAt }, 'warn'); return; } // 한도 등 = 중단
     }

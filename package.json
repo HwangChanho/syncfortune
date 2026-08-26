@@ -192,7 +192,8 @@
     "covers:upload": "tsx --env-file-if-exists=.env scripts/covers-upload.ts",
     "check:mediaver": "tsx scripts/check-mediaver.ts",
     "check:rpcambig": "tsx scripts/check-rpcambig.ts",
-    "check:rpconce": "tsx scripts/check-rpconce.ts"
+    "check:rpconce": "tsx scripts/check-rpconce.ts",
+    "check:readinglang": "tsx scripts/check-readinglang.ts"
   },
   "keywords": [],
   "author": "",

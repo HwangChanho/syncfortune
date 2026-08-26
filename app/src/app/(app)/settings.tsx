@@ -17,7 +17,7 @@ import { Alert } from '../../lib/ui/alert'; // 커스텀 알림(앱 디자인)
 import { useRouter, useFocusEffect } from 'expo-router';
 import { getNotifStatus, requestNotifPermission, type NotifStatus } from '../../lib/backend/notifications'; // 알림 권한 상태·요청(설정 토글)
 import { useTranslation } from 'react-i18next';
-import { setAppLang, APP_LANGS, APP_LANG_LABEL, type AppLang } from '../../lib/i18n'; // 언어 변경 + persist(재시작 후 유지)
+import { setAppLang, APP_LANGS, APP_LANG_LABEL, type AppLang, READING_LANGS, READING_LANG_LABEL, setReadingLang, readingLang, isReadingLangAuto, onReadingLangChange, type ReadingLang } from '../../lib/i18n'; // 언어 변경 + persist(재시작 후 유지) · 풀이 언어는 UI 언어와 별개
 import { useFontScale, FONT_STEPS } from '../../lib/ui/fontScale';
 import { useAuth } from '../../lib/useAuth';               // 계정(세션)
 import { TextInput, Switch } from 'react-native'; // 커뮤니티 닉네임·일주 뱃지(daniel 2026-08-05 전면 익명+설정 닉네임)
@@ -89,6 +89,12 @@ export default function SettingsScreen() {
   const [luckOn, setLuckOn] = useState(true);
   useEffect(() => { void luckAlertsOn().then(setLuckOn); }, []); // 알림 권한 상태(행 라벨·동작 분기)
   const [restoring, setRestoring] = useState(false); // 구매 복원 진행 중(연타 가드·버튼 로딩)
+  // ── 풀이 언어(앱 UI 언어와 별개) ──────────────────────────────────────────
+  //   ★훅은 **조기 return 위**에 둔다(React #310 — 08-26 웹이 통째로 죽었던 그것). `check:hooks` 가 지킨다.
+  //   `setReadingLang` 은 모듈 상태를 바꾸므로, 여기 화면이 다시 그려지도록 구독한다.
+  const [rl, setRl] = useState<ReadingLang>(() => readingLang());
+  const [rlAuto, setRlAuto] = useState<boolean>(() => isReadingLangAuto());
+  useEffect(() => onReadingLangChange(() => { setRl(readingLang()); setRlAuto(isReadingLangAuto()); }), []);
   // 알림 권한 상태 로드 — 포커스마다(기기 설정 다녀와서 켜/끄면 ON/OFF 즉시 반영, daniel 07-02)
   useFocusEffect(useCallback(() => { getNotifStatus().then(setNotifStatus).catch(() => {}); }, []));
 
@@ -347,6 +353,35 @@ export default function SettingsScreen() {
           return (
             <PressableScale key={l.key} style={[styles.opt, on && styles.optOn]} onPress={() => setAppLang(l.key as AppLang)}>
               <Text style={[styles.optTx, on && styles.optTxOn]}>{l.label}</Text>
+            </PressableScale>
+          );
+        })}
+      </View>
+
+      {/* ── 풀이 언어 ─────────────────────────────────────────────────────────
+           Boss 2026-08-26: *"풀이 결과들을 각국의 다른 언어로도 볼 수 있으면 좋겠어"*
+
+           ★왜 위 「언어」와 따로 두나 — **UI 문구와 풀이 본문은 늘어나는 방식이 다르다.**
+             UI 는 낱말 1,800개를 사람이 번역해야 한 언어가 늘고, 풀이는 LLM 이 그 자리에서 쓴다.
+             그래서 풀이는 UI 보다 **먼저·더 넓게** 나갈 수 있다(지금 UI 3 · 풀이 9).
+           ★언어를 바꿔도 **다시 결제하지 않는다** — 언락은 언어를 안 가린다(owner·chart·kind).
+             그리고 명리 판단은 그대로 두고 **표현만** 그 언어로 다시 쓴다(같은 사람 해석이 갈리면 안 된다).
+        ── */}
+      <Text style={[styles.h, { marginTop: space(7) }]}>{t('settings.readingLanguage', '풀이 언어')}</Text>
+      <Text style={styles.iljuHint}>{t('settings.readingLanguageHint', '화면 글자는 그대로 두고, 풀이 본문만 고른 언어로 봐요. 이미 본 풀이는 그대로 남아 있어요.')}</Text>
+      <View style={[styles.row, { flexWrap: 'wrap' }]}>
+        {/* 「앱 언어를 따라감」 = 기본값. 이걸 고르면 위 「언어」를 바꿀 때 풀이도 같이 따라간다. */}
+        <PressableScale
+          style={[styles.opt, rlAuto && styles.optOn]}
+          onPress={() => setReadingLang(null)}
+        >
+          <Text style={[styles.optTx, rlAuto && styles.optTxOn]}>{t('settings.readingLangAuto', '앱 언어와 같게')}</Text>
+        </PressableScale>
+        {READING_LANGS.map((k) => {
+          const on = !rlAuto && rl === k;
+          return (
+            <PressableScale key={k} style={[styles.opt, on && styles.optOn]} onPress={() => setReadingLang(k as ReadingLang)}>
+              <Text style={[styles.optTx, on && styles.optTxOn]}>{READING_LANG_LABEL[k]}</Text>
             </PressableScale>
           );
         })}

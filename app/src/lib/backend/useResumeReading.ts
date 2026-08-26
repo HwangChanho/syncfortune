@@ -26,7 +26,7 @@ import { useEffect, useRef } from 'react';
 import { AppState } from 'react-native';
 import { supabase } from '../supabase';
 import { excludeMock } from '../core/testMode';  // 목업(tier='mock') 제외 — 실모드에서 목업 서빙 차단
-import { appLang } from '../i18n';
+import { readingLang } from '../i18n';
 import { logEvent } from './logger';
 
 /**
@@ -57,7 +57,7 @@ export function useResumeReading(
         try {
           const { data } = await excludeMock(
             supabase.from('readings').select('content')
-              .eq('chart_id', chartId).eq('category', category).eq('lang', appLang()),
+              .eq('chart_id', chartId).eq('category', category).eq('lang', readingLang()),
           ).maybeSingle();
           if (data?.content) {
             logEvent('resume_reading_recovered', { category });   // 실제로 주워 온 경우만 기록

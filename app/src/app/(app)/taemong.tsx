@@ -26,7 +26,7 @@ import { TTSButton } from '../../components/TTSButton';
 import { searchTaemong, TAEMONG_POPULAR, taemongTitle, taemongMeaning, taemongTrait, type TaemongEntry } from '../../lib/content/taemongDict';
 import { ensureCoinsFor } from '../../lib/billing/coinGate';
 import { supabase } from '../../lib/supabase';
-import { appLang } from '../../lib/i18n';
+import { readingLang } from '../../lib/i18n';
 import { colors, radius, space, shadow, font } from '../../lib/theme';
 import { useFontScale } from '../../lib/ui/fontScale';
 import { Alert } from '../../lib/ui/alert';
@@ -92,7 +92,7 @@ export default function TaemongScreen() {
     try {
       // keyword 로 보낸다 = Edge 가 **차감 없이** 전역 캐시(taemong_cache)를 태우는 경로
       const __inv = await withTimeout(
-        supabase.functions.invoke('interpret', { body: { kind: 'taemong', keyword: kw, lang: appLang() } }),
+        supabase.functions.invoke('interpret', { body: { kind: 'taemong', keyword: kw, lang: readingLang() } }),
         GEN_TIMEOUT_MS,
       );
       const { data, error } = __inv ?? { data: null, error: { message: 'client timeout' } as any };
@@ -122,7 +122,7 @@ export default function TaemongScreen() {
     setGenProgress({ active: true, total: 1, done: 0, label: t('taemong.title', '태몽 풀이'), route: '/taemong' });
     try {
       const __inv = await withTimeout(
-        supabase.functions.invoke('interpret', { body: { kind: 'taemong', dreamText: text, lang: appLang() } }),
+        supabase.functions.invoke('interpret', { body: { kind: 'taemong', dreamText: text, lang: readingLang() } }),
         GEN_TIMEOUT_MS,
       );
       const { data, error } = __inv ?? { data: null, error: { message: 'client timeout' } as any };

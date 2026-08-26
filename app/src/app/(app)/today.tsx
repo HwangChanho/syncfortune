@@ -33,7 +33,7 @@ import { autoGenWithChartConfirm } from '../../lib/ui/confirmChart'; // 자동�
 import { supabase } from '../../lib/supabase';
 import { withTimeout, GEN_TIMEOUT_MS } from '../../lib/core/withTimeout';   // ★대기 상한(멈춤 방지·2026-07-31)
 import { excludeMock } from '../../lib/core/testMode'; // ★목업(tier='mock') 제외(테스트모드 OFF) — 실모드 목업 서빙 차단
-import { appLang } from '../../lib/i18n';
+import { readingLang } from '../../lib/i18n';
 import { logEvent } from '../../lib/backend/logger';
 import { invokeFail } from '../../lib/backend/interpretResult'; // 방어: 일시적 불가/오류 친화 처리
 import { assertOnline } from '../../lib/backend/network'; // daniel: 네트워크/서버 미연결 시 풀이 생성 차단
@@ -102,7 +102,7 @@ export default function TodayScreen() {
       const id = await ensureServerChartId(c, ch.input, session, ch);
       if (!alive || !id) { setLoaded(true); return; }
       setChartId(id);
-      const { data } = await excludeMock(supabase.from('readings').select('content').eq('chart_id', id).eq('category', category).eq('lang', appLang())).maybeSingle();
+      const { data } = await excludeMock(supabase.from('readings').select('content').eq('chart_id', id).eq('category', category).eq('lang', readingLang())).maybeSingle();
       if (!alive) return;
       const cached = (data?.content as Record<string, string> | undefined) ?? null;
       setReading(cached);
@@ -122,7 +122,7 @@ export default function TodayScreen() {
     logEvent('daily_generate', { chartId: id, category });
     try {
       const __inv = await withTimeout(supabase.functions.invoke('interpret', {
-        body: { chartId: id, category, kind: 'daily', gz: f.dayGanZhi, tier: 'paid', lang: appLang(), ...(saved?.context ? { context: saved.context } : {}) },
+        body: { chartId: id, category, kind: 'daily', gz: f.dayGanZhi, tier: 'paid', lang: readingLang(), ...(saved?.context ? { context: saved.context } : {}) },
       }), GEN_TIMEOUT_MS);
       const { data, error } = __inv ?? { data: null, error: { message: 'client timeout' } as any };      // 방어: 일시적 불가(200+unavailable)/오류 모두 친화 메시지로 처리(원문 'non-2xx' 노출 방지)
       const fail = invokeFail(data, error);

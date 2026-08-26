@@ -30,8 +30,7 @@ import { SECTIONS, type MenuItem } from '../../lib/content/contentSections';
 import { contentKeyOf, groupKeyOf, showsInArchive } from '../../lib/content/readingCategoryMap';   // ★category → 콘텐츠 한 건(단일 출처)
 import { PressableScale } from '../../components/PressableScale';
 import { colors, radius, space, font, shadow } from '../../lib/theme';
-import { appLang } from '../../lib/i18n';
-
+import { readingLang } from '../../lib/i18n';
 type Row = { id: string; chart_id: string; category: string; created_at: string };
 type Result = { rows: Row[]; charts: SavedChart[] } | { error: true } | null;
 
@@ -62,7 +61,7 @@ export default function MyReadingsScreen() {
         withTimeout(
           excludeMock(
             supabase.from('readings').select('id, chart_id, category, created_at')
-              .eq('lang', appLang())            // 지금 언어로 만든 풀이만(다른 언어 본은 그 언어에서 보인다)
+              .eq('lang', readingLang())            // 지금 언어로 만든 풀이만(다른 언어 본은 그 언어에서 보인다)
               .order('created_at', { ascending: false }).limit(300),
           ),
           8000,

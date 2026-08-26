@@ -202,6 +202,7 @@ export const ja = {
     sinsalDetail: '神殺·空亡をくわしく →',
   },
   reading: {
+    langChipA11y: '鑑定の言語を変える', langSheetHint: '画面の文字はそのまま、鑑定の本文だけ変わります。すでにある鑑定は残り、もう一度お支払いいただくことはありません。',
     'lockedNote': '上のボタンで開くとすべてご覧いただけます。',
     'lockedTitle': 'この命式の解説は運で開きます',
     'pastYearBadge': 'この解説は{{y}}年の歳運を基準に書かれています — 再生成すると今年の流れが反映されます。',
@@ -268,7 +269,7 @@ export const ja = {
     more: '分野別にくわしく見る →',
     genFail: '占い結果の作成に失敗しました。しばらくしてからもう一度お試しください。', title: '今日の運勢', heroSub: '今日一日の流れを見てみましょう', generating: '今日の流れを読み解いています…', gateTitle: '今日の運勢を見る', gateDesc: 'あなたの生まれ持った性質に、今の大きな流れ・今年・今日の雰囲気を重ねて、今日起こりそうなことと対処法をお伝えします。', seePremium: '今日の運勢を見る', seeAd: '広告を見て無料で見る', adFail: '広告を読み込めませんでした。しばらくして再度お試しいただくか、プレミアムで広告なしでご覧いただけます。',
   },
-  settings: { myRecords: '私の記録', community: 'コミュニティ', nickPh: 'ニックネーム (2~12字、空欄=自動匿名)', nickBad: '使用できない単語があります。', nickLen: 'ニックネームは2~12字です。', nickDone: '保存済み', showIlju: '日柱バッジを表示', iljuHint: '投稿の横に生まれた日の二文字だけ表示されます。生年月日は分かりません。',
+  settings: { readingLanguage: '鑑定の言語', readingLanguageHint: '画面の文字はそのままで、鑑定の本文だけ選んだ言語で読めます。すでに見た鑑定はそのまま残ります。', readingLangAuto: 'アプリの言語に合わせる', myRecords: '私の記録', community: 'コミュニティ', nickPh: 'ニックネーム (2~12字、空欄=自動匿名)', nickBad: '使用できない単語があります。', nickLen: 'ニックネームは2~12字です。', nickDone: '保存済み', showIlju: '日柱バッジを表示', iljuHint: '投稿の横に生まれた日の二文字だけ表示されます。生年月日は分かりません。',
     privacyHead: 'プライバシー',
     'accent': 'テーマの色',
     'accentAuto': '自動（日干）',

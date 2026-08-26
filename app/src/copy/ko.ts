@@ -229,6 +229,7 @@ export const ko = {
     sinsalDetail: '신살·공망 자세히 보기 →',
   },
   reading: {
+    langChipA11y: '풀이 언어 바꾸기', langSheetHint: '화면 글자는 그대로 두고 풀이 본문만 바꿔요. 이미 본 풀이는 남아 있고, 다시 결제하지 않아요.',
     'lockedNote': '위 버튼으로 열어 전부 보실 수 있어요.',
     'lockedTitle': '이 명식의 풀이는 운으로 열려요',
     'pastYearBadge': '이 풀이는 {{y}}년 운(세운) 기준으로 쓰였어요 — 올해 흐름은 재통변하면 새로 반영돼요.',
@@ -297,7 +298,7 @@ export const ko = {
     more: '분야별로 자세히 보기 →',
     genFail: '풀이 생성에 실패했어요. 잠시 후 다시 시도해 주세요.', title: '오늘의 운세', heroSub: '오늘 일진으로 보는 하루 흐름', generating: '오늘의 흐름을 풀어내는 중…', gateTitle: '오늘의 운세 보기', gateDesc: '타고난 사주에 지금의 큰 흐름·올해·오늘 기운을 더해, 오늘 생길 수 있는 일과 대처를 풀어 드려요.', seePremium: '오늘의 운세 보기', seeAd: '광고 보고 무료로 보기', adFail: '광고를 불러오지 못했어요. 잠시 후 다시 시도하거나, 운으로 광고를 없앨 수 있어요.',
   },
-  settings: { myRecords: '내 기록', community: '커뮤니티', nickPh: '닉네임 (2~12자, 비우면 자동 익명이름)', nickBad: '사용할 수 없는 단어가 있어요.', nickLen: '닉네임은 2~12자예요.', nickDone: '저장됨', showIlju: '내 일주 뱃지 보이기', iljuHint: '글·댓글 옆에 태어난 날의 두 글자만 표시돼요. 생년월일은 알 수 없어요.',
+  settings: { readingLanguage: '풀이 언어', readingLanguageHint: '화면 글자는 그대로 두고, 풀이 본문만 고른 언어로 봐요. 이미 본 풀이는 그대로 남아 있어요.', readingLangAuto: '앱 언어와 같게', myRecords: '내 기록', community: '커뮤니티', nickPh: '닉네임 (2~12자, 비우면 자동 익명이름)', nickBad: '사용할 수 없는 단어가 있어요.', nickLen: '닉네임은 2~12자예요.', nickDone: '저장됨', showIlju: '내 일주 뱃지 보이기', iljuHint: '글·댓글 옆에 태어난 날의 두 글자만 표시돼요. 생년월일은 알 수 없어요.',
     privacyHead: '개인정보',
     'accent': '테마 색',
     'accentAuto': '자동(일간)',

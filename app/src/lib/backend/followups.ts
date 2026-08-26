@@ -5,7 +5,7 @@
 // 게이트는 서버(Edge)가 판정: needPremium / needPayment / answer 를 반환. paid 플래그로 결제 후 우회.
 // ─────────────────────────────────────────────────────────────────────────
 import { supabase } from '../supabase';
-import { appLang } from '../i18n'; // 추가질문 답변 언어(앱 언어)
+import { readingLang } from '../i18n'; // 추가질문 답변 언어(**풀이 언어**)
 import { invokeFail } from './interpretResult'; // 방어: 일시적 불가/오류 친화 처리
 
 export type Followup = { question: string; answer: string; created_at?: string };
@@ -40,7 +40,7 @@ export async function askFollowup(
 ): Promise<AskResult> {
   try {
     const { data, error } = await supabase.functions.invoke('interpret', {
-      body: { chartId, category, kind, tier: 'paid', question, lang: appLang() }, // paid 제거(서버가 크레딧/프리미엄/무료한도 판정)
+      body: { chartId, category, kind, tier: 'paid', question, lang: readingLang() }, // paid 제거(서버가 크레딧/프리미엄/무료한도 판정)
     });
     // 게이트(needPremium/needPayment)는 used/freeLimit 를 실어 기존 분기로 먼저 처리(shape 유지).
     if (data?.needPremium) return { kind: 'needPremium', used: data.used, freeLimit: data.freeLimit };

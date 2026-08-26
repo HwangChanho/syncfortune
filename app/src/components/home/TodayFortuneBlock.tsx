@@ -28,7 +28,7 @@ import { computeChart } from '../../lib/engine/engine';
 import { getDailyFortune, dailyHeadline, getDailyReading, dailyEnergy, type DailyEnergy } from '../../lib/content/dailyFortune';
 import { supabase } from '../../lib/supabase';
 import { excludeMock } from '../../lib/core/testMode';
-import { appLang } from '../../lib/i18n';
+import { readingLang } from '../../lib/i18n';
 import { useAuth } from '../../lib/useAuth';
 import { useFontScale } from '../../lib/ui/fontScale';
 import { colors, space, radius } from '../../lib/theme';
@@ -85,7 +85,7 @@ export function TodayFortuneBlock({ reloadKey = 0, dateKey }: { reloadKey?: numb
         try {
           const cats = fortunes.map((f) => `daily_${f.date.replace(/-/g, '')}`);
           const { data } = await excludeMock(supabase.from('readings')
-            .select('category, content').eq('chart_id', rep.serverChartId).eq('lang', appLang()).in('category', cats));
+            .select('category, content').eq('chart_id', rep.serverChartId).eq('lang', readingLang()).in('category', cats));
           if (!alive || !data?.length) return;
           const byCat: Record<string, Record<string, string>> = {};
           for (const r of data as { category: string; content: Record<string, string> }[]) byCat[r.category] = r.content;

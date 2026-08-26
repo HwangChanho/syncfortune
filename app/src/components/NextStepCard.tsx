@@ -22,7 +22,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/useAuth';
 import { loadRepChart } from '../lib/engine/myChart';
 import { excludeMock } from '../lib/core/testMode';
-import { appLang } from '../lib/i18n';
+import { readingLang } from '../lib/i18n';
 import { SECTIONS, priceLabel, baseKey } from '../lib/content/contentSections';
 import { pickNextStep, ownedKeysFrom, type NextStep, type CategoryItem } from '../lib/content/nextStep';
 import { CREDIT_KINDS } from '../lib/billing/coupons';
@@ -77,7 +77,7 @@ export function NextStepCard({ reloadKey, category = null }: { reloadKey?: numbe
       if (!session || !rep.serverChartId) { setStep(pickNextStep(new Set(), labelOf, ANCHOR_KEY, catItems)); return; }
       const { data } = await excludeMock(supabase
         .from('readings').select('category, created_at')
-        .eq('chart_id', rep.serverChartId).eq('lang', appLang()));
+        .eq('chart_id', rep.serverChartId).eq('lang', readingLang()));
       if (!alive) return;
       const rows = (data ?? []) as { category: string; created_at: string }[];
       const owned = ownedKeysFrom(rows.map((r) => r.category));

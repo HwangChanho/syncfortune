@@ -26,7 +26,7 @@ import { confirmReadingChart } from '../../lib/ui/confirmChart'; // 생성 전 �
 import { supabase } from '../../lib/supabase';
 import { withTimeout, GEN_TIMEOUT_MS } from '../../lib/core/withTimeout';   // ★대기 상한(멈춤 방지)
 import { excludeMock } from '../../lib/core/testMode'; // ★목업(tier='mock') 제외(테스트모드 OFF) — 실모드 목업 서빙 차단
-import { appLang } from '../../lib/i18n';
+import { readingLang } from '../../lib/i18n';
 import { invokeFail } from '../../lib/backend/interpretResult'; // 방어: Edge 실패(일시적 불가·결제필요·오류) 정규화
 import { assertOnline } from '../../lib/backend/network'; // daniel: 네트워크/서버 미연결 시 풀이 생성 차단
 import { logEvent } from '../../lib/backend/logger';
@@ -97,7 +97,7 @@ export default function LifeGraphScreen() {
       if (!alive || !id) { setLoaded(true); return; }
       setChartId(id);
       chartIdRef.current = id;   // ① 현재 명식 확정 — 이후 도착하는 generate 결과의 명식 대조 기준
-      const { data: row } = await excludeMock(supabase.from('readings').select('content, created_at').eq('chart_id', id).eq('category', 'lifegraph').eq('lang', appLang())).maybeSingle();
+      const { data: row } = await excludeMock(supabase.from('readings').select('content, created_at').eq('chart_id', id).eq('category', 'lifegraph').eq('lang', readingLang())).maybeSingle();
       if (!alive) return;
       const cached = (row?.content as LifeData | undefined) ?? null;
       setData(cached);
@@ -126,7 +126,7 @@ export default function LifeGraphScreen() {
     const deadline = Date.now() + maxMs;
     while (Date.now() < deadline) {
       await new Promise((r) => setTimeout(r, everyMs));
-      const { data } = await excludeMock(supabase.from('readings').select('content').eq('chart_id', id).eq('category', 'lifegraph').eq('lang', appLang())).maybeSingle();
+      const { data } = await excludeMock(supabase.from('readings').select('content').eq('chart_id', id).eq('category', 'lifegraph').eq('lang', readingLang())).maybeSingle();
       if (data?.content) return data.content;
     }
     return null;
@@ -158,7 +158,7 @@ export default function LifeGraphScreen() {
     try {
       // ★상한(2026-07-31 멈춤 전수조사) — 응답이 안 오면 로딩 잠금이 영구히 남는다.
       const __inv = await withTimeout(supabase.functions.invoke('interpret', {
-        body: { chartId: id, category: 'lifegraph', kind: 'lifegraph', tier: 'paid', lang: appLang() },
+        body: { chartId: id, category: 'lifegraph', kind: 'lifegraph', tier: 'paid', lang: readingLang() },
       }), GEN_TIMEOUT_MS);
       const { data: res, error } = __inv ?? { data: null, error: { message: 'client timeout' } as any };      const f = invokeFail(res, error); // 방어: 일시적 불가→재시도 안내 / 결제필요·오류 일관 처리
       if (f && f.kind !== 'error') {

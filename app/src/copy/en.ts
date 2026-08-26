@@ -203,6 +203,7 @@ export const en = {
     sinsalDetail: 'Sinsal & Void in detail →',
   },
   reading: {
+    langChipA11y: 'Change reading language', langSheetHint: 'Only the reading text changes — the app stays in its own language. What you already have stays, and you are not charged again.',
     'lockedNote': 'Open with the button above to see it all.',
     'lockedTitle': 'Readings for this chart open with Luck',
     'pastYearBadge': 'This reading was written for the {{y}} annual cycle — regenerate it to reflect this year\'s flow.',
@@ -269,7 +270,7 @@ export const en = {
     more: 'See it area by area →',
     genFail: "We couldn't create your reading. Please try again in a moment.", title: "Today's Fortune", heroSub: 'How your day is shaping up today', generating: "Reading today's flow for you…", gateTitle: "See Today's Fortune", gateDesc: "Combining who you are with your bigger picture right now, this year, and today's mood, we'll walk you through what might come up today and how to handle it.", seePremium: "See Today's Fortune", seeAd: 'Watch an ad to view for free', adFail: "Couldn't load the ad. Please try again later, or go ad-free with Premium.",
   },
-  settings: { myRecords: 'My records', community: 'Community', nickPh: 'Nickname (2–12 chars, empty = auto handle)', nickBad: 'That word can\'t be used.', nickLen: 'Nickname must be 2–12 characters.', nickDone: 'Saved', showIlju: 'Show my day-pillar badge', iljuHint: 'Only the two characters of your birth day show next to posts. Your birth date can\'t be derived.',
+  settings: { readingLanguage: 'Reading language', readingLanguageHint: 'Keeps the app text as is and shows only the reading itself in the language you pick. Readings you already have stay put.', readingLangAuto: 'Same as app language', myRecords: 'My records', community: 'Community', nickPh: 'Nickname (2–12 chars, empty = auto handle)', nickBad: 'That word can\'t be used.', nickLen: 'Nickname must be 2–12 characters.', nickDone: 'Saved', showIlju: 'Show my day-pillar badge', iljuHint: 'Only the two characters of your birth day show next to posts. Your birth date can\'t be derived.',
     privacyHead: 'Privacy',
     'accent': 'Theme Color',
     'accentAuto': 'Auto (day master)',

@@ -6,7 +6,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { supabase } from '../supabase';
 import { excludeMock } from '../core/testMode'; // ★목업(tier='mock') 제외(테스트모드 OFF) — 실모드 목업 서빙 차단
-import { appLang } from '../i18n'; // 궁합 통변 언어(앱 언어)
+import { appLang, readingLang } from '../i18n'; // 궁합 통변 언어(**풀이 언어**)
 import { invokeFail } from '../backend/interpretResult'; // 방어: LLM 일시적 불가 메시지 정규화
 
 // 관계 유형(궁합 카테고리, daniel) — key=Edge 분기·캐시 / tk=i18n 라벨 키(compat.rel.*)
@@ -144,7 +144,7 @@ export function otherSig(otherSaju: any): string {
 /** 이 상대(sig)에 대해 이미 생성된 관계별 통변 로드 → rel 별 맵. */
 export async function loadCompatReadings(chartId: string, sig: string): Promise<Record<string, CompatReading>> {
   // 사주(compat_) + 자미(compatzw_) 둘 다 로드 → 키에 탭 접두(daniel: 사주/자미 분리 탭). 키 = `${tab}:${rel}[_y{YYYY}]`
-  const { data } = await excludeMock(supabase.from('readings').select('category, content').eq('chart_id', chartId).like('category', 'compat%').eq('lang', appLang()));
+  const { data } = await excludeMock(supabase.from('readings').select('category, content').eq('chart_id', chartId).like('category', 'compat%').eq('lang', readingLang()));
   const out: Record<string, CompatReading> = {};
   (data ?? []).forEach((r: any) => {
     const parts = String(r.category).split('_');               // compat|compatzw _ rel _ sig [_ y{YYYY}=연도별]
@@ -173,7 +173,7 @@ export async function genCompatReading(
   const k = tab === 'ziwei' ? 'compat_ziwei' : 'compat';
   const category = year ? `${prefix}_${rel}_${sig}_y${year}` : `${prefix}_${rel}_${sig}`;
   const { data, error } = await supabase.functions.invoke('interpret', {
-    body: { chartId, category, kind: k, tier: 'paid', otherSaju, otherChartId, otherZiwei, cross, dayRel, yearGz, ziwei: meZiwei, numMe, numOther, lang: appLang(), ...(meContext ? { context: meContext } : {}) }, // paid 제거(서버 판정) + context grounding + 수비학 보조 교차 + otherChartId(역방향 결제 인식)
+    body: { chartId, category, kind: k, tier: 'paid', otherSaju, otherChartId, otherZiwei, cross, dayRel, yearGz, ziwei: meZiwei, numMe, numOther, lang: readingLang(), ...(meContext ? { context: meContext } : {}) }, // paid 제거(서버 판정) + context grounding + 수비학 보조 교차 + otherChartId(역방향 결제 인식)
   });
   if (error) return { kind: 'error' };
   if (data?.needPremium) return { kind: 'needPremium' };

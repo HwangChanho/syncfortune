@@ -41,7 +41,7 @@ import { requestChartConfirm } from '../lib/ui/chartConfirm'; // 명식 확인 �
 import { assertOnline } from '../lib/backend/network';
 import { supabase } from '../lib/supabase';
 import { excludeMock } from '../lib/core/testMode'; // ★목업(tier='mock') 제외(테스트모드 OFF) — 실모드 목업 서빙 차단
-import { appLang } from '../lib/i18n';
+import { readingLang } from '../lib/i18n';
 import { readingFromInvoke } from '../lib/backend/interpretResult'; // 방어: Edge 응답 정규화(일시적 불가·결제필요·오류)
 import { logEvent } from '../lib/backend/logger';
 import { useLogContentVisit } from '../lib/backend/contentVisit'; // 콘텐츠 방문 집계(daniel 2026-07-06) — 진입 1회
@@ -225,7 +225,7 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
     const deadline = Date.now() + maxMs;
     while (Date.now() < deadline) {
       await new Promise((r) => setTimeout(r, everyMs));
-      const { data } = await excludeMock(supabase.from('readings').select('content').eq('chart_id', id).eq('category', category).eq('lang', appLang())).maybeSingle();
+      const { data } = await excludeMock(supabase.from('readings').select('content').eq('chart_id', id).eq('category', category).eq('lang', readingLang())).maybeSingle();
       if (data?.content) return data.content;
     }
     return null;
@@ -282,7 +282,7 @@ export function SpecialContentScreen({ kind, category = kind, title, sub, sectio
     logEvent(`${kind}_invoke_start`, { chartId: id });
     let ok = false; // ★L2: 실제 성공(정상 reading 객체) 여부 — 완료 배너·푸시는 이때만(오완료 '완성' 푸시 방지)
     try {
-      const body: any = { chartId: id, category, kind, tier: 'paid', lang: appLang() };
+      const body: any = { chartId: id, category, kind, tier: 'paid', lang: readingLang() };
       if (refreshArg) body.refresh = true; // ★캐시(본인만) 덮어쓰기(daniel 07-05 재회 상대 재등록) — Edge 가 REGEN_CAP 내 재생성(프리미엄=무료 / 비프리미엄=재차감). refresh 계약은 ReadingScreen 갱신과 동일.
       if (needsZiwei) body.ziwei = ziweiArg ?? c?.ziwei; // 사명 = 자미 보조 교차
       // ★R60 애정 이원분석(daniel 스펙 v0.2.0) — 온디바이스 판정 결과를 body 로.

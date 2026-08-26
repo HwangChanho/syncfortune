@@ -216,7 +216,18 @@ export function installCrashLogger(): void {
 //     그래도 RN 앱의 '멈춤' 대부분은 JS 스레드 블로킹이라 1차 진단으로 충분하다.
 const STALL_TICK_MS = 1000;
 const STALL_MIN_MS = 2500;     // 이 이상 늦게 깨어나면 '멈춤'으로 본다(GC·전환 지터는 걸러진다)
+// ★상한 (2026-08-26 실측): 이보다 크면 «멈춤» 이 아니라 **«잠들었다 깨어난 것»** 이다.
+//   실측 47건 중 **20건(43%)이 직전 5분간 로그가 하나도 없었다** = 아무도 안 쓰고 있었다는 뜻.
+//   안드로이드 최대값은 **3,029초(50분)** 였는데, 50분 멈춘 앱을 붙들고 기다리는 사람은 없다.
+//   ⇒ `AppState==='active'` 만으로는 못 거른다(Doze·화면 꺼짐·웹의 백그라운드 탭에서 'active' 로 남는다).
+//   진짜 «사람이 겪는 멈춤» 은 수 초~수십 초다. 그 위는 계측 노이즈로 보고 **버린다** —
+//   남겨 두면 평균이 오염돼(평균 1,046초 같은 값) 진짜 멈춤이 묻힌다.
+const STALL_MAX_MS = 60_000;
 let stallInstalled = false;
+/** 웹에서 탭이 가려져 있는지 — RN 에는 document 가 없으므로 있을 때만 본다. */
+function pageHidden(): boolean {
+  try { return typeof document !== 'undefined' && document.visibilityState === 'hidden'; } catch { return false; }
+}
 export function installStallDetector(): void {
   if (stallInstalled) return;
   stallInstalled = true;
@@ -226,7 +237,8 @@ export function installStallDetector(): void {
     const drift = now - last - STALL_TICK_MS;
     last = now;
     // 백그라운드에서는 타이머가 원래 늦게 깨어난다 → 활성 상태일 때만 '멈춤'으로 센다(오탐 제거).
-    if (drift >= STALL_MIN_MS && AppState.currentState === 'active') {
+    // ★웹은 `AppState` 가 탭 가림을 못 잡는 경우가 있어 `visibilityState` 로 한 겹 더 본다.
+    if (drift >= STALL_MIN_MS && drift < STALL_MAX_MS && AppState.currentState === 'active' && !pageHidden()) {
       logEvent('js_stall', { ms: drift }, 'warn');
     }
   }, STALL_TICK_MS);

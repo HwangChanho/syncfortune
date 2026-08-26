@@ -27,7 +27,7 @@ import { assertOnline } from '../../lib/backend/network';
 import { supabase } from '../../lib/supabase';
 import { withTimeout, GEN_TIMEOUT_MS } from '../../lib/core/withTimeout';   // ★대기 상한(멈춤 방지·2026-07-31)
 import { excludeMock } from '../../lib/core/testMode'; // ★목업(tier='mock') 제외(테스트모드 OFF) — 실모드 목업 서빙 차단
-import { appLang } from '../../lib/i18n';
+import { readingLang } from '../../lib/i18n';
 import { readingFromInvoke } from '../../lib/backend/interpretResult'; // 방어: Edge 응답 정규화(일시적 불가·결제필요·오류)
 import { logEvent } from '../../lib/backend/logger'; // DB 로그(단계별 — 네이티브 크래시 직전 추적)
 import { useResumeReading } from '../../lib/backend/useResumeReading'; // 앱 복귀 시 서버가 만들어 둔 결과 회수
@@ -116,7 +116,7 @@ export default function CareerScreen() {
       if (!alive || !id) { setLoaded(true); return; }
       setChartId(id);
       chartIdRef.current = id;   // ① 현재 명식 확정 — 이후 도착하는 generate 결과의 명식 대조 기준
-      const { data } = await excludeMock(supabase.from('readings').select('content, created_at').eq('chart_id', id).eq('category', 'career').eq('lang', appLang())).maybeSingle();
+      const { data } = await excludeMock(supabase.from('readings').select('content, created_at').eq('chart_id', id).eq('category', 'career').eq('lang', readingLang())).maybeSingle();
       if (!alive) return;
       const cached = data?.content ?? null;
       setReading(cached);
@@ -153,7 +153,7 @@ export default function CareerScreen() {
     let ok = false; // ★L2: 실제 성공(정상 reading 객체) 여부 — 완료 배너·푸시는 이때만(오완료 '완성' 푸시 방지)
     try {
       const __inv = await withTimeout(supabase.functions.invoke('interpret', {
-        body: { chartId: id, category: 'career', kind: 'career', tier: 'paid', lang: appLang() },
+        body: { chartId: id, category: 'career', kind: 'career', tier: 'paid', lang: readingLang() },
       }), GEN_TIMEOUT_MS);
       const { data, error } = __inv ?? { data: null, error: { message: 'client timeout' } as any };      if (isStale()) return;   // ① 생성 사이 명식 전환됨 → 남의 화면에 쓰지 않음(폐기)
       if (error) logEvent('career_invoke_error', { message: error.message }, 'error');

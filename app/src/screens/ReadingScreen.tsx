@@ -51,7 +51,8 @@ import { needsContentRenewal } from '../lib/billing/repurchase'; // 운세형 1�
 import { getRepresentativeId, type SavedChart } from '../lib/engine/myChart';
 import { loadFollowups, askFollowup, type Followup } from '../lib/backend/followups';
 import { useFontScale } from '../lib/ui/fontScale';
-import { appLang } from '../lib/i18n'; // 통변 출력 언어(앱 언어)
+import { readingLang, onReadingLangChange, type ReadingLang } from '../lib/i18n'; // 통변 출력 언어(**풀이 언어** — 앱 UI 언어와 따로 고를 수 있다)
+import { ReadingLangChip } from '../components/ReadingLangChip'; // 풀이를 다른 나라 말로 바꿔 보는 칩
 import { readingFromInvoke } from '../lib/backend/interpretResult'; // 방어: Edge 응답 정규화(일시적 불가·결제필요·오류)
 import { acquireGen, releaseGen } from '../lib/backend/genLock'; // 생성 중복 잠금(크로스마운트 공유·150초 stale-timeout) — daniel 07-16: 자체 Set 폐기, 다른 유료 화면과 통일(락 누수로 사주·자미 먹통 방지)
 import { PALACE_DESC } from '../lib/content/palaceDesc'; // 자미두수 궁 설명(궁 옆 표시)
@@ -295,6 +296,18 @@ function ReadingScreenBody({
 
   // 진입 시: 서버 chart_id 확보 + 저장된 풀이(캐시) 로드 → 생성 없이 즉시 표시.
   //   savedChart 가 있어야 chart_id 안정화(재사용). 없으면(input-param 경로) 캐시 생략 → 버튼 생성.
+  // ── 풀이 언어 (Boss 2026-08-26 *"각국의 다른 언어로도 볼 수 있으면 좋겠어"*) ──────────
+  //   ★`readingLang()` 은 **함수**라 값이 바뀌어도 useEffect 를 다시 돌리지 못한다.
+  //     그래서 state 로 한 번 받아 아래 조회들의 deps 에 끼운다 — 언어를 바꾸면 그 언어 캐시를 다시 읽는다.
+  //   ★언어를 바꾸면 `readings` 를 **비운다**. 안 비우면 앞 언어 본문이 남아 섞여 보인다.
+  //     비운 뒤 그 언어 풀이가 없으면 화면은 평소의 「풀이 보기」 흐름으로 떨어진다 —
+  //     ⚠️**자동 생성하지 않는다**(비용). 다만 이미 언락한 세트면 그 흐름이 무료로 지나간다.
+  const [rlang, setRlang] = useState<ReadingLang>(() => readingLang());
+  useEffect(() => onReadingLangChange(() => {
+    const next = readingLang();
+    setRlang((prev) => { if (prev !== next) setReadings({}); return next; });
+  }), []);
+
   useEffect(() => {
     let alive = true;
     (async () => {
@@ -303,7 +316,7 @@ function ReadingScreenBody({
       if (!alive || !id) { if (alive) setCacheLoaded(true); return; }
       setChartId(id);
       isReadingUnlocked(id, kind === 'ziwei' ? 'ziwei' : 'reading').then((u) => { if (alive) { setUnlocked(u); setUnlockedLoaded(true); } }).catch(() => { if (alive) setUnlockedLoaded(true); }); // #1 표시 게이트용 세트 언락 로드(+완료 플래그)
-      const { data } = await excludeMock(supabase.from('readings').select('category, content, l2_ver, created_at').eq('chart_id', id).eq('lang', appLang()));
+      const { data } = await excludeMock(supabase.from('readings').select('category, content, l2_ver, created_at').eq('chart_id', id).eq('lang', readingLang()));
       if (!alive) return;
       const keys = new Set(cats.map((x) => x.key));   // 이 화면 항목(사주/자미)만 반영
       const loaded: Record<string, any> = {};
@@ -332,14 +345,14 @@ function ReadingScreenBody({
     })().catch(() => { if (alive) setCacheLoaded(true); /* 실패해도 자동 생성 판단은 진행 */ });
     return () => { alive = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [input, session, savedChart, cats]);
+  }, [input, session, savedChart, cats, rlang]);
 
   // G(daniel: 씽크 단일화): 풀이 완료(genDone)마다 캐시 재조회 → 머지(기존 보존). 다른 화면/백그라운드 생성분이
   //   이 화면에 *라이브로* 채워진다 → 들어왔을 때 무한로딩·홈%·푸시가 따로 노는 문제 제거(잠금화면은 실제 데이터로 갱신).
   useEffect(() => {
     if (!chartId) return;
     let alive = true;
-    excludeMock(supabase.from('readings').select('category, content').eq('chart_id', chartId).eq('lang', appLang())).then(({ data }) => {
+    excludeMock(supabase.from('readings').select('category, content').eq('chart_id', chartId).eq('lang', readingLang())).then(({ data }) => {
       if (!alive) return;
       const upd: Record<string, any> = {};
       (data ?? []).forEach((r: any) => { if (cats.some((c) => c.key === r.category)) upd[r.category] = r.content; });
@@ -347,7 +360,7 @@ function ReadingScreenBody({
     });
     return () => { alive = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [genDone, chartId]);
+  }, [genDone, chartId, rlang]);
 
   // ★UI 표출만(daniel 2026-07-21 · Option C): gen_jobs(서버 생성 상태) 구독 — 서버(generate_set)가 관리하는
   //   진행·완료를 화면 오버레이/홈 배너에 *표시만* 한다. 서버가 백그라운드/강제종료와 무관하게 생성하므로 클라는
@@ -361,7 +374,7 @@ function ReadingScreenBody({
     let alive = true;
     setJobLoaded(false);   // 명식/종류 전환 = 서버 상태를 다시 물어봐야 한다(이전 답으로 단정 금지)
     const gpRoute = `/reading?kind=${kind === 'ziwei' ? 'ziwei' : 'saju'}&chartId=${savedChart.id}`;
-    const refetch = () => excludeMock(supabase.from('readings').select('category, content').eq('chart_id', chartId).eq('lang', appLang())).then(({ data }) => {
+    const refetch = () => excludeMock(supabase.from('readings').select('category, content').eq('chart_id', chartId).eq('lang', readingLang())).then(({ data }) => {
       if (!alive || !data) return;
       setReadings((prev) => { const u = { ...prev }; (data as any[]).forEach((r) => { if (catsRef.current.some((cc) => cc.key === r.category)) u[r.category] = r.content; }); return u; });
     });
@@ -535,7 +548,7 @@ function ReadingScreenBody({
       // ★상한(2026-07-31): 위임 호출이 안 끝나면 진행률 오버레이가 영구히 남는다.
       //   초과는 error 로 흘려 **기존 폴백**(클라 직접 생성·genLock)을 그대로 타게 한다.
       const __set = await withTimeout(supabase.functions.invoke('generate_set', {
-        body: { chartId: id, kind, categories: todo.map((x) => ({ key: x.key, label: x.label })), lang: appLang(), savedChartId: savedChart?.id, ...(kind === 'ziwei' ? { ziwei: c.ziwei } : {}), ...(savedChart?.context ? { context: savedChart.context } : {}) },
+        body: { chartId: id, kind, categories: todo.map((x) => ({ key: x.key, label: x.label })), lang: readingLang(), savedChartId: savedChart?.id, ...(kind === 'ziwei' ? { ziwei: c.ziwei } : {}), ...(savedChart?.context ? { context: savedChart.context } : {}) },
       }), GEN_TIMEOUT_MS);
       const { error } = __set ?? { error: { message: 'client timeout' } as any };
       if (error) throw error;
@@ -560,7 +573,7 @@ function ReadingScreenBody({
       setProgress((p) => (p ? { ...p, current: cat.label } : null)); // 지금 풀이 중인 영역
       try {
         // 자미는 운한(대한 비성사화)이 포함된 최신 명반을 body 로 전달(저장본은 구버전일 수 있음 → Edge가 우선 사용).
-        const __inv = await withTimeout(supabase.functions.invoke('interpret', { body: { chartId: id, category: cat.key, kind, tier: 'paid', lang: appLang(), ...(kind === 'ziwei' ? { ziwei: c!.ziwei } : {}), ...(savedChart?.context ? { context: savedChart.context } : {}) } }), GEN_TIMEOUT_MS);
+        const __inv = await withTimeout(supabase.functions.invoke('interpret', { body: { chartId: id, category: cat.key, kind, tier: 'paid', lang: readingLang(), ...(kind === 'ziwei' ? { ziwei: c!.ziwei } : {}), ...(savedChart?.context ? { context: savedChart.context } : {}) } }), GEN_TIMEOUT_MS);
         const { data, error } = __inv ?? { data: null, error: { message: 'client timeout' } as any };
         // ★결제 필요(운 부족) 감지 — daniel 2026-07-29 신고의 근인이었다.
         //   종전엔 needPayment 를 그냥 '풀이'로 취급해 화면에 넣고 **남은 영역을 계속 호출**했다.
@@ -597,7 +610,7 @@ function ReadingScreenBody({
     let id = chartId;
     if (!id) { id = savedChart ? await ensureServerChart() : await insertChart(); if (!id) return; setChartId(id); }
     try {
-      const __inv = await withTimeout(supabase.functions.invoke('interpret', { body: { chartId: id, category: key, kind, tier: 'paid', preview: true, lang: appLang(), ...(kind === 'ziwei' ? { ziwei: c!.ziwei } : {}), ...(savedChart?.context ? { context: savedChart.context } : {}) } }), GEN_TIMEOUT_MS);
+      const __inv = await withTimeout(supabase.functions.invoke('interpret', { body: { chartId: id, category: key, kind, tier: 'paid', preview: true, lang: readingLang(), ...(kind === 'ziwei' ? { ziwei: c!.ziwei } : {}), ...(savedChart?.context ? { context: savedChart.context } : {}) } }), GEN_TIMEOUT_MS);
       const { data, error } = __inv ?? { data: null, error: { message: 'client timeout' } as any };      setReadings((prev) => ({ ...prev, [key]: readingFromInvoke(data, error) })); // 방어: 일시적 불가·오류 친화 처리(미리보기=preview)
     } catch (e) { setReadings((prev) => ({ ...prev, [key]: { error: (e as Error).message } })); }
   }
@@ -629,7 +642,7 @@ function ReadingScreenBody({
     setProgress({ done: 0, total: 1, current: label });
     try {
       const __inv = await withTimeout(supabase.functions.invoke('interpret', {
-        body: { chartId, category: key, kind, tier: 'paid', refresh: true, ...(renewConfirm ? { renewConfirm: true } : {}), lang: appLang(), ...(kind === 'ziwei' ? { ziwei: c!.ziwei } : {}) },
+        body: { chartId, category: key, kind, tier: 'paid', refresh: true, ...(renewConfirm ? { renewConfirm: true } : {}), lang: readingLang(), ...(kind === 'ziwei' ? { ziwei: c!.ziwei } : {}) },
       }), GEN_TIMEOUT_MS);
       const { data, error } = __inv ?? { data: null, error: { message: 'client timeout' } as any };      if (error) Alert.alert(t('common.error'), t('common.genFailed', '풀이를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.')); // 방어: 원문 대신 친화 문구
       else if (data?.unavailable) Alert.alert(t('common.error'), (data as any).message || t('common.llmBusy', '지금 통변 생성이 일시적으로 어려워요. 잠시 후 다시 시도해 주세요.')); // 방어: LLM 일시적 불가
@@ -935,6 +948,14 @@ function ReadingScreenBody({
           <ReadingHero title={hero.title} sub={hero.sub} counts={elemCounts ?? undefined} />
         </View>
       ) : null}
+      {/* ── 풀이 언어 칩 (Boss 2026-08-26) ────────────────────────────────────
+           ★풀이가 **하나라도 있을 때만** 보인다 — 아무것도 없는데 언어부터 고르게 하면
+             «골랐는데 여전히 빈 화면» 이 된다. 읽던 것을 옮겨 볼 때가 이 칩의 자리다.
+           ★바꿔도 다시 결제하지 않는다(언락은 언어를 안 가린다) — 그래서 확인창을 띄우지 않는다.
+        ── */}
+      {Object.keys(readings).length > 0 ? (
+        <View style={styles.langRow}><ReadingLangChip /></View>
+      ) : null}
       {/* ★생성 진행 바(daniel 2026-07-29 "풀이 눌렀는데 풀이중인지 뭐 어쩐지 아무것도 모르겠는데").
           자물쇠 오버레이는 **캐시 0개일 때만** 뜬다(showUnlockOverlay) — 한 영역이라도 채워지면 사라져
           그 뒤로는 아무 표시가 없었다. 진행 중이면 여기서 항상 보이게 한다. */}
@@ -1162,6 +1183,7 @@ function ReadingScreenBody({
 }
 
 const styles = StyleSheet.create({
+  langRow: { alignItems: 'flex-end', marginBottom: space(2) },   // 풀이 언어 칩 줄(오른쪽 끝 — 본문 읽기를 방해하지 않는 자리)
   // ── 시안 p10·p11 풀이 지면 ──────────────────────────────────────────────
   heroWrap: { marginHorizontal: -space(5), marginTop: -space(3), marginBottom: space(2) },   // 지면 좌우 패딩을 뚫고 전폭으로
   tabBar: { marginHorizontal: -space(5), marginBottom: space(3) },
