@@ -51,4 +51,28 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
   return (baseResolveRequest ?? context.resolveRequest)(context, moduleName, platform);
 };
 
+// 4) ⚠️★★**클래스 이름을 압축하지 않는다** (2026-08-26 · 웹 전 화면 점검에서 발견)
+//    expo 의 웹 모듈은 `registerWebModule(Klass)` 로 **클래스 이름을 키 삼아** 전역에 등록하고,
+//    같은 이름이 이미 있으면 **그것을 그대로 돌려준다**:
+//      globalThis.expo.modules[Klass.name] ??= new Klass()
+//    그런데 프로덕션 압축이 클래스 이름을 한 글자로 바꾼다 ⇒ 실측으로 **셋이 전부 `s`** 였다:
+//      · 989  expo-image   (prefetch·clearDiskCache)
+//      · 1040 expo-network (getNetworkStateAsync)
+//      · 1107 expo-speech  (speak·stop)
+//    ⇒ 먼저 등록한 하나만 살고 **나머지 둘은 엉뚱한 인스턴스를 받는다.**
+//    증상(실측): 웹 콘솔에 `o.default.stop is not a function` — 화면을 떠날 때마다.
+//      `TTSButton` 의 언마운트 정리(`Speech.stop()`)가 **expo-image 인스턴스**를 부르고 있었다.
+//      `ExpoImage.prefetch` 도 웹에서 조용히 아무 일도 안 했다(전부 `catch` 로 감싸여 있어 안 보였다).
+//    ★이건 «화면이 죽는» 버그는 아니지만, **어느 모듈이 이길지는 압축 순서가 정한다** —
+//      다음 빌드에서 순서가 바뀌면 무엇이 깨질지 아무도 예측할 수 없다. 그래서 뿌리를 막는다.
+//    ⚠️`keep_fnames` 도 같이 켠다 — 함수 이름으로 분기하는 라이브러리가 같은 방식으로 깨진다.
+config.transformer = {
+  ...config.transformer,
+  minifierConfig: {
+    ...(config.transformer?.minifierConfig ?? {}),
+    keep_classnames: true,
+    keep_fnames: true,
+  },
+};
+
 module.exports = config;

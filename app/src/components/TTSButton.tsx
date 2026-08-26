@@ -28,13 +28,33 @@ function readingToText(reading: any, sections?: { key: string; label?: string }[
   return parts.filter(Boolean).join('\n\n');
 }
 
+/**
+ * 안전하게 멈춘다.
+ *
+ * ⚠️★2026-08-26 웹 전 화면 점검에서 잡힘 — `Speech.stop()` 이 웹에서 **던지고 있었다**.
+ *   `expo-speech` 의 `stop` 은 `pause`·`resume` 과 달리 **가드가 없다**:
+ *     `e.stop = async () => o.default.stop()`   ← 없으면 그대로 TypeError
+ *   실제 원인은 압축 클래스명 충돌이었고 `metro.config.js` 에서 뿌리를 막았지만,
+ *   **여기도 막아 둔다** — 언마운트 정리에서 던지면 그 자체로 화면을 위험하게 만든다.
+ * ★웹에서는 표준 `speechSynthesis.cancel()` 로 떨어진다(같은 엔진이라 실제로 멈춘다).
+ */
+function stopSpeechSafely(): void {
+  try { void Promise.resolve(Speech.stop()).catch(() => { /* 웹 미지원 등 — 무시 */ }); }
+  catch { /* 동기 예외도 삼킨다 */ }
+  try {
+    const ss = (globalThis as any)?.speechSynthesis;
+    if (ss && typeof ss.cancel === 'function') ss.cancel();
+  } catch { /* 브라우저가 아니면 없다 */ }
+}
+
 export function TTSButton({ reading, sections }: { reading: any; sections?: { key: string; label?: string }[] }) {
   const [speaking, setSpeaking] = useState(false);
   // ★세션 토큰 — 정지/언마운트 시 증가시켜, 진행 중이던 청크 체인이 *다음 청크로 넘어가지 않게* 막는다.
   //   iOS는 Speech.stop() 이 현재 청크의 onDone 을 부르는 경우가 있어, 체인이 계속 이어지며
   //   "멈춤 눌러도·화면 나가도 계속 읽힘"(daniel)이 발생. 세션이 바뀌면 onDone 이 와도 다음 청크를 안 읽는다.
   const sessionRef = useRef(0);
-  useEffect(() => () => { sessionRef.current++; Speech.stop(); }, []); // 화면 이탈 = 세션 무효화 + 정지
+  // ⚠️정리 함수에서 **던지면 안 된다** — 화면을 떠나는 길목이다(위 `stopSpeechSafely` 주석)
+  useEffect(() => () => { sessionRef.current++; stopSpeechSafely(); }, []); // 화면 이탈 = 세션 무효화 + 정지
 
   // 문단(청크)을 *순차 체인*으로 읽되, 매 청크 전에 세션 유효성 확인 — 무효(정지/이탈)면 더 읽지 않음.
   const speakChain = (chunks: string[], i: number, lang: string, session: number) => {
@@ -48,7 +68,7 @@ export function TTSButton({ reading, sections }: { reading: any; sections?: { ke
       onError: () => { if (session === sessionRef.current) setSpeaking(false); },
     });
   };
-  const stop = () => { sessionRef.current++; Speech.stop(); setSpeaking(false); }; // 세션 무효화로 체인까지 확실히 중단
+  const stop = () => { sessionRef.current++; stopSpeechSafely(); setSpeaking(false); }; // 세션 무효화로 체인까지 확실히 중단
   const toggle = () => {
     if (speaking) { stop(); return; }
     const text = readingToText(reading, sections).trim();
