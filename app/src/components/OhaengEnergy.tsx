@@ -8,9 +8,7 @@
 //   ③ 지배 에너지 오브 + 한 줄 성향 + (부족 기운은 '채우면 좋은') — §4 전향적(부족=결핍 아님, 보완축).
 // ElementBalance(분석용 막대)와 상호보완 — 이건 '친근한 첫인상' 버전.
 // ─────────────────────────────────────────────────────────────────────────
-import { useState } from 'react';
 import { View, Text, StyleSheet, Platform } from 'react-native';
-import { PressableScale } from './PressableScale';
 import { stemElement, branchElement, elementColor } from '../lib/engine/ohaeng';
 import type { SajuChart } from '@spec/chart';
 import { useFontScale } from '../lib/ui/fontScale';   // ★원 크기를 글자 배율에서 파생(daniel 07-28)
@@ -33,9 +31,10 @@ const EL_TRAIT: Record<string, string> = {
  *   ⚠️합쳐서 하나로 보여 주지 않는다. **무엇이 켜져 있는지**가 늘 보여야 숫자를 오해하지 않는다.
  */
 export function OhaengEnergy({ saju }: { saju: SajuChart }) {
-  // ★어느 층을 셀지 — 기본은 원국만(종전 동작 그대로)
-  const [withDaeun, setWithDaeun] = useState(false);
-  const [withSewoon, setWithSewoon] = useState(false);
+  // ★어느 층을 셀지 — **원국만**(Boss 2026-08-27 «원국 운세에서는 대운 세운 추가할 필요 없어»).
+  //   ⚠️상태를 지우지 않고 `false` 로 고정해 둔다 — 아래 세는 식이 그대로 남아,
+  //     시점 고르기(#59)가 붙을 때 배선만 이어 주면 된다(세는 방식은 관법이라 안 건드린다).
+  const withDaeun = false, withSewoon = false;
   // ★원(orb)·글자를 같은 배율에서 만든다(daniel 2026-07-28 IMG_8266 "글씨 크기에 따라 동그라미 사이즈도 안맞아").
   //   종전엔 원 38/48px·글자 17/22px 이 **전부 고정**이라 앱 글자 배율을 바꿔도 이 카드만 따라오지 않았다.
   //   원 지름 = 글자 크기 × 2.2 로 묶어 두면 어떤 배율에서도 비율이 유지된다.
@@ -70,25 +69,11 @@ export function OhaengEnergy({ saju }: { saju: SajuChart }) {
     <View style={styles.wrap}>
       <Text style={styles.title}>나를 이루는 다섯 기운</Text>
 
-      {/* ★대운·세운 켜기 (Boss 2026-08-26) — **무엇이 켜져 있는지가 늘 보인다.**
-          합쳐서 하나로만 보여 주면 «이 숫자가 원국인지 지금인지» 를 알 수 없다. */}
-      <View style={styles.layerRow}>
-        {([['대운', withDaeun, setWithDaeun, lc], ['세운', withSewoon, setWithSewoon, an]] as const).map(
-          ([lab, on, set, src]) => (
-            <PressableScale
-              key={lab}
-              // ⚠️값이 없으면 **안 눌린다** — 켰는데 아무 변화가 없으면 고장으로 보인다
-              disabled={!src?.stem}
-              style={[styles.layerChip, on && styles.layerChipOn, !src?.stem && styles.layerChipOff]}
-              onPress={() => set(!on)}
-            >
-              <Text style={[styles.layerTx, on && styles.layerTxOn]}>
-                {on ? '✓ ' : '+ '}{lab}{src?.stem ? ` ${src.stem}${src.branch}` : ' (없음)'}
-              </Text>
-            </PressableScale>
-          ))}
-      </View>
-
+      {/* ⚠️★대운·세운 **켜기 칩을 뺐다**(Boss 2026-08-27
+            *"원국 운세에서는 대운 세운 추가할필요 없어 저건 뺴"*).
+          이 자리는 «타고난 것» 을 보여 주는 곳이다. 지금 운을 섞으면 두 가지가 한 그림에 겹쳐
+          «이 숫자가 원국인지 지금인지» 가 흐려진다 — 그건 만세력 쪽에서 시점을 골라 보면 된다(#59).
+          ★세는 코드는 남겨 뒀다(`withDaeun`·`withSewoon`) — 시점 고르기가 붙을 자리다. */}
       {/* ① 발광 구슬 8개(오행 색 에너지) */}
       <View style={styles.beads}>
         {beads.map((e, i) => (
@@ -98,20 +83,32 @@ export function OhaengEnergy({ saju }: { saju: SajuChart }) {
         ))}
       </View>
 
-      {/* ② 오행 비율 스택 바 */}
+      {/* ② 오행 비율 스택 바 — ★★칸 **안에** 글자와 개수를 넣는다(Boss 2026-08-27
+            *"색상 바 앞에 해당 색에 맞는 오행이랑 갯수숫자가 나오게하고 없는건 제일 오른쪽에 두고"*).
+          종전엔 바 아래 별도 줄이라 **어느 색이 무엇인지** 눈이 두 번 오갔다.
+          ⚠️칸이 좁으면 글자가 잘린다 ⇒ `flex` 가 작은 칸은 글자를 **안 그린다**(잘린 글자보다 낫다) —
+            그 대신 아래 «없는 기운» 줄에서 전부 확인된다. */}
       <View style={styles.stack}>
         {EL.filter((e) => counts[e] > 0).map((e) => (
-          <View key={e} style={{ flex: counts[e], backgroundColor: elementColor[e], height: '100%' }} />
-        ))}
-      </View>
-      <View style={styles.legendRow}>
-        {EL.map((e) => (
-          <View key={e} style={styles.legend}>
-            <View style={[styles.dot, { backgroundColor: elementColor[e] }]} />
-            <Text style={styles.legendTx}>{e} {counts[e]}</Text>
+          <View key={e} style={[styles.seg, { flex: counts[e], backgroundColor: elementColor[e] }]}>
+            {counts[e] >= 2 ? (
+              <Text style={[styles.segTx, { color: onColor(e) }]} numberOfLines={1}>{e} {counts[e]}</Text>
+            ) : null}
           </View>
         ))}
       </View>
+      {/* ★**없는 기운만** 따로 오른쪽에(Boss 지정). 있는 것은 이미 바 안에 적혀 있으므로 다시 안 적는다 —
+          두 번 적으면 «어느 쪽이 맞나» 를 눈이 확인하게 된다. */}
+      {EL.some((e) => counts[e] === 0) ? (
+        <View style={styles.zeroRow}>
+          {EL.filter((e) => counts[e] === 0).map((e) => (
+            <View key={e} style={styles.legend}>
+              <View style={[styles.dot, { backgroundColor: elementColor[e], opacity: 0.35 }]} />
+              <Text style={styles.legendTx}>{e} 0</Text>
+            </View>
+          ))}
+        </View>
+      ) : null}
 
       {/* ③ 대표기운 순위 1~5(daniel 2026-07-24 '2~5순위까지 다 나오게') — 세력 순으로 다섯 기운 전부 + 성향. 1위 강조. */}
       <View style={styles.rankCard}>
@@ -152,21 +149,17 @@ function glow(e: string) {
 
 const styles = StyleSheet.create({
   // 층 토글(대운·세운) — ★상태를 **글자로도** 준다(✓ / +). 색만 쓰면 색약인 사람에게 안 보인다.
-  layerRow: { flexDirection: 'row', gap: space(2), marginBottom: space(3), flexWrap: 'wrap' },
-  layerChip: {
-    paddingHorizontal: space(3), paddingVertical: space(1.5), borderRadius: 999,
-    borderWidth: 1, borderColor: colors.line, backgroundColor: colors.card,
-  },
-  layerChipOn: { borderColor: colors.juLine, backgroundColor: colors.sunk },
-  layerChipOff: { opacity: 0.45 },
-  layerTx: { ...font.caption, color: colors.inkSoft, fontWeight: '700' },
-  layerTxOn: { color: colors.ju, fontWeight: '800' },
   wrap: { marginBottom: space(2) },
   title: { ...font.heading, color: colors.ink, textAlign: 'center', marginBottom: space(3) },
   beads: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: space(2), marginBottom: space(4) },
   bead: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
   beadGlyph: { fontSize: 15, fontWeight: '900' },
   stack: { flexDirection: 'row', height: 12, borderRadius: 6, overflow: 'hidden', backgroundColor: colors.sunk },
+  // 바 한 칸 — 글자를 가운데. `overflow:hidden` 이 있어야 좁은 칸에서 글자가 밖으로 안 삐져나온다
+  seg: { height: '100%', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  segTx: { fontSize: 11, fontWeight: '800' },
+  // 없는 기운 — **오른쪽 끝**에 모은다
+  zeroRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10, marginTop: 6 },
   legendRow: { flexDirection: 'row', justifyContent: 'space-around', marginTop: space(2), marginBottom: space(3) },
   legend: { flexDirection: 'row', alignItems: 'center', gap: space(1) },
   dot: { width: 9, height: 9, borderRadius: 5 },

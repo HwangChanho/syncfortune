@@ -218,6 +218,15 @@ function MyeongsikBody({ input, onReading, onSinsal, header, whoName }: Myeongsi
    *     여기 별도 선택기를 만들면 같은 것을 두 곳에서 고르게 되어 어긋난다.
    */
   const [elemSpan, setElemSpan] = useState<'natal' | 'luck' | 'both'>('natal');
+  /**
+   * 시점 고르기 시트 (Boss 2026-08-27
+   *   *"여기서 대운 세운을 특정 시점으로 지정할수 있어야해 모바일의경우 뷰를 새로 올리던지 해서"*).
+   *
+   * ★★**출처는 그대로 하나**다 — 시트는 위 운세 띠와 **같은 `selLuck`·`selSeun`** 을 바꾼다.
+   *   여기에 별도 상태를 두면 «띠에서 고른 것» 과 «분포에서 고른 것» 이 갈려 숫자가 어긋난다.
+   *   ⇒ 입구만 하나 더 내는 것이지, 값을 두 벌 갖는 것이 아니다.
+   */
+  const [spanPick, setSpanPick] = useState(false);
   const spanExtra = (() => {
     if (elemSpan === 'natal') return undefined;
     const l = luckCycles[selLuck];
@@ -752,7 +761,58 @@ function MyeongsikBody({ input, onReading, onSinsal, header, whoName }: Myeongsi
             <Text style={[styles.layerChipTx, elemSpan === k && styles.layerChipTxOn]}>{label}</Text>
           </PressableScale>
         ))}
+        {/* ★시점 고르기 — **운을 얹었을 때만** 뜬다(원국만 볼 땐 고를 것이 없다).
+            누르면 대운·세운 목록이 올라온다. 값은 위 운세 띠와 **같은 것**을 바꾼다. */}
+        {elemSpan !== 'natal' ? (
+          <PressableScale style={[styles.layerChip, styles.spanPickBtn]} onPress={() => setSpanPick(true)}>
+            <Text style={styles.layerChipTx}>
+              {luckCycles[selLuck] ? `${luckCycles[selLuck].startAge}세` : '시점'}
+              {elemSpan === 'both' && luckCycles[selLuck]?.annuals?.[selSeun]
+                ? ` · ${luckCycles[selLuck]!.annuals![selSeun]!.year}` : ''} ▾
+            </Text>
+          </PressableScale>
+        ) : null}
       </View>
+      {/* ★시점 고르기 시트 — Boss *"모바일의경우 뷰를 새로 올리던지 해서"*.
+          ⚠️`Modal` 을 안 쓴다(iOS 에서 그 안의 영상이 소리만 남는 이력) — 화면 위에 덮는다.
+          ⚠️`absoluteFill` 은 **부모를 채우므로** 이 화면의 가장 바깥 안에 있어야 한다. */}
+      {spanPick ? (
+        <View style={styles.spanSheetWrap}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={() => setSpanPick(false)} />
+          <View style={styles.spanSheet}>
+            <Text style={styles.spanSheetH}>대운</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.spanRow}>
+              {luckCycles.map((l, i) => (
+                <PressableScale key={`${l.startAge}-${i}`}
+                  style={[styles.spanItem, selLuck === i && styles.spanItemOn]}
+                  onPress={() => { setSelLuck(i); setSelSeun(0); }}>
+                  <Text style={[styles.spanItemTx, selLuck === i && styles.spanItemTxOn]}>{l.startAge}세</Text>
+                  <Text style={[styles.spanItemGz, selLuck === i && styles.spanItemTxOn]}>{l.stem}{l.branch}</Text>
+                </PressableScale>
+              ))}
+            </ScrollView>
+            {/* 세운은 **+대운·세운** 일 때만 고를 수 있다 — 안 쓰는 것을 보여 주면 눌러도 아무 일이 없다 */}
+            {elemSpan === 'both' ? (
+              <>
+                <Text style={styles.spanSheetH}>세운</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.spanRow}>
+                  {((luckCycles[selLuck]?.annuals ?? []) as any[]).map((a, i) => (
+                    <PressableScale key={a.year}
+                      style={[styles.spanItem, selSeun === i && styles.spanItemOn]}
+                      onPress={() => setSelSeun(i)}>
+                      <Text style={[styles.spanItemTx, selSeun === i && styles.spanItemTxOn]}>{a.year}</Text>
+                      <Text style={[styles.spanItemGz, selSeun === i && styles.spanItemTxOn]}>{a.stem}{a.branch}</Text>
+                    </PressableScale>
+                  ))}
+                </ScrollView>
+              </>
+            ) : null}
+            <PressableScale style={styles.spanDone} onPress={() => setSpanPick(false)}>
+              <Text style={styles.spanDoneTx}>{t('common.close', '닫기')}</Text>
+            </PressableScale>
+          </View>
+        </View>
+      ) : null}
       {/* 어느 운을 얹었는지 **글자로** 밝힌다 — 안 적으면 무엇이 더해졌는지 알 수 없다 */}
       {spanExtra && spanExtra.length > 0 && (
         <Text style={styles.spanNote}>
@@ -1434,6 +1494,28 @@ const makeStyles = (fs: (n: number) => number) => { const f = scaledFont(fs); re
   rootStem: { fontSize: fs(10), fontWeight: '800' },
   rootSuffix: { fontSize: fs(9), color: colors.inkFaint, marginLeft: 1 },
   // 시간층 토글(년운·월운·일운)
+  // 시점 고르기(Boss 2026-08-27) — 아래에서 올라오는 시트
+  spanPickBtn: { borderStyle: 'dashed' },
+  spanSheetWrap: {
+    ...StyleSheet.absoluteFillObject, zIndex: 90,
+    backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end',
+  },
+  spanSheet: {
+    backgroundColor: colors.card, borderTopLeftRadius: 20, borderTopRightRadius: 20,
+    paddingHorizontal: 16, paddingTop: 16, paddingBottom: 28, gap: 8,
+  },
+  spanSheetH: { ...font.caption, color: colors.inkFaint, marginTop: 4 },
+  spanRow: { gap: 8, paddingVertical: 4 },
+  spanItem: {
+    minWidth: 58, alignItems: 'center', paddingVertical: 8, paddingHorizontal: 10,
+    borderRadius: 12, backgroundColor: colors.sunk, borderWidth: 1, borderColor: colors.line,
+  },
+  spanItemOn: { backgroundColor: colors.ju, borderColor: colors.ju },
+  spanItemTx: { ...font.caption, color: colors.inkSoft, fontWeight: '700' },
+  spanItemGz: { ...font.caption, fontSize: 12, color: colors.ink, fontWeight: '800' },
+  spanItemTxOn: { color: colors.onJu },
+  spanDone: { alignSelf: 'center', marginTop: 8, paddingHorizontal: 20, paddingVertical: 10 },
+  spanDoneTx: { ...font.body, color: colors.ju, fontWeight: '800' },
   layerToggle: { flexDirection: 'row', gap: space(2), marginTop: space(2), marginBottom: space(1) },
   layerChip: { paddingHorizontal: space(3), paddingVertical: space(1.5), borderRadius: radius.pill, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line },
   layerChipOn: { backgroundColor: colors.juSoft, borderColor: colors.ju },
