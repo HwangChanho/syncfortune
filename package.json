@@ -195,7 +195,10 @@
     "check:rpconce": "tsx scripts/check-rpconce.ts",
     "check:readinglang": "tsx scripts/check-readinglang.ts",
     "check:talkstory": "tsx scripts/check-talkstory.ts",
-    "check:talkoverlay": "tsx scripts/check-talkoverlay.ts"
+    "check:talkoverlay": "tsx scripts/check-talkoverlay.ts",
+    "check:talkmarker": "tsx scripts/check-talkmarker.ts",
+    "check:talkbold": "tsx scripts/check-talkbold.ts",
+    "check:talkdomain": "tsx scripts/check-talkdomain.ts"
   },
   "keywords": [],
   "author": "",

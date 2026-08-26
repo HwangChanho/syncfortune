@@ -17,6 +17,7 @@ import { Image as ExpoImage } from 'expo-image';
 import { PressableScale } from '../PressableScale';
 import { colors, space, radius, font, shadow } from '../../lib/theme';
 import { elementColor, elementText } from '../../lib/engine/ohaeng';
+import { emph } from '../../lib/ui/richText';   // `**강조**` → 굵게 (단일 출처 — 풀이 화면과 같은 파서)
 
 /** 화면에 그리는 한 덩이. 서버 `talk_messages` 한 행 + 링크(가상 답에만 붙는다). */
 export type TalkItem = {
@@ -170,7 +171,10 @@ export function TalkThread({ items, busy, onLink, jumpTo }: {
           ) : null}
           {m.body ? (
             <View style={m.role === 'user' ? styles.mine : styles.them}>
-              <Text style={m.role === 'user' ? styles.mineTx : styles.themTx}>{m.body}</Text>
+              {/* ★`**강조**` 를 굵게 — 종전엔 파서를 안 거쳐 **별표가 그대로** 보였다(Boss 2026-08-26).
+                  ⚠️새로 만들지 않고 **이미 있던** `emph()` 를 쓴다(풀이 화면이 쓰던 것) —
+                    화면마다 각자 파서를 두면 «같은 글이 화면마다 다르게» 보인다. */}
+              {emph(m.body, m.role === 'user' ? styles.mineTx : styles.themTx)}
             </View>
           ) : null}
           {/* 홈 블록은 말풍선 밖으로 — 폭을 온전히 써야 원래 카드 그대로 보인다 */}

@@ -431,12 +431,23 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
           setBusy(false);
           // ★복원된 이력에도 같은 규칙으로 그림을 붙인다 — 결정론이라 **처음과 같은 그림**이 나온다
           //   (모델에게 고르게 했다면 다시 열 때마다 달라졌을 것이다).
-          setItems(th.messages.map((m) => {
+          setItems(th.messages.flatMap((m) => {
             // ★대화 중 그림을 넣지 않는다(Boss 2026-08-25 *"대화 끝날때마다 나오는 이미지는 필요없어"*).
             //   말끝마다 그림이 붙으면 대화가 아니라 «카드 묶음» 으로 읽힌다.
             //   ⚠️`talkImagery` 는 지우지 않았다 — 다시 켤 일이 있으면 여기 한 줄이다.
-            // ★msgId 를 싣는다 — 정리에서 원문으로 데려갈 때 이 값으로 찾는다
-            return { id: nextId(), msgId: m.id, role: m.role, body: m.body };
+            //
+            // ★★2026-08-26 Boss *"대화가 분할돼서 오다가 다른 곳 나갔다오면 하나로 묶여있어"*
+            //   원인: 쪼개기(`splitBubbles`)가 **받을 때만** 도는 표시용 로직이었다.
+            //   DB 에는 답이 **한 덩어리(1행)** 로 저장되고, 복원은 그 행을 그대로 그렸다
+            //   ⇒ **같은 대화가 처음과 다시 볼 때 다르게** 보였다.
+            //   ⇒ 저장 형식은 그대로 둔다(원문 1행이 정본 — 이력·정리·재분석이 그걸 쓴다).
+            //     대신 **그리는 규칙을 한쪽으로 맞춘다.** 쪼개기는 결정론이라 늘 같은 모양이 나온다.
+            //   ⚠️사용자 말은 쪼개지 않는다 — 사람이 쓴 그대로가 원문이다.
+            //   ★`msgId` 는 조각들이 **함께 물려받는다** — 정리가 원문으로 데려갈 때 쓰는 값이라
+            //     쪼갠다고 갈라지면 안 된다(화면 `id` 만 조각마다 새로 준다).
+            const parts = m.role === 'assistant' ? splitBubbles(m.body) : [m.body];
+            const safe = parts.length ? parts : [m.body];   // 방어: 쪼개기가 빈손이면 원문 한 덩어리
+            return safe.map((b) => ({ id: nextId(), msgId: m.id, role: m.role, body: b }));
           }));
           void markRead(th.sessionId);
         }
