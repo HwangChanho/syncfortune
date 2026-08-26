@@ -160,7 +160,7 @@ export function ChatList({ onOpen, selectedId, reloadKey = 0, wide, onSettings, 
       <View style={styles.topRow}>
         {/* ★콘티 2면 헤더 = **워드마크 · 돋보기 · ⋮**. 제목 글자("운대화")가 아니다 —
             탭바가 이미 어느 탭인지 말해 주므로 제목을 또 쓰면 같은 말이 두 번이다. */}
-        <BrandWordmark style={{ flex: 1 }} />
+        <BrandWordmark symbol style={{ flex: 1 }} />   {/* ★심볼+글자 (Boss 2026-08-26) — 넓은 목록 칸이라 이름이 안 잘린다 */}
         <PressableScale hitSlop={10} onPress={() => setSearchOpen((v) => !v)}>
           <Icon name={searchOpen ? 'close' : 'search'} size={26} color={searchOpen ? colors.ju : colors.inkSoft} />
         </PressableScale>

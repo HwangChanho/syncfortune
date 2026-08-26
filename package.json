@@ -194,7 +194,8 @@
     "check:rpcambig": "tsx scripts/check-rpcambig.ts",
     "check:rpconce": "tsx scripts/check-rpconce.ts",
     "check:readinglang": "tsx scripts/check-readinglang.ts",
-    "check:talkstory": "tsx scripts/check-talkstory.ts"
+    "check:talkstory": "tsx scripts/check-talkstory.ts",
+    "check:talkoverlay": "tsx scripts/check-talkoverlay.ts"
   },
   "keywords": [],
   "author": "",

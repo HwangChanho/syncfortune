@@ -16,29 +16,50 @@
 //   ⚠️세로형 이미지 자산(`brandWordmark()`)은 지우지 않았다 — 스플래시 등 **세로 자리**가 따로 있다.
 //     다만 **헤더에는 쓰지 않는다**.
 // ═══════════════════════════════════════════════════════════════════════════
-import { Text, StyleSheet, type TextStyle } from 'react-native';
-import { colors } from '../lib/theme';
+import { View, Text, StyleSheet, type TextStyle, type ViewStyle } from 'react-native';
+import { Image as ExpoImage } from 'expo-image';
+import { colors, space } from '../lib/theme';
+
+// 심볼 — 파비콘과 **같은 원본**에서 뽑은 투명 「운」(배경 네모가 없다).
+//   ⚠️여기서만 가져다 쓴다. 다른 화면이 각자 이미지를 불러오기 시작하면 다시 세 갈래가 된다.
+const SYMBOL = require('../../assets/brand-symbol.png');
 
 /**
  * 브랜드 워드마크.
  *
- * @param size  글자 크기(기본 21 — 콘티 헤더 기준). 큰 자리에서는 키워 쓴다.
- * @param style 자리잡기용 덧붙임(`flex:1` 등). ★색·굵기를 여기서 덮지 말 것 —
- *              덮는 순간 다시 세 갈래가 된다(그래서 이 컴포넌트가 생겼다).
+ * @param size   글자 크기(기본 21 — 콘티 헤더 기준). 큰 자리에서는 키워 쓴다.
+ * @param style  자리잡기용 덧붙임(`flex:1` 등). ★색·굵기를 여기서 덮지 말 것 —
+ *               덮는 순간 다시 세 갈래가 된다(그래서 이 컴포넌트가 생겼다).
+ * @param symbol 글자 **왼쪽에 심볼**을 붙인다 (Boss 2026-08-26
+ *               *"웹 제일 왼쪽에 니운내운 왼쪽에 로고가 들어가면 좋겠어"*).
+ *               ★기본은 false — 콘티 네 면은 글자만이고, 좁은 헤더에 심볼을 넣으면 이름이 잘린다.
+ *                 넓은 자리(웹 사이드바)에서만 켠다.
+ *               ⚠️심볼 크기는 글자에 **비례**시킨다. 고정 px 로 두면 글자 배율을 키웠을 때
+ *                 심볼만 작게 남아 «따로 노는» 모양이 된다([[ui-font-scale-lineheight]] 와 같은 종류).
  */
-export function BrandWordmark({ size = 21, style }: { size?: number; style?: TextStyle }) {
-  return (
+export function BrandWordmark({ size = 21, style, symbol = false }: { size?: number; style?: TextStyle & ViewStyle; symbol?: boolean }) {
+  const word = (
     <Text
-      style={[styles.tx, { fontSize: size, lineHeight: Math.round(size * 1.33) }, style]}
+      style={[styles.tx, { fontSize: size, lineHeight: Math.round(size * 1.33) }, symbol ? undefined : style]}
       // 낭독기에는 브랜드 이름 하나로 읽힌다(글자를 쪼개 읽지 않게)
       accessibilityRole="header"
     >
       니운내운
     </Text>
   );
+  if (!symbol) return word;
+  const px = Math.round(size * 1.25);   // 글자보다 살짝 크게 — 대문자 없는 한글 옆에서 눈높이가 맞는다
+  return (
+    <View style={[styles.row, style as ViewStyle]}>
+      {/* 낭독기에는 글자만 읽히면 된다 — 심볼은 같은 이름을 한 번 더 말할 뿐이다 */}
+      <ExpoImage source={SYMBOL} style={{ width: px, height: px }} contentFit="contain" accessibilityElementsHidden importantForAccessibility="no" />
+      {word}
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
   // 콘티: 보라 · 아주 굵게 · 자간 살짝 좁게
   tx: { color: colors.ju, fontWeight: '900', letterSpacing: -0.5 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: space(2) },
 });

@@ -859,6 +859,38 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
   //     그러면 **채팅목록을 볼 자리가 아예 없어서**, 나눈 대화가 어디 있는지 알 수 없다.
   //     (Boss 가 세 번 말한 뒤에야 맞췄다 — '탭'이 아니라 '칸'이라는 말을 내가 계속 탭으로 읽었다.)
   //   ⚠️아주 좁은 웹(900~1200)에서는 세 칸이 각각 답답하므로 채팅목록을 접는다.
+  // ── ★화면 위에 뜨는 것들은 **여기 한 곳**에서 만든다 ─────────────────────────
+  //   ⚠️2026-08-26 Boss *"채팅창 상단에 ＋ 버튼눌러도 아무 반응이 없어 웹기준이야"*
+  //     원인: 이 화면은 **두 갈래로 return** 한다(넓은 웹 3칸 / 폰 1칸). 그런데 `InviteSheet` 가
+  //     **폰 갈래에만** 있었다 → 넓은 웹에서 ＋ 를 누르면 `inviteOpen` 은 true 가 되는데
+  //     **그릴 곳이 없어** 아무 일도 안 일어난다. 오류도 안 난다(그래서 «무반응» 으로만 보인다).
+  //   ★`ProfileSheet` 도 같은 실수를 한 적이 있는데, 그때는 **두 곳에 각각 넣어** 고쳤다 —
+  //     그 방식이 이 재발을 불렀다. 이제 묶음 하나를 양쪽이 함께 쓴다.
+  //   ⇒ 오버레이를 새로 만들면 **여기에만** 더하면 된다. `check:talkoverlay` 가 지킨다.
+  //   ⚠️`absoluteFill` 은 부모를 채우므로, 양쪽 모두 **가장 바깥 View 안**에 놓아야 한다
+  //     (칸 안에서 그리면 창이 그 칸에 갇힌다 · [[overlay-absolutefill-parent]]).
+  //     RN `Modal` 을 안 쓰는 이유: iOS 에서 그 안의 `VideoView` 가 소리만 남고 안 보인다.
+  const overlays = (
+    <>
+      <ProfileSheet target={profile} onClose={() => setProfile(null)} />
+      {/* ★`cur` 가드 — 이 묶음은 «대화를 고르기 전» 보다 앞에 있다. 상대가 없으면 초대할 것도 없다. */}
+      {inviteOpen && cur ? (
+        <InviteSheet
+          // ★이미 방에 있는 사람은 뺀다 — 두 번 부르면 «3명» 이 되지 않는다
+          candidates={servers.filter((x) => x.id !== cur.id && !mates.some((m) => m.id === x.id))}
+          onClose={() => setInviteOpen(false)}
+          onInvite={async (ids) => {
+            setInviteOpen(false);
+            const sid = await openGroupRoom(cur.id, ids, chartId);
+            if (!sid) return;                       // 실패해도 지금 방은 그대로다(막지 않는다)
+            sessRef.current[cur.id] = sid;          // 이 방으로 이어서 말한다
+            setMates(servers.filter((x) => ids.includes(x.id)));
+          }}
+        />
+      ) : null}
+    </>
+  );
+
   if (wide) {
     return (
       <View style={styles.two}>
@@ -942,7 +974,7 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
             (`absoluteFill` 은 부모를 채운다 · [[overlay-absolutefill-parent]]).
             ⚠️RN `Modal` 을 안 쓰는 이유: iOS 에서 그 안의 `VideoView` 가 소리만 남고 안 보인다 —
               배경을 영상으로 두려면 Modal 밖이어야 한다. */}
-        <ProfileSheet target={profile} onClose={() => setProfile(null)} />
+        {overlays}
       </View>
     );
   }
@@ -987,21 +1019,7 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
       {birthCard}
       {composer}
       {mentionSheet}
-      <ProfileSheet target={profile} onClose={() => setProfile(null)} />
-      {inviteOpen ? (
-        <InviteSheet
-          // ★이미 방에 있는 사람은 뺀다 — 두 번 부르면 «3명» 이 되지 않는다
-          candidates={servers.filter((x) => x.id !== cur.id && !mates.some((m) => m.id === x.id))}
-          onClose={() => setInviteOpen(false)}
-          onInvite={async (ids) => {
-            setInviteOpen(false);
-            const sid = await openGroupRoom(cur.id, ids, chartId);
-            if (!sid) return;                       // 실패해도 지금 방은 그대로다(막지 않는다)
-            sessRef.current[cur.id] = sid;          // 이 방으로 이어서 말한다
-            setMates(servers.filter((x) => ids.includes(x.id)));
-          }}
-        />
-      ) : null}
+      {overlays}
     </View>
   );
 }
