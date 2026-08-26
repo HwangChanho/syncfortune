@@ -41,7 +41,7 @@ import { loadFollowups, askFollowup, type Followup } from '../lib/backend/follow
 import { yearGanZhi } from '../lib/content/dailyFortune'; // 연도별 궁합: 그 해 간지(세운)
 import { compatScore, tierLabel, tierOf, type CompatScoreResult } from '../lib/content/compatScore'; // 궁합 점수·등급(R26: LLM 직접 산출 우선, 결정론은 폴백)
 import { interactionColor, INTERACTION_ORDER } from '../lib/content/interactionColor'; // 작용 6종 색 단일 원본(Boss 08-25)
-import { appLang } from '../lib/i18n';
+import { appLang, type AppLang } from '../lib/i18n';
 
 // 궁합 등급 이미지·관계 카테고리 배너 — 표는 `lib/content/compatImages` 가 단일 출처다
 //   (관계 지도의 궁합 미리보기가 같은 등급 이미지를 쓴다 · 없으면 이모지 폴백).
@@ -438,7 +438,7 @@ export function CompatScreen({ me, initialRel }: { me: ChartInput | null; initia
               {COMPAT_IMG[dispTier.key]
                 ? <ExpoImage source={COMPAT_IMG[dispTier.key]} style={styles.scoreImg} contentFit="cover" />
                 : <Text style={styles.scoreEmoji}>{dispTier.emoji}</Text>}
-              <Text style={styles.scoreTier}>{dispTier.emoji} {tierLabel(dispTier, appLang() as 'ko' | 'en' | 'ja')}</Text>
+              <Text style={styles.scoreTier}>{dispTier.emoji} {tierLabel(dispTier, appLang() as AppLang)}</Text>
               <ScoreReveal score={dispScore} />
               {compat && <Text style={styles.scoreSub}>{t('compat.scoreHarmony', '조화')} {compat.harmony} · {t('compat.scoreTension', '긴장')} {compat.tension}</Text>}
               {/* 궁합 6기준 근거 칩(daniel 07-18) — 계절 상보·상대→나 재/관·결핍 보완·배우자궁 충돌 */}

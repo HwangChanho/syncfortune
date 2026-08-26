@@ -17,7 +17,7 @@ import { Alert } from '../../lib/ui/alert'; // 커스텀 알림(앱 디자인)
 import { useRouter, useFocusEffect } from 'expo-router';
 import { getNotifStatus, requestNotifPermission, type NotifStatus } from '../../lib/backend/notifications'; // 알림 권한 상태·요청(설정 토글)
 import { useTranslation } from 'react-i18next';
-import { setAppLang } from '../../lib/i18n'; // 언어 변경 + persist(재시작 후 유지)
+import { setAppLang, APP_LANGS, APP_LANG_LABEL, type AppLang } from '../../lib/i18n'; // 언어 변경 + persist(재시작 후 유지)
 import { useFontScale, FONT_STEPS } from '../../lib/ui/fontScale';
 import { useAuth } from '../../lib/useAuth';               // 계정(세션)
 import { TextInput, Switch } from 'react-native'; // 커뮤니티 닉네임·일주 뱃지(daniel 2026-08-05 전면 익명+설정 닉네임)
@@ -33,9 +33,9 @@ import { setAuthBusy } from '../../lib/ui/authBusy'; // 로그아웃 전환 전�
 import { colors, radius, space, shadow, font, getLoadingMode, setLoadingMode, type LoadingMode } from '../../lib/theme'; // ★다크/라이트 토글 제거·로딩 3모드(video/text/off, daniel 2026-07-15)
 import { luckAlertsOn, setLuckAlerts } from '../../lib/backend/luckAlerts';   // 상담가 알림 스위치(Boss 2026-08-25)
 
-const LANGS: { key: string; label: string }[] = [
-  { key: 'ko', label: '한국어' }, { key: 'en', label: 'English' }, { key: 'ja', label: '日本語' },
-];
+// ★언어 목록은 **여기서 만들지 않는다** — `lib/i18n.ts` 가 단일 출처다(Boss 2026-08-26 *"하드코딩은 한곳으로 모아"*).
+//   종전엔 이 화면이 목록·이름을 또 갖고 있어서, 언어를 추가하면 **설정 화면만 옛 목록**으로 남았다.
+const LANGS: { key: AppLang; label: string }[] = APP_LANGS.map((k) => ({ k, label: APP_LANG_LABEL[k] })).map(({ k, label }) => ({ key: k, label }));
 
 // 앱 정보(출시) — 버전·약관·개인정보·오픈소스. ★daniel: 약관/개인정보 URL 을 실제 호스팅 주소로 교체(App Store 심사 필수).
 // ★버전 표기에 **빌드 번호**를 붙인다(2026-08-09).
@@ -345,7 +345,7 @@ export default function SettingsScreen() {
         {LANGS.map((l) => {
           const on = i18n.language?.startsWith(l.key);
           return (
-            <PressableScale key={l.key} style={[styles.opt, on && styles.optOn]} onPress={() => setAppLang(l.key as 'ko' | 'en' | 'ja')}>
+            <PressableScale key={l.key} style={[styles.opt, on && styles.optOn]} onPress={() => setAppLang(l.key as AppLang)}>
               <Text style={[styles.optTx, on && styles.optTxOn]}>{l.label}</Text>
             </PressableScale>
           );

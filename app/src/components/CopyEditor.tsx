@@ -20,6 +20,8 @@ import { PressableScale } from './PressableScale';
 import { Alert } from '../lib/ui/alert';
 import { ko as BUNDLED } from '../copy/ko';
 import { listCopyOverrides, setCopyOverride, clearCopyOverride } from '../lib/ui/copyOverrides';
+// ★언어 목록은 `lib/i18n.ts` 단일 출처(Boss 2026-08-26 "하드코딩은 한곳으로 모아")
+import { APP_LANGS, APP_LANG_LABEL, appLang, type AppLang } from '../lib/i18n';
 import { useFontScale } from '../lib/ui/fontScale';
 import { colors, radius, space, font } from '../lib/theme';
 
@@ -34,6 +36,9 @@ const ALL = flatten(BUNDLED);
 export function CopyEditor() {
   const { fs } = useFontScale();
   const [q, setQ] = useState('');
+  // ★어느 언어를 고치는가 — 해외 타게팅이라 한국어만으로는 부족하다(Boss 2026-08-26).
+  //   기본은 지금 앱 언어. 원본(BUNDLED)은 한국어라 **찾기는 한국어로, 고치기는 고른 언어로** 한다.
+  const [lang, setLang] = useState<AppLang>(appLang());
   const [over, setOver] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<string | null>(null);
@@ -53,11 +58,12 @@ export function CopyEditor() {
 
   const reload = async () => {
     setLoading(true);
-    const rows = await listCopyOverrides().catch(() => []);
-    setOver(Object.fromEntries(rows.filter((r) => typeof r.ko === 'string').map((r) => [r.key, r.ko as string])));
+    const rows = await listCopyOverrides(lang).catch(() => []);
+    setOver(Object.fromEntries(rows.filter((r) => typeof r.value === 'string').map((r) => [r.key, r.value])));
     setLoading(false);
   };
-  useEffect(() => { void reload(); }, []);
+  // ★언어를 바꾸면 그 언어의 오버라이드로 다시 읽는다(안 하면 옛 언어 값이 남아 헷갈린다)
+  useEffect(() => { void reload(); }, [lang]);
 
   // 문구·키 어느 쪽으로 쳐도 찾히게. 기획자는 키를 모른다 — **보이는 글자로** 찾는 게 기본이다.
   const hits = useMemo(() => {
@@ -74,7 +80,7 @@ export function CopyEditor() {
     const v = draft.trim();
     if (!v) { Alert.alert('문구 수정', '빈 문구는 저장할 수 없어요. 되돌리려면 아래 되돌리기를 쓰세요.'); return; }
     setBusy(true);
-    const okSave = await setCopyOverride(key, v).catch(() => false);
+    const okSave = await setCopyOverride(key, lang, v).catch(() => false);
     setBusy(false);
     if (!okSave) { Alert.alert('저장하지 못했어요', '관리자 계정인지, 연결 상태를 확인해 주세요.'); return; }
     setEditing(null);
@@ -85,7 +91,7 @@ export function CopyEditor() {
   async function revert(key: string) {
     if (busy) return;
     setBusy(true);
-    const okDel = await clearCopyOverride(key).catch(() => false);
+    const okDel = await clearCopyOverride(key, lang).catch(() => false);
     setBusy(false);
     if (!okDel) { Alert.alert('되돌리지 못했어요', '연결 상태를 확인해 주세요.'); return; }
     setEditing(null);
@@ -99,6 +105,18 @@ export function CopyEditor() {
       <Text style={[styles.help, { fontSize: fs(11.5) }]}>
         고치고 싶은 문구의 일부를 그대로 쳐서 찾으세요. 저장하면 앱을 다시 켤 때 반영되고, 되돌리기로 원래대로 돌아갑니다.
       </Text>
+      {/* ★어느 언어를 고치는가 — 찾기는 한국어 원본으로, 고치기는 고른 언어로.
+          목록은 `lib/i18n.ts` 하나에서 온다(언어를 늘려도 이 화면은 안 고친다). */}
+      <View style={styles.langRow}>
+        {APP_LANGS.map((k) => {
+          const on = k === lang;
+          return (
+            <PressableScale key={k} style={[styles.langChip, on && styles.langChipOn]} onPress={() => setLang(k)}>
+              <Text style={[styles.langTx, { fontSize: fs(11.5) }, on && styles.langTxOn]}>{APP_LANG_LABEL[k]}</Text>
+            </PressableScale>
+          );
+        })}
+      </View>
       <TextInput
         style={[styles.search, { fontSize: fs(14) }]}
         value={q}
@@ -162,6 +180,12 @@ export function CopyEditor() {
 }
 
 const styles = StyleSheet.create({
+  // ★언어 칩 — 지금 고치는 언어를 늘 보이게(안 보이면 엉뚱한 언어를 고치고도 모른다)
+  langRow: { flexDirection: 'row', gap: space(1.5), flexWrap: 'wrap', marginTop: space(2) },
+  langChip: { paddingVertical: space(1), paddingHorizontal: space(2.5), borderRadius: radius.pill, backgroundColor: colors.sunk, borderWidth: 1, borderColor: colors.line },
+  langChipOn: { backgroundColor: colors.ju, borderColor: colors.ju },
+  langTx: { color: colors.inkSoft, fontWeight: '700' },
+  langTxOn: { color: colors.onJu },
   wrap: { marginTop: space(6) },
   h: { ...font.caption, color: colors.ju, fontWeight: '800', letterSpacing: 0.5, marginBottom: space(1.5) },
   help: { ...font.caption, color: colors.inkFaint, marginBottom: space(2.5), lineHeight: 17 },

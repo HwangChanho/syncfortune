@@ -90,6 +90,70 @@ export const HOUSE_STYLE =
   'attractive photogenic Korean face, editorial headshot for a mobile app profile, high detail';
 
 /**
+ * ★★**배경(cover) 규격** — 프로필 창의 뒷그림. (Boss 2026-08-26
+ *   *"배경 이미지도 뽑자 전신사진으로 뽑자 실내에서 맨발로 있으면 좋겠어"* ·
+ *   *"배경화면은 5초 이하의 영상도 올릴수 있게하고 선생님들은 배경화면은 영상으로 놓자"*)
+ *
+ * ■ ⚠️★아바타와 **규격이 정반대**다 — 섞으면 둘 다 망가진다
+ *   · 아바타 = 1:1 정사각 · 얼굴이 프레임의 60% · 전신은 **negative 로 금지**
+ *   · 배경   = **세로 9:16** · **전신** · 얼굴은 작아도 된다
+ *   같은 사진으로 둘 다 쓰려다 44px 동그라미에서 머리가 잘렸던 일이 있다
+ *   ([[session-2026-08-23-handoff]] · 비율에 두 번 당했다).
+ *
+ * ■ 왜 9:16 인가
+ *   ①영상이 숏폼(세로)이다 ②프로필 창 배경은 위아래로 긴 자리다
+ *   ③가로로 뽑으면 전신을 넣을 수 없다(사람이 깨알만 해진다).
+ *   ⇒ **원본부터 세로**로 뽑고, 화면이 위쪽을 보여 준다(인물을 프레임 **아래쪽 2/3** 에 둔다).
+ *
+ * ■ 맨발인 이유(Boss 지시) — 실내에서 **격식을 내려놓은** 결.
+ *   ⇒ 발이 **잘리면 안 된다.** 전신은 발끝까지 들어가야 «맨발» 이 보인다.
+ */
+export const COVER_STYLE =
+  'photorealistic full-body photograph, vertical 9:16 composition, ' +
+  'the person standing or seated indoors, **entire body visible including bare feet**, ' +
+  'barefoot on a warm wooden floor or a woven mat, feet clearly in frame and not cropped, ' +
+  'subject placed in the lower two thirds of the frame with calm headroom above, ' +
+  'quiet traditional Korean interior: hanji paper wall, dark wood beams, low table, ' +
+  'soft daylight falling through a lattice window, gentle shadow on the floor, ' +
+  'warm earth palette — camel, ochre, deep brown, off-white hanji tone, ' +
+  'relaxed and grounded posture, unhurried, someone at home in their own room, ' +
+  'shot on 35mm at f/2.8, natural skin texture, editorial lifestyle photography, high detail';
+
+/** 배경 전용 negative — 아바타와 **반대로** 클로즈업·잘린 발을 막는다. */
+export const COVER_NEGATIVE =
+  'close-up, headshot, portrait crop, cropped feet, cropped legs, feet out of frame, ' +
+  'shoes, socks, slippers, ' +
+  'text, watermark, logo, signature, caption, border, frame, collage, ' +
+  'plastic skin, airbrushed, waxy, doll-like, over-smoothed, heavy beauty filter, ' +
+  'anime, illustration, painting, 3d render, cgi, cartoon, ' +
+  'multiple people, extra limbs, deformed hands, deformed feet, extra toes, ' +
+  'celebrity, famous person, recognizable public figure, ' +
+  'cluttered background, brand logo on clothing, harsh direct flash, low quality, blurry';
+
+/**
+ * ★배경 **영상** 규격 (Boss: *"선생님들은 배경화면은 영상으로"*)
+ *
+ * ■ 왜 이렇게 좁히나 — **앱에서 도는 조건**이 정해져 있다
+ *   · 5초 이하 · 소리 없음(자동재생은 무음이어야 한다) · 반복 재생
+ *   · 세로 9:16 · 720×1280 이면 충분(그보다 크면 용량만 늘고 화질 차이가 안 보인다)
+ *   · **8MB 이하** — 스토리지 버킷 상한이다(2026-08-26 이미지 2MB → 영상 8MB 로 열었다)
+ *
+ * ■ ⚠️움직임은 **아주 적게**
+ *   프로필 창 뒤에서 도는 그림이다. 크게 움직이면 그 위의 이름·버튼을 읽을 수 없다.
+ *   ⇒ 숨결·머리카락·창의 빛·연기 정도. **카메라는 고정**(팬·줌 금지).
+ */
+export const COVER_VIDEO_SPEC = {
+  seconds: 5,
+  maxSeconds: 5,
+  fps: 24,
+  size: '720x1280 (9:16 세로)',
+  maxBytes: 8 * 1024 * 1024,
+  format: 'mp4 (H.264) · 무음',
+  motion: '아주 적게 — 숨결·머리카락·창의 빛. 카메라 고정(팬·줌 금지)',
+  loop: '앞뒤가 이어지게(끊김 없이 반복)',
+} as const;
+
+/**
  * 열두 명 공통 negative.
  *
  * ★두 가지를 특히 막는다:

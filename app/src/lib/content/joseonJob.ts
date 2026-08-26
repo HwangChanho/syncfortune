@@ -10,7 +10,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import type { SajuChart, TenGod } from '@spec/chart';
 import { analyzeTenGods } from '@engine/structure';
-import { appLang } from '../i18n';
+import { appLang, type AppLang } from '../i18n';
 
 export type JoseonJobResult = {
   tenGod: TenGod;     // 판정 근거(가장 강한 십신)
@@ -100,7 +100,7 @@ export function joseonJob(saju: SajuChart): JoseonJobResult {
     if (n > max) { max = n; top = tg; }      // > 비교 + 우선순위 순회 = 동률이면 앞선 직업
   }
   const def = JOB[top];
-  const lang = appLang() as 'ko' | 'en' | 'ja';
+  const lang = appLang() as AppLang;
   const loc = def[lang] ?? def.ko;
   return { tenGod: top, emoji: def.emoji, job: loc.job, tagline: loc.tagline, traits: loc.traits, rank: loc.rank };
 }

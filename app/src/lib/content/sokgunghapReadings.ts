@@ -5,9 +5,10 @@
 //   §4: 부정 증폭 금지 — 낮은 케미도 전향적(맞춰가는 재미). 진단엔 처방 동반(가드5).
 // ─────────────────────────────────────────────────────────────────────────
 import type { SokResult, SpousePalaceRel } from './sokgunghap';
+import type { AppLang } from '../i18n';
 
 type L = { ko: string; en: string; ja: string };
-const pick = (m: L, lang: 'ko' | 'en' | 'ja') => m[lang] ?? m.ko;
+const pick = (m: L, lang: AppLang) => m[lang] ?? m.ko;
 
 // ── 등급별 몸궁합 서사(17+ 감각적·솔직 / 노골적 행위·자세 묘사는 배제=App Store 한도) ──
 const TIER_BODY: Record<string, L> = {
@@ -91,7 +92,7 @@ const ADVICE: { cond: (r: SokResult) => boolean; text: L }[] = [
 ];
 
 /** 관계 스타일(리드×템포×강도) — 결정론 신호에서 조합. ★daniel 검수. */
-function styleLine(r: SokResult, lang: 'ko' | 'en' | 'ja'): string {
+function styleLine(r: SokResult, lang: AppLang): string {
   const lead = r.dmType === '상극' ? '주도' : r.dmType === '상생' ? '헌신' : '대등';
   const charmSum = r.myCharm.total + r.partnerCharm.total;
   const tempo = r.spouse === '충' ? 'wave' : charmSum >= 3 ? 'fast' : 'slow';
@@ -103,7 +104,7 @@ function styleLine(r: SokResult, lang: 'ko' | 'en' | 'ja'): string {
 export type SokReading = { headline: string; body: string; style: string; spouseNote: string; advice: string };
 
 /** 결정론 결과 → 통변(ko/en/ja). 화면이 그대로 렌더. ★daniel 검수 슬롯. */
-export function sokgunghapReading(r: SokResult, lang: 'ko' | 'en' | 'ja'): SokReading {
+export function sokgunghapReading(r: SokResult, lang: AppLang): SokReading {
   const body = pick(TIER_BODY[r.tier.key] ?? TIER_BODY.warm, lang);
   const style = styleLine(r, lang);
   const spouseNote = pick(SPOUSE_NOTE[r.spouse], lang);

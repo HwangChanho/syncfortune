@@ -186,7 +186,8 @@
     "check:webmodules": "tsx scripts/check-webmodules.ts",
     "check:chartidentity": "tsx scripts/check-chartidentity.ts",
     "check:termstyle": "tsx scripts/check-termstyle.ts",
-    "check:ragwired": "tsx scripts/check-ragwired.ts"
+    "check:ragwired": "tsx scripts/check-ragwired.ts",
+    "covers:brief": "npx tsx scripts/covers-brief.ts"
   },
   "keywords": [],
   "author": "",

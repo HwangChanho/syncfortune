@@ -16,7 +16,7 @@ import { loadRepChart } from '../../lib/engine/myChart';
 import { computeChart } from '../../lib/engine/engine';
 import { personalOhaeng, personalTone, EL_KO, EL_VIBE, type OhaengProfile } from '../../lib/content/personalOhaeng';
 import { useLogContentVisit } from '../../lib/backend/contentVisit';
-import { appLang } from '../../lib/i18n';
+import { appLang, type AppLang } from '../../lib/i18n';
 import { colors, space, radius, font } from '../../lib/theme';
 import { useReadBody } from '../../components/WebShell'; // ★읽는 화면 본문 캡(히어로는 전폭·글은 좁게)
 
@@ -62,7 +62,7 @@ export default function PersonalRoute() {
     if (!input) return null;
     try { return personalTone(computeChart(input).saju); } catch { return null; }
   }, [input]);
-  const lang = appLang() as 'ko' | 'en' | 'ja';
+  const lang = appLang() as AppLang;
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>

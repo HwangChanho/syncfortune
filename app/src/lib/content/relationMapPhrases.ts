@@ -20,11 +20,12 @@
 //   "이 사람은 당신에게 해롭다" 같은 말은 쓰지 않는다. 사람을 점수로 재는 화면이 되면 안 된다.
 // ═══════════════════════════════════════════════════════════════════════════
 import type { RelationRole, RelationTrait } from '@engine/relationMap';
+import type { AppLang } from '../i18n';
 import type { CompatScoreBreakdown } from '@engine/compatScore';
 import type { Element } from '@spec/chart';
 import { EL_KO } from './ohaengLabel';   // ★오행 이름표 단일 소스(사본 만들지 말 것)
 
-export type Lang = 'ko' | 'en' | 'ja';
+export type Lang = AppLang;
 
 /** 역할 한 칸의 문구 4겹. */
 export type RolePhrase = {

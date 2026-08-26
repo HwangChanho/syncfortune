@@ -9,12 +9,12 @@
 //   → dailyFortune.ts 와 동일 패턴(언어별 풀 + 해시 픽).
 // ★문구 stance·다국어(en/ja) = daniel 검수 슬롯 — 현재 ko 충실 작성, en/ja 미작성분은 ko 폴백(출시 전 보강).
 // ─────────────────────────────────────────────────────────────────────────
-import { appLang } from '../i18n';
+import { appLang, type AppLang } from '../i18n';
 import type { EgenTetoResult } from './egenTeto';
 
 export type EgenReading = { headline: string; personality: string; relationship: string; nowTrend: string };
 
-type Lang = 'ko' | 'en' | 'ja';
+type Lang = AppLang;
 type Band = 'teto' | 'balanced' | 'egen';
 type Pool = Record<Band, Partial<Record<Lang, string[]>>>;
 

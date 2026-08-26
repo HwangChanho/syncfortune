@@ -17,7 +17,7 @@ import { Solar } from 'lunar-javascript';
 import { tenGod, HIDDEN } from '@engine/saju'; // HIDDEN = 지지별 지장간(여기·중기·정기) — 택일 다각도(daniel ④)
 import { twelveStage } from '@engine/twelve';
 import { gongmang } from '@engine/sinsal';
-import { appLang } from '../i18n';
+import { appLang, type AppLang } from '../i18n';
 import type { SajuChart } from '@spec/chart';
 
 export type Purpose = 'wedding' | 'dating' | 'casual' | 'confess' | 'moving' | 'contract' | 'opening' | 'travel' | 'general';
@@ -84,7 +84,7 @@ const SOI = new Set(['병', '사', '묘', '절']);           // 기세 쇠퇴
 const clamp = (n: number) => Math.max(0, Math.min(100, Math.round(n)));
 
 // ── 이유 문구(일상어·앱 언어, 한자/용어 미노출) ──
-type Lang = 'ko' | 'en' | 'ja';
+type Lang = AppLang;
 const REASON: Record<Lang, { hap: string; samhap: string; fit: (p: string) => string; wang: string; chung: string; gongmang: string; friction: string; luckClash: string; luckFlow: string; yeokma: string; dohwa: string }> = {
   ko: {
     hap: '흐름이 잘 맞아 무난하게 진행하기 좋은 날이에요.',

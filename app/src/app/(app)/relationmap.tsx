@@ -28,7 +28,7 @@ import { BRANCH_GLOSSARY } from '../../lib/content/myeongriGlossary';   // 지�
 import { ROLE_IMG, RELMAP_HERO } from '../../lib/content/relationMapImages';
 import { CompatPeek } from '../../components/CompatPeek';
 import { useWebCols } from '../../components/WebShell'; // 넓은 웹 = 2열(폰은 그대로 세로)
-import { appLang } from '../../lib/i18n';
+import { appLang, type AppLang } from '../../lib/i18n';
 import { createInvite, collectEntries } from '../../lib/backend/mapInvite';
 import { Alert } from '../../lib/ui/alert';
 import { saveLastCompat } from '../../lib/core/lastCompat'; // 궁합 화면이 상대를 복원하는 그 경로(2026-08-23 화면 밖으로 분리)
@@ -75,7 +75,7 @@ export default function RelationMapScreen() {
   const { fs } = useFontScale();
   const styles = mkStyles(fs);
   const two = useWebCols() > 1;   // 넓은 웹에서만 좌/우 두 단
-  const lang = appLang() as 'ko' | 'en' | 'ja';
+  const lang = appLang() as AppLang;
 
   const [loading, setLoading] = useState(true);
   const [saved, setSaved] = useState<SavedChart[]>([]);

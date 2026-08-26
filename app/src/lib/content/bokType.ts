@@ -15,7 +15,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import type { SajuChart, TenGod } from '@spec/chart';
 import { analyzeTenGods, scoreStrength } from '@engine/structure'; // scoreStrength = 신강약 게이트(B4 겁재 부조 반전)
-import { appLang } from '../i18n';
+import { appLang, type AppLang } from '../i18n';
 
 type G5 = '비겁' | '식상' | '재성' | '관성' | '인성';
 type Pol = '정' | '편'; // 正=비견·식신·정재·정관·정인 / 偏=겁재·상관·편재·편관·편인.
@@ -138,7 +138,7 @@ export function bokType(saju: SajuChart): BokResult {
   // ★게이트: 겁재(비겁 偏) + 신약 → 조력복(부조 반전). 그 외는 표준 DATA.
   const weak = scoreStrength(saju).verdict === '신약';
   const v: Variant = (top === '비겁' && p === '편' && weak) ? GEOBJAE_WEAK : DATA[top][p];
-  const lang = appLang() as 'ko' | 'en' | 'ja';
+  const lang = appLang() as AppLang;
   const loc = v[lang] ?? v.ko;
   return { group: top, emoji: v.emoji, bok: loc.bok, desc: loc.desc, how: loc.how };
 }

@@ -125,17 +125,28 @@ console.log('\n📝 check:copy — 문구 단일 출처\n');
   /** 한국어를 일부러 남기는 자리 — **이유 필수**(고유명사·원어 병기 등). 이유 없이 추가 금지. */
   const ALLOW: { lang: string; key: string; why: string }[] = [];
   const found: string[] = [];
+  // ⚠️★2026-08-26 대조군에서 **구멍이 드러났다**: 종전 정규식은
+  //     /^\s*'키':\s*'값',?\s*$/  ← **작은따옴표 + 줄 전체**만 봤다.
+  //   그래서 `"큰따옴표 한국어"` 값과 뒤에 주석이 붙은 줄을 **통째로 놓쳤다**(심어서 확인).
+  //   ⇒ ①주석을 먼저 지우고 ②따옴표 두 종류를 다 받고 ③줄 앵커를 풀었다.
+  //   [[i18n-untranslated-shipped]] — "키가 맞는가" 가 아니라 "말이 그 언어인가".
   for (const lang of ['en', 'ja'] as const) {
-    const lines = readFileSync(`app/src/copy/${lang}.ts`, 'utf8').split('\n');
+    const raw = readFileSync(`app/src/copy/${lang}.ts`, 'utf8');
+    // 주석 제거 — 주석에 적힌 한국어 설명은 잘못이 아니다(오탐 방지)
+    const code = raw.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/(^|[^:])\/\/[^\n]*/g, '$1 ');
+    const lines = code.split('\n');
     let sec = '';
     lines.forEach((l, i) => {
       const ms = /^\s{2}([A-Za-z_][A-Za-z0-9_]*): \{/.exec(l);
       if (ms) { sec = ms[1]; return; }
-      const mv = /^\s*'([^']+)':\s*'(.*)',?\s*$/.exec(l);
-      if (!mv || !KO.test(mv[2])) return;
-      const key = `${sec}.${mv[1]}`;
-      if (ALLOW.some((a) => a.lang === lang && a.key === key)) return;
-      found.push(`${lang}.ts:${i + 1}  ${key}  ${mv[2].slice(0, 40)}`);
+      // 작은따옴표·큰따옴표 둘 다 · 줄 어디에 있어도
+      for (const mv of l.matchAll(/'([A-Za-z0-9_.]+)'\s*:\s*(['"])((?:\\.|(?!\2).)*)\2/g)) {
+        const val = mv[3];
+        if (!KO.test(val)) continue;
+        const key = `${sec}.${mv[1]}`;
+        if (ALLOW.some((a) => a.lang === lang && a.key === key)) continue;
+        found.push(`${lang}.ts:${i + 1}  ${key}  ${val.slice(0, 40)}`);
+      }
     });
   }
   if (found.length) {

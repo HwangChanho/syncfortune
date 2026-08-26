@@ -9,11 +9,11 @@
 //   *어느 기준을 쓰는지 명시*해야 신뢰가 생긴다 → 결과 화면에 기준 한 줄(CRITERION_NOTE)을 노출.
 //   ※ 아래 CHO_ELEM 맵은 이미 ㅇ·ㅎ=土 로 올바르게 세팅돼 있음(변경 불필요, 기준 표기만 추가).
 // ─────────────────────────────────────────────────────────────────────────
-import { appLang } from '../i18n';
+import { appLang, type AppLang } from '../i18n';
 import { ELEM_LABEL } from './ohaengLabel';   // ★오행 이름표 단일 소스(사본 만들지 말 것)
 
 type Elem = '木' | '火' | '土' | '金' | '水';
-type L = 'ko' | 'en' | 'ja';
+type L = AppLang;
 const lang = (): L => (appLang() as L) ?? 'ko';
 
 const CHO = ['ㄱ', 'ㄲ', 'ㄴ', 'ㄷ', 'ㄸ', 'ㄹ', 'ㅁ', 'ㅂ', 'ㅃ', 'ㅅ', 'ㅆ', 'ㅇ', 'ㅈ', 'ㅉ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ'];

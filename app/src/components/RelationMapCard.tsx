@@ -24,7 +24,7 @@ import { listCharts, getRepresentativeId } from '../lib/engine/myChart';
 import { computeChart } from '../lib/engine/engine';
 import { buildRelationMap } from '@engine/relationMap';
 import { rolePhrase, elemLabel } from '../lib/content/relationMapPhrases';
-import { appLang } from '../lib/i18n';
+import { appLang, type AppLang } from '../lib/i18n';
 import { PressableScale } from './PressableScale';
 import { colors, radius, space } from '../lib/theme';
 import { useFontScale } from '../lib/ui/fontScale';
@@ -51,7 +51,7 @@ export function RelationMapCard({ reloadKey }: { reloadKey?: number }) {
   const router = useRouter();
   const { fs } = useFontScale();
   const styles = mkStyles(fs);
-  const lang = appLang() as 'ko' | 'en' | 'ja';
+  const lang = appLang() as AppLang;
 
   const [count, setCount] = useState(0);
   const [tops, setTops] = useState<Top[]>([]);

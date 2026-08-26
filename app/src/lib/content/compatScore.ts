@@ -12,6 +12,7 @@
 //     루트 tsconfig(paths 없음)로 이 모듈을 직접 부른다 — alias 를 쓰면 그 하네스가 죽는다.
 // ─────────────────────────────────────────────────────────────────────────
 import type { CompatibilityDx } from '@engine/compatibility';
+import type { AppLang } from '../i18n';
 import { compatScoreOf, type CompatScoreBreakdown } from '../../../../engine/compatScore';
 
 export type CompatTier = { key: string; min: number; emoji: string; ko: string; en: string; ja: string };
@@ -53,6 +54,6 @@ export function tierOf(score: number): CompatTier {
 }
 
 /** 등급 라벨(다국어). */
-export function tierLabel(tier: CompatTier, lang: 'ko' | 'en' | 'ja'): string {
+export function tierLabel(tier: CompatTier, lang: AppLang): string {
   return (tier as any)[lang] ?? tier.ko;
 }

@@ -18,7 +18,7 @@
 // ■ 구조는 dreamDict 와 같게 맞췄다(같은 화면 관용구·같은 검색 방식).
 //   keywords = ko+en+ja 혼합(어느 언어로 검색해도 매칭) · title/meaning = 언어별.
 // ═══════════════════════════════════════════════════════════════════════════
-import { appLang } from '../i18n';
+import { appLang, type AppLang } from '../i18n';
 
 type Tri = { ko: string; en: string; ja: string };
 export type TaemongEntry = {
@@ -30,7 +30,7 @@ export type TaemongEntry = {
   trait: Tri;
 };
 
-const L = (): 'ko' | 'en' | 'ja' => (appLang() as any) ?? 'ko';
+const L = (): AppLang => (appLang() as any) ?? 'ko';
 
 export const TAEMONG_DICT: TaemongEntry[] = [
   {
