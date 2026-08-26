@@ -150,7 +150,8 @@ export const ko = {
     more: '지도를 더 채우려면',
     moreBody: '사람이 늘수록 내 관계의 결이 또렷해져요. 아직 안 넣은 사람이 있다면 생년월일만으로 바로 자리를 잡습니다.',
   },
-  common: { send: '보내기', save: '저장',
+  person: { me: '내 명식', mine: '내 명식', friend: '친구', tabChart: '명식', tabCompat: '관계', tabTalk: '대화', notShared: '아직 명식을 공개하지 않았어요.', gone: '친구 목록에 없는 사람이에요.', noMe: '내 명식을 먼저 등록해 주세요.', noChart: '볼 수 있는 명식이 없어요.', noCompat: '아직 궁합을 낼 수 없어요.', needMine: '내 명식을 등록하면 이 사람과의 궁합을 볼 수 있어요.', openManse: '만세력에서 자세히 보기', openCompat: '궁합 자세히 보기', talkLead: '이 사람을 대화에서 부르면, 상담가가 이 명식을 함께 보고 답해요.', mention: '대화에서 @{{name}} 부르기' },
+  common: { close: '닫기', send: '보내기', save: '저장',
     'later': '나중에',        // 나중에 — 유도 알림의 취소 쪽(대화 운 부족 등)
     retryLaterNoCharge: '잠시 후 다시 시도해 주세요. 운은 차감되지 않았어요.',
     'add': '추가',

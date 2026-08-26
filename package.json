@@ -204,7 +204,8 @@
     "check:friendmention": "tsx scripts/check-friendmention.ts",
     "check:johu74": "tsx scripts/check-johu74.ts",
     "check:friendnotify": "tsx scripts/check-friendnotify.ts",
-    "check:classics": "tsx scripts/check-classics.ts"
+    "check:classics": "tsx scripts/check-classics.ts",
+    "check:personsheet": "tsx scripts/check-personsheet.ts"
   },
   "keywords": [],
   "author": "",

@@ -42,6 +42,7 @@ import ChartMentionSheet from '../../components/talk/ChartMentionSheet';
 // ★프로필 창은 **화면 루트**에서 그린다 — 칸(pane) 안에서 그리면 창이 갇히고,
 //   RN Modal 로 그리면 iOS 에서 배경 영상이 안 뜬다([[overlay-absolutefill-parent]])
 import { ProfileSheet, type ProfileTarget } from '../../components/talk/ProfileSheet';
+import { PersonSheet, type PersonTarget } from '../../components/talk/PersonSheet';   // 사람 상세 — 내 명식·친구가 **같은 패널**
 // ★반말/존댓말 판정은 **한 곳에서만**(Boss 2026-08-26) — 인사와 서버가 갈리면 안 된다
 import { ageFromBirth, isCasual } from '../../lib/talk/speechLevel';
 // ★대화 안에서 명식 만들기(Boss 2026-08-26) — 등록 화면에 안 가고도 만들 수 있어야 한다
@@ -149,6 +150,12 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
   const [birthDraft, setBirthDraft] = useState<BirthDraft | null>(null);
   const [makingChart, setMakingChart] = useState(false);
   const [mentionOpen, setMentionOpen] = useState(false);
+  // ★★사람 상세 패널 (Boss 2026-08-26 *"사람 상세 패널로 가자"*)
+  //   종전엔 같은 «사람» 인데 목적지가 **두 갈래**였다 —
+  //     내 이름 → `/charts`(만세력) · 친구 이름 → `/friendcompat`(궁합)
+  //   ⇒ 대화하러 왔는데 화면이 통째로 바뀌고, 돌아오면 어디였는지 잃었다.
+  //   이제 **옆에서 열린다.** 닫으면 그 자리다.
+  const [person, setPerson] = useState<PersonTarget | null>(null);
   // ★프로필 창 — 목록 컴포넌트가 아니라 **여기**가 갖는다(위 import 주석)
   const [profile, setProfile] = useState<ProfileTarget | null>(null);
   /**
@@ -785,7 +792,7 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
     ? <ChatList selectedId={cur?.id} wide onOpenProfile={setProfile} onSettings={() => router.push('/settings')}
                 onOpen={(id) => { const c = list.find((x) => x.id === id); if (c) open(c); }} />
     : <TalkList items={list} onOpen={open} selected={cur?.id} myName={myName} myAvatar={myAvatar} onOpenProfile={setProfile}
-                      railKeys={order} onMe={() => router.push('/charts')}
+                      railKeys={order} onMe={() => setPerson({ kind: 'me', name: myName })}
                       onSettings={() => router.push('/settings')}
                       onAddFriend={() => router.push('/friends')}
                       session={session} onLogin={() => router.push('/login')}
@@ -793,7 +800,7 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
                       people={friends.filter((f) => f.status === 'accepted').map((f) => ({
                         id: f.otherId, name: f.name ?? '이름 없음', avatarUrl: f.avatarUrl, canSee: !!f.chartId,
                       }))}
-                      onOpenPerson={(id) => router.push(`/friendcompat?friend=${id}`)}
+                      onOpenPerson={(id) => { const f = friends.find((x) => x.otherId === id); setPerson({ kind: 'friend', id, name: f?.name, avatarUrl: f?.avatarUrl }); }}
                       // ★`wide` = **목록 칸이 넓은가**(화면이 넓은가가 아니다).
                       //   폰은 목록이 전체 폭이라 넓고, 웹 3칸의 왼쪽 칸은 264px 이라 좁다.
                       //   ⇒ `useWideWeb()` 의 정확히 반대다 — 헷갈리기 쉬워 적어 둔다.
@@ -972,6 +979,17 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
   const overlays = (
     <>
       <ProfileSheet target={profile} onClose={() => setProfile(null)} />
+      {/* ★사람 상세 — 내 명식·친구가 **같은 패널**이다(종전엔 두 갈래였다).
+          「대화에서 부르기」는 입력창에 `@이름` 을 넣어 준다 — 화면을 안 떠나고 이어서 물을 수 있다. */}
+      <PersonSheet
+        target={person}
+        onClose={() => setPerson(null)}
+        onMention={(nm) => {
+          setDraft((d) => `${d.replace(/@$/, '')}@${nm} `);
+          setTimeout(() => inputRef.current?.focus(), 0);
+        }}
+        onMore={(route) => router.push(route as never)}
+      />
       {/* ★`cur` 가드 — 이 묶음은 «대화를 고르기 전» 보다 앞에 있다. 상대가 없으면 초대할 것도 없다. */}
       {inviteOpen && cur ? (
         <InviteSheet
@@ -996,7 +1014,7 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
         <View style={[styles.pane, { paddingTop: renderTop ? 0 : insets.top }]}>
           {renderTop}
           <TalkList items={list} onOpen={open} selected={cur?.id} myName={myName} myAvatar={myAvatar} onOpenProfile={setProfile}
-                      railKeys={order} onMe={() => router.push('/charts')}
+                      railKeys={order} onMe={() => setPerson({ kind: 'me', name: myName })}
                       onSettings={() => router.push('/settings')}
                       onAddFriend={() => router.push('/friends')}
                       session={session} onLogin={() => router.push('/login')}
@@ -1004,7 +1022,7 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
                       people={friends.filter((f) => f.status === 'accepted').map((f) => ({
                         id: f.otherId, name: f.name ?? '이름 없음', avatarUrl: f.avatarUrl, canSee: !!f.chartId,
                       }))}
-                      onOpenPerson={(id) => router.push(`/friendcompat?friend=${id}`)} wide={!wide} footer={renderBottom} />   {/* 웹 3칸 = 좁은 칸 */}
+                      onOpenPerson={(id) => { const f = friends.find((x) => x.otherId === id); setPerson({ kind: 'friend', id, name: f?.name, avatarUrl: f?.avatarUrl }); }} wide={!wide} footer={renderBottom} />   {/* 웹 3칸 = 좁은 칸 */}
         </View>
         {showChatPane && (
           <View style={[styles.pane, { paddingTop: insets.top }]}>
