@@ -35,6 +35,8 @@ const EL = ['木', '火', '土', '金', '水'] as const;
 /** 목록 한 줄 — 세션 + 상담사 이름. */
 type Row = {
   id: string; consultantId: string; name: string;
+  /** ★다인방 참여자(상담가 id). 비면 1:1 — 이게 없으면 두 방을 구분할 수 없다(0048) */
+  guestIds: string[];
   /** 미리보기 = 마지막 메시지 한 줄(Boss 2026-08-20 "텍스트 미리보기로 간략하게") */
   preview: string | null;
   lastAt: string; turns: number;
@@ -58,11 +60,17 @@ function ago(iso: string, t: (k: string, d?: string) => string): string {
 
 /**
  * 대화 목록.
- * @param onOpen     한 대화를 열었을 때(웹 2칸이면 오른쪽 칸에, 폰이면 대화 화면으로)
- * @param selectedId 지금 열려 있는 상담사 id(웹 2칸에서 줄을 강조)
+ * @param onOpen     한 대화를 열었을 때. ★**세션까지** 올려 보낸다 — 아래 참고
+ * @param selectedId 지금 열려 있는 **세션 id**(웹 2칸에서 줄을 강조)
+ *
+ * ⚠️★2026-08-27 — 종전엔 `onOpen(consultantId)` 로 **세션 id 를 버렸다.**
+ *   그러면 «같은 상담가와의 1:1 방» 과 «그 상담가를 포함한 다인방» 을 화면이 **구분할 수 없다.**
+ *   실제로 그래서 초대해 새 방을 만들면 1:1 방의 내용이 남고 두 방이 같이 움직였다(Boss 제보).
+ *   ⇒ 목록이 아는 것(세션 id · 참여자)을 **버리지 않고** 그대로 넘긴다.
  */
 export function ChatList({ onOpen, selectedId, reloadKey = 0, wide, onSettings, onOpenProfile }: {
-  onOpen: (consultantId: string) => void; selectedId?: string;
+  onOpen: (room: { sessionId: string; consultantId: string; guestIds: string[] }) => void;
+  selectedId?: string;
   /** 답이 오거나 읽음 처리됐을 때 올려서 다시 읽게 한다(웹은 목록과 대화가 동시에 보인다) */
   reloadKey?: number;
   /** 목록 칸이 넓은가 — 좁으면 배너를 숨긴다(`TalkList` 와 같은 뜻) */
@@ -105,7 +113,7 @@ export function ChatList({ onOpen, selectedId, reloadKey = 0, wide, onSettings, 
     //   세션마다 count 를 따로 물으면 대화 수만큼 왕복이 생긴다(N+1).
     const r = await withTimeout(
       supabase.from('talk_session_list')
-        .select('id, consultant_id, preview, last_at, turn_count, unread')
+        .select('id, consultant_id, guest_ids, preview, last_at, turn_count, unread')
         .order('last_at', { ascending: false }).limit(50),
       8000,
     );
@@ -113,6 +121,8 @@ export function ChatList({ onOpen, selectedId, reloadKey = 0, wide, onSettings, 
     setRows(r.data.map((s: any) => ({
       id: s.id,
       consultantId: s.consultant_id,
+      // ★다인방 판별 — 비면 1:1. 뷰가 이걸 안 주던 탓에 화면이 «틀린 열쇠» 를 골랐다(0048)
+      guestIds: Array.isArray(s.guest_ids) ? (s.guest_ids as string[]) : [],
       // ⚠️상담사가 사라졌어도 대화는 남는다 — 이름을 못 찾으면 빈 줄을 내지 말고 id 라도 보여 준다
       name: people.find((p) => p.id === s.consultant_id)?.name ?? s.consultant_id,
       preview: s.preview ?? null,
@@ -144,7 +154,12 @@ export function ChatList({ onOpen, selectedId, reloadKey = 0, wide, onSettings, 
     if (!c) return;
     // ★변환은 `toProfileTarget` **한 곳**에서 한다 — 대화 말풍선의 얼굴도 같은 함수를 쓴다.
     //   각자 만들면 «같은 사람인데 창 내용이 다른» 일이 생긴다.
-    setProfile(toProfileTarget(c, element, () => { setProfile(null); onOpen(cid); }));
+    // ★사진에서 열 때도 **그 줄의 세션**을 연다 — 상담가만 넘기면 어느 방인지 모른다
+    const row = (rows ?? []).find((x) => x.consultantId === cid);
+    setProfile(toProfileTarget(c, element, () => {
+      setProfile(null);
+      if (row) onOpen({ sessionId: row.id, consultantId: cid, guestIds: row.guestIds });
+    }));
   };
   const byFilter = filter === 'all' ? rows : rows.filter((r) => groupOf(r.consultantId) === filter);
   // ★검색은 **거르기만** 한다(묶음·정렬을 건드리지 않는다)
@@ -225,7 +240,7 @@ export function ChatList({ onOpen, selectedId, reloadKey = 0, wide, onSettings, 
       ) : visible.map((r, i) => {
         const el = EL[(i + 1) % EL.length];
         return (
-          <PressableScale key={r.id} style={[styles.row, selectedId === r.consultantId && styles.rowOn]} onPress={() => onOpen(r.consultantId)}>
+          <PressableScale key={r.id} style={[styles.row, selectedId === r.id && styles.rowOn]} onPress={() => onOpen({ sessionId: r.id, consultantId: r.consultantId, guestIds: r.guestIds })}>
             {/* ★사진만 따로 — 줄을 누르면 대화, 사진을 누르면 프로필(Boss 2026-08-26) */}
             <PressableScale hitSlop={6} onPress={() => openPhoto(r.consultantId, el)}>
               {avatarOf(r.consultantId)

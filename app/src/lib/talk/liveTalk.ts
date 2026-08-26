@@ -189,21 +189,28 @@ export async function askLive(
  */
 const HISTORY_LIMIT = 120;
 
-export async function loadThread(consultantId: string): Promise<
+export async function loadThread(consultantId: string, sessionId?: string | null): Promise<
   { sessionId: string; messages: { id: number; role: 'user' | 'assistant'; body: string; speakerId: string | null }[] } | null
 > {
   try {
-    const s = await withTimeout(
-      supabase.from('talk_sessions')
-        .select('id').eq('consultant_id', consultantId)
-        // ★★**1:1 방만** 집는다 — 다인방도 `consultant_id` 를 그대로 갖고 있어서, 이 필터가 없으면
-        //   노쌤과 단둘이 한 방을 열었는데 «노쌤, 한서윤» 방이 열린다(내가 만들 뻔한 회귀다).
-        //   짝이 되는 규칙은 `groupTalk.ts` 에 있다: 그룹 조회는 **안 빈 것만** 본다.
-        .eq('guest_ids', '{}')
-        .order('last_at', { ascending: false }).limit(1).maybeSingle(),
-      8000,
-    );
-    const sid = s && !s.error ? (s.data as any)?.id : null;
+    // ★★2026-08-27 — **세션을 알면 그것을 연다.**
+    //   목록에서 고른 방은 이미 세션 id 를 알고 있다. 그런데 종전엔 상담가 id 만 받아
+    //   «그 상담가의 1:1 방» 을 다시 찾았다 ⇒ **다인방을 눌러도 1:1 방이 열렸다.**
+    //   (그리고 초대해 만든 새 방과 1:1 방이 화면에서 같은 열쇠를 써 내용이 섞였다 — Boss 제보.)
+    let sid: string | null = sessionId ?? null;
+    if (!sid) {
+      const s = await withTimeout(
+        supabase.from('talk_sessions')
+          .select('id').eq('consultant_id', consultantId)
+          // ★★**1:1 방만** 집는다 — 다인방도 `consultant_id` 를 그대로 갖고 있어서, 이 필터가 없으면
+          //   노쌤과 단둘이 한 방을 열었는데 «노쌤, 한서윤» 방이 열린다(내가 만들 뻔한 회귀다).
+          //   짝이 되는 규칙은 `groupTalk.ts` 에 있다: 그룹 조회는 **안 빈 것만** 본다.
+          .eq('guest_ids', '{}')
+          .order('last_at', { ascending: false }).limit(1).maybeSingle(),
+        8000,
+      );
+      sid = s && !s.error ? ((s.data as any)?.id ?? null) : null;
+    }
     if (!sid) return null;
     const m = await withTimeout(
       supabase.from('talk_messages')
@@ -241,14 +248,17 @@ export async function loadThread(consultantId: string): Promise<
  * @param consultantId 이 상담가와의 **가장 최근 대화**를 지운다
  * @returns 성공 여부. 실패 사유를 삼키지 않는다
  */
-export async function deleteThread(consultantId: string): Promise<{ ok: boolean; error?: string }> {
+export async function deleteThread(consultantId: string, sessionId?: string | null): Promise<{ ok: boolean; error?: string }> {
   try {
+    // ★세션을 알면 **그 방만** 지운다 — 안 그러면 다인방을 나가려는데 1:1 방이 지워진다
+    if (sessionId) {
+      const { error } = await supabase.from('talk_sessions').delete().eq('id', sessionId);
+      return error ? { ok: false, error: error.message } : { ok: true };
+    }
     const s = await withTimeout(
       supabase.from('talk_sessions')
         .select('id').eq('consultant_id', consultantId)
-        // ★★**1:1 방만** 집는다 — 다인방도 `consultant_id` 를 그대로 갖고 있어서, 이 필터가 없으면
-        //   노쌤과 단둘이 한 방을 열었는데 «노쌤, 한서윤» 방이 열린다(내가 만들 뻔한 회귀다).
-        //   짝이 되는 규칙은 `groupTalk.ts` 에 있다: 그룹 조회는 **안 빈 것만** 본다.
+        // ★★**1:1 방만** 집는다(위 `loadThread` 와 같은 이유).
         .eq('guest_ids', '{}')
         .order('last_at', { ascending: false }).limit(1).maybeSingle(),
       8000,

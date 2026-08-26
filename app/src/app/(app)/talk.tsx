@@ -297,7 +297,18 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
     bumpChats();
   }, [bumpChats]);
   // 세션은 **상담사별로** 따로 이어진다 — 한 세션에 여러 상담사를 섞으면 이력이 뒤엉킨다
-  const sessRef = useRef<Record<string, string>>({});
+  // ★★2026-08-27 — 방의 정체는 **세션**이다(종전엔 «상담가» 였다).
+  //   Boss 제보: *"인원을 초대하면 방은 새로 만들어지는데 기존 내용이 남아있고 모든 채팅방이 동기화된다"*
+  //   ⚠️원인: `sessRef.current[cur.id]` — 열쇠가 **상담가 id** 였다.
+  //     초대해 새 세션을 만들어도 **같은 열쇠에 덮어써서**, 1:1 방으로 돌아가면 그룹 세션을 읽었다.
+  //     「기존 내용이 남는다」와 「모든 방이 동기화된다」는 **같은 원인의 두 얼굴**이다.
+  //   ⇒ 지금 열려 있는 **세션 하나**만 들고 있는다. 방을 바꾸면 그때 다시 정한다.
+  //     (`sessRef` 는 재조회를 아끼려던 것인데, `open()` 이 어차피 `loadThread` 로 물어본다 —
+  //      아끼는 것보다 **틀린 방을 여는 것**이 비싸다.)
+  const [curSid, setCurSid] = useState<string | null>(null);
+  //   ★콜백(전송) 안에서 **동기로** 읽어야 해서 ref 를 함께 둔다 — state 는 다음 렌더에야 보인다
+  const curSidRef = useRef<string | null>(null);
+  const setSid = useCallback((v: string | null) => { curSidRef.current = v; setCurSid(v); }, []);
   // 이 대화에서 이미 쓴 그림 — ★같은 그림을 반복하면 '자동으로 붙는 장식'처럼 보인다
   // ★키보드 회피 — `coach.tsx` 와 **같은 패턴**을 쓴다(`check:keyboard` R1/R2).
   //   입력바가 하단 고정이라 KeyboardAvoidingView 로는 안 올라간다 — 리스너로 직접 올린다.
@@ -361,18 +372,29 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
   // ★웹도 **처음엔 빈 대화창**이다(Boss 2026-08-19 "최초에는 빈 대화창으로 뜨고 클릭해야 대화 노출").
   //   종전엔 첫 상담사를 자동으로 열었다 — 화면은 꽉 차 보이지만 **사용자가 고르지 않은 대화**가 시작된다.
   //   실제 상담사였다면 그것만으로 API 를 태울 수도 있었다(첫 인사는 공짜라 태우진 않았지만, 구조가 위험했다).
-  const open = useCallback((c: Consultant) => {
+  /**
+   * 방을 연다.
+   *
+   * @param c    이 방의 **대표 상담가**(머리말·페르소나가 이 사람 것이다)
+   * @param room 목록에서 고른 방. **주면 그 세션을 그대로 연다** — 안 주면 이 상담가와의 1:1 방을 찾는다.
+   *   ⚠️이 인자가 없던 것이 다인방 고장의 뿌리였다(위 `curSid` 주석).
+   */
+  const open = useCallback((c: Consultant, room?: { sessionId: string; guestIds: string[] }) => {
     setCur(c);
+    // ★방을 바꾸면 **세션도 참여자도 먼저 지운다** — 안 지우면 직전 방의 것이 잠깐 붙어 보인다
+    setSid(room?.sessionId ?? null);
+    setMates(room?.guestIds?.length
+      ? consultantsSnapshot().filter((x) => room.guestIds.includes(x.id))
+      : []);
     // ⚠️먼저 비운다 — 안 비우면 **직전 방의 정리**가 잠깐 보인다
     //   ★운 안내 띠도 같이 지운다 — 앞 방의 「운이 모자라요」가 다른 상담가 화면에 남으면 안 된다
     setNotes([]); setJumpTo(null); setNotice(null);
     genRef.current++;   // ★직전 방에 보낸 답이 도착해도 이 방에 붙지 않게(위 `genRef` 주석)
-    refreshNotes(sessRef.current[c.id]);
+    refreshNotes(room?.sessionId ?? null);   // 세션을 알면 바로, 모르면 아래 loadThread 뒤에
     // ★대화를 열면 **읽음 처리**한다 — 안 그러면 배지가 영원히 남는다.
     //   시각은 서버가 `now()` 로 찍는다(앱이 값을 보내면 미래 시각으로 배지를 지울 수 있다).
     //   실패해도 대화는 열린다(배지가 한 번 더 뜰 뿐이다).
-    const sid = sessRef.current[c.id];
-    if (sid) void markRead(sid);
+    if (room?.sessionId) void markRead(room.sessionId);
     // 이 상담가가 담당하는 홈 블록 카드 — ★말풍선으로 옮겨 적지 않고 **원래 컴포넌트**를 띄운다
     //   (옮겨 적는 순간 홈과 갈린다). 없으면 빈 배열이라 아무 일도 안 일어난다.
     const blockCards = (c.blocks ?? []).map((k) => ({
@@ -429,9 +451,9 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
       // ★지난 대화를 **이어 붙인다**(2026-08-20) — 세션 id 를 메모리에만 두면
       //   새로고침·앱 재시작마다 새 방이 생긴다(실제로 노쎔 대화가 셋으로 쪼개졌다).
       //   카톡은 껐다 켜도 같은 방이다. 인사는 **이력이 없을 때만** 남긴다.
-      void loadThread(c.id).then((th) => {
+      void loadThread(c.id, room?.sessionId ?? null).then((th) => {
         if (!th) return;
-        sessRef.current[c.id] = th.sessionId;
+        setSid(th.sessionId);
         refreshNotes(th.sessionId);        // 방을 열면 정리도 같이 읽는다
         if (th.messages.length) {
           clearTimers();          // ★지난 대화를 복원할 때는 인사 타이핑을 멈춘다(이력이 먼저다)
@@ -595,7 +617,7 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
   const fire = useCallback((q: string, attempt: number, gen: number) => {
     if (!cur) return;
     // ★판정은 **보낼 때 만든다** — 명식이 바뀌면 다음 턴부터 바로 반영된다
-    void askLive(cur.id, q, sessRef.current[cur.id] ?? null, chartId, i18n.language, attempt,
+    void askLive(cur.id, q, curSidRef.current, chartId, i18n.language, attempt,
                  saju ? buildChartVerdict(saju) : null,
                  // ★@이름으로 부른 사람들 — **이 턴에만** 실린다(캐시 접두사를 건드리지 않는다)
                  buildMentions(q),
@@ -606,7 +628,7 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
         //   ⚠️`setBusy(false)` 도 하지 않는다. 지금 점이 돌고 있다면 그건 **새 방의 것**이다.
         if (gen !== genRef.current) return;
         if (r.ok) {
-          sessRef.current[cur.id] = r.sessionId;   // 다음 턴부터 이력이 이어진다
+          setSid(r.sessionId);   // 다음 턴부터 이력이 이어진다
           // ★이번 턴에 남긴 게 있을 때만 다시 읽는다 — 매 턴 조회하면 헛돈다
           if (r.notes?.length) refreshNotes(r.sessionId);
           // 방금 내가 읽은 답이므로 읽음 처리 + 목록 갱신(미리보기·시각이 바로 반영된다)
@@ -789,8 +811,8 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
    * ★웹은 셋을 동시에 펴므로 이 분기를 쓰지 않는다(폰만 좁아서 갈린다).
    */
   const leftPane = mode === 'chats'
-    ? <ChatList selectedId={cur?.id} wide onOpenProfile={setProfile} onSettings={() => router.push('/settings')}
-                onOpen={(id) => { const c = list.find((x) => x.id === id); if (c) open(c); }} />
+    ? <ChatList selectedId={curSid ?? undefined} wide onOpenProfile={setProfile} onSettings={() => router.push('/settings')}
+                onOpen={(r) => { const c = list.find((x) => x.id === r.consultantId); if (c) open(c, r); }} />
     : <TalkList items={list} onOpen={open} selected={cur?.id} myName={myName} myAvatar={myAvatar} onOpenProfile={setProfile}
                       railKeys={order} onMe={() => setPerson({ kind: 'me', name: myName })}
                       onSettings={() => router.push('/settings')}
@@ -813,10 +835,10 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
    */
   const onDeleteThread = useCallback(async () => {
     if (!cur) return;
-    const r = await deleteThread(cur.id);
+    const r = await deleteThread(cur.id, curSidRef.current);   // ★**이 방만** 지운다
     setAskDelete(false);
     if (!r.ok) { console.warn('[talk] 대화 삭제 실패', r.error); return; }
-    delete sessRef.current[cur.id];
+    setSid(null);
     // ★정리도 함께 비운다 — DB 행은 세션과 함께 cascade 로 사라지지만(0040), **화면 state 는 남는다.**
     //   안 비우면 지운 대화의 "이 대화 정리 · N" 줄이 상단에 그대로 떠 있다(Boss 2026-08-24 제보).
     //   `notesOpen` 은 건드리지 않는다 — 펴 둔 것은 **사람의 선택**이지 이 방의 상태가 아니다(위 §123).
@@ -1000,8 +1022,10 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
             setInviteOpen(false);
             const sid = await openGroupRoom(cur.id, ids, chartId);
             if (!sid) return;                       // 실패해도 지금 방은 그대로다(막지 않는다)
-            sessRef.current[cur.id] = sid;          // 이 방으로 이어서 말한다
-            setMates(servers.filter((x) => ids.includes(x.id)));
+            // ★★**새 방으로 갈아탄다** — 종전엔 세션만 바꾸고 화면은 그대로 둬서
+            //   «새 방인데 1:1 대화가 그대로 남아 있는» 상태가 됐다(Boss 2026-08-27 제보).
+            //   방이 바뀌면 화면도 바뀌어야 한다. `open()` 이 그 일을 이미 한 곳에서 한다.
+            open(cur, { sessionId: sid, guestIds: ids });
           }}
         />
       ) : null}
@@ -1026,9 +1050,9 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
         </View>
         {showChatPane && (
           <View style={[styles.pane, { paddingTop: insets.top }]}>
-            <ChatList reloadKey={chatsTick} selectedId={cur?.id} wide={false} onOpenProfile={setProfile}
+            <ChatList reloadKey={chatsTick} selectedId={curSid ?? undefined} wide={false} onOpenProfile={setProfile}
                       onSettings={() => router.push('/settings')}
-                      onOpen={(id) => { const c = list.find((x) => x.id === id); if (c) open(c); }} />
+                      onOpen={(r) => { const c = list.find((x) => x.id === r.consultantId); if (c) open(c, r); }} />
           </View>
         )}
         <View style={styles.main}>
@@ -1059,7 +1083,7 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
                   setNotesOpen(false);
                   setJumpTo(null); requestAnimationFrame(() => setJumpTo(mid));
                 }}
-                onChanged={() => refreshNotes(cur ? sessRef.current[cur.id] : null)}
+                onChanged={() => refreshNotes(curSid)}
               />
               {/* ★운 안내 — 목록 **위**에 고정. 말풍선과 자리·색이 둘 다 다르다(Boss 2026-08-25) */}
               {notice ? (
@@ -1134,7 +1158,7 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
       <TalkNotes
         notes={notes} open={notesOpen} onToggle={() => setNotesOpen((v) => !v)}
         onJump={(mid) => { setJumpTo(null); requestAnimationFrame(() => setJumpTo(mid)); }}
-        onChanged={() => refreshNotes(cur ? sessRef.current[cur.id] : null)}
+        onChanged={() => refreshNotes(curSid)}
       />
       <TalkThread
         items={items} busy={busy} onLink={(r) => router.push(r as never)} jumpTo={jumpTo}
