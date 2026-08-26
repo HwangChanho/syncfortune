@@ -12,7 +12,7 @@
  * 실행: npm run covers:brief   → docs/design/consultant-covers-brief.md
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
-import { CAST, COVER_STYLE, COVER_NEGATIVE, COVER_VIDEO_SPEC, COVER_MOTION } from './avatar-cast';
+import { CAST, COVER_STYLE, COVER_NEGATIVE, COVER_VIDEO_SPEC, COVER_MOTION, COVER_PROP, COVER_LIGHT, COVER_WEAR } from './avatar-cast';
 
 const OUT = 'docs/design/consultant-covers-brief.md';
 const L: string[] = [];
@@ -85,7 +85,9 @@ for (const m of targets) {
   if (m.caution) w(`- ⚠️${m.caution}`);
   w();
   w('```text');
-  w([COVER_STYLE, m.look, m.sex === '남' ? 'a Korean man' : 'a Korean woman', m.ageEn].filter(Boolean).join(', '));
+  // ★소품·조명·의상을 **사람별로** 붙인다 — 스틸에 없는 물건은 i2v 가 만들어내지 못한다
+  w([COVER_STYLE, COVER_WEAR, COVER_PROP[m.id], COVER_LIGHT[m.id], m.look,
+     m.sex === '남' ? 'a Korean man' : 'a Korean woman', m.ageEn].filter(Boolean).join(', '));
   w('```');
   w();
   w(`**② 영상 움직임**(Wan i2v): \`${COVER_MOTION[m.id] ?? 'slow calm breathing, occasional slow blink'}\`, camera locked, no pan, no zoom, seamless loop`);

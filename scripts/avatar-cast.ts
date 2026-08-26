@@ -145,7 +145,7 @@ export const COVER_NEGATIVE =
 export const COVER_VIDEO_SPEC = {
   seconds: 5,
   maxSeconds: 5,
-  fps: 24,
+  fps: '모델이 학습한 fps 를 따른다(16fps 모델을 24 로 다시 찍으면 같은 움직임이 1.5배 빨라진다 — «아주 적게» 와 정반대다)',
   size: '720x1280 (9:16 세로)',
   maxBytes: 8 * 1024 * 1024,
   format: 'mp4 (H.264) · 무음',
@@ -165,6 +165,56 @@ export const COVER_VIDEO_SPEC = {
  *   프로필 창 뒤에서 도는 그림이고, 그 위에 이름·버튼이 얹힌다.
  *   크게 움직이면 글자를 못 읽는다. ⇒ 손끝·머리카락·빛 정도. **카메라는 고정.**
  */
+/**
+ * ★★배경 스틸의 **소품** — E드라이브 스튜디오가 잡아 준 구멍(2026-08-26).
+ *
+ * ■ 무엇을 놓쳤나
+ *   `COVER_MOTION` 은 전부 **물건**을 움직인다(서류·타로덱·촛불·브러시·천·커튼).
+ *   그런데 `COVER_STYLE`(공통 스틸 프롬프트)에는 그 물건이 **하나도 없었다.**
+ *   ★**스틸에 없는 물건은 i2v 가 만들어내지 못한다** ⇒ 그대로 돌렸으면 11개 중 7개가
+ *     «아무것도 안 움직이는 영상» 이 됐을 것이다.
+ *   ⇒ 움직임을 정할 때는 **그 움직임의 대상도 같이** 정해야 한다. 둘은 한 쌍이다.
+ */
+export const COVER_PROP: Record<string, string> = {
+  love_seoyun:   'seated near a lattice window, a light draft in the room',
+  guide_minjae:  'a neat stack of white papers on the low table, both hands resting on its edge',
+  tarot_harin:   'a tarot deck lying face-down on the low table, thumb resting against its side',
+  tarot_doyun:   'hands loosely clasped in the lap, nothing else on the table',
+  ziwei_yujin:   'a single lit candle on the low table beside her, its glow on the wall',
+  astro_taehyun: 'a lattice window casting a clear patch of daylight on the wooden floor',
+  beauty_jjinya: 'holding a single makeup brush between two fingers',
+  color_bombom:  'a folded fabric swatch held in one hand, more swatches on the table',
+  car_unni:      'seated by a window that looks onto a street at dusk',
+  travel_jini:   'a long linen curtain beside her, reaching the floor',
+  heal_yuri:     'seated cross-legged on a woven mat, hands open on her knees',
+};
+
+/**
+ * ★조명 예외 — **광원이 보여야 움직임이 보인다**(스튜디오 지적, 2026-08-26).
+ *   공통 스틸은 «낮의 창빛» 인데, 촛불(자미)·헤드라이트(차)는 **대낮이면 화면에서 사라진다.**
+ *   ⇒ 이 둘만 «해질녘 실내» 로 내린다. 나머지 아홉은 그대로 낮.
+ */
+export const COVER_LIGHT: Record<string, string> = {
+  ziwei_yujin: 'late afternoon turning to dusk indoors, the candle is the brightest thing in the room',
+  car_unni:    'dusk indoors, the room lit low so passing headlights read clearly on the wall',
+};
+
+/**
+ * ★의상 — **위는 아바타 그대로, 아래는 실내에서 편한 것**(Boss 결 · 2026-08-26).
+ *
+ * ■ 왜 이렇게 가르나
+ *   아바타는 **얼굴·어깨까지만** 보인다. 즉 **상의만** 이어지면 «같은 사람» 으로 읽힌다 —
+ *   하의는 애초에 이어질 근거가 없다. 그래서 상의는 배포본의 저고리 색·동정을 그대로 두고,
+ *   하의는 «실내에서 맨발로 쉬는» 결에 맞춘다.
+ * ■ ⚠️전통 치마를 **잘라 쓰지 않는다**
+ *   치마는 발을 덮는다. 밑단을 발목 위에서 끊으면 «한복도 아니고 편한 옷도 아닌» 것이 된다.
+ *   맨발을 보이려고 옷을 훼손하는 대신, **처음부터 발이 보이는 옷**을 입힌다.
+ */
+export const COVER_WEAR =
+  'keeping the exact same top as the profile photo (same jeogori-style collar, same fabric color and trim), ' +
+  'paired with relaxed indoor wide-leg linen trousers in a matching earth tone, ankles clearly exposed, ' +
+  'no long skirt, no hem covering the feet, comfortable at-home clothing rather than formal dress';
+
 export const COVER_MOTION: Record<string, string> = {
   nossem:        'slow calm breathing, occasional slow blink',   // 실존 인물 — 참고용(생성은 Boss 몫)
   love_seoyun:   'a few strands of hair drifting in a soft draft from the window, slow blink',
