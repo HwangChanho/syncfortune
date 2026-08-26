@@ -75,11 +75,34 @@ console.log('\n=== ③ 단가를 서버가 정하는가 (클라가 보내면 0�
   if (/cost|coin/i.test(bodyVars)) bad('★요청 바디에서 비용/코인 값을 받는다 — 클라가 0 을 보내면 공짜다');
   else ok('요청 바디 구조분해에 비용 값이 없다');
 
-  const costLine = /const\s+coinCost\s*=.*$/m.exec(edge)?.[0] ?? '';
+  // ⚠️★`const` 를 **글자로** 찾지 않는다 — 2026-08-27 다인방 합산을 넣으며 `let` 이 되자
+  //   이 검사가 «계산식을 못 찾았다» 며 빨간불이 됐다. 코드는 옳았고 하네스가 낡은 것이었다
+  //   ([[harness-judge-expression-not-name]]). ⇒ 선언 키워드를 가리지 않는다.
+  const costLine = /(?:const|let|var)\s+coinCost\s*=.*$/m.exec(edge)?.[0] ?? '';
   if (!costLine) bad('coinCost 계산식을 못 찾았다 — 하네스가 헛돈다');
   else if (/\breq\b|\bbody\b|payload|params/.test(costLine)) {
     bad(`★단가 계산식이 **요청 값**을 참조한다: ${costLine.trim()}`);
   } else ok('단가 계산식이 요청을 참조하지 않는다');
+
+  // ── ★다인방은 더 든다 (Boss 2026-08-27) ─────────────────────────────────
+  //   «참여한 상담가 각자의 단가를 합산» 한다. 배수를 코드에 박지 않는 이유는
+  //   조절을 관리자 콘솔(`coin_cost`)에 남겨 두기 위해서다.
+  {
+    // 합산이 실제로 일어나는가 — 이름이 아니라 **더하는 식**을 본다
+    const sums = /coinCost\s*\+=\s*Number\(/.test(edge);
+    if (sums) ok('다인방 — 참여자 단가를 합산한다');
+    else bad('★다인방인데 1:1 단가로 뺀다 — Boss 지시(*"다인방은 당연히 운 소모가 더 커야해"*)와 어긋난다');
+
+    // ⚠️**차감보다 먼저** 계산돼야 한다. 뒤에 있으면 다인방인 줄 모르고 1:1 값으로 뺀다.
+    const iCost = edge.search(/coinCost\s*\+=\s*Number\(/);
+    const iSpend = edge.search(/rpc\('spend_coins_owner'/);
+    if (sums && iCost > 0 && iSpend > 0 && iCost < iSpend) ok('합산이 **차감보다 먼저** 일어난다');
+    else if (sums) bad('★합산이 차감 뒤에 있다 — 다인방인 줄 모르고 1:1 값으로 뺀다');
+
+    // 남의 방 값을 읽어 과금하지 않는가(소유자 확인)
+    if (!sums || /owner_id\s*===\s*uid/.test(edge)) ok('방 소유자를 확인하고 읽는다');
+    else bad('★남의 세션에서 참여자를 읽는다 — 소유자 확인이 없다');
+  }
 
   if (/p_cost:\s*coinCost/.test(edge)) ok('RPC 에 서버가 읽은 값을 넘긴다');
   else bad('RPC 비용 인자가 서버 값이 아니다');
