@@ -1082,9 +1082,9 @@ function MyeongsikBody({ input, onReading, onSinsal, header, whoName }: Myeongsi
                 이게 대운인지 세운인지 모르겠고"*). 제목이 «A · B» 인데 아래 띠는 **B** 다. */}
             <Text style={styles.luckSubOn}>대운</Text>{daeunsu != null ? <Text style={{ fontWeight: '700' }}> · 대운수 {daeunsu}{luckDir ? ` ${luckDir}` : ''}</Text> : null} (탭하면 그 대운의 세운 펼침)
           </Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} ref={luckScrollRef} onLayout={(e) => { centerM.current.luck.v = e.nativeEvent.layout.width; recenter('luck', luckScrollRef); }} onContentSizeChange={() => recenter('luck', luckScrollRef)} style={styles.luckScroll} contentContainerStyle={styles.luckScrollC}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} ref={luckScrollRef} onLayout={(e) => { centerM.current.luck.v = e.nativeEvent.layout.width; recenter('luck', luckScrollRef); }} onContentSizeChange={() => recenter('luck', luckScrollRef)} style={styles.luckScroll} contentContainerStyle={[styles.luckScrollC, { flexGrow: 1 }]}>
             {luckCycles.map((l, i) => (
-              <PressableScale key={i} onPress={() => { setSelLuck(i); setSelSeun(0); }} onLayout={l.isCurrent ? (e) => { centerM.current.luck.x = e.nativeEvent.layout.x; centerM.current.luck.w = e.nativeEvent.layout.width; recenter('luck', luckScrollRef); } : undefined} style={[styles.luckCard, { minWidth: ls(58) }, l.isCurrent && styles.luckCardCur, selLuck === i && styles.luckCardSel]}>
+              <PressableScale key={i} onPress={() => { setSelLuck(i); setSelSeun(0); }} onLayout={l.isCurrent ? (e) => { centerM.current.luck.x = e.nativeEvent.layout.x; centerM.current.luck.w = e.nativeEvent.layout.width; recenter('luck', luckScrollRef); } : undefined} style={[styles.luckCard, { minWidth: ls(58), flex: 1 }, l.isCurrent && styles.luckCardCur, selLuck === i && styles.luckCardSel]}>
                 <Text style={styles.luckAge}>{l.startAge}세</Text>
                 <Text style={styles.luckTg}>{l.stemTenGod}</Text>
                 <GzCell char={l.stem} kind="stem" size="sm" hangeul={hangeul} />
@@ -1106,7 +1106,7 @@ function MyeongsikBody({ input, onReading, onSinsal, header, whoName }: Myeongsi
             <>
               {/* 아래 띠는 **세운**이다 — 그 낱말만 굵게 */}
               <Text style={styles.luckSub}>{lc.startAge}세 대운 · <Text style={styles.luckSubOn}>세운</Text> (탭하면 위 명식에 반영)</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} ref={seunScrollRef} onLayout={(e) => { centerM.current.seun.v = e.nativeEvent.layout.width; recenter('seun', seunScrollRef); }} onContentSizeChange={() => recenter('seun', seunScrollRef)} style={styles.luckScroll} contentContainerStyle={styles.luckScrollC}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} ref={seunScrollRef} onLayout={(e) => { centerM.current.seun.v = e.nativeEvent.layout.width; recenter('seun', seunScrollRef); }} onContentSizeChange={() => recenter('seun', seunScrollRef)} style={styles.luckScroll} contentContainerStyle={[styles.luckScrollC, { flexGrow: 1 }]}>
                 {lc.annuals.map((a: any, j: number) => {
                   // ★세운 만 나이(daniel 2026-07-12) — 대운 입운 만나이(startAge) + 대운 내 연차(위 seunAge 와 동일식·엔진 나이모델 일관)
                   const seunAgeJ = (typeof lc.startAge === 'number' && lc.annuals?.[0]) ? lc.startAge + (a.year - lc.annuals[0].year) : null;
@@ -1132,7 +1132,7 @@ function MyeongsikBody({ input, onReading, onSinsal, header, whoName }: Myeongsi
             <>
               {/* 아래 띠는 **월운**이다 */}
               <Text style={styles.luckSub}>{an.year} 세운 · <Text style={styles.luckSubOn}>월운</Text> (탭하면 위 명식에 반영)</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} ref={monthScrollRef} onLayout={(e) => { centerM.current.month.v = e.nativeEvent.layout.width; recenter('month', monthScrollRef); }} onContentSizeChange={() => recenter('month', monthScrollRef)} style={styles.luckScroll} contentContainerStyle={styles.luckScrollC}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} ref={monthScrollRef} onLayout={(e) => { centerM.current.month.v = e.nativeEvent.layout.width; recenter('month', monthScrollRef); }} onContentSizeChange={() => recenter('month', monthScrollRef)} style={styles.luckScroll} contentContainerStyle={[styles.luckScrollC, { flexGrow: 1 }]}>
                 {an.months.map((_m: any, k: number) => {
                   // ★월 선택기(daniel 2026-07-08): 카드 k = 양력월(라벨 (k+1)월). 干支는 월운 타임라인(위 line 716)과 동일하게
                   //   절기월로 매핑 months[(k+11)%12] — 예전엔 months[k] 를 그대로 써 7월(k=6) 카드에 申월(丙申)이 떠 한 달 밀렸다.
@@ -1522,6 +1522,10 @@ const makeStyles = (fs: (n: number) => number) => { const f = scaledFont(fs); re
   layerChipTx: { fontSize: fs(12), fontWeight: '700', color: colors.inkFaint },
   layerChipTxOn: { color: colors.ju },
   luckScroll: { marginTop: space(2) },
+  // ⚠️★`flexGrow: 1` 은 **호출부에서** 준다 — 세 띠(대운·세운·월운)가 같은 이 스타일을 쓰는데,
+  //   그중 하나만 다르게 하고 싶어질 때 여기 박아 두면 갈라진다.
+  //   Boss 2026-08-27: *"대운 세운 월운 양끝에 맞춰서 사이즈 키워 공간이 안남게"* —
+  //   칸은 `flex: 1` 로 남는 폭을 나눠 갖고, `minWidth` 가 있어 좁은 화면에서는 그대로 스크롤된다.
   luckScrollC: { gap: space(1.5), flexDirection: 'row-reverse', paddingHorizontal: space(2) },
   // ★minWidth 는 렌더에서 ls() 로 덮는다(daniel 2026-07-30 "대운세운월운도 옆으로 커져야").
   //   가로 스크롤 안이라 넓어져도 잘리지 않는다 — 고정 58 이면 큰 글자에서 칸이 빠듯해진다.
@@ -1542,7 +1546,7 @@ const makeStyles = (fs: (n: number) => number) => { const f = scaledFont(fs); re
   ziDecBr: { ...f.body, color: colors.ink, fontWeight: '700', width: 24 },
   ziDecSihwa: { flex: 1, flexDirection: 'row', flexWrap: 'wrap' },
   ziDecTx: { ...f.caption },
-  seunCard: { alignItems: 'center', paddingVertical: space(1.5), paddingHorizontal: space(2), borderRadius: radius.sm, backgroundColor: colors.sunk, minWidth: 52 },
+  seunCard: { alignItems: 'center', paddingVertical: space(1.5), paddingHorizontal: space(2), borderRadius: radius.sm, backgroundColor: colors.sunk, minWidth: 52, flex: 1},
   todayBtn: { alignSelf: 'center', flexDirection: 'row', alignItems: 'center', gap: 5, paddingVertical: space(1.5), paddingHorizontal: space(4), borderRadius: radius.sm, borderWidth: 1, borderColor: colors.ju, backgroundColor: colors.sunk, marginTop: space(2), marginBottom: space(1) }, // 현재운세 보기(daniel 07-08)
   todayBtnTx: { ...f.caption, color: colors.ju, fontWeight: '700' },
   seunCur: { borderWidth: 1.5, borderColor: colors.ju },
