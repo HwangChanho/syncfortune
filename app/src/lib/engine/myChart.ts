@@ -250,12 +250,29 @@ export async function getRepresentativeId(): Promise<string | null> {
   return getRaw(REP_KEY);
 }
 
-/** 앱 실행 시 '본인'(relation='self') 명식을 대표로 (daniel: 실행하면 대표=본인). 없으면 변경 없음. */
+/**
+ * 앱 실행 시 '본인'(relation='self') 명식을 대표로 (daniel: 실행하면 대표=본인). 없으면 변경 없음.
+ *
+ * ⚠️★★2026-08-26 — **«본인» 이 여럿이면 아무거나 골랐다.**
+ *   종전엔 `charts.find(c => c.relation === 'self')` = **배열의 첫 번째** 본인 명식이었다.
+ *   본인 명식을 여러 개 등록해 둔 사람(검증용으로 여러 사주를 넣는 경우)은
+ *   **앱을 켤 때마다 대표가 엉뚱한 것으로 바뀌었다.**
+ *   ⇒ 대화에서 상담가가 **다른 사람 사주를 읽고 답한다.**
+ *     Boss *"사주쎔이 자기 일간도 못 맞추고 있어"* 의 절반이 이것이었다(실측:
+ *     08-25 세션은 일간 辛 차트, 08-26 세션은 일간 庚 차트를 물고 있었다 — 같은 사람인데).
+ *
+ * ★고친 규칙: **지금 대표가 이미 «본인» 이면 건드리지 않는다.**
+ *   원래 지시("실행하면 대표=본인")의 뜻은 «남의 명식이 대표로 남지 않게» 지
+ *   «본인들끼리 매번 갈아치우라» 가 아니다. 사용자가 고른 것을 앱이 뒤집으면 안 된다.
+ *   [[web-chartpicker-cannot-select]] 의 «테마가 본인으로 되돌아간다» 도 같은 뿌리다.
+ */
 export async function preferSelfAsRep(): Promise<void> {
   const charts = await listCharts();
+  const cur = await getRaw(REP_KEY);
+  // ★지금 대표가 이미 본인 명식이면 **그대로 둔다**(여러 본인 중 사용자가 고른 것을 지킨다)
+  if (cur && charts.some((c) => c.id === cur && c.relation === 'self')) return;
   const self = charts.find((c) => c.relation === 'self');
   if (!self) return;
-  const cur = await getRaw(REP_KEY);
   //   ★`'boot'` 로 알린다 — 이건 사람이 고른 게 아니라 **앱이 되돌린 것**이다.
   //     테마는 이 신호를 따라가지 않는다(그러면 어제 고른 색이 매번 리셋된다).
   if (cur !== self.id) { await setRaw(REP_KEY, self.id); notifyRepChange('boot'); } // 전역 알림 → 화면 본인 기준 갱신

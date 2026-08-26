@@ -183,7 +183,8 @@
     "check:todayfriend": "tsx scripts/check-todayfriend.ts",
     "check:talkmention": "tsx scripts/check-talkmention.ts",
     "check:banmal": "tsx scripts/check-banmal.ts",
-    "check:webmodules": "tsx scripts/check-webmodules.ts"
+    "check:webmodules": "tsx scripts/check-webmodules.ts",
+    "check:chartidentity": "tsx scripts/check-chartidentity.ts"
   },
   "keywords": [],
   "author": "",
