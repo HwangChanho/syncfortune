@@ -65,6 +65,12 @@ export type TalkItem = {
    * ⚠️이 줄이 있으면 **다른 것은 안 그린다**(말풍선·카드·그림 전부). 한 줄이 전부다.
    */
   system?: string;
+  /**
+   * ★내 말을 **아직 안 읽은 사람 수**(카톡의 「1」 · Boss 2026-08-27).
+   *   0 이거나 없으면 **안 그린다** — 0 은 정보가 아니라 잡음이다(안읽은 배지와 같은 규칙).
+   *   ⚠️여러 명 방에서는 **나를 뺀** 인원수까지 올라간다.
+   */
+  unread?: number;
 };
 
 /**
@@ -213,11 +219,17 @@ export function TalkThread({ items, busy, onLink, jumpTo, onWho }: {
             </PressableScale>
           ) : null}
           {m.body ? (
+            <View style={styles.bubbleRow}>
+              {/* ★「1」은 **말풍선 왼쪽**에 붙인다 — 카톡이 그렇고, 오른쪽에 두면 화면 끝에 물린다.
+                  내 말에만 뜬다(남의 말에 «몇 명이 안 읽었나» 는 내가 알 바가 아니다). */}
+              {m.role === 'user' && (m.unread ?? 0) > 0
+                ? <Text style={styles.unreadMark}>{m.unread}</Text> : null}
             <View style={m.role === 'user' ? styles.mine : styles.them}>
               {/* ★`**강조**` 를 굵게 — 종전엔 파서를 안 거쳐 **별표가 그대로** 보였다(Boss 2026-08-26).
                   ⚠️새로 만들지 않고 **이미 있던** `emph()` 를 쓴다(풀이 화면이 쓰던 것) —
                     화면마다 각자 파서를 두면 «같은 글이 화면마다 다르게» 보인다. */}
               {emph(m.body, m.role === 'user' ? styles.mineTx : styles.themTx)}
+            </View>
             </View>
           ) : null}
           {/* 홈 블록은 말풍선 밖으로 — 폭을 온전히 써야 원래 카드 그대로 보인다 */}
@@ -253,6 +265,9 @@ const styles = StyleSheet.create({
 
   themRow: { alignItems: 'flex-start', marginBottom: space(2.5) },
   mineRow: { alignItems: 'flex-end', marginBottom: space(2.5) },
+  // 말풍선 + 「1」 — 끝을 맞추고 **아래로** 정렬(카톡처럼 풍선 밑단에 숫자가 붙는다)
+  bubbleRow: { flexDirection: 'row', alignItems: 'flex-end', gap: space(1.5) },
+  unreadMark: { ...font.caption, fontSize: 11, color: colors.ju, fontWeight: '800', marginBottom: 2 },
 
   them: {
     maxWidth: '84%', backgroundColor: colors.card,

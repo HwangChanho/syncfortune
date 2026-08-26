@@ -23,6 +23,7 @@ import { useTranslation } from 'react-i18next';
 import { PressableScale } from '../PressableScale';
 import type { ProfileTarget } from './ProfileSheet';   // 카카오톡식 프로필 창(Boss 08-26)
 import { Swipeable } from 'react-native-gesture-handler';
+import { fallbackElement } from '../../lib/ui/avatarColor';   // ★사진 없을 때 색 — 사람에게 붙는다(단일 원본)
 import type { HomeBlockKey } from '../../lib/ui/homeOrder';
 import { colors, space, radius, font } from '../../lib/theme';
 import { elementColor, elementText } from '../../lib/engine/ohaeng';
@@ -32,6 +33,8 @@ import { Icon } from '../kit/Icon';   // 상단 아이콘 단일 원본(Boss 202
 import { NotifyBell } from './NotifyBell';   // 알림 벨+배지(단일 원본 — 대화목록과 같은 것)
 
 const FALLBACK_EL = ['木', '火', '土', '金', '水'] as const;
+// ⚠️★아래 `slot % 5` 는 **위치**로 색을 정한다 — 대화목록과 정렬이 달라 같은 사람이 다른 색이 됐다.
+//   사람(친구)에게는 `fallbackElement(id)` 를 쓴다(단일 원본 · [[duplicate-ui-single-source]]).
 
 /**
  * 목록 전체를 보고 **서로 겹치지 않는 한 글자**를 뽑는다.
@@ -460,7 +463,10 @@ export function TalkList({ items, onOpen, selected, myName, onMe, myAvatar, rail
           </Text>
           {people.map((p, i) => (
             <PressableScale key={p.id} style={styles.row} onPress={() => onOpenPerson?.(p.id)}>
-              <Avatar name={p.name} slot={items.length + i + 1} uri={p.avatarUrl} />
+              {/* ⚠️★색은 **위치가 아니라 그 사람**으로 정한다 — 대화목록과 정렬이 달라
+                  같은 친구가 목록마다 다른 색이었다(Boss 2026-08-27). 사진 없는 사람은
+                  그 원이 곧 얼굴이라 색이 바뀌면 «다른 사람» 으로 보인다. */}
+              <Avatar name={p.name} slot={0} element={fallbackElement(p.id)} uri={p.avatarUrl} />
               <View style={styles.col}>
                 <Text style={styles.name} numberOfLines={1}>{p.name}</Text>
                 {/* ★못 보는 이유를 적는다 — 빈 줄이면 우리 잘못인지 상대 설정인지 모른다 */}

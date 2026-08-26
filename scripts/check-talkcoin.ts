@@ -88,19 +88,27 @@ console.log('\n=== ③ 단가를 서버가 정하는가 (클라가 보내면 0�
   //   «참여한 상담가 각자의 단가를 합산» 한다. 배수를 코드에 박지 않는 이유는
   //   조절을 관리자 콘솔(`coin_cost`)에 남겨 두기 위해서다.
   {
-    // 합산이 실제로 일어나는가 — 이름이 아니라 **더하는 식**을 본다
-    const sums = /coinCost\s*\+=\s*Number\(/.test(edge);
-    if (sums) ok('다인방 — 참여자 단가를 합산한다');
+    // ⚠️★2026-08-27 규칙이 바뀌었다 — «참여자 합산» → «답하는 사람 × 배수».
+    //   실측(같은 모델 기준): 다인방은 인원수에 비례하지 않고 **거의 고정 할증**(약 1.9배)이다.
+    //   화자가 바뀌면 프롬프트 앞부분이 달라져 **캐시가 안 맞기** 때문이고, 한 턴에 답하는 사람은 한 명이다.
+    //   ⇒ 검사도 «더하는가» 가 아니라 **«다인방이면 값이 커지는가»** 를 본다(방식이 아니라 결과).
+    const raises = /coinCost\s*=\s*Math\.ceil\(coinCost\s*\*/.test(edge);
+    if (raises) ok('다인방 — 답하는 사람 단가에 **할증**을 곱한다');
     else bad('★다인방인데 1:1 단가로 뺀다 — Boss 지시(*"다인방은 당연히 운 소모가 더 커야해"*)와 어긋난다');
 
+    // ★배수를 **코드에 박지 않는다** — 표본이 작아 DB 에서 고칠 수 있어야 한다
+    const tunable = /from\('app_flags'\)[\s\S]{0,120}?talk_group_mult/.test(edge);
+    if (tunable) ok('할증 배수가 **DB 값**이다(배포 없이 조절)');
+    else bad('★배수가 코드에 박혀 있다 — 실측 표본이 작아 조절이 필요하다');
+
     // ⚠️**차감보다 먼저** 계산돼야 한다. 뒤에 있으면 다인방인 줄 모르고 1:1 값으로 뺀다.
-    const iCost = edge.search(/coinCost\s*\+=\s*Number\(/);
+    const iCost = edge.search(/coinCost\s*=\s*Math\.ceil\(coinCost\s*\*/);
     const iSpend = edge.search(/rpc\('spend_coins_owner'/);
-    if (sums && iCost > 0 && iSpend > 0 && iCost < iSpend) ok('합산이 **차감보다 먼저** 일어난다');
-    else if (sums) bad('★합산이 차감 뒤에 있다 — 다인방인 줄 모르고 1:1 값으로 뺀다');
+    if (raises && iCost > 0 && iSpend > 0 && iCost < iSpend) ok('할증이 **차감보다 먼저** 일어난다');
+    else if (raises) bad('★할증이 차감 뒤에 있다 — 다인방인 줄 모르고 1:1 값으로 뺀다');
 
     // 남의 방 값을 읽어 과금하지 않는가(소유자 확인)
-    if (!sums || /owner_id\s*===\s*uid/.test(edge)) ok('방 소유자를 확인하고 읽는다');
+    if (!raises || /owner_id\s*===\s*uid/.test(edge)) ok('방 소유자를 확인하고 읽는다');
     else bad('★남의 세션에서 참여자를 읽는다 — 소유자 확인이 없다');
   }
 

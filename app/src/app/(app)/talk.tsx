@@ -18,7 +18,7 @@
 //   "안 되네요" 하나로 묶으면 사용자는 자기 잘못인지 우리 잘못인지 모른다.
 // ═══════════════════════════════════════════════════════════════════════════
 import { useEffect, useState, useCallback, useMemo, useRef, type ReactNode } from 'react';
-import { View, Text, StyleSheet, TextInput, Keyboard, Platform, useWindowDimensions } from 'react-native';
+import { View, Text, StyleSheet, TextInput, Keyboard, Platform, Pressable, useWindowDimensions } from 'react-native';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -103,10 +103,33 @@ function DeleteBar({ onOk, onCancel, t }: { onOk: () => void; onCancel: () => vo
 function LeaveBar({ name, onOk, onCancel, t }: {
   name: string; onOk: () => void; onCancel: () => void; t: (k: string, d?: string) => string;
 }) {
+  // ★★웹은 **가운데**에 띄운다(Boss 2026-08-27 *"방 나가는건 가운데 떠야할꺼 같아 웹기준"*).
+  //   폰은 아래에 붙인다 — 손가락이 닿는 자리가 아래고, 웹은 마우스라 시선이 가는 가운데가 맞다.
+  //   ⚠️`delBar` 를 그대로 쓰면 안 된다: 그건 **대화창 안**의 한 줄이라 흐름에 얹히는 스타일이다.
+  //     루트에 띄우면 자기 자리를 스스로 잡아야 한다(처음엔 오른쪽 빈 칸에 떠 있었다 — 실측으로 잡음).
+  const web = Platform.OS === 'web';
+  if (web) {
+    return (
+      <View style={styles.leaveScrim}>
+        {/* 바깥을 누르면 취소 — 되돌릴 수 없는 일이라 «실수로 확인» 보다 «실수로 취소» 가 낫다 */}
+        <Pressable style={StyleSheet.absoluteFill} onPress={onCancel} />
+        <View style={styles.leaveCard}>
+          <Text style={styles.leaveTitle} numberOfLines={3}>
+            {t('chats.leaveAsk', '「{{name}}」 방을 나갈까요? 대화 내용도 함께 사라져요.').replace('{{name}}', name)}
+          </Text>
+          <View style={styles.leaveBtns}>
+            <PressableScale style={styles.delNo} onPress={onCancel}>
+              <Text style={styles.delNoTx}>{t('common.cancel', '취소')}</Text>
+            </PressableScale>
+            <PressableScale style={styles.delYes} onPress={onOk}>
+              <Text style={styles.delYesTx}>{t('chats.leave', '나가기')}</Text>
+            </PressableScale>
+          </View>
+        </View>
+      </View>
+    );
+  }
   return (
-    // ⚠️★`delBar` 를 그대로 쓰지 않는다 — 그건 **대화창 안**의 한 줄이라 흐름에 얹히는 스타일이다.
-    //   이건 화면 루트에 떠 있으므로 **자기 자리를 스스로 잡아야** 한다.
-    //   (처음에 그대로 썼더니 오른쪽 빈 칸 한가운데에 떠 있었다 — 실측으로 잡았다.)
     <View style={[styles.delBar, styles.leaveBar]}>
       <Text style={styles.delTx} numberOfLines={2}>
         {t('chats.leaveAsk', '「{{name}}」 방을 나갈까요? 대화 내용도 함께 사라져요.').replace('{{name}}', name)}
@@ -1343,7 +1366,20 @@ const styles = StyleSheet.create({
   headIcon: { paddingHorizontal: space(1) },   // ★그림은 `kit/Icon` 이 그린다(크기는 거기서)
   // 삭제 확인 — 눌린 자리 바로 아래
   delBar: { flexDirection: 'row', alignItems: 'center', gap: space(2), paddingHorizontal: space(4), paddingVertical: space(3), backgroundColor: colors.sunk, borderBottomWidth: 1, borderBottomColor: colors.line },
-  // 나가기 확인 — 화면 **아래에 붙는다**(눌린 목록을 가리지 않으면서 늘 같은 자리)
+  // ★웹 — 가운데. 어둠막 + 카드(Boss 2026-08-27)
+  leaveScrim: {
+    ...StyleSheet.absoluteFillObject, zIndex: 80,
+    backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center',
+  },
+  leaveCard: {
+    maxWidth: 420, width: '86%', backgroundColor: colors.card,
+    borderRadius: radius.lg, borderWidth: 1, borderColor: colors.line,
+    paddingHorizontal: space(6), paddingVertical: space(5), gap: space(4),
+  },
+  leaveTitle: { ...font.body, color: colors.ink, lineHeight: 22 },
+  // ★버튼은 **오른쪽**에 모은다 — «취소 · 나가기» 순서(파괴적인 쪽이 마지막)
+  leaveBtns: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', gap: space(2) },
+  // 폰 — 화면 **아래에 붙는다**(손가락이 닿는 자리)
   leaveBar: {
     position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 70,
     borderBottomWidth: 0, borderTopWidth: 1, borderTopColor: colors.line,

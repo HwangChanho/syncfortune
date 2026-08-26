@@ -27,13 +27,13 @@ import { useAuth } from '../../lib/useAuth';
 import { consultantsSnapshot, listConsultants, toProfileTarget } from '../../lib/talk/consultants';
 import { colors, space, radius, font } from '../../lib/theme';
 import { elementColor, elementText } from '../../lib/engine/ohaeng';
+import { fallbackElement } from '../../lib/ui/avatarColor';   // ★사진 없을 때 색 — **사람에게** 붙는다(단일 원본)
 import { Icon } from '../kit/Icon';   // 상단 아이콘 단일 원본(Boss 2026-08-24)
 import { Swipeable } from 'react-native-gesture-handler';   // 앱 = 왼쪽 스와이프(친구목록과 같은 틀)
 import { pinRoom } from '../../lib/talk/roomActions';       // 상단고정 — 나가기는 호출부가 확인 후 부른다
 import { roomTitle, memberCount } from '../../lib/talk/groupTalk';   // ★대화방 머리와 **같은 함수**(두 곳이 갈리면 안 된다)
 import { NotifyBell } from './NotifyBell';   // 알림 벨+배지(단일 원본 — 친구목록과 같은 것)
 
-const EL = ['木', '火', '土', '金', '水'] as const;
 
 /** 목록 한 줄 — 세션 + 상담사 이름. */
 type Row = {
@@ -221,6 +221,19 @@ export function ChatList({ onOpen, selectedId, reloadKey = 0, wide, onSettings, 
   }, [load]);
 
   useEffect(() => { void load(); }, [load, reloadKey]);
+
+  // ★★다른 창에서 바뀐 것도 **지금** 반영한다(Boss 2026-08-27
+  //   *"a 브라우저에서 대화방을 나갔는데 b브라우저에서는 안나가져있어 새로고침 하기 전까지"*).
+  //   ⚠️`talk_sessions` 를 통째로 구독한다 — RLS 가 «내가 볼 수 있는 방» 만 보내 준다(0056).
+  //   ⚠️이벤트마다 목록을 다시 읽는다(부분 갱신 안 함) — 정렬·미리보기·인원이 한 번에 맞아야 하고,
+  //     방 목록은 크지 않아 다시 읽는 비용이 «틀린 상태로 보이는 비용» 보다 싸다.
+  useEffect(() => {
+    if (!session) return;
+    const ch = supabase.channel('sessions')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'talk_sessions' }, () => { void load(); })
+      .subscribe();
+    return () => { void supabase.removeChannel(ch); };
+  }, [session, load]);
   // 대화하고 돌아오면 갱신 — 방금 나눈 이야기가 목록에 없으면 사라진 것처럼 보인다
   useFocusEffect(useCallback(() => { void load(); }, [load]));
 
@@ -318,7 +331,10 @@ export function ChatList({ onOpen, selectedId, reloadKey = 0, wide, onSettings, 
           )}
         </View>
       ) : visible.map((r, i) => {
-        const el = EL[(i + 1) % EL.length];
+        // ⚠️★색을 **목록 위치로 정하지 않는다**(Boss 2026-08-27 «친구목록과 대화리스트 이미지가 다르다»).
+        //   정렬이 다르면 같은 사람이 목록마다 다른 색이 되고, 사진 없는 사람은 그 원이 곧 얼굴이라
+        //   **다른 사람처럼 보인다.** ⇒ 그 사람의 id 로 고정한다.
+        const el = fallbackElement(r.isUserRoom ? r.id : r.consultantId);
         const pinned = !!r.pinnedAt;
         /**
          * 밀면 나오는 두 동작 — **상단고정 · 나가기**(Boss 2026-08-27).
@@ -355,6 +371,30 @@ export function ChatList({ onOpen, selectedId, reloadKey = 0, wide, onSettings, 
             {/* ★사진만 따로 — 줄을 누르면 대화, 사진을 누르면 프로필(Boss 2026-08-26) */}
             {/* ⚠️★사람 방은 **상담가 프로필을 열면 안 된다** — 그런 상담가가 없다.
                 (`openPhoto` 는 `consultantsSnapshot()` 에서 찾는데 사람 방은 id 가 null 이다.) */}
+            {/* ★★단체방은 **앞 3명 사진을 겹쳐** 그린다(Boss 2026-08-27 «벤다이어그램처럼»).
+                한 명만 보여 주면 «누구 방인지» 가 안 보이고, 넷을 다 그리면 줄이 무너진다.
+                ⚠️뒤에 오는 얼굴이 위로 올라오게 `zIndex` 를 준다 — 안 주면 겹침이 뒤집혀 어색하다. */}
+            {!r.isUserRoom && r.guestIds.length ? (
+              <View style={styles.stack}>
+                {[r.consultantId, ...r.guestIds].filter(Boolean).slice(0, 3).map((cid, k) => {
+                  const uri = avatarOf(cid as string);
+                  const e = fallbackElement(cid);
+                  return (
+                    <View key={String(cid)} style={[styles.stackItem, { left: k * 15, zIndex: 3 - k }]}>
+                      {uri
+                        ? <ExpoImage source={{ uri }} style={styles.avSm} contentFit="cover" transition={140} />
+                        : (
+                          <View style={[styles.avSm, { backgroundColor: elementColor[e], alignItems: 'center', justifyContent: 'center' }]}>
+                            <Text style={{ color: elementText[e], fontWeight: '900', fontSize: 13 }}>
+                              {String(cid).slice(0, 1)}
+                            </Text>
+                          </View>
+                        )}
+                    </View>
+                  );
+                })}
+              </View>
+            ) : (
             <PressableScale hitSlop={6} disabled={r.isUserRoom} onPress={() => { if (!r.isUserRoom && r.consultantId) openPhoto(r.consultantId, el); }}>
               {(r.isUserRoom ? r.peerAvatar : avatarOf(r.consultantId))
                 ? <ExpoImage source={{ uri: (r.isUserRoom ? r.peerAvatar : avatarOf(r.consultantId)) as string }} style={styles.av} contentFit="cover" transition={140} />
@@ -364,6 +404,7 @@ export function ChatList({ onOpen, selectedId, reloadKey = 0, wide, onSettings, 
                   </View>
                 )}
             </PressableScale>
+            )}
             <View style={styles.col}>
               <Text style={styles.name} numberOfLines={1}>{r.name}</Text>
               {/* ★인원수 — 대화방 머리와 **같은 함수**(`memberCount`)로 센다. 나를 포함한다. */}
@@ -418,6 +459,10 @@ const styles = StyleSheet.create({
   swipeTx: { ...font.caption, fontSize: 11, color: colors.inkSoft },
   swipeTxOut: { color: colors.inkSoft },
   pinDot: { fontSize: 11, marginBottom: 2 },
+  // 단체방 겹친 얼굴 — 48 자리에 34짜리 셋을 15씩 밀어 넣는다(34 + 15*2 = 64 → 48 안에서 살짝 넘침 없이)
+  stack: { width: 48, height: 48, justifyContent: 'center' },
+  stackItem: { position: 'absolute' },
+  avSm: { width: 30, height: 30, borderRadius: 10, borderWidth: 2, borderColor: colors.bg },
   // 인원수 — 카톡처럼 이름 **바로 옆**의 작은 숫자(배지가 아니다: 배지는 안읽은 수의 자리다)
   num: { ...font.caption, fontSize: 11.5, color: colors.inkFaint, marginLeft: 4 },
   body: { paddingHorizontal: space(4), paddingTop: space(4), paddingBottom: space(20) },

@@ -24,6 +24,7 @@ import { Icon } from '../kit/Icon';
 import { TalkThread, type TalkItem } from './TalkThread';
 import {
   loadUserMessages, sendUserMessage, subscribeUserRoom, roomPeople,
+  markRoomRead, subscribeRoomRead, unreadBy,
   type UserMsg, type RoomPerson,
 } from '../../lib/talk/userRoom';
 import { supabase } from '../../lib/supabase';
@@ -59,6 +60,15 @@ export function UserRoomView({ sessionId, myId, onBack, onInvite, onLeave }: {
   const [people, setPeople] = useState<RoomPerson[]>([]);
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
+  /**
+   * 입력칸 높이 — Boss 2026-08-27
+   *   *"텍스트필드가 두줄로 잡히는데 한줄로 · 길어지면 올라오게 · 5줄 이상부턴 스크롤"*
+   *
+   * ⚠️`multiline` 만 주면 웹에서 `<textarea rows=2>` 가 되어 **처음부터 두 줄**이다.
+   *   ⇒ 높이를 **내용에 맞춰 우리가 정한다**(`onContentSizeChange`).
+   * ★상한(5줄)에 닿으면 더 안 커지고 안에서 스크롤된다 — 입력칸이 화면을 먹지 않게.
+   */
+  const [inputH, setInputH] = useState(0);
   const inputRef = useRef<TextInput>(null);
 
   // 방이 바뀌면 **처음부터** 다시 읽는다(앞 방의 말이 남으면 안 된다)
@@ -72,9 +82,18 @@ export function UserRoomView({ sessionId, myId, onBack, onInvite, onLeave }: {
       if (!alive) return;
       // ⚠️내가 보낸 것은 이미 화면에 있다 — id 로 중복을 막는다(낙관적 추가 + 실시간 = 두 번)
       setMsgs((prev) => (prev.some((x) => x.id === m.id) ? prev : [...prev, m]));
+      // ★남의 말이 오면 **내가 읽은 것**으로 표시한다(이 방을 보고 있으니까)
+      if (m.senderId !== myId) void markRoomRead(sessionId);
     });
-    return () => { alive = false; off(); };
-  }, [sessionId]);
+    // ★★상대가 읽으면 **내 「1」이 사라져야** 한다 — 이 구독이 없으면 다시 열어야 바뀐다
+    const offRead = subscribeRoomRead(sessionId, () => {
+      if (!alive) return;
+      void roomPeople(sessionId).then((p) => { if (alive) setPeople(p); });
+    });
+    // 방을 열면 읽음 처리 — 서버가 `now()` 로 찍는다(앱 시각을 보내면 미래로 남의 1을 지운다)
+    void markRoomRead(sessionId);
+    return () => { alive = false; off(); offRead(); };
+  }, [sessionId, myId]);
 
   const nameOf = useMemo(() => {
     const map = new Map(people.map((p) => [p.id, p]));
@@ -90,10 +109,12 @@ export function UserRoomView({ sessionId, myId, onBack, onInvite, onLeave }: {
       id: `m${m.id}`,
       role: mine ? ('user' as const) : ('assistant' as const),
       body: m.body,
+      // ★내 말에만 「1」 — 아직 안 읽은 사람 수(나 제외). 0 이면 컴포넌트가 안 그린다
+      ...(mine ? { unread: unreadBy(people, myId, m.sentAt) } : {}),
       // 남의 말에만 얼굴을 붙인다(내 말 옆에 내 얼굴은 카톡도 안 그린다)
       ...(mine ? {} : { who: { name: p?.name ?? '', avatar: avatarUrl(p?.avatarPath ?? null), id: m.senderId } }),
     };
-  }), [msgs, myId, nameOf]);
+  }), [msgs, myId, nameOf, people]);
 
   const others = people.filter((p) => p.id !== myId);
   const title = others.length
@@ -136,12 +157,17 @@ export function UserRoomView({ sessionId, myId, onBack, onInvite, onLeave }: {
         <View style={styles.bar}>
           <TextInput
             ref={inputRef}
-            style={[styles.input, { fontSize: fs(15) }]}
+            style={[styles.input, { fontSize: fs(15), height: Math.min(Math.max(inputH || LINE, LINE), LINE * 5) + PAD }]}
             value={draft}
             onChangeText={setDraft}
             placeholder={t('room.ph', '메시지를 입력하세요')}
             placeholderTextColor={colors.inkFaint}
             multiline
+            // ★웹에서 «처음부터 두 줄» 을 막는다 — RN Web 은 이 값을 textarea rows 로 내려보낸다
+            numberOfLines={1}
+            onContentSizeChange={(e) => setInputH(e.nativeEvent.contentSize.height)}
+            // 5줄을 넘으면 **안에서** 스크롤(밖으로 자라지 않는다)
+            scrollEnabled={(inputH || 0) > LINE * 5}
             onSubmitEditing={send}
             blurOnSubmit={false}
           />
@@ -153,6 +179,10 @@ export function UserRoomView({ sessionId, myId, onBack, onInvite, onLeave }: {
     </View>
   );
 }
+
+/** 한 줄 높이(글자 15 + 줄간격). ★`PAD` 는 위아래 여백 — 둘을 나눠 둬야 «몇 줄» 계산이 정확하다 */
+const LINE = 22;
+const PAD = 18;
 
 const styles = StyleSheet.create({
   wrap: { flex: 1, backgroundColor: colors.bg },
@@ -169,9 +199,12 @@ const styles = StyleSheet.create({
     borderTopWidth: 1, borderTopColor: colors.line, backgroundColor: colors.card,
   },
   input: {
-    flex: 1, minHeight: 40, maxHeight: 120,
+    // ⚠️높이는 **위에서 계산해 넣는다**(minHeight/maxHeight 로는 «한 줄로 시작» 을 못 만든다).
+    flex: 1,
     backgroundColor: colors.sunk, borderRadius: radius.md,
-    paddingHorizontal: space(3.5), paddingVertical: space(2.5), color: colors.ink,
+    paddingHorizontal: space(3.5), paddingVertical: space(2), color: colors.ink,
+    // 웹 textarea 의 기본 리사이즈 손잡이를 없앤다(우리가 높이를 정하므로)
+    ...(Platform.OS === 'web' ? ({ resize: 'none', outlineStyle: 'none' } as object) : null),
   },
   send: { backgroundColor: colors.ju, borderRadius: radius.pill, paddingHorizontal: space(4), paddingVertical: space(2.5) },
   sendOff: { opacity: 0.4 },

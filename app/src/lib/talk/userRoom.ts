@@ -134,14 +134,57 @@ export function subscribeUserRoom(sessionId: string, onMsg: (m: UserMsg) => void
 }
 
 /** 이 방의 사람들(나 포함). 이름·사진은 `profiles` 에서 온다. */
-export type RoomPerson = { id: string; name: string; avatarPath: string | null };
+export type RoomPerson = {
+  id: string; name: string; avatarPath: string | null;
+  /** ★이 사람이 **어디까지 읽었나**. 내 말의 「1」을 세는 유일한 근거 */
+  lastReadAt: string;
+};
+
+/**
+ * 내 읽음 시각을 지금으로 올린다.
+ * ★서버가 `now()` 로 찍는다 — 앱이 값을 보내면 **미래 시각**으로 남의 「1」을 지울 수 있다.
+ *   (같은 이유로 상담가 방의 `markRead` 도 서버 시각을 쓴다.)
+ */
+export async function markRoomRead(sessionId: string): Promise<void> {
+  const r = await withTimeout(supabase.rpc('mark_room_read', { p_session: sessionId }), 8000);
+  if (r?.error) console.warn('[userRoom] 읽음 표시 실패', r.error.message);
+}
+
+/**
+ * 내가 보낸 말의 **안 읽은 사람 수**.
+ *
+ * Boss 2026-08-27: *"1 로 하고 1이 사라지면 읽은거야 · 여러명 방에선 인원수에 맞는 숫자(본인 제외)"*
+ * @param people  방 사람들(나 포함 — 안에서 뺀다)
+ * @param myId    나
+ * @param sentAt  그 말의 시각
+ * @returns 아직 안 읽은 사람 수. 0 이면 표시하지 않는다
+ */
+export function unreadBy(people: RoomPerson[], myId: string, sentAt: string): number {
+  const t = Date.parse(sentAt);
+  if (!Number.isFinite(t)) return 0;
+  return people.filter((p) => p.id !== myId && Date.parse(p.lastReadAt) < t).length;
+}
+
+/**
+ * 방 사람들의 **읽음 시각이 바뀌면** 알려 준다.
+ * ⚠️이게 없으면 상대가 읽어도 내 화면의 「1」이 **안 사라진다** — 다시 열어야 바뀐다.
+ */
+export function subscribeRoomRead(sessionId: string, onChange: () => void): () => void {
+  const ch = supabase
+    .channel(`roomread:${sessionId}`)
+    .on('postgres_changes',
+      { event: 'UPDATE', schema: 'public', table: 'talk_members', filter: `session_id=eq.${sessionId}` },
+      () => onChange())
+    .subscribe();
+  return () => { void supabase.removeChannel(ch); };
+}
 
 /**
  * 방에 누가 있는지.
  * ⚠️`profiles` 를 **한 번에** 읽는다(사람마다 물으면 인원수만큼 왕복이 생긴다).
  */
 export async function roomPeople(sessionId: string): Promise<RoomPerson[]> {
-  const m = await withTimeout(supabase.from('talk_members').select('user_id').eq('session_id', sessionId), 8000);
+  const m = await withTimeout(supabase.from('talk_members').select('user_id, last_read_at').eq('session_id', sessionId), 8000);
   if (!m || m.error || !Array.isArray(m.data) || !m.data.length) return [];
   const ids = (m.data as any[]).map((x) => String(x.user_id));
   const p = await withTimeout(
@@ -149,10 +192,12 @@ export async function roomPeople(sessionId: string): Promise<RoomPerson[]> {
   const rows = (p && !p.error && Array.isArray(p.data) ? p.data : []) as any[];
   return ids.map((id) => {
     const r = rows.find((x) => String(x.id) === id);
+    const mem = (m.data as any[]).find((x) => String(x.user_id) === id);
     return {
       id,
       name: String(r?.nickname || r?.display_name || '이름 없음'),
       avatarPath: r?.avatar_path ?? null,
+      lastReadAt: String(mem?.last_read_at ?? '1970-01-01T00:00:00Z'),
     };
   });
 }
