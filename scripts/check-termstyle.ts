@@ -51,6 +51,20 @@ export function judge(entries: [string, string][]): Fail[] {
   if (safety < 1) out.push({ rule: 'T4', msg: '★건강·오행 직역 금지가 사라졌다 — 이건 용어 규칙이 아니라 **안전 규칙**이다(CLAUDE.md §4)' });
   // T5. 내부 표지 금지가 살아 있는가
   if (internal < 1) out.push({ rule: 'T5', msg: '★내부 표지(R번호·엔진·골든) 금지가 사라졌다 — 그건 용어가 아니라 우리 내부 사정이다' });
+
+  // T6. ★★JSON 출력 지시가 **온전한가** — 이게 깨지면 풀이 생성이 통째로 실패한다
+  //   프롬프트는 「[필수 점검 …] 정확히 아래 JSON 객체 하나만 출력하라:」 모양이다.
+  //   대괄호가 안 닫히거나 뒤 문장이 떨어져 나가면 모델이 JSON 을 안 낸다 —
+  //   그런데 **화면에는 «생성 실패» 로만 보여** 원인이 안 보인다.
+  //   ⚠️2026-08-26 용어 규칙을 상수로 바꾸며 이 블록 8곳을 통째로 치환했다. 그래서 여기서 지킨다.
+  let jsonOk = 0, jsonBad = 0;
+  for (const [k, v] of entries) {
+    const open = (v.match(/\[필수 점검/g) ?? []).length;
+    const paired = [...v.matchAll(/\[필수 점검[\s\S]{0,600}?\]\s*정확히 아래 JSON/g)].length;
+    jsonOk += paired;
+    if (open !== paired) { jsonBad++; out.push({ rule: 'T6', msg: `${k} — 점검 블록 ${open}개 중 ${paired}개만 «정확히 아래 JSON» 으로 이어진다. 프롬프트가 어그러졌다(생성이 통째로 실패한다)` }); }
+  }
+  if (jsonOk < 5 && !jsonBad) out.push({ rule: 'T6', msg: `JSON 출력 지시가 ${jsonOk}곳뿐이다 — 프롬프트 모양이 바뀌었으면 이 하네스를 고칠 것` });
   return out;
 }
 
@@ -67,6 +81,8 @@ if (process.argv.includes('--selftest')) {
     t('새 규칙을 빼면 **잡는다**', rules(judge([['X', '아무 내용']])).has('T3')),
     t('건강 안전 규칙을 지우면 **잡는다**',
       rules(judge(good.map(([k, v]) => [k, v.replace(/[^\n]*오행 물질명[^\n]*/g, '')] as [string, string]))).has('T4')),
+    t('JSON 출력 지시를 깨뜨리면 **잡는다**',
+      rules(judge(good.map(([k, v]) => [k, v.replace(/\]\s*정확히 아래 JSON/g, '] 어쩌고')] as [string, string]))).has('T6')),
     t('내부 표지 금지를 지우면 **잡는다**',
       rules(judge(good.map(([k, v]) => [k, v.replace(/[^\n]*(내부 표지|R번호|명반|iztro)[^\n]*/g, '')] as [string, string]))).has('T5')),
   ];
