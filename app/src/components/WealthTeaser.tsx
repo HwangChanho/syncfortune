@@ -13,23 +13,19 @@
 //   ※ 일상어 매핑은 표현 계층 → daniel 카피 조정 슬롯.
 // ─────────────────────────────────────────────────────────────────────────
 import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { View, Text, StyleSheet } from 'react-native';
 import type { SajuChart } from '@spec/chart';
 import { colors, radius, space, font } from '../lib/theme';
 import { computeWealthSignals, type WealthTilt } from '../lib/content/wealthGauge';
 
 // 재물 성향(tilt) → 화면 라벨/설명(일상어·전부 '강점'으로 전향 프레이밍 §4·daniel 검수 슬롯).
+// ⚠️★값이 아니라 **문구 키**다(모듈 상수라 `t()` 를 여기서 못 부른다 — 그릴 때 푼다).
 const TILT_LABEL: Record<WealthTilt, string> = {
-  stable: '차곡차곡 모으고 지키는 결',
-  expansive: '크게 벌이고 굴리는 결',
-  mixed: '모으는 결과 굴리는 결을 겸비',
-  weak: '그릇부터 키우면 재물이 따라오는 결',
+  stable: 'wt.tiltStable', expansive: 'wt.tiltExpansive', mixed: 'wt.tiltMixed', weak: 'wt.tiltWeak',
 };
 const TILT_SUB: Record<WealthTilt, string> = {
-  stable: '한 걸음씩 쌓아 안정적으로 불리는 힘이 있어요.',
-  expansive: '기회를 보면 과감히 움직여 판을 키우는 힘이 있어요.',
-  mixed: '지킬 땐 지키고 벌일 땐 벌이는 균형 감각이 있어요.',
-  weak: '지금은 버는 것보다 실력·바탕을 쌓을수록 재물이 붙는 때예요.',
+  stable: 'wt.subStable', expansive: 'wt.subExpansive', mixed: 'wt.subMixed', weak: 'wt.subWeak',
 };
 
 /**
@@ -37,34 +33,35 @@ const TILT_SUB: Record<WealthTilt, string> = {
  * @param saju 대표 명식 사주(원국 + timeUnknown 병합). computeWealthSignals 로 재물 결 방향 산출.
  */
 export function WealthTeaser({ saju }: { saju: SajuChart & { timeUnknown?: boolean } }) {
+  const { t } = useTranslation();
   const d = useMemo(() => computeWealthSignals(saju), [saju]);
 
   if (!saju?.pillars) return null; // 방어 — 명식 없으면 티저 생략
 
   return (
     <View style={styles.wrap}>
-      <Text style={styles.lead}>타고난 재물 밑그림을 무료로 짚어 봤어요</Text>
-      <Text style={styles.leadSub}>재물 그릇 크기·언제 크게 들어오는지·지키는 법은 아래에서 열 수 있어요.</Text>
+      <Text style={styles.lead}>{t('wt.lead', '타고난 재물 밑그림을 무료로 짚어 봤어요')}</Text>
+      <Text style={styles.leadSub}>{t('wt.leadSub', '재물 그릇 크기·언제 크게 들어오는지·지키는 법은 아래에서 열 수 있어요.')}</Text>
 
       <View style={styles.card}>
         {/* ① 재물 성향(방향 tilt) */}
         <View style={styles.itemRow}>
-          <Text style={styles.itemCap}>재물 성향</Text>
+          <Text style={styles.itemCap}>{t('wt.capTilt', '재물 성향')}</Text>
           <View style={styles.itemBody}>
-            <Text style={styles.itemMain}>{TILT_LABEL[d.tilt]}</Text>
-            <Text style={styles.itemSub}>{TILT_SUB[d.tilt]}</Text>
+            <Text style={styles.itemMain}>{t(TILT_LABEL[d.tilt])}</Text>
+            <Text style={styles.itemSub}>{t(TILT_SUB[d.tilt])}</Text>
           </View>
         </View>
 
         {/* ② 버는 힘(식상생재 통로 유무) */}
         <View style={[styles.itemRow, styles.itemRowBorder]}>
-          <Text style={styles.itemCap}>버는 힘</Text>
+          <Text style={styles.itemCap}>{t('wt.capMake', '버는 힘')}</Text>
           <View style={styles.itemBody}>
-            <Text style={styles.itemMain}>{d.makeForce ? '직접 만들어 파는 힘' : '자원을 굴리고 운용하는 힘'}</Text>
+            <Text style={styles.itemMain}>{d.makeForce ? t('wt.makeSelf', '직접 만들어 파는 힘') : t('wt.makeRoll', '자원을 굴리고 운용하는 힘')}</Text>
             <Text style={styles.itemSub}>
               {d.makeForce
-                ? '아이디어·결과물을 만들어 그걸로 버는 통로가 열려 있어요.'
-                : '이미 있는 자원·기회를 굴리고 운용해 버는 결이에요.'}
+                ? t('wt.makeSelfSub', '아이디어·결과물을 만들어 그걸로 버는 통로가 열려 있어요.')
+                : t('wt.makeRollSub', '이미 있는 자원·기회를 굴리고 운용해 버는 결이에요.')}
             </Text>
           </View>
         </View>
@@ -72,7 +69,7 @@ export function WealthTeaser({ saju }: { saju: SajuChart & { timeUnknown?: boole
 
       {/* ③ funnel — 무료/유료 경계 명시(전향적) */}
       <Text style={styles.funnel}>
-        지금은 <Text style={styles.funnelFree}>재물 밑그림</Text> 미리보기예요 · 전체 풀이에선 <Text style={styles.funnelPaid}>재물 그릇 크기</Text>, 언제 크게 들어오는지, 새지 않게 지키는 법까지 짚어 드려요.
+        <Text>{t('wt.funA', '지금은 ')}</Text><Text style={styles.funnelFree}>{t('wt.funB', '재물 밑그림')}</Text><Text>{t('wt.funC', ' 미리보기예요 · 전체 풀이에선 ')}</Text><Text style={styles.funnelPaid}>{t('wt.funD', '재물 그릇 크기')}</Text><Text>{t('wt.funE', ', 언제 크게 들어오는지, 새지 않게 지키는 법까지 짚어 드려요.')}</Text>
       </Text>
     </View>
   );

@@ -16,6 +16,7 @@
 //   ★§4 전향적: 낮은 구간도 '안으로 다지는 시기'로 긍정 프레이밍하고, 구체 처방은 유료로 위임(단정 금지).
 // ─────────────────────────────────────────────────────────────────────────
 import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { View, Text, StyleSheet } from 'react-native';
 import type { SajuChart } from '@spec/chart';
 import { lifeGraph } from '../lib/content/lifeGraph';    // 결정론 대운별 용신 부합 점수 — 재사용만(재계산 X)
@@ -25,16 +26,17 @@ import { colors, radius, space, font } from '../lib/theme';
 
 // 정규화 점수(0~100) → 흐름 라벨(일상어). LifeGraphTeaser 의 상대높이 라벨과 같은 결(상승/고름/다지기).
 function flowLabel(score: number): string {
-  if (score >= 66) return '기운이 차오르는 흐름';
-  if (score >= 34) return '고르게 무르익는 흐름';
-  return '안으로 다지는 흐름';
+  // ★순수 함수라 `t()` 를 못 부른다 — **문구 키**를 돌려주고 화면이 푼다.
+  if (score >= 66) return 'f10.flowUp';
+  if (score >= 34) return 'f10.flowEven';
+  return 'f10.flowIn';
 }
 
 // 점수 → 게이지 톤·경향 라벨(§4 경향·단정 금지). 경계(66/34)는 재회/애정 게이지와 동일 결.
 function toneOf(score: number): { tone: GaugeTone; label: string } {
-  if (score >= 66) return { tone: 'open', label: '상승세' };
-  if (score >= 34) return { tone: 'warming', label: '무르익음' };
-  return { tone: 'quiet', label: '다지는 시기' };
+  if (score >= 66) return { tone: 'open', label: 'ny.toneOpen' };
+  if (score >= 34) return { tone: 'warming', label: 'f10.toneRipe' };
+  return { tone: 'quiet', label: 'f10.toneBuild' };
 }
 
 /**
@@ -43,6 +45,7 @@ function toneOf(score: number): { tone: GaugeTone; label: string } {
  * @param saju 대표 명식의 사주(원국 + 대운 + structure.usefulGod). computeChart 산출값(+timeUnknown 병합).
  */
 export function Future10Teaser({ saju }: { saju: SajuChart }) {
+  const { t } = useTranslation();
   // 모든 결정론 값은 saju 변경 시에만 1회 산출(성능·단일 소스). 게이지 카운트업 리렌더와 분리.
   const d = useMemo(() => {
     // ── 대운별 용신 부합 점수(재사용) — lifeGraph 가 이미 온디바이스로 산출 ──
@@ -62,61 +65,61 @@ export function Future10Teaser({ saju }: { saju: SajuChart }) {
     // 지금 vs 10년 뒤 '기운 방향'(전향적) — 부합 점수 변화로 오름/유지/다지기. 낮아짐도 준비기로 긍정 프레이밍(§4).
     const delta = fut.score - cur.score;
     const dirLine =
-      delta >= 12 ? '지금보다 나에게 힘이 되는 기운이 더 크게 들어오는 방향이에요.'
-      : delta <= -12 ? '지금의 무르익은 기운을 안으로 다지며 실속을 챙기는 방향이에요.'
-      : '지금의 좋은 결이 10년 뒤에도 고르게 이어지는 흐름이에요.';
+      delta >= 12 ? t('f10.dirUp', '지금보다 나에게 힘이 되는 기운이 더 크게 들어오는 방향이에요.')
+      : delta <= -12 ? t('f10.dirIn', '지금의 무르익은 기운을 안으로 다지며 실속을 챙기는 방향이에요.')
+      : t('f10.dirEven', '지금의 좋은 결이 10년 뒤에도 고르게 이어지는 흐름이에요.');
 
     // 게이지 아래 한 줄(전향적·처방 동반). 톤별로 '지금 무엇을 해두면 좋은지'를 부드럽게 — 구체는 유료.
     const caption =
-      gauge.tone === 'open' ? '10년 뒤엔 나에게 힘이 되는 기운이 크게 들어오는 흐름이에요. 지금부터 방향을 잡아두면 그때 활짝 펴기 좋아요.'
-      : gauge.tone === 'warming' ? '10년 뒤엔 흐름이 서서히 무르익어요. 지금 씨앗을 심어두면 그때 결실로 이어지기 좋아요.'
-      : '10년 뒤엔 안으로 힘을 다지는 시기예요. 무리하기보다 기초를 탄탄히 해두면 그다음이 든든해져요.';
+      gauge.tone === 'open' ? t('f10.capOpen', '10년 뒤엔 나에게 힘이 되는 기운이 크게 들어오는 흐름이에요. 지금부터 방향을 잡아두면 그때 활짝 펴기 좋아요.')
+      : gauge.tone === 'warming' ? t('f10.capRipe', '10년 뒤엔 흐름이 서서히 무르익어요. 지금 씨앗을 심어두면 그때 결실로 이어지기 좋아요.')
+      : t('f10.capBuild', '10년 뒤엔 안으로 힘을 다지는 시기예요. 무리하기보다 기초를 탄탄히 해두면 그다음이 든든해져요.');
 
     return {
       cur, fut, gauge, caption, dirLine,
       curLabel: flowLabel(cur.score),
       futLabel: flowLabel(fut.score),
     };
-  }, [saju]);
+  }, [saju, t]);
 
   if (!d) return null;
 
   return (
     <View style={styles.wrap}>
       {/* 리드(일상어) — 무엇을 보여주는지 + 유도 */}
-      <Text style={styles.lead}>10년 뒤 당신이 어떤 흐름에 들어서는지</Text>
-      <Text style={styles.leadSub}>지금과 무엇이 달라지는지, 큰 흐름을 미리 그려 봤어요. 그때의 자세한 이야기는 아래에서 열 수 있어요.</Text>
+      <Text style={styles.lead}>{t('f10.lead', '10년 뒤 당신이 어떤 흐름에 들어서는지')}</Text>
+      <Text style={styles.leadSub}>{t('f10.leadSub', '지금과 무엇이 달라지는지, 큰 흐름을 미리 그려 봤어요. 그때의 자세한 이야기는 아래에서 열 수 있어요.')}</Text>
 
       {/* ① 지금 → 10년 뒤 진행 — 두 시기의 '결'을 화살표로(10년 뒤 쪽 강조) */}
       <View style={styles.card}>
         <View style={styles.progRow}>
           <View style={styles.progCol}>
-            <Text style={styles.progWhen}>지금</Text>
-            <Text style={styles.progAge}>{d.cur.startAge}~{d.cur.endAge}세</Text>
-            <Text style={styles.progLabel}>{d.curLabel}</Text>
+            <Text style={styles.progWhen}>{t('f10.now', '지금')}</Text>
+            <Text style={styles.progAge}>{t('f10.ageRange', '{{a}}~{{b}}세', { a: d.cur.startAge, b: d.cur.endAge })}</Text>
+            <Text style={styles.progLabel}>{t(d.curLabel)}</Text>
           </View>
           <Text style={styles.progArrow}>→</Text>
           <View style={styles.progCol}>
-            <Text style={[styles.progWhen, styles.progWhenFut]}>10년 뒤</Text>
-            <Text style={styles.progAge}>{d.fut.startAge}~{d.fut.endAge}세</Text>
-            <Text style={[styles.progLabel, styles.progLabelFut]}>{d.futLabel}</Text>
+            <Text style={[styles.progWhen, styles.progWhenFut]}>{t('f10.in10', '10년 뒤')}</Text>
+            <Text style={styles.progAge}>{t('f10.ageRange', '{{a}}~{{b}}세', { a: d.fut.startAge, b: d.fut.endAge })}</Text>
+            <Text style={[styles.progLabel, styles.progLabelFut]}>{t(d.futLabel)}</Text>
           </View>
         </View>
       </View>
 
       {/* ② 10년 뒤 부합 게이지(공용 애니 미터·골드 기본) — 그 흐름이 나와 맞는 정도 0~100 */}
-      <PossibilityGauge score={d.fut.score} label={d.gauge.label} tone={d.gauge.tone} title="10년 뒤, 기운이 나와 맞는 정도" caption={d.caption} />
+      <PossibilityGauge score={d.fut.score} label={t(d.gauge.label)} tone={d.gauge.tone} title={t('f10.gaugeTitle', '10년 뒤, 기운이 나와 맞는 정도')} caption={d.caption} />
 
       {/* ③ 방향 하이라이트(전향적) — 지금 대비 10년 뒤 기운 방향 + 준비 넛지 */}
       <View style={styles.card}>
         <Text style={styles.hlLine}>{d.dirLine}</Text>
-        <Text style={styles.hlLineSoft}>큰 방향을 지금 잡아둘수록 10년 뒤가 한결 수월해져요.</Text>
+        <Text style={styles.hlLineSoft}>{t('f10.nudge', '큰 방향을 지금 잡아둘수록 10년 뒤가 한결 수월해져요.')}</Text>
       </View>
 
       {/* ── 무료 vs 유료 가치 명시(퍼널 훅) — 바로 아래 게이트(₩4,900 CTA)로 이어진다 ── */}
       <View style={styles.funnelCard}>
-        <Text style={styles.funnelLine}>무료로는 <Text style={styles.accent}>10년 뒤 큰 흐름과 나와 맞는 정도</Text>를 볼 수 있어요.</Text>
-        <Text style={styles.funnelLine}>깊은 풀이에선 <Text style={styles.accent}>그때 무엇이 구체적으로 달라지는지, 지금부터 무엇을 준비하면 좋은지</Text>까지 짚어 드려요.</Text>
+        <Text style={styles.funnelLine}><Text>{t('rr.freeA', '무료로는 ')}</Text><Text style={styles.accent}>{t('f10.freeB', '10년 뒤 큰 흐름과 나와 맞는 정도')}</Text><Text>{t('ct.freeC', '를 볼 수 있어요.')}</Text></Text>
+        <Text style={styles.funnelLine}><Text>{t('rr.paidA', '깊은 풀이에선 ')}</Text><Text style={styles.accent}>{t('f10.paidB', '그때 무엇이 구체적으로 달라지는지, 지금부터 무엇을 준비하면 좋은지')}</Text><Text>{t('rr.paidC', '까지 짚어 드려요.')}</Text></Text>
       </View>
     </View>
   );

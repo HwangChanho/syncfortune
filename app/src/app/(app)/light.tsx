@@ -17,6 +17,7 @@
 // ⚠️문구 = Claude 초안 → ★daniel 검수 슬롯.
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { View, Text, TextInput, ScrollView, StyleSheet, ImageBackground } from 'react-native';
 import { useRouter } from 'expo-router';
 import { PressableScale } from '../../components/PressableScale';
@@ -40,6 +41,7 @@ type LightResult = {
 };
 
 export default function LightScreen() {
+  const { t } = useTranslation();
   const { fs } = useFontScale();
   const router = useRouter();
   const [birthDate, setBirthDate] = useState('');
@@ -55,7 +57,7 @@ export default function LightScreen() {
    */
   const run = useCallback(() => {
     setErr(null);
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(birthDate)) { setErr('생년월일을 YYYY-MM-DD 로 입력해 주세요.'); return; }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(birthDate)) { setErr(t('lt.errFormat', '생년월일을 YYYY-MM-DD 로 입력해 주세요.')); return; }
     // 시각 미상 = 등록 폼과 같은 규약('0:0' + timeAccuracy 미상). 출생지는 기본 서울(진태양시 경도).
     const input = {
       birthDateTime: `${birthDate} 0:0`, calendar, timeAccuracy: '미상' as const, sex,
@@ -75,9 +77,9 @@ export default function LightScreen() {
         dayStem, monthBranch,
       });
     } catch {
-      setErr('계산에 실패했어요. 날짜를 다시 확인해 주세요.');
+      setErr(t('lt.errCalc', '계산에 실패했어요. 날짜를 다시 확인해 주세요.'));
     }
-  }, [birthDate, calendar, sex]);
+  }, [birthDate, calendar, sex, t]);
 
   /** 정확하게 보기 — 여기서 받은 값을 등록 폼에 그대로 넘겨 **다시 묻지 않는다**(입력 재요구 = 이탈 지점). */
   const toRegister = useCallback(() => {
@@ -88,12 +90,12 @@ export default function LightScreen() {
     <View style={styles.bg}>
       {/* automaticallyAdjustKeyboardInsets = 생년월일 입력이 키보드에 가리지 않게(check:keyboard R1) */}
       <ScrollView style={styles.screen} contentContainerStyle={styles.wrap} automaticallyAdjustKeyboardInsets keyboardShouldPersistTaps="handled">
-        <Text style={[styles.h, { fontSize: fs(26) }]}>가볍게 보기</Text>
-        <Text style={[styles.sub, { fontSize: fs(13) }]}>생년월일만 알려주면 바로 볼 수 있어요. 가입도, 저장도 안 해요.</Text>
+        <Text style={[styles.h, { fontSize: fs(26) }]}>{t('screen.light')}</Text>
+        <Text style={[styles.sub, { fontSize: fs(13) }]}>{t('lt.sub', '생년월일만 알려주면 바로 볼 수 있어요. 가입도, 저장도 안 해요.')}</Text>
 
         {/* 입력 — 2가지만 묻는다(이름·시간·출생지·관계 없음) */}
         <View style={styles.card}>
-          <Text style={[styles.label, { fontSize: fs(12) }]}>생년월일</Text>
+          <Text style={[styles.label, { fontSize: fs(12) }]}>{t('bd.fDate', '생년월일')}</Text>
           <TextInput
             style={[styles.input, { fontSize: fs(16) }]}
             value={birthDate}
@@ -102,12 +104,13 @@ export default function LightScreen() {
             keyboardType="number-pad" maxLength={10}
           />
           <View style={styles.togRow}>
-            <Toggle value={calendar} options={['양', '음']} onChange={(v) => { setCalendar(v as '양' | '음'); setResult(null); }} fs={fs} />
-            <Toggle value={sex} options={['남', '여']} onChange={(v) => { setSex(v as '남' | '여'); setResult(null); }} fs={fs} />
+            {/* ⚠️★`options` 는 **값**(엔진·상태)이고, 보이는 글자는 `labels` 다 — 값을 번역하면 계산이 깨진다 */}
+            <Toggle value={calendar} options={['양', '음']} labels={[t('bd.solar', '양력'), t('bd.lunar', '음력')]} onChange={(v) => { setCalendar(v as '양' | '음'); setResult(null); }} fs={fs} />
+            <Toggle value={sex} options={['남', '여']} labels={[t('bd.male', '남성'), t('bd.female', '여성')]} onChange={(v) => { setSex(v as '남' | '여'); setResult(null); }} fs={fs} />
           </View>
           {err ? <Text style={[styles.err, { fontSize: fs(12.5) }]}>{err}</Text> : null}
           <PressableScale style={styles.cta} onPress={run}>
-            <Text style={[styles.ctaTx, { fontSize: fs(15) }]}>{result ? '다시 보기' : '바로 보기'}</Text>
+            <Text style={[styles.ctaTx, { fontSize: fs(15) }]}>{result ? t('lt.again', '다시 보기') : t('lt.go', '바로 보기')}</Text>
           </PressableScale>
         </View>
 
@@ -115,7 +118,7 @@ export default function LightScreen() {
           <>
             {/* ① 성격유형 120종 — 일간 × 월지(시주 무관·정확) */}
             <View style={styles.resCard}>
-              <Text style={[styles.kicker, { fontSize: fs(11) }]}>나의 성격유형</Text>
+              <Text style={[styles.kicker, { fontSize: fs(11) }]}>{t('lt.persona', '나의 성격유형')}</Text>
               <View style={styles.personaRow}>
                 <PersonaImage dayStem={result.dayStem} monthBranch={result.monthBranch} sex={sex} width={96} height={123} />
                 <View style={{ flex: 1 }}>
@@ -134,14 +137,14 @@ export default function LightScreen() {
                 sharePersona({ dayStem: result.dayStem, monthBranch: result.monthBranch, sex, name: result.persona.name })
                   .catch(() => {});   // 공유 시트를 닫은 것도 여기로 온다 — 실패로 알리지 않는다
               }}>
-                <Text style={[styles.shareTx, { fontSize: fs(14) }]}>친구에게 보내기</Text>
+                <Text style={[styles.shareTx, { fontSize: fs(14) }]}>{t('lt.share', '친구에게 보내기')}</Text>
               </PressableScale>
             </View>
 
             {/* ② 일주론 60갑자 — 일간 + 일지(시주 무관·정확) */}
             {result.ilju ? (
               <View style={styles.resCard}>
-                <Text style={[styles.kicker, { fontSize: fs(11) }]}>나의 일주</Text>
+                <Text style={[styles.kicker, { fontSize: fs(11) }]}>{t('lt.myIlju', '나의 일주')}</Text>
                 {(() => {
                   const img = iljuImage(result.ilju!.key[0], result.ilju!.key[1]);
                   return img ? (
@@ -165,14 +168,14 @@ export default function LightScreen() {
             {/* ③ 전환 — ★이 문구는 마케팅이 아니라 **사실**이다(위 §명리 제약).
                 오늘 기운·궁합·시기는 4주 전부를 보기 때문에 시주 없이는 정확할 수 없다. */}
             <View style={styles.moreCard}>
-              <Text style={[styles.moreH, { fontSize: fs(15.5), lineHeight: 23 }]}>태어난 시간까지 넣으면 더 정확해져요</Text>
+              <Text style={[styles.moreH, { fontSize: fs(15.5), lineHeight: 23 }]}>{t('lt.moreH', '태어난 시간까지 넣으면 더 정확해져요')}</Text>
               <Text style={[styles.moreBody, { fontSize: fs(13.5), lineHeight: 21 }]}>
-                여기까지는 태어난 날만으로 볼 수 있는 부분이에요. 오늘의 기운·궁합·시기 흐름은 태어난 시간이 있어야 제대로 나와요.
+                {t('lt.moreBody', '여기까지는 태어난 날만으로 볼 수 있는 부분이에요. 오늘의 기운·궁합·시기 흐름은 태어난 시간이 있어야 제대로 나와요.')}
               </Text>
               <PressableScale style={styles.moreCta} onPress={toRegister}>
-                <Text style={[styles.moreCtaTx, { fontSize: fs(15) }]}>정확하게 보기 ›</Text>
+                <Text style={[styles.moreCtaTx, { fontSize: fs(15) }]}>{t('lt.moreCta', '정확하게 보기 ›')}</Text>
               </PressableScale>
-              <Text style={[styles.moreNote, { fontSize: fs(11.5) }]}>지금 넣은 생년월일은 그대로 옮겨 담아요 — 다시 안 물어봐요.</Text>
+              <Text style={[styles.moreNote, { fontSize: fs(11.5) }]}>{t('lt.moreNote', '지금 넣은 생년월일은 그대로 옮겨 담아요 — 다시 안 물어봐요.')}</Text>
             </View>
           </>
         ) : null}
@@ -185,14 +188,21 @@ export default function LightScreen() {
  * 2지선다 토글 — 등록 폼의 `Segmented` 는 그 파일 지역 컴포넌트라 재사용할 수 없어 여기서 최소로 만든다.
  * @param value 현재 값 / @param options 선택지 2개 / @param onChange 선택 콜백 / @param fs 글자크기 배율
  */
-function Toggle({ value, options, onChange, fs }: { value: string; options: string[]; onChange: (v: string) => void; fs: (n: number) => number }) {
+/**
+ * 두 갈래 토글.
+ *
+ * ⚠️★`options` 는 **값**(엔진·state 가 쓰는 것)이고 `labels` 는 **보이는 글자**다.
+ *   둘을 하나로 두면 «화면 글자를 번역했더니 계산이 깨지는» 일이 생긴다(2026-08-27 다국어).
+ * @param labels 없으면 값을 그대로 보여 준다(한국어 화면과 같은 동작).
+ */
+function Toggle({ value, options, labels, onChange, fs }: { value: string; options: string[]; labels?: string[]; onChange: (v: string) => void; fs: (n: number) => number }) {
   return (
     <View style={styles.tog}>
-      {options.map((o) => {
+      {options.map((o, i) => {
         const on = o === value;
         return (
           <PressableScale key={o} style={[styles.togBtn, on && styles.togBtnOn]} onPress={() => onChange(o)}>
-            <Text style={[styles.togTx, { fontSize: fs(13.5) }, on && styles.togTxOn]}>{o}</Text>
+            <Text style={[styles.togTx, { fontSize: fs(13.5) }, on && styles.togTxOn]}>{labels?.[i] ?? o}</Text>
           </PressableScale>
         );
       })}

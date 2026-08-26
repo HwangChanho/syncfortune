@@ -11,6 +11,7 @@
 //   ★곡선 가중치·희기신 매핑은 lifeGraph.ts 의 daniel 검수 stance(대운 지지 우위 · R2 5분류 대칭 ±3)를 그대로 따른다(여기서 재계산·발명 X).
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useMemo, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { View, Text, Animated, Easing, StyleSheet, Dimensions } from 'react-native';
 import Svg, { Polyline, Circle, Line, Text as SvgText } from 'react-native-svg';
 import { lifeGraph } from '../lib/content/lifeGraph'; // 결정론 곡선(대운별 점수·전환점) — 재사용만, 재계산 X
@@ -31,6 +32,7 @@ const clamp01 = (s: number) => Math.max(0, Math.min(100, s)); // 점수 0~100 �
  * @param saju 대표 명식의 사주(원국 + 대운 + structure.usefulGod). computeChart 산출값.
  */
 export function LifeGraphTeaser({ saju }: { saju: SajuChart }) {
+  const { t } = useTranslation();
   const draw = useRef(new Animated.Value(0)).current; // 곡선 드로잉 진행값(0→1)
 
   // ── 결정론 곡선 산출(재사용) — 대운별 점수·전환점·현재위치. saju 바뀔 때만 1회 계산 ──
@@ -70,9 +72,11 @@ export function LifeGraphTeaser({ saju }: { saju: SajuChart }) {
     const curLabel = cur
       ? (() => {
           const h = normY(clamp01(cur.score)); // 곡선 내 상대 높이 0~1
-          if (h >= 0.66) return '기운이 차오르며 올라서는 흐름이에요';
-          if (h >= 0.34) return '큰 기복 없이 고르게 흐르는 때예요';
-          return '힘을 안으로 다지며 다음을 준비하는 흐름이에요';
+          // ★`useMemo` 안이라 화면 밖에서 쓰이지 않는다 — 그래도 **키**로 돌려주고 그릴 때 푼다
+          //   (언어가 바뀌면 memo 를 다시 돌려야 하는 부담을 없앤다).
+          if (h >= 0.66) return 'lg.flowUp';
+          if (h >= 0.34) return 'lg.flowEven';
+          return 'lg.flowIn';
         })()
       : null;
 
@@ -92,8 +96,8 @@ export function LifeGraphTeaser({ saju }: { saju: SajuChart }) {
   return (
     <View style={styles.wrap}>
       {/* 리드(일상어) — 무엇을 보여주는지 한 줄 + 유도 */}
-      <Text style={styles.lead}>당신 삶의 큰 흐름 곡선이에요</Text>
-      <Text style={styles.leadSub}>오르내림과 전환점을 미리 그려 봤어요. 각 시기의 자세한 이야기는 아래에서 열 수 있어요.</Text>
+      <Text style={styles.lead}>{t('lg.lead', '당신 삶의 큰 흐름 곡선이에요')}</Text>
+      <Text style={styles.leadSub}>{t('lg.leadSub', '오르내림과 전환점을 미리 그려 봤어요. 각 시기의 자세한 이야기는 아래에서 열 수 있어요.')}</Text>
 
       {/* 곡선 카드 — 유료 곡선과 같은 결(기준선·드로잉·현재 마커·전환점 강조) */}
       <View style={styles.chartCard}>
@@ -133,26 +137,26 @@ export function LifeGraphTeaser({ saju }: { saju: SajuChart }) {
       <View style={styles.hlCard}>
         {curLabel ? (
           <View style={styles.hlRow}>
-            <Text style={styles.hlLabel}>지금 흐름</Text>
-            <Text style={styles.hlValue}>{cur ? `${cur.startAge}~${cur.endAge}세 · ` : ''}{curLabel}</Text>
+            <Text style={styles.hlLabel}>{t('lg.nowFlow', '지금 흐름')}</Text>
+            <Text style={styles.hlValue}>{cur ? `${t('f10.ageRange', '{{a}}~{{b}}세', { a: cur.startAge, b: cur.endAge })} · ` : ''}{t(curLabel)}</Text>
           </View>
         ) : null}
         {peak ? (
           <View style={styles.hlRow}>
-            <Text style={styles.hlLabel}>가장 빛나는 때</Text>
-            <Text style={styles.hlValue}>{peak.startAge}~{peak.endAge}세 무렵</Text>
+            <Text style={styles.hlLabel}>{t('lg.peak', '가장 빛나는 때')}</Text>
+            <Text style={styles.hlValue}>{t('lg.around', '{{a}}~{{b}}세 무렵', { a: peak.startAge, b: peak.endAge })}</Text>
           </View>
         ) : null}
         <View style={[styles.hlRow, styles.hlRowLast]}>
-          <Text style={styles.hlLabel}>큰 전환점</Text>
-          <Text style={styles.hlValue}>{flat ? '비교적 고른 흐름이에요' : turningCount > 0 ? `삶의 방향이 크게 바뀌는 지점 ${turningCount}곳` : '완만하게 이어지는 흐름'}</Text>
+          <Text style={styles.hlLabel}>{t('lg.turns', '큰 전환점')}</Text>
+          <Text style={styles.hlValue}>{flat ? t('lg.flat', '비교적 고른 흐름이에요') : turningCount > 0 ? t('lg.turnN', '삶의 방향이 크게 바뀌는 지점 {{n}}곳', { n: turningCount }) : t('lg.gentle', '완만하게 이어지는 흐름')}</Text>
         </View>
       </View>
 
       {/* ── 무료 vs 유료 가치 명시(퍼널 훅) — 곧바로 아래 게이트(₩3,900 CTA)로 이어진다 ── */}
       <View style={styles.funnelCard}>
-        <Text style={styles.funnelLine}>무료로는 <Text style={styles.accent}>삶의 큰 흐름과 전환점</Text>을 곡선으로 볼 수 있어요.</Text>
-        <Text style={styles.funnelLine}>깊은 풀이에선 <Text style={styles.accent}>각 시기가 왜 그런지, 지금 무엇을 하면 좋은지, 전성기 활용법과 어려운 때 대처법</Text>까지 짚어 드려요.</Text>
+        <Text style={styles.funnelLine}><Text>{t('rr.freeA', '무료로는 ')}</Text><Text style={styles.accent}>{t('lg.freeB', '삶의 큰 흐름과 전환점')}</Text><Text>{t('lg.freeC', '을 곡선으로 볼 수 있어요.')}</Text></Text>
+        <Text style={styles.funnelLine}><Text>{t('rr.paidA', '깊은 풀이에선 ')}</Text><Text style={styles.accent}>{t('lg.paidB', '각 시기가 왜 그런지, 지금 무엇을 하면 좋은지, 전성기 활용법과 어려운 때 대처법')}</Text><Text>{t('rr.paidC', '까지 짚어 드려요.')}</Text></Text>
       </View>
     </View>
   );

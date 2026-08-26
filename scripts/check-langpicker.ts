@@ -135,7 +135,7 @@ const EXEMPT: Record<string, string> = {
 //   앞이 `{`·`,` 일 때만 열쇠로 보게 고치자 그 116곳이 드러났고,
 //   동시에 «엔진 값 비교»(`=== '미상'`) 96곳이 정당하게 빠졌다.
 //   ⇒ **기준은 그 검사 자신이 잰 값이어야 한다** — 손으로 센 숫자를 넣으면 또 어긋난다.
-const BASELINE = 1063;
+const BASELINE = 970;
 
 {
   const all = screens().map((p) => ({ path: p, src: read(p) ?? '' }));

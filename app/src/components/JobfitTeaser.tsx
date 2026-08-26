@@ -13,29 +13,25 @@
 //   ※ 신호=daniel 검수본 재사용. 이 파일의 '적성 일상어 매핑'은 표현 계층 → daniel 카피 조정 슬롯.
 // ─────────────────────────────────────────────────────────────────────────
 import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { View, Text, StyleSheet } from 'react-native';
 import type { SajuChart } from '@spec/chart';
 import { colors, radius, space, font } from '../lib/theme';
 import { computeCareerSignals, type CareerBand, type BizSignal, type OrgSignal } from '../lib/content/careerGauge';
 
 // 4유형 → 화면 라벨(career 티저와 동일 개념·일관). '일하는 결'로 프레이밍.
+// ⚠️★값이 아니라 **문구 키**다(모듈 상수라 `t()` 를 여기서 못 부른다 — 그릴 때 푼다).
+//   ★조직·하이브리드·전문가는 `CareerTeaser` 와 **같은 키**를 쓴다(두 화면이 같은 말을 해야 한다).
+//   ⚠️`independent` 만 다르다 — 여기는 「독립형」, 저기는 「독립사업형」이라 키를 따로 둔다.
 const BAND_LABEL: Record<CareerBand, string> = {
-  org: '조직형',
-  hybrid: '하이브리드형',
-  pro: '전문가·프리랜서형',
-  independent: '독립형',
+  org: 'ct.bandOrg', hybrid: 'ct.bandHybrid', pro: 'ct.bandPro', independent: 'jf.bandIndep',
 };
 // 최강 신호(neutral key) → 적성 강점 일상어(전부 '강점'으로 전향 프레이밍 — §4).
 const BIZ_APT: Record<BizSignal, string> = {
-  creative: '아이디어를 내고 표현하는 결',
-  wealth: '직접 부딪혀 성과를 만드는 결',
-  independent: '스스로 주도하고 개척하는 결',
-  none: '자기 주도로 움직이는 결',
+  creative: 'jf.bizCreative', wealth: 'jf.bizWealth', independent: 'jf.bizIndep', none: 'jf.bizNone',
 };
 const ORG_APT: Record<OrgSignal, string> = {
-  structure: '체계를 세우고 조율하는 결',
-  stability: '배우고 전문성을 쌓아가는 결',
-  none: '틀 안에서 꾸준히 쌓아가는 결',
+  structure: 'jf.orgStructure', stability: 'jf.orgStability', none: 'jf.orgNone',
 };
 
 /**
@@ -43,6 +39,7 @@ const ORG_APT: Record<OrgSignal, string> = {
  * @param saju 대표 명식 사주(원국 + timeUnknown 병합). computeCareerSignals 로 적성 신호 산출.
  */
 export function JobfitTeaser({ saju }: { saju: SajuChart & { timeUnknown?: boolean } }) {
+  const { t } = useTranslation();
   const d = useMemo(() => {
     const sig = computeCareerSignals(saju);
     // 강점 2줄(사업가축 최강 + 조직축 최강). 둘 다 '강점'으로 병렬 — 우열 아님(§4).
@@ -54,28 +51,28 @@ export function JobfitTeaser({ saju }: { saju: SajuChart & { timeUnknown?: boole
 
   return (
     <View style={styles.wrap}>
-      <Text style={styles.lead}>타고난 적성으로 어떤 결이 강한지</Text>
-      <Text style={styles.leadSub}>먼저 무료로 짚어 봤어요. 어울리는 직업까지는 아래에서 열 수 있어요.</Text>
+      <Text style={styles.lead}>{t('jf.lead', '타고난 적성으로 어떤 결이 강한지')}</Text>
+      <Text style={styles.leadSub}>{t('jf.leadSub', '먼저 무료로 짚어 봤어요. 어울리는 직업까지는 아래에서 열 수 있어요.')}</Text>
 
       {/* ① 타고난 적성 강점 top 2 */}
       <View style={styles.card}>
-        <Text style={styles.cardCap}>타고난 적성 강점</Text>
+        <Text style={styles.cardCap}>{t('jf.cardCap', '타고난 적성 강점')}</Text>
         {d.strengths.map((s, i) => (
           <View key={i} style={styles.strengthRow}>
             <Text style={styles.dot}>◆</Text>
-            <Text style={styles.strengthTx}>{s}</Text>
+            <Text style={styles.strengthTx}>{t(s)}</Text>
           </View>
         ))}
         {/* ② 일하는 결(4유형) */}
         <View style={styles.bandRow}>
-          <Text style={styles.bandCap}>일하는 결</Text>
-          <Text style={styles.bandLabel}>{BAND_LABEL[d.band]}</Text>
+          <Text style={styles.bandCap}>{t('jf.bandCap', '일하는 결')}</Text>
+          <Text style={styles.bandLabel}>{t(BAND_LABEL[d.band])}</Text>
         </View>
       </View>
 
       {/* ③ funnel — 무료/유료 경계 명시(전향적) */}
       <Text style={styles.funnel}>
-        지금은 <Text style={styles.funnelFree}>적성 강점</Text> 미리보기예요 · 전체 풀이에선 이 결에 <Text style={styles.funnelPaid}>어울리는 직종</Text>, 끌림과 능력의 간극, 직업 인생 흐름까지 짚어 드려요.
+        <Text>{t('wt.funA', '지금은 ')}</Text><Text style={styles.funnelFree}>{t('jf.funB', '적성 강점')}</Text><Text>{t('jf.funC', ' 미리보기예요 · 전체 풀이에선 이 결에 ')}</Text><Text style={styles.funnelPaid}>{t('jf.funD', '어울리는 직종')}</Text><Text>{t('jf.funE', ', 끌림과 능력의 간극, 직업 인생 흐름까지 짚어 드려요.')}</Text>
       </Text>
     </View>
   );
