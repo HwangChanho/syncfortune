@@ -58,6 +58,27 @@ export class AppErrorBoundary extends React.Component<Props, State> {
   /** 다시 시도 — 상태를 비우면 children 이 새로 마운트된다. */
   private retry = () => this.setState({ err: null, stack: '' });
 
+  /**
+   * 웹 전용 — **번들을 새로 받아** 앱을 다시 연다.
+   *
+   * ⚠️★2026-08-26 이게 없어서 Boss 가 «계속 깨진다» 를 겪었다.
+   *   고친 판을 배포했는데 **열려 있던 탭이 옛 번들을 그대로 돌리고** 있었다
+   *   (SPA 는 화면을 옮겨도 index.html 을 다시 받지 않는다). 크래시 로그의 **번들 해시**로 확인했다.
+   *   그때 「다시 시도」는 **같은 코드를 다시 그릴 뿐**이라 영원히 같은 자리에서 깨진다.
+   * ★`location.reload()` 대신 **주소에 값을 붙여** 문서를 새로 받는다 —
+   *   reload 는 캐시된 문서를 그대로 줄 수 있고, 그러면 낡은 번들이 또 뜬다.
+   */
+  private hardReload = (): void => {
+    try {
+      const w = globalThis as any;
+      const loc = w?.location;
+      if (!loc) return;
+      const u = new URL(String(loc.href));
+      u.searchParams.set('_r', String(Math.floor(w.Date.now() / 1000)));
+      loc.replace(u.toString());
+    } catch { /* 새로고침이 안 되어도 「다시 시도」는 남아 있다 */ }
+  };
+
   render(): React.ReactNode {
     const { err, stack } = this.state;
     if (!err) return this.props.children;
@@ -71,6 +92,18 @@ export class AppErrorBoundary extends React.Component<Props, State> {
         <PressableScale style={styles.btn} onPress={this.retry}>
           <Text style={styles.btnTx}>다시 시도</Text>
         </PressableScale>
+        {/* ★웹에서는 «앱이 낡아서» 깨지는 경우가 있다 — 그때 「다시 시도」로는 절대 안 낫는다.
+            네이티브에는 없는 버튼이다(번들을 주소로 다시 받는 개념이 없다). */}
+        {Platform.OS === 'web' ? (
+          <>
+            <PressableScale style={styles.btn2} onPress={this.hardReload}>
+              <Text style={styles.btn2Tx}>새로 불러오기</Text>
+            </PressableScale>
+            <Text style={styles.hint}>
+              고쳐진 판이 나왔는데 화면이 옛것을 붙들고 있을 수 있어요. 그럴 땐 이걸 누르면 돼요.
+            </Text>
+          </>
+        ) : null}
 
         {/* 개발 빌드에서만 원인 노출 — 사용자에게 스택을 보여주지 않는다 */}
         {__DEV__ ? (
@@ -94,6 +127,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: space(7), paddingVertical: space(3.5), borderRadius: radius.md,
   },
   btnTx: { color: colors.white, fontSize: 16, fontWeight: '700' },
+  // ★보조 동작이라 **테두리만** — 주 동작(다시 시도)과 무게를 나눈다
+  btn2: {
+    alignSelf: 'center', marginTop: space(1), paddingHorizontal: space(7), paddingVertical: space(3.5),
+    borderRadius: radius.md, borderWidth: 1, borderColor: colors.line,
+  },
+  btn2Tx: { color: colors.ink, fontSize: 15, fontWeight: '700' },
+  hint: { ...font.caption, color: colors.inkFaint, textAlign: 'center', lineHeight: 17 },
   diag: { marginTop: space(6), padding: space(3), backgroundColor: colors.sunk, borderRadius: radius.sm, gap: space(2) },
   diagHead: { color: '#B00020', fontWeight: '800', fontSize: 13 },
   diagBody: { color: colors.inkSoft, fontSize: 11, lineHeight: 15 },
