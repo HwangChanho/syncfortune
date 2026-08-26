@@ -109,7 +109,7 @@ if (isMain) {
   //   그래서 「먼저 끌리는 쪽…」 까지만 말하고 끊겼고, 어떤 턴은 **빈 답**이 나왔다(text 블록이 아예 없다).
   //   ⇒ 끈 뒤 같은 질문: **764 토큰 · 614자**. 상한에도 안 닿는다. **더 싸고 5배 길다.**
   {
-    const off = /thinking:\s*\{\s*type:\s*'disabled'\s*\}/.test(talk);
+    const off = /thinking:\s*\{\s*type:\s*'disabled'\s*\}/.test(src);
     say(off, 'S4 대화에서 thinking 을 끈다',
       off ? '★안 끄면 상한을 thinking 이 먹어 답이 «하다가 만다»' : '★`out_tok`은 상한인데 글자는 몇 줄뿐인 상태가 됩니다');
   }
