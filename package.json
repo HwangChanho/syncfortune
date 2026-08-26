@@ -193,7 +193,8 @@
     "check:mediaver": "tsx scripts/check-mediaver.ts",
     "check:rpcambig": "tsx scripts/check-rpcambig.ts",
     "check:rpconce": "tsx scripts/check-rpconce.ts",
-    "check:readinglang": "tsx scripts/check-readinglang.ts"
+    "check:readinglang": "tsx scripts/check-readinglang.ts",
+    "check:talkstory": "tsx scripts/check-talkstory.ts"
   },
   "keywords": [],
   "author": "",
