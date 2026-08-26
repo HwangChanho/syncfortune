@@ -205,7 +205,8 @@
     "check:johu74": "tsx scripts/check-johu74.ts",
     "check:friendnotify": "tsx scripts/check-friendnotify.ts",
     "check:classics": "tsx scripts/check-classics.ts",
-    "check:personsheet": "tsx scripts/check-personsheet.ts"
+    "check:personsheet": "tsx scripts/check-personsheet.ts",
+    "bump": "node scripts/bump-build.mjs"
   },
   "keywords": [],
   "author": "",
