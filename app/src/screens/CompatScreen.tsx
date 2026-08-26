@@ -19,6 +19,7 @@ import { glossaryKindOf } from '../lib/ui/readingEmphasis'; // 용어 → 글로
 import { useSafeAreaInsets } from 'react-native-safe-area-context'; // 모달 상단 노치/상태바 침범 방지(J)
 import { Alert } from '../lib/ui/alert'; // 커스텀 알림(앱 디자인)
 import { useTranslation } from 'react-i18next';
+import { termLabel } from '../lib/ui/termLabel';   // ★명리 용어 — 한국어는 그대로, 그 밖은 한자(Boss 2026-08-27)
 import { computeChart } from '../lib/engine/engine';
 import { analyzeCompatibility } from '@engine/compatibility';
 import { detectInteractionsAmong } from '@engine/structure';
@@ -86,7 +87,9 @@ const COMPAT_COINS = coinPriceOf('compat') ?? 0;
  */
 export function CompatScreen({ me, initialRel }: { me: ChartInput | null; initialRel?: string }) {
   const router = useRouter();   // ★운 부족 시 /coins 이동(daniel 07-28)
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  /** 명리 용어의 표시 글자 — 한국어면 그대로, 그 밖의 언어면 한자(Boss 2026-08-27). */
+  const T = (k: string) => termLabel(k, i18n.language);
   const { session } = useAuth();
   const { isPremium } = useSubscription();
   const { fs, ls } = useFontScale(); // 통변 본문 글자 크기(설정에서 조절)
@@ -270,7 +273,7 @@ export function CompatScreen({ me, initialRel }: { me: ChartInput | null; initia
     const relOwned = ownedRels.has(relKey) || isPremium; // 이 관계를 이미 구매(또는 프리미엄 무제한)면 추가 비용 0(관계별 개별 결제·daniel 2026-07-22). 연도 변형은 같은 관계라 무료.
     Alert.alert(
       t('compat.genTitle', '풀이 만들기'),
-      `${relName}${yr ? ' ' + yr + '년' : ''} 궁합 풀이를 만들까요?\n${relOwned ? '추가 비용 없이 생성돼요.' : `이 관계는 ${COMPAT_COINS} 운이 필요해요.`}`,
+      `${t('cp.genAsk', '{{rel}} 궁합 풀이를 만들까요?', { rel: `${relName}${yr ? ' ' + yr : ''}` })}\n${relOwned ? t('cp.genFree', '추가 비용 없이 생성돼요.') : t('cp.genCost', '이 관계는 {{n}} 운이 필요해요.', { n: COMPAT_COINS })}`,
       [
         { text: t('common.cancel'), style: 'cancel' },
         { text: t('compat.genConfirm', '생성'), onPress: () => runCompatGen(relKey, yr, key) },
@@ -297,7 +300,7 @@ export function CompatScreen({ me, initialRel }: { me: ChartInput | null; initia
     setGenErr(null);                 // 재시도 시작 — 이전 실패 흔적을 지운다
     // ③ 배너/푸시 명식 식별 — route 에 chartId(내 명식 로컬 meSel.id) + chartLabel. '나' 측 재진입 바인딩은 ★M1 로 compat.tsx 라우트(대표 전환→meSel 채택)에 구현됨. 상대(쌍)는 _lastCompat 복원.
     const gpRoute = meSel?.id ? `/compat?chartId=${meSel.id}` : '/compat';
-    setGenProgress({ active: true, total: 1, done: 0, label: tab === 'ziwei' ? '자미 궁합' : '궁합', chartLabel: meSel?.label, route: gpRoute });
+    setGenProgress({ active: true, total: 1, done: 0, label: tab === 'ziwei' ? t('cp.ziweiCompat', '자미 궁합') : t('cp.compat', '궁합'), chartLabel: meSel?.label, route: gpRoute });
     try {
       const gz = yr ? yearGanZhi(Number(yr)) : undefined;
       // ⚠️★상한 필수 — 잠금 구간(멈춤 방지). 초과 = undefined → 아래 실패 분기로 흘러 잠금이 풀린다.
@@ -411,13 +414,13 @@ export function CompatScreen({ me, initialRel }: { me: ChartInput | null; initia
                   {/* ★`isPremium` 분기를 쓰지 않는다 — 프리미엄은 2026-07-28 에 폐지돼
                       **항상 false** 다(`check:deadflag` 가 문다). 안 가진 관계는 늘 값이 보인다. */}
                   <Text style={[styles.relCellTag, on && styles.relCellTagOn]}>
-                    {owned ? t('compat.owned', '✓ 보유') : `${COMPAT_COINS} 운`}
+                    {owned ? t('compat.owned', '✓ 보유') : t('rg.coinN', '{{n}} 운', { n: COMPAT_COINS })}
                   </Text>
                 </PressableScale>
               );
             })}
           </View>
-          <Text style={styles.relHint}>{isPremium ? '관계마다 별도 풀이예요' : `관계마다 별도로 풀어 드려요 — 고른 관계만 ${COMPAT_COINS} 운이 들어요`}</Text>
+          <Text style={styles.relHint}>{isPremium ? t('cp.relHintPrem', '관계마다 별도 풀이예요') : t('cp.relHint', '관계마다 별도로 풀어 드려요 — 고른 관계만 {{n}} 운이 들어요', { n: COMPAT_COINS })}</Text>
           {/* ★사주/자미 탭 제거(daniel 2026-07-15 '구분짓지 말고 같이풀어') — 'compat' 통변이 이미 사주 주축+자미 보조교차로 합쳐 나옴(규칙2·R46). 항상 compatTab='saju'(=합친 통변). */}
           {/* 연도별 — 전체(원국 본바탕) / 그 해 흐름(세운). 연도 탭 시 그 관계×연도 통변 생성 */}
           <Text style={[styles.stepLabel, { marginTop: space(4) }]}>{t('compat.step3year', '③ 언제로 볼까요?')}</Text>
@@ -427,7 +430,7 @@ export function CompatScreen({ me, initialRel }: { me: ChartInput | null; initia
             </PressableScale>
             {/* K(daniel): 고정 5칸 → 드롭다운(전체 년도 스크롤 선택) */}
             <PressableScale style={[styles.yearChip, !!year && styles.yearChipOn]} onPress={() => setYearOpen(true)}>
-              <Text style={[styles.yearChipTx, !!year && styles.yearChipTxOn]}>{year ? `${year}년` : t('compat.yearPick', '년도 선택')} ▾</Text>
+              <Text style={[styles.yearChipTx, !!year && styles.yearChipTxOn]}>{year ? t('cp.yearN', '{{y}}년', { y: year }) : t('compat.yearPick', '년도 선택')} ▾</Text>
             </PressableScale>
           </View>
           {/* 선택한 관계 카테고리 배너(daniel: 카테고리별 이미지) */}
@@ -444,10 +447,10 @@ export function CompatScreen({ me, initialRel }: { me: ChartInput | null; initia
               {/* 궁합 6기준 근거 칩(daniel 07-18) — 계절 상보·상대→나 재/관·결핍 보완·배우자궁 충돌 */}
               {compat && (
                 <View style={styles.scoreSignals}>
-                  {compat.seasonComplement && <Text style={styles.sigChip}>🌗 계절 상보</Text>}
-                  {compat.jaegwan && <Text style={styles.sigChip}>💫 상대 = 내 {compat.jaegwan}</Text>}
-                  {compat.fillChars.length > 0 && <Text style={styles.sigChip}>🧩 결핍 보완 {compat.fillChars.join('·')}</Text>}
-                  {compat.spouseAfflictions.length > 0 && <Text style={[styles.sigChip, styles.sigWarn]}>⚠️ 배우자궁 {compat.spouseAfflictions.join('·')}</Text>}
+                  {compat.seasonComplement && <Text style={styles.sigChip}>🌗 {t('cp.sigSeason', '계절 상보')}</Text>}
+                  {compat.jaegwan && <Text style={styles.sigChip}>💫 {t('cp.sigJaegwan', '상대 = 내 {{g}}', { g: termLabel(compat.jaegwan, i18n.language) })}</Text>}
+                  {compat.fillChars.length > 0 && <Text style={styles.sigChip}>🧩 {t('cp.sigFill', '결핍 보완')} {compat.fillChars.join('·')}</Text>}
+                  {compat.spouseAfflictions.length > 0 && <Text style={[styles.sigChip, styles.sigWarn]}>⚠️ {t('cp.sigSpouse', '배우자궁')} {compat.spouseAfflictions.join('·')}</Text>}
                 </View>
               )}
             </View>
@@ -581,7 +584,7 @@ export function CompatScreen({ me, initialRel }: { me: ChartInput | null; initia
               <PressableScale key={r.key} style={[styles.pickRow, on && styles.pickRowOn]} onPress={() => { setRel(r.key); setRelOpen(false); }}>
                 <Text style={[styles.pickRowTx, on && styles.pickRowTxOn]}>{t(r.tk)}</Text>
                 <View style={styles.relRowRight}>
-                  {owned ? <Text style={styles.relOwnedTag}>✓ 보유</Text> : (!isPremium ? <Text style={styles.relPriceTag}>{COMPAT_COINS} 운</Text> : null)}
+                  {owned ? <Text style={styles.relOwnedTag}>{t('compat.owned', '✓ 보유')}</Text> : (!isPremium ? <Text style={styles.relPriceTag}>{t('rg.coinN', '{{n}} 운', { n: COMPAT_COINS })}</Text> : null)}
                   {on ? <Text style={styles.pickCheck}>✓</Text> : null}
                 </View>
               </PressableScale>
@@ -638,7 +641,7 @@ export function CompatScreen({ me, initialRel }: { me: ChartInput | null; initia
               (무료 1회 → 이후 코인 차감, 부족하면 충전 화면). [[alert-double-fire-crash]] 교훈 재발:
               **기능을 폐지하면 그 플래그를 보던 분기를 전수조사해야 한다.** */}
         <>
-            <Text style={styles.askQuota}>{freeLeft > 0 ? t('reading.askFree', { n: freeLeft }) : t('reading.askPaid', { price: `${coinPriceOf('followup') ?? 0} 운` })}</Text>
+            <Text style={styles.askQuota}>{freeLeft > 0 ? t('reading.askFree', { n: freeLeft }) : t('reading.askPaid', { price: t('rg.coinN', '{{n}} 운', { n: coinPriceOf('followup') ?? 0 }) })}</Text>
             <View style={styles.askRow}>
               {/* singleline — 50자 제한이라 한 줄로 충분, iOS/Android 모두 텍스트가 칸 세로중앙 자동정렬(daniel: y축 한가운데) */}
               <TextInput style={styles.askInput} value={askInput} onChangeText={setAskInput} placeholder={t('reading.askPh')} placeholderTextColor={colors.inkFaint} maxLength={50} editable={!asking} returnKeyType="send" onSubmitEditing={() => submitFollowup()} />
@@ -657,12 +660,14 @@ export function CompatScreen({ me, initialRel }: { me: ChartInput | null; initia
     if (!pair) return null;
     const POSK = ['시', '일', '월', '년'] as const;
     const personPillars = (saju: any, who: string) => {
-      const out: any[] = POSK.map((p) => ({ pos: `${who}${p}`, who, label: p, stem: saju.pillars[p].stem, branch: saju.pillars[p].branch }));
-      if (saju.currentLuck) out.push({ pos: `${who}대운`, who, label: '대운', stem: saju.currentLuck.stem, branch: saju.currentLuck.branch });
-      if (saju.annual) out.push({ pos: `${who}세운`, who, label: '세운', stem: saju.annual.stem, branch: saju.annual.branch });
+      // ⚠️★`pos` 는 교차 검출의 **열쇠**다(`'나'` 로 시작하는지로 편을 가른다) — 번역하면 안 된다.
+      //   화면에 뜨는 것은 `label` 뿐이라 그것만 용어 표를 태운다.
+      const out: any[] = POSK.map((p) => ({ pos: `${who}${p}`, who, label: T(p), luck: false, stem: saju.pillars[p].stem, branch: saju.pillars[p].branch }));
+      if (saju.currentLuck) out.push({ pos: `${who}대운`, who, label: T('대운'), luck: true, stem: saju.currentLuck.stem, branch: saju.currentLuck.branch });
+      if (saju.annual) out.push({ pos: `${who}세운`, who, label: T('세운'), luck: true, stem: saju.annual.stem, branch: saju.annual.branch });
       return out;
     };
-    const mineP = personPillars(pair.me, '나'), othersP = personPillars(pair.other, '상대');
+    const mineP = personPillars(pair.me, '나'), othersP = personPillars(pair.other, '상대');   // ★'나'·'상대' 는 편 가르는 **열쇠**
     const all = [...mineP, ...othersP];
     const cross = detectInteractionsAmong(all.map((x) => ({ pos: x.pos as any, stem: x.stem, branch: x.branch })))
       .filter((it) => String(it.members[0]).startsWith('나') !== String(it.members[1]).startsWith('나'));
@@ -704,8 +709,9 @@ export function CompatScreen({ me, initialRel }: { me: ChartInput | null; initia
                 ? <View style={[styles.cmRing, { borderColor: hl }]}>{box}</View>
                 : <View style={styles.cmRingOff}>{box}</View>;
             };
+            // ⚠️★`x.label` 은 이제 언어를 타므로 **글자로 층을 판별하면 깨진다** ⇒ `x.luck` 로 본다
             return (
-              <View key={i} style={[styles.cmCol, (x.label === '대운' || x.label === '세운') && styles.cmColLuck]}>
+              <View key={i} style={[styles.cmCol, x.luck && styles.cmColLuck]}>
                 <Text style={styles.cmLabel}>{x.label}</Text>
                 {cell(x.stem, stemElement(x.stem), stemHl)}
                 {cell(x.branch, branchElement(x.branch), branchHl)}
@@ -718,11 +724,11 @@ export function CompatScreen({ me, initialRel }: { me: ChartInput | null; initia
     return (
       <View style={styles.crossWrap}>
         {/* 가로 ScrollView 제거 — 6칸이 화면에 들어가므로 전체 폭에 고르게 분배(나↔상대 세로 정렬) */}
-        <View style={{ marginBottom: space(2) }}>{miniChart(mineP, '나')}</View>
-        <View>{miniChart(othersP, '상대')}</View>
-        {cross.length > 0 && <Text style={styles.cmHint}>작용을 탭하면 위 두 명식에서 해당 글자가 강조됩니다.</Text>}
+        <View style={{ marginBottom: space(2) }}>{miniChart(mineP, t('cp.me', '나'))}</View>
+        <View>{miniChart(othersP, t('cp.other', '상대'))}</View>
+        {cross.length > 0 && <Text style={styles.cmHint}>{t('cp.tapHint', '작용을 탭하면 위 두 명식에서 해당 글자가 강조됩니다.')}</Text>}
         <View style={styles.crossList}>
-          {cross.length === 0 ? <Text style={styles.note}>두 명식 간 직접 합충형해가 없습니다.</Text> :
+          {cross.length === 0 ? <Text style={styles.note}>{t('cp.noCross', '두 명식 간 직접 합충형해가 없습니다.')}</Text> :
             INTERACTION_ORDER.map((ty) => {
               const grp = cross.filter((it) => it.type === ty);
               if (!grp.length) return null;

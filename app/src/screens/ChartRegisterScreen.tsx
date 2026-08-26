@@ -540,12 +540,15 @@ export function ChartRegisterScreen({ onSubmit, defaultRelation, submitLabel, sh
               {boundaryInfo && (
                 <View style={{ marginTop: space(2.5), padding: space(3), borderRadius: radius.md, backgroundColor: 'rgba(201,161,74,0.1)', borderWidth: 1, borderColor: colors.juLine }}>
                   <Text style={{ fontSize: 13, color: colors.ju, fontWeight: '700' }}>
-                    거주지 보정 {boundaryInfo.offset >= 0 ? '+' : ''}{boundaryInfo.offset}분 → 실제 {boundaryInfo.solarTime} ({boundaryInfo.siji}시)
+                    {t('register.solarAdjust', '거주지 보정 {{sign}}{{min}}분 → 실제 {{time}} ({{siji}}시)', {
+                      sign: boundaryInfo.offset >= 0 ? '+' : '', min: boundaryInfo.offset,
+                      time: boundaryInfo.solarTime, siji: boundaryInfo.siji,
+                    })}
                   </Text>
                   {/* ★해외 출생이면 **어느 표준시로 계산했는지** 보여 준다 — 틀린 가정이 조용히 지나가지 않게 */}
                   {boundaryInfo.overseas && (
                     <Text style={{ fontSize: 12, color: colors.ju, marginTop: space(1.5), lineHeight: 17 }}>
-                      {boundaryInfo.zone}{boundaryInfo.dst ? ' · 서머타임 적용' : ' 기준'}
+                      {boundaryInfo.zone}{boundaryInfo.dst ? ` · ${t('register.dstApplied', '서머타임 적용')}` : ` ${t('register.tzBasis', '기준')}`}
                     </Text>
                   )}
                   {/* ⚠️서머타임 이력을 확정하지 못한 시기·지역 — 추측해 채우지 않고 그대로 알린다 */}

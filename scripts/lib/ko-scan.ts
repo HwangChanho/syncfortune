@@ -91,6 +91,24 @@ export function scanFile(src: string): Spot[] {
   for (const m of s.matchAll(JSX_TEXT)) {
     out.push({ line: lineOf(m.index!), text: m[0].slice(1, -1).trim(), kind: 'jsx' });
   }
+  // ⚠️★**여러 줄에 걸친 JSX 글자**도 센다 — 태그와 글자가 다른 줄에 있으면 위 식이 못 본다:
+  //     <Text style={…}>
+  //       ⚠️ 이 시기·지역의 서머타임 이력은 확인되지 않았어요.      ← 이 줄
+  //     </Text>
+  //   실측(2026-08-27) 이 모양으로 **한 화면에서만 여러 곳**이 빠져 있었다.
+  //   판별: 그 줄에 태그·중괄호·따옴표가 하나도 없고 한국어가 있으면 «글자만 있는 줄» 이다
+  //   (코드 줄이라면 셋 중 하나는 반드시 있다 — 위에서 이미 리터럴로 세었을 것이다).
+  for (const [i, line] of s.split('\n').entries()) {
+    const txt = line.trim();
+    if (!txt || !KO.test(txt)) continue;
+    if (/[<>{}'"`;=]/.test(txt)) continue;      // 태그·식·문자열·구문이 있으면 코드다
+    // ⚠️★남은 두 가지 «따옴표 없는 코드 줄» 도 걸러 낸다(실측으로 걸린 것들이다):
+    //   ① 객체 속성이 줄마다 갈린 것 — `인성: -90,` (열쇠지 화면 글자가 아니다)
+    //   ② 삼항·정규식이 줄바꿈된 것 — `: /세션|session/i.test(em)`
+    if (/^[\w$가-힣]+\s*:\s*.+,$/.test(txt)) continue;
+    if (/^[:?]|\.test\(|=>|\|\||&&/.test(txt)) continue;
+    out.push({ line: i + 1, text: txt, kind: 'jsx' });
+  }
   return out.sort((a, b) => a.line - b.line);
 }
 

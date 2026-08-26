@@ -135,7 +135,7 @@ const EXEMPT: Record<string, string> = {
 //   앞이 `{`·`,` 일 때만 열쇠로 보게 고치자 그 116곳이 드러났고,
 //   동시에 «엔진 값 비교»(`=== '미상'`) 96곳이 정당하게 빠졌다.
 //   ⇒ **기준은 그 검사 자신이 잰 값이어야 한다** — 손으로 센 숫자를 넣으면 또 어긋난다.
-const BASELINE = 1120;
+const BASELINE = 1063;
 
 {
   const all = screens().map((p) => ({ path: p, src: read(p) ?? '' }));
@@ -183,6 +183,10 @@ const BASELINE = 1120;
     { path: 'u.tsx', src: 'const v = `${n}세 대운`;' },                          // ← 백틱의 **정적 부분**은 센다
     { path: 'v.tsx', src: `t('k', { n, defaultValue: '{{n}}운 필요' })` },       // ← ★자리표시자형 폴백도 안 센다
     { path: 'w.tsx', src: `f({ other: '{{n}}운 필요' })` },                      // ← defaultValue 가 아니면 센다
+    { path: 'x.tsx', src: '<Text>\n  여러 줄에 걸친 글자\n</Text>' },              // ← ★줄이 갈려도 센다
+    { path: 'y.tsx', src: 'const a = 1;\nconst b = fn(x);\n' },                  // ← 코드 줄은 안 센다
+    { path: 'z.tsx', src: 'const M = {\n  인성: -90,\n  비견: -18,\n}' },           // ← ★줄마다 갈린 **열쇠**는 안 센다
+    { path: 'z2.tsx', src: 'const r = ok\n  : /세션|session/i.test(em)' },        // ← ★줄바꿈된 코드도 안 센다
   ]);
   const good = c.get('a.tsx') === 1 && !c.has('b.tsx') && !c.has('c.tsx') && !c.has('d.tsx') && !c.has('e.tsx')
     && c.get('f.tsx') === 1 && !c.has('g.tsx')
@@ -192,9 +196,11 @@ const BASELINE = 1120;
     && !c.has('n.tsx') && c.get('o.tsx') === 1
     && !c.has('p.tsx') && c.get('q.tsx') === 2 && !c.has('r.tsx')
     && !c.has('s.tsx') && c.get('u.tsx') === 1
-    && !c.has('v.tsx') && c.get('w.tsx') === 1;
+    && !c.has('v.tsx') && c.get('w.tsx') === 1
+    && c.get('x.tsx') === 1 && !c.has('y.tsx')
+    && !c.has('z.tsx') && !c.has('z2.tsx');
   say(good, '자기검사 — 폴백·주석·로그는 빼고, **태그 사이 글자까지** 센다',
-    good ? '대조군 22개 통과' : `실제: ${JSON.stringify([...c])}`);
+    good ? '대조군 26개 통과' : `실제: ${JSON.stringify([...c])}`);
 }
 
 console.log(fail === 0 ? '\n✅ 언어 고르기가 이어져 있고, 남은 한국어가 안 늘었습니다\n'

@@ -10,6 +10,7 @@
 //   ★§4 웰빙: 삼재·낮은 신수를 흉으로 단정하지 않는다 — '정비·관리·다지는 해'로 전향적(관리축) + 복삼재 가능성 명시(공포 마케팅 회피).
 // ─────────────────────────────────────────────────────────────────────────
 import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { View, Text, StyleSheet } from 'react-native';
 import type { SajuChart } from '@spec/chart';
 import { colors, radius, space, font } from '../lib/theme';
@@ -21,18 +22,20 @@ import { newyearSinsu, type SamjaeLabel } from '../lib/content/newyearGauge'; //
 // ⚠️★금색을 어둡게 바꿨다(2026-08-22) — 종전 #D9A441 은 **흰 카드 위 대비 2.25** 로 안 읽혔다.
 //   미드나잇(어두운) 테마 시절 값이 라벤더 전환 뒤에도 남아 있던 것이다.
 //   #A16C09 = 카드 4.50 · 배경 4.17 (계산해서 고른 값이지 눈으로 고르지 않았다).
+// ⚠️★`title`·`sub` 는 값이 아니라 **문구 키**다(모듈 상수라 `t()` 를 여기서 못 부른다).
 const SAMJAE_LIGHT: Record<SamjaeLabel, { color: string; title: string; sub: string }> = {
-  none: { color: '#3E8E5A', title: '삼재 없음', sub: '내년은 삼재에 들지 않는 해예요' },
-  deul: { color: '#A16C09', title: '들삼재', sub: '삼재가 들어오기 시작하는 해예요' },
-  nul:  { color: '#D4743B', title: '눌삼재', sub: '삼재 한가운데를 지나는 해예요' },
-  nal:  { color: '#A16C09', title: '날삼재', sub: '삼재가 물러나는 해예요' },
+  none: { color: '#3E8E5A', title: 'ny.samjaeNone', sub: 'ny.samjaeNoneSub' },
+  deul: { color: '#A16C09', title: 'ny.samjaeDeul', sub: 'ny.samjaeDeulSub' },
+  nul:  { color: '#D4743B', title: 'ny.samjaeNul', sub: 'ny.samjaeNulSub' },
+  nal:  { color: '#A16C09', title: 'ny.samjaeNal', sub: 'ny.samjaeNalSub' },
 };
 
 // 톤 → 게이지 경향 라벨/한 줄 문구(§4 경향·단정 금지 + 전향적). 재회/애정 게이지와 동일 결.
 function toneCopy(tone: 'open' | 'warming' | 'quiet') {
-  if (tone === 'open') return { label: '상승세', caption: '내년은 나와 결이 잘 맞는 기운이 들어오는 흐름이에요. 준비한 걸 펼치기 좋아요.' };
-  if (tone === 'warming') return { label: '무난', caption: '내년은 큰 기복 없이 무난하게 흐르는 편이에요. 나만의 속도로 다져 가면 좋아요.' };
-  return { label: '조심', caption: '내년은 힘을 안으로 모으며 다지기 좋은 해예요. 무리한 확장보다 내실을 챙겨 보세요.' };
+  // ★순수 함수라 `t()` 를 못 부른다 — **키**를 돌려주고 화면이 푼다.
+  if (tone === 'open') return { label: 'ny.toneOpen', caption: 'ny.capOpen' };
+  if (tone === 'warming') return { label: 'ny.toneMild', caption: 'ny.capMild' };
+  return { label: 'ny.toneCare', caption: 'ny.capCare' };
 }
 
 // ── '내년 좋은 달' 그래프는 MonthFlowGraph 공용 컴포넌트로 추출(daniel 07-08 DRY) — 신년 카테고리 곡선과 단일 소스.
@@ -43,6 +46,7 @@ function toneCopy(tone: 'open' | 'warming' | 'quiet') {
  * @param timeUnknown 시각 미상(원국 시주 제외 — 강도 판정에만 반영). love.tsx 관례처럼 opts 로 전달.
  */
 export function NewyearTeaser({ saju, timeUnknown }: { saju: SajuChart; timeUnknown?: boolean }) {
+  const { t } = useTranslation();
   // 모든 결정론 값은 saju/timeUnknown 변경 시에만 1회 산출(성능·단일 소스). 게이지 카운트업 리렌더와 분리.
   const d = useMemo(() => newyearSinsu(saju, { timeUnknown }), [saju, timeUnknown]);
   const light = SAMJAE_LIGHT[d.samjae];
@@ -59,44 +63,44 @@ export function NewyearTeaser({ saju, timeUnknown }: { saju: SajuChart; timeUnkn
       <View style={[styles.samjaeCard, { borderColor: light.color }]}>
         <View style={styles.samjaeHead}>
           <View style={[styles.dot, { backgroundColor: light.color }]} />
-          <Text style={[styles.samjaeTitle, { color: light.color }]}>{d.nextYear}년 · {light.title}</Text>
+          <Text style={[styles.samjaeTitle, { color: light.color }]}>{t('cp.yearN', '{{y}}년', { y: d.nextYear })} · {t(light.title)}</Text>
         </View>
-        <Text style={styles.samjaeSub}>{light.sub}</Text>
+        <Text style={styles.samjaeSub}>{t(light.sub)}</Text>
         {isSamjae && (
-          <Text style={styles.samjaeManage}>삼재는 피하는 해가 아니라, 몸·관계·살림을 살피며 내실을 다지는 해로 봐요.</Text>
+          <Text style={styles.samjaeManage}>{t('ny.manage', '삼재는 피하는 해가 아니라, 몸·관계·살림을 살피며 내실을 다지는 해로 봐요.')}</Text>
         )}
         {/* ② 업셀 — 삼재는 띠(민속 12분법) 공통 이야기 → 개인 사주로 다시 봐야 함(신수 게이지로 자연 연결) */}
-        <Text style={styles.upsell}>삼재는 같은 띠 모두의 이야기예요. 당신의 진짜 한 해는 사주 여덟 글자로 다시 계산해야 해요.</Text>
+        <Text style={styles.upsell}>{t('ny.upsell', '삼재는 같은 띠 모두의 이야기예요. 당신의 진짜 한 해는 사주 여덟 글자로 다시 계산해야 해요.')}</Text>
         {/* ③ 복/악 크로스 훅 — 판정은 페이월 뒤(무료는 들/눌/날까지만). 공포 마케팅 회피(복삼재 가능성 명시) */}
         {isSamjae && (
-          <Text style={styles.upsell}>이 해가 이름뿐인 <Text style={styles.accent}>복삼재</Text>인지, 실제로 챙길 게 있는 해인지는 깊은 풀이에서 콕 짚어 드려요.</Text>
+          <Text style={styles.upsell}><Text>{t('ny.bokA', '이 해가 이름뿐인 ')}</Text><Text style={styles.accent}>{t('ny.bokB', '복삼재')}</Text><Text>{t('ny.bokC', '인지, 실제로 챙길 게 있는 해인지는 깊은 풀이에서 콕 짚어 드려요.')}</Text></Text>
         )}
       </View>
 
       {/* ② 내년 신수 게이지(핵심 훅) — 삼재(띠)와 달리 '내 사주 8글자'로 계산한 내년 부합도(0~100) */}
-      <PossibilityGauge score={d.score} label={tc.label} tone={d.tone} title="내년 기운이 나와 맞는 정도" caption={tc.caption} accent={colors.ju} />
+      <PossibilityGauge score={d.score} label={t(tc.label)} tone={d.tone} title={t('ny.gaugeTitle', '내년 기운이 나와 맞는 정도')} caption={t(tc.caption)} accent={colors.ju} />
 
       {/* 올해의 키워드 미리보기 — 방향×강도 매트릭스에서 뽑은 한 줄(일상어) */}
       <View style={styles.card}>
-        <Text style={styles.cardTitle}>내년 키워드 미리보기</Text>
+        <Text style={styles.cardTitle}>{t('ny.keywordTitle', '내년 키워드 미리보기')}</Text>
         <Text style={styles.keyword}>{d.keyword}</Text>
       </View>
 
       {/* ③ 내년 좋은 달 그래프(1~12) — 월별 기운 곡선 + 좋은 달 금색 점 (daniel 07-07: 그리드→그래프) */}
       <View style={styles.card}>
-        <Text style={styles.cardTitle}>내년 좋은 달</Text>
+        <Text style={styles.cardTitle}>{t('ny.goodMonths', '내년 좋은 달')}</Text>
         {d.monthScores.length === 12 && <MonthFlowGraph scores={d.monthScores} goodSet={goodSet} />}
         <Text style={styles.calNote}>
           {d.goodMonths.length
-            ? `곡선이 높은 달에 기운이 나와 잘 통해요(진하게 찬 점). 어떤 일에 좋은지는 깊은 풀이에서 달별로 짚어 드려요.`
-            : `내년 좋은 달은 깊은 풀이에서 달별로 콕 짚어 드려요.`}
+            ? t('ny.calNote', '곡선이 높은 달에 기운이 나와 잘 통해요(진하게 찬 점). 어떤 일에 좋은지는 깊은 풀이에서 달별로 짚어 드려요.')
+            : t('ny.calNoteNone', '내년 좋은 달은 깊은 풀이에서 달별로 콕 짚어 드려요.')}
         </Text>
       </View>
 
       {/* 무료 vs 유료 가치 명시(퍼널 훅) — 곧바로 아래 게이트(₩9,900 CTA)로 이어진다 */}
       <View style={styles.funnelCard}>
-        <Text style={styles.funnelLine}>무료로는 <Text style={styles.accent}>내년 큰 기운 · 삼재 · 좋은 달</Text>까지 볼 수 있어요.</Text>
-        <Text style={styles.funnelLine}>깊은 풀이에선 <Text style={styles.accent}>내년 열두 달을 재물·애정·직업·건강으로 나눠, 개운법과 복/악삼재까지</Text> 짚어 드려요.</Text>
+        <Text style={styles.funnelLine}><Text>{t('rr.freeA', '무료로는 ')}</Text><Text style={styles.accent}>{t('ny.freeB', '내년 큰 기운 · 삼재 · 좋은 달')}</Text><Text>{t('rr.freeC', '까지 볼 수 있어요.')}</Text></Text>
+        <Text style={styles.funnelLine}><Text>{t('rr.paidA', '깊은 풀이에선 ')}</Text><Text style={styles.accent}>{t('ny.paidB', '내년 열두 달을 재물·애정·직업·건강으로 나눠, 개운법과 복/악삼재까지')}</Text><Text>{t('rr.paidC', '까지 짚어 드려요.')}</Text></Text>
       </View>
     </>
   );

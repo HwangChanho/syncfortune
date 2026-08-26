@@ -24,33 +24,35 @@ import { colors, radius, space, font, shadow } from '../lib/theme';
 const thisYear = (): number => new Date().getFullYear();
 
 // ── 배우자성 위치(궁위) → 일상어 결(스펙 §1 궁위론·daniel 검수 슬롯) ──────────────────────────
+// ⚠️★값이 아니라 **문구 키**다(모듈 상수라 `t()` 를 여기서 못 부른다 — 그릴 때 푼다).
 const POS_HINT: Record<string, string> = {
-  월: '사회생활에서 자연스럽게 끌리는 결',   // 월지 = 사회적 접점·첫인상(스펙 §1)
-  년: '집안·자라온 배경과 이어진 상',        // 년지 = 배경·집안
-  시: '삶의 후반·가정에서 그리는 상',        // 시지 = 말년·가정궁
+  월: 'sd.posMonth',   // 월지 = 사회적 접점·첫인상(스펙 §1)
+  년: 'sd.posYear',    // 년지 = 배경·집안
+  시: 'sd.posHour',    // 시지 = 말년·가정궁
 };
 
 // ── §2 판단트리: 성↔궁 관계 → frame(라벨 + 일상어 설명 + 괴리 밴드). daniel 스펙 문구, 발명 아님 ──
 type Frame = { key: string; label: string; desc: string };
 function frameOf(d: SpouseDual): Frame {
   const b = d.base;
-  if (!d.star) return { key: 'gung_only', label: '실제 인연 중심', desc: '뚜렷한 이상형(배우자성)이 원국에 드러나지 않아요 — 실제로 곁에 남는 사람(일지)이 더 큰 축이에요.' };
-  if (b.same || b.sixhe || b.banhap || b.banghap) return { key: 'match', label: '끌림이 곧 결실', desc: '끌리는 이상형과 실제 곁에 남는 사람이 거의 같은 결이에요. 첫 끌림이 그대로 이어지기 쉬워요.' };
-  if (b.chong) return { key: 'clash', label: '정면충돌형', desc: '이상형과 실제 배우자가 정면으로 대비돼요. 관계 내내 긴장이 있고, 크게 마음을 정해야 하는 시기가 옵니다.' };
-  if (b.wonjin || b.pa) return { key: 'friction', label: '은근한 갈등형', desc: '겉으로는 무난해도 결이 은근히 어긋나, 오래 함께할수록 피로가 쌓이기 쉬워요. 소통 방식을 미리 맞추는 게 처방.' };
-  if (b.gyeokgak) return { key: 'split', label: '트랙 분리형', desc: '연애 초반 끌린 상과 결혼까지 가는 상이 다른 결일 수 있어요. 끌림과 정착을 따로 보는 눈이 필요해요.' };
-  return { key: 'neutral', label: '뚜렷한 대비 없음', desc: '이상형과 실제 인연 사이에 큰 어긋남 신호는 약해요.' };
+  // ★`label`·`desc` 도 **문구 키**다 — 판정(`key`)은 그대로 두고 글자만 언어를 탄다.
+  if (!d.star) return { key: 'gung_only', label: 'sd.gungOnly', desc: 'sd.gungOnlyDesc' };
+  if (b.same || b.sixhe || b.banhap || b.banghap) return { key: 'match', label: 'sd.match', desc: 'sd.matchDesc' };
+  if (b.chong) return { key: 'clash', label: 'sd.clash', desc: 'sd.clashDesc' };
+  if (b.wonjin || b.pa) return { key: 'friction', label: 'sd.friction', desc: 'sd.frictionDesc' };
+  if (b.gyeokgak) return { key: 'split', label: 'sd.split', desc: 'sd.splitDesc' };
+  return { key: 'neutral', label: 'sd.neutral', desc: 'sd.neutralDesc' };
 }
 // 괴리 강도(0~90) = base 발동강도(충90·원진70·파50·격각40·일치0). 높을수록 이상형↔실제 대비 큼(§7.1).
 function gapPct(d: SpouseDual): number { return d.star ? Math.min(90, d.base.ignition) : 0; }
 
 // ── §3 세운 라벨 → 일상어(타임라인 마킹·daniel 검수). 한 해에 복수 가능 → 우선순위 하나만 대표 표기 ──
 const LABEL_TX: Record<SpouseLabel, string> = {
-  EVENT_CANDIDATE: '변곡점',   // 세운이 배우자궁 충 = 결혼/이별/동거 등 큰 변화 가능
-  TYPE_A_ACTIVE: '끌림 활성',   // 세운이 배우자성 합 = 그 유형 인연 활성
-  TYPE_A_RESOLVE: '인연 정리',  // 세운이 배우자성 충 = 그 유형 인연 이탈
-  TYPE_B_SETTLE: '안정 정착',   // 세운이 배우자궁 합 = 안정형으로 무게중심 이동
-  CONFIRM: '관계 확정',         // 세운이 배우자궁 복음 = 확정/안정형 진입
+  EVENT_CANDIDATE: 'sd.lblEvent',   // 세운이 배우자궁 충 = 결혼/이별/동거 등 큰 변화 가능
+  TYPE_A_ACTIVE: 'sd.lblActive',    // 세운이 배우자성 합 = 그 유형 인연 활성
+  TYPE_A_RESOLVE: 'sd.lblResolve',  // 세운이 배우자성 충 = 그 유형 인연 이탈
+  TYPE_B_SETTLE: 'sd.lblSettle',    // 세운이 배우자궁 합 = 안정형으로 무게중심 이동
+  CONFIRM: 'sd.lblConfirm',         // 세운이 배우자궁 복음 = 확정/안정형 진입
 };
 const LABEL_PRIORITY: SpouseLabel[] = ['EVENT_CANDIDATE', 'CONFIRM', 'TYPE_A_ACTIVE', 'TYPE_A_RESOLVE', 'TYPE_B_SETTLE'];
 function primaryLabel(labels: SpouseLabel[]): SpouseLabel | null {
@@ -92,16 +94,16 @@ export function SpouseDualCards({
   // 나이대 경향 — 차이 미미하면 노출 안 함(§7.3). 육합+30/반합+15 → max 15 이상 & 우열 있을 때만.
   const age = d.age;
   const ageTend = age.elder >= 15 || age.younger >= 15
-    ? (age.elder > age.younger ? { tone: '연상 경향', desc: '나보다 나이가 있는(연상) 인연에 마음이 기우는 경향이 있어요.' }
-      : age.younger > age.elder ? { tone: '연하·케어 포지션 경향', desc: '연하이거나, 내가 챙겨주는 포지션의 인연에 기우는 경향이 있어요.' }
+    ? (age.elder > age.younger ? { tone: t('sd.elder', '연상 경향'), desc: t('sd.elderDesc', '나보다 나이가 있는(연상) 인연에 마음이 기우는 경향이 있어요.') }
+      : age.younger > age.elder ? { tone: t('sd.younger', '연하·케어 포지션 경향'), desc: t('sd.youngerDesc', '연하이거나, 내가 챙겨주는 포지션의 인연에 기우는 경향이 있어요.') }
       : null)
     : null;
 
-  const gapBand = gap === 0 ? '거의 일치'
-    : gap <= 40 ? '가벼운 어긋남'
-    : gap <= 50 ? '은근한 어긋남'
-    : gap <= 70 ? '은근한 긴장'
-    : '강한 대비';
+  const gapBand = gap === 0 ? t('sd.band0', '거의 일치')
+    : gap <= 40 ? t('sd.band1', '가벼운 어긋남')
+    : gap <= 50 ? t('sd.band2', '은근한 어긋남')
+    : gap <= 70 ? t('sd.band3', '은근한 긴장')
+    : t('sd.band4', '강한 대비');
 
   return (
     <View style={styles.wrap}>
@@ -114,7 +116,7 @@ export function SpouseDualCards({
           <View style={styles.axisCol}>
             <Text style={[styles.axisTag, { color: accent }]}>{t('spouseDual.idealTag', '끌리는 이상형')}</Text>
             <Text style={styles.axisDesc}>
-              {d.star ? (POS_HINT[d.star.pos] ?? '끌리는 이성상') : '뚜렷한 이상형 신호는 약해요'}
+              {d.star ? t(POS_HINT[d.star.pos] ?? 'sd.posFallback') : t('sd.noStar', '뚜렷한 이상형 신호는 약해요')}
             </Text>
           </View>
           <View style={styles.axisDivider} />
@@ -128,10 +130,10 @@ export function SpouseDualCards({
       {/* ③ 관계/괴리 — §2 frame + 괴리 강도 바 */}
       <View style={styles.card}>
         <View style={styles.frameHead}>
-          <Text style={[styles.frameLabel, { color: accent }]}>{frame.label}</Text>
+          <Text style={[styles.frameLabel, { color: accent }]}>{t(frame.label)}</Text>
           {d.star ? <Text style={styles.gapBadge}>{gapBand}</Text> : null}
         </View>
-        <Text style={styles.frameDesc}>{frame.desc}</Text>
+        <Text style={styles.frameDesc}>{t(frame.desc)}</Text>
         {d.star ? (
           <View style={styles.barTrack}>
             <View style={[styles.barFill, { width: `${Math.max(4, gap)}%`, backgroundColor: accent }]} />
@@ -189,6 +191,7 @@ export function SpouseDualCards({
 // ── ④ 타임라인 2-라인 SVG(끌림 ignition / 안정 settle, 세운별) ─────────────────────────────
 //   viewBox 고정 + width 100% 로 반응형. y = ignition/settle(0~90) 매핑, 라벨 있는 해에 점·표기.
 function TimelineGraph({ timeline, accent }: { timeline: SpouseYear[]; accent: string }) {
+  const { t } = useTranslation();
   const W = 320, H = 132, padX = 14, padTop = 16, padBottom = 34;
   const n = timeline.length;
   const innerW = W - padX * 2, innerH = H - padTop - padBottom;
@@ -215,7 +218,7 @@ function TimelineGraph({ timeline, accent }: { timeline: SpouseYear[]; accent: s
             {lab ? <Circle cx={x(i)} cy={cy} r={3.5} fill={accent} /> : <Circle cx={x(i)} cy={cy} r={2} fill={colors.inkFaint} />}
             {lab ? (
               <SvgText x={x(i)} y={cy - 7} fontSize={8.5} fill={colors.ink} textAnchor="middle" fontWeight="700">
-                {LABEL_TX[lab]}
+                {t(LABEL_TX[lab])}
               </SvgText>
             ) : null}
             {/* 연도(2년 간격만 표기해 겹침 방지) */}
