@@ -17,6 +17,7 @@ import { View, Text, ScrollView, StyleSheet, TextInput } from 'react-native';
 import { PressableScale } from '../../../components/PressableScale';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { CELEB_DB } from '../../../lib/content/celebData';                 // 번들 폴백(DB 실패 시)
 import { listTrendingCelebs, searchCelebs } from '../../../lib/content/celebDb'; // ★연예인 기반 목록·검색(daniel 08-03)
 import { computeChart } from '../../../lib/engine/engine';                  // 만세력 결정론 산출(엔진) — API 0
@@ -29,12 +30,9 @@ import { useLogContentVisit } from '../../../lib/backend/contentVisit'; // 콘�
 // ── 오행 → 일상어 '기질' 한 마디 (한자·용어 노출 없이) ─────────────────────
 //   출처: 오행 표준 대응(myeongriGlossary 와 동일 결 — 木 성장 / 火 표현 / 土 포용 / 金 결단 / 水 지혜).
 //   ★daniel 검수 슬롯: 문구·톤 조정. 화면엔 이 '일상어'만 노출(오행 한자는 매핑 키로만 쓰고 렌더 안 함).
+// ⚠️★값이 아니라 **문구 키**다(모듈 상수라 `t()` 를 여기서 못 부른다 — 아래에서 푼다).
 const ELEM_PLAIN: Record<string, string> = {
-  木: '새로 벌이고 키워 가는',
-  火: '밝게 드러내고 열정을 내는',
-  土: '품고 안정시키는',
-  金: '분명하게 맺고 결단하는',
-  水: '유연하게 흐르며 지혜로운',
+  木: 'cb.elemWood', 火: 'cb.elemFire', 土: 'cb.elemEarth', 金: 'cb.elemMetal', 水: 'cb.elemWater',
 };
 
 /**
@@ -42,31 +40,31 @@ const ELEM_PLAIN: Record<string, string> = {
  * celebMatch 의 reasons(가장 강한 신호가 앞)를 그대로 재사용해 결정론적으로 생성.
  * @param top 상위 1인 매칭 결과(CelebMatchResult)
  */
-function plainResonance(top: CelebMatchResult): string {
+function plainResonance(top: CelebMatchResult, t: TFunction): string {
   const r = top.reasons[0];
-  if (!r) return '타고난 기운을 견주면 닮은 결이 은근히 보여요.';
+  if (!r) return t('cb.resDefault', '타고난 기운을 견주면 닮은 결이 은근히 보여요.');
   // 라벨 괄호 안 오행 글자만 추출 → 일상어 변환에만 사용(오행 한자 자체는 화면에 노출하지 않음).
   const elem = r.label.match(/([木火土金水])/)?.[1];
-  const elemWord = elem ? ELEM_PLAIN[elem] : '';
+  const elemWord = elem ? t(ELEM_PLAIN[elem]) : '';
   switch (r.type) {
     case 'ilju_exact':
-      return '타고난 뿌리 자리가 통째로 겹쳐요. 기질의 결이 유독 많이 닮은 사이예요.';
+      return t('cb.resIljuExact', '타고난 뿌리 자리가 통째로 겹쳐요. 기질의 결이 유독 많이 닮은 사이예요.');
     case 'ilgan_same':
-      return '중심을 이루는 기운이 같아요. 세상을 대하는 태도의 뿌리가 닮았을 수 있어요.';
+      return t('cb.resIlganSame', '중심을 이루는 기운이 같아요. 세상을 대하는 태도의 뿌리가 닮았을 수 있어요.');
     case 'ilgan_elem':
       return elemWord
-        ? `둘 다 ${elemWord} 기운이 중심이에요. 비슷한 결로 움직이는 편이에요.`
-        : '중심 기운의 결이 닮았어요.';
+        ? t('cb.resIlganElem', '둘 다 {{w}} 기운이 중심이에요. 비슷한 결로 움직이는 편이에요.', { w: elemWord })
+        : t('cb.resIlganElemNo', '중심 기운의 결이 닮았어요.');
     case 'dominant_match':
       return elemWord
-        ? `두 분 모두 ${elemWord} 기운이 가장 도드라져요. 닮은 에너지를 타고났어요.`
-        : '가장 강한 기운이 같아요.';
+        ? t('cb.resDominant', '두 분 모두 {{w}} 기운이 가장 도드라져요. 닮은 에너지를 타고났어요.', { w: elemWord })
+        : t('cb.resDominantNo', '가장 강한 기운이 같아요.');
     case 'ohaeng_close':
-      return '타고난 기운의 조합이 비슷해요. 삶을 대하는 결에 공통점이 생기기 쉬워요.';
+      return t('cb.resOhaeng', '타고난 기운의 조합이 비슷해요. 삶을 대하는 결에 공통점이 생기기 쉬워요.');
     case 'tengod_close':
-      return '사람을 대하고 일을 풀어가는 방식의 결이 닮았어요.';
+      return t('cb.resTengod', '사람을 대하고 일을 풀어가는 방식의 결이 닮았어요.');
     default:
-      return '기운을 견주면 닮은 면이 은근히 보여요.';
+      return t('cb.resDefault2', '기운을 견주면 닮은 면이 은근히 보여요.');
   }
 }
 
@@ -146,12 +144,14 @@ export default function CelebIndex() {
           style={styles.search}
           value={q}
           onChangeText={setQ}
-          placeholder="이름으로 찾기 (예: 아이유)"
+          placeholder={t('cb.searchPh', '이름으로 찾기 (예: 아이유)')}
           placeholderTextColor={colors.inkFaint}
           returnKeyType="search"
         />
         <Text style={styles.searchHint}>
-          {searching ? '찾는 중…' : q.trim().length >= 2 ? `‘${q.trim()}’ 검색 결과 ${pool.length}명` : '요즘 많이 찾아본 순으로 보여 드려요'}
+          {searching ? t('cb.searching', '찾는 중…')
+            : q.trim().length >= 2 ? t('cb.searchResult', '‘{{q}}’ 검색 결과 {{n}}명', { q: q.trim(), n: pool.length })
+              : t('cb.trendHint', '요즘 많이 찾아본 순으로 보여 드려요')}
         </Text>
 
         {/* ★무료 티저 — 나와 가장 닮은 인물 1명 + 유사도% (온디바이스·결정론·API 0). 탭 → 그 인물 상세 비교 */}
@@ -175,23 +175,23 @@ export default function CelebIndex() {
               <View style={[styles.simFill, { width: `${Math.max(4, top.score)}%`, backgroundColor: grade.color }]} />
             </View>
             {/* 닮은 점 한 줄(일상어·단정 회피) */}
-            <Text style={styles.teaserBody}>{plainResonance(top)}</Text>
-            <Text style={styles.teaserMore}>탭하면 이 인물과 나를 자세히 비교해 볼 수 있어요 ›</Text>
+            <Text style={styles.teaserBody}>{plainResonance(top, t)}</Text>
+            <Text style={styles.teaserMore}>{t('cb.tapCompare', '탭하면 이 인물과 나를 자세히 비교해 볼 수 있어요 ›')}</Text>
           </PressableScale>
         )}
 
         {/* 명식 미등록 — 티저 대신 등록 유도(그리드는 아래 그대로 노출) */}
         {resolved && !repInput && (
           <PressableScale style={styles.noChartHook} onPress={() => router.push('/register')}>
-            <Text style={styles.noChartTitle}>명식을 등록하면 나와 가장 닮은 인물을 찾아드려요</Text>
-            <Text style={styles.noChartTx}>내 생년월일시로 사주를 먼저 등록해 주세요 ›</Text>
+            <Text style={styles.noChartTitle}>{t('cb.noChartTitle', '명식을 등록하면 나와 가장 닮은 인물을 찾아드려요')}</Text>
+            <Text style={styles.noChartTx}>{t('cb.noChartTx', '내 생년월일시로 사주를 먼저 등록해 주세요 ›')}</Text>
           </PressableScale>
         )}
 
         {/* 전체 순위 안내(무료) — 명식 있으면 아래 그리드가 유사도순 + 각 카드 %까지 공개(예전 유료였던 순위를 무료로). */}
         {ranked && (
           <Text style={styles.rankNote}>
-            나와 닮은 순서로 16인 전원의 순위·유사도를 무료로 공개해요. 카드를 탭하면 그 인물과 나를 자세히 비교해 볼 수 있어요.
+            {t('cb.rankNote', '나와 닮은 순서로 16인 전원의 순위·유사도를 무료로 공개해요. 카드를 탭하면 그 인물과 나를 자세히 비교해 볼 수 있어요.')}
           </Text>
         )}
 
@@ -235,7 +235,7 @@ export default function CelebIndex() {
         {/* 안전 면책 */}
         <Text style={styles.disclaimer}>
           * 공개된 생년월일 기반의 재미·추정 콘텐츠예요.{'\n'}
-          출생 시각 미상이라 시주 제외. 투자·정치 판단의 근거가 아닙니다.
+          {t('cb.disc2', '출생 시각 미상이라 시주 제외. 투자·정치 판단의 근거가 아닙니다.')}
         </Text>
       </ScrollView>
     </View>

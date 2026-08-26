@@ -11,6 +11,8 @@
 // ⚠️문구 = Claude 초안 → ★daniel 검수 슬롯.
 // ─────────────────────────────────────────────────────────────────────────
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { View, Text, StyleSheet } from 'react-native';
 import { PressableScale } from './PressableScale';
 import { Alert } from '../lib/ui/alert';
@@ -20,12 +22,15 @@ import { useFontScale } from '../lib/ui/fontScale';
 import { withTimeout } from '../lib/core/withTimeout'; // ★잠금 구간 네트워크 상한(멈춤 방지)
 import { colors, radius, space, font } from '../lib/theme';
 
-/** 남은 기간 표기 — 영구/n일 남음. 하루 미만은 '오늘까지'. */
-function remainLabel(until: number | null): string {
+/**
+ * 남은 기간 표기 — 영구/n일 남음. 하루 미만은 '오늘까지'.
+ * @param t 번역 함수 — 순수 함수로 두려고 **받아 쓴다**(`termLabel` 과 같은 방식).
+ */
+function remainLabel(until: number | null, t: TFunction): string {
   if (until == null) return '';
-  if (isAdFreeForever()) return '영구';
+  if (isAdFreeForever()) return t('af.forever', '영구');
   const days = Math.ceil((until - Date.now()) / 86400000);
-  return days <= 1 ? '오늘까지' : `${days}일 남음`;
+  return days <= 1 ? t('af.today', '오늘까지') : t('af.daysLeft', '{{n}}일 남음', { n: days });
 }
 
 /**
@@ -34,6 +39,7 @@ function remainLabel(until: number | null): string {
  * @param onNeedCoins 잔액 부족 시 호출(충전 화면으로 보낼 때). 없으면 안내만.
  */
 export function AdFreeSection({ onDone, onNeedCoins }: { onDone?: () => void; onNeedCoins?: () => void }) {
+  const { t } = useTranslation();
   const { fs } = useFontScale();
   const adFree = useAdFree();
   const until = useAdFreeUntil();
@@ -41,13 +47,13 @@ export function AdFreeSection({ onDone, onNeedCoins }: { onDone?: () => void; on
 
   async function buy(plan: AdFreePlan, coins: number, days: number | null) {
     if (busy) return;
-    const label = days == null ? '영구' : `${days}일`;
+    const label = days == null ? t('af.forever', '영구') : t('af.days', '{{n}}일', { n: days });
     Alert.alert(
-      '광고 제거',
-      `${coins} 운을 사용해 광고를 ${label} 없앨까요?`,
+      t('af.title', '광고 제거'),
+      t('af.buyAsk', '{{n}} 운을 사용해 광고를 {{span}} 없앨까요?', { n: coins, span: label }),
       [
-        { text: '취소', style: 'cancel' },
-        { text: '사용', onPress: async () => {
+        { text: t('common.cancel'), style: 'cancel' },
+        { text: t('af.use', '사용'), onPress: async () => {
           setBusy(plan);
           try {
             // ⚠️★상한 필수(daniel 2026-08-01 "구매하니깐 멈췄어") — 여기는 setBusy(plan) 으로 버튼을 잠근 뒤다.
@@ -55,18 +61,22 @@ export function AdFreeSection({ onDone, onNeedCoins }: { onDone?: () => void; on
             //   await 가 안 끝나고 finally 도 실행되지 않아 **버튼이 영구히 잠긴다**.
             //   초과 = undefined → '지금은 확인이 어렵다'로 안내하고 잠금을 푼다(사용자를 가두지 않는다).
             const r = await withTimeout(buyAdFree(plan));
-            if (!r) { Alert.alert('잠시 후 다시 시도해 주세요', '네트워크 응답이 늦어요. 운은 차감되지 않았어요.'); return; }
+            if (!r) { Alert.alert(t('common.retryLater'), t('af.slow', '네트워크 응답이 늦어요. 운은 차감되지 않았어요.')); return; }
             if (r.ok) {
-              Alert.alert('광고가 사라졌어요', r.already ? '이미 영구 이용 중이에요.' : `이제 ${days == null ? '영구히' : `${days}일간`} 광고가 보이지 않아요.`);
+              Alert.alert(
+                t('af.done', '광고가 사라졌어요'),
+                r.already ? t('af.already', '이미 영구 이용 중이에요.')
+                  : t('af.doneMsg', '이제 {{span}} 광고가 보이지 않아요.', { span: days == null ? t('af.foreverAdv', '영구히') : t('af.daysFor', '{{n}}일간', { n: days }) }),
+              );
               onDone?.();
             } else if (r.reason === 'insufficient') {
               // ★부족 = 충전 유도. '조회 실패'와 구분된 서버 판정이라 여기선 안심하고 권할 수 있다.
-              Alert.alert('운이 부족해요', `${coins} 운이 필요해요. 지금 ${r.balance} 운 있어요.`, [
-                { text: '취소', style: 'cancel' },
-                ...(onNeedCoins ? [{ text: '운 충전하기', onPress: onNeedCoins }] : []),
+              Alert.alert(t('af.needCoins', '운이 부족해요'), t('coins.needMsg', { need: coins, have: r.balance, defaultValue: '이 풀이는 {{need}} 운이 필요해요. 지금 {{have}} 운 있어요.' }), [
+                { text: t('common.cancel'), style: 'cancel' },
+                ...(onNeedCoins ? [{ text: t('coins.charge', '운 충전하기'), onPress: onNeedCoins }] : []),
               ]);
             } else {
-              Alert.alert('잠시 후 다시 시도해 주세요', '구매를 처리하지 못했어요. 운은 차감되지 않았어요.');
+              Alert.alert(t('common.retryLater'), t('af.buyFail', '구매를 처리하지 못했어요. 운은 차감되지 않았어요.'));
             }
           } finally { setBusy(null); }
         } },
@@ -76,12 +86,12 @@ export function AdFreeSection({ onDone, onNeedCoins }: { onDone?: () => void; on
 
   return (
     <View style={styles.wrap}>
-      <Text style={[styles.h, { fontSize: fs(15) }]}>광고 제거</Text>
+      <Text style={[styles.h, { fontSize: fs(15) }]}>{t('af.title', '광고 제거')}</Text>
 
       {adFree ? (
         // 이미 구매 — 상태만. 영구면 더 팔지 않는다(서버 buy_ad_free 도 already 로 막는다).
         <View style={styles.onCard}>
-          <Text style={[styles.onTx, { fontSize: fs(14) }]}>광고 없이 보고 있어요 · {remainLabel(until)}</Text>
+          <Text style={[styles.onTx, { fontSize: fs(14) }]}>{t('af.on', '광고 없이 보고 있어요')} · {remainLabel(until, t)}</Text>
         </View>
       ) : null}
 
@@ -92,8 +102,8 @@ export function AdFreeSection({ onDone, onNeedCoins }: { onDone?: () => void; on
             // ★칸 축소(daniel 2026-07-28 "칸이 너무 큰거 같아") — 3줄 세로 카드를 **한 줄**로.
             //   기간·가격이 한눈에 붙어 있으면 비교가 오히려 쉽고, 목록 전체가 짧아진다.
             <PressableScale key={p.id} style={styles.btn} onPress={() => void buy(p.id, p.coins, p.days)} disabled={busy !== null}>
-              <Text style={[styles.btnTitle, { fontSize: fs(13) }]}>{p.days == null ? '영구' : `${p.days}일`}</Text>
-              <Text style={[styles.btnCoins, { fontSize: fs(14) }]}>{busy === p.id ? '…' : `${p.coins} 운`}</Text>
+              <Text style={[styles.btnTitle, { fontSize: fs(13) }]}>{p.days == null ? t('af.forever', '영구') : t('af.days', '{{n}}일', { n: p.days })}</Text>
+              <Text style={[styles.btnCoins, { fontSize: fs(14) }]}>{busy === p.id ? '…' : t('rg.coinN', '{{n}} 운', { n: p.coins })}</Text>
             </PressableScale>
           ))}
         </View>
@@ -104,7 +114,7 @@ export function AdFreeSection({ onDone, onNeedCoins }: { onDone?: () => void; on
           쓰지 않는다**. 실제 보상형 광고는 이달의 운세·명식 추가·콘텐츠 진입 세 곳이다.
           안 쓰는 곳을 적어 두면 산 사람이 "어디가 사라진 거지" 하고 헤맨다 — 실제 지점을 적는다. */}
       <Text style={[styles.note, { fontSize: fs(11.5), lineHeight: 16 }]}>
-        하단 배너가 사라지고, 이달의 운세·명식 추가·콘텐츠 진입에서 광고를 보지 않아도 바로 열려요. 기간제는 남은 기간 뒤에 이어붙어요.
+        {t('af.note', '하단 배너가 사라지고, 이달의 운세·명식 추가·콘텐츠 진입에서 광고를 보지 않아도 바로 열려요. 기간제는 남은 기간 뒤에 이어붙어요.')}
       </Text>
     </View>
   );
