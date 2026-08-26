@@ -278,8 +278,10 @@ export function ChatList({ onOpen, selectedId, reloadKey = 0, wide, onSettings, 
         <BrandWordmark symbol style={{ flex: 1 }} />   {/* ★심볼+글자 (Boss 2026-08-26) — 넓은 목록 칸이라 이름이 안 잘린다 */}
         {/* ★알림 — 돋보기 **왼쪽**(Boss 2026-08-26 *"돋보기 옆에 놔"*).
             이모지가 아니라 선 아이콘이라 옆 아이콘들과 **무게가 같다**. */}
-        <NotifyBell size={26} />
-        <PressableScale hitSlop={10} onPress={() => setSearchOpen((v) => !v)}>
+        {/* ⚠️★둘 다 `topBtn` 으로 감싼다 — 감싸는 상자가 없으면 좌우 여백이 빠져
+            `gap` 이 같아도 **눈에는 간격이 달라 보인다**(Boss 2026-08-27 지적, 친구목록과 같은 원인). */}
+        <View style={styles.topBtn}><NotifyBell size={26} /></View>
+        <PressableScale hitSlop={10} style={styles.topBtn} onPress={() => setSearchOpen((v) => !v)}>
           <Icon name={searchOpen ? 'close' : 'search'} size={26} color={searchOpen ? colors.ju : colors.inkSoft} />
         </PressableScale>
         {/* ⚠️★⋮ 더보기를 **뺐다**(Boss 2026-08-27

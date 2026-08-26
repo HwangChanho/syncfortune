@@ -250,7 +250,7 @@ function Row({ c, initial, slot, on, onOpen, onPhoto, t }: {
 //   ★`ContentRail` 컴포넌트 자체는 남아 있다 — 다른 자리에서 쓸 수 있다.
 
 export function TalkList({ items, onOpen, selected, myName, onMe, myAvatar, railKeys = [], onSettings, onLogin, session, wide, footer,
-                           onAddFriend, pendingCount = 0, people = [], onOpenPerson, onOpenProfile }: {
+                           onAddFriend, onManse, pendingCount = 0, people = [], onOpenPerson, onOpenProfile }: {
   /**
    * 친구목록에 뜰 사람들.
    * ★`lastAt` = **마지막으로 이야기한 시각**(`talk_session_list`). 콘티 1면의 우측 시각이자
@@ -282,6 +282,8 @@ export function TalkList({ items, onOpen, selected, myName, onMe, myAvatar, rail
   wide?: boolean;
   /** 친구 추가 화면으로 */
   onAddFriend?: () => void;
+  /** ★만세력으로 — 이름 탭이 사람 상세로 바뀌면서 길이 사라져 아이콘을 따로 뒀다(2026-08-27) */
+  onManse?: () => void;
   /** 받은 친구 신청 수 — 0이면 배지를 안 그린다 */
   pendingCount?: number;
   /** 실제 사람 친구들(상담가와 **다른 섹션**에 둔다) */
@@ -377,8 +379,18 @@ export function TalkList({ items, onOpen, selected, myName, onMe, myAvatar, rail
             {myName ?? t('talk.meNoChart', '명식 등록')}
           </Text>
         </PressableScale>
-        {/* ★알림 — 돋보기 **왼쪽**(Boss 2026-08-26). 선 아이콘이라 옆과 무게가 같다 */}
-        <NotifyBell size={26} />
+        {/* ⚠️★종을 `topBtn` 으로 감싼다(Boss 2026-08-27 *"돋보기랑 + 사이 간격이
+            종이랑 돋보기 사이 간격이랑 달라"*).
+            원인: 종만 감싸는 상자가 없어 **좌우 여백이 빠졌다** — `gap` 은 같은데 눈에는 달라 보인다.
+            ★알림 — 돋보기 **왼쪽**(Boss 2026-08-26). 선 아이콘이라 옆과 무게가 같다. */}
+        <View style={styles.topBtn}><NotifyBell size={26} /></View>
+        {/* ★만세력 — **따로 아이콘**을 둔다(Boss 2026-08-27 *"만세력도 따로 아이콘 만들어서
+            거기 클릭 또는 탭하면 넘어가게"*).
+            ⚠️종전엔 이름을 눌러야 갔는데, 08-27 에 이름은 **사람 상세**를 여는 것으로 바뀌었다 —
+              그래서 만세력으로 가는 길이 **사라져 있었다.** */}
+        <PressableScale hitSlop={12} style={styles.topBtn} onPress={onManse}>
+          <Icon name="calendar" size={26} />
+        </PressableScale>
         <PressableScale hitSlop={12} style={styles.topBtn} onPress={() => setSearchOpen((v) => !v)}>
           <Icon name={searchOpen ? 'close' : 'search'} size={26} color={searchOpen ? colors.ju : colors.inkSoft} />
         </PressableScale>

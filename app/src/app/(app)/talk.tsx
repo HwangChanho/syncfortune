@@ -930,6 +930,7 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
                       railKeys={order} onMe={() => setPerson({ kind: 'me', name: myName })}
                       onSettings={() => router.push('/settings')}
                       onAddFriend={() => router.push('/friends')}
+                      onManse={() => router.push('/charts')}
                       session={session} onLogin={() => router.push('/login')}
                       pendingCount={friends.filter((f) => f.status === 'pending' && !f.requestedByMe).length}
                       people={friends.filter((f) => f.status === 'accepted').map((f) => ({
@@ -1219,6 +1220,7 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
                       railKeys={order} onMe={() => setPerson({ kind: 'me', name: myName })}
                       onSettings={() => router.push('/settings')}
                       onAddFriend={() => router.push('/friends')}
+                      onManse={() => router.push('/charts')}
                       session={session} onLogin={() => router.push('/login')}
                       pendingCount={friends.filter((f) => f.status === 'pending' && !f.requestedByMe).length}
                       people={friends.filter((f) => f.status === 'accepted').map((f) => ({

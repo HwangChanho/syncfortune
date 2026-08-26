@@ -21,7 +21,7 @@ import Svg, { Circle, Line, Path } from 'react-native-svg';
 import { colors } from '../../lib/theme';
 
 /** 그릴 수 있는 아이콘. 늘릴 때는 **24×24 · 굵기 2** 규격을 지킨다. */
-export type IconName = 'search' | 'close' | 'plus' | 'more' | 'trash' | 'gear' | 'bell' | 'menu' | 'globe' | 'check';
+export type IconName = 'search' | 'close' | 'plus' | 'more' | 'trash' | 'gear' | 'bell' | 'menu' | 'globe' | 'check' | 'calendar';
 
 /**
  * 상단바 아이콘 하나.
@@ -80,6 +80,13 @@ export function Icon({ name, size = 24, color = colors.inkSoft }: {
         <Path d="M12 3.5c2.6 2.4 4 5.4 4 8.5s-1.4 6.1-4 8.5c-2.6-2.4-4-5.4-4-8.5s1.4-6.1 4-8.5Z" {...common} />
       </>)}
       {name === 'check' && (<Path d="M4.8 12.6l4.6 4.6 9.8-10.4" {...common} />)}
+      {/* 달력 — 만세력. ★칸을 두 줄로 나눠 «날짜 표» 로 읽히게 한다(빈 네모는 무엇인지 모른다) */}
+      {name === 'calendar' && (<>
+        <Path d="M4 6.5h16v13.5H4z" {...common} />
+        <Path d="M4 11h16" {...common} />
+        <Path d="M8.5 3.5v4M15.5 3.5v4" {...common} />
+        <Path d="M9 15h2M13 15h2" {...common} />
+      </>)}
     </Svg>
   );
 }
