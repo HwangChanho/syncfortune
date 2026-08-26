@@ -18,11 +18,12 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { View, Text, StyleSheet } from 'react-native';
-import type { SajuChart, Branch, Stem, Element, PillarPos } from '@spec/chart';
+import type { SajuChart, Branch, Stem, PillarPos } from '@spec/chart';
 import { colors, radius, space, font } from '../lib/theme';
 import { ReunionTiming } from './ReunionTiming';                       // 기존 12개월 '연락이 열리는 달' 달력(그대로 품음)
 import { PossibilityGauge } from './PossibilityGauge';                 // 공용 가능성 게이지(추출 — 재회·애정 공유)
 import { computeInyeonSignals, DOHWA } from '../lib/love/inyeonGauge'; // 인연 게이지 결정론 신호(재회·애정 공통 엔진)
+import { GAEUN } from '../lib/love/gaeunTable';                        // ★개운 표 단일 출처(짝사랑과 공유 — 사본 만들지 말 것)
 
 // ── 재회 표시 전용 테이블(문구 매핑용 — 점수 산출 테이블은 lib/love/inyeonGauge 로 이관). ★daniel 검수 ──
 const ALL_STEMS: Stem[] = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'];    // 개운 티저 짝/홀 선택용
@@ -31,14 +32,6 @@ const ALL_STEMS: Stem[] = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛
 const DOHWA_DIR: Record<'子' | '午' | '卯' | '酉', { dir: string; season: string }> = {
   子: { dir: 'rr.dirN', season: 'rr.seasonW' }, 午: { dir: 'rr.dirS', season: 'rr.seasonSu' },
   卯: { dir: 'rr.dirE', season: 'rr.seasonSp' }, 酉: { dir: 'rr.dirW', season: 'rr.seasonA' },
-};
-// 오행 → 연락 개운(방위·색·요일, 일상어). 배우자성(인연星) 오행 기준.
-const ELEM_GAEUN: Record<Element, { dir: string; color: string; day: string }> = {
-  木: { dir: 'rr.dirE', color: 'rr.colorWood', day: 'rr.dowThu' },
-  火: { dir: 'rr.dirS', color: 'rr.colorFire', day: 'rr.dowTue' },
-  土: { dir: 'rr.dirNear', color: 'rr.colorEarth', day: 'rr.dowSat' },
-  金: { dir: 'rr.dirW', color: 'rr.colorMetal', day: 'rr.dowFri' },
-  水: { dir: 'rr.dirN', color: 'rr.colorWater', day: 'rr.dowWed' },
 };
 
 /**
@@ -82,7 +75,7 @@ export function ReunionRich({ saju }: { saju: SajuChart }) {
     })() : null;
 
     // ④ 개운 티저 — 색/요일 중 딱 하나만 공개(방위는 잠금 → §3 방향과 중복 방지). 일간으로 결정론 선택.
-    const gaeun = ELEM_GAEUN[inyeonEl];
+    const gaeun = GAEUN[inyeonEl];
     const teaser = ALL_STEMS.indexOf(dm) % 2 === 1
       ? { label: t('rr.teaserDow', '인연이 열리는 요일'), value: t(gaeun.day) }
       : { label: t('rr.teaserColor', '인연을 부르는 색'), value: t(gaeun.color) };

@@ -22,26 +22,30 @@ import { colors, radius, space, font } from '../lib/theme';
 import { JobTiming } from './JobTiming';                        // 기존 '취업·합격 유리한 해' 연 단위 달력(그대로 품음)
 import { PossibilityGauge } from './PossibilityGauge';          // 공용 가능성 게이지(재회·애정·취업 공유)
 import { computeJobSignals } from '../lib/content/jobGauge';    // 취업 게이지 결정론 신호(온디바이스 엔진)
+import { GAEUN } from '../lib/love/gaeunTable';                 // ★개운 표 단일 출처(재회·짝사랑과 공유)
+import { useTranslation } from 'react-i18next';
 
 // 개운 티저 짝/홀 선택용 일간 순서(재회 ReunionRich 와 동일 결정론 방식 — random 아님).
 const ALL_STEMS: Stem[] = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'];
 // 인성 오행(나를 생하는 오행 = 자격·문서·합격의 기운). 개운 색/요일 매핑 기준(취업 도메인 = 인성 = 자격·합격).
 //   ★daniel 검수 슬롯: 개운 기준을 '인성 오행'으로 둔 것(자격·서류·합격이 취업의 문을 여는 결) = sensible default.
 const INSEONG_EL: Record<Element, Element> = { 木: '水', 火: '木', 土: '火', 金: '土', 水: '金' };
-// 오행 → 취업 개운(방위·색·요일, 일상어). ReunionRich 표와 같은 결(색만 취업답게 단정한 톤).
-const ELEM_GAEUN: Record<Element, { dir: string; color: string; day: string }> = {
-  木: { dir: '동쪽', color: '맑은 청록빛', day: '목요일' },
-  火: { dir: '남쪽', color: '따뜻한 붉은빛', day: '화요일' },
-  土: { dir: '가까운 곳', color: '포근한 노란·베이지빛', day: '토요일' },
-  金: { dir: '서쪽', color: '단정한 흰·은빛', day: '금요일' },
-  水: { dir: '북쪽', color: '깊은 남색빛', day: '수요일' },
-};
+/**
+ * 취업 개운 표 — **공용 표를 그대로 쓰고 다른 한 칸만 덮는다**.
+ *
+ * ⚠️★종전엔 이 파일에 표 **사본**이 있었고, 실제로 갈려 있었다:
+ *   金의 색이 재회·짝사랑은 「맑은 흰·은빛」인데 여기만 「단정한 흰·은빛」이었다.
+ *   그 한 글자는 «취업답게» 일부러 다르게 쓴 것이라 살린다 — 대신 **나머지 넷은 갈릴 수 없게** 한다
+ *   ([[duplicate-ui-single-source]]: 주석의 «같다» 는 보장이 아니다).
+ */
+const JOB_GAEUN: typeof GAEUN = { ...GAEUN, 金: { ...GAEUN.金, color: 'jr.colorMetal' } };
 
 /**
  * 취업·이직 무료 리치 본문. FreeFunnel 의 render 로 주입(대표 명식 saju).
  * @param saju 대표 명식의 사주(결정론 산출 + timeUnknown 병합됨 — FreeFunnel 참고). sex 는 취업에 무관(무시).
  */
 export function JobRich({ saju }: { saju: SajuChart }) {
+  const { t } = useTranslation();
   // 모든 결정론 값은 saju 변경 시에만 1회 산출(성능·단일 소스). 게이지 카운트업 리렌더와 분리.
   const d = useMemo(() => {
     // ① 취업 게이지 신호(온디바이스 엔진) — timeUnknown 은 saju 병합값을 읽음(opts 미전달 = 기존 동작).
@@ -49,57 +53,59 @@ export function JobRich({ saju }: { saju: SajuChart }) {
     const { score, tone, gwanActive, inActive, siksangActive, jaeActive, natalGwanIn, primary, pressureNuance } = sig;
 
     // 경향 라벨/문구(§4 경향·단정 금지 + 처방 동반 + 전향적). tone 경계 = 재회 게이지와 동일(66/34).
-    const tendency = tone === 'open' ? '열려 있어요' : tone === 'warming' ? '서서히 열려요' : '지금은 조용해요';
+    const tendency = tone === 'open' ? t('rr.toneOpen', '열려 있어요') : tone === 'warming' ? t('rr.toneWarming', '서서히 열려요') : t('rr.toneQuiet', '지금은 조용해요');
     const gaugeCaption = tone === 'open'
-      ? '지금 직장·합격의 문이 활짝 열리는 흐름이에요. 원서·면접·이직을 준비하면 흐름을 타기 좋아요.'
+      ? t('jr.capOpen', '지금 직장·합격의 문이 활짝 열리는 흐름이에요. 원서·면접·이직을 준비하면 흐름을 타기 좋아요.')
       : tone === 'warming'
-        ? '직장·합격의 문이 서서히 열리는 중이에요. 자격·서류를 미리 갖춰 두면 열리는 때를 놓치지 않아요.'
-        : '지금은 문이 잠잠한 편이에요. 조급해하기보다 실력·자격을 다지며 다음 흐름을 준비하기 좋은 때예요.';
+        ? t('jr.capWarming', '직장·합격의 문이 서서히 열리는 중이에요. 자격·서류를 미리 갖춰 두면 열리는 때를 놓치지 않아요.')
+        : t('jr.capQuiet', '지금은 문이 잠잠한 편이에요. 조급해하기보다 실력·자격을 다지며 다음 흐름을 준비하기 좋은 때예요.');
 
     // ② 취업 운 신호 — 지금 도드라진 기운(헤드라인) + 받쳐 주는 기운들을 일상어로(전향적)
-    const signalLabel = primary === 'gwan' ? '직장·자리의 기운이 들어와요'
-      : primary === 'in' ? '자격·합격의 기운이 받쳐 줘요'
-        : primary === 'siksang' ? '실력을 보여줄 기운이 도와요'
-          : primary === 'jae' ? '결실·보상의 기운이 함께해요'
-            : '지금은 기운이 조용한 편이에요';
+    const signalLabel = primary === 'gwan' ? t('jr.sigGwan', '직장·자리의 기운이 들어와요')
+      : primary === 'in' ? t('jr.sigIn', '자격·합격의 기운이 받쳐 줘요')
+        : primary === 'siksang' ? t('jr.sigSiksang', '실력을 보여줄 기운이 도와요')
+          : primary === 'jae' ? t('jr.sigJae', '결실·보상의 기운이 함께해요')
+            : t('jr.sigNone', '지금은 기운이 조용한 편이에요');
     // 받쳐 주는 기운 조각(활성만 모아 한 문장으로 — 각 조각이 '기운'으로 끝나 뒤 조사 '이' 가 자연스럽게 붙음)
     const parts: string[] = [];
-    if (gwanActive) parts.push('직장·자리가 열리는 기운');
-    if (inActive) parts.push('자격·시험·서류를 뒷받침하는 기운');
-    if (siksangActive) parts.push('면접·실무에서 실력을 보여줄 기운');
-    if (jaeActive) parts.push('노력이 결실·보상으로 이어질 기운');
+    if (gwanActive) parts.push(t('jr.partGwan', '직장·자리가 열리는 기운'));
+    if (inActive) parts.push(t('jr.partIn', '자격·시험·서류를 뒷받침하는 기운'));
+    if (siksangActive) parts.push(t('jr.partSiksang', '면접·실무에서 실력을 보여줄 기운'));
+    if (jaeActive) parts.push(t('jr.partJae', '노력이 결실·보상으로 이어질 기운'));
+    // ⚠️★조각을 이어 붙인 뒤 조사가 붙는다 — 언어마다 어순이 달라 **문장 전체를 문구로** 둔다
+    //   (`…{{parts}}이 함께…` 처럼 자리표시자 하나로. 조각만 번역하고 틀은 한국어로 두면 어색해진다.)
     const signalBody = parts.length
-      ? `지금 흐름에는 ${parts.join(' · ')}이 함께 들어와 있어요. 준비해 둔 만큼 기회를 잡기 좋은 때예요.`
+      ? t('jr.bodyParts', '지금 흐름에는 {{parts}}이 함께 들어와 있어요. 준비해 둔 만큼 기회를 잡기 좋은 때예요.', { parts: parts.join(' · ') })
       : natalGwanIn
-        ? '지금은 특정 기운이 크게 도드라지진 않지만, 타고난 그릇에 직장·자격의 바탕이 자리해 있어요. 실력을 다지며 흐름이 열리는 때를 준비하면 좋아요.'
-        : '지금은 직장·자격의 기운이 잔잔한 편이에요. 조급해하기보다 방향을 정비하고 실력을 쌓아 두면 다음 흐름에서 문이 열려요.';
+        ? t('jr.bodyNatal', '지금은 특정 기운이 크게 도드라지진 않지만, 타고난 그릇에 직장·자격의 바탕이 자리해 있어요. 실력을 다지며 흐름이 열리는 때를 준비하면 좋아요.')
+        : t('jr.bodyQuiet', '지금은 직장·자격의 기운이 잔잔한 편이에요. 조급해하기보다 방향을 정비하고 실력을 쌓아 두면 다음 흐름에서 문이 열려요.');
 
     // ④ 개운 티저 — 색/요일 중 딱 하나만 공개(방위는 잠금 → 유료와 중복 방지). 일간으로 결정론 선택.
-    const gaeun = ELEM_GAEUN[INSEONG_EL[saju.dayMaster.element]];
+    const gaeun = JOB_GAEUN[INSEONG_EL[saju.dayMaster.element]];
     const teaser = ALL_STEMS.indexOf(saju.dayMaster.stem) % 2 === 1
-      ? { label: '지원·면접에 힘을 주는 요일', value: gaeun.day }
-      : { label: '합격·면접에 힘을 주는 색', value: gaeun.color };
+      ? { label: t('jr.teaserDow', '지원·면접에 힘을 주는 요일'), value: t(gaeun.day) }
+      : { label: t('jr.teaserColor', '합격·면접에 힘을 주는 색'), value: t(gaeun.color) };
 
     // ★daniel C 게이트 뉘앙스: 신약 + 편관 단독 강발동 → '취업'보다 '압박·시험대'의 결(부정 증폭 금지·전향적·처방 동반 §4).
     //   관살을 자격·전문성으로 소화하는 다지기 구간으로 프레이밍(살인상생 방향) — 단정·불안 조장 없이.
-    const finalLabel = pressureNuance ? '지금은 취업보다 압박·시험대의 시기예요' : signalLabel;
+    const finalLabel = pressureNuance ? t('jr.pressLabel', '지금은 취업보다 압박·시험대의 시기예요') : signalLabel;
     const finalBody = pressureNuance
-      ? '지금 흐름은 자리(직장)를 여는 기운보다 나를 시험하는 압박의 결이 강해요. 무리해서 밀어붙이기보다, 이 압박을 자격·전문성으로 소화해 두면(살을 다스려 힘으로) 다음 흐름에서 문이 더 크게 열려요.'
+      ? t('jr.pressBody', '지금 흐름은 자리(직장)를 여는 기운보다 나를 시험하는 압박의 결이 강해요. 무리해서 밀어붙이기보다, 이 압박을 자격·전문성으로 소화해 두면(살을 다스려 힘으로) 다음 흐름에서 문이 더 크게 열려요.')
       : signalBody;
 
     return { score, tone, tendency, gaugeCaption, signalLabel: finalLabel, signalBody: finalBody, teaser };
-  }, [saju]);
+  }, [saju, t]);
 
   const bright = d.tone === 'open';
 
   return (
     <>
       {/* ① 핵심 훅 — 취업 가능성 게이지(공용 애니 미터, accent 미전달 = 골드 기본) */}
-      <PossibilityGauge score={d.score} label={d.tendency} tone={d.tone} title="취업 문이 열린 정도" caption={d.gaugeCaption} />
+      <PossibilityGauge score={d.score} label={d.tendency} tone={d.tone} title={t('jr.gaugeTitle', '취업 문이 열린 정도')} caption={d.gaugeCaption} />
 
       {/* ② 지금 취업 운의 결 */}
       <View style={styles.card}>
-        <Text style={styles.cardTitle}>지금 취업 운의 결</Text>
+        <Text style={styles.cardTitle}>{t('jr.nowTitle', '지금 취업 운의 결')}</Text>
         <Text style={[styles.signalLabel, bright && styles.signalLabelBright]}>{d.signalLabel}</Text>
         <Text style={styles.cardBody}>{d.signalBody}</Text>
       </View>
@@ -109,16 +115,16 @@ export function JobRich({ saju }: { saju: SajuChart }) {
 
       {/* ④ 취업 개운 티저 + 잠긴 가치 명시(퍼널) */}
       <View style={styles.card}>
-        <Text style={styles.cardTitle}>취업 개운 미리보기</Text>
+        <Text style={styles.cardTitle}>{t('jr.gaeunTitle', '취업 개운 미리보기')}</Text>
         <View style={styles.teaserRow}>
           <Text style={styles.teaserLabel}>{d.teaser.label}</Text>
           <Text style={styles.teaserValue}>{d.teaser.value}</Text>
         </View>
-        <Text style={styles.lockNote}>🔒 좋은 방위 · 나머지 색·요일 · 지원·면접 실천법은 깊은 풀이에서</Text>
+        <Text style={styles.lockNote}>🔒 {t('jr.locked', '좋은 방위 · 나머지 색·요일 · 지원·면접 실천법은 깊은 풀이에서')}</Text>
         <View style={styles.divider} />
         {/* 무료 vs 유료 잠긴 가치 명시(퍼널 훅 — 골드 CTA 바로 위) */}
-        <Text style={styles.funnelLine}>무료로는 <Text style={styles.accent}>가능성·유리한 시기</Text>까지 볼 수 있어요.</Text>
-        <Text style={styles.funnelLine}>깊은 풀이에선 <Text style={styles.accent}>합격 전략·맞는 직종·구체 개운법·이직 타이밍</Text>까지 짚어 드려요.</Text>
+        <Text style={styles.funnelLine}><Text>{t('rr.freeA', '무료로는 ')}</Text><Text style={styles.accent}>{t('jr.freeB', '가능성·유리한 시기')}</Text><Text>{t('rr.freeC', '까지 볼 수 있어요.')}</Text></Text>
+        <Text style={styles.funnelLine}><Text>{t('rr.paidA', '깊은 풀이에선 ')}</Text><Text style={styles.accent}>{t('jr.paidB', '합격 전략·맞는 직종·구체 개운법·이직 타이밍')}</Text><Text>{t('rr.paidC', '까지 짚어 드려요.')}</Text></Text>
       </View>
     </>
   );

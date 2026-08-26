@@ -30,8 +30,14 @@ export type BirthDraft = {
 /** 아직 안 물어본 것 — 화면이 이걸 보고 무엇을 되물을지 정한다. */
 export type MissingKey = 'date' | 'time' | 'calendar' | 'sex' | 'place';
 
+/**
+ * 못 채운 칸의 **문구 키**(값이 아니다) — 화면이 `t()` 로 푼다.
+ *
+ * ⚠️★여기 한국어를 그대로 두면 «영어로 골랐는데 칸 이름만 한국어» 가 된다.
+ *   `.ts` 파일이라 `check:langpicker`(=`.tsx` 만 본다)가 **못 잡는 자리**다 — 그래서 여기 적어 둔다.
+ */
 export const MISSING_LABEL: Record<MissingKey, string> = {
-  date: '생년월일', time: '태어난 시각', calendar: '양력/음력', sex: '성별', place: '태어난 곳',
+  date: 'bd.fDate', time: 'bd.fTime', calendar: 'bd.fCal', sex: 'bd.fSex', place: 'bd.fPlace',
 };
 
 /**

@@ -28,15 +28,21 @@ import { View, Text, TextInput, StyleSheet } from 'react-native';
 import { PressableScale } from '../PressableScale';
 import { colors, space, radius, font } from '../../lib/theme';
 import { MISSING_LABEL, type BirthDraft } from '../../lib/talk/birthParse';
+import { useTranslation } from 'react-i18next';
 
-/** 십이지 — 시각을 모를 때 고르게 한다(«유시» 처럼 말하는 사람이 많다). */
-const BRANCHES: { k: string; label: string; time: string }[] = [
-  { k: '자', label: '자 (23~01)', time: '00:00' }, { k: '축', label: '축 (01~03)', time: '02:00' },
-  { k: '인', label: '인 (03~05)', time: '04:00' }, { k: '묘', label: '묘 (05~07)', time: '06:00' },
-  { k: '진', label: '진 (07~09)', time: '08:00' }, { k: '사', label: '사 (09~11)', time: '10:00' },
-  { k: '오', label: '오 (11~13)', time: '12:00' }, { k: '미', label: '미 (13~15)', time: '14:00' },
-  { k: '신', label: '신 (15~17)', time: '16:00' }, { k: '유', label: '유 (17~19)', time: '18:00' },
-  { k: '술', label: '술 (19~21)', time: '20:00' }, { k: '해', label: '해 (21~23)', time: '22:00' },
+/**
+ * 십이지 — 시각을 모를 때 고르게 한다(«유시» 처럼 말하는 사람이 많다).
+ *
+ * ★이름은 **용어**라 번역하지 않는다(한국어 「자」 · 그 밖은 「子」) — 시간대만 옆에 적는다.
+ *   그래서 표에는 `한글음 · 한자 · 시각` 만 담고, 라벨은 그릴 때 만든다.
+ */
+const BRANCHES: { k: string; hanja: string; span: string; time: string }[] = [
+  { k: '자', hanja: '子', span: '23~01', time: '00:00' }, { k: '축', hanja: '丑', span: '01~03', time: '02:00' },
+  { k: '인', hanja: '寅', span: '03~05', time: '04:00' }, { k: '묘', hanja: '卯', span: '05~07', time: '06:00' },
+  { k: '진', hanja: '辰', span: '07~09', time: '08:00' }, { k: '사', hanja: '巳', span: '09~11', time: '10:00' },
+  { k: '오', hanja: '午', span: '11~13', time: '12:00' }, { k: '미', hanja: '未', span: '13~15', time: '14:00' },
+  { k: '신', hanja: '申', span: '15~17', time: '16:00' }, { k: '유', hanja: '酉', span: '17~19', time: '18:00' },
+  { k: '술', hanja: '戌', span: '19~21', time: '20:00' }, { k: '해', hanja: '亥', span: '21~23', time: '22:00' },
 ];
 
 export type BirthCardResult = {
@@ -53,6 +59,8 @@ export function BirthDraftCard({ draft, onMake, busy }: {
   onMake: (r: BirthCardResult) => void;
   busy?: boolean;
 }) {
+  const { t, i18n } = useTranslation();
+  const ko = (i18n.language || 'ko').startsWith('ko');
   const [cal, setCal] = useState<'양' | '음' | null>(draft.calendar);
   const [sex, setSex] = useState<'남' | '여' | null>(draft.sex);
   const [place, setPlace] = useState(draft.place ?? '');
@@ -68,56 +76,56 @@ export function BirthDraftCard({ draft, onMake, busy }: {
 
   return (
     <View style={styles.card}>
-      <Text style={styles.title}>이 정보로 명식을 만들까요?</Text>
+      <Text style={styles.title}>{t('bd.title', '이 정보로 명식을 만들까요?')}</Text>
       <Text style={styles.read}>
-        {draft.date ?? '(생년월일을 못 읽었어요)'}
-        {unknownTime ? ' · 시각 모름' : time ? ` · ${time}` : ''}
+        {draft.date ?? t('bd.noDate', '(생년월일을 못 읽었어요)')}
+        {unknownTime ? ` · ${t('bd.timeUnknown', '시각 모름')}` : time ? ` · ${time}` : ''}
       </Text>
       {/* ★왜 더 묻는지 한 줄로 — 안 그러면 «왜 이런 걸 물어보지» 가 된다 */}
       <Text style={styles.why}>
-        태어난 곳은 진태양시 보정에 쓰여요 — 이게 없으면 시주가 달라질 수 있어요.
+        {t('bd.whyPlace', '태어난 곳은 진태양시 보정에 쓰여요 — 이게 없으면 시주가 달라질 수 있어요.')}
       </Text>
 
       {!draft.time && !unknownTime ? (
         <>
-          <Text style={styles.label}>{MISSING_LABEL.time}</Text>
+          <Text style={styles.label}>{t(MISSING_LABEL.time)}</Text>
           <View style={styles.row}>
             {BRANCHES.map((b) => (
               <PressableScale key={b.k} style={chip(time === b.time)} onPress={() => setTime(b.time)}>
-                <Text style={chipTx(time === b.time)}>{b.label}</Text>
+                <Text style={chipTx(time === b.time)}>{ko ? b.k : b.hanja} ({b.span})</Text>
               </PressableScale>
             ))}
             <PressableScale style={chip(false)} onPress={() => { setUnknownTime(true); setTime(null); }}>
-              <Text style={chipTx(false)}>모름</Text>
+              <Text style={chipTx(false)}>{t('bd.unknown', '모름')}</Text>
             </PressableScale>
           </View>
         </>
       ) : null}
 
-      <Text style={styles.label}>{MISSING_LABEL.calendar}</Text>
+      <Text style={styles.label}>{t(MISSING_LABEL.calendar)}</Text>
       <View style={styles.row}>
         {(['양', '음'] as const).map((c) => (
           <PressableScale key={c} style={chip(cal === c)} onPress={() => setCal(c)}>
-            <Text style={chipTx(cal === c)}>{c === '양' ? '양력' : '음력'}</Text>
+            <Text style={chipTx(cal === c)}>{c === '양' ? t('bd.solar', '양력') : t('bd.lunar', '음력')}</Text>
           </PressableScale>
         ))}
       </View>
 
-      <Text style={styles.label}>{MISSING_LABEL.sex}</Text>
+      <Text style={styles.label}>{t(MISSING_LABEL.sex)}</Text>
       <View style={styles.row}>
         {(['남', '여'] as const).map((g) => (
           <PressableScale key={g} style={chip(sex === g)} onPress={() => setSex(g)}>
-            <Text style={chipTx(sex === g)}>{g === '남' ? '남성' : '여성'}</Text>
+            <Text style={chipTx(sex === g)}>{g === '남' ? t('bd.male', '남성') : t('bd.female', '여성')}</Text>
           </PressableScale>
         ))}
       </View>
 
-      <Text style={styles.label}>{MISSING_LABEL.place}</Text>
+      <Text style={styles.label}>{t(MISSING_LABEL.place)}</Text>
       <TextInput
         style={styles.input}
         value={place}
         onChangeText={setPlace}
-        placeholder="예) 서울 · 부산 · 밀라노"
+        placeholder={t('bd.placePh', '예) 서울 · 부산 · 밀라노')}
         placeholderTextColor={colors.inkFaint}
       />
 
@@ -133,9 +141,9 @@ export function BirthDraftCard({ draft, onMake, busy }: {
           });
         }}
       >
-        <Text style={styles.goTx}>{busy ? '만드는 중…' : '명식 만들기'}</Text>
+        <Text style={styles.goTx}>{busy ? t('bd.making', '만드는 중…') : t('bd.make', '명식 만들기')}</Text>
       </PressableScale>
-      {!ready ? <Text style={styles.hint}>위에서 못 채운 것을 골라 주세요.</Text> : null}
+      {!ready ? <Text style={styles.hint}>{t('bd.fillAbove', '위에서 못 채운 것을 골라 주세요.')}</Text> : null}
     </View>
   );
 }
