@@ -103,6 +103,17 @@ if (isMain) {
   say(wired, 'S3b 그 상한이 **실제로 요청에 쓰인다**',
     wired ? '' : '상한을 정해 놓고 `max_tokens` 에 안 넘기고 있습니다');
 
+  // ── S4 ★★thinking 이 답을 잡아먹지 않는가 (2026-08-26 실측 — **진짜 원인이었다**) ──
+  //   Opus 5 는 adaptive thinking 이 기본이라 `max_tokens` 를 **thinking 과 답이 나눠 쓴다**.
+  //   실측: `out_tok = 1100`(상한 정확히)인데 화면 글자는 **136자**였다 — ~970 토큰을 thinking 이 먹었다.
+  //   그래서 「먼저 끌리는 쪽…」 까지만 말하고 끊겼고, 어떤 턴은 **빈 답**이 나왔다(text 블록이 아예 없다).
+  //   ⇒ 끈 뒤 같은 질문: **764 토큰 · 614자**. 상한에도 안 닿는다. **더 싸고 5배 길다.**
+  {
+    const off = /thinking:\s*\{\s*type:\s*'disabled'\s*\}/.test(talk);
+    say(off, 'S4 대화에서 thinking 을 끈다',
+      off ? '★안 끄면 상한을 thinking 이 먹어 답이 «하다가 만다»' : '★`out_tok`은 상한인데 글자는 몇 줄뿐인 상태가 됩니다');
+  }
+
   if (bad) { console.log(`\n❌ ${bad}건 — 이 중 하나만 남아도 **여전히 단답**이 나옵니다.\n`); process.exit(1); }
   console.log('\n✅ 지문·갈림길·상한 셋이 모두 서사를 허용합니다\n');
 }
