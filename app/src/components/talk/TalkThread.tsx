@@ -48,6 +48,16 @@ export type TalkItem = {
    * ⚠️`avatar` 가 없으면 이름 첫 글자로 대신한다 — 사진이 아직 없는 상담가가 있다.
    */
   who?: { name: string; avatar?: string | null; element?: string };
+  /**
+   * 말풍선이 아닌 **가운데 안내 한 줄**(Boss 2026-08-26
+   *   *"운이 차감될때마다 말풍선없이 가운데 정렬로 작은 글씨로 얼마의 운이 차감됐는지"*).
+   *
+   * ★말풍선을 쓰지 않는 이유: 이건 **대화가 아니라 영수증**이다.
+   *   말풍선에 넣으면 상담가가 «2운 썼어요» 라고 말한 것처럼 읽힌다 — 사람과 시스템은 결이 달라야 한다.
+   *   카톡도 «메시지를 삭제했습니다»·«초대했습니다» 를 가운데 작은 글씨로 낸다.
+   * ⚠️이 줄이 있으면 **다른 것은 안 그린다**(말풍선·카드·그림 전부). 한 줄이 전부다.
+   */
+  system?: string;
 };
 
 /**
@@ -131,7 +141,12 @@ export function TalkThread({ items, busy, onLink, jumpTo }: {
 
   return (
     <ScrollView ref={ref} style={styles.wrap} contentContainerStyle={styles.body}>
-      {items.map((m) => (
+      {items.map((m) => (m.system ? (
+        // ★시스템 한 줄 — 가운데·작게·말풍선 없음. 누르는 것도 아니다(정보만)
+        <View key={m.id} style={styles.sysRow}>
+          <Text style={styles.sysTx}>{m.system}</Text>
+        </View>
+      ) : (
         <View
           key={m.id}
           style={[m.role === 'user' ? styles.mineRow : styles.themRow, lit != null && m.msgId === lit && styles.litRow]}
@@ -175,13 +190,17 @@ export function TalkThread({ items, busy, onLink, jumpTo }: {
             </View>
           ) : null}
         </View>
-      ))}
+      )))}
       {busy ? <TypingBubble /> : null}
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
+  // ★시스템 한 줄(운 차감 영수증) — 말풍선과 **같은 것이 하나도 없어야** 한다:
+  //   가운데 정렬 · 작은 글씨 · 흐린 색 · 배경 없음. 그래야 «사람 말» 과 안 헷갈린다.
+  sysRow: { alignSelf: 'center', paddingVertical: space(1.5), paddingHorizontal: space(3) },
+  sysTx: { ...font.caption, fontSize: 11, lineHeight: 15, color: colors.inkFaint, textAlign: 'center' },
   wrap: { flex: 1, backgroundColor: colors.bg },
   body: { padding: space(4), paddingBottom: space(8) },
 

@@ -164,6 +164,44 @@ console.log('\n=== ⑥ DB 실측 — 단가·한도가 실제로 어떻게 잡�
   }
 }
 
+// ── ⑦ 차감 «영수증» 한 줄 (Boss 2026-08-26) ─────────────────────────────
+//   *"운이 차감될때마다 말풍선없이 가운데 정렬로 작은 글씨로 얼마의 운이 차감됐는지"*
+//   ★이건 **돈 문구**다. 앱이 단가를 지어내면 운영자가 `coin_cost` 를 바꾼 순간
+//     화면과 실제 차감이 갈린다 — 사용자는 화면을 믿는다. [[pay-alert-must-show-numbers]]
+{
+  console.log('\n=== ⑦ 운 차감 표시 ===');
+  const screen = readFileSync(SCREEN, 'utf8');
+  const code = screen.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/(^|[^:])\/\/[^\n]*/g, '$1 ');
+  const live = readFileSync(LIVE, 'utf8');
+
+  if (!/talk\.spent/.test(code)) bad('차감 표시가 없다 — 얼마가 빠졌는지 사용자가 모른다');
+  else {
+    ok('차감 표시가 있다');
+    const seg = code.slice(Math.max(0, code.indexOf('talk.spent') - 600), code.indexOf('talk.spent') + 300);
+    // (1) 서버가 준 값만 쓰는가
+    //   ⚠️★«주변에 spent 라는 글자가 있나» 로 보면 안 된다 — 음성 테스트에서 실제로 뚫렸다.
+    //     `String(2)` 로 바꿔도 위쪽 `const spent = Number(r.spent ?? 0)` 때문에 통과했다.
+    //     ⇒ **그 줄의 치환 표현식**을 본다. [[harness-judge-expression-not-name]]
+    const spentLine = (code.match(/t\('talk\.spent'[^\n]*/) ?? [''])[0];
+    const sub = (spentLine.match(/\.replace\([^,]+,\s*([^)]*\))\s*\)/) ?? [])[1] ?? '';
+    if (!spentLine) bad('talk.spent 를 쓰는 줄을 못 찾았다 — 하네스가 헛돈다');
+    else if (/\bString\(\s*\d/.test(sub) || !/\bspent\b/.test(sub)) {
+      bad(`★표시 숫자가 서버 spent 가 아니다(치환값: ${sub || '없음'}) — 앱이 단가를 지어내면 실제 차감과 갈린다`);
+    } else ok('숫자는 서버가 준 `spent` 만 쓴다(치환 표현식으로 확인)');
+    // (2) 0 이면 안 띄우는가 — 무료 구간에서 «0운 사용» 은 거짓말이다
+    if (!/spent\s*>\s*0/.test(seg)) bad('0 일 때도 띄운다 — 무료 구간에서 «0운 사용» 은 사실이 아니다');
+    else ok('0 이면 띄우지 않는다');
+    // (3) 말풍선이 아닌가 — Boss 가 «말풍선없이» 라고 못박았다
+    if (!/system:/.test(seg)) bad('★말풍선으로 띄운다 — Boss 는 «말풍선없이 가운데 작은 글씨» 라고 했다');
+    else ok('말풍선이 아니라 시스템 한 줄이다');
+  }
+  // (4) 서버가 실제로 `spent` 를 내려주는가 — 앱만 고치면 영원히 0 이다
+  if (!/spent/.test(live)) bad(`${LIVE} 가 서버 응답의 spent 를 안 읽는다`);
+  else ok('앱이 서버 응답의 spent 를 읽는다');
+  if (!/spent/.test(edge)) bad('서버가 spent 를 안 내려준다');
+  else ok('서버가 spent 를 내려준다');
+}
+
 console.log(`\n   통과 ${pass} · 실패 ${fail}`);
 if (fail) {
   console.log('\n   ⚠️ 대화 과금이 어긋나 있다.');

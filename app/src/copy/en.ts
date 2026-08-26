@@ -740,6 +740,8 @@ export const en = {
     'needLoginMsg': 'Sign in to save your chart and keep talking with your reader.',
     'liveGreet': "Hello, I'm {{name}}. What's on your mind?",
     'overFree': "You've used today's free chats. Woon will be used from now on.",
+    // ★Spend receipt line (not a bubble — centered, small). The number comes from the server only.
+    'spent': '{{n}} Woon used',
     'freeLeft': '{{n}} free chats left today.',
     'needCoinsTitle': 'Not enough woon',
     'needCoinsMsg': 'Each message costs {{cost}} woon. You have {{have}} right now.',

@@ -537,6 +537,27 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
                 body: r.banter!.line, who: whoOf(r.banter!.name) }], 0);
             }, after));
           }
+          // ★★운 차감 «영수증» 한 줄 (Boss 2026-08-26
+          //   *"운이 차감될때마다 말풍선없이 가운데 정렬로 작은 글씨로 얼마의 운이 차감됐는지"*).
+          //
+          //   ■ ★서버가 준 `spent` 만 쓴다 — 앱이 계산하지 않는다
+          //     단가는 `consultants.coin_cost` 가 정한다. 앱이 «2운이겠지» 하고 적으면
+          //     운영자가 단가를 바꾼 순간 **화면과 실제 차감이 갈린다**. 그건 돈 문제다.
+          //     [[pay-alert-must-show-numbers]] — 가격을 문구에 박지 말 것.
+          //   ■ 0이면 안 띄운다 — 무료 구간에서는 **아무것도 안 빠졌다**(«0운 사용» 은 거짓말이다).
+          //   ■ ⚠️답이 **다 뜬 뒤**에 붙인다(곁다리와 같은 이유) — 같이 넣으면 순차 표시를
+          //     앞질러 영수증이 답보다 먼저 뜬다.
+          //   ⚠️옛 서버는 `spent` 를 안 줄 수 있다 — 없으면 0(=안 띄움)으로 떨어진다
+          const spent = Number(r.spent ?? 0);
+          if (spent > 0) {
+            const wait = parts.reduce((a, b) => a + typingDelay(b), 0) + (r.banter ? 900 : 0) + 420;
+            timersRef.current.push(setTimeout(() => {
+              setItems((prev) => [...prev, {
+                id: nextId(), role: 'assistant' as const, body: '',
+                system: t('talk.spent', '{{n}}운 사용').replace('{{n}}', String(spent)),
+              }]);
+            }, wait));
+          }
           // ⚠️무료 소진 안내는 **답이 다 뜬 뒤**에 붙인다 — 바로 넣으면 순차 표시를 앞질러
           //   답보다 먼저 뜬다. 마지막 풍선의 예상 시각 뒤로 미룬다.
           // ★무료 소진 — 상단 띠로 알린다(종전엔 상담가 말풍선이었다).
