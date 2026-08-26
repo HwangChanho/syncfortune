@@ -14,6 +14,7 @@
 // ▶ §4 안전(가드4 직업): 어느 쪽도 '더 낫다' 아님 — 성향 차이일 뿐(전향적). 부정 증폭·단정 금지.
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useMemo, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { View, Text, Animated, Easing, StyleSheet } from 'react-native';
 import type { SajuChart } from '@spec/chart';
 import { colors, radius, space, font } from '../lib/theme';
@@ -23,37 +24,24 @@ import { computeCareerSignals, type CareerBand, type BizSignal, type OrgSignal }
 const BIZ_COLOR = '#3FA7A0'; // 사업가(독립·창의) — career 테마색
 const ORG_COLOR = '#5B7BB4'; // 직장인(조직·안정) — 차분한 남청
 
+// ⚠️★아래 네 표는 값이 아니라 **문구 키**다(모듈 상수라 `t()` 를 여기서 못 부른다 — 그릴 때 푼다).
 // 4유형 → 화면 라벨(한자/십신 없이 일상어).
 const BAND_LABEL: Record<CareerBand, string> = {
-  org: '조직형',
-  hybrid: '하이브리드형',
-  pro: '전문가·프리랜서형',
-  independent: '독립사업형',
+  org: 'ct.bandOrg', hybrid: 'ct.bandHybrid', pro: 'ct.bandPro', independent: 'ct.bandIndep',
 };
 // 4유형 → 지배 성향 헤드라인/서브(§4 전향적 — 어느 쪽도 우열 아님, 성향 차이).
 const BAND_HEAD: Record<CareerBand, string> = {
-  org: "타고난 기운이 '조직' 안에서 빛나는 결이에요",
-  hybrid: '조직과 내 사업, 두 결을 함께 지닌 유연형이에요',
-  pro: '전문성을 무기로 홀로서기 좋은 결이에요',
-  independent: "타고난 기운이 '내 사업'에 가까운 결이에요",
+  org: 'ct.headOrg', hybrid: 'ct.headHybrid', pro: 'ct.headPro', independent: 'ct.headIndep',
 };
 const BAND_SUB: Record<CareerBand, string> = {
-  org: '체계와 소속 안에서 신뢰를 쌓아 올릴 때 힘이 나요. 어느 쪽이 더 낫고 못하고가 아니라, 나에게 맞는 결이 이쪽이라는 뜻이에요.',
-  hybrid: '상황에 따라 조직으로도, 내 사업으로도 갈 수 있어요. 한쪽으로만 몰지 않아도 되는 게 오히려 강점이에요.',
-  pro: '조직에 기대기보다 나만의 전문성으로 자리를 만들 때 잘 풀려요. 조직 경험을 발판 삼아 홀로서기로 이어가기 좋아요.',
-  independent: '내 판을 직접 이끌 때 가장 나다워요. 다만 어느 쪽이 우월한 게 아니라, 타고난 성향이 이쪽이라는 의미예요.',
+  org: 'ct.subOrg', hybrid: 'ct.subHybrid', pro: 'ct.subPro', independent: 'ct.subIndep',
 };
 // 최강 신호(neutral key) → 일상어(전부 '힘/강점'으로 전향 프레이밍).
 const BIZ_WORD: Record<BizSignal, string> = {
-  creative: '새로운 걸 만들고 나를 표현하는 힘',
-  wealth: '직접 부딪혀 현실 성과를 만드는 힘',
-  independent: '스스로 판을 이끄는 독립심',
-  none: '자기 주도로 움직이는 힘',
+  creative: 'ct.bizCreative', wealth: 'ct.bizWealth', independent: 'ct.bizIndep', none: 'ct.bizNone',
 };
 const ORG_WORD: Record<OrgSignal, string> = {
-  structure: '조직과 체계 안에서 자리를 잡는 힘',
-  stability: '안정과 신뢰를 차곡차곡 쌓는 힘',
-  none: '틀 안에서 꾸준히 쌓아가는 힘',
+  structure: 'ct.orgStructure', stability: 'ct.orgStability', none: 'ct.orgNone',
 };
 
 /**
@@ -61,13 +49,16 @@ const ORG_WORD: Record<OrgSignal, string> = {
  * @param saju 대표 명식의 사주(원국 + timeUnknown 병합). computeCareerSignals 로 저울·유형 산출.
  */
 export function CareerTeaser({ saju }: { saju: SajuChart & { timeUnknown?: boolean } }) {
+  const { t } = useTranslation();
   // 결정론 값은 saju 변경 시에만 1회 산출(성능·단일 소스). 저울 애니 리렌더와 분리.
   const d = useMemo(() => {
     const sig = computeCareerSignals(saju);
     // 양쪽 힘을 '둘 다 강점'으로 묶는 한 줄(전향적) — 어느 쪽도 우열 아님을 시각·문구로 못박음.
-    const bothLine = `사업가 쪽으로는 ${BIZ_WORD[sig.topBizSignal]}, 조직 쪽으로는 ${ORG_WORD[sig.topOrgSignal]}이 함께 있어요.`;
+    // ⚠️조사가 붙는 문장이라 **틀째로** 문구에 둔다(조각만 옮기면 어순이 어긋난다).
+    const bothLine = t('ct.bothLine', '사업가 쪽으로는 {{biz}}, 조직 쪽으로는 {{org}}이 함께 있어요.',
+      { biz: t(BIZ_WORD[sig.topBizSignal]), org: t(ORG_WORD[sig.topOrgSignal]) });
     return { ...sig, bothLine };
-  }, [saju]);
+  }, [saju, t]);
 
   if (!saju?.pillars) return null; // 방어 — 명식 없으면 티저 생략
 
@@ -77,15 +68,15 @@ export function CareerTeaser({ saju }: { saju: SajuChart & { timeUnknown?: boole
   return (
     <View style={styles.wrap}>
       {/* 리드(일상어) */}
-      <Text style={styles.lead}>타고난 기운이 '내 사업'에 가까운지 '조직'에 가까운지</Text>
-      <Text style={styles.leadSub}>양팔저울로 미리 그려 봤어요. 자세한 이야기는 아래에서 열 수 있어요.</Text>
+      <Text style={styles.lead}>{t('ct.lead', "타고난 기운이 '내 사업'에 가까운지 '조직'에 가까운지")}</Text>
+      <Text style={styles.leadSub}>{t('ct.leadSub', '양팔저울로 미리 그려 봤어요. 자세한 이야기는 아래에서 열 수 있어요.')}</Text>
 
       {/* ① 사업가↔직장인 저울(커스텀 애니 바) + 4유형 라벨 */}
       <View style={styles.barCard}>
         <BalanceBar bizPct={d.bizPct} orgPct={d.orgPct} />
         <View style={styles.bandRow}>
-          <Text style={styles.bandCap}>내 유형</Text>
-          <Text style={[styles.bandLabel, { color: headColor }]}>{BAND_LABEL[d.band]}</Text>
+          <Text style={styles.bandCap}>{t('ms.mine', '내 유형')}</Text>
+          <Text style={[styles.bandLabel, { color: headColor }]}>{t(BAND_LABEL[d.band])}</Text>
         </View>
       </View>
 
@@ -103,13 +94,13 @@ export function CareerTeaser({ saju }: { saju: SajuChart & { timeUnknown?: boole
           {d.riskFlag ? (
             <Text style={styles.noteLine}>
               <Text style={styles.noteDot}>· </Text>
-              타고난 그릇은 '내 사업'에 어울리지만, 지금 짜임새로는 실행 단계에서 <Text style={styles.noteAccent}>구조를 다지는 준비</Text>가 필요한 결이에요. 그래서 저울이 중앙 쪽에 가까워요.
+              <Text>{t('ct.riskA', "타고난 그릇은 '내 사업'에 어울리지만, 지금 짜임새로는 실행 단계에서 ")}</Text><Text style={styles.noteAccent}>{t('ct.riskB', '구조를 다지는 준비')}</Text><Text>{t('ct.riskC', '가 필요한 결이에요. 그래서 저울이 중앙 쪽에 가까워요.')}</Text>
             </Text>
           ) : null}
           {d.partnerRisk ? (
             <Text style={[styles.noteLine, d.riskFlag && { marginTop: space(2) }]}>
               <Text style={styles.noteDot}>· </Text>
-              혼자보다 <Text style={styles.noteAccent}>동업·공동투자</Text>에서는 지분·역할을 또렷이 해두면 탈이 적어요.
+              <Text>{t('ct.partnerA', '혼자보다 ')}</Text><Text style={styles.noteAccent}>{t('ct.partnerB', '동업·공동투자')}</Text><Text>{t('ct.partnerC', '에서는 지분·역할을 또렷이 해두면 탈이 적어요.')}</Text>
             </Text>
           ) : null}
         </View>
@@ -117,8 +108,8 @@ export function CareerTeaser({ saju }: { saju: SajuChart & { timeUnknown?: boole
 
       {/* ── 무료 vs 유료 가치 명시(퍼널 훅) — 바로 아래 게이트(₩4,900 CTA)로 이어진다 ── */}
       <View style={styles.funnelCard}>
-        <Text style={styles.funnelLine}>무료로는 <Text style={styles.accent}>내 성향의 무게추(사업가↔직장인)</Text>를 볼 수 있어요.</Text>
-        <Text style={styles.funnelLine}>깊은 풀이에선 <Text style={styles.accent}>나에게 맞는 직종·창업하기 좋은 시기·조직에서 잘 적응하는 법</Text>까지 짚어 드려요.</Text>
+        <Text style={styles.funnelLine}><Text>{t('rr.freeA', '무료로는 ')}</Text><Text style={styles.accent}>{t('ct.freeB', '내 성향의 무게추(사업가↔직장인)')}</Text><Text>{t('ct.freeC', '를 볼 수 있어요.')}</Text></Text>
+        <Text style={styles.funnelLine}><Text>{t('rr.paidA', '깊은 풀이에선 ')}</Text><Text style={styles.accent}>{t('ct.paidB', '나에게 맞는 직종·창업하기 좋은 시기·조직에서 잘 적응하는 법')}</Text><Text>{t('rr.paidC', '까지 짚어 드려요.')}</Text></Text>
       </View>
     </View>
   );
@@ -126,6 +117,7 @@ export function CareerTeaser({ saju }: { saju: SajuChart & { timeUnknown?: boole
 
 /** 사업가↔직장인 양팔 저울 바(커스텀·애니) — 중앙 50/50 에서 실제 비율로 기울며 벌어진다(무게추=경계). */
 function BalanceBar({ bizPct, orgPct }: { bizPct: number; orgPct: number }) {
+  const { t } = useTranslation();
   const anim = useRef(new Animated.Value(0)).current; // 0=균형(50/50) → 1=실제 비율
   useEffect(() => {
     anim.setValue(0);
@@ -138,8 +130,8 @@ function BalanceBar({ bizPct, orgPct }: { bizPct: number; orgPct: number }) {
     <View>
       {/* 양쪽 라벨 + % */}
       <View style={styles.barLabels}>
-        <Text style={[styles.sideLabel, { color: BIZ_COLOR }]}>사업가 <Text style={styles.sidePct}>{bizPct}%</Text></Text>
-        <Text style={[styles.sideLabel, { color: ORG_COLOR }]}><Text style={styles.sidePct}>{orgPct}%</Text> 직장인</Text>
+        <Text style={[styles.sideLabel, { color: BIZ_COLOR }]}>{t('ct.biz', '사업가')} <Text style={styles.sidePct}>{bizPct}%</Text></Text>
+        <Text style={[styles.sideLabel, { color: ORG_COLOR }]}><Text style={styles.sidePct}>{orgPct}%</Text> {t('ct.org', '직장인')}</Text>
       </View>
       {/* 저울 바 — 좌(사업가)·우(직장인) 두 세그먼트가 밝은 경계(무게추)에서 만난다 */}
       <View style={styles.barTrack}>
@@ -148,8 +140,8 @@ function BalanceBar({ bizPct, orgPct }: { bizPct: number; orgPct: number }) {
       </View>
       {/* 스펙트럼 힌트 */}
       <View style={styles.barEnds}>
-        <Text style={styles.endHint}>← 내 사업·독립</Text>
-        <Text style={styles.endHint}>조직·안정 →</Text>
+        <Text style={styles.endHint}>← {t('ct.endBiz', '내 사업·독립')}</Text>
+        <Text style={styles.endHint}>{t('ct.endOrg', '조직·안정')} →</Text>
       </View>
     </View>
   );

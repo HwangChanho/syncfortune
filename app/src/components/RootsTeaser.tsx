@@ -14,6 +14,7 @@
 //     년월일시는 사주 고전 '근묘화실(根苗花實)' 프레임으로 뿌리·줄기·꽃·열매로 표기(자연스러운 나무 결).
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useMemo, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { View, Text, Animated, Easing, StyleSheet } from 'react-native';
 import type { SajuChart, PillarPos, HiddenStem } from '@spec/chart';
 import { colors, radius, space, font } from '../lib/theme';
@@ -24,11 +25,12 @@ const ROOT_GREEN = elementColor['木']; // roots.tsx themeColor(木)와 통일 �
 
 // 근묘화실(根苗花實) — 년월일시를 뿌리·줄기·꽃·열매로(사주 고전 프레임). 한자·십신 노출 없이 일상어로.
 //   위→아래 = 초년(뿌리) → 말년(열매) 흐름. 일주(꽃) = '지금의 나'(일간).
+// ⚠️★값이 아니라 **문구 키**다(모듈 상수라 `t()` 를 여기서 못 부른다 — 그릴 때 푼다).
 const LIFE_PART: Record<PillarPos, { part: string; sub: string }> = {
-  년: { part: '뿌리', sub: '타고난 바탕' },
-  월: { part: '줄기', sub: '자라온 터전' },
-  일: { part: '꽃', sub: '지금의 나' },
-  시: { part: '열매', sub: '맺어갈 결실' },
+  년: { part: 'rt.partRoot', sub: 'rt.subRoot' },
+  월: { part: 'rt.partStem', sub: 'rt.subStem' },
+  일: { part: 'rt.partFlower', sub: 'rt.subFlower' },
+  시: { part: 'rt.partFruit', sub: 'rt.subFruit' },
 };
 const ORDER: PillarPos[] = ['년', '월', '일', '시']; // 근묘화실 순서(위→아래)
 
@@ -37,19 +39,20 @@ const ROLE_W: Record<HiddenStem['role'], number> = { 본기: 3, 중기: 2, 여�
 
 // 통근 점수 → 일상어 tier + 막대 비율. §4 웰빙 가드: 뿌리 약함도 '떠 있음'으로 부드럽게(부정 증폭 X).
 function rootTier(score: number): { label: string; frac: number } {
-  if (score <= 0) return { label: '떠 있어요', frac: 0.07 };        // 통근 없음 = 겉에만 드러나고 속뿌리 없음
-  if (score <= 2) return { label: '뿌리가 얕아요', frac: 0.32 };
-  if (score <= 4) return { label: '뿌리가 있어요', frac: 0.56 };
-  if (score <= 6.5) return { label: '뿌리가 단단해요', frac: 0.8 };
-  return { label: '뿌리가 아주 깊어요', frac: 1 };
+  // ★`label` 은 **문구 키**다(순수 함수라 `t()` 를 못 부른다 — 화면이 푼다).
+  if (score <= 0) return { label: 'rt.tier0', frac: 0.07 };        // 통근 없음 = 겉에만 드러나고 속뿌리 없음
+  if (score <= 2) return { label: 'rt.tier1', frac: 0.32 };
+  if (score <= 4) return { label: 'rt.tier2', frac: 0.56 };
+  if (score <= 6.5) return { label: 'rt.tier3', frac: 0.8 };
+  return { label: 'rt.tier4', frac: 1 };
 }
 
 // 전체 단단함(득령·득지·득세 개수 0~3) → 일상어 한 줄. §4: 약해도 '유연·섬세'로 전향 프레이밍.
 function overallLine(deukCnt: number): { head: string; sub: string } {
-  if (deukCnt >= 3) return { head: '타고난 기운이 아주 단단히 뿌리내렸어요', sub: '웬만한 흔들림엔 크게 휘둘리지 않는 힘이에요.' };
-  if (deukCnt === 2) return { head: '기운이 단단하게 자리 잡은 편이에요', sub: '중심이 서 있어 밀어붙이는 힘이 있어요.' };
-  if (deukCnt === 1) return { head: '기운이 부드럽고 유연한 편이에요', sub: '주변 흐름을 잘 읽고 맞춰가는 힘이 있어요.' };
-  return { head: '기운이 가볍고 유연해서 변화에 잘 맞춰가요', sub: '틀에 얽매이지 않고 상황에 맞춰 흐르는 결이에요.' };
+  if (deukCnt >= 3) return { head: 'rt.head3', sub: 'rt.sub3' };
+  if (deukCnt === 2) return { head: 'rt.head2', sub: 'rt.sub2' };
+  if (deukCnt === 1) return { head: 'rt.head1', sub: 'rt.sub1' };
+  return { head: 'rt.head0', sub: 'rt.sub0' };
 }
 
 /**
@@ -57,6 +60,7 @@ function overallLine(deukCnt: number): { head: string; sub: string } {
  * @param saju 대표 명식의 사주(결정론 산출 + timeUnknown 병합됨 — SpecialContentScreen freeHook 참고).
  */
 export function RootsTeaser({ saju }: { saju: SajuChart & { timeUnknown?: boolean } }) {
+  const { t } = useTranslation();
   const grow = useRef(new Animated.Value(0)).current; // 막대가 좌→우로 차오르는 마운트 애니(0→1)
 
   // 모든 결정론 값은 saju 변경 시에만 1회 산출(성능·단일 소스).
@@ -98,16 +102,16 @@ export function RootsTeaser({ saju }: { saju: SajuChart & { timeUnknown?: boolea
   return (
     <View style={styles.wrap}>
       {/* 리드(일상어) — 무엇을 보여주는지 + 유도 */}
-      <Text style={styles.lead}>타고난 기운이 얼마나 단단히 뿌리내렸는지</Text>
-      <Text style={styles.leadSub}>뿌리가 깊을수록 흔들림이 적어요. 네 자리의 뿌리 강도를 미리 그려 봤어요.</Text>
+      <Text style={styles.lead}>{t('rt.lead', '타고난 기운이 얼마나 단단히 뿌리내렸는지')}</Text>
+      <Text style={styles.leadSub}>{t('rt.leadSub', '뿌리가 깊을수록 흔들림이 적어요. 네 자리의 뿌리 강도를 미리 그려 봤어요.')}</Text>
 
       {/* ① 4기둥(근묘화실) 뿌리 강도 막대 — 핵심 무료 훅 */}
       <View style={styles.barCard}>
         {d.rows.map((r) => (
           <View key={r.p} style={styles.barItem}>
             <View style={styles.barHead}>
-              <Text style={styles.barPart}>{r.part} <Text style={styles.barSub}>· {r.sub}</Text></Text>
-              <Text style={[styles.barTier, { color: r.rooted ? ROOT_GREEN : colors.inkFaint }]}>{r.label}</Text>
+              <Text style={styles.barPart}>{t(r.part)} <Text style={styles.barSub}>· {t(r.sub)}</Text></Text>
+              <Text style={[styles.barTier, { color: r.rooted ? ROOT_GREEN : colors.inkFaint }]}>{t(r.label)}</Text>
             </View>
             <View style={styles.barTrack}>
               <Animated.View
@@ -124,24 +128,24 @@ export function RootsTeaser({ saju }: { saju: SajuChart & { timeUnknown?: boolea
           </View>
         ))}
         {/* 범례(일상어) — 막대 = 겉으로 드러난 기운(투출)이 속뿌리(통근)에 닿은 정도 */}
-        <Text style={styles.legend}>막대가 길수록 겉으로 드러난 기운이 속뿌리까지 단단히 닿아 있어요. 짧으면 겉에만 떠 있는 기운이에요.</Text>
+        <Text style={styles.legend}>{t('rt.legend', '막대가 길수록 겉으로 드러난 기운이 속뿌리까지 단단히 닿아 있어요. 짧으면 겉에만 떠 있는 기운이에요.')}</Text>
       </View>
 
       {/* ② 전체 단단함 요약(득령·득지·득세 → 일상어) */}
       <View style={styles.card}>
-        <Text style={styles.overallHead}>{d.head}</Text>
-        <Text style={styles.overallSub}>{d.sub}</Text>
+        <Text style={styles.overallHead}>{t(d.head)}</Text>
+        <Text style={styles.overallSub}>{t(d.sub)}</Text>
         <View style={styles.divider} />
         <Text style={styles.overallCount}>
-          {d.total}자리 중 <Text style={styles.accent}>{d.rootedCnt}곳</Text>이 속뿌리에 닿아 있어요.
+          <Text>{t('rt.countA', '{{n}}자리 중 ', { n: d.total })}</Text><Text style={styles.accent}>{t('rt.countB', '{{n}}곳', { n: d.rootedCnt })}</Text><Text>{t('rt.countC', '이 속뿌리에 닿아 있어요.')}</Text>
         </Text>
-        {d.timeUnknown ? <Text style={styles.tuNote}>태어난 시각을 몰라 열매(시) 자리는 뺐어요.</Text> : null}
+        {d.timeUnknown ? <Text style={styles.tuNote}>{t('rt.tuNote', '태어난 시각을 몰라 열매(시) 자리는 뺐어요.')}</Text> : null}
       </View>
 
       {/* ── 무료 vs 유료 가치 명시(퍼널 훅) — 곧바로 아래 게이트(유료 CTA)로 이어진다 ── */}
       <View style={styles.card}>
-        <Text style={styles.funnelLine}>무료로는 <Text style={styles.accent}>네 자리의 뿌리 강도</Text>를 한눈에 볼 수 있어요.</Text>
-        <Text style={styles.funnelLine}>깊은 풀이에선 <Text style={styles.accent}>각 뿌리가 삶에서 무엇을 뜻하는지, 겉과 속의 차이, 약한 뿌리를 단단히 키우는 법</Text>까지 짚어 드려요.</Text>
+        <Text style={styles.funnelLine}><Text>{t('rr.freeA', '무료로는 ')}</Text><Text style={styles.accent}>{t('rt.freeB', '네 자리의 뿌리 강도')}</Text><Text>{t('rt.freeC', '를 한눈에 볼 수 있어요.')}</Text></Text>
+        <Text style={styles.funnelLine}><Text>{t('rr.paidA', '깊은 풀이에선 ')}</Text><Text style={styles.accent}>{t('rt.paidB', '각 뿌리가 삶에서 무엇을 뜻하는지, 겉과 속의 차이, 약한 뿌리를 단단히 키우는 법')}</Text><Text>{t('rr.paidC', '까지 짚어 드려요.')}</Text></Text>
       </View>
     </View>
   );

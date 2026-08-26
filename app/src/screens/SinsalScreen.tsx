@@ -15,6 +15,8 @@ import type { ChartInput, PillarPos } from '@spec/chart';
 import { colors, radius, space, shadow, font } from '../lib/theme';
 import { stemElement, branchElement, elementColor, elementText, stemReading, branchReading } from '../lib/engine/ohaeng';
 import { SINSAL_GLOSSARY, GONGMANG_GLOSSARY } from '../lib/content/myeongriGlossary';
+import { useTranslation } from 'react-i18next';
+import { termLabel } from '../lib/ui/termLabel';   // ★신살 이름은 용어 — 한국어는 「괴강」, 그 밖은 「魁罡」
 
 // 전통 표기 — 오른쪽이 년주: 시 ← 일 ← 월 ← 년
 const POS: PillarPos[] = ['시', '일', '월', '년'];
@@ -35,7 +37,7 @@ type Row = {
 };
 
 // side(천간/지지) → 한글 라벨
-const sideKo = (s: 'stem' | 'branch') => (s === 'stem' ? '천간' : '지지');
+const sideKo = (s: 'stem' | 'branch', lang: string) => termLabel(s === 'stem' ? '천간' : '지지', lang);
 
 /** 기준 글자 칩 — 오행색 배경 + 한자 + 한글음. 신살의 '근거 글자'를 시각화.
  *  괴강·백호처럼 간지 결합(2글자)은 단일 오행색이 없어 통짜 칩(중립)으로 표시. */
@@ -59,13 +61,16 @@ function GlyphChip({ g }: { g: string }) {
 function SinsalCard({ row }: { row: Row }) {
   const { fs } = useFontScale();
   const styles = useMemo(() => makeStyles(fs), [fs]);
+  const { t, i18n } = useTranslation();
+  const lang = i18n.language;
   const g = (SINSAL_GLOSSARY as Record<string, any>)[row.name];
-  const ko: string = g?.ko ?? row.name;
+  // ★이름은 **용어**라 한국어면 「괴강」, 그 밖은 「魁罡」(번역하지 않는다). 뜻풀이는 아래 `meaning` 이 맡는다.
+  const ko: string = termLabel(g?.ko ?? row.name, lang);
   const hanja: string = g?.hanja ?? '';
   const meaning: string = g?.meaning ?? '';
   const keywords: string[] = g?.keywords ?? [];
   // 적중 자리 라벨(예: "일주·지지") — 보이는 자리만
-  const hitLabels = row.hits.map((h) => `${h.pos}주·${sideKo(h.side)}`);
+  const hitLabels = row.hits.map((h) => `${termLabel(`${h.pos}주`, lang)}·${sideKo(h.side, lang)}`);
   return (
     <View style={[styles.card, row.hit ? styles.cardHit : styles.cardLuck]}>
       <View style={styles.cardHead}>
@@ -77,7 +82,7 @@ function SinsalCard({ row }: { row: Row }) {
         {row.hit ? (
           <Text style={styles.badgeHit}>✓ {hitLabels.join(', ')}</Text>
         ) : (
-          <Text style={styles.badgeLuck}>運 운에서 들어옴</Text>
+          <Text style={styles.badgeLuck}>運 {t('ss.fromLuck', '운에서 들어옴')}</Text>
         )}
       </View>
       {/* 기준 글자(오행색) */}
@@ -96,6 +101,7 @@ function SinsalCard({ row }: { row: Row }) {
 
 /** 신살 그룹 — 원국 적중과 '운에서 들어옴'을 서브헤더로 분리(daniel: 운에서 온 건 명확히 구분). */
 function SinsalGroup({ rows }: { rows: Row[] }) {
+  const { t } = useTranslation();
   const { fs } = useFontScale();
   const styles = useMemo(() => makeStyles(fs), [fs]);
   const hitRows = rows.filter((r) => r.hit);
@@ -104,7 +110,7 @@ function SinsalGroup({ rows }: { rows: Row[] }) {
     <>
       {hitRows.map((r) => <SinsalCard key={r.name} row={r} />)}
       {luckRows.length > 0 && (
-        <Text style={styles.luckSubHead}>運 운에서 들어옴 — 원국에 없음 (대운·세운에서 작동)</Text>
+        <Text style={styles.luckSubHead}>運 {t('ss.fromLuckLong', '운에서 들어옴 — 원국에 없음 (대운·세운에서 작동)')}</Text>
       )}
       {luckRows.map((r) => <SinsalCard key={r.name} row={r} />)}
     </>
@@ -112,13 +118,16 @@ function SinsalGroup({ rows }: { rows: Row[] }) {
 }
 
 export function SinsalScreen({ input }: { input: ChartInput | null }) {
+  const { t, i18n } = useTranslation();
+  /** 명리 용어의 표시 글자 — 한국어면 그대로, 그 밖의 언어면 한자(Boss 2026-08-27). */
+  const T = (k: string) => termLabel(k, i18n.language);
   // 전환 멈칫 제거(daniel): 전환 끝나기 전엔 computeChart(신살 전수 산출) 미실행 + 스켈레톤만.
   const ready = useDeferredReady();
   const c = useMemo(() => (ready && input ? computeChart(input) : null), [input, ready]);
   const { fs } = useFontScale();
   const styles = useMemo(() => makeStyles(fs), [fs]);
   if (!ready) return <ChartSkeleton />;                  // 전환 중 — 명식 형태 스켈레톤(즉시 페인트)
-  if (!c) return <View style={styles.center}><Text style={font.body}>명식 정보가 없습니다.</Text></View>;
+  if (!c) return <View style={styles.center}><Text style={font.body}>{t('ss.noChart', '명식 정보가 없습니다.')}</Text></View>;
 
   const timeUnknown = input?.timeAccuracy === '미상';                 // 시각 모름 → 시주 마스킹
   const P = c.saju.pillars;
@@ -146,23 +155,23 @@ export function SinsalScreen({ input }: { input: ChartInput | null }) {
   const teuksu = sortRows(baseRows.filter((r) => TEUKSU.includes(r.name)));
 
   // ── 12신살 — 자리별(visiblePos) 지지 + 4기준(년·월·일·시지) 신살명(daniel "전부 산출") ──
-  const baseKo: Record<string, string> = { 년: '년지', 월: '월지', 일: '일지', 시: '시지' };
+  // ★기준 이름(년지·월지…)도 용어다 — 그 밖의 언어에선 「年支」로 나간다
+  const baseKo: Record<string, string> = { 년: T('년지'), 월: T('월지'), 일: T('일지'), 시: T('시지') };
   // ── 공망 ──
   const gmHit = c.sinsal.gongmangHits.filter((p) => inView(p));
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>
-      <Text style={styles.title}>신살 · 공망 <Text style={styles.titleHanja}>神煞 · 空亡</Text></Text>
+      <Text style={styles.title}>{T('신살')} · {T('공망')} <Text style={styles.titleHanja}>神煞 · 空亡</Text></Text>
       <Text style={styles.intro}>
-        신살은 사주에 색채를 더하는 보조 지표입니다(구조·격국이 중심). 길흉을 단정하기보다, 강점으로 살리고
-        조심할 결을 이해하는 축으로 봅니다. 기준 글자가 원국에 있으면 ✓(자리), 없으면 대운·세운에서 작동합니다.
+        {t('ss.intro', '신살은 사주에 색채를 더하는 보조 지표입니다(구조·격국이 중심). 길흉을 단정하기보다, 강점으로 살리고 조심할 결을 이해하는 축으로 봅니다. 기준 글자가 원국에 있으면 ✓(자리), 없으면 대운·세운에서 작동합니다.')}
       </Text>
 
       {/* 🌟 길신 */}
       {gilsin.length > 0 && (
         <>
-          <Text style={styles.section}>🌟 길신 <Text style={styles.sectionHanja}>吉神</Text></Text>
-          <Text style={styles.sectionDesc}>도움·복록·귀인의 결 — 어려울 때 풀어 주는 기운.</Text>
+          <Text style={styles.section}>🌟 {t('ss.gilsin', '길신')} <Text style={styles.sectionHanja}>吉神</Text></Text>
+          <Text style={styles.sectionDesc}>{t('ss.gilsinDesc', '도움·복록·귀인의 결 — 어려울 때 풀어 주는 기운.')}</Text>
           <SinsalGroup rows={gilsin} />
         </>
       )}
@@ -170,15 +179,15 @@ export function SinsalScreen({ input }: { input: ChartInput | null }) {
       {/* ⚡ 특수살 */}
       {teuksu.length > 0 && (
         <>
-          <Text style={styles.section}>⚡ 특수살 <Text style={styles.sectionHanja}>特殊煞</Text></Text>
-          <Text style={styles.sectionDesc}>강한 색채 — 전문성·매력·결단처럼 양면을 가진 기운(쓰기 나름).</Text>
+          <Text style={styles.section}>⚡ {t('ss.teuksu', '특수살')} <Text style={styles.sectionHanja}>特殊煞</Text></Text>
+          <Text style={styles.sectionDesc}>{t('ss.teuksuDesc', '강한 색채 — 전문성·매력·결단처럼 양면을 가진 기운(쓰기 나름).')}</Text>
           <SinsalGroup rows={teuksu} />
         </>
       )}
 
       {/* 🧭 12신살 — 자리별 4기준 */}
-      <Text style={styles.section}>🧭 12신살 <Text style={styles.sectionHanja}>十二神煞</Text></Text>
-      <Text style={styles.sectionDesc}>각 기둥의 지지를 년·월·일·시지 4기준 전부로 산출(기준에 따라 이름이 달라집니다).</Text>
+      <Text style={styles.section}>🧭 {T('12신살')} <Text style={styles.sectionHanja}>十二神煞</Text></Text>
+      <Text style={styles.sectionDesc}>{t('ss.twelveDesc', '각 기둥의 지지를 년·월·일·시지 4기준 전부로 산출(기준에 따라 이름이 달라집니다).')}</Text>
       {visiblePos.map((p) => {
         const branch = P[p].branch;
         const el = branchElement(branch);
@@ -190,15 +199,15 @@ export function SinsalScreen({ input }: { input: ChartInput | null }) {
                 <Text style={[styles.twBranchTx, { color: elementText[el] }]}>{branch}</Text>
                 <Text style={[styles.twBranchKo, { color: elementText[el] }]}>{branchReading(branch)}</Text>
               </View>
-              <Text style={styles.twPos}>{p}주</Text>
+              <Text style={styles.twPos}>{T(`${p}주`)}</Text>
             </View>
             <View style={styles.twItems}>
               {items.map((it, i) => {
                 const gg = (SINSAL_GLOSSARY as Record<string, any>)[it.name];
                 return (
                   <View key={i} style={styles.twItem}>
-                    <Text style={styles.twName}>{gg?.ko ?? it.name}</Text>
-                    <Text style={styles.twBases}>{it.bases.map((b) => baseKo[b] ?? b).join('·')} 기준</Text>
+                    <Text style={styles.twName}>{T(gg?.ko ?? it.name)}</Text>
+                    <Text style={styles.twBases}>{t('ss.byBase', '{{bases}} 기준', { bases: it.bases.map((b) => baseKo[b] ?? b).join('·') })}</Text>
                   </View>
                 );
               })}
@@ -208,13 +217,13 @@ export function SinsalScreen({ input }: { input: ChartInput | null }) {
       })}
 
       {/* ⚪ 공망 */}
-      <Text style={styles.section}>⚪ 공망 <Text style={styles.sectionHanja}>空亡</Text></Text>
+      <Text style={styles.section}>⚪ {T('공망')} <Text style={styles.sectionHanja}>空亡</Text></Text>
       <View style={[styles.card, gmHit.length > 0 ? styles.cardHit : styles.cardLuck]}>
         <View style={styles.cardHead}>
-          <Text style={styles.cardName}>공망 <Text style={styles.cardHanja}>{GONGMANG_GLOSSARY.hanja}</Text></Text>
+          <Text style={styles.cardName}>{T('공망')} <Text style={styles.cardHanja}>{GONGMANG_GLOSSARY.hanja}</Text></Text>
           {gmHit.length > 0
-            ? <Text style={styles.badgeHit}>✓ {gmHit.map((p) => `${p}주`).join(', ')}</Text>
-            : <Text style={styles.badgeLuck}>運 운에서 들어옴 (원국에 없음)</Text>}
+            ? <Text style={styles.badgeHit}>✓ {gmHit.map((p) => T(`${p}주`)).join(', ')}</Text>
+            : <Text style={styles.badgeLuck}>運 {t('ss.fromLuckNoNatal', '운에서 들어옴 (원국에 없음)')}</Text>}
         </View>
         <View style={styles.glyphRow}>
           {c.sinsal.gongmang.map((b, i) => <GlyphChip key={i} g={b} />)}
@@ -225,7 +234,7 @@ export function SinsalScreen({ input }: { input: ChartInput | null }) {
         </View>
       </View>
 
-      <Text style={styles.note}>※ 신살은 보조 지표입니다. 깊은 통변(영역별 풀이)은 구조·격국·용신과 함께 봅니다.</Text>
+      <Text style={styles.note}>{t('ss.note', '※ 신살은 보조 지표입니다. 깊은 통변(영역별 풀이)은 구조·격국·용신과 함께 봅니다.')}</Text>
     </ScrollView>
   );
 }

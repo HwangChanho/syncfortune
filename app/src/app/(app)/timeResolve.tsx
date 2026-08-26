@@ -30,6 +30,16 @@ import { requireLoginForPurchase } from '../../lib/billing/requireLogin';
 import { assertOnline } from '../../lib/backend/network';
 
 const EVENT_TYPES: BigEventType[] = ['이사', '이직', '창업', '결혼', '이혼', '투자손실', '질병', '사고'];
+/**
+ * 사건 유형의 **화면 글자** — 값(`BigEventType`)은 엔진이 쓰므로 안 바꾼다.
+ *
+ * ⚠️★값을 번역하면 스코어러가 사건을 못 알아본다. 그래서 «값 → 문구 키» 를 따로 둔다.
+ */
+const EVENT_LABEL: Record<BigEventType, string> = {
+  이사: 'tr.evMove', 이직: 'tr.evJob', 창업: 'tr.evFound', 결혼: 'tr.evWed',
+  이혼: 'tr.evDivorce', 투자손실: 'tr.evLoss', 질병: 'tr.evIllness', 사고: 'tr.evAccident',
+  기타: 'rg.etc',   // ★칩에는 안 보이지만 `BigEventType` 에 있다 — 빠지면 그 값이 화면에 한국어로 샌다
+};
 
 // markUnlocked 센티넬 — TPR은 저장 명식이 아니라 *도구 단위*로 해제(차트 무관). 키 = unlock_timeresolve_timeresolve.
 const TPR_UNLOCK = 'timeresolve';
@@ -42,7 +52,7 @@ export default function TimeResolveScreen() {
   const { isPremium } = useSubscription();
   const [date, setDate] = useState('');                       // 생년월일 'YYYY-MM-DD'
   const [sex, setSex] = useState<'남' | '여'>('남');
-  const [place, setPlace] = useState('서울');
+  const [place, setPlace] = useState('서울');   // ★기본 출생지 — `BirthPlacePicker` 가 쓰는 **지명 값**이라 번역 대상이 아니다
   const [placeLon, setPlaceLon] = useState<number | null>(null); // 출생지 경도 — 진태양시 보정으로 시주 정밀(TPR 정확도↑·daniel #21)
   const [events, setEvents] = useState<LifeEvent[]>([]);
   const [yr, setYr] = useState('');
@@ -134,7 +144,7 @@ export default function TimeResolveScreen() {
       //   금액을 클라가 정하면 '1코인 해제'가 되므로, 서버가 금액을 정하는 전용 RPC 로 차감한다.
       const paid = await spendCoinsFixed('timeresolve');
       if (paid.ok) { await markUnlocked(TPR_UNLOCK, 'timeresolve'); setUnlocked(true); compute(); }
-      else if (paid.reason === 'insufficient') Alert.alert(t('coins.needTitle', '운이 조금 모자라요'), `${paid.cost ?? ''} 운이 필요해요. 지금 ${paid.balance ?? 0} 운 있어요.`);
+      else if (paid.reason === 'insufficient') Alert.alert(t('coins.needTitle', '운이 조금 모자라요'), t('coins.needMsg', { need: paid.cost ?? '', have: paid.balance ?? 0, defaultValue: '이 풀이는 {{need}} 운이 필요해요. 지금 {{have}} 운 있어요.' }));
       else Alert.alert(TITLE, t('common.retryLaterNoCharge', '잠시 후 다시 시도해 주세요. 운은 차감되지 않았어요.'));
     } catch { /* 게이트 실패는 조용히(크래시 방지) */ }
     finally { gating.current = false; }
@@ -149,42 +159,43 @@ export default function TimeResolveScreen() {
       <Stack.Screen options={{ headerTitle: '' }} />{/* 상단 타이틀 제거(daniel: 콘텐츠 헤더 타이틀 X) — 히어로·리드가 대신 */}
       {/* 전용 히어로(daniel ⑥) — 천체 시계 모티프. 도구 화면이라 폼을 가리지 않게 컴팩트 높이. */}
       <ExpoImage source={A('icons/timeResolve-hero.jpg')} style={styles.hero} contentFit="cover" contentPosition="center" cachePolicy="memory-disk" transition={150} />
-      <Text style={styles.lead}>태어난 시간을 몰라도, 인생 사건으로 시(時)를 좁혀 드려요. 사건을 더 넣을수록 정확해져요.</Text>
+      <Text style={styles.lead}>{t('tr.lead', '태어난 시간을 몰라도, 인생 사건으로 시(時)를 좁혀 드려요. 사건을 더 넣을수록 정확해져요.')}</Text>
 
-      <Text style={styles.label}>생년월일 (양력)</Text>
-      <TextInput value={date} onChangeText={onDateChange} keyboardType="number-pad" maxLength={10} placeholder="예: 19940316 (숫자만 입력해도 돼요)" placeholderTextColor={colors.inkFaint} style={styles.input} />
+      <Text style={styles.label}>{t('tr.birthLabel', '생년월일 (양력)')}</Text>
+      <TextInput value={date} onChangeText={onDateChange} keyboardType="number-pad" maxLength={10} placeholder={t('tr.birthPh', '예: 19940316 (숫자만 입력해도 돼요)')} placeholderTextColor={colors.inkFaint} style={styles.input} />
 
-      <Text style={styles.label}>성별</Text>
+      <Text style={styles.label}>{t('tr.sexLabel', '성별')}</Text>
       <View style={styles.chipRow}>
         {(['남', '여'] as const).map((g) => (
           <PressableScale key={g} onPress={() => setSex(g)} style={[styles.chip, sex === g && styles.chipOn]}>
-            <Text style={sex === g ? styles.chipTxOn : styles.chipTx}>{g}</Text>
+            <Text style={sex === g ? styles.chipTxOn : styles.chipTx}>{g === '남' ? t('bd.male', '남성') : t('bd.female', '여성')}</Text>
           </PressableScale>
         ))}
       </View>
 
-      <Text style={styles.label}>출생지</Text>
+      <Text style={styles.label}>{t('tr.placeLabel', '출생지')}</Text>
       <BirthPlacePicker value={place} onSelect={(p) => { setPlace(p.name); setPlaceLon(p.lon); }} />
 
-      <Text style={styles.label}>인생 사건 (연도 + 유형)</Text>
-      <TextInput value={yr} onChangeText={setYr} placeholder="연도 (예: 2023)" placeholderTextColor={colors.inkFaint} keyboardType="number-pad" maxLength={4} style={styles.input} />
+      <Text style={styles.label}>{t('tr.eventLabel', '인생 사건 (연도 + 유형)')}</Text>
+      <TextInput value={yr} onChangeText={setYr} placeholder={t('tr.yearPh', '연도 (예: 2023)')} placeholderTextColor={colors.inkFaint} keyboardType="number-pad" maxLength={4} style={styles.input} />
       {/* 연도 입력과 카테고리 선택 사이 — 다른 label→input 간격(space(2))과 균일하게 */}
       <View style={[styles.chipRow, { marginTop: space(2) }]}>
-        {EVENT_TYPES.map((t) => (
-          <PressableScale key={t} onPress={() => setTy(t)} style={[styles.chip, ty === t && styles.chipOn]}>
-            <Text style={ty === t ? styles.chipTxOn : styles.chipTx}>{t}</Text>
+        {/* ⚠️★인자 이름을 `t` 로 두면 **번역 함수 `t` 를 가린다** — `ev` 로 바꿨다 */}
+        {EVENT_TYPES.map((ev) => (
+          <PressableScale key={ev} onPress={() => setTy(ev)} style={[styles.chip, ty === ev && styles.chipOn]}>
+            <Text style={ty === ev ? styles.chipTxOn : styles.chipTx}>{t(EVENT_LABEL[ev])}</Text>
           </PressableScale>
         ))}
       </View>
-      <PressableScale onPress={addEvent} style={styles.addBtn}><Text style={styles.addTx}>+ 사건 추가</Text></PressableScale>
+      <PressableScale onPress={addEvent} style={styles.addBtn}><Text style={styles.addTx}>+ {t('tr.addEvent', '사건 추가')}</Text></PressableScale>
       {/* 추가된 사건 = 배지형 칩(색점 + 연도 + 유형 + 정돈된 ✕ 버튼). 여러 개면 flexWrap 로 줄바꿈. */}
       {events.length > 0 && (
         <View style={styles.evWrap}>
           {events.map((e, i) => (
             <View key={`${e.year}-${e.type}-${i}`} style={styles.evChip}>
               <View style={styles.evDot} />
-              <Text style={styles.evChipYr}>{e.year}년</Text>
-              <Text style={styles.evChipTy}>{e.type}</Text>
+              <Text style={styles.evChipYr}>{e.year}</Text>
+              <Text style={styles.evChipTy}>{t(EVENT_LABEL[e.type])}</Text>
               <PressableScale
                 onPress={() => removeEvent(i)}
                 hitSlop={8}
@@ -200,10 +211,10 @@ export default function TimeResolveScreen() {
       )}
 
       <PressableScale onPress={run} style={styles.runBtn}>
-        <Text style={styles.runTx}>{unlocked ? '후보 좁히기' : `후보 좁히기 · ${TPR_PRICE_LABEL}`}</Text>
+        <Text style={styles.runTx}>{unlocked ? t('tr.run', '후보 좁히기') : `${t('tr.run', '후보 좁히기')} · ${TPR_PRICE_LABEL}`}</Text>
       </PressableScale>
       {/* 결제 안내 — 1회 결제로 도구 영구 해제(사건 추가·재실행 무료). 프리미엄/구매 후엔 숨김. */}
-      {!unlocked && <Text style={styles.payHint}>한 번 결제하면 사건을 더 넣어가며 계속 좁혀볼 수 있어요.</Text>}
+      {!unlocked && <Text style={styles.payHint}>{t('tr.payHint', '한 번 결제하면 사건을 더 넣어가며 계속 좁혀볼 수 있어요.')}</Text>}
 
       {result && <ResultView result={result} />}
             {/* ★이어서 보면 좋은 콘텐츠(daniel 2026-07-27 "전부 붙여") — 화면마다 하단이 달라 보이던 것 통일.
@@ -215,20 +226,22 @@ export default function TimeResolveScreen() {
 
 // TPR signal(명리 약어)을 일상어 한 줄로 — daniel: 후보에 '쉬운 이유'를 짧게(어려운 명리용어 금지)
 function plainSignal(sig: string): string | null {
-  if (sig.startsWith('★') || sig.includes('직격')) return '입력한 인생 사건이 이 시간의 기운과 바로 통해요';
-  if (sig.includes('이동충')) return '이사·이동이 잦은 흐름과 잘 맞아요';
-  if (sig.includes('몸') || sig.includes('건강')) return '건강·몸의 변화 시기와 들어맞아요';
-  if (sig.startsWith('앵커')) return '그 해 겪은 사건의 변동과 맞아떨어져요';
-  if (sig.startsWith('조후')) return '계절 기운의 균형이 잘 맞는 시간이에요';
-  if (sig.startsWith('합충')) return '글자들이 끌고 부딪히는 모양이 사건과 맞아요';
+  // ★들어오는 `sig` 는 **엔진이 만든 약어**라 그대로 비교하고, 돌려주는 것은 **문구 키**다.
+  if (sig.startsWith('★') || sig.includes('직격')) return 'tr.sigDirect';
+  if (sig.includes('이동충')) return 'tr.sigMove';
+  if (sig.includes('몸') || sig.includes('건강')) return 'tr.sigHealth';
+  if (sig.startsWith('앵커')) return 'tr.sigAnchor';
+  if (sig.startsWith('조후')) return 'tr.sigJohu';
+  if (sig.startsWith('합충')) return 'tr.sigHapchung';
   return null; // 운성 등 미시 신호는 생략(너무 전문적)
 }
 
 function ResultView({ result }: { result: ReturnType<typeof scoreTimePillars> }) {
+  const { t } = useTranslation();
   const { ranked, verdict } = result;
-  const head = verdict.kind === 'confirmed' ? '1순위로 좁혀졌어요'
-    : verdict.kind === 'shortlist' ? '유력 후보 2~3개로 좁혔어요'
-      : '아직 확정이 어려워요 — 사건을 더 넣어 주세요';
+  const head = verdict.kind === 'confirmed' ? t('tr.headConfirmed', '1순위로 좁혀졌어요')
+    : verdict.kind === 'shortlist' ? t('tr.headShortlist', '유력 후보 2~3개로 좁혔어요')
+      : t('tr.headOpen', '아직 확정이 어려워요 — 사건을 더 넣어 주세요');
   const show = verdict.kind === 'confirmed' ? 1 : verdict.kind === 'shortlist' ? 3 : 5;
   return (
     <View style={styles.result}>
@@ -246,11 +259,11 @@ function ResultView({ result }: { result: ReturnType<typeof scoreTimePillars> })
               <View style={styles.barBg}><View style={[styles.bar, { width: `${Math.max(4, Math.round(c.prob * 100))}%` }]} /></View>
               <Text style={styles.candPct}>{Math.round(c.prob * 100)}%</Text>
             </View>
-            {reasons.length > 0 && <Text style={styles.candReason}>{reasons.map((r) => `· ${r}`).join('\n')}</Text>}
+            {reasons.length > 0 && <Text style={styles.candReason}>{reasons.map((r) => `· ${t(r)}`).join('\n')}</Text>}
           </View>
         );
       })}
-      <Text style={styles.disc}>※ 사건이 많을수록 정확해져요. 추정 결과이며, 정확한 풀이는 시를 확정한 뒤 원국 전체로 봅니다.</Text>
+      <Text style={styles.disc}>{t('tr.disc', '※ 사건이 많을수록 정확해져요. 추정 결과이며, 정확한 풀이는 시를 확정한 뒤 원국 전체로 봅니다.')}</Text>
     </View>
   );
 }
