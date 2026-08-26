@@ -102,7 +102,10 @@ function LeaveBar({ name, onOk, onCancel, t }: {
   name: string; onOk: () => void; onCancel: () => void; t: (k: string, d?: string) => string;
 }) {
   return (
-    <View style={styles.delBar}>
+    // ⚠️★`delBar` 를 그대로 쓰지 않는다 — 그건 **대화창 안**의 한 줄이라 흐름에 얹히는 스타일이다.
+    //   이건 화면 루트에 떠 있으므로 **자기 자리를 스스로 잡아야** 한다.
+    //   (처음에 그대로 썼더니 오른쪽 빈 칸 한가운데에 떠 있었다 — 실측으로 잡았다.)
+    <View style={[styles.delBar, styles.leaveBar]}>
       <Text style={styles.delTx} numberOfLines={2}>
         {t('chats.leaveAsk', '「{{name}}」 방을 나갈까요? 대화 내용도 함께 사라져요.').replace('{{name}}', name)}
       </Text>
@@ -1052,6 +1055,11 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
   //     RN `Modal` 을 안 쓰는 이유: iOS 에서 그 안의 `VideoView` 가 소리만 남고 안 보인다.
   const overlays = (
     <>
+      {/* ⚠️★나가기 확인은 **여기**(화면 루트)에 있어야 한다.
+          처음엔 대화창 안에 뒀는데, 방이 안 열려 있으면 그 칸 자체가 안 그려져
+          **목록에서 우클릭해도 아무 일이 안 났다**(실측으로 잡았다 — 핸들러는 붙어 있었다).
+          ＋ 버튼이 웹에서 죽어 있던 것과 **같은 유형**이다(`check:talkoverlay`). */}
+      {askLeave ? <LeaveBar name={askLeave.name} onCancel={() => setAskLeave(null)} onOk={onLeaveRoom} t={t as never} /> : null}
       <ProfileSheet target={profile} onClose={() => setProfile(null)} />
       {/* ★사람 상세 — 내 명식·친구가 **같은 패널**이다(종전엔 두 갈래였다).
           「대화에서 부르기」는 입력창에 `@이름` 을 넣어 준다 — 화면을 안 떠나고 이어서 물을 수 있다. */}
@@ -1128,8 +1136,6 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
                 </PressableScale>
               </View>
               {askDelete ? <DeleteBar onCancel={() => setAskDelete(false)} onOk={onDeleteThread} t={t as never} /> : null}
-      {askLeave ? <LeaveBar name={askLeave.name} onCancel={() => setAskLeave(null)} onOk={onLeaveRoom} t={t as never} /> : null}
-              {askLeave ? <LeaveBar name={askLeave.name} onCancel={() => setAskLeave(null)} onOk={onLeaveRoom} t={t as never} /> : null}
               <TalkNotes
                 notes={notes} open={notesOpen} onToggle={() => setNotesOpen((v) => !v)}
                 onJump={(mid) => {
@@ -1254,6 +1260,12 @@ const styles = StyleSheet.create({
   headIcon: { paddingHorizontal: space(1) },   // ★그림은 `kit/Icon` 이 그린다(크기는 거기서)
   // 삭제 확인 — 눌린 자리 바로 아래
   delBar: { flexDirection: 'row', alignItems: 'center', gap: space(2), paddingHorizontal: space(4), paddingVertical: space(3), backgroundColor: colors.sunk, borderBottomWidth: 1, borderBottomColor: colors.line },
+  // 나가기 확인 — 화면 **아래에 붙는다**(눌린 목록을 가리지 않으면서 늘 같은 자리)
+  leaveBar: {
+    position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 70,
+    borderBottomWidth: 0, borderTopWidth: 1, borderTopColor: colors.line,
+    backgroundColor: colors.card,
+  },
   delTx: { flex: 1, minWidth: 0, ...font.caption, color: colors.inkSoft },
   delNo: { paddingHorizontal: space(3), paddingVertical: space(1.5) },
   delNoTx: { ...font.caption, color: colors.inkFaint, fontWeight: '700' },

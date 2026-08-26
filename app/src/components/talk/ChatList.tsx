@@ -30,6 +30,7 @@ import { elementColor, elementText } from '../../lib/engine/ohaeng';
 import { Icon } from '../kit/Icon';   // 상단 아이콘 단일 원본(Boss 2026-08-24)
 import { Swipeable } from 'react-native-gesture-handler';   // 앱 = 왼쪽 스와이프(친구목록과 같은 틀)
 import { pinRoom } from '../../lib/talk/roomActions';       // 상단고정 — 나가기는 호출부가 확인 후 부른다
+import { roomTitle, memberCount } from '../../lib/talk/groupTalk';   // ★대화방 머리와 **같은 함수**(두 곳이 갈리면 안 된다)
 import { NotifyBell } from './NotifyBell';   // 알림 벨+배지(단일 원본 — 친구목록과 같은 것)
 
 const EL = ['木', '火', '土', '金', '水'] as const;
@@ -140,7 +141,16 @@ export function ChatList({ onOpen, selectedId, reloadKey = 0, wide, onSettings, 
       guestIds: Array.isArray(s.guest_ids) ? (s.guest_ids as string[]) : [],
       pinnedAt: s.pinned_at ?? null,
       // ⚠️상담사가 사라졌어도 대화는 남는다 — 이름을 못 찾으면 빈 줄을 내지 말고 id 라도 보여 준다
-      name: people.find((p) => p.id === s.consultant_id)?.name ?? s.consultant_id,
+      // ★★다인방이면 **참여자를 적는다**(2026-08-27 실측: 다인방 둘이 있는데 목록엔 둘 다
+      //   「노쌤의 사주상담소」로만 떠서 **어느 방인지 구분이 안 됐다**).
+      //   ⇒ 대화방 머리가 쓰는 `roomTitle` 을 **그대로** 쓴다 — 두 곳이 갈리면 같은 방이 다른 이름이 된다.
+      name: (() => {
+        const nameOf = (id: string) => people.find((p) => p.id === id)?.name ?? id;
+        const guests = Array.isArray(s.guest_ids) ? (s.guest_ids as string[]) : [];
+        return guests.length
+          ? roomTitle([nameOf(s.consultant_id), ...guests.map(nameOf)])
+          : nameOf(s.consultant_id);
+      })(),
       preview: s.preview ?? null,
       lastAt: s.last_at,
       turns: s.turn_count ?? 0,
@@ -308,6 +318,8 @@ export function ChatList({ onOpen, selectedId, reloadKey = 0, wide, onSettings, 
             </PressableScale>
             <View style={styles.col}>
               <Text style={styles.name} numberOfLines={1}>{r.name}</Text>
+              {/* ★인원수 — 대화방 머리와 **같은 함수**(`memberCount`)로 센다. 나를 포함한다. */}
+              {r.guestIds.length ? <Text style={styles.num}>{memberCount(r.guestIds.length)}</Text> : null}
               {/* 마지막에 물어본 것 — 무슨 얘기였는지가 이름보다 기억을 되살린다 */}
               {/* ★미리보기는 **한 줄**로 자른다 — 목록에서 본문을 읽게 하면 그건 목록이 아니다 */}
               <Text style={[styles.sub, r.unread > 0 && styles.subUnread]} numberOfLines={1}>
@@ -358,6 +370,8 @@ const styles = StyleSheet.create({
   swipeTx: { ...font.caption, fontSize: 11, color: colors.inkSoft },
   swipeTxOut: { color: colors.inkSoft },
   pinDot: { fontSize: 11, marginBottom: 2 },
+  // 인원수 — 카톡처럼 이름 **바로 옆**의 작은 숫자(배지가 아니다: 배지는 안읽은 수의 자리다)
+  num: { ...font.caption, fontSize: 11.5, color: colors.inkFaint, marginLeft: 4 },
   body: { paddingHorizontal: space(4), paddingTop: space(4), paddingBottom: space(20) },
   searchBox: { backgroundColor: colors.sunk, borderRadius: radius.md, paddingHorizontal: space(3.5), marginBottom: space(3) },
   search: { paddingVertical: space(2.5), ...font.body, color: colors.ink },
