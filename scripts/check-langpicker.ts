@@ -142,6 +142,10 @@ export function countHardcodedKo(files: { path: string; src: string }[]): Map<st
       const before = s.slice(Math.max(0, m.index! - 120), m.index!);
       if (FALLBACK.test(before)) continue;
       if (LOG.test(before)) continue;
+      // ★`termLabel('용신')` · `T('비겁')` 의 인자는 **용어 열쇠**지 미번역 문구가 아니다.
+      //   Boss 규칙(*"명리 용어는 한자 그대로 두고 설명만 그 언어로"*)을 **이미 타고 있는** 자리다 —
+      //   여기 걸리면 규칙을 지킬수록 숫자가 올라가는 이상한 검사가 된다.
+      if (/\b(?:termLabel|T)\(\s*$/.test(before)) continue;
       // ⚠️★**속성 접근자**는 UI 가 아니다 — `saju.pillars['일']` 의 `'일'` 은 엔진 자료구조의
       //   **열쇠**이지 화면에 뜨는 글자가 아니다. 번역하면 오히려 엔진이 깨진다.
       //   (검증 가능한 문법 규칙이다 — 특정 파일을 봐주는 예외가 아니다.)
@@ -159,13 +163,29 @@ export function countHardcodedKo(files: { path: string; src: string }[]): Map<st
   return out;
 }
 
+/**
+ * 번역 대상에서 **빼는 화면** — ⚠️조용히 빼지 않는다. 아래에서 **수와 이유를 찍는다**.
+ *
+ * ★기준은 «내가 귀찮아서» 가 아니라 **사용자가 볼 수 없는 화면인가** 다.
+ *   빼려면 그 파일이 어디서도 안 열리거나(진입점 없음) 관리자 전용이어야 하고,
+ *   그 근거를 여기 **한 줄로 적는다**. 근거를 못 적으면 빼지 않는다.
+ */
+const EXEMPT: Record<string, string> = {
+  'app/src/app/(app)/coststable.tsx':
+    '내부 검토용 · **어디서도 연결되지 않는다**(실측: `/coststable` 로 가는 링크 0개 — URL 을 직접 쳐야 들어간다)',
+};
+
 // ★baseline — 2026-08-27 실측. **줄이는 건 자유, 늘리는 건 실패.**
 //   줄였으면 이 숫자를 내려 잠근다(안 내리면 다시 늘어날 여지를 남긴 것이다).
-const BASELINE = 1686;
+const BASELINE = 1573;
 
 {
-  const files = screens().map((p) => ({ path: p, src: read(p) ?? '' }));
+  const all = screens().map((p) => ({ path: p, src: read(p) ?? '' }));
+  const files = all.filter((f) => !EXEMPT[f.path]);
   const counts = countHardcodedKo(files);
+  // ★뺀 것을 **드러낸다** — 조용히 줄이면 «다 됐다» 로 읽힌다
+  const exCounts = countHardcodedKo(all.filter((f) => EXEMPT[f.path]));
+  const exTotal = [...exCounts.values()].reduce((a, b) => a + b, 0);
   const total = [...counts.values()].reduce((a, b) => a + b, 0);
   const top = [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
 
@@ -174,6 +194,10 @@ const BASELINE = 1686;
   if (total > BASELINE) console.log(`     ⇒ ${total - BASELINE}곳 늘었습니다. 새 문구는 copy/ko.ts 에 키로 넣으세요.`);
   if (total < BASELINE) console.log(`     ⇒ ${BASELINE - total}곳 줄었습니다. **BASELINE 을 ${total} 로 내려 잠그세요.**`);
   console.log(`     남은 큰 곳: ${top.map(([p, n]) => `${p.split('/').pop()}(${n})`).join(' · ')}`);
+  for (const [p, why] of Object.entries(EXEMPT)) {
+    console.log(`     ⏭  뺀 화면 ${p.split('/').pop()}(${exCounts.get(p) ?? 0}곳) — ${why}`);
+  }
+  if (exTotal) console.log(`     ⏭  뺀 것 합계 ${exTotal}곳(위 ${total} 에 안 들어 있다)`);
 }
 
 // ── 자기검사(음성 테스트) ───────────────────────────────────────────────────
@@ -192,14 +216,17 @@ const BASELINE = 1686;
     { path: 'k.tsx', src: `const m = { a: '천간 합' };` },                  // ← 값이면 센다
     { path: 'l.tsx', src: `t(on ? 'a.b' : 'a.c', '즐겨찾기')` },            // ← ★삼항 키의 폴백도 안 센다
     { path: 'm.tsx', src: `foo(bar ? 1 : 2, '즐겨찾기')` },                 // ← t() 가 아니면 센다
+    { path: 'n.tsx', src: `termLabel('용신', lang)` },                      // ← ★용어 열쇠라 안 센다
+    { path: 'o.tsx', src: `label('용신', lang)` },                          // ← 다른 함수면 센다
   ]);
   const good = c.get('a.tsx') === 1 && !c.has('b.tsx') && !c.has('c.tsx') && !c.has('d.tsx') && !c.has('e.tsx')
     && c.get('f.tsx') === 1 && !c.has('g.tsx')
     && !c.has('h.tsx') && c.get('i.tsx') === 1
     && !c.has('j.tsx') && c.get('k.tsx') === 1
-    && !c.has('l.tsx') && c.get('m.tsx') === 1;
+    && !c.has('l.tsx') && c.get('m.tsx') === 1
+    && !c.has('n.tsx') && c.get('o.tsx') === 1;
   say(good, '자기검사 — 폴백·주석·로그는 빼고, **태그 사이 글자까지** 센다',
-    good ? '대조군 13개 통과' : `실제: ${JSON.stringify([...c])}`);
+    good ? '대조군 15개 통과' : `실제: ${JSON.stringify([...c])}`);
 }
 
 console.log(fail === 0 ? '\n✅ 언어 고르기가 이어져 있고, 남은 한국어가 안 늘었습니다\n'

@@ -11,6 +11,8 @@ import { View, Text, StyleSheet } from 'react-native';
 import type { SajuChart, PillarPos } from '@spec/chart';
 import { computeYongsinApprox } from '../lib/content/yongsinApprox';
 import { elementColor } from '../lib/engine/ohaeng';
+import { useTranslation } from 'react-i18next';
+import { termLabel } from '../lib/ui/termLabel';   // ★명리 용어 — 한국어는 그대로, 그 밖은 한자(Boss 2026-08-27)
 import { colors, radius, space, font, shadow } from '../lib/theme';
 import { EL_KO } from '../lib/content/ohaengLabel';   // ★오행 이름표 단일 소스(사본 만들지 말 것)
 import { sipsinGroupOf, type Elem5 } from '@engine/sipsinGroup';   // 오행→십신 단일 원본(2026-08-24)
@@ -101,6 +103,9 @@ function gyeokgukSangsin(kind: GyeokKind, has: (g: Group) => boolean, hasSip: (s
 
 /** 만세력 용신 카드. saju = computeChart 결과의 .saju · pattern = c.pattern(격국). */
 export function YongsinCard({ saju, pattern, timeUnknown }: { saju: SajuChart; pattern?: { name?: string } | null; timeUnknown?: boolean }) {
+  // ★훅은 조기 return 위에(React #310)
+  const { i18n } = useTranslation();
+  const lang = i18n.language;
   const ys = useMemo(() => { try { return computeYongsinApprox(saju, { timeUnknown }); } catch { return null; } }, [saju, timeUnknown]);
   const dayEl = String(saju.dayMaster?.element ?? '');
 
@@ -136,18 +141,20 @@ export function YongsinCard({ saju, pattern, timeUnknown }: { saju: SajuChart; p
     { label: '기신', el: ys.gisin },
   ];
 
+  // ★용어 표기는 언어에 따라 달라진다 — 한국어는 「비겁」, 그 밖은 「比劫」(Boss 규칙)
+  const T = (k: string) => termLabel(k, lang);
   return (
     <View style={styles.card}>
       <View style={styles.head}>
-        <Text style={styles.title}>용신</Text>
-        <View style={styles.methodPill}><Text style={styles.methodTx}>{ys.method}용신</Text></View>
+        <Text style={styles.title}>{T('용신')}</Text>
+        <View style={styles.methodPill}><Text style={styles.methodTx}>{T(ys.method)}{T('용신')}</Text></View>
       </View>
       {rows.map((r) => r.el ? (
         <View key={r.label} style={styles.row}>
-          <Text style={styles.rowLabel}>{r.label}</Text>
+          <Text style={styles.rowLabel}>{T(r.label)}</Text>
           <View style={[styles.elDot, { backgroundColor: elementColor[r.el] ?? colors.inkFaint }]} />
           <Text style={[styles.elTx, { color: elementColor[r.el] ?? colors.ink }]}>{r.el}({EL_KO[r.el] ?? r.el})</Text>
-          <Text style={styles.sipsin}>{sipsinGroup(dayEl, r.el)}</Text>
+          <Text style={styles.sipsin}>{T(sipsinGroup(dayEl, r.el))}</Text>
         </View>
       ) : null)}
 
@@ -156,15 +163,15 @@ export function YongsinCard({ saju, pattern, timeUnknown }: { saju: SajuChart; p
         <View style={styles.gyeokBox}>
           {/* head = 주용신 카드 상단과 동일 구조(좌 제목 '용신' + 우측 배지 '격국용신') */}
           <View style={styles.head}>
-            <Text style={styles.title}>용신</Text>
-            <View style={styles.methodPill}><Text style={styles.methodTx}>격국용신</Text></View>
+            <Text style={styles.title}>{T('용신')}</Text>
+            <View style={styles.methodPill}><Text style={styles.methodTx}>{T('격국')}{T('용신')}</Text></View>
           </View>
           {/* 상신 행 — 병약용신 행(용신/희신/기신)과 완전히 같은 정렬(라벨 40폭·닷·오행·십성) */}
           <View style={styles.row}>
-            <Text style={styles.rowLabel}>용신</Text>
+            <Text style={styles.rowLabel}>{T('용신')}</Text>
             <View style={[styles.elDot, { backgroundColor: elementColor[gyeokguk.el] ?? colors.inkFaint }]} />
             <Text style={[styles.elTx, { color: elementColor[gyeokguk.el] ?? colors.ink }]}>{gyeokguk.el}({EL_KO[gyeokguk.el] ?? gyeokguk.el})</Text>
-            <Text style={styles.sipsin}>{gyeokguk.group}{gyeokguk.inChart ? '' : ' ·원국無'}</Text>
+            <Text style={styles.sipsin}>{T(gyeokguk.group)}{gyeokguk.inChart ? '' : ` ·${T('원국')}無`}</Text>
           </View>
         </View>
       ) : null}
