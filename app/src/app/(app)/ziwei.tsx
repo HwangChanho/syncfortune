@@ -107,7 +107,11 @@ export default function ZiweiRoute() {
               '태어난 시(時)에 따라 명반(命盤)이 크게 달라집니다. 명식의 출생 시간이 정확한지 먼저 확인해 주세요.',
               [
                 { text: '명식 확인·수정', onPress: () => router.push('/charts') },
-                { text: '풀이 보기', onPress: () => router.navigate({ pathname: '/reading', params: { kind: 'ziwei' } }) },
+                // ⚠️★`navigate` 가 아니라 `push` 다 — `navigate` 는 **같은 경로를 재사용**한다.
+                //   사주 풀이(`/reading`)를 먼저 본 뒤 여기로 오면 그 화면이 **옛 파라미터 그대로** 살아 있어
+                //   «자미를 눌렀는데 사주가 뜨는» 일이 생긴다(Boss 2026-08-27 제보).
+                //   `push` 는 언제나 새로 쌓으므로 `kind=ziwei` 가 확실히 반영된다.
+                { text: '풀이 보기', onPress: () => router.push({ pathname: '/reading', params: { kind: 'ziwei' } }) },
               ],
             );
           }}><Text style={styles.btnText}>프리미엄 풀이 보기</Text></PressableScale>

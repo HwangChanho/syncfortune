@@ -61,7 +61,7 @@ export default function ChartsScreen() {
         <ChartPicker onChange={() => { loadMyChart().then(setMe); refreshRepName(); }} />
       </>}
       whoName={repName}
-      onReading={() => router.navigate({ pathname: '/reading', params: { input: JSON.stringify(me) } })}
+      onReading={() => router.push({ pathname: '/reading', params: { input: JSON.stringify(me), kind: 'saju' } })}
     />
   );
 }

@@ -20,7 +20,9 @@ export default function MyeongsikRoute() {
   return (
     <MyeongsikScreen
       input={parsed}
-      onReading={() => router.navigate({ pathname: '/reading', params: { input: input ?? '' } })}
+      // ⚠️★`push` — 자미 풀이를 먼저 본 뒤 여기로 오면 `navigate` 는 그 화면을 **재사용**해
+      //   «사주를 눌렀는데 자미가 뜨는» 반대 방향 함정이 생긴다(위 `ziwei.tsx` 와 같은 이유).
+      onReading={() => router.push({ pathname: '/reading', params: { input: input ?? '', kind: 'saju' } })}
       onSinsal={() => router.push({ pathname: '/sinsal', params: { input: input ?? '' } })}
     />
   );

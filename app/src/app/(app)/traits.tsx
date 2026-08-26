@@ -89,7 +89,7 @@ export default function TraitsScreen() {
       <Text style={styles.note}>※ 기본 성향 요약입니다. 영역별(연애·직업·재물 등) 깊은 통변은 프리미엄 풀이에서.</Text>
 
       {/* 프리미엄 풀이 유도 (건당) */}
-      <DeepDiveCta kind="reading" label={t('traits.detail', '내 사주 깊이 보기')} onPress={() => router.navigate({ pathname: '/reading', params: { input: JSON.stringify(me) } })} />
+      <DeepDiveCta kind="reading" label={t('traits.detail', '내 사주 깊이 보기')} onPress={() => router.push({ pathname: '/reading', params: { input: JSON.stringify(me), kind: 'saju' } })} />
     </ScrollView>
   );
 }
