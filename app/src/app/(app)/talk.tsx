@@ -39,6 +39,8 @@ import { loadRepChart, listCharts, type SavedChart } from '../../lib/engine/myCh
 // ★@명식 부르기(Boss 2026-08-26) — 부른 사람의 **원국·판정**을 같이 보낸다
 import { parseMentions, buildMentionBlocks, MAX_MENTIONS, type MentionTarget } from '../../lib/talk/chartMention';
 import ChartMentionSheet from '../../components/talk/ChartMentionSheet';
+// ★반말/존댓말 판정은 **한 곳에서만**(Boss 2026-08-26) — 인사와 서버가 갈리면 안 된다
+import { ageFromBirth, isCasual } from '../../lib/talk/speechLevel';
 import { loadMyProfile, subscribeProfile, profileSnapshot } from '../../lib/talk/myProfile';
 import { listFriends, type Friend } from '../../lib/talk/friends';
 import { useHomeOrder } from '../../lib/ui/homeOrder';
@@ -127,6 +129,9 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
   // ── @명식 부르기(Boss 2026-08-26 *"@누구 이런식으로 불러올수 있으면"*) ─────────────
   //   ★저장된 명식은 **온디바이스**다(ADR-005). 서버에 없는 사람도 부를 수 있어야 한다.
   const [myCharts, setMyCharts] = useState<SavedChart[]>([]);
+  // ★회원 만 나이 — 상담가 나이보다 어리면 **기본 반말**(Boss 2026-08-26).
+  //   ⚠️명식이 없으면 null → 존댓말. 모르면 안전한 쪽이다.
+  const [myAge, setMyAge] = useState<number | null>(null);
   const [mentionOpen, setMentionOpen] = useState(false);
   /**
    * 친구목록 = **사람 다섯**(Boss 2026-08-20 압축).
@@ -303,6 +308,8 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
     void loadRepChart().then(async (c) => {
       if (!alive || !c?.input) return;
       setMyName(c.label ?? null);
+      // ★생년월일은 **여기 밖으로 안 나간다** — 나이(정수)만 뽑아 서버로 보낸다(ADR-005)
+      setMyAge(ageFromBirth(c.input?.birthDateTime));
       try { setSaju(computeChart(c.input).saju); } catch { /* 명식 없으면 흐름 안내는 건너뛴다 */ }
       // ★서버 chart_id 는 **정식 경로로만** 얻는다(`ensureServerChartIdForSaved`).
       //   온디바이스에 캐시된 `serverChartId` 를 그대로 쓰면 stale row 를 가리킬 수 있고,
@@ -385,7 +392,8 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
         id: nextId(), role: 'assistant' as const,
         // ★상담가마다 다른 인사(Boss 2026-08-26 *"각 테마에 맞게 가벼운 멘트"*).
         //   종전엔 열두 명이 **똑같은 한 줄**이었다. 말투 예시의 결을 그대로 옮겼다.
-        body: greetingFor(c.id, c.name, c.tagline),
+        // ★반말이면 인사도 반말이어야 한다 — 인사만 존댓말이면 다음 말과 어긋난다
+        body: greetingFor(c.id, c.name, c.tagline, isCasual(c.age, myAge)),
       };
       setItems([]);
       // ★인사도 **쪼개서** 띄운다 — 한 덩어리로 뜨면 «미리 써 둔 안내문»이지 대화가 아니다
@@ -414,7 +422,9 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
         }
       });
     }
-  }, [t, dateKey, myName, bumpChats]);
+    // ⚠️`myAge` 를 빼면 **인사만 존댓말로 굳는다** — 나이는 대표 명식을 읽은 뒤에 들어오는데,
+    //   그 전에 만들어진 `open` 이 계속 쓰이면 반말 판정이 영원히 null(=존댓말)이다.
+  }, [t, dateKey, myName, bumpChats, myAge]);
 
   /** `@` 뒤에 올 수 있는 이름들 — 저장된 명식이 곧 후보다. */
   const mentionTargets = useMemo<MentionTarget[]>(
@@ -480,7 +490,9 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
     void askLive(cur.id, q, sessRef.current[cur.id] ?? null, chartId, i18n.language, attempt,
                  saju ? buildChartVerdict(saju) : null,
                  // ★@이름으로 부른 사람들 — **이 턴에만** 실린다(캐시 접두사를 건드리지 않는다)
-                 buildMentions(q))
+                 buildMentions(q),
+                 // ★반말 판정은 **서버가** 한다(상담가 나이는 서버 값이 정본이다)
+                 myAge)
       .then((r) => {
         // 답을 기다리는 동안 대화를 지웠거나 다른 방으로 옮겼다 — **버린다.**
         //   ⚠️`setBusy(false)` 도 하지 않는다. 지금 점이 돌고 있다면 그건 **새 방의 것**이다.
@@ -613,7 +625,7 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
         setBusy(false); console.warn('[talk] send 실패', e);
       });
     // ⚠️`saju`·`buildMentions` 를 빼면 명식을 바꾸고도 **옛 것으로** 보낸다(그리고 조용하다)
-  }, [cur, chartId, t, i18n.language, bumpChats, refreshNotes, sayInOrder, saju, buildMentions]);
+  }, [cur, chartId, t, i18n.language, bumpChats, refreshNotes, sayInOrder, saju, buildMentions, myAge]);
   // ★ref 로 붙들어 둔다 — `send` 와 재시도 타이머가 **항상 최신 `fire`** 를 부르게.
   //   (`send` 의 의존성에 `fire` 를 넣으면 매 입력마다 콜백이 새로 만들어진다.)
   const fireRef = useRef(fire);

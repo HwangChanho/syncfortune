@@ -86,6 +86,12 @@ export async function askLive(
    * ★턴마다 달라지므로 서버는 이걸 **캐시 접두사에 넣지 않는다**(넣으면 매 턴 캐시가 깨진다).
    */
   mentions?: string[] | null,
+  /**
+   * ★회원의 **만 나이**(Boss 2026-08-26) — 상담가 나이보다 어리면 서버가 반말로 진행시킨다.
+   * ⚠️PII 가 아니다: 생년월일이 아니라 정수 하나이고, 서버는 이미 차트(년주·대운)로 또래를 안다.
+   * ⚠️과금·권한 값이 아니다 — **말투를 정하는 값**이다. 모르면 보내지 않는다(=존댓말).
+   */
+  userAge?: number | null,
 ): Promise<LiveReply> {
   try {
     // ⚠️타임아웃을 반드시 건다 — supabase.functions.invoke 는 **기본 타임아웃이 없다**
@@ -99,6 +105,9 @@ export async function askLive(
           consultantId, message, sessionId, chartId, lang, attempt, verdict,
           // 빈 배열은 보내지 않는다 — 서버가 «부른 사람 없음» 과 «옛 앱» 을 구분할 필요가 없다
           mentions: mentions?.length ? mentions : undefined,
+          // 모르면 보내지 않는다 — 서버가 «모른다»를 존댓말로 읽는다
+          // ⚠️★`Number(null)` 은 **0** 이다 — 그대로 쓰면 명식 없는 회원이 «0살»로 가서 전원 반말이 된다
+          userAge: (userAge != null && Number.isFinite(Number(userAge))) ? Number(userAge) : undefined,
           adult: adultConfirmed(),
         },
       }),

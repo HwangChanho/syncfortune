@@ -35,18 +35,46 @@ const LINE: Record<string, string> = {
 };
 
 /**
+ * 반말 판 (Boss 2026-08-26 *"유저가 해당 나이보다 어리면 기본적으로 반말로 진행해"*).
+ *
+ * ★어미만 낮췄다 — **각자의 결은 그대로**다(하린은 하나만 정하게, 도윤은 천천히, 유리는 짧게).
+ *   여기서 성격까지 바꾸면 열두 명이 다시 똑같아진다([[shared-block-eats-personality]]).
+ * ★찐야·차언니는 **원래 반말**이라 같은 줄을 쓴다 — 사본을 만들지 않는다.
+ */
+const LINE_CASUAL: Record<string, string> = {
+  nossem:        '안녕.\n\n사주 전반을 봐.\n뭐가 걸리는지 편하게 말해 봐.',
+  love_seoyun:   '안녕!\n\n연애 쪽은 내가 봐 줄게.\n요즘 마음 쓰이는 사람 있지?',
+  guide_minjae:  '어, 안녕.\n\n사업이나 돈 쪽으로 궁금한 거 있으면\n편하게 말해.',
+  tarot_harin:   '안녕.\n\n오늘은 뭐가 궁금해서 왔어?\n걸리는 걸 하나만 정해 줘.',
+  tarot_doyun:   '안녕.\n\n천천히 말해도 돼.\n지금 제일 걸리는 게 뭐야?',
+  ziwei_yujin:   '안녕.\n\n난 자미두수로 봐.\n사주랑은 결이 좀 다르게 읽혀.',
+  astro_taehyun: '안녕!\n\n난 주로 «언제가 좋은지»를 봐.\n시기 궁금한 거 있어?',
+  beauty_jjinya: LINE.beauty_jjinya,   // ★원래 반말
+  color_bombom:  '안녕.\n\n어울리는 색 찾는 거 도와줄게.\n뭐가 궁금해?',
+  car_unni:      LINE.car_unni,        // ★원래 반말
+  travel_jini:   '안녕!\n\n어디 가고 싶어?\n며칠짜리인지만 알려 줘도 좋아.',
+  heal_yuri:     '안녕.\n\n오늘은 좀 어때?',
+};
+
+/**
  * 첫 인사 한 덩어리.
  *
  * @param id      상담가 id
  * @param name    이름(모르는 id 일 때 쓴다)
  * @param tagline 무엇을 보는 사람인지(모르는 id 일 때 쓴다)
+ * @param casual  반말인가(`speechLevel.isCasual` 이 정한다 — 여기서 다시 판정하지 않는다)
  * @returns 빈 줄로 나뉜 인사. 화면이 `splitBubbles` 로 쪼갠다
  */
-export function greetingFor(id: string, name: string, tagline?: string | null): string {
-  const known = LINE[id];
+export function greetingFor(id: string, name: string, tagline?: string | null, casual = false): string {
+  const known = casual ? (LINE_CASUAL[id] ?? LINE[id]) : LINE[id];
   if (known) return known;
   // ★관리자가 새로 만든 상담가 — 태그라인으로 짓는다. 비워 두면 방이 텅 빈 채로 열린다
   const what = tagline?.trim();
+  if (casual) {
+    return what
+      ? `안녕.\n\n나 ${name}이야. ${what} 쪽을 봐.\n뭐가 궁금해?`
+      : `안녕.\n\n나 ${name}이야.\n뭐가 궁금해?`;
+  }
   return what
     ? `안녕하세요.\n\n${name}이에요. ${what} 쪽을 봐요.\n무엇이 궁금하세요?`
     : `안녕하세요.\n\n${name}이에요.\n무엇이 궁금하세요?`;
