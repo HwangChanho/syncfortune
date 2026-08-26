@@ -4,6 +4,7 @@
 // 무료 사용자 = 하단 AdBanner 고정 / 프리미엄(구독) = 광고 없음(ADR-043).
 // ─────────────────────────────────────────────────────────────────────────
 import { Stack, usePathname } from 'expo-router';
+import { setLastRoute } from '../../lib/backend/screenTrace';   // 크래시 때 화면 경로를 남기려고
 import { useTranslation } from 'react-i18next';
 import { View, Platform } from 'react-native';
 import { useEffect } from 'react';
@@ -60,6 +61,9 @@ export default function AppLayout() {
     if (!pathname || lastLoggedPath === pathname) return;
     lastLoggedPath = pathname;
     logEvent('screen', { path: pathname });
+    // ★크래시 로그가 «어느 화면이었나» 를 적을 수 있게 마지막 경로를 남긴다
+    //   (네이티브는 컴포넌트 스택이 압축돼 이것 없이는 범인을 못 짚는다).
+    setLastRoute(pathname);
   }, [pathname]);
   // 유료(운으로 여는) 콘텐츠 화면인가 — 하단 배너 노출 판정(아래 AdBanner 주석 참조).
   //   startsWith 인 이유: 라우트가 하위 경로를 갖는 경우(/reading/... 등)도 같은 콘텐츠다.

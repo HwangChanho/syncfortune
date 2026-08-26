@@ -300,6 +300,23 @@ export function setupNotificationTapListener(): () => void {
       if (route) { try { (router as any).navigate ? (router as any).navigate(route) : router.push(route); } catch { /* 실패 시 스택 방지 위해 push 폴백 안 함 */ } }
     });
   } catch { /* ignore */ }
+  // ★★콜드스타트 — 앱이 **꺼져 있을 때** 탭한 알림은 위 리스너가 못 받는다.
+  //   응답이 이미 전달된 뒤에 리스너가 붙기 때문이다 ⇒ 그래서 **홈으로 떨어졌다**
+  //   (Boss 2026-08-27 *"탭하니깐 그냥 홈으로 들어가져"*).
+  //   `getLastNotificationResponseAsync()` 로 **마지막 응답을 한 번 확인**한다.
+  //   ⚠️같은 id 는 위 dedup 이 잡으므로 두 번 이동하지 않는다.
+  try {
+    void Notif.getLastNotificationResponseAsync?.().then((resp: any) => {
+      if (!resp) return;
+      const id = resp?.notification?.request?.identifier ?? String(resp?.notification?.date ?? '');
+      if (id && id === lastHandledNotifId) return;
+      lastHandledNotifId = id;
+      const route = resp?.notification?.request?.content?.data?.route;
+      // ⚠️한 틱 미룬다 — 라우터가 아직 안 붙었을 수 있다(콜드스타트라 화면이 그려지는 중이다)
+      if (route) setTimeout(() => { try { (router as any).navigate?.(route); } catch { /* 무시 */ } }, 400);
+    }).catch(() => { /* 모듈이 없으면 무시 */ });
+  } catch { /* ignore */ }
+
   return () => {}; // ★컴포넌트 언마운트로 제거하지 않음 — 딥링크 전역 핸들러라 앱 수명 내내 1개 유지
 }
 

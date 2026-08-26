@@ -292,6 +292,16 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
    */
   const [askLeave, setAskLeave] = useState<{ sessionId: string; name: string } | null>(null);
   /**
+   * 답을 만드는 중에 **더 친 말**(Boss 2026-08-27
+   *   *"상대가 대화중에 채팅이 막혀있는데 중간에 계속 보낼수 있어야해"*).
+   *
+   * ★모아서 **한 턴**으로 보낸다(Boss *"중간에 내가 텍스트를 계속 보낼경우의 과금도 계산 해야해"*):
+   *   ⚠️보낼 때마다 호출하면 세 줄을 치면 **세 번 과금**된다 — 그건 사용자도 우리도 손해다.
+   *   그리고 세 줄을 **한꺼번에 읽은 답**이 세 번 따로 답하는 것보다 낫다(사람도 그렇게 한다).
+   *   ⇒ 화면에는 **바로** 내 말풍선으로 뜨고(막힌 느낌이 없다), 서버에는 답이 끝난 뒤 **한 번** 간다.
+   */
+  const pendingRef = useRef<string[]>([]);
+  /**
    * 지금 열려 있는 **사람 방**(Boss 2026-08-27 *"친구추가하면 서로 채팅도 가능하게"*).
    * ★상담가 방(`cur`)과 **동시에 열리지 않는다** — 하나를 열면 다른 하나를 비운다.
    *   둘 다 살아 있으면 «어느 화면이 위인가» 가 애매해지고, 전송이 어디로 갈지도 갈린다.
@@ -457,6 +467,7 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
     //   ★운 안내 띠도 같이 지운다 — 앞 방의 「운이 모자라요」가 다른 상담가 화면에 남으면 안 된다
     setNotes([]); setJumpTo(null); setNotice(null);
     genRef.current++;   // ★직전 방에 보낸 답이 도착해도 이 방에 붙지 않게(위 `genRef` 주석)
+    pendingRef.current = [];   // ★앞 방에 하려던 말을 **새 방으로 들고 가지 않는다**
     refreshNotes(room?.sessionId ?? null);   // 세션을 알면 바로, 모르면 아래 loadThread 뒤에
     // ★대화를 열면 **읽음 처리**한다 — 안 그러면 배지가 영원히 남는다.
     //   시각은 서버가 `now()` 로 찍는다(앱이 값을 보내면 미래 시각으로 배지를 지울 수 있다).
@@ -637,10 +648,23 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
    *   `virtual` → 온디바이스(₩0) · `live` → Edge(턴당 실측 ₩4.2~14.5).
    *   분기를 늘리지 말 것 — 늘어나면 어느 쪽이 새는지 아무도 못 센다.
    */
-  const send = useCallback(() => {
-    const q = draft.trim();
-    if (!q || !cur || busy) return;
-    setDraft('');
+  /**
+   * 한 턴 보낸다.
+   * @param override 대기 줄을 흘려보낼 때 쓰는 본문. 없으면 입력칸의 글을 쓴다.
+   *   ★인자를 받는 이유: 대기 줄은 **state 가 아니라 ref** 에 있어서 `draft` 를 거치면
+   *     한 프레임 늦고, 그 사이 사용자가 새로 친 글과 섞인다.
+   */
+  const send = useCallback((override?: string) => {
+    const q = (override ?? draft).trim();
+    if (!q || !cur) return;
+    if (override === undefined) setDraft('');
+    // ★★답을 만드는 중이면 **줄을 세운다** — 막지 않는다(Boss 2026-08-27).
+    //   화면에는 바로 뜨고, 서버에는 지금 턴이 끝난 뒤 **모아서 한 번** 간다 ⇒ 과금도 한 번.
+    if (busy && override === undefined) {
+      pendingRef.current.push(q);
+      setItems((prev) => [...prev, { id: nextId(), role: 'user', body: q }]);
+      return;
+    }
     setItems((prev) => [...prev, { id: nextId(), role: 'user', body: q }]);
 
     // ★생년월일을 말했는데 **명식이 없다** — 조각을 모아 카드를 띄운다(Boss 2026-08-26).
@@ -675,6 +699,21 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
     fireRef.current(q, 0, gen);
     // ⚠️`hasChart`·`birthDraft` 를 빼면 조각이 안 쌓인다(첫 턴 것만 남는다)
   }, [draft, cur, saju, busy, t, hasChart, birthDraft]);
+
+  /**
+   * 답이 끝나면 **쌓아 둔 말을 한 번에** 보낸다(Boss 2026-08-27).
+   *
+   * ★줄바꿈으로 잇는다 — 세 줄을 한 덩어리로 읽은 답이 세 번 따로 답하는 것보다 낫다.
+   * ⚠️**과금은 한 번**이다(호출이 한 번이므로). 이게 «중간에 계속 보낼 때의 과금» 에 대한 답이다.
+   * ⚠️방을 옮기면 대기 줄을 **버린다** — 앞 방에 하려던 말이 새 방으로 가면 안 된다.
+   */
+  useEffect(() => {
+    if (busy || !cur) return;
+    const q = pendingRef.current.join('\n').trim();
+    if (!q) return;
+    pendingRef.current = [];
+    send(q);
+  }, [busy, cur, send]);
 
   /**
    * 실제 상담사에게 한 번 보낸다. **자동 재시도가 같은 경로를 타도록** 따로 뺐다.
@@ -978,7 +1017,7 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
    */
   useEffect(() => {
     if (Platform.OS !== 'web' || !cur || cur.block) return;
-    if (busy) return;                       // 답 만드는 중에는 건드리지 않는다(editable=false 다)
+    // ★답하는 중에도 포커스를 유지한다 — 이제 입력칸이 안 막히므로(위 `editable`) 커서를 뺏지 않는다
     // ⚠️한 틱 미뤄야 한다 — 방을 막 그린 프레임에서는 입력칸이 아직 붙기 전이다
     const id = setTimeout(() => inputRef.current?.focus(), 0);
     return () => clearTimeout(id);
@@ -1005,11 +1044,15 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
         }}
         placeholder={t('talk.inputHint', '무엇이든 물어보세요')}
         placeholderTextColor={colors.inkFaint}
-        onSubmitEditing={send}
-        editable={!busy}
+        // ⚠️★`onSubmitEditing={send}` 로 두면 **이벤트 객체가 `override` 로 들어간다**(그러면
+        //   `[object Object]` 를 보낸다). 인자 없이 부른다.
+        onSubmitEditing={() => send()}
+        // ⚠️★`editable={!busy}` 를 **뺐다** — 답하는 중에도 칠 수 있어야 한다(Boss 2026-08-27).
+        //   보낸 것은 `pendingRef` 에 쌓였다가 지금 턴이 끝나면 **한 번에** 나간다.
+        editable
         returnKeyType="send"
       />
-      <PressableScale style={styles.sendBtn} onPress={send}>
+      <PressableScale style={styles.sendBtn} onPress={() => send()}>
         <Text style={styles.sendTx}>{t('talk.send', '보내기')}</Text>
       </PressableScale>
     </View>

@@ -83,7 +83,14 @@ export function setGenProgress(patch: Partial<GenItem> & { route: string }) {
   const nowDone = next.total > 0 && next.done >= next.total;
   // daniel 07-03: 오늘/이달의 운세(/today·/month)는 완료 푸시 미발송 — 하루 3회 티저 알림으로 대체(중복 방지).
   //   홈 배너('풀이 보기')는 items 기반이라 그대로 유지되고, 즉시 푸시만 건너뛴다. 그 외 풀이(프리미엄 세트 등)는 기존대로 완료 푸시.
-  const skipDonePush = next.route === '/today' || next.route === '/month';
+  // ★★2026-08-27 Boss: *"아무것도 안했는데 갑자기 사주풀이가 완성됐다고 푸시 알림이 왔어"*
+  //   ⚠️원인: 앱을 켜면 저장된 진행을 복원(`restored`)하고, 그 뒤 서버와 맞추면서
+  //     **이미 며칠 전에 끝난 것**이 «방금 끝난 것» 으로 읽혀 푸시가 나갔다.
+  //   ⇒ **복원된 항목은 시스템 푸시를 안 낸다.** 화면 안 배너는 그대로 뜬다 —
+  //     지금 앱을 켠 사람에게는 배너면 충분하고, 며칠 전 일로 폰이 울리는 건 놀랄 일이다.
+  //   ★진짜로 «기다리는 중에 끝난 것»(이 세션에서 시작한 것)은 `restored` 가 아니라 그대로 푸시된다.
+  const wasRestored = !!prev?.restored;
+  const skipDonePush = next.route === '/today' || next.route === '/month' || wasRestored;
   if (nowDone && !wasDone && !skipDonePush) { notifyReadingDone(`${next.chartLabel ? next.chartLabel + ' — ' : ''}${next.label} 풀이가 완성됐어요`, '준비된 풀이를 확인해 보세요', next.route).catch(() => {}); }
 }
 

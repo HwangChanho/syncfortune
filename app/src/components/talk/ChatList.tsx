@@ -406,9 +406,16 @@ export function ChatList({ onOpen, selectedId, reloadKey = 0, wide, onSettings, 
             </PressableScale>
             )}
             <View style={styles.col}>
-              <Text style={styles.name} numberOfLines={1}>{r.name}</Text>
-              {/* ★인원수 — 대화방 머리와 **같은 함수**(`memberCount`)로 센다. 나를 포함한다. */}
-              {r.guestIds.length ? <Text style={styles.num}>{memberCount(r.guestIds.length)}</Text> : null}
+              {/* ★★이름과 인원수를 **한 줄에** 둔다(Boss 2026-08-27
+                  *"방 인원 숫자는 이름 옆에 떠야하고 만약 길이가 넘어가면 노쎔,한서윤,최... 3 이런식으로"*).
+                  ⚠️이름에 `flexShrink` 를 줘야 **이름만 줄고 숫자는 안 밀린다** —
+                    안 주면 긴 이름이 숫자를 화면 밖으로 밀어낸다.
+                  ★숫자는 **다른 폰트 + 볼드**(Boss 지정) — 미리보기 글씨와 섞이면 이름의 일부로 읽힌다. */}
+              <View style={styles.nameRow}>
+                <Text style={[styles.name, { flexShrink: 1 }]} numberOfLines={1}>{r.name}</Text>
+                {r.guestIds.length
+                  ? <Text style={styles.num}>{memberCount(r.guestIds.length)}</Text> : null}
+              </View>
               {/* 마지막에 물어본 것 — 무슨 얘기였는지가 이름보다 기억을 되살린다 */}
               {/* ★미리보기는 **한 줄**로 자른다 — 목록에서 본문을 읽게 하면 그건 목록이 아니다 */}
               <Text style={[styles.sub, r.unread > 0 && styles.subUnread]} numberOfLines={1}>
@@ -463,8 +470,15 @@ const styles = StyleSheet.create({
   stack: { width: 48, height: 48, justifyContent: 'center' },
   stackItem: { position: 'absolute' },
   avSm: { width: 30, height: 30, borderRadius: 10, borderWidth: 2, borderColor: colors.bg },
-  // 인원수 — 카톡처럼 이름 **바로 옆**의 작은 숫자(배지가 아니다: 배지는 안읽은 수의 자리다)
-  num: { ...font.caption, fontSize: 11.5, color: colors.inkFaint, marginLeft: 4 },
+  // 이름 + 인원수 한 줄. ★`minWidth: 0` 이 있어야 자식의 `numberOfLines` 가 실제로 자른다
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: space(1.5), minWidth: 0 },
+  // 인원수 — 카톡처럼 이름 **바로 옆**. ★미리보기와 **다른 폰트 + 볼드**(Boss 2026-08-27 지정):
+  //   같은 글꼴이면 「노쌤, 한서윤, 최… 3」 의 3이 이름의 일부로 읽힌다.
+  num: {
+    ...font.caption, fontSize: 12, fontWeight: '800',
+    color: colors.ju, flexShrink: 0,
+    ...(Platform.OS === 'web' ? ({ fontVariantNumeric: 'tabular-nums' } as object) : null),
+  },
   body: { paddingHorizontal: space(4), paddingTop: space(4), paddingBottom: space(20) },
   searchBox: { backgroundColor: colors.sunk, borderRadius: radius.md, paddingHorizontal: space(3.5), marginBottom: space(3) },
   search: { paddingVertical: space(2.5), ...font.body, color: colors.ink },

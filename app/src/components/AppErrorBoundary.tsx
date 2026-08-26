@@ -19,6 +19,7 @@ import React from 'react';
 import { View, Text, ScrollView, StyleSheet, Platform } from 'react-native';
 import { PressableScale } from './PressableScale';
 import { logEvent } from '../lib/backend/logger';
+import { lastRoute } from '../lib/backend/screenTrace';   // ★크래시 때 «어느 화면인지» — 네이티브는 스택이 압축돼 이것 없이는 못 짚는다
 import { colors, space, radius, font } from '../lib/theme';
 
 type Props = {
@@ -48,8 +49,19 @@ export class AppErrorBoundary extends React.Component<Props, State> {
       logEvent('render_crash', {
         where: this.props.where ?? 'unknown',
         msg: String(err?.message ?? err).slice(0, 300),
+        // ★★2026-08-27 — **어느 화면인지**를 함께 남긴다.
+        //   iOS 에서 「Text strings must be rendered within a <Text> component.」 가 났는데
+        //   컴포넌트 스택이 압축돼 `in Unknown` 뿐이라 **범인을 못 짚었다**(정적 추적도 실패).
+        //   경로 하나만 있으면 다음 발생에서 바로 좁혀진다.
+        //   ⚠️`location` 은 웹에만 있다 — 네이티브에서는 조용히 건너뛴다.
+        route: (() => {
+          try { return Platform.OS === 'web' ? String((globalThis as any).location?.pathname ?? '') : lastRoute(); }
+          catch { return ''; }
+        })(),
         // 컴포넌트 스택 앞부분만 — 범인은 거의 항상 맨 위에 있다
         comp: stack.split('\n').filter(Boolean).slice(0, 6).join(' < ').slice(0, 400),
+        // ★스택 **전문**도 넣는다(400자로 자르면 압축된 이름만 남아 쓸모가 없었다)
+        compFull: stack.slice(0, 1200),
         platform: Platform.OS,
       }, 'error');
     } catch { /* 로깅 실패가 폴백 화면을 막지 않게 */ }
