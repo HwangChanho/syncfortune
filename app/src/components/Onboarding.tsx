@@ -106,7 +106,7 @@ export function Onboarding() {
             심볼을 얹되 글자는 아래에 작게 남긴다 — 이미지가 안 떠도 무엇인지 읽힌다. */}
       <View style={styles.body}>
         <ExpoImage source={brandMarkSolid()} style={styles.mark} contentFit="contain" transition={200} />
-        <Text style={styles.glyph}>니운내운</Text>
+        <Text style={styles.glyph}>{t('appName')}</Text>
         <Text style={styles.title}>{cur.title}</Text>
         {cur.body ? <Text style={styles.desc}>{cur.body}</Text> : null}
         {cur.bullets ? (

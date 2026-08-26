@@ -6,10 +6,12 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useRef } from 'react';
 import { Animated, Easing, ImageBackground, StyleSheet, Text, Dimensions } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { colors } from '../lib/theme';
 import { HomeBackdrop } from './HomeBackdrop'; // 홈과 동일한 배경 애니(별/태양 + 걷는 선비) — 호랑이 이미지 뒤 여백에
 
 export function SplashOverlay({ onDone }: { onDone: () => void }) {
+  const { t } = useTranslation();   // ★앱 이름도 언어를 탄다(Boss 2026-08-27)
   const op = useRef(new Animated.Value(0)).current; // 전체 페이드(등장→유지→퇴장)
   // 八字를 상단 여백(이미지 contain 시 위쪽 미드나잇 공간)에 *이미지와 안 겹치게* 최대한 크게(daniel 07-02).
   //   이미지 비율 832:1216 → contain 높이 = 화면폭×1216/832, 상단 여백 = (화면높이−높이)/2. 여백의 60%로 크게, 기기별 자동.
@@ -35,7 +37,7 @@ export function SplashOverlay({ onDone }: { onDone: () => void }) {
       {/* ★호랑이(백두산) 이미지 유지 — contain(잘림 없음), 아래로 SHIFT. 상하 여백엔 위 HomeBackdrop(별 상단·선비 하단)가 보임 */}
       <ImageBackground source={require('../../assets/splash-bg.png')} style={[StyleSheet.absoluteFill, { transform: [{ translateY: SHIFT }] }]} resizeMode="contain" />
       {/* 좌상단 브랜드 표식 — 앱 이름(Boss 2026-08-15 개명 반영. 종전엔 옛 이름 `八字`) */}
-      <Text style={[styles.hanja, { fontSize: hanjaSize * 0.62, top: hanjaTop }]}>니운내운</Text>
+      <Text style={[styles.hanja, { fontSize: hanjaSize * 0.62, top: hanjaTop }]}>{t('appName')}</Text>
     </Animated.View>
   );
 }

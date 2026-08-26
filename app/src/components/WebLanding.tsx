@@ -67,7 +67,7 @@ export function WebLanding() {
         <ExpoImage source={RELMAP_HERO} style={StyleSheet.absoluteFill as never} contentFit="cover" transition={200} />
         <View style={s.scrim} />
         <View style={s.heroTx}>
-          <Text style={s.brand}>니운내운</Text>
+          <Text style={s.brand}>{t('appName')}</Text>
           <Text style={s.tagline}>사주와 자미두수를 결합한 복합적인 해석</Text>
           <Text style={s.lead}>
             생년월일시로 명식을 계산하고, 그 계산으로 나와 내 주변 사람을 읽습니다.

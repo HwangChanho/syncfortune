@@ -17,6 +17,7 @@
 //     다만 **헤더에는 쓰지 않는다**.
 // ═══════════════════════════════════════════════════════════════════════════
 import { View, Text, StyleSheet, type TextStyle, type ViewStyle } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Image as ExpoImage } from 'expo-image';
 import { colors, space } from '../lib/theme';
 
@@ -38,13 +39,16 @@ const SYMBOL = require('../../assets/brand-symbol.png');
  *                 심볼만 작게 남아 «따로 노는» 모양이 된다([[ui-font-scale-lineheight]] 와 같은 종류).
  */
 export function BrandWordmark({ size = 21, style, symbol = false }: { size?: number; style?: TextStyle & ViewStyle; symbol?: boolean }) {
+  // ★앱 이름도 **언어를 탄다**(Boss 2026-08-27 *"앱 이름 니운내운도 번역이 돼야해"*).
+  //   종전엔 워드마크에 한글이 박혀 있어, 영어로 골라도 여기만 한국어였다.
+  const { t } = useTranslation();
   const word = (
     <Text
       style={[styles.tx, { fontSize: size, lineHeight: Math.round(size * 1.33) }, symbol ? undefined : style]}
       // 낭독기에는 브랜드 이름 하나로 읽힌다(글자를 쪼개 읽지 않게)
       accessibilityRole="header"
     >
-      니운내운
+      {t('appName')}
     </Text>
   );
   if (!symbol) return word;

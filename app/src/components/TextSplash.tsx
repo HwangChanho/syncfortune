@@ -32,7 +32,7 @@ import { elementColor } from '../lib/engine/ohaeng';
 const EL = ['木', '火', '土', '金', '水'] as const;
 
 export function TextSplash({ onDone }: { onDone: () => void }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const fade = useRef(new Animated.Value(0)).current; // 0=투명 → 페이드 인/아웃 공용
   const doneRef = useRef(false);                       // 종료 1회 보장(타임아웃·탭 중복 방지)
 
@@ -68,9 +68,14 @@ export function TextSplash({ onDone }: { onDone: () => void }) {
         {/* 「운」 심볼 — 로고가 먼저 뜨고 그 아래 앱 이름이 온다(시안 p01 구도) */}
         <ExpoImage source={A('brand/mark.png')} style={styles.mark} contentFit="contain" transition={200} />
 
-        {/* 시안 p01 — 「니**운**.내**운**」에서 '운' 두 글자만 강조색이다. 앱 이름이 곧 그 글자다. */}
+        {/* 시안 p01 — 「니**운**.내**운**」에서 '운' 두 글자만 강조색이다. 앱 이름이 곧 그 글자다.
+            ⚠️★그 강조는 **한국어 이름의 생김새**에서 온다(같은 글자가 두 번 나온다).
+              다른 언어 이름(`Niunnaeun`·`ニウンネウン`)엔 그 구조가 없으므로 통짜로 쓴다
+              — 억지로 쪼개면 뜻 없는 자리에 색이 들어간다(Boss 2026-08-27 앱 이름 다국어). */}
         <Text style={styles.wordmark}>
-          니<Text style={styles.accent}>운</Text><Text style={styles.dot}>.</Text>내<Text style={styles.accent}>운</Text>
+          {i18n.language?.startsWith('ko')
+            ? <>니<Text style={styles.accent}>운</Text><Text style={styles.dot}>.</Text>내<Text style={styles.accent}>운</Text></>
+            : t('appName')}
         </Text>
 
         <View style={styles.dots}>
