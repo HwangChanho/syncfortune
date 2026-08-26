@@ -81,7 +81,11 @@ console.log('\n=== ⑤ 초대 버튼이 두 헤더 모두에 있는가 ===');
 console.log('\n=== ⑥ 상담가 컬럼 목록 두 사본이 같은가 ===');
 {
   // 화자를 갈아끼울 때 컬럼이 빠지면 그 사람의 말투·모델이 통째로 비어서 «개성 없음» 이 된다
-  const sels = [...E.matchAll(/\.select\('(id, kind, name, persona[^']*)'\)/g)].map((m) => m[1]);
+  // ★패턴을 «id, kind, name, » 까지만 고정한다 — 그 뒤 컬럼은 늘어난다.
+  //   2026-08-26 에 `tagline, specialty` 가 붙자(담당 경계용) 이 검사가 **0개**를 세고 울었다.
+  //   ⚠️검사가 «지금 컬럼 목록» 을 통째로 외우면, 컬럼을 더할 때마다 하네스가 먼저 깨진다.
+  //     여기서 보려는 건 «두 사본이 **서로 같은가**» 이지 «무슨 컬럼인가» 가 아니다.
+  const sels = [...E.matchAll(/\.select\('(id, kind, name,[^']*)'\)/g)].map((m) => m[1]);
   if (sels.length < 2) bad(`상담가 select 사본이 ${sels.length}개 — 화자 재조회가 사라졌나?`);
   else if (new Set(sels).size === 1) ok(`상담가 select ${sels.length}곳이 글자 그대로 같다`);
   else bad('두 select 목록이 갈라졌다 — 화자를 갈아끼울 때 일부 설정이 빈다');
