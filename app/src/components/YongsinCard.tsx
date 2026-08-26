@@ -14,7 +14,7 @@ import { elementColor } from '../lib/engine/ohaeng';
 import { useTranslation } from 'react-i18next';
 import { termLabel } from '../lib/ui/termLabel';   // ★명리 용어 — 한국어는 그대로, 그 밖은 한자(Boss 2026-08-27)
 import { colors, radius, space, font, shadow } from '../lib/theme';
-import { EL_KO } from '../lib/content/ohaengLabel';   // ★오행 이름표 단일 소스(사본 만들지 말 것)
+import { elGloss } from '../lib/content/ohaengLabel';   // ★오행 이름표 단일 소스(사본 만들지 말 것)
 import { sipsinGroupOf, type Elem5 } from '@engine/sipsinGroup';   // 오행→십신 단일 원본(2026-08-24)
 
 // 오행 생/극(표준 통설) — 십신↔오행 변환.
@@ -62,42 +62,48 @@ function gyeokKindOf(sip: string): GyeokKind | null {
 }
 /**
  * 표준 자평진전 상신(격국용신). 순용격(재·정관·인수·식신)=보호/생 · 역용격(칠살·상관·양인·건록)=제/화.
+ *
+ * ⚠️★종전엔 분기마다 `note`(근거 한 줄)를 함께 돌려줬는데, **화면이 그것을 안 쓴다** —
+ *   daniel 2026-08-04 *"쓸데없는 설명 다 빼"* 로 그 줄을 지운 뒤로 죽은 값이었다.
+ *   ⇒ 근거는 **주석**으로 옮겼다. 지식은 남기되 «안 쓰는 문자열» 을 들고 다니지 않는다
+ *     (안 그러면 번역 대상으로도 계속 잡힌다).
+ *
  * @param has    십신 그룹 존재 여부(원국 천간+지지본기)
  * @param hasSip 특정 십신 존재(상관·칠살 등 세부 분기)
  * @param strong 신강/신왕 여부
  */
-function gyeokgukSangsin(kind: GyeokKind, has: (g: Group) => boolean, hasSip: (s: string) => boolean, strong: boolean): { g: Group; note: string } {
+function gyeokgukSangsin(kind: GyeokKind, has: (g: Group) => boolean, hasSip: (s: string) => boolean, strong: boolean): { g: Group } {
   switch (kind) {
     case '재격': // 順用 — 생/보호
-      if (has('비겁')) return { g: '관살', note: '비겁이 재를 겁탈 → 관성으로 비겁 제압' };
-      if (has('식상')) return { g: '식상', note: '식상생재(식상으로 재를 생조)' };
-      if (!strong) return { g: '인성', note: '재다신약 → 인성·비겁으로 감당' };
-      return { g: '식상', note: '식상으로 재 생조' };
+      if (has('비겁')) return { g: '관살' };   // 비겁이 재를 겁탈 → 관성으로 비겁 제압
+      if (has('식상')) return { g: '식상' };   // 식상생재(식상으로 재를 생조)
+      if (!strong) return { g: '인성' };       // 재다신약 → 인성·비겁으로 감당
+      return { g: '식상' };                    // 식상으로 재 생조
     case '정관격': // 順用
-      if (hasSip('상관')) return { g: '인성', note: '상관견관 방어 → 인성으로 정관 보호(관인상생)' };
-      if (!strong) return { g: '인성', note: '신약 → 인성으로 정관 감당' };
-      return { g: '재성', note: '재생관(재로 정관 생조)' };
+      if (hasSip('상관')) return { g: '인성' }; // 상관견관 방어 → 인성으로 정관 보호(관인상생)
+      if (!strong) return { g: '인성' };        // 신약 → 인성으로 정관 감당
+      return { g: '재성' };                     // 재생관(재로 정관 생조)
     case '인수격': // 順用
-      if (strong) return { g: '재성', note: '인다신강 → 재성으로 인성 제압' };
-      if (has('관살')) return { g: '관살', note: '관인상생(관살로 인성 생조)' };
-      return { g: '관살', note: '관살로 인성 생조' };
+      if (strong) return { g: '재성' };         // 인다신강 → 재성으로 인성 제압
+      if (has('관살')) return { g: '관살' };    // 관인상생(관살로 인성 생조)
+      return { g: '관살' };                     // 관살로 인성 생조
     case '식신격': // 順用(칠살 있으면 제살)
-      if (hasSip('편관') || hasSip('칠살')) return { g: '식상', note: '식신제살(식신으로 칠살 제압)' };
-      return { g: '재성', note: '식신생재(식신으로 재 생조)' };
+      if (hasSip('편관') || hasSip('칠살')) return { g: '식상' };  // 식신제살(식신으로 칠살 제압)
+      return { g: '재성' };                     // 식신생재(식신으로 재 생조)
     case '칠살격': // 逆用 — 제/화
-      if (has('식상')) return { g: '식상', note: '식신제살(식상으로 칠살 제압)' };
-      if (has('인성')) return { g: '인성', note: '살인상생(칠살을 인성으로 받아 돌림)' };
-      return { g: '식상', note: '식상으로 칠살 제압' };
+      if (has('식상')) return { g: '식상' };    // 식신제살(식상으로 칠살 제압)
+      if (has('인성')) return { g: '인성' };    // 살인상생(칠살을 인성으로 받아 돌림)
+      return { g: '식상' };                     // 식상으로 칠살 제압
     case '상관격': // 逆用
-      if (has('인성')) return { g: '인성', note: '상관패인(인성으로 상관 제어)' };
-      if (has('재성')) return { g: '재성', note: '상관생재(상관으로 재 생조)' };
-      return { g: '인성', note: '상관패인(인성으로 상관 제어)' };
+      if (has('인성')) return { g: '인성' };    // 상관패인(인성으로 상관 제어)
+      if (has('재성')) return { g: '재성' };    // 상관생재(상관으로 재 생조)
+      return { g: '인성' };                     // 상관패인(인성으로 상관 제어)
     case '양인격': // 逆用
-      return { g: '관살', note: '양인은 관살로 제압(상신은 원국에 있어야 강함)' };
+      return { g: '관살' };                     // 양인은 관살로 제압(상신은 원국에 있어야 강함)
     case '건록격': // 逆用 — 설/제
-      if (has('재성')) return { g: '재성', note: '재로 왕한 록겁을 돌림(식상 통관)' };
-      if (has('관살')) return { g: '관살', note: '관살로 록겁 제압' };
-      return { g: '식상', note: '식상으로 왕한 비겁 설기' };
+      if (has('재성')) return { g: '재성' };    // 재로 왕한 록겁을 돌림(식상 통관)
+      if (has('관살')) return { g: '관살' };    // 관살로 록겁 제압
+      return { g: '식상' };                     // 식상으로 왕한 비겁 설기
   }
 }
 
@@ -127,9 +133,9 @@ export function YongsinCard({ saju, pattern, timeUnknown }: { saju: SajuChart; p
       const has = (g: Group) => [...present].some((s) => SIP_GROUP[s] === g);
       const hasSip = (s: string) => present.has(s);
       const strong = /강|왕/.test(String(ys.strengthVerdict ?? ''));
-      const { g, note } = gyeokgukSangsin(kind, has, hasSip, strong);
+      const { g } = gyeokgukSangsin(kind, has, hasSip, strong);
       const el = groupElement(dayEl, g);
-      return { kind, group: g, el, note, inChart: has(g) };                 // inChart = 상신이 원국에 있나("있어야 강함")
+      return { kind, group: g, el, inChart: has(g) };                 // inChart = 상신이 원국에 있나("있어야 강함")
     } catch { return null; }
   }, [saju, pattern, ys, timeUnknown, dayEl]);
 
@@ -153,7 +159,7 @@ export function YongsinCard({ saju, pattern, timeUnknown }: { saju: SajuChart; p
         <View key={r.label} style={styles.row}>
           <Text style={styles.rowLabel}>{T(r.label)}</Text>
           <View style={[styles.elDot, { backgroundColor: elementColor[r.el] ?? colors.inkFaint }]} />
-          <Text style={[styles.elTx, { color: elementColor[r.el] ?? colors.ink }]}>{r.el}({EL_KO[r.el] ?? r.el})</Text>
+          <Text style={[styles.elTx, { color: elementColor[r.el] ?? colors.ink }]}>{r.el}({elGloss(r.el, lang)})</Text>
           <Text style={styles.sipsin}>{T(sipsinGroup(dayEl, r.el))}</Text>
         </View>
       ) : null)}
@@ -170,7 +176,7 @@ export function YongsinCard({ saju, pattern, timeUnknown }: { saju: SajuChart; p
           <View style={styles.row}>
             <Text style={styles.rowLabel}>{T('용신')}</Text>
             <View style={[styles.elDot, { backgroundColor: elementColor[gyeokguk.el] ?? colors.inkFaint }]} />
-            <Text style={[styles.elTx, { color: elementColor[gyeokguk.el] ?? colors.ink }]}>{gyeokguk.el}({EL_KO[gyeokguk.el] ?? gyeokguk.el})</Text>
+            <Text style={[styles.elTx, { color: elementColor[gyeokguk.el] ?? colors.ink }]}>{gyeokguk.el}({elGloss(gyeokguk.el, lang)})</Text>
             <Text style={styles.sipsin}>{T(gyeokguk.group)}{gyeokguk.inChart ? '' : ` ·${T('원국')}無`}</Text>
           </View>
         </View>

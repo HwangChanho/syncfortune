@@ -20,14 +20,48 @@
 //   ②`lib/i18n` 을 물면 `react-native` 까지 딸려와 **단위 검증이 아예 막힌다**(실제로 막혔다).
 //   ⇒ 이 저장소의 방식대로 «필요한 것을 받아 쓰는» 순수 함수로 둔다(`coinLedgerLabel(kind, t)` 와 같다).
 // ★한자는 이 표들이 이미 갖고 있다 — 여기서 새로 적지 않는다
-import { TENGOD_GLOSSARY, BASIC_GLOSSARY, GANGYAK_GLOSSARY, OHAENG_GLOSSARY } from '../content/myeongriGlossary';
+import { TENGOD_GLOSSARY, BASIC_GLOSSARY, GANGYAK_GLOSSARY, OHAENG_GLOSSARY, SINSAL_GLOSSARY } from '../content/myeongriGlossary';
 
-/** 자리 이름(년·월·일·시) — 글로서리에 없는 것만 여기서 채운다. */
-const PILLAR: Record<string, string> = {
+/**
+ * 글로서리에 **없는** 용어만 여기서 채운다.
+ *
+ * ⚠️★규칙: **글로서리에 있는 것을 여기 또 적지 않는다**([[duplicate-ui-single-source]]).
+ *   있는 것을 적으면 «두 표가 다른 한자를 말하는» 날이 온다. 아래는 전부
+ *   `BASIC/TENGOD/GANGYAK/OHAENG/SINSAL` 어디에도 **없다**고 확인하고 넣은 것들이다.
+ *
+ * ★무엇이 여기 들어오나 = **명리 체계의 고유명**. 「상세 분석」·「전체 선택」 같은
+ *   보통 말은 여기가 아니라 `copy/*.ts` 로 간다(그건 번역해야 읽힌다).
+ */
+const EXTRA: Record<string, string> = {
+  // 자리 이름
   년: '年', 월: '月', 일: '日', 시: '時',
-  // ⚠️글로서리에 **없는 것**만 여기 채운다. 「관살」 은 관성(正官)+편관(七殺)을 묶어 부르는 말이라
-  //   글로서리에 항목이 없다 — 있는 것을 여기 또 적으면 두 표가 갈린다.
-  관살: '官殺', 원국: '原局',
+  년주: '年柱', 월주: '月柱', 일주: '日柱', 시주: '時柱',
+  // 구조 이름 — 「관살」 은 정관+편관을 묶어 부르는 말이라 글로서리에 항목이 없다
+  관살: '官殺', 천간: '天干', 지지: '地支', 지장간: '支藏干', 팔자: '八字',
+  // 용신을 보는 **관점** 이름 — 이것도 고유명이라 그대로 옮긴다
+  병약: '病藥', 격국: '格局', 조후: '調候', 억부: '抑扶', 통관: '通關',
+  // 시간층
+  월운: '月運', 일운: '日運', 유년: '流年',
+  // 강약을 보는 세 가지 근거
+  득령: '得令', 득지: '得地', 득세: '得勢', 강약: '强弱', 통근: '通根', 투출: '透出',
+  // 지장간의 세 켜
+  여기: '餘氣', 중기: '中氣', 본기: '本氣',
+  // 글자끼리의 관계
+  합: '合', 충: '沖', 형: '刑', 해: '害', 파: '破', 극: '剋',
+  형충: '刑沖', 삼합: '三合', 방합: '方合', 육합: '六合', 반합: '半合', 공망: '空亡',
+  // 큰 갈래 이름
+  오행: '五行', 십신: '十神', 십성: '十星', 신살: '神殺', 십이운성: '十二運星',
+  '12신살': '十二神殺', '12운성': '十二運星',
+  음양: '陰陽', 자평: '子平', 궁통보감: '窮通寶鑑', 적천수: '滴天髓', 자미두수: '紫微斗數',
+  // 대운이 도는 방향
+  순행: '順行', 역행: '逆行',
+  // ★격국 이름의 **앞 글자** — 뒤의 「격」 은 아래에서 붙인다(표를 안 늘리려고)
+  //   글로서리의 십신 이름(정관·편재…)은 여기 없다 — 그건 이미 있어서 그대로 쓰인다.
+  재: '財', 칠살: '七殺', 인수: '印綬', 건록: '建祿', 월겁: '月劫', 종: '從', 화: '化',
+  // 자미두수 12궁
+  명궁: '命宮', 형제궁: '兄弟宮', 부처궁: '夫妻宮', 자녀궁: '子女宮', 재백궁: '財帛宮',
+  질액궁: '疾厄宮', 천이궁: '遷移宮', 노복궁: '奴僕宮', 관록궁: '官祿宮', 전택궁: '田宅宮',
+  복덕궁: '福德宮', 부모궁: '父母宮',
 };
 
 /**
@@ -42,6 +76,13 @@ export function termLabel(ko: string, lang: string): string {
   if (!k) return ko;
   if ((lang || 'ko').startsWith('ko')) return ko;
   const pick = (o: unknown) => (o as Record<string, { hanja?: string }> | undefined)?.[k];
-  const g = pick(BASIC_GLOSSARY) ?? pick(TENGOD_GLOSSARY) ?? pick(GANGYAK_GLOSSARY) ?? pick(OHAENG_GLOSSARY);
-  return g?.hanja ?? PILLAR[k] ?? ko;
+  const g = pick(BASIC_GLOSSARY) ?? pick(TENGOD_GLOSSARY) ?? pick(GANGYAK_GLOSSARY)
+    ?? pick(OHAENG_GLOSSARY) ?? pick(SINSAL_GLOSSARY);
+  // ★「…격」 은 격국 이름이라 개수가 열려 있다(재격·정관격·칠살격·인수격…).
+  //   낱낱이 적는 대신 **앞 글자를 풀고 뒤에 格 을 붙인다** — 표가 안 늘어난다.
+  if (!g && k.length > 1 && k.endsWith('격')) {
+    const base = termLabel(k.slice(0, -1), lang);
+    if (base !== k.slice(0, -1)) return `${base}格`;
+  }
+  return g?.hanja ?? EXTRA[k] ?? ko;
 }

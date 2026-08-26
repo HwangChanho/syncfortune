@@ -69,3 +69,24 @@ export function elemLabelOf(el: string, lang: OhaengLang = 'ko'): string {
   if (!row) return el;               // 오행이 아닌 값 — 그대로 통과시킨다(문장이 깨지지 않게)
   return row[lang] ?? row.ko ?? el;  // 모르는 언어는 ko 로 폴백
 }
+
+
+/**
+ * 오행의 **언어별 이름** — Boss 2026-08-27 *"명리 용어는 한자 그대로 두고 설명만 그 언어로"*
+ *
+ * ★한자(木·火·土·金·水)는 **안 바꾼다**. 괄호 안의 «풀이» 만 그 언어로 준다.
+ *   예: 한국어 `土(흙)` · 영어 `土(Earth)` · 일본어 `土(つち)`
+ * ⚠️표는 여기 **한 벌만** 둔다 — `EL_KO` 가 11벌 복붙됐던 그 자리다.
+ *
+ * @param el   오행 한자 한 글자
+ * @param lang 화면 언어
+ * @returns 괄호 안에 넣을 풀이. 모르는 언어면 한국어
+ */
+export function elGloss(el: string, lang: string): string {
+  const L = (lang || 'ko').slice(0, 2);
+  const EN: Record<string, string> = { 木: 'Wood', 火: 'Fire', 土: 'Earth', 金: 'Metal', 水: 'Water' };
+  const JA: Record<string, string> = { 木: 'き', 火: 'ひ', 土: 'つち', 金: 'かね', 水: 'みず' };
+  if (L === 'en') return EN[el] ?? EL_KO[el] ?? el;
+  if (L === 'ja') return JA[el] ?? EL_KO[el] ?? el;
+  return EL_KO[el] ?? el;
+}

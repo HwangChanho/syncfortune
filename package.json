@@ -212,7 +212,8 @@
     "check:viewrls": "tsx scripts/check-viewrls.ts",
     "check:mycard": "tsx scripts/check-mycard.ts",
     "check:speaker": "tsx scripts/check-speaker.ts",
-    "check:readingroute": "tsx scripts/check-readingroute.ts"
+    "check:readingroute": "tsx scripts/check-readingroute.ts",
+    "dump:ko": "tsx scripts/dump-ko.ts"
   },
   "keywords": [],
   "author": "",

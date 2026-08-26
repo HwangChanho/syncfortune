@@ -46,9 +46,12 @@ import { HIDDEN, computeMonthDays, branchTenGod, daeunForward } from '@engine/sa
 import { twelveStage } from '@engine/twelve';                          // 임의 지지 12운성(타임라인용)
 import { detectInteractionsAmong, interactionLabel } from '@engine/structure';   // 합충 검출 + 짝이름 라벨(daniel: 유축반합·정신극)
 import { detectGyeokguk } from '../lib/engine/gyeokguk';                                 // 핵심 격(살인상생·식신제살 등) 검출 — daniel
-import { lookupGlossary, GLOSSARY_KIND_LABEL, SINSAL_GLOSSARY, type GlossaryKind } from '../lib/content/myeongriGlossary'; // 클릭 설명
+import { lookupGlossary, GLOSSARY_KIND_LABEL, type GlossaryKind } from '../lib/content/myeongriGlossary'; // 클릭 설명
 import { playSound } from '../lib/ui/sounds';
 import { PILLAR_DISPLAY_ORDER } from '../lib/ui/pillarOrder'; // ★명식 표기 순서 단일 소스(오른쪽=년주)
+// ★명리 용어의 표시 글자(Boss 2026-08-27 *"명리 용어는 한자 그대로 두고 설명만 그 언어로"*).
+//   한국어면 그대로, 그 밖의 언어면 **한자**. 번역하지 않는다 — 용어는 고유명이다.
+import { termLabel } from '../lib/ui/termLabel';
 import Svg, { Path, Rect, Circle, Text as SvgText, G } from 'react-native-svg';
 
 // 전통 표기 — 오른쪽이 년주: 시(왼) ← 일 ← 월 ← 년(오른쪽)
@@ -56,18 +59,30 @@ import Svg, { Path, Rect, Circle, Text as SvgText, G } from 'react-native-svg';
 //   실제로 벤다이어그램(LuckNest)이 반대로 나갔던 자리다(2026-08-16).
 const POS: PillarPos[] = PILLAR_DISPLAY_ORDER;
 
+/**
+ * 엔진(`johuSkew`·`joSeupSkew`)이 붙여 주는 꼬리말 — 화면에선 떼고 쓴다.
+ *
+ * ⚠️★이건 **엔진이 만든 글자**라 번역 대상이 아니다. 다만 화면이 잘라 쓰므로 이름을 준다
+ *   (문자열을 두 군데에 그대로 적으면 엔진이 꼬리말을 바꿀 때 한쪽만 남는다).
+ */
+const SKEW_SUFFIX = ' 쏠림';
+
 // 만세력 카테고리 탭(daniel 07-13 재편) — 사주원국(팔자+지장간+합충+신살길성 통합)/운세(대운·세운·월운·일운)/오행·강약/자미두수.
 type MyeongTab = 'wonguk' | 'rel' | 'elem' | 'ilju' | 'ziwei';  // rel = 운세 전용(구 '사주관계' → 운세). 합충·신살은 wonguk으로 흡수.
 // ⚠️★모듈 상수라 `t()` 를 여기서 못 부른다(훅 밖·언어가 정해지기 전이다).
 //   ⇒ **키만** 담고, 그릴 때 푼다. 문구 본문은 `copy/ko.ts`·`en.ts`·`ja.ts` 의 `ms.` 항목에 있다.
+// ★`label` 도 **키**다(종전엔 한국어가 박혀 있었다) — 그릴 때 `t()` 로 푼다.
+//   ⚠️용어가 **이어 붙은 이름**(원국·운세)이라 `termLabel()` 로 조립하지 않는다 —
+//   조각을 붙이면 언어마다 가운뎃점·띄어쓰기가 달라 오히려 어색해진다.
+//   ⇒ `copy/en.ts`·`ja.ts` 에 **한자 그대로** 적어 둔다(Boss 규칙: 용어는 번역하지 않는다).
 const MYEONG_TABS: { id: MyeongTab; label: string; desc: string }[] = [
   // ★사주원국 + 운세 통합(daniel 2026-07-24) — 원국(팔자·지장간·합충·신살)과 운세(대운·세운·월운·일운)를 한 탭에서. 겹치던 원국 표시 중복 제거.
-  { id: 'wonguk', label: '원국·운세', desc: 'ms.tabNatalDesc' },
-  { id: 'elem', label: '오행·강약', desc: 'ms.tabElemDesc' },
+  { id: 'wonguk', label: 'ms.tabNatal', desc: 'ms.tabNatalDesc' },
+  { id: 'elem', label: 'ms.tabElem', desc: 'ms.tabElemDesc' },
   // ★일주론(Boss 2026-08-25) — 자미두수 **앞**에 둔다. 사주를 읽는 흐름이 원국 → 오행 → 일주 이고,
   //   자미두수는 *별개 체계*라 맨 뒤가 맞다.
-  { id: 'ilju', label: '일주론', desc: 'ms.tabIljuDesc' },
-  { id: 'ziwei', label: '자미두수', desc: 'ms.tabZiweiDesc' },
+  { id: 'ilju', label: 'ms.tabIlju', desc: 'ms.tabIljuDesc' },
+  { id: 'ziwei', label: 'ms.tabZiwei', desc: 'ms.tabZiweiDesc' },
 ];
 let lastMyeongTab: MyeongTab = 'wonguk';   // 선택 탭 기억(세션 내 — 나갔다 와도 분류 유지, daniel)
 
@@ -112,18 +127,29 @@ export function MyeongsikScreen(props: MyeongsikProps) {
 }
 
 function MyeongsikBody({ input, onReading, onSinsal, header, whoName }: MyeongsikProps & { input: ChartInput }) {
-  /** 제목 아래 한 줄 — 생년월일(+음력 표기) · 시각(또는 미상) · 출생지(또는 미상). */
+  const { t, i18n } = useTranslation();
+  /**
+   * 명리 **용어**의 표시 글자 — 한국어면 그대로, 그 밖의 언어면 한자.
+   * Boss 2026-08-27: *"명리 용어는 한자 그대로 두고 설명만 그 언어로"*
+   * ★번역하지 않는 이유는 `lib/ui/termLabel.ts` 머리말에 있다(용어는 뜻풀이가 아니라 고유명).
+   */
+  const T = (k: string) => termLabel(k, i18n.language);
+  /**
+   * 제목 아래 한 줄 — 생년월일(+음력 표기) · 시각(또는 미상) · 출생지(또는 미상).
+   *
+   * ⚠️★`t()` 를 쓰므로 **훅 뒤**에 있어야 한다(종전엔 위에 있어서 한국어가 박혀 있었다).
+   *   `input.calendar === '음'` 처럼 **비교 대상**은 엔진 값이라 그대로 둔다 — 그건 화면 글자가 아니다.
+   */
   const birthMeta = (() => {
     const [d = '', tm = ''] = String(input.birthDateTime ?? '').split(' ');
     const date = d.replace(/-/g, '.');
-    const cal = input.calendar === '음' ? ' (음력)' : '';
+    const cal = input.calendar === '음' ? ` (${t('ms.lunar', '음력')})` : '';
     const time = input.timeAccuracy === '미상'
-      ? '시 미상'
-      : `${tm}${input.timeAccuracy === '추정' ? ' (추정)' : ''}`;
-    const place = (input.birthPlace ?? '').trim() || '출생지 미상';
+      ? t('ms.timeUnknown', '시 미상')
+      : `${tm}${input.timeAccuracy === '추정' ? ` (${t('ms.approx', '추정')})` : ''}`;
+    const place = (input.birthPlace ?? '').trim() || t('ms.placeUnknown', '출생지 미상');
     return [date + cal, time, place].filter(Boolean).join(' · ');
   })();
-  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<MyeongTab>(lastMyeongTab === 'rel' ? 'wonguk' : lastMyeongTab); // 'rel'(구 운세 탭)은 wonguk 으로 통합(daniel 07-24) — 저장값 방어
   const [catDescOpen, setCatDescOpen] = useState(false); // 카테고리 ? 설명 시트(daniel: 설명도 나오게)
@@ -196,12 +222,14 @@ function MyeongsikBody({ input, onReading, onSinsal, header, whoName }: Myeongsi
   const dayElem = stemElement(P['일'].stem);
   const ELEM_GEN: Record<string, string> = { 木: '火', 火: '土', 土: '金', 金: '水', 水: '木' }; // 상생
   const ELEM_CTRL: Record<string, string> = { 木: '土', 火: '金', 土: '水', 金: '木', 水: '火' }; // 상극
+  // ★반환값이 **그대로 화면에 뜬다** ⇒ 용어 표(`T`)를 태운다.
+  //   한국어면 「비겁」, 그 밖의 언어면 「比劫」 — 번역하지 않는다(Boss 규칙).
   const elemTenGod = (el: string): string => {
-    if (el === dayElem) return '비겁';
-    if (ELEM_GEN[dayElem] === el) return '식상';   // 일간이 생함
-    if (ELEM_CTRL[dayElem] === el) return '재성';  // 일간이 극함
-    if (ELEM_CTRL[el] === dayElem) return '관성';  // 일간을 극함
-    if (ELEM_GEN[el] === dayElem) return '인성';   // 일간을 생함
+    if (el === dayElem) return T('비겁');
+    if (ELEM_GEN[dayElem] === el) return T('식상');   // 일간이 생함
+    if (ELEM_CTRL[dayElem] === el) return T('재성');  // 일간이 극함
+    if (ELEM_CTRL[el] === dayElem) return T('관성');  // 일간을 극함
+    if (ELEM_GEN[el] === dayElem) return T('인성');   // 일간을 생함
     return '';
   };
   // 합충형해 선 (원국 — 쌍(2자)·삼합국/방합국(3자) 모두, 전 멤버가 표시 중일 때만)
@@ -233,10 +261,10 @@ function MyeongsikBody({ input, onReading, onSinsal, header, whoName }: Myeongsi
     if (elemSpan === 'natal') return undefined;
     const l = luckCycles[selLuck];
     if (!l) return undefined;
-    const out = [{ label: `${l.startAge}세 대운`, stem: l.stem, branch: l.branch }];
+    const out = [{ label: `${t('ms.ageN', '{{n}}세', { n: l.startAge })} ${T('대운')}`, stem: l.stem, branch: l.branch }];
     if (elemSpan === 'both') {
       const a = l.annuals?.[selSeun];
-      if (a) out.push({ label: `${a.year} 세운`, stem: a.stem, branch: a.branch });
+      if (a) out.push({ label: `${a.year} ${T('세운')}`, stem: a.stem, branch: a.branch });
     }
     return out;
   })();
@@ -355,8 +383,8 @@ function MyeongsikBody({ input, onReading, onSinsal, header, whoName }: Myeongsi
                   </Text>
                 ))}
                 {ty === '합' && x.transformsTo ? <Text style={{ color: col, fontWeight: '800' }}>{`  → ${x.transformsTo}`}</Text> : null}
-                {x.isGan ? <Text style={styles.linkLevel}>  천간</Text> : null}
-                {x.mem.length === 3 ? <Text style={{ color: col, fontWeight: '800', fontSize: 11 }}>  ★{x.type === '합' ? '삼합/방합' : x.type === '형' ? '삼형' : '3자'}</Text> : null}
+                {x.isGan ? <Text style={styles.linkLevel}>  {T('천간')}</Text> : null}
+                {x.mem.length === 3 ? <Text style={{ color: col, fontWeight: '800', fontSize: 11 }}>  ★{x.type === '합' ? `${T('삼합')}/${T('방합')}` : x.type === '형' ? t('ms.samhyeong', '삼형') : t('ms.three', '3자')}</Text> : null}
               </Text>
             </PressableScale>
           );
@@ -383,11 +411,12 @@ function MyeongsikBody({ input, onReading, onSinsal, header, whoName }: Myeongsi
   const STRENGTH: Record<string, number> = { 충: 5, 합: 4, 형: 3, 극: 3, 해: 2, 파: 1 };
   const renderByStrength = (items: any[], active: Set<string>, onToggle: (k: string) => void) => [...items].sort((a, b) => (STRENGTH[b.type] || 0) - (STRENGTH[a.type] || 0)).map((x: any, i: number) => {
     const s = STRENGTH[x.type] || 0;
-    const tier = s >= 4 ? '강' : s >= 3 ? '중' : '약';
+    // ★뱃지 글자 — 「강·중·약」은 세기 표시다(용어가 아니라 **보통 말**) ⇒ 문구 파일로 옮긴다
+    const tier = s >= 4 ? t('ms.tierHi', '강') : s >= 3 ? t('ms.tierMid', '중') : t('ms.tierLo', '약');
     const col = typeColor(x.type);
     const on = active.has(x.key);
     return (
-      <PressableScale key={i} onPress={() => onToggle(x.key)} style={[styles.strRow, tier === '강' && styles.strRowTop, on && styles.linkGRowOn]}>
+      <PressableScale key={i} onPress={() => onToggle(x.key)} style={[styles.strRow, s >= 4 && styles.strRowTop, on && styles.linkGRowOn]}>
         <Text style={[styles.strBadge, { color: col, borderColor: col }]}>{on ? '◉' : tier}</Text>
         <Text style={styles.linkGTx}>
           {x.mem.map((mm: any, k: number) => (
@@ -397,7 +426,7 @@ function MyeongsikBody({ input, onReading, onSinsal, header, whoName }: Myeongsi
           ))}
           {'   '}
           <Text style={{ color: col, fontWeight: '800' }}>{interactionLabel({ type: x.type, detail: x.key, level: x.isGan ? '천간' : '지지' } as any)}</Text>
-          {x.isGan ? <Text style={styles.linkLevel}>  천간</Text> : null}
+          {x.isGan ? <Text style={styles.linkLevel}>  {T('천간')}</Text> : null}
         </Text>
       </PressableScale>
     );
@@ -502,7 +531,7 @@ function MyeongsikBody({ input, onReading, onSinsal, header, whoName }: Myeongsi
           style={[styles.tabBtn, activeTab === t2.id && styles.tabBtnOn]}
           onPress={() => { setActiveTab(t2.id); haptic(); }}
         >
-          <Text style={[styles.tabLabel, activeTab === t2.id && styles.tabLabelOn]} numberOfLines={1}>{t2.label}</Text>
+          <Text style={[styles.tabLabel, activeTab === t2.id && styles.tabLabelOn]} numberOfLines={1}>{t(t2.label)}</Text>
         </PressableScale>
       ))}
     </View>
@@ -533,10 +562,10 @@ function MyeongsikBody({ input, onReading, onSinsal, header, whoName }: Myeongsi
             <View style={{ flexDirection: 'row', gap: space(2) }}>
               {/* ★한자↔한글 토글(daniel 07-24) — 사주 모르는 사람도 한글음으로 명식 보기 */}
               <PressableScale style={styles.advancedBtn} onPress={() => setHangeul((v) => !v)}>
-                <Text style={styles.advancedBtnTx}>{hangeul ? '漢 한자' : '가 한글'}</Text>
+                <Text style={styles.advancedBtnTx}>{hangeul ? t('ms.showHanja', '漢 한자') : t('ms.showHangeul', '가 한글')}</Text>
               </PressableScale>
               <PressableScale style={styles.advancedBtn} onPress={toggleAdvanced}>
-                <Text style={styles.advancedBtnTx}>{showAdvanced ? '간략히' : '상세 분석'}</Text>
+                <Text style={styles.advancedBtnTx}>{showAdvanced ? t('ms.brief', '간략히') : t('ms.detail', '상세 분석')}</Text>
               </PressableScale>
             </View>
           </View>
@@ -546,7 +575,7 @@ function MyeongsikBody({ input, onReading, onSinsal, header, whoName }: Myeongsi
           {renderArcs(activeJiP, 'below')}
 
           {/* ★신살·공망(원국) — 12신살 있던 자리로 이동(daniel 2026-07-25). 자리별 적중만: 운에서 오는 신살 제외 · 12신살 요약은 관계분석으로. */}
-          <Text style={styles.hint}>신살·공망 (자리별 적중)</Text>
+          <Text style={styles.hint}>{T('신살')}·{T('공망')} ({t('ms.byPillar', '자리별 적중')})</Text>
           {(() => {
             const byName = new Map<string, { name: string; glyphs: string[]; hits: any[] }>();
             c.sinsal.sinsal.forEach((s) => {
@@ -558,14 +587,15 @@ function MyeongsikBody({ input, onReading, onSinsal, header, whoName }: Myeongsi
             if (c.sinsal.goegang) byName.set('괴강', { name: '괴강', glyphs: [`${P['일'].stem}${P['일'].branch}`], hits: [{ pos: '일', side: 'stem' }] });
             if (c.sinsal.baekhoHits.length) byName.set('백호', { name: '백호', glyphs: ['白虎'], hits: c.sinsal.baekhoHits.map((p) => ({ pos: p, side: 'stem' })) });
             const atSide = (p: PillarPos, side: string) => [...byName.values()].filter((s) => s.hits.some((h) => h.pos === p && h.side === side)).map((s) => s.name);
-            const tag = (name: string, onPress: () => void, key: any) => { const g = (SINSAL_GLOSSARY as any)[name]; return <PressableScale key={key} onPress={onPress}><Text style={styles.ssTagLink}>{g?.ko ?? name}</Text></PressableScale>; };
+            // ★태그 글자도 용어 표를 탄다 — `SINSAL_GLOSSARY` 가 한자를 갖고 있어 `T()` 가 그대로 푼다
+    const tag = (name: string, onPress: () => void, key: any) => <PressableScale key={key} onPress={onPress}><Text style={styles.ssTagLink}>{T(name)}</Text></PressableScale>;
             const cellTags = (names: string[]) => names.length ? names.map((n, i) => tag(n, () => setGlossary({ kind: 'sinsal', key: n }), i)) : <Text style={styles.ssDim}>—</Text>;
             return (
               <View style={styles.ssTable}>
-                <View style={styles.ssTableRow}><Text style={styles.ssRowLabel} />{visiblePos.map((p) => <Text key={p} style={styles.ssColHead}>{p}주</Text>)}</View>
-                <View style={styles.ssTableRow}><Text style={styles.ssRowLabel}>천간</Text>{visiblePos.map((p) => <View key={p} style={styles.ssCell}>{cellTags(atSide(p, 'stem'))}</View>)}</View>
-                <View style={styles.ssTableRow}><Text style={styles.ssRowLabel}>지지</Text>{visiblePos.map((p) => <View key={p} style={styles.ssCell}>{cellTags(atSide(p, 'branch'))}</View>)}</View>
-                <View style={styles.ssTableRow}><Text style={styles.ssRowLabel}>공망</Text>{visiblePos.map((p) => <View key={p} style={styles.ssCell}>{c.sinsal.gongmangHits.includes(p) ? tag('공망', () => setGlossary({ kind: 'gongmang' }), 'gm') : <Text style={styles.ssDim}>—</Text>}</View>)}</View>
+                <View style={styles.ssTableRow}><Text style={styles.ssRowLabel} />{visiblePos.map((p) => <Text key={p} style={styles.ssColHead}>{T(`${p}주`)}</Text>)}</View>
+                <View style={styles.ssTableRow}><Text style={styles.ssRowLabel}>{T('천간')}</Text>{visiblePos.map((p) => <View key={p} style={styles.ssCell}>{cellTags(atSide(p, 'stem'))}</View>)}</View>
+                <View style={styles.ssTableRow}><Text style={styles.ssRowLabel}>{T('지지')}</Text>{visiblePos.map((p) => <View key={p} style={styles.ssCell}>{cellTags(atSide(p, 'branch'))}</View>)}</View>
+                <View style={styles.ssTableRow}><Text style={styles.ssRowLabel}>{T('공망')}</Text>{visiblePos.map((p) => <View key={p} style={styles.ssCell}>{c.sinsal.gongmangHits.includes(p) ? tag('공망', () => setGlossary({ kind: 'gongmang' }), 'gm') : <Text style={styles.ssDim}>—</Text>}</View>)}</View>
               </View>
             );
           })()}
@@ -600,14 +630,14 @@ function MyeongsikBody({ input, onReading, onSinsal, header, whoName }: Myeongsi
         <View style={styles.linksCard}>
           {/* ③ 전체 선택/해제(daniel) — 합충선 한번에 켜고 끄기 */}
           <PressableScale onPress={() => setActivePalja((p) => p.size ? new Set<string>() : new Set(normPalja.map((x: any) => x.key as string)))} style={{ alignSelf: 'flex-end', paddingVertical: 4, paddingHorizontal: 8 }}>
-            <Text style={{ color: colors.ju, fontWeight: '700', fontSize: 12 }}>{activePalja.size ? '전체 해제' : '전체 선택'}</Text>
+            <Text style={{ color: colors.ju, fontWeight: '700', fontSize: 12 }}>{activePalja.size ? t('ms.unselectAll', '전체 해제') : t('ms.selectAll', '전체 선택')}</Text>
           </PressableScale>
           {renderGroups(normPalja, activePalja, (k) => toggleKey(setActivePalja, k))}
         </View>
       )}
           {/* 12신살(원국) — 관계분석 안으로 이동(daniel 2026-07-25 N). 상세 분석 전용(이 블록이 showAdvanced 게이트). 합충 유무와 무관하게 항상 표시. */}
           <View style={styles.twelveRow}>
-            <Text style={styles.twelveRowLabel}>12신살</Text>
+            <Text style={styles.twelveRowLabel}>{T('12신살')}</Text>
             {visiblePos.map((p) => {
               const names = Array.from(new Set((c.sinsal.twelve[p] ?? []).map((tw: any) => tw.name)));
               return (
@@ -652,7 +682,7 @@ function MyeongsikBody({ input, onReading, onSinsal, header, whoName }: Myeongsi
         if (!gyeok.length) return null;
         return (
           <View style={styles.gyeokWrap}>
-            <Text style={styles.gyeokHead}>핵심 격</Text>
+            <Text style={styles.gyeokHead}>{t('ms.coreGyeok', '핵심 격')}</Text>
             {gyeok.map((g, i) => (
               <View key={i} style={styles.gyeokCard}>
                 <Text style={styles.gyeokName}>{g.name} <Text style={styles.gyeokHanja}>{g.hanja}</Text></Text>
@@ -673,14 +703,14 @@ function MyeongsikBody({ input, onReading, onSinsal, header, whoName }: Myeongsi
       {/* 대표 오행(일간)·대표 십성(격국) — 탭→설명 */}
       <View style={styles.repRow}>
         <PressableScale style={styles.repChip} onPress={() => setGlossary({ kind: 'element', key: c.saju.dayMaster.element })}>
-          <Text style={styles.repLabel}>대표 오행</Text>
+          <Text style={styles.repLabel}>{t('ms.repElem', '대표 오행')}</Text>
           <Text style={[styles.repVal, { color: elementColor[c.saju.dayMaster.element] }]}>{c.saju.dayMaster.stem} · {c.saju.dayMaster.element}</Text>
         </PressableScale>
         {(() => {
           const repTg = (c.pattern.candidates[0] || '').replace('격', '') || c.saju.pillars['월'].branchMainTenGod;
           return (
             <PressableScale style={styles.repChip} onPress={() => setGlossary({ kind: 'tengod', key: repTg })}>
-              <Text style={styles.repLabel}>대표 십성(격)</Text>
+              <Text style={styles.repLabel}>{t('ms.repTengod', '대표 십성(격)')}</Text>
               <Text style={styles.repValTg}>{c.pattern.candidates.join(' · ') || repTg}</Text>
             </PressableScale>
           );
@@ -709,13 +739,13 @@ function MyeongsikBody({ input, onReading, onSinsal, header, whoName }: Myeongsi
               <Circle cx={CX} cy={CY} r={R} stroke={colors.ju} strokeWidth={9} fill="none"
                 strokeDasharray={`${circ * ratio} ${circ}`} strokeLinecap="round" transform={`rotate(-90 ${CX} ${CY})`} />
               <SvgText x={CX} y={CY - 1} fill={colors.ink} fontSize={22} fontWeight="800" textAnchor="middle">{sc > 0 ? `+${sc}` : `${sc}`}</SvgText>
-              <SvgText x={CX} y={CY + 17} fill={colors.ju} fontSize={12} fontWeight="700" textAnchor="middle">{c.strengthClass.type}</SvgText>
+              <SvgText x={CX} y={CY + 17} fill={colors.ju} fontSize={12} fontWeight="700" textAnchor="middle">{T(c.strengthClass.type)}</SvgText>
             </Svg>
             <View style={styles.strengthInfo}>
-              <Text style={styles.kv}><Text style={styles.kvLabel}>강약</Text>  {c.strengthClass.type}</Text>{/* 엔진 판단값 그대로(daniel) — 재해석 라벨 제거 */}
-              <Text style={styles.kv}><Text style={styles.kvLabel}>강약축</Text>  {c.strengthClass.gangyakAxis} (재관 대비)</Text>
-              <Text style={styles.kv}><Text style={styles.kvLabel}>우호세력</Text>  {Math.round(ratio * 100)}% · 비겁+인성</Text>
-              <Text style={styles.kv}><Text style={styles.kvLabel}>득령·득지·득세</Text>  {[c.strengthClass.deukryeong && '득령', c.strengthClass.deukji && '득지', c.strengthClass.deukse && '득세'].filter(Boolean).join('·') || '없음'}</Text>
+              <Text style={styles.kv}><Text style={styles.kvLabel}>{T('강약')}</Text>  {T(c.strengthClass.type)}</Text>{/* 엔진 판단값 그대로(daniel) — 재해석 라벨 제거 */}
+              <Text style={styles.kv}><Text style={styles.kvLabel}>{t('ms.gangyakAxis', '강약축')}</Text>  {c.strengthClass.gangyakAxis} (재관 대비)</Text>
+              <Text style={styles.kv}><Text style={styles.kvLabel}>{t('ms.allyPower', '우호세력')}</Text>  {Math.round(ratio * 100)}% · 비겁+인성</Text>
+              <Text style={styles.kv}><Text style={styles.kvLabel}>{T('득령')}·{T('득지')}·{T('득세')}</Text>  {[c.strengthClass.deukryeong && T('득령'), c.strengthClass.deukji && T('득지'), c.strengthClass.deukse && T('득세')].filter(Boolean).join('·') || t('common.none', '없음')}</Text>
             </View>
           </View>
         );
@@ -723,14 +753,14 @@ function MyeongsikBody({ input, onReading, onSinsal, header, whoName }: Myeongsi
       <Text style={styles.hint}>{c.strengthClass.reason}</Text>
       {/* 신강·신약 특징 — 탭하면 상세 시트(성향·강점·주의·용신 방향) */}
       <PressableScale style={styles.strDetailBtn} onPress={() => setStrengthOpen(true)}>
-        <Text style={styles.strDetailBtnTx}>신강·신약 특징 자세히 보기 ›</Text>
+        <Text style={styles.strDetailBtnTx}>{t('ms.strengthMore', '{{a}}·{{b}} 특징 자세히 보기 ›', { a: T('신강'), b: T('신약') })}</Text>
       </PressableScale>
       {/* 조후·음양 쏠림(daniel) — 탭하면 설명·문제점·대응법(개운법) */}
       {(() => {
         const ey = eumYangSkew(P, input?.sex); const jh = johuSkew(P); const js = joSeupSkew(P);
         return (
           <PressableScale style={styles.strDetailBtn} onPress={() => setJohuOpen(true)}>
-            <Text style={styles.strDetailBtnTx}>한난조습 {jh.skew.replace(' 쏠림', '')}·{js.skew.replace(' 쏠림', '')} · 음양 {ey.skew.replace('양', '+').replace('음', '-')}  — 문제점·대응법 ›</Text>
+            <Text style={styles.strDetailBtnTx}>{T('조후')} {jh.skew.replace(SKEW_SUFFIX, '')}·{js.skew.replace(SKEW_SUFFIX, '')} · {T('음양')} {ey.skew.replace('양', '+').replace('음', '-')}  — {t('ms.problemFix', '문제점·대응법')} ›</Text>
           </PressableScale>
         );
       })()}
@@ -758,7 +788,7 @@ function MyeongsikBody({ input, onReading, onSinsal, header, whoName }: Myeongsi
       {/* ★기간 — 원국에 운을 얹어 본다(Boss 2026-08-25).
           ⚠️어느 대운·세운인지는 **위 운세 탭에서 고른 것**을 따라간다(선택기를 둘로 만들지 않는다). */}
       <View style={styles.layerToggle}>
-        {([['natal', '원국'], ['luck', '+대운'], ['both', '+대운·세운']] as const).map(([k, label]) => (
+        {([['natal', T('원국')], ['luck', `+${T('대운')}`], ['both', `+${T('대운')}·${T('세운')}`]] as const).map(([k, label]) => (
           <PressableScale key={k} style={[styles.layerChip, elemSpan === k && styles.layerChipOn]} onPress={() => setElemSpan(k)}>
             <Text style={[styles.layerChipTx, elemSpan === k && styles.layerChipTxOn]}>{label}</Text>
           </PressableScale>
@@ -768,7 +798,7 @@ function MyeongsikBody({ input, onReading, onSinsal, header, whoName }: Myeongsi
         {elemSpan !== 'natal' ? (
           <PressableScale style={[styles.layerChip, styles.spanPickBtn]} onPress={() => setSpanPick(true)}>
             <Text style={styles.layerChipTx}>
-              {luckCycles[selLuck] ? `${luckCycles[selLuck].startAge}세` : '시점'}
+              {luckCycles[selLuck] ? t('ms.ageN', '{{n}}세', { n: luckCycles[selLuck].startAge }) : t('ms.pickPoint', '시점')}
               {elemSpan === 'both' && luckCycles[selLuck]?.annuals?.[selSeun]
                 ? ` · ${luckCycles[selLuck]!.annuals![selSeun]!.year}` : ''} ▾
             </Text>
@@ -782,13 +812,13 @@ function MyeongsikBody({ input, onReading, onSinsal, header, whoName }: Myeongsi
         <View style={styles.spanSheetWrap}>
           <Pressable style={StyleSheet.absoluteFill} onPress={() => setSpanPick(false)} />
           <View style={styles.spanSheet}>
-            <Text style={styles.spanSheetH}>대운</Text>
+            <Text style={styles.spanSheetH}>{T('대운')}</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.spanRow}>
               {luckCycles.map((l, i) => (
                 <PressableScale key={`${l.startAge}-${i}`}
                   style={[styles.spanItem, selLuck === i && styles.spanItemOn]}
                   onPress={() => { setSelLuck(i); setSelSeun(0); }}>
-                  <Text style={[styles.spanItemTx, selLuck === i && styles.spanItemTxOn]}>{l.startAge}세</Text>
+                  <Text style={[styles.spanItemTx, selLuck === i && styles.spanItemTxOn]}>{t('ms.ageN', '{{n}}세', { n: l.startAge })}</Text>
                   <Text style={[styles.spanItemGz, selLuck === i && styles.spanItemTxOn]}>{l.stem}{l.branch}</Text>
                 </PressableScale>
               ))}
@@ -796,7 +826,7 @@ function MyeongsikBody({ input, onReading, onSinsal, header, whoName }: Myeongsi
             {/* 세운은 **+대운·세운** 일 때만 고를 수 있다 — 안 쓰는 것을 보여 주면 눌러도 아무 일이 없다 */}
             {elemSpan === 'both' ? (
               <>
-                <Text style={styles.spanSheetH}>세운</Text>
+                <Text style={styles.spanSheetH}>{T('세운')}</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.spanRow}>
                   {((luckCycles[selLuck]?.annuals ?? []) as any[]).map((a, i) => (
                     <PressableScale key={a.year}
@@ -854,7 +884,7 @@ function MyeongsikBody({ input, onReading, onSinsal, header, whoName }: Myeongsi
                   transform={`rotate(-90 ${CX} ${CY})`} />
               ))}
               <SvgText x={CX} y={CY - 1} fill={elementColor[top]} fontSize={21} fontWeight="800" textAnchor="middle">{top}</SvgText>
-              <SvgText x={CX} y={CY + 15} fill={colors.inkSoft} fontSize={9} textAnchor="middle">최강</SvgText>
+              <SvgText x={CX} y={CY + 15} fill={colors.inkSoft} fontSize={9} textAnchor="middle">{t('ms.strongest', '최강')}</SvgText>
             </Svg>
             <View style={styles.elemLegend}>
               {legendOrder.map((el) => (
@@ -887,7 +917,7 @@ function MyeongsikBody({ input, onReading, onSinsal, header, whoName }: Myeongsi
             onPress={() => { setSelLuck(curLuckIdx); setSelSeun(curSeunIdx); setSelMonth(now.getMonth()); setSelDay(now.getDate()); }}
             style={styles.todayBtn}
           >
-            <Text style={styles.todayBtnTx}>⊙ 오늘 기준 현재운세 보기</Text>
+            <Text style={styles.todayBtnTx}>⊙ {t('ms.todayLuck', '오늘 기준 현재운세 보기')}</Text>
           </PressableScale>
           {/* 대운·세운 타임라인 (원국·지장간 바로 아래) — 대운 탭 → 세운(과거~100세) → 월운 드릴다운
               ★게이트 해제(daniel 2026-08-05 "대운 세운 월운 일운 표시 없어도 원국은 뜨게") —
@@ -900,7 +930,7 @@ function MyeongsikBody({ input, onReading, onSinsal, header, whoName }: Myeongsi
         //   순수 대운수 = getStartYear − 출생연도 = startAge − 1 (재현 검증: 1992-08-09 남 startAge11→대운수10).
         const daeunsu: number | undefined = luckCycles[0]?.startAge != null ? Math.max(1, luckCycles[0].startAge - 1) : undefined;
         const sx = input?.sex;
-        const luckDir = sx ? (daeunForward(P['년'].stem, sx) ? '순행' : '역행') : null;
+        const luckDir = sx ? (daeunForward(P['년'].stem, sx) ? T('순행') : T('역행')) : null;
         const an = lc?.annuals?.[selSeun];
         // ★세운 만 나이(daniel) — 선택 세운 연도의 만 나이. 대운 startAge(입운 만나이) + 대운 내 연차(an.year−첫세운.year).
         //   엔진 나이모델(대운 startAge)과 일관 → 대운 옆 나이와 안 어긋남 + 음력도 정확(startAge는 solar 변환 후 산출).
@@ -917,11 +947,13 @@ function MyeongsikBody({ input, onReading, onSinsal, header, whoName }: Myeongsi
         const dayItem = days.find((d) => d.day === selDay) ?? days[0] ?? null;
         // 원국(시일월년) + 선택 대운 + 선택 세운 + 선택 월운 + 선택 일운 = 확장 명식 컬럼
         const expandCols = [
-          ...visiblePos.map((p) => ({ label: `${p}주`, stem: P[p].stem, branch: P[p].branch, tg: P[p].stemTenGod, luck: false, hidden: HIDDEN[P[p].branch] ?? [] })),
-          ...(lc && showLayers.luck ? [{ label: '대운', stem: lc.stem, branch: lc.branch, tg: lc.stemTenGod, luck: true, hidden: HIDDEN[lc.branch as keyof typeof HIDDEN] ?? [] }] : []),
-          ...(an && showLayers.year ? [{ label: '세운', stem: an.stem, branch: an.branch, tg: an.stemTenGod, luck: true, hidden: HIDDEN[an.branch as keyof typeof HIDDEN] ?? [] }] : []),
-          ...(mo && showLayers.month ? [{ label: `${selMonth + 1}월`, stem: mo.stem, branch: mo.branch, tg: mo.stemTenGod, luck: true, hidden: HIDDEN[mo.branch as keyof typeof HIDDEN] ?? [] }] : []),
-          ...(dayItem && showLayers.day ? [{ label: '일운', stem: dayItem.stem, branch: dayItem.branch, tg: dayItem.stemTenGod, luck: true, hidden: HIDDEN[dayItem.branch as keyof typeof HIDDEN] ?? [] }] : []),
+          // ⚠️★`key` 를 함께 싣는다 — `label` 은 언어에 따라 바뀌므로 **글자로 층을 판별하면 깨진다**
+          //   (「대운」이 「大運」이 되는 순간 `col.label === '대운'` 이 거짓이 된다).
+          ...visiblePos.map((p) => ({ key: p, label: T(`${p}주`), stem: P[p].stem, branch: P[p].branch, tg: P[p].stemTenGod, luck: false, hidden: HIDDEN[P[p].branch] ?? [] })),
+          ...(lc && showLayers.luck ? [{ key: 'luck', label: T('대운'), stem: lc.stem, branch: lc.branch, tg: lc.stemTenGod, luck: true, hidden: HIDDEN[lc.branch as keyof typeof HIDDEN] ?? [] }] : []),
+          ...(an && showLayers.year ? [{ key: 'year', label: T('세운'), stem: an.stem, branch: an.branch, tg: an.stemTenGod, luck: true, hidden: HIDDEN[an.branch as keyof typeof HIDDEN] ?? [] }] : []),
+          ...(mo && showLayers.month ? [{ key: 'month', label: t('ms.monthN', '{{n}}월', { n: selMonth + 1 }), stem: mo.stem, branch: mo.branch, tg: mo.stemTenGod, luck: true, hidden: HIDDEN[mo.branch as keyof typeof HIDDEN] ?? [] }] : []),
+          ...(dayItem && showLayers.day ? [{ key: 'day', label: T('일운'), stem: dayItem.stem, branch: dayItem.branch, tg: dayItem.stemTenGod, luck: true, hidden: HIDDEN[dayItem.branch as keyof typeof HIDDEN] ?? [] }] : []),
         ];
         // 시간층 합충 — 확장명식 컬럼(원국+운) 간 작용. 운(대운/세운/월운) 연루된 것만(원국끼리는 팔자 표에).
         // 컬럼 수에 맞춰 가용폭(expW)을 꽉 채움 — 층을 끄면 칸이 넓어지고 글자(scale)도 커진다.
@@ -929,10 +961,10 @@ function MyeongsikBody({ input, onReading, onSinsal, header, whoName }: Myeongsi
         // ★운 중첩 다이어그램(daniel 2026-08-05) — 원국 제일 안쪽, 일운→월운→년운→대운이 감싼다.
         //   배열 순서 = 안쪽부터(daniel 지정 순서 그대로). 데이터 없거나 토글 끈 층은 감싸지 않는다.
         const nestRings = [
-          ...(dayItem && showLayers.day ? [{ label: '일운', stem: dayItem.stem, branch: dayItem.branch, sub: dayItem.stemTenGod }] : []),
-          ...(mo && showLayers.month ? [{ label: `${selMonth + 1}월운`, stem: mo.stem, branch: mo.branch, sub: mo.stemTenGod }] : []),
-          ...(an && showLayers.year ? [{ label: `${an.year}년운`, stem: an.stem, branch: an.branch, sub: an.stemTenGod }] : []),
-          ...(lc && showLayers.luck ? [{ label: `대운 ${lc.startAge}세~`, stem: lc.stem, branch: lc.branch, sub: lc.stemTenGod }] : []),
+          ...(dayItem && showLayers.day ? [{ label: T('일운'), stem: dayItem.stem, branch: dayItem.branch, sub: dayItem.stemTenGod }] : []),
+          ...(mo && showLayers.month ? [{ label: `${t('ms.monthN', '{{n}}월', { n: selMonth + 1 })}${T('월운').slice(-1)}`, stem: mo.stem, branch: mo.branch, sub: mo.stemTenGod }] : []),
+          ...(an && showLayers.year ? [{ label: `${an.year}${T('유년').slice(-1)}`, stem: an.stem, branch: an.branch, sub: an.stemTenGod }] : []),
+          ...(lc && showLayers.luck ? [{ label: `${T('대운')} ${t('ms.ageN', '{{n}}세', { n: lc.startAge })}~`, stem: lc.stem, branch: lc.branch, sub: lc.stemTenGod }] : []),
         ];
         const nCols = expandCols.length || 1;
         const COLW = expW > 0 ? Math.max(50, Math.floor(expW / nCols)) : 50;
@@ -1001,7 +1033,7 @@ function MyeongsikBody({ input, onReading, onSinsal, header, whoName }: Myeongsi
           <Text style={styles.h}>{t('myeongsik.luck')}</Text>
           {/* 시간층 토글 — 명식에 년운·월운·일운 표시/숨김(대운은 항상 표시) */}
           <View style={styles.layerToggle}>
-            {([['luck', '대운'], ['year', '년운'], ['month', '월운'], ['day', '일운']] as const).map(([k, l]) => (
+            {([['luck', T('대운')], ['year', T('유년')], ['month', T('월운')], ['day', T('일운')]] as const).map(([k, l]) => (
               <PressableScale key={k} style={[styles.layerChip, showLayers[k] && styles.layerChipOn]} onPress={() => setShowLayers((p) => ({ ...p, [k]: !p[k] }))}>
                 <Text style={[styles.layerChipTx, showLayers[k] && styles.layerChipTxOn]}>{showLayers[k] ? '✓ ' : ''}{l}</Text>
               </PressableScale>
@@ -1009,7 +1041,7 @@ function MyeongsikBody({ input, onReading, onSinsal, header, whoName }: Myeongsi
           </View>
           {/* ★표시 모드 선택(daniel 2026-08-05 2차): 옆으로 보기(기존 그리드) / 벤다이어그램(중첩). */}
           <View style={[styles.layerToggle, { marginTop: space(2) }]}>
-            {([['cols', '옆으로 보기'], ['nest', '벤다이어그램']] as const).map(([k, l]) => (
+            {([['cols', t('ms.viewCols', '옆으로 보기')], ['nest', t('ms.viewNest', '벤다이어그램')]] as const).map(([k, l]) => (
               <PressableScale key={k} style={[styles.layerChip, luckView === k && styles.layerChipOn]} onPress={() => setLuckView(k)}>
                 <Text style={[styles.layerChipTx, luckView === k && styles.layerChipTxOn]}>{luckView === k ? '✓ ' : ''}{l}</Text>
               </PressableScale>
@@ -1020,7 +1052,7 @@ function MyeongsikBody({ input, onReading, onSinsal, header, whoName }: Myeongsi
           {luckView === 'nest' && (
           <View style={{ marginTop: space(3), marginBottom: space(2) }}>
             <LuckNest
-              natal={visiblePos.map((p) => ({ pos: `${p}주`, stem: P[p].stem, branch: P[p].branch }))}
+              natal={visiblePos.map((p) => ({ pos: T(`${p}주`), stem: P[p].stem, branch: P[p].branch }))}
               rings={nestRings}
               hangeul={hangeul}
             />
@@ -1038,7 +1070,7 @@ function MyeongsikBody({ input, onReading, onSinsal, header, whoName }: Myeongsi
                   <View key={i} style={[styles.expCol2, { width: COLW }, col.luck && styles.expColLuck, hlExpand.has(col.label) && styles.expCol2On]}>
                     <Text style={[styles.expLabel, { fontSize: Math.round(fs(11) * scale) }]}>{col.label}</Text>
                     {/* 대운수(입운 나이) — 대운 컬럼만 표기, 나머지 컬럼은 빈 줄로 세로 정렬 유지 */}
-                    <Text style={[styles.expAge, { fontSize: Math.round(fs(9) * scale) }]}>{col.label === '대운' && lc ? `${lc.startAge}세` : col.label === '세운' && seunAge != null ? `만 ${seunAge}세` : ' '}</Text>
+                    <Text style={[styles.expAge, { fontSize: Math.round(fs(9) * scale) }]}>{col.key === 'luck' && lc ? t('ms.ageN', '{{n}}세', { n: lc.startAge }) : col.key === 'year' && seunAge != null ? t('ms.ageFull', '만 {{n}}세', { n: seunAge }) : ' '}</Text>
                     <Text style={[styles.expTg, { fontSize: Math.round(fs(11) * scale) }]}>{col.tg}</Text>
                     <GzCell char={col.stem} kind="stem" size="sm" scale={scale} grid hangeul={hangeul} onPress={() => setGlossary({ kind: 'stem', key: col.stem })} />
                     <GzCell char={col.branch} kind="branch" size="sm" scale={scale} grid hangeul={hangeul} onPress={() => setGlossary({ kind: 'branch', key: col.branch })} />
@@ -1063,15 +1095,15 @@ function MyeongsikBody({ input, onReading, onSinsal, header, whoName }: Myeongsi
           </ScrollView>
           {(ganEx.length + jiEx.length) > 0 && (
             <PressableScale style={styles.linksToggle} onPress={() => setShowExpandLinks((v) => !v)}>
-              <Text style={styles.linksToggleTx}>{hasLuckCol ? '운 ' : '원국 '}합충형해 {ganEx.length + jiEx.length}개  {showExpandLinks ? '▲ 접기' : t('ms.expand', '▼ 펼쳐 보기')}</Text>
+              <Text style={styles.linksToggleTx}>{hasLuckCol ? `${t('ms.luckWord', '운')} ` : `${T('원국')} `}{t('myeongsik.interactions')} {ganEx.length + jiEx.length}{t('ms.countSuffix', '개')}  {showExpandLinks ? t('ms.collapse', '▲ 접기') : t('ms.expand', '▼ 펼쳐 보기')}</Text>
             </PressableScale>
           )}
           {showExpandLinks && normEx.length > 0 && (
             <View style={styles.linksCard}>
-              <Text style={styles.strHint}>작용이 강한 순 — 충·합 강 / 형·극 중 / 해·파 약</Text>
+              <Text style={styles.strHint}>{t('ms.byStrength', '작용이 강한 순 — 충·합 강 / 형·극 중 / 해·파 약')}</Text>
               {/* ③ 운 합충선 전체 선택/해제(daniel) — 한번에 켜고 끄기 */}
               <PressableScale onPress={() => setActiveExpand((p) => p.size ? new Set<string>() : new Set(normEx.map((x: any) => x.key as string)))} style={{ alignSelf: 'flex-end', paddingVertical: 4, paddingHorizontal: 8 }}>
-                <Text style={{ color: colors.ju, fontWeight: '700', fontSize: 12 }}>{activeExpand.size ? '전체 해제' : '전체 선택'}</Text>
+                <Text style={{ color: colors.ju, fontWeight: '700', fontSize: 12 }}>{activeExpand.size ? t('ms.unselectAll', '전체 해제') : t('ms.selectAll', '전체 선택')}</Text>
               </PressableScale>
               {renderByStrength(normEx as any[], activeExpand, (k) => toggleKey(setActiveExpand, k))}
             </View>
@@ -1082,12 +1114,12 @@ function MyeongsikBody({ input, onReading, onSinsal, header, whoName }: Myeongsi
           <Text style={styles.luckSub}>
             {/* ★지금 보는 층을 **굵게**(Boss 2026-08-26 *"대운 세운 이렇게 같이 나와있으니깐
                 이게 대운인지 세운인지 모르겠고"*). 제목이 «A · B» 인데 아래 띠는 **B** 다. */}
-            <Text style={styles.luckSubOn}>대운</Text>{daeunsu != null ? <Text style={{ fontWeight: '700' }}> · 대운수 {daeunsu}{luckDir ? ` ${luckDir}` : ''}</Text> : null} (탭하면 그 대운의 세운 펼침)
+            <Text style={styles.luckSubOn}>{T('대운')}</Text>{daeunsu != null ? <Text style={{ fontWeight: '700' }}> · {t('ms.daeunsu', '대운수')} {daeunsu}{luckDir ? ` ${luckDir}` : ''}</Text> : null} {t('ms.tapDaeun', '(탭하면 그 대운의 세운 펼침)')}
           </Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} ref={luckScrollRef} onLayout={(e) => { centerM.current.luck.v = e.nativeEvent.layout.width; recenter('luck', luckScrollRef); }} onContentSizeChange={() => recenter('luck', luckScrollRef)} style={styles.luckScroll} contentContainerStyle={[styles.luckScrollC, { flexGrow: 1 }]}>
             {luckCycles.map((l, i) => (
               <PressableScale key={i} onPress={() => { setSelLuck(i); setSelSeun(0); }} onLayout={l.isCurrent ? (e) => { centerM.current.luck.x = e.nativeEvent.layout.x; centerM.current.luck.w = e.nativeEvent.layout.width; recenter('luck', luckScrollRef); } : undefined} style={[styles.luckCard, { minWidth: ls(58), flex: 1 }, l.isCurrent && styles.luckCardCur, selLuck === i && styles.luckCardSel]}>
-                <Text style={styles.luckAge}>{l.startAge}세</Text>
+                <Text style={styles.luckAge}>{t('ms.ageN', '{{n}}세', { n: l.startAge })}</Text>
                 <Text style={styles.luckTg}>{l.stemTenGod}</Text>
                 <GzCell char={l.stem} kind="stem" size="sm" hangeul={hangeul} />
                 <GzCell char={l.branch} kind="branch" size="sm" hangeul={hangeul} />
@@ -1099,7 +1131,7 @@ function MyeongsikBody({ input, onReading, onSinsal, header, whoName }: Myeongsi
               </PressableScale>
             ))}
           </ScrollView>
-          <LuckSinsalLine label={lc ? `${lc.startAge}세 대운 ${lc.stem}${lc.branch}` : ''}
+          <LuckSinsalLine label={lc ? `${t('ms.ageN', '{{n}}세', { n: lc.startAge })} ${T('대운')} ${lc.stem}${lc.branch}` : ''}
                           saju={c.saju} stem={lc?.stem} branch={lc?.branch}
                           onTag={(n) => setGlossary(n === '공망' ? { kind: 'gongmang' } : { kind: 'sinsal', key: n })} />
           </>)}
@@ -1107,7 +1139,7 @@ function MyeongsikBody({ input, onReading, onSinsal, header, whoName }: Myeongsi
           {lc?.annuals?.length > 0 && (
             <>
               {/* 아래 띠는 **세운**이다 — 그 낱말만 굵게 */}
-              <Text style={styles.luckSub}>{lc.startAge}세 대운 · <Text style={styles.luckSubOn}>세운</Text> (탭하면 위 명식에 반영)</Text>
+              <Text style={styles.luckSub}>{t('ms.ageN', '{{n}}세', { n: lc.startAge })} {T('대운')} · <Text style={styles.luckSubOn}>{T('세운')}</Text> {t('ms.tapReflect', '(탭하면 위 명식에 반영)')}</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} ref={seunScrollRef} onLayout={(e) => { centerM.current.seun.v = e.nativeEvent.layout.width; recenter('seun', seunScrollRef); }} onContentSizeChange={() => recenter('seun', seunScrollRef)} style={styles.luckScroll} contentContainerStyle={[styles.luckScrollC, { flexGrow: 1 }]}>
                 {lc.annuals.map((a: any, j: number) => {
                   // ★세운 만 나이(daniel 2026-07-12) — 대운 입운 만나이(startAge) + 대운 내 연차(위 seunAge 와 동일식·엔진 나이모델 일관)
@@ -1125,7 +1157,7 @@ function MyeongsikBody({ input, onReading, onSinsal, header, whoName }: Myeongsi
                   );
                 })}
               </ScrollView>
-              <LuckSinsalLine label={an ? `${an.year}년 세운 ${an.stem}${an.branch}` : ''}
+              <LuckSinsalLine label={an ? `${an.year} ${T('세운')} ${an.stem}${an.branch}` : ''}
                               saju={c.saju} stem={an?.stem} branch={an?.branch}
                               onTag={(n) => setGlossary(n === '공망' ? { kind: 'gongmang' } : { kind: 'sinsal', key: n })} />
             </>
@@ -1133,7 +1165,7 @@ function MyeongsikBody({ input, onReading, onSinsal, header, whoName }: Myeongsi
           {an?.months && an.months.length > 0 && (
             <>
               {/* 아래 띠는 **월운**이다 */}
-              <Text style={styles.luckSub}>{an.year} 세운 · <Text style={styles.luckSubOn}>월운</Text> (탭하면 위 명식에 반영)</Text>
+              <Text style={styles.luckSub}>{an.year} {T('세운')} · <Text style={styles.luckSubOn}>{T('월운')}</Text> {t('ms.tapReflect', '(탭하면 위 명식에 반영)')}</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} ref={monthScrollRef} onLayout={(e) => { centerM.current.month.v = e.nativeEvent.layout.width; recenter('month', monthScrollRef); }} onContentSizeChange={() => recenter('month', monthScrollRef)} style={styles.luckScroll} contentContainerStyle={[styles.luckScrollC, { flexGrow: 1 }]}>
                 {an.months.map((_m: any, k: number) => {
                   // ★월 선택기(daniel 2026-07-08): 카드 k = 양력월(라벨 (k+1)월). 干支는 월운 타임라인(위 line 716)과 동일하게
@@ -1153,7 +1185,7 @@ function MyeongsikBody({ input, onReading, onSinsal, header, whoName }: Myeongsi
               </ScrollView>
               {/* ★월운에도 살 칸을 둔다 — 대운·세운엔 있는데 여기만 없으면 «월운은 살이 없나» 로 읽힌다.
                   층이 셋이면 셋 다 같은 자리에 같은 모양으로 있어야 한다. */}
-              <LuckSinsalLine label={mo ? `${an.year}년 ${selMonth + 1}월 월운 ${mo.stem}${mo.branch}` : ''}
+              <LuckSinsalLine label={mo ? `${an.year} ${t('ms.monthN', '{{n}}월', { n: selMonth + 1 })} ${T('월운')} ${mo.stem}${mo.branch}` : ''}
                               saju={c.saju} stem={mo?.stem} branch={mo?.branch}
                               onTag={(n) => setGlossary(n === '공망' ? { kind: 'gongmang' } : { kind: 'sinsal', key: n })} />
             </>
@@ -1163,9 +1195,9 @@ function MyeongsikBody({ input, onReading, onSinsal, header, whoName }: Myeongsi
             const firstDow = new Date(an.year, selMonth, 1).getDay(); // 1일 요일(0=일)
             return (
               <>
-                <Text style={styles.luckSub}>{an.year}년 {selMonth + 1}월 일진 달력 (탭하면 위 명식에 일운 반영)</Text>
+                <Text style={styles.luckSub}>{t('ms.dayCal', '{{y}}년 {{m}}월 일진 달력', { y: an.year, m: selMonth + 1 })} {t('ms.tapReflectDay', '(탭하면 위 명식에 일운 반영)')}</Text>
                 <View style={styles.calGrid}>
-                  {['일', '월', '화', '수', '목', '금', '토'].map((w) => (
+                  {(t('ms.dow', '일,월,화,수,목,금,토').split(',')).map((w) => (
                     <Text key={w} style={styles.calHead}>{w}</Text>
                   ))}
                   {Array.from({ length: firstDow }).map((_, i) => <View key={`e${i}`} style={styles.calCell} />)}
@@ -1174,7 +1206,7 @@ function MyeongsikBody({ input, onReading, onSinsal, header, whoName }: Myeongsi
                     const isSel = dayItem?.day === dd.day; // 선택된 일운 강조
                     return (
                       <PressableScale key={dd.day} onPress={() => setSelDay(dd.day)} style={[styles.calCell, isToday && styles.calCellToday, isSel && styles.calCellSel]}>
-                        <Text style={[styles.calDay, isToday && styles.calDayToday]}>{dd.day}{isToday ? ' ·오늘' : ''}</Text>
+                        <Text style={[styles.calDay, isToday && styles.calDayToday]}>{dd.day}{isToday ? ` ·${t('ms.today', '오늘')}` : ''}</Text>
                         {/* ★일진 달력 오행색(daniel 07-07): 간지 전체를 stem 색 하나로 칠하던 것 → 천간·지지 각각 제 오행색(壬=水파랑·午=火빨강). */}
                         <Text style={styles.calGz}>
                           <Text style={{ color: elementColor[stemElement(dd.stem)] }}>{hangeul ? stemReading(dd.stem) : dd.stem}</Text>
@@ -1203,7 +1235,7 @@ function MyeongsikBody({ input, onReading, onSinsal, header, whoName }: Myeongsi
         <>
       {/* 자미두수(보조) */}
       <Text style={styles.h}>{t('myeongsik.ziwei')}</Text>
-      <Text style={[styles.hint, { marginHorizontal: 0 }]}>사주와는 별개의 운명 체계예요. 태어난 시각으로 열두 자리(명궁·재물·관록·배우자 등)에 별을 배치해, 삶의 각 영역에 드는 기운을 봅니다. 사주를 보조해 교차로 참고해요.</Text>
+      <Text style={[styles.hint, { marginHorizontal: 0 }]}>{t('ms.ziweiIntro', '사주와는 별개의 운명 체계예요. 태어난 시각으로 열두 자리(명궁·재물·관록·배우자 등)에 별을 배치해, 삶의 각 영역에 드는 기운을 봅니다. 사주를 보조해 교차로 참고해요.')}</Text>
       <Text style={styles.kv}>{c.ziwei.bureau} · {t('myeongsik.lifePalace')} {c.ziwei.lifePalaceBranch}</Text>
       {/* 자미두수 명반 (12궁 4×4, 중앙=일간·명궁·국) */}
       {(() => {
@@ -1219,10 +1251,10 @@ function MyeongsikBody({ input, onReading, onSinsal, header, whoName }: Myeongsi
               <View key={r} style={styles.ziRow}>
                 {row.map((cell, ci) => {
                   if (cell === 'C') {
-                    const info = r === 1 && ci === 1 ? { t: '일간', v: dm.stem }
-                      : r === 1 && ci === 2 ? { t: '명궁', v: c.ziwei.lifePalaceBranch }
-                      : r === 2 && ci === 1 ? { t: '국', v: c.ziwei.bureau.replace('五局', '') }
-                      : { t: '오행', v: dm.element };
+                    const info = r === 1 && ci === 1 ? { t: T('일간'), v: dm.stem }
+                      : r === 1 && ci === 2 ? { t: T('명궁'), v: c.ziwei.lifePalaceBranch }
+                      : r === 2 && ci === 1 ? { t: t('ms.bureau', '국'), v: c.ziwei.bureau.replace('五局', '') }
+                      : { t: T('오행'), v: dm.element };
                     return (
                       <View key={ci} style={styles.ziCenterCell}>
                         <Text style={styles.ziCenterT}>{info.t}</Text>
@@ -1269,8 +1301,8 @@ function MyeongsikBody({ input, onReading, onSinsal, header, whoName }: Myeongsi
         const SIHWA_COL: Record<string, string> = { '化祿': '#3E8E5A', '化權': '#C0392B', '化科': '#3A6EA5', '化忌': '#7A7A7A' };
         return (
           <>
-            <Text style={styles.h}>자미두수 운흐름</Text>
-            <Text style={styles.luckSub}>대한(10년) · 그 시기 천간이 일으키는 비성사화</Text>
+            <Text style={styles.h}>{t('ms.ziweiFlow', '자미두수 운흐름')}</Text>
+            <Text style={styles.luckSub}>{t('ms.ziweiFlowSub', '대한(10년) · 그 시기 천간이 일으키는 비성사화')}</Text>
             {((c.ziwei as any).decades as any[]).map((d: any, i: number) => (
               <View key={i} style={styles.ziDecRow}>
                 <Text style={styles.ziDecAge}>{d.startAge}~{d.startAge + 9}세</Text>
@@ -1315,7 +1347,7 @@ function MyeongsikBody({ input, onReading, onSinsal, header, whoName }: Myeongsi
                   {e.keywords.map((k, i) => <Text key={i} style={styles.sheetChip}>{k}</Text>)}
                 </View>
                 <PressableScale style={styles.sheetClose} onPress={() => setGlossary(null)}>
-                  <Text style={styles.sheetCloseText}>닫기</Text>
+                  <Text style={styles.sheetCloseText}>{t('common.close')}</Text>
                 </PressableScale>
               </>
             );
@@ -1329,10 +1361,10 @@ function MyeongsikBody({ input, onReading, onSinsal, header, whoName }: Myeongsi
       <Pressable style={styles.sheetOverlay} onPress={() => setCatDescOpen(false)}>
         <Pressable style={styles.sheet} onPress={() => {}}>
           <View style={styles.sheetHandle} />
-          <Text style={styles.sheetTitle}>{MYEONG_TABS.find((x) => x.id === activeTab)?.label}</Text>
+          <Text style={styles.sheetTitle}>{t(MYEONG_TABS.find((x) => x.id === activeTab)?.label ?? '')}</Text>
           <Text style={styles.sheetMeaning}>{t(MYEONG_TABS.find((x) => x.id === activeTab)?.desc ?? '')}</Text>
           <PressableScale style={styles.sheetClose} onPress={() => setCatDescOpen(false)}>
-            <Text style={styles.sheetCloseText}>닫기</Text>
+            <Text style={styles.sheetCloseText}>{t('common.close')}</Text>
           </PressableScale>
         </Pressable>
       </Pressable>
@@ -1343,8 +1375,8 @@ function MyeongsikBody({ input, onReading, onSinsal, header, whoName }: Myeongsi
       <Pressable style={styles.sheetOverlay} onPress={() => setStrengthOpen(false)}>
         <Pressable style={styles.sheet} onPress={() => {}}>
           <View style={styles.sheetHandle} />
-          <Text style={styles.sheetKind}>신강·신약</Text>
-          <Text style={styles.sheetTitle}>내 명식 · {c.strengthClass.type}</Text>
+          <Text style={styles.sheetKind}>{T('신강')}·{T('신약')}</Text>
+          <Text style={styles.sheetTitle}>{t('ms.myChart', '내 명식')} · {T(c.strengthClass.type)}</Text>
           <ScrollView style={{ flexShrink: 1 }} showsVerticalScrollIndicator={true}>
             {STRENGTH_INFO.map((s) => {
               const mine = c.strengthClass.type.includes(s.key === '신강' ? '강' : '약');
@@ -1361,10 +1393,10 @@ function MyeongsikBody({ input, onReading, onSinsal, header, whoName }: Myeongsi
                 </View>
               );
             })}
-            <Text style={styles.sheetMeaning}>* 경향 안내예요. 정확한 풀이는 원국 전체로 봐야 합니다.</Text>
+            <Text style={styles.sheetMeaning}>{t('ms.noteTendency', '* 경향 안내예요. 정확한 풀이는 원국 전체로 봐야 합니다.')}</Text>
           </ScrollView>
           <PressableScale style={styles.sheetClose} onPress={() => setStrengthOpen(false)}>
-            <Text style={styles.sheetCloseText}>닫기</Text>
+            <Text style={styles.sheetCloseText}>{t('common.close')}</Text>
           </PressableScale>
         </Pressable>
       </Pressable>
@@ -1375,7 +1407,7 @@ function MyeongsikBody({ input, onReading, onSinsal, header, whoName }: Myeongsi
       <Pressable style={styles.sheetOverlay} onPress={() => setJohuOpen(false)}>
         <Pressable style={styles.sheet} onPress={() => {}}>
           <View style={styles.sheetHandle} />
-          <Text style={styles.sheetKind}>조후 · 음양 쏠림</Text>
+          <Text style={styles.sheetKind}>{T('조후')} · {t('ms.eumYangSkew', '음양 쏠림')}</Text>
           <ScrollView style={{ flexShrink: 1 }} showsVerticalScrollIndicator={true}>
             {(() => {
               const ey = eumYangSkew(P, input?.sex); const jh = johuSkew(P); const js = joSeupSkew(P);
@@ -1388,23 +1420,23 @@ function MyeongsikBody({ input, onReading, onSinsal, header, whoName }: Myeongsi
                 <View style={styles.strDetailCard} key={label}>
                   <Text style={styles.strDetailTitle}>{label} · {sub}</Text>
                   {concept ? emph(concept, styles.strDetailBody) : null}
-                  {item ? (<><Text style={styles.strDetailLabel}>{favorable ? '이렇게 강하면' : t('ms.skewLead', '이렇게 쏠리면')}</Text><Text style={styles.strDetailBody}>{item.problem}</Text><Text style={styles.strDetailLabel}>{favorable ? '살리는 법' : t('ms.remedy', '대응법(개운)')}</Text><Text style={styles.strDetailBody}>{item.remedy}</Text></>) : <Text style={styles.strDetailBody}>치우침이 크지 않아 무난해요.</Text>}
+                  {item ? (<><Text style={styles.strDetailLabel}>{favorable ? t('ms.strongLead', '이렇게 강하면') : t('ms.skewLead', '이렇게 쏠리면')}</Text><Text style={styles.strDetailBody}>{item.problem}</Text><Text style={styles.strDetailLabel}>{favorable ? t('ms.useIt', '살리는 법') : t('ms.remedy', '대응법(개운)')}</Text><Text style={styles.strDetailBody}>{item.remedy}</Text></>) : <Text style={styles.strDetailBody}>{t('ms.balanced', '치우침이 크지 않아 무난해요.')}</Text>}
                 </View>
               );
               return (<>
-                {block('한난(조후)', `${jh.skew} (따뜻 ${jh.warm}·차가움 ${jh.cold})`, CONCEPT_INFO.조후, jh.skew !== '중화' ? JOHU_SKEW[jh.skew] : null)}
-                {block('조습', `${js.skew} (습함 ${js.wet}·건조 ${js.dry})`, CONCEPT_INFO.조습, js.skew !== '중화' ? JOSEUP_SKEW[js.skew] : null)}
-                {block('음양', `${ey.skew.replace('양', '+').replace('음', '-')} (+ ${ey.yang}·- ${ey.yin})`, CONCEPT_INFO.음양, ey.skew !== '균형' ? YINYANG_SKEW[ey.skew] : null)}
-                {domEl && domEl[1] >= 4 ? block('오행 쏠림', `${domEl[0]} 강함`, '', ELEMENT_SKEW[domEl[0]]) : null}
-                {tgSkew ? block(t('ms.tgSkew', '기운(십성) 쏠림'), `${tgSkew.god} 강함`, '', tgSkew.item, tgSkew.favorable) : null}
+                {block(t('ms.hannan', '한난(조후)'), `${jh.skew} (${t('ms.warm', '따뜻')} ${jh.warm}·${t('ms.cold', '차가움')} ${jh.cold})`, CONCEPT_INFO.조후, jh.skew !== '중화' ? JOHU_SKEW[jh.skew] : null)}
+                {block(t('ms.joseup', '조습'), `${js.skew} (${t('ms.wet', '습함')} ${js.wet}·${t('ms.dry', '건조')} ${js.dry})`, CONCEPT_INFO.조습, js.skew !== '중화' ? JOSEUP_SKEW[js.skew] : null)}
+                {block(T('음양'), `${ey.skew.replace('양', '+').replace('음', '-')} (+ ${ey.yang}·- ${ey.yin})`, CONCEPT_INFO.음양, ey.skew !== '균형' ? YINYANG_SKEW[ey.skew] : null)}
+                {domEl && domEl[1] >= 4 ? block(t('ms.elemSkew', '오행 쏠림'), t('ms.strongEl', '{{el}} 강함', { el: domEl[0] }), '', ELEMENT_SKEW[domEl[0]]) : null}
+                {tgSkew ? block(t('ms.tgSkew', '기운(십성) 쏠림'), t('ms.strongEl', '{{el}} 강함', { el: tgSkew.god }), '', tgSkew.item, tgSkew.favorable) : null}
               </>);
             })()}
-            <Text style={styles.sheetMeaning}>* 쏠림 경향 안내예요(대응법=개운법). 정확한 풀이는 원국 전체로 봐야 합니다.</Text>
+            <Text style={styles.sheetMeaning}>{t('ms.noteSkew', '* 쏠림 경향 안내예요(대응법=개운법). 정확한 풀이는 원국 전체로 봐야 합니다.')}</Text>
                 {/* ★이어서 보면 좋은 콘텐츠(daniel 2026-07-27 "전부 붙여") — 큐레이션 출처 RELATED 단일. */}
       <RelatedContent kind="charts" />
 </ScrollView>
           <PressableScale style={styles.sheetClose} onPress={() => setJohuOpen(false)}>
-            <Text style={styles.sheetCloseText}>닫기</Text>
+            <Text style={styles.sheetCloseText}>{t('common.close')}</Text>
           </PressableScale>
         </Pressable>
       </Pressable>

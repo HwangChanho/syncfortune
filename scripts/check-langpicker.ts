@@ -25,11 +25,14 @@
 //     여기서 단정하지 않고 **수만 보고**한다.
 // ═══════════════════════════════════════════════════════════════════════════
 import { readFileSync, readdirSync } from 'node:fs';
+// ★세는 식은 `scripts/lib/ko-scan.ts` **한 곳**뿐이다 — `npm run dump:ko` 가 같은 식으로 자리를 찍는다.
+//   (여기 다시 적으면 «하네스는 1573 인데 목록은 1600» 같은 어긋남이 생긴다.)
+import { countHardcodedKo, strip as stripKo } from './lib/ko-scan.ts';
 
 const ROOT = new URL('..', import.meta.url).pathname;   // ★형제 하네스와 같은 방식(ESM)
 const read = (p: string) => { try { return readFileSync(`${ROOT}${p}`, 'utf8'); } catch { return null; } };
 /** ★주석을 걷는다 — 안 걷으면 «내가 설명해 둔 문장»을 코드로 읽는다(오늘만 네 번 당했다). */
-const strip = (s: string) => s.replace(/\/\/.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, '');
+const strip = stripKo;
 
 let fail = 0;
 const ok = (m: string, d = '') => console.log(`  ✅ ${m.padEnd(44)} ${d}`);
@@ -112,58 +115,6 @@ function screens(dir = 'app/src'): string[] {
 }
 
 /**
- * 화면 파일에 **박혀 있는 한국어**를 센다.
- *
- * ★`t('key', '한국어')` 의 두 번째 인자는 **세지 않는다** — 그건 폴백이고 번역이 이미 있다.
- * @returns 파일별 개수
- */
-export function countHardcodedKo(files: { path: string; src: string }[]): Map<string, number> {
-  // ⚠️★**태그 사이 맨 한국어도 센다** — 이게 오히려 더 흔하다.
-  //   처음엔 문자열 리터럴만 셌다가 `<Text>다섯 기운이 이어…</Text>`(스플래시)를 **0으로 읽었다.**
-  //   외국인이 앱을 켜면 **가장 먼저 보는 화면**인데 검사는 초록불이었다.
-  //   ⇒ 하네스는 자기가 «잰다» 고 말한 것을 실제로 재야 한다.
-  const JSX_TEXT = />[^<>{}\n]*[가-힣][^<>{}\n]*</g;
-  const LIT = /(['"`])((?:\\.|(?!\1)[^\\])*)\1/g;
-  // ★키가 **삼항**일 수도 있다: `t(faved ? 'talk.unfav' : 'talk.fav', '즐겨찾기')`
-  //   그것도 엄연한 폴백인데 종전 식은 «따옴표 키» 만 봐서 **가짜 미번역**으로 셌다.
-  //   ⚠️넓히되 «두 번째 인자가 폴백인 자리» 라는 뜻은 유지한다 — 아래 대조군이 그걸 지킨다.
-  const FALLBACK = /t\(\s*(?:'[\w.]+'|[^,()]*\?\s*'[\w.]+'\s*:\s*'[\w.]+')\s*,\s*$/;
-  // ★로그는 **화면이 아니다** — `console.warn('… 실패', e)` 를 번역하라는 건 말이 안 된다.
-  //   («번역 대상» 의 정의를 «화면에 닿는 글자» 로 못 박는다. 이 줄이 없으면 진단 로그를 늘릴 때마다
-  //    이 검사가 빨간불이 되어, 결국 «로그를 안 남기는» 잘못된 방향으로 사람을 민다.)
-  const LOG = /console\.(log|warn|error|info|debug)\([^)]*$/;
-  const KO = /[가-힣]/;
-  const out = new Map<string, number>();
-  for (const f of files) {
-    const s = strip(f.src);
-    let n = 0;
-    for (const m of s.matchAll(LIT)) {
-      if (!KO.test(m[2])) continue;
-      const before = s.slice(Math.max(0, m.index! - 120), m.index!);
-      if (FALLBACK.test(before)) continue;
-      if (LOG.test(before)) continue;
-      // ★`termLabel('용신')` · `T('비겁')` 의 인자는 **용어 열쇠**지 미번역 문구가 아니다.
-      //   Boss 규칙(*"명리 용어는 한자 그대로 두고 설명만 그 언어로"*)을 **이미 타고 있는** 자리다 —
-      //   여기 걸리면 규칙을 지킬수록 숫자가 올라가는 이상한 검사가 된다.
-      if (/\b(?:termLabel|T)\(\s*$/.test(before)) continue;
-      // ⚠️★**속성 접근자**는 UI 가 아니다 — `saju.pillars['일']` 의 `'일'` 은 엔진 자료구조의
-      //   **열쇠**이지 화면에 뜨는 글자가 아니다. 번역하면 오히려 엔진이 깨진다.
-      //   (검증 가능한 문법 규칙이다 — 특정 파일을 봐주는 예외가 아니다.)
-      const after = s.slice(m.index! + m[0].length, m.index! + m[0].length + 2);
-      if (/\[\s*$/.test(before) && /^\s*\]/.test(after)) continue;
-      // ⚠️★**객체의 열쇠**도 UI 가 아니다 — `{ '천간 합': t(...) }` 의 왼쪽은 «엔진 값을 받는 자리» 다.
-      //   화면에 뜨는 것은 **오른쪽(값)** 이고, 그건 그대로 센다.
-      //   규칙: 한국어 리터럴 **바로 뒤가 `:`** 면 열쇠다(문법으로 판별 가능 · 특정 파일 예외가 아니다).
-      if (/^\s*:/.test(after)) continue;
-      n++;
-    }
-    n += [...s.matchAll(JSX_TEXT)].length;
-    if (n) out.set(f.path, n);
-  }
-  return out;
-}
-
-/**
  * 번역 대상에서 **빼는 화면** — ⚠️조용히 빼지 않는다. 아래에서 **수와 이유를 찍는다**.
  *
  * ★기준은 «내가 귀찮아서» 가 아니라 **사용자가 볼 수 없는 화면인가** 다.
@@ -177,7 +128,14 @@ const EXEMPT: Record<string, string> = {
 
 // ★baseline — 2026-08-27 실측. **줄이는 건 자유, 늘리는 건 실패.**
 //   줄였으면 이 숫자를 내려 잠근다(안 내리면 다시 늘어날 여지를 남긴 것이다).
-const BASELINE = 1573;
+//
+// ⚠️★1573 → 1593 으로 **올라간 적이 있다**(2026-08-27). 화면이 나빠진 게 아니라
+//   **세는 식이 옳아진 것**이다: 종전엔 리터럴 뒤의 `:` 만 보고 열쇠로 뺐는데,
+//   그러면 삼항 `ok ? '미상' : '확실'` 의 **앞쪽 116곳**이 통째로 빠졌다.
+//   앞이 `{`·`,` 일 때만 열쇠로 보게 고치자 그 116곳이 드러났고,
+//   동시에 «엔진 값 비교»(`=== '미상'`) 96곳이 정당하게 빠졌다.
+//   ⇒ **기준은 그 검사 자신이 잰 값이어야 한다** — 손으로 센 숫자를 넣으면 또 어긋난다.
+const BASELINE = 1593;
 
 {
   const all = screens().map((p) => ({ path: p, src: read(p) ?? '' }));
@@ -218,15 +176,25 @@ const BASELINE = 1573;
     { path: 'm.tsx', src: `foo(bar ? 1 : 2, '즐겨찾기')` },                 // ← t() 가 아니면 센다
     { path: 'n.tsx', src: `termLabel('용신', lang)` },                      // ← ★용어 열쇠라 안 센다
     { path: 'o.tsx', src: `label('용신', lang)` },                          // ← 다른 함수면 센다
+    { path: 'p.tsx', src: `if (input.timeAccuracy === '미상') return null;` },  // ← ★엔진 값 비교라 안 센다
+    { path: 'q.tsx', src: `const s = ok ? '미상' : '확실';` },                  // ← 삼항 «결과» 는 화면이라 센다(둘 다)
+    { path: 'r.tsx', src: `const m = { a: 1, '천간 합': t('k') };` },            // ← 두 번째 속성의 열쇠도 안 센다
+    { path: 's.tsx', src: 'const v = `(${t(\'ms.lunar\', \'음력\')})`;' },        // ← ★백틱 안 `${…}` 는 코드라 안 센다
+    { path: 'u.tsx', src: 'const v = `${n}세 대운`;' },                          // ← 백틱의 **정적 부분**은 센다
+    { path: 'v.tsx', src: `t('k', { n, defaultValue: '{{n}}운 필요' })` },       // ← ★자리표시자형 폴백도 안 센다
+    { path: 'w.tsx', src: `f({ other: '{{n}}운 필요' })` },                      // ← defaultValue 가 아니면 센다
   ]);
   const good = c.get('a.tsx') === 1 && !c.has('b.tsx') && !c.has('c.tsx') && !c.has('d.tsx') && !c.has('e.tsx')
     && c.get('f.tsx') === 1 && !c.has('g.tsx')
     && !c.has('h.tsx') && c.get('i.tsx') === 1
     && !c.has('j.tsx') && c.get('k.tsx') === 1
     && !c.has('l.tsx') && c.get('m.tsx') === 1
-    && !c.has('n.tsx') && c.get('o.tsx') === 1;
+    && !c.has('n.tsx') && c.get('o.tsx') === 1
+    && !c.has('p.tsx') && c.get('q.tsx') === 2 && !c.has('r.tsx')
+    && !c.has('s.tsx') && c.get('u.tsx') === 1
+    && !c.has('v.tsx') && c.get('w.tsx') === 1;
   say(good, '자기검사 — 폴백·주석·로그는 빼고, **태그 사이 글자까지** 센다',
-    good ? '대조군 15개 통과' : `실제: ${JSON.stringify([...c])}`);
+    good ? '대조군 22개 통과' : `실제: ${JSON.stringify([...c])}`);
 }
 
 console.log(fail === 0 ? '\n✅ 언어 고르기가 이어져 있고, 남은 한국어가 안 늘었습니다\n'

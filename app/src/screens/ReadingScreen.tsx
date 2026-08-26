@@ -26,6 +26,7 @@ import { Alert } from '../lib/ui/alert'; // 커스텀 알림(앱 디자인)
 import { isAdminActing } from '../lib/core/admin'; // 관리자 여부 — 풀이 초기화 버튼 게이트(07-21 코드큐)
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import { termLabel } from '../lib/ui/termLabel';   // ★명리 용어 — 한국어는 그대로, 그 밖은 한자(Boss 2026-08-27)
 import { computeChart } from '../lib/engine/engine';
 import { stemElement, branchElement } from '../lib/engine/ohaeng';
 // ★시안(니운내운.pdf p10·p11) 풀이 본문 — 히어로·명식표·오행 분포·6탭
@@ -105,17 +106,19 @@ const READING_L2_VER = 1;
 //   이 누수를 회수한다(genLock.ts 헤더 참고).
 
 // 풀이 영역/궁 → 카테고리 그룹(아코디언). 사주 16영역 4그룹 · 자미 12궁(daniel b안: 명궁·복덕=나/재백·전택=돈/부처·자녀·형제·노복=관계/관록·천이·질액·부모=일·건강).
+// ⚠️★`label` 은 **문구 키**다(모듈 상수라 `t()` 를 여기서 못 부른다 — 그릴 때 푼다).
+//   `keys` 는 엔진 카테고리 id 라 **번역하지 않는다** — 바꾸면 풀이를 못 찾는다.
 const SAJU_GROUPS: { label: string; keys: string[] }[] = [
-  { label: '나', keys: ['성격내면', '건강'] },
-  { label: '일·돈', keys: ['취업운', '직장운', '사업운', '금전소득운', '투자편재운', '재물손재'] },
-  { label: '관계', keys: ['연애운', '결혼배우자운', '대인사회성', '부모운', '형제운', '자식운'] },
-  { label: '성장', keys: ['학업자기계발', '이동환경'] },
+  { label: 'rg.me', keys: ['성격내면', '건강'] },
+  { label: 'rg.workMoney', keys: ['취업운', '직장운', '사업운', '금전소득운', '투자편재운', '재물손재'] },
+  { label: 'rg.relation', keys: ['연애운', '결혼배우자운', '대인사회성', '부모운', '형제운', '자식운'] },
+  { label: 'rg.growth', keys: ['학업자기계발', '이동환경'] },
 ];
 const ZIWEI_GROUPS: { label: string; keys: string[] }[] = [
-  { label: '나', keys: ['명궁', '복덕궁'] },
-  { label: '돈', keys: ['재백궁', '전택궁'] },
-  { label: '관계', keys: ['부처궁', '자녀궁', '형제궁', '노복궁'] },
-  { label: '일·건강', keys: ['관록궁', '천이궁', '질액궁', '부모궁'] },
+  { label: 'rg.me', keys: ['명궁', '복덕궁'] },
+  { label: 'rg.money', keys: ['재백궁', '전택궁'] },
+  { label: 'rg.relation', keys: ['부처궁', '자녀궁', '형제궁', '노복궁'] },
+  { label: 'rg.workHealth', keys: ['관록궁', '천이궁', '질액궁', '부모궁'] },
 ];
 
 type ReadingScreenProps = {
@@ -157,7 +160,7 @@ function ReadingScreenBody({
   input, savedChart, categories, kind = 'saju', header,
 }: ReadingScreenProps & { input: ChartInput }) {
   const router = useRouter();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { session } = useAuth();
   const { isPremium } = useSubscription();
   const { fs, ls } = useFontScale(); // 통변 본문 글자 크기(설정에서 조절)
@@ -247,7 +250,7 @@ function ReadingScreenBody({
       return { label: g.label, items };
     }).filter((g) => g.items.length);
     const etc = cats.filter((cat) => readings[cat.key] && !used.has(cat.key));
-    if (etc.length) out.push({ label: '기타', items: etc });
+    if (etc.length) out.push({ label: 'rg.etc', items: etc });
     return out;
   }, [cats, kind, readings]);
 
@@ -283,7 +286,7 @@ function ReadingScreenBody({
     const overview = key ? DAY_PILLAR[key]?.overview ?? '' : '';
     // 첫 문장만 — 히어로는 두 줄이 한계라 통째로 넣으면 잘린다
     const sub = overview.split(/(?<=[.!?])\s/)[0] ?? '';
-    return { title: emblem.name || `${dp.stem}${dp.branch} 일주`, sub };
+    return { title: emblem.name || `${dp.stem}${dp.branch} ${termLabel('일주', i18n.language)}`, sub };
   }, [c]);
 
   // ★추천 콘텐츠(daniel 07-21 '이런 콘텐츠도 좋아하실 거예요') — 상세 하단에 이미지 리스트로. 현재 리딩 화면(사주/자미)은 제외.
@@ -620,15 +623,15 @@ function ReadingScreenBody({
   //   admin_reset_reading(p_chart_id, p_category) = SECURITY DEFINER·서버 admin 게이트(클라 admin 은 버튼 노출용).
   async function resetReading(category: string) {
     if (!chartId) return;
-    const ok = await new Promise<boolean>((res) => Alert.alert('풀이 초기화 (관리자)', '이 풀이를 삭제하고 다시 생성할 수 있게 초기화할까요?', [
+    const ok = await new Promise<boolean>((res) => Alert.alert(t('rg.adminReset', '풀이 초기화 (관리자)'), t('rg.adminResetAsk', '이 풀이를 삭제하고 다시 생성할 수 있게 초기화할까요?'), [
       { text: t('common.cancel', '취소'), style: 'cancel', onPress: () => res(false) },
-      { text: '초기화', style: 'destructive', onPress: () => res(true) },
+      { text: t('rg.reset', '초기화'), style: 'destructive', onPress: () => res(true) },
     ], () => res(false)));   // ★뒤로가기로 닫아도 반드시 풀린다
     if (!ok) return;
     const { error } = await supabase.rpc('admin_reset_reading', { p_chart_id: chartId, p_category: category });
-    if (error) { Alert.alert('!', '초기화 실패: ' + error.message); return; }
+    if (error) { Alert.alert('!', `${t('rg.resetFail', '초기화 실패')}: ${error.message}`); return; }
     setReadings((prev) => { const n = { ...prev }; delete n[category]; return n; }); // 로컬 제거 → 재생성 대상
-    Alert.alert('관리자', '초기화했어요. 다시 열거나 생성하면 새로 만들어져요.');
+    Alert.alert(t('rg.admin', '관리자'), t('rg.resetDone', '초기화했어요. 다시 열거나 생성하면 새로 만들어져요.'));
   }
 
   /**
@@ -742,7 +745,7 @@ function ReadingScreenBody({
     ? t('reading.bannerPremium')
     : (unlocked || isPremiumForChart(chartId))
       ? t('reading.bannerUnlocked', '✨ 결제 완료 — 전체 풀이를 생성해요')
-      : t('reading.bannerPerUse', { price: `${coinPriceOf(kind === 'ziwei' ? 'ziwei' : 'reading') ?? 0} 운` }); // 실가 주입(사주 19,900·자미 14,900)
+      : t('reading.bannerPerUse', { price: t('rg.coinN', '{{n}} 운', { n: coinPriceOf(kind === 'ziwei' ? 'ziwei' : 'reading') ?? 0 }) }); // 실가 주입(사주 19,900·자미 14,900)
   const haveAll = cats.every((cat) => readings[cat.key]);
   // 명식별 프리미엄(#1): 이 명식이 프리미엄 지정이거나 결제 언락돼야 '전부 보기'. 아니면(무료모드·비지정 명식) 캐시가 있어도 페이월.
   const entitled = computeEntitled(isPremium, isPremiumForChart(chartId), unlocked); // 권한=전역프리미엄/이명식지정/결제언락(readingGate·테스트됨)
@@ -851,7 +854,7 @@ function ReadingScreenBody({
               **기능을 폐지하면 그 플래그를 보던 분기를 전수조사해야 한다.** */}
         <>
             <Text style={styles.askQuota}>
-              {freeLeft > 0 ? t('reading.askFree', { n: freeLeft }) : t('reading.askPaid', { price: `${coinPriceOf('followup') ?? 0} 운` })}
+              {freeLeft > 0 ? t('reading.askFree', { n: freeLeft }) : t('reading.askPaid', { price: t('rg.coinN', '{{n}} 운', { n: coinPriceOf('followup') ?? 0 }) })}
             </Text>
             <View style={styles.askRow}>
               <TextInput
@@ -882,7 +885,7 @@ function ReadingScreenBody({
   const renderSections = (key: string) => {
     const r = normalizeReading(readings[key]);
     // race 방어: readings 상태 초기화·undefined 시 빈 표시(크래시 방지)
-    if (!r || typeof r !== 'object') return <Text style={styles.err}>{'풀이를 불러오는 중…'}</Text>;
+    if (!r || typeof r !== 'object') return <Text style={styles.err}>{t('rg.loading', '풀이를 불러오는 중…')}</Text>;
     const base = asText(r.base), past = asText(r.past), overlay = asText(r.overlay), future = asText(r.future), remedy = asText(r.remedy);
     if (r.error) return <Text style={styles.err}>{r.error}</Text>;
     // ★가독성 P0(2026-07-26): 통짜 <Text> → ReadingProse(문단화·시기/명리어 강조·행간). 내용·프롬프트 불변, 표현만.
@@ -1088,7 +1091,7 @@ function ReadingScreenBody({
         return (
           <View key={g.label} style={styles.group}>
             <PressableScale style={styles.groupHead} onPress={() => setExpandedG((e) => ({ ...e, [g.label]: !open }))}>
-              <Text style={styles.groupLabel}>{g.label}</Text>
+              <Text style={styles.groupLabel}>{t(g.label)}</Text>
               <Text style={styles.groupCount}>{g.items.length}</Text>
               <Text style={styles.groupChevron}>{open ? '▼' : '▶'}</Text>
             </PressableScale>
@@ -1120,7 +1123,7 @@ function ReadingScreenBody({
         {/* daniel(2026-06-24): 공유는 헤더가 아니라 풀이 맨 끝으로 이동(자미 등 위치 통일) → 헤더는 '목록으로'만 */}
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
           <PressableScale style={styles.detailBack} onPress={closeDetail} hitSlop={12}>
-            <Text style={[styles.detailBackTx, { fontSize: fs(20) }]}>‹ 목록으로</Text>
+            <Text style={[styles.detailBackTx, { fontSize: fs(20) }]}>‹ {t('rg.toList', '목록으로')}</Text>
           </PressableScale>
         </View>
         {detail && (
@@ -1145,7 +1148,7 @@ function ReadingScreenBody({
             {/* 관리자 전용 — 이 풀이 초기화(삭제→재생성). 일반 유저에겐 미노출(07-21 코드큐). */}
             {admin && (
               <PressableScale style={styles.adminResetBtn} onPress={() => resetReading(detail)}>
-                <Text style={styles.adminResetBtnTx}>🗑 풀이 초기화 (관리자)</Text>
+                <Text style={styles.adminResetBtnTx}>🗑 {t('rg.adminReset', '풀이 초기화 (관리자)')}</Text>
               </PressableScale>
             )}
             {renderFollowups(detail)}
