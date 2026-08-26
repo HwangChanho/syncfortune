@@ -694,7 +694,7 @@ export const ja = {
     'sub': '今日の運をカード一枚で確かめてみましょう。',
     'cta': 'はじめる',
   },
-  talk: { searchPh: '名前で検索', favShort: 'お気に入り', unfavShort: '解除',
+  talk: { spentPack: '{{n}}運 使用 · {{k}}ターン分', packLast: 'このまとめはここまでです。次のお話から運がかかります。', searchPh: '名前で検索', favShort: 'お気に入り', unfavShort: '解除',
     'greetHi': 'こんにちは。{{name}}です。',
     'greetWhat': '{{what}}を見ています。何が気になりますか？',
     'greetAsk': '何が気になりますか？',

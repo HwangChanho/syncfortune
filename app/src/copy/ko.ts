@@ -733,7 +733,7 @@ export const ko = {
     'sub': '오늘의 운을 카드 한장으로 확인해보세요.',
     'cta': '시작하기',
   },
-  talk: { searchPh: '이름으로 찾기', favShort: '즐겨찾기', unfavShort: '해제',
+  talk: { spentPack: '{{n}}운 사용 · {{k}}턴치', packLast: '이 묶음은 여기까지예요. 다음 이야기부터 운이 들어요.', searchPh: '이름으로 찾기', favShort: '즐겨찾기', unfavShort: '해제',
     'greetHi': '안녕하세요. {{name}}이에요.',
     'greetWhat': '{{what}} 쪽을 봐 드려요. 뭐가 궁금하세요?',
     'greetAsk': '뭐가 궁금하세요?',

@@ -23,6 +23,12 @@ export type LiveReply =
       ok: true; sessionId: string; answer: string; used: number; freeDaily: number; overFree: boolean;
       /** 이번 턴에 빠져나간 운(무료 범위면 0) */
       spent?: number;
+      /** ★**묶음 과금**이라 5턴에 한 번만 빠진다 — 나머지 턴은 `spent === 0` 이다.
+       *  그 사실을 화면이 말해 주지 않으면 회원에게는 «차감이 안 보인다» 로만 보인다
+       *  (Boss 2026-08-26 *"대화시에 운 차감이 되는게 안보여"*). ⇒ 아래 둘을 함께 받는다. */
+      packTurns?: number;
+      /** 이번 묶음에서 **앞으로 몇 턴** 더 쓸 수 있나 */
+      packLeft?: number;
       /** ★이번 답에서 뽑힌 정리(없으면 빈 배열). 서버가 저장까지 마친 뒤 알려 준다. */
       notes?: { kind: 'me' | 'when' | 'todo' | 'said'; body: string }[];
       /** ★대화 중 안내할 콘텐츠 키(없으면 null). 서버가 답에서 마커를 떼어 내고 여기로 준다.
@@ -154,6 +160,9 @@ export async function askLive(
       notes: Array.isArray(data.notes) ? data.notes : [],
       /** 이번 턴에 빠져나간 운(무료 범위면 0) */
       spent: Number(data.spent ?? 0),
+      // ★묶음 정보 — 없으면 0 으로 떨어져 화면이 «묶음 안내» 를 안 그린다(옛 서버 호환)
+      packTurns: Number(data.packTurns ?? 0),
+      packLeft: Number(data.packLeft ?? 0),
     };
   } catch (e) {
     console.warn('[talk] askLive threw', e);
@@ -172,6 +181,14 @@ export async function askLive(
  * @param consultantId 상담사 id
  * @returns 세션과 지난 메시지(오래된 것부터). 없으면 null
  */
+/**
+ * 한 방에서 되불러올 최근 메시지 수.
+ * ★실측(2026-08-26): 가장 긴 방이 66줄. 120이면 한참 여유가 있다.
+ * ⚠️이 값을 줄일 때는 **어느 쪽 끝을 자르는지** 함께 확인할 것 —
+ *   예전에 «오래된 쪽 60개» 를 가져와 **최근 대화가 통째로 안 보였다.**
+ */
+const HISTORY_LIMIT = 120;
+
 export async function loadThread(consultantId: string): Promise<
   { sessionId: string; messages: { id: number; role: 'user' | 'assistant'; body: string; speakerId: string | null }[] } | null
 > {
@@ -193,12 +210,19 @@ export async function loadThread(consultantId: string): Promise<
         // ★id 도 읽는다 — 정리에서 **원문으로 데려갈 때** 이 값으로 찾는다(Boss 2026-08-23)
         // ★`speaker_id` 도 읽는다 — 다시 열었을 때 **누가 한 말인지** 얼굴을 붙이려면 필요하다
         //   (Boss 2026-08-26 *"대화할때 상대 프로필 사진이 뜨게"*). 1:1 이면 비어 있고, 그때는 방 주인이 화자다.
-        .select('id, role, body, speaker_id').eq('session_id', sid)
-        .order('sent_at', { ascending: true }).limit(60),   // 화면에 60개면 충분하다(그 위는 스크롤로도 안 본다)
+        .select('id, role, body, speaker_id, sent_at').eq('session_id', sid)
+        // ★★2026-08-26 Boss *"이전에 대화한 이력들이 짤릴때가 있어"* — **여기가 범인이었다.**
+        //   종전: `ascending: true` + `limit(60)` = **가장 오래된 60개**.
+        //   ⇒ 대화가 60줄을 넘는 순간 **최근 대화가 잘려 나간다.** 정확히 반대로 잘렸다.
+        //   ★옛 주석은 *"60개면 충분하다(그 위는 스크롤로도 안 본다)"* 였다 — 개수는 맞는 말이었지만
+        //     **어느 60개인지**를 안 정했다. 맞는 말이 옆칸을 지켜 주지 않는다.
+        //   ⇒ **최근 것부터** 받아 와서 **시간순으로 뒤집는다.** 개수도 넉넉히 올린다(실측 최대 66줄).
+        .order('sent_at', { ascending: false }).limit(HISTORY_LIMIT),
       8000,
     );
     const messages = m && !m.error && Array.isArray(m.data)
-      ? (m.data as any[]).map((x) => ({ id: Number(x.id), role: x.role === 'user' ? 'user' as const : 'assistant' as const, body: String(x.body ?? ''), speakerId: x.speaker_id ? String(x.speaker_id) : null }))
+      // ★내림차순으로 받았으니 **되돌려** 시간순으로 만든다(화면은 옛것 → 새것 순서로 읽는다)
+      ? (m.data as any[]).slice().reverse().map((x) => ({ id: Number(x.id), role: x.role === 'user' ? 'user' as const : 'assistant' as const, body: String(x.body ?? ''), speakerId: x.speaker_id ? String(x.speaker_id) : null }))
       : [];
     return { sessionId: sid, messages };
   } catch (e) {

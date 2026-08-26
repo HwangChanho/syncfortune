@@ -652,15 +652,35 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
           //   ■ ⚠️답이 **다 뜬 뒤**에 붙인다(곁다리와 같은 이유) — 같이 넣으면 순차 표시를
           //     앞질러 영수증이 답보다 먼저 뜬다.
           //   ⚠️옛 서버는 `spent` 를 안 줄 수 있다 — 없으면 0(=안 띄움)으로 떨어진다
+          // ★★2026-08-26 Boss *"대화시에 운 차감이 되는게 안보여"* — **원인은 묶음 과금**이었다.
+          //   `PACK_TURNS = 5` 라 **5턴에 한 번만** 빠진다 ⇒ 나머지 4턴은 `spent === 0`,
+          //   그래서 화면에 아무것도 안 뜬다. 동작은 맞는데 **회원은 그걸 알 길이 없다.**
+          //   ⇒ 차감된 턴에 **무엇을 샀는지**(몇 턴치인지) 함께 적는다.
+          //     그러면 다음 네 턴에 아무것도 안 떠도 «아까 산 것» 으로 읽힌다.
           const spent = Number(r.spent ?? 0);
+          const packN = Number(r.packTurns ?? 0);
           if (spent > 0) {
             const wait = parts.reduce((a, b) => a + typingDelay(b), 0) + (r.banter ? 900 : 0) + 420;
             timersRef.current.push(setTimeout(() => {
               setItems((prev) => [...prev, {
                 id: nextId(), role: 'assistant' as const, body: '',
-                system: t('talk.spent', '{{n}}운 사용').replace('{{n}}', String(spent)),
+                system: packN > 1
+                  // 「3운 사용 · 5턴치」 — 다음 네 턴에 아무것도 안 떠도 이해된다
+                  ? t('talk.spentPack', '{{n}}운 사용 · {{k}}턴치')
+                      .replace('{{n}}', String(spent)).replace('{{k}}', String(packN))
+                  : t('talk.spent', '{{n}}운 사용').replace('{{n}}', String(spent)),
               }]);
             }, wait));
+          } else if (Number(r.packLeft ?? 0) === 1 && packN > 1) {
+            // ★묶음의 **마지막 턴** — 다음 턴부터 다시 든다고 **미리** 알린다.
+            //   말없이 빠지면 «언제 나갔는지 모르겠다» 가 된다(이 요청의 본질).
+            const wait2 = parts.reduce((a, b) => a + typingDelay(b), 0) + (r.banter ? 900 : 0) + 420;
+            timersRef.current.push(setTimeout(() => {
+              setItems((prev) => [...prev, {
+                id: nextId(), role: 'assistant' as const, body: '',
+                system: t('talk.packLast', '이 묶음은 여기까지예요. 다음 이야기부터 운이 들어요.'),
+              }]);
+            }, wait2));
           }
           // ⚠️무료 소진 안내는 **답이 다 뜬 뒤**에 붙인다 — 바로 넣으면 순차 표시를 앞질러
           //   답보다 먼저 뜬다. 마지막 풍선의 예상 시각 뒤로 미룬다.
