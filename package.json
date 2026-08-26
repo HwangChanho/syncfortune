@@ -208,7 +208,8 @@
     "check:personsheet": "tsx scripts/check-personsheet.ts",
     "bump": "node scripts/bump-build.mjs",
     "check:langpicker": "tsx scripts/check-langpicker.ts",
-    "check:roomidentity": "tsx scripts/check-roomidentity.ts"
+    "check:roomidentity": "tsx scripts/check-roomidentity.ts",
+    "check:viewrls": "tsx scripts/check-viewrls.ts"
   },
   "keywords": [],
   "author": "",
