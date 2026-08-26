@@ -49,7 +49,7 @@ import { parseBirth, looksLikeBirthInfo, type BirthDraft } from '../../lib/talk/
 import { BirthDraftCard, type BirthCardResult } from '../../components/talk/BirthDraftCard';
 import { addChart, setRepresentative } from '../../lib/engine/myChart';
 import { loadMyProfile, subscribeProfile, profileSnapshot } from '../../lib/talk/myProfile';
-import { listFriends, type Friend } from '../../lib/talk/friends';
+import { listFriends, type Friend, loadFriendChart } from '../../lib/talk/friends';
 import { useHomeOrder } from '../../lib/ui/homeOrder';
 import { ensureServerChartIdForSaved } from '../../lib/backend/prewarmReadings';
 import { useAuth } from '../../lib/useAuth';
@@ -460,11 +460,52 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
     //   그 전에 만들어진 `open` 이 계속 쓰이면 반말 판정이 영원히 null(=존댓말)이다.
   }, [t, dateKey, myName, bumpChats, myAge]);
 
-  /** `@` 뒤에 올 수 있는 이름들 — 저장된 명식이 곧 후보다. */
-  const mentionTargets = useMemo<MentionTarget[]>(
-    () => myCharts.map((c) => ({ id: c.id, name: c.label, relation: c.relation })),
-    [myCharts],
-  );
+  // ── 친구가 공개한 명식 (Boss 2026-08-26 *"@ 누르면 내가 여기서 친구추가한 인물의 명식도"*) ──
+  //   ★친구 명식을 읽는 길은 **이미 있었다** — 「친구 궁합」이 쓰던 `loadFriendChart` 그대로 쓴다.
+  //     («권한이 없어서 못 한다» 가 아니라 **배선이 안 돼 있었다.**)
+  //   ⚠️`chartId` 는 상대가 **공개에 동의했을 때만** 온다(기본값은 비공개다).
+  const [friendSaju, setFriendSaju] = useState<Record<string, any>>({});
+  // ★@ 시트를 **처음 열 때** 받아 온다 — 포커스마다 받으면 @ 를 한 번도 안 눌러도 N번 나간다.
+  useEffect(() => {
+    if (!mentionOpen) return;
+    let alive = true;
+    const need = friends.filter((f) => f.chartId && !friendSaju[f.otherId]);
+    if (!need.length) return;
+    void Promise.all(need.map(async (f) => {
+      const c = await loadFriendChart(f.chartId!);
+      return c?.saju ? [f.otherId, c.saju] as const : null;
+    })).then((rs) => {
+      if (!alive) return;
+      const add = Object.fromEntries(rs.filter(Boolean) as Array<readonly [string, any]>);
+      if (Object.keys(add).length) setFriendSaju((p) => ({ ...p, ...add }));
+    });
+    return () => { alive = false; };
+  }, [mentionOpen, friends, friendSaju]);
+
+  /**
+   * `@` 뒤에 올 수 있는 이름들 — 내 명식 **+ 친구가 공개한 명식**.
+   *
+   * ★친구는 `chartId` 만 있으면 **바로** 후보에 넣는다(원국 로드를 기다리지 않는다).
+   *   기다리게 하면 «시트에 보였다 안 보였다» 하고, 그 사이 `@민수` 를 보내면
+   *   블록 없이 이름만 나가 **상담가가 방금 부른 사람을 모른 척한다.**
+   * ⚠️이름이 겹치면 `parseMentions` 가 하나만 맞춘다 → 친구 쪽에 «(친구)» 를 붙여 **살린다**.
+   *   버리면 사용자는 왜 안 보이는지 모른다.
+   */
+  const mentionTargets = useMemo<MentionTarget[]>(() => {
+    const mine = myCharts.map((c) => ({ id: c.id, name: c.label, relation: c.relation, source: 'mine' as const }));
+    const taken = new Set(mine.map((m) => m.name));
+    const fr = friends
+      .filter((f) => f.chartId)
+      .map((f) => {
+        const base = f.name?.trim() || '이름 없음';
+        // 겹치면 «(친구)» 를 붙이고, 그래도 겹치면 뒤에 짧은 식별자를 더한다(«이름 없음» 둘도 산다)
+        let nm = taken.has(base) ? `${base}(친구)` : base;
+        if (taken.has(nm)) nm = `${base}(친구·${f.otherId.slice(0, 4)})`;
+        taken.add(nm);
+        return { id: f.otherId, name: nm, relation: '친구', source: 'friend' as const };
+      });
+    return [...mine, ...fr];
+  }, [myCharts, friends]);
 
   /**
    * 본문에서 부른 사람들 → **모델이 읽을 재료**(원국·판정).
@@ -474,15 +515,24 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
    * @param q 사용자가 쓴 문장
    */
   const buildMentions = useCallback((q: string): string[] => {
-    const people: { name: string; relation: string; saju: any }[] = [];
+    const people: { name: string; relation: string; saju: any; snapshot?: boolean }[] = [];
     for (const m of parseMentions(q, mentionTargets)) {
+      if (m.source === 'friend') {
+        // ★친구 것은 **서버에 저장된 원국**을 그대로 쓴다(앱이 다시 계산하지 않는다 — 생일을 모른다).
+        //   `snapshot: true` 를 달아 «등록 당시» 임을 블록이 스스로 말하게 한다.
+        //   ⚠️그 원국에는 `timeUnknown` 이 아예 없을 수 있다(필드가 나중에 생겼다) →
+        //     그때는 시주를 **뺀다**. 남의 명식에 유령 子시를 실어 보내는 게 최악이다.
+        const sj = friendSaju[m.id];
+        if (sj) people.push({ name: m.name, relation: m.relation, saju: sj, snapshot: true });
+        continue;
+      }
       const c = myCharts.find((x) => x.id === m.id);
       if (!c?.input) continue;
       try { people.push({ name: m.name, relation: m.relation, saju: computeChart(c.input).saju }); }
       catch { /* 이 한 명이 안 되어도 나머지는 보낸다 */ }
     }
     return buildMentionBlocks(people);
-  }, [myCharts, mentionTargets]);
+  }, [myCharts, mentionTargets, friendSaju]);
 
   /**
    * 사용자가 한 마디.
@@ -850,11 +900,23 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
    */
   const mentionSheet = mentionOpen ? (
     <ChartMentionSheet
-      rows={myCharts.map((c) => ({
-        id: c.id, name: c.label, relation: c.relation,
-        // ⚠️생일은 **고를 때 구분하려고** 화면에만 쓴다 — 서버로는 안 나간다(ADR-005)
-        born: String(c.input?.birthDateTime ?? '').slice(0, 10),
-      }))}
+      rows={[
+        ...myCharts.map((c) => ({
+          id: c.id, name: c.label, relation: c.relation, source: 'mine' as const,
+          // ⚠️생일은 **고를 때 구분하려고** 화면에만 쓴다 — 서버로는 안 나간다(ADR-005)
+          born: String(c.input?.birthDateTime ?? '').slice(0, 10),
+        })),
+        // ★친구 — **생일이 없다**(암호화돼 앱에 안 온다). 그래서 그 자리에 출처를 적는다.
+        //   ⚠️공개 안 한 친구도 **보여 주되 못 고르게** 한다. 숨기면 «왜 안 보이지» 가 된다.
+        ...mentionTargets.filter((m) => m.source === 'friend').map((m) => ({
+          id: m.id, name: m.name, relation: '친구', source: 'friend' as const, born: undefined,
+        })),
+        ...friends.filter((f) => f.status === 'accepted' && !f.chartId).map((f) => ({
+          id: f.otherId, name: f.name?.trim() || '이름 없음', relation: '친구',
+          source: 'friend' as const, born: undefined, disabled: true,
+          note: '아직 명식을 공개하지 않았어요',
+        })),
+      ]}
       already={parseMentions(draft, mentionTargets).map((m) => m.name)}
       max={MAX_MENTIONS}
       onClose={() => setMentionOpen(false)}

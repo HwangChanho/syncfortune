@@ -50,9 +50,18 @@ function pillarLine(saju: SajuChart, pos: PillarPos): string | null {
  * @param saju     이 사람의 원국(앱이 `computeChart` 로 계산한 것 — 만세력 화면과 같은 함수)
  * @returns 여러 줄 문자열. 계산이 비면 빈 문자열(호출부가 안 붙인다)
  */
-export function buildMentionBlock(name: string, relation: string, saju: SajuChart): string {
+export function buildMentionBlock(name: string, relation: string, saju: SajuChart, opts?: { snapshot?: boolean }): string {
   if (!saju?.pillars || !saju.dayMaster?.stem) return '';
-  const unknownTime = saju.timeUnknown === true;
+  // ★★`snapshot` = 이 원국이 **서버에 저장돼 있던 것**이라는 뜻(친구가 공개한 명식).
+  //   내 명식은 매번 `computeChart` 로 새로 계산하지만, 친구 것은 **그가 등록하던 날의 산출물**이다.
+  //   ⇒ 두 가지를 다르게 다뤄야 한다(2026-08-26 조사에서 나온 위험):
+  //     ①`timeUnknown` 필드는 2026-07-26 에 생겼다. 그 전에 저장된 원국에는 **아예 없다.**
+  //       `=== true` 로만 보면 `undefined` 가 false 로 떨어져 **엔진이 만든 유령 子시를
+  //       실재 시주처럼** 싣게 된다 — 남의 명식에 대해 그러면 더 나쁘다.
+  //       ⇒ 스냅샷이면 «모르면 안 쓴다». 시각을 모른다는 것과, **시각을 아는지조차 모른다**는 것은 다르다.
+  //     ②대운·세운은 «지금» 이 아니라 **그때** 값이다. 그대로 «현재» 라고 적으면 거짓이 된다.
+  const snap = opts?.snapshot === true;
+  const unknownTime = snap ? saju.timeUnknown !== false : saju.timeUnknown === true;
   // ⚠️시각 미상이면 시주를 **싣지 않는다** — 유령 子시를 실재처럼 쓰게 된다
   const positions: PillarPos[] = unknownTime ? ['년', '월', '일'] : ['년', '월', '일', '시'];
 
@@ -62,7 +71,12 @@ export function buildMentionBlock(name: string, relation: string, saju: SajuChar
     if (l) lines.push(`- ${l}`);
   }
   lines.push(`- 일간: ${saju.dayMaster.stem}(${saju.dayMaster.element})`);
-  if (unknownTime) lines.push('- ⚠️출생 시각 **미상** — 시주가 없다. 시주가 필요한 판단은 "모른다"고 말해라.');
+  if (unknownTime) {
+    lines.push(snap && saju.timeUnknown === undefined
+      // ★«미상» 과 «미상인지조차 모름» 을 구분해 적는다 — 모델이 «시각을 아는데 안 알려줬나» 로 읽지 않게
+      ? '- ⚠️출생 시각을 **알 수 없다**(이 명식에는 그 정보가 없다). 시주가 필요한 판단은 "모른다"고 말해라.'
+      : '- ⚠️출생 시각 **미상** — 시주가 없다. 시주가 필요한 판단은 "모른다"고 말해라.');
+  }
 
   // 원국 내 합충형해 — 궁합에서 실제로 쓰는 신호다
   const inter = (saju.interactions ?? [])
@@ -72,9 +86,11 @@ export function buildMentionBlock(name: string, relation: string, saju: SajuChar
   // 현재 대운·세운 — "지금 어떤가"를 물을 때 필요하다
   try {
     const lc: any = saju.currentLuck;
-    if (lc?.stem && lc?.branch) lines.push(`- 현재 대운: ${lc.stem}${lc.branch}${lc.startAge != null ? ` (${lc.startAge}세~)` : ''}`);
+    // ★스냅샷이면 «현재» 라고 쓰지 않는다 — 저장되던 날의 값이라 지금과 다를 수 있다.
+    const when = snap ? '등록 당시' : '현재';
+    if (lc?.stem && lc?.branch) lines.push(`- ${when} 대운: ${lc.stem}${lc.branch}${lc.startAge != null ? ` (${lc.startAge}세~)` : ''}`);
     const an: any = saju.annual;
-    if (an?.stem && an?.branch) lines.push(`- 현재 세운: ${an.stem}${an.branch}`);
+    if (an?.stem && an?.branch) lines.push(`- ${when} 세운: ${an.stem}${an.branch}${snap ? ' ⚠️지금 세운은 다를 수 있다 — 그가 등록하던 때의 값이다.' : ''}`);
   } catch { /* 없으면 안 적는다 */ }
 
   // 판정 — **같은 함수**를 쓴다(대표 명식과 다른 잣대를 쓰면 궁합이 성립하지 않는다)
@@ -94,10 +110,11 @@ export function buildMentionBlock(name: string, relation: string, saju: SajuChar
  * @returns Edge `talk` 의 `mentions` 로 보낼 문자열 배열(사람당 하나)
  */
 export function buildMentionBlocks(
-  people: { name: string; relation: string; saju: SajuChart }[],
+  // ★`snapshot` = 서버에 저장돼 있던 원국(친구가 공개한 것). 사람마다 다르므로 **줄마다** 딸려 온다.
+  people: { name: string; relation: string; saju: SajuChart; snapshot?: boolean }[],
 ): string[] {
   return people
     .slice(0, MAX_MENTIONS)
-    .map((p) => buildMentionBlock(p.name, p.relation, p.saju))
+    .map((p) => buildMentionBlock(p.name, p.relation, p.saju, { snapshot: p.snapshot }))
     .filter((s) => s.length > 0);
 }

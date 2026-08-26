@@ -27,8 +27,20 @@ export type MentionRow = {
   name: string;
   /** 본인·배우자·친구 … */
   relation: string;
-  /** 화면 표시용 생년월일(YYYY-MM-DD). ⚠️서버로 보내지 않는다 */
-  born: string;
+  /** 화면 표시용 생년월일(YYYY-MM-DD). ⚠️서버로 보내지 않는다.
+   *  ★친구 명식에는 **없다** — 생일이 암호화돼 앱으로 오지 않는다. 그 자리에 출처를 적는다. */
+  born?: string;
+  /**
+   * 어디서 온 이름인가 (Boss 2026-08-26 *"다른식으로 표기 돼서 구분 가능하면 좋겠어"*).
+   * ★색만으로 가르지 않는다 — 이 파일이 이미 «색만 쓰면 색약인 사람에게 안 보인다» 고 적어 뒀다.
+   *   ⇒ **글자로** 적고, 목록도 **섹션 둘**로 나눈다.
+   */
+  source?: 'mine' | 'friend';
+  /** 고를 수 없다(상대가 명식을 공개하지 않았다). ★숨기지 않고 **회색으로 보여 준다** —
+   *  숨기면 «왜 안 보이지» 가 된다. */
+  disabled?: boolean;
+  /** 못 고르는 이유 한 줄 */
+  note?: string;
 };
 
 type Props = {
@@ -64,22 +76,37 @@ export default function ChartMentionSheet({ rows, already, max, onClose, onPick,
                 <Text style={s.regTx}>명식 등록하기</Text>
               </PressableScale>
             </View>
-          ) : rows.map((r) => {
-            const on = already.includes(r.name);
-            const off = full && !on;    // 상한에 걸려 더는 못 고른다
+          ) : (['mine', 'friend'] as const).map((sec) => {
+            // ★**섹션 둘로 나눈다** — 내 명식과 친구 명식은 성격이 다르다.
+            //   내 것은 매번 새로 계산하고, 친구 것은 **그가 등록하던 날의 원국**이다.
+            //   출처가 없는 옛 행은 «내 명식» 으로 본다(기존 호출부를 안 깬다).
+            const list = rows.filter((r) => (r.source ?? 'mine') === sec);
+            if (!list.length) return null;
             return (
-              <PressableScale key={r.id} onPress={() => { if (!on && !off) onPick(r); }}>
-                <View style={[s.row, on && s.rowOn, off && s.rowOff]}>
-                  <View style={s.mid}>
-                    <Text style={[s.name, on && s.nameOn]} numberOfLines={1}>@{r.name}</Text>
-                    <Text style={s.meta} numberOfLines={1}>
-                      {[r.relation, r.born].filter(Boolean).join(' · ')}
-                    </Text>
-                  </View>
-                  {/* ★상태는 **색만이 아니라 글자로도** 준다 — 색만 쓰면 색약인 사람에게 안 보인다 */}
-                  <Text style={[s.mark, on && s.markOn]}>{on ? '부름' : '＋'}</Text>
-                </View>
-              </PressableScale>
+              <View key={sec}>
+                <Text style={s.secTx}>{sec === 'mine' ? '내 명식' : '친구가 공개한 명식'}</Text>
+                {list.map((r) => {
+                  const on = already.includes(r.name);
+                  const off = full && !on;    // 상한에 걸려 더는 못 고른다
+                  const no = r.disabled === true;   // 상대가 공개하지 않았다
+                  return (
+                    <PressableScale key={r.id} disabled={no} onPress={() => { if (!on && !off && !no) onPick(r); }}>
+                      <View style={[s.row, on && s.rowOn, (off || no) && s.rowOff]}>
+                        <View style={s.mid}>
+                          <Text style={[s.name, on && s.nameOn]} numberOfLines={1}>@{r.name}</Text>
+                          <Text style={s.meta} numberOfLines={1}>
+                            {/* 친구는 생일이 없다 — 그 자리에 «등록 당시 명식» 이라고 적어 무엇인지 알린다 */}
+                            {[r.relation, r.born, r.note ?? (sec === 'friend' && !no ? '등록 당시 명식' : '')]
+                              .filter(Boolean).join(' · ')}
+                          </Text>
+                        </View>
+                        {/* ★상태는 **색만이 아니라 글자로도** 준다 — 색만 쓰면 색약인 사람에게 안 보인다 */}
+                        <Text style={[s.mark, on && s.markOn]}>{no ? '비공개' : on ? '부름' : '＋'}</Text>
+                      </View>
+                    </PressableScale>
+                  );
+                })}
+              </View>
             );
           })}
         </ScrollView>
@@ -90,6 +117,8 @@ export default function ChartMentionSheet({ rows, already, max, onClose, onPick,
 }
 
 const s = StyleSheet.create({
+  // 섹션 제목 — 내 명식 / 친구가 공개한 명식
+  secTx: { ...font.caption, color: colors.inkSoft, fontWeight: '800', marginTop: space(3), marginBottom: space(1.5) },
   wrap: { ...StyleSheet.absoluteFillObject, justifyContent: 'flex-end', zIndex: 40 },
   dim: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.45)' },
   card: {

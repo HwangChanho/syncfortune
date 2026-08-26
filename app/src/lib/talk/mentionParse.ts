@@ -11,7 +11,18 @@
 export const MAX_MENTIONS = 3;
 
 /** 고를 수 있는 대상(저장된 명식 하나). `label` 이 곧 `@` 뒤에 붙는 이름이다. */
-export type MentionTarget = { id: string; name: string; relation: string };
+export type MentionTarget = {
+  id: string;
+  name: string;
+  relation: string;
+  /**
+   * 어디서 온 이름인가 (Boss 2026-08-26 *"친구추가한 인물의 명식도 호출가능해야해
+   * 그거는 다른식으로 표기 돼서 구분 가능하면 좋겠어"*).
+   * `mine` = 내가 등록한 명식(매번 새로 계산) · `friend` = 친구가 공개한 명식(**저장된 스냅샷**)
+   * ★선택 필드다 — 기존 호출부를 안 깬다.
+   */
+  source?: 'mine' | 'friend';
+};
 
 /**
  * 본문에서 `@이름` 을 찾아 **저장된 명식과 맞춘다**.

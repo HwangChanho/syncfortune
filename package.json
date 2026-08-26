@@ -200,7 +200,8 @@
     "check:talkbold": "tsx scripts/check-talkbold.ts",
     "check:talkdomain": "tsx scripts/check-talkdomain.ts",
     "check:dangsin": "tsx scripts/check-dangsin.ts",
-    "check:session": "tsx scripts/check-session.ts"
+    "check:session": "tsx scripts/check-session.ts",
+    "check:friendmention": "tsx scripts/check-friendmention.ts"
   },
   "keywords": [],
   "author": "",
