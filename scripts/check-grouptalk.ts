@@ -62,9 +62,29 @@ console.log('\n=== ③ 한 턴에 답하는 사람은 하나인가 ===');
 
 console.log('\n=== ④ 인원수가 나를 포함하는가 ===');
 {
-  const m = /export function memberCount\([^)]*\)[^{]*\{([^}]*)\}/.exec(G);
-  if (m && /\+\s*1/.test(m[1])) ok('memberCount 가 +1(나) 을 더한다');
-  else bad('인원수에 내가 빠졌다 — Boss: "나 포함 총 인원수"');
+  // ⚠️★종전엔 `memberCount` 라는 **이름**을 찾았다. 2026-08-27 그 함수를 없애자
+  //   («제목과 인원수를 한 배열에서» 로 바꿨다) 이 검사가 **코드는 옳은데 빨간불**이 됐다.
+  //   ⇒ 이름이 아니라 **동작**으로 잰다: 소스에서 함수를 꺼내 **실제로 돌려 본다**
+  //     ([[harness-judge-expression-not-name]] · `check:speaker` 와 같은 방식).
+  const m = /export function roomMembers\(([^)]*)\)[^{]*\{([\s\S]*?)\n\}/.exec(G);
+  if (!m) { bad('roomMembers 를 못 찾았다 — 인원수를 내는 자리가 사라졌거나 이름이 바뀌었다'); }
+  else {
+    const args = m[1].replace(/:\s*string\[\]/g, '').replace(/:\s*string/g, '');
+    const body = m[2].replace(/:\s*string\[\]/g, '');
+    // eslint-disable-next-line no-new-func
+    const fn = new Function(args, body) as (me: string, others: string[]) => string[];
+    const got = fn('나', ['노쌤', '한서윤']);
+    if (got.length === 3 && got[0] === '나') ok(`나 + 상대 2명 = ${got.length}명 · 첫 자리가 「나」`);
+    else bad(`실제로 돌려 보니 ${JSON.stringify(got)} — 나가 빠졌거나 순서가 다르다`);
+
+    // ④b ★제목과 인원수가 **같은 배열**에서 나오는가 — 따로 세면 또 갈린다(실제로 갈렸었다)
+    const chat = live(readFileSync('app/src/components/talk/ChatList.tsx', 'utf8'));
+    const talk = live(T);
+    const drift = /\.length\s*\+\s*1/.test(chat) || /\.length\s*\+\s*1/.test(talk)
+      || /memberCount\(/.test(chat) || /memberCount\(/.test(talk);
+    if (!drift) ok('목록·머리 둘 다 배열 길이를 쓴다(손으로 +1 하지 않는다)');
+    else bad('어딘가에서 인원수를 **따로 세고 있다**(`+1`) — 같은 방이 두 화면에서 다른 수가 된다');
+  }
 }
 
 console.log('\n=== ⑤ 초대 버튼이 두 헤더 모두에 있는가 ===');
@@ -113,9 +133,19 @@ console.log('\n=== ⑧ 음성 테스트 — 기준이 무뎌지면 잡히는가 
   ((twoCalls.match(/anthropic\.messages\.create/g) ?? []).length > 1)
     ? ok('호출을 둘로 늘리면 ③이 잡는다') : bad('둘로 늘려도 못 잡는다');
 
-  const noMe = 'export function memberCount(n: number): number { return n; }';
-  (!/\+\s*1/.test(/\{([^}]*)\}/.exec(noMe)![1]))
-    ? ok('나를 빼면 ④가 잡는다') : bad('빼도 통과한다');
+  // ★④는 이제 **돌려 보고** 판정한다 — 대조군도 «나를 뺀 함수» 를 실제로 돌린다
+  const noMe = 'export function roomMembers(meLabel: string, others: string[]): string[] {\n  return [...others];\n}';
+  {
+    const m2 = /export function roomMembers\(([^)]*)\)[^{]*\{([\s\S]*?)\n\}/.exec(noMe)!;
+    // eslint-disable-next-line no-new-func
+    const f2 = new Function(m2[1].replace(/:\s*string\[\]/g, '').replace(/:\s*string/g, ''),
+      m2[2].replace(/:\s*string\[\]/g, '')) as (me: string, o: string[]) => string[];
+    const g2 = f2('나', ['노쌤', '한서윤']);
+    (g2.length !== 3 || g2[0] !== '나') ? ok('나를 빼면 ④가 잡는다') : bad('빼도 통과한다');
+  }
+  // ★④b 대조군 — 손으로 +1 하는 코드를 넣으면 잡혀야 한다
+  (/\.length\s*\+\s*1/.test('memberCount(mates.length + 1)'))
+    ? ok('손으로 +1 하면 ④b 가 잡는다') : bad('+1 을 못 잡는다');
 
   const cmt = '// 미끼 규칙을 걷어냈다';       // ⚠️주석은 잡으면 안 된다
   (!/먹이감|미끼/.test(live(cmt))) ? ok('내 주석은 ⑦에 안 걸린다(거짓 초록불 방지)') : bad('주석을 코드로 셌다');

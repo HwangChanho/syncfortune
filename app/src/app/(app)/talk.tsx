@@ -69,7 +69,7 @@ import InviteSheet from '../../components/talk/InviteSheet';   // 다인방 초�
 import { leaveRoom } from '../../lib/talk/roomActions';        // 방 나가기(목록 스와이프·우클릭)
 import { UserRoomView } from '../../components/talk/UserRoomView';   // 사람끼리의 대화(운 0)
 import { openUserRoom, leaveUserRoom, inviteToRoom } from '../../lib/talk/userRoom';
-import { openGroupRoom, roomTitle, memberCount } from '../../lib/talk/groupTalk';   // 운 안내 = 상단 띠(Boss 08-25)
+import { openGroupRoom, roomTitle, roomMembers } from '../../lib/talk/groupTalk';   // 운 안내 = 상단 띠(Boss 08-25)
 import { pendingMonthlyBrief, markBriefSeen } from '../../lib/talk/monthlyBrief';   // 노쌤 월간 공지(Boss 2026-08-25)
 import { FortuneVideoCard } from '../../components/FortuneVideoCard';
 
@@ -1257,9 +1257,9 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
               <View style={styles.head}>
                 <View style={styles.headMid}>
                   <Text style={styles.headTx} numberOfLines={1}>
-                    {mates.length ? roomTitle([cur.name, ...mates.map((m) => m.name)]) : cur.name}
+                    {mates.length ? roomTitle(roomMembers(t('cp.me', '나'), [cur.name, ...mates.map((m) => m.name)])) : cur.name}
                   </Text>
-                  {mates.length ? <Text style={styles.headNum}>{memberCount(mates.length + 1)}</Text> : null}
+                  {mates.length ? <Text style={styles.headNum}>{roomMembers(t('cp.me', '나'), [cur.name, ...mates.map((m) => m.name)]).length}</Text> : null}
                 </View>
                 {/* 초대 — ★좁은 화면 헤더와 **같은 것**을 둔다(하나만 두면 넓은 창에서 기능이 없다) */}
                 <PressableScale hitSlop={8} onPress={() => setInviteOpen(true)}>
@@ -1353,10 +1353,10 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
             인원수는 «나 포함» — Boss 가 그렇게 말했고, 카톡도 그렇다. */}
         <View style={styles.headMid}>
           <Text style={styles.headTx} numberOfLines={1}>
-            {mates.length ? roomTitle([cur.name, ...mates.map((m) => m.name)]) : cur.name}
+            {mates.length ? roomTitle(roomMembers(t('cp.me', '나'), [cur.name, ...mates.map((m) => m.name)])) : cur.name}
           </Text>
           {mates.length
-            ? <Text style={styles.headNum}>{memberCount(mates.length + 1)}</Text>
+            ? <Text style={styles.headNum}>{roomMembers(t('cp.me', '나'), [cur.name, ...mates.map((m) => m.name)]).length}</Text>
             : null}
         </View>
         <PressableScale hitSlop={8} onPress={() => setInviteOpen(true)}>

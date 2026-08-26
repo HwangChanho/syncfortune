@@ -31,7 +31,7 @@ import { fallbackElement } from '../../lib/ui/avatarColor';   // ★사진 없�
 import { Icon } from '../kit/Icon';   // 상단 아이콘 단일 원본(Boss 2026-08-24)
 import { Swipeable } from 'react-native-gesture-handler';   // 앱 = 왼쪽 스와이프(친구목록과 같은 틀)
 import { pinRoom } from '../../lib/talk/roomActions';       // 상단고정 — 나가기는 호출부가 확인 후 부른다
-import { roomTitle, memberCount } from '../../lib/talk/groupTalk';   // ★대화방 머리와 **같은 함수**(두 곳이 갈리면 안 된다)
+import { roomTitle, roomMembers } from '../../lib/talk/groupTalk';   // ★대화방 머리와 **같은 함수**(두 곳이 갈리면 안 된다)
 import { NotifyBell } from './NotifyBell';   // 알림 벨+배지(단일 원본 — 친구목록과 같은 것)
 
 
@@ -40,6 +40,11 @@ type Row = {
   id: string; consultantId: string | null; name: string;
   /** ★다인방 참여자(상담가 id). 비면 1:1 — 이게 없으면 두 방을 구분할 수 없다(0048) */
   guestIds: string[];
+  /**
+   * 방에 있는 **사람 전부**(나 포함). 비면 1:1 이라 인원수를 안 보인다.
+   * ★제목(`name`)도 이 배열에서 나온다 — 따로 세지 않는다([[duplicate-ui-single-source]]).
+   */
+  members: string[];
   /** 상단고정 시각. null = 안 함. **시각**인 이유: 「가장 최신 고정한 순」(Boss 2026-08-27) */
   pinnedAt: string | null;
   /**
@@ -146,7 +151,7 @@ export function ChatList({ onOpen, selectedId, reloadKey = 0, wide, onSettings, 
     //   ⚠️방마다 물으면 방 수만큼 왕복이 생긴다(N+1) ⇒ **한 번에** 읽는다.
     //   ⚠️`talk_members` 는 RLS 로 «내가 있는 방» 만 준다 — 목록에 안 보일 방은 애초에 안 온다.
     const userRoomIds = (r.data as any[]).filter((x) => !x.consultant_id).map((x) => String(x.id));
-    const peerOf: Record<string, { name: string; avatar: string | null }> = {};
+    const peerOf: Record<string, { name: string; avatar: string | null; members: string[] }> = {};
     if (userRoomIds.length) {
       const [mem, me] = await Promise.all([
         withTimeout(supabase.from('talk_members').select('session_id, user_id').in('session_id', userRoomIds), 8000),
@@ -167,9 +172,14 @@ export function ChatList({ onOpen, selectedId, reloadKey = 0, wide, onSettings, 
         });
         const first = mates[0] ? pRows.find((y) => String(y.id) === String(mates[0].user_id)) : null;
         const path = first?.avatar_path ?? null;
+        // ★나를 앞에 세운 **사람 목록** — 제목도 인원수도 여기서 나온다
+        const mem = roomMembers(t('cp.me', '나'), names);
         peerOf[sid] = {
+          members: names.length > 1 ? mem : [],   // 1:1 은 인원수를 안 보인다(상대 이름만)
           // ★혼자 남은 방도 있다(상대가 나갔다) — 그때는 «대화 상대 없음» 이라고 적는다
-          name: names.length ? roomTitle(names) : t('room.alone', '나 혼자 있는 방'),
+          name: names.length > 1 ? roomTitle(mem)
+            : names.length === 1 ? names[0]
+              : t('room.alone', '나 혼자 있는 방'),
           avatar: path ? (supabase.storage.from('avatars').getPublicUrl(path).data.publicUrl ?? null) : null,
         };
       }
@@ -186,14 +196,18 @@ export function ChatList({ onOpen, selectedId, reloadKey = 0, wide, onSettings, 
       //   ⇒ 대화방 머리가 쓰는 `roomTitle` 을 **그대로** 쓴다 — 두 곳이 갈리면 같은 방이 다른 이름이 된다.
       isUserRoom: !s.consultant_id,
       peerAvatar: peerOf[String(s.id)]?.avatar ?? null,
-      name: (() => {
-        // ★사람 방은 **상대 이름**이다(상담가가 없다)
-        if (!s.consultant_id) return peerOf[String(s.id)]?.name ?? t('room.alone', '나 혼자 있는 방');
+      // ★★제목과 인원수를 **한 배열**에서 낸다 — 종전엔 따로 세다가 목록이 늘 하나 적었다
+      //   (머리는 상담가 전부, 목록은 초대된 사람만. 게다가 둘 다 «나» 를 안 셌다.)
+      ...(() => {
+        if (!s.consultant_id) {
+          const p = peerOf[String(s.id)];
+          return { name: p?.name ?? t('room.alone', '나 혼자 있는 방'), members: p?.members ?? [] };
+        }
         const nameOf = (id: string) => people.find((p) => p.id === id)?.name ?? id;
         const guests = Array.isArray(s.guest_ids) ? (s.guest_ids as string[]) : [];
-        return guests.length
-          ? roomTitle([nameOf(s.consultant_id), ...guests.map(nameOf)])
-          : nameOf(s.consultant_id);
+        if (!guests.length) return { name: nameOf(s.consultant_id), members: [] };
+        const mem = roomMembers(t('cp.me', '나'), [nameOf(s.consultant_id), ...guests.map(nameOf)]);
+        return { name: roomTitle(mem), members: mem };
       })(),
       preview: s.preview ?? null,
       lastAt: s.last_at,
@@ -414,9 +428,8 @@ export function ChatList({ onOpen, selectedId, reloadKey = 0, wide, onSettings, 
                     안 주면 긴 이름이 숫자를 화면 밖으로 밀어낸다.
                   ★숫자는 **다른 폰트 + 볼드**(Boss 지정) — 미리보기 글씨와 섞이면 이름의 일부로 읽힌다. */}
               <View style={styles.nameRow}>
-                <Text style={[styles.name, { flexShrink: 1 }]} numberOfLines={1}>{r.name}</Text>
-                {r.guestIds.length
-                  ? <Text style={styles.num}>{memberCount(r.guestIds.length)}</Text> : null}
+                <Text style={styles.name} numberOfLines={1} ellipsizeMode="tail">{r.name}</Text>
+                {r.members.length ? <Text style={styles.num}>{r.members.length}</Text> : null}
               </View>
               {/* 마지막에 물어본 것 — 무슨 얘기였는지가 이름보다 기억을 되살린다 */}
               {/* ★미리보기는 **한 줄**로 자른다 — 목록에서 본문을 읽게 하면 그건 목록이 아니다 */}
@@ -511,7 +524,17 @@ const styles = StyleSheet.create({
   rowOn: { backgroundColor: colors.juSoft },
   av: { width: 52, height: 52, borderRadius: radius.lg, alignItems: 'center', justifyContent: 'center' },
   col: { flex: 1, minWidth: 0, gap: 2 },
-  name: { fontSize: 15.5, lineHeight: 21, fontWeight: '700', color: colors.ink },
+  /**
+   * 이름 — 길면 «나, 노쌤, 한서…» 로 **잘린다**.
+   *
+   * ⚠️★`flexShrink: 1` **만으로는 웹에서 안 줄어든다.** flex 자식의 기본 `min-width` 는 `auto` 라
+   *   글자 폭 아래로 못 내려가고, 그러면 옆의 인원수가 밀려 **다음 줄로 떨어진다**(Boss 실물 화면).
+   *   ⇒ `minWidth: 0` 을 함께 줘야 비로소 줄어들고 `numberOfLines` 가 말줄임을 만든다.
+   */
+  name: {
+    fontSize: 15.5, lineHeight: 21, fontWeight: '700', color: colors.ink,
+    flexShrink: 1, minWidth: 0, overflow: 'hidden',
+  },
   sub: { ...font.caption, color: colors.inkFaint },
   // 시각(위) · 배지(아래) — 사이를 벌려 두 정보가 붙어 보이지 않게
   meta: { alignItems: 'flex-end', justifyContent: 'space-between', alignSelf: 'stretch', gap: space(1.5), minHeight: 40 },

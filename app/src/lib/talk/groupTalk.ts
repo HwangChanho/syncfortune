@@ -47,11 +47,21 @@ export function roomTitle(names: string[], max = 3): string {
 }
 
 /**
- * 총 인원수 — ★**나를 포함한다**(Boss: *"나 포함 총 인원수도 떠야해"*).
- * @param consultantCount 방에 있는 상담가 수
+ * 방에 있는 **사람 전부** — 나를 맨 앞에 두고 나머지를 잇는다.
+ *
+ * Boss 2026-08-27: *"채팅방에는 나도 있으니깐 포함 3명으로 하고 나, 노쎔, 한서... 이런식으로"*
+ *
+ * ⚠️★**제목과 인원수는 이 배열 하나에서 나온다.** 따로 세면 갈린다 — 실제로 갈려 있었다:
+ *   대화방 머리는 `mates.length + 1`(상담가 전부)로 셌는데 목록은 `guestIds.length`(초대된 사람만)로 세서
+ *   **같은 방이 머리에서는 3, 목록에서는 2** 였다. 게다가 둘 다 «나» 를 안 셌다.
+ *   ⇒ 세는 함수(`memberCount`)를 없애고 **배열의 길이**를 쓴다. 길이는 거짓말을 못 한다.
+ *   ([[duplicate-ui-single-source]] — 주석에 «같은 함수를 쓴다» 고 적혀 있었지만 인자가 달랐다.)
+ *
+ * @param meLabel 「나」 — 화면 언어를 탄 글자를 받는다(여기서 문구를 정하지 않는다)
+ * @param others  나 말고 방에 있는 사람 이름들(상담가·친구 구분 없음)
  */
-export function memberCount(consultantCount: number): number {
-  return consultantCount + 1;   // +1 = 나
+export function roomMembers(meLabel: string, others: string[]): string[] {
+  return [meLabel, ...others];
 }
 
 /**
