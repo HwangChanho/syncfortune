@@ -37,7 +37,7 @@ const EL = ['木', '火', '土', '金', '水'] as const;
 
 /** 목록 한 줄 — 세션 + 상담사 이름. */
 type Row = {
-  id: string; consultantId: string; name: string;
+  id: string; consultantId: string | null; name: string;
   /** ★다인방 참여자(상담가 id). 비면 1:1 — 이게 없으면 두 방을 구분할 수 없다(0048) */
   guestIds: string[];
   /** 상단고정 시각. null = 안 함. **시각**인 이유: 「가장 최신 고정한 순」(Boss 2026-08-27) */
@@ -81,7 +81,8 @@ function ago(iso: string, t: (k: string, d?: string) => string): string {
  *   ⇒ 목록이 아는 것(세션 id · 참여자)을 **버리지 않고** 그대로 넘긴다.
  */
 export function ChatList({ onOpen, selectedId, reloadKey = 0, wide, onSettings, onOpenProfile, onLeave }: {
-  onOpen: (room: { sessionId: string; consultantId: string; guestIds: string[] }) => void;
+  /** ⚠️`consultantId` 가 **null 이면 사람 방**이다 — 호출부가 그걸로 갈라야 한다(0050) */
+  onOpen: (room: { sessionId: string; consultantId: string | null; guestIds: string[] }) => void;
   selectedId?: string;
   /** 답이 오거나 읽음 처리됐을 때 올려서 다시 읽게 한다(웹은 목록과 대화가 동시에 보인다) */
   reloadKey?: number;
@@ -96,7 +97,7 @@ export function ChatList({ onOpen, selectedId, reloadKey = 0, wide, onSettings, 
    * 대화가 함께 사라지는 되돌릴 수 없는 동작이라 **확인은 호출부**가 한다
    * (목록이 파괴적 동작의 판단자가 되면, 확인 없는 경로가 언젠가 생긴다).
    */
-  onLeave?: (room: { sessionId: string; consultantId: string; guestIds: string[]; name: string; pinned?: boolean }) => void;
+  onLeave?: (room: { sessionId: string; consultantId: string | null; guestIds: string[]; name: string; pinned?: boolean }) => void;
 }) {
   const { t } = useTranslation();
   const router = useRouter();
@@ -175,7 +176,7 @@ export function ChatList({ onOpen, selectedId, reloadKey = 0, wide, onSettings, 
     }
     setRows(r.data.map((s: any) => ({
       id: s.id,
-      consultantId: s.consultant_id,
+      consultantId: s.consultant_id ?? null,
       // ★다인방 판별 — 비면 1:1. 뷰가 이걸 안 주던 탓에 화면이 «틀린 열쇠» 를 골랐다(0048)
       guestIds: Array.isArray(s.guest_ids) ? (s.guest_ids as string[]) : [],
       pinnedAt: s.pinned_at ?? null,
@@ -228,7 +229,7 @@ export function ChatList({ onOpen, selectedId, reloadKey = 0, wide, onSettings, 
   }
 
   // ★묶음 판정은 **친구목록과 같은 출처**(`consultantsSnapshot`)를 쓴다 — 두 탭이 갈리면 안 된다
-  const groupOf = (cid: string) => consultantsSnapshot().find((c) => c.id === cid)?.group;
+  const groupOf = (cid: string | null) => (cid ? consultantsSnapshot().find((c) => c.id === cid)?.group : undefined);
   /** 줄이 어느 칩에 속하나 — ★사람 방은 언제나 «친구» 다(상담가 묶음이 없다) */
   const bucketOf = (r: Row) => (r.isUserRoom ? 'friend' : groupOf(r.consultantId));
   /**
@@ -237,7 +238,7 @@ export function ChatList({ onOpen, selectedId, reloadKey = 0, wide, onSettings, 
    *   이 목록은 `talk_session_list` 뷰만 읽어서 **사진 칸이 아예 없었다**(오행 색 + 첫 글자만 그렸다).
    *   질의를 새로 만들지 않는다 — 친구목록이 이미 받아 둔 것을 그대로 쓴다.
    */
-  const avatarOf = (cid: string) => consultantsSnapshot().find((c) => c.id === cid)?.avatar ?? null;
+  const avatarOf = (cid: string | null) => (cid ? consultantsSnapshot().find((c) => c.id === cid)?.avatar ?? null : null);
   const openPhoto = (cid: string, element: string) => {
     const c = consultantsSnapshot().find((x) => x.id === cid);
     if (!c) return;
@@ -354,7 +355,7 @@ export function ChatList({ onOpen, selectedId, reloadKey = 0, wide, onSettings, 
             {/* ★사진만 따로 — 줄을 누르면 대화, 사진을 누르면 프로필(Boss 2026-08-26) */}
             {/* ⚠️★사람 방은 **상담가 프로필을 열면 안 된다** — 그런 상담가가 없다.
                 (`openPhoto` 는 `consultantsSnapshot()` 에서 찾는데 사람 방은 id 가 null 이다.) */}
-            <PressableScale hitSlop={6} disabled={r.isUserRoom} onPress={() => { if (!r.isUserRoom) openPhoto(r.consultantId, el); }}>
+            <PressableScale hitSlop={6} disabled={r.isUserRoom} onPress={() => { if (!r.isUserRoom && r.consultantId) openPhoto(r.consultantId, el); }}>
               {(r.isUserRoom ? r.peerAvatar : avatarOf(r.consultantId))
                 ? <ExpoImage source={{ uri: (r.isUserRoom ? r.peerAvatar : avatarOf(r.consultantId)) as string }} style={styles.av} contentFit="cover" transition={140} />
                 : (

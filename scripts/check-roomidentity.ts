@@ -70,12 +70,17 @@ const live = strip(read('app/src/lib/talk/liveTalk.ts') ?? '');
 
 // ── R4 ★초대하면 방을 갈아타는가 ──────────────────────────────────────────
 {
-  const body = /onInvite=\{async \(ids\) => \{([\s\S]*?)\n\s*\}\}/.exec(talk)?.[1] ?? '';
-  // 세션만 바꾸고 끝내면 «새 방인데 옛 대화» 가 남는다 — 방 여는 함수를 다시 타야 한다
-  const switches = /open\(\s*cur\s*,/.test(body);
-  say(switches && !!body, 'R4 초대하면 **방을 갈아탄다**',
-    switches ? 'open(cur, {sessionId, guestIds}) — 화면도 함께 바뀐다'
-      : '세션만 바꾸면 화면에 **직전 1:1 대화가 그대로 남는다**');
+  // ⚠️★`onInvite=` 라는 **자리**를 찾지 않는다 — 2026-08-27 사람 초대가 생기며 분기가 둘이 되자
+  //   첫 분기(사람 초대)를 보고 빨간불이 됐다. 코드는 옳았고 하네스가 자리를 짚은 것이 문제였다.
+  //   ⇒ 진짜 불변식은 이것이다: **`openGroupRoom(...)` 을 부른 곳은 `open(cur, ...)` 로 갈아타야 한다.**
+  //     (사람 초대는 방을 새로 만들지 않으므로 이 규칙의 대상이 아니다 — 그래서 안 걸린다.)
+  const iGroup = talk.search(/openGroupRoom\s*\(/);
+  const after = iGroup >= 0 ? talk.slice(iGroup, iGroup + 700) : '';
+  const switches = iGroup >= 0 && /open\(\s*cur\s*,/.test(after);
+  say(switches, 'R4 상담가를 초대하면 **방을 갈아탄다**',
+    iGroup < 0 ? 'openGroupRoom 호출을 못 찾았다 — 하네스가 헛돈다'
+      : switches ? 'openGroupRoom 뒤에 open(cur, {...}) 가 온다 — 화면도 함께 바뀐다'
+        : '세션만 바꾸면 화면에 **직전 1:1 대화가 그대로 남는다**');
 }
 
 // ── R5 세션으로 열고 세션으로 지우는가 ────────────────────────────────────

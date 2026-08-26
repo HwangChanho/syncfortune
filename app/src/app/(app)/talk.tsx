@@ -856,7 +856,13 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
    */
   const leftPane = mode === 'chats'
     ? <ChatList selectedId={curSid ?? undefined} wide onOpenProfile={setProfile} onSettings={() => router.push('/settings')}
-                onOpen={(r) => { const c = list.find((x) => x.id === r.consultantId); if (c) open(c, r); }}
+                onOpen={(r) => {
+                  // ⚠️★사람 방은 `consultantId` 가 **null** 이다 — 상담가를 찾으면 못 찾고
+                  //   **조용히 아무 일도 안 난다**(＋ 버튼이 웹에서 죽어 있던 것과 같은 유형).
+                  if (!r.consultantId) { setUserRoom(r.sessionId); setCur(null); setSid(null); setMates([]); setItems([]); return; }
+                  setUserRoom(null);
+                  const c = list.find((x) => x.id === r.consultantId); if (c) open(c, r);
+                }}
                 onLeave={(r) => setAskLeave({ sessionId: r.sessionId, name: r.name })} />
     : <TalkList items={list} onOpen={open} selected={cur?.id} myName={myName} myAvatar={myAvatar} onOpenProfile={setProfile}
                       railKeys={order} onMe={() => setPerson({ kind: 'me', name: myName })}
@@ -1158,7 +1164,13 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
           <View style={[styles.pane, { paddingTop: insets.top }]}>
             <ChatList reloadKey={chatsTick} selectedId={curSid ?? undefined} wide={false} onOpenProfile={setProfile}
                       onSettings={() => router.push('/settings')}
-                      onOpen={(r) => { const c = list.find((x) => x.id === r.consultantId); if (c) open(c, r); }}
+                      onOpen={(r) => {
+                  // ⚠️★사람 방은 `consultantId` 가 **null** 이다 — 상담가를 찾으면 못 찾고
+                  //   **조용히 아무 일도 안 난다**(＋ 버튼이 웹에서 죽어 있던 것과 같은 유형).
+                  if (!r.consultantId) { setUserRoom(r.sessionId); setCur(null); setSid(null); setMates([]); setItems([]); return; }
+                  setUserRoom(null);
+                  const c = list.find((x) => x.id === r.consultantId); if (c) open(c, r);
+                }}
                       onLeave={(r) => setAskLeave({ sessionId: r.sessionId, name: r.name })} />
           </View>
         )}
