@@ -185,7 +185,8 @@
     "check:banmal": "tsx scripts/check-banmal.ts",
     "check:webmodules": "tsx scripts/check-webmodules.ts",
     "check:chartidentity": "tsx scripts/check-chartidentity.ts",
-    "check:termstyle": "tsx scripts/check-termstyle.ts"
+    "check:termstyle": "tsx scripts/check-termstyle.ts",
+    "check:ragwired": "tsx scripts/check-ragwired.ts"
   },
   "keywords": [],
   "author": "",
