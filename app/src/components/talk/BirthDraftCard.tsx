@@ -16,6 +16,13 @@
  * ■ 되돌리기
  *   여기서 만든 명식도 그냥 명식이다 — 목록에서 지우면 된다.
  */
+//
+// keyboard-safe: 이 카드는 `talk.tsx` 에서 **입력바(composer) 바로 위**에 그려진다(일반 흐름).
+//   그 입력바가 `marginBottom: lift` 로 키보드만큼 올라가므로(talk.tsx:846 · Keyboard 리스너),
+//   위에 있는 이 카드도 **같이 밀려 올라간다.** 스스로 리스너를 달면 **두 번 올라간다.**
+//   ⚠️근거를 적어 두는 이유: `check:keyboard` R1 이 이 파일을 «회피 수단 없음» 으로 잡았고,
+//     실제로 vc123 iOS 빌드를 **preflight 가 막았다**(게이트가 제대로 일했다).
+//     확인한 것 — talk.tsx:1059·1126 두 렌더 경로 모두 `{birthCard}` 가 `{composer}` **바로 앞**이다.
 import { useState } from 'react';
 import { View, Text, TextInput, StyleSheet } from 'react-native';
 import { PressableScale } from '../PressableScale';

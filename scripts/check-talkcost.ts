@@ -67,8 +67,22 @@ export function audit(fn: string, bp: string): Fail[] {
   }
 
   // C4 — 출력 상한이 **서버 값**이어야 한다(하드코딩하면 조일 손잡이가 없다)
-  if (!/max_tokens:\s*c\.max_out_tok/.test(f)) {
-    out.push({ rule: 'C4', msg: `${P_FN} 의 max_tokens 가 consultants.max_out_tok 이 아니다 — 출력이 턴 원가의 76%다. 배포 없이 조일 수 있어야 한다` });
+  //   ⚠️2026-08-26 — 종전엔 `max_tokens: c.max_out_tok` 이라는 **문자열**을 찾았다.
+  //     그런데 상한이 «사실 확인 / 그림 요구» 두 갈래가 되면서 `max_tokens: maxOut` 이 됐고,
+  //     `maxOut` 은 **DB 두 컬럼에서 파생**되는데도 이 검사가 울었다.
+  //     ★[[harness-judge-expression-not-name]] — 하네스는 **이름이 아니라 표현식**으로 판정해야 한다.
+  //     ★[[harness-can-enforce-wrong-rule]] — 안 그러면 초록불이 **낡은 판단을 강제**한다.
+  //   ⇒ 지금은 «그 값이 DB 컬럼에서 나오는가» 를 본다: `max_tokens:` 에 쓰인 이름을 꺼내
+  //     그 이름이 `c.max_out_tok` / `c.deep_max_out_tok` 로부터 만들어지는지 확인한다.
+  {
+    const m = /max_tokens:\s*([A-Za-z_$][\w$.]*)/.exec(f);
+    const name = m?.[1] ?? '';
+    const fromDb = name === 'c.max_out_tok' || name === 'c.deep_max_out_tok'
+      // 파생값이면 그 이름을 **정의하는 줄**이 DB 컬럼을 참조해야 한다
+      || new RegExp(`(?:const|let)\\s+${name}\\s*=[\\s\\S]{0,300}?c\\.(?:deep_)?max_out_tok`).test(f);
+    if (!name || !fromDb) {
+      out.push({ rule: 'C4', msg: `${P_FN} 의 max_tokens(${name || '없음'})가 consultants.max_out_tok / deep_max_out_tok 에서 나오지 않는다 — 출력이 턴 원가의 76%다. 배포 없이 조일 수 있어야 한다` });
+    }
   }
 
   // C5 — 가상 상담사가 이 경로로 새어들면 안 된다(서버가 거절)

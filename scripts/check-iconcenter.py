@@ -12,6 +12,10 @@
 규칙
   C1 각 아이콘의 잉크 무게중심이 정중앙에서 **±1.2%p 안**
   C2 원본과 사본이 **같은 그림**(축소 후 픽셀 거리 6 이내 — webp 재인코딩 여유)
+     ⚠️2026-08-26 — **파비콘은 예외**다. Boss 요청으로 «배경 네모 없이»(투명) + 여백을 잘라
+       꽉 채웠다 ⇒ 원본과 픽셀이 **일부러** 다르다. 그래서 파비콘에는 C3 를 대신 적용한다.
+  C3 (파비콘 전용) **배경이 투명**하고, 잉크 색이 원본과 같은 계열인가
+     ★«같은 그림인가» 대신 «같은 브랜드에서 나온 것인가» 를 본다. 아무 그림이나 넣는 것은 여전히 막는다.
 
 사용: npm run check:iconcenter
 """
@@ -20,8 +24,9 @@ import statistics, glob, math, sys, os
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC = 'app/assets/icon.png'
-COPIES = ['app/assets/favicon.png',
-          'app/ios/SyncFortune/Images.xcassets/AppIcon.appiconset/App-Icon-1024x1024@1x.png'] \
+# ★파비콘은 «같은 그림» 검사에서 뺀다 — 아래 C3 로 따로 본다(투명 배경이 정답이라 픽셀이 다르다)
+FAVICON = 'app/assets/favicon.png'
+COPIES = ['app/ios/SyncFortune/Images.xcassets/AppIcon.appiconset/App-Icon-1024x1024@1x.png'] \
          + sorted(glob.glob(os.path.join(ROOT, 'app/android/app/src/main/res/mipmap-*/ic_launcher.webp')))
 MAX_OFF, MAX_DIFF = 1.2, 6.0   # 거리 6 = webp 재인코딩·축소 여유(같은 크기에서 잰다)
 
@@ -73,6 +78,31 @@ for p in COPIES:
     d = diff(os.path.join(ROOT, SRC), p if p.startswith('/') else os.path.join(ROOT, p))
     if d > MAX_DIFF:
         fails.append(f"[C2] {rel} 가 원본과 **다른 그림**이다(픽셀 거리 {d:.1f} > {MAX_DIFF}) — 원본만 고치고 사본을 안 옮겼나?")
+# ── C3 파비콘 — «배경이 투명한가 · 잉크가 같은 브랜드 색인가» ──────────────────
+#   Boss 2026-08-26 *"앱스토어처럼 우리 로고도 네모칸이 없게 뜨면 좋겠어"*
+#   ⇒ 배경을 지우고 여백을 잘라 꽉 채웠다. 원본과 픽셀이 다른 게 **정답**이다.
+#   그래도 «아무 그림» 은 막아야 하므로, **불투명 부분의 평균 색**이 원본의 잉크색과 가까운지 본다.
+_fav = os.path.join(ROOT, FAVICON)
+if os.path.exists(_fav):
+    fv = Image.open(_fav).convert('RGBA')
+    a = fv.getchannel('A')
+    opaque = sum(1 for v in a.getdata() if v > 200) / (fv.width * fv.height)
+    if opaque > 0.9:
+        fails.append(f"[C3] {FAVICON} 배경이 **꽉 차 있다**(불투명 {opaque*100:.0f}%) — 탭에 네모가 보인다")
+    # 잉크 평균색 — 원본에서 «배경이 아닌» 화소들의 평균과 견준다
+    def ink(im):
+        px = [p for p in im.convert('RGBA').getdata() if p[3] > 200]
+        # 배경(밝은 크림)은 뺀다 — 잉크만 남긴다
+        px = [p for p in px if not (p[0] > 235 and p[1] > 230 and p[2] > 225)]
+        if not px: return None
+        n = len(px)
+        return (sum(p[0] for p in px)/n, sum(p[1] for p in px)/n, sum(p[2] for p in px)/n)
+    a_ink, b_ink = ink(Image.open(os.path.join(ROOT, SRC))), ink(fv)
+    if a_ink and b_ink:
+        d = math.dist(a_ink, b_ink)
+        if d > 40:
+            fails.append(f"[C3] {FAVICON} 잉크 색이 원본과 다르다(거리 {d:.0f} > 40) — 다른 그림을 넣었나?")
+
 if fails:
     print(f"❌ check:iconcenter — {len(fails)}건")
     for f in fails: print(f"  {f}")
