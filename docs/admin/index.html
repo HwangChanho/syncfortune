@@ -302,7 +302,7 @@
       <div class="card">
         <h2>상담가</h2>
         <div class="sub" style="margin-bottom:10px">
-          이름·사진·말투를 바꾸면 <b>재빌드 없이</b> 앱 친구목록에 반영됩니다.
+          이름·나이·사진·<b>배경</b>·말투를 바꾸면 <b>재빌드 없이</b> 앱에 반영됩니다.<br><b>배경</b>은 사진 또는 <b>5초 이내 영상</b>(mp4·8MB 이하·세로 9:16 권장). <b>나이</b>는 회원이 그보다 어리면 상담가가 <b>반말</b>로 말합니다(비우면 항상 존댓말).
           <b>노출</b>을 끄면 목록에서 사라집니다(대화 이력은 남습니다).
         </div>
         <div id="talkList" class="muted">불러오는 중…</div>
@@ -875,7 +875,7 @@ let _talkRows = [];
 async function loadTalk() {
   const box = $('talkList');
   const { data, error } = await sb.from('consultants')
-    .select('id, kind, name, tagline, avatar, enabled, sort_order, persona')
+    .select('id, kind, name, tagline, avatar, cover, enabled, sort_order, persona, age')
     .order('sort_order');
   if (error) { box.innerHTML = `<span class="muted">불러오지 못했습니다 — ${esc(error.message)}</span>`; return; }
   _talkRows = data || [];
@@ -894,14 +894,36 @@ async function loadTalk() {
         <div class="sub" style="margin-bottom:4px">${c.kind === 'live' ? 'LLM 대화' : '콘텐츠 안내(무료)'}</div>
         <label class="sub"><input type="checkbox" class="tOn" ${c.enabled ? 'checked' : ''}> 노출</label>
       </div>
-      <div style="flex:0 0 auto;display:flex;gap:6px">
+      <div style="flex:0 0 auto;display:flex;gap:6px;align-items:center">
+        <input class="tAge" value="${c.age ?? ''}" style="width:52px" placeholder="나이" inputmode="numeric" title="회원이 이 나이보다 어리면 기본 반말">
         <button class="tPick">사진</button>
+        <button class="tCover">${c.cover ? '배경✓' : '배경'}</button>
         <button class="tScript">스크립트</button>
         <button class="tSave">저장</button>
       </div>
       <input type="file" class="tFile" accept="image/jpeg,image/png,image/webp" style="display:none">
+      <!-- ★배경은 **사진 또는 5초 이하 영상**(Boss 2026-08-26). 길이 검사는 아래 wireTalkRows 에서 한다 -->
+      <input type="file" class="tCoverFile" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime" style="display:none">
     </div>`).join('');
   wireTalkRows();
+}
+
+/**
+ * 영상 파일의 길이(초). 못 읽으면 reject.
+ * ★브라우저가 **메타데이터를 읽어야** 알 수 있다 — 파일 크기로는 추정할 수 없다.
+ * ⚠️`URL.createObjectURL` 은 반드시 되돌려 준다(안 하면 탭이 메모리를 물고 있는다).
+ */
+function videoSeconds(file) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const v = document.createElement('video');
+    v.preload = 'metadata';
+    const done = (fn, arg) => { URL.revokeObjectURL(url); fn(arg); };
+    v.onloadedmetadata = () => done(resolve, v.duration);
+    v.onerror = () => done(reject, new Error('metadata'));
+    setTimeout(() => done(reject, new Error('timeout')), 8000);   // 안 오면 영원히 기다리지 않는다
+    v.src = url;
+  });
 }
 
 /** Storage 경로 → 공개 URL. 버킷이 public 이라 서명이 필요 없다. */
@@ -934,13 +956,55 @@ function wireTalkRows() {
       });
       file.value = '';   // 같은 파일을 다시 골라도 이벤트가 오게
     };
+    // ── 배경(cover) — 사진 또는 **5초 이하** 영상 (Boss 2026-08-26) ──────────────
+    //   ★검사를 **올리기 전에** 한다: 올린 뒤 되돌리려면 스토리지에 쓰레기가 남는다.
+    //   ⚠️영상 길이는 브라우저가 메타데이터를 읽어야 알 수 있다 — `loadedmetadata` 를 기다린다.
+    const cfile = row.querySelector('.tCoverFile');
+    row.querySelector('.tCover').onclick = () => cfile.click();
+    cfile.onchange = async () => {
+      const f = cfile.files && cfile.files[0];
+      cfile.value = '';
+      if (!f) return;
+      const isVid = /^video\//.test(f.type);
+      // 버킷 상한과 **같은 값**이어야 한다(8MB) — 여기서만 느슨하면 업로드가 서버에서 튕긴다
+      if (f.size > 8 * 1024 * 1024) return say($('talkMsg'), '8MB 이하로 올려 주세요. (지금 ' + Math.round(f.size / 1048576 * 10) / 10 + 'MB)', 'err');
+      if (isVid) {
+        const secs = await videoSeconds(f).catch(() => null);
+        if (secs == null) return say($('talkMsg'), '영상 길이를 읽지 못했습니다. mp4 로 다시 시도해 주세요.', 'err');
+        // ★Boss 지시: **5초 이내**. 0.2초는 인코더 반올림 여유다(4.98s 를 튕기지 않게).
+        if (secs > 5.2) return say($('talkMsg'), '영상은 5초 이내여야 합니다. (지금 ' + secs.toFixed(1) + '초)', 'err');
+      }
+      const ext = isVid ? (f.type.includes('webm') ? 'webm' : f.type.includes('quicktime') ? 'mov' : 'mp4')
+                        : (f.type.includes('png') ? 'png' : f.type.includes('webp') ? 'webp' : 'jpg');
+      // ★경로에 확장자가 남아야 앱이 «사진인가 영상인가» 를 안다(`CoverMedia.isVideoUri`).
+      //   ⚠️바꿀 때 **옛 확장자 파일을 지운다** — 안 지우면 옛 배경이 남아 둘 중 뭐가 보일지 모른다.
+      const path = `covers/${id}.${ext}`;
+      say($('talkMsg'), '올리는 중…', 'ok');
+      for (const other of ['jpg', 'png', 'webp', 'mp4', 'webm', 'mov']) {
+        if (other !== ext) await sb.storage.from('avatars').remove([`covers/${id}.${other}`]).catch(() => {});
+      }
+      const up = await sb.storage.from('avatars').upload(path, f, { upsert: true, contentType: f.type });
+      if (up.error) return say($('talkMsg'), '업로드 실패 — ' + esc(up.error.message), 'err');
+      const { error } = await sb.from('consultants').update({ cover: path }).eq('id', id);
+      if (error) return say($('talkMsg'), '저장 실패 — ' + esc(error.message), 'err');
+      say($('talkMsg'), isVid ? '배경 영상을 올렸습니다.' : '배경 사진을 올렸습니다.', 'ok');
+      loadTalk();
+    };
+
     row.querySelector('.tScript').onclick = () => openScript(id, row.querySelector('.tName').value);
     row.querySelector('.tSave').onclick = async () => {
+      const ageRaw = row.querySelector('.tAge').value.trim();
       const patch = {
         name: row.querySelector('.tName').value.trim(),
         tagline: row.querySelector('.tTag').value.trim() || null,
         enabled: row.querySelector('.tOn').checked,
+        // ★나이 — 회원이 이 나이보다 어리면 기본 반말(Boss 2026-08-26).
+        //   ⚠️비우면 **null** 이어야 한다(0 이 아니다) — 0 이면 «모두가 나보다 나이가 많다» 가 된다.
+        age: ageRaw === '' ? null : Number(ageRaw),
       };
+      if (patch.age != null && (!Number.isFinite(patch.age) || patch.age < 0 || patch.age > 129)) {
+        return say($('talkMsg'), '나이는 0~129 사이 숫자이거나 비워 두세요.', 'err');
+      }
       if (!patch.name) return say($('talkMsg'), '이름은 비울 수 없습니다.', 'err');
       const { error } = await sb.from('consultants').update(patch).eq('id', id);
       say($('talkMsg'), error ? '저장 실패 — ' + esc(error.message) : '저장했습니다.', error ? 'err' : 'ok');

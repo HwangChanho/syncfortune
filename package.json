@@ -188,7 +188,8 @@
     "check:termstyle": "tsx scripts/check-termstyle.ts",
     "check:ragwired": "tsx scripts/check-ragwired.ts",
     "covers:brief": "npx tsx scripts/covers-brief.ts",
-    "check:birthparse": "tsx scripts/check-birthparse.ts"
+    "check:birthparse": "tsx scripts/check-birthparse.ts",
+    "covers:upload": "tsx --env-file-if-exists=.env scripts/covers-upload.ts"
   },
   "keywords": [],
   "author": "",
