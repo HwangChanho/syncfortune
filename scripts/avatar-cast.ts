@@ -154,6 +154,33 @@ export const COVER_VIDEO_SPEC = {
 } as const;
 
 /**
+ * ★배경 영상의 **카테고리별 움직임** (Boss 2026-08-26
+ *   *"기존 이미지에서 카테고리별로 알맞게"*)
+ *
+ * ■ 왜 사람마다 다르게 정하나
+ *   같은 «숨 쉬는 정도» 로만 만들면 열둘이 전부 같은 영상이 된다. 그 사람이 **하는 일**이
+ *   손끝에 드러나야 «그 사람의 방» 처럼 읽힌다.
+ *
+ * ■ ⚠️그래도 **아주 작게**
+ *   프로필 창 뒤에서 도는 그림이고, 그 위에 이름·버튼이 얹힌다.
+ *   크게 움직이면 글자를 못 읽는다. ⇒ 손끝·머리카락·빛 정도. **카메라는 고정.**
+ */
+export const COVER_MOTION: Record<string, string> = {
+  nossem:        'slow calm breathing, occasional slow blink',   // 실존 인물 — 참고용(생성은 Boss 몫)
+  love_seoyun:   'a few strands of hair drifting in a soft draft from the window, slow blink',
+  guide_minjae:  'fingertips slowly straightening a stack of papers on the low table, steady gaze',
+  tarot_harin:   'thumb slowly grazing the edge of a tarot deck resting on the table',
+  tarot_doyun:   'shoulders rising and falling with slow breath, hands loosely clasped',
+  ziwei_yujin:   'candle flame flickering gently beside her, light shifting across the wall',
+  astro_taehyun: 'daylight through the lattice window slowly shifting across the floor',
+  beauty_jjinya: 'holding a makeup brush, rolling it slowly between two fingers',
+  color_bombom:  'lifting a folded fabric swatch slightly, color catching the light',
+  car_unni:      'a car headlight passing slowly outside the window, light sweeping the wall',
+  travel_jini:   'a linen curtain breathing in and out with the breeze',
+  heal_yuri:     'very slow deep breathing, eyes closing softly and opening again',
+};
+
+/**
  * 열두 명 공통 negative.
  *
  * ★두 가지를 특히 막는다:

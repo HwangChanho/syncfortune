@@ -21,7 +21,7 @@ import { View, Text, StyleSheet, ScrollView, TextInput, Platform } from 'react-n
 import { Image as ExpoImage } from 'expo-image';
 import { useTranslation } from 'react-i18next';
 import { PressableScale } from '../PressableScale';
-import { ProfileSheet, type ProfileTarget } from './ProfileSheet';   // 카카오톡식 프로필 창(Boss 08-26)
+import type { ProfileTarget } from './ProfileSheet';   // 카카오톡식 프로필 창(Boss 08-26)
 import { Swipeable } from 'react-native-gesture-handler';
 import type { HomeBlockKey } from '../../lib/ui/homeOrder';
 import { colors, space, radius, font } from '../../lib/theme';
@@ -204,7 +204,7 @@ function Row({ c, initial, slot, on, onOpen, onPhoto, t }: {
 //   ★`ContentRail` 컴포넌트 자체는 남아 있다 — 다른 자리에서 쓸 수 있다.
 
 export function TalkList({ items, onOpen, selected, myName, onMe, myAvatar, railKeys = [], onSettings, onLogin, session, wide, footer,
-                           onAddFriend, pendingCount = 0, people = [], onOpenPerson }: {
+                           onAddFriend, pendingCount = 0, people = [], onOpenPerson, onOpenProfile }: {
   /**
    * 친구목록에 뜰 사람들.
    * ★`lastAt` = **마지막으로 이야기한 시각**(`talk_session_list`). 콘티 1면의 우측 시각이자
@@ -221,6 +221,8 @@ export function TalkList({ items, onOpen, selected, myName, onMe, myAvatar, rail
   railKeys?: readonly HomeBlockKey[];
   /** 우측 톱니 — 설정으로 */
   onSettings?: () => void;
+  /** ★프로필 창을 **화면 루트**에서 열어 달라고 올려 보낸다(위 setProfile 주석 참고) */
+  onOpenProfile?: (t: ProfileTarget) => void;
   /** 로그인 화면으로(비로그인일 때만 상단 줄이 뜬다) */
   onLogin?: () => void;
   /** 로그인 세션 — 없으면 상단에 로그인 줄을 띄운다 */
@@ -291,10 +293,19 @@ export function TalkList({ items, onOpen, selected, myName, onMe, myAvatar, rail
   const favRows = useMemo(() => shown.filter((c) => isFavorite(c.id)), [shown, favTick]);
 
   // ★프로필 창(카카오톡식) — 사진을 누르면 뜬다. 줄 전체를 누르면 종전대로 대화가 열린다
-  const [profile, setProfile] = useState<ProfileTarget | null>(null);
+  /**
+   * ★프로필 창은 **부모(화면 루트)가 그린다** — 여기서 그리면 안 된다.
+   *   `absoluteFill` 은 **부모를 채운다**([[overlay-absolutefill-parent]]) — 이 컴포넌트는
+   *   넓은 웹에서 «칸» 안에 있어서, 창이 칸 밖으로 못 나오고 갇힌다.
+   *   ⚠️영상 배경을 쓰려면 RN `Modal` 도 못 쓴다(iOS 에서 VideoView 가 소리만 남는다).
+   *   ⇒ 여기는 «누구를 눌렀는지»만 올려 보낸다.
+   */
+  const setProfile = (t: ProfileTarget | null) => { if (t) onOpenProfile?.(t); };
   const openPhoto = (c: Consultant, element: string) => setProfile({
     name: c.name, tagline: c.tagline, avatar: c.avatar, cover: c.cover,
     linkUrl: c.linkUrl, linkLabel: c.linkLabel, element,
+    // ★기본 프로필(Boss 2026-08-26) — 나이·묶음. 없는 사람은 창이 그 줄을 안 그린다
+    age: c.age ?? null, group: c.group,
     onTalk: () => onOpen(c),
   });
 
@@ -463,7 +474,6 @@ export function TalkList({ items, onOpen, selected, myName, onMe, myAvatar, rail
         : null}
       {footer}
     </ScrollView>
-    <ProfileSheet target={profile} onClose={() => setProfile(null)} />
     </>
   );
 }

@@ -18,7 +18,7 @@ import { useRouter } from 'expo-router';
 import { useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Image as ExpoImage } from 'expo-image';
-import { ProfileSheet, type ProfileTarget } from './ProfileSheet';   // 카카오톡식 프로필 창(Boss 08-26)
+import type { ProfileTarget } from './ProfileSheet';   // 카카오톡식 프로필 창(Boss 08-26)
 import { PressableScale } from '../../components/PressableScale';
 import { BrandWordmark } from '../BrandWordmark';
 import { supabase } from '../../lib/supabase';
@@ -60,7 +60,7 @@ function ago(iso: string, t: (k: string, d?: string) => string): string {
  * @param onOpen     한 대화를 열었을 때(웹 2칸이면 오른쪽 칸에, 폰이면 대화 화면으로)
  * @param selectedId 지금 열려 있는 상담사 id(웹 2칸에서 줄을 강조)
  */
-export function ChatList({ onOpen, selectedId, reloadKey = 0, wide, onSettings }: {
+export function ChatList({ onOpen, selectedId, reloadKey = 0, wide, onSettings, onOpenProfile }: {
   onOpen: (consultantId: string) => void; selectedId?: string;
   /** 답이 오거나 읽음 처리됐을 때 올려서 다시 읽게 한다(웹은 목록과 대화가 동시에 보인다) */
   reloadKey?: number;
@@ -68,6 +68,8 @@ export function ChatList({ onOpen, selectedId, reloadKey = 0, wide, onSettings }
   wide?: boolean;
   /** 우측 톱니 */
   onSettings?: () => void;
+  /** ★프로필 창을 **화면 루트**에서 열어 달라고 올려 보낸다(위 setProfile 주석 참고) */
+  onOpenProfile?: (t: ProfileTarget) => void;
 }) {
   const { t } = useTranslation();
   const router = useRouter();
@@ -84,7 +86,14 @@ export function ChatList({ onOpen, selectedId, reloadKey = 0, wide, onSettings }
   //   아래에 두면 로딩 렌더(훅 8개) → 목록 렌더(훅 9개)로 개수가 늘어
   //   React #310 «Rendered more hooks than during the previous render» 로 화면이 통째로 죽는다.
   //   2026-08-26 웹이 실제로 이걸로 백지가 됐다. [[web-nested-text-crash]] 와 같은 «백지» 계열.
-  const [profile, setProfile] = useState<ProfileTarget | null>(null);
+  /**
+   * ★프로필 창은 **부모(화면 루트)가 그린다** — 여기서 그리면 안 된다.
+   *   `absoluteFill` 은 **부모를 채운다**([[overlay-absolutefill-parent]]) — 이 컴포넌트는
+   *   넓은 웹에서 «칸» 안에 있어서, 창이 칸 밖으로 못 나오고 갇힌다.
+   *   ⚠️영상 배경을 쓰려면 RN `Modal` 도 못 쓴다(iOS 에서 VideoView 가 소리만 남는다).
+   *   ⇒ 여기는 «누구를 눌렀는지»만 올려 보낸다.
+   */
+  const setProfile = (t: ProfileTarget | null) => { if (t) onOpenProfile?.(t); };
 
   const load = useCallback(async () => {
     if (!session) { setRows([]); return; }
@@ -135,6 +144,8 @@ export function ChatList({ onOpen, selectedId, reloadKey = 0, wide, onSettings }
     setProfile({
       name: c.name, tagline: c.tagline, avatar: c.avatar, cover: c.cover,
       linkUrl: c.linkUrl, linkLabel: c.linkLabel, element,
+      // ★기본 프로필(Boss 2026-08-26) — 나이·묶음. 없는 사람은 창이 그 줄을 안 그린다
+      age: c.age ?? null, group: c.group,
       onTalk: () => { setProfile(null); onOpen(cid); },
     });
   };
@@ -247,7 +258,6 @@ export function ChatList({ onOpen, selectedId, reloadKey = 0, wide, onSettings }
         );
       })}
       {/* ★프로필 창은 목록 **밖**이 아니라 안에 둔다 — ScrollView 형제로 두면 스크롤과 같이 밀린다 */}
-      <ProfileSheet target={profile} onClose={() => setProfile(null)} />
     </ScrollView>
   );
 }

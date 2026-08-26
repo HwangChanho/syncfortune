@@ -12,7 +12,7 @@
  * 실행: npm run covers:brief   → docs/design/consultant-covers-brief.md
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
-import { CAST, COVER_STYLE, COVER_NEGATIVE, COVER_VIDEO_SPEC } from './avatar-cast';
+import { CAST, COVER_STYLE, COVER_NEGATIVE, COVER_VIDEO_SPEC, COVER_MOTION } from './avatar-cast';
 
 const OUT = 'docs/design/consultant-covers-brief.md';
 const L: string[] = [];
@@ -59,6 +59,19 @@ w();
 w('⚠️**움직임은 아주 적게.** 프로필 창 뒤에서 도는 그림이라, 크게 움직이면 그 위의 글자를 못 읽습니다.');
 w('⚠️**무음**이어야 합니다 — 자동재생은 소리가 있으면 브라우저·OS 가 막습니다.');
 w();
+w('## ★만드는 순서 — **2단계** (Boss 2026-08-26 *"기존 이미지에서 카테고리별로 알맞게"*)');
+w();
+w('기존 프로필 사진은 **1:1 얼굴**이고 배경은 **9:16 전신**입니다. 얼굴 사진을 늘려 전신을 만들 수는 없습니다.');
+w('그 대신 **얼굴을 고정한 채 새로 찍는** 방식으로 갑니다 — 같은 사람으로 보여야 하니까요.');
+w();
+w('| 단계 | 도구 | 하는 일 |');
+w('|---|---|---|');
+w('| ① 스틸 | **PuLID-Flux**(얼굴 고정) | 기존 `avatars/consultants/<id>.jpg` 의 **얼굴을 레퍼런스**로 넣고, 아래 프롬프트로 **9:16 전신·실내·맨발** 스틸을 뽑습니다 |');
+w('| ② 영상 | **Wan 2.2 (i2v)** | ①에서 나온 스틸을 첫 프레임으로 **5초 루프** 영상을 만듭니다 |');
+w();
+w('⚠️①에서 **얼굴이 달라지면 거기서 멈추고** 다시 뽑아 주세요 — 프로필 사진과 다른 사람이면 안 됩니다.');
+w('⚠️`nossem`(노쌤)은 **실존 인물**이라 ①②를 하지 않습니다.');
+w();
 w('## 사람별');
 w();
 const targets = CAST.filter((m) => !m.real);
@@ -74,6 +87,8 @@ for (const m of targets) {
   w('```text');
   w([COVER_STYLE, m.look, m.sex === '남' ? 'a Korean man' : 'a Korean woman', m.ageEn].filter(Boolean).join(', '));
   w('```');
+  w();
+  w(`**② 영상 움직임**(Wan i2v): \`${COVER_MOTION[m.id] ?? 'slow calm breathing, occasional slow blink'}\`, camera locked, no pan, no zoom, seamless loop`);
   w();
   w('negative:');
   w('```text');

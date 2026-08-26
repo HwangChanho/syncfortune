@@ -39,6 +39,9 @@ import { loadRepChart, listCharts, type SavedChart } from '../../lib/engine/myCh
 // ★@명식 부르기(Boss 2026-08-26) — 부른 사람의 **원국·판정**을 같이 보낸다
 import { parseMentions, buildMentionBlocks, MAX_MENTIONS, type MentionTarget } from '../../lib/talk/chartMention';
 import ChartMentionSheet from '../../components/talk/ChartMentionSheet';
+// ★프로필 창은 **화면 루트**에서 그린다 — 칸(pane) 안에서 그리면 창이 갇히고,
+//   RN Modal 로 그리면 iOS 에서 배경 영상이 안 뜬다([[overlay-absolutefill-parent]])
+import { ProfileSheet, type ProfileTarget } from '../../components/talk/ProfileSheet';
 // ★반말/존댓말 판정은 **한 곳에서만**(Boss 2026-08-26) — 인사와 서버가 갈리면 안 된다
 import { ageFromBirth, isCasual } from '../../lib/talk/speechLevel';
 // ★대화 안에서 명식 만들기(Boss 2026-08-26) — 등록 화면에 안 가고도 만들 수 있어야 한다
@@ -146,6 +149,8 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
   const [birthDraft, setBirthDraft] = useState<BirthDraft | null>(null);
   const [makingChart, setMakingChart] = useState(false);
   const [mentionOpen, setMentionOpen] = useState(false);
+  // ★프로필 창 — 목록 컴포넌트가 아니라 **여기**가 갖는다(위 import 주석)
+  const [profile, setProfile] = useState<ProfileTarget | null>(null);
   /**
    * 친구목록 = **사람 다섯**(Boss 2026-08-20 압축).
    * ★종전엔 홈 블록 아홉이 그대로 '친구'로 올라가 열다섯이었다 —
@@ -690,9 +695,9 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
    * ★웹은 셋을 동시에 펴므로 이 분기를 쓰지 않는다(폰만 좁아서 갈린다).
    */
   const leftPane = mode === 'chats'
-    ? <ChatList selectedId={cur?.id} wide onSettings={() => router.push('/settings')}
+    ? <ChatList selectedId={cur?.id} wide onOpenProfile={setProfile} onSettings={() => router.push('/settings')}
                 onOpen={(id) => { const c = list.find((x) => x.id === id); if (c) open(c); }} />
-    : <TalkList items={list} onOpen={open} selected={cur?.id} myName={myName} myAvatar={myAvatar}
+    : <TalkList items={list} onOpen={open} selected={cur?.id} myName={myName} myAvatar={myAvatar} onOpenProfile={setProfile}
                       railKeys={order} onMe={() => router.push('/charts')}
                       onSettings={() => router.push('/settings')}
                       onAddFriend={() => router.push('/friends')}
@@ -859,7 +864,7 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
       <View style={styles.two}>
         <View style={[styles.pane, { paddingTop: renderTop ? 0 : insets.top }]}>
           {renderTop}
-          <TalkList items={list} onOpen={open} selected={cur?.id} myName={myName} myAvatar={myAvatar}
+          <TalkList items={list} onOpen={open} selected={cur?.id} myName={myName} myAvatar={myAvatar} onOpenProfile={setProfile}
                       railKeys={order} onMe={() => router.push('/charts')}
                       onSettings={() => router.push('/settings')}
                       onAddFriend={() => router.push('/friends')}
@@ -872,7 +877,7 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
         </View>
         {showChatPane && (
           <View style={[styles.pane, { paddingTop: insets.top }]}>
-            <ChatList reloadKey={chatsTick} selectedId={cur?.id} wide={false}
+            <ChatList reloadKey={chatsTick} selectedId={cur?.id} wide={false} onOpenProfile={setProfile}
                       onSettings={() => router.push('/settings')}
                       onOpen={(id) => { const c = list.find((x) => x.id === id); if (c) open(c); }} />
           </View>
@@ -933,6 +938,11 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
             </View>
           )}
         </View>
+        {/* ★프로필 창은 **세 칸 바깥**에서 그린다 — 칸 안에서 그리면 창이 그 칸에 갇힌다
+            (`absoluteFill` 은 부모를 채운다 · [[overlay-absolutefill-parent]]).
+            ⚠️RN `Modal` 을 안 쓰는 이유: iOS 에서 그 안의 `VideoView` 가 소리만 남고 안 보인다 —
+              배경을 영상으로 두려면 Modal 밖이어야 한다. */}
+        <ProfileSheet target={profile} onClose={() => setProfile(null)} />
       </View>
     );
   }
@@ -977,6 +987,7 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
       {birthCard}
       {composer}
       {mentionSheet}
+      <ProfileSheet target={profile} onClose={() => setProfile(null)} />
       {inviteOpen ? (
         <InviteSheet
           // ★이미 방에 있는 사람은 뺀다 — 두 번 부르면 «3명» 이 되지 않는다
