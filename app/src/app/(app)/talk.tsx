@@ -28,7 +28,7 @@ import { ChatList } from '../../components/talk/ChatList';
 import { TalkThread, type TalkItem } from '../../components/talk/TalkThread';
 import { TalkNotes } from '../../components/talk/TalkNotes';                 // 대화 정리 줄(Boss 2026-08-23)
 import { listNotes, type TalkNote } from '../../lib/talk/talkNotes';
-import { listConsultants, consultantsSnapshot, type Consultant } from '../../lib/talk/consultants';
+import { listConsultants, consultantsSnapshot, type Consultant, toProfileTarget } from '../../lib/talk/consultants';
 import { greet, todayFlow, guide, type VirtualReply } from '../../lib/talk/virtualTalk';
 import { askLive, loadThread, deleteThread } from '../../lib/talk/liveTalk';
 import { Alert } from '../../lib/ui/alert';   // 커스텀 알림 — 운 부족 시 충전 유도
@@ -447,7 +447,10 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
             //     쪼갠다고 갈라지면 안 된다(화면 `id` 만 조각마다 새로 준다).
             const parts = m.role === 'assistant' ? splitBubbles(m.body) : [m.body];
             const safe = parts.length ? parts : [m.body];   // 방어: 쪼개기가 빈손이면 원문 한 덩어리
-            return safe.map((b) => ({ id: nextId(), msgId: m.id, role: m.role, body: b }));
+            // ★다시 열었을 때도 얼굴이 붙게 — `speaker_id` 가 있으면 그 사람, 없으면 방 주인(1:1)
+            const sp = m.speakerId ? servers.find((x) => x.id === m.speakerId) : cur;
+            const who = m.role === 'assistant' && sp ? { id: sp.id, name: sp.name, avatar: sp.avatar } : undefined;
+            return safe.map((b) => ({ id: nextId(), msgId: m.id, role: m.role, body: b, who }));
           }));
           void markRead(th.sessionId);
         }
@@ -565,10 +568,13 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
           const recoLinks = reco ? [{ key: reco.key, label: t(reco.labelKey), route: reco.route }] : undefined;
           // ★다인방이면 답 앞에 **누가 말했는지**를 단다 — 여럿이면 이름 없이는 누가 한 말인지 모른다.
           //   ⚠️새 필드를 만들지 않는다 — `who` 가 이미 이름·사진을 그린다(사본을 만들면 갈라진다).
+          // ★★2026-08-26 — **1:1 에서도** 얼굴을 붙인다(Boss *"대화할때 상대 프로필 사진이 뜨게"*).
+          //   종전엔 `!mates.length` 면 undefined 라 혼자 있는 방에서는 아무 얼굴도 안 나왔다.
+          //   ★`id` 를 함께 싣는다 — 얼굴을 누르면 이 값으로 프로필을 연다.
+          //   ⚠️연속으로 같은 사람이 말하면 `TalkThread` 가 알아서 **첫 풍선에만** 붙인다(카톡과 같다).
           const whoOf = (nm?: string | null) => {
-            if (!nm || !mates.length) return undefined;
-            const f = [cur, ...mates].find((x) => x.name === nm);
-            return f ? { name: f.name, avatar: f.avatar, element: undefined } : { name: nm };
+            const f = [cur, ...mates].find((x) => x.name === nm) ?? (nm ? null : cur);
+            return f ? { id: f.id, name: f.name, avatar: f.avatar, element: undefined } : (nm ? { name: nm } : undefined);
           };
           sayInOrder(parts.map((body, i) => ({
             id: nextId(), role: 'assistant' as const, body, who: whoOf(r.speakerName),
@@ -963,7 +969,11 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
                   onClose={() => setNotice(null)}
                 />
               ) : null}
-              <TalkThread items={items} busy={busy} onLink={(r) => router.push(r as never)} jumpTo={jumpTo} />
+              <TalkThread
+        items={items} busy={busy} onLink={(r) => router.push(r as never)} jumpTo={jumpTo}
+        /* ★얼굴을 누르면 프로필 — 목록에서 여는 것과 **같은 창**이다(두 갈래면 내용이 갈린다) */
+        onWho={(id) => { const f = servers.find((x) => x.id === id); if (f) setProfile(toProfileTarget(f)); }}
+      />
               {birthCard}
               {composer}
               {mentionSheet}
@@ -1026,7 +1036,11 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
         onJump={(mid) => { setJumpTo(null); requestAnimationFrame(() => setJumpTo(mid)); }}
         onChanged={() => refreshNotes(cur ? sessRef.current[cur.id] : null)}
       />
-      <TalkThread items={items} busy={busy} onLink={(r) => router.push(r as never)} jumpTo={jumpTo} />
+      <TalkThread
+        items={items} busy={busy} onLink={(r) => router.push(r as never)} jumpTo={jumpTo}
+        /* ★얼굴을 누르면 프로필 — 목록에서 여는 것과 **같은 창**이다(두 갈래면 내용이 갈린다) */
+        onWho={(id) => { const f = servers.find((x) => x.id === id); if (f) setProfile(toProfileTarget(f)); }}
+      />
       {birthCard}
       {composer}
       {mentionSheet}

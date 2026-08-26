@@ -24,7 +24,7 @@ import { BrandWordmark } from '../BrandWordmark';
 import { supabase } from '../../lib/supabase';
 import { withTimeout } from '../../lib/core/withTimeout';
 import { useAuth } from '../../lib/useAuth';
-import { consultantsSnapshot, listConsultants } from '../../lib/talk/consultants';
+import { consultantsSnapshot, listConsultants, toProfileTarget } from '../../lib/talk/consultants';
 import { colors, space, radius, font } from '../../lib/theme';
 import { elementColor, elementText } from '../../lib/engine/ohaeng';
 import { Icon } from '../kit/Icon';   // 상단 아이콘 단일 원본(Boss 2026-08-24)
@@ -141,13 +141,9 @@ export function ChatList({ onOpen, selectedId, reloadKey = 0, wide, onSettings, 
   const openPhoto = (cid: string, element: string) => {
     const c = consultantsSnapshot().find((x) => x.id === cid);
     if (!c) return;
-    setProfile({
-      name: c.name, tagline: c.tagline, avatar: c.avatar, cover: c.cover,
-      linkUrl: c.linkUrl, linkLabel: c.linkLabel, element,
-      // ★기본 프로필(Boss 2026-08-26) — 나이·묶음. 없는 사람은 창이 그 줄을 안 그린다
-      age: c.age ?? null, group: c.group, roleLabel: c.roleLabel ?? null,
-      onTalk: () => { setProfile(null); onOpen(cid); },
-    });
+    // ★변환은 `toProfileTarget` **한 곳**에서 한다 — 대화 말풍선의 얼굴도 같은 함수를 쓴다.
+    //   각자 만들면 «같은 사람인데 창 내용이 다른» 일이 생긴다.
+    setProfile(toProfileTarget(c, element, () => { setProfile(null); onOpen(cid); }));
   };
   const byFilter = filter === 'all' ? rows : rows.filter((r) => groupOf(r.consultantId) === filter);
   // ★검색은 **거르기만** 한다(묶음·정렬을 건드리지 않는다)

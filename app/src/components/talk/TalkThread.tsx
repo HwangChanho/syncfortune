@@ -48,7 +48,13 @@ export type TalkItem = {
    *   (카톡도 1:1 에는 이름을 안 붙이고 단톡에만 붙인다).
    * ⚠️`avatar` 가 없으면 이름 첫 글자로 대신한다 — 사진이 아직 없는 상담가가 있다.
    */
-  who?: { name: string; avatar?: string | null; element?: string };
+  who?: {
+    name: string;
+    avatar?: string | null;
+    element?: string;
+    /** ★상담가 id — 사진을 누르면 이 값으로 프로필을 연다(Boss 2026-08-26). 없으면 안 눌린다. */
+    id?: string | null;
+  };
   /**
    * 말풍선이 아닌 **가운데 안내 한 줄**(Boss 2026-08-26
    *   *"운이 차감될때마다 말풍선없이 가운데 정렬로 작은 글씨로 얼마의 운이 차감됐는지"*).
@@ -100,10 +106,37 @@ function TypingBubble() {
  * @param busy     답을 기다리는 중(점 세 개)
  * @param onLink   콘텐츠 카드를 눌렀을 때
  */
-export function TalkThread({ items, busy, onLink, jumpTo }: {
+/**
+ * 바로 앞 말풍선이 **같은 사람**인가 — 그러면 얼굴을 다시 붙이지 않는다(카톡과 같다).
+ *
+ * @param items 전체 목록
+ * @param i     지금 그리는 자리
+ * ★«같은 사람» 판정은 `id` 가 있으면 id 로, 없으면 이름으로 한다 —
+ *   곁다리처럼 id 없이 이름만 오는 줄이 있어서다.
+ * ⚠️`system` 줄(운 차감 안내 등)은 **사이에 끼어도 대화를 끊지 않는다** — 건너뛰고 그 앞을 본다.
+ */
+function sameSpeakerAsPrev(items: TalkItem[], i: number): boolean {
+  const cur = items[i];
+  if (!cur?.who) return false;
+  for (let k = i - 1; k >= 0; k--) {
+    const p = items[k];
+    if (p.system) continue;                       // 안내 줄은 화자를 바꾸지 않는다
+    if (p.role !== cur.role) return false;        // 내가 끼어들었으면 다시 붙인다
+    if (!p.who) return false;
+    return (cur.who.id && p.who.id) ? cur.who.id === p.who.id : cur.who.name === p.who.name;
+  }
+  return false;
+}
+
+export function TalkThread({ items, busy, onLink, jumpTo, onWho }: {
   items: TalkItem[];
   busy?: boolean;
   onLink: (route: string) => void;
+  /**
+   * 프로필 사진·이름을 눌렀을 때 (Boss 2026-08-26 *"해당 사진을 클릭하면 프로필 상세화면을 볼수있게해"*).
+   * ★`who.id` 가 있을 때만 눌린다 — 누를 수 없는 걸 눌리게 보이면 그게 더 나쁘다.
+   */
+  onWho?: (id: string) => void;
   /**
    * 이 `talk_messages.id` 로 **스크롤해서 잠깐 밝힌다**(정리 → 원문).
    * ★같은 값을 또 넣어도 다시 뛰게 하려면 호출부가 값을 비웠다 넣는다.
@@ -142,7 +175,7 @@ export function TalkThread({ items, busy, onLink, jumpTo }: {
 
   return (
     <ScrollView ref={ref} style={styles.wrap} contentContainerStyle={styles.body}>
-      {items.map((m) => (m.system ? (
+      {items.map((m, i) => (m.system ? (
         // ★시스템 한 줄 — 가운데·작게·말풍선 없음. 누르는 것도 아니다(정보만)
         <View key={m.id} style={styles.sysRow}>
           <Text style={styles.sysTx}>{m.system}</Text>
@@ -153,9 +186,19 @@ export function TalkThread({ items, busy, onLink, jumpTo }: {
           style={[m.role === 'user' ? styles.mineRow : styles.themRow, lit != null && m.msgId === lit && styles.litRow]}
           onLayout={(e) => { if (m.msgId != null) yRef.current[m.msgId] = e.nativeEvent.layout.y; }}
         >
-          {/* 여럿이 있는 자리 = 누가 한 말인지 먼저. ★말풍선 위가 아니라 **왼쪽**에 두면 줄이 흔들린다 */}
-          {m.who && m.role !== 'user' ? (
-            <View style={styles.whoRow}>
+          {/* 누가 한 말인지. ★말풍선 위가 아니라 **왼쪽**에 두면 줄이 흔들린다
+              ★★2026-08-26 — 1:1 에서도 띄운다(Boss *"대화할때 상대 프로필 사진이 뜨게"*).
+                종전엔 다인방에서만 나왔다(`whoOf` 가 `!mates.length` 면 undefined 였다).
+              ★연속으로 같은 사람이 말하면 **첫 풍선에만** 붙인다 — 카톡과 같다.
+                매 풍선마다 얼굴이 붙으면 쪼갠 말이 «여러 사람이 말한 것» 처럼 읽힌다.
+              ★누르면 프로필이 열린다. 단 `who.id` 가 있을 때만 — 누를 수 없는 걸 눌리게 보이면 더 나쁘다. */}
+          {m.who && m.role !== 'user' && !sameSpeakerAsPrev(items, i) ? (
+            <PressableScale
+              style={styles.whoRow}
+              disabled={!m.who.id || !onWho}
+              onPress={() => { if (m.who?.id && onWho) onWho(m.who.id); }}
+              accessibilityLabel={`${m.who.name} 프로필 보기`}
+            >
               {m.who.avatar
                 ? <ExpoImage source={{ uri: m.who.avatar }} style={styles.whoPic} contentFit="cover" />
                 : (
@@ -167,7 +210,7 @@ export function TalkThread({ items, busy, onLink, jumpTo }: {
                   </View>
                 )}
               <Text style={styles.whoTx} numberOfLines={1}>{m.who.name}</Text>
-            </View>
+            </PressableScale>
           ) : null}
           {m.body ? (
             <View style={m.role === 'user' ? styles.mine : styles.them}>

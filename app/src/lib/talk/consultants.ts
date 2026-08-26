@@ -169,3 +169,31 @@ export function consultantsSnapshot(): Consultant[] {
 export function findConsultant(id: string): Consultant | null {
   return consultantsSnapshot().find((c) => c.id === id) ?? null;
 }
+
+/**
+ * 상담가 → 프로필 창에 넣을 값. **여기가 단일 출처다.**
+ *
+ * ⚠️2026-08-26 — 대화 말풍선의 얼굴을 눌러도 프로필이 열리게 하면서(Boss 요청),
+ *   목록과 대화가 **각자 변환**하면 «같은 사람인데 창 내용이 다른» 일이 생긴다.
+ *   실제로 이 저장소는 그 실수를 여러 번 했다([[duplicate-ui-single-source]]) — 그래서 함수로 뺐다.
+ *
+ * @param c       상담가
+ * @param element 사진이 없을 때 채울 오행(목록이 쓰던 값과 같아야 얼굴색이 안 바뀐다)
+ * @param onTalk  「대화하기」를 눌렀을 때(창을 닫고 그 방으로). 없으면 그 버튼을 안 그린다.
+ */
+export function toProfileTarget(
+  c: Consultant,
+  element?: string,
+  onTalk?: () => void,
+) {
+  // ★반환 타입을 **손으로 적지 않는다.** 적는 순간 `group` 같은 좁은 타입('teacher'|'friend')이
+  //   넓은 `string` 으로 새어 나가 받는 쪽과 어긋난다(첫 판에서 실제로 그랬다).
+  //   추론에 맡기면 `Consultant` 의 타입이 그대로 전달된다.
+  return {
+    name: c.name, tagline: c.tagline, avatar: c.avatar, cover: c.cover,
+    linkUrl: c.linkUrl, linkLabel: c.linkLabel, element,
+    // ★기본 프로필(Boss 2026-08-26) — 나이·묶음. 없는 사람은 창이 그 줄을 안 그린다
+    age: c.age ?? null, group: c.group, roleLabel: c.roleLabel ?? null,
+    ...(onTalk ? { onTalk } : {}),
+  };
+}

@@ -173,7 +173,7 @@ export async function askLive(
  * @returns 세션과 지난 메시지(오래된 것부터). 없으면 null
  */
 export async function loadThread(consultantId: string): Promise<
-  { sessionId: string; messages: { id: number; role: 'user' | 'assistant'; body: string }[] } | null
+  { sessionId: string; messages: { id: number; role: 'user' | 'assistant'; body: string; speakerId: string | null }[] } | null
 > {
   try {
     const s = await withTimeout(
@@ -191,12 +191,14 @@ export async function loadThread(consultantId: string): Promise<
     const m = await withTimeout(
       supabase.from('talk_messages')
         // ★id 도 읽는다 — 정리에서 **원문으로 데려갈 때** 이 값으로 찾는다(Boss 2026-08-23)
-        .select('id, role, body').eq('session_id', sid)
+        // ★`speaker_id` 도 읽는다 — 다시 열었을 때 **누가 한 말인지** 얼굴을 붙이려면 필요하다
+        //   (Boss 2026-08-26 *"대화할때 상대 프로필 사진이 뜨게"*). 1:1 이면 비어 있고, 그때는 방 주인이 화자다.
+        .select('id, role, body, speaker_id').eq('session_id', sid)
         .order('sent_at', { ascending: true }).limit(60),   // 화면에 60개면 충분하다(그 위는 스크롤로도 안 본다)
       8000,
     );
     const messages = m && !m.error && Array.isArray(m.data)
-      ? (m.data as any[]).map((x) => ({ id: Number(x.id), role: x.role === 'user' ? 'user' as const : 'assistant' as const, body: String(x.body ?? '') }))
+      ? (m.data as any[]).map((x) => ({ id: Number(x.id), role: x.role === 'user' ? 'user' as const : 'assistant' as const, body: String(x.body ?? ''), speakerId: x.speaker_id ? String(x.speaker_id) : null }))
       : [];
     return { sessionId: sid, messages };
   } catch (e) {
