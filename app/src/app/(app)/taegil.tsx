@@ -5,6 +5,7 @@
 //   stance(충 회피·합 가점·목적별 십신·12운성·공망)는 lib에 표준 통설 — daniel 검수 슬롯.
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useMemo, useCallback } from 'react';
+import { elementColor, stemElement, branchElement } from '../../lib/engine/ohaeng';   // 일진 간지 오행색(만세력 달력과 같은 출처)
 import { A } from '../../lib/ui/remoteAsset'; // ★이미지 원격화(daniel 08-01) — 번들에서 걷어내고 Storage 에서 받는다
 import { View, Text, ActivityIndicator, ScrollView, StyleSheet } from 'react-native';
 import { PressableScale } from '../../components/PressableScale';
@@ -71,8 +72,17 @@ function MonthGrid({ year, month, byDate, goodT, bestT, sel, onSel, todayStr }: 
               <View style={[styles.dot, best && styles.dotBest, good && !best && styles.dotGood, on && styles.dotSel]}>
                 <Text style={[styles.dayNum, past && styles.dayPast, good && styles.dayGood, isToday && styles.dayToday]}>{day}</Text>
               </View>
-              {/* ★오늘 = 칸 아래 골드 점(iOS 캘린더 관례). 링으로 하면 '아주 좋음'(골드 채움)과 겹쳐 안 보이고,
-                  선택 테두리와도 헷갈린다 → 점은 dot 바깥이라 어떤 상태와도 충돌하지 않는다. */}
+              {/* ★★그날 **일진 간지**를 오행색 한자로(Boss 2026-08-27
+                  *"웹에 일진달력도 마찬가지로 오행에 맞는 색으로 한자가 되어있어야지"*).
+                  ⚠️자료에는 **이미 있었다**(`AuspiciousDay.ganzhi`) — 화면에만 안 그리고 있었다.
+                  ★색은 만세력 일진 달력과 **같은 규칙**: 천간·지지 **각각** 제 오행색
+                    (하나로 칠하면 壬午 처럼 물·불이 섞인 날이 한 색으로 보인다). */}
+              {d?.ganzhi?.length === 2 ? (
+                <Text style={styles.gz} numberOfLines={1}>
+                  <Text style={{ color: elementColor[stemElement(d.ganzhi[0] as never)] }}>{d.ganzhi[0]}</Text>
+                  <Text style={{ color: elementColor[branchElement(d.ganzhi[1] as never)] }}>{d.ganzhi[1]}</Text>
+                </Text>
+              ) : null}
               {isToday && <View style={styles.todayMark} />}
             </PressableScale>
           );
@@ -217,6 +227,8 @@ const styles = StyleSheet.create({
   weekHead: { width: `${100 / 7}%`, textAlign: 'center', ...font.caption, color: colors.inkFaint, fontWeight: '700' },
   sun: { color: '#D26A8E' },
   grid: { flexDirection: 'row', flexWrap: 'wrap' },
+  // 일진 간지 — 날짜 아래 작게. ★`lineHeight` 를 함께 준다(글자 배율을 키우면 칸이 무너진다)
+  gz: { fontSize: 10, lineHeight: 13, fontWeight: '800', marginTop: 1 },
   cell: { width: `${100 / 7}%`, aspectRatio: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 2 },
   dot: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
   dotBest: { backgroundColor: colors.ju },                       // 아주 좋음 = 골드 채움
