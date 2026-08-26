@@ -136,6 +136,20 @@ if (isMain) {
     }
   }
 
+  // ── M5 ★괄호도 **같은 사고**를 당한다 (Boss *"괄호같은것도 제대로 마무리가 안될때가 있어"*) ──
+  //   「일주(庚午日**이라)**」 처럼 괄호 안에 종결문자가 있으면 컷이 그 자리에서 끊어
+  //   **`(庚午日이라` 처럼 열린 괄호만** 남긴다. 마커를 부순 것과 똑같은 구조다.
+  {
+    const paren = /for \(const \[o, c\] of \[\['\(', '\)'\]/.test(cutBlock) && /lastIndexOf\(o\)/.test(cutBlock);
+    say(paren, 'M5 컷이 **열린 괄호를 남기지 않는다**', paren ? '' : '괄호 정리가 없습니다');
+    // ★순서 검사 — 괄호 정리가 «너무 짧으면 원문» 보다 **뒤**여야 한다.
+    //   앞에 두면 원문으로 되돌아가면서 **열린 괄호가 되살아난다**(첫 판에서 실제로 그랬다).
+    const iShort = cutBlock.indexOf('cut = head;');
+    const iParen = cutBlock.indexOf("for (const [o, c] of");
+    say(iShort >= 0 && iParen > iShort, 'M5b 괄호 정리가 «되돌리기» 뒤에 온다',
+      iParen > iShort ? '' : '앞에 두면 원문으로 되돌아가며 열린 괄호가 되살아납니다');
+  }
+
   if (bad) { console.log(`\n❌ ${bad}건 — 마커가 화면에 뜨고, 다음 턴 이력에 실려 **모델이 따라 씁니다**.\n`); process.exit(1); }
   console.log('\n✅ 마커가 새지 않습니다\n');
 }
