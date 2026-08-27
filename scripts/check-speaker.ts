@@ -118,6 +118,62 @@ const ROSTER = [
     caught ? '대조군 확인(옛 규칙은 「서윤아」·「응」 둘 다 노쌤)' : '대조군이 안 맞는다 — 하네스가 헛돈다');
 }
 
+// ── ⑤ ★★같은 분야를 **둘이** 담당하면 — 여기서 독점이 났다 (Boss 2026-08-27 *"이번엔 서윤만 말해"*)
+//   ⚠️①~④ 는 이 상황을 **못 잡았다.** 08-27 새벽에 «방장을 뒤로 미루는» 수정을 넣었더니
+//     주제가 걸리는 순간 `roster[1]` 이 매 턴 잡아 **반대쪽 독점**이 됐는데도 넷 다 초록불이었다.
+//   ⇒ 분야가 겹치는 두 사람을 세워 **연달아** 물어본다. 한 사람이 다 가져가면 실패다.
+{
+  const TAROT = [
+    { id: 'tarot_doyun', name: '도윤', routes: ['tarot'], specialty: ['tarot'] },
+    { id: 'tarot_harin', name: '하린', routes: ['tarot'], specialty: ['tarot'] },
+  ];
+  // 같은 주제로 여섯 턴 — 직전 화자를 이어 넣는다(실제 서버가 하는 그대로)
+  const seq: string[] = [];
+  let last: string | null = null;
+  for (let i = 0; i < 6; i++) { last = pick('타로 한 장 더 뽑아줘', TAROT, last); seq.push(last); }
+  const uniq = new Set(seq);
+  say(uniq.size === 2, '⑤ 분야가 **겹쳐도** 한 사람이 독점하지 않는다',
+    uniq.size === 2 ? `여섯 턴이 ${seq.map((x) => x.replace('tarot_', '')).join('→')}` 
+      : `여섯 턴 다 ${[...uniq].join('')} — 독점한다`);
+}
+
+// ── ⑥ ★세 사람 방에서 **셋째**가 뽑히는가 ────────────────────────────────
+//   종전 `others[0]` 은 [A,B,C] 에서 A→B→A→B… 로만 돌아 **C 가 영영 안 나왔다.**
+{
+  const THREE = [
+    { id: 'a', name: '가쌤', routes: [], specialty: [] },
+    { id: 'b', name: '나쌤', routes: [], specialty: [] },
+    { id: 'c', name: '다쌤', routes: [], specialty: [] },
+  ];
+  const seq: string[] = [];
+  let last: string | null = null;
+  for (let i = 0; i < 6; i++) { last = pick('응', THREE, last); seq.push(last); }
+  const ok = new Set(seq).size === 3;
+  say(ok, '⑥ 세 사람 방에서 **셋째도** 말한다', ok ? `여섯 턴이 ${seq.join('→')}` : `${seq.join('→')} — 한 명이 빠진다`);
+}
+
+// ── ⑦ 자기검사 — **옛 ② 규칙**을 넣으면 ⑤ 가 반드시 깨져야 한다 ──────────
+//   ★대조군이 없으면 «원래 통과하는 검사» 를 새로 만든 셈이 된다([[harness-judge-expression-not-name]]).
+{
+  const TAROT = [
+    { id: 'tarot_doyun', name: '도윤', routes: ['tarot'], specialty: ['tarot'] },
+    { id: 'tarot_harin', name: '하린', routes: ['tarot'], specialty: ['tarot'] },
+  ];
+  const KEY: Record<string, RegExp> = { tarot: /타로|카드/ };
+  // 옛 규칙: 걸리는 **첫 사람**을 곧바로 돌려준다(직전 화자를 안 본다)
+  const old = (q: string, roster: typeof TAROT) => {
+    for (const r of [...roster.slice(1), roster[0]]) {
+      if ([...r.routes, ...r.specialty].some((k) => KEY[k]?.test(q))) return r.id;
+    }
+    return roster[0].id;
+  };
+  const seq: string[] = [];
+  for (let i = 0; i < 6; i++) seq.push(old('타로 한 장 더 뽑아줘', TAROT));
+  const caught = new Set(seq).size === 1;
+  say(caught, '⑦ 자기검사 — 옛 규칙이면 ⑤ 가 깨진다',
+    caught ? `대조군 확인(옛 규칙은 여섯 턴 다 ${seq[0].replace('tarot_', '')})` : '대조군이 안 맞는다 — 하네스가 헛돈다');
+}
+
 console.log(fail === 0 ? '\n✅ 이름을 부르면 그 사람이 답하고, 한 사람이 독점하지 않습니다\n'
   : `\n❌ ${fail}건 — 다인방이 «한 사람만 말하는 방» 이 됩니다\n`);
 process.exit(fail === 0 ? 0 : 1);
