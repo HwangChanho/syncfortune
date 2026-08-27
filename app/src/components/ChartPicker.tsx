@@ -103,7 +103,22 @@ const emblemKey = (c: { id: string; input: unknown }) => `${c.id}:${JSON.stringi
 //   ⚠️계산은 반드시 **틱을 나눠서** — 명식 29개를 한 루프에 돌리면 그게 곧 렉이다(고치려던 문제를 재현).
 let warmedOnce = false;
 
-export function ChartPicker({ onChange }: { onChange?: () => void }) {
+export function ChartPicker({ onChange, viewOnly }: {
+  /** 명식이 바뀌었다. `viewOnly` 면 **고른 명식**을 함께 준다(대표는 안 바뀐다). */
+  onChange?: (picked?: SavedChart) => void;
+  /**
+   * ★★**보기 전용** — 고른 명식을 화면에 띄우기만 하고 **대표를 바꾸지 않는다**
+   *   (Boss 2026-08-27 *"무조건 대표명식으로 고정이야"* ·
+   *    *"만세력에서 명식 변경하면 화면이 홈을 한번갔다가 다시 돌아와"*).
+   *
+   * ■ ★두 증상이 **한 뿌리**였다
+   *   대표를 바꾸면 오행이 바뀌고 → 테마 색이 바뀌고 → **앱을 다시 띄운다**
+   *   (`colors` 는 모듈 로드 시 1회 결정된다 · `_layout` 의 `subscribeRepChange`).
+   *   그 리로드가 «홈을 한 번 갔다 오는» 것으로 보였고, 동시에 **홈 이름도 그 사람으로 바뀌었다.**
+   * ⇒ 만세력에서 «다른 명식 보기» 는 **보기일 뿐**이다. 대표는 «본인» 하나로 둔다.
+   */
+  viewOnly?: boolean;
+}) {
   const sheetL = useSheetLayout();
   const { t } = useTranslation();
   const router = useRouter();
@@ -139,7 +154,10 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
   useEffect(() => { if (!open) setActionsFor(null); }, [open]);
   // 전역 명식 변경 구독(daniel: 어디서 바꿔도 자동 동기화) — 다른 화면에서 대표가 바뀌면 이 픽커·호스트도 즉시 갱신.
   const onChangeRef = useRef(onChange); onChangeRef.current = onChange;
-  useEffect(() => subscribeRepChange(() => { reload(); onChangeRef.current?.(); }), [reload]);
+  // ⚠️보기 전용에서는 **대표 변경 알림을 흘려보낸다** — 내가 고른 «보는 명식» 을 덮어쓰면
+  //   다른 화면에서 대표가 바뀔 때 만세력이 제멋대로 딴 사람으로 넘어간다.
+  const viewOnlyRef = useRef(viewOnly); viewOnlyRef.current = viewOnly;
+  useEffect(() => subscribeRepChange(() => { if (viewOnlyRef.current) return; reload(); onChangeRef.current?.(); }), [reload]);
   useEffect(() => subscribePremium(() => setPremChartId(getPremiumChartIdSnapshot())), []); // 프리미엄 지정 변경 시 👑 갱신
 
   const rep = charts.find((c) => c.id === repId) ?? charts[0];
@@ -400,10 +418,18 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
   }
 
   async function choose(id: string) {
+    const picked = charts.find((c) => c.id === id);
+    if (viewOnly) {
+      // ★대표를 **건드리지 않는다** — 테마 리로드도, 홈 이름 바뀜도 일어나지 않는다(위 주석)
+      setRepId(id);            // 시트에서 «지금 보고 있는 것» 표시만 옮긴다
+      setOpen(false);
+      onChange?.(picked);
+      return;
+    }
     await setRepresentative(id);
     setRepId(id);
     setOpen(false);
-    onChange?.(); // 대표 변경 알림 → 호출처(만세력 등) 즉시 갱신
+    onChange?.(picked); // 대표 변경 알림 → 호출처 즉시 갱신
   }
 
   // 순서 변경 — 롱프레스 드래그(이슈20): 끌어 놓으면 즉시 반영 + 저장·계정동기화(별도 저장 버튼 X, daniel).
@@ -415,7 +441,11 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
   // 명식 수정 → 등록 폼 편집모드(editId)로 이동. 모달 닫고 진입.
   function edit(id: string) { setOpen(false); router.push({ pathname: '/register', params: { editId: id } }); }
   // 만세력 보기 → 그 명식을 대표로 설정하고 만세력(/charts) 화면으로 진입(daniel 07-01)
-  async function viewManse(id: string) { await setRepresentative(id); setOpen(false); onChange?.(); router.push('/charts'); }
+  async function viewManse(id: string) {
+    // ★보기 전용이면 **그 자리에서** 바꾼다 — 이미 만세력이라 `push` 하면 스택만 쌓인다
+    if (viewOnly) { const picked = charts.find((c) => c.id === id); setRepId(id); setOpen(false); onChange?.(picked); return; }
+    await setRepresentative(id); setOpen(false); onChange?.(); router.push('/charts');
+  }
 
   // ── 카테고리 관리(daniel 2026-08-12 *"카테고리 추가할수있게하고 삭제도 할수 있게"*) ──
   /** 새 카테고리 추가 — 만들자마자 그 카테고리로 필터를 옮겨 '만들어졌다'가 눈에 보이게 한다. */

@@ -211,6 +211,7 @@
     "check:classics": "tsx scripts/check-classics.ts",
     "check:personsheet": "tsx scripts/check-personsheet.ts",
     "bump": "node scripts/bump-build.mjs",
+    "build:web": "cd app && rm -rf dist && npx expo export --platform web && cd .. && node scripts/inject-og.mjs",
     "check:langpicker": "tsx scripts/check-langpicker.ts",
     "check:roomidentity": "tsx scripts/check-roomidentity.ts",
     "check:viewrls": "tsx scripts/check-viewrls.ts",

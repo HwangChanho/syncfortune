@@ -58,7 +58,17 @@ export default function ChartsScreen() {
       input={me}
       header={<>
         {/* ★만세력 최상단 '계산됨' 배너 — MyeongsikScreen 스크롤 콘텐츠 맨 위(header 슬롯)에 렌더. 화면당 1개. */}
-        <ChartPicker onChange={() => { loadMyChart().then(setMe); refreshRepName(); }} />
+        {/* ★★**보기 전용** — 여기서 명식을 골라도 **대표는 안 바뀐다**
+            (Boss 2026-08-27 *"무조건 대표명식으로 고정이야"*).
+            ⇒ 오행 테마가 안 바뀌므로 **앱 리로드도 없다** — «홈을 한 번 갔다 오는» 증상이 사라진다.
+            ★고른 명식은 그 자리에서 화면에 띄운다(대표를 다시 읽지 않는다). */}
+        <ChartPicker
+          viewOnly
+          onChange={(picked) => {
+            if (picked) { setMe(picked.input); setRepName(picked.label ?? null); return; }
+            void loadMyChart().then(setMe); refreshRepName();
+          }}
+        />
       </>}
       whoName={repName}
       onReading={() => router.push({ pathname: '/reading', params: { input: JSON.stringify(me), kind: 'saju' } })}
