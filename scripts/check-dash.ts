@@ -80,10 +80,27 @@ if (app && edge) {
 
 // ── D3·D4 실제로 불리는가 ────────────────────────────────────────────────
 const talk = readFileSync(TALK, 'utf8');
-const callAt = talk.indexOf('plainDash(answer)');
+// ⚠️★2026-08-27 — 종전엔 `plainDash(answer)` 라는 **문자열**을 찾았다. 손질을 `polish()` 하나로
+//   묶는 순간 그 문자열이 사라져 검사가 깨졌다. ★이름이 아니라 **관계**를 봐야 한다:
+//   ①손질 함수가 줄표를 거는가 ②**보이는 글 세 갈래**(본문·티키타카 대사·곁다리)가 그 문을 지나는가
+//   ③그게 저장보다 앞인가. ★★세 갈래를 다 보는 이유 — 실제로 대사와 곁다리가 **손질 밖**에 있어
+//   「먼저 당신의 기본 틀을」이 그대로 나갔다(실호출로 잡았다).
+const polishCallsDash = /function polish\([\s\S]{0,900}?plainDash\(/.test(talk);
+say(polishCallsDash, 'D3 손질 함수가 줄표를 건다', polishCallsDash ? 'polish() → plainDash()' : 'polish 가 줄표를 안 건다');
+
 const saveAt = talk.indexOf("from('talk_messages').insert({");
-say(callAt > 0 && saveAt > 0 && callAt < saveAt, 'D3 서버가 **저장 전에** 부른다',
-  callAt < 0 ? '안 부른다' : callAt < saveAt ? '저장보다 앞선다' : '⚠️저장 뒤에 있다 — 이력이 오염된다');
+const lanes: [string, RegExp][] = [
+  ['본문', /answer = polish\(answer\)/],
+  ['티키타카 대사', /crossSplit\.lines[\s\S]{0,160}?polish\(/],
+  ['곁다리', /banterSplit\.banter[\s\S]{0,160}?polish\(/],
+];
+const missed = lanes.filter(([, re]) => !re.test(talk)).map(([n]) => n);
+say(missed.length === 0, 'D3b ★**보이는 글이 전부** 그 문을 지난다',
+  missed.length ? `⚠️빠진 갈래: ${missed.join(' · ')}` : '본문 · 티키타카 대사 · 곁다리');
+
+const callAt = talk.search(/answer = polish\(answer\)/);
+say(callAt > 0 && saveAt > 0 && callAt < saveAt, 'D3c 서버가 **저장 전에** 건다',
+  callAt < 0 ? '안 부른다' : callAt < saveAt ? '저장보다 앞선다' : '⚠️저장 뒤 — 이력이 오염된다');
 
 const appSrc = readFileSync(APP, 'utf8');
 say(/plainDash\(String\(answer/.test(appSrc), 'D4 앱이 말풍선을 만들 때 부른다',
