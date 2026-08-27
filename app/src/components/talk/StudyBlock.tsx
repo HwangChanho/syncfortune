@@ -42,7 +42,7 @@ const SAJU: Unit[] = [
 
 /** 자미두수 — 궁을 먼저, 별을 나중에(별은 궁에 앉는다). */
 const ZIWEI: Unit[] = [
-  { title: '① 열두 궁', hint: '자미두수는 «어느 자리»부터 봐요.', keys: take(PALACE_GLOSSARY), kind: 'palace' },
+  { title: '① 열두 궁', hint: '자미두수는 어느 자리부터 봐요.', keys: take(PALACE_GLOSSARY), kind: 'palace' },
   { title: '② 주요 별', hint: '그 자리에 앉는 별들.', keys: take(STAR_GLOSSARY, 14), kind: 'star' },
 ];
 

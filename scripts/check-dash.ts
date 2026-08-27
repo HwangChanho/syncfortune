@@ -21,7 +21,7 @@
 //
 // 실행: npm run check:dash
 // ═══════════════════════════════════════════════════════════════════════════
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 
 const APP = 'app/src/lib/talk/splitBubbles.ts';
 const EDGE = 'supabase/functions/_shared/plainDash.ts';
@@ -111,6 +111,49 @@ say(/plainDash\(String\(answer/.test(appSrc), 'D4 앱이 말풍선을 만들 때
   const noop = (s: string) => s;
   const caught = CASES.some((c) => noop(c) !== (app ? app(c) : c));
   say(caught, 'D5 ★자기검사 — 아무것도 안 하면 걸린다', caught ? '대조군 확인' : '대조군이 안 맞는다 — 하네스가 헛돈다');
+}
+
+// ── D6 ★«…» 이 **지문·화면 문구**에 없는가 (Boss 2026-08-27 *"« » 기호 지문에서 빼줘"*) ──
+//   ■ 왜 — **내 글쓰기 습관이 사용자 화면으로 샜다**
+//     지문 안에 «…» 가 27곳 있었더니 모델이 그대로 따라 써서 대사에 「'관계로서'」처럼 나왔다.
+//     카톡 말투에 «» 는 아무도 안 쓴다. ★상담가 인사말에는 **직접** 박혀 있기까지 했다.
+//   ■ ⚠️주석은 **봐준다** — 거기 쓰는 건 내 문서화 스타일이고 모델도 사용자도 안 읽는다.
+//     ⇒ 블록 주석을 **먼저** 걷고(`/* */`·`{/* */}`) 그다음 `//` 줄을 걷는다.
+//     ★순서가 뒤집히면 여러 줄 주석의 닫는 줄이 먼저 사라져 그 뒤가 통째로 먹힌다
+//       (`check:myeongtabs` 가 그래서 헛돌았다 · 2026-08-27).
+{
+  const strip = (t: string) => t
+    .replace(/\{\/\*[\s\S]*?\*\/\}/g, '')   // JSX 여러 줄 주석
+    .replace(/\/\*[\s\S]*?\*\//g, '')         // 블록 주석
+    .split('\n').filter((l) => !/^\s*\/\//.test(l)).join('\n')
+    .replace(/(^|[^:])\/\/.*$/gm, '$1');       // 줄 끝 주석(URL 의 `://` 는 건드리지 않는다)
+
+  const walk = (dir: string): string[] => {
+    const out: string[] = [];
+    for (const f of readdirSync(dir, { withFileTypes: true })) {
+      const p = `${dir}/${f.name}`;
+      if (f.isDirectory()) out.push(...walk(p));
+      else if (/\.(ts|tsx)$/.test(f.name)) out.push(p);
+    }
+    return out;
+  };
+
+  const targets: [string, string][] = [
+    ['지문(Edge)', 'supabase/functions'],
+    ['지문(SSoT)', 'interpretation/prompts'],
+    ['앱 문구', 'app/src'],
+  ];
+  const bad: string[] = [];
+  for (const [label, dir] of targets) {
+    let files: string[] = [];
+    try { files = walk(dir); } catch { continue; }
+    for (const f of files) {
+      const n = (strip(readFileSync(f, 'utf8')).match(/«/g) ?? []).length;
+      if (n) bad.push(`${label} ${f.replace(`${dir}/`, '')}(${n})`);
+    }
+  }
+  say(bad.length === 0, 'D6 ★«…» 이 지문·화면 문구에 없다',
+    bad.length ? `⚠️남음: ${bad.slice(0, 4).join(' · ')}` : '주석은 그대로 두고 지문·문구만 검사');
 }
 
 console.log(fail === 0 ? '\n✅ 줄표가 화면에 남지 않고, 두 벌의 규칙이 어긋나지 않습니다\n'

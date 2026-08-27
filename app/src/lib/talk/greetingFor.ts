@@ -25,7 +25,7 @@ const LINE: Record<string, string> = {
   tarot_harin:   '안녕하세요.\n\n오늘은 어떤 게 궁금해서 오셨어요?\n걸리는 걸 하나만 정해 주세요.',
   tarot_doyun:   '안녕하세요.\n\n천천히 말씀하셔도 돼요.\n지금 제일 걸리는 게 뭐예요?',
   ziwei_yujin:   '안녕하세요.\n\n저는 자미두수로 봐요.\n사주와는 결이 좀 다르게 읽혀요.',
-  astro_taehyun: '안녕하세요!\n\n저는 주로 «언제가 좋은지»를 봐요.\n시기 궁금한 거 있으세요?',
+  astro_taehyun: '안녕하세요!\n\n저는 주로 언제가 좋은지를 봐요.\n시기 궁금한 거 있으세요?',
   // ── 친구 ──
   beauty_jjinya: '안녕!\n\n오늘 뭐 도와줄까?\n메이크업 고민 있으면 편하게 말해 봐.',
   color_bombom:  '안녕하세요.\n\n어울리는 색 찾는 걸 도와 드려요.\n어떤 게 궁금하세요?',
@@ -48,7 +48,7 @@ const LINE_CASUAL: Record<string, string> = {
   tarot_harin:   '안녕.\n\n오늘은 뭐가 궁금해서 왔어?\n걸리는 걸 하나만 정해 줘.',
   tarot_doyun:   '안녕.\n\n천천히 말해도 돼.\n지금 제일 걸리는 게 뭐야?',
   ziwei_yujin:   '안녕.\n\n난 자미두수로 봐.\n사주랑은 결이 좀 다르게 읽혀.',
-  astro_taehyun: '안녕!\n\n난 주로 «언제가 좋은지»를 봐.\n시기 궁금한 거 있어?',
+  astro_taehyun: '안녕!\n\n난 주로 언제가 좋은지를 봐.\n시기 궁금한 거 있어?',
   beauty_jjinya: LINE.beauty_jjinya,   // ★원래 반말
   color_bombom:  '안녕.\n\n어울리는 색 찾는 거 도와줄게.\n뭐가 궁금해?',
   car_unni:      LINE.car_unni,        // ★원래 반말
