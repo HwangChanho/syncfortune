@@ -89,15 +89,23 @@ if os.path.exists(_fav):
     opaque = sum(1 for v in a.getdata() if v > 200) / (fv.width * fv.height)
     if opaque > 0.9:
         fails.append(f"[C3] {FAVICON} 배경이 **꽉 차 있다**(불투명 {opaque*100:.0f}%) — 탭에 네모가 보인다")
+    # ★배경색은 **원본에서 잰다**(2026-08-27).
+    #   종전엔 «밝은 크림»(>235,230,225)을 배경으로 **박아** 뒀다. 그래서 로고를
+    #   파란 배경 + 흰 획으로 바꾸자 파랑이 잉크로 섞여 «다른 그림» 이라고 울었다 —
+    #   **코드는 옳은데 빨간불**([[harness-can-enforce-wrong-rule]]).
+    #   ⇒ 원본 모서리를 배경으로 보고 그것과 가까운 화소를 뺀다. 로고를 또 바꿔도 따라온다.
+    _src_im = Image.open(os.path.join(ROOT, SRC)).convert('RGBA')
+    _bg = _src_im.getpixel((2, 2))[:3]
+
     # 잉크 평균색 — 원본에서 «배경이 아닌» 화소들의 평균과 견준다
     def ink(im):
         px = [p for p in im.convert('RGBA').getdata() if p[3] > 200]
-        # 배경(밝은 크림)은 뺀다 — 잉크만 남긴다
-        px = [p for p in px if not (p[0] > 235 and p[1] > 230 and p[2] > 225)]
+        # 배경은 뺀다 — 잉크만 남긴다(거리 60 안쪽이면 배경으로 본다)
+        px = [p for p in px if math.dist(p[:3], _bg) > 60]
         if not px: return None
         n = len(px)
         return (sum(p[0] for p in px)/n, sum(p[1] for p in px)/n, sum(p[2] for p in px)/n)
-    a_ink, b_ink = ink(Image.open(os.path.join(ROOT, SRC))), ink(fv)
+    a_ink, b_ink = ink(_src_im), ink(fv)
     if a_ink and b_ink:
         d = math.dist(a_ink, b_ink)
         if d > 40:
