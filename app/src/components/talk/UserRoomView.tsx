@@ -24,7 +24,7 @@ import { Icon } from '../kit/Icon';
 import { TalkThread, type TalkItem } from './TalkThread';
 import {
   loadUserMessages, sendUserMessage, subscribeUserRoom, roomPeople,
-  markRoomRead, subscribeRoomRead, unreadBy,
+  markRoomRead, subscribeRoomRead, unreadBy, uploadRoomPhoto,
   type UserMsg, type RoomPerson,
 } from '../../lib/talk/userRoom';
 import { supabase } from '../../lib/supabase';
@@ -124,6 +124,8 @@ export function UserRoomView({ sessionId, myId, onBack, onInvite, onLeave }: {
       ...(mine ? { unread: unreadBy(people, myId, m.sentAt) } : {}),
       // 남의 말에만 얼굴을 붙인다(내 말 옆에 내 얼굴은 카톡도 안 그린다)
       ...(mine ? {} : { who: { name: p?.name ?? '', avatar: avatarUrl(p?.avatarPath ?? null), id: m.senderId } }),
+      // ★사진 (Boss 2026-08-27) — `TalkThread` 가 이미 그릴 줄 안다(새 그리기 규칙을 안 만든다)
+      ...(m.imagePath ? { image: { uri: avatarUrl(m.imagePath) ?? '' } } : {}),
     };
   }), [msgs, myId, nameOf, people]);
 
@@ -141,6 +143,31 @@ export function UserRoomView({ sessionId, myId, onBack, onInvite, onLeave }: {
     setSending(false);
     // ★실패하면 **쓴 글을 돌려준다** — 사라지면 다시 써야 한다(가장 나쁜 실패다)
     if (!ok) setDraft(text);
+  };
+
+  /**
+   * ★사진 보내기 (Boss 2026-08-27 *"실제 사람이랑 대화할때는 사진공유"*).
+   *
+   * ⚠️**웹에서만** 고를 수 있다 — 모바일 사진 선택엔 `expo-image-picker` 가 필요한데 이 앱엔 아직 없고,
+   *   넣으면 **네이티브 재빌드**가 걸린다(`MyProfileCard` 와 같은 사정·같은 판단).
+   *   ★없는 기능을 있는 척하지 않는다: 모바일에서는 **버튼을 아예 안 그린다.**
+   * ★올리는 동안 `sending` 을 잡아 둔다 — 두 번 눌러 두 장이 가는 것을 막는다.
+   */
+  const pickPhoto = () => {
+    if (Platform.OS !== 'web' || sending) return;
+    const el = document.createElement('input');
+    el.type = 'file';
+    el.accept = 'image/*';
+    el.onchange = async () => {
+      const f = el.files?.[0];
+      if (!f) return;
+      setSending(true);
+      const path = await uploadRoomPhoto(sessionId, f);
+      if (path) await sendUserMessage(sessionId, '', myId, path);
+      setSending(false);
+      if (!path) console.warn('[room] 사진을 올리지 못했습니다(2MB 이하만)');
+    };
+    el.click();
   };
 
   return (
@@ -186,6 +213,12 @@ export function UserRoomView({ sessionId, myId, onBack, onInvite, onLeave }: {
             onSubmitEditing={send}
             blurOnSubmit={false}
           />
+          {/* ★사진 — 웹에서만(위 `pickPhoto` 주석). 모바일에는 **아예 안 그린다** */}
+          {Platform.OS === 'web' ? (
+            <PressableScale style={styles.photoBtn} onPress={pickPhoto} disabled={sending} hitSlop={8}>
+              <Icon name="plus" size={20} />
+            </PressableScale>
+          ) : null}
           <PressableScale style={[styles.send, !draft.trim() && styles.sendOff]} onPress={send} disabled={!draft.trim()}>
             <Text style={styles.sendTx}>{t('common.send', '보내기')}</Text>
           </PressableScale>
@@ -220,6 +253,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: space(3.5), paddingVertical: space(2), color: colors.ink,
     // 웹 textarea 의 기본 리사이즈 손잡이를 없앤다(우리가 높이를 정하므로)
     ...(Platform.OS === 'web' ? ({ resize: 'none', outlineStyle: 'none' } as object) : null),
+  },
+  photoBtn: {
+    width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: colors.sunk, borderWidth: 1, borderColor: colors.line,
   },
   send: { backgroundColor: colors.ju, borderRadius: radius.pill, paddingHorizontal: space(4), paddingVertical: space(2.5) },
   sendOff: { opacity: 0.4 },

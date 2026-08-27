@@ -25,6 +25,8 @@ import { withTimeout } from '../core/withTimeout';
 export type UserMsg = {
   id: number;
   role: 'user' | 'system';
+  /** ★사진 한 장(storage 경로). 없으면 null (Boss 2026-08-27 *"사진공유"*). */
+  imagePath?: string | null;
   body: string;
   /** 보낸 사람(내 것인지 가르는 유일한 근거) */
   senderId: string;
@@ -72,7 +74,7 @@ export async function leaveUserRoom(sessionId: string): Promise<'left' | 'delete
 export async function loadUserMessages(sessionId: string, limit = 120): Promise<UserMsg[]> {
   const r = await withTimeout(
     supabase.from('talk_messages')
-      .select('id, role, body, owner_id, sent_at').eq('session_id', sessionId)
+      .select('id, role, body, owner_id, sent_at, image_path').eq('session_id', sessionId)
       // ★최근 것부터 받아 뒤집는다 — 오래된 쪽부터 자르면 **최근 대화가 사라진다**
       //   (2026-08-26 에 실제로 그랬다: `ascending:true` + limit 이라 최근이 잘렸다).
       .order('sent_at', { ascending: false }).limit(limit),
@@ -85,19 +87,52 @@ export async function loadUserMessages(sessionId: string, limit = 120): Promise<
     body: String(m.body ?? ''),
     senderId: String(m.owner_id ?? ''),
     sentAt: String(m.sent_at ?? ''),
+    imagePath: m.image_path ? String(m.image_path) : null,
   }));
+}
+
+/**
+ * 대화에 올릴 **사진 한 장**을 저장소에 넣는다 (Boss 2026-08-27 *"실제 사람이랑 대화할때는 사진공유"*).
+ *
+ * ■ ⚠️왜 `avatars` 버킷인가
+ *   새 버킷을 만들면 정책(RLS)·CORS·수명을 **또 한 벌** 관리해야 한다. 이미 있는 공개 버킷에
+ *   **경로로 갈라** 둔다(`rooms/<방>/<난수>.<확장자>`).
+ * ■ ⚠️★주소를 아는 사람은 볼 수 있다(공개 버킷)
+ *   그래서 파일 이름을 **난수**로 둔다 — 추측으로는 못 찾는다.
+ *   ⚠️«비밀 사진» 을 위한 자리가 아니다. 정말 가려야 하는 것은 서명 URL 이 필요하다(아직 없음).
+ * ■ 2MB 상한 — 프로필 사진과 같은 규칙. 대화에 큰 파일이 오가면 데이터·저장소가 같이 샌다.
+ *
+ * @param sessionId 방
+ * @param file      브라우저 File(웹). ⚠️모바일은 `expo-image-picker` 가 붙은 뒤에 지원한다
+ * @returns storage 경로. 실패하면 null
+ */
+export async function uploadRoomPhoto(sessionId: string, file: Blob & { type?: string }): Promise<string | null> {
+  if (file.size > 2 * 1024 * 1024) return null;
+  const type = file.type ?? 'image/jpeg';
+  const ext = type.includes('png') ? 'png' : type.includes('webp') ? 'webp' : 'jpg';
+  // ★난수 이름 — 순번이면 남의 사진을 세어 볼 수 있다
+  const name = (globalThis.crypto?.randomUUID?.() ?? String(Math.random()).slice(2)).replace(/-/g, '');
+  const path = `rooms/${sessionId}/${name}.${ext}`;
+  const up = await withTimeout(
+    supabase.storage.from('avatars').upload(path, file, { upsert: false, contentType: type }),
+    15000,
+  );
+  if (!up || up.error) { console.warn('[userRoom] 사진 올리기 실패', up?.error?.message); return null; }
+  return path;
 }
 
 /**
  * 한 마디 보낸다. ⚠️**운을 안 쓴다**(Edge 를 안 탄다 — 위 머리말).
  * @returns 성공 여부
  */
-export async function sendUserMessage(sessionId: string, body: string, myId: string): Promise<boolean> {
+export async function sendUserMessage(sessionId: string, body: string, myId: string, imagePath?: string | null): Promise<boolean> {
   const text = body.trim();
-  if (!text) return false;
+  // ★사진만 보내는 것도 허용한다 — 카톡에서 사진 한 장만 보내는 일은 흔하다.
+  if (!text && !imagePath) return false;
   const r = await withTimeout(
     supabase.from('talk_messages').insert({
       session_id: sessionId, owner_id: myId, role: 'user', body: text, source: 'script',
+      image_path: imagePath ?? null,
     }),
     8000,
   );
