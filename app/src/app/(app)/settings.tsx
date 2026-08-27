@@ -226,7 +226,13 @@ export default function SettingsScreen() {
           여기서 정한 이름·사진이 **친구목록 상단 "나"** 에 그대로 쓰인다.
           ⚠️커뮤니티 닉네임과는 다른 값이다 — 거긴 전면 익명이라 목적이 반대다. */}
       <Text style={[styles.h, { marginTop: space(7) }]}>{t('profile.title', '내 프로필')}</Text>
-      <MyProfileCard fallbackName={repName} element={repEl} />
+      {/* ★★프로필 편집은 **로그인해야 뜬다** (Boss 2026-08-27 *"프로필 편집도 로그인해야 가능해
+          로그인시에만 뜨게해"*).
+          ■ 왜 — 이름·사진은 `profiles` 행에 저장된다. 계정이 없으면 **저장할 곳이 없다.**
+            비로그인에게 편집 칸을 보여 주면 «고쳤는데 안 남는» 일이 생긴다.
+          ★`isRegistered` 로 본다 — 이 앱은 **익명 세션이 상시 존재**해서 `session` 만으로는
+            «로그인했는가» 를 못 가른다(커뮤니티가 쓰는 판정과 같은 것). */}
+      {isRegistered ? <MyProfileCard fallbackName={repName} element={repEl} /> : null}
 
       {/* ── 성인 대화 ──
           ★Boss 2026-08-26 *"19금 대화도 성인인증 된 대상이면 가능하면 좋겠어"* · *"열어 게이트"*.
