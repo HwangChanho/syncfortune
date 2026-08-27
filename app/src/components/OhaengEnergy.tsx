@@ -106,12 +106,18 @@ export function OhaengEnergy({ saju }: { saju: SajuChart }) {
         <View style={styles.zeroRow}>
           {EL.filter((e) => counts[e] === 0).map((e) => (
             <View key={e} style={styles.legend}>
-              {/* ★★«없음» 을 **색이 아니라 형태**로 말한다 (Boss 2026-08-27 *"없는 오행 표시에 색상이 안 맞아"*).
-                  ⚠️종전엔 `opacity: 0.35` 로 통째로 흐리게 했다. 그런데 金(`#D2CCBA`)은 **원래 밝아서**
-                    크림 배경(`#F9F5F0`)에 거의 묻혔다 — 다섯 중 金·土만 «색이 안 맞는» 것처럼 보였다.
-                  ⇒ 속을 비우고 **테두리만** 제 색으로 남긴다. 색은 그대로, «비었다» 는 눈에 바로 보인다. */}
-              <View style={[styles.dot, { borderColor: elementColor[e] }]} />
-              <Text style={styles.legendTx}>{e} 0</Text>
+              {/* ★★2026-08-27 (2차) — **바(bar)와 같은 색 쓰임**으로 맞춘다.
+                  Boss *"여기 아직도 없는오행에 맞는 색상이 아니잖아"* — 화면을 실측하니 테두리 색은
+                  **맞았다**(#3E4D76 ≈ elementColor[水]). 틀린 건 색이 아니라 **잉크의 양**이었다:
+                  11px 링에 1.5px 테두리라 옆의 큼직한 색 블록과 나란히 두면 «색» 으로 읽히지 않는다.
+                  ⚠️처음엔 `opacity: 0.35`(흐리게) → 그다음 «빈 링» 으로 갔는데, 둘 다 **색을 지우는**
+                    방향이라 같은 지적을 두 번 받았다.
+                  ⇒ 방향을 뒤집는다 — 바의 칸과 **똑같이** 칠하고 글자도 `onColor` 로 얹는다.
+                    金(`#D2CCBA`)이 크림 배경에 묻히던 문제도 이걸로 같이 풀린다(바가 이미 푼 방식).
+                  ★«없다» 는 **숫자 0 과 자리**(바 밖 오른쪽)가 말한다 — Boss 지정 배치가 그것이다. */}
+              <View style={[styles.zeroChip, { backgroundColor: elementColor[e] }]}>
+                <Text style={[styles.zeroChipTx, { color: onColor(e) }]}>{e} 0</Text>
+              </View>
             </View>
           ))}
         </View>
@@ -169,9 +175,10 @@ const styles = StyleSheet.create({
   zeroRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10, marginTop: 6 },
   legendRow: { flexDirection: 'row', justifyContent: 'space-around', marginTop: space(2), marginBottom: space(3) },
   legend: { flexDirection: 'row', alignItems: 'center', gap: space(1) },
-  // ★속이 빈 동그라미 — 채운 것(있음)과 한눈에 갈린다. 9px 에 테두리를 두면 다 채워 보여 11px 로 키웠다.
-  dot: { width: 11, height: 11, borderRadius: 6, borderWidth: 1.5, backgroundColor: 'transparent' },
-  legendTx: { ...font.caption, color: colors.inkSoft, fontSize: 11 },
+  // ★없는 기운 칩 — **바의 칸과 같은 문법**(제 색으로 채우고 `onColor` 로 글자).
+  //   높이는 바(10)보다 살짝 크게 둬서 «바의 일부» 로 오해되지 않게 한다.
+  zeroChip: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: radius.pill },
+  zeroChipTx: { fontSize: 11, fontWeight: '800' },
   // 대표기운 1~5 랭킹 리스트(daniel 07-24) — 1위는 오브·글자 키워 강조.
   rankCard: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.line, paddingHorizontal: space(4), paddingVertical: space(1) },
   rankRow: { flexDirection: 'row', alignItems: 'center', gap: space(3), paddingVertical: space(2.5) },

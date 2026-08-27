@@ -1247,7 +1247,7 @@ export const en = {
     'sub': 'See how today runs — one card is enough.',
     'cta': 'Start',
   },
-  talk: { spentPack: '{{n}} woon used · covers {{k}} turns', packLast: 'That bundle ends here. Woon applies again from the next message.', searchPh: 'Search by name', favShort: 'Favorite', unfavShort: 'Remove',
+  talk: { inviteAsk: 'Bring {{name}} into this chat?', inviteYes: 'Invite', spentPack: '{{n}} woon used · covers {{k}} turns', packLast: 'That bundle ends here. Woon applies again from the next message.', searchPh: 'Search by name', favShort: 'Favorite', unfavShort: 'Remove',
     'greetHi': 'Hello, I\'m {{name}}.',
     'greetWhat': 'I look after {{what}}. What would you like to know?',
     'greetAsk': 'What would you like to know?',

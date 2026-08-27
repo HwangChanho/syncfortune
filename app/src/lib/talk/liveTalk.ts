@@ -16,6 +16,7 @@
 import { supabase } from '../supabase';
 import { adultConfirmed } from './adultGate';   // 성인 확인(단일 원본)
 import { withTimeout } from '../core/withTimeout';
+import { logEvent } from '../backend/logger';   // ★실패 사유를 남긴다 — 여기가 console.warn 뿐이라 원인을 못 밝혔다(2026-08-28)
 
 /** 서버가 돌려주는 결과 — 성공/한도/중단을 **구분해서** 올린다(뭉뚱그리면 화면이 거짓말을 한다). */
 export type LiveReply =
@@ -34,6 +35,13 @@ export type LiveReply =
       /** ★대화 중 안내할 콘텐츠 키(없으면 null). 서버가 답에서 마커를 떼어 내고 여기로 준다.
        *  키 → 라벨·라우트 변환은 화면이 `contentSections` 로 한다(목록의 단일 출처). */
       recommend?: string | null;
+      /**
+       * ★내 분야가 아니라 **담당자를 이 방에 부르자**는 제안(Boss 2026-08-28).
+       * 서버가 답에서 「[[초대::이름]]」 을 떼어 내고 **id 까지 붙여** 준다 —
+       * 앱이 이름으로 다시 찾지 않게 하려는 것이다(이름이 겹치면 엉뚱한 사람을 부른다).
+       * ⚠️이미 방에 있는 사람·자기 자신은 서버가 걸러서 **아예 안 보낸다.**
+       */
+      invite?: { id: string; name: string } | null;
       /** 다인방에서 이번 턴에 **답한 사람**(1:1 이면 null) */
       speakerName?: string | null;
       /** ★곁다리 한 마디 — 옆 사람이 툭 던진 것. 운은 **더 안 나간다**(같은 호출에 얹혀 온다). */
@@ -133,6 +141,19 @@ export async function askLive(
       const status = (error as any)?.context?.status;
       if (status === 401) return { ok: false, reason: 'unauthorized', message: '로그인하면 이야기를 나눌 수 있어요.' };
       console.warn('[talk] invoke error', status, error);
+      // ★★2026-08-28 — **사유를 남긴다.** Boss *"중간에 말걸면 갑자기 지금은 대화하기 어렵다그래"* 를
+      //   쫓았는데, 이 자리가 `console.warn` 뿐이라 **서버에 아무 기록이 없었다**(app_logs 0건).
+      //   Edge 로그는 보존 창이 짧아 이미 지나간 실패는 볼 수 없다.
+      //   ⇒ 상태코드와 사유를 남긴다. 다음 발생부터는 **왜** 인지 바로 갈린다.
+      //   ⚠️본문을 통째로 넣지 않는다(회원 문장이 섞일 수 있다) — 상태·코드·짧은 메시지만.
+      try {
+        void logEvent('talk_fail', {
+          status: status ?? null,
+          code: (error as any)?.code ?? null,
+          msg: String((error as any)?.message ?? error).slice(0, 200),
+          hasSession: !!sessionId, attempt,
+        }, 'error');
+      } catch { /* 로깅 실패가 대화를 막지 않게 */ }
       return { ok: false, reason: 'failed', message: '지금은 답을 드리기 어려워요. 잠시 뒤 다시 물어봐 주세요.' };
     }
     if (data?.paused) return { ok: false, reason: 'paused', message: data.message ?? '지금은 상담이 잠시 멈춰 있어요.' };
@@ -167,6 +188,9 @@ export async function askLive(
       used: data.used ?? 0, freeDaily: data.freeDaily ?? 0, overFree: !!data.overFree,
       // ⚠️문자열일 때만 받는다 — 서버가 안 주거나 다른 걸 주면 '추천 없음'으로 떨어진다(화면이 안 깨지게)
       recommend: typeof data.recommend === 'string' ? data.recommend : null,
+      // ★모양이 맞을 때만 통과시킨다 — 반쪽짜리를 넘기면 버튼이 눌려도 아무 일이 안 난다
+      invite: (data.invite && typeof data.invite.id === 'string' && typeof data.invite.name === 'string')
+        ? { id: String(data.invite.id), name: String(data.invite.name) } : null,
       speakerName: typeof data.speakerName === 'string' ? data.speakerName : null,
       banter: data.banter && typeof data.banter.line === 'string' ? data.banter : null,
       crosstalk: cross,

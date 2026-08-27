@@ -207,6 +207,12 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
   // ★다인방(Boss 2026-08-25 *"다른 사람을 초대할수 있어야해"*).
   //   `mates` = 지금 방에 **같이 있는 상담가들**. 비면 1:1 방이다.
   const [inviteOpen, setInviteOpen] = useState(false);
+  /**
+   * ★상담가가 «이건 제 자리가 아니에요» 하며 **부르자고 제안한 동료**(Boss 2026-08-28).
+   * 서버가 답에서 「[[초대::이름]]」 을 떼어 `invite` 로 준다(id 까지 붙여서).
+   * ⚠️자동으로 부르지 않는다 — **회원이 눌러야** 부른다. 말없이 사람이 늘면 그건 남의 방이 된다.
+   */
+  const [inviteSug, setInviteSug] = useState<{ id: string; name: string } | null>(null);
   const [mates, setMates] = useState<Consultant[]>([]);
   // ── @명식 부르기(Boss 2026-08-26 *"@누구 이런식으로 불러올수 있으면"*) ─────────────
   //   ★저장된 명식은 **온디바이스**다(ADR-005). 서버에 없는 사람도 부를 수 있어야 한다.
@@ -854,6 +860,9 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
             ? SECTIONS.flatMap((sec) => sec.items).find((it) => it.key === r.recommend && it.ready)
             : undefined;
           const recoLinks = reco ? [{ key: reco.key, label: t(reco.labelKey), route: reco.route }] : undefined;
+          // ★초대 제안(Boss 2026-08-28) — 있으면 입력창 위에 «부를까요?» 띠가 뜬다.
+          //   ⚠️덮어쓴다(누적 아님) — 마지막 제안 하나만 유효하다.
+          setInviteSug(r.invite ?? null);
           // ★다인방이면 답 앞에 **누가 말했는지**를 단다 — 여럿이면 이름 없이는 누가 한 말인지 모른다.
           //   ⚠️새 필드를 만들지 않는다 — `who` 가 이미 이름·사진을 그린다(사본을 만들면 갈라진다).
           // ★★2026-08-26 — **1:1 에서도** 얼굴을 붙인다(Boss *"대화할때 상대 프로필 사진이 뜨게"*).
@@ -1149,7 +1158,40 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
     return () => clearTimeout(id);
   }, [cur?.id, cur?.block, busy]);
 
+  /**
+   * ★★«최자미 님을 불러올까요?» 띠 (Boss 2026-08-28)
+   *   *"노쎔한테 자미두수를 물어보면 최자미를 초대해서 물어볼까? 이런식으로 해서 초대해서 하게"*
+   *
+   * ■ ★**말이 아니라 버튼**이어야 한다 — 답 안에 「최자미 님이 잘 보세요」라고 글로만 두면
+   *   회원이 할 수 있는 일이 없다. 한 번 눌러서 그 사람이 이 자리에 오게 한다.
+   * ■ ⚠️**자동으로 부르지 않는다.** 말없이 사람이 늘면 그건 내 방이 아니게 된다.
+   * ■ ⚠️초대는 `openGroupRoom` **한 곳**에서만 한다 — 초대 시트와 같은 함수다
+   *   (각자 구현하면 «시트로 부른 방» 과 «버튼으로 부른 방» 이 달라진다 · [[duplicate-ui-single-source]]).
+   */
+  const inviteBar = inviteSug && cur ? (
+    <View style={styles.inviteBar}>
+      <Text style={styles.inviteTx} numberOfLines={1}>
+        {t('talk.inviteAsk', '{{name}} 님을 불러올까요?').replace('{{name}}', inviteSug.name)}
+      </Text>
+      <PressableScale style={styles.inviteYes} onPress={async () => {
+        const who = inviteSug; setInviteSug(null);
+        if (!who) return;
+        const sid2 = await openGroupRoom(cur.id, [who.id], chartId);
+        if (!sid2) return;                       // 실패해도 지금 방은 그대로다(막지 않는다)
+        open(cur, { sessionId: sid2, guestIds: [who.id] });
+        bumpChats();
+      }}>
+        <Text style={styles.inviteYesTx}>{t('talk.inviteYes', '초대하기')}</Text>
+      </PressableScale>
+      <PressableScale hitSlop={8} style={styles.inviteNo} onPress={() => setInviteSug(null)}>
+        <Text style={styles.inviteNoTx}>✕</Text>
+      </PressableScale>
+    </View>
+  ) : null;
+
   const composer = !cur?.block && (cur?.kind === 'virtual' || cur?.kind === 'live') ? (
+    <View>
+    {inviteBar}
     <View style={[styles.composer, { paddingBottom: Math.max(space(3), insets.bottom), marginBottom: lift }]}>
       {/* ★명식 부르기 — **실제 상담가에게만** 붙인다.
           가상(오늘의 운세 등)은 LLM 을 안 부르므로 눌러도 아무 일이 없다 = 죽은 버튼이 된다. */}
@@ -1181,6 +1223,7 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
       <PressableScale style={styles.sendBtn} onPress={() => send()}>
         <Text style={styles.sendTx}>{t('talk.send', '보내기')}</Text>
       </PressableScale>
+    </View>
     </View>
   ) : null;
 
@@ -1593,6 +1636,17 @@ const styles = StyleSheet.create({
 
   // ★명식 만들기 카드 — 입력창 **바로 위**. 대화 흐름을 끊지 않으면서 늘 손에 닿는 자리다
   birthCardWrap: { paddingHorizontal: space(4), paddingBottom: space(2) },
+  // ★초대 제안 띠 — 입력창 **바로 위**. 답을 다 읽은 눈이 그대로 내려오는 자리다.
+  inviteBar: {
+    flexDirection: 'row', alignItems: 'center', gap: space(2),
+    paddingHorizontal: space(4), paddingVertical: space(2),
+    backgroundColor: colors.juSoft, borderTopWidth: 1, borderTopColor: colors.juLine,
+  },
+  inviteTx: { ...font.caption, color: colors.ink, flex: 1, minWidth: 0 },
+  inviteYes: { backgroundColor: colors.ju, borderRadius: radius.pill, paddingVertical: space(1.5), paddingHorizontal: space(3.5) },
+  inviteYesTx: { ...font.caption, color: colors.onJu, fontWeight: '800' },
+  inviteNo: { width: 24, height: 24, alignItems: 'center', justifyContent: 'center' },
+  inviteNoTx: { fontSize: 13, color: colors.inkFaint, fontWeight: '800' },
   composer: {
     flexDirection: 'row', alignItems: 'center', gap: space(2),
     paddingHorizontal: space(4), paddingTop: space(3),
