@@ -990,7 +990,7 @@ export const ko = {
     noPublic: '아직 열린 방이 없어요. 첫 방을 만들어 보세요.',
   },
   time: { am: '오전', pm: '오후', },
-  chats: { pin: '상단고정', unpin: '고정 해제', leave: '나가기', leaveAsk: '「{{name}}」 방을 나갈까요? 대화 내용도 함께 사라져요.', now: '방금', minAgo: '{{n}}분 전', hourAgo: '{{n}}시간 전', yesterday: '어제', dayAgo: '{{n}}일 전',
+  chats: { gateTitle: '대화는 로그인 후 이용할 수 있어요', gateDesc: '나눈 이야기가 계정에 남아요. 기기를 바꿔도 이어서 볼 수 있어요.', pin: '상단고정', unpin: '고정 해제', leave: '나가기', leaveAsk: '「{{name}}」 방을 나갈까요? 대화 내용도 함께 사라져요.', now: '방금', minAgo: '{{n}}분 전', hourAgo: '{{n}}시간 전', yesterday: '어제', dayAgo: '{{n}}일 전',
     empty: '아직 나눈 이야기가 없어요.\n연락처에서 친구를 눌러 보세요.', needLogin: '로그인하면 나눈 이야기가 여기 쌓여요.',
     noTitle: '대화를 이어가 보세요', turns: '{{n}}턴' },
   lookback: { title: '되돌아보기', sub2: '오늘의 한 가지를 해낸 날들이에요.', needLogin: '로그인하면 기록이 계정에 저장되고 여기서 다시 볼 수 있어요.', empty2: '아직 기록이 없어요. 오늘의 운세 아래 "오늘의 한 가지"를 해내고 체크해 보세요.', goToday: '오늘의 운세 보기', summary: '평가한 {{rated}}일 중 {{hit}}일을 "맞았다"고 하셨어요', streak: '지금까지 {{n}}일, 오늘의 한 가지를 해내셨어요', myNote: '내 기록', missionDone: '✓ 그날의 한 가지를 했어요' },

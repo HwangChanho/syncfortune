@@ -14,6 +14,7 @@ import { PressableScale } from '../../components/PressableScale';
 import { BrandWordmark } from '../../components/BrandWordmark';
 import { Alert } from '../../lib/ui/alert';
 import { useAuth } from '../../lib/useAuth';
+import { LoginGate } from '../../components/LoginGate';   // ★잠긴 화면 안내 — 대화 탭과 **같은 컴포넌트**
 import { useLogContentVisit } from '../../lib/backend/contentVisit';
 import { listCharts, subscribeRepChange, type SavedChart } from '../../lib/engine/myChart';
 import { computeChart } from '../../lib/engine/engine';
@@ -235,22 +236,13 @@ export default function CommunityScreen() {
    */
   if (!isRegistered) {
     return (
-      <View style={[styles.bg, { alignItems: 'center', justifyContent: 'center', padding: space(6) }]}>
-        <Text style={{ ...font.title, color: colors.ink, fontWeight: '900', textAlign: 'center' }}>
-          {t('community.gateTitle', '운광장은 로그인 후 이용할 수 있어요')}
-        </Text>
-        <Text style={{ ...font.body, color: colors.inkSoft, textAlign: 'center', marginTop: space(3), lineHeight: 22 }}>
-          {t('community.gateDesc', '함께 쓰는 자리라 누가 쓴 글인지 남아야 해요. 로그인하면 바로 볼 수 있어요.')}
-        </Text>
-        <PressableScale
-          style={{ marginTop: space(6), paddingVertical: space(3.5), paddingHorizontal: space(8), borderRadius: radius.pill, backgroundColor: colors.ju }}
-          onPress={() => router.push('/login')}
-        >
-          <Text style={{ ...font.body, color: colors.onJu, fontWeight: '800' }}>{t('community.goLogin', '로그인')}</Text>
-        </PressableScale>
-      </View>
+      <LoginGate
+        title={t('community.gateTitle', '운광장은 로그인 후 이용할 수 있어요')}
+        desc={t('community.gateDesc', '함께 쓰는 자리라 누가 쓴 글인지 남아야 해요. 로그인하면 바로 볼 수 있어요.')}
+      />
     );
   }
+
 
   return (
     <View style={styles.bg}>
