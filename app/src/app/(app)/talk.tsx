@@ -63,6 +63,7 @@ import { Icon } from '../../components/kit/Icon';   // 상단 아이콘 단일 �
 import { ConsultantLinkCard } from '../../components/talk/ConsultantLinkCard';   // 상담가 본인 채널(Boss 2026-08-25)
 import { buildChartVerdict } from '../../lib/talk/chartVerdict';   // 우리 엔진 판정을 대화에 싣는다(Boss 2026-08-25)
 import { splitBubbles, typingDelay } from '../../lib/talk/splitBubbles';   // 말풍선 쪼개기·뜸(Boss 08-25)
+import { ChartPickCard } from '../../components/talk/ChartPickCard';      // 어떤 명식을 볼지 고르는 카드(Boss 08-27)
 import { greetingFor } from '../../lib/talk/greetingFor';   // 상담가별 첫 인사(Boss 08-26)
 import { CoinNotice } from '../../components/talk/CoinNotice';
 import InviteSheet from '../../components/talk/InviteSheet';   // 다인방 초대(Boss 2026-08-25)
@@ -170,6 +171,14 @@ function toItems(r: VirtualReply): TalkItem[] {
  *   ★두 탭이 **같은 껍데기**를 쓴다(Boss 2026-08-20 *"친구목록이랑 채팅 탭이 좌우로 공간을 나눠서"*).
  *     대화창·입력바·2칸 배치를 탭마다 만들면 언젠가 다르게 동작한다.
  */
+/**
+ * **명식을 보는** 분야 — 이 분야를 맡은 상담가에게만 «어떤 명식을 볼까» 를 묻는다.
+ * ★타로·뷰티·차·여행에게 명식을 고르라고 하면 그건 잡음이다.
+ * ⚠️운영자가 `routes`·`specialty` 를 늘릴 수 있으므로 **여기 한 곳**에서만 판정한다.
+ */
+const CHART_ROUTES = new Set(['saju', 'ziwei', 'compat', 'love', 'crush', 'reunion', 'lovestyle',
+  'wealth', 'career', 'jobfit', 'talent', 'timeline', 'lifegraph', 'gaeun', 'newyear']);
+
 export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { renderTop?: ReactNode; renderBottom?: ReactNode; mode?: 'contacts' | 'chats' }) {
   const { t, i18n } = useTranslation();
   const router = useRouter();
@@ -224,6 +233,16 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
   const [items, setItems] = useState<TalkItem[]>([]);
   const [saju, setSaju] = useState<any>(null);
   const [chartId, setChartId] = useState<string | null>(null);
+  /**
+   * ★★이 방에서 **명식을 골랐는가** (Boss 2026-08-27 *"명식 체크칸이 떠서 어떤 명식을 봐줄까로 시작"*).
+   *
+   * ■ 왜 필요했나 — **대표 명식이 실행마다 바뀌고 있었다**
+   *   `loadRepChart()` 는 저장된 대표 id 가 없으면 **`charts[0]`** 로 떨어진다.
+   *   Boss 계정은 명식이 **50개**라 목록 순서가 조금만 달라져도 매번 다른 사람을 본다.
+   *   실측: 최근 세션들의 `chart_id` 가 `2321d92d`·`b68aef72`·`f3deddf5` 로 **제각각**이었다.
+   * ⇒ 자동으로 고르지 말고 **묻는다.** 한 번 고르면 그 방에서는 다시 안 묻는다.
+   */
+  const [pickedLocal, setPickedLocal] = useState<string | null>(null);
   const [myName, setMyName] = useState<string | null>(null);   // 친구목록 상단 '나'
   const [myAvatar, setMyAvatar] = useState<string | null>(profileSnapshot().avatarUrl);
   // ── 대화 정리(Boss 2026-08-23) ───────────────────────────────────────────
@@ -231,6 +250,28 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
   // ★기본은 접힘. 한 번 펴 본 사람에게는 그대로 펴진 채로 둔다(앱을 켜 둔 동안).
   const [notesOpen, setNotesOpen] = useState(false);
   const [jumpTo, setJumpTo] = useState<number | null>(null);
+  /**
+   * ★명식을 골랐다 — **로컬 id 를 서버 chart_id 로 바꿔** 대화에 싣는다.
+   *
+   * ⚠️`myCharts` 는 온디바이스 id 이고, 서버가 아는 것은 `charts.id` 다. 둘을 헷갈리면
+   *   «고르긴 했는데 답은 딴 명식» 이 된다. 변환은 정식 경로(`ensureServerChartIdForSaved`)로만 한다
+   *   — 캐시된 `serverChartId` 를 그대로 쓰면 stale row 를 가리킬 수 있다(그 함수 주석 참조).
+   * ★고른 뒤 카드는 **지우지 않는다** — 어떤 걸 골랐는지 남아 있어야 나중에 바꿀 수 있다.
+   *   대신 체크가 그 줄로 옮겨 간다.
+   */
+  const pickChart = useCallback((localId: string) => {
+    setPickedLocal(localId);
+    void (async () => {
+      const c = (await listCharts()).find((x) => x.id === localId);
+      if (!c || !session) return;
+      const sid = await ensureServerChartIdForSaved(c, session);
+      if (sid) setChartId(sid);
+      setMyName(c.label ?? null);
+      try { setSaju(computeChart(c.input).saju); } catch { /* 계산이 안 되면 흐름 안내만 건너뛴다 */ }
+      setMyAge(ageFromBirth(c.input?.birthDateTime));
+    })();
+  }, [session]);
+
   /** 이 방의 정리를 다시 읽는다. 세션이 없으면 비운다(정리 줄이 안 뜬다). */
   const refreshNotes = useCallback((sessionId: string | null | undefined) => {
     if (!sessionId) { setNotes([]); return; }
@@ -525,7 +566,33 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
       setItems([]);
       // ★인사도 **쪼개서** 띄운다 — 한 덩어리로 뜨면 «미리 써 둔 안내문»이지 대화가 아니다
       const greetParts = splitBubbles(greet.body).map((b) => ({ ...greet, id: nextId(), body: b }));
-      sayInOrder([...greetParts, ...blockCards, ...linkCard]);   // ★채널 카드는 인사에만(위 주석)
+      /**
+       * ★★«어떤 명식을 볼까» — 인사 **바로 뒤**에 한 번 (Boss 2026-08-27).
+       *
+       * ■ 언제 뜨나 — 셋이 다 맞을 때만
+       *   ①명식이 **둘 이상**이고(하나뿐이면 물을 것이 없다)
+       *   ②이 상담가가 **명식을 보는 사람**이고(타로·뷰티에게 물으면 잡음이다)
+       *   ③이 방에서 **아직 안 골랐다**
+       * ■ ⚠️답을 막지 않는다 — 카드를 무시하고 바로 물어도 대화는 그대로 간다.
+       *   고르지 않으면 종전처럼 대표 명식으로 답한다(다만 그게 매번 달랐던 게 이 카드가 생긴 이유다).
+       */
+      const seesChart = [...(Array.isArray(c.routes) ? c.routes : []), ...(Array.isArray((c as any).specialty) ? (c as any).specialty : [])]
+        .map(String).some((k) => CHART_ROUTES.has(k));
+      const pickCard = (myCharts.length > 1 && seesChart && !pickedLocal)
+        ? [{
+            id: nextId(), role: 'assistant' as const, body: '',
+            node: (
+              <ChartPickCard
+                charts={myCharts.map((x) => ({ id: x.id, label: x.label, relation: x.relation }))}
+                current={pickedLocal}
+                onPick={pickChart}
+                onNew={() => router.push('/register')}
+                onAll={() => router.push('/charts')}
+              />
+            ),
+          }]
+        : [];
+      sayInOrder([...greetParts, ...pickCard, ...blockCards, ...linkCard]);   // ★채널 카드는 인사에만(위 주석)
       // ★지난 대화를 **이어 붙인다**(2026-08-20) — 세션 id 를 메모리에만 두면
       //   새로고침·앱 재시작마다 새 방이 생긴다(실제로 노쎔 대화가 셋으로 쪼개졌다).
       //   카톡은 껐다 켜도 같은 방이다. 인사는 **이력이 없을 때만** 남긴다.
@@ -565,7 +632,10 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
     }
     // ⚠️`myAge` 를 빼면 **인사만 존댓말로 굳는다** — 나이는 대표 명식을 읽은 뒤에 들어오는데,
     //   그 전에 만들어진 `open` 이 계속 쓰이면 반말 판정이 영원히 null(=존댓말)이다.
-  }, [t, dateKey, myName, bumpChats, myAge]);
+    // ⚠️★`myCharts`·`pickedLocal`·`pickChart` 도 빼면 안 된다 — 명식 목록이 나중에 들어오는데
+    //   그 전에 만들어진 `open` 이 계속 쓰이면 **카드가 영영 안 뜬다**(목록이 0으로 굳는다).
+    //   ⚠️이 파일에는 react-hooks eslint 가 없다 — deps 는 **손으로** 맞춰야 한다.
+  }, [t, dateKey, myName, bumpChats, myAge, myCharts, pickedLocal, pickChart, router]);
 
   // ── 친구가 공개한 명식 (Boss 2026-08-26 *"@ 누르면 내가 여기서 친구추가한 인물의 명식도"*) ──
   //   ★친구 명식을 읽는 길은 **이미 있었다** — 「친구 궁합」이 쓰던 `loadFriendChart` 그대로 쓴다.
