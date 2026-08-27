@@ -132,7 +132,23 @@ export function detectInteractionsAmong(items: { pos: ChartPosition; stem: Stem;
   for (const grp of SANXING) {
     const present = items.filter((s) => grp.includes(s.branch));
     for (let i = 0; i < present.length; i++) for (let j = i + 1; j < present.length; j++) {
-      if (!adjacentPair([present[i].pos, present[j].pos])) continue;   // ★거리 조건(000d#6)
+      // ★★2026-08-27 Boss 지시 — **삼형에는 거리 조건을 걸지 않는다.**
+      //   ⚠️판정끼리 **정면 충돌**한다. 숨기지 않고 여기 적어 둔다:
+      //     · `000d#6`(O · 08-10) *"떨어진 자리의 충·형·해·파는 아예 작용하지 않는다"*
+      //     · Boss 본인 차트 재판정(07-14 · ADR-009) *"丑戌刑이 戌·丑 인성 통근을 흔든다"* → **중화**
+      //     그런데 Boss 차트의 戌(년)·丑(일)은 **두 칸**이라 #6 을 따르면 형이 안 잡히고,
+      //     실측하면 `score=+4 신강` 이 되어 **07-14 판정과 어긋난다**(중화여야 한다).
+      //   ⇒ Boss 2026-08-27 *"1로하자"* = 07-14 판정을 살린다. 삼형만 거리를 푼다.
+      //     ★충·해·파·상형·자형은 **그대로 둔다** — `000d#7`(O)이 확정한 卯酉冲(월-시) 예시가 깨지면 안 된다.
+      //   ⏳**판정 대기** — 상담가 검수 세트 `verify-000w-hyeong-distance` 로 올렸다.
+      //     확정이 오면 `check:stance` 가 이 자리를 다시 열게 한다.
+      // ⚠️★**같은 글자 쌍**(未未 등)은 거리 조건을 그대로 둔다.
+      //   ⚠️`ZIXING` 에 未 가 없어(辰午酉亥만) 未未 는 **이 루프가** 내고 있었다.
+      //     그래서 거리를 통째로 풀면 «월-시 두 칸의 未未» 까지 새어 나간다
+      //     (실측: `verify:engine` 이 그렇게 잡아냈고, 막았더니 이번엔 **인접 대조군이 사라졌다**).
+      //   ⇒ 푸는 것은 «서로 다른 글자의 삼형»(戌丑·戌未)뿐이다. Boss 지시 ①의 범위가 정확히 그것이다.
+      if (present[i].branch === present[j].branch
+          && !adjacentPair([present[i].pos, present[j].pos])) continue;
       out.push({ type: '형', members: [present[i].pos, present[j].pos], detail: `${present[i].branch}${present[j].branch}刑` });
     }
   }

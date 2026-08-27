@@ -114,9 +114,19 @@ for (const [desc, br, must] of INT_CASES) {
   //   ⇒ 자리를 **members 로** 검사한다. detail 문자열만 보면 어느 자리 쌍인지 몰라 이 버그를 못 잡는다.
   const sanxing = detectInteractions(mk(['戌', '未', '未', '未']));
   const xingPairs = sanxing.filter((i) => i.type === '형').map((i) => (i.members as string[]).join('-'));
-  check(`삼형 戌未 는 인접(년-월)만 성립 — 년-일·년-시는 미성립(000d#6) [${xingPairs.join(',')}]`,
-    xingPairs.includes('년-월') && !xingPairs.includes('년-일') && !xingPairs.includes('년-시'));
-  check(`자형 未未 도 인접만 — 월-시(두 칸)는 미성립 [${xingPairs.join(',')}]`, !xingPairs.includes('월-시'));
+  // ★★2026-08-27 **판정이 뒤집혔다** — 삼형(서로 다른 글자)은 **거리 무관**하게 성립한다.
+  //   ⚠️판정끼리 충돌한다. 무엇이 무엇을 이겼는지 여기 적어 둔다:
+  //     · `000d#6`(O · 08-10) *"떨어진 자리의 충·형·해·파는 아예 작용하지 않는다"* → 종전 이 단언
+  //     · Boss 본인 차트 재판정(07-14 · ADR-009) *"丑戌刑이 戌·丑 인성 통근을 흔든다"* → **중화**
+  //   Boss 차트 戌(년)·丑(일)은 **두 칸**이라 종전 규칙으로는 형이 안 잡혀 `score=+4 신강` 이 됐다.
+  //   ⇒ Boss 2026-08-27 *"1로하자"* — 07-14 판정을 살린다. 적용 후 실측 `score=+1 중화` ✅
+  //   ★★[[harness-can-enforce-wrong-rule]] — 판정이 뒤집히면 **코드보다 하네스를 먼저** 고친다.
+  //     이 단언이 살아 있으면 초록불이 **낡은 판단**을 계속 강제한다.
+  //   ⏳**상담가 판정 대기** — `verify-000w-hyeong-distance`. 확정이 오면 `check:stance` 가 여기를 다시 열게 한다.
+  //   ★범위는 **서로 다른 글자의 삼형만**이다 — 충·해·파·상형·자형은 거리 조건 그대로(아래 대조군이 지킨다).
+  check(`삼형 戌未 는 거리 무관 성립(Boss 2026-08-27 ① · ⏳판정대기 verify-000y) [${xingPairs.join(',')}]`,
+    xingPairs.includes('년-월') && xingPairs.includes('년-일') && xingPairs.includes('년-시'));
+  check(`자형 未未 는 **삼형과 달리** 인접만 — 월-시(두 칸)는 미성립 [${xingPairs.join(',')}]`, !xingPairs.includes('월-시'));
   check(`대조군: 인접 자형(월-일 · 일-시)은 살아 있다 [${xingPairs.join(',')}]`, xingPairs.includes('월-일') && xingPairs.includes('일-시'));
 }
 
