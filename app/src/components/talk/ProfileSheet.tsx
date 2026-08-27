@@ -59,21 +59,45 @@ export type ProfileTarget = {
 export function ProfileSheet({ target, onClose }: { target: ProfileTarget | null; onClose: () => void }) {
   const { width, height } = useWindowDimensions();
   const [photo, setPhoto] = useState<{ uri: string; cap: string } | null>(null);
+  /**
+   * ★★배경 **영상**을 전체로 보는 상태 (Boss 2026-08-27 *"클릭하면 영상이 재생 돼야해"*).
+   * ⚠️`PhotoViewer` 를 못 쓴다 — 그건 RN `Modal` 인데 **iOS 에서 Modal 안의 `VideoView` 는
+   *   소리만 남고 화면이 안 뜬다**(`CoverMedia` 주석 · 2026-07-15 실물 사고).
+   *   ⇒ 여기 시트와 **같은 방식**(절대위치 + zIndex)으로 얹는다.
+   */
+  const [videoFull, setVideoFull] = useState(false);
   if (!target) return null;
   const el = target.element ?? '木';
   // ★9:16 을 지키려고 폭을 묶는다. 넓은 웹에서 가로로 늘리면 전신이 또 잘린다.
   const panelW = Math.min(width, Math.round(height * 0.62), 460);
+  /**
+   * ★★배경이 **영상**이면 패널 높이를 9:16 에 맞춘다 (Boss 2026-08-27 *"영상도 지금 부분짤려있고"*).
+   *
+   * ⚠️종전엔 패널이 `flex: 1`(화면 높이) 이라, 폭이 460 에 걸리는 순간 비율이 무너졌다 —
+   *   세로로 긴 화면일수록 심해서 720×1280 영상이 **위아래가 크게 잘려** 나왔다.
+   *   (height 800 이면 460/800 = 0.575 로 9:16(0.5625)과 비슷하지만, height 1200 이면 0.383 이다.)
+   * ⇒ 영상일 때는 **폭에서 높이를 되돌려** 칸 자체를 9:16 으로 만든다. 그러면 `cover` 가 안 자른다.
+   *   ★사진 배경은 비율이 제각각이라 그대로 둔다(자르는 게 자연스럽다).
+   */
+  const VIDEO_RATIO = 9 / 16;
+  const panelH = Math.min(height, Math.round(panelW / VIDEO_RATIO));
   const av = Math.round(panelW * 0.22);
   const videoCover = isVideoUri(target.cover);
 
   return (
     <View style={styles.root}>
       <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
-      <View style={[styles.panel, { width: panelW }]}>
+      <View style={[styles.panel, { width: panelW }, videoCover ? { flex: 0, height: panelH } : null]}>
         {/* ── 배경 ── 화면을 채운다. 사진이면 눌러서 전체 보기 */}
         <Pressable
           style={[StyleSheet.absoluteFill, { backgroundColor: elementColor[el] }]}
-          onPress={() => { if (target.cover && !videoCover) setPhoto({ uri: target.cover, cap: target.name }); }}
+          // ★영상이면 **전체로 재생**, 사진이면 전체 보기 (Boss 2026-08-27 *"클릭하면 영상이 재생 돼야해"*).
+          //   ⚠️종전엔 `!videoCover` 라 **영상은 눌러도 아무 일도 안 했다.**
+          onPress={() => {
+            if (!target.cover) return;
+            if (videoCover) setVideoFull(true);
+            else setPhoto({ uri: target.cover, cap: target.name });
+          }}
         >
           <CoverMedia uri={target.cover} />
           {/* 아래를 어둡게 — 흰 글자가 밝은 배경 위에서 묻히지 않게 */}
@@ -134,6 +158,21 @@ export function ProfileSheet({ target, onClose }: { target: ProfileTarget | null
 
       {/* ★두 번째 겹 — 사진 한 장만 크게 */}
       <PhotoViewer uri={photo?.uri ?? null} caption={photo?.cap} onClose={() => setPhoto(null)} />
+
+      {/* ★★배경 영상 **전체 보기** — Modal 을 쓰지 않는다(iOS 에서 Modal 안 VideoView 는 안 뜬다).
+          어디를 눌러도 닫힌다 — 전체 보기에서 나가는 길이 하나뿐이면 갇힌 느낌이 든다(`PhotoViewer` 와 같은 규칙).
+          `contain` 이라 **자르지 않는다** — 전부를 보러 온 자리다. */}
+      {videoFull && videoCover && target.cover ? (
+        <Pressable style={styles.full} onPress={() => setVideoFull(false)}>
+          <View style={{ width, height: Math.round(height * 0.82) }} pointerEvents="none">
+            <CoverMedia uri={target.cover} fit="contain" />
+          </View>
+          <Text style={styles.fullCap} numberOfLines={1}>{target.name}</Text>
+          <PressableScale style={styles.fullX} onPress={() => setVideoFull(false)} hitSlop={12}>
+            <Text style={styles.fullXTx}>닫기</Text>
+          </PressableScale>
+        </Pressable>
+      ) : null}
     </View>
   );
 }
@@ -144,6 +183,11 @@ const styles = StyleSheet.create({
   panel: { flex: 1, alignSelf: 'center', overflow: 'hidden' },
   // 아래 절반만 어둡게 — 배경 사진은 살리고 글자는 읽히게
   scrim: { ...StyleSheet.absoluteFillObject, top: '45%', backgroundColor: 'rgba(0,0,0,0.45)' },
+  // ★영상 전체 보기 — 시트(`root`)보다 **위**에 얹는다
+  full: { ...StyleSheet.absoluteFillObject, backgroundColor: '#000000', alignItems: 'center', justifyContent: 'center', zIndex: 70 },
+  fullCap: { ...font.label, color: 'rgba(255,255,255,0.85)', marginTop: space(3), fontWeight: '700' },
+  fullX: { marginTop: space(2), paddingVertical: space(2), paddingHorizontal: space(5) },
+  fullXTx: { ...font.caption, color: 'rgba(255,255,255,0.6)', fontWeight: '700' },
   x: { position: 'absolute', top: space(5), right: space(4), width: 34, height: 34, borderRadius: 17, backgroundColor: 'rgba(0,0,0,0.35)', alignItems: 'center', justifyContent: 'center' },
   xTx: { color: '#FFFFFF', fontSize: 16, fontWeight: '800' },
   bottom: { position: 'absolute', left: 0, right: 0, bottom: space(7), alignItems: 'center', paddingHorizontal: space(5) },

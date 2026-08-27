@@ -31,7 +31,15 @@ export function isVideoUri(uri?: string | null): boolean {
  * @param uri   사진 또는 영상 주소. 없으면 아무것도 그리지 않는다(부모의 색면이 보인다)
  * @param style 채울 자리
  */
-export function CoverMedia({ uri, style }: { uri?: string | null; style?: StyleProp<ViewStyle> }) {
+export function CoverMedia({ uri, style, fit = 'cover' }: {
+  uri?: string | null;
+  style?: StyleProp<ViewStyle>;
+  /**
+   * ★배경으로 깔 때는 `cover`(칸을 채우고 넘치는 쪽을 자른다), **전체 보기**에서는 `contain`
+   *   (자르지 않고 다 보여 준다 — 거기는 «전부를 보러 온 자리» 다 · `PhotoViewer` 와 같은 규칙).
+   */
+  fit?: 'cover' | 'contain';
+}) {
   const video = isVideoUri(uri);
   // ★훅은 **조건부로 부르면 안 된다** — 영상이 아니어도 만들어 두고 쓰지 않는다.
   //   (조건부로 부르면 사진↔영상이 바뀔 때 훅 개수가 달라져 화면이 통째로 죽는다 · React #310)
@@ -49,7 +57,7 @@ export function CoverMedia({ uri, style }: { uri?: string | null; style?: StyleP
         <VideoView
           style={StyleSheet.absoluteFill}
           player={player}
-          contentFit="cover"
+          contentFit={fit}
           nativeControls={false}
           allowsPictureInPicture={false}
         />
@@ -60,7 +68,7 @@ export function CoverMedia({ uri, style }: { uri?: string | null; style?: StyleP
   //   자리 잡기는 바깥 View 가 하고, 이미지는 그 안을 채우게 둔다.
   return (
     <View style={[styles.fill, style]} pointerEvents="none">
-      <ExpoImage source={{ uri }} style={StyleSheet.absoluteFill} contentFit="cover" transition={160} />
+      <ExpoImage source={{ uri }} style={StyleSheet.absoluteFill} contentFit={fit} transition={160} />
     </View>
   );
 }
