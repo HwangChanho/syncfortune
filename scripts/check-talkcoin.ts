@@ -150,16 +150,31 @@ console.log('\n=== ④ 잔액 부족이 충전 유도로 이어지는가 ===');
 // ── ⑤ 무료 구간에서는 안 뺀다 ───────────────────────────────────────────
 console.log('\n=== ⑤ 무료 구간에서는 빼지 않는가 ===');
 {
-  const i = edge.indexOf('overFree');
-  const seg = i >= 0 ? edge.slice(i, i + 900) : '';
-  // ⚠️★조건에 **다른 항이 더 붙어도** 통과시킨다(2026-08-26).
-  //   묶음 과금(`packStart`)을 넣으면서 `if (overFree && packStart && coinCost > 0)` 이 됐는데,
-  //   종전 정규식은 **정확히 두 항**만 인정해서 «더 엄격해진 코드»를 반려했다.
-  //   ⇒ 지켜야 할 것은 **«무료 판정(overFree)과 단가 판정이 그 if 안에 있는가»** 이지 항의 개수가 아니다.
-  //   ★단, 둘 다 없으면 여전히 문다(아래 음성 테스트).
-  const guard = /if\s*\(([^)]*)\)\s*\{/.exec(seg)?.[1] ?? '';
-  if (/\boverFree\b/.test(guard) && /coinCost\s*>\s*0/.test(guard)) ok('무료를 넘겼고 단가가 0보다 클 때만 뺀다');
-  else bad('★무료 구간 판정 없이 뺀다 — 무료라면서 빼는 것이 제일 나쁘다');
+  // ⚠️★★2026-08-27 — 이 검사가 **두 번** 헛짚었다. 둘 다 «찾는 방법» 이 문제였다.
+  //   ①`[^)]*` 는 **닫는 괄호를 못 넘는다.** 조건에 괄호가 생기자
+  //     (`if (overFree && (packStart || crosstalkTurn) && coinCost > 0)`) 조건을 통째로 못 읽었다.
+  //   ②`overFree` 첫 등장에서 **900자 창**으로 찾았다. 그 사이에 **주석 아홉 줄**이 들어가자
+  //     거리가 940자가 되어 창을 벗어났다 — **코드는 옳은데 «무료라면서 뺀다»** 고 울었다.
+  //     ★주석을 늘렸다고 돈 하네스가 빨개지는 건 검사가 잘못 서 있다는 뜻이다.
+  //   ⇒ 거리로 찾지 않는다. **운을 실제로 빼는 그 호출**(`spend_coins_owner`)을 집고,
+  //     그것을 감싸는 `if` 의 조건을 **괄호 짝을 맞춰** 꺼낸다. 주석이 몇 줄이든 상관없다.
+  //   ★★차감 지점이 여럿이면 **전부** 본다 — 하나라도 무방비면 그게 새는 구멍이다.
+  const spends = [...edge.matchAll(/rpc\(\s*'spend_coins_owner'/g)].map((m) => m.index ?? -1).filter((x) => x >= 0);
+  /** 이 위치를 감싸는 가장 가까운 `if (…)` 의 조건. 못 찾으면 빈 문자열. */
+  const guardOf = (at: number): string => {
+    const open = edge.lastIndexOf('if (', at);
+    if (open < 0) return '';
+    let i = open + 4, d = 1;
+    while (i < edge.length && d > 0) { const ch = edge[i]; if (ch === '(') d++; else if (ch === ')') d--; i++; }
+    return d === 0 ? edge.slice(open + 4, i - 1) : '';
+  };
+  const unguarded = spends.filter((at) => {
+    const g = guardOf(at);
+    return !(/\boverFree\b/.test(g) && /coinCost\s*>\s*0/.test(g));
+  });
+  if (!spends.length) bad('★운을 빼는 호출(spend_coins_owner)을 못 찾았다 — 검사가 헛돈다');
+  else if (unguarded.length === 0) ok(`무료를 넘겼고 단가가 0보다 클 때만 뺀다 (차감 지점 ${spends.length}곳 전부)`);
+  else bad(`★무료 구간 판정 없이 뺀다 — 무료라면서 빼는 것이 제일 나쁘다 (무방비 ${unguarded.length}/${spends.length}곳)`);
 }
 
 // ── ⑥ DB 실측 ───────────────────────────────────────────────────────────

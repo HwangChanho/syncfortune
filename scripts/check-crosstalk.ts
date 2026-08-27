@@ -133,10 +133,25 @@ try {
 
 // ── C7 과금 ──────────────────────────────────────────────────────────────
 {
-  const gate = /if \(overFree && \(packStart \|\| crosstalkTurn\) && coinCost > 0\)/.test(src);
+  // ★★조건을 **문자열로 통째 비교하지 않는다** — 항의 순서만 바꿔도 깨지는 검사는
+  //   «이름으로 판정하는» 것과 같다([[harness-judge-expression-not-name]]).
+  //   ⇒ `check:talkcoin` ⑤ 와 **같은 방식**: 운을 실제로 빼는 자리를 집고, 그 `if` 의 조건을
+  //     괄호 짝을 맞춰 꺼내 **항이 들어 있는지**만 본다. 주석이 몇 줄이든, 순서가 어떻든 선다.
+  const spend = src.search(/rpc\(\s*'spend_coins_owner'/);
+  let guard = '';
+  if (spend > 0) {
+    const open = src.lastIndexOf('if (', spend);
+    if (open >= 0) {
+      let i = open + 4, d = 1;
+      while (i < src.length && d > 0) { const ch = src[i]; if (ch === '(') d++; else if (ch === ')') d--; i++; }
+      if (d === 0) guard = src.slice(open + 4, i - 1);
+    }
+  }
   const group = /const crosstalkTurn = isGroup && wantsCrosstalk\(/.test(src);
-  say(gate, 'C7 티키타카는 **묶음 중간에도** 낸다', gate ? '`packStart || crosstalkTurn`' : '묶음 중간이면 공짜로 5턴어치가 나간다');
-  say(gate && /overFree &&/.test(src), 'C7b ⚠️무료 구간은 **여전히 무료**', '`overFree` 가 앞에 있다');
+  say(/\bcrosstalkTurn\b/.test(guard), 'C7 티키타카는 **묶음 중간에도** 낸다',
+    /\bcrosstalkTurn\b/.test(guard) ? `차감 조건에 있다: 「${guard.slice(0, 52)}」` : '묶음 중간이면 공짜로 5턴어치가 나간다');
+  say(/\boverFree\b/.test(guard) && /coinCost\s*>\s*0/.test(guard), 'C7b ⚠️무료 구간은 **여전히 무료**',
+    /\boverFree\b/.test(guard) ? '차감 조건이 overFree·coinCost 를 본다' : '⚠️무료라면서 뺀다');
   say(group, 'C7c ⚠️**여럿이 있는 방**에서만 발동', group ? '`isGroup &&`' : '1:1 에서도 걸린다');
 }
 
