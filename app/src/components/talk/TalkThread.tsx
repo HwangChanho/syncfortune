@@ -270,11 +270,19 @@ const styles = StyleSheet.create({
   unreadMark: { ...font.caption, fontSize: 11, color: colors.ju, fontWeight: '800', marginBottom: 2 },
 
   them: {
+    // ⚠️★★`flexShrink: 0` — Boss 2026-08-27 *"채팅이 왜 이렇게 나눠서 나와"*
+    //   (보내 준 화면에서 「안녕.」이 「안 / 녕.」으로 **세로로** 갈려 있었다)
+    //   말풍선은 `bubbleRow`(flexDirection: 'row')의 자식이다. RN(yoga)의 기본 `flexShrink` 는 **0**
+    //   인데 **react-native-web 은 CSS 기본을 따라 1**이 되는 자리가 있다 — 그러면 옆의 「1」 배지와
+    //   자리를 다투다 말풍선이 **글자 폭 아래로** 눌린다. 폰에서는 안 나고 웹에서만 난다.
+    //   ⇒ 줄어들지 않게 못 박는다. 넘치는 것은 아래 `maxWidth` 가 이미 막고 있다.
+    flexShrink: 0,
     maxWidth: '84%', backgroundColor: colors.card,
     borderRadius: radius.lg, borderTopLeftRadius: radius.sm,
     paddingHorizontal: space(3.5), paddingVertical: space(2.5), ...shadow.soft,
   },
   mine: {
+    flexShrink: 0,                       // ★위 `them` 과 같은 이유(웹에서만 눌린다)
     maxWidth: '84%', backgroundColor: colors.ju,
     borderRadius: radius.lg, borderTopRightRadius: radius.sm,
     paddingHorizontal: space(3.5), paddingVertical: space(2.5),
