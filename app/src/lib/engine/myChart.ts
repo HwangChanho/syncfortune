@@ -280,11 +280,9 @@ export async function preferSelfAsRep(): Promise<void> {
 
 /** 대표 명식의 input (호환 — 기존 loadMyChart). 없으면 null. */
 export async function loadMyChart(): Promise<ChartInput | null> {
-  const charts = await listCharts();
-  if (!charts.length) return null;
-  const repId = await getRaw(REP_KEY);
-  const rep = charts.find((c) => c.id === repId) ?? charts[0];
-  return rep.input;
+  // ★`loadRepChart` 와 **같은 규칙**을 쓴다 — 둘이 갈리면 «홈 이름» 과 «오늘의 운세» 가
+  //   서로 다른 사람을 가리킨다([[duplicate-ui-single-source]]).
+  return (await loadRepChart())?.input ?? null;
 }
 
 /**
@@ -295,7 +293,19 @@ export async function loadRepChart(): Promise<SavedChart | null> {
   const charts = await listCharts();
   if (!charts.length) return null;
   const repId = await getRaw(REP_KEY);
-  return charts.find((c) => c.id === repId) ?? charts[0];
+  // ★★대표가 없거나 사라졌을 때 **아무거나 집지 않는다** (Boss 2026-08-27
+  //   *"만세력에 여러개를 등록해둬도 그사람으로 홈에 이름이 변경되어있으면 안되지 —
+  //     무조건 대표명식으로 고정이야"*).
+  //
+  //   ■ ★실측이 이걸 못 박았다(2026-08-27)
+  //     종전 폴백은 **`charts[0]`** 이었다. Boss 계정은 명식이 **50개**라 목록 순서가 조금만
+  //     달라져도 매번 다른 사람이 «나» 가 된다. `talk_sessions` 의 `chart_id` 가 실제로
+  //     `2321d92d` · `b68aef72` · `f3deddf5` 로 **제각각**이었다.
+  //   ⇒ **본인(`relation === 'self'`) 명식**을 먼저 본다. 그게 «나» 다.
+  //     ⚠️`charts[0]` 는 **맨 마지막 그물**로만 남긴다 — 본인 명식이 하나도 없을 때뿐이다.
+  return charts.find((c) => c.id === repId)
+    ?? charts.find((c) => c.relation === 'self')
+    ?? charts[0];
 }
 
 /**

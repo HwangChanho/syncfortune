@@ -50,7 +50,11 @@ const KO_NAME = /appName:\s*'([^']+)'/.exec(read('app/src/copy/ko.ts'))?.[1] ?? 
     for (const e of ents) {
       const p = `${d}/${e.name}`;
       if (e.isDirectory()) walk(p);
-      else if (e.name.endsWith('.tsx')) files.push(p);
+      // ⚠️★`+html.tsx` 는 뺀다 — 거기는 **화면이 아니라 `<head>`** 다(2026-08-27).
+      //   OG·title 은 **크롤러가 읽는 정적 문서**라, 사용자가 고른 언어를 알 수 없는 자리다
+      //   (빌드 시점에 한 벌만 만들어진다). 한국어 한 벌로 고정하는 것이 맞다.
+      //   ★다국어 OG 가 필요해지면 그건 «언어별 정적 페이지» 라는 다른 일이다.
+      else if (e.name.endsWith('.tsx') && e.name !== '+html.tsx') files.push(p);
     }
   };
   walk('app/src');

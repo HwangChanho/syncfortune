@@ -11,7 +11,7 @@
 // ⚠️명리 판정 0 — 이미 계산된 값(만세력 선택 상태)을 자리만 바꿔 그린다.
 // ═══════════════════════════════════════════════════════════════════════════
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Platform } from 'react-native';
 import { colors, space, radius, font } from '../lib/theme';
 import { GzCell } from './GzCell';
 import { sortPillarsForDisplay } from '../lib/ui/pillarOrder'; // ★표기 순서 단일 소스(오른쪽=년주)
@@ -50,8 +50,8 @@ export function LuckNest({ natal, rings, hangeul }: { natal: NestPillar[]; rings
         {sortPillarsForDisplay(natal).map((p) => (
           <View key={p.pos} style={styles.corePillar}>
             <Text style={styles.corePos}>{p.pos}</Text>
-            <GzCell char={p.stem} kind="stem" size="xs" scale={0.92} hangeul={hangeul} />
-            <GzCell char={p.branch} kind="branch" size="xs" scale={0.92} hangeul={hangeul} />
+            <GzCell char={p.stem} kind="stem" size={Platform.OS === 'web' ? 'sm' : 'xs'} scale={Platform.OS === 'web' ? 1 : 0.92} hangeul={hangeul} />
+            <GzCell char={p.branch} kind="branch" size={Platform.OS === 'web' ? 'sm' : 'xs'} scale={Platform.OS === 'web' ? 1 : 0.92} hangeul={hangeul} />
           </View>
         ))}
       </View>
@@ -64,8 +64,8 @@ export function LuckNest({ natal, rings, hangeul }: { natal: NestPillar[]; rings
     <View key={r.label} style={[styles.ring, { backgroundColor: RING_TINT[i] ?? RING_TINT[3], borderColor: RING_EDGE[i] ?? RING_EDGE[3] }]}>
       <View style={styles.ringHead}>
         <Text style={styles.ringLabel}>{r.label}</Text>
-        <GzCell char={r.stem} kind="stem" size="xs" scale={0.95} hangeul={hangeul} />
-        <GzCell char={r.branch} kind="branch" size="xs" scale={0.95} hangeul={hangeul} />
+        <GzCell char={r.stem} kind="stem" size={Platform.OS === 'web' ? 'sm' : 'xs'} scale={Platform.OS === 'web' ? 1 : 0.95} hangeul={hangeul} />
+        <GzCell char={r.branch} kind="branch" size={Platform.OS === 'web' ? 'sm' : 'xs'} scale={Platform.OS === 'web' ? 1 : 0.95} hangeul={hangeul} />
         {r.sub ? <Text style={styles.ringSub}>{r.sub}</Text> : null}
       </View>
       {child}
@@ -74,12 +74,29 @@ export function LuckNest({ natal, rings, hangeul }: { natal: NestPillar[]; rings
 }
 
 const styles = StyleSheet.create({
-  ring: { borderWidth: 1, borderRadius: radius.lg, padding: space(1.5), paddingTop: space(1) },
+  /**
+   * ★★웹에서는 **한 단계 크게, 위아래를 띄운다** (Boss 2026-08-27
+   *   *"웹에서 벤다이어 그램 사이즈 더 키워줘 위아래 여백좀 있게"*).
+   *   ■ 왜 웹만인가 — 폰은 화면이 좁아 지금 크기가 맞다. 웹은 남는 공간이 많은데
+   *     폰 크기 그대로라 **한가운데 작은 그림**으로 보인다.
+   *   ★`Platform` 하나로 가른다 — 창 너비로 가르면 2칸 화면에서 또 어긋난다.
+   */
+  ring: {
+    borderWidth: 1, borderRadius: radius.lg,
+    padding: space(Platform.OS === 'web' ? 3 : 1.5),
+    paddingTop: space(Platform.OS === 'web' ? 2.5 : 1),
+    ...(Platform.OS === 'web' ? { marginVertical: space(2) } : null),
+  },
   ringHead: { flexDirection: 'row', alignItems: 'center', gap: space(1.5), marginBottom: space(1.5), paddingHorizontal: space(0.5) },
   ringLabel: { ...font.caption, color: colors.inkSoft, fontWeight: '800' },
   ringSub: { ...font.caption, color: colors.inkFaint },
   // 원국 코어 — 흰 카드로 주인공 대비
-  core: { backgroundColor: colors.card, borderWidth: 1.5, borderColor: colors.ju, borderRadius: radius.md, paddingVertical: space(2), paddingHorizontal: space(1), alignItems: 'center' },
+  core: {
+    backgroundColor: colors.card, borderWidth: 1.5, borderColor: colors.ju, borderRadius: radius.md,
+    paddingVertical: space(Platform.OS === 'web' ? 3.5 : 2),
+    paddingHorizontal: space(Platform.OS === 'web' ? 2.5 : 1),
+    alignItems: 'center',
+  },
   coreRow: { flexDirection: 'row', gap: space(1), flexShrink: 1 },
   corePillar: { alignItems: 'center' },
   corePos: { fontSize: 10, lineHeight: 14, color: colors.inkFaint, fontWeight: '700', marginBottom: 2 },

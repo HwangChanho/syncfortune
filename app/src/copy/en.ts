@@ -488,6 +488,7 @@ export const en = {
   },
   shared: { title: 'Shared reading', loading: 'Loading the reading…', notFound: "We couldn't find a reading for this link.", goMine: 'See my fortune ›', alsoMine: 'See my own fortune ›', foot: '{{app}} · Saju · Zi Wei Dou Shu · Tarot' },
   chartPick: { title: 'Whose chart should I read?', why: "We'll continue this conversation with the chart you pick. You can change it later.", new: 'Enter directly', all: 'See all {{n}}' },
+  appInvite: { title: 'Better in the app', sub: 'Get notifications and your daily fortune right away.', open: 'Open app' },
   appName: 'Niunnaeun',
   tagline: 'Your AI compass for understanding yourself and others',
   // 홈 카드 개인화 티저 — ko 와 동일 키(계산=homeTeaser.ts). ※ newyear.keyword 값 자체는 엔진이 한국어로 산출(기존 티저 전반과 동일).

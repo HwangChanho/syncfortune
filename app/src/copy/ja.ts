@@ -488,6 +488,7 @@ export const ja = {
   },
   shared: { title: '共有された鑑定', loading: '鑑定を読み込み中…', notFound: 'この共有リンクの鑑定が見つかりません。', goMine: '自分の運勢を見る ›', alsoMine: '自分の運勢も見る ›', foot: '{{app}} · 四柱推命・紫微斗数・タロット' },
   chartPick: { title: 'どの命式を見ましょうか?', why: '選んだ命式でこの会話を続けます。あとで変更もできます。', new: '直接入力', all: '全{{n}}件を見る' },
+  appInvite: { title: 'アプリでもっと便利に', sub: '通知や今日の運勢をすぐ受け取れます。', open: 'アプリで' },
   appName: 'ニウンネウン',
   tagline: '自分と他人を理解するAIの羅針盤',
   // 홈 카드 개인화 티저 — ko 와 동일 키(계산=homeTeaser.ts). ※ newyear.keyword 값 자체는 엔진이 한국어로 산출.

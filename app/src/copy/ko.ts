@@ -506,6 +506,7 @@ export const ko = {
   },
   shared: { title: '공유받은 풀이', loading: '풀이 불러오는 중…', notFound: '이 공유 링크의 풀이를 찾을 수 없어요.', goMine: '내 운세 보러 가기 ›', alsoMine: '나도 내 운세 보기 ›', foot: '{{app}} · 사주·자미두수·타로 운세' },
   chartPick: { title: '어떤 명식을 볼까요?', why: '고른 명식으로 이 대화를 이어 갑니다. 나중에 바꿀 수도 있어요.', new: '직접 입력', all: '전체 {{n}}개 보기' },
+  appInvite: { title: '앱에서 더 편하게', sub: '알림·오늘의 운세는 앱에서 바로 받아볼 수 있어요.', open: '앱으로' },
   appName: '니운내운',
   tagline: '나와 타인을 이해하는 AI 나침반',
   // 홈 카드 개인화 티저 — 대표 명식으로 계산한 '내 얘기' 한 줄(계산=lib/content/homeTeaser.ts, 문구=여기).

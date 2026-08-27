@@ -16,6 +16,7 @@ import { BottomNav } from '../../components/BottomNav';
 import { OfflineBanner } from '../../components/OfflineBanner';
 import { ContentBackdrop } from '../../components/ContentBackdrop'; // ★전 콘텐츠 화면 공통 배경(한지/달밤+별) — daniel 07-02
 import { WebShell, useWideWeb } from '../../components/WebShell'; // 넓은 웹 = 좌측 내비 + 가운데 컬럼(네이티브·모바일 웹은 무영향)
+import { AppInvite } from '../../components/web/AppInvite';   // 모바일 웹 → 앱 권유(Boss 08-27)
 import { PAID_ROUTES } from '../../lib/content/contentSections'; // 유료 화면 = 광고 없음(daniel 08-06)
 import { colors } from '../../lib/theme';
 
@@ -196,6 +197,12 @@ export default function AppLayout() {
         <Stack.Screen name="coststable" options={{ title: t('nav.costs', '비용·수익 분석') }} />
       </Stack>
       </WebShell>
+      {/* ★★모바일 브라우저로 왔으면 **앱을 권한다** (Boss 2026-08-27
+          *"실행 디바이스가 모바일이면 앱으로 유도하는 화면을 기존 화면 위에 띄우자"*).
+          ⚠️막지 않는다 — 아래에서 올라오는 띠 하나이고, 닫으면 그 자리에서 바로 웹을 쓴다.
+            전면을 덮으면 링크로 들어온 사람이 **아무것도 못 보고 나간다.**
+          ★웹·모바일 판정은 컴포넌트 안에서 한 번에 한다(조건이 두 곳이면 갈린다). */}
+      <AppInvite />
       {/* 하단 배너 — 무료 화면에만. 광고 제거 구매자는 AdBanner 내부에서 숨긴다(useAdFree).
           ★유료 콘텐츠 화면에서는 띄우지 않는다(daniel 2026-08-06 "유료 컨텐츠는 광고 다 빼").
             배너는 전역(_layout)이라 **운을 내고 여는 풀이를 읽는 내내** 하단에 광고가 붙어 있었다.

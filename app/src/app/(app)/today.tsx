@@ -43,7 +43,6 @@ import { useFontScale } from '../../lib/ui/fontScale';
 import { stemElement, branchElement, elementColor, elementText, stemReading, branchReading, stemYinYang, branchYinYang } from '../../lib/engine/ohaeng';
 import { ContentHero } from '../../components/SpecialContentScreen'; // 이미지 히어로(보는 맛)
 import { HourFlowCard } from '../../components/HourFlowCard'; // 「오늘의 시간대」 12시진(무료·온디바이스·API 0)
-import { ChartPicker } from '../../components/ChartPicker'; // 명식 선택(대표 전환) — 명식별 오늘 운세(daniel)
 import { ShareReadingButton } from '../../components/ShareReadingButton'; // 이슈17: 풀이 결과 공유(가드 내장)
 import { DailyLogCard } from '../../components/DailyLogCard'; // 리텐션: 오늘의 미션 체크 + 적중 회고(daniel 07-19)
 import { TTSButton } from '../../components/TTSButton'; // daniel: 풀이 음성 읽기(온디바이스 TTS·무료)
@@ -69,7 +68,9 @@ export default function TodayScreen() {
   const [busy, setBusy] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [, setErr] = useState<string | null>(null);
-  const [reloadKey, setReloadKey] = useState(0); // ChartPicker 로 명식(대표) 전환 시 재로드 트리거
+  // ★명식 고르기를 뺐으므로(위 주석) **다시 읽을 계기가 없다** — 상수 0.
+  //   ⚠️`useState` 를 남겨 두면 «쓰지 않는 setter» 가 되고, 다음 사람이 «여기서 바꿀 수 있나» 로 읽는다.
+  const reloadKey = 0;
 
   const stem = f.dayGanZhi[0] as Stem;
   const branch = f.dayGanZhi[1] as Branch;
@@ -157,7 +158,13 @@ export default function TodayScreen() {
       {/* ★본문 캡 — 히어로는 지면 전체, 글은 좁게(브런치 방향). 폰은 undefined 라 그대로 지나간다. */}
       <View style={readBody}>
         {/* 명식 선택 — 대표 전환 시 그 명식 기준으로 오늘의 운세 재로드(daniel: 명식별 적용) */}
-        <ChartPicker onChange={() => setReloadKey((k) => k + 1)} />
+        {/* ⚠️★★명식 고르기를 **뺐다** (Boss 2026-08-27
+            *"오늘의 운세 내일의 운세도 무조건 대표명식만 확인할수 있는거야"*).
+            ■ 왜 — 「오늘의 운세」는 **«나»의 하루**다. 여기서 남의 명식을 고르게 하면
+              그건 오늘의 운세가 아니라 «명식별 일진 조회» 가 된다.
+              운 풀이·궁합처럼 **대상을 고르는 게 자연스러운 화면**에서는 그대로 고를 수 있다.
+            ■ 무엇을 보나 — `loadRepChart()` 가 주는 **대표 명식** 하나뿐이다(아래 로직 그대로).
+              ★대표는 «본인으로 등록된 명식» 이고, 그건 **하나만** 존재한다(등록 화면이 강제한다). */}
         {/* 오늘/내일 토글 */}
         <View style={styles.dayToggle}>
           {([0, 1] as const).map((off) => (
