@@ -40,11 +40,24 @@ const H = { apikey: KEY, Authorization: `Bearer ${KEY}` };
 
 /** 영상 길이(초). 모르면 null — **넘겨짚지 않는다**. */
 function seconds(file: string): number | null {
+  // ①macOS 기본 도구부터 — 아무것도 안 깔아도 도는 길을 먼저 둔다
   try {
     const out = execFileSync('mdls', ['-name', 'kMDItemDurationSeconds', '-raw', file], { encoding: 'utf8' }).trim();
     const n = Number(out);
-    return Number.isFinite(n) && n > 0 ? n : null;
-  } catch { return null; }
+    if (Number.isFinite(n) && n > 0) return n;
+  } catch { /* 아래로 */ }
+  // ②⚠️2026-08-27 실측: `mdls` 가 **(null) 을 준다** — Spotlight 이 그 폴더를 아직 안 훑었으면
+  //   파일이 멀쩡해도 값이 없다. 그러면 영상 열한 개가 통째로 «길이를 못 읽음» 으로 건너뛰어진다.
+  //   ★그때 «모르니 건너뛴다» 로 끝내면 **잴 수 있는데 안 잰 것**이 된다.
+  //   ⇒ 있으면 `ffprobe` 로 잰다. 없으면 아래 ③ 으로 떨어져 여전히 넘겨짚지 않는다.
+  try {
+    const out = execFileSync('ffprobe',
+      ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', file], { encoding: 'utf8' }).trim();
+    const n = Number(out);
+    if (Number.isFinite(n) && n > 0) return n;
+  } catch { /* 아래로 */ }
+  // ③둘 다 실패 — **모른다**. 부르는 쪽이 건너뛴다.
+  return null;
 }
 
 async function main(): Promise<void> {

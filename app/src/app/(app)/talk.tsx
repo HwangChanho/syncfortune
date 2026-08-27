@@ -776,6 +776,22 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
                 body: r.banter!.line, who: whoOf(r.banter!.name) }], 0);
             }, after));
           }
+          // ★★AI 끼리 티키타카 (Boss 2026-08-27 *"AI끼리 붙이면 티키타카 5턴 이상"*)
+          //   ★곁다리와 **같은 방식**으로 그린다 — 새 그리기 규칙을 만들지 않는다.
+          //     다른 건 «여러 마디가 순서대로» 라는 것뿐이다.
+          //   ★뜸(`typingDelay`)을 대사마다 쌓는다 — 한꺼번에 쏟으면 대화가 아니라 목록이 된다.
+          //   ⚠️본문(`parts`)이 **비어 있을 수 있다**(서버가 대사만 낸다) — 그러면 바로 시작된다.
+          if (r.crosstalk?.length) {
+            let at = parts.reduce((a, b) => a + typingDelay(b), 0) + (parts.length ? 300 : 0);
+            for (const cl of r.crosstalk) {
+              const fire = at;
+              timersRef.current.push(setTimeout(() => {
+                sayInOrder([{ id: nextId(), role: 'assistant' as const,
+                  body: cl.line, who: whoOf(cl.name) }], 0);
+              }, fire));
+              at += typingDelay(cl.line);
+            }
+          }
           // ★★운 차감 «영수증» 한 줄 (Boss 2026-08-26
           //   *"운이 차감될때마다 말풍선없이 가운데 정렬로 작은 글씨로 얼마의 운이 차감됐는지"*).
           //
@@ -795,7 +811,10 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
           const spent = Number(r.spent ?? 0);
           const packN = Number(r.packTurns ?? 0);
           if (spent > 0) {
-            const wait = parts.reduce((a, b) => a + typingDelay(b), 0) + (r.banter ? 900 : 0) + 420;
+            // ⚠️★티키타카 대사가 **다 뜬 뒤**에 영수증을 놓는다 — 안 그러면 대화 도중에 끼어든다
+            const wait = parts.reduce((a, b) => a + typingDelay(b), 0)
+              + (r.crosstalk ?? []).reduce((a, cl) => a + typingDelay(cl.line), 0)
+              + (r.banter ? 900 : 0) + 420;
             timersRef.current.push(setTimeout(() => {
               setItems((prev) => [...prev, {
                 id: nextId(), role: 'assistant' as const, body: '',
@@ -809,7 +828,10 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
           } else if (Number(r.packLeft ?? 0) === 1 && packN > 1) {
             // ★묶음의 **마지막 턴** — 다음 턴부터 다시 든다고 **미리** 알린다.
             //   말없이 빠지면 «언제 나갔는지 모르겠다» 가 된다(이 요청의 본질).
-            const wait2 = parts.reduce((a, b) => a + typingDelay(b), 0) + (r.banter ? 900 : 0) + 420;
+            // ⚠️★티키타카 대사가 **다 뜬 뒤**에 영수증을 놓는다 — 안 그러면 대화 도중에 끼어든다
+            const wait2 = parts.reduce((a, b) => a + typingDelay(b), 0)
+              + (r.crosstalk ?? []).reduce((a, cl) => a + typingDelay(cl.line), 0)
+              + (r.banter ? 900 : 0) + 420;
             timersRef.current.push(setTimeout(() => {
               setItems((prev) => [...prev, {
                 id: nextId(), role: 'assistant' as const, body: '',

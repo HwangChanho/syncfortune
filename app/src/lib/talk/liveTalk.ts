@@ -38,6 +38,13 @@ export type LiveReply =
       speakerName?: string | null;
       /** ★곁다리 한 마디 — 옆 사람이 툭 던진 것. 운은 **더 안 나간다**(같은 호출에 얹혀 온다). */
       banter?: { name: string; line: string } | null;
+      /**
+       * ★★AI 끼리 티키타카 — 회원이 *"둘이 얘기해 봐"* 라고 했을 때 오는 **여러 마디**
+       * (Boss 2026-08-27). 순서대로 한 마디씩 띄운다.
+       * ⚠️이때는 `answer` 가 **비어 있는 게 정상**이다 — 서버 지문이 대사만 내게 시킨다.
+       * ★곁다리와 달리 **운이 나간다**(묶음 하나를 당겨 쓴다 · 서버 과금 주석 참조).
+       */
+      crosstalk?: { name: string; line: string }[];
     }
   | {
       ok: false;
@@ -149,14 +156,20 @@ export async function askLive(
         refunded: Number(data.refunded ?? 0),
       };
     }
-    if (!data?.answer) return { ok: false, reason: 'failed', message: data?.message ?? '답이 비어서 다시 물어봐 주세요.' };
+    // ⚠️★티키타카는 **본문이 비어 있다** — 대사만 온다. 여기서 `answer` 만 보고 튕기면
+    //   정상 동작이 «실패» 로 처리되고, 회원은 **운을 내고도 아무것도 못 본다**.
+    const cross = Array.isArray(data?.crosstalk)
+      ? (data.crosstalk as { name: string; line: string }[]).filter((x) => x && typeof x.line === 'string' && x.line.trim())
+      : [];
+    if (!data?.answer && !cross.length) return { ok: false, reason: 'failed', message: data?.message ?? '답이 비어서 다시 물어봐 주세요.' };
     return {
-      ok: true, sessionId: data.sessionId, answer: data.answer,
+      ok: true, sessionId: data.sessionId, answer: data.answer ?? '',
       used: data.used ?? 0, freeDaily: data.freeDaily ?? 0, overFree: !!data.overFree,
       // ⚠️문자열일 때만 받는다 — 서버가 안 주거나 다른 걸 주면 '추천 없음'으로 떨어진다(화면이 안 깨지게)
       recommend: typeof data.recommend === 'string' ? data.recommend : null,
       speakerName: typeof data.speakerName === 'string' ? data.speakerName : null,
       banter: data.banter && typeof data.banter.line === 'string' ? data.banter : null,
+      crosstalk: cross,
       notes: Array.isArray(data.notes) ? data.notes : [],
       /** 이번 턴에 빠져나간 운(무료 범위면 0) */
       spent: Number(data.spent ?? 0),
