@@ -97,28 +97,47 @@ if os.path.exists(_fav):
     #   ★그래도 «완전히 비어 있는»(획이 없는) 파비콘은 잡는다 — 그건 사고다.
     if opaque < 0.02:
         fails.append(f"[C3] {FAVICON} 그림이 **거의 비어 있다**(불투명 {opaque*100:.0f}%) — 탭에 아무것도 안 보인다")
-    # ★배경색은 **원본에서 잰다**(2026-08-27).
-    #   종전엔 «밝은 크림»(>235,230,225)을 배경으로 **박아** 뒀다. 그래서 로고를
-    #   파란 배경 + 흰 획으로 바꾸자 파랑이 잉크로 섞여 «다른 그림» 이라고 울었다 —
-    #   **코드는 옳은데 빨간불**([[harness-can-enforce-wrong-rule]]).
-    #   ⇒ 원본 모서리를 배경으로 보고 그것과 가까운 화소를 뺀다. 로고를 또 바꿔도 따라온다.
+    # ★★2026-08-27(2) — **색 비교를 뺐다.** Boss 지시가 갈렸다:
+    #   *"앱 아이콘만 파란배경에 흰색 운 글자고 나머진 기존대로해"*
+    #   ⇒ `icon.png`(앱)는 파랑+흰, `favicon.png`(탭)는 **갈색**이 정답이다. 색이 다른 게 맞다.
+    #   그런데 «같은 그림인가» 는 여전히 지켜야 한다(사본이 조용히 갈리는 것을 막는 검사다).
+    #   ⇒ **색 대신 «모양»** 을 본다 — 알파 채널을 축소해 견준다. 색을 바꿔도 획은 그대로다.
+    def shape(im, n=32):
+        a = im.convert('RGBA').getchannel('A').resize((n, n), Image.LANCZOS)
+        v = list(a.getdata())
+        mx = max(v) or 1
+        return [x / mx for x in v]
     _src_im = Image.open(os.path.join(ROOT, SRC)).convert('RGBA')
-    _bg = _src_im.getpixel((2, 2))[:3]
-
-    # 잉크 평균색 — 원본에서 «배경이 아닌» 화소들의 평균과 견준다
-    def ink(im):
-        px = [p for p in im.convert('RGBA').getdata() if p[3] > 200]
-        # 배경은 뺀다 — 잉크만 남긴다(거리 60 안쪽이면 배경으로 본다)
-        px = [p for p in px if math.dist(p[:3], _bg) > 60]
-        if not px: return None
-        n = len(px)
-        return (sum(p[0] for p in px)/n, sum(p[1] for p in px)/n, sum(p[2] for p in px)/n)
-    a_ink, b_ink = ink(_src_im), ink(fv)
-    if a_ink and b_ink:
-        d = math.dist(a_ink, b_ink)
-        if d > 40:
-            fails.append(f"[C3] {FAVICON} 잉크 색이 원본과 다르다(거리 {d:.0f} > 40) — 다른 그림을 넣었나?")
-
+    # ⚠️앱 아이콘은 배경이 꽉 차 알파가 전부 1이다 ⇒ **잉크 모양**을 알파로 못 잰다.
+    #   그때는 «배경색과 얼마나 다른가» 를 알파처럼 쓴다(모양만 남는다).
+    #   ⚠️★파비콘은 **여백을 잘라 꽉 채운** 것이다(08-26 Boss 요청) — 원본과 «배치» 가 다르다.
+    #     그대로 견주면 모양이 같아도 어긋난다 ⇒ 양쪽을 **잉크 영역으로 정규화**한 뒤 본다.
+    def inkmask(im, n=32):
+        rgba = im.convert('RGBA')
+        bg = rgba.getpixel((2, 2))[:3]
+        w, h = rgba.size
+        px = rgba.load()
+        xs, ys = [], []
+        step = max(1, min(w, h) // 96)
+        for y in range(0, h, step):
+            for x in range(0, w, step):
+                p = px[x, y]
+                if p[3] > 60 and math.dist(p[:3], bg) > 60:
+                    xs.append(x); ys.append(y)
+        if xs:
+            side = max(max(xs) - min(xs), max(ys) - min(ys)) or 1
+            cx, cy = (min(xs) + max(xs)) // 2, (min(ys) + max(ys)) // 2
+            rgba = rgba.crop((cx - side // 2, cy - side // 2, cx + side // 2, cy + side // 2))
+        sm = rgba.resize((n, n), Image.LANCZOS)
+        out = []
+        for p in sm.getdata():
+            d = math.dist(p[:3], bg) / 441.0
+            out.append(min(1.0, d * 3) * (p[3] / 255))
+        return out
+    a_sh, b_sh = inkmask(_src_im), inkmask(fv)
+    diff = sum(abs(x - y) for x, y in zip(a_sh, b_sh)) / len(a_sh)
+    if diff > 0.30:
+        fails.append(f"[C3] {FAVICON} **모양이 원본과 다르다**(차이 {diff:.2f} > 0.30) — 다른 그림을 넣었나?")
 if fails:
     print(f"❌ check:iconcenter — {len(fails)}건")
     for f in fails: print(f"  {f}")

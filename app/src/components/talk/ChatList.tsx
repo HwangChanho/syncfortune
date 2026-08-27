@@ -20,7 +20,6 @@ import { useTranslation } from 'react-i18next';
 import { Image as ExpoImage } from 'expo-image';
 import type { ProfileTarget } from './ProfileSheet';   // 카카오톡식 프로필 창(Boss 08-26)
 import { PressableScale } from '../../components/PressableScale';
-import { BrandWordmark } from '../BrandWordmark';
 import { supabase } from '../../lib/supabase';
 import { withTimeout } from '../../lib/core/withTimeout';
 import { useAuth } from '../../lib/useAuth';
@@ -307,7 +306,10 @@ export function ChatList({ onOpen, selectedId, reloadKey = 0, wide, onSettings, 
       <View style={styles.topRow}>
         {/* ★콘티 2면 헤더 = **워드마크 · 돋보기 · ⋮**. 제목 글자("운대화")가 아니다 —
             탭바가 이미 어느 탭인지 말해 주므로 제목을 또 쓰면 같은 말이 두 번이다. */}
-        <BrandWordmark symbol style={{ flex: 1 }} />   {/* ★심볼+글자 (Boss 2026-08-26) — 넓은 목록 칸이라 이름이 안 잘린다 */}
+        {/* ⚠️★워드마크를 **뺐다** (Boss 2026-08-27 *"대화 리스트에는 니운내운 뺴줘"*).
+            홈 헤더에 이미 있고, 여기까지 두면 한 화면에 브랜드가 두 번 뜬다.
+            ★자리는 남긴다 — 아이콘들이 오른쪽으로 붙어야 한다. */}
+        <View style={{ flex: 1 }} />
         {/* ★알림 — 돋보기 **왼쪽**(Boss 2026-08-26 *"돋보기 옆에 놔"*).
             이모지가 아니라 선 아이콘이라 옆 아이콘들과 **무게가 같다**. */}
         {/* ⚠️★둘 다 `topBtn` 으로 감싼다 — 감싸는 상자가 없으면 좌우 여백이 빠져

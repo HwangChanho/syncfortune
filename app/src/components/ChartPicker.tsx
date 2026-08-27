@@ -629,6 +629,21 @@ export function ChartPicker({ onChange }: { onChange?: () => void }) {
             >
               <Text style={styles.addBtnText}>＋ {t('compat.registerMyChart')}</Text>
             </PressableScale>
+
+            {/* ★★「태어난 시 찾기」 — **명식 목록 안**에 둔다 (Boss 2026-08-27
+                *"태어난 시찾기 컨텐츠를 만세력에서 명식리스트 쪽에 넣자"*).
+                ■ 왜 여기인가 — **시를 모르는 사람이 서 있는 자리**가 바로 여기다.
+                  명식을 등록하려다 «태어난 시각» 에서 막히거나, 「시각 미상」으로 넣어 둔 명식을
+                  목록에서 보고 있을 때. 콘텐츠 목록(`/contents`)에 있으면 그 순간에 못 만난다.
+                ⚠️「택일」(`/taegil`)과 **다른 것**이다 — 그건 «어떤 선택을 할 때 좋은 날» 이고,
+                  이건 «내가 태어난 시» 를 사건으로 좁히는 것이다(Boss 가 둘을 갈라 말했다). */}
+            <PressableScale
+              style={[styles.findTimeBtn, { marginBottom: insets.bottom }]}
+              onPress={() => { setOpen(false); router.push('/timeResolve'); }}
+            >
+              <Text style={styles.findTimeTx}>{t('manse.findHour', '태어난 시 찾기')}</Text>
+              <Text style={styles.findTimeSub}>{t('manse.findHourSub', '시각을 모르면 사건으로 좁혀요')}</Text>
+            </PressableScale>
           </Pressable>
         </Pressable>
         {/* ⋯ 액션시트 — 메인 모달 안·리스트 밖(absoluteFill)이라 하단이 잘리지 않고, bg 불투명이라 뒤가 안 비침.
@@ -837,5 +852,13 @@ const styles = StyleSheet.create({
   check: { fontSize: 18, color: colors.ju, fontWeight: '700' },
   // flexShrink:0 — 시트가 꽉 차도 이 버튼은 **절대 줄지 않는다**(줄어드는 쪽은 위의 리스트). marginBottom 은 렌더에서 안전영역만큼.
   addBtn: { backgroundColor: colors.ju, borderRadius: radius.md, paddingVertical: space(3.5), alignItems: 'center', marginTop: space(4), flexShrink: 0 },
+  // ★「태어난 시 찾기」 — 주 CTA(등록)보다 **한 단계 낮게**. 목록의 주인공은 명식이지 이 버튼이 아니다.
+  findTimeBtn: {
+    marginTop: space(2), paddingVertical: space(3), paddingHorizontal: space(4),
+    borderRadius: radius.md, borderWidth: 1, borderColor: colors.line,
+    backgroundColor: colors.sunk, alignItems: 'center',
+  },
+  findTimeTx: { ...font.body, color: colors.ink, fontWeight: '800' },
+  findTimeSub: { ...font.caption, color: colors.inkFaint, marginTop: 2 },
   addBtnText: { color: colors.bg, fontSize: 15, fontWeight: '700' },
 });

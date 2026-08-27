@@ -393,9 +393,15 @@ export function TalkList({ items, onOpen, selected, myName, onMe, myAvatar, rail
             워드마크는 이 화면 **바로 위**(`index.tsx` 헤더)에 이미 있어 둘이 겹쳐 보였다 —
             *"니운내운 두번뜨는거 제일상단꺼만 남겨둬"*. 위 것을 남기고 여기는 이름으로 바꿨다.
             ★누르면 **만세력**(`/charts`)으로 간다(Boss 지시). */}
-        <PressableScale style={styles.meBtn} onPress={onMe}>
+        {/* ★★비로그인이면 **「로그인」** 이다 (Boss 2026-08-27
+            *"비 로그인 상태에서 홈에 명식 등록 이라 되어있는데 이건 없애고 로그인으로 바꾸고
+              누르면 로그인 창으로 넘기자"*).
+            ■ 왜 — 로그인도 안 한 사람에게 «명식 등록» 을 권하면, 눌러서 등록해도 **그 명식이 어디에도
+              안 묶인다**(계정이 없으니). 먼저 할 일은 로그인이다.
+            ★로그인했는데 명식이 없으면 그때 «명식 등록» 이 맞다 — 그 갈래는 그대로 둔다. */}
+        <PressableScale style={styles.meBtn} onPress={() => (session ? onMe?.() : onLogin?.())}>
           <Text style={styles.meName} numberOfLines={1}>
-            {myName ?? t('talk.meNoChart', '명식 등록')}
+            {session ? (myName ?? t('talk.meNoChart', '명식 등록')) : t('auth.login', '로그인')}
           </Text>
         </PressableScale>
         {/* ⚠️★종을 `topBtn` 으로 감싼다(Boss 2026-08-27 *"돋보기랑 + 사이 간격이

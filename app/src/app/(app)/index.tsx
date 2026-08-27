@@ -26,6 +26,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 // 홈 블록 이미지 상수(IMG)는 홈이 정보 카드로 바뀌며(2026-08-01) 소비처가 사라져 제거했다.
 import { LangChip } from '../../components/LangChip'; // 언어 칩(목록은 _layout 의 LangPickerHost)
 import { BrandWordmark } from '../../components/BrandWordmark';
+import { NotifyBell } from '../../components/talk/NotifyBell';   // 알림 종 — 홈 헤더(Boss 08-27)
 import { TalkHome } from './talk';   // ★08-19 시작 화면 = 친구목록
 import { useGenProgress, clearGenProgress } from '../../lib/backend/genProgress'; // 풀이 진행률(다중·route별, 풀이중 홈 나가도 % — daniel)
 import { useSubscription } from '../../lib/billing/subscription';
@@ -160,9 +161,11 @@ export default function Home() {
               `ListHeaderComponent` 안이라 오버레이가 **헤더 높이만큼만** 덮인다). */}
         <View style={{ flex: 1 }} />
         <LangChip />
-        {/* ⚠️알림 벨은 **여기 없다** — Boss 2026-08-26 *"돋보기 옆에 놔"* 로
-            친구목록·대화목록 헤더(`NotifyBell`)로 옮겼다. 이모지(🔔)도 선 아이콘으로 바꿨다:
-            이모지는 색이 박혀 있어 옆의 선 아이콘들과 **무게가 안 맞았다**. */}
+        {/* ★★알림 벨을 **홈으로 되돌렸다** (Boss 2026-08-27 *"알림창 보는 종은 홈에 니운내운 옆에 두자"*).
+            ⚠️08-26 에는 *"돋보기 옆에 놔"* 로 친구목록·대화목록 헤더에만 뒀는데, 지시가 바뀌었다.
+            ★같은 `NotifyBell` 컴포넌트다 — 배지 규칙·읽음 갱신이 세 자리에서 갈리지 않는다
+              ([[duplicate-ui-single-source]]). 목록 쪽 벨은 그대로 둔다(거기서도 보여야 한다). */}
+        <NotifyBell size={24} />
       </View>
 
       {/* 풀이 진행 알림 — ★진행률 막대가 아니라 **담당자의 답장**이다(Boss 2026-08-25).

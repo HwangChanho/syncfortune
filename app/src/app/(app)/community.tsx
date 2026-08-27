@@ -223,6 +223,35 @@ export default function CommunityScreen() {
 
   const catLabel = (c?: CommunityCategory) => c ? t(`community.cat.${c}`) : t('community.all', '전체');
 
+  /**
+   * ★★운광장은 **로그인해야 들어온다** (Boss 2026-08-27 *"운광장은 로그인 해야 이용할수 있게 하자"*).
+   *
+   * ■ 무엇이 바뀌었나 — 종전엔 **읽기는 누구나**, 글쓰기만 로그인이었다
+   *   (문구에도 *"읽기는 로그인 없이 그대로 가능합니다"* 라고 적혀 있었다).
+   *   ⇒ 이제 화면 자체를 잠근다.
+   * ■ ⚠️훅보다 **아래**에 둔다 — 위에 두면 렌더마다 훅 개수가 달라져 화면이 통째로 죽는다
+   *   (React #310 · 이 저장소가 이미 겪은 사고. `check:hooks` 가 지킨다).
+   * ■ ★막기만 하지 않는다 — **로그인으로 가는 길**을 같이 준다.
+   */
+  if (!isRegistered) {
+    return (
+      <View style={[styles.bg, { alignItems: 'center', justifyContent: 'center', padding: space(6) }]}>
+        <Text style={{ ...font.title, color: colors.ink, fontWeight: '900', textAlign: 'center' }}>
+          {t('community.gateTitle', '운광장은 로그인 후 이용할 수 있어요')}
+        </Text>
+        <Text style={{ ...font.body, color: colors.inkSoft, textAlign: 'center', marginTop: space(3), lineHeight: 22 }}>
+          {t('community.gateDesc', '함께 쓰는 자리라 누가 쓴 글인지 남아야 해요. 로그인하면 바로 볼 수 있어요.')}
+        </Text>
+        <PressableScale
+          style={{ marginTop: space(6), paddingVertical: space(3.5), paddingHorizontal: space(8), borderRadius: radius.pill, backgroundColor: colors.ju }}
+          onPress={() => router.push('/login')}
+        >
+          <Text style={{ ...font.body, color: colors.onJu, fontWeight: '800' }}>{t('community.goLogin', '로그인')}</Text>
+        </PressableScale>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.bg}>
       {/* 카테고리 탭 — ★헤더를 껐으므로(_layout) 상태바 안전영역은 여기서 확보한다.

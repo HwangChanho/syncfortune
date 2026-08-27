@@ -155,7 +155,15 @@ export function WebShell({ children }: { children: ReactNode }) {
     <View style={styles.row}>
       <WebSidebar />
       {/* 본문 — 가운데 정렬 컬럼. 바깥 여백은 앱 배경이 그대로 비친다(전역 ContentBackdrop) */}
-      <View style={styles.stage}>
+      {/* ★★가로를 쓰는 화면은 **왼쪽에 붙인다** (Boss 2026-08-27
+          *"크롬 배율 축소하면 가운대로 몰리는데 기본적으로 왼쪽에 붙어있어야해"* ·
+          *"브라우저 배율 조절에도 일정하게 대응이 돼야해"*).
+          ■ 왜 갈라야 하나 — **두 종류의 화면이 원하는 게 다르다**
+            ·대화·목록·격자처럼 **가로를 쓰는** 화면: 배율을 줄이면 화면이 넓어지는데
+             가운데 정렬이면 좌우에 큰 빈 띠가 생긴다(실측: 553px·400px). 왼쪽에 붙어야 «자리가 안 움직인다».
+            ·**글을 읽는** 화면: 줄이 길면 눈이 다음 줄을 놓친다 ⇒ 좁게, 가운데가 맞다(브런치·29CM 방향).
+          ⇒ `isWideRoute` 하나로 가른다. 새 기준을 만들지 않는다. */}
+      <View style={[styles.stage, isWideRoute && styles.stageLeft]}>
         <View style={[styles.column, { maxWidth: isWideRoute ? WEB_STAGE : isForm ? WEB_FORM : isContent ? WEB_READ : WEB_COLUMN }]}>{children}</View>
       </View>
     </View>
@@ -248,6 +256,8 @@ const styles = StyleSheet.create({
     flex: 1, alignItems: 'center', paddingHorizontal: STAGE_PAD,
     ...(Platform.OS === 'web' ? ({ height: '100%', overflow: 'hidden' } as any) : {}),
   },
+  // ★가로를 쓰는 화면 — 왼쪽에 붙인다(위 주석). 배율이 바뀌어도 **자리가 안 움직인다**.
+  stageLeft: { alignItems: 'flex-start' },
   // 컬럼이 화면 높이를 다 쓰게 flex:1 — 안쪽 화면들이 자기 스크롤을 갖는다. maxWidth 는 라우트가 정한다.
   column: { flex: 1, width: '100%', ...(Platform.OS === 'web' ? ({ height: '100%' } as any) : {}) },
 

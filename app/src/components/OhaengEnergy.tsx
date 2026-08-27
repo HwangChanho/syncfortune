@@ -86,14 +86,17 @@ export function OhaengEnergy({ saju }: { saju: SajuChart }) {
       {/* ② 오행 비율 스택 바 — ★★칸 **안에** 글자와 개수를 넣는다(Boss 2026-08-27
             *"색상 바 앞에 해당 색에 맞는 오행이랑 갯수숫자가 나오게하고 없는건 제일 오른쪽에 두고"*).
           종전엔 바 아래 별도 줄이라 **어느 색이 무엇인지** 눈이 두 번 오갔다.
-          ⚠️칸이 좁으면 글자가 잘린다 ⇒ `flex` 가 작은 칸은 글자를 **안 그린다**(잘린 글자보다 낫다) —
-            그 대신 아래 «없는 기운» 줄에서 전부 확인된다. */}
+          ⚠️★★2026-08-27 — 종전엔 `counts >= 2` 일 때만 글자를 그렸다. 그런데 «없는 기운» 줄은
+            **0개인 것만** 보여 준다 ⇒ **1개짜리는 어디에도 안 나왔다**
+            (Boss 화면: 木·土·水 가 각 1개인데 바에 아무 글자도 없었다 — *"오행 하나만 있는건 안나와"*).
+          ⇒ 1개도 **글자는 그린다.** 다만 칸이 좁으니 **숫자를 뺀다**(「木」 · 「火 2」).
+            한자 한 글자는 1/8 칸(≈12%)에도 들어간다 — 잘리는 건 «글자+숫자» 였다. */}
       <View style={styles.stack}>
         {EL.filter((e) => counts[e] > 0).map((e) => (
           <View key={e} style={[styles.seg, { flex: counts[e], backgroundColor: elementColor[e] }]}>
-            {counts[e] >= 2 ? (
-              <Text style={[styles.segTx, { color: onColor(e) }]} numberOfLines={1}>{e} {counts[e]}</Text>
-            ) : null}
+            <Text style={[styles.segTx, { color: onColor(e) }]} numberOfLines={1}>
+              {counts[e] >= 2 ? `${e} ${counts[e]}` : e}
+            </Text>
           </View>
         ))}
       </View>
