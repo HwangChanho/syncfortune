@@ -77,9 +77,23 @@ export function audit(fn: string, bp: string): Fail[] {
   {
     const m = /max_tokens:\s*([A-Za-z_$][\w$.]*)/.exec(f);
     const name = m?.[1] ?? '';
-    const fromDb = name === 'c.max_out_tok' || name === 'c.deep_max_out_tok'
-      // 파생값이면 그 이름을 **정의하는 줄**이 DB 컬럼을 참조해야 한다
-      || new RegExp(`(?:const|let)\\s+${name}\\s*=[\\s\\S]{0,300}?c\\.(?:deep_)?max_out_tok`).test(f);
+    // ★★2026-08-27 — 파생을 **한 단계만** 봤다. 티키타카가 들어오며 상한이 한 겹 더 생기자
+    //   (`outCap = crosstalkTurn ? maxOut * 배수 : maxOut` · `maxOut` 이 DB 파생)
+    //   **코드는 옳은데 빨간불**이 됐다. [[harness-judge-expression-not-name]] 이 말한 그 함정이다.
+    //   ⇒ 정의를 **재귀로** 따라간다. 어느 단계에서든 DB 컬럼에 닿으면 통과다.
+    //   ⚠️깊이를 막는다 — 서로를 참조하면 영영 돌 수 있다.
+    const defOf = (n: string): string =>
+      new RegExp(`(?:const|let)\\s+${n.replace(/[$]/g, '\\$$')}\\s*=([\\s\\S]{0,400}?);`).exec(f)?.[1] ?? '';
+    const reachesDb = (n: string, depth = 0, seen = new Set<string>()): boolean => {
+      if (!n || depth > 3 || seen.has(n)) return false;
+      if (n === 'c.max_out_tok' || n === 'c.deep_max_out_tok') return true;
+      seen.add(n);
+      const d = defOf(n);
+      if (!d) return false;
+      if (/c\.(?:deep_)?max_out_tok/.test(d)) return true;
+      return (d.match(/\b[A-Za-z_$][\w$]*\b/g) ?? []).some((x) => reachesDb(x, depth + 1, seen));
+    };
+    const fromDb = reachesDb(name);
     if (!name || !fromDb) {
       out.push({ rule: 'C4', msg: `${P_FN} 의 max_tokens(${name || '없음'})가 consultants.max_out_tok / deep_max_out_tok 에서 나오지 않는다 — 출력이 턴 원가의 76%다. 배포 없이 조일 수 있어야 한다` });
     }
