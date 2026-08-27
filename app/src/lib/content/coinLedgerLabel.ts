@@ -13,7 +13,7 @@
 //     여기서 «궁합»을 또 적으면 목록 이름을 바꿔도 내역만 옛 이름으로 남는다.
 //
 // ■ 실측한 값 (2026-08-25 · `coin_ledger` 56행)
-//   reason: spend · purchase · migrate · admin_gift · refund
+//   reason: spend · purchase · migrate · admin_gift · admin_grant · refund
 //   kind  : 콘텐츠 키(compat·ziwei·love·crush·reading·newyear·roots·image·talk·timeline·jobfit)
 //           \+ 상품 키(coin_100·coin_300·coin_600·adfree_30)
 //   ⚠️모르는 값이 와도 화면이 비지 않게 **원문을 그대로** 보여 준다(빈 줄보다 낫다).
@@ -75,7 +75,11 @@ export function coinLedgerLabel(reason: string | null, kind: string | null, delt
       return what
         ? t('coinHistory.rRefundWhat', '{{what}} 환불').replace('{{what}}', what)
         : t('coinHistory.rRefund', '환불');
-    case 'admin_gift': return t('coinHistory.rGift', '선물 받은 운');
+    case 'admin_gift':
+    // ★`admin_grant` 도 같은 뜻이다 — 운영자가 넣어 준 운(2026-08-27에 실제로 쓰였다).
+    //   ⚠️사유 이름이 둘로 갈린 채 **라벨이 하나만** 있으면 내역에 「운 사용/충전」으로 뭉개진다
+    //     (`check:coinhistory` H2 가 그걸 잡았다). 뜻이 같으니 **한 줄로 모은다.**
+    case 'admin_grant': return t('coinHistory.rGift', '선물 받은 운');
     case 'migrate':    return t('coinHistory.rMigrate', '이전 잔액 이관');
     default:
       // ⚠️모르는 reason — 방향만이라도 맞게 말하고, 무엇에 썼는지는 알면 붙인다
