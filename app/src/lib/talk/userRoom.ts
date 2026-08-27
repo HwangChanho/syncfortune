@@ -24,9 +24,15 @@ import { withTimeout } from '../core/withTimeout';
 /** 사람 방의 메시지 한 줄. `system` = 「누가 나갔습니다」 같은 안내. */
 export type UserMsg = {
   id: number;
-  role: 'user' | 'system';
+  /**
+   * ★`assistant` = **@ 로 부른 AI 선생님**의 답 (Boss 2026-08-27).
+   *   유저끼리 방이라도 `@노쌤` 이라고 쓰면 그 사람이 들어와 한 마디 한다.
+   */
+  role: 'user' | 'system' | 'assistant';
   /** ★사진 한 장(storage 경로). 없으면 null (Boss 2026-08-27 *"사진공유"*). */
   imagePath?: string | null;
+  /** ★AI 가 말했으면 그 상담가 id(`consultants.id`). 사람이면 null. */
+  speakerId?: string | null;
   body: string;
   /** 보낸 사람(내 것인지 가르는 유일한 근거) */
   senderId: string;
@@ -70,25 +76,38 @@ export async function leaveUserRoom(sessionId: string): Promise<'left' | 'delete
   return v === 'left' || v === 'deleted' ? v : null;
 }
 
+/**
+ * `talk_messages` 한 행 → 화면이 쓰는 `UserMsg`.
+ * ★★**한 곳에서만** 만든다 — 종전엔 «불러오기» 와 «realtime» 이 각자 변환했고,
+ *   그래서 `assistant`(@ 로 부른 AI)를 한쪽만 고치면 **새로고침 전후가 달라 보인다**
+ *   ([[duplicate-ui-single-source]] — 사본은 반드시 갈린다).
+ */
+function toMsg(m: any): UserMsg {
+  return {
+    id: Number(m.id),
+    // ★세 갈래를 **그대로** 옮긴다 — `system` 이 아니면 전부 `user` 로 뭉개면
+    //   @ 로 부른 AI 의 답이 **내 말처럼** 보인다.
+    role: m.role === 'system' ? 'system' : m.role === 'assistant' ? 'assistant' : 'user',
+    body: String(m.body ?? ''),
+    senderId: String(m.owner_id ?? ''),
+    sentAt: String(m.sent_at ?? ''),
+    imagePath: m.image_path ? String(m.image_path) : null,
+    speakerId: m.speaker_id ? String(m.speaker_id) : null,
+  };
+}
+
 /** 이 방의 지난 말들(오래된 것부터). */
 export async function loadUserMessages(sessionId: string, limit = 120): Promise<UserMsg[]> {
   const r = await withTimeout(
     supabase.from('talk_messages')
-      .select('id, role, body, owner_id, sent_at, image_path').eq('session_id', sessionId)
+      .select('id, role, body, owner_id, sent_at, image_path, speaker_id').eq('session_id', sessionId)
       // ★최근 것부터 받아 뒤집는다 — 오래된 쪽부터 자르면 **최근 대화가 사라진다**
       //   (2026-08-26 에 실제로 그랬다: `ascending:true` + limit 이라 최근이 잘렸다).
       .order('sent_at', { ascending: false }).limit(limit),
     8000,
   );
   if (!r || r.error || !Array.isArray(r.data)) return [];
-  return (r.data as any[]).slice().reverse().map((m) => ({
-    id: Number(m.id),
-    role: m.role === 'system' ? 'system' : 'user',
-    body: String(m.body ?? ''),
-    senderId: String(m.owner_id ?? ''),
-    sentAt: String(m.sent_at ?? ''),
-    imagePath: m.image_path ? String(m.image_path) : null,
-  }));
+  return (r.data as any[]).slice().reverse().map(toMsg);
 }
 
 /**
@@ -155,14 +174,7 @@ export function subscribeUserRoom(sessionId: string, onMsg: (m: UserMsg) => void
     .on('postgres_changes',
       { event: 'INSERT', schema: 'public', table: 'talk_messages', filter: `session_id=eq.${sessionId}` },
       (p) => {
-        const m = p.new as any;
-        onMsg({
-          id: Number(m.id),
-          role: m.role === 'system' ? 'system' : 'user',
-          body: String(m.body ?? ''),
-          senderId: String(m.owner_id ?? ''),
-          sentAt: String(m.sent_at ?? ''),
-        });
+        onMsg(toMsg(p.new));
       })
     .subscribe();
   return () => { void supabase.removeChannel(ch); };

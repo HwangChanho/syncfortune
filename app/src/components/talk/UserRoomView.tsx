@@ -28,6 +28,8 @@ import {
   type UserMsg, type RoomPerson,
 } from '../../lib/talk/userRoom';
 import { supabase } from '../../lib/supabase';
+import { listConsultants, type Consultant } from '../../lib/talk/consultants';   // @ 로 부를 선생님(Boss 08-27)
+import { askLive } from '../../lib/talk/liveTalk';
 import { colors, space, radius, font } from '../../lib/theme';
 import { useFontScale } from '../../lib/ui/fontScale';
 
@@ -60,6 +62,13 @@ export function UserRoomView({ sessionId, myId, onBack, onInvite, onLeave }: {
   const [people, setPeople] = useState<RoomPerson[]>([]);
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
+  /**
+   * ★★`@이름` 으로 부를 수 있는 선생님들 (Boss 2026-08-27
+   *   *"실제 사람이랑 대화할때는 사진공유 ai 선생님 지목 @ 이걸로"*).
+   * ★목록은 이미 있는 `listConsultants()` 를 그대로 쓴다 — 새 표를 만들지 않는다.
+   */
+  const [teachers, setTeachers] = useState<Consultant[]>([]);
+  useEffect(() => { void listConsultants().then((cs) => setTeachers(cs.filter((c) => c.kind === 'live'))); }, []);
   /**
    * 입력칸 높이 — Boss 2026-08-27
    *   *"텍스트필드가 두줄로 잡히는데 한줄로 · 길어지면 올라오게 · 5줄 이상부턴 스크롤"*
@@ -114,6 +123,14 @@ export function UserRoomView({ sessionId, myId, onBack, onInvite, onLeave }: {
   /** 서버 모양 → `TalkThread` 모양. ★여기가 이 파일의 전부다. */
   const items: TalkItem[] = useMemo(() => msgs.map((m) => {
     if (m.role === 'system') return { id: `s${m.id}`, role: 'assistant' as const, body: '', system: m.body };
+    // ★AI 가 말한 줄 — 사람과 **다른 갈래**로 그린다(이름을 상담가 목록에서 찾는다)
+    if (m.role === 'assistant') {
+      const tc = teachers.find((x) => x.id === m.speakerId);
+      return {
+        id: `a${m.id}`, role: 'assistant' as const, body: m.body,
+        who: { name: tc?.name ?? 'AI', avatar: tc?.avatar ?? null, id: m.speakerId ?? undefined },
+      };
+    }
     const mine = m.senderId === myId;
     const p = nameOf(m.senderId);
     return {
@@ -127,7 +144,7 @@ export function UserRoomView({ sessionId, myId, onBack, onInvite, onLeave }: {
       // ★사진 (Boss 2026-08-27) — `TalkThread` 가 이미 그릴 줄 안다(새 그리기 규칙을 안 만든다)
       ...(m.imagePath ? { image: { uri: avatarUrl(m.imagePath) ?? '' } } : {}),
     };
-  }), [msgs, myId, nameOf, people]);
+  }), [msgs, myId, nameOf, people, teachers]);
 
   const others = people.filter((p) => p.id !== myId);
   const title = others.length
@@ -142,7 +159,36 @@ export function UserRoomView({ sessionId, myId, onBack, onInvite, onLeave }: {
     const ok = await sendUserMessage(sessionId, text, myId);
     setSending(false);
     // ★실패하면 **쓴 글을 돌려준다** — 사라지면 다시 써야 한다(가장 나쁜 실패다)
-    if (!ok) setDraft(text);
+    if (!ok) { setDraft(text); return; }
+    // ★★`@이름` 이 있으면 그 선생님을 부른다 (Boss 2026-08-27)
+    if (ok) void callTeacher(text);
+  };
+
+  /**
+   * ★★`@이름` 으로 **AI 선생님을 이 방에 부른다** (Boss 2026-08-27
+   *   *"실제 사람이랑 대화할때는 사진공유 ai 선생님 지목 @ 이걸로"*).
+   *
+   * ■ 어떻게 도나 — **새 경로를 만들지 않았다**
+   *   이미 있는 `askLive`(talk Edge)를 **같은 `sessionId`** 로 부른다.
+   *   Edge 가 답을 `talk_messages` 에 `role='assistant'` 로 넣고, 이 방의 realtime 이
+   *   그걸 그대로 받아 온다 — 화면에서 따로 붙일 것이 없다.
+   * ■ ⚠️★**운은 부른 사람이 낸다**
+   *   Edge 는 `uid`(=호출자) 기준으로 무료 한도·차감을 판정한다. 방을 만든 사람이 아니라
+   *   **@ 를 친 사람**이 내는 것이 맞다 — 안 그러면 남의 운으로 AI 를 부를 수 있다.
+   * ■ ⚠️서버가 **참여자**를 허용해야 한다 — 종전엔 세션 owner 만 통과해서, 방을 만들지 않은
+   *   쪽이 @ 를 부르면 403 이었다(2026-08-27 같이 고쳤다).
+   * ★한 턴에 **한 명만** 부른다 — 둘을 부르면 두 번 과금되고 누구 얘기인지도 흐려진다.
+   */
+  const callTeacher = async (text: string) => {
+    if (!teachers.length) return;
+    // 이름이 긴 사람이 먼저 걸리게 — 「노쌤」과 「노쌤의 사주상담소」가 같이 있으면 긴 쪽이 정확하다
+    const sorted = [...teachers].sort((a, b) => b.name.length - a.name.length);
+    const hit = sorted.find((c) => text.includes(`@${c.name}`) || text.includes(`@${c.name.split(' ')[0]}`));
+    if (!hit) return;
+    setSending(true);
+    try { await askLive(hit.id, text, sessionId, null, 'ko'); }
+    catch (e) { console.warn('[room] 선생님 호출 실패', e); }
+    setSending(false);
   };
 
   /**
