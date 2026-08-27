@@ -55,10 +55,29 @@ if (isMain) {
   const roster = readFileSync(ROSTER, 'utf8');
 
   // D1 — 재료
-  const hasOpt = /opts\?:\s*\{\s*ziwei\?/.test(build) && /opts\?\.ziwei\s*\?\?\s*true/.test(build);
-  const passes = /buildTalkChartBlock\(chartRow, owned, \{ ziwei: ziweiOwner \}\)/.test(talk);
+  // ⚠️★2026-08-27 — 종전엔 호출을 **문자열로 통째 비교**했다(`{ ziwei: ziweiOwner }`).
+  //   사주 줄을 대칭으로 가르며 인자가 하나 늘자 **코드는 더 옳아졌는데 빨간불**이 됐다.
+  //   ⇒ 인자 목록을 꺼내 **키가 들어 있는지**만 본다. 순서·추가 항목에 안 깨진다.
+  const call = /buildTalkChartBlock\(\s*chartRow\s*,\s*owned\s*,\s*\{([^}]*)\}/.exec(talk)?.[1] ?? '';
+  const hasOpt = /opts\?:\s*\{[^}]*\bziwei\?/.test(build) && /opts\?\.ziwei\s*\?\?\s*true/.test(build);
+  const passes = /\bziwei\s*:/.test(call);
   say(hasOpt && passes, 'D1 자미 줄을 담당에게만 준다',
-    hasOpt ? (passes ? '' : '옵션은 있는데 **호출부가 안 넘긴다** — 있으나 마나') : '옵션이 없습니다');
+    hasOpt ? (passes ? `호출부가 넘긴다: 「${call.trim().slice(0, 40)}」` : '옵션은 있는데 **호출부가 안 넘긴다** — 있으나 마나') : '옵션이 없습니다');
+
+  // D1b — ★★**반대쪽도** 갈리는가 (Boss 2026-08-27 *"자미두수 보는 친구는 사주를 몰라야"*)
+  //   자미 줄을 노쌤에게 안 주면서 **사주 줄은 자미 담당에게 그대로 주고 있었다.**
+  //   실측: 저장된 답변에서 자미 담당이 「편재격」·「대운」을 **판정**하고 있었다.
+  //   ⇒ 지시가 아니라 **재료**로 막는다 — 없는 자료는 못 읽는다.
+  const hasSajuOpt = /opts\?:\s*\{[^}]*\bsaju\?/.test(build) && /opts\?\.saju\s*\?\?\s*true/.test(build);
+  const passesSaju = /\bsaju\s*:/.test(call);
+  say(hasSajuOpt && passesSaju, 'D1b ★사주 줄도 **대칭으로** 갈린다',
+    hasSajuOpt ? (passesSaju ? '자미 전담에게는 사주 줄이 안 간다' : '옵션은 있는데 호출부가 안 넘긴다') : '사주 옵션이 없다 — 자미 담당이 사주를 판정한다');
+
+  // D4b — 지문이 **반대 방향**도 못 박는가
+  {
+    const ok = /사주\([^)]*\)는 사주를 보는 담당만 판정한다/.test(talk);
+    say(ok, 'D4b 지문이 «사주는 담당만» 도 못 박는다', ok ? '자미 규칙과 대칭' : '한 방향만 막혀 있다');
+  }
 
   // D2 — 경계에 필요한 값을 실제로 가져오는가
   const sels = [...talk.matchAll(/\.select\('id, kind, name,([^']*)'\)/g)].map((m) => m[1]);
