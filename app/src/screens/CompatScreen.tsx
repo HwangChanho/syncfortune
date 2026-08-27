@@ -448,7 +448,7 @@ export function CompatScreen({ me, initialRel }: { me: ChartInput | null; initia
               {compat && (
                 <View style={styles.scoreSignals}>
                   {compat.seasonComplement && <Text style={styles.sigChip}>🌗 {t('cp.sigSeason', '계절 상보')}</Text>}
-                  {compat.jaegwan && <Text style={styles.sigChip}>💫 {t('cp.sigJaegwan', '상대 = 내 {{g}}', { g: termLabel(compat.jaegwan, i18n.language) })}</Text>}
+                  {!!(compat.jaegwan) && <Text style={styles.sigChip}>💫 {t('cp.sigJaegwan', '상대 = 내 {{g}}', { g: termLabel(compat.jaegwan, i18n.language) })}</Text>}
                   {compat.fillChars.length > 0 && <Text style={styles.sigChip}>🧩 {t('cp.sigFill', '결핍 보완')} {compat.fillChars.join('·')}</Text>}
                   {compat.spouseAfflictions.length > 0 && <Text style={[styles.sigChip, styles.sigWarn]}>⚠️ {t('cp.sigSpouse', '배우자궁')} {compat.spouseAfflictions.join('·')}</Text>}
                 </View>

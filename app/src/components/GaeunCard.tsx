@@ -84,7 +84,7 @@ export function GaeunCard({ saju }: { saju: SajuChart }) {
       )}
 
       {/* ── 타고나지 못한 기운이면 밝힌다 ──────────────────────────────── */}
-      {g.caution && (
+      {!!(g.caution) && (
         <Text style={[styles.caution, ts(12)]}>{g.caution.replace(/\*\*/g, '')}</Text>
       )}
 

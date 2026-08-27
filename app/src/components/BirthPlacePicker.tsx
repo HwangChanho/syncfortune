@@ -128,7 +128,7 @@ export function BirthPlacePicker({ value, onSelect, onOpenChange }: {
               {/* ★검색이 실패했을 때 — '결과 없음'인 척하지 않는다. 원인을 말하고 되돌릴 길을 준다.
                   아래 '그대로 사용'은 그대로 남아 있어, 네트워크가 안 되어도 등록은 끝까지 진행된다
                   (출생지 좌표는 진태양시 보정용 부가정보지 필수값이 아니다). */}
-              {!loading && failure && (
+              {!!(!loading && failure) && (
                 <View style={styles.failBox}>
                   <Text style={styles.failTx}>
                     {failure === 'blocked'

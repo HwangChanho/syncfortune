@@ -217,7 +217,7 @@ export default function TodayScreen() {
         {saved ? <HourFlowCard saju={computeChart(saved.input).saju} dateISO={f.date} isToday={dayOffset === 0} /> : null}
 
         {/* 타이틀 = API 본문 headline 우선(본문과 정합·모순 제거) / 로드 전엔 온디바이스 룰 headline(즉시성) — daniel 07-01 */}
-        {(reading?.headline || headline) && (
+        {!!((reading?.headline || headline)) && (
           <View style={styles.headlineCard}><Text style={styles.headlineTitle}>{reading?.headline || headline}</Text></View>
         )}
 

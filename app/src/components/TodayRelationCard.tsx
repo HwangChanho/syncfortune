@@ -122,7 +122,7 @@ export function TodayRelationCard({ reloadKey, dateKey }: { reloadKey?: number; 
       <Text style={[styles.body, { fontSize: fs(13.5), lineHeight: 20 }]}>{rel.body}</Text>
 
       {/* 오늘 각자의 결 — 오늘 일진이 각자에게 준 십신 결(디테일 확장 daniel 07-22) */}
-      {detail && (detail.mine || detail.other) && (
+      {!!(detail && (detail.mine || detail.other)) && (
         <View style={styles.detailBox}>
           {detail.mine ? <Text style={[styles.detailLine, { fontSize: fs(12.5), lineHeight: 18 }]}><Text style={styles.detailWho}>오늘 나</Text>  {detail.mine}</Text> : null}
           {detail.other ? <Text style={[styles.detailLine, { fontSize: fs(12.5), lineHeight: 18 }]}><Text style={styles.detailWho}>오늘 {other.label || '상대'}</Text>  {detail.other}</Text> : null}

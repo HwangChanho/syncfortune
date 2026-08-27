@@ -12,7 +12,7 @@
 // ■ '없음'을 두 가지로 구분한다
 //   ⚠️'로그인 안 됨'과 '대화 없음'은 **사용자가 할 일이 다르다.** 같은 빈 화면을 띄우면 안 된다.
 // ═══════════════════════════════════════════════════════════════════════════
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef, type ReactNode } from 'react';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TextInput, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from 'expo-router';
@@ -29,6 +29,7 @@ import { elementColor, elementText } from '../../lib/engine/ohaeng';
 import { fallbackElement } from '../../lib/ui/avatarColor';   // ★사진 없을 때 색 — **사람에게** 붙는다(단일 원본)
 import { Icon } from '../kit/Icon';   // 상단 아이콘 단일 원본(Boss 2026-08-24)
 import { Swipeable } from 'react-native-gesture-handler';   // 앱 = 왼쪽 스와이프(친구목록과 같은 틀)
+import { CellBoundary, shapeOf } from '../kit/CellBoundary';   // ★한 줄이 죽어도 탭은 살린다 + 범인의 «생김새» 를 남긴다
 import { pinRoom } from '../../lib/talk/roomActions';       // 상단고정 — 나가기는 호출부가 확인 후 부른다
 import { roomTitle, roomMembers } from '../../lib/talk/groupTalk';   // ★대화방 머리와 **같은 함수**(두 곳이 갈리면 안 된다)
 import { NotifyBell } from './NotifyBell';   // 알림 벨+배지(단일 원본 — 친구목록과 같은 것)
@@ -474,10 +475,23 @@ export function ChatList({ onOpen, selectedId, reloadKey = 0, wide, onSettings, 
         );
         // ★웹에는 스와이프를 안 씌운다 — 마우스로는 못 밀고, 씌우면 드래그가 스크롤을 방해한다.
         //   웹의 진입은 위의 `onContextMenu`(우클릭)다.
-        return Platform.OS === 'web' ? <View key={r.id}>{row}</View> : (
+        /**
+         * ★★2026-08-27 — 줄 하나를 **따로 감싼다**(Boss *"자꾸 대화 탭 누르면"*).
+         * ■ 왜 — 루트 바운더리만 있으면 줄 하나가 터져도 **탭 전체**가 폴백이 된다.
+         *   실제로 `/chats` 가 iOS·Android 에서 통째로 죽었는데, 정적 분석으로는 못 찾았다.
+         * ■ ⚠️고치는 게 아니라 **버티고 알려 주는** 장치다 — 원인이 잡히면 그때 없앨 수 있다.
+         */
+        const guarded = (inner: ReactNode) => (
+          <CellBoundary where="chats.row" probe={{
+            id: r.id, name: shapeOf(r.name), preview: shapeOf(r.preview),
+            members: shapeOf(r.members), guestIds: shapeOf(r.guestIds),
+            unread: shapeOf(r.unread), lastAt: shapeOf(r.lastAt), consultantId: shapeOf(r.consultantId),
+          }}>{inner}</CellBoundary>
+        );
+        return Platform.OS === 'web' ? <View key={r.id}>{guarded(row)}</View> : (
           <Swipeable key={r.id} ref={(x) => { swipeRefs.current[r.id] = x; }}
                      renderRightActions={renderRight} overshootRight={false} friction={2}>
-            {row}
+            {guarded(row)}
           </Swipeable>
         );
       })}

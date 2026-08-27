@@ -169,7 +169,7 @@ export default function MonthScreen() {
         ) : null}
 
         {/* 타이틀 = API 본문 headline 우선(본문과 정합) / 로드 전엔 온디바이스 룰(즉시성) — daniel 07-01 */}
-        {(reading?.headline || headline) && (
+        {!!((reading?.headline || headline)) && (
           <View style={styles.headlineCard}><Text style={styles.headlineTitle}>{reading?.headline || headline}</Text></View>
         )}
 

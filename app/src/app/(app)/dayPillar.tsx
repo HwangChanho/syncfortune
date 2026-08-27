@@ -179,7 +179,7 @@ export default function DayPillarScreen() {
       )}
 
       {/* 내 일주 — 풀상세 강조 카드(대표 명식 있을 때) */}
-      {myKey && (
+      {!!(myKey) && (
         <View style={styles.mineWrap}>
           <Text style={styles.mineLabel}>{t('dayPillar.mine')}</Text>
           <View style={[styles.card, styles.mineCard]}>

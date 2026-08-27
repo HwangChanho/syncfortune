@@ -19,6 +19,7 @@ import React from 'react';
 import { View, Text, ScrollView, StyleSheet, Platform } from 'react-native';
 import { PressableScale } from './PressableScale';
 import { logEvent } from '../lib/backend/logger';
+import { APP_BUILD } from '../lib/core/buildInfo';   // ★★어느 빌드가 낸 크래시인지 — 이게 없어 «고쳤는데 왜 그대로냐» 를 못 갈랐다
 import { lastRoute } from '../lib/backend/screenTrace';   // ★크래시 때 «어느 화면인지» — 네이티브는 스택이 압축돼 이것 없이는 못 짚는다
 import { colors, space, radius, font } from '../lib/theme';
 
@@ -63,6 +64,10 @@ export class AppErrorBoundary extends React.Component<Props, State> {
         // ★스택 **전문**도 넣는다(400자로 자르면 압축된 이름만 남아 쓸모가 없었다)
         compFull: stack.slice(0, 1200),
         platform: Platform.OS,
+        // ★★2026-08-27 — **빌드번호**를 함께 남긴다.
+        //   `/chats` 크래시를 쫓을 때 로그에 버전이 없어 «폰에 든 코드가 지금 코드인지» 를
+        //   끝내 못 갈랐다([[verify-facts-not-memory]] — 근거를 못 적으면 아직 사실이 아니다).
+        build: APP_BUILD,
       }, 'error');
     } catch { /* 로깅 실패가 폴백 화면을 막지 않게 */ }
   }

@@ -992,7 +992,7 @@ function ReadingScreenBody({
       {/* 생성 중 진행률은 UnlockOverlay(자물쇠) message로 일원화 — 중복 인디케이터 제거(daniel) */}
 
       {/* 차트 저장 실패(전역) */}
-      {globalError && <View style={styles.card}><Text style={styles.err}>{globalError}</Text></View>}
+      {!!(globalError) && <View style={styles.card}><Text style={styles.err}>{globalError}</Text></View>}
 
       {/* ★진입 직후 캐시(serverChartId·readings) 로딩 중 — 빈 화면 '무반응' 대신 스피너(daniel: 첫 진입 로딩이 김).
           생성 중(progress)·생성 버튼(showStart)·이미 받은 풀이가 있으면 그쪽 UI가 대신 떠서 미표시. */}
@@ -1126,7 +1126,7 @@ function ReadingScreenBody({
             <Text style={[styles.detailBackTx, { fontSize: fs(20) }]}>‹ {t('rg.toList', '목록으로')}</Text>
           </PressableScale>
         </View>
-        {detail && (
+        {!!(detail) && (
           <ScrollView contentContainerStyle={styles.detailWrap} keyboardShouldPersistTaps="handled">
             <Text style={styles.detailTitle}>{cats.find((x) => x.key === detail)?.label}</Text>
             {/* 자미두수 등 — 이 항목(궁)이 뭘 보는지 설명 */}
