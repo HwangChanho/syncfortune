@@ -1170,7 +1170,7 @@ export const en = {
     'empty': 'Nothing saved yet.',
     'emptySub': 'Tap ♡ on a card to keep it here.',
   },
-  notify: {
+  notify: { remove: 'Remove this notification',
     'empty': 'No notifications yet.',
     'failed': "Couldn't load notifications.",
     'title': 'Notifications',

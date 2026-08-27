@@ -11,7 +11,7 @@ import { View, Text, ScrollView, StyleSheet, ActivityIndicator } from 'react-nat
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { loadInbox, markInboxSeen, type InboxItem } from '../../lib/backend/notifyInbox';
+import { loadInbox, markInboxSeen, hideInboxItem, type InboxItem } from '../../lib/backend/notifyInbox';
 import { PressableScale } from '../../components/PressableScale';
 import { colors, radius, space, font, shadow } from '../../lib/theme';
 
@@ -32,6 +32,20 @@ export default function NotificationsScreen() {
   }, []);
 
   useFocusEffect(useCallback(() => { void load(); }, [load]));
+
+  /**
+   * ★알림 한 줄 지우기 (Boss 2026-08-27 *"알림은 지울수도 있게해줘"*).
+   *
+   * ★**화면에서 먼저 뺀다**(낙관적) — 서버를 기다리면 «눌렀는데 안 없어지는» 느낌이 난다.
+   *   ⚠️실패하면 **되돌린다.** 사라진 줄 알았는데 다시 나타나는 편이, 안 지워졌는데
+   *     지워진 줄 아는 것보다 낫다.
+   * ⚠️행을 지우는 게 아니라 **내 화면에서만 감춘다**(발송 기록은 남는다 · `hideInboxItem` 주석).
+   */
+  const remove = useCallback(async (key: string) => {
+    setSt((prev) => (prev && !('error' in prev) ? { items: prev.items.filter((x) => x.key !== key) } : prev));
+    const ok = await hideInboxItem(key);
+    if (!ok) void load();     // 실패 — 서버 상태를 다시 읽어 되돌린다
+  }, [load]);
 
   return (
     <ScrollView style={styles.wrap} contentContainerStyle={[styles.body, { paddingTop: insets.top + space(4) }]}>
@@ -61,6 +75,15 @@ export default function NotificationsScreen() {
                   <Text style={styles.rowDate}>{it.createdAt.slice(0, 10)}</Text>
                 </View>
                 {it.route ? <Text style={styles.rowArrow}>›</Text> : null}
+                {/* ★지우기 — 오른쪽 끝. 누르면 이 줄만 사라진다(다른 알림은 그대로) */}
+                <PressableScale
+                  hitSlop={10}
+                  style={styles.rowX}
+                  onPress={() => void remove(it.key)}
+                  accessibilityLabel={t('notify.remove', '이 알림 지우기')}
+                >
+                  <Text style={styles.rowXTx}>✕</Text>
+                </PressableScale>
               </>
             );
             // 열 곳이 없는 알림은 눌리지 않게 둔다(빈 화면으로 보내지 않는다)
@@ -94,5 +117,8 @@ const styles = StyleSheet.create({
   rowTitle: { ...font.body, color: colors.ink, fontWeight: '700' },
   rowBody: { ...font.caption, color: colors.inkSoft, lineHeight: 18 },
   rowDate: { ...font.caption, color: colors.inkFaint },
+  // ★지우기 — 눌리는 면적은 넓게, 글자는 작고 옅게(«지우기» 가 주인공이 되면 안 된다)
+  rowX: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center', marginLeft: space(1) },
+  rowXTx: { fontSize: 14, color: colors.inkFaint, fontWeight: '800' },
   rowArrow: { ...font.heading, color: colors.inkFaint },
 });

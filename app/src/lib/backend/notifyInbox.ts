@@ -36,6 +36,27 @@ export type InboxItem = {
 export type InboxResult = { items: InboxItem[] } | { error: true };
 
 /**
+ * 알림 한 줄을 **내 화면에서만** 감춘다 (Boss 2026-08-27 *"알림은 지울수도 있게해줘"*).
+ *
+ * ■ ★왜 «지우기» 가 아니라 «숨기기» 인가
+ *   `user_notify_queue` 는 **발송 큐이자 기록**이다. 행을 지우면 «이 사람에게 보냈는가» 를 잃고,
+ *   푸시 재전송·감사가 근거를 잃는다. ⇒ `hidden_at` 을 찍어 **그 사람 목록에서만** 뺀다.
+ * ■ ⚠️왜 RPC 인가
+ *   `update` 정책으로 열면 `status`·`recipient` 같은 **다른 컬럼도 같이** 열린다.
+ *   RPC 는 «내 것의 hidden_at 만» 이라는 좁은 문이다(서버가 `auth.uid()` 로 판정한다).
+ *
+ * @param key `loadInbox` 가 준 키(`u:12` · `c:34`)
+ * @returns 감췄으면 true. 남의 것이거나 이미 감춘 것이면 false
+ */
+export async function hideInboxItem(key: string): Promise<boolean> {
+  const m = /^([uc]):(\d+)$/.exec(key);
+  if (!m) return false;
+  const r = await withTimeout(
+    supabase.rpc('hide_notification', { p_source: m[1], p_id: Number(m[2]) }), 8000);
+  return !!r && !r.error && r.data === true;
+}
+
+/**
  * 알림함 목록을 읽는다(최신순).
  * @param limit 최대 개수
  */
@@ -46,10 +67,14 @@ export async function loadInbox(limit = 100): Promise<InboxResult> {
 
     const [a, b] = await Promise.all([
       withTimeout(
+        // ★숨긴 것은 뺀다(Boss 2026-08-27 *"알림은 지울수도 있게해줘"*).
+        //   ⚠️행은 **지우지 않는다** — 이 표는 발송 큐이자 기록이다. 지우면 «보냈는가» 를 잃는다.
         supabase.from('user_notify_queue').select('id, title, body, route, created_at')
+          .is('hidden_at', null)
           .order('created_at', { ascending: false }).limit(limit), 8000),
       withTimeout(
         supabase.from('community_notify_queue').select('id, title, body, post_id, created_at')
+          .is('hidden_at', null)
           .order('created_at', { ascending: false }).limit(limit), 8000),
     ]);
     // ★둘 다 실패해야 실패다 — 한쪽만 막혀도 나머지는 보여 준다(알림이 통째로 사라지는 것보다 낫다)

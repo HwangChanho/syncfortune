@@ -1207,7 +1207,7 @@ export const ko = {
     'empty': '아직 찜한 콘텐츠가 없어요.',
     'emptySub': '콘텐츠 카드의 ♡ 를 누르면 여기에 모여요.',
   },
-  notify: {
+  notify: { remove: '이 알림 지우기',
     'empty': '받은 알림이 없어요.',
     'failed': '알림을 불러오지 못했어요.',
     'title': '알림',
