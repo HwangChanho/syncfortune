@@ -70,6 +70,17 @@ export function UserRoomView({ sessionId, myId, onBack, onInvite, onLeave }: {
    */
   const [inputH, setInputH] = useState(0);
   const inputRef = useRef<TextInput>(null);
+  /**
+   * ⚠️★★2026-08-27 재수정 — Boss *"택스트 칸은 기본 한줄이라니깐"* (같은 요청이 **두 번째**다).
+   *
+   * ■ 왜 처음 수정이 부족했나 — **피드백 루프**
+   *   웹에서 `onContentSizeChange` 가 주는 값은 사실상 textarea 의 `scrollHeight` 다.
+   *   그런데 우리가 그 값으로 **height 를 정하면**, 다음 측정의 `scrollHeight` 는 그 height 가 된다.
+   *   ⇒ 한 번 커진 높이가 **글을 지워도 안 줄어든다.** 빈 칸이 다섯 줄로 벌어져 있던 이유다.
+   * ⇒ ①**글이 비면 잰 값을 버린다**(아래 effect) ②그리고 높이 계산에서도 빈 칸은 **무조건 한 줄**로 둔다.
+   *   두 겹으로 막는 이유: effect 는 다음 렌더에 반영되므로, 그 한 프레임을 계산 쪽이 덮는다.
+   */
+  useEffect(() => { if (!draft) setInputH(0); }, [draft]);
 
   // 방이 바뀌면 **처음부터** 다시 읽는다(앞 방의 말이 남으면 안 된다)
   useEffect(() => {
@@ -157,7 +168,11 @@ export function UserRoomView({ sessionId, myId, onBack, onInvite, onLeave }: {
         <View style={styles.bar}>
           <TextInput
             ref={inputRef}
-            style={[styles.input, { fontSize: fs(15), height: Math.min(Math.max(inputH || LINE, LINE), LINE * 5) + PAD }]}
+            style={[styles.input, {
+              fontSize: fs(15),
+              // ★빈 칸은 **잰 값을 아예 안 쓴다**(위 주석의 피드백 루프)
+              height: (draft ? Math.min(Math.max(inputH || LINE, LINE), LINE * 5) : LINE) + PAD,
+            }]}
             value={draft}
             onChangeText={setDraft}
             placeholder={t('room.ph', '메시지를 입력하세요')}
