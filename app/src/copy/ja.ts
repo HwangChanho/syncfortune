@@ -486,6 +486,7 @@ export const ja = {
     coins: '運のチャージ',
     market: 'マーケット',
   },
+  shared: { title: '共有された鑑定', loading: '鑑定を読み込み中…', notFound: 'この共有リンクの鑑定が見つかりません。', goMine: '自分の運勢を見る ›', alsoMine: '自分の運勢も見る ›', foot: '{{app}} · 四柱推命・紫微斗数・タロット' },
   appName: 'ニウンネウン',
   tagline: '自分と他人を理解するAIの羅針盤',
   // 홈 카드 개인화 티저 — ko 와 동일 키(계산=homeTeaser.ts). ※ newyear.keyword 값 자체는 엔진이 한국어로 산출.

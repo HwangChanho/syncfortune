@@ -302,6 +302,22 @@ export function TalkList({ items, onOpen, selected, myName, onMe, myAvatar, rail
   const [loginHidden, setLoginHidden] = useState(false);
   // 콘티의 칩 — 전체 / 선생님 AI / 친구
   const [filter, setFilter] = useState<'all' | 'teacher' | 'friend' | 'recent'>('all');
+  /**
+   * ★★상단 줄의 **실제 폭**(Boss 2026-08-27 *"홈에 아이콘 크기가 너무커서 웹 기준으로 짤려"* ·
+   *   보내 준 화면에서 이름이 「황…」으로 잘려 있었다).
+   *
+   * ■ 실측으로 원인을 못 박았다 — 웹 2칸 레이아웃에서 이 목록 칸은 **249px** 인데
+   *   아이콘 넷이 **고정 208px**(상자 40×4 + 새참 12×4)을 먹어 이름에 **41px** 만 남았다.
+   *   「황찬호」는 57px 이 필요하다 ⇒ 잘릴 수밖에 없었다.
+   * ■ ⚠️★**창 너비로 정하지 않는다**([[container-width-not-window]]) — 2칸 화면에서 창은 넓은데
+   *   이 칸만 좁다. 창을 보면 «넓다» 고 판단해 그대로 두게 된다. ⇒ **이 줄 자체를 잰다.**
+   * ■ 0 이면 **아직 안 쟀다**는 뜻이라 넓은 쪽 기본값으로 그린다(첫 프레임에 작아졌다 커지는 깜빡임 방지).
+   */
+  const [topW, setTopW] = useState(0);
+  /** 이름 석 자(≈57px)가 살아남는 하한. 아이콘을 줄여도 이보다 좁으면 어차피 잘린다. */
+  const tight = topW > 0 && topW < 320;
+  const IC = tight ? 22 : 26;          // ⚠️22 가 하한 — `check:topicons` ③(누르는 아이콘 22 이상)
+  const BT = tight ? 32 : 40;
   // 즐겨찾기 — 온디바이스. ★별을 누르면 **즉시** 다시 그린다(새로고침을 요구하지 않는다).
   const [favTick, setFavTick] = useState(0);
   useEffect(() => {
@@ -369,7 +385,10 @@ export function TalkList({ items, onOpen, selected, myName, onMe, myAvatar, rail
             ★내 프로필은 사라지지 않았다 — 「내 운」 탭이 콘티대로 그 자리를 맡는다.
           ⚠️돋보기를 **되살렸다**(08-20 에 뺐던 것). 콘티에 있고, 이제 친구가 열둘이라
             "검색할 게 없다"던 그때 근거가 더는 맞지 않는다. */}
-      <View style={styles.topRow}>
+      <View
+        style={[styles.topRow, tight ? styles.topRowTight : null]}
+        onLayout={(e) => setTopW(Math.round(e.nativeEvent.layout.width))}
+      >
         {/* ★★워드마크가 아니라 **내 이름**이다(Boss 2026-08-23).
             워드마크는 이 화면 **바로 위**(`index.tsx` 헤더)에 이미 있어 둘이 겹쳐 보였다 —
             *"니운내운 두번뜨는거 제일상단꺼만 남겨둬"*. 위 것을 남기고 여기는 이름으로 바꿨다.
@@ -383,20 +402,20 @@ export function TalkList({ items, onOpen, selected, myName, onMe, myAvatar, rail
             종이랑 돋보기 사이 간격이랑 달라"*).
             원인: 종만 감싸는 상자가 없어 **좌우 여백이 빠졌다** — `gap` 은 같은데 눈에는 달라 보인다.
             ★알림 — 돋보기 **왼쪽**(Boss 2026-08-26). 선 아이콘이라 옆과 무게가 같다. */}
-        <View style={styles.topBtn}><NotifyBell size={26} /></View>
+        <View style={[styles.topBtn, { width: BT, height: BT }]}><NotifyBell size={IC} /></View>
         {/* ★만세력 — **따로 아이콘**을 둔다(Boss 2026-08-27 *"만세력도 따로 아이콘 만들어서
             거기 클릭 또는 탭하면 넘어가게"*).
             ⚠️종전엔 이름을 눌러야 갔는데, 08-27 에 이름은 **사람 상세**를 여는 것으로 바뀌었다 —
               그래서 만세력으로 가는 길이 **사라져 있었다.** */}
-        <PressableScale hitSlop={12} style={styles.topBtn} onPress={onManse}>
-          <Icon name="calendar" size={26} />
+        <PressableScale hitSlop={12} style={[styles.topBtn, { width: BT, height: BT }]} onPress={onManse}>
+          <Icon name="calendar" size={IC} />
         </PressableScale>
-        <PressableScale hitSlop={12} style={styles.topBtn} onPress={() => setSearchOpen((v) => !v)}>
-          <Icon name={searchOpen ? 'close' : 'search'} size={26} color={searchOpen ? colors.ju : colors.inkSoft} />
+        <PressableScale hitSlop={12} style={[styles.topBtn, { width: BT, height: BT }]} onPress={() => setSearchOpen((v) => !v)}>
+          <Icon name={searchOpen ? 'close' : 'search'} size={IC} color={searchOpen ? colors.ju : colors.inkSoft} />
         </PressableScale>
         {/* 친구 추가 — ★배지로 **받은 신청 수**를 알린다(신청이 와도 모르면 친구가 안 맺어진다) */}
-        <PressableScale hitSlop={12} style={styles.topBtn} onPress={onAddFriend}>
-          <Icon name="plus" size={26} />
+        <PressableScale hitSlop={12} style={[styles.topBtn, { width: BT, height: BT }]} onPress={onAddFriend}>
+          <Icon name="plus" size={IC} />
           {pendingCount > 0 ? <View style={styles.topBadge}><Text style={styles.topBadgeTx}>{pendingCount}</Text></View> : null}
         </PressableScale>
       </View>
@@ -546,6 +565,8 @@ const styles = StyleSheet.create({
 
   // 상단 행 — 아바타 + 이름 + 아이콘들(카톡 배치)
   topRow: { flexDirection: 'row', alignItems: 'center', gap: space(3), paddingVertical: space(2), marginBottom: space(3) },
+  // ★좁은 칸에서는 새참을 12 → 8 로. 넷이 나란히 있어 **4px 차이가 16px** 이 된다.
+  topRowTight: { gap: space(2) },
   meBtn: { flex: 1, minWidth: 0 },
   meName: { fontSize: 19, lineHeight: 26, fontWeight: '900', color: colors.ink, letterSpacing: -0.4 },
   // ★아이콘을 키웠다(20 → 26, Boss 2026-08-20 "너무 작아"). 손끝은 44pt 를 필요로 하는데

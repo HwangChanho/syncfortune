@@ -486,6 +486,7 @@ export const en = {
     coins: 'Charge woon',
     market: 'Market',
   },
+  shared: { title: 'Shared reading', loading: 'Loading the reading…', notFound: "We couldn't find a reading for this link.", goMine: 'See my fortune ›', alsoMine: 'See my own fortune ›', foot: '{{app}} · Saju · Zi Wei Dou Shu · Tarot' },
   appName: 'Niunnaeun',
   tagline: 'Your AI compass for understanding yourself and others',
   // 홈 카드 개인화 티저 — ko 와 동일 키(계산=homeTeaser.ts). ※ newyear.keyword 값 자체는 엔진이 한국어로 산출(기존 티저 전반과 동일).

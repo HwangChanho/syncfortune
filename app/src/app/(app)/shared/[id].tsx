@@ -4,6 +4,7 @@
 //   풀이 스냅샷을 받아 표시한다. 앱에서만 열람(웹 랜딩 없음·daniel). 비로그인도 열람 가능(RPC anon 허용).
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { View, Text, ScrollView, ActivityIndicator, StyleSheet } from 'react-native';
 import { PressableScale } from '../../../components/PressableScale';
 import { ReadingPoints } from '../../../components/ReadingProse'; // 핵심 3줄(가독성 P1) — 앱 내 풀이 화면과 같은 위계로
@@ -30,6 +31,7 @@ function flattenContent(node: any, out: { label?: string; text: string }[] = [])
 export default function SharedReadingScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const { t } = useTranslation();
   const [state, setState] = useState<'loading' | 'ok' | 'err'>('loading');
   const [reading, setReading] = useState<ShareReadingInput | null>(null);
 
@@ -48,17 +50,17 @@ export default function SharedReadingScreen() {
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.wrap}>
-      <Stack.Screen options={{ title: '공유받은 풀이' }} />
+      <Stack.Screen options={{ title: t('shared.title', '공유받은 풀이') }} />
       {state === 'loading' ? (
-        <View style={styles.center}><ActivityIndicator color={colors.ju} /><Text style={styles.dim}>풀이 불러오는 중…</Text></View>
+        <View style={styles.center}><ActivityIndicator color={colors.ju} /><Text style={styles.dim}>{t('shared.loading', '풀이 불러오는 중…')}</Text></View>
       ) : state === 'err' ? (
         <View style={styles.card}>
-          <Text style={styles.err}>이 공유 링크의 풀이를 찾을 수 없어요.</Text>
-          <PressableScale style={styles.cta} onPress={() => router.replace('/')}><Text style={styles.ctaTx}>내 운세 보러 가기 ›</Text></PressableScale>
+          <Text style={styles.err}>{t('shared.notFound', '이 공유 링크의 풀이를 찾을 수 없어요.')}</Text>
+          <PressableScale style={styles.cta} onPress={() => router.replace('/')}><Text style={styles.ctaTx}>{t('shared.goMine', '내 운세 보러 가기 ›')}</Text></PressableScale>
         </View>
       ) : (
         <>
-          <View style={styles.badge}><Text style={styles.badgeTx}>🔗 공유받은 풀이</Text></View>
+          <View style={styles.badge}><Text style={styles.badgeTx}>{`🔗 ${t('shared.title', '공유받은 풀이')}`}</Text></View>
           {reading?.title ? <Text style={styles.title}>{reading.title}</Text> : null}
           {headline ? <Text style={styles.headline}>{headline}</Text> : null}
           {/* 핵심 3줄(가독성 P1) — 공유받은 풀이도 같은 위계로. 없으면(구 스냅샷) 미표시 */}
@@ -71,8 +73,8 @@ export default function SharedReadingScreen() {
             </View>
           ))}
           {/* 앱 유도 — 받은 사람이 자기 운세도 보게 */}
-          <PressableScale style={styles.cta} onPress={() => router.replace('/')}><Text style={styles.ctaTx}>나도 내 운세 보기 ›</Text></PressableScale>
-          <Text style={styles.note}>운이 — 사주·자미두수·타로 운세</Text>
+          <PressableScale style={styles.cta} onPress={() => router.replace('/')}><Text style={styles.ctaTx}>{t('shared.alsoMine', '나도 내 운세 보기 ›')}</Text></PressableScale>
+          <Text style={styles.note}>{t('shared.foot', { app: t('appName'), defaultValue: '{{app}} · 사주·자미두수·타로 운세' })}</Text>
         </>
       )}
     </ScrollView>

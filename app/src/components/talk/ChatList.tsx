@@ -34,6 +34,12 @@ import { pinRoom } from '../../lib/talk/roomActions';       // 상단고정 — 
 import { roomTitle, roomMembers } from '../../lib/talk/groupTalk';   // ★대화방 머리와 **같은 함수**(두 곳이 갈리면 안 된다)
 import { NotifyBell } from './NotifyBell';   // 알림 벨+배지(단일 원본 — 친구목록과 같은 것)
 
+/**
+ * realtime 채널 일련번호 — **이름을 매번 다르게** 만들어 옛 채널 재사용을 없앤다.
+ * ★`ReadingScreen` 의 `genChSeq` 와 **같은 장치**다(2026-08-19 크래시 수정).
+ */
+let sessChSeq = 0;
+
 
 /** 목록 한 줄 — 세션 + 상담사 이름. */
 type Row = {
@@ -243,7 +249,19 @@ export function ChatList({ onOpen, selectedId, reloadKey = 0, wide, onSettings, 
   //     방 목록은 크지 않아 다시 읽는 비용이 «틀린 상태로 보이는 비용» 보다 싸다.
   useEffect(() => {
     if (!session) return;
-    const ch = supabase.channel('sessions')
+    // ⚠️★★채널 이름에 **일련번호**를 붙인다 (Boss 2026-08-27 *"대화창 진입할때 자꾸
+    //   화면을 그리다 문제가 생겼대"* · `app_logs` 에 실제로 남아 있었다).
+    //
+    //   증상: 「화면을 그리다 문제가 생겼어요」 +
+    //     `cannot add postgres_changes callbacks for realtime:sessions after subscribe()`
+    //     (최근 40건 중 2건 · 스택이 정확히 `ChatList → TalkHome`)
+    //   원인: `supabase.removeChannel()` 은 **비동기**다. 정리가 끝나기 전에 **같은 이름**으로
+    //     다시 만들면 supabase 가 **이미 subscribe 된 옛 채널을 그대로 돌려준다** →
+    //     거기에 `.on()` 을 걸어 던진다. 이름이 고정 `'sessions'` 라 재사용이 늘 일어났다.
+    //   ★★이건 **2026-08-19 에 `ReadingScreen` 에서 이미 고친 버그**다(`genChSeq`).
+    //     그때 **형제를 찾지 않아** 여기 하나가 여덟 달치 그대로 남았다([[duplicate-ui-single-source]]).
+    //     ⇒ `check:realtime` 이 이제 «채널 이름이 유일한가» 를 전수로 지킨다.
+    const ch = supabase.channel(`sessions:${++sessChSeq}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'talk_sessions' }, () => { void load(); })
       .subscribe();
     return () => { void supabase.removeChannel(ch); };
