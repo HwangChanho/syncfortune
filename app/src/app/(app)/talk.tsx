@@ -64,6 +64,7 @@ import { ConsultantLinkCard } from '../../components/talk/ConsultantLinkCard';  
 import { buildChartVerdict } from '../../lib/talk/chartVerdict';   // 우리 엔진 판정을 대화에 싣는다(Boss 2026-08-25)
 import { splitBubbles, typingDelay } from '../../lib/talk/splitBubbles';   // 말풍선 쪼개기·뜸(Boss 08-25)
 import { ChartPickCard } from '../../components/talk/ChartPickCard';      // 어떤 명식을 볼지 고르는 카드(Boss 08-27)
+import { Resizer } from '../../components/kit/Resizer';        // 웹에서 칸 폭을 손으로(Boss 08-27)
 import { greetingFor } from '../../lib/talk/greetingFor';   // 상담가별 첫 인사(Boss 08-26)
 import { CoinNotice } from '../../components/talk/CoinNotice';
 import InviteSheet from '../../components/talk/InviteSheet';   // 다인방 초대(Boss 2026-08-25)
@@ -179,6 +180,15 @@ function toItems(r: VirtualReply): TalkItem[] {
 const CHART_ROUTES = new Set(['saju', 'ziwei', 'compat', 'love', 'crush', 'reunion', 'lovestyle',
   'wealth', 'career', 'jobfit', 'talent', 'timeline', 'lifegraph', 'gaeun', 'newyear']);
 
+/**
+ * 웹 목록 칸의 폭 — 기본·하한·상한.
+ * ★하한(180)은 «아바타 + 이름 두 글자» 가 살아남는 값이다. 그보다 좁으면 목록이 아니라 띠가 된다.
+ * ★상한(520)은 대화 칸을 지키는 값 — 목록이 화면을 다 먹으면 정작 대화를 못 읽는다.
+ */
+const PANE_DEFAULT = 282;
+const PANE_MIN = 180;
+const PANE_MAX = 520;
+
 export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { renderTop?: ReactNode; renderBottom?: ReactNode; mode?: 'contacts' | 'chats' }) {
   const { t, i18n } = useTranslation();
   const router = useRouter();
@@ -243,6 +253,29 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
    * ⇒ 자동으로 고르지 말고 **묻는다.** 한 번 고르면 그 방에서는 다시 안 묻는다.
    */
   const [pickedLocal, setPickedLocal] = useState<string | null>(null);
+  /**
+   * ★★웹 칸 폭 — **쓰는 사람이 정한다** (Boss 2026-08-27
+   *   *"웹은 각 구간별로 좌우 클릭해서 크기 조절할수 있게하고 다 닫으면 한줄로 되면서
+   *   닫았다가 다시 마우스로 드레그하면 열려서 크기 조절할수 있게"*).
+   *
+   * ■ 왜 필요했나 — **고정 폭이 글자를 잘랐다**
+   *   목록 칸이 `282` 고정이라 아이콘 넷(208px)을 빼면 이름에 41px 만 남아
+   *   「황찬호」가 **「황…」** 으로 잘렸다(실측). 화면 크기는 사람마다 다르다.
+   * ■ ★기억한다 — 매번 다시 끌게 하면 그건 조절이 아니라 **일**이다.
+   *   ⚠️`localStorage` 는 웹에만 있고 접근만으로 던지는 환경이 있다 ⇒ 읽기·쓰기 모두 try 로 감싼다.
+   */
+  const [paneW, setPaneW] = useState<number>(() => {
+    try {
+      const v = Number(globalThis.localStorage?.getItem('ui.talkPaneW'));
+      return Number.isFinite(v) && v >= PANE_MIN && v <= PANE_MAX ? v : PANE_DEFAULT;
+    } catch { return PANE_DEFAULT; }
+  });
+  /** 접혔는가 — 폭 0 이 아니라 **손잡이만 남는** 상태(그래야 다시 열 수 있다). */
+  const [paneOpen, setPaneOpen] = useState(true);
+  const setPaneWSaved = useCallback((w: number) => {
+    setPaneW(w);
+    try { globalThis.localStorage?.setItem('ui.talkPaneW', String(w)); } catch { /* 저장 못 해도 이번 세션은 산다 */ }
+  }, []);
   const [myName, setMyName] = useState<string | null>(null);   // 친구목록 상단 '나'
   const [myAvatar, setMyAvatar] = useState<string | null>(profileSnapshot().avatarUrl);
   // ── 대화 정리(Boss 2026-08-23) ───────────────────────────────────────────
@@ -1306,8 +1339,18 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
   if (wide) {
     return (
       <View style={styles.two}>
-        <View style={[styles.pane, { paddingTop: renderTop ? 0 : insets.top }]}>
-          {renderTop}
+        {/* ★★칸 폭을 **쓰는 사람이 정한다** (Boss 2026-08-27 · 위 `paneW` 주석)
+            접히면 폭 0 — 그래도 옆의 손잡이는 남아 다시 열 수 있다. */}
+        <View style={[styles.pane, {
+          paddingTop: renderTop ? 0 : insets.top,
+          width: paneOpen ? paneW : 0,
+          // ⚠️접었을 때 테두리까지 남으면 «빈 줄» 이 하나 더 보인다
+          borderRightWidth: paneOpen ? 1 : 0,
+        }]}>
+          {/* 접힌 동안에는 **안을 그리지 않는다** — 폭 0 에 밀어 넣으면 글자가 세로로 눌린다 */}
+          {paneOpen ? renderTop : null}
+          {/* 웹 3칸 = 좁은 칸(`wide={!wide}`) */}
+          {paneOpen ? (
           <TalkList items={list} onOpen={open} selected={cur?.id} myName={myName} myAvatar={myAvatar} onOpenProfile={setProfile}
                       railKeys={order} onMe={() => setPerson({ kind: 'me', name: myName })}
                       onSettings={() => router.push('/settings')}
@@ -1318,8 +1361,24 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
                       people={friends.filter((f) => f.status === 'accepted').map((f) => ({
                         id: f.otherId, name: f.name ?? '이름 없음', avatarUrl: f.avatarUrl, canSee: !!f.chartId,
                       }))}
-                      onOpenPerson={(id) => { const f = friends.find((x) => x.otherId === id); setPerson({ kind: 'friend', id, name: f?.name, avatarUrl: f?.avatarUrl }); }} wide={!wide} footer={renderBottom} />   {/* 웹 3칸 = 좁은 칸 */}
+                      onOpenPerson={(id) => { const f = friends.find((x) => x.otherId === id); setPerson({ kind: 'friend', id, name: f?.name, avatarUrl: f?.avatarUrl }); }} wide={!wide} footer={renderBottom} />
+          ) : null}
         </View>
+        {/* ★★손잡이 — 끌면 폭이 바뀌고, 누르면 접혔다 펴진다.
+            ⚠️접혀도 **이 막대는 남는다** — 0 으로 만들면 다시 열 길이 사라진다(Boss 지시의 핵심). */}
+        <Resizer
+          width={paneOpen ? paneW : 0}
+          min={PANE_MIN}
+          max={PANE_MAX}
+          collapsed={!paneOpen}
+          onResize={(w) => { if (!paneOpen && w > 0) setPaneOpen(true); setPaneWSaved(Math.max(0, Math.min(w, PANE_MAX))); }}
+          onToggle={() => {
+            // ★펼 때 폭이 하한보다 좁게 남아 있으면 **기본값으로 되돌린다** — 폈는데 여전히
+            //   글자가 눌려 있으면 «안 열린» 것으로 보인다.
+            if (!paneOpen && paneW < PANE_MIN) setPaneWSaved(PANE_DEFAULT);
+            setPaneOpen((v) => !v);
+          }}
+        />
         {showChatPane && (
           <View style={[styles.pane, { paddingTop: insets.top }]}>
             <ChatList reloadKey={chatsTick} selectedId={curSid ?? undefined} wide={false} onOpenProfile={setProfile}
