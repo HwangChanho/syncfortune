@@ -48,8 +48,28 @@ const meta = `
     <meta name="twitter:title" content="${TITLE}" />
     <meta name="twitter:description" content="${DESC}" />
     <meta name="twitter:image" content="${SITE}/og.png" />
-    <link rel="apple-touch-icon" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/icon-192.png" />
+
+    <!-- ★PWA — 홈 화면에 추가하면 **주소창 없이** 뜬다(Boss 2026-08-27 *"모바일 브라우저에서
+         볼땐 앱처럼 나오지?"* → 실측 결과 아니었다: manifest 도 apple 메타도 없었다).
+         ⚠️Service Worker 는 **넣지 않았다** — 캐시가 한 겹 더 생기면 «고쳤는데 옛 화면» 이 난다
+           ([[media-cache-version]] 계열). iOS 는 SW 없이도 전체화면이 되고,
+           Android 도 «홈 화면에 추가» 는 된다(Chrome 의 자동 설치 배너만 SW 를 요구한다). -->
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="니운내운" />
+    <meta name="mobile-web-app-capable" content="yes" />
 `;
+
+// ★노치 폰에서 배경이 **끝까지 차게** — 없으면 위아래에 흰 띠가 남는다.
+//   ⚠️expo 가 만든 viewport 에는 이 값이 없다(실측). 이미 있으면 건드리지 않는다.
+if (!/viewport-fit=cover/.test(html)) {
+  html = html.replace(
+    /(<meta name="viewport" content="[^"]*)"/,
+    '$1, viewport-fit=cover"',
+  );
+}
 
 // ★`<title>` 도 갈아 끼운다 — 북마크·검색 결과에 뜨는 이름이다(`app.json` 의 name 은 너무 짧다)
 html = html.replace(/<title>[^<]*<\/title>/, `<title>${TITLE}</title>`);

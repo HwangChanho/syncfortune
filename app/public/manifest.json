@@ -1,0 +1,30 @@
+{
+  "name": "니운내운 — 사주·자미두수·타로 운세",
+  "short_name": "니운내운",
+  "description": "사주와 자미두수를 함께 읽어 오늘의 나를 봅니다.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#F9F5F0",
+  "theme_color": "#39609D",
+  "lang": "ko",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
