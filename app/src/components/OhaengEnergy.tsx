@@ -106,7 +106,11 @@ export function OhaengEnergy({ saju }: { saju: SajuChart }) {
         <View style={styles.zeroRow}>
           {EL.filter((e) => counts[e] === 0).map((e) => (
             <View key={e} style={styles.legend}>
-              <View style={[styles.dot, { backgroundColor: elementColor[e], opacity: 0.35 }]} />
+              {/* ★★«없음» 을 **색이 아니라 형태**로 말한다 (Boss 2026-08-27 *"없는 오행 표시에 색상이 안 맞아"*).
+                  ⚠️종전엔 `opacity: 0.35` 로 통째로 흐리게 했다. 그런데 金(`#D2CCBA`)은 **원래 밝아서**
+                    크림 배경(`#F9F5F0`)에 거의 묻혔다 — 다섯 중 金·土만 «색이 안 맞는» 것처럼 보였다.
+                  ⇒ 속을 비우고 **테두리만** 제 색으로 남긴다. 색은 그대로, «비었다» 는 눈에 바로 보인다. */}
+              <View style={[styles.dot, { borderColor: elementColor[e] }]} />
               <Text style={styles.legendTx}>{e} 0</Text>
             </View>
           ))}
@@ -165,7 +169,8 @@ const styles = StyleSheet.create({
   zeroRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10, marginTop: 6 },
   legendRow: { flexDirection: 'row', justifyContent: 'space-around', marginTop: space(2), marginBottom: space(3) },
   legend: { flexDirection: 'row', alignItems: 'center', gap: space(1) },
-  dot: { width: 9, height: 9, borderRadius: 5 },
+  // ★속이 빈 동그라미 — 채운 것(있음)과 한눈에 갈린다. 9px 에 테두리를 두면 다 채워 보여 11px 로 키웠다.
+  dot: { width: 11, height: 11, borderRadius: 6, borderWidth: 1.5, backgroundColor: 'transparent' },
   legendTx: { ...font.caption, color: colors.inkSoft, fontSize: 11 },
   // 대표기운 1~5 랭킹 리스트(daniel 07-24) — 1위는 오브·글자 키워 강조.
   rankCard: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.line, paddingHorizontal: space(4), paddingVertical: space(1) },
