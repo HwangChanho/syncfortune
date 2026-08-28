@@ -53,6 +53,8 @@ import { loadMyProfile, subscribeProfile, profileSnapshot } from '../../lib/talk
 import { listFriends, type Friend, loadFriendChart } from '../../lib/talk/friends';
 import { useHomeOrder } from '../../lib/ui/homeOrder';
 import { ensureServerChartIdForSaved } from '../../lib/backend/prewarmReadings';
+// ★답장 알림 — «보고 있는 방» 알리기 + 앱 아이콘 배지(Boss 2026-08-28)
+import { setOpenTalk, refreshTalkBadge } from '../../lib/backend/notifications';
 import { useAuth } from '../../lib/useAuth';
 import { computeChart } from '../../lib/engine/engine';
 import { useWideWeb } from '../../components/WebShell';
@@ -466,6 +468,9 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
     const { error } = await supabase.rpc('mark_talk_read', { p_session: sessionId });
     if (error) console.warn('[talk] mark_talk_read 실패', error.message);
     bumpChats();
+    // ★앱 아이콘 배지도 **같이** 줄인다(Boss *"확인하면 카운트는 해당 만큼 줄어들고"*).
+    //   ⚠️읽음 처리가 실패했어도 부른다 — 서버가 정본이라 실패했으면 숫자가 그대로 나온다(거짓말이 안 된다).
+    void refreshTalkBadge();
   }, [bumpChats]);
   // 세션은 **상담사별로** 따로 이어진다 — 한 세션에 여러 상담사를 섞으면 이력이 뒤엉킨다
   // ★★2026-08-27 — 방의 정체는 **세션**이다(종전엔 «상담가» 였다).
@@ -509,6 +514,21 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
   useFocusEffect(useCallback(() => { void listFriends().then(setFriends); }, []));
   // 명식 목록 — ★화면에 들어올 때마다 다시 읽는다(방금 등록하고 돌아오면 **바로** 부를 수 있어야 한다)
   useFocusEffect(useCallback(() => { void listCharts().then(setMyCharts); }, []));
+  /**
+   * ★★«지금 보고 있는 방» 을 알림 쪽에 알려 준다 (Boss 2026-08-28
+   *   *"내가 해당 화면에 있는 상태가 아니면 알림이 와야하고"*).
+   *
+   * ■ 서버는 **항상** 답장 푸시를 보낸다(무슨 화면인지 서버는 모른다).
+   *   띄울지 말지는 `setNotificationHandler` 가 이 값으로 정한다.
+   * ■ ⚠️**화면을 떠나면 반드시 지운다.** `cur` 은 다른 탭으로 옮겨도 그대로 남아 있어서,
+   *   안 지우면 홈 탭에 있는데도 그 방의 답장 알림이 조용히 사라진다.
+   * ■ 배지도 여기서 맞춘다 — 들어와서 읽었으면 숫자가 **바로** 줄어야 한다.
+   */
+  useFocusEffect(useCallback(() => {
+    setOpenTalk(cur?.id ?? null);
+    void refreshTalkBadge();
+    return () => setOpenTalk(null);
+  }, [cur?.id]));
   // 명식은 한 번만 계산해 둔다 — 가상 답이 매번 엔진을 다시 돌릴 이유가 없다
   useEffect(() => {
     let alive = true;

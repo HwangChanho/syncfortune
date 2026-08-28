@@ -22,12 +22,67 @@ try { Notif = require('expo-notifications'); } catch { Notif = null; }
 
 // ★포그라운드 알림 표시 핸들러(daniel M: 앱 켜둔 채 풀이 완료 시 푸시가 안 뜨던 원인 — 핸들러 없으면 iOS가 포그라운드 알림을 숨김).
 //   완료 푸시(notifyReadingDone)는 보통 앱 사용 중 도착하므로 이게 필수. (구·신 SDK 키 모두 지정)
+/**
+ * ★★지금 **열어 놓은 대화방**(상담가 id). 없으면 null.
+ *
+ * Boss 2026-08-28: *"ai 가 답장하는것도 내가 해당 화면에 있는 상태가 아니면 알림이 와야하고"*
+ *
+ * ■ ★왜 **앱이** 판정하나
+ *   서버는 회원이 무슨 화면을 보는지 모른다. 알게 하려면 presence(하트비트) 표가 필요하고,
+ *   그건 «끊긴 하트비트» 라는 새 고장 종류를 만든다. ⇒ 서버는 **항상 보내고**,
+ *   띄울지는 여기서 정한다. 앱이 꺼져 있으면 이 함수가 아예 안 불리므로 OS 가 그대로 띄운다.
+ * ■ ⚠️모듈 변수인 이유 — 알림 핸들러는 **앱 전역 1개**라 React state 를 못 읽는다.
+ */
+let openTalkConsultant: string | null = null;
+
+/**
+ * 지금 보고 있는 대화방을 알린다(화면이 부른다).
+ * @param consultantId 열려 있는 상담가 id · 방을 닫거나 화면을 떠나면 `null`
+ */
+export function setOpenTalk(consultantId: string | null): void {
+  openTalkConsultant = consultantId || null;
+}
+
+/**
+ * 앱 아이콘 **배지 숫자**를 서버 값으로 다시 맞춘다.
+ *
+ * Boss 2026-08-28: *"카운트 기준은 텍스트 갯수고 그부분을 확인하면 카운트는 해당 만큼 줄어들고"*
+ *
+ * ■ ★수를 **여기서 세지 않는다.** `talk_unread_total` 이 정본이다 —
+ *   서버 푸시의 `badge` 필드도 같은 함수를 쓴다. 두 곳이 각자 세면 반드시 갈린다
+ *   (실제로 지도 65 ↔ 궁합 76 이 그렇게 갈렸다).
+ * ■ 부를 곳: ①대화를 **읽었을 때**(읽자마자 줄어야 한다) ②앱이 앞으로 나올 때
+ *   ③로그아웃(0으로 지운다).
+ * ■ ⚠️실패해도 **조용히 넘어간다** — 배지는 곁다리다. 다만 상한(`withTimeout` 대신 여기서는
+ *   Supabase 기본 동작에 맡긴다)보다 중요한 건 **화면을 막지 않는 것**이라 await 를 강요하지 않는다.
+ * @param force 로그아웃처럼 **0 으로 지워야** 할 때 사용(서버에 묻지 않는다)
+ */
+export async function refreshTalkBadge(force?: 0): Promise<void> {
+  if (!Notif?.setBadgeCountAsync || Platform.OS === 'web') return;   // 웹은 아이콘 배지가 없다
+  try {
+    if (force === 0) { await Notif.setBadgeCountAsync(0); return; }
+    const { data, error } = await supabase.rpc('talk_unread_total');
+    if (error) { console.warn('[badge] talk_unread_total 실패', error.message); return; }
+    await Notif.setBadgeCountAsync(Math.max(0, Number(data) || 0));
+  } catch { /* 배지 실패가 화면을 막지 않는다 */ }
+}
+
+// ★포그라운드 알림 표시 핸들러(daniel M: 앱 켜둔 채 풀이 완료 시 푸시가 안 뜨던 원인 — 핸들러 없으면 iOS가 포그라운드 알림을 숨김).
+//   완료 푸시(notifyReadingDone)는 보통 앱 사용 중 도착하므로 이게 필수. (구·신 SDK 키 모두 지정)
+//   ★2026-08-28 — **보고 있는 방의 답장은 안 띄운다.** 그 말풍선은 화면에 이미 떨어졌다.
+//     ⚠️배지는 **끄지 않는다**(`shouldSetBadge: true`) — 안 보이는 곳에 쌓인 수는 그대로 세야 한다.
 if (Notif?.setNotificationHandler) {
   try {
     Notif.setNotificationHandler({
-      handleNotification: async () => ({
-        shouldShowAlert: true, shouldShowBanner: true, shouldShowList: true, shouldPlaySound: true, shouldSetBadge: false,
-      }),
+      handleNotification: async (n: any) => {
+        const data = n?.request?.content?.data ?? {};
+        // ★route 를 파싱하지 않는다 — 형식이 바뀌면 조용히 어긋난다. 서버가 준 id 로 견준다.
+        const sameRoom = !!data?.talkConsultant && data.talkConsultant === openTalkConsultant;
+        return {
+          shouldShowAlert: !sameRoom, shouldShowBanner: !sameRoom, shouldShowList: !sameRoom,
+          shouldPlaySound: !sameRoom, shouldSetBadge: true,
+        };
+      },
     });
   } catch { /* 핸들러 설정 실패 무시 */ }
 }
