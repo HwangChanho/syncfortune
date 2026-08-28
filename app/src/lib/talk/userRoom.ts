@@ -127,11 +127,17 @@ export async function loadUserMessages(sessionId: string, limit = 120): Promise<
  */
 export async function uploadRoomPhoto(sessionId: string, file: Blob & { type?: string }): Promise<string | null> {
   if (file.size > 2 * 1024 * 1024) return null;
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;                       // 로그인 없이는 올릴 자리가 없다(경로가 uid 로 시작한다)
   const type = file.type ?? 'image/jpeg';
   const ext = type.includes('png') ? 'png' : type.includes('webp') ? 'webp' : 'jpg';
   // ★난수 이름 — 순번이면 남의 사진을 세어 볼 수 있다
   const name = (globalThis.crypto?.randomUUID?.() ?? String(Math.random()).slice(2)).replace(/-/g, '');
-  const path = `rooms/${sessionId}/${name}.${ext}`;
+  // ⚠️★2026-08-28 — **첫 폴더가 uid 가 아니면 정책에 막힌다**(`foldername(name)[1] = auth.uid()`).
+  //   `rooms/<방>/…` 은 그 조건을 못 넘어 **업로드가 조용히 실패**하고 있었다
+  //   (커뮤니티 사진을 붙이다 같은 벽에 부딪혀 발견했다 — 형제였다).
+  //   ★방 id 는 파일 이름에 남긴다: 어느 방 사진인지 여전히 알 수 있다.
+  const path = `${user.id}/rooms/${sessionId}-${name}.${ext}`;
   const up = await withTimeout(
     supabase.storage.from('avatars').upload(path, file, { upsert: false, contentType: type }),
     15000,

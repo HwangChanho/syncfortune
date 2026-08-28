@@ -65,17 +65,45 @@ const LINE_CASUAL: Record<string, string> = {
  * @param casual  반말인가(`speechLevel.isCasual` 이 정한다 — 여기서 다시 판정하지 않는다)
  * @returns 빈 줄로 나뉜 인사. 화면이 `splitBubbles` 로 쪼갠다
  */
+/**
+ * 한글 이름 뒤에 붙는 **서술격 조사**를 고른다 — 받침이 있으면 「이에요」, 없으면 「예요」.
+ *
+ * ■ ⚠️실측(2026-08-28): 「나비」에 일률로 `이에요` 를 붙여 **「나비이에요」** 가 화면에 나갔다.
+ *   상담가는 관리자가 계속 늘리는데, 이름 받침은 사람마다 다르다 ⇒ **규칙으로** 푼다.
+ * ■ 한글 음절은 유니코드에서 `(초성×21 + 중성)×28 + 종성` 이라, **28 로 나눈 나머지**가 종성이다.
+ *   0이면 받침이 없다.
+ * @param name 이름(마지막 글자로 판단한다)
+ */
+export function ieyo(name: string): string {
+  const last = name.trim().slice(-1);
+  const code = last.charCodeAt(0);
+  if (code < 0xac00 || code > 0xd7a3) return '이에요';   // 한글이 아니면 안전한 쪽
+  return (code - 0xac00) % 28 === 0 ? '예요' : '이에요';
+}
+/** 반말 판 — 「~야」 / 「~이야」. 같은 규칙이다. */
+function ya(name: string): string {
+  const last = name.trim().slice(-1);
+  const code = last.charCodeAt(0);
+  if (code < 0xac00 || code > 0xd7a3) return '이야';
+  return (code - 0xac00) % 28 === 0 ? '야' : '이야';
+}
+
 export function greetingFor(id: string, name: string, tagline?: string | null, casual = false): string {
   const known = casual ? (LINE_CASUAL[id] ?? LINE[id]) : LINE[id];
   if (known) return known;
   // ★관리자가 새로 만든 상담가 — 태그라인으로 짓는다. 비워 두면 방이 텅 빈 채로 열린다
+  //
+  // ⚠️★태그라인을 **문장으로 쓰지 않는다**(2026-08-28 실측).
+  //   나비의 태그라인은 「뭐 볼지 골라줄게」 인데, 종전 틀에 끼우니
+  //   **「뭐 볼지 골라줄게 쪽을 봐요」** 가 됐다 — 태그라인은 «분야 이름» 일 수도 «한마디» 일 수도 있다.
+  //   ⇒ 문장에 **끼워 넣지 말고 따로 한 줄**로 둔다. 어떤 태그라인이 와도 말이 된다.
   const what = tagline?.trim();
   if (casual) {
     return what
-      ? `안녕.\n\n나 ${name}이야. ${what} 쪽을 봐.\n뭐가 궁금해?`
-      : `안녕.\n\n나 ${name}이야.\n뭐가 궁금해?`;
+      ? `안녕.\n\n나 ${name}${ya(name)}.\n${what}.\n뭐가 궁금해?`
+      : `안녕.\n\n나 ${name}${ya(name)}.\n뭐가 궁금해?`;
   }
   return what
-    ? `안녕하세요.\n\n${name}이에요. ${what} 쪽을 봐요.\n무엇이 궁금하세요?`
-    : `안녕하세요.\n\n${name}이에요.\n무엇이 궁금하세요?`;
+    ? `안녕하세요.\n\n${name}${ieyo(name)}.\n${what}.\n무엇이 궁금하세요?`
+    : `안녕하세요.\n\n${name}${ieyo(name)}.\n무엇이 궁금하세요?`;
 }

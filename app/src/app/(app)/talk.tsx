@@ -65,7 +65,7 @@ import { buildChartVerdict } from '../../lib/talk/chartVerdict';   // 우리 엔
 import { splitBubbles, typingDelay } from '../../lib/talk/splitBubbles';   // 말풍선 쪼개기·뜸(Boss 08-25)
 import { ChartPickCard } from '../../components/talk/ChartPickCard';      // 어떤 명식을 볼지 고르는 카드(Boss 08-27)
 import { Resizer } from '../../components/kit/Resizer';        // 웹에서 칸 폭을 손으로(Boss 08-27)
-import { greetingFor } from '../../lib/talk/greetingFor';   // 상담가별 첫 인사(Boss 08-26)
+import { greetingFor, ieyo } from '../../lib/talk/greetingFor';   // ★조사(이에요/예요)는 **한 곳**에서 정한다   // 상담가별 첫 인사(Boss 08-26)
 import { CoinNotice } from '../../components/talk/CoinNotice';
 import InviteSheet from '../../components/talk/InviteSheet';   // 다인방 초대(Boss 2026-08-25)
 import { leaveRoom } from '../../lib/talk/roomActions';        // 방 나가기(목록 스와이프·우클릭)
@@ -629,8 +629,14 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
        * ■ ⚠️답을 막지 않는다 — 카드를 무시하고 바로 물어도 대화는 그대로 간다.
        *   고르지 않으면 종전처럼 대표 명식으로 답한다(다만 그게 매번 달랐던 게 이 카드가 생긴 이유다).
        */
-      const seesChart = [...(Array.isArray(c.routes) ? c.routes : []), ...(Array.isArray((c as any).specialty) ? (c as any).specialty : [])]
-        .map(String).some((k) => CHART_ROUTES.has(k));
+      // ⚠️★**안내자(`guide`)는 제외**한다 (2026-08-28 실측).
+      //   안내 목록을 만들려고 `routes` 에 compat·love·wealth 가 들어 있어 카드가 떴는데,
+      //   정작 서버는 그 사람에게 명식을 **안 준다** ⇒ «물어 놓고 안 보는» 모순이 된다.
+      //   ★판정 기준을 서버(`talk/index.ts` 의 `isGuide`)와 **같은 값**으로 맞춘다.
+      const specKeys = (Array.isArray((c as any).specialty) ? (c as any).specialty : []).map(String);
+      const seesChart = !specKeys.includes('guide')
+        && [...(Array.isArray(c.routes) ? c.routes : []), ...specKeys]
+          .map(String).some((k) => CHART_ROUTES.has(k));
       const pickCard = (myCharts.length > 1 && seesChart && !pickedLocal)
         ? [{
             id: nextId(), role: 'assistant' as const, body: '',
@@ -1000,8 +1006,8 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
           setBusy(false);
           sayInOrder([{
             id: nextId(), role: 'assistant',
-            body: t('talk.needLoginBubble', '{{name}}이에요. 이야기를 이어가려면 로그인이 필요해요. 회원님 명식을 봐야 제대로 답해 드릴 수 있거든요.')
-              .replace('{{name}}', cur.name),
+            body: t('talk.needLoginBubble', '{{name}}{{josa}}. 이야기를 이어가려면 로그인이 필요해요. 회원님 명식을 봐야 제대로 답해 드릴 수 있거든요.')
+              .replace('{{name}}', cur.name).replace('{{josa}}', ieyo(cur.name)),
           }], 0);
           Alert.alert(
             t('talk.needLoginTitle', '로그인이 필요해요'),
@@ -1153,7 +1159,11 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
     genRef.current++; clearTimers(); setBusy(false);
     // 인사말만 남긴다 — 빈 화면보다 "다시 시작할 수 있다"가 낫다
     setItems([{ id: nextId(), role: 'assistant',
-      body: t('talk.liveGreet', '안녕하세요. {{name}}이에요. 무엇이 궁금하세요?').replace('{{name}}', cur.name) }]);
+      // ⚠️★**두 번째 인사 구현**이었다(2026-08-28 실측). `greetingFor` 를 고쳤는데
+      //   화면에는 「나비이에요」가 그대로 떴다 — 여기가 따로 조립하고 있었기 때문이다
+      //   ([[duplicate-ui-single-source]]). 조사는 `ieyo()` **한 곳**에서만 정한다.
+      body: t('talk.liveGreet', '안녕하세요. {{name}}{{josa}}. 무엇이 궁금하세요?')
+        .replace('{{name}}', cur.name).replace('{{josa}}', ieyo(cur.name)) }]);
     bumpChats();
   }, [cur, t, bumpChats, clearTimers]);
 

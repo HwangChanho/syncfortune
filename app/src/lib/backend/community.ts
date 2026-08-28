@@ -338,7 +338,10 @@ export async function uploadPostImage(
   const type = file.type || 'image/jpeg';
   const ext = type.includes('png') ? 'png' : type.includes('webp') ? 'webp' : 'jpg';
   const name = (globalThis.crypto?.randomUUID?.() ?? String(Math.random()).slice(2)).replace(/-/g, '');
-  const path = `community/${me}/${name}.${ext}`;
+  // ⚠️★**첫 폴더가 내 uid 여야 한다** — 스토리지 정책이 `foldername(name)[1] = auth.uid()` 다.
+  //   처음엔 `community/<uid>/…` 로 썼다가 **업로드가 통째로 막혔다**(실측).
+  //   경로를 바꾸는 쪽이 정책을 넓히는 것보다 안전하다 — 남의 칸을 못 건드리는 성질이 그대로 남는다.
+  const path = `${me}/community/${name}.${ext}`;
   const up = await supabase.storage.from('avatars').upload(path, file, { upsert: false, contentType: type });
   if (up.error) { console.warn('[community] 사진 올리기 실패', up.error.message); return { ok: false, error: 'failed' }; }
   return { ok: true, path };
