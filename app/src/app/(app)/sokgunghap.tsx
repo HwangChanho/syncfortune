@@ -34,7 +34,7 @@ export default function SokgunghapRoute() {
   if (!me) {
     return (
       <View style={styles.center}>
-        <Text style={styles.msg}>{t('compat.needChart', '궁합을 보려면 먼저 내 명식을 등록하세요.')}</Text>
+        <Text style={styles.msg}>{t('common.needChart', '내 명식을 먼저 등록해 주세요.')}</Text>
         <PressableScale style={styles.btn} onPress={() => router.push('/register')}>
           <Text style={styles.btnText}>{t('compat.registerMyChart', '명식 등록')}</Text>
         </PressableScale>

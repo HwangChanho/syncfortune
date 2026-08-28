@@ -39,7 +39,7 @@ export default function TraitsScreen() {
   if (loading) return <View style={styles.center}><ActivityIndicator color={colors.ju} /></View>;
   if (!c) return (
     <View style={styles.center}>
-      <Text style={styles.msg}>{t('compat.needChart')}</Text>
+      <Text style={styles.msg}>{t('common.needChart', '내 명식을 먼저 등록해 주세요.')}</Text>
       <PressableScale style={styles.btn} onPress={() => router.push('/register')}>
         <Text style={styles.btnText}>{t('compat.registerMyChart')}</Text>
       </PressableScale>

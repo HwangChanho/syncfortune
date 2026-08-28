@@ -4,6 +4,7 @@
 //   내 일주는 상단 풀상세, 60목록은 탭→아코디언. 콘텐츠=Claude Code 직통 초안=daniel 검수.
 //   태그(키워드)↔본문 간격 넉넉히(daniel). 하단 면책 필수. API 0.
 // ─────────────────────────────────────────────────────────────────────────
+import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useState, useRef } from 'react';
 import { A } from '../../lib/ui/remoteAsset'; // ★이미지 원격화(daniel 08-01) — 번들에서 걷어내고 Storage 에서 받는다
 import { View, Text, ScrollView, StyleSheet, ImageBackground, Animated, Easing, InteractionManager } from 'react-native';
@@ -54,6 +55,7 @@ const EXTRA_CATS = [
 ];
 
 export default function DayPillarScreen() {
+  const router = useRouter();   // 빈 상태에서 «명식 등록» 으로 보낸다
   const readBody = useReadBody();   // 넓은 웹에서만 본문 폭을 묶는다
   useLogContentVisit('dayPillar'); // 진입 1회 방문 기록(daniel 2026-07-06)
   const { t } = useTranslation();
@@ -90,7 +92,16 @@ export default function DayPillarScreen() {
         setLoaded(true);
       })().catch(() => setLoaded(true));
     });
-    return () => task.cancel(); // 전환 중 이탈 시 취소
+    /**
+     * ⚠️★★**스켈레톤에 갇히지 않게 안전망을 둔다** (2026-08-28 전 화면 순회로 발견).
+     *   실측: 로그아웃 상태의 `/dayPillar` 가 **영원히 스켈레톤**이었다 —
+     *   본문 글자 0, 콘솔 오류 0. 그래서 «빈 화면» 으로만 보이고 원인이 안 남는다.
+     *   `runAfterInteractions` 가 안 돌거나 내부가 멈추면 `loaded` 가 영영 false 다.
+     * ★2.5초면 이 화면의 계산(명식 수십 개 × computeChart)이 끝나고도 남는다.
+     *   못 끝냈으면 **빈 목록이라도 보여 주는 편**이 스켈레톤보다 낫다 — 최소한 «없다» 를 안다.
+     */
+    const guard = setTimeout(() => setLoaded(true), 2500);
+    return () => { clearTimeout(guard); task.cancel(); }; // 전환 중 이탈 시 취소
   }, []);
 
   // 내 일주키(한자 2글자) — 대표 명식의 일간·일지
@@ -273,6 +284,19 @@ export default function DayPillarScreen() {
           );
         })
       )}
+
+      {/* ★★**빈 화면을 남기지 않는다** (2026-08-28 전 화면 순회로 발견).
+          명식이 하나도 없으면 `myKey` 도 `myItems` 도 비어서 **글자 하나 없는 화면**이 됐다 —
+          다른 화면들은 전부 «명식 등록» 안내를 주는데 여기만 막다른 길이었다.
+          ⚠️«없음» 을 말만 하지 않고 **가는 길**을 함께 준다(LoginGate 와 같은 규칙). */}
+      {!admin && !myKey && myItems.length === 0 ? (
+        <View style={styles.emptyWrap}>
+          <Text style={styles.emptyTx}>{t('common.needChart', '내 명식을 먼저 등록해 주세요.')}</Text>
+          <PressableScale style={styles.emptyCta} onPress={() => router.push('/register')}>
+            <Text style={styles.emptyCtaTx}>{t('compat.registerMyChart', '명식 등록')}</Text>
+          </PressableScale>
+        </View>
+      ) : null}
       {!admin && myItems.length === 0 && <Text style={styles.browseHint}>{t('dayPillar.noChart')}</Text>}
 
       {/* 면책 — 일주론은 경향일 뿐, 정확한 풀이는 원국 전체 비교 필요(daniel 필수 코멘트) */}
@@ -288,6 +312,12 @@ export default function DayPillarScreen() {
 }
 
 const styles = StyleSheet.create({
+  // ★빈 상태 — 말과 **버튼**을 함께 둔다(안내만 하면 거기서 끝난다)
+  emptyWrap: { alignItems: 'center', paddingVertical: space(10), gap: space(4) },
+  emptyTx: { ...font.body, color: colors.inkSoft, textAlign: 'center' },
+  emptyCta: { backgroundColor: colors.ju, borderRadius: radius.pill, paddingVertical: space(3), paddingHorizontal: space(7) },
+  emptyCtaTx: { ...font.body, color: colors.onJu, fontWeight: '800' },
+
   // 남/여 배지 — ★색만으로 가르지 않는다(글자로도 남/여). 색약이어도 읽힌다.
   sexTag: { marginLeft: space(2), paddingHorizontal: space(2), paddingVertical: 1, borderRadius: 999, backgroundColor: colors.sunk },
   sexTagF: { backgroundColor: colors.juSoft ?? colors.sunk },
