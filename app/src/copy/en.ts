@@ -1009,6 +1009,8 @@ export const en = {
     'catDeleteTitle': 'Delete category',
     'newCategoryPh': 'New category name',
     'catDelNote': 'Deleting a category does not delete the charts — they move to “Other”.',
+    'repChart': 'Main chart',
+    'viewingChart': 'Currently viewing',
     'deleteTitle': 'Delete chart',
     'viewManse': 'View Manseryeok', 'changeCategory': 'Change category', empty: 'No saved chart.', myChart: 'Chart', searchChart: 'Search by name' },
   sinsal: { 도화: 'Peach Blossom', 역마: 'Travel Horse', 화개: 'Canopy', 천을귀인: 'Nobleman', 문창: 'Academic', 양인: 'Blade', 홍염: 'Romance', 괴강: 'Goegang', 백호: 'White Tiger' },

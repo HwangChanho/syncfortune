@@ -243,7 +243,10 @@ const styles = StyleSheet.create({
   //   그 여백이 글자 아래에 그대로 남아 서브타이틀과 벌어져 보였다. 간격은 marginTop 으로만 준다.
   title: { ...font.display, lineHeight: 34, textAlign: 'left' as const }, // ★좌측 못박기(daniel 07-02)
   // 헤더 행 — 전체를 살짝 아래로(타이틀 너무 위 방지), 👤 아이콘만 좌측 타이틀·서브 컬럼 기준 y축 가운데(daniel 07-02)
-  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: space(4) },
+  // ★`gap` — 언어 칩과 종이 붙어 있었다(Boss 2026-08-28 *"종이랑 한국어 사이 간격 더 띄워"*).
+  //   ⚠️왼쪽 워드마크와의 간격은 안 벌어진다 — 사이의 `flex:1` 스페이서가 그만큼 줄어들 뿐이다.
+  //     즉 이 한 줄이 **오른쪽 두 개 사이만** 띄운다.
+  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: space(4), gap: space(3) },
   headerSide: { flex: 1, flexDirection: 'row', alignItems: 'center' },   // 로고를 정확히 가운데 두려면 양옆 폭이 같아야 한다
   // ★콘티의 좌측 워드마크 — 심볼+글자라 가로가 길다(정사각 44 로 두면 글자가 뭉갠다)
   iconTx: { fontSize: 20, color: colors.ju },

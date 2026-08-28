@@ -188,7 +188,23 @@ export function ChartPicker({ onChange, viewOnly }: {
   // 검색은 공백·대소문자 무시(한글엔 대소문자가 없지만 영문 이름 등록도 있다).
   const q = query.trim().toLowerCase();
   const byCat = catFilter ? charts.filter((c) => relOf(c) === catFilter) : charts;
-  const shown = q ? byCat.filter((c) => (c.label ?? '').toLowerCase().includes(q)) : byCat;
+  const listed = q ? byCat.filter((c) => (c.label ?? '').toLowerCase().includes(q)) : byCat;
+  /**
+   * ★★대표 명식은 **목록에서 빼고 위에 따로** 둔다
+   *   (Boss 2026-08-28 *"명식리스트에서 대표 명식은 위에 칸따로 만들어서 알수있게 하자"*).
+   *
+   * ■ ⚠️**두 곳에 그리지 않는다.** 위 칸에도 있고 목록에도 있으면
+   *   «같은 명식이 두 개» 로 읽히고, 그때부터 어느 쪽을 눌러야 하는지가 모호해진다.
+   * ■ 필터·검색 중에도 위 칸은 **그대로 둔다** — 이 칸의 목적은 «지금 무엇이 대표인가» 를
+   *   항상 알려 주는 것이라, 필터에 따라 사라지면 목적을 잃는다.
+   * ■ ⚠️순서 저장(`onDragEnd`)이 이 «빠진 한 칸» 을 되메워야 한다 — 아래 참조.
+   * ★«누가 대표인가» 는 위에서 이미 정했다(`rep`). **여기서 다시 정하지 않는다** —
+   *   같은 판단을 두 곳에 적으면 언젠가 갈린다([[duplicate-ui-single-source]]).
+   *   특히 `rep` 은 `repId` 가 아직 없을 때 **첫 명식**으로 떨어지는데(접힌 바가 그렇게 보여 준다),
+   *   여기서 그 폴백을 빠뜨리면 «접힌 바에는 있는 사람이 칸에는 없는» 한 프레임이 생긴다.
+   */
+  const repRow = rep ?? null;
+  const shown = repRow ? listed.filter((c) => c.id !== repRow.id) : listed;
   // ★검색 중에도 '부분집합' — 드래그 저장이 전체 순서를 꼬이게 하는 건 카테고리 필터와 동일하므로 같은 게이트를 탄다.
   const filtering = catFilter != null || q.length > 0;
   // 필터한 카테고리의 명식이 모두 삭제되면(유령 필터) 전체로 되돌린다. 모달 닫히면 필터도 초기화.
@@ -291,46 +307,33 @@ export function ChartPicker({ onChange, viewOnly }: {
     return () => { alive = false; h.cancel(); clearTimeout(ti); };
   }, [charts]);
 
-  // ★목록을 열면 **지금 보고 있는 명식 자리에서** 시작한다(daniel 2026-08-02
-  //   "명식창 들어가면 현재 설정된 명식 위치에서 시작해야 해, 좌표가 처음부터 아니고").
-  //   명식이 많으면 맨 위에서 열려 매번 찾아 내려가야 했다.
-  //   행 높이는 글자 배율·엠블럼 크기에 따라 달라져 **상수로 추정하면 어긋난다** → 첫 행의 실제
-  //   onLayout 높이를 재서 offset 을 계산한다(추정이 아니라 실측).
+  /**
+   * ★2026-08-28 — **«대표 자리로 스크롤» 을 걷어냈다.**
+   *
+   * 종전엔 목록을 열면 대표 행까지 스크롤해 내려갔다(daniel 2026-08-02
+   * *"명식창 들어가면 현재 설정된 명식 위치에서 시작해야 해"*). 행 높이를 실측해 offset 을
+   * 계산하던, 꽤 손이 많이 간 장치였다.
+   * 이제 대표는 **목록 위 칸에 고정**돼 늘 보인다(Boss 2026-08-28) ⇒ 스크롤할 이유 자체가 사라졌다.
+   * ⚠️남겨 두면 «대표를 찾아가는 코드» 처럼 보이지만 대표가 목록에 없어 **영영 안 도는** 죽은 길이 된다.
+   *   (죽은 채로 살아 보이는 코드가 다음 사람을 속인다.)
+   */
   const listRef = useRef<GHFlatList<SavedChart> | null>(null);
-  const rowHRef = useRef(0);     // 실측 행 높이(첫 행 onLayout)
-  const scrolledRef = useRef(false); // 열림 1회당 한 번만 이동(사용자가 스크롤한 뒤 끌어올리지 않도록)
-  useEffect(() => { if (!open) { scrolledRef.current = false; } }, [open]);
-  const scrollToRep = useCallback(() => {
-    if (scrolledRef.current) return;
-    // ★아직 판단할 재료가 없으면 **표시하지 않고 물러난다**(다음 기회에 다시 불린다).
-    //   종전엔 재료가 없어도 scrolledRef 를 켜 버려서, 첫 시도가 헛돌면 영영 안 움직였다.
-    if (!rowHRef.current || !repId || !shown.length) return;
-    const idx = shown.findIndex((c) => c.id === repId);
-    if (idx < 0) return;                 // 필터 중이라 목록에 없다 — 이것도 '판단 못 함'이다
-    scrolledRef.current = true;          // 여기서부터가 진짜 '한 번 판단했다'
-    if (idx < 3) return; // 위쪽 3개는 이미 화면에 있다 — 굳이 움직이면 오히려 어색하다
-    // 선택한 행 바로 위 한 줄을 남겨 "여기서 이어진다"는 맥락을 준다.
-    try { listRef.current?.scrollToOffset({ offset: (idx - 1) * rowHRef.current, animated: false }); } catch { /* 리스트가 아직 준비 전이면 무시 */ }
-  }, [shown, repId]);
-  // ★두 번째 열기부터의 경로 — 행 높이는 이미 재 뒀으니 onLayout 의 `!rowHRef.current` 가 막아 스크롤이 안 걸린다.
-  //   리스트가 마운트되는 시점에 한 번 더 시도한다(첫 열기 땐 높이가 0이라 여기선 그냥 빠지고 onLayout 이 처리).
-  //   rAF = FlatList 가 내용을 붙인 다음 프레임에 이동(붙기 전에 부르면 offset 이 먹지 않는다).
-  useEffect(() => {
-    if (!open || !listReady) return;
-    const r = requestAnimationFrame(() => scrollToRep());
-    return () => cancelAnimationFrame(r);
-  }, [open, listReady, scrollToRep]);
 
   /**
    * 명식 목록 행 하나.
    * ★네이티브(DraggableFlatList)와 웹(FlatList)이 **같은 함수**를 쓴다 — 두 벌로 그리면
    *   행 UI 가 언젠가 갈린다([[duplicate-ui-single-source]]). 웹은 `drag` 만 no-op 으로 받는다.
    */
-  const renderChartRow = ({ item: c, drag, isActive }: { item: SavedChart; drag: () => void; isActive: boolean }) => {
+  const renderChartRow = (
+    { item: c, drag, isActive, plain }:
+    { item: SavedChart; drag: () => void; isActive: boolean; plain?: boolean },
+  ) => {
     // ⚠️`ScaleDecorator` 는 **DraggableFlatList 컨텍스트 전용**이다. 일반 FlatList(웹) 안에서 쓰면
     //   `useIsActive must be called from within CellProvider!` 로 화면이 죽는다(2026-08-18 실물에서 확인).
     //   ⇒ 웹에서는 장식을 걷어내고 그대로 그린다. 행 내용은 두 경로가 **같은 코드**를 쓴다.
-    const Deco: any = Platform.OS === 'web' ? Fragment : ScaleDecorator;
+    // ★`plain` = 리스트 **밖**(대표 칸)에서 그릴 때. 같은 이유로 장식을 뺀다 —
+    //   안 빼면 네이티브에서 대표 칸이 화면을 통째로 죽인다(위와 **같은 함정**이다).
+    const Deco: any = (Platform.OS === 'web' || plain) ? Fragment : ScaleDecorator;
             const on = c.id === repId;
             const em = emblems[c.id];
             const iljuImg = em ? iljuImage(em.stem, em.branch) : null; // 60갑자 AI 일러스트(없으면 색+동물 폴백)
@@ -338,8 +341,6 @@ export function ChartPicker({ onChange, viewOnly }: {
               <Deco>
                 <View
                   style={[styles.row, isActive && styles.rowActive, actionsFor === c.id && styles.rowMenuOpen]}
-                  // 첫 행의 실제 높이를 한 번만 재서 '현재 명식으로 이동'의 offset 기준으로 쓴다(상수 추정 금지).
-                  onLayout={(e) => { if (!rowHRef.current) { rowHRef.current = e.nativeEvent.layout.height; scrollToRep(); } }}
                 >
                   {!em ? (
                     <SkeletonDot d={EMB} /> /* 펄스 스켈레톤 — 엠블럼 계산 전(딜레이 가림) */
@@ -438,8 +439,20 @@ export function ChartPicker({ onChange, viewOnly }: {
 
   // 순서 변경 — 롱프레스 드래그(이슈20): 끌어 놓으면 즉시 반영 + 저장·계정동기화(별도 저장 버튼 X, daniel).
   const onDragEnd = async (data: SavedChart[]) => {
-    setCharts(data);                          // 로컬 즉시 반영(애니메이션은 DraggableFlatList가 처리)
-    await reorderCharts(data.map((c) => c.id)); // 영속 + 계정동기화(ADR-056)
+    /**
+     * ⚠️★목록에는 **대표가 빠져 있다**(위 칸으로 뺐다). 그대로 저장하면 대표가 **순서에서 사라진다.**
+     *   ⇒ 원래 있던 자리에 되메워 **전체 순서**로 되돌린 뒤 저장한다.
+     *   ★대표를 «맨 앞» 으로 밀지 않는다 — 그건 사용자가 저장해 둔 순서를 말없이 고쳐 쓰는 것이다.
+     *     (화면에서 위에 보이는 것과 **저장된 순서**는 다른 이야기다.)
+     */
+    let full = data;
+    if (repRow) {
+      const at = charts.findIndex((c) => c.id === repRow.id);
+      full = [...data];
+      full.splice(at < 0 ? full.length : Math.min(at, full.length), 0, repRow);
+    }
+    setCharts(full);                          // 로컬 즉시 반영(애니메이션은 DraggableFlatList가 처리)
+    await reorderCharts(full.map((c) => c.id)); // 영속 + 계정동기화(ADR-056)
   };
 
   // 명식 수정 → 등록 폼 편집모드(editId)로 이동. 모달 닫고 진입.
@@ -599,6 +612,26 @@ export function ChartPicker({ onChange, viewOnly }: {
                   </PressableScale>
                 </View>
                 <Text style={styles.catNote}>{t('manse.catDelNote', '카테고리를 지워도 명식은 지워지지 않아요 — ‘기타’로 옮겨져요.')}</Text>
+              </View>
+            )}
+            {/* ★★대표 명식 — **목록 위 칸에 따로** (Boss 2026-08-28
+                  *"명식리스트에서 대표 명식은 위에 칸따로 만들어서 알수있게 하자"*).
+                ■ 종전엔 대표가 목록 **안**에 섞여 있고 배경색만 달랐다. 명식이 수십 개면
+                  스크롤해 찾아야 «지금 누가 대표인지» 를 알 수 있었다(그래서 «대표 자리로 스크롤»
+                  이라는 장치까지 있었다 — 위 주석 참고. 이제 그게 필요 없다).
+                ■ 행은 **목록과 같은 렌더러**를 쓴다 — 따로 그리면 언젠가 갈린다
+                  ([[duplicate-ui-single-source]]). `plain` 만 켜서 드래그 장식을 뺀다.
+                ■ ⚠️`viewOnly`(만세력)에서는 «대표» 가 아니라 **지금 보는 명식**이다 —
+                  그 화면은 대표를 바꾸지 않는다(Boss 2026-08-27 *"무조건 대표명식으로 고정"*).
+                  이름을 잘못 적으면 «내가 대표를 바꿨나?» 하고 오해한다. */}
+            {repRow && (
+              <View style={styles.repBox}>
+                <Text style={styles.repCap}>
+                  {viewOnly
+                    ? t('manse.viewingChart', '지금 보는 명식')
+                    : t('manse.repChart', '대표 명식')}
+                </Text>
+                {renderChartRow({ item: repRow, drag: () => {}, isActive: false, plain: true })}
               </View>
             )}
             {/* 순서 변경 안내 — 전체보기에서만 드래그 가능(필터 중엔 부분집합이라 순서 저장이 꼬임). */}
@@ -841,6 +874,17 @@ const styles = StyleSheet.create({
   //     시트 최대 88% 인데 헤더(제목·검색·필터칩·안내문)가 ~22% + 등록 버튼 ~9% + 안전영역 ~4% 를 먹는다.
   //     남는 자리는 ~53% 뿐인데 상한이 62% 라, flexShrink 가 제때 안 먹으면 버튼이 밖으로 밀렸다.
   //     상한 자체를 남는 자리 안으로 넣어 **어느 경로로도 버튼이 밀리지 않게** 한다(리스트는 안에서 스크롤된다).
+  /**
+   * 대표 명식 칸 — 목록과 **눈에 띄게 갈라** 둔다(Boss 2026-08-28).
+   * ★목록의 여느 행처럼 보이면 «위에 따로 뒀다» 는 뜻이 전달되지 않는다 ⇒ 테두리·바탕으로 칸을 만든다.
+   * ⚠️`marginBottom` 으로 목록과 띄운다 — 붙어 있으면 목록의 첫 행으로 읽힌다.
+   */
+  repBox: {
+    borderWidth: 1, borderColor: colors.ju, borderRadius: radius.md,
+    backgroundColor: colors.juSoft, paddingHorizontal: space(3),
+    paddingBottom: space(1), marginBottom: space(3),
+  },
+  repCap: { ...font.caption, color: colors.ju, fontWeight: '700', paddingTop: space(2.5) },
   list: { flexShrink: 1, maxHeight: Dimensions.get('window').height * 0.52 },
   row: { flexDirection: 'row', alignItems: 'center', paddingVertical: space(3.5), borderBottomWidth: 1, borderBottomColor: colors.line, gap: space(2) },
   rowActive: { backgroundColor: colors.card, borderRadius: radius.md, borderBottomColor: 'transparent' }, // 드래그 중 행 강조(들어올림)

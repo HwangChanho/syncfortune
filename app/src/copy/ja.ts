@@ -1008,6 +1008,8 @@ export const ja = {
     'catDeleteTitle': 'カテゴリー削除',
     'newCategoryPh': '新しいカテゴリー名',
     'catDelNote': 'カテゴリーを削除しても命式は消えません —「その他」に移動します。',
+    'repChart': '代表の命式',
+    'viewingChart': '今見ている命式',
     'deleteTitle': '命式の削除',
     'viewManse': '万年暦を見る', 'changeCategory': 'カテゴリ変更', empty: '登録された命式がありません。', myChart: '命式', searchChart: '名前で探す' },
   sinsal: { 도화: '桃花', 역마: '駅馬', 화개: '華蓋', 천을귀인: '天乙貴人', 문창: '文昌', 양인: '羊刃', 홍염: '紅艶', 괴강: '魁罡', 백호: '白虎' },

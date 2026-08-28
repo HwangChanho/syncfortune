@@ -49,7 +49,11 @@ export function judgeEdge(src: string): string[] {
   const bad: string[] = [];
   if (!/exp\.host\/--\/api\/v2\/push\/send/.test(src)) bad.push('Expo 발송 호출이 없다 — 답장 푸시를 아무도 안 보낸다');
   // route 는 화면이 `c` 파라미터로 방을 연다 → 이 형태를 벗어나면 탭해도 목록만 열린다
-  if (!/route:\s*`\/talk\?c=\$\{/.test(src)) bad.push('route 가 `/talk?c=…` 형태가 아니다 — 탭해도 그 대화로 안 간다');
+  // ★2026-08-28 판정을 넓혔다 — 종전엔 `route:` **바로 뒤**의 템플릿만 봐서,
+  //   같은 값을 변수(`const route = ...`)로 뽑자 **멀쩡한 코드에서 빨간불**이 났다.
+  //   ⇒ ①그 주소를 만드는 곳이 있고 ②그 값이 `data` 로 실리는가 를 따로 본다(자리 아닌 «뜻»).
+  if (!/`\/talk\?c=\$\{/.test(src)) bad.push('`/talk?c=…` 를 만드는 곳이 없다 — 탭해도 그 대화로 안 간다');
+  if (!/data:\s*\{[\s\S]{0,240}?\broute\b/.test(src)) bad.push('그 주소가 푸시 data.route 로 안 실린다 — 앱이 이동할 곳을 모른다');
   if (!/talkConsultant:/.test(src)) bad.push('data.talkConsultant 가 없다 — 앱이 «보고 있는 방» 을 견줄 수 없다');
   if (!/rpc\(\s*['"]talk_unread_total['"]/.test(src)) bad.push('배지 수를 talk_unread_total 로 안 받는다 — 서버가 따로 세면 앱과 갈린다');
   return bad;
@@ -80,7 +84,9 @@ export function judgeScreen(src: string): string[] {
 
 // ── 음성 테스트 ────────────────────────────────────────────────────────────
 if (process.argv.includes('--selftest')) {
-  const okEdge = 'fetch("https://exp.host/--/api/v2/push/send"…) route: `/talk?c=${x}`, talkConsultant: c.id, rpc(\'talk_unread_total\'';
+  // ★변수로 뽑은 형태(실제 코드 모양)로 둔다 — 「route: 바로 뒤」만 보던 판정이 여기서 깨졌었다
+  const okEdge = 'fetch("https://exp.host/--/api/v2/push/send"…) const route = `/talk?c=${x}`;'
+    + ' data: { route, talkConsultant: c.id } rpc(\'talk_unread_total\'';
   const okNotif = 'handleNotification: async (n) => { const d=n.request.content.data; const same = d.talkConsultant === open;'
     + ' return { shouldShowAlert: !same, shouldSetBadge: true }; }  rpc(\'talk_unread_total\')  setBadgeCountAsync(n)';
   const okScreen = 'setOpenTalk(cur?.id ?? null); return () => setOpenTalk(null); void refreshTalkBadge();';
@@ -88,6 +94,7 @@ if (process.argv.includes('--selftest')) {
     ['Edge 정상', () => judgeEdge(okEdge), true],
     ['Edge 발송 삭제', () => judgeEdge(okEdge.replace('https://exp.host/--/api/v2/push/send', 'x')), false],
     ['Edge route 형식 붕괴', () => judgeEdge(okEdge.replace('`/talk?c=${x}`', '"/talk"')), false],
+    ['route 를 data 에 안 실음', () => judgeEdge(okEdge.replace('data: { route,', 'data: { zzz,')), false],
     ['Edge 가 배지를 자체 계산', () => judgeEdge(okEdge.replace("rpc('talk_unread_total'", 'count(')), false],
     ['앱 정상', () => judgeNotif(okNotif), true],
     ['배지 꺼짐', () => judgeNotif(okNotif.replace('shouldSetBadge: true', 'shouldSetBadge: false')), false],

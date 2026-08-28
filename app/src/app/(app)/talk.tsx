@@ -1236,7 +1236,13 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
   const composer = !cur?.block && (cur?.kind === 'virtual' || cur?.kind === 'live') ? (
     <View>
     {inviteBar}
-    <View style={[styles.composer, { paddingBottom: Math.max(space(3), insets.bottom), marginBottom: lift }]}>
+    /* ★2026-08-28 — 입력칸 **아래 여백을 걷어냈다**(Boss *"택스트필드 아래 여백이 너무 많아"*).
+       ⚠️여기서 `insets.bottom`(홈 인디케이터 34pt)을 **또** 넣고 있었다. 그런데 이 화면 아래에는
+         `_layout` 이 깔아 둔 **네비바가 이미** 있고, 안전영역은 그 네비바가 진다.
+         ⇒ 같은 여백을 두 번 넣은 것이다 — 08-28 오전 「태어난 시 찾기」가 잘린 것과 **같은 종류**의 실수다
+           (그때도 두 버튼이 둘 다 `insets.bottom` 을 갖고 있었다).
+       ★키보드가 올라온 동안에도 필요 없다 — 그때는 키보드가 그 자리를 덮는다. */
+    <View style={[styles.composer, { paddingBottom: space(3), marginBottom: lift }]}>
       {/* ★명식 부르기 — **실제 상담가에게만** 붙인다.
           가상(오늘의 운세 등)은 LLM 을 안 부르므로 눌러도 아무 일이 없다 = 죽은 버튼이 된다. */}
       {cur?.kind === 'live' ? (
