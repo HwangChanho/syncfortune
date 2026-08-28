@@ -7,7 +7,7 @@
 import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useState, useRef } from 'react';
 import { A } from '../../lib/ui/remoteAsset'; // ★이미지 원격화(daniel 08-01) — 번들에서 걷어내고 Storage 에서 받는다
-import { View, Text, ScrollView, StyleSheet, ImageBackground, Animated, Easing, InteractionManager } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, ImageBackground, Animated, Easing, InteractionManager, Platform } from 'react-native';
 import { PressableScale } from '../../components/PressableScale';
 import { RelatedContent } from '../../components/RelatedContent';
 import { Stack } from 'expo-router';
@@ -75,7 +75,15 @@ export default function DayPillarScreen() {
   //   ★전환 멈칫 제거(daniel): 등록 명식마다 computeChart 가 도는 무거운 루프라, 전환 애니가 끝난 뒤
   //     (InteractionManager) 실행한다. 그 사이엔 ListSkeleton 이 즉시 떠 화면이 매끄럽게 넘어간다.
   useEffect(() => {
-    const task = InteractionManager.runAfterInteractions(() => {
+    // ⚠️★★`runAfterInteractions` 는 **웹에서 영영 안 온다** (2026-08-16 실측 · `useDeferredReady` 주석).
+    //   애니메이션이 계속 도는 화면에서는 «상호작용이 끝났다» 가 성립하지 않는다.
+    //   실측(2026-08-28): `/dayPillar` 이 **영영 스켈레톤**이었다 — 글자 0, 콘솔 오류 0.
+    //   ⇒ 웹은 타이머 0 으로 **첫 페인트만 넘긴다**(rAF 는 백그라운드 탭에서 안 돈다).
+    const run = (fn: () => void) =>
+      (Platform.OS === 'web'
+        ? { cancel: ((id) => () => clearTimeout(id))(setTimeout(fn, 0)) }
+        : InteractionManager.runAfterInteractions(fn));
+    const task = run(() => {
       (async () => {
         const ch = await loadRepChart();
         setRep(ch);

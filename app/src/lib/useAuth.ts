@@ -8,7 +8,7 @@
 // 세션 토큰은 supabase.ts 의 SecureStore 어댑터(기기 하드웨어 암호화)에 저장(ADR-032). RLS 로 행 격리(규칙8).
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useSyncExternalStore } from 'react';
-import { InteractionManager } from 'react-native'; // 로그인 직후 무거운 동기화를 상호작용 이후로
+import { afterInteractions } from './ui/useDeferredReady';   // 웹에서도 도는 «상호작용 뒤 1회»
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from './supabase';
 import { syncChartsFromServer, loadRepChart } from './engine/myChart';
@@ -111,13 +111,14 @@ function startAuthOnce(): void {
   supabase.auth.getSession().then(({ data }) => {
     setSession(data.session);
     if (_loading) { _loading = false; emit(); }
-    if (data.session) InteractionManager.runAfterInteractions(() => { void prefetchOnLogin(data.session!); });
+    // ⚠️웹에서는 콜백이 안 와 **prefetch 가 아예 안 돌았다**(2026-08-28) → 공용 창구로
+    if (data.session) afterInteractions(() => { void prefetchOnLogin(data.session!); });
     else void ensureAnonSession(); // ★미로그인 → 익명 세션(로그인 없이 구매·통변 · Apple 5.1.1)
   });
   // 2) 세션 변화 구독(앱 전역 단 1개)
   supabase.auth.onAuthStateChange((_event, s) => {
     const changed = setSession(s);
-    if (_event === 'SIGNED_IN' && s) InteractionManager.runAfterInteractions(() => { void prefetchOnLogin(s); }); // prefetch 자체가 세션당 1회 가드
+    if (_event === 'SIGNED_IN' && s) afterInteractions(() => { void prefetchOnLogin(s); }); // prefetch 자체가 세션당 1회 가드
     if (_event === 'SIGNED_OUT') {
       lastPrefetchId = null; // 다음 로그인 때 다시 prefetch
       setAuthBusy(true);     // 로그아웃 클린업 동안 화면 막고 로딩(먹통 방지)

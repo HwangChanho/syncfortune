@@ -46,12 +46,28 @@ for (const r of ROUTES) {
   page.off('console', onC); page.off('pageerror', onE);
 
   const crash = CRASH.test(txt);
-  // ★«빈 화면» 은 **본문이 거의 없는 것**이다. 로그인 안내·목록 없음은 글이 있으므로 안 걸린다.
-  const blank = txt.replace(/니운내운|운친구|운광장|내 운|다섯 기운이 이어|오늘의 나를 읽다/g, '').trim().length < 40;
+  /**
+   * ★«빈 화면» 판정 — ⚠️**글자 수로만 세면 안 된다**(2026-08-28 내가 그렇게 만들었다가 틀렸다).
+   *   「내 명식을 먼저 등록해 주세요 · 명식 등록」은 **22자**지만 **정상적인 빈 상태**다 —
+   *   할 일과 버튼이 있으니 막다른 길이 아니다. 그걸 26건이나 «BLANK» 로 세어 놓고 «문제» 라 보고했다.
+   * ⇒ **안내 문구가 있으면 통과**시킨다. 진짜 문제는 «아무 말도 없는» 화면뿐이다.
+   */
+  const body = txt.replace(/니운내운|운친구|운광장|내 운|다섯 기운이 이어|오늘의 나를 읽다/g, '').trim();
+  /**
+   * ⚠️★★판정을 **두 번** 고쳤다. 글자 수로 «빈 화면» 을 세면 계속 오판한다:
+   *   ①「내 명식을 먼저 등록해 주세요 · 명식 등록」(22자) — 버튼이 있는 **정상** 빈 상태
+   *   ②「찜한 선생님 · 노쌤 · 사주 · 명리 공부 · ★」(38자) — **내용이 있는** 목록
+   *   두 번 다 «문제» 로 보고했다가 눈으로 보고 틀린 걸 알았다.
+   * ⇒ 진짜 문제는 **아무 말도 없는** 화면뿐이다. 그 하나만 잡는다.
+   *   ★대신 짧은 화면은 **본문을 함께 찍어** 사람이 훑을 수 있게 한다(숨기지 않는다).
+   */
+  const blank = body.length < 12;
   const real = errs.filter((e) => !/favicon|manifest|401|Failed to load resource/.test(e));
   const mark = crash ? 'CRASH' : blank ? 'BLANK' : real.length ? 'ERR' : 'ok';
-  if (mark !== 'ok') bad.push({ r: r || '(home)', mark, status, len: txt.length, e: real[0] || '' });
-  console.log(`  ${mark === 'ok' ? '✅' : '❌'} /${r.padEnd(16)} ${String(status).padEnd(4)} ${String(txt.length).padStart(5)}자  ${mark === 'ok' ? '' : (real[0] || mark)}`);
+  if (mark !== 'ok') bad.push({ r: r || '(home)', mark, status, len: txt.length, e: real[0] || JSON.stringify(body.slice(0, 60)) });
+  // ★짧은 화면은 내용을 같이 찍는다 — «통과» 라고만 하면 사람이 확인할 길이 없다
+  const peek = mark === 'ok' && body.length < 60 ? `  ${JSON.stringify(body.slice(0, 50))}` : '';
+  console.log(`  ${mark === 'ok' ? '✅' : '❌'} /${r.padEnd(16)} ${String(status).padEnd(4)} ${String(txt.length).padStart(5)}자${peek}  ${mark === 'ok' ? '' : (real[0] || mark)}`);
 }
 await browser.close();
 console.log(`\n${bad.length ? `❌ 문제 ${bad.length}건 / ${ROUTES.length}` : `✅ 전 화면 통과 (${ROUTES.length}개)`}`);

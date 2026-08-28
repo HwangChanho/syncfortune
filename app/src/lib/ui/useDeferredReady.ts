@@ -37,3 +37,25 @@ export function useDeferredReady(): boolean {
   }, []);
   return ready;
 }
+
+/**
+ * **상호작용이 끝난 뒤 한 번** 실행 — 웹/네이티브를 함께 다루는 단일 창구.
+ *
+ * ■ ⚠️★`InteractionManager.runAfterInteractions` 는 **웹에서 콜백이 안 온다**
+ *   (위 훅 주석의 그 문제). 화면을 여는 데 쓰면 **영영 스켈레톤**,
+ *   백그라운드 작업에 쓰면 **그 작업이 통째로 안 돈다.**
+ * ■ 실제 피해: 2026-08-16 만세력 44초 스켈레톤 · 2026-08-28 `/dayPillar` 영구 스켈레톤 ·
+ *   웹 로그인 시 **구매분 이관(`migrateLocalCreditsOnLogin`)과 prefetch 가 아예 안 돌고 있었다.**
+ * ■ ⇒ 웹은 타이머 0(첫 페인트만 넘긴다 · rAF 는 백그라운드 탭에서 안 돈다), 네이티브는 원래대로.
+ *
+ * @param fn 한 번 실행할 일
+ * @returns 취소 함수 — `useEffect` 의 정리에서 부른다
+ */
+export function afterInteractions(fn: () => void): () => void {
+  if (Platform.OS === 'web') {
+    const id = setTimeout(fn, 0);
+    return () => clearTimeout(id);
+  }
+  const task = InteractionManager.runAfterInteractions(fn);
+  return () => task.cancel();
+}

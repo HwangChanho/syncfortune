@@ -265,7 +265,11 @@ export function ChartPicker({ onChange, viewOnly }: {
     const snapshot = charts.slice(0, WARM_MAX);
     let alive = true;
     let ti: ReturnType<typeof setTimeout>;
-    const h = InteractionManager.runAfterInteractions(() => {
+    // ⚠️★위 `listReady` 와 같은 이유 — 웹은 콜백이 안 온다(데우기가 통째로 안 돈다)
+    const h = (Platform.OS === 'web'
+      ? { cancel: ((id) => () => clearTimeout(id))(setTimeout(warm, 0)) }
+      : InteractionManager.runAfterInteractions(warm));
+    function warm() {
       let i = 0;
       const step = () => {
         if (!alive || i >= snapshot.length) return;
@@ -283,7 +287,7 @@ export function ChartPicker({ onChange, viewOnly }: {
         ti = setTimeout(step, 0); // ★한 명식 = 한 틱. 한 루프에 몰면 그게 렉이다.
       };
       ti = setTimeout(step, 0);
-    });
+    }
     return () => { alive = false; h.cancel(); clearTimeout(ti); };
   }, [charts]);
 

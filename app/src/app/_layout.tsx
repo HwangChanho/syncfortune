@@ -5,6 +5,7 @@
 // native = 스택 내비 / web = URL 라우팅 으로 같은 트리가 양쪽에서 동작한다.
 // ─────────────────────────────────────────────────────────────────────────
 import 'intl-pluralrules'; // Intl.PluralRules polyfill (Hermes) — iztro i18next 보조(ERROR 폴백, 무해)
+import { afterInteractions } from '../lib/ui/useDeferredReady';   // 웹에서도 도는 «상호작용 뒤 1회»
 import { useTranslation } from 'react-i18next';   // 언어가 바뀌면 재렌더 + 트리 리마운트 키
 import '../lib/i18n'; // 다국어(한·영·일) init
 // ★전역 최소 줄간격(daniel 2026-07-28 "글자가 클때 줄간 간격이 너무 좁아") — import 시점에 1회 설치.
@@ -15,7 +16,7 @@ installMinLineHeight();
 import { useEffect, useState, useSyncExternalStore, useRef } from 'react';
 import { Stack, useRouter, usePathname } from 'expo-router';
 import { useFonts } from 'expo-font'; // 트렌디 폰트(Pretendard) 런타임 로드 — 네이티브 ExpoFont pod
-import { View, ActivityIndicator, StyleSheet, LogBox, AppState, InteractionManager } from 'react-native';
+import { View, ActivityIndicator, StyleSheet, LogBox, AppState } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler'; // 이슈20 드래그 reorder(gesture-handler) — 루트 래핑 필수
 import { useAuth, whenAuthCleanupIdle } from '../lib/useAuth'; // whenAuthCleanupIdle: 로그아웃 클린업 완료 게이트(L3 — sync 전 대기)
 import { configurePurchases } from '../lib/billing/purchases'; // 인앱결제(RevenueCat) 초기화
@@ -193,7 +194,10 @@ export default function RootLayout() {
     // ★광고 제거(코인 구매) 재평가(daniel 07-28) — 계정마다 값이 다르므로 세션이 바뀌면 반드시 다시 읽는다.
     //   안 읽으면 A 계정이 산 무광고가 B 계정에 그대로 남는다(반대로도 마찬가지).
     void refreshAdFree();
-    if (session?.user) InteractionManager.runAfterInteractions(() => { migrateLocalCreditsOnLogin(); }); // 로그인 시 구매분 이관 — 상호작용 후로(#2 진입 지연 완화, daniel)
+    // ⚠️★★**웹에서는 이게 통째로 안 돌고 있었다**(2026-08-28 `check:interaction` 이 잡음).
+    //   `runAfterInteractions` 콜백이 웹에서는 안 와서 **로그인 시 구매분 이관이 실행되지 않았다** —
+    //   돈이 걸린 자리다. ⇒ `afterInteractions`(웹=타이머 0)로 바꾼다.
+    if (session?.user) afterInteractions(() => { migrateLocalCreditsOnLogin(); });
   }, [session?.user?.id]);
 
   // 최상위 두 영역: login(미인증) · (app)(인증). 헤더는 각 하위에서 제어.
