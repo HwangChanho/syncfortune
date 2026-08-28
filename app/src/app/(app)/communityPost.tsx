@@ -79,7 +79,15 @@ export default function CommunityPostScreen() {
     if (!body || !id || busy) return;
     setBusy(true); Keyboard.dismiss();
     // ⚠️★상한 필수 — 잠금 구간(멈춤 방지). 초과해도 잠금이 풀려 다시 시도할 수 있다.
-    try { await withTimeout(addComment(id, body)); setInput(''); await withTimeout(load()); }
+    // ★만든 행을 **그 자리에서** 붙인다 — 다시 읽어 올 때까지 화면이 멈춰 보이지 않게.
+    //   ⚠️`load()` 는 **기다리지 않는다**. 기다리면 «등록했는데 아무 일도 안 일어나는» 구간이 다시 생긴다.
+    //   (`comment_count` 는 서버 트리거가 세므로 목록 숫자는 다시 읽을 때 맞춰진다.)
+    try {
+      const row = await withTimeout(addComment(id, body));
+      setInput('');
+      if (row) setComments((prev) => [...prev, row]);
+      void withTimeout(load());
+    }
     catch (e) {
       Alert.alert('!', (e as Error).message === 'PROFANITY' ? t('community.profanity', '부적절한 표현이 포함돼 있어요. 수정 후 다시 올려 주세요.') : (e as Error).message);
     } finally { setBusy(false); }

@@ -86,6 +86,21 @@ export async function saveMyName(name: string): Promise<{ ok: boolean; error?: s
   return { ok: true };
 }
 
+
+/**
+ * 올릴 것 — 웹은 `File`(Blob), 폰은 `pickImage()` 가 준 바이트.
+ * ★한 타입으로 받아 **경로·정책·버전쿼리 규칙을 한 벌**로 유지한다
+ *   (웹용·폰용 업로드를 따로 만들면 «첫 칸이 uid» 같은 규칙이 언젠가 갈린다).
+ */
+export type Uploadable = (Blob & { name?: string; type?: string }) | { data: Uint8Array; type: string; size: number };
+
+/** 업로드 본체와 MIME·크기를 꺼낸다(웹 Blob / 폰 바이트 공통). */
+function partsOf(f: Uploadable): { body: Blob | Uint8Array; type: string; size: number } {
+  return 'data' in f
+    ? { body: f.data, type: f.type || 'image/jpeg', size: f.size }
+    : { body: f, type: f.type || 'image/jpeg', size: f.size };
+}
+
 /**
  * 사진 업로드.
  *
@@ -93,16 +108,17 @@ export async function saveMyName(name: string): Promise<{ ok: boolean; error?: s
  *   Storage 정책이 '첫 칸이 내 uid' 를 요구하므로 남의 파일을 건드릴 수 없다.
  * ⚠️같은 경로에 덮어쓰면 CDN 캐시가 옛 사진을 계속 준다 → URL 에 버전 쿼리를 붙인다.
  *
- * @param file 브라우저 File 객체(웹) — 모바일은 `expo-image-picker` 가 붙은 뒤에 지원한다
+ * @param file 웹은 `File`, 폰은 `pickImage()` 결과(2026-08-28부터 폰도 된다)
  */
-export async function uploadMyAvatar(file: Blob & { name?: string; type?: string }): Promise<{ ok: boolean; url?: string; error?: string }> {
+export async function uploadMyAvatar(file: Uploadable): Promise<{ ok: boolean; url?: string; error?: string }> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: 'unauthorized' };
-  if (file.size > 2 * 1024 * 1024) return { ok: false, error: 'too_large' };
-  const ext = (file.type ?? '').includes('png') ? 'png' : (file.type ?? '').includes('webp') ? 'webp' : 'jpg';
+  const { body, type, size } = partsOf(file);
+  if (size > 2 * 1024 * 1024) return { ok: false, error: 'too_large' };
+  const ext = type.includes('png') ? 'png' : type.includes('webp') ? 'webp' : 'jpg';
   const path = `${user.id}/avatar.${ext}`;
   const up = await supabase.storage.from('avatars')
-    .upload(path, file, { upsert: true, contentType: file.type || 'image/jpeg' });
+    .upload(path, body, { upsert: true, contentType: type });
   if (up.error) return { ok: false, error: up.error.message };
   const { error } = await supabase.from('profiles')
     .update({ avatar_path: path }).eq('id', user.id);
@@ -129,17 +145,18 @@ export async function clearMyAvatar(): Promise<{ ok: boolean; error?: string }> 
 /**
  * 배경 사진 올리기 — 아바타와 **같은 관용**이다(경로 첫 칸이 내 uid · 덮어쓰기 + 버전 쿼리).
  *
- * @param file 브라우저 File 객체(웹) — 모바일은 `expo-image-picker` 가 붙은 뒤에 지원한다
+ * @param file 웹은 `File`, 폰은 `pickImage()` 결과(2026-08-28부터 폰도 된다)
  */
-export async function uploadMyCover(file: Blob & { name?: string; type?: string }): Promise<{ ok: boolean; url?: string; error?: string }> {
+export async function uploadMyCover(file: Uploadable): Promise<{ ok: boolean; url?: string; error?: string }> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: 'unauthorized' };
+  const { body, type, size } = partsOf(file);
   // ⚠️배경은 가로로 넓어 아바타보다 크다 — 그래도 4MB 를 넘기지 않는다(느린 망에서 화면이 늦게 뜬다)
-  if (file.size > 4 * 1024 * 1024) return { ok: false, error: 'too_large' };
-  const ext = (file.type ?? '').includes('png') ? 'png' : (file.type ?? '').includes('webp') ? 'webp' : 'jpg';
+  if (size > 4 * 1024 * 1024) return { ok: false, error: 'too_large' };
+  const ext = type.includes('png') ? 'png' : type.includes('webp') ? 'webp' : 'jpg';
   const path = `${user.id}/cover.${ext}`;
   const up = await supabase.storage.from('avatars')
-    .upload(path, file, { upsert: true, contentType: file.type || 'image/jpeg' });
+    .upload(path, body, { upsert: true, contentType: type });
   if (up.error) return { ok: false, error: up.error.message };
   const { error } = await supabase.from('profiles')
     .update({ cover_path: path }).eq('id', user.id);

@@ -214,13 +214,23 @@ export async function listComments(postId: string): Promise<CommunityComment[]> 
   return (data ?? []) as CommunityComment[];
 }
 
-export async function addComment(postId: string, body: string): Promise<void> {
+/**
+ * 댓글 등록.
+ * ★2026-08-28 — **만든 행을 돌려준다**(Boss *"댓글 남기면 바로 갱신이 안돼"*).
+ *   종전엔 `void` 라 화면이 «다시 읽어 오는 것» 말고는 새 댓글을 보여 줄 방법이 없었다.
+ *   다시 읽기는 왕복이 한 번 더 드는 데다, 그 사이 화면은 **아무 일도 안 일어난 것처럼** 보인다.
+ *   ⇒ 삽입 결과를 받아 그 자리에서 붙인다(목록 재조회는 그 뒤에 조용히).
+ */
+export async function addComment(postId: string, body: string): Promise<CommunityComment> {
   if (containsProfanity(body)) throw new Error('PROFANITY');
   const me = await uid();
   if (!me) throw new Error('세션이 필요해요.');
   const ilju = await myIljuIfEnabled(me);
-  const { error } = await supabase.from('community_comments').insert({ post_id: postId, author_id: me, body: body.trim(), ilju });
+  const { data, error } = await supabase.from('community_comments')
+    .insert({ post_id: postId, author_id: me, body: body.trim(), ilju })
+    .select('*').single();
   if (error) throw error;
+  return data as CommunityComment;
 }
 
 export async function deleteComment(id: string): Promise<void> {

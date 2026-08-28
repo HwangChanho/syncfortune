@@ -7,7 +7,7 @@
 import { createElement, useEffect, useState, useCallback, useRef } from 'react';
 import { View, Text, Pressable, ScrollView, FlatList, StyleSheet, Modal, TextInput, RefreshControl, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context'; // 전체화면 Modal 헤더 상단 안전영역(다이나믹아일랜드) — reunion.tsx 패턴
 import { Image as ExpoImage } from 'expo-image';
@@ -133,6 +133,10 @@ export default function CommunityScreen() {
     } catch { /* 목록 로드 실패=빈 목록 */ } finally { setLoading(false); setRefreshing(false); }
   }, [cat, sort]);
   useEffect(() => { setLoading(true); load(); }, [load]);
+  // ★글을 보고 **돌아오면 다시 읽는다**(Boss 2026-08-28 *"댓글 남기면 바로 갱신이 안돼"*).
+  //   댓글 수·좋아요 수는 상세에서 바뀌는데, 목록은 처음 한 번만 읽고 있어 **옛 숫자가 남았다**.
+  //   ⚠️로딩 표시는 켜지 않는다 — 돌아올 때마다 화면이 번쩍이면 그게 더 거슬린다(조용히 갱신).
+  useFocusEffect(useCallback(() => { void load(); }, [load]));
   // 약관 동의 플래그 프리로드 — 탭 시점의 동기 SecureStore 호출(JS 스레드 블록)을 없애기 위해 미리 읽어 둔다.
   useEffect(() => { SecureStore.getItemAsync(EULA_KEY).then((v) => setEulaAgreed(v === '1')).catch(() => setEulaAgreed(false)); }, []);
   // 첨부용 본인 명식 프리로드 — 명식도 SecureStore(PII 암호화 저장)라 글쓰기 탭 시점에 읽으면 또 창이 늦게 뜬다.

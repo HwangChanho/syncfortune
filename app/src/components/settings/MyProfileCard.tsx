@@ -20,6 +20,8 @@ import { Image as ExpoImage } from 'expo-image';
 import { useTranslation } from 'react-i18next';
 import { PressableScale } from '../PressableScale';
 import { loadMyProfile, saveMyName, uploadMyAvatar, clearMyAvatar, uploadMyCover, clearMyCover } from '../../lib/talk/myProfile';
+// ★폰 사진 고르기(Boss 2026-08-28 *"ios는 왜 사진 바꾸기가 안되지"*) — 웹은 종전 <input type=file> 그대로
+import { pickImage, canPickImage } from '../../lib/media/pickImage';
 import { colors, space, radius, font, activeElement } from '../../lib/theme';
 import { elementColor, elementText } from '../../lib/engine/ohaeng';
 
@@ -71,6 +73,34 @@ export function MyProfileCard({ fallbackName, element }: { fallbackName?: string
     if (e.target) e.target.value = '';   // 같은 파일을 다시 골라도 이벤트가 오게
   };
 
+  /**
+   * 폰에서 사진 고르기 — 앨범 → 업로드 → 화면 갱신.
+   * ★웹 경로(`onFile`)와 **같은 업로드 함수**를 쓴다(경로·정책·버전쿼리 규칙이 한 벌이다).
+   * ⚠️취소·권한 거부는 `null` 이라 **아무 말도 하지 않는다** — 사용자가 스스로 접은 것이다.
+   */
+  const onPickNative = async () => {
+    const img = await pickImage({ square: true });   // 프로필은 정사각
+    if (!img) return;
+    setBusy(true);
+    const r = await uploadMyAvatar(img);
+    setBusy(false);
+    if (r.ok && r.url) { setAvatar(r.url); flash(t('profile.saved', '저장했어요')); }
+    else flash(r.error === 'too_large'
+      ? t('profile.tooLarge', '2MB 이하 사진만 올릴 수 있어요')
+      : t('profile.saveFail', '저장하지 못했어요'));
+  };
+  const onPickCoverNative = async () => {
+    const img = await pickImage();                   // 배경은 자유 비율
+    if (!img) return;
+    setBusy(true);
+    const r = await uploadMyCover(img);
+    setBusy(false);
+    if (r.ok && r.url) { setCover(r.url); flash(t('profile.saved', '저장했어요')); }
+    else flash(r.error === 'too_large'
+      ? t('profile.coverTooLarge', '4MB 이하 사진만 올릴 수 있어요')
+      : t('profile.saveFail', '저장하지 못했어요'));
+  };
+
   const onClear = async () => { setBusy(true); await clearMyAvatar(); setBusy(false); setAvatar(null); };
 
   // ★배경도 **같은 관용**이다 — 고르기·지우기가 사진과 나란히 있어야 «둘 다 바꿀 수 있다»가 읽힌다
@@ -97,9 +127,9 @@ export function MyProfileCard({ fallbackName, element }: { fallbackName?: string
       {/* ★배경 사진 — 프로필 창에서 이 자리가 윗면이 된다. 없으면 오행 색면 */}
       <View style={[styles.cover, { backgroundColor: elementColor[el] }]}>
         {cover ? <ExpoImage source={{ uri: cover }} style={StyleSheet.absoluteFill} contentFit="cover" transition={140} /> : null}
-        {Platform.OS === 'web' ? (
+        {(Platform.OS === 'web' || canPickImage) ? (
           <View style={styles.coverBtns}>
-            <PressableScale style={styles.coverBtn} onPress={onPickCover} disabled={busy}>
+            <PressableScale style={styles.coverBtn} onPress={Platform.OS === 'web' ? onPickCover : onPickCoverNative} disabled={busy}>
               <Text style={styles.coverBtnTx}>{t('profile.pickCover', '배경 바꾸기')}</Text>
             </PressableScale>
             {cover ? (
@@ -117,9 +147,9 @@ export function MyProfileCard({ fallbackName, element }: { fallbackName?: string
               <Text style={[styles.avTx, { color: elementText[el] }]}>{initial}</Text>
             </View>}
         <View style={styles.col}>
-          {Platform.OS === 'web' ? (
+          {(Platform.OS === 'web' || canPickImage) ? (
             <>
-              <PressableScale style={styles.btn} onPress={onPickWeb} disabled={busy}>
+              <PressableScale style={styles.btn} onPress={Platform.OS === 'web' ? onPickWeb : onPickNative} disabled={busy}>
                 <Text style={styles.btnTx}>{t('profile.pick', '사진 바꾸기')}</Text>
               </PressableScale>
               {avatar ? (
