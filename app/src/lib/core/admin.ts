@@ -8,7 +8,23 @@ import { supabase } from '../supabase';
 import { withTimeout } from './withTimeout';   // ★게이트 경로 네트워크 대기 상한(공용)
 import type { CreditKind } from '../billing/coupons';
 
-export type AdminUser = { id: string; email: string; is_premium: boolean; is_admin: boolean; created_at: string; chart_count: number; reading_count: number; paid_total: number; credits: number };
+/**
+ * 관리자 목록 한 줄.
+ * ★2026-08-28 확장 — 종전 이 타입에는 게스트를 나타낼 칸이 없었고, 서버 함수도 익명 계정을
+ *   아예 빼고 있었다(162명 중 10명). 이제 서버가 전건을 주므로 **누가 게스트인지**를 함께 받는다.
+ * - `email`: 게스트(익명 로그인)는 **null** 이다 — 화면에서 «—» 로 두지 말고 게스트라고 밝힐 것.
+ * - `total_count`/`member_count`/`guest_count`: 필터를 적용한 **전체** 수(현재 페이지 길이가 아니다).
+ */
+export type AdminUser = {
+  id: string; email: string | null; display_name: string | null; is_guest: boolean;
+  is_premium: boolean; is_admin: boolean; created_at: string; last_seen: string | null;
+  chart_count: number; reading_count: number; paid_total: number; credits: number;
+  suspended_until: string | null; suspended_reason: string | null;
+  total_count: number; member_count: number; guest_count: number;
+};
+
+/** 목록 범위 — 기본은 `all`. 거르는 것은 **부르는 쪽이 명시**할 때만이다. */
+export type AdminUserScope = 'all' | 'member' | 'guest';
 
 /** 내가 관리자인지(profiles.is_admin) — 화면 진입 노출용. 실제 권한은 서버 RPC가 강제. */
 export async function isAdmin(): Promise<boolean> {
@@ -40,9 +56,19 @@ export async function isAdminActing(): Promise<boolean> {
   return !error && data === true;
 }
 
-/** 유저 목록(관리자 전용, 최근 가입순). 비관리자 호출 시 서버가 차단 → 빈 배열. */
-export async function adminListUsers(): Promise<AdminUser[]> {
-  const { data, error } = await supabase.rpc('admin_list_users');
+/**
+ * 유저 목록(관리자 전용, 최근 가입순). 비관리자 호출 시 서버가 차단 → 빈 배열.
+ * @param scope 'all'(기본·전건) · 'member'(이메일 계정) · 'guest'(익명 로그인)
+ * @param q     이메일 · 이름 · uuid 부분일치. 비우면 전건.
+ * @param limit 한 번에 받을 행 수(서버 상한 1000) · @param offset 페이징 시작 위치
+ * ★검색·범위·페이징은 **서버가** 한다. 전건을 받아 여기서 거르면 상한에 조용히 잘린다.
+ */
+export async function adminListUsers(
+  scope: AdminUserScope = 'all', q?: string, limit = 200, offset = 0,
+): Promise<AdminUser[]> {
+  const { data, error } = await supabase.rpc('admin_list_users', {
+    p_q: q?.trim() || null, p_scope: scope, p_limit: limit, p_offset: offset,
+  });
   return error ? [] : ((data ?? []) as AdminUser[]);
 }
 

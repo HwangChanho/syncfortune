@@ -34,6 +34,20 @@ import { homedir } from 'node:os';
 const CMP = String.raw`(?:=|<>|!=|<=|>=|<|>|\bis\b|\bin\b|\blike\b|\bilike\b)`;
 
 /**
+ * 술어(predicate)를 여는 낱말들.
+ *
+ * ★2026-08-28 오탐을 잡으며 좁혔다. 종전엔 «홑이름 + 비교연산자» 면 무조건 걸었는데,
+ *   그러면 `update … set suspended_until = …` 의 **대입 대상**까지 물었다.
+ *   실측: 존재하지 않는 uuid 로 `admin_set_suspend` 를 불러 봤다 → **정상 실행(0행)**.
+ *   ⇒ `SET` 의 왼쪽은 **컬럼 자리**라 plpgsql 이 변수로 바꾸지 않는다. 애초에 모호해질 수 없다.
+ *   ★[[harness-can-enforce-wrong-rule]] — 초록/빨강이 틀리면 **코드보다 하네스를 먼저** 고친다.
+ *     그대로 뒀으면 멀쩡한 함수를 «100% 실패» 라 믿고 고쳐 놓을 뻔했다.
+ *
+ * 진짜 터지는 자리는 값을 **읽는** 자리다: `where id = …` · `and id = …` · `on id = …`.
+ */
+const PRED = String.raw`(?:where|and|or|on|having)`;
+
+/**
  * plpgsql 함수 정의 한 덩어리를 보고 «반환 칸 이름 ↔ 접두어 없는 비교» 충돌을 찾는다.
  *
  * @param def `pg_get_functiondef()` 이 돌려준 전체 정의(헤더 + 본문)
@@ -67,10 +81,14 @@ export function ambiguousNames(def: string): string[] {
 
   const hit: string[] = [];
   for (const name of outs) {
-    // 앞에 점·글자·따옴표가 없는 홑이름 + 비교연산자  →  「where id = ...」 같은 것만 잡힌다.
-    //   · 「p.id = ...」  : 앞에 점이 있어 안 걸림(정상)
-    //   · 「select p.id, ...」: 뒤에 비교연산자가 없어 안 걸림(정상)
-    const re = new RegExp(String.raw`(?:^|[^.\w"'])${name}\s*${CMP}`, 'im');
+    // **술어 안에서** 접두어 없이 비교에 쓰인 홑이름만 잡는다.
+    //   · 「where id = ...」 「and id = ...」 「on id = ...」 : 잡힌다(정상 — 여기가 터진다)
+    //   · 「p.id = ...」        : 앞에 점이 있어 안 걸림(정상)
+    //   · 「select p.id, ...」  : 비교연산자가 없어 안 걸림(정상)
+    //   · 「set suspended_until = ...」 : 술어가 아니라 **대입 대상**이라 안 걸림(정상 — 오탐이었다)
+    // 술어 낱말과 이름 사이에 허용하는 것: 공백 · 여는 괄호 · `not`
+    const re = new RegExp(
+      String.raw`\b${PRED}\b[\s(]*(?:not[\s(]+)?${name}\s*${CMP}`, 'im');
     if (re.test(src)) hit.push(name);
   }
   return hit;
@@ -98,13 +116,31 @@ begin
   return query select 'post'::text, q.id from posts q where q.hidden = false;
 end $function$`;
 const SELF_EXEMPT = SELF_BROKEN.replace('declare v boolean;', '#variable_conflict use_column\ndeclare v boolean;');
+/**
+ * ★2026-08-28 오탐 회귀 방지 — `admin_set_suspend` 모양 그대로.
+ *   `set suspended_until = …` 는 **대입 대상**이라 안전한데 종전 판정기가 이걸 물었다.
+ *   실측(존재하지 않는 uuid 호출)으로 정상 실행을 확인한 뒤 규칙을 좁혔다.
+ */
+const SELF_SET_OK = `CREATE OR REPLACE FUNCTION public.y(p_uid uuid, p_days integer)
+ RETURNS TABLE(id uuid, suspended_until timestamptz, suspended_reason text)
+ LANGUAGE plpgsql
+AS $function$
+begin
+  return query
+  update public.profiles p
+     set suspended_until  = case when p_days = 0 then null else now() + '1 day'::interval end,
+         suspended_reason = case when p_days = 0 then null else 'x' end
+   where p.id = p_uid
+  returning p.id, p.suspended_until, p.suspended_reason;
+end $function$`;
 
 function selftest(): boolean {
   const a = ambiguousNames(SELF_BROKEN);      // 잡아야 한다
   const b = ambiguousNames(SELF_OK);          // 잡으면 안 된다
   const c = ambiguousNames(SELF_EXEMPT);      // 면제라 잡으면 안 된다
-  const ok = a.includes('id') && b.length === 0 && c.length === 0;
-  console.log(`   ${ok ? '✅' : '❌'} 자기검사 — 깨진 것 [${a}] · 멀쩡한 것 [${b}] · 면제 [${c}]`);
+  const d = ambiguousNames(SELF_SET_OK);      // ★대입 대상 — 잡으면 안 된다(옛 오탐)
+  const ok = a.includes('id') && b.length === 0 && c.length === 0 && d.length === 0;
+  console.log(`   ${ok ? '✅' : '❌'} 자기검사 — 깨진 것 [${a}] · 멀쩡한 것 [${b}] · 면제 [${c}] · 대입대상 [${d}]`);
   return ok;
 }
 
