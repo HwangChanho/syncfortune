@@ -611,8 +611,10 @@ async function loadUsers(append) {
     box.innerHTML = rows.length ? head + body + '</table>' : '<span class="muted">결과 없음</span>';
   }
   userOffset = shown;
-  // 「더 보기」는 **서버가 준 총계**와 비교해 정한다(마지막 페이지가 꽉 차도 안 헷갈리게)
-  $('userMore').classList.toggle('hide', !userTally || userOffset >= userTally.total);
+  // 「더 보기」는 **서버가 준 총계**와 비교해 정한다(마지막 페이지가 꽉 차도 안 헷갈리게).
+  // ⚠️총계가 낡아 남아 있을 수 있다 — 이어 받았는데 **0행이면 무조건 감춘다**(눌러도 안 되는 버튼 방지).
+  const exhausted = (append && rows.length === 0) || !userTally || userOffset >= userTally.total;
+  $('userMore').classList.toggle('hide', exhausted);
 
   document.querySelectorAll('#userList button[data-uid]').forEach((b) => {
     b.onclick = () => { $('giftId').value = b.dataset.uid; say($('giftMsg'), '대상이 채워졌습니다', 'ok'); loadDetail(b.dataset.uid, b.dataset.email); };
