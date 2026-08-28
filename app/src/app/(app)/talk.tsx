@@ -117,7 +117,15 @@ function LeaveBar({ name, onOk, onCancel, t }: {
         <Pressable style={StyleSheet.absoluteFill} onPress={onCancel} />
         <View style={styles.leaveCard}>
           <Text style={styles.leaveTitle} numberOfLines={3}>
-            {t('chats.leaveAsk', '「{{name}}」 방을 나갈까요? 대화 내용도 함께 사라져요.').replace('{{name}}', name)}
+            {t('chats.leaveAsk', '「{{name}}」 방을 나갈까요?').replace('{{name}}', name)}
+          </Text>
+          {/* ★★경고는 **따로 한 줄**로 (Boss 2026-08-28 *"방 나갈땐 무조건 전체 대화내역
+              삭제된다고 공지 해줘야하고"*).
+              ⚠️종전엔 질문 뒤에 «대화 내용도 함께 사라져요» 가 붙어 있었다 — 한 문장 안에 있으면
+                눈이 앞의 물음만 읽고 넘긴다. **되돌릴 수 없다**는 말이 빠져 있기도 했다.
+              ★색을 준다 — 되돌릴 수 없는 일은 눈에 다르게 보여야 한다. */}
+          <Text style={styles.leaveWarn}>
+            {t('chats.leaveWarn', '나눈 이야기 전체가 지워지고, 되돌릴 수 없어요.')}
           </Text>
           <View style={styles.leaveBtns}>
             <PressableScale style={styles.delNo} onPress={onCancel}>
@@ -133,9 +141,15 @@ function LeaveBar({ name, onOk, onCancel, t }: {
   }
   return (
     <View style={[styles.delBar, styles.leaveBar]}>
-      <Text style={styles.delTx} numberOfLines={2}>
-        {t('chats.leaveAsk', '「{{name}}」 방을 나갈까요? 대화 내용도 함께 사라져요.').replace('{{name}}', name)}
-      </Text>
+      {/* ★웹 카드와 **같은 두 줄**을 쓴다 — 한쪽만 고치면 «폰에서는 경고가 없는» 일이 생긴다 */}
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text style={styles.delTx} numberOfLines={2}>
+          {t('chats.leaveAsk', '「{{name}}」 방을 나갈까요?').replace('{{name}}', name)}
+        </Text>
+        <Text style={styles.leaveWarn} numberOfLines={2}>
+          {t('chats.leaveWarn', '나눈 이야기 전체가 지워지고, 되돌릴 수 없어요.')}
+        </Text>
+      </View>
       <PressableScale style={styles.delNo} onPress={onCancel}>
         <Text style={styles.delNoTx}>{t('common.cancel', '취소')}</Text>
       </PressableScale>
@@ -930,11 +944,11 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
             timersRef.current.push(setTimeout(() => {
               setItems((prev) => [...prev, {
                 id: nextId(), role: 'assistant' as const, body: '',
-                system: packN > 1
-                  // 「3운 사용 · 5턴치」 — 다음 네 턴에 아무것도 안 떠도 이해된다
-                  ? t('talk.spentPack', '{{n}}운 사용 · {{k}}턴치')
-                      .replace('{{n}}', String(spent)).replace('{{k}}', String(packN))
-                  : t('talk.spent', '{{n}}운 사용').replace('{{n}}', String(spent)),
+                // ★★「몇 턴치」를 **뺐다**(Boss 2026-08-28 *"운사용에 몇턴치 인지는 뺴
+                //   얼마사용됐는지만 노출하자"*). 영수증이 말할 것은 **얼마 나갔는가** 하나다.
+                //   ⚠️묶음이라는 사실 자체는 사라지지 않는다 — 묶음의 **마지막 턴**에
+                //     「다음 턴부터 다시 든다」를 따로 알린다(바로 아래 `packLast`).
+                system: t('talk.spent', '{{n}}운 사용').replace('{{n}}', String(spent)),
               }]);
             }, wait));
           } else if (Number(r.packLeft ?? 0) === 1 && packN > 1) {
@@ -1617,6 +1631,8 @@ const styles = StyleSheet.create({
   },
   leaveTitle: { ...font.body, color: colors.ink, lineHeight: 22 },
   // ★버튼은 **오른쪽**에 모은다 — «취소 · 나가기» 순서(파괴적인 쪽이 마지막)
+  // ★되돌릴 수 없는 일 — 색으로 구분한다(본문과 같은 회색이면 안 읽힌다)
+  leaveWarn: { ...font.caption, color: colors.ju, marginTop: space(1.5), fontWeight: '700' },
   leaveBtns: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', gap: space(2) },
   // 폰 — 화면 **아래에 붙는다**(손가락이 닿는 자리)
   leaveBar: {
@@ -1624,7 +1640,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 0, borderTopWidth: 1, borderTopColor: colors.line,
     backgroundColor: colors.card,
   },
-  delTx: { flex: 1, minWidth: 0, ...font.caption, color: colors.inkSoft },
+  delTx: { ...font.caption, color: colors.inkSoft },
   delNo: { paddingHorizontal: space(3), paddingVertical: space(1.5) },
   delNoTx: { ...font.caption, color: colors.inkFaint, fontWeight: '700' },
   delYes: { backgroundColor: colors.ju, borderRadius: radius.pill, paddingHorizontal: space(3.5), paddingVertical: space(1.5) },

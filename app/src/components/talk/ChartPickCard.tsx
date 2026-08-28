@@ -20,6 +20,7 @@
  *   새로 만들 일이면 `BirthDraftCard`(직접 입력)나 등록 화면으로 넘긴다.
  *   이 카드가 하는 일은 «이미 있는 것 중 하나를 고르는 것»뿐이다.
  */
+import { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { PressableScale } from '../PressableScale';
 import { colors, space, radius, font } from '../../lib/theme';
@@ -54,6 +55,19 @@ export function ChartPickCard({ charts, current, onPick, onNew, onAll }: {
   onNew?: () => void;
   onAll?: () => void;
 }) {
+
+  /**
+   * ★★**고른 것을 스스로 기억한다**(Boss 2026-08-28 *"체크해도 체크가 안돼"*).
+   *
+   * ■ ⚠️왜 `current` prop 만으로는 안 되나 — 이 카드는 **대화 목록 state 에 element 로 박제**된다
+   *   (`talk.tsx` 의 `items` 에 `node:` 로 들어간다). 그러면 만들어질 때의 props 가 **얼어붙는다** —
+   *   부모가 `pickedLocal` 을 바꿔도 **이 element 는 다시 그려지지 않는다.**
+   *   ⇒ 눌러도 체크가 안 켜졌다. 화면이 죽은 게 아니라 **props 가 죽어 있었다.**
+   * ■ ★그래서 «누른 사실» 은 **여기서** 기억한다. 실제 반영(`onPick`)은 그대로 부모가 한다.
+   * ■ ⚠️`current` 가 나중에 들어오면 따라간다(부모가 이미 고른 상태로 카드를 다시 그릴 때).
+   */
+  const [sel, setSel] = useState<string | null>(current ?? null);
+  useEffect(() => { if (current) setSel(current); }, [current]);
   const { t } = useTranslation();
   const shown = charts.slice(0, MAX_SHOWN);
   const rest = charts.length - shown.length;
@@ -68,12 +82,12 @@ export function ChartPickCard({ charts, current, onPick, onNew, onAll }: {
       {/* ★가로 스크롤이 아니라 **세로 목록** — 이름이 길어도 안 잘리고, 손가락이 닿는 면적이 넓다 */}
       <ScrollView style={styles.list} nestedScrollEnabled showsVerticalScrollIndicator={false}>
         {shown.map((c) => {
-          const on = !!current && c.id === current;
+          const on = !!sel && c.id === sel;
           return (
             <PressableScale
               key={c.id}
               style={[styles.item, on && styles.itemOn]}
-              onPress={() => onPick(c.id)}
+              onPress={() => { setSel(c.id); onPick(c.id); }}
               hitSlop={6}
             >
               {/* 체크 — Boss 가 말한 «체크칸». 고른 것이 눈에 바로 들어와야 한다 */}

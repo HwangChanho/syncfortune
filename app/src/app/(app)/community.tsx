@@ -4,12 +4,13 @@
 //   노출 여부는 원격 플래그(features.community)로 제어 — 관리자만(재제출 안전판) → 심사 통과 후 공개.
 //   글 탭 → /communityPost?id=... (상세=댓글·좋아요·신고·차단).
 // ─────────────────────────────────────────────────────────────────────────
-import { useEffect, useState, useCallback } from 'react';
+import { createElement, useEffect, useState, useCallback, useRef } from 'react';
 import { View, Text, Pressable, ScrollView, FlatList, StyleSheet, Modal, TextInput, RefreshControl, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context'; // 전체화면 Modal 헤더 상단 안전영역(다이나믹아일랜드) — reunion.tsx 패턴
+import { Image as ExpoImage } from 'expo-image';
 import { PressableScale } from '../../components/PressableScale';
 import { BrandWordmark } from '../../components/BrandWordmark';
 import { Alert } from '../../lib/ui/alert';
@@ -18,7 +19,7 @@ import { LoginGate } from '../../components/LoginGate';   // ★잠긴 화면 �
 import { useLogContentVisit } from '../../lib/backend/contentVisit';
 import { listCharts, subscribeRepChange, type SavedChart } from '../../lib/engine/myChart';
 import { computeChart } from '../../lib/engine/engine';
-import { listPosts, createPost, toSharedSaju, toSharedZiwei, COMMUNITY_CATEGORIES, type CommunityPost, type CommunityCategory, type CommunitySort } from '../../lib/backend/community';
+import { listPosts, createPost, toSharedSaju, toSharedZiwei, COMMUNITY_CATEGORIES, type CommunityPost, type CommunityCategory, type CommunitySort, uploadPostImage, postImageUrl } from '../../lib/backend/community';
 import { colors, pastel, radius, space, shadow, font } from '../../lib/theme';
 import { SECTIONS, baseKey } from '../../lib/content/contentSections'; // P2 후기 태그 — 콘텐츠 목록 단일 출처(라벨·라우트 여기서만)
 import { Icon } from '../../components/kit/Icon';   // 상단 아이콘 단일 원본(Boss 2026-08-24)
@@ -99,7 +100,12 @@ export default function CommunityScreen() {
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [wcat, setWcat] = useState<CommunityCategory>('daily'); // 작성 카테고리(기본=일상)
-  const [wcatOpen, setWcatOpen] = useState(false);   // ★카테고리 드롭다운 열림(daniel 07-28)
+  const [wcatOpen, setWcatOpen] = useState(false);
+  // ★사진 첨부(Boss 2026-08-28) — 경로만 들고 있는다(URL 은 그릴 때 만든다)
+  const [imgPath, setImgPath] = useState<string | null>(null);
+  const [imgPreview, setImgPreview] = useState<string | null>(null);
+  const [imgBusy, setImgBusy] = useState(false);
+  const imgRef = useRef<any>(null);   // ★카테고리 드롭다운 열림(daniel 07-28)
   const [posting, setPosting] = useState(false);
   // 첨부 가능한 명식 = **본인(relation='self')만**. attachId=null 이면 첨부 없이 글만 올린다(기본).
   const [selfCharts, setSelfCharts] = useState<SavedChart[]>([]);
@@ -204,8 +210,8 @@ export default function CommunityScreen() {
           showLuck,
         };
       }
-      await createPost(wcat, title, body, chart, topic);
-      setCompose(false); setTitle(''); setBody(''); setWcat('daily'); setAttachId(null); setShowLuck(false);
+      await createPost(wcat, title, body, chart, topic, imgPath);
+      setCompose(false); setTitle(''); setBody(''); setWcat('daily'); setAttachId(null); setShowLuck(false); setImgPath(null); setImgPreview(null);
       await load();
     } catch (e) {
       const em = (e as Error).message || '';
@@ -280,19 +286,33 @@ export default function CommunityScreen() {
       ) : null}
       <View style={[styles.catBar, { paddingTop: 0 }]}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.catRow}>
-          {/* ①정렬 — ★고르면 카테고리는 '전체'로 돌린다. 콘티에서 이 둘은 목록 전체를 보는 자리다 */}
+          {/* ①정렬 — ★★**카테고리를 건드리지 않는다**(Boss 2026-08-28).
+              종전엔 정렬을 고르면 카테고리가 «전체» 로 돌아갔다. 그래서 둘이 한 몸처럼 얽혀
+              «전체를 보고 싶다» 는 뜻을 표현할 자리가 **어디에도 없었다**
+              (「전체」 칩이 아예 없었고, 정렬 칩이 그 일을 겸했다).
+              ⇒ 정렬은 정렬만, 범위는 아래 「전체」 칩이 맡는다. */}
           {(['recommend', 'popular'] as const).map((sk) => {
-            const on = sort === sk && !cat;
+            const on = sort === sk;
             return (
               <PressableScale key={sk} style={[styles.catChip, on && styles.catChipOn]}
-                              onPress={() => { setSort(sk); setCat(undefined); }}>
+                              onPress={() => setSort(sk)}>
                 <Text style={[styles.catChipTx, on && styles.catChipTxOn]}>
                   {sk === 'recommend' ? t('community.sortRecommend', '추천') : t('community.sortPopular', '인기')}
                 </Text>
               </PressableScale>
             );
           })}
-          {/* ②카테고리 일곱 */}
+          {/* ②★★「전체」 — 카테고리 앞에 둔다 (Boss *"운광장에 전체 카테고리도 있고
+              거기서는 전체 계시물 다 볼수있게 하자"*).
+              ⚠️`cat === undefined` 가 곧 «전체» 다(목록 질의가 이미 그렇게 동작한다) —
+                새 상태를 만들지 않는다. 없던 건 **화면에 그 뜻을 말하는 칩**뿐이었다. */}
+          <PressableScale style={[styles.catChip, !cat && styles.catChipOn]}
+                          onPress={() => setCat(undefined)}>
+            <Text style={[styles.catChipTx, !cat && styles.catChipTxOn]}>
+              {t('community.catAll', '전체')}
+            </Text>
+          </PressableScale>
+          {/* ③카테고리 일곱 */}
           {COMMUNITY_CATEGORIES.map((c) => (
             <PressableScale key={c} style={[styles.catChip, cat === c && styles.catChipOn]}
                             onPress={() => setCat(cat === c ? undefined : c)}>
@@ -453,6 +473,51 @@ export default function CommunityScreen() {
             <TextInput style={styles.titleInput} value={title} onChangeText={setTitle} placeholder={t('community.titlePh', '제목')} placeholderTextColor={colors.inkFaint} maxLength={100} />
             <TextInput style={styles.bodyInput} value={body} onChangeText={setBody} placeholder={t('community.bodyPh', '내용을 입력하세요 (욕설·혐오·성적 콘텐츠 금지)')} placeholderTextColor={colors.inkFaint} maxLength={4000} multiline textAlignVertical="top" />
 
+            {/* ★★사진 첨부 (Boss 2026-08-28 *"사진도 올릴수 있게하고 … 사진 올릴때는 주의사항
+                  인지 시켜야해 이상한 사진올리면 정지먹게끔"*).
+                ■ ⚠️**주의사항을 먼저** 보여 준다 — 올린 뒤에 알려 주면 늦다.
+                  공개 버킷이라 «주소를 아는 사람은 볼 수 있다» 는 사실과, 위반 시 **정지**된다는 것.
+                ■ ⚠️웹만이다 — 모바일은 `expo-image-picker` 가 붙어야 하고 그건 네이티브 재빌드가 필요하다.
+                  (대화 사진도 같은 이유로 웹부터 열었다.) */}
+            <View style={styles.attachBox}>
+              <Text style={styles.attachHead}>{t('community.photo', '사진 첨부')}</Text>
+              {Platform.OS === 'web' ? (
+                <>
+                  <View style={styles.attachRow}>
+                    <PressableScale style={[styles.wcatChip, !imgPath && styles.catChipOn]} onPress={() => { setImgPath(null); setImgPreview(null); }}>
+                      <Text style={[styles.catChipTx, !imgPath && styles.catChipTxOn]}>{t('community.photoOff', '사진 없음')}</Text>
+                    </PressableScale>
+                    <PressableScale style={styles.wcatChip} onPress={() => imgRef.current?.click?.()}>
+                      <Text style={styles.catChipTx}>{imgBusy ? t('common.loading', '올리는 중…') : t('community.photoPick', '사진 고르기')}</Text>
+                    </PressableScale>
+                  </View>
+                  {imgPreview ? (
+                    <ExpoImage source={{ uri: imgPreview }} style={styles.photoPreview} contentFit="cover" transition={140} />
+                  ) : null}
+                  <Text style={styles.attachWarn}>
+                    {t('community.photoWarn', '올린 사진은 이 글을 보는 모두에게 공개돼요. 얼굴·신분증·주소처럼 나를 알아볼 수 있는 것은 올리지 마세요.\n음란물·폭력·타인의 사진을 올리면 신고 즉시 계정이 정지될 수 있어요.')}
+                  </Text>
+                  {createElement('input', {
+                    ref: imgRef, type: 'file', accept: 'image/*', style: { display: 'none' },
+                    onChange: async (e: any) => {
+                      const f = e?.target?.files?.[0];
+                      e.target.value = '';                       // ★같은 파일을 다시 골라도 이벤트가 오게
+                      if (!f) return;
+                      setImgBusy(true);
+                      const r = await uploadPostImage(f);
+                      setImgBusy(false);
+                      if (r.ok && r.path) { setImgPath(r.path); setImgPreview(postImageUrl(r.path)); }
+                      else Alert.alert('!', r.error === 'too_large'
+                        ? t('community.photoTooLarge', '4MB 이하 사진만 올릴 수 있어요')
+                        : t('community.photoFail', '사진을 올리지 못했어요'));
+                    },
+                  })}
+                </>
+              ) : (
+                <Text style={styles.attachNone}>{t('community.photoWebOnly', '사진 첨부는 웹에서 할 수 있어요.')}</Text>
+              )}
+            </View>
+
             {/* 명식 첨부(daniel: "글 쓸 때 명식 지정해서 쓰게") — 본인 명식만 고를 수 있다.
                 on/off 는 이 화면의 기존 칩 패턴(catChipOn)을 그대로 쓴다. */}
             <View style={styles.attachBox}>
@@ -501,6 +566,9 @@ export default function CommunityScreen() {
 }
 
 const styles = StyleSheet.create({
+  // ★사진 미리보기 — 올린 것이 무엇인지 **보고** 올리게 한다
+  photoPreview: { width: '100%', height: 180, borderRadius: radius.md, marginTop: space(2) },
+
   bg: { flex: 1, backgroundColor: 'transparent' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   // paddingTop 은 렌더에서 insets.top + space(2) 로 준다(헤더를 껐으므로 — 위 주석). 여기 고정값을 두면 이중이 된다.

@@ -314,7 +314,6 @@ export function consumeThemeReload(): { was: boolean; returnTo: string | null } 
 // 로딩(인트로) 영상 on/off — daniel 07-03. 끄면 八字 한자 스플래시만. 기본 on. 다음 실행부터 반영(스플래시는 실행 시 1회).
 // 로딩(인트로) 화면 모드 — 'video'(호랑이 영상) | 'text'(八字 한자) | 'off'(없음·바로 앱). 기본 video. daniel 07-03 / 07-15(off 추가).
 const LOADING_MODE_KEY = 'pref.loadingMode';
-const LOADING_VIDEO_KEY = 'pref.loadingVideo'; // 하위호환(옛 boolean '1'/'0')
 // 풀이 로딩(생성 중 자물쇠 화면) 테마 영상 on/off — daniel 07-13. 아래 부팅 캐시 로더가 참조하므로 여기서 선언한다.
 const READING_VIDEO_KEY = 'pref.readingVideo';
 export type LoadingMode = 'video' | 'text' | 'off';
@@ -331,26 +330,25 @@ function _syncGet(key: string): string | null | undefined {
   const v = readPref(key);
   return v === '' ? undefined : v;
 }
-let _loadingMode: LoadingMode | null = null; // 비동기 부팅 캐시
 let _readingVideo: boolean | null = null;
-// 부팅 시 1회 비동기 복원 — 동기 API 가 없는 환경에서도 다음 접근부터는 실제 저장값이 쓰인다.
-SecureStore.getItemAsync(LOADING_MODE_KEY).then((v) => {
-  if (v === 'video' || v === 'text' || v === 'off') { _loadingMode = v; return; }
-  return SecureStore.getItemAsync(LOADING_VIDEO_KEY).then((old) => { if (old != null) _loadingMode = old === '0' ? 'text' : 'video'; });
-}).catch(() => { /* 실패 시 기본값 유지 */ });
+// ⚠️로딩 모드 복원을 **뺐다** — `getLoadingMode()` 가 언제나 'text' 라 읽을 이유가 없다
+//   (Boss 2026-08-28 «로딩화면 필드도 필요없어»). 저장은 남겨 두되 읽지 않는다.
 SecureStore.getItemAsync(READING_VIDEO_KEY).then((v) => { if (v != null) _readingVideo = v === '1'; }).catch(() => {});
 
+/**
+ * 로딩(인트로) 화면 — ★★**언제나 「앱 이름만」**이다 (Boss 2026-08-28
+ *   *"로딩화면은 앱 이름만 나오게하고 끄기는 빼"* · *"로딩화면 필드도 필요없어"*).
+ *
+ * ■ ⚠️저장값을 **무시한다.** 예전에 'off'·'video' 를 고른 기기가 있어서, 값을 그대로 읽으면
+ *   그 사람만 로딩 화면이 없거나 지워진 영상을 찾는다. 여기서 **흡수한다.**
+ * ■ ★함수를 지우지 않고 남긴 이유 — 부르는 곳이 여럿이라, 지우면 그 화면들을 다 고쳐야 한다.
+ *   «한 곳에서 한 값으로 답한다» 가 더 안전하다(설정 화면의 선택 칸은 이미 제거했다).
+ */
 export function getLoadingMode(): LoadingMode {
-  const v = _syncGet(LOADING_MODE_KEY);
-  if (v !== undefined) {                                    // 동기 읽기 가능한 환경
-    if (v === 'video' || v === 'text' || v === 'off') return v;
-    const old = _syncGet(LOADING_VIDEO_KEY);                // 옛 '0'=text(八字) 하위호환
-    if (old !== undefined) return old === '0' ? 'text' : 'video';
-  }
-  return _loadingMode ?? 'video';                           // 비동기 캐시 → 아직 미로드면 기본값
+  return 'text';
 }
 export function setLoadingMode(m: LoadingMode) {
-  _loadingMode = m;                                         // ★즉시 반영(같은 세션에서 바로 적용)
+  // ⚠️값은 저장만 한다 — 읽기는 `getLoadingMode()` 가 언제나 'text' 로 답한다(위 주석).
   try { (SecureStore as any).setItem?.(LOADING_MODE_KEY, m); } catch { /* noop */ }
   SecureStore.setItemAsync(LOADING_MODE_KEY, m).catch(() => {});
 }

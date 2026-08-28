@@ -4,7 +4,7 @@
 //   글자 크기는 즉시 반영(미리보기 문장으로 확인). 언어는 i18n.changeLanguage.
 // ─────────────────────────────────────────────────────────────────────────
 import { useState, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, StyleSheet, Linking } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Linking, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MyProfileCard } from '../../components/settings/MyProfileCard';
 import { loadRepChart } from '../../lib/engine/myChart';
@@ -30,7 +30,7 @@ import { loadCredits } from '../../lib/billing/coupons';  // 프리미엄 폴백
 import { supabase } from '../../lib/supabase';             // 로그아웃
 import { BusyOverlay } from '../../components/BusyOverlay'; // 긴 콜백(로그아웃·삭제) 로딩 오버레이
 import { setAuthBusy } from '../../lib/ui/authBusy'; // 로그아웃 전환 전역 블로킹(먹통 방지)
-import { colors, radius, space, shadow, font, getLoadingMode, setLoadingMode, type LoadingMode } from '../../lib/theme'; // ★다크/라이트 토글 제거·로딩 3모드(video/text/off, daniel 2026-07-15)
+import { colors, radius, space, shadow, font } from '../../lib/theme'; // ★다크/라이트 토글 제거·로딩 3모드(video/text/off, daniel 2026-07-15)
 import { luckAlertsOn, setLuckAlerts } from '../../lib/backend/luckAlerts';   // 상담가 알림 스위치(Boss 2026-08-25)
 
 // ★언어 목록은 **여기서 만들지 않는다** — `lib/i18n.ts` 가 단일 출처다(Boss 2026-08-26 *"하드코딩은 한곳으로 모아"*).
@@ -49,7 +49,12 @@ const LANGS: { key: AppLang; label: string }[] = APP_LANGS.map((k) => ({ k, labe
 //     그래서 어느 빌드에서 난 문제인지는 여전히 알 수 있다.
 const APP_VERSION = String(Constants.expoConfig?.version ?? '1.0.0');
 const TERMS_URL = 'https://hwangchanho.github.io/syncfortune/legal/terms-ko.html';     // GitHub Pages(정식)
-const PRIVACY_URL = 'https://hwangchanho.github.io/syncfortune/legal/privacy-ko.html'; // GitHub Pages — App Store 개인정보 URL
+// ★★개인정보처리방침 — **전용 주소**로 옮겼다 (Boss 2026-08-28
+//   *"개인정보는 따로 url 파서 거기에 실제 비즈니스용으로 만들어"*).
+//   ⚠️옛 주소(`hwangchanho.github.io/.../privacy-ko.html`)는 **지우지 않았다** —
+//     App Store·Play 콘솔에 등록된 URL 이라, 콘솔을 바꾸기 전에 없애면 심사가 깨진다.
+//     ⏳Boss 가 두 콘솔의 «개인정보처리방침 URL» 을 아래 주소로 바꾸면 그때 정리한다.
+const PRIVACY_URL = 'https://niwoon-legal.pages.dev/';
 const OSS_LICENSES = 'React Native · Expo (MIT)\niztro · lunar-javascript (MIT)\nRevenueCat Purchases · Google Mobile Ads\nreact-i18next · React Navigation (MIT)\nreact-native-svg · safe-area-context (MIT)\n\n각 라이브러리는 해당 저장소의 라이선스를 따릅니다.';
 
 export default function SettingsScreen() {
@@ -82,7 +87,6 @@ export default function SettingsScreen() {
   const { rawScale, setScale, fs } = useFontScale();   // ★설정 화면은 **사용자가 고른 값**으로 판정한다
   //   (`scale` 은 웹 폭 보정이 곱해진 실제 배율이라 FONT_STEPS 와 안 맞는다 — 어떤 단계도 안 켜진다)
   const [busy, setBusy] = useState<string | null>(null); // 전체화면 로딩 오버레이 메시지(긴 콜백)
-  const [loadingMode, setLoadingModeState] = useState<LoadingMode>(getLoadingMode()); // 로딩(인트로) 화면 video(호랑이)/text(八字)/off(없음, daniel 07-15)
   // 홈 배치 순서 편집은 홈 화면의 '⠿ 홈 배치 편집' 모달로 이동(daniel 07-21) — 계정뷰에서 제거.
   const [notifStatus, setNotifStatus] = useState<NotifStatus>('undetermined');
   // 상담가 알림 — 앱 자체 스위치(기본 켬). OS 권한과 별개다.
@@ -249,22 +253,34 @@ export default function SettingsScreen() {
         </View>
       </View>
 
+      {/* ★★성인 대화는 **웹에서만** 켜고 끈다 (Boss 2026-08-28
+             *"성인 대화는 웹에서만 껏다 킬수 있게 하고 앱은 숨겨두자"*).
+           ■ 왜 — 앱 스토어 심사에서 성인 관련 스위치는 연령 등급·심사 사유가 된다.
+             웹은 우리가 정책을 직접 지므로 거기서만 연다.
+           ■ ⚠️**끄는 게 아니라 숨기는 것**이다 — 웹에서 켜 둔 값은 앱에서도 그대로 산다
+             (`adultConfirmed()` 는 그대로 읽힌다). 여기서는 **조작 칸만** 안 보인다. */}
+      {Platform.OS === 'web' ? (
+        <>
       <Text style={[styles.h, { marginTop: space(7) }]}>{t('adult.title', '성인 대화')}</Text>
-      <View style={styles.infoCard}>
-        <View style={[styles.infoRow, styles.infoRowLast, { alignItems: 'flex-start' }]}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.infoLabel}>{t('adult.row', '만 19세 이상입니다')}</Text>
-            <Text style={[styles.infoLabel, { color: colors.inkFaint, marginTop: 2 }]}>
-              {t('adult.sub', '켜면 속궁합·애정 이야기를 에두르지 않고 나눠요.')}
-            </Text>
+        <View style={styles.infoCard}>
+          <View style={[styles.infoRow, styles.infoRowLast, { alignItems: 'flex-start' }]}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.infoLabel}>{t('adult.row', '만 19세 이상입니다')}</Text>
+              <Text style={[styles.infoLabel, { color: colors.inkFaint, marginTop: 2 }]}>
+                {t('adult.sub', '켜면 속궁합·애정 이야기를 에두르지 않고 나눠요.')}
+              </Text>
+            </View>
+            <Switch
+              value={adultOn}
+              onValueChange={(v) => { setAdultOn(v); if (v) markAdultConfirmed(); else clearAdultConfirmed(); }}
+              trackColor={{ true: colors.ju, false: colors.line }}
+            />
           </View>
-          <Switch
-            value={adultOn}
-            onValueChange={(v) => { setAdultOn(v); if (v) markAdultConfirmed(); else clearAdultConfirmed(); }}
-            trackColor={{ true: colors.ju, false: colors.line }}
-          />
         </View>
-      </View>
+  
+  
+        </>
+      ) : null}
 
       {/* ── 내 기록 ──────────────────────────────────────────────────────
           ★★2026-08-19 3탭 전환에서 **탭에서 빠진 화면들의 대체 진입로**다(Boss
@@ -419,24 +435,12 @@ export default function SettingsScreen() {
              바뀐 건 **화면 팔레트**뿐이다.
            ★되돌리려면: `theme.ts` 의 `const EP = LAVENDER` 한 줄 + 이 블록. ── */}
 
-      {/* ── 로딩 화면(인트로) — video 호랑이영상 / text 八字한자 / off 없음(바로 앱). daniel 07-15. 변경은 다음 실행부터 적용 ── */}
-      <Text style={[styles.h, { marginTop: space(7) }]}>{t('settings.loadingScreen', '로딩 화면')}</Text>
-      <View style={styles.row}>
-        {/* ★영상 옵션 제거(daniel 2026-08-05 "로딩화면 영상 다 없애버려") — text/off 2옵션. 저장값이 'video'였던 유저는 text 로 표시·동작. */}
-        {(['text', 'off'] as LoadingMode[]).map((m) => {
-          const sel = loadingMode === m || (m === 'text' && loadingMode === 'video');
-          const label = m === 'text' ? t('settings.loadingVideoOff', '앱 이름만') : t('settings.loadingOff', '끄기');
-          return (
-            <PressableScale key={m} style={[styles.opt, sel && styles.optOn]} onPress={() => {
-              setLoadingMode(m); setLoadingModeState(m);
-              Alert.alert(t('settings.loadingScreen', '로딩 화면'), t('settings.themeRestart', '앱을 다시 켜면 적용돼요.'));
-            }}>
-              <Text style={[styles.optTx, sel && styles.optTxOn]}>{label}</Text>
-            </PressableScale>
-          );
-        })}
-      </View>
-
+      {/* ⚠️★★「로딩 화면」 설정을 **통째로 뺐다** (Boss 2026-08-28
+             *"로딩화면은 앱 이름만 나오게하고 끄기는 빼"* → *"로딩화면 필드도 필요없어"*).
+           ■ 왜 — 고를 것이 «앱 이름만» 하나뿐이면 그건 **선택지가 아니다.**
+             남겨 두면 «눌러도 아무것도 안 바뀌는 칸» 이 되고, 그건 없는 기능보다 나쁘다.
+           ★동작은 `getLoadingMode()` 가 **언제나 'text'** 를 주도록 고정했다(`theme.ts`).
+             저장돼 있던 'off'·'video' 값도 그쪽에서 흡수한다 — 여기서 지운다고 사라지지 않는다. */}
 
       {/* ── 알림 ── daniel 07-02: 시스템 권한 프롬프트가 안 뜨던 문제 → 명시적 켜기 진입점(미결정=프롬프트, 거부=기기설정) */}
       <Text style={[styles.h, { marginTop: space(7) }]}>{t('settings.notif', '알림')}</Text>
@@ -545,7 +549,9 @@ const styles = StyleSheet.create({
   restoreBtnOff: { opacity: 0.5 },
   restoreTx: { color: colors.inkSoft, fontWeight: '700', fontSize: 14 },
   // 알림 행(설정에서 켜기·상태 표시)
-  notifRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.line, padding: space(4), ...shadow.soft },
+  // ★카드끼리 붙어 있어 «한 덩어리» 로 보였다 (Boss 2026-08-28 *"여기 사이 여백줘"*).
+  //   각 줄이 **따로 눌리는 카드**인데 간격이 0이면 그게 안 읽힌다.
+  notifRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.line, padding: space(4), marginTop: space(2.5), ...shadow.soft },
   notifSub: { ...font.caption, color: colors.inkFaint, marginTop: space(1) },
   notifState: { fontWeight: '900', fontSize: 14, color: colors.inkFaint },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: space(2), alignItems: 'center' },

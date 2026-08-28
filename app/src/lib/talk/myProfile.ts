@@ -79,7 +79,7 @@ export async function saveMyName(name: string): Promise<{ ok: boolean; error?: s
   if (!user) return { ok: false, error: 'unauthorized' };
   const v = name.trim().slice(0, 20) || null;   // 20자 — 목록 한 줄에 들어가는 길이
   const { error } = await supabase.from('profiles')
-    .upsert({ id: user.id, display_name: v }, { onConflict: 'id' });
+    .update({ display_name: v }).eq('id', user.id);
   if (error) return { ok: false, error: error.message };
   _cache = { ...profileSnapshot(), name: v };
   notify();
@@ -105,7 +105,7 @@ export async function uploadMyAvatar(file: Blob & { name?: string; type?: string
     .upload(path, file, { upsert: true, contentType: file.type || 'image/jpeg' });
   if (up.error) return { ok: false, error: up.error.message };
   const { error } = await supabase.from('profiles')
-    .upsert({ id: user.id, avatar_path: path }, { onConflict: 'id' });
+    .update({ avatar_path: path }).eq('id', user.id);
   if (error) return { ok: false, error: error.message };
   // ★버전 쿼리 — 같은 경로를 덮어썼으므로 이게 없으면 옛 사진이 계속 보인다
   const url = `${publicUrl(path)}?v=${Date.now()}`;
@@ -119,7 +119,7 @@ export async function clearMyAvatar(): Promise<{ ok: boolean; error?: string }> 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: 'unauthorized' };
   const { error } = await supabase.from('profiles')
-    .upsert({ id: user.id, avatar_path: null }, { onConflict: 'id' });
+    .update({ avatar_path: null }).eq('id', user.id);
   if (error) return { ok: false, error: error.message };
   _cache = { ...profileSnapshot(), avatarUrl: null };
   notify();
@@ -142,7 +142,7 @@ export async function uploadMyCover(file: Blob & { name?: string; type?: string 
     .upload(path, file, { upsert: true, contentType: file.type || 'image/jpeg' });
   if (up.error) return { ok: false, error: up.error.message };
   const { error } = await supabase.from('profiles')
-    .upsert({ id: user.id, cover_path: path }, { onConflict: 'id' });
+    .update({ cover_path: path }).eq('id', user.id);
   if (error) return { ok: false, error: error.message };
   const url = `${publicUrl(path)}?v=${Date.now()}`;
   _cache = { ...profileSnapshot(), coverUrl: url };
@@ -155,7 +155,7 @@ export async function clearMyCover(): Promise<{ ok: boolean; error?: string }> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: 'unauthorized' };
   const { error } = await supabase.from('profiles')
-    .upsert({ id: user.id, cover_path: null }, { onConflict: 'id' });
+    .update({ cover_path: null }).eq('id', user.id);
   if (error) return { ok: false, error: error.message };
   _cache = { ...profileSnapshot(), coverUrl: null };
   notify();

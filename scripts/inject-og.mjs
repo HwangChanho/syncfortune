@@ -48,6 +48,14 @@ const meta = `
     <meta name="twitter:title" content="${TITLE}" />
     <meta name="twitter:description" content="${DESC}" />
     <meta name="twitter:image" content="${SITE}/og.png" />
+    <!--
+      한국어 줄바꿈 — 어절 단위로만 끊는다 (Boss 2026-08-28 "웹에서 자꾸 이상한곳에서 줄바꿈")
+      브라우저 기본(word-break: normal)은 한글을 음절 사이 아무 데나 끊는다.
+      실측: 「직장이 맞는 구 / 조야」 · 「책임지는 자 / 리가」 · 「전문성으로 꽃 / 을」.
+      웹에서만 나는 문제다 — 네이티브 텍스트 레이아웃은 어절에서 끊는다.
+      overflow-wrap: break-word 를 짝으로 둔다(안 두면 긴 주소가 칸을 넘친다).
+    -->
+    <style>body, body * { word-break: keep-all; overflow-wrap: break-word; }</style>
     <link rel="apple-touch-icon" href="/icon-192.png" />
 
     <!-- ★PWA — 홈 화면에 추가하면 **주소창 없이** 뜬다(Boss 2026-08-27 *"모바일 브라우저에서
@@ -72,6 +80,10 @@ if (!/viewport-fit=cover/.test(html)) {
 }
 
 // ★`<title>` 도 갈아 끼운다 — 북마크·검색 결과에 뜨는 이름이다(`app.json` 의 name 은 너무 짧다)
+// ★문서 언어 — 기본은 한국어다(`og:locale` 이 ko_KR 인데 `lang="en"` 이었다).
+//   ⚠️여기는 **정적 기본값**일 뿐이다. 회원이 언어를 바꾸면 앱이 `documentElement.lang` 을 갱신한다
+//     (`lib/i18n.ts`) — 이 줄만 바꾸면 영어 회원에게도 ko 가 남는다.
+html = html.replace(/<html lang="[^"]*"/, '<html lang="ko"');
 html = html.replace(/<title>[^<]*<\/title>/, `<title>${TITLE}</title>`);
 // ⚠️`</head>` **바로 앞**에 넣는다 — 앞쪽에 끼우면 charset 선언보다 먼저 와서 한글이 깨질 수 있다
 html = html.replace('</head>', `${meta}  </head>`);

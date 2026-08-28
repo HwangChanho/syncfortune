@@ -219,7 +219,7 @@ export function TalkThread({ items, busy, onLink, jumpTo, onWho }: {
             </PressableScale>
           ) : null}
           {m.body ? (
-            <View style={styles.bubbleRow}>
+            <View style={[styles.bubbleRow, m.role === 'user' && styles.bubbleRowMine]}>
               {/* ★「1」은 **말풍선 왼쪽**에 붙인다 — 카톡이 그렇고, 오른쪽에 두면 화면 끝에 물린다.
                   내 말에만 뜬다(남의 말에 «몇 명이 안 읽었나» 는 내가 알 바가 아니다). */}
               {m.role === 'user' && (m.unread ?? 0) > 0
@@ -266,8 +266,22 @@ const styles = StyleSheet.create({
   themRow: { alignItems: 'flex-start', marginBottom: space(2.5) },
   mineRow: { alignItems: 'flex-end', marginBottom: space(2.5) },
   // 말풍선 + 「1」 — 끝을 맞추고 **아래로** 정렬(카톡처럼 풍선 밑단에 숫자가 붙는다)
-  bubbleRow: { flexDirection: 'row', alignItems: 'flex-end', gap: space(1.5) },
-  unreadMark: { ...font.caption, fontSize: 11, color: colors.ju, fontWeight: '800', marginBottom: 2 },
+  //
+  // ★★`width: '100%'` — Boss 2026-08-28 *"말이 계속 줄바꿈이 되잖아 심지어 보낼때도 줄바꿈 안했는데"*
+  //   (「내꺼 보자」 다섯 글자가 **두 줄**로 갈렸다)
+  //   ■ ⚠️원인은 줄바꿈 규칙이 아니라 **폭**이었다. 실측한 사슬:
+  //       글자 42px ← 말풍선 70px(`maxWidth: '84%'`) ← 이 줄 **84px** ← 바깥 848px
+  //     이 줄이 `alignItems: 'flex-end'` 인 부모 안에서 **shrink-to-fit** 이라 폭이 안 정해지는데,
+  //     그 안에서 말풍선이 `84%` 를 쓰니 **퍼센트가 풀 기준을 잃고** 잘게 무너진다.
+  //   ■ ★네이티브는 멀쩡하다 — Yoga 는 퍼센트를 **바깥의 확정 폭**으로 푼다. **웹에서만** 난다.
+  //   ⇒ 줄을 **폭 100%** 로 못 박고 좌우 정렬은 `justifyContent` 로 한다.
+  //     그러면 말풍선의 `84%` 가 **확정된 폭**을 기준으로 풀린다.
+  //   ⚠️`alignItems: 'flex-end'`(세로 밑단 맞춤)는 그대로 둔다 — 그건 「1」 배지가 밑에 붙는 규칙이다.
+  bubbleRow: { flexDirection: 'row', alignItems: 'flex-end', gap: space(1.5), width: '100%' },
+  // 내 말은 오른쪽 끝으로 — 줄이 폭을 다 쓰므로 정렬은 여기서 한다
+  bubbleRowMine: { justifyContent: 'flex-end' },
+  // ⚠️배지는 **줄어들지 않는다** — 줄어들면 숫자가 잘린다
+  unreadMark: { ...font.caption, fontSize: 11, color: colors.ju, fontWeight: '800', marginBottom: 2, flexShrink: 0 },
 
   them: {
     // ⚠️★★`flexShrink: 0` — Boss 2026-08-27 *"채팅이 왜 이렇게 나눠서 나와"*

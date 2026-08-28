@@ -27,7 +27,7 @@
 //   이미 들고 있는 값(십신·간지·궁 이름 등)을 그대로 읽어 보여주기만 한다.
 // ─────────────────────────────────────────────────────────────────────────
 import { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Platform } from 'react-native';
 import { PressableScale } from './PressableScale';
 import type { PillarPos } from '@spec/chart';
 import type { SharedSaju, SharedZiwei } from '../lib/backend/communityChart'; // 계약(의존 없는 순수 모듈)
@@ -51,9 +51,23 @@ const ZI_LAYOUT: (string | null)[][] = [
   ['寅', '丑', '子', '亥'],
 ];
 
+
+/** 웹에서 간지 칸·글자를 키우는 배율 — 위 `cfs` 와 같은 이유(멀리서 본다·카드가 넓다). */
+const GZ_SCALE = Platform.OS === 'web' ? 1.25 : 1;
+
 export function SharedChart({ saju, ziwei, showLuck }: { saju: SharedSaju; ziwei?: SharedZiwei | null; showLuck?: boolean }) {
   const { fs } = useFontScale(); // 앱 전역 글자 크기 설정 — 명식 글자까지 일관 적용(daniel 접근성 컨벤션)
-  const styles = useMemo(() => makeStyles(fs), [fs]);
+  /**
+   * ★웹에서는 명식 글자를 **한 단계 키운다** (Boss 2026-08-28 *"명식에 글자들 크기 키워줘 웹기준"*).
+   * ■ 왜 웹만인가 — 폰은 손에 들고 가까이 본다. 웹은 팔 길이만큼 떨어져 보는 데다
+   *   카드가 훨씬 넓어서, 같은 크기면 **글자만 작아 보인다.**
+   * ■ ⚠️`fs`(설정 배율)를 갈아치우지 않고 **감싼다** — 회원이 고른 크기는 그대로 곱해진다.
+   */
+  const cfs = useMemo(
+    () => (n: number) => Math.round(fs(n) * (Platform.OS === 'web' ? 1.25 : 1)),
+    [fs],
+  );
+  const styles = useMemo(() => makeStyles(cfs), [cfs]);
   // ★대운·세운 넘겨보기(daniel 07-17 (b)·07-18 재설계): 큰 간지 칸으로 대운·세운 좌우 배치. 대운 칸 탭=다음 대운, 세운 칸 탭=다음 세운(순환).
   const luckList = saju.luckCycles ?? [];
   const thisYear = new Date().getFullYear();
@@ -81,8 +95,8 @@ export function SharedChart({ saju, ziwei, showLuck }: { saju: SharedSaju; ziwei
             <View key={p} style={[styles.pillarCol, isDay && styles.pillarColDay]}>
               <Text style={[styles.posLabel, isDay && styles.posLabelDay]}>{p}</Text>
               <Text style={styles.tenGod}>{d.stemTenGod}</Text>
-              <GzCell char={d.stem} kind="stem" size="sm" />
-              <GzCell char={d.branch} kind="branch" size="sm" />
+              <GzCell char={d.stem} kind="stem" size="sm" scale={GZ_SCALE} />
+              <GzCell char={d.branch} kind="branch" size="sm" scale={GZ_SCALE} />
               <Text style={styles.tenGod}>{d.branchMainTenGod}</Text>
             </View>
           );

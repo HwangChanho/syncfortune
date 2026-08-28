@@ -9,11 +9,13 @@ import { getNavBarHeight } from '../../components/BottomNav'; // 전역 네비�
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { PressableScale } from '../../components/PressableScale';
+import { Image as ExpoImage } from 'expo-image';
 import { SharedChart } from '../../components/SharedChart';
+import { PhotoViewer } from '../../components/talk/PhotoViewer';   // 전체 보기(뒤로가기 처리 포함) — 단일 원본
 import { Alert } from '../../lib/ui/alert';
 import { useAuth } from '../../lib/useAuth';
 import { getPost, listComments, addComment, toggleLike, likedPostIds, reportContent, blockUser, deletePost, deleteComment,
-  type CommunityPost, type CommunityComment, bumpView, pollVote, pollStats } from '../../lib/backend/community';
+  type CommunityPost, type CommunityComment, bumpView, pollVote, pollStats , postImageUrl} from '../../lib/backend/community';
 import { withTimeout } from '../../lib/core/withTimeout'; // ★잠금 구간 네트워크 상한(멈춤 방지)
 import { colors, radius, space, font } from '../../lib/theme';
 import { SECTIONS } from '../../lib/content/contentSections'; // P2 후기 태그 딥링크
@@ -24,6 +26,8 @@ export default function CommunityPostScreen() {
   const router = useRouter();
   const { session } = useAuth();
   const myId = session?.user?.id ?? null;
+  // ★전체 보기로 띄울 사진(Boss 2026-08-28). null 이면 닫힌 상태다.
+  const [photo, setPhoto] = useState<string | null>(null);
   const [post, setPost] = useState<CommunityPost | null>(null);
   const [comments, setComments] = useState<CommunityComment[]>([]);
   const [liked, setLiked] = useState(false);
@@ -150,6 +154,14 @@ export default function CommunityPostScreen() {
         {/* 첨부 명식 — 작성자가 자기 명식을 함께 올린 글에만(daniel: "글 볼 때 상단에 사주 원국 노출").
             본문보다 위에 두는 이유: 사주 Q&A·고민 글은 '이 명식을 두고 하는 이야기'라 명식이 전제다.
             대운·세운은 작성자가 공개를 선택한 경우에만 실려 온다(show_luck·toSharedSaju). */}
+        {/* ★★첨부 사진 — 탭하면 전체 보기(Boss 2026-08-28 *"사진 탭하면 전체화면으로"*).
+            ⚠️전체 보기는 `PhotoViewer` **한 곳**만 쓴다 — 뒤로가기 처리가 거기 들어 있다. */}
+        {postImageUrl(post.image_path) ? (
+          <PressableScale onPress={() => setPhoto(postImageUrl(post.image_path))}>
+            <ExpoImage source={{ uri: postImageUrl(post.image_path)! }} style={styles.postImage} contentFit="cover" transition={140} />
+          </PressableScale>
+        ) : null}
+
         {post.chart_saju && (
           <View style={styles.chartWrap}>
             <SharedChart saju={post.chart_saju} ziwei={post.chart_ziwei} showLuck={post.show_luck} />
@@ -222,11 +234,15 @@ export default function CommunityPostScreen() {
           <Text style={styles.sendTx}>{t('community.send', '등록')}</Text>
         </PressableScale>
       </View>
+      <PhotoViewer uri={photo} onClose={() => setPhoto(null)} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  // ★첨부 사진 — 본문 폭을 다 쓰되 높이를 묶는다(세로로 긴 사진이 화면을 통째로 먹지 않게)
+  postImage: { width: '100%', height: 260, borderRadius: radius.md, marginTop: space(4) },
+
   topicLink: { alignSelf: 'flex-start', backgroundColor: colors.juSoft, borderRadius: radius.pill, paddingVertical: space(0.5), paddingHorizontal: space(2.5), marginTop: space(1) },
   topicLinkTx: { fontSize: 11.5, lineHeight: 16, color: colors.ju, fontWeight: '800' },
   bg: { flex: 1, backgroundColor: 'transparent' },
@@ -240,7 +256,9 @@ const styles = StyleSheet.create({
   cat: { ...font.caption, color: colors.ju, fontWeight: '800', fontSize: 12 },
   title: { ...font.title, color: colors.ink, marginTop: space(1) },
   meta: { ...font.caption, color: colors.inkFaint, marginTop: space(1.5), marginBottom: space(4) },
-  chartWrap: { marginBottom: space(5) }, // 첨부 명식 카드 ↔ 본문 간격
+  // ★위(연애 스타일 칩)와도 떨어뜨린다 — 칩에 딱 붙어 있어 «칩의 일부» 로 보였다
+  //   (Boss 2026-08-28 *"연애 스타일이랑 명식 사이 여백주고"*)
+  chartWrap: { marginTop: space(4), marginBottom: space(5) }, // 첨부 명식 카드 ↔ 본문 간격
   pollWrap: { marginTop: space(4), gap: space(2) },
   pollRow: { flexDirection: 'row', flexWrap: 'wrap', gap: space(2) },
   pollChip: { paddingHorizontal: space(3), paddingVertical: space(1.5), borderRadius: radius.pill, borderWidth: 1, borderColor: colors.juLine, backgroundColor: colors.bg },

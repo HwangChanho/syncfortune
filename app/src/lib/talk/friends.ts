@@ -102,8 +102,8 @@ export async function setShareConsent(on: boolean): Promise<boolean> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return false;
   const { error } = await supabase.from('profiles')
-    .upsert({ id: user.id, share_consent: on, share_consent_at: on ? new Date().toISOString() : null },
-            { onConflict: 'id' });
+    .update({ share_consent: on, share_consent_at: on ? new Date().toISOString() : null })
+    .eq('id', user.id);
   if (error) { console.warn('[friends] 동의 저장 실패', error.message); return false; }
   return true;
 }

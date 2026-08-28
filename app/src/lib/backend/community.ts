@@ -27,12 +27,14 @@ export type CommunityPost = {
   chart_saju?: SharedSaju | null;
   chart_ziwei?: SharedZiwei | null;
   show_luck?: boolean;
+  /** ★첨부 사진 **경로**(URL 아님) — `postImageUrl()` 로 바꿔 그린다 */
+  image_path?: string | null;
 };
 export type CommunityComment = { id: string; post_id: string; author_id: string; author_name: string; body: string; created_at: string; ilju?: string | null };
 
 // 목록용 컬럼 — **chart_* 를 명시적으로 제외**한다. 목록은 명식을 그리지 않는데 select('*') 로 두면
 //   글 30개 × 첨부 명식이 통째로 딸려와 스크롤 진입이 느려진다(첨부 명식은 상세에서만 필요).
-const LIST_COLS = 'id,author_id,author_name,category,title,body,like_count,comment_count,view_count,created_at,kind,daily_date,ilju,topic';
+const LIST_COLS = 'id,author_id,author_name,category,title,body,like_count,comment_count,view_count,created_at,kind,daily_date,ilju,topic,image_path';
 const POST_COLS = `${LIST_COLS},chart_saju,chart_ziwei,show_luck`;
 
 // 카테고리(고정) — key 저장, 라벨은 i18n(community.cat.*).
@@ -179,6 +181,8 @@ export async function createPost(
   category: CommunityCategory, title: string, body: string,
   chart?: { saju: SharedSaju; ziwei?: SharedZiwei | null; showLuck: boolean },
   topic?: string | null,   // P2: 후기(review) 글이 가리키는 콘텐츠 key(contentSections)
+  /** ★올린 사진의 **경로**(URL 아님 · Boss 2026-08-28). 화면이 공개 URL 로 바꿔 그린다. */
+  imagePath?: string | null,
 ): Promise<string> {
   if (containsProfanity(title) || containsProfanity(body)) throw new Error('PROFANITY');
   const me = await uid();
@@ -191,6 +195,7 @@ export async function createPost(
       chart_ziwei: chart?.ziwei ?? null,
       // 첨부가 없으면 항상 false — 시기 공개 플래그가 명식 없이 남아 있을 이유가 없다.
       show_luck: chart ? chart.showLuck : false,
+      image_path: imagePath ?? null,
     }).select('id').single();
   if (error) throw error;
   return data.id as string;
@@ -310,4 +315,37 @@ export async function moderationQueue(): Promise<ModItem[]> {
   const { data, error } = await supabase.rpc('community_moderation_queue');
   if (error) throw error;
   return (data ?? []) as ModItem[];
+}
+
+/**
+ * 커뮤니티 글에 붙일 **사진 한 장**을 올린다 (Boss 2026-08-28 *"사진도 올릴수 있게하고"*).
+ * ═════════════════════════════════════════════════════════════════════════
+ * ■ ★대화 사진(`talk_messages.image_path`)과 **같은 방식**이다 — 버킷·경로 규칙을 새로 만들지 않는다.
+ *   `avatars` 공개 버킷 · `community/<uid>/<난수>.<ext>`.
+ * ■ ⚠️**공개 버킷**이다 — 주소를 알면 볼 수 있다. 난수 이름으로 «추측»만 막는다.
+ *   그래서 화면에서 **주의사항을 먼저 고지**한다(올린 사진은 공개된다는 뜻).
+ * ■ ⚠️크기를 서버가 아니라 여기서 자른다 — 4MB 를 넘기면 올리지 않는다.
+ *
+ * @param file 브라우저 File/Blob
+ * @returns 저장 경로(실패면 null)
+ */
+export async function uploadPostImage(
+  file: Blob & { name?: string; type?: string },
+): Promise<{ ok: boolean; path?: string; error?: 'unauthorized' | 'too_large' | 'failed' }> {
+  const me = await uid();
+  if (!me) return { ok: false, error: 'unauthorized' };
+  if (file.size > 4 * 1024 * 1024) return { ok: false, error: 'too_large' };
+  const type = file.type || 'image/jpeg';
+  const ext = type.includes('png') ? 'png' : type.includes('webp') ? 'webp' : 'jpg';
+  const name = (globalThis.crypto?.randomUUID?.() ?? String(Math.random()).slice(2)).replace(/-/g, '');
+  const path = `community/${me}/${name}.${ext}`;
+  const up = await supabase.storage.from('avatars').upload(path, file, { upsert: false, contentType: type });
+  if (up.error) { console.warn('[community] 사진 올리기 실패', up.error.message); return { ok: false, error: 'failed' }; }
+  return { ok: true, path };
+}
+
+/** 저장 경로 → 공개 URL. ⚠️`avatars` 버킷이다(대화 사진과 같은 곳). */
+export function postImageUrl(path?: string | null): string | null {
+  if (!path) return null;
+  return supabase.storage.from('avatars').getPublicUrl(path).data.publicUrl;
 }

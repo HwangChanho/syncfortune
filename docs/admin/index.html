@@ -524,17 +524,51 @@ $('search').onclick = async () => {
   const q = $('q').value.trim().toLowerCase();
   const rows = (data || []).filter((u) => !q || String(u.email || '').toLowerCase().includes(q));
   if (!rows.length) return ($('userList').innerHTML = '<span class="muted">결과 없음</span>');
+  // ★★정지 상태를 함께 보여 준다(Boss 2026-08-28). 정지 중이면 남은 날짜까지 적는다 —
+  //   «정지됨» 만으로는 언제 풀리는지 몰라 문의가 다시 온다.
+  const susp = (u) => {
+    if (!u.suspended_until) return '<span class="muted">—</span>';
+    const left = Math.ceil((new Date(u.suspended_until) - Date.now()) / 86400000);
+    if (left <= 0) return '<span class="muted">만료</span>';
+    return `<b style="color:#b4232a">정지 ${left}일</b>${u.suspended_reason ? `<br><span class="muted" style="font-size:11px">${esc(u.suspended_reason)}</span>` : ''}`;
+  };
   $('userList').innerHTML = `<div class="muted" style="font-size:12px;margin-bottom:6px">${rows.length}명 / 전체 ${(data||[]).length}명</div>`
-    + '<table><tr><th>이메일</th><th>운</th><th>명식</th><th>풀이</th><th>결제</th><th></th></tr>' +
+    + '<table><tr><th>이메일</th><th>운</th><th>명식</th><th>풀이</th><th>결제</th><th>정지</th><th></th></tr>' +
     rows.map((u) => `<tr>
-      <td>${u.email ?? '—'}${u.is_admin ? ' <b>(admin)</b>' : ''}</td>
+      <td>${esc(u.email ?? '—')}${u.is_admin ? ' <b>(admin)</b>' : ''}</td>
       <td>${num(u.credits)}</td><td>${num(u.chart_count)}</td><td>${num(u.reading_count)}</td>
       <td>₩${num(u.paid_total)}</td>
-      <td><button class="ghost" data-uid="${u.id}" data-email="${u.email ?? ''}">선택</button></td></tr>`).join('') + '</table>';
+      <td>${susp(u)}</td>
+      <td><button class="ghost" data-uid="${u.id}" data-email="${esc(u.email ?? '')}">선택</button>
+          <button class="ghost" data-ban="${u.id}" data-on="${u.suspended_until ? '0' : '1'}">${u.suspended_until ? '해제' : '정지'}</button></td></tr>`).join('') + '</table>';
   document.querySelectorAll('#userList button[data-uid]').forEach((b) => {
     b.onclick = () => { $('giftId').value = b.dataset.uid; say($('giftMsg'), '대상이 채워졌습니다', 'ok'); loadDetail(b.dataset.uid, b.dataset.email); };
   });
+  // ★★정지·해제 — 되돌릴 수 있게 **기간**을 받는다(영구만 있으면 실수를 못 되돌린다)
+  document.querySelectorAll('#userList button[data-ban]').forEach((b) => {
+    b.onclick = async () => {
+      const on = b.dataset.on === '1';
+      let days = 0, reason = null;
+      if (on) {
+        const d = prompt('며칠 정지할까요? (숫자)', '7');
+        if (d === null) return;
+        days = parseInt(d, 10);
+        if (!Number.isFinite(days) || days <= 0) return alert('숫자를 넣어 주세요');
+        reason = prompt('사유(회원에게는 안 보입니다)', '커뮤니티 규정 위반') || null;
+      } else if (!confirm('정지를 해제할까요?')) return;
+      const { error } = await sb.rpc('admin_set_suspend', { p_uid: b.dataset.ban, p_days: days, p_reason: reason });
+      if (error) return alert('실패: ' + error.message);
+      $('search').onclick();          // 목록을 다시 그린다(상태가 바로 보이게)
+    };
+  });
 };
+
+// ★탭을 열면 **바로** 전체 목록을 그린다 (Boss *"전체 유저 볼 수 있게하고"*).
+//   종전엔 검색을 눌러야 나와서, 관리자가 «아무도 없다» 고 오해할 수 있었다.
+document.addEventListener('DOMContentLoaded', () => {
+  const t = document.querySelector('[data-tab="users"]');
+  if (t) t.addEventListener('click', () => { if (!$('userList').innerHTML.trim()) $('search').onclick(); });
+});
 
 // ── 유저 상세 (앱 admin.tsx 에서 이관) ─────────────────────────────────────
 //   ★세 RPC 를 **병렬로** 부른다 — 순차면 왕복이 3배다.
