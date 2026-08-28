@@ -64,7 +64,7 @@ export default function RegisterRoute() {
             try {
               await saveMyChart(input, { bypassLimit: true });
               const added = (await listCharts()).at(-1);
-              if (added) await setRepresentative(added.id);
+              if (added) await setRepresentative(added.id, 'register');
               proceed(input);
             }
             catch (e) { Alert.alert('!', (e as Error).message); }
@@ -115,7 +115,7 @@ export default function RegisterRoute() {
                     // 기존 본인 = 삭제/덮어쓰기 대신 '기타'로 강등(생년월일 등 원본 그대로 보존) → 리스트에 남는다.
                     await updateChart(existingSelf.id, { ...existingSelf.input, label: existingSelf.label, relation: '기타' });
                     const id = await addChart(input, { isPro: isPremium }); // 새 명식을 본인으로 추가
-                    await setRepresentative(id);
+                    await setRepresentative(id, 'register');
                   } catch (e) {
                     if (e instanceof ChartLimitError) { showLimit(e.limit, input); return; } // 한도 시 광고/구매 안내
                     Alert.alert('!', (e as Error).message); return;
@@ -130,7 +130,8 @@ export default function RegisterRoute() {
         try {
           // 내 차트 기기 저장 → 궁합·풀이 재사용. 무료 한도는 isPro 주입으로 저장소가 판정.
           const id = await addChart(input, { isPro: isPremium });
-          await setRepresentative(id); // daniel: 신규 등록 시 항상 현재 설정(대표) 명식으로 전환
+          // ★`'register'` — 테마 리로드를 건너뛴다(홈을 거치지 않고 결과 화면으로 바로 간다)
+          await setRepresentative(id, 'register');
         } catch (e) {
           if (e instanceof ChartLimitError) { showLimit(e.limit, input); return; } // 저장·네비 중단 → 광고/구매 안내
           throw e;

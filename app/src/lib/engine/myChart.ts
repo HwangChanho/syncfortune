@@ -31,7 +31,7 @@ export const FREE_CHART_LIMIT = 10;   // 무료 티어 명식 등록 한도. 프
  *   ⇒ `'boot'`(자동 복귀)와 `'user'`(사람이 고름)를 갈라, 테마는 `'user'` 만 따라간다.
  *   ⚠️다른 구독자(ChartPicker 새로고침 등)는 이유를 무시하면 종전과 똑같이 동작한다.
  */
-export type RepChangeReason = 'user' | 'boot';
+export type RepChangeReason = 'user' | 'boot' | 'register';
 type RepListener = (reason: RepChangeReason) => void;
 const repListeners = new Set<RepListener>();
 /** 대표 명식 변경 구독 → 해제 함수 반환(useEffect cleanup). */
@@ -239,9 +239,13 @@ export async function reorderCharts(orderedIds: string[]): Promise<void> {
 }
 
 /** 대표 명식 id 지정 (홈에서 전환). 전역 동기화 알림. */
-export async function setRepresentative(id: string): Promise<void> {
+/**
+ * @param reason ★왜 바뀌었나 — 구독자가 **반응 방식을 가른다**.
+ *   `'register'` 는 **방금 명식을 만든 것**이라 테마 리로드를 하지 않는다(아래 설명).
+ */
+export async function setRepresentative(id: string, reason: RepChangeReason = 'user'): Promise<void> {
   await setRaw(REP_KEY, id);
-  notifyRepChange();
+  notifyRepChange(reason);
   pushChartsDebounced(); // 대표도 동기화
 }
 

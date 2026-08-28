@@ -658,7 +658,11 @@ export function ChartPicker({ onChange, viewOnly }: {
                   ② 목록이 길면 시트가 maxHeight 88% 에 닿아 버튼이 밖으로 밀렸다 → 버튼 높이를 확보(flexShrink 0)하고
                      줄어드는 쪽은 **리스트**가 되게 한다(리스트는 안에서 스크롤되므로 줄어도 정보가 안 사라진다). */}
             <PressableScale
-              style={[styles.addBtn, { marginBottom: insets.bottom }]}
+              // ⚠️★안전영역을 **여기서 빼지 않는다** — 08-27 에 아래 「태어난 시 찾기」가 생기면서
+              //   이 버튼은 **마지막이 아니게 됐다.** 그런데 두 버튼이 **둘 다** `insets.bottom` 을
+              //   갖고 있어 여백이 두 번 들어갔고, 정작 마지막 버튼이 시트 밖으로 밀렸다
+              //   (Boss 2026-08-28 «시간 찾기 짤리고»). 바닥 여백은 **마지막 요소 하나만** 진다.
+              style={styles.addBtn}
               onPress={() => { setOpen(false); router.push('/register'); }}
             >
               <Text style={styles.addBtnText}>＋ {t('compat.registerMyChart')}</Text>
@@ -672,7 +676,10 @@ export function ChartPicker({ onChange, viewOnly }: {
                 ⚠️「택일」(`/taegil`)과 **다른 것**이다 — 그건 «어떤 선택을 할 때 좋은 날» 이고,
                   이건 «내가 태어난 시» 를 사건으로 좁히는 것이다(Boss 가 둘을 갈라 말했다). */}
             <PressableScale
-              style={[styles.findTimeBtn, { marginBottom: insets.bottom }]}
+              // ★**시트의 마지막 요소** — 바닥 안전영역은 여기서 한 번만 진다.
+              //   ⚠️`flexShrink: 0` 도 필요하다 — 목록이 길면(명식 76개) 시트가 88% 에 닿아
+              //     이 버튼이 밀려 잘린다. 줄어들 것은 **목록**이지 버튼이 아니다.
+              style={[styles.findTimeBtn, { marginBottom: insets.bottom, flexShrink: 0 }]}
               onPress={() => { setOpen(false); router.push('/timeResolve'); }}
             >
               <Text style={styles.findTimeTx}>{t('manse.findHour', '태어난 시 찾기')}</Text>

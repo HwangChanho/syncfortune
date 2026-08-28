@@ -161,6 +161,13 @@ export default function RootLayout() {
   //     ②리로드 뒤 **있던 화면으로 복귀**(위 부팅 훅).
   useEffect(() => subscribeRepChange((reason) => {
     if (reason === 'boot') return;   // 앱이 대표를 본인으로 되돌린 것 — 어제 고른 색을 리셋하지 않는다
+    // ★★**방금 명식을 만든 순간에는 리로드하지 않는다** (Boss 2026-08-28
+    //   *"신규명식 등록하면 홈화면 나갔다가 무슨 일주입니다 이렇게 뜬다, 바로 안뜨고"*).
+    //   ■ 왜 그랬나 — 등록 → `setRepresentative` → 오행이 바뀌면 **앱 전체 리로드**가 돌고,
+    //     리로드 뒤 복귀 지점이 «등록 직전» 이라 **홈을 한 번 거친 뒤** 결과 화면이 떴다.
+    //   ■ ⇒ 색은 **다음 진입**에 바뀌면 된다. 지금 보여 줄 것은 «방금 만든 명식» 이다.
+    //     (만세력에서 명식만 훑을 때 홈으로 튕기던 것과 **같은 원인**의 형제다.)
+    if (reason === 'register') return;
     void syncThemeElement().then((changed) => { if (changed) applyThemeNow(pathnameRef.current); });
   }), []);
   // ★신규 기능 노출 게이트 로드(세션 변경 시) — 원격 플래그(app_flags)+내 관리자 여부. 속궁합/커뮤니티/위젯 게이트.
