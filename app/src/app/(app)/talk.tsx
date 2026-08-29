@@ -666,7 +666,6 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
                 current={pickedLocal}
                 onPick={pickChart}
                 onNew={() => router.push('/register')}
-                onAll={() => router.push('/charts')}
               />
             ),
           }]

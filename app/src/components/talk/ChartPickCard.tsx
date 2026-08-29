@@ -46,14 +46,15 @@ const MAX_SHOWN = 6;
  * @param current  지금 보고 있는 명식 id — 눌린 상태로 보여 준다
  * @param onPick   하나를 골랐다
  * @param onNew    ★직접 입력해서 새로 만들겠다(Boss: *"직접 년월일시를 입력하면 그걸 기준으로"*)
- * @param onAll    전체 목록으로(명식이 많을 때만 뜬다)
+ * ★2026-08-29 `onAll` 을 없앴다 — 그 칩이 **만세력 화면으로 보내 버려서** 거기서는 «이 대화에 쓸
+ *   명식» 을 고를 수가 없었다(Boss *"전체보기 누르면 만세력으로 넘어가버려서 고를수가 없어"*).
+ *   ⇒ 목록을 **이 카드 안에서 펼친다.** 고르는 자리를 떠나게 하지 않는다.
  */
-export function ChartPickCard({ charts, current, onPick, onNew, onAll }: {
+export function ChartPickCard({ charts, current, onPick, onNew }: {
   charts: PickableChart[];
   current?: string | null;
   onPick: (id: string) => void;
   onNew?: () => void;
-  onAll?: () => void;
 }) {
 
   /**
@@ -69,8 +70,14 @@ export function ChartPickCard({ charts, current, onPick, onNew, onAll }: {
   const [sel, setSel] = useState<string | null>(current ?? null);
   useEffect(() => { if (current) setSel(current); }, [current]);
   const { t } = useTranslation();
-  const shown = charts.slice(0, MAX_SHOWN);
-  const rest = charts.length - shown.length;
+  /**
+   * ★★목록을 **이 카드 안에서** 펼친다(Boss 2026-08-29).
+   * ■ ⚠️`sel` 과 **같은 이유로 local state 여야 한다** — 이 카드는 대화 목록에 element 로 박제돼
+   *   부모가 다시 그려 주지 않는다(위 주석). 부모 prop 으로 펼침을 관리하면 눌러도 안 펼쳐진다.
+   */
+  const [expanded, setExpanded] = useState(false);
+  const shown = expanded ? charts : charts.slice(0, MAX_SHOWN);
+  const rest = charts.length - MAX_SHOWN;
 
   return (
     <View style={styles.card}>
@@ -80,7 +87,9 @@ export function ChartPickCard({ charts, current, onPick, onNew, onAll }: {
       </Text>
 
       {/* ★가로 스크롤이 아니라 **세로 목록** — 이름이 길어도 안 잘리고, 손가락이 닿는 면적이 넓다 */}
-      <ScrollView style={styles.list} nestedScrollEnabled showsVerticalScrollIndicator={false}>
+      {/* ★펼치면 **더 길게** 보여 주고 그 안에서 스크롤한다(Boss *"스크롤로 전체 다 보여야해"*).
+          ⚠️화면을 다 먹지 않게 상한은 둔다 — 카드가 대화창을 통째로 덮으면 그것도 못 쓴다. */}
+      <ScrollView style={[styles.list, expanded && styles.listOpen]} nestedScrollEnabled showsVerticalScrollIndicator>
         {shown.map((c) => {
           const on = !!sel && c.id === sel;
           return (
@@ -109,9 +118,13 @@ export function ChartPickCard({ charts, current, onPick, onNew, onAll }: {
             <Text style={styles.chipTx}>{t('chartPick.new', '직접 입력')}</Text>
           </PressableScale>
         ) : null}
-        {rest > 0 && onAll ? (
-          <PressableScale style={styles.chip} onPress={onAll} hitSlop={6}>
-            <Text style={styles.chipTx}>{t('chartPick.all', '전체 {{n}}개 보기', { n: charts.length })}</Text>
+        {rest > 0 ? (
+          <PressableScale style={styles.chip} onPress={() => setExpanded((v) => !v)} hitSlop={6}>
+            <Text style={styles.chipTx}>
+              {expanded
+                ? t('chartPick.fold', '접기')
+                : t('chartPick.all', '전체 {{n}}개 보기', { n: charts.length })}
+            </Text>
           </PressableScale>
         ) : null}
       </View>
@@ -128,6 +141,8 @@ const styles = StyleSheet.create({
   why: { ...font.caption, color: colors.inkFaint, lineHeight: 16, marginTop: space(1) },
   // ★상한을 둔다 — 카드가 화면을 다 먹으면 대화가 안 보인다
   list: { marginTop: space(2), maxHeight: 232 },
+  // ★펼쳤을 때 — 대략 열 줄. 대화창을 덮지 않는 선에서 최대한 길게
+  listOpen: { maxHeight: 420 },
   item: {
     flexDirection: 'row', alignItems: 'center', gap: space(2),
     paddingVertical: space(2.5), paddingHorizontal: space(3),
