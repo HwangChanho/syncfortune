@@ -249,7 +249,7 @@ function Row({ c, initial, slot, on, onOpen, onPhoto, t }: {
 //   (특히 `biorhythm` 은 어느 상담가에도 없어 그냥 지웠으면 도달 불가가 됐다).
 //   ★`ContentRail` 컴포넌트 자체는 남아 있다 — 다른 자리에서 쓸 수 있다.
 
-export function TalkList({ items, onOpen, selected, myName, onMe, myAvatar, railKeys = [], onSettings, onLogin, session, wide, footer,
+export function TalkList({ items, onOpen, selected, myName, onMe, myAvatar, onMyProfile, railKeys = [], onSettings, onLogin, session, wide, footer,
                            onAddFriend, onManse, pendingCount = 0, people = [], onOpenPerson, onOpenProfile }: {
   /**
    * 친구목록에 뜰 사람들.
@@ -263,6 +263,8 @@ export function TalkList({ items, onOpen, selected, myName, onMe, myAvatar, rail
   onMe?: () => void;
   /** 내 프로필 사진 URL(설정에서 올린 것). 없으면 오행색+글자 */
   myAvatar?: string | null;
+  /** ★내 사진을 누르면 — **남들과 같은 프로필 창**을 연다(Boss 2026-08-29). 없으면 사진을 안 그린다 */
+  onMyProfile?: () => void;
   /** 콘텐츠 레일에 올릴 홈 블록 키(홈 순서 그대로) */
   railKeys?: readonly HomeBlockKey[];
   /** 우측 톱니 — 설정으로 */
@@ -399,6 +401,17 @@ export function TalkList({ items, onOpen, selected, myName, onMe, myAvatar, rail
             ■ 왜 — 로그인도 안 한 사람에게 «명식 등록» 을 권하면, 눌러서 등록해도 **그 명식이 어디에도
               안 묶인다**(계정이 없으니). 먼저 할 일은 로그인이다.
             ★로그인했는데 명식이 없으면 그때 «명식 등록» 이 맞다 — 그 갈래는 그대로 둔다. */}
+        {/* ★★내 사진 — **남들과 같게** 보이게 한다(Boss 2026-08-29
+            *"홈에서도 내프로필 다른 사람들과 동일하게 볼수있게하고"*).
+            ⚠️실측: `myAvatar` 가 이 컴포넌트로 **넘어오는데 그리지도 않고 있었다** —
+              목록의 다른 사람은 전부 얼굴이 뜨는데 **내 자리만 글자뿐**이었다.
+            ★누르면 이름 탭(=내 명식 상세)과 **다른 것**을 연다: 남을 누를 때와 같은 **프로필 창**.
+              명식은 이름을 눌러 그대로 볼 수 있다 — 있던 길을 뺏지 않는다. */}
+        {session && myAvatar && onMyProfile ? (
+          <PressableScale hitSlop={8} onPress={onMyProfile}>
+            <ExpoImage source={{ uri: myAvatar }} style={styles.meAv} contentFit="cover" transition={140} />
+          </PressableScale>
+        ) : null}
         <PressableScale style={styles.meBtn} onPress={() => (session ? onMe?.() : onLogin?.())}>
           <Text style={styles.meName} numberOfLines={1}>
             {session ? (myName ?? t('talk.meNoChart', '명식 등록')) : t('auth.login', '로그인')}
@@ -573,6 +586,8 @@ const styles = StyleSheet.create({
   topRow: { flexDirection: 'row', alignItems: 'center', gap: space(3), paddingVertical: space(2), marginBottom: space(3) },
   // ★좁은 칸에서는 새참을 12 → 8 로. 넷이 나란히 있어 **4px 차이가 16px** 이 된다.
   topRowTight: { gap: space(2) },
+  // ★목록의 다른 얼굴과 **같은 사각 라운드**다(원형으로 두면 내 것만 달라 보인다)
+  meAv: { width: 30, height: 30, borderRadius: radius.sm, marginRight: space(2) },
   meBtn: { flex: 1, minWidth: 0 },
   meName: { fontSize: 19, lineHeight: 26, fontWeight: '900', color: colors.ink, letterSpacing: -0.4 },
   // ★아이콘을 키웠다(20 → 26, Boss 2026-08-20 "너무 작아"). 손끝은 44pt 를 필요로 하는데

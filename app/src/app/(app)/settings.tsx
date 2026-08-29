@@ -202,6 +202,16 @@ export default function SettingsScreen() {
     //   ⚠️안 주면 폰에서 상태바 아래로 글자가 파고든다(웹에선 0이라 티가 안 난다).
     <ScrollView automaticallyAdjustKeyboardInsets keyboardShouldPersistTaps="handled" style={styles.screen}
       contentContainerStyle={[styles.wrap, { paddingTop: insets.top + space(4) }]}>
+      {/* ★★뒤로가기 (Boss 2026-08-29 *"프로필 편집 들어가면 뒤로가기 되게하고"*).
+          ⚠️이 화면은 **Stack 헤더를 껐다**(4탭 전환) — 그래서 밀어 넣은 뒤 **나갈 길이 없었다.**
+            폰의 가장자리 스와이프에만 기대고 있었는데, 「내 운」에서 밀어 들어오면 그것도 안 먹는다.
+          ★생김새는 `mycomments`·`myteachers` 와 **같은 모양**으로 맞춘다(화면마다 다르면 학습이 안 된다). */}
+      <View style={styles.headRow}>
+        <PressableScale style={styles.backBtn} onPress={() => router.back()} hitSlop={10}>
+          <Text style={styles.backTx}>‹</Text>
+        </PressableScale>
+        <Text style={styles.headTitle}>{t('my.editProfile', '프로필 편집')}</Text>
+      </View>
       {/* ── 계정 ── */}
       <Text style={styles.h}>{t('settings.account')}</Text>
       {/* ★익명 세션 상시라 session 아닌 isRegistered 로 구분 — 등록 유저만 계정카드, 익명/미로그인은 로그인 유도(Apple 5.1.1: 등록은 선택·언제든 가능) */}
@@ -507,6 +517,11 @@ const styles = StyleSheet.create({
   //   계정 삭제는 App Store 심사 요구사항이라 도달 불가는 반려 사유가 될 수 있다.
   wrap: { padding: space(5), paddingBottom: space(44) },
   h: { ...font.heading, marginBottom: space(3) },
+  // ★뒤로가기 줄 — 다른 하위 화면(mycomments·myteachers)과 같은 치수다
+  headRow: { flexDirection: 'row', alignItems: 'center', gap: space(2), marginBottom: space(3) },
+  backBtn: { width: 28, height: 28, alignItems: 'center', justifyContent: 'center' },
+  backTx: { fontSize: 28, lineHeight: 30, color: colors.ink },
+  headTitle: { ...font.title, flex: 1 },
   // 계정
   // 커뮤니티 닉네임·일주 뱃지 줄(daniel 2026-08-05)
   nickRow: { flexDirection: 'row', gap: space(2), alignItems: 'center' },

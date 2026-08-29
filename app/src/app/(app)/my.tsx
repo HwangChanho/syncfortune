@@ -19,14 +19,16 @@
 //   화면마다 따로 조회하면 같은 화면 안에서 숫자가 갈린다(실제로 겪은 사고).
 // ⚠️조회 실패(null)를 0으로 그리지 않는다 — 0원이라고 오해해 충전을 유도하면 그게 곧 과금 유도다.
 // ═══════════════════════════════════════════════════════════════════════════
+import { useEffect, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';   // ★상단 안전영역 — 헤더가 없는 화면이라 직접 받는다(고정 여백은 글자확대 시 잘린다)
-import { Image as ExpoImage } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import { elementAvatar } from '../../lib/ui/brandAsset';
 import { PressableScale } from '../../components/PressableScale';
+// ★내 프로필도 **남들과 같은 창**으로 본다(Boss 2026-08-29) — 따로 만들면 내용이 갈린다
+import { ProfileSheet, type ProfileTarget } from '../../components/talk/ProfileSheet';
+import { loadMyProfile, profileSnapshot, subscribeProfile } from '../../lib/talk/myProfile';
 import { BrandWordmark } from '../../components/BrandWordmark';
 import { useAuth } from '../../lib/useAuth';
 import { useCoinBalance } from '../../lib/billing/coins';
@@ -55,6 +57,19 @@ export default function MyPageScreen() {
 
   // 표시 이름 — 로그인 이메일 앞부분을 쓴다(닉네임 설정은 설정 화면에 있다).
   const who = (session?.user?.email ?? '').split('@')[0];
+  /**
+   * ★내 프로필(이름·사진·배경) — **남의 프로필과 같은 창**(`ProfileSheet`)으로 보여 준다
+   *   (Boss 2026-08-29 *"홈에서도 내프로필 다른 사람들과 동일하게 볼수있게하고"*).
+   * ■ ★따로 «내 프로필 화면» 을 만들지 않는다 — 같은 것을 두 벌로 그리면 언젠가 내용이 갈린다
+   *   ([[duplicate-ui-single-source]]). 창은 하나, 넣는 값만 나로 바꾼다.
+   * ■ 사진을 바꾸면 곧바로 반영되게 **구독**한다(설정에서 바꾸고 돌아오는 길이 잦다).
+   */
+  const [me, setMe] = useState(profileSnapshot());
+  useEffect(() => {
+    void loadMyProfile().then(setMe);
+    return subscribeProfile(() => setMe(profileSnapshot()));
+  }, []);
+  const [profile, setProfile] = useState<ProfileTarget | null>(null);
 
   // ★항목을 **새로 만들지 않았다** — 있던 일곱 줄을 콘티의 세 묶음으로 나누고, 흩어져 있던
   //   「내 명식」 진입만 여기에 얹었다(설정 안에만 있어 찾기 어려웠다).
@@ -103,16 +118,19 @@ export default function MyPageScreen() {
         </PressableScale>
       </View>
 
-      {/* ② 프로필 — ★사진이 **왼쪽**이고 사각 라운드다(콘티). 가운데 정렬 원형이 아니다 */}
+      {/* ② 프로필 — ★2026-08-29 **그림을 뺐다**(Boss *"저기보이는 이미지는 빼버리고 글자들 왼쪽으로 붙이고"*).
+          여기 있던 건 오행 일러스트(`elementAvatar()`)라 **내 사진이 아니었다** — 누구에게나 같은 그림이
+          '프로필 사진 자리'에 앉아 있어 오히려 «내 사진이 안 올라갔나» 로 읽혔다.
+          ⇒ 그림을 없애고 글자를 **왼쪽 끝에 붙인다**. 실제 내 사진은 프로필 창에서 본다(아래 「내 프로필 보기」). */}
       <View style={styles.profile}>
-        {/* ⚠️★`cover` 가 아니라 `contain` 이다(Boss 2026-08-23 *"프로필사진 위치에 있는 이미지가 제대로 안되어있어"*).
-            자산 `av-*.png` 는 **405×495 세로 인물**인데 상자는 64×64 정사각이라,
-            `cover` 는 넘치는 위아래를 **잘라낸다** — 머리나 발이 잘린 채 가운데 띠만 보였다.
-            ⚠️로고 때(340×470 을 108×34 에)와 **같은 부류**다: 비율이 안 맞는 그림은
-              찌그러지지 않고 **작아지거나(contain) 잘린다(cover)** — 둘 다 고장으로 안 읽힌다.
-            ⇒ 전체가 보이게 `contain`. 64 안에서 52×64 로 들어가 옆에 6px 씩만 남는다. */}
-        <ExpoImage source={elementAvatar()} style={styles.pic} contentFit="contain" transition={160} />
-        <View style={styles.profileMid}>
+        {/* ★눌러서 **내 프로필 창**을 연다 — 남을 누를 때와 같은 창이 뜬다(Boss 2026-08-29) */}
+        <PressableScale style={styles.profileMid} onPress={() => setProfile({
+          name: me.name || who || t('my.helloGuest', '안녕하세요'),
+          tagline: t('my.statusDefault', '오늘도 나에게 좋은 일이 가득하길 ✨'),
+          avatar: me.avatarUrl, cover: me.coverUrl,
+          // ★「꾸미기」는 내 프로필일 때만 뜬다 — 설정(프로필 편집)으로 보낸다
+          onEdit: () => { setProfile(null); router.push('/settings'); },
+        })}>
           <Text style={styles.nick} numberOfLines={1}>
             {who || t('my.helloGuest', '안녕하세요')}
           </Text>
@@ -121,8 +139,9 @@ export default function MyPageScreen() {
           <PressableScale style={styles.editBtn} onPress={() => router.push('/settings')}>
             <Text style={styles.editTx}>{t('my.editProfile', '프로필 편집')}</Text>
           </PressableScale>
-        </View>
+        </PressableScale>
       </View>
+      <ProfileSheet target={profile} onClose={() => setProfile(null)} />
 
       {/* ★비로그인이면 **여기서 바로** 로그인·회원가입 (Boss 2026-08-25
           *"비 로그인이면 내운에서 바로 로그인 및 회원가입 할수있게해 접근성이 너무 안 좋잖아"*).
@@ -201,7 +220,8 @@ const styles = StyleSheet.create({
   top: { flexDirection: 'row', alignItems: 'center', gap: space(3), marginBottom: space(4) },
   topBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
 
-  profile: { flexDirection: 'row', alignItems: 'flex-start', gap: space(3.5), marginBottom: space(4) },
+  // ★그림을 뺐으니 여백도 뺀다 — `gap` 이 남으면 글자가 왼쪽 끝에 안 붙는다(Boss 2026-08-29)
+  profile: { alignItems: 'flex-start', marginBottom: space(4) },
   // 비로그인 안내 — ★막는 카드가 아니라 **얹는 카드**다. 아래 메뉴는 그대로 눌린다
   loginCard: {
     backgroundColor: colors.juSoft, borderColor: colors.juLine, borderWidth: 1,
@@ -211,9 +231,6 @@ const styles = StyleSheet.create({
   loginSub: { ...font.caption, color: colors.inkSoft, lineHeight: 18 },
   loginBtn: { paddingVertical: space(3), borderRadius: radius.md, backgroundColor: colors.ju, alignItems: 'center', marginTop: space(2.5) },
   loginBtnTx: { ...font.label, color: colors.onJu, fontWeight: '800' },
-  // ★사각 라운드(콘티). 원형이 아니다 — 카톡 프로필과 같은 모양이라 '사람'으로 읽힌다
-  // ★배경을 뺐다 — `contain` 이라 옆 여백이 생기는데 회색 면이 깔리면 '레터박스'로 보인다
-  pic: { width: 64, height: 64, borderRadius: radius.md },
   profileMid: { flex: 1, minWidth: 0, gap: space(1) },
   nick: { fontSize: 17, lineHeight: 23, fontWeight: '900', color: colors.ink },
   status: { ...font.caption, color: colors.inkSoft, lineHeight: 18 },

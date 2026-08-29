@@ -46,7 +46,11 @@ export function MyProfileCard({ fallbackName, element }: { fallbackName?: string
   const fileRef = useRef<any>(null);
 
   useEffect(() => {
-    void loadMyProfile().then((p) => { setName(p.name ?? ''); setAvatar(p.avatarUrl); setCover(p.coverUrl); });
+    void loadMyProfile().then((p) => {
+      setName(p.name ?? ''); setAvatar(p.avatarUrl); setCover(p.coverUrl);
+      savedRef.current = p.name ?? '';
+      loadedRef.current = true;      // ★여기서부터가 «사용자가 고친 것»이다
+    });
   }, []);
 
   const flash = (m: string) => { setMsg(m); setTimeout(() => setMsg(null), 2400); };
@@ -55,9 +59,33 @@ export function MyProfileCard({ fallbackName, element }: { fallbackName?: string
     setBusy(true);
     const r = await saveMyName(name);
     setBusy(false);
-    // ★성공도 알린다 — 저장을 눌렀는데 아무 일도 안 일어나면 됐는지 알 수 없다
+    // ★성공도 알린다 — 바뀐 게 저장됐는지 사용자가 알 방법이 이것뿐이다
     flash(r.ok ? t('profile.saved', '저장했어요') : t('profile.saveFail', '저장하지 못했어요'));
   };
+
+  /**
+   * ★★이름 **자동 저장** (Boss 2026-08-29 *"저장 따로 안눌러도 … 자동 저장되게 해줘"*).
+   *
+   * ■ 실측: 사진·배경은 **이미 자동**이었다(고르는 즉시 업로드). 「저장」이 걸려 있던 건 **이름 하나**뿐이라,
+   *   그 버튼을 없애면 이 카드에서 «저장을 누르는 일» 자체가 사라진다.
+   * ■ ⚠️타이핑마다 저장하지 않는다 — 글자 수만큼 쓰기가 나간다. **멈춘 뒤 800ms** 에 한 번.
+   * ■ ⚠️**처음 불러온 값으로는 저장하지 않는다**(`loadedRef`). 안 그러면 화면을 열기만 해도
+   *   쓰기가 한 번 나가고, 서버 값과 같은 값을 덮어쓴다.
+   * ■ ⚠️저장 중에는 미룬다 — 겹쳐 보내면 마지막 것이 이길 보장이 없다.
+   */
+  const loadedRef = useRef(false);
+  const savedRef = useRef<string | null>(null);   // 마지막으로 저장에 성공한 값
+  useEffect(() => {
+    if (!loadedRef.current) return;               // 최초 로드분은 건너뛴다
+    if (name === savedRef.current) return;        // 바뀐 게 없다
+    const id = setTimeout(async () => {
+      const v = name;
+      const r = await saveMyName(v);
+      if (r.ok) { savedRef.current = v; flash(t('profile.saved', '저장했어요')); }
+      else flash(t('profile.saveFail', '저장하지 못했어요'));
+    }, 800);
+    return () => clearTimeout(id);
+  }, [name, t]);
 
   const onPickWeb = () => fileRef.current?.click?.();
   const onFile = async (e: any) => {
@@ -176,11 +204,14 @@ export function MyProfileCard({ fallbackName, element }: { fallbackName?: string
           maxLength={20}
           returnKeyType="done"
           onSubmitEditing={onSaveName}
+          // ★★칸을 벗어나면 **즉시** 저장한다 — 디바운스(800ms)가 돌기 전에 화면을 떠나면
+          //   타이머가 정리되면서 **마지막 글자가 날아간다**. 자동 저장이 «가끔 안 되는» 것이
+          //   가장 나쁘다(사용자는 저장을 눌러 확인할 방법도 없어졌다).
+          onBlur={onSaveName}
         />
-        <PressableScale style={styles.btn} onPress={onSaveName} disabled={busy}>
-          {busy ? <ActivityIndicator size="small" color={colors.onJu} />
-                : <Text style={styles.btnTx}>{t('common.save', '저장')}</Text>}
-        </PressableScale>
+        {/* ★「저장」 버튼을 없앴다(Boss 2026-08-29) — 이름은 멈추면 저장되고, 사진·배경은 고르는 즉시다.
+            ⚠️버튼만 지우면 «됐는지 모르는» 화면이 된다 ⇒ 진행 표시는 남긴다(아래 msg 가 결과를 말한다). */}
+        {busy ? <ActivityIndicator size="small" color={colors.ju} /> : null}
       </View>
       <Text style={styles.hint}>{t('profile.hint', '비워 두면 명식 이름으로 표시돼요.')}</Text>
       {msg ? <Text style={styles.msg}>{msg}</Text> : null}

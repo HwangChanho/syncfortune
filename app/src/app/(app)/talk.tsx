@@ -1102,6 +1102,12 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
                 onLeave={(r) => setAskLeave({ sessionId: r.sessionId, name: r.name })} />
     : <TalkList items={list} onOpen={open} selected={cur?.id} myName={myName} myAvatar={myAvatar} onOpenProfile={setProfile}
                       railKeys={order} onMe={() => setPerson({ kind: 'me', name: myName })}
+                      /* ★내 사진 → **남들과 같은 프로필 창**(Boss 2026-08-29) */
+                      onMyProfile={() => { const p = profileSnapshot(); setProfile({
+                        name: p.name || myName || t('my.helloGuest', '안녕하세요'),
+                        avatar: p.avatarUrl, cover: p.coverUrl,
+                        onEdit: () => { setProfile(null); router.push('/settings'); },
+                      }); }}
                       onSettings={() => router.push('/settings')}
                       onAddFriend={() => router.push('/friends')}
                       onManse={() => router.push('/charts')}
@@ -1447,6 +1453,12 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
           {paneOpen ? (
           <TalkList items={list} onOpen={open} selected={cur?.id} myName={myName} myAvatar={myAvatar} onOpenProfile={setProfile}
                       railKeys={order} onMe={() => setPerson({ kind: 'me', name: myName })}
+                      /* ★내 사진 → **남들과 같은 프로필 창**(Boss 2026-08-29) */
+                      onMyProfile={() => { const p = profileSnapshot(); setProfile({
+                        name: p.name || myName || t('my.helloGuest', '안녕하세요'),
+                        avatar: p.avatarUrl, cover: p.coverUrl,
+                        onEdit: () => { setProfile(null); router.push('/settings'); },
+                      }); }}
                       onSettings={() => router.push('/settings')}
                       onAddFriend={() => router.push('/friends')}
                       onManse={() => router.push('/charts')}
