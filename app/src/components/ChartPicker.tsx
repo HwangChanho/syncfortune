@@ -652,7 +652,7 @@ export function ChartPicker({ onChange, viewOnly }: {
             <FlatList
               data={shown}
               keyExtractor={(c: SavedChart) => c.id}
-              style={styles.list}
+              style={[styles.list, repRow && styles.listWithRep]}
               contentContainerStyle={{ paddingBottom: space(14) }}
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
@@ -666,7 +666,7 @@ export function ChartPicker({ onChange, viewOnly }: {
               ref={listRef}
               data={shown}
               keyExtractor={(c) => c.id}
-              style={styles.list}
+              style={[styles.list, repRow && styles.listWithRep]}
               // 마지막 행 ⋯ 메뉴(수정/삭제)가 하단에 잘리지 않도록 여유(daniel 07-02)
               contentContainerStyle={{ paddingBottom: space(14) }}
               showsVerticalScrollIndicator={false}
@@ -886,6 +886,18 @@ const styles = StyleSheet.create({
   },
   repCap: { ...font.caption, color: colors.ju, fontWeight: '700', paddingTop: space(2.5) },
   list: { flexShrink: 1, maxHeight: Dimensions.get('window').height * 0.52 },
+  /**
+   * ★★대표 칸이 있을 때는 목록 상한을 **그만큼 줄인다**(Boss 2026-08-29 *"명식 등록이 사라졌어"*).
+   *
+   * ■ 무슨 일이 났나 — 위에 대표 칸(실측 **116px** + 아래 여백 12)을 얹으면서 시트 전체가
+   *   그만큼 길어졌다. 이 시트는 `maxHeight 88%` 에 닿으면 **아래 버튼부터 밀려 나간다** —
+   *   `＋ 명식 등록` 이 화면 밖으로 나가 «사라진» 것처럼 보였다.
+   *   ⚠️이 파일에는 **같은 사고가 두 번** 적혀 있다(08-07 「명식등록 계속 짤려」·08-27 「시간 찾기 짤리고」).
+   *     새 것을 얹을 때 **아래에서 그만큼 빼지 않으면** 반드시 재발한다.
+   * ■ ★버튼을 더 단단히 붙드는 것으로는 못 고친다 — 버튼은 이미 `flexShrink: 0` 이다.
+   *   **줄어야 하는 쪽(목록)의 상한**을 낮춰야 총 높이가 원래대로 돌아온다.
+   */
+  listWithRep: { maxHeight: Dimensions.get('window').height * 0.52 - 128 },
   row: { flexDirection: 'row', alignItems: 'center', paddingVertical: space(3.5), borderBottomWidth: 1, borderBottomColor: colors.line, gap: space(2) },
   rowActive: { backgroundColor: colors.card, borderRadius: radius.md, borderBottomColor: 'transparent' }, // 드래그 중 행 강조(들어올림)
   rowMain: { flex: 1 },
