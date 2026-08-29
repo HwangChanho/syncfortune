@@ -12,6 +12,7 @@
 // ■ '없음'을 두 가지로 구분한다
 //   ⚠️'로그인 안 됨'과 '대화 없음'은 **사용자가 할 일이 다르다.** 같은 빈 화면을 띄우면 안 된다.
 // ═══════════════════════════════════════════════════════════════════════════
+import { sizedImage } from '../../lib/media/imageUrl';
 import { useEffect, useState, useCallback, useRef, type ReactNode } from 'react';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TextInput, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -186,7 +187,8 @@ export function ChatList({ onOpen, selectedId, reloadKey = 0, wide, onSettings, 
           name: names.length > 1 ? roomTitle(mem)
             : names.length === 1 ? names[0]
               : t('room.alone', '나 혼자 있는 방'),
-          avatar: path ? (supabase.storage.from('avatars').getPublicUrl(path).data.publicUrl ?? null) : null,
+          // ★목록 얼굴 — 원본이 아니라 **그리는 크기**로(2026-08-29)
+          avatar: path ? sizedImage(supabase.storage.from('avatars').getPublicUrl(path).data.publicUrl, 240) : null,
         };
       }
     }

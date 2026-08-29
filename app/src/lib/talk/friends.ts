@@ -11,6 +11,7 @@
 //   ⇒ 서버가 `my_friends()` 에서 이미 걸러 준다 — `chartId` 가 null 이면 못 보는 것이다.
 //     화면이 다시 판단하지 않는다(판단이 두 곳에 있으면 언젠가 갈린다).
 // ═══════════════════════════════════════════════════════════════════════════
+import { sizedImage } from '../media/imageUrl';
 import { supabase } from '../supabase';
 import { withTimeout } from '../core/withTimeout';
 
@@ -82,7 +83,8 @@ export async function listFriends(): Promise<Friend[]> {
     otherId: String(x.other_id),
     // ⚠️이메일은 이름이 아니다(로그인 시 `display_name` 에 자동으로 들어간다)
     name: typeof x.name === 'string' && x.name.trim() && !x.name.includes('@') ? x.name.trim() : null,
-    avatarUrl: x.avatar_path ? supabase.storage.from('avatars').getPublicUrl(x.avatar_path).data.publicUrl : null,
+    // ★목록 얼굴 — 사람이 많을수록 원본은 치명적이다(10명이면 십수 MB · 2026-08-29)
+    avatarUrl: x.avatar_path ? sizedImage(supabase.storage.from('avatars').getPublicUrl(x.avatar_path).data.publicUrl, 240) : null,
     iShare: x.i_share === true,
     status: x.status === 'accepted' ? 'accepted' : 'pending',
     requestedByMe: !!x.requested_by_me,

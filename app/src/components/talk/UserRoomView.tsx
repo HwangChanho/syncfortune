@@ -16,6 +16,7 @@
 // ■ ⚠️실시간 구독은 **이 화면이 살아 있는 동안만**
 //   나가면서 안 끊으면 방을 옮겨도 옛 방의 말이 흘러 들어온다.
 // ═══════════════════════════════════════════════════════════════════════════
+import { sizedImage } from '../../lib/media/imageUrl';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, TextInput, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
 import { useTranslation } from 'react-i18next';
@@ -36,7 +37,8 @@ import { useFontScale } from '../../lib/ui/fontScale';
 /** 프로필 사진 경로 → 공개 URL. ⚠️버킷 이름은 상담가 아바타와 같은 곳을 쓴다. */
 function avatarUrl(path: string | null): string | null {
   if (!path) return null;
-  try { return supabase.storage.from('avatars').getPublicUrl(path).data.publicUrl; } catch { return null; }
+  // ★목록 얼굴은 작게 그린다 — 원본(폰 사진 1~3MB)을 받으면 방 하나 여는 데 수 MB 다(2026-08-29)
+  try { return sizedImage(supabase.storage.from('avatars').getPublicUrl(path).data.publicUrl, 240); } catch { return null; }
 }
 
 /**

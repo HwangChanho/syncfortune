@@ -13,6 +13,7 @@
 //   프로필은 계정에 붙는다. 익명 상태에서 바꾸면 로그인 후 사라져 더 나쁘다.
 // ═══════════════════════════════════════════════════════════════════════════
 import { supabase } from '../supabase';
+import { sizedImage } from '../media/imageUrl';   // 쓸 크기만큼만 받는다(2026-08-29)
 import { withTimeout } from '../core/withTimeout';
 
 export type MyProfile = { name: string | null; avatarUrl: string | null; coverUrl: string | null };
@@ -50,8 +51,8 @@ export async function loadMyProfile(): Promise<MyProfile> {
     //   사용자가 직접 정한 이름과 **섞여 있다**. `@` 가 있으면 안 쓴다 → 명식 이름으로 떨어진다.
     //   ⇒ 사용자가 설정에서 저장하면 그 값이 들어와 이 검사를 통과한다.
     name: displayNameOf(row?.display_name),
-    avatarUrl: row?.avatar_path ? publicUrl(row.avatar_path) : null,
-    coverUrl: row?.cover_path ? publicUrl(row.cover_path) : null,
+    avatarUrl: row?.avatar_path ? sizedImage(publicUrl(row.avatar_path), AVATAR_W) : null,
+    coverUrl: row?.cover_path ? sizedImage(publicUrl(row.cover_path), COVER_W) : null,
   };
   notify();
   return _cache;
@@ -68,6 +69,15 @@ function displayNameOf(v: unknown): string | null {
 function publicUrl(path: string): string {
   return supabase.storage.from('avatars').getPublicUrl(path).data.publicUrl;
 }
+
+/**
+ * 화면에 쓸 크기 — **원본을 그대로 내려받지 않는다**(Boss 2026-08-29 *"반응이 너무 느려"*).
+ * 실측: 프로필 창 한 번에 **4.1MB**(avatar 1.4MB + cover 2.7MB)를 받고 있었다.
+ * ★값의 근거: 아바타는 창에서 **폭의 22%**(≈100px) 로 그려 레티나 2배면 240 이면 충분하고,
+ *   배경은 패널 폭 상한이 **460** 이라 1080 이면 2배를 넘긴다. 전체 보기는 `originalImage` 로 되돌린다.
+ */
+const AVATAR_W = 240;
+const COVER_W = 920;   // = 패널 폭 상한 460 의 **정확히 2배**(레티나). 실측 516KB → 425KB
 
 /**
  * 이름 저장.
@@ -124,7 +134,7 @@ export async function uploadMyAvatar(file: Uploadable): Promise<{ ok: boolean; u
     .update({ avatar_path: path }).eq('id', user.id);
   if (error) return { ok: false, error: error.message };
   // ★버전 쿼리 — 같은 경로를 덮어썼으므로 이게 없으면 옛 사진이 계속 보인다
-  const url = `${publicUrl(path)}?v=${Date.now()}`;
+  const url = `${sizedImage(publicUrl(path), AVATAR_W)}&v=${Date.now()}`;
   _cache = { ...profileSnapshot(), avatarUrl: url };
   notify();
   return { ok: true, url };
@@ -161,7 +171,7 @@ export async function uploadMyCover(file: Uploadable): Promise<{ ok: boolean; ur
   const { error } = await supabase.from('profiles')
     .update({ cover_path: path }).eq('id', user.id);
   if (error) return { ok: false, error: error.message };
-  const url = `${publicUrl(path)}?v=${Date.now()}`;
+  const url = `${sizedImage(publicUrl(path), COVER_W)}&v=${Date.now()}`;
   _cache = { ...profileSnapshot(), coverUrl: url };
   notify();
   return { ok: true, url };

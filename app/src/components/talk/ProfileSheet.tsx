@@ -27,6 +27,7 @@ import { Image as ExpoImage } from 'expo-image';
 import { PressableScale } from '../PressableScale';
 import { PhotoViewer } from './PhotoViewer';
 import { CoverMedia, isVideoUri } from './CoverMedia';
+import { originalImage } from '../../lib/media/imageUrl';   // 「전체 보기」는 원본으로(2026-08-29)
 import { colors, space, radius, font } from '../../lib/theme';
 import { elementColor, elementText } from '../../lib/engine/ohaeng';
 
@@ -96,7 +97,8 @@ export function ProfileSheet({ target, onClose }: { target: ProfileTarget | null
           onPress={() => {
             if (!target.cover) return;
             if (videoCover) setVideoFull(true);
-            else setPhoto({ uri: target.cover, cap: target.name });
+            // ★목록·패널은 **줄인 것**으로 그리지만, 전체 보기는 원본이라야 안 뭉개진다
+            else setPhoto({ uri: originalImage(target.cover) ?? target.cover, cap: target.name });
           }}
         >
           <CoverMedia uri={target.cover} />
@@ -111,7 +113,7 @@ export function ProfileSheet({ target, onClose }: { target: ProfileTarget | null
 
         {/* ── 아래에 얹히는 정보 ── */}
         <View style={styles.bottom} pointerEvents="box-none">
-          <PressableScale onPress={() => target.avatar && setPhoto({ uri: target.avatar, cap: target.name })}>
+          <PressableScale onPress={() => target.avatar && setPhoto({ uri: originalImage(target.avatar) ?? target.avatar, cap: target.name })}>
             {target.avatar
               ? <ExpoImage source={{ uri: target.avatar }} style={[styles.av, { width: av, height: av, borderRadius: av * 0.32 }]} contentFit="cover" transition={160} />
               : (
