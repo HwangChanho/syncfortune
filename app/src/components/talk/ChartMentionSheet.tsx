@@ -15,8 +15,8 @@
  * ■ 명식이 없으면 **등록으로 보낸다**
  *   빈 목록에 "없어요" 만 띄우면 막다른 길이다. 여기서 바로 등록으로 갈 수 있어야 한다.
  */
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, Keyboard, Platform, useWindowDimensions } from 'react-native';
 import { PressableScale } from '../PressableScale';
 import { colors, space, radius, font } from '../../lib/theme';
 
@@ -57,11 +57,29 @@ type Props = {
 };
 
 export default function ChartMentionSheet({ rows, already, max, onClose, onPick, onRegister }: Props) {
+  /**
+   * 키보드 높이 — 이 시트는 `@` 를 **치는 도중에** 뜬다 = 키보드가 **항상 올라와 있다**.
+   * ⚠️훅은 조기 return 위에 둔다(`check:hooks` · [[hook-order-crash-white-screen]]).
+   */
+  const [kbH, setKbH] = useState(0);
+  const { height: winH } = useWindowDimensions();
+  useEffect(() => {
+    const showEvt = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvt = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const a = Keyboard.addListener(showEvt, (e: any) => setKbH(e?.endCoordinates?.height ?? 0));
+    const b = Keyboard.addListener(hideEvt, () => setKbH(0));
+    return () => { a.remove(); b.remove(); };
+  }, []);
   const full = already.length >= max;
   return (
     <View style={s.wrap}>
       <PressableScale style={s.dim} onPress={onClose}><View /></PressableScale>
-      <View style={s.card}>
+      {/* ★★키보드 위로 올린다(Boss 2026-08-30 *"키보드에 가려서 아래쪽 명식이 안보여"*).
+          높이를 **화면 기준 68%** 로만 잡고 있어 아래 3분의 1이 키보드 밑에 깔렸다 —
+          목록은 있는데 **닿을 수가 없었다.**
+          ⇒ ①바닥을 키보드만큼 띄우고 ②**남은 높이** 기준으로 상한을 다시 잡는다.
+            하나만 하면 시트가 위로 올라가되 **위쪽이 화면 밖으로** 나간다. */}
+      <View style={[s.card, { marginBottom: kbH, maxHeight: Math.max(220, (winH - kbH) * 0.68) }]}>
         <Text style={s.title}>명식 부르기</Text>
         <Text style={s.sub}>
           {full

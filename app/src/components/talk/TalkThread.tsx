@@ -155,6 +155,23 @@ export function TalkThread({ items, busy, onLink, jumpTo, onWho }: {
   const [lit, setLit] = useState<number | null>(null);   // 잠깐 밝힐 대상
   // 새 말풍선이 붙으면 아래로 — 대화는 마지막 줄이 중요하다
   useEffect(() => { ref.current?.scrollToEnd({ animated: true }); }, [items.length, busy]);
+  /**
+   * ★★그런데 위 한 줄로는 **모자란다**(Boss 2026-08-30
+   *   *"택스트 입력중표시나 신구 텍스트가오면 채팅장 스크롤을 제일 아래로 만들어줘야해"*).
+   *
+   * ■ 왜 — `items.length` 가 바뀌는 **그 순간에는 아직 높이가 없다.** 말풍선은 다음 레이아웃에서
+   *   그려지므로, 그때 부른 `scrollToEnd` 는 **옛 높이 기준**으로 멈춘다. 긴 답일수록 많이 남는다.
+   *   점 세 개(`busy`)도 같은 이유로 반쯤 걸친다.
+   * ■ ⇒ **내용 높이가 바뀔 때** 다시 내린다. 이건 «다 그려진 뒤» 에 불리는 신호라 어긋나지 않는다.
+   * ■ ⚠️사용자가 위를 읽고 있을 때 끌어내리지 않는다 — 바닥 근처(120px)일 때만 따라간다.
+   *   (`onScroll` 로 마지막 위치를 적어 둔다.)
+   */
+  const nearBottomRef = useRef(true);
+  const onScroll = (e: any) => {
+    const { layoutMeasurement, contentOffset, contentSize } = e.nativeEvent;
+    nearBottomRef.current = contentSize.height - (contentOffset.y + layoutMeasurement.height) < 120;
+  };
+  const onContentSizeChange = () => { if (nearBottomRef.current) ref.current?.scrollToEnd({ animated: true }); };
 
   // ★정리에서 뛰어오면: 그 자리로 스크롤 + 1.6초간 밝힌다.
   //   ⚠️밝히지 않으면 어디로 왔는지 모른다 — 스크롤만 하면 '아무 일도 안 일어난 것'처럼 보인다.
@@ -180,7 +197,9 @@ export function TalkThread({ items, busy, onLink, jumpTo, onWho }: {
   }, [jumpTo]);
 
   return (
-    <ScrollView ref={ref} style={styles.wrap} contentContainerStyle={styles.body}>
+    <ScrollView ref={ref} style={styles.wrap} contentContainerStyle={styles.body}
+      onScroll={onScroll} scrollEventThrottle={64}
+      onContentSizeChange={onContentSizeChange}>
       {items.map((m, i) => (m.system ? (
         // ★시스템 한 줄 — 가운데·작게·말풍선 없음. 누르는 것도 아니다(정보만)
         <View key={m.id} style={styles.sysRow}>

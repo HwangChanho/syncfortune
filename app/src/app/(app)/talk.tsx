@@ -85,7 +85,14 @@ import { FortuneVideoCard } from '../../components/FortuneVideoCard';
 function DeleteBar({ onOk, onCancel, t }: { onOk: () => void; onCancel: () => void; t: (k: string, d?: string) => string }) {
   return (
     <View style={styles.delBar}>
-      <Text style={styles.delTx}>{t('talk.delAsk', '이 대화를 지울까요? 되돌릴 수 없어요.')}</Text>
+      {/* ★★글을 `flex: 1` 로 감싸 **버튼을 오른쪽 끝에 붙인다**(Boss 2026-08-30
+          *"지우기랑 취소를 오른쪽 끝으로 붙여줘"*).
+          ⚠️종전엔 글이 제 폭만 차지해 버튼이 글 바로 뒤에 붙고 **오른쪽이 텅 비었다.**
+          ★바로 아래 「나가기」 줄은 이미 이 모양이다 — 두 줄이 같은 생김새가 되게 맞춘다
+            (한쪽만 고치면 나중에 «왜 여기만 다르지» 가 된다). */}
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text style={styles.delTx}>{t('talk.delAsk', '이 대화를 지울까요? 되돌릴 수 없어요.')}</Text>
+      </View>
       <PressableScale style={styles.delNo} onPress={onCancel}>
         <Text style={styles.delNoTx}>{t('common.cancel', '취소')}</Text>
       </PressableScale>
@@ -1064,6 +1071,33 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
               { text: t('coins.charge', '운 충전하기'), onPress: () => router.push('/coins') },
             ],
           );
+        } else if (r.reason === 'failed') {
+          /**
+           * ★★**사과하기 전에 되찾아온다** (Boss 2026-08-30
+           *   *"답은 나왔는데 텍스트는 저렇게떠. 그러고 다시 들어가면 답이 생성 되어있어"*).
+           *
+           * ■ 계측이 말한 것: `talk_fail` 의 `status`·`code` 가 **둘 다 null** 이다
+           *   = HTTP 응답이 **아예 안 왔다**(연결이 끊겼다). 서버는 그동안 답을 다 만들어 **저장**한다.
+           *   즉 «실패» 가 아니라 **«우리가 못 받은 것»** 이다 — 방을 다시 열면 답이 있다.
+           * ■ ⇒ 잠시 뒤 이력을 다시 읽어 **마지막이 상담가 말이면 방을 그대로 복원**한다.
+           *   ★복원은 `open()` 을 다시 부른다 — 이력을 그리는 규칙이 **한 벌**이라야
+           *     처음 볼 때와 다시 볼 때가 달라지지 않는다(쪼개기·얼굴 붙이기가 그 안에 있다).
+           * ■ ⚠️점 세 개를 **끄지 않는다** — 되찾는 동안에도 «아직 오는 중» 이 맞다.
+           */
+          const sidNow = curSidRef.current;
+          const failMsg = r.message;
+          const giveUp = () => {
+            setBusy(false);
+            setItems((prev) => [...prev, { id: nextId(), role: 'assistant', body: failMsg }]);
+          };
+          timersRef.current.push(setTimeout(() => {
+            void withTimeout(loadThread(cur.id, sidNow), 8000).then((th) => {
+              const msgs = th?.messages ?? [];
+              const last = msgs[msgs.length - 1];
+              if (last && last.role === 'assistant') open(cur);   // 답이 와 있다 — 그대로 복원
+              else giveUp();
+            }).catch(giveUp);
+          }, 1500));
         } else {
           // ★실패 사유를 그대로 보여 준다(멈춤·한도·오류가 서로 다른 말이어야 한다)
           setBusy(false);
@@ -1615,8 +1649,13 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
             ? <Text style={styles.headNum}>{roomMembers(t('cp.me', '나'), [cur.name, ...mates.map((m) => m.name)]).length}</Text>
             : null}
         </View>
-        <PressableScale hitSlop={8} onPress={() => setInviteOpen(true)}>
-          <Text style={styles.headAdd}>＋</Text>
+        {/* ★★＋ 를 **글자에서 SVG 아이콘으로** 바꿨다(Boss 2026-08-30 *"크기 키워"*).
+            ⚠️글리프(`＋`)는 fontSize 를 올려도 **그만큼 안 커진다** — `⌕` 가 fontSize 26 인데
+              실제 12px 로 그려진 이력이 있다([[glyph-icons-dont-scale]]). 옆 휴지통은 이미 `Icon` 이라
+              둘의 크기 기준도 서로 달랐다. ⇒ 같은 원본·같은 size 로 맞춘다.
+            ★`marginRight` = 휴지통에서 **더 떼어 놓는 것**(Boss *"왼쪽으로 좀더 옮기고"*). */}
+        <PressableScale hitSlop={10} style={styles.headAddBtn} onPress={() => setInviteOpen(true)}>
+          <Icon name="plus" size={30} />
         </PressableScale>
         <PressableScale hitSlop={8} onPress={() => setAskDelete(true)}>
           <Icon name="trash" size={25} />
@@ -1663,7 +1702,9 @@ const styles = StyleSheet.create({
   headTx: { flexShrink: 1, minWidth: 0, ...font.heading, color: colors.ink, fontWeight: '800' },
   // ★인원수 — 카톡처럼 이름 옆에 **작게**. 배지로 크게 그리면 이름을 밀어낸다.
   headNum: { ...font.label, color: colors.inkSoft, fontWeight: '700' },
-  headAdd: { ...font.heading, color: colors.ink, fontWeight: '700', paddingHorizontal: space(1) },
+  headAdd: { ...font.heading, color: colors.ink, fontWeight: '700', paddingHorizontal: space(1) },   // (넓은 웹 갈래가 아직 쓴다)
+  // ★휴지통과 벌리는 간격 — 헤더 `gap: space(2)` 에 더해진다(Boss 2026-08-30)
+  headAddBtn: { marginRight: space(2) },
   headIcon: { paddingHorizontal: space(1) },   // ★그림은 `kit/Icon` 이 그린다(크기는 거기서)
   // 삭제 확인 — 눌린 자리 바로 아래
   delBar: { flexDirection: 'row', alignItems: 'center', gap: space(2), paddingHorizontal: space(4), paddingVertical: space(3), backgroundColor: colors.sunk, borderBottomWidth: 1, borderBottomColor: colors.line },
