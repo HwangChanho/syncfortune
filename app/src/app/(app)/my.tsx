@@ -92,6 +92,10 @@ export default function MyPageScreen() {
       { key: 'sub',     icon: '✓', label: t('my.subs', '구독 관리'), route: '/market' },
     ] },
     { key: 'set', title: t('my.grpSet', '설정'), rows: [
+      // ★2026-08-30 **되살렸다**(Boss *"되살려"*). `1590015`(콘티 4면 반영, 08-23)에서 빠져 있었다 —
+      //   그 커밋의 뜻은 «추측으로 넣은 항목을 걷어낸다» 였는데 **이 줄까지 같이 걷혔다.**
+      //   ⚠️있던 자리(설정 묶음 첫 줄) 그대로 넣는다 — 자리를 내 판단으로 옮기지 않는다.
+      { key: 'charts',   icon: '🗂', label: t('my.charts', '내 명식'), route: '/charts' },
       { key: 'notify',   icon: '🔔', label: t('my.notifySet', '알림 설정'), route: '/notifications' },
       { key: 'account',  icon: '🛡', label: t('my.account', '계정 및 보안'), route: '/settings' },
       { key: 'support',  icon: '☎', label: t('my.support', '고객센터'), route: '/bugreport' },
