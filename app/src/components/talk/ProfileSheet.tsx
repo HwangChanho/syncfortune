@@ -88,7 +88,16 @@ export function ProfileSheet({ target, onClose }: { target: ProfileTarget | null
   return (
     <View style={styles.root}>
       <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
-      <View style={[styles.panel, { width: panelW }, videoCover ? { flex: 0, height: panelH } : null]}>
+      {/* ⚠️★★`flex: 0` 을 쓰면 **웹에서 패널이 통째로 사라진다**(2026-08-30 실측).
+          react-native-web 은 `flex: 0` 을 **`flex: 0 1 0%`** 로 옮기는데, 그 `flex-basis: 0%` 가
+          옆의 `height` 를 **덮어써서** 높이가 0 으로 무너진다 — 딤만 깔리고 내용이 안 보였다.
+          (실측: 패널 `height: 818px` 인데 실제 높이 **0**.)
+          ⚠️네이티브는 `flex: 0` = basis `auto` 라 멀쩡했다 — **웹에서만 조용히 죽는** 종류다.
+          ★배경이 **영상인 상담가만** 이 분기를 탄다 ⇒ 영상 11명 전부 안 보이고
+            배경이 없는 노쌤만 멀쩡했다(Boss *"노쎔말고 다 안돼"* — 그 말이 진단을 확증했다).
+          ⇒ 세 값을 **따로** 적는다. `flexBasis: 'auto'` 여야 `height` 가 산다. */}
+      <View style={[styles.panel, { width: panelW },
+        videoCover ? { flexGrow: 0, flexShrink: 0, flexBasis: 'auto' as const, height: panelH } : null]}>
         {/* ── 배경 ── 화면을 채운다. 사진이면 눌러서 전체 보기 */}
         <Pressable
           style={[StyleSheet.absoluteFill, { backgroundColor: elementColor[el] }]}
@@ -101,7 +110,28 @@ export function ProfileSheet({ target, onClose }: { target: ProfileTarget | null
             else setPhoto({ uri: originalImage(target.cover) ?? target.cover, cap: target.name });
           }}
         >
-          <CoverMedia uri={target.cover} />
+          {/**
+            * ★★배경이 **없을 때도 허전하지 않게** (Boss 2026-08-30 *"상담가들 프로필 눌렀는데 지금 아무것도 안나와"*).
+            *
+            * ■ 실측: 활성 14명 중 **배경 없음 3명**(오늘의 운세·나비·노쌤) · **얼굴까지 없음 2명**.
+            *   배경이 없으면 오행 **색면 한 장**만 떠서 «고장 난 화면» 처럼 보였다.
+            *   ★자료가 없는 것이지 코드가 깨진 게 아니다 — 그래도 **빈 화면을 보여 줄 이유는 없다.**
+            * ■ ⇒ ①배경이 있으면 그대로 ②없고 얼굴이 있으면 **얼굴을 크게 깔고** 흐리게
+            *   ③둘 다 없으면 이름 첫 글자를 크게 앉힌다. 어느 쪽이든 «채워진 화면» 이 된다.
+            * ■ ⚠️얼굴을 배경으로 쓸 때는 **흐리게** 한다 — 또렷하면 아래 원형 얼굴과 겹쳐 두 번 보인다.
+            */}
+          {target.cover
+            ? <CoverMedia uri={target.cover} />
+            : target.avatar
+              ? <ExpoImage source={{ uri: target.avatar }} style={StyleSheet.absoluteFill}
+                  contentFit="cover" blurRadius={28} transition={200} />
+              : (
+                <View style={[StyleSheet.absoluteFill, styles.emptyCover]} pointerEvents="none">
+                  <Text style={[styles.emptyInitial, { color: elementText[el] }]}>
+                    {(target.name || '?').trim().charAt(0)}
+                  </Text>
+                </View>
+              )}
           {/* 아래를 어둡게 — 흰 글자가 밝은 배경 위에서 묻히지 않게 */}
           <View style={styles.scrim} pointerEvents="none" />
         </Pressable>
@@ -184,6 +214,9 @@ const styles = StyleSheet.create({
   root: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.72)', alignItems: 'center', justifyContent: 'center', zIndex: 60 },
   panel: { flex: 1, alignSelf: 'center', overflow: 'hidden' },
   // 아래 절반만 어둡게 — 배경 사진은 살리고 글자는 읽히게
+  // ★얼굴도 배경도 없을 때 — 이름 첫 글자를 크게. 색면 한 장보다 «누구인지» 가 보인다
+  emptyCover: { alignItems: 'center', justifyContent: 'center' },
+  emptyInitial: { fontSize: 160, fontWeight: '900', opacity: 0.22, includeFontPadding: false },
   scrim: { ...StyleSheet.absoluteFillObject, top: '45%', backgroundColor: 'rgba(0,0,0,0.45)' },
   // ★영상 전체 보기 — 시트(`root`)보다 **위**에 얹는다
   full: { ...StyleSheet.absoluteFillObject, backgroundColor: '#000000', alignItems: 'center', justifyContent: 'center', zIndex: 70 },
