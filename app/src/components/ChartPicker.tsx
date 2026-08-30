@@ -653,7 +653,11 @@ export function ChartPicker({ onChange, viewOnly }: {
               data={shown}
               keyExtractor={(c: SavedChart) => c.id}
               style={[styles.list, repRow && styles.listWithRep]}
-              contentContainerStyle={{ paddingBottom: space(14) }}
+              // ★여백을 56 → 24 로 줄였다(Boss 2026-08-30 *"더 위로 올려줘"*).
+              //   ⚠️이건 «마지막 행의 ⋯ 메뉴가 안 잘리게» 두었던 것인데, 끝까지 내리면
+              //     **화면에는 그냥 빈칸**으로 보인다 — 버튼이 아래로 밀린 것처럼 읽힌다.
+              //   ⋯ 메뉴는 행 위쪽으로도 펼쳐지므로 24 면 충분하다.
+              contentContainerStyle={{ paddingBottom: space(6) }}
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
               initialNumToRender={10}
@@ -668,7 +672,11 @@ export function ChartPicker({ onChange, viewOnly }: {
               keyExtractor={(c) => c.id}
               style={[styles.list, repRow && styles.listWithRep]}
               // 마지막 행 ⋯ 메뉴(수정/삭제)가 하단에 잘리지 않도록 여유(daniel 07-02)
-              contentContainerStyle={{ paddingBottom: space(14) }}
+              // ★여백을 56 → 24 로 줄였다(Boss 2026-08-30 *"더 위로 올려줘"*).
+              //   ⚠️이건 «마지막 행의 ⋯ 메뉴가 안 잘리게» 두었던 것인데, 끝까지 내리면
+              //     **화면에는 그냥 빈칸**으로 보인다 — 버튼이 아래로 밀린 것처럼 읽힌다.
+              //   ⋯ 메뉴는 행 위쪽으로도 펼쳐지므로 24 면 충분하다.
+              contentContainerStyle={{ paddingBottom: space(6) }}
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"  // 검색 키보드가 열린 채로도 명식 탭이 첫 터치에 먹게
               activationDistance={14}
@@ -715,8 +723,9 @@ export function ChartPicker({ onChange, viewOnly }: {
               style={[styles.findTimeBtn, { marginBottom: insets.bottom, flexShrink: 0 }]}
               onPress={() => { setOpen(false); router.push('/timeResolve'); }}
             >
+              {/* ★부제를 뺐다(Boss 2026-08-30 *"명식등록이랑 사이즈 같게"*) — 그 한 줄이
+                  이 버튼만 더 높게 만들던 원인이다. 라벨만으로도 무엇인지 읽힌다. */}
               <Text style={styles.findTimeTx}>{t('manse.findHour', '태어난 시 찾기')}</Text>
-              <Text style={styles.findTimeSub}>{t('manse.findHourSub', '시각을 모르면 사건으로 좁혀요')}</Text>
             </PressableScale>
           </Pressable>
         </Pressable>
@@ -948,14 +957,15 @@ const styles = StyleSheet.create({
   },
   check: { fontSize: 18, color: colors.ju, fontWeight: '700' },
   // flexShrink:0 — 시트가 꽉 차도 이 버튼은 **절대 줄지 않는다**(줄어드는 쪽은 위의 리스트). marginBottom 은 렌더에서 안전영역만큼.
-  addBtn: { backgroundColor: colors.ju, borderRadius: radius.md, paddingVertical: space(3.5), alignItems: 'center', marginTop: space(4), flexShrink: 0 },
+  addBtn: { backgroundColor: colors.ju, borderRadius: radius.md, paddingVertical: space(3.5), alignItems: 'center', marginTop: space(2.5), flexShrink: 0 },   // ★marginTop 4→2.5(Boss "더 위로")
   // ★「태어난 시 찾기」 — 주 CTA(등록)보다 **한 단계 낮게**. 목록의 주인공은 명식이지 이 버튼이 아니다.
+  // ★`addBtn` 과 **같은 크기**로 맞춘다(Boss 2026-08-30). 색만 다르고 치수는 같아야
+  //   두 버튼이 «한 벌» 로 보인다 — paddingVertical 을 addBtn 과 같은 space(3.5) 로.
   findTimeBtn: {
-    marginTop: space(2), paddingVertical: space(3), paddingHorizontal: space(4),
+    marginTop: space(2), paddingVertical: space(3.5), paddingHorizontal: space(4),
     borderRadius: radius.md, borderWidth: 1, borderColor: colors.line,
     backgroundColor: colors.sunk, alignItems: 'center',
   },
   findTimeTx: { ...font.body, color: colors.ink, fontWeight: '800' },
-  findTimeSub: { ...font.caption, color: colors.inkFaint, marginTop: 2 },
   addBtnText: { color: colors.bg, fontSize: 15, fontWeight: '700' },
 });
