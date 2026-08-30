@@ -27,7 +27,8 @@ import { Image as ExpoImage } from 'expo-image';
 import { PressableScale } from '../PressableScale';
 import { PhotoViewer } from './PhotoViewer';
 import { CoverMedia, isVideoUri } from './CoverMedia';
-import { originalImage } from '../../lib/media/imageUrl';   // 「전체 보기」는 원본으로(2026-08-29)
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { originalImage, sizedImage } from '../../lib/media/imageUrl';   // 「전체 보기」만 원본 · 나머지는 그리는 크기만큼
 import { colors, space, radius, font } from '../../lib/theme';
 import { elementColor, elementText } from '../../lib/engine/ohaeng';
 
@@ -59,6 +60,7 @@ export type ProfileTarget = {
  */
 export function ProfileSheet({ target, onClose }: { target: ProfileTarget | null; onClose: () => void }) {
   const { width, height } = useWindowDimensions();
+  const insets = useSafeAreaInsets();   // ★아래 버튼이 탭바에 덮이지 않게(2026-08-30)
   const [photo, setPhoto] = useState<{ uri: string; cap: string } | null>(null);
   /**
    * ★★배경 **영상**을 전체로 보는 상태 (Boss 2026-08-27 *"클릭하면 영상이 재생 돼야해"*).
@@ -123,7 +125,10 @@ export function ProfileSheet({ target, onClose }: { target: ProfileTarget | null
           {target.cover
             ? <CoverMedia uri={target.cover} />
             : target.avatar
-              ? <ExpoImage source={{ uri: target.avatar }} style={StyleSheet.absoluteFill}
+              // ⚠️★흐리게 깔 배경에 **원본을 받지 않는다**(Boss 2026-08-30 *"한참뒤에 올라오는데"*).
+              //   `blurRadius: 28` 로 뭉갤 그림이라 해상도가 필요 없다 — 폰 카메라 원본(수 MB)을
+              //   받아서 뭉개는 것은 순수한 낭비고, 그 시간이 그대로 «안 열림» 으로 보인다.
+              ? <ExpoImage source={{ uri: sizedImage(target.avatar, 480, 55) ?? target.avatar }} style={StyleSheet.absoluteFill}
                   contentFit="cover" blurRadius={28} transition={200} />
               : (
                 <View style={[StyleSheet.absoluteFill, styles.emptyCover]} pointerEvents="none">
@@ -142,10 +147,15 @@ export function ProfileSheet({ target, onClose }: { target: ProfileTarget | null
         </PressableScale>
 
         {/* ── 아래에 얹히는 정보 ── */}
-        <View style={styles.bottom} pointerEvents="box-none">
+        {/* ⚠️★아래 여백을 **탭바만큼** 띄운다(Boss 2026-08-30 *"앱에서 짤려"*).
+            종전엔 패널 바닥에서 고정 `space(7)` 이었는데, 이 시트는 탭바 **아래까지** 깔리므로
+            그 값으로는 버튼이 탭바에 덮인다. 안전영역 + 탭바 높이를 확보한다.
+            ★`Math.max` 로 잡는다 — 탭바가 없는 자리에서 여백이 줄지 않게. */}
+        <View style={[styles.bottom, { bottom: Math.max(space(7), insets.bottom + 72) }]} pointerEvents="box-none">
           <PressableScale onPress={() => target.avatar && setPhoto({ uri: originalImage(target.avatar) ?? target.avatar, cap: target.name })}>
             {target.avatar
-              ? <ExpoImage source={{ uri: target.avatar }} style={[styles.av, { width: av, height: av, borderRadius: av * 0.32 }]} contentFit="cover" transition={160} />
+              // ★그리는 크기의 2배만 받는다(레티나). 여기는 지름 `av`(≈86px) 짜리 원이다.
+              ? <ExpoImage source={{ uri: sizedImage(target.avatar, av * 2) ?? target.avatar }} style={[styles.av, { width: av, height: av, borderRadius: av * 0.32 }]} contentFit="cover" transition={160} />
               : (
                 <View style={[styles.av, styles.center, { width: av, height: av, borderRadius: av * 0.32, backgroundColor: elementColor[el] }]}>
                   <Text style={{ color: elementText[el], fontWeight: '900', fontSize: av * 0.4 }}>{target.name.slice(0, 1)}</Text>
