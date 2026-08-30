@@ -17,7 +17,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useMemo, useState } from 'react';
 import { A } from '../../lib/ui/remoteAsset'; // ★이미지 원격화(daniel 08-01) — 번들에서 걷어내고 Storage 에서 받는다
-import { TigerMascot } from '../../components/TigerMascot';   // 이미 있는 마스코트 — 새로 만들지 않는다
+import { GuideMascot } from '../../components/GuideMascot';   // 상담가 「오늘의 운세」 그림을 그대로 쓴다 — 새로 만들지 않는다
 import { Reveal } from '../../components/Reveal'; // 분야 전환 시 풀이 크로스페이드(daniel 재미)
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
 import { PressableScale } from '../../components/PressableScale';
@@ -219,14 +219,14 @@ export default function TodayScreen() {
 
         {/* 타이틀 = API 본문 headline 우선(본문과 정합·모순 제거) / 로드 전엔 온디바이스 룰 headline(즉시성) — daniel 07-01 */}
         {/* ★★귀여운 캐릭터를 헤드라인 옆에 (Boss 2026-08-28 *"오늘의 운세에는 귀여운 케릭터 넣자"*).
-            ■ ★**새 그림을 만들지 않는다** — 이미 있는 마스코트(`TigerMascot`)를 쓴다.
+            ■ ★**새 그림을 만들지 않는다** — 상담가 「오늘의 운세」의 얼굴(`GuideMascot`)을 그대로 쓴다.
               부유·후광 애니메이션이 붙어 있어 «오늘의 한 줄» 옆에서 살아 있는 느낌을 준다.
             ■ ⚠️후광이 상자 밖으로 삐져나가므로 **여백**이 필요하다(그 컴포넌트 주석 참조) —
               그래서 카드 안이 아니라 **카드 위**에 따로 세운다. 카드 안에 넣으면 잘린다.
             ■ ★오늘이 아닌 날(내일·모레)에는 `active` 를 끈다 — 오늘만 «지금» 이다. */}
         {!!((reading?.headline || headline)) && (
           <View style={styles.mascotWrap}>
-            <TigerMascot size={72} active={dayOffset === 0} />
+            <GuideMascot who="fortune_today" size={72} active={dayOffset === 0} />
           </View>
         )}
         {!!((reading?.headline || headline)) && (

@@ -1,4 +1,4 @@
-// app/src/components/TigerMascot.tsx — 아기 백호(白虎) 마스코트 · 모션(daniel 2026-07-13)
+// app/src/components/GuideMascot.tsx — 안내자 메달리온 · 모션(daniel 2026-07-13 · 08-30 호랑이 폐기)
 // ─────────────────────────────────────────────────────────────────────────
 // 목적: '운세 목록 앱'이 아니라 *캐릭터가 있는 친근한 자기이해 도구*로 각인(App Store 4.3 대응 결).
 //   배치: AI 코치 화면(title 위 아바타) + 홈 상단(브랜드 마스코트). daniel 선택 = 아기 백호.
@@ -6,17 +6,26 @@
 //   (a) 이미지 자체 = AI img2vid(SVD) 애니메이티드 webp — 호랑이가 숨쉬듯 움직임(온디바이스·영구 무료·부메랑 무한루프).
 //   (b) 인앱 = 얕은 부유(bob) + 골드 후광 맥동(halo·2겹). active(코치 '생각중')이면 후광 강화.
 //   (b)는 전부 useNativeDriver=true(transform/opacity) — JS 스레드 부하 0.
-// 이미지: assets/icons/mascot-tiger.webp (미드나잇 네이비 #15132E 배경 → 다크 테마와 블렌드).
+// 이미지: `avatars` 버킷의 상담가 얼굴(`consultants/<id>.jpg`) — 마스코트 전용 그림을 따로 두지 않는다.
 //   원형 메달리온 + 골드 링(colors.ju #C9A14A) → 배경이 안 맞는 라이트 테마에서도 '포트레잇'으로 의도적.
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useRef } from 'react';
-import { A } from '../lib/ui/remoteAsset'; // ★이미지 원격화(daniel 08-01) — 번들에서 걷어내고 Storage 에서 받는다
 import { Animated, View, Easing, type ViewStyle } from 'react-native';
 import { Image } from 'expo-image'; // 정적 png·애니메이티드 webp 모두 재생 + 다운샘플(디코딩 랙 방지)
 import { colors } from '../lib/theme';
+import { SUPABASE_URL } from '../lib/supabase';
 
-// 마스코트 이미지 = AI img2vid(SVD) 애니메이티드 webp(호랑이가 숨쉬듯 움직임). expo-image 가 자동 재생·루프.
-const SRC = A('icons/mascot-tiger.webp');
+// ★★2026-08-30 — 호랑이를 걷어냈다(Boss *"기존 호랑이 이미지들은 다 없애고"*).
+//   그 자리에 들어가는 것은 **이미 상담가로 존재하는 두 사람**의 그림이다:
+//     · 오늘의 운세 화면 → `fortune_today`
+//     · 도우미(코치)     → `guide_nabi`(이름은 「운이」)
+//   ⇒ 마스코트용 그림을 **따로 두지 않는다.** 따로 두면 상담가 목록의 얼굴과 언젠가 갈린다
+//     (같은 사람이 화면마다 다른 얼굴이 되는 것이 이 저장소가 겪은 «중복 구현»의 전형이다).
+//   ⚠️`A()` 는 `assets/img/` 버킷용이라 여기 못 쓴다 — 상담가 그림은 `avatars` 버킷에 있다.
+const AVATAR_BASE = `${SUPABASE_URL}/storage/v1/object/public/avatars/`;
+
+/** 이 마스코트가 누구인가 — 상담가 id 를 그대로 쓴다(새 키 체계를 만들지 않는다). */
+export type MascotWho = 'fortune_today' | 'guide_nabi';
 
 /**
  * 후광이 **레이아웃 박스 밖으로 삐져나가는 비율**(한쪽 기준, size 대비).
@@ -31,6 +40,7 @@ const SRC = A('icons/mascot-tiger.webp');
 export const MASCOT_HALO_OVERHANG = (1.72 * 1.16 - 1) / 2;
 
 type Props = {
+  who?: MascotWho;  // 누구를 그릴 것인가. 기본 = 안내자 「운이」(guide_nabi)
   size?: number;    // 원형 메달리온 지름(px). 기본 64. 코치=72, 홈 헤더=40 권장.
   active?: boolean; // true = '생각 중' 상태(코치 답 생성) → 광채·움직임 강화.
   glow?: boolean;   // 골드 후광 표시 여부(기본 true). 조밀한 자리에선 false.
@@ -43,7 +53,7 @@ type Props = {
  * @param active 코치 답 생성 중이면 true(더 활발히 움직임)
  * @param glow   후광 on/off
  */
-export function TigerMascot({ size = 64, active = false, glow = true, style }: Props) {
+export function GuideMascot({ who = 'guide_nabi', size = 64, active = false, glow = true, style }: Props) {
   // 0..1 두 개의 구동값 — 부유(bob)·후광(halo). ref 로 리렌더와 무관하게 유지.
   const bob = useRef(new Animated.Value(0)).current;
   const halo = useRef(new Animated.Value(0)).current;
@@ -110,7 +120,7 @@ export function TigerMascot({ size = 64, active = false, glow = true, style }: P
       {/* 마스코트 본체 — 원형 메달리온(얕은 부유). 내부는 AI 영상(webp)이 자체 재생. 골드 링으로 경계 명확. */}
       <Animated.View style={{ transform: [{ translateY }] }}>
         <Image
-          source={SRC}
+          source={{ uri: `${AVATAR_BASE}consultants/${who}.jpg` }}
           style={{ width: size, height: size, borderRadius: size / 2, borderWidth: Math.max(1, size * 0.025), borderColor: colors.ju }}
           contentFit="cover"
         />
