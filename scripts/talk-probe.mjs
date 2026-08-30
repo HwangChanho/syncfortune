@@ -242,7 +242,10 @@ console.log(`   익명 세션 확보 (uid ${su.body?.user?.id?.slice(0, 8)}…)\
 await j(`${URL_BASE}/rest/v1/rpc/grant_coins`, {
   method: 'POST',
   headers: { apikey: SERVICE, Authorization: `Bearer ${SERVICE}`, 'Content-Type': 'application/json' },
-  body: JSON.stringify({ p_owner: su.body.user.id, p_amount: 3000, p_reason: 'probe', p_ref: null, p_kind: 'talk' }),
+  // ⚠️★사유는 **`coinLedgerLabel` 에 있는 것만** 쓴다 — 없는 사유를 넣으면 회원 화면의
+  //   「운 사용 내역」에 라벨 없이 뭉개지고, `check:coinhistory` 가 preflight 를 막는다.
+  //   (실제로 `'probe'` 를 썼다가 vc134 빌드가 여기서 멈췄다. 하네스가 맞게 막은 것이다.)
+  body: JSON.stringify({ p_owner: su.body.user.id, p_amount: 3000, p_reason: 'admin_gift', p_ref: null, p_kind: 'talk' }),
 });
 
 const spentBefore = (await j(`${URL_BASE}/rest/v1/api_usage?select=won&kind=eq.talk&order=created_at.desc&limit=1`,

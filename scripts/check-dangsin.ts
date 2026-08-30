@@ -25,11 +25,21 @@ const TALK = 'supabase/functions/talk/index.ts';
 
 /** 소스에서 «당신» 후처리 replace 체인을 꺼내 **그대로 실행 가능한 함수**로 만든다(사본 금지). */
 export function stripperFrom(src: string): ((s: string) => string) | null {
-  const m = /answer = answer\n((?:\s*\.replace\([^\n]*\n)+\s*\.trim\(\);)/.exec(src);
-  if (!m || !/당신/.test(m[1])) return null;
+  /**
+   * ⚠️★★2026-08-30 — 이 하네스가 **통째로 헛돌고 있었다.**
+   *   원래는 `answer = answer\n  .replace(…)` 라는 **글자 모양**을 찾았는데, 그 코드가
+   *   `polish()` 로 리팩터링되면서 **아무것도 못 찾게** 됐다(G1 실패 = 그 뒤 검사가 전부 중단).
+   *   게다가 preflight 에 없어 **아무도 못 봤다** — `check:myeongtabs` 가 그랬던 것과 같은 종류다.
+   * ⇒ 변수 이름이 아니라 **손질 함수의 몸통**에서 `.replace` 사슬을 꺼낸다.
+   */
+  const i = src.indexOf('function polish(');
+  if (i < 0) return null;
+  const body = src.slice(i, i + 1200);
+  const lines = [...body.matchAll(/\.replace\([^\n]*\)/g)].map((x) => x[0]);
+  if (!lines.length || !lines.some((l) => l.includes('당신'))) return null;
   try {
     // eslint-disable-next-line no-new-func
-    return new Function('s', `return s${m[1].replace(/;\s*$/, '')};`) as (s: string) => string;
+    return new Function('s', `return s${lines.join('')}.trim();`) as (s: string) => string;
   } catch { return null; }
 }
 
@@ -41,6 +51,9 @@ export const MUST_GO = [
   '당신도 그렇게 느끼셨을 거예요.',
   '당신을 붙잡는 게 있어요.',
   '당신에게 필요한 건 시간이에요.',
+  // ★2026-08-30 탐침이 실제로 잡은 것 — 조사 「만의」 가 목록에 없어 그대로 나갔다
+  '사주와 흐름을 함께 보면서 당신만의 결을 찾는 걸 돕는 자리예요.',
+  '당신만 알 수 있는 게 있어요.',
 ];
 /** 지우면 의미가 비는 것 — **남아야 한다**. */
 export const MUST_STAY = [
@@ -72,7 +85,8 @@ if (isMain) {
     messy.length ? messy.map((x) => JSON.stringify(x)).join(' · ') : '');
 
   // G5 — 저장 **전**인가(이력에 남으면 다음 턴에 모델이 따라 쓴다)
-  const iStrip = talk.search(/answer = answer\n\s*\.replace\(\/당신/);
+  // ★손질이 **저장보다 앞**인가 — 함수 이름이 바뀌어도 되게 «호출 위치» 로 본다
+  const iStrip = talk.search(/=\s*polish\(/);
   const iSave = talk.indexOf("from('talk_messages').insert(");
   say(iStrip >= 0 && iStrip < iSave, 'G5 저장 **전**에 지운다',
     iStrip < iSave ? '' : '저장 뒤에 지우면 이력에 남아 모델이 따라 씁니다');
