@@ -158,7 +158,23 @@ export class ChartLimitError extends Error {
 //   온디바이스에만 매핑 보관(서버 PII 무전송 원칙 유지). 첫 풀이 때 1회 발급·저장(setServerChartId).
 // 풀이 grounding용 기본 정보(daniel) — 하는 일·관심/고민·자유 메모(전부 선택). 사주/자미/궁합 통변에 맥락으로 반영.
 export type ChartContext = { job?: string; concern?: string; note?: string };
-export type SavedChart = { id: string; label: string; relation: string; input: ChartInput; serverChartId?: string; context?: ChartContext };
+
+/**
+ * 연락처 — **본인 명식에만** 붙는다. 결제·서비스 안내를 보낼 수 있는 유일한 통로다.
+ *
+ * ⚠️★`context` 와 **일부러 갈라 둔 타입**이다. `context`(하는 일·고민·메모)는 통변 프롬프트로
+ *   서버에 실려 나가지만, 연락처는 **절대 나가면 안 된다**(ADR-005 PII 경계).
+ *   같은 객체에 담으면 언젠가 누가 통째로 넘긴다 — 타입을 나눠 그 사고를 구조로 막는다.
+ *   (`check:contactpii` 가 연락처가 서버 페이로드에 섞이는지 감시한다)
+ *
+ * @property email    이메일. 없으면 undefined
+ * @property phone    휴대폰. 숫자만 저장한다(하이픈은 표시할 때 붙인다)
+ * @property notify   **광고성 안내 수신 동의**. 이 값이 true 일 때만 안내를 보낸다
+ * @property agreedAt 동의한 시각(ISO). 동의를 언제 받았는지 못 대면 동의가 아니다
+ */
+export type ChartContact = { email?: string; phone?: string; notify?: boolean; agreedAt?: string };
+
+export type SavedChart = { id: string; label: string; relation: string; input: ChartInput; serverChartId?: string; context?: ChartContext; contact?: ChartContact };
 
 /** 사용자가 직접 등록한 명식 수(데모 샘플 시드는 한도에서 제외). */
 function countReal(charts: SavedChart[]): number {
@@ -218,6 +234,7 @@ export async function addChart(input: any, opts?: { isPro?: boolean; bypassLimit
     relation: input.relation ?? 'self',
     input,
     context: input.context, // 풀이 grounding 기본정보(선택)
+    contact: input.contact, // 연락처(본인 명식만) — ★서버 통변으로는 안 나간다
   };
   await setRaw(KEY, JSON.stringify([...charts, item]));
   const rep = await getRaw(REP_KEY);
@@ -358,6 +375,7 @@ export async function updateChart(id: string, input: any): Promise<void> {
     label: (input.label && String(input.label).trim()) || prev.label,
     relation: newRel,
     context: input.context ?? prev.context, // 기본정보(선택) — 없으면 기존 유지
+    contact: input.contact ?? prev.contact, // 연락처 — 없으면 기존 유지(빈 폼이 지우지 않게)
     serverChartId: sameSaju ? prev.serverChartId : undefined, // 사주·관계 동일=캐시 유지 / 변경=재발급(daniel #24)
   };
   await setRaw(KEY, JSON.stringify(charts));

@@ -171,6 +171,11 @@ export function ChartRegisterScreen({ onSubmit, defaultRelation, submitLabel, sh
   const [relationship, setRelationship] = useState<string>(initial?.context?.relationship ?? '');
   const [concern, setConcern] = useState(initial?.context?.concern ?? '');
   const [note, setNote] = useState(initial?.context?.note ?? '');
+  // 연락처(본인 명식만) — ★`context` 와 **다른 필드**다. context 는 통변 프롬프트로 서버에 나가지만
+  //   연락처는 나가면 안 된다(ADR-005 PII 경계). 타입도 갈라 뒀다(`ChartContact`).
+  const [email, setEmail] = useState<string>(initial?.contact?.email ?? '');
+  const [phone, setPhone] = useState<string>(initial?.contact?.phone ?? '');
+  const [notify, setNotify] = useState<boolean>(initial?.contact?.notify ?? false);
 
   const sj = sijinIdx >= 0 ? SIJIN[sijinIdx] : null;
   // 정확 시각(12시간제 입력: 오전/오후 + 1~12시) → 24시간제(exH24)로 변환해 진태양시 보정·저장에 사용.
@@ -261,6 +266,16 @@ export function ChartRegisterScreen({ onSubmit, defaultRelation, submitLabel, sh
       context: (situation || job.trim() || relationship || concern.trim() || note.trim())
         ? { situation: situation || undefined, job: job.trim() || undefined, relationship: relationship || undefined, concern: concern.trim() || undefined, note: note.trim() || undefined }
         : undefined,
+      // 연락처 — 하나라도 채워졌을 때만 싣는다. ★`context` 와 **형제**지 자식이 아니다(서버로 안 나간다)
+      contact: (relation === 'self' && (email.trim() || phone.trim()))
+        ? {
+            email: email.trim() || undefined,
+            phone: phone.trim() || undefined,
+            notify,
+            // ★동의 시각을 남긴다 — «언제 동의받았나» 를 못 대면 그건 동의가 아니다
+            agreedAt: notify ? (initial?.contact?.agreedAt ?? new Date().toISOString()) : undefined,
+          }
+        : undefined,
       ...(calendar === '음' && isLeap ? { isLeap: true } : {}), // ⑧ 윤달 — 음력 윤달일 때만 전달(saju.ts solarYmd가 음수 month로 변환)
     };
   }
@@ -285,7 +300,7 @@ export function ChartRegisterScreen({ onSubmit, defaultRelation, submitLabel, sh
     const id = setTimeout(() => { const inp = buildInput(); if (!validateBirthInput(inp as any).length) onAutoSave(inp); }, 600);
     return () => clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [label, birthDate, sijinIdx, exactStr, calendar, isLeap, sex, birthPlace, birthPlaceLon, birthPlaceLat, relation, makeRep, situation, job, relationship, concern, note, autoSave]);
+  }, [label, birthDate, sijinIdx, exactStr, calendar, isLeap, sex, birthPlace, birthPlaceLon, birthPlaceLat, relation, makeRep, situation, job, relationship, concern, note, email, phone, notify, autoSave]);
   // ★exactStr(정확시각·오전/오후)·birthPlaceLat 를 deps 에 포함 — 빠져 있어서 시각·위도 수정이 자동저장 안 됐다(daniel 07-18 "확인 안 눌러도 반영").
 
   return (
@@ -425,6 +440,34 @@ export function ChartRegisterScreen({ onSubmit, defaultRelation, submitLabel, sh
           <Text style={styles.ctxLabel}>{t('register.ctxNote')}</Text>
           <TextInput style={[styles.input, styles.inputMulti]} value={note} onChangeText={setNote}
             placeholder={t('register.ctxNotePh')} placeholderTextColor={colors.inkFaint} multiline />
+
+          {/* ★★연락처 — 추가 질문의 **제일 아래**(Boss 2026-08-30 *"명식 등록할때 추가 질문에
+                연락처 정보도 받게 하자 … 제일 아래쪽에 추가해둬"*).
+              ⚠️★**본인 명식일 때만 묻는다.** 남의 명식을 등록하는 자리에서 그 사람 연락처를 받는 건
+                *그 사람의* 개인정보를 *내* 동의로 걷는 것이 된다 — 동의의 주체가 다르다.
+                본인 명식에서 받는 연락처는 «내 것을 내가 주는 것» 이라 그 문제가 없다.
+              ⚠️연락처는 `context` 에 넣지 않는다 — 넣으면 통변 프롬프트에 실려 서버로 나간다. */}
+          {relation === 'self' ? (
+            <>
+              <Text style={styles.ctxLabel}>{t('register.contact', '연락처 (선택)')}</Text>
+              <Text style={styles.ctxHint}>
+                {t('register.contactHint', '충전·결제 안내와 계정 복구에 써요. 명식 풀이에는 쓰이지 않아요.')}
+              </Text>
+              <TextInput style={styles.input} value={email} onChangeText={setEmail}
+                placeholder={t('register.contactEmailPh', '이메일')} placeholderTextColor={colors.inkFaint}
+                keyboardType="email-address" autoCapitalize="none" autoCorrect={false} textContentType="emailAddress" />
+              <TextInput style={[styles.input, { marginTop: space(2) }]} value={phone}
+                // ★숫자만 남긴다 — 하이픈·공백을 섞어 저장하면 나중에 같은 번호가 여러 모양이 된다
+                onChangeText={(v: string) => setPhone(v.replace(/[^0-9]/g, ''))}
+                placeholder={t('register.contactPhonePh', '휴대폰 번호')} placeholderTextColor={colors.inkFaint}
+                keyboardType="phone-pad" textContentType="telephoneNumber" maxLength={11} />
+              {/* ★수신 동의는 **따로** 받는다 — 칸을 채운 것과 «안내를 보내도 된다» 는 다른 뜻이다 */}
+              <PressableScale style={styles.repCheck} onPress={() => setNotify((v) => !v)}>
+                <View style={[styles.repBox, notify && styles.repBoxOn]}>{notify ? <Text style={styles.repChk}>✓</Text> : null}</View>
+                <Text style={styles.repLabel}>{t('register.contactNotify', '충전·혜택 안내 받기')}</Text>
+              </PressableScale>
+            </>
+          ) : null}
         </View>
 
         {/* 대표 명식으로 설정 — register 전용(궁합 상대 등록 시 숨김) */}
