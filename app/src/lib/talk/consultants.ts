@@ -85,7 +85,7 @@ const SEED: Consultant[] = [
   { id: 'color_bombom', kind: 'live', name: '퍼스널컬러 봄봄', tagline: '어울리는 색', avatar: null, specialty: ['color'], routes: [], blocks: [], group: 'friend', sortOrder: 120, age: 31 },
   // ★콘텐츠 안내 전용(Boss 2026-08-28) — 열여섯 살·고양이 결. 풀이는 하지 않는다.
   //   ⚠️`specialty: ['guide']` 가 **명식을 안 받는 표식**이다(서버가 이걸로 가른다).
-  { id: 'guide_nabi', kind: 'live', name: '나비', tagline: '뭐 볼지 골라줄게', avatar: null, specialty: ['guide'], routes: [], blocks: [], group: 'friend', sortOrder: 105, age: 16 },
+  { id: 'guide_nabi', kind: 'live', name: '운이', tagline: '뭐 볼지 골라줄게', avatar: null, specialty: ['guide'], routes: [], blocks: [], group: 'friend', sortOrder: 105, age: 16 },
   { id: 'car_unni', kind: 'live', name: '차(량) 잘 아는 언니', tagline: '차량 딜러', avatar: null, specialty: ['car'], routes: [], blocks: [], group: 'friend', sortOrder: 130, age: 35 },
   { id: 'travel_jini', kind: 'live', name: '여행홀릭 지니', tagline: '여행', avatar: null, specialty: ['travel'], routes: [], blocks: [], group: 'friend', sortOrder: 140, age: 29 },
   { id: 'heal_yuri', kind: 'live', name: '힐링하는 유리', tagline: '마음 돌보기', avatar: null, specialty: ['heal'], routes: [], blocks: [], group: 'friend', sortOrder: 150, age: 34 },

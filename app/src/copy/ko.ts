@@ -762,7 +762,7 @@ export const ko = {
     ctxJob: '하는 일', ctxJobPh: '예: 디자이너 / 자영업 / 학생 / 회사원',
     ctxRel: '관계 상태', ctxRelSingle: '미혼', ctxRelDating: '연애 중', ctxRelMarried: '기혼', ctxRelOther: '기타',
     ctxConcern: '요즘 관심·고민', ctxConcernPh: '예: 이직 고민, 새 인연, 건강 관리',
-    ctxNote: '자유 메모', ctxNotePh: '풀이에 참고했으면 하는 내용을 자유롭게',
+    ctxNote: '자유 메모', ctxNotePh: '풀이에 참고했으면 하는 내용을 자유롭게', contact: '연락처 (선택)', contactHint: '충전·결제 안내와 계정 복구에 써요. 명식 풀이에는 쓰이지 않아요.', contactEmailPh: '이메일', contactPhonePh: '휴대폰 번호', contactNotify: '충전·혜택 안내 받기',
     selfExistsTitle: '본인 명식이 이미 있어요', selfExistsMsg: "본인 명식은 하나만 둘 수 있어요. 기존 본인 명식은 '기타'로 옮기고 이 명식을 본인으로 등록할까요?", selfReplace: '본인으로 등록',
     birthPlaceSearch: '도시·지역 검색', birthPlaceSearchPh: '예: 서울, 부산, Tokyo', useAsIs: "'{{q}}' 그대로 사용",
     limitTitle: '무료 등록 한도', limitMsg: '무료 플랜은 명식을 {{limit}}개까지 등록할 수 있어요.\n광고를 보면 1개 더 추가하거나, 프로로 업그레이드하면 무제한이에요.',

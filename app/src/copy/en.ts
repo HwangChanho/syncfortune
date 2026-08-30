@@ -736,7 +736,7 @@ export const en = {
     ctxJob: 'Occupation', ctxJobPh: 'e.g. designer / self-employed / student',
     ctxRel: 'Relationship', ctxRelSingle: 'Single', ctxRelDating: 'Dating', ctxRelMarried: 'Married', ctxRelOther: 'Other',
     ctxConcern: 'Current focus', ctxConcernPh: 'e.g. career change, new relationship, health',
-    ctxNote: 'Note', ctxNotePh: 'Anything you want the reading to consider',
+    ctxNote: 'Note', ctxNotePh: 'Anything you want the reading to consider', contact: 'Contact (optional)', contactHint: 'Used for top-up and billing notices and account recovery. Never used in your reading.', contactEmailPh: 'Email', contactPhonePh: 'Mobile number', contactNotify: 'Send me top-up and offer notices',
     selfExistsTitle: 'You already have a self chart', selfExistsMsg: "Only one self chart is allowed. Move the current self chart to 'Other' and set this one as your self chart?", selfReplace: 'Set as self',
     birthPlaceSearch: 'Search city/region', birthPlaceSearchPh: 'e.g. Seoul, Tokyo', useAsIs: "Use '{{q}}'",
     limitTitle: 'Free registration limit', limitMsg: 'The free plan lets you register up to {{limit}} charts.\nWatch an ad to add one more, or upgrade to Pro for unlimited.',

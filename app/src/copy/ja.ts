@@ -735,7 +735,7 @@ export const ja = {
     ctxJob: '職業', ctxJobPh: '例：デザイナー／自営業／学生／会社員',
     ctxRel: '交際状況', ctxRelSingle: '未婚', ctxRelDating: '交際中', ctxRelMarried: '既婚', ctxRelOther: 'その他',
     ctxConcern: '最近の関心·悩み', ctxConcernPh: '例：転職、新しい縁、健康管理',
-    ctxNote: 'メモ', ctxNotePh: '鑑定に反映してほしいことを自由に',
+    ctxNote: 'メモ', ctxNotePh: '鑑定に反映してほしいことを自由に', contact: '連絡先（任意）', contactHint: 'チャージ・決済のご案内とアカウント復旧に使います。鑑定には使いません。', contactEmailPh: 'メールアドレス', contactPhonePh: '携帯番号', contactNotify: 'チャージ・特典のお知らせを受け取る',
     selfExistsTitle: '本人の命式が既にあります', selfExistsMsg: '本人の命式は1つだけです。今の本人の命式を「その他」に移し、この命式を本人として登録しますか？', selfReplace: '本人にする',
     birthPlaceSearch: '都市·地域を検索', birthPlaceSearchPh: '例：ソウル、東京', useAsIs: "'{{q}}' をそのまま使用",
     limitTitle: '無料登録の上限', limitMsg: '無料プランは命式を{{limit}}件まで登録できます。\n広告を見れば1件追加、プロにアップグレードすれば無制限です。',

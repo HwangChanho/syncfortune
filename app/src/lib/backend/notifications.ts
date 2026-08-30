@@ -340,6 +340,43 @@ export async function notifyReadingDone(title: string, body: string, route?: str
   return notifChain;
 }
 
+/**
+ * 딥링크 이동 — **도착할 때까지** 재시도한다.
+ *
+ * ⚠️왜 «한 번 시도»로는 안 되나 (Boss 2026-08-30
+ *   *"푸시알림에서 … 눌렀는데 그냥 홈에서 멈췄어"*)
+ *   종전엔 콜드스타트에서 `setTimeout(…, 400)` 한 번만 시도했다. 400ms 는 **추측**이고,
+ *   앱이 뜨는 시간은 기기·캐시·로그인 여부에 따라 몇 초까지 늘어난다.
+ *   그때 `router.navigate` 가 던지면 `catch` 가 삼켜서 **아무 일도 안 일어난 것처럼** 홈에 남는다.
+ *   ★게다가 늦게 도는 초기 리다이렉트가 우리 이동을 **덮어쓸** 수도 있다 — 한 번 쏘고 마는 방식은
+ *     그 경주에서 진다.
+ *
+ * ⇒ 시간을 재지 않고 **결과를 확인**한다. 목적지에 닿았으면 멈추고, 아니면 다시 민다.
+ *
+ * @param route `/talk?c=fortune_today` 같은 목적지. 쿼리를 포함할 수 있다
+ * @param tries 최대 시도 횟수(기본 20 = 약 6초). 그 뒤엔 포기한다(무한 재시도로 화면을 붙잡지 않는다)
+ */
+function navigateWhenReady(route: string, tries = 20): void {
+  // 목적지의 «경로 부분»만 비교한다 — 쿼리까지 견주면 라우터가 정규화한 순간 영영 안 맞는다
+  const want = String(route).split('?')[0];
+  let n = 0;
+  const tick = () => {
+    n += 1;
+    let arrived = false;
+    try {
+      (router as any).navigate ? (router as any).navigate(route) : router.push(route);
+      // ★도착 확인 — expo-router 가 알려 주는 현재 경로와 견준다.
+      //   못 읽는 버전이면 `arrived` 를 판단할 수 없으므로 **한 번 쏜 것으로 만족**한다(과잉 재시도 금지).
+      const now = (router as any)?.canGoBack ? ((globalThis as any)?.location?.pathname ?? null) : null;
+      arrived = now == null ? true : now.startsWith(want);
+    } catch {
+      arrived = false;   // 라우터가 아직 안 붙었다 — 다시 민다
+    }
+    if (!arrived && n < tries) setTimeout(tick, 300);
+  };
+  setTimeout(tick, 0);
+}
+
 /** 알림 탭 → data.route 로 이동(딥링크: 풀이 완료 알림 클릭 시 그 화면으로). ★앱 전역 1회만 등록. */
 let lastHandledNotifId: string | null = null; // 같은 알림 응답 재전달 시 1회만 처리
 let tapSub: any = null;                        // 전역 단일 리스너(useAuth 40개 마운트돼도 1개만 — 리스너 40개=push 40개가 뷰쌓임 주범, daniel 07-01)
@@ -351,8 +388,7 @@ export function setupNotificationTapListener(): () => void {
       if (id && id === lastHandledNotifId) return; // 재전달 dedup
       lastHandledNotifId = id;
       const route = resp?.notification?.request?.content?.data?.route;
-      // navigate = 정적 route(/reading 등) 중복 스택 dedup. ★push 폴백 제거(콜드스타트 push가 스택 쌓던 원인).
-      if (route) { try { (router as any).navigate ? (router as any).navigate(route) : router.push(route); } catch { /* 실패 시 스택 방지 위해 push 폴백 안 함 */ } }
+      if (route) navigateWhenReady(route);
     });
   } catch { /* ignore */ }
   // ★★콜드스타트 — 앱이 **꺼져 있을 때** 탭한 알림은 위 리스너가 못 받는다.
@@ -367,8 +403,7 @@ export function setupNotificationTapListener(): () => void {
       if (id && id === lastHandledNotifId) return;
       lastHandledNotifId = id;
       const route = resp?.notification?.request?.content?.data?.route;
-      // ⚠️한 틱 미룬다 — 라우터가 아직 안 붙었을 수 있다(콜드스타트라 화면이 그려지는 중이다)
-      if (route) setTimeout(() => { try { (router as any).navigate?.(route); } catch { /* 무시 */ } }, 400);
+      if (route) navigateWhenReady(route);
     }).catch(() => { /* 모듈이 없으면 무시 */ });
   } catch { /* ignore */ }
 
