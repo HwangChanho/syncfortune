@@ -418,7 +418,7 @@ const styles = StyleSheet.create({
   gateBtnTx: { color: colors.bg, fontSize: 15, fontWeight: '800' },
   err: { fontSize: 13, color: colors.ju, marginBottom: space(3), textAlign: 'center' },
   cta: { backgroundColor: colors.ju, borderRadius: radius.md, paddingVertical: space(3), paddingHorizontal: space(6), marginTop: space(4) },
-  ctaTx: { color: colors.bg, fontWeight: '800' },
+  ctaTx: { color: colors.bg, fontWeight: '800', textAlign: 'center' },
   yongsinCard: { backgroundColor: colors.juSoft, borderRadius: radius.md, borderWidth: 1, borderColor: colors.ju, padding: space(4), marginBottom: space(4) },
   yongsinLabel: { fontSize: 12, fontWeight: '800', color: colors.ju, marginBottom: space(1.5), letterSpacing: 1 },
   yongsinTx: { ...font.body, color: colors.ink, lineHeight: 23 },

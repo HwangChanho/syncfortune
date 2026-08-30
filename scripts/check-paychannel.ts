@@ -16,7 +16,7 @@
 //   (이 저장소에서 주석이 보증인 줄 알았다가 데인 적이 있다 · [[duplicate-ui-single-source]]).
 // ★음성 테스트: `npx tsx scripts/check-paychannel.ts --selftest`
 // ═══════════════════════════════════════════════════════════════════════════
-import { COIN_PACKS, COIN_PRICE, PRICE_DIVERGENCE, packPriceWon } from '../app/src/lib/billing/coinPrices';
+import { COIN_PACKS, COIN_PRICE, PRICE_DIVERGENCE, packBonusPct, packPriceWon } from '../app/src/lib/billing/coinPrices';
 
 type Finding = { rule: string; msg: string };
 const out: Finding[] = [];
@@ -54,6 +54,17 @@ for (const pack of COIN_PACKS) {
   if (!COIN_PACKS.length) fail('P2', '충전 팩 목록이 비었다 — 가격표 파싱이 깨졌을 수 있다');
 }
 
+// ── P4. 적어 둔 보너스 % 가 가격과 어긋나지 않는가 ───────────────────────────
+//   `bonusPct` 는 «운당 단가가 기준 팩보다 얼마나 싼가» 를 손으로 적어 둔 값이다.
+//   가격을 고치고 이 숫자를 안 고치면 **화면이 조용히 거짓말을 한다**(할인율만 옛날 값).
+//   ⇒ 저장값 ↔ 스토어 가격에서 계산한 값을 대조한다. 화면은 `packBonusPct` 를 쓰면 애초에 안 갈린다.
+for (const pack of COIN_PACKS) {
+  const derived = packBonusPct(pack.id, 'store');
+  if (pack.bonusPct !== derived) {
+    fail('P4', `${pack.id} — 적어 둔 보너스 ${pack.bonusPct}% 인데 스토어 가격으로 계산하면 ${derived}% 다.\n        가격을 고쳤으면 이 숫자도 같이 고치거나, 화면에서 \`packBonusPct()\` 를 쓸 것`);
+  }
+}
+
 // ── 음성 테스트 ─────────────────────────────────────────────────────────────
 if (process.argv.includes('--selftest')) {
   /** 하네스 본문과 같은 판정을 떼어 낸 것(입력을 바꿔 가며 검사). */
@@ -70,8 +81,14 @@ if (process.argv.includes('--selftest')) {
     { name: 'P1: 사유가 비면 문다', run: () => judge(9900, 8900, { web: 8900, why: '' }) === 'P1-사유없음' },
     { name: 'P1: 사유를 적으면 통과', run: () => judge(9900, 8900, { web: 8900, why: '웹 전환 캠페인' }) === 'ok' },
     { name: 'P3: 웹이 더 비싸면 문다', run: () => judge(8900, 9900, { web: 9900, why: '사유를 충분히 적은 경우' }) === 'P3-웹이비쌈' },
-    { name: '실제 표: 전 팩이 채널 무관 동일', run: () => COIN_PACKS.every((p) => packPriceWon(p.id, 'store') === packPriceWon(p.id, 'web')) },
+    // ★2026-08-30 갈아끼움 — 예전엔 「전 팩 동일가」를 기대했다. 웹 전용 전환으로 **차등이 정책이 됐다**.
+    //   낡은 기대를 그대로 두면 하네스가 «반려된 규칙» 을 초록불로 강제한다(이 저장소가 세 번 당한 함정).
+    { name: '실제 표: 차등은 전부 신고돼 있다', run: () => COIN_PACKS.every((p) => packPriceWon(p.id, 'store') === packPriceWon(p.id, 'web') || (PRICE_DIVERGENCE[p.id]?.why ?? '').trim().length >= 4) },
+    { name: '실제 표: 웹이 앱보다 비싼 팩은 없다', run: () => COIN_PACKS.every((p) => packPriceWon(p.id, 'web') <= packPriceWon(p.id, 'store')) },
     { name: '실제 표: 콘텐츠는 전부 운(원화 아님)', run: () => Object.values(COIN_PRICE).every((v) => typeof v !== 'number' || (v as number) < 900) },
+    // P4 — 계산으로 판정한다(적어 둔 숫자를 그대로 믿지 않는다)
+    { name: 'P4: 저장 bonusPct = 스토어 가격에서 계산한 값', run: () => COIN_PACKS.every((p) => p.bonusPct === packBonusPct(p.id, 'store')) },
+    { name: 'P4: 웹은 값이 싸므로 보너스가 더 크거나 같다', run: () => COIN_PACKS.every((p) => packBonusPct(p.id, 'web') >= packBonusPct(p.id, 'store')) },
   ];
   let bad = 0;
   console.log('── 음성 테스트(깨뜨린 입력을 실제로 무는가) ──');
@@ -86,4 +103,7 @@ if (out.length) {
   process.exit(1);
 }
 const n = Object.keys(PRICE_DIVERGENCE).length;
-console.log(`✅ check:paychannel — 충전 팩 ${COIN_PACKS.length}개 앱·웹 동일 가격${n ? ` (의도적 차등 ${n}건)` : ''} · 콘텐츠는 운으로만`);
+console.log(
+  `✅ check:paychannel — 충전 팩 ${COIN_PACKS.length}개 · ` +
+  (n ? `채널 차등 ${n}건 전부 사유와 함께 신고됨(웹이 더 비싼 팩 0)` : '앱·웹 동일 가격') +
+  ` · 보너스 %가 가격과 일치 · 콘텐츠는 운으로만`);

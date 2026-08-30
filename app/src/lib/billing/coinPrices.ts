@@ -60,10 +60,20 @@ export const AD_FREE_PLANS: { id: 'adfree_30' | 'adfree_forever'; coins: number;
 //   · Google Play  약 15%(구간에 따라 30%)  → 100운 9,900원 중 순수령 약 8,415원
 //   · 웹 PG(토스)  약 2.5~3.3%              → 순수령 약 9,603원   (차이 12~14%p)
 //
-// daniel 결정: **가격은 같게 간다.** 웹의 14%p 는 *할인 재원이 아니라 마진*이다.
-//   이유 ① 사용자 눈에 보이는 차이가 없으면 "왜 앱이 비싸?" CS 가 아예 안 생긴다
-//        ② 앱 안에서 웹 가격을 알리는 행위(steering)는 스토어 정책 영역 — 리스크를 만들지 않는다
-//        ③ 웹 결제를 붙이는 것 자체가 큰 공사다. 변수는 하나만 둔다
+// ★★2026-08-30 Boss 결정으로 **전제가 통째로 바뀌었다** — *"앱에서는 결제 뺄꺼야 웹에서만 결제
+//   구매할수 있게해서 비용을 낮출꺼야"*. 즉 **채널이 둘이 아니라 하나(웹)** 가 된다.
+//   ⇒ 08-17 의 「가격은 같게 간다」는 *두 채널이 공존할 때* 의 판단이었다. 공존이 끝나면 근거도 끝난다.
+//     (그때 적은 이유 ①"왜 앱이 비싸?" CS ②앱 내 steering 리스크 — **둘 다 앱에 결제가 있어야 생긴다**)
+//
+// daniel 결정(08-30): **웹가는 −28%.** 스토어 수수료 30% 가 사라진 자리를 *마진이 아니라 가격*에 준다.
+//   기준 = **스토어였을 때의 실수령과 같아지는 웹가**(마진 구조를 그대로 두고 가격표만 내린다).
+//     100운  9,900 → 7,200   (스토어 실수령 6,930 · 웹 실수령 6,962)
+//     300운 27,900 → 20,000  (19,530 · 19,340)
+//     600운 49,900 → 36,000  (34,930 · 34,812)
+//   1,200운 89,900 → 65,000  (62,930 · 62,855)
+//   ★정확값(7,200/20,200/36,100/65,100) 대신 **끝자리를 고른 값**을 쓴다 — 실수령 차이 1% 미만이고
+//     가격표는 읽히는 게 먼저다. 08-18 메모에 적어 둔 값과도 같다.
+//   ⚠️**가격은 첫 실결제 뒤엔 «내리는 방향»으로만 움직인다.** 올리면 이미 산 사람이 손해 본 것이 된다.
 //
 // ★이 파일이 **가격의 단일 출처**인 것이 이 문제를 작게 만든다:
 //   원화가 붙는 것은 충전 팩 4개뿐이고, 콘텐츠 51종은 전부 `COIN_PRICE`(운)로 매겨져 있다.
@@ -81,13 +91,22 @@ export const AD_FREE_PLANS: { id: 'adfree_30' | 'adfree_forever'; coins: number;
 export type PayChannel = 'store' | 'web';
 
 /**
- * 채널별로 **의도적으로** 가격을 다르게 두는 팩. 지금은 비어 있다(= 전 채널 동일가).
+ * 채널별로 **의도적으로** 가격을 다르게 두는 팩.
  *
- * ★비워 두는 것이 곧 정책이다. 여기에 줄을 추가하지 않는 한 `check:paychannel` 이
- *   채널 간 가격 차이를 **실패로 잡는다** — 실수로 벌어지는 일이 없게.
- * @example { coin_100: { web: 8900, why: '웹 전환 캠페인(2026-Q4)' } }
+ * ★여기에 적지 않은 차이는 `check:paychannel` 이 **실패로 잡는다** — 실수로 벌어지는 일이 없게.
+ *   그래서 사유(`why`)가 비면 그것도 실패다. "왜 다른지 못 적으면 두지 않는다".
+ *
+ * ⚠️★**`won` 은 스토어 정가 그대로 둔다.** 여기만 바꾸는 이유가 있다:
+ *   앱은 아직 인앱결제를 달고 나간다(vc135). `won` 을 내리면 **화면엔 7,200 인데 StoreKit 은
+ *   9,900 을 청구하는** 어긋남이 그대로 출시된다. 스토어 상품 가격은 콘솔에 있고 코드가 못 바꾼다.
+ *   ⇒ 앱 결제가 실제로 빠지는 날(D5) `won` 을 웹가로 내리고 이 표를 비운다.
  */
-export const PRICE_DIVERGENCE: Record<string, { web: number; why: string }> = {};
+export const PRICE_DIVERGENCE: Record<string, { web: number; why: string }> = {
+  coin_100:  { web: 7200,  why: '웹 전용 전환(2026-08-30 Boss) — 스토어 수수료 30% 소멸분을 가격에 반영' },
+  coin_300:  { web: 20000, why: '웹 전용 전환(2026-08-30 Boss) — 스토어 수수료 30% 소멸분을 가격에 반영' },
+  coin_600:  { web: 36000, why: '웹 전용 전환(2026-08-30 Boss) — 스토어 수수료 30% 소멸분을 가격에 반영' },
+  coin_1200: { web: 65000, why: '웹 전용 전환(2026-08-30 Boss) — 스토어 수수료 30% 소멸분을 가격에 반영' },
+};
 
 /**
  * 팩의 원화 가격 — **채널을 받는다**.
@@ -100,6 +119,31 @@ export function packPriceWon(packId: string, channel: PayChannel = 'store'): num
   const base = COIN_PACKS.find((p) => p.id === packId)?.won ?? 0;
   if (channel === 'web') return PRICE_DIVERGENCE[packId]?.web ?? base;
   return base;
+}
+
+/**
+ * 「운당 몇 % 더 이득인가」 — **가격에서 계산한다**(저장값을 읽지 않는다).
+ *
+ * 기준은 가장 작은 팩(`coin_100`)의 운당 단가다. 큰 팩일수록 운이 싸므로 그 차이를 % 로 돌려준다.
+ *
+ * @param packId  팩 id
+ * @param channel 결제 채널. 채널마다 가격이 다르면 **보너스도 달라진다**
+ * @returns 0 이상의 정수(%). 기준 팩 자신은 0
+ *
+ * ★왜 함수인가 — `COIN_PACKS.bonusPct` 는 스토어 가격으로 계산해 **적어 둔** 값이다.
+ *   웹가가 따로 생긴 순간 그 숫자는 웹에서 틀린다. 두 값을 나르면 언젠가 갈리므로,
+ *   화면에 쓰는 값은 **가격에서 그때그때 뽑는다**([[duplicate-ui-single-source]] 의 그 병).
+ *   저장값이 스토어 기준과 어긋나면 `check:paychannel` 이 잡는다.
+ */
+export function packBonusPct(packId: string, channel: PayChannel = 'store'): number {
+  const packs = COIN_PACKS;
+  const base = packs[0];                                   // 기준 = 가장 작은 팩
+  const pack = packs.find((p) => p.id === packId);
+  if (!base || !pack || !pack.coins || !base.coins) return 0;
+  const baseUnit = packPriceWon(base.id, channel) / base.coins;   // 기준 팩의 운당 원화
+  const unit = packPriceWon(pack.id, channel) / pack.coins;
+  if (!unit || !baseUnit) return 0;
+  return Math.max(0, Math.round((baseUnit / unit - 1) * 100));
 }
 
 /**

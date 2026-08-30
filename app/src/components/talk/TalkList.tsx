@@ -387,10 +387,17 @@ export function TalkList({ items, onOpen, selected, myName, onMe, myAvatar, onMy
             ★내 프로필은 사라지지 않았다 — 「내 운」 탭이 콘티대로 그 자리를 맡는다.
           ⚠️돋보기를 **되살렸다**(08-20 에 뺐던 것). 콘티에 있고, 이제 친구가 열둘이라
             "검색할 게 없다"던 그때 근거가 더는 맞지 않는다. */}
+      {/* ★★한 줄에 몰아넣던 것을 **두 줄로 나눴다**(Boss 2026-08-30 *"여기 지금 안짤리게 해줘
+            우측에 아이콘들을 아래로 이동시키자"* · *"로그인 상태도 마찬가지"*).
+          ⚠️증상: 이름 자리가 아이콘 넷에 밀려 「명식 등록」이 **「명…」으로 잘렸다.**
+            `meBtn` 이 `flex:1` 이라 남는 폭을 받는데, 그 «남는 폭» 이 아이콘 4×40 + 새참을 뺀 나머지였다.
+          ★글자를 줄이는 쪽으로 고치지 않았다 — 줄여 봐야 이름이 길면 또 잘린다.
+            아이콘을 아래 줄로 내려 이름에 **폭을 통째로** 준다(로그인·비로그인 같은 배치). */}
       <View
-        style={[styles.topRow, tight ? styles.topRowTight : null]}
+        style={styles.topWrap}
         onLayout={(e) => setTopW(Math.round(e.nativeEvent.layout.width))}
       >
+      <View style={[styles.topRow, tight ? styles.topRowTight : null]}>
         {/* ★★워드마크가 아니라 **내 이름**이다(Boss 2026-08-23).
             워드마크는 이 화면 **바로 위**(`index.tsx` 헤더)에 이미 있어 둘이 겹쳐 보였다 —
             *"니운내운 두번뜨는거 제일상단꺼만 남겨둬"*. 위 것을 남기고 여기는 이름으로 바꿨다.
@@ -421,6 +428,10 @@ export function TalkList({ items, onOpen, selected, myName, onMe, myAvatar, onMy
             {session ? (myName ?? t('talk.meNoChart', '명식 등록')) : t('auth.login', '로그인')}
           </Text>
         </PressableScale>
+      </View>
+
+      {/* 아이콘 줄 — **오른쪽 정렬**로 원래 있던 자리(우측)를 지킨다. 순서도 그대로. */}
+      <View style={[styles.iconRow, tight ? styles.topRowTight : null]}>
         {/* ⚠️★종을 `topBtn` 으로 감싼다(Boss 2026-08-27 *"돋보기랑 + 사이 간격이
             종이랑 돋보기 사이 간격이랑 달라"*).
             원인: 종만 감싸는 상자가 없어 **좌우 여백이 빠졌다** — `gap` 은 같은데 눈에는 달라 보인다.
@@ -441,6 +452,7 @@ export function TalkList({ items, onOpen, selected, myName, onMe, myAvatar, onMy
           <Icon name="plus" size={IC} />
           {pendingCount > 0 ? <View style={styles.topBadge}><Text style={styles.topBadgeTx}>{pendingCount}</Text></View> : null}
         </PressableScale>
+      </View>
       </View>
 
       {/* ★로그인 유도 — **앱을 열면 바로 보이는 자리**(Boss 2026-08-25 *"로그인 유도가 없네"*).
@@ -586,8 +598,12 @@ const styles = StyleSheet.create({
   wrap: { flex: 1, backgroundColor: colors.bg },
   body: { paddingHorizontal: space(4), paddingTop: space(4), paddingBottom: space(20) },
 
-  // 상단 행 — 아바타 + 이름 + 아이콘들(카톡 배치)
-  topRow: { flexDirection: 'row', alignItems: 'center', gap: space(3), paddingVertical: space(2), marginBottom: space(3) },
+  // 상단 — 두 줄짜리다. 감싸개가 **아래 여백을 혼자** 갖는다(두 줄이 각자 가지면 간격이 두 배가 된다)
+  topWrap: { marginBottom: space(3) },
+  // 1행 — 아바타 + 이름. 아이콘이 빠져서 이름이 **폭을 전부** 쓴다
+  topRow: { flexDirection: 'row', alignItems: 'center', gap: space(3), paddingVertical: space(2) },
+  // 2행 — 아이콘. 오른쪽 정렬로 원래 자리를 지킨다
+  iconRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: space(3) },
   // ★좁은 칸에서는 새참을 12 → 8 로. 넷이 나란히 있어 **4px 차이가 16px** 이 된다.
   topRowTight: { gap: space(2) },
   // ★목록의 다른 얼굴과 **같은 사각 라운드**다(원형으로 두면 내 것만 달라 보인다)

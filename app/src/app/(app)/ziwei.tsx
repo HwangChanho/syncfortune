@@ -171,7 +171,7 @@ const styles = StyleSheet.create({
   premTitle: { ...font.body, color: colors.ju, fontWeight: '800' },
   premDesc: { ...font.caption, color: colors.inkSoft, marginTop: space(1.5), lineHeight: 19 },
   btn: { backgroundColor: colors.ju, borderRadius: radius.md, paddingVertical: space(3), paddingHorizontal: space(5), alignItems: 'center', marginTop: space(3) },
-  btnText: { color: colors.bg, fontSize: 15, fontWeight: '700' },
+  btnText: { color: colors.bg, fontSize: 15, fontWeight: '700', textAlign: 'center' },
   sheetOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'flex-end' },
   sheet: { backgroundColor: colors.card, borderTopLeftRadius: radius.md, borderTopRightRadius: radius.md, padding: space(5), paddingBottom: space(9) },
   sHandle: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: colors.line, marginBottom: space(3) },

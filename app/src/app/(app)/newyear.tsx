@@ -513,6 +513,6 @@ const styles = StyleSheet.create({
   gateBtnTx: { color: colors.bg, fontSize: 15, fontWeight: '800' },
   err: { fontSize: 13, color: colors.ju, marginBottom: space(3), textAlign: 'center' },
   cta: { backgroundColor: colors.ju, borderRadius: radius.md, paddingVertical: space(3), paddingHorizontal: space(6), marginTop: space(4), alignSelf: 'center' },
-  ctaTx: { color: colors.bg, fontWeight: '800' },
+  ctaTx: { color: colors.bg, fontWeight: '800', textAlign: 'center' },
   note: { ...font.caption, color: colors.inkFaint, textAlign: 'center', marginTop: space(4) },
 });

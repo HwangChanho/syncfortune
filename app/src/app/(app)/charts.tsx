@@ -93,5 +93,5 @@ const makeStyles = (fs: (n: number) => number) => { const f = scaledFont(fs); re
   },
   msg: { ...f.body, textAlign: 'center', marginBottom: space(5) },
   btn: { backgroundColor: colors.ju, borderRadius: radius.md, paddingVertical: space(3.25), paddingHorizontal: space(6) },
-  btnText: { color: colors.white, fontSize: fs(15), fontWeight: '700' },
+  btnText: { color: colors.white, fontSize: fs(15), fontWeight: '700', textAlign: 'center' },
 }); };

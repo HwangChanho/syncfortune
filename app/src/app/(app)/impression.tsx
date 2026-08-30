@@ -116,7 +116,7 @@ const styles = StyleSheet.create({
   emptyBox: { alignItems: 'center', paddingVertical: space(8) },
   empty: { ...font.body, color: colors.inkSoft, textAlign: 'center', marginBottom: space(4) },
   cta: { backgroundColor: colors.ju, borderRadius: radius.md, paddingVertical: space(3), paddingHorizontal: space(6) },
-  ctaTx: { color: colors.bg, fontWeight: '800' },
+  ctaTx: { color: colors.bg, fontWeight: '800', textAlign: 'center' },
   sectionTitle: { ...font.heading, color: colors.ju, fontWeight: '800', marginBottom: space(3) },
   card: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.juLine, padding: space(5), marginBottom: space(3), ...shadow.card },
   innerCard: { borderColor: colors.ju, borderWidth: 1.5 },
