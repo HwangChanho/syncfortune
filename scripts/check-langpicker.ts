@@ -25,6 +25,10 @@
 //     여기서 단정하지 않고 **수만 보고**한다.
 // ═══════════════════════════════════════════════════════════════════════════
 import { readFileSync, readdirSync } from 'node:fs';
+import { dirname, join, normalize } from 'node:path';
+/** 저장소 루트 기준 상대경로를 «파일이 있는 곳» 기준으로 푼다(`../` 를 실제로 처리). */
+const pathResolve = (fromDir: string, rel: string) => normalize(join(fromDir, rel));
+const HOME_DIR_CONST = 'app/src/app/(app)';
 // ★세는 식은 `scripts/lib/ko-scan.ts` **한 곳**뿐이다 — `npm run dump:ko` 가 같은 식으로 자리를 찍는다.
 //   (여기 다시 적으면 «하네스는 1573 인데 목록은 1600» 같은 어긋남이 생긴다.)
 import { countHardcodedKo, strip as stripKo } from './lib/ko-scan.ts';
@@ -72,11 +76,53 @@ console.log('\n🌐 check:langpicker — 언어 고르기 · 남은 한국어\n'
 }
 
 // ── L4 홈 진입점 ───────────────────────────────────────────────────────────
+// ★2026-08-30 판정을 **뜻으로** 바꿨다. 종전엔 «`index.tsx` 안에 `<LangChip />` 이 있는가» 로
+//   **파일 자리**를 봤는데, Boss 가 칩을 대화목록 아이콘 줄로 내리자
+//   (*"언어설정이랑 그옆에 버튼은 명식등록 아래에 다른 아이콘들이랑 같이 둬"*)
+//   **칩은 여전히 홈 화면에 그려지는데** 하네스만 빨간불이 됐다.
+//   ⇒ 지키려는 것은 「홈에서 언어를 고를 수 있다」이지 「그 파일에 그 태그가 있다」가 아니다.
+//   ⇒ **홈이 그리는 컴포넌트까지 따라가서** 칩이 나오는지 본다(한 겹만 — 무한 추적은 과하다).
 {
-  const home = strip(read('app/src/app/(app)/index.tsx') ?? '');
-  const has = /<LangChip[\s/>]/.test(home);
+  const homeSrc = read('app/src/app/(app)/index.tsx') ?? '';
+  const home = strip(homeSrc);
+  const hasHere = /<LangChip[\s/>]/.test(home);
+
+  // 홈이 그리는 컴포넌트를 **두 단계까지** 따라간다 — 홈 → `TalkHome` → `TalkList` 처럼
+  //   한 겹 더 감싸는 게 흔하다. 한 단계만 보면 «못 찾음» 이 되고 그건 **틀린 빨간불**이다.
+  //   ★경로는 파일 위치 기준으로 실제로 푼다(`../` 를 문자열로 이어 붙이면 조용히 어긋난다).
+  const srcOf = (dir: string, rel: string) => {
+    const base = pathResolve(dir, rel);
+    for (const ext of ['.tsx', '.ts']) { const t = read(base + ext); if (t) return { src: t, dir: dirname(base + ext) }; }
+    return null;
+  };
+  /** 이 파일이 **그리는**(JSX 로 쓰는) 로컬 컴포넌트들. */
+  const rendered = (src: string, dir: string) => {
+    const body = strip(src);
+    return [...src.matchAll(/import\s+\{([^}]*)\}\s+from\s+'(\.[^']+)'/g)]
+      .flatMap((m) => m[1].split(',').map((n) => ({ name: n.trim(), from: m[2], dir })))
+      .filter((x) => /^[A-Z]/.test(x.name) && new RegExp(`<${x.name}[\\s/>]`).test(body));
+  };
+  let viaChild: { name: string } | undefined;
+  const seen = new Set<string>();
+  let frontier = rendered(homeSrc, HOME_DIR_CONST);
+  for (let depth = 0; depth < 2 && !viaChild; depth++) {
+    const next: typeof frontier = [];
+    for (const x of frontier) {
+      const key = `${x.dir}|${x.from}`;
+      if (seen.has(key)) continue; seen.add(key);
+      const got = srcOf(x.dir, x.from);
+      if (!got) continue;
+      if (/<LangChip[\s/>]/.test(strip(got.src))) { viaChild = x; break; }
+      next.push(...rendered(got.src, got.dir));
+    }
+    frontier = next;
+  }
+
+  const has = hasHere || !!viaChild;
   say(has, 'L4 홈에 언어 진입점이 있다',
-    has ? '헤더에 <LangChip />' : 'Boss 지시: *"서비스 홈에서 언어설정 가능하게"*');
+    hasHere ? '헤더에 <LangChip />'
+    : viaChild ? `홈이 그리는 <${viaChild.name}> 안에 <LangChip />`
+    : 'Boss 지시: *"서비스 홈에서 언어설정 가능하게"* — 홈 어디에서도 칩을 못 찾았다');
 }
 
 // ── L6 ★DB 문구(상담가 이름·소개)도 그 언어로 나오는가 ─────────────────────
@@ -135,7 +181,7 @@ const EXEMPT: Record<string, string> = {
 //   앞이 `{`·`,` 일 때만 열쇠로 보게 고치자 그 116곳이 드러났고,
 //   동시에 «엔진 값 비교»(`=== '미상'`) 96곳이 정당하게 빠졌다.
 //   ⇒ **기준은 그 검사 자신이 잰 값이어야 한다** — 손으로 센 숫자를 넣으면 또 어긋난다.
-const BASELINE = 917;
+const BASELINE = 916;   // 2026-08-30 홈 헤더에서 언어칩·벨을 아이콘 줄로 내리며 1곳 감소 — 되돌아가지 못하게 잠근다
 
 {
   const all = screens().map((p) => ({ path: p, src: read(p) ?? '' }));

@@ -24,9 +24,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 // ChartPicker(명식 선택)는 홈에서 제거(daniel 2026-07-25 '명식 선택은 홈에서 빼자') — 풀이 탭·만세력·설정에서 전환.
 
 // 홈 블록 이미지 상수(IMG)는 홈이 정보 카드로 바뀌며(2026-08-01) 소비처가 사라져 제거했다.
-import { LangChip } from '../../components/LangChip'; // 언어 칩(목록은 _layout 의 LangPickerHost)
 import { BrandWordmark } from '../../components/BrandWordmark';
-import { NotifyBell } from '../../components/talk/NotifyBell';   // 알림 종 — 홈 헤더(Boss 08-27)
 import { TalkHome } from './talk';   // ★08-19 시작 화면 = 친구목록
 import { useGenProgress, clearGenProgress } from '../../lib/backend/genProgress'; // 풀이 진행률(다중·route별, 풀이중 홈 나가도 % — daniel)
 import { useSubscription } from '../../lib/billing/subscription';
@@ -160,12 +158,8 @@ export default function Home() {
             ⚠️목록은 여기가 아니라 `_layout` 의 `LangPickerHost` 가 그린다(여기 헤더는 `FlatList` 의
               `ListHeaderComponent` 안이라 오버레이가 **헤더 높이만큼만** 덮인다). */}
         <View style={{ flex: 1 }} />
-        <LangChip />
-        {/* ★★알림 벨을 **홈으로 되돌렸다** (Boss 2026-08-27 *"알림창 보는 종은 홈에 니운내운 옆에 두자"*).
-            ⚠️08-26 에는 *"돋보기 옆에 놔"* 로 친구목록·대화목록 헤더에만 뒀는데, 지시가 바뀌었다.
-            ★같은 `NotifyBell` 컴포넌트다 — 배지 규칙·읽음 갱신이 세 자리에서 갈리지 않는다
-              ([[duplicate-ui-single-source]]). 목록 쪽 벨은 그대로 둔다(거기서도 보여야 한다). */}
-        <NotifyBell size={24} />
+        {/* ★언어 칩·알림 벨은 **아래 대화목록 아이콘 줄로 내려갔다**(Boss 2026-08-30).
+            같은 기능을 두 자리에 두지 않는다 — 배지·읽음 규칙이 갈리는 지점이 된다. */}
       </View>
 
       {/* 풀이 진행 알림 — ★진행률 막대가 아니라 **담당자의 답장**이다(Boss 2026-08-25).
