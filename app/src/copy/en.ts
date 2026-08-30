@@ -474,7 +474,7 @@ export const en = {
     paidB: 'their side of it, what to actually do, and why it could join again',
     paidC: '.',
   },
-  adult: { title: 'Adult conversation', row: 'I am 19 or older', sub: 'Turns on frank talk about intimacy and compatibility.' },
+  adult: { needVerifyTitle: 'Verification required', needVerifyMsg: 'You can turn this on after we confirm you are 19 or older.', verifySoon: 'Identity verification is coming soon. Please hold on a little.', title: 'Adult conversation', row: 'I am 19 or older', sub: 'Turns on frank talk about intimacy and compatibility.' },
   screen: {
     shared: 'Shared reading',
     register: 'Register chart',

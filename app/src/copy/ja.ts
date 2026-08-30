@@ -474,7 +474,7 @@ export const ja = {
     paidB: '相手の心・具体的な開運法・再び繋がる理由',
     paidC: 'まで読み解きます。',
   },
-  adult: { title: 'アダルト会話', row: '満19歳以上です', sub: '相性や親密さの話をぼかさずに話します。' },
+  adult: { needVerifyTitle: '本人確認が必要です', needVerifyMsg: '満19歳以上か確認したうえでオンにできます。', verifySoon: '本人確認を準備中です。もう少しお待ちください。', title: 'アダルト会話', row: '満19歳以上です', sub: '相性や親密さの話をぼかさずに話します。' },
   screen: {
     shared: '共有された鑑定',
     register: '命式の登録',

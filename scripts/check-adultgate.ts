@@ -19,7 +19,7 @@
 // ★판정은 «뜻» 으로 — 변수 이름을 고정하지 않는다. body 에서 꺼낸 **그 이름**을 따라간다.
 // ★음성 테스트: `npx tsx scripts/check-adultgate.ts --selftest`
 // ═══════════════════════════════════════════════════════════════════════════
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
 const ROOT = new URL('..', import.meta.url).pathname;
@@ -88,14 +88,23 @@ if (!process.argv.includes('--selftest')) {
   }
 
   // A3 — 「성인이라고 표시」가 클라에 열려 있으면 인증을 붙여도 소용없다
-  const mig = read('supabase/migrations/20260831b_adult_verified.sql');
-  if (!mig) fail('A3', '성인 확인 마이그레이션을 못 찾았다');
+  // ★★파일 이름을 박지 않는다 — 정의가 다른 마이그레이션으로 옮겨가면 하네스가 **지워진 함수**를
+  //   검사하며 초록불을 낸다(실제로 `…b_adult_verified.sql` → `…c_adult_di.sql` 로 옮겨졌다).
+  //   ⇒ **가장 마지막에 그 함수를 만든 파일**을 찾아, 그 파일이 회수까지 했는지 본다.
+  //   Supabase 는 CREATE 때마다 anon·authenticated 에 EXECUTE 를 다시 달아 주므로,
+  //   «만든 파일이 곧 회수해야» 맞다.
+  const migDir = 'supabase/migrations';
+  const names = (() => { try { return readdirSync(join(ROOT, migDir)).filter((n) => n.endsWith('.sql')).sort(); } catch { return []; } })();
+  const creators = names.filter((n) => /create\s+(or\s+replace\s+)?function\s+(public\.)?mark_adult_verified/i.test(strip(read(`${migDir}/${n}`) ?? '')));
+  const last = creators.at(-1);
+  if (!last) fail('A3', '`mark_adult_verified` 를 만드는 마이그레이션을 못 찾았다');
   else {
-    const revokes = strip(mig).split(';').filter((x) => /revoke/i.test(x) && /mark_adult_verified/i.test(x)).join(' ');
+    const mig = strip(read(`${migDir}/${last}`) ?? '');
+    const revokes = mig.split(';').filter((x) => /revoke/i.test(x) && /mark_adult_verified/i.test(x)).join(' ');
     const anon = /\banon\b/i.test(revokes);
     const authed = /\bauthenticated\b/i.test(revokes);
     if (!anon || !authed) {
-      fail('A3', `\`mark_adult_verified\` 권한 회수가 부족하다(anon=${anon ? 'ok' : '없음'} · authenticated=${authed ? 'ok' : '없음'}).\n        `
+      fail('A3', `\`mark_adult_verified\` 권한 회수가 부족하다 — 마지막 정의 \`${last}\`(anon=${anon ? 'ok' : '없음'} · authenticated=${authed ? 'ok' : '없음'}).\n        `
         + '⚠️`revoke … from public` 만으로는 안 뺏긴다 — Supabase 가 새 함수마다 그 롤들에 EXECUTE 를 **직접** 준다.\n        '
         + '클라가 이걸 부를 수 있으면 «스스로 성인 선언» 이라 본인인증을 붙인 의미가 사라진다');
     }

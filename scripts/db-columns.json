@@ -1,7 +1,23 @@
 {
   "_note": "public 스키마 컬럼 스냅샷 — scripts/check-edge-columns.mjs 가 참조한다. 마이그레이션 후 npm run snap:cols 로 갱신할 것.",
-  "_generatedAt": "2026-08-28T04:25:34.055Z",
+  "_generatedAt": "2026-08-30T22:01:25.230Z",
   "tables": {
+    "web_orders": [
+      "id",
+      "order_no",
+      "owner_id",
+      "pack_id",
+      "coins",
+      "won",
+      "status",
+      "pg",
+      "pg_key",
+      "paid_at",
+      "granted_at",
+      "fail_reason",
+      "created_at",
+      "method"
+    ],
     "charts": [
       "id",
       "owner_id",
@@ -218,7 +234,9 @@
       "share_consent_at",
       "cover_path",
       "suspended_until",
-      "suspended_reason"
+      "suspended_reason",
+      "adult_verified_at",
+      "adult_di_hash"
     ],
     "friends": [
       "a",
@@ -298,6 +316,14 @@
       "kind",
       "value",
       "computed_at",
+      "updated_at"
+    ],
+    "coin_packs": [
+      "id",
+      "coins",
+      "won",
+      "sort",
+      "active",
       "updated_at"
     ],
     "community_poll_votes": [

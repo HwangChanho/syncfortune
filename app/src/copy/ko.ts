@@ -492,7 +492,7 @@ export const ko = {
     paidB: '상대의 마음·구체 개운법·다시 이어질 이유',
     paidC: '까지 짚어 드려요.',
   },
-  adult: { title: '성인 대화', row: '만 19세 이상입니다', sub: '켜면 속궁합·애정 이야기를 에두르지 않고 나눠요.' },
+  adult: { needVerifyTitle: '본인인증이 필요해요', needVerifyMsg: '만 19세 이상인지 확인한 뒤에 켤 수 있어요.', verifySoon: '본인인증을 준비하고 있어요. 조금만 기다려 주세요.', title: '성인 대화', row: '만 19세 이상입니다', sub: '켜면 속궁합·애정 이야기를 에두르지 않고 나눠요.' },
   screen: {
     shared: '공유받은 풀이',
     register: '차트 등록',
