@@ -677,16 +677,29 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
             ),
           }]
         : [];
-      sayInOrder([...greetParts, ...pickCard, ...blockCards, ...linkCard]);   // ★채널 카드는 인사에만(위 주석)
-      // ★지난 대화를 **이어 붙인다**(2026-08-20) — 세션 id 를 메모리에만 두면
-      //   새로고침·앱 재시작마다 새 방이 생긴다(실제로 노쎔 대화가 셋으로 쪼개졌다).
-      //   카톡은 껐다 켜도 같은 방이다. 인사는 **이력이 없을 때만** 남긴다.
+      /**
+       * ★★**이력이 있는지 먼저 확인한 뒤에** 인사할지 정한다 (Boss 2026-08-30
+       *   *"기존 대화이력이 있는데 친구를 누르면 다시 인사를 하다가 갑자기 기존 대화창으로 가.
+       *     기본적으로 친구를 누르면 1:1 대화창이 있는지 확인부터 해야지"*).
+       *
+       * ■ 종전엔 **인사를 먼저 띄우고**(`sayInOrder`) 그 다음에 이력을 읽었다.
+       *   그래서 이력이 있는 방을 열면 «인사 애니메이션 → 갑자기 지난 대화로 교체» 가 보였다.
+       *   ★기능은 맞았는데 **순서가 틀렸다** — 사용자에게는 «처음 만난 척하다 들킨» 것처럼 보인다.
+       * ■ ⇒ 읽기를 **먼저** 하고, 이력이 있으면 **인사를 아예 하지 않는다.**
+       *   ⚠️읽는 동안 화면을 비워 두지 않는다 — 점 세 개(`busy`)로 «가져오는 중» 을 보여 준다.
+       *     (카톡도 방을 열면 잠깐 빈 채로 있지 첫 인사를 새로 하지는 않는다.)
+       * ■ ⚠️`clearTimers()` 로 지우던 «이미 튼 인사» 가 이제 없다 — 그래서 깜빡임도 없다.
+       */
+      setBusy(true);
+      const greetIfEmpty = () => sayInOrder([...greetParts, ...pickCard, ...blockCards, ...linkCard]);
       void loadThread(c.id, room?.sessionId ?? null).then((th) => {
-        if (!th) return;
+        if (!th) { setBusy(false); greetIfEmpty(); return; }
+        if (!th.messages.length) { setBusy(false); greetIfEmpty(); }
         setSid(th.sessionId);
         refreshNotes(th.sessionId);        // 방을 열면 정리도 같이 읽는다
         if (th.messages.length) {
-          clearTimers();          // ★지난 대화를 복원할 때는 인사 타이핑을 멈춘다(이력이 먼저다)
+          // ★이제 인사는 **애초에 안 튼다**(위 주석) — 그래도 **앞 방**의 타이머가 남아 있을 수 있어 지운다.
+          clearTimers();
           setBusy(false);
           // ★복원된 이력에도 같은 규칙으로 그림을 붙인다 — 결정론이라 **처음과 같은 그림**이 나온다
           //   (모델에게 고르게 했다면 다시 열 때마다 달라졌을 것이다).
@@ -1251,20 +1264,44 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
    * ■ ⚠️초대는 `openGroupRoom` **한 곳**에서만 한다 — 초대 시트와 같은 함수다
    *   (각자 구현하면 «시트로 부른 방» 과 «버튼으로 부른 방» 이 달라진다 · [[duplicate-ui-single-source]]).
    */
+  /**
+   * ★★**안내자는 넘기고 빠진다** (Boss 2026-08-30
+   *   *"나비가 동의를 구하고 해당 관련 선생님을 초대하고 본인은 방을 나가서
+   *     사실상 1:1 대화가 만들어지는 상황이 돼야해"*).
+   *
+   * ■ 종전엔 누구든 초대 = **그 사람을 이 방에 추가**(다인방)였다. 안내자한테는 그게 어색하다 —
+   *   길만 알려 주는 사람이 상담 내내 옆에 앉아 있는 꼴이고, 화자 지목·티키타카까지 얽힌다.
+   * ■ ⇒ 안내자(`guide`)가 넘길 때는 **담당자와 1:1** 을 연다. 안내자는 그 방에 없다.
+   *   ★`open()` 을 그대로 쓴다 — 그 안에 «기존 1:1 이력이 있으면 그걸 연다» 가 이미 들어 있어
+   *     (2026-08-30 수정) 넘어간 방이 **처음이 아니면 지난 대화가 그대로 이어진다.**
+   * ■ 문구도 갈라야 한다 — 「불러올까요?」 는 **같이 있게 된다**는 뜻이라 넘기기와 다르다.
+   */
+  const curIsGuide = ((Array.isArray((cur as any)?.specialty) ? (cur as any).specialty : []) as unknown[])
+    .map(String).includes('guide');
   const inviteBar = inviteSug && cur ? (
     <View style={styles.inviteBar}>
       <Text style={styles.inviteTx} numberOfLines={1}>
-        {t('talk.inviteAsk', '{{name}} 님을 불러올까요?').replace('{{name}}', inviteSug.name)}
+        {(curIsGuide
+          ? t('talk.handoffAsk', '{{name}} 님에게 연결해 드릴까요?')
+          : t('talk.inviteAsk', '{{name}} 님을 불러올까요?')).replace('{{name}}', inviteSug.name)}
       </Text>
       <PressableScale style={styles.inviteYes} onPress={async () => {
         const who = inviteSug; setInviteSug(null);
         if (!who) return;
+        if (curIsGuide) {
+          // ★넘기기 — 안내자는 빠지고 담당자와 **1:1**. 방을 새로 만들지 않는다.
+          const target = servers.find((x) => x.id === who.id);
+          if (target) { open(target); bumpChats(); }
+          return;
+        }
         const sid2 = await openGroupRoom(cur.id, [who.id], chartId);
         if (!sid2) return;                       // 실패해도 지금 방은 그대로다(막지 않는다)
         open(cur, { sessionId: sid2, guestIds: [who.id] });
         bumpChats();
       }}>
-        <Text style={styles.inviteYesTx}>{t('talk.inviteYes', '초대하기')}</Text>
+        <Text style={styles.inviteYesTx}>
+          {curIsGuide ? t('talk.handoffYes', '연결하기') : t('talk.inviteYes', '초대하기')}
+        </Text>
       </PressableScale>
       <PressableScale hitSlop={8} style={styles.inviteNo} onPress={() => setInviteSug(null)}>
         <Text style={styles.inviteNoTx}>✕</Text>

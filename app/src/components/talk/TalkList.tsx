@@ -407,9 +407,13 @@ export function TalkList({ items, onOpen, selected, myName, onMe, myAvatar, onMy
               목록의 다른 사람은 전부 얼굴이 뜨는데 **내 자리만 글자뿐**이었다.
             ★누르면 이름 탭(=내 명식 상세)과 **다른 것**을 연다: 남을 누를 때와 같은 **프로필 창**.
               명식은 이름을 눌러 그대로 볼 수 있다 — 있던 길을 뺏지 않는다. */}
-        {session && myAvatar && onMyProfile ? (
-          <PressableScale hitSlop={8} onPress={onMyProfile}>
-            <ExpoImage source={{ uri: myAvatar }} style={styles.meAv} contentFit="cover" transition={140} />
+        {/* ★★크기를 **친구 행과 같게**(Boss 2026-08-30 *"내 프로필 크기도 친구목록 프로필처럼 크게"*).
+            ⚠️종전엔 30px 짜리를 **따로 그렸다** — 목록 얼굴은 48px 이라 내 것만 작아 보였다.
+            ⇒ 같은 `Avatar` 컴포넌트를 쓴다. 사진이 없어도 오행 색+첫 글자로 **같은 모양**이 나오고,
+              나중에 얼굴 모양을 바꿔도 두 곳이 갈리지 않는다. */}
+        {session && onMyProfile ? (
+          <PressableScale hitSlop={8} style={styles.meAv} onPress={onMyProfile}>
+            <Avatar name={myName ?? '나'} slot={0} uri={myAvatar} size={48} />
           </PressableScale>
         ) : null}
         <PressableScale style={styles.meBtn} onPress={() => (session ? onMe?.() : onLogin?.())}>
@@ -587,7 +591,7 @@ const styles = StyleSheet.create({
   // ★좁은 칸에서는 새참을 12 → 8 로. 넷이 나란히 있어 **4px 차이가 16px** 이 된다.
   topRowTight: { gap: space(2) },
   // ★목록의 다른 얼굴과 **같은 사각 라운드**다(원형으로 두면 내 것만 달라 보인다)
-  meAv: { width: 30, height: 30, borderRadius: radius.sm, marginRight: space(2) },
+  meAv: { marginRight: space(2) },   // 크기는 `Avatar` 가 정한다(친구 행과 같은 48)
   meBtn: { flex: 1, minWidth: 0 },
   meName: { fontSize: 19, lineHeight: 26, fontWeight: '900', color: colors.ink, letterSpacing: -0.4 },
   // ★아이콘을 키웠다(20 → 26, Boss 2026-08-20 "너무 작아"). 손끝은 44pt 를 필요로 하는데

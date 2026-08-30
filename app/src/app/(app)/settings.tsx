@@ -269,7 +269,10 @@ export default function SettingsScreen() {
              웹은 우리가 정책을 직접 지므로 거기서만 연다.
            ■ ⚠️**끄는 게 아니라 숨기는 것**이다 — 웹에서 켜 둔 값은 앱에서도 그대로 산다
              (`adultConfirmed()` 는 그대로 읽힌다). 여기서는 **조작 칸만** 안 보인다. */}
-      {Platform.OS === 'web' ? (
+      {/* ★★**로그인해야 보인다**(Boss 2026-08-30 *"성인대화는 로그인 해야지만 뜨게 해"*).
+          ⚠️익명 세션은 기기만 바뀌어도 남이다 — 성인 확인을 계정 없이 들고 다니게 두지 않는다.
+          ★`isRegistered` 를 쓴다(익명 세션 제외) — 이 화면의 계정 카드가 쓰는 것과 **같은 판정**이다. */}
+      {Platform.OS === 'web' && isRegistered ? (
         <>
       <Text style={[styles.h, { marginTop: space(7) }]}>{t('adult.title', '성인 대화')}</Text>
         <View style={styles.infoCard}>

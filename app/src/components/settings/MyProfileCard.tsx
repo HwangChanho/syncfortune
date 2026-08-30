@@ -22,6 +22,9 @@ import { PressableScale } from '../PressableScale';
 import { loadMyProfile, saveMyName, uploadMyAvatar, clearMyAvatar, uploadMyCover, clearMyCover } from '../../lib/talk/myProfile';
 // ★폰 사진 고르기(Boss 2026-08-28 *"ios는 왜 사진 바꾸기가 안되지"*) — 웹은 종전 <input type=file> 그대로
 import { pickImage, canPickImage } from '../../lib/media/pickImage';
+// ★사진 한 장 크게 — 대화창이 쓰는 것과 **같은 창**을 쓴다(따로 만들면 동작이 갈린다)
+import { PhotoViewer } from '../talk/PhotoViewer';
+import { originalImage } from '../../lib/media/imageUrl';
 import { colors, space, radius, font, activeElement } from '../../lib/theme';
 import { elementColor, elementText } from '../../lib/engine/ohaeng';
 
@@ -42,6 +45,12 @@ export function MyProfileCard({ fallbackName, element }: { fallbackName?: string
   const [cover, setCover] = useState<string | null>(null);
   const coverRef = useRef<any>(null);
   const [busy, setBusy] = useState(false);
+  /**
+   * ★★눌러서 **크게 보기**(Boss 2026-08-30 *"배경이미지 프로필 이미지 클릭하면 확대해서 볼수 있게"*).
+   * ⚠️화면에 그리는 건 **줄인 것**이라(아바타 240·배경 920) 크게 띄울 때는 `originalImage` 로 되돌린다 —
+   *   줄인 걸 전체 화면에 띄우면 뭉갠다.
+   */
+  const [zoom, setZoom] = useState<{ uri: string; cap: string } | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const fileRef = useRef<any>(null);
 
@@ -154,7 +163,12 @@ export function MyProfileCard({ fallbackName, element }: { fallbackName?: string
     <View style={styles.card}>
       {/* ★배경 사진 — 프로필 창에서 이 자리가 윗면이 된다. 없으면 오행 색면 */}
       <View style={[styles.cover, { backgroundColor: elementColor[el] }]}>
-        {cover ? <ExpoImage source={{ uri: cover }} style={StyleSheet.absoluteFill} contentFit="cover" transition={140} /> : null}
+        {cover ? (
+          <PressableScale style={StyleSheet.absoluteFill}
+            onPress={() => setZoom({ uri: originalImage(cover) ?? cover, cap: t('profile.cover', '배경') })}>
+            <ExpoImage source={{ uri: cover }} style={StyleSheet.absoluteFill} contentFit="cover" transition={140} />
+          </PressableScale>
+        ) : null}
         {(Platform.OS === 'web' || canPickImage) ? (
           <View style={styles.coverBtns}>
             <PressableScale style={styles.coverBtn} onPress={Platform.OS === 'web' ? onPickCover : onPickCoverNative} disabled={busy}>
@@ -170,7 +184,11 @@ export function MyProfileCard({ fallbackName, element }: { fallbackName?: string
       </View>
       <View style={styles.row}>
         {avatar
-          ? <ExpoImage source={{ uri: avatar }} style={styles.av} contentFit="cover" transition={140} />
+          ? (
+            <PressableScale onPress={() => setZoom({ uri: originalImage(avatar) ?? avatar, cap: name || t('profile.photo', '프로필 사진') })}>
+              <ExpoImage source={{ uri: avatar }} style={styles.av} contentFit="cover" transition={140} />
+            </PressableScale>
+          )
           : <View style={[styles.av, styles.avFallback, { backgroundColor: elementColor[el] }]}>
               <Text style={[styles.avTx, { color: elementText[el] }]}>{initial}</Text>
             </View>}
@@ -215,6 +233,9 @@ export function MyProfileCard({ fallbackName, element }: { fallbackName?: string
       </View>
       <Text style={styles.hint}>{t('profile.hint', '비워 두면 명식 이름으로 표시돼요.')}</Text>
       {msg ? <Text style={styles.msg}>{msg}</Text> : null}
+
+      {/* 크게 보기 — 대화창과 **같은 창** */}
+      <PhotoViewer uri={zoom?.uri ?? null} caption={zoom?.cap} onClose={() => setZoom(null)} />
 
       {/* 숨긴 파일 입력 — 웹에서만 렌더된다(네이티브에는 DOM 이 없다) */}
       {Platform.OS === 'web' ? <WebFileInput inputRef={fileRef} onChange={onFile} /> : null}

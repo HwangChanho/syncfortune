@@ -952,7 +952,7 @@ export const ko = {
   nav: { back: '뒤로', admin: '관리자', costs: '비용·수익 분석', home: '운친구', chats: '운대화', fortune: '운세', readings: '풀이', my: '내 운',
          // ↓ 탭에서는 빠졌지만 마이페이지 메뉴·설정이 계속 쓰는 이름들(2026-08-18 4탭 전환)
          contents: '풀이', community: '운광장', coach: '우니', market: '마켓' },
-  profile: { title: '내 프로필', namePh: '이름', pick: '사진 바꾸기', clear: '사진 지우기',
+  profile: { cover: '배경', photo: '프로필 사진', title: '내 프로필', namePh: '이름', pick: '사진 바꾸기', clear: '사진 지우기',
     pickCover: '배경 바꾸기',
     clearCover: '배경 지우기',
     coverTooLarge: '4MB 이하 사진만 올릴 수 있어요',
@@ -1289,7 +1289,7 @@ export const ko = {
     'sub': '오늘의 운을 카드 한장으로 확인해보세요.',
     'cta': '시작하기',
   },
-  talk: { inviteAsk: '{{name}} 님을 불러올까요?', inviteYes: '초대하기', packLast: '이 묶음은 여기까지예요. 다음 이야기부터 운이 들어요.', searchPh: '이름으로 찾기', favShort: '즐겨찾기', unfavShort: '해제',
+  talk: { inviteAsk: '{{name}} 님을 불러올까요?', inviteYes: '초대하기', handoffAsk: '{{name}} 님에게 연결해 드릴까요?', handoffYes: '연결하기', packLast: '이 묶음은 여기까지예요. 다음 이야기부터 운이 들어요.', searchPh: '이름으로 찾기', favShort: '즐겨찾기', unfavShort: '해제',
     'greetHi': '안녕하세요. {{name}}이에요.',
     'greetWhat': '{{what}} 쪽을 봐 드려요. 뭐가 궁금하세요?',
     'greetAsk': '뭐가 궁금하세요?',
