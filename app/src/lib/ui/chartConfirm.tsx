@@ -51,13 +51,20 @@ export function ChartConfirmHost() {
     return () => { alive = false; };
   }, [state]);
 
-  if (!state) return null;
-  const chartless = !!state.opts.chartless;
-  const close = (v: boolean) => { const r = state.resolve; _state = null; emit(); r(v); };
+  // ★★2026-08-30 — **`Modal` 을 언마운트하지 않는다**(App Store 심사 크래시 대응).
+  //   종전엔 `if (!state) return null` 이라 닫힐 때 Modal 자체가 사라졌다. 그런데 `AppAlert` 에는
+  //   이미 이렇게 적혀 있었다 — *"닫힘(fade) 애니메이션 도중 Modal 이 재마운트되면 iOS 네이티브
+  //   모달이 프리징(앱 멈춤)한다"*. **그 교훈이 이 형제 파일에는 적용되지 않았다.**
+  //   심사 크래시 스택(`_runAlongsideCompletions → _presentViewController → abort`)이 가리키는 것이
+  //   정확히 이 부류 — «전환이 끝나는 중에 present/재마운트가 겹치는 것» 이다.
+  //   ⇒ Modal 은 **늘 마운트**하고 `visible` 로만 토글한다. 내용은 `state` 가 있을 때만 그린다.
+  const chartless = !!state?.opts.chartless;
+  const close = (v: boolean) => { if (!state) return; const r = state.resolve; _state = null; emit(); r(v); };
   const pick = async (id: string) => { setRepId(id); try { await setRepresentative(id); } catch (e) { console.warn('[chart] 대표 명식 전환 실패', e); } }; // 대표 전환 → 화면 재로드
 
   return (
-    <Modal statusBarTranslucent transparent animationType="fade" visible onRequestClose={() => close(false)}>
+    <Modal statusBarTranslucent transparent animationType="fade" visible={!!state} onRequestClose={() => close(false)}>
+      {state ? (
       <Pressable style={styles.backdrop} onPress={() => close(false)}>
         <Pressable style={styles.card} onPress={() => {}}>
           <Text style={styles.title}>{state.opts.title ?? (chartless ? '풀이 확인' : '이 명식으로 풀이할까요?')}</Text>
@@ -85,6 +92,7 @@ export function ChartConfirmHost() {
           </View>
         </Pressable>
       </Pressable>
+      ) : null}
     </Modal>
   );
 }
