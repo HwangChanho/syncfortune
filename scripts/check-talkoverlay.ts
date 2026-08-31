@@ -75,8 +75,37 @@ if (isMain) {
   say(!!blk, 'O1 `const overlays` 묶음이 있다', blk ? '' : '두 갈래가 각자 그리고 있습니다 — 재발합니다');
   if (!blk) { console.log('\n❌ 묶음이 없습니다.\n'); process.exit(1); }
 
-  const uses = (src.match(/\{overlays\}/g) ?? []).length;
-  say(uses >= 2, 'O2 두 갈래 모두 묶음을 그린다', `${uses}곳에서 사용`);
+  /**
+   * ★★2026-08-31 — 「두 곳 이상」으로는 **못 잡는다**.
+   *   이 화면은 return 이 **넷**이다(넓은웹 · 사용자방 · 폰 목록 · 대화방).
+   *   그중 «폰 목록» 하나에만 `{overlays}` 가 빠져 있었는데, 나머지 셋이 채우니
+   *   `uses >= 2` 는 **초록불**이었다 — 그 화면에서만 프로필이 조용히 안 떴다(Boss 제보).
+   *   ⇒ «몇 곳에서 쓰나» 가 아니라 **«화면을 여는 return 마다 있나»** 를 센다.
+   *
+   * 판정: 컴포넌트 본문의 `return (` 중 **화면 뿌리**(`<View style={styles.one|two…}` 로 시작)를
+   *   여는 것만 골라, 그 안에 `{overlays}` 가 있는지 본다.
+   */
+  // ★★return 의 경계를 **다음 화면 return 직전**으로 잡는다.
+  //   ⚠️처음엔 괄호 깊이로 쟀는데 **다음 return 을 통째로 삼켜** 그쪽 `{overlays}` 를 자기 것으로
+  //     세었다 — 빠진 화면이 있는데도 초록불이었다(음성 테스트로 잡았다. 안 했으면 못 봤다).
+  //   ⇒ 화면 뿌리(`styles.one|two`)를 여는 자리들을 먼저 찾고, **이웃 사이 구간**만 본다.
+  // ⚠️★**주석을 먼저 걷어낸다.** 안 그러면 「여기 `{overlays}` 가 없었다」 같은 *설명*까지
+  //   코드로 세어, 실제로 빠졌는데도 초록불이 된다(2026-08-31 내 주석에 실제로 그렇게 당했다).
+  //   ★자리를 보존하려고 **같은 길이의 공백**으로 바꾼다 — 지우면 행 번호가 어긋난다.
+  const blank = (m: string) => m.replace(/[^\n]/g, ' ');
+  const bare = src.replace(/\/\*[\s\S]*?\*\//g, blank).replace(/^[ \t]*\/\/.*$/gm, blank);
+  const roots = [...bare.matchAll(/<View style=\{\[?styles\.(one|two)\b/g)].map((m) => m.index ?? 0);
+  const screen: Array<{ line: number; ok: boolean }> = [];
+  for (let k = 0; k < roots.length; k++) {
+    const from = roots[k];
+    const to = k + 1 < roots.length ? roots[k + 1] : src.length;
+    screen.push({ line: bare.slice(0, from).split('\n').length, ok: /\{overlays\}/.test(bare.slice(from, to)) });
+  }
+  const missing = screen.filter((r) => !r.ok).map((r) => r.line);
+  const uses = (bare.match(/\{overlays\}/g) ?? []).length;
+  say(missing.length === 0,
+    `O2 **화면 뿌리마다** 묶음이 있다 (${screen.length}갈래)`,
+    missing.length ? `빠진 곳: ${missing.map((l) => l + '행').join(', ')} — 그 화면에서만 시트가 조용히 안 뜬다` : `${uses}곳에서 사용`);
 
   const names = componentsIn(blk.body);
   const outside = src.slice(0, blk.start) + src.slice(blk.end);

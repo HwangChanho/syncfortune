@@ -1693,6 +1693,15 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
     <View style={[styles.one, { paddingTop: renderTop ? 0 : insets.top }]}>
       {renderTop}
       {leftPane}
+      {/* ⚠️★★여기 `{overlays}` 가 **없었다**(Boss 2026-08-31 *"앱에서 프로필 눌러도 반응이 없어"* ·
+            *"둘 다"*). 얼굴을 누르면 `profile` 상태는 바뀌는데 **띄울 것이 이 화면에 없어**
+            아무 일도 안 났다 — 손가락도, 핸들러도, 상태도 멀쩡했다.
+          ■ 왜 웹은 멀쩡했나 — 넓은 웹은 위쪽 `wide` 분기(1668행)를 타고, 그쪽엔 `overlays` 가 있다.
+            ⇒ **내가 잴 수 있는 면에서만 멀쩡한** 종류였다(Boss 지적 *"웹이랑 앱이 대응이 한번
+              수정으로 제대로 안되고 있는거 같아"* 의 실례).
+          ■ ★같은 조각을 쓰는 return 이 **넷**이다(wide · userRoom · 목록 · 대화방).
+            하나만 빠져도 그 화면에서만 조용히 죽는다 — `check:talkoverlay` 가 이제 넷을 다 센다. */}
+      {overlays}
     </View>
   );
   return (
