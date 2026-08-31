@@ -2,14 +2,14 @@
 // ─────────────────────────────────────────────────────────────────────────
 // 저장된 내 차트(self) 로드 → MyeongsikScreen 재사용. 없으면 등록 유도. (추후 N명 목록 확장)
 // ─────────────────────────────────────────────────────────────────────────
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { PressableScale } from '../../components/PressableScale';
 import { useFontScale } from '../../lib/ui/fontScale';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { MyeongsikScreen } from '../../screens/MyeongsikScreen';
-import { loadMyChart, listCharts, getRepresentativeId } from '../../lib/engine/myChart';
+import { loadMyChart, listCharts, getRepresentativeId, subscribeRepChange } from '../../lib/engine/myChart';
 import { ChartPicker } from '../../components/ChartPicker';
 import { ChartSkeleton } from '../../components/Skeleton'; // 로딩 중 명식 형태 스켈레톤(daniel 2026-06-28)
 import { useDeferredReady } from '../../lib/ui/useDeferredReady'; // 전환 끝난 뒤 MyeongsikScreen 마운트(멈칫 제거)
@@ -26,10 +26,41 @@ export default function ChartsScreen() {
   const ready = useDeferredReady(); // 전환 애니가 끝난 뒤 MyeongsikScreen(무거운 computeChart) 마운트 → 멈칫 제거
   // 대표 명식 이름 로드 — 명식 변경(ChartPicker) 시에도 갱신해 제목이 항상 현재 명식을 가리키게.
   const refreshRepName = () => Promise.all([listCharts(), getRepresentativeId()]).then(([cs, id]) => setRepName(cs.find((c) => c.id === id)?.label ?? cs[0]?.label ?? null));
+  /**
+   * 지금 **보고 있는** 명식의 id. 대표와 다를 수 있다(`viewOnly` 로 골라 볼 수 있으므로).
+   * ★갱신할 때 «대표» 가 아니라 **보던 그것**을 다시 읽으려고 들고 있는다.
+   */
+  const shownIdRef = useRef<string | null>(null);
+
   useEffect(() => {
     loadMyChart().then((c) => { setMe(c); setLoading(false); });
     refreshRepName();
   }, []);
+
+  /**
+   * ── 명식이 바뀌면 **이 화면에서** 갱신한다 ──────────────────────────────
+   * Boss 2026-08-31 *"명식을 수정하거나 등록하면 기존 뷰에서 갱신되는게 아니고
+   *                   새로운 뷰가 생성되는데 기존 만세력 뷰에서 갱신되게해"*
+   *
+   * ■ 원인이 **둘**이었다 — 하나만 고치면 증상이 남는다
+   *   ① 등록·수정이 `router.replace` 로 **또 하나의 화면을 쌓았다**(→ `dismissTo` 로 고침)
+   *   ② `ChartPicker` 가 `viewOnly` 일 때 구독에서 **통째로 조기 return** 해서
+   *      되돌아와도 옛 내용이 남았다(→ 목록 갱신은 하도록 고침)
+   * ⇒ 여기서는 «보던 명식» 을 id 로 다시 읽는다. 보던 게 지워졌으면 대표로 떨어진다.
+   *
+   * ⚠️`subscribeRepChange` 는 **실제로 바뀔 때만** 운다(`myChart.ts` 의 서명 비교) —
+   *   포커스마다 다시 읽는 방식과 달리 «골라 본 명식이 홱 대표로 돌아가는» 부작용이 없다.
+   */
+  useEffect(() => subscribeRepChange(() => {
+    const id = shownIdRef.current;
+    if (!id) { void loadMyChart().then((c) => { if (c) setMe(c); }); refreshRepName(); return; }
+    void listCharts().then((cs) => {
+      const still = cs.find((c) => c.id === id);
+      if (still) { setMe(still.input); setRepName(still.label ?? null); return; }
+      shownIdRef.current = null;                       // 보던 명식이 사라졌다 → 대표로
+      void loadMyChart().then((c) => { if (c) setMe(c); }); refreshRepName();
+    });
+  }), []);
   const { fs } = useFontScale();
   const wide = useWideWeb();   // 넓은 웹만 카드 처리(네이티브는 종전 그대로)
   const styles = useMemo(() => makeStyles(fs), [fs]);
@@ -65,7 +96,9 @@ export default function ChartsScreen() {
         <ChartPicker
           viewOnly
           onChange={(picked) => {
-            if (picked) { setMe(picked.input); setRepName(picked.label ?? null); return; }
+            // ★고른 명식의 id 를 기억한다 — 나중에 그 명식이 수정되면 **그것을** 다시 읽는다
+            if (picked) { shownIdRef.current = picked.id; setMe(picked.input); setRepName(picked.label ?? null); return; }
+            shownIdRef.current = null;
             void loadMyChart().then(setMe); refreshRepName();
           }}
         />

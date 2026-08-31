@@ -159,7 +159,20 @@ export function ChartPicker({ onChange, viewOnly }: {
   // ⚠️보기 전용에서는 **대표 변경 알림을 흘려보낸다** — 내가 고른 «보는 명식» 을 덮어쓰면
   //   다른 화면에서 대표가 바뀔 때 만세력이 제멋대로 딴 사람으로 넘어간다.
   const viewOnlyRef = useRef(viewOnly); viewOnlyRef.current = viewOnly;
-  useEffect(() => subscribeRepChange(() => { if (viewOnlyRef.current) return; reload(); onChangeRef.current?.(); }), [reload]);
+  /**
+   * 명식이 바뀌었다는 소식을 듣는다.
+   *
+   * ⚠️★2026-08-31 고침 — 종전엔 `viewOnly` 면 **통째로 나가 버렸다**(`if (viewOnly) return;`).
+   *   막으려던 건 «대표가 바뀌어 보던 화면이 홱 넘어가는 것» 하나인데,
+   *   **목록 갱신까지 같이 막혀서** 만세력이 명식 수정·등록을 영영 못 들었다
+   *   (Boss *"명식을 수정하거나 등록하면 … 기존 만세력 뷰에서 갱신되게해"* 의 절반이 이것이다).
+   * ⇒ **목록은 언제나 새로 읽고**, 화면을 넘기는 `onChange` 만 `viewOnly` 에서 안 부른다.
+   */
+  useEffect(() => subscribeRepChange(() => {
+    reload();                          // ★이름·순서·내용은 보기 모드에서도 최신이어야 한다
+    if (viewOnlyRef.current) return;   // 대표 전환으로 화면을 넘기는 것만 막는다
+    onChangeRef.current?.();
+  }), [reload]);
   useEffect(() => subscribePremium(() => setPremChartId(getPremiumChartIdSnapshot())), []); // 프리미엄 지정 변경 시 👑 갱신
 
   const rep = charts.find((c) => c.id === repId) ?? charts[0];

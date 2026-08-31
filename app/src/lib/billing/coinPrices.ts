@@ -154,7 +154,19 @@ export function packBonusPct(packId: string, channel: PayChannel = 'store'): num
  *   실제 차감은 서버가 한다 — 어긋나면 «10운이라더니 20운이 빠졌다» 가 된다.
  *   ⇒ 서버 값을 바꿀 때 여기도 바꾼다. `check:talkcoin` ⑥ 이 DB 값을 찍어 준다.
  */
-export const TALK_PACK = { cost: 10, turns: 5 } as const;
+/**
+ * 대화 묶음 — **10운에 2턴**.
+ *
+ * ★2026-08-31 Boss *"마진률 90위로 다 잡아"* 로 5턴 → **2턴**.
+ *   실측(2026-08-30 `talk_messages`): 턴당 API 원가 평균 ₩20.7 · p90 ₩43.9.
+ *   가장 불리한 팩(coin_1200 · 보너스 32%)의 실수령이 운당 ₩52.4 이므로
+ *     5턴: 턴당 ₩105 → 평균마진 **80.3%** ❌
+ *     3턴: 턴당 ₩175 → **88.2%** ❌
+ *     2턴: 턴당 ₩262 → **92.1%** ✅  ← 8개 조합(4팩 × 2채널) 전부 90% 초과
+ *   ⚠️다인방은 운도 1.9배 받으므로 마진은 1:1 과 같다(`app_flags.talk_group_mult` 의 목적).
+ *   ★무료 구간(하루 10턴)은 **그대로**다 — 값을 올린 건 유료 구간뿐이다.
+ */
+export const TALK_PACK = { cost: 10, turns: 2 } as const;
 
 /** 하루 무료 대화 턴 수 — ★서버 `consultants.free_daily` 와 같아야 한다(화면 표기용). */
 export const FREE_TALK_DAILY = 10;

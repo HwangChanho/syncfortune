@@ -83,7 +83,9 @@ export default function AnalyzedScreen() {
     //   등록 직후 대표가 방금 그 명식으로 바뀌므로(`setRepresentative`), 만세력이 곧 그 명식이다.
     // ⚠️대표를 아직 읽는 중일 수 있다 — 그때는 기다린다(빈손이라고 단정해 홈으로 보내면 안 된다).
     if (!params.input && repInput === null) return;
-    router.replace('/charts');
+    // ★`dismissTo` — 만세력이 이미 스택에 있으면 **그 화면으로 되돌아간다**(새로 쌓지 않는다).
+    //   그 화면은 `subscribeRepChange` 로 방금 등록한 명식을 스스로 읽는다(Boss 2026-08-31).
+    router.dismissTo('/charts');
   }, [info, params.input, repInput, router]);
 
   // ★★2026-08-26 Boss *"명식 등록할떄 가끔 «당신은 ○○ 일주입니다» 가 순식간에 사라져버려"*
@@ -99,7 +101,7 @@ export default function AnalyzedScreen() {
   /** 다음 = 만세력(종전 등록 직후 목적지 그대로). 파라미터도 그대로 넘긴다. */
   const goNext = () => {
     if (!info) { router.replace('/'); return; }
-    router.replace('/charts');   // ★위와 같은 이유 — 등록 뒤 기본 도착지는 만세력이다
+    router.dismissTo('/charts');   // ★위와 같은 이유 — 등록 뒤 기본 도착지는 만세력이다(쌓지 않는다)
   };
 
   // 배경은 일간 오행색을 아주 옅게 깐다 — 전면을 오행색으로 칠하는 시안 구도

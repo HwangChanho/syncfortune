@@ -36,9 +36,24 @@ export default function RegisterRoute() {
   //   종전엔 등록하자마자 8글자 표가 나와서, 방금 넣은 생년월일이 무엇이 되었는지 알기 전에
   //   한자부터 마주쳤다. "당신은 ○○ 일주" 를 먼저 말해 주고 넘긴다.
   //   ⚠️편집 모드는 건너뛴다 — 이미 아는 명식을 고친 것이라 다시 선언할 이유가 없다.
+  /**
+   * 저장 뒤 어디로 갈 것인가.
+   *
+   * ★2026-08-31 Boss *"명식을 수정하거나 등록하면 기존 뷰에서 갱신되는게 아니고
+   *                    새로운 뷰가 생성되는데 기존 만세력 뷰에서 갱신되게해"*
+   *
+   * ■ 수정 — **되돌아간다**(`dismissTo`), 새로 쌓지 않는다
+   *   종전 `replace('/myeongsik')` 은 ⓐ 만세력(`/charts`)이 아닌 **다른 라우트**로 갔고
+   *   ⓑ 스택에 화면을 하나 더 남겼다. 그래서 뒤로 가면 옛 명식이 또 나왔다.
+   *   `dismissTo` = react-navigation `POP_TO` — 스택을 거슬러 **같은 이름의 화면을 찾아
+   *   거기까지 되돌아간다.** 없으면 현재 화면을 대체한다(폴백까지 안전하다).
+   *   ⇒ 되돌아간 그 화면은 `subscribeRepChange` 로 **스스로 새 내용을 읽는다**(`charts.tsx`).
+   *
+   * ■ 등록 — 「당신은 ○○ 일주」를 한 번 거친다(시안 p12). 그 화면이 만세력으로 되돌린다.
+   */
   function proceed(input: any) {
-    const to = editId ? '/myeongsik' : '/analyzed';
-    router.replace({ pathname: to, params: { input: JSON.stringify(input) } });
+    if (editId) { router.dismissTo('/charts'); return; }
+    router.replace({ pathname: '/analyzed', params: { input: JSON.stringify(input) } });
   }
 
   // 한도(10개) 초과 안내 → 보상형 광고 1회 보고 1건 추가.
