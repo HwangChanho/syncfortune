@@ -1179,7 +1179,23 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
       //   (성공 경로는 거기서, 실패 경로는 위 else 에서 끈다.)
       .catch((e) => {
         if (gen !== genRef.current) return;   // 버린 방의 실패는 새 방에 알리지 않는다
-        setBusy(false); console.warn('[talk] send 실패', e);
+        setBusy(false);
+        /**
+         * ⚠️★★여기서 **화면에 아무것도 안 띄우고 있었다**(Boss 2026-08-31
+         *   *"네트워크 관련에러는 채팅에 네트워크 에러라고 띄워야해"*).
+         *   `console.warn` 만 하고 끝나서, 망이 끊기면 **점 세 개만 사라지고** 아무 말이 없었다.
+         *   ⇒ 사용자는 «내가 뭘 잘못 눌렀나» 를 의심한다. 실패는 **실패라고 말해야** 한다.
+         * ★사유를 **가르쳐 준다** — 망 문제와 서버 문제는 사용자가 할 일이 다르다
+         *   (망이면 «잠깐 뒤 다시», 그 외면 «우리 쪽 문제»).
+         * ⚠️로그는 그대로 남긴다 — 화면에 띄운다고 기록을 버리지 않는다.
+         */
+        console.warn('[talk] send 실패', e);
+        const msg = String((e as any)?.message ?? e);
+        const offline = /network|fetch|failed to fetch|timeout|시간|연결|abort/i.test(msg);
+        setItems((prev) => [...prev, { id: nextId(), role: 'assistant',
+          body: offline
+            ? t('talk.netErr', '네트워크 오류예요. 연결을 확인하고 다시 보내 주세요.')
+            : t('talk.sendErr', '보내지 못했어요. 잠시 뒤 다시 시도해 주세요.') }]);
       });
     // ⚠️`saju`·`buildMentions` 를 빼면 명식을 바꾸고도 **옛 것으로** 보낸다(그리고 조용하다)
   }, [cur, chartId, t, i18n.language, bumpChats, refreshNotes, sayInOrder, saju, buildMentions, myAge]);

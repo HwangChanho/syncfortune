@@ -1254,7 +1254,7 @@ export const ja = {
     'sub': '今日の運をカード一枚で確かめてみましょう。',
     'cta': 'はじめる',
   },
-  talk: { lowBalance: 'woonが{{have}}残っています。次からは{{cost}}woon必要です。', pickedChart: '{{name}}の命式で見て', inviteAsk: '{{name}} さんを呼びましょうか？', inviteYes: '招待する', handoffAsk: '{{name}} さんにおつなぎしましょうか？', handoffYes: 'つなぐ', packLast: 'このまとめはここまでです。次のお話から運がかかります。', searchPh: '名前で検索', favShort: 'お気に入り', unfavShort: '解除',
+  talk: { netErr: "ネットワークエラーです。接続を確認して送り直してください。", sendErr: "送信できませんでした。少し経ってからもう一度お試しください。", lowBalance: 'woonが{{have}}残っています。次からは{{cost}}woon必要です。', pickedChart: '{{name}}の命式で見て', inviteAsk: '{{name}} さんを呼びましょうか？', inviteYes: '招待する', handoffAsk: '{{name}} さんにおつなぎしましょうか？', handoffYes: 'つなぐ', packLast: 'このまとめはここまでです。次のお話から運がかかります。', searchPh: '名前で検索', favShort: 'お気に入り', unfavShort: '解除',
     'greetHi': 'こんにちは。{{name}}です。',
     'greetWhat': '{{what}}を見ています。何が気になりますか？',
     'greetAsk': '何が気になりますか？',

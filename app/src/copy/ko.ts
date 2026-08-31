@@ -1295,7 +1295,7 @@ export const ko = {
     'sub': '오늘의 운을 카드 한장으로 확인해보세요.',
     'cta': '시작하기',
   },
-  talk: { lowBalance: '운이 {{have}}개 남았어요. 다음 이야기부터는 {{cost}}운이 필요해요.', pickedChart: '{{name}} 명식으로 볼게', inviteAsk: '{{name}} 님을 불러올까요?', inviteYes: '초대하기', handoffAsk: '{{name}} 님에게 연결해 드릴까요?', handoffYes: '연결하기', packLast: '이 묶음은 여기까지예요. 다음 이야기부터 운이 들어요.', searchPh: '이름으로 찾기', favShort: '즐겨찾기', unfavShort: '해제',
+  talk: { netErr: "네트워크 오류예요. 연결을 확인하고 다시 보내 주세요.", sendErr: "보내지 못했어요. 잠시 뒤 다시 시도해 주세요.", lowBalance: '운이 {{have}}개 남았어요. 다음 이야기부터는 {{cost}}운이 필요해요.', pickedChart: '{{name}} 명식으로 볼게', inviteAsk: '{{name}} 님을 불러올까요?', inviteYes: '초대하기', handoffAsk: '{{name}} 님에게 연결해 드릴까요?', handoffYes: '연결하기', packLast: '이 묶음은 여기까지예요. 다음 이야기부터 운이 들어요.', searchPh: '이름으로 찾기', favShort: '즐겨찾기', unfavShort: '해제',
     'greetHi': '안녕하세요. {{name}}이에요.',
     'greetWhat': '{{what}} 쪽을 봐 드려요. 뭐가 궁금하세요?',
     'greetAsk': '뭐가 궁금하세요?',
