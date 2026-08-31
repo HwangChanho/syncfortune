@@ -1,0 +1,60 @@
+// app/src/lib/ui/wideLayout.ts — **넓은 화면인가** (의존성 0)
+// ═══════════════════════════════════════════════════════════════════════════
+// Boss 2026-08-31: *"그리고 패드도 대응해야겠어"* → *"패드는 웹이랑 비슷하게 가도되겠네"*
+//
+// ■ ★판정을 **여기 한 곳**에 둔다
+//   사이드바를 쓸지, 카드를 몇 열로 놓을지가 같은 질문에서 갈라져 나온다.
+//   두 곳에서 각자 재면 «사이드바는 나왔는데 열은 하나» 같은 어긋남이 생긴다.
+//
+// ■ ⚠️★의존성이 0인 이유 — 하네스가 **진짜 함수**를 돌린다
+//   `WebShell.tsx` 안에 두면 react-native 를 끌어와 `check:ipad` 가 못 부른다.
+//   그러면 하네스는 «사본» 을 검사하게 된다([[shared-block-eats-personality]] 의 교훈,
+//   `speechLevel.ts` 와 같은 이유). ⇒ 여기에 RN 을 들이지 마라.
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** 사이드바로 넘어가는 폭 — **웹**. 브라우저 창은 아무 크기나 되므로 넉넉히 잡는다. */
+export const WEB_WIDE = 900;
+
+/**
+ * 사이드바로 넘어가는 폭 — **태블릿**. 웹보다 낮다.
+ *
+ * ★iPad 는 **세로에서도** 사이드바를 쓴다(Boss: *"패드는 웹이랑 비슷하게"*).
+ *   가장 좁은 iPad mini 세로가 744 라 700 이면 전부 걸린다.
+ * ⚠️폰은 못 넘는다 — 앱이 **세로 고정**이라 가장 넓은 폰도 440 언저리다(회귀 0).
+ */
+export const TABLET_WIDE = 700;
+
+/** 카드를 3열로 놓는 폭. */
+export const WEB_XWIDE = 1180;
+
+/** 본문 폭 상한 — 한 줄이 길어지면 읽기 힘들다(기기와 무관한 사실). */
+export const WEB_BODY = 680;
+
+/**
+ * 본문 폭을 제한하기 시작하는 폭 — **사이드바보다 일찍** 건다.
+ * iPad 세로는 사이드바를 쓰더라도, 글이 화면을 꽉 채우면 줄이 너무 길다.
+ */
+export const BODY_CAP_FROM = 700;
+
+/**
+ * 폭이 **넓은 축**인가.
+ *
+ * ⚠️★«면으로 **막는 것**» 과 «면에 따라 **기준을 다르게** 두는 것» 은 다르다.
+ *   종전엔 `Platform.OS === 'web' &&` 로 **막아서** iPad 가 이 레이아웃을 아예 못 썼다.
+ *   지금은 막지 않는다 — 태블릿도 넓으면 쓴다. 숫자만 다르다.
+ *
+ * @param width    화면 폭(pt)
+ * @param platform `Platform.OS` ('web' | 'ios' | 'android' …)
+ */
+export function isWideWidth(width: number, platform: string): boolean {
+  return width >= (platform === 'web' ? WEB_WIDE : TABLET_WIDE);
+}
+
+/**
+ * 카드를 **몇 열로** 놓을 것인가.
+ * @returns 1 = 폰 · 2~3 = 넓은 화면
+ */
+export function colsFor(width: number, platform: string): number {
+  if (!isWideWidth(width, platform)) return 1;
+  return width >= WEB_XWIDE ? 3 : 2;
+}

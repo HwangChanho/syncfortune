@@ -30,10 +30,11 @@ import { BrandWordmark } from './BrandWordmark';   // ★탭 정의·아이콘�
 import { LangChip } from './LangChip';             // 언어 — 웹은 이 사이드바 하단이 제자리(Boss 08-31)
 import { useFeatureOn } from '../lib/core/features';           // 커뮤니티 노출 = 원격 플래그(BottomNav 와 **같은 판정**)
 import { CONTENT_ROUTES } from '../lib/content/contentSections'; // 읽는 화면 판정 — 손으로 안 적고 콘텐츠 목록에서 파생
+import { isWideWidth, colsFor, WEB_WIDE, WEB_XWIDE, WEB_BODY, BODY_CAP_FROM } from '../lib/ui/wideLayout';
+export { WEB_WIDE, WEB_XWIDE, WEB_BODY };   // ★재수출 — 호출처 27곳이 여기서 가져다 쓴다
 import { colors, radius, space } from '../lib/theme';
 
 /** 사이드바가 서는 최소 폭. 이보다 좁으면 폰 레이아웃(하단 탭)이 맞다. */
-export const WEB_WIDE = 900;
 /** **글을 읽는 화면**의 최대 폭 — 줄이 길어지면 눈이 다음 줄을 놓친다. */
 export const WEB_COLUMN = 760;
 /**
@@ -55,7 +56,6 @@ export const WEB_STAGE = 1560;
 /** 스테이지 좌우 숨통 — 컬럼이 사이드바·화면 끝에 붙지 않게. 여백은 '남는 것'이 아니라 이 값이어야 한다. */
 export const STAGE_PAD = 24;
 /** 3열까지 펼칠 수 있는 폭(그리드 화면 기준). */
-export const WEB_XWIDE = 1180;
 // ★2026-08-23 Boss *"제일 왼쪽 메뉴 리스트 가로 넓이를 조금 줄여줘"* — 248 → 208.
 //   실측 근거: 사이드바 안에서 실제로 쓰이는 폭은 **x 24~98**(워드마크 시작 24 · 탭 라벨 끝 98)뿐이라
 //   오른쪽으로 150px 가까이 비어 있었다. 40px 을 줄여도 아무것도 잘리지 않는다.
@@ -100,7 +100,6 @@ export const WEB_READ = 1360;
  * 읽는 화면 **본문(글)** 의 최대 폭 — 지면(`WEB_READ`)과 다르다.
  * 한글 본문은 이 폭에서 한 줄이 40~45자로 떨어진다. 더 넓으면 눈이 다음 줄을 놓친다.
  */
-export const WEB_BODY = 680;
 
 /**
  * 읽는 화면의 **본문 캡** — 히어로는 지면 전체, 글은 좁게(브런치·29CM 방향).
@@ -126,24 +125,13 @@ export function useReadBody(): { width: '100%'; maxWidth: number; alignSelf: 'ce
    *   한 줄이 너무 길어 **읽기가 힘들다.** 읽기 편한 줄 길이는 기기와 무관하다.
    * ⚠️폰은 영향이 없다 — 가장 넓은 폰도 700pt 를 못 넘는다.
    */
-  return width >= 700 ? { width: '100%', maxWidth: WEB_BODY, alignSelf: 'center' } : undefined;
+  return width >= BODY_CAP_FROM ? { width: '100%', maxWidth: WEB_BODY, alignSelf: 'center' } : undefined;
 }
 
-/**
- * 지금 **넓은 화면**인가 — 하단 탭 대신 사이드바를 써야 하는 상태.
- *
- * ■ ★2026-08-31 Boss *"패드도 대응해야겠어"* — `Platform.OS === 'web'` 조건을 **뺐다.**
- *   이 레이아웃은 «웹이라서» 가 아니라 **«넓어서»** 필요한 것이다.
- *   ⚠️`WebShell` 안에 `document`·`window` 가 **한 줄도 없다**(실측) — 순수 RN 이라
- *     태블릿에서 그대로 돈다. 조건 하나가 iPad 를 막고 있었을 뿐이다.
- * ■ 폰은 그대로다 — 가장 넓은 폰도 900pt 를 못 넘는다(회귀 0).
- *   iPad 세로(744~1024)는 대부분 폰 배치, 가로(1024~1366)는 사이드바가 된다.
- * ★이름은 `useWideWeb` 로 **남겨 둔다** — 호출처가 27곳이라 지금 바꾸면 진짜 변경이 묻힌다.
- *   (아래 `useWideLayout` 이 같은 것을 가리키는 새 이름이다.)
- */
+/** 지금 **넓은 화면**인가 — 하단 탭 대신 사이드바를 써야 하는 상태. */
 export function useWideWeb(): boolean {
   const { width } = useWindowDimensions();
-  return width >= WEB_WIDE;
+  return isWideWidth(width, Platform.OS);
 }
 
 /** `useWideWeb` 의 새 이름 — 뜻이 «웹» 이 아니라 «넓은 화면» 이라서. */
@@ -156,9 +144,7 @@ export const useWideLayout = useWideWeb;
  */
 export function useWebCols(): number {
   const { width } = useWindowDimensions();
-  // ★면을 안 본다 — 열 수를 정하는 건 **폭**이다(2026-08-31 iPad 대응)
-  if (width < WEB_WIDE) return 1;
-  return width >= WEB_XWIDE ? 3 : 2;
+  return colsFor(width, Platform.OS);   // ★판정은 `lib/ui/wideLayout` 한 곳
 }
 
 /**

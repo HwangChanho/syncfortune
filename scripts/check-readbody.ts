@@ -48,7 +48,18 @@ if (!shell) fail('R0', `${SHELL} 이 없다 — 경로가 바뀌었으면 이 �
 let read: number | null = null, body: number | null = null;
 if (shell) {
   read = constOf(shell, 'WEB_READ');
+  /**
+   * ★상수가 **옮겨 갔다** — 2026-08-31 iPad 대응으로 폭 판정을 `lib/ui/wideLayout.ts`(의존성 0)로
+   *   뺐다. `WebShell` 은 그걸 **재수출**만 한다. 여기서 못 찾으면 그 파일도 본다.
+   * ⚠️«없다» 고 단정하기 전에 **옮겨 간 자리를 확인한다** — 안 그러면 멀쩡한 코드를 빨간불로 만든다
+   *   ([[harness-goes-blind-on-refactor]]).
+   */
   body = constOf(shell, 'WEB_BODY');
+  if (body == null) {
+    const WIDE = 'app/src/lib/ui/wideLayout.ts';
+    const w = fs.existsSync(WIDE) ? fs.readFileSync(WIDE, 'utf8') : null;
+    if (w) body = constOf(w, 'WEB_BODY');
+  }
 
   // ── R1. 지면 > 본문 ──
   if (read == null) fail('R1', `${SHELL} 에서 WEB_READ 를 못 찾았다`);

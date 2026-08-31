@@ -12,7 +12,9 @@
 //   ⇒ **파일을 직접 읽는다**(있을 때만). 없으면 건너뛴다.
 //
 // 무엇을 지키나
-//   P1 넓은 레이아웃 판정이 **면을 안 본다**(`Platform.OS` 로 막지 않는다)
+//   P1 ★넓은 레이아웃 판정을 **실제 기기 폭으로** 잰다 — 정규식이 아니라 숫자로.
+//      («면으로 **막는 것**» 과 «면에 따라 **기준을 다르게** 두는 것» 은 다르다.
+//       막으면 iPad 가 아예 못 쓰고, 기준만 다르면 둘 다 쓴다.)
 //   P2 본문 폭 제한이 **사이드바보다 일찍** 걸린다 — iPad 세로에서 줄이 너무 길어지지 않게
 //   P3 Xcode 대상 기기에 **iPad 가 들어 있다**(`TARGETED_DEVICE_FAMILY = "1,2"`)
 //   P4 `app.json` 의 `supportsTablet` 이 켜져 있다(둘이 어긋나면 나중에 prebuild 가 되돌린다)
@@ -20,6 +22,7 @@
 // ★음성 테스트: `npx tsx scripts/check-ipad.ts --selftest`
 // ═══════════════════════════════════════════════════════════════════════════
 import { readFileSync, existsSync, readdirSync } from 'node:fs';
+import { isWideWidth, BODY_CAP_FROM, WEB_WIDE } from '../app/src/lib/ui/wideLayout';   // ★의존성 0 — 진짜 함수를 부른다
 import { join } from 'node:path';
 
 const ROOT = new URL('..', import.meta.url).pathname;
@@ -34,30 +37,40 @@ const fail = (rule: string, msg: string) => out.push({ rule, msg });
 
 // ── 판정기 ──────────────────────────────────────────────────────────────────
 
-/** 넓은 레이아웃 판정이 **면으로 막고 있는가**(막으면 iPad 가 못 쓴다). */
-export function gatedByPlatform(src: string): boolean {
-  const s = strip(src);
-  const i = s.indexOf('export function useWideWeb');
-  if (i < 0) return false;
-  // ⚠️★첫 `}` 로 자르면 **구조분해**(`const { width } = …`)에서 끊긴다 —
-  //   그 뒤의 `Platform.OS` 를 못 보고 «안 막는다» 고 잘못 답한다(음성 테스트가 잡았다).
-  //   ⇒ 줄 맨 앞의 `}` 까지가 함수 본문이다.
-  const rest = s.slice(i);
-  const end = rest.search(/\n\}/);
-  const body = end > 0 ? rest.slice(0, end) : rest.slice(0, 400);
-  return /Platform\.OS/.test(body);
+/**
+ * 실제 기기 폭으로 «넓은가» 를 잰다 — **진짜 함수**를 부른다(사본이 아니라).
+ * @returns 어긋난 케이스들(빈 배열이면 통과)
+ */
+export function widthCases(): string[] {
+  const bad: string[] = [];
+  const cases: Array<[string, number, string, boolean]> = [
+    // [이름, 폭, 면, 기대]
+    ['iPhone 15 Pro 세로', 393, 'ios', false],
+    ['iPhone Pro Max 세로', 440, 'ios', false],
+    ['iPad mini 세로', 744, 'ios', true],
+    ['iPad 11" 세로', 834, 'ios', true],
+    ['iPad 12.9" 세로', 1024, 'ios', true],
+    ['iPad 가로', 1194, 'ios', true],
+    ['안드로이드 태블릿 세로', 800, 'android', true],
+    ['좁은 브라우저 창', 800, 'web', false],
+    ['넓은 브라우저 창', 1200, 'web', true],
+  ];
+  for (const [name, w, plat, want] of cases) {
+    const got = isWideWidth(w, plat);
+    if (got !== want) bad.push(`${name}(${w}pt · ${plat}) = ${got} (기대 ${want})`);
+  }
+  return bad;
 }
 
-/** 본문 폭 제한이 **사이드바 기준보다 낮은** 폭에서 걸리는가. */
+/** 본문 폭 제한이 /** 본문 폭 제한이 **사이드바 기준보다 낮은** 폭에서 걸리는가. */
 export function bodyCapEarly(src: string): boolean | null {
   const s = strip(src);
-  const wide = /WEB_WIDE\s*=\s*(\d+)/.exec(s);
   const i = s.indexOf('export function useReadBody');
-  if (i < 0 || !wide) return null;
+  if (i < 0) return null;
   const body = s.slice(i, i + 700);
-  const m = /width\s*>=\s*(\d+)/.exec(body);
-  if (!m) return false;                        // 폭 기준이 아예 없다 = 못 건다
-  return Number(m[1]) < Number(wide[1]);
+  // ★상수 **이름**으로 본다 — 숫자를 읽으면 상수를 옮길 때마다 하네스가 깨진다
+  if (!/BODY_CAP_FROM/.test(body)) return false;
+  return true;
 }
 
 /** Xcode 대상 기기에 iPad(2)가 들어 있는가. */
@@ -68,13 +81,15 @@ export function pbxHasIpad(src: string): boolean {
 // ── 실제 검사 ───────────────────────────────────────────────────────────────
 if (!process.argv.includes('--selftest')) {
   const SHELL = 'app/src/components/WebShell.tsx';
+  const WIDE = 'app/src/lib/ui/wideLayout.ts';
   const shell = read(SHELL);
   if (!shell) fail('P0', `${SHELL} 를 못 읽었다`);
   else {
-    if (gatedByPlatform(shell)) {
-      fail('P1', `${SHELL} 의 \`useWideWeb\` 가 **면으로 막는다**(\`Platform.OS\`).\n        `
-        + '이 레이아웃은 «웹이라서» 가 아니라 **«넓어서»** 필요하다 — 막으면 iPad 가 못 쓴다.\n        '
-        + '★`WebShell` 안에는 `document`·`window` 가 한 줄도 없다(순수 RN 이라 태블릿에서 그대로 돈다)');
+    const wrong = widthCases();
+    if (wrong.length) {
+      fail('P1', `넓은 레이아웃 판정이 **기기 폭에서 어긋난다**:\n        ` + wrong.join('\n        ')
+        + '\n        ★이 레이아웃은 «웹이라서» 가 아니라 **«넓어서»** 필요하다 — 막으면 iPad 가 못 쓴다.\n        '
+        + '`WebShell` 안에는 `document`·`window` 가 한 줄도 없다(순수 RN 이라 태블릿에서 그대로 돈다)');
     }
     if (bodyCapEarly(shell) === false) {
       fail('P2', `${SHELL} 의 본문 폭 제한이 **사이드바 기준과 같거나 늦다**.\n        `
@@ -104,24 +119,22 @@ if (!process.argv.includes('--selftest')) {
 
 // ── 음성 테스트 ─────────────────────────────────────────────────────────────
 if (process.argv.includes('--selftest')) {
-  const OK = 'export const WEB_WIDE = 900;\n'
-    + 'export function useReadBody() {\n  return width >= 700 ? cap : undefined;\n}\n'
-    + 'export function useWideWeb(): boolean {\n  const { width } = useWindowDimensions();\n  return width >= WEB_WIDE;\n}';
-  const BAD = OK.replace('return width >= WEB_WIDE;', "return Platform.OS === 'web' && width >= WEB_WIDE;");
   const cases: Array<{ name: string; run: () => boolean }> = [
-    { name: 'P1 면을 안 보면 통과', run: () => gatedByPlatform(OK) === false },
-    { name: 'P1 Platform.OS 로 막으면 문다', run: () => gatedByPlatform(BAD) === true },
-    { name: 'P1 다른 함수의 Platform.OS 에 안 속는다',
-      run: () => gatedByPlatform("function other(){ Platform.OS }\nexport function useWideWeb(){ return width >= 900; }") === false },
-    { name: 'P2 더 낮은 폭이면 통과', run: () => bodyCapEarly(OK) === true },
-    { name: 'P2 같은 폭이면 문다', run: () => bodyCapEarly(OK.replace('width >= 700', 'width >= 900')) === false },
-    { name: 'P2 폭 기준이 없으면 문다',
-      run: () => bodyCapEarly(OK.replace('return width >= 700 ? cap : undefined;', 'return wide ? cap : undefined;')) === false },
+    { name: 'P1 ★실제 기기 폭 9종이 전부 맞는다', run: () => widthCases().length === 0 },
+    { name: 'P1 iPad 세로가 넓은 축이다', run: () => isWideWidth(834, 'ios') === true },
+    { name: 'P1 폰은 아니다', run: () => isWideWidth(440, 'ios') === false },
+    { name: 'P1 좁은 브라우저 창은 아니다(웹 기준이 더 높다)', run: () => isWideWidth(800, 'web') === false },
+    { name: 'P2 BODY_CAP_FROM 을 쓰면 통과',
+      run: () => bodyCapEarly('export function useReadBody() { return width >= BODY_CAP_FROM ? cap : undefined; }') === true },
+    { name: 'P2 사이드바 기준을 그대로 쓰면 문다',
+      run: () => bodyCapEarly('export function useReadBody() { return wide ? cap : undefined; }') === false },
+    { name: 'P2 ★상수가 실제로 더 낮다', run: () => BODY_CAP_FROM < WEB_WIDE },
     { name: 'P3 "1,2" 면 통과', run: () => pbxHasIpad('TARGETED_DEVICE_FAMILY = "1,2";') === true },
     { name: 'P3 1 이면 문다', run: () => pbxHasIpad('TARGETED_DEVICE_FAMILY = 1;') === false },
     { name: 'P3 공백이 있어도 알아본다', run: () => pbxHasIpad('TARGETED_DEVICE_FAMILY = "1, 2";') === true },
     { name: '주석 속 코드에 안 속는다',
-      run: () => gatedByPlatform("// export function useWideWeb(){ Platform.OS }\nconst a=1;") === false },
+      run: () => bodyCapEarly('// export function useReadBody() { return width >= BODY_CAP_FROM ? c : u; }\nconst a=1;') === null },
+    { name: 'P1 ★안드로이드 태블릿도 넓은 축', run: () => isWideWidth(800, 'android') === true },
   ];
   let bad = 0;
   console.log('── 음성 테스트(깨뜨린 입력을 실제로 무는가) ──');
