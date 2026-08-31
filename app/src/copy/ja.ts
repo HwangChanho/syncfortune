@@ -1219,6 +1219,7 @@ export const ja = {
     rRefundWhat: '{{what}} 返金',
     rRefund: '返金',
     rGift: '贈られた運',
+    rTestRevert: "テスト付与の取消",
     rMigrate: '以前の残高の引継ぎ',
     'charge': 'チャージ',
     'empty': 'まだ履歴がありません。',

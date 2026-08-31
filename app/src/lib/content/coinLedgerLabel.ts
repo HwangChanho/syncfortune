@@ -81,6 +81,9 @@ export function coinLedgerLabel(reason: string | null, kind: string | null, delt
     //     (`check:coinhistory` H2 가 그걸 잡았다). 뜻이 같으니 **한 줄로 모은다.**
     case 'admin_grant': return t('coinHistory.rGift', '선물 받은 운');
     case 'migrate':    return t('coinHistory.rMigrate', '이전 잔액 이관');
+    // ★결제 배선을 검증하며 **모의로 들어온 운을 되돌린 것**(2026-08-31).
+    //   원장은 append-only 로 두므로 이 줄은 남는다 — 사용자가 봐도 뜻이 통하게 이름을 준다.
+    case 'test_reversal': return t('coinHistory.rTestRevert', '테스트 지급 회수');
     default:
       // ⚠️모르는 reason — 방향만이라도 맞게 말하고, 무엇에 썼는지는 알면 붙인다
       if (what) return what;

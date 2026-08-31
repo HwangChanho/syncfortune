@@ -1220,6 +1220,7 @@ export const en = {
     rRefundWhat: 'Refunded — {{what}}',
     rRefund: 'Refunded',
     rGift: 'Gifted woon',
+    rTestRevert: "Test grant reversed",
     rMigrate: 'Balance carried over',
     'charge': 'Top-up',
     'empty': 'No top-ups or spending yet.',
