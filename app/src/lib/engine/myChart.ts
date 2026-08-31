@@ -174,7 +174,26 @@ export type ChartContext = { job?: string; concern?: string; note?: string };
  */
 export type ChartContact = { email?: string; phone?: string; notify?: boolean; agreedAt?: string };
 
-export type SavedChart = { id: string; label: string; relation: string; input: ChartInput; serverChartId?: string; context?: ChartContext; contact?: ChartContact };
+/**
+ * 목록에 담긴 명식 한 건.
+ *
+ * ★`friend` 가 붙으면 **친구에게서 담아 온 읽기 전용 명식**이다(Boss 2026-08-31
+ *   *"친구가 명식 공개해두면 친구 명식도 내 만세력 리스트에 등록할수있게해"*).
+ *
+ * ■ ⚠️★왜 «읽기 전용» 인가 — **생년월일을 안 받기 때문이다**
+ *   친구에게서 오는 것은 서버가 **이미 계산해 둔 명식**(`saju`)뿐이고,
+ *   생년월일(`birth_enc`)은 암호화돼 있다. **생일 역산을 막으려는 의도**다
+ *   ([[community-chart-sharing]] — 화이트리스트 저장).
+ *   ⇒ 담을 수는 있어도 **고칠 수는 없다.** 고치려면 생일이 있어야 하니까.
+ * ■ 그래서 `input` 은 껍데기만 채운다 — 화면은 `friend.saju` 를 **먼저** 쓴다.
+ *   ⚠️이 값으로 `computeChart` 를 돌리면 **엉뚱한 명식**이 나온다. 절대 돌리지 마라.
+ */
+export type SavedChart = {
+  id: string; label: string; relation: string; input: ChartInput;
+  serverChartId?: string; context?: ChartContext; contact?: ChartContact;
+  /** 친구에게서 담아 온 것 — 있으면 **읽기 전용**이고 이 명식을 그대로 쓴다 */
+  friend?: { ownerId: string; saju: unknown; ziwei?: unknown };
+};
 
 /** 사용자가 직접 등록한 명식 수(데모 샘플 시드는 한도에서 제외). */
 function countReal(charts: SavedChart[]): number {
@@ -415,4 +434,39 @@ export async function clearMyChart(): Promise<void> {
   await delRaw(REP_KEY);
   await delRaw(TOMB_KEY); // 로컬 초기화(서버 blob 은 보존 — 재로그인 시 복원)
   notifyRepChange(); // ★로그아웃 즉시 구독자(ChartPicker·홈) 갱신 → 명식이 화면에서 바로 사라짐(daniel)
+}
+
+
+/**
+ * 친구의 명식을 **내 목록에 담는다**(읽기 전용).
+ *
+ * @param ownerId 친구의 uid — 나중에 «누구 것인지» 를 되짚을 유일한 열쇠
+ * @param label   목록에 적을 이름(친구 이름)
+ * @param saju    `loadFriendChart()` 가 준 계산된 명식
+ * @param ziwei   있으면 함께
+ * @returns 새 항목 id
+ *
+ * ⚠️★한도(`FREE_CHART_LIMIT`)에 **포함한다** — 목록을 차지하는 것은 같다.
+ * ⚠️같은 친구를 두 번 담지 않는다 — 이미 있으면 **그 id 를 돌려준다**(갱신하지 않는다.
+ *   친구가 명식을 고쳤으면 다시 담는 것이 사용자 뜻에 맞다).
+ */
+export async function addFriendChart(
+  ownerId: string, label: string, saju: unknown, ziwei?: unknown,
+): Promise<string> {
+  const list = await listCharts();
+  const dup = list.find((c) => c.friend?.ownerId === ownerId);
+  if (dup) return dup.id;
+
+  const id = `friend:${ownerId}`;
+  const row: SavedChart = {
+    id,
+    label: label.trim() || '친구',
+    relation: '친구',
+    // ★껍데기 — 화면은 `friend.saju` 를 먼저 본다(위 타입 주석). 계산에 쓰지 마라.
+    input: { birthDateTime: '', calendar: '양', sex: '남', timeAccuracy: '미상' } as unknown as ChartInput,
+    friend: { ownerId, saju, ziwei },
+  };
+  await setRaw(KEY, JSON.stringify([...list, row]));
+  notifyRepChange();
+  return id;
 }

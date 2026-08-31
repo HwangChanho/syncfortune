@@ -23,6 +23,7 @@ import { CompatPeek } from '../../components/CompatPeek';
 import { SharedChart } from '../../components/SharedChart';
 import { toSharedSaju } from '../../lib/backend/communityChart';
 import { listFriends, loadFriendChart, type Friend } from '../../lib/talk/friends';
+import { addFriendChart } from '../../lib/engine/myChart';   // ★친구 명식을 내 목록에 담기(Boss 2026-08-31)
 import { loadRepChart } from '../../lib/engine/myChart';
 import { computeChart } from '../../lib/engine/engine';
 import { analyzeCompatibility } from '@engine/compatibility';
@@ -37,6 +38,7 @@ export default function FriendCompatScreen() {
   const { friend: friendId } = useLocalSearchParams<{ friend?: string }>();
   const [friend, setFriend] = useState<Friend | null>(null);
   const [otherSaju, setOtherSaju] = useState<any>(null);
+  const [saved, setSaved] = useState(false);   // ★한 번 담으면 버튼이 그렇다고 말한다
   const [dx, setDx] = useState<CompatibilityDx | null>(null);
   const [state, setState] = useState<'loading' | 'ok' | 'notShared' | 'noMe' | 'gone'>('loading');
 
@@ -80,6 +82,18 @@ export default function FriendCompatScreen() {
           <Text style={styles.back}>‹</Text>
         </PressableScale>
         <Text style={styles.headTx} numberOfLines={1}>{name}</Text>
+        {/* ★★내 목록에 **담기**(Boss 2026-08-31 *"친구 명식도 내 만세력 리스트에 등록할수있게해"*).
+            명식을 실제로 읽어 온 상태에서만 보인다 — 못 읽으면 담을 것도 없다.
+            ⚠️담기는 것은 **이미 계산된 명식**이다. 생년월일은 안 넘어오므로 **읽기 전용**이고,
+              목록에서 「친구」 배지로 구분된다(`ChartPicker`). */}
+        {otherSaju && friend ? (
+          <PressableScale style={styles.save} disabled={saved} onPress={async () => {
+            await addFriendChart(friend.otherId, name, otherSaju);
+            setSaved(true);
+          }}>
+            <Text style={styles.saveTx}>{saved ? t('fcompat.saved', '담았어요') : t('fcompat.save', '내 목록에 담기')}</Text>
+          </PressableScale>
+        ) : null}
       </View>
 
       {/* ★못 보는 이유를 각각 다르게 말한다 — 사용자가 할 일이 다르다 */}
@@ -124,6 +138,9 @@ const styles = StyleSheet.create({
   wrap: { flex: 1, backgroundColor: colors.bg },
   body: { paddingHorizontal: space(4), paddingBottom: space(20) },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
+  // ★담기 버튼 — 머리말 오른쪽 끝
+  save: { marginLeft: 'auto', paddingVertical: space(1.5), paddingHorizontal: space(3), borderRadius: radius.pill, backgroundColor: colors.ju },
+  saveTx: { ...font.caption, color: colors.onJu, fontWeight: '800' },
   head: { flexDirection: 'row', alignItems: 'center', gap: space(2), marginBottom: space(4) },
   back: { fontSize: 26, lineHeight: 30, color: colors.ju, fontWeight: '900' },
   headTx: { flex: 1, minWidth: 0, ...font.heading, color: colors.ink, fontWeight: '800' },

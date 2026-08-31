@@ -101,7 +101,14 @@ const STRENGTH_INFO: { key: '신강' | '신약'; title: string; traits: string; 
     yongsin: 'ms.weakKey' },
 ];
 
-type MyeongsikProps = { input: ChartInput | null; onReading?: () => void; onSinsal?: () => void; header?: ReactNode; whoName?: string | null };
+type MyeongsikProps = {
+  /**
+   * 친구에게서 담아 온 **이미 계산된** 명식(Boss 2026-08-31).
+   * ⚠️있으면 `input` 은 껍데기다 — 생년월일이 안 넘어오므로(생일 역산 차단) **계산 금지**.
+   */
+  friendSaju?: unknown;
+  input: ChartInput | null;
+  onReading?: () => void; onSinsal?: () => void; header?: ReactNode; whoName?: string | null };
 
 /**
  * 명식 화면 — **껍데기**.
@@ -127,7 +134,7 @@ export function MyeongsikScreen(props: MyeongsikProps) {
   return <MyeongsikBody {...props} input={props.input} />;
 }
 
-function MyeongsikBody({ input, onReading, onSinsal, header, whoName }: MyeongsikProps & { input: ChartInput }) {
+function MyeongsikBody({ input, friendSaju, onReading, onSinsal, header, whoName }: MyeongsikProps & { input: ChartInput }) {
   const { t, i18n } = useTranslation();
   /**
    * 명리 **용어**의 표시 글자 — 한국어면 그대로, 그 밖의 언어면 한자.
@@ -186,7 +193,16 @@ function MyeongsikBody({ input, onReading, onSinsal, header, whoName }: Myeongsi
     ]).start();
   }, [activeTab]);
 
-  const c = useMemo(() => computeChart(input), [input]);   // ★input 은 껍데기가 보장한다(위 ⚠️ 참조)
+  /**
+   * ★친구에게서 담아 온 명식은 **계산하지 않는다**(Boss 2026-08-31).
+   *   생년월일이 안 넘어오므로(암호화 · 생일 역산 차단) `input` 은 껍데기다 —
+   *   ⚠️그걸로 `computeChart` 를 돌리면 **엉뚱한 명식**이 나온다.
+   *   ⇒ 서버가 이미 계산해 둔 것을 그대로 쓴다.
+   */
+  const c = useMemo(
+    () => (friendSaju ? { saju: friendSaju } as ReturnType<typeof computeChart> : computeChart(input)),
+    [input, friendSaju],
+  );
   const { fs, ls } = useFontScale();
   // ★지장간 동그라미는 **글자 크기에서 파생**시킨다(daniel 2026-07-29 IMG_8302 "아직도 깨지잖아").
   //   원인: 원이 `width/height: 15` **고정**인데 글자는 전역 배율로 커진다(fs 는 2026-07-29 부터 항등).

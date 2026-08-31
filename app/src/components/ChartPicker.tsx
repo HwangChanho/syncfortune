@@ -418,6 +418,13 @@ export function ChartPicker({ onChange, viewOnly }: {
                       {c.id === repId ? (
                         <View style={styles.repBadge}><Text style={styles.repBadgeTx}>{t('chartPick.rep', '대표')}</Text></View>
                       ) : null}
+                      {/* ★★친구에게서 담아 온 명식 — **구분해서 보여 준다**(Boss 2026-08-31
+                            *"저런식으로 등록된 명식은 별도로 표기해서 구분할수 있게하고 수정은 불가능하게"*).
+                          ⚠️왜 수정이 안 되나: 생년월일이 안 넘어온다(암호화 · 생일 역산 차단).
+                            우리에게 있는 건 **이미 계산된 명식**뿐이라 고칠 재료가 없다. */}
+                      {c.friend ? (
+                        <View style={styles.friendBadge}><Text style={styles.friendBadgeTx}>{t('chartPick.fromFriend', '친구')}</Text></View>
+                      ) : null}
                       {/* ★프리미엄 지정 명식 배지(daniel 07-02: 명식 옆에 프리미엄 여부) — 골드 왕관 배지 */}
                       {!!premChartId && c.serverChartId === premChartId && (
                         <View style={styles.premBadge}><Text style={styles.premBadgeTx}>👑 프리미엄</Text></View>
@@ -501,7 +508,24 @@ export function ChartPicker({ onChange, viewOnly }: {
   };
 
   // 명식 수정 → 등록 폼 편집모드(editId)로 이동. 모달 닫고 진입.
-  function edit(id: string) { setOpen(false); router.push({ pathname: '/register', params: { editId: id } }); }
+  /**
+   * 명식 수정 — 등록 폼 편집모드로.
+   * ⚠️★친구에게서 담아 온 것은 **못 고친다**(Boss 2026-08-31).
+   *   생년월일이 안 넘어오므로 편집 폼을 채울 재료가 없다 —
+   *   열어 주면 **빈 폼이 뜨고, 저장하면 엉뚱한 명식으로 덮인다.**
+   *   ⇒ 아예 열지 않고 이유를 말한다.
+   */
+  function edit(id: string) {
+    const target = charts.find((x) => x.id === id);
+    if (target?.friend) {
+      Alert.alert(
+        t('chartPick.friendLockTitle', '친구 명식은 고칠 수 없어요'),
+        t('chartPick.friendLockMsg', '친구가 공개한 명식을 담아 온 것이라 생년월일이 넘어오지 않아요. 지우고 다시 담을 수는 있어요.'),
+      );
+      return;
+    }
+    setOpen(false); router.push({ pathname: '/register', params: { editId: id } });
+  }
   // 만세력 보기 → 그 명식을 대표로 설정하고 만세력(/charts) 화면으로 진입(daniel 07-01)
   async function viewManse(id: string) {
     // ★보기 전용이면 **그 자리에서** 바꾼다 — 이미 만세력이라 `push` 하면 스택만 쌓인다
@@ -1017,6 +1041,9 @@ const styles = StyleSheet.create({
   meBadgeTx: { fontSize: 10, fontWeight: '800', color: colors.onJu },
   repBadge: { paddingHorizontal: space(1.5), paddingVertical: 1, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.ju, backgroundColor: 'transparent' },
   repBadgeTx: { fontSize: 10, fontWeight: '800', color: colors.ju },
+  // ★친구에게서 담아 온 것 — 본인·대표와 **다른 색**으로 둔다(성격이 다르다: 읽기 전용)
+  friendBadge: { paddingHorizontal: space(1.5), paddingVertical: 1, borderRadius: radius.pill, backgroundColor: colors.sunk, borderWidth: 1, borderColor: colors.line },
+  friendBadgeTx: { fontSize: 10, fontWeight: '800', color: colors.inkSoft },
   premBadge: { backgroundColor: colors.badgeGold, borderRadius: radius.pill, paddingHorizontal: space(2), paddingVertical: 1, overflow: 'hidden' },
   premBadgeTx: { color: colors.bg, fontSize: 10, fontWeight: '900' },
   // 성별 배지(남/여) — 중립 톤. overflow:hidden 이 있어야 안드로이드에서 borderRadius 가 먹는다.
