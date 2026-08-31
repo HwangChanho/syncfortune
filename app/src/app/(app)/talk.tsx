@@ -1600,6 +1600,7 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
               {askDelete ? <DeleteBar onCancel={() => setAskDelete(false)} onOk={onDeleteThread} t={t as never} /> : null}
               <TalkNotes
                 notes={notes} open={notesOpen} onToggle={() => setNotesOpen((v) => !v)}
+                title={cur?.name}
                 onJump={(mid) => {
                   // ★뛰기 전에 정리 패널을 **접는다** — 펼쳐진 채로 스크롤하면 목적지가 그 밑에 가려
                   //   «아무 일도 안 일어난 것»으로 보인다(Boss 2026-08-25 제보 자리).
@@ -1701,6 +1702,7 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
       {askDelete ? <DeleteBar onCancel={() => setAskDelete(false)} onOk={onDeleteThread} t={t as never} /> : null}
       <TalkNotes
         notes={notes} open={notesOpen} onToggle={() => setNotesOpen((v) => !v)}
+        title={cur?.name}
         onJump={(mid) => { setJumpTo(null); requestAnimationFrame(() => setJumpTo(mid)); }}
         onChanged={() => refreshNotes(curSid)}
       />
