@@ -50,30 +50,37 @@ export async function confirmWebOrder(orderNo: string, paymentKey: string, amoun
 }
 
 /**
- * 토스 결제창을 띄운다.
+ * 토스 결제창을 띄운다 — **v2 표준 SDK**.
  *
+ * ⚠️★키 형식이 SDK 를 정한다. `test_gck_`·`live_gck_` 는 **v2** 용이고
+ *   v1(`js.tosspayments.com/v1/payment`)에 넣으면 인증에서 튕긴다.
+ *   (2026-08-31: 키를 받아 보니 `gck` 였다 — 그래서 v1 로 짜 둔 것을 v2 로 맞췄다.
+ *    v1 은 토스가 걷어 가는 중이기도 하다.)
  * ⚠️SDK 를 **그때 받는다** — 결제를 안 누르는 사람에게까지 스크립트를 받게 하지 않는다.
- * ⚠️`customerKey` 를 안 넘긴다(비회원 결제 아님 — 우리는 이미 로그인 사용자만 부른다).
+ * ★`customerKey` 는 익명으로 둔다 — 우리는 카드를 저장하지 않는다(재결제 수단 보관 = 별도 계약).
  */
 async function openTossCheckout(order: WebOrder, packName: string): Promise<void> {
   const w = globalThis as any;
   if (!w.TossPayments) {
     await new Promise<void>((resolve, reject) => {
       const s = w.document.createElement('script');
-      s.src = 'https://js.tosspayments.com/v1/payment';
+      s.src = 'https://js.tosspayments.com/v2/standard';
       s.onload = () => resolve();
       s.onerror = () => reject(new Error('결제 모듈을 불러오지 못했어요.'));
       w.document.head.appendChild(s);
     });
   }
   const origin = String(w.location?.origin ?? '');
-  const toss = w.TossPayments(order.clientKey);
-  await toss.requestPayment('카드', {
-    amount: order.won,
+  const sdk = w.TossPayments(order.clientKey);
+  const payment = sdk.payment({ customerKey: w.TossPayments.ANONYMOUS });
+  await payment.requestPayment({
+    method: 'CARD',
+    amount: { currency: 'KRW', value: order.won },
     orderId: order.orderNo,
     orderName: packName,
     successUrl: `${origin}/pay?ok=1`,
     failUrl: `${origin}/pay?ok=0`,
+    card: { useEscrow: false, flowMode: 'DEFAULT', useCardPoint: false, useAppCardOnly: false },
   });
 }
 
