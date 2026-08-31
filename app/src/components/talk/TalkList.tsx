@@ -31,7 +31,6 @@ import type { Consultant } from '../../lib/talk/consultants';
 import { loadFavorites, subscribeFavorites, toggleFavorite, isFavorite, isPinned } from '../../lib/talk/favorites';
 import { Icon } from '../kit/Icon';   // 상단 아이콘 단일 원본(Boss 2026-08-24)
 import { NotifyBell } from './NotifyBell';   // 알림 벨+배지(단일 원본 — 대화목록과 같은 것)
-import { LangChip } from '../LangChip';     // 언어 — ★목록은 `_layout` 의 `LangPickerHost` 가 그린다
 
 const FALLBACK_EL = ['木', '火', '土', '金', '水'] as const;
 // ⚠️★아래 `slot % 5` 는 **위치**로 색을 정한다 — 대화목록과 정렬이 달라 같은 사람이 다른 색이 됐다.
@@ -437,11 +436,9 @@ export function TalkList({ items, onOpen, selected, myName, onMe, myAvatar, onMy
             종이랑 돋보기 사이 간격이랑 달라"*).
             원인: 종만 감싸는 상자가 없어 **좌우 여백이 빠졌다** — `gap` 은 같은데 눈에는 달라 보인다.
             ★알림 — 돋보기 **왼쪽**(Boss 2026-08-26). 선 아이콘이라 옆과 무게가 같다. */}
-        {/* ★★언어 — 홈 헤더에서 **여기로 내렸다**(Boss 2026-08-30
-              *"언어설정이랑 그옆에 버튼은 명식등록 아래에 다른 아이콘들이랑 같이 둬"*).
-            아이콘을 아래 줄로 내리면서 위 줄에 남은 언어 칩만 동떨어져 보였다 — 같은 줄로 모은다.
-            ⚠️칩만 옮긴다. **고르는 목록은 `_layout` 의 `LangPickerHost`** 가 그리므로 여기 위치와 무관하다. */}
-        <LangChip />
+        {/* ★언어 칩은 **여기 없다**(Boss 2026-08-31 재배치).
+            앱 = 「니운내운」 로고 줄 오른쪽 · 웹 = 왼쪽 메뉴바 하단.
+            08-30 에 잠시 이 줄에 뒀다가, 두 면의 «제자리» 가 서로 다르다는 판단으로 옮겼다. */}
         <View style={[styles.topBtn, { width: BT, height: BT }]}><NotifyBell size={IC} /></View>
         {/* ★만세력 — **따로 아이콘**을 둔다(Boss 2026-08-27 *"만세력도 따로 아이콘 만들어서
             거기 클릭 또는 탭하면 넘어가게"*).

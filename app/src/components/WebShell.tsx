@@ -27,6 +27,7 @@ import { useTranslation } from 'react-i18next';
 
 import { ALL_TABS, TabIcon, isTabActive } from './BottomNav';
 import { BrandWordmark } from './BrandWordmark';   // ★탭 정의·아이콘은 하단 내비와 **같은 출처**
+import { LangChip } from './LangChip';             // 언어 — 웹은 이 사이드바 하단이 제자리(Boss 08-31)
 import { useFeatureOn } from '../lib/core/features';           // 커뮤니티 노출 = 원격 플래그(BottomNav 와 **같은 판정**)
 import { CONTENT_ROUTES } from '../lib/content/contentSections'; // 읽는 화면 판정 — 손으로 안 적고 콘텐츠 목록에서 파생
 import { colors, radius, space } from '../lib/theme';
@@ -211,6 +212,14 @@ function WebSidebar() {
           </Pressable>
         );
       })}
+      {/* ★★언어 — **웹은 여기**(왼쪽 메뉴바 하단)다(Boss 2026-08-31
+            *"앱기준 언어변경은 상단 니운내운 로고라인 오른쪽에 두고 웹은 제일 왼쪽 메뉴바 하단에 둬"*).
+          ■ 왜 하단인가 — 위쪽은 «어디로 갈지»(탭)이고, 언어는 **설정에 가깝다.**
+            탭 사이에 끼우면 «언어» 라는 화면이 있는 것처럼 읽힌다.
+          ⚠️`flex: 1` 짜리 빈 칸으로 **아래로 밀어** 둔다 — 탭이 몇 개든 늘 맨 아래다.
+          ⚠️고르는 목록은 `_layout` 의 `LangPickerHost` 가 그린다(여기 위치와 무관). */}
+      <View style={{ flex: 1 }} />
+      <View style={styles.langSlot}><LangChip /></View>
     </View>
   );
 }
@@ -266,6 +275,8 @@ const styles = StyleSheet.create({
     borderRightWidth: 1, borderRightColor: colors.line, backgroundColor: colors.card,
   },
   brand: { paddingHorizontal: space(3), marginBottom: space(6) },
+  // 언어 칩 자리 — 사이드바 맨 아래. 좌우 여백은 탭 항목과 맞춘다
+  langSlot: { paddingHorizontal: space(3), paddingBottom: space(4), paddingTop: space(2) },
 
   item: {
     flexDirection: 'row', alignItems: 'center', gap: space(3),

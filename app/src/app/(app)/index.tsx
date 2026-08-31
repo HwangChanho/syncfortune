@@ -16,7 +16,8 @@
 //
 // 로그인 게이트 없음(ADR-037).
 // ─────────────────────────────────────────────────────────────────────────
-import { View, StyleSheet, Animated, AppState } from 'react-native';
+import { View, StyleSheet, Animated, AppState, Platform } from 'react-native';
+import { LangChip } from '../../components/LangChip';   // 언어 칩(목록은 _layout 의 LangPickerHost)
 import { useSafeAreaInsets } from 'react-native-safe-area-context'; // ★상단 안전영역 — 고정 여백은 글자확대 시 잘린다(daniel 07-27)
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useAuth } from '../../lib/useAuth';
@@ -158,8 +159,13 @@ export default function Home() {
             ⚠️목록은 여기가 아니라 `_layout` 의 `LangPickerHost` 가 그린다(여기 헤더는 `FlatList` 의
               `ListHeaderComponent` 안이라 오버레이가 **헤더 높이만큼만** 덮인다). */}
         <View style={{ flex: 1 }} />
-        {/* ★언어 칩·알림 벨은 **아래 대화목록 아이콘 줄로 내려갔다**(Boss 2026-08-30).
-            같은 기능을 두 자리에 두지 않는다 — 배지·읽음 규칙이 갈리는 지점이 된다. */}
+        {/* ★★언어 — **앱에서만** 여기(로고 줄 오른쪽)에 둔다(Boss 2026-08-31
+              *"앱기준 언어변경은 상단 니운내운 로고라인 오른쪽에 두고 웹은 제일 왼쪽 메뉴바 하단에 둬"*).
+            ■ 왜 갈랐나 — 두 면의 «제자리» 가 다르다. 앱은 로고 줄이 유일한 상단 크롬이고,
+              웹은 왼쪽 메뉴바가 계속 떠 있어 설정류가 모이는 자리다.
+            ⚠️웹에서 여기 두면 왼쪽 메뉴바의 것과 **둘이 된다** — 그래서 플랫폼으로 가른다.
+            ⚠️알림 벨은 대화목록 아이콘 줄에 있다(여기 되돌리면 벨이 둘이 된다). */}
+        {Platform.OS !== 'web' ? <LangChip /> : null}
       </View>
 
       {/* 풀이 진행 알림 — ★진행률 막대가 아니라 **담당자의 답장**이다(Boss 2026-08-25).

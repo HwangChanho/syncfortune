@@ -610,8 +610,20 @@ function MyeongsikBody({ input, onReading, onSinsal, header, whoName }: Myeongsi
                 <View style={styles.ssTableRow}>
                   <Text style={styles.ssRowLabel}>{T('12신살')}</Text>
                   {visiblePos.map((p) => {
-                    // 년지 기준으로 이 기둥 지지의 12신살 하나
-                    const nm = twelveSinsalAt(P['년'].branch as any, P[p].branch as any);
+                    /**
+                     * ★★기준지 — **시·일·월은 년지, 년주만 일지**(Boss 2026-08-31 판정 *"년지는 반안살로 나오게"*).
+                     *
+                     * ■ 왜 년주만 다른가
+                     *   년지를 **자기 삼합국**에 대보면 늘 같은 자리(화개)가 나와 **아무것도 말하지 않는다.**
+                     *   그래서 년주 칸만 일지를 기준으로 본다 — Boss 가 보여 준 만세력도 그 형태였다.
+                     * ■ ★실측으로 확인한 값(황찬호 년甲戌·월丁卯·일辛丑·시丁酉)
+                     *     시(酉)=육해 · 일(丑)=천살 · 월(卯)=년살(=도화)  ← 년지 戌 기준
+                     *     년(戌)=반안                                    ← 일지 丑 기준
+                     *   레퍼런스 만세력과 **네 칸 모두** 일치한다.
+                     * ⚠️이건 관법이라 내가 정한 것이 아니다 — 위 Boss 판정이 근거다. 바꾸려면 Boss 에게 묻는다.
+                     */
+                    const baseBranch = (p === '년' ? P['일'] : P['년']).branch;
+                    const nm = twelveSinsalAt(baseBranch as any, P[p].branch as any);
                     // ★12신살 체계에서는 도화를 «년살» 로 부른다. 그 표는 **용어 파일이 소유**한다 —
                     //   여기 한국어를 박으면 다국어가 못 따라온다(`check:langpicker` 가 센다).
                     const key = TWELVE_SINSAL_ALIAS[nm] ?? nm;
