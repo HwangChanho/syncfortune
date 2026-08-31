@@ -30,6 +30,11 @@ export type LiveReply =
       packTurns?: number;
       /** 이번 묶음에서 **앞으로 몇 턴** 더 쓸 수 있나 */
       packLeft?: number;
+      /**
+       * ★**다음 턴에 막힌다**는 미리 알림(2026-08-31). 서버가 «묶음 한 턴 남음 + 잔액 부족» 일 때만 보낸다.
+       *   없으면 undefined — 매 턴 잔액을 재지 않기 위한 설계다(필요할 때만 잰다).
+       */
+      lowBalance?: { balance: number; nextCost: number };
       /** ★이번 답에서 뽑힌 정리(없으면 빈 배열). 서버가 저장까지 마친 뒤 알려 준다. */
       notes?: { kind: 'me' | 'when' | 'todo' | 'said'; body: string }[];
       /** ★대화 중 안내할 콘텐츠 키(없으면 null). 서버가 답에서 마커를 떼어 내고 여기로 준다.

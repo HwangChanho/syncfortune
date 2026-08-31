@@ -841,7 +841,13 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
    *   ★인자를 받는 이유: 대기 줄은 **state 가 아니라 ref** 에 있어서 `draft` 를 거치면
    *     한 프레임 늦고, 그 사이 사용자가 새로 친 글과 섞인다.
    */
-  const send: (override?: string) => void = useCallback((override?: string) => {
+  /**
+   * @param override 직접 보낼 말(없으면 입력창의 것)
+   * @param opts.echo 화면에 말풍선을 그릴지. **기본 true**.
+   *   ⚠️★대기 줄을 흘려보낼 때는 `false` 다 — 줄에 넣을 때 **이미 그렸기 때문**이다.
+   *     (Boss 2026-08-31 *"한번 쳤는데 대화도중에 쳤다고 두번뜨고"* — 정확히 이 이중 그리기였다.)
+   */
+  const send: (override?: string, opts?: { echo?: boolean }) => void = useCallback((override?: string, opts?: { echo?: boolean }) => {
     const q = (override ?? draft).trim();
     if (!q || !cur) return;
     if (override === undefined) setDraft('');
@@ -852,7 +858,7 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
       setItems((prev) => [...prev, { id: nextId(), role: 'user', body: q }]);
       return;
     }
-    setItems((prev) => [...prev, { id: nextId(), role: 'user', body: q }]);
+    if (opts?.echo !== false) setItems((prev) => [...prev, { id: nextId(), role: 'user', body: q }]);
 
     // ★생년월일을 말했는데 **명식이 없다** — 조각을 모아 카드를 띄운다(Boss 2026-08-26).
     //   ⚠️모델에게 계산시키지 않는다. 카드가 받은 값을 **엔진**에 넘긴다.
@@ -902,7 +908,8 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
     const q = pendingRef.current.join('\n').trim();
     if (!q) return;
     pendingRef.current = [];
-    send(q);
+    // ★말풍선은 **줄에 넣을 때 이미 그렸다** — 여기서 또 그리면 한 번 친 말이 두 번 뜬다
+    send(q, { echo: false });
   }, [busy, cur, send]);
 
   /**
@@ -1036,7 +1043,21 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
           //   답보다 먼저 뜬다. 마지막 풍선의 예상 시각 뒤로 미룬다.
           // ★무료 소진 — 상단 띠로 알린다(종전엔 상담가 말풍선이었다).
           //   띠는 자리가 고정이라 답을 앞지르지 않는다 ⇒ 종전의 «마지막 풍선 뒤로 미루는» 계산이 필요 없다.
-          if (r.overFree && r.used === r.freeDaily + 1) {
+          /**
+           * ★★**다음 턴에 막힌다는 걸 미리 알린다**(Boss 2026-08-31
+           *   *"그이하의 운일경우면서 무료횟수 다 차감하면 운 충전해야한다고 말해"*).
+           *   서버가 «묶음 한 턴 남았는데 잔액이 모자라다»(`lowBalance`)를 보낼 때만 뜬다.
+           *   ⚠️무료 안내보다 **먼저** 본다 — 둘 다 해당되면 «막힌다» 가 더 급한 소식이다.
+           */
+          if (r.lowBalance) {
+            setNotice({
+              kind: 'need',
+              text: t('talk.lowBalance', '운이 {{have}}개 남았어요. 다음 이야기부터는 {{cost}}운이 필요해요.')
+                .replace('{{have}}', String(r.lowBalance.balance))
+                .replace('{{cost}}', String(r.lowBalance.nextCost)),
+              action: t('coins.charge', '운 충전하기'),
+            });
+          } else if (r.overFree && r.used === r.freeDaily + 1) {
             setNotice({ kind: 'info', text: t('talk.overFree', '오늘 무료로 나눌 이야기는 여기까지예요. 이어서 하시면 운이 쓰여요.') });
           } else if (!r.overFree && typeof r.used === 'number' && typeof r.freeDaily === 'number') {
             // 남은 무료 횟수도 **미리** 알려 준다 — 다 쓰고 나서야 아는 건 늦다
