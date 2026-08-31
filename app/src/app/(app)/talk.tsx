@@ -44,7 +44,8 @@ import ChartMentionSheet from '../../components/talk/ChartMentionSheet';
 import { ProfileSheet, type ProfileTarget } from '../../components/talk/ProfileSheet';
 import { PersonSheet, type PersonTarget } from '../../components/talk/PersonSheet';   // 사람 상세 — 내 명식·친구가 **같은 패널**
 // ★반말/존댓말 판정은 **한 곳에서만**(Boss 2026-08-26) — 인사와 서버가 갈리면 안 된다
-import { ageFromBirth, isCasual } from '../../lib/talk/speechLevel';
+import { ageFromBirth } from '../../lib/talk/speechLevel';
+import { getSpeechCasual, speechCasualSnapshot } from '../../lib/talk/speechSetting';   // ★말투 = **설정값**(Boss 2026-08-31)
 // ★대화 안에서 명식 만들기(Boss 2026-08-26) — 등록 화면에 안 가고도 만들 수 있어야 한다
 import { parseBirth, looksLikeBirthInfo, type BirthDraft } from '../../lib/talk/birthParse';
 import { BirthDraftCard, type BirthCardResult } from '../../components/talk/BirthDraftCard';
@@ -240,6 +241,14 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
   // ★회원 만 나이 — 상담가 나이보다 어리면 **기본 반말**(Boss 2026-08-26).
   //   ⚠️명식이 없으면 null → 존댓말. 모르면 안전한 쪽이다.
   const [myAge, setMyAge] = useState<number | null>(null);
+  /**
+   * 상담가가 반말로 말하는가 — **회원이 설정에서 정한 값**(Boss 2026-08-31
+   *   *"그냥 설정에서 반말모드 존댓말모드 설정할수 있게하고 저건 묻지 않는걸로 하자"*).
+   * ⚠️종전엔 나이로 판정했는데(`isCasual`), 그러면 첫 인사와 서버 답이 **다른 근거**로 갈렸다.
+   *   이제 근거가 하나다 — 화면도 서버도 `profiles.speech_casual` 을 본다.
+   */
+  const [casualMode, setCasualMode] = useState<boolean>(() => speechCasualSnapshot());
+  useEffect(() => { void getSpeechCasual().then(setCasualMode); }, []);
   // ★명식이 **아예 없는가** — 없을 때만 «명식 만들기» 카드를 띄운다(있는데 띄우면 잔소리다)
   const [hasChart, setHasChart] = useState<boolean | null>(null);
   /**
@@ -657,7 +666,7 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
         // ★상담가마다 다른 인사(Boss 2026-08-26 *"각 테마에 맞게 가벼운 멘트"*).
         //   종전엔 열두 명이 **똑같은 한 줄**이었다. 말투 예시의 결을 그대로 옮겼다.
         // ★반말이면 인사도 반말이어야 한다 — 인사만 존댓말이면 다음 말과 어긋난다
-        body: greetingFor(c.id, c.name, c.tagline, isCasual(c.age, myAge)),
+        body: greetingFor(c.id, c.name, c.tagline, casualMode),
       };
       setItems([]);
       // ★인사도 **쪼개서** 띄운다 — 한 덩어리로 뜨면 «미리 써 둔 안내문»이지 대화가 아니다
@@ -741,12 +750,14 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
         }
       });
     }
+    // ⚠️`casualMode` 를 빼면 **인사만 존댓말로 굳는다** — 설정은 서버에서 나중에 들어온다.
+    //   (`myAge` 도 같은 이유로 남긴다 — 다른 문구가 나이를 쓴다.)
     // ⚠️`myAge` 를 빼면 **인사만 존댓말로 굳는다** — 나이는 대표 명식을 읽은 뒤에 들어오는데,
     //   그 전에 만들어진 `open` 이 계속 쓰이면 반말 판정이 영원히 null(=존댓말)이다.
     // ⚠️★`myCharts`·`pickedLocal`·`pickChart` 도 빼면 안 된다 — 명식 목록이 나중에 들어오는데
     //   그 전에 만들어진 `open` 이 계속 쓰이면 **카드가 영영 안 뜬다**(목록이 0으로 굳는다).
     //   ⚠️이 파일에는 react-hooks eslint 가 없다 — deps 는 **손으로** 맞춰야 한다.
-  }, [t, dateKey, myName, bumpChats, myAge, myCharts, pickedLocal, pickChart, router]);
+  }, [t, dateKey, myName, bumpChats, myAge, casualMode, myCharts, pickedLocal, pickChart, router]);
 
   // ── 친구가 공개한 명식 (Boss 2026-08-26 *"@ 누르면 내가 여기서 친구추가한 인물의 명식도"*) ──
   //   ★친구 명식을 읽는 길은 **이미 있었다** — 「친구 궁합」이 쓰던 `loadFriendChart` 그대로 쓴다.

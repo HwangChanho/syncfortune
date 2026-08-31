@@ -476,6 +476,7 @@ export const ja = {
   },
   capture: { start: 'キャプチャ', save: '保存', saving: '作成中…', pickHint: '入れるメモを選んでください', saved: '保存しました', savedMsg: '画像として保存しました。', fail: '保存できませんでした', failMsg: 'しばらくしてからもう一度お試しください。' },
   crop: { title: '写真を枠に合わせてください', sub: 'ドラッグで移動、− ＋ で大きさを調整。見えているまま保存されます。', working: '切り取り中…', use: 'これで使う' },
+  speech: { title: "話し方", row: "タメ口で話す", sub: "オフだと丁寧語で話します。いつでも変更できます。", failTitle: "保存できませんでした", failMsg: "少し経ってからもう一度お試しください。" },
   adult: { needVerifyTitle: '本人確認が必要です', needVerifyMsg: '満19歳以上か確認したうえでオンにできます。', verifySoon: '本人確認を準備中です。もう少しお待ちください。', title: 'アダルト会話', row: '満19歳以上です', sub: '相性や親密さの話をぼかさずに話します。' },
   screen: {
     shared: '共有された鑑定',

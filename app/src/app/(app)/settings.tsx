@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MyProfileCard } from '../../components/settings/MyProfileCard';
 import { loadRepChart } from '../../lib/engine/myChart';
 import { adultConfirmed, markAdultConfirmed, clearAdultConfirmed } from '../../lib/talk/adultGate';
+import { getSpeechCasual, setSpeechCasual } from '../../lib/talk/speechSetting';   // ★말투(반말/존댓말) — Boss 2026-08-31
 import { isAdultVerified, requestAdultVerification, ADULT_VERIFY_READY } from '../../lib/talk/adultVerify';
 import { computeChart } from '../../lib/engine/engine';
 import { stemElement } from '../../lib/engine/ohaeng';   // 대표 명식 일간 → 오행(프로필 색)
@@ -67,6 +68,13 @@ export default function SettingsScreen() {
   //     남의 명식을 잠깐 열어 보기만 해도 「내 프로필」이 남의 색을 입는다.
   const [repEl, setRepEl] = useState<string | null>(null);
   const [adultOn, setAdultOn] = useState<boolean>(() => adultConfirmed());   // 성인 대화 스위치(=선호)
+  /**
+   * 말투 — 상담가가 반말로 말할지 (Boss 2026-08-31
+   *   *"그냥 설정에서 반말모드 존댓말모드 설정할수 있게하고 저건 묻지 않는걸로 하자"*).
+   * ⚠️서버(`profiles.speech_casual`)가 정본이다 — Edge 가 그 값으로 말투를 정한다.
+   */
+  const [casualOn, setCasualOn] = useState(false);
+  useEffect(() => { void getSpeechCasual().then(setCasualOn); }, []);
   // ★«켤 수 있는 자격» — 서버가 아는 사실. 스위치와 **다른 값**이다(adultVerify.ts 주석 참조)
   const [adultVerified, setAdultVerified] = useState<boolean | null>(null);
   useEffect(() => { void isAdultVerified().then(setAdultVerified); }, []);
@@ -278,6 +286,38 @@ export default function SettingsScreen() {
           ★`isRegistered` 를 쓴다(익명 세션 제외) — 이 화면의 계정 카드가 쓰는 것과 **같은 판정**이다. */}
       {Platform.OS === 'web' && isRegistered ? (
         <>
+      {/* ── 말투 ── Boss 2026-08-31
+          *"말편하게 하라니깐 저러는데 저건왜그래"* / *"그냥 설정에서 반말모드 존댓말모드
+          설정할수 있게하고 저건 묻지 않는걸로 하자"*
+          ★종전엔 대화 중에 「말 편하게 해도 될까요?」 하고 물었는데 **방향이 뒤집혀** 어색했다
+            (회원이 「어」 하자 「편하게 말씀해도 괜찮아요」 라고 답했다 — 허락을 구한 것으로 읽었다).
+          ⇒ 묻지 않는다. 여기서 정한 값을 서버가 그대로 쓴다. */}
+      <Text style={[styles.h, { marginTop: space(7) }]}>{t('speech.title', '말투')}</Text>
+        <View style={styles.infoCard}>
+          <View style={[styles.infoRow, styles.infoRowLast, { alignItems: 'flex-start' }]}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.infoLabel}>{t('speech.row', '반말로 대화하기')}</Text>
+              <Text style={[styles.infoLabel, { color: colors.inkFaint, marginTop: 2 }]}>
+                {t('speech.sub', '끄면 존댓말로 이야기해요. 언제든 바꿀 수 있어요.')}
+              </Text>
+            </View>
+            <Switch
+              value={casualOn}
+              onValueChange={async (v) => {
+                setCasualOn(v);                       // 먼저 움직여 준다(기다림이 안 보이게)
+                const ok = await setSpeechCasual(v);
+                // ⚠️★저장이 실패하면 **되돌린다** — 스위치만 켜져 있고 말투는 그대로면
+                //   «껐다 켰는데 안 바뀐다» 가 된다([[rls-write-policy-missing]] 의 조용한 실패).
+                if (!ok) {
+                  setCasualOn(!v);
+                  Alert.alert(t('speech.failTitle', '저장하지 못했어요'),
+                    t('speech.failMsg', '잠시 뒤 다시 시도해 주세요.'));
+                }
+              }}
+            />
+          </View>
+        </View>
+
       <Text style={[styles.h, { marginTop: space(7) }]}>{t('adult.title', '성인 대화')}</Text>
         <View style={styles.infoCard}>
           <View style={[styles.infoRow, styles.infoRowLast, { alignItems: 'flex-start' }]}>

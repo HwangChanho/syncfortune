@@ -244,8 +244,18 @@ const styles = StyleSheet.create({
   av: { borderWidth: 3, borderColor: 'rgba(255,255,255,0.9)' },
   center: { alignItems: 'center', justifyContent: 'center' },
   // ★흰 글자의 가독성은 **그림자**가 맡는다(검은 띠를 걷어낸 자리)
-  name: { ...font.title, color: '#FFFFFF', fontWeight: '900', marginTop: space(2), textShadowColor: 'rgba(0,0,0,0.75)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 6, },
-  meta: { ...font.caption, color: 'rgba(255,255,255,0.92)', textAlign: 'center', marginTop: space(1), lineHeight: 18, textShadowColor: 'rgba(0,0,0,0.75)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 6, },
+  /**
+   * ★흰 글자의 가독성은 **그림자**가 맡는다(검은 띠를 걷어낸 자리).
+   *
+   * ⚠️실측(2026-08-31 · 한서윤 배경): 글자가 앉는 자리가 크림색(~#EDE6DC)이라
+   *   흰 글자와의 **대비가 1.19** 다 — 기준 3.0 근처도 못 간다.
+   *   즉 이 글자는 **전적으로 그림자로 읽힌다.**
+   * ★얇은 `meta` 는 더 짙고 **좁게** 준다 — 좁을수록 후광이 촘촘해 얇은 획을 받쳐 준다
+   *   (넓히면 옅게 퍼져 오히려 흐려진다).
+   * ★어두운 배경에서는 이 그림자가 안 보이므로 손해가 없다.
+   */
+  name: { ...font.title, color: '#FFFFFF', fontWeight: '900', marginTop: space(2), textShadowColor: 'rgba(0,0,0,0.8)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 7 },
+  meta: { ...font.caption, color: '#FFFFFF', textAlign: 'center', marginTop: space(1), lineHeight: 18, textShadowColor: 'rgba(0,0,0,0.9)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 5, },
   actions: { flexDirection: 'row', gap: space(2), marginTop: space(4), flexWrap: 'wrap', justifyContent: 'center' },
   btn: { paddingVertical: space(2.5), paddingHorizontal: space(5), borderRadius: radius.pill, backgroundColor: colors.ju },
   // ★띠가 사라졌으니 버튼 자신이 바탕을 갖는다 — 밝은 사진 위에서도 테두리가 보이게
