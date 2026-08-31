@@ -119,15 +119,35 @@ export const WEB_BODY = 680;
  *   ⇒ 캡을 한 곳에 두고 두 계열이 같은 값을 쓰게 한다(`check:readbody` 가 누락을 감시).
  */
 export function useReadBody(): { width: '100%'; maxWidth: number; alignSelf: 'center' } | undefined {
-  const wide = useWideWeb();
-  return wide ? { width: '100%', maxWidth: WEB_BODY, alignSelf: 'center' } : undefined;
+  const { width } = useWindowDimensions();
+  /**
+   * ★본문 폭 제한은 **사이드바보다 일찍** 건다(2026-08-31 iPad 대응).
+   *   iPad 세로(744~1024)는 사이드바를 안 쓰지만, 글이 화면 폭을 꽉 채우면
+   *   한 줄이 너무 길어 **읽기가 힘들다.** 읽기 편한 줄 길이는 기기와 무관하다.
+   * ⚠️폰은 영향이 없다 — 가장 넓은 폰도 700pt 를 못 넘는다.
+   */
+  return width >= 700 ? { width: '100%', maxWidth: WEB_BODY, alignSelf: 'center' } : undefined;
 }
 
-/** 지금 '넓은 웹'인가 — 레이아웃이 하단 탭 대신 사이드바를 써야 하는 상태. */
+/**
+ * 지금 **넓은 화면**인가 — 하단 탭 대신 사이드바를 써야 하는 상태.
+ *
+ * ■ ★2026-08-31 Boss *"패드도 대응해야겠어"* — `Platform.OS === 'web'` 조건을 **뺐다.**
+ *   이 레이아웃은 «웹이라서» 가 아니라 **«넓어서»** 필요한 것이다.
+ *   ⚠️`WebShell` 안에 `document`·`window` 가 **한 줄도 없다**(실측) — 순수 RN 이라
+ *     태블릿에서 그대로 돈다. 조건 하나가 iPad 를 막고 있었을 뿐이다.
+ * ■ 폰은 그대로다 — 가장 넓은 폰도 900pt 를 못 넘는다(회귀 0).
+ *   iPad 세로(744~1024)는 대부분 폰 배치, 가로(1024~1366)는 사이드바가 된다.
+ * ★이름은 `useWideWeb` 로 **남겨 둔다** — 호출처가 27곳이라 지금 바꾸면 진짜 변경이 묻힌다.
+ *   (아래 `useWideLayout` 이 같은 것을 가리키는 새 이름이다.)
+ */
 export function useWideWeb(): boolean {
   const { width } = useWindowDimensions();
-  return Platform.OS === 'web' && width >= WEB_WIDE;
+  return width >= WEB_WIDE;
 }
+
+/** `useWideWeb` 의 새 이름 — 뜻이 «웹» 이 아니라 «넓은 화면» 이라서. */
+export const useWideLayout = useWideWeb;
 
 /**
  * 이 화면에서 카드를 **몇 열로** 놓을 것인가.
@@ -136,7 +156,8 @@ export function useWideWeb(): boolean {
  */
 export function useWebCols(): number {
   const { width } = useWindowDimensions();
-  if (Platform.OS !== 'web' || width < WEB_WIDE) return 1;
+  // ★면을 안 본다 — 열 수를 정하는 건 **폭**이다(2026-08-31 iPad 대응)
+  if (width < WEB_WIDE) return 1;
   return width >= WEB_XWIDE ? 3 : 2;
 }
 

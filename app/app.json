@@ -8,7 +8,7 @@
     "scheme": "syncfortune",
     "newArchEnabled": false,
     "ios": {
-      "supportsTablet": false,
+      "supportsTablet": true,
       "bundleIdentifier": "com.syncfortune.app",
       "config": {
         "usesNonExemptEncryption": false

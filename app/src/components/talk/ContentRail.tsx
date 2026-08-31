@@ -130,6 +130,9 @@ const styles = StyleSheet.create({
   icon: { width: 26, height: 26 },
   // 더보기 — 아이콘 대신 남은 개수를 적는다(무엇이 더 있는지는 눌러야 알지만, 몇 개인지는 미리 알려준다)
   moreCircle: { borderWidth: 1, borderColor: colors.line, backgroundColor: 'transparent' },
-  moreTx: { ...font.label, color: colors.inkSoft, fontWeight: '800' },
-  label: { ...font.caption, color: colors.inkSoft, textAlign: 'center', lineHeight: 14 },
+  moreTx: { ...font.label, color: colors.ju, fontWeight: '800' },
+  // ★이름은 **브라운**(Boss 2026-08-31 *"자미두수 타로 점성술 … 색상 브라운으로 맞춰줘"*).
+  //   종전 `inkSoft`(회색)는 «읽고 지나가는 글» 처럼 보여, 누를 수 있는 자리라는 게 안 읽혔다.
+  //   ⇒ 앱의 강조색과 같게 둔다 — 「누르는 것」 이라는 신호를 색이 맡는다.
+  label: { ...font.caption, color: colors.ju, fontWeight: '700', textAlign: 'center', lineHeight: 14 },
 });
