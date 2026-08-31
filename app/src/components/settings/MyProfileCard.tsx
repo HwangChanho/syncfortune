@@ -22,7 +22,7 @@ import { PressableScale } from '../PressableScale';
 import { loadMyProfile, saveMyName, uploadMyAvatar, clearMyAvatar, uploadMyCover, clearMyCover } from '../../lib/talk/myProfile';
 // ★폰 사진 고르기(Boss 2026-08-28 *"ios는 왜 사진 바꾸기가 안되지"*) — 웹은 종전 <input type=file> 그대로
 import { pickImageUri, bytesOfUri, canPickImage } from '../../lib/media/pickImage';
-import { CropSheet } from '../media/CropSheet';
+import { requestCrop } from '../../lib/media/cropRequest';
 // ★사진 한 장 크게 — 대화창이 쓰는 것과 **같은 창**을 쓴다(따로 만들면 동작이 갈린다)
 import { PhotoViewer } from '../talk/PhotoViewer';
 import { originalImage } from '../../lib/media/imageUrl';
@@ -105,14 +105,20 @@ export function MyProfileCard({ fallbackName, element }: { fallbackName?: string
    * ★**웹·폰이 같은 자리로 모인다.** 고르는 방법만 다르고(파일 입력 ↔ 앨범),
    *   자르기·업로드는 **한 벌**이다 — 오늘 여러 번 데인 «면마다 다르게 도는 것» 을 안 만든다.
    * ★비율은 **그리는 칸이 정한다**: 프로필 1, 배경 9/16(프로필 창 패널 비율과 같다).
+   * ★창은 `requestCrop` 이 **화면 뿌리에서** 띄운다 — 카드 안에서 그리면 `absoluteFill` 이
+   *   부모를 채워 화면을 못 덮는다(`lib/media/cropRequest.ts` 주석 참고).
    */
-  const [crop, setCrop] = useState<{ uri: string; kind: 'avatar' | 'cover' } | null>(null);
   const COVER_ASPECT = 9 / 16;
 
-  /** 잘라 낸 결과를 올린다 — 업로드는 종전 함수 그대로(경로·정책·버전쿼리 규칙이 한 벌이다). */
-  const onCropped = async (uri: string, kind: 'avatar' | 'cover') => {
-    setCrop(null);
-    const img = await bytesOfUri(uri);
+  /** 고른 사진을 자르고 → 올린다. 취소는 조용히 접는다(사용자가 스스로 접은 것이다). */
+  const cropThenUpload = async (uri: string, kind: 'avatar' | 'cover') => {
+    const cut = await requestCrop({
+      uri,
+      aspect: kind === 'avatar' ? 1 : COVER_ASPECT,
+      outWidth: kind === 'avatar' ? 512 : 1080,
+    });
+    if (!cut) return;
+    const img = await bytesOfUri(cut.uri);
     if (!img) { flash(t('profile.saveFail', '저장하지 못했어요')); return; }
     setBusy(true);
     const r = kind === 'avatar' ? await uploadMyAvatar(img) : await uploadMyCover(img);
@@ -133,7 +139,7 @@ export function MyProfileCard({ fallbackName, element }: { fallbackName?: string
     if (e.target) e.target.value = '';   // 같은 파일을 다시 골라도 이벤트가 오게
     if (!f) return;
     // ★바로 올리지 않는다 — **자르기 창을 먼저** 띄운다(폰과 같은 자리로 모인다)
-    setCrop({ uri: URL.createObjectURL(f), kind: 'avatar' });
+    void cropThenUpload(URL.createObjectURL(f), 'avatar');
   };
 
   /**
@@ -143,11 +149,11 @@ export function MyProfileCard({ fallbackName, element }: { fallbackName?: string
    */
   const onPickNative = async () => {
     const uri = await pickImageUri();     // ★자르기 전 원본 — 편집은 우리 창이 한다
-    if (uri) setCrop({ uri, kind: 'avatar' });
+    if (uri) void cropThenUpload(uri, 'avatar');
   };
   const onPickCoverNative = async () => {
     const uri = await pickImageUri();
-    if (uri) setCrop({ uri, kind: 'cover' });
+    if (uri) void cropThenUpload(uri, 'cover');
   };
 
   const onClear = async () => { setBusy(true); await clearMyAvatar(); setBusy(false); setAvatar(null); };
@@ -158,7 +164,7 @@ export function MyProfileCard({ fallbackName, element }: { fallbackName?: string
     const f = e?.target?.files?.[0];
     if (e.target) e.target.value = '';
     if (!f) return;
-    setCrop({ uri: URL.createObjectURL(f), kind: 'cover' });
+    void cropThenUpload(URL.createObjectURL(f), 'cover');
   };
   const onClearCover = async () => { setBusy(true); await clearMyCover(); setBusy(false); setCover(null); };
 
@@ -243,16 +249,6 @@ export function MyProfileCard({ fallbackName, element }: { fallbackName?: string
       {/* 크게 보기 — 대화창과 **같은 창** */}
       <PhotoViewer uri={zoom?.uri ?? null} caption={zoom?.cap} onClose={() => setZoom(null)} />
 
-      {/* ★자르기 창 — 사진 위가 아니라 **카드 전체를 덮는다**. 고른 직후 여기로 온다 */}
-      {crop ? (
-        <CropSheet
-          uri={crop.uri}
-          aspect={crop.kind === 'avatar' ? 1 : COVER_ASPECT}
-          outWidth={crop.kind === 'avatar' ? 512 : 1080}
-          onDone={(r) => onCropped(r.uri, crop.kind)}
-          onCancel={() => setCrop(null)}
-        />
-      ) : null}
 
       {/* 숨긴 파일 입력 — 웹에서만 렌더된다(네이티브에는 DOM 이 없다) */}
       {Platform.OS === 'web' ? <WebFileInput inputRef={fileRef} onChange={onFile} /> : null}

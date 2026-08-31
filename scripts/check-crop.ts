@@ -47,13 +47,26 @@ export function editingOff(src: string): boolean | null {
   return m ? m[1] === 'false' : null;
 }
 
-/** 고른 사진이 **자르기 창을 거치는가**(바로 업로드하지 않는가). */
+/**
+ * 고른 사진이 **자르기 창을 거치는가**(바로 업로드하지 않는가).
+ *
+ * ★네 갈래(웹 프로필·웹 배경·폰 프로필·폰 배경)가 **전부** 한 자리로 모여야 한다.
+ *   한 갈래만 빠져도 그 면에서만 옛 동작이 남는다.
+ * ★2026-08-31 개정 — 자르기 창을 **화면 뿌리**로 올리면서 카드가 `<CropSheet/>` 를
+ *   직접 그리지 않게 됐다. ⇒ «무엇을 부르는가» 로 본다(자리·이름이 아니라 뜻).
+ *   ⚠️바로 올리는 길이 남아 있으면 그것도 잡는다 — 자르기를 건너뛰는 게 곧 이 버그다.
+ */
 export function goesThroughCrop(src: string): boolean {
   const s = strip(src);
-  if (!/<CropSheet/.test(s)) return false;
-  // 네 갈래(웹 프로필·웹 배경·폰 프로필·폰 배경)가 전부 `setCrop` 으로 모여야 한다
-  return (s.match(/setCrop\(\{/g) ?? []).length >= 4;
+  // ⚠️**부르는 곳 4**(웹 프로필·웹 배경·폰 프로필·폰 배경)만 센다 —
+  //   정의(`const cropThenUpload = async (…)`)는 이 모양에 안 걸린다(호출이 아니다).
+  if ((s.match(/cropThenUpload\s*\(/g) ?? []).length < 4) return false;
+  // ⚠️**고른 것을 그대로** 올리는 길이 남아 있나 — 그게 곧 «자르기를 건너뛴다» 는 뜻이다.
+  //   `f`·`file` = 웹 파일 입력이 준 원본. 자른 뒤 바이트는 다른 이름으로 온다.
+  //   ★들여쓰기·자리에 기대지 않는다(리팩터링에 눈이 머는 판정을 안 만든다).
+  return !/upload(?:My)?(?:Avatar|Cover)\s*\(\s*(?:f|file)\s*\)/.test(s);
 }
+
 
 /** 배경 자르기 비율(가로/세로)을 읽는다. */
 export function coverAspect(src: string): number | null {
@@ -78,6 +91,7 @@ if (!process.argv.includes('--selftest')) {
   const PICK = 'app/src/lib/media/pickImage.ts';
   const CARD = 'app/src/components/settings/MyProfileCard.tsx';
   const SHEET = 'app/src/components/talk/ProfileSheet.tsx';
+  const HOST = 'app/src/app/(app)/_layout.tsx';
   const CROP = 'app/src/components/media/CropSheet.tsx';
 
   const pick = read(PICK), card = read(CARD), sheet = read(SHEET), cropSrc = read(CROP);
@@ -92,8 +106,22 @@ if (!process.argv.includes('--selftest')) {
   if (!card) fail('C0', `${CARD} 를 못 읽었다`);
   else if (!goesThroughCrop(card)) {
     fail('C2', `${CARD} 가 고른 사진을 **자르기 창으로 안 보낸다**.\n        `
-      + '웹 2갈래(파일 입력) + 폰 2갈래(앨범) = 네 곳이 모두 `setCrop({…})` 으로 모여야 한다.\n        '
+      + '웹 2갈래(파일 입력) + 폰 2갈래(앨범) = 네 곳이 모두 `cropThenUpload(…)` 으로 모여야 한다\n        '
+      + '(부르는 곳 4회). 자르기를 건너뛰고 **고른 것을 그대로** 올리는 길이 남아 있어도 잡는다.\n        '
       + '★한 갈래만 빠져도 그 면에서만 옛 동작이 남는다 — 오늘 프로필 오버레이에서 겪은 그 부류다');
+  }
+
+  // C6 ★자르기 창은 **화면 뿌리**에서 그린다 — 카드 안이면 `absoluteFill` 이 부모를 채운다
+  const host = read(HOST);
+  if (!host) fail('C0', `${HOST} 를 못 읽었다`);
+  else if (!/<CropHost\s*\/>/.test(strip(host))) {
+    fail('C6', `${HOST} 가 \`<CropHost/>\` 를 안 그린다.\n        `
+      + '⚠️카드 안에서 그리면 `absoluteFill` 이 **부모를 채워** 화면을 못 덮는다(2026-08-31 웹 실측:\n        '
+      + '뒤 폼이 비치고 버튼이 칸 위에 겹쳤다). 폰은 더 나쁘다 — `settings` 뿌리가 `ScrollView` 라\n        '
+      + '오버레이 높이가 **스크롤 전체 높이**가 된다(`check:overlayroot` 가 그때 생긴 규칙이다)');
+  }
+  if (card && /<CropSheet/.test(strip(card))) {
+    fail('C6', `${CARD} 가 \`<CropSheet/>\` 를 **직접** 그린다 — 뿌리(\`CropHost\`)에 맡길 것`);
   }
 
   if (card && sheet) {
@@ -115,7 +143,9 @@ if (!process.argv.includes('--selftest')) {
 
 // ── 음성 테스트 ─────────────────────────────────────────────────────────────
 if (process.argv.includes('--selftest')) {
-  const cardOK = `const COVER_ASPECT = 9 / 16;\nsetCrop({a});setCrop({b});setCrop({c});setCrop({d});\n<CropSheet uri={x}/>`;
+  const cardOK = 'const COVER_ASPECT = 9 / 16;\n'
+    + 'const cropThenUpload = async (u, k) => { await uploadMyAvatar(img); };\n'
+    + 'cropThenUpload(a,"avatar"); cropThenUpload(b,"cover"); cropThenUpload(c,"avatar"); cropThenUpload(d,"cover");';
   const cases: Array<{ name: string; run: () => boolean }> = [
     { name: 'C1 allowsEditing: false 면 통과',
       run: () => editingOff(`export async function pickImageUri() {\n allowsEditing: false,\n}`) === true },
@@ -127,18 +157,28 @@ if (process.argv.includes('--selftest')) {
     { name: 'C1 함수가 없으면 단정하지 않는다', run: () => editingOff('const a = 1;') === null },
     { name: 'C2 네 갈래가 다 모이면 통과', run: () => goesThroughCrop(cardOK) === true },
     { name: 'C2 세 갈래만이면 문다',
-      run: () => goesThroughCrop(`setCrop({a});setCrop({b});setCrop({c});\n<CropSheet/>`) === false },
-    { name: 'C2 자르기 창을 안 그리면 문다',
-      run: () => goesThroughCrop(`setCrop({a});setCrop({b});setCrop({c});setCrop({d});`) === false },
+      run: () => goesThroughCrop(cardOK.replace('cropThenUpload(d,"cover");', '')) === false },
+    { name: 'C2 ★고른 것을 그대로 올리는 길이 남으면 문다(자르기 건너뜀)',
+      run: () => goesThroughCrop(`${cardOK}\nconst onFile = async (f) => { await uploadMyCover(f); };`) === false },
+    { name: 'C2 자른 바이트를 올리는 것은 정상',
+      run: () => goesThroughCrop(`${cardOK}\nconst ok = await uploadMyCover(cropped);`) === true },
     { name: 'C3 두 비율이 같으면 통과',
       run: () => coverAspect(cardOK) === panelAspect('const VIDEO_RATIO = 9 / 16;') },
     { name: 'C3 비율이 어긋나면 잡힌다',
       run: () => Math.abs((coverAspect('const COVER_ASPECT = 3 / 4;') ?? 0)
                         - (panelAspect('const VIDEO_RATIO = 9 / 16;') ?? 0)) > 0.001 },
+    { name: 'C6 뿌리가 <CropHost/> 를 그리면 통과',
+      run: () => /<CropHost\s*\/>/.test(strip('<BottomNav />\n<CropHost />\n</View>')) === true },
+    { name: 'C6 안 그리면 문다',
+      run: () => /<CropHost\s*\/>/.test(strip('<BottomNav />\n</View>')) === false },
+    { name: 'C6 주석 속 <CropHost/> 에 안 속는다',
+      run: () => /<CropHost\s*\/>/.test(strip('// <CropHost />\nconst a=1;')) === false },
+    { name: 'C6 카드가 <CropSheet/> 를 직접 그리면 문다',
+      run: () => /<CropSheet/.test(strip('<CropSheet uri={u} />')) === true },
     { name: 'C4 MIN_SCALE 1 이면 통과', run: () => minScaleOk('const MIN_SCALE = 1;') === true },
     { name: 'C4 MIN_SCALE 0.5 면 문다', run: () => minScaleOk('const MIN_SCALE = 0.5;') === false },
     { name: '주석 속 코드에 안 속는다',
-      run: () => goesThroughCrop(`// setCrop({a});setCrop({b});setCrop({c});setCrop({d});\n// <CropSheet/>`) === false },
+      run: () => goesThroughCrop(cardOK.split('\n').map((l) => `// ${l}`).join('\n')) === false },
     { name: '주석을 지워도 **자리**가 안 밀린다',
       run: () => { const s = strip('AB/* xx */CD'); return s.length === 'AB/* xx */CD'.length; } },
   ];

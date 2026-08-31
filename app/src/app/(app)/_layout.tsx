@@ -12,6 +12,7 @@ import { clearGenByPath } from '../../lib/backend/genProgress'; // 화면 접근
 import { logEvent } from '../../lib/backend/logger'; // 콘텐츠 조회 로깅(daniel 2026-08-10) — 아래 useEffect 참조
 import { useFontScale } from '../../lib/ui/fontScale';
 import { AdBanner } from '../../components/AdBanner';
+import { CropHost } from '../../components/media/CropHost';
 import { BottomNav } from '../../components/BottomNav';
 import { OfflineBanner } from '../../components/OfflineBanner';
 import { ContentBackdrop } from '../../components/ContentBackdrop'; // ★전 콘텐츠 화면 공통 배경(한지/달밤+별) — daniel 07-02
@@ -213,6 +214,13 @@ export default function AppLayout() {
           ★넓은 웹에서는 좌측 사이드바(WebShell)가 그 일을 하므로 띄우지 않는다 —
             둘 다 있으면 같은 내비가 두 벌이 된다. */}
       {!wideWeb && <BottomNav />}
+      {/* ★★사진 자르기 창 — **가장 마지막 자식**이라 모든 것 위에 온다(Boss 2026-08-31).
+          ⚠️카드 안에서 그렸더니 `absoluteFill` 이 **부모(카드)를 채워** 화면을 못 덮었다:
+            뒤 폼이 비치고 버튼이 칸 위에 겹쳤다(웹 실측). 폰은 더 나쁘다 —
+            `settings` 의 뿌리가 `ScrollView` 라 오버레이 높이가 **스크롤 전체 높이**가 된다
+            (`check:overlayroot` 가 그때 생긴 규칙이다).
+          ★`Modal` 을 안 쓴다 — App Store 2.1(a) 크래시가 **네이티브 모달 겹침**이었다. */}
+      <CropHost />
     </View>
   );
 }
