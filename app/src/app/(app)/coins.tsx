@@ -13,7 +13,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useCallback, useState } from 'react';
 import { TALK_PACK, FREE_TALK_DAILY } from '../../lib/billing/coinPrices';   // 대화 묶음(화면 표기용 — 실제 차감은 서버)
-import { View, Text, ScrollView, StyleSheet, ActivityIndicator, Platform, Linking } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, ActivityIndicator, Linking } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Image as ExpoImage } from 'expo-image';
 import { coinIcon } from '../../lib/ui/brandAsset';
@@ -32,7 +32,6 @@ import { useTranslation } from 'react-i18next';
 
 
 /** 웹 충전 자리. ⚠️커스텀 도메인이 생기면 **여기만** 바꾼다. */
-const WEB_COINS_URL = 'https://niwoon2.pages.dev/coins';
 /** 취소·환불 정책 — ★법이 요구하는 «명확한 표시» 의 근거 문서. 약관 사이트에 있다(단일 출처). */
 const REFUND_POLICY_URL = 'https://hwangchanho.github.io/syncfortune/legal/refund-ko.html';
 
@@ -127,24 +126,13 @@ export default function CoinsScreen() {
         <Text style={styles.pageTitle}>{t('coins.title', '운 충전')}</Text>
         <Text style={styles.pageSub}>{t('coins.titleSub', '운을 충전하고 원하는 풀이를 열어 보세요.')}</Text>
 
-        {/* ★★앱에서는 **웹으로 안내한다** (Boss 2026-08-28
-              *"앱에서는 운 충전 누르면 웹 띄우고 웹에 다양한 기능들이 많다고 안내도 해야해"*).
-            ■ 왜 — 웹은 스토어 수수료(30%)가 없어 **같은 돈으로 더 많은 운**을 드릴 수 있다.
-            ■ ⚠️앱 안의 충전 수단을 **없애지 않는다.** 아래 상품 목록은 그대로 둔다 —
-              웹으로 가는 길이 막힌 사람(브라우저를 못 여는 상황)이 갇히면 안 되고,
-              스토어 심사에서도 «앱에서 살 수 없는 앱» 이 되면 안 된다.
-            ■ ★웹에 «뭐가 더 있는지» 를 함께 적는다 — «싸다» 만으로는 왜 옮겨야 하는지 모른다. */}
-        {Platform.OS !== 'web' ? (
-          <View style={styles.webCard}>
-            <Text style={styles.webHead}>{t('coins.webHead', '웹에서 충전하면 더 많이 받아요')}</Text>
-            <Text style={styles.webSub}>
-              {t('coins.webSub', '스토어 수수료가 없어 같은 금액으로 운을 더 드려요.\n웹에서는 큰 화면으로 명식·관계 지도·대화를 한 번에 볼 수 있어요.')}
-            </Text>
-            <PressableScale style={styles.webBtn} onPress={() => { void Linking.openURL(WEB_COINS_URL); }}>
-              <Text style={styles.webBtnTx}>{t('coins.webGo', '웹에서 충전하기')}</Text>
-            </PressableScale>
-          </View>
-        ) : null}
+        {/* ★★2026-08-31 — 「웹에서 충전하면 더 많이 받아요」 카드를 **뺐다**(Boss 지시).
+            ■ 08-28 에는 «앱에서 웹으로 안내하자» 였는데, 그건 **앱 결제를 빼려던 계획**의 일부였다.
+              08-31 에 «앱·웹 둘 다 두기»(앱=정가·웹 −28%)로 정해지면서 전제가 사라졌다.
+            ■ ⚠️그리고 그 카드는 **Apple 3.1.1 안티스티어링이 금지하는 형태**다 —
+              외부 결제 페이지로 가는 버튼 + 「더 싸다」는 문구. 이 앱은 이미 두 번 리젝됐다.
+              이제 **앱에서도 살 수 있으니** 그 카드가 없어도 사용자가 막히지 않는다.
+            ★`check:nosteering` 이 이 링크가 되살아나는 것을 막는다. */}
 
         {/* ★운으로 **무엇을 할 수 있는지** 적는다(Boss 2026-08-26 *"운 구매할때 설명 명시 돼야하고"*).
             종전엔 «원하는 풀이를 열어 보세요» 한 줄뿐이라, 10운이 얼마만큼인지 알 수 없었다.
@@ -253,15 +241,10 @@ export default function CoinsScreen() {
 
 const styles = StyleSheet.create({
   // ★웹 안내 카드 — 상품 목록보다 **위**에 둔다(고르기 전에 알아야 의미가 있다)
-  webCard: { backgroundColor: colors.juSoft, borderRadius: radius.md, borderWidth: 1, borderColor: colors.juLine, padding: space(4), marginTop: space(4), gap: space(2) },
-  webHead: { ...font.body, color: colors.ink, fontWeight: '800' },
   // 환불 고지 — 눈에 들어오되 상품을 가리지 않게. 자리가 곧 법적 요건이라 숨기지 않는다
   refundBox: { marginTop: space(3), gap: 4 },
   refundTx: { ...font.caption, color: colors.inkFaint, lineHeight: 17 },
   refundLink: { ...font.caption, color: colors.ju, fontWeight: '700', textDecorationLine: 'underline' },
-  webSub: { ...font.caption, color: colors.inkSoft, lineHeight: 18 },
-  webBtn: { alignSelf: 'flex-start', backgroundColor: colors.ju, borderRadius: radius.pill, paddingVertical: space(2), paddingHorizontal: space(4), marginTop: space(1) },
-  webBtnTx: { ...font.caption, color: colors.onJu, fontWeight: '800' },
 
   bg: { flex: 1, backgroundColor: 'transparent' },
   screen: { backgroundColor: 'transparent' },

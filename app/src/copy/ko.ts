@@ -1163,7 +1163,7 @@ export const ko = {
     'title': '나와 닮은 연예인',
     'topLabel': '나와 가장 닮은 인물',
   },
-  coins: { refundNotice: '결제 후 7일 이내, 사용하지 않은 운만 환불돼요. 이미 사용한 운은 환불되지 않아요.', refundPolicy: '취소·환불 정책', webHead: '웹에서 충전하면 더 많이 받아요', webSub: '스토어 수수료가 없어 같은 금액으로 운을 더 드려요.\n웹에서는 큰 화면으로 명식·관계 지도·대화를 한 번에 볼 수 있어요.', webGo: '웹에서 충전하기', title: '운 충전', titleSub: '운을 충전하고 원하는 풀이를 열어 보세요.', bonusAny: '충전 시 자동 적용', bonusNote: '충전하면 큰 쿠폰부터 자동으로 쓰여요. 결제 금액은 그대로예요.', bonusTitle: '가진 보너스', failTitle: '충전하지 못했어요',
+  coins: { refundNotice: '결제 후 7일 이내, 사용하지 않은 운만 환불돼요. 이미 사용한 운은 환불되지 않아요.', refundPolicy: '취소·환불 정책', webSub: '스토어 수수료가 없어 같은 금액으로 운을 더 드려요.\n웹에서는 큰 화면으로 명식·관계 지도·대화를 한 번에 볼 수 있어요.', title: '운 충전', titleSub: '운을 충전하고 원하는 풀이를 열어 보세요.', bonusAny: '충전 시 자동 적용', bonusNote: '충전하면 큰 쿠폰부터 자동으로 쓰여요. 결제 금액은 그대로예요.', bonusTitle: '가진 보너스', failTitle: '충전하지 못했어요',
     useHead: '운으로 할 수 있는 것',
     useTalk: '· 상담가와 대화 — {{cost}}운이면 {{turns}}턴',
     useReading: '· 사주·궁합·타로 풀이 — 콘텐츠마다 값이 다르고, 열기 전에 보여 드려요',
