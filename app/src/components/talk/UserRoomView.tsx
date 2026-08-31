@@ -137,7 +137,7 @@ export function UserRoomView({ sessionId, myId, onBack, onInvite, onLeave }: {
     if (m.role === 'assistant') {
       const tc = teachers.find((x) => x.id === m.speakerId);
       return {
-        id: `a${m.id}`, role: 'assistant' as const, body: m.body,
+        id: `a${m.id}`, role: 'assistant' as const, body: m.body, sentAt: m.sentAt,
         who: { name: tc?.name ?? 'AI', avatar: tc?.avatar ?? null, id: m.speakerId ?? undefined },
       };
     }
@@ -147,6 +147,8 @@ export function UserRoomView({ sessionId, myId, onBack, onInvite, onLeave }: {
       id: `m${m.id}`,
       role: mine ? ('user' as const) : ('assistant' as const),
       body: m.body,
+      // ★보낸 시각 — 말풍선 옆 시간과 날짜 구분선이 이 값을 쓴다(Boss 2026-09-01)
+      sentAt: m.sentAt,
       // ★내 말에만 「1」 — 아직 안 읽은 사람 수(나 제외). 0 이면 컴포넌트가 안 그린다
       ...(mine ? { unread: unreadBy(people, myId, m.sentAt) } : {}),
       // 남의 말에만 얼굴을 붙인다(내 말 옆에 내 얼굴은 카톡도 안 그린다)

@@ -478,6 +478,7 @@ export const en = {
   crop: { title: 'Fit the photo to the frame', sub: 'Drag to move, − ＋ to resize. What you see is what gets saved.', working: 'Cropping…', use: 'Use this' },
   speech: { title: "Tone", row: "Talk casually", sub: "Off means polite speech. You can change this anytime.", failTitle: "Couldn't save", failMsg: "Please try again in a moment." },
   pay: { working: "Checking your payment…", okTitle: "Topped up", okMsg: "{{coins}} woon added.", failTitle: "Couldn't top up", failMsg: "We couldn't verify the payment.", canceled: "Payment was canceled.", back: "Back to top-up" },
+  chat: { today: "Today", yesterday: "Yesterday", },
   adult: { needVerifyTitle: 'Verification required', needVerifyMsg: 'You can turn this on after we confirm you are 19 or older.', verifySoon: 'Identity verification is coming soon. Please hold on a little.', title: 'Adult conversation', row: 'I am 19 or older', sub: 'Turns on frank talk about intimacy and compatibility.' },
   screen: {
     shared: 'Shared reading',

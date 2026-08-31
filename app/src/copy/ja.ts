@@ -478,6 +478,7 @@ export const ja = {
   crop: { title: '写真を枠に合わせてください', sub: 'ドラッグで移動、− ＋ で大きさを調整。見えているまま保存されます。', working: '切り取り中…', use: 'これで使う' },
   speech: { title: "話し方", row: "タメ口で話す", sub: "オフだと丁寧語で話します。いつでも変更できます。", failTitle: "保存できませんでした", failMsg: "少し経ってからもう一度お試しください。" },
   pay: { working: "決済を確認しています…", okTitle: "チャージしました", okMsg: "{{coins}} 運が入りました。", failTitle: "チャージできませんでした", failMsg: "決済を確認できませんでした。", canceled: "決済がキャンセルされました。", back: "チャージ画面へ" },
+  chat: { today: "今日", yesterday: "昨日", },
   adult: { needVerifyTitle: '本人確認が必要です', needVerifyMsg: '満19歳以上か確認したうえでオンにできます。', verifySoon: '本人確認を準備中です。もう少しお待ちください。', title: 'アダルト会話', row: '満19歳以上です', sub: '相性や親密さの話をぼかさずに話します。' },
   screen: {
     shared: '共有された鑑定',

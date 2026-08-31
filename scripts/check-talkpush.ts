@@ -175,9 +175,21 @@ if (!mgmt || !ref) {
   const a = Array.isArray(rows) ? rows[0] : null;
   if (!a) console.log('  ⏭  P4 건너뜀 — 조회 실패(마이그레이션 미적용일 수 있습니다)');
   else {
-    say(a.mismatched === 0, 'P4 ★함수와 목록 배지가 같은 수',
-      a.mismatched === 0 ? `회원 ${a.owners}명 · 합계 ${a.fn_total}`
-        : `${a.mismatched}명이 어긋난다 (함수 ${a.fn_total} ≠ 목록 ${a.list_total})`);
+    /**
+     * ⚠️★**0명을 «통과» 로 읽으면 안 된다**(2026-09-01 실측으로 드러났다).
+     *   `talk_session_list` 가 `auth.uid()` 를 쓰게 되면서, service_role 로 조회하는 이 하네스는
+     *   **아무 행도 못 본다** ⇒ `mismatched = 0` 이 되어 **거짓 초록불**이 떴다.
+     *   («0 = 0» 은 «맞다» 가 아니라 «못 쟀다» 다 — [[admin-list-hid-94-percent]] 와 같은 결.)
+     * ⇒ 볼 수 있는 회원이 0명이면 **건너뛴다고 말한다.** 통과라고 하지 않는다.
+     */
+    if (!a.owners) {
+      console.log('  ⏭  P4 건너뜀 — **못 쟀다**(뷰가 `auth.uid()` 를 쓰는데 이 조회는 service_role).\n'
+        + '        ★«0 = 0» 은 «맞다» 가 아니다. 실제 대조는 로그인 세션으로 확인할 것.');
+    } else {
+      say(a.mismatched === 0, 'P4 ★함수와 목록 배지가 같은 수',
+        a.mismatched === 0 ? `회원 ${a.owners}명 · 합계 ${a.fn_total}`
+          : `${a.mismatched}명이 어긋난다 (함수 ${a.fn_total} ≠ 목록 ${a.list_total})`);
+    }
   }
 }
 

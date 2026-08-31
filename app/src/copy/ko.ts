@@ -496,6 +496,7 @@ export const ko = {
   crop: { title: '사진을 칸에 맞춰 주세요', sub: '끌어서 옮기고 − ＋ 로 크기를 맞춰요. 보이는 그대로 저장돼요.', working: '자르는 중…', use: '이대로 쓰기' },
   speech: { title: "말투", row: "반말로 대화하기", sub: "끄면 존댓말로 이야기해요. 언제든 바꿀 수 있어요.", failTitle: "저장하지 못했어요", failMsg: "잠시 뒤 다시 시도해 주세요." },
   pay: { working: "결제를 확인하고 있어요…", okTitle: "충전됐어요", okMsg: "{{coins}} 운이 들어왔어요.", failTitle: "충전하지 못했어요", failMsg: "결제를 확인하지 못했어요.", canceled: "결제가 취소됐어요.", back: "충전 화면으로" },
+  chat: { today: "오늘", yesterday: "어제", },
   adult: { needVerifyTitle: '본인인증이 필요해요', needVerifyMsg: '만 19세 이상인지 확인한 뒤에 켤 수 있어요.', verifySoon: '본인인증을 준비하고 있어요. 조금만 기다려 주세요.', title: '성인 대화', row: '만 19세 이상입니다', sub: '켜면 속궁합·애정 이야기를 에두르지 않고 나눠요.' },
   screen: {
     shared: '공유받은 풀이',

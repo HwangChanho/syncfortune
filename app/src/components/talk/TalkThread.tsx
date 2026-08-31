@@ -11,8 +11,9 @@
 // ■ 콘텐츠 카드가 대화 안에 들어간다
 //   가상 상담사의 존재 이유가 '기존 콘텐츠로 데려다주는 것'이라, 링크는 덧붙임이 아니라 **본문**이다.
 // ═══════════════════════════════════════════════════════════════════════════
-import { useRef, useEffect, useState, type ReactNode } from 'react';
+import { useRef, useEffect, useState, type ReactNode , Fragment } from 'react';
 import { View, Text, StyleSheet, ScrollView, Animated } from 'react-native';
+import { useTranslation } from 'react-i18next';   // ★날짜 구분선 문구(Boss 2026-09-01)
 import { Image as ExpoImage } from 'expo-image';
 import { PressableScale } from '../PressableScale';
 import { colors, space, radius, font, shadow } from '../../lib/theme';
@@ -24,6 +25,12 @@ export type TalkItem = {
   id: string;
   role: 'user' | 'assistant';
   body: string;
+  /**
+   * 보낸 시각(ISO). 있으면 **말풍선 옆에 시간**이 붙고, **날짜가 바뀌는 자리에 가운데 줄**이 선다
+   * (Boss 2026-09-01 *"날짜가 바뀌면 카카오톡처럼 가운데 줄생기고 … 칸뒤에 보낸 시간이"*).
+   * ⚠️없으면 **아무것도 안 그린다** — 화면에서 만든 안내 말풍선까지 시간이 붙으면 어색하다.
+   */
+  sentAt?: string;
   links?: { key: string; label: string; route: string }[];
   /**
    * 서버 `talk_messages.id`. **정리에서 원문으로 데려갈 때** 쓴다(Boss 2026-08-23).
@@ -149,6 +156,7 @@ export function TalkThread({ items, busy, onLink, jumpTo, onWho }: {
    */
   jumpTo?: number | null;
 }) {
+  const { t } = useTranslation();
   const ref = useRef<ScrollView>(null);
   // 말풍선마다 세로 위치를 적어 둔다 — 정리에서 뛸 때 이 값으로 스크롤한다.
   const yRef = useRef<Record<number, number>>({});
@@ -200,7 +208,26 @@ export function TalkThread({ items, busy, onLink, jumpTo, onWho }: {
     <ScrollView ref={ref} style={styles.wrap} contentContainerStyle={styles.body}
       onScroll={onScroll} scrollEventThrottle={64}
       onContentSizeChange={onContentSizeChange}>
-      {items.map((m, i) => (m.system ? (
+      {items.map((m, i) => {
+        /**
+         * ★날짜가 바뀌는 자리 — 앞 말풍선과 **날짜가 다르면** 가운데 줄을 세운다.
+         * ⚠️시각이 없는 줄(화면에서 만든 안내)은 **날짜를 안 가진 것으로** 본다 —
+         *   그 줄 때문에 구분선이 두 번 서면 안 된다.
+         */
+        const dayOf = (x?: string) => (x ? new Date(x).toDateString() : '');
+        const prevDay = dayOf(items.slice(0, i).reverse().find((p) => p.sentAt)?.sentAt);
+        const thisDay = dayOf(m.sentAt);
+        const showDay = !!thisDay && thisDay !== prevDay;
+        return (
+        <Fragment key={`w${m.id}`}>
+        {showDay ? (
+          <View style={styles.dayRow}>
+            <View style={styles.dayLine} />
+            <Text style={styles.dayTx}>{dayLabel(m.sentAt!, t as never)}</Text>
+            <View style={styles.dayLine} />
+          </View>
+        ) : null}
+        {(m.system ? (
         // ★시스템 한 줄 — 가운데·작게·말풍선 없음. 누르는 것도 아니다(정보만)
         <View key={m.id} style={styles.sysRow}>
           <Text style={styles.sysTx}>{m.system}</Text>
@@ -243,12 +270,19 @@ export function TalkThread({ items, busy, onLink, jumpTo, onWho }: {
                   내 말에만 뜬다(남의 말에 «몇 명이 안 읽었나» 는 내가 알 바가 아니다). */}
               {m.role === 'user' && (m.unread ?? 0) > 0
                 ? <Text style={styles.unreadMark}>{m.unread}</Text> : null}
+              {/* ★시간은 **말풍선 바깥쪽**에 — 내 말은 왼쪽, 남의 말은 오른쪽(Boss 2026-09-01).
+                  ⚠️`alignItems: 'flex-end'` 라 시간이 말풍선 **아랫줄**에 맞는다(카톡과 같은 결).
+                  시각이 없는 줄(화면에서 만든 안내)에는 안 붙인다. */}
+              {m.sentAt && m.role === 'user'
+                ? <Text style={styles.timeTx}>{timeLabel(m.sentAt)}</Text> : null}
             <View style={m.role === 'user' ? styles.mine : styles.them}>
               {/* ★`**강조**` 를 굵게 — 종전엔 파서를 안 거쳐 **별표가 그대로** 보였다(Boss 2026-08-26).
                   ⚠️새로 만들지 않고 **이미 있던** `emph()` 를 쓴다(풀이 화면이 쓰던 것) —
                     화면마다 각자 파서를 두면 «같은 글이 화면마다 다르게» 보인다. */}
               {emph(m.body, m.role === 'user' ? styles.mineTx : styles.themTx)}
             </View>
+              {m.sentAt && m.role !== 'user'
+                ? <Text style={styles.timeTx}>{timeLabel(m.sentAt)}</Text> : null}
             </View>
           ) : null}
           {/* 홈 블록은 말풍선 밖으로 — 폭을 온전히 써야 원래 카드 그대로 보인다 */}
@@ -268,13 +302,43 @@ export function TalkThread({ items, busy, onLink, jumpTo, onWho }: {
             </View>
           ) : null}
         </View>
-      )))}
+        ))}
+        </Fragment>
+        );
+      })}
       {busy ? <TypingBubble /> : null}
     </ScrollView>
   );
 }
 
+/**
+ * 날짜 구분선에 적을 말 — 오늘·어제는 **낱말로**, 그 밖은 날짜로.
+ * ★«오늘» 이 보이는 것이 Boss 가 말한 카톡의 그 줄이다.
+ */
+function dayLabel(iso: string, t: (k: string, d: string) => string): string {
+  const d = new Date(iso);
+  const now = new Date();
+  const same = (a: Date, b: Date) => a.toDateString() === b.toDateString();
+  const yest = new Date(now.getTime() - 86400000);
+  if (same(d, now)) return t('chat.today', '오늘');
+  if (same(d, yest)) return t('chat.yesterday', '어제');
+  // ★날짜 형식은 **기기 언어**가 정한다 — 나라마다 순서가 다르다(우리가 짜 맞추지 않는다)
+  return d.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+}
+
+/** 말풍선 옆 시간 — 「오후 7:18」. */
+function timeLabel(iso: string): string {
+  // ★오전/오후 표기도 **기기 언어**가 정한다 — 영어권은 「7:18 PM」 이 자연스럽다
+  return new Date(iso).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+}
+
 const styles = StyleSheet.create({
+  // ★날짜 구분선 — 가운데 글자, 양옆으로 선(카톡과 같은 결)
+  dayRow: { flexDirection: 'row', alignItems: 'center', gap: space(3), marginVertical: space(3) },
+  dayLine: { flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: colors.line },
+  dayTx: { ...font.caption, fontSize: 11.5, color: colors.inkFaint, fontWeight: '700' },
+  // 말풍선 옆 시간 — 작고 흐리게(읽는 것을 방해하지 않게)
+  timeTx: { ...font.caption, fontSize: 10.5, color: colors.inkFaint, marginHorizontal: space(1) },
   // ★시스템 한 줄(운 차감 영수증) — 말풍선과 **같은 것이 하나도 없어야** 한다:
   //   가운데 정렬 · 작은 글씨 · 흐린 색 · 배경 없음. 그래야 «사람 말» 과 안 헷갈린다.
   sysRow: { alignSelf: 'center', paddingVertical: space(1.5), paddingHorizontal: space(3) },
