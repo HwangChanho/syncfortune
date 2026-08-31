@@ -467,7 +467,7 @@ export function dailyPreview(saju: SajuChart, todayStem: Stem, todayBranch: Bran
   return pvJoin(open, body, lang);
 }
 
-export type DailyAreaKey = 'general' | 'work' | 'money' | 'invest' | 'love' | 'health';
+export type DailyAreaKey = 'general' | 'work' | 'money' | 'love' | 'health';   // ★투자는 재물에 합쳐졌다(Boss 2026-09-01)
 /**
  * 오늘/이달 화면에 칩으로 뜨는 분야.
  *
@@ -476,7 +476,7 @@ export type DailyAreaKey = 'general' | 'work' | 'money' | 'invest' | 'love' | 'h
  *   문구·3개 언어(투자/Investing/投資)·투자조언 금지 가드가 **전부 이미 있어서** 켜기만 하면 됐다.
  *   ⚠️07-04 에 왜 뺐는지는 커밋에 사유가 안 남아 있다 — 화면 폭이 좁아 칩이 줄바꿈되면 그때 다시 논의.
  */
-export const DAILY_AREA_KEYS: DailyAreaKey[] = ['general', 'work', 'money', 'invest', 'love', 'health'];
+export const DAILY_AREA_KEYS: DailyAreaKey[] = ['general', 'work', 'money', 'love', 'health'];
 
 // ── 언어별 템플릿 묶음 (ko/en/ja) — 본문은 앱 언어로. group/stage/type/pos 키는 내부(엔진 산출) 고정. ──
 type Lang = 'ko' | 'en' | 'ja';
@@ -1021,8 +1021,16 @@ export function dailyChartReadings(saju: SajuChart, todayStem: Stem, todayBranch
   //   (판정축 자체는 상담가 세트 `verify-000m` #9~11 에 올려 두었다. O 가 다르게 오면 조건만 바꾼다.)
   if (tg === '편재' && links.some((it) => it.type === '충')) money.push(tt.moneyMove);
 
-  // 투자(daniel #17) = 재물 흐름 관점 + 표준 주의(흐름·타이밍만, 종목·매수 조언 아님). ※ 십신별 투자 stance 정교화는 daniel 검수 슬롯.
-  const invest: string[] = [tt.area.money[group], ...(!favorGood && GATE_AREAS[group].includes('money') ? [tt.gate.money] : []), tt.investCaution]; // ★테마A + 반반 보정
+  /**
+   * ★★투자를 **재물 안으로 합쳤다**(Boss 2026-09-01 *"투자랑 재물 합쳐줘"*).
+   *
+   * ■ 실측: 종전 `invest` 칸은 `money` 와 **같은 문단**에 주의 한 줄(`investCaution`)만 더한 것이었다.
+   *   ⇒ 칸이 둘이면 회원은 «다른 이야기가 있나» 하고 눌러 보는데 **같은 글**이 나온다.
+   *     실제로 다른 것은 마지막 한 줄뿐이다. 그 한 줄을 재물 꼬리에 두면 칸 하나가 준다.
+   * ■ ⚠️투자 **주의 문구는 그대로 살린다** — CLAUDE.md §4(투자 조언 금지).
+   *   합치는 것은 «칸» 이지 «가드» 가 아니다. 가드를 같이 지우면 조언처럼 읽히기 시작한다.
+   */
+  money.push(tt.investCaution);
 
   // ★애정 3갈래(daniel 2026-08-05) — 「솔로」「커플」「기혼」 라벨 문단으로 나눠 풀고,
   //   공통 신호(일지 합충 loveLines·도화·게이트)는 상태 무관이라 꼬리에 함께 둔다.
@@ -1047,7 +1055,6 @@ export function dailyChartReadings(saju: SajuChart, todayStem: Stem, todayBranch
     { key: 'general', paragraphs: clean(general) },
     { key: 'work', paragraphs: clean(work) },
     { key: 'money', paragraphs: clean(money) },
-    { key: 'invest', paragraphs: clean(invest) },
     { key: 'love', paragraphs: clean(love) },
     { key: 'health', paragraphs: clean(health) },
   ];
