@@ -180,7 +180,11 @@ const styles = StyleSheet.create({
   zeroChip: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: radius.pill },
   zeroChipTx: { fontSize: 11, fontWeight: '800' },
   // 대표기운 1~5 랭킹 리스트(daniel 07-24) — 1위는 오브·글자 키워 강조.
-  rankCard: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.line, paddingHorizontal: space(4), paddingVertical: space(1) },
+  // ⚠️★위쪽 여백이 **없어서** 바(또는 «없는 기운» 칩)에 딱 붙어 있었다
+  //   (Boss 2026-08-31 *"오행갯수아래 여백을 좀 줘 아래 네모칸이랑 너무 딱 붙어있어"*).
+  //   ★여백을 **카드가** 갖는다 — 위 요소(바·칩)는 있을 때도 없을 때도 있어서,
+  //     그쪽에 `marginBottom` 을 주면 «칩이 없는 명식» 에서만 다시 붙는다.
+  rankCard: { marginTop: space(4), backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.line, paddingHorizontal: space(4), paddingVertical: space(1) },
   rankRow: { flexDirection: 'row', alignItems: 'center', gap: space(3), paddingVertical: space(2.5) },
   rankRowBorder: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.line },
   rankNum: { width: 18, textAlign: 'center', color: colors.inkFaint, fontWeight: '800', fontSize: 14 },

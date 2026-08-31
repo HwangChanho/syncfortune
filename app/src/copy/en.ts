@@ -477,6 +477,7 @@ export const en = {
   capture: { start: 'Capture', save: 'Save', saving: 'Creating…', pickHint: 'Pick the notes to include', saved: 'Saved', savedMsg: 'Saved as an image.', fail: 'Could not save', failMsg: 'Please try again in a moment.' },
   crop: { title: 'Fit the photo to the frame', sub: 'Drag to move, − ＋ to resize. What you see is what gets saved.', working: 'Cropping…', use: 'Use this' },
   speech: { title: "Tone", row: "Talk casually", sub: "Off means polite speech. You can change this anytime.", failTitle: "Couldn't save", failMsg: "Please try again in a moment." },
+  pay: { working: "Checking your payment…", okTitle: "Topped up", okMsg: "{{coins}} woon added.", failTitle: "Couldn't top up", failMsg: "We couldn't verify the payment.", canceled: "Payment was canceled.", back: "Back to top-up" },
   adult: { needVerifyTitle: 'Verification required', needVerifyMsg: 'You can turn this on after we confirm you are 19 or older.', verifySoon: 'Identity verification is coming soon. Please hold on a little.', title: 'Adult conversation', row: 'I am 19 or older', sub: 'Turns on frank talk about intimacy and compatibility.' },
   screen: {
     shared: 'Shared reading',
@@ -1128,7 +1129,7 @@ export const en = {
     'title': 'Celebrities Like Me',
     'topLabel': 'The figure most like you',
   },
-  coins: { refundNotice: 'Refundable within 7 days, unspent woon only. Woon already spent is not refundable.', refundPolicy: 'Cancellation & refund policy', webSub: 'No store fee, so the same amount buys more woon.\nOn the web you can see charts, the relation map and chats on one big screen.', title: 'Add Woon', titleSub: 'Top up Woon and open the readings you want.', bonusAny: 'Applied automatically', bonusNote: 'The largest coupon applies first. The price you pay stays the same.', bonusTitle: 'Your bonuses', failTitle: "Couldn't add woon",
+  coins: { packName: "{{coins}} woon", refundNotice: 'Refundable within 7 days, unspent woon only. Woon already spent is not refundable.', refundPolicy: 'Cancellation & refund policy', webSub: 'No store fee, so the same amount buys more woon.\nOn the web you can see charts, the relation map and chats on one big screen.', title: 'Add Woon', titleSub: 'Top up Woon and open the readings you want.', bonusAny: 'Applied automatically', bonusNote: 'The largest coupon applies first. The price you pay stays the same.', bonusTitle: 'Your bonuses', failTitle: "Couldn't add woon",
     useHead: 'What woon is for',
     useTalk: '· Chat with a consultant — {{cost}} woon buys {{turns}} turns',
     useReading: '· Saju, compatibility, tarot readings — price varies and is shown before you open it',

@@ -495,6 +495,7 @@ export const ko = {
   capture: { start: '캡쳐', save: '저장', saving: '만드는 중…', pickHint: '담을 정리를 골라 주세요', saved: '저장했어요', savedMsg: '이미지로 남겼어요.', fail: '저장하지 못했어요', failMsg: '잠시 후 다시 시도해 주세요.' },
   crop: { title: '사진을 칸에 맞춰 주세요', sub: '끌어서 옮기고 − ＋ 로 크기를 맞춰요. 보이는 그대로 저장돼요.', working: '자르는 중…', use: '이대로 쓰기' },
   speech: { title: "말투", row: "반말로 대화하기", sub: "끄면 존댓말로 이야기해요. 언제든 바꿀 수 있어요.", failTitle: "저장하지 못했어요", failMsg: "잠시 뒤 다시 시도해 주세요." },
+  pay: { working: "결제를 확인하고 있어요…", okTitle: "충전됐어요", okMsg: "{{coins}} 운이 들어왔어요.", failTitle: "충전하지 못했어요", failMsg: "결제를 확인하지 못했어요.", canceled: "결제가 취소됐어요.", back: "충전 화면으로" },
   adult: { needVerifyTitle: '본인인증이 필요해요', needVerifyMsg: '만 19세 이상인지 확인한 뒤에 켤 수 있어요.', verifySoon: '본인인증을 준비하고 있어요. 조금만 기다려 주세요.', title: '성인 대화', row: '만 19세 이상입니다', sub: '켜면 속궁합·애정 이야기를 에두르지 않고 나눠요.' },
   screen: {
     shared: '공유받은 풀이',
@@ -1166,7 +1167,7 @@ export const ko = {
     'title': '나와 닮은 연예인',
     'topLabel': '나와 가장 닮은 인물',
   },
-  coins: { refundNotice: '결제 후 7일 이내, 사용하지 않은 운만 환불돼요. 이미 사용한 운은 환불되지 않아요.', refundPolicy: '취소·환불 정책', webSub: '스토어 수수료가 없어 같은 금액으로 운을 더 드려요.\n웹에서는 큰 화면으로 명식·관계 지도·대화를 한 번에 볼 수 있어요.', title: '운 충전', titleSub: '운을 충전하고 원하는 풀이를 열어 보세요.', bonusAny: '충전 시 자동 적용', bonusNote: '충전하면 큰 쿠폰부터 자동으로 쓰여요. 결제 금액은 그대로예요.', bonusTitle: '가진 보너스', failTitle: '충전하지 못했어요',
+  coins: { packName: "{{coins}} 운", refundNotice: '결제 후 7일 이내, 사용하지 않은 운만 환불돼요. 이미 사용한 운은 환불되지 않아요.', refundPolicy: '취소·환불 정책', webSub: '스토어 수수료가 없어 같은 금액으로 운을 더 드려요.\n웹에서는 큰 화면으로 명식·관계 지도·대화를 한 번에 볼 수 있어요.', title: '운 충전', titleSub: '운을 충전하고 원하는 풀이를 열어 보세요.', bonusAny: '충전 시 자동 적용', bonusNote: '충전하면 큰 쿠폰부터 자동으로 쓰여요. 결제 금액은 그대로예요.', bonusTitle: '가진 보너스', failTitle: '충전하지 못했어요',
     useHead: '운으로 할 수 있는 것',
     useTalk: '· 상담가와 대화 — {{cost}}운이면 {{turns}}턴',
     useReading: '· 사주·궁합·타로 풀이 — 콘텐츠마다 값이 다르고, 열기 전에 보여 드려요',

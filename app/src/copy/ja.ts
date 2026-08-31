@@ -477,6 +477,7 @@ export const ja = {
   capture: { start: 'キャプチャ', save: '保存', saving: '作成中…', pickHint: '入れるメモを選んでください', saved: '保存しました', savedMsg: '画像として保存しました。', fail: '保存できませんでした', failMsg: 'しばらくしてからもう一度お試しください。' },
   crop: { title: '写真を枠に合わせてください', sub: 'ドラッグで移動、− ＋ で大きさを調整。見えているまま保存されます。', working: '切り取り中…', use: 'これで使う' },
   speech: { title: "話し方", row: "タメ口で話す", sub: "オフだと丁寧語で話します。いつでも変更できます。", failTitle: "保存できませんでした", failMsg: "少し経ってからもう一度お試しください。" },
+  pay: { working: "決済を確認しています…", okTitle: "チャージしました", okMsg: "{{coins}} 運が入りました。", failTitle: "チャージできませんでした", failMsg: "決済を確認できませんでした。", canceled: "決済がキャンセルされました。", back: "チャージ画面へ" },
   adult: { needVerifyTitle: '本人確認が必要です', needVerifyMsg: '満19歳以上か確認したうえでオンにできます。', verifySoon: '本人確認を準備中です。もう少しお待ちください。', title: 'アダルト会話', row: '満19歳以上です', sub: '相性や親密さの話をぼかさずに話します。' },
   screen: {
     shared: '共有された鑑定',
@@ -1127,7 +1128,7 @@ export const ja = {
     'title': '私に似た芸能人',
     'topLabel': '私と最も似ている人物',
   },
-  coins: { refundNotice: '決済から7日以内、未使用のwoonのみ返金されます。使用済みのwoonは返金されません。', refundPolicy: 'キャンセル・返金ポリシー', webSub: 'ストア手数料がないので同じ金額でより多くの運をお渡しします。\nウェブでは大きな画面で命式・関係マップ・会話を一度に見られます。', title: '運のチャージ', titleSub: '運をチャージして、見たい鑑定を開きましょう。', bonusAny: 'チャージ時に自動適用', bonusNote: '大きいクーポンから自動で使われます。お支払い金額は変わりません。', bonusTitle: 'お持ちのボーナス', failTitle: 'チャージできませんでした',
+  coins: { packName: "{{coins}} 運", refundNotice: '決済から7日以内、未使用のwoonのみ返金されます。使用済みのwoonは返金されません。', refundPolicy: 'キャンセル・返金ポリシー', webSub: 'ストア手数料がないので同じ金額でより多くの運をお渡しします。\nウェブでは大きな画面で命式・関係マップ・会話を一度に見られます。', title: '運のチャージ', titleSub: '運をチャージして、見たい鑑定を開きましょう。', bonusAny: 'チャージ時に自動適用', bonusNote: '大きいクーポンから自動で使われます。お支払い金額は変わりません。', bonusTitle: 'お持ちのボーナス', failTitle: 'チャージできませんでした',
     useHead: '運でできること',
     useTalk: '· 相談員とのチャット — {{cost}}運で{{turns}}ターン',
     useReading: '· 四柱推命・相性・タロットの鑑定 — 価格は内容ごとに異なり、開く前に表示されます',

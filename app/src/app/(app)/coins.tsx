@@ -12,6 +12,8 @@
 // ⚠️문구·가격 = ★daniel 검수 슬롯. 상품 등록(ASC)은 daniel 몫.
 // ─────────────────────────────────────────────────────────────────────────
 import { useCallback, useState } from 'react';
+import { buyOnWeb, webPayEnabled } from '../../lib/billing/webPay';   // ★웹 = PG(토스) · 앱 = 스토어
+import { packPriceWon, packBonusPct } from '../../lib/billing/coinPrices';   // ★값·보너스는 **면마다 다르다**(웹 −28%)
 import { TALK_PACK, FREE_TALK_DAILY } from '../../lib/billing/coinPrices';   // 대화 묶음(화면 표기용 — 실제 차감은 서버)
 import { View, Text, ScrollView, StyleSheet, ActivityIndicator, Linking } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
@@ -65,8 +67,21 @@ export default function CoinsScreen() {
     if (busy) return;
     setBusy(packId);
     try {
-      const ok = await purchaseCoinPack(packId);
-      if (!ok) return;                       // 사용자가 취소 — 조용히
+      /**
+       * ★면마다 **다른 길**을 탄다 — 합치지 않는다.
+       *   앱 = 스토어 인앱결제(스토어 밖 결제를 넣으면 심사에서 걸린다)
+       *   웹 = PG(토스). 수수료가 없어 값이 −28% 다([[web-payment-netflix-model]]).
+       * ⚠️웹은 **결제창으로 넘어간다** — 이 함수가 돌아오지 않는다.
+       *   돌아오는 자리는 `/pay` 이고, 적립도 거기서 확인한다.
+       *   (키가 없고 관리자면 서버가 모의 승인해 그 자리에서 끝난다 → `null` 이 아닌 값이 온다.)
+       */
+      if (webPayEnabled) {
+        const granted = await buyOnWeb(packId, t('coins.packName', '{{coins}} 운').replace('{{coins}}', String(coins)));
+        if (granted == null) return;         // 결제창으로 넘어갔다 — 여기서 끝내지 않는다
+      } else {
+        const ok = await purchaseCoinPack(packId);
+        if (!ok) return;                     // 사용자가 취소 — 조용히
+      }
       // 적립은 웹훅이 한다(클라 적립 불가) → 잠깐 뒤 잔액을 다시 읽는다.
       await new Promise((r) => setTimeout(r, 1500));
       // ★웹훅이 적립을 끝낸 뒤에 보너스를 붙인다(붙일 충전이 원장에 있어야 한다).
@@ -198,14 +213,20 @@ export default function CoinsScreen() {
           <PressableScale key={p.id} style={[styles.pack, busy === p.id && styles.packBusy]} onPress={() => void buy(p.id, p.coins)} disabled={!!busy}>
             <View style={{ flex: 1 }}>
               <Text style={[styles.packCoins, { fontSize: fs(19) }]}>{p.coins.toLocaleString('ko-KR')} 운</Text>
-              {p.bonusPct > 0 ? (
+              {/* ★보너스도 **가격에서 나온다** — 값이 면마다 다르면 보너스도 다르다.
+                    저장된 `p.bonusPct`(스토어 기준)를 그대로 쓰면 웹에서 숫자가 틀린다. */}
+              {packBonusPct(p.id, webPayEnabled ? 'web' : 'store') > 0 ? (
                 <Text style={[styles.packBonus, { fontSize: fs(12) }]}>
-                  {t('coins.bonus', { pct: p.bonusPct, defaultValue: '운당 {{pct}}% 더' })}
+                  {t('coins.bonus', { pct: packBonusPct(p.id, webPayEnabled ? 'web' : 'store'), defaultValue: '운당 {{pct}}% 더' })}
                 </Text>
               ) : null}
             </View>
             <Text style={[styles.packWon, { fontSize: fs(16) }]}>
-              {busy === p.id ? '…' : `₩${p.won.toLocaleString('ko-KR')}`}
+              {/* ⚠️★**면에 맞는 값**을 찍는다(Boss 2026-08-31 결제 배선 중 실측).
+                    종전엔 `p.won`(스토어 정가)을 그대로 찍었는데, 웹 결제는 DB 의 **웹가**로 청구한다
+                    ⇒ 화면 ₩9,900 · 청구 ₩7,200 으로 **돈에 관해 화면이 거짓말**했다.
+                    (손님에게 유리한 방향이라 더 늦게 발견되는 종류다.) */}
+              {busy === p.id ? '…' : `₩${packPriceWon(p.id, webPayEnabled ? 'web' : 'store').toLocaleString('ko-KR')}`}
             </Text>
           </PressableScale>
         ))}

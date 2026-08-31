@@ -292,12 +292,31 @@ export function ChartRegisterScreen({ onSubmit, defaultRelation, submitLabel, sh
 
   // 자동저장(편집모드) — 필드 변경 600ms 후 저장(저장 버튼 따로 안 눌러도 됨, daniel). 초기 prefill 은 skip(불필요 저장 방지).
   const firstAuto = useRef(true);
+  /**
+   * ⚠️★**600ms 를 못 채우고 화면을 벗어나면 그 변경이 날아갔다**
+   *   (Boss 2026-08-31 *"만세력 수정도 따로 저장 안눌러도 자동 저장되게 하자 변경하던 안하던"*).
+   *   자동저장은 «타이핑이 멎기를» 기다리는데, 뒤로가기·완료는 그 전에 온다.
+   *   ⇒ 화면을 떠날 때 **밀린 것을 한 번 흘려보낸다.** 저장 버튼을 안 눌러도 남는다.
+   * ★값이 안 바뀌었어도 그냥 저장한다 — 같은 값 쓰기는 해가 없고,
+   *   «바뀌었는지» 를 판정하려다 틀리는 쪽이 훨씬 위험하다.
+   */
+  const pendingRef = useRef<{ save: (i: any) => void; build: () => any } | null>(null);
+  useEffect(() => () => {
+    const p = pendingRef.current;
+    if (!p) return;
+    try {
+      const inp = p.build();
+      if (!validateBirthInput(inp as any).length) p.save(inp);
+    } catch { /* 떠나는 길을 막지 않는다 */ }
+  }, []);
   useEffect(() => {
     if (!autoSave || !onAutoSave) return;
     if (firstAuto.current) { firstAuto.current = false; return; }
     // ★유효하지 않은 입력은 **조용히 저장 스킵**(감사 H3/H4/H6). 편집 중에는 타이핑 도중 일시적으로
     //   날짜가 불완전해지는 게 정상이라 여기서 Alert 을 띄우면 방해만 된다 — 경고는 수동 저장(handleSubmit)에서.
     const id = setTimeout(() => { const inp = buildInput(); if (!validateBirthInput(inp as any).length) onAutoSave(inp); }, 600);
+    // ★★밀린 저장을 **흘려보낼 수 있게** 최신 입력을 들고 있는다(아래 언마운트 훅이 쓴다).
+    pendingRef.current = { save: onAutoSave, build: buildInput };
     return () => clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [label, birthDate, sijinIdx, exactStr, calendar, isLeap, sex, birthPlace, birthPlaceLon, birthPlaceLat, relation, makeRep, situation, job, relationship, concern, note, email, phone, notify, autoSave]);
