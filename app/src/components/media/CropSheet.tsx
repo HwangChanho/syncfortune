@@ -147,7 +147,9 @@ export function CropSheet({ uri, aspect, outWidth, onDone, onCancel }: {
         ) : null}
       </View>
 
-      <View style={styles.zoomRow}>
+      {/* ★조작줄은 **칸과 같은 폭**으로 둔다 — 뿌리가 가운데 정렬이라 폭을 안 주면
+          행이 내용 크기로 쪼그라들어 「이대로 쓰기」가 두 줄로 접힌다(2026-08-31 웹 실측). */}
+      <View style={[styles.zoomRow, { width: frameW }]}>
         <PressableScale style={styles.zoomBtn} onPress={() => zoom(-1)} disabled={scale <= MIN_SCALE}>
           <Text style={styles.zoomTx}>−</Text>
         </PressableScale>
@@ -156,7 +158,7 @@ export function CropSheet({ uri, aspect, outWidth, onDone, onCancel }: {
         </PressableScale>
       </View>
 
-      <View style={styles.actions}>
+      <View style={[styles.actions, { width: frameW }]}>
         <PressableScale style={[styles.btn, styles.btnAlt]} onPress={onCancel}>
           <Text style={[styles.btnTx, styles.btnTxAlt]}>{t('common.cancel', '취소')}</Text>
         </PressableScale>
@@ -174,12 +176,12 @@ const styles = StyleSheet.create({
   sub: { ...font.caption, color: colors.inkFaint, textAlign: 'center' },
   // ★`overflow: hidden` 이 곧 «칸» 이다 — 밖으로 나간 부분은 안 보이고, 안 보이는 건 안 저장된다
   frame: { overflow: 'hidden', borderRadius: radius.md, backgroundColor: colors.sunk, alignItems: 'center', justifyContent: 'center' },
-  zoomRow: { flexDirection: 'row', gap: space(3) },
+  zoomRow: { flexDirection: 'row', gap: space(3), justifyContent: 'center' },
   zoomBtn: { width: 48, height: 40, borderRadius: radius.md, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' },
   zoomTx: { fontSize: 20, color: colors.ink, fontWeight: '800', lineHeight: 24 },
   actions: { flexDirection: 'row', gap: space(2.5), marginTop: space(2) },
   btn: { flex: 1.4, paddingVertical: space(3.5), borderRadius: radius.md, backgroundColor: colors.ju, alignItems: 'center' },
   btnAlt: { flex: 1, backgroundColor: colors.sunk, borderWidth: 1, borderColor: colors.line },
-  btnTx: { ...font.body, color: colors.onJu, fontWeight: '800' },
+  btnTx: { ...font.body, color: colors.onJu, fontWeight: '800', textAlign: 'center' },
   btnTxAlt: { color: colors.inkSoft },
 });
