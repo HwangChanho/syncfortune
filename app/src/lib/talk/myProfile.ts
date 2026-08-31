@@ -120,21 +120,49 @@ function partsOf(f: Uploadable): { body: Blob | Uint8Array; type: string; size: 
  *
  * @param file 웹은 `File`, 폰은 `bytesOfUri()` 결과(★2026-08-31부터 **자른 뒤** 바이트로 읽는다)
  */
+/**
+ * 올릴 파일의 **경로를 짓는다** — 이름에 **시각**을 박는다.
+ *
+ * ⚠️★2026-08-31 Boss *"프로필에서 사진 바꾼게 제대로 적용이 안됐어"* — 실측한 원인:
+ *   종전엔 경로가 `uid/avatar.jpg` 로 **고정**이었다. 덮어써도 URL 이 그대로라
+ *   CDN·브라우저가 **옛 사진을 계속 준다.** 올린 직후에만 `&v=` 를 붙였기 때문에
+ *   그 순간엔 새 사진이 보이고, **다시 열면 옛 사진으로 돌아왔다.**
+ *   (스토리지는 멀쩡했다 — `updated_at` 이 87초 전이었다. 파일이 아니라 **URL** 문제였다.)
+ * ⇒ 이름이 매번 달라지면 캐시 문제가 **아예 안 생긴다.** 버전 쿼리도 필요 없다.
+ * ★대신 옛 파일을 지운다(아래 `dropOld`) — 안 지우면 쌓인다.
+ *
+ * ⚠️확장자는 **바이트가 정한다.** 웹의 `expo-image-manipulator` 는 JPEG 를 지정해도
+ *   PNG 를 내놓는 경우가 있다(실측: 512×512 PNG 가 `avatar.jpg` 로 올라가 있었다).
+ *   이름·`contentType`·실제 바이트가 어긋나면 이미지 변환이 조용히 실패한다.
+ */
+function newPath(uid: string, kind: 'avatar' | 'cover', type: string): string {
+  const ext = type.includes('png') ? 'png' : type.includes('webp') ? 'webp' : 'jpg';
+  return `${uid}/${kind}-${Date.now()}.${ext}`;
+}
+
+/** 옛 파일을 지운다 — 실패해도 무시한다(지우기 실패가 «사진 바뀜» 을 막을 이유는 없다). */
+async function dropOld(prev: string | null | undefined, next: string): Promise<void> {
+  if (!prev || prev === next) return;
+  try { await supabase.storage.from('avatars').remove([prev]); } catch { /* 무시 */ }
+}
+
 export async function uploadMyAvatar(file: Uploadable): Promise<{ ok: boolean; url?: string; error?: string }> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: 'unauthorized' };
   const { body, type, size } = partsOf(file);
   if (size > 2 * 1024 * 1024) return { ok: false, error: 'too_large' };
-  const ext = type.includes('png') ? 'png' : type.includes('webp') ? 'webp' : 'jpg';
-  const path = `${user.id}/avatar.${ext}`;
+  const path = newPath(user.id, 'avatar', type);
+  const { data: before } = await supabase.from('profiles').select('avatar_path').eq('id', user.id).maybeSingle();
   const up = await supabase.storage.from('avatars')
     .upload(path, body, { upsert: true, contentType: type });
   if (up.error) return { ok: false, error: up.error.message };
   const { error } = await supabase.from('profiles')
     .update({ avatar_path: path }).eq('id', user.id);
   if (error) return { ok: false, error: error.message };
-  // ★버전 쿼리 — 같은 경로를 덮어썼으므로 이게 없으면 옛 사진이 계속 보인다
-  const url = `${sizedImage(publicUrl(path), AVATAR_W)}&v=${Date.now()}`;
+  // ★참조를 옮긴 **뒤에** 옛 파일을 지운다 — 순서가 반대면 잠깐 «사진 없음» 이 보인다
+  await dropOld((before as any)?.avatar_path, path);
+  // ★이름이 매번 다르므로 버전 쿼리가 필요 없다(위 `newPath` 주석)
+  const url = sizedImage(publicUrl(path), AVATAR_W)!;
   _cache = { ...profileSnapshot(), avatarUrl: url };
   notify();
   return { ok: true, url };
@@ -153,7 +181,7 @@ export async function clearMyAvatar(): Promise<{ ok: boolean; error?: string }> 
 }
 
 /**
- * 배경 사진 올리기 — 아바타와 **같은 관용**이다(경로 첫 칸이 내 uid · 덮어쓰기 + 버전 쿼리).
+ * 배경 사진 올리기 — 아바타와 **같은 관용**이다(경로 첫 칸이 내 uid · 이름에 시각을 박고 옛 파일 삭제).
  *
  * @param file 웹은 `File`, 폰은 `bytesOfUri()` 결과(★2026-08-31부터 **자른 뒤** 바이트로 읽는다)
  */
@@ -163,15 +191,16 @@ export async function uploadMyCover(file: Uploadable): Promise<{ ok: boolean; ur
   const { body, type, size } = partsOf(file);
   // ⚠️배경은 가로로 넓어 아바타보다 크다 — 그래도 4MB 를 넘기지 않는다(느린 망에서 화면이 늦게 뜬다)
   if (size > 4 * 1024 * 1024) return { ok: false, error: 'too_large' };
-  const ext = type.includes('png') ? 'png' : type.includes('webp') ? 'webp' : 'jpg';
-  const path = `${user.id}/cover.${ext}`;
+  const path = newPath(user.id, 'cover', type);
+  const { data: before } = await supabase.from('profiles').select('cover_path').eq('id', user.id).maybeSingle();
   const up = await supabase.storage.from('avatars')
     .upload(path, body, { upsert: true, contentType: type });
   if (up.error) return { ok: false, error: up.error.message };
   const { error } = await supabase.from('profiles')
     .update({ cover_path: path }).eq('id', user.id);
   if (error) return { ok: false, error: error.message };
-  const url = `${sizedImage(publicUrl(path), COVER_W)}&v=${Date.now()}`;
+  await dropOld((before as any)?.cover_path, path);
+  const url = sizedImage(publicUrl(path), COVER_W)!;
   _cache = { ...profileSnapshot(), coverUrl: url };
   notify();
   return { ok: true, url };

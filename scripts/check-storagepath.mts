@@ -79,7 +79,24 @@ for (const f of files) {
     if (!/^[`'"]/.test(arg)) {
       const decl = new RegExp(`\\b${arg.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&')}\\s*=\\s*(\`[^\`]*\`)`).exec(src);
       if (decl) tpl = decl[1];
-      else { hits.push({ file: f, line, path: arg, why: '경로를 못 따라갔다 — 사람이 확인할 것' }); continue; }
+      else {
+        /**
+         * ★한 단계 더 따라간다 — 경로를 **헬퍼가 짓는** 경우(2026-08-31).
+         *   `const path = newPath(user.id, 'avatar', type)` 처럼 쓰면 종전 판정은
+         *   «못 따라갔다» 로 손을 들었다. 규칙(첫 칸 = uid)은 지켜지는데도 빨간불이다
+         *   ([[harness-goes-blind-on-refactor]] — 자리·모양으로 판정하면 리팩터링에 눈이 먼다).
+         * ⇒ 대입이 **같은 파일의 함수 호출**이면 그 함수의 `return` 템플릿을 본다.
+         * ⚠️한 단계만 본다 — 더 깊이 좇으면 판정이 «작은 인터프리터» 가 되어 스스로 틀린다.
+         */
+        const esc2 = arg.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const call = new RegExp(`\\b${esc2}\\s*=\\s*(\\w+)\\s*\\(`).exec(src);
+        const fn = call?.[1];
+        const ret = fn
+          ? new RegExp(`function\\s+${fn}\\b[\\s\\S]*?return\\s+(\`[^\`]*\`)`).exec(src)
+          : null;
+        if (ret) tpl = ret[1];
+        else { hits.push({ file: f, line, path: arg, why: '경로를 못 따라갔다 — 사람이 확인할 것' }); continue; }
+      }
     }
     const seg = firstSegment(tpl);
     if (EXEMPT_PREFIX.has(seg)) continue;                       // 관리자 전용(정책 별도)

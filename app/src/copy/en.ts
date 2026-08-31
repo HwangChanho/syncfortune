@@ -491,7 +491,7 @@ export const en = {
     market: 'Market',
   },
   shared: { title: 'Shared reading', loading: 'Loading the reading…', notFound: "We couldn't find a reading for this link.", goMine: 'See my fortune ›', alsoMine: 'See my own fortune ›', foot: '{{app}} · Saju · Zi Wei Dou Shu · Tarot' },
-  chartPick: { title: 'Whose chart should I read?', why: "We'll continue this conversation with the chart you pick. You can change it later.", new: 'Enter directly', all: 'See all {{n}}', fold: 'Show less' },
+  chartPick: { self: "Me", rep: "Default", title: 'Whose chart should I read?', why: "We'll continue this conversation with the chart you pick. You can change it later.", new: 'Enter directly', all: 'See all {{n}}', fold: 'Show less' },
   appInvite: { title: 'Better in the app', sub: 'Get notifications and your daily fortune right away.', open: 'Open app' },
   appName: 'Niunnaeun',
   tagline: 'Your AI compass for understanding yourself and others',

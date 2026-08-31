@@ -404,6 +404,20 @@ export function ChartPicker({ onChange, viewOnly }: {
                       {!!c.input.sex && (
                         <Text style={[styles.sexBadge, { fontSize: fs(10.5) }]}>{c.input.sex}</Text>
                       )}
+                      {/* ★★«지금 보는 것» 말고 **본인·대표가 어느 것인지** 한눈에(Boss 2026-08-31
+                            *"만세력 리스트에 지금보는 명식 위에 본인 또는 대표명식 설정된거도 어떤건지 보이게 하자"*).
+                          ■ 종전엔 «지금 고른 것»(체크 ✓)만 보였다. 대표는 목록 밖(접힌 바)에서만 알 수 있어
+                            **여러 명식을 오가면 어느 게 대표인지 놓쳤다.**
+                          ■ ★둘은 **다른 것**이라 따로 적는다:
+                            · 본인 = `relation === 'self'`(나 자신의 명식)
+                            · 대표 = `repId`(앱이 기본으로 쓰는 명식) — 남의 명식이 대표일 수도 있다.
+                          ★같은 명식이면 배지 둘이 나란히 선다 — 합치지 않는다(뜻이 다르니까). */}
+                      {c.relation === 'self' ? (
+                        <View style={styles.meBadge}><Text style={styles.meBadgeTx}>{t('chartPick.self', '본인')}</Text></View>
+                      ) : null}
+                      {c.id === repId ? (
+                        <View style={styles.repBadge}><Text style={styles.repBadgeTx}>{t('chartPick.rep', '대표')}</Text></View>
+                      ) : null}
                       {/* ★프리미엄 지정 명식 배지(daniel 07-02: 명식 옆에 프리미엄 여부) — 골드 왕관 배지 */}
                       {!!premChartId && c.serverChartId === premChartId && (
                         <View style={styles.premBadge}><Text style={styles.premBadgeTx}>👑 프리미엄</Text></View>
@@ -998,6 +1012,11 @@ const styles = StyleSheet.create({
   actSheetCancel: { marginTop: space(2), backgroundColor: colors.sunk, borderRadius: radius.md },
   actSheetCancelTx: { fontSize: 16, fontWeight: '700', color: colors.inkSoft },
   // 프리미엄 지정 명식 배지(골드) — 명식 옆에 프리미엄 여부(daniel 07-02)
+  // ★본인·대표 배지 — 이름 옆에 작게. 색으로 구분한다(본인=주색 · 대표=은은한 테두리)
+  meBadge: { paddingHorizontal: space(1.5), paddingVertical: 1, borderRadius: radius.pill, backgroundColor: colors.ju },
+  meBadgeTx: { fontSize: 10, fontWeight: '800', color: colors.onJu },
+  repBadge: { paddingHorizontal: space(1.5), paddingVertical: 1, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.ju, backgroundColor: 'transparent' },
+  repBadgeTx: { fontSize: 10, fontWeight: '800', color: colors.ju },
   premBadge: { backgroundColor: colors.badgeGold, borderRadius: radius.pill, paddingHorizontal: space(2), paddingVertical: 1, overflow: 'hidden' },
   premBadgeTx: { color: colors.bg, fontSize: 10, fontWeight: '900' },
   // 성별 배지(남/여) — 중립 톤. overflow:hidden 이 있어야 안드로이드에서 borderRadius 가 먹는다.
