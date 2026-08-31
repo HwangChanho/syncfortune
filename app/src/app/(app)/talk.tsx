@@ -603,6 +603,15 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
    *   ⚠️이 인자가 없던 것이 다인방 고장의 뿌리였다(위 `curSid` 주석).
    */
   const open = useCallback((c: Consultant, room?: { sessionId: string; guestIds: string[] }) => {
+    /**
+     * ⚠️★★**친구 방을 안 닫고 있었다**(Boss 2026-08-31 *"친구랑 대화한 뒤로 다른 채팅창이 안들어가져"*).
+     *   화면은 `userRoom` 이 있으면 **그것을 먼저** 그린다(1623행). 그런데 상담가 방을 열 때
+     *   `cur`·`sid` 만 바꾸고 `userRoom` 은 **그대로 뒀다** ⇒ 친구 방을 한 번 열면
+     *   그 뒤로 무엇을 눌러도 **친구 방이 계속 보인다.**
+     * ★반대 방향(친구 방을 열 때 `setCur(null)`)은 **이미 있었다**(1192·1613행) —
+     *   같은 필요의 두 길 중 **한쪽만** 지워져 있었다. 이 저장소가 반복해서 겪는 모양이다.
+     */
+    setUserRoom(null);
     setCur(c);
     // ★방을 바꾸면 **세션도 참여자도 먼저 지운다** — 안 지우면 직전 방의 것이 잠깐 붙어 보인다
     setSid(room?.sessionId ?? null);
@@ -1272,7 +1281,9 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
     //      실제로 이 띠를 만들자마자 잡혔다.)
     // ★참여자도 비운다 — 다인방을 지웠는데 `mates` 가 남으면 머리말이 «3명» 이라고 말한다
     //   (`check:talknotes` 가 이 규칙을 **불변식**으로 지킨다 — 새 state 를 넣으면 바로 문다).
-    setNotes([]); setJumpTo(null); setNotice(null); setMates([]);
+    // ★친구 방도 닫는다 — 상담가 방을 지우고 남아 있으면 «지웠는데 친구 방이 뜬다» 가 된다
+    //   (2026-08-31 `check:talknotes` ⑦ 이 새 state 를 넣자마자 잡았다 — 불변식이 일한 자리다).
+    setNotes([]); setJumpTo(null); setNotice(null); setMates([]); setUserRoom(null);
     // ★진행 중이던 것도 멈춘다 — 안 그러면 지운 대화의 흔적이 새 화면에서 계속 움직인다:
     //   `clearTimers` 순차 표시·무료소진 안내 타이머 / `setBusy(false)` 점 세 개 / `genRef` 날아간 응답.
     //   (`open` 이 방을 바꿀 때 하는 것과 같다 — 여기만 빠져 있었다.)

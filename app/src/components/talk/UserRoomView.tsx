@@ -19,6 +19,7 @@
 import { sizedImage } from '../../lib/media/imageUrl';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, TextInput, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';   // ★헤더가 상태바에 먹히던 것(Boss 2026-08-31)
 import { useTranslation } from 'react-i18next';
 import { PressableScale } from '../PressableScale';
 import { Icon } from '../kit/Icon';
@@ -81,6 +82,13 @@ export function UserRoomView({ sessionId, myId, onBack, onInvite, onLeave }: {
    */
   const [inputH, setInputH] = useState(0);
   const inputRef = useRef<TextInput>(null);
+  /**
+   * ⚠️★이 화면에는 **안전영역이 아예 없었다**(Boss 2026-08-31 스크린샷):
+   *   제목 「이름 없음」 이 시계·LTE 와 **같은 줄**에 겹치고, ☰·🗑 아이콘이 상태바에 먹혀
+   *   **누를 수조차 없었다.** 상담가 방(`talk.tsx`)에는 있는데 **친구 방에만** 빠져 있었다.
+   *   ★같은 필요의 두 경로 중 한쪽만 고쳐진 그 부류다([[talk-must-know-today]] 와 같은 결).
+   */
+  const insets = useSafeAreaInsets();
   /**
    * ⚠️★★2026-08-27 재수정 — Boss *"택스트 칸은 기본 한줄이라니깐"* (같은 요청이 **두 번째**다).
    *
@@ -220,7 +228,7 @@ export function UserRoomView({ sessionId, myId, onBack, onInvite, onLeave }: {
 
   return (
     <View style={styles.wrap}>
-      <View style={styles.head}>
+      <View style={[styles.head, { paddingTop: insets.top + space(3) }]}>
         {onBack ? (
           <PressableScale hitSlop={8} onPress={onBack}><Icon name="menu" size={22} /></PressableScale>
         ) : null}
@@ -297,6 +305,10 @@ const styles = StyleSheet.create({
   input: {
     // ⚠️높이는 **위에서 계산해 넣는다**(minHeight/maxHeight 로는 «한 줄로 시작» 을 못 만든다).
     flex: 1,
+    // ⚠️★글자가 **위에 붙어 있었다**(Boss 2026-08-31). 높이를 우리가 정해 주는데
+    //   `TextInput` 은 기본이 위 정렬이라, 한 줄일 때 글자가 칸 위쪽에 뜬다.
+    //   ⇒ iOS 는 `textAlignVertical` 을 안 보므로 **둘 다** 준다(안드로이드=속성 · iOS=아래 padding 균형).
+    textAlignVertical: 'center',
     backgroundColor: colors.sunk, borderRadius: radius.md,
     paddingHorizontal: space(3.5), paddingVertical: space(2), color: colors.ink,
     // 웹 textarea 의 기본 리사이즈 손잡이를 없앤다(우리가 높이를 정하므로)
