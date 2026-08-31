@@ -21,7 +21,8 @@ import { useTranslation } from 'react-i18next';
 import { PressableScale } from '../PressableScale';
 import { loadMyProfile, saveMyName, uploadMyAvatar, clearMyAvatar, uploadMyCover, clearMyCover } from '../../lib/talk/myProfile';
 // ★폰 사진 고르기(Boss 2026-08-28 *"ios는 왜 사진 바꾸기가 안되지"*) — 웹은 종전 <input type=file> 그대로
-import { pickImage, canPickImage } from '../../lib/media/pickImage';
+import { pickImageUri, bytesOfUri, canPickImage } from '../../lib/media/pickImage';
+import { CropSheet } from '../media/CropSheet';
 // ★사진 한 장 크게 — 대화창이 쓰는 것과 **같은 창**을 쓴다(따로 만들면 동작이 갈린다)
 import { PhotoViewer } from '../talk/PhotoViewer';
 import { originalImage } from '../../lib/media/imageUrl';
@@ -97,17 +98,42 @@ export function MyProfileCard({ fallbackName, element }: { fallbackName?: string
   }, [name, t]);
 
   const onPickWeb = () => fileRef.current?.click?.();
+  /**
+   * ── 사진 자르기 ─────────────────────────────────────────────────────────
+   * Boss 2026-08-31 *"너무 확대돼서 나와 … 그 칸에 맞춰두면 그대로 나와야해"*
+   *
+   * ★**웹·폰이 같은 자리로 모인다.** 고르는 방법만 다르고(파일 입력 ↔ 앨범),
+   *   자르기·업로드는 **한 벌**이다 — 오늘 여러 번 데인 «면마다 다르게 도는 것» 을 안 만든다.
+   * ★비율은 **그리는 칸이 정한다**: 프로필 1, 배경 9/16(프로필 창 패널 비율과 같다).
+   */
+  const [crop, setCrop] = useState<{ uri: string; kind: 'avatar' | 'cover' } | null>(null);
+  const COVER_ASPECT = 9 / 16;
+
+  /** 잘라 낸 결과를 올린다 — 업로드는 종전 함수 그대로(경로·정책·버전쿼리 규칙이 한 벌이다). */
+  const onCropped = async (uri: string, kind: 'avatar' | 'cover') => {
+    setCrop(null);
+    const img = await bytesOfUri(uri);
+    if (!img) { flash(t('profile.saveFail', '저장하지 못했어요')); return; }
+    setBusy(true);
+    const r = kind === 'avatar' ? await uploadMyAvatar(img) : await uploadMyCover(img);
+    setBusy(false);
+    if (r.ok && r.url) {
+      if (kind === 'avatar') setAvatar(r.url); else setCover(r.url);
+      flash(t('profile.saved', '저장했어요'));
+    } else {
+      flash(r.error === 'too_large'
+        ? (kind === 'avatar' ? t('profile.tooLarge', '2MB 이하 사진만 올릴 수 있어요')
+                             : t('profile.coverTooLarge', '4MB 이하 사진만 올릴 수 있어요'))
+        : t('profile.saveFail', '저장하지 못했어요'));
+    }
+  };
+
   const onFile = async (e: any) => {
     const f = e?.target?.files?.[0];
-    if (!f) return;
-    setBusy(true);
-    const r = await uploadMyAvatar(f);
-    setBusy(false);
-    if (r.ok && r.url) { setAvatar(r.url); flash(t('profile.saved', '저장했어요')); }
-    else flash(r.error === 'too_large'
-      ? t('profile.tooLarge', '2MB 이하 사진만 올릴 수 있어요')
-      : t('profile.saveFail', '저장하지 못했어요'));
     if (e.target) e.target.value = '';   // 같은 파일을 다시 골라도 이벤트가 오게
+    if (!f) return;
+    // ★바로 올리지 않는다 — **자르기 창을 먼저** 띄운다(폰과 같은 자리로 모인다)
+    setCrop({ uri: URL.createObjectURL(f), kind: 'avatar' });
   };
 
   /**
@@ -116,26 +142,12 @@ export function MyProfileCard({ fallbackName, element }: { fallbackName?: string
    * ⚠️취소·권한 거부는 `null` 이라 **아무 말도 하지 않는다** — 사용자가 스스로 접은 것이다.
    */
   const onPickNative = async () => {
-    const img = await pickImage({ square: true });   // 프로필은 정사각
-    if (!img) return;
-    setBusy(true);
-    const r = await uploadMyAvatar(img);
-    setBusy(false);
-    if (r.ok && r.url) { setAvatar(r.url); flash(t('profile.saved', '저장했어요')); }
-    else flash(r.error === 'too_large'
-      ? t('profile.tooLarge', '2MB 이하 사진만 올릴 수 있어요')
-      : t('profile.saveFail', '저장하지 못했어요'));
+    const uri = await pickImageUri();     // ★자르기 전 원본 — 편집은 우리 창이 한다
+    if (uri) setCrop({ uri, kind: 'avatar' });
   };
   const onPickCoverNative = async () => {
-    const img = await pickImage();                   // 배경은 자유 비율
-    if (!img) return;
-    setBusy(true);
-    const r = await uploadMyCover(img);
-    setBusy(false);
-    if (r.ok && r.url) { setCover(r.url); flash(t('profile.saved', '저장했어요')); }
-    else flash(r.error === 'too_large'
-      ? t('profile.coverTooLarge', '4MB 이하 사진만 올릴 수 있어요')
-      : t('profile.saveFail', '저장하지 못했어요'));
+    const uri = await pickImageUri();
+    if (uri) setCrop({ uri, kind: 'cover' });
   };
 
   const onClear = async () => { setBusy(true); await clearMyAvatar(); setBusy(false); setAvatar(null); };
@@ -144,15 +156,9 @@ export function MyProfileCard({ fallbackName, element }: { fallbackName?: string
   const onPickCover = () => coverRef.current?.click?.();
   const onCoverFile = async (e: any) => {
     const f = e?.target?.files?.[0];
-    if (!f) return;
-    setBusy(true);
-    const r = await uploadMyCover(f);
-    setBusy(false);
-    if (r.ok && r.url) { setCover(r.url); flash(t('profile.saved', '저장했어요')); }
-    else flash(r.error === 'too_large'
-      ? t('profile.coverTooLarge', '4MB 이하 사진만 올릴 수 있어요')
-      : t('profile.saveFail', '저장하지 못했어요'));
     if (e.target) e.target.value = '';
+    if (!f) return;
+    setCrop({ uri: URL.createObjectURL(f), kind: 'cover' });
   };
   const onClearCover = async () => { setBusy(true); await clearMyCover(); setBusy(false); setCover(null); };
 
@@ -236,6 +242,17 @@ export function MyProfileCard({ fallbackName, element }: { fallbackName?: string
 
       {/* 크게 보기 — 대화창과 **같은 창** */}
       <PhotoViewer uri={zoom?.uri ?? null} caption={zoom?.cap} onClose={() => setZoom(null)} />
+
+      {/* ★자르기 창 — 사진 위가 아니라 **카드 전체를 덮는다**. 고른 직후 여기로 온다 */}
+      {crop ? (
+        <CropSheet
+          uri={crop.uri}
+          aspect={crop.kind === 'avatar' ? 1 : COVER_ASPECT}
+          outWidth={crop.kind === 'avatar' ? 512 : 1080}
+          onDone={(r) => onCropped(r.uri, crop.kind)}
+          onCancel={() => setCrop(null)}
+        />
+      ) : null}
 
       {/* 숨긴 파일 입력 — 웹에서만 렌더된다(네이티브에는 DOM 이 없다) */}
       {Platform.OS === 'web' ? <WebFileInput inputRef={fileRef} onChange={onFile} /> : null}

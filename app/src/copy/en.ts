@@ -475,6 +475,7 @@ export const en = {
     paidC: '.',
   },
   capture: { start: 'Capture', save: 'Save', saving: 'Creating…', pickHint: 'Pick the notes to include', saved: 'Saved', savedMsg: 'Saved as an image.', fail: 'Could not save', failMsg: 'Please try again in a moment.' },
+  crop: { title: 'Fit the photo to the frame', sub: 'Drag to move, − ＋ to resize. What you see is what gets saved.', working: 'Cropping…', use: 'Use this' },
   adult: { needVerifyTitle: 'Verification required', needVerifyMsg: 'You can turn this on after we confirm you are 19 or older.', verifySoon: 'Identity verification is coming soon. Please hold on a little.', title: 'Adult conversation', row: 'I am 19 or older', sub: 'Turns on frank talk about intimacy and compatibility.' },
   screen: {
     shared: 'Shared reading',

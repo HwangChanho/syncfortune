@@ -80,3 +80,45 @@ export async function pickImage(opts?: { square?: boolean }): Promise<PickedImag
 
 /** 이 빌드에서 폰 사진 고르기가 되는가(버튼을 보일지 정할 때). */
 export const canPickImage = Platform.OS !== 'web' && !!Picker;
+
+
+/**
+ * 앨범에서 **자르기 전 원본**의 경로만 받아 온다 — 자르기는 우리 `CropSheet` 가 한다.
+ *
+ * ⚠️★`allowsEditing` 을 **끈다.** iOS 의 그 편집기는 **언제나 정사각형**이라
+ *   9:16 배경 칸과 맞지 않는다(`aspect` 는 안드로이드에서만 먹는다).
+ *   그래서 배경 사진이 «너무 확대돼» 보였다(Boss 2026-08-31).
+ * ⚠️여기서는 `quality` 를 낮추지 않는다 — **자른 뒤에** 줄인다. 미리 줄이면
+ *   확대했을 때 뭉개진 그림을 저장하게 된다.
+ *
+ * @returns 원본 경로 · 취소·권한 거부는 `null`
+ */
+export async function pickImageUri(): Promise<string | null> {
+  if (Platform.OS === 'web' || !Picker) return null;
+  try {
+    const perm = await Picker.requestMediaLibraryPermissionsAsync();
+    if (!perm?.granted) return null;
+    const r = await Picker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: false,   // ★자르기는 우리가 한다(위 주석)
+      quality: 1,
+      exif: false,            // ⚠️위치 정보가 사진에 붙어 나가지 않게
+    });
+    if (r?.canceled) return null;
+    return r?.assets?.[0]?.uri ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** 잘라 낸 파일(`file://…`)을 바이트로 읽는다 — 업로드는 바이트를 받는다. */
+export async function bytesOfUri(uri: string): Promise<PickedImage | null> {
+  try {
+    const res = await fetch(uri);
+    const buf = await res.arrayBuffer();
+    const data = new Uint8Array(buf);
+    return { data, type: 'image/jpeg', size: data.byteLength };
+  } catch {
+    return null;
+  }
+}
