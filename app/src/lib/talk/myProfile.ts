@@ -98,7 +98,7 @@ export async function saveMyName(name: string): Promise<{ ok: boolean; error?: s
 
 
 /**
- * 올릴 것 — 웹은 `File`(Blob), 폰은 `pickImage()` 가 준 바이트.
+ * 올릴 것 — 웹은 `File`(Blob), 폰은 `bytesOfUri()` 가 준 바이트.
  * ★한 타입으로 받아 **경로·정책·버전쿼리 규칙을 한 벌**로 유지한다
  *   (웹용·폰용 업로드를 따로 만들면 «첫 칸이 uid» 같은 규칙이 언젠가 갈린다).
  */
@@ -118,7 +118,7 @@ function partsOf(f: Uploadable): { body: Blob | Uint8Array; type: string; size: 
  *   Storage 정책이 '첫 칸이 내 uid' 를 요구하므로 남의 파일을 건드릴 수 없다.
  * ⚠️같은 경로에 덮어쓰면 CDN 캐시가 옛 사진을 계속 준다 → URL 에 버전 쿼리를 붙인다.
  *
- * @param file 웹은 `File`, 폰은 `pickImage()` 결과(2026-08-28부터 폰도 된다)
+ * @param file 웹은 `File`, 폰은 `bytesOfUri()` 결과(★2026-08-31부터 **자른 뒤** 바이트로 읽는다)
  */
 export async function uploadMyAvatar(file: Uploadable): Promise<{ ok: boolean; url?: string; error?: string }> {
   const { data: { user } } = await supabase.auth.getUser();
@@ -155,7 +155,7 @@ export async function clearMyAvatar(): Promise<{ ok: boolean; error?: string }> 
 /**
  * 배경 사진 올리기 — 아바타와 **같은 관용**이다(경로 첫 칸이 내 uid · 덮어쓰기 + 버전 쿼리).
  *
- * @param file 웹은 `File`, 폰은 `pickImage()` 결과(2026-08-28부터 폰도 된다)
+ * @param file 웹은 `File`, 폰은 `bytesOfUri()` 결과(★2026-08-31부터 **자른 뒤** 바이트로 읽는다)
  */
 export async function uploadMyCover(file: Uploadable): Promise<{ ok: boolean; url?: string; error?: string }> {
   const { data: { user } } = await supabase.auth.getUser();
