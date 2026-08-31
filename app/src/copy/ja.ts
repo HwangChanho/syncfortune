@@ -927,6 +927,7 @@ export const ja = {
          contents: '占い', community: 'コミュニティ', coach: 'ガイド', market: 'マーケット' },
   profile: { cover: '背景', photo: 'プロフィール写真', title: 'マイプロフィール', namePh: '名前', pick: '写真を変更', clear: '写真を削除',
     pickCover: '背景を変更',
+    coverHint: "プロフィール画面にこのまま表示されます。",
     clearCover: '背景を削除',
     coverTooLarge: '4MB以下の画像のみ',
     saved: '保存しました', saveFail: '保存できませんでした', tooLarge: '2MB以下の写真のみアップロードできます',

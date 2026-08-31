@@ -74,6 +74,12 @@ export function coverAspect(src: string): number | null {
   return m ? Number(m[1]) / Number(m[2]) : null;
 }
 
+/** 설정 화면 **미리보기**가 배경을 그리는 비율. */
+export function previewAspect(src: string): number | null {
+  const m = strip(src).match(/cover\s*:\s*\{[^}]*aspectRatio\s*:\s*(\d+)\s*\/\s*(\d+)/);
+  return m ? Number(m[1]) / Number(m[2]) : null;
+}
+
 /** 프로필 창이 배경을 그리는 비율을 읽는다. */
 export function panelAspect(src: string): number | null {
   const m = strip(src).match(/VIDEO_RATIO\s*=\s*(\d+)\s*\/\s*(\d+)/);
@@ -135,6 +141,19 @@ if (!process.argv.includes('--selftest')) {
     }
   }
 
+  // C3 ★설정 화면 **미리보기**도 같은 비율이어야 한다 — 자리가 셋이면 셋 다 봐야 한다
+  if (card) {
+    const a = coverAspect(card), p = previewAspect(card);
+    if (a !== null && p === null) {
+      fail('C3', `${CARD} 의 배경 **미리보기에 비율이 없다**(\`cover\` 스타일의 \`aspectRatio\`).\n        `
+        + '⚠️고정 높이로 두면 9:16 그림이 **가운데 얇은 한 겹**으로만 보인다 —\n        '
+        + '「맞춰 둔 것」과 「보이는 것」이 또 갈린다(Boss 2026-08-31 *"배경사진도 동일"*)');
+    } else if (a !== null && p !== null && Math.abs(a - p) > 0.001) {
+      fail('C3', `배경 **자르는 비율 ${a.toFixed(4)}** ≠ **미리보기 비율 ${p.toFixed(4)}** (${CARD}).\n        `
+        + '★자리가 셋이다: 자르기 · 프로필 창 · 설정 미리보기. 셋이 같아야 한다');
+    }
+  }
+
   if (!cropSrc) fail('C0', `${CROP} 를 못 읽었다`);
   else if (minScaleOk(cropSrc) === false) {
     fail('C4', `${CROP} 의 \`MIN_SCALE\` 이 1 보다 작다 — 칸에 **빈 곳**이 생긴다`);
@@ -175,6 +194,12 @@ if (process.argv.includes('--selftest')) {
       run: () => /<CropHost\s*\/>/.test(strip('// <CropHost />\nconst a=1;')) === false },
     { name: 'C6 카드가 <CropSheet/> 를 직접 그리면 문다',
       run: () => /<CropSheet/.test(strip('<CropSheet uri={u} />')) === true },
+    { name: 'C3 미리보기 비율을 읽는다',
+      run: () => previewAspect(`  cover: { width: 96, aspectRatio: 9 / 16, borderRadius: 8 },`) === 9 / 16 },
+    { name: 'C3 미리보기가 고정 높이면 못 읽는다(=문다)',
+      run: () => previewAspect(`  cover: { height: 110, borderRadius: 8 },`) === null },
+    { name: 'C3 미리보기가 다른 비율이면 갈린다',
+      run: () => Math.abs((previewAspect(`  cover: { aspectRatio: 3 / 4 },`) ?? 0) - 9 / 16) > 0.001 },
     { name: 'C4 MIN_SCALE 1 이면 통과', run: () => minScaleOk('const MIN_SCALE = 1;') === true },
     { name: 'C4 MIN_SCALE 0.5 면 문다', run: () => minScaleOk('const MIN_SCALE = 0.5;') === false },
     { name: '주석 속 코드에 안 속는다',

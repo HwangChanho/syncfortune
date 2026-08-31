@@ -957,6 +957,7 @@ export const ko = {
          contents: '풀이', community: '운광장', coach: '우니', market: '마켓' },
   profile: { cover: '배경', photo: '프로필 사진', title: '내 프로필', namePh: '이름', pick: '사진 바꾸기', clear: '사진 지우기',
     pickCover: '배경 바꾸기',
+    coverHint: "프로필 창에 보이는 그대로예요.",
     clearCover: '배경 지우기',
     coverTooLarge: '4MB 이하 사진만 올릴 수 있어요',
     saved: '저장했어요', saveFail: '저장하지 못했어요', tooLarge: '2MB 이하 사진만 올릴 수 있어요',

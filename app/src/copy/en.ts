@@ -928,6 +928,7 @@ export const en = {
          contents: 'Readings', community: 'Community', coach: 'Guide', market: 'Market' },
   profile: { cover: 'Cover', photo: 'Profile photo', title: 'My profile', namePh: 'Name', pick: 'Change photo', clear: 'Remove photo',
     pickCover: 'Change cover',
+    coverHint: "This is exactly how it appears on your profile.",
     clearCover: 'Remove cover',
     coverTooLarge: 'Only images under 4MB',
     saved: 'Saved', saveFail: "Couldn't save", tooLarge: 'Photos must be 2MB or smaller',

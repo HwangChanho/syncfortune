@@ -173,24 +173,33 @@ export function MyProfileCard({ fallbackName, element }: { fallbackName?: string
   const el = element && elementColor[element] ? element : activeElement;
   return (
     <View style={styles.card}>
-      {/* ★배경 사진 — 프로필 창에서 이 자리가 윗면이 된다. 없으면 오행 색면 */}
-      <View style={[styles.cover, { backgroundColor: elementColor[el] }]}>
-        {cover ? (
-          <PressableScale style={StyleSheet.absoluteFill}
-            onPress={() => setZoom({ uri: originalImage(cover) ?? cover, cap: t('profile.cover', '배경') })}>
-            <ExpoImage source={{ uri: cover }} style={StyleSheet.absoluteFill} contentFit="cover" transition={140} />
-          </PressableScale>
-        ) : null}
+      {/*
+        ★배경 사진 미리보기 — **프로필 창과 같은 9:16** (Boss 2026-08-31 *"배경사진도 동일"*).
+        ⚠️종전엔 폭을 꽉 채운 **높이 110 가로 띠**였다. 자르기가 생겨 배경이 9:16 으로 저장되면서
+          그 띠에는 **가운데 얇은 한 겹**만 보였다 — 「맞춰 둔 것」과 「보이는 것」이 또 달라진다.
+        ⇒ 미리보기를 그리는 칸과 **같은 비율**로 세우고, 버튼은 옆으로 뺀다.
+          작아도 «저 모양 그대로 나온다» 가 읽히는 편이 낫다.
+      */}
+      <View style={styles.coverRow}>
+        <View style={[styles.cover, { backgroundColor: elementColor[el] }]}>
+          {cover ? (
+            <PressableScale style={StyleSheet.absoluteFill}
+              onPress={() => setZoom({ uri: originalImage(cover) ?? cover, cap: t('profile.cover', '배경') })}>
+              <ExpoImage source={{ uri: cover }} style={StyleSheet.absoluteFill} contentFit="cover" transition={140} />
+            </PressableScale>
+          ) : null}
+        </View>
         {(Platform.OS === 'web' || canPickImage) ? (
-          <View style={styles.coverBtns}>
+          <View style={styles.coverSide}>
             <PressableScale style={styles.coverBtn} onPress={Platform.OS === 'web' ? onPickCover : onPickCoverNative} disabled={busy}>
               <Text style={styles.coverBtnTx}>{t('profile.pickCover', '배경 바꾸기')}</Text>
             </PressableScale>
             {cover ? (
-              <PressableScale style={styles.coverBtn} onPress={onClearCover} disabled={busy}>
-                <Text style={styles.coverBtnTx}>{t('profile.clearCover', '배경 지우기')}</Text>
+              <PressableScale style={[styles.coverBtn, styles.coverBtnAlt]} onPress={onClearCover} disabled={busy}>
+                <Text style={[styles.coverBtnTx, styles.coverBtnTxAlt]}>{t('profile.clearCover', '배경 지우기')}</Text>
               </PressableScale>
             ) : null}
+            <Text style={styles.coverHint}>{t('profile.coverHint', '프로필 창에 보이는 그대로예요.')}</Text>
           </View>
         ) : null}
       </View>
@@ -267,10 +276,15 @@ function WebFileInput({ inputRef, onChange }: { inputRef: any; onChange: (e: any
 
 const styles = StyleSheet.create({
   // 배경 사진 — 카카오톡식 프로필 창의 윗면과 **같은 그림**이다
-  cover: { height: 110, borderRadius: radius.md, overflow: 'hidden', marginBottom: space(3), justifyContent: 'flex-end' },
-  coverBtns: { flexDirection: 'row', gap: space(1.5), padding: space(2) },
-  coverBtn: { paddingVertical: space(1.5), paddingHorizontal: space(3), borderRadius: radius.pill, backgroundColor: 'rgba(0,0,0,0.45)' },
-  coverBtnTx: { ...font.caption, color: '#FFFFFF', fontWeight: '800' },
+  coverRow: { flexDirection: 'row', gap: space(3), marginBottom: space(3), alignItems: 'flex-start' },
+  // ★`COVER_ASPECT`(9/16)와 **같은 모양** — 여기 보이는 것이 프로필 창에 그대로 나온다
+  cover: { width: 96, aspectRatio: 9 / 16, borderRadius: radius.md, overflow: 'hidden' },
+  coverSide: { flex: 1, gap: space(2), paddingTop: space(1), alignItems: 'flex-start' },
+  coverBtn: { paddingVertical: space(2), paddingHorizontal: space(3.5), borderRadius: radius.pill, backgroundColor: colors.ju },
+  coverBtnAlt: { backgroundColor: colors.sunk, borderWidth: 1, borderColor: colors.line },
+  coverBtnTx: { ...font.caption, color: colors.onJu, fontWeight: '800' },
+  coverBtnTxAlt: { color: colors.inkSoft },
+  coverHint: { ...font.caption, color: colors.inkFaint, marginTop: space(0.5) },
   card: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.line, padding: space(4), gap: space(3), marginTop: space(2) },
   row: { flexDirection: 'row', alignItems: 'center', gap: space(4) },
   av: { width: 64, height: 64, borderRadius: radius.md * 1.2 },
