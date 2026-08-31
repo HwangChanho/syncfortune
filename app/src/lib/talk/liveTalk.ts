@@ -118,6 +118,17 @@ export async function askLive(
    * ⚠️과금·권한 값이 아니다 — **말투를 정하는 값**이다. 모르면 보내지 않는다(=존댓말).
    */
   userAge?: number | null,
+  /**
+   * ★**뽑힌 타로 카드**(Boss 2026-09-01 기획 1단계).
+   *
+   * ■ ⚠️★**모델이 뽑지 않는다.** 모델에게 「카드를 뽑아라」 하면 **매번 좋은 카드를 뽑는다** —
+   *   그럴듯한 이야기를 만들려 하기 때문이다. 뽑기는 **우리가** 하고 모델은 **읽기만** 한다.
+   * ■ 뽑는 곳이 앱인 이유: 덱(78장)이 `lib/tarot.ts` 에 있다.
+   *   Edge 로 옮기면 **사본이 둘**이 되고, 카드 뜻이 화면과 대화에서 갈릴 수 있다.
+   *   ⇒ 규칙은 한 벌로 두고 **결과만** 보낸다(`verdict`·`mentions` 와 같은 취급 = 해석 재료).
+   * ■ ⚠️뽑힌 카드는 **답과 함께 저장**된다 — 없으면 이력을 다시 열 때마다 카드가 바뀐다.
+   */
+  tarot?: string[] | null,
 ): Promise<LiveReply> {
   try {
     // ⚠️타임아웃을 반드시 건다 — supabase.functions.invoke 는 **기본 타임아웃이 없다**
@@ -134,6 +145,8 @@ export async function askLive(
           // 모르면 보내지 않는다 — 서버가 «모른다»를 존댓말로 읽는다
           // ⚠️★`Number(null)` 은 **0** 이다 — 그대로 쓰면 명식 없는 회원이 «0살»로 가서 전원 반말이 된다
           userAge: (userAge != null && Number.isFinite(Number(userAge))) ? Number(userAge) : undefined,
+          // 뽑은 카드가 있을 때만 — 없으면 서버가 «타로 자리가 아님» 으로 읽는다
+          tarot: tarot?.length ? tarot : undefined,
           adult: adultConfirmed(),
         },
       }),

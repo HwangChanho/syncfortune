@@ -32,6 +32,7 @@ import { listConsultants, consultantsSnapshot, type Consultant, toProfileTarget 
 import { greet, todayFlow, guide, type VirtualReply } from '../../lib/talk/virtualTalk';
 import { askLive, loadThread, deleteThread } from '../../lib/talk/liveTalk';
 import { Alert } from '../../lib/ui/alert';   // 커스텀 알림 — 운 부족 시 충전 유도
+import { wantsCards, drawThree } from '../../lib/talk/tarotDraw';   // ★카드는 **우리가** 뽑는다(모델이 아니라)
 import { SECTIONS } from '../../lib/content/contentSections'; // 대화 중 콘텐츠 안내 — 키 → 라벨·라우트(목록의 단일 출처)
 import { supabase } from '../../lib/supabase';
 import { withTimeout } from '../../lib/core/withTimeout';
@@ -939,7 +940,15 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
                  // ★@이름으로 부른 사람들 — **이 턴에만** 실린다(캐시 접두사를 건드리지 않는다)
                  buildMentions(q),
                  // ★반말 판정은 **서버가** 한다(상담가 나이는 서버 값이 정본이다)
-                 myAge)
+                 myAge,
+                 /**
+                  * ★★카드는 **여기서 뽑는다**(Boss 2026-09-01 기획 1단계).
+                  *   ⚠️모델에게 맡기면 «매번 좋은 카드» 를 뽑는다 — 그럴듯한 이야기를 만들려 하기 때문이다.
+                  *   ★타로 담당(`specialty` 에 `tarot`)에게, **카드를 물었을 때만** 뽑는다 —
+                  *     아무 때나 뽑으면 그게 «뜬금없음» 이다(이미지에서 이미 겪은 판단).
+                  *   ★값은 **무료**(Boss) — 카드는 우리가 뽑으므로 추가 원가가 없다.
+                  */
+                 (cur.specialty?.includes('tarot') && wantsCards(q)) ? drawThree() : null)
       .then((r) => {
         // 답을 기다리는 동안 대화를 지웠거나 다른 방으로 옮겼다 — **버린다.**
         //   ⚠️`setBusy(false)` 도 하지 않는다. 지금 점이 돌고 있다면 그건 **새 방의 것**이다.
