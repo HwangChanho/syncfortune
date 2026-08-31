@@ -10,7 +10,8 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useReducer, useEffect } from 'react';
 import * as SecureStore from 'expo-secure-store'; // 진행률 영구 저장(daniel: 강제종료해도 홈 배너 복원). 앱 공통 스토리지(AsyncStorage 미설치)
-import { notifyReadingDone } from './notifications'; // 완료 전이 시 푸시 1회(daniel ⑨ — 화면 밖/백그라운드에도 알림)
+import { notifyReadingDone, isTalkOpen } from './notifications'; // 완료 전이 시 푸시 1회(daniel ⑨ — 화면 밖/백그라운드에도 알림)
+import { postGenToTalk } from '../talk/genTalkPost';           // ★진행·완료를 담당자의 말로 방에 남긴다(Boss 08-31)
 
 export type GenItem = {
   route: string;    // 식별 키 + 완료/탭 시 돌아갈 경로
@@ -91,7 +92,35 @@ export function setGenProgress(patch: Partial<GenItem> & { route: string }) {
   //   ★진짜로 «기다리는 중에 끝난 것»(이 세션에서 시작한 것)은 `restored` 가 아니라 그대로 푸시된다.
   const wasRestored = !!prev?.restored;
   const skipDonePush = next.route === '/today' || next.route === '/month' || wasRestored;
-  if (nowDone && !wasDone && !skipDonePush) { notifyReadingDone(`${next.chartLabel ? next.chartLabel + ' — ' : ''}${next.label} 풀이가 완성됐어요`, '준비된 풀이를 확인해 보세요', next.route).catch(() => {}); }
+  /**
+   * ★★2026-08-31 — 진행·완료를 **대화방에 남긴다**(Boss *"채팅창에서 나와야지"* ·
+   *   *"완료되면 서윤이가 메세지보내고 내가 그화면에 없으면 푸시알림도 와야지"*).
+   *
+   * ■ 종전엔 홈 상단 배너뿐이었다. 정작 **그 사람과의 방** 에는 아무 말도 남지 않아,
+   *   나중에 방을 열면 아무 일도 없던 것처럼 보였다.
+   * ■ 시작할 때 한 번, 끝날 때 한 번. `postedRef` 로 **시작 알림은 route 당 한 번만** —
+   *   진행률이 오를 때마다 부르면 방이 «보고 있어요» 로 도배된다.
+   * ★푸시는 **그 방을 보고 있지 않을 때만** 낸다(오늘 만든 `isTalkOpen`).
+   *   보고 있는데 울리면 «지금 눈앞에 있는 것» 을 알리는 셈이라 성가시다.
+   */
+  const startedNow = next.active && !prev;
+  if (startedNow && !next.restored) {
+    void postGenToTalk(next.route, next.label, 'working', next.chartLabel);
+  }
+  if (nowDone && !wasDone && !skipDonePush) {
+    void (async () => {
+      const who = await postGenToTalk(next.route, next.label, 'done', next.chartLabel);
+      // 방을 보고 있으면 푸시를 내지 않는다 — 화면에 이미 그 말이 떠 있다
+      if (who && isTalkOpen(who)) return;
+      // ★탭하면 **그 방**으로 간다(종전엔 풀이 화면으로 갔다). 답장이 왔으면 답장을 보러 가는 게 맞다.
+      const route = who ? `/talk?c=${encodeURIComponent(who)}` : next.route;
+      notifyReadingDone(
+        `${next.chartLabel ? next.chartLabel + ' — ' : ''}${next.label} 풀이가 완성됐어요`,
+        '준비된 풀이를 확인해 보세요',
+        route,
+      ).catch(() => {});
+    })();
+  }
 }
 
 /** 특정 route 항목 제거 — 배너 탭 이동 시 / 해당 화면 접근 시(daniel: 접근하면 알림 사라짐). */

@@ -36,6 +36,16 @@ try { Notif = require('expo-notifications'); } catch { Notif = null; }
 let openTalkConsultant: string | null = null;
 
 /**
+ * 지금 **그 상담가의 방을 보고 있는가.**
+ *
+ * ★푸시를 낼지 말지 이 하나로 판정한다 — 보고 있는데 울리면 «눈앞의 것» 을 알리는 셈이다.
+ *   (서버 푸시는 `talk` Edge 가 같은 판정을 자기 쪽에서 한다. 여기는 **앱이 스스로 내는** 알림용.)
+ */
+export function isTalkOpen(consultantId: string): boolean {
+  return !!consultantId && openTalkConsultant === consultantId;
+}
+
+/**
  * 지금 보고 있는 대화방을 알린다(화면이 부른다).
  * @param consultantId 열려 있는 상담가 id · 방을 닫거나 화면을 떠나면 `null`
  */

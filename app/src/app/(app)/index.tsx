@@ -19,7 +19,7 @@
 import { View, StyleSheet, Animated, AppState, Platform } from 'react-native';
 import { LangChip } from '../../components/LangChip';   // 언어 칩(목록은 _layout 의 LangPickerHost)
 import { useSafeAreaInsets } from 'react-native-safe-area-context'; // ★상단 안전영역 — 고정 여백은 글자확대 시 잘린다(daniel 07-27)
-import { useRouter, useFocusEffect } from 'expo-router';
+import { useFocusEffect } from 'expo-router';
 import { useAuth } from '../../lib/useAuth';
 import { useEffect, useRef, useState, useCallback } from 'react';
 // ChartPicker(명식 선택)는 홈에서 제거(daniel 2026-07-25 '명식 선택은 홈에서 빼자') — 풀이 탭·만세력·설정에서 전환.
@@ -27,7 +27,6 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 // 홈 블록 이미지 상수(IMG)는 홈이 정보 카드로 바뀌며(2026-08-01) 소비처가 사라져 제거했다.
 import { BrandWordmark } from '../../components/BrandWordmark';
 import { TalkHome } from './talk';   // ★08-19 시작 화면 = 친구목록
-import { useGenProgress, clearGenProgress } from '../../lib/backend/genProgress'; // 풀이 진행률(다중·route별, 풀이중 홈 나가도 % — daniel)
 import { useSubscription } from '../../lib/billing/subscription';
 import { loadRepChart, subscribeRepChange } from '../../lib/engine/myChart';
 import { prewarmReadings, prewarmDaily } from '../../lib/backend/prewarmReadings';
@@ -35,7 +34,6 @@ import { scheduleDailyFortune } from '../../lib/backend/notifications'; // 매�
 import { scheduleLuckAlerts } from '../../lib/backend/luckAlerts'; // 시기 예고(대운 교체·세운 전환) 로컬 알림 — 리텐션 Phase 2
 import { computeChart } from '../../lib/engine/engine'; // ★canonical 명식 빌더 단일화(daniel 07-23) — 홈이 raw buildSajuChart 직접호출 시 세운·interactions 누락→신강약 드리프트(홈 33 vs 상세 59)
 import { colors, radius, space, shadow, font } from '../../lib/theme';
-import { GenReplyBanner } from '../../components/GenReplyBanner';   // 풀이 진행 = 담당자의 답장(Boss 08-25)
 import { HomeOrderEditModal } from '../../components/HomeOrderEditModal';
 import { useWebCols } from '../../components/WebShell';
 
@@ -46,20 +44,8 @@ export default function Home() {
   // ★고정 상단여백(space(12) 등)은 **글자 크기를 키우면 헤더가 상태바 위로 잘린다**(daniel 07-27 IMG_8215).
   //   상수는 기기 노치·다이내믹아일랜드·글자배율 어느 것도 반영하지 못한다 → 실제 안전영역을 쓴다.
   const insets = useSafeAreaInsets();
-  const router = useRouter();
-  // ★`useFontScale` 은 더 이상 여기서 안 쓴다 — 인라인 글자가 `GenReplyBanner` 로 옮겨갔다.
-  const gen = useGenProgress(); // 통변 생성 진행률(풀이중 홈 나가면 여기 배너로 %)
-  // I(daniel): %가 움직이도록 — 진행 중 풀이가 있으면 주기 리렌더(단일 콜의 추정 % 갱신). 진행 없으면 타이머 미동작.
-  const [, setTick] = useState(0);
-  useEffect(() => {
-    if (!gen.some((g) => g.active && g.done < g.total)) return;
-    const id = setInterval(() => setTick((x) => x + 1), 700);
-    return () => clearInterval(id);
-  }, [gen]);
-  // 홈 배너 % — multi(사주16/자미12)=저장 기반 실제값, single(총1)=시작~저장 추정(저장되면 done>=total로 완료 분기=100%)
-  const genPct = (done: number, total: number, startedAt: number) => total > 1
-    ? Math.round((done / total) * 100)
-    : Math.min(95, Math.max(3, Math.round(((Date.now() - startedAt) / 20000) * 100)));
+  // ★진행률 타이머도 함께 걷어냈다(2026-08-31) — %를 그리던 배너가 없어졌으므로
+  //   0.7초마다 홈을 다시 그릴 이유가 사라졌다. 진행 상황은 이제 **대화방의 말**로 간다.
   const { session } = useAuth();
   const { isPremium } = useSubscription();
   // 날짜 키 — 홈을 켜둔 채 자정이 지나도 갱신되게(③). 포커스·앱 복귀 시 재확인.
@@ -168,25 +154,12 @@ export default function Home() {
         {Platform.OS !== 'web' ? <LangChip /> : null}
       </View>
 
-      {/* 풀이 진행 알림 — ★진행률 막대가 아니라 **담당자의 답장**이다(Boss 2026-08-25).
-          담당은 `consultants.routes` 를 뒤집어 찾는다(`genReplier`) — 여기서 다시 분류하지 않는다.
-          여러 개 동시 풀이 가능 → route별로 한 줄씩. 탭 = 그 화면 이동(+완료면 그 줄만 닫기).
-          ★이 줄은 '알림'이라 배치 순서 대상이 아니다(항상 최상단 고정). */}
-      {gen.map((g, i) => {
-        const finished = g.total > 0 && g.done >= g.total;
-        return (
-          <GenReplyBanner
-            key={g.route}
-            route={g.route}
-            label={g.label}
-            chartLabel={g.chartLabel}
-            slot={i}
-            state={finished ? 'done' : g.restored ? 'restored' : 'working'}
-            pct={genPct(g.done, g.total, g.startedAt)}
-            onPress={() => { if (finished) clearGenProgress(g.route); router.navigate(g.route as any); }}
-          />
-        );
-      })}
+      {/* ★★진행 알림은 **여기 없다**(Boss 2026-08-31 *"또 이렇게나와 채팅창에서 나와야지"*).
+          ■ 원래 설계가 «담당자의 답장» 이었는데(08-25), 정작 **그 사람과의 방** 에는
+            아무 말도 안 남고 홈 상단에만 떴다 — 나중에 방을 열면 아무 일도 없던 것처럼 보였다.
+          ⇒ `genProgress` 가 시작·완료 때 **그 방에 글을 남긴다**(`postGenToTalk`).
+            읽지 않으면 배지·푸시가 자연히 따라오고, 이력에도 남는다.
+          ⚠️두 곳에 두지 않는다 — 같은 알림이 홈과 방에 겹치면 «읽음» 이 갈린다. */}
       {/* ★배너는 여기(고정 헤더)에서 **블록으로 이동**했다(daniel 2026-08-06) — renderBlock 의 'banner'.
           종전엔 헤더라 항상 오늘의 운세보다 위였고 순서도 못 바꿨다. */}
     </>

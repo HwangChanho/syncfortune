@@ -28,6 +28,7 @@ const P_HOME = 'app/src/app/(app)/index.tsx';
 const P_BANNER = 'app/src/components/GenReplyBanner.tsx';
 const P_MAP = 'app/src/lib/content/genReplier.ts';
 const P_SEED = 'app/src/lib/talk/consultants.ts';
+const P_PROGRESS = 'app/src/lib/backend/genProgress.ts';   // ★진행 알림을 방에 남기는 곳(2026-08-31)
 
 type Fail = { rule: string; msg: string };
 /** 주석을 걷어낸 소스 — '주석에 적힌 말'이 아니라 **코드**로 판정한다. */
@@ -39,16 +40,24 @@ const code = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/
  * @returns 위반 목록. 빈 배열이면 통과
  */
 export function audit(
-  src: { home: string; banner: string; map: string; seed: string },
+  src: { home: string; banner: string; map: string; seed: string; progress?: string },
   genRoutes: string[],
 ): Fail[] {
   const out: Fail[] = [];
   const home = code(src.home), banner = code(src.banner), map = code(src.map), seed = code(src.seed);
 
-  // ── G1 홈이 배너를 쓰는가 ──────────────────────────────────
-  if (!/<GenReplyBanner\b/.test(home)) out.push({ rule: 'G1', msg: `${P_HOME} 가 GenReplyBanner 를 쓰지 않는다 — 진행률 막대로 되돌아갔나?` });
-  // 옛 막대의 흔적: gen.map 안에서 '풀이 중' 문자열을 직접 만든다
-  if (/풀이 중…|풀이가 완성됐어요/.test(home)) out.push({ rule: 'G1', msg: `${P_HOME} 에 옛 진행률 문구가 남아 있다 — 배너와 이중으로 뜬다` });
+  // ── G1 진행 알림이 **담당자의 말**로 남는가 ──────────────────
+  // ★★2026-08-31 규칙을 옮겼다(Boss *"또 이렇게나와 채팅창에서 나와야지"*).
+  //   종전 G1 은 「홈이 `GenReplyBanner` 를 쓴다」였다 — 그런데 Boss 가 **홈에서 빼라**고 하자
+  //   그 규칙이 **반려된 설계를 초록불로 강제**하게 됐다(이 저장소에서 여섯 번째다).
+  //   ⇒ 지키려는 것은 «진행 알림 = 담당자의 답장» 이지 «홈에 배너가 있다» 가 아니다.
+  //     그러니 **어디서 지키는지**만 옮긴다: 이제 `genProgress` 가 방에 글을 남긴다.
+  if (!/postGenToTalk\s*\(/.test(src.progress ?? '')) {
+    out.push({ rule: 'G1', msg: `진행 알림을 대화방에 남기지 않는다(\`postGenToTalk\` 호출 없음) — «담당자의 답장» 이 아니라 그냥 사라진다` });
+  }
+  // 홈이 다시 진행률을 직접 그리면 **두 곳에서 뜬다** — 읽음이 갈린다
+  if (/<GenReplyBanner\b/.test(home)) out.push({ rule: 'G1', msg: `${P_HOME} 가 다시 진행 배너를 그린다 — 방과 이중으로 뜬다(Boss 08-31 로 홈에서 뺐다)` });
+  if (/풀이 중…|풀이가 완성됐어요/.test(home)) out.push({ rule: 'G1', msg: `${P_HOME} 에 옛 진행률 문구가 남아 있다` });
 
   // ── G2 담당자를 상담가 표에서 찾는가 ────────────────────────
   if (!/consultantsSnapshot\s*\(/.test(map)) out.push({ rule: 'G2', msg: `${P_MAP} 가 consultantsSnapshot() 을 안 읽는다 — 담당 표를 따로 만들면 관리자가 바꿔도 이 화면만 옛 사람이 나온다` });
@@ -82,7 +91,9 @@ export function audit(
 // ── 자가테스트 ─────────────────────────────────────────────
 if (process.argv.includes('--selftest')) {
   const ok = {
-    home: `<GenReplyBanner route={g.route} state={'working'} />`,
+    // ★정상 = 홈에는 배너가 **없고**, 진행 스토어가 방에 남긴다(2026-08-31 설계)
+    home: `{/* 진행 알림은 대화방에 남는다 */}`,
+    progress: `void postGenToTalk(next.route, next.label, 'working', next.chartLabel);`,
     banner: `const who = replierFor(route); borderTopLeftRadius: radius.sm,`,
     map: `const list = consultantsSnapshot(); const kind = /[?&]kind=([a-z0-9]+)/i.exec(raw)?.[1];`,
     seed: `routes: ['saju', 'gaeun'], routes: ['ziwei', 'timeline'], routes: ['love'],`,
@@ -90,7 +101,8 @@ if (process.argv.includes('--selftest')) {
   const routes = ['gaeun', 'love', 'reading'];
   const cases: Array<[string, Fail[]]> = [
     ['정상', audit(ok, routes)],
-    ['G1 배너를 안 씀', audit({ ...ok, home: `<PressableScale>풀이 중… 45%</PressableScale>` }, routes)],
+    ['G1 방에 안 남김', audit({ ...ok, progress: `notifyReadingDone(...)` }, routes)],
+    ['G1 홈이 다시 배너를 그림', audit({ ...ok, home: `<GenReplyBanner route={g.route} />` }, routes)],
     ['G1 옛 문구 잔존', audit({ ...ok, home: ok.home + `\n풀이가 완성됐어요!` }, routes)],
     ['G2 스냅샷 안 읽음', audit({ ...ok, map: `const OWNERS = { love: 'x' };` }, routes)],
     ['G2 표를 직접 박음', audit({ ...ok, map: ok.map + `\nconst ROUTE_OWNER = {};` }, routes)],
@@ -128,7 +140,7 @@ function collectRoutes(): string[] {
   return [...out].sort();
 }
 const fails = audit(
-  { home: read(P_HOME), banner: read(P_BANNER), map: read(P_MAP), seed: read(P_SEED) },
+  { home: read(P_HOME), banner: read(P_BANNER), map: read(P_MAP), seed: read(P_SEED), progress: read(P_PROGRESS) },
   collectRoutes(),
 );
 if (fails.length) {
