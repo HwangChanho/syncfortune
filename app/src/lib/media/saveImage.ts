@@ -56,7 +56,19 @@ export async function saveImageToDevice(uri: string, name: string): Promise<Save
   try {
     // ★지연 로드 — 웹 번들에 네이티브 모듈이 섞이지 않게(웹에서는 위에서 이미 돌아왔다)
     const MediaLibrary = require('expo-media-library');
-    const perm = await MediaLibrary.requestPermissionsAsync();
+    /**
+     * ⚠️★**쓰기 전용**으로 요청한다(2026-08-31).
+     *
+     * ■ 우리는 앨범을 **읽지 않는다** — 고르기는 시스템 포토피커(`expo-image-picker`)가 하고,
+     *   여기서는 만든 이미지를 **넣기만** 한다.
+     * ■ ★이 인자 하나가 매니페스트를 바꾼다: 라이브러리는 요청 목록을 만들 때
+     *   `hasManifestPermission` 으로 **매니페스트를 먼저 본다**(`MediaLibraryModule.getManifestPermissions`).
+     *   `writeOnly=true` + Android 13+ 면 요청 목록이 **비고**, 저장은 MediaStore 라 권한이 필요 없다.
+     *   ⇒ 그래서 `READ_MEDIA_*` 를 매니페스트에서 뺄 수 있다 —
+     *     그 권한이 Play 의 **「사진 및 동영상」 선언**을 강제해 커밋이 403 으로 막혔다.
+     * ■ Android 12 이하는 `WRITE_EXTERNAL_STORAGE`(maxSdk 28)로 종전대로 동작한다.
+     */
+    const perm = await MediaLibrary.requestPermissionsAsync(true);
     if (!perm?.granted) {
       return { ok: false, reason: 'permission', message: '사진첩에 저장하려면 권한이 필요해요.' };
     }

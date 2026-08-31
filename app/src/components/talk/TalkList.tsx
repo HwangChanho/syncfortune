@@ -397,6 +397,35 @@ export function TalkList({ items, onOpen, selected, myName, onMe, myAvatar, onMy
         style={styles.topWrap}
         onLayout={(e) => setTopW(Math.round(e.nativeEvent.layout.width))}
       >
+      {/* ★★2026-08-31 Boss *"상단에 아이콘 위치랑 유저 프로필 위치 위아래를 바꿔줘"* —
+          **아이콘 줄이 위, 내 프로필이 아래**다.
+          ⚠️둘의 순서만 맞바꾼다 — 정렬(아이콘=오른쪽 · 프로필=왼쪽)과 간격 규칙은 그대로 둔다. */}
+      {/* 아이콘 줄 — **오른쪽 정렬**로 원래 있던 자리(우측)를 지킨다. 순서도 그대로. */}
+      <View style={[styles.iconRow, tight ? styles.topRowTight : null]}>
+        {/* ⚠️★종을 `topBtn` 으로 감싼다(Boss 2026-08-27 *"돋보기랑 + 사이 간격이
+            종이랑 돋보기 사이 간격이랑 달라"*).
+            원인: 종만 감싸는 상자가 없어 **좌우 여백이 빠졌다** — `gap` 은 같은데 눈에는 달라 보인다.
+            ★알림 — 돋보기 **왼쪽**(Boss 2026-08-26). 선 아이콘이라 옆과 무게가 같다. */}
+        {/* ★언어 칩은 **여기 없다**(Boss 2026-08-31 재배치).
+            앱 = 「니운내운」 로고 줄 오른쪽 · 웹 = 왼쪽 메뉴바 하단.
+            08-30 에 잠시 이 줄에 뒀다가, 두 면의 «제자리» 가 서로 다르다는 판단으로 옮겼다. */}
+        <View style={[styles.topBtn, { width: BT, height: BT }]}><NotifyBell size={IC} /></View>
+        {/* ★만세력 — **따로 아이콘**을 둔다(Boss 2026-08-27 *"만세력도 따로 아이콘 만들어서
+            거기 클릭 또는 탭하면 넘어가게"*).
+            ⚠️종전엔 이름을 눌러야 갔는데, 08-27 에 이름은 **사람 상세**를 여는 것으로 바뀌었다 —
+              그래서 만세력으로 가는 길이 **사라져 있었다.** */}
+        <PressableScale hitSlop={12} style={[styles.topBtn, { width: BT, height: BT }]} onPress={onManse}>
+          <Icon name="calendar" size={IC} />
+        </PressableScale>
+        <PressableScale hitSlop={12} style={[styles.topBtn, { width: BT, height: BT }]} onPress={() => setSearchOpen((v) => !v)}>
+          <Icon name={searchOpen ? 'close' : 'search'} size={IC} color={searchOpen ? colors.ju : colors.inkSoft} />
+        </PressableScale>
+        {/* 친구 추가 — ★배지로 **받은 신청 수**를 알린다(신청이 와도 모르면 친구가 안 맺어진다) */}
+        <PressableScale hitSlop={12} style={[styles.topBtn, { width: BT, height: BT }]} onPress={onAddFriend}>
+          <Icon name="plus" size={IC} />
+          {pendingCount > 0 ? <View style={styles.topBadge}><Text style={styles.topBadgeTx}>{pendingCount}</Text></View> : null}
+        </PressableScale>
+      </View>
       <View style={[styles.topRow, tight ? styles.topRowTight : null]}>
         {/* ★★워드마크가 아니라 **내 이름**이다(Boss 2026-08-23).
             워드마크는 이 화면 **바로 위**(`index.tsx` 헤더)에 이미 있어 둘이 겹쳐 보였다 —
@@ -427,33 +456,6 @@ export function TalkList({ items, onOpen, selected, myName, onMe, myAvatar, onMy
           <Text style={styles.meName} numberOfLines={1}>
             {session ? (myName ?? t('talk.meNoChart', '명식 등록')) : t('auth.login', '로그인')}
           </Text>
-        </PressableScale>
-      </View>
-
-      {/* 아이콘 줄 — **오른쪽 정렬**로 원래 있던 자리(우측)를 지킨다. 순서도 그대로. */}
-      <View style={[styles.iconRow, tight ? styles.topRowTight : null]}>
-        {/* ⚠️★종을 `topBtn` 으로 감싼다(Boss 2026-08-27 *"돋보기랑 + 사이 간격이
-            종이랑 돋보기 사이 간격이랑 달라"*).
-            원인: 종만 감싸는 상자가 없어 **좌우 여백이 빠졌다** — `gap` 은 같은데 눈에는 달라 보인다.
-            ★알림 — 돋보기 **왼쪽**(Boss 2026-08-26). 선 아이콘이라 옆과 무게가 같다. */}
-        {/* ★언어 칩은 **여기 없다**(Boss 2026-08-31 재배치).
-            앱 = 「니운내운」 로고 줄 오른쪽 · 웹 = 왼쪽 메뉴바 하단.
-            08-30 에 잠시 이 줄에 뒀다가, 두 면의 «제자리» 가 서로 다르다는 판단으로 옮겼다. */}
-        <View style={[styles.topBtn, { width: BT, height: BT }]}><NotifyBell size={IC} /></View>
-        {/* ★만세력 — **따로 아이콘**을 둔다(Boss 2026-08-27 *"만세력도 따로 아이콘 만들어서
-            거기 클릭 또는 탭하면 넘어가게"*).
-            ⚠️종전엔 이름을 눌러야 갔는데, 08-27 에 이름은 **사람 상세**를 여는 것으로 바뀌었다 —
-              그래서 만세력으로 가는 길이 **사라져 있었다.** */}
-        <PressableScale hitSlop={12} style={[styles.topBtn, { width: BT, height: BT }]} onPress={onManse}>
-          <Icon name="calendar" size={IC} />
-        </PressableScale>
-        <PressableScale hitSlop={12} style={[styles.topBtn, { width: BT, height: BT }]} onPress={() => setSearchOpen((v) => !v)}>
-          <Icon name={searchOpen ? 'close' : 'search'} size={IC} color={searchOpen ? colors.ju : colors.inkSoft} />
-        </PressableScale>
-        {/* 친구 추가 — ★배지로 **받은 신청 수**를 알린다(신청이 와도 모르면 친구가 안 맺어진다) */}
-        <PressableScale hitSlop={12} style={[styles.topBtn, { width: BT, height: BT }]} onPress={onAddFriend}>
-          <Icon name="plus" size={IC} />
-          {pendingCount > 0 ? <View style={styles.topBadge}><Text style={styles.topBadgeTx}>{pendingCount}</Text></View> : null}
         </PressableScale>
       </View>
       </View>
