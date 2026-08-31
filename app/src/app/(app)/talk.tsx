@@ -321,6 +321,13 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
    * ★고른 뒤 카드는 **지우지 않는다** — 어떤 걸 골랐는지 남아 있어야 나중에 바꿀 수 있다.
    *   대신 체크가 그 줄로 옮겨 간다.
    */
+  /**
+   * ★`send` 를 뒤에서 정의하므로 **ref 로 잇는다**(선언 순서 때문에 직접 못 부른다).
+   *   ⚠️`useCallback` 의 deps 에 `send` 를 넣으면 매 렌더마다 `pickChart` 가 새로 만들어져
+   *     카드가 다시 그려진다 — ref 는 그 파장이 없다.
+   */
+  const sendRef = useRef<((override?: string) => void) | null>(null);
+
   const pickChart = useCallback((localId: string) => {
     setPickedLocal(localId);
     void (async () => {
@@ -331,8 +338,20 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
       setMyName(c.label ?? null);
       try { setSaju(computeChart(c.input).saju); } catch { /* 계산이 안 되면 흐름 안내만 건너뛴다 */ }
       setMyAge(ageFromBirth(c.input?.birthDateTime));
+      /**
+       * ★★고른 그 자리에서 **말을 건다**(Boss 2026-08-31
+       *   *"체크하고 대화했는데 처음말하는거 같잖아 체크하면 바로 대화카운트 차감하면서
+       *     해당명식 연애운 어떤거 봐줄까 물어봐야지"*).
+       *
+       * ■ 종전엔 체크가 **상태만** 바꿨다. 그래서 다음 말에 상담가가 «안녕하세요, 뭘 봐드릴까요?»
+       *   로 시작해 **방금 고른 것을 못 본 사람처럼** 보였다.
+       * ■ ⇒ 고르는 것을 **한 턴으로 만든다.** 기존 `send` 를 그대로 타므로
+       *   과금·줄세우기·이력 저장이 전부 이미 있는 경로로 간다(새 길을 내지 않는다 = 과금이 갈리지 않는다).
+       * ★사용자 말풍선으로 이름을 남긴다 — 나중에 이력을 봐도 «누구 걸 봤는지» 가 남는다.
+       */
+      sendRef.current?.(t('talk.pickedChart', '{{name}} 명식으로 볼게', { name: c.label ?? '' }));
     })();
-  }, [session]);
+  }, [session, t]);
 
   /** 이 방의 정리를 다시 읽는다. 세션이 없으면 비운다(정리 줄이 안 뜬다). */
   const refreshNotes = useCallback((sessionId: string | null | undefined) => {
@@ -822,7 +841,7 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
    *   ★인자를 받는 이유: 대기 줄은 **state 가 아니라 ref** 에 있어서 `draft` 를 거치면
    *     한 프레임 늦고, 그 사이 사용자가 새로 친 글과 섞인다.
    */
-  const send = useCallback((override?: string) => {
+  const send: (override?: string) => void = useCallback((override?: string) => {
     const q = (override ?? draft).trim();
     if (!q || !cur) return;
     if (override === undefined) setDraft('');
@@ -867,6 +886,9 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
     fireRef.current(q, 0, gen);
     // ⚠️`hasChart`·`birthDraft` 를 빼면 조각이 안 쌓인다(첫 턴 것만 남는다)
   }, [draft, cur, saju, busy, t, hasChart, birthDraft]);
+
+  // ★`pickChart` 가 부를 수 있게 **최신 `send`** 를 ref 에 담는다(선언 순서 때문에 직접 못 부른다).
+  useEffect(() => { sendRef.current = send; }, [send]);
 
   /**
    * 답이 끝나면 **쌓아 둔 말을 한 번에** 보낸다(Boss 2026-08-27).

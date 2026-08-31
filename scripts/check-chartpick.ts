@@ -52,7 +52,15 @@ say(/seesChart/.test(cond) && /CHART_ROUTES/.test(talk), 'P3 ★**명식을 보�
 
 // P4 — 고른 값이 서버 id 로 바뀌는가
 {
-  const body = /const pickChart = useCallback\(([\s\S]{0,900}?)\n  \}, \[/.exec(talk)?.[1] ?? '';
+  // ★본문을 «글자 수 창» 으로 자르지 않는다 — 주석이 길어지면 창을 넘겨 **아무것도 못 찾고**
+  //   조용히 빨간불이 된다(2026-08-31 실제로 그렇게 깨졌다: 900자 창을 넘겼다).
+  //   ⇒ 시작 위치를 잡고 **닫는 자리(`\n  }, [`)까지** 읽는다. 길이에 무관하다.
+  const body = (() => {
+    const at = talk.indexOf('const pickChart = useCallback(');
+    if (at < 0) return '';
+    const end = talk.indexOf('\n  }, [', at);
+    return end < 0 ? '' : talk.slice(at, end);
+  })();
   const ok = /ensureServerChartIdForSaved/.test(body) && /setChartId\(/.test(body);
   say(ok, 'P4 ★고른 명식을 **서버 id 로** 바꿔 싣는다',
     ok ? '`ensureServerChartIdForSaved` → `setChartId`' : '로컬 id 를 그대로 보내면 딴 명식이 나온다');
