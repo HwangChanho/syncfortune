@@ -12,6 +12,11 @@ title: SyncFortune 약관 및 개인정보
 - [English](legal/terms-en.html)
 - [日本語](legal/terms-ja.html)
 
+## 취소 및 환불 / Cancellation & Refund
+- [한국어](legal/refund-ko.html)
+- [English](legal/refund-en.html)
+- [日本語](legal/refund-ja.html)
+
 ## 개인정보처리방침 / Privacy Policy
 - [한국어](legal/privacy-ko.html)
 - [English](legal/privacy-en.html)

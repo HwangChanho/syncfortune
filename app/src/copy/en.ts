@@ -1125,7 +1125,7 @@ export const en = {
     'title': 'Celebrities Like Me',
     'topLabel': 'The figure most like you',
   },
-  coins: { webHead: 'Top up on the web and get more', webSub: 'No store fee, so the same amount buys more woon.\nOn the web you can see charts, the relation map and chats on one big screen.', webGo: 'Top up on the web', title: 'Add Woon', titleSub: 'Top up Woon and open the readings you want.', bonusAny: 'Applied automatically', bonusNote: 'The largest coupon applies first. The price you pay stays the same.', bonusTitle: 'Your bonuses', failTitle: "Couldn't add woon",
+  coins: { refundNotice: 'Refundable within 7 days, unspent woon only. Woon already spent is not refundable.', refundPolicy: 'Cancellation & refund policy', webHead: 'Top up on the web and get more', webSub: 'No store fee, so the same amount buys more woon.\nOn the web you can see charts, the relation map and chats on one big screen.', webGo: 'Top up on the web', title: 'Add Woon', titleSub: 'Top up Woon and open the readings you want.', bonusAny: 'Applied automatically', bonusNote: 'The largest coupon applies first. The price you pay stays the same.', bonusTitle: 'Your bonuses', failTitle: "Couldn't add woon",
     useHead: 'What woon is for',
     useTalk: '· Chat with a consultant — {{cost}} woon buys {{turns}} turns',
     useReading: '· Saju, compatibility, tarot readings — price varies and is shown before you open it',

@@ -33,6 +33,8 @@ import { useTranslation } from 'react-i18next';
 
 /** 웹 충전 자리. ⚠️커스텀 도메인이 생기면 **여기만** 바꾼다. */
 const WEB_COINS_URL = 'https://niwoon2.pages.dev/coins';
+/** 취소·환불 정책 — ★법이 요구하는 «명확한 표시» 의 근거 문서. 약관 사이트에 있다(단일 출처). */
+const REFUND_POLICY_URL = 'https://hwangchanho.github.io/syncfortune/legal/refund-ko.html';
 
 export default function CoinsScreen() {
   const { fs } = useFontScale();
@@ -220,6 +222,24 @@ export default function CoinsScreen() {
           </PressableScale>
         ))}
 
+        {/* ★★환불 고지 — **법이 요구하는 자리**다(Boss 2026-08-31 *"환불은 운 구매후 7일 이내에만
+              환불 가능하게 미사용분만"* · *"법적 검토 해보고 알맞게 적용해"*).
+            ■ 전자상거래법 **제17조 제6항** — 청약철회를 제한하려면 그 사실을
+              **「소비자가 쉽게 알 수 있는 곳에 명확하게 표시」** 해야 한다.
+              표시가 없으면 **제한 자체가 무효**가 되어 전액 환불 대상이 될 수 있다.
+            ⇒ 약관 깊숙이 묻지 않고 **상품 목록 바로 아래**(=결제 직전 눈에 들어오는 자리)에 둔다.
+            ★`check:refundnotice` 가 이 자리가 사라지는 것을 막는다. */}
+        <View style={styles.refundBox}>
+          <Text style={[styles.refundTx, { fontSize: fs(11.5) }]}>
+            {t('coins.refundNotice', '결제 후 7일 이내, 사용하지 않은 운만 환불돼요. 이미 사용한 운은 환불되지 않아요.')}
+          </Text>
+          <PressableScale hitSlop={8} onPress={() => { void Linking.openURL(REFUND_POLICY_URL); }}>
+            <Text style={[styles.refundLink, { fontSize: fs(11.5) }]}>
+              {t('coins.refundPolicy', '취소·환불 정책')}
+            </Text>
+          </PressableScale>
+        </View>
+
         {/* ★광고 제거(daniel 2026-07-28) — 코인의 '사용처'라 잔액 바로 아래가 자연스럽다.
             공용 컴포넌트(AdFreeSection)라 마켓과 문구·가격이 갈라지지 않는다. */}
         <View style={{ marginTop: space(6) }}>
@@ -235,6 +255,10 @@ const styles = StyleSheet.create({
   // ★웹 안내 카드 — 상품 목록보다 **위**에 둔다(고르기 전에 알아야 의미가 있다)
   webCard: { backgroundColor: colors.juSoft, borderRadius: radius.md, borderWidth: 1, borderColor: colors.juLine, padding: space(4), marginTop: space(4), gap: space(2) },
   webHead: { ...font.body, color: colors.ink, fontWeight: '800' },
+  // 환불 고지 — 눈에 들어오되 상품을 가리지 않게. 자리가 곧 법적 요건이라 숨기지 않는다
+  refundBox: { marginTop: space(3), gap: 4 },
+  refundTx: { ...font.caption, color: colors.inkFaint, lineHeight: 17 },
+  refundLink: { ...font.caption, color: colors.ju, fontWeight: '700', textDecorationLine: 'underline' },
   webSub: { ...font.caption, color: colors.inkSoft, lineHeight: 18 },
   webBtn: { alignSelf: 'flex-start', backgroundColor: colors.ju, borderRadius: radius.pill, paddingVertical: space(2), paddingHorizontal: space(4), marginTop: space(1) },
   webBtnTx: { ...font.caption, color: colors.onJu, fontWeight: '800' },
