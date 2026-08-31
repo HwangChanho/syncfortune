@@ -35,20 +35,30 @@ let card = '', talk = '';
 try { card = readFileSync(CARD, 'utf8'); talk = readFileSync(TALK, 'utf8'); }
 catch (e) { console.log(`  ❌ 파일을 못 읽었습니다 — ${(e as Error).message}\n`); process.exit(1); }
 
-// P1
+// ★★2026-08-31 — 규칙을 **갈아끼웠다**(Boss *"시작할때 어떤 명식을 보시겠어요가 나오는데 이건 빼버려"*).
+//
+// ■ 종전 P1~P3·P5 는 「대화 시작에 **명식을 묻는 카드**가 뜬다」를 지켰다.
+//   그 설계가 없어졌으므로, 그대로 두면 하네스가 **반려된 설계를 빨간불로 강요**한다
+//   (이 저장소에서 **일곱 번째**다 · [[harness-goes-blind-on-refactor]]).
+// ■ 지키려던 것은 «묻는 카드가 있다» 가 아니라 **«명식을 몰래 바꾸지 않는다»** 였다.
+//   그 뜻은 지금도 유효하다 ⇒ 아래 P4(서버 id 로 바꿔 싣는다)와 P7(고르면 그 자리에서 말을 건다)로 남긴다.
+//
+// P7 — 명식을 고르면 **그 턴이 나간다**(Boss 2026-08-31 *"체크하면 바로 대화카운트 차감하면서 … 물어봐야지"*).
+//   고르기만 하고 아무 말도 안 하면 상담가가 «방금 고른 것을 못 본 사람» 처럼 말한다.
 {
-  const has = /export function ChartPickCard/.test(card);
-  const used = /<ChartPickCard\b/.test(talk);
-  say(has && used, 'P1 카드가 있고 대화가 **실제로 쓴다**', has ? (used ? '' : '만들어만 두고 안 쓴다') : '카드가 없다');
+  const body = (() => {
+    const at = talk.indexOf('const pickChart = useCallback(');
+    if (at < 0) return '';
+    const end = talk.indexOf('\n  }, [', at);
+    return end < 0 ? '' : talk.slice(at, end);
+  })();
+  // ⚠️★**주석을 걷어내고 본다** — 주석 처리한 코드를 «있는 것» 으로 세면 지운 기능이 초록불이 된다
+  //   (2026-08-31 이 하네스의 음성 테스트가 실제로 그렇게 헛돌았다).
+  const bare = body.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
+  const ok = /sendRef\.current\?\.\(|\bsend\(/.test(bare);
+  say(ok, 'P7 ★명식을 고르면 **그 자리에서 말을 건다**',
+    ok ? '`sendRef` 로 한 턴 보낸다' : '고르기만 하고 말이 없다 — 상담가가 방금 고른 것을 못 본 사람처럼 말한다');
 }
-
-// P2·P3 — 카드를 띄우는 조건. ★문자열로 통째 비교하지 않는다(항이 늘면 깨진다).
-//   조건식을 꺼내 **무엇을 보는지**만 확인한다.
-const cond = /const pickCard = \(([^)]*)\)/.exec(talk)?.[1] ?? '';
-say(/myCharts\.length\s*>\s*1/.test(cond), 'P2 ★명식이 **둘 이상**일 때만 묻는다',
-  cond ? `조건: 「${cond.trim().slice(0, 52)}」` : '조건을 못 찾았다');
-say(/seesChart/.test(cond) && /CHART_ROUTES/.test(talk), 'P3 ★**명식을 보는 상담가**에게만',
-  /CHART_ROUTES/.test(talk) ? '`CHART_ROUTES` 로 가른다' : '누구에게나 묻는다');
 
 // P4 — 고른 값이 서버 id 로 바뀌는가
 {
@@ -66,9 +76,15 @@ say(/seesChart/.test(cond) && /CHART_ROUTES/.test(talk), 'P3 ★**명식을 보�
     ok ? '`ensureServerChartIdForSaved` → `setChartId`' : '로컬 id 를 그대로 보내면 딴 명식이 나온다');
 }
 
-// P5 — 직접 입력
-say(/onNew=\{/.test(talk) && /onNew\?:/.test(card), 'P5 ★직접 입력 길이 살아 있다',
-  /onNew=\{/.test(talk) ? '' : 'Boss 가 요청한 두 갈래 중 하나가 없다');
+// P5 — 직접 입력 길
+// ★2026-08-31 — 카드를 대화에서 뺐으므로 **카드 안의 「직접 입력」** 은 판정 대상이 아니다.
+//   대신 «명식을 새로 만드는 길이 대화 화면에 살아 있는가» 를 본다 — 그게 원래 지키려던 것이다.
+//   (생년월일을 말하면 뜨는 `birthCard` 가 그 길이다.)
+{
+  const ok = /birthCard/.test(talk) && /\/register/.test(talk);
+  say(ok, 'P5 ★명식을 새로 만드는 길이 대화에 살아 있다',
+    ok ? '`birthCard` + `/register`' : '대화에서 명식을 만들 길이 사라졌다 — 명식 없는 사람이 막힌다');
+}
 
 // P6 — deps
 {
@@ -78,5 +94,5 @@ say(/onNew=\{/.test(talk) && /onNew\?:/.test(card), 'P5 ★직접 입력 길이 
     ok ? `deps: 「…myAge${deps.slice(0, 40)}」` : '없으면 목록이 0으로 굳어 카드가 영영 안 뜬다');
 }
 
-console.log(fail === 0 ? '\n✅ 명식을 자동으로 고르지 않고 묻습니다\n' : `\n❌ ${fail}건\n`);
+console.log(fail === 0 ? '\n✅ 명식을 고르면 그 턴이 나가고 · 서버 id 로 실리고 · 새로 만들 길이 살아 있습니다\n' : `\n❌ ${fail}건\n`);
 process.exit(fail === 0 ? 0 : 1);

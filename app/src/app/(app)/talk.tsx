@@ -65,7 +65,6 @@ import { Icon } from '../../components/kit/Icon';   // 상단 아이콘 단일 �
 import { ConsultantLinkCard } from '../../components/talk/ConsultantLinkCard';   // 상담가 본인 채널(Boss 2026-08-25)
 import { buildChartVerdict } from '../../lib/talk/chartVerdict';   // 우리 엔진 판정을 대화에 싣는다(Boss 2026-08-25)
 import { splitBubbles, typingDelay } from '../../lib/talk/splitBubbles';   // 말풍선 쪼개기·뜸(Boss 08-25)
-import { ChartPickCard } from '../../components/talk/ChartPickCard';      // 어떤 명식을 볼지 고르는 카드(Boss 08-27)
 import { Resizer } from '../../components/kit/Resizer';        // 웹에서 칸 폭을 손으로(Boss 08-27)
 import { greetingFor, ieyo } from '../../lib/talk/greetingFor';   // ★조사(이에요/예요)는 **한 곳**에서 정한다   // 상담가별 첫 인사(Boss 08-26)
 import { CoinNotice } from '../../components/talk/CoinNotice';
@@ -200,8 +199,6 @@ function toItems(r: VirtualReply): TalkItem[] {
  * ★타로·뷰티·차·여행에게 명식을 고르라고 하면 그건 잡음이다.
  * ⚠️운영자가 `routes`·`specialty` 를 늘릴 수 있으므로 **여기 한 곳**에서만 판정한다.
  */
-const CHART_ROUTES = new Set(['saju', 'ziwei', 'compat', 'love', 'crush', 'reunion', 'lovestyle',
-  'wealth', 'career', 'jobfit', 'talent', 'timeline', 'lifegraph', 'gaeun', 'newyear']);
 
 /**
  * 웹 목록 칸의 폭 — 기본·하한·상한.
@@ -679,23 +676,20 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
       //   안내 목록을 만들려고 `routes` 에 compat·love·wealth 가 들어 있어 카드가 떴는데,
       //   정작 서버는 그 사람에게 명식을 **안 준다** ⇒ «물어 놓고 안 보는» 모순이 된다.
       //   ★판정 기준을 서버(`talk/index.ts` 의 `isGuide`)와 **같은 값**으로 맞춘다.
-      const specKeys = (Array.isArray((c as any).specialty) ? (c as any).specialty : []).map(String);
-      const seesChart = !specKeys.includes('guide')
-        && [...(Array.isArray(c.routes) ? c.routes : []), ...specKeys]
-          .map(String).some((k) => CHART_ROUTES.has(k));
-      const pickCard = (myCharts.length > 1 && seesChart && !pickedLocal)
-        ? [{
-            id: nextId(), role: 'assistant' as const, body: '',
-            node: (
-              <ChartPickCard
-                charts={myCharts.map((x) => ({ id: x.id, label: x.label, relation: x.relation }))}
-                current={pickedLocal}
-                onPick={pickChart}
-                onNew={() => router.push('/register')}
-              />
-            ),
-          }]
-        : [];
+      // ★`seesChart` 판정은 **명식 고르기 카드와 함께** 없어졌다(2026-08-31) —
+      //   그 값을 쓰던 곳이 그 카드 하나뿐이었다. 되살릴 땐 서버의 `isGuide` 와 같은 기준으로 다시 만든다.
+      /**
+       * ★★2026-08-31 — 방을 열자마자 「어떤 명식을 볼까요?」를 **묻지 않는다**(Boss 지시).
+       *
+       * ■ 왜 뺐나 — 인사도 하기 전에 **목록부터 들이미는** 화면이었다.
+       *   게다가 같은 날 «고르면 그 자리에서 한 턴이 나간다» 로 바꾸면서,
+       *   시작하자마자 뜨는 카드는 **묻지도 않고 과금되는 길**이 됐다.
+       * ■ 명식을 고르는 길은 그대로 있다 — `@이름` 으로 부르거나 만세력에서 대표를 바꾼다.
+       *   대화는 **대표 명식**으로 이어간다(만세력이 그리는 것과 같은 명식이다).
+       * ⚠️`ChartPickCard` 자체는 남겨 뒀다 — 다른 자리에서 필요해지면 그대로 쓴다.
+       *   ★다만 지금은 **아무도 안 그린다**. 되살릴 땐 «언제 뜨는가» 를 먼저 정해야 한다.
+       */
+      const pickCard: typeof items = [];
       /**
        * ★★**이력이 있는지 먼저 확인한 뒤에** 인사할지 정한다 (Boss 2026-08-30
        *   *"기존 대화이력이 있는데 친구를 누르면 다시 인사를 하다가 갑자기 기존 대화창으로 가.
