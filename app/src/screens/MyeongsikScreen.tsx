@@ -25,6 +25,7 @@ import { GlassCard } from '../components/GlassCard';
 import { OhaengEnergy } from '../components/OhaengEnergy'; // 오행 에너지 구슬 인포그래픽(팔자 앞·이탈률↓·daniel 기획서①)
 import { GzCell } from '../components/GzCell'; // 간지 한 칸(오행색+한자+한글음) — 2026-07-16 추출(커뮤니티 SharedChart와 공유하는 단일 출처)
 import { elementPower } from '@engine/elementPower';
+import { twelveSinsalAt } from '@engine/sinsal';   // 12신살 — 만세력 표(년지 기준 한 칸씩)
 import { LuckNest } from '../components/LuckNest'; // ★운 중첩(벤다이어그램식) — 원국 안쪽·일운→대운 바깥(daniel 2026-08-05) // ★오행 세력 2모드(합화·조후궁성) — daniel 2026-08-05
 import { stemElement, branchElement, elementColor, stemReading, branchReading, stemYinYang, branchYinYang, eumYangSkew, johuSkew, joSeupSkew } from '../lib/engine/ohaeng';
 import { ELEMENT_SKEW, tengodSkew, YINYANG_SKEW, JOHU_SKEW, JOSEUP_SKEW, CONCEPT_INFO, type SkewItem } from '../lib/content/skewKnowledge';
@@ -46,7 +47,7 @@ import { HIDDEN, computeMonthDays, branchTenGod, daeunForward } from '@engine/sa
 import { twelveStage } from '@engine/twelve';                          // 임의 지지 12운성(타임라인용)
 import { detectInteractionsAmong, interactionLabel } from '@engine/structure';   // 합충 검출 + 짝이름 라벨(daniel: 유축반합·정신극)
 import { detectGyeokguk } from '../lib/engine/gyeokguk';                                 // 핵심 격(살인상생·식신제살 등) 검출 — daniel
-import { lookupGlossary, GLOSSARY_KIND_LABEL, type GlossaryKind } from '../lib/content/myeongriGlossary'; // 클릭 설명
+import { TWELVE_SINSAL_ALIAS, lookupGlossary, GLOSSARY_KIND_LABEL, type GlossaryKind } from '../lib/content/myeongriGlossary'; // 클릭 설명
 import { playSound } from '../lib/ui/sounds';
 import { PILLAR_DISPLAY_ORDER } from '../lib/ui/pillarOrder'; // ★명식 표기 순서 단일 소스(오른쪽=년주)
 // ★명리 용어의 표시 글자(Boss 2026-08-27 *"명리 용어는 한자 그대로 두고 설명만 그 언어로"*).
@@ -596,6 +597,33 @@ function MyeongsikBody({ input, onReading, onSinsal, header, whoName }: Myeongsi
                 <View style={styles.ssTableRow}><Text style={styles.ssRowLabel}>{T('천간')}</Text>{visiblePos.map((p) => <View key={p} style={styles.ssCell}>{cellTags(atSide(p, 'stem'))}</View>)}</View>
                 <View style={styles.ssTableRow}><Text style={styles.ssRowLabel}>{T('지지')}</Text>{visiblePos.map((p) => <View key={p} style={styles.ssCell}>{cellTags(atSide(p, 'branch'))}</View>)}</View>
                 <View style={styles.ssTableRow}><Text style={styles.ssRowLabel}>{T('공망')}</Text>{visiblePos.map((p) => <View key={p} style={styles.ssCell}>{c.sinsal.gongmangHits.includes(p) ? tag('공망', () => setGlossary({ kind: 'gongmang' }), 'gm') : <Text style={styles.ssDim}>—</Text>}</View>)}</View>
+                {/* ★★12신살을 **만세력 본문**으로(Boss 2026-08-31 *"만세력에 12신살도 나와야해"*
+                     · *"관계분석 밑에 12신살 나열은 지우고 명식기준 12신살이 나와야해"*).
+                    ■ 종전엔 «관계분석»(상세 분석 게이트) 안이라 만세력을 보는 사람이 두 번 눌러야 만났고,
+                      자리마다 기준지 넷의 이름을 **전부 늘어놓아** 왜 그게 거기 있는지 알 수 없었다.
+                    ■ ★**년지 기준 한 칸씩**으로 그린다 — Boss 가 보여 준 다른 만세력과 같은 형태다.
+                      실측으로 맞춰 봤다(황찬호 명식): 년지 기준이 시=육해·일=천살·월=도화(=년살)로
+                      **네 칸 중 셋을 정확히** 맞췄다. ⚠️`도화` 와 `년살` 은 **같은 신살의 다른 이름**이라
+                      12신살 표에서는 그 체계의 이름인 **「년살」로** 적는다(신살 표에서는 도화 그대로).
+                    ■ ★엔진은 **넷 다 그대로 산출**한다(Boss stance 2026-06-08 *"전부 산출"*).
+                      바뀐 것은 화면뿐 — 다른 기준지 값이 필요해지면 `c.sinsal.twelve` 에 그대로 있다. */}
+                <View style={styles.ssTableRow}>
+                  <Text style={styles.ssRowLabel}>{T('12신살')}</Text>
+                  {visiblePos.map((p) => {
+                    // 년지 기준으로 이 기둥 지지의 12신살 하나
+                    const nm = twelveSinsalAt(P['년'].branch as any, P[p].branch as any);
+                    // ★12신살 체계에서는 도화를 «년살» 로 부른다. 그 표는 **용어 파일이 소유**한다 —
+                    //   여기 한국어를 박으면 다국어가 못 따라온다(`check:langpicker` 가 센다).
+                    const key = TWELVE_SINSAL_ALIAS[nm] ?? nm;
+                    return (
+                      <View key={p} style={styles.ssCell}>
+                        <PressableScale onPress={() => setGlossary({ kind: 'sinsal', key })}>
+                          <Text style={styles.ssTagLink}>{T(key)}</Text>
+                        </PressableScale>
+                      </View>
+                    );
+                  })}
+                </View>
               </View>
             );
           })()}
@@ -635,20 +663,8 @@ function MyeongsikBody({ input, onReading, onSinsal, header, whoName }: Myeongsi
           {renderGroups(normPalja, activePalja, (k) => toggleKey(setActivePalja, k))}
         </View>
       )}
-          {/* 12신살(원국) — 관계분석 안으로 이동(daniel 2026-07-25 N). 상세 분석 전용(이 블록이 showAdvanced 게이트). 합충 유무와 무관하게 항상 표시. */}
-          <View style={styles.twelveRow}>
-            <Text style={styles.twelveRowLabel}>{T('12신살')}</Text>
-            {visiblePos.map((p) => {
-              const names = Array.from(new Set((c.sinsal.twelve[p] ?? []).map((tw: any) => tw.name)));
-              return (
-                <View key={p} style={styles.twelveCell}>
-                  {names.length ? names.map((n, i) => (
-                    <PressableScale key={i} onPress={() => setGlossary({ kind: 'sinsal', key: n })}><Text style={styles.twelveCellTx}>{n}</Text></PressableScale>
-                  )) : <Text style={styles.twelveDim}>—</Text>}
-                </View>
-              );
-            })}
-          </View>
+          {/* ★12신살은 **만세력 본문(신살·공망 표)** 으로 옮겼다(Boss 2026-08-31).
+              여기 있던 나열은 지운다 — 같은 것을 두 곳에서 그리면 언젠가 갈린다. */}
 
         </>
       )}
@@ -1497,6 +1513,9 @@ const makeStyles = (fs: (n: number) => number) => { const f = scaledFont(fs); re
   ssRowLabel: { width: 36, alignSelf: 'center', textAlign: 'center', ...f.caption, color: colors.inkSoft, fontWeight: '700' },
   ssColHead: { flex: 1, textAlign: 'center', paddingVertical: space(1.5), ...f.caption, color: colors.inkFaint, fontWeight: '700' },
   ssCell: { flex: 1, alignItems: 'center', paddingVertical: space(1.5), paddingHorizontal: 2, gap: 2, borderLeftWidth: StyleSheet.hairlineWidth, borderLeftColor: colors.line },
+  // 12신살 태그 — 이름 + **어느 기준지에서 나왔는지**(년·월·일·시). 겹치지 않게 형제로 배치
+  twelveTag: { flexDirection: 'row', alignItems: 'baseline', gap: 2 },
+  twelveBase: { fontSize: 9, color: colors.inkFaint, lineHeight: 12 },
   // 12신살 원국 요약 행(명식 탭) — daniel: 원국에도 12신살 표시
   twelveRow: { flexDirection: 'row', alignItems: 'flex-start', marginTop: space(3), backgroundColor: colors.card, borderRadius: radius.sm, borderWidth: 1, borderColor: colors.line, paddingVertical: space(2) },
   twelveRowLabel: { width: 44, alignSelf: 'center', textAlign: 'center', ...f.caption, color: colors.inkSoft, fontWeight: '700' },

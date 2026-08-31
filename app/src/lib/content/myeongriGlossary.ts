@@ -334,3 +334,13 @@ export function lookupGlossary(kind: GlossaryKind, key?: string): GlossaryEntry 
   if (kind === 'basic') return (key && BASIC_GLOSSARY[key]) || null;
   return null;
 }
+
+/**
+ * 12신살 표에서 쓰는 **그 체계의 이름**으로 바꿔 준다.
+ *
+ * ★`도화`·`역마`·`화개` 는 일지 삼합 신살과 12신살에 **둘 다** 나오는데, 12신살 표에서는
+ *   그 체계의 이름(`년살`)으로 부르는 것이 관례다(Boss 2026-08-31 이 형태의 만세력을 보여 줌).
+ * ⚠️이 표를 **화면에 두지 않는다** — 화면에 한국어를 박으면 다국어가 못 따라온다
+ *   (`check:langpicker` 가 그 수를 센다). 이름은 용어 파일이 소유한다.
+ */
+export const TWELVE_SINSAL_ALIAS: Record<string, string> = { 도화: '년살' };
