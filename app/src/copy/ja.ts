@@ -1005,7 +1005,7 @@ export const ja = {
   },
   offline: { title: 'オフライン', msg: 'インターネットに接続されていません。保存済みは見られますが、新しい鑑定は接続後に可能です。', banner: 'オフライン — 保存済みのみ' },
   taro: { draw: 'カードを引く', reshuffle: '引き直す', reversed: '逆位置' },
-  manse: { findHour: '生まれた時刻を探す', findHourSub: '時刻が不明なら出来事から絞ります',
+  manse: { reorderWeb: '▲▼ で順番を変えられます', reorderApp: '命式を長押しして動かすと順番が変わります', findHour: '生まれた時刻を探す', findHourSub: '時刻が不明なら出来事から絞ります',
     'catDeleteTitle': 'カテゴリー削除',
     'newCategoryPh': '新しいカテゴリー名',
     'catDelNote': 'カテゴリーを削除しても命式は消えません —「その他」に移動します。',

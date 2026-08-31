@@ -1006,7 +1006,7 @@ export const en = {
   },
   offline: { title: 'Offline', msg: "You're not connected to the internet. You can view saved content, but new readings need a connection.", banner: 'Offline — saved content only' },
   taro: { draw: 'Draw a card', reshuffle: 'Reshuffle', reversed: 'Reversed' },
-  manse: { findHour: 'Find your birth hour', findHourSub: "Don't know the time? Narrow it by life events",
+  manse: { reorderWeb: 'Use ▲▼ to reorder', reorderApp: 'Press and hold a chart, then drag to reorder', findHour: 'Find your birth hour', findHourSub: "Don't know the time? Narrow it by life events",
     'catDeleteTitle': 'Delete category',
     'newCategoryPh': 'New category name',
     'catDelNote': 'Deleting a category does not delete the charts — they move to “Other”.',

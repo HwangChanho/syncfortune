@@ -1038,7 +1038,7 @@ export const ko = {
   },
   offline: { title: '오프라인', msg: '인터넷에 연결돼 있지 않아요. 저장된 내용은 볼 수 있지만, 새 풀이는 연결된 뒤에 가능해요.', banner: '오프라인 — 저장된 내용만 볼 수 있어요' },
   taro: { draw: '카드 뽑기', reshuffle: '다시 뽑기', reversed: '역방향' },
-  manse: { findHour: '태어난 시 찾기', findHourSub: '시각을 모르면 사건으로 좁혀요',
+  manse: { reorderWeb: '▲▼ 로 순서를 바꿀 수 있어요', reorderApp: '명식을 길게 눌러 끌면 순서가 바뀌어요', findHour: '태어난 시 찾기', findHourSub: '시각을 모르면 사건으로 좁혀요',
     'catDeleteTitle': '카테고리 삭제',
     'newCategoryPh': '새 카테고리 이름',
     'catDelNote': '카테고리를 지워도 명식은 지워지지 않아요 — ‘기타’로 옮겨져요.',

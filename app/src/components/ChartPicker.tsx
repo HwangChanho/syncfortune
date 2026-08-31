@@ -123,7 +123,9 @@ export function ChartPicker({ onChange, viewOnly }: {
   const { t } = useTranslation();
   const router = useRouter();
   const { fs } = useFontScale();
-  const insets = useSafeAreaInsets(); // 시트가 화면 바닥에 붙으므로 홈 인디케이터만큼 아래를 띄운다(addBtn 잘림 방지)
+  const insets = useSafeAreaInsets();
+  // ★끄는 동안만 가상화 창을 넓힌다 — 그래야 끌고 나간 행이 언마운트되지 않는다
+  const [dragging, setDragging] = useState(false); // 시트가 화면 바닥에 붙으므로 홈 인디케이터만큼 아래를 띄운다(addBtn 잘림 방지)
   const EMB = embSize(fs);   // 엠블럼 지름 — 글자 배율 연동(행 높이와 어긋나지 않게)           // 명식 헤더 글자크기(설정 반영)
   const [charts, setCharts] = useState<SavedChart[]>([]);
   const [repId, setRepId] = useState<string | null>(null);
@@ -325,8 +327,10 @@ export function ChartPicker({ onChange, viewOnly }: {
    *   행 UI 가 언젠가 갈린다([[duplicate-ui-single-source]]). 웹은 `drag` 만 no-op 으로 받는다.
    */
   const renderChartRow = (
-    { item: c, drag, isActive, plain }:
-    { item: SavedChart; drag: () => void; isActive: boolean; plain?: boolean },
+    { item: c, drag, isActive, plain, move }:
+    { item: SavedChart; drag: () => void; isActive: boolean; plain?: boolean;
+      /** ★웹 전용 — 위/아래로 한 칸. 마우스에는 «길게 눌러 끌기» 가 없다시피 하다 */
+      move?: (dir: -1 | 1) => void },
   ) => {
     // ⚠️`ScaleDecorator` 는 **DraggableFlatList 컨텍스트 전용**이다. 일반 FlatList(웹) 안에서 쓰면
     //   `useIsActive must be called from within CellProvider!` 로 화면이 죽는다(2026-08-18 실물에서 확인).
@@ -363,6 +367,20 @@ export function ChartPicker({ onChange, viewOnly }: {
                       <Text style={[styles.emblemTx, { color: em.textColor, fontSize: fs(13) }]}>{em.animal}</Text>
                     </View>
                   )}
+                  {/* ★★웹은 **버튼으로 옮긴다**(Boss 2026-08-31 *"웹은 명식위치이동 하기 편하게
+                        다른구조로가"*). 드래그는 손가락 동작이라 마우스에는 불편하고,
+                        긴 목록에서는 «끌어서 스크롤» 이 겹쳐 더 어렵다.
+                      ⚠️행 UI 는 **같은 함수**를 쓴다 — 두 벌로 그리면 언젠가 갈린다. 버튼만 더한다. */}
+                  {move && !filtering ? (
+                    <View style={styles.moveCol}>
+                      <PressableScale hitSlop={6} style={styles.moveBtn} onPress={() => move(-1)}>
+                        <Text style={styles.moveTx}>▲</Text>
+                      </PressableScale>
+                      <PressableScale hitSlop={6} style={styles.moveBtn} onPress={() => move(1)}>
+                        <Text style={styles.moveTx}>▼</Text>
+                      </PressableScale>
+                    </View>
+                  ) : null}
                   <PressableScale style={styles.rowMain} onPress={() => choose(c.id)} onLongPress={filtering ? undefined : drag} delayLongPress={250}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: space(1.5) }}>
                       <Text style={[styles.rowName, on && styles.rowOn, { fontSize: fs(15) }]} numberOfLines={1}>{c.label}</Text>
@@ -635,7 +653,14 @@ export function ChartPicker({ onChange, viewOnly }: {
               </View>
             )}
             {/* 순서 변경 안내 — 전체보기에서만 드래그 가능(필터 중엔 부분집합이라 순서 저장이 꼬임). */}
-            {charts.length > 1 && !filtering && <Text style={{ ...font.caption, color: colors.inkFaint, marginBottom: space(2) }}>명식을 길게 눌러 끌면 순서가 바뀌어요</Text>}
+            {/* ★안내도 면마다 다르다 — 웹에서 「길게 눌러 끌면」은 **틀린 말**이다(버튼으로 바뀌었다) */}
+            {charts.length > 1 && !filtering && (
+              <Text style={{ ...font.caption, color: colors.inkFaint, marginBottom: space(2) }}>
+                {Platform.OS === 'web'
+                  ? t('manse.reorderWeb', '▲▼ 로 순서를 바꿀 수 있어요')
+                  : t('manse.reorderApp', '명식을 길게 눌러 끌면 순서가 바뀌어요')}
+              </Text>
+            )}
             {filtering && <Text style={{ ...font.caption, color: colors.inkFaint, marginBottom: space(2) }}>‘{relLabel(catFilter!)}’ {shown.length}개 · 순서 변경은 ‘전체’에서</Text>}
             {/* 이슈20: 롱프레스→드래그 reorder. 끌어 놓으면 onDragEnd가 저장·계정동기화(별도 모드/저장버튼 없음). */}
             {/* daniel: 무거운 리스트 마운트 전까지 스피너 — 명식 버튼 누르면 모달 즉시 열려 로딩 표시 */}
@@ -663,7 +688,17 @@ export function ChartPicker({ onChange, viewOnly }: {
               initialNumToRender={10}
               maxToRenderPerBatch={8}
               windowSize={5}
-              renderItem={({ item }: { item: SavedChart }) => renderChartRow({ item, drag: () => {}, isActive: false })}
+              renderItem={({ item, index }: { item: SavedChart; index: number }) => renderChartRow({
+                item, drag: () => {}, isActive: false,
+                // ★한 칸 옮기고 **그 자리에서 저장**한다 — 드래그와 같은 `onDragEnd` 를 탄다(경로가 하나다)
+                move: (dir) => {
+                  const next = [...shown];
+                  const to = index + dir;
+                  if (to < 0 || to >= next.length) return;
+                  [next[index], next[to]] = [next[to], next[index]];
+                  if (!filtering) onDragEnd(next);
+                },
+              })}
             />
             ) : (
             <DraggableFlatList
@@ -686,9 +721,21 @@ export function ChartPicker({ onChange, viewOnly }: {
               //   ⚠️removeClippedSubviews 는 **드래그 reorder 중 행이 사라지는** 알려진 문제가 있어 쓰지 않는다.
               initialNumToRender={10}
               maxToRenderPerBatch={8}
-              windowSize={5}
+              /**
+               * ⚠️★★**드래그 중에는 창을 넓힌다**(Boss 2026-08-31
+               *   *"명식을 길게 눌러 끌다보면 어느순간 사라져서 안보여"*).
+               *
+               * ■ 원인 — `windowSize: 5` 는 «보이는 화면의 5배» 만 마운트한다. 손가락을 끌어
+               *   그 밖으로 나가는 순간 **끌고 있던 행이 언마운트**돼 손에서 사라진다.
+               *   (`removeClippedSubviews` 는 이미 피해 뒀는데, 창 크기가 같은 일을 했다 —
+               *    ★같은 병의 **다른 문**이었다.)
+               * ■ 평소엔 5로 둔다(엠블럼이 512×512 라 넓히면 메모리·디코딩이 는다).
+               *   **끄는 동안만** 21(기본값)로 열고 놓으면 되돌린다 — 그 순간만 비용을 낸다.
+               */
+              windowSize={dragging ? 21 : 5}
+              onDragBegin={() => setDragging(true)}
               // 필터 중(부분집합)엔 순서 저장이 전체 순서를 꼬이게 하므로 드래그 결과를 무시(renderItem에서 drag 자체도 비활성).
-              onDragEnd={({ data }) => { if (!filtering) onDragEnd(data); }}
+              onDragEnd={({ data }) => { setDragging(false); if (!filtering) onDragEnd(data); }}
               renderItem={renderChartRow}
             />
             ))}
@@ -907,6 +954,10 @@ const styles = StyleSheet.create({
    *   **줄어야 하는 쪽(목록)의 상한**을 낮춰야 총 높이가 원래대로 돌아온다.
    */
   listWithRep: { maxHeight: Dimensions.get('window').height * 0.52 - 128 },
+  // 웹 전용 순서 이동 버튼 — 행 왼쪽에 세로로 둘(작게, 내용에 안 방해되게)
+  moveCol: { justifyContent: 'center', marginRight: space(1) },
+  moveBtn: { paddingHorizontal: space(1), paddingVertical: 1 },
+  moveTx: { fontSize: 11, color: colors.inkFaint, lineHeight: 13 },
   row: { flexDirection: 'row', alignItems: 'center', paddingVertical: space(3.5), borderBottomWidth: 1, borderBottomColor: colors.line, gap: space(2) },
   rowActive: { backgroundColor: colors.card, borderRadius: radius.md, borderBottomColor: 'transparent' }, // 드래그 중 행 강조(들어올림)
   rowMain: { flex: 1 },
