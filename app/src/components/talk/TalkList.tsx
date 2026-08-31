@@ -108,7 +108,7 @@ function PersonRow({ p, onOpenPerson, t }: {
   );
   // 웹은 밀 수 없다 — 상담가 줄이 쓰는 규칙과 같게 둔다(그쪽은 누르는 별을 따로 그린다)
   return Platform.OS === 'web' ? row : (
-    <Swipeable ref={ref} renderRightActions={renderRight} overshootRight={false} friction={2}>{row}</Swipeable>
+    <Swipeable ref={ref} renderRightActions={renderRight} overshootRight={false} friction={1}>{row}</Swipeable>
   );
 }
 
@@ -229,7 +229,7 @@ function Row({ c, initial, slot, on, onOpen, onPhoto, t }: {
     );
   }
   return (
-    <Swipeable ref={ref} renderRightActions={renderRight} overshootRight={false} friction={2}>
+    <Swipeable ref={ref} renderRightActions={renderRight} overshootRight={false} friction={1}>
       {row}
     </Swipeable>
   );
@@ -683,7 +683,9 @@ const styles = StyleSheet.create({
   section: { ...font.caption, color: colors.inkFaint, fontWeight: '700', marginBottom: space(2) },
 
   // ★카드가 아니라 **줄**이다. 카톡 친구목록은 카드로 떠 있지 않다.
-  row: { flexDirection: 'row', alignItems: 'center', gap: space(3), paddingVertical: space(2), borderRadius: radius.md, paddingHorizontal: space(1) },
+  // ⚠️★스와이프 앞면이라 배경을 **반드시** 칠한다 — 투명하면 뒤 버튼(즐겨찾기)이 비쳐
+  //   닫히는 동안 글자와 버튼이 포개진다(2026-08-31 대화목록에서 같은 증상이 났다).
+  row: { flexDirection: 'row', alignItems: 'center', gap: space(3), paddingVertical: space(2), borderRadius: radius.md, paddingHorizontal: space(1), backgroundColor: colors.bg },
   rowOn: { backgroundColor: colors.juSoft },
   col: { flex: 1, minWidth: 0 },
   name: { fontSize: 15.5, lineHeight: 21, fontWeight: '700', color: colors.ink },

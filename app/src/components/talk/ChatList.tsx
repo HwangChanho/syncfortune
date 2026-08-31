@@ -492,7 +492,11 @@ export function ChatList({ onOpen, selectedId, reloadKey = 0, wide, onSettings, 
         );
         return Platform.OS === 'web' ? <View key={r.id}>{guarded(row)}</View> : (
           <Swipeable key={r.id} ref={(x) => { swipeRefs.current[r.id] = x; }}
-                     renderRightActions={renderRight} overshootRight={false} friction={2}>
+                     renderRightActions={renderRight} overshootRight={false}
+                     // ★`friction` 을 2 → 1 로(Boss *"스와이프도 부자연스럽고"*).
+                     //   2 면 **손가락이 간 거리의 절반만** 따라와 «무겁고 안 따라오는» 느낌이 된다.
+                     //   1 = 손가락과 1:1. `overshootRight={false}` 가 이미 과도한 당김을 막는다.
+                     friction={1}>
             {guarded(row)}
           </Swipeable>
         );
@@ -556,7 +560,11 @@ const styles = StyleSheet.create({
   ctaTx: { ...font.label, color: colors.onJu, fontWeight: '900' },
 
   // ★카톡 비율 — 아바타는 화면 폭의 약 13%, 행은 위아래 여백이 넉넉하다
-  row: { flexDirection: 'row', alignItems: 'center', gap: space(3.5), paddingVertical: space(3), paddingHorizontal: space(1), borderRadius: radius.md },
+  // ⚠️★배경을 **반드시** 칠한다(Boss 2026-08-31 *"스와이프 닫을때 일시적으로 저렇게 겹쳐보여"*).
+  //   스와이프 행은 «앞면(이 행)» 이 «뒷면(고정·나가기 버튼)» 위를 덮으며 움직이는 구조다.
+  //   앞면이 투명하면 덮는 게 아니라 **겹쳐 보인다** — 닫히는 동안 글자와 버튼이 포개진다.
+  //   (선택된 행만 `rowOn` 으로 배경이 있어서, 안 고른 행에서만 나던 증상이다.)
+  row: { flexDirection: 'row', alignItems: 'center', gap: space(3.5), paddingVertical: space(3), paddingHorizontal: space(1), borderRadius: radius.md, backgroundColor: colors.bg },
   rowOn: { backgroundColor: colors.juSoft },
   av: { width: 52, height: 52, borderRadius: radius.lg, alignItems: 'center', justifyContent: 'center' },
   col: { flex: 1, minWidth: 0, gap: 2 },
