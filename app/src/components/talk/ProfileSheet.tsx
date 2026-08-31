@@ -137,12 +137,19 @@ export function ProfileSheet({ target, onClose }: { target: ProfileTarget | null
                   </Text>
                 </View>
               )}
-          {/* 아래를 어둡게 — 흰 글자가 밝은 배경 위에서 묻히지 않게 */}
-          <View style={styles.scrim} pointerEvents="none" />
+          {/* ⚠️★검은 띠를 **걷어냈다** (Boss 2026-08-31 *"뒤에 배경에 검은 블러처리는 없애
+              모든 전문가 개인계정 전부"*).
+              종전엔 `top: '45%'` 부터 `rgba(0,0,0,0.45)` 한 장을 덮었다 — 화면 한가운데
+              **가로 경계선**이 그어져 사진이 반 토막으로 보였다(Boss 스크린샷에 그 선이 있다).
+              ★글자가 묻히는 문제는 **글자 쪽에서** 푼다 — 그림자(`textShadow*`)를 입히면
+                사진은 그대로 살고 흰 글자만 또렷해진다. 사진을 어둡게 할 이유가 없다. */}
         </Pressable>
 
         {/* ── 닫기 ── 배경을 눌러도 닫히지만, 보이는 길이 하나 있어야 한다 */}
-        <PressableScale style={styles.x} onPress={onClose} hitSlop={12}>
+        {/* ⚠️★상태바(시계·배터리) 아래로 내린다 (Boss 2026-08-31 *"x표시도 너무 위에있어"*).
+            종전 `top: space(5)` 는 **고정값**이라 노치 있는 기기에서 시계·배터리와 같은 줄에 붙었다.
+            ★`Math.max` 로 잡는다 — 안전영역이 0인 자리(웹·구형)에서도 여백이 안 줄게. */}
+        <PressableScale style={[styles.x, { top: Math.max(space(5), insets.top + space(3)) }]} onPress={onClose} hitSlop={12}>
           <Text style={styles.xTx}>✕</Text>
         </PressableScale>
 
@@ -223,26 +230,26 @@ const styles = StyleSheet.create({
   // ★Modal 이 아니라 **덮는 View** — 부모가 화면 루트여야 한다(위 머리말)
   root: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.72)', alignItems: 'center', justifyContent: 'center', zIndex: 60 },
   panel: { flex: 1, alignSelf: 'center', overflow: 'hidden' },
-  // 아래 절반만 어둡게 — 배경 사진은 살리고 글자는 읽히게
   // ★얼굴도 배경도 없을 때 — 이름 첫 글자를 크게. 색면 한 장보다 «누구인지» 가 보인다
   emptyCover: { alignItems: 'center', justifyContent: 'center' },
   emptyInitial: { fontSize: 160, fontWeight: '900', opacity: 0.22, includeFontPadding: false },
-  scrim: { ...StyleSheet.absoluteFillObject, top: '45%', backgroundColor: 'rgba(0,0,0,0.45)' },
   // ★영상 전체 보기 — 시트(`root`)보다 **위**에 얹는다
   full: { ...StyleSheet.absoluteFillObject, backgroundColor: '#000000', alignItems: 'center', justifyContent: 'center', zIndex: 70 },
   fullCap: { ...font.label, color: 'rgba(255,255,255,0.85)', marginTop: space(3), fontWeight: '700' },
   fullX: { marginTop: space(2), paddingVertical: space(2), paddingHorizontal: space(5) },
   fullXTx: { ...font.caption, color: 'rgba(255,255,255,0.6)', fontWeight: '700' },
-  x: { position: 'absolute', top: space(5), right: space(4), width: 34, height: 34, borderRadius: 17, backgroundColor: 'rgba(0,0,0,0.35)', alignItems: 'center', justifyContent: 'center' },
+  x: { position: 'absolute', right: space(4), width: 34, height: 34, borderRadius: 17, backgroundColor: 'rgba(0,0,0,0.35)', alignItems: 'center', justifyContent: 'center' },
   xTx: { color: '#FFFFFF', fontSize: 16, fontWeight: '800' },
   bottom: { position: 'absolute', left: 0, right: 0, bottom: space(7), alignItems: 'center', paddingHorizontal: space(5) },
   av: { borderWidth: 3, borderColor: 'rgba(255,255,255,0.9)' },
   center: { alignItems: 'center', justifyContent: 'center' },
-  name: { ...font.title, color: '#FFFFFF', fontWeight: '900', marginTop: space(2) },
-  meta: { ...font.caption, color: 'rgba(255,255,255,0.86)', textAlign: 'center', marginTop: space(1), lineHeight: 18 },
+  // ★흰 글자의 가독성은 **그림자**가 맡는다(검은 띠를 걷어낸 자리)
+  name: { ...font.title, color: '#FFFFFF', fontWeight: '900', marginTop: space(2), textShadowColor: 'rgba(0,0,0,0.75)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 6, },
+  meta: { ...font.caption, color: 'rgba(255,255,255,0.92)', textAlign: 'center', marginTop: space(1), lineHeight: 18, textShadowColor: 'rgba(0,0,0,0.75)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 6, },
   actions: { flexDirection: 'row', gap: space(2), marginTop: space(4), flexWrap: 'wrap', justifyContent: 'center' },
   btn: { paddingVertical: space(2.5), paddingHorizontal: space(5), borderRadius: radius.pill, backgroundColor: colors.ju },
-  btnAlt: { backgroundColor: 'rgba(255,255,255,0.16)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.4)' },
+  // ★띠가 사라졌으니 버튼 자신이 바탕을 갖는다 — 밝은 사진 위에서도 테두리가 보이게
+  btnAlt: { backgroundColor: 'rgba(0,0,0,0.34)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.55)' },
   btnTx: { ...font.label, color: colors.onJu, fontWeight: '800' },
-  btnTxAlt: { color: '#FFFFFF' },
+  btnTxAlt: { color: '#FFFFFF', textShadowColor: 'rgba(0,0,0,0.75)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 6, },
 });
