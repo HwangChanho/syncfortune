@@ -86,6 +86,17 @@ const styles = StyleSheet.create({
     padding: space(Platform.OS === 'web' ? 3 : 1.5),
     paddingTop: space(Platform.OS === 'web' ? 2.5 : 1),
     ...(Platform.OS === 'web' ? { marginVertical: space(2) } : null),
+    /**
+     * ★★2026-09-01 Boss *"밴다이어 그램 안에 공백이 너무 많아"* — 실측(웹 1900px)에서
+     *   고리가 **화면 폭을 다 먹고** 원국은 오른쪽에 몰려, 왼쪽이 통째로 비어 있었다.
+     * ■ 왜 그랬나 — 고리는 `View` 라 **기본이 «폭 전부»** 다. 안쪽 내용은 그보다 훨씬 좁다.
+     *   고리가 넷이면 그 빈칸이 **네 겹으로** 쌓인다.
+     * ⇒ 고리를 **내용 폭만큼만** 잡고(`alignSelf:'center'`), 그 다음에 가운데로 놓는다.
+     *   ⚠️`alignItems:'center'` 로는 안 된다 — 그건 **자식**을 가운데 놓을 뿐,
+     *     고리 자신은 여전히 폭을 다 먹는다(그래서 테두리 안쪽이 빈다).
+     * ★폰은 원래 화면이 좁아 고리가 거의 꽉 찬다 — 이 값이 있어도 보이는 게 안 바뀐다.
+     */
+    alignSelf: 'center',
   },
   ringHead: { flexDirection: 'row', alignItems: 'center', gap: space(1.5), marginBottom: space(1.5), paddingHorizontal: space(0.5) },
   ringLabel: { ...font.caption, color: colors.inkSoft, fontWeight: '800' },

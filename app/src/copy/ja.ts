@@ -388,6 +388,7 @@ export const ja = {
   bd: {
     title: 'この情報で命式を作りますか？',
     noDate: '(生年月日が読めませんでした)',
+    fromChat: '会話から追加',
     timeUnknown: '時刻不明',
     whyPlace: '生まれた場所は真太陽時の補正に使います — これがないと時柱が変わることがあります。',
     unknown: 'わからない',

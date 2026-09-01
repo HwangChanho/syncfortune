@@ -406,6 +406,7 @@ export const ko = {
   bd: {
     title: '이 정보로 명식을 만들까요?',
     noDate: '(생년월일을 못 읽었어요)',
+    fromChat: '대화에서 추가',
     timeUnknown: '시각 모름',
     whyPlace: '태어난 곳은 진태양시 보정에 쓰여요 — 이게 없으면 시주가 달라질 수 있어요.',
     unknown: '모름',

@@ -388,6 +388,7 @@ export const en = {
   bd: {
     title: 'Build the chart from this?',
     noDate: '(couldn’t read the birth date)',
+    fromChat: 'Added in chat',
     timeUnknown: 'time unknown',
     whyPlace: 'The birthplace sets the true solar time — without it the 時柱 can come out different.',
     unknown: 'Don’t know',

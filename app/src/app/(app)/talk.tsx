@@ -876,9 +876,19 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
     }
     if (opts?.echo !== false) setItems((prev) => [...prev, { id: nextId(), role: 'user', body: q }]);
 
-    // ★생년월일을 말했는데 **명식이 없다** — 조각을 모아 카드를 띄운다(Boss 2026-08-26).
-    //   ⚠️모델에게 계산시키지 않는다. 카드가 받은 값을 **엔진**에 넘긴다.
-    if (hasChart === false && (looksLikeBirthInfo(q) || birthDraft)) {
+    /**
+     * ★생년월일을 말하면 **조각을 모아 카드를 띄운다**(Boss 2026-08-26).
+     *   ⚠️모델에게 계산시키지 않는다. 카드가 받은 값을 **엔진**에 넘긴다.
+     *
+     * ■ ★★2026-09-01 — `hasChart === false` 조건을 **뺐다** (Boss:
+     *   *"자꾸 노쎔이 다른사람 사주 수기로 입력하면 봐줄수 없다고 그래"*).
+     *   종전엔 «명식이 하나도 없을 때» 만 카드를 띄웠다. 그래서 **자기 명식이 있는 사람**이
+     *   친구·가족 생년월일을 쳐 넣으면 카드가 안 떴고, 상담가는 계산할 수단이 없어
+     *   「봐 드릴 수 없다」 로 끝냈다. **가장 흔한 상황이 막혀 있었다.**
+     *   ⇒ 명식이 있든 없든, 생년월일을 말하면 만들 수 있게 한다.
+     *     (만들면 새 명식으로 등록되고, 그때부터 상담가가 그 여덟 글자를 읽는다.)
+     */
+    if (looksLikeBirthInfo(q) || birthDraft) {
       const got = parseBirth(q);
       // 이미 모은 것 위에 **채워진 칸만** 덮는다 — 다음 턴에 말한 것도 합쳐진다
       const merged: BirthDraft = {
@@ -906,8 +916,8 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
     setBusy(true);
     const gen = genRef.current;   // ★이 답이 어느 방 것인지 붙들어 둔다(위 `genRef` 주석)
     fireRef.current(q, 0, gen);
-    // ⚠️`hasChart`·`birthDraft` 를 빼면 조각이 안 쌓인다(첫 턴 것만 남는다)
-  }, [draft, cur, saju, busy, t, hasChart, birthDraft]);
+    // ⚠️`birthDraft` 를 빼면 조각이 안 쌓인다(첫 턴 것만 남는다)
+  }, [draft, cur, saju, busy, t, birthDraft]);
 
   // ★`pickChart` 가 부를 수 있게 **최신 `send`** 를 ref 에 담는다(선언 순서 때문에 직접 못 부른다).
   useEffect(() => { sendRef.current = send; }, [send]);
@@ -1446,16 +1456,29 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
    * 카드가 준 값을 **엔진에** 넘겨 명식을 만든다.
    *
    * ★여기가 «세는» 자리다 — `addChart` 안에서 `computeChart` 가 돈다. 모델은 관여하지 않는다.
-   * ★만들고 나면 **대표로 잡고 다시 읽는다** — 그래야 이번 대화부터 바로 그 사주로 답한다.
+   *
+   * ■ ★★2026-09-01 — **첫 명식과 그 다음을 가른다** (Boss:
+   *   *"본인 등록된 명식 말고도 대화로 입력한 명식들 ... 다 읽고 판단해서 풀어줄수 있어야해"*)
+   *   · 명식이 **아직 없으면** → 「내 명식」·대표로 잡는다(종전 그대로).
+   *   · 이미 있으면 → **다른 사람 것**으로 본다. 이름 없이 「대화에서 추가」 로 넣고
+   *     ⚠️**대표를 건드리지 않는다.**
+   *   ★★안 가르면 친구 생년월일을 물었을 뿐인데 **내 대표 명식이 덮인다** — 돌이키기 어려운 사고다.
+   *     («남의 것을 물었다» 와 «내 것을 등록한다» 는 완전히 다른 일이다.)
    */
   const makeChartFromDraft = useCallback(async (r: BirthCardResult) => {
     if (makingChart) return;
     setMakingChart(true);
     try {
-      const id = await addChart({ ...r, label: '내 명식', relation: 'self' });
-      await setRepresentative(id);
+      const first = hasChart !== true;          // 아직 명식이 없다 = 이번 것이 내 것
+      const id = await addChart({
+        ...r,
+        label: first ? '내 명식' : t('bd.fromChat', '대화에서 추가'),
+        relation: first ? 'self' : 'other',
+      });
+      if (first) await setRepresentative(id);   // ★남의 것은 대표로 삼지 않는다
       setBirthDraft(null);
       setHasChart(true);
+      if (!first) { setMakingChart(false); bumpChats(); return; }   // 남의 것 — 내 정보는 그대로 둔다
       const c = await loadRepChart();
       if (c?.input) {
         setMyName(c.label ?? null);
@@ -1472,11 +1495,13 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
   }, [makingChart, session, t, sayInOrder]);
 
   /**
-   * 대화에서 모은 생년월일로 만드는 카드. **명식이 없을 때만** 뜬다.
+   * 대화에서 모은 생년월일로 만드는 카드.
+   * ★2026-09-01 — 종전엔 «명식이 없을 때만» 이었다. 그러면 **남의 사주를 물을 수가 없다**
+   *   (자기 명식이 있는 사람이 대다수다). 지금은 생년월일을 말하면 언제나 뜬다.
    * ★말풍선이 아니라 카드인 이유: 자유 문장 파싱은 반드시 틀린다 —
    *   읽은 값을 **보여 주고 고칠 수 있게** 해야 엉뚱한 사주로 만들어지지 않는다.
    */
-  const birthCard = (hasChart === false && birthDraft?.date) ? (
+  const birthCard = birthDraft?.date ? (
     <View style={styles.birthCardWrap}>
       <BirthDraftCard draft={birthDraft} onMake={makeChartFromDraft} busy={makingChart} />
     </View>
