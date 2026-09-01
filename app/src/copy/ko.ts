@@ -1262,6 +1262,7 @@ export const ko = {
     rRefund: '환불',
     rGift: '선물 받은 운',
     rTestRevert: "테스트 지급 회수",
+    rCorrection: '잔액 바로잡기',
     rMigrate: '이전 잔액 이관',
     'charge': '운 충전',
     'empty': '아직 충전·사용 내역이 없어요.',

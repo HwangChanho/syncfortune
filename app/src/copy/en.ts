@@ -1222,6 +1222,7 @@ export const en = {
     rRefund: 'Refunded',
     rGift: 'Gifted woon',
     rTestRevert: "Test grant reversed",
+    rCorrection: 'Balance correction',
     rMigrate: 'Balance carried over',
     'charge': 'Top-up',
     'empty': 'No top-ups or spending yet.',

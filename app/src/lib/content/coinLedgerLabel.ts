@@ -84,6 +84,9 @@ export function coinLedgerLabel(reason: string | null, kind: string | null, delt
     // ★결제 배선을 검증하며 **모의로 들어온 운을 되돌린 것**(2026-08-31).
     //   원장은 append-only 로 두므로 이 줄은 남는다 — 사용자가 봐도 뜻이 통하게 이름을 준다.
     case 'test_reversal': return t('coinHistory.rTestRevert', '테스트 지급 회수');
+    // ★2026-09-01 감사 — 잔액이 음수로 남은 계정을 **상계**로 바로잡을 때 쓴다.
+    //   ⚠️지우지 않고 더한다 — 원장은 «무슨 일이 있었나» 의 기록이라 지우면 그날이 없던 일이 된다.
+    case 'correction': return t('coinHistory.rCorrection', '잔액 바로잡기');
     default:
       // ⚠️모르는 reason — 방향만이라도 맞게 말하고, 무엇에 썼는지는 알면 붙인다
       if (what) return what;
