@@ -240,9 +240,23 @@ export async function roomPeople(sessionId: string): Promise<RoomPerson[]> {
   const m = await withTimeout(supabase.from('talk_members').select('user_id, last_read_at').eq('session_id', sessionId), 8000);
   if (!m || m.error || !Array.isArray(m.data) || !m.data.length) return [];
   const ids = (m.data as any[]).map((x) => String(x.user_id));
-  const p = await withTimeout(
-    supabase.from('profiles').select('id, nickname, display_name, avatar_path').in('id', ids), 8000);
-  const rows = (p && !p.error && Array.isArray(p.data) ? p.data : []) as any[];
+  /**
+   * ★★이름·사진을 **두 곳에서** 가져와 합친다 (2026-09-02).
+   * ■ 왜 나뉘었나 — 친구가 `is_premium`·`is_admin` 까지 보던 것을 막으려고
+   *   `profiles` 의 친구 정책을 떼고, 공개 6칸만 담은 뷰 `friend_profiles` 로 갈랐다.
+   *   ⇒ `profiles` 는 이제 **내 행만** 나오고, 친구는 **뷰에서만** 나온다.
+   * ■ ⚠️★`ids` 에는 **나도 들어 있다.** 뷰만 쓰면 뷰는 친구만 주므로
+   *   «방 목록에서 내 이름과 사진만 사라지는» 상태가 된다 — 그래서 둘 다 읽어 합친다.
+   * ■ 보이는 범위는 종전과 같다(뷰 안에 같은 `is_friend_of` 가 박혀 있다).
+   */
+  const [pFriends, pMe] = await Promise.all([
+    withTimeout(supabase.from('friend_profiles').select('id, nickname, display_name, avatar_path').in('id', ids), 8000),
+    withTimeout(supabase.from('profiles').select('id, nickname, display_name, avatar_path').in('id', ids), 8000),
+  ]);
+  const rows = [
+    ...(pFriends && !pFriends.error && Array.isArray(pFriends.data) ? pFriends.data : []),
+    ...(pMe && !pMe.error && Array.isArray(pMe.data) ? pMe.data : []),
+  ] as any[];
   return ids.map((id) => {
     const r = rows.find((x) => String(x.id) === id);
     const mem = (m.data as any[]).find((x) => String(x.user_id) === id);

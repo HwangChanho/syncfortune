@@ -168,7 +168,11 @@ export function ChatList({ onOpen, selectedId, reloadKey = 0, wide, onSettings, 
       const rowsM = (mem && !mem.error && Array.isArray(mem.data) ? mem.data : []) as any[];
       const others = [...new Set(rowsM.map((x) => String(x.user_id)).filter((u) => u !== myId))];
       const prof = others.length
-        ? await withTimeout(supabase.from('profiles').select('id, nickname, display_name, avatar_path').in('id', others), 8000)
+        // ★`friend_profiles` = 친구가 볼 수 있는 **공개 6칸만** 담은 뷰(2026-09-02).
+        //   ⚠️`profiles` 를 직접 읽으면 이제 **내 행만** 나온다 — 친구 정책을 표에서 뗐다.
+        //   보이는 범위는 그대로다(뷰 안에 같은 `is_friend_of` 가 박혀 있다).
+        //   ★`others` 는 이미 나를 뺀 목록이라 여기선 뷰 하나면 된다.
+        ? await withTimeout(supabase.from('friend_profiles').select('id, nickname, display_name, avatar_path').in('id', others), 8000)
         : null;
       const pRows = (prof && !prof.error && Array.isArray(prof.data) ? prof.data : []) as any[];
       for (const sid of userRoomIds) {

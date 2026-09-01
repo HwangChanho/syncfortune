@@ -20,6 +20,8 @@
 //   P2 ★열면 안 되는 칸이 grant 에 **없다**(push_token·adult_di_hash·adult_verified_at)
 //   P3 ★UPDATE 를 여기서 열지 않았다(is_admin 을 스스로 켜는 문이 그쪽이다)
 //   P4 anon 에게 SELECT 를 주지 않았다
+//   P5 ★남의 프로필을 `profiles` 에서 **직접** 읽지 않는다 — 친구는 `friend_profiles` 뷰로
+//      (2026-09-02: 표에서 친구 정책을 뗐다. 직접 읽으면 **조용히 0행**이라 이름이 사라진다)
 //
 // ★음성 테스트: `npx tsx scripts/check-profilegrants.ts --selftest`
 // ═══════════════════════════════════════════════════════════════════════════
@@ -61,6 +63,11 @@ export function grantedColumns(sql: string): string[] {
   return m[1].split(',').map((s) => s.trim()).filter(Boolean);
 }
 
+/** 주석을 지운다 — 하네스가 **주석에 적힌 낱말**에 속지 않게(P5 가 그렇게 한 번 안 물었다). */
+export function stripComments(src: string): string {
+  return src.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/(^|[^:])\/\/[^\n]*/g, '$1');
+}
+
 function walk(dir: string, acc: { file: string; text: string }[] = []) {
   for (const e of readdirSync(dir)) {
     if (e === 'node_modules' || e === 'dist' || e.startsWith('.')) continue;
@@ -100,6 +107,27 @@ function run() {
   if (/grant\s+select[^;]*to\s+anon/i.test(sql)) {
     fail('P4', 'anon 에게 SELECT 를 준다 — anon 이 보는 행은 0 이라 줄 이유가 없다(최소권한)');
   }
+
+  // ── P5 ★남의 행을 profiles 에서 직접 읽지 않는다 ────────────────────────
+  //   2026-09-02 부터 표에는 «주인만» 정책뿐이라, 남의 id 로 걸면 **조용히 0행**이 온다
+  //   (오류가 아니다 → 이름·사진이 그냥 «없음» 으로 보인다). 친구는 뷰로 읽어야 한다.
+  for (const { file, text: raw } of walk(join(ROOT, 'app/src'))) {
+    // ★★**주석을 걷어내고 본다.** 처음엔 안 걷었다가 이 규칙이 **안 물었다**:
+    //   호출을 표로 되돌려도, 바로 위 주석에 적힌 «friend_profiles» 라는 낱말이
+    //   예외 판정에 걸려 통과시켰다. 하네스는 **글자가 아니라 호출**을 봐야 한다.
+    const text = stripComments(raw);
+    for (const m of text.matchAll(/from\(\s*'profiles'\s*\)/g)) {
+      const seg = text.slice(m.index!, m.index! + 240);
+      // 여러 사람을 한 번에 부르는 모양(`.in('id', …)`)은 **남이 섞여 있다**는 뜻이다.
+      if (!/\.in\(\s*'id'/.test(seg)) continue;
+      // ★예외: 같은 자리에서 뷰도 **실제로 부르면** 통과(roomPeople — 둘을 읽어 합친다).
+      const around = text.slice(Math.max(0, m.index! - 800), m.index! + 400);
+      if (/from\(\s*'friend_profiles'\s*\)/.test(around)) continue;
+      fail('P5', `${file} 가 \`profiles\` 에서 **여러 사람**을 읽는다.\n        `
+        + '⚠️표에는 «주인만» 정책뿐이라 남의 행은 **조용히 0행**이다(오류가 안 난다).\n        '
+        + '⇒ 친구는 `friend_profiles` 뷰로 읽고, 내 행이 필요하면 둘을 합쳐라');
+    }
+  }
 }
 
 if (process.argv.includes('--selftest')) {
@@ -115,6 +143,10 @@ if (process.argv.includes('--selftest')) {
     { name: 'P2 ★막아야 할 칸 목록이 비어 있지 않다', run: () => NEVER.includes('push_token') && NEVER.includes('adult_di_hash') },
     { name: 'P3 ★update 문을 문다', run: () => /grant\s+update/i.test('grant update (nickname) on public.profiles to authenticated;') },
     { name: 'P4 ★anon select 를 문다', run: () => /grant\s+select[^;]*to\s+anon/i.test('grant select (id) on public.profiles to anon;') },
+    { name: 'P5 주석을 걷어낸다', run: () => !/friend_profiles/.test(stripComments("// friend_profiles 로 읽는다\nfrom('profiles')")) },
+    { name: 'P5 ★실제 호출은 남긴다', run: () => /from\('friend_profiles'\)/.test(stripComments("from('friend_profiles').select('id')")) },
+    { name: 'P5 ★블록 주석도 걷는다', run: () => !/friend_profiles/.test(stripComments('/* friend_profiles */ x')) },
+    { name: 'P5 ★URL 의 // 는 안 지운다', run: () => stripComments("const u = 'https://a.b/c';").includes('https://a.b/c') },
   ];
   let bad = 0;
   console.log('── 음성 테스트(깨뜨린 입력을 실제로 무는가) ──');
