@@ -83,9 +83,18 @@ if (sink === Number.MIN_SAFE_INTEGER) console.log('');          // 기준 작업
 const sorted = [...runs].sort((a, b) => a - b);
 const sortedR = [...ratios].sort((a, b) => a - b);
 const per = sorted[Math.floor(sorted.length / 2)];              // 중앙값(사람이 읽는 값)
-const ratio = sortedR[Math.floor(sortedR.length / 2)];          // ★판정은 **이 비율**로 한다
+// ★★판정은 **최솟값**으로 한다(2026-09-02).
+//   ■ 왜 중앙값을 버렸나 — 실제로 **거짓 빨간불이 났다.** iOS 빌드가 CPU 를 물고 있는 동안
+//     preflight 를 돌렸더니 3.07배(상한 3.0)로 물었고, 한가해지자 3판 연속 통과했다.
+//     즉 **코드가 아니라 기계 사정**이 릴리스를 막았다.
+//   ■ 비율로 바꾼 것만으론 부족하다 — 부하가 걸리면 기준 작업과 측정 작업이 **서로 다르게**
+//     흔들려(스케줄링·캐시) 비율도 같이 튄다. 중앙값은 그 흔들림을 그대로 받는다.
+//   ■ 최솟값은 «가장 덜 방해받은 판» 이다. 부하 중에도 5판 중 한 판은 대체로 깨끗이 돈다.
+//     ★이가 무뎌지지 않는다: 지연이 풀리면 **모든 판**이 8배 대로 올라가므로 최솟값도 같이 오른다
+//     (아래 음성 테스트가 그걸 확인한다). 잡고 싶은 것은 «가끔 느림» 이 아니라 «항상 느림» 이다.
+const ratio = sortedR[0];
 console.log(`   buildSajuChart  ${per.toFixed(2)} ms/회  · ${ROUNDS}판 중앙값 [${sorted.map((x) => x.toFixed(1)).join(' ')}]`);
-console.log(`   기준 대비 비율   ${ratio.toFixed(2)} 배  (상한 ${LIMIT_RATIO} 배)  ← ★판정은 이 값`
+console.log(`   기준 대비 비율   ${ratio.toFixed(2)} 배  (상한 ${LIMIT_RATIO} 배)  ← ★판정은 이 값(최솟값)`
   + `  [${sortedR.map((x) => x.toFixed(2)).join(' ')}]`);
 
 // 월운이 정말 **지연**인지 — 접근 전/후 비용 차이로 확인(모양이 아니라 동작으로 판정)
