@@ -88,7 +88,8 @@ export type ElementPalette = {
  *     흰 on ju 4.84→**5.59** · ju on juSoft 4.47→**5.02** · ju on bg 4.53→**5.26**
  *     ink on bg 13.77→**14.65** · inkFaint on card 3.31→**3.80** · juDeep on card 6.82→**7.92**
  *   ⚠️열 짝 중 하나만 아주 조금 내려갔다 — inkSoft on card 6.12→6.03(기준 4.5 라 여유 충분).
- * ■ ★되돌리려면 `theme.ts` 의 `const EP = BRAND` 를 `CAMEL` 로 바꾸면 된다(한 줄).
+ * ■ ⚠️★**지금은 안 쓴다** — 2026-09-02 Boss *"롤백해"* 로 `CAMEL` 로 되돌렸다.
+ *   다시 쓰려면 `theme.ts` 의 `const EP` 를 `BRAND` 로 바꾸면 된다(한 줄). 대비 실측은 위 그대로 유효.
  */
 export const BRAND: ElementPalette = {
   bg: '#F7F8FB',      // 흰 종이를 파랑 쪽으로 아주 옅게 — 순백이면 카드와 안 갈린다
@@ -105,7 +106,7 @@ export const BRAND: ElementPalette = {
   onJu: '#FFFFFF',    // 파랑 위 흰 글자 = 5.59
 };
 
-/** @deprecated 2026-09-02 Boss 지시로 `BRAND`(로고 파랑)로 교체. 되돌릴 때 쓰라고 남긴다. */
+/** ★현행 팔레트(2026-09-02 롤백으로 복귀). 파랑은 아래 `BRAND` 에 남아 있다. */
 export const CAMEL: ElementPalette = {
   bg: '#FAF7F2',      // 흰 종이에 카멜을 아주 옅게
   card: '#FFFFFF',    // 카드 = 순백(그림자로 띄운다)
