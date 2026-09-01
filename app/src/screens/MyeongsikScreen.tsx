@@ -27,7 +27,8 @@ import { GzCell } from '../components/GzCell'; // 간지 한 칸(오행색+한�
 import { elementPower } from '@engine/elementPower';
 import { twelveSinsalAt } from '@engine/sinsal';   // 12신살 — 만세력 표(년지 기준 한 칸씩)
 import { LuckNest } from '../components/LuckNest'; // ★운 중첩(벤다이어그램식) — 원국 안쪽·일운→대운 바깥(daniel 2026-08-05) // ★오행 세력 2모드(합화·조후궁성) — daniel 2026-08-05
-import { stemElement, branchElement, elementColor, stemReading, branchReading, stemYinYang, branchYinYang, eumYangSkew, johuSkew, joSeupSkew } from '../lib/engine/ohaeng';
+import { stemElement, branchElement, elementColor, stemReading, branchReading, stemYinYang, branchYinYang, eumYangSkew } from '../lib/engine/ohaeng';
+import { johu2, johuLabel } from '@engine/johu2'; // ★조후 **정본** — 상담가 판정을 반영한 쪽(아래 주석)
 import { ELEMENT_SKEW, tengodSkew, YINYANG_SKEW, JOHU_SKEW, JOSEUP_SKEW, CONCEPT_INFO, type SkewItem } from '../lib/content/skewKnowledge';
 import { useFontScale } from '../lib/ui/fontScale'; // 글자 크기(설정) — 명식 글자까지 모든 텍스트에 적용(daniel)
 import { hasSidebar } from '../lib/ui/wideLayout'; // 면 판단(웹·태블릿·폰) 단일 출처
@@ -61,13 +62,14 @@ import Svg, { Path, Rect, Circle, Text as SvgText, G } from 'react-native-svg';
 //   실제로 벤다이어그램(LuckNest)이 반대로 나갔던 자리다(2026-08-16).
 const POS: PillarPos[] = PILLAR_DISPLAY_ORDER;
 
+
+
 /**
  * 엔진(`johuSkew`·`joSeupSkew`)이 붙여 주는 꼬리말 — 화면에선 떼고 쓴다.
  *
  * ⚠️★이건 **엔진이 만든 글자**라 번역 대상이 아니다. 다만 화면이 잘라 쓰므로 이름을 준다
  *   (문자열을 두 군데에 그대로 적으면 엔진이 꼬리말을 바꿀 때 한쪽만 남는다).
  */
-const SKEW_SUFFIX = ' 쏠림';
 
 // 만세력 카테고리 탭(daniel 07-13 재편) — 사주원국(팔자+지장간+합충+신살길성 통합)/운세(대운·세운·월운·일운)/오행·강약/자미두수.
 type MyeongTab = 'wonguk' | 'rel' | 'elem' | 'ilju' | 'ziwei';  // rel = 운세 전용(구 '사주관계' → 운세). 합충·신살은 wonguk으로 흡수.
@@ -821,10 +823,25 @@ function MyeongsikBody({ input, friendSaju, onReading, onSinsal, header, whoName
       </PressableScale>
       {/* 조후·음양 쏠림(daniel) — 탭하면 설명·문제점·대응법(개운법) */}
       {(() => {
-        const ey = eumYangSkew(P, input?.sex); const jh = johuSkew(P); const js = joSeupSkew(P);
+        /**
+         * ★★2026-09-01 — 조후를 **정본(`engine/johu2`)** 으로 바꾼다 (Boss 제보:
+         *   *"한난조습 지금 측정을 어떻게 하고있어? 내 명식이랑 안맞는거 같은데"*).
+         *
+         * ■ ⚠️★조후 구현이 **두 벌**이었다 — 이 화면만 옛 것을 쓰고 있었다.
+         *   · `engine/johu2.ts` = **정본**. 상담가 판정(`verify-000d-johu` 15건)을 반영했다
+         *     (지장간 제외 · 대운 축 분리 · 기준점 우선).
+         *   · `app/src/lib/engine/ohaeng.ts` 의 `johuSkew`/`joSeupSkew` = **옛 단순식**.
+         *     주석에도 *"단순화 산출 — 명리 stance 정교화는 검수 슬롯"* 이라 적혀 있었다.
+         * ■ 실측(Boss 명식 甲戌 丁卯 辛丑 丙申)
+         *   · 옛 식(화면): 한난 **더움** · 조습 **건조 쏠림**
+         *   · 정본:        한난 **暖** · 조습 **濕**   ← Boss 말씀(“난하고, 습이 아주 조금 우세”)과 **일치**
+         *   ⇒ 계산이 틀린 게 아니라 **화면이 옛 함수를 붙들고 있었다.**
+         * ★[[duplicate-ui-single-source]] — 같은 것을 두 곳에서 세면 반드시 갈린다.
+         */
+        const ey = eumYangSkew(P, input?.sex); const jl = johuLabel(johu2(c as any));
         return (
           <PressableScale style={styles.strDetailBtn} onPress={() => setJohuOpen(true)}>
-            <Text style={styles.strDetailBtnTx}>{T('조후')} {jh.skew.replace(SKEW_SUFFIX, '')}·{js.skew.replace(SKEW_SUFFIX, '')} · {T('음양')} {ey.skew.replace('양', '+').replace('음', '-')}  — {t('ms.problemFix', '문제점·대응법')} ›</Text>
+            <Text style={styles.strDetailBtnTx}>{T('조후')} {jl.hanNan}·{jl.joSeup} · {T('음양')} {ey.skew.replace('양', '+').replace('음', '-')}  — {t('ms.problemFix', '문제점·대응법')} ›</Text>
           </PressableScale>
         );
       })()}
@@ -1474,7 +1491,8 @@ function MyeongsikBody({ input, friendSaju, onReading, onSinsal, header, whoName
           <Text style={styles.sheetKind}>{T('조후')} · {t('ms.eumYangSkew', '음양 쏠림')}</Text>
           <ScrollView style={{ flexShrink: 1 }} showsVerticalScrollIndicator={true}>
             {(() => {
-              const ey = eumYangSkew(P, input?.sex); const jh = johuSkew(P); const js = joSeupSkew(P);
+              // ★조후는 **정본**(`engine/johu2`)을 쓴다 — 위 주석 참고(2026-09-01 두 벌이던 것을 하나로)
+              const ey = eumYangSkew(P, input?.sex); const jl = johuLabel(johu2(c as any));
               const elc: Record<string, number> = {};
               for (const p of (['년', '월', '일', '시'] as const)) { const d = P[p]; if (!d) continue; const se = stemElement(d.stem), be = branchElement(d.branch); elc[se] = (elc[se] || 0) + 1; elc[be] = (elc[be] || 0) + (p === '월' ? 2 : 1); }
               const domEl = Object.entries(elc).sort((a, b) => b[1] - a[1])[0];
@@ -1488,8 +1506,15 @@ function MyeongsikBody({ input, friendSaju, onReading, onSinsal, header, whoName
                 </View>
               );
               return (<>
-                {block(t('ms.hannan', '한난(조후)'), `${jh.skew} (${t('ms.warm', '따뜻')} ${jh.warm}·${t('ms.cold', '차가움')} ${jh.cold})`, CONCEPT_INFO.조후, jh.skew !== '중화' ? JOHU_SKEW[jh.skew] : null)}
-                {block(t('ms.joseup', '조습'), `${js.skew} (${t('ms.wet', '습함')} ${js.wet}·${t('ms.dry', '건조')} ${js.dry})`, CONCEPT_INFO.조습, js.skew !== '중화' ? JOSEUP_SKEW[js.skew] : null)}
+                {/* ★조후 두 줄 — **정본**(`engine/johu2`) 값으로 그린다(2026-09-01).
+                    ★설명표(`JOHU_SKEW`·`JOSEUP_SKEW`)의 키도 **정본 값으로 맞췄다** —
+                      옮겨 담는 자리를 아예 없앴다(소비처가 이 화면 하나뿐이라 안전). */}
+                {block(t('ms.hannan', '한난(조후)'),
+                  `${jl.hanNan === '暖' ? t('ms.warm') : jl.hanNan === '寒' ? t('ms.cold') : t('ms.neutral')}`,
+                  CONCEPT_INFO.조후, jl.hanNan !== '중화' ? JOHU_SKEW[jl.hanNan] : null)}
+                {block(t('ms.joseup', '조습'),
+                  `${jl.joSeup === '濕' ? t('ms.wet') : jl.joSeup === '燥' ? t('ms.dry') : t('ms.neutral')}`,
+                  CONCEPT_INFO.조습, jl.joSeup !== '중화' ? JOSEUP_SKEW[jl.joSeup] : null)}
                 {block(T('음양'), `${ey.skew.replace('양', '+').replace('음', '-')} (+ ${ey.yang}·- ${ey.yin})`, CONCEPT_INFO.음양, ey.skew !== '균형' ? YINYANG_SKEW[ey.skew] : null)}
                 {domEl && domEl[1] >= 4 ? block(t('ms.elemSkew', '오행 쏠림'), t('ms.strongEl', '{{el}} 강함', { el: domEl[0] }), '', ELEMENT_SKEW[domEl[0]]) : null}
                 {tgSkew ? block(t('ms.tgSkew', '기운(십성) 쏠림'), t('ms.strongEl', '{{el}} 강함', { el: tgSkew.god }), '', tgSkew.item, tgSkew.favorable) : null}
