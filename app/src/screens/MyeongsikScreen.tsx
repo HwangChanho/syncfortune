@@ -959,7 +959,7 @@ function MyeongsikBody({ input, friendSaju, onReading, onSinsal, header, whoName
          *   ⇒ 계산이 틀린 게 아니라 **화면이 옛 함수를 붙들고 있었다.**
          * ★[[duplicate-ui-single-source]] — 같은 것을 두 곳에서 세면 반드시 갈린다.
          */
-        const ey = eumYangSkew(P, input?.sex); const jl = johuLabel(johu2(c as any));
+        const ey = eumYangSkew(P, input?.sex); const jl = johuLabel(johu2(c.saju));
         return (
           <PressableScale style={styles.strDetailBtn} onPress={() => setJohuOpen(true)}>
             <Text style={styles.strDetailBtnTx}>{T('조후')} {jl.hanNan}·{jl.joSeup} · {T('음양')} {ey.skew.replace('양', '+').replace('음', '-')}  — {t('ms.problemFix', '문제점·대응법')} ›</Text>
@@ -1613,7 +1613,7 @@ function MyeongsikBody({ input, friendSaju, onReading, onSinsal, header, whoName
           <ScrollView style={{ flexShrink: 1 }} showsVerticalScrollIndicator={true}>
             {(() => {
               // ★조후는 **정본**(`engine/johu2`)을 쓴다 — 위 주석 참고(2026-09-01 두 벌이던 것을 하나로)
-              const ey = eumYangSkew(P, input?.sex); const jl = johuLabel(johu2(c as any));
+              const ey = eumYangSkew(P, input?.sex); const jl = johuLabel(johu2(c.saju));
               const elc: Record<string, number> = {};
               for (const p of (['년', '월', '일', '시'] as const)) { const d = P[p]; if (!d) continue; const se = stemElement(d.stem), be = branchElement(d.branch); elc[se] = (elc[se] || 0) + 1; elc[be] = (elc[be] || 0) + (p === '월' ? 2 : 1); }
               const domEl = Object.entries(elc).sort((a, b) => b[1] - a[1])[0];
