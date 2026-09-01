@@ -10,6 +10,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useEffect, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';   // ★고정 상수로 상태바를 대신하지 않는다
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import * as SecureStore from 'expo-secure-store';
@@ -40,6 +41,7 @@ export function Onboarding() {
   const router = useRouter();
   // loading: 노출 여부 판정 중(null 렌더) / show: 노출 / hidden: 스킵(기존 유저·이미 봄)
   const [phase, setPhase] = useState<'loading' | 'show' | 'hidden'>('loading');
+  const insets = useSafeAreaInsets();   // 화면을 다 덮는 오버레이의 책임
   const [step, setStep] = useState(0);
 
   // 노출 판정(마운트 1회) — 온보딩 이력(플래그)만으로. 명식 보유로 자동스킵하던 것 폐지.
@@ -83,7 +85,8 @@ export function Onboarding() {
   const last = step === STEPS.length - 1;
 
   return (
-    <View style={styles.overlay}>
+    // ★★화면을 다 덮으므로 상태바 몫은 **스스로** 뺀다(Boss 2026-09-01 «위에가 짤리잖아»).
+    <View style={[styles.overlay, { paddingTop: space(4) + insets.top, paddingBottom: space(9) + insets.bottom }]}>
       {/* ★시안 결 — 위가 밝은 오행 그라데이션 + 아치(상세 히어로·풀이 히어로와 같은 모양).
           온보딩은 시안 43장에 **없는 화면**이라(공통 3장 = 스플래시·로그인·사주입력) 사양이 없다.
           ⇒ 앱 안에서 이미 정한 결을 따른다 — 새 스타일을 발명하지 않는다. */}
@@ -171,7 +174,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bg,
     zIndex: 50,
     paddingHorizontal: space(8),
-    paddingTop: space(14),
+    // ★상단 여백은 **런타임에** 더한다(아래 `insets.top`) — 여기 고정값을 두면
+    //   글자를 키우거나 노치가 다른 기기에서 위가 잘린다(`check:safearea` S3 가 금지한 그것).
+    paddingTop: space(4),
     paddingBottom: space(9),
   },
   topRow: { flexDirection: 'row', justifyContent: 'flex-end' },

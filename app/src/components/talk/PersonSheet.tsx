@@ -30,6 +30,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import { useEffect, useMemo, useState } from 'react';
 import { View, Text, ScrollView, Pressable, StyleSheet, ActivityIndicator, useWindowDimensions } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';   // ★상태바·홈바 몫 — 시트가 화면 끝까지 덮으니 자기가 챙겨야 한다
 import { Image as ExpoImage } from 'expo-image';
 import { useTranslation } from 'react-i18next';
 import { PressableScale } from '../PressableScale';
@@ -79,6 +80,7 @@ export function PersonSheet({ target, onClose, onMention, onMessage, onMore }: {
 }) {
   const { t } = useTranslation();
   const { width, height } = useWindowDimensions();
+  const insets = useSafeAreaInsets();   // ★시트가 화면을 다 덮으므로 여백은 스스로 뺀다
   // ★훅은 **조기 return 위**에 전부 둔다(React #310 — 08-26 웹이 통째로 죽었던 그것)
   const [tab, setTab] = useState<Tab>('chart');
   const [data, setData] = useState<Loaded | null>(null);
@@ -172,7 +174,17 @@ export function PersonSheet({ target, onClose, onMention, onMessage, onMore }: {
     <View style={styles.root}>
       {/* 바깥을 누르면 닫힌다 — 대화는 뒤에 그대로 있다 */}
       <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
-      <View style={[styles.panel, { width: panelW, maxHeight: height }]}>
+      {/* ★★안전영역은 **이 시트가** 챙긴다 (Boss 2026-09-01 *"여기도 위에가 짤리잖아"*).
+          ⚠️`absoluteFillObject` 로 화면을 끝까지 덮으면 상태바 아래로 파고든다 —
+            폰에서 **시계와 아바타가 겹쳤다**(실측). 화면을 다 덮는 것은 «자유» 가 아니라
+            «안전영역을 스스로 빼야 하는 책임» 이다.
+          ★아래(홈 인디케이터)도 같이 뺀다 — 안 빼면 마지막 줄이 막대에 가린다. */}
+      <View style={[styles.panel, {
+        width: panelW,
+        maxHeight: height - insets.top - insets.bottom,
+        marginTop: insets.top,
+        marginBottom: insets.bottom,
+      }]}>
 
         {/* ── 머리 ── */}
         <View style={styles.head}>

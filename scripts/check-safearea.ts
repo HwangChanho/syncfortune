@@ -16,7 +16,7 @@
 //
 // 실행: npm run check:safearea
 // ─────────────────────────────────────────────────────────────────────────
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 
 const ROOT = new URL('..', import.meta.url).pathname;
 const LAYOUT = 'app/src/app/(app)/_layout.tsx';
@@ -62,6 +62,49 @@ for (const name of targets) {
   // S3 — 상태바를 대신하려는 큰 고정 여백이 남아 있으면 경고(작은 여백은 정상 레이아웃)
   const fixed = [...code.matchAll(/paddingTop:\s*space\(([0-9.]+)\)/g)].map((m) => Number(m[1])).filter((n) => n >= 8);
   if (fixed.length) bad(`${name}: 고정 상단여백 space(${fixed.join('), space(')}) 이 남아 있다 — 상태바 높이를 상수로 대신하면 같은 잘림이 재발한다`);
+}
+
+// ── S4 ★**화면을 다 덮는 오버레이**도 안전영역을 스스로 빼야 한다 ──────────────
+//   Boss 2026-09-01 *"여기도 위에가 짤리잖아 앱이랑 웹이랑 패드랑 지금 대응이 제대로 안되고 있어
+//   ui그릴때 고민해서 하네스에등록해"*
+//   ⚠️실측: 친구 프로필 시트(`PersonSheet`)가 `absoluteFillObject` 로 화면을 끝까지 덮으면서
+//     상태바 아래로 파고들어 **시계와 아바타가 겹쳤다.**
+//   ★위 S1~S3 은 «화면»(Stack.Screen)만 본다 — 오버레이는 화면이 아니라 그 검사에 안 걸린다.
+//     같은 결함의 **다른 자리**다.
+//   ★단, «가운데 정렬» 오버레이는 대상이 아니다(스플래시·자르기 창처럼 위에 안 붙는다).
+//     ⇒ 뿌리가 `justifyContent:'center'`·`alignItems:'center'` 면 면제한다 — 규칙이
+//       실제 위험(위에 붙는 것)만 겨냥해야 거짓 빨간불이 안 난다.
+{
+  const files: string[] = [];
+  const walk = (dir: string) => {
+    for (const e of readdirSync(`${ROOT}${dir}`, { withFileTypes: true })) {
+      if (e.isDirectory()) walk(`${dir}/${e.name}`);
+      else if (e.name.endsWith('.tsx')) files.push(`${dir}/${e.name}`);
+    }
+  };
+  walk('app/src/components');
+
+  for (const f of files) {
+    const src = readFileSync(`${ROOT}${f}`, 'utf8');
+    // 주석을 뺀 코드에서만 본다(주석 속 예시에 속지 않게)
+    const code = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+    const m = /(?:root|overlay|backdrop|scrim):\s*\{[^}]*absoluteFillObject[^}]*\}/.exec(code);
+    if (!m) continue;
+    const rootStyle = m[0];
+    // 가운데 정렬 = 위에 안 붙는다 → 면제
+    if (/justifyContent:\s*'center'/.test(rootStyle) && /alignItems:\s*'center'/.test(rootStyle)) continue;
+    const name = f.split('/').pop();
+    // ★면제 주석은 **S1~S3 과 같은 규칙**으로 존중한다 — 이유 없는 면제는 통과시키지 않는다.
+    //   (안 그러면 규칙마다 면제 방법이 달라져 «어디에 뭘 적어야 하나» 를 아무도 모른다.)
+    const ex4 = src.match(/\/\/[^\S\n]*safe-area-safe:[^\S\n]*(.*)/);
+    if (ex4) {
+      if (!ex4[1]?.trim()) bad(`${name}: 면제 주석에 **이유가 없다** — 이유 없는 면제는 규칙을 지운 것과 같다`);
+      else ok(`${name}: 면제 — ${ex4[1].trim()}`);
+      continue;
+    }
+    if (/useSafeAreaInsets\s*\(/.test(code) && /insets\.top/.test(code)) ok(`${name}: 전면 오버레이가 insets.top 반영`);
+    else bad(`${name}: **화면을 다 덮는데** 상단 안전영역을 안 뺀다 — 상태바 아래로 파고들어 시계와 겹친다`);
+  }
 }
 
 console.log(fail ? `\n❌ check:safearea 실패 ${fail}건` : '\n✅ check:safearea 통과 — 헤더 숨김 화면 전부 insets.top 반영·고정 상단여백 없음');
