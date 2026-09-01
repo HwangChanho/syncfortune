@@ -9,7 +9,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { useMemo, useState, useEffect, useRef, type ReactNode } from 'react';
 import { interactionColor, INTERACTION_ORDER } from '../lib/content/interactionColor';
-import { View, Text, ScrollView, StyleSheet, Pressable, Modal, Animated, LayoutAnimation, Platform, UIManager } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Pressable, Modal, Animated, LayoutAnimation, Platform, UIManager, useWindowDimensions } from 'react-native';
 import { PressableScale } from '../components/PressableScale';
 import { RelatedContent } from '../components/RelatedContent';
 import { useTranslation } from 'react-i18next';
@@ -30,6 +30,7 @@ import { LuckNest } from '../components/LuckNest'; // ★운 중첩(벤다이어
 import { stemElement, branchElement, elementColor, stemReading, branchReading, stemYinYang, branchYinYang, eumYangSkew, johuSkew, joSeupSkew } from '../lib/engine/ohaeng';
 import { ELEMENT_SKEW, tengodSkew, YINYANG_SKEW, JOHU_SKEW, JOSEUP_SKEW, CONCEPT_INFO, type SkewItem } from '../lib/content/skewKnowledge';
 import { useFontScale } from '../lib/ui/fontScale'; // 글자 크기(설정) — 명식 글자까지 모든 텍스트에 적용(daniel)
+import { hasSidebar } from '../lib/ui/wideLayout'; // 면 판단(웹·태블릿·폰) 단일 출처
 import { emph } from '../lib/ui/richText'; // 콘텐츠 *별표 강조* → bold 렌더(CONCEPT_INFO 개념설명, daniel 2026-07-07)
 // ⚠️ 전환 지연(useDeferredReady/ChartSkeleton)은 이 컴포넌트 *내부에서 조기 return* 하면 안 된다 —
 //   본문 곳곳(140·145~·282…)에 useState 가 있어, ready false→true 재렌더 시 hook 수가 바뀌어
@@ -158,6 +159,22 @@ function MyeongsikBody({ input, friendSaju, onReading, onSinsal, header, whoName
     const place = (input.birthPlace ?? '').trim() || t('ms.placeUnknown', '출생지 미상');
     return [date + cal, time, place].filter(Boolean).join(' · ');
   })();
+  /**
+   * ★★넓은 화면에서 **본문을 두 칸 폭으로 넓힌다** (Boss 2026-09-01
+   *   *"웹 기준에서 만세력에 빈칸이 너무커"*).
+   *
+   * ■ ⚠️처음엔 «원국 왼쪽 · 오행 오른쪽» 으로 **블록을 두 칸에 나누려** 했다. 세 번 시도했고
+   *   세 번 다 실측에서 막혔다 — 기록해 둔다(다음 사람이 같은 길을 안 가게):
+   *     ①`columnCount` — RN Web 은 모든 View 를 `display:flex` 로 깐다. **다단이 무시된다.**
+   *     ②`display:'block'` 으로 살렸더니 **내가 칸을 못 고른다**(다단은 «넘치면 다음 칸»).
+   *     ③`flexWrap` + `order` — 줄바꿈이 **줄 단위**라 왼쪽이 끝나야 오른쪽이 시작된다.
+   *   ★진짜 두 칸을 만들려면 JSX 를 옮겨 묶어야 하는데, 이 화면은 블록이 번갈아 있고
+   *     사이사이에 코드가 끼어 있다(실측: 한 자리에만 114줄). **깨질 위험이 이득보다 크다.**
+   * ⇒ 지금은 «빈칸이 크다» 를 **폭으로** 푼다 — 본문 상한을 넓혀 좌우 여백을 줄인다.
+   *   ★2열 재배치는 이 화면을 **블록 단위로 쪼갠 뒤**에 하는 것이 맞다(별건).
+   */
+  const { width: winW } = useWindowDimensions();
+  const wide = hasSidebar(winW, Platform.OS);
   const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<MyeongTab>(lastMyeongTab === 'rel' ? 'wonguk' : lastMyeongTab); // 'rel'(구 운세 탭)은 wonguk 으로 통합(daniel 07-24) — 저장값 방어
   const [catDescOpen, setCatDescOpen] = useState(false); // 카테고리 ? 설명 시트(daniel: 설명도 나오게)
@@ -552,7 +569,10 @@ function MyeongsikBody({ input, friendSaju, onReading, onSinsal, header, whoName
         </PressableScale>
       ))}
     </View>
-    <ScrollView style={styles.screen} contentContainerStyle={[styles.wrap, { paddingBottom: insets.bottom + space(24) }]}>
+    <ScrollView style={styles.screen} contentContainerStyle={[styles.wrap,
+      // ★넓은 화면에서는 본문이 좌우로 더 퍼지게 한다(그만큼 빈칸이 줄어든다).
+      wide ? { maxWidth: 1180, width: '100%', alignSelf: 'center' } : null,
+      { paddingBottom: insets.bottom + space(24) }]}>
       {/* 카테고리 ? 설명(daniel: 설명도 나오게) — 탭하면 이 분류가 무엇을 보는지 시트로.
           ★ScrollView 안으로 이동(daniel 2026-07-24 '글자 짤려'): 예전엔 고정 탭바 아래 '투명 영역'에 떠 있어,
           운세 탭 기둥 등을 위로 스크롤하면 그 투명 경계에서 상단 라벨(기둥명·나이·천간십신)이 지저분하게 잘려 보였다.
