@@ -26,6 +26,25 @@ const ROUTES = process.argv.slice(2).length ? process.argv.slice(2) : [
 ];
 
 const CRASH = /문제가 생겼어요|Text strings must be|Rendered more hooks|Minified React error/;
+
+/**
+ * ★**화면에 새면 안 되는 값** (2026-09-02 신설).
+ *   크래시가 아니라 «그려지긴 했는데 값이 새는» 것들이다 — 사용자에게 그대로 보인다.
+ * ⚠️첫 판에 «번역키(a.b.c)» 규칙을 넣었다가 `apps.apple.com` 을 **16화면에서 오탐**했다.
+ *   ⇒ URL·도메인은 빼고 본다. 규칙은 **오탐이 나면 그 자리에서 좁힌다**(거짓 빨간불이 더 나쁘다).
+ */
+const LEAKS = [
+  ['undefined 노출', /\bundefined\b/],
+  ['NaN 노출', /\bNaN\b/],
+  ['[object Object] 노출', /\[object Object\]/],
+  ['미치환 {{키}}', /\{\{\s*\w+\s*\}\}/],
+  // ⚠️★처음엔 `(?![\s]*[가-힣])` 를 붙였다가 **절대 발동할 수 없는 규칙**이 됐다 —
+  //   한국어 화면이라 R번호 뒤에는 늘 한글이 온다. 죽은 규칙은 없느니만 못하다(가짜 안전감).
+  //   ⇒ 뺐다. 프롬프트 규약상 내부 표지(R1~)는 **사용자 화면에 한 글자도 안 된다**.
+  ['내부표지 R번호', /\bR\d{1,2}\b/],
+];
+/** URL·도메인·이메일은 판정에서 뺀다(정상적으로 화면에 있을 수 있다). */
+const deUrl = (t) => t.replace(/https?:\/\/\S+/g, ' ').replace(/\b[\w.-]+\.(com|net|org|io|kr|dev|app)\b/g, ' ');
 const browser = await chromium.launch();
 const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 }, locale: 'ko-KR' });
 const page = await ctx.newPage();
@@ -73,6 +92,9 @@ for (const r of ROUTES) {
   page.off('console', onC); page.off('pageerror', onE);
 
   const crash = CRASH.test(txt);
+  // ★새는 값 — 크래시는 아니지만 사용자에게 그대로 보인다
+  const clean = deUrl(txt);
+  const leaks = LEAKS.filter(([, re]) => re.test(clean)).map(([n, re]) => `${n}(${JSON.stringify((clean.match(re) || [''])[0])})`);
   /**
    * ★«빈 화면» 판정 — ⚠️**글자 수로만 세면 안 된다**(2026-08-28 내가 그렇게 만들었다가 틀렸다).
    *   「내 명식을 먼저 등록해 주세요 · 명식 등록」은 **22자**지만 **정상적인 빈 상태**다 —
@@ -90,11 +112,11 @@ for (const r of ROUTES) {
    */
   const blank = body.length < 12;
   const real = errs.filter((e) => !/favicon|manifest|401|Failed to load resource/.test(e));
-  const mark = crash ? 'CRASH' : blank ? 'BLANK' : real.length ? 'ERR' : 'ok';
-  if (mark !== 'ok') bad.push({ r: r || '(home)', mark, status, len: txt.length, e: real[0] || JSON.stringify(body.slice(0, 60)) });
+  const mark = crash ? 'CRASH' : blank ? 'BLANK' : leaks.length ? 'LEAK' : real.length ? 'ERR' : 'ok';
+  if (mark !== 'ok') bad.push({ r: r || '(home)', mark, status, len: txt.length, e: leaks[0] || real[0] || JSON.stringify(body.slice(0, 60)) });
   // ★짧은 화면은 내용을 같이 찍는다 — «통과» 라고만 하면 사람이 확인할 길이 없다
   const peek = mark === 'ok' && body.length < 60 ? `  ${JSON.stringify(body.slice(0, 50))}` : '';
-  console.log(`  ${mark === 'ok' ? '✅' : '❌'} /${r.padEnd(16)} ${String(status).padEnd(4)} ${String(txt.length).padStart(5)}자${peek}  ${mark === 'ok' ? '' : (real[0] || mark)}`);
+  console.log(`  ${mark === 'ok' ? '✅' : '❌'} /${r.padEnd(16)} ${String(status).padEnd(4)} ${String(txt.length).padStart(5)}자${peek}  ${mark === 'ok' ? '' : (leaks[0] || real[0] || mark)}`);
 }
 await browser.close();
 console.log(`\n${bad.length ? `❌ 문제 ${bad.length}건 / ${ROUTES.length}` : `✅ 전 화면 통과 (${ROUTES.length}개)`}`);
