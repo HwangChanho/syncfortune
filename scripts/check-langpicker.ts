@@ -24,7 +24,8 @@
 //   ⚠️명리 용어(십신·지지·방위)는 **번역 대상이 아닐 수도** 있다 — 그건 Boss 판단 영역이라
 //     여기서 단정하지 않고 **수만 보고**한다.
 // ═══════════════════════════════════════════════════════════════════════════
-import { readFileSync, readdirSync } from 'node:fs';
+import { readFileSync, readdirSync, existsSync } from 'node:fs';
+import { homedir } from 'node:os';
 import { dirname, join, normalize } from 'node:path';
 /** 저장소 루트 기준 상대경로를 «파일이 있는 곳» 기준으로 푼다(`../` 를 실제로 처리). */
 const pathResolve = (fromDir: string, rel: string) => normalize(join(fromDir, rel));
@@ -247,6 +248,46 @@ const BASELINE = 915;   // 2026-08-30 홈 헤더에서 언어칩·벨을 아이�
     && !c.has('z.tsx') && !c.has('z2.tsx');
   say(good, '자기검사 — 폴백·주석·로그는 빼고, **태그 사이 글자까지** 센다',
     good ? '대조군 26개 통과' : `실제: ${JSON.stringify([...c])}`);
+}
+
+// ── L6d ★DB 문구가 **실제로 채워져 있는가**(배선만으론 못 잡는다) ──────────
+//   2026-09-01 Boss *"다른 언어는 다 영어로 나와"* 를 좇다 옆에서 찾았다:
+//   상담가 14명 중 **운이 하나만** `tagline` 의 en·ja 가 둘 다 없어,
+//   영어 화면에서 **그 줄만 한국어**로 떴다.
+//   ⚠️★위 L6 은 «번역을 태우는 배선» 을 본다 — 배선이 옳아도 **행이 없으면 원문이 나온다.**
+//     배선 검사와 채움 검사는 **다른 질문**이다. 하나만 있으면 조용히 새는 자리가 남는다.
+{
+  const tok = `${homedir()}/.supabase/access-token`;
+  if (!existsSync(tok)) console.log('  ⏭  L6d 건너뜀 — 자격증명 없음. **못 쟀다**');
+  else {
+    const ref = (/SUPABASE_PROJECT_REF=(\S+)/.exec(read('.env') ?? '') ?? [])[1];
+    if (!ref) console.log('  ⏭  L6d 건너뜀 — 프로젝트 ref 없음. **못 쟀다**');
+    else {
+      const r = await fetch(`https://api.supabase.com/v1/projects/${ref}/database/query`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${readFileSync(tok, 'utf8').trim()}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: `
+          with need as (
+            select c.id, l.lang, k.kind
+              from consultants c
+              cross join (select distinct lang from copy_overrides) l
+              cross join (values('name'),('tagline')) k(kind)
+             where c.enabled)
+          select n.id, n.lang, n.kind from need n
+          left join copy_overrides o
+            on o.key = 'consultant.' || n.id || '.' || n.kind and o.lang = n.lang
+          where o.value is null` }),
+      }).catch(() => null);
+      const rows = r && r.ok ? await r.json().catch(() => null) : null;
+      if (!Array.isArray(rows)) console.log('  ⏭  L6d 건너뜀 — 조회 실패. **못 쟀다**');
+      else {
+        say(rows.length === 0, 'L6d 상담가 이름·소개가 **모든 언어에 채워져** 있다',
+          rows.length === 0 ? `빠진 칸 0` :
+            `빠진 칸 ${rows.length}: ${rows.slice(0, 5).map((x: any) => `${x.id}.${x.kind}(${x.lang})`).join(', ')}`
+            + ' — 그 줄만 **한국어로** 뜬다');
+      }
+    }
+  }
 }
 
 console.log(fail === 0 ? '\n✅ 언어 고르기가 이어져 있고, 남은 한국어가 안 늘었습니다\n'
