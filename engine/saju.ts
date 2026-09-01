@@ -11,6 +11,7 @@ import type {
   ChartInput, SajuChart, PillarData, PillarPos, Stem, Branch, TenGod, HiddenStem, Element, LuckCycle, AnnualPillar, MonthPillar, Interaction,
 } from '../spec/chart';
 import { trueSolarOffsetMin, beijingShiftMin } from './solartime'; // beijingShiftMin = 절기용 북경시 변환(감사 C1 · 08-23 해외 대응)
+import { isSouthern, flipGz, flipStem } from './southern'; // 남반구 = 土 뺀 모든 글자를 충으로(Boss 2026-09-01)
 // ⚠️structure.ts ↔ saju.ts 는 **순환 참조**다(structure 가 STEM_YANG 을 쓴다). ESM 에서 이게 안전한 이유:
 //   structure.ts 는 STEM_YANG 을 **함수 본문 안에서만** 쓰고 모듈 최상위에서 접근하지 않는다 →
 //   평가 시점엔 아무도 안 건드리고, 실제 호출 시점엔 양쪽 다 초기화가 끝나 있다(live binding).
@@ -237,8 +238,23 @@ export function buildSajuChart(input: ChartInput, nowYear = new Date().getFullYe
     nx.setDate(nx.getDate() + 1);
     dayEc = Solar.fromYmdHms(nx.getFullYear(), nx.getMonth() + 1, nx.getDate(), 12, 0, 0).getLunar().getEightChar();
   }
+  /**
+   * ★★남반구 — **土를 뺀 모든 글자를 충(沖)으로 바꾼다** (Boss 2026-09-01
+   *   *"남반구는 토를 제외한 모든 글자를 충으로 바꾸면돼 만세력 등록할때"* · *"천간토는 안바꿔"*).
+   *
+   * ■ ★여기서 뒤집는 이유 — `buildPillar` **앞**이라 **지장간·십신이 전부 따라온다.**
+   *   뒤에서 글자만 바꾸면 지장간은 옛 지지 것이 남아 **속이 안 맞는 명식**이 된다.
+   * ■ ⚠️일간(`dayStem`)도 **같이** 뒤집어야 한다 — 십신은 전부 일간 기준이다.
+   *   일주만 바꾸고 일간을 두면 «甲일주인데 십신은 庚 기준» 이 된다.
+   * ■ ⚠️적용은 **원국 여덟 글자까지**다(Boss 문면: "만세력 등록할때").
+   *   대운·세운은 **안 건드린다** — 그건 정해진 바가 없고, 내가 정할 자리가 아니다.
+   * ■ ★위도를 모르면 **안 뒤집는다**(대부분 북반구다 — 모른 채 뒤집는 쪽이 더 나쁘다).
+   */
+  const south = isSouthern(input.birthLat);
+  const gz = (v: string) => (south ? flipGz(v) : v);
+
   // 일간 = 십신·시주천간·신살의 기준축 → 자시일수설을 적용한 일주에서 뽑는다.
-  const dayStem = dayEc.getDayGan() as Stem;
+  const dayStem = (south ? flipStem(dayEc.getDayGan()) : dayEc.getDayGan()) as Stem;
 
   // ★절기 판정용 팔자 = **북경시(UTC+8)** 기준 (2026-07-26 감사 C1 수정).
   //   왜 따로 계산하나: lunar-javascript 의 절입 시각은 **북경시 기준**이다(lunar.js 절기 계산에
@@ -262,12 +278,12 @@ export function buildSajuChart(input: ChartInput, nowYear = new Date().getFullYe
 
   const pillars = {
     // 년·월주 = 절기 경계에 의존 → 북경시 기준(ecTerm). 십신은 그대로 일간(dayStem) 기준.
-    '년': buildPillar('년', ecTerm.getYear(), dayStem),
-    '월': buildPillar('월', ecTerm.getMonth(), dayStem),
+    '년': buildPillar('년', gz(ecTerm.getYear()), dayStem),
+    '월': buildPillar('월', gz(ecTerm.getMonth()), dayStem),
     // 일·시주 = 지방시(진태양시) 기준. 일주는 자시일수설 적용본(dayEc — 23시 이후면 다음날),
     //   시주는 라이브러리 값 그대로(이미 다음날 일간 기준이라 자시일수설과 일치).
-    '일': buildPillar('일', dayEc.getDay(), dayStem),
-    '시': buildPillar('시', ec.getTime(), dayStem),
+    '일': buildPillar('일', gz(dayEc.getDay()), dayStem),
+    '시': buildPillar('시', gz(ec.getTime()), dayStem),
   } as Record<PillarPos, PillarData>;
 
   // 대운 (gender: 남=1, 여=0). getDaYun()[0]은 미입운(빈 간지)이라 제외.
