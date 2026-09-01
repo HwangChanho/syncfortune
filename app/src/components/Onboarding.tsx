@@ -19,6 +19,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Path } from 'react-native-svg';
 import { brandMarkSolid } from '../lib/ui/brandAsset';
 import { colors, space, radius, shadow } from '../lib/theme';
+import { PHONE_COLUMN } from '../lib/ui/wideLayout';   // 패드에서 폰 화면이 늘어나지 않게 가두는 폭
 
 const FLAG = 'palja_onboarding_seen_v3'; // 온보딩 노출 이력 플래그. v3(daniel 07-12) = 4번째 '미리보기' 단계(성향 분석 샘플카드) 추가 → 전 유저 재노출. v2=명식보유 자동스킵 폐지.
 
@@ -91,9 +92,19 @@ export function Onboarding() {
         start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }}
         style={StyleSheet.absoluteFill}
       />
-      <Svg width="100%" height="46%" viewBox="0 0 320 210" preserveAspectRatio="none" style={styles.arc} pointerEvents="none">
-        <Path d="M 26 210 L 26 150 A 134 122 0 0 1 294 150 L 294 210" stroke={colors.juLine} strokeWidth={2.2} fill="none" strokeLinecap="round" />
-      </Svg>
+      {/* ★★아치는 **가둔 칸 안**에서만 그린다 (2026-09-01 아이패드 실측).
+          종전엔 `left:0 right:0` 이라 화면 폭을 그대로 먹었다 — 패드에서 아치가
+          **위 절반을 차지하고 아래 절반이 통째로 비었다.** 폰에서는 상한에 안 닿아 그대로다. */}
+      <View style={styles.arcWrap} pointerEvents="none">
+        {/* ★바깥은 화면 폭을 다 쓰되 **가운데 정렬**만 하고, 상한은 안쪽이 가진다.
+            ⚠️`position:'absolute'` 에 `left:0 right:0` 이 있으면 `alignSelf` 가 안 먹는다 —
+              실제로 그렇게 했다가 아치가 **왼쪽에 붙었다**(2026-09-01 실측). */}
+        <View style={styles.arcInner}>
+          <Svg width="100%" height="100%" viewBox="0 0 320 210" preserveAspectRatio="none">
+            <Path d="M 26 210 L 26 150 A 134 122 0 0 1 294 150 L 294 210" stroke={colors.juLine} strokeWidth={2.2} fill="none" strokeLinecap="round" />
+          </Svg>
+        </View>
+      </View>
       {/* 건너뛰기 — 실사용자 편의(리뷰어는 대개 여정을 따라감). 우상단. */}
       <View style={styles.topRow}>
         <PressableScale onPress={() => finish(false)} hitSlop={10} style={styles.skipBtn}>
@@ -165,9 +176,15 @@ const styles = StyleSheet.create({
   },
   topRow: { flexDirection: 'row', justifyContent: 'flex-end' },
   skipBtn: { paddingVertical: space(1), paddingHorizontal: space(1) },
-  arc: { position: 'absolute', left: 0, right: 0, top: 0 },
+  // ★아치 자리 — 가운데 정렬 + 상한. 패드에서 «폰을 확대한 것» 처럼 보이지 않게 한다.
+  // ★아치 자리 — 바깥은 가운데 정렬만, 상한은 안쪽이 쥔다.
+  arcWrap: { position: 'absolute', top: 0, left: 0, right: 0, height: '46%', alignItems: 'center' },
+  // ★높이도 가둔다 — 폰에서는 «폭≈높이»(430 × 429) 라 거의 정사각이다.
+  //   패드에서 높이만 46%(≈628) 로 두면 **달걀처럼 길쭉해진다.** 폰의 비율을 그대로 옮긴다.
+  //   ⚠️폰은 46% 가 429 라 이 상한(560)에 **안 닿는다** — 폰 화면은 그대로다.
+  arcInner: { width: '100%', maxWidth: PHONE_COLUMN, height: '100%', maxHeight: PHONE_COLUMN },
   skipTxt: { color: colors.inkFaint, fontSize: 15, fontWeight: '600' },
-  body: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  body: { flex: 1, justifyContent: 'center', alignItems: 'center', width: '100%', maxWidth: PHONE_COLUMN, alignSelf: 'center' },
   // ★배경이 있는 판이라 모서리를 굴린다 — 안 굴리면 각진 사각형이 화면에 떠 보인다
   mark: { width: 72, height: 72, borderRadius: 16, marginBottom: space(2) },
   glyph: { color: colors.ju, fontSize: 18, fontWeight: '800', letterSpacing: 1, marginBottom: space(6) }, // 한글 4자 — 한자 2자와 같은 크기면 넘친다
@@ -190,7 +207,7 @@ const styles = StyleSheet.create({
   pvEnd: { fontSize: 12, fontWeight: '700', color: colors.inkFaint },
   pvLine: { fontSize: 14, color: colors.ink, lineHeight: 21, marginTop: space(4) },
   pvNote: { fontSize: 12, color: colors.inkSoft, marginTop: space(3), textAlign: 'center' },
-  bottom: { alignItems: 'center' },
+  bottom: { alignItems: 'center', width: '100%', maxWidth: PHONE_COLUMN, alignSelf: 'center' },
   dots: { flexDirection: 'row', gap: space(2), marginBottom: space(6) },
   dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.line },
   dotOn: { backgroundColor: colors.ju, width: 22 },

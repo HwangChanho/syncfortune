@@ -74,6 +74,24 @@ export function bodyCapEarly(src: string): boolean | null {
 }
 
 /** Xcode 대상 기기에 iPad(2)가 들어 있는가. */
+/**
+ * **폰 기준으로 그린 화면**이 넓은 화면에서 늘어나지 않게 가둬 뒀는가.
+ *
+ * ★2026-09-01 아이패드 실측 — 온보딩 아치가 `width="100%"` 라 **화면 폭만큼** 늘어나
+ *   위 절반을 먹고 아래 절반이 통째로 비었다. 「100%」 가 패드에선 두 배가 되기 때문이다.
+ * ⚠️두 번 틀렸다: ①폭만 가두고 **높이를 안 가둬** 달걀처럼 길쭉했다
+ *   ②`position:'absolute'` 에 `left:0 right:0` 이 있으면 **`alignSelf` 가 안 먹어** 왼쪽에 붙었다
+ *   ⇒ 바깥은 `alignItems:'center'`, 상한은 **안쪽**이 쥔다.
+ * @param src 온보딩 원문
+ */
+export function onboardingCapped(src: string): boolean {
+  const usesToken = /PHONE_COLUMN/.test(src);
+  const arcCentered = /arcWrap:[^}]*alignItems:\s*'center'/.test(src);
+  const innerCaps = /arcInner:[^}]*maxWidth:\s*PHONE_COLUMN[^}]*maxHeight:\s*PHONE_COLUMN/.test(src);
+  const bodyCapped = /body:[^}]*maxWidth:\s*PHONE_COLUMN/.test(src);
+  return usesToken && arcCentered && innerCaps && bodyCapped;
+}
+
 export function pbxHasIpad(src: string): boolean {
   return /TARGETED_DEVICE_FAMILY\s*=\s*"?1,\s*2"?/.test(src);
 }
@@ -98,6 +116,17 @@ if (!process.argv.includes('--selftest')) {
     }
   }
 
+  // I4 ★폰 기준 화면이 패드에서 **늘어나지 않게** 가둬 뒀는가(2026-09-01 실측으로 추가)
+  const ONB = 'app/src/components/Onboarding.tsx';
+  const onb = read(ONB);
+  if (!onb) fail('I4', `${ONB} 를 못 읽었다 — **못 쟀다**`);
+  else if (!onboardingCapped(onb)) {
+    fail('I4', `${ONB} 가 **패드에서 늘어난다**.\n        `
+      + '⚠️`width="100%"` 는 폰에선 맞고 패드에선 틀리다 — 「100%」 가 두 배가 된다.\n        '
+      + '실측(iPad Pro 12.9"): 아치가 **위 절반을 먹고 아래 절반이 통째로 비었다.**\n        '
+      + '★폭만 가두면 달걀처럼 길쭉해진다(높이도) · `absolute` + `left:0 right:0` 이면 `alignSelf` 가 안 먹는다');
+  }
+
   // P3 ★산출물을 직접 읽는다(gitignore 라 소스를 못 믿는다). 없으면 건너뛴다.
   const iosDir = join(ROOT, 'app/ios');
   if (existsSync(iosDir)) {
@@ -120,6 +149,22 @@ if (!process.argv.includes('--selftest')) {
 // ── 음성 테스트 ─────────────────────────────────────────────────────────────
 if (process.argv.includes('--selftest')) {
   const cases: Array<{ name: string; run: () => boolean }> = [
+    { name: 'I4 온보딩이 가둬져 있으면 통과',
+      run: () => onboardingCapped(`import { PHONE_COLUMN } ...
+        arcWrap: { position: 'absolute', alignItems: 'center' },
+        arcInner: { maxWidth: PHONE_COLUMN, height: '100%', maxHeight: PHONE_COLUMN },
+        body: { flex: 1, maxWidth: PHONE_COLUMN },`) === true },
+    { name: 'I4 ★높이를 안 가두면 문다(달걀 모양)',
+      run: () => onboardingCapped(`PHONE_COLUMN
+        arcWrap: { alignItems: 'center' },
+        arcInner: { maxWidth: PHONE_COLUMN, height: '100%' },
+        body: { maxWidth: PHONE_COLUMN },`) === false },
+    { name: 'I4 ★가운데 정렬이 없으면 문다(왼쪽에 붙는다)',
+      run: () => onboardingCapped(`PHONE_COLUMN
+        arcWrap: { position: 'absolute', left: 0, right: 0 },
+        arcInner: { maxWidth: PHONE_COLUMN, maxHeight: PHONE_COLUMN },
+        body: { maxWidth: PHONE_COLUMN },`) === false },
+
     { name: 'P1 ★실제 기기 폭 9종이 전부 맞는다', run: () => widthCases().length === 0 },
     { name: 'P1 iPad 세로가 넓은 축이다', run: () => isWideWidth(834, 'ios') === true },
     { name: 'P1 폰은 아니다', run: () => isWideWidth(440, 'ios') === false },

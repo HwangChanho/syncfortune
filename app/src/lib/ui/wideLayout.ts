@@ -46,6 +46,17 @@ export const BODY_CAP_FROM = 700;
  * @param width    화면 폭(pt)
  * @param platform `Platform.OS` ('web' | 'ios' | 'android' …)
  */
+/**
+ * **폰 기준으로 그린 화면**이 넓은 화면에서 늘어나지 않게 가두는 폭.
+ *
+ * ★왜 필요한가 — 2026-09-01 아이패드 실측(iPad Pro 12.9")에서 온보딩이
+ *   아치가 화면 폭만큼 늘어나 **위 절반을 먹고 아래 절반이 통째로 비었다.**
+ *   `width="100%"` 는 폰에선 맞고 패드에선 틀리다 — «100%» 가 두 배가 되기 때문이다.
+ * ★값은 폰의 넓은 쪽(≈430pt)보다 조금 크게 잡는다 — 패드에서 «폰을 확대한 것» 처럼
+ *   보이지 않으면서, 폰에서는 이 상한에 **닿지 않아** 아무것도 안 바뀐다.
+ */
+export const PHONE_COLUMN = 560;
+
 export function isWideWidth(width: number, platform: string): boolean {
   return width >= (platform === 'web' ? WEB_WIDE : TABLET_WIDE);
 }
