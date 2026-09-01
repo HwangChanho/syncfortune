@@ -614,6 +614,8 @@ export const en = {
   typematch: { tagStemHap: 'Stem harmony', tagSaeng: 'Elements feed each other', tagBrHap: 'Branch harmony', tagSamhap: 'Three-branch harmony', tagChung: 'Day-branch clash', title: 'Type vs Type', lead: 'They only need to tell you their two day-pillar characters. No birth date required.', me: 'You', pick: 'Pick their day pillar', none: 'No combination or clash lands between these two characters. That is not good or bad — this axis simply shows neither strong pull nor friction.', limit: 'This looks at two characters only. With the birth time and month it gets far more precise.', goCompat: 'See the full compatibility', noChart: 'Register your chart first.' },
   // 만세력 화면 — ★명리 **용어는 한자 그대로**, 설명만 그 언어로(Boss 2026-08-27)
   ms: {
+    aiCall: 'Call an AI teacher',
+    aiCallSub: 'Pick one and their name goes into the message box. Write your question after it and they will answer.',
     // Glyph-swap lens — a what-if chart with all eight glyphs replaced by their clash/union counterparts
     swapOff: 'Original',
     swapView: 'view',

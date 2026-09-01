@@ -10,7 +10,7 @@
 import { DevSettings, Platform } from 'react-native'; // ★다크/라이트 제거(daniel 2026-07-15) — Appearance 불필요(소프트 클레이 단일 테마)
 import * as SecureStore from 'expo-secure-store';
 import { A } from '../lib/ui/remoteAsset'; // ★이미지 원격화(daniel 08-01) — 번들에서 걷어내고 Storage 에서 받는다
-import { ELEMENT_PALETTE, CAMEL, DEFAULT_ELEMENT, type ThemeElement } from './theme/elementPalette'; // ★오행 전면 팔레트 단일 출처(시안 실측색)
+import { ELEMENT_PALETTE, BRAND, DEFAULT_ELEMENT, type ThemeElement } from './theme/elementPalette'; // ★오행 전면 팔레트 단일 출처(시안 실측색)
 // ⚠️ expo-updates = 네이티브 모듈. theme.ts 는 거의 모든 화면이 import → *정적 import* 하면 런치 시 로드되어,
 //   모듈/설정 이슈 시 JS 로거 설치 전 네이티브 크래시 위험(purchases.ts·ads.ts 와 동일 패턴 위반).
 //   → lazy require 가드(setThemePref 호출 시에만 로드). 모듈 없으면 조용히 no-op(테마는 재시작 후 적용).
@@ -166,7 +166,7 @@ export const activeElement: ThemeElement = resolveElement();
  *   화면 팔레트와 다른 축이고, 거기서 오행을 없애면 명식을 못 읽는다.
  * ★되돌리려면 이 한 줄만 바꾸면 된다.
  */
-const EP = CAMEL;   // ★2026-08-24 Boss 지시로 라벤더 → 카멜(되돌리려면 이 한 줄만 LAVENDER 로)
+const EP = BRAND;   // ★2026-09-02 Boss 지시로 카멜 → 브랜드 파랑(되돌리려면 이 한 줄만 CAMEL 로)
 
 /**
  * 전 화면이 import 하는 색 토큰.

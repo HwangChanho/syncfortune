@@ -216,7 +216,9 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
   const { t, i18n } = useTranslation();
   const router = useRouter();
   // 대화 목록(`/chats`)에서 특정 상담사를 바로 열 때 쓰는 값
-  const { c: openId } = useLocalSearchParams<{ c?: string }>();
+  // ★`room` = 사람 방 세션 id (Boss 2026-09-02 *"푸시 알림 누르면 채팅창으로 안가져"*).
+  //   친구 메시지 푸시가 `/talk` 로만 보내 **목록까지만** 갔다 — 이제 `/talk?room=<세션>` 을 싣는다.
+  const { c: openId, room: openRoom } = useLocalSearchParams<{ c?: string; room?: string }>();
   const wide = useWideWeb();
   // 세 칸을 다 펴려면 목록 둘(264×2) + 사이드바(210) 위에 대화창이 최소 420 은 있어야 한다.
   //   ★못 미치면 채팅목록을 접는다 — 세 칸이 다 답답한 것보다 두 칸이 낫다.
@@ -227,6 +229,9 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
 
   const [dateKey] = useState(() => new Date().toDateString());
   const [servers, setServers] = useState<Consultant[]>(consultantsSnapshot());   // 서버 목록(= 그대로 친구목록)
+  // 초대 창에서 «부르기» 로 고른 AI 선생님 — 사람 방 입력칸에 `@이름` 을 얹는다(Boss 2026-09-02).
+  //   ⚠️`n`(시각)을 같이 담는다 — 같은 사람을 다시 골라도 값이 바뀌어야 다시 얹힌다.
+  const [roomMention, setRoomMention] = useState<{ name: string; n: number } | null>(null);
   // ★다인방(Boss 2026-08-25 *"다른 사람을 초대할수 있어야해"*).
   //   `mates` = 지금 방에 **같이 있는 상담가들**. 비면 1:1 방이다.
   const [inviteOpen, setInviteOpen] = useState(false);
@@ -593,6 +598,21 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
     if (c) { openedRef.current = true; open(c); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openId, list]);
+
+  /**
+   * ★푸시로 받은 **사람 방**을 연다 (Boss 2026-09-02 *"푸시 알림 누르면 채팅창으로 안가져"*).
+   * ■ ⚠️상담가(`c=`)와 **다른 갈래**다 — 사람 방은 상담가 목록에 없어서 위 효과가 못 찾는다.
+   *   그래서 «목록까지만 가고 방은 안 열리는» 상태였다.
+   * ■ ★한 번만 연다 — 위와 같은 자물쇠(`openedRef`)를 쓴다. 뒤로 가면 목록으로 돌아가야 한다.
+   * ■ 목록을 기다리지 않는다 — 세션 id 만 있으면 바로 열 수 있다(방 내용은 그 화면이 읽는다).
+   */
+  useEffect(() => {
+    if (openedRef.current || !openRoom) return;
+    openedRef.current = true;
+    setUserRoom(String(openRoom));
+    setCur(null); setSid(null); setMates([]); setItems([]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openRoom]);
 
   // ★웹도 **처음엔 빈 대화창**이다(Boss 2026-08-19 "최초에는 빈 대화창으로 뜨고 클릭해야 대화 노출").
   //   종전엔 첫 상담사를 자동으로 열었다 — 화면은 꽉 차 보이지만 **사용자가 고르지 않은 대화**가 시작된다.
@@ -1599,6 +1619,11 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
             for (const id of ids) await inviteToRoom(userRoom, id);
             bumpChats();
           }}
+          // ★AI 도 부를 수 있게 (Boss 2026-09-02 "대화상대 초대가 ai는 초대가 안돼").
+          //   ⚠️사람과 길이 다르다 — 사람은 «방에 들어오고», AI 는 «`@이름` 으로 답한다»(2026-08-27 경로).
+          //     그래서 새 서버 작업이 없다. 고르면 입력칸에 이름만 얹고, 무엇을 물을지는 사람이 쓴다.
+          aiCandidates={servers}
+          onPickAi={(c) => { setInviteOpen(false); setRoomMention({ name: c.name, n: Date.now() }); }}
         />
       ) : inviteOpen && cur ? (
         <InviteSheet
@@ -1689,6 +1714,7 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
             <UserRoomView
               sessionId={userRoom}
               myId={session?.user?.id ?? ''}
+              mention={roomMention}
               onInvite={() => setInviteOpen(true)}
               onLeave={() => setAskLeave({ sessionId: userRoom, name: t('room.this', '이 대화') })}
             />

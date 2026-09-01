@@ -51,11 +51,19 @@ function avatarUrl(path: string | null): string | null {
  * @param onInvite  ＋ — 친구를 이 방에 부른다
  * @param onLeave   나가기(확인은 호출부가 한다 — 되돌릴 수 없는 동작이므로)
  */
-export function UserRoomView({ sessionId, myId, onBack, onInvite, onLeave }: {
+export function UserRoomView({ sessionId, myId, onBack, onInvite, onLeave, mention }: {
   sessionId: string;
   myId: string;
   onBack?: () => void;
   onInvite?: () => void;
+  /**
+   * ★밖(초대 창)에서 «이 선생님을 부른다» 고 고른 이름 — 입력칸에 `@이름 ` 을 넣는다.
+   * ⚠️**보내지는 않는다.** 무엇을 물을지는 사람이 쓴다 — 답 한 번이 곧 운 차감이라,
+   *   고르자마자 보내면 «누른 적 없는 돈» 이 된다.
+   * ⚠️같은 이름을 다시 골라도 들어가게 `{ name, n }` 처럼 **매번 새 값**으로 받는다
+   *   (문자열만 받으면 두 번째부터 useEffect 가 안 돈다).
+   */
+  mention?: { name: string; n: number } | null;
   onLeave?: () => void;
 }) {
   const { t } = useTranslation();
@@ -82,6 +90,16 @@ export function UserRoomView({ sessionId, myId, onBack, onInvite, onLeave }: {
    */
   const [inputH, setInputH] = useState(0);
   const inputRef = useRef<TextInput>(null);
+  /**
+   * 초대 창에서 고른 선생님을 **입력칸에 얹는다** — `@이름 ` 을 넣고 커서를 준다.
+   * ⚠️쓰던 글을 **지우지 않는다**(앞에 붙인다) — 반쯤 쓴 문장이 사라지면 그게 더 나쁘다.
+   * ⚠️이미 그 이름이 들어 있으면 **두 번 넣지 않는다**.
+   */
+  useEffect(() => {
+    if (!mention?.name) return;
+    setDraft((d) => (d.includes(`@${mention.name}`) ? d : `@${mention.name} ${d}`.trimEnd() + (d ? '' : ' ')));
+    inputRef.current?.focus();
+  }, [mention?.name, mention?.n]);
   /**
    * ⚠️★이 화면에는 **안전영역이 아예 없었다**(Boss 2026-08-31 스크린샷):
    *   제목 「이름 없음」 이 시계·LTE 와 **같은 줄**에 겹치고, ☰·🗑 아이콘이 상태바에 먹혀
@@ -310,9 +328,19 @@ const styles = StyleSheet.create({
     // ⚠️★글자가 **위에 붙어 있었다**(Boss 2026-08-31). 높이를 우리가 정해 주는데
     //   `TextInput` 은 기본이 위 정렬이라, 한 줄일 때 글자가 칸 위쪽에 뜬다.
     //   ⇒ iOS 는 `textAlignVertical` 을 안 보므로 **둘 다** 준다(안드로이드=속성 · iOS=아래 padding 균형).
+    //   ★★2026-09-02 재발(Boss *"메세지를 입력하세요가 중간에 없어"*) — 스크린샷을 픽셀로 재니
+    //     칸 120px 안에서 글자 위 여백 29 · 아래 59 = **30px(논리 10px) 위로** 치우쳐 있었다.
+    //   ■ 원인은 **자기모순**이었다: 높이는 `LINE(22) + PAD(18) = 40` 으로 정해 놓고
+    //     패딩은 `space(2) = 8` 을 줬다. 22 + 8 + 8 = 38 ≠ 40 이고, 게다가 실제 글자 줄상자는
+    //     22 가 아니라 폰트가 정하는 값(≈18)이라 남는 공간이 **전부 아래로** 몰렸다.
+    //     `textAlignVertical` 은 iOS 가 안 본다 — 그래서 안드로이드에서만 나아 보였다.
+    //   ⇒ 줄상자를 **LINE 으로 못박고**(lineHeight) 패딩을 **PAD 의 절반씩** 준다.
+    //     그러면 22 + 9 + 9 = 40 = 높이 → **폰트 지표와 무관하게 구조적으로 가운데**가 된다.
+    //     ★높이·패딩·줄상자가 전부 같은 상수(LINE·PAD)에서 나와 다시는 서로 어긋날 수 없다.
     textAlignVertical: 'center',
+    lineHeight: LINE,
     backgroundColor: colors.sunk, borderRadius: radius.md,
-    paddingHorizontal: space(3.5), paddingVertical: space(2), color: colors.ink,
+    paddingHorizontal: space(3.5), paddingTop: PAD / 2, paddingBottom: PAD / 2, color: colors.ink,
     // 웹 textarea 의 기본 리사이즈 손잡이를 없앤다(우리가 높이를 정하므로)
     ...(Platform.OS === 'web' ? ({ resize: 'none', outlineStyle: 'none' } as object) : null),
   },

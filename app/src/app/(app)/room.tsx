@@ -227,9 +227,15 @@ const styles = StyleSheet.create({
     borderTopWidth: 1, borderTopColor: colors.line, backgroundColor: colors.bg,
   },
   input: {
+    // ★UserRoomView 와 **같은 병**이었다(2026-09-02) — 한 줄일 때 글자가 위에 붙는다.
+    //   `multiline` 인 TextInput 은 iOS 에서 **위 정렬**이고 `textAlignVertical` 을 안 본다.
+    //   ⇒ 줄상자를 못박고(lineHeight) 남는 높이를 위아래로 **똑같이** 나눈다:
+    //     minHeight 42 = lineHeight 22 + 위 10 + 아래 10. 폰트 지표와 무관하게 가운데.
+    //   ⚠️여기만 고치고 형제(UserRoomView)를 두면 «한쪽만 고쳐진» 상태가 된다 — 둘 다 고쳤다.
     flex: 1, minHeight: 42, maxHeight: 110, ...font.body, color: colors.ink,
+    textAlignVertical: 'center', lineHeight: 22,
     backgroundColor: colors.card, borderRadius: radius.lg,
-    paddingHorizontal: space(3.5), paddingVertical: space(2.5),
+    paddingHorizontal: space(3.5), paddingTop: 10, paddingBottom: 10,
   },
   send: {
     paddingHorizontal: space(4), paddingVertical: space(2.5),

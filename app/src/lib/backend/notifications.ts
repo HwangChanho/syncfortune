@@ -11,6 +11,7 @@ import { supabase } from '../supabase'; // push_token 저장(set_push_token RPC)
 import { dailyEnergy } from '../content/dailyFortune';            // 12·18시 티저 개인화(홈 모먼트와 동일 출처)
 import { momentFromEnergy, decisionFromEnergy } from '../content/decisionToday';
 import { router } from 'expo-router'; // 알림 탭 딥링크(컴포넌트 밖 전역 navigate)
+import { markInboxSeen } from './notifyInbox';   // 푸시를 탭하면 앱 안 빨간불도 끈다(Boss 2026-09-02)
 import { loadRepChart } from '../engine/myChart';
 import { computeChart } from '../engine/engine'; // 대표 명식 saju 산출(아침 개인화 팁용)
 import { getDailyFortune, dailyAlarmTip } from '../content/dailyFortune'; // 그날 일진 + 개인화 일운 한 줄 팁(결정론)
@@ -387,6 +388,32 @@ function navigateWhenReady(route: string, tries = 20): void {
   setTimeout(tick, 0);
 }
 
+/**
+ * 알림을 **탭했을 때** 할 일 — 이동 + 앱 안 빨간불 끄기.
+ *
+ * ★Boss 2026-09-02: *"메세지 온거 알림을 탭해서 들어가면 앱 안에 알림도 빨간불 안들어와도 돼"*
+ *
+ * ■ 왜 빨간불이 남았나 — 앱 안 알림함(`NotifyBell`)은 푸시를 만든 **바로 그 표**
+ *   (`user_notify_queue`)를 읽는다. 즉 한 사건이 «푸시 + 알림함 줄» 둘로 나온다.
+ *   그런데 «본 시각»(`pref.notifySeenAt`)은 **알림함을 열었을 때만** 갱신돼서,
+ *   푸시로 이미 본 것이 앱 안에서 다시 빨간불이었다.
+ * ■ ⇒ 탭한 알림의 **도착 시각까지 봤다고** 적는다. 그보다 오래된 것은 더 먼저 보인 것이니
+ *   같이 꺼지는 것이 맞다(빨간불 모델이 «시각 하나» 라 개별로는 못 끈다 — 그 설계를 따른다).
+ * ■ ⚠️두 경로(살아 있을 때 리스너 · 꺼져 있다 켜질 때)가 **같은 함수**를 부른다.
+ *   한쪽만 고치면 «앱이 꺼져 있을 때 온 것만 빨간불이 남는» 반쪽 상태가 된다.
+ *
+ * @param resp expo-notifications 의 응답 객체
+ */
+function handleTapped(resp: any): void {
+  const route = resp?.notification?.request?.content?.data?.route;
+  if (route) navigateWhenReady(route);
+  // 도착 시각(ms) → ISO. 못 읽으면 **지금**으로 — 못 읽었다고 빨간불을 남기지 않는다.
+  const at = Number(resp?.notification?.date);
+  const iso = new Date(Number.isFinite(at) && at > 0 ? at : Date.now()).toISOString();
+  void markInboxSeen(iso).catch(() => { /* 배지는 곁다리 — 실패해도 이동은 이미 했다 */ });
+  void refreshTalkBadge();   // 아이콘 배지도 서버 값으로 다시 맞춘다
+}
+
 /** 알림 탭 → data.route 로 이동(딥링크: 풀이 완료 알림 클릭 시 그 화면으로). ★앱 전역 1회만 등록. */
 let lastHandledNotifId: string | null = null; // 같은 알림 응답 재전달 시 1회만 처리
 let tapSub: any = null;                        // 전역 단일 리스너(useAuth 40개 마운트돼도 1개만 — 리스너 40개=push 40개가 뷰쌓임 주범, daniel 07-01)
@@ -397,8 +424,7 @@ export function setupNotificationTapListener(): () => void {
       const id = resp?.notification?.request?.identifier ?? String(resp?.notification?.date ?? '');
       if (id && id === lastHandledNotifId) return; // 재전달 dedup
       lastHandledNotifId = id;
-      const route = resp?.notification?.request?.content?.data?.route;
-      if (route) navigateWhenReady(route);
+      handleTapped(resp);
     });
   } catch { /* ignore */ }
   // ★★콜드스타트 — 앱이 **꺼져 있을 때** 탭한 알림은 위 리스너가 못 받는다.
@@ -412,8 +438,7 @@ export function setupNotificationTapListener(): () => void {
       const id = resp?.notification?.request?.identifier ?? String(resp?.notification?.date ?? '');
       if (id && id === lastHandledNotifId) return;
       lastHandledNotifId = id;
-      const route = resp?.notification?.request?.content?.data?.route;
-      if (route) navigateWhenReady(route);
+      handleTapped(resp);
     }).catch(() => { /* 모듈이 없으면 무시 */ });
   } catch { /* ignore */ }
 
