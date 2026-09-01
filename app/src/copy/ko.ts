@@ -403,6 +403,7 @@ export const ko = {
     freeB: '가능성·시기·다가갈 타이밍',
     paidB: '그 사람 마음·다가가는 법·이어질 이유',
   },
+  notice: { hideDay: '하루 동안 보지 않기' },
   bd: {
     title: '이 정보로 명식을 만들까요?',
     noDate: '(생년월일을 못 읽었어요)',

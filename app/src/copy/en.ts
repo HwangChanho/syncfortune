@@ -385,6 +385,7 @@ export const en = {
     freeB: 'the odds, the timing and when to approach',
     paidB: 'their side of it, how to approach, and why it could join',
   },
+  notice: { hideDay: 'Don\'t show for a day' },
   bd: {
     title: 'Build the chart from this?',
     noDate: '(couldn’t read the birth date)',

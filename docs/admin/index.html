@@ -123,6 +123,7 @@
       <button data-tab="stats" aria-selected="true">현황</button>
       <button data-tab="users" aria-selected="false">유저 · 운 선물</button>
       <button data-tab="push" aria-selected="false">예약 푸시</button>
+      <button data-tab="notice" aria-selected="false">공지</button>
       <button data-tab="flags" aria-selected="false">콘텐츠 NEW · 기능 플래그</button>
       <button data-tab="talk" aria-selected="false">상담가</button>
       <button data-tab="video" aria-selected="false">운세 영상</button>
@@ -387,6 +388,33 @@
       </div>
     </section>
 
+    <!-- ── 공지 (Boss 2026-09-01) ──────────────────────────────────────────
+         *"관리자페이지에서 공지글 쓸수있게하고 공지글은 홈화면에 가면 무조건 뜨게하고
+           하루동안 보지않기 체크하면 노출 안 되게해"*
+         ★「하루동안 보지 않기」 는 **기기에 저장**한다(서버에 안 쌓는다) —
+           로그인 안 한 사람도 눌러야 하고, 그 하나 때문에 표를 늘리지 않는다. -->
+    <section id="tab-notice" class="hide">
+      <div class="card">
+        <h2>공지 쓰기</h2>
+        <div class="muted" style="font-size:13px;margin-bottom:8px">
+          올리면 <b>홈 화면에 바로 뜹니다.</b> 회원이 「하루 동안 보지 않기」를 누르면 그 기기에서 24시간 숨습니다.
+        </div>
+        <label>제목</label><input id="nTitle" placeholder="점검 안내" />
+        <label>내용</label><textarea id="nBody" rows="4" placeholder="9월 2일 새벽 2시~4시에 점검이 있어요."></textarea>
+        <label>종류</label>
+        <select id="nKind">
+          <option value="info">안내</option>
+          <option value="maint">점검</option>
+          <option value="event">이벤트</option>
+        </select>
+        <label>시작(선택 · 비우면 지금부터)</label><input id="nFrom" type="datetime-local" />
+        <label>끝(선택 · 비우면 계속)</label><input id="nTo" type="datetime-local" />
+        <div class="row" style="margin-top:10px"><button id="nSave">올리기</button></div>
+        <div id="nMsg"></div>
+      </div>
+      <div class="card"><h2>올린 공지</h2><div id="nList" class="muted">—</div></div>
+    </section>
+
     <section id="tab-push" class="hide">
       <div class="card">
         <h2>예약 푸시 (전체 발송)</h2>
@@ -533,6 +561,7 @@ document.querySelectorAll('.tabs button').forEach((b) => {
     if (b.dataset.tab === 'flags') loadFlags();
     if (b.dataset.tab === 'sys') loadSys();
     if (b.dataset.tab === 'bugs') loadBugs();
+    if (b.dataset.tab === 'notice') loadNotice();
   };
 });
 
@@ -1285,6 +1314,61 @@ $('flagOff').onclick = () => {
   const k = $('flagKey').value.trim();
   if (!k) return say($('flagMsg'), '콘텐츠 키를 입력하세요', 'err');
   setFlag(k.startsWith(NEW_PREFIX) ? k : NEW_PREFIX + k, false);
+};
+
+/**
+ * 공지 — 올리기 · 목록 · 내리기 (Boss 2026-09-01)
+ *
+ * ★권한은 **서버가** 판정한다(`notices` RLS + `is_caller_admin()`) — 화면은 그 답을 따를 뿐이다.
+ *   실측으로 확인했다: 관리자가 아니면 insert 가 막히고, 비로그인도 읽기는 된다.
+ * ⚠️★사용자 글이 아니라 **운영이 쓴 글**이지만 그래도 `esc()` 를 태운다 —
+ *   따옴표 하나로 목록이 깨지는 것을 «내가 쓴 글이니 괜찮다» 로 두지 않는다.
+ */
+async function loadNotice() {
+  const { data, error } = await sb.from('notices')
+    .select('id,title,body,kind,active,starts_at,ends_at,created_at')
+    .order('created_at', { ascending: false }).limit(50);
+  if (error) return ($('nList').innerHTML = `<span class="muted">${esc(error.message)}</span>`);
+  if (!data || !data.length) return ($('nList').innerHTML = '<span class="muted">올린 공지 없음</span>');
+  const when = (v) => (v ? String(v).replace('T', ' ').slice(0, 16) : '—');
+  const KIND = { info: '안내', maint: '점검', event: '이벤트' };
+  $('nList').innerHTML = '<table><tr><th>제목</th><th>종류</th><th>기간</th><th>상태</th><th></th></tr>' +
+    data.map((n) => `<tr>
+      <td>${esc(n.title)}</td>
+      <td>${esc(KIND[n.kind] ?? n.kind)}</td>
+      <td class="muted">${when(n.starts_at)} ~ ${when(n.ends_at)}</td>
+      <td>${n.active ? '<b>노출 중</b>' : '<span class="muted">내림</span>'}</td>
+      <td><button class="ghost" data-nid="${esc(n.id)}" data-non="${n.active ? '0' : '1'}">${n.active ? '내리기' : '올리기'}</button></td>
+    </tr>`).join('') + '</table>';
+  // 올리기/내리기 — ★`active` 만 건드린다(지우지 않는다: 무엇을 언제 알렸는지가 기록이다)
+  $('nList').querySelectorAll('button[data-nid]').forEach((b) => {
+    b.onclick = async () => {
+      b.disabled = true;
+      const { error: e2 } = await sb.from('notices')
+        .update({ active: b.dataset.non === '1', updated_at: new Date().toISOString() })
+        .eq('id', b.dataset.nid);
+      b.disabled = false;
+      if (e2) return say($('nMsg'), `바꾸지 못했습니다 — ${e2.message}`, 'err');
+      loadNotice();
+    };
+  });
+}
+
+$('nSave').onclick = async () => {
+  const title = $('nTitle').value.trim();
+  const body = $('nBody').value.trim();
+  if (!title || !body) return say($('nMsg'), '제목과 내용을 입력하세요', 'err');
+  $('nSave').disabled = true;
+  const iso = (v) => (v ? new Date(v).toISOString() : null);
+  const { error } = await sb.from('notices').insert({
+    title, body, kind: $('nKind').value,
+    starts_at: iso($('nFrom').value), ends_at: iso($('nTo').value),
+  });
+  $('nSave').disabled = false;
+  if (error) return say($('nMsg'), `올리지 못했습니다 — ${error.message}`, 'err');
+  $('nTitle').value = ''; $('nBody').value = ''; $('nFrom').value = ''; $('nTo').value = '';
+  say($('nMsg'), '올렸습니다. 홈 화면에 바로 뜹니다.', 'ok');
+  loadNotice();
 };
 
 async function loadPush() {

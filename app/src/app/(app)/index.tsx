@@ -18,6 +18,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { View, StyleSheet, Animated, AppState, Platform, useWindowDimensions } from 'react-native';
 import { LangChip } from '../../components/LangChip';   // 언어 칩(목록은 _layout 의 LangPickerHost)
+import { NoticeSheet } from '../../components/NoticeSheet'; // 공지 — 홈에서 뜬다(Boss 2026-09-01)
 import { hasSidebar } from '../../lib/ui/wideLayout';   // 면 판단(웹·태블릿·폰) 단일 출처
 import { useSafeAreaInsets } from 'react-native-safe-area-context'; // ★상단 안전영역 — 고정 여백은 글자확대 시 잘린다(daniel 07-27)
 import { useFocusEffect } from 'expo-router';
@@ -182,6 +183,11 @@ export default function Home() {
   return (
     // ★홈도 투명(daniel 2026-07-15 '홈은 테마 적용 안돼') — bgSource 이미지 제거, 전역 ContentBackdrop(오행 배경색)이 비치게.
     <View style={styles.bgImage}>
+      {/* ★★공지 — **홈에 오면 뜬다**(Boss 2026-09-01). 「하루 동안 보지 않기」는 기기에 저장한다.
+          ⚠️전면을 덮지 않는다 — 덮으면 링크로 들어온 사람이 아무것도 못 보고 나간다
+            (`AppInvite` 와 같은 판단). 위에서 내려오는 카드 하나다.
+          ★**가장 먼저** 둔다 — 뒤에 두면 홈 목록에 가린다. */}
+      <NoticeSheet />
       {/* fade-in — DraggableFlatList 가 스크롤 컨테이너라 이 Animated.View 로 감싸 opacity 만 준다(flex:1). */}
       <Animated.View style={{ flex: 1, opacity: fadeAnim }}>
         {/* ★홈 블록 배치 — 순서는 계정별(useHomeOrder · profiles.home_order). 홈에서 길게 눌러 드래그 or 설정에서 변경(daniel).
