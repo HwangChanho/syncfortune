@@ -82,6 +82,17 @@
   <!-- 로그인 -->
   <div class="card" id="loginCard">
     <h2>관리자 로그인</h2>
+    <!-- ★정문 = 구글. 관리자 계정은 구글로 가입돼 있어 **비밀번호 신원이 없다**
+         (auth.identities 에 provider='google' 한 줄뿐). 비밀번호 칸은 어떤 값을 넣어도
+         "Invalid login credentials" 로 떨어진다 — 그래서 구글을 위에 둔다. -->
+    <div class="row" style="margin-top:4px">
+      <button id="doGoogle" style="width:100%">구글로 로그인</button>
+    </div>
+    <div class="muted" style="font-size:13px;margin-top:8px">관리자 계정은 구글로 가입돼 있습니다.</div>
+
+    <!-- 비밀번호는 예비 경로다. 비밀번호 신원을 따로 붙인 계정만 쓸 수 있다. -->
+    <details style="margin-top:14px">
+      <summary class="muted" style="font-size:13px;cursor:pointer">아이디·비밀번호로 로그인</summary>
     <!-- ★비밀번호는 이 파일 어디에도 없다. Supabase 가 검증한다(아래 스크립트 주석 참고). -->
     <form id="pwForm" autocomplete="on">
       <label>아이디</label>
@@ -93,6 +104,7 @@
         <button type="submit" id="doLogin">로그인</button>
       </div>
     </form>
+    </details>
     <div id="loginMsg"></div>
     <!-- 비밀번호를 잊었을 때만 쓰는 예비 경로 — 평소엔 접어 둔다 -->
     <details style="margin-top:14px">
@@ -429,6 +441,28 @@ const num = (n) => (n == null ? '—' : Number(n).toLocaleString('ko-KR'));
 const DEFAULT_MAIL_DOMAIN = '@gmail.com';
 const toEmail = (v) => (v.includes('@') ? v : v + DEFAULT_MAIL_DOMAIN);
 
+/**
+ * 구글 로그인 — 이 콘솔의 정문.
+ * ★`redirectTo` 는 Supabase 인증 설정의 **허용목록(URI allow list)** 과 글자가 맞아야 한다.
+ *   안 맞으면 구글까지 다녀온 뒤 SITE_URL(=`syncfortune://`) 로 튕겨 **앱을 열려고 한다** —
+ *   화면에는 아무 오류도 안 뜬다([[web-login-redirect-allowlist]] 와 같은 함정).
+ *   그래서 쿼리·해시를 떼고 정확히 이 페이지 주소만 넘긴다.
+ */
+$('doGoogle').onclick = async () => {
+  $('doGoogle').disabled = true;
+  say($('loginMsg'), '구글로 이동합니다…', '');
+  const back = location.origin + location.pathname;   // 쿼리·해시 제거
+  const { error } = await sb.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: back },
+  });
+  // ★성공하면 이 줄에 못 온다(페이지가 구글로 넘어간다). 여기 왔다 = 실패다 — 삼키지 않는다.
+  if (error) {
+    $('doGoogle').disabled = false;
+    say($('loginMsg'), `구글 로그인을 시작하지 못했습니다 — ${error.message}`, 'err');
+  }
+};
+
 $('pwForm').onsubmit = async (e) => {
   e.preventDefault();                                  // 폼 기본 제출(=값이 URL 에 실림) 차단
   const id = $('userId').value.trim();
@@ -443,8 +477,10 @@ $('pwForm').onsubmit = async (e) => {
 
   if (error) {
     // 어떤 쪽이 틀렸는지 알려주지 않는다 — 아이디 존재 여부를 흘리지 않기 위해서다.
+    // ★구글로 가입한 계정은 비밀번호 신원이 없어 **무엇을 넣어도** 이 오류가 난다.
+    //   「비밀번호가 틀렸다」 고만 말하면 맞는 비밀번호를 찾아 헤매게 된다 — 위쪽 구글을 가리킨다.
     const msg = /Invalid login credentials/i.test(error.message)
-      ? '아이디 또는 비밀번호가 맞지 않습니다.'
+      ? '아이디 또는 비밀번호가 맞지 않습니다. 구글로 가입한 계정이라면 위의 「구글로 로그인」을 쓰세요.'
       : `로그인하지 못했습니다 — ${error.message}`;
     return say($('loginMsg'), msg, 'err');
   }
