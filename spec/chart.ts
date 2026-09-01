@@ -218,6 +218,14 @@ export interface ChartInput {
   birthPlace: string;                 // 진태양시 보정(도시명)
   birthLon?: number;                  // 출생지 경도(°E) — 진태양시 보정용. 없으면 도시명 lookup/기본값(engine/solartime)
   birthLat?: number;                  // 출생지 위도(°N) — 서양 점성술 상승궁(ASC) 산출용(daniel 2026-06-23). 출생지 피커에서 추출.
+  /**
+   * ★**화면 전용 what-if 렌즈**(Boss 2026-09-01 「충/합 글자 바꿔 보기」) — 원국 여덟 글자를
+   * 각자의 충·합 짝으로 통째로 갈아 끼운 «거울 명식»을 만든다. 표·규칙은 `engine/glyphSwap.ts`.
+   * ⚠️★**이 값은 절대 저장하지 않는다.** 명식의 신원(누구의 사주인가)이 아니라 보는 방식이다.
+   *   저장하면 그 사람의 명식 자체가 바뀐 것으로 남는다 → `check:glyphswap` G7 이 저장 경로를 막는다.
+   * ⚠️`birthLat` 의 남반구 뒤집기와는 **다른 규칙**이다(그쪽은 土 제외). 둘은 순서대로 겹쳐 적용된다.
+   */
+  glyphSwap?: 'chung' | 'hap';
 }
 
 // [ADR-005] 서버 전송 가능 — PII(ChartInput) 없음. 신원 없는 '구조' 데이터만(§6.1).

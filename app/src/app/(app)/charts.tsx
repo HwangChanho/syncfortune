@@ -31,10 +31,21 @@ export default function ChartsScreen() {
    * ★갱신할 때 «대표» 가 아니라 **보던 그것**을 다시 읽으려고 들고 있는다.
    */
   const shownIdRef = useRef<string | null>(null);
+  /**
+   * 같은 id 를 **화면에도** 흘려보낸다 — 유료 언락(「충/합 글자 바꿔 보기」)이 (명식×기능) 단위라
+   * 만세력이 «지금 보는 게 어느 명식인지» 를 알아야 한다.
+   * ★ref 를 그대로 못 쓰는 이유: ref 는 바뀌어도 **다시 그리지 않는다** → 명식을 갈아도 버튼이
+   *   옛 명식을 가리킨 채 남는다(= 남의 명식에 결제를 걸 뻔한 자리). 그래서 state 를 하나 더 둔다.
+   * ★대표 명식을 보고 있을 땐 대표 id 가 들어간다(고른 적이 없으면 그게 «지금 보는 것»이다).
+   */
+  const [shownId, setShownId] = useState<string | null>(null);
+  const setShown = (id: string | null) => { shownIdRef.current = id; setShownId(id); };
 
   useEffect(() => {
     loadMyChart().then((c) => { setMe(c); setLoading(false); });
     refreshRepName();
+    // 고른 적이 없으면 «보는 것» = 대표. 언락 키가 되어야 하므로 id 를 채워 둔다.
+    void getRepresentativeId().then((id) => { if (!shownIdRef.current) setShown(id ?? null); });
   }, []);
 
   /**
@@ -57,7 +68,7 @@ export default function ChartsScreen() {
     void listCharts().then((cs) => {
       const still = cs.find((c) => c.id === id);
       if (still) { setMe(still.input); setRepName(still.label ?? null); return; }
-      shownIdRef.current = null;                       // 보던 명식이 사라졌다 → 대표로
+      setShown(null);                                  // 보던 명식이 사라졌다 → 대표로
       void loadMyChart().then((c) => { if (c) setMe(c); }); refreshRepName();
     });
   }), []);
@@ -87,6 +98,7 @@ export default function ChartsScreen() {
   return (
     <MyeongsikScreen
       input={me}
+      chartId={shownId}
       header={<>
         {/* ★만세력 최상단 '계산됨' 배너 — MyeongsikScreen 스크롤 콘텐츠 맨 위(header 슬롯)에 렌더. 화면당 1개. */}
         {/* ★★**보기 전용** — 여기서 명식을 골라도 **대표는 안 바뀐다**
@@ -97,8 +109,8 @@ export default function ChartsScreen() {
           viewOnly
           onChange={(picked) => {
             // ★고른 명식의 id 를 기억한다 — 나중에 그 명식이 수정되면 **그것을** 다시 읽는다
-            if (picked) { shownIdRef.current = picked.id; setMe(picked.input); setRepName(picked.label ?? null); return; }
-            shownIdRef.current = null;
+            if (picked) { setShown(picked.id); setMe(picked.input); setRepName(picked.label ?? null); return; }
+            setShown(null);
             void loadMyChart().then(setMe); refreshRepName();
           }}
         />

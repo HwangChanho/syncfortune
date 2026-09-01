@@ -12,6 +12,7 @@ import type {
 } from '../spec/chart';
 import { trueSolarOffsetMin, beijingShiftMin } from './solartime'; // beijingShiftMin = 절기용 북경시 변환(감사 C1 · 08-23 해외 대응)
 import { isSouthern, flipGz, flipStem } from './southern'; // 남반구 = 土 뺀 모든 글자를 충으로(Boss 2026-09-01)
+import { swapGz, swapStem } from './glyphSwap';      // 화면 전용 「충/합 글자 바꿔 보기」 렌즈(Boss 2026-09-01)
 // ⚠️structure.ts ↔ saju.ts 는 **순환 참조**다(structure 가 STEM_YANG 을 쓴다). ESM 에서 이게 안전한 이유:
 //   structure.ts 는 STEM_YANG 을 **함수 본문 안에서만** 쓰고 모듈 최상위에서 접근하지 않는다 →
 //   평가 시점엔 아무도 안 건드리고, 실제 호출 시점엔 양쪽 다 초기화가 끝나 있다(live binding).
@@ -251,10 +252,15 @@ export function buildSajuChart(input: ChartInput, nowYear = new Date().getFullYe
    * ■ ★위도를 모르면 **안 뒤집는다**(대부분 북반구다 — 모른 채 뒤집는 쪽이 더 나쁘다).
    */
   const south = isSouthern(input.birthLat);
-  const gz = (v: string) => (south ? flipGz(v) : v);
+  // ★★치환은 **두 겹**이고 순서가 있다: ① 남반구(土 뺀 충) → ② 화면 렌즈(충/합 전체).
+  //   왜 겹치나 — 남반구 사람의 명식은 «뒤집힌 것이 그 사람의 원국»이다. 렌즈는 그 원국 위에서 본다.
+  //   ⚠️`swap` 은 **저장되지 않는 화면 값**이다(spec/chart.ts 주석 참조). 기본은 undefined = 무동작.
+  const swap = input.glyphSwap;
+  const gz = (v: string) => swapGz(south ? flipGz(v) : v, swap);
 
   // 일간 = 십신·시주천간·신살의 기준축 → 자시일수설을 적용한 일주에서 뽑는다.
-  const dayStem = (south ? flipStem(dayEc.getDayGan()) : dayEc.getDayGan()) as Stem;
+  // ⚠️★일간도 **같은 두 겹**을 그대로 받아야 한다 — 안 그러면 «乙일주인데 십신은 辛 기준»이 된다.
+  const dayStem = swapStem(south ? flipStem(dayEc.getDayGan()) : dayEc.getDayGan(), swap) as Stem;
 
   // ★절기 판정용 팔자 = **북경시(UTC+8)** 기준 (2026-07-26 감사 C1 수정).
   //   왜 따로 계산하나: lunar-javascript 의 절입 시각은 **북경시 기준**이다(lunar.js 절기 계산에

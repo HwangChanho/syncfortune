@@ -614,6 +614,14 @@ export const en = {
   typematch: { tagStemHap: 'Stem harmony', tagSaeng: 'Elements feed each other', tagBrHap: 'Branch harmony', tagSamhap: 'Three-branch harmony', tagChung: 'Day-branch clash', title: 'Type vs Type', lead: 'They only need to tell you their two day-pillar characters. No birth date required.', me: 'You', pick: 'Pick their day pillar', none: 'No combination or clash lands between these two characters. That is not good or bad — this axis simply shows neither strong pull nor friction.', limit: 'This looks at two characters only. With the birth time and month it gets far more precise.', goCompat: 'See the full compatibility', noChart: 'Register your chart first.' },
   // 만세력 화면 — ★명리 **용어는 한자 그대로**, 설명만 그 언어로(Boss 2026-08-27)
   ms: {
+    // Glyph-swap lens — a what-if chart with all eight glyphs replaced by their clash/union counterparts
+    swapOff: 'Original',
+    swapView: 'view',
+    swapBuyTitle: 'Swap the glyphs',
+    swapBuyMsg: 'See this chart with all eight glyphs replaced by their clash or union counterparts. Unlock it once for {{coins}} coins and it stays open for this chart.',
+    swapBuyOk: 'Unlock for {{coins}} coins',
+    swapNoteChung: 'This is a what-if view: every glyph has been replaced by its clash (沖) counterpart. It is not your actual chart — the ten gods and hidden stems follow the swapped glyphs.',
+    swapNoteHap: 'This is a what-if view: every glyph has been replaced by its union (合) counterpart. It is not your actual chart — the ten gods and hidden stems follow the swapped glyphs.',
     lunar: 'Lunar',
     timeUnknown: 'Time unknown',
     approx: 'estimated',

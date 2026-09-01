@@ -155,7 +155,21 @@ console.log('\n[H3] Alert 로 만든 Promise 는 모든 버튼이 resolve 한다
       }
       const blk = src.slice(open, i + 1);
       if (!/Alert\.alert/.test(blk)) continue;
-      const buttons = [...blk.matchAll(/\{\s*text:[\s\S]{0,220}?\}/g)].map((b) => b[0]);
+      // ★★버튼 객체도 **괄호 균형**으로 자른다(2026-09-01).
+      //   종전엔 `\{\s*text:[\s\S]{0,220}?\}` — **비탐욕**이라 첫 `}` 에서 끊겼다. 그래서
+      //   `{ text: t('k', { coins: n }), onPress: () => resolve(true) }` 처럼 **문구에 값을 끼우는**
+      //   버튼은 안쪽 `}` 에서 잘려 `onPress` 를 **아예 못 봤다** → 진짜 누수도 통과시킨다.
+      //   (실제로 이 규칙이 멀쩡한 버튼을 «resolve 없음» 으로 잡아 들통났다.)
+      const buttons: string[] = [];
+      for (const bm of blk.matchAll(/\{\s*text:/g)) {
+        const st = bm.index!;
+        let d = 0, j = st;
+        for (; j < blk.length && j - st < 1200; j++) {
+          if (blk[j] === '{') d++;
+          else if (blk[j] === '}') { d--; if (!d) break; }
+        }
+        buttons.push(blk.slice(st, j + 1));
+      }
       const noResolve = buttons.filter((b) => !new RegExp(`${resolver}\\(`).test(b) && !/goCharge|router\./.test(b));
       const line = src.slice(0, m.index).split('\n').length;
       if (noResolve.length) leak.push(`${rel(f)}:${line} — resolve 없는 버튼 ${noResolve.length}개`);

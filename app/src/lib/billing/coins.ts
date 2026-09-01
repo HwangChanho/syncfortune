@@ -66,6 +66,29 @@ export async function spendCoinsFixed(kind: string): Promise<{ ok: boolean; reas
                : { ok: false, reason: String(r?.error ?? 'error'), balance: r?.balance, cost: r?.cost };
 }
 
+/**
+ * 화면 기능을 (명식 × 기능) 단위로 **영구** 언락한다 — 운 차감과 언락 기록이 **한 트랜잭션**.
+ *
+ * ★왜 spendCoinsFixed 를 안 쓰나: 그건 차감만 하고 «열렸다»는 기록을 안 남긴다.
+ *   차감과 기록이 갈라지면 «돈은 나갔는데 잠김» = 두 번 결제가 된다(그게 07-28 사고였다).
+ *   서버 `unlock_chart_feature` 는 둘을 같이 하고, **이미 열린 건 cost 0 으로 돌려준다**(멱등).
+ *
+ * @param kind    기능 키 — 서버 허용목록에 있는 것만(현재 'chunghap'). 없는 키는 `reason:'kind'`.
+ * @param chartId 내 명식 id. 남의 것이면 서버가 `reason:'chart'` 로 거절한다(차감 없음).
+ * @returns ok + 실제 차감액(cost) + 남은 잔액. `already:true` = 이미 열려 있어 **한 푼도 안 나갔다**.
+ *          실패 사유: 'auth'(미로그인) · 'kind' · 'chart' · 'insufficient'(잔액부족) · 'error'(통신)
+ * ⚠️금액은 **클라가 보내지 않는다** — 서버가 정한다(FEATURE_UNLOCKS 의 값은 표기용).
+ */
+export async function unlockChartFeature(kind: string, chartId: string): Promise<{
+  ok: boolean; reason?: string; balance?: number; cost?: number; already?: boolean;
+}> {
+  const { data, error } = await supabase.rpc('unlock_chart_feature', { p_kind: kind, p_chart_id: chartId });
+  if (error) return { ok: false, reason: 'error' };
+  const r = data as any;
+  return r?.ok ? { ok: true, cost: r.cost, balance: r.balance, already: !!r.already }
+               : { ok: false, reason: String(r?.error ?? 'error'), balance: r?.balance, cost: r?.cost };
+}
+
 /** 하네스·화면용 — 유료 kind 전체(가격표 대조 기준). */
 export function allPaidKinds(): CreditKind[] {
   return CREDIT_KINDS.map((c) => c.key);

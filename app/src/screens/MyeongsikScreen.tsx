@@ -10,11 +10,17 @@
 import { useMemo, useState, useEffect, useRef, type ReactNode } from 'react';
 import { interactionColor, INTERACTION_ORDER } from '../lib/content/interactionColor';
 import { View, Text, ScrollView, StyleSheet, Pressable, Modal, Animated, LayoutAnimation, Platform, UIManager, useWindowDimensions } from 'react-native';
+import { router } from 'expo-router';                    // 잔액 부족 시 충전 화면으로
+import { Alert } from '../lib/ui/alert';                  // ★RN Alert 아님 — 웹에서도 뜨고, 연타로 겹치지 않게 큐를 탄다
 import { PressableScale } from '../components/PressableScale';
 import { RelatedContent } from '../components/RelatedContent';
 import { useTranslation } from 'react-i18next';
 import * as Haptics from 'expo-haptics';
 import { computeChart } from '../lib/engine/engine';
+import type { GlyphSwapMode } from '@engine/glyphSwap';                  // 「충/합 글자 바꿔 보기」 렌즈(Boss 2026-09-01)
+import { isUnlocked, markUnlocked } from '../lib/billing/unlocks';        // (명식×기능) 영구 언락 — 로컬+서버 권위
+import { unlockChartFeature } from '../lib/billing/coins';               // 운 차감 + 언락 기록을 한 트랜잭션으로
+import { FEATURE_UNLOCKS } from '../lib/billing/coinPrices';             // 표기용 가격(실제 차감액은 서버가 정한다)
 import { IljuTabCard } from '../components/IljuTabCard';   // 일주론 탭(Boss 2026-08-25)
 import { GaeunCard } from '../components/GaeunCard';     // 개운 방향(Boss 2026-08-24) — 용신 카드 바로 아래
 import { YongsinCard } from '../components/YongsinCard'; // 만세력 용신(canonical 엔진·억부/병약/조후+희신/기신·Boss 07-22)
@@ -111,6 +117,11 @@ type MyeongsikProps = {
    */
   friendSaju?: unknown;
   input: ChartInput | null;
+  /**
+   * 지금 보고 있는 명식의 서버 id — **유료 언락(충/합 렌즈)에만** 쓴다.
+   * ⚠️없으면(미저장·친구 명식) 렌즈 버튼을 **아예 안 그린다** — 살 수 없는 것을 보여 주지 않는다.
+   */
+  chartId?: string | null;
   onReading?: () => void; onSinsal?: () => void; header?: ReactNode; whoName?: string | null };
 
 /**
@@ -137,7 +148,7 @@ export function MyeongsikScreen(props: MyeongsikProps) {
   return <MyeongsikBody {...props} input={props.input} />;
 }
 
-function MyeongsikBody({ input, friendSaju, onReading, onSinsal, header, whoName }: MyeongsikProps & { input: ChartInput }) {
+function MyeongsikBody({ input, friendSaju, onReading, onSinsal, header, whoName, chartId }: MyeongsikProps & { input: ChartInput }) {
   const { t, i18n } = useTranslation();
   /**
    * 명리 **용어**의 표시 글자 — 한국어면 그대로, 그 밖의 언어면 한자.
@@ -218,10 +229,86 @@ function MyeongsikBody({ input, friendSaju, onReading, onSinsal, header, whoName
    *   ⚠️그걸로 `computeChart` 를 돌리면 **엉뚱한 명식**이 나온다.
    *   ⇒ 서버가 이미 계산해 둔 것을 그대로 쓴다.
    */
+  /**
+   * ★★「충/합 글자 바꿔 보기」 (Boss 2026-09-01) — 원국 여덟 글자를 각자의 짝으로 갈아 끼운
+   *   «거울 명식». `null` = 원국 그대로.
+   * ■ ★왜 여기 한 곳에서 거나 — `computeChart` 입력에 태우면 **십신·지장간·통근·12운성·신살·
+   *   오행분포·용신이 전부 저절로 따라온다**(Boss: "거기에 맞게 내용 십신등 변경해줘").
+   *   화면 아래쪽에서 글자만 바꿔 그리면 속이 안 맞는 명식이 된다.
+   * ■ ⚠️친구에게서 담아 온 명식은 **못 건다** — 생년월일이 없어 다시 계산할 수 없다(위 주석).
+   * ■ ⚠️대운·세운의 **간지는 안 바뀐다**(실측 확인). 십신만 새 일간을 따라간다 — 렌즈니까 맞다.
+   */
+  const [swapMode, setSwapMode] = useState<GlyphSwapMode | null>(null);
+  const [swapPaid, setSwapPaid] = useState<boolean | null>(null);   // null = 아직 확인 중
+  const [swapBusy, setSwapBusy] = useState(false);                  // 차감 왕복 중 — 두 번 눌림 방지
   const c = useMemo(
-    () => (friendSaju ? { saju: friendSaju } as ReturnType<typeof computeChart> : computeChart(input)),
-    [input, friendSaju],
+    () => (friendSaju
+      ? { saju: friendSaju } as ReturnType<typeof computeChart>
+      : computeChart(swapMode ? { ...input, glyphSwap: swapMode } : input)),
+    [input, friendSaju, swapMode],
   );
+
+  /** 렌즈 값(표기용). 서버가 최종 금액을 정하므로 여기 숫자는 **보여 주기만** 한다. */
+  const SWAP_FEE = FEATURE_UNLOCKS.find((f) => f.kind === 'chunghap')!;
+  /**
+   * 렌즈를 팔 수 있는 자리인가 — **내 저장된 명식**일 때만.
+   * ⚠️친구 명식·미저장 명식은 다시 계산을 못 하거나 차트 id 가 없어 언락 자체가 불가능하다.
+   *   그런 자리에 «100 운» 버튼을 띄우면 눌러도 안 되는 버튼이 된다.
+   */
+  const swapSellable = !friendSaju && !!chartId;
+
+  // 이미 산 명식인지 확인 — 화면에 들어올 때 한 번. ⚠️확인 실패는 `false`(잠김)로 두지 않고
+  //   `isUnlocked` 가 서버까지 본 결과를 그대로 쓴다(로컬 없으면 서버 권위).
+  useEffect(() => {
+    if (!swapSellable || !chartId) { setSwapPaid(false); return; }
+    let alive = true;
+    void isUnlocked(chartId, 'chunghap').then((v) => { if (alive) setSwapPaid(v); });
+    return () => { alive = false; };
+  }, [swapSellable, chartId]);
+
+  /**
+   * 렌즈 켜기 — 안 샀으면 먼저 묻고 차감한다.
+   * @param next 켤 모드(`'chung'`·`'hap'`) 또는 `null`(원국으로 되돌리기)
+   * ★되돌리기(`null`)는 **언제나 공짜**다 — 잠긴 상태에서도 원국은 볼 수 있어야 한다.
+   * ⚠️차감은 서버 `unlock_chart_feature` 한 번. 이미 열렸으면 서버가 `cost 0` 으로 돌려준다(멱등).
+   * ⚠️`swapBusy` 로 왕복 중 재입력을 막는다 — 두 번 눌러도 원장엔 한 줄뿐이지만, 화면이 두 번
+   *   묻는 것 자체가 «또 결제하나» 로 읽힌다(07-28 사고의 체감 증상).
+   */
+  const pickSwap = async (next: GlyphSwapMode | null) => {
+    if (next === null || swapPaid) { setSwapMode(next); return; }
+    if (swapBusy || !chartId) return;
+    const ok = await new Promise<boolean>((resolve) => {
+      Alert.alert(
+        t('ms.swapBuyTitle', '글자 바꿔 보기'),
+        t('ms.swapBuyMsg', { coins: SWAP_FEE.coins, defaultValue: '이 명식의 여덟 글자를 충·합 짝으로 바꿔 보는 기능이에요. {{coins}} 운으로 이 명식에 한 번만 열면 계속 볼 수 있어요.' }),
+        [{ text: t('common.cancel'), style: 'cancel', onPress: () => resolve(false) },
+         { text: t('ms.swapBuyOk', { coins: SWAP_FEE.coins, defaultValue: '{{coins}} 운으로 열기' }), onPress: () => resolve(true) }],
+        () => resolve(false),   // 뒤로가기로 닫아도 대기 Promise 가 남지 않는다
+      );
+    });
+    if (!ok) return;
+    setSwapBusy(true);
+    try {
+      const r = await unlockChartFeature('chunghap', chartId);
+      if (!r.ok) {
+        if (r.reason === 'insufficient') {
+          Alert.alert(
+            t('coins.needTitle', '운이 조금 모자라요'),
+            t('coins.needMsg', { need: r.cost ?? SWAP_FEE.coins, have: r.balance ?? 0, defaultValue: '이 풀이는 {{need}} 운이 필요해요. 지금 {{have}} 운 있어요.' }),
+            [{ text: t('common.cancel'), style: 'cancel' },
+             { text: t('coins.charge', '운 충전하기'), onPress: () => router.push('/coins') }],
+            () => {},
+          );
+        } else {
+          Alert.alert(t('common.error'), t('common.retryLater', '잠시 후 다시 시도해 주세요.'));
+        }
+        return;
+      }
+      await markUnlocked(chartId, 'chunghap');   // 로컬 도장 — 다음엔 서버 왕복 없이 열린다
+      setSwapPaid(true);
+      setSwapMode(next);
+    } finally { setSwapBusy(false); }
+  };
   const { fs, ls } = useFontScale();
   // ★지장간 동그라미는 **글자 크기에서 파생**시킨다(daniel 2026-07-29 IMG_8302 "아직도 깨지잖아").
   //   원인: 원이 `width/height: 15` **고정**인데 글자는 전역 배율로 커진다(fs 는 2026-07-29 부터 항등).
@@ -608,6 +695,40 @@ function MyeongsikBody({ input, friendSaju, onReading, onSinsal, header, whoName
               </PressableScale>
             </View>
           </View>
+
+          {/* ★★「글자 바꿔 보기」 — 충 / 합 (Boss 2026-09-01)
+              *"원국에서 충하는 글자보기 하면 전체 글자별 충하는 글자로 바꾸고 거기에 맞게 내용 십신등 변경해줘
+                합하는글자 보기도 두개를 하나로 묶어서 버튼으로 만들고 각각설정해서 볼수있게"*
+              ■ 하나의 띠에 세 칸 — 원국 / 충 / 합. «각각 설정해서 볼 수 있게» = 눌러서 갈아 끼운다.
+              ■ 명식 **바로 위**에 둔다 — 무엇이 바뀌는지 눈이 같이 봐야 한다(밑에 두면 스크롤로 갈린다).
+              ■ ⚠️친구 명식·미저장 명식엔 **안 그린다**(`swapSellable`) — 눌러도 안 되는 버튼을 만들지 않는다. */}
+          {swapSellable && (
+            <View style={styles.layerToggle}>
+              {([[null, t('ms.swapOff', '원국')], ['chung', `${T('충')} ${t('ms.swapView', '보기')}`], ['hap', `${T('합')} ${t('ms.swapView', '보기')}`]] as const).map(([k, label]) => (
+                <PressableScale
+                  key={String(k)}
+                  style={[styles.layerChip, swapMode === k && styles.layerChipOn]}
+                  disabled={swapBusy}
+                  onPress={() => { void pickSwap(k); }}
+                >
+                  <Text style={[styles.layerChipTx, swapMode === k && styles.layerChipTxOn]}>
+                    {swapMode === k ? '✓ ' : ''}{label}
+                    {/* 아직 안 산 사람에게만 자물쇠 + 값. 산 뒤에는 사라진다(산 것에 값을 계속 붙이지 않는다). */}
+                    {k !== null && swapPaid === false ? ` 🔒${SWAP_FEE.coins}` : ''}
+                  </Text>
+                </PressableScale>
+              ))}
+            </View>
+          )}
+          {/* ★★렌즈가 켜져 있으면 **반드시 밝힌다** — 안 밝히면 «내 사주가 이거였나» 로 읽힌다.
+              가정(what-if)이지 이 사람의 명식이 아니다. 저장에도 안 들어간다(spec/chart.ts 주석). */}
+          {swapMode && (
+            <Text style={styles.swapNote}>
+              {swapMode === 'chung'
+                ? t('ms.swapNoteChung', '지금은 여덟 글자를 각자의 충(沖) 짝으로 바꿔 본 가정이에요. 실제 명식이 아니고, 십신·지장간도 바뀐 글자를 따라간 값이에요.')
+                : t('ms.swapNoteHap', '지금은 여덟 글자를 각자의 합(合) 짝으로 바꿔 본 가정이에요. 실제 명식이 아니고, 십신·지장간도 바뀐 글자를 따라간 값이에요.')}
+            </Text>
+          )}
 
           {renderArcs(activeGanP, 'above')}
           {renderPillars()}
@@ -1574,6 +1695,8 @@ const makeStyles = (fs: (n: number) => number) => { const f = scaledFont(fs); re
   // 제목 아래 메타 — 작고 흐리게(제목을 밀어내지 않는다)
   hMeta: { ...f.caption, color: colors.inkFaint, marginBottom: space(2) },
   hint: { ...f.caption, marginBottom: space(2) },
+  // ★렌즈 켠 상태 고지 — 눈에 띄되 명식을 가리지 않게. `lineHeight` 는 `fontSize` 와 짝(전역 규칙).
+  swapNote: { ...f.caption, color: colors.ju, marginBottom: space(2), lineHeight: fs(17) },
   ssRow: { flexDirection: 'row', alignItems: 'center', gap: space(2), paddingVertical: space(1.5), borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.line },
   ssName: { ...f.body, width: 76, color: colors.ink },
   ssBranches: { flexDirection: 'row', gap: space(1) },

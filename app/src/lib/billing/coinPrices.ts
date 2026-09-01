@@ -53,6 +53,23 @@ export const AD_FREE_PLANS: { id: 'adfree_30' | 'adfree_forever'; coins: number;
   { id: 'adfree_forever', coins: 100, days: null },   // null = 영구
 ];
 
+// ★화면 기능 언락(daniel 2026-09-01 「충/합 글자 바꿔 보기」)
+// ─────────────────────────────────────────────────────────────────────────
+// ⚠️★이건 `CREDIT_KINDS`(콘텐츠)가 **아니다** — 광고 제거와 같은 부류다:
+//   IAP 상품도, 마켓 카드도, 쿠폰도 없다. **운으로만** 연다(Boss: "9900원에 해당하는 운 사용해야 언락").
+//   그래서 CreditKind 유니온에 넣지 않는다(넣으면 상품 라우트·상품 id 를 만들어야 하고, 그런 건 없다).
+// ⚠️여기 값은 **표기용**이다. 실제 차감액은 서버 RPC(unlock_chart_feature)가 정한다
+//   — 클라가 금액을 넘기면 "1운 내고 해제"가 되므로. 둘의 일치는 check:coins K7 이 강제한다.
+// ★단위: ₩9,900 ÷ WON_PER_COIN(100) = 100 운.
+export const FEATURE_UNLOCKS: { kind: 'chunghap'; coins: number; ko: string; won: number }[] = [
+  { kind: 'chunghap', coins: 100, ko: '충·합 글자 바꿔 보기', won: 9900 },
+];
+
+/** 화면 기능의 운 가격 — 없으면 null(= 파는 기능이 아니다). */
+export function featureCoins(kind: string): number | null {
+  return FEATURE_UNLOCKS.find((f) => f.kind === kind)?.coins ?? null;
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // ★결제 채널 (daniel 2026-08-17 결정: **앱·웹 동일 가격**)
 // ═══════════════════════════════════════════════════════════════════════════
