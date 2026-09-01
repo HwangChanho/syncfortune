@@ -30,6 +30,33 @@ const browser = await chromium.launch();
 const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 }, locale: 'ko-KR' });
 const page = await ctx.newPage();
 
+/**
+ * ★★**명식을 하나 심고 돈다** (2026-09-02).
+ *
+ * ■ 왜 — 2026-09-02 에 만세력이 **통째로 안 열리는** 버그(`johu2` 에 전체 차트를 넘김)가
+ *   **이 스윕을 그대로 통과**했다. 스윕이 «명식 없는 사람» 으로만 돌아서, `/charts` 가
+ *   「내 명식을 먼저 등록해 주세요」 빈 상태만 보고 **크래시 나는 코드에 닿지도 않았다.**
+ *   ⇒ 그 사이 vc156·157 **두 빌드가 그대로 출시됐다.**
+ * ■ ⇒ 로그인 없이도 되는 **로컬 명식**(`my_charts_v2`)을 심어, 데이터가 있어야 도는
+ *   화면(만세력·오행·용신·신살…)을 실제로 그리게 한다.
+ * ■ ⚠️서버 자료는 안 건드린다 — 브라우저 localStorage 뿐이고 컨텍스트는 매번 새로 만든다.
+ * ■ ⚠️생년월일은 **골든 픽스처와 같은 값**을 쓴다(엔진 검증에서 쓰는 그 명식).
+ */
+const SEED = [{
+  id: 'sweep-seed', label: '스윕', relation: 'self',
+  input: {
+    birthDateTime: '1994-03-16 17:55', calendar: '양', timeAccuracy: '정확',
+    sex: '남', birthPlace: '전라남도 여수',
+  },
+}];
+await page.goto(BASE, { waitUntil: 'domcontentloaded', timeout: 25000 }).catch(() => {});
+await page.evaluate(([charts, id]) => {
+  try {
+    localStorage.setItem('my_charts_v2', JSON.stringify(charts));
+    localStorage.setItem('my_rep_v2', id);
+  } catch { /* 저장 못 하면 종전처럼 빈 상태로 돈다 */ }
+}, [SEED, 'sweep-seed']);
+
 const bad = [];
 for (const r of ROUTES) {
   const errs = [];
