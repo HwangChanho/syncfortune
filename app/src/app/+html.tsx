@@ -36,7 +36,7 @@ export default function Root({ children }: PropsWithChildren) {
         <title>{TITLE}</title>
         <meta name="description" content={DESC} />
         {/* ★브라우저 탭·주소창 색 — 링크 카드가 아니라 **앱처럼** 보이게 */}
-        <meta name="theme-color" content="#39609D" />
+        <meta name="theme-color" content="#1B5FE0" />
 
         {/* ── Open Graph (카카오톡·슬랙·페이스북) ── */}
         <meta property="og:type" content="website" />
