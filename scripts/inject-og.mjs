@@ -34,7 +34,7 @@ if (html.includes('og:image')) {
 
 const meta = `
     <meta name="description" content="${DESC}" />
-    <meta name="theme-color" content="#39609D" />
+    <meta name="theme-color" content="#1B5FE0" />   <!-- ★브랜드색 단일 출처: app.json · +html.tsx · 여기 셋이 같아야 한다(check:appicon B1) -->
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="니운내운" />
     <meta property="og:title" content="${TITLE}" />

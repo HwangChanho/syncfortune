@@ -65,6 +65,31 @@ print('#%02X%02X%02X' % c.most_common(1)[0][0] if c else '')`;
 }
 
 function run() {
+  // ── B1 ★브랜드색이 **세 곳에서 같은가** (2026-09-02) ────────────────────
+  //   앱 아이콘 색을 09-01 에 바꾸면서 `app.json` 과 `+html.tsx` 는 고쳤는데
+  //   `scripts/inject-og.mjs` 를 **놓쳤다**. 그런데 그놈이 export **뒤에** 돌아
+  //   `theme-color` 를 옛 파랑으로 **덮어썼다** — 웹은 계속 옛 색이었고,
+  //   화면은 멀쩡해 보여서 배포 산출물을 재기 전까진 안 보였다.
+  //   ⇒ 세 곳을 서로 견준다. «한쪽만 고쳐지는» 것을 여기서 막는다.
+  {
+    const srcs: { f: string; key: string }[] = [
+      { f: 'app/app.json', key: 'color' },
+      { f: 'app/src/app/+html.tsx', key: 'theme-color' },
+      { f: 'scripts/inject-og.mjs', key: 'theme-color' },
+    ];
+    const got = srcs.map(({ f, key }) => {
+      const abs = join(ROOT, f);
+      if (!existsSync(abs)) return { f, hex: null as string | null };
+      return { f, hex: pickHex(readFileSync(abs, 'utf8'), key) };
+    }).filter((x) => x.hex);
+    for (let i = 1; i < got.length; i++) {
+      if (!sameColor(got[0].hex!, got[i].hex!)) {
+        fail('B1', `브랜드색이 갈렸다 — ${got[0].f} ${got[0].hex} · ${got[i].f} ${got[i].hex}.\n        `
+          + '⚠️`inject-og.mjs` 는 export **뒤에** 돌아 «나중에 덮는» 쪽이다 — 여기가 옛 색이면 웹은 옛 색이다');
+      }
+    }
+  }
+
   const EXPO = 'app/assets/icon.png';
   const IOS = 'app/ios/SyncFortune/Images.xcassets/AppIcon.appiconset/App-Icon-1024x1024@1x.png';
   const expo = existsSync(join(ROOT, EXPO)) ? dominant(join(ROOT, EXPO)) : null;
@@ -124,6 +149,8 @@ if (process.argv.includes('--selftest')) {
     { name: 'K ★미세한 압축 오차는 봐준다', run: () => sameColor('#1B5FE0', '#1C60DF') === true },
     { name: 'K ★대소문자를 가리지 않는다', run: () => sameColor('#1b5fe0', '#1B5FE0') === true },
     { name: 'K3 근처 색을 뽑는다', run: () => pickHex('<meta name="theme-color" content="#1B5FE0" />', 'theme-color') === '#1B5FE0' },
+    { name: 'B1 세 곳이 같으면 통과', run: () => sameColor('#1B5FE0', '#1B5FE0') === true },
+    { name: 'B1 ★한 곳만 옛 색이면 문다', run: () => sameColor('#1B5FE0', '#39609D') === false },
     { name: 'K3 ★없으면 null', run: () => pickHex('<meta name="viewport" />', 'theme-color') === null },
     { name: 'K3 ★엉뚱한 앞쪽 색에 안 속는다', run: () => pickHex('#FFFFFF ... theme-color" content="#1B5FE0"', 'theme-color') === '#1B5FE0' },
   ];
