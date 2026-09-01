@@ -16,8 +16,9 @@
 //
 // 로그인 게이트 없음(ADR-037).
 // ─────────────────────────────────────────────────────────────────────────
-import { View, StyleSheet, Animated, AppState, Platform } from 'react-native';
+import { View, StyleSheet, Animated, AppState, Platform, useWindowDimensions } from 'react-native';
 import { LangChip } from '../../components/LangChip';   // 언어 칩(목록은 _layout 의 LangPickerHost)
+import { hasSidebar } from '../../lib/ui/wideLayout';   // 면 판단(웹·태블릿·폰) 단일 출처
 import { useSafeAreaInsets } from 'react-native-safe-area-context'; // ★상단 안전영역 — 고정 여백은 글자확대 시 잘린다(daniel 07-27)
 import { useFocusEffect } from 'expo-router';
 import { useAuth } from '../../lib/useAuth';
@@ -39,6 +40,10 @@ import { useWebCols } from '../../components/WebShell';
 
 
 export default function Home() {
+  // ★면 판단 — 사이드바가 서면 언어 칩은 **그쪽이 갖는다**(여기 두면 둘이 된다).
+  //   ⚠️`Platform.OS` 로 가르지 않는다: 아이패드는 «웹이 아니면서» 사이드바가 선다(2026-09-01 실측).
+  const { width: winW } = useWindowDimensions();
+  const sidebarShown = hasSidebar(winW, Platform.OS);
   const twoCol = useWebCols() > 1;   // 넓은 웹에서만 2열(드래그는 폰 제스처라 그쪽에만 둔다)
   const wideWebHome = twoCol;        // 사이드바가 있는 화면 = 헤더에서 워드마크 중복 제거
   // ★고정 상단여백(space(12) 등)은 **글자 크기를 키우면 헤더가 상태바 위로 잘린다**(daniel 07-27 IMG_8215).
@@ -149,9 +154,13 @@ export default function Home() {
               *"앱기준 언어변경은 상단 니운내운 로고라인 오른쪽에 두고 웹은 제일 왼쪽 메뉴바 하단에 둬"*).
             ■ 왜 갈랐나 — 두 면의 «제자리» 가 다르다. 앱은 로고 줄이 유일한 상단 크롬이고,
               웹은 왼쪽 메뉴바가 계속 떠 있어 설정류가 모이는 자리다.
-            ⚠️웹에서 여기 두면 왼쪽 메뉴바의 것과 **둘이 된다** — 그래서 플랫폼으로 가른다.
+            ⚠️여기 두면 **사이드바의 것과 둘이 된다.**
+            ★★2026-09-01 Boss *"패드는 지금 언어설정이 두군대나 있는데"* — 실제로 그랬다.
+              종전 조건은 `Platform.OS !== 'web'` 이었다. 「웹이 아니면 사이드바가 없다」 는 전제였는데
+              **아이패드는 웹이 아니면서 사이드바가 선다.** ⇒ 전제가 깨져 칩이 둘이 됐다.
+              ⇒ «웹이냐» 가 아니라 **«사이드바가 있느냐»** 로 가른다(`hasSidebar` — 판단은 한 곳).
             ⚠️알림 벨은 대화목록 아이콘 줄에 있다(여기 되돌리면 벨이 둘이 된다). */}
-        {Platform.OS !== 'web' ? <LangChip /> : null}
+        {!sidebarShown ? <LangChip /> : null}
       </View>
 
       {/* ★★진행 알림은 **여기 없다**(Boss 2026-08-31 *"또 이렇게나와 채팅창에서 나와야지"*).

@@ -57,6 +57,31 @@ export const BODY_CAP_FROM = 700;
  */
 export const PHONE_COLUMN = 560;
 
+/**
+ * **어느 면에서 도는가** — 웹 · 태블릿 · 폰 셋으로 가른다.
+ *
+ * ■ ★★왜 셋인가 (Boss 2026-09-01 *"코드에서 웹 패드 모바일 다 다르게 분기처리해둬야할꺼 같은데"*)
+ *   종전엔 판단이 둘뿐이었다 — `Platform.OS === 'web'`(웹이냐) 와 `isWideWidth`(넓으냐).
+ *   그래서 **아이패드가 어느 쪽에도 딱 안 맞았다**: 넓어서 사이드바는 서는데,
+ *   «웹이 아니다» 라는 이유로 폰용 요소까지 같이 그려졌다.
+ *   ⚠️실측(2026-09-01 iPad Pro 12.9"): **언어 칩이 두 개** 떴다 —
+ *     사이드바 것 하나 + 홈 헤더 것 하나(`Platform.OS !== 'web'` 이 참이라).
+ *   ⇒ «웹이냐» 로 면을 정하지 마라. 면은 여기서 한 번 정한다.
+ *
+ * @param width    창 너비
+ * @param platform `Platform.OS`
+ */
+export type Surface = 'web' | 'tablet' | 'phone';
+export function surfaceOf(width: number, platform: string): Surface {
+  if (platform === 'web') return 'web';
+  return width >= TABLET_WIDE ? 'tablet' : 'phone';
+}
+
+/** 사이드바가 서는 면인가 — 웹과 태블릿. ★`isWideWidth` 와 같은 답이어야 한다. */
+export function hasSidebar(width: number, platform: string): boolean {
+  return surfaceOf(width, platform) !== 'phone';
+}
+
 export function isWideWidth(width: number, platform: string): boolean {
   return width >= (platform === 'web' ? WEB_WIDE : TABLET_WIDE);
 }

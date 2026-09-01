@@ -21,6 +21,7 @@ import { useEffect, useState, useCallback, useMemo, useRef, type ReactNode } fro
 import { View, Text, StyleSheet, TextInput, Keyboard, Platform, Pressable, useWindowDimensions } from 'react-native';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import { talkLang } from '../../lib/i18n';   // ★대화가 나갈 언어 — UI 언어(3개) 아닌 풀이 언어(9개)
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PressableScale } from '../../components/PressableScale';
 import { TalkList } from '../../components/talk/TalkList';
@@ -935,7 +936,10 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
   const fire = useCallback((q: string, attempt: number, gen: number) => {
     if (!cur) return;
     // ★판정은 **보낼 때 만든다** — 명식이 바뀌면 다음 턴부터 바로 반영된다
-    void askLive(cur.id, q, curSidRef.current, chartId, i18n.language, attempt,
+    // ★★언어는 **`talkLang()`** 이다 — `i18n.language`(UI 언어)가 아니다.
+    //   UI 는 ko·en·ja 셋뿐인데 회원이 고르는 풀이 언어는 아홉이다(2026-09-01 Boss 제보:
+    //   *"실제 채팅도 해당 언어로 안나와"*). UI 언어를 보내면 «베트남어» 가 서버에 영영 안 닿는다.
+    void askLive(cur.id, q, curSidRef.current, chartId, talkLang(), attempt,
                  saju ? buildChartVerdict(saju) : null,
                  // ★@이름으로 부른 사람들 — **이 턴에만** 실린다(캐시 접두사를 건드리지 않는다)
                  buildMentions(q),

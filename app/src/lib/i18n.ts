@@ -182,6 +182,24 @@ export const READING_LANG_LABEL: Record<ReadingLang, string> = {
   th: 'ไทย', vi: 'Tiếng Việt', id: 'Bahasa Indonesia', es: 'Español',
 };
 
+/**
+ * **대화·풀이가 나가야 할 언어.**
+ *
+ * ■ ★★왜 따로 두나 (Boss 2026-09-01 *"실제 채팅도 해당 언어로 안나와"*)
+ *   `i18n.language` 는 **UI 언어**라 `APP_LANGS`(ko·en·ja) 셋뿐이다.
+ *   그런데 회원이 고르는 **풀이 언어는 아홉**(`READING_LANGS`)이다.
+ *   대화 화면이 `i18n.language` 를 보내고 있었다 ⇒ 베트남어를 골라도 서버는 «en» 을 받았고,
+ *   **선택한 언어로 답이 안 나왔다.**
+ * ⇒ 골라 둔 풀이 언어가 있으면 그것을, 없으면 UI 언어를 쓴다. 부르는 쪽은 이 함수만 쓴다.
+ * @returns `READING_LANGS` 중 하나
+ */
+export function talkLang(): ReadingLang {
+  const r = currentLang();
+  if (r) return r;
+  const a = appLang();
+  return (READING_LANGS as readonly string[]).includes(a) ? (a as ReadingLang) : 'en';
+}
+
 const RLANG_KEY = 'reading_lang_v1';
 /** null = **앱 언어를 따라간다**(기본). 값이 있으면 그것만 풀이에 쓴다. */
 let rlangOverride: ReadingLang | null = null;
