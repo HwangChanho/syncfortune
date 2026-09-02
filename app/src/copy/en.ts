@@ -1292,7 +1292,7 @@ export const en = {
     'blockHi': "Here's your {{what}}.",
     'friends': 'Friends',
     'favorites': 'Favorites',
-    'filter': { all: 'All', teacher: 'Teachers', friend: 'Friends', recent: 'Recent' },
+    'filter': { all: 'All', teacher: 'Teachers', friend: 'Friends' },
     'officialBadge': 'Official',
     'groupTeacher': '✦ Teachers',
     'groupTeacherSub': 'Answers follow a real practitioner’s method.',

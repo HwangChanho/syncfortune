@@ -26,7 +26,7 @@ import { Icon } from '../kit/Icon';
 import { TalkThread, type TalkItem } from './TalkThread';
 import {
   loadUserMessages, sendUserMessage, subscribeUserRoom, roomPeople,
-  markRoomRead, subscribeRoomRead, unreadBy, uploadRoomPhoto,
+  markRoomRead, subscribeRoomRead, unreadBy, uploadRoomPhoto, sendTyping, subscribeTyping,
   type UserMsg, type RoomPerson,
 } from '../../lib/talk/userRoom';
 import { supabase } from '../../lib/supabase';
@@ -98,6 +98,40 @@ export function UserRoomView({ sessionId, myId, onBack, onInvite, onLeave, menti
    * ■ ⚠️★AI 대화(`talk.tsx`)와 **같은 병**이다 — 한쪽만 고치면 다른 쪽이 그대로 남는다.
    *   두 화면이 **같은 `TalkThread`** 를 쓰므로, 고침도 그 한 곳에 두고 여기선 값만 넘긴다.
    */
+  /**
+   * ★★**상대가 입력 중** — 점 세 개 말풍선을 띄운다 (Boss 2026-09-02).
+   * ■ 신호는 realtime broadcast 로만 온다(남기지 않는다 — `userRoom.ts` 주석).
+   * ■ ⚠️**꺼 주는 사람이 없다.** 상대가 지우고 나가면 신호가 안 온다 ⇒ 신호를 받을 때마다
+   *   **3초 타이머를 새로 건다**. 3초 동안 조용하면 저절로 꺼진다.
+   *   (그게 없으면 «영영 입력 중인 사람» 이 남는다.)
+   */
+  const [theirTyping, setTheirTyping] = useState(false);
+  const typingOffRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    const off = subscribeTyping(sessionId, myId, () => {
+      setTheirTyping(true);
+      if (typingOffRef.current) clearTimeout(typingOffRef.current);
+      typingOffRef.current = setTimeout(() => setTheirTyping(false), 3000);
+    });
+    return () => {
+      off();
+      if (typingOffRef.current) clearTimeout(typingOffRef.current);
+      setTheirTyping(false);   // 방을 옮기면 남기지 않는다
+    };
+  }, [sessionId, myId]);
+  /**
+   * 내가 치고 있음을 알린다 — ★**1.5초에 한 번만** 보낸다(글자마다 보내면 회선을 채운다).
+   * ⚠️빈 칸이 되면 안 보낸다 — 지우는 것은 «입력 중» 이 아니다.
+   */
+  const lastTypingRef = useRef(0);
+  const notifyTyping = () => {
+    if (!draft.trim()) return;
+    const now = Date.now();
+    if (now - lastTypingRef.current < 1500) return;
+    lastTypingRef.current = now;
+    sendTyping(sessionId, myId);
+  };
+
   const [kbH, setKbH] = useState(0);
   useEffect(() => {
     const showEvt = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
@@ -144,8 +178,20 @@ export function UserRoomView({ sessionId, myId, onBack, onInvite, onLeave, menti
     // ★실시간 — 상대가 말하면 바로 뜬다. 없으면 «다시 열어야 보이는» 게시판이 된다.
     const off = subscribeUserRoom(sessionId, (m) => {
       if (!alive) return;
-      // ⚠️내가 보낸 것은 이미 화면에 있다 — id 로 중복을 막는다(낙관적 추가 + 실시간 = 두 번)
-      setMsgs((prev) => (prev.some((x) => x.id === m.id) ? prev : [...prev, m]));
+      /**
+       * ⚠️내가 보낸 것은 이미 화면에 있다 — 중복을 **두 겹**으로 막는다.
+       * ① 같은 id 가 이미 있으면 무시(실시간이 두 번 오는 경우)
+       * ② ★**임시 줄(음수 id)을 걷어낸다** — 낙관적 표시로 먼저 넣은 그 줄이다.
+       *   id 로는 절대 안 맞는다(임시는 음수·진짜는 양수) ⇒ **내 발신 + 같은 본문**으로 가른다.
+       *   ⚠️이 한 줄이 없으면 «보낸 말이 두 번 뜬다» — 낙관적 표시의 대표적 실패다.
+       */
+      setMsgs((prev) => {
+        if (prev.some((x) => x.id === m.id)) return prev;
+        const cleaned = m.senderId === myId
+          ? prev.filter((x) => !(x.id < 0 && x.senderId === myId && x.body === m.body))
+          : prev;
+        return [...cleaned, m];
+      });
       // ★남의 말이 오면 **내가 읽은 것**으로 표시한다(이 방을 보고 있으니까)
       if (m.senderId !== myId) void markRoomRead(sessionId);
     });
@@ -197,17 +243,38 @@ export function UserRoomView({ sessionId, myId, onBack, onInvite, onLeave, menti
     ? others.map((p) => p.name).join(', ')
     : t('room.alone', '나 혼자 있는 방');
 
+  /**
+   * ★★**보내자마자 화면에 띄운다**(낙관적 표시) — 서버는 그다음이다 (Boss 2026-09-02
+   *   *"채팅이 가끔 느리게 나가서 안보이는 경우가 있는데 일단 로컬에는 노출하고 서버로 보내야
+   *     유저가 안 햇갈려"*).
+   *
+   * ■ 종전엔 **서버가 답할 때까지 아무것도 안 보였다.** 회선이 느리면 «안 갔나?» 싶어
+   *   같은 말을 두 번 쓰게 된다.
+   * ■ ⇒ 임시 말풍선을 먼저 넣고(`id` 는 **음수**), 서버가 받으면 realtime 이 진짜 줄을 준다.
+   *   ⚠️음수 id 를 쓰는 이유: 서버 id 는 양수라 **절대 안 겹친다**. 겹치면 진짜 줄이 지워진다.
+   * ■ ⚠️실패하면 임시 줄을 **걷어내고** 쓴 글을 돌려준다 — 안 간 말이 간 것처럼 남으면
+   *   그게 더 나쁘다(«보냈는데 상대가 못 봤다» 가 된다).
+   * ■ ⚠️진짜 줄이 도착하면 임시 줄은 **같은 본문·내 발신** 으로 맞춰 지운다
+   *   (realtime 이 먼저 올 수도 있어 시각만으로는 못 가른다).
+   */
   const send = async () => {
     const text = draft.trim();
     if (!text || sending) return;
     setSending(true);
     setDraft('');
+    const tempId = -Date.now();
+    setMsgs((prev) => [...prev, {
+      id: tempId, role: 'user', body: text, senderId: myId,
+      sentAt: new Date().toISOString(), imagePath: null, speakerId: null,
+    }]);
     const ok = await sendUserMessage(sessionId, text, myId);
     setSending(false);
-    // ★실패하면 **쓴 글을 돌려준다** — 사라지면 다시 써야 한다(가장 나쁜 실패다)
-    if (!ok) { setDraft(text); return; }
-    // ★★`@이름` 이 있으면 그 선생님을 부른다 (Boss 2026-08-27)
-    if (ok) void callTeacher(text);
+    if (!ok) {
+      setMsgs((prev) => prev.filter((m) => m.id !== tempId));   // 안 간 말을 남기지 않는다
+      setDraft(text);
+      return;
+    }
+    void callTeacher(text);   // ★★`@이름` 이 있으면 그 선생님을 부른다 (Boss 2026-08-27)
   };
 
   /**
@@ -281,7 +348,7 @@ export function UserRoomView({ sessionId, myId, onBack, onInvite, onLeave, menti
         ) : null}
       </View>
 
-      <TalkThread items={items} onLink={() => {}} keyboardH={kbH} />
+      <TalkThread items={items} onLink={() => {}} keyboardH={kbH} busy={theirTyping} />
 
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View style={styles.bar}>
@@ -293,7 +360,7 @@ export function UserRoomView({ sessionId, myId, onBack, onInvite, onLeave, menti
               height: (draft ? Math.min(Math.max(inputH || LINE, LINE), LINE * 5) : LINE) + PAD,
             }]}
             value={draft}
-            onChangeText={setDraft}
+            onChangeText={(v) => { setDraft(v); notifyTyping(); }}
             placeholder={t('room.ph', '메시지를 입력하세요')}
             placeholderTextColor={colors.inkFaint}
             multiline

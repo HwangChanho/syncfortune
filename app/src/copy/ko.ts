@@ -1332,7 +1332,7 @@ export const ko = {
     'blockHi': '{{what}} 가져왔어요.',
     'friends': '친구',
     'favorites': '즐겨찾기',
-    'filter': { all: '전체', teacher: '선생님', friend: '친구', recent: '최근' },
+    'filter': { all: '전체', teacher: '선생님', friend: '친구' },   // ★'최근' 제거(Boss 2026-09-02)
     'officialBadge': '공식',
     'groupTeacher': '✦ 선생님',
     'groupTeacherSub': '실제 상담가의 관법을 따라 답해요.',

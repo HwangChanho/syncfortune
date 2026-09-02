@@ -1291,7 +1291,7 @@ export const ja = {
     'blockHi': '{{what}}をお持ちしました。',
     'friends': '友だち',
     'favorites': 'お気に入り',
-    'filter': { all: 'すべて', teacher: '先生', friend: '友だち', recent: '最近' },
+    'filter': { all: 'すべて', teacher: '先生', friend: '友だち' },
     'officialBadge': '公式',
     'groupTeacher': '✦ 先生',
     'groupTeacherSub': '実際の相談家の観法に沿って答えます。',

@@ -303,7 +303,7 @@ export function TalkList({ items, onOpen, selected, myName, onMe, myAvatar, onMy
   // 이번 실행 동안만 숨긴다(껐다 켜면 다시 뜬다 — 저장까지 하면 영영 못 보게 된다)
   const [loginHidden, setLoginHidden] = useState(false);
   // 콘티의 칩 — 전체 / 선생님 AI / 친구
-  const [filter, setFilter] = useState<'all' | 'teacher' | 'friend' | 'recent'>('all');
+  const [filter, setFilter] = useState<'all' | 'teacher' | 'friend'>('all');
   /**
    * ★★상단 줄의 **실제 폭**(Boss 2026-08-27 *"홈에 아이콘 크기가 너무커서 웹 기준으로 짤려"* ·
    *   보내 준 화면에서 이름이 「황…」으로 잘려 있었다).
@@ -330,12 +330,9 @@ export function TalkList({ items, onOpen, selected, myName, onMe, myAvatar, onMy
     const k = q.trim().toLowerCase();
     if (k) return items.filter((c) => c.name.toLowerCase().includes(k));   // 검색 중엔 묶음을 가르지 않는다
     if (filter === 'all') return items;
-    // ★'최근'은 **거르는 칩이 아니라 정렬 칩**이다 — 이야기한 적 있는 사람만, 최근 순으로.
-    //   `lastAt` 이 없는 사람(한 번도 대화 안 함)은 빠진다. 그게 '최근'의 뜻이다.
-    if (filter === 'recent') {
-      return items.filter((c) => c.lastAt)
-        .sort((a, b) => String(b.lastAt).localeCompare(String(a.lastAt)));
-    }
+    // ★'친구' 는 **실제 사람**만이다(Boss 2026-09-02) — 상담가는 전부 AI 라 여기서 **하나도 안 나온다.**
+    //   사람 목록은 `items` 가 아니라 아래 «내 친구» 섹션(`people`)이 그린다.
+    if (filter === 'friend') return [];
     return items.filter((c) => c.group === filter);
   }, [items, q, filter]);
   // ★글자는 **보이는 목록**이 아니라 전체 기준으로 뽑는다 —
@@ -353,7 +350,24 @@ export function TalkList({ items, onOpen, selected, myName, onMe, myAvatar, onMy
   const byGroup = useMemo(() => {
     // ★즐겨찾기는 **위 칸으로 빠진다** — 두 곳에 같은 사람이 뜨면 "왜 두 번 있지"가 된다.
     const rest = shown.filter((c) => !isFavorite(c.id));
-    return { teacher: rest.filter((c) => c.group === 'teacher'), friend: rest.filter((c) => c.group === 'friend') };
+    /**
+     * ★★**새 말이 온 방을 맨 위로** (Boss 2026-09-02
+     *   *"신규 채팅이 오면 즐겨찾기 해둔 채팅방 말고는 기본적으로 채팅 리스트 상단에 노출돼야해"*).
+     *
+     * ■ 종전엔 **정렬이 아예 없었다** — 서버가 준 `sortOrder` 순으로만 놓여, 답장이 와도
+     *   그 사람은 있던 자리에 그대로 있었다. 안 읽은 표시만 조용히 붙었다.
+     * ■ 순서: ①안 읽은 것 ②최근에 말한 것 ③그 밖은 **원래 순서 그대로**
+     *   (`sort` 는 안정 정렬이라 마지막 갈래는 손대지 않는다).
+     * ■ ⚠️즐겨찾기는 위 칸에 따로 있으므로 여기서 안 건드린다 — Boss 문면 그대로다.
+     */
+    const fresh = [...rest].sort((a, b) => {
+      const ua = (a.unread ?? 0) > 0 ? 1 : 0, ub = (b.unread ?? 0) > 0 ? 1 : 0;
+      if (ua !== ub) return ub - ua;                       // 안 읽은 것이 위
+      const la = a.lastAt ?? '', lb = b.lastAt ?? '';
+      if (la !== lb) return String(lb).localeCompare(String(la));   // 최근이 위
+      return 0;                                            // 나머지는 원래 순서
+    });
+    return { teacher: fresh.filter((c) => c.group === 'teacher'), friend: fresh.filter((c) => c.group === 'friend') };
   }, [shown, favTick]);
   /** 즐겨찾기 칸 — 서버 순서 그대로(별을 켠 순서가 아니라 목록 순서라야 매번 같은 자리다). */
   const favRows = useMemo(() => shown.filter((c) => isFavorite(c.id)), [shown, favTick]);
@@ -478,16 +492,20 @@ export function TalkList({ items, onOpen, selected, myName, onMe, myAvatar, onMy
         </PressableScale>
       ) : null}
 
-      {/* ── 필터 칩 — ★콘티 1면 그대로 **넷**(전체 · 선생님 AI · 무료 친구 · 최근) ──
-          ⚠️전에 '최근'을 뺐었다("운대화 탭이 이미 그 순서다"). 콘티에 있으므로 되돌렸다 —
-            **콘티가 정본**이고, 내 판단으로 항목을 빼면 화면이 시안과 어긋난다(Boss 2026-08-21). */}
+      {/* ── 필터 칩 — **셋**(전체 · 선생님 · 친구) ────────────────────────
+          ★Boss 2026-09-02: *"상단에 선생님 카테고리는 전부 AI 뜨게 하고 친구는 실유저만 뜨게하고
+            최근은 빼버려"*
+          ■ 뜻이 바뀌었다 — 이제 이 칩은 «**사람인가 AI 인가**» 하나만 가른다.
+            · 선생님 = AI 전부(상담가 14명 — 종전엔 7명이 «친구» 로 묶여 섞여 있었다)
+            · 친구   = **실제 사람만**(아래 «내 친구» 섹션)
+          ■ ⚠️'최근'을 뺀 이유는 Boss 지시다. (2026-08-21 엔 콘티에 있어 되돌렸었는데,
+            그 뒤 사람 친구가 생기면서 이 칩의 뜻이 바뀌었다 — 정렬 칩이 낄 자리가 아니다.) */}
       {!q.trim() ? (
         <View style={styles.chips}>
-          {(['all', 'teacher', 'friend', 'recent'] as const).map((k) => (
+          {(['all', 'teacher', 'friend'] as const).map((k) => (
             <PressableScale key={k} style={[styles.chip, filter === k && styles.chipOn]} onPress={() => setFilter(k)}>
               <Text style={[styles.chipTx, filter === k && styles.chipTxOn]}>
-                {t(`talk.filter.${k}`,
-                  k === 'all' ? '전체' : k === 'teacher' ? '선생님 AI' : k === 'friend' ? '무료 친구' : '최근')}
+                {t(`talk.filter.${k}`, k === 'all' ? '전체' : k === 'teacher' ? '선생님' : '친구')}
               </Text>
             </PressableScale>
           ))}
@@ -576,7 +594,9 @@ export function TalkList({ items, onOpen, selected, myName, onMe, myAvatar, onMy
       })}
       {/* ── 내 친구(실제 사람) ──────────────────────────────────
           ★상담가와 **다른 섹션**이다. 섞으면 "이 사람이 AI 인가 사람인가"가 흐려진다. */}
-      {!q.trim() && people.length > 0 ? (
+      {/* ★칩이 «선생님» 이면 사람은 **안 보인다** — 칩의 뜻이 «사람인가 AI 인가» 라서다(2026-09-02).
+          «전체» 와 «친구» 에서는 보인다. */}
+      {!q.trim() && filter !== 'teacher' && people.length > 0 ? (
         <>
           <View style={styles.rule} />
           <Text style={styles.section}>

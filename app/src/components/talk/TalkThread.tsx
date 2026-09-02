@@ -360,7 +360,9 @@ const styles = StyleSheet.create({
   sysRow: { alignSelf: 'center', paddingVertical: space(1.5), paddingHorizontal: space(3) },
   sysTx: { ...font.caption, fontSize: 11, lineHeight: 15, color: colors.inkFaint, textAlign: 'center' },
   wrap: { flex: 1, backgroundColor: colors.bg },
-  body: { padding: space(4), paddingBottom: space(8) },
+  // ★아래 여백을 줄였다 (Boss 2026-09-02 *"채팅 하단이랑 텍스트 필드 사이간격이 너무 넓어"*).
+  //   space(8)=32 는 마지막 말풍선과 입력칸 사이를 크게 벌렸다. 입력칸에도 제 여백이 있어 겹쳤다.
+  body: { padding: space(4), paddingBottom: space(2) },
 
   themRow: { alignItems: 'flex-start', marginBottom: space(2.5) },
   mineRow: { alignItems: 'flex-end', marginBottom: space(2.5) },

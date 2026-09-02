@@ -186,6 +186,46 @@ export function subscribeUserRoom(sessionId: string, onMsg: (m: UserMsg) => void
   return () => { void supabase.removeChannel(ch); };
 }
 
+/**
+ * ★★**상대가 입력 중임을 알린다** (Boss 2026-09-02
+ *   *"상대가 채팅을 입력중이면 입력중인 말풍선 안에 점새개가 찍히는 애니메이션 있어야해"*).
+ *
+ * ■ DB 를 안 쓴다 — realtime **broadcast** 로 그 순간에만 흘려보낸다.
+ *   «입력 중» 은 **남길 이유가 없는 사실**이다. 표에 쓰면 지우는 일이 생기고, 지우다 남으면
+ *   «영영 입력 중인 사람» 이 된다.
+ * ■ ⚠️채널 이름에 **`sessionId` 를 넣는다** — 이름을 고정하면 방을 옮겨도 같은 채널을 붙들어
+ *   엉뚱한 방의 신호를 받는다(2026-08-27 대화창 크래시의 근본 원인이 그것이었다).
+ * ■ ⚠️메시지 채널(`room:*`)과 **다른 이름**을 쓴다 — 한 채널에 섞으면 구독 해제가 서로를 끊는다.
+ *
+ * @param sessionId 방
+ * @param myId      나(내 신호는 내가 무시해야 한다 — 아래 구독에서 거른다)
+ */
+export function sendTyping(sessionId: string, myId: string): void {
+  try {
+    const ch = supabase.channel(`typing:${sessionId}`);
+    void ch.subscribe((st) => {
+      if (st !== 'SUBSCRIBED') return;
+      void ch.send({ type: 'broadcast', event: 'typing', payload: { from: myId } })
+        .finally(() => { void supabase.removeChannel(ch); });
+    });
+  } catch { /* 알림용이라 실패해도 대화는 그대로 간다 */ }
+}
+
+/**
+ * 남이 입력 중이라는 신호를 받는다.
+ * @returns 해지 함수
+ * ⚠️★내 신호는 **걸러 낸다** — 안 그러면 내가 칠 때마다 내 화면에 점 세 개가 뜬다.
+ */
+export function subscribeTyping(sessionId: string, myId: string, onTyping: () => void): () => void {
+  const ch = supabase
+    .channel(`typing:${sessionId}`)
+    .on('broadcast', { event: 'typing' }, (p: any) => {
+      if (p?.payload?.from && p.payload.from !== myId) onTyping();
+    })
+    .subscribe();
+  return () => { void supabase.removeChannel(ch); };
+}
+
 /** 이 방의 사람들(나 포함). 이름·사진은 `profiles` 에서 온다. */
 export type RoomPerson = {
   id: string; name: string; avatarPath: string | null;

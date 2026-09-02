@@ -80,15 +80,15 @@ const SEED: Consultant[] = [
   //   종전엔 성태현 안에 `blocks=['today','month']` 로 숨어 있어 그 사람을 알아야 도달했다.
   //   ⚠️내일의 운세는 **별도 블록이 아니다** — `TodayFortuneBlock` 이 오늘/내일 토글을 내장한다.
   //   ★`virtual` = 두 블록 다 온디바이스 결정론이라 **원가 ₩0**(LLM 을 안 부른다).
-  { id: 'fortune_today', kind: 'virtual', name: '오늘의 운세', tagline: '오늘 · 내일 · 이달', avatar: null, specialty: ['today'], routes: ['today', 'month'], blocks: ['today', 'month'], group: 'friend', sortOrder: 100 },
-  { id: 'beauty_jjinya', kind: 'live', name: '메이크업 아티스트 찐야', tagline: '메이크업', avatar: null, specialty: ['beauty'], routes: [], blocks: [], group: 'friend', sortOrder: 110, age: 28 },
-  { id: 'color_bombom', kind: 'live', name: '퍼스널컬러 봄봄', tagline: '퍼스널컬러', avatar: null, specialty: ['color'], routes: [], blocks: [], group: 'friend', sortOrder: 120, age: 31 },
+  { id: 'fortune_today', kind: 'virtual', name: '오늘의 운세', tagline: '오늘 · 내일 · 이달', avatar: null, specialty: ['today'], routes: ['today', 'month'], blocks: ['today', 'month'], group: 'teacher', sortOrder: 100 },
+  { id: 'beauty_jjinya', kind: 'live', name: '메이크업 아티스트 찐야', tagline: '메이크업', avatar: null, specialty: ['beauty'], routes: [], blocks: [], group: 'teacher', sortOrder: 110, age: 28 },
+  { id: 'color_bombom', kind: 'live', name: '퍼스널컬러 봄봄', tagline: '퍼스널컬러', avatar: null, specialty: ['color'], routes: [], blocks: [], group: 'teacher', sortOrder: 120, age: 31 },
   // ★콘텐츠 안내 전용(Boss 2026-08-28) — 열여섯 살·고양이 결. 풀이는 하지 않는다.
   //   ⚠️`specialty: ['guide']` 가 **명식을 안 받는 표식**이다(서버가 이걸로 가른다).
-  { id: 'guide_nabi', kind: 'live', name: '운이', tagline: '뭐 볼지 골라줄게', avatar: null, specialty: ['guide'], routes: [], blocks: [], group: 'friend', sortOrder: 105, age: 16 },
-  { id: 'car_unni', kind: 'live', name: '차(량) 잘 아는 언니', tagline: '차량 딜러', avatar: null, specialty: ['car'], routes: [], blocks: [], group: 'friend', sortOrder: 130, age: 35 },
-  { id: 'travel_jini', kind: 'live', name: '여행홀릭 지니', tagline: '여행', avatar: null, specialty: ['travel'], routes: [], blocks: [], group: 'friend', sortOrder: 140, age: 29 },
-  { id: 'heal_yuri', kind: 'live', name: '힐링하는 유리', tagline: '마음 돌보기', avatar: null, specialty: ['heal'], routes: [], blocks: [], group: 'friend', sortOrder: 150, age: 34 },
+  { id: 'guide_nabi', kind: 'live', name: '운이', tagline: '뭐 볼지 골라줄게', avatar: null, specialty: ['guide'], routes: [], blocks: [], group: 'teacher', sortOrder: 105, age: 16 },
+  { id: 'car_unni', kind: 'live', name: '차(량) 잘 아는 언니', tagline: '차량 딜러', avatar: null, specialty: ['car'], routes: [], blocks: [], group: 'teacher', sortOrder: 130, age: 35 },
+  { id: 'travel_jini', kind: 'live', name: '여행홀릭 지니', tagline: '여행', avatar: null, specialty: ['travel'], routes: [], blocks: [], group: 'teacher', sortOrder: 140, age: 29 },
+  { id: 'heal_yuri', kind: 'live', name: '힐링하는 유리', tagline: '마음 돌보기', avatar: null, specialty: ['heal'], routes: [], blocks: [], group: 'teacher', sortOrder: 150, age: 34 },
 ];
 
 // ⚠️★캐시는 **서버 원문**을 담는다(번역된 결과가 아니라).
