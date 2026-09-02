@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>본인인증 · 니운내운</title>
+<!--
+  app/public/pass.html — **PASS 본인인증 창**(포트원 경유)
+  ═══════════════════════════════════════════════════════════════════
+  ★Boss 2026-09-03 *"pass를 붙여야지"*
+
+  ■ 왜 페이지로 두나 — 포트원 인증은 **브라우저 SDK** 로 연다.
+    앱에 WebView 를 새로 넣으면 네이티브 의존이 늘고 재빌드가 걸린다.
+    우리는 이미 웹(niwoon2.pages.dev)이 있고, 로그인도 `openAuthSessionAsync` 로
+    같은 길을 쓴다 ⇒ **새 의존 없이** 같은 방식으로 연다.
+
+  ■ 끝나면 어디로 — `?redirect=` 로 받은 주소에 `imp_uid` 를 붙여 돌아간다.
+    · 폰: `syncfortune://adult-verify` (앱이 가로챈다)
+    · 웹: 우리 사이트 주소
+    ⚠️`redirect` 는 **우리 것만** 허용한다(아래 검사) — 안 그러면 남의 사이트로
+      인증 결과를 흘려보내는 열린 리다이렉터가 된다.
+
+  ■ ⚠️여기서 **성인 여부를 판정하지 않는다.** `imp_uid` 만 넘긴다.
+    이름·생년월일·성인여부는 **서버가 포트원에 직접 물어** 정한다(adult-verify Edge).
+    화면이 판정하면 그건 자기 신고다.
+-->
+<style>
+  body { margin:0; font: 15px/1.6 -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif;
+         background:#FAF7F2; color:#2E2720; display:flex; align-items:center; justify-content:center;
+         min-height:100vh; padding:24px; text-align:center; }
+  .msg { max-width:22rem; }
+  .sub { color:#6B6055; font-size:13px; margin-top:8px; }
+</style>
+</head>
+<body>
+<div class="msg">
+  <div id="t">본인인증 창을 여는 중이에요…</div>
+  <div class="sub" id="s">잠시만 기다려 주세요.</div>
+</div>
+<script src="https://cdn.iamport.kr/v1/iamport.js"></script>
+<script>
+(function () {
+  var q = new URLSearchParams(location.search);
+  var impCode = q.get('code') || '';          // 포트원 가맹점 식별코드(imp########)
+  var redirect = q.get('redirect') || '';
+  var t = document.getElementById('t');
+  var s = document.getElementById('s');
+
+  // ★열린 리다이렉터 방지 — 우리 것만 허용한다.
+  function allowed(u) {
+    if (!u) return false;
+    if (u.indexOf('syncfortune://') === 0) return true;      // 앱 딥링크
+    try { return new URL(u).hostname === location.hostname; } catch (e) { return false; }
+  }
+  function fail(why) {
+    t.textContent = '본인인증을 마치지 못했어요.';
+    s.textContent = why || '앱으로 돌아가 다시 시도해 주세요.';
+    if (allowed(redirect)) {
+      location.replace(redirect + (redirect.indexOf('?') < 0 ? '?' : '&') + 'error=' + encodeURIComponent(why || 'failed'));
+    }
+  }
+  if (!impCode) return fail('설정이 아직 준비되지 않았어요.');
+  if (!allowed(redirect)) return fail('돌아갈 곳을 확인하지 못했어요.');
+
+  IMP.init(impCode);
+  IMP.certification({ popup: false, m_redirect_url: redirect }, function (rsp) {
+    // ★웹(팝업)에서만 이 콜백이 온다. 폰은 `m_redirect_url` 로 바로 돌아간다.
+    if (rsp && rsp.success && rsp.imp_uid) {
+      location.replace(redirect + (redirect.indexOf('?') < 0 ? '?' : '&') + 'imp_uid=' + encodeURIComponent(rsp.imp_uid));
+    } else {
+      fail((rsp && rsp.error_msg) || '취소되었어요.');
+    }
+  });
+})();
+</script>
+</body>
+</html>

@@ -13,7 +13,19 @@
 //   지금 병목은 «익명 → 로그인» 이다(앱 사용자 92명 중 90명이 익명).
 //   가입 문턱을 더 높이면 그 병목이 더 좁아진다. 필요한 사람에게 필요한 순간에만 묻는다.
 // ═══════════════════════════════════════════════════════════════════════════
+import { Platform } from 'react-native';
+import * as WebBrowser from 'expo-web-browser';
+import * as Linking from 'expo-linking';
 import { supabase } from '../supabase';
+
+/**
+ * 포트원 **가맹점 식별코드**(`imp########`) — 공개해도 되는 값이다(비밀은 API 시크릿이고
+ * 그건 서버 시크릿에만 둔다). 없으면 기능이 «준비 중» 으로 남는다.
+ * ★환경변수로 둔다 — 코드에 박으면 값이 바뀔 때 재빌드가 필요하다.
+ */
+const PORTONE_CODE = process.env.EXPO_PUBLIC_PORTONE_CODE ?? '';
+/** 인증 창(우리 웹에 둔 한 장). ⚠️앱에서도 이 주소를 연다 — WebView 의존을 늘리지 않으려고. */
+const PASS_PAGE = 'https://niwoon2.pages.dev/pass.html';
 
 /**
  * 이 계정이 **본인인증으로 확인된 성인**인가.
@@ -45,8 +57,32 @@ export async function isAdultVerified(): Promise<boolean> {
  * @returns 인증이 끝나 성인으로 확인됐으면 true
  */
 export async function requestAdultVerification(): Promise<boolean> {
-  return false;   // ← 계약·키가 오면 여기만 채운다
+  if (!PORTONE_CODE) return false;                    // 키가 없으면 «준비 중» 그대로
+  try {
+    // ★돌아올 곳 — 폰은 앱 딥링크, 웹은 지금 주소. 로그인이 쓰는 그 방식과 같다.
+    const back = Platform.OS === 'web'
+      ? `${globalThis.location?.origin ?? ''}/adult-verify`
+      : Linking.createURL('adult-verify');
+    const url = `${PASS_PAGE}?code=${encodeURIComponent(PORTONE_CODE)}&redirect=${encodeURIComponent(back)}`;
+    const r = await WebBrowser.openAuthSessionAsync(url, back);
+    if (r.type !== 'success' || !r.url) return false;  // 취소·닫음
+    const impUid = new URL(r.url).searchParams.get('imp_uid');
+    if (!impUid) return false;
+    /**
+     * ★★서버가 **포트원에 직접 물어** 판정한다 — 우리는 `imp_uid` 만 넘긴다.
+     *   이름·생년월일·성인여부를 여기서 보내면 그건 «자기 신고» 다.
+     */
+    const { data, error } = await supabase.functions.invoke('adult-verify', { body: { impUid } });
+    if (error) return false;
+    return (data as { ok?: boolean } | null)?.ok === true;
+  } catch {
+    return false;   // 어떤 실패든 «안 됐다» 로 — 못 물어봤다고 열면 게이트가 아니다
+  }
 }
 
-/** 본인인증이 붙었는가(화면 문구를 «준비 중»으로 가를 때 쓴다). */
-export const ADULT_VERIFY_READY = false;
+/**
+ * 본인인증이 붙었는가(화면 문구를 «준비 중»으로 가를 때 쓴다).
+ * ★키(가맹점 식별코드)가 **앱에 들어와 있을 때만** true — 없으면 종전처럼 «준비 중» 이다.
+ *   ⚠️이 값은 «켤 수 있다» 가 아니라 «기능이 붙었다» 는 뜻이다. 자격은 서버가 정한다.
+ */
+export const ADULT_VERIFY_READY = !!PORTONE_CODE;
