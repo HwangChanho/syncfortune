@@ -47,6 +47,34 @@ export default function NotificationsScreen() {
     if (!ok) void load();     // 실패 — 서버 상태를 다시 읽어 되돌린다
   }, [load]);
 
+  /**
+   * ★★**전체 지우기** (Boss 2026-09-02 *"자꾸 내 알림이 안지워지고"*).
+   *
+   * ■ 무엇이 문제였나 — 서버·화면 로직은 **둘 다 정상**이었다(실측: RPC 가 7건→6건으로 줄인다).
+   *   문제는 **한 줄씩만 지울 수 있었다**는 것이다. 대화를 나눌수록 알림은 계속 쌓이는데
+   *   비우는 길이 «✕ 를 열 번 누르기» 뿐이라, 사용자에겐 «안 지워진다» 로 느껴진다.
+   * ■ ⇒ 한 번에 비운다. 화면에서 먼저 비우고(낙관적) 서버로 보낸다.
+   *   ⚠️하나라도 실패하면 **다시 읽어 되돌린다** — 지운 줄 알았는데 남아 있는 것이 더 나쁘다.
+   * ■ ⚠️행을 지우는 게 아니라 **내 화면에서만 감춘다**(발송 기록은 남는다).
+   */
+  const removeAll = useCallback(async () => {
+    const keys = st && !('error' in st) ? st.items.map((x) => x.key) : [];
+    if (!keys.length) return;
+    setSt({ items: [] });
+    const results = await Promise.all(keys.map((k) => hideInboxItem(k)));
+    if (results.some((ok) => !ok)) void load();
+  }, [st, load]);
+
+  /**
+   * ★알림을 **눌러서 그 화면으로 갔으면 그 알림은 할 일을 다한 것**이다 ⇒ 목록에서 뺀다.
+   *   (Boss: *"알림을 탭해서 들어가면 앱 안에 알림도 빨간불 안들어와도 돼"* — 같은 뜻이다.
+   *    빨간불은 09-02 오전에 껐고, **목록에 남는 것**은 그대로였다.)
+   */
+  const openAndHide = useCallback((it: InboxItem) => {
+    router.push(it.route as never);
+    void remove(it.key);
+  }, [remove]);
+
   return (
     <ScrollView style={styles.wrap} contentContainerStyle={[styles.body, { paddingTop: insets.top + space(4) }]}>
       <Text style={styles.title}>{t('notify.title', '알림')}</Text>
@@ -66,6 +94,11 @@ export default function NotificationsScreen() {
         </View>
       ) : (
         <View style={styles.list}>
+          {/* ★한 번에 비우기 — 한 줄씩만 지울 수 있으면 «안 지워진다» 가 된다(위 `removeAll` 주석) */}
+          <PressableScale style={styles.clearAll} onPress={() => void removeAll()}
+            accessibilityLabel={t('notify.clearAll', '전체 지우기')}>
+            <Text style={styles.clearAllTx}>{t('notify.clearAll', '전체 지우기')}</Text>
+          </PressableScale>
           {st.items.map((it, i, arr) => {
             const inner = (
               <>
@@ -89,7 +122,7 @@ export default function NotificationsScreen() {
             // 열 곳이 없는 알림은 눌리지 않게 둔다(빈 화면으로 보내지 않는다)
             return it.route ? (
               <PressableScale key={it.key} style={[styles.row, i < arr.length - 1 && styles.rowLine]}
-                onPress={() => router.push(it.route as never)}>{inner}</PressableScale>
+                onPress={() => openAndHide(it)}>{inner}</PressableScale>
             ) : (
               <View key={it.key} style={[styles.row, i < arr.length - 1 && styles.rowLine]}>{inner}</View>
             );
@@ -118,6 +151,9 @@ const styles = StyleSheet.create({
   rowBody: { ...font.caption, color: colors.inkSoft, lineHeight: 18 },
   rowDate: { ...font.caption, color: colors.inkFaint },
   // ★지우기 — 눌리는 면적은 넓게, 글자는 작고 옅게(«지우기» 가 주인공이 되면 안 된다)
+  // 전체 지우기 — 목록 오른쪽 위. 눈에 띄되 알림보다 세지 않게(글자만)
+  clearAll: { alignSelf: 'flex-end', paddingHorizontal: space(3), paddingVertical: space(2) },
+  clearAllTx: { ...font.caption, color: colors.inkSoft, fontWeight: '700' },
   rowX: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center', marginLeft: space(1) },
   rowXTx: { fontSize: 14, color: colors.inkFaint, fontWeight: '800' },
   rowArrow: { ...font.heading, color: colors.inkFaint },

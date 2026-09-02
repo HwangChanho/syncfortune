@@ -1193,7 +1193,7 @@ export const ja = {
     'empty': 'まだお気に入りがありません。',
     'emptySub': 'カードの ♡ を押すとここに集まります。',
   },
-  notify: { remove: 'この通知を削除',
+  notify: { clearAll: 'すべて削除', remove: 'この通知を削除',
     'empty': 'お知らせはありません。',
     'failed': 'お知らせを読み込めませんでした。',
     'title': 'お知らせ',
