@@ -25,7 +25,7 @@ import { supabase } from '../supabase';
  */
 const PORTONE_CODE = process.env.EXPO_PUBLIC_PORTONE_CODE ?? '';
 /** 인증 창(우리 웹에 둔 한 장). ⚠️앱에서도 이 주소를 연다 — WebView 의존을 늘리지 않으려고. */
-const PASS_PAGE = 'https://niwoon2.pages.dev/pass.html';
+const PASS_PAGE = 'https://niwoon2.pages.dev/pass';   // ⚠️Cloudflare Pages 가 `.html` 을 떼고 308 로 보낸다 — 처음부터 이 주소로 연다
 
 /**
  * 이 계정이 **본인인증으로 확인된 성인**인가.
