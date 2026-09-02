@@ -671,8 +671,19 @@ function MyeongsikBody({ input, friendSaju, onReading, onSinsal, header, whoName
         {/* ── 사주원국 1: 팔자 그리드 + 12신살(원국) ── */}
         {activeTab === 'wonguk' && (
         <>
-          {/* ★오행 에너지 구슬 인포그래픽(daniel 기획서①) — 팔자(한자) '앞'에 색 에너지로 먼저 시각화(대중 이탈률↓). */}
-          <OhaengEnergy saju={c.saju} />
+          {/* ★★넓은 화면에서는 **오행을 오른쪽으로** 보낸다 (Boss 2026-09-02
+              *"웹에서 만세력에 나를이루는 다섯가지기운 그대로 상단에 있는데?"*
+               · 앞서 *"웹은 오행강약을 오른쪽 만세력은 왼쪽에 표시하자"*).
+
+              ■ 좁은 화면(폰)은 **그대로** 위에 둔다 — 세로로 긴 화면에서 옆으로 나누면 둘 다 좁아진다.
+              ■ ⚠️★예전에 세 번 실패한 방식(다단 `columnCount`·`display:block`·`flexWrap`+`order`)은
+                **쓰지 않는다**. RN Web 은 모든 View 를 `display:flex` 로 깔아 다단이 무시된다.
+                ⇒ 여기서는 «연속한 한 구간을 감싸 가로로 놓는» **평범한 flex row** 하나만 쓴다.
+              ■ 오른쪽 칸은 **고정 폭**이다 — 비율(`flex`)로 두면 명식 글자가 눌려 세로로 깨진다
+                ([[container-width-not-window]] 의 그 증상). */}
+          {!wide ? <OhaengEnergy saju={c.saju} /> : null}
+          <View style={wide ? { flexDirection: 'row', gap: space(5), alignItems: 'flex-start' } : null}>
+          <View style={wide ? { flex: 1, minWidth: 0 } : null}>
           <View style={styles.headerArea}>
             {/* 누구 명식인지 제목에 표기(daniel 07-05) — 헤더 ChartPicker(변경 가능)와 함께 '누구의 사주 원국'인지 명확히. */}
             <View style={{ flex: 1, minWidth: 0 }}>
@@ -733,6 +744,10 @@ function MyeongsikBody({ input, friendSaju, onReading, onSinsal, header, whoName
           {renderArcs(activeGanP, 'above')}
           {renderPillars()}
           {renderArcs(activeJiP, 'below')}
+          </View>
+          {/* 오른쪽 칸 — 넓을 때만. 폭은 고정(위 주석) */}
+          {wide ? <View style={{ width: 340 }}><OhaengEnergy saju={c.saju} /></View> : null}
+          </View>
 
           {/* ★신살·공망(원국) — 12신살 있던 자리로 이동(daniel 2026-07-25). 자리별 적중만: 운에서 오는 신살 제외 · 12신살 요약은 관계분석으로. */}
           <Text style={styles.hint}>{T('신살')}·{T('공망')} ({t('ms.byPillar', '자리별 적중')})</Text>

@@ -9,7 +9,7 @@ import { useFontScale } from '../../lib/ui/fontScale';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { MyeongsikScreen } from '../../screens/MyeongsikScreen';
-import { loadMyChart, listCharts, getRepresentativeId, subscribeRepChange } from '../../lib/engine/myChart';
+import { loadMyChart, listCharts, getRepresentativeId, loadRepChart, subscribeRepChange } from '../../lib/engine/myChart';
 import { ChartPicker } from '../../components/ChartPicker';
 import { ChartSkeleton } from '../../components/Skeleton'; // 로딩 중 명식 형태 스켈레톤(daniel 2026-06-28)
 import { useDeferredReady } from '../../lib/ui/useDeferredReady'; // 전환 끝난 뒤 MyeongsikScreen 마운트(멈칫 제거)
@@ -38,14 +38,25 @@ export default function ChartsScreen() {
    *   옛 명식을 가리킨 채 남는다(= 남의 명식에 결제를 걸 뻔한 자리). 그래서 state 를 하나 더 둔다.
    * ★대표 명식을 보고 있을 땐 대표 id 가 들어간다(고른 적이 없으면 그게 «지금 보는 것»이다).
    */
+  /**
+   * ⚠️★★여기 담는 것은 **서버 명식 id(`serverChartId`)** 다 — 로컬 id 가 **아니다**.
+   *
+   * ■ 2026-09-02 사고: 로컬 id 는 `c_1756…` 형식인데(`myChart.ts` 의 `c_${Date.now()}`),
+   *   서버 RPC `unlock_chart_feature(p_kind text, p_chart_id **uuid**)` 는 uuid 를 받는다.
+   *   ⇒ 로컬 id 를 넘기면 Postgres 가 `invalid input syntax for type uuid` 로 던지고,
+   *     화면엔 「잠시 후 다시 시도해 주세요」만 뜬다 — **결제가 영영 성립하지 않는다.**
+   *   ⇒ `isUnlocked` 도 uuid 가 아니면 서버를 안 보므로 **영영 잠긴 상태**로 남는다.
+   * ■ ⚠️서버에 아직 안 올라간 명식은 `serverChartId` 가 **없다** → `null` 로 둔다.
+   *   그러면 만세력이 유료 버튼을 **아예 안 그린다**(살 수 없는 것을 보여 주지 않는다).
+   */
   const [shownId, setShownId] = useState<string | null>(null);
   const setShown = (id: string | null) => { shownIdRef.current = id; setShownId(id); };
 
   useEffect(() => {
     loadMyChart().then((c) => { setMe(c); setLoading(false); });
     refreshRepName();
-    // 고른 적이 없으면 «보는 것» = 대표. 언락 키가 되어야 하므로 id 를 채워 둔다.
-    void getRepresentativeId().then((id) => { if (!shownIdRef.current) setShown(id ?? null); });
+    // 고른 적이 없으면 «보는 것» = 대표. ★언락 키는 **서버 id** 라야 한다(위 주석).
+    void loadRepChart().then((c) => { if (!shownIdRef.current) setShown(c?.serverChartId ?? null); });
   }, []);
 
   /**
@@ -66,7 +77,8 @@ export default function ChartsScreen() {
     const id = shownIdRef.current;
     if (!id) { void loadMyChart().then((c) => { if (c) setMe(c); }); refreshRepName(); return; }
     void listCharts().then((cs) => {
-      const still = cs.find((c) => c.id === id);
+      // ★`shownIdRef` 는 **서버 id** 다 — 목록에서도 그걸로 찾는다(로컬 id 로 찾으면 못 찾는다).
+      const still = cs.find((c) => c.serverChartId === id);
       if (still) { setMe(still.input); setRepName(still.label ?? null); return; }
       setShown(null);                                  // 보던 명식이 사라졌다 → 대표로
       void loadMyChart().then((c) => { if (c) setMe(c); }); refreshRepName();
@@ -109,7 +121,7 @@ export default function ChartsScreen() {
           viewOnly
           onChange={(picked) => {
             // ★고른 명식의 id 를 기억한다 — 나중에 그 명식이 수정되면 **그것을** 다시 읽는다
-            if (picked) { setShown(picked.id); setMe(picked.input); setRepName(picked.label ?? null); return; }
+            if (picked) { setShown(picked.serverChartId ?? null); setMe(picked.input); setRepName(picked.label ?? null); return; }
             setShown(null);
             void loadMyChart().then(setMe); refreshRepName();
           }}
