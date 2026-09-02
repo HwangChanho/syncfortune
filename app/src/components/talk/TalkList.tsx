@@ -77,23 +77,48 @@ export function initialsFor(names: string[]): string[] {
  *   각자 그리면 «상담가 별과 친구 별이 다르게 도는» 앱이 된다([[duplicate-ui-single-source]]).
  * ★밀면 별 — 상담가와 **같은 `toggleFavorite`** 을 부른다. id 만 다르다(사람=UUID).
  */
-function PersonRow({ p, onOpenPerson, t }: {
+function PersonRow({ p, onOpenPerson, onRemoveFriend, t }: {
   p: { id: string; name: string; avatarUrl?: string | null; canSee?: boolean };
   onOpenPerson?: (id: string) => void;
+  /**
+   * ★친구 끊기 (Boss 2026-09-02 *"앱기준 오른쪽 스와이프하면 친구 삭제할수 있게하고
+   *   웹은 다른 방법으로 가능하게 해야지"*). 없으면 그 자리를 안 그린다.
+   */
+  onRemoveFriend?: (id: string, name: string) => void;
   t: (k: string, d?: string) => string;
 }) {
   const faved = isFavorite(p.id);
   const ref = useRef<Swipeable>(null);
+  /**
+   * 밀면 나오는 자리 — **즐겨찾기 + 삭제** 둘.
+   * ⚠️삭제를 **바깥쪽**(오른쪽 끝)에 둔다. 안쪽에 두면 살짝 민 손가락이 삭제에 닿는다.
+   * ⚠️누르면 바로 안 지운다 — 부모가 **확인을 묻고** 지운다(비가역이라서).
+   */
   const renderRight = () => (
-    <PressableScale style={styles.swipeAct}
-      onPress={() => { void toggleFavorite(p.id); ref.current?.close(); }}
-      accessibilityLabel={t(faved ? 'talk.unfav' : 'talk.fav', '즐겨찾기')}>
-      {/* ★보이는 별은 **지금 상태**다(상담가 줄과 같은 규칙) */}
-      <Text style={[styles.swipeStar, faved && styles.swipeStarOn]}>{faved ? '★' : '☆'}</Text>
-    </PressableScale>
+    <View style={{ flexDirection: 'row' }}>
+      <PressableScale style={styles.swipeAct}
+        onPress={() => { void toggleFavorite(p.id); ref.current?.close(); }}
+        accessibilityLabel={t(faved ? 'talk.unfav' : 'talk.fav', '즐겨찾기')}>
+        {/* ★보이는 별은 **지금 상태**다(상담가 줄과 같은 규칙) */}
+        <Text style={[styles.swipeStar, faved && styles.swipeStarOn]}>{faved ? '★' : '☆'}</Text>
+      </PressableScale>
+      {onRemoveFriend ? (
+        <PressableScale style={[styles.swipeAct, styles.swipeDel]}
+          onPress={() => { ref.current?.close(); onRemoveFriend(p.id, p.name); }}
+          accessibilityLabel={t('friends.remove', '친구 끊기')}>
+          <Text style={styles.swipeDelTx}>{t('friends.remove', '친구 끊기')}</Text>
+        </PressableScale>
+      ) : null}
+    </View>
   );
   const row = (
-    <PressableScale style={styles.row} onPress={() => onOpenPerson?.(p.id)}>
+    /**
+     * ★웹은 밀 수 없다 ⇒ **길게 누르기**로 같은 일을 연다 (Boss: *"웹은 다른 방법으로"*).
+     *   ⚠️길게 누르기만 있으면 «없는 기능» 이 된다([[category-management-ui]]) — 그래서
+     *     웹에서는 이름 옆에 **작은 «⋯»** 도 함께 그린다(아래).
+     */
+    <PressableScale style={styles.row} onPress={() => onOpenPerson?.(p.id)}
+      onLongPress={onRemoveFriend ? () => onRemoveFriend(p.id, p.name) : undefined}>
       {/* ⚠️★색은 **위치가 아니라 그 사람**으로 정한다(2026-08-27) */}
       <Avatar name={p.name} slot={0} element={fallbackElement(p.id)} uri={p.avatarUrl} />
       <View style={styles.col}>
@@ -104,6 +129,13 @@ function PersonRow({ p, onOpenPerson, t }: {
         {/* ★못 보는 이유를 적는다 — 빈 줄이면 우리 잘못인지 상대 설정인지 모른다 */}
         {!p.canSee ? <Text style={styles.sub}>{t('friends.notShared', '아직 명식을 열지 않았어요')}</Text> : null}
       </View>
+      {/* ★웹 전용 «⋯» — 밀 수 없는 곳에서 **보이는 손잡이**를 준다(길게 누르기만이면 아무도 못 찾는다) */}
+      {Platform.OS === 'web' && onRemoveFriend ? (
+        <PressableScale hitSlop={8} onPress={() => onRemoveFriend(p.id, p.name)}
+          accessibilityLabel={t('friends.remove', '친구 끊기')}>
+          <Text style={styles.rowMore}>⋯</Text>
+        </PressableScale>
+      ) : null}
     </PressableScale>
   );
   // 웹은 밀 수 없다 — 상담가 줄이 쓰는 규칙과 같게 둔다(그쪽은 누르는 별을 따로 그린다)
@@ -250,7 +282,8 @@ function Row({ c, initial, slot, on, onOpen, onPhoto, t }: {
 //   ★`ContentRail` 컴포넌트 자체는 남아 있다 — 다른 자리에서 쓸 수 있다.
 
 export function TalkList({ items, onOpen, selected, myName, onMe, myAvatar, onMyProfile, railKeys = [], onSettings, onLogin, session, wide, footer,
-                           onAddFriend, onManse, pendingCount = 0, people = [], onOpenPerson, onOpenProfile }: {
+                           onAddFriend, onManse, pendingCount = 0, people = [], onOpenPerson, onOpenProfile,
+                           onRemoveFriend }: {
   /**
    * 친구목록에 뜰 사람들.
    * ★`lastAt` = **마지막으로 이야기한 시각**(`talk_session_list`). 콘티 1면의 우측 시각이자
@@ -290,6 +323,8 @@ export function TalkList({ items, onOpen, selected, myName, onMe, myAvatar, onMy
   pendingCount?: number;
   /** 실제 사람 친구들(상담가와 **다른 섹션**에 둔다) */
   people?: { id: string; name: string; avatarUrl: string | null; canSee: boolean }[];
+  /** ★친구 끊기 — 부모가 **확인을 묻고** 지운다(비가역이라 여기서 바로 안 지운다). */
+  onRemoveFriend?: (id: string, name: string) => void;
   /** 사람 친구를 눌렀을 때 */
   onOpenPerson?: (id: string) => void;
 }) {
@@ -559,7 +594,7 @@ export function TalkList({ items, onOpen, selected, myName, onMe, myAvatar, onMy
               ⚠️저장은 상담가와 **같은 곳**(`toggleFavorite`)을 쓴다 — id 만 다르다(상담가=문자열 · 사람=UUID).
                 따로 만들면 «상담가 별과 친구 별이 다르게 도는» 앱이 된다. */}
           {favPeople.map((p) => (
-            <PersonRow key={`favp-${p.id}`} p={p} onOpenPerson={onOpenPerson} t={t as never} />
+            <PersonRow key={`favp-${p.id}`} p={p} onOpenPerson={onOpenPerson} onRemoveFriend={onRemoveFriend} t={t as never} />
           ))}
         </>
       ) : null}
@@ -604,7 +639,7 @@ export function TalkList({ items, onOpen, selected, myName, onMe, myAvatar, onMy
           </Text>
           {/* ★즐겨찾기로 올라간 사람은 여기서 **뺀다** — 두 번 뜨면 같은 사람이 둘로 보인다 */}
           {people.filter((p) => !isFavorite(p.id)).map((p) => (
-            <PersonRow key={p.id} p={p} onOpenPerson={onOpenPerson} t={t as never} />
+            <PersonRow key={p.id} p={p} onOpenPerson={onOpenPerson} onRemoveFriend={onRemoveFriend} t={t as never} />
           ))}
         </>
       ) : null}
@@ -677,6 +712,11 @@ const styles = StyleSheet.create({
     width: 64, justifyContent: 'center', alignItems: 'center',
     backgroundColor: colors.juSoft, borderRadius: radius.md, marginVertical: 2,
   },
+  // 밀어서 나오는 «친구 끊기» — 별과 **다른 색**(같으면 잘못 누른다)
+  swipeDel: { backgroundColor: colors.sunk },
+  swipeDelTx: { ...font.caption, color: colors.inkSoft, fontWeight: '700', textAlign: 'center' },
+  // 웹 전용 손잡이
+  rowMore: { ...font.body, color: colors.inkFaint, paddingHorizontal: space(2) },
   swipeStar: { fontSize: 24, color: colors.inkFaint },
   swipeStarOn: { color: colors.ju },
   // 안 읽은 수 — 콘티의 보라 원. ★글자는 `onJu`(강조색 위 대비)

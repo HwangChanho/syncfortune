@@ -53,7 +53,7 @@ import { parseBirth, looksLikeBirthInfo, type BirthDraft } from '../../lib/talk/
 import { BirthDraftCard, type BirthCardResult } from '../../components/talk/BirthDraftCard';
 import { addChart, setRepresentative } from '../../lib/engine/myChart';
 import { loadMyProfile, subscribeProfile, profileSnapshot } from '../../lib/talk/myProfile';
-import { listFriends, type Friend, loadFriendChart } from '../../lib/talk/friends';
+import { listFriends, removeFriend, type Friend, loadFriendChart } from '../../lib/talk/friends';
 import { useHomeOrder } from '../../lib/ui/homeOrder';
 import { ensureServerChartIdForSaved } from '../../lib/backend/prewarmReadings';
 // ★답장 알림 — «보고 있는 방» 알리기 + 앱 아이콘 배지(Boss 2026-08-28)
@@ -232,6 +232,23 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
   // 초대 창에서 «부르기» 로 고른 AI 선생님 — 사람 방 입력칸에 `@이름` 을 얹는다(Boss 2026-09-02).
   //   ⚠️`n`(시각)을 같이 담는다 — 같은 사람을 다시 골라도 값이 바뀌어야 다시 얹힌다.
   const [roomMention, setRoomMention] = useState<{ name: string; n: number } | null>(null);
+  /**
+   * ★친구 끊기 — **묻고** 지운다 (Boss 2026-09-02 *"오른쪽 스와이프하면 친구 삭제"*).
+   * ■ ⚠️비가역이다 — 서버가 친구 행을 지우면서 **1:1 방도 닫는다**(`20260901f_unfriend_closes_room`).
+   *   그래서 «지울까요» 를 한 번 묻는다. 밀다가 스친 손가락으로 사라지면 안 된다.
+   * ■ 지운 뒤 목록을 **다시 읽는다** — 화면과 서버가 갈리면 «지웠는데 그대로» 가 된다.
+   */
+  const askRemoveFriend = (id: string, name: string) => {
+    Alert.alert(
+      t('friends.removeTitle', '친구를 끊을까요?'),
+      t('friends.removeMsg', { name: name || t('cp.someone', '이 친구'),
+        defaultValue: '{{name}} 님과 친구를 끊어요. 나누던 대화방도 닫혀요.' }),
+      [{ text: t('common.cancel'), style: 'cancel' },
+       { text: t('friends.remove', '친구 끊기'), style: 'destructive',
+         onPress: () => { void removeFriend(id).then((ok) => { if (ok) void listFriends().then(setFriends); }); } }],
+      () => {},
+    );
+  };
   // ★다인방(Boss 2026-08-25 *"다른 사람을 초대할수 있어야해"*).
   //   `mates` = 지금 방에 **같이 있는 상담가들**. 비면 1:1 방이다.
   const [inviteOpen, setInviteOpen] = useState(false);
@@ -1278,7 +1295,7 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
                       people={friends.filter((f) => f.status === 'accepted').map((f) => ({
                         id: f.otherId, name: f.name ?? '이름 없음', avatarUrl: f.avatarUrl, canSee: !!f.chartId,
                       }))}
-                      onOpenPerson={(id) => { const f = friends.find((x) => x.otherId === id); setPerson({ kind: 'friend', id, name: f?.name, avatarUrl: f?.avatarUrl }); }}
+                      onOpenPerson={(id) => { const f = friends.find((x) => x.otherId === id); setPerson({ kind: 'friend', id, name: f?.name, avatarUrl: f?.avatarUrl }); }} onRemoveFriend={askRemoveFriend}
                       // ★`wide` = **목록 칸이 넓은가**(화면이 넓은가가 아니다).
                       //   폰은 목록이 전체 폭이라 넓고, 웹 3칸의 왼쪽 칸은 264px 이라 좁다.
                       //   ⇒ `useWideWeb()` 의 정확히 반대다 — 헷갈리기 쉬워 적어 둔다.
@@ -1675,7 +1692,7 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
                       people={friends.filter((f) => f.status === 'accepted').map((f) => ({
                         id: f.otherId, name: f.name ?? '이름 없음', avatarUrl: f.avatarUrl, canSee: !!f.chartId,
                       }))}
-                      onOpenPerson={(id) => { const f = friends.find((x) => x.otherId === id); setPerson({ kind: 'friend', id, name: f?.name, avatarUrl: f?.avatarUrl }); }} wide={!wide} footer={renderBottom} />
+                      onOpenPerson={(id) => { const f = friends.find((x) => x.otherId === id); setPerson({ kind: 'friend', id, name: f?.name, avatarUrl: f?.avatarUrl }); }} onRemoveFriend={askRemoveFriend} wide={!wide} footer={renderBottom} />
           ) : null}
         </View>
         {/* ★★손잡이 — 끌면 폭이 바뀌고, 누르면 접혔다 펴진다.

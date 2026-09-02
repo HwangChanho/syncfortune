@@ -168,6 +168,7 @@ export const en = {
     paidB: 'all twelve months split by wealth, love, work and health, plus remedies and whether the 三災 is the good or the hard kind',
   },
   cp: {
+    someone: 'this friend',
     genAsk: 'Build the {{rel}} compatibility reading?',
     genFree: 'It builds at no extra cost.',
     genCost: 'This relationship costs {{n}} woon.',
@@ -950,7 +951,9 @@ export const en = {
   fcompat: { save: "Add to my list", saved: "Added", gone: 'They are not in your friend list.',
     notShared: "{{name}} hasn't shared their chart yet.\nThey can turn on 'Show my chart to friends' to let you see it.",
     noMe: 'Add your own chart first to see compatibility.', chart: "{{name}}'s chart" },
-  friends: { title: 'Friends', myCode: 'My friend code', codeHint: 'Share this code so others can add you.',
+  friends: { remove: 'Remove friend', removeTitle: 'Remove this friend?',
+    removeMsg: 'You will no longer be friends with {{name}}, and your chat room will close.',
+    title: 'Friends', myCode: 'My friend code', codeHint: 'Share this code so others can add you.',
     addByCode: 'Add by code', codePh: '6-character code', add: 'Request', pending: 'Pending', mates: 'Friends',
     empty: 'No friends yet.\nAdd someone by code above.', noName: 'No name',
     sent: 'Request sent. You become friends once they accept.', bothSent: 'You both requested — you are friends now!',

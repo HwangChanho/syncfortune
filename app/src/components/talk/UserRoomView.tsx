@@ -24,6 +24,7 @@ import { useTranslation } from 'react-i18next';
 import { PressableScale } from '../PressableScale';
 import { Icon } from '../kit/Icon';
 import { TalkThread, type TalkItem } from './TalkThread';
+import { pickImageUri, bytesOfUri, canPickImage } from '../../lib/media/pickImage';   // 폰 사진 고르기(이미 있던 모듈)
 import {
   loadUserMessages, sendUserMessage, subscribeUserRoom, roomPeople,
   markRoomRead, subscribeRoomRead, unreadBy, uploadRoomPhoto, sendTyping, subscribeTyping,
@@ -312,21 +313,35 @@ export function UserRoomView({ sessionId, myId, onBack, onInvite, onLeave, menti
    *   ★없는 기능을 있는 척하지 않는다: 모바일에서는 **버튼을 아예 안 그린다.**
    * ★올리는 동안 `sending` 을 잡아 둔다 — 두 번 눌러 두 장이 가는 것을 막는다.
    */
-  const pickPhoto = () => {
-    if (Platform.OS !== 'web' || sending) return;
-    const el = document.createElement('input');
-    el.type = 'file';
-    el.accept = 'image/*';
-    el.onchange = async () => {
-      const f = el.files?.[0];
-      if (!f) return;
-      setSending(true);
-      const path = await uploadRoomPhoto(sessionId, f);
-      if (path) await sendUserMessage(sessionId, '', myId, path);
-      setSending(false);
-      if (!path) console.warn('[room] 사진을 올리지 못했습니다(2MB 이하만)');
-    };
-    el.click();
+  const pickPhoto = async () => {
+    if (sending) return;
+    if (Platform.OS === 'web') {
+      const el = document.createElement('input');
+      el.type = 'file';
+      el.accept = 'image/*';
+      el.onchange = async () => {
+        const f = el.files?.[0];
+        if (!f) return;
+        setSending(true);
+        const path = await uploadRoomPhoto(sessionId, f);
+        if (path) await sendUserMessage(sessionId, '', myId, path);
+        setSending(false);
+        if (!path) console.warn('[room] 사진을 올리지 못했습니다(2MB 이하만)');
+      };
+      el.click();
+      return;
+    }
+    // ★★폰 — 이미 있는 `pickImageUri`/`bytesOfUri` 를 쓴다(프로필 사진이 쓰던 그 길).
+    if (!canPickImage) return;
+    const uri = await pickImageUri();
+    if (!uri) return;                                   // 취소·권한 거절 = 조용히
+    setSending(true);
+    const img = await bytesOfUri(uri);
+    // ⚠️`uploadRoomPhoto` 는 `size`·`type` 을 본다 — Blob 처럼 생긴 것을 만들어 넘긴다.
+    const path = img ? await uploadRoomPhoto(sessionId, img as never) : null;
+    if (path) await sendUserMessage(sessionId, '', myId, path);
+    setSending(false);
+    if (!path) console.warn('[room] 사진을 올리지 못했습니다(2MB 이하만)');
   };
 
   return (
@@ -372,9 +387,12 @@ export function UserRoomView({ sessionId, myId, onBack, onInvite, onLeave, menti
             onSubmitEditing={send}
             blurOnSubmit={false}
           />
-          {/* ★사진 — 웹에서만(위 `pickPhoto` 주석). 모바일에는 **아예 안 그린다** */}
-          {Platform.OS === 'web' ? (
-            <PressableScale style={styles.photoBtn} onPress={pickPhoto} disabled={sending} hitSlop={8}>
+          {/* ★★사진 — **웹·폰 둘 다** (Boss 2026-09-02 *"사진도 보낼수 있게 하라니깐"*).
+              ⚠️여태 웹 전용이었던 것은 «모듈이 없어서» 가 아니라 **낡은 주석 때문**이었다 —
+                `expo-image-picker` 는 이미 설치·링크돼 있었다(Podfile.lock 에 4곳).
+              ⚠️폰에서 모듈이 없는 옛 빌드면 `canPickImage` 가 false → 그때만 안 그린다. */}
+          {(Platform.OS === 'web' || canPickImage) ? (
+            <PressableScale style={styles.photoBtn} onPress={() => { void pickPhoto(); }} disabled={sending} hitSlop={8}>
               <Icon name="plus" size={20} />
             </PressableScale>
           ) : null}
