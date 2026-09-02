@@ -54,6 +54,9 @@ import { BirthDraftCard, type BirthCardResult } from '../../components/talk/Birt
 import { addChart, setRepresentative } from '../../lib/engine/myChart';
 import { loadMyProfile, subscribeProfile, profileSnapshot } from '../../lib/talk/myProfile';
 import { listFriends, removeFriend, type Friend, loadFriendChart } from '../../lib/talk/friends';
+import { ROUTE as MARKET_ROUTE } from './market';                 // ★콘텐츠 경로 단일 출처(운이 메뉴)
+import { COIN_PRICE } from '../../lib/billing/coinPrices';        // ★값 단일 출처
+import { CREDIT_KINDS, type CreditKind } from '../../lib/billing/coupons';   // ★이름 단일 출처
 import { useHomeOrder } from '../../lib/ui/homeOrder';
 import { ensureServerChartIdForSaved } from '../../lib/backend/prewarmReadings';
 // ★답장 알림 — «보고 있는 방» 알리기 + 앱 아이콘 배지(Boss 2026-08-28)
@@ -748,6 +751,37 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
        */
       const pickCard: typeof items = [];
       /**
+       * ★★**운이(안내자) 첫 방 — 유료 풀이를 골라서 살 수 있게** (Boss 2026-09-02
+       *   *"우니 첫 대화방 들어가면 기존에 우리가 만들어둔 유료 풀이들 선택해서 구매해서 볼수있게 하자"*).
+       *
+       * ■ 운이는 «뭐 볼지 골라줄게» 가 일인 사람이다. 그런데 종전엔 **말로만** 안내했다 —
+       *   대화 중 `[[추천:키]]` 로 **한 번에 하나씩**(그것도 «말이 그리로 갔을 때만»).
+       *   ⇒ 처음 들어온 사람은 **무엇이 있는지 목록조차 못 본다.**
+       * ■ ⇒ 인사 **바로 뒤에** 목록을 한 번 준다. 고르면 그 화면으로 가고, 거기서 산다.
+       *   ⚠️여기서 **결제하지 않는다** — 사는 곳은 그 콘텐츠 화면이다(게이트가 거기 있다).
+       *     대화창에서 돈이 나가면 «누른 적 없는 결제» 가 생긴다.
+       * ■ ⚠️**운이에게만**이다(`guide_nabi`). 다른 상담가에게 목록을 들이밀면 광고가 된다.
+       * ■ ⚠️**이력이 없을 때만**(첫 방). 아래 `hist` 분기에서 인사와 함께만 붙는다.
+       * ■ ★목록·값·경로는 **단일 출처**에서 온다 — `consultants.routes` × `market.ROUTE` × `COIN_PRICE`.
+       *   여기서 새 표를 만들지 않는다(만들면 값이 갈린다).
+       */
+      const guideMenu: typeof items = c.id === 'guide_nabi' ? (() => {
+        const rows = (c.routes ?? [])
+          .map((k) => ({ k, r: (MARKET_ROUTE as Record<string, { pathname: string; kind?: string }>)[k], won: COIN_PRICE[k as CreditKind] }))
+          .filter((x) => x.r && x.won);                       // 값이 있는 유료 풀이만
+        if (!rows.length) return [];
+        const label = (k: string) => CREDIT_KINDS.find((x) => x.key === k)?.ko ?? k;
+        return [{
+          id: nextId(), role: 'assistant' as const,
+          body: t('talk.guideMenu', '이런 걸 볼 수 있어. 궁금한 거 골라 봐.'),
+          links: rows.map((x) => ({
+            key: x.k,
+            label: `${label(x.k)} · ${x.won}운`,
+            route: x.r!.kind ? `${x.r!.pathname}?kind=${x.r!.kind}` : x.r!.pathname,
+          })),
+        }];
+      })() : [];
+      /**
        * ★★**이력이 있는지 먼저 확인한 뒤에** 인사할지 정한다 (Boss 2026-08-30
        *   *"기존 대화이력이 있는데 친구를 누르면 다시 인사를 하다가 갑자기 기존 대화창으로 가.
        *     기본적으로 친구를 누르면 1:1 대화창이 있는지 확인부터 해야지"*).
@@ -761,7 +795,8 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
        * ■ ⚠️`clearTimers()` 로 지우던 «이미 튼 인사» 가 이제 없다 — 그래서 깜빡임도 없다.
        */
       setBusy(true);
-      const greetIfEmpty = () => sayInOrder([...greetParts, ...pickCard, ...blockCards, ...linkCard]);
+      // ★운이 메뉴는 **인사 바로 뒤**에 (이력이 있으면 이 함수 자체가 안 불린다 = 첫 방에만)
+      const greetIfEmpty = () => sayInOrder([...greetParts, ...guideMenu, ...pickCard, ...blockCards, ...linkCard]);
       void loadThread(c.id, room?.sessionId ?? null).then((th) => {
         if (!th) { setBusy(false); greetIfEmpty(); return; }
         if (!th.messages.length) { setBusy(false); greetIfEmpty(); }

@@ -1272,7 +1272,7 @@ export const en = {
     'sub': 'See how today runs — one card is enough.',
     'cta': 'Start',
   },
-  talk: { netErr: "Network error. Check your connection and send again.", sendErr: "Couldn't send. Please try again in a moment.", lowBalance: 'You have {{have}} woon left. The next stretch needs {{cost}}.', pickedChart: "Let's look at {{name}}'s chart", inviteAsk: 'Bring {{name}} into this chat?', handoffAsk: 'Connect you with {{name}}?', handoffYes: 'Connect', inviteYes: 'Invite', packLast: 'That bundle ends here. Woon applies again from the next message.', searchPh: 'Search by name', favShort: 'Favorite', unfavShort: 'Remove',
+  talk: { guideMenu: "Here's what I can show you. Pick whatever you're curious about.", netErr: "Network error. Check your connection and send again.", sendErr: "Couldn't send. Please try again in a moment.", lowBalance: 'You have {{have}} woon left. The next stretch needs {{cost}}.', pickedChart: "Let's look at {{name}}'s chart", inviteAsk: 'Bring {{name}} into this chat?', handoffAsk: 'Connect you with {{name}}?', handoffYes: 'Connect', inviteYes: 'Invite', packLast: 'That bundle ends here. Woon applies again from the next message.', searchPh: 'Search by name', favShort: 'Favorite', unfavShort: 'Remove',
     'greetHi': 'Hello, I\'m {{name}}.',
     'greetWhat': 'I look after {{what}}. What would you like to know?',
     'greetAsk': 'What would you like to know?',
