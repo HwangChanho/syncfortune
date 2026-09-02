@@ -110,7 +110,23 @@ for (const r of ROUTES) {
    * ⇒ 진짜 문제는 **아무 말도 없는** 화면뿐이다. 그 하나만 잡는다.
    *   ★대신 짧은 화면은 **본문을 함께 찍어** 사람이 훑을 수 있게 한다(숨기지 않는다).
    */
-  const blank = body.length < 12;
+  let blank = body.length < 12;
+  /**
+   * ★★**빈 화면은 한 번 더 기다렸다 다시 잰다** (2026-09-02).
+   * ■ 왜 — `/relationmap` 이 한 판에서 19자 BLANK 로 잡혔다가 **재실행하니 90자** 로 통과했다.
+   *   2.6초 안에 못 그린 것뿐이었다. 이런 **거짓 빨간불은 게이트를 못 믿게 만든다**
+   *   (같은 날 `check:enginecost` 도 부하 때문에 릴리스를 한 번 막았다).
+   * ■ ⚠️★재시도는 **BLANK 에만** 준다. CRASH·ERR 는 **즉시 실패**다 —
+   *   크래시는 기다린다고 낫지 않고, 기다려서 통과시키면 그게 진짜 위험한 눈감기다.
+   * ■ 진짜 빈 화면은 3초를 더 줘도 비어 있다. 늦게 그리는 화면만 살아난다.
+   */
+  if (blank && !crash) {
+    await page.waitForTimeout(3000);
+    const again = (await page.evaluate(() => (document.body.innerText || '').trim())) || '';
+    if (again.replace(/니운내운|운친구|운광장|내 운|다섯 기운이 이어|오늘의 나를 읽다/g, '').trim().length >= 12) {
+      txt = again; blank = false;
+    }
+  }
   const real = errs.filter((e) => !/favicon|manifest|401|Failed to load resource/.test(e));
   const mark = crash ? 'CRASH' : blank ? 'BLANK' : leaks.length ? 'LEAK' : real.length ? 'ERR' : 'ok';
   if (mark !== 'ok') bad.push({ r: r || '(home)', mark, status, len: txt.length, e: leaks[0] || real[0] || JSON.stringify(body.slice(0, 60)) });
