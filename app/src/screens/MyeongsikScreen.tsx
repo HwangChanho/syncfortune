@@ -573,6 +573,22 @@ function MyeongsikBody({ input, friendSaju, onReading, onSinsal, header, whoName
     ).start();
   }, []);
 
+  /**
+   * ★★넓은 화면에서 명식을 **키운다** (Boss 2026-09-02
+   *   *"웹 기준 높이 맞쳐줘 거기에맞게 글자크기도 키우고"*).
+   *
+   * ■ 왜 — 오행을 오른쪽으로 보내고 나니 두 칸의 **키가 안 맞았다.**
+   *   실측(창 1298px): 오른쪽 패널 **514** · 명식 카드 **239** — 138px 짧아 아래가 휑했다.
+   * ■ 글자를 키우면 카드도 같이 커진다(높이는 내용이 정한다) ⇒ **배율 하나**로 둘을 같이 푼다.
+   *   ★배율은 **실측으로 맞췄다**: 1.55 → 카드 343(아래끝 차이 34px 남음) → **1.72** 로 올려 맞췄다.
+   *     (카드 높이는 배율에 정비례하지 않는다 — 고정 여백이 섞여 있어 한 번 재고 조정했다.)
+   * ■ ⚠️폰은 **건드리지 않는다**(`wide` 일 때만) — 좁은 화면에서 키우면 글자가 눌려 세로로 깨진다
+   *   ([[container-width-not-window]] 의 그 증상).
+   * ■ ⚠️`fontSize` 를 키우면 `lineHeight` 도 **같이** 키운다(전역 규칙 · `check:lineheight`).
+   */
+  const PW = wide ? 1.72 : 1;
+  const pz = (n: number) => Math.round(n * PW);
+
   const renderPillars = () => (
     // 합충 호 좌표 기준 = 명식 기둥영역 실제 폭(패딩 안). arc Svg 와 동일 좌표계가 되도록 여기서 측정.
     <View style={styles.pillarContainer} onLayout={(e) => setRowW(e.nativeEvent.layout.width)}>
@@ -590,34 +606,34 @@ function MyeongsikBody({ input, friendSaju, onReading, onSinsal, header, whoName
             ]}
           >
             <GlassCard 
-              style={StyleSheet.flatten([styles.pillarGlass, isDay && styles.pillarDayGlass])} 
+              style={StyleSheet.flatten([styles.pillarGlass, isDay && styles.pillarDayGlass, wide && { paddingVertical: pz(12) }])} 
               intensity={isDay ? 60 : 30}
             >
-              <Text style={[styles.pillarPos, isDay && styles.pillarPosDay]}>{p}</Text>
+              <Text style={[styles.pillarPos, isDay && styles.pillarPosDay, wide && { fontSize: pz(12), lineHeight: pz(17) }]}>{p}</Text>
               
               {/* 천간 십신 — 개별 클릭 시 십신 설명(daniel: 십성 클릭 복구) */}
               <PressableScale onPress={() => setGlossary({ kind: 'tengod', key: P[p].stemTenGod })}>
-                <Text style={[styles.pillarTenGod, { color: colors.inkSoft }]}>{P[p].stemTenGod}</Text>
+                <Text style={[styles.pillarTenGod, { color: colors.inkSoft }, wide && { fontSize: pz(12), lineHeight: pz(17) }]}>{P[p].stemTenGod}</Text>
               </PressableScale>
               <PressableScale style={styles.pillarMain} onPress={() => setGlossary({ kind: 'stem', key: P[p].stem })}>
-                <Text style={[styles.pillarChar, { color: elementColor[elStem] }]}>{hangeul ? stemReading(P[p].stem) : P[p].stem}</Text>
-                <Text style={[styles.pillarReading, { color: colors.inkFaint }]}>{hangeul ? P[p].stem : stemReading(P[p].stem)} · {stemYinYang(P[p].stem)}</Text>
+                <Text style={[styles.pillarChar, { color: elementColor[elStem] }, wide && { fontSize: pz(31), lineHeight: pz(38) }]}>{hangeul ? stemReading(P[p].stem) : P[p].stem}</Text>
+                <Text style={[styles.pillarReading, { color: colors.inkFaint }, wide && { fontSize: pz(11), lineHeight: pz(15) }]}>{hangeul ? P[p].stem : stemReading(P[p].stem)} · {stemYinYang(P[p].stem)}</Text>
               </PressableScale>
 
 
               <PressableScale style={styles.pillarMain} onPress={() => setGlossary({ kind: 'branch', key: P[p].branch })}>
-                <Text style={[styles.pillarChar, { color: elementColor[elBranch] }]}>{hangeul ? branchReading(P[p].branch) : P[p].branch}</Text>
-                <Text style={[styles.pillarReading, { color: colors.inkFaint }]}>{hangeul ? P[p].branch : branchReading(P[p].branch)} · {branchYinYang(P[p].branch)}</Text>
+                <Text style={[styles.pillarChar, { color: elementColor[elBranch] }, wide && { fontSize: pz(31), lineHeight: pz(38) }]}>{hangeul ? branchReading(P[p].branch) : P[p].branch}</Text>
+                <Text style={[styles.pillarReading, { color: colors.inkFaint }, wide && { fontSize: pz(11), lineHeight: pz(15) }]}>{hangeul ? P[p].branch : branchReading(P[p].branch)} · {branchYinYang(P[p].branch)}</Text>
               </PressableScale>
               {/* 지지 십신 — 개별 클릭 시 십신 설명 */}
               <PressableScale onPress={() => setGlossary({ kind: 'tengod', key: P[p].branchMainTenGod })}>
-                <Text style={[styles.pillarTenGod, { color: colors.inkSoft }]}>{P[p].branchMainTenGod}</Text>
+                <Text style={[styles.pillarTenGod, { color: colors.inkSoft }, wide && { fontSize: pz(12), lineHeight: pz(17) }]}>{P[p].branchMainTenGod}</Text>
               </PressableScale>
 
               {/* 12운성 — 항상 표시(daniel: 상세분석 토글 밖). 탭 → 글로서리 설명. */}
               <View style={styles.pillarDivider} />
               <PressableScale onPress={() => setGlossary({ kind: 'stage', key: c.stages[p] })}>
-                <Text style={styles.pillarStage}>{c.stages[p]}</Text>
+                <Text style={[styles.pillarStage, wide && { fontSize: pz(12), lineHeight: pz(17) }]}>{c.stages[p]}</Text>
               </PressableScale>
 
               {showAdvanced && (
