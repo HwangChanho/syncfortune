@@ -18,7 +18,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import {
   View, Text, StyleSheet, TextInput, ActivityIndicator,
-  KeyboardAvoidingView, Platform, ScrollView,
+  KeyboardAvoidingView, Platform, ScrollView, Keyboard,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -39,6 +39,23 @@ export default function RoomScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { session } = useAuth();
+
+  /**
+   * ★키보드가 열린 높이 — **값이 아니라 «바뀌었다»** 를 `TalkThread` 에 넘겨 맨 아래로 붙인다
+   *   (Boss 2026-09-02 *"키보드 때문에 내 채팅이 안보여"*).
+   * ■ `KeyboardAvoidingView` 가 입력바를 올리면 목록(`flex:1`)은 **높이가 줄어든다**.
+   *   그런데 스크롤 위치는 그대로라 방금 쓴 말이 보이는 영역 밖으로 밀린다.
+   * ■ ★AI 대화·친구 대화와 **같은 병**이다. 세 화면이 같은 `TalkThread` 를 쓰므로
+   *   고침은 그 한 곳에 두고, 여기선 값만 넘긴다. ⚠️`check:kbscroll` K3 가 이 누락을 잡았다.
+   */
+  const [kbH, setKbH] = useState(0);
+  useEffect(() => {
+    const showEvt = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvt = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const sh = Keyboard.addListener(showEvt as never, (e: any) => setKbH(e.endCoordinates?.height ?? 0));
+    const hd = Keyboard.addListener(hideEvt as never, () => setKbH(0));
+    return () => { sh.remove(); hd.remove(); };
+  }, []);
 
   const [room, setRoom] = useState<Room | null>(null);
   const [items, setItems] = useState<TalkItem[]>([]);
@@ -159,7 +176,7 @@ export default function RoomScreen() {
         </View>
       </View>
 
-      <TalkThread items={items} busy={busy} onLink={(r) => router.push(r as never)} />
+      <TalkThread items={items} busy={busy} onLink={(r) => router.push(r as never)} keyboardH={kbH} />
 
       {note ? <Text style={styles.note}>{note}</Text> : null}
 

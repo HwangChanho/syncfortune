@@ -18,7 +18,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import { sizedImage } from '../../lib/media/imageUrl';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, TextInput, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TextInput, StyleSheet, KeyboardAvoidingView, Platform, Keyboard } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';   // ★헤더가 상태바에 먹히던 것(Boss 2026-08-31)
 import { useTranslation } from 'react-i18next';
 import { PressableScale } from '../PressableScale';
@@ -90,6 +90,22 @@ export function UserRoomView({ sessionId, myId, onBack, onInvite, onLeave, menti
    */
   const [inputH, setInputH] = useState(0);
   const inputRef = useRef<TextInput>(null);
+  /**
+   * ★키보드가 열린 높이 — **값이 아니라 «바뀌었다»** 를 `TalkThread` 에 넘겨 맨 아래로 붙인다
+   *   (Boss 2026-09-02 *"키보드 때문에 내 채팅이 안보여"*).
+   * ■ 이 화면은 `KeyboardAvoidingView` 로 입력바를 올린다 ⇒ 목록(`flex:1`)이 그만큼 **줄어든다**.
+   *   그런데 스크롤 위치는 그대로라, 방금 쓴 말이 보이는 영역 밖으로 밀린다.
+   * ■ ⚠️★AI 대화(`talk.tsx`)와 **같은 병**이다 — 한쪽만 고치면 다른 쪽이 그대로 남는다.
+   *   두 화면이 **같은 `TalkThread`** 를 쓰므로, 고침도 그 한 곳에 두고 여기선 값만 넘긴다.
+   */
+  const [kbH, setKbH] = useState(0);
+  useEffect(() => {
+    const showEvt = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvt = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const s2 = Keyboard.addListener(showEvt as never, (e: any) => setKbH(e.endCoordinates?.height ?? 0));
+    const h = Keyboard.addListener(hideEvt as never, () => setKbH(0));
+    return () => { s2.remove(); h.remove(); };
+  }, []);
   /**
    * 초대 창에서 고른 선생님을 **입력칸에 얹는다** — `@이름 ` 을 넣고 커서를 준다.
    * ⚠️쓰던 글을 **지우지 않는다**(앞에 붙인다) — 반쯤 쓴 문장이 사라지면 그게 더 나쁘다.
@@ -265,7 +281,7 @@ export function UserRoomView({ sessionId, myId, onBack, onInvite, onLeave, menti
         ) : null}
       </View>
 
-      <TalkThread items={items} onLink={() => {}} />
+      <TalkThread items={items} onLink={() => {}} keyboardH={kbH} />
 
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View style={styles.bar}>

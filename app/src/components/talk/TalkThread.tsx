@@ -141,7 +141,7 @@ function sameSpeakerAsPrev(items: TalkItem[], i: number): boolean {
   return false;
 }
 
-export function TalkThread({ items, busy, onLink, jumpTo, onWho }: {
+export function TalkThread({ items, busy, onLink, jumpTo, onWho, keyboardH }: {
   items: TalkItem[];
   busy?: boolean;
   onLink: (route: string) => void;
@@ -155,6 +155,19 @@ export function TalkThread({ items, busy, onLink, jumpTo, onWho }: {
    * ★같은 값을 또 넣어도 다시 뛰게 하려면 호출부가 값을 비웠다 넣는다.
    */
   jumpTo?: number | null;
+  /**
+   * ★★키보드가 열린 높이 (Boss 2026-09-02 *"키보드 때문에 내 채팅이 안보여"*).
+   *   **값 자체는 안 쓴다 — 바뀌었다는 사실만 쓴다.** 바뀌면 맨 아래로 다시 붙인다.
+   *
+   * ■ 무엇이 있었나 — 키보드가 열리면 입력바가 그만큼 올라가고(`marginBottom: lift`)
+   *   목록은 `flex:1` 이라 **높이가 줄어든다**. 그런데 **스크롤 위치는 그대로**다
+   *   ⇒ 아래에 있던 말풍선이 보이는 영역 **밖으로 밀려난다**. 방금 내가 쓴 그 한 줄이.
+   * ■ ⚠️★여백(`paddingBottom`)을 더 주는 것은 **틀린 고침**이다 — 자리는 이미 줄어들어
+   *   확보돼 있다. 여백까지 주면 목록 아래에 **빈 칸이 생긴다**. 첫 판에 그렇게 짰다가
+   *   배치를 읽고 되돌렸다(짐작하지 말고 배치를 볼 것).
+   * ■ ⇒ 필요한 것은 **스크롤 하나**다.
+   */
+  keyboardH?: number;
 }) {
   const { t } = useTranslation();
   const ref = useRef<ScrollView>(null);
@@ -163,6 +176,9 @@ export function TalkThread({ items, busy, onLink, jumpTo, onWho }: {
   const [lit, setLit] = useState<number | null>(null);   // 잠깐 밝힐 대상
   // 새 말풍선이 붙으면 아래로 — 대화는 마지막 줄이 중요하다
   useEffect(() => { ref.current?.scrollToEnd({ animated: true }); }, [items.length, busy]);
+  // ★키보드가 열리고 닫힐 때 **맨 아래로 다시 붙인다** — 높이만 줄고 스크롤이 안 따라오면
+  //   방금 쓴 말이 화면 밖으로 밀린다. 애니메이션 없이(`false`) 붙여야 «툭» 하고 바로 보인다.
+  useEffect(() => { ref.current?.scrollToEnd({ animated: false }); }, [keyboardH]);
   /**
    * ★★그런데 위 한 줄로는 **모자란다**(Boss 2026-08-30
    *   *"택스트 입력중표시나 신구 텍스트가오면 채팅장 스크롤을 제일 아래로 만들어줘야해"*).

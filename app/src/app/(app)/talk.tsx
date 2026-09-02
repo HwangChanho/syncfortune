@@ -1758,6 +1758,7 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
               ) : null}
               <TalkThread
         items={items} busy={busy} onLink={(r) => router.push(r as never)} jumpTo={jumpTo}
+        keyboardH={lift}   /* ★키보드가 열리면 목록 높이가 줄어든다 — 그때 맨 아래로 다시 붙여야 내 말이 보인다 */
         /* ★얼굴을 누르면 프로필 — 목록에서 여는 것과 **같은 창**이다(두 갈래면 내용이 갈린다) */
         onWho={(id) => { const f = servers.find((x) => x.id === id); if (f) setProfile(toProfileTarget(f)); }}
       />
@@ -1856,6 +1857,7 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
       />
       <TalkThread
         items={items} busy={busy} onLink={(r) => router.push(r as never)} jumpTo={jumpTo}
+        keyboardH={lift}   /* ★키보드가 열리면 목록 높이가 줄어든다 — 그때 맨 아래로 다시 붙여야 내 말이 보인다 */
         /* ★얼굴을 누르면 프로필 — 목록에서 여는 것과 **같은 창**이다(두 갈래면 내용이 갈린다) */
         onWho={(id) => { const f = servers.find((x) => x.id === id); if (f) setProfile(toProfileTarget(f)); }}
       />
