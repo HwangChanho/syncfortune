@@ -602,7 +602,9 @@ function MyeongsikBody({ input, friendSaju, onReading, onSinsal, header, whoName
 
   const renderPillars = () => (
     // 합충 호 좌표 기준 = 명식 기둥영역 실제 폭(패딩 안). arc Svg 와 동일 좌표계가 되도록 여기서 측정.
-    <View style={styles.pillarContainer} onLayout={(e) => setRowW(e.nativeEvent.layout.width)}>
+    // ★`wide` 면 남는 세로를 기둥이 먹는다(오른쪽 오행 카드와 키 맞추기 · 위 주석).
+    //   ⚠️`flex: 1` 이 아니라 `flexGrow` — `flex: 1` 은 basis 가 0 이라 기둥이 통째로 납작해진다.
+    <View style={[styles.pillarContainer, wide && { flexGrow: 1, marginBottom: 0 }]} onLayout={(e) => setRowW(e.nativeEvent.layout.width)}>
       {visiblePos.map((p) => {
         const isDay = p === '일';
         const elStem = stemElement(P[p].stem);
@@ -617,7 +619,11 @@ function MyeongsikBody({ input, friendSaju, onReading, onSinsal, header, whoName
             ]}
           >
             <GlassCard 
-              style={StyleSheet.flatten([styles.pillarGlass, isDay && styles.pillarDayGlass, wide && { paddingVertical: pz(12) }])} 
+              // ★넓은 화면 — 카드가 **칸 높이를 채운다**(오른쪽 오행 카드와 바닥을 맞추려면
+              //   컨테이너만 늘려선 안 된다. 눈에 보이는 건 이 카드다).
+              //   내용은 세로 가운데로 — 위로 몰리면 아래에 빈 칸이 남는다.
+              style={StyleSheet.flatten([styles.pillarGlass, isDay && styles.pillarDayGlass,
+                wide && { paddingVertical: pz(12), flexGrow: 1, justifyContent: 'center' }])} 
               intensity={isDay ? 60 : 30}
             >
               <Text style={[styles.pillarPos, isDay && styles.pillarPosDay, wide && { fontSize: pz(12), lineHeight: pz(17) }]}>{p}</Text>
@@ -709,7 +715,12 @@ function MyeongsikBody({ input, friendSaju, onReading, onSinsal, header, whoName
               ■ 오른쪽 칸은 **고정 폭**이다 — 비율(`flex`)로 두면 명식 글자가 눌려 세로로 깨진다
                 ([[container-width-not-window]] 의 그 증상). */}
           {!wide ? <OhaengEnergy saju={c.saju} /> : null}
-          <View style={wide ? { flexDirection: 'row', gap: space(5), alignItems: 'flex-start' } : null}>
+          {/* ★두 칸의 **키를 맞춘다** (Boss 2026-09-03 *"나를 이루는 다섯가지 기운 높이 왼쪽 만세력 팔자랑 맞춰줘"*).
+              `stretch` = 두 칸 다 «둘 중 큰 쪽» 높이가 된다. 남는 세로는 아래에서 `flexGrow` 가 먹는다
+              (왼쪽은 명식 기둥이, 오른쪽은 오행 카드가) — **고정 숫자로 맞추지 않는다.**
+              ⚠️명식마다 위 요소가 달라(충·합 띠, 렌즈 안내문) 어느 쪽이 큰지 **그때그때 바뀐다** →
+                한쪽만 늘리는 방식은 반대 경우에 어긋난다. */}
+          <View style={wide ? { flexDirection: 'row', gap: space(5), alignItems: 'stretch', marginBottom: space(4) } : null}>
           <View style={wide ? { flex: 1, minWidth: 0 } : null}>
           <View style={styles.headerArea}>
             {/* 누구 명식인지 제목에 표기(daniel 07-05) — 헤더 ChartPicker(변경 가능)와 함께 '누구의 사주 원국'인지 명확히. */}
@@ -773,7 +784,7 @@ function MyeongsikBody({ input, friendSaju, onReading, onSinsal, header, whoName
           {renderArcs(activeJiP, 'below')}
           </View>
           {/* 오른쪽 칸 — 넓을 때만. 폭은 고정(위 주석) */}
-          {wide ? <View style={{ width: 340 }}><OhaengEnergy saju={c.saju} /></View> : null}
+          {wide ? <View style={{ width: 340 }}><OhaengEnergy saju={c.saju} fill /></View> : null}
           </View>
 
           {/* ★신살·공망(원국) — 12신살 있던 자리로 이동(daniel 2026-07-25). 자리별 적중만: 운에서 오는 신살 제외 · 12신살 요약은 관계분석으로. */}

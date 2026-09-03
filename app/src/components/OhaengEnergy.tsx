@@ -30,7 +30,17 @@ const EL_TRAIT: Record<string, string> = {
  *     그게 기본값이어야 하고, 켜는 순간 «지금의 분포» 로 바뀐다는 걸 눈으로 알 수 있다.
  *   ⚠️합쳐서 하나로 보여 주지 않는다. **무엇이 켜져 있는지**가 늘 보여야 숫자를 오해하지 않는다.
  */
-export function OhaengEnergy({ saju }: { saju: SajuChart }) {
+/**
+ * 오행 에너지 카드.
+ *
+ * @param saju 원국(이 카드는 **원국만** 센다 — 대운·세운 제외)
+ * @param fill ★넓은 화면에서 **옆 칸(팔자)과 키를 맞출 때** 켠다 (Boss 2026-09-03
+ *   *"나를 이루는 다섯가지 기운 높이 왼쪽 만세력 팔자랑 맞춰줘"*).
+ *   켜면 카드가 남는 세로 공간을 먹고, 순위 다섯 줄이 **고르게** 늘어난다.
+ *   ⚠️`flex: 1` 이 아니라 `flexGrow` 다 — `flex: 1` 은 basis 가 0 이라
+ *     높이가 정해지지 않은 부모 안에서 **카드가 통째로 접힌다.**
+ */
+export function OhaengEnergy({ saju, fill }: { saju: SajuChart; fill?: boolean }) {
   // ★어느 층을 셀지 — **원국만**(Boss 2026-08-27 «원국 운세에서는 대운 세운 추가할 필요 없어»).
   //   ⚠️상태를 지우지 않고 `false` 로 고정해 둔다 — 아래 세는 식이 그대로 남아,
   //     시점 고르기(#59)가 붙을 때 배선만 이어 주면 된다(세는 방식은 관법이라 안 건드린다).
@@ -65,8 +75,10 @@ export function OhaengEnergy({ saju }: { saju: SajuChart }) {
   // 구슬 = 오행별 count 만큼(색 에너지). 오행 순서로 묶어 같은 색이 뭉쳐 보이게.
   const beads: string[] = EL.flatMap((e) => Array(counts[e]).fill(e));
 
+  // ⚠️`fill` 이면 **아래 여백을 뗀다** — 여백은 바깥 행이 갖는다.
+  //   옆 칸과 여백이 다르면(8 vs 16) 키를 맞춰도 **바닥이 그만큼 어긋난다.**
   return (
-    <View style={styles.wrap}>
+    <View style={[styles.wrap, fill && { flexGrow: 1, marginBottom: 0 }]}>
       <Text style={styles.title}>나를 이루는 다섯 기운</Text>
 
       {/* ⚠️★대운·세운 **켜기 칩을 뺐다**(Boss 2026-08-27
@@ -124,9 +136,10 @@ export function OhaengEnergy({ saju }: { saju: SajuChart }) {
       ) : null}
 
       {/* ③ 대표기운 순위 1~5(daniel 2026-07-24 '2~5순위까지 다 나오게') — 세력 순으로 다섯 기운 전부 + 성향. 1위 강조. */}
-      <View style={styles.rankCard}>
+      {/* ★`fill` 이면 이 카드가 남는 세로를 먹는다(옆 칸과 키 맞추기) */}
+      <View style={[styles.rankCard, fill && { flexGrow: 1 }]}>
         {sorted.map((e, i) => (
-          <View key={e} style={[styles.rankRow, i > 0 && styles.rankRowBorder]}>
+          <View key={e} style={[styles.rankRow, i > 0 && styles.rankRowBorder, fill && { flexGrow: 1 }]}>
             <Text style={[styles.rankNum, i === 0 && styles.rankNumTop]}>{i + 1}</Text>
             <View style={[styles.rankOrb, glow(e), { backgroundColor: elementColor[e] },
               i === 0 ? { width: orbTop, height: orbTop, borderRadius: orbTop / 2 } : { width: orb, height: orb, borderRadius: orb / 2 }]}>

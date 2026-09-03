@@ -9,7 +9,9 @@ import { useFontScale } from '../../lib/ui/fontScale';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { MyeongsikScreen } from '../../screens/MyeongsikScreen';
-import { loadMyChart, listCharts, getRepresentativeId, loadRepChart, subscribeRepChange } from '../../lib/engine/myChart';
+import { loadMyChart, listCharts, getRepresentativeId, loadRepChart, subscribeRepChange, type SavedChart } from '../../lib/engine/myChart';
+import { ensureServerChartIdForSaved } from '../../lib/backend/prewarmReadings'; // 서버 명식 id 발급(유료 기능이 여기 걸린다)
+import { useAuth } from '../../lib/useAuth';
 import { ChartPicker } from '../../components/ChartPicker';
 import { ChartSkeleton } from '../../components/Skeleton'; // 로딩 중 명식 형태 스켈레톤(daniel 2026-06-28)
 import { useDeferredReady } from '../../lib/ui/useDeferredReady'; // 전환 끝난 뒤 MyeongsikScreen 마운트(멈칫 제거)
@@ -50,14 +52,54 @@ export default function ChartsScreen() {
    *   그러면 만세력이 유료 버튼을 **아예 안 그린다**(살 수 없는 것을 보여 주지 않는다).
    */
   const [shownId, setShownId] = useState<string | null>(null);
+  /**
+   * ★지금 보는 명식 **그 자체**(SavedChart).
+   *
+   * 서버 id 가 없을 때 **발급**하려면 `input` 만으론 부족하다(`ensureServerChartIdForSaved` 가
+   * SavedChart 를 받는다). 그리고 «대표» 로 대신 찾으면 안 된다 — 골라 본 명식이 대표가 아닐 수 있어
+   * **남의 명식에 결제를 걸** 수 있다. 그래서 보는 것을 그대로 들고 있는다.
+   */
+  const [shownChart, setShownChart] = useState<SavedChart | null>(null);
+  // 발급이 돌아왔을 때 **아직 같은 명식을 보고 있는지** 확인할 거울(비동기 경합 방지)
+  const shownChartRef = useRef<SavedChart | null>(null);
+  useEffect(() => { shownChartRef.current = shownChart; }, [shownChart]);
   const setShown = (id: string | null) => { shownIdRef.current = id; setShownId(id); };
+  const { session } = useAuth();
 
   useEffect(() => {
     loadMyChart().then((c) => { setMe(c); setLoading(false); });
     refreshRepName();
     // 고른 적이 없으면 «보는 것» = 대표. ★언락 키는 **서버 id** 라야 한다(위 주석).
-    void loadRepChart().then((c) => { if (!shownIdRef.current) setShown(c?.serverChartId ?? null); });
+    void loadRepChart().then((c) => {
+      if (shownIdRef.current) return;
+      setShownChart(c ?? null);
+      setShown(c?.serverChartId ?? null);
+    });
   }, []);
+
+  /**
+   * ── ★서버 명식 id 가 없으면 **여기서 발급받는다** ──────────────────────────
+   * Boss 2026-09-03: *"신규 명식 등록하니깐 이번에 반영한 합충 보기가 안뜨네"*
+   *
+   * ■ 원인 — 갓 등록한 명식은 **아직 서버에 안 올라가 있다**(`serverChartId` 가 없다).
+   *   유료 기능(「충/합 글자 바꿔 보기」)은 (명식 × 기능) 단위라 서버 id 를 열쇠로 쓰는데,
+   *   그게 없으니 만세력이 버튼을 **아예 안 그렸다**. 살 수 없는 버튼을 감춘 건 맞지만,
+   *   **살 수 있게 만들 수 있는데도** 감춘 것이 틀렸다.
+   * ■ ⇒ 없으면 **발급받는다.** `insert_chart_enc` 는 멱등이라(owner·relation·원국 지문 기준
+   *   canonical row) 여러 번 불러도 같은 id 로 수렴한다 — 새 행이 쌓이지 않는다.
+   * ■ ⚠️«대표» 로 대신 찾지 않는다 — 골라 본 명식이 대표가 아닐 수 있어 **남의 명식에 결제를
+   *   걸** 수 있다. 반드시 **지금 보고 있는 그것**(`shownChart`)으로 발급한다.
+   * ■ ⚠️로그인 전에는 발급이 안 된다 — 그때는 버튼이 안 그려지는 게 맞다(살 수 없다).
+   */
+  useEffect(() => {
+    if (shownId || !shownChart || !session) return;
+    let alive = true;
+    void ensureServerChartIdForSaved(shownChart, session).then((sid) => {
+      // ★기다리는 사이 다른 명식으로 갈아탔을 수 있다 — **그때 보던 그것**이 맞을 때만 반영한다
+      if (alive && sid && shownChartRef.current?.id === shownChart.id) setShown(sid);
+    });
+    return () => { alive = false; };
+  }, [shownId, shownChart, session]);
 
   /**
    * ── 명식이 바뀌면 **이 화면에서** 갱신한다 ──────────────────────────────
@@ -73,15 +115,29 @@ export default function ChartsScreen() {
    * ⚠️`subscribeRepChange` 는 **실제로 바뀔 때만** 운다(`myChart.ts` 의 서명 비교) —
    *   포커스마다 다시 읽는 방식과 달리 «골라 본 명식이 홱 대표로 돌아가는» 부작용이 없다.
    */
-  useEffect(() => subscribeRepChange(() => {
+  useEffect(() => subscribeRepChange((reason) => {
+    // ★★**새로 등록했으면 그 명식으로 옮겨 간다** (Boss 2026-09-03
+    //   *"신규 등록하면 기존 페이지로 제대로 연동이 안되는거 같은데"*).
+    //   종전엔 «보던 명식이 아직 목록에 있으면 그대로 둔다» 였다 — 등록해도 **옛 명식이 남았다.**
+    //   ⚠️`'user'`(피커로 고름)와 갈라야 한다. 고른 것을 등록처럼 홱 바꾸면 Boss 가
+    //     08-27 에 지적한 «대표로 되돌아간다» 증상이 다시 난다.
+    if (reason === 'register') {
+      void Promise.all([listCharts(), getRepresentativeId()]).then(([cs, repId]) => {
+        const fresh = cs.find((c) => c.id === repId) ?? cs[cs.length - 1];
+        if (!fresh) return;
+        setShownChart(fresh); setShown(fresh.serverChartId ?? null);   // id 가 없으면 위 effect 가 발급한다
+        setMe(fresh.input); setRepName(fresh.label ?? null);
+      });
+      return;
+    }
     const id = shownIdRef.current;
     if (!id) { void loadMyChart().then((c) => { if (c) setMe(c); }); refreshRepName(); return; }
     void listCharts().then((cs) => {
       // ★`shownIdRef` 는 **서버 id** 다 — 목록에서도 그걸로 찾는다(로컬 id 로 찾으면 못 찾는다).
       const still = cs.find((c) => c.serverChartId === id);
-      if (still) { setMe(still.input); setRepName(still.label ?? null); return; }
-      setShown(null);                                  // 보던 명식이 사라졌다 → 대표로
-      void loadMyChart().then((c) => { if (c) setMe(c); }); refreshRepName();
+      if (still) { setShownChart(still); setMe(still.input); setRepName(still.label ?? null); return; }
+      setShownChart(null); setShown(null);             // 보던 명식이 사라졌다 → 대표로
+      void loadRepChart().then((c) => { setShownChart(c ?? null); if (c) setMe(c.input); }); refreshRepName();
     });
   }), []);
   const { fs } = useFontScale();
@@ -121,9 +177,9 @@ export default function ChartsScreen() {
           viewOnly
           onChange={(picked) => {
             // ★고른 명식의 id 를 기억한다 — 나중에 그 명식이 수정되면 **그것을** 다시 읽는다
-            if (picked) { setShown(picked.serverChartId ?? null); setMe(picked.input); setRepName(picked.label ?? null); return; }
-            setShown(null);
-            void loadMyChart().then(setMe); refreshRepName();
+            if (picked) { setShownChart(picked); setShown(picked.serverChartId ?? null); setMe(picked.input); setRepName(picked.label ?? null); return; }
+            setShownChart(null); setShown(null);
+            void loadRepChart().then((c) => { setShownChart(c ?? null); if (c) setMe(c.input); }); refreshRepName();
           }}
         />
       </>}
