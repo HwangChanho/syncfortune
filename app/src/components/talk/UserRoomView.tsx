@@ -24,6 +24,7 @@ import { useTranslation } from 'react-i18next';
 import { PressableScale } from '../PressableScale';
 import { Icon } from '../kit/Icon';
 import { TalkThread, type TalkItem } from './TalkThread';
+import { Alert } from '../../lib/ui/alert';   // ★RN Alert 아님 — 웹에서도 뜨고 큐를 탄다
 import { pickImageUri, bytesOfUri, canPickImage } from '../../lib/media/pickImage';   // 폰 사진 고르기(이미 있던 모듈)
 import {
   loadUserMessages, sendUserMessage, subscribeUserRoom, roomPeople,
@@ -332,9 +333,16 @@ export function UserRoomView({ sessionId, myId, onBack, onInvite, onLeave, menti
       return;
     }
     // ★★폰 — 이미 있는 `pickImageUri`/`bytesOfUri` 를 쓴다(프로필 사진이 쓰던 그 길).
-    if (!canPickImage) return;
-    const uri = await pickImageUri();
-    if (!uri) return;                                   // 취소·권한 거절 = 조용히
+    // ★실패하면 **사유를 말한다**(2026-09-03) — 취소만 조용하다
+    let uri: string | null = null;
+    try { uri = await pickImageUri(); }
+    catch (e) {
+      Alert.alert(t('room.photo', '사진'),
+        e instanceof Error ? e.message : t('common.retryLater', '잠시 후 다시 시도해 주세요.'),
+        [{ text: t('common.confirm', '확인') }], () => {});
+      return;
+    }
+    if (!uri) return;                                   // 취소 = 조용히
     setSending(true);
     const img = await bytesOfUri(uri);
     // ⚠️`uploadRoomPhoto` 는 `size`·`type` 을 본다 — Blob 처럼 생긴 것을 만들어 넘긴다.

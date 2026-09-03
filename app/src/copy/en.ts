@@ -615,6 +615,7 @@ export const en = {
   typematch: { tagStemHap: 'Stem harmony', tagSaeng: 'Elements feed each other', tagBrHap: 'Branch harmony', tagSamhap: 'Three-branch harmony', tagChung: 'Day-branch clash', title: 'Type vs Type', lead: 'They only need to tell you their two day-pillar characters. No birth date required.', me: 'You', pick: 'Pick their day pillar', none: 'No combination or clash lands between these two characters. That is not good or bad — this axis simply shows neither strong pull nor friction.', limit: 'This looks at two characters only. With the birth time and month it gets far more precise.', goCompat: 'See the full compatibility', noChart: 'Register your chart first.' },
   // 만세력 화면 — ★명리 **용어는 한자 그대로**, 설명만 그 언어로(Boss 2026-08-27)
   ms: {
+    swapBuyMsg2: 'See all eight glyphs swapped to their {{what}} counterparts. Unlock once for this chart with {{coins}} coins and it stays open.',
     aiCall: 'Call an AI teacher',
     aiCallSub: 'Pick one and their name goes into the message box. Write your question after it and they will answer.',
     // Glyph-swap lens — a what-if chart with all eight glyphs replaced by their clash/union counterparts
@@ -790,6 +791,7 @@ export const en = {
     premiumAlert: 'Premium Reading', premiumAlertMsg: 'Pay {{price}} for the deep reading.',
     payPerUse: 'Pay {{price}}', bannerPerUse: '✨ Only the first area is a preview — unlock all for {{price}}', bannerUnlocked: '✨ Unlocked — generate the full reading',
     askTitle: 'Ask a follow-up', askPh: 'Ask anything more about this reading',
+    askTeacher: 'Ask {{name}}',
     askSend: 'Ask', askFree: '{{n}} free question(s) left', askPaid: "Free questions used up — {{price}} per extra question",
     askPremiumTitle: 'Premium only', askPremiumMsg: 'With Premium you get 2 free follow-up questions per area.',
     askPremiumCta: 'Ask more with Premium', askPayTitle: 'Follow-up', askPayMsg: "You've used your free questions. Ask one more for {{price}}?",
@@ -965,7 +967,7 @@ export const en = {
     consentBody: 'When on, friends can see your four pillars and your compatibility.\nThose eight characters can reveal your birth date, so only open this to people you trust.\nYou can turn it off anytime, and it hides immediately.',
     consentOn: 'Friends can see your chart now.', consentOff: 'Nobody can see it now.' },
   // ── Open chat rooms ──────────────────────────────────────────────────────
-  room: { alone: 'Only you here', this: 'this conversation',
+  room: { photo: 'Photo', alone: 'Only you here', this: 'this conversation',
     someone: 'Someone', ph: 'Type a message',
     aiCount: '{{n}} AI',
     gone: "This room doesn't exist, or you can't enter it.",

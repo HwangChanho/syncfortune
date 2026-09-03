@@ -239,7 +239,11 @@ function MyeongsikBody({ input, friendSaju, onReading, onSinsal, header, whoName
    * ■ ⚠️대운·세운의 **간지는 안 바뀐다**(실측 확인). 십신만 새 일간을 따라간다 — 렌즈니까 맞다.
    */
   const [swapMode, setSwapMode] = useState<GlyphSwapMode | null>(null);
-  const [swapPaid, setSwapPaid] = useState<boolean | null>(null);   // null = 아직 확인 중
+  /**
+   * 모드별로 **따로** 산다 (Boss 2026-09-03 *"합보기 충보기는 개별로 비용 발생"*).
+   * `null` = 아직 확인 중 · `{chung:boolean, hap:boolean}` = 각각 열렸나.
+   */
+  const [swapPaid, setSwapPaid] = useState<{ chung: boolean; hap: boolean } | null>(null);
   const [swapBusy, setSwapBusy] = useState(false);                  // 차감 왕복 중 — 두 번 눌림 방지
   const c = useMemo(
     () => (friendSaju
@@ -249,7 +253,8 @@ function MyeongsikBody({ input, friendSaju, onReading, onSinsal, header, whoName
   );
 
   /** 렌즈 값(표기용). 서버가 최종 금액을 정하므로 여기 숫자는 **보여 주기만** 한다. */
-  const SWAP_FEE = FEATURE_UNLOCKS.find((f) => f.kind === 'chunghap')!;
+  /** 모드별 값(표기용). ★실제 차감액은 서버가 정한다 — 여기 숫자는 보여 주기만 한다. */
+  const feeOf = (m: GlyphSwapMode) => FEATURE_UNLOCKS.find((f) => f.kind === m)?.coins ?? 0;
   /**
    * 렌즈를 팔 수 있는 자리인가 — **내 저장된 명식**일 때만.
    * ⚠️친구 명식·미저장 명식은 다시 계산을 못 하거나 차트 id 가 없어 언락 자체가 불가능하다.
@@ -260,9 +265,11 @@ function MyeongsikBody({ input, friendSaju, onReading, onSinsal, header, whoName
   // 이미 산 명식인지 확인 — 화면에 들어올 때 한 번. ⚠️확인 실패는 `false`(잠김)로 두지 않고
   //   `isUnlocked` 가 서버까지 본 결과를 그대로 쓴다(로컬 없으면 서버 권위).
   useEffect(() => {
-    if (!swapSellable || !chartId) { setSwapPaid(false); return; }
+    if (!swapSellable || !chartId) { setSwapPaid({ chung: false, hap: false }); return; }
     let alive = true;
-    void isUnlocked(chartId, 'chunghap').then((v) => { if (alive) setSwapPaid(v); });
+    // ★둘을 **따로** 묻는다 — 하나만 샀으면 하나만 열려야 한다
+    void Promise.all([isUnlocked(chartId, 'chung'), isUnlocked(chartId, 'hap')])
+      .then(([c, h]) => { if (alive) setSwapPaid({ chung: c, hap: h }); });
     return () => { alive = false; };
   }, [swapSellable, chartId]);
 
@@ -275,26 +282,30 @@ function MyeongsikBody({ input, friendSaju, onReading, onSinsal, header, whoName
    *   묻는 것 자체가 «또 결제하나» 로 읽힌다(07-28 사고의 체감 증상).
    */
   const pickSwap = async (next: GlyphSwapMode | null) => {
-    if (next === null || swapPaid) { setSwapMode(next); return; }
+    if (next === null) { setSwapMode(null); return; }        // 원국으로 되돌리기는 언제나 공짜
+    if (swapPaid?.[next]) { setSwapMode(next); return; }      // ★그 모드를 이미 샀다
     if (swapBusy || !chartId) return;
     const ok = await new Promise<boolean>((resolve) => {
       Alert.alert(
         t('ms.swapBuyTitle', '글자 바꿔 보기'),
-        t('ms.swapBuyMsg', { coins: SWAP_FEE.coins, defaultValue: '이 명식의 여덟 글자를 충·합 짝으로 바꿔 보는 기능이에요. {{coins}} 운으로 이 명식에 한 번만 열면 계속 볼 수 있어요.' }),
+        t('ms.swapBuyMsg2', {
+          what: next === 'chung' ? T('충') : T('합'), coins: feeOf(next),
+          defaultValue: '이 명식의 여덟 글자를 {{what}} 짝으로 바꿔 봐요. {{coins}} 운으로 이 명식에서 한 번만 열면 계속 볼 수 있어요.',
+        }),
         [{ text: t('common.cancel'), style: 'cancel', onPress: () => resolve(false) },
-         { text: t('ms.swapBuyOk', { coins: SWAP_FEE.coins, defaultValue: '{{coins}} 운으로 열기' }), onPress: () => resolve(true) }],
+         { text: t('ms.swapBuyOk', { coins: feeOf(next), defaultValue: '{{coins}} 운으로 열기' }), onPress: () => resolve(true) }],
         () => resolve(false),   // 뒤로가기로 닫아도 대기 Promise 가 남지 않는다
       );
     });
     if (!ok) return;
     setSwapBusy(true);
     try {
-      const r = await unlockChartFeature('chunghap', chartId);
+      const r = await unlockChartFeature(next, chartId);   // ★모드별로 따로 산다
       if (!r.ok) {
         if (r.reason === 'insufficient') {
           Alert.alert(
             t('coins.needTitle', '운이 조금 모자라요'),
-            t('coins.needMsg', { need: r.cost ?? SWAP_FEE.coins, have: r.balance ?? 0, defaultValue: '이 풀이는 {{need}} 운이 필요해요. 지금 {{have}} 운 있어요.' }),
+            t('coins.needMsg', { need: r.cost ?? feeOf(next), have: r.balance ?? 0, defaultValue: '이 풀이는 {{need}} 운이 필요해요. 지금 {{have}} 운 있어요.' }),
             [{ text: t('common.cancel'), style: 'cancel' },
              { text: t('coins.charge', '운 충전하기'), onPress: () => router.push('/coins') }],
             () => {},
@@ -304,8 +315,8 @@ function MyeongsikBody({ input, friendSaju, onReading, onSinsal, header, whoName
         }
         return;
       }
-      await markUnlocked(chartId, 'chunghap');   // 로컬 도장 — 다음엔 서버 왕복 없이 열린다
-      setSwapPaid(true);
+      await markUnlocked(chartId, next);   // 로컬 도장 — 다음엔 서버 왕복 없이 열린다
+      setSwapPaid((p) => ({ chung: false, hap: false, ...(p ?? {}), [next]: true }));
       setSwapMode(next);
     } finally { setSwapBusy(false); }
   };
@@ -741,7 +752,7 @@ function MyeongsikBody({ input, friendSaju, onReading, onSinsal, header, whoName
                   <Text style={[styles.layerChipTx, swapMode === k && styles.layerChipTxOn]}>
                     {swapMode === k ? '✓ ' : ''}{label}
                     {/* 아직 안 산 사람에게만 자물쇠 + 값. 산 뒤에는 사라진다(산 것에 값을 계속 붙이지 않는다). */}
-                    {k !== null && swapPaid === false ? ` 🔒${SWAP_FEE.coins}` : ''}
+                    {k !== null && swapPaid && !swapPaid[k] ? ` 🔒${feeOf(k)}` : ''}
                   </Text>
                 </PressableScale>
               ))}

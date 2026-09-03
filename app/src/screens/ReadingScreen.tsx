@@ -25,6 +25,8 @@ import { ShareReadingButton } from '../components/ShareReadingButton'; // daniel
 import { Alert } from '../lib/ui/alert'; // 커스텀 알림(앱 디자인)
 import { isAdminActing } from '../lib/core/admin'; // 관리자 여부 — 풀이 초기화 버튼 게이트(07-21 코드큐)
 import { useRouter } from 'expo-router';
+import { teacherFor } from '../lib/talk/teacherFor';                       // 「누구에게 물어야 하나」
+import { listConsultants, type Consultant } from '../lib/talk/consultants';   // 목록은 서버가 정본
 import { useTranslation } from 'react-i18next';
 import { termLabel } from '../lib/ui/termLabel';   // ★명리 용어 — 한국어는 그대로, 그 밖은 한자(Boss 2026-08-27)
 import { computeChart } from '../lib/engine/engine';
@@ -160,6 +162,14 @@ function ReadingScreenBody({
   input, savedChart, categories, kind = 'saju', header,
 }: ReadingScreenProps & { input: ChartInput }) {
   const router = useRouter();
+  /**
+   * ★이 풀이를 «누구에게 물으면 되나» — 상담가의 `routes` 로 고른다(`teacherFor`).
+   *   ⚠️목록은 서버가 정본이라 한 번 읽는다. 못 읽으면 버튼을 **안 그린다**
+   *   (누구에게 가는지 모르는 버튼은 죽은 버튼이다).
+   */
+  const [teachers, setTeachers] = useState<Consultant[]>([]);
+  useEffect(() => { void listConsultants().then(setTeachers); }, []);
+  const askTeacher = useMemo(() => teacherFor(kind, teachers), [kind, teachers]);
   const { t, i18n } = useTranslation();
   const { session } = useAuth();
   const { isPremium } = useSubscription();
@@ -876,6 +886,18 @@ function ReadingScreenBody({
                 {asking ? <ActivityIndicator color={colors.bg} size="small" /> : <Text style={styles.askSendTx}>{t('reading.askSend')}</Text>}
               </PressableScale>
             </View>
+            {/* ★★「○○쌤에게 물어보기」 (Boss 2026-09-03
+                *"관련 카테고리의 ai 선생님으로 이동시키고 그 사람이 대화창에서 설명해 주는걸로"*).
+                ■ 짧은 한 줄 답(위 입력칸)과 **다른 길**이다 — 여기서는 그 사람과 **이어서 대화**한다.
+                ■ 누구에게 갈지는 `teacherFor` 가 정한다(상담가의 `routes` 를 그대로 쓴다 — 새 표 없음).
+                ■ ⚠️여기서 **결제하지 않는다** — 대화창의 게이트가 판정한다. */}
+            {askTeacher ? (
+              <PressableScale style={styles.askTeacher} onPress={() => router.push(`/talk?c=${askTeacher.id}`)}>
+                <Text style={styles.askTeacherTx}>
+                  {t('reading.askTeacher', '{{name}}에게 물어보기', { name: askTeacher.name })}
+                </Text>
+              </PressableScale>
+            ) : null}
         </>
       </View>
     );
@@ -1284,6 +1306,10 @@ const styles = StyleSheet.create({
   askLen: { fontSize: 11, color: colors.inkFaint, alignSelf: 'flex-end', marginBottom: space(3) },
   askSend: { backgroundColor: colors.ju, borderRadius: radius.md, paddingHorizontal: space(4), alignItems: 'center', justifyContent: 'center' },
   askSendOff: { opacity: 0.4 },
+  // 「○○쌤에게 물어보기」 — 짧은 답(위)과 다른 길이라 **선으로 구분**한다
+  askTeacher: { marginTop: space(3), paddingVertical: space(3), borderRadius: radius.md,
+    borderWidth: 1, borderColor: colors.juLine, alignItems: 'center', backgroundColor: colors.juSoft },
+  askTeacherTx: { ...font.body, color: colors.ju, fontWeight: '700', lineHeight: 20 },
   askSendTx: { color: colors.bg, fontWeight: '800', fontSize: 14 },
   askLock: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.ju, borderRadius: radius.md, paddingVertical: space(4), alignItems: 'center' },
   askLockTx: { color: colors.ju, fontWeight: '700', fontSize: 14 },

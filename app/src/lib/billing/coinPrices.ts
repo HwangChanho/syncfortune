@@ -61,8 +61,11 @@ export const AD_FREE_PLANS: { id: 'adfree_30' | 'adfree_forever'; coins: number;
 // ⚠️여기 값은 **표기용**이다. 실제 차감액은 서버 RPC(unlock_chart_feature)가 정한다
 //   — 클라가 금액을 넘기면 "1운 내고 해제"가 되므로. 둘의 일치는 check:coins K7 이 강제한다.
 // ★단위: ₩9,900 ÷ WON_PER_COIN(100) = 100 운.
-export const FEATURE_UNLOCKS: { kind: 'chunghap'; coins: number; ko: string; won: number }[] = [
-  { kind: 'chunghap', coins: 100, ko: '충·합 글자 바꿔 보기', won: 9900 },
+export const FEATURE_UNLOCKS: { kind: 'chung' | 'hap'; coins: number; ko: string; won: number }[] = [
+  // ★충·합은 **따로 판다**(Boss 2026-09-03 *"개별로 비용 발생해야하고 명식별로 다 따로"*).
+  //   ⚠️«명식별로 따로» 는 서버가 이미 그렇다 — `reading_unlocks` PK 가 `(chart_id, kind)` 다.
+  { kind: 'chung', coins: 100, ko: '충 보기', won: 9900 },
+  { kind: 'hap',   coins: 100, ko: '합 보기', won: 9900 },
 ];
 
 /** 화면 기능의 운 가격 — 없으면 null(= 파는 기능이 아니다). */

@@ -156,8 +156,10 @@ function run() {
   }
 
   // ── G8 값 ──────────────────────────────────────────────────────────────
-  const fee = FEATURE_UNLOCKS.find((f) => f.kind === 'chunghap');
-  if (!fee) fail('G8', 'FEATURE_UNLOCKS 에 chunghap 이 없다');
+  // ★2026-09-03 — 충·합을 **따로** 판다(Boss). 두 값이 다 있어야 하고, 서버와도 각각 맞아야 한다.
+  for (const mode of ['chung', 'hap'] as const) {
+  const fee = FEATURE_UNLOCKS.find((f) => f.kind === mode);
+  if (!fee) fail('G8', `FEATURE_UNLOCKS 에 ${mode} 가 없다 — 충·합은 따로 판다`);
   else {
     // ★환산 규약은 «원화 ÷ WON_PER_COIN 을 **10단위로 반올림**»이다(coinPrices.ts COIN_PRICE 주석).
     //   그래서 ₩9,900 은 99 가 아니라 **100 운**이다 — 같은 값의 기존 상품 `love`(₩9,900 → 100운)와 같다.
@@ -165,13 +167,15 @@ function run() {
     const want = Math.round(fee.won / WON_PER_COIN / 10) * 10;
     if (fee.coins !== want) fail('G8', `₩${fee.won} → 규약상 ${want}운인데 ${fee.coins}운으로 적혀 있다`);
     if (fee.won !== 9900) fail('G8', `Boss 가 정한 값은 ₩9,900 인데 ${fee.won} 이다`);
-    const sql = path.join(ROOT, 'supabase/migrations/20260901s_unlock_chart_feature.sql');
+    // ★**가장 나중 것**을 본다 — 함수는 `create or replace` 라 마지막 파일이 실제로 도는 정의다.
+    //   ⚠️처음 만든 파일만 보면 «옛 정의로 검사하는» 하네스가 된다(2026-09-03 에 실제로 그랬다).
+    const sql = path.join(ROOT, 'supabase/migrations/20260903d_split_chung_hap.sql');
     if (!fs.existsSync(sql)) fail('G8', '서버 RPC 마이그레이션이 없다');
     else {
       const body = fs.readFileSync(sql, 'utf8');
-      const m = body.match(/p_kind\s*=\s*'chunghap'\s*then\s*v_cost\s*:=\s*(\d+)/);
-      if (!m) fail('G8', '서버 RPC 에서 chunghap 가격을 못 찾았다');
-      else if (Number(m[1]) !== fee.coins) fail('G8', `★서버 ${m[1]}운 ≠ 앱 표기 ${fee.coins}운 — 화면이 거짓말한다`);
+      const m = body.match(new RegExp(`p_kind\\s*=\\s*'${mode}'\\s*then\\s*v_cost\\s*:=\\s*(\\d+)`));
+      if (!m) fail('G8', `서버 RPC 에서 ${mode} 가격을 못 찾았다`);
+      else if (Number(m[1]) !== fee.coins) fail('G8', `★서버 ${m[1]}운 ≠ 앱 표기 ${fee.coins}운(${mode}) — 화면이 거짓말한다`);
       // ── G9 허용목록 ──
       if (!/return jsonb_build_object\('ok', false, 'error', 'kind'\)/.test(body)) {
         fail('G9', '★서버 RPC 에 허용목록 거절이 없다 — 아무 kind 나 100운에 열린다');
@@ -183,6 +187,7 @@ function run() {
         fail('G9', '★차트 소유 확인이 없다 — 남의 chart_id 로 열면 진짜 주인이 영영 못 연다');
       }
     }
+  }
   }
 }
 
@@ -204,7 +209,8 @@ if (process.argv.includes('--selftest')) {
     { name: 'G5 ★일간이 따라온다', run: () => pillarsOf('chung').c.dayMaster?.stem === '乙' && pillarsOf('hap').c.dayMaster?.stem === '丙' },
     { name: 'G6 대운 간지 불변', run: () => pillarsOf('chung').c.luckCycles?.[0]?.stem === pillarsOf().c.luckCycles?.[0]?.stem },
     { name: '★모르는 글자는 그대로', run: () => swapStem('?', 'chung') === '?' && swapGz('X', 'hap') === 'X' },
-    { name: 'G8 환산 규약(10단위 반올림)', run: () => { const f = FEATURE_UNLOCKS.find((x) => x.kind === 'chunghap')!; return f.coins === Math.round(f.won / WON_PER_COIN / 10) * 10 && f.won === 9900; } },
+    { name: 'G8 환산 규약(10단위 반올림)', run: () => ['chung','hap'].every((k) => { const f = FEATURE_UNLOCKS.find((x) => x.kind === k)!; return !!f && f.coins === Math.round(f.won / WON_PER_COIN / 10) * 10 && f.won === 9900; }) },
+    { name: 'G8 ★충·합이 **따로** 있다', run: () => FEATURE_UNLOCKS.filter((f) => f.kind === 'chung' || f.kind === 'hap').length === 2 },
     { name: '★잘못 적힌 값(50운)을 문다', run: () => 50 !== Math.round(9900 / WON_PER_COIN / 10) * 10 },
     // ★깨진 표를 실제로 무는가 — 표를 일부러 틀리게 만든 사본으로 산식을 태운다
     { name: '★깨진 충 표(5칸)를 문다', run: () => { const bad: Record<string, string> = { 甲: '己' }; const d = (STEMS.indexOf(bad['甲']) - STEMS.indexOf('甲') + 10) % 10; return d !== 6; } },

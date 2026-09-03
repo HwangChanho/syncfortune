@@ -35,23 +35,45 @@ export const canPickImage = Platform.OS !== 'web' && !!Picker;
  * ⚠️여기서는 `quality` 를 낮추지 않는다 — **자른 뒤에** 줄인다. 미리 줄이면
  *   확대했을 때 뭉개진 그림을 저장하게 된다.
  *
- * @returns 원본 경로 · 취소·권한 거부는 `null`
+ * @returns 원본 경로 · 취소는 `null`
+ * ⚠️★**실패는 던진다**(2026-09-03) — 종전엔 무엇이 잘못돼도 `null` 이라
+ *   화면에서는 «취소했다» 와 «모듈이 없다» 와 «권한을 거부했다» 가 **전부 똑같아 보였다.**
+ *   Boss 가 *"모바일 아직도 사진 누르면 안보여"* 라고 했을 때 원인을 못 갈랐던 이유가 이것이다.
+ *   ⇒ 취소만 `null`, 나머지는 **사유를 담아 던진다.** 호출부가 그 말을 사람에게 보여 준다.
  */
+export class PickError extends Error {
+  constructor(public reason: 'no_module' | 'no_permission' | 'failed', message: string) {
+    super(message);
+    this.name = 'PickError';
+  }
+}
+
 export async function pickImageUri(): Promise<string | null> {
-  if (Platform.OS === 'web' || !Picker) return null;
+  if (Platform.OS === 'web') return null;
+  // ★모듈이 없다 — «버튼은 있는데 아무 일도 안 나는» 상태의 진짜 이유다
+  if (!Picker) throw new PickError('no_module', '이 버전에는 사진 고르기가 아직 없어요. 앱을 업데이트해 주세요.');
+  let perm: { granted?: boolean } | null = null;
   try {
-    const perm = await Picker.requestMediaLibraryPermissionsAsync();
-    if (!perm?.granted) return null;
+    perm = await Picker.requestMediaLibraryPermissionsAsync();
+  } catch (e) {
+    // 네이티브가 안 붙어 있으면 여기서 터진다 — 그것도 «모듈 없음» 이다
+    throw new PickError('no_module', '이 버전에는 사진 고르기가 아직 없어요. 앱을 업데이트해 주세요.');
+  }
+  if (!perm?.granted) throw new PickError('no_permission', '사진 접근이 꺼져 있어요. 설정에서 사진 권한을 켜 주세요.');
+  try {
     const r = await Picker.launchImageLibraryAsync({
       mediaTypes: ['images'],
       allowsEditing: false,   // ★자르기는 우리가 한다(위 주석)
       quality: 1,
       exif: false,            // ⚠️위치 정보가 사진에 붙어 나가지 않게
     });
-    if (r?.canceled) return null;
-    return r?.assets?.[0]?.uri ?? null;
-  } catch {
-    return null;
+    if (r?.canceled) return null;              // ★취소만 조용하다
+    const uri = r?.assets?.[0]?.uri;
+    if (!uri) throw new PickError('failed', '사진을 불러오지 못했어요. 다시 시도해 주세요.');
+    return uri;
+  } catch (e) {
+    if (e instanceof PickError) throw e;
+    throw new PickError('failed', '사진을 불러오지 못했어요. 다시 시도해 주세요.');
   }
 }
 

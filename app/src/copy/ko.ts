@@ -641,6 +641,7 @@ export const ko = {
   typematch: { tagStemHap: '천간 합', tagSaeng: '기운 상생', tagBrHap: '지지 합', tagSamhap: '삼합', tagChung: '일지 충', title: '유형 대 유형', lead: '상대가 자기 일주 두 글자만 말해 주면 돼요. 생일을 몰라도 대조할 수 있어요.', me: '나', pick: '상대의 일주를 고르세요', none: '두 글자 사이에 걸리는 합·충이 없어요. 좋고 나쁨이 아니라, 이 축에서는 특별한 끌림도 부딪힘도 안 잡힌다는 뜻이에요.', limit: '이건 일주 두 글자만 본 거예요. 태어난 시간·달까지 보면 훨씬 정확해요.', goCompat: '생일로 정확한 궁합 보기', noChart: '내 명식을 먼저 등록해 주세요.' },
   // 만세력 화면 — ★명리 **용어는 한자 그대로**, 설명만 그 언어로(Boss 2026-08-27)
   ms: {
+    swapBuyMsg2: '이 명식의 여덟 글자를 {{what}} 짝으로 바꿔 봐요. {{coins}} 운으로 이 명식에서 한 번만 열면 계속 볼 수 있어요.',
     aiCall: 'AI 선생님 부르기',
     aiCallSub: '고르면 입력칸에 이름이 들어가요. 묻고 싶은 말을 이어서 쓰면 그 선생님이 답해요.',
     // ★「글자 바꿔 보기」 — 원국 여덟 글자를 충·합 짝으로 갈아 끼운 «가정» 명식(Boss 2026-09-01)
@@ -816,6 +817,7 @@ export const ko = {
     premiumAlert: '깊은 통변', premiumAlertMsg: '건당 {{price}} 결제로 깊은 통변을 봅니다.',
     payPerUse: '{{price}} 결제', bannerPerUse: '✨ 첫 분야만 미리보기예요 — 전체 풀이는 {{price}}', bannerUnlocked: '✨ 결제 완료 — 전체 풀이를 생성해요',
     askTitle: '더 궁금한 점 물어보기', askPh: '이 풀이에서 더 궁금한 점을 물어보세요',
+    askTeacher: '{{name}}에게 물어보기',
     askSend: '질문', askFree: '무료 질문 {{n}}회 남음', askPaid: '무료 질문을 다 썼어요 — 추가 질문은 건당 {{price}}',
     askPremiumTitle: '더 물어보기', askPremiumMsg: '이 풀이에 대해 더 궁금한 점을 물어볼 수 있어요.',
     askPremiumCta: '운으로 더 물어보기', askPayTitle: '추가 질문', askPayMsg: '무료 질문을 다 쓰셨어요. 건당 {{price}}으로 더 물어보시겠어요?',
@@ -994,7 +996,7 @@ export const ko = {
     consentBody: '켜면 친구가 내 사주 원국(여덟 글자)과 궁합을 볼 수 있어요.\n여덟 글자로 생년월일을 되짚을 수 있으니, 믿는 사람에게만 열어 주세요.\n언제든 끌 수 있고, 끄면 바로 안 보여요.',
     consentOn: '친구에게 명식이 보여요.', consentOff: '이제 아무에게도 안 보여요.' },
   // ── 오픈채팅방 (Boss 2026-08-21) ──────────────────────────────────────────
-  room: { alone: '나 혼자 있는 방', this: '이 대화',
+  room: { photo: '사진', alone: '나 혼자 있는 방', this: '이 대화',
     someone: '누군가', ph: '메시지를 입력하세요',
     aiCount: 'AI {{n}}명',
     gone: '없는 방이거나 들어갈 수 없는 방이에요.',

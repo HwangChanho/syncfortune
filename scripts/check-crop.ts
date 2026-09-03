@@ -58,9 +58,19 @@ export function editingOff(src: string): boolean | null {
  */
 export function goesThroughCrop(src: string): boolean {
   const s = strip(src);
-  // ⚠️**부르는 곳 4**(웹 프로필·웹 배경·폰 프로필·폰 배경)만 센다 —
-  //   정의(`const cropThenUpload = async (…)`)는 이 모양에 안 걸린다(호출이 아니다).
-  if ((s.match(/cropThenUpload\s*\(/g) ?? []).length < 4) return false;
+  /**
+   * ⚠️★**개수로 세지 않는다**(2026-09-03 규칙 수정).
+   *   종전엔 «부르는 곳 4회» 를 요구했다. 그런데 폰 두 갈래를 **한 함수로 합치자**
+   *   3회가 되어 멀쩡한 코드가 빨간불이 났다 — 규칙이 «구조» 가 아니라 «횟수» 를 본 탓이다.
+   *   ⇒ 취지는 그대로다: **고른 사진은 반드시 자르기를 거친다.**
+   *     ①`cropThenUpload` 를 실제로 부르는 곳이 **하나라도** 있고
+   *     ②고른 것을 **그대로** 올리는 길이 **없어야** 한다(아래 검사가 진짜 자물쇠다).
+   */
+  if (!/cropThenUpload\s*\(/.test(s)) return false;
+  // ★네 갈래(웹 프로필·웹 배경·폰 프로필·폰 배경)가 다 있는지는 **진입점**으로 본다.
+  for (const entry of ['onPickWeb', 'onCoverFile', 'onPickNative', 'onPickCoverNative']) {
+    if (!new RegExp(`\\b${entry}\\b`).test(s)) return false;
+  }
   // ⚠️**고른 것을 그대로** 올리는 길이 남아 있나 — 그게 곧 «자르기를 건너뛴다» 는 뜻이다.
   //   `f`·`file` = 웹 파일 입력이 준 원본. 자른 뒤 바이트는 다른 이름으로 온다.
   //   ★들여쓰기·자리에 기대지 않는다(리팩터링에 눈이 머는 판정을 안 만든다).
@@ -112,8 +122,8 @@ if (!process.argv.includes('--selftest')) {
   if (!card) fail('C0', `${CARD} 를 못 읽었다`);
   else if (!goesThroughCrop(card)) {
     fail('C2', `${CARD} 가 고른 사진을 **자르기 창으로 안 보낸다**.\n        `
-      + '웹 2갈래(파일 입력) + 폰 2갈래(앨범) = 네 곳이 모두 `cropThenUpload(…)` 으로 모여야 한다\n        '
-      + '(부르는 곳 4회). 자르기를 건너뛰고 **고른 것을 그대로** 올리는 길이 남아 있어도 잡는다.\n        '
+      + '웹 2갈래(파일 입력) + 폰 2갈래(앨범) — **진입점 넷**이 다 있고 자르기를 거쳐야 한다.\n        '
+      + '자르기를 건너뛰고 **고른 것을 그대로** 올리는 길이 남아 있어도 잡는다.\n        '
       + '★한 갈래만 빠져도 그 면에서만 옛 동작이 남는다 — 오늘 프로필 오버레이에서 겪은 그 부류다');
   }
 
@@ -162,9 +172,12 @@ if (!process.argv.includes('--selftest')) {
 
 // ── 음성 테스트 ─────────────────────────────────────────────────────────────
 if (process.argv.includes('--selftest')) {
+  // ★진입점 넷 + 자르기 경유 — **횟수가 아니라 구조**다(2026-09-03 규칙 수정)
   const cardOK = 'const COVER_ASPECT = 9 / 16;\n'
     + 'const cropThenUpload = async (u, k) => { await uploadMyAvatar(img); };\n'
-    + 'cropThenUpload(a,"avatar"); cropThenUpload(b,"cover"); cropThenUpload(c,"avatar"); cropThenUpload(d,"cover");';
+    + 'const onPickWeb = () => {}; const onCoverFile = () => {};\n'
+    + 'const onPickNative = () => { cropThenUpload(a,"avatar"); };\n'
+    + 'const onPickCoverNative = () => { cropThenUpload(b,"cover"); };';
   const cases: Array<{ name: string; run: () => boolean }> = [
     { name: 'C1 allowsEditing: false 면 통과',
       run: () => editingOff(`export async function pickImageUri() {\n allowsEditing: false,\n}`) === true },
@@ -174,9 +187,15 @@ if (process.argv.includes('--selftest')) {
       run: () => editingOff(`export async function pickImage() { allowsEditing: true }\n`
         + `export async function pickImageUri() {\n allowsEditing: false,\n}`) === true },
     { name: 'C1 함수가 없으면 단정하지 않는다', run: () => editingOff('const a = 1;') === null },
-    { name: 'C2 네 갈래가 다 모이면 통과', run: () => goesThroughCrop(cardOK) === true },
-    { name: 'C2 세 갈래만이면 문다',
-      run: () => goesThroughCrop(cardOK.replace('cropThenUpload(d,"cover");', '')) === false },
+    { name: 'C2 진입점 넷 + 자르기면 통과', run: () => goesThroughCrop(cardOK) === true },
+    { name: 'C2 ★진입점 하나가 빠지면 문다',
+      run: () => goesThroughCrop(cardOK.replace('const onPickCoverNative = () => { cropThenUpload(b,"cover"); };', '')) === false },
+    { name: 'C2 ★자르기를 아예 안 부르면 문다',
+      run: () => goesThroughCrop(cardOK.replace(/cropThenUpload\([^)]*\);/g, '')) === false },
+    { name: 'C2 ★두 갈래를 한 함수로 합쳐도 통과(횟수로 안 센다)',
+      run: () => goesThroughCrop('const COVER_ASPECT = 9 / 16;\nconst cropThenUpload = async (u,k)=>{};\n'
+        + 'const pick = (k) => cropThenUpload(u, k);\n'
+        + 'const onPickWeb=()=>{}; const onCoverFile=()=>{}; const onPickNative=()=>pick("avatar"); const onPickCoverNative=()=>pick("cover");') === true },
     { name: 'C2 ★고른 것을 그대로 올리는 길이 남으면 문다(자르기 건너뜀)',
       run: () => goesThroughCrop(`${cardOK}\nconst onFile = async (f) => { await uploadMyCover(f); };`) === false },
     { name: 'C2 자른 바이트를 올리는 것은 정상',

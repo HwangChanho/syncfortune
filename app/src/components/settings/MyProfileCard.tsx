@@ -21,6 +21,7 @@ import { useTranslation } from 'react-i18next';
 import { PressableScale } from '../PressableScale';
 import { loadMyProfile, saveMyName, uploadMyAvatar, clearMyAvatar, uploadMyCover, clearMyCover } from '../../lib/talk/myProfile';
 // ★폰 사진 고르기(Boss 2026-08-28 *"ios는 왜 사진 바꾸기가 안되지"*) — 웹은 종전 <input type=file> 그대로
+import { Alert } from '../../lib/ui/alert';
 import { pickImageUri, bytesOfUri, canPickImage } from '../../lib/media/pickImage';
 import { requestCrop } from '../../lib/media/cropRequest';
 // ★사진 한 장 크게 — 대화창이 쓰는 것과 **같은 창**을 쓴다(따로 만들면 동작이 갈린다)
@@ -147,14 +148,24 @@ export function MyProfileCard({ fallbackName, element }: { fallbackName?: string
    * ★웹 경로(`onFile`)와 **같은 업로드 함수**를 쓴다(경로·정책·버전쿼리 규칙이 한 벌이다).
    * ⚠️취소·권한 거부는 `null` 이라 **아무 말도 하지 않는다** — 사용자가 스스로 접은 것이다.
    */
-  const onPickNative = async () => {
-    const uri = await pickImageUri();     // ★자르기 전 원본 — 편집은 우리 창이 한다
-    if (uri) void cropThenUpload(uri, 'avatar');
+  /**
+   * ★★실패하면 **왜 안 됐는지 말한다** (Boss 2026-09-03 *"모바일 아직도 사진 누르면 안보여"*).
+   *   종전엔 무엇이 잘못돼도 조용히 `null` 이라, 화면에서 «취소했다»·«권한이 없다»·«모듈이 없다» 가
+   *   **전부 똑같아 보였다.** 그래서 원인을 못 갈랐다.
+   *   ⚠️취소는 여전히 조용하다 — 스스로 접은 것에 말을 붙이면 그게 잔소리다.
+   */
+  const pickOrTell = async (kind: 'avatar' | 'cover') => {
+    try {
+      const uri = await pickImageUri();     // ★자르기 전 원본 — 편집은 우리 창이 한다
+      if (uri) void cropThenUpload(uri, kind);
+    } catch (e) {
+      Alert.alert(t('profile.pick', '사진 바꾸기'),
+        e instanceof Error ? e.message : t('common.retryLater', '잠시 후 다시 시도해 주세요.'),
+        [{ text: t('common.confirm', '확인') }], () => {});
+    }
   };
-  const onPickCoverNative = async () => {
-    const uri = await pickImageUri();
-    if (uri) void cropThenUpload(uri, 'cover');
-  };
+  const onPickNative = () => { void pickOrTell('avatar'); };
+  const onPickCoverNative = () => { void pickOrTell('cover'); };
 
   const onClear = async () => { setBusy(true); await clearMyAvatar(); setBusy(false); setAvatar(null); };
 
