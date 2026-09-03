@@ -482,7 +482,7 @@ export const ja = {
   speech: { title: "話し方", row: "タメ口で話す", sub: "オフだと丁寧語で話します。いつでも変更できます。", failTitle: "保存できませんでした", failMsg: "少し経ってからもう一度お試しください。" },
   pay: { working: "決済を確認しています…", okTitle: "チャージしました", okMsg: "{{coins}} 運が入りました。", failTitle: "チャージできませんでした", failMsg: "決済を確認できませんでした。", canceled: "決済がキャンセルされました。", back: "チャージ画面へ" },
   chat: { today: "今日", yesterday: "昨日", },
-  adult: { needVerifyTitle: '本人確認が必要です', needVerifyMsg: '満19歳以上か確認したうえでオンにできます。', verifySoon: '本人確認を準備中です。もう少しお待ちください。', title: 'アダルト会話', row: '満19歳以上です', sub: '相性や親密さの話をぼかさずに話します。' },
+  adult: { noResult: '認証結果を受け取れませんでした。', done: '本人認証が完了しました。大人向けの会話をオンにできます。', failed: '本人認証を完了できませんでした。もう一度お試しください。', needVerifyTitle: '本人確認が必要です', needVerifyMsg: '満19歳以上か確認したうえでオンにできます。', verifySoon: '本人確認を準備中です。もう少しお待ちください。', title: 'アダルト会話', row: '満19歳以上です', sub: '相性や親密さの話をぼかさずに話します。' },
   screen: {
     shared: '共有された鑑定',
     register: '命式の登録',
