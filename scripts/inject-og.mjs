@@ -83,6 +83,79 @@ if (!/viewport-fit=cover/.test(html)) {
 // ★문서 언어 — 기본은 한국어다(`og:locale` 이 ko_KR 인데 `lang="en"` 이었다).
 //   ⚠️여기는 **정적 기본값**일 뿐이다. 회원이 언어를 바꾸면 앱이 `documentElement.lang` 을 갱신한다
 //     (`lib/i18n.ts`) — 이 줄만 바꾸면 영어 회원에게도 ko 가 남는다.
+// ═══════════════════════════════════════════════════════════════════════════
+// ★★사업자·약관·가격을 **초기 HTML 에 정적으로** 심는다 (2026-09-04)
+//
+// ■ 왜 — PG(결제대행사) 심사 봇이 우리 사이트를 열고 **글자 46자**만 봤다.
+//   포트원 사전 점검 6건이 전부 «확인 필요» 로 떴다:
+//     사업자 정보 / 이용약관 / 개인정보처리방침 / 환불 정책 / 상품 등록.
+//   문서는 **다 있었다**(GitHub Pages · 3종 200 OK). 없던 건 «봇이 읽을 수 있는 형태» 였다.
+//   ⇒ SPA(`web.output: "single"`)라 JS 를 안 돌리면 body 가 비어 있다. 봇은 JS 를 안 돈다.
+//
+// ■ ⚠️전자상거래법 필수 고지이기도 하다 — 상호·대표자·주소·연락처·사업자번호.
+//   ★가격은 **코드에서 읽는다**(`coinPrices.ts` 단일 출처) — 손으로 적으면 갈린다
+//   ([[duplicate-ui-single-source]] 의 그 병).
+//
+// ■ SPA 가 뜨면 이 푸터는 화면 밖으로 밀린다(`#legal-static`). 사람 눈에는 안 걸리고
+//   봇·검색엔진에는 읽힌다. 접근성을 위해 `hidden` 은 쓰지 않는다.
+// ═══════════════════════════════════════════════════════════════════════════
+const LEGAL = 'https://hwangchanho.github.io/syncfortune/legal';
+/** 사업자 정보 — 사업자등록증(213-12-37858) 기준. ⚠️바뀌면 여기만 고친다. */
+const BIZ = {
+  name: '싱크코',
+  owner: '황찬호',
+  regNo: '213-12-37858',
+  addr: '(02255) 서울특별시 중랑구 답십리로 403-6, 101호',
+  // ★전자상거래법 필수 공개 항목이라 **반드시** 있어야 한다(PG 사전 점검이 이것만 콕 집어 잡았다).
+  //   Boss 2026-09-04 승인 — 유선전화가 없어 휴대폰을 공개한다.
+  tel: '010-4593-2047',
+  email: 'cksgh0316@gmail.com',
+};
+
+// 가격표를 **소스에서** 뽑는다(정규식 한 줄 — 빌드 시점에 `coinPrices.ts` 를 읽는다).
+//   ⚠️import 하지 않는 이유: 이 스크립트는 순수 node 이고 그 파일은 TS 다.
+const priceSrc = readFileSync('app/src/lib/billing/coinPrices.ts', 'utf8');
+const packs = [...priceSrc.matchAll(/\{\s*id:\s*'(coin_\d+)',\s*coins:\s*(\d+),\s*won:\s*(\d+)/g)]
+  .map((m) => ({ coins: Number(m[2]), won: Number(m[3]) }));
+if (!packs.length) {
+  console.error('❌ coinPrices.ts 에서 가격을 못 읽었다 — 상품 정보가 빈 채로 나가면 PG 심사에서 걸린다');
+  process.exit(1);
+}
+const won = (n) => n.toLocaleString('ko-KR');
+const rows = packs.map((p) => `<li>운 ${won(p.coins)}개 — ${won(p.won)}원</li>`).join('');
+
+const footer = `
+  <footer id="legal-static" style="position:absolute;left:-99999px;top:auto;width:1px;height:1px;overflow:hidden">
+    <h2>판매 상품 및 가격</h2>
+    <p>디지털 콘텐츠(사주·자미두수·타로 운세 풀이) 및 AI 상담 대화 서비스. 앱 내 재화 「운」으로 이용합니다.</p>
+    <ul>${rows}</ul>
+    <h2>사업자 정보</h2>
+    <ul>
+      <li>상호: ${BIZ.name}</li>
+      <li>대표자명: ${BIZ.owner}</li>
+      <li>사업자등록번호: ${BIZ.regNo}</li>
+      <li>사업장 주소: ${BIZ.addr}</li>
+      <li>전화번호: <a href="tel:${BIZ.tel.replace(/-/g, '')}">${BIZ.tel}</a></li>
+      <li>이메일: <a href="mailto:${BIZ.email}">${BIZ.email}</a></li>
+    </ul>
+    <h2>약관 및 정책</h2>
+    <ul>
+      <li><a href="${LEGAL}/terms-ko.html">이용약관</a></li>
+      <li><a href="${LEGAL}/privacy-ko.html">개인정보처리방침</a></li>
+      <li><a href="${LEGAL}/refund-ko.html">환불 및 청약철회 정책</a></li>
+    </ul>
+    <h2>환불·취소·청약철회</h2>
+    <p>구매한 「운」은 사용하지 않은 경우 결제일로부터 7일 이내에 청약철회(전액 환불)가 가능합니다.
+       이미 사용한 콘텐츠는 디지털 콘텐츠의 특성상 환불이 제한될 수 있으며, 자세한 기준은
+       <a href="${LEGAL}/refund-ko.html">환불 및 청약철회 정책</a>을 따릅니다.
+       문의: <a href="mailto:${BIZ.email}">${BIZ.email}</a></p>
+  </footer>
+`;
+if (!html.includes('id="legal-static"')) {
+  html = html.replace('</body>', `${footer}</body>`);
+  console.log(`  ✅ ${FILE} — 사업자·약관·환불·상품(${packs.length}종) 정적 고지 주입`);
+}
+
 html = html.replace(/<html lang="[^"]*"/, '<html lang="ko"');
 html = html.replace(/<title>[^<]*<\/title>/, `<title>${TITLE}</title>`);
 // ⚠️`</head>` **바로 앞**에 넣는다 — 앞쪽에 끼우면 charset 선언보다 먼저 와서 한글이 깨질 수 있다
