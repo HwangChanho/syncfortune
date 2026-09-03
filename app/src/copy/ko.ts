@@ -1265,6 +1265,7 @@ export const ko = {
     kindCoach: '팔자 도우미',
     kindFuture10: '10년 흐름',
     kindQaTopup: '테스트 지급',
+    kindChunghap: '충·합 글자 바꿔 보기',
     coinPack: '{{n}} 운',
     adFree: '광고 제거 {{d}}일',
     kindTalk: '상담가 대화',

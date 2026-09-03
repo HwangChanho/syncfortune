@@ -162,8 +162,14 @@ export async function sendUserMessage(sessionId: string, body: string, myId: str
     8000,
   );
   if (!r || r.error) { console.warn('[userRoom] 보내기 실패', r?.error?.message); return false; }
-  // 목록의 «마지막 대화 시각» 을 올린다 — 안 하면 새 말을 해도 방이 아래에 머문다
-  void supabase.from('talk_sessions').update({ last_at: new Date().toISOString() }).eq('id', sessionId);
+  /**
+   * ★★«마지막 대화 시각» 은 **서버(트리거)가 올린다** — 여기서 안 올린다(2026-09-03).
+   * ■ 왜 뺐나 — 앱이 올리면 **내가 보낼 때만** 올라간다. 상대가 보낸 말·AI 답은 아무도 안 올려
+   *   실측 79 세션 중 **32개**가 최신 메시지보다 뒤처졌다(최대 43시간).
+   *   그 값으로 목록이 «날짜를 적고 정렬까지» 하니 두 가지가 같이 틀렸다.
+   * ■ ⇒ `trg_touch_last_at` 이 메시지가 들어오는 **모든 길**에서 올린다.
+   *   ⚠️여기서 또 올리면 두 곳이 같은 일을 한다 — 갈릴 자리를 남기지 않는다.
+   */
   return true;
 }
 

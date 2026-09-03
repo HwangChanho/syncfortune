@@ -1224,6 +1224,7 @@ export const ja = {
     kindCoach: 'パルジャアシスタント',
     kindFuture10: '10年の流れ',
     kindQaTopup: 'テスト付与',
+    kindChunghap: '冲・合の文字入れ替え',
     coinPack: '{{n}} 運',
     adFree: '広告非表示 {{d}}日',
     kindTalk: '相談員とのチャット',

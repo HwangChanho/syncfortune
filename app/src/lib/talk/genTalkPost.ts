@@ -84,8 +84,8 @@ export async function postGenToTalk(
     });
     if (error) return null;
 
-    // 방의 시각을 올려 목록 맨 위로 — 안 올리면 새 말이 왔는데 목록에서 아래에 묻힌다
-    void supabase.from('talk_sessions').update({ last_at: new Date().toISOString() }).eq('id', sid);
+    // ★«마지막 대화 시각» 은 **서버 트리거**(`trg_touch_last_at`)가 올린다 —
+    //   여기서 올리면 «내가 보낼 때만» 맞는 값이 된다(2026-09-03 · `userRoom.ts` 주석 참조).
     return who.id;
   } catch {
     return null;

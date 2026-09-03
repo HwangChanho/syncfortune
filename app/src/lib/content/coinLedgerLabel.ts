@@ -46,6 +46,10 @@ function contentLabel(kind: string, t: TFunction): string | null {
   if (kind === 'coach') return t('coinHistory.kindCoach', '팔자 도우미');
   if (kind === 'future10') return t('coinHistory.kindFuture10', '10년 흐름');
   if (kind === 'qa_topup') return t('coinHistory.kindQaTopup', '테스트 지급');
+  // ★2026-09-01 신설 — 만세력 「충/합 글자 바꿔 보기」(화면 기능이라 콘텐츠 카드가 없다).
+  //   ⚠️내가 그 기능을 만들면서 **여기 한 줄을 안 더했다** — 바로 위 주석이 시키고 있었는데도.
+  //     `check:coinhistory` H3 가 DB 를 훑다가 잡았다(내역에 «무엇에 썼는지» 가 안 떴다).
+  if (kind === 'chunghap') return t('coinHistory.kindChunghap', '충·합 글자 바꿔 보기');
   return null;
 }
 

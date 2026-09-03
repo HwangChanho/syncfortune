@@ -1225,6 +1225,7 @@ export const en = {
     kindCoach: 'Palja assistant',
     kindFuture10: '10-year flow',
     kindQaTopup: 'Test grant',
+    kindChunghap: 'Clash/Union glyph view',
     coinPack: '{{n}} woon',
     adFree: 'Ad-free {{d}} days',
     kindTalk: 'Consultant chat',
