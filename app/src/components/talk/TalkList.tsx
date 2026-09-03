@@ -382,6 +382,14 @@ export function TalkList({ items, onOpen, selected, myName, onMe, myAvatar, onMy
    * 즐겨찾기는 이제 **묶음 안 정렬**로만 작용한다: 별 켠 사람이 자기 묶음 맨 위로.
    * ★`favTick` 에 의존시킨다 — 즐겨찾기는 모듈 전역 상태라 이게 없으면 별을 눌러도 순서가 안 바뀐다.
    */
+  /**
+   * ★★**「안내」 칸** — 운이·오늘의 운세는 상담가가 아니라 **길잡이**다 (Boss 2026-09-03
+   *   *"운이랑 오늘의 운세는 즐겨찾기 아래 안내로 따로 만들고 거기에 둬"*).
+   * ■ 왜 갈라 놓나 — 「선생님」 칸에 섞여 있으면 «이 사람도 사주를 봐 주나» 로 읽힌다.
+   *   운이는 «뭐 볼지 골라 주는» 사람이고, 오늘의 운세는 사람이 아니라 **화면**이다(`virtual`).
+   * ■ ⚠️id 로 고른다 — 이름은 바뀔 수 있다(운이는 예전에 «나비» 였다).
+   */
+  const GUIDE_IDS = ['guide_nabi', 'fortune_today'];
   const byGroup = useMemo(() => {
     // ★즐겨찾기는 **위 칸으로 빠진다** — 두 곳에 같은 사람이 뜨면 "왜 두 번 있지"가 된다.
     const rest = shown.filter((c) => !isFavorite(c.id));
@@ -402,10 +410,17 @@ export function TalkList({ items, onOpen, selected, myName, onMe, myAvatar, onMy
       if (la !== lb) return String(lb).localeCompare(String(la));   // 최근이 위
       return 0;                                            // 나머지는 원래 순서
     });
-    return { teacher: fresh.filter((c) => c.group === 'teacher'), friend: fresh.filter((c) => c.group === 'friend') };
+    // ★안내(운이·오늘의 운세)는 **여기서 뺀다** — 아래 별도 칸이 그린다(두 곳에 뜨면 안 된다)
+    const rest2 = fresh.filter((c) => !GUIDE_IDS.includes(c.id));
+    return { teacher: rest2.filter((c) => c.group === 'teacher'), friend: rest2.filter((c) => c.group === 'friend') };
   }, [shown, favTick]);
   /** 즐겨찾기 칸 — 서버 순서 그대로(별을 켠 순서가 아니라 목록 순서라야 매번 같은 자리다). */
   const favRows = useMemo(() => shown.filter((c) => isFavorite(c.id)), [shown, favTick]);
+  /** 안내 줄 — 즐겨찾기로 이미 위에 올라간 것은 뺀다(두 번 뜨면 같은 사람이 둘로 보인다). */
+  const guideRows = useMemo(
+    () => shown.filter((c) => GUIDE_IDS.includes(c.id) && !isFavorite(c.id)),
+    [shown, favTick],
+  );
   // ★친구 중 즐겨찾기한 사람 — 상담가와 **같은 판정**(`isFavorite`)을 쓴다
   const favPeople = useMemo(() => people.filter((p) => isFavorite(p.id)), [people, favTick]);
 
@@ -599,6 +614,20 @@ export function TalkList({ items, onOpen, selected, myName, onMe, myAvatar, onMy
         </>
       ) : null}
 
+
+      {/* ── 안내 (운이 · 오늘의 운세) ────────────────────────────
+          ★즐겨찾기 **바로 아래**(Boss 문면). 상담가 묶음보다 위다 — 처음 온 사람이 먼저 만나야 한다.
+          ⚠️검색 중이거나 「친구」 칩일 때는 안 그린다(그때는 이 칸이 잡음이다). */}
+      {!q.trim() && filter !== 'friend' && guideRows.length > 0 ? (
+        <>
+          <Text style={styles.groupHead}>{t('talk.groupGuide', '✦ 안내')}</Text>
+          <Text style={styles.groupSub}>{t('talk.groupGuideSub', '무엇을 볼지 함께 골라 줘요.')}</Text>
+          {guideRows.map((c) => (
+            <Row key={c.id} c={c} initial={initialOf(c.id)} slot={slotOf(c.id)}
+                 on={selected === c.id} onOpen={onOpen} onPhoto={openPhoto} t={t as never} />
+          ))}
+        </>
+      ) : null}
 
       {/* ── 친구 ── */}
       {/* ★두 묶음을 **나눠서** 보여 준다(콘티) — 섞으면 "사주 상담"과 "생활 친구"가 뒤엉킨다.

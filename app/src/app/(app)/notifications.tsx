@@ -77,7 +77,17 @@ export default function NotificationsScreen() {
 
   return (
     <ScrollView style={styles.wrap} contentContainerStyle={[styles.body, { paddingTop: insets.top + space(4) }]}>
-      <Text style={styles.title}>{t('notify.title', '알림')}</Text>
+      {/* ★제목 줄 오른쪽에 «전체 지우기» (Boss 2026-09-03 *"알림창에 전체 지우기는 우측 상단에 버튼으로 따로 빼"*).
+          ⚠️목록 위가 아니라 **제목과 같은 줄**이다 — 목록이 길면 목록 위 버튼은 스크롤에 묻힌다. */}
+      <View style={styles.titleRow}>
+        <Text style={styles.title}>{t('notify.title', '알림')}</Text>
+        {st && !('error' in st) && st.items.length > 0 ? (
+          <PressableScale style={styles.clearAll} onPress={() => void removeAll()}
+            accessibilityLabel={t('notify.clearAll', '전체 지우기')}>
+            <Text style={styles.clearAllTx}>{t('notify.clearAll', '전체 지우기')}</Text>
+          </PressableScale>
+        ) : null}
+      </View>
 
       {st === null ? (
         <View style={styles.center}><ActivityIndicator color={colors.ju} /></View>
@@ -94,11 +104,7 @@ export default function NotificationsScreen() {
         </View>
       ) : (
         <View style={styles.list}>
-          {/* ★한 번에 비우기 — 한 줄씩만 지울 수 있으면 «안 지워진다» 가 된다(위 `removeAll` 주석) */}
-          <PressableScale style={styles.clearAll} onPress={() => void removeAll()}
-            accessibilityLabel={t('notify.clearAll', '전체 지우기')}>
-            <Text style={styles.clearAllTx}>{t('notify.clearAll', '전체 지우기')}</Text>
-          </PressableScale>
+
           {st.items.map((it, i, arr) => {
             const inner = (
               <>
@@ -137,6 +143,8 @@ const styles = StyleSheet.create({
   wrap: { flex: 1, backgroundColor: colors.bg },
   // 하단 여백 170 = 광고 배너 50 + 하단 내비 86 + 홈 인디케이터 34(check:bottominset 기준)
   body: { paddingHorizontal: space(4), paddingBottom: 170 },
+  // 제목 줄 — 왼쪽 제목·오른쪽 «전체 지우기»
+  titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   title: { fontSize: 20, lineHeight: 28, fontWeight: '900', color: colors.ink, letterSpacing: -0.3, marginBottom: space(3) },
   center: { alignItems: 'center', paddingVertical: space(12), gap: space(3) },
   emptyTx: { ...font.body, color: colors.inkSoft, textAlign: 'center' },
@@ -152,7 +160,7 @@ const styles = StyleSheet.create({
   rowDate: { ...font.caption, color: colors.inkFaint },
   // ★지우기 — 눌리는 면적은 넓게, 글자는 작고 옅게(«지우기» 가 주인공이 되면 안 된다)
   // 전체 지우기 — 목록 오른쪽 위. 눈에 띄되 알림보다 세지 않게(글자만)
-  clearAll: { alignSelf: 'flex-end', paddingHorizontal: space(3), paddingVertical: space(2) },
+  clearAll: { paddingHorizontal: space(2), paddingVertical: space(1.5), marginBottom: space(3) },
   clearAllTx: { ...font.caption, color: colors.inkSoft, fontWeight: '700' },
   rowX: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center', marginLeft: space(1) },
   rowXTx: { fontSize: 14, color: colors.inkFaint, fontWeight: '800' },

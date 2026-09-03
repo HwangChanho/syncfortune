@@ -50,6 +50,9 @@ function contentLabel(kind: string, t: TFunction): string | null {
   //   ⚠️내가 그 기능을 만들면서 **여기 한 줄을 안 더했다** — 바로 위 주석이 시키고 있었는데도.
   //     `check:coinhistory` H3 가 DB 를 훑다가 잡았다(내역에 «무엇에 썼는지» 가 안 떴다).
   if (kind === 'chunghap') return t('coinHistory.kindChunghap', '충·합 글자 바꿔 보기');
+  // ★`followup`(추가 질문) — 풀이 **안에서** 쓰는 것이라 콘텐츠 카드가 없다.
+  //   ⚠️`check:coinhistory` H3 가 DB 를 훑다 잡았다(누군가 실제로 썼는데 이름이 안 떴다).
+  if (kind === 'followup') return t('coinHistory.kindFollowup', '추가 질문');
   return null;
 }
 

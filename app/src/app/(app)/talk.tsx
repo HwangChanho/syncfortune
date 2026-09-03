@@ -1313,7 +1313,7 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
                   setUserRoom(null);
                   const c = list.find((x) => x.id === r.consultantId); if (c) open(c, r);
                 }}
-                onLeave={(r) => setAskLeave({ sessionId: r.sessionId, name: r.name })} />
+                onLeave={(r) => { void onLeaveRoom({ sessionId: r.sessionId, name: r.name }); }} />
     : <TalkList items={list} onOpen={open} selected={cur?.id} myName={myName} myAvatar={myAvatar} onOpenProfile={setProfile}
                       railKeys={order} onMe={() => setPerson({ kind: 'me', name: myName })}
                       /* ★내 사진 → **남들과 같은 프로필 창**(Boss 2026-08-29) */
@@ -1359,24 +1359,41 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
     bumpChats();
   }, [bumpChats, clearTimers, setSid]);
 
-  const onLeaveRoom = useCallback(async () => {
-    const target = askLeave;
+  /**
+   * ★★**나가기는 묻지 않는다 — 바로 나간다** (Boss 2026-09-03
+   *   *"채팅방 나가기 누르면 확인 안눌러도 바로 나가게 하고"*).
+   * ■ Boss 가 준 **전체 원칙**을 여기서부터 적용한다:
+   *   *"UI는 유저가 봤을때 바로 적용되고 … 리턴이 실패로 오면 롤백하는 구조"*
+   *   ⇒ 화면을 **먼저** 바꾸고, 서버가 실패하면 **되돌린다.**
+   * ■ ⚠️되돌릴 것을 **먼저 적어 둔다** — 안 그러면 무엇으로 돌아갈지 모른다.
+   */
+  const onLeaveRoom = useCallback(async (arg?: { sessionId: string; name: string }) => {
+    const target = arg ?? askLeave;
     if (!target) return;
     setAskLeave(null);
-    // ★사람 방이면 **RPC 로** 나간다 — 남은 사람에게 「누가 나갔습니다」가 남아야 한다(Boss 지시).
-    //   상담가 방은 그냥 지운다(*"ai일경우 그냥 바로 방을 폭파시키면 되고"*).
-    //   ⚠️어느 쪽인지 화면이 판단하지 않는다 — **서버가** 인원을 세어 정하고 결과를 돌려준다.
-    const viaRpc = await leaveUserRoom(target.sessionId);
-    const r = viaRpc ? { ok: true } : await leaveRoom(target.sessionId);
-    if (!r.ok) return;                       // ★실패하면 화면을 안 바꾼다(지운 척하지 않는다)
-    if (userRoom === target.sessionId) setUserRoom(null);
+    const hadUserRoom = userRoom === target.sessionId;   // 되돌릴 자리
+    if (hadUserRoom) setUserRoom(null);                  // ①화면 먼저
     if (curSidRef.current === target.sessionId) {
-      // 열려 있던 방을 나갔다 — 대화창을 닫는다(빈 화면이 «지워졌다» 는 가장 정직한 표시다)
       genRef.current++; clearTimers(); setBusy(false);
       setSid(null); setCur(null); setMates([]); setItems([]); setNotes([]); setJumpTo(null); setNotice(null);
     }
     bumpChats();
-  }, [askLeave, bumpChats, clearTimers, setSid, userRoom]);
+    // ★사람 방이면 **RPC 로** 나간다 — 남은 사람에게 「누가 나갔습니다」가 남아야 한다(Boss 지시).
+    //   상담가 방은 그냥 지운다(*"ai일경우 그냥 바로 방을 폭파시키면 되고"*).
+    //   ⚠️어느 쪽인지 화면이 판단하지 않는다 — **서버가** 인원을 세어 정하고 결과를 돌려준다.
+    // ②서버 — 사람 방이면 RPC(남은 사람에게 「누가 나갔습니다」가 남는다). 어느 쪽인지는 서버가 정한다.
+    const viaRpc = await leaveUserRoom(target.sessionId);
+    const r = viaRpc ? { ok: true } : await leaveRoom(target.sessionId);
+    if (!r.ok) {
+      // ③롤백 — 서버가 못 지웠으면 **없던 일로** 되돌린다(지운 척하지 않는다)
+      // ⚠️★되돌릴 때도 **짝을 맞춘다** — 사람 방을 되살리면 상담가 방은 닫혀 있어야 한다.
+      //   안 그러면 «두 방이 겹친» 상태가 된다(`check:roomswitch` R2 가 이걸 잡았다).
+      if (hadUserRoom) { setUserRoom(target.sessionId); setCur(null); }
+      bumpChats();
+      Alert.alert(t('common.error'), t('common.retryLater', '잠시 후 다시 시도해 주세요.'),
+        [{ text: t('common.confirm', '확인') }], () => {});
+    }
+  }, [askLeave, bumpChats, clearTimers, setSid, userRoom, t]);
 
   const onDeleteThread = useCallback(async () => {
     if (!cur) return;
@@ -1641,7 +1658,10 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
           처음엔 대화창 안에 뒀는데, 방이 안 열려 있으면 그 칸 자체가 안 그려져
           **목록에서 우클릭해도 아무 일이 안 났다**(실측으로 잡았다 — 핸들러는 붙어 있었다).
           ＋ 버튼이 웹에서 죽어 있던 것과 **같은 유형**이다(`check:talkoverlay`). */}
-      {askLeave ? <LeaveBar name={askLeave.name} onCancel={() => setAskLeave(null)} onOk={onLeaveRoom} t={t as never} /> : null}
+      {/* ★확인 바를 안 그린다 (Boss 2026-09-03 *"확인 안눌러도 바로 나가게"*).
+          대신 **실패하면 되돌린다**(`onLeaveRoom` 의 ③롤백). 되돌릴 길이 없는 일만 물어야 한다.
+          ⚠️`askLeave` 상태는 남겨 둔다 — 다른 곳에서 확인이 필요해지면 그대로 쓴다. */}
+      {askLeave ? <LeaveBar name={askLeave.name} onCancel={() => setAskLeave(null)} onOk={() => { void onLeaveRoom(); }} t={t as never} /> : null}
       <ProfileSheet target={profile} onClose={() => setProfile(null)} />
       {/* ★사람 상세 — 내 명식·친구가 **같은 패널**이다(종전엔 두 갈래였다).
           「대화에서 부르기」는 입력창에 `@이름` 을 넣어 준다 — 화면을 안 떠나고 이어서 물을 수 있다. */}
@@ -1756,7 +1776,7 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
                   setUserRoom(null);
                   const c = list.find((x) => x.id === r.consultantId); if (c) open(c, r);
                 }}
-                      onLeave={(r) => setAskLeave({ sessionId: r.sessionId, name: r.name })} />
+                      onLeave={(r) => { void onLeaveRoom({ sessionId: r.sessionId, name: r.name }); }} />
           </View>
         )}
         <View style={styles.main}>
@@ -1768,7 +1788,7 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
               myId={session?.user?.id ?? ''}
               mention={roomMention}
               onInvite={() => setInviteOpen(true)}
-              onLeave={() => setAskLeave({ sessionId: userRoom, name: t('room.this', '이 대화') })}
+              onLeave={() => { void onLeaveRoom({ sessionId: userRoom, name: t('room.this', '이 대화') }); }}
             />
           ) : cur ? (
             <>
@@ -1849,7 +1869,7 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
           myId={session?.user?.id ?? ''}
           onBack={() => setUserRoom(null)}
           onInvite={() => setInviteOpen(true)}
-          onLeave={() => setAskLeave({ sessionId: userRoom, name: t('room.this', '이 대화') })}
+          onLeave={() => { void onLeaveRoom({ sessionId: userRoom, name: t('room.this', '이 대화') }); }}
         />
         {overlays}
       </View>
