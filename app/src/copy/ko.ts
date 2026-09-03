@@ -982,7 +982,7 @@ export const ko = {
   fcompat: { save: "내 목록에 담기", saved: "담았어요", gone: '친구 목록에 없는 사람이에요.',
     notShared: '{{name}}님이 아직 명식을 열지 않았어요.\n상대가 「친구에게 내 명식 보여주기」를 켜면 볼 수 있어요.',
     noMe: '내 명식을 먼저 등록해야 궁합을 볼 수 있어요.', chart: '{{name}}님의 명식' },
-  friends: { remove: '친구 끊기', removeTitle: '친구를 끊을까요?',
+  friends: { consentFail: '저장하지 못했어요. 다시 시도해 주세요.', acceptFail: '수락하지 못했어요. 다시 눌러 주세요.', removeFail: '지우지 못했어요. 다시 눌러 주세요.', remove: '친구 끊기', removeTitle: '친구를 끊을까요?',
     removeMsg: '{{name}} 님과 친구를 끊어요. 나누던 대화방도 닫혀요.',
     title: '친구', myCode: '내 친구 코드', codeHint: '이 코드를 알려주면 상대가 나를 추가할 수 있어요.',
     addByCode: '코드로 추가', codePh: '친구 코드 6자리', add: '신청', pending: '대기 중', mates: '내 친구',

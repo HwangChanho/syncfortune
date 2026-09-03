@@ -131,7 +131,13 @@ export default function CommunityPostScreen() {
   }
   function onDeleteComment(cid: string) {
     Alert.alert(t('community.delTitle', '삭제할까요?'), '', [
-      { text: t('common.delete', '삭제'), style: 'destructive' as const, onPress: async () => { try { await deleteComment(cid); await load(); } catch { Alert.alert('!', '삭제 실패'); } } },
+      // ★낙관적 — **먼저 지우고** 서버로 보낸다. 실패하면 다시 읽어 되돌린다(Boss 2026-09-03).
+      { text: t('common.delete', '삭제'), style: 'destructive' as const, onPress: async () => {
+        const before = comments;
+        setComments((prev) => prev.filter((c) => c.id !== cid));
+        try { await deleteComment(cid); }
+        catch { setComments(before); Alert.alert('!', '삭제 실패'); void load(); }
+      } },
       { text: t('common.cancel', '취소'), style: 'cancel' as const },
     ]);
   }

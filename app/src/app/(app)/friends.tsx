@@ -51,6 +51,30 @@ export default function FriendsScreen() {
 
   const flash = (m: string) => { setMsg(m); setTimeout(() => setMsg(null), 2800); };
 
+  /**
+   * ★낙관적 반영 — **화면을 먼저 바꾸고** 서버에 보낸다(Boss 2026-09-03:
+   *   *"UI는 유저가 봤을때 바로 적용되고 그게 서버에 반영이 안돼서 리턴이 실패로 오면 롤백하는 구조"*).
+   *   서버 왕복(최대 8초)을 기다리면 «눌렀는데 아무 일도 안 나는» 구간이 생겨 두 번 누르게 된다.
+   *
+   * @param apply 지금 목록을 어떻게 바꿔 보일지(null 이면 그대로)
+   * @param send  서버에 보내는 일. `false` 를 주면 **되돌린다**
+   * @param failMsg 되돌릴 때 사용자에게 할 말
+   */
+  const optimistic = useCallback(async (
+    apply: (prev: Friend[]) => Friend[],
+    send: () => Promise<boolean>,
+    failMsg: string,
+  ) => {
+    const before = rows;                          // ★되돌릴 자리를 **보내기 전에** 잡는다
+    setRows((prev) => (prev ? apply(prev) : prev));
+    const ok = await send();
+    if (!ok) {
+      setRows(before);                            // ★거짓말을 남기지 않는다
+      flash(failMsg);
+      void reload();                              // 서버의 진짜 상태로 한 번 더 맞춘다
+    }
+  }, [rows, reload]);
+
   /** 신청 — ★결과를 사유별로 다르게 말한다. */
   const onAdd = async () => {
     setBusy(true);
@@ -74,8 +98,14 @@ export default function FriendsScreen() {
    * ★끄는 것은 바로 되고, **켜는 것만** 무엇이 열리는지 확인시킨다 — 위험한 방향에만 문턱을 둔다.
    */
   const onConsent = async (on: boolean) => {
+    setConsent(on);                               // ★스위치는 **손가락을 떼는 순간** 움직인다
     const ok = await setShareConsent(on);
-    if (ok) { setConsent(on); flash(on ? t('friends.consentOn', '친구에게 명식이 보여요.') : t('friends.consentOff', '이제 아무에게도 안 보여요.')); }
+    if (!ok) {
+      setConsent(!on);                            // ★실패하면 되돌린다 — 안 켜졌는데 켜져 보이면 위험하다
+      flash(t('friends.consentFail', '저장하지 못했어요. 다시 시도해 주세요.'));
+      return;
+    }
+    flash(on ? t('friends.consentOn', '친구에게 명식이 보여요.') : t('friends.consentOff', '이제 아무에게도 안 보여요.'));
   };
 
   if (!session) {
@@ -145,8 +175,14 @@ export default function FriendsScreen() {
           <Text style={styles.section}>{t('friends.pending', '대기 중')} {pending.length}</Text>
           {pending.map((f, i) => (
             <Row key={f.otherId} f={f} slot={i} t={t as never}
-                 onAccept={async () => { if (await acceptFriend(f.otherId)) void reload(); }}
-                 onRemove={async () => { if (await removeFriend(f.otherId)) void reload(); }} />
+                 onAccept={() => void optimistic(
+                   (prev) => prev.map((x) => (x.otherId === f.otherId ? { ...x, status: 'accepted' } : x)),
+                   () => acceptFriend(f.otherId),
+                   t('friends.acceptFail', '수락하지 못했어요. 다시 눌러 주세요.'))}
+                 onRemove={() => void optimistic(
+                   (prev) => prev.filter((x) => x.otherId !== f.otherId),
+                   () => removeFriend(f.otherId),
+                   t('friends.removeFail', '지우지 못했어요. 다시 눌러 주세요.'))} />
           ))}
         </>
       ) : null}
@@ -158,7 +194,10 @@ export default function FriendsScreen() {
       ) : mates.map((f, i) => (
         <Row key={f.otherId} f={f} slot={i} t={t as never}
              onOpen={() => router.push(`/friendcompat?friend=${f.otherId}`)}
-             onRemove={async () => { if (await removeFriend(f.otherId)) void reload(); }} />
+             onRemove={() => void optimistic(
+               (prev) => prev.filter((x) => x.otherId !== f.otherId),
+               () => removeFriend(f.otherId),
+               t('friends.removeFail', '지우지 못했어요. 다시 눌러 주세요.'))} />
       ))}
     </ScrollView>
   );

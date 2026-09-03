@@ -953,7 +953,7 @@ export const en = {
   fcompat: { save: "Add to my list", saved: "Added", gone: 'They are not in your friend list.',
     notShared: "{{name}} hasn't shared their chart yet.\nThey can turn on 'Show my chart to friends' to let you see it.",
     noMe: 'Add your own chart first to see compatibility.', chart: "{{name}}'s chart" },
-  friends: { remove: 'Remove friend', removeTitle: 'Remove this friend?',
+  friends: { consentFail: 'Could not save that. Please try again.', acceptFail: 'Could not accept. Tap again to retry.', removeFail: 'Could not remove. Tap again to retry.', remove: 'Remove friend', removeTitle: 'Remove this friend?',
     removeMsg: 'You will no longer be friends with {{name}}, and your chat room will close.',
     title: 'Friends', myCode: 'My friend code', codeHint: 'Share this code so others can add you.',
     addByCode: 'Add by code', codePh: '6-character code', add: 'Request', pending: 'Pending', mates: 'Friends',

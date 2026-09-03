@@ -952,7 +952,7 @@ export const ja = {
   fcompat: { save: "マイリストに追加", saved: "追加しました", gone: '友だちリストにいません。',
     notShared: '{{name}}さんはまだ命式を公開していません。\n相手が「友だちに命式を見せる」をオンにすると見られます。',
     noMe: '先に自分の命式を登録すると相性が見られます。', chart: '{{name}}さんの命式' },
-  friends: { remove: '友だちを解除', removeTitle: '友だちを解除しますか？',
+  friends: { consentFail: '保存できませんでした。もう一度お試しください。', acceptFail: '承認できませんでした。もう一度押してください。', removeFail: '削除できませんでした。もう一度押してください。', remove: '友だちを解除', removeTitle: '友だちを解除しますか？',
     removeMsg: '{{name}} さんとの友だちを解除します。やり取りしていたトークルームも閉じます。',
     title: '友だち', myCode: '私の友だちコード', codeHint: 'このコードを教えると相手が追加できます。',
     addByCode: 'コードで追加', codePh: '友だちコード6桁', add: '申請', pending: '保留中', mates: '友だち',

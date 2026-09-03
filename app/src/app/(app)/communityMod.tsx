@@ -24,9 +24,12 @@ export default function CommunityModScreen() {
   }, []);
   useEffect(() => { load(); }, [load]);
 
+  // ★낙관적 — 숨김 상태를 **먼저 뒤집고** 서버로 보낸다. 실패하면 되돌린다(Boss 2026-09-03).
   async function toggleHide(it: ModItem) {
-    try { await adminHide(it.kind, it.id, !it.hidden); await load(); }
-    catch { Alert.alert('!', '처리 실패'); }
+    const on = !it.hidden;
+    setItems((prev) => prev.map((x) => (x.id === it.id && x.kind === it.kind ? { ...x, hidden: on } : x)));
+    try { await adminHide(it.kind, it.id, on); }
+    catch { Alert.alert('!', '처리 실패'); void load(); }
   }
 
   if (loading) return <View style={styles.center}><ActivityIndicator color={colors.ju} /></View>;

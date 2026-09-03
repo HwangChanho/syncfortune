@@ -248,7 +248,11 @@ export function TalkHome({ renderTop, renderBottom, mode = 'contacts' }: { rende
         defaultValue: '{{name}} 님과 친구를 끊어요. 나누던 대화방도 닫혀요.' }),
       [{ text: t('common.cancel'), style: 'cancel' },
        { text: t('friends.remove', '친구 끊기'), style: 'destructive',
-         onPress: () => { void removeFriend(id).then((ok) => { if (ok) void listFriends().then(setFriends); }); } }],
+         // ★낙관적 — 목록에서 **먼저 지우고** 서버에 보낸다. 실패하면 되돌린다(Boss 2026-09-03).
+         onPress: () => {
+           setFriends((prev) => prev.filter((x) => x.otherId !== id));
+           void removeFriend(id).then((ok) => { if (!ok) void listFriends().then(setFriends); });
+         } }],
       () => {},
     );
   };
