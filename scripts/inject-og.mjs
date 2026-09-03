@@ -14,6 +14,9 @@
 // 사용: npm run build:web  (export 뒤에 자동으로 돈다)
 // ═══════════════════════════════════════════════════════════════════════════
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
+// ★사업자 정보는 **단일 출처**에서 읽는다(문서·하네스와 같은 값).
+//   ⚠️여기 다시 적으면 `docs/legal/refund-*.md` 와 갈린다 — 그래서 갈렸던 것을 고친 것이다.
+import { BIZ, mailOrderLabel, webPacks } from './biz-info.mjs';
 
 const FILE = 'app/dist/index.html';
 /** 공유 카드에 뜨는 주소. ⚠️커스텀 도메인이 생기면 **여기만** 바꾼다. */
@@ -27,8 +30,15 @@ if (!existsSync(FILE)) {
 }
 let html = readFileSync(FILE, 'utf8');
 
-if (html.includes('og:image')) {
-  console.log('  이미 들어 있습니다 — 건너뜁니다.');
+// ⚠️★2026-09-04: 종전엔 여기서 `og:image` 만 보고 **스크립트 전체를 끝냈다.**
+//   그러면 법정 고지 주입(`#legal-static`)이 **og 주입에 얹혀 있게** 된다 —
+//   훗날 og 태그가 다른 경로로 들어오는 순간 고지는 조용히 사라지고, 아무도 모른다.
+//   ⇒ 둘은 **서로 다른 관심사**다. 각자 «이미 있으면 건너뛴다»로 멱등하게 두고,
+//     **둘 다** 있을 때만 일찍 끝낸다.
+const hasOg = html.includes('og:image');
+const hasLegal = html.includes('id="legal-static"');
+if (hasOg && hasLegal) {
+  console.log('  이미 들어 있습니다(og·법정고지 둘 다) — 건너뜁니다.');
   process.exit(0);
 }
 
@@ -100,27 +110,11 @@ if (!/viewport-fit=cover/.test(html)) {
 //   봇·검색엔진에는 읽힌다. 접근성을 위해 `hidden` 은 쓰지 않는다.
 // ═══════════════════════════════════════════════════════════════════════════
 const LEGAL = 'https://hwangchanho.github.io/syncfortune/legal';
-/** 사업자 정보 — 사업자등록증(213-12-37858) 기준. ⚠️바뀌면 여기만 고친다. */
-const BIZ = {
-  name: '싱크코',
-  owner: '황찬호',
-  regNo: '213-12-37858',
-  addr: '(02255) 서울특별시 중랑구 답십리로 403-6, 101호',
-  // ★전자상거래법 필수 공개 항목이라 **반드시** 있어야 한다(PG 사전 점검이 이것만 콕 집어 잡았다).
-  //   Boss 2026-09-04 승인 — 유선전화가 없어 휴대폰을 공개한다.
-  tel: '010-4593-2047',
-  email: 'cksgh0316@gmail.com',
-};
 
-// 가격표를 **소스에서** 뽑는다(정규식 한 줄 — 빌드 시점에 `coinPrices.ts` 를 읽는다).
-//   ⚠️import 하지 않는 이유: 이 스크립트는 순수 node 이고 그 파일은 TS 다.
-const priceSrc = readFileSync('app/src/lib/billing/coinPrices.ts', 'utf8');
-const packs = [...priceSrc.matchAll(/\{\s*id:\s*'(coin_\d+)',\s*coins:\s*(\d+),\s*won:\s*(\d+)/g)]
-  .map((m) => ({ coins: Number(m[2]), won: Number(m[3]) }));
-if (!packs.length) {
-  console.error('❌ coinPrices.ts 에서 가격을 못 읽었다 — 상품 정보가 빈 채로 나가면 PG 심사에서 걸린다');
-  process.exit(1);
-}
+// 가격표는 **웹 채널 가격**으로 뽑는다(`biz-info.mjs` 가 `coinPrices.ts` 를 읽는다).
+//   ⚠️★여기가 스토어 정가를 실으면 «고지 9,900원 · 청구 7,200원» 이 된다(2026-09-04 실측으로 갈렸다).
+//     이 푸터는 **웹 산출물**에 들어간다 — 이 사이트가 실제로 받는 값을 적어야 한다.
+const packs = webPacks();
 const won = (n) => n.toLocaleString('ko-KR');
 const rows = packs.map((p) => `<li>운 ${won(p.coins)}개 — ${won(p.won)}원</li>`).join('');
 
@@ -134,6 +128,7 @@ const footer = `
       <li>상호: ${BIZ.name}</li>
       <li>대표자명: ${BIZ.owner}</li>
       <li>사업자등록번호: ${BIZ.regNo}</li>
+      <li>통신판매업 신고번호: ${mailOrderLabel('ko')}</li>
       <li>사업장 주소: ${BIZ.addr}</li>
       <li>전화번호: <a href="tel:${BIZ.tel.replace(/-/g, '')}">${BIZ.tel}</a></li>
       <li>이메일: <a href="mailto:${BIZ.email}">${BIZ.email}</a></li>
@@ -159,7 +154,7 @@ if (!html.includes('id="legal-static"')) {
 html = html.replace(/<html lang="[^"]*"/, '<html lang="ko"');
 html = html.replace(/<title>[^<]*<\/title>/, `<title>${TITLE}</title>`);
 // ⚠️`</head>` **바로 앞**에 넣는다 — 앞쪽에 끼우면 charset 선언보다 먼저 와서 한글이 깨질 수 있다
-html = html.replace('</head>', `${meta}  </head>`);
+if (!hasOg) html = html.replace('</head>', `${meta}  </head>`);
 writeFileSync(FILE, html);
 
 const n = (html.match(/og:|twitter:/g) ?? []).length;

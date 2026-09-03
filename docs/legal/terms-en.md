@@ -5,7 +5,7 @@ title: Terms of Service
 
 # SyncFortune Terms of Service
 
-**Effective date: June 30, 2026 · Last updated: July 23, 2026**
+**Effective date: June 30, 2026 · Last updated: September 4, 2026**
 
 ## 1. Purpose
 These Terms govern the conditions of use of the mobile application **SyncFortune** (the "Service") provided by SyncFortune (the "Operator"), and the rights and obligations of users and the Operator.
@@ -52,6 +52,7 @@ These Terms are interpreted under the laws of the Republic of Korea.
 
 ---
 
-**Service Operator: SyncFortune**
+**Service Operator: 싱크코 (registered trade name, Republic of Korea)**
+**Business registration no.: 213-12-37858**
 **Representative: Hwang Chanho**
 **Contact: cksgh0316@gmail.com**

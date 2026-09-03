@@ -33,6 +33,7 @@ import { supabase } from '../../lib/supabase';             // 로그아웃
 import { BusyOverlay } from '../../components/BusyOverlay'; // 긴 콜백(로그아웃·삭제) 로딩 오버레이
 import { setAuthBusy } from '../../lib/ui/authBusy'; // 로그아웃 전환 전역 블로킹(먹통 방지)
 import { colors, radius, space, shadow, font } from '../../lib/theme'; // ★다크/라이트 토글 제거·로딩 3모드(video/text/off, daniel 2026-07-15)
+import { BIZ, mailOrderLabel } from '../../lib/bizInfo';   // ★사업자 정보 단일 출처(전자상거래법 제10조 표시)
 import { luckAlertsOn, setLuckAlerts } from '../../lib/backend/luckAlerts';   // 상담가 알림 스위치(Boss 2026-08-25)
 
 // ★언어 목록은 **여기서 만들지 않는다** — `lib/i18n.ts` 가 단일 출처다(Boss 2026-08-26 *"하드코딩은 한곳으로 모아"*).
@@ -50,6 +51,8 @@ const LANGS: { key: AppLang; label: string }[] = APP_LANGS.map((k) => ({ k, labe
 //   ⚠️버리는 게 아니라 **옮겨져 있다** — 버그 제보가 `build_no` 로 따로 올린다(`bugreport.tsx:71` 실측).
 //     그래서 어느 빌드에서 난 문제인지는 여전히 알 수 있다.
 const APP_VERSION = String(Constants.expoConfig?.version ?? '1.0.0');
+// ★환불·청약철회 정책 — 「운 충전」 화면(`coins.tsx`)과 **같은 주소**를 본다.
+const REFUND_URL = 'https://hwangchanho.github.io/syncfortune/legal/refund-ko.html';
 const TERMS_URL = 'https://hwangchanho.github.io/syncfortune/legal/terms-ko.html';     // GitHub Pages(정식)
 // ★★개인정보처리방침 — **전용 주소**로 옮겼다 (Boss 2026-08-28
 //   *"개인정보는 따로 url 파서 거기에 실제 비즈니스용으로 만들어"*).
@@ -87,6 +90,8 @@ export default function SettingsScreen() {
     });
   }, []);
   const { t, i18n } = useTranslation();
+  // ★통신판매업 «준비 중» 문구만 언어를 탄다(상호·번호·주소는 번역하지 않는 식별 정보다).
+  const bizLang: 'ko' | 'en' | 'ja' = i18n.language?.startsWith('en') ? 'en' : i18n.language?.startsWith('ja') ? 'ja' : 'ko';
   // ── 커뮤니티(전면 익명·닉네임은 설정에서만) ──
   const [nick, setNick] = useState('');
   const [ilju, setIlju] = useState(false);
@@ -555,7 +560,25 @@ export default function SettingsScreen() {
             메일 주소는 bugreport 화면으로 옮겼다 — 전송 실패 시 거기서 폴백으로 안내한다(주소는 한 곳에만). */}
         <PressableScale style={styles.infoRow} onPress={() => router.push('/bugreport?from=settings')}>
           <Text style={styles.infoLabel}>{t('settings.bugReport', '버그 제보 · 문의')}</Text><Text style={styles.infoArrow}>›</Text></PressableScale>
+        <PressableScale style={styles.infoRow} onPress={() => Linking.openURL(REFUND_URL).catch(() => {})}><Text style={styles.infoLabel}>{t('settings.refund', '환불 및 청약철회 정책')}</Text><Text style={styles.infoArrow}>›</Text></PressableScale>
         <PressableScale style={[styles.infoRow, styles.infoRowLast]} onPress={() => Alert.alert(t('settings.license', '오픈소스 라이선스'), OSS_LICENSES)}><Text style={styles.infoLabel}>{t('settings.license', '오픈소스 라이선스')}</Text><Text style={styles.infoArrow}>›</Text></PressableScale>
+      </View>
+
+{/* ── 사업자 정보 ── ★전자상거래법 제10조 «신원 및 거래조건에 대한 정보의 제공».
+    ⚠️왜 화면에 두나 — 종전엔 **웹 초기 HTML 의 1×1 px 푸터**에만 있었다(봇 전용 · 의도된 설계).
+      앱으로 결제하는 사람은 그것을 **볼 수 없다.** 법이 요구하는 상대는 봇이 아니라 소비자다.
+    ★값은 `lib/bizInfo.ts` 단일 출처 — 약관 사이트 문서와의 일치는 `check:bizinfo` 가 강제한다. */}
+      <Text style={[styles.h, { marginTop: space(7) }]}>{t('settings.bizHead', '사업자 정보')}</Text>
+      <View style={styles.infoCard}>
+        <View style={styles.infoRow}><Text style={styles.infoLabel}>{t('settings.bizName', '상호')}</Text><Text style={styles.bizVal}>{BIZ.name}</Text></View>
+        <View style={styles.infoRow}><Text style={styles.infoLabel}>{t('settings.bizOwner', '대표자')}</Text><Text style={styles.bizVal}>{BIZ.owner}</Text></View>
+        <View style={styles.infoRow}><Text style={styles.infoLabel}>{t('settings.bizRegNo', '사업자등록번호')}</Text><Text style={styles.bizVal}>{BIZ.regNo}</Text></View>
+        <View style={styles.infoRow}><Text style={styles.infoLabel}>{t('settings.bizMailOrder', '통신판매업 신고번호')}</Text><Text style={styles.bizVal}>{mailOrderLabel(bizLang)}</Text></View>
+        <View style={styles.infoRow}><Text style={styles.infoLabel}>{t('settings.bizAddr', '주소')}</Text><Text style={styles.bizVal}>{BIZ.addr}</Text></View>
+        <PressableScale style={styles.infoRow} onPress={() => Linking.openURL(`tel:${BIZ.tel.replace(/-/g, '')}`).catch(() => {})}>
+          <Text style={styles.infoLabel}>{t('settings.bizTel', '전화')}</Text><Text style={[styles.bizVal, { color: colors.ju }]}>{BIZ.tel}</Text></PressableScale>
+        <PressableScale style={[styles.infoRow, styles.infoRowLast]} onPress={() => Linking.openURL(`mailto:${BIZ.email}`).catch(() => {})}>
+          <Text style={styles.infoLabel}>{t('settings.bizEmail', '이메일')}</Text><Text style={[styles.bizVal, { color: colors.ju }]}>{BIZ.email}</Text></PressableScale>
       </View>
 
       {/* 계정 삭제(App Store 필수) — 파괴적 동작이라 맨 하단 배치(daniel). ★등록 유저만(익명은 '계정' 없음 — 데이터는 앱 삭제로 제거) */}
@@ -600,6 +623,9 @@ const styles = StyleSheet.create({
   infoRowLast: { borderBottomWidth: 0 },
   infoLabel: { ...font.body, color: colors.ink },
   infoVal: { ...font.body, color: colors.inkSoft },
+  // ★사업자 정보 값 — 주소가 길다. `infoVal` 을 그대로 쓰면 라벨을 밀어내거나 잘린다.
+  //   `flexShrink` + 우측 정렬로 **접히게** 둔다(자르면 소실이다 — [[list-truncation-hides-content]]).
+  bizVal: { ...font.body, color: colors.inkSoft, flexShrink: 1, textAlign: 'right', marginLeft: space(4) },
   infoArrow: { ...font.body, color: colors.inkFaint, fontSize: 18 },
   acctEmail: { ...font.body, color: colors.ink, flexShrink: 1, marginRight: space(3) },
   acctAction: { color: colors.ju, fontWeight: '700', fontSize: 14 },

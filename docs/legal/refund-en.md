@@ -5,7 +5,7 @@ title: Niwoon — Cancellation and Refund Policy
 
 # Cancellation and Refund Policy
 
-**Last updated: 2026-08-31**
+**Last updated: 2026-09-04**
 
 This policy follows the Korean *Act on Consumer Protection in Electronic Commerce*.
 Where this policy conflicts with the law, the law prevails.
@@ -55,18 +55,20 @@ Remaining **paid** woon will be refunded as announced in the closure notice.
 
 ## Business information
 
-> ⚠️ To be filled in after business registration. Required before payments open.
+Disclosed under Article 10 of the Korean Act on Consumer Protection in Electronic Commerce.
 
 | | |
 |---|---|
-| Company | (pending) |
-| Representative | (pending) |
-| Business registration no. | (pending) |
-| E-commerce registration no. | (pending) |
-| Address | (pending) |
-| Email | (pending) |
-| Phone | (pending) |
+| Company | 싱크코 (registered trade name, Republic of Korea) |
+| Representative | 황찬호 (Hwang Chanho) |
+| Business registration no. | 213-12-37858 |
+| E-commerce registration no. | Filing in progress |
+| Address | (02255) 서울특별시 중랑구 답십리로 403-6, 101호 |
+| Email | cksgh0316@gmail.com |
+| Phone | 010-4593-2047 |
 | Hosting | Cloudflare, Inc. · Supabase, Inc. |
+
+> ℹ️ The e-commerce registration number will be listed here once the filing is complete.
 
 ---
 
